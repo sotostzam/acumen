@@ -1,0 +1,30 @@
+\documentclass{report}
+\usepackage{listings}
+\usepackage{url}
+
+% style of inline code
+\lstset{
+  basicstyle=\small\ttfamily,
+  keywordstyle=\color{black}\bfseries,
+  identifierstyle=,         
+  commentstyle=\color{gray},
+  stringstyle=\ttfamily,
+  showstringspaces=false,
+}
+
+\title{Acumen Documentation}
+
+
+\begin{document}
+
+\maketitle
+\tableofcontents
+
+\include{getting_started}
+\include{error_messages}
+\include{setup}
+\include{roadmap}
+\include{release_notes}
+
+\end{document}
+

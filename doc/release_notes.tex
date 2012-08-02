@@ -1,0 +1,85 @@
+\section{Release Notes}
+\subsection{version 10.10.28 (October 28th 2010)}
+
+\begin{itemize}
+    \item user can now select the number of threads for the parallel interpreter
+    \item minor GUI improvements: mnemonics, recall last export image dimension... 
+\end{itemize}
+
+\subsection{version 10.10.27 (October 27th 2010)}
+
+\begin{itemize}
+    \item user can now select the number of threads for the parallel interpreter
+    \item fixed the non-detection of duplicate classes 
+\end{itemize}
+
+\subsection{version 10.10.26 (October 26th 2010)}
+
+\begin{itemize}
+    \item user can now select the number of threads for the parallel interpreter
+    \item added a web link to the tutorial
+    \item added an about box
+    \item changed the application layout
+    \item choice between 3 plotting styles (dots, lines, dots+lines); addresses  issue 9  
+\end{itemize}
+
+\subsection{version 10.10.25 (October 25th 2010)}
+
+\begin{itemize}
+    \item user can now select the number of threads for the parallel interpreter
+    \item the object are plotted in the order they were created 
+\end{itemize}
+
+\subsection{version 10.10.23 (October 23th 2010)}
+
+\begin{itemize}
+    \item user can now select the number of threads for the parallel interpreter
+    \item added "upload" action to sbt file that uploads a release on google code (issue 30)
+    \item the version number is now based on date in the sbt file
+    \item fixed the UI hanging when pressing pause bug (issue 29)
+\end{itemize}
+
+\subsection{version 10.10.11 (October 19th 2010)}
+
+\begin{itemize}
+    \item user can now select the number of threads for the parallel interpreter
+    \item added a back button (issue 6)
+    \item display cursor information on one line (fixes  issue 1)
+    \item fixed the store pretty printing bug (issue 24)
+    \item allows for hiding magic fields and nextChild fields (issue 2)
+    \item fixed the "Magic not found" bug in the GUI (issue 31)
+    \item added an export image option
+    \item switched to hi constrast icons 
+\end{itemize}
+
+\subsection{version 10.10.11 (October 11th 2010)}
+
+\begin{itemize}
+    \item user can now select the number of threads for the parallel interpreter
+    \item Changed the build system from ant to sbt; addresses  issue 28 . The generated archive is now much smaller.
+    \item The random tests using scalacheck work again. 
+\end{itemize}
+
+\subsection{version 10.09.30 (September 30th 2010)}
+
+\begin{itemize}
+    \item user can now select the number of threads for the parallel interpreter
+    \item it is now possible to create objects inside Main's private section; fixes  issue 25 
+    \item \lstinline{~=} is now interpreted; fixes  issue 23 
+    \item it is now possible to move one's direct child to one of its children; fixes  issue 22 
+    \item semicolons are now accepted at the end of an instruction block, but are optional; addresses  issue 20 
+    \item variable and class identifiers are now free to start with either a lowercase or an upprcase letter; they may also contain underscores; addresses  issue 19 
+    \item Exception generation was not localized in Acumen's internal source code. This made it harder to keep manuals and tutorials consistent, and to check user-level error reports for consistency and style. This has been fixed by localizing in one place where the text for user-level error reports is generated; addresses  issue 17 
+    \item it is now allowed to write if condition statements end (without an else clause); addresses  issue 16 
+    \item no more mode passed to Main: use private variable instead; addresses  issue 12 
+    \item the convention is now that Main's first argument is called simulator; addresses  issue 11 
+    \item gensym is now local (as opposed to accessing a global counter): objects ids are now hierarchical (e.g. \lstinline{#1.0.2})
+    \item the application logic of the UI is now clean and separate from the interaction/drawing code
+    \item switch from SwingWorker to actor based concurrency for the UI
+    \item turned names into atoms (huge speedup)
+    \item conformance tests of reference and parallel interpreters are run on every example (ant test)
+    \item added a benchmark command-line option for parallel interpreter (bench)
+    \item added a parallel interpreter (command-line only for now)
+    \item got rid of explicit "init" in the UI
+    \item merged play and pause buttons
+\end{itemize}

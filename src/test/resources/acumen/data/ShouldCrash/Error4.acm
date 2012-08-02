@@ -1,0 +1,3 @@
+// unknown op
+
+class Main(simulator) simulator.timeStep = f(1,2) end

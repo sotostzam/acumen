@@ -1,0 +1,10 @@
+/* test object creation in the private section of main */
+
+class A(x) end
+
+class Main(sim)
+  private 
+    x = create A(1);
+    y = create A(2)
+  end
+end

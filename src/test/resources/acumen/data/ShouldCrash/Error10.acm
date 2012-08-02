@@ -1,0 +1,23 @@
+// class B is not declared
+
+class A() end
+
+class Main(simulator)
+  private
+    x = create A();
+    mode = "Init";
+    y = 0
+  end
+  simulator.timeStep = 1;
+  simulator.endTime = 1;
+  switch mode
+    case "Init"
+      if x.className == type(B)
+        y = 1
+      else
+        y = 2
+      end;
+      mode = "Idle"
+    case "Idle"
+  end
+end

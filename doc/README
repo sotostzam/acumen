@@ -1,0 +1,13 @@
+Acumen Documentation
+--------------------
+
+To compile it:
+
+  pdflatex main.tex
+
+Requires the (standard) following packages:
+
+ - listings
+ - url
+
+

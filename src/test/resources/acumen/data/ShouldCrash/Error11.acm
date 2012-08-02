@@ -1,0 +1,5 @@
+// class A is defined twice
+
+class A() end
+class Main(s) end
+class A() end

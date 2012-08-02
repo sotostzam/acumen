@@ -1,0 +1,57 @@
+class RandomBall(mode, time)
+  private
+    b = create Ball("Fly", 1, 1,0,0);
+    rg = create RandomGen(time)
+  end
+  rg.time = time;
+  b.k = rg.rndUnit
+end
+
+class Ball(mode, k, x,x',x'')
+  switch mode
+    case "Fly"
+      if x < 0 && x' < 0
+        mode = "Bounce"
+      else
+        x'' [=] -9.8
+      end
+    case "Bounce"
+      x' = -abs(k) * x';
+      mode = "Fly"
+  end
+end
+
+class RandomGen(time)
+  private
+    mZ = 1;
+    mW = 2;
+    rndUnit = 1;
+    unsigned = 0;
+    lastWrite = time
+  end
+  if time > lastWrite
+    mZ = 36969 * (mZ & 65535) + (mZ >> 16);
+    mW = 18000 * (mW & 65535) + (mW >> 16);
+    unsigned = (mZ << 16) + (mW & 65535);
+    rndUnit = (unsigned + 1) * 2.328306435454494e-10;
+    lastWrite = time
+  else
+  end
+end
+
+class Main(simulator)
+  private
+    mode = "Init"
+  end
+  switch mode
+    case "Init"
+      simulator.timeStep = 0.01;
+      simulator.endTime = 10;
+      create RandomBall("Init", simulator.time);
+      self.mode = "Persist"
+    case "Persist"
+      for o = self.children
+        o.time = simulator.time
+      end
+  end
+end

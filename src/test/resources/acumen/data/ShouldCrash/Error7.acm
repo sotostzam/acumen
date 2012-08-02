@@ -1,0 +1,9 @@
+// accessing a field not of self or of self's children
+
+class Main(simulator)
+  create A(self)
+end
+
+class A(main)
+  main.mode = "Foo"
+end

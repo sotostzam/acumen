@@ -1,0 +1,2 @@
+// not an object id
+class Main(simulator) move simulator 1 end

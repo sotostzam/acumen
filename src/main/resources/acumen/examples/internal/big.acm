@@ -1,0 +1,30 @@
+class A(n, mode)
+  private
+    x = 0
+  end
+  switch mode
+    case "Spread"
+      if n > 0
+        create A(n-1, "Spread");
+        create A(n-1, "Spread")
+      else
+      end;
+      mode = "DoStuff"
+    case "DoStuff"
+      x [=] sum i*i for i in 1:2000 if true
+  end
+end
+
+class Main(simulator)
+  private
+    mode = "Init"
+  end
+  switch mode
+    case "Init"
+      simulator.timeStep = 1;
+      simulator.endTime = 10;
+      create A(8, "Spread");
+      mode = "Persist"
+    case "Persist"
+  end
+end

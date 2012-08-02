@@ -1,0 +1,34 @@
+class BallGalaxy(mode)
+  switch mode
+    case "Init"
+      create Ball ([1,1,1],       [10,0,-10], [0,0,0], [0,0,0], 200);
+      create Ball ([1.5,1.5,1.5], [-10,0,10], [0,0,0], [0,0,0], 200);
+      //create Ball ([4,1,1.5],     [0,30,0],   [0,0,0], [0,0,0], 1);
+      //create Ball ([-5,1,-1.5],   [0,-30,0],  [0,0,0], [0,0,0], 2);
+      //create Ball ([1,-10,1],     [40,0,0],   [0,0,0], [0,0,0], 3);
+      mode = "Constellate"
+    case "Constellate"
+      for c1 = children
+        c1.force = sum c2.m * (c2.p - c1.p) / (norm(c2.p - c1.p) ^ 3)
+                     for c2 in children if not(c1 == c2)
+      end
+  end
+end
+
+class Ball(p,p',p'', force, m)
+  p'' [=] force
+end
+
+class Main(simulator)
+  private
+    mode = "Init"
+  end
+  switch mode
+    case "Init"
+      simulator.timeStep = 0.01;
+      simulator.endTime = 20;
+      create BallGalaxy("Init");
+      mode = "Persist"
+    case "Persist"
+  end
+end

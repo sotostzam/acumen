@@ -1,0 +1,22 @@
+/* example from the iccps paper, figure 7 (f) */
+
+class System(x,x',x'', theta,theta',theta'', a, b)
+  a [=] cos(theta);
+  b [=] sin(theta);
+  theta'' [=] (4 * a * x - 4 * a * b * theta' - 686/5 * b) / (56/3 - 4 * a^2);
+  x'' [=] 2/7 * b * theta' ^ 2 - 2/7 * a * theta'' - 2/7 * x
+end
+
+class Main(simulator)
+  private
+    mode = "Init"
+  end
+  switch mode
+    case "Init"
+      simulator.timeStep = 0.01;
+      simulator.endTime = 50.0;
+      create System(2,0,0, 0,0,0, 1, 0);
+      mode = "Persist"
+    case "Persist"
+  end
+end

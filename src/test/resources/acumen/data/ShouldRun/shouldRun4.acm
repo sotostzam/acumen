@@ -1,0 +1,15 @@
+class A() end
+
+class Main(sim)
+  private
+    mode = "M1";
+    c1 = create A();
+    c2 = create A()
+  end
+  switch mode
+    case "M1"
+      move c1 c2;
+      mode = "M2"
+    case "M2"
+  end
+end

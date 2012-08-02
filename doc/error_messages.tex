@@ -1,0 +1,267 @@
+\section{List of error messages}
+\subsubsection{Interpreter Errors}
+
+The following errors are raised by the interpreter. This means they can occur both in the command-line and the graphical versions of Acumen.
+\subsubsection{Parse Error}
+
+Example:
+
+\begin{lstlisting}
+[2.1] failure: ``class'' expected but identifier cass found
+
+cass B() end
+^
+\end{lstlisting}
+
+Here, [2.1] reads "line 2, column 1".
+\subsubsection{Found no instance of class classname.}
+
+Example:
+
+\begin{lstlisting}
+Found no instance of class Main.
+\end{lstlisting}
+
+Should never happen in a regular Acumen program written using the GUI.
+\subsubsection{Class classname is not defined.}
+
+A program tries to create a class that has not been defined.
+\subsubsection{value is not an object.}
+
+For instance, the program
+\begin{lstlisting}
+...
+(1+2).x = 4
+...
+\end{lstlisting}
+%
+will raise
+%
+\begin{lstlisting}
+3 is not an object
+\end{lstlisting}
+
+\subsubsection{Cannot convert value into a type.}
+
+For instance, the program
+%
+\begin{lstlisting}
+...
+"a" + 1.5
+...
+\end{lstlisting}
+%
+will raise
+%
+\begin{lstlisting}
+Cannot convert "a" into a float.
+\end{lstlisting}
+
+\subsubsection{value is not a vector or a list.}
+
+For instance, the program
+%
+\begin{lstlisting}
+...
+for i=1+2 
+  x = x+i
+end
+...
+\end{lstlisting}
+%
+will raise
+%
+\begin{lstlisting}
+3 is not a vector or a list.
+\end{lstlisting}
+
+\subsubsection{Unknown operator name}
+
+An undefined function has been invoked. For instance:
+%
+\begin{lstlisting}
+foo(1,2)
+\end{lstlisting}
+%
+as opposed to
+%
+\begin{lstlisting}
+sqrt(2)
+\end{lstlisting}
+%
+which is defined.
+\subsubsection{Cross product only defined over vectors of size 3.}
+
+When trying to perform a cross product over vector the length of which is not 3.
+\subsubsection{name is not a valid vector-vector operation.}
+
+For instance, the program
+%
+\begin{lstlisting}
+v = 1:10;
+w = 1:20;
+res = v / w
+\end{lstlisting}
+%
+is not valid since \lstinline{/} is not defined over vectors.
+\subsubsection{name is not a valid operation over vectors.}
+%
+For instance, the program
+%
+\begin{lstlisting}
+sqrt(1:10)
+\end{lstlisting}
+%
+is not valid since \lstinline{sqrt} is not defined over lists.
+\subsubsection{name is not a valid operation over lists.}
+
+For instance, the program
+%
+\begin{lstlisting}
+sqrt(self.children)
+\end{lstlisting}
+%
+is not valid since sqrt is not defined over vectors.
+\subsubsection{name is not a valid scalar-vector operation.}
+
+For instance, the program
+%
+\begin{lstlisting}
+2.5 .* (1:10)
+\end{lstlisting}
+%
+will raise
+%
+\begin{lstlisting}
+.* is not a valid scalar-vector operation.
+\end{lstlisting}
+
+\subsubsection{name is not a valid vector-scalar operation.}
+
+For instance, the program
+%
+\begin{lstlisting}
+(1:10) .* 2.5
+\end{lstlisting}
+%
+will raise
+%
+\begin{lstlisting}
+.* is not a valid vector-scalar operation.
+\end{lstlisting}
+
+\subsubsection{Too many arguments in the construction of classname.}
+
+This error occurs when too many arguments are passed to a class constructor during creation.
+\subsubsection{Not enough arguments in the construction of classname.}
+
+This error occurs when too many arguments are passed to a class constructor during creation.
+\subsubsection{Variable name not declared}
+
+This happens when a program try to read or write a variable that has not been declared (either as a class parameter or as a private variable).
+\subsubsection{Object id is not self (i.e. id) nor a child of self (i.e. id1, id2, ...).}
+
+This message is raised whenever a program tries to access an object's field, the latter object being neither self nor a direct child of self.
+\subsubsection{Object id is not a child of id.}
+
+This happens during a "bad move":
+%
+\begin{lstlisting}
+...
+move o1.x o2
+...
+\end{lstlisting}
+%
+would raise this error whenever the object designated by o1.x is not a child of o1.
+\subsubsection{No case matching value.}
+
+For instance, the program
+%
+\begin{lstlisting}
+...
+switch (1+2)
+  case 1
+    ...
+  case 2
+    ...
+end
+...
+\end{lstlisting}
+%
+will raise
+%
+\begin{lstlisting}
+No case matching 3.
+\end{lstlisting}
+
+\subsubsection{The left hand-side of an assignment must be of the form 'e.x'.}
+
+This error happens when the interpreter encounters a statement of the form
+%
+\begin{lstlisting}
+x = 2
+\end{lstlisting}
+%
+instead of
+%
+\begin{lstlisting}
+o.x = 2
+\end{lstlisting}
+
+Since Acumen inserts self whenever needed, this should never happen in a regular Acumen program.
+\subsubsection{The left hand-side of an equation must be a field.}
+
+This may happen with a program like
+%
+\begin{lstlisting}
+1 = 2
+\end{lstlisting}
+
+However, this should never happen in a regular Acumen program, since a error saying is not of the form e.x should be raised beforehand.
+\subsubsection{Move statements must have the form 'move o1.x o2'}
+
+For instance, the program
+%
+\begin{lstlisting}
+...
+move x o2 
+...
+\end{lstlisting}
+%
+will raise such an error. Since Acumen inserts self whenever needed, this should never happen in a regular Acumen program.
+\subsubsection{GUI Errors}
+
+The following errors may be raised by the graphical user interface only.
+\subsubsection{Simulation's time is not a double.}
+
+This error occurs when the simulation's time has been set to a string for example.
+\subsubsection{Simulation's stepType is not a step type.}
+
+This error occurs when the simulation's stepType has been set to a string for example.
+\subsubsection{Can only state when state or state}
+
+For instance
+
+\begin{lstlisting}
+Can only play when Paused or Stopped.
+\end{lstlisting}
+
+This should normally never happen since the GUI prevents the user from clicking on "play" when the simulation is already running.
+\subsubsection{Command-Line errors}
+
+The following errors may be raised by the command-line version only.
+\subsubsection{Bad program options. Valid options are ...}
+
+This may be raised by
+%
+\begin{lstlisting}
+./acumen foo 
+\end{lstlisting}
+%
+for instance, since foo is not a valid option.
+\subsubsection{Special Errors}
+
+The following errors are very special.
+\subsubsection{The "impossible" has just happened! ...}
+
+As the rest of the message states, if this occurs, please report a bug at \url{http://code.google.com/p/acumen-language/issues/} including the program that has led to that error. 

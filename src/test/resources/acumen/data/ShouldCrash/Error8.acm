@@ -1,0 +1,45 @@
+// in Test: c1.x.y is not a child of self
+
+class Main(simu)
+  private 
+    mode = "Init" 
+  end
+  switch mode
+    case "Init"
+      simu.timeStep = 1;
+      simu.endTime = 1;
+      create Test("Init");
+      mode = "Idle"
+    case "Idle"
+  end
+end
+
+class Test(mode)
+  private 
+    c1 = create A();
+    c2 = create A()
+  end
+
+  switch mode
+    case "Init"
+      mode = "Reparent"
+    case "Reparent"
+      move (c1.x).y c2;
+      mode = "Done"
+    case "Done"
+  end
+end
+
+class A()
+  private
+    x = create B()
+  end
+end
+
+class B() 
+  private
+    y = create C()
+  end
+end
+
+class C() end

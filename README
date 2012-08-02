@@ -1,0 +1,17 @@
+
+TO COMPILE AND RUN ACUMEN
+-------------------------
+
+Follow the instructions at http://code.google.com/p/simple-build-tool/wiki/Setup
+
+TO TROUBLE SHOOT
+----------------
+
+A graphical user interface should start immediately.  If not, please
+contact the project-acumen-l@mailman.rice.edu and include
+
+  1) The name of the OS that you are using (Windows, Mac OS X, etc),
+  2) Any specific version information you might have about the OS,
+  3) The version of Java that you are using.  To check which version
+     of Java you have, please use the website:  http://javatester.org/
+

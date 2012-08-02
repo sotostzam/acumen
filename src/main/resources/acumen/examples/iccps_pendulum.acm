@@ -1,0 +1,31 @@
+class Pendulum(theta,theta',theta'',  f)
+  if abs(theta) < 3.1416/100
+    f = 0
+  else
+    if theta' > 0
+      f = -1
+    else
+      f = 1
+    end
+  end;
+
+  /* the following is
+      theta'' [=] (f*l*cos(theta) - m*g*l*sin(theta)) / (m * l^2)
+     where l [=] 3, m [=] 5 and g [=] 9.8 have been inlined
+  */
+  theta'' [=] (f*3*cos(theta) - 5*9.8*3*sin(theta)) / (5 * 3^2)
+end
+
+class Main(simulator)
+  private
+    mode = "Init"
+  end
+  switch mode
+    case "Init"
+      simulator.timeStep = 0.1;
+      simulator.endTime = 100.0;
+      create Pendulum(0.1,0,0, 0);
+      mode = "Persist"
+    case "Persist"
+  end
+end
