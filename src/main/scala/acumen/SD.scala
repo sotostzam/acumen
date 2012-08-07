@@ -25,9 +25,10 @@ object SD {
   }
 
   def runAction(action: Action): Action = action match {
-    case IfThenElse(cond, t, as) => IfThenElse(cond, t, as) // TODO Do we need to apply dif here?
-    case Switch(subject, clauses) => Switch(subject, clauses) // TODO Do we need to apply dif here?
-    case ForEach(it, col, body) => ForEach(it, col, body) // TODO Do we need to apply dif here?
+    case IfThenElse(cond, t, as) => {
+      IfThenElse(runExpr(cond), t map runAction, as map runAction)} // TODO Do we need to apply dif here?
+    case Switch(subject, clauses) => Switch(runExpr(subject), clauses map runClause) // TODO Do we need to apply dif here?
+    case ForEach(it, col, body) => ForEach(it, runExpr(col), body map runAction) // TODO Do we need to apply dif here?
     case Continuously(continousAction) => Continuously(continousAction match {
       case Equation(lhs, rhs) =>
         Equation(
@@ -42,9 +43,17 @@ object SD {
           lhs, // TODO To support DAEs we probably need to apply dif here also  
           runExpr(rhs))
     })
-    case Discretely(discreteAction) => Discretely(discreteAction) // TODO Do we need to apply dif here?
+    case Discretely(discreteAction) => Discretely(discreteAction match{
+      case Assign(lhs:Expr, rhs:Expr) => 
+        Assign(
+          lhs, 
+          runExpr(rhs))
+      case _ => discreteAction
+    }) // TODO Do we need to apply dif here?
   }
-
+  
+  def runClause(c:Clause): Clause = Clause(c.lhs, c.rhs map runAction)
+  
   /**
    * Apply symbolic differentiation (dif) to an expression.
    * This is done by traversing the expression tree, looking for subexpressions 
@@ -60,7 +69,8 @@ object SD {
           // n is the variable w.r.t which we are diffing 
           case List(f, Var(n)) => dif(f)(n)
         }
-        case _ => e
+        // Example: 1 + dif(x^2)
+        case _ => Op(opName,args map runExpr)
       }
       case _ => e
     }
@@ -100,7 +110,6 @@ object SD {
     n match {
       /* Operators */
       case "sin" => es match {
-        // FixMe: GDouble(0) or GInt(0)
         case Lit(GDouble(0)) :: Nil => literal(0)
         case _ => mem(Op(name("sin"), es))
       }
