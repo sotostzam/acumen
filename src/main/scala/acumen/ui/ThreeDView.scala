@@ -76,12 +76,14 @@ class ThreeDView()   extends BorderPanel{
 		/* Transorm group for mouse rotation */
     val objRotate = new TransformGroup( new Transform3D())
     objRotate.setCapability(TransformGroup.ALLOW_TRANSFORM_WRITE)    
+    objRotate.setCapability(TransformGroup.ALLOW_TRANSFORM_READ)
     val myMouseRotate = new MouseRotate(objRotate)
     myMouseRotate.setSchedulingBounds(sphere)
     
     /* Transform group for mouse zoom */
     val objZoom = new TransformGroup()
     objZoom.setCapability(TransformGroup.ALLOW_TRANSFORM_WRITE)
+    objZoom.setCapability(TransformGroup.ALLOW_TRANSFORM_READ)
     val myMouseZoom = new MouseZoom(objZoom)
     myMouseZoom.setSchedulingBounds(sphere)    
         
@@ -236,9 +238,9 @@ class _3DDisplay(app:ThreeDView,slider:Slider3d,
 					}
 					val frame = (currentFrame - bufferFrame(buffer.head)).toInt
 					transformObject(List(id,objectNumber),app.trans,buffer,currentFrame)
+          if (frame >= 0 && frame < buffer.size)
 					checkLook(List(id,objectNumber),lastLook,buffer,currentFrame,buffer(frame))
-				}
-				else {
+        } else {
 					deleteObj(List(id,objectNumber))
 				}           
 			}
@@ -296,9 +298,9 @@ class _3DDisplay(app:ThreeDView,slider:Slider3d,
        case _ => throw  ShouldNeverHappen()
      }     
  }
- def bufferType(list:List[_]):Option[String] ={
+  def bufferType(list: List[_]): String = {
      list(0) match{
-       case p:String => Some(p)
+      case p: String => p
        case _ => throw  ShouldNeverHappen()
      }     
  }
@@ -347,13 +349,16 @@ class _3DDisplay(app:ThreeDView,slider:Slider3d,
   **/ 
  def transformObject(id:List[_],trans:Map[List[_],TransformGroup],
                      buffer:scala.collection.mutable.Buffer[List[_]],currentFrame:Int){
+    var tempPosition = Array[Double](0.0, 0.0, 0.0)
+    var tempAngle = Array[Double](0.0, 0.0, 0.0)
     /* Find the corresponding index of the object */
 		val index = (currentFrame-bufferFrame(buffer.head)).toInt
+    if (index >= 0 && index < buffer.size) {
     /* The position of the object at that frame	*/
-    val tempPosition = bufferPosition(buffer(index))
+      tempPosition = bufferPosition(buffer(index))
 	  /* The angle of the object at that frame */
-    val tempAngle    = bufferAngle(buffer(index))         
-    
+      tempAngle = bufferAngle(buffer(index))
+    }
     var transform   = new Transform3D()
     var transAngle  = new Transform3D()
     var transAngleX = new Transform3D()
@@ -431,20 +436,27 @@ class _3DDisplay(app:ThreeDView,slider:Slider3d,
   **/ 
  def addObj(c:List[_],buffer:scala.collection.mutable.Buffer[List[_]],
             currentFrame:Int):BranchGroup = {       
+    var color = List[Double](1.0, 1.0, 1.0)
+    var size = List[Double](1.0)
+    var name = " "
     val index = (currentFrame-bufferFrame(buffer.head)).toInt  
-    val list  = buffer(index)
+    if (index >= 0 && index < buffer.size) {
+      val list = buffer(index);
+      color = bufferColor(list) // Get the color and size of the object
+      size = bufferSize(list)
+      name = bufferType(list)
+    }
     app.trans -= c
     app.branches -= c
   
     app.trans += c.toList->new TransformGroup() 
     app.trans(c).setCapability(TransformGroup.ALLOW_TRANSFORM_WRITE)           
+    app.trans(c).setCapability(TransformGroup.ALLOW_TRANSFORM_READ)
     app.branches += c.toList ->new BranchGroup()
     app.branches(c).setCapability(BranchGroup.ALLOW_DETACH )
     app.branches(c).setCapability(javax.media.j3d.Group.ALLOW_CHILDREN_EXTEND)
     app.branches(c).setCapability(javax.media.j3d.Group.ALLOW_CHILDREN_WRITE)
      
-    val color    = bufferColor(list)    // Get the color and size of the object
-    val size     = bufferSize(list)
     val mat = new Material()           //  Define the material of the objcet
     mat.setAmbientColor(new Color3f(color(0).toFloat,color(1).toFloat,color(2).toFloat))
     mat.setDiffuseColor(new Color3f(color(0).toFloat,color(1).toFloat,color(2).toFloat))
@@ -454,20 +466,21 @@ class _3DDisplay(app:ThreeDView,slider:Slider3d,
     
     app.trans(c) match{
       case trans:Group=>{
-       bufferType(list) match{        
-				case Some("Box") =>{
+        name match {
+          case "Box" => {
 					app.trans(c).addChild(new Box(abs((size(0)*0.5).toFloat),abs((size(1)*0.5).toFloat),
 	                               abs((size(2)*0.5).toFloat), ap));      
         }
-				case Some("Cylinder") =>{ 
+          case "Cylinder" => {
 					app.trans(c).addChild(new Cylinder(abs(size(0).toFloat),abs(size(1).toFloat), ap));        
 				}
-				case Some("Cone") =>{ 
+          case "Cone" => {
 					app.trans(c).addChild(new Cone(abs(size(0).toFloat),abs(size(1).toFloat), ap));        
 				} 
-				case Some("Sphere") => app.trans(c).addChild(new Sphere(abs(size(0).toFloat),
+          case "Sphere" =>
+            app.trans(c).addChild(new Sphere(abs(size(0).toFloat),
                       	  com.sun.j3d.utils.geometry.Primitive.GENERATE_NORMALS, 30, ap));    
-				case Some(text:String) => { addText(app.trans(c), text, size(0).toInt, color);} 
+          case text: String => { addText(app.trans(c), text, size(0).toInt, color); }
 	 
 				case _ =>  throw ShouldNeverHappen()
 				}

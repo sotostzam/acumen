@@ -534,6 +534,23 @@ object GraphicalMain extends SimpleSwingApplication {
       case None => saveFileAs
     }
   }
+	/*
+	def clearRenderer : Unit= {
+	 var tg = Thread.currentThread().getThreadGroup();
+ 
+	 while(tg.getParent() != null)
+			tg = tg.getParent();
+		val threads = new Array[Thread](200);
+		val count = tg.enumerate(threads, true);
+		for( i <- 0 to count-1)
+		{
+			val  thread = threads(i);
+			if(thread.getName().equals("J3D-Renderer-1"))
+			{
+				thread.stop		
+			}
+		}
+	}*/
  
 	def exit : Unit = withErrorReporting {  
     timer3d.destroy=true
