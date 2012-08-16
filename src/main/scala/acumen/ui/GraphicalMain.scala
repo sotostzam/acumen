@@ -558,6 +558,7 @@ object GraphicalMain extends SimpleSwingApplication {
     threeDView.exit
     if (!editedSinceLastSave || confirmContinue(body.peer))
 	      quit
+				
   }
 
   def withErrorReporting(action: => Unit) : Unit = {
