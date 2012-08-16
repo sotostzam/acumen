@@ -209,9 +209,9 @@ class ScalaTimer(receiver: _3DDisplay, endTime: Double,
 
 /* 3D renderer */
 class _3DDisplay(app: ThreeDView, slider: Slider3d,
-  _3DDateBuffer: Map[CId, Map[Int, scala.collection.mutable.Buffer[List[_]]]],
-  lastFrame1: Double, endTime: Double) extends Publisher with Actor {
-
+                 _3DDateBuffer: Map[CId, Map[Int, scala.collection.mutable.Buffer[List[_]]]],
+                 lastFrame1: Double, endTime: Double) extends Publisher with Actor 
+{
   var lastLook = Map[List[_], List[_]]() // Store the size and color of each object
   var currentFrame = 0 // FrameNumber
   var totalFrames = 2
@@ -228,8 +228,8 @@ class _3DDisplay(app: ThreeDView, slider: Slider3d,
   }
 
   def renderCurrentFrame() {
-    for ((id, map) <- _3DDateBuffer) {
-      for ((objectNumber, buffer) <- map) {
+    for ((id, map) <- _3DDateBuffer) { // acumen objects
+      for ((objectNumber, buffer) <- map) { // 3d objects within
         if (firstFrame(buffer) <= currentFrame && lastFrame(buffer) >= currentFrame) {
           if (!app.branches.contains(List(id, objectNumber))) {
             addToBranches(app.branches, app.trans, List(id, objectNumber))

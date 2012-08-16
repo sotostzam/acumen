@@ -79,7 +79,7 @@ object GraphicalMain extends SimpleSwingApplication {
 			playSpeed = playSpeed * 2
 			if (playSpeed > 4) playSpeed = 4   // maximum *4 speed
 				timer3d.sleepTime =  timer3d.initSpeed/playSpeed 
-			// Extra nano seconds	
+			// Recalculate sleep time
 			timer3d.extraTime = ((timer3d.sleepTime-timer3d.sleepTime.toLong)*1000000).toInt 
 			statusZone3d.setSpeed(playSpeed.toString) // Show the speed 
     }  
@@ -89,7 +89,7 @@ object GraphicalMain extends SimpleSwingApplication {
     def apply = {      
 			playSpeed = playSpeed / 2   
 			timer3d.sleepTime = (1/playSpeed)*timer3d.initSpeed
-			// Extra nano seconds		
+			// Recalculate sleep time	
 			timer3d.extraTime = ((timer3d.sleepTime-timer3d.sleepTime.toLong)*1000000).toInt 
 			statusZone3d.setSpeed(playSpeed.toString) // show the speed
     }  
@@ -99,12 +99,14 @@ object GraphicalMain extends SimpleSwingApplication {
     toolTip = "pause"
     def apply = {
     if (toolTip == "pause"){
+      // un-pause
       timer3d.pause  = false
       receiver.pause = true
       icon    = Icons.play
       toolTip = "resume"
     }
     else{
+       // pause
       timer3d.pause  = true
       receiver.pause = false
       icon    = Icons.pause
@@ -184,6 +186,7 @@ object GraphicalMain extends SimpleSwingApplication {
   var currentFile : Option[File] = None
   var editedSinceLastSave : Boolean = false
   var editedSinceLastAutoSave : Boolean = false
+  // _3DDataBuffer: Where all the state is stored
   var _3DDataBuffer = Map[CId,Map[Int,scala.collection.mutable.Buffer[List[_]]]]()
   var lastNumberOfThreads = 2
   var lastFrame = 2.0
@@ -227,6 +230,11 @@ object GraphicalMain extends SimpleSwingApplication {
   val codeArea = new EditorPane {
     font = monospaced
   }
+
+  //
+  // Copied from scala web site
+  //
+
    // New text utilities, e.g., undo, redo
   val undo = new UndoManager();
   var doc  = codeArea.peer.getDocument() 
@@ -260,6 +268,11 @@ object GraphicalMain extends SimpleSwingApplication {
   codeArea.peer.getInputMap().put(KeyStroke.getKeyStroke("control Z"), "Undo");
   // Bind the redo action to ctl-Y
   codeArea.peer.getInputMap().put(KeyStroke.getKeyStroke("control Y"), "Redo");		
+
+  //
+  // End copy
+  //
+
   val statusZone = new StatusZone
   val statusZone3d= new Slider3d
   val upperBottomPane = new BoxPanel(Orientation.Horizontal) {
@@ -431,7 +444,8 @@ object GraphicalMain extends SimpleSwingApplication {
     title = "Acumen"
     contents = body
     menuBar = bar
-    size = new Dimension(1024,700)
+    size = new Dimension(1024,768)
+    // XXX: consider deleting
     override def closeOperation() {     
     exit
      }
