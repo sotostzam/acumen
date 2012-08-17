@@ -121,7 +121,7 @@ class AppModel(text: => String,console:Console) extends Publisher {
   }
   private def emitProgress(p:Int) = publish(Progress(p))
   def emitError(e: Throwable) = { publish(Error(e)); stop;throw e }
-   
+  
   def withErrorReporting(action: => Unit) : Unit = {
     try action
     catch { case e => emitError(e) }
@@ -149,18 +149,20 @@ class AppModel(text: => String,console:Console) extends Publisher {
   }
  //******************************************************************************
  //***********************************************************************************
-
+ 
   def reset : Unit = {
     tmodel.reset
     setState(PStopped())
   }
 
   def play : Unit = withErrorReporting {
+   
     def go(p:Prog, s:CStore) = {
       val co = new Consumer()
       val pr = new Producer(p,s,co)
       co.start
       pr.start
+      
       setState(PPlaying(p,s,co))
     }
     appState match {
@@ -193,7 +195,7 @@ class AppModel(text: => String,console:Console) extends Publisher {
       mstore match {
         case Some(st) => 
           tmodel.addStore(st)
-          setState(PPaused(p, st))
+          setState(PPaused(p, st))                   
           updateProgress(st)
         case None =>
           setState(PStopped())
@@ -212,7 +214,7 @@ class AppModel(text: => String,console:Console) extends Publisher {
       case PPlaying(_,_,p) => p ! Stop
       case _ => ()
     }
-    setState(PStopped())
+    setState(PStopped())    
   }
 
   case object GoOn

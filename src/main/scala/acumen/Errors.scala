@@ -135,7 +135,7 @@ object Errors {
      "Please report a bug at http://code.google.com/p/acumen-language/issues/"+
      "including the present program."
   }
-
+ 
   case class _3DNameError(v:Value[_]) extends AcumenError {
     override def getMessage = 
       pprint(v) + " is not a valid 3D object's name." 

@@ -39,7 +39,7 @@ import javax.media.j3d.{Appearance, AmbientLight, Background, BoundingBox,
   QuadArray, Screen3D, Shape3D, Transform3D, TransformGroup, TransparencyAttributes,
   View, ViewPlatform}
 
- 
+
 
 object GraphicalMain extends SimpleSwingApplication {
 
@@ -47,7 +47,7 @@ object GraphicalMain extends SimpleSwingApplication {
 
   val monospaced = new Font("Monospaced", Font.PLAIN, 12) 
   var threeDView  = new ThreeDView()
-
+  
   val play = new Action("play") {
     icon = Icons.play
     def apply = {appModel.data.reset;                
@@ -68,7 +68,7 @@ object GraphicalMain extends SimpleSwingApplication {
 	
   }
   val stop = new Action("stop") {
-    icon = Icons.stop
+    icon = Icons.stop    
     def apply = appModel.stop
     toolTip = "Stop simulation (cannot resume)"
   }
@@ -128,7 +128,7 @@ object GraphicalMain extends SimpleSwingApplication {
   }
   /*----3D-Visulization----*/
   var played = false;
-
+	
   val threedplay = new Action("play"){
     icon = Icons.play
     def apply = {
@@ -178,14 +178,14 @@ object GraphicalMain extends SimpleSwingApplication {
     }
     toolTip = "play"  
   }
-
+    
   /* ---- state variables ---- */
   val appModel = new AppModel(codeArea.text,console)
   var currentFile : Option[File] = None
   var editedSinceLastSave : Boolean = false
   var editedSinceLastAutoSave : Boolean = false
   var _3DDataBuffer = Map[CId,Map[Int,scala.collection.mutable.Buffer[List[_]]]]()
-	var lastNumberOfThreads = 2
+  var lastNumberOfThreads = 2
   var lastFrame = 2.0
   var endTime = 10.0
   
@@ -299,7 +299,7 @@ object GraphicalMain extends SimpleSwingApplication {
 
   val traceView = new TraceView(false, false, false, appModel.tmodel)
   val pointedView = new PointedView(traceView)
-
+ 
   var receiver   =  new _3DDisplay(threeDView,statusZone3d,
                                _3DDataBuffer,lastFrame,appModel.data.endTime)
   
@@ -309,7 +309,7 @@ object GraphicalMain extends SimpleSwingApplication {
         BorderPanel.Position.North)
     add(traceView, BorderPanel.Position.Center)
   }
-  val tab2 = new ScrollPane(traceTable)
+  val tab2 = new ScrollPane(traceTable) 
   var tab3 = new BorderPanel{
     add(threeDView.init(),BorderPanel.Position.Center)
     add(threeDBottomPane, BorderPanel.Position.South)  
@@ -370,20 +370,20 @@ object GraphicalMain extends SimpleSwingApplication {
       contents += new CheckMenuItem("") {
         selected = false
         action = Action("Automatically plot simulator fields") { 
-					traceView.toggleSimulator(this.selected) 
-				}
+                    traceView.toggleSimulator(this.selected) 
+                }
       }
       contents += new CheckMenuItem("") {
         selected = false
         action = Action("Automatically plot child counter fields") { 
-					traceView.toggleNextChild(this.selected) 
-				}
+                    traceView.toggleNextChild(this.selected) 
+                }
       }
       contents += new CheckMenuItem("") {
         selected = false
         action = Action("Automatically random number generator seeds") { 
-					traceView.toggleSeeds(this.selected)
-				}
+                    traceView.toggleSeeds(this.selected)
+                }
       }
     }
 
@@ -397,21 +397,21 @@ object GraphicalMain extends SimpleSwingApplication {
       val rb2 = new RadioMenuItem("") {
         selected = false
         action = Action("Imperative (Parallel)") {
-					def diag = Dialog.showInput(
-						body, "Choose a number of threads", 
-						"Parallel Interpreter", Dialog.Message.Question, 
-						Swing.EmptyIcon, Seq(), lastNumberOfThreads.toString)
-					def go : Unit = try {
-						def n : String = diag.getOrElse(n)
-						lastNumberOfThreads = Integer.parseInt(n)
-						appModel.setInterpreterType(Impure(lastNumberOfThreads))
-						console.log("Number of threads set to " + lastNumberOfThreads + ".")
-					} catch { case _ => 
-						console.logError("Bad number of threads.")
-						go 
-					}
-					go
-				}
+                    def diag = Dialog.showInput(
+                        body, "Choose a number of threads", 
+                        "Parallel Interpreter", Dialog.Message.Question, 
+                        Swing.EmptyIcon, Seq(), lastNumberOfThreads.toString)
+                    def go : Unit = try {
+                        def n : String = diag.getOrElse(n)
+                        lastNumberOfThreads = Integer.parseInt(n)
+                        appModel.setInterpreterType(Impure(lastNumberOfThreads))
+                        console.log("Number of threads set to " + lastNumberOfThreads + ".")
+                    } catch { case _ => 
+                        console.logError("Bad number of threads.")
+                        go 
+                    }
+                    go
+                }
       }
       contents ++= Seq(rb1,rb2)
       new ButtonGroup(rb1,rb2)
@@ -534,8 +534,8 @@ object GraphicalMain extends SimpleSwingApplication {
       case None => saveFileAs
     }
   }
-
-  def exit : Unit = withErrorReporting {
+ 
+	def exit : Unit = withErrorReporting {  
     timer3d.destroy=true
     receiver.destroy=true
     threeDView.exit
@@ -614,7 +614,7 @@ object GraphicalMain extends SimpleSwingApplication {
   }
 
   /* ----- initialisation ----- */
-
+  
   reflectState
   listenDocument
   console.log("<html>Welcome to Acumen.<br/>"+

@@ -447,6 +447,7 @@ class Plotter(
     g.setStroke(new BasicStroke(2.0f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND))
     hoveredBox match {
       case Some(hb) =>
+	    
         val rec = applyTr(boxes(hb))
         val recPlusOne = 
           new Rectangle2D.Double(
