@@ -1,0 +1,9 @@
+build/target/
+lib/
+lib_managed/
+project/boot/
+project/plugins/project/build.properties
+project/plugins/src_managed/sbt-proguard-plugin-0.0.5/ProguardProject.scala
+project/plugins/target/
+src/main/resources/acumen/version
+target/
