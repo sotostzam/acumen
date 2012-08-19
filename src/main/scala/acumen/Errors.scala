@@ -136,4 +136,41 @@ object Errors {
      "including the present program."
   }
 
+  case class _3DNameError(v:Value[_]) extends AcumenError {
+    override def getMessage = 
+      pprint(v) + " is not a valid 3D object's name." 
+  }
+   case class _3DSizeError(v:Value[_]) extends AcumenError {
+    override def getMessage = 
+			pprint(v) + "is not a valid 3D object's size variable"
+  }
+  case class _3DSphereSizeError() extends AcumenError {
+    override def getMessage = 
+      "Sphere's size should be a number"
+  }
+  case class _3DCylinderSizeError() extends AcumenError {
+    override def getMessage = 
+      "Cylinder's size should be a vector with 2 elements"
+  }
+  case class _3DConeSizeError() extends AcumenError {
+    override def getMessage = 
+      "Cone's size should be a vector with 2 elements"
+  }
+  case class _3DBoxSizeError() extends AcumenError {
+    override def getMessage = 
+      "Box's size should be a vector with 3 elements"
+  }
+  case class _3DTextSizeError() extends AcumenError {
+    override def getMessage = 
+      "3D text's size should be a number"
+  }
+  
+	 case class _3DVectorError(v:Value[_], n:String) extends AcumenError {
+    override def getMessage = 
+			pprint(v) + "is not a valid 3D object's " + n + " variable."
+  }
+ case class _3DError(v:Value[_]) extends AcumenError {
+    override def getMessage = 
+			pprint(v) + " is not a valid 3D object"
+  }
 }

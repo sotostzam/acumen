@@ -1,0 +1,14 @@
+class Main(simulator)
+private
+ theta = 1; theta' = 0; theta'' = 0;
+ l = 2; Pi = 3.1415926;
+ p = [0,0,0];
+ _3D = [["Cylinder",[0.5,0,0],[0.02,1],[0,1,0],[3.14/2,1,0]],
+        ["Sphere",  [0,0,0],    0.1,   [1,0,0],[0,0,0]      ]];
+end
+ theta'' [=] -(9.8/l)*sin(theta);
+ p   [=] [0.5*l*sin(theta),0,-0.5*l*cos(theta)];
+ _3D [=] [["Cylinder", p,  [0.02,l],[0,1,0],[Pi/2,theta,0]],
+		  ["Sphere", 2*p,    0.1,   [1,0,0],[0,0,0]      ]];
+ 
+end
