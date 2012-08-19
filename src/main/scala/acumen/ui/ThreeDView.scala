@@ -29,7 +29,8 @@ import swing._
 class ThreeDView() extends BorderPanel {
   /* Each object belongs to an TG and an BG */
   var trans = Map[List[_], TransformGroup]()
-  var branches = Map[List[_], BranchGroup]()
+  var branches = Map[List[_], BranchGroup]() // List[_] = [CID: class name, integer; instance number];
+  // FIXME: List[_] to class object
 
   var scene = new BranchGroup()
   val config = SimpleUniverse.getPreferredConfiguration()
