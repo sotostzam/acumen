@@ -12,3 +12,4 @@ libraryDependencies ++= Seq(
    "org.scalatest" %% "scalatest" % "2.0.M3" % "test"
 )
 
+retrieveManaged := true
