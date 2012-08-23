@@ -7,16 +7,14 @@ import org.scalacheck.Gen.choose
 import org.scalacheck.Properties
 import org.scalacheck.Prop._
 import org.scalacheck.Arbitrary.arbitrary
-
 import Interval.min
 import Interval.max
-
 import java.math.RoundingMode
 import scala.collection.immutable.List
 import scala.math.abs
-
 import Generators._
 import Interval._
+import org.scalacheck.Prop
 
 object IntervalTest extends Properties("Interval") {
 
@@ -67,23 +65,8 @@ object IntervalTest extends Properties("Interval") {
   property("monotonicity of binary functions (+)") = monoOfBinaryFun(_ + _)
   property("monotonicity of binary functions (-)") = monoOfBinaryFun(_ - _)
   property("monotonicity of binary functions (*)") = monoOfBinaryFun(_ * _)
-  property("monotonicity of binary functions (/)") =
-    forAll(for {
-      val a <- arbitrary[Interval]
-      val b <- arbitrary[Interval] suchThat { i => !i.contains(0) }
-    } yield (a, b)) {
-      case ((al, ar)) =>
-        forAll(
-          posNum[Double], posNum[Double],
-          choose[Double](0.0, ar.lo.doubleValue), posNum[Double]) {
-            (lLoPad, lHiPad, rLoPad, rHiPad) =>
-              val bl = pad(al, lLoPad, lHiPad)
-              val br = pad(ar, if (rLoPad > 0) rLoPad else -rLoPad, rHiPad)
-              (bl / br) contains (al / ar)
-          }
-    }
-
-  property("monotonicity of binary functions (/\\)") = monoOfBinaryFun((l, r) => l /\ r)
+  property("monotonicity of binary functions (/)") = monoOfBinaryFun(_ / _, arbitrary[Interval], genNonZeroInterval)
+  property("monotonicity of binary functions (/\\)") = monoOfBinaryFun(_ /\ _)
   property("monotonicity of binary functions (\\/)") =
     forAll(
       arbitrary[Double], arbitrary[Double], arbitrary[Double], arbitrary[Double],
@@ -111,17 +94,15 @@ object IntervalTest extends Properties("Interval") {
 
   /* Utilities */
 
+  /** Checks that the binary function "f" is monotonic, using randomly chosen input intervals. */
+  def monoOfBinaryFun(f: (Interval, Interval) => Interval): Prop = monoOfBinaryFun(f, arbitrary[Interval], arbitrary[Interval])
+
   /** Checks that the binary function "f" is monotonic, i.e. that if A contains B then f(A) contains f(B). */
-  def monoOfBinaryFun(f: (Interval, Interval) => Interval) = monoOfBinaryFunG(f, genIntervalPair)
-
-  def genIntervalPair = for { a <- arbitrary[Interval]; b <- arbitrary[Interval] } yield (a, b)
-
-  def monoOfBinaryFunG(f: (Interval, Interval) => Interval, g: Gen[(Interval, Interval)]) =
-    forAll(g, posNum[Double], posNum[Double], posNum[Double], posNum[Double]) {
-      case ((al, ar), lLoPad, lHiPad, rLoPad, rHiPad) =>
-        val bl = pad(al, lLoPad, lHiPad)
-        val br = pad(ar, rLoPad, rHiPad)
-        f(bl, br) contains f(al, ar)
+  def monoOfBinaryFun(f: (Interval, Interval) => Interval, genL: Gen[Interval], genR: Gen[Interval]) =
+    forAll(genL, genR) { (l, r) =>
+      forAll(genSubInterval(l), genSubInterval(r)) { (subl, subr) =>
+        f(l, r) contains f(subl, subr)
+      }
     }
 
 }
