@@ -4,6 +4,7 @@ import org.scalacheck.Gen._
 import org.scalacheck.Properties
 import org.scalacheck.Prop._
 
+import Box._
 import Generators._
 import Interval._
 import Types._
@@ -11,6 +12,8 @@ import Types._
 object AffineScalarEnclosureTest extends Properties("AffineScalarEnclosure") {
 
   import TestingContext._
+
+  /* Generator tests */
 
   property("box normalization") =
     forAll(genBox) { box =>
@@ -20,7 +23,8 @@ object AffineScalarEnclosureTest extends Properties("AffineScalarEnclosure") {
       }
     }
 
-  /* FIXME Negative values for dim are generated! How can this happen? */
+  /* Properties */
+
   property("box corners consist of box edge endpoints") =
     forAll(choose[Int](1, 10)) { dim =>
       forAll(genDimBox(dim)) { (b: Box) =>
@@ -33,6 +37,7 @@ object AffineScalarEnclosureTest extends Properties("AffineScalarEnclosure") {
       }
     }
 
+  /* FIXME Negative values for dim are generated! How can this happen? */
   property("there are 2^n corners of a n-dimensional box.") =
     forAll(choose[Int](1, 10)) { dim =>
       forAll(genDimBox(dim)) { box =>
@@ -51,6 +56,24 @@ object AffineScalarEnclosureTest extends Properties("AffineScalarEnclosure") {
         forAll(choose(0, box.size - 1)) { index =>
           AffineScalarEnclosure(box, box.keys.toList(index)).arity == 1
         }
+    }
+
+//  property("one-dimensional peojections are identity functions") =
+//    forAllNoShrink(genDimBox(1)) { box =>
+//      forAllNoShrink(genSubBox(box)) { subbox =>
+//        val f = AffineScalarEnclosure(box, box.keys.head)
+//        println(f + "\nEVALUATED AT\n" + subbox  + "\nIS\n" + f(subbox))
+//        f(subbox) == subbox
+//      }
+//    }
+
+  property("monotonicity of enclosure evaluation") =
+    forAll(choose(1, 10)) { dim =>
+      forAll(genDimBox(dim)) { box =>
+        forAll(genSubBox(box), genBoxAffineScalarEnclosure(box)) { (subbox, f) =>
+          f(box) contains f(subbox)
+        }
+      }
     }
 
 }

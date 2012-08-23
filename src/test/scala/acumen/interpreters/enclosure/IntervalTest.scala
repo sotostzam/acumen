@@ -22,6 +22,15 @@ object IntervalTest extends Properties("Interval") {
 
   import TestingContext._
 
+  /* Generator tests */
+
+  property("genSubInterval generates a sub-interval") =
+    forAll(genInterval) { interval =>
+      forAll(genSubInterval(interval)) { subinterval =>
+        interval contains subinterval
+      }
+    }
+
   /* Properties */
 
   /**
@@ -96,7 +105,7 @@ object IntervalTest extends Properties("Interval") {
    * property: for any intervals A and B it holds that A /\ B contains both A and B.
    */
   property("/\\ on Intervals is the interval union") =
-    forAll { (a:Interval, b:Interval) =>
+    forAll { (a: Interval, b: Interval) =>
       (a /\ b contains a) && (a /\ b contains b)
     }
 
