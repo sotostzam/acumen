@@ -21,9 +21,9 @@ import AffineScalarEnclosure._
 object Generators extends PrivateMethodTester {
 
   import TestingContext._
-  
+
   /* Private method access */
-  
+
   val aseConstructor = PrivateMethod[AffineScalarEnclosure]('apply)
 
   /* Double */
@@ -62,6 +62,11 @@ object Generators extends PrivateMethodTester {
     val r = ((i.width.low / 2).low * s).low
   } yield (i.low + r) /\ (i.high - r)
 
+  /** Generates a point in the interval. */
+  def genThinSubInterval(i: Interval)(implicit r: Rounding) = for {
+    s <- choose(0.0, 1.0)
+  } yield i.low + i.width.low * s
+
   def genIntervalFilter(implicit r: Rounding): Gen[Interval] = for {
     val lo <- arbitrary[Double]
     val hi <- genLargerDouble(lo)
@@ -90,8 +95,13 @@ object Generators extends PrivateMethodTester {
 
   /** Generates a sub-box of the box. */
   def genSubBox(box: Box)(implicit r: Rounding): Gen[Box] = for {
-    subintervals <- Gen.sequence[List, Interval](box.values.map(genSubInterval(_)))
-  } yield (box.keys zip subintervals).toMap
+    subIntervals <- Gen.sequence[List, Interval](box.values.map(genSubInterval(_)))
+  } yield (box.keys zip subIntervals).toMap
+
+  /** Generates a point in the box. */
+  def genThinSubBox(box: Box)(implicit r: Rounding): Gen[Box] = for {
+    thinSubIntervals <- Gen.sequence[List, Interval](box.values.map(genThinSubInterval(_)))
+  } yield (box.keys zip thinSubIntervals).toMap
 
   /* AffineScalarEnclosure */
 
