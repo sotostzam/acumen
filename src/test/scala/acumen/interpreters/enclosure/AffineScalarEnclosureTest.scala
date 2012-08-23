@@ -34,9 +34,9 @@ object AffineScalarEnclosureTest extends Properties("AffineScalarEnclosure") {
     }
 
   property("there are 2^n corners of a n-dimensional box.") =
-    forAll(choose[Int](1, 5)) { dim =>
+    forAll(choose[Int](1, 10)) { dim =>
       forAll(genDimBox(dim)) { box =>
-        Box.corners(box).size == scala.math.pow(2, dim)
+        Box.corners(box).size == scala.math.pow(2, box.size)
       }
     }
 
