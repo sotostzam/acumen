@@ -75,16 +75,13 @@ object Generators {
   /** Generates a plain box. */
   def genBox(implicit r: Rounding): Gen[Box] = for {
     dim <- posNum[Int]
-    names <- listOfN(dim, arbitrary[VarName])
     intervals <- listOfN(dim, arbitrary[Interval])
-  } yield (names zip intervals).toMap.asInstanceOf[Box]
-  implicit val arbitraryBox = Arbitrary(genBox)
+  } yield (listOfNames(dim) zip intervals).toMap.asInstanceOf[Box]
 
   /** Generates a dim-dimensional box. */
   def genDimBox(dim: Int)(implicit r: Rounding): Gen[Box] = for {
-    names <- listOfN(dim, arbitrary[VarName])
     intervals <- listOfN(dim, arbitrary[Interval])
-  } yield (names zip intervals).toMap.asInstanceOf[Box]
+  } yield (listOfNames(dim) zip intervals).toMap.asInstanceOf[Box]
 
   /** Generates a sub-box of the box. */
   def genSubBox(box: Box)(implicit r: Rounding): Gen[Box] = for {
@@ -128,5 +125,8 @@ object Generators {
   def pad(i: Interval, loPad: Double, hiPad: Double): Interval = {
     i + Interval(-loPad, hiPad)
   }
+
+  /** Returns a list of strings of the form t_i, where 0 <= i <= dim. For dim <= 0 an empty list is generated. */
+  def listOfNames(dim: Int): Seq[VarName] = for { i <- 0 to dim } yield "t_" + i
 
 }
