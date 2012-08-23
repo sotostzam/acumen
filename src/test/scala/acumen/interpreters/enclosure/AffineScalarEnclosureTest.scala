@@ -15,35 +15,7 @@ object AffineScalarEnclosureTest extends Properties("AffineScalarEnclosure") {
 
   /* Generator tests */
 
-  property("box normalization") =
-    forAll(genBox) { box =>
-      Box.normalize(box).forall {
-        case (_, i) =>
-          i greaterThanOrEqualTo Interval(0)
-      }
-    }
-
   /* Properties */
-
-  property("box corners consist of box edge endpoints") =
-    forAll(choose[Int](1, 10)) { dim =>
-      forAll(genDimBox(dim)) { (b: Box) =>
-        Box.corners(b).forall { c =>
-          c.forall {
-            case (name, value) =>
-              value == b(name).low || value == b(name).high
-          }
-        }
-      }
-    }
-
-  /* FIXME Negative values for dim are generated! How can this happen? */
-  property("there are 2^n corners of a n-dimensional box.") =
-    forAll(choose[Int](1, 10)) { dim =>
-      forAll(genDimBox(dim)) { box =>
-        Box.corners(box).size == scala.math.pow(2, box.size)
-      }
-    }
 
   property("constant AffineScalarEnclosure has airty 0") =
     forAll(genBox, genInterval) { (box, interval) =>
@@ -69,7 +41,7 @@ object AffineScalarEnclosureTest extends Properties("AffineScalarEnclosure") {
       }
     }
 
-  property("accuracy of enclosure evaluation") =
+  property("sanity test of enclosure evaluation") =
     {
       val dom = Box("t" -> Interval(0, 1))
       val t = AffineScalarEnclosure(dom, "t")
