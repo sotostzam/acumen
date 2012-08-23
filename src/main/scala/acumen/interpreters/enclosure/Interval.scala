@@ -29,13 +29,15 @@ import java.math.BigDecimal
  * such that A_i is contained in B_i for each i, f(A_1,...,A_n) is
  * contained in f(B_1,...,B_n).
  */
-case class Interval(lo: Real, hi: Real)(implicit val rnd: Rounding) {
+case class Interval private (
+  private val lo: Real,
+  private val hi: Real)(implicit val rnd: Rounding) {
   import rnd._
   def low = Interval(lo)
   def high = Interval(hi)
   def bounds = (Interval(lo), Interval(hi))
   def split = {
-	  val mid = hi.subtract(lo, dn).divide(Interval(2).lo, dn).add(lo, dn)
+    val mid = hi.subtract(lo, dn).divide(Interval(2).lo, dn).add(lo, dn)
     (Interval(lo, mid), Interval(mid, hi))
   }
   def refine(pieces: Int) = {
