@@ -2,7 +2,6 @@ package acumen.interpreters.enclosure
 
 import scala.math.min
 import scala.math.max
-
 import org.scalacheck.Arbitrary
 import org.scalacheck.Arbitrary.arbitrary
 import org.scalacheck.Gen
@@ -13,13 +12,19 @@ import org.scalacheck.Gen.listOfN
 import org.scalacheck.Gen.sized
 import org.scalacheck.Gen.choose
 import org.scalacheck.Gen.oneOf
-
 import acumen.interpreters.enclosure.Interval._
 import acumen.interpreters.enclosure.Types._
+import org.scalatest.PrivateMethodTester
 
-object Generators {
+import AffineScalarEnclosure._
+
+object Generators extends PrivateMethodTester {
 
   import TestingContext._
+  
+  /* Private method access */
+  
+  val aseConstructor = PrivateMethod[AffineScalarEnclosure]('apply)
 
   /* Double */
 
@@ -99,7 +104,7 @@ object Generators {
     coeffs <- listOfN(dim, arbitrary[Interval])
     val domain = (names zip domains).toMap.asInstanceOf[Box]
     val coefficients = (names zip coeffs).toMap.asInstanceOf[Box]
-  } yield AffineScalarEnclosure(domain, constant, coefficients)
+  } yield AffineScalarEnclosure invokePrivate aseConstructor(domain, Box.normalize(domain), constant, coefficients)
   implicit val arbitraryAffineScalarEnclosure = Arbitrary(genAffineScalarEnclosure)
 
   /** Generates a dim-dimensional enclosure. */
@@ -110,14 +115,14 @@ object Generators {
     coeffs <- listOfN(dim, arbitrary[Interval])
     val domain = (names zip domains).toMap.asInstanceOf[Box]
     val coefficients = (names zip coeffs).toMap.asInstanceOf[Box]
-  } yield AffineScalarEnclosure(domain, constant, coefficients)
+  } yield AffineScalarEnclosure invokePrivate aseConstructor(domain, Box.normalize(domain), constant, coefficients)
 
   /** Generates an enclosure over the box. */
   def genBoxAffineScalarEnclosure(box: Box)(implicit r: Rounding): Gen[AffineScalarEnclosure] = for {
     constant <- arbitrary[Interval]
     coeffs <- listOfN(box.size, arbitrary[Interval])
     val coefficients = (box.keys zip coeffs).toMap.asInstanceOf[Box]
-  } yield AffineScalarEnclosure(box, constant, coefficients)
+  } yield AffineScalarEnclosure invokePrivate aseConstructor(box, Box.normalize(box), constant, coefficients)
 
   /* --- Utilities --- */
 

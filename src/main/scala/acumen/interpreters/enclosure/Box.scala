@@ -15,7 +15,7 @@ object Box {
 
   /** The corners of the box. */
   def corners(box: Box) = cornersHelper(box, Seq(Box.empty))
-  private def cornersHelper(dom: Map[VarName, Interval], corners: Seq[Map[VarName, Interval]]): Seq[Map[VarName, Interval]] =
+  private def cornersHelper(dom: Map[VarName,Interval], corners: Seq[Map[VarName,Interval]]): Seq[Map[VarName,Interval]] =
     dom.keys.toList match {
       case Nil => corners
       case k :: ks => cornersHelper(dom - k, corners.flatMap(corner => {
@@ -23,5 +23,7 @@ object Box {
         Seq(corner + (k -> lo), corner + (k -> hi))
       }))
     }
-
+  
+  implicit def toBox(m:Map[VarName,Interval]):Box = m.asInstanceOf[Box]
+  
 }

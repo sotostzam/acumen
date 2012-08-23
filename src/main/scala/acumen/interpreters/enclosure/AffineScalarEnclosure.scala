@@ -11,18 +11,17 @@ import Types._
  * over such intervals, which e.g. allows for easy extraction of the bounds
  * of the enclosure.
  */
-case class AffineScalarEnclosure(
+case class AffineScalarEnclosure private (
   private val domain: Box,
-  private val constant: Interval,
-  private val coefficients: Box) {
-
   /* To save wasteful shifting during enclosure operations the internal
    * representation of the domain is such that each variable is non-negative.
    * 
    * Implementation note: this will make it possible to e.g. compute bounds 
    * of the enclosure by simply taking the corresponding bounds of the 
    * constant term and coefficients. */
-  private val normalizedDomain = Box.normalize(domain)
+  private val normalizedDomain: Box,
+  private val constant: Interval,
+  private val coefficients: Box) {
 
   /** The number of variables the enclosure depends on. */
   def arity = coefficients.size
@@ -31,10 +30,10 @@ case class AffineScalarEnclosure(
   def dimension = domain.size
 
   /** The lower bound enclosure of this enclosure. */
-  def low = AffineScalarEnclosure(domain, constant.low, coefficients.mapValues(_.low))
+  def low = AffineScalarEnclosure(domain, normalizedDomain, constant.low, coefficients.mapValues(_.low))
 
   /** The high bound enclosure of this enclosure. */
-  def high = AffineScalarEnclosure(domain, constant.high, coefficients.mapValues(_.high))
+  def high = AffineScalarEnclosure(domain, normalizedDomain, constant.high, coefficients.mapValues(_.high))
 
   /**
    * Evaluate the enclosure at the box x.
@@ -93,19 +92,22 @@ case class AffineScalarEnclosure(
 }
 object AffineScalarEnclosure {
 
+  /** Convenience method, normalizes the domain. */
+  private def apply(domain: Box, constant: Interval, coefficients: Box): AffineScalarEnclosure =
+    AffineScalarEnclosure(domain, Box.normalize(domain), constant, coefficients)
+
   /** Lifts a constant interval to a constant enclosure. */
-  def apply(domain: Box, constant: Interval): AffineScalarEnclosure =
+  def apply(domain: Box, constant: Interval): AffineScalarEnclosure = {
     AffineScalarEnclosure(domain, constant, Box.empty)
+  }
 
   /**
    * Lifts a variable "name" in the domain to an identity function over the
    * corresponding interval.
    */
   def apply(domain: Box, name: VarName)(implicit r: Rounding): AffineScalarEnclosure = {
-    /* 
-     * Implementation note: The constant term needs to be domain(name).low 
-     * because the internal representation is over the normalized domain. 
-     */
+    /* Implementation note: The constant term needs to be domain(name).low 
+     * because the internal representation is over the normalized domain. */
     AffineScalarEnclosure(domain, domain(name).low, Map(name -> Interval(1)))
   }
 

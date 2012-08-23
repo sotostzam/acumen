@@ -73,9 +73,6 @@ object AffineScalarEnclosureTest extends Properties("AffineScalarEnclosure") {
     {
       val dom = Box("t" -> Interval(0, 1))
       val t = AffineScalarEnclosure(dom, "t")
-      println(dom)
-      println(t)
-      println(t(dom))
       t(dom) == dom("t")
     }
 
