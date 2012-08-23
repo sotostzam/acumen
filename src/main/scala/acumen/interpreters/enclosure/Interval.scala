@@ -31,6 +31,8 @@ import java.math.BigDecimal
  */
 case class Interval(lo: Real, hi: Real)(implicit val rnd: Rounding) {
   import rnd._
+  def low = Interval(lo)
+  def high = Interval(hi)
   def bounds = (Interval(lo), Interval(hi))
   def split = {
 	  val mid = hi.subtract(lo, dn).divide(Interval(2).lo, dn).add(lo, dn)

@@ -1,5 +1,8 @@
 package acumen.interpreters.enclosure
 
+import scala.math.min
+import scala.math.max
+
 import org.scalacheck.Arbitrary
 import org.scalacheck.Arbitrary.arbitrary
 import org.scalacheck.Gen
@@ -11,7 +14,8 @@ import org.scalacheck.Gen.sized
 import org.scalacheck.Gen.choose
 import org.scalacheck.Gen.oneOf
 
-import acumen.interpreters.enclosure.Interval.Real
+import acumen.interpreters.enclosure.Interval._
+import acumen.interpreters.enclosure.Types._
 
 object Generators {
 
@@ -29,16 +33,31 @@ object Generators {
   /* Interval */
 
   /** Generates a random interval. */
-  def intervalGen(implicit r: Rounding): Gen[Interval] = for {
+  def genInterval(implicit r: Rounding): Gen[Interval] = for {
     val lo <- arbitrary[Double]
-    val hi <- genLargerDouble(lo)
-  } yield Interval(lo, hi)
-  implicit val arbitraryInterval = Arbitrary(intervalGen)
+    val hi <- arbitrary[Double]
+  } yield Interval(min(lo,hi), max(lo,hi))
+  implicit val arbitraryInterval = Arbitrary(genInterval)
 
-  def intervalFilterGen(implicit r: Rounding): Gen[Interval] = for {
+  def genIntervalFilter(implicit r: Rounding): Gen[Interval] = for {
     val lo <- arbitrary[Double]
     val hi <- genLargerDouble(lo)
   } yield Interval(lo, hi)
+
+  /* Box */
+
+  /** Generates a plain box. */
+  def genBox(implicit r: Rounding): Gen[Box] = for {
+    dim <- posNum[Int]
+    names <- listOfN(dim, alphaChar)
+    intervals <- listOfN(dim, arbitrary[Interval])
+  } yield (names.map(_.toString) zip intervals).toMap.asInstanceOf[Box]
+
+   /** Generates a box of dimension dim. */
+  def genDimBox(dim:Int)(implicit r: Rounding): Gen[Box] = for {
+    names <- listOfN(dim, alphaChar)
+    intervals <- listOfN(dim, arbitrary[Interval])
+  } yield (names.map(_.toString) zip intervals).toMap.asInstanceOf[Box]
 
   /* --- Utilities --- */
 

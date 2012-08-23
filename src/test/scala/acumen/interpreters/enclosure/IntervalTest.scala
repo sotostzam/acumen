@@ -16,6 +16,7 @@ import scala.collection.immutable.List
 import scala.math.abs
 
 import Generators._
+import Interval._
 
 object IntervalTest extends Properties("Interval") {
 
@@ -46,7 +47,7 @@ object IntervalTest extends Properties("Interval") {
    * contained in f(B_1,...,B_n).
    */
   property("monotonicity of unary functions") =
-    forAll(intervalGen, posNum[Double]) {
+    forAll(genInterval, posNum[Double]) {
       (a, p) =>
         (p >= 0) ==> {
           // Unary negation
@@ -59,8 +60,8 @@ object IntervalTest extends Properties("Interval") {
   property("monotonicity of binary functions (*)") = monoOfBinaryFun(_ * _)
   property("monotonicity of binary functions (/)") =
     forAll(for {
-      val a <- intervalGen
-      val b <- intervalGen suchThat { i => !i.contains(0) }
+      val a <- arbitrary[Interval]
+      val b <- arbitrary[Interval] suchThat { i => !i.contains(0) }
     } yield (a, b)) {
       case ((al, ar)) =>
         forAll(
@@ -95,7 +96,7 @@ object IntervalTest extends Properties("Interval") {
    * property: for any intervals A and B it holds that A /\ B contains both A and B.
    */
   property("/\\ on Intervals is the interval union") =
-    forAll(intervalGen, intervalGen) { (a, b) =>
+    forAll { (a:Interval, b:Interval) =>
       (a /\ b contains a) && (a /\ b contains b)
     }
 
