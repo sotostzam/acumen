@@ -58,22 +58,25 @@ object AffineScalarEnclosureTest extends Properties("AffineScalarEnclosure") {
         }
     }
 
-//  property("one-dimensional peojections are identity functions") =
-//    forAllNoShrink(genDimBox(1)) { box =>
-//      forAllNoShrink(genSubBox(box)) { subbox =>
-//        val f = AffineScalarEnclosure(box, box.keys.head)
-//        println(f + "\nEVALUATED AT\n" + subbox  + "\nIS\n" + f(subbox))
-//        f(subbox) == subbox
-//      }
-//    }
-
   property("monotonicity of enclosure evaluation") =
     forAll(choose(1, 10)) { dim =>
-      forAll(genDimBox(dim)) { box =>
-        forAll(genSubBox(box), genBoxAffineScalarEnclosure(box)) { (subbox, f) =>
-          f(box) contains f(subbox)
+      forAll(genDimBox(dim)) { dom =>
+        forAll(genSubBox(dom), genBoxAffineScalarEnclosure(dom)) { (box, f) =>
+          forAll(genSubBox(box)) { subbox =>
+            f(box) contains f(subbox)
+          }
         }
       }
+    }
+
+  property("accuracy of enclosure evaluation") =
+    {
+      val dom = Box("t" -> Interval(0, 1))
+      val t = AffineScalarEnclosure(dom, "t")
+      println(dom)
+      println(t)
+      println(t(dom))
+      t(dom) == dom("t")
     }
 
 }
