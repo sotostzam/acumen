@@ -60,7 +60,7 @@ object Generators {
   def genSupInterval(i: Interval)(implicit r: Rounding): Gen[Interval] = for {
     s <- posNum[Double]
   } yield i * (Interval(s) + Interval(1))
-  
+
   def genIntervalFilter(implicit r: Rounding): Gen[Interval] = for {
     val lo <- arbitrary[Double]
     val hi <- genLargerDouble(lo)
@@ -78,15 +78,13 @@ object Generators {
   /** Generates a plain box. */
   def genBox(implicit r: Rounding): Gen[Box] = for {
     dim <- posNum[Int]
-    names <- listOfN(dim, genVarName)
     intervals <- listOfN(dim, arbitrary[Interval])
-  } yield (names zip intervals).toMap.asInstanceOf[Box]
+  } yield (listOfNames(dim) zip intervals).toMap.asInstanceOf[Box]
 
   /** Generates a box of dimension dim. */
   def genDimBox(dim: Int)(implicit r: Rounding): Gen[Box] = for {
-    names <- listOfN(dim, genVarName)
     intervals <- listOfN(dim, arbitrary[Interval])
-  } yield (names zip intervals).toMap.asInstanceOf[Box]
+  } yield (listOfNames(dim) zip intervals).toMap.asInstanceOf[Box]
 
   /* AffineScalarEnclosure */
 
@@ -107,5 +105,8 @@ object Generators {
   def pad(i: Interval, loPad: Double, hiPad: Double): Interval = {
     i + Interval(-loPad, hiPad)
   }
+
+  /** Returns a list of strings of the form t_i, where 0 <= i <= dim. For dim <= 0 an empty list is generated. */
+  def listOfNames(dim: Int): Seq[VarName] = for { i <- 0 to dim } yield "t_" + i
 
 }
