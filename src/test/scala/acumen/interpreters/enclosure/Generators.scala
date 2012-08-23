@@ -36,28 +36,70 @@ object Generators {
   def genInterval(implicit r: Rounding): Gen[Interval] = for {
     val lo <- arbitrary[Double]
     val hi <- arbitrary[Double]
-  } yield Interval(min(lo,hi), max(lo,hi))
+  } yield Interval(min(lo, hi), max(lo, hi))
   implicit val arbitraryInterval = Arbitrary(genInterval)
 
+  /** Generates a positive interval */
+  def genPosInterval(implicit r: Rounding): Gen[Interval] = for {
+    val lo <- posNum[Double]
+    val hi <- posNum[Double]
+  } yield Interval(min(lo, hi), max(lo, hi))
+
+  /** Generates a non-zero interval */
+  def genNonZeroInterval(implicit r: Rounding): Gen[Interval] = for {
+    i <- genPosInterval
+    b <- arbitrary[Boolean]
+  } yield if (b) i else -i
+
+  /** Generates a sub-interval of the interval. */
+  def genSubInterval(i: Interval)(implicit r: Rounding): Gen[Interval] = for {
+    s <- posNum[Double]
+  } yield i / (Interval(s) + Interval(1))
+
+  /** Generates a super-interval of the interval. */
+  def genSupInterval(i: Interval)(implicit r: Rounding): Gen[Interval] = for {
+    s <- posNum[Double]
+  } yield i * (Interval(s) + Interval(1))
+  
   def genIntervalFilter(implicit r: Rounding): Gen[Interval] = for {
     val lo <- arbitrary[Double]
     val hi <- genLargerDouble(lo)
   } yield Interval(lo, hi)
+
+  /* VarName */
+
+  /** Generates a random VarName */
+  def genVarName: Gen[VarName] = for {
+    c <- alphaChar
+  } yield c.toString.asInstanceOf[VarName]
 
   /* Box */
 
   /** Generates a plain box. */
   def genBox(implicit r: Rounding): Gen[Box] = for {
     dim <- posNum[Int]
-    names <- listOfN(dim, alphaChar)
+    names <- listOfN(dim, genVarName)
     intervals <- listOfN(dim, arbitrary[Interval])
-  } yield (names.map(_.toString) zip intervals).toMap.asInstanceOf[Box]
+  } yield (names zip intervals).toMap.asInstanceOf[Box]
 
-   /** Generates a box of dimension dim. */
-  def genDimBox(dim:Int)(implicit r: Rounding): Gen[Box] = for {
-    names <- listOfN(dim, alphaChar)
+  /** Generates a box of dimension dim. */
+  def genDimBox(dim: Int)(implicit r: Rounding): Gen[Box] = for {
+    names <- listOfN(dim, genVarName)
     intervals <- listOfN(dim, arbitrary[Interval])
-  } yield (names.map(_.toString) zip intervals).toMap.asInstanceOf[Box]
+  } yield (names zip intervals).toMap.asInstanceOf[Box]
+
+  /* AffineScalarEnclosure */
+
+  /** Generates a plain enclosure */
+  def genAffineScalarEnclosure(implicit r: Rounding): Gen[AffineScalarEnclosure] = for {
+    dim <- posNum[Int]
+    names <- listOfN(dim, genVarName)
+    domains <- listOfN(dim, arbitrary[Interval])
+    constant <- arbitrary[Interval]
+    coeffs <- listOfN(dim, arbitrary[Interval])
+    val domain = (names zip domains).toMap.asInstanceOf[Box]
+    val coefficients = (names zip coeffs).toMap.asInstanceOf[Box]
+  } yield AffineScalarEnclosure(domain, constant, coefficients)
 
   /* --- Utilities --- */
 
