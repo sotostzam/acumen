@@ -9,6 +9,7 @@ import Box._
 import Generators._
 import Interval._
 import Types._
+import AffineScalarEnclosure._
 
 object AffineScalarEnclosureTest extends Properties("AffineScalarEnclosure") {
 
@@ -113,7 +114,7 @@ object AffineScalarEnclosureTest extends Properties("AffineScalarEnclosure") {
   property("numeric operations monotonicity") =
     //TODO Add testing of division and operation variants (intervals, scalars)
     forAll(choose(1, 10),
-      oneOf(Seq((_ + _), (_ - _), (_ * _))): Gen[BinaryOp]) { (dim,bop) =>
+      oneOf(Seq((_ + _), (_ - _), (_ * _))): Gen[BinaryOp]) { (dim, bop) =>
         forAllNoShrink(genDimBox(dim)) { dom =>
           forAllNoShrink(
             genBoxAffineScalarEnclosure(dom),
@@ -126,9 +127,17 @@ object AffineScalarEnclosureTest extends Properties("AffineScalarEnclosure") {
             }
         }
       }
-
-  property("affine enclosure of quadratic terms") =
-    false
+  
+  property("monotonicity of approximation of quadratic terms") =
+    forAllNoShrink(choose[Int](1, 1)) { dim =>
+      forAllNoShrink(genDimBox(dim)) { dom =>
+        forAllNoShrink(
+            genSubBox(dom),
+            oneOf(dom.keys.toList)) { (subDom,name) =>
+          ((quadratic(dom, name).restrictTo(subDom)) contains (quadratic(subDom, name)))  
+        }
+      }
+    }
 
   property("affine enclosure of mixed terms") =
     false

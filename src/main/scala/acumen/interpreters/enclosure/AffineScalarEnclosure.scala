@@ -194,6 +194,13 @@ case class AffineScalarEnclosure private[enclosure] (
     val cst = -lo * (constant + coeff * lo / 2)
     nonconst + cst
   }
+  
+  /** Returns an enclosure with the same affine interval function as "e", defined over a sub-domain of "e". */
+  //TODO Add property
+  def restrictTo(subDomain: Box): AffineScalarEnclosure = {
+    require(Box.isSubBoxOf(subDomain, domain))
+    AffineScalarEnclosure(subDomain, constant, coefficients)
+  }
 
   private def quadratic(name: VarName)(implicit rnd: Rounding) = AffineScalarEnclosure.quadratic(domain, name)
   private def mixed(name1: VarName, name2: VarName)(implicit rnd: Rounding) = AffineScalarEnclosure.mixed(domain, name1, name2)

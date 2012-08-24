@@ -24,6 +24,12 @@ object Box {
       }))
     }
   
+  /** Returns true if all intervals in "subBox" are contained in the corresponding interval in "box". */
+  def isSubBoxOf(subBox: Box, box: Box) = {
+    require(box.keySet == subBox.keySet)
+    box.keys.forall { k => box(k) contains subBox(k) }
+  }
+  
   implicit def toBox(m:Map[VarName,Interval]):Box = m.asInstanceOf[Box]
   
 }
