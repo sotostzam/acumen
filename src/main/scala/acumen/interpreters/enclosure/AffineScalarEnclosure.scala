@@ -132,6 +132,14 @@ case class AffineScalarEnclosure private[enclosure] (
   def -(that: Int)(implicit r: Rounding): AffineScalarEnclosure = this - Interval(that)
 
   /** Multiplication of enclosures. */
+  def *(that: AffineScalarEnclosure)(implicit r: Rounding): AffineScalarEnclosure = {
+    val const = constant * (that.constant)
+    val linear = (that * constant) + (this * that.constant)
+    val square = domain.keys.map(name => quadratic(name) * coefficients(name) * that.coefficients(name))
+    val mixeds =
+      (for (name1 <- domain.keys; name2 <- domain.keys if name1 != name2) yield mixed(name1, name2) * ((coefficients(name1) * that.coefficients(name2)) - (coefficients(name2) * that.coefficients(name1))))
+    (mixeds ++ square).foldLeft(linear + const)(_ + _)
+  }
   def *(that: Interval)(implicit r: Rounding) = AffineScalarEnclosure(domain, normalizedDomain, constant * that, coefficients.mapValues(_ * that))
   def *(that: Double)(implicit r: Rounding): AffineScalarEnclosure = this * Interval(that)
   def *(that: Int)(implicit r: Rounding): AffineScalarEnclosure = this * Interval(that)
