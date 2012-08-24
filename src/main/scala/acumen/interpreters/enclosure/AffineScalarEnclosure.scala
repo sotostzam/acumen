@@ -1,6 +1,7 @@
 package acumen.interpreters.enclosure
 
 import Types._
+import Util._
 
 /**
  * Type used to approximate expressions over a given domain.
@@ -11,17 +12,17 @@ import Types._
  * over such intervals, which e.g. allows for easy extraction of the bounds
  * of the enclosure.
  */
-case class AffineScalarEnclosure private (
-  private val domain: Box,
+case class AffineScalarEnclosure private[enclosure] (
+  private[enclosure] val domain: Box,
   /* To save wasteful shifting during enclosure operations the internal
    * representation of the domain is such that each variable is non-negative.
    * 
    * Implementation note: this will make it possible to e.g. compute bounds 
    * of the enclosure by simply taking the corresponding bounds of the 
    * constant term and coefficients. */
-  private val normalizedDomain: Box,
-  private val constant: Interval,
-  private val coefficients: Box) {
+  private[enclosure] val normalizedDomain: Box,
+  private[enclosure] val constant: Interval,
+  private[enclosure] val coefficients: Box) {
 
   /** The number of variables the enclosure depends on. */
   def arity = coefficients.size
@@ -89,11 +90,23 @@ case class AffineScalarEnclosure private (
    */
   def range = this(domain)
 
+  /**
+   * Containment of enclosures.
+   *
+   * Implementation note: representing enclosures over normalized domains
+   * allows us to test containment by constant- and coefficient-wise
+   * containment.
+   */
+  def contains(that: AffineScalarEnclosure)(implicit r: Rounding) =
+    (zipDefault(coefficients, that.coefficients, Interval(0)).forall {
+      case (l, r) => l contains r
+    }) && (constant contains that.constant)
+
 }
 object AffineScalarEnclosure {
 
   /** Convenience method, normalizes the domain. */
-  private def apply(domain: Box, constant: Interval, coefficients: Box): AffineScalarEnclosure =
+  private[enclosure] def apply(domain: Box, constant: Interval, coefficients: Box): AffineScalarEnclosure =
     AffineScalarEnclosure(domain, Box.normalize(domain), constant, coefficients)
 
   /** Lifts a constant interval to a constant enclosure. */

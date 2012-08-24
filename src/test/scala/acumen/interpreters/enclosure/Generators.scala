@@ -14,17 +14,12 @@ import org.scalacheck.Gen.choose
 import org.scalacheck.Gen.oneOf
 import acumen.interpreters.enclosure.Interval._
 import acumen.interpreters.enclosure.Types._
-import org.scalatest.PrivateMethodTester
 
 import AffineScalarEnclosure._
 
-object Generators extends PrivateMethodTester {
+object Generators {
 
   import TestingContext._
-
-  /* Private method access */
-
-  val aseConstructor = PrivateMethod[AffineScalarEnclosure]('apply)
 
   /* Double */
 
@@ -114,7 +109,7 @@ object Generators extends PrivateMethodTester {
     coeffs <- listOfN(dim, arbitrary[Interval])
     val domain = (names zip domains).toMap.asInstanceOf[Box]
     val coefficients = (names zip coeffs).toMap.asInstanceOf[Box]
-  } yield AffineScalarEnclosure invokePrivate aseConstructor(domain, Box.normalize(domain), constant, coefficients)
+  } yield AffineScalarEnclosure(domain, Box.normalize(domain), constant, coefficients)
   implicit val arbitraryAffineScalarEnclosure = Arbitrary(genAffineScalarEnclosure)
 
   /** Generates a dim-dimensional enclosure. */
@@ -125,14 +120,22 @@ object Generators extends PrivateMethodTester {
     coeffs <- listOfN(dim, arbitrary[Interval])
     val domain = (names zip domains).toMap.asInstanceOf[Box]
     val coefficients = (names zip coeffs).toMap.asInstanceOf[Box]
-  } yield AffineScalarEnclosure invokePrivate aseConstructor(domain, Box.normalize(domain), constant, coefficients)
+  } yield AffineScalarEnclosure(domain, Box.normalize(domain), constant, coefficients)
 
   /** Generates an enclosure over the box. */
   def genBoxAffineScalarEnclosure(box: Box)(implicit r: Rounding): Gen[AffineScalarEnclosure] = for {
     constant <- arbitrary[Interval]
     coeffs <- listOfN(box.size, arbitrary[Interval])
     val coefficients = (box.keys zip coeffs).toMap.asInstanceOf[Box]
-  } yield AffineScalarEnclosure invokePrivate aseConstructor(box, Box.normalize(box), constant, coefficients)
+  } yield AffineScalarEnclosure(box, Box.normalize(box), constant, coefficients)
+
+  /** Generates a sub-enclosure of the enclosure. */
+  def genSubAffineScalarEnclosure(f: AffineScalarEnclosure)(implicit r: Rounding): Gen[AffineScalarEnclosure] = { 
+    for {
+      subconst <- genSubInterval(f.constant)
+      subcoeffs <- Gen.sequence[List, Interval](f.coefficients.values.map(genSubInterval(_)))
+    } yield AffineScalarEnclosure(f.domain, f.normalizedDomain, subconst, (f.domain.keys zip subcoeffs).toMap)
+  }
 
   /* --- Utilities --- */
 
