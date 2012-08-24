@@ -131,13 +131,23 @@ case class AffineScalarEnclosure private[enclosure] (
   def -(that: Double)(implicit r: Rounding): AffineScalarEnclosure = this - Interval(that)
   def -(that: Int)(implicit r: Rounding): AffineScalarEnclosure = this - Interval(that)
 
-  /** Multiplication of enclosures. */
+  /**
+   * Multiplication of enclosures.
+   *
+   * The case of multiplying two enclosures is computed as follows:
+   *
+   * (a_0 + a_1*x_1 + ... + a_n*x_n) * (b_0 + b_1*x_1 + ... + b_n*x_n)
+   * ==
+   * a_0*b_0 +
+   * a_0*sum{ b_i*x_i | 1 <= i <= n } + b_0*sum{ a_i*x_i | 1 <= i <= n } +
+   * sum{ a_i*b_i*x_i^2 | 1 <= i <= n } +
+   * sum{ a_i*b_j*x_i*x_j | 1 <= i,j <= n and i != j }
+   */
   def *(that: AffineScalarEnclosure)(implicit r: Rounding): AffineScalarEnclosure = {
     val const = constant * (that.constant)
     val linear = (that * constant) + (this * that.constant)
     val square = domain.keys.map(name => quadratic(name) * coefficients(name) * that.coefficients(name))
-    val mixeds =
-      (for (name1 <- domain.keys; name2 <- domain.keys if name1 != name2) yield mixed(name1, name2) * ((coefficients(name1) * that.coefficients(name2)) - (coefficients(name2) * that.coefficients(name1))))
+    val mixeds = (for (name1 <- domain.keys; name2 <- domain.keys if name1 != name2) yield mixed(name1, name2) * coefficients(name1) * that.coefficients(name2))
     (mixeds ++ square).foldLeft(linear + const)(_ + _)
   }
   def *(that: Interval)(implicit r: Rounding) = AffineScalarEnclosure(domain, normalizedDomain, constant * that, coefficients.mapValues(_ * that))
