@@ -128,22 +128,22 @@ object AffineScalarEnclosureTest extends Properties("AffineScalarEnclosure") {
         }
       }
   
-  property("monotonicity of approximation of quadratic terms") =
-    forAllNoShrink(choose[Int](1, 1)) { dim =>
+  property("upper bound monotonicity of approximations of quadratics on normalized domains") =
+    forAllNoShrink(choose[Int](1, 10)) { dim =>
       forAllNoShrink(genDimBox(dim)) { dom =>
         forAllNoShrink(
-            genSubBox(dom),
-            oneOf(dom.keys.toList)) { (subDom,name) =>
-          ((quadratic(dom, name).restrictTo(subDom)) contains (quadratic(subDom, name)))  
-        }
+          genSubBox(dom),
+          oneOf(dom.keys.toList)) { (subDom, name) =>
+            quadratic(dom, name).restrictTo(subDom) contains quadratic(subDom, name).high
+          }
       }
     }
 
   property("affine enclosure of mixed terms") =
-    false
+    false // TODO Implement property
 
   property("affine enclosure of primitive function") =
-    false
+    false // TODO Implement property
 
   property("collapsing removes the collapsed variable") =
     forAll(choose(1, 10)) { dim =>
