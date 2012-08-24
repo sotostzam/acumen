@@ -1,5 +1,6 @@
 package acumen.interpreters.enclosure
 
+import org.scalacheck.Gen
 import org.scalacheck.Gen._
 import org.scalacheck.Prop._
 import org.scalacheck.Properties
@@ -12,6 +13,10 @@ import Types._
 object AffineScalarEnclosureTest extends Properties("AffineScalarEnclosure") {
 
   import TestingContext._
+
+  /* Tyoe synonyms */
+
+  type BinaryOp = (AffineScalarEnclosure, AffineScalarEnclosure) => AffineScalarEnclosure
 
   /* Generator tests */
 
@@ -106,7 +111,22 @@ object AffineScalarEnclosureTest extends Properties("AffineScalarEnclosure") {
     }
 
   property("numeric operations monotonicity") =
-    false
+    //TODO Add testing of division
+    forAll(oneOf(Seq((_ + _), (_ - _), (_ * _))): Gen[BinaryOp]) { bop =>
+      forAllNoShrink(choose(1, 10)) { dim =>
+        forAllNoShrink(genDimBox(dim)) { dom =>
+          forAllNoShrink(
+            genBoxAffineScalarEnclosure(dom),
+            genBoxAffineScalarEnclosure(dom)) { (x, y) =>
+              forAllNoShrink(
+                genSubAffineScalarEnclosure(x),
+                genSubAffineScalarEnclosure(y)) { (subx, suby) =>
+                  bop(x, y) contains bop(subx, suby)
+                }
+            }
+        }
+      }
+    }
 
   property("affine enclosure of quadratic terms") =
     false
