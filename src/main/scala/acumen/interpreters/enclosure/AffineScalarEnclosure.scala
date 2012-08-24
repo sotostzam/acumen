@@ -1,6 +1,7 @@
 package acumen.interpreters.enclosure
 
 import Types._
+import Util._
 
 /**
  * Type used to approximate expressions over a given domain.
@@ -88,6 +89,30 @@ case class AffineScalarEnclosure private (
    * the range also safely approximates the range of any such function.
    */
   def range = this(domain)
+
+  /* Arithmetic operations */
+
+  /**
+   * Creates a new enclosure by applying a binary operator to the values of "this" and "that" enclosure.
+   * In the cases when one of the enclosures does not contain a variable which the other does, the
+   * interval [0,0] is used as a default.
+   */
+  def zipWith(f: (Interval, Interval) => Interval)(that: AffineScalarEnclosure)(implicit r: Rounding) =
+    AffineScalarEnclosure(domain, normalizedDomain,
+      f(constant, that.constant),
+      (this.coefficients.keySet union that.coefficients.keySet).map { k =>
+        (k, f(
+          this.coefficients.getOrElse(k, Interval(0)),
+          that.coefficients.getOrElse(k, Interval(0))))
+      }.toMap)
+
+  /** Addition of enclosures. */
+  def +(that: AffineScalarEnclosure)(implicit r: Rounding): AffineScalarEnclosure = zipWith(_ + _)(that)
+  def +(that: Interval)(implicit r: Rounding): AffineScalarEnclosure = AffineScalarEnclosure(domain, normalizedDomain, constant + that, coefficients)
+
+  /** Subtraction of enclosures. */
+  def -(that: AffineScalarEnclosure)(implicit r: Rounding): AffineScalarEnclosure = zipWith(_ - _)(that)
+  def -(that: Interval)(implicit r: Rounding): AffineScalarEnclosure = AffineScalarEnclosure(domain, normalizedDomain, constant - that, coefficients)
 
 }
 object AffineScalarEnclosure {
