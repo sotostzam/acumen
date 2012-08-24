@@ -71,6 +71,15 @@ object AffineScalarEnclosureTest extends Properties("AffineScalarEnclosure") {
       t(dom) == dom("t")
     }
 
+  property("range contains values at points") =
+    forAll(choose(1, 10)) { dim =>
+      forAll(genDimBox(dim)) { dom =>
+        forAll(genThinSubBox(dom), genBoxAffineScalarEnclosure(dom)) { (x, f) =>
+          f.range contains f(x)
+        }
+      }
+    }
+
   property("sanity test for enclosure containment") =
     {
       val dom = Box("t" -> Interval(0, 1))

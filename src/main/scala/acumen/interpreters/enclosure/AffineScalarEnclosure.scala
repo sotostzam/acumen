@@ -122,9 +122,14 @@ case class AffineScalarEnclosure private[enclosure] (
   /** Addition of enclosures. */
   def +(that: AffineScalarEnclosure)(implicit r: Rounding): AffineScalarEnclosure = zipWith(_ + _)(that)
   def +(that: Interval)(implicit r: Rounding): AffineScalarEnclosure = AffineScalarEnclosure(domain, normalizedDomain, constant + that, coefficients)
+  def +(that: Double)(implicit r: Rounding): AffineScalarEnclosure = this + Interval(that)
+  def +(that: Int)(implicit r: Rounding): AffineScalarEnclosure = this + Interval(that)
 
   /** Subtraction of enclosures. */
   def -(that: AffineScalarEnclosure)(implicit r: Rounding): AffineScalarEnclosure = zipWith(_ - _)(that)
+  def -(that: Interval)(implicit r: Rounding): AffineScalarEnclosure = AffineScalarEnclosure(domain, normalizedDomain, constant - that, coefficients)
+  def -(that: Double)(implicit r: Rounding): AffineScalarEnclosure = this - Interval(that)
+  def -(that: Int)(implicit r: Rounding): AffineScalarEnclosure = this - Interval(that)
 
 }
 object AffineScalarEnclosure {
