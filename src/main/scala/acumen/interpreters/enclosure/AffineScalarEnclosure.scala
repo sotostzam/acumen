@@ -91,6 +91,24 @@ case class AffineScalarEnclosure private[enclosure] (
   def range = this(domain)
 
   /**
+   * Produce an enclosure without the variable "name" that approximates this enclosure.
+   *
+   * Implemetation note: the domain of name is assumed to be non-negative.
+   *
+   * property: (monotonicity of domain collapsing): The enclosure which is being collapsed
+   * must be point-wise included in the enclosure obtained by collapsing.
+   */
+  private def collapse(name: VarName)(implicit rnd: Rounding) =
+    AffineScalarEnclosure(
+      domain - name,
+      normalizedDomain - name,
+      constant + coefficients.getOrElse(name, Interval(0)) * normalizedDomain.getOrElse(name, Interval(0)),
+      coefficients - name)
+
+  def collapse(names: VarName*)(implicit rnd: Rounding): AffineScalarEnclosure =
+    names.foldLeft(this)((res, name) => res.collapse(name))
+
+  /**
    * Containment of enclosures.
    *
    * Implementation note: representing enclosures over normalized domains

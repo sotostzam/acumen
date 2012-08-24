@@ -1,8 +1,8 @@
 package acumen.interpreters.enclosure
 
 import org.scalacheck.Gen._
-import org.scalacheck.Properties
 import org.scalacheck.Prop._
+import org.scalacheck.Properties
 
 import Box._
 import Generators._
@@ -109,5 +109,26 @@ object AffineScalarEnclosureTest extends Properties("AffineScalarEnclosure") {
 
   property("affine enclosure of primitive function") =
     false
+
+  property("collapsing removes the collapsed variable") =
+    forAll(choose(1, 10)) { dim =>
+      forAll(genDimBox(dim)) { dom =>
+        forAll(genBoxAffineScalarEnclosure(dom), oneOf(dom.keys.toSeq)) { (f, name) =>
+          val collapsed = f.collapse(name)
+          !collapsed.domain.contains(name) && !collapsed.coefficients.contains(name)
+        }
+      }
+    }
+
+  property("safety of enclosure collapsing") =
+    forAll(choose(1, 10)) { dim =>
+      forAll(genDimBox(dim)) { dom =>
+        forAll(genBoxAffineScalarEnclosure(dom), oneOf(dom.keys.toSeq)) { (f, name) =>
+          val fnoname = f.collapse(name)
+          val collapsed = AffineScalarEnclosure(f.domain, f.normalizedDomain, fnoname.constant, fnoname.coefficients)
+          collapsed contains f
+        }
+      }
+    }
 
 }
