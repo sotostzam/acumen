@@ -3,7 +3,8 @@ package acumen.interpreters.enclosure
 import Types._
 
 /**
- * Type used to represent expressions defining functions and predicates.
+ * Type used to represent expressions used to define functions and 
+ * predicates.
  *
  * Implementation note: by representing a function or predicate as an
  * explicit syntax tree we can easily determine if two functions are

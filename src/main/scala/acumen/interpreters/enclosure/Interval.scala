@@ -152,6 +152,7 @@ case class Interval private (
    * that A contains B and C contains D it holds that if A greaterThanOrEqualTo C
    * is true then B greaterThanOrEqualTo D is true.
    */
+  def equalTo(that: Interval) = this == that
   def greaterThanOrEqualTo(that: Interval) = lo.compareTo(that.hi) >= 0
   /**
    * property (positive monotonicity): for any intervals A,B,C,D such
@@ -193,4 +194,8 @@ object Interval {
     Interval(max(left.lo, right.lo), max(left.hi, right.hi))
   def min(left: Real, right: Real) = if (left.compareTo(right) < 0) left else right
   def max(left: Real, right: Real) = if (left.compareTo(right) > 0) left else right
+
+  implicit def toInterval(x: Real)(implicit rnd: Rounding) = Interval(x)
+  implicit def toInterval(x: Double)(implicit rnd: Rounding) = Interval(x)
+  implicit def toInterval(x: Int)(implicit rnd: Rounding) = Interval(x)
 }
