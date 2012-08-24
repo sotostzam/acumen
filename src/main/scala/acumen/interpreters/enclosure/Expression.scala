@@ -44,7 +44,7 @@ abstract class Expression {
     case Multiply(l, r) => l.applyHelper(x) * r.applyHelper(x)
     case Divide(e, Constant(v)) => e.applyHelper(x) / v
   }
-
+  
   /* Arithmetic operations */
 
   def unary_- = this match {

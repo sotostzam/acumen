@@ -140,41 +140,41 @@ object Generators {
   /* Expression */
 
   /** Generates a random constant. */
-  def genConstant(implicit r: Rounding) = for {
+  def genConstant(implicit rnd: Rounding) = for {
     value <- arbitrary[Interval]
   } yield Constant(value)
 
   /** Generates a random constant. */
-  def genVariable(implicit r: Rounding) = for {
+  def genVariable(implicit rnd: Rounding) = for {
     name <- arbitrary[VarName]
   } yield Variable(name)
 
   /** Generates a random negated expression. */
-  def genNegate(implicit r: Rounding) = for {
+  def genNegate(implicit rnd: Rounding) = for {
     e <- arbitrary[Expression]
   } yield Negate(e)
 
   /** Generates a random negated expression. */
-  def genPlus(implicit r: Rounding) = for {
+  def genPlus(implicit rnd: Rounding) = for {
     l <- arbitrary[Expression]
     r <- arbitrary[Expression]
   } yield Plus(l, r)
 
   /** Generates a random negated expression. */
-  def genMultiply(implicit r: Rounding) = for {
+  def genMultiply(implicit rnd: Rounding) = for {
     l <- arbitrary[Expression]
     r <- arbitrary[Expression]
   } yield Multiply(l, r)
 
   // TODO un-specialize the generator once enclosure division is implemented.
   /** Generates a random negated expression. */
-  def genDivide(implicit r: Rounding) = for {
+  def genDivide(implicit rnd: Rounding) = for {
     l <- arbitrary[Expression]
     v <- genNonZeroInterval
   } yield Divide(l, Constant(v))
 
   /** Generates a random expression. */
-  def genExpression(implicit r: Rounding) =
+  def genExpression(implicit rnd: Rounding) =
     oneOf(genConstant, genVariable, genNegate, genPlus, genMultiply, genDivide)
   implicit val arbitraryExpression: Arbitrary[Expression] = Arbitrary(genExpression)
 
