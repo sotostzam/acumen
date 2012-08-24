@@ -1,12 +1,13 @@
 package acumen.interpreters.enclosure
 
-object ExpressionTest {
+import org.scalacheck.Properties
+import org.scalacheck.Prop._
+
+object ExpressionTest extends Properties("Expression") {
   
   import TestingContext._
   
   /* Generator tests */
-  
-//  property()
   
   /* Properties */
 

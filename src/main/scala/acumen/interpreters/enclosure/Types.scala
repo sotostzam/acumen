@@ -10,4 +10,7 @@ object Types {
   /** Interval boxes with named components. */
   type Box = Map[VarName, Interval]
 
+  type AffineIntervalFunction = Map[VarName, AffineScalarIntervalFunction]
+
+  type AffineScalarIntervalFunction = (Interval,Box)
 }

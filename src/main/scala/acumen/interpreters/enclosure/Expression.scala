@@ -17,6 +17,9 @@ abstract class Expression {
   implicit def lift(value: Double)(implicit r: Rounding) = Constant(value)
   implicit def lift(value: Int)(implicit r: Rounding) = Constant(value)
 
+  /** Implicit lifting of variable names allows for writing e.g. x + "y". */
+  implicit def lift(name: String) = Variable(name)
+
   /**
    * Evaluate the expression at the box x.
    *
@@ -44,7 +47,7 @@ abstract class Expression {
     case Multiply(l, r) => l.applyHelper(x) * r.applyHelper(x)
     case Divide(e, Constant(v)) => e.applyHelper(x) / v
   }
-  
+
   /* Arithmetic operations */
 
   def unary_- = this match {

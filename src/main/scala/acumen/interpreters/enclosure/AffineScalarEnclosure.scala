@@ -198,7 +198,7 @@ case class AffineScalarEnclosure private[enclosure] (
     val cst = -lo * (constant + coeff * lo / 2)
     nonconst + cst
   }
-  
+
   /** Returns an enclosure with the same affine interval function as "e", defined over a sub-domain of "e". */
   //TODO Add property
   def restrictTo(subDomain: Box): AffineScalarEnclosure = {
