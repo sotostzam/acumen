@@ -115,7 +115,7 @@ case class AffineScalarEnclosure private[enclosure] (
    * allows us to test containment by constant- and coefficient-wise
    * containment.
    */
-  def contains(that: AffineScalarEnclosure)(implicit r: Rounding) = {
+  def contains(that: AffineScalarEnclosure)(implicit rnd: Rounding) = {
     val lodiffnonneg = (low - that.low).range lessThanOrEqualTo Interval(0)
     val hidiffnonneg = (that.high - high).range lessThanOrEqualTo Interval(0)
     lodiffnonneg && hidiffnonneg
@@ -128,7 +128,7 @@ case class AffineScalarEnclosure private[enclosure] (
    * In the cases when one of the enclosures does not contain a variable which the other does, the
    * interval [0,0] is used as a default.
    */
-  private def zipWith(f: (Interval, Interval) => Interval)(that: AffineScalarEnclosure)(implicit r: Rounding) =
+  private def zipWith(f: (Interval, Interval) => Interval)(that: AffineScalarEnclosure)(implicit rnd: Rounding) =
     AffineScalarEnclosure(domain, normalizedDomain,
       f(constant, that.constant),
       (this.coefficients.keySet union that.coefficients.keySet).map { k =>
@@ -138,16 +138,16 @@ case class AffineScalarEnclosure private[enclosure] (
       }.toMap)
 
   /** Addition of enclosures. */
-  def +(that: AffineScalarEnclosure)(implicit r: Rounding): AffineScalarEnclosure = zipWith(_ + _)(that)
-  def +(that: Interval)(implicit r: Rounding): AffineScalarEnclosure = AffineScalarEnclosure(domain, normalizedDomain, constant + that, coefficients)
-  def +(that: Double)(implicit r: Rounding): AffineScalarEnclosure = this + Interval(that)
-  def +(that: Int)(implicit r: Rounding): AffineScalarEnclosure = this + Interval(that)
+  def +(that: AffineScalarEnclosure)(implicit rnd: Rounding): AffineScalarEnclosure = zipWith(_ + _)(that)
+  def +(that: Interval)(implicit rnd: Rounding): AffineScalarEnclosure = AffineScalarEnclosure(domain, normalizedDomain, constant + that, coefficients)
+  def +(that: Double)(implicit rnd: Rounding): AffineScalarEnclosure = this + Interval(that)
+  def +(that: Int)(implicit rnd: Rounding): AffineScalarEnclosure = this + Interval(that)
 
   /** Subtraction of enclosures. */
-  def -(that: AffineScalarEnclosure)(implicit r: Rounding): AffineScalarEnclosure = zipWith(_ - _)(that)
-  def -(that: Interval)(implicit r: Rounding): AffineScalarEnclosure = AffineScalarEnclosure(domain, normalizedDomain, constant - that, coefficients)
-  def -(that: Double)(implicit r: Rounding): AffineScalarEnclosure = this - Interval(that)
-  def -(that: Int)(implicit r: Rounding): AffineScalarEnclosure = this - Interval(that)
+  def -(that: AffineScalarEnclosure)(implicit rnd: Rounding): AffineScalarEnclosure = zipWith(_ - _)(that)
+  def -(that: Interval)(implicit rnd: Rounding): AffineScalarEnclosure = AffineScalarEnclosure(domain, normalizedDomain, constant - that, coefficients)
+  def -(that: Double)(implicit rnd: Rounding): AffineScalarEnclosure = this - Interval(that)
+  def -(that: Int)(implicit rnd: Rounding): AffineScalarEnclosure = this - Interval(that)
 
   /**
    * Multiplication of enclosures.
@@ -161,21 +161,21 @@ case class AffineScalarEnclosure private[enclosure] (
    * sum{ a_i*b_i*x_i^2 | 1 <= i <= n } +
    * sum{ a_i*b_j*x_i*x_j | 1 <= i,j <= n and i != j }
    */
-  def *(that: AffineScalarEnclosure)(implicit r: Rounding): AffineScalarEnclosure = {
+  def *(that: AffineScalarEnclosure)(implicit rnd: Rounding): AffineScalarEnclosure = {
     val const = constant * (that.constant)
     val linear = (that * constant) + (this * that.constant)
     val square = domain.keys.map(name => quadratic(name) * coefficients(name) * that.coefficients(name))
     val mixeds = (for (name1 <- domain.keys; name2 <- domain.keys if name1 != name2) yield mixed(name1, name2) * coefficients(name1) * that.coefficients(name2))
     (mixeds ++ square).foldLeft(linear + const)(_ + _)
   }
-  def *(that: Interval)(implicit r: Rounding) = AffineScalarEnclosure(domain, normalizedDomain, constant * that, coefficients.mapValues(_ * that))
-  def *(that: Double)(implicit r: Rounding): AffineScalarEnclosure = this * Interval(that)
-  def *(that: Int)(implicit r: Rounding): AffineScalarEnclosure = this * Interval(that)
+  def *(that: Interval)(implicit rnd: Rounding) = AffineScalarEnclosure(domain, normalizedDomain, constant * that, coefficients.mapValues(_ * that))
+  def *(that: Double)(implicit rnd: Rounding): AffineScalarEnclosure = this * Interval(that)
+  def *(that: Int)(implicit rnd: Rounding): AffineScalarEnclosure = this * Interval(that)
 
   /** Division of enclosures. */
-  def /(that: Interval)(implicit r: Rounding) = AffineScalarEnclosure(domain, normalizedDomain, constant / that, coefficients.mapValues(_ / that))
-  def /(that: Double)(implicit r: Rounding): AffineScalarEnclosure = this / Interval(that)
-  def /(that: Int)(implicit r: Rounding): AffineScalarEnclosure = this / Interval(that)
+  def /(that: Interval)(implicit rnd: Rounding) = AffineScalarEnclosure(domain, normalizedDomain, constant / that, coefficients.mapValues(_ / that))
+  def /(that: Double)(implicit rnd: Rounding): AffineScalarEnclosure = this / Interval(that)
+  def /(that: Int)(implicit rnd: Rounding): AffineScalarEnclosure = this / Interval(that)
 
   /**
    * An enclosure for the primitive function (w.r.t. "name") of this enclosure over the
@@ -195,8 +195,8 @@ case class AffineScalarEnclosure private[enclosure] (
     nonconst + cst
   }
 
-  private def quadratic(name: VarName)(implicit r: Rounding) = AffineScalarEnclosure.quadratic(domain, name)
-  private def mixed(name1: VarName, name2: VarName)(implicit r: Rounding) = AffineScalarEnclosure.mixed(domain, name1, name2)
+  private def quadratic(name: VarName)(implicit rnd: Rounding) = AffineScalarEnclosure.quadratic(domain, name)
+  private def mixed(name1: VarName, name2: VarName)(implicit rnd: Rounding) = AffineScalarEnclosure.mixed(domain, name1, name2)
 
 }
 object AffineScalarEnclosure {
@@ -211,7 +211,7 @@ object AffineScalarEnclosure {
   }
 
   /** Lifts a variable "name" in the domain to an identity function over the corresponding interval. */
-  def apply(domain: Box, name: VarName)(implicit r: Rounding): AffineScalarEnclosure = {
+  def apply(domain: Box, name: VarName)(implicit rnd: Rounding): AffineScalarEnclosure = {
     /* Implementation note: The constant term needs to be domain(name).low 
      * because the internal representation is over the normalized domain. */
     AffineScalarEnclosure(domain, domain(name).low, Map(name -> Interval(1)))

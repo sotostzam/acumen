@@ -111,9 +111,9 @@ object AffineScalarEnclosureTest extends Properties("AffineScalarEnclosure") {
     }
 
   property("numeric operations monotonicity") =
-    //TODO Add testing of division
-    forAll(oneOf(Seq((_ + _), (_ - _), (_ * _))): Gen[BinaryOp]) { bop =>
-      forAllNoShrink(choose(1, 10)) { dim =>
+    //TODO Add testing of division and operation variants (intervals, scalars)
+    forAll(choose(1, 10),
+      oneOf(Seq((_ + _), (_ - _), (_ * _))): Gen[BinaryOp]) { (dim,bop) =>
         forAllNoShrink(genDimBox(dim)) { dom =>
           forAllNoShrink(
             genBoxAffineScalarEnclosure(dom),
@@ -126,7 +126,6 @@ object AffineScalarEnclosureTest extends Properties("AffineScalarEnclosure") {
             }
         }
       }
-    }
 
   property("affine enclosure of quadratic terms") =
     false
