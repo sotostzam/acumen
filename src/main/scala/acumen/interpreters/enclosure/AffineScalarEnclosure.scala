@@ -97,10 +97,11 @@ case class AffineScalarEnclosure private[enclosure] (
    * allows us to test containment by constant- and coefficient-wise
    * containment.
    */
-  def contains(that: AffineScalarEnclosure)(implicit r: Rounding) =
-    (zipDefault(coefficients, that.coefficients, Interval(0)).forall {
-      case (l, r) => l contains r
-    }) && (constant contains that.constant)
+  def contains(that: AffineScalarEnclosure)(implicit r: Rounding) = {
+    val lodiffnonneg = (low-that.low).range lessThanOrEqualTo Interval(0)
+    val hidiffnonneg = (that.high-high).range lessThanOrEqualTo Interval(0)
+    lodiffnonneg && hidiffnonneg
+  }
 
   /* Arithmetic operations */
 
@@ -109,7 +110,7 @@ case class AffineScalarEnclosure private[enclosure] (
    * In the cases when one of the enclosures does not contain a variable which the other does, the
    * interval [0,0] is used as a default.
    */
-  def zipWith(f: (Interval, Interval) => Interval)(that: AffineScalarEnclosure)(implicit r: Rounding) =
+  private def zipWith(f: (Interval, Interval) => Interval)(that: AffineScalarEnclosure)(implicit r: Rounding) =
     AffineScalarEnclosure(domain, normalizedDomain,
       f(constant, that.constant),
       (this.coefficients.keySet union that.coefficients.keySet).map { k =>
