@@ -98,4 +98,16 @@ object AffineScalarEnclosureTest extends Properties("AffineScalarEnclosure") {
       }
     }
 
+  property("numeric operations monotonicity") =
+    false
+
+  property("affine enclosure of quadratic terms") =
+    false
+
+  property("affine enclosure of mixed terms") =
+    false
+
+  property("affine enclosure of primitive function") =
+    false
+
 }
