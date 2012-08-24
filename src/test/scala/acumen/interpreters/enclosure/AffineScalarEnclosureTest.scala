@@ -66,9 +66,16 @@ object AffineScalarEnclosureTest extends Properties("AffineScalarEnclosure") {
 
   property("sanity test of enclosure evaluation") =
     {
-      val dom = Box("t" -> Interval(0, 1))
+      val dom = Box("t" -> Interval(1, 2))
       val t = AffineScalarEnclosure(dom, "t")
       t(dom) == dom("t")
+    }
+
+  property("sanity test of enclosure range") =
+    {
+      val dom = Box("t" -> Interval(1, 2))
+      val t = AffineScalarEnclosure(dom, "t")
+      t.range == dom("t")
     }
 
   property("range contains values at points") =
