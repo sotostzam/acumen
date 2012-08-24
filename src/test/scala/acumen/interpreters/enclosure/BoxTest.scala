@@ -14,6 +14,15 @@ object BoxTest extends Properties("Box") {
 
   /* Generator tests */
 
+  property("genDimBox(n) is n-dimensional") =
+    forAll(posNum[Int]) { dim =>
+      forAll(genDimBox(dim)) { box =>
+        box.size == dim
+      }
+    }
+
+  /* Properties */
+
   property("box normalization") =
     forAll(genBox) { box =>
       Box.normalize(box).forall {
@@ -22,7 +31,16 @@ object BoxTest extends Properties("Box") {
       }
     }
 
-  /* Properties */
+  property("monotonicity of box normalization") =
+    forAll(genBox) { box =>
+      forAll(genSubBox(box)) { subbox =>
+        val nbox = Box.normalize(box)
+        val nsubbox = Box.normalize(subbox)
+        box.keys.forall { name =>
+          nbox(name) contains nsubbox(name)
+        }
+      }
+    }
 
   property("box corners consist of box edge endpoints") =
     forAll(choose[Int](1, 10)) { dim =>

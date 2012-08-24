@@ -137,6 +137,47 @@ object Generators {
     } yield AffineScalarEnclosure(f.domain, f.normalizedDomain, subconst, (f.domain.keys zip subcoeffs).toMap)
   }
 
+  /* Expression */
+
+  /** Generates a random constant. */
+  def genConstant(implicit rnd: Rounding) = for {
+    value <- arbitrary[Interval]
+  } yield Constant(value)
+
+  /** Generates a random constant. */
+  def genVariable(implicit rnd: Rounding) = for {
+    name <- arbitrary[VarName]
+  } yield Variable(name)
+
+  /** Generates a random negated expression. */
+  def genNegate(implicit rnd: Rounding) = for {
+    e <- arbitrary[Expression]
+  } yield Negate(e)
+
+  /** Generates a random negated expression. */
+  def genPlus(implicit rnd: Rounding) = for {
+    l <- arbitrary[Expression]
+    r <- arbitrary[Expression]
+  } yield Plus(l, r)
+
+  /** Generates a random negated expression. */
+  def genMultiply(implicit rnd: Rounding) = for {
+    l <- arbitrary[Expression]
+    r <- arbitrary[Expression]
+  } yield Multiply(l, r)
+
+  // TODO un-specialize the generator once enclosure division is implemented.
+  /** Generates a random negated expression. */
+  def genDivide(implicit rnd: Rounding) = for {
+    l <- arbitrary[Expression]
+    v <- genNonZeroInterval
+  } yield Divide(l, Constant(v))
+
+  /** Generates a random expression. */
+  def genExpression(implicit rnd: Rounding) =
+    oneOf(genConstant, genVariable, genNegate, genPlus, genMultiply, genDivide)
+  implicit val arbitraryExpression: Arbitrary[Expression] = Arbitrary(genExpression)
+
   /* --- Utilities --- */
 
   /** Returns an version of the input Interval i, padded below and above by loPad and hiPad respectively. */

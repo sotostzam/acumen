@@ -123,6 +123,10 @@ case class AffineScalarEnclosure private[enclosure] (
 
   /* Arithmetic operations */
 
+  /** Negation of enclosures. */
+  def unary_-(implicit r: Rounding): AffineScalarEnclosure =
+    AffineScalarEnclosure(domain, normalizedDomain, -constant, coefficients.mapValues(-_))
+
   /**
    * Creates a new enclosure by applying a binary operator to the values of "this" and "that" enclosure.
    * In the cases when one of the enclosures does not contain a variable which the other does, the
