@@ -48,14 +48,15 @@ object AffineScalarEnclosureTest extends Properties("AffineScalarEnclosure") {
       t(dom) == dom("t")
     }
 
-  /* Arithmetic operations */
-
-  property("monotonicity of binary addition") =
-    forAll { (a: AffineScalarEnclosure, b: AffineScalarEnclosure) =>
-      forAll () {
-        val sum = a + b
-        (sum contains a) && (sum contains b)
+  property("enclosure containment implies point-wise containment") =
+    forAllNoShrink(choose(1, 10)) { dim =>
+      forAllNoShrink(genDimBox(dim)) { dom =>
+        forAllNoShrink(genSubBox(dom), genBoxAffineScalarEnclosure(dom)) { (box, f) =>
+          forAllNoShrink(genSubAffineScalarEnclosure(f)) { subf =>
+            (f contains subf) ==> (f(box) contains subf(box))
+          }
+        }
       }
     }
-  
+
 }

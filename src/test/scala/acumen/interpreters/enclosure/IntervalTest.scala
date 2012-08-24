@@ -16,6 +16,7 @@ import Generators._
 import Interval._
 import org.scalacheck.Prop
 
+
 object IntervalTest extends Properties("Interval") {
 
   import TestingContext._
