@@ -85,10 +85,10 @@ object AffineScalarEnclosureTest extends Properties("AffineScalarEnclosure") {
       t.range == dom("t")
     }
 
-  property("range contains values at points") =
+  property("range monotonicity") =
     forAll(choose(1, 10)) { dim =>
       forAll(genDimBox(dim)) { dom =>
-        forAll(genThinSubBox(dom), genBoxAffineScalarEnclosure(dom)) { (x, f) =>
+        forAll(genSubBox(dom), genBoxAffineScalarEnclosure(dom)) { (x, f) =>
           f.range contains f(x)
         }
       }

@@ -5,13 +5,7 @@ import scala.math.max
 import org.scalacheck.Arbitrary
 import org.scalacheck.Arbitrary.arbitrary
 import org.scalacheck.Gen
-import org.scalacheck.Gen.alphaChar
-import org.scalacheck.Gen.alphaStr
-import org.scalacheck.Gen.posNum
-import org.scalacheck.Gen.listOfN
-import org.scalacheck.Gen.sized
-import org.scalacheck.Gen.choose
-import org.scalacheck.Gen.oneOf
+import org.scalacheck.Gen._
 import acumen.interpreters.enclosure.Interval._
 import acumen.interpreters.enclosure.Types._
 
@@ -22,6 +16,9 @@ object Generators {
   import TestingContext._
 
   /* Double */
+
+  def genSmallDouble: Gen[Double] = choose(-1000.0, 1000.0)
+  //  implicit def arbitraryDouble: Arbitrary[Double] = Arbitrary(genSmallDouble)
 
   /** Generates Doubles larger than the parameter d. */
   def genLargerDouble(d: Double): Gen[Double] = {
@@ -178,9 +175,22 @@ object Generators {
     v <- genNonZeroInterval
   } yield Divide(l, Constant(v))
 
-  /** Generates a random expression. */
+  /**
+   * Generates a random expression.
+   *
+   * Implementation note: when sampling the generators with equal
+   * probability expressions of very large size are generated. To
+   * generate smaller expression trees we sample the leaf
+   * generators more often.
+   */
   def genExpression(implicit rnd: Rounding) =
-    oneOf(genConstant, genVariable, genNegate, genPlus, genMultiply, genDivide)
+    frequency(
+      (2, genConstant),
+      (2, genVariable),
+      (1, genNegate),
+      (1, genPlus),
+      (1, genMultiply),
+      (1, genDivide))
   implicit val arbitraryExpression: Arbitrary[Expression] = Arbitrary(genExpression)
 
   /* --- Utilities --- */

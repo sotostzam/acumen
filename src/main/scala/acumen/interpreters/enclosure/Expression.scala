@@ -3,7 +3,7 @@ package acumen.interpreters.enclosure
 import Types._
 
 /**
- * Type used to represent expressions used to define functions and 
+ * Type used to represent expressions used to define functions and
  * predicates.
  *
  * Implementation note: by representing a function or predicate as an
@@ -21,8 +21,26 @@ abstract class Expression {
    */
   def apply(x: Box)(implicit rnd: Rounding): Interval = {
     assert(varNames subsetOf x.keySet, "The box must contain the names of all variables in the expression.")
-    applyHelper(x).range
-  } 
+    this match {
+      case Constant(v) => v
+      case Variable(name) => x(name)
+      case Negate(e) => -e(x)
+      case Plus(l, r) => l(x) + r(x)
+      case Multiply(l, r) => l(x) * r(x)
+      case Divide(e, Constant(v)) => e(x) / v
+    }
+  }
+
+  /**
+   * Evaluate the expression at the box x using affine enclosures.
+   *
+   * Precondition: the box must contain the names of all variables in the
+   * expression.
+   */
+  def enclosureEval(x: Box)(implicit rnd: Rounding): Interval = {
+    assert(varNames subsetOf x.keySet, "The box must contain the names of all variables in the expression.")
+    enclosureEvalHelper(x).range
+  }
 
   /**
    * Helper for apply.
@@ -35,15 +53,15 @@ abstract class Expression {
    * Implementation note: we use the worker-wrapper pattern do stop
    * evaluation from prematurely using the top-level apply.
    */
-  private def applyHelper(x: Box)(implicit rnd: Rounding): AffineScalarEnclosure = this match {
+  private def enclosureEvalHelper(x: Box)(implicit rnd: Rounding): AffineScalarEnclosure = this match {
     case Constant(v) => AffineScalarEnclosure(x, v)
     case Variable(name) => AffineScalarEnclosure(x, name)
-    case Negate(e) => -(e.applyHelper(x))
-    case Plus(l, r) => l.applyHelper(x) + r.applyHelper(x)
-    case Multiply(l, r) => l.applyHelper(x) * r.applyHelper(x)
-    case Divide(e, Constant(v)) => e.applyHelper(x) / v
+    case Negate(e) => -(e.enclosureEvalHelper(x))
+    case Plus(l, r) => l.enclosureEvalHelper(x) + r.enclosureEvalHelper(x)
+    case Multiply(l, r) => l.enclosureEvalHelper(x) * r.enclosureEvalHelper(x)
+    case Divide(e, Constant(v)) => e.enclosureEvalHelper(x) / v
   }
-  
+
   /** Returns the set of variable names which occur in the expression. */
   def varNames: Set[VarName] = this match {
     case Constant(_) => Set()

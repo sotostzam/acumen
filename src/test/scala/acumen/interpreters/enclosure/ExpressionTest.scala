@@ -17,4 +17,14 @@ object ExpressionTest extends Properties("Expression") {
 
   /* Properties */
 
+  property("monotonicity of expression evaluation") = {
+    forAllNoShrink(genExpression) { e =>
+      forAllNoShrink(genNamesBox(e.varNames)) { box =>
+        forAllNoShrink(genThinSubBox(box)) { subbox =>
+          e(box) contains e(subbox)
+        }
+      }
+    }
+  }
+
 }
