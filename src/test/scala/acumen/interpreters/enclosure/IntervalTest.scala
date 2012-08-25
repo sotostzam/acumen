@@ -16,11 +16,10 @@ import Generators._
 import Interval._
 import org.scalacheck.Prop
 
-
 object IntervalTest extends Properties("Interval") {
 
   //TODO Test min and max
-  
+
   import TestingContext._
 
   /* Generator tests */
@@ -29,6 +28,13 @@ object IntervalTest extends Properties("Interval") {
     forAll(genInterval) { interval =>
       forAll(genSubInterval(interval)) { subinterval =>
         interval contains subinterval
+      }
+    }
+
+  property("genThinSubInterval generates thin subintervals") =
+    forAll { (dom:Interval) =>
+      forAllNoShrink(genThinSubInterval(dom)) { subDom =>
+       (dom contains subDom) && (subDom.low == subDom.high) 
       }
     }
 
