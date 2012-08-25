@@ -19,6 +19,8 @@ import org.scalacheck.Prop
 
 object IntervalTest extends Properties("Interval") {
 
+  //TODO Test min and max
+  
   import TestingContext._
 
   /* Generator tests */
