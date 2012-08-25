@@ -141,6 +141,24 @@ object Generators {
 
   /* Expression */
 
+  /**
+   * Generates a random expression.
+   *
+   * Implementation note: when sampling the generators with equal
+   * probability expressions of very large size are generated. To
+   * generate smaller expression trees we sample the leaf
+   * generators more often.
+   */
+  def genExpression(implicit rnd: Rounding) =
+    frequency(
+      (2, genConstant),
+      (2, genVariable),
+      (1, genNegate),
+      (1, genPlus),
+      (1, genMultiply),
+      (1, genDivide))
+  implicit val arbitraryExpression: Arbitrary[Expression] = Arbitrary(genExpression)
+
   /** Generates a random constant. */
   def genConstant(implicit rnd: Rounding) = for {
     value <- arbitrary[Interval]
@@ -175,28 +193,39 @@ object Generators {
     v <- genNonZeroInterval
   } yield Divide(l, Constant(v))
 
-  /**
-   * Generates a random expression.
-   *
-   * Implementation note: when sampling the generators with equal
-   * probability expressions of very large size are generated. To
-   * generate smaller expression trees we sample the leaf
-   * generators more often.
+  /** 
+   * Generates a random affine expression.
+   * See implementation note for genExpression. 
    */
-  def genExpression(implicit rnd: Rounding) =
+  def genAffineExpression(implicit rnd: Rounding): Gen[Expression] =
     frequency(
       (2, genConstant),
       (2, genVariable),
-      (1, genNegate),
-      (1, genPlus),
-      (1, genMultiply),
-      (1, genDivide))
-  implicit val arbitraryExpression: Arbitrary[Expression] = Arbitrary(genExpression)
+      (1, genAffineNegate),
+      (1, genAffinePlus),
+      (1, genAffineMultiply))
+
+  /** Generates a random negated affine expression. */
+  def genAffineNegate(implicit rnd: Rounding): Gen[Expression] = for {
+    e <- Gen.lzy { genAffineExpression }
+  } yield Negate(e)
+
+  /** Generates a random negated affine expression. */
+  def genAffinePlus(implicit rnd: Rounding): Gen[Expression] = for {
+    l <- Gen.lzy { genAffineExpression }
+    r <- genAffineExpression
+  } yield Plus(l, r)
+
+  /** Generates a random negated affine expression. */
+  def genAffineMultiply(implicit rnd: Rounding): Gen[Expression] = for {
+    l <- Gen.lzy { genAffineExpression }
+    r <- genAffineExpression
+  } yield Multiply(l, r)
 
   /* AffineEnclosure */
-  
+
   // TODO write generators corresponding to those for AffineScalarEnclosure
-  
+
   /* --- Utilities --- */
 
   /** Returns an version of the input Interval i, padded below and above by loPad and hiPad respectively. */
