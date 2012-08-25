@@ -60,7 +60,7 @@ object Generators {
   /** Generates a point in the interval. */
   def genThinSubInterval(i: Interval)(implicit rnd: Rounding) = for {
     s <- choose(0.0, 1.0)
-  } yield i.low + i.width.low * s
+  } yield (i.low + i.width.low * s).high
 
   def genIntervalFilter(implicit rnd: Rounding): Gen[Interval] = for {
     val lo <- arbitrary[Double]
@@ -72,7 +72,7 @@ object Generators {
   /** Generates a random VarName */
   def genVarName: Gen[VarName] = for {
     c <- alphaChar
-  } yield c.toString.asInstanceOf[VarName]
+  } yield c.toString
   implicit val arbitraryVarName = Arbitrary(genVarName)
 
   /* Box */
@@ -81,12 +81,12 @@ object Generators {
   def genBox(implicit rnd: Rounding): Gen[Box] = for {
     dim <- posNum[Int]
     intervals <- listOfN(dim, arbitrary[Interval])
-  } yield (listOfNames(dim) zip intervals).toMap.asInstanceOf[Box]
+  } yield (listOfNames(dim) zip intervals).toMap
 
   /** Generates a dim-dimensional box. */
   def genDimBox(dim: Int)(implicit rnd: Rounding): Gen[Box] = for {
     intervals <- listOfN(dim, arbitrary[Interval])
-  } yield (listOfNames(dim) zip intervals).toMap.asInstanceOf[Box]
+  } yield (listOfNames(dim) zip intervals).toMap
 
   /** Generates a sub-box of the box. */
   def genSubBox(box: Box)(implicit rnd: Rounding): Gen[Box] = for {
@@ -112,8 +112,8 @@ object Generators {
     domains <- listOfN(dim, arbitrary[Interval])
     constant <- arbitrary[Interval]
     coeffs <- listOfN(dim, arbitrary[Interval])
-    val domain = (names zip domains).toMap.asInstanceOf[Box]
-    val coefficients = (names zip coeffs).toMap.asInstanceOf[Box]
+    val domain = (names zip domains).toMap
+    val coefficients = (names zip coeffs).toMap
   } yield AffineScalarEnclosure(domain, Box.normalize(domain), constant, coefficients)
   implicit val arbitraryAffineScalarEnclosure = Arbitrary(genAffineScalarEnclosure)
 
@@ -123,15 +123,15 @@ object Generators {
     domains <- listOfN(dim, arbitrary[Interval])
     constant <- arbitrary[Interval]
     coeffs <- listOfN(dim, arbitrary[Interval])
-    val domain = (names zip domains).toMap.asInstanceOf[Box]
-    val coefficients = (names zip coeffs).toMap.asInstanceOf[Box]
+    val domain = (names zip domains).toMap
+    val coefficients = (names zip coeffs).toMap
   } yield AffineScalarEnclosure(domain, Box.normalize(domain), constant, coefficients)
 
   /** Generates an enclosure over the box. */
   def genBoxAffineScalarEnclosure(box: Box)(implicit rnd: Rounding): Gen[AffineScalarEnclosure] = for {
     constant <- arbitrary[Interval]
     coeffs <- listOfN(box.size, arbitrary[Interval])
-    val coefficients = (box.keys zip coeffs).toMap.asInstanceOf[Box]
+    val coefficients = (box.keys zip coeffs).toMap
   } yield AffineScalarEnclosure(box, Box.normalize(box), constant, coefficients)
 
   /** Generates a sub-enclosure of the enclosure. */
