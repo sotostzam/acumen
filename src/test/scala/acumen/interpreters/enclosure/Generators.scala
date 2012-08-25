@@ -98,6 +98,11 @@ object Generators {
     thinSubIntervals <- Gen.sequence[List, Interval](box.values.map(genThinSubInterval(_)))
   } yield (box.keys zip thinSubIntervals).toMap
 
+  /** Generates a box with the given variable names. */
+  def genNamesBox(names: Set[VarName]) = for {
+    intervals <- listOfN(names.size, arbitrary[Interval])
+  } yield names.zip(intervals).toMap
+
   /* AffineScalarEnclosure */
 
   /** Generates a plain enclosure. */
@@ -130,7 +135,7 @@ object Generators {
   } yield AffineScalarEnclosure(box, Box.normalize(box), constant, coefficients)
 
   /** Generates a sub-enclosure of the enclosure. */
-  def genSubAffineScalarEnclosure(f: AffineScalarEnclosure)(implicit rnd: Rounding): Gen[AffineScalarEnclosure] = { 
+  def genSubAffineScalarEnclosure(f: AffineScalarEnclosure)(implicit rnd: Rounding): Gen[AffineScalarEnclosure] = {
     for {
       subconst <- genSubInterval(f.constant)
       subcoeffs <- Gen.sequence[List, Interval](f.coefficients.values.map(genSubInterval(_)))
@@ -151,25 +156,25 @@ object Generators {
 
   /** Generates a random negated expression. */
   def genNegate(implicit rnd: Rounding) = for {
-    e <- arbitrary[Expression]
+    e <- Gen.lzy { arbitrary[Expression] }
   } yield Negate(e)
 
   /** Generates a random negated expression. */
   def genPlus(implicit rnd: Rounding) = for {
-    l <- arbitrary[Expression]
+    l <- Gen.lzy { arbitrary[Expression] }
     r <- arbitrary[Expression]
   } yield Plus(l, r)
 
   /** Generates a random negated expression. */
   def genMultiply(implicit rnd: Rounding) = for {
-    l <- arbitrary[Expression]
+    l <- Gen.lzy { arbitrary[Expression] }
     r <- arbitrary[Expression]
   } yield Multiply(l, r)
 
   // TODO un-specialize the generator once enclosure division is implemented.
   /** Generates a random negated expression. */
   def genDivide(implicit rnd: Rounding) = for {
-    l <- arbitrary[Expression]
+    l <- Gen.lzy { arbitrary[Expression] }
     v <- genNonZeroInterval
   } yield Divide(l, Constant(v))
 
