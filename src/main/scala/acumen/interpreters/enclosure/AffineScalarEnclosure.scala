@@ -23,6 +23,8 @@ case class AffineScalarEnclosure private[enclosure] (
   private[enclosure] val normalizedDomain: Box,
   private[enclosure] val constant: Interval,
   private[enclosure] val coefficients: Box) {
+  assert(coefficients.keySet subsetOf domain.keySet, "The variable of each coefficient must occur in the domain.")
+  assert(domain.keySet == normalizedDomain.keySet, "The variables of the normalized domain must coincide with those of the domain.")
 
   /** The number of variables the enclosure depends on. */
   def arity = coefficients.size
@@ -51,8 +53,8 @@ case class AffineScalarEnclosure private[enclosure] (
    * enclosure occurring at the corners of the box. This is the case for e.g.
    * affine enclosures.
    */
-  def apply(x: Box) = {
-    require(x.nonEmpty)
+  def apply(x: Box)(implicit rnd: Rounding) = {
+    assert(x.nonEmpty, "An enclosure can only be evaluated over non-empty domains.")
     /* It is essential to evaluate the enclosure over the original domain.
      * To avoid unnecessary errors the argument is shifted to the normalized
      * domain rather than the enclosure to the original domain. */
@@ -75,7 +77,7 @@ case class AffineScalarEnclosure private[enclosure] (
    * interval and the box should be thin, i.e. each interval should have zero
    * width.
    */
-  private def evalThinAtThin(x: Box): Interval = {
+  private def evalThinAtThin(x: Box)(implicit rnd: Rounding): Interval = {
     require(x.forall { case (name, interval) => normalizedDomain(name) contains interval })
     coefficients.foldLeft(constant) {
       case (res, (name, coefficient)) => res + coefficient * normalizedDomain(name)
@@ -88,7 +90,7 @@ case class AffineScalarEnclosure private[enclosure] (
    * Since the enclosure is a safe approximation of any contained function
    * the range also safely approximates the range of any such function.
    */
-  def range = this(domain)
+  def range(implicit rnd: Rounding) = this(domain)
 
   /**
    * Produce an enclosure without the variable "name" that approximates this enclosure.
@@ -166,9 +168,10 @@ case class AffineScalarEnclosure private[enclosure] (
    * sum{ a_i*b_j*x_i*x_j | 1 <= i,j <= n and i != j }
    */
   def *(that: AffineScalarEnclosure)(implicit rnd: Rounding): AffineScalarEnclosure = {
+    assert(domain == that.domain, "Multiplication is defined on enclosures with identical domains.")
     val const = constant * (that.constant)
     val linear = (that * constant) + (this * that.constant)
-    val square = domain.keys.map(name => quadratic(name) * coefficients(name) * that.coefficients(name))
+    val square = domain.keySet.map(name => quadratic(name) * coefficients(name) * that.coefficients(name))
     val mixeds = (for (name1 <- domain.keys; name2 <- domain.keys if name1 != name2) yield mixed(name1, name2) * coefficients(name1) * that.coefficients(name2))
     (mixeds ++ square).foldLeft(linear + const)(_ + _)
   }
@@ -201,7 +204,7 @@ case class AffineScalarEnclosure private[enclosure] (
 
   /** Returns an enclosure with the same affine interval function as "e", defined over a sub-domain of "e". */
   //TODO Add property
-  def restrictTo(subDomain: Box): AffineScalarEnclosure = {
+  def restrictTo(subDomain: Box)(implicit rnd: Rounding): AffineScalarEnclosure = {
     require(Box.isSubBoxOf(subDomain, domain))
     AffineScalarEnclosure(subDomain, constant, coefficients)
   }
@@ -242,6 +245,8 @@ object AffineScalarEnclosure {
     val b = domain(name).high
     val width = b - a
     val coeff = b + a
+    // This corresponds to translating to [-1,1], representing in Chebyshev basis, 
+    // collapsing undesired (quadratic) terms and translating back.
     val const = ((Interval(0) /\ (width * width)) - (coeff * coeff)) / Interval(4)
     AffineScalarEnclosure(domain, const, Box(name -> coeff))
   }

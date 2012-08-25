@@ -1,5 +1,7 @@
 package acumen.interpreters.enclosure
 
+import Box._
+
 object Types {
 
   /* Type synonyms */
@@ -7,10 +9,7 @@ object Types {
   /** Variable name */
   type VarName = String
 
-  /** Interval boxes with named components. */
-  type Box = Map[VarName, Interval]
-
   type AffineIntervalFunction = Map[VarName, AffineScalarIntervalFunction]
 
-  type AffineScalarIntervalFunction = (Interval,Box)
+  type AffineScalarIntervalFunction = (Interval, Box)
 }
