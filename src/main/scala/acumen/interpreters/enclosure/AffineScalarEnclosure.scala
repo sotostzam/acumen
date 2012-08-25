@@ -13,16 +13,16 @@ import Util._
  * of the enclosure.
  */
 case class AffineScalarEnclosure private[enclosure] (
-  private[enclosure] val domain: Box,
+  private[enclosure]domain: Box,
   /* To save wasteful shifting during enclosure operations the internal
    * representation of the domain is such that each variable is non-negative.
    * 
    * Implementation note: this will make it possible to e.g. compute bounds 
    * of the enclosure by simply taking the corresponding bounds of the 
    * constant term and coefficients. */
-  private[enclosure] val normalizedDomain: Box,
-  private[enclosure] val constant: Interval,
-  private[enclosure] val coefficients: Box) {
+  private[enclosure]normalizedDomain: Box,
+  private[enclosure]constant: Interval,
+  private[enclosure]coefficients: Box) {
   assert(coefficients.keySet subsetOf domain.keySet, "The variable of each coefficient must occur in the domain.")
   assert(domain.keySet == normalizedDomain.keySet, "The variables of the normalized domain must coincide with those of the domain.")
 
@@ -37,6 +37,17 @@ case class AffineScalarEnclosure private[enclosure] (
 
   /** The high bound enclosure of this enclosure. */
   def high = AffineScalarEnclosure(domain, normalizedDomain, constant.high, coefficients.mapValues(_.high))
+
+  /**
+   * Get the linear terms of this enclosure.
+   *
+   * Implementation note: this is achieved buy setting the constant term
+   * to [0,0].
+   */
+  def linearTerms(implicit end: Rounding) = AffineScalarEnclosure(domain, normalizedDomain, 0, coefficients)
+
+  /** Get the constant term of this enclosure. */
+  def constantTerm(implicit end: Rounding) = AffineScalarEnclosure(domain, normalizedDomain, constant, Box())
 
   /**
    * Evaluate the enclosure at the box x.
@@ -123,6 +134,11 @@ case class AffineScalarEnclosure private[enclosure] (
     lodiffnonneg && hidiffnonneg
   }
 
+  /** Pads the enclosure by delta. The result is an enclosure that contains this enclosure. */
+  def plusMinus(delta: Interval)(implicit rnd: Rounding) = this + (-delta) /\ delta
+  def plusMinus(delta: Double)(implicit rnd: Rounding): AffineScalarEnclosure =
+    this plusMinus Interval(delta)
+
   /* Arithmetic operations */
 
   /** Negation of enclosures. */
@@ -170,7 +186,7 @@ case class AffineScalarEnclosure private[enclosure] (
   def *(that: AffineScalarEnclosure)(implicit rnd: Rounding): AffineScalarEnclosure = {
     assert(domain == that.domain, "Multiplication is defined on enclosures with identical domains.")
     val const = constant * (that.constant)
-    val linear = (that * constant) + (this * that.constant)
+    val linear = (that.linearTerms * constant) + (this.linearTerms * that.constant)
     val square = domain.keySet.map(name => quadratic(name) * coefficients(name) * that.coefficients(name))
     val mixeds = (for (name1 <- domain.keys; name2 <- domain.keys if name1 != name2) yield mixed(name1, name2) * coefficients(name1) * that.coefficients(name2))
     (mixeds ++ square).foldLeft(linear + const)(_ + _)
@@ -202,7 +218,7 @@ case class AffineScalarEnclosure private[enclosure] (
     nonconst + cst
   }
 
-  /** Returns an enclosure with the same affine interval function as "e", defined over a sub-domain of "e". */
+  /** Returns an enclosure with the same affine interval function as the enclosure, defined over a sub-box of the domain. */
   //TODO Add property
   def restrictTo(subDomain: Box)(implicit rnd: Rounding): AffineScalarEnclosure = {
     require(Box.isSubBoxOf(subDomain, domain))

@@ -1,5 +1,6 @@
 package acumen.interpreters.enclosure
 
+import org.scalacheck.Arbitrary._
 import org.scalacheck.Gen
 import org.scalacheck.Gen._
 import org.scalacheck.Prop._
@@ -15,7 +16,7 @@ object AffineScalarEnclosureTest extends Properties("AffineScalarEnclosure") {
 
   import TestingContext._
 
-  /* Tyoe synonyms */
+  /* Type synonyms */
 
   type BinaryOp = (AffineScalarEnclosure, AffineScalarEnclosure) => AffineScalarEnclosure
 
@@ -33,6 +34,11 @@ object AffineScalarEnclosureTest extends Properties("AffineScalarEnclosure") {
           AffineScalarEnclosure(box, box.keys.toList(index)).arity == 1
         }
       }
+    }
+
+  property("an enclsoure is the sum of its constantTerm and linearTerms") =
+    forAll { (f: AffineScalarEnclosure) =>
+      f.constantTerm + f.linearTerms == f
     }
 
   property("monotonicity of enclosure evaluation") =

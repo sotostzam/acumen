@@ -44,7 +44,7 @@ abstract class Expression {
     case Divide(e, Constant(v)) => e.applyHelper(x) / v
   }
   
-  /** Returns the set of variable names which occur in "e". */
+  /** Returns the set of variable names which occur in the expression. */
   def varNames: Set[VarName] = this match {
     case Constant(_) => Set()
     case Variable(name) => Set(name)

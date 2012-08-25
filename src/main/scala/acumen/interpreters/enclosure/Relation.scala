@@ -100,6 +100,12 @@ abstract class Relation {
       else if (c lessThan 0) UnaryRelation(relname, Negate(e)).support(x)
       else sys.error("Relation.support: division by 0")
   }
+  
+  /** Returns the set of variable names which occur in the relation. */
+  def varNames: Set[VarName] = this match {
+    case UnaryRelation(_,expression) => expression.varNames
+  }
+
 }
 object Relation {
   def positive(that: Expression) = UnaryRelation(Positive, that)
