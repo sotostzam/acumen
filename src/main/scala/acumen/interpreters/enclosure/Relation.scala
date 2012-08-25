@@ -16,13 +16,13 @@ import UnaryRelationName._
  * the paper "Enclosing Hybrid Behavior". These benchmark hybrid systems have
  * limited range of predicates appearing as event guards and mode invariants.
  * In particular all these predicates are of the form of an inequality between
- * 0 and a variable. Handling of more complex expressions in inequalities will 
- * require constraint solving to deduce the support of predicates used in the 
+ * 0 and a variable. Handling of more complex expressions in inequalities will
+ * require constraint solving to deduce the support of predicates used in the
  * solveVt algorithm.
  */
 abstract class Relation {
   /**
-   * Evaluate the predicate by taking the variables to range over the intervals 
+   * Evaluate the predicate by taking the variables to range over the intervals
    * of the box x.
    *
    * Note that the result will be a set of Boolean values rather than a single
@@ -77,7 +77,7 @@ abstract class Relation {
       }
       case EqualToZero => {
         if (!(x(name) contains 0)) sys.error("Relation.support: EqualToZero: empty intersection")
-        else x - name + (name -> 0)
+        else x - name + (name -> Interval(0))
       }
       case NonPositive => {
         if (x(name) greaterThan 0) sys.error("Relation.support: NonPositive: empty intersection")
@@ -111,11 +111,11 @@ object Relation {
 
 case class UnaryRelation(name: UnaryRelationName, expression: Expression) extends Relation {
   override def toString = name match {
-    case Positive => expression + " > 0"
-    case NonPositive => expression + " <= 0"
-    case EqualToZero => expression + " = 0"
-    case NonNegative => expression + " >= 0"
-    case Negative => expression + " < 0"
+    case Positive => expression.toString + " > 0"
+    case NonPositive => expression.toString + " <= 0"
+    case EqualToZero => expression.toString + " = 0"
+    case NonNegative => expression.toString + " >= 0"
+    case Negative => expression.toString + " < 0"
   }
 }
 
