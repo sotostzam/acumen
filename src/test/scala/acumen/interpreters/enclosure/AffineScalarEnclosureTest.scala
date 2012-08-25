@@ -19,30 +19,6 @@ object AffineScalarEnclosureTest extends Properties("AffineScalarEnclosure") {
 
   type BinaryOp = (AffineScalarEnclosure, AffineScalarEnclosure) => AffineScalarEnclosure
 
-  /* Generator tests */
-
-  property("genSubAffineScalarEnclosure generates a sub-enclosure") =
-    forAllNoShrink(choose(1, 10)) { dim =>
-      forAllNoShrink(genDimBox(dim)) { dom =>
-        forAllNoShrink(genBoxAffineScalarEnclosure(dom)) { f =>
-          forAllNoShrink(genSubAffineScalarEnclosure(f)) { subf =>
-            f contains subf
-          }
-        }
-      }
-    }
-
-  property("genSubAffineScalarEnclosure generates a point-wise sub-enclosure") =
-    forAllNoShrink(choose(1, 10)) { dim =>
-      forAllNoShrink(genDimBox(dim)) { dom =>
-        forAllNoShrink(genSubBox(dom), genBoxAffineScalarEnclosure(dom)) { (box, f) =>
-          forAllNoShrink(genSubAffineScalarEnclosure(f)) { subf =>
-            f(box) contains subf(box)
-          }
-        }
-      }
-    }
-
   /* Properties */
 
   property("constant AffineScalarEnclosure has airty 0") =

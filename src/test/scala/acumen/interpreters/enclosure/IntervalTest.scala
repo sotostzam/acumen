@@ -22,22 +22,6 @@ object IntervalTest extends Properties("Interval") {
 
   import TestingContext._
 
-  /* Generator tests */
-
-  property("genSubInterval generates a sub-interval") =
-    forAll(genInterval) { interval =>
-      forAll(genSubInterval(interval)) { subinterval =>
-        interval contains subinterval
-      }
-    }
-
-  property("genThinSubInterval generates thin subintervals") =
-    forAll { (dom:Interval) =>
-      forAllNoShrink(genThinSubInterval(dom)) { subDom =>
-       (dom contains subDom) && (subDom.low == subDom.high) 
-      }
-    }
-
   /* Properties */
 
   /**
