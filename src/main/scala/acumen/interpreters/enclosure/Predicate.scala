@@ -5,7 +5,7 @@ import Types._
 /**
  * Type used to represent predicates.
  *
- * Implementation note: TODO motivate why we are not supporting everything.
+ * Implementation note: TODO motivate why predicates are separated from relations.
  */
 abstract class Predicate {
 

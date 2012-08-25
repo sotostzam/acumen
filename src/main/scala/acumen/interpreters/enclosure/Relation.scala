@@ -12,18 +12,21 @@ import UnaryRelationName._
 /**
  * Type used to represent relations used to define predicates.
  *
- * Implementation note: TODO motivate why we are not supporting everything.
+ * Implementation note: we are initially aiming to support the benchmarks from
+ * the paper "Enclosing Hybrid Behavior". These benchmark hybrid systems have
+ * limited range of predicates appearing as event guards and mode invariants.
+ * In particular all these predicates are of the form of an inequality between
+ * 0 and a variable. Handling of more complex expressions in inequalities will 
+ * require constraint solving to deduce the support of predicates used in the 
+ * solveVt algorithm.
  */
 abstract class Relation {
   /**
-   * Evaluate the relation in the environment x.
+   * Evaluate the predicate by taking the variables to range over the intervals 
+   * of the box x.
    *
-   * property (monotonicity/soundness): For any relation r and environment
-   * y with each interval contained in the corresponding interval in x it
-   * holds that r(y) is contained in r(x).
-   *
-   * TIP try to make the test include ys with all intervals thin.
-   *
+   * Note that the result will be a set of Boolean values rather than a single
+   * one as the predicate is evaluated over intervals, i.e. sets of reals.
    */
   def apply(x: Box)(implicit rnd: Rounding): Set[Boolean] = this match {
     case UnaryRelation(relname, e) => relname match {
