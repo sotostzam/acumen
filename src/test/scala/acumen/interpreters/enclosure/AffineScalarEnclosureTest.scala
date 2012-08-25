@@ -36,6 +36,25 @@ object AffineScalarEnclosureTest extends Properties("AffineScalarEnclosure") {
       }
     }
 
+  property("projections act as identity functions on normalized boxes") =
+    forAllNoShrink(genDimBox(1)) { dom =>
+      val name = dom.keySet.toList(0)
+      val ndom = Box.normalize(dom)
+      val proj = AffineScalarEnclosure.apply(ndom, name)
+      forAllNoShrink(genThinSubBox(ndom)) { subnDom =>
+        proj(subnDom) == subnDom(name)
+      }
+    }
+
+  property("projections safely approximate identity functions") =
+    forAllNoShrink(genDimBox(1)) { dom =>
+      val name = dom.keySet.toList(0)
+      val proj = AffineScalarEnclosure.apply(dom, name)
+      forAllNoShrink(genSubBox(dom)) { x =>
+        proj(x) contains x(name)
+      }
+    }
+
   property("an enclsoure is the sum of its constantTerm and linearTerms") =
     forAll { (f: AffineScalarEnclosure) =>
       f.constantTerm + f.linearTerms == f

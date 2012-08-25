@@ -17,14 +17,6 @@ object ExpressionTest extends Properties("Expression") {
 
   /* Properties */
 
-  property("variables correspond to identity functions / projections on normalized boxes") =
-    forAllNoShrink(genDimBox(1)) { dom =>
-      val name = dom.keySet.toList(0)
-      val ndom = Box.normalize(dom)
-      val proj = AffineScalarEnclosure.apply(ndom, name)
-      forAllNoShrink(genThinSubBox(ndom)) { subnDom =>
-        proj(subnDom) == subnDom(name)
-      }
-    }
-
+  
+  
 }
