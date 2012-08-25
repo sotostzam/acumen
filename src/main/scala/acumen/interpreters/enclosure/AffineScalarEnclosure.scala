@@ -66,9 +66,14 @@ case class AffineScalarEnclosure private[enclosure] (
    */
   def apply(x: Box)(implicit rnd: Rounding) = {
     assert(x.nonEmpty, "An enclosure can only be evaluated over non-empty domains.")
+    assert(x.nonEmpty, "An enclosure can only be evaluated over non-empty domains.")
     /* It is essential to evaluate the enclosure over the original domain.
      * To avoid unnecessary errors the argument is shifted to the normalized
-     * domain rather than the enclosure to the original domain. */
+     * domain rather than the enclosure to the original domain. 
+     * 
+     * Implementation note: cannot use normalize because it does not take the 
+     * current domain of the enclosure into consideration. E.g. normalize maps
+     * thin intervals to [0,0]! */
     val c :: cs = Box.corners(x.map {
       case (name, value) => name -> (value - domain(name).low)
     })
@@ -90,9 +95,7 @@ case class AffineScalarEnclosure private[enclosure] (
    */
   private def evalThinAtThin(x: Box)(implicit rnd: Rounding): Interval = {
     require(x.forall { case (name, interval) => normalizedDomain(name) contains interval })
-    coefficients.foldLeft(constant) {
-      case (res, (name, coefficient)) => res + coefficient * normalizedDomain(name)
-    }
+    coefficients.foldLeft(constant) { case (res, (name, coeff)) => res + coeff * x(name) }
   }
 
   /**
@@ -221,7 +224,7 @@ case class AffineScalarEnclosure private[enclosure] (
   /** Returns an enclosure with the same affine interval function as the enclosure, defined over a sub-box of the domain. */
   //TODO Add property
   def restrictTo(subDomain: Box)(implicit rnd: Rounding): AffineScalarEnclosure = {
-    require(Box.isSubBoxOf(subDomain, domain))
+    assert(domain contains subDomain, "Restriction is only defined for subDomains that are sub-boxes of the enclsure's domain.")
     AffineScalarEnclosure(subDomain, constant, coefficients)
   }
 

@@ -10,6 +10,12 @@ class Box(val self: Map[VarName, Interval]) extends MapProxy[VarName, Interval] 
   /** Look up an interval in the box. Return the [0,0] interval as default if the variable name not exist. */
   def apply(name: VarName)(implicit rnd: Rounding): Interval = self getOrElse (name, Interval(0, 0))
 
+  /** Returns true if all intervals in "subBox" are contained in the corresponding interval in "box". */
+  def contains(box: Box)(implicit rnd: Rounding) = {
+    assert(box.keySet == this.keySet, "Containment is only defined for boxes with the same set of variables.")
+    box.keys.forall { name => this(name) contains box(name) }
+  }
+
 }
 object Box {
 
@@ -32,12 +38,6 @@ object Box {
         Seq(corner + (k -> lo), corner + (k -> hi))
       }))
     }
-
-  /** Returns true if all intervals in "subBox" are contained in the corresponding interval in "box". */
-  def isSubBoxOf(subBox: Box, box: Box)(implicit rnd: Rounding) = {
-    require(box.keySet == subBox.keySet)
-    box.keys.forall { k => box(k) contains subBox(k) }
-  }
 
   implicit def toBox(m: Map[VarName, Interval]): Box = new Box(m)
 

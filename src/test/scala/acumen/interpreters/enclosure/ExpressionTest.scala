@@ -23,7 +23,7 @@ object ExpressionTest extends Properties("Expression") {
       val ndom = Box.normalize(dom)
       val proj = AffineScalarEnclosure.apply(ndom, name)
       forAllNoShrink(genThinSubBox(ndom)) { subnDom =>
-        proj(subnDom) == subnDom
+        proj(subnDom) == subnDom(name)
       }
     }
 
