@@ -17,7 +17,7 @@ object ExpressionTest extends Properties("Expression") {
 
   /* Properties */
 
-  property("monotonicity of expression evaluation") = {
+  property("monotonicity of expression evaluation using intervals") = {
     forAllNoShrink(genExpression) { e =>
       forAllNoShrink(genNamesBox(e.varNames)) { box =>
         forAllNoShrink(genThinSubBox(box)) { subbox =>

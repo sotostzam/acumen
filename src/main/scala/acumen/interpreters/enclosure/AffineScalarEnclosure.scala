@@ -52,7 +52,7 @@ case class AffineScalarEnclosure private[enclosure] (
   /**
    * Evaluate the enclosure at the box x.
    *
-   * Precondition: the box must be non-empty.
+   * Precondition: the box must have a domain for each coefficient name.
    *
    * Note that the box should be component-wise contained within the domain
    * of this enclosure for the approximation guarantees to hold.
@@ -65,8 +65,8 @@ case class AffineScalarEnclosure private[enclosure] (
    * affine enclosures.
    */
   def apply(x: Box)(implicit rnd: Rounding) = {
-    assert(x.nonEmpty, "An enclosure can only be evaluated over non-empty domains.")
-    assert(x.nonEmpty, "An enclosure can only be evaluated over non-empty domains.")
+    assert(coefficients.keySet subsetOf x.keySet,
+      "An enclosure can only be evaluated over a box that has a domain for each variable.")
     /* It is essential to evaluate the enclosure over the original domain.
      * To avoid unnecessary errors the argument is shifted to the normalized
      * domain rather than the enclosure to the original domain. 
@@ -104,7 +104,7 @@ case class AffineScalarEnclosure private[enclosure] (
    * Since the enclosure is a safe approximation of any contained function
    * the range also safely approximates the range of any such function.
    */
-  def range(implicit rnd: Rounding) = this(domain)
+  def range(implicit rnd: Rounding): Interval = this(domain)
 
   /**
    * Produce an enclosure without the variable "name" that approximates this enclosure.
@@ -245,6 +245,8 @@ object AffineScalarEnclosure {
 
   /** Lifts a variable "name" in the domain to an identity function over the corresponding interval. */
   def apply(domain: Box, name: VarName)(implicit rnd: Rounding): AffineScalarEnclosure = {
+    assert(domain contains name,
+      "Projecting is only possible for variables in the domain.")
     /* Implementation note: The constant term needs to be domain(name).low 
      * because the internal representation is over the normalized domain. */
     AffineScalarEnclosure(domain, domain(name).low, Map(name -> Interval(1)))

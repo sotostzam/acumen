@@ -193,6 +193,10 @@ object Generators {
       (1, genDivide))
   implicit val arbitraryExpression: Arbitrary[Expression] = Arbitrary(genExpression)
 
+  /* AffineEnclosure */
+  
+  // TODO write generators corresponding to those for AffineScalarEnclosure
+  
   /* --- Utilities --- */
 
   /** Returns an version of the input Interval i, padded below and above by loPad and hiPad respectively. */

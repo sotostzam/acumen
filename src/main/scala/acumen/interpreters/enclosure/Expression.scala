@@ -30,6 +30,15 @@ abstract class Expression {
       case Divide(e, Constant(v)) => e(x) / v
     }
   }
+  def apply(x: AffineEnclosure)(implicit rnd: Rounding): AffineScalarEnclosure = this match {
+    // FIXME using empty box as none is readily available
+    case Constant(v) => AffineScalarEnclosure(x.domain, v)
+    case Variable(name) => x(name)
+    case Negate(e) => -e(x)
+    case Plus(l, r) => l(x) + r(x)
+    case Multiply(l, r) => l(x) * r(x)
+    case Divide(e, Constant(v)) => e(x) / v
+  }
 
   /**
    * Evaluate the expression at the box x using affine enclosures.
