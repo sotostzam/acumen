@@ -127,7 +127,18 @@ object AffineScalarEnclosureTest extends Properties("AffineScalarEnclosure") {
             }
         }
       }
-  
+
+  property("monotonicity of range w.r.t. restriction") =
+    forAllNoShrink(choose[Int](1, 10)) { dim =>
+      forAllNoShrink(genDimBox(dim)) { dom =>
+        forAllNoShrink(
+          genSubBox(dom),
+          genBoxAffineScalarEnclosure(dom)) { (subDom, e) =>
+            e.range contains e.restrictTo(subDom).range
+          }
+      }
+    }
+
   property("upper bound monotonicity of approximations of quadratics on normalized domains") =
     forAllNoShrink(choose[Int](1, 10)) { dim =>
       forAllNoShrink(genDimBox(dim)) { dom =>
