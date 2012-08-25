@@ -9,7 +9,7 @@ object Types {
   /** Variable name */
   type VarName = String
 
-  type AffineIntervalFunction = Map[VarName, AffineScalarIntervalFunction]
-
-  type AffineScalarIntervalFunction = (Interval, Box)
+  /** Variable name */
+  type ComponentName = String
+    
 }

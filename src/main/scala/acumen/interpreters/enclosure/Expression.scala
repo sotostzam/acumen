@@ -14,7 +14,10 @@ import Types._
 abstract class Expression {
 
   /**
-   * Evaluate the expression at the box x.
+   * Evaluate the expression at the box x using intervals.
+   *
+   * This is dome by replacing variables in the expression with intervals
+   * and operations by interval operations.
    *
    * Precondition: the box must contain the names of all variables in the
    * expression.
@@ -30,6 +33,17 @@ abstract class Expression {
       case Divide(e, Constant(v)) => e(x) / v
     }
   }
+
+  /**
+   * Evaluate the expression at the box x using enclosures.
+   *
+   * This is done by replacing variables in the expressions by the affine
+   * scalar enclosures in their corresponding component and operations by
+   * affine scalar enclosure operations.
+   *
+   * Precondition: the box must contain the names of all variables in the
+   * expression.
+   */
   def apply(x: AffineEnclosure)(implicit rnd: Rounding): AffineScalarEnclosure = this match {
     // FIXME using empty box as none is readily available
     case Constant(v) => AffineScalarEnclosure(x.domain, v)

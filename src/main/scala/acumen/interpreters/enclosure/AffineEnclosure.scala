@@ -10,7 +10,7 @@ import Types._
 case class AffineEnclosure private[enclosure] (
   private[enclosure]domain: Box,
   private[enclosure]normalizedDomain: Box,
-  private[enclosure]components: Map[VarName, AffineScalarEnclosure]) {
+  private[enclosure]components: Map[ComponentName, AffineScalarEnclosure]) {
   assert(components.forall { case (_, e) => domain == e.domain },
     "The domain of the affine enclosure must conicide with the domain " +
       "of each component affine scalar enclosure.")
@@ -19,7 +19,7 @@ case class AffineEnclosure private[enclosure] (
       "normalizedDomain of each component affine scalar enclosure.")
 
   /** Get the "name" component of the enclosure. */
-  def apply(name: VarName): AffineScalarEnclosure = components(name)
+  def apply(name: ComponentName): AffineScalarEnclosure = components(name)
 
   /**
    * Evaluate the enclosure at the box x.
@@ -31,7 +31,7 @@ case class AffineEnclosure private[enclosure] (
    */
   def apply(x: Box)(implicit rnd: Rounding): Box = {
     assert(components.forall { case (_, component) => component.coefficients.keySet subsetOf x.keySet },
-      "An enclosure can only be evaluated over a box that has a domain for each variable.")
+      "An enclosure can only be evaluated over a box that has a domain for each coefficients variable.")
     components.mapValues(_(x))
   }
 
@@ -143,12 +143,12 @@ case class AffineEnclosure private[enclosure] (
 object AffineEnclosure {
 
   /** Convenience method, normalizes the domain. */
-  private[enclosure] def apply(domain: Box, components: Map[VarName, AffineScalarEnclosure]): AffineEnclosure =
+  private[enclosure] def apply(domain: Box, components: Map[ComponentName, AffineScalarEnclosure]): AffineEnclosure =
     AffineEnclosure(domain, Box.normalize(domain), components)
 
-  /** Lifts a constant interval to a constant enclosure. */
+  /** Lifts a constant interval box to a constant enclosure. */
   def apply(domain: Box, constant: Box): AffineEnclosure = {
-    AffineEnclosure(domain, constant.mapValues(const => AffineScalarEnclosure(domain, const)))
+    AffineEnclosure(domain, constant.mapValues(interval => AffineScalarEnclosure(domain, interval)))
   }
 
   /** Lifts a variable "name" in the domain to an identity function over the corresponding interval. */

@@ -139,6 +139,14 @@ object Generators {
     } yield AffineScalarEnclosure(f.domain, f.normalizedDomain, subconst, (f.domain.keys zip subcoeffs).toMap)
   }
 
+  /* AffineEnclosure */
+  
+  /** Generates a plain enclosure. */
+//  def genAffineEnclosure(implicit rnd: Rounding): Gen[AffineEnclosure] = for {
+//	dom <- arbitrary[Box]
+//    components <- sequence[List,AffineScalarEnclosure](dom.keys.map(genBoxAffineScalarEnclosure(box)))
+//  }
+  
   /* Expression */
 
   /** Generates a random constant. */
@@ -193,8 +201,6 @@ object Generators {
       (1, genDivide))
   implicit val arbitraryExpression: Arbitrary[Expression] = Arbitrary(genExpression)
 
-  /* AffineEnclosure */
-  
   // TODO write generators corresponding to those for AffineScalarEnclosure
   
   /* --- Utilities --- */
