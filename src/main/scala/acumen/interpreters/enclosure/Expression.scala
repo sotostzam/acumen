@@ -13,21 +13,16 @@ import Types._
  */
 abstract class Expression {
 
-  /** Implicit lifting of numeric values allows for writing e.g. x + 1. */
-  implicit def lift(value: Interval) = Constant(value)
-  implicit def lift(value: Double)(implicit r: Rounding) = Constant(value)
-  implicit def lift(value: Int)(implicit r: Rounding) = Constant(value)
-
-  /** Implicit lifting of variable names allows for writing e.g. x + "y". */
-  implicit def lift(name: String) = Variable(name)
-
   /**
    * Evaluate the expression at the box x.
    *
    * Precondition: the box must contain the names of all variables in the
    * expression.
    */
-  def apply(x: Box)(implicit rnd: Rounding): Interval = applyHelper(x).range
+  def apply(x: Box)(implicit rnd: Rounding): Interval = {
+    assert(varNames subsetOf x.keySet, "The box must contain the names of all variables in the expression.")
+    applyHelper(x).range
+  } 
 
   /**
    * Helper for apply.
@@ -48,6 +43,16 @@ abstract class Expression {
     case Multiply(l, r) => l.applyHelper(x) * r.applyHelper(x)
     case Divide(e, Constant(v)) => e.applyHelper(x) / v
   }
+  
+  /** Returns the set of variable names which occur in "e". */
+  def varNames: Set[VarName] = this match {
+    case Constant(_) => Set()
+    case Variable(name) => Set(name)
+    case Negate(e) => e.varNames
+    case Plus(l, r) => l.varNames union r.varNames
+    case Multiply(l, r) => l.varNames union r.varNames
+    case Divide(l, r) => l.varNames union r.varNames
+  }
 
   /* Arithmetic operations */
 
@@ -62,6 +67,18 @@ abstract class Expression {
   def /(that: Double)(implicit rnd: Rounding) = Divide(this, Constant(that))
 
 }
+object Expression {
+
+  /** Implicit lifting of numeric values allows for writing e.g. x + 1. */
+  implicit def lift(value: Interval) = Constant(value)
+  implicit def lift(value: Double)(implicit r: Rounding) = Constant(value)
+  implicit def lift(value: Int)(implicit r: Rounding) = Constant(value)
+
+  /** Implicit lifting of variable names allows for writing e.g. x + "y". */
+  implicit def lift(name: String) = Variable(name)
+
+}
+
 case class Constant(value: Interval) extends Expression {
   override def toString = value.toString
 }
@@ -69,18 +86,23 @@ object Constant {
   def apply(value: Double)(implicit r: Rounding): Constant = Constant(Interval(value))
   def apply(value: Int)(implicit r: Rounding): Constant = Constant(Interval(value))
 }
+
 case class Variable(name: String) extends Expression {
   override def toString = name
 }
+
 case class Negate(expression: Expression) extends Expression {
   override def toString = "-" + expression
 }
+
 case class Plus(left: Expression, right: Expression) extends Expression {
   override def toString = "(" + left + " + " + right + ")"
 }
+
 case class Multiply(left: Expression, right: Expression) extends Expression {
   override def toString = "(" + left + " * " + right + ")"
 }
+
 case class Divide(left: Expression, right: Expression) extends Expression {
   override def toString = "(" + left + " / " + right + ")"
 }
