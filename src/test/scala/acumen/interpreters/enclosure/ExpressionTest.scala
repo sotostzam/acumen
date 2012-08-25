@@ -17,6 +17,4 @@ object ExpressionTest extends Properties("Expression") {
 
   /* Properties */
 
-  
-  
 }

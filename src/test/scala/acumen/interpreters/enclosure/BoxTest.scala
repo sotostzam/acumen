@@ -12,15 +12,6 @@ object BoxTest extends Properties("Box") {
 
   import TestingContext._
 
-  /* Generator tests */
-
-  property("genDimBox(n) is n-dimensional") =
-    forAll(posNum[Int]) { dim =>
-      forAll(genDimBox(dim)) { box =>
-        box.size == dim
-      }
-    }
-
   /* Properties */
 
   property("box normalization") =

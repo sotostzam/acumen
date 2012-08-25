@@ -151,7 +151,7 @@ object AffineScalarEnclosureTest extends Properties("AffineScalarEnclosure") {
       }
     }
 
-  property("affine enclosure of mixed terms") =
+  property("affine enclosures safely approximate mixed terms") =
     false // TODO Implement property
 
   property("affine enclosure of primitive function") =

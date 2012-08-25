@@ -10,9 +10,34 @@ import Generators._
 object GeneratorTests extends Properties("Generators") {
 
   import TestingContext._
-  
+
+  /* Interval */
+
+  property("genSubInterval generates a sub-interval") =
+    forAll(genInterval) { interval =>
+      forAll(genSubInterval(interval)) { subinterval =>
+        interval contains subinterval
+      }
+    }
+
+  property("genThinSubInterval generates thin subintervals") =
+    forAll { (dom: Interval) =>
+      forAllNoShrink(genThinSubInterval(dom)) { subDom =>
+        (dom contains subDom) && (subDom.low == subDom.high)
+      }
+    }
+
+  /* Box */
+
+  property("genDimBox(n) is n-dimensional") =
+    forAll(posNum[Int]) { dim =>
+      forAll(genDimBox(dim)) { box =>
+        box.size == dim
+      }
+    }
+
   /* AffineScalarEnclosure */
-  
+
   property("genSubAffineScalarEnclosure generates a sub-enclosure") =
     forAllNoShrink(choose(1, 10)) { dim =>
       forAllNoShrink(genDimBox(dim)) { dom =>
@@ -32,22 +57,6 @@ object GeneratorTests extends Properties("Generators") {
             f(box) contains subf(box)
           }
         }
-      }
-    }
-  
-  /* Interval */
-
-  property("genSubInterval generates a sub-interval") =
-    forAll(genInterval) { interval =>
-      forAll(genSubInterval(interval)) { subinterval =>
-        interval contains subinterval
-      }
-    }
-
-  property("genThinSubInterval generates thin subintervals") =
-    forAll { (dom: Interval) =>
-      forAllNoShrink(genThinSubInterval(dom)) { subDom =>
-        (dom contains subDom) && (subDom.low == subDom.high)
       }
     }
 

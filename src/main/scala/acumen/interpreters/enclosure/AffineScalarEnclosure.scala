@@ -109,7 +109,7 @@ case class AffineScalarEnclosure private[enclosure] (
   /**
    * Produce an enclosure without the variable "name" that approximates this enclosure.
    *
-   * Implemetation note: the domain of name is assumed to be non-negative.
+   * Implementation note: the domain of name is assumed to be non-negative.
    *
    * property: (monotonicity of domain collapsing): The enclosure which is being collapsed
    * must be point-wise included in the enclosure obtained by collapsing.
