@@ -21,6 +21,14 @@ class AcumenProject(info: ProjectInfo) extends DefaultProject(info)
     "-dontobfuscate",
     "-keep public class acumen.ui.GraphicalMain { public static void main(java.lang.String[]); }"
   ) 
+
+  // java 3d deps.
+
+  val tuxfamily = "tuxfamily" at "http://download.tuxfamily.org/arakhne/maven/"
+  
+  val j3dCore = "javax" % "j3d-core" % "1.5.2"
+  val j3dCoreUtils = "javax" % "j3d-core-utils" % "1.5.2"
+  val vecmath = "javax" % "vecmath" % "1.5.2"
   
   /* this filters out sun's signature files that are otherwise understood at
      acumen's jar signature, as they are copied in META-INF by proguard */
