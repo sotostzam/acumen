@@ -233,7 +233,9 @@ case class AffineScalarEnclosure private[enclosure] (
   private def mixed(name1: VarName, name2: VarName)(implicit rnd: Rounding) = AffineScalarEnclosure.mixed(domain, name1, name2)
 
 }
-object AffineScalarEnclosure {
+
+// TODO improve how the plotting is done
+object AffineScalarEnclosure extends Plotter {
 
   /** Convenience method, normalizes the domain. */
   private[enclosure] def apply(domain: Box, constant: Interval, coefficients: Box): AffineScalarEnclosure =
@@ -286,6 +288,23 @@ object AffineScalarEnclosure {
     val coeff2 = (b2 + a2) / 2
     val const = (Interval(-1, 1) * width1 * width2) - (coeff1 * coeff2)
     AffineScalarEnclosure(domain, const, Box(name1 -> coeff2, name2 -> coeff1))
+  }
+
+  // TODO the plotting functionality should be moved to UnivariateAffineScalarEnclosure
+
+  // FIXME: hard-coded plotting as function of t
+  def plot(them: AffineScalarEnclosure*)(implicit rnd: Rounding): Unit =
+    plot("Picard plotter")(them: _*)
+
+  def plot(frametitle: String)(them: AffineScalarEnclosure*)(implicit rnd: Rounding) {
+    createFrame(frametitle)
+    for (it <- them) {
+      val dom = it.domain("t")
+      def low(t: Double) = it.low(Box("t" -> t)) match { case Interval(lo, _) => lo.doubleValue }
+      def high(t: Double) = it.high(Box("t" -> t)) match { case Interval(hi, _) => hi.doubleValue }
+      val (lo, hi) = dom match { case Interval(lo, hi) => (lo.doubleValue, hi.doubleValue) }
+      addFunctionEnclosure(lo, hi, high, low, 0, "")
+    }
   }
 
 }
