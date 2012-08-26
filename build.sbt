@@ -13,7 +13,7 @@ libraryDependencies ++= Seq(
    "org.scalatest" %% "scalatest" % "2.0.M3" % "test",
    "org.jfree" % "jfreechart" % "1.0.14",
    "org.jfree" % "jcommon" % "1.0.17",
-   "org.scala-lang" % "scala-swing" % "2.7.3"
+   "org.scala-lang" % "scala-swing" % "2.9.2"
 )
 
 retrieveManaged := true
