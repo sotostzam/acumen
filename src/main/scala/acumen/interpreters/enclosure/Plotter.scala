@@ -1,11 +1,23 @@
 package acumen.interpreters.enclosure
 
 import java.awt.geom.Rectangle2D
+import java.awt.BasicStroke
 import java.awt.Color
+import java.io.FileOutputStream
 import scala.swing._
 import org.jfree.chart.plot._
+import org.jfree.chart.renderer.xy.XYDifferenceRenderer
+import org.jfree.chart.title.LegendTitle
 import org.jfree.chart._
 import org.jfree.data.xy._
+import org.jfree.ui.ApplicationFrame
+import org.jfree.ui.RectangleEdge
+import com.itextpdf.awt.DefaultFontMapper
+import com.itextpdf.text.pdf.PdfContentByte
+import com.itextpdf.text.pdf.PdfTemplate
+import com.itextpdf.text.pdf.PdfWriter
+import com.itextpdf.text.Document
+import javax.swing.JFrame
 
 trait Plotter {
   val chart: JFreeChart = createChart("", "", "");
