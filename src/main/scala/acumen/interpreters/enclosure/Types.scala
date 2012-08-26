@@ -8,8 +8,5 @@ object Types {
 
   /** Variable name */
   type VarName = String
-
-  /** Variable name */
-  type ComponentName = String
     
 }
