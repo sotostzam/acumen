@@ -109,7 +109,7 @@ case class UnivariateAffineScalarEnclosure private[enclosure] (
       val minh = min(thislo(h), thatlo(h))
       val maxh = max(thishi(h), thathi(h))
       val const = minl /\ maxl
-      val coeff = ((minl - minh) / h) /\ ((maxl - maxh) / h)
+      val coeff = ((minh - minl) / h) /\ ((maxh - maxl) / h)
       UnivariateAffineScalarEnclosure(domain, normalizedDomain, const, coeff)
     }
   }
