@@ -12,7 +12,18 @@ case class AffineEnclosure private[enclosure] (
   private[enclosure]normalizedDomain: Box,
   //TODO check if it would help to extend MapProxy here as in Box.!
   private[enclosure]components: Map[VarName, AffineScalarEnclosure]) {
-  assert(components.forall { case (_, e) => domain == e.domain },
+  println("-----------------------")
+  println("AffineEnclosure.domain: " + domain)
+  println("-----------------------")
+  assert(components.forall {
+    case (_, e) =>
+      println("---------------")
+      println("e.constant:     " + e.constant)
+      println("e.coefficients: " + e.coefficients)
+      println("e.domain:       " + e.domain)
+      println("---------------")
+      domain == e.domain
+  },
     "The domain of the affine enclosure must conicide with the domain " +
       "of each component affine scalar enclosure.")
   assert(components.forall { case (_, e) => normalizedDomain == e.normalizedDomain },
@@ -58,10 +69,36 @@ case class AffineEnclosure private[enclosure] (
    *
    * Implementation note: see the implementation note for AffineScalarEnclosure.collapse.
    */
-  private def collapse(name: VarName)(implicit rnd: Rounding) = map(_.collapse(name))
+  private def collapse(name: VarName)(implicit rnd: Rounding) = {
+    println("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+    println("AffineEnclosure.collapse: entry")
+    println("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+    println("name to collapse:         " + name)
+    println("domain before collapsing: " + domain)
+    println("HERE")
+    val collapsedDomain = domain-name
+    println("collapsedDomain:          " + collapsedDomain)
+    val res = AffineEnclosure(collapsedDomain, normalizedDomain - name, map(_.collapse(name)).components)
+    println("domain after collapsing:  " + res.domain)
+    println("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+    println("AffineEnclosure.collapse: entry")
+    println("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+    res
+  }
 
-  def collapse(names: VarName*)(implicit rnd: Rounding): AffineEnclosure =
-    names.foldLeft(this)((res, name) => res.collapse(name))
+  def collapse(names: VarName*)(implicit rnd: Rounding): AffineEnclosure = {
+    println("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+    println("AffineEnclosure.collapse*: entry")
+    println("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+    println("names to collapse:        " + names)
+    println("domain before collapsing: " + domain)
+    val res = names.foldLeft(this)((res, name) => res.collapse(name))
+    println("domain after collapsing:  " + res.domain)
+    println("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+    println("AffineEnclosure.collapse*: exit")
+    println("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+    res
+  }
 
   /**
    * Component-wise containment of enclosures.

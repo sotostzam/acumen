@@ -114,15 +114,37 @@ case class AffineScalarEnclosure private[enclosure] (
    * property: (monotonicity of domain collapsing): The enclosure which is being collapsed
    * must be point-wise included in the enclosure obtained by collapsing.
    */
-  private def collapse(name: VarName)(implicit rnd: Rounding) =
-    AffineScalarEnclosure(
+  private def collapse(name: VarName)(implicit rnd: Rounding) = {
+    println("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+    println("AffineScalarEnclosure.collapse: entry")    
+    println("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+    println("name to collapse:         " + name)
+    println("domain before collapsing: " + domain)
+    val res = AffineScalarEnclosure(
       domain - name,
       normalizedDomain - name,
       constant + coefficients.getOrElse(name, Interval(0)) * normalizedDomain.getOrElse(name, Interval(0)),
       coefficients - name)
+    println("domain after collapsing:  " + res.domain)
+    println("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+    println("AffineScalarEnclosure.collapse: exit")
+    println("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+    res
+  }
 
-  def collapse(names: VarName*)(implicit rnd: Rounding): AffineScalarEnclosure =
-    names.foldLeft(this)((res, name) => res.collapse(name))
+  def collapse(names: VarName*)(implicit rnd: Rounding): AffineScalarEnclosure = {
+    println("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+    println("AffineScalarEnclosure.collapse*: entry")
+    println("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+    println("names to collapse:        " + names)
+    println("domain before collapsing: " + domain)
+    val res = names.foldLeft(this)((res, name) => res.collapse(name))
+    println("domain after collapsing:  " + res.domain)
+    println("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+    println("AffineScalarEnclosure.collapse*: exit")
+    println("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+    res
+  }
 
   /**
    * Containment of enclosures.
