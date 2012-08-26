@@ -54,6 +54,37 @@ case class UnivariateAffineScalarEnclosure private[enclosure] (
   }
 
   /**
+   * Get the range of the enclosure.
+   *
+   * Since the enclosure is a safe approximation of any contained function
+   * the range also safely approximates the range of any such function.
+   */
+  def range(implicit rnd: Rounding): Interval = this(domain)
+
+  /**
+   * Containment of enclosures.
+   *
+   * Implementation note: representing enclosures over normalized domains
+   * allows us to test containment by constant- and coefficient-wise
+   * containment.
+   */
+  def contains(that: UnivariateAffineScalarEnclosure)(implicit rnd: Rounding) = {
+    val lodiffnonneg = (low - that.low).range lessThanOrEqualTo Interval(0)
+    val hidiffnonneg = (that.high - high).range lessThanOrEqualTo Interval(0)
+    lodiffnonneg && hidiffnonneg
+  }
+
+  /* Arithmetic operations */
+
+  /** Subtraction of enclosures. */
+  private def -(that: UnivariateAffineScalarEnclosure)(implicit rnd: Rounding) =
+    UnivariateAffineScalarEnclosure(
+      domain,
+      normalizedDomain,
+      constant - that.constant,
+      coefficient - that.coefficient)
+
+  /**
    * Compute the union of the enclosures.
    *
    * Implementation note: given that a line goes though the points
