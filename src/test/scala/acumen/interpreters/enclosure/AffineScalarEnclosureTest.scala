@@ -6,11 +6,11 @@ import org.scalacheck.Gen._
 import org.scalacheck.Prop._
 import org.scalacheck.Properties
 
+import AffineScalarEnclosure._
 import Box._
 import Generators._
 import Interval._
 import Types._
-import AffineScalarEnclosure._
 
 object AffineScalarEnclosureTest extends Properties("AffineScalarEnclosure") {
 
@@ -18,11 +18,11 @@ object AffineScalarEnclosureTest extends Properties("AffineScalarEnclosure") {
 
   /* Type synonyms */
 
-  type BinaryOp = (AffineScalarEnclosure, AffineScalarEnclosure) => AffineScalarEnclosure
+  type BinaryASEOp = (AffineScalarEnclosure, AffineScalarEnclosure) => AffineScalarEnclosure
 
   /* Properties */
 
-  property("constant AffineScalarEnclosure has airty 0") =
+  property("constant AffineScalarEnclosure has arity 0") =
     forAll(genBox, genInterval) { (box, interval) =>
       AffineScalarEnclosure(box, interval).arity == 0
     }
@@ -30,8 +30,8 @@ object AffineScalarEnclosureTest extends Properties("AffineScalarEnclosure") {
   property("projection AffineScalarEnclosure has arity 1") =
     forAll(posNum[Int]) { dim =>
       forAll(genDimBox(dim)) { box =>
-        forAll(choose(0, box.size - 1)) { index =>
-          AffineScalarEnclosure(box, box.keys.toList(index)).arity == 1
+        forAll(oneOf(box.keySet.toList)) { name =>
+          AffineScalarEnclosure(box, name).arity == 1
         }
       }
     }
@@ -55,7 +55,7 @@ object AffineScalarEnclosureTest extends Properties("AffineScalarEnclosure") {
       }
     }
 
-  property("an enclsoure is the sum of its constantTerm and linearTerms") =
+  property("an enclosure is the sum of its constantTerm and linearTerms") =
     forAll { (f: AffineScalarEnclosure) =>
       f.constantTerm + f.linearTerms == f
     }
@@ -115,7 +115,7 @@ object AffineScalarEnclosureTest extends Properties("AffineScalarEnclosure") {
   property("numeric operations monotonicity") =
     //TODO Add testing of division and operation variants (intervals, scalars)
     forAll(choose(1, 10),
-      oneOf(Seq((_ + _), (_ - _), (_ * _))): Gen[BinaryOp]) { (dim, bop) =>
+      oneOf(Seq((_ + _), (_ - _), (_ * _))): Gen[BinaryASEOp]) { (dim, bop) =>
         forAllNoShrink(genDimBox(dim)) { dom =>
           forAllNoShrink(
             genBoxAffineScalarEnclosure(dom),

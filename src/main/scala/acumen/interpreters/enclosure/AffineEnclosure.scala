@@ -22,6 +22,14 @@ case class AffineEnclosure private[enclosure] (
   /** Get the "name" component of the enclosure. */
   def apply(name: VarName): AffineScalarEnclosure = components(name)
 
+  /** Get the constant box of the enclosure. */
+  def constantTerm =
+    AffineEnclosure(domain, components.keys.map { n => (n, components(n).constant) }.toMap)
+
+  /** Get the linear term of the enclosure. */
+  def linearTerms(implicit rnd: Rounding) =
+    AffineEnclosure(domain, components.keys.map { n => (n, components(n).linearTerms) }.toMap)
+
   /**
    * Evaluate the enclosure at the box x.
    *
@@ -152,7 +160,8 @@ object AffineEnclosure {
     AffineEnclosure(domain, constant.mapValues(interval => AffineScalarEnclosure(domain, interval)))
   }
 
-  /** Lifts a variable "name" in the domain to an identity function over the corresponding interval. */
+  //TODO Check that the below comment is correct.
+  /** Lifts a collection "names" of variables in the domain to a thin enclosure consisting of identity functions over the corresponding box. */
   def apply(domain: Box, names: VarName*)(implicit rnd: Rounding): AffineEnclosure = {
     assert(names.forall(name => domain contains name),
       "Projecting is only possible for variables in the domain.")
