@@ -56,7 +56,7 @@ object AffineEnclosureTest extends Properties("AffineEnclosure") {
       f.constantTerm + f.linearTerms == f
     }
 
-    property("monotonicity of enclosure evaluation") = 
+  //  property("monotonicity of enclosure evaluation") = 
 
   //  property("sanity test of enclosure evaluation") =
 
