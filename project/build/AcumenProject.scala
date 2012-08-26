@@ -9,9 +9,9 @@ class AcumenProject(info: ProjectInfo) extends DefaultProject(info)
 
   // dependencies
 
-  val scalaSwing = "org.scala-lang" % "scala-swing" % "2.8.1.RC4"
-  val scalaTest = "org.scalatest" % "scalatest" % "1.2"
-  val scalaCheck = "org.scala-tools.testing" % "scalacheck_2.8.0" % "1.7"
+  val scalaSwing = "org.scala-lang" % "scala-swing" % "2.9.2"
+  val scalaTest = "org.scalatest" %% "scalatest" % "2.0.M1" % "test"
+  val scalaCheck = "org.scalacheck" %% "scalacheck" % "1.10.0" % "test"
   //val sxr = compilerPlugin("org.scala-tools.sxr" %% "sxr" % "0.2.7")
   
   /* proguard is used for 
