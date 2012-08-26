@@ -132,21 +132,33 @@ object Generators {
   } yield AffineScalarEnclosure(box, Box.normalize(box), constant, coefficients)
 
   /** Generates a sub-enclosure of the enclosure. */
-  def genSubAffineScalarEnclosure(f: AffineScalarEnclosure)(implicit rnd: Rounding): Gen[AffineScalarEnclosure] = {
-    for {
-      subconst <- genSubInterval(f.constant)
-      subcoeffs <- Gen.sequence[List, Interval](f.coefficients.values.map(genSubInterval(_)))
-    } yield AffineScalarEnclosure(f.domain, f.normalizedDomain, subconst, (f.domain.keys zip subcoeffs).toMap)
-  }
+  def genSubAffineScalarEnclosure(f: AffineScalarEnclosure)(implicit rnd: Rounding): Gen[AffineScalarEnclosure] = for {
+    subconst <- genSubInterval(f.constant)
+    subcoeffs <- Gen.sequence[List, Interval](f.coefficients.values.map(genSubInterval(_)))
+  } yield AffineScalarEnclosure(f.domain, f.normalizedDomain, subconst, (f.domain.keys zip subcoeffs).toMap)
 
   /* AffineEnclosure */
-  
+
   /** Generates a plain enclosure. */
-//  def genAffineEnclosure(implicit rnd: Rounding): Gen[AffineEnclosure] = for {
-//	dom <- arbitrary[Box]
-//    components <- sequence[List,AffineScalarEnclosure](dom.keys.map(genBoxAffineScalarEnclosure(box)))
-//  }
-  
+  //  def genAffineEnclosure(implicit rnd: Rounding): Gen[AffineEnclosure] = for {
+  //	dom <- arbitrary[Box]
+  //    components <- sequence[List,AffineScalarEnclosure](dom.keys.map(genBoxAffineScalarEnclosure(box)))
+  //  }
+
+  /* UnivariateAffineScalarEnclosure */
+
+  /** Generates a plain univariate enclosure. */
+  def genUnivariateAffineScalarEnclosure: Gen[UnivariateAffineScalarEnclosure] = for {
+    val List(domain, constant, coefficient) <- listOfN(3, arbitrary[Interval])
+  } yield UnivariateAffineScalarEnclosure(domain, domain - domain.low, constant, coefficient)
+
+  /** Generates a univariate enclosure over the domain. */
+  def genDomUnivariateAffineScalarEnclosure(dom: Interval): Gen[UnivariateAffineScalarEnclosure] = for {
+    val List(domain, constant, coefficient) <- listOfN(3, arbitrary[Interval])
+  } yield UnivariateAffineScalarEnclosure(dom, dom - domain.low, constant, coefficient)
+
+  // TODO write generators corresponding to those for AffineScalarEnclosure
+
   /* Expression */
 
   /**
@@ -201,9 +213,9 @@ object Generators {
     v <- genNonZeroInterval
   } yield Divide(l, Constant(v))
 
-  /** 
+  /**
    * Generates a random affine expression.
-   * See implementation note for genExpression. 
+   * See implementation note for genExpression.
    */
   def genAffineExpression(implicit rnd: Rounding): Gen[Expression] =
     frequency(
@@ -229,10 +241,6 @@ object Generators {
     l <- Gen.lzy { genAffineExpression }
     r <- genAffineExpression
   } yield Multiply(l, r)
-
-  /* AffineEnclosure */
-
-  // TODO write generators corresponding to those for AffineScalarEnclosure
 
   /* --- Utilities --- */
 
