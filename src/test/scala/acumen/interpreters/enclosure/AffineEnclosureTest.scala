@@ -56,7 +56,17 @@ object AffineEnclosureTest extends Properties("AffineEnclosure") {
       f.constantTerm + f.linearTerms == f
     }
 
-  //  property("monotonicity of enclosure evaluation") = 
+//  property("monotonicity of enclosure evaluation") =
+//    //TODO Try this with a larger number of state variables
+//    forAll(choose(1, 10), choose(1, 10)) { (stateDim, dim) =>
+//      forAll(listOfN(stateDim, genDimBox(dim))) { doms =>
+//        forAll(genSubBox(dom), genBoxAffineScalarEnclosure(dom)) { (box, f) =>
+//          forAll(genSubBox(box)) { subbox =>
+//            f(box) contains f(subbox)
+//          }
+//        }
+//      }
+//    }
 
   //  property("sanity test of enclosure evaluation") =
 

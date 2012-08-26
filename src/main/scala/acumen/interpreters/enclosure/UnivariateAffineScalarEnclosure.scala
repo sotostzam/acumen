@@ -90,7 +90,7 @@ case class UnivariateAffineScalarEnclosure private[enclosure] (
    * Implementation note: given that a line goes though the points
    * (xl,yl) and (xh,yl) points (x,y) on the line satisfy:
    *   y = yl + (x - xl)*(yh-yl)/(xh-xl)
-   * which, under theassumption that xl = 0, simplifies to
+   * which, under the assumption that xl = 0, simplifies to
    *   y = yl + x*(yh-yl)/xh.
    *
    * Note that this assumes that the domain interval is not thin!
