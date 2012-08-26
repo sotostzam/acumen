@@ -140,13 +140,13 @@ object Generators {
   }
 
   /* AffineEnclosure */
-  
+
   /** Generates a plain enclosure. */
-//  def genAffineEnclosure(implicit rnd: Rounding): Gen[AffineEnclosure] = for {
-//	dom <- arbitrary[Box]
-//    components <- sequence[List,AffineScalarEnclosure](dom.keys.map(genBoxAffineScalarEnclosure(box)))
-//  }
-  
+  //  def genAffineEnclosure(implicit rnd: Rounding): Gen[AffineEnclosure] = for {
+  //	dom <- arbitrary[Box]
+  //    components <- sequence[List,AffineScalarEnclosure](dom.keys.map(genBoxAffineScalarEnclosure(box)))
+  //  }
+
   /* Expression */
 
   /**
@@ -201,9 +201,9 @@ object Generators {
     v <- genNonZeroInterval
   } yield Divide(l, Constant(v))
 
-  /** 
+  /**
    * Generates a random affine expression.
-   * See implementation note for genExpression. 
+   * See implementation note for genExpression.
    */
   def genAffineExpression(implicit rnd: Rounding): Gen[Expression] =
     frequency(
@@ -218,17 +218,23 @@ object Generators {
     e <- Gen.lzy { genAffineExpression }
   } yield Negate(e)
 
-  /** Generates a random negated affine expression. */
+  /** Generates a random sum of affine expressions. */
   def genAffinePlus(implicit rnd: Rounding): Gen[Expression] = for {
     l <- Gen.lzy { genAffineExpression }
     r <- genAffineExpression
   } yield Plus(l, r)
 
-  /** Generates a random negated affine expression. */
+  /** Generates a random scalar multiple of an affine expression. */
   def genAffineMultiply(implicit rnd: Rounding): Gen[Expression] = for {
-    l <- Gen.lzy { genAffineExpression }
+    l <- Gen.lzy { genConstant }
     r <- genAffineExpression
   } yield Multiply(l, r)
+
+  /** Generates a random scalar quoteient of an affine expression. */
+  def genAffineDivide(implicit rnd: Rounding): Gen[Expression] = for {
+	  l <- Gen.lzy { genAffineExpression }
+	  r <- genConstant
+  } yield Divide(l, r)
 
   /* AffineEnclosure */
 
