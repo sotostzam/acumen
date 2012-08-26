@@ -223,8 +223,9 @@ case class AffineScalarEnclosure private[enclosure] (
 
   /** Returns an enclosure with the same affine interval function as the enclosure, defined over a sub-box of the domain. */
   //TODO Add property
-  def restrictTo(subDomain: Box)(implicit rnd: Rounding): AffineScalarEnclosure = {
-    assert(domain contains subDomain, "Restriction is only defined for subDomains that are sub-boxes of the enclsure's domain.")
+  def restrictTo(subDomain: Box): AffineScalarEnclosure = {
+    require(Box.isSubBoxOf(subDomain, domain) &&
+      Box.isSubBoxOf(Box.normalize(subDomain), Box.normalize(domain)))
     AffineScalarEnclosure(subDomain, constant, coefficients)
   }
 

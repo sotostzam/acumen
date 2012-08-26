@@ -230,17 +230,27 @@ object Generators {
     e <- Gen.lzy { genAffineExpression }
   } yield Negate(e)
 
-  /** Generates a random negated affine expression. */
+  /** Generates a random sum of affine expressions. */
   def genAffinePlus(implicit rnd: Rounding): Gen[Expression] = for {
     l <- Gen.lzy { genAffineExpression }
     r <- genAffineExpression
   } yield Plus(l, r)
 
-  /** Generates a random negated affine expression. */
+  /** Generates a random scalar multiple of an affine expression. */
   def genAffineMultiply(implicit rnd: Rounding): Gen[Expression] = for {
-    l <- Gen.lzy { genAffineExpression }
+    l <- Gen.lzy { genConstant }
     r <- genAffineExpression
   } yield Multiply(l, r)
+
+  /** Generates a random scalar quoteient of an affine expression. */
+  def genAffineDivide(implicit rnd: Rounding): Gen[Expression] = for {
+	  l <- Gen.lzy { genAffineExpression }
+	  r <- genConstant
+  } yield Divide(l, r)
+
+  /* AffineEnclosure */
+
+  // TODO write generators corresponding to those for AffineScalarEnclosure
 
   /* --- Utilities --- */
 
