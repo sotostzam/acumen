@@ -32,7 +32,7 @@ case class AffineScalarEnclosure private[enclosure] (
   /** The number of variables in the domain of the enclosure. */
   def dimension = domain.size
 
-  /** The lower bound enclosure of this enclosure. */
+  /** The low bound enclosure of this enclosure. */
   def low = AffineScalarEnclosure(domain, normalizedDomain, constant.low, coefficients.mapValues(_.low))
 
   /** The high bound enclosure of this enclosure. */

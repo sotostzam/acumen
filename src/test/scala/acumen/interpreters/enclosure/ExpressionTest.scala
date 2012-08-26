@@ -51,8 +51,8 @@ object ExpressionUnitTest extends Properties("Expression.UnitTest") {
     val e = l * l
     val box = Box("l" -> Interval(4, 5))
     try {
-      println("e.enclosureEval(box)", e.enclosureEval(box))
-      println("e(box)", e(box))
+      println("e.enclosureEval(box)" + e.enclosureEval(box))
+      println("e(box)" + e(box))
       e.enclosureEval(box) \/ e(box)
       true
     } catch {
@@ -65,7 +65,7 @@ object ExpressionUnitTest extends Properties("Expression.UnitTest") {
     val l: Expression = "l"
     val e = l * l
     val box = Box("l" -> Interval(4, 5))
-    println("e.enclosureEval(box)", e.enclosureEval(box))
+    println("e.enclosureEval(box)" + e.enclosureEval(box))
     Interval(15.75, 25) contains e.enclosureEval(box)
   }
 
