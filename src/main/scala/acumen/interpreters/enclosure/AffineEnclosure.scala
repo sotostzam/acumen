@@ -149,7 +149,9 @@ case class AffineEnclosure private[enclosure] (
   }
 
 }
-object AffineEnclosure {
+
+// TODO improve how the plotting is done
+object AffineEnclosure extends Plotter {
 
   /** Convenience method, normalizes the domain. */
   private[enclosure] def apply(domain: Box, components: Map[VarName, AffineScalarEnclosure]): AffineEnclosure =

@@ -100,10 +100,22 @@ abstract class Relation {
       else if (c lessThan 0) UnaryRelation(relname, Negate(e)).support(x)
       else sys.error("Relation.support: division by 0")
   }
-  
+
   /** Returns the set of variable names which occur in the relation. */
   def varNames: Set[VarName] = this match {
-    case UnaryRelation(_,expression) => expression.varNames
+    case UnaryRelation(_, expression) => expression.varNames
+  }
+
+  /** 
+   * Tests if the relation is one of the reflexive inequalities, i.e.
+   * of the form 0 <= e or e <= 0 for some expression e. 
+   */
+  def isNonStrict: Boolean = this match {
+    case UnaryRelation(n, _) => n match {
+      case NonPositive => true
+      case NonNegative => true
+      case _ => false
+    }
   }
 
 }
