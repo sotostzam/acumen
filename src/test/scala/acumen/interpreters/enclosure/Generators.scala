@@ -79,6 +79,7 @@ object Generators {
     dim <- posNum[Int]
     intervals <- listOfN(dim, arbitrary[Interval])
   } yield (listOfNames(dim) zip intervals).toMap
+  implicit def arbitraryBox: Arbitrary[Box] = Arbitrary(genBox)
 
   /** Generates a dim-dimensional box. */
   def genDimBox(dim: Int)(implicit rnd: Rounding): Gen[Box] = for {
@@ -140,10 +141,11 @@ object Generators {
   /* AffineEnclosure */
 
   /** Generates a plain enclosure. */
-  //  def genAffineEnclosure(implicit rnd: Rounding): Gen[AffineEnclosure] = for {
-  //	dom <- arbitrary[Box]
-  //    components <- sequence[List,AffineScalarEnclosure](dom.keys.map(genBoxAffineScalarEnclosure(box)))
-  //  }
+  def genAffineEnclosure(implicit rnd: Rounding): Gen[AffineEnclosure] = for {
+    dom <- arbitrary[Box]
+    components <- listOfN(dom.size, genBoxAffineScalarEnclosure(dom))
+  } yield AffineEnclosure(dom, dom.keys.zip(components).toMap)
+  implicit def arbitraryAffineEnclosure: Arbitrary[AffineEnclosure] = Arbitrary(genAffineEnclosure)
 
   /* UnivariateAffineScalarEnclosure */
 
@@ -244,8 +246,8 @@ object Generators {
 
   /** Generates a random scalar quoteient of an affine expression. */
   def genAffineDivide(implicit rnd: Rounding): Gen[Expression] = for {
-	  l <- Gen.lzy { genAffineExpression }
-	  r <- genConstant
+    l <- Gen.lzy { genAffineExpression }
+    r <- genConstant
   } yield Divide(l, r)
 
   /* AffineEnclosure */
