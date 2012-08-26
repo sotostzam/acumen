@@ -99,3 +99,41 @@ object IntervalTest extends Properties("Interval") {
     }
 
 }
+
+object IntervalUnitTest extends Properties("Interval.UnitTest") {
+
+  //TODO Test min and max
+
+  import TestingContext._
+
+  /* Properties */
+  property("scala interval expressions - sums") = {
+    Interval(0, 1) + Interval(-1, 0) == Interval(-1, 1) &&
+      Interval(0, 1) + Interval(-2, 2) == Interval(-2, 3) &&
+      Interval(-1, 0) + Interval(-3, -2) == Interval(-4, -2) &&
+      Interval(-2, 2) + Interval(1) == Interval(-1, 3) &&
+      Interval(0, 1) + Interval(-3, -2) == Interval(-3, -1)
+  }
+
+  property("scala interval expressions - products") = {
+    Interval(-3, -1) * Interval(-3, -1) == Interval(1, 9) &&
+      Interval(-3, -1) * Interval(-3, 0) == Interval(0, 9) &&
+      Interval(4) * Interval(-1) == Interval(-4) &&
+      Interval(-3, -1) * Interval(-3) == Interval(3, 9)
+  }
+
+  property("scala interval expressions - differences") = {
+    Interval(-3, -1) - Interval(-3, -1) == Interval(-2, 2) &&
+      Interval(-3, -1) - Interval(-3, 0) == Interval(-3, 2) &&
+      Interval(4) - Interval(-1) == Interval(5) &&
+      Interval(-3, -1) - Interval(-3) == Interval(0, 2)
+  }
+
+  property("scala interval expressions - quotients") = {
+    Interval(-4, -1) / Interval(-4, -1) == Interval(0.25, 4) &&
+      Interval(-1, 3) / Interval(-3, -1) == Interval(-3, 1) &&
+      Interval(4) / Interval(-1) == Interval(-4) &&
+      Interval(-3, 3) / Interval(-3) == Interval(-1, 1)
+  }
+
+}

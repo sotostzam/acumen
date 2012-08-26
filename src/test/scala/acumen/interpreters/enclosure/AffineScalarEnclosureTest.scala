@@ -179,3 +179,33 @@ object AffineScalarEnclosureTest extends Properties("AffineScalarEnclosure") {
     }
 
 }
+
+object AffineScalarEnclosureUnitTest extends Properties("AffineScalarEnclosure.UnitTest") {
+
+  import TestingContext._
+  implicit val rnd = Rounding(10)
+
+  /* Unit tests */
+
+  property("scala ASE expressions - sums") = {
+    val unit = Interval(0, 1)
+    val u = Box("t" -> unit)
+    val x = AffineScalarEnclosure(u, "t")
+    x(u) == unit &&
+      (x + x)(rnd)(u) == 2 * unit &&
+      (x * unit)(rnd)(u) == unit &&
+      (x * unit)(rnd)(u) == unit &&
+      (x * 5)(rnd)(u) == 5 * unit
+  }
+
+  property("UT - enclosure scala evaluation failing test case") = {
+    // Should result in [15.75,25]
+    val box = Box("l" -> Interval(4, 5))
+    val l = AffineScalarEnclosure(box, "l")
+    val e = l * l
+    println("e.enclosureEval(box)" + e(box))
+    Interval(15.75, 25) contains e(box)
+  }
+
+}
+
