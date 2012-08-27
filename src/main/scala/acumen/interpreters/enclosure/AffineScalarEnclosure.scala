@@ -1,5 +1,6 @@
 package acumen.interpreters.enclosure
 
+import Interval._
 import Types._
 import Util._
 
@@ -262,7 +263,7 @@ object AffineScalarEnclosure extends Plotter {
    * Degree reduction for "pure terms"
    * map x^2 from [a,b] to [-1,1] using x => 0.25*((b-a)*x+a+b)^2
    * map t^2 => 0.5*(T_2+1) and then T_2 => [-1,1] (or just t^2 => [0,1])
-   * map t from [-1,1] to [a,b] using t => (2*t-a-b)/(b-a)
+   * map t from [-1,1] to [0,b-a] using t => (2*t+a-b)/(b-a)
    *
    * AffineIntervalFunction enclosure over doms of the quadratic monomial in variable name
    */
@@ -273,8 +274,8 @@ object AffineScalarEnclosure extends Plotter {
     val width = b - a
     val coeff = b + a
     // This corresponds to translating to [-1,1], representing in Chebyshev basis, 
-    // collapsing undesired (quadratic) terms and translating back.
-    val const = ((Interval(0) /\ (width * width)) - (coeff * coeff)) / Interval(4)
+    // collapsing the undesired (quadratic) term and translating to the normalized domain.
+    val const = (0 /\ (width * width) / 4)  - (width * coeff / 2) + (coeff * coeff / 4)
     AffineScalarEnclosure(domain, const, Box(name -> coeff))
   }
 
@@ -302,11 +303,10 @@ object AffineScalarEnclosure extends Plotter {
   def plot(frametitle: String)(them: AffineScalarEnclosure*)(implicit rnd: Rounding) {
     createFrame(frametitle)
     for (it <- them) {
-      println(it)
-      val dom = it.domain("t")
       def low(t: Double) = it.low(Box("t" -> t)) match { case Interval(lo, _) => lo.doubleValue }
-      def high(t: Double) = it.high(Box("t" -> t)) match { case Interval(hi, _) => hi.doubleValue }
-      val (lo, hi) = dom match { case Interval(lo, hi) => (lo.doubleValue, hi.doubleValue) }
+      def high(t: Double) = it.high(Box("t" -> t)) match { case Interval(_, hi) => hi.doubleValue }
+      val dom = it.domain("t")
+      val (lo, hi) = dom match { case Interval(l, h) => (l.doubleValue, h.doubleValue) }
       addFunctionEnclosure(lo, hi, high, low, 0, "")
     }
   }
