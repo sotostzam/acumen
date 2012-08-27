@@ -137,17 +137,12 @@ case class EventTree(
         val affines = v.enclosure.components
         val decision = detectNextEvent(H, T, mode, affines)
         decision match {
-          case CertainlyOneOf(es) => {
-            //            println("addLayer: detected " + es + " in " + T)
-            newSequences(v, es)
-          }
+          case CertainlyOneOf(es) => newSequences(v, es)
           case MaybeOneOf(es) => {
             if (es.isEmpty) {
-              //              println("addLayer: no event in " + T)
               v.mayBeLast = true
               Set(v)
             } else {
-              //              println("addLayer: possibly detected " + es + " in " + T)
               v.mayBeLast = true
               newSequences(v, es)
             }

@@ -65,8 +65,13 @@ case class AffineScalarEnclosure private[enclosure] (
    * affine enclosures.
    */
   def apply(x: Box)(implicit rnd: Rounding) = {
+    println("apply: x: " + x)
+    println("apply: domain: " + domain)
     assert(coefficients.keySet subsetOf x.keySet,
       "An enclosure can only be evaluated over a box that has a domain for each variable.")
+    assert(x.forall { case (name, interval) => domain(name) contains interval },
+      "The argument must be contained in the normalized domain.")
+
     /* It is essential to evaluate the enclosure over the original domain.
      * To avoid unnecessary errors the argument is shifted to the normalized
      * domain rather than the enclosure to the original domain. 
@@ -74,9 +79,9 @@ case class AffineScalarEnclosure private[enclosure] (
      * Implementation note: cannot use normalize because it does not take the 
      * current domain of the enclosure into consideration. E.g. normalize maps
      * thin intervals to [0,0]! */
-    val c :: cs = Box.corners(x.map {
-      case (name, value) => name -> (value - domain(name).low)
-    })
+    val nx = x.map { case (name, value) => name -> (value - (domain(name).low)) }
+    println("apply: nx: " + nx)
+    val c :: cs = Box.corners(nx)
     val lo = low
     val hi = high
     cs.foldLeft((lo evalThinAtThin c) /\ (hi evalThinAtThin c)) {
@@ -94,8 +99,10 @@ case class AffineScalarEnclosure private[enclosure] (
    * width.
    */
   private def evalThinAtThin(x: Box)(implicit rnd: Rounding): Interval = {
+    println("evalThinAtThin: x: " + x)
+    println("evalThinAtThin: normalizedDomain: " + normalizedDomain)
     assert(x.forall { case (name, interval) => normalizedDomain(name) contains interval },
-        "The argument must be contained in the normalized domain.")
+      "The argument must be contained in the normalized domain.")
     coefficients.foldLeft(constant) { case (res, (name, coeff)) => res + coeff * x(name) }
   }
 
@@ -115,37 +122,15 @@ case class AffineScalarEnclosure private[enclosure] (
    * property: (monotonicity of domain collapsing): The enclosure which is being collapsed
    * must be point-wise included in the enclosure obtained by collapsing.
    */
-  private def collapse(name: VarName)(implicit rnd: Rounding) = {
-    println("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
-    println("AffineScalarEnclosure.collapse: entry")    
-    println("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
-    println("name to collapse:         " + name)
-    println("domain before collapsing: " + domain)
-    val res = AffineScalarEnclosure(
+  private def collapse(name: VarName)(implicit rnd: Rounding) =
+    AffineScalarEnclosure(
       domain - name,
       normalizedDomain - name,
       constant + coefficients.getOrElse(name, Interval(0)) * normalizedDomain.getOrElse(name, Interval(0)),
       coefficients - name)
-    println("domain after collapsing:  " + res.domain)
-    println("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
-    println("AffineScalarEnclosure.collapse: exit")
-    println("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
-    res
-  }
 
-  def collapse(names: VarName*)(implicit rnd: Rounding): AffineScalarEnclosure = {
-    println("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
-    println("AffineScalarEnclosure.collapse*: entry")
-    println("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
-    println("names to collapse:        " + names)
-    println("domain before collapsing: " + domain)
-    val res = names.foldLeft(this)((res, name) => res.collapse(name))
-    println("domain after collapsing:  " + res.domain)
-    println("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
-    println("AffineScalarEnclosure.collapse*: exit")
-    println("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
-    res
-  }
+  def collapse(names: VarName*)(implicit rnd: Rounding): AffineScalarEnclosure =
+    names.foldLeft(this)((res, name) => res.collapse(name))
 
   /**
    * Containment of enclosures.

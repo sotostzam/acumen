@@ -17,16 +17,13 @@ object Solver {
         H.guards(_)(
           Y.mapValues(_.range)) != Set(false))
     if (events.isEmpty) {
-      //      println("detectNextEvent: no event in " + T)
       MaybeOneOf(events)
     } else {
       if (H.events.exists { e =>
         H.guardPrime(e)(Y.mapValues(_(Map("t" -> T.high)))) == Set(true)
       }) {
-        //        println("detectNextEvent: some event in " + T)
         CertainlyOneOf(events)
       } else {
-        //        println("detectNextEvent: maybe event in " + T)
         MaybeOneOf(events)
       }
     }
@@ -97,7 +94,6 @@ object Solver {
             case ((resss, resys), (ss, ys)) => (resss ++ ss, resys ++ ys)
           }
         val sslT = M(endStatesOnlT)
-        //        println("LEFT STATES " + sslT + " at " + lT.hi)
 
         val onrT = sslT.map(solveVtE(H, rT, _, delta, m, n, K, output))
         if (onrT contains None)
@@ -108,7 +104,6 @@ object Solver {
               case ((resss, resys), (ss, ys)) => (resss ++ ss, resys ++ ys)
             }
           val ssrT = M(endStatesOnrT)
-          //          println("RIGHT STATES " + ssrT + " at " + rT.hi)
 
           lazy val nowhereBetter = (endTimeInterval(ssrT) zip endTimeInterval(ssT)).forall {
             case ((_, l), (_, r)) => l.width greaterThanOrEqualTo r.width
@@ -119,10 +114,6 @@ object Solver {
           lazy val noImprovement = nowhereBetter || somewhereWorse
 
           if (cannotSplit || noImprovement) {
-            //        	  println("computed up to " + T.hi)
-            //            if (cannotSplit) println("cannotSplit " + T + "at precision " + d)
-            //            if (nowhereBetter) println("nowhereBetter at " + T)
-            //            if (somewhereWorse) println("somewhereWorse at " + T)
             resultForT
           } else {
             println("splitting " + T)

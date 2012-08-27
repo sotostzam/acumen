@@ -12,18 +12,7 @@ case class AffineEnclosure private[enclosure] (
   private[enclosure]normalizedDomain: Box,
   //TODO check if it would help to extend MapProxy here as in Box.!
   private[enclosure]components: Map[VarName, AffineScalarEnclosure]) {
-  println("-----------------------")
-  println("AffineEnclosure.domain: " + domain)
-  println("-----------------------")
-  assert(components.forall {
-    case (_, e) =>
-      println("---------------")
-      println("e.constant:     " + e.constant)
-      println("e.coefficients: " + e.coefficients)
-      println("e.domain:       " + e.domain)
-      println("---------------")
-      domain == e.domain
-  },
+  assert(components.forall { case (_, e) => domain == e.domain },
     "The domain of the affine enclosure must conicide with the domain " +
       "of each component affine scalar enclosure.")
   assert(components.forall { case (_, e) => normalizedDomain == e.normalizedDomain },
@@ -75,7 +64,7 @@ case class AffineEnclosure private[enclosure] (
     AffineEnclosure(collapsedDomain, collapsedNormalizedDomain, components.mapValues(_.collapse(name)))
   }
 
-  def collapse(names: VarName*)(implicit rnd: Rounding): AffineEnclosure = 
+  def collapse(names: VarName*)(implicit rnd: Rounding): AffineEnclosure =
     names.foldLeft(this)((res, name) => res.collapse(name))
 
   /**
