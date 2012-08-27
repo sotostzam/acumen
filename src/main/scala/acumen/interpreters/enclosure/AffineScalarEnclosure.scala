@@ -94,7 +94,8 @@ case class AffineScalarEnclosure private[enclosure] (
    * width.
    */
   private def evalThinAtThin(x: Box)(implicit rnd: Rounding): Interval = {
-    require(x.forall { case (name, interval) => normalizedDomain(name) contains interval })
+    assert(x.forall { case (name, interval) => normalizedDomain(name) contains interval },
+        "The argument must be contained in the normalized domain.")
     coefficients.foldLeft(constant) { case (res, (name, coeff)) => res + coeff * x(name) }
   }
 

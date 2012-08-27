@@ -61,19 +61,8 @@ object SolveVt {
    * Naively, this could be thought of as replacing each occurrence of a_i
    * in the solution with its corresponding A_i.
    */
-  private def convertToSolutionOnlyOfT(approx: AffineEnclosure, anames: Seq[VarName], T: Interval)(implicit rnd: Rounding) = {
-    println("###############################")
-    println("convertToSolutionOnlyOfT: entry")
-    println("###############################")
-    println("domain before conversion: " + approx.domain)
-    println("names to collapse:        " + anames)
-    val res = approx.collapse(anames: _*)
-    println("domain after conversion:  " + res.domain)
-    println("##############################")
-    println("convertToSolutionOnlyOfT: exit")
-    println("##############################")
-    res
-  }
+  private def convertToSolutionOnlyOfT(approx: AffineEnclosure, anames: Seq[VarName], T: Interval)(implicit rnd: Rounding) =
+    approx.collapse(anames: _*)
 
   /**
    * The Picard operator
