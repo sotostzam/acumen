@@ -24,43 +24,53 @@ object SD {
       }))
   }
 
-  def runAction(action: Action): Action = action match {
+  /**
+   * Apply symbolic differentiation (dif) to the expressions contained in an action.
+   */
+  private def runAction(action: Action): Action = action match {
     case IfThenElse(cond, t, as) => {
-      IfThenElse(runExpr(cond), t map runAction, as map runAction)} // TODO Do we need to apply dif here?
-    case Switch(subject, clauses) => Switch(runExpr(subject), clauses map runClause) // TODO Do we need to apply dif here?
-    case ForEach(it, col, body) => ForEach(it, runExpr(col), body map runAction) // TODO Do we need to apply dif here?
+      IfThenElse(runExpr(cond), t map runAction, as map runAction)
+    }
+    case Switch(subject, clauses) => Switch(runExpr(subject), clauses map runClause)
+    case ForEach(it, col, body) => ForEach(it, runExpr(col), body map runAction)
     case Continuously(continousAction) => Continuously(continousAction match {
       case Equation(lhs, rhs) =>
         Equation(
-          lhs, // TODO To support DAEs we probably need to apply dif here also  
+          runExpr(lhs),
           runExpr(rhs))
       case EquationI(lhs, rhs) =>
         EquationI(
-          lhs, // TODO To support DAEs we probably need to apply dif here also  
+          runExpr(lhs),
           runExpr(rhs))
       case EquationT(lhs, rhs) =>
         EquationT(
-          lhs, // TODO To support DAEs we probably need to apply dif here also  
+          runExpr(lhs),
           runExpr(rhs))
     })
-    case Discretely(discreteAction) => Discretely(discreteAction match{
-      case Assign(lhs:Expr, rhs:Expr) => 
+    case Discretely(discreteAction) => Discretely(discreteAction match {
+      case Assign(lhs: Expr, rhs: Expr) =>
         Assign(
-          lhs, 
+          runExpr(lhs),
           runExpr(rhs))
       case _ => discreteAction
-    }) // TODO Do we need to apply dif here?
+    })
   }
-  
-  def runClause(c:Clause): Clause = Clause(c.lhs, c.rhs map runAction)
-  
+
+  /**
+   * Apply symbolic differentiation (dif) to the expressions contained in a clause.
+   * A clause is a case in a switch statement. Affected expressions are 1) those
+   * contained in the actions of the case statement and 2) the expression which is
+   * used to decide that this specific case should be taken.
+   */
+  private def runClause(c: Clause): Clause = Clause(c.lhs, c.rhs map runAction)
+
   /**
    * Apply symbolic differentiation (dif) to an expression.
-   * This is done by traversing the expression tree, looking for subexpressions 
-   * of the form "dif(f)(n)". Such subexpressions are then replaced with the 
+   * This is done by traversing the expression tree, looking for subexpressions
+   * of the form "dif(f)(n)". Such subexpressions are then replaced with the
    * result of applying the dif function.
    */
-  def runExpr(e: Expr): Expr =
+  private def runExpr(e: Expr): Expr =
     e match {
       /* Unary function */
       case Op(opName, args) => opName.x match {
@@ -70,7 +80,7 @@ object SD {
           case List(f, Var(n)) => dif(f)(n)
         }
         // Example: 1 + dif(x^2)
-        case _ => Op(opName,args map runExpr)
+        case _ => Op(opName, args map runExpr)
       }
       case _ => e
     }
@@ -86,7 +96,15 @@ object SD {
    */
   val ctx = new Context()
 
-  def mem(e: Expr): Expr =
+  /**
+   * Memoization funciton, used for hash-consing of subexpressions.
+   * This function is called by the smart constructors and helps to
+   * avoid that duplicates of subexpressions are stored in memory.
+   * The resulting structure of references on the heap can be used
+   * to build a reduced expression using a series of let-statements
+   * corresponding to the hash-consed subexpressions.
+   */
+  private def mem(e: Expr): Expr =
     ctx.get(e) match {
       /* If the expression already exists in the context, return the 
        * cached reference.
@@ -99,13 +117,17 @@ object SD {
       case _ => { ctx += (e -> e); e }
     }
 
-  /* Smart constructors */
+  /* Smart constructors */ // TODO Make regular constructors private to force use of these. 
 
+  /** Smart constructor for the Literal case class */
   def literal(value: Double) = mem(Lit(GDouble(value)))
+  /** Smart constructor for the Literal case class */
   def literal(value: Int) = mem(Lit(GInt(value)))
 
+  /** Smart constructor for the Variable case class */
   def variable(name: Name) = mem(Var(name))
 
+  /** Smart constructor for the Op case class */
   def op(n: String, es: List[Expr]): Expr = {
     n match {
       /* Operators */
@@ -150,8 +172,20 @@ object SD {
     }
   }
 
+  /** Smart constructor for the ExprVector case class */
+  def exprVector(l: List[Expr]) = mem(ExprVector(l))
+
+  /** Smart constructor for the Sum case class */
+  def sum(e: Expr, i: Name, col: Expr, cond: Expr) = mem(Sum(e, i, col, cond))
+
   /**
-   *  Symbolic differentiation
+   *  Symbolic differentiation.
+   *
+   *  Differentiates the expression "e" with respect to a named variable "n".
+   *
+   *  The function looks for occurrences of the "dif" operator in "e". For
+   *  exmaple, "dif(e1)(x)" is replaced with an expression "e2" corresponding
+   *  to the analytic solution of differentiating "e1" with respect to "x".
    */
   def dif(e: Expr)(n: Name): Expr = {
     e match {
@@ -159,7 +193,12 @@ object SD {
         literal(0)
       case Var(m) =>
         if (m == n) literal(1) else literal(0)
-      case Dot(_, x) => if (x == n) literal(1) else literal(0)
+      case Dot(_, x) =>
+        if (x == n) literal(1) else literal(0)
+      case ExprVector(es) =>
+        exprVector(es.map(dif(_)(n)))
+      case Sum(e, i, col, cond) =>
+        sum(dif(e)(n), i, dif(col)(n), dif(cond)(n))
       /* Unary function */
       case Op(opName, List(arg)) => // Chain rule
         op("*",
@@ -172,8 +211,7 @@ object SD {
               case "log" => op("/", List(literal(1), arg))
             },
             dif(arg)(n)))
-
-      /* Binary operator*/
+      /* Binary operator */
       case Op(opName, List(l, r)) =>
         opName.x match {
           case "+" => op("+", List(dif(l)(n), dif(r)(n)))
@@ -213,6 +251,8 @@ object SD {
                   op("*", List(op("/", List(dif(l)(n), l)), r))))))
             }
         }
+      /* Other case classes pass through unaffected */
+      case e => e
     }
   }
 

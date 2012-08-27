@@ -25,7 +25,8 @@ object Main {
     val in = new InputStreamReader(System.in)
     
   	lazy val ast        = Parser.run(Parser.prog, in)
-    lazy val desugared  = Desugarer.run(ast)
+  	lazy val diffed     = SD.run(ast)
+    lazy val desugared  = Desugarer.run(diffed)
     lazy val dva_out    = DVA.run(desugared)
     lazy val bta_out    = BTA.run(dva_out)
     lazy val spec_out   = Specializer.run(bta_out)

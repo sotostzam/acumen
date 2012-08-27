@@ -125,7 +125,8 @@ class AppModel(text: => String) extends Publisher {
   private def init : Unit = {
     tmodel.reset
     val ast = Parser.run(Parser.prog, text)
-    val des = Desugarer.run(ast)
+    val dif = SD.run(ast)
+    val des = Desugarer.run(dif)
     val I = interpreter
     val(prog, store) = I.init(des)
     val cstore = I.repr(store)
