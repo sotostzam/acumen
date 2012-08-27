@@ -18,7 +18,7 @@ object Generators {
   /* Double */
 
   def genSmallDouble: Gen[Double] = choose(-1000.0, 1000.0)
-  //  implicit def arbitraryDouble: Arbitrary[Double] = Arbitrary(genSmallDouble)
+  implicit def arbitraryDouble: Arbitrary[Double] = Arbitrary(genSmallDouble)
 
   /** Generates Doubles larger than the parameter d. */
   def genLargerDouble(d: Double): Gen[Double] = {
