@@ -20,7 +20,11 @@ object Solver {
       MaybeOneOf(events)
     } else {
       if (H.events.exists { e =>
-        H.guardPrime(e)(Y.mapValues(_(Map("t" -> T.high)))) == Set(true)
+        // FIXME evaluating at the enclosure's domain.high instead of T.high
+        // the latter caused an assertion failure as enclosures were evaluated
+        // outside their domain. E.g. and enclosure over [0,1.5] would be evaluated
+        // at the point [3,3].
+        H.guardPrime(e)(Y.mapValues(e => e(e.domain.mapValues(_.high)))) == Set(true)
       }) {
         CertainlyOneOf(events)
       } else {
@@ -72,7 +76,7 @@ object Solver {
       if (cannotSplit) {
         throw SolverException("gave up for minimum step size " + d + " at " + T)
       } else {
-        println("splitting " + T)
+//        println("splitting " + T)
         val (ssl, ysl) = solveHybrid(H, lT, Ss, delta, m, n, K, d, e, output)
         val (ssr, ysr) = solveHybrid(H, rT, ssl, delta, m, n, K, d, e, output)
         (ssr, ysl ++ ysr)
@@ -83,7 +87,6 @@ object Solver {
           case ((resss, resys), (ss, ys)) => (resss ++ ss, resys ++ ys)
         }
       val ssT = M(endStatesOnT)
-      //      println("STATES " + ssT + " at " + T.hi)
 
       val onlT = Ss.map(solveVtE(H, lT, _, delta, m, n, K, output))
       if (onlT contains None)
@@ -116,7 +119,7 @@ object Solver {
           if (cannotSplit || noImprovement) {
             resultForT
           } else {
-            println("splitting " + T)
+//            println("splitting " + T)
             val (ssl, ysl) = solveHybrid(H, lT, Ss, delta, m, n, K, d, e, output)
             val (ssr, ysr) = solveHybrid(H, rT, ssl, delta, m, n, K, d, e, output)
             (ssr, ysl ++ ysr)

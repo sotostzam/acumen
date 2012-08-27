@@ -65,8 +65,6 @@ case class AffineScalarEnclosure private[enclosure] (
    * affine enclosures.
    */
   def apply(x: Box)(implicit rnd: Rounding) = {
-    println("apply: x: " + x)
-    println("apply: domain: " + domain)
     assert(coefficients.keySet subsetOf x.keySet,
       "An enclosure can only be evaluated over a box that has a domain for each variable.")
     assert(x.forall { case (name, interval) => domain(name) contains interval },
@@ -80,7 +78,6 @@ case class AffineScalarEnclosure private[enclosure] (
      * current domain of the enclosure into consideration. E.g. normalize maps
      * thin intervals to [0,0]! */
     val nx = x.map { case (name, value) => name -> (value - (domain(name).low)) }
-    println("apply: nx: " + nx)
     val c :: cs = Box.corners(nx)
     val lo = low
     val hi = high
@@ -99,8 +96,6 @@ case class AffineScalarEnclosure private[enclosure] (
    * width.
    */
   private def evalThinAtThin(x: Box)(implicit rnd: Rounding): Interval = {
-    println("evalThinAtThin: x: " + x)
-    println("evalThinAtThin: normalizedDomain: " + normalizedDomain)
     assert(x.forall { case (name, interval) => normalizedDomain(name) contains interval },
       "The argument must be contained in the normalized domain.")
     coefficients.foldLeft(constant) { case (res, (name, coeff)) => res + coeff * x(name) }
@@ -307,6 +302,7 @@ object AffineScalarEnclosure extends Plotter {
   def plot(frametitle: String)(them: AffineScalarEnclosure*)(implicit rnd: Rounding) {
     createFrame(frametitle)
     for (it <- them) {
+      println(it)
       val dom = it.domain("t")
       def low(t: Double) = it.low(Box("t" -> t)) match { case Interval(lo, _) => lo.doubleValue }
       def high(t: Double) = it.high(Box("t" -> t)) match { case Interval(hi, _) => hi.doubleValue }

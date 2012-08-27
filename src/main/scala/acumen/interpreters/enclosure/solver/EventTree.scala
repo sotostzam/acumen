@@ -161,7 +161,11 @@ case class EventTree(
     val mayBeLastStates = mayBeLastSequences.flatMap { v =>
       {
         val modes = v.tau
-        val initialCondition = v.enclosure.components.mapValues(_(Box("t" -> T.high)))
+        // FIXME evaluating at the enclosure's domain.high instead of T.high
+        // the latter caused an assertion failure as enclosures were evaluated
+        // outside their domain. E.g. and enclosure over [0,1.5] would be evaluated
+        // at the point [3,3].
+        val initialCondition = v.enclosure.components.mapValues(e => e(e.domain.mapValues(_.high)))
         modes.map(q => UncertainState(q, initialCondition))
       }
     }
