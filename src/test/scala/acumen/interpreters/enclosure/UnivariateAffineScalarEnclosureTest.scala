@@ -52,46 +52,44 @@ object UnivariateAffineScalarEnclosureUnitTest extends Properties("UnivariateAff
 
   import TestingContext._
 
-  // TODO add properties, e.g. that f union g conatins f and g.
-
-  property("union") = {
-    val dom = Interval(-8.988465675E+307, 4.708293845E+307)
-    val ndom = Interval(0, 1.369675952E+308)
-    val f = UnivariateAffineScalarEnclosure(
-      dom,
-      ndom,
-      Interval(-6.587391532E+307, 8.988465675E+307),
-      Interval(0, 1.352122010E+307))
-    val g = UnivariateAffineScalarEnclosure(
-      dom,
-      ndom,
-      Interval(-8.721856061E+307, -5.011888087E+307),
-      Interval(5.698642743E+306, 8.988465675E+307))
-    val u = f union g
-    println("f: " + f)
-    println("g: " + g)
-    println("u: " + u)
-    (u contains f) && (u contains g)
-  }
-
-  property("union 2") = {
-    val dom = Interval(-8.988465675E+307, 4.708293845E+307)
-    val ndom = Interval(0, 1.369675952E+308)
-    val f = UnivariateAffineScalarEnclosure(
-      dom,
-      ndom,
-      Interval(-6.587391532E+307, 8.988465675E+307),
-      Interval(0, 1.352122010E+307))
-    val g = UnivariateAffineScalarEnclosure(
-      dom,
-      ndom,
-      Interval(-8.721856061E+307, -5.011888087E+307),
-      Interval(5.698642743E+306, 8.988465675E+307))
-    val u = f union g
-    println("f: " + f)
-    println("g: " + g)
-    println("u: " + u)
-    (u contains f) && (u contains g)
-  }
+  //  property("union") = {
+  //    val dom = Interval(-8.988465675E+307, 4.708293845E+307)
+  //    val ndom = Interval(0, 1.369675952E+308)
+  //    val f = UnivariateAffineScalarEnclosure(
+  //      dom,
+  //      ndom,
+  //      Interval(-6.587391532E+307, 8.988465675E+307),
+  //      Interval(0, 1.352122010E+307))
+  //    val g = UnivariateAffineScalarEnclosure(
+  //      dom,
+  //      ndom,
+  //      Interval(-8.721856061E+307, -5.011888087E+307),
+  //      Interval(5.698642743E+306, 8.988465675E+307))
+  //    val u = f union g
+  //    println("f: " + f)
+  //    println("g: " + g)
+  //    println("u: " + u)
+  //    (u contains f) && (u contains g)
+  //  }
+  //
+  //  property("union 2") = {
+  //    val dom = Interval(-8.988465675E+307, 4.708293845E+307)
+  //    val ndom = Interval(0, 1.369675952E+308)
+  //    val f = UnivariateAffineScalarEnclosure(
+  //      dom,
+  //      ndom,
+  //      Interval(-6.587391532E+307, 8.988465675E+307),
+  //      Interval(0, 1.352122010E+307))
+  //    val g = UnivariateAffineScalarEnclosure(
+  //      dom,
+  //      ndom,
+  //      Interval(-8.721856061E+307, -5.011888087E+307),
+  //      Interval(5.698642743E+306, 8.988465675E+307))
+  //    val u = f union g
+  //    println("f: " + f)
+  //    println("g: " + g)
+  //    println("u: " + u)
+  //    (u contains f) && (u contains g)
+  //  }
 
 }
