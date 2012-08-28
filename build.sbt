@@ -18,3 +18,6 @@ libraryDependencies ++= Seq(
 )
 
 retrieveManaged := true
+
+/* SCCT */
+seq(ScctPlugin.instrumentSettings : _*)

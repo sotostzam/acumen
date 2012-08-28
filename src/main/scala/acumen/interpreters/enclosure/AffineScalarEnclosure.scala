@@ -69,7 +69,7 @@ case class AffineScalarEnclosure private[enclosure] (
     assert(coefficients.keySet subsetOf x.keySet,
       "An enclosure can only be evaluated over a box that has a domain for each variable.")
     assert(x.forall { case (name, interval) => domain(name) contains interval },
-      "The argument must be contained in the normalized domain.")
+      "The argument must be contained in the domain.")
 
     /* It is essential to evaluate the enclosure over the original domain.
      * To avoid unnecessary errors the argument is shifted to the normalized
@@ -261,6 +261,7 @@ object AffineScalarEnclosure extends Plotter {
 
   /**
    * Degree reduction for "pure terms"
+   * 
    * map x^2 from [a,b] to [-1,1] using x => 0.25*((b-a)*x+a+b)^2
    * map t^2 => 0.5*(T_2+1) and then T_2 => [-1,1] (or just t^2 => [0,1])
    * map t from [-1,1] to [0,b-a] using t => (2*t+a-b)/(b-a)
@@ -269,29 +270,37 @@ object AffineScalarEnclosure extends Plotter {
    */
   def quadratic(domain: Box, name: VarName)(implicit rnd: Rounding) = {
     require(domain.contains(name))
-    val a = domain(name).low
-    val b = domain(name).high
+    val (a,b) = domain(name).bounds
     val width = b - a
     val coeff = b + a
     // This corresponds to translating to [-1,1], representing in Chebyshev basis, 
     // collapsing the undesired (quadratic) term and translating to the normalized domain.
-    val const = (0 /\ (width * width) / 4)  - (width * coeff / 2) + (coeff * coeff / 4)
+    val const = (0 /\ (width * width) / 4) - (width * coeff / 2) + (coeff * coeff / 4)
     AffineScalarEnclosure(domain, const, Box(name -> coeff))
   }
 
-  /** Enclosure over the domain of the mixed monomial in variables name1 and name2 */
+  /**
+   * Enclose the mixed monomial in variables name1 and name2 over the domain.
+   * 
+   * Implementation note: the approximation is obtained using degree reduction as follows:
+   * 
+   * (i)   map variables x over [ax,bx] to [-1,1] using x => rx*x + mx
+   * (ii)  collapse mixed terms c*x*y to c*[-1,1]
+   * (iii) map variables x from [-1,1] to [0,bx-ax] using x => x/rx - 1
+   * 
+   * where mx = (ax+bx)/2 is the mid-point of the domain of x 
+   * and   rx = (bx-ax)/2 is the radius of the domain of x.
+   */
   def mixed(domain: Box, name1: VarName, name2: VarName)(implicit rnd: Rounding) = {
     require(domain.contains(name1) && domain.contains(name2) && name1 != name2)
-    val a1 = domain(name1).low
-    val b1 = domain(name1).high
-    val a2 = domain(name2).low
-    val b2 = domain(name2).high
-    val width1 = (b1 - a1) / 2
-    val coeff1 = (b1 + a1) / 2
-    val width2 = (b2 - a2) / 2
-    val coeff2 = (b2 + a2) / 2
-    val const = (Interval(-1, 1) * width1 * width2) - (coeff1 * coeff2)
-    AffineScalarEnclosure(domain, const, Box(name1 -> coeff2, name2 -> coeff1))
+    val (a1, b1) = domain(name1).bounds
+    val (a2, b2) = domain(name2).bounds
+    val m1 = (a1 + b1) / 2 // mid-point of domain of name1
+    val r1 = (b1 - a1) / 2 // radius of domain of name1
+    val m2 = (a2 + b2) / 2 // mid-point of domain of name2
+    val r2 = (b2 - a2) / 2 // radius of domain of name2
+    val const = -r1 * m2 - r2 * m1 + m1 * m2 + r1 * r2 * Interval(-1, 1)
+    AffineScalarEnclosure(domain, const, Box(name1 -> m2, name2 -> m1))
   }
 
   // TODO the plotting functionality should be moved to UnivariateAffineScalarEnclosure
