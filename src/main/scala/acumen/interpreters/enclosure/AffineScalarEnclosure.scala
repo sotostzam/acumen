@@ -1,5 +1,6 @@
 package acumen.interpreters.enclosure
 
+import Interval._
 import Types._
 import Util._
 
@@ -67,6 +68,9 @@ case class AffineScalarEnclosure private[enclosure] (
   def apply(x: Box)(implicit rnd: Rounding) = {
     assert(coefficients.keySet subsetOf x.keySet,
       "An enclosure can only be evaluated over a box that has a domain for each variable.")
+    assert(x.forall { case (name, interval) => domain(name) contains interval },
+      "The argument must be contained in the normalized domain.")
+
     /* It is essential to evaluate the enclosure over the original domain.
      * To avoid unnecessary errors the argument is shifted to the normalized
      * domain rather than the enclosure to the original domain. 
@@ -74,9 +78,8 @@ case class AffineScalarEnclosure private[enclosure] (
      * Implementation note: cannot use normalize because it does not take the 
      * current domain of the enclosure into consideration. E.g. normalize maps
      * thin intervals to [0,0]! */
-    val c :: cs = Box.corners(x.map {
-      case (name, value) => name -> (value - domain(name).low)
-    })
+    val nx = x.map { case (name, value) => name -> (value - (domain(name).low)) }
+    val c :: cs = Box.corners(nx)
     val lo = low
     val hi = high
     cs.foldLeft((lo evalThinAtThin c) /\ (hi evalThinAtThin c)) {
@@ -94,7 +97,8 @@ case class AffineScalarEnclosure private[enclosure] (
    * width.
    */
   private def evalThinAtThin(x: Box)(implicit rnd: Rounding): Interval = {
-    require(x.forall { case (name, interval) => normalizedDomain(name) contains interval })
+    assert(x.forall { case (name, interval) => normalizedDomain(name) contains interval },
+      "The argument must be contained in the normalized domain.")
     coefficients.foldLeft(constant) { case (res, (name, coeff)) => res + coeff * x(name) }
   }
 
@@ -259,7 +263,7 @@ object AffineScalarEnclosure extends Plotter {
    * Degree reduction for "pure terms"
    * map x^2 from [a,b] to [-1,1] using x => 0.25*((b-a)*x+a+b)^2
    * map t^2 => 0.5*(T_2+1) and then T_2 => [-1,1] (or just t^2 => [0,1])
-   * map t from [-1,1] to [a,b] using t => (2*t-a-b)/(b-a)
+   * map t from [-1,1] to [0,b-a] using t => (2*t+a-b)/(b-a)
    *
    * AffineIntervalFunction enclosure over doms of the quadratic monomial in variable name
    */
@@ -270,8 +274,8 @@ object AffineScalarEnclosure extends Plotter {
     val width = b - a
     val coeff = b + a
     // This corresponds to translating to [-1,1], representing in Chebyshev basis, 
-    // collapsing undesired (quadratic) terms and translating back.
-    val const = ((Interval(0) /\ (width * width)) - (coeff * coeff)) / Interval(4)
+    // collapsing the undesired (quadratic) term and translating to the normalized domain.
+    val const = (0 /\ (width * width) / 4)  - (width * coeff / 2) + (coeff * coeff / 4)
     AffineScalarEnclosure(domain, const, Box(name -> coeff))
   }
 
@@ -299,10 +303,10 @@ object AffineScalarEnclosure extends Plotter {
   def plot(frametitle: String)(them: AffineScalarEnclosure*)(implicit rnd: Rounding) {
     createFrame(frametitle)
     for (it <- them) {
-      val dom = it.domain("t")
       def low(t: Double) = it.low(Box("t" -> t)) match { case Interval(lo, _) => lo.doubleValue }
-      def high(t: Double) = it.high(Box("t" -> t)) match { case Interval(hi, _) => hi.doubleValue }
-      val (lo, hi) = dom match { case Interval(lo, hi) => (lo.doubleValue, hi.doubleValue) }
+      def high(t: Double) = it.high(Box("t" -> t)) match { case Interval(_, hi) => hi.doubleValue }
+      val dom = it.domain("t")
+      val (lo, hi) = dom match { case Interval(l, h) => (l.doubleValue, h.doubleValue) }
       addFunctionEnclosure(lo, hi, high, low, 0, "")
     }
   }

@@ -23,7 +23,7 @@ case class AffineEnclosure private[enclosure] (
   def apply(name: VarName): AffineScalarEnclosure = components(name)
 
   /** Get the constant box of the enclosure. */
-  def constantTerm =
+  def constantTerm(implicit rnd: Rounding) =
     AffineEnclosure(domain, components.keys.map { n => (n, components(n).constant) }.toMap)
 
   /** Get the linear term of the enclosure. */
@@ -58,7 +58,11 @@ case class AffineEnclosure private[enclosure] (
    *
    * Implementation note: see the implementation note for AffineScalarEnclosure.collapse.
    */
-  private def collapse(name: VarName)(implicit rnd: Rounding) = map(_.collapse(name))
+  private def collapse(name: VarName)(implicit rnd: Rounding) = {
+    val collapsedDomain = domain - name
+    val collapsedNormalizedDomain = normalizedDomain - name
+    AffineEnclosure(collapsedDomain, collapsedNormalizedDomain, components.mapValues(_.collapse(name)))
+  }
 
   def collapse(names: VarName*)(implicit rnd: Rounding): AffineEnclosure =
     names.foldLeft(this)((res, name) => res.collapse(name))

@@ -17,16 +17,17 @@ object Solver {
         H.guards(_)(
           Y.mapValues(_.range)) != Set(false))
     if (events.isEmpty) {
-      //      println("detectNextEvent: no event in " + T)
       MaybeOneOf(events)
     } else {
       if (H.events.exists { e =>
-        H.guardPrime(e)(Y.mapValues(_(Map("t" -> T.high)))) == Set(true)
+        // FIXME evaluating at the enclosure's domain.high instead of T.high
+        // the latter caused an assertion failure as enclosures were evaluated
+        // outside their domain. E.g. and enclosure over [0,1.5] would be evaluated
+        // at the point [3,3].
+        H.guardPrime(e)(Y.mapValues(e => e(e.domain.mapValues(_.high)))) == Set(true)
       }) {
-        //        println("detectNextEvent: some event in " + T)
         CertainlyOneOf(events)
       } else {
-        //        println("detectNextEvent: maybe event in " + T)
         MaybeOneOf(events)
       }
     }
@@ -75,7 +76,7 @@ object Solver {
       if (cannotSplit) {
         throw SolverException("gave up for minimum step size " + d + " at " + T)
       } else {
-        println("splitting " + T)
+//        println("splitting " + T)
         val (ssl, ysl) = solveHybrid(H, lT, Ss, delta, m, n, K, d, e, output)
         val (ssr, ysr) = solveHybrid(H, rT, ssl, delta, m, n, K, d, e, output)
         (ssr, ysl ++ ysr)
@@ -86,7 +87,6 @@ object Solver {
           case ((resss, resys), (ss, ys)) => (resss ++ ss, resys ++ ys)
         }
       val ssT = M(endStatesOnT)
-      //      println("STATES " + ssT + " at " + T.hi)
 
       val onlT = Ss.map(solveVtE(H, lT, _, delta, m, n, K, output))
       if (onlT contains None)
@@ -97,7 +97,6 @@ object Solver {
             case ((resss, resys), (ss, ys)) => (resss ++ ss, resys ++ ys)
           }
         val sslT = M(endStatesOnlT)
-        //        println("LEFT STATES " + sslT + " at " + lT.hi)
 
         val onrT = sslT.map(solveVtE(H, rT, _, delta, m, n, K, output))
         if (onrT contains None)
@@ -108,7 +107,6 @@ object Solver {
               case ((resss, resys), (ss, ys)) => (resss ++ ss, resys ++ ys)
             }
           val ssrT = M(endStatesOnrT)
-          //          println("RIGHT STATES " + ssrT + " at " + rT.hi)
 
           lazy val nowhereBetter = (endTimeInterval(ssrT) zip endTimeInterval(ssT)).forall {
             case ((_, l), (_, r)) => l.width greaterThanOrEqualTo r.width
@@ -119,13 +117,9 @@ object Solver {
           lazy val noImprovement = nowhereBetter || somewhereWorse
 
           if (cannotSplit || noImprovement) {
-            //        	  println("computed up to " + T.hi)
-            //            if (cannotSplit) println("cannotSplit " + T + "at precision " + d)
-            //            if (nowhereBetter) println("nowhereBetter at " + T)
-            //            if (somewhereWorse) println("somewhereWorse at " + T)
             resultForT
           } else {
-            println("splitting " + T)
+//            println("splitting " + T)
             val (ssl, ysl) = solveHybrid(H, lT, Ss, delta, m, n, K, d, e, output)
             val (ssr, ysr) = solveHybrid(H, rT, ssl, delta, m, n, K, d, e, output)
             (ssr, ysl ++ ysr)

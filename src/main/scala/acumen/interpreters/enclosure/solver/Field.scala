@@ -14,13 +14,14 @@ import acumen.interpreters.enclosure.Variable
 // TODO write tests.
 case class Field(components: Map[VarName, Expression]) {
 
-  /** 
-   * Apply the field to an enclosure. 
-   * 
+  /**
+   * Apply the field to an enclosure.
+   *
    * Implementation note: TODO
    */
-  def apply(x: AffineEnclosure)(implicit rnd: Rounding) =
+  def apply(x: AffineEnclosure)(implicit rnd: Rounding) = {
     AffineEnclosure(x.domain, x.normalizedDomain, components.mapValues(_(x)))
+  }
 
 }
 

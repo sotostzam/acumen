@@ -61,14 +61,22 @@ object SolveVt {
    * Naively, this could be thought of as replacing each occurrence of a_i
    * in the solution with its corresponding A_i.
    */
-  private def convertToSolutionOnlyOfT(approx: AffineEnclosure, anames: Seq[VarName], T: Interval)(implicit rnd: Rounding) =
-    approx.collapse(anames: _*)
+  private def convertToSolutionOnlyOfT(approx: AffineEnclosure, anames: Seq[VarName], T: Interval)(implicit rnd: Rounding) = {
+    val onNornaizedDomain = approx.collapse(anames: _*)
+    AffineEnclosure(
+      onNornaizedDomain.domain.mapValues(_ => T), // Assuming "t" is the name of the time domain,
+      onNornaizedDomain.components.mapValues {
+        case ase =>
+          AffineScalarEnclosure(ase.domain.mapValues(_ => T), ase.constant, ase.coefficients)
+      })
+  }
 
   /**
    * The Picard operator
    */
-  private def picard(a: AffineEnclosure, F: Field)(X: AffineEnclosure)(implicit rnd: Rounding): AffineEnclosure =
+  private def picard(a: AffineEnclosure, F: Field)(X: AffineEnclosure)(implicit rnd: Rounding): AffineEnclosure = {
     a + (F(X).primitive("t"))
+  }
 
   /**
    * Represent each interval A_i in A as a variable a_i, corresponding to an
@@ -76,7 +84,7 @@ object SolveVt {
    */
   private def initialConditionsAsFunctions(A: Box, T: Interval)(implicit rnd: Rounding) = {
     val domain = A + ("t" -> 0 /\ T.width) // NOTE: translated t to [0,T.hi-T.lo]
-    AffineEnclosure(domain, A.keys.toSeq: _*) // [(t,a1,...,an) -> (a1,...,an)] 
+    AffineEnclosure(domain, A.keys.toSeq: _*) // [(t,a1,...,an) -> (a1,...,an)]
   }
 
   /**
