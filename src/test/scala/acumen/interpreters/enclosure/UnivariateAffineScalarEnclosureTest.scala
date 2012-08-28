@@ -16,7 +16,7 @@ object UnivariateAffineScalarEnclosureTest extends Properties("UnivariateAffineS
 
   import TestingContext._
 
-  property("union") =
+  property("union monotnonicity") =
     forAllNoShrink(genInterval) { dom =>
       forAllNoShrink(
         genBoxUnivariateAffineScalarEnclosure(dom),
@@ -26,15 +26,16 @@ object UnivariateAffineScalarEnclosureTest extends Properties("UnivariateAffineS
         }
     }
 
-  property("Building a UASE from an ASE preserves the constant and coefficient") =
+  property("building a UASE from an ASE preserves the constant and coefficient") =
     forAllNoShrink(genDimBox(1)) { box =>
       forAllNoShrink(genBoxAffineScalarEnclosure(box)) { ase =>
         val uase = UnivariateAffineScalarEnclosure(ase)
-        val varName = box.keySet.toList(0)
+        val varName = box.keys.head
         (uase.constant == ase.constant) && (uase.coefficient == ase.coefficients(varName))
       }
     }
 
+  /* Delegate to the tests of AffineScalarEnclosure. */
   property("ASE/UASE point-wise evaluation consistency") =
     forAllNoShrink(genDimBox(1)) { box =>
       forAllNoShrink(
@@ -52,44 +53,23 @@ object UnivariateAffineScalarEnclosureUnitTest extends Properties("UnivariateAff
 
   import TestingContext._
 
-  //  property("union") = {
-  //    val dom = Interval(-8.988465675E+307, 4.708293845E+307)
-  //    val ndom = Interval(0, 1.369675952E+308)
-  //    val f = UnivariateAffineScalarEnclosure(
-  //      dom,
-  //      ndom,
-  //      Interval(-6.587391532E+307, 8.988465675E+307),
-  //      Interval(0, 1.352122010E+307))
-  //    val g = UnivariateAffineScalarEnclosure(
-  //      dom,
-  //      ndom,
-  //      Interval(-8.721856061E+307, -5.011888087E+307),
-  //      Interval(5.698642743E+306, 8.988465675E+307))
-  //    val u = f union g
-  //    println("f: " + f)
-  //    println("g: " + g)
-  //    println("u: " + u)
-  //    (u contains f) && (u contains g)
-  //  }
-  //
-  //  property("union 2") = {
-  //    val dom = Interval(-8.988465675E+307, 4.708293845E+307)
-  //    val ndom = Interval(0, 1.369675952E+308)
-  //    val f = UnivariateAffineScalarEnclosure(
-  //      dom,
-  //      ndom,
-  //      Interval(-6.587391532E+307, 8.988465675E+307),
-  //      Interval(0, 1.352122010E+307))
-  //    val g = UnivariateAffineScalarEnclosure(
-  //      dom,
-  //      ndom,
-  //      Interval(-8.721856061E+307, -5.011888087E+307),
-  //      Interval(5.698642743E+306, 8.988465675E+307))
-  //    val u = f union g
-  //    println("f: " + f)
-  //    println("g: " + g)
-  //    println("u: " + u)
-  //    (u contains f) && (u contains g)
-  //  }
+  property("union monotonicity - failing test case") = {
+    val dom = Interval(3.590613572, 5.224065866)
+    val f = UnivariateAffineScalarEnclosure(
+      Interval(3.590613572, 5.224065866),
+      Interval(0, 1.633452294),
+      Interval(-5.581185179, -2.043696493),
+      Interval(-3.473291402, 3.714148680))
+    val g = UnivariateAffineScalarEnclosure(
+      Interval(3.590613572, 5.224065866),
+      Interval(0, 1.633452294),
+      Interval(-7.174274390, 3.882178544),
+      Interval(-5.706812312, -1.248947209))
+    val u = f union g
+    println("f: " + f)
+    println("g: " + g)
+    println("u: " + u)
+    (u contains f) && (u contains g)
+  }
 
 }

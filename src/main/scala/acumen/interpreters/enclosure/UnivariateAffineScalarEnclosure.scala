@@ -84,6 +84,7 @@ case class UnivariateAffineScalarEnclosure private[enclosure] (
       constant - that.constant,
       coefficient - that.coefficient)
 
+  //TODO Update the below comment.
   /**
    * Compute the union of the enclosures.
    *
@@ -93,26 +94,27 @@ case class UnivariateAffineScalarEnclosure private[enclosure] (
    * which, under the assumption that xl = 0, simplifies to
    *   y = yl + x*(yh-yl)/xh.
    *
-   * Note that this assumes that the domain interval is not thin!
+   * Precondition: Note that this assumes that the domain interval is not thin!
    */
   def union(that: UnivariateAffineScalarEnclosure) = {
-    assert(this.domain == that.domain && this.normalizedDomain == that.normalizedDomain,
-      "Union is only defined for enclosures with equal domains.")
-    if (domain.width equalTo 0)
-      sys.error("not implemented") //TODO Implement handling thin domain!
+    assert(this.domain == that.domain, "Union can only be taken of enclosures over the same domain.")
+    val lo = domain.low
+    val hi = domain.high
+    if (lo == hi)
+      UnivariateAffineScalarEnclosure(domain, normalizedDomain, this(lo) /\ that(lo), Interval(0))
     else {
-      val thislo = low
-      val thishi = high
-      val thatlo = that.low
-      val thathi = that.high
-      val (l, h) = normalizedDomain.bounds
-      val minl = min(thislo(l), thatlo(l))
-      val maxl = max(thishi(l), thathi(l))
-      val minh = min(thislo(h), thatlo(h))
-      val maxh = max(thishi(h), thathi(h))
-      val const = minl /\ maxl
-      val coeff = ((minh - minl) / h) /\ ((maxh - maxl) / h)
-      UnivariateAffineScalarEnclosure(domain, normalizedDomain, const, coeff)
+      val thisLo = this.low
+      val thatLo = that.low
+      val thisHi = this.high
+      val thatHi = that.high
+      val minAtLo = min(thisLo(lo), thatLo(lo))
+      val maxAtLo = max(thisHi(lo), thatHi(lo))
+      val minAtHi = min(thisLo(hi), thatLo(hi))
+      val maxAtHi = max(thisHi(hi), thatHi(hi))
+      val width = domain.width
+      val coeffMin = (minAtHi - minAtLo) / width
+      val coeffMax = (maxAtHi - maxAtLo) / width
+      UnivariateAffineScalarEnclosure(domain, normalizedDomain, minAtLo /\ maxAtLo, coeffMin /\ coeffMax)
     }
   }
 }
