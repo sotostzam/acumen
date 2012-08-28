@@ -1,7 +1,21 @@
 package acumen.interpreters.enclosure.solver
 
 import acumen.interpreters.enclosure._
+import acumen.interpreters.enclosure.Interval._
 import acumen.interpreters.enclosure.Types._
+
+object PlotTest extends App {
+  implicit val rnd = Rounding(10)
+  val H = Systems.BB(10, 0.5)
+  val T = 0 /\ 1.5
+  val delta = 0
+  val m = 20
+  val n = 200
+  val K = 30
+  val d = 0.1
+  val res = SolveVt.solveVt(H.fields(Mode("Fly")), 0 /\ 1.5, Box("x" -> 5, "x'" -> 0), delta, m, n, "output")
+  UnivariateAffineScalarEnclosure.plot(res.components.values.toSeq: _*)
+}
 
 object BouncingBall extends App {
   implicit val rnd = Rounding(10)
@@ -12,7 +26,7 @@ object BouncingBall extends App {
   val m = 20
   val n = 200
   val K = 30
-  val d = 0.01
+  val d = 0.1
   val e = T.width match { case Interval(_, hi) => hi.doubleValue }
   val start = System.currentTimeMillis
   val res = Solver.solver(H, T, Ss, delta, m, n, K, d, e, T, "output")
@@ -26,6 +40,7 @@ object BouncingBall extends App {
     es = es :+ res(i)
     i += step
   }
+  res.map(println(_))
   UnivariateAffineScalarEnclosure.plot("x'' = -10, x'(0) = 0, x(0) = 5, min time step = 0.001")(res.map(_("x")): _*)
   //  AffineEnclosure.plot(es: _*)
 }

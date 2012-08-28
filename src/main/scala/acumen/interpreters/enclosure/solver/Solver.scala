@@ -20,11 +20,7 @@ object Solver {
       MaybeOneOf(events)
     } else {
       if (H.events.exists { e =>
-        // FIXME evaluating at the enclosure's domain.high instead of T.high
-        // the latter caused an assertion failure as enclosures were evaluated
-        // outside their domain. E.g. and enclosure over [0,1.5] would be evaluated
-        // at the point [3,3].
-        H.guardPrime(e)(Y.mapValues(e => e(e.domain.high))) == Set(true)
+        H.guardPrime(e)(Y.mapValues(c => c(c.domain.high))) == Set(true)
       }) {
         CertainlyOneOf(events)
       } else {

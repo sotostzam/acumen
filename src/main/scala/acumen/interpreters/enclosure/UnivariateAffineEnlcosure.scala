@@ -3,6 +3,7 @@ package acumen.interpreters.enclosure
 import Interval._
 import Types._
 import Util._
+import acumen.interpreters.enclosure.solver.Plotter
 
 /**
  * Type to represent vector-valued functions of a single variable.
@@ -91,20 +92,6 @@ object UnivariateAffineEnclosure extends Plotter {
       that.domain(name),
       that.normalizedDomain(name),
       that.components.mapValues(UnivariateAffineScalarEnclosure(_)))
-  }
-
-  def plot(frametitle: String)(them: UnivariateAffineScalarEnclosure*)(implicit rnd: Rounding): Unit =
-    plot("Picard plotter")(them: _*)
-
-  def plot(them: UnivariateAffineScalarEnclosure*)(implicit rnd: Rounding) = {
-    createFrame("")
-    for (it <- them) {
-      def low(t: Double) = it.low(t) match { case Interval(lo, _) => lo.doubleValue }
-      def high(t: Double) = it.high(t) match { case Interval(_, hi) => hi.doubleValue }
-      val dom = it.domain
-      val (lo, hi) = dom match { case Interval(l, h) => (l.doubleValue, h.doubleValue) }
-      addFunctionEnclosure(lo, hi, high, low, 0, "")
-    }
   }
 
 }

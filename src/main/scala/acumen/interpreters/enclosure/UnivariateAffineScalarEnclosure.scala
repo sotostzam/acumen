@@ -1,6 +1,7 @@
 package acumen.interpreters.enclosure
 
 import Interval._
+import acumen.interpreters.enclosure.solver.Plotter
 
 /**
  * Type to represent functions of a single variable.

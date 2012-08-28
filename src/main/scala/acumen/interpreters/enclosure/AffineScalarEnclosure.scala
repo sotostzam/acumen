@@ -3,6 +3,7 @@ package acumen.interpreters.enclosure
 import Interval._
 import Types._
 import Util._
+import acumen.interpreters.enclosure.solver.Plotter
 
 /**
  * Type used to approximate expressions over a given domain.
