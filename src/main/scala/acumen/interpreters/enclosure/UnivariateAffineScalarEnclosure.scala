@@ -64,14 +64,26 @@ case class UnivariateAffineScalarEnclosure private[enclosure] (
   /**
    * Containment of enclosures.
    *
-   * Implementation note: representing enclosures over normalized domains
-   * allows us to test containment by constant- and coefficient-wise
-   * containment.
+   * Note: This implementation relies on the fact that "this" and
+   * "that" are affine enclosures, meaning that containment can
+   * be decided by comparing the upper and lower bounds of the
+   * enclosures at the domain's end-points. 
    */
   def contains(that: UnivariateAffineScalarEnclosure)(implicit rnd: Rounding) = {
-    val lodiffnonneg = (low - that.low).range lessThanOrEqualTo Interval(0)
-    val hidiffnonneg = (that.high - high).range lessThanOrEqualTo Interval(0)
-    lodiffnonneg && hidiffnonneg
+    assert(this.domain == that.domain, "Containment is only defined for enclosures over the same domain.")
+    val lo = domain.low
+    val hi = domain.high
+    val thisLo = this.low
+    val thatLo = that.low
+    val thisHi = this.high
+    val thatHi = that.high
+    val boundAtLo = // Ensure that "this" bounds "that" at domin.low
+      (thisLo(lo) lessThanOrEqualTo (thatLo(lo))) &&
+        (thatHi(lo) lessThanOrEqualTo (thisHi(lo)))
+    val boundAtHi = // Ensure that "this" bounds "that" at domin.low
+      (thisLo(hi) lessThanOrEqualTo (thatLo(hi))) &&
+        (thatHi(hi) lessThanOrEqualTo (thisHi(hi)))
+    boundAtHi && boundAtLo
   }
 
   /* Arithmetic operations */
@@ -117,6 +129,14 @@ case class UnivariateAffineScalarEnclosure private[enclosure] (
       UnivariateAffineScalarEnclosure(domain, normalizedDomain, minAtLo /\ maxAtLo, coeffMin /\ coeffMax)
     }
   }
+
+  /** Returns an enclosure with the same constant and coefficient as this enclosure, redefined over a sub-interval of the domain. */
+  //TODO Add property
+  def restrictTo(subDomain: Interval)(implicit rnd: Rounding): UnivariateAffineScalarEnclosure = {
+    require((domain contains subDomain) && (normalizedDomain contains 0 /\ subDomain.width.high))
+    UnivariateAffineScalarEnclosure(subDomain, 0 /\ subDomain.width.high, constant, coefficient)
+  }
+
 }
 object UnivariateAffineScalarEnclosure extends Plotter {
 
