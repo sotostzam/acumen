@@ -189,7 +189,7 @@ case class EventTree(
         0)).mapValues {
         case (l, r) =>
           // FIXME used to be: l union r
-          // This HACK should be replaced by proper use of UnivariateAffineScalarEnclosure!
+          // The HACK below should be replaced by proper use of UnivariateAffineScalarEnclosure!
           AffineScalarEnclosure(l.domain, l.range /\ r.range)
       }
     }
