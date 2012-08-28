@@ -63,14 +63,14 @@ object GeneratorTests extends Properties("Generators") {
   /* UnivariateAffineScalarEnclosure */
 
   property("genSubUnivariateAffineScalarEnclosure generates a point-wise sub-enclosure") =
-      forAllNoShrink (genInterval) { dom =>
-        forAllNoShrink(
-            genSubInterval(dom), 
-            genBoxUnivariateAffineScalarEnclosure(dom)) { (box, f) =>
+    forAllNoShrink(genInterval) { dom =>
+      forAllNoShrink(
+        genSubInterval(dom),
+        genBoxUnivariateAffineScalarEnclosure(dom)) { (box, f) =>
           forAllNoShrink(genSubUnivariateAffineScalarEnclosure(f)) { subf =>
             f(box) contains subf(box)
           }
         }
-      }
+    }
 
 }

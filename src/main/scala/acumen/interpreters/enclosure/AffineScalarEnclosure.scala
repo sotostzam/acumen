@@ -42,13 +42,40 @@ case class AffineScalarEnclosure private[enclosure] (
   /**
    * Get the linear terms of this enclosure.
    *
-   * Implementation note: this is achieved buy setting the constant term
-   * to [0,0].
+   * Implementation note: this is achieved buy setting the constant term to [0,0].
    */
   def linearTerms(implicit end: Rounding) = AffineScalarEnclosure(domain, normalizedDomain, 0, coefficients)
 
   /** Get the constant term of this enclosure. */
   def constantTerm(implicit end: Rounding) = AffineScalarEnclosure(domain, normalizedDomain, constant, Box())
+
+  /**
+   * Enclose the union of the two enclosures.
+   *
+   * Precondition: both enclosures have to have dimension 1.
+   */
+  def union(that: AffineScalarEnclosure)(implicit rnd: Rounding) = {
+    assert(this.domain == that.domain, "Union can only be taken of enclosures over the same domain.")
+    assert(this.dimension == that.dimension, "Union is only implemented for enclosures of dimension 1.")
+    val name = domain.keys.head
+    val Seq(lo, hi) = Box.corners(domain)
+    if (lo == hi)
+      AffineScalarEnclosure(domain, normalizedDomain, this(lo) /\ that(lo), Box())
+    else {
+      val thisLo = this.low
+      val thatLo = that.low
+      val thisHi = this.high
+      val thatHi = that.high
+      val minAtLo = min(thisLo(lo), thatLo(lo))
+      val maxAtLo = max(thisHi(lo), thatHi(lo))
+      val minAtHi = min(thisLo(hi), thatLo(hi))
+      val maxAtHi = max(thisHi(hi), thatHi(hi))
+      val width = domain(name).width
+      val coeffMin = (minAtHi - minAtLo) / width
+      val coeffMax = (maxAtHi - maxAtLo) / width
+      AffineScalarEnclosure(domain, normalizedDomain, minAtLo /\ maxAtLo, Box(name -> coeffMin /\ coeffMax))
+    }
+  }
 
   /**
    * Evaluate the enclosure at the box x.
@@ -242,11 +269,11 @@ case class AffineScalarEnclosure private[enclosure] (
 object AffineScalarEnclosure extends Plotter {
 
   /** Convenience method, normalizes the domain. */
-  private[enclosure] def apply(domain: Box, constant: Interval, coefficients: Box)(implicit rnd:Rounding): AffineScalarEnclosure =
+  private[enclosure] def apply(domain: Box, constant: Interval, coefficients: Box)(implicit rnd: Rounding): AffineScalarEnclosure =
     AffineScalarEnclosure(domain, Box.normalize(domain), constant, coefficients)
 
   /** Lifts a constant interval to a constant enclosure. */
-  def apply(domain: Box, constant: Interval)(implicit rnd:Rounding): AffineScalarEnclosure = {
+  def apply(domain: Box, constant: Interval)(implicit rnd: Rounding): AffineScalarEnclosure = {
     AffineScalarEnclosure(domain, constant, Box.empty)
   }
 
@@ -261,7 +288,7 @@ object AffineScalarEnclosure extends Plotter {
 
   /**
    * Degree reduction for "pure terms"
-   * 
+   *
    * map x^2 from [a,b] to [-1,1] using x => 0.25*((b-a)*x+a+b)^2
    * map t^2 => 0.5*(T_2+1) and then T_2 => [-1,1] (or just t^2 => [0,1])
    * map t from [-1,1] to [0,b-a] using t => (2*t+a-b)/(b-a)
@@ -270,7 +297,7 @@ object AffineScalarEnclosure extends Plotter {
    */
   def quadratic(domain: Box, name: VarName)(implicit rnd: Rounding) = {
     require(domain.contains(name))
-    val (a,b) = domain(name).bounds
+    val (a, b) = domain(name).bounds
     val width = b - a
     val coeff = b + a
     // This corresponds to translating to [-1,1], representing in Chebyshev basis, 
@@ -281,14 +308,14 @@ object AffineScalarEnclosure extends Plotter {
 
   /**
    * Enclose the mixed monomial in variables name1 and name2 over the domain.
-   * 
+   *
    * Implementation note: the approximation is obtained using degree reduction as follows:
-   * 
+   *
    * (i)   map variables x over [ax,bx] to [-1,1] using x => rx*x + mx
    * (ii)  collapse mixed terms c*x*y to c*[-1,1]
    * (iii) map variables x from [-1,1] to [0,bx-ax] using x => x/rx - 1
-   * 
-   * where mx = (ax+bx)/2 is the mid-point of the domain of x 
+   *
+   * where mx = (ax+bx)/2 is the mid-point of the domain of x
    * and   rx = (bx-ax)/2 is the radius of the domain of x.
    */
   def mixed(domain: Box, name1: VarName, name2: VarName)(implicit rnd: Rounding) = {
