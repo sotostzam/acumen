@@ -1,9 +1,9 @@
 package acumen.interpreters.enclosure.solver
 
 import acumen.interpreters.enclosure._
-import acumen.interpreters.enclosure.AffineEnclosure._
 import acumen.interpreters.enclosure.Interval._
 import acumen.interpreters.enclosure.Types._
+import acumen.interpreters.enclosure.UnivariateAffineEnclosure._
 
 object SolveVt {
 
@@ -30,7 +30,7 @@ object SolveVt {
     m: Int, // extra iterations after inclusion of iterates
     n: Int, // maximum number of iterations before inclusion of iterates
     output: String // path to write output 
-    )(implicit rnd: Rounding): AffineEnclosure = {
+    )(implicit rnd: Rounding): UnivariateAffineEnclosure = {
     val a = initialConditionsAsFunctions(A, T)
     // First approximation of the solution
     val Y0 = a.plusMinus(delta) // [(t,a1,...,an) -> (a1+[-d,d],...,an+[-d,d])]
@@ -46,7 +46,7 @@ object SolveVt {
       i += 1
     }
     improveApproximation(current, Q, m) // Apply the Picard operator an additional m times
-    convertToSolutionOnlyOfT(current, A.keys.toSeq, T)
+    UnivariateAffineEnclosure(convertToSolutionOnlyOfT(current, A.keys.toSeq, T))
   }
 
   /**

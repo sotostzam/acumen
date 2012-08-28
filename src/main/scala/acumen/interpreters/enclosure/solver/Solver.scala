@@ -11,7 +11,7 @@ object Solver {
     H: HybridSystem,
     T: Interval,
     q: Mode,
-    Y: Map[VarName, AffineScalarEnclosure])(implicit rnd: Rounding): Outcome = {
+    Y: Map[VarName, UnivariateAffineScalarEnclosure])(implicit rnd: Rounding): Outcome = {
     val events =
       H.events.filter(
         H.guards(_)(
@@ -24,7 +24,7 @@ object Solver {
         // the latter caused an assertion failure as enclosures were evaluated
         // outside their domain. E.g. and enclosure over [0,1.5] would be evaluated
         // at the point [3,3].
-        H.guardPrime(e)(Y.mapValues(e => e(e.domain.mapValues(_.high)))) == Set(true)
+        H.guardPrime(e)(Y.mapValues(e => e(e.domain.high))) == Set(true)
       }) {
         CertainlyOneOf(events)
       } else {
@@ -41,7 +41,7 @@ object Solver {
     m: Int,
     n: Int,
     K: Int,
-    output: String)(implicit rnd: Rounding): Option[(Set[UncertainState], Seq[AffineEnclosure])] = {
+    output: String)(implicit rnd: Rounding): Option[(Set[UncertainState], Seq[UnivariateAffineEnclosure])] = {
     var res = EventTree.initialTree(T, H, S, delta, m, n, output)
     var tmp = res.addLayer
     while (res.size < K && tmp != res) {
@@ -67,7 +67,7 @@ object Solver {
     d: Double, // minimum time step size
     e: Double, // maximum time step size
     output: String // path to write output 
-    )(implicit rnd: Rounding): (Set[UncertainState], Seq[AffineEnclosure]) = {
+    )(implicit rnd: Rounding): (Set[UncertainState], Seq[UnivariateAffineEnclosure]) = {
     val onT = Ss.map(solveVtE(H, T, _, delta, m, n, K, output))
     val mustSplit = T.width greaterThan e
     val (lT, rT) = T.split
@@ -76,14 +76,14 @@ object Solver {
       if (cannotSplit) {
         throw SolverException("gave up for minimum step size " + d + " at " + T)
       } else {
-//        println("splitting " + T)
+        //        println("splitting " + T)
         val (ssl, ysl) = solveHybrid(H, lT, Ss, delta, m, n, K, d, e, output)
         val (ssr, ysr) = solveHybrid(H, rT, ssl, delta, m, n, K, d, e, output)
         (ssr, ysl ++ ysr)
       }
     else {
       val resultForT @ (endStatesOnT, enclosuresOnT) =
-        onT.map(_.get).foldLeft((Set[UncertainState](), Seq[AffineEnclosure]())) {
+        onT.map(_.get).foldLeft((Set[UncertainState](), Seq[UnivariateAffineEnclosure]())) {
           case ((resss, resys), (ss, ys)) => (resss ++ ss, resys ++ ys)
         }
       val ssT = M(endStatesOnT)
@@ -93,7 +93,7 @@ object Solver {
         resultForT
       else {
         val (endStatesOnlT, enclosuresOnlT) =
-          onlT.map(_.get).foldLeft((Set[UncertainState](), Seq[AffineEnclosure]())) {
+          onlT.map(_.get).foldLeft((Set[UncertainState](), Seq[UnivariateAffineEnclosure]())) {
             case ((resss, resys), (ss, ys)) => (resss ++ ss, resys ++ ys)
           }
         val sslT = M(endStatesOnlT)
@@ -103,7 +103,7 @@ object Solver {
           resultForT
         else {
           val (endStatesOnrT, enclosuresOnrT) =
-            onrT.map(_.get).foldLeft((Set[UncertainState](), Seq[AffineEnclosure]())) {
+            onrT.map(_.get).foldLeft((Set[UncertainState](), Seq[UnivariateAffineEnclosure]())) {
               case ((resss, resys), (ss, ys)) => (resss ++ ss, resys ++ ys)
             }
           val ssrT = M(endStatesOnrT)
@@ -119,7 +119,7 @@ object Solver {
           if (cannotSplit || noImprovement) {
             resultForT
           } else {
-//            println("splitting " + T)
+            //            println("splitting " + T)
             val (ssl, ysl) = solveHybrid(H, lT, Ss, delta, m, n, K, d, e, output)
             val (ssr, ysr) = solveHybrid(H, rT, ssl, delta, m, n, K, d, e, output)
             (ssr, ysl ++ ysr)
@@ -141,7 +141,7 @@ object Solver {
     e: Double, // maximum time step size
     Tinit: Interval, // initial time segment
     output: String // path to write output 
-    )(implicit rnd: Rounding): Seq[AffineEnclosure] = {
+    )(implicit rnd: Rounding): Seq[UnivariateAffineEnclosure] = {
     Util.newFile(output)
     try {
       solveHybrid(H, T, Ss, delta, m, n, K, d, e, output)._2

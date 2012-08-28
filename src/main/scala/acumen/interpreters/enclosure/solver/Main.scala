@@ -20,13 +20,13 @@ object BouncingBall extends App {
   val time = end - start
   println("computed " + res.size + " enclosures in " + time / 1000.0 + " seconds")
   val step = 1 //scala.math.max(1, res.size / 1000)
-  var es = Seq[AffineEnclosure]()
+  var es = Seq[UnivariateAffineEnclosure]()
   var i = 0
   while (i < res.size) {
     es = es :+ res(i)
     i += step
   }
-  AffineScalarEnclosure.plot("x'' = -10, x'(0) = 0, x(0) = 5, min time step = 0.001")(es.map(_("x")): _*)
+  UnivariateAffineScalarEnclosure.plot("x'' = -10, x'(0) = 0, x(0) = 5, min time step = 0.001")(res.map(_("x")): _*)
   //  AffineEnclosure.plot(es: _*)
 }
 
@@ -46,8 +46,8 @@ object TwoTanks extends App {
   val end = System.currentTimeMillis
   val time = end - start
   println("computed " + res.size + " enclosures in " + time / 1000.0 + " seconds")
-  // TODO implement plot for AffineEnclosure
-  //  AffineEnclosure.plot(res: _*)
+  // TODO implement plot for UnivariateAffineEnclosure
+  //  UnivariateAffineEnclosure.plot(res: _*)
 }
 
 object Saw extends App {
@@ -66,6 +66,6 @@ object Saw extends App {
   val end = System.currentTimeMillis
   val time = end - start
   println("computed " + res.size + " enclosures in " + time / 1000.0 + " seconds")
-  // TODO implement plot for AffineEnclosure
-  //  AffineEnclosure.plot(res: _*)
+  // TODO implement plot for UnivariateAffineEnclosure
+  //  UnivariateAffineEnclosure.plot(res: _*)
 }

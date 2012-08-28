@@ -10,20 +10,20 @@ import Solver._
 /** TODO add description */
 // TODO add tests
 abstract class EventSequence {
-  val enclosure: AffineEnclosure
+  val enclosure: UnivariateAffineEnclosure
   var mayBeLast: Boolean
   def sigma: Mode
   def tau: Set[Mode]
   def prefixes: Seq[EventSequence]
   val size: Int
-  val domain: Box
+  val domain: Interval
 }
 
 /** TODO add description */
 // TODO add tests
 case class EmptySequence(
   val initialMode: Mode,
-  val enclosure: AffineEnclosure,
+  val enclosure: UnivariateAffineEnclosure,
   var mayBeLast: Boolean) extends EventSequence {
   def sigma = initialMode
   def tau = Set(initialMode)
@@ -36,7 +36,7 @@ case class EmptySequence(
 // TODO add tests
 case class NonemptySequence(
   val lastEvent: Event,
-  val enclosure: AffineEnclosure,
+  val enclosure: UnivariateAffineEnclosure,
   var mayBeLast: Boolean,
   val prefix: EventSequence) extends EventSequence {
   def sigma = prefix.sigma
@@ -96,13 +96,13 @@ case class EventTree(
   // TODO add tests
   private def onlyUpdateAffectedComponents(
     e: Event,
-    previous: AffineEnclosure,
-    current: Map[VarName, Interval])(implicit rnd: Rounding) =
+    previous: UnivariateAffineEnclosure,
+    current: Box)(implicit rnd: Rounding) =
     current.map {
       case (name, x) => {
         name -> {
           if (eventDoesNotAffectVariable(e, name))
-            previous(name)(Box("t" -> T.high))
+            previous(name)(T.high)
           else x
         }
       }
@@ -118,7 +118,7 @@ case class EventTree(
           val N = solveVt(H.fields(e.tau), T, A, delta, m, n, output).range
           val lastEvent = e
           val affines = onlyUpdateAffectedComponents(e, v.enclosure, H.domains(e.tau).support(N))
-          val enclosure = AffineEnclosure(v.domain, affines)
+          val enclosure = UnivariateAffineEnclosure(v.domain, affines)
           val mayBeLast = false
           val prefix = v
           NonemptySequence(lastEvent, enclosure, mayBeLast, prefix).
@@ -166,7 +166,7 @@ case class EventTree(
         // the latter caused an assertion failure as enclosures were evaluated
         // outside their domain. E.g. and enclosure over [0,1.5] would be evaluated
         // at the point [3,3].
-        val initialCondition = v.enclosure.components.mapValues(e => e(e.domain.mapValues(_.high)))
+        val initialCondition = v.enclosure.components.mapValues(e => e(e.domain.high))
         modes.map(q => UncertainState(q, initialCondition))
       }
     }
@@ -180,26 +180,27 @@ case class EventTree(
 
   /** TODO add description */
   // TODO add tests
-  def enclosureUnion(implicit rnd: Rounding): AffineEnclosure = {
+  def enclosureUnion(implicit rnd: Rounding): UnivariateAffineEnclosure = {
     val sequences = maximalSequences.flatMap(v => (v +: v.prefixes).toSet)
     require(sequences.nonEmpty)
     val affs = sequences.tail.foldLeft(sequences.head.enclosure.components) { (res, v) =>
-      zipDefault(res, v.enclosure.components, AffineScalarEnclosure(
+      zipDefault(res, v.enclosure.components, UnivariateAffineScalarEnclosure(
         // FIXME for now.. not sure of correct choice of domain!
         sequences.head.enclosure.domain,
         0)).mapValues {
         case (l, r) =>
-          // FIXME used to be: l union r
-          // The HACK below should be replaced by proper use of UnivariateAffineScalarEnclosure!
-          AffineScalarEnclosure(l.domain, l.range /\ r.range)
+          //           FIXME used to be: 
+          l union r
+        // The HACK below should be replaced by proper use of UnivariateAffineScalarEnclosure!
+        //          AffineScalarEnclosure(l.domain, l.range /\ r.range)
       }
     }
-    AffineEnclosure(maximalSequences.head.domain, affs)
+    UnivariateAffineEnclosure(maximalSequences.head.domain, affs)
   }
 
   /** TODO add description */
   // TODO add tests
-  def enclosures(implicit rnd: Rounding): Seq[AffineEnclosure] = {
+  def enclosures(implicit rnd: Rounding): Seq[UnivariateAffineEnclosure] = {
     val sequences = maximalSequences.flatMap(v => (v +: v.prefixes).toSet)
     sequences.map(_.enclosure).toSeq
   }

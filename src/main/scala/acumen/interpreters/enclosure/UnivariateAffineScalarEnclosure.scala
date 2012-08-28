@@ -120,6 +120,15 @@ case class UnivariateAffineScalarEnclosure private[enclosure] (
 }
 object UnivariateAffineScalarEnclosure extends Plotter {
 
+  /** Convenience method, normalizes the domain. */
+  private[enclosure] def apply(domain: Interval, constant: Interval, coefficient: Interval)(implicit rnd: Rounding): UnivariateAffineScalarEnclosure =
+    UnivariateAffineScalarEnclosure(domain, 0 /\ domain.width.high, constant, coefficient)
+
+  /** Lifts a constant interval to a constant enclosure. */
+  def apply(domain: Interval, constant: Interval)(implicit rnd: Rounding): UnivariateAffineScalarEnclosure = {
+    UnivariateAffineScalarEnclosure(domain, constant, 0)
+  }
+
   /**
    * Conversion from AffineScalarEnclosure.
    *
