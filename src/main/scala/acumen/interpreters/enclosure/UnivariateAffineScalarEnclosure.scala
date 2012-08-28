@@ -34,7 +34,7 @@ case class UnivariateAffineScalarEnclosure private[enclosure] (
     val (xlo, xhi) = (x - domain.low).bounds
     val lo = low
     val hi = high
-    min(lo evalThinAtThin xlo, hi evalThinAtThin xlo) /\ max(hi evalThinAtThin xlo, hi evalThinAtThin xhi)
+    min(lo evalThinAtThin xlo, lo evalThinAtThin xhi) /\ max(hi evalThinAtThin xlo, hi evalThinAtThin xhi)
   }
 
   /**
