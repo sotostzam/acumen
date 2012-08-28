@@ -53,23 +53,4 @@ object UnivariateAffineScalarEnclosureUnitTest extends Properties("UnivariateAff
 
   import TestingContext._
 
-  property("union monotonicity - failing test case") = {
-    val dom = Interval(3.590613572, 5.224065866)
-    val f = UnivariateAffineScalarEnclosure(
-      Interval(3.590613572, 5.224065866),
-      Interval(0, 1.633452294),
-      Interval(-5.581185179, -2.043696493),
-      Interval(-3.473291402, 3.714148680))
-    val g = UnivariateAffineScalarEnclosure(
-      Interval(3.590613572, 5.224065866),
-      Interval(0, 1.633452294),
-      Interval(-7.174274390, 3.882178544),
-      Interval(-5.706812312, -1.248947209))
-    val u = f union g
-    println("f: " + f)
-    println("g: " + g)
-    println("u: " + u)
-    (u contains f) && (u contains g)
-  }
-
 }
