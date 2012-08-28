@@ -50,6 +50,8 @@ object UnivariateAffineScalarEnclosureTest extends Properties("UnivariateAffineS
     println("u: " + u)
     (u contains f) && (u contains g)
   }
+  
+}
 
 object UnivariateAffineScalarEnclosureUnitTest extends Properties("UnivariateAffineScalarEnclosureUnitTest") {
 

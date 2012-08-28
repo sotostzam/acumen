@@ -93,6 +93,7 @@ case class EventTree(
    *           current for affected ones, as given by
    *           eventDoesNotAffectVariable.
    */
+  // TODO add tests
   private def onlyUpdateAffectedComponents(
     e: Event,
     previous: AffineEnclosure,
