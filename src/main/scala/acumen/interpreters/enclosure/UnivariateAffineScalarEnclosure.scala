@@ -118,7 +118,7 @@ case class UnivariateAffineScalarEnclosure private[enclosure] (
     }
   }
 }
-object UnivariateAffineScalarEnclosure {
+object UnivariateAffineScalarEnclosure extends Plotter {
 
   /**
    * Conversion from AffineScalarEnclosure.
@@ -136,6 +136,20 @@ object UnivariateAffineScalarEnclosure {
       that.normalizedDomain(name),
       that.constant,
       that.coefficients(name))
+  }
+
+  def plot(frametitle: String)(them: UnivariateAffineScalarEnclosure*)(implicit rnd: Rounding): Unit =
+    plot("Picard plotter")(them: _*)
+
+  def plot(them: UnivariateAffineScalarEnclosure*)(implicit rnd: Rounding) = {
+    createFrame("")
+    for (it <- them) {
+      def low(t: Double) = it.low(t) match { case Interval(lo, _) => lo.doubleValue }
+      def high(t: Double) = it.high(t) match { case Interval(_, hi) => hi.doubleValue }
+      val dom = it.domain
+      val (lo, hi) = dom match { case Interval(l, h) => (l.doubleValue, h.doubleValue) }
+      addFunctionEnclosure(lo, hi, high, low, 0, "")
+    }
   }
 
 }

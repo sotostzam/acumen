@@ -14,7 +14,8 @@ import Types._
 
 object AffineScalarEnclosureTest extends Properties("AffineScalarEnclosure") {
 
-  import TestingContext._
+//  import TestingContext._
+  implicit val rnd = Rounding(10)
 
   /* Type synonyms */
 
@@ -178,12 +179,20 @@ object AffineScalarEnclosureTest extends Properties("AffineScalarEnclosure") {
       }
     }
 
+  property("union contains its arguments") = {
+    forAll(genDimBox(1)) { box =>
+      forAll(genBoxAffineScalarEnclosure(box), genBoxAffineScalarEnclosure(box)) { (f, g) =>
+        val fug = f union g
+        (fug contains f) && (fug contains g)
+      }
+    }
+  }
+
 }
 
 object AffineScalarEnclosureUnitTest extends Properties("AffineScalarEnclosure.UnitTest") {
 
   import TestingContext._
-  implicit val rnd = Rounding(10)
 
   /* Unit tests */
 
@@ -198,7 +207,7 @@ object AffineScalarEnclosureUnitTest extends Properties("AffineScalarEnclosure.U
       (x * 5)(rnd)(u) == 5 * unit
   }
 
-  property("UT - enclosure scala evaluation failing test case") = {
+  property("enclosure scala evaluation failing test case") = {
     // Should result in [15.75,25]
     val box = Box("l" -> Interval(4, 5))
     val l = AffineScalarEnclosure(box, "l")

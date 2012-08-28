@@ -189,10 +189,9 @@ case class EventTree(
         sequences.head.enclosure.domain,
         0)).mapValues {
         case (l, r) =>
-          // FIXME used to be: 
-          l union r
+          // FIXME used to be: l union r
           // The HACK below should be replaced by proper use of UnivariateAffineScalarEnclosure!
-//          AffineScalarEnclosure(l.domain, l.range /\ r.range)
+          AffineScalarEnclosure(l.domain, l.range /\ r.range)
       }
     }
     AffineEnclosure(maximalSequences.head.domain, affs)
