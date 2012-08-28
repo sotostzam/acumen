@@ -168,11 +168,11 @@ object UnivariateAffineScalarEnclosure extends Plotter {
       that.coefficients(name))
   }
 
-  def plot(frametitle: String)(them: UnivariateAffineScalarEnclosure*)(implicit rnd: Rounding): Unit =
+  def plot(them: UnivariateAffineScalarEnclosure*)(implicit rnd: Rounding): Unit =
     plot("Picard plotter")(them: _*)
 
-  def plot(them: UnivariateAffineScalarEnclosure*)(implicit rnd: Rounding) = {
-    createFrame("")
+  def plot(frametitle: String)(them: UnivariateAffineScalarEnclosure*)(implicit rnd: Rounding) = {
+    createFrame(frametitle)
     for (it <- them) {
       def low(t: Double) = it.low(t) match { case Interval(lo, _) => lo.doubleValue }
       def high(t: Double) = it.high(t) match { case Interval(_, hi) => hi.doubleValue }

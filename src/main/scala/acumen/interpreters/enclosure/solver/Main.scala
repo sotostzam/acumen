@@ -26,7 +26,7 @@ object BouncingBall extends App {
   val m = 20
   val n = 200
   val K = 30
-  val d = 0.1
+  val d = 0.01
   val e = T.width match { case Interval(_, hi) => hi.doubleValue }
   val start = System.currentTimeMillis
   val res = Solver.solver(H, T, Ss, delta, m, n, K, d, e, T, "output")
