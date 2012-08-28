@@ -16,20 +16,43 @@ object UnivariateAffineScalarEnclosureTest extends Properties("UnivariateAffineS
 
   import TestingContext._
 
-  // TODO add properties, e.g. that f union g conatins f and g.
-
   property("union") =
-    forAll { (dom: Interval) =>
-      forAll(
-        genDomUnivariateAffineScalarEnclosure(dom),
-        genDomUnivariateAffineScalarEnclosure(dom)) { (f, g) =>
+    forAllNoShrink(genInterval) { dom =>
+      forAllNoShrink(
+        genBoxUnivariateAffineScalarEnclosure(dom),
+        genBoxUnivariateAffineScalarEnclosure(dom)) { (f, g) =>
           val u = f union g
-          println("f: " + f)
-          println("g: " + g)
-          println("u: " + u)
           (u contains f) && (u contains g)
         }
     }
+
+  property("Building a UASE from an ASE preserves the constant and coefficient") =
+    forAllNoShrink(genDimBox(1)) { box =>
+      forAllNoShrink(genBoxAffineScalarEnclosure(box)) { ase =>
+        val uase = UnivariateAffineScalarEnclosure(ase)
+        val varName = box.keySet.toList(0)
+        (uase.constant == ase.constant) && (uase.coefficient == ase.coefficients(varName))
+      }
+    }
+
+  property("ASE/UASE point-wise evaluation consistency") =
+    forAllNoShrink(genDimBox(1)) { box =>
+      forAllNoShrink(
+        genSubBox(box),
+        genBoxAffineScalarEnclosure(box)) { (subBox, ase) =>
+          val uase = UnivariateAffineScalarEnclosure(ase)
+          val subBoxAsInterval = subBox(subBox.keySet.toList(0))
+          ase(subBox) == uase(subBoxAsInterval)
+        }
+    }
+
+}
+
+object UnivariateAffineScalarEnclosureUnitTest extends Properties("UnivariateAffineScalarEnclosureUnitTest") {
+
+  import TestingContext._
+
+  // TODO add properties, e.g. that f union g conatins f and g.
 
   property("union") = {
     val dom = Interval(-8.988465675E+307, 4.708293845E+307)
@@ -50,16 +73,8 @@ object UnivariateAffineScalarEnclosureTest extends Properties("UnivariateAffineS
     println("u: " + u)
     (u contains f) && (u contains g)
   }
-  
-}
 
-object UnivariateAffineScalarEnclosureUnitTest extends Properties("UnivariateAffineScalarEnclosureUnitTest") {
-
-  import TestingContext._
-
-  // TODO add properties, e.g. that f union g conatins f and g.
-
-  property("union") = {
+  property("union 2") = {
     val dom = Interval(-8.988465675E+307, 4.708293845E+307)
     val ndom = Interval(0, 1.369675952E+308)
     val f = UnivariateAffineScalarEnclosure(

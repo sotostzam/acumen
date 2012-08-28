@@ -96,8 +96,10 @@ case class UnivariateAffineScalarEnclosure private[enclosure] (
    * Note that this assumes that the domain interval is not thin!
    */
   def union(that: UnivariateAffineScalarEnclosure) = {
+    assert(this.domain == that.domain && this.normalizedDomain == that.normalizedDomain,
+      "Union is only defined for enclosures with equal domains.")
     if (domain.width equalTo 0)
-      sys.error("not implemented") // handle thin domain!
+      sys.error("not implemented") //TODO Implement handling thin domain!
     else {
       val thislo = low
       val thishi = high

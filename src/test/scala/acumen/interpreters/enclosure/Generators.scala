@@ -17,7 +17,7 @@ object Generators {
 
   /* Double */
 
-  def genSmallDouble: Gen[Double] = choose(-1000.0, 1000.0)
+  def genSmallDouble: Gen[Double] = choose(-10.0, 10.0)
   implicit def arbitraryDouble: Arbitrary[Double] = Arbitrary(genSmallDouble)
 
   /** Generates Doubles larger than the parameter d. */
@@ -152,14 +152,21 @@ object Generators {
   /** Generates a plain univariate enclosure. */
   def genUnivariateAffineScalarEnclosure: Gen[UnivariateAffineScalarEnclosure] = for {
     domain <- arbitrary[Interval]
-    u <- genDomUnivariateAffineScalarEnclosure(domain)
+    u <- genBoxUnivariateAffineScalarEnclosure(domain)
   } yield u
   implicit val use: Arbitrary[UnivariateAffineScalarEnclosure] = Arbitrary(genUnivariateAffineScalarEnclosure)
 
-  /** Generates a univariate enclosure over the domain. */
-  def genDomUnivariateAffineScalarEnclosure(domain: Interval): Gen[UnivariateAffineScalarEnclosure] = for {
-    val List(constant, coefficient) <- listOfN(2, arbitrary[Interval])
+  /** Generates a univariate enclosure over the domain "box". */
+  def genBoxUnivariateAffineScalarEnclosure(domain: Interval): Gen[UnivariateAffineScalarEnclosure] = for {
+    constant <- arbitrary[Interval]
+    coefficient <- arbitrary[Interval]
   } yield UnivariateAffineScalarEnclosure(domain, 0 /\ domain.width, constant, coefficient)
+
+  /** Generates a univariate enclosure over the domain of "e" that is also contained in "e". */
+  def genSubUnivariateAffineScalarEnclosure(e: UnivariateAffineScalarEnclosure): Gen[UnivariateAffineScalarEnclosure] = for {
+    constant <- genSubInterval(e.constant)
+    coefficient <- genSubInterval(e.coefficient)
+  } yield UnivariateAffineScalarEnclosure(e.domain, e.normalizedDomain, constant, coefficient)
 
   // TODO write generators corresponding to those for AffineScalarEnclosure
 

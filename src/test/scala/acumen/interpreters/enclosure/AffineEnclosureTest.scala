@@ -56,17 +56,17 @@ object AffineEnclosureTest extends Properties("AffineEnclosure") {
       f.constantTerm + f.linearTerms == f
     }
 
-//  property("monotonicity of enclosure evaluation") =
-//    //TODO Try this with a larger number of state variables
-//    forAll(choose(1, 10), choose(1, 10)) { (stateDim, dim) =>
-//      forAll(listOfN(stateDim, genDimBox(dim))) { doms =>
-//        forAll(genSubBox(dom), genBoxAffineScalarEnclosure(dom)) { (box, f) =>
-//          forAll(genSubBox(box)) { subbox =>
-//            f(box) contains f(subbox)
-//          }
-//        }
-//      }
-//    }
+  //  property("monotonicity of enclosure evaluation") =
+  //    //TODO Try this with a larger number of state variables
+  //    forAll(choose(1, 10), choose(1, 10)) { (stateDim, dim) =>
+  //      forAll(listOfN(stateDim, genDimBox(dim))) { doms =>
+  //        forAll(genSubBox(dom), genBoxAffineScalarEnclosure(dom)) { (box, f) =>
+  //          forAll(genSubBox(box)) { subbox =>
+  //            f(box) contains f(subbox)
+  //          }
+  //        }
+  //      }
+  //    }
 
   //  property("sanity test of enclosure evaluation") =
 
@@ -91,5 +91,19 @@ object AffineEnclosureTest extends Properties("AffineEnclosure") {
   //  property("collapsing removes the collapsed variable") =
 
   //  property("safety of enclosure collapsing") =
+
+}
+
+object AffineEnclosureUnitTest extends Properties("AffineEnclosureUnitTest") {
+
+  import TestingContext._
+
+  property("collapsing") = {
+    val dom = Box("x" -> Interval(0,1), "y" -> Interval(0,1))
+    val aseX = AffineScalarEnclosure(dom, Interval(0, 0), Box("x" -> Interval(1, 1)))
+    val aseY = AffineScalarEnclosure(dom, Interval(0, 0), Box("y" -> Interval(1, 1)))
+    val ae = AffineEnclosure(dom, Map("x" -> aseX, "y" -> aseY))
+    ae.components.size == 2 && ae.collapse("x").components.size == 1
+  }
 
 }

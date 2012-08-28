@@ -242,11 +242,11 @@ case class AffineScalarEnclosure private[enclosure] (
 object AffineScalarEnclosure extends Plotter {
 
   /** Convenience method, normalizes the domain. */
-  private[enclosure] def apply(domain: Box, constant: Interval, coefficients: Box): AffineScalarEnclosure =
+  private[enclosure] def apply(domain: Box, constant: Interval, coefficients: Box)(implicit rnd:Rounding): AffineScalarEnclosure =
     AffineScalarEnclosure(domain, Box.normalize(domain), constant, coefficients)
 
   /** Lifts a constant interval to a constant enclosure. */
-  def apply(domain: Box, constant: Interval): AffineScalarEnclosure = {
+  def apply(domain: Box, constant: Interval)(implicit rnd:Rounding): AffineScalarEnclosure = {
     AffineScalarEnclosure(domain, constant, Box.empty)
   }
 

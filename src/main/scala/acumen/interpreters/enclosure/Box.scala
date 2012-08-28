@@ -25,8 +25,12 @@ object Box {
   /** Build a box out of name-interval pairs. */
   def apply(domains: (VarName, Interval)*): Box = new Box(Map(domains: _*))
 
-  /** Translate the domain so that each interval is of the form [0,_]. */
-  def normalize(box: Box): Box = box.mapValues { i => val (lo, _) = i.bounds; i - lo }
+  /**
+   * Translate the domain so that each interval is of the form [0,_].
+   * For each interval i in "box", use i.width.high as the new end-point to give a safe 
+   * over-approximation of the end-point.
+   */
+  def normalize(box: Box)(implicit rnd: Rounding): Box = box.mapValues { i => 0 /\ i.width.high }
 
   /** The corners of the box. */
   def corners(box: Box) = cornersHelper(box, Seq(Box.empty))

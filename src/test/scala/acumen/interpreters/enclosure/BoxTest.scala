@@ -64,4 +64,14 @@ object BoxTest extends Properties("Box") {
 //      }
 //    }
 
+  property("removing a variable from a box") =
+    forAllNoShrink(choose(1, 10)) { dim =>
+      forAllNoShrink(genDimBox(dim)) { box =>
+        forAllNoShrink(oneOf(box.keySet.toList)) { varName =>
+          (box contains varName) &&
+            !((box - varName) contains varName)
+        }
+      }
+    }
+
 }
