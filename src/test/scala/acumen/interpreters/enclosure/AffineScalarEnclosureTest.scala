@@ -123,7 +123,7 @@ object AffineScalarEnclosureTest extends Properties("AffineScalarEnclosure") {
         }
       }
     }
-  
+
   property("numeric operations monotonicity") =
     //TODO Add testing of division and operation variants (intervals, scalars)
     forAll(choose(1, 10),
@@ -163,8 +163,33 @@ object AffineScalarEnclosureTest extends Properties("AffineScalarEnclosure") {
       }
     }
 
-  property("affine enclosures safely approximate mixed terms") =
-    false // TODO Implement property
+  property("quadratic terms consistency") =
+    forAllNoShrink(genDimBox(1)) { dom =>
+      {
+        val x = dom.keys.head
+        val q = quadratic(dom, x)
+        try {
+          q.range \/ (dom(x) * dom(x))
+          true
+        } catch {
+          case _ => false
+        }
+      }
+    }
+
+  property("mixed terms consistency") =
+    forAllNoShrink(genDimBox(2)) { dom =>
+      {
+        val Seq(x, y) = dom.keys.toSeq
+        val xy = mixed(dom, x, y)
+        try {
+          xy.range \/ (dom(x) * dom(y))
+          true
+        } catch {
+          case _ => false
+        }
+      }
+    }
 
   property("affine enclosure of primitive function") =
     false // TODO Implement property
