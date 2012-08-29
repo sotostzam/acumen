@@ -16,7 +16,7 @@ object UnivariateAffineScalarEnclosureTest extends Properties("UnivariateAffineS
 
   import TestingContext._
 
-  property("union monotnonicity") =
+  property("union soundness") =
     forAllNoShrink(genInterval) { dom =>
       forAllNoShrink(
         genBoxUnivariateAffineScalarEnclosure(dom),

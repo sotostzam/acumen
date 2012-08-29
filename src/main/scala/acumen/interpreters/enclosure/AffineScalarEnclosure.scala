@@ -136,10 +136,38 @@ case class AffineScalarEnclosure private[enclosure] (
    * containment.
    */
   def contains(that: AffineScalarEnclosure)(implicit rnd: Rounding) = {
-    val lodiffnonneg = (low - that.low).range lessThanOrEqualTo Interval(0)
-    val hidiffnonneg = (that.high - high).range lessThanOrEqualTo Interval(0)
-    lodiffnonneg && hidiffnonneg
+    assert(this.domain == that.domain,
+      "Containment is only defined for enclosures over the same domain.")
+    /* We take the corners of the normalized domain as that is where we will
+     * be checking for containments. */
+    val thisLo = this.low
+    val thatLo = that.low
+    val thisHi = this.high
+    val thatHi = that.high
+    Box.corners(normalizedDomain).forall { c =>
+      //      println("this " + this)
+      //      println("that " + that)
+      //      println("val thisHi = this.high " + thisHi)
+      //      println("val thatHi = that.high " + thatHi)
+      //      println("val thatLo = that.low " + thatLo)
+      //      println("val thisLo = this.low " + thisLo)
+      //      println(" @ corner: " + c)
+      //      println("thisHi.evalThinAtThin(c) " + thisHi.evalThinAtThin(c))
+      //      println("thatHi.evalThinAtThin(c) " + thatHi.evalThinAtThin(c))
+      //      println("thatLo.evalThinAtThin(c) " + thatLo.evalThinAtThin(c))
+      //      println("thisLo.evalThinAtThin(c) " + thisLo.evalThinAtThin(c))
+      val thisBoundsThatAtCorner = // Ensure that "this" bounds "that" at this corner
+        (thisLo.evalThinAtThin(c) lessThanOrEqualTo (thatLo.evalThinAtThin(c))) &&
+          (thatHi.evalThinAtThin(c) lessThanOrEqualTo (thisHi.evalThinAtThin(c)))
+      thisBoundsThatAtCorner
+    }
   }
+
+  //  def contains(that: AffineScalarEnclosure)(implicit rnd: Rounding) = {
+  //    val lodiffnonneg = (low - that.low).range lessThanOrEqualTo Interval(0)
+  //    val hidiffnonneg = (that.high - high).range lessThanOrEqualTo Interval(0)
+  //    lodiffnonneg && hidiffnonneg
+  //  }
 
   /** Pads the enclosure by delta. The result is an enclosure that contains this enclosure. */
   def plusMinus(delta: Interval)(implicit rnd: Rounding) = this + (-delta) /\ delta

@@ -14,7 +14,7 @@ import Types._
 
 object AffineScalarEnclosureTest extends Properties("AffineScalarEnclosure") {
 
-//  import TestingContext._
+  //  import TestingContext._
   implicit val rnd = Rounding(10)
 
   /* Type synonyms */
@@ -113,6 +113,17 @@ object AffineScalarEnclosureTest extends Properties("AffineScalarEnclosure") {
       }
     }
 
+  property("enclosure containment soundness") =
+    forAllNoShrink(choose(1, 10)) { dim =>
+      forAllNoShrink(genDimBox(dim)) { dom =>
+        forAllNoShrink(genBoxAffineScalarEnclosure(dom)) { f =>
+          forAllNoShrink(genSubAffineScalarEnclosure(f)) { subf =>
+            f contains subf
+          }
+        }
+      }
+    }
+  
   property("numeric operations monotonicity") =
     //TODO Add testing of division and operation variants (intervals, scalars)
     forAll(choose(1, 10),

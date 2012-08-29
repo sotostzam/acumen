@@ -124,25 +124,70 @@ case class UnivariateAffineScalarEnclosure private[enclosure] (
 
   /* Arithmetic operations */
 
-//  /** Negation of enclosures. */
-//  private def unary_-(implicit rnd: Rounding) =
-//    UnivariateAffineScalarEnclosure(domain, normalizedDomain, -constant, -coefficient)
-//
-//  /** Addition of enclosures. */
-//  private def +(that: UnivariateAffineScalarEnclosure)(implicit rnd: Rounding) =
-//    UnivariateAffineScalarEnclosure(
-//      domain,
-//      normalizedDomain,
-//      constant + that.constant,
-//      coefficient + that.coefficient)
-//
-//  /** Subtraction of enclosures. */
-//  private def -(that: UnivariateAffineScalarEnclosure)(implicit rnd: Rounding) =
-//    UnivariateAffineScalarEnclosure(
-//      domain,
-//      normalizedDomain,
-//      constant - that.constant,
-//      coefficient - that.coefficient)
+  /** Negation of enclosures. */
+  private def unary_-(implicit rnd: Rounding) =
+    UnivariateAffineScalarEnclosure(domain, normalizedDomain, -constant, -coefficient)
+
+  /** Addition of enclosures. */
+  private def +(that: UnivariateAffineScalarEnclosure)(implicit rnd: Rounding) = {
+    assert(this.domain == that.domain, "Only enclosures over the same domain can be added.")
+    UnivariateAffineScalarEnclosure(
+      domain,
+      normalizedDomain,
+      constant + that.constant,
+      coefficient + that.coefficient)
+  }
+
+  /** Subtraction of enclosures. */
+  private def -(that: UnivariateAffineScalarEnclosure)(implicit rnd: Rounding) = {
+    assert(this.domain == that.domain, "Only enclosures over the same domain can be subtracted.")
+    UnivariateAffineScalarEnclosure(
+      domain,
+      normalizedDomain,
+      constant - that.constant,
+      coefficient - that.coefficient)
+  }
+
+  /**
+   * Multiplication of enclosures.
+   *
+   * Implementation note: to approximate the product (a+b*t)*(c+d*t) of two enclosures in the variable t we:
+   * (i)   translate the product from [l,h] to [-1,1] using t => m+r*t, with m = (l+h)/2 and r = (h-l)/2
+   * (ii)  reduce the quadratic term t*t to [0,1]
+   * (iii) translate the resulting affine enclosure to [0,h-l] using t => -1+t/r
+   */
+  def *(that: UnivariateAffineScalarEnclosure)(implicit rnd: Rounding) = {
+    assert(this.domain == that.domain, "Only enclosures over the same domain can be multiplied.")
+    val (l, h) = domain.bounds // domain of t
+    val r = (h - l) / 2 // domain radius
+    val m = (l + h) / 2 // domain midpoint
+    val a = this.constant // this = a+b*t
+    val b = this.coefficient
+    val c = that.constant // this = c+d*t
+    val d = that.coefficient
+    val e = a + b * r
+    val f = c + d * r
+    val coeff = e * d + f * b
+    val const = e * f + b * d * r * r * Interval(0, 1) - coeff * r
+    UnivariateAffineScalarEnclosure(domain, normalizedDomain, const, coeff)
+  }
+
+  /** 
+   * Division of enclosures.
+   * 
+   * Precondition: "that" must currently be a constant enclosure.
+   * 
+   * Implementation note: TODO
+   */
+  private def /(that: UnivariateAffineScalarEnclosure)(implicit rnd: Rounding) = {
+    assert(this.domain == that.domain, "Only enclosures over the same domain can be divided.")
+    assert(that.coefficient equalTo 0, "Only constant enclosures can currently be divisors.")
+    UnivariateAffineScalarEnclosure(
+      domain,
+      normalizedDomain,
+      constant / that.constant,
+      coefficient / that.coefficient)
+  }
 
 }
 
