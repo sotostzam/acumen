@@ -155,7 +155,6 @@ case class AffineEnclosure private[enclosure] (
 
 }
 
-// TODO improve how the plotting is done
 object AffineEnclosure extends Plotter {
 
   /** Convenience method, normalizes the domain. */

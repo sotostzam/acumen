@@ -34,6 +34,29 @@ abstract class Expression {
     }
   }
 
+//  /**
+//   * Evaluate the expression at the enclosure x using enclosures.
+//   *
+//   * This is done by replacing the variables in the expression with the
+//   * corresponding component in the enclosure and the operations by enclosure
+//   * operations.
+//   *
+//   * Precondition: the box must contain the names of all variables in the
+//   * expression.
+//   */
+//  def apply(x: UnivariateAffineEnclosure)(implicit rnd: Rounding): UnivariateAffineScalarEnclosure = {
+//    assert(varNames subsetOf x.components.keySet,
+//      "The enclosure must contain the names of all variables in the expression.")
+//    this match {
+//      case Constant(v) => UnivariateAffineScalarEnclosure(x.domain,v)
+//      case Variable(name) => x(name)
+//      case Negate(e) => -e(x)
+//      case Plus(l, r) => l(x) + r(x)
+//      case Multiply(l, r) => l(x) * r(x)
+//      case Divide(e, Constant(v)) => e(x) / v
+//    }
+//  }
+
   /**
    * Evaluate the expression at the box x using enclosures.
    *
@@ -45,7 +68,6 @@ abstract class Expression {
    * expression.
    */
   def apply(x: AffineEnclosure)(implicit rnd: Rounding): AffineScalarEnclosure = this match {
-    // FIXME using empty box as none is readily available
     case Constant(v) => AffineScalarEnclosure(x.domain, v)
     case Variable(name) => x(name)
     case Negate(e) => -e(x)

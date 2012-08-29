@@ -68,7 +68,7 @@ case class UnivariateAffineScalarEnclosure private[enclosure] (
    * Note: This implementation relies on the fact that "this" and
    * "that" are affine enclosures, meaning that containment can
    * be decided by comparing the upper and lower bounds of the
-   * enclosures at the domain's end-points. 
+   * enclosures at the domain's end-points.
    */
   def contains(that: UnivariateAffineScalarEnclosure)(implicit rnd: Rounding) = {
     assert(this.domain == that.domain, "Containment is only defined for enclosures over the same domain.")
@@ -87,27 +87,11 @@ case class UnivariateAffineScalarEnclosure private[enclosure] (
     boundAtHi && boundAtLo
   }
 
-  /* Arithmetic operations */
-
-  /** Subtraction of enclosures. */
-  private def -(that: UnivariateAffineScalarEnclosure)(implicit rnd: Rounding) =
-    UnivariateAffineScalarEnclosure(
-      domain,
-      normalizedDomain,
-      constant - that.constant,
-      coefficient - that.coefficient)
-
   //TODO Update the below comment.
   /**
    * Compute the union of the enclosures.
    *
-   * Implementation note: given that a line goes though the points
-   * (xl,yl) and (xh,yl) points (x,y) on the line satisfy:
-   *   y = yl + (x - xl)*(yh-yl)/(xh-xl)
-   * which, under the assumption that xl = 0, simplifies to
-   *   y = yl + x*(yh-yl)/xh.
-   *
-   * Precondition: Note that this assumes that the domain interval is not thin!
+   * Implementation note: TODO
    */
   def union(that: UnivariateAffineScalarEnclosure) = {
     assert(this.domain == that.domain, "Union can only be taken of enclosures over the same domain.")
@@ -138,7 +122,31 @@ case class UnivariateAffineScalarEnclosure private[enclosure] (
     UnivariateAffineScalarEnclosure(subDomain, 0 /\ subDomain.width.high, constant, coefficient)
   }
 
+  /* Arithmetic operations */
+
+//  /** Negation of enclosures. */
+//  private def unary_-(implicit rnd: Rounding) =
+//    UnivariateAffineScalarEnclosure(domain, normalizedDomain, -constant, -coefficient)
+//
+//  /** Addition of enclosures. */
+//  private def +(that: UnivariateAffineScalarEnclosure)(implicit rnd: Rounding) =
+//    UnivariateAffineScalarEnclosure(
+//      domain,
+//      normalizedDomain,
+//      constant + that.constant,
+//      coefficient + that.coefficient)
+//
+//  /** Subtraction of enclosures. */
+//  private def -(that: UnivariateAffineScalarEnclosure)(implicit rnd: Rounding) =
+//    UnivariateAffineScalarEnclosure(
+//      domain,
+//      normalizedDomain,
+//      constant - that.constant,
+//      coefficient - that.coefficient)
+
 }
+
+// TODO improve how the plotting is done
 object UnivariateAffineScalarEnclosure extends Plotter {
 
   /** Convenience method, normalizes the domain. */

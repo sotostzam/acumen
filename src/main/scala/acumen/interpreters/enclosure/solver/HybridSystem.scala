@@ -12,6 +12,7 @@ case class HybridSystem(
   fields: Map[Mode, Field],
   guards: Map[Event, Guard],
   resets: Map[Event, ResetMap]) {
+
   def addMode(mode: Mode, domain: Domain, field: Field): HybridSystem =
     HybridSystem(
       modes + mode,
@@ -20,6 +21,7 @@ case class HybridSystem(
       fields + (mode -> field),
       guards,
       resets)
+
   def addEvent(event: Event, guard: Guard, reset: ResetMap): HybridSystem =
     HybridSystem(
       modes,
@@ -28,6 +30,7 @@ case class HybridSystem(
       fields,
       guards + (event -> guard),
       resets + (event -> reset))
+
   // defined in section 6.1
   // property: guardPrime(e)(x) implies not(domains(e)(x))
   def guardPrime(event: Event): Guard =
@@ -43,6 +46,7 @@ case class HybridSystem(
           }
       }
     }: _*)
+
   // described in 6.3
   // computes the set of variables that variable i depends on via fields(e) 
   // property: if i is not in dependentVariables(e)(i) then 
@@ -56,6 +60,7 @@ case class HybridSystem(
     }
     current
   }
+
   // helper function for dependentVariables
   // the set of indices of variables in e
   private def variables(e: Expression): Set[VarName] = e match {
@@ -66,8 +71,11 @@ case class HybridSystem(
     case Multiply(l, r) => variables(l) ++ variables(r)
     case Divide(l, r) => variables(l) ++ variables(r)
   }
+
 }
+
 object HybridSystem {
+
   def empty = HybridSystem(
     Set[Mode](),
     Set[Event](),
@@ -75,5 +83,6 @@ object HybridSystem {
     Map[Mode, Field](),
     Map[Event, Guard](),
     Map[Event, ResetMap]())
+
 }
 
