@@ -3,7 +3,6 @@ package acumen.interpreters.enclosure
 import Interval._
 import Types._
 import Util._
-import acumen.interpreters.enclosure.solver.Plotter
 
 /**
  * Type used to approximate expressions over a given domain.
@@ -72,7 +71,7 @@ case class AffineScalarEnclosure private[enclosure] (
       val width = domain.values.head.width
       val coeffLo = (minAtHi - minAtLo) / width
       val coeffHi = (maxAtHi - maxAtLo) / width
-
+      
     }
   }
 
