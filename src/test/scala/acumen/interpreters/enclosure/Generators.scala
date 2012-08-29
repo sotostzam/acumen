@@ -156,11 +156,10 @@ object Generators {
   } yield u
   implicit val use: Arbitrary[UnivariateAffineScalarEnclosure] = Arbitrary(genUnivariateAffineScalarEnclosure)
 
-  /** Generates a univariate enclosure over the domain "box". */
-  def genBoxUnivariateAffineScalarEnclosure(domain: Interval): Gen[UnivariateAffineScalarEnclosure] = for {
-    constant <- arbitrary[Interval]
-    coefficient <- arbitrary[Interval]
-  } yield UnivariateAffineScalarEnclosure(domain, 0 /\ domain.width, constant, coefficient)
+  /** Generates a univariate enclosure over the domain. */
+  def genDomUnivariateAffineScalarEnclosure(domain: Interval): Gen[UnivariateAffineScalarEnclosure] = for {
+    val List(constant, coefficient) <- listOfN(2, arbitrary[Interval])
+  } yield UnivariateAffineScalarEnclosure(domain, 0 /\ domain.width.high, constant, coefficient)
 
   /** Generates a univariate enclosure over the domain of "e" that is also contained in "e". */
   def genSubUnivariateAffineScalarEnclosure(e: UnivariateAffineScalarEnclosure): Gen[UnivariateAffineScalarEnclosure] = for {

@@ -51,6 +51,32 @@ case class AffineScalarEnclosure private[enclosure] (
   def constantTerm(implicit end: Rounding) = AffineScalarEnclosure(domain, normalizedDomain, constant, Box())
 
   /**
+   * Enclose the union of the two enclosures.
+   *
+   * Precondition: both enclosures have to have dimension 1.
+   */
+  def union(that: AffineScalarEnclosure)(implicit rnd: Rounding) = {
+    assert(this.domain == that.domain, "Union can only be taken of enclosures over the same domain.")
+    assert(this.dimension == that.dimension, "Union is only implemented for enclosures of dimension 1.")
+    val Seq(lo, hi) = Box.corners(domain)
+    if (lo == hi) this(lo) /\ that(lo)
+    else {
+      val thisLo = this.low
+      val thatLo = that.low
+      val thisHi = this.high
+      val thatHi = that.high
+      val minAtLo = min(thisLo(lo), thatLo(lo))
+      val maxAtLo = max(thisHi(lo), thatHi(lo))
+      val minAtHi = min(thisLo(hi), thatLo(hi))
+      val maxAtHi = max(thisHi(hi), thatHi(hi))
+      val width = domain.values.head.width
+      val coeffLo = (minAtHi - minAtLo) / width
+      val coeffHi = (maxAtHi - maxAtLo) / width
+      
+    }
+  }
+
+  /**
    * Evaluate the enclosure at the box x.
    *
    * Precondition: the box must have a domain for each coefficient name.
