@@ -72,7 +72,7 @@ case class AffineScalarEnclosure private[enclosure] (
       val width = domain.values.head.width
       val coeffLo = (minAtHi - minAtLo) / width
       val coeffHi = (maxAtHi - maxAtLo) / width
-      
+
     }
   }
 
@@ -164,29 +164,20 @@ case class AffineScalarEnclosure private[enclosure] (
   def contains(that: AffineScalarEnclosure)(implicit rnd: Rounding) = {
     assert(this.domain == that.domain,
       "Containment is only defined for enclosures over the same domain.")
-    /* We take the corners of the normalized domain as that is where we will
-     * be checking for containments. */
-    val thisLo = this.low
-    val thatLo = that.low
-    val thisHi = this.high
-    val thatHi = that.high
-    Box.corners(normalizedDomain).forall { c =>
-      //      println("this " + this)
-      //      println("that " + that)
-      //      println("val thisHi = this.high " + thisHi)
-      //      println("val thatHi = that.high " + thatHi)
-      //      println("val thatLo = that.low " + thatLo)
-      //      println("val thisLo = this.low " + thisLo)
-      //      println(" @ corner: " + c)
-      //      println("thisHi.evalThinAtThin(c) " + thisHi.evalThinAtThin(c))
-      //      println("thatHi.evalThinAtThin(c) " + thatHi.evalThinAtThin(c))
-      //      println("thatLo.evalThinAtThin(c) " + thatLo.evalThinAtThin(c))
-      //      println("thisLo.evalThinAtThin(c) " + thisLo.evalThinAtThin(c))
-      val thisBoundsThatAtCorner = // Ensure that "this" bounds "that" at this corner
-        (thisLo.evalThinAtThin(c) lessThanOrEqualTo (thatLo.evalThinAtThin(c))) &&
-          (thatHi.evalThinAtThin(c) lessThanOrEqualTo (thisHi.evalThinAtThin(c)))
-      thisBoundsThatAtCorner
-    }
+    ((this.low - that.low).range lessThanOrEqualTo 0) &&
+      ((that.high - this.high).range lessThanOrEqualTo 0)
+    //    /* We take the corners of the normalized domain as that is where we will
+    //     * be checking for containments. */
+    //    val thisLo = this.low
+    //    val thatLo = that.low
+    //    val thisHi = this.high
+    //    val thatHi = that.high
+    //    Box.corners(normalizedDomain).forall { c =>
+    //      val thisBoundsThatAtCorner = // Ensure that "this" bounds "that" at this corner
+    //        (thisLo.evalThinAtThin(c) lessThanOrEqualTo (thatLo.evalThinAtThin(c))) &&
+    //          (thatHi.evalThinAtThin(c) lessThanOrEqualTo (thisHi.evalThinAtThin(c)))
+    //      thisBoundsThatAtCorner
+    //    }
   }
 
   /** Pads the enclosure by delta. The result is an enclosure that contains this enclosure. */
