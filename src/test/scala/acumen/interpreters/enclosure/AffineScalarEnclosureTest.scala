@@ -179,15 +179,6 @@ object AffineScalarEnclosureTest extends Properties("AffineScalarEnclosure") {
       }
     }
 
-  property("union contains its arguments") = {
-    forAll(genDimBox(1)) { box =>
-      forAll(genBoxAffineScalarEnclosure(box), genBoxAffineScalarEnclosure(box)) { (f, g) =>
-        val fug = f union g
-        (fug contains f) && (fug contains g)
-      }
-    }
-  }
-
 }
 
 object AffineScalarEnclosureUnitTest extends Properties("AffineScalarEnclosure.UnitTest") {
