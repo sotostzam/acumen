@@ -171,17 +171,6 @@ case class AffineScalarEnclosure private[enclosure] (
     val thisHi = this.high
     val thatHi = that.high
     Box.corners(normalizedDomain).forall { c =>
-      //      println("this " + this)
-      //      println("that " + that)
-      //      println("val thisHi = this.high " + thisHi)
-      //      println("val thatHi = that.high " + thatHi)
-      //      println("val thatLo = that.low " + thatLo)
-      //      println("val thisLo = this.low " + thisLo)
-      //      println(" @ corner: " + c)
-      //      println("thisHi.evalThinAtThin(c) " + thisHi.evalThinAtThin(c))
-      //      println("thatHi.evalThinAtThin(c) " + thatHi.evalThinAtThin(c))
-      //      println("thatLo.evalThinAtThin(c) " + thatLo.evalThinAtThin(c))
-      //      println("thisLo.evalThinAtThin(c) " + thisLo.evalThinAtThin(c))
       val thisBoundsThatAtCorner = // Ensure that "this" bounds "that" at this corner
         (thisLo.evalThinAtThin(c) lessThanOrEqualTo (thatLo.evalThinAtThin(c))) &&
           (thatHi.evalThinAtThin(c) lessThanOrEqualTo (thisHi.evalThinAtThin(c)))
