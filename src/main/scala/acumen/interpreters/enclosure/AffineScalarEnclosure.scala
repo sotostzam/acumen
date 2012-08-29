@@ -189,12 +189,6 @@ case class AffineScalarEnclosure private[enclosure] (
     }
   }
 
-  //  def contains(that: AffineScalarEnclosure)(implicit rnd: Rounding) = {
-  //    val lodiffnonneg = (low - that.low).range lessThanOrEqualTo Interval(0)
-  //    val hidiffnonneg = (that.high - high).range lessThanOrEqualTo Interval(0)
-  //    lodiffnonneg && hidiffnonneg
-  //  }
-
   /** Pads the enclosure by delta. The result is an enclosure that contains this enclosure. */
   def plusMinus(delta: Interval)(implicit rnd: Rounding) = this + (-delta) /\ delta
   def plusMinus(delta: Double)(implicit rnd: Rounding): AffineScalarEnclosure =
