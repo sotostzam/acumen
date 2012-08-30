@@ -30,10 +30,10 @@ class AcumenProject(info: ProjectInfo) extends DefaultProject(info)
   val j3dCoreUtils = "javax" % "j3d-core-utils" % "1.5.2"
   val vecmath = "javax" % "vecmath" % "1.5.2"
   
-  /* this filters out sun's signature files that are otherwise understood at
+  /* this filters out sun's and arakhne signature files that are otherwise understood at
      acumen's jar signature, as they are copied in META-INF by proguard */
   override def makeInJarFilter (file :String) =
-    super.makeInJarFilter(file) + ",!**/SUN_MICR.RSA,!**/SUN_MICR.SF"
+    super.makeInJarFilter(file) + ",!**/SUN_MICR.RSA,!**/SUN_MICR.SF,!**/ARAKHNE_.DSA,!**/ARAKHNE_.SF"
  
   // add scala libraries to the generated jar
   override def proguardInJars = super.proguardInJars +++ scalaLibraryPath
