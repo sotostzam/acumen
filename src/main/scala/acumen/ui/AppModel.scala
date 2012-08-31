@@ -3,15 +3,12 @@ package ui
 
 import Errors._
 import util.Canonical._
-
 import java.lang.Thread
 import collection.JavaConversions._
 import collection.immutable.Queue
-
 import java.io._
 import swing._
 import swing.event._
-
 import scala.actors._
 
 sealed abstract class AppEvent extends Event
@@ -24,10 +21,6 @@ case class Stopped()     extends AppState
 case class Playing()     extends AppState
 case class Paused()      extends AppState
 
-sealed abstract class InterpreterType
-case class Pure()                extends InterpreterType
-case class Impure(nbThreads:Int) extends InterpreterType
-
 class AppModel(text: => String) extends Publisher {
 
   private sealed abstract class PAppState
@@ -36,19 +29,14 @@ class AppModel(text: => String) extends Publisher {
   private case class PPlaying(p:Prog, last:CStore, c:Consumer) extends PAppState
   private case class PPaused(prog:Prog, store:CStore)          extends PAppState
 
-  // Nothing == pure, Some(i) == impure
-  private var interpreterType : Option[interpreters.parallel.Interpreter] = None
-  private def interpreter : Interpreter = interpreterType match {
-    case None => interpreters.reference.Interpreter
-    case Some(i) => i
-  }
+  /* The currently used interpreter. Purely Functional (Reference) is used as default. */
+  private var interpreter : Interpreter = interpreters.reference.Interpreter
 
-  def setInterpreterType(itype:InterpreterType) = {
-    interpreterType.map(_.dispose)
-    interpreterType = itype match {
-      case Pure()    => None
-      case Impure(n) => Some(new interpreters.parallel.Interpreter(n))
-    }
+  /** Set the currently used interpreter. */
+  def setInterpreter(i:Interpreter) = {
+    // TODO Figure out what the below did, and if it needs to be handled in some other way
+	//interpreter.map(_.dispose) 
+    interpreter = i
   }
 
   /* ---- state variables ---- */
