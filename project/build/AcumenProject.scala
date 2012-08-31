@@ -9,9 +9,9 @@ class AcumenProject(info: ProjectInfo) extends DefaultProject(info)
 
   // dependencies
 
-  val scalaSwing = "org.scala-lang" % "scala-swing" % "2.8.1.RC4"
-  val scalaTest = "org.scalatest" % "scalatest" % "1.2"
-  val scalaCheck = "org.scala-tools.testing" % "scalacheck_2.8.0" % "1.7"
+  val scalaSwing = "org.scala-lang" % "scala-swing" % "2.9.2"
+  val scalaTest = "org.scalatest" %% "scalatest" % "2.0.M1" % "test"
+  val scalaCheck = "org.scalacheck" %% "scalacheck" % "1.10.0" % "test"
   //val sxr = compilerPlugin("org.scala-tools.sxr" %% "sxr" % "0.2.7")
   
   /* proguard is used for 
@@ -21,11 +21,19 @@ class AcumenProject(info: ProjectInfo) extends DefaultProject(info)
     "-dontobfuscate",
     "-keep public class acumen.ui.GraphicalMain { public static void main(java.lang.String[]); }"
   ) 
+
+  // java 3d deps.
+
+  val tuxfamily = "tuxfamily" at "http://download.tuxfamily.org/arakhne/maven/"
   
-  /* this filters out sun's signature files that are otherwise understood at
+  val j3dCore = "javax" % "j3d-core" % "1.5.2"
+  val j3dCoreUtils = "javax" % "j3d-core-utils" % "1.5.2"
+  val vecmath = "javax" % "vecmath" % "1.5.2"
+  
+  /* this filters out sun's and arakhne signature files that are otherwise understood at
      acumen's jar signature, as they are copied in META-INF by proguard */
   override def makeInJarFilter (file :String) =
-    super.makeInJarFilter(file) + ",!**/SUN_MICR.RSA,!**/SUN_MICR.SF"
+    super.makeInJarFilter(file) + ",!**/SUN_MICR.RSA,!**/SUN_MICR.SF,!**/ARAKHNE_.DSA,!**/ARAKHNE_.SF"
  
   // add scala libraries to the generated jar
   override def proguardInJars = super.proguardInJars +++ scalaLibraryPath
