@@ -2,6 +2,7 @@ package acumen.interpreters.enclosure.solver
 
 import acumen.interpreters.enclosure._
 import acumen.interpreters.enclosure.Interval._
+import acumen.interpreters.enclosure.Rounding._
 import acumen.interpreters.enclosure.Types._
 
 object PlotTest extends App {
