@@ -1,6 +1,7 @@
 package acumen.interpreters.enclosure
 
 import Interval._
+import solver.Plotter
 import Types._
 import Util._
 

@@ -16,7 +16,7 @@ object Generators  {
             don't miss a constructor?)
   */
 
-  def myPosNum = resize (Integer.MAX_VALUE, posInt)
+  def myPosNum = resize (Integer.MAX_VALUE, posNum[Int])
 
   def legit(x:String) = 
     x.length > 0 && x.head.isLetter && !(Parser.lexical.reserved contains x) 
