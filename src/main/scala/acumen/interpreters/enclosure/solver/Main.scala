@@ -7,7 +7,7 @@ import acumen.interpreters.enclosure.Types._
 object PlotTest extends App {
   implicit val rnd = Rounding(10)
   val H = Systems.BB(10, 0.5)
-  val T = 0 /\ 1.5
+  val T = 0 /\ 0.5
   val delta = 0
   val m = 20
   val n = 200
@@ -20,7 +20,7 @@ object PlotTest extends App {
 object BouncingBall extends App {
   implicit val rnd = Rounding(10)
   val H = Systems.BB(10, 0.5)
-  val T = Interval(0, 3)
+  val T = Interval(0, 0.9)
   val Ss = Set(UncertainState(Mode("Fly"), Box("x" -> 5, "x'" -> 0)))
   val delta = 0
   val m = 20

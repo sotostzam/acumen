@@ -1,5 +1,7 @@
 package acumen.interpreters.enclosure
 
+import acumen.interpreters.enclosure.solver.Plotter
+
 import Interval._
 import Types._
 import Util._
@@ -71,7 +73,7 @@ case class AffineScalarEnclosure private[enclosure] (
       val width = domain.values.head.width
       val coeffLo = (minAtHi - minAtLo) / width
       val coeffHi = (maxAtHi - maxAtLo) / width
-      
+
     }
   }
 
@@ -216,6 +218,7 @@ case class AffineScalarEnclosure private[enclosure] (
   def -(that: Double)(implicit rnd: Rounding): AffineScalarEnclosure = this - Interval(that)
   def -(that: Int)(implicit rnd: Rounding): AffineScalarEnclosure = this - Interval(that)
 
+  // TODO update the description
   /**
    * Multiplication of enclosures.
    *
@@ -232,9 +235,10 @@ case class AffineScalarEnclosure private[enclosure] (
     assert(domain == that.domain, "Multiplication is defined on enclosures with identical domains.")
     val const = constant * (that.constant)
     val linear = (that.linearTerms * constant) + (this.linearTerms * that.constant)
-    val square = domain.keySet.map(name => quadratic(name) * coefficients(name) * that.coefficients(name))
-    val mixeds = (for (name1 <- domain.keys; name2 <- domain.keys if name1 != name2) yield mixed(name1, name2) * coefficients(name1) * that.coefficients(name2))
-    (mixeds ++ square).foldLeft(linear + const)(_ + _)
+    val mixeds =
+      for ((name1, coeff1) <- (this.linearTerms.coefficients); (name2, coeff2) <- (that.linearTerms.coefficients))
+        yield AffineScalarEnclosure.mixed(normalizedDomain, name1, name2) * coeff1 * coeff2
+    mixeds.foldLeft(linear + const)(_ + _)
   }
   def *(that: Interval)(implicit rnd: Rounding) = AffineScalarEnclosure(domain, normalizedDomain, constant * that, coefficients.mapValues(_ * that))
   def *(that: Double)(implicit rnd: Rounding): AffineScalarEnclosure = this * Interval(that)
@@ -306,16 +310,18 @@ object AffineScalarEnclosure extends Plotter {
    *
    * AffineIntervalFunction enclosure over doms of the quadratic monomial in variable name
    */
-  def quadratic(domain: Box, name: VarName)(implicit rnd: Rounding) = {
-    require(domain.contains(name))
-    val (a, b) = domain(name).bounds
-    val width = b - a
-    val coeff = b + a
-    // This corresponds to translating to [-1,1], representing in Chebyshev basis, 
-    // collapsing the undesired (quadratic) term and translating to the normalized domain.
-    val const = (0 /\ (width * width) / 4) - (width * coeff / 2) + (coeff * coeff / 4)
-    AffineScalarEnclosure(domain, const, Box(name -> coeff))
-  }
+  def quadratic(domain: Box, name: VarName)(implicit rnd: Rounding) =
+    mixed(domain, name, name) // TODO remove quadratic eventually
+  //  {
+  //    require(domain.contains(name))
+  //    val (a, b) = domain(name).bounds
+  //    val width = b - a
+  //    val coeff = b + a
+  //    // This corresponds to translating to [-1,1], representing in Chebyshev basis, 
+  //    // collapsing the undesired (quadratic) term and translating to the normalized domain.
+  //    val const = (0 /\ (width * width) / 4) - (width * coeff / 2) + (coeff * coeff / 4)
+  //    AffineScalarEnclosure(domain, const, Box(name -> coeff))
+  //  }
 
   /**
    * Enclose the mixed monomial in variables name1 and name2 over the domain.
@@ -330,15 +336,16 @@ object AffineScalarEnclosure extends Plotter {
    * and   rx = (bx-ax)/2 is the radius of the domain of x.
    */
   def mixed(domain: Box, name1: VarName, name2: VarName)(implicit rnd: Rounding) = {
-    require(domain.contains(name1) && domain.contains(name2) && name1 != name2)
+    val collapsedName1Name2 = (if (name1 == name2) 0 else -1) /\ 1 // approximation of the nonlinear term over [-1,1]x[-1,1]
     val (a1, b1) = domain(name1).bounds
     val (a2, b2) = domain(name2).bounds
     val m1 = (a1 + b1) / 2 // mid-point of domain of name1
     val r1 = (b1 - a1) / 2 // radius of domain of name1
     val m2 = (a2 + b2) / 2 // mid-point of domain of name2
     val r2 = (b2 - a2) / 2 // radius of domain of name2
-    val const = -r1 * m2 - r2 * m1 + m1 * m2 + r1 * r2 * Interval(-1, 1)
-    AffineScalarEnclosure(domain, const, Box(name1 -> m2, name2 -> m1))
+    val const = -r1 * m2 - r2 * m1 + m1 * m2 + r1 * r2 * collapsedName1Name2
+    if (name1 == name2) AffineScalarEnclosure(domain, const, Box(name1 -> 2 * m1))
+    else AffineScalarEnclosure(domain, const, Box(name1 -> m2, name2 -> m1))
   }
 
   // TODO the plotting functionality should be moved to UnivariateAffineScalarEnclosure
