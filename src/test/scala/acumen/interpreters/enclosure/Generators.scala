@@ -24,22 +24,22 @@ object Generators {
   def genLargerDouble(d: Double): Gen[Double] = {
     // TODO Verify that this works correctly 
     val rest = Double.MaxValue + (if (d < 0) d else -d)
-    for { val delta <- choose(0, if (rest < 0) -rest else rest) } yield d + delta
+    for { delta <- choose(0, if (rest < 0) -rest else rest) } yield d + delta
   }
 
   /* Interval */
 
   /** Generates a random interval. */
   def genInterval(implicit rnd: Rounding): Gen[Interval] = for {
-    val lo <- arbitrary[Double]
-    val hi <- arbitrary[Double]
+    lo <- arbitrary[Double]
+    hi <- arbitrary[Double]
   } yield Interval(min(lo, hi), max(lo, hi))
   implicit val arbitraryInterval = Arbitrary(genInterval)
 
   /** Generates a positive interval */
   def genPosInterval(implicit rnd: Rounding): Gen[Interval] = for {
-    val lo <- posNum[Double]
-    val hi <- posNum[Double]
+    lo <- posNum[Double]
+    hi <- posNum[Double]
   } yield Interval(min(lo, hi), max(lo, hi))
 
   /** Generates a non-zero interval */
@@ -60,8 +60,8 @@ object Generators {
   } yield (i.low + i.width.low * s).high
 
   def genIntervalFilter(implicit rnd: Rounding): Gen[Interval] = for {
-    val lo <- arbitrary[Double]
-    val hi <- genLargerDouble(lo)
+    lo <- arbitrary[Double]
+    hi <- genLargerDouble(lo)
   } yield Interval(lo, hi)
 
   /* VarName */
@@ -158,7 +158,7 @@ object Generators {
 
   /** Generates a univariate enclosure over the domain. */
   def genBoxUnivariateAffineScalarEnclosure(domain: Interval): Gen[UnivariateAffineScalarEnclosure] = for {
-    val List(constant, coefficient) <- listOfN(2, arbitrary[Interval])
+    List(constant, coefficient) <- listOfN(2, arbitrary[Interval])
   } yield UnivariateAffineScalarEnclosure(domain, 0 /\ domain.width.high, constant, coefficient)
 
   /** Generates a univariate enclosure over the domain of "e" that is also contained in "e". */
