@@ -29,7 +29,11 @@ case class UnivariateAffineScalarEnclosure private[enclosure] (
    * Precondition: x must be contained within the domain to the enclosure.
    */
   def apply(x: Interval) = {
-    assert(domain contains x, "Enclosures must be evaluated over sub-intervals of their domain.")
+    assert(domain contains x, 
+        "Enclosures must be evaluated over sub-intervals of their domain." +
+        "\ndomain:          " + domain + 
+        "\nx:               " + x + 
+        "domain contains x: " + (domain contains x))
     /* Since the enclosure is represented over the normalizedDomain, the argument interval must 
      * be translated into the normalizedDomain. */
     val (xlo, xhi) = (x - domain.low).bounds
