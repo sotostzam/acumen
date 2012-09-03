@@ -1,7 +1,6 @@
 package acumen.interpreters.enclosure
 
 import acumen.interpreters.enclosure.solver.Plotter
-
 import Interval._
 import Types._
 import Util._
@@ -255,16 +254,13 @@ case class AffineScalarEnclosure private[enclosure] (
    */
   def primitive(name: VarName)(implicit rnd: Rounding) = {
     require(domain.contains(name))
-    val lo = domain(name).low
     val coeff = coefficients.getOrElse(name, Interval(0))
-    val quadr = quadratic(name) * (coeff / 2)
-    val prods = (coefficients - name).map { case (n, c) => mixed(name, n) * c }
-    val nonlinear = quadr + prods.foldLeft(AffineScalarEnclosure(domain, Interval(0))) { case (res, f) => res + f }
-    val linear = (AffineScalarEnclosure(domain, name) * constant) -
-      (AffineScalarEnclosure(domain, Interval(0), coefficients - name) * lo)
+    val quadr = AffineScalarEnclosure.quadratic(normalizedDomain, name) * (coeff / 2)
+    val prods = (coefficients - name).map { case (n, c) => AffineScalarEnclosure.mixed(normalizedDomain, name, n) * c }
+    val nonlinear = prods.foldLeft(quadr) { case (res, f) => res + f }
+    val linear = (AffineScalarEnclosure(normalizedDomain, name) * constant)
     val nonconst = linear + nonlinear
-    val cst = -lo * (constant + coeff * lo / 2)
-    nonconst + cst
+    AffineScalarEnclosure(domain, normalizedDomain, nonconst.constant, nonconst.coefficients)
   }
 
   /** Returns an enclosure with the same affine interval function as the enclosure, defined over a sub-box of the domain. */

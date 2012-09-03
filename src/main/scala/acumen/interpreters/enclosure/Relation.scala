@@ -65,8 +65,8 @@ abstract class Relation {
   }
 
   /** A conservative approximation of the intersection of x with the support of r. */
-  def support(x: Box)(implicit rnd: Rounding): Box = this match {
-    case r @ UnaryRelation(relname, Variable(name)) => relname match {
+  def support(x: Box)(implicit rnd: Rounding): Box = this match {  
+  case r @ UnaryRelation(relname, Variable(name)) => relname match {
       case Positive => {
         if (x(name) lessThanOrEqualTo 0) sys.error("Relation.support: Positive: empty intersection")
         else x - name + (name -> max(0, x(name).low) /\ x(name).high)

@@ -20,7 +20,7 @@ object PlotTest extends App {
 object BouncingBall extends App {
   implicit val rnd = Rounding(10)
   val H = Systems.BB(10, 0.5)
-  val T = Interval(0, 0.9)
+  val T = Interval(0, 3)
   val Ss = Set(UncertainState(Mode("Fly"), Box("x" -> 5, "x'" -> 0)))
   val delta = 0
   val m = 20
@@ -83,4 +83,23 @@ object Saw extends App {
   println("computed " + res.size + " enclosures in " + time / 1000.0 + " seconds")
   // TODO implement plot for UnivariateAffineEnclosure
   //  UnivariateAffineEnclosure.plot(res: _*)
+}
+
+object Exp extends App {
+  implicit val rnd = Rounding(10)
+  val H = Systems.Exp
+  val T = Interval(0, 1)
+  val Ss = Set(UncertainState(Mode("Exp"), Box("x" -> 1)))
+  val delta = 0
+  val m = 20
+  val n = 200
+  val K = 30
+  val d = 4.7e-7
+  val e = T match { case Interval(_, hi) => hi.doubleValue / 2 }
+  val start = System.currentTimeMillis
+  val res = Solver.solver(H, T, Ss, delta, m, n, K, d, e, T, "output")
+  val end = System.currentTimeMillis
+  val time = end - start
+  println("computed " + res.size + " enclosures in " + time / 1000.0 + " seconds")
+  UnivariateAffineScalarEnclosure.plot(res.map(_("x")): _*)
 }

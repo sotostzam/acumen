@@ -3,8 +3,8 @@ package acumen.interpreters.enclosure.solver
 import acumen.interpreters.enclosure._
 import acumen.interpreters.enclosure.Relation._
 import acumen.interpreters.enclosure.Types._
-
 import ResetMap._
+import sun.tools.tree.LessOrEqualExpression
 
 /** TODO add description */
 // TODO add tests, 
@@ -75,6 +75,25 @@ object Systems {
       Map(down -> downField),
       Map(zero -> zeroGuard),
       Map(zero -> zeroReset))
+  }
+
+  /**
+   * Event-less (continuous) system for debugging.
+   *
+   * Simulates the equation x' = -x.
+   *
+   * Solution approximates e^(-t)
+   */
+  def Exp(implicit rnd: Rounding) = {
+    val exp = Mode("Exp")
+    val never = Event("Never", exp, exp)
+    HybridSystem(
+      Set(exp),
+      Set(never), // no events
+      Map(exp -> domain(nonNegative(Variable("x")))), // constant true domain invariant
+      Map(exp -> Field(Map("x" -> Multiply(Constant(-1), Variable("x"))))),
+      Map(never -> guard(nonNegative(Variable("x")))),
+      Map(never -> ResetMap(Map("x" -> Variable("x")))))
   }
 
 }
