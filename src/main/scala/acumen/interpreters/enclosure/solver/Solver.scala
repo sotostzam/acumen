@@ -72,7 +72,7 @@ object Solver {
       if (cannotSplit) {
         throw SolverException("gave up for minimum step size " + d + " at " + T)
       } else {
-        //        println("splitting " + T)
+        println("splitting " + T)
         val (ssl, ysl) = solveHybrid(H, lT, Ss, delta, m, n, K, d, e, output)
         val (ssr, ysr) = solveHybrid(H, rT, ssl, delta, m, n, K, d, e, output)
         (ssr, ysl ++ ysr)
@@ -115,7 +115,7 @@ object Solver {
           if (cannotSplit || noImprovement) {
             resultForT
           } else {
-            //            println("splitting " + T)
+            println("splitting " + T)
             val (ssl, ysl) = solveHybrid(H, lT, Ss, delta, m, n, K, d, e, output)
             val (ssr, ysr) = solveHybrid(H, rT, ssl, delta, m, n, K, d, e, output)
             (ssr, ysl ++ ysr)
