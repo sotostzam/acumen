@@ -7,7 +7,8 @@ import acumen.interpreters.enclosure.Types._
 
 object Solver {
 
-  def detectNextEvent(
+  /** Old version, implements incomplete and possibly erroneous version of event detection. */
+  def oldDetectNextEvent(
     H: HybridSystem,
     T: Interval,
     q: Mode,
@@ -26,6 +27,22 @@ object Solver {
       } else {
         MaybeOneOf(events)
       }
+    }
+  }
+
+  def detectNextEvent(
+    H: HybridSystem,
+    T: Interval,
+    q: Mode,
+    Y: UnivariateAffineEnclosure)(implicit rnd: Rounding): Outcome = {
+    val events = H.events.filter(H.guards(_)(Y.range) != Set(false))
+    if (events.isEmpty) {
+      MaybeOneOf(events)
+    } else {
+      if (H.domains(q)(Y(Y.domain.high)) == Set(false)) {
+        println("detected one of " + events + " in " + T)
+        CertainlyOneOf(events)
+      } else MaybeOneOf(events)
     }
   }
 

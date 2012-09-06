@@ -26,6 +26,24 @@ abstract class Predicate {
     case _ => sys.error("Predicate.eval: " + this.toString)
   }
 
+  // TODO do something about the code duplication in these instances! 
+  /**
+   * Evaluate the predicate by composing with the enclosure and taking the 
+   * variables to range over the domains of the variables.
+   */
+  def apply(x: UnivariateAffineEnclosure)(implicit rnd: Rounding): Set[Boolean] = this match {
+    case All(ps) => {
+      ps.foldLeft(Set(true)) {
+        case (res, p) => {
+          res.zipAll(p(x), true, true).map {
+            case (l, r) => l && r
+          }
+        }
+      }
+    }
+    case _ => sys.error("Predicate.eval: " + this.toString)
+  }
+
   /** 
    * Compute an interval box wrapping the intersection of x with the support 
    * of the predicate. 

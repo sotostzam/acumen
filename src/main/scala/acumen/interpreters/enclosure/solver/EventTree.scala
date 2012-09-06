@@ -135,8 +135,8 @@ case class EventTree(
         Set(v)
       } else {
         val mode = v.tau.head
-        val affines = v.enclosure.components
-        val decision = detectNextEvent(H, T, mode, affines)
+        val enclosure = v.enclosure
+        val decision = detectNextEvent(H, T, mode, enclosure)
         decision match {
           case CertainlyOneOf(es) => newSequences(v, es)
           case MaybeOneOf(es) => {
@@ -187,13 +187,7 @@ case class EventTree(
       zipDefault(res, v.enclosure.components, UnivariateAffineScalarEnclosure(
         // FIXME for now.. not sure of correct choice of domain!
         sequences.head.enclosure.domain,
-        0)).mapValues {
-        case (l, r) =>
-          //           FIXME used to be: 
-          l union r
-        // The HACK below should be replaced by proper use of UnivariateAffineScalarEnclosure!
-        //          AffineScalarEnclosure(l.domain, l.range /\ r.range)
-      }
+        0)).mapValues { case (l, r) => l union r }
     }
     UnivariateAffineEnclosure(maximalSequences.head.domain, affs)
   }

@@ -17,6 +17,7 @@ case class ResetMap(components: Map[VarName, Expression]) {
    * Implementation note: TODO
    */
   def apply(x: Box)(implicit rnd: Rounding) = components.mapValues(_(x))
+  def +(kv: (VarName, Expression)) = ResetMap(components + kv)
 
 }
 

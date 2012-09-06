@@ -64,9 +64,53 @@ abstract class Relation {
     }
   }
 
+  // TODO do something about the code duplication in these instances!
+  /**
+   * Evaluate the relation by composing with the enclosure and taking the variables 
+   * to range over the intervals of the box x.
+   *
+   * Note that the result will be a set of Boolean values rather than a single one
+   * as the relation is evaluated over the domains of variables, i.e. sets of reals.
+   */
+  def apply(x: UnivariateAffineEnclosure)(implicit rnd: Rounding): Set[Boolean] = this match {
+    case UnaryRelation(relname, e) => relname match {
+      case Positive => {
+        val value = e(x).range
+        if (value greaterThan 0) Set(true)
+        else if (value lessThanOrEqualTo 0) Set(false)
+        else Set(true, false)
+      }
+      case NonNegative => {
+        val value = e(x).range
+        if (value greaterThanOrEqualTo 0) Set(true)
+        else if (value lessThan 0) Set(false)
+        else Set(true, false)
+      }
+      case EqualToZero => {
+        val value = e(x).range
+        if (value equalTo 0) Set(true)
+        else if (value contains 0) Set(true, false)
+        else Set(false)
+      }
+      case NonPositive => {
+        val value = e(x).range
+        if (value lessThanOrEqualTo 0) Set(true)
+        else if (value greaterThan 0) Set(false)
+        else Set(true, false)
+      }
+      case Negative => {
+        val value = e(x).range
+        if (value lessThan 0) Set(true)
+        else if (value greaterThanOrEqualTo 0) Set(false)
+        else Set(true, false)
+      }
+      case _ => sys.error("Relation.eval: " + this.toString)
+    }
+  }
+
   /** A conservative approximation of the intersection of x with the support of r. */
-  def support(x: Box)(implicit rnd: Rounding): Box = this match {  
-  case r @ UnaryRelation(relname, Variable(name)) => relname match {
+  def support(x: Box)(implicit rnd: Rounding): Box = this match {
+    case r @ UnaryRelation(relname, Variable(name)) => relname match {
       case Positive => {
         if (x(name) lessThanOrEqualTo 0) sys.error("Relation.support: Positive: empty intersection")
         else x - name + (name -> max(0, x(name).low) /\ x(name).high)
@@ -106,9 +150,9 @@ abstract class Relation {
     case UnaryRelation(_, expression) => expression.varNames
   }
 
-  /** 
+  /**
    * Tests if the relation is one of the reflexive inequalities, i.e.
-   * of the form 0 <= e or e <= 0 for some expression e. 
+   * of the form 0 <= e or e <= 0 for some expression e.
    */
   def isNonStrict: Boolean = this match {
     case UnaryRelation(n, _) => n match {

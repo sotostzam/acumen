@@ -27,7 +27,7 @@ object BouncingBall extends App {
   val m = 20
   val n = 200
   val K = 30
-  val d = 0.001
+  val d = 0.01
   val e = T.width match { case Interval(_, hi) => hi.doubleValue }
   val start = System.currentTimeMillis
   val res = Solver.solver(H, T, Ss, delta, m, n, K, d, e, T, "output")
@@ -63,7 +63,7 @@ object TwoTanks extends App {
   val time = end - start
   println("computed " + res.size + " enclosures in " + time / 1000.0 + " seconds")
   // TODO implement plot for UnivariateAffineEnclosure
-  //  UnivariateAffineEnclosure.plot(res: _*)
+  UnivariateAffineScalarEnclosure.plot(res.flatMap(e => Seq(e("left"), e("right"))): _*)
 }
 
 object Saw extends App {
