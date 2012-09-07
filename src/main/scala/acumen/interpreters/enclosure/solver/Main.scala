@@ -27,7 +27,7 @@ object BouncingBall extends App {
   val m = 20
   val n = 200
   val K = 30
-  val d = 0.01
+  val d = 0.001
   val e = T.width match { case Interval(_, hi) => hi.doubleValue }
   val start = System.currentTimeMillis
   val res = Solver.solver(H, T, Ss, delta, m, n, K, d, e, T, "output")
@@ -49,13 +49,13 @@ object BouncingBall extends App {
 object TwoTanks extends App {
   implicit val rnd = Rounding(20)
   val H = Systems.TT(2, 3, 4)
-  val T = Interval(0, 0.5)
+  val T = Interval(0, 2)
   val Ss = Set(UncertainState(Mode("FillLeft"), Box("left" -> 1, "right" -> 1)))
   val delta = 0
   val m = 20
   val n = 200
   val K = 30
-  val d = 4.7e-7
+  val d = 0.000001
   val e = T.width match { case Interval(_, hi) => hi.doubleValue }
   val start = System.currentTimeMillis
   val res = Solver.solver(H, T, Ss, delta, m, n, K, d, e, T, "output")

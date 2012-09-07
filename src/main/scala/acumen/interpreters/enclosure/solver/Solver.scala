@@ -7,45 +7,22 @@ import acumen.interpreters.enclosure.Types._
 
 object Solver {
 
-  /** Old version, implements incomplete and possibly erroneous version of event detection. */
-  def oldDetectNextEvent(
-    H: HybridSystem,
-    T: Interval,
-    q: Mode,
-    Y: Map[VarName, UnivariateAffineScalarEnclosure])(implicit rnd: Rounding): Outcome = {
-    val events =
-      H.events.filter(
-        H.guards(_)(
-          Y.mapValues(_.range)) != Set(false))
-    if (events.isEmpty) {
-      MaybeOneOf(events)
-    } else {
-      if (H.events.exists { e =>
-        H.guardPrime(e)(Y.mapValues(c => c(c.domain.high))) == Set(true)
-      }) {
-        CertainlyOneOf(events)
-      } else {
-        MaybeOneOf(events)
-      }
-    }
-  }
-
+  // TODO add description
   def detectNextEvent(
     H: HybridSystem,
     T: Interval,
     q: Mode,
     Y: UnivariateAffineEnclosure)(implicit rnd: Rounding): Outcome = {
-    val events = H.events.filter(H.guards(_)(Y.range) != Set(false))
+    val events = H.events.filter(e => e.sigma == q && H.guards(e)(Y.range) != Set(false))
     if (events.isEmpty) {
       MaybeOneOf(events)
     } else {
-      if (H.domains(q)(Y(Y.domain.high)) == Set(false)) {
-        println("detected one of " + events + " in " + T)
-        CertainlyOneOf(events)
-      } else MaybeOneOf(events)
+      if (H.domains(q)(Y(Y.domain.high)) == Set(false)) CertainlyOneOf(events)
+      else MaybeOneOf(events)
     }
   }
 
+  // TODO add description
   def solveVtE(
     H: HybridSystem,
     T: Interval,
@@ -69,6 +46,7 @@ object Solver {
 
   case class SolverException(message: String) extends Exception
 
+  // TODO add description
   def solveHybrid(
     H: HybridSystem, // system to simulate
     T: Interval, // time segment to simulate over
@@ -142,6 +120,7 @@ object Solver {
     }
   }
 
+  // TODO add description
   def solver(
     H: HybridSystem, // system to simulate
     T: Interval, // time segment to simulate over
