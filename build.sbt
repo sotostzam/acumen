@@ -22,8 +22,17 @@ libraryDependencies ++= Seq (
   "javax" % "vecmath" % "1.5.2"
 )
 
+// enable proguard
 
+seq(ProguardPlugin.proguardSettings :_*)
 
+proguardOptions ++= Seq(
+  keepMain("acumen.ui.GraphicalMain")
+)
 
-
+makeInJarFilter ~= {
+  (makeInJarFilter) => {
+    (file) => makeInJarFilter(file) + ",!**/SUN_MICR.RSA,!**/SUN_MICR.SF,!**/ARAKHNE_.DSA,!**/ARAKHNE_.SF"
+    }
+  }
 
