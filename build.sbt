@@ -4,9 +4,9 @@ version := "10-devel"
 
 scalaVersion := "2.9.2"
 
-mainClass in (Compile,packageBin) := Some("acumen.ui.GraphicalMain")
-
 mainClass in (Compile,run) := Some("acumen.ui.GraphicalMain")
+
+mainClass in (Compile,packageBin) <<= mainClass in (Compile,run)
 
 libraryDependencies ++= Seq(
   "org.scala-lang" % "scala-swing" % "2.9.2",
