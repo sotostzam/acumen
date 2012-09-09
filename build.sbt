@@ -26,13 +26,28 @@ libraryDependencies ++= Seq (
 
 seq(ProguardPlugin.proguardSettings :_*)
 
-proguardOptions ++= Seq(
-  keepMain("acumen.ui.GraphicalMain")
-)
+proguardOptions += keepMain("acumen.ui.GraphicalMain")
 
+proguardDefaultArgs := Seq("-dontwarn", "-dontobfuscate")
+
+// for faster jar creation (but larger file)
+proguardDefaultArgs += "-dontoptimize"
+
+// this filters out sun's and arakhne signature files that are otherwise understood at
+// acumen's jar signature, as they are copied in META-INF by proguard */
 makeInJarFilter ~= {
   (makeInJarFilter) => {
     (file) => makeInJarFilter(file) + ",!**/SUN_MICR.RSA,!**/SUN_MICR.SF,!**/ARAKHNE_.DSA,!**/ARAKHNE_.SF"
     }
   }
 
+
+// modify package(-bin) jar file name
+artifactPath in (Compile, packageBin) <<= (crossTarget, moduleName, version) {
+  (path, name, ver) => path / (name + "-" + ver + ".pre.jar")
+}
+
+// modify proguard jar file name
+minJarPath <<= (crossTarget, moduleName, version) {
+  (path, name, ver) => path / (name + "-" + ver + ".jar")
+}
