@@ -4,9 +4,7 @@ version := "10-devel"
 
 scalaVersion := "2.9.2"
 
-mainClass in (Compile,run) := Some("acumen.ui.GraphicalMain")
-
-mainClass in (Compile,packageBin) <<= mainClass in (Compile,run)
+theMainClass := "acumen.ui.GraphicalMain"
 
 libraryDependencies ++= Seq(
   "org.scala-lang" % "scala-swing" % "2.9.2",
@@ -25,8 +23,6 @@ libraryDependencies ++= Seq (
 // enable proguard
 
 seq(ProguardPlugin.proguardSettings :_*)
-
-proguardOptions += keepMain("acumen.ui.GraphicalMain")
 
 proguardDefaultArgs := Seq("-dontwarn", "-dontobfuscate")
 
@@ -51,3 +47,16 @@ artifactPath in (Compile, packageBin) <<= (crossTarget, moduleName, version) {
 minJarPath <<= (crossTarget, moduleName, version) {
   (path, name, ver) => path / (name + "-" + ver + ".jar")
 }
+
+//
+// set main based on theMainClass setting
+//
+
+mainClass in (Compile,run) <<= theMainClass map { m => Some(m) }
+
+mainClass in (Compile,packageBin) <<= mainClass in (Compile,run)
+
+proguardOptions <<= (proguardOptions, theMainClass) {
+  (prev, main) => prev :+ (keepMain(main))
+}
+
