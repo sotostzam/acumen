@@ -4,9 +4,7 @@ version := "10-devel"
 
 scalaVersion := "2.9.2"
 
-mainClass in (Compile,packageBin) := Some("acumen.ui.GraphicalMain")
-
-mainClass in (Compile,run) := Some("acumen.ui.GraphicalMain")
+theMainClass := "acumen.ui.GraphicalMain"
 
 libraryDependencies ++= Seq(
   "org.scala-lang" % "scala-swing" % "2.9.2",
@@ -38,4 +36,47 @@ retrieveManaged := true
 
 /* SCCT */
 seq(ScctPlugin.instrumentSettings : _*)
+
+//
+// enable proguard
+//
+
+seq(ProguardPlugin.proguardSettings :_*)
+
+proguardDefaultArgs := Seq("-dontwarn", "-dontobfuscate")
+
+// for faster jar creation (but larger file)
+proguardDefaultArgs += "-dontoptimize"
+
+// Do not include any signature files from other jars, they cause
+// nothing but problems.
+makeInJarFilter ~= {
+  (makeInJarFilter) => {
+    (file) => makeInJarFilter(file) + ",!**/*.RSA,!**/*.SF,!**/*.DSA"
+    }
+  }
+
+
+// modify package(-bin) jar file name
+artifactPath in (Compile, packageBin) <<= (crossTarget, moduleName, version) {
+  (path, name, ver) => path / (name + "-" + ver + ".pre.jar")
+}
+
+// modify proguard jar file name
+minJarPath <<= (crossTarget, moduleName, version) {
+  (path, name, ver) => path / (name + "-" + ver + ".jar")
+}
+
+//
+// set main based on theMainClass setting
+//
+
+mainClass in (Compile,run) <<= theMainClass map { m => Some(m) }
+
+mainClass in (Compile,packageBin) <<= mainClass in (Compile,run)
+
+proguardOptions <<= (proguardOptions, theMainClass) {
+  (prev, main) => prev :+ (keepMain(main))
+}
+
 
