@@ -29,11 +29,11 @@ proguardDefaultArgs := Seq("-dontwarn", "-dontobfuscate")
 // for faster jar creation (but larger file)
 proguardDefaultArgs += "-dontoptimize"
 
-// this filters out sun's and arakhne signature files that are otherwise understood at
-// acumen's jar signature, as they are copied in META-INF by proguard */
+// Do not include any signature files from other jars, they cause
+// nothing but problems.
 makeInJarFilter ~= {
   (makeInJarFilter) => {
-    (file) => makeInJarFilter(file) + ",!**/SUN_MICR.RSA,!**/SUN_MICR.SF,!**/ARAKHNE_.DSA,!**/ARAKHNE_.SF"
+    (file) => makeInJarFilter(file) + ",!**/*.RSA,!**/*.SF,!**/*.DSA"
     }
   }
 
