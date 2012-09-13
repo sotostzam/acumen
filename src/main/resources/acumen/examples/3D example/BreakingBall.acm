@@ -1,0 +1,28 @@
+class BreakingBall(z, z', x, x', s, c)
+ private 
+   z'' = 0;
+  _3D = ["Sphere",[x,0,z] , s, c,[0,0,0]];
+ end
+	z'' [=] -9.8;
+	x'  [=] x';
+	_3D [=] ["Sphere",[x,0,z] , s, c,[0,0,0]];
+	if z < 0 && z' < 0
+		create BreakingBall(z,-z',x, -1.1*x',0.9*s,[abs(x) ,  abs(2*x) ,   5*x]);
+		create BreakingBall(z,-0.9*z',x, x',0.9*s, [abs(z'), abs(x), s     ]); 
+	  terminate self;
+	end
+end
+
+class Main(simulator)
+ private mode = "Init" ;n = 0 end
+  simulator.endTime = 5;
+	 n [=] sum 1 for i in self.children if true;
+  switch mode
+   case "Init"
+ 	   create BreakingBall(2,0,0,0.3,0.1,[0.2,1.0,0.2]);
+ 	   mode = "Persist";
+	 case "Persist"
+  end
+end
+ 
+ 

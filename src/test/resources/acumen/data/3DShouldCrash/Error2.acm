@@ -1,0 +1,6 @@
+// The first element of _3D should be a string or integer
+class Main(simulator)
+ private
+  _3D = [1,[0,0,0],1,[0,0,0],[0,0,0]];
+ end
+end

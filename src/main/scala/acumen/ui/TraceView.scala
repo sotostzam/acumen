@@ -447,6 +447,7 @@ class Plotter(
     g.setStroke(new BasicStroke(2.0f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND))
     hoveredBox match {
       case Some(hb) =>
+	    
         val rec = applyTr(boxes(hb))
         val recPlusOne = 
           new Rectangle2D.Double(
@@ -615,7 +616,7 @@ class Plotter(
 
         // index of the curve pointed by the mouse
         val hb = (op.getY / 1.2).toInt
-        if (hb < columnIndices.length) {
+        if (hb < columnIndices.length&&hb>=0) {
           // corresponding column in the trace model
           val column = columnIndices(hb)
           // name of the column

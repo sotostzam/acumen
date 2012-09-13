@@ -194,10 +194,11 @@ object Generators  {
   implicit def arbExpr : Arbitrary[Expr] =
     Arbitrary ( arbitrary[GroundValue].map(Lit) | arbitrary[Var] | arbitrary[Op] 
               | arbitrary[Dot] )
-
+  
   implicit def arbLit : Arbitrary[GroundValue] =
     Arbitrary ((arbitrary[GInt] | arbitrary[GDouble] 
                | arbitrary[GBool] | arbitrary[GStr]))
+							 
   
   implicit def arbBool : Arbitrary[GBool] = 
     Arbitrary (arbitrary[Boolean].map(GBool))
@@ -205,8 +206,31 @@ object Generators  {
   implicit def arbStr : Arbitrary[GStr] = 
     Arbitrary (alphaStr.map(GStr))
   
-  implicit def arbIntLit : Arbitrary[GInt] = 
+  implicit def arbInt : Arbitrary[GInt] = 
     Arbitrary (myPosNum map GInt)
+  
+	/* New generators */
+	/* Value class has an type of CId, see AST file for details */
+	implicit def arbLitGroundValue : Arbitrary[VLit[CId]] =
+		Arbitrary {
+			arbitrary[GroundValue].map(VLit[CId])
+		/*
+			val genLitInt    :Gen[VLit[GroundValue]]   = for(e <- Arbitrary.arbitrary[GInt])    yield VLit(e)
+			val genLitDouble :Gen[VLit[GroundValue]]   = for(e <- Arbitrary.arbitrary[GDouble]) yield VLit(e)
+			val genLitStr    :Gen[VLit[GroundValue]]   = for(e <- Arbitrary.arbitrary[GStr])    yield VLit(e)
+			val genLitBool   :Gen[VLit[GroundValue]]   = for(e <- Arbitrary.arbitrary[GBool])   yield VLit(e)
+			Gen.frequency((2, genLitInt), (2, genLitDouble), (2, genLitStr), (2, genLitBool))
+		*/
+  }
+	implicit def arbValue : Arbitrary[Value[CId]] = 
+		Arbitrary(arbitrary[VLit[CId]] | arbitrary[VVector[CId]] )
+	// TODO: Arbitrary generated VVector will casue over flow, when vector's elements can also be vector	
+	implicit def arbVVector : Arbitrary[VVector[CId]] = 
+		Arbitrary{
+			arbitrary[List[VLit[CId]]].map(VVector[CId])
+		}	
+	
+	/* End of new generators */
 
   implicit def arbIDoubleLit : Arbitrary[GDouble] = 
     Arbitrary (arbitrary[Double].map(GDouble))
@@ -247,4 +271,6 @@ object Generators  {
              e <- arbitrary[Expr])
           yield Move(p, e))
     )
+		
+	
 }

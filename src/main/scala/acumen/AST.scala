@@ -156,7 +156,7 @@ package acumen {
     def ::(i:Int) : CId = new CId(i::this.id)
     def compare(that: CId) = lex(this.id.reverse, that.id.reverse)
     def lex(xs:List[Int], ys:List[Int]) : Int = {
-      if (xs == ys) 0
+	  if (xs == ys) 0
       else (xs, ys) match {
         case (Nil,_) => -1
         case (_,Nil) => 1
@@ -181,6 +181,7 @@ package acumen {
 package object acumen {
   /* canonical (reference) representation of store/values 
      'C' is for canonical */
+
   type CValue  = Value[CId]
   type CObject = Map[Name, CValue]
   type CStore  = Map[CId, CObject]

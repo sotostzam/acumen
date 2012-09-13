@@ -15,7 +15,7 @@ import scala.collection.immutable.Stream
 import javax.swing.table.TableModel
 import javax.swing.table.AbstractTableModel
 
-class TraceModel extends AbstractTableModel {
+class TraceModel extends javax.swing.table.AbstractTableModel {
 
   // array of (id, field name, maybe index in vector, start frame, values)
   var stores = new ArrayBuffer[(CId, Name, Option[Int], Int, ArrayBuffer[CValue])]

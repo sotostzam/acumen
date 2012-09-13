@@ -23,6 +23,9 @@ object Common {
         case "sqrt" => sqrt(x)
         case "cos" => cos(x)
         case "sin" => sin(x)
+		case "acos"=> acos(x)
+		case "asin"=> asin(x)
+		case "exp" => exp(x)
     }
     (f, vx) match {
       case ("not", GBool(x))   => GBool(!x)
@@ -30,6 +33,7 @@ object Common {
       case ("-",   GInt(i))    => GInt(-i)
       case ("abs", GDouble(x)) => GDouble(abs(x))
       case ("-",   GDouble(x)) => GDouble(-x)
+	  case ("round", GDouble(x)) => GInt(x.toInt)
       case _                   => GDouble(implem(f, extractDouble(vx)))
     }
   }
@@ -137,7 +141,6 @@ object Common {
 
   def sequenceOp[A](s:Int, d:Int, e:Int) : Value[A] =
     VVector((s until(e+1,d)).toList map (x => VLit(GInt(x))))
-
   /* purely functional operator evaluation 
    * at the values level */
   def evalOp[A](op:String, xs:List[Value[_]]) : Value[A] = {
@@ -162,6 +165,7 @@ object Common {
          binScalarVectorOp(op,x,u)
        case (_, VVector(u)::VLit(x)::Nil) =>
          binVectorScalarOp(op,u,x)
+	  
        case _ =>
          throw UnknownOperator(op)    
     }

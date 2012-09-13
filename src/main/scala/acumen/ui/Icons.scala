@@ -15,7 +15,9 @@ object Icons {
   private val zoomOUtUrl = this.getClass.getResource("icons/zoomout.png")
   private val undoUrl    = this.getClass.getResource("icons/undo.png")
   private val saveUrl    = this.getClass.getResource("icons/save.png")
-
+  private val replayUrl  =this.getClass.getResource("icons/replay.png")
+  private val fasterUrl  =this.getClass.getResource("icons/faster.png")
+  private val slowerUrl  =this.getClass.getResource("icons/slower.png")
   private val default = new ImageIcon()
   private def get(u: URL) : Icon = {
     if (u == null) default
@@ -31,5 +33,7 @@ object Icons {
   lazy val save  = get(saveUrl)
   lazy val zoomIn = get(zoomInUrl)
   lazy val zoomOut = get(zoomOUtUrl)
-
+  lazy val replay=get(replayUrl)
+  lazy val faster=get(fasterUrl)
+  lazy val slower=get(slowerUrl)
 }
