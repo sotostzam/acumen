@@ -15,8 +15,9 @@ import scala.collection.immutable.Stream
 import javax.swing.table.TableModel
 import javax.swing.table.AbstractTableModel
 
-class TraceModel extends AbstractTableModel {
+import Errors._
 
+class TraceModel extends AbstractTraceModel {
   // array of (id, field name, maybe index in vector, start frame, values)
   var stores = new ArrayBuffer[(CId, Name, Option[Int], Int, ArrayBuffer[CValue])]
   var classes = new HashMap[CId,ClassName]
@@ -78,8 +79,8 @@ class TraceModel extends AbstractTableModel {
     //fireTableDataChanged()
   }
 
-  def getRowCount = frame
-  def getColumnCount = stores.size
+  override def getRowCount = frame
+  override def getColumnCount = stores.size
 
   override def getValueAt(row:Int, column:Int) = {
     try {
@@ -112,6 +113,34 @@ class TraceModel extends AbstractTableModel {
     ids = new HashSet[CId]
     fireTableStructureChanged()
     frame = 0
+  }
+
+  override def isEmpty() = {stores.isEmpty}
+
+  override def getTimes() = {
+    (stores find {
+      case (id,Name(x, 0),None,_,_) => 
+        x == "time" && classes(id) == cmagic
+      case _ => false
+    }) match {
+      case Some((_,_,_,_,arr)) => arr map { 
+        case VLit(GDouble(x)) => x 
+        case _ => throw BadTimeType()
+      }
+      case None => throw NoInstanceFound(cmagic)
+    }
+  }
+
+  override def getPlottables() = {
+    val res = new ArrayBuffer[Plottable]
+
+    for (((id,fn,_,s,a), idx) <- (stores zipWithIndex))
+      a(0) match {
+        case VLit(GDouble(_) | GInt(_)) | VLit(GInt(_)) =>
+          res += Plottable(classes(id) == cmagic, fn, s, a)
+        case _ => ()
+      }
+    res
   }
 }
 

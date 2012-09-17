@@ -43,7 +43,7 @@ case class Both() extends PlotStyle
 
 class TraceView(
 	plotSimulator:Boolean, plotNextChild:Boolean, 
-	plotSeeds:Boolean, tmodel: TraceModel) 
+	plotSeeds:Boolean, tmodel: AbstractTraceModel) 
   extends BorderPanel with TableModelListener {
     /* for some reason forwarding events causes stack overflows, so we pass
        this to Plotter, which will ask this to publish events ... */
@@ -229,7 +229,7 @@ case class PointedAtEvent(time:Double, name:String, value:String) extends Event
 
 class Plotter(
   _plotSimulator: Boolean, _plotNextChild:Boolean, 
-	_plotSeeds:Boolean, tb:TraceModel, pub:Publisher) extends Panel {
+	_plotSeeds:Boolean, tb:AbstractTraceModel, pub:Publisher) extends Panel {
 
   background = Color.gray
   peer.setDoubleBuffered(true)
@@ -483,10 +483,10 @@ class Plotter(
     }
   }
 
-  private def plotit(id:CId, fn:Name) = {
-    (plotSimulator || tb.classes(id) != cmagic) && 
-    (plotNextChild || fn != Name("nextChild",0)) &&
-		(plotSeeds || (fn != Name("seed1",0) && fn !=  Name("seed2",0)))
+  private def plotit(p: Plottable) = {
+    (plotSimulator || !p.simulator) && 
+    (plotNextChild || p.fn != Name("nextChild",0)) &&
+		(plotSeeds || (p.fn != Name("seed1",0) && p.fn !=  Name("seed2",0)))
   }
 
   def redraw = {
@@ -496,62 +496,37 @@ class Plotter(
     boxes = new ArrayBuffer[Rectangle2D]
     yTransformations = new ArrayBuffer[(Double,Double)]
    
-    if (tb.stores.isEmpty) ()
+    if (tb.isEmpty) ()
     else {
 
-      time = (tb.stores find {
-        case (id,Name(x, 0),None,_,_) => 
-          x == "time" && tb.classes(id) == cmagic
-        case _ => false
-      }) match {
-        case Some((_,_,_,_,arr)) => arr map { 
-          case VLit(GDouble(x)) => x 
-          case _ => throw BadTimeType() 
-        }
-        case None => throw NoInstanceFound(cmagic)
-      }
- 
-      /*
-      val cont = (tb.stores find {
-        case (id,Name(x, 0),None,_,_) => 
-          x == "stepType" && tb.classes(id) == cmagic
-        case _ => false
-      }) match {
-        case Some((_,_,_,_,arr)) => arr map { 
-          case VStepType(st) => st == Continuous() 
-          case _ => throw BadStepTypeType()
-        }
-        case None => throw NoInstanceFound(cmagic)
-      }
-      */
-  
+      time = tb.getTimes()
+
       columnIndices = new ArrayBuffer[Int]
-      for (((id,fn,_,s,a), idx) <- (tb.stores zipWithIndex) if plotit(id,fn))
-        a(0) match {
-          case VLit(GDouble(_) | GInt(_)) | VLit(GInt(_)) =>
-            columnIndices += idx
-            val line = new MyPath2D()
-            val ax = new MyPath2D()
-            var firstPoint = true
-            for (f <- 0 until a.size; 
-                 val frame = s+f) {
-              a(f) match {
-                case VLit(x@(GDouble(_)|GInt(_))) =>
-                  if (firstPoint) {
-                    ax startAt (time(frame), 0)
-                    ax goTo (time(math.min(s+a.size, time.size-1)), 0)
-                    axes += ax
-                    line startAt (time(frame), extractDouble(x))
-                    firstPoint = false
-                  } else {
-                    line goTo (time(frame), extractDouble(x))
-                  }
-                case _ => throw ShouldNeverHappen()
+      for ((p, idx) <- (tb.getPlottables() zipWithIndex) if plotit(p)) {
+        val s = p.startFrame
+        val a = p.values
+        columnIndices += idx
+        val line = new MyPath2D()
+        val ax = new MyPath2D()
+        var firstPoint = true
+        for (f <- 0 until a.size; 
+             val frame = s+f) {
+          a(f) match {
+            case VLit(x@(GDouble(_)|GInt(_))) =>
+              if (firstPoint) {
+                ax startAt (time(frame), 0)
+                ax goTo (time(math.min(s+a.size, time.size-1)), 0)
+                axes += ax
+                line startAt (time(frame), extractDouble(x))
+                firstPoint = false
+              } else {
+                line goTo (time(frame), extractDouble(x))
               }
-            }
-            polys += line
-          case _ => ()
+            case _ => throw ShouldNeverHappen()
+          }
         }
+        polys += line
+      }
   
       //normalize (scale)
       for (((p,a),i) <- polys zip axes zip Stream.from(0)) {
