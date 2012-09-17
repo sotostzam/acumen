@@ -6,6 +6,10 @@ import collection.mutable.ArrayBuffer
 import javax.swing.table.TableModel
 import javax.swing.table.AbstractTableModel
 
+// FIXME: Consider changing ArrayBuffer to an Abstract type
+//   ideally it should be a simple Iterable
+//   failing that use IndexedSeq
+
 case class Plottable (simulator: Boolean, fn: Name,
                       startFrame: Int, values: ArrayBuffer[CValue])
 
@@ -19,4 +23,3 @@ trait AbstractTraceModel extends AbstractTableModel {
   
   def getPlottables() : Iterable[Plottable]
 }
-

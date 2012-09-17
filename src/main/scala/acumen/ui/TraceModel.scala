@@ -90,7 +90,7 @@ class TraceModel extends AbstractTraceModel {
     } catch { case e => "" } 
   }
 
-  def getDouble(row:Int, column:Int) = {
+  override def getDouble(row:Int, column:Int) = {
     try {
       val col = stores(column)
       val x = extractDouble(col._5(row - col._4))

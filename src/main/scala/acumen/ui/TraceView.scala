@@ -238,7 +238,8 @@ class Plotter(
   private val selectionFillColor   = new Color(165, 189, 231, 150)
  
   private var buffer : BufferedImage = null
-  private var polys = new ArrayBuffer[MyPath2D]()
+  type Poly = Pair[MyPath2D, MyPath2D];
+  private var polys = new ArrayBuffer[Poly]()
   private var axes  = new ArrayBuffer[MyPath2D]()
   private var boxes = new ArrayBuffer[Rectangle2D]()
   private var hoveredBox : Option[Int] = None
@@ -263,7 +264,7 @@ class Plotter(
 
   def clear = {
     buffer = null
-    polys = new ArrayBuffer[MyPath2D]()
+    polys = new ArrayBuffer[Poly]()
     axes  = new ArrayBuffer[MyPath2D]()
     boxes = new ArrayBuffer[Rectangle2D]()
     hoveredBox = None
@@ -403,12 +404,19 @@ class Plotter(
       bg.setStroke(new BasicStroke(1.0f))
       plotStyle match {
         case Dots() => 
-          p.drawDots(bg, tr) 
+          p._1.drawDots(bg, tr) 
+          if (p._2 != null)
+            p._2.drawDots(bg, tr) 
         case Lines() => 
-          p.draw(bg, tr)
+          p._1.draw(bg, tr)
+          if (p._2 != null)
+            p._2.draw(bg, tr) 
         case Both() =>
-          p.draw(bg, tr)
-          p.drawDots(bg, tr) 
+          p._1.draw(bg, tr)
+          p._1.drawDots(bg, tr) 
+          if (p._2 != null)
+            p._2.draw(bg, tr) 
+            p._2.drawDots(bg, tr) 
       }
     }
 
@@ -491,11 +499,11 @@ class Plotter(
 
   def redraw = {
   
-    polys = new ArrayBuffer[MyPath2D]
+    polys = new ArrayBuffer[Poly]
     axes  = new ArrayBuffer[MyPath2D]
     boxes = new ArrayBuffer[Rectangle2D]
     yTransformations = new ArrayBuffer[(Double,Double)]
-   
+    
     if (tb.isEmpty) ()
     else {
 
@@ -506,22 +514,33 @@ class Plotter(
         val s = p.startFrame
         val a = p.values
         columnIndices += idx
-        val line = new MyPath2D()
+        var line : Poly = null;
         val ax = new MyPath2D()
         var firstPoint = true
         for (f <- 0 until a.size; 
              val frame = s+f) {
+          ax startAt (time(frame), 0)
+          ax goTo (time(math.min(s+a.size, time.size-1)), 0)
+          axes += ax
           a(f) match {
             case VLit(x@(GDouble(_)|GInt(_))) =>
               if (firstPoint) {
-                ax startAt (time(frame), 0)
-                ax goTo (time(math.min(s+a.size, time.size-1)), 0)
-                axes += ax
-                line startAt (time(frame), extractDouble(x))
+                line = new Poly(new MyPath2D(), null)
+                line._1 startAt (time(frame), extractDouble(x))
                 firstPoint = false
               } else {
-                line goTo (time(frame), extractDouble(x))
+                line._1 goTo (time(frame), extractDouble(x))
               }
+            case VLit(x@(GInterval(lo,hi))) =>
+              if (firstPoint) {
+                line = new Poly(new MyPath2D(), new MyPath2D())
+                line._1 startAt (time(frame), hi)
+                line._2 startAt (time(frame), lo)
+                firstPoint = false
+              } else {
+                line._1 goTo (time(frame), hi)
+                line._2 goTo (time(frame), lo) 
+             }
             case _ => throw ShouldNeverHappen()
           }
         }
@@ -531,19 +550,23 @@ class Plotter(
       //normalize (scale)
       for (((p,a),i) <- polys zip axes zip Stream.from(0)) {
         var scale = 1.0
-        if (p.height > 1e-4) {
-          scale = -1.0 / p.height
+        if (p._1.height > 1e-4) {
+          scale = -1.0 / p._1.height
           val tr1 = AffineTransform.getScaleInstance(1.0, scale)
-          p.transform(tr1)
+          p._1.transform(tr1)
+          if (p._2 != null)
+            p._2.transform(tr1)
           a.transform(tr1)
         }
-        val shift = i*1.2 - p.y1
+        val shift = i*1.2 - p._1.y1
         val tr2 = AffineTransform.getTranslateInstance(0.0, shift)
-        p.transform(tr2)
+        p._1.transform(tr2)
+        if (p._2 != null)
+          p._2.transform(tr2)
         a.transform(tr2)
 
         yTransformations += ((scale, shift))
-        boxes += new Rectangle2D.Double(p.x1, i*1.2, p.width, 1.0)
+        boxes += new Rectangle2D.Double(p._1.x1, i*1.2, p._1.width, 1.0)
       }
       boundingBox = (time(time.size-1), 1.2*polys.size - 0.2)
     }
