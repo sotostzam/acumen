@@ -174,7 +174,7 @@ object Parser extends MyStdTokenParsers {
   def clauses = rep(clause)
 
   def clause =
-    "case" ~! gvalue ~! assertion ~! actions ^^
+    "case" ~ gvalue ~ assertion ~! actions ^^
       { case _ ~ lhs ~ invariant ~ rhs => Clause(lhs, invariant, rhs) } |
       "case" ~! gvalue ~! actions ^^
       { case _ ~ lhs ~ rhs => Clause(lhs, Lit(GBool(true)), rhs) }
