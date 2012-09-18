@@ -16,8 +16,8 @@ class IntervalTraceModel(tm: TraceModel) extends AbstractTraceModel {
 
   override def getValueAt(row:Int, column:Int) = {
     getDouble(row, column) match {
-      case Some(v) => "(%f,%f)".format(v*0.90,v*1.10)
-      case None    => ""
+      case Some(v) => "[%f,%f]".format(v*0.90,v*1.10)
+      case None    => tm.getValueAt(row, column)
     }
   }
 
