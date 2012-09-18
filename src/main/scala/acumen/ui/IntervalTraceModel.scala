@@ -1,7 +1,8 @@
 package acumen
 package ui
 
-import Errors._;
+import Errors._
+import Pretty._
 
 import collection.mutable.ArrayBuffer
 import javax.swing.event.TableModelListener
@@ -9,11 +10,16 @@ import javax.swing.event.TableModelListener
 class IntervalTraceModel(tm: TraceModel) extends AbstractTraceModel {
 
   override def addTableModelListener(obj:TableModelListener) = tm.addTableModelListener(obj)
-
+ 
   override def getRowCount() = tm.getRowCount()
   override def getColumnCount() = tm.getColumnCount()
 
-  override def getValueAt(row:Int, column:Int) = tm.getValueAt(row,column)
+  override def getValueAt(row:Int, column:Int) = {
+    getDouble(row, column) match {
+      case Some(v) => "(%f,%f)".format(v*0.90,v*1.10)
+      case None    => ""
+    }
+  }
 
   override def getDouble(row:Int, column:Int) = tm.getDouble(row,column)
 
