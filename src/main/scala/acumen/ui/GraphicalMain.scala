@@ -91,14 +91,17 @@ object GraphicalMain extends SimpleSwingApplication {
       oneTouchExpandable = true
       resizeWeight = 0.9
     }
-  
+
+  val traceModel = appModel.tmodel
+  //val traceModel = new IntervalTraceModel(appModel.tmodel)
+
   /* 2 right pane */
   val traceTable = new Table { 
-    model = appModel.tmodel 
+    model = traceModel
     autoResizeMode = Table.AutoResizeMode.Off
   }
 
-  val traceView = new TraceView(false, false, false, appModel.tmodel)
+  val traceView = new TraceView(false, false, false, traceModel)
   val pointedView = new PointedView(traceView)
 
   val tab1 = new BorderPanel {

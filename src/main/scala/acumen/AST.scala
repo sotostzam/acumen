@@ -111,6 +111,8 @@ package acumen {
   case class GBool(b:Boolean)  extends GroundValue
   /* Example: "foo" */
   case class GStr(s:String)    extends GroundValue
+  /* ... */
+  case class GInterval(lo:Double, hi:Double) extends GroundValue
 
   /* ==== values ==== */
 
