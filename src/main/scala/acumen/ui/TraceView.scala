@@ -514,14 +514,16 @@ class Plotter(
         val s = p.startFrame
         val a = p.values
         columnIndices += idx
-        var line : Poly = null;
+        var line : Poly = null
+
         val ax = new MyPath2D()
+        ax startAt (time(s), 0)
+        ax goTo (time(math.min(s+a.size, time.size-1)), 0)
+        axes += ax
+
         var firstPoint = true
         for (f <- 0 until a.size; 
              val frame = s+f) {
-          ax startAt (time(frame), 0)
-          ax goTo (time(math.min(s+a.size, time.size-1)), 0)
-          axes += ax
           a(f) match {
             case VLit(x@(GDouble(_)|GInt(_))) =>
               if (firstPoint) {
