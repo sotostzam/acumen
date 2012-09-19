@@ -8,20 +8,21 @@ import javax.swing.table.AbstractTableModel
 
 sealed abstract class Plottable(val simulator: Boolean, 
                                 val fn: Name, 
-                                val startFrame: Int) 
+                                val startFrame: Int,
+                                val column: Int /* column in trace table */ )
 {
   def values : IndexedSeq[Any]
 }
 
-class PlotDoubles(simulator: Boolean, fn: Name, startFrame: Int, 
-                  val v: IndexedSeq[Double]) extends Plottable(simulator,fn,startFrame)
+class PlotDoubles(simulator: Boolean, fn: Name, startFrame: Int, column: Int,
+                  val v: IndexedSeq[Double]) extends Plottable(simulator,fn,startFrame,column)
 {
   override def values : IndexedSeq[Double] = v;
 }
 
 case class Interval(lo:Double, hi:Double)
-class PlotIntervals(simulator: Boolean, fn: Name, startFrame: Int, 
-                    val v: IndexedSeq[Interval]) extends Plottable(simulator,fn,startFrame)
+class PlotIntervals(simulator: Boolean, fn: Name, startFrame: Int, column: Int,
+                    val v: IndexedSeq[Interval]) extends Plottable(simulator,fn,startFrame,column)
 {
   override def values : IndexedSeq[Interval] = v;
 }

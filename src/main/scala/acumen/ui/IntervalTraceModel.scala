@@ -40,7 +40,7 @@ class IntervalTraceModel(tm: TraceModel) extends AbstractTraceModel {
         }
         override def length = pl.values.length
       }
-      ret += new PlotIntervals(pl.simulator, pl.fn, pl.startFrame, vls)
+      ret += new PlotIntervals(pl.simulator, pl.fn, pl.startFrame, pl.column, vls)
     }
     ret
   }

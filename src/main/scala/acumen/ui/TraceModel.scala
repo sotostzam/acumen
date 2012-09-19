@@ -135,7 +135,7 @@ class TraceModel extends AbstractTraceModel {
   override def getPlottables() : IndexedSeq[PlotDoubles] = {
     val res = new ArrayBuffer[PlotDoubles]
 
-    for ((id,fn,_,s,a) <- stores)
+    for (((id,fn,_,s,a),idx) <- stores zipWithIndex)
       a(0) match {
         case VLit(GDouble(_) | GInt(_)) | VLit(GInt(_)) =>
           val vls = new IndexedSeq[Double] {
@@ -146,7 +146,7 @@ class TraceModel extends AbstractTraceModel {
             }
             override def length = a.length
           }
-        res += new PlotDoubles(classes(id) == cmagic, fn, s, vls)
+        res += new PlotDoubles(classes(id) == cmagic, fn, s, idx, vls)
         case _ => ()
       }
     res

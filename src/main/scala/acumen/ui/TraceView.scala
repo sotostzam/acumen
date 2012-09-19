@@ -510,9 +510,9 @@ class Plotter(
       time = tb.getTimes()
 
       columnIndices = new ArrayBuffer[Int]
-      for ((p, idx) <- (tb.getPlottables() zipWithIndex) if plotit(p)) {
+      for (p <- tb.getPlottables() if plotit(p)) {
         var s = p.startFrame
-        columnIndices += idx
+        columnIndices += p.column
 
         val ax = new MyPath2D()
         ax startAt (time(s), 0)
