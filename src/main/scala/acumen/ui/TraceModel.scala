@@ -94,7 +94,6 @@ class TraceModel extends AbstractTraceModel {
     try {
       val col = stores(column)
       val x = extractDouble(col._5(row - col._4))
-      println("getDouble(%d,%d) = %f".format(row, column, x))
       Some(x)
     } catch { case _ => None }
   }
@@ -141,7 +140,6 @@ class TraceModel extends AbstractTraceModel {
           val vls = new IndexedSeq[Double] {
             override def apply(idx: Int) = { 
               val x = extractDouble(a(idx));
-              println("getPlottable[%s](%d) = %f".format(fn, idx, x))
               x
             }
             override def length = a.length
