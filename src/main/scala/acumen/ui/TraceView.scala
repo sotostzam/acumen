@@ -511,44 +511,43 @@ class Plotter(
 
       columnIndices = new ArrayBuffer[Int]
       for ((p, idx) <- (tb.getPlottables() zipWithIndex) if plotit(p)) {
-        val s = p.startFrame
-        val a = p.values
+        var frame = p.startFrame
         columnIndices += idx
-        var line : Poly = null
 
         val ax = new MyPath2D()
-        ax startAt (time(s), 0)
-        ax goTo (time(math.min(s+a.size, time.size-1)), 0)
+        ax startAt (time(frame), 0)
+        ax goTo (time(math.min(frame+p.values.size, time.size-1)), 0)
         axes += ax
 
-        var firstPoint = true
-        for (f <- 0 until a.size; 
-             val frame = s+f) {
-          a(f) match {
-            case VLit(x@(GDouble(_)|GInt(_))) =>
-              if (firstPoint) {
-                line = new Poly(new MyPath2D(), null)
-                line._1 startAt (time(frame), extractDouble(x))
-                firstPoint = false
-              } else {
-                line._1 goTo (time(frame), extractDouble(x))
-              }
-            case VLit(x@(GInterval(lo,hi))) =>
-              if (firstPoint) {
-                line = new Poly(new MyPath2D(), new MyPath2D())
-                line._1 startAt (time(frame), hi)
-                line._2 startAt (time(frame), lo)
-                firstPoint = false
-              } else {
-                line._1 goTo (time(frame), hi)
-                line._2 goTo (time(frame), lo) 
-             }
-            case _ => throw ShouldNeverHappen()
+        p match {
+          case p:PlotDoubles => {
+            val line = new Poly(new MyPath2D(), null)
+            line._1 startAt (time(frame), p.values(frame))
+            
+            frame += 1;
+            while (frame < p.values.size) {
+              line._1 goTo (time(frame), p.values(frame))
+              frame += 1;
+            }
+
+            polys += line
+          }
+          case p:PlotIntervals => {
+            val line = new Poly(new MyPath2D(), new MyPath2D())
+            line._1 startAt (time(frame), p.values(0).hi)
+            line._2 startAt (time(frame), p.values(0).lo)
+           
+            frame += 1;
+            while (frame < p.values.size) {
+              line._1 goTo (time(frame), p.values(frame).hi)
+              line._2 goTo (time(frame), p.values(frame).lo) 
+              frame += 1;
+            }
+
+            polys += line
           }
         }
-        polys += line
       }
-  
       //normalize (scale)
       for (((p,a),i) <- polys zip axes zip Stream.from(0)) {
         var scale = 1.0

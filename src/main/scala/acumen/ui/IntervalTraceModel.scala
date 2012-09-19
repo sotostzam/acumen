@@ -33,18 +33,14 @@ class IntervalTraceModel(tm: TraceModel) extends AbstractTraceModel {
     val plts = tm.getPlottables()
     var ret = new ArrayBuffer[Plottable]
     for (pl <- plts) {
-      var vls = new ArrayBuffer[CValue]
-      for (v <- pl.values) {
-        v match {
-          case VLit(x@(GDouble(num))) => 
-            vls += VLit(GInterval(num*0.90,num*1.10))
-          case VLit(x@(GInt(num))) => 
-            vls += VLit(GInterval(num*0.90,num*1.10))
-          case _ =>
-            vls += v
+      var vls = new IndexedSeq[Interval] {
+        override def apply(idx: Int) = {
+          val num = pl.values(idx)
+          Interval(num*0.90,num*1.10)
         }
+        override def length = pl.values.length
       }
-      ret += Plottable(pl.simulator, pl.fn, pl.startFrame, vls)
+      ret += new PlotIntervals(pl.simulator, pl.fn, pl.startFrame, vls)
     }
     ret
   }
