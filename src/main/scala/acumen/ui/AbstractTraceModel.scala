@@ -6,12 +6,25 @@ import collection.mutable.ArrayBuffer
 import javax.swing.table.TableModel
 import javax.swing.table.AbstractTableModel
 
-// FIXME: Consider changing ArrayBuffer to an Abstract type
-//   ideally it should be a simple Iterable
-//   failing that use IndexedSeq
+sealed abstract class Plottable(val simulator: Boolean, 
+                                val fn: Name, 
+                                val startFrame: Int) 
+{
+  def values : IndexedSeq[Any]
+}
 
-case class Plottable (simulator: Boolean, fn: Name,
-                      startFrame: Int, values: ArrayBuffer[CValue])
+class PlotDoubles(simulator: Boolean, fn: Name, startFrame: Int, 
+                  val v: IndexedSeq[Double]) extends Plottable(simulator,fn,startFrame)
+{
+  override def values : IndexedSeq[Double] = v;
+}
+
+case class Interval(lo:Double, hi:Double)
+class PlotIntervals(simulator: Boolean, fn: Name, startFrame: Int, 
+                    val v: IndexedSeq[Interval]) extends Plottable(simulator,fn,startFrame)
+{
+  override def values : IndexedSeq[Interval] = v;
+}
 
 trait AbstractTraceModel extends AbstractTableModel {
 
