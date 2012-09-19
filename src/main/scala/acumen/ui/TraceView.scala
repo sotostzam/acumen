@@ -511,37 +511,35 @@ class Plotter(
 
       columnIndices = new ArrayBuffer[Int]
       for ((p, idx) <- (tb.getPlottables() zipWithIndex) if plotit(p)) {
-        var frame = p.startFrame
+        var s = p.startFrame
         columnIndices += idx
 
         val ax = new MyPath2D()
-        ax startAt (time(frame), 0)
-        ax goTo (time(math.min(frame+p.values.size, time.size-1)), 0)
+        ax startAt (time(s), 0)
+        ax goTo (time(math.min(s+p.values.size, time.size-1)), 0)
         axes += ax
 
         p match {
           case p:PlotDoubles => {
             val line = new Poly(new MyPath2D(), null)
-            line._1 startAt (time(frame), p.values(frame))
+            line._1 startAt (time(s), p.values(0))
             
-            frame += 1;
-            while (frame < p.values.size) {
-              line._1 goTo (time(frame), p.values(frame))
-              frame += 1;
+            for (f <- 0 until p.values.size;
+                 val frame = s + f) {
+              line._1 goTo (time(frame), p.values(f))
             }
 
             polys += line
           }
           case p:PlotIntervals => {
             val line = new Poly(new MyPath2D(), new MyPath2D())
-            line._1 startAt (time(frame), p.values(0).hi)
-            line._2 startAt (time(frame), p.values(0).lo)
+            line._1 startAt (time(s), p.values(0).hi)
+            line._2 startAt (time(s), p.values(0).lo)
            
-            frame += 1;
-            while (frame < p.values.size) {
-              line._1 goTo (time(frame), p.values(frame).hi)
-              line._2 goTo (time(frame), p.values(frame).lo) 
-              frame += 1;
+            for (f <- 0 until p.values.size;
+                 val frame = s + f) {
+              line._1 goTo (time(frame), p.values(f).hi)
+              line._2 goTo (time(frame), p.values(f).lo) 
             }
 
             polys += line
