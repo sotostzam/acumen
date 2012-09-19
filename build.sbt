@@ -20,7 +20,26 @@ libraryDependencies ++= Seq (
   "javax" % "vecmath" % "1.5.2"
 )
 
+resolvers ++= Seq(
+   "snapshots" at "http://oss.sonatype.org/content/repositories/snapshots",
+   "releases"  at "http://oss.sonatype.org/content/repositories/releases"
+)
+
+libraryDependencies ++= Seq( 
+   "org.jfree" % "jfreechart" % "1.0.14",
+   "org.jfree" % "jcommon" % "1.0.17",
+   "com.itextpdf" % "itextpdf" % "5.3.0"
+)
+
+// FIXME: Is this necessary
+retrieveManaged := true
+
+/* SCCT */
+seq(ScctPlugin.instrumentSettings : _*)
+
+//
 // enable proguard
+//
 
 seq(ProguardPlugin.proguardSettings :_*)
 
@@ -59,4 +78,5 @@ mainClass in (Compile,packageBin) <<= mainClass in (Compile,run)
 proguardOptions <<= (proguardOptions, theMainClass) {
   (prev, main) => prev :+ (keepMain(main))
 }
+
 

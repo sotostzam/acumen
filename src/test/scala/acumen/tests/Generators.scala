@@ -8,7 +8,7 @@ import Arbitrary.arbitrary
 
 /* scalacheck generators */
 
-object Generators  {
+object Generators {
 
   /* 
      -TODO: finish shrinking for even smaller counter examples
@@ -16,235 +16,243 @@ object Generators  {
             don't miss a constructor?)
   */
 
-  def myPosNum = resize (Integer.MAX_VALUE, posInt)
+  def myPosNum = resize(Integer.MAX_VALUE, posNum[Int])
 
-  def legit(x:String) = 
-    x.length > 0 && x.head.isLetter && !(Parser.lexical.reserved contains x) 
+  def legit(x: String) =
+    x.length > 0 && x.head.isLetter && !(Parser.lexical.reserved contains x)
 
-  implicit def arbName : Arbitrary[Name] = 
-  	Arbitrary {
-      for { x <- alphaChar
-            xs <- resize(10, listOf1(alphaNumChar)).map(x + _.mkString) suchThat legit
-            i <- oneOf(List(0,1,2,3))
+  implicit def arbName: Arbitrary[Name] =
+    Arbitrary {
+      for {
+        x <- alphaChar
+        xs <- resize(10, listOf1(alphaNumChar)).map(x + _.mkString) suchThat legit
+        i <- oneOf(List(0, 1, 2, 3))
       } yield Name(xs, i)
-  	}
+    }
 
-  implicit def shrinkName : Shrink[Name] =
+  implicit def shrinkName: Shrink[Name] =
     Shrink { n =>
       n match {
-        case Name(xs,i) => 
-          for ((nxs,ni) <- shrink((xs,i)) if legit(nxs))
-            yield Name(nxs,ni)
+        case Name(xs, i) =>
+          for ((nxs, ni) <- shrink((xs, i)) if legit(nxs))
+            yield Name(nxs, ni)
       }
     }
-  
-  implicit def arbClassName : Arbitrary[ClassName] = 
-  	Arbitrary {
-      for { x <- alphaChar
-            xs <- resize(10, listOf1(alphaNumChar)).map(x + _.mkString) suchThat legit
-      } yield ClassName(xs)
-  	}
 
-  implicit def shrinkClassName : Shrink[ClassName] =
+  implicit def arbClassName: Arbitrary[ClassName] =
+    Arbitrary {
+      for {
+        x <- alphaChar
+        xs <- resize(10, listOf1(alphaNumChar)).map(x + _.mkString) suchThat legit
+      } yield ClassName(xs)
+    }
+
+  implicit def shrinkClassName: Shrink[ClassName] =
     Shrink { n =>
       n match {
-        case ClassName(xs) => 
+        case ClassName(xs) =>
           for (nxs <- shrink(xs) if legit(nxs))
             yield ClassName(nxs)
       }
     }
 
-  implicit def arbProg : Arbitrary[Prog] =
-    Arbitrary (arbitrary[List[ClassDef]].map(Prog))
+  implicit def arbProg: Arbitrary[Prog] =
+    Arbitrary(arbitrary[List[ClassDef]].map(Prog))
 
-  implicit def shrinkProg : Shrink[Prog] =
+  implicit def shrinkProg: Shrink[Prog] =
     Shrink { p =>
       p match {
-        case Prog(ds) => 
+        case Prog(ds) =>
           for (nds <- shrink(ds))
             yield Prog(nds)
       }
     }
 
-  implicit def arbClassDef : Arbitrary[ClassDef] =
+  implicit def arbClassDef: Arbitrary[ClassDef] =
     Arbitrary {
-      for(c  <- arbitrary[ClassName];
-          fs <- arbitrary[List[Name]];
-          b  <- arbitrary[List[Action]])
-        yield ClassDef(c, fs, List(), b)
+      for (
+        c <- arbitrary[ClassName];
+        fs <- arbitrary[List[Name]];
+        b <- arbitrary[List[Action]]
+      ) yield ClassDef(c, fs, List(), b)
     }
 
-  implicit def shrinkClassDef : Shrink[ClassDef] =
+  implicit def shrinkClassDef: Shrink[ClassDef] =
     Shrink { cd =>
       cd match {
-        case ClassDef(c,fs,pvs,b) => 
-          for ((nc,nfs,npvs,nb) <- shrink((c,fs,pvs,b)))
-            yield ClassDef(nc,nfs,npvs,nb)
+        case ClassDef(c, fs, pvs, b) =>
+          for ((nc, nfs, npvs, nb) <- shrink((c, fs, pvs, b)))
+            yield ClassDef(nc, nfs, npvs, nb)
       }
     }
 
-  implicit def arbAction : Arbitrary[Action] = 
-    Arbitrary ( arbitrary[IfThenElse] | arbitrary[ForEach] | arbitrary[Switch]
-              | arbitrary[Discretely] | arbitrary[Continuously] )
+  implicit def arbAction: Arbitrary[Action] =
+    Arbitrary(arbitrary[IfThenElse] | arbitrary[ForEach] | arbitrary[Switch]
+      | arbitrary[Discretely] | arbitrary[Continuously])
 
-  implicit def shrinkAction : Shrink[Action] =
+  implicit def shrinkAction: Shrink[Action] =
     Shrink { a =>
       a match {
-        case IfThenElse(c,t,e) => 
-          for ((nc,nt,ne) <- shrink((c,t,e)))
-            yield IfThenElse(nc,nt,ne)
-        case ForEach(i,c,b) =>
-          for((ni,nc,nb) <- shrink((i,c,b)))
-            yield ForEach(ni,nc,nb)
+        case IfThenElse(c, t, e) =>
+          for ((nc, nt, ne) <- shrink((c, t, e)))
+            yield IfThenElse(nc, nt, ne)
+        case ForEach(i, c, b) =>
+          for ((ni, nc, nb) <- shrink((i, c, b)))
+            yield ForEach(ni, nc, nb)
         case Continuously(ca) => shrink(ca) map Continuously
         case Discretely(da) => shrink(da) map Discretely
-        case Switch(s,cls) =>
-          for((ns,ncls) <- shrink((s,cls)))
-            yield Switch(ns,ncls)
+        case Switch(s, cls) =>
+          for ((ns, ncls) <- shrink((s, cls)))
+            yield Switch(ns, ncls)
       }
     }
 
-  implicit def arbDiscretely : Arbitrary[Discretely] =
-    Arbitrary ( arbitrary[DiscreteAction] map Discretely )
-  
-  implicit def arbContinuously : Arbitrary[Continuously] =
-    Arbitrary ( arbitrary[ContinuousAction] map Continuously )
+  implicit def arbDiscretely: Arbitrary[Discretely] =
+    Arbitrary(arbitrary[DiscreteAction] map Discretely)
 
-  implicit def arbDiscreteAction : Arbitrary[DiscreteAction] =
-    Arbitrary ( arbitrary[Assign] | arbitrary[Create] | arbitrary[Move] )
+  implicit def arbContinuously: Arbitrary[Continuously] =
+    Arbitrary(arbitrary[ContinuousAction] map Continuously)
 
-  implicit def arbContinuousAction : Arbitrary[ContinuousAction] =
-    Arbitrary ( arbitrary[Equation] )
+  implicit def arbDiscreteAction: Arbitrary[DiscreteAction] =
+    Arbitrary(arbitrary[Assign] | arbitrary[Create] | arbitrary[Move])
 
-  implicit def arbEquation : Arbitrary[Equation] =
+  implicit def arbContinuousAction: Arbitrary[ContinuousAction] =
+    Arbitrary(arbitrary[Equation])
+
+  implicit def arbEquation: Arbitrary[Equation] =
     Arbitrary {
-      for (lhs <- arbitrary[Expr];
-           rhs <- arbitrary[Expr])
-        yield Equation(lhs, rhs)
+      for (
+        lhs <- arbitrary[Expr];
+        rhs <- arbitrary[Expr]
+      ) yield Equation(lhs, rhs)
     }
 
-  implicit def shrinkEquation : Shrink[Equation] =
+  implicit def shrinkEquation: Shrink[Equation] =
     Shrink { e =>
       e match {
-        case Equation(l,r) => 
-          for ((nl,nr) <- shrink((l,r)))
-            yield Equation(nl,nr)
+        case Equation(l, r) =>
+          for ((nl, nr) <- shrink((l, r)))
+            yield Equation(nl, nr)
       }
     }
 
-  implicit def arbAssign : Arbitrary[Assign] =
+  implicit def arbAssign: Arbitrary[Assign] =
     Arbitrary {
-      for (lhs <- arbitrary[Expr];
-           rhs <- arbitrary[Expr])
-        yield Assign(lhs, rhs)
+      for (
+        lhs <- arbitrary[Expr];
+        rhs <- arbitrary[Expr]
+      ) yield Assign(lhs, rhs)
     }
 
-  implicit def shrinkAssign : Shrink[Assign] =
+  implicit def shrinkAssign: Shrink[Assign] =
     Shrink { e =>
       e match {
-        case Assign(l,r) => 
-          for ((nl,nr) <- shrink((l,r)))
-            yield Assign(nl,nr)
+        case Assign(l, r) =>
+          for ((nl, nr) <- shrink((l, r)))
+            yield Assign(nl, nr)
       }
     }
 
-  implicit def arbIfThenElse : Arbitrary[IfThenElse] =
+  implicit def arbIfThenElse: Arbitrary[IfThenElse] =
     Arbitrary {
       Gen.sized(s =>
-        for (c <- resize(s/4, arbitrary[Expr]);
-             t <- resize(s/4, arbitrary[List[Action]]);
-             e <- resize(s/4, arbitrary[List[Action]]))
-          yield IfThenElse(c, t, e))
+        for (
+          c <- resize(s / 4, arbitrary[Expr]);
+          t <- resize(s / 4, arbitrary[List[Action]]);
+          e <- resize(s / 4, arbitrary[List[Action]])
+        ) yield IfThenElse(c, t, e))
     }
 
-  implicit def arbSwitch : Arbitrary[Switch] =
+  implicit def arbSwitch: Arbitrary[Switch] =
     Arbitrary {
       Gen.sized(s =>
-        for (c <- resize(s/4, arbitrary[Expr]);
-             b <- resize(s/4, arbitrary[List[Clause]]))
-          yield Switch(c, b))
+        for (
+          c <- resize(s / 4, arbitrary[Expr]);
+          b <- resize(s / 4, arbitrary[List[Clause]])
+        ) yield Switch(c, b))
     }
 
-  implicit def arbClause : Arbitrary[Clause] = 
+  implicit def arbClause: Arbitrary[Clause] =
     Arbitrary {
-      for { lhs <- arbitrary[GroundValue]
-            rhs <- arbitrary[List[Action]]
-      } yield Clause(lhs,rhs)
+      for {
+        lhs <- arbitrary[GroundValue]
+        inv <- arbitrary[Expr]
+        rhs <- arbitrary[List[Action]]
+      } yield Clause(lhs, inv, rhs)
     }
 
-    
-  implicit def shrinkClause : Shrink[Clause] =
+  implicit def shrinkClause: Shrink[Clause] =
     Shrink { e =>
       e match {
-        case Clause(l,r) => 
-          for ((nl,nr) <- shrink((l,r)))
-            yield Clause(nl,nr)
+        case Clause(l, i, r) =>
+          for ((nl, ni, nr) <- shrink((l, i, r)))
+            yield Clause(nl, ni, nr)
       }
     }
 
-  implicit def arbForEach : Arbitrary[ForEach] =
+  implicit def arbForEach: Arbitrary[ForEach] =
     Arbitrary {
       Gen.sized(s =>
-        for (i <- arbitrary[Name];
-             c <- resize(s/4, arbitrary[Expr]);
-             a <- resize(s/4, arbitrary[List[Action]]))
-          yield ForEach(i, c, a))
+        for (
+          i <- arbitrary[Name];
+          c <- resize(s / 4, arbitrary[Expr]);
+          a <- resize(s / 4, arbitrary[List[Action]])
+        ) yield ForEach(i, c, a))
     }
 
-  implicit def arbExpr : Arbitrary[Expr] =
-    Arbitrary ( arbitrary[GroundValue].map(Lit) | arbitrary[Var] | arbitrary[Op] 
-              | arbitrary[Dot] )
+  implicit def arbExpr: Arbitrary[Expr] =
+    Arbitrary(arbitrary[GroundValue].map(Lit) | arbitrary[Var] | arbitrary[Op]
+      | arbitrary[Dot])
 
-  implicit def arbLit : Arbitrary[GroundValue] =
-    Arbitrary ((arbitrary[GInt] | arbitrary[GDouble] 
-               | arbitrary[GBool] | arbitrary[GStr]))
-  
-  implicit def arbBool : Arbitrary[GBool] = 
-    Arbitrary (arbitrary[Boolean].map(GBool))
-  
-  implicit def arbStr : Arbitrary[GStr] = 
-    Arbitrary (alphaStr.map(GStr))
-  
-  implicit def arbIntLit : Arbitrary[GInt] = 
-    Arbitrary (myPosNum map GInt)
+  implicit def arbLit: Arbitrary[GroundValue] =
+    Arbitrary((arbitrary[GInt] | arbitrary[GDouble]
+      | arbitrary[GBool] | arbitrary[GStr]))
 
-  implicit def arbIDoubleLit : Arbitrary[GDouble] = 
-    Arbitrary (arbitrary[Double].map(GDouble))
- 
-  implicit def arbVar : Arbitrary[Var] =
-    Arbitrary (arbitrary[Name].map(Var))
-  
-  implicit def arbOp : Arbitrary[Op] =
-    Arbitrary (
+  implicit def arbBool: Arbitrary[GBool] =
+    Arbitrary(arbitrary[Boolean].map(GBool))
+
+  implicit def arbStr: Arbitrary[GStr] =
+    Arbitrary(alphaStr.map(GStr))
+
+  implicit def arbIntLit: Arbitrary[GInt] =
+    Arbitrary(myPosNum map GInt)
+
+  implicit def arbIDoubleLit: Arbitrary[GDouble] =
+    Arbitrary(arbitrary[Double].map(GDouble))
+
+  implicit def arbVar: Arbitrary[Var] =
+    Arbitrary(arbitrary[Name].map(Var))
+
+  implicit def arbOp: Arbitrary[Op] =
+    Arbitrary(
       Gen.sized(s =>
-      	for (op   <- arbitrary[Name];
-      	     args <- listOf(resize(s/4, arbitrary[Expr])))
-          yield Op(op, args))
-    )
-  
-  implicit def arbDot : Arbitrary[Dot] =
-    Arbitrary (
-      Gen.sized(s =>
-        for (o     <- resize(s/4, arbitrary[Expr]);
-             field <- arbitrary[Name])
-        yield Dot(o, field))
-    )
+        for (
+          op <- arbitrary[Name];
+          args <- listOf(resize(s / 4, arbitrary[Expr]))
+        ) yield Op(op, args)))
 
-  implicit def arbCreate : Arbitrary[Create] =
-    Arbitrary (
+  implicit def arbDot: Arbitrary[Dot] =
+    Arbitrary(
       Gen.sized(s =>
-        for (oe <- arbitrary[Option[Expr]];
-             c <- arbitrary[ClassName];
-             as <- listOf(resize(s/4, arbitrary[Expr])))
-          yield Create(oe, c, as))
-    )
+        for (
+          o <- resize(s / 4, arbitrary[Expr]);
+          field <- arbitrary[Name]
+        ) yield Dot(o, field)))
 
-
-  implicit def arbMove : Arbitrary[Move] =
-    Arbitrary (
+  implicit def arbCreate: Arbitrary[Create] =
+    Arbitrary(
       Gen.sized(s =>
-        for (p <- arbitrary[Expr];
-             e <- arbitrary[Expr])
-          yield Move(p, e))
-    )
+        for (
+          oe <- arbitrary[Option[Expr]];
+          c <- arbitrary[ClassName];
+          as <- listOf(resize(s / 4, arbitrary[Expr]))
+        ) yield Create(oe, c, as)))
+
+  implicit def arbMove: Arbitrary[Move] =
+    Arbitrary(
+      Gen.sized(s =>
+        for (
+          p <- arbitrary[Expr];
+          e <- arbitrary[Expr]
+        ) yield Move(p, e)))
 }

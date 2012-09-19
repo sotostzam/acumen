@@ -183,31 +183,35 @@ object GraphicalMain extends SimpleSwingApplication {
     contents += new Menu("Semantics") {
       mnemonic = Key.S
       val rb1 = new RadioMenuItem("") {
-        selected = true
-        action = Action("Purely Functional") 
-                  { appModel.setInterpreterType(Pure()) }
+        selected = true // This is the default semantics
+        action = Action("Purely Functional") { appModel.setInterpreter(interpreters.reference.Interpreter) }
       }
       val rb2 = new RadioMenuItem("") {
         selected = false
         action = Action("Imperative (Parallel)") {
-					def diag = Dialog.showInput(
-						body, "Choose a number of threads", 
-						"Parallel Interpreter", Dialog.Message.Question, 
-						Swing.EmptyIcon, Seq(), lastNumberOfThreads.toString)
-					def go : Unit = try {
-						def n : String = diag.getOrElse(n)
-						lastNumberOfThreads = Integer.parseInt(n)
-						appModel.setInterpreterType(Impure(lastNumberOfThreads))
-						console.log("Number of threads set to " + lastNumberOfThreads + ".")
-					} catch { case _ => 
-						console.logError("Bad number of threads.")
-						go 
-					}
-					go
-				}
+          def diag = Dialog.showInput(
+            body, "Choose a number of threads",
+            "Parallel Interpreter", Dialog.Message.Question,
+            Swing.EmptyIcon, Seq(), lastNumberOfThreads.toString)
+          def go: Unit = try {
+            def n: String = diag.getOrElse(n)
+            lastNumberOfThreads = Integer.parseInt(n)
+            appModel.setInterpreter(new interpreters.parallel.Interpreter(lastNumberOfThreads))
+            console.log("Number of threads set to " + lastNumberOfThreads + ".")
+          } catch {
+            case _ =>
+              console.logError("Bad number of threads.")
+              go
+          }
+          go
+        }
       }
-      contents ++= Seq(rb1,rb2)
-      new ButtonGroup(rb1,rb2)
+      val rb3 = new RadioMenuItem("") {
+        selected = false 
+        action = Action("Enclosure") { appModel.setInterpreter(interpreters.enclosure.Interpreter) }
+      }
+      contents ++= Seq(rb1,rb2,rb3)
+      new ButtonGroup(rb1,rb2,rb3)
     }
    
     contents += new Menu("Help") {

@@ -27,13 +27,20 @@ class PlotIntervals(simulator: Boolean, fn: Name, startFrame: Int, column: Int,
   override def values : IndexedSeq[Interval] = v;
 }
 
+case class Enclosure(loLeft:Double, hiLeft:Double, loRight:Double, hiRight:Double)
+class PlotEnclosure(simulator: Boolean, fn: Name, startFrame: Int, column: Int,
+                    val v: IndexedSeq[Enclosure]) extends Plottable(simulator,fn,startFrame,column)
+{
+  override def values : IndexedSeq[Enclosure] = v;
+}
+
 trait AbstractTraceModel extends AbstractTableModel {
 
-  def getDouble(row:Int, column:Int) : Option[Double]
+  def getDouble(row:Int, column:Int): Option[Double]
 
-  def isEmpty() : Boolean;
+  def isEmpty(): Boolean;
 
-  def getTimes() : ArrayBuffer[Double]
-  
-  def getPlottables() : Iterable[Plottable]
+  def getTimes(): ArrayBuffer[Double]
+
+  def getPlottables(): Iterable[Plottable]
 }

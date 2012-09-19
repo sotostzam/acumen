@@ -118,7 +118,7 @@ object Desugarer {
 
   def desugar(p:Prog, fs:List[Name], env:List[Name], e:Clause) : Clause = 
     e match {
-      case Clause(lhs,rhs) => Clause(lhs, desugar(p, fs,env,rhs))
+      case Clause(lhs,inv,rhs) => Clause(lhs, inv, desugar(p, fs,env,rhs))
     }
 
   def run(t:Prog) : Prog = desugar(t)

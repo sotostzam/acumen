@@ -8,10 +8,16 @@ class AcumenProject(info: ProjectInfo) extends DefaultProject(info)
   with GoogleCodeTasks  {
 
   // dependencies
+  val sonatypeR = "releases"  at "http://oss.sonatype.org/content/repositories/releases"
+  val sonatypeS = "snapshots" at "http://oss.sonatype.org/content/repositories/snapshots"  
+//  val mavenRepo = "http://mvnrepository.com/artifact"
 
   val scalaSwing = "org.scala-lang" % "scala-swing" % "2.9.2"
   val scalaTest = "org.scalatest" %% "scalatest" % "2.0.M1" % "test"
   val scalaCheck = "org.scalacheck" %% "scalacheck" % "1.10.0" % "test"
+//  val jFreeChart = "org.jfree" %% "jfreechart" % "1.0.14"
+//  val iTextPDF = "com.itextpdf" %% "itextpdf" % "5.3.0"
+
   //val sxr = compilerPlugin("org.scala-tools.sxr" %% "sxr" % "0.2.7")
   
   /* proguard is used for 
@@ -24,8 +30,8 @@ class AcumenProject(info: ProjectInfo) extends DefaultProject(info)
 
   // java 3d deps.
 
-  val tuxfamily = "tuxfamily" at "http://download.tuxfamily.org/arakhne/maven/"
-  
+  val tuxfamily = "tuxfamily" at "http://download.tuxfamily.org/arakhne/maven/"  
+
   val j3dCore = "javax" % "j3d-core" % "1.5.2"
   val j3dCoreUtils = "javax" % "j3d-core-utils" % "1.5.2"
   val vecmath = "javax" % "vecmath" % "1.5.2"
