@@ -138,13 +138,7 @@ class TraceModel extends AbstractTraceModel {
       a(0) match {
         case VLit(GDouble(_) | GInt(_)) | VLit(GInt(_)) =>
           val vls = new IndexedSeq[Double] {
-            override def apply(idx: Int) = {
-              a(idx) match {
-                case VLit(GDouble(v)) => v
-                case VLit(GInt(v)) => v 
-                case _ => throw ShouldNeverHappen()
-              }
-            }
+            override def apply(idx: Int) = extractDouble(a(idx))
             override def length = a.length
           }
         res += new PlotDoubles(classes(id) == cmagic, fn, s, vls)
