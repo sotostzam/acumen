@@ -1,6 +1,8 @@
 package acumen
 package ui
 
+import Errors._
+
 import collection.mutable.ArrayBuffer
 import javax.swing.table.TableModel
 import javax.swing.table.AbstractTableModel
@@ -43,9 +45,9 @@ trait AbstractTraceModel extends AbstractTableModel {
 
   def getPlottables(): Iterable[Plottable]
   
-  def addStore(st:CStore): Unit = {}
+  def addStore(st:CStore): Unit = throw ShouldNeverHappen()
 		  
-  def addStores(sts:Iterable[CStore]): Unit = {}
+  def addStores(sts:Iterable[CStore]): Unit = throw ShouldNeverHappen()
 		  
   def reset: Unit = {}
 }
