@@ -5,7 +5,7 @@ import acumen.interpreters.enclosure.Types._
 import acumen.interpreters.enclosure.Util._
 
 import SolveVt._
-import Solver._
+//import Solver._
 
 /** TODO add description */
 // TODO add tests
@@ -56,7 +56,7 @@ case class EventTree(
   delta: Double,
   m: Int,
   n: Int,
-  output: String) {
+  output: String) extends Solver {
 
   /** TODO add description */
   // TODO add tests

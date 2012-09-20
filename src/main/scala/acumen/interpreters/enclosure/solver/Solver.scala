@@ -5,7 +5,7 @@ import acumen.interpreters.enclosure._
 import acumen.interpreters.enclosure.Interval._
 import acumen.interpreters.enclosure.Types._
 
-object Solver {
+trait Solver {
 
   // TODO add description
   def detectNextEvent(
@@ -105,9 +105,19 @@ object Solver {
           lazy val somewhereWorse = (endTimeInterval(ssrT) zip endTimeInterval(ssT)).exists {
             case ((_, l), (_, r)) => l.width greaterThan r.width
           }
-          lazy val noImprovement = nowhereBetter || somewhereWorse
+          //          lazy val noImprovement = nowhereBetter || somewhereWorse
+          lazy val improvement = {
+            val onT = endTimeInterval(ssT).values.foldLeft(Interval(0)) { case (res, i) => i.width + res }
+            val onrT = endTimeInterval(ssrT).values.foldLeft(Interval(0)) { case (res, i) => i.width + res }
+            onT - onrT
+          }
 
-          if (cannotSplit || noImprovement) {
+          // TODO make the improvement threshold a parameter 
+          if (cannotSplit ||
+            ({
+//              println("improvement : " + improvement);
+              improvement lessThanOrEqualTo Interval(0.00001)
+            })) {
             resultForT
           } else {
             println("splitting " + T)

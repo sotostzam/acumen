@@ -12,7 +12,7 @@ import acumen.interpreters.enclosure.solver.Plotter
  * AffineEnclosure.
  */
 case class UnivariateAffineEnclosure private[enclosure] (
-  private[enclosure]domain: Interval,
+  domain: Interval,
   private[enclosure]normalizedDomain: Interval,
   private[enclosure]components: Map[VarName, UnivariateAffineScalarEnclosure])(implicit rnd: Rounding) {
   assert(normalizedDomain.low equalTo 0, "The low end-point of the normalizedDomain should be zero!")
@@ -26,6 +26,8 @@ case class UnivariateAffineEnclosure private[enclosure] (
   /** Get the "name" component of the enclosure. */
   def apply(name: VarName): UnivariateAffineScalarEnclosure = components(name)
 
+  def varNames = components.keys
+  
   /**
    * Evaluate the enclosure at the interval x.
    *

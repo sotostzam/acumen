@@ -5,16 +5,41 @@ package enclosure
 import util.Canonical._
 import Types._
 import ui.TraceModel
+import acumen.interpreters.enclosure.solver.Solver
+import acumen.interpreters.enclosure.solver.HybridSystem
+import acumen.ui.EnclosureTraceModel
 
 /**
  * Proxy for the enclosure-based solver.
  */
-object Interpreter extends acumen.Interpreter {
+object Interpreter extends acumen.Interpreter with Solver with Transform {
 
-  val newTraceModel = new TraceModel
-  
+  // FIXME do not use null
+  def newTraceModel = new EnclosureTraceModel(null)
+
   //TODO Get this from the Simulator object
   implicit val rnd = Rounding(10)
+
+  //FIXME do this properly
+  override def generateTraceModel(text: String): EnclosureTraceModel = {
+    val prog = Parser.run(Parser.prog, text)
+    val (h: HybridSystem, uis) = extract(prog.defs(0))
+    val H = h
+    val Ss = Set(uis)
+
+    val startTime = 0 // parameter 
+    val endTime = 2.5 // parameter 
+    val T = Interval(startTime, endTime)
+    val delta = 0 // parameter
+    val m = 20 // parameter
+    val n = 200 // parameter
+    val K = 30 // parameter
+    val d = 0.01 // parameter
+    val e = // parameter 
+      T.width match { case Interval(_, hi) => hi.doubleValue / 2 }
+    val res = solver(H, T, Ss, delta, m, n, K, d, e, T, "output")
+    new EnclosureTraceModel(res)
+  }
 
   type Store = Seq[UnivariateAffineEnclosure]
 

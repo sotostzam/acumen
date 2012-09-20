@@ -2,7 +2,6 @@ package acumen
 package ui
 
 import collection.mutable.ArrayBuffer
-
 import javax.swing.table.TableModel
 import javax.swing.table.AbstractTableModel
 

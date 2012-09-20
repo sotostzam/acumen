@@ -4,7 +4,6 @@ import acumen.interpreters.enclosure._
 import acumen.interpreters.enclosure.Relation._
 import acumen.interpreters.enclosure.Types._
 import ResetMap._
-// import sun.tools.tree.LessOrEqualExpression
 
 /** TODO add description */
 // TODO add tests, 

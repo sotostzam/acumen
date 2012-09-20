@@ -18,7 +18,7 @@ object PlotTest extends App {
   UnivariateAffineScalarEnclosure.plot(res.components.values.toSeq: _*)
 }
 
-object BouncingBall extends App {
+object BouncingBall extends App with Solver {
   implicit val rnd = Rounding(10)
   val H = Systems.BB(10, 0.5)
   val T = Interval(0, 3)
@@ -27,10 +27,10 @@ object BouncingBall extends App {
   val m = 20
   val n = 200
   val K = 30
-  val d = 0.001
+  val d = 0.01
   val e = T.width match { case Interval(_, hi) => hi.doubleValue }
   val start = System.currentTimeMillis
-  val res = Solver.solver(H, T, Ss, delta, m, n, K, d, e, T, "output")
+  val res = solver(H, T, Ss, delta, m, n, K, d, e, T, "output")
   val end = System.currentTimeMillis
   val time = end - start
   println("computed " + res.size + " enclosures in " + time / 1000.0 + " seconds")
@@ -46,19 +46,19 @@ object BouncingBall extends App {
   //  AffineEnclosure.plot(es: _*)
 }
 
-object TwoTanks extends App {
+object TwoTanks extends App with Solver {
   implicit val rnd = Rounding(20)
   val H = Systems.TT(2, 3, 4)
-  val T = Interval(0, 2)
+  val T = Interval(0, 2.5)
   val Ss = Set(UncertainState(Mode("FillLeft"), Box("left" -> 1, "right" -> 1)))
   val delta = 0
   val m = 20
   val n = 200
   val K = 30
-  val d = 0.000001
+  val d = math.pow(2,-21)
   val e = T.width match { case Interval(_, hi) => hi.doubleValue }
   val start = System.currentTimeMillis
-  val res = Solver.solver(H, T, Ss, delta, m, n, K, d, e, T, "output")
+  val res = solver(H, T, Ss, delta, m, n, K, d, e, T, "output")
   val end = System.currentTimeMillis
   val time = end - start
   println("computed " + res.size + " enclosures in " + time / 1000.0 + " seconds")
@@ -66,7 +66,7 @@ object TwoTanks extends App {
   UnivariateAffineScalarEnclosure.plot(res.flatMap(e => Seq(e("left"), e("right"))): _*)
 }
 
-object Saw extends App {
+object Saw extends App with Solver {
   implicit val rnd = Rounding(10)
   val H = Systems.Saw
   val T = Interval(0, 2.1)
@@ -78,7 +78,7 @@ object Saw extends App {
   val d = 4.7e-7
   val e = T match { case Interval(_, hi) => hi.doubleValue / 2 }
   val start = System.currentTimeMillis
-  val res = Solver.solver(H, T, Ss, delta, m, n, K, d, e, T, "output")
+  val res = solver(H, T, Ss, delta, m, n, K, d, e, T, "output")
   val end = System.currentTimeMillis
   val time = end - start
   println("computed " + res.size + " enclosures in " + time / 1000.0 + " seconds")
@@ -86,21 +86,3 @@ object Saw extends App {
   //  UnivariateAffineEnclosure.plot(res: _*)
 }
 
-object Exp extends App {
-  implicit val rnd = Rounding(10)
-  val H = Systems.Exp
-  val T = Interval(0, 1)
-  val Ss = Set(UncertainState(Mode("Exp"), Box("x" -> 1)))
-  val delta = 0
-  val m = 20
-  val n = 200
-  val K = 30
-  val d = 4.7e-7
-  val e = T match { case Interval(_, hi) => hi.doubleValue / 2 }
-  val start = System.currentTimeMillis
-  val res = Solver.solver(H, T, Ss, delta, m, n, K, d, e, T, "output")
-  val end = System.currentTimeMillis
-  val time = end - start
-  println("computed " + res.size + " enclosures in " + time / 1000.0 + " seconds")
-  UnivariateAffineScalarEnclosure.plot(res.map(_("x")): _*)
-}

@@ -6,7 +6,7 @@ import Expression._
 import Relation._
 import Types._
 
-object Transform {
+trait Transform {
 
   /**
    * Extracts a hybrid automaton embedded as an Acumen class
@@ -109,7 +109,7 @@ object Transform {
     stateVariables: List[String],
     clause: Clause)(implicit rnd: Rounding): List[(Event, Guard, ResetMap)] = {
     clause match {
-      case Clause(source: GroundValue, assertion:Expr, as: List[Action]) => as.flatMap {
+      case Clause(source: GroundValue, assertion: Expr, as: List[Action]) => as.flatMap {
         case IfThenElse(_, _, _ :: _) =>
           sys.error("Handling of else-branches in conditional statements not implemented!")
         case IfThenElse(cond: Expr, as: List[Action], _) => {
@@ -123,14 +123,16 @@ object Transform {
     }
   }
 
-  def getEvent(modeVariable: String, source: GroundValue, as: List[Action]): Event = as.flatMap {
-    case Discretely(Assign(Var(Name(modeVariable, 0)), Lit(target))) =>
-      List(Event(groundValueToMode(source), groundValueToMode(target)))
-    case _ => List()
-  } match {
-    case List(e) => e
-    case _ => sys.error("Each if-branch in conditional statements must contain precisely one assignment to " + modeVariable)
-  }
+  def getEvent(modeVariable: String, source: GroundValue, as: List[Action]): Event =
+    as.flatMap {
+      case Discretely(Assign(Var(Name(mv, 0)), Lit(target))) =>
+        if (mv == modeVariable) List(Event(groundValueToMode(source), groundValueToMode(target)))
+        else List()
+      case _ => List()
+    } match {
+      case List(e) => e
+      case _ => sys.error("Each if-branch in conditional statements must contain precisely one assignment to " + modeVariable)
+    }
 
   def getGuard(cond: Expr)(implicit rnd: Rounding) = acumenExprToPredicate(cond).asInstanceOf[Guard]
 
@@ -145,7 +147,7 @@ object Transform {
 
   def getMode(clause: Clause)(implicit rnd: Rounding): (Mode, Domain, Field) = {
     clause match {
-      case Clause(modeVariable: GroundValue, assertion:Expr, as: List[Action]) => {
+      case Clause(modeVariable: GroundValue, assertion: Expr, as: List[Action]) => {
         val domain = acumenExprToPredicate(assertion).asInstanceOf[Domain]
         val field = getField(as)
         val mode = groundValueToMode(modeVariable)

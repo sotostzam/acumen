@@ -8,6 +8,8 @@ trait Interpreter {
 
   def newTraceModel : AbstractTraceModel
   
+  def generateTraceModel(text: String): AbstractTraceModel = null
+
   type Store
   def repr (s:Store) : CStore
   def fromCStore (cs:CStore, root:CId) : Store
