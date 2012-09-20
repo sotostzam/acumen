@@ -296,7 +296,7 @@ class EnclosurePath() extends PlotEntity {
       lines += new Line2D.Double(toDraw.c, toDraw.d);
     }
     val prevComposite = g.getComposite()
-    g.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.50f))
+    g.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.10f))
     g.fill(area)
     g.setComposite(prevComposite);
     for (line <- lines)
