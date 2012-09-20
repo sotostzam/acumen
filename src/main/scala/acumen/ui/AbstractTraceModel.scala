@@ -35,7 +35,7 @@ class PlotEnclosure(simulator: Boolean, fn: Name, startFrame: Int, column: Int,
 }
 
 trait AbstractTraceModel extends AbstractTableModel {
-
+  
   def getDouble(row:Int, column:Int): Option[Double]
 
   def isEmpty(): Boolean;
@@ -43,4 +43,10 @@ trait AbstractTraceModel extends AbstractTableModel {
   def getTimes(): ArrayBuffer[Double]
 
   def getPlottables(): Iterable[Plottable]
+  
+  def addStore(st:CStore): Unit
+		  
+  def addStores(sts:Iterable[CStore]): Unit
+		  
+  def reset: Unit
 }

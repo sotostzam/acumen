@@ -179,7 +179,16 @@ case class Interval private (
    * notation for closed intervals.
    */
   override def toString = "[" + lo + "," + hi + "]"
+  
+  // TODO improve description
+  /** UNSAFE only to be used for plotting */
+  def loDouble:Double = lo.doubleValue()  
+
+  // TODO improve description
+  /** UNSAFE only to be used for plotting */
+  def hiDouble:Double = hi.doubleValue()  
 }
+
 object Interval {
   import java.math.BigDecimal
   type Real = java.math.BigDecimal

@@ -22,7 +22,7 @@ case class Playing()     extends AppState
 case class Paused()      extends AppState
 
 class AppModel(text: => String) extends Publisher {
-
+  
   private sealed abstract class PAppState
   private case class PStopped()                                extends PAppState
   private case class PInitialized(prog:Prog, store:CStore)     extends PAppState
@@ -41,7 +41,7 @@ class AppModel(text: => String) extends Publisher {
 
   /* ---- state variables ---- */
 
-  val tmodel = new TraceModel
+  val tmodel = interpreter.newTraceModel
   private var appState : PAppState = PStopped()
 
   /* ------ application logic --------- */
@@ -115,7 +115,7 @@ class AppModel(text: => String) extends Publisher {
     val ast = Parser.run(Parser.prog, text)
     val des = Desugarer.run(ast)
     val I = interpreter
-    val(prog, store) = I.init(des)
+    val (prog, store) = I.init(des)
     val cstore = I.repr(store)
     tmodel.addStore(cstore)
     setState(PInitialized(prog, cstore))

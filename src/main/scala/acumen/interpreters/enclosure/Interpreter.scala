@@ -4,16 +4,19 @@ package enclosure
 
 import util.Canonical._
 import Types._
+import ui.TraceModel
 
 /**
  * Proxy for the enclosure-based solver.
  */
 object Interpreter extends acumen.Interpreter {
 
-  type Store = AffineEnclosure
-
+  val newTraceModel = new TraceModel
+  
   //TODO Get this from the Simulator object
   implicit val rnd = Rounding(10)
+
+  type Store = Seq[UnivariateAffineEnclosure]
 
   val emptyStore: CStore = Map.empty
 
@@ -21,16 +24,13 @@ object Interpreter extends acumen.Interpreter {
   def repr(s: Store): CStore = emptyStore
 
   //TODO Implement "fromCStore" for enclosure interpreter
-  def fromCStore(cs: CStore, root: CId): Store =
-    AffineEnclosure(Box.empty, Box.empty)
+  def fromCStore(cs: CStore, root: CId): Store = null
 
   //TODO Implement "init" for enclosure interpreter
-  def init(prog: Prog): (Prog, Store) =
-    (prog, AffineEnclosure(Box.empty, Box.empty))
+  def init(prog: Prog): (Prog, Store) = (prog, null)
 
   //TODO Implement "step" for enclosure interpreter
-  def step(p: Prog, st: Store): Option[Store] =
-    Some(AffineEnclosure(Box.empty, Box.empty))
+  def step(p: Prog, st: Store): Option[Store] = Some(null)
 
   // Simulator object
   def magicClassTxt =

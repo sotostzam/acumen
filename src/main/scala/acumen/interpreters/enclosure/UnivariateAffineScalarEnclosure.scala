@@ -2,6 +2,7 @@ package acumen.interpreters.enclosure
 
 import Interval._
 import acumen.interpreters.enclosure.solver.Plotter
+import acumen.ui.Enclosure
 
 /**
  * Type to represent functions of a single variable.
@@ -22,7 +23,7 @@ case class UnivariateAffineScalarEnclosure private[enclosure] (
 
   /** The high bound enclosure of this enclosure. */
   def high = UnivariateAffineScalarEnclosure(domain, normalizedDomain, constant.high, coefficient.high)
-
+  
   // FIXME commented out assertion FOR_NOW to be able to plot
   /**
    * Evaluate the enclosure at the interval x.
@@ -196,6 +197,20 @@ case class UnivariateAffineScalarEnclosure private[enclosure] (
   }
   def /(that: Interval)(implicit rnd: Rounding): UnivariateAffineScalarEnclosure =
     UnivariateAffineScalarEnclosure(domain, normalizedDomain, constant / that, coefficient / that)
+    
+  // TODO improve description
+  /** For plotting */
+  def toEnclosure: Enclosure = {
+    val lo = low
+    val hi = high
+    val left = domain.low
+    val right = domain.high
+    val loLeft: Double = lo(left).loDouble
+    val hiLeft: Double = hi(left).hiDouble
+    val loRight: Double = lo(right).loDouble
+    val hiRight: Double = hi(right).hiDouble
+    Enclosure(loLeft, hiLeft, loRight, hiRight)
+  }
 
 }
 

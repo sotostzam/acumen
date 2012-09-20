@@ -45,4 +45,9 @@ class IntervalTraceModel(tm: TraceModel) extends AbstractTraceModel {
     ret
   }
   
+  def addStore(st:CStore) = {}
+  
+  def addStores(sts:Iterable[CStore]) = {}
+  
+  def reset = {}
 }

@@ -2,9 +2,12 @@ package acumen
 
 import Stream._
 import util.Canonical._
+import acumen.ui.AbstractTraceModel
 
 trait Interpreter {
 
+  def newTraceModel : AbstractTraceModel
+  
   type Store
   def repr (s:Store) : CStore
   def fromCStore (cs:CStore, root:CId) : Store
