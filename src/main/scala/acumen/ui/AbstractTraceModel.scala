@@ -44,9 +44,9 @@ trait AbstractTraceModel extends AbstractTableModel {
 
   def getPlottables(): Iterable[Plottable]
   
-  def addStore(st:CStore): Unit
+  def addStore(st:CStore): Unit = {}
 		  
-  def addStores(sts:Iterable[CStore]): Unit
+  def addStores(sts:Iterable[CStore]): Unit = {}
 		  
-  def reset: Unit
+  def reset: Unit = {}
 }

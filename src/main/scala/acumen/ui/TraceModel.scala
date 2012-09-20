@@ -39,10 +39,10 @@ class TraceModel extends AbstractTraceModel {
     }
   }
 
-  def addStore(st:CStore) = 
+  override def addStore(st:CStore) = 
     addStores(List(st))
 
-  def addStores(sts:Iterable[CStore]) = {
+  override def addStores(sts:Iterable[CStore]) = {
     def compIds(ido1:(CId,_), ido2:(CId,_)) = ido1._1 < ido2._1
     def compFields(p1:(Name,CValue),p2:(Name,CValue)) = 
       Ordering[(String,Int)] lt ((p1._1.x, p1._1.primes),(p2._1.x, p2._1.primes))
@@ -106,7 +106,7 @@ class TraceModel extends AbstractTraceModel {
     } catch { case _ => "" }
   }
 
-  def reset = {
+  override def reset = {
     stores = new ArrayBuffer[(CId,Name,Option[Int],Int,ArrayBuffer[CValue])]
     classes = new HashMap[CId,ClassName]
     indexes = new HashMap[(CId,Name,Option[Int]),Int]
