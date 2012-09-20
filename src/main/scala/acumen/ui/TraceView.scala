@@ -235,6 +235,70 @@ class MyPath2D() extends PlotEntity {
   }
 }
 
+class EnclosurePath() extends PlotEntity {
+  private var p1  = new Point2D.Double(0,0)
+  private var p2  = new Point2D.Double(0,0)
+  case class PolyPoints(a:Point2D.Double, b:Point2D.Double,
+                        c:Point2D.Double, d:Point2D.Double) 
+  {
+    def transform(tr:AffineTransform, res: PolyPoints) = {
+      tr.transform(a,res.a)
+      tr.transform(b,res.b)
+      tr.transform(c,res.c)
+      tr.transform(d,res.d)
+    }
+  }
+  private var polys = new ArrayBuffer[PolyPoints]
+
+  def x1 = p1.getX
+  def y1 = p1.getY
+  def x2 = p2.getX
+  def y2 = p2.getY
+
+  private def update(x:Double, y:Double) = {
+    val minX = math.min(x1, x)
+    val maxX = math.max(x2, x)
+    val minY = math.min(y1, y)
+    val maxY = math.max(y2, y)
+    p1 = new Point2D.Double(minX, minY)
+    p2 = new Point2D.Double(maxX, maxY)
+  }
+  def add(x0: Double, x1:Double, ys: Enclosure) {
+    polys += PolyPoints(new Point2D.Double(x0,ys.hiLeft),
+                        new Point2D.Double(x1,ys.hiRight),
+                        new Point2D.Double(x1,ys.loRight),
+                        new Point2D.Double(x0,ys.loLeft))
+    update(x0,ys.hiLeft);
+    update(x1,ys.hiRight);
+    update(x1,ys.loRight);
+    update(x0,ys.loLeft);
+  }
+  def draw(g:Graphics2D, tr:AffineTransform) = {
+    for (polyPoints <- polys) {
+      val toDraw = PolyPoints(new Point2D.Double,
+                              new Point2D.Double,
+                              new Point2D.Double,
+                              new Point2D.Double);
+      polyPoints.transform(tr, toDraw)
+      g.draw(new Line2D.Double(toDraw.a, toDraw.b))
+      g.draw(new Line2D.Double(toDraw.c, toDraw.d))
+    }
+  }
+  def drawDots(g:Graphics2D, tr:AffineTransform) = draw(g,tr)
+
+  def transform(tr:AffineTransform) = {
+    for (p <- polys) p.transform(tr,p)
+    tr.transform(p1, p1)
+    tr.transform(p2, p2)
+    val minX = math.min(x1, x2)
+    val maxX = math.max(x1, x2)
+    val minY = math.min(y1, y2)
+    val maxY = math.max(y1, y2)
+    p1 = new Point2D.Double(minX, minY)
+    p2 = new Point2D.Double(maxX, maxY)
+  }
+}
+
 case class PointedAtEvent(time:Double, name:String, value:String) extends Event
 
 class Plotter(
@@ -553,6 +617,14 @@ class Plotter(
             }
 
             polys += line
+          }
+          case p:PlotEnclosure => {
+            val path = new EnclosurePath
+            for (f <- 1 until p.values.size;
+                 val frame = s + f) {
+              path.add(time(frame-1), time(frame), p.values(f))
+            }
+            polys += path
           }
         }
       }
