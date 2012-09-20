@@ -19,10 +19,13 @@ import java.awt.BasicStroke
 import java.awt.RenderingHints
 import java.awt.GraphicsEnvironment
 import java.awt.Shape
+import java.awt.AlphaComposite
+import java.awt.geom.Area
 import java.awt.geom.Point2D
 import java.awt.geom.Line2D
 import java.awt.geom.Rectangle2D
 import java.awt.geom.Ellipse2D
+import java.awt.geom.Path2D
 import java.awt.geom.AffineTransform
 import java.awt.image.BufferedImage
 import javax.swing.event.TableModelEvent
@@ -274,15 +277,30 @@ class EnclosurePath() extends PlotEntity {
     update(x0,ys.loLeft);
   }
   def draw(g:Graphics2D, tr:AffineTransform) = {
+    val area = new Area();
+    val lines = new ArrayBuffer[Line2D.Double];
     for (polyPoints <- polys) {
       val toDraw = PolyPoints(new Point2D.Double,
                               new Point2D.Double,
                               new Point2D.Double,
                               new Point2D.Double);
       polyPoints.transform(tr, toDraw)
-      g.draw(new Line2D.Double(toDraw.a, toDraw.b))
-      g.draw(new Line2D.Double(toDraw.c, toDraw.d))
+      val polyPath = new Path2D.Double;
+      polyPath.moveTo(toDraw.a.getX(),toDraw.a.getY())
+      polyPath.lineTo(toDraw.b.getX(),toDraw.b.getY())
+      polyPath.lineTo(toDraw.c.getX(),toDraw.c.getY())
+      polyPath.lineTo(toDraw.d.getX(),toDraw.d.getY())
+      polyPath.closePath()
+      area.add(new Area(polyPath))
+      lines += new Line2D.Double(toDraw.a, toDraw.b);
+      lines += new Line2D.Double(toDraw.c, toDraw.d);
     }
+    val prevComposite = g.getComposite()
+    g.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.50f))
+    g.fill(area)
+    g.setComposite(prevComposite);
+    for (line <- lines)
+      g.draw(line)
   }
   def drawDots(g:Graphics2D, tr:AffineTransform) = draw(g,tr)
 
@@ -622,7 +640,8 @@ class Plotter(
             val path = new EnclosurePath
             for (f <- 1 until p.values.size;
                  val frame = s + f) {
-              path.add(time(frame-1), time(frame), p.values(f))
+              if (time(frame-1) != time(frame))
+                path.add(time(frame-1), time(frame), p.values(f))
             }
             polys += path
           }
