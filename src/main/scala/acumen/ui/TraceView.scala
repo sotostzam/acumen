@@ -162,7 +162,19 @@ class TraceView(
     def setPlotStyle(ps:PlotStyle) = plotter.setPlotStyle(ps)
 }
 
-class MyPath2D() {
+sealed trait PlotEntity { // FIXME: BetterName
+  def x1 : Double
+  def y1 : Double
+  def x2 : Double
+  def y2 : Double
+  def width = x2 - x1
+  def height = y2 - y1
+  def draw(g:Graphics2D, tr:AffineTransform);
+  def drawDots(g:Graphics2D, tr:AffineTransform);
+  def transform(tr:AffineTransform);
+}
+
+class MyPath2D() extends PlotEntity {
   private var p1   : Point2D.Double = null
   private var p2   : Point2D.Double = null
   private var path : ArrayBuffer[Point2D.Double] = null
@@ -171,8 +183,6 @@ class MyPath2D() {
   def y1 = p1.getY
   def x2 = p2.getX
   def y2 = p2.getY
-  def width = x2 - x1
-  def height = y2 - y1
 
   private def update(x:Double, y:Double) = {
     val minX = math.min(x1, x)
@@ -238,8 +248,7 @@ class Plotter(
   private val selectionFillColor   = new Color(165, 189, 231, 150)
  
   private var buffer : BufferedImage = null
-  type Poly = Pair[MyPath2D, MyPath2D];
-  private var polys = new ArrayBuffer[Poly]()
+  private var polys = new ArrayBuffer[PlotEntity]()
   private var axes  = new ArrayBuffer[MyPath2D]()
   private var boxes = new ArrayBuffer[Rectangle2D]()
   private var hoveredBox : Option[Int] = None
@@ -264,7 +273,7 @@ class Plotter(
 
   def clear = {
     buffer = null
-    polys = new ArrayBuffer[Poly]()
+    polys = new ArrayBuffer[PlotEntity]()
     axes  = new ArrayBuffer[MyPath2D]()
     boxes = new ArrayBuffer[Rectangle2D]()
     hoveredBox = None
@@ -404,19 +413,12 @@ class Plotter(
       bg.setStroke(new BasicStroke(1.0f))
       plotStyle match {
         case Dots() => 
-          p._1.drawDots(bg, tr) 
-          if (p._2 != null)
-            p._2.drawDots(bg, tr) 
+          p.drawDots(bg, tr) 
         case Lines() => 
-          p._1.draw(bg, tr)
-          if (p._2 != null)
-            p._2.draw(bg, tr) 
+          p.draw(bg, tr)
         case Both() =>
-          p._1.draw(bg, tr)
-          p._1.drawDots(bg, tr) 
-          if (p._2 != null)
-            p._2.draw(bg, tr) 
-            p._2.drawDots(bg, tr) 
+          p.draw(bg, tr)
+          p.drawDots(bg, tr) 
       }
     }
 
@@ -499,7 +501,7 @@ class Plotter(
 
   def redraw = {
   
-    polys = new ArrayBuffer[Poly]
+    polys = new ArrayBuffer[PlotEntity]
     axes  = new ArrayBuffer[MyPath2D]
     boxes = new ArrayBuffer[Rectangle2D]
     yTransformations = new ArrayBuffer[(Double,Double)]
@@ -521,18 +523,26 @@ class Plotter(
 
         p match {
           case p:PlotDoubles => {
-            val line = new Poly(new MyPath2D(), null)
-            line._1 startAt (time(s), p.values(0))
+            val line = new MyPath2D();
+            line startAt (time(s), p.values(0))
             
             for (f <- 0 until p.values.size;
                  val frame = s + f) {
-              line._1 goTo (time(frame), p.values(f))
+              line goTo (time(frame), p.values(f))
             }
 
             polys += line
           }
           case p:PlotIntervals => {
-            val line = new Poly(new MyPath2D(), new MyPath2D())
+            val line = new Tuple2[MyPath2D,MyPath2D](new MyPath2D(), new MyPath2D()) with PlotEntity {
+              def x1 = _1.x1
+              def x2 = _1.x2
+              def y1 = _1.y1
+              def y2 = _1.y2
+              def draw(g:Graphics2D, tr:AffineTransform) = {_1.draw(g,tr); _2.draw(g,tr)}
+              def drawDots(g:Graphics2D, tr:AffineTransform) = {_1.drawDots(g,tr); _2.drawDots(g,tr);}
+              def transform(tr:AffineTransform) = {_1.transform(tr); _2.transform(tr)}
+            } 
             line._1 startAt (time(s), p.values(0).hi)
             line._2 startAt (time(s), p.values(0).lo)
            
@@ -549,23 +559,19 @@ class Plotter(
       //normalize (scale)
       for (((p,a),i) <- polys zip axes zip Stream.from(0)) {
         var scale = 1.0
-        if (p._1.height > 1e-4) {
-          scale = -1.0 / p._1.height
+        if (p.height > 1e-4) {
+          scale = -1.0 / p.height
           val tr1 = AffineTransform.getScaleInstance(1.0, scale)
-          p._1.transform(tr1)
-          if (p._2 != null)
-            p._2.transform(tr1)
+          p.transform(tr1)
           a.transform(tr1)
         }
-        val shift = i*1.2 - p._1.y1
+        val shift = i*1.2 - p.y1
         val tr2 = AffineTransform.getTranslateInstance(0.0, shift)
-        p._1.transform(tr2)
-        if (p._2 != null)
-          p._2.transform(tr2)
+        p.transform(tr2)
         a.transform(tr2)
 
         yTransformations += ((scale, shift))
-        boxes += new Rectangle2D.Double(p._1.x1, i*1.2, p._1.width, 1.0)
+        boxes += new Rectangle2D.Double(p.x1, i*1.2, p.width, 1.0)
       }
       boundingBox = (time(time.size-1), 1.2*polys.size - 0.2)
     }
