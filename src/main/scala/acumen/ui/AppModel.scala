@@ -32,16 +32,25 @@ class AppModel(text: => String) extends Publisher {
   /* The currently used interpreter. Purely Functional (Reference) is used as default. */
   private var interpreter : Interpreter = interpreters.reference.Interpreter
 
+  private var isEnclosure : Boolean = false
+
   /** Set the currently used interpreter. */
   def setInterpreter(i:Interpreter) = {
     // TODO Figure out what the below did, and if it needs to be handled in some other way
 	//interpreter.map(_.dispose) 
     interpreter = i
+    var tm = interpreter.newTraceModel
+    isEnclosure = tm.isInstanceOf[EnclosureTraceModel]
+
+    if (tm == null) {
+    }
+
+    tmodel.setTraceModel(tm)
   }
 
   /* ---- state variables ---- */
 
-  val tmodel = interpreter.newTraceModel
+  val tmodel = new TraceModelProxy(interpreter.newTraceModel)
   private var appState : PAppState = PStopped()
 
   /* ------ application logic --------- */
@@ -112,13 +121,17 @@ class AppModel(text: => String) extends Publisher {
 
   private def init : Unit = {
     tmodel.reset
-    val ast = Parser.run(Parser.prog, text)
-    val des = Desugarer.run(ast)
-    val I = interpreter
-    val (prog, store) = I.init(des)
-    val cstore = I.repr(store)
-    tmodel.addStore(cstore)
-    setState(PInitialized(prog, cstore))
+    if (isEnclosure) {
+      setState(PInitialized(null, null))
+    } else {
+      val ast = Parser.run(Parser.prog, text)
+      val des = Desugarer.run(ast)
+      val I = interpreter
+      val (prog, store) = I.init(des)
+      val cstore = I.repr(store)
+      tmodel.addStore(cstore)
+      setState(PInitialized(prog, cstore))
+    }
   }
 
   def reset : Unit = {
@@ -145,6 +158,8 @@ class AppModel(text: => String) extends Publisher {
   }
 
   def pause : Unit = {
+    if (isEnclosure)
+      return
     appState match {
       case PPlaying(p,s,c) => {
         setState(PPaused(p,
@@ -158,6 +173,8 @@ class AppModel(text: => String) extends Publisher {
   }
 
   def step : Unit = withErrorReporting {
+    if (isEnclosure)
+      return
     def go(p:Prog, s:CStore) = {
       val I = interpreter
       val mstore = I.step(p, I.fromCStore(s)) map I.repr
@@ -190,6 +207,7 @@ class AppModel(text: => String) extends Publisher {
   case object Stop
   case class Chunk(css:Iterable[CStore])
   case class Done(css:Iterable[CStore])
+  case class EnclosureDone(tm:AbstractTraceModel)
 
   private class Producer(p:Prog, st:CStore, consumer:Actor) extends Actor {
     var buffer = Queue.empty[CStore]
@@ -199,7 +217,12 @@ class AppModel(text: => String) extends Publisher {
         consumer ! Error(e); exit 
       }
     }
-    def act = {
+    def act : Unit = {
+      if (isEnclosure) {
+        val tm = interpreters.enclosure.Interpreter.generateTraceModel(text)
+        consumer ! EnclosureDone(tm)
+        return
+      }
       val I = interpreter
       val trace = handle { I.loop(p, I.fromCStore(st)) map I.repr }
       val iter = trace.iterator
@@ -252,6 +275,11 @@ class AppModel(text: => String) extends Publisher {
             flush(css)
           case Done(css) =>
             flush(css)
+            stop
+            exit
+          case EnclosureDone(tm) =>
+            tmodel.setTraceModel(tm)
+            tmodel.fireTableStructureChanged()
             stop
             exit
           case Error(e) =>

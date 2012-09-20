@@ -10,8 +10,6 @@ import acumen.interpreters.enclosure.UnivariateAffineScalarEnclosure
 
 class EnclosureTraceModel(es: Seq[UnivariateAffineEnclosure]) extends AbstractTraceModel {
 
-  override def addTableModelListener(obj: TableModelListener) = {}
-
   override def getRowCount() = es.size + 1
   override def getColumnCount() = es.head.varNames.size
 
