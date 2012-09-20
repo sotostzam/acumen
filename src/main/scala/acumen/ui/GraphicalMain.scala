@@ -94,6 +94,7 @@ object GraphicalMain extends SimpleSwingApplication {
 
   val traceModel = appModel.tmodel
   //val traceModel = new IntervalTraceModel(appModel.tmodel)
+  //val traceModel = new FakeEnclosureTraceModel(appModel.tmodel)
 
   /* 2 right pane */
   val traceTable = new Table { 

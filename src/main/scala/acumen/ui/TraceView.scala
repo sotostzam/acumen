@@ -19,10 +19,13 @@ import java.awt.BasicStroke
 import java.awt.RenderingHints
 import java.awt.GraphicsEnvironment
 import java.awt.Shape
+import java.awt.AlphaComposite
+import java.awt.geom.Area
 import java.awt.geom.Point2D
 import java.awt.geom.Line2D
 import java.awt.geom.Rectangle2D
 import java.awt.geom.Ellipse2D
+import java.awt.geom.Path2D
 import java.awt.geom.AffineTransform
 import java.awt.image.BufferedImage
 import javax.swing.event.TableModelEvent
@@ -162,7 +165,19 @@ class TraceView(
     def setPlotStyle(ps:PlotStyle) = plotter.setPlotStyle(ps)
 }
 
-class MyPath2D() {
+sealed trait PlotEntity { // FIXME: BetterName
+  def x1 : Double
+  def y1 : Double
+  def x2 : Double
+  def y2 : Double
+  def width = x2 - x1
+  def height = y2 - y1
+  def draw(g:Graphics2D, tr:AffineTransform);
+  def drawDots(g:Graphics2D, tr:AffineTransform);
+  def transform(tr:AffineTransform);
+}
+
+class MyPath2D() extends PlotEntity {
   private var p1   : Point2D.Double = null
   private var p2   : Point2D.Double = null
   private var path : ArrayBuffer[Point2D.Double] = null
@@ -171,8 +186,6 @@ class MyPath2D() {
   def y1 = p1.getY
   def x2 = p2.getX
   def y2 = p2.getY
-  def width = x2 - x1
-  def height = y2 - y1
 
   private def update(x:Double, y:Double) = {
     val minX = math.min(x1, x)
@@ -225,6 +238,85 @@ class MyPath2D() {
   }
 }
 
+class EnclosurePath() extends PlotEntity {
+  private var p1  = new Point2D.Double(0,0)
+  private var p2  = new Point2D.Double(0,0)
+  case class PolyPoints(a:Point2D.Double, b:Point2D.Double,
+                        c:Point2D.Double, d:Point2D.Double) 
+  {
+    def transform(tr:AffineTransform, res: PolyPoints) = {
+      tr.transform(a,res.a)
+      tr.transform(b,res.b)
+      tr.transform(c,res.c)
+      tr.transform(d,res.d)
+    }
+  }
+  private var polys = new ArrayBuffer[PolyPoints]
+
+  def x1 = p1.getX
+  def y1 = p1.getY
+  def x2 = p2.getX
+  def y2 = p2.getY
+
+  private def update(x:Double, y:Double) = {
+    val minX = math.min(x1, x)
+    val maxX = math.max(x2, x)
+    val minY = math.min(y1, y)
+    val maxY = math.max(y2, y)
+    p1 = new Point2D.Double(minX, minY)
+    p2 = new Point2D.Double(maxX, maxY)
+  }
+  def add(x0: Double, x1:Double, ys: Enclosure) {
+    polys += PolyPoints(new Point2D.Double(x0,ys.hiLeft),
+                        new Point2D.Double(x1,ys.hiRight),
+                        new Point2D.Double(x1,ys.loRight),
+                        new Point2D.Double(x0,ys.loLeft))
+    update(x0,ys.hiLeft);
+    update(x1,ys.hiRight);
+    update(x1,ys.loRight);
+    update(x0,ys.loLeft);
+  }
+  def draw(g:Graphics2D, tr:AffineTransform) = {
+    val area = new Area();
+    val lines = new ArrayBuffer[Line2D.Double];
+    for (polyPoints <- polys) {
+      val toDraw = PolyPoints(new Point2D.Double,
+                              new Point2D.Double,
+                              new Point2D.Double,
+                              new Point2D.Double);
+      polyPoints.transform(tr, toDraw)
+      val polyPath = new Path2D.Double;
+      polyPath.moveTo(toDraw.a.getX(),toDraw.a.getY())
+      polyPath.lineTo(toDraw.b.getX(),toDraw.b.getY())
+      polyPath.lineTo(toDraw.c.getX(),toDraw.c.getY())
+      polyPath.lineTo(toDraw.d.getX(),toDraw.d.getY())
+      polyPath.closePath()
+      area.add(new Area(polyPath))
+      lines += new Line2D.Double(toDraw.a, toDraw.b);
+      lines += new Line2D.Double(toDraw.c, toDraw.d);
+    }
+    val prevComposite = g.getComposite()
+    g.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.50f))
+    g.fill(area)
+    g.setComposite(prevComposite);
+    for (line <- lines)
+      g.draw(line)
+  }
+  def drawDots(g:Graphics2D, tr:AffineTransform) = draw(g,tr)
+
+  def transform(tr:AffineTransform) = {
+    for (p <- polys) p.transform(tr,p)
+    tr.transform(p1, p1)
+    tr.transform(p2, p2)
+    val minX = math.min(x1, x2)
+    val maxX = math.max(x1, x2)
+    val minY = math.min(y1, y2)
+    val maxY = math.max(y1, y2)
+    p1 = new Point2D.Double(minX, minY)
+    p2 = new Point2D.Double(maxX, maxY)
+  }
+}
+
 case class PointedAtEvent(time:Double, name:String, value:String) extends Event
 
 class Plotter(
@@ -238,8 +330,7 @@ class Plotter(
   private val selectionFillColor   = new Color(165, 189, 231, 150)
  
   private var buffer : BufferedImage = null
-  type Poly = Pair[MyPath2D, MyPath2D];
-  private var polys = new ArrayBuffer[Poly]()
+  private var polys = new ArrayBuffer[PlotEntity]()
   private var axes  = new ArrayBuffer[MyPath2D]()
   private var boxes = new ArrayBuffer[Rectangle2D]()
   private var hoveredBox : Option[Int] = None
@@ -264,7 +355,7 @@ class Plotter(
 
   def clear = {
     buffer = null
-    polys = new ArrayBuffer[Poly]()
+    polys = new ArrayBuffer[PlotEntity]()
     axes  = new ArrayBuffer[MyPath2D]()
     boxes = new ArrayBuffer[Rectangle2D]()
     hoveredBox = None
@@ -404,19 +495,12 @@ class Plotter(
       bg.setStroke(new BasicStroke(1.0f))
       plotStyle match {
         case Dots() => 
-          p._1.drawDots(bg, tr) 
-          if (p._2 != null)
-            p._2.drawDots(bg, tr) 
+          p.drawDots(bg, tr) 
         case Lines() => 
-          p._1.draw(bg, tr)
-          if (p._2 != null)
-            p._2.draw(bg, tr) 
+          p.draw(bg, tr)
         case Both() =>
-          p._1.draw(bg, tr)
-          p._1.drawDots(bg, tr) 
-          if (p._2 != null)
-            p._2.draw(bg, tr) 
-            p._2.drawDots(bg, tr) 
+          p.draw(bg, tr)
+          p.drawDots(bg, tr) 
       }
     }
 
@@ -499,7 +583,7 @@ class Plotter(
 
   def redraw = {
   
-    polys = new ArrayBuffer[Poly]
+    polys = new ArrayBuffer[PlotEntity]
     axes  = new ArrayBuffer[MyPath2D]
     boxes = new ArrayBuffer[Rectangle2D]
     yTransformations = new ArrayBuffer[(Double,Double)]
@@ -521,18 +605,26 @@ class Plotter(
 
         p match {
           case p:PlotDoubles => {
-            val line = new Poly(new MyPath2D(), null)
-            line._1 startAt (time(s), p.values(0))
+            val line = new MyPath2D();
+            line startAt (time(s), p.values(0))
             
             for (f <- 0 until p.values.size;
                  val frame = s + f) {
-              line._1 goTo (time(frame), p.values(f))
+              line goTo (time(frame), p.values(f))
             }
 
             polys += line
           }
           case p:PlotIntervals => {
-            val line = new Poly(new MyPath2D(), new MyPath2D())
+            val line = new Tuple2[MyPath2D,MyPath2D](new MyPath2D(), new MyPath2D()) with PlotEntity {
+              def x1 = _1.x1
+              def x2 = _1.x2
+              def y1 = _1.y1
+              def y2 = _1.y2
+              def draw(g:Graphics2D, tr:AffineTransform) = {_1.draw(g,tr); _2.draw(g,tr)}
+              def drawDots(g:Graphics2D, tr:AffineTransform) = {_1.drawDots(g,tr); _2.drawDots(g,tr);}
+              def transform(tr:AffineTransform) = {_1.transform(tr); _2.transform(tr)}
+            } 
             line._1 startAt (time(s), p.values(0).hi)
             line._2 startAt (time(s), p.values(0).lo)
            
@@ -544,28 +636,33 @@ class Plotter(
 
             polys += line
           }
+          case p:PlotEnclosure => {
+            val path = new EnclosurePath
+            for (f <- 1 until p.values.size;
+                 val frame = s + f) {
+              if (time(frame-1) != time(frame))
+                path.add(time(frame-1), time(frame), p.values(f))
+            }
+            polys += path
+          }
         }
       }
       //normalize (scale)
       for (((p,a),i) <- polys zip axes zip Stream.from(0)) {
         var scale = 1.0
-        if (p._1.height > 1e-4) {
-          scale = -1.0 / p._1.height
+        if (p.height > 1e-4) {
+          scale = -1.0 / p.height
           val tr1 = AffineTransform.getScaleInstance(1.0, scale)
-          p._1.transform(tr1)
-          if (p._2 != null)
-            p._2.transform(tr1)
+          p.transform(tr1)
           a.transform(tr1)
         }
-        val shift = i*1.2 - p._1.y1
+        val shift = i*1.2 - p.y1
         val tr2 = AffineTransform.getTranslateInstance(0.0, shift)
-        p._1.transform(tr2)
-        if (p._2 != null)
-          p._2.transform(tr2)
+        p.transform(tr2)
         a.transform(tr2)
 
         yTransformations += ((scale, shift))
-        boxes += new Rectangle2D.Double(p._1.x1, i*1.2, p._1.width, 1.0)
+        boxes += new Rectangle2D.Double(p.x1, i*1.2, p.width, 1.0)
       }
       boundingBox = (time(time.size-1), 1.2*polys.size - 0.2)
     }
