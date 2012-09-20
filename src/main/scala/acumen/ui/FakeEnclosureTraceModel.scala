@@ -7,7 +7,7 @@ import Pretty._
 import collection.mutable.ArrayBuffer
 import javax.swing.event.TableModelListener
 
-class EnclosureTraceModel(tm: TraceModel) extends AbstractTraceModel {
+class FakeEnclosureTraceModel(tm: TraceModel) extends AbstractTraceModel {
 
   override def addTableModelListener(obj:TableModelListener) = tm.addTableModelListener(obj)
  
