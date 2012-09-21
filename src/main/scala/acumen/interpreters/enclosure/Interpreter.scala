@@ -5,6 +5,7 @@ package enclosure
 import util.Canonical._
 import Types._
 import ui.TraceModel
+import acumen.interpreters.Common.classDef
 import acumen.interpreters.enclosure.solver.Solver
 import acumen.interpreters.enclosure.solver.HybridSystem
 import acumen.ui.EnclosureTraceModel
@@ -23,7 +24,7 @@ object Interpreter extends acumen.Interpreter with Solver with Transform {
   //FIXME do this properly
   override def generateTraceModel(text: String): EnclosureTraceModel = {
     val prog = Parser.run(Parser.prog, text)
-    val (h: HybridSystem, uis) = extract(prog.defs(0))
+    val (h: HybridSystem, uis) = extract(classDef(ClassName("Main"), prog))
     val H = h
     val Ss = Set(uis)
 
@@ -45,26 +46,17 @@ object Interpreter extends acumen.Interpreter with Solver with Transform {
 
   val emptyStore: CStore = Map.empty
 
-  //TODO Implement "repr" for enclosure interpreter
   def repr(s: Store): CStore = emptyStore
 
-  //TODO Implement "fromCStore" for enclosure interpreter
   def fromCStore(cs: CStore, root: CId): Store = null
 
-  //TODO Implement "init" for enclosure interpreter
   def init(prog: Prog): (Prog, Store) = (prog, null)
 
-  //TODO Implement "step" for enclosure interpreter
   def step(p: Prog, st: Store): Option[Store] = Some(null)
 
   // Simulator object
   def magicClassTxt =
-    """
-    class Simulator(
-    time, timeStep, endTime, stepType, lastCreatedId,
-    minTimeStep, maxTimeStep 
-    ) end
-    """
+    """class Simulator(time, timeStep, endTime, stepType, lastCreatedId) end"""
   def initStoreTxt =
     """#0.0 { className = Simulator, parent = #0, time = 0.0, timeStep = 0.01, 
               endTime = 10.0, stepType = @Discrete, nextChild = 0,
@@ -75,13 +67,63 @@ object Interpreter extends acumen.Interpreter with Solver with Transform {
 
 }
 
+object BBA extends App with Transform {
 
+  val des =
+    """
+class Main(simulator)
+  private mode = ("Fly"); x = (1); x' = (0); x'' = (0) end
+  switch ((self).mode)
+    case "Fly" assert (((x) >= (0)))
+      if ((((((self).x) < (0))) && ((((self).x') < (0)))))
+        ((self).x') = (-(((self).x')));
+        ((self).mode) = ("Fly")
+      else 
+      end;
+      ((self).x'') =[t] (-9.8);
+      ((self).x') =[i] ((self).x'');
+      ((self).x) =[i] ((self).x')
+  end
+end
+"""
 
+  val prog = Parser.run(Parser.prog,des)
+  
+  println(prog)
+  
+  implicit val rnd = Rounding(10)
+  
+  val (h,ic) = extract(classDef(ClassName("Main"),prog))
+    
+  println(h)
 
+}
 
+object Ticker extends App with Transform {
 
+  val des = """
+class Main(simulator)
+  private mode = (0); x = (1); x' = (-1) end
+  switch ((self).mode)
+    case 0 assert (((x) >= (0)))
+      ((self).x') =[t] (-1);
+      ((self).x) =[i] ((self).x');
+      if ((((self).x) <= (0)))
+        ((self).x) = (1); ((self).mode) = (0)
+      else 
+      end
+  end
+end 
+"""
 
+  val prog = Parser.run(Parser.prog,des)
+  
+  println(prog)
+  
+  implicit val rnd = Rounding(10)
+  
+  val (h,ic) = extract(classDef(ClassName("Main"),prog))
+    
+  println(h)
 
-
-
-
+}

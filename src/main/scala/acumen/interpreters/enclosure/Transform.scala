@@ -23,6 +23,10 @@ trait Transform {
    * The automaton graph is represented as a single switch statement
    * with the variable that is switched on acting as a mode designator.
    *
+   * The domain invariant of the mode is declared by the 'assert' keyword
+   * which may be provided after the value matched on in the case clause.
+   * Omitted assertions are parsed as constant 'true' invariants.
+   *
    * Each case in the switch statement corresponds to a node (a mode)
    * in the automaton.
    *
@@ -57,7 +61,8 @@ trait Transform {
         body match {
           case List(stateMachine) => {
             stateMachine match {
-              case Switch(Var(Name(modeVariable, 0)), clauses: List[Clause]) =>
+              //              case Switch(Var(Name(modeVariable, 0)), clauses: List[Clause]) =>
+              case Switch(Dot(Var(Name(self, 0)), Name(modeVariable, 0)), clauses: List[Clause]) =>
                 val hybridSystem = getHybridSystem(modeVariable, stateVariables, clauses)
                 val uncertainInitialState = getInitialState(modeVariable, priv)
                 (hybridSystem, uncertainInitialState)
@@ -125,7 +130,7 @@ trait Transform {
 
   def getEvent(modeVariable: String, source: GroundValue, as: List[Action]): Event =
     as.flatMap {
-      case Discretely(Assign(Var(Name(mv, 0)), Lit(target))) =>
+      case Discretely(Assign(Dot(Var(Name(self, 0)), Name(mv, 0)), Lit(target))) =>
         if (mv == modeVariable) List(Event(groundValueToMode(source), groundValueToMode(target)))
         else List()
       case _ => List()
@@ -163,10 +168,22 @@ trait Transform {
     case GStr(s) => s
   })
 
-  def getField(as: List[Action])(implicit rnd: Rounding) = Field(as.flatMap {
-    case Continuously(Equation(Var(Name(name, 1)), rhs)) => List((name, rhs))
-    case _ => List()
-  }.toMap.mapValues(acumenExprToExpression(_)))
+  //  def getField(as: List[Action])(implicit rnd: Rounding) = Field(as.flatMap {
+  //    case Continuously(Equation(Var(Name(name, 1)), rhs)) => List((name, rhs))
+  //    case _ => List()
+  //  }.toMap.mapValues(acumenExprToExpression(_)))
+
+  def getField(as: List[Action])(implicit rnd: Rounding) = {
+    val highestDerivatives = as.flatMap {
+      case Continuously(EquationT(d @ Dot(Var(Name(self, 0)), _), rhs)) => List((d, rhs))
+      case Continuously(EquationT(lhs, _)) => sys.error("Continuous assignment to " + lhs + " is not supported.")
+      case _ => List()
+    }.toMap
+    Field(as.flatMap {
+      case Continuously(EquationI(Dot(Var(Name(self, 0)), Name(name, n)), rhs @ Dot(_, _))) => List((name + "'" * n, rhs))
+      case _ => List()
+    }.toMap.mapValues(v => highestDerivatives.getOrElse(v, v)).mapValues(acumenExprToExpression(_)))
+  }
 
   def getStateVariables(priv: List[Init]): List[String] = {
     val variablesByName = priv.groupBy { case Init(Name(name, _), _) => name }
@@ -202,7 +219,8 @@ trait Transform {
   def acumenExprToExpression(e: Expr)(implicit rnd: Rounding): Expression = e match {
     case Lit(GInt(d)) => Constant(d)
     case Lit(GDouble(d)) => Constant(d)
-    case Var(Name(name, 0)) => Variable(name)
+    case Var(Name(name, n)) => Variable(name + "'" * n)
+    case Dot(Var(Name(self, 0)), Name(name, n)) => Variable(name + "'" * n)
     case Op(Name("-", 0), List(x)) => Negate(acumenExprToExpression(x))
     case Op(Name("+", 0), List(l, r)) => Plus(acumenExprToExpression(l), acumenExprToExpression(r))
     case Op(Name("/", 0), List(l, r)) => Divide(acumenExprToExpression(l), acumenExprToExpression(r))
