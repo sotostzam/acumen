@@ -231,7 +231,7 @@ class AppModel(text: => String) extends Publisher {
           val tm = interpreters.enclosure.Interpreter.generateTraceModel(text,log)
           consumer ! EnclosureDone(tm)
         }
-        return
+        exit
       }
       val I = interpreter
       val trace = handle { I.loop(p, I.fromCStore(st)) map I.repr }
