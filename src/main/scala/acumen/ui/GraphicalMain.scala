@@ -374,13 +374,12 @@ object GraphicalMain extends SimpleSwingApplication {
 
   def updateButtons = {
     play.enabled = appModel.playEnabled
+    stop.enabled = appModel.stopEnabled 
     if (appModel.isEnclosure) {
       pause.enabled = false
-      stop.enabled = false
       step.enabled = false
     } else {
       pause.enabled = appModel.pauseEnabled 
-      stop.enabled = appModel.stopEnabled 
       step.enabled = appModel.stepEnabled 
     }
   }

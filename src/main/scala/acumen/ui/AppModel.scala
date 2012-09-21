@@ -221,6 +221,10 @@ class AppModel(text: => String) extends Publisher {
         def log(msg: String) : Unit = {
           if (msg != null)
             consumer ! Message(msg)
+          receive {
+            case GoOn => ()
+            case Stop => exit
+          }
         }
         val tm = interpreters.enclosure.Interpreter.generateTraceModel(text,log)
         consumer ! EnclosureDone(tm)
