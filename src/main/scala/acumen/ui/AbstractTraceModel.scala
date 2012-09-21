@@ -21,13 +21,6 @@ class PlotDoubles(simulator: Boolean, fn: Name, startFrame: Int, column: Int,
   override def values : IndexedSeq[Double] = v;
 }
 
-case class Interval(lo:Double, hi:Double)
-class PlotIntervals(simulator: Boolean, fn: Name, startFrame: Int, column: Int,
-                    val v: IndexedSeq[Interval]) extends Plottable(simulator,fn,startFrame,column)
-{
-  override def values : IndexedSeq[Interval] = v;
-}
-
 case class Enclosure(loLeft:Double, hiLeft:Double, loRight:Double, hiRight:Double)
 class PlotEnclosure(simulator: Boolean, fn: Name, startFrame: Int, column: Int,
                     val v: IndexedSeq[Enclosure]) extends Plottable(simulator,fn,startFrame,column)
