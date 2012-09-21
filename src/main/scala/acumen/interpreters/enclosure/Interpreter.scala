@@ -21,7 +21,7 @@ object Interpreter extends acumen.Interpreter with Solver with Transform {
   implicit val rnd = Rounding(10)
 
   //FIXME do this properly
-  override def generateTraceModel(text: String): EnclosureTraceModel = {
+  override def generateTraceModel(text: String, log: String => Unit): EnclosureTraceModel = {
     val prog = Parser.run(Parser.prog, text)
     val (h: HybridSystem, uis) = extract(prog.defs(0))
     val H = h
@@ -37,7 +37,7 @@ object Interpreter extends acumen.Interpreter with Solver with Transform {
     val d = 0.01 // parameter
     val e = // parameter 
       T.width match { case Interval(_, hi) => hi.doubleValue / 2 }
-    val res = solver(H, T, Ss, delta, m, n, K, d, e, T, "output")
+    val res = solver(H, T, Ss, delta, m, n, K, d, e, T, "output",log)
     new EnclosureTraceModel(res)
   }
 

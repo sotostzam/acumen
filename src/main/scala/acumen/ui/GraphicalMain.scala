@@ -408,6 +408,7 @@ object GraphicalMain extends SimpleSwingApplication {
     case StateChanged() => reflectState
     case Error(e)       => reportError(e)
     case Progress(p)    => statusZone.setProgress(p)
+    case ProgressMsg(m) => console.log(m); console.newLine
   }
 
   /* ----- initialisation ----- */

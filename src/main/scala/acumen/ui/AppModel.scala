@@ -16,6 +16,7 @@ case class InterpreterChanged()  extends AppEvent
 case class StateChanged()        extends AppEvent
 case class Error(e:Throwable)    extends AppEvent
 case class Progress(percent:Int) extends AppEvent
+case class ProgressMsg(msg:String) extends AppEvent
 
 sealed abstract class AppState
 case class Stopped()     extends AppState
@@ -105,6 +106,7 @@ class AppModel(text: => String) extends Publisher {
     if (changed) publish(StateChanged()) 
   }
   private def emitProgress(p:Int) = publish(Progress(p))
+  private def emitProgressMsg(msg:String) = publish(ProgressMsg(msg))
   private def emitError(e: Throwable) = { publish(Error(e)); stop }
    
   private def withErrorReporting(action: => Unit) : Unit = {
@@ -200,6 +202,7 @@ class AppModel(text: => String) extends Publisher {
 
   case object GoOn
   case object Stop
+  case class Message(msg: String)
   case class Chunk(css:Iterable[CStore])
   case class Done(css:Iterable[CStore])
   case class EnclosureDone(tm:AbstractTraceModel)
@@ -212,9 +215,14 @@ class AppModel(text: => String) extends Publisher {
         consumer ! Error(e); exit 
       }
     }
+
     def act : Unit = {
       if (isEnclosure) {
-        val tm = interpreters.enclosure.Interpreter.generateTraceModel(text)
+        def log(msg: String) : Unit = {
+          if (msg != null)
+            consumer ! Message(msg)
+        }
+        val tm = interpreters.enclosure.Interpreter.generateTraceModel(text,log)
         consumer ! EnclosureDone(tm)
         return
       }
@@ -253,7 +261,7 @@ class AppModel(text: => String) extends Publisher {
 
     def finish = {
       react {
-        case Done(_) | Chunk(_) => 
+        case Done(_) | Chunk(_) | Message(_) => 
           reply(Stop)
           exit
       }
@@ -265,6 +273,9 @@ class AppModel(text: => String) extends Publisher {
           case Stop =>
             reply(last)
             finish
+          case Message(msg) =>
+            reply(GoOn)
+            emitProgressMsg(msg)
           case Chunk(css) =>
             reply(GoOn)
             flush(css)
