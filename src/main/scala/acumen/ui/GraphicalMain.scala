@@ -341,6 +341,8 @@ object GraphicalMain extends SimpleSwingApplication {
   def reportError(e:Throwable) {
     val em = e.getMessage
     console.logError(if (em!=null) em else e.toString)
+    System.err.println("Note: Redirected this exception to console log:")
+    e.printStackTrace()
   }
 
   def autoSave = withErrorReporting {
