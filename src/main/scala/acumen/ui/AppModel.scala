@@ -226,8 +226,11 @@ class AppModel(text: => String) extends Publisher {
             case Stop => exit
           }
         }
-        val tm = interpreters.enclosure.Interpreter.generateTraceModel(text,log)
-        consumer ! EnclosureDone(tm)
+        // FIXME: Is it okay to use withErrorReporting here in the producer
+        withErrorReporting {
+          val tm = interpreters.enclosure.Interpreter.generateTraceModel(text,log)
+          consumer ! EnclosureDone(tm)
+        }
         return
       }
       val I = interpreter
