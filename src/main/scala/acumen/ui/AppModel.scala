@@ -42,10 +42,6 @@ class AppModel(text: => String) extends Publisher {
     interpreter = i
     var tm = interpreter.newTraceModel
     isEnclosure = tm.isInstanceOf[EnclosureTraceModel]
-
-    if (tm == null) {
-    }
-
     tmodel.setTraceModel(tm)
 
     publish(InterpreterChanged())
