@@ -372,11 +372,21 @@ object GraphicalMain extends SimpleSwingApplication {
   
   listenTo(appModel)
 
-  def reflectState = {
+  def updateButtons = {
     play.enabled = appModel.playEnabled
-    pause.enabled = appModel.pauseEnabled
-    stop.enabled = appModel.stopEnabled
-    step.enabled = appModel.stepEnabled
+    if (appModel.isEnclosure) {
+      pause.enabled = false
+      stop.enabled = false
+      step.enabled = false
+    } else {
+      pause.enabled = appModel.pauseEnabled 
+      stop.enabled = appModel.stopEnabled 
+      step.enabled = appModel.stepEnabled 
+    }
+  }
+
+  def reflectState = {
+    updateButtons
     codeArea.enabled = appModel.codeEnabled
 
     appModel.state match {
@@ -394,6 +404,7 @@ object GraphicalMain extends SimpleSwingApplication {
   }
 
   reactions += {
+    case InterpreterChanged() => updateButtons
     case StateChanged() => reflectState
     case Error(e)       => reportError(e)
     case Progress(p)    => statusZone.setProgress(p)

@@ -12,6 +12,7 @@ import swing.event._
 import scala.actors._
 
 sealed abstract class AppEvent extends Event
+case class InterpreterChanged()  extends AppEvent
 case class StateChanged()        extends AppEvent
 case class Error(e:Throwable)    extends AppEvent
 case class Progress(percent:Int) extends AppEvent
@@ -32,7 +33,7 @@ class AppModel(text: => String) extends Publisher {
   /* The currently used interpreter. Purely Functional (Reference) is used as default. */
   private var interpreter : Interpreter = interpreters.reference.Interpreter
 
-  private var isEnclosure : Boolean = false
+  var isEnclosure : Boolean = false
 
   /** Set the currently used interpreter. */
   def setInterpreter(i:Interpreter) = {
@@ -46,6 +47,8 @@ class AppModel(text: => String) extends Publisher {
     }
 
     tmodel.setTraceModel(tm)
+
+    publish(InterpreterChanged())
   }
 
   /* ---- state variables ---- */
@@ -158,8 +161,6 @@ class AppModel(text: => String) extends Publisher {
   }
 
   def pause : Unit = {
-    if (isEnclosure)
-      return
     appState match {
       case PPlaying(p,s,c) => {
         setState(PPaused(p,
@@ -173,8 +174,6 @@ class AppModel(text: => String) extends Publisher {
   }
 
   def step : Unit = withErrorReporting {
-    if (isEnclosure)
-      return
     def go(p:Prog, s:CStore) = {
       val I = interpreter
       val mstore = I.step(p, I.fromCStore(s)) map I.repr
