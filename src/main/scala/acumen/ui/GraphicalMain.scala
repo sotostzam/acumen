@@ -341,6 +341,8 @@ object GraphicalMain extends SimpleSwingApplication {
   def reportError(e:Throwable) {
     val em = e.getMessage
     console.logError(if (em!=null) em else e.toString)
+    System.err.println("Note: Redirected this exception to console log:")
+    e.printStackTrace()
   }
 
   def autoSave = withErrorReporting {
@@ -372,11 +374,20 @@ object GraphicalMain extends SimpleSwingApplication {
   
   listenTo(appModel)
 
-  def reflectState = {
+  def updateButtons = {
     play.enabled = appModel.playEnabled
-    pause.enabled = appModel.pauseEnabled
-    stop.enabled = appModel.stopEnabled
-    step.enabled = appModel.stepEnabled
+    stop.enabled = appModel.stopEnabled 
+    if (appModel.isEnclosure) {
+      pause.enabled = false
+      step.enabled = false
+    } else {
+      pause.enabled = appModel.pauseEnabled 
+      step.enabled = appModel.stepEnabled 
+    }
+  }
+
+  def reflectState = {
+    updateButtons
     codeArea.enabled = appModel.codeEnabled
 
     appModel.state match {
@@ -394,9 +405,11 @@ object GraphicalMain extends SimpleSwingApplication {
   }
 
   reactions += {
+    case InterpreterChanged() => updateButtons
     case StateChanged() => reflectState
     case Error(e)       => reportError(e)
     case Progress(p)    => statusZone.setProgress(p)
+    case ProgressMsg(m) => console.log(m); console.newLine
   }
 
   /* ----- initialisation ----- */

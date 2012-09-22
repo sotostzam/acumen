@@ -31,7 +31,9 @@ trait Solver {
     m: Int,
     n: Int,
     K: Int,
-    output: String)(implicit rnd: Rounding): Option[(Set[UncertainState], Seq[UnivariateAffineEnclosure])] = {
+    output: String,
+    log: String => Unit
+    )(implicit rnd: Rounding): Option[(Set[UncertainState], Seq[UnivariateAffineEnclosure])] = {
     var res = EventTree.initialTree(T, H, S, delta, m, n, output)
     var tmp = res.addLayer
     while (res.size < K && tmp != res) {
@@ -57,9 +59,10 @@ trait Solver {
     K: Int, // maximum event tree size in solveVtE, gives termination condition for tree enlargement
     d: Double, // minimum time step size
     e: Double, // maximum time step size
-    output: String // path to write output 
+    output: String, // path to write output 
+    log: String => Unit // function to call to log progress
     )(implicit rnd: Rounding): (Set[UncertainState], Seq[UnivariateAffineEnclosure]) = {
-    val onT = Ss.map(solveVtE(H, T, _, delta, m, n, K, output))
+    val onT = Ss.map(solveVtE(H, T, _, delta, m, n, K, output, log))
     val mustSplit = T.width greaterThan e
     val (lT, rT) = T.split
     val cannotSplit = !(min(lT.width, rT.width) greaterThan d)
@@ -67,9 +70,9 @@ trait Solver {
       if (cannotSplit) {
         throw SolverException("gave up for minimum step size " + d + " at " + T)
       } else {
-        println("splitting " + T)
-        val (ssl, ysl) = solveHybrid(H, lT, Ss, delta, m, n, K, d, e, output)
-        val (ssr, ysr) = solveHybrid(H, rT, ssl, delta, m, n, K, d, e, output)
+        log("splitting " + T)
+        val (ssl, ysl) = solveHybrid(H, lT, Ss, delta, m, n, K, d, e, output, log)
+        val (ssr, ysr) = solveHybrid(H, rT, ssl, delta, m, n, K, d, e, output, log)
         (ssr, ysl ++ ysr)
       }
     else {
@@ -79,7 +82,7 @@ trait Solver {
         }
       val ssT = M(endStatesOnT)
 
-      val onlT = Ss.map(solveVtE(H, lT, _, delta, m, n, K, output))
+      val onlT = Ss.map(solveVtE(H, lT, _, delta, m, n, K, output, log))
       if (onlT contains None)
         resultForT
       else {
@@ -89,7 +92,7 @@ trait Solver {
           }
         val sslT = M(endStatesOnlT)
 
-        val onrT = sslT.map(solveVtE(H, rT, _, delta, m, n, K, output))
+        val onrT = sslT.map(solveVtE(H, rT, _, delta, m, n, K, output, log))
         if (onrT contains None)
           resultForT
         else {
@@ -115,14 +118,14 @@ trait Solver {
           // TODO make the improvement threshold a parameter 
           if (cannotSplit ||
             ({
-//              println("improvement : " + improvement);
+//              log("improvement : " + improvement);
               improvement lessThanOrEqualTo Interval(0.00001)
             })) {
             resultForT
           } else {
-            println("splitting " + T)
-            val (ssl, ysl) = solveHybrid(H, lT, Ss, delta, m, n, K, d, e, output)
-            val (ssr, ysr) = solveHybrid(H, rT, ssl, delta, m, n, K, d, e, output)
+            log("splitting " + T)
+            val (ssl, ysl) = solveHybrid(H, lT, Ss, delta, m, n, K, d, e, output, log)
+            val (ssr, ysr) = solveHybrid(H, rT, ssl, delta, m, n, K, d, e, output, log)
             (ssr, ysl ++ ysr)
           }
         }
@@ -142,16 +145,17 @@ trait Solver {
     d: Double, // minimum time step size
     e: Double, // maximum time step size
     Tinit: Interval, // initial time segment
-    output: String // path to write output 
+    output: String, // path to write output 
+    log: String => Unit
     )(implicit rnd: Rounding): Seq[UnivariateAffineEnclosure] = {
     Util.newFile(output)
     try {
-      solveHybrid(H, T, Ss, delta, m, n, K, d, e, output)._2
+      solveHybrid(H, T, Ss, delta, m, n, K, d, e, output, log)._2
     } catch {
       case SolverException(message) => {
-        println(message)
-        println("solver: reducing minimum segement width to " + d / 2)
-        solver(H, Tinit, Ss, delta, m, n, K, d / 2, e, Tinit, output)
+        log(message)
+        log("solver: reducing minimum segement width to " + d / 2)
+        solver(H, Tinit, Ss, delta, m, n, K, d / 2, e, Tinit, output, log)
       }
     }
   }

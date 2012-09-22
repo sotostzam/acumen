@@ -615,27 +615,6 @@ class Plotter(
 
             polys += line
           }
-          case p:PlotIntervals => {
-            val line = new Tuple2[MyPath2D,MyPath2D](new MyPath2D(), new MyPath2D()) with PlotEntity {
-              def x1 = _1.x1
-              def x2 = _1.x2
-              def y1 = _1.y1
-              def y2 = _1.y2
-              def draw(g:Graphics2D, tr:AffineTransform) = {_1.draw(g,tr); _2.draw(g,tr)}
-              def drawDots(g:Graphics2D, tr:AffineTransform) = {_1.drawDots(g,tr); _2.drawDots(g,tr);}
-              def transform(tr:AffineTransform) = {_1.transform(tr); _2.transform(tr)}
-            } 
-            line._1 startAt (time(s), p.values(0).hi)
-            line._2 startAt (time(s), p.values(0).lo)
-           
-            for (f <- 0 until p.values.size;
-                 val frame = s + f) {
-              line._1 goTo (time(frame), p.values(f).hi)
-              line._2 goTo (time(frame), p.values(f).lo) 
-            }
-
-            polys += line
-          }
           case p:PlotEnclosure => {
             val path = new EnclosurePath
             for (f <- 1 until p.values.size;

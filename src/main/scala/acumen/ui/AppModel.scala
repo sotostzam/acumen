@@ -12,9 +12,11 @@ import swing.event._
 import scala.actors._
 
 sealed abstract class AppEvent extends Event
+case class InterpreterChanged()  extends AppEvent
 case class StateChanged()        extends AppEvent
 case class Error(e:Throwable)    extends AppEvent
 case class Progress(percent:Int) extends AppEvent
+case class ProgressMsg(msg:String) extends AppEvent
 
 sealed abstract class AppState
 case class Stopped()     extends AppState
@@ -32,7 +34,7 @@ class AppModel(text: => String) extends Publisher {
   /* The currently used interpreter. Purely Functional (Reference) is used as default. */
   private var interpreter : Interpreter = interpreters.reference.Interpreter
 
-  private var isEnclosure : Boolean = false
+  var isEnclosure : Boolean = false
 
   /** Set the currently used interpreter. */
   def setInterpreter(i:Interpreter) = {
@@ -41,11 +43,9 @@ class AppModel(text: => String) extends Publisher {
     interpreter = i
     var tm = interpreter.newTraceModel
     isEnclosure = tm.isInstanceOf[EnclosureTraceModel]
-
-    if (tm == null) {
-    }
-
     tmodel.setTraceModel(tm)
+
+    publish(InterpreterChanged())
   }
 
   /* ---- state variables ---- */
@@ -106,6 +106,7 @@ class AppModel(text: => String) extends Publisher {
     if (changed) publish(StateChanged()) 
   }
   private def emitProgress(p:Int) = publish(Progress(p))
+  private def emitProgressMsg(msg:String) = publish(ProgressMsg(msg))
   private def emitError(e: Throwable) = { publish(Error(e)); stop }
    
   private def withErrorReporting(action: => Unit) : Unit = {
@@ -158,8 +159,6 @@ class AppModel(text: => String) extends Publisher {
   }
 
   def pause : Unit = {
-    if (isEnclosure)
-      return
     appState match {
       case PPlaying(p,s,c) => {
         setState(PPaused(p,
@@ -173,8 +172,6 @@ class AppModel(text: => String) extends Publisher {
   }
 
   def step : Unit = withErrorReporting {
-    if (isEnclosure)
-      return
     def go(p:Prog, s:CStore) = {
       val I = interpreter
       val mstore = I.step(p, I.fromCStore(s)) map I.repr
@@ -205,6 +202,7 @@ class AppModel(text: => String) extends Publisher {
 
   case object GoOn
   case object Stop
+  case class Message(msg: String)
   case class Chunk(css:Iterable[CStore])
   case class Done(css:Iterable[CStore])
   case class EnclosureDone(tm:AbstractTraceModel)
@@ -217,11 +215,23 @@ class AppModel(text: => String) extends Publisher {
         consumer ! Error(e); exit 
       }
     }
+
     def act : Unit = {
       if (isEnclosure) {
-        val tm = interpreters.enclosure.Interpreter.generateTraceModel(text)
-        consumer ! EnclosureDone(tm)
-        return
+        def log(msg: String) : Unit = {
+          if (msg != null)
+            consumer ! Message(msg)
+          receive {
+            case GoOn => ()
+            case Stop => exit
+          }
+        }
+        // FIXME: Is it okay to use withErrorReporting here in the producer
+        withErrorReporting {
+          val tm = interpreters.enclosure.Interpreter.generateTraceModel(text,log)
+          consumer ! EnclosureDone(tm)
+        }
+        exit
       }
       val I = interpreter
       val trace = handle { I.loop(p, I.fromCStore(st)) map I.repr }
@@ -258,7 +268,7 @@ class AppModel(text: => String) extends Publisher {
 
     def finish = {
       react {
-        case Done(_) | Chunk(_) => 
+        case Done(_) | Chunk(_) | Message(_) => 
           reply(Stop)
           exit
       }
@@ -270,6 +280,9 @@ class AppModel(text: => String) extends Publisher {
           case Stop =>
             reply(last)
             finish
+          case Message(msg) =>
+            reply(GoOn)
+            emitProgressMsg(msg)
           case Chunk(css) =>
             reply(GoOn)
             flush(css)
