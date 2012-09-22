@@ -24,7 +24,8 @@ object Interpreter extends acumen.Interpreter with Solver with Transform {
   //FIXME do this properly
   override def generateTraceModel(text: String): EnclosureTraceModel = {
     val prog = Parser.run(Parser.prog, text)
-    val (h: HybridSystem, uis) = extract(classDef(ClassName("Main"), prog))
+    val des = Desugarer.run(prog)
+    val (h: HybridSystem, uis) = extract(classDef(ClassName("Main"), des))
     val H = h
     val Ss = Set(uis)
 
@@ -69,61 +70,54 @@ object Interpreter extends acumen.Interpreter with Solver with Transform {
 
 object BBA extends App with Transform {
 
-  val des =
-    """
+  val txt = """
 class Main(simulator)
-  private mode = ("Fly"); x = (1); x' = (0); x'' = (0) end
-  switch ((self).mode)
-    case "Fly" assert (((x) >= (0)))
-      if ((((((self).x) < (0))) && ((((self).x') < (0)))))
-        ((self).x') = (-(((self).x')));
-        ((self).mode) = ("Fly")
-      else 
+  private mode = "Fly"; x = 1; x' = 0; x'' = 0 end
+  switch mode
+    case "Fly" assert x >= 0
+      if x < 0 && x' < 0
+        x' = -x';
+        mode = "Fly"
       end;
-      ((self).x'') =[t] (-9.8);
-      ((self).x') =[i] ((self).x'');
-      ((self).x) =[i] ((self).x')
+      x'' [=] -9.8
   end
 end
 """
 
-  val prog = Parser.run(Parser.prog,des)
-  
-  println(prog)
-  
+  val prog = Parser.run(Parser.prog, txt)
+  val des = Desugarer.run(prog)
+
   implicit val rnd = Rounding(10)
-  
-  val (h,ic) = extract(classDef(ClassName("Main"),prog))
-    
+  val (h, ic) = extract(classDef(ClassName("Main"), prog))
+
   println(h)
+  println(ic)
 
 }
 
 object Ticker extends App with Transform {
 
-  val des = """
-class Main(simulator)
-  private mode = (0); x = (1); x' = (-1) end
-  switch ((self).mode)
-    case 0 assert (((x) >= (0)))
-      ((self).x') =[t] (-1);
-      ((self).x) =[i] ((self).x');
-      if ((((self).x) <= (0)))
-        ((self).x) = (1); ((self).mode) = (0)
-      else 
+  val txt = """
+class Main(simulator) 
+private mode = 0; x = 1; x' = -1 end
+  switch mode
+    case 0 assert x >= 0
+      x' [=] -1; 
+      if x == 0
+        x = 1; 
+        mode = 0 
       end
   end
-end 
+end
 """
 
-  val prog = Parser.run(Parser.prog,des)
-  
-  println(prog)
-  
+  val prog = Parser.run(Parser.prog, txt)
+  val des = Desugarer.run(prog)
+
   implicit val rnd = Rounding(10)
-  
-  val (h,ic) = extract(classDef(ClassName("Main"),prog))
-    
+  val (h, ic) = extract(classDef(ClassName("Main"), des))
+
   println(h)
+  println(ic)
 
 }

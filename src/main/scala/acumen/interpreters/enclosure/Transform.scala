@@ -63,8 +63,8 @@ trait Transform {
             stateMachine match {
               //              case Switch(Var(Name(modeVariable, 0)), clauses: List[Clause]) =>
               case Switch(Dot(Var(Name(self, 0)), Name(modeVariable, 0)), clauses: List[Clause]) =>
-                val hybridSystem = getHybridSystem(modeVariable, stateVariables, clauses)
-                val uncertainInitialState = getInitialState(modeVariable, priv)
+                val hybridSystem = getHybridSystem(modeVariable, stateVariables - modeVariable, clauses)
+                val uncertainInitialState = getInitialState(modeVariable, stateVariables - modeVariable, priv)
                 (hybridSystem, uncertainInitialState)
               case Switch(e, _) => sys.error("Switching on " + e + " not allowed!")
               case _ => sys.error("Handling of state machines expressed using control constructs other than switch not implemented!")
@@ -81,7 +81,7 @@ trait Transform {
     clauses: List[Clause])(implicit rnd: Rounding) =
     clauses.foldLeft(HybridSystem.empty) {
       case (res, clause) => {
-        val (mode, domain, field) = getMode(clause)
+        val (mode, domain, field) = getMode(stateVariables, clause)
         val es = getEvents(modeVariable, stateVariables, clause)
         es.foldLeft(res.addMode(mode, domain, field)) {
           case (r, (event, guard, reset)) => r.addEvent(event, guard, reset)
@@ -89,7 +89,7 @@ trait Transform {
       }
     }
 
-  def getInitialState(modeVariable: String, priv: List[Init])(implicit rnd: Rounding) = {
+  def getInitialState(modeVariable: String, stateVariables: List[VarName], priv: List[Init])(implicit rnd: Rounding) = {
     val initialMode = priv.filter {
       case Init(Name(i, 0), m) => i == modeVariable
       case _ => false
@@ -97,15 +97,11 @@ trait Transform {
       case List(Init(_, ExprRhs(Lit(gv)))) => groundValueToMode(gv)
       case _ => sys.error("Could not identify initial mode!")
     }
-    //TODO Update this to support higher order derivatives
-    val initialCondition = priv.flatMap {
-      case Init(Name(name, 0), ExprRhs(initialValueExpr)) if (name != modeVariable) => {
-        val e = acumenExprToExpression(initialValueExpr)
-        // Here we are assuming that e only contains constants
-        List((name, e(Box.empty)))
-      }
-      case _ => List()
+    val intializations = priv.map {
+      case Init(name, ExprRhs(initialValueExpr)) => (name.x + "'" * name.primes) -> initialValueExpr
     }.toMap
+    val initialCondition = intializations.filterKeys(stateVariables.contains(_)).
+      mapValues(acumenExprToExpression(_)(rnd)(Box.empty))
     UncertainState(initialMode, initialCondition)
   }
 
@@ -144,17 +140,26 @@ trait Transform {
   def getReset(
     modeVariable: String,
     stateVariables: List[String],
-    as: List[Action])(implicit rnd: Rounding): ResetMap = as.flatMap {
-    case Discretely(Assign(Var(Name(name, 0)), rhs)) if (name != modeVariable) =>
-      List((name, acumenExprToExpression(rhs)))
-    case _ => List()
-  }.foldLeft(ResetMap.id(stateVariables.toSet)) { case (res, kv) => res + kv }
+    as: List[Action])(implicit rnd: Rounding): ResetMap = {
+    val resetComponents = as.flatMap {
+      case Discretely(Assign(lhs @ Dot(Var(Name("self", 0)), Name(name,_)), rhs)) =>
+        if (name == modeVariable) List()
+        else List((lhs, rhs))
+      case Discretely(Assign(lhs, rhs)) => sys.error("Assignment of " + rhs + " to " + lhs + " is not supported.")
+      case _ => List()
+    }.toMap.map {
+      case (Dot(_, kName), v) =>
+        val Variable(k) = acumenExprToExpression(Var(kName))
+        k -> acumenExprToExpression(v)
+    }
+    ResetMap(stateVariables.map(name => name -> resetComponents.getOrElse(name, Variable(name))).toMap)
+  }
 
-  def getMode(clause: Clause)(implicit rnd: Rounding): (Mode, Domain, Field) = {
+  def getMode(stateVariables: List[VarName], clause: Clause)(implicit rnd: Rounding): (Mode, Domain, Field) = {
     clause match {
       case Clause(modeVariable: GroundValue, assertion: Expr, as: List[Action]) => {
         val domain = acumenExprToPredicate(assertion).asInstanceOf[Domain]
-        val field = getField(as)
+        val field = getField(stateVariables, as)
         val mode = groundValueToMode(modeVariable)
         (mode, domain, field)
       }
@@ -168,29 +173,32 @@ trait Transform {
     case GStr(s) => s
   })
 
-  //  def getField(as: List[Action])(implicit rnd: Rounding) = Field(as.flatMap {
-  //    case Continuously(Equation(Var(Name(name, 1)), rhs)) => List((name, rhs))
-  //    case _ => List()
-  //  }.toMap.mapValues(acumenExprToExpression(_)))
-
-  def getField(as: List[Action])(implicit rnd: Rounding) = {
+  def getField(stateVariables: List[VarName], as: List[Action])(implicit rnd: Rounding) = {
     val highestDerivatives = as.flatMap {
       case Continuously(EquationT(d @ Dot(Var(Name(self, 0)), _), rhs)) => List((d, rhs))
-      case Continuously(EquationT(lhs, _)) => sys.error("Continuous assignment to " + lhs + " is not supported.")
+      case Continuously(EquationT(lhs, rhs)) => sys.error("Continuous assignment of " + rhs + " to " + lhs + " is not supported.")
       case _ => List()
-    }.toMap
-    Field(as.flatMap {
-      case Continuously(EquationI(Dot(Var(Name(self, 0)), Name(name, n)), rhs @ Dot(_, _))) => List((name + "'" * n, rhs))
+    }.filter { case (Dot(_, Name(_, n)), _) => n != 0 }.toMap
+    val fieldComponents = as.flatMap {
+      case Continuously(EquationI(lhs @ Dot(Var(Name("self", 0)), nameLhs), rhs @ Dot(Var(Name("self", 0)), nameRhs))) =>
+        List((lhs, rhs))
       case _ => List()
-    }.toMap.mapValues(v => highestDerivatives.getOrElse(v, v)).mapValues(acumenExprToExpression(_)))
+    }.toMap.map {
+      case (Dot(_, kName), v) =>
+        val Variable(k) = acumenExprToExpression(Var(kName))
+        val e = acumenExprToExpression(highestDerivatives.getOrElse(v, v))
+        k -> acumenExprToExpression(highestDerivatives.getOrElse(v, v))
+    }
+    Field(stateVariables.map(name => name -> fieldComponents.getOrElse(name, Variable(name))).toMap)
   }
 
   def getStateVariables(priv: List[Init]): List[String] = {
-    val variablesByName = priv.groupBy { case Init(Name(name, _), _) => name }
-    val ordersByName = variablesByName.mapValues { _.map { case Init(Name(_, order), _) => order } }
-    ordersByName.filter {
-      case (name, orders) => orders.toSet == Set(0, 1)
-    }.keys.toList
+    val initializationsByName = priv.groupBy { case Init(Name(name, _), _) => name }
+    val ordersByName = initializationsByName.mapValues { _.map { case Init(Name(_, order), _) => order } }
+    val maxOrderByName = ordersByName.mapValues(_.max)
+    priv.filter {
+      case Init(Name(name, order), _) => maxOrderByName(name) == 0 || maxOrderByName(name) > order
+    }.map { case Init(Name(name, order), _) => name + "'" * order }.toList
   }
 
   def acumenExprToPredicate(e: Expr)(implicit rnd: Rounding): Predicate =
