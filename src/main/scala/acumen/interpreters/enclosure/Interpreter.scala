@@ -30,7 +30,7 @@ object Interpreter extends acumen.Interpreter with Solver with Transform {
     val Ss = Set(uis)
 
     val startTime = 0 // parameter 
-    val endTime = 2.5 // parameter 
+    val endTime = 3 // parameter 
     val T = Interval(startTime, endTime)
     val delta = 0 // parameter
     val m = 20 // parameter
