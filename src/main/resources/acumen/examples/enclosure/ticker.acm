@@ -1,0 +1,11 @@
+class Main(simulator) 
+private mode = 0; x = 1; x' = -1 end
+  switch mode
+    case 0 assert x >= 0
+      if x == 0
+        x = 1; 
+        mode = 0 
+      end; 
+      x' [=] -1 
+  end
+end
