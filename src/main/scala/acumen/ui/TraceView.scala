@@ -617,10 +617,12 @@ class Plotter(
           }
           case p:PlotEnclosure => {
             val path = new EnclosurePath
+            var prevTime = time(s)
             for (f <- 1 until p.values.size;
                  val frame = s + f) {
               if (time(frame-1) != time(frame))
-                path.add(time(frame-1), time(frame), p.values(f))
+                  prevTime = time(frame-1)
+              path.add(prevTime, time(frame), p.values(f))
             }
             polys += path
           }
