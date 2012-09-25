@@ -38,7 +38,7 @@ object Interpreter extends acumen.Interpreter with Solver with Transform {
     val K = 30 // parameter
     val d = 0.01 // parameter
     val e = // parameter 
-      T.width match { case Interval(_, hi) => hi.doubleValue / 2 }
+      T.hiDouble - T.loDouble
     val res = solver(H, T, Ss, delta, m, n, K, d, e, T, "output",log)
     new EnclosureTraceModel(res)
   }
