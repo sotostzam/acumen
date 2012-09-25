@@ -23,11 +23,9 @@ object Interpreter extends acumen.Interpreter with Solver with Transform {
     val prog = Parser.run(Parser.prog, text)
     val des = Desugarer.run(prog)
     val main = classDef(ClassName("Main"), des)
+
     val ps = parameters(main)
-    println(ps)
-
-    implicit val rnd = Rounding(10)
-
+    implicit val rnd = Rounding(ps.precision)
     val (hs, uss) = extract(main)
 
     val res = solver(

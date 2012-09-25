@@ -1,10 +1,13 @@
 class Main(simulator) 
-private mode = 0; x = 1; x' = -1 end
+private mode = "On"; x = 1; x' = -1 end
+  simulator.endTime = 2.5;
+  simulator.minTimeStep = 0.001;
+  simulator.maxTimeStep = 1; 
   switch mode
-    case 0 assert x >= 0
+    case "On" assert x >= 0
       if x == 0
         x = 1; 
-        mode = 0 
+        mode = "On"
       end; 
       x' [=] -1 
   end

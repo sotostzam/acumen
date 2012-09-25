@@ -104,13 +104,13 @@ trait Transform {
         val defaultParameters = Map[String, Double](
           "precision" -> 10,
           "startTime" -> 0,
-          "endTime" -> 1,
+          "endTime" -> 3,
           "solveVtInitialConditionPadding" -> 0,
           "extraPicardIterations" -> 20,
           "maxPicardIterations" -> 200,
           "maxEventTreeSize" -> 30,
-          "minTimeStep" -> 1,
-          "maxTimeStep" -> 0.01)
+          "minTimeStep" -> 0.01,
+          "maxTimeStep" -> 3)
         val params = assignments.foldLeft(defaultParameters) {
           case (res, (param, Lit(GInt(i)))) => res + (param -> i.toDouble)
           case (res, (param, Lit(GDouble(d)))) => res + (param -> d)
