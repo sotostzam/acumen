@@ -2,6 +2,7 @@ package acumen.interpreters.enclosure
 
 import acumen._
 import acumen.interpreters.enclosure.solver._
+import Interpreter._
 import Expression._
 import Relation._
 import Types._
@@ -58,20 +59,73 @@ trait Transform {
         priv: List[Init],
         body: List[Action]) => {
         val stateVariables = getStateVariables(priv)
-        body match {
-          case List(stateMachine) => {
-            stateMachine match {
-              //              case Switch(Var(Name(modeVariable, 0)), clauses: List[Clause]) =>
-              case Switch(Dot(Var(Name(self, 0)), Name(modeVariable, 0)), clauses: List[Clause]) =>
-                val hybridSystem = getHybridSystem(modeVariable, stateVariables - modeVariable, clauses)
-                val uncertainInitialState = getInitialState(modeVariable, stateVariables - modeVariable, priv)
-                (hybridSystem, uncertainInitialState)
-              case Switch(e, _) => sys.error("Switching on " + e + " not allowed!")
-              case _ => sys.error("Handling of state machines expressed using control constructs other than switch not implemented!")
-            }
+        val (hybridSystem, uncertainInitialState) = body.filter(!_.isInstanceOf[Discretely]) match {
+          case List(stateMachine) => stateMachine match {
+            case Switch(Dot(Var(Name(self, 0)), Name(modeVariable, 0)), clauses: List[Clause]) =>
+              (getHybridSystem(modeVariable, stateVariables - modeVariable, clauses),
+                getInitialState(modeVariable, stateVariables - modeVariable, priv))
+            case Switch(e, _) => sys.error("Switching on " + e + " not allowed!")
+            case _ => sys.error("Handling of state machines expressed using control constructs other than switch not implemented!")
           }
           case _ => sys.error("Handling of multiple switch statements not implemented!")
         }
+        (hybridSystem, uncertainInitialState)
+      }
+    }
+
+  /** Parameters for solve-hybrid */
+  case class Parameters(
+    precision: Int,
+    startTime: Double, // simulation start time
+    endTime: Double, // simulation end time
+    solveVtInitialConditionPadding: Double, // padding for initial condition in solveVt
+    extraPicardIterations: Int, // number of extra Picard iterations in solveVt
+    maxPicardIterations: Int, // maximum number of Picard iterations in solveVt
+    maxEventTreeSize: Int, // maximum event tree size in solveVtE, gives termination condition for tree enlargement
+    minTimeStep: Double, // minimum time step size
+    maxTimeStep: Double // maximum time step size
+    ) {
+    implicit val rnd = Rounding(precision)
+    val simulationTime = Interval(startTime, endTime)
+  }
+
+  def parameters(classDef: ClassDef): Parameters =
+    classDef match {
+      case ClassDef(
+        name: ClassName,
+        fields: List[Name],
+        priv: List[Init],
+        body: List[Action]) => {
+        val assignments = body.filter(_.isInstanceOf[Discretely]).map {
+          case Discretely(Assign(Dot(Dot(Var(Name(self, 0)), Name(simulator, 0)), Name(param, 0)), rhs @ Lit(GInt(_) | GDouble(_)))) => (param, rhs)
+          case _ => sys.error("Top level assignments have to be a numeric constant assigned to a simulator parameter!")
+        }
+        // FIXME coercing each integer to a double and back is not ideal...
+        val defaultParameters = Map[String, Double](
+          "precision" -> 10,
+          "startTime" -> 0,
+          "endTime" -> 1,
+          "solveVtInitialConditionPadding" -> 0,
+          "extraPicardIterations" -> 20,
+          "maxPicardIterations" -> 200,
+          "maxEventTreeSize" -> 30,
+          "minTimeStep" -> 1,
+          "maxTimeStep" -> 0.01)
+        val params = assignments.foldLeft(defaultParameters) {
+          case (res, (param, Lit(GInt(i)))) => res + (param -> i.toDouble)
+          case (res, (param, Lit(GDouble(d)))) => res + (param -> d)
+          case _ => sys.error("Should never happen!")
+        }
+        Parameters(
+          params("precision").toInt,
+          params("startTime"),
+          params("endTime"),
+          params("solveVtInitialConditionPadding"),
+          params("extraPicardIterations").toInt,
+          params("maxPicardIterations").toInt,
+          params("maxEventTreeSize").toInt,
+          params("minTimeStep"),
+          params("maxTimeStep"))
       }
     }
 
@@ -142,7 +196,7 @@ trait Transform {
     stateVariables: List[String],
     as: List[Action])(implicit rnd: Rounding): ResetMap = {
     val resetComponents = as.flatMap {
-      case Discretely(Assign(lhs @ Dot(Var(Name("self", 0)), Name(name,_)), rhs)) =>
+      case Discretely(Assign(lhs @ Dot(Var(Name("self", 0)), Name(name, _)), rhs)) =>
         if (name == modeVariable) List()
         else List((lhs, rhs))
       case Discretely(Assign(lhs, rhs)) => sys.error("Assignment of " + rhs + " to " + lhs + " is not supported.")

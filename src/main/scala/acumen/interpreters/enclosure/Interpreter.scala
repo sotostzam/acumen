@@ -18,28 +18,31 @@ object Interpreter extends acumen.Interpreter with Solver with Transform {
   // FIXME do not use null
   def newTraceModel = new EnclosureTraceModel(null)
 
-  //TODO Get this from the Simulator object
-  implicit val rnd = Rounding(10)
-
   //FIXME do this properly
   override def generateTraceModel(text: String, log: String => Unit): EnclosureTraceModel = {
     val prog = Parser.run(Parser.prog, text)
     val des = Desugarer.run(prog)
-    val (h: HybridSystem, uis) = extract(classDef(ClassName("Main"), des))
-    val H = h
-    val Ss = Set(uis)
+    val main = classDef(ClassName("Main"), des)
+    val ps = parameters(main)
+    println(ps)
 
-    val startTime = 0 // parameter 
-    val endTime = 3 // parameter 
-    val T = Interval(startTime, endTime)
-    val delta = 0 // parameter
-    val m = 20 // parameter
-    val n = 200 // parameter
-    val K = 30 // parameter
-    val d = 0.01 // parameter
-    val e = // parameter 
-      T.hiDouble - T.loDouble
-    val res = solver(H, T, Ss, delta, m, n, K, d, e, T, "output",log)
+    implicit val rnd = Rounding(10)
+
+    val (hs, uss) = extract(main)
+
+    val res = solver(
+      hs,
+      ps.simulationTime,
+      Set(uss),
+      ps.solveVtInitialConditionPadding,
+      ps.extraPicardIterations,
+      ps.maxPicardIterations,
+      ps.maxEventTreeSize,
+      ps.minTimeStep,
+      ps.maxTimeStep,
+      ps.simulationTime,
+      "output",
+      log)
     new EnclosureTraceModel(res)
   }
 
@@ -86,12 +89,15 @@ end
 
   val prog = Parser.run(Parser.prog, txt)
   val des = Desugarer.run(prog)
-
-  implicit val rnd = Rounding(10)
-  val (h, ic) = extract(classDef(ClassName("Main"), prog))
+  val main = classDef(ClassName("Main"), des)
+  
+  val ps = parameters(main)
+  implicit val rnd = Rounding(ps.precision)
+  val (h, ic) = extract(main)
 
   println(h)
   println(ic)
+  println(ps)
 
 }
 
@@ -113,11 +119,14 @@ end
 
   val prog = Parser.run(Parser.prog, txt)
   val des = Desugarer.run(prog)
-
-  implicit val rnd = Rounding(10)
-  val (h, ic) = extract(classDef(ClassName("Main"), des))
+  val main = classDef(ClassName("Main"), des)
+  
+  val ps = parameters(main)
+  implicit val rnd = Rounding(ps.precision)
+  val (h, ic) = extract(main)
 
   println(h)
   println(ic)
+  println(ps)
 
 }

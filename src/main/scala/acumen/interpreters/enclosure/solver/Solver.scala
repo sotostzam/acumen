@@ -32,8 +32,7 @@ trait Solver {
     n: Int,
     K: Int,
     output: String,
-    log: String => Unit
-    )(implicit rnd: Rounding): Option[(Set[UncertainState], Seq[UnivariateAffineEnclosure])] = {
+    log: String => Unit)(implicit rnd: Rounding): Option[(Set[UncertainState], Seq[UnivariateAffineEnclosure])] = {
     var res = EventTree.initialTree(T, H, S, delta, m, n, output)
     var tmp = res.addLayer
     while (res.size < K && tmp != res) {
@@ -117,10 +116,10 @@ trait Solver {
 
           // TODO make the improvement threshold a parameter 
           if (cannotSplit ||
-            ({
-//              log("improvement : " + improvement);
+            {
+              //              log("improvement : " + improvement);
               improvement lessThanOrEqualTo Interval(0.00001)
-            })) {
+            }) {
             resultForT
           } else {
             log("splitting " + T)
@@ -146,8 +145,7 @@ trait Solver {
     e: Double, // maximum time step size
     Tinit: Interval, // initial time segment
     output: String, // path to write output 
-    log: String => Unit
-    )(implicit rnd: Rounding): Seq[UnivariateAffineEnclosure] = {
+    log: String => Unit)(implicit rnd: Rounding): Seq[UnivariateAffineEnclosure] = {
     Util.newFile(output)
     try {
       solveHybrid(H, T, Ss, delta, m, n, K, d, e, output, log)._2
