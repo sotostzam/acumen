@@ -223,13 +223,17 @@ class AppModel(text: => String) extends Publisher {
             consumer ! Message(msg)
           receive {
             case GoOn => ()
-            case Stop => exit
+            case Stop => throw new java.lang.InterruptedException
           }
         }
         // FIXME: Is it okay to use withErrorReporting here in the producer
         withErrorReporting {
-          val tm = interpreters.enclosure.Interpreter.generateTraceModel(text,log)
-          consumer ! EnclosureDone(tm)
+          try {
+            val tm = interpreters.enclosure.Interpreter.generateTraceModel(text,log)
+            consumer ! EnclosureDone(tm)
+          } catch {
+            case _:java.lang.InterruptedException => exit
+          }
         }
         exit
       }
@@ -266,11 +270,23 @@ class AppModel(text: => String) extends Publisher {
       last = Some(l)
     }
 
+    def waitForResult {
+      react {
+        case EnclosureDone(tm) =>
+          tmodel.setTraceModel(tm)
+          tmodel.fireTableStructureChanged()
+          exit
+        }
+    }
+
     def finish = {
       react {
         case Done(_) | Chunk(_) | Message(_) => 
           reply(Stop)
-          exit
+          if (isEnclosure)
+            waitForResult
+          else
+            exit
       }
     }
 

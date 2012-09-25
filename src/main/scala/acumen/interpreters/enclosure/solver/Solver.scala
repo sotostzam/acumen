@@ -46,6 +46,7 @@ trait Solver {
   }
 
   case class SolverException(message: String) extends Exception
+  case class Aborted(resultSoFar: Seq[UnivariateAffineEnclosure]) extends Exception
 
   // TODO add description
   def solveHybrid(
@@ -71,7 +72,11 @@ trait Solver {
       } else {
         log("splitting " + T)
         val (ssl, ysl) = solveHybrid(H, lT, Ss, delta, m, n, K, d, e, output, log)
-        val (ssr, ysr) = solveHybrid(H, rT, ssl, delta, m, n, K, d, e, output, log)
+        val (ssr, ysr) = try {
+          solveHybrid(H, rT, ssl, delta, m, n, K, d, e, output, log)
+        } catch {
+          case Aborted(resultSoFar) => throw Aborted(ysl ++ resultSoFar)
+        }
         (ssr, ysl ++ ysr)
       }
     else {
@@ -124,7 +129,11 @@ trait Solver {
           } else {
             log("splitting " + T)
             val (ssl, ysl) = solveHybrid(H, lT, Ss, delta, m, n, K, d, e, output, log)
-            val (ssr, ysr) = solveHybrid(H, rT, ssl, delta, m, n, K, d, e, output, log)
+            val (ssr, ysr) = try {
+              solveHybrid(H, rT, ssl, delta, m, n, K, d, e, output, log)
+            } catch {
+              case Aborted(resultSoFar) => throw Aborted(ysl ++ resultSoFar)
+            }
             (ssr, ysl ++ ysr)
           }
         }
@@ -148,8 +157,20 @@ trait Solver {
     log: String => Unit)(implicit rnd: Rounding): Seq[UnivariateAffineEnclosure] = {
     Util.newFile(output)
     try {
-      solveHybrid(H, T, Ss, delta, m, n, K, d, e, output, log)._2
+      def mylog(msg:String) = {
+        try {
+          log(msg)
+        } catch {
+          case _:InterruptedException => {
+            throw Aborted(Seq[UnivariateAffineEnclosure]())
+          }
+        }
+      }
+      solveHybrid(H, T, Ss, delta, m, n, K, d, e, output, mylog)._2
     } catch {
+      case Aborted(resultSoFar) => {
+        resultSoFar
+      }
       case SolverException(message) => {
         log(message)
         log("solver: reducing minimum segement width to " + d / 2)
@@ -157,5 +178,4 @@ trait Solver {
       }
     }
   }
-
 }
