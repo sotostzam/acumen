@@ -1,0 +1,7 @@
+// The third element of _3D should be a vector or a number
+// to represent the 3D-object's size
+class Main(simulator)
+ private
+  _3D = ["Sphere",[0,0,0],"1",[0,0,0],[0,0,0]];
+ end
+end

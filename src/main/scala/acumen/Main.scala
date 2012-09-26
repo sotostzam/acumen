@@ -18,6 +18,20 @@ import javax.swing._
 object Main {
 
   def main(args: Array[String]): Unit = {
+    val I = interpreters.reference.Interpreter
+    //val I = new interpreters.parallel.Interpreter(2)
+
+    val in = new InputStreamReader(System.in)
+    
+    lazy val ast        = Parser.run(Parser.prog, in)
+    lazy val diffed     = SD.run(ast)
+    lazy val desugared  = Desugarer.run(diffed)
+    lazy val dva_out    = DVA.run(desugared)
+    lazy val bta_out    = BTA.run(dva_out)
+    lazy val spec_out   = Specializer.run(bta_out)
+    lazy val nodiff_out = AD.run(spec_out)
+    lazy val trace      = I.run(nodiff_out)
+    lazy val ctrace     = trace map I.repr
 
     try {
       /* See if user wants to choose a specific interpreter. */
