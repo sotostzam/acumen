@@ -89,6 +89,17 @@ trait Transform {
     val simulationTime = Interval(startTime, endTime)
   }
 
+  /**
+   * Extracts solver parameter values embedded in an Acumen class
+   *
+   * The assignments must be in the top level block, i.e. on the
+   * same level as the single switch statement encoding the hybrid
+   * automaton and not nested within it.
+   *
+   * At most one assignment per simulator parameter may be made.
+   *
+   * The order of assignments does not matter.
+   */
   def parameters(classDef: ClassDef): Parameters =
     classDef match {
       case ClassDef(
@@ -99,6 +110,12 @@ trait Transform {
         val assignments = body.filter(_.isInstanceOf[Discretely]).map {
           case Discretely(Assign(Dot(Dot(Var(Name(self, 0)), Name(simulator, 0)), Name(param, 0)), rhs @ Lit(GInt(_) | GDouble(_)))) => (param, rhs)
           case _ => sys.error("Top level assignments have to be a numeric constant assigned to a simulator parameter!")
+        }
+        val checkAssignments = assignments.groupBy { case (name, _) => name }.map {
+          case (n, rhss) => rhss.size match {
+            case 1 => ()
+            case _ => sys.error("Muliple assignments to simulator." + n + " are not allowed!")
+          }
         }
         // FIXME coercing each integer to a double and back is not ideal...
         val defaultParameters = Map[String, Double](
