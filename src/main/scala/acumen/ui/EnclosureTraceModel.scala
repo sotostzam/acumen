@@ -58,13 +58,13 @@ class EnclosureTraceModel(es: Seq[UnivariateAffineEnclosure]) extends AbstractTr
       }
       val r = Array.fill(times.size){null:String}
       var i = 0
-      r(i) = "(-,%s)".format(getRight(i+1))
+      r(i) = "(-,%s)".format(getLeft(i+1))
       i += 1
       while (i < timeGrouping.size - 1) {
-        r(i) = "(%s,%s)".format(getLeft(i),getRight(i+1))
+        r(i) = "(%s,%s)".format(getRight(i),getLeft(i+1))
         i += 1
       }
-      r(i) = "(%s,-)".format(getLeft(i))
+      r(i) = "(%s,-)".format(getRight(i))
       res(idx) = r
     }
     
