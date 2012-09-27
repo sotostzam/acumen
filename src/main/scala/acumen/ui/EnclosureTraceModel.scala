@@ -20,9 +20,8 @@ class EnclosureTraceModel(es: Seq[UnivariateAffineEnclosure]) extends AbstractTr
       new PlotEnclosure(false, Name(name, 0), 0, idx, enclosures.toIndexedSeq)
   }
 
-  lazy val (tableData,tableTimes) = {
+  lazy val (tableTimes, tableData) = {
     // first group duplicate times together
-    
     var timeGrouping = ArrayBuffer[Tuple3[Double,Int,Int]]()
     var start = 0
     do {
@@ -34,11 +33,24 @@ class EnclosureTraceModel(es: Seq[UnivariateAffineEnclosure]) extends AbstractTr
       start = stop
     } while (start < times.size)
 
+    // now create an array of times in the format we need
+    val resTimes = new Array[Double](timeGrouping.size * 2 - 2)
+    var i = 0; var j = 0
+    resTimes(i) = timeGrouping(j)._1
+    i += 1; j += 1
+    while (j < timeGrouping.size - 1) {
+      resTimes(i) = timeGrouping(j)._1
+      i += 1
+      resTimes(i) = timeGrouping(j)._1
+      i += 1; j += 1
+    }
+    resTimes(i) = timeGrouping(j)._1
+
     // prep the table array
-    val res = Array.fill(1+plottables.size){null:Array[String]}
+    val res = Array.fill(plottables.size + 1){null:Array[String]}
     
     // fill in the first column with the time value
-    res(0) = timeGrouping.map {case (t,_,_) => "%f".format(t)}.toArray
+    res(0) = resTimes.map {t => "%f".format(t)}
 
     // fill in the other columns
     for ((_, idx, enclosures) <- enclSeqs) {
@@ -56,20 +68,19 @@ class EnclosureTraceModel(es: Seq[UnivariateAffineEnclosure]) extends AbstractTr
         val hi = data.map {encl => encl.hiRight}.max
         "[%f,%f]".format(lo,hi)
       }
-      val r = Array.fill(times.size){null:String}
-      var i = 0
-      r(i) = "(-,%s)".format(getLeft(i+1))
-      i += 1
-      while (i < timeGrouping.size - 1) {
-        r(i) = "(%s,%s)".format(getRight(i),getLeft(i+1))
+      val r = Array.fill(timeGrouping.size * 2 - 2){null:String}
+      var i = 0; var j = 1
+      while (j < timeGrouping.size) {
+        r(i) = getLeft(j)
         i += 1
+        r(i) = getRight(j)
+        i += 1; j += 1
       }
-      r(i) = "(%s,-)".format(getRight(i))
       res(idx) = r
     }
-    
+
     // return the final results
-    (res, timeGrouping.map {case (t,_,_) => t})
+    (resTimes, res)
   }
 
   override def getRowCount() = tableData(0).size

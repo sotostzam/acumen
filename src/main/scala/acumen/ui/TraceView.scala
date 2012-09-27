@@ -688,7 +688,7 @@ class Plotter(
         // p in the original coordinate system
         val op = unapplyTr(p)
         // quantized time and row in the trace model corresponding to p.x
-        val (qt, row) = findTimeIndex(op.getX)
+        var (qt, row) = findTimeIndex(op.getX)
         // update the vertical line (and dot) x coordinate
         dotX = applyTr(new Point2D.Double(qt, 0)).getX
 
@@ -700,7 +700,20 @@ class Plotter(
           // name of the column
           val name = tb.getColumnName(column)
           // value of the column as a string
-          val value = tb.getValueAt(row, column).asInstanceOf[String]
+          var value = tb.getValueAt(row, column).asInstanceOf[String]
+          // FIXME: This is an incredible ugly hack to check if we area
+          //   displaying enclosures instead of a real trace view.
+          if (tb.getColumnName(0) == "time" && value(0) == '[') {
+            if (row == 0)
+              value = "(-,%s)".format(value)
+            else if (row == tb.getRowCount() - 1)
+              value = "(%s,-)".format(value)
+            else {
+              if (row % 2 == 0) row -= 1
+              value = "(%s,%s)".format(tb.getValueAt(row, column).asInstanceOf[String],
+                                       tb.getValueAt(row + 1, column).asInstanceOf[String])
+            }
+          }
           // publish a pointed at event
           pub.publish(PointedAtEvent(qt, name, value))
           // update the green dot Y coordinate
