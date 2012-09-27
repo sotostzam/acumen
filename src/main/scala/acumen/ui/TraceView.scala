@@ -344,7 +344,8 @@ class Plotter(
   private val undoStack = new Stack[Rectangle2D] 
   private var viewChanged = true
   private var transform = new AffineTransform()
-  private var time = new ArrayBuffer[Double]
+  private var time : IndexedSeq[Double] = new ArrayBuffer[Double]
+  private var traceViewTime : IndexedSeq[Double]= new ArrayBuffer[Double]
   private var columnIndices = new ArrayBuffer[Int]
   private var yTransformations = new ArrayBuffer[(Double, Double)]
 
@@ -369,6 +370,7 @@ class Plotter(
     viewChanged = true
     transform = new AffineTransform()
     time = new ArrayBuffer[Double]
+    traceViewTime = new ArrayBuffer[Double]
     columnIndices = new ArrayBuffer[Int]
     yTransformations = new ArrayBuffer[(Double, Double)]
     repaint
@@ -593,6 +595,7 @@ class Plotter(
     else {
 
       time = tb.getTimes()
+      traceViewTime = tb.getTraceViewTimes()
 
       columnIndices = new ArrayBuffer[Int]
       for (p <- tb.getPlottables() if plotit(p)) {
@@ -658,20 +661,20 @@ class Plotter(
   private def findTimeIndex(t:Double) : (Double, Int) = {
     def findIn(min:Int, max:Int) : (Double, Int) = {
       if (max - min <= 1) {
-        val tmax = time(max)
-        val tmin = time(min)
+        val tmax = traceViewTime(max)
+        val tmin = traceViewTime(min)
         if (math.abs(tmax-t) < math.abs(tmin-t)) 
           (tmax, max)
         else (tmin, min)
       }
       else {
         val middle = (max+min)/2
-        if (time(middle) < t) findIn(middle, max)
+        if (traceViewTime(middle) < t) findIn(middle, max)
         else findIn(min, middle)
       }
     }
-    if (time.isEmpty) (0,0)
-    else findIn(0, time.size-1)
+    if (traceViewTime.isEmpty) (0,0)
+    else findIn(0, traceViewTime.size-1)
   }
 
   listenTo(mouse.moves)

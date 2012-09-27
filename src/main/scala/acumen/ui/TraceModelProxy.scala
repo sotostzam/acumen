@@ -38,6 +38,8 @@ class TraceModelProxy(private var tm: AbstractTraceModel) extends AbstractTraceM
   override def isEmpty() = tm.isEmpty()
 
   override def getTimes() = tm.getTimes()
+
+  override def getTraceViewTimes() = tm.getTraceViewTimes()
   
   override def getPlottables() = tm.getPlottables()
   

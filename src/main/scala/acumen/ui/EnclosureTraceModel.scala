@@ -4,6 +4,7 @@ package ui
 import Errors._
 import Pretty._
 import collection.mutable.ArrayBuffer
+import collection.mutable.WrappedArray
 import javax.swing.event.TableModelListener
 import acumen.interpreters.enclosure.UnivariateAffineEnclosure
 import acumen.interpreters.enclosure.UnivariateAffineScalarEnclosure
@@ -19,7 +20,7 @@ class EnclosureTraceModel(es: Seq[UnivariateAffineEnclosure]) extends AbstractTr
       new PlotEnclosure(false, Name(name, 0), 0, idx, enclosures.toIndexedSeq)
   }
 
-  lazy val tableData = {
+  lazy val (tableData,tableTimes) = {
     // first group duplicate times together
     
     var timeGrouping = ArrayBuffer[Tuple3[Double,Int,Int]]()
@@ -37,7 +38,7 @@ class EnclosureTraceModel(es: Seq[UnivariateAffineEnclosure]) extends AbstractTr
     val res = Array.fill(1+plottables.size){null:Array[String]}
     
     // fill in the first column with the time value
-    res(0) = timeGrouping.view.map {case (t,_,_) => "%f".format(t)}.toArray
+    res(0) = timeGrouping.map {case (t,_,_) => "%f".format(t)}.toArray
 
     // fill in the other columns
     for ((_, idx, enclosures) <- enclSeqs) {
@@ -67,8 +68,8 @@ class EnclosureTraceModel(es: Seq[UnivariateAffineEnclosure]) extends AbstractTr
       res(idx) = r
     }
     
-    // return the final array
-    res
+    // return the final results
+    (res, timeGrouping.map {case (t,_,_) => t})
   }
 
   override def getRowCount() = tableData(0).size
@@ -85,6 +86,8 @@ class EnclosureTraceModel(es: Seq[UnivariateAffineEnclosure]) extends AbstractTr
   override def isEmpty() = es.isEmpty
 
   override def getTimes() = times
+
+  override def getTraceViewTimes() = tableTimes
 
   override def getPlottables() = plottables
 }
