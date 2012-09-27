@@ -1,0 +1,6 @@
+// _3D should be a vector with 5 elements
+class Main(simulator)
+ private
+  _3D = "";
+ end
+end

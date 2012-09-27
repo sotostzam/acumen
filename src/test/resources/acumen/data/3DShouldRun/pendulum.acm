@@ -1,0 +1,45 @@
+
+// Example:  Pendulum Animation 
+// Illustrates:
+//    - how acumen 3D visulization works
+
+
+class Pendulum(theta)
+  private
+  mode="Rolling";
+  theta'=0;
+  Pi=3.1415926;
+  length=1.5;
+  s=1.5*sin(theta*0.5*3.1415926);
+  s'=0;s''=-9.8*sin(theta)/cos(theta);
+   
+  p=[0,0,0];
+  p'=[0,0,0];
+  angle=[1,0,0];
+  angle'=[0,0,1];  
+  _3D = ["Cylinder", [0,0,1], [0.1,0.05], [0,1,0],[0,0,0]];
+  end
+ angle[=][Pi/2,theta,0];
+ p[=][0,0,0]+[-0.75*sin(theta),0,0.75-0.75*cos(theta)];
+ s''[=]-9.8*sin(theta)/cos(theta);
+ theta[=]asin(s/length);
+ _3D [=] ["Cylinder",p, [0.01,1.5], [0,1,0],angle];
+ switch mode
+  case "Rolling"
+  end 
+
+end
+class Main(simulator)
+  private
+    mode = "Init"
+  end
+  switch mode
+    case "Init"
+      simulator.timeStep = 0.01;
+      simulator.endTime = 12;
+       
+       create Pendulum(0.2);     
+      mode = "Persist"
+    case "Persist"
+  end
+end

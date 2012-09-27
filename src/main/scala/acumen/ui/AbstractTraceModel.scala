@@ -32,9 +32,11 @@ trait AbstractTraceModel extends AbstractTableModel {
   
   def getDouble(row:Int, column:Int): Option[Double]
 
-  def isEmpty(): Boolean;
+  def isEmpty(): Boolean
 
-  def getTimes(): ArrayBuffer[Double]
+  def getTimes(): IndexedSeq[Double]
+
+  def getTraceViewTimes() = getTimes()
 
   def getPlottables(): Iterable[Plottable]
   

@@ -1,0 +1,7 @@
+// The second element of _3D should be a vector with 3 elements 
+// to represent the 3-dimensional position
+class Main(simulator)
+ private
+  _3D = ["Sphere",[0,0],1,[0,0,0],[0,0,0]];
+ end
+end

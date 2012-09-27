@@ -45,6 +45,13 @@ seq(ProguardPlugin.proguardSettings :_*)
 
 proguardDefaultArgs := Seq("-dontwarn", "-dontobfuscate")
 
+// make sure all target specific Java 3d dependencies are included
+proguardOptions += "-keep class javax.media.j3d.**"
+
+// temporary hack to get proguard working with enclosure code
+proguardOptions ++= Seq("-keep class org.jfree.resources.**",
+                        "-keep class org.jfree.chart.resources.**")
+
 // for faster jar creation (but larger file)
 proguardDefaultArgs += "-dontoptimize"
 
