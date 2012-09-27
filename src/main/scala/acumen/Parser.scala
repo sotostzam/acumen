@@ -86,7 +86,7 @@ object Parser extends MyStdTokenParsers {
   lexical.reserved ++=
     List("for", "end", "if", "else", "create", "move", "in",
       "terminate", "class", "sum", "true", "false",
-      "private", "switch", "case", "Continuous", "Discrete", "none", "type", "assert")
+      "private", "switch", "case", "Continuous", "Discrete", "none", "type", "assume")
 
   /* token conversion */
 
@@ -179,7 +179,7 @@ object Parser extends MyStdTokenParsers {
       "case" ~! gvalue ~! actions ^^
       { case _ ~ lhs ~ rhs => Clause(lhs, Lit(GBool(true)), rhs) }
 
-  def assertion = "assert" ~! expr ^^ { case "assert" ~ expr => expr }
+  def assertion = "assume" ~! expr ^^ { case "assume" ~ expr => expr }
 
   def ifThenElse =
     ("if" ~! expr ~! actions) >> {

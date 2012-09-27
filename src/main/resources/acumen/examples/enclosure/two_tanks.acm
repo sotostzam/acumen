@@ -7,11 +7,11 @@ class Main(simulator)
   simulator.endTime = 2.5;
   simulator.minTimeStep = 4.7e-7;
   switch mode
-    case "FillLeft" assert x1 >= 0 && x2 >= 0
+    case "FillLeft" assume x1 >= 0 && x2 >= 0
       if x2 == 0 mode = "FillRight" end; 
       x1' [=] 2; 
       x2' [=] -3;
-    case "FillRight" assert x1 >= 0 && x2 >= 0
+    case "FillRight" assume x1 >= 0 && x2 >= 0
       if x1 == 0 mode = "FillLeft" end; 
       x1' [=] -2; x2' [=] 1;
   end

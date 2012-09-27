@@ -75,7 +75,7 @@ object BBA extends App with Transform {
 class Main(simulator)
   private mode = "Fly"; x = 1; x' = 0; x'' = 0 end
   switch mode
-    case "Fly" assert x >= 0
+    case "Fly" assume x >= 0
       if x < 0 && x' < 0
         x' = -x';
         mode = "Fly"
@@ -105,7 +105,7 @@ object Ticker extends App with Transform {
 class Main(simulator) 
 private mode = 0; x = 1; x' = -1 end
   switch mode
-    case 0 assert x >= 0
+    case 0 assume x >= 0
       x' [=] -1; 
       if x == 0
         x = 1; 

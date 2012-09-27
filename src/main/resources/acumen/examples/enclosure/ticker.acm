@@ -4,7 +4,7 @@ private mode = "On"; x = 1; x' = -1 end
   simulator.minTimeStep = 0.001;
   simulator.maxTimeStep = 1; 
   switch mode
-    case "On" assert x >= 0
+    case "On" assume x >= 0
       if x == 0
         x = 1; 
         mode = "On"

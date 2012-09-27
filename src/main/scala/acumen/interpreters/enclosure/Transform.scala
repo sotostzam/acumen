@@ -24,9 +24,9 @@ trait Transform {
    * The automaton graph is represented as a single switch statement
    * with the variable that is switched on acting as a mode designator.
    *
-   * The domain invariant of the mode is declared by the 'assert' keyword
+   * The domain invariant of the mode is declared by the 'assume' keyword
    * which may be provided after the value matched on in the case clause.
-   * Omitted assertions are parsed as constant 'true' invariants.
+   * Omitted assumes are parsed as constant 'true' invariants.
    *
    * Each case in the switch statement corresponds to a node (a mode)
    * in the automaton.
