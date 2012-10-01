@@ -39,15 +39,12 @@ class TraceModel extends AbstractTraceModel {
     }
   }
 
-  override def addStore(st:CStore) = 
-    addStores(List(st))
-
-  override def addStores(sts:Iterable[CStore]) = {
+  override def addData(sts:TraceData) = {
     def compIds(ido1:(CId,_), ido2:(CId,_)) = ido1._1 < ido2._1
     def compFields(p1:(Name,CValue),p2:(Name,CValue)) = 
       Ordering[(String,Int)] lt ((p1._1.x, p1._1.primes),(p2._1.x, p2._1.primes))
     for (st <- sts) {
-      for ((id,o) <- st.toList sortWith(compIds)) {
+      for ((id,o) <- st.asInstanceOf[CStore].toList sortWith(compIds)) {
         if (ids contains id) 
           for ((x,v) <- o.toList) addVal(id,x,v)
         else {

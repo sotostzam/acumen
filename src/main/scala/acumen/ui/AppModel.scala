@@ -34,6 +34,12 @@ sealed abstract class InterpreterType
 case class Pure() extends InterpreterType
 case class Impure(nbThreads: Int) extends InterpreterType
 
+case class CStoreTraceData(data: Iterable[CStore]) 
+  extends TraceData(getTime(data.last), getEndTime(data.last)) with Iterable[CStore] 
+{
+  def iterator = data.iterator
+}
+
 class AppModel(text: => String, console: Console) extends Publisher {
 
   private sealed abstract class PAppState
@@ -128,9 +134,9 @@ class AppModel(text: => String, console: Console) extends Publisher {
     catch { case e => emitError(e) }
   }
 
-  private def updateProgress(s: CStore) = {
-    val time = getTime(s)
-    val endTime = getEndTime(s)
+  private def updateProgress(s: TraceData) = {
+    val time = s.curTime
+    val endTime = s.endTime
     emitProgress((time * 100 / endTime).toInt)
   }
 
@@ -148,7 +154,7 @@ class AppModel(text: => String, console: Console) extends Publisher {
       val cstore = I.repr(store)
       //*********************************
       data.getData(cstore)
-      tmodel.addStore(cstore)
+      tmodel.addData(CStoreTraceData(List(cstore))) // FIXME: What is this doing??? -kevina
       setState(PInitialized(prog, cstore))
     }
 
@@ -200,9 +206,10 @@ class AppModel(text: => String, console: Console) extends Publisher {
       val mstore = I.step(p, I.fromCStore(s)) map I.repr
       mstore match {
         case Some(st) =>
-          tmodel.addStore(st)
+          val td = CStoreTraceData(List(st))
+          tmodel.addData(td)
           setState(PPaused(p, st))
-          updateProgress(st)
+          updateProgress(td)
         case None =>
           setState(PStopped())
       }
@@ -226,8 +233,8 @@ class AppModel(text: => String, console: Console) extends Publisher {
   case object GoOn
   case object Stop
   case class Message(msg: String)
-  case class Chunk(css: Iterable[CStore])
-  case class Done(css: Iterable[CStore])
+  case class Chunk(css: TraceData)
+  case class Done(css: TraceData)
   case class EnclosureDone(tm: AbstractTraceModel)
 
   private class Producer(p: Prog, st: CStore, consumer: Actor) extends Actor {
@@ -267,7 +274,7 @@ class AppModel(text: => String, console: Console) extends Publisher {
       loopWhile(iter.hasNext) {
         if (buffer.size >= 200) {
           val buf = buffer
-          consumer ! Chunk(buf)
+          consumer ! Chunk(CStoreTraceData(buf))
           react {
             case GoOn => buffer = Queue.empty[CStore]
             case Stop => exit
@@ -277,30 +284,32 @@ class AppModel(text: => String, console: Console) extends Publisher {
         }
       } andThen {
         val buf = buffer
-        consumer ! Done(buf)
+        consumer ! Done(CStoreTraceData(buf))
       }
     }
   }
 
   private class Consumer extends Actor {
-    var last: Option[CStore] = None
+    var last: Option[Object] = None
     var n = 1;
-    def flush(css: Iterable[CStore]) = {
+    def flush(css: TraceData) = {
       val l = css.last
       Swing onEDT {
-        tmodel addStores css
+        tmodel addData css
 
+        if (!isEnclosure) {
         //*****************************************
         //**************************************
         val _3DSampleInterval = 3;
-        for (cs <- css) {
+        for (cs <- css.asInstanceOf[Iterable[CStore]]) {
           if (n > _3DSampleInterval) {
             data.getData(cs)
             n = 1;
           } else
             n += 1;
         }
-        updateProgress(l)
+        }
+        updateProgress(css)
       }
       last = Some(l)
     }

@@ -43,9 +43,7 @@ class TraceModelProxy(private var tm: AbstractTraceModel) extends AbstractTraceM
   
   override def getPlottables() = tm.getPlottables()
   
-  override def addStore(st:CStore) = tm.addStore(st)
-		  
-  override def addStores(sts:Iterable[CStore]) = tm.addStores(sts)
+  override def addData(d: TraceData): Unit = tm.addData(d)
 		  
   override def reset = tm.reset
 }
