@@ -5,7 +5,7 @@ import acumen.interpreters.enclosure.Interval._
 import acumen.interpreters.enclosure.Types._
 import acumen.interpreters.enclosure.UnivariateAffineEnclosure._
 
-object SolveVt {
+trait SolveVt {
 
   /**
    * Solves an ODE-IVP given by a field F for a time interval T and

@@ -5,7 +5,7 @@ import acumen.interpreters.enclosure.Interval._
 import acumen.interpreters.enclosure.Rounding._
 import acumen.interpreters.enclosure.Types._
 
-object PlotTest extends App {
+object PlotTest extends App with SolveVt {
   implicit val rnd = Rounding(10)
   val H = Systems.BB(10, 0.5)
   val T = 0 /\ 0.5
@@ -14,7 +14,7 @@ object PlotTest extends App {
   val n = 200
   val K = 30
   val d = 0.1
-  val res = SolveVt.solveVt(H.fields(Mode("Fly")), 0 /\ 1.5, Box("x" -> 5, "x'" -> 0), delta, m, n, "output")
+  val res = solveVt(H.fields(Mode("Fly")), 0 /\ 1.5, Box("x" -> 5, "x'" -> 0), delta, m, n, "output")
   UnivariateAffineScalarEnclosure.plot(res.components.values.toSeq: _*)
 }
 

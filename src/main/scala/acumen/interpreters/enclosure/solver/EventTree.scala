@@ -4,9 +4,6 @@ import acumen.interpreters.enclosure._
 import acumen.interpreters.enclosure.Types._
 import acumen.interpreters.enclosure.Util._
 
-import SolveVt._
-//import Solver._
-
 /** TODO add description */
 // TODO add tests
 abstract class EventSequence {
@@ -56,7 +53,7 @@ case class EventTree(
   delta: Double,
   m: Int,
   n: Int,
-  output: String) extends Solver {
+  output: String) extends Solver with SolveVt {
 
   /** TODO add description */
   // TODO add tests
@@ -200,7 +197,7 @@ case class EventTree(
   }
 }
 
-object EventTree {
+object EventTree extends SolveVt {
 
   /** TODO add description */
   // TODO add tests
