@@ -9,14 +9,14 @@ import acumen.interpreters.Common.classDef
 import acumen.interpreters.enclosure.solver.Solver
 import acumen.interpreters.enclosure.solver.HybridSystem
 import acumen.ui.EnclosureTraceModel
+import acumen.ui.EnclosureTraceData
 
 /**
  * Proxy for the enclosure-based solver.
  */
 object Interpreter extends acumen.Interpreter with Solver with Transform {
 
-  // FIXME do not use null
-  def newTraceModel = new EnclosureTraceModel(null)
+  def newTraceModel = new EnclosureTraceModel
 
   //FIXME do this properly
   override def generateTraceModel(text: String, log: String => Unit): EnclosureTraceModel = {
@@ -41,7 +41,9 @@ object Interpreter extends acumen.Interpreter with Solver with Transform {
       ps.simulationTime,
       "output",
       log)
-    new EnclosureTraceModel(res)
+    val tm = new EnclosureTraceModel
+    tm.addData(EnclosureTraceData(res))
+    tm
   }
 
   type Store = Seq[UnivariateAffineEnclosure]

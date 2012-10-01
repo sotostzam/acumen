@@ -9,18 +9,28 @@ import javax.swing.event.TableModelListener
 import acumen.interpreters.enclosure.UnivariateAffineEnclosure
 import acumen.interpreters.enclosure.UnivariateAffineScalarEnclosure
 
-class EnclosureTraceModel(es: Seq[UnivariateAffineEnclosure]) extends AbstractTraceModel {
+class EnclosureTraceModel extends AbstractTraceModel {
 
-  lazy val times = es.map(_.domain.hiDouble).foldLeft(ArrayBuffer(es.head.domain.loDouble)) { case (res, t) => res += t }
+  var es = new ArrayBuffer[UnivariateAffineEnclosure]
 
-  lazy val enclSeqs = es.head.varNames.zipWithIndex.map{case (name,idx) => (name, idx + 1, null +: es.map(_(name).toEnclosure))}
+  var times : ArrayBuffer[Double] = null
+  var enclSeqs : Iterable[Tuple3[String, Int, Seq[Enclosure]]] = null
+  var plottables : Iterable[PlotEnclosure] = null
+  var tableTimes : Array[Double] = null
+  var tableData : Array[Array[String]] = null
 
-  lazy val plottables = enclSeqs.map {
-    case (name, idx, enclosures) =>
-      new PlotEnclosure(false, Name(name, 0), 0, idx, enclosures.toIndexedSeq)
-  }
+  def recompute() = {
 
-  lazy val (tableTimes, tableData) = {
+    times = es.map(_.domain.hiDouble).foldLeft(ArrayBuffer(es.head.domain.loDouble)) { case (res, t) => res += t }
+
+    enclSeqs = es.head.varNames.zipWithIndex.map{case (name,idx) => (name, idx + 1, null +: es.map(_(name).toEnclosure))}
+
+    plottables = 
+    enclSeqs.map {
+      case (name, idx, enclosures) =>
+        new PlotEnclosure(false, Name(name, 0), 0, idx, enclosures.toIndexedSeq)
+    }
+
     // first group duplicate times together
     var timeGrouping = ArrayBuffer[Tuple3[Double,Int,Int]]()
     var start = 0
@@ -34,23 +44,23 @@ class EnclosureTraceModel(es: Seq[UnivariateAffineEnclosure]) extends AbstractTr
     } while (start < times.size)
 
     // now create an array of times in the format we need
-    val resTimes = new Array[Double](timeGrouping.size * 2 - 2)
+    tableTimes = new Array[Double](timeGrouping.size * 2 - 2)
     var i = 0; var j = 0
-    resTimes(i) = timeGrouping(j)._1
+    tableTimes(i) = timeGrouping(j)._1
     i += 1; j += 1
     while (j < timeGrouping.size - 1) {
-      resTimes(i) = timeGrouping(j)._1
+      tableTimes(i) = timeGrouping(j)._1
       i += 1
-      resTimes(i) = timeGrouping(j)._1
+      tableTimes(i) = timeGrouping(j)._1
       i += 1; j += 1
     }
-    resTimes(i) = timeGrouping(j)._1
+    tableTimes(i) = timeGrouping(j)._1
 
     // prep the table array
-    val res = Array.fill(plottables.size + 1){null:Array[String]}
+    tableData = Array.fill(plottables.size + 1){null:Array[String]}
     
     // fill in the first column with the time value
-    res(0) = resTimes.map {t => "%f".format(t)}
+    tableData(0) = tableTimes.map {t => "%f".format(t)}
 
     // fill in the other columns
     for ((_, idx, enclosures) <- enclSeqs) {
@@ -76,11 +86,8 @@ class EnclosureTraceModel(es: Seq[UnivariateAffineEnclosure]) extends AbstractTr
         r(i) = getRight(j)
         i += 1; j += 1
       }
-      res(idx) = r
+      tableData(idx) = r
     }
-
-    // return the final results
-    (resTimes, res)
   }
 
   override def getRowCount() = tableData(0).size
@@ -101,4 +108,20 @@ class EnclosureTraceModel(es: Seq[UnivariateAffineEnclosure]) extends AbstractTr
   override def getTraceViewTimes() = tableTimes
 
   override def getPlottables() = plottables
+
+  override def addData(data:TraceData) = {
+
+    es ++= data.asInstanceOf[Iterable[UnivariateAffineEnclosure]]
+
+    recompute()
+    
+    fireTableStructureChanged()
+  }
 }
+
+case class EnclosureTraceData(data: Iterable[UnivariateAffineEnclosure])
+  extends TraceData(0,0) with Iterable[UnivariateAffineEnclosure] 
+{
+  def iterator = data.iterator
+}
+

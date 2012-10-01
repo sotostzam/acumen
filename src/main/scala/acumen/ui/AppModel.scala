@@ -34,12 +34,6 @@ sealed abstract class InterpreterType
 case class Pure() extends InterpreterType
 case class Impure(nbThreads: Int) extends InterpreterType
 
-case class CStoreTraceData(data: Iterable[CStore]) 
-  extends TraceData(getTime(data.last), getEndTime(data.last)) with Iterable[CStore] 
-{
-  def iterator = data.iterator
-}
-
 class AppModel(text: => String, console: Console) extends Publisher {
 
   private sealed abstract class PAppState

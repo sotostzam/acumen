@@ -17,6 +17,12 @@ import javax.swing.table.AbstractTableModel
 
 import Errors._
 
+case class CStoreTraceData(data: Iterable[CStore]) 
+  extends TraceData(getTime(data.last), getEndTime(data.last)) with Iterable[CStore] 
+{
+  def iterator = data.iterator
+}
+
 class TraceModel extends AbstractTraceModel {
   // array of (id, field name, maybe index in vector, start frame, values)
   var stores = new ArrayBuffer[(CId, Name, Option[Int], Int, ArrayBuffer[CValue])]
