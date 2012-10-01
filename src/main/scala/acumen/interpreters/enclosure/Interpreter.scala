@@ -28,6 +28,7 @@ object Interpreter extends acumen.Interpreter with Solver with Transform {
     implicit val rnd = Rounding(ps.precision)
     val (hs, uss) = extract(main)
 
+    var res2 = List[UnivariateAffineEnclosure]()
     val res = solver(
       hs,
       ps.simulationTime,
@@ -40,9 +41,11 @@ object Interpreter extends acumen.Interpreter with Solver with Transform {
       ps.maxTimeStep,
       ps.simulationTime,
       "output",
-      log)
+      log,
+      {d => res2 = res2 ++ d})
+    assert(res == res2)
     val tm = new EnclosureTraceModel
-    tm.addData(EnclosureTraceData(res))
+    tm.addData(EnclosureTraceData(res2))
     tm
   }
 

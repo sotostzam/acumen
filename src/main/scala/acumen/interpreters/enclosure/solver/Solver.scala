@@ -21,7 +21,8 @@ trait Solver extends SolveVtE {
     d: Double, // minimum time step size
     e: Double, // maximum time step size
     output: String, // path to write output 
-    log: String => Unit // function to call to log progress
+    log: String => Unit, // function to call to log progress
+    sendResult: Seq[UnivariateAffineEnclosure] => Unit
     )(implicit rnd: Rounding): (Set[UncertainState], Seq[UnivariateAffineEnclosure]) = {
     val onT = Ss.map(solveVtE(H, T, _, delta, m, n, K, output, log))
     val mustSplit = T.width greaterThan e
@@ -32,9 +33,9 @@ trait Solver extends SolveVtE {
         throw SolverException("gave up for minimum step size " + d + " at " + T)
       } else {
         log("splitting " + T)
-        val (ssl, ysl) = solveHybrid(H, lT, Ss, delta, m, n, K, d, e, output, log)
+        val (ssl, ysl) = solveHybrid(H, lT, Ss, delta, m, n, K, d, e, output, log, sendResult)
         val (ssr, ysr) = try {
-          solveHybrid(H, rT, ssl, delta, m, n, K, d, e, output, log)
+          solveHybrid(H, rT, ssl, delta, m, n, K, d, e, output, log, sendResult)
         } catch {
           case Aborted(resultSoFar) => throw Aborted(ysl ++ resultSoFar)
         }
@@ -48,9 +49,10 @@ trait Solver extends SolveVtE {
       val ssT = M(endStatesOnT)
 
       val onlT = Ss.map(solveVtE(H, lT, _, delta, m, n, K, output, log))
-      if (onlT contains None)
+      if (onlT contains None) {
+        sendResult(resultForT._2)
         resultForT
-      else {
+      } else {
         val (endStatesOnlT, enclosuresOnlT) =
           onlT.map(_.get).foldLeft((Set[UncertainState](), Seq[UnivariateAffineEnclosure]())) {
             case ((resss, resys), (ss, ys)) => (resss ++ ss, resys ++ ys)
@@ -58,9 +60,10 @@ trait Solver extends SolveVtE {
         val sslT = M(endStatesOnlT)
 
         val onrT = sslT.map(solveVtE(H, rT, _, delta, m, n, K, output, log))
-        if (onrT contains None)
+        if (onrT contains None) {
+          sendResult(resultForT._2)
           resultForT
-        else {
+        } else {
           val (endStatesOnrT, enclosuresOnrT) =
             onrT.map(_.get).foldLeft((Set[UncertainState](), Seq[UnivariateAffineEnclosure]())) {
               case ((resss, resys), (ss, ys)) => (resss ++ ss, resys ++ ys)
@@ -86,12 +89,13 @@ trait Solver extends SolveVtE {
               //              log("improvement : " + improvement);
               improvement lessThanOrEqualTo Interval(0.00001)
             }) {
+            sendResult(resultForT._2)
             resultForT
           } else {
             log("splitting " + T)
-            val (ssl, ysl) = solveHybrid(H, lT, Ss, delta, m, n, K, d, e, output, log)
+            val (ssl, ysl) = solveHybrid(H, lT, Ss, delta, m, n, K, d, e, output, log, sendResult)
             val (ssr, ysr) = try {
-              solveHybrid(H, rT, ssl, delta, m, n, K, d, e, output, log)
+              solveHybrid(H, rT, ssl, delta, m, n, K, d, e, output, log, sendResult)
             } catch {
               case Aborted(resultSoFar) => throw Aborted(ysl ++ resultSoFar)
             }
@@ -115,7 +119,9 @@ trait Solver extends SolveVtE {
     e: Double, // maximum time step size
     Tinit: Interval, // initial time segment
     output: String, // path to write output 
-    log: String => Unit)(implicit rnd: Rounding): Seq[UnivariateAffineEnclosure] = {
+    log: String => Unit, 
+    sendResult: Seq[UnivariateAffineEnclosure] => Unit)
+      (implicit rnd: Rounding): Seq[UnivariateAffineEnclosure] = {
     Util.newFile(output)
     try {
       def mylog(msg: String) = {
@@ -127,7 +133,7 @@ trait Solver extends SolveVtE {
           }
         }
       }
-      solveHybrid(H, T, Ss, delta, m, n, K, d, e, output, mylog)._2
+      solveHybrid(H, T, Ss, delta, m, n, K, d, e, output, mylog, sendResult)._2
     } catch {
       case Aborted(resultSoFar) => {
         resultSoFar
@@ -135,7 +141,7 @@ trait Solver extends SolveVtE {
       case SolverException(message) => {
         log(message)
         log("solver: reducing minimum segement width to " + d / 2)
-        solver(H, Tinit, Ss, delta, m, n, K, d / 2, e, Tinit, output, log)
+        solver(H, Tinit, Ss, delta, m, n, K, d / 2, e, Tinit, output, log, sendResult)
       }
     }
   }
