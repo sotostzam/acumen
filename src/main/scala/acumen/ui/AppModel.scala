@@ -293,7 +293,9 @@ class AppModel(text: => String, console: Console) extends Publisher {
   private class Consumer extends Actor {
     var last: Option[Object] = None
     var n = 1;
-    def flush(css: TraceData) = {
+    def flush(css: TraceData) : Unit = {
+      if (css.isEmpty)
+        return
       val l = css.last
       Swing onEDT {
         tmodel addData css
