@@ -14,16 +14,16 @@ class EnclosureTraceModel extends AbstractTraceModel {
   var es = new ArrayBuffer[UnivariateAffineEnclosure]
 
   var times : ArrayBuffer[Double] = null
-  var enclSeqs : Iterable[Tuple3[String, Int, Seq[Enclosure]]] = null
   var plottables : Iterable[PlotEnclosure] = null
   var tableTimes : Array[Double] = null
   var tableData : Array[Array[String]] = null
+  var columnNames : IndexedSeq[String] = null
 
   def recompute() = {
 
     times = es.map(_.domain.hiDouble).foldLeft(ArrayBuffer(es.head.domain.loDouble)) { case (res, t) => res += t }
 
-    enclSeqs = es.head.varNames.zipWithIndex.map{case (name,idx) => (name, idx + 1, null +: es.map(_(name).toEnclosure))}
+    val enclSeqs = es.head.varNames.zipWithIndex.map{case (name,idx) => (name, idx + 1, null +: es.map(_(name).toEnclosure))}
 
     plottables = 
     enclSeqs.map {
@@ -88,6 +88,8 @@ class EnclosureTraceModel extends AbstractTraceModel {
       }
       tableData(idx) = r
     }
+
+    columnNames = IndexedSeq("time") ++ es.head.varNames
   }
 
   override def getRowCount() = tableData(0).size
@@ -97,9 +99,7 @@ class EnclosureTraceModel extends AbstractTraceModel {
 
   override def getDouble(row: Int, column: Int) = Some(0) 
 
-  override def getColumnName(col: Int) = 
-    if (col == 0) "time"
-    else es.head.varNames.toIndexedSeq(col-1)
+  override def getColumnName(col: Int) = columnNames(col)
 
   override def isEmpty() = es.isEmpty
 
