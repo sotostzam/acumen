@@ -34,11 +34,7 @@ trait Solver extends SolveVtE {
       } else {
         log("splitting " + T)
         val (ssl, ysl) = solveHybrid(H, lT, Ss, delta, m, n, K, d, e, output, log, sendResult)
-        val (ssr, ysr) = try {
-          solveHybrid(H, rT, ssl, delta, m, n, K, d, e, output, log, sendResult)
-        } catch {
-          case Aborted(resultSoFar) => throw Aborted(ysl ++ resultSoFar)
-        }
+        val (ssr, ysr) = solveHybrid(H, rT, ssl, delta, m, n, K, d, e, output, log, sendResult)
         (ssr, ysl ++ ysr)
       }
     else {
@@ -94,11 +90,7 @@ trait Solver extends SolveVtE {
           } else {
             log("splitting " + T)
             val (ssl, ysl) = solveHybrid(H, lT, Ss, delta, m, n, K, d, e, output, log, sendResult)
-            val (ssr, ysr) = try {
-              solveHybrid(H, rT, ssl, delta, m, n, K, d, e, output, log, sendResult)
-            } catch {
-              case Aborted(resultSoFar) => throw Aborted(ysl ++ resultSoFar)
-            }
+            val (ssr, ysr) = solveHybrid(H, rT, ssl, delta, m, n, K, d, e, output, log, sendResult)
             (ssr, ysl ++ ysr)
           }
         }
@@ -123,26 +115,6 @@ trait Solver extends SolveVtE {
     sendResult: Seq[UnivariateAffineEnclosure] => Unit)
       (implicit rnd: Rounding): Seq[UnivariateAffineEnclosure] = {
     Util.newFile(output)
-    try {
-      def mylog(msg: String) = {
-        try {
-          log(msg)
-        } catch {
-          case _: InterruptedException => {
-            throw Aborted(Seq[UnivariateAffineEnclosure]())
-          }
-        }
-      }
-      solveHybrid(H, T, Ss, delta, m, n, K, d, e, output, mylog, sendResult)._2
-    } catch {
-      case Aborted(resultSoFar) => {
-        resultSoFar
-      }
-      case SolverException(message) => {
-        log(message)
-        log("solver: reducing minimum segement width to " + d / 2)
-        solver(H, Tinit, Ss, delta, m, n, K, d / 2, e, Tinit, output, log, sendResult)
-      }
-    }
+    solveHybrid(H, T, Ss, delta, m, n, K, d, e, output, log, sendResult)._2
   }
 }

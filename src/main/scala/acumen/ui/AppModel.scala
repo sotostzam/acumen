@@ -262,7 +262,7 @@ class AppModel(text: => String, console: Console) extends Publisher {
             consumer ! Message(msg)
           receive {
             case GoOn => ()
-            case Stop => throw new java.lang.InterruptedException
+            case Stop => exit
           }
         }
         def sendResult(d: Iterable[UnivariateAffineEnclosure]) {
@@ -279,12 +279,8 @@ class AppModel(text: => String, console: Console) extends Publisher {
         // FIXME: Is it okay to use withErrorReporting here in the producer
         withErrorReporting {
           val s = System.currentTimeMillis
-          try {
-            interpreters.enclosure.Interpreter.runInterpreter(text,EnclosureInterpreterCallbacks(log,sendResult))
-            consumer ! Done(EnclosureTraceData(buf))
-          } catch {
-            case _:java.lang.InterruptedException => exit
-          }
+          interpreters.enclosure.Interpreter.runInterpreter(text,EnclosureInterpreterCallbacks(log,sendResult))
+          consumer ! Done(EnclosureTraceData(buf))
           println("Time to run simulation: %f".format((System.currentTimeMillis - s)/1000.0))
         }
         exit
@@ -337,22 +333,11 @@ class AppModel(text: => String, console: Console) extends Publisher {
       last = Some(l)
     }
 
-    def waitForResult {
-      react {
-        case Done(tm) =>
-          tmodel.addData(tm)
-          exit
-        }
-    }
-
     def finish = {
       react {
         case Done(_) | Chunk(_) | Message(_) => 
           reply(Stop)
-          if (isEnclosure)
-            waitForResult
-          else
-            exit
+          exit
       }
     }
 
