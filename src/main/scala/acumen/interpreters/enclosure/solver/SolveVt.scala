@@ -62,7 +62,7 @@ trait SolveVt {
    * in the solution with its corresponding A_i.
    */
   private def convertToSolutionOnlyOfT(approx: AffineEnclosure, anames: Seq[VarName], T: Interval)(implicit rnd: Rounding) = {
-    val onNornaizedDomain = approx.collapse(anames: _*)
+    val onNornaizedDomain = approx.collapse((approx.domain.keys.toList - "t"): _*)
     AffineEnclosure(
       onNornaizedDomain.domain.mapValues(_ => T), // Assuming "t" is the name of the time domain,
       onNornaizedDomain.components.mapValues {

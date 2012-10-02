@@ -66,7 +66,7 @@ abstract class Relation {
 
   // TODO do something about the code duplication in these instances!
   /**
-   * Evaluate the relation by composing with the enclosure and taking the variables 
+   * Evaluate the relation by composing with the enclosure and taking the variables
    * to range over the intervals of the box x.
    *
    * Note that the result will be a set of Boolean values rather than a single one
@@ -110,7 +110,7 @@ abstract class Relation {
 
   /** A conservative approximation of the intersection of x with the support of r. */
   def support(x: Box)(implicit rnd: Rounding): Box = this match {
-    case r @ UnaryRelation(relname, Variable(name)) => relname match {
+    case UnaryRelation(relname, Variable(name)) => relname match {
       case Positive => {
         if (x(name) lessThanOrEqualTo 0) sys.error("Relation.support: Positive: empty intersection")
         else x - name + (name -> max(0, x(name).low) /\ x(name).high)
@@ -138,6 +138,24 @@ abstract class Relation {
       case EqualToZero => Relation.equalToZero(e).support(x)
       case NonPositive => Relation.nonNegative(e).support(x)
       case Negative => Relation.positive(e).support(x)
+    }
+    case UnaryRelation(relname, Plus(Variable(lname), Negate(Variable(rname)))) => relname match {
+      case EqualToZero =>
+        if (x(lname) disjointFrom x(rname)) x
+        else {
+          val intersection = x(lname) \/ x(rname)
+          x + (lname -> intersection) + (rname -> intersection)
+        }
+    }
+    case r @ UnaryRelation(relname, Plus(Variable(name), Constant(c))) => relname match {
+      case EqualToZero =>
+        if (x(name) disjointFrom c) x
+        else x + (name -> x(name) \/ c)
+    }
+    case UnaryRelation(relname, Plus(Constant(c), Variable(name))) => relname match {
+      case EqualToZero =>
+        if (x(name) disjointFrom c) x
+        else x + (name -> x(name) \/ c)
     }
     case r @ UnaryRelation(relname, Divide(e, Constant(c))) =>
       if (c greaterThan 0) UnaryRelation(relname, e).support(x)

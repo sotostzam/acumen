@@ -48,8 +48,8 @@ abstract class Predicate {
    * Compute an interval box wrapping the intersection of x with the support 
    * of the predicate. 
    */
-  def support(x: Box)(implicit rnd: Rounding): Box = this match {
-    case All(rs) => rs.foldLeft(x)((res, r) => r.support(res))
+  def support(x: Box)(implicit rnd: Rounding): Box = this match {	
+    case All(rs) => println(rs); rs.foldLeft(x)((res, r) => r.support(res))
   }
 
 }

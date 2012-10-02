@@ -115,10 +115,11 @@ case class Interval private (
    *  and that.
    */
   def \/(that: Interval) = {
-    require(this.contains(that.lo) || this.contains(that.hi) ||
-      that.contains(lo) || that.contains(hi))
+    require(!(this disjointFrom that))
     Interval(max(lo, that.lo), min(hi, that.hi))
   }
+  def disjointFrom(that: Interval) =
+    that.hi.compareTo(this.lo) < 0 || this.hi.compareTo(that.lo) < 0
   /**
    * The width of this interval.
    * @return the least interval containing this.hi-this.lo
@@ -179,14 +180,14 @@ case class Interval private (
    * notation for closed intervals.
    */
   override def toString = "[" + lo + "," + hi + "]"
-  
-  // TODO improve description
-  /** UNSAFE only to be used for plotting */
-  def loDouble:Double = lo.doubleValue()  
 
   // TODO improve description
   /** UNSAFE only to be used for plotting */
-  def hiDouble:Double = hi.doubleValue()  
+  def loDouble: Double = lo.doubleValue()
+
+  // TODO improve description
+  /** UNSAFE only to be used for plotting */
+  def hiDouble: Double = hi.doubleValue()
 }
 
 object Interval {
