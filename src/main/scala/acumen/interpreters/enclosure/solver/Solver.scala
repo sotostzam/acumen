@@ -32,7 +32,7 @@ trait Solver extends SolveVtE {
       if (cannotSplit) {
         throw SolverException("gave up for minimum step size " + d + " at " + T)
       } else {
-        cb.log("splitting " + T)
+//        cb.log("splitting " + T)
         val (ssl, ysl) = solveHybrid(H, lT, Ss, delta, m, n, K, d, e, output, cb)
         val (ssr, ysr) = solveHybrid(H, rT, ssl, delta, m, n, K, d, e, output, cb)
         (ssr, ysl ++ ysr)
@@ -88,7 +88,7 @@ trait Solver extends SolveVtE {
             cb.sendResult(resultForT._2)
             resultForT
           } else {
-            cb.log("splitting " + T)
+//            cb.log("splitting " + T)
             val (ssl, ysl) = solveHybrid(H, lT, Ss, delta, m, n, K, d, e, output, cb)
             val (ssr, ysr) = solveHybrid(H, rT, ssl, delta, m, n, K, d, e, output, cb)
             (ssr, ysl ++ ysr)

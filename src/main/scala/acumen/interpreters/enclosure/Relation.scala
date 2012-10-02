@@ -149,13 +149,13 @@ abstract class Relation {
     }
     case r @ UnaryRelation(relname, Plus(Variable(name), Constant(c))) => relname match {
       case EqualToZero =>
-        if (x(name) disjointFrom c) x
-        else x + (name -> x(name) \/ c)
+        if (x(name) disjointFrom -c) x
+        else x + (name -> x(name) \/ (-c))
     }
     case UnaryRelation(relname, Plus(Constant(c), Variable(name))) => relname match {
       case EqualToZero =>
-        if (x(name) disjointFrom c) x
-        else x + (name -> x(name) \/ c)
+        if (x(name) disjointFrom -c) x
+        else x + (name -> x(name) \/ -c)
     }
     case r @ UnaryRelation(relname, Divide(e, Constant(c))) =>
       if (c greaterThan 0) UnaryRelation(relname, e).support(x)
@@ -199,3 +199,8 @@ case class UnaryRelation(name: UnaryRelationName, expression: Expression) extend
   }
 }
 
+object Test extends App {
+  implicit val rnd = Rounding(10)
+  println(Relation.equalToZero(Variable("x") - Variable("y")).
+    support(Box("x" -> 0 /\ 1, "y" -> 1 /\ 2)))
+}

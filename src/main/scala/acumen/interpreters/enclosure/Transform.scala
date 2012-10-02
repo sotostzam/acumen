@@ -180,6 +180,7 @@ trait Transform {
     modeVariable: String,
     stateVariables: List[String],
     clause: Clause)(implicit rnd: Rounding): List[(Event, Guard, ResetMap)] = {
+    var countEventsWithSameTarget = Map[Mode, Int]()
     clause match {
       case Clause(source: GroundValue, assertion: Expr, as: List[Action]) => as.flatMap {
         case IfThenElse(_, _, _ :: _) =>
@@ -188,7 +189,9 @@ trait Transform {
           val event = getEvent(modeVariable, source, as)
           val guard = getGuard(cond)
           val reset = getReset(modeVariable, stateVariables, as)
-          List((event, guard, reset))
+          countEventsWithSameTarget += event.tau -> (countEventsWithSameTarget.getOrElse(event.tau, 0) + 1)
+          val uniqueEvent = Event(event.name + " " + countEventsWithSameTarget(event.tau), event.sigma, event.tau)
+          List((uniqueEvent, guard, reset))
         }
         case _ => List()
       }
