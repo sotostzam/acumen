@@ -257,30 +257,32 @@ class AppModel(text: => String, console: Console) extends Publisher {
         //   Time to run simulation: 28.657000
         val maxBufSize = 1
         var buf = new ArrayBuffer[UnivariateAffineEnclosure]
-        def log(msg: String) : Unit = {
-          if (msg != null)
-            consumer ! Message(msg)
-          receive {
-            case GoOn => ()
-            case Stop => exit
+        val callbacks = new EnclosureInterpreterCallbacks {
+          def log(msg: String) : Unit = {
+            if (msg != null)
+              consumer ! Message(msg)
+            receive {
+              case GoOn => ()
+                case Stop => exit
+            }
           }
-        }
-        def sendResult(d: Iterable[UnivariateAffineEnclosure]) {
-          if (maxBufSize == 1) {
-            consumer ! Chunk(EnclosureTraceData(d))
-          } else {
-            buf ++= d
-            if (buf.size > maxBufSize) {
-              consumer ! Chunk(EnclosureTraceData(buf))
-              buf = new ArrayBuffer[UnivariateAffineEnclosure]
+          override def sendResult(d: Iterable[UnivariateAffineEnclosure]) {
+            if (maxBufSize == 1) {
+              consumer ! Chunk(new EnclosureTraceData(d, endTime))
+            } else {
+              buf ++= d
+              if (buf.size > maxBufSize) {
+                consumer ! Chunk(new EnclosureTraceData(buf, endTime))
+                buf = new ArrayBuffer[UnivariateAffineEnclosure]
+              }
             }
           }
         }
         // FIXME: Is it okay to use withErrorReporting here in the producer
         withErrorReporting {
           val s = System.currentTimeMillis
-          interpreters.enclosure.Interpreter.runInterpreter(text,EnclosureInterpreterCallbacks(log,sendResult))
-          consumer ! Done(EnclosureTraceData(buf))
+          interpreters.enclosure.Interpreter.runInterpreter(text, callbacks)
+          consumer ! Done(new EnclosureTraceData(buf, 0))
           println("Time to run simulation: %f".format((System.currentTimeMillis - s)/1000.0))
         }
         exit

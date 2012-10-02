@@ -3,6 +3,7 @@ package acumen.interpreters.enclosure.solver
 import acumen.interpreters.enclosure._
 import acumen.interpreters.enclosure.Interval._
 import acumen.interpreters.enclosure.Types._
+import acumen.interpreters.enclosure.EnclosureInterpreterCallbacks
 
 trait Solver extends SolveVtE {
 
@@ -21,10 +22,9 @@ trait Solver extends SolveVtE {
     d: Double, // minimum time step size
     e: Double, // maximum time step size
     output: String, // path to write output 
-    log: String => Unit, // function to call to log progress
-    sendResult: Seq[UnivariateAffineEnclosure] => Unit
+    cb: EnclosureInterpreterCallbacks
     )(implicit rnd: Rounding): (Set[UncertainState], Seq[UnivariateAffineEnclosure]) = {
-    val onT = Ss.map(solveVtE(H, T, _, delta, m, n, K, output, log))
+    val onT = Ss.map(solveVtE(H, T, _, delta, m, n, K, output, cb.log))
     val mustSplit = T.width greaterThan e
     val (lT, rT) = T.split
     val cannotSplit = !(min(lT.width, rT.width) greaterThan d)
@@ -32,9 +32,9 @@ trait Solver extends SolveVtE {
       if (cannotSplit) {
         throw SolverException("gave up for minimum step size " + d + " at " + T)
       } else {
-        log("splitting " + T)
-        val (ssl, ysl) = solveHybrid(H, lT, Ss, delta, m, n, K, d, e, output, log, sendResult)
-        val (ssr, ysr) = solveHybrid(H, rT, ssl, delta, m, n, K, d, e, output, log, sendResult)
+        cb.log("splitting " + T)
+        val (ssl, ysl) = solveHybrid(H, lT, Ss, delta, m, n, K, d, e, output, cb)
+        val (ssr, ysr) = solveHybrid(H, rT, ssl, delta, m, n, K, d, e, output, cb)
         (ssr, ysl ++ ysr)
       }
     else {
@@ -44,9 +44,9 @@ trait Solver extends SolveVtE {
         }
       val ssT = M(endStatesOnT)
 
-      val onlT = Ss.map(solveVtE(H, lT, _, delta, m, n, K, output, log))
+      val onlT = Ss.map(solveVtE(H, lT, _, delta, m, n, K, output, cb.log))
       if (onlT contains None) {
-        sendResult(resultForT._2)
+        cb.sendResult(resultForT._2)
         resultForT
       } else {
         val (endStatesOnlT, enclosuresOnlT) =
@@ -55,9 +55,9 @@ trait Solver extends SolveVtE {
           }
         val sslT = M(endStatesOnlT)
 
-        val onrT = sslT.map(solveVtE(H, rT, _, delta, m, n, K, output, log))
+        val onrT = sslT.map(solveVtE(H, rT, _, delta, m, n, K, output, cb.log))
         if (onrT contains None) {
-          sendResult(resultForT._2)
+          cb.sendResult(resultForT._2)
           resultForT
         } else {
           val (endStatesOnrT, enclosuresOnrT) =
@@ -85,12 +85,12 @@ trait Solver extends SolveVtE {
               //              log("improvement : " + improvement);
               improvement lessThanOrEqualTo Interval(0.00001)
             }) {
-            sendResult(resultForT._2)
+            cb.sendResult(resultForT._2)
             resultForT
           } else {
-            log("splitting " + T)
-            val (ssl, ysl) = solveHybrid(H, lT, Ss, delta, m, n, K, d, e, output, log, sendResult)
-            val (ssr, ysr) = solveHybrid(H, rT, ssl, delta, m, n, K, d, e, output, log, sendResult)
+            cb.log("splitting " + T)
+            val (ssl, ysl) = solveHybrid(H, lT, Ss, delta, m, n, K, d, e, output, cb)
+            val (ssr, ysr) = solveHybrid(H, rT, ssl, delta, m, n, K, d, e, output, cb)
             (ssr, ysl ++ ysr)
           }
         }
@@ -111,10 +111,16 @@ trait Solver extends SolveVtE {
     e: Double, // maximum time step size
     Tinit: Interval, // initial time segment
     output: String, // path to write output 
-    log: String => Unit, 
-    sendResult: Seq[UnivariateAffineEnclosure] => Unit)
-      (implicit rnd: Rounding): Seq[UnivariateAffineEnclosure] = {
+    cb: EnclosureInterpreterCallbacks)
+  (implicit rnd: Rounding): Seq[UnivariateAffineEnclosure] = {
     Util.newFile(output)
-    solveHybrid(H, T, Ss, delta, m, n, K, d, e, output, log, sendResult)._2
+    cb.endTime = T.hiDouble
+    solveHybrid(H, T, Ss, delta, m, n, K, d, e, output, cb)._2
+  }
+}
+
+object Solver {
+  def defaultCallback = new EnclosureInterpreterCallbacks {
+    override def log(msg:String) = println(msg)
   }
 }

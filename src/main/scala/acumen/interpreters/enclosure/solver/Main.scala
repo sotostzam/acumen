@@ -30,7 +30,7 @@ object BouncingBall extends App with Solver {
   val d = 0.01
   val e = T.width match { case Interval(_, hi) => hi.doubleValue }
   val start = System.currentTimeMillis
-  val res = solver(H, T, Ss, delta, m, n, K, d, e, T, "output",println, {_ => })
+  val res = solver(H, T, Ss, delta, m, n, K, d, e, T, "output",Solver.defaultCallback)
   val end = System.currentTimeMillis
   val time = end - start
   println("computed " + res.size + " enclosures in " + time / 1000.0 + " seconds")
@@ -58,7 +58,7 @@ object TwoTanks extends App with Solver {
   val d = math.pow(2,-21)
   val e = T.width match { case Interval(_, hi) => hi.doubleValue }
   val start = System.currentTimeMillis
-  val res = solver(H, T, Ss, delta, m, n, K, d, e, T, "output", println, {_ => })
+  val res = solver(H, T, Ss, delta, m, n, K, d, e, T, "output", Solver.defaultCallback)
   val end = System.currentTimeMillis
   val time = end - start
   println("computed " + res.size + " enclosures in " + time / 1000.0 + " seconds")
@@ -78,7 +78,7 @@ object Saw extends App with Solver {
   val d = 4.7e-7
   val e = T match { case Interval(_, hi) => hi.doubleValue / 2 }
   val start = System.currentTimeMillis
-  val res = solver(H, T, Ss, delta, m, n, K, d, e, T, "output", println, {_ => })
+  val res = solver(H, T, Ss, delta, m, n, K, d, e, T, "output", Solver.defaultCallback)
   val end = System.currentTimeMillis
   val time = end - start
   println("computed " + res.size + " enclosures in " + time / 1000.0 + " seconds")

@@ -132,8 +132,8 @@ class EnclosureTraceModel extends AbstractTraceModel {
 
 }
 
-case class EnclosureTraceData(data: Iterable[UnivariateAffineEnclosure])
-  extends TraceData(0,0) with Iterable[UnivariateAffineEnclosure] 
+class EnclosureTraceData(val data: Iterable[UnivariateAffineEnclosure], endTime: Double)
+  extends TraceData(if (data.isEmpty) endTime else data.last.domain.hiDouble,endTime) with Iterable[UnivariateAffineEnclosure] 
 {
   def iterator = data.iterator
 }

@@ -11,9 +11,11 @@ import acumen.interpreters.enclosure.solver.HybridSystem
 import acumen.ui.EnclosureTraceModel
 import acumen.ui.EnclosureTraceData
 
-case class EnclosureInterpreterCallbacks(log: String => Unit, 
-                                         sendResult : Iterable[UnivariateAffineEnclosure] => Unit)
-     extends InterpreterCallbacks
+abstract class EnclosureInterpreterCallbacks extends InterpreterCallbacks {
+  def log(msg: String) : Unit
+  var endTime : Double = 0.0
+  def sendResult(data: Iterable[UnivariateAffineEnclosure]) : Unit = {}
+}
 
 /**
  * Proxy for the enclosure-based solver.
@@ -45,8 +47,7 @@ object Interpreter extends acumen.Interpreter with Solver with Transform {
       ps.maxTimeStep,
       ps.simulationTime,
       "output",
-      cb.log,
-      cb.sendResult)
+      cb)
   }
 
   type Store = Seq[UnivariateAffineEnclosure]
