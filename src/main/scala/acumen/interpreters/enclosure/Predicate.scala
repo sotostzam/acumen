@@ -49,7 +49,7 @@ abstract class Predicate {
    * of the predicate. 
    */
   def support(x: Box)(implicit rnd: Rounding): Box = this match {	
-    case All(rs) => println(rs); rs.foldLeft(x)((res, r) => r.support(res))
+    case All(rs) => rs.foldLeft(x)((res, r) => r.support(res))
   }
 
 }
