@@ -345,21 +345,4 @@ object AffineScalarEnclosure extends Plotter {
     else AffineScalarEnclosure(domain, const, Box(name1 -> m2, name2 -> m1))
   }
 
-  // TODO the plotting functionality should be moved to UnivariateAffineScalarEnclosure
-
-  // FIXME: hard-coded plotting as function of t
-  def plot(them: AffineScalarEnclosure*)(implicit rnd: Rounding): Unit =
-    plot("Picard plotter")(them: _*)
-
-  def plot(frametitle: String)(them: AffineScalarEnclosure*)(implicit rnd: Rounding) {
-    createFrame(frametitle)
-    for (it <- them) {
-      def low(t: Double) = it.low(Box("t" -> t)) match { case Interval(lo, _) => lo.doubleValue }
-      def high(t: Double) = it.high(Box("t" -> t)) match { case Interval(_, hi) => hi.doubleValue }
-      val dom = it.domain("t")
-      val (lo, hi) = dom match { case Interval(l, h) => (l.doubleValue, h.doubleValue) }
-      addFunctionEnclosure(lo, hi, high, low, 0, "")
-    }
-  }
-
 }
