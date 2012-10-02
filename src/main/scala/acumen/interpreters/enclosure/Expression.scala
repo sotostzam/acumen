@@ -124,7 +124,7 @@ abstract class Expression {
     case Constant(v) => Constant(-v)
     case _ => Negate(this)
   }
-  def +(that: Expression) = Plus(this, that)
+  def +(that: Expression) = Plus(this,that)
   def -(that: Expression) = Plus(this, -that)
   def *(that: Expression) = Multiply(this, that)
   /** Only division by constants currently supported. */

@@ -284,14 +284,19 @@ trait Transform {
   def acumenExprToRelation(e: Expr)(implicit rnd: Rounding): Relation = e match {
     case Op(Name("<=", 0), List(Lit(GInt(0) | GDouble(0)), x)) => nonNegative(acumenExprToExpression(x))
     case Op(Name("<=", 0), List(x, Lit(GInt(0) | GDouble(0)))) => nonPositive(acumenExprToExpression(x))
+    case Op(Name("<=", 0), List(x, y)) => nonPositive(acumenExprToExpression(x) - acumenExprToExpression(y))
     case Op(Name("<", 0), List(Lit(GInt(0) | GDouble(0)), x)) => positive(acumenExprToExpression(x))
     case Op(Name("<", 0), List(x, Lit(GInt(0) | GDouble(0)))) => negative(acumenExprToExpression(x))
+    case Op(Name("<", 0), List(x, y)) => negative(acumenExprToExpression(x) - acumenExprToExpression(y))
     case Op(Name("==", 0), List(Lit(GInt(0) | GDouble(0)), x)) => equalToZero(acumenExprToExpression(x))
     case Op(Name("==", 0), List(x, Lit(GInt(0) | GDouble(0)))) => equalToZero(acumenExprToExpression(x))
+    case Op(Name("==", 0), List(x, y)) => equalToZero(acumenExprToExpression(x) - acumenExprToExpression(y))
     case Op(Name(">", 0), List(Lit(GInt(0) | GDouble(0)), x)) => negative(acumenExprToExpression(x))
     case Op(Name(">", 0), List(x, Lit(GInt(0) | GDouble(0)))) => positive(acumenExprToExpression(x))
+    case Op(Name(">", 0), List(x, y)) => positive(acumenExprToExpression(x) - acumenExprToExpression(y))
     case Op(Name(">=", 0), List(Lit(GInt(0) | GDouble(0)), x)) => nonPositive(acumenExprToExpression(x))
     case Op(Name(">=", 0), List(x, Lit(GInt(0) | GDouble(0)))) => nonNegative(acumenExprToExpression(x))
+    case Op(Name(">=", 0), List(x, y)) => nonNegative(acumenExprToExpression(x) - acumenExprToExpression(y))
     case _ => sys.error("Handling of relation " + e + " not implemented!")
   }
 
@@ -301,9 +306,10 @@ trait Transform {
     case Var(Name(name, n)) => Variable(name + "'" * n)
     case Dot(Var(Name(self, 0)), Name(name, n)) => Variable(name + "'" * n)
     case Op(Name("-", 0), List(x)) => Negate(acumenExprToExpression(x))
-    case Op(Name("+", 0), List(l, r)) => Plus(acumenExprToExpression(l), acumenExprToExpression(r))
+    case Op(Name("-", 0), List(l, r)) => acumenExprToExpression(l) - acumenExprToExpression(r)
+    case Op(Name("+", 0), List(l, r)) => acumenExprToExpression(l) + acumenExprToExpression(r)
     case Op(Name("/", 0), List(l, r)) => Divide(acumenExprToExpression(l), acumenExprToExpression(r))
-    case Op(Name("*", 0), List(l, r)) => Multiply(acumenExprToExpression(l), acumenExprToExpression(r))
+    case Op(Name("*", 0), List(l, r)) => acumenExprToExpression(l) * acumenExprToExpression(r)
     case _ => sys.error("Handling of expression " + e + " not implemented!")
   }
 
