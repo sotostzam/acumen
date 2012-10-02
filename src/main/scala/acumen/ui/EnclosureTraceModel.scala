@@ -101,7 +101,7 @@ class EnclosureTraceModel extends AbstractTraceModel {
 
   override def getValueAt(row: Int, column: Int) = data.tableData(column)(row)
 
-  override def getDouble(row: Int, column: Int) = Some(0) 
+  override def getDouble(row: Int, column: Int) = None
 
   override def getColumnName(col: Int) = data.columnNames(col)
 
