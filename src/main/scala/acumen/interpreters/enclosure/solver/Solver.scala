@@ -3,6 +3,7 @@ package acumen.interpreters.enclosure.solver
 import acumen.interpreters.enclosure._
 import acumen.interpreters.enclosure.Interval._
 import acumen.interpreters.enclosure.Types._
+import acumen.interpreters.enclosure.EnclosureInterpreterCallbacks
 
 trait Solver extends SolveVtE {
 
@@ -21,9 +22,9 @@ trait Solver extends SolveVtE {
     d: Double, // minimum time step size
     e: Double, // maximum time step size
     output: String, // path to write output 
-    log: String => Unit // function to call to log progress
+    cb: EnclosureInterpreterCallbacks
     )(implicit rnd: Rounding): (Set[UncertainState], Seq[UnivariateAffineEnclosure]) = {
-    val onT = Ss.map(solveVtE(H, T, _, delta, m, n, K, output, log))
+    val onT = Ss.map(solveVtE(H, T, _, delta, m, n, K, output, cb.log))
     val mustSplit = T.width greaterThan e
     val (lT, rT) = T.split
     val cannotSplit = !(min(lT.width, rT.width) greaterThan d)
@@ -31,13 +32,9 @@ trait Solver extends SolveVtE {
       if (cannotSplit) {
         throw SolverException("gave up for minimum step size " + d + " at " + T)
       } else {
-        log("splitting " + T)
-        val (ssl, ysl) = solveHybrid(H, lT, Ss, delta, m, n, K, d, e, output, log)
-        val (ssr, ysr) = try {
-          solveHybrid(H, rT, ssl, delta, m, n, K, d, e, output, log)
-        } catch {
-          case Aborted(resultSoFar) => throw Aborted(ysl ++ resultSoFar)
-        }
+        cb.log("splitting " + T)
+        val (ssl, ysl) = solveHybrid(H, lT, Ss, delta, m, n, K, d, e, output, cb)
+        val (ssr, ysr) = solveHybrid(H, rT, ssl, delta, m, n, K, d, e, output, cb)
         (ssr, ysl ++ ysr)
       }
     else {
@@ -47,20 +44,22 @@ trait Solver extends SolveVtE {
         }
       val ssT = M(endStatesOnT)
 
-      val onlT = Ss.map(solveVtE(H, lT, _, delta, m, n, K, output, log))
-      if (onlT contains None)
+      val onlT = Ss.map(solveVtE(H, lT, _, delta, m, n, K, output, cb.log))
+      if (onlT contains None) {
+        cb.sendResult(resultForT._2)
         resultForT
-      else {
+      } else {
         val (endStatesOnlT, enclosuresOnlT) =
           onlT.map(_.get).foldLeft((Set[UncertainState](), Seq[UnivariateAffineEnclosure]())) {
             case ((resss, resys), (ss, ys)) => (resss ++ ss, resys ++ ys)
           }
         val sslT = M(endStatesOnlT)
 
-        val onrT = sslT.map(solveVtE(H, rT, _, delta, m, n, K, output, log))
-        if (onrT contains None)
+        val onrT = sslT.map(solveVtE(H, rT, _, delta, m, n, K, output, cb.log))
+        if (onrT contains None) {
+          cb.sendResult(resultForT._2)
           resultForT
-        else {
+        } else {
           val (endStatesOnrT, enclosuresOnrT) =
             onrT.map(_.get).foldLeft((Set[UncertainState](), Seq[UnivariateAffineEnclosure]())) {
               case ((resss, resys), (ss, ys)) => (resss ++ ss, resys ++ ys)
@@ -86,15 +85,12 @@ trait Solver extends SolveVtE {
               //              log("improvement : " + improvement);
               improvement lessThanOrEqualTo Interval(0.00001)
             }) {
+            cb.sendResult(resultForT._2)
             resultForT
           } else {
-            log("splitting " + T)
-            val (ssl, ysl) = solveHybrid(H, lT, Ss, delta, m, n, K, d, e, output, log)
-            val (ssr, ysr) = try {
-              solveHybrid(H, rT, ssl, delta, m, n, K, d, e, output, log)
-            } catch {
-              case Aborted(resultSoFar) => throw Aborted(ysl ++ resultSoFar)
-            }
+            cb.log("splitting " + T)
+            val (ssl, ysl) = solveHybrid(H, lT, Ss, delta, m, n, K, d, e, output, cb)
+            val (ssr, ysr) = solveHybrid(H, rT, ssl, delta, m, n, K, d, e, output, cb)
             (ssr, ysl ++ ysr)
           }
         }
@@ -115,28 +111,16 @@ trait Solver extends SolveVtE {
     e: Double, // maximum time step size
     Tinit: Interval, // initial time segment
     output: String, // path to write output 
-    log: String => Unit)(implicit rnd: Rounding): Seq[UnivariateAffineEnclosure] = {
+    cb: EnclosureInterpreterCallbacks)
+  (implicit rnd: Rounding): Seq[UnivariateAffineEnclosure] = {
     Util.newFile(output)
-    try {
-      def mylog(msg: String) = {
-        try {
-          log(msg)
-        } catch {
-          case _: InterruptedException => {
-            throw Aborted(Seq[UnivariateAffineEnclosure]())
-          }
-        }
-      }
-      solveHybrid(H, T, Ss, delta, m, n, K, d, e, output, mylog)._2
-    } catch {
-      case Aborted(resultSoFar) => {
-        resultSoFar
-      }
-      case SolverException(message) => {
-        log(message)
-        log("solver: reducing minimum segement width to " + d / 2)
-        solver(H, Tinit, Ss, delta, m, n, K, d / 2, e, Tinit, output, log)
-      }
-    }
+    cb.endTime = T.hiDouble
+    solveHybrid(H, T, Ss, delta, m, n, K, d, e, output, cb)._2
+  }
+}
+
+object Solver {
+  def defaultCallback = new EnclosureInterpreterCallbacks {
+    override def log(msg:String) = println(msg)
   }
 }

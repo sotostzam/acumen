@@ -16,6 +16,10 @@ import swing._
 import swing.event._
 import scala.actors._
 
+import collection.mutable.ArrayBuffer
+import acumen.interpreters.enclosure.UnivariateAffineEnclosure
+import acumen.interpreters.enclosure.EnclosureInterpreterCallbacks
+
 sealed abstract class AppEvent extends Event
 case class InterpreterChanged()  extends AppEvent
 case class StateChanged() extends AppEvent
@@ -128,9 +132,9 @@ class AppModel(text: => String, console: Console) extends Publisher {
     catch { case e => emitError(e) }
   }
 
-  private def updateProgress(s: CStore) = {
-    val time = getTime(s)
-    val endTime = getEndTime(s)
+  private def updateProgress(s: TraceData) = {
+    val time = s.curTime
+    val endTime = s.endTime
     emitProgress((time * 100 / endTime).toInt)
   }
 
@@ -148,7 +152,7 @@ class AppModel(text: => String, console: Console) extends Publisher {
       val cstore = I.repr(store)
       //*********************************
       data.getData(cstore)
-      tmodel.addStore(cstore)
+      tmodel.addData(CStoreTraceData(List(cstore))) // FIXME: What is this doing??? -kevina
       setState(PInitialized(prog, cstore))
     }
 
@@ -200,9 +204,10 @@ class AppModel(text: => String, console: Console) extends Publisher {
       val mstore = I.step(p, I.fromCStore(s)) map I.repr
       mstore match {
         case Some(st) =>
-          tmodel.addStore(st)
+          val td = CStoreTraceData(List(st))
+          tmodel.addData(td)
           setState(PPaused(p, st))
-          updateProgress(st)
+          updateProgress(td)
         case None =>
           setState(PStopped())
       }
@@ -226,9 +231,8 @@ class AppModel(text: => String, console: Console) extends Publisher {
   case object GoOn
   case object Stop
   case class Message(msg: String)
-  case class Chunk(css: Iterable[CStore])
-  case class Done(css: Iterable[CStore])
-  case class EnclosureDone(tm: AbstractTraceModel)
+  case class Chunk(css: TraceData)
+  case class Done(css: TraceData)
 
   private class Producer(p: Prog, st: CStore, consumer: Actor) extends Actor {
     var buffer = Queue.empty[CStore]
@@ -242,22 +246,44 @@ class AppModel(text: => String, console: Console) extends Publisher {
 
     def act : Unit = {
       if (isEnclosure) {
-        def log(msg: String) : Unit = {
-          if (msg != null)
-            consumer ! Message(msg)
-          receive {
-            case GoOn => ()
-            case Stop => throw new java.lang.InterruptedException
+        // Bouncing Ball Example:
+        // With buffer size = 12
+        //   Time to run simulation: 32.566000
+        //   Time to run simulation: 27.994000
+        //   Time to run simulation: 28.202000
+        // With buffer size = 1
+        //   Time to run simulation: 33.578000
+        //   Time to run simulation: 29.054000
+        //   Time to run simulation: 28.657000
+        val maxBufSize = 1
+        var buf = new ArrayBuffer[UnivariateAffineEnclosure]
+        val callbacks = new EnclosureInterpreterCallbacks {
+          def log(msg: String) : Unit = {
+            if (msg != null)
+              consumer ! Message(msg)
+            receive {
+              case GoOn => ()
+                case Stop => exit
+            }
+          }
+          override def sendResult(d: Iterable[UnivariateAffineEnclosure]) {
+            if (maxBufSize == 1) {
+              consumer ! Chunk(new EnclosureTraceData(d, endTime))
+            } else {
+              buf ++= d
+              if (buf.size > maxBufSize) {
+                consumer ! Chunk(new EnclosureTraceData(buf, endTime))
+                buf = new ArrayBuffer[UnivariateAffineEnclosure]
+              }
+            }
           }
         }
         // FIXME: Is it okay to use withErrorReporting here in the producer
         withErrorReporting {
-          try {
-            val tm = interpreters.enclosure.Interpreter.generateTraceModel(text,log)
-            consumer ! EnclosureDone(tm)
-          } catch {
-            case _:java.lang.InterruptedException => exit
-          }
+          val s = System.currentTimeMillis
+          interpreters.enclosure.Interpreter.runInterpreter(text, callbacks)
+          consumer ! Done(new EnclosureTraceData(buf, 0))
+          println("Time to run simulation: %f".format((System.currentTimeMillis - s)/1000.0))
         }
         exit
       }
@@ -267,7 +293,7 @@ class AppModel(text: => String, console: Console) extends Publisher {
       loopWhile(iter.hasNext) {
         if (buffer.size >= 200) {
           val buf = buffer
-          consumer ! Chunk(buf)
+          consumer ! Chunk(CStoreTraceData(buf))
           react {
             case GoOn => buffer = Queue.empty[CStore]
             case Stop => exit
@@ -277,51 +303,43 @@ class AppModel(text: => String, console: Console) extends Publisher {
         }
       } andThen {
         val buf = buffer
-        consumer ! Done(buf)
+        consumer ! Done(CStoreTraceData(buf))
       }
     }
   }
 
   private class Consumer extends Actor {
-    var last: Option[CStore] = None
+    var last: Option[Object] = None
     var n = 1;
-    def flush(css: Iterable[CStore]) = {
+    def flush(css: TraceData) : Unit = {
+      if (css.isEmpty)
+        return
       val l = css.last
       Swing onEDT {
-        tmodel addStores css
+        tmodel addData css
 
+        if (!isEnclosure) {
         //*****************************************
         //**************************************
         val _3DSampleInterval = 3;
-        for (cs <- css) {
+        for (cs <- css.asInstanceOf[Iterable[CStore]]) {
           if (n > _3DSampleInterval) {
             data.getData(cs)
             n = 1;
           } else
             n += 1;
         }
-        updateProgress(l)
+        }
+        updateProgress(css)
       }
       last = Some(l)
-    }
-
-    def waitForResult {
-      react {
-        case EnclosureDone(tm) =>
-          tmodel.setTraceModel(tm)
-          tmodel.fireTableStructureChanged()
-          exit
-        }
     }
 
     def finish = {
       react {
         case Done(_) | Chunk(_) | Message(_) => 
           reply(Stop)
-          if (isEnclosure)
-            waitForResult
-          else
-            exit
+          exit
       }
     }
 
@@ -341,11 +359,6 @@ class AppModel(text: => String, console: Console) extends Publisher {
             flush(css)
             //*******************************************
 
-            stop
-            exit
-          case EnclosureDone(tm) =>
-            tmodel.setTraceModel(tm)
-            tmodel.fireTableStructureChanged()
             stop
             exit
           case Error(e) =>

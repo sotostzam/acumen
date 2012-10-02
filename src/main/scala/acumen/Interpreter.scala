@@ -4,11 +4,13 @@ import Stream._
 import util.Canonical._
 import acumen.ui.AbstractTraceModel
 
+abstract class InterpreterCallbacks
+
 trait Interpreter {
 
   def newTraceModel : AbstractTraceModel
   
-  def generateTraceModel(text: String, log: String => Unit): AbstractTraceModel = null
+  def runInterpreter(text: String, cb0: InterpreterCallbacks) : Unit = null
 
   type Store
   def repr (s:Store) : CStore
