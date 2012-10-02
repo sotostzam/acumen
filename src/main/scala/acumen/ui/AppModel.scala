@@ -246,7 +246,17 @@ class AppModel(text: => String, console: Console) extends Publisher {
 
     def act : Unit = {
       if (isEnclosure) {
-        var res = new ArrayBuffer[UnivariateAffineEnclosure]
+        // Bouncing Ball Example:
+        // With buffer size = 12
+        //   Time to run simulation: 32.566000
+        //   Time to run simulation: 27.994000
+        //   Time to run simulation: 28.202000
+        // With buffer size = 1
+        //   Time to run simulation: 33.578000
+        //   Time to run simulation: 29.054000
+        //   Time to run simulation: 28.657000
+        val maxBufSize = 1
+        var buf = new ArrayBuffer[UnivariateAffineEnclosure]
         def log(msg: String) : Unit = {
           if (msg != null)
             consumer ! Message(msg)
@@ -256,16 +266,26 @@ class AppModel(text: => String, console: Console) extends Publisher {
           }
         }
         def sendResult(d: Iterable[UnivariateAffineEnclosure]) {
-          res ++= d
+          if (maxBufSize == 1) {
+            consumer ! Chunk(EnclosureTraceData(d))
+          } else {
+            buf ++= d
+            if (buf.size > maxBufSize) {
+              consumer ! Chunk(EnclosureTraceData(buf))
+              buf = new ArrayBuffer[UnivariateAffineEnclosure]
+            }
+          }
         }
         // FIXME: Is it okay to use withErrorReporting here in the producer
         withErrorReporting {
+          val s = System.currentTimeMillis
           try {
             interpreters.enclosure.Interpreter.runInterpreter(text,EnclosureInterpreterCallbacks(log,sendResult))
-            consumer ! Done(EnclosureTraceData(res))
+            consumer ! Done(EnclosureTraceData(buf))
           } catch {
             case _:java.lang.InterruptedException => exit
           }
+          println("Time to run simulation: %f".format((System.currentTimeMillis - s)/1000.0))
         }
         exit
       }
