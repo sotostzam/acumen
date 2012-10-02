@@ -43,6 +43,6 @@ trait AbstractTraceModel extends AbstractTableModel {
   def getPlottables(): Iterable[Plottable]
   
   def addData(d: TraceData): Unit = throw ShouldNeverHappen()
-		  
+
   def reset: Unit = {}
 }

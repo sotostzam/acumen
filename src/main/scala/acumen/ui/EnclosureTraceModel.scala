@@ -117,6 +117,13 @@ class EnclosureTraceModel extends AbstractTraceModel {
     
     fireTableStructureChanged()
   }
+
+  override def reset = {
+    
+    es.clear()
+    
+  }
+
 }
 
 case class EnclosureTraceData(data: Iterable[UnivariateAffineEnclosure])

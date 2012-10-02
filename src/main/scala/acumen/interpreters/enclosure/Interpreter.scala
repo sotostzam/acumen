@@ -11,6 +11,10 @@ import acumen.interpreters.enclosure.solver.HybridSystem
 import acumen.ui.EnclosureTraceModel
 import acumen.ui.EnclosureTraceData
 
+case class EnclosureInterpreterCallbacks(log: String => Unit, 
+                                         sendResult : Iterable[UnivariateAffineEnclosure] => Unit)
+     extends InterpreterCallbacks
+
 /**
  * Proxy for the enclosure-based solver.
  */
@@ -19,7 +23,8 @@ object Interpreter extends acumen.Interpreter with Solver with Transform {
   def newTraceModel = new EnclosureTraceModel
 
   //FIXME do this properly
-  override def generateTraceModel(text: String, log: String => Unit): EnclosureTraceModel = {
+  override def runInterpreter(text: String, cb0: InterpreterCallbacks) {
+    val cb = cb0.asInstanceOf[EnclosureInterpreterCallbacks]
     val prog = Parser.run(Parser.prog, text)
     val des = Desugarer.run(prog)
     val main = classDef(ClassName("Main"), des)
@@ -28,8 +33,7 @@ object Interpreter extends acumen.Interpreter with Solver with Transform {
     implicit val rnd = Rounding(ps.precision)
     val (hs, uss) = extract(main)
 
-    var res2 = List[UnivariateAffineEnclosure]()
-    val res = solver(
+    solver(
       hs,
       ps.simulationTime,
       Set(uss),
@@ -41,12 +45,8 @@ object Interpreter extends acumen.Interpreter with Solver with Transform {
       ps.maxTimeStep,
       ps.simulationTime,
       "output",
-      log,
-      {d => res2 = res2 ++ d})
-    assert(res == res2)
-    val tm = new EnclosureTraceModel
-    tm.addData(EnclosureTraceData(res2))
-    tm
+      cb.log,
+      cb.sendResult)
   }
 
   type Store = Seq[UnivariateAffineEnclosure]

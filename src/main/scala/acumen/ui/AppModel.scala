@@ -16,6 +16,10 @@ import swing._
 import swing.event._
 import scala.actors._
 
+import collection.mutable.ArrayBuffer
+import acumen.interpreters.enclosure.UnivariateAffineEnclosure
+import acumen.interpreters.enclosure.EnclosureInterpreterCallbacks
+
 sealed abstract class AppEvent extends Event
 case class InterpreterChanged()  extends AppEvent
 case class StateChanged() extends AppEvent
@@ -229,7 +233,7 @@ class AppModel(text: => String, console: Console) extends Publisher {
   case class Message(msg: String)
   case class Chunk(css: TraceData)
   case class Done(css: TraceData)
-  case class EnclosureDone(tm: AbstractTraceModel)
+  case class EnclosureDone(css: TraceData)
 
   private class Producer(p: Prog, st: CStore, consumer: Actor) extends Actor {
     var buffer = Queue.empty[CStore]
@@ -243,6 +247,7 @@ class AppModel(text: => String, console: Console) extends Publisher {
 
     def act : Unit = {
       if (isEnclosure) {
+        var res = new ArrayBuffer[UnivariateAffineEnclosure]
         def log(msg: String) : Unit = {
           if (msg != null)
             consumer ! Message(msg)
@@ -251,11 +256,14 @@ class AppModel(text: => String, console: Console) extends Publisher {
             case Stop => throw new java.lang.InterruptedException
           }
         }
+        def sendResult(d: Iterable[UnivariateAffineEnclosure]) {
+          res ++= d
+        }
         // FIXME: Is it okay to use withErrorReporting here in the producer
         withErrorReporting {
           try {
-            val tm = interpreters.enclosure.Interpreter.generateTraceModel(text,log)
-            consumer ! EnclosureDone(tm)
+            interpreters.enclosure.Interpreter.runInterpreter(text,EnclosureInterpreterCallbacks(log,sendResult))
+            consumer ! EnclosureDone(EnclosureTraceData(res))
           } catch {
             case _:java.lang.InterruptedException => exit
           }
@@ -311,8 +319,7 @@ class AppModel(text: => String, console: Console) extends Publisher {
     def waitForResult {
       react {
         case EnclosureDone(tm) =>
-          tmodel.setTraceModel(tm)
-          tmodel.fireTableStructureChanged()
+          tmodel.addData(tm)
           exit
         }
     }
@@ -347,8 +354,7 @@ class AppModel(text: => String, console: Console) extends Publisher {
             stop
             exit
           case EnclosureDone(tm) =>
-            tmodel.setTraceModel(tm)
-            tmodel.fireTableStructureChanged()
+            tmodel.addData(tm)
             stop
             exit
           case Error(e) =>
