@@ -233,7 +233,6 @@ class AppModel(text: => String, console: Console) extends Publisher {
   case class Message(msg: String)
   case class Chunk(css: TraceData)
   case class Done(css: TraceData)
-  case class EnclosureDone(css: TraceData)
 
   private class Producer(p: Prog, st: CStore, consumer: Actor) extends Actor {
     var buffer = Queue.empty[CStore]
@@ -263,7 +262,7 @@ class AppModel(text: => String, console: Console) extends Publisher {
         withErrorReporting {
           try {
             interpreters.enclosure.Interpreter.runInterpreter(text,EnclosureInterpreterCallbacks(log,sendResult))
-            consumer ! EnclosureDone(EnclosureTraceData(res))
+            consumer ! Done(EnclosureTraceData(res))
           } catch {
             case _:java.lang.InterruptedException => exit
           }
@@ -318,7 +317,7 @@ class AppModel(text: => String, console: Console) extends Publisher {
 
     def waitForResult {
       react {
-        case EnclosureDone(tm) =>
+        case Done(tm) =>
           tmodel.addData(tm)
           exit
         }
@@ -351,10 +350,6 @@ class AppModel(text: => String, console: Console) extends Publisher {
             flush(css)
             //*******************************************
 
-            stop
-            exit
-          case EnclosureDone(tm) =>
-            tmodel.addData(tm)
             stop
             exit
           case Error(e) =>
