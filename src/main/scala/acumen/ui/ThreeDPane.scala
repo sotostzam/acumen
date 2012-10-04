@@ -1,43 +1,10 @@
 package acumen
 package ui
 
-import java.lang.Thread
-
 import scala.actors._
-import scala.math._
-import collection.JavaConversions._
-import collection.immutable.Queue
-import scala.collection.mutable.Map
-import scala.collection.mutable.Buffer
-
-import java.awt.Font
-import java.awt.BorderLayout
-import java.awt.Color
-import java.awt.RenderingHints
-import java.awt.GraphicsEnvironment
-import java.awt.Desktop
-import java.io._
-import javax.swing.JOptionPane
-import javax.swing.JTabbedPane
-import javax.swing.SwingUtilities
-import javax.swing.undo._
-import javax.swing.text._
-import javax.swing.KeyStroke
-import javax.swing.event.DocumentListener
-import javax.swing.event.DocumentEvent
-import javax.vecmath.{AxisAngle4d, Color3f, Point3d, Vector3d,Point3f,Vector3f}
-
-import swing._
-import swing.event._
-
-import com.sun.j3d.utils.geometry.ColorCube
-import com.sun.j3d.utils.geometry.Sphere
-import com.sun.j3d.utils.behaviors.mouse._
-import javax.media.j3d.{Appearance, AmbientLight, Background, BoundingBox, 
-  BoundingSphere, Bounds, BranchGroup, Canvas3D, DirectionalLight, GeometryArray,
-  Group, Geometry, Material, LineAttributes, LineArray, PolygonAttributes, 
-  QuadArray, Screen3D, Shape3D, Transform3D, TransformGroup, TransparencyAttributes,
-  View, ViewPlatform}
+import scala.collection.JavaConversions._
+import scala.collection.mutable.{Buffer, Map}
+import scala.swing._
 
 abstract class AbstractThreeDPane extends BorderPanel {
   def receiver : Publisher
