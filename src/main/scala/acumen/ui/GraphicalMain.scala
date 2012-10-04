@@ -177,12 +177,24 @@ object GraphicalMain extends SimpleSwingApplication {
     add(traceView, BorderPanel.Position.Center)
   }
   val tab2 = new ScrollPane(traceTable) 
-  var threeDtab = new ThreeDPane(appModel)
+  var threeDtab = try {
+    new ThreeDPane(appModel)
+  } catch {
+    case e:UnsatisfiedLinkError => 
+      console.log("Error loading Java3D: " + e)
+      console.newLine
+      console.log("Disabling 3D Tab.")
+      console.newLine
+      new DisabledThreeDPane
+  }
   
   val rightPane = new TabbedPane {
+    assert(pages.size == 0)
     pages ++= List(new TabbedPane.Page("Plot", tab1), 
                    new TabbedPane.Page("Trace", tab2),
                    new TabbedPane.Page("3D",threeDtab))
+    if (!threeDtab.enableTab)
+      pages(2).enabled = false
   }
 
 

@@ -39,7 +39,14 @@ import javax.media.j3d.{Appearance, AmbientLight, Background, BoundingBox,
   QuadArray, Screen3D, Shape3D, Transform3D, TransformGroup, TransparencyAttributes,
   View, ViewPlatform}
 
-class ThreeDPane(val appModel:AppModel) extends BorderPanel {
+abstract class AbstractThreeDPane extends BorderPanel {
+  def receiver : Publisher
+  def reset : Unit
+  def setProgress(p:Int) : Unit
+  var enableTab = true
+}
+
+class ThreeDPane(val appModel:AppModel) extends AbstractThreeDPane {
 
   var threeDView  = new ThreeDView()
   var playSpeed = 1.0;
@@ -136,7 +143,7 @@ class ThreeDPane(val appModel:AppModel) extends BorderPanel {
     }        
      threeDView.branches.clear  
      threeDView.trans.clear         
-     receiver = new _3DDisplay(threeDView,statusZone3d,_3DDataBuffer,lastFrame,
+     _receiver = new _3DDisplay(threeDView,statusZone3d,_3DDataBuffer,lastFrame,
 			       appModel.data.endTime)
      timer3d  = new ScalaTimer(receiver,appModel.data.endTime,playSpeed)
      receiver.start()
@@ -186,7 +193,7 @@ class ThreeDPane(val appModel:AppModel) extends BorderPanel {
     contents += statusZone3d
   }
 
-  var receiver   =  new _3DDisplay(threeDView,statusZone3d,
+  var _receiver   =  new _3DDisplay(threeDView,statusZone3d,
                                    _3DDataBuffer,lastFrame,appModel.data.endTime)
   
   var timer3d      = new  ScalaTimer(receiver,appModel.data.endTime,playSpeed)
@@ -194,6 +201,8 @@ class ThreeDPane(val appModel:AppModel) extends BorderPanel {
   //
   //
   //
+
+  def receiver : _3DDisplay = _receiver
 
   def reset = {
     receiver.stop; 
@@ -218,4 +227,10 @@ class ThreeDPane(val appModel:AppModel) extends BorderPanel {
 
 }
 
+class DisabledThreeDPane extends AbstractThreeDPane {
+  def receiver = null
+  def reset = {}
+  def setProgress(p:Int) = {}
+  enableTab = false
+}
 
