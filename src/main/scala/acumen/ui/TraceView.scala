@@ -7,12 +7,10 @@ import collection.mutable.Stack
 import collection.JavaConversions._
 import swing._
 import swing.event._
-
 import java.lang.Thread
 import java.util.TimerTask
 import java.util.Timer
 import java.io.File
-
 import java.awt.Color
 import java.awt.Transparency
 import java.awt.BasicStroke
@@ -33,7 +31,6 @@ import javax.swing.event.TableModelListener
 import javax.swing.JSpinner
 import javax.swing.JLabel
 import javax.imageio.ImageIO
-
 import Errors._
 import util.Canonical._
 import util.Conversions._
@@ -279,6 +276,7 @@ class EnclosurePath() extends PlotEntity {
   def draw(g:Graphics2D, tr:AffineTransform) = {
     val area = new Area();
     val lines = new ArrayBuffer[Line2D.Double];
+    g.setStroke(new BasicStroke(1))
     for (polyPoints <- polys) {
       val toDraw = PolyPoints(new Point2D.Double,
                               new Point2D.Double,
@@ -292,16 +290,17 @@ class EnclosurePath() extends PlotEntity {
       polyPath.lineTo(toDraw.d.getX(),toDraw.d.getY())
       polyPath.closePath()
       area.add(new Area(polyPath))
-      lines += new Line2D.Double(toDraw.a, toDraw.b);
-      lines += new Line2D.Double(toDraw.c, toDraw.d);
+      // Draw exact solutions as a line
+      if (toDraw.a == toDraw.d && toDraw.b == toDraw.c)
+        g.draw(new Line2D.Double(toDraw.a.getX(),toDraw.a.getY(),toDraw.b.getX(),toDraw.b.getY()))
     }
+    g.draw(area)
     val prevComposite = g.getComposite()
     g.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.10f))
     g.fill(area)
-    g.setComposite(prevComposite);
-    for (line <- lines)
-      g.draw(line)
+    g.setComposite(prevComposite)
   }
+
   def drawDots(g:Graphics2D, tr:AffineTransform) = draw(g,tr)
 
   def transform(tr:AffineTransform) = {
