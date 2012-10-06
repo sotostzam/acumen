@@ -51,6 +51,15 @@ case class AffineScalarEnclosure private[enclosure] (
   /** Get the constant term of this enclosure. */
   def constantTerm(implicit end: Rounding) = AffineScalarEnclosure(domain, normalizedDomain, constant, Box())
 
+  // TODO write tests!
+  /** Contracts the domain by back-propagating ran */
+  def contractDomain(ran: Interval)(implicit rnd: Rounding) = {
+    def contractDom(name: VarName): Interval =
+      if (coefficients(name) isZero) normalizedDomain(name)
+      else (-AffineScalarEnclosure(domain, normalizedDomain, constant - ran, coefficients - name) / coefficients(name)).range \/ normalizedDomain(name)
+    coefficients.keys.foldLeft(normalizedDomain) { case (box, name) => box + (name -> (contractDom(name) + domain(name).low)) }
+  }
+
   /**
    * Enclose the union of the two enclosures.
    *
