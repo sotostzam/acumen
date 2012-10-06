@@ -52,11 +52,23 @@ case class AffineScalarEnclosure private[enclosure] (
   def constantTerm(implicit end: Rounding) = AffineScalarEnclosure(domain, normalizedDomain, constant, Box())
 
   // TODO write tests!
-  /** Contracts the domain by back-propagating ran */
+  // TODO add better description!
+  /** 
+   * Contracts the domain by back-propagating the interval ran. 
+   * 
+   * The algorithm uses HC4 style back-propagation, see "Revising hull and box consistency" 
+   * by Benhamou et al, which contracts the domains of variables in an expression using the 
+   * constraint that the value of the expression should lie within the ran interval.
+   */
   def contractDomain(ran: Interval)(implicit rnd: Rounding) = {
     def contractDom(name: VarName): Interval =
       if (coefficients(name) isZero) normalizedDomain(name)
-      else (-AffineScalarEnclosure(domain, normalizedDomain, constant - ran, coefficients - name) / coefficients(name)).range \/ normalizedDomain(name)
+      else {
+        // The name term is equal to the range minus the other terms
+        val nameTerm = -AffineScalarEnclosure(domain, normalizedDomain, constant - ran, coefficients - name)
+        val nameVariableDomain = (nameTerm / coefficients(name)).range
+        nameVariableDomain \/ normalizedDomain(name)
+      }
     coefficients.keys.foldLeft(normalizedDomain) { case (box, name) => box + (name -> (contractDom(name) + domain(name).low)) }
   }
 
