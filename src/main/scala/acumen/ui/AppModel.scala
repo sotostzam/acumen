@@ -62,7 +62,7 @@ class AppModel(text: => String, console: Console) {
     isEnclosure = tm.isInstanceOf[EnclosureTraceModel]
     tmodel.setTraceModel(tm)
 
-    GraphicalMain.actor ! InterpreterChanged()
+    Acumen.actor ! InterpreterChanged()
   }
 
   /* ---- state variables ---- */
@@ -120,11 +120,11 @@ class AppModel(text: => String, console: Console) {
         case _ => true
       }
     appState = s
-    if (changed) GraphicalMain.actor ! StateChanged()
+    if (changed) Acumen.actor ! StateChanged()
   }
-  private def emitProgress(p:Int) = GraphicalMain.actor ! Progress(p)
-  private def emitProgressMsg(msg:String) = GraphicalMain.actor ! ProgressMsg(msg)
-  private def emitError(e: Throwable) = { GraphicalMain.actor ! Error(e); stop }
+  private def emitProgress(p:Int) = Acumen.actor ! Progress(p)
+  private def emitProgressMsg(msg:String) = Acumen.actor ! ProgressMsg(msg)
+  private def emitError(e: Throwable) = { Acumen.actor ! Error(e); stop }
    
   private def withErrorReporting(action: => Unit) : Unit = {
     try action
