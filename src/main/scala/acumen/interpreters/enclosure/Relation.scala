@@ -1,5 +1,6 @@
 package acumen.interpreters.enclosure
 
+import Expression._
 import Interval._
 import Types._
 
@@ -110,58 +111,71 @@ abstract class Relation {
 
   /** A conservative approximation of the intersection of x with the support of r. */
   def support(x: Box)(implicit rnd: Rounding): Box = this match {
-    case UnaryRelation(relname, Variable(name)) => relname match {
-      case Positive => {
-        if (x(name) lessThanOrEqualTo 0) sys.error("Relation.support: Positive: empty intersection")
-        else x - name + (name -> max(0, x(name).low) /\ x(name).high)
-      }
-      case NonNegative => {
-        if (x(name) lessThan 0) sys.error("Relation.support: NonNegative: empty intersection with " + x(name))
-        else x - name + (name -> max(0, x(name).low) /\ x(name).high)
-      }
-      case EqualToZero => {
-        if (!(x(name) contains 0)) sys.error("Relation.support: EqualToZero: empty intersection")
-        else x - name + (name -> Interval(0))
-      }
-      case NonPositive => {
-        if (x(name) greaterThan 0) sys.error("Relation.support: NonPositive: empty intersection")
-        else x - name + (name -> x(name).low /\ min(0, x(name).high))
-      }
-      case Negative => {
-        if (x(name) greaterThanOrEqualTo 0) sys.error("Relation.support: Negative: empty intersection")
-        else x - name + (name -> x(name).low /\ min(0, x(name).high))
-      }
+    case UnaryRelation(relname, e) => relname match {
+      case Positive | NonNegative =>
+        val ran = e(x)
+        if (ran.high greaterThanOrEqualTo 0) e.contractBox(x, max(ran, 0))
+        else sys.error("empty support")
+      case EqualToZero => e.contractBox(x, 0)
+      case NonPositive | Negative =>
+        val ran = e(x)
+        if (ran.low lessThanOrEqualTo 0) e.contractBox(x, min(ran, 0))
+        else sys.error("empty support")
     }
-    case r @ UnaryRelation(relname, Negate(e)) => relname match {
-      case Positive => Relation.negative(e).support(x)
-      case NonNegative => Relation.nonPositive(e).support(x)
-      case EqualToZero => Relation.equalToZero(e).support(x)
-      case NonPositive => Relation.nonNegative(e).support(x)
-      case Negative => Relation.positive(e).support(x)
-    }
-    case UnaryRelation(relname, Plus(Variable(lname), Negate(Variable(rname)))) => relname match {
-      case EqualToZero =>
-        if (x(lname) disjointFrom x(rname)) x
-        else {
-          val intersection = x(lname) \/ x(rname)
-          x + (lname -> intersection) + (rname -> intersection)
-        }
-    }
-    case r @ UnaryRelation(relname, Plus(Variable(name), Constant(c))) => relname match {
-      case EqualToZero =>
-        if (x(name) disjointFrom -c) x
-        else x + (name -> x(name) \/ (-c))
-    }
-    case UnaryRelation(relname, Plus(Constant(c), Variable(name))) => relname match {
-      case EqualToZero =>
-        if (x(name) disjointFrom -c) x
-        else x + (name -> x(name) \/ -c)
-    }
-    case r @ UnaryRelation(relname, Divide(e, Constant(c))) =>
-      if (c greaterThan 0) UnaryRelation(relname, e).support(x)
-      else if (c lessThan 0) UnaryRelation(relname, Negate(e)).support(x)
-      else sys.error("Relation.support: division by 0")
   }
+
+//  /** A conservative approximation of the intersection of x with the support of r. */
+//  def oldSupport(x: Box)(implicit rnd: Rounding): Box = this match {
+//    case UnaryRelation(relname, Variable(name)) => relname match {
+//      case Positive => {
+//        if (x(name) lessThanOrEqualTo 0) sys.error("Relation.support: Positive: empty intersection")
+//        else x - name + (name -> max(0, x(name).low) /\ x(name).high)
+//      }
+//      case NonNegative => {
+//        if (x(name) lessThan 0) sys.error("Relation.support: NonNegative: empty intersection with " + x(name))
+//        else x - name + (name -> max(0, x(name).low) /\ x(name).high)
+//      }
+//      case EqualToZero => {
+//        if (!(x(name) contains 0)) sys.error("Relation.support: EqualToZero: empty intersection")
+//        else x - name + (name -> Interval(0))
+//      }
+//      case NonPositive => {
+//        if (x(name) greaterThan 0) sys.error("Relation.support: NonPositive: empty intersection")
+//        else x - name + (name -> x(name).low /\ min(0, x(name).high))
+//      }
+//      case Negative => {
+//        if (x(name) greaterThanOrEqualTo 0) sys.error("Relation.support: Negative: empty intersection")
+//        else x - name + (name -> x(name).low /\ min(0, x(name).high))
+//      }
+//    }
+//    case UnaryRelation(relname, Plus(Variable(lname), Negate(Variable(rname)))) => relname match {
+//      case EqualToZero =>
+//        lazy val intersection = x(lname) \/ x(rname)
+//        //        if (x(lname) disjointFrom x(rname)) x else
+//        x + (lname -> intersection) + (rname -> intersection)
+//    }
+//    case r @ UnaryRelation(relname, Negate(e)) => relname match {
+//      case Positive => Relation.negative(e).support(x)
+//      case NonNegative => Relation.nonPositive(e).support(x)
+//      case EqualToZero => Relation.equalToZero(e).support(x)
+//      case NonPositive => Relation.nonNegative(e).support(x)
+//      case Negative => Relation.positive(e).support(x)
+//    }
+//    case r @ UnaryRelation(relname, Plus(Variable(name), Constant(c))) => relname match {
+//      case EqualToZero =>
+//        //        if (x(name) disjointFrom -c) x else
+//        x + (name -> x(name) \/ (-c))
+//    }
+//    case UnaryRelation(relname, Plus(Constant(c), Variable(name))) => relname match {
+//      case EqualToZero =>
+//        //        if (x(name) disjointFrom -c) x else
+//        x + (name -> x(name) \/ -c)
+//    }
+//    case r @ UnaryRelation(relname, Divide(e, Constant(c))) =>
+//      if (c greaterThan 0) UnaryRelation(relname, e).support(x)
+//      else if (c lessThan 0) UnaryRelation(relname, Negate(e)).support(x)
+//      else sys.error("Relation.support: division by 0")
+//  }
 
   /** Returns the set of variable names which occur in the relation. */
   def varNames: Set[VarName] = this match {
@@ -197,10 +211,4 @@ case class UnaryRelation(name: UnaryRelationName, expression: Expression) extend
     case NonNegative => expression.toString + " >= 0"
     case Negative => expression.toString + " < 0"
   }
-}
-
-object Test extends App {
-  implicit val rnd = Rounding(10)
-  println(Relation.equalToZero(Variable("x") - Variable("y")).
-    support(Box("x" -> 0 /\ 1, "y" -> 1 /\ 2)))
 }

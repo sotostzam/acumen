@@ -69,7 +69,7 @@ case class AffineScalarEnclosure private[enclosure] (
         val nameVariableDomain = (nameTerm / coefficients(name)).range
         nameVariableDomain \/ normalizedDomain(name)
       }
-    coefficients.keys.foldLeft(normalizedDomain) { case (box, name) => box + (name -> (contractDom(name) + domain(name).low)) }
+    normalizedDomain.keys.foldLeft(normalizedDomain) { case (box, name) => box + (name -> (contractDom(name) + domain(name).low)) }
   }
 
   /**

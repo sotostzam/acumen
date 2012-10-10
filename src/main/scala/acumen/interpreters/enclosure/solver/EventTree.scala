@@ -195,6 +195,23 @@ case class EventTree(
     val sequences = maximalSequences.flatMap(v => (v +: v.prefixes).toSet)
     sequences.map(_.enclosure).toSeq
   }
+
+  /** 
+   * Takes the box-hull of enclosures for non-empty event sequences
+   * and intersects with the target mode domain invariant.
+   * 
+   * This has the effect of "shaving off" of the parts of enclosures that e.g. 
+   * in the bouncing ball example "dip below" the ground.
+   */
+  def prunedEnclosures(implicit rnd: Rounding): Seq[UnivariateAffineEnclosure] =
+    maximalSequences.head match {
+      case EmptySequence(_, enclosure, _) => Seq(enclosure)
+      case _ =>
+        val sequences = maximalSequences.flatMap(v => (v +: v.prefixes).toSet)
+        sequences.map(s => s.tau.foldLeft(s.enclosure.range) {
+          case (res, mode) => H.domains(mode).support(res)
+        }).map(ran => UnivariateAffineEnclosure(T, ran)).toSeq
+    }
 }
 
 object EventTree extends SolveVt {

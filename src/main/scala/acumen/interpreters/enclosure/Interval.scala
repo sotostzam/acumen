@@ -175,6 +175,8 @@ case class Interval private (
     val it = Interval(x)
     lo.compareTo(it.lo) <= 0 && it.hi.compareTo(hi) <= 0
   }
+
+  def isZero = equalTo(Interval(0))
   /**
    * @return a string representation of the interval in the usual
    * notation for closed intervals.
@@ -208,4 +210,6 @@ object Interval {
   implicit def toInterval(x: Real)(implicit rnd: Rounding) = Interval(x)
   implicit def toInterval(x: Double)(implicit rnd: Rounding) = Interval(x)
   implicit def toInterval(x: Int)(implicit rnd: Rounding) = Interval(x)
+
+  def zero(implicit rnd: Rounding) = Interval(0)
 }

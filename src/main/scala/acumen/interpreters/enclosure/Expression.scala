@@ -49,7 +49,7 @@ abstract class Expression {
     assert(varNames subsetOf x.components.keySet,
       "The enclosure must contain the names of all variables in the expression.")
     this match {
-      case Constant(v) => UnivariateAffineScalarEnclosure(x.domain,v)
+      case Constant(v) => UnivariateAffineScalarEnclosure(x.domain, v)
       case Variable(name) => x(name)
       case Negate(e) => -e(x)
       case Plus(l, r) => l(x) + r(x)
@@ -108,6 +108,10 @@ abstract class Expression {
     case Divide(e, Constant(v)) => e.enclosureEvalHelper(x) / v
   }
 
+  // TODO add explanation!
+  def contractBox(box: Box, ran: Interval)(implicit rnd: Rounding): Box =
+    enclosureEvalHelper(box).contractDomain(ran)
+
   /** Returns the set of variable names which occur in the expression. */
   def varNames: Set[VarName] = this match {
     case Constant(_) => Set()
@@ -124,8 +128,12 @@ abstract class Expression {
     case Constant(v) => Constant(-v)
     case _ => Negate(this)
   }
-  def +(that: Expression) = Plus(this,that)
-  def -(that: Expression) = Plus(this, -that)
+  def +(that: Expression) = (this, that) match {
+    case (Constant(c), e) if (c isZero) => e
+    case (e, Constant(c)) if (c isZero) => e
+    case _ => Plus(this, that)
+  }
+  def -(that: Expression) = this + (-that)
   def *(that: Expression) = Multiply(this, that)
   /** Only division by constants currently supported. */
   def /(that: Double)(implicit rnd: Rounding) = Divide(this, Constant(that))

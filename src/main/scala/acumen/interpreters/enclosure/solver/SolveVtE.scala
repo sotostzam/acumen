@@ -40,7 +40,8 @@ trait SolveVtE {
     if (res != tmp)
       None
     else
-      Some((res.endTimeStates, res.enclosures))
+      Some((res.endTimeStates, res.prunedEnclosures))
+//      Some((res.endTimeStates, res.enclosures))
   }
 
 }
