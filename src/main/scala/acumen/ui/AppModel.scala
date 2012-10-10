@@ -13,6 +13,7 @@ import java.io._
 import swing._
 import swing.event._
 import scala.actors._
+import scala.util.control.ControlThrowable
 
 import collection.mutable.ArrayBuffer
 import acumen.interpreters.enclosure.UnivariateAffineEnclosure
@@ -127,7 +128,8 @@ class AppModel(text: => String, console: Console) extends Publisher {
    
   private def withErrorReporting(action: => Unit) : Unit = {
     try action
-    catch { case e => emitError(e) }
+    catch { case ce :ControlThrowable => throw ce
+            case e => emitError(e) }
   }
 
   private def updateProgress(s: TraceData) = {
@@ -273,6 +275,10 @@ class AppModel(text: => String, console: Console) extends Publisher {
                 consumer ! Chunk(new EnclosureTraceData(buf, endTime))
                 buf = new ArrayBuffer[UnivariateAffineEnclosure]
               }
+            }
+            receive {
+              case GoOn => ()
+              case Stop => exit
             }
           }
         }
