@@ -10,7 +10,7 @@ trait Interpreter {
 
   def newTraceModel : AbstractTraceModel
   
-  def runInterpreter(text: String, cb0: InterpreterCallbacks) : Unit = null
+  def runInterpreter(cb0: InterpreterCallbacks) : Unit = null
 
   type Store
   def repr (s:Store) : CStore

@@ -140,15 +140,16 @@ class AppModel(text: => String, console: Console) {
 
   private def init: Unit = {
     tmodel.reset
+    val ast = Parser.run(Parser.prog, text)
+    // Disable for now, the enclosure semantics can't handle it
+    //val dif = SD.run(ast)
+    val des = Desugarer.run(ast)
+    val I = interpreter
+    val (prog, store) = I.init(des)
+
     if (isEnclosure) {
       setState(PInitialized(null, null))
     } else {
-      val ast = Parser.run(Parser.prog, text)
-      val dif = SD.run(ast)
-      val des = Desugarer.run(dif)
-      val I = interpreter
-      val (prog, store) = I.init(des)
-
       val cstore = I.repr(store)
       //*********************************
       data.getData(cstore)
@@ -277,10 +278,9 @@ class AppModel(text: => String, console: Console) {
             }
           }
         }
-        // FIXME: Is it okay to use withErrorReporting here in the producer
         withErrorReporting {
           val s = System.currentTimeMillis
-          interpreters.enclosure.Interpreter.runInterpreter(text, callbacks)
+          interpreters.enclosure.Interpreter.runInterpreter(callbacks)
           consumer ! Done(new EnclosureTraceData(buf, 0))
           println("Time to run simulation: %f".format((System.currentTimeMillis - s)/1000.0))
         }

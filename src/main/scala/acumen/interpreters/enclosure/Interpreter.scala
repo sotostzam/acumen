@@ -24,11 +24,16 @@ object Interpreter extends acumen.Interpreter with Solver with Transform {
 
   def newTraceModel = new EnclosureTraceModel
 
+  var des : Prog = null
+
+  def init(prog: Prog): (Prog, Store) = {
+    des = prog
+    (prog, null)
+  }
+
   //FIXME do this properly
-  override def runInterpreter(text: String, cb0: InterpreterCallbacks) {
+  override def runInterpreter(cb0: InterpreterCallbacks) {
     val cb = cb0.asInstanceOf[EnclosureInterpreterCallbacks]
-    val prog = Parser.run(Parser.prog, text)
-    val des = Desugarer.run(prog)
     val main = classDef(ClassName("Main"), des)
 
     val ps = parameters(main)
@@ -57,8 +62,6 @@ object Interpreter extends acumen.Interpreter with Solver with Transform {
   def repr(s: Store): CStore = emptyStore
 
   def fromCStore(cs: CStore, root: CId): Store = null
-
-  def init(prog: Prog): (Prog, Store) = (prog, null)
 
   def step(p: Prog, st: Store): Option[Store] = Some(null)
 
