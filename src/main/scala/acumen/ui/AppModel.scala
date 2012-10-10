@@ -230,7 +230,6 @@ class AppModel(text: => String, console: Console) {
 
   case object GoOn
   case object Stop
-  case class Message(msg: String)
   case class Chunk(css: TraceData)
   case class Done(css: TraceData)
 
@@ -260,11 +259,7 @@ class AppModel(text: => String, console: Console) {
         val callbacks = new EnclosureInterpreterCallbacks {
           def log(msg: String) : Unit = {
             if (msg != null)
-              consumer ! Message(msg)
-            receive {
-              case GoOn => ()
-                case Stop => exit
-            }
+              Acumen.actor ! ProgressMsg(msg)
           }
           override def sendResult(d: Iterable[UnivariateAffineEnclosure]) {
             if (maxBufSize == 1) {
@@ -341,7 +336,7 @@ class AppModel(text: => String, console: Console) {
 
     def finish = {
       react {
-        case Done(_) | Chunk(_) | Message(_) => 
+        case Done(_) | Chunk(_) => 
           reply(Stop)
           exit
       }
@@ -353,9 +348,6 @@ class AppModel(text: => String, console: Console) {
           case Stop =>
             reply(last)
             finish
-          case Message(msg) =>
-            reply(GoOn)
-            emitProgressMsg(msg)
           case Chunk(css) =>
             reply(GoOn)
             flush(css)
