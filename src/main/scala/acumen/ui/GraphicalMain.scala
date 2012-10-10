@@ -510,6 +510,11 @@ object GraphicalMain extends SimpleSwingApplication {
     case Progress3d(p)  => threeDtab.setProgress(p)
   }
 
+  // Swing debugging
+
+  javax.swing.RepaintManager.setCurrentManager(new debug.CheckThreadViolationRepaintManager)
+  debug.EventDispatchThreadHangMonitor.initMonitoring()
+
   /* ----- initialisation ----- */
   
   reflectState
