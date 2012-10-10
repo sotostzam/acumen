@@ -26,7 +26,7 @@ case class Error(e: Throwable) extends AppEvent
 case class Progress(percent: Int) extends AppEvent
 case class ProgressMsg(msg:String) extends AppEvent
 case class Progress3d(percent: Int) extends AppEvent
-case class Playing3d() extends AppEvent
+//case class Playing3d() extends AppEvent
 
 sealed abstract class AppState
 case class Stopped() extends AppState
@@ -37,7 +37,7 @@ sealed abstract class InterpreterType
 case class Pure() extends InterpreterType
 case class Impure(nbThreads: Int) extends InterpreterType
 
-class AppModel(text: => String, console: Console) extends Publisher {
+class AppModel(text: => String, console: Console) {
 
   private sealed abstract class PAppState
   private case class PStopped() extends PAppState
@@ -62,7 +62,7 @@ class AppModel(text: => String, console: Console) extends Publisher {
     isEnclosure = tm.isInstanceOf[EnclosureTraceModel]
     tmodel.setTraceModel(tm)
 
-    publish(InterpreterChanged())
+    GraphicalMain.actor ! InterpreterChanged()
   }
 
   /* ---- state variables ---- */
@@ -120,11 +120,11 @@ class AppModel(text: => String, console: Console) extends Publisher {
         case _ => true
       }
     appState = s
-    if (changed) publish(StateChanged())
+    if (changed) GraphicalMain.actor ! StateChanged()
   }
-  private def emitProgress(p:Int) = publish(Progress(p))
-  private def emitProgressMsg(msg:String) = publish(ProgressMsg(msg))
-  private def emitError(e: Throwable) = { publish(Error(e)); stop }
+  private def emitProgress(p:Int) = GraphicalMain.actor ! Progress(p)
+  private def emitProgressMsg(msg:String) = GraphicalMain.actor ! ProgressMsg(msg)
+  private def emitError(e: Throwable) = { GraphicalMain.actor ! Error(e); stop }
    
   private def withErrorReporting(action: => Unit) : Unit = {
     try action

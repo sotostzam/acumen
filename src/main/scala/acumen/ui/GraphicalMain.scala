@@ -467,10 +467,6 @@ object GraphicalMain extends SimpleSwingApplication {
 
   /* ----- events handling ---- */
   
-  listenTo(appModel)
-  if (threeDtab.receiver != null)
-    listenTo(threeDtab.receiver)
-
   def updateButtons = {
     play.enabled = appModel.playEnabled
     stop.enabled = appModel.stopEnabled 
@@ -501,13 +497,26 @@ object GraphicalMain extends SimpleSwingApplication {
     }
   }
 
-  reactions += {
-    case InterpreterChanged() => updateButtons
-    case StateChanged() => reflectState
-    case Error(e)       => reportError(e)
-    case Progress(p)    => statusZone.setProgress(p)
-    case ProgressMsg(m) => console.log(m); console.newLine
-    case Progress3d(p)  => threeDtab.setProgress(p)
+  // Create a special actor to listen to events from other threads
+
+  val actor = new Actor {
+    override val scheduler = new SchedulerAdapter {
+      def execute(fun: => Unit) { Swing.onEDT(fun) }
+    }
+    start()
+    
+    def act() {
+      loop {
+        react {
+          case InterpreterChanged() => updateButtons
+          case StateChanged() => reflectState
+          case Error(e)       => reportError(e)
+          case Progress(p)    => statusZone.setProgress(p)
+          case ProgressMsg(m) => console.log(m); console.newLine
+          case Progress3d(p)  => threeDtab.setProgress(p)
+        }
+      }
+    }
   }
 
   // Swing debugging

@@ -272,7 +272,7 @@ class _3DDisplay(app: ThreeDView, slider: Slider3d,
     case e: MouseDragged => {
       currentFrame = (slider.bar.value) * totalFrames / 100
       emitProgress(slider.bar.value.toInt)
-      publish(Playing3d())
+      //publish(Playing3d())
       if (currentFrame < 2)
         currentFrame = startFrameNumber;
       if (currentFrame > totalFrames)
@@ -399,7 +399,7 @@ class _3DDisplay(app: ThreeDView, slider: Slider3d,
   }
 
   // Update the slider value
-  private def emitProgress(p: Int) = publish(Progress3d(p))
+  private def emitProgress(p: Int) = GraphicalMain.actor ! Progress3d(p)
   // Fix this code 
   var f3d = new Font3D(new Font("", Font.PLAIN, 1),
     new FontExtrusion());
