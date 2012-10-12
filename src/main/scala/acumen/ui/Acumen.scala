@@ -37,28 +37,28 @@ class Acumen extends SimpleSwingApplication {
   
   val play = new Action("play") {
     icon = Icons.play
-    def apply = {appModel.data.reset; threeDtab.reset; autoSave; appModel.play}
+    def apply = {controller.threeDData.reset; threeDtab.reset; autoSave; controller ! Play}
     toolTip = "Run Simulation"
   }
   val step = new Action("step") {
     icon = Icons.step
-    def apply = { autoSave; appModel.step }
+    def apply = { autoSave; controller ! Step }
     toolTip = "Compute one simulation step"
   }
   val pause = new Action("pause") {
     icon = Icons.pause
-    def apply = appModel.pause
+    def apply = controller ! Pause
     toolTip = "Pause simulation"
 	
   }
   val stop = new Action("stop") {
     icon = Icons.stop    
-    def apply = appModel.stop
+    def apply = { println("Controller state = " + controller.getState); controller ! Stop; }
     toolTip = "Stop simulation (cannot resume)"
   }
     
   /* ---- state variables ---- */
-  val appModel = new AppModel(codeArea.text,console)
+  val controller = new Controller
   var currentFile : Option[File] = None
   var editedSinceLastSave : Boolean = false
   var editedSinceLastAutoSave : Boolean = false
@@ -150,9 +150,9 @@ class Acumen extends SimpleSwingApplication {
       resizeWeight = 0.9
     }
 
-  val traceModel = appModel.tmodel
-  //val traceModel = new IntervalTraceModel(appModel.tmodel)
-  //val traceModel = new FakeEnclosureTraceModel(appModel.tmodel)
+  val traceModel = controller.tmodel
+  //val traceModel = new IntervalTraceModel(controller.tmodel)
+  //val traceModel = new FakeEnclosureTraceModel(controller.tmodel)
 
   /* 2 right pane */
   val traceTable = new Table { 
@@ -170,7 +170,7 @@ class Acumen extends SimpleSwingApplication {
   }
   val tab2 = new ScrollPane(traceTable) 
   var threeDtab = try {
-    new ThreeDPane(appModel)
+    new ThreeDPane(controller)
   } catch {
     case e:UnsatisfiedLinkError => 
       console.log("Error loading Java3D: " + e)
@@ -259,7 +259,7 @@ class Acumen extends SimpleSwingApplication {
       mnemonic = Key.S
       val rb1 = new RadioMenuItem("") {
         selected = true // This is the default semantics
-        action = Action("Purely Functional") { appModel.setInterpreter(interpreters.reference.Interpreter) }
+        action = Action("Purely Functional") { setInterpreter(new CStoreInterpreter(interpreters.reference.Interpreter)) }
       }
       val rb2 = new RadioMenuItem("") {
         selected = false
@@ -271,7 +271,7 @@ class Acumen extends SimpleSwingApplication {
           def go: Unit = try {
             def n: String = diag.getOrElse(n)
             lastNumberOfThreads = Integer.parseInt(n)
-            appModel.setInterpreter(new interpreters.parallel.Interpreter(lastNumberOfThreads))
+            setInterpreter(new CStoreInterpreter(new interpreters.parallel.Interpreter(lastNumberOfThreads)))
             console.log("Number of threads set to " + lastNumberOfThreads + ".")
           } catch {
             case _ =>
@@ -283,7 +283,7 @@ class Acumen extends SimpleSwingApplication {
       }
       val rb3 = new RadioMenuItem("") {
         selected = false 
-        action = Action("Enclosure") { appModel.setInterpreter(interpreters.enclosure.Interpreter) }
+        action = Action("Enclosure") { setInterpreter(new EnclosureInterpreter(interpreters.enclosure.Interpreter)) }
       }
       contents ++= Seq(rb1,rb2,rb3)
       new ButtonGroup(rb1,rb2,rb3)
@@ -348,7 +348,6 @@ class Acumen extends SimpleSwingApplication {
       listenDocument
       setCurrentFile(None)
       editedSinceLastSave = false
-      appModel.reset
     }
   }
 
@@ -362,7 +361,6 @@ class Acumen extends SimpleSwingApplication {
         listenDocument
         setCurrentFile(Some(file))
         editedSinceLastSave = false
-        appModel.reset
       }
     }
   }
@@ -475,37 +473,38 @@ class Acumen extends SimpleSwingApplication {
 
   /* ----- events handling ---- */
   
-  def updateButtons = {
-    play.enabled = appModel.playEnabled
-    stop.enabled = appModel.stopEnabled 
-    if (appModel.isEnclosure) {
-      pause.enabled = false
-      step.enabled = false
-    } else {
-      pause.enabled = appModel.pauseEnabled 
-      step.enabled = appModel.stepEnabled 
-    }
+  var state : AppState = AppState(AppState.Stopped)
+  var interpreter : InterpreterModel = new CStoreInterpreter(interpreters.reference.Interpreter)
+  def setInterpreter(i : InterpreterModel) = {
+    interpreter = i
+    reflectState
   }
 
   def reflectState = {
-    updateButtons
-    codeArea.enabled = appModel.codeEnabled
+    play.enabled = state.playEnabled
+    stop.enabled = state.stopEnabled 
+    pause.enabled = state.pauseEnabled 
+    step.enabled = state.stepEnabled 
+    codeArea.enabled = state.codeEnabled
 
-    appModel.state match {
-      case Stopped() =>
+    println("GM: New State: " + state.state)
+    state.state match {
+      case AppState.Stopped =>
         bPlay.action = play
         console.log("Stopped.")
         console.newLine
-      case Paused() =>
+      case AppState.Paused =>
         bPlay.action = play
         console.log("Paused. ")
-      case Playing() =>
+      case AppState.Playing =>
         bPlay.action = pause
         console.log("Running...")
     }
   }
 
   // Create a special actor to listen to events from other threads
+
+  controller.start()
 
   case object EXIT
   val actor = new Actor {
@@ -515,16 +514,25 @@ class Acumen extends SimpleSwingApplication {
     start()
     
     def act() {
+      trapExit = true
+      link(controller)
       loop {
         react {
-          case InterpreterChanged() => updateButtons
-          case StateChanged() => reflectState
+          case StateChanged(st) => {println("GM: State Changed!"); state = AppState(st); reflectState}
           case Error(e)       => reportError(e)
           case Progress(p)    => statusZone.setProgress(p)
           case ProgressMsg(m) => console.log(m); console.newLine
           case Progress3d(p)  => threeDtab.setProgress(p)
 
           case EXIT => println("...Exiting UI Actor."); exit
+
+          case SendInit => controller ! Init(codeArea.text, interpreter)
+
+          case Exit(_,ue:UncaughtException) =>
+            System.err.println("Actor Died Unexpected!")
+            ue.cause.printStackTrace()
+
+          case msg => println("Unknown Msg in GM: " + msg)
         }
       }
     }
@@ -537,7 +545,6 @@ class Acumen extends SimpleSwingApplication {
   console.log("<html>Welcome to Acumen.<br/>"+
               "Please see LICENSE file for licensing details.</html>")
   console.newLine
-  appModel.reset
 }
 
 object Acumen {

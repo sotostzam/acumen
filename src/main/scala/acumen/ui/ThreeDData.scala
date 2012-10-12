@@ -9,7 +9,7 @@ import util.Canonical._
 import util.Conversions._
 
 /* Get the 3D-visualization data */
-class ThreeDData(console: Console) extends Publisher {
+class ThreeDData extends Publisher {
   /* Stores all the information for 3D-visualization */
   type _3DStore = Map[CId, _3DClass];
   /* Stores 3D-visualization information for a class */

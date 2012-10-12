@@ -11,7 +11,7 @@ import acumen.interpreters.enclosure.solver.HybridSystem
 import acumen.ui.EnclosureTraceModel
 import acumen.ui.EnclosureTraceData
 
-abstract class EnclosureInterpreterCallbacks extends InterpreterCallbacks {
+trait EnclosureInterpreterCallbacks extends InterpreterCallbacks {
   def log(msg: String) : Unit
   var endTime : Double = 0.0
   def sendResult(data: Iterable[UnivariateAffineEnclosure]) : Unit = {}

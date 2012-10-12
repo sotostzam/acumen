@@ -11,7 +11,6 @@ trait Interpreter {
   def newTraceModel : AbstractTraceModel
   
   def runInterpreter(cb0: InterpreterCallbacks) : Unit = null
-
   type Store
   def repr (s:Store) : CStore
   def fromCStore (cs:CStore, root:CId) : Store

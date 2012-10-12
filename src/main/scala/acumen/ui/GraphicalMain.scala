@@ -37,6 +37,3 @@ object GraphicalMain extends SimpleSwingApplication {
   }
 }
 
-
-  
-

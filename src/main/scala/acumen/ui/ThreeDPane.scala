@@ -13,7 +13,7 @@ abstract class AbstractThreeDPane extends BorderPanel {
   var enableTab = true
 }
 
-class ThreeDPane(val appModel:AppModel) extends AbstractThreeDPane {
+class ThreeDPane(val appModel:Controller) extends AbstractThreeDPane {
 
   var threeDView  = new ThreeDView()
   var playSpeed = 1.0;
@@ -80,7 +80,7 @@ class ThreeDPane(val appModel:AppModel) extends AbstractThreeDPane {
     def apply = {
 			threedpause.toolTip = "pause"
 			threedpause.icon    = Icons.pause
-			endTime = appModel.data.endTime
+			endTime = appModel.threeDData.endTime
 			if(played){    
 				receiver.stop;
 			timer3d.destroy = true;
@@ -94,7 +94,7 @@ class ThreeDPane(val appModel:AppModel) extends AbstractThreeDPane {
 	    _3DDataBuffer.clear 
 			lastFrame = 0;
 			statusZone3d.setSpeed("1.0")
-        for((id,map) <- appModel.data._3DData){
+        for((id,map) <- appModel.threeDData._3DData){
           var temp = Map[Int,Buffer[List[_]]]()
           for((objectNumber,l)<-map){
              temp += (objectNumber->l.reverse.toBuffer)
@@ -106,13 +106,13 @@ class ThreeDPane(val appModel:AppModel) extends AbstractThreeDPane {
             }
           _3DDataBuffer += id->temp              
          }
-			appModel.data.reset;
+			appModel.threeDData.reset;
     }        
      threeDView.branches.clear  
      threeDView.trans.clear         
      _receiver = new _3DDisplay(threeDView,statusZone3d,_3DDataBuffer,lastFrame,
-			       appModel.data.endTime)
-     timer3d  = new ScalaTimer(receiver,appModel.data.endTime,playSpeed)
+			       appModel.threeDData.endTime)
+     timer3d  = new ScalaTimer(receiver,appModel.threeDData.endTime,playSpeed)
      receiver.start()
      timer3d.start()
      listenTo(receiver)
@@ -161,9 +161,9 @@ class ThreeDPane(val appModel:AppModel) extends AbstractThreeDPane {
   }
 
   var _receiver   =  new _3DDisplay(threeDView,statusZone3d,
-                                   _3DDataBuffer,lastFrame,appModel.data.endTime)
+                                   _3DDataBuffer,lastFrame,appModel.threeDData.endTime)
   
-  var timer3d      = new  ScalaTimer(receiver,appModel.data.endTime,playSpeed)
+  var timer3d      = new  ScalaTimer(receiver,appModel.threeDData.endTime,playSpeed)
 
   //
   //
