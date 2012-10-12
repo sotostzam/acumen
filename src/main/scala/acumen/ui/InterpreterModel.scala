@@ -14,15 +14,9 @@ abstract class InterpreterActor(val progText : String, val consumer : Actor) ext
   def emitError(e:Throwable) = Acumen.actor ! Error(e)
   def emitProgressMsg(msg:String) = Acumen.actor ! ProgressMsg(msg)
 
-  def withErrorReporting(action: => Unit) : Unit = {
-    try action
-    catch { case ce :ControlThrowable => throw ce
-            case e => emitError(e) ; exit }
-  }
-
   // do not override this, see parse() and produce() instead
   
-  final def act() = withErrorReporting {
+  final def act() = {
     parse()
     produce()
   }
@@ -36,7 +30,7 @@ abstract class InterpreterActor(val progText : String, val consumer : Actor) ext
     prog = des
   }
 
-  // override this to produce results, but first send and empty chunk
+  // override this to produce results, but first send an empty chunk
   // and wait for further instructions
   
   def produce() : Unit
