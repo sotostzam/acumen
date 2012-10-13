@@ -29,12 +29,8 @@ import scala.math._
 import Stream._
 import Errors._
 
-import ui.TraceModel
-
 object Interpreter extends acumen.Interpreter {
   
-  def newTraceModel = new TraceModel
-
   type Store = CStore
   type Env = Map[Name, CValue]
 

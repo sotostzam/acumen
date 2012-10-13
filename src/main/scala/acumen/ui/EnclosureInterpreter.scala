@@ -7,7 +7,7 @@ import acumen.interpreters.enclosure.UnivariateAffineEnclosure
 import acumen.interpreters.enclosure.EnclosureInterpreterCallbacks
 import InterpreterModel._
 
-class EnclosureInterpreter(val interpreter: Interpreter) extends InterpreterModel {
+class EnclosureInterpreter(val interpreter: RecursiveInterpreter) extends InterpreterModel {
 
   def newTraceModel = interpreter.newTraceModel
 
@@ -80,9 +80,8 @@ class EnclosureInterpreter(val interpreter: Interpreter) extends InterpreterMode
     }
 
     def produce : Unit = {
-      interpreter.init(prog)
       val s = System.currentTimeMillis
-      interpreter.runInterpreter(callbacks)
+      interpreter.runInterpreter(prog, callbacks)
       consumer ! Done
       println("Time to run simulation: %f".format((System.currentTimeMillis - s)/1000.0))
     }

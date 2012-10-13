@@ -20,19 +20,12 @@ trait EnclosureInterpreterCallbacks extends InterpreterCallbacks {
 /**
  * Proxy for the enclosure-based solver.
  */
-object Interpreter extends acumen.Interpreter with Solver with Transform {
+object Interpreter extends acumen.RecursiveInterpreter with Solver with Transform {
 
   def newTraceModel = new EnclosureTraceModel
 
-  var des : Prog = null
-
-  def init(prog: Prog): (Prog, Store) = {
-    des = prog
-    (prog, null)
-  }
-
   //FIXME do this properly
-  override def runInterpreter(cb0: InterpreterCallbacks) {
+  override def runInterpreter(des: Prog, cb0: InterpreterCallbacks) {
     val cb = cb0.asInstanceOf[EnclosureInterpreterCallbacks]
     val main = classDef(ClassName("Main"), des)
 
@@ -54,16 +47,6 @@ object Interpreter extends acumen.Interpreter with Solver with Transform {
       "output",
       cb)
   }
-
-  type Store = Seq[UnivariateAffineEnclosure]
-
-  val emptyStore: CStore = Map.empty
-
-  def repr(s: Store): CStore = emptyStore
-
-  def fromCStore(cs: CStore, root: CId): Store = null
-
-  def step(p: Prog, st: Store): Option[Store] = Some(null)
 
   // Simulator object
   def magicClassTxt =
