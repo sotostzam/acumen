@@ -13,7 +13,7 @@ class CStoreInterpreter(val interpreter: Interpreter) extends InterpreterModel {
 
     var buffer = Queue.empty[CStore]
     var defaultBufferSize = 200
-    var bufferSize = defaultBufferSize
+    var bufferSize = 1 // start off with one step
 
     def sendChunk {
       val toSend = if (buffer.isEmpty) null else CStoreTraceData(buffer)
@@ -38,21 +38,19 @@ class CStoreInterpreter(val interpreter: Interpreter) extends InterpreterModel {
       val I = interpreter
       val (p, store) = I.init(prog)
       val cstore = I.repr(store)
-      // Send (what I belive is --kevina) the initialization Chunk
+      // Enqueue (what I belive is --kevina) the initialization Chunk
       buffer enqueue cstore
-      flush andThen {
-        val trace = I.loop(p, I.fromCStore(cstore)) map I.repr
-        val iter = trace.iterator
-        loopWhile(iter.hasNext) {
-          reactWithin(0) (emergencyActions orElse {
-            case TIMEOUT => 
-              buffer = buffer enqueue iter.next
-            if (buffer.size >= bufferSize) flush
-          })
-        } andThen {
-          sendChunk
-          consumer ! Done
-        }
+      val trace = I.loop(p, I.fromCStore(cstore)) map I.repr
+      val iter = trace.iterator
+      loopWhile(iter.hasNext) {
+        reactWithin(0) (emergencyActions orElse {
+          case TIMEOUT => 
+            buffer = buffer enqueue iter.next
+          if (buffer.size >= bufferSize) flush
+        })
+      } andThen {
+        sendChunk
+        consumer ! Done
       }
     }
   }

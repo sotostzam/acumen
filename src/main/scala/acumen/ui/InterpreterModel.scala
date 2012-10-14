@@ -8,7 +8,7 @@ abstract class InterpreterActor(val progText : String, val consumer : Actor) ext
 
   var prog : Prog = null
 
-  // the actor may also use this method to emit optional progress to
+  // the actor may also use this method to emit optional messages to
   // the console
 
   def emitError(e:Throwable) = Acumen.actor ! Error(e)
@@ -30,9 +30,9 @@ abstract class InterpreterActor(val progText : String, val consumer : Actor) ext
     prog = des
   }
 
-  // override this to produce results, but first send an empty chunk
-  // and wait for further instructions
-  
+  // Override this to produce results. When starting send back the
+  // first bit of data (equivalent to one step) and then wait for
+  // further instructions.
   def produce() : Unit
 }
 
@@ -40,7 +40,7 @@ object InterpreterModel {
   // messages the Actor can expect from the consumer
   
   case object Flush // flush all data and wait for further instructions
-  case object Stop  // exit immensely, optinally flushing all data if possible
+  case object Stop  // exit immensely, optionally flushing all data if possible
   case object GoOn  // resume normal operation, may send data in chunks
   case object Step  // single step
 
@@ -55,6 +55,6 @@ abstract class InterpreterModel {
   // computation
   def newTraceModel : AbstractTraceModel
 
-  // Creates a new actor to perform the computation
+  // Creates a new actor to perform the computation.
   def init(prog: String, consumer:Actor) : InterpreterActor
 }

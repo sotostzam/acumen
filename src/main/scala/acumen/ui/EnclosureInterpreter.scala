@@ -25,7 +25,7 @@ class EnclosureInterpreter(val interpreter: RecursiveInterpreter) extends Interp
       //   Time to run simulation: 28.657000
       val defaultMaxBufSize = 1
       var buf = new ArrayBuffer[UnivariateAffineEnclosure]
-      var maxBufSize = defaultMaxBufSize
+      var maxBufSize = 1 // start off with one step
 
       def sendChunk {
         if (buf.isEmpty) {
