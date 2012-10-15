@@ -11,6 +11,8 @@ class TraceModelProxy(private var tm: AbstractTraceModel) extends AbstractTraceM
 
   private var listeners = new ArrayBuffer[TableModelListener]
 
+  override def incSeqNum() = tm.incSeqNum()
+
   override def addTableModelListener(obj:TableModelListener) = {
     tm.addTableModelListener(obj)
     listeners += obj
@@ -43,7 +45,7 @@ class TraceModelProxy(private var tm: AbstractTraceModel) extends AbstractTraceM
   
   override def getPlottables() = tm.getPlottables()
   
-  override def addData(d: TraceData): Unit = tm.addData(d)
+  override def addData(d: TraceData, seqNum: Int): Unit = tm.addData(d, seqNum)
 		  
   override def reset = tm.reset
 }

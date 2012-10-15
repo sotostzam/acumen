@@ -145,11 +145,10 @@ class Controller extends DaemonActor {
   def flush(d: TraceData) : Unit = {
     if (d.isEmpty)
       return
-    // onEDTWait (instead on onEDT) as a temporary hack to provide a
-    // little bit more responsiveness in the UI
-    Swing.onEDTWait {
+    val seqNum = tmodel.incSeqNum()
+    Swing.onEDT {
       println("Processing Data")
-      tmodel addData d
+      tmodel.addData(d, seqNum)
       
       // d.isInstanceOf[Iterable[CStore]] will not work due to type
       // erasure, must check the first element for its type

@@ -31,6 +31,10 @@ class PlotEnclosure(simulator: Boolean, fn: Name, startFrame: Int, column: Int,
 abstract class TraceData(val curTime : Double, val endTime : Double) extends Iterable[Object]
 
 trait AbstractTraceModel extends AbstractTableModel {
+
+  @volatile protected var lastSeqNum : Int = 0
+
+  def incSeqNum() = {lastSeqNum += 1; lastSeqNum}
   
   def getDouble(row:Int, column:Int): Option[Double]
 
@@ -42,7 +46,7 @@ trait AbstractTraceModel extends AbstractTableModel {
 
   def getPlottables(): Iterable[Plottable]
   
-  def addData(d: TraceData): Unit = throw ShouldNeverHappen()
+  def addData(d: TraceData, seqNum: Int): Unit = throw ShouldNeverHappen()
 
   def reset: Unit = {}
 }

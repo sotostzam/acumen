@@ -126,7 +126,7 @@ class EnclosureTraceModel extends AbstractTraceModel {
 
   override def getPlottables() = data.plottables
 
-  override def addData(d:TraceData) = {
+  override def addData(d:TraceData, seqNum: Int) = {
 
     es ++= d.asInstanceOf[Iterable[UnivariateAffineEnclosure]]
 

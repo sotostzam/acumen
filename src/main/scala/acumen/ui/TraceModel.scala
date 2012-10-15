@@ -45,7 +45,7 @@ class TraceModel extends AbstractTraceModel {
     }
   }
 
-  override def addData(sts:TraceData) = {
+  override def addData(sts:TraceData, seqNum: Int) = {
     def compIds(ido1:(CId,_), ido2:(CId,_)) = ido1._1 < ido2._1
     def compFields(p1:(Name,CValue),p2:(Name,CValue)) = 
       Ordering[(String,Int)] lt ((p1._1.x, p1._1.primes),(p2._1.x, p2._1.primes))
@@ -78,7 +78,10 @@ class TraceModel extends AbstractTraceModel {
       frame += 1
     }
     // FIXME: be more precise ?
-    fireTableStructureChanged()
+    if (seqNum == lastSeqNum)  
+      fireTableStructureChanged()
+    else 
+      println("SKIPPING THIS ROUND!")
     //fireTableDataChanged()
   }
 
