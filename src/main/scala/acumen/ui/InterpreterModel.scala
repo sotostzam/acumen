@@ -47,7 +47,7 @@ object InterpreterModel {
   // messages the Actor may send to the consumer
 
   case class Chunk(css: TraceData) // data computer so far
-  case object Done // finished computation no more data
+  case object Done // finished computation, no more data
 }
 
 abstract class InterpreterModel {

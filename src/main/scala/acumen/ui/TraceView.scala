@@ -48,7 +48,7 @@ class TraceView(
     /* for some reason forwarding events causes stack overflows, so we pass
        this to Plotter, which will ask this to publish events ... */
     private val plotter = 
-			new Plotter(plotSimulator, plotNextChild, plotSeeds, tmodel, this)
+      new Plotter(plotSimulator, plotNextChild, plotSeeds, tmodel, this)
 
     val resetZoom = new Action("Reset Zoom") {
       icon = Icons.home
@@ -75,7 +75,7 @@ class TraceView(
       icon = Icons.save
       tooltip = "Save As"
       private var currentDir = new File(".")
-			private def fresh = Files.getFreshFile(currentDir, "png")
+      private def fresh = Files.getFreshFile(currentDir, "png")
       private var currentWidth = 640
       private var currentHeight = 480
       
@@ -115,11 +115,11 @@ class TraceView(
         }
         val cancel = Button("Cancel")(dispose)
         val save = Button("Save") {
-					val f = new File(inputField.text)
-					currentDir = f.getParentFile
-					currentHeight  = heightSpin.getValue.asInstanceOf[Int]
-					currentWidth = widthSpin.getValue.asInstanceOf[Int]
-					plotter.render(f, currentWidth, currentHeight)
+	  val f = new File(inputField.text)
+	  currentDir = f.getParentFile
+	  currentHeight  = heightSpin.getValue.asInstanceOf[Int]
+	  currentWidth = widthSpin.getValue.asInstanceOf[Int]
+	  plotter.render(f, currentWidth, currentHeight)
           dispose
         }
         val buttons = new FlowPanel(FlowPanel.Alignment.Trailing)(cancel,save)
@@ -540,7 +540,6 @@ class Plotter(
     g.setStroke(new BasicStroke(2.0f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND))
     hoveredBox match {
       case Some(hb) =>
-	    
         val rec = applyTr(boxes(hb))
         val recPlusOne = 
           new Rectangle2D.Double(
