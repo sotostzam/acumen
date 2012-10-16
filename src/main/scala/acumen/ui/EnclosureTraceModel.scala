@@ -8,6 +8,7 @@ import collection.mutable.WrappedArray
 import javax.swing.event.TableModelListener
 import acumen.interpreters.enclosure.UnivariateAffineEnclosure
 import acumen.interpreters.enclosure.UnivariateAffineScalarEnclosure
+import scala.math.Ordering
 
 class EnclosureTraceModel extends AbstractTraceModel {
 
@@ -24,13 +25,25 @@ class EnclosureTraceModel extends AbstractTraceModel {
 
       times = es.map(_.domain.hiDouble).foldLeft(ArrayBuffer(es.head.domain.loDouble)) { case (res, t) => res += t }
 
-      val enclSeqs = es.head.varNames.zipWithIndex.map{case (name,idx) => (name, idx + 1, null +: es.map(_(name).toEnclosure))}
+      // 
+
+      def splitPrimePartOut(varn: String, primes: Int) : (String, Int) = {
+        if (varn.last == '\'')
+          splitPrimePartOut(varn.dropRight(1), primes + 1)
+        else
+          (varn, primes)
+      }
+
+      val enclSeqs = es.head.varNames.
+        map{name => (name, null +: es.map(_(name).toEnclosure))}.toSeq.
+        sortWith{(x, y) => Ordering[(String,Int)].lt(splitPrimePartOut(x._1, 0),splitPrimePartOut(y._1, 0))}.
+        zipWithIndex.map{case ((name, data),(idx)) => (name, idx + 1, data)}
 
       plottables = 
-      enclSeqs.map {
-        case (name, idx, enclosures) =>
-          new PlotEnclosure(false, Name(name, 0), 0, idx, enclosures.toIndexedSeq)
-      }
+        enclSeqs.map {
+          case (name, idx, enclosures) =>
+            new PlotEnclosure(false, Name(name, 0), 0, idx, enclosures.toIndexedSeq)
+        }
 
       // first group duplicate times together
       var timeGrouping = ArrayBuffer[Tuple3[Double,Int,Int]]()
@@ -90,7 +103,7 @@ class EnclosureTraceModel extends AbstractTraceModel {
         tableData(idx) = r
       }
 
-      columnNames = IndexedSeq("time") ++ es.head.varNames
+      columnNames = IndexedSeq("time") ++ enclSeqs.map{case(n,_,_) => n}
     }
   }
 
