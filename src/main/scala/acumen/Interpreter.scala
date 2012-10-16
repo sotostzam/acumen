@@ -2,11 +2,10 @@ package acumen
 
 import Stream._
 import util.Canonical._
-import acumen.ui.AbstractTraceModel
 
 trait Interpreter {
 
-  def newTraceModel = new ui.TraceModel
+  def newTraceModelData = new ui.CStoreTraceModelData
   
   type Store
   def repr (s:Store) : CStore
@@ -37,6 +36,6 @@ trait Interpreter {
 abstract class InterpreterCallbacks
 
 trait RecursiveInterpreter {
-  def newTraceModel : AbstractTraceModel
+  def newTraceModelData : ui.TraceModelData
   def runInterpreter(prog:Prog, cb0: InterpreterCallbacks) : Unit = null
 }

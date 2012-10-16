@@ -43,7 +43,7 @@ case class Both() extends PlotStyle
 
 class TraceView(
 	plotSimulator:Boolean, plotNextChild:Boolean, 
-	plotSeeds:Boolean, tmodel: AbstractTraceModel) 
+	plotSeeds:Boolean, tmodel: TraceModel) 
   extends BorderPanel with TableModelListener {
     /* for some reason forwarding events causes stack overflows, so we pass
        this to Plotter, which will ask this to publish events ... */
@@ -166,7 +166,7 @@ case class PointedAtEvent(time:Double, name:String, value:String) extends Event
 
 class PlotterPanel(
   _plotSimulator: Boolean, _plotNextChild:Boolean, 
-	_plotSeeds:Boolean, tb:AbstractTraceModel, pub:Publisher) extends Panel {
+	_plotSeeds:Boolean, tb:TraceModel, pub:Publisher) extends Panel {
 
   background = Color.gray
   peer.setDoubleBuffered(true)

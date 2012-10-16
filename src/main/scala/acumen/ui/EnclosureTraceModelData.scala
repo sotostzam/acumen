@@ -10,7 +10,7 @@ import acumen.interpreters.enclosure.UnivariateAffineEnclosure
 import acumen.interpreters.enclosure.UnivariateAffineScalarEnclosure
 import scala.math.Ordering
 
-class EnclosureTraceModel extends AbstractTraceModel {
+class EnclosureTraceModelData extends TraceModelData {
 
   var es = new ArrayBuffer[UnivariateAffineEnclosure]
 
@@ -126,23 +126,13 @@ class EnclosureTraceModel extends AbstractTraceModel {
 
   override def getPlottables() = data.plottables
 
-  override def addData(d:TraceData, seqNum: Int) = {
+  override def addData(d:TraceData, updateCache: Boolean) = {
 
     es ++= d.asInstanceOf[Iterable[UnivariateAffineEnclosure]]
 
-    data.recompute()
-    
-    fireTableStructureChanged()
+    if (updateCache)
+      data.recompute()
   }
-
-  override def reset = {
-    
-    es.clear()
-
-    data = new Data
-    
-  }
-
 }
 
 class EnclosureTraceData(val data: Iterable[UnivariateAffineEnclosure], endTime: Double)

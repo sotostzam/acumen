@@ -9,7 +9,7 @@ import InterpreterModel._
 
 class EnclosureInterpreter(val interpreter: RecursiveInterpreter) extends InterpreterModel {
 
-  def newTraceModel = interpreter.newTraceModel
+  def newTraceModelData = interpreter.newTraceModelData
 
   def init(progText: String, consumer:Actor) = new InterpreterActor(progText, consumer) {
 

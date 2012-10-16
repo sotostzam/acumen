@@ -53,7 +53,7 @@ object InterpreterModel {
 abstract class InterpreterModel {
   // Returns a new trace model that holds the results of the
   // computation
-  def newTraceModel : AbstractTraceModel
+  def newTraceModelData : TraceModelData
 
   // Creates a new actor to perform the computation.
   def init(prog: String, consumer:Actor) : InterpreterActor

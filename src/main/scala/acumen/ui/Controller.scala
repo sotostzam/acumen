@@ -37,7 +37,7 @@ class Controller extends DaemonActor {
 
   private var state : State = Stopped
 
-  val tmodel = new TraceModelProxy(new TraceModel)
+  val tmodel = new TraceModel(FakeTraceModelData)
   var threeDData = new ThreeDData;
   var producer : Actor = null
 
@@ -75,7 +75,7 @@ class Controller extends DaemonActor {
         //
         case Init(progText, interpreter) => 
           println("INIT")
-          tmodel.setTraceModel(interpreter.newTraceModel)
+          tmodel.data = interpreter.newTraceModelData
           producer = interpreter.init(progText, this)
           link(producer)
           producer.start()

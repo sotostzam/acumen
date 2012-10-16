@@ -1,11 +1,7 @@
 package acumen
 package ui
 
-import Errors._
-
-import collection.mutable.ArrayBuffer
-import javax.swing.table.TableModel
-import javax.swing.table.AbstractTableModel
+import collection.{Iterable, IndexedSeq}
 
 sealed abstract class Plottable(val simulator: Boolean, 
                                 val fn: Name, 
@@ -30,23 +26,30 @@ class PlotEnclosure(simulator: Boolean, fn: Name, startFrame: Int, column: Int,
 
 abstract class TraceData(val curTime : Double, val endTime : Double) extends Iterable[Object]
 
-trait AbstractTraceModel extends AbstractTableModel {
-
-  @volatile protected var lastSeqNum : Int = 0
-
-  def incSeqNum() = {lastSeqNum += 1; lastSeqNum}
-  
+trait TraceModelData {
+  def getRowCount() : Int
+  def getColumnCount() : Int
+  def getValueAt(row:Int, column:Int) : String
+  def getColumnName(col:Int) : String
   def getDouble(row:Int, column:Int): Option[Double]
-
   def isEmpty(): Boolean
-
   def getTimes(): IndexedSeq[Double]
-
   def getTraceViewTimes() = getTimes()
-
   def getPlottables(): Iterable[Plottable]
-  
-  def addData(d: TraceData, seqNum: Int): Unit = throw ShouldNeverHappen()
+  def addData(d: TraceData, updateCache: Boolean): Unit
+}
 
-  def reset: Unit = {}
+// FIXME: Eventually Eliminate
+
+object FakeTraceModelData extends TraceModelData {
+  def getRowCount() = 0
+  def getColumnCount() = 0
+  def getValueAt(row:Int, column:Int) = ""
+  def getColumnName(col:Int) = ""
+  def getDouble(row:Int, column:Int) = None
+  def isEmpty() = true
+  def getTimes() = IndexedSeq()
+  override def getTraceViewTimes() = IndexedSeq()
+  def getPlottables(): Iterable[Plottable] = Iterable()
+  def addData(d: TraceData, updateCache: Boolean) = {}
 }

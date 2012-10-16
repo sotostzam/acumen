@@ -166,7 +166,7 @@ class EnclosurePath() extends PlotEntity {
 }
 
 class PlotData(plotSimulator:Boolean, plotNextChild: Boolean, 
-               plotSeeds:Boolean, tb:AbstractTraceModel) 
+               plotSeeds:Boolean, tb:TraceModel) 
 {
   var polys = new ArrayBuffer[PlotEntity]
   var axes  = new ArrayBuffer[MyPath2D]

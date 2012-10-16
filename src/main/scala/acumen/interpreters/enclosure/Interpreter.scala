@@ -8,8 +8,6 @@ import ui.TraceModel
 import acumen.interpreters.Common.classDef
 import acumen.interpreters.enclosure.solver.Solver
 import acumen.interpreters.enclosure.solver.HybridSystem
-import acumen.ui.EnclosureTraceModel
-import acumen.ui.EnclosureTraceData
 
 trait EnclosureInterpreterCallbacks extends InterpreterCallbacks {
   def log(msg: String) : Unit
@@ -22,7 +20,7 @@ trait EnclosureInterpreterCallbacks extends InterpreterCallbacks {
  */
 object Interpreter extends acumen.RecursiveInterpreter with Solver with Transform {
 
-  def newTraceModel = new EnclosureTraceModel
+  def newTraceModelData = new ui.EnclosureTraceModelData
 
   //FIXME do this properly
   override def runInterpreter(des: Prog, cb0: InterpreterCallbacks) {
