@@ -150,6 +150,13 @@ class Controller extends DaemonActor {
       println("Processing Data")
       tmodel.addData(d, seqNum)
       
+      // FIXME: Do This here?
+      // FIXME: be more precise ?
+      if (seqNum == tmodel.lastSeqNum)  
+        tmodel.fireTableStructureChanged()
+      else 
+        println("SKIPPING THIS ROUND!")
+      
       // d.isInstanceOf[Iterable[CStore]] will not work due to type
       // erasure, must check the first element for its type
       if (!d.isEmpty() && d.head.isInstanceOf[CStore]) {

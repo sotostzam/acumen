@@ -8,8 +8,9 @@ import javax.swing.table.AbstractTableModel
 
 class TraceModel(var data: TraceModelData) extends AbstractTableModel {
 
-  @volatile protected var lastSeqNum : Int = 0
-  def incSeqNum() = {lastSeqNum += 1; lastSeqNum}
+  @volatile protected var _lastSeqNum : Int = 0
+  def lastSeqNum = _lastSeqNum
+  def incSeqNum() = {_lastSeqNum += 1; _lastSeqNum}
 
   def getRowCount() = data.getRowCount()
   def getColumnCount() = data.getColumnCount()
@@ -30,13 +31,5 @@ class TraceModel(var data: TraceModelData) extends AbstractTableModel {
   
   def addData(d: TraceData, seqNum: Int): Unit = {
     data.addData(d, seqNum == lastSeqNum)
-
-    // FIXME: Do This here?
-    // FIXME: be more precise ?
-    if (seqNum == lastSeqNum)  
-      fireTableStructureChanged()
-    else 
-      println("SKIPPING THIS ROUND!")
-    //fireTableDataChanged()
   }
 }
