@@ -31,37 +31,8 @@ import swing.event._
 
 class Acumen extends SimpleSwingApplication {
 
-  /* ---- definitions ------ */
-
-  val monospaced = new Font("Monospaced", Font.PLAIN, 12) 
-  
-  val play = new Action("play") {
-    icon = Icons.play
-    def apply = {controller.threeDData.reset; threeDtab.reset; autoSave; controller ! Play}
-    toolTip = "Run Simulation"
-  }
-  val step = new Action("step") {
-    icon = Icons.step
-    def apply = { autoSave; controller ! Step }
-    toolTip = "Compute one simulation step"
-  }
-  val pause = new Action("pause") {
-    icon = Icons.pause
-    def apply = controller ! Pause
-    toolTip = "Pause simulation"
-	
-  }
-  val stop = new Action("stop") {
-    icon = Icons.stop    
-    def apply = { println("Controller state = " + controller.getState); controller ! Stop; }
-    toolTip = "Stop simulation (cannot resume)"
-  }
-    
   /* ---- state variables ---- */
   val controller = new Controller
-  var currentFile : Option[File] = None
-  var editedSinceLastSave : Boolean = false
-  var editedSinceLastAutoSave : Boolean = false
   var lastNumberOfThreads = 2
   
 //**************************************
@@ -72,66 +43,17 @@ class Acumen extends SimpleSwingApplication {
 
   /* 1. left pane */
   /* 1.1 upper pane */
-  val bPlay = new Button(play) { peer.setHideActionText(true) }
-  val bStep = new Button(step) { peer.setHideActionText(true) }
-  var bStop = new Button(stop) { peer.setHideActionText(true) }
-  val upperButtons = 
-    new FlowPanel(FlowPanel.Alignment.Leading)(bPlay, bStep, bStop)
+  val upperButtons = new ControlButtons
 
-  val codeArea = new EditorPane {
-    font = monospaced
-  }
-
-  //
-  // Copied from scala web site
-  //
-
-   // New text utilities, e.g., undo, redo
-  val undo = new UndoManager()
-  var doc  = codeArea.peer.getDocument() 
-  // Create a undo action and add it to the text component
-  codeArea.peer.getActionMap().put("Undo",
-         new javax.swing.text.TextAction("Undo") {
-           def actionPerformed(e:java.awt.event.ActionEvent) {
-                 try {
-                     if (undo.canUndo()) {
-                         undo.undo();
-                     }
-                 } catch {case e:Exception => }
-                 
-             }
-        });
- // Create a redo action and add it to the text component
-   codeArea.peer.getActionMap().put("Redo",
-         new javax.swing.text.TextAction("Redo") {
-           def actionPerformed(e:java.awt.event.ActionEvent) {
-                 try {
-                     if (undo.canRedo()) {
-                         undo.redo();
-                     }
-                 } catch {case e:Exception => }
-                 
-             }
-        });
-  // Listen for undo and redo events
-  doc.addUndoableEditListener(undo);
-  // Bind the undo action to ctl-Z
-  codeArea.peer.getInputMap().put(KeyStroke.getKeyStroke("control Z"), "Undo");
-  // Bind the redo action to ctl-Y
-  codeArea.peer.getInputMap().put(KeyStroke.getKeyStroke("control Y"), "Redo");		
-
-  //
-  // End copy
-  //
+  val codeArea = new CodeArea
 
   val statusZone = new StatusZone
   val upperBottomPane = new BoxPanel(Orientation.Horizontal) {
     contents += upperButtons
     contents += statusZone
   }
-  val filenameLabel = new Label("[Untitled]")
   val upperPane = new BorderPanel {
-    add(filenameLabel, BorderPanel.Position.North)
+    add(codeArea.filenameLabel, BorderPanel.Position.North)
     add(new ScrollPane(codeArea), BorderPanel.Position.Center)
     add(upperBottomPane,  BorderPanel.Position.South) 
   }
@@ -202,15 +124,15 @@ class Acumen extends SimpleSwingApplication {
   val bar = new MenuBar {
     contents += new Menu("File") {
       mnemonic = Key.F
-      contents += new MenuItem(Action("New")({ newFile })) 
+      contents += new MenuItem(Action("New")({ codeArea.newFile })) 
                       { mnemonic = Key.N }
-      contents += new MenuItem(Action("Open")({ openFile(currentDir) })) 
+      contents += new MenuItem(Action("Open")({ codeArea.openFile(codeArea.currentDir) })) 
                       { mnemonic = Key.O }
-      contents += new MenuItem(Action("Save")(saveFile))
+      contents += new MenuItem(Action("Save")(codeArea.saveFile))
                       { mnemonic = Key.S }
-      contents += new MenuItem(Action("Save As")(saveFileAs))
+      contents += new MenuItem(Action("Save As")(codeArea.saveFileAs))
                       { mnemonic = Key.A }
-      contents += new MenuItem(Action("Recover")({ openFile(Files.autoSavedDir) }))
+      contents += new MenuItem(Action("Recover")({ codeArea.openFile(Files.autoSavedDir) }))
                       { mnemonic = Key.R }
       contents += new MenuItem(Action("Exit")(exit))
                       { mnemonic = Key.E }
@@ -311,123 +233,12 @@ class Acumen extends SimpleSwingApplication {
     
   }
 
-  /* --- file handling ---- */
-
-  def currentDir =
-    currentFile match {
-      case Some(f) => f.getParentFile
-      case None    => Files.currentDir
-    }
-
-  def setCurrentFile(f:Option[File]) = {
-    currentFile = f
-    filenameLabel.text = 
-      currentFile match {
-        case Some(f) => f.getName
-        case None    => "[Untitled]"
-      }
-  }
-
-  def setEdited = {
-    if (!editedSinceLastSave) filenameLabel.text += " (changed)"
-    editedSinceLastSave = true
-    editedSinceLastAutoSave = true
-  }
-
-  def listenDocument = 
-    codeArea.peer.getDocument.addDocumentListener(
-      new DocumentListener {
-        def changedUpdate(e:DocumentEvent) { setEdited }
-        def insertUpdate(e:DocumentEvent) { setEdited }
-        def removeUpdate(e:DocumentEvent) { setEdited }
-      })
-
-  def newFile : Unit = withErrorReporting {
-    if (!editedSinceLastSave || confirmContinue(body.peer)) {
-      codeArea.text = ""
-      listenDocument
-      setCurrentFile(None)
-      editedSinceLastSave = false
-    }
-  }
-
-  def openFile(path: File) : Unit = withErrorReporting {
-    if (!editedSinceLastSave || confirmContinue(body.peer)) {
-      val fc = new FileChooser(path)
-      val returnVal = fc.showOpenDialog(body)
-      if (returnVal == FileChooser.Result.Approve) {
-        val file = fc.selectedFile
-        codeArea.peer.setPage(file.toURI.toString)
-        listenDocument
-        setCurrentFile(Some(file))
-        editedSinceLastSave = false
-      }
-    }
-  }
-  
-  def confirmSave(c: java.awt.Component, f:File) = {
-    val message = 
-      "File " + f.toString + 
-      " already exists.\nAre you sure you want to overwrite it?"
-    JOptionPane.showConfirmDialog(c, message,
-      "Really?", JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION
-  }
-
-  def confirmContinue(c:java.awt.Component) = {
-    val message = "Last changes have not been saved\n" +
-                  "Are you sure you want to continue?"
-    JOptionPane.showConfirmDialog(c, message,
-      "Really?", JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION
-  }
-
-  def saveFileAs : Unit = withErrorReporting {
-    val fc = new FileChooser(currentDir)
-    val returnVal = fc.showSaveDialog(body)
-    if (returnVal == FileChooser.Result.Approve) {
-      val file = fc.selectedFile
-      if (!file.exists || confirmSave(body.peer, file)) {
-        val writer = new FileWriter(fc.selectedFile)
-        writer.write(codeArea.text)
-        writer.close
-        setCurrentFile(Some(file))
-        editedSinceLastSave = false
-      }
-    }
-  }
-
-  def saveFile : Unit = withErrorReporting {
-    currentFile match {
-      case Some(f) =>
-        val writer = new FileWriter(f)
-        writer.write(codeArea.text)
-        writer.close
-        editedSinceLastSave = false
-      case None => saveFileAs
-    }
-  }
-	/*
-	def clearRenderer : Unit= {
-	 var tg = Thread.currentThread().getThreadGroup();
- 
-	 while(tg.getParent() != null)
-			tg = tg.getParent();
-		val threads = new Array[Thread](200);
-		val count = tg.enumerate(threads, true);
-		for( i <- 0 to count-1)
-		{
-			val  thread = threads(i);
-			if(thread.getName().equals("J3D-Renderer-1"))
-			{
-				thread.stop		
-			}
-		}
-	}*/
- 
-  def exit : Unit = withErrorReporting {  
+  def exit {  
     //timer3d.destroy=true
     //receiver.destroy=true
     //threeDView.exit
-    if (!editedSinceLastSave || confirmContinue(body.peer)) {
+    
+    if (!codeArea.editedSinceLastSave || codeArea.confirmContinue(body.peer)) {
       println("Exiting...")
       actor ! EXIT				
       quit
@@ -446,15 +257,6 @@ class Acumen extends SimpleSwingApplication {
     e.printStackTrace()
   }
 
-  def autoSave = withErrorReporting {
-    if (editedSinceLastAutoSave) {
-      val file = Files.getFreshFile
-      val writer = new FileWriter(file)
-      writer.write(codeArea.text)
-      writer.close
-    }
-  }
- 
   def redraw = traceView.redraw
 
   /* ------ simple dialogs ----- */
@@ -480,24 +282,23 @@ class Acumen extends SimpleSwingApplication {
     reflectState
   }
 
-  def reflectState = {
-    play.enabled = state.playEnabled
-    stop.enabled = state.stopEnabled 
-    pause.enabled = state.pauseEnabled 
-    step.enabled = state.stepEnabled 
-    codeArea.enabled = state.codeEnabled
 
+  // FIXME: Eliminate, each major component should be responsible for
+  //   updating its own state
+
+  def reflectState = {
+
+    upperButtons.setState(state)
+    
+    codeArea.enabled = state.codeEnabled
     println("GM: New State: " + state.state)
     state.state match {
       case AppState.Stopped =>
-        bPlay.action = play
         console.log("Stopped.")
         console.newLine
       case AppState.Paused =>
-        bPlay.action = play
         console.log("Paused. ")
       case AppState.Playing =>
-        bPlay.action = pause
         console.log("Running...")
     }
   }
@@ -541,7 +342,7 @@ class Acumen extends SimpleSwingApplication {
   /* ----- initialisation ----- */
   
   reflectState
-  listenDocument
+  codeArea.listenDocument
   console.log("<html>Welcome to Acumen.<br/>"+
               "Please see LICENSE file for licensing details.</html>")
   console.newLine
