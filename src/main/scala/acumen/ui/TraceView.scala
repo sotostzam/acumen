@@ -80,12 +80,12 @@ class TraceView(plotSimulator:Boolean, plotNextChild:Boolean,
     private var currentHeight = 480
 
     def apply : Unit = {
-      val cp = new ChoicePanel
+      val cp = new SaveAsDailog
       cp.pack
       cp.open
     }
 
-    class ChoicePanel extends Dialog(null) {
+    class SaveAsDailog extends Dialog(null) {
       modal = true
       val widthSpin = new JSpinner() { setValue(currentWidth) }
       val heightSpin = new JSpinner() { setValue(currentHeight) }
@@ -154,7 +154,6 @@ class TraceView(plotSimulator:Boolean, plotNextChild:Boolean,
   private def fit = plotter.fit
   override def tableChanged(e: TableModelEvent) = 
     if (check.selected) redraw
-
 
   def toggleSimulator(b:Boolean) = plotter.toggleSimulator(b)
   def toggleNextChild(b:Boolean) = plotter.toggleNextChild(b)
