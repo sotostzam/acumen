@@ -41,133 +41,133 @@ case class Lines() extends PlotStyle
 case class Dots() extends PlotStyle
 case class Both() extends PlotStyle
 
-class TraceView(
-	plotSimulator:Boolean, plotNextChild:Boolean, 
-	plotSeeds:Boolean, tmodel: TraceModel) 
-  extends BorderPanel with TableModelListener {
-    /* for some reason forwarding events causes stack overflows, so we pass
-       this to Plotter, which will ask this to publish events ... */
-    private val plotter = 
-      new PlotterPanel(plotSimulator, plotNextChild, plotSeeds, tmodel, this)
+class TraceView(plotSimulator:Boolean, plotNextChild:Boolean, 
+	        plotSeeds:Boolean, tmodel: TraceModel) 
+  extends BorderPanel with TableModelListener 
+{
+  /* for some reason forwarding events causes stack overflows, so we pass
+     this to Plotter, which will ask this to publish events ... */
+  private val plotter = 
+    new PlotterPanel(plotSimulator, plotNextChild, plotSeeds, tmodel, this)
 
-    val resetZoom = new Action("Reset Zoom") {
-      icon = Icons.home
-      def apply = fit
-      toolTip = "Reset View"
-    }
-    val zoomIn = new Action("Zoom In") {
-      icon = Icons.zoomIn
-      def apply = plotter.zoom(1.5)
-      toolTip = "Zoom In"
-    }
-    val zoomOut = new Action("Zoom Out") {
-      icon = Icons.zoomOut
-      def apply = plotter.zoom(1/1.5) 
-      toolTip = "Zoom Out"
-    }
-    val undo = new Action("Undo") {
-      icon = Icons.undo
-      def apply = plotter.undo
-      toolTip = "Undo Previous Action"
-    }
-    val saveAs = new Action("Save As") {
-      
-      icon = Icons.save
-      tooltip = "Save As"
-      private var currentDir = new File(".")
-      private def fresh = Files.getFreshFile(currentDir, "png")
-      private var currentWidth = 640
-      private var currentHeight = 480
-      
-      def apply : Unit = {
-				val cp = new ChoicePanel
-        cp.pack
-        cp.open
-      }
+  val resetZoom = new Action("Reset Zoom") {
+    icon = Icons.home
+    def apply = fit
+    toolTip = "Reset View"
+  }
+  val zoomIn = new Action("Zoom In") {
+    icon = Icons.zoomIn
+    def apply = plotter.zoom(1.5)
+    toolTip = "Zoom In"
+  }
+  val zoomOut = new Action("Zoom Out") {
+    icon = Icons.zoomOut
+    def apply = plotter.zoom(1/1.5) 
+    toolTip = "Zoom Out"
+  }
+  val undo = new Action("Undo") {
+    icon = Icons.undo
+    def apply = plotter.undo
+    toolTip = "Undo Previous Action"
+  }
+  val saveAs = new Action("Save As") {
 
-      class ChoicePanel extends Dialog(null) {
-        modal = true
-        val widthSpin = new JSpinner() { setValue(currentWidth) }
-        val heightSpin = new JSpinner() { setValue(currentHeight) }
-        val inputField = new TextField(fresh.getCanonicalPath,20)
-        val openButton = Button("Browse") {
-          val fc = new FileChooser(currentDir) {
-            selectedFile = new File(inputField.text)
-          }
-          val returnVal = fc.showOpenDialog(TraceView.this)
-          if (returnVal == FileChooser.Result.Approve) {
-            val file = fc.selectedFile
-            inputField.text = file.getAbsolutePath
-          }
+    icon = Icons.save
+    tooltip = "Save As"
+    private var currentDir = new File(".")
+    private def fresh = Files.getFreshFile(currentDir, "png")
+    private var currentWidth = 640
+    private var currentHeight = 480
+
+    def apply : Unit = {
+      val cp = new ChoicePanel
+      cp.pack
+      cp.open
+    }
+
+    class ChoicePanel extends Dialog(null) {
+      modal = true
+      val widthSpin = new JSpinner() { setValue(currentWidth) }
+      val heightSpin = new JSpinner() { setValue(currentHeight) }
+      val inputField = new TextField(fresh.getCanonicalPath,20)
+      val openButton = Button("Browse") {
+        val fc = new FileChooser(currentDir) {
+          selectedFile = new File(inputField.text)
         }
-        val upperPane = new GridPanel(2,2) {
-          border = javax.swing.BorderFactory.createEmptyBorder(5,5,5,5)
-          vGap = 5
-          peer.add(new JLabel("Width"))
-          peer.add(widthSpin)
-          peer.add(new JLabel("Height"))
-          peer.add(heightSpin)
-        }
-        val lowerPane =
-          new FlowPanel(FlowPanel.Alignment.Leading)(inputField,openButton)
-        val options = new BoxPanel(Orientation.Vertical) {
-          contents += (upperPane, lowerPane)
-        }
-        val cancel = Button("Cancel")(dispose)
-        val save = Button("Save") {
-	  val f = new File(inputField.text)
-	  currentDir = f.getParentFile
-	  currentHeight  = heightSpin.getValue.asInstanceOf[Int]
-	  currentWidth = widthSpin.getValue.asInstanceOf[Int]
-	  plotter.render(f, currentWidth, currentHeight)
-          dispose
-        }
-        val buttons = new FlowPanel(FlowPanel.Alignment.Trailing)(cancel,save)
-        contents = new BorderPanel {
-          add(options, BorderPanel.Position.Center)
-          add(buttons, BorderPanel.Position.South)
+        val returnVal = fc.showOpenDialog(TraceView.this)
+        if (returnVal == FileChooser.Result.Approve) {
+          val file = fc.selectedFile
+          inputField.text = file.getAbsolutePath
         }
       }
-    }
-
-    private val b1 = new Button(resetZoom) { peer.setHideActionText(true) }
-    private val b2 = new Button(undo) { peer.setHideActionText(true) }
-    private val b3 = new Button(zoomIn) { peer.setHideActionText(true) }
-    private val b4 = new Button(zoomOut) { peer.setHideActionText(true) }
-    private val b5 = new Button(saveAs) { peer.setHideActionText(true) }
-    private val hint = new Label("Hint: Right click on image & drag to move")
-    private val check = new CheckBox("") { 
-      action = Action("Draw") { 
-        if (selected) redraw 
-        else plotter.clear
+      val upperPane = new GridPanel(2,2) {
+        border = javax.swing.BorderFactory.createEmptyBorder(5,5,5,5)
+        vGap = 5
+        peer.add(new JLabel("Width"))
+        peer.add(widthSpin)
+        peer.add(new JLabel("Height"))
+        peer.add(heightSpin)
+      }
+      val lowerPane =
+        new FlowPanel(FlowPanel.Alignment.Leading)(inputField,openButton)
+      val options = new BoxPanel(Orientation.Vertical) {
+        contents += (upperPane, lowerPane)
+      }
+      val cancel = Button("Cancel")(dispose)
+      val save = Button("Save") {
+        val f = new File(inputField.text)
+        currentDir = f.getParentFile
+        currentHeight  = heightSpin.getValue.asInstanceOf[Int]
+        currentWidth = widthSpin.getValue.asInstanceOf[Int]
+        plotter.render(f, currentWidth, currentHeight)
+        dispose
+      }
+      val buttons = new FlowPanel(FlowPanel.Alignment.Trailing)(cancel,save)
+      contents = new BorderPanel {
+        add(options, BorderPanel.Position.Center)
+        add(buttons, BorderPanel.Position.South)
       }
     }
-    private val rightBottomButtons =
-      new FlowPanel(FlowPanel.Alignment.Leading)(check, b5, b1, b2, b3, b4, hint)
-    
-    add(plotter, BorderPanel.Position.Center)
-    add(rightBottomButtons, BorderPanel.Position.South)
-    check.selected = true
-    tmodel.addTableModelListener(this)
+  }
 
-    def redraw : Unit = { plotter.redraw; fit }
-    private def fit = plotter.fit
-    override def tableChanged(e: TableModelEvent) = 
-      if (check.selected) redraw
+  private val b1 = new Button(resetZoom) { peer.setHideActionText(true) }
+  private val b2 = new Button(undo) { peer.setHideActionText(true) }
+  private val b3 = new Button(zoomIn) { peer.setHideActionText(true) }
+  private val b4 = new Button(zoomOut) { peer.setHideActionText(true) }
+  private val b5 = new Button(saveAs) { peer.setHideActionText(true) }
+  private val hint = new Label("Hint: Right click on image & drag to move")
+  private val check = new CheckBox("") { 
+    action = Action("Draw") { 
+      if (selected) redraw 
+      else plotter.clear
+    }
+  }
+  private val rightBottomButtons =
+    new FlowPanel(FlowPanel.Alignment.Leading)(check, b5, b1, b2, b3, b4, hint)
+
+  add(plotter, BorderPanel.Position.Center)
+  add(rightBottomButtons, BorderPanel.Position.South)
+  check.selected = true
+  tmodel.addTableModelListener(this)
+
+  def redraw : Unit = { plotter.redraw; fit }
+  private def fit = plotter.fit
+  override def tableChanged(e: TableModelEvent) = 
+    if (check.selected) redraw
 
 
-    def toggleSimulator(b:Boolean) = plotter.toggleSimulator(b)
-    def toggleNextChild(b:Boolean) = plotter.toggleNextChild(b)
-    def toggleSeeds(b:Boolean) = plotter.toggleSeeds(b)
-    def setPlotStyle(ps:PlotStyle) = plotter.setPlotStyle(ps)
+  def toggleSimulator(b:Boolean) = plotter.toggleSimulator(b)
+  def toggleNextChild(b:Boolean) = plotter.toggleNextChild(b)
+  def toggleSeeds(b:Boolean) = plotter.toggleSeeds(b)
+  def setPlotStyle(ps:PlotStyle) = plotter.setPlotStyle(ps)
 }
 
 case class PointedAtEvent(time:Double, name:String, value:String) extends Event
 
-class PlotterPanel(
-  _plotSimulator: Boolean, _plotNextChild:Boolean, 
-	_plotSeeds:Boolean, tb:TraceModel, pub:Publisher) extends Panel {
-
+class PlotterPanel(_plotSimulator: Boolean, _plotNextChild:Boolean, 
+	           _plotSeeds:Boolean, tb:TraceModel, pub:Publisher) 
+  extends Panel 
+{
   background = Color.gray
   peer.setDoubleBuffered(true)
 
