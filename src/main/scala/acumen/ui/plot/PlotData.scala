@@ -1,7 +1,9 @@
 package acumen
 package ui
+package plot
 
 import Errors._
+import interpreters._
 import java.awt.{AlphaComposite, BasicStroke}
 import java.awt.geom.{AffineTransform, Area}
 import java.awt.geom.{Line2D, Path2D, Point2D, Rectangle2D}
@@ -10,6 +12,7 @@ import scala.collection.mutable.ArrayBuffer
 import scala.swing._
 import util.Canonical._
 import util.Conversions._
+import interpreter._
 
 sealed trait PlotEntity { // FIXME: BetterName
   def x1 : Double

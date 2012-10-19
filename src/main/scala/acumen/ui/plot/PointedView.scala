@@ -1,4 +1,5 @@
 package acumen.ui
+package plot
 
 import swing._
 import swing.event._

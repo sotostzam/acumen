@@ -1,5 +1,6 @@
 package acumen
 package ui
+package interpreter
 
 import scala.actors._
 import scala.util.control.ControlThrowable

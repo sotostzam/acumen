@@ -1,5 +1,6 @@
 package acumen
 package ui
+package interpreter
 
 import Errors._
 import Pretty._

@@ -7,7 +7,7 @@ import util.Names._
 import util.Canonical._
 import interpreters.reference.Interpreter
 import ui.Controller
-import ui.Console
+import ui.tl.Console
 import scala.math._
 
 import java.io.FileInputStream

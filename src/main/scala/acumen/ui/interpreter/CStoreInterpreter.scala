@@ -1,5 +1,6 @@
 package acumen
 package ui
+package interpreter
 
 import collection.immutable.Queue
 import scala.actors._
@@ -31,6 +32,7 @@ class CStoreInterpreter(val interpreter: Interpreter) extends InterpreterModel {
       react (emergencyActions orElse {
         case GoOn => bufferSize = defaultBufferSize
         case Step => bufferSize = 1
+        case msg => println("Unknown msg received by producer: " + msg)
       })
     }
 

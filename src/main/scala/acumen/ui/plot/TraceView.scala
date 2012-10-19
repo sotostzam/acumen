@@ -1,5 +1,6 @@
 package acumen
 package ui
+package plot
 
 import scala.io._
 import collection.mutable.ArrayBuffer
@@ -34,6 +35,7 @@ import javax.imageio.ImageIO
 import Errors._
 import util.Canonical._
 import util.Conversions._
+import interpreter._
 
 
 sealed abstract class PlotStyle

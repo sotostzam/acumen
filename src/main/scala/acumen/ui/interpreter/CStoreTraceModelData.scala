@@ -1,5 +1,6 @@
 package acumen
 package ui
+package interpreter
 
 import Pretty._
 import util.Canonical._

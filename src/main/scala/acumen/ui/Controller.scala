@@ -11,7 +11,8 @@ import util.Canonical._
 import util.Conversions._
 
 import AppState._
-import InterpreterModel._
+import interpreter._
+import interpreter.{InterpreterModel => IM}
 
 case object SendInit
 
@@ -86,13 +87,13 @@ class Controller extends DaemonActor {
           if (producer == null) {
             Acumen.actor ! SendInit
           } else {
-            producer ! GoOn
+            producer ! IM.GoOn
             setState(Playing)
           }
         case Pause => 
           println("PAUSE")
           if (producer != null)
-            producer ! Flush
+            producer ! IM.Flush
           newState = Paused
           println("^^^PAUSE^^^\n")
         case Step  => 
@@ -101,7 +102,7 @@ class Controller extends DaemonActor {
           if (producer == null) {
             Acumen.actor ! SendInit
           } else {
-            producer ! Step
+            producer ! IM.Step
             setState(Playing)
           }
         case Stop  => 
@@ -110,21 +111,21 @@ class Controller extends DaemonActor {
             setState(Stopped)
           } else {
             println("Sending Stop")
-            producer ! Stop
+            producer ! IM.Stop
             newState = Stopped
           }
         //
         // messages from Producer
         //
-        case Chunk(d) =>
+        case IM.Chunk(d) =>
           println("Chunk")
-          if (newState == Playing) {println("...GoOn"); producer ! GoOn}
+          if (newState == Playing) {println("...GoOn"); producer ! IM.GoOn}
           if (d != null) flush(d)
           setState(newState)
         case Exit(_,ue:UncaughtException) =>
           Acumen.actor ! Error(ue.cause)
           setState(Stopped)
-        case msg@(Done | Exit(_,_)) => 
+        case msg@(IM.Done | Exit(_,_)) => 
           println("Done|Exit: " + msg)
           setState(Stopped)
         

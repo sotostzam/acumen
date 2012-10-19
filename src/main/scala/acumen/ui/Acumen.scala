@@ -1,6 +1,9 @@
 package acumen
 package ui
 
+import tl._
+import interpreter._
+
 import java.lang.Thread
 
 import scala.actors._
@@ -22,6 +25,8 @@ import javax.swing.event.DocumentEvent
 
 import swing._
 import swing.event._
+
+//import tl
 
 // class Acumen = Everything that use to be GraphicalMain.  Graphical
 // Main can't be an object it will cause Swing components to be
@@ -59,7 +64,7 @@ class Acumen extends SimpleSwingApplication {
   }
   
   /* 1.2 lower pane */
-  val console = new Console
+  val console = new tl.Console
 
   val lowerPane = new BorderPanel {
     add(new Label("Console"), BorderPanel.Position.North)
@@ -82,8 +87,8 @@ class Acumen extends SimpleSwingApplication {
     autoResizeMode = Table.AutoResizeMode.Off
   }
 
-  val traceView = new TraceView(false, false, false, traceModel)
-  val pointedView = new PointedView(traceView)
+  val traceView = new plot.TraceView(false, false, false, traceModel)
+  val pointedView = new plot.PointedView(traceView)
 
   val tab1 = new BorderPanel {
     add(new FlowPanel(FlowPanel.Alignment.Leading)(pointedView), 
@@ -144,15 +149,15 @@ class Acumen extends SimpleSwingApplication {
       contents += new Menu("Style") {
         val rb1 = new RadioMenuItem("") {
           selected = true
-          action = Action("Lines") { traceView.setPlotStyle(Lines()) }
+          action = Action("Lines") { traceView.setPlotStyle(plot.Lines()) }
         }
         val rb2 = new RadioMenuItem("") {
           selected = false
-          action = Action("Dots") { traceView.setPlotStyle(Dots()) }
+          action = Action("Dots") { traceView.setPlotStyle(plot.Dots()) }
         }
         val rb3 = new RadioMenuItem("") {
           selected = false
-          action = Action("Both") { traceView.setPlotStyle(Both()) }
+          action = Action("Both") { traceView.setPlotStyle(plot.Both()) }
         }
         contents ++= Seq(rb1,rb2,rb3)
         new ButtonGroup(rb1,rb2,rb3)

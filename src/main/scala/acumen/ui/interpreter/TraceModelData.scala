@@ -1,5 +1,6 @@
 package acumen
 package ui
+package interpreter
 
 import collection.{Iterable, IndexedSeq}
 

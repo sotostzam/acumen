@@ -1,5 +1,6 @@
 package acumen
 package ui
+package interpreter
 
 import collection.mutable.ArrayBuffer
 import scala.actors._

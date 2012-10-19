@@ -4,7 +4,7 @@ package enclosure
 
 import util.Canonical._
 import Types._
-import ui.TraceModel
+import ui.interpreter._
 import acumen.interpreters.Common.classDef
 import acumen.interpreters.enclosure.solver.Solver
 import acumen.interpreters.enclosure.solver.HybridSystem
@@ -20,7 +20,7 @@ trait EnclosureInterpreterCallbacks extends InterpreterCallbacks {
  */
 object Interpreter extends acumen.RecursiveInterpreter with Solver with Transform {
 
-  def newTraceModelData = new ui.EnclosureTraceModelData
+  def newTraceModelData = new EnclosureTraceModelData
 
   //FIXME do this properly
   override def runInterpreter(des: Prog, cb0: InterpreterCallbacks) {

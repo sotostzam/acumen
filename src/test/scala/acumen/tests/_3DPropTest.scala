@@ -3,7 +3,7 @@ package tests
 
 import ui.Controller
 
-import ui.Console
+import ui.tl.Console
 import Pretty._
 import Generators._
 import org.scalacheck.Gen._
