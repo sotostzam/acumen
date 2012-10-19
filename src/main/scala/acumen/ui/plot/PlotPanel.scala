@@ -82,51 +82,20 @@ class PlotPanel(tb:TraceModel, pub:Publisher)
       size.width, size.height, Transparency.OPAQUE
     )
   }
-
-  def applyTr(tr: AffineTransform, p: Point2D) : Point2D = {
-    val res = new Point2D.Double
-    tr.transform(p,res)
-    res 
-  }
-
-  def applyTr(p:Point2D) : Point2D = applyTr(transform, p)
-
-  def applyTr(tr: AffineTransform, r: Rectangle2D) : Rectangle2D = {
-    val p1 = applyTr(tr, new Point2D.Double(r.getMinX, r.getMinY))
-    val p2 = applyTr(tr, new Point2D.Double(r.getMaxX, r.getMaxY))
-    val res = new Rectangle2D.Double()
-    res.setFrameFromDiagonal(p1, p2)
-    res
-  }
   
-  def applyTr(r:Rectangle2D) : Rectangle2D = applyTr(transform, r)
-
-  def unapplyTr(tr: AffineTransform, p: Point2D) : Point2D = {
-    val res = new Point2D.Double
-    tr.inverseTransform(p,res)
-    res
-  }
-
-  def unapplyTr(p:Point2D) : Point2D = unapplyTr(transform, p)
-
-  def unapplyTr(tr:AffineTransform, r: Rectangle2D) : Rectangle2D = {
-    val p1 = unapplyTr(tr, new Point2D.Double(r.getMinX, r.getMinY))
-    val p2 = unapplyTr(tr, new Point2D.Double(r.getMaxX, r.getMaxY))
-    val res = new Rectangle2D.Double()
-    res.setFrameFromDiagonal(p1, p2)
-    res
-  }
-
-  def unapplyTr(r:Rectangle2D) : Rectangle2D = unapplyTr(transform, r)
+  def applyTr(p:Point2D) : Point2D = applyTrP(transform, p)
+  def applyTr(r:Rectangle2D) : Rectangle2D = applyTrR(transform, r)
+  def unapplyTr(p:Point2D) : Point2D = unapplyTrP(transform, p)
+  def unapplyTr(r:Rectangle2D) : Rectangle2D = unapplyTrR(transform, r)
 
   def fit : Unit = {
     if (buffer != null) {
       undoStack.clear
       val bb = new Rectangle2D.Double(0, 0, pd.boundingBox._1, pd.boundingBox._2)
       val tr = computeTransform(buffer.getWidth, buffer.getHeight, bb)
-      val trbb = applyTr(tr, bb)
+      val trbb = applyTrR(tr, bb)
       trbb.setRect(trbb.getX-10, trbb.getY-10, trbb.getWidth+20, trbb.getHeight+20)
-      viewPort = unapplyTr(tr, trbb)
+      viewPort = unapplyTrR(tr, trbb)
       viewChanged = true
       repaint
     }
@@ -174,7 +143,7 @@ class PlotPanel(tb:TraceModel, pub:Publisher)
 
       // fill bounding box
       bg.setPaint(Color.white)
-      bg.fill(applyTr(tr, b))
+      bg.fill(applyTrR(tr, b))
 
       // draw y=0 axis
       bg.setPaint(Color.blue)
