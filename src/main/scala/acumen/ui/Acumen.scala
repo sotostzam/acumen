@@ -87,7 +87,7 @@ class Acumen extends SimpleSwingApplication {
     autoResizeMode = Table.AutoResizeMode.Off
   }
 
-  val traceView = new plot.TraceView(false, false, false, traceModel)
+  val traceView = new plot.PlotTab(false, false, false, traceModel)
   val pointedView = new plot.PointedView(traceView)
 
   val tab1 = new BorderPanel {
@@ -97,14 +97,14 @@ class Acumen extends SimpleSwingApplication {
   }
   val tab2 = new ScrollPane(traceTable) 
   var threeDtab = try {
-    new threeD.ThreeDPane(controller)
+    new threeD.ThreeDTab(controller)
   } catch {
     case e:UnsatisfiedLinkError => 
       console.log("Error loading Java3D: " + e)
       console.newLine
       console.log("Disabling 3D Tab.")
       console.newLine
-      new threeD.DisabledThreeDPane
+      new threeD.DisabledThreeDTab
   }
   
   val rightPane = new TabbedPane {

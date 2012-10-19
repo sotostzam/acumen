@@ -4,7 +4,7 @@ package plot
 import swing._
 import swing.event._
 
-class PointedView(tv:TraceView) extends Label with Reactor {
+class PointedView(tv:PlotTab) extends Label with Reactor {
 
  text = " "
  listenTo(tv)

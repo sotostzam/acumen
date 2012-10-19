@@ -7,14 +7,14 @@ import scala.collection.JavaConversions._
 import scala.collection.mutable.{Buffer, Map}
 import scala.swing._
 
-abstract class AbstractThreeDPane extends BorderPanel {
+abstract class AbstractThreeDTab extends BorderPanel {
   def receiver : Publisher
   def reset : Unit
   def setProgress(p:Int) : Unit
   var enableTab = true
 }
 
-class ThreeDPane(val appModel:Controller) extends AbstractThreeDPane {
+class ThreeDTab(val appModel:Controller) extends AbstractThreeDTab {
 
   var threeDView  = new ThreeDView()
   var playSpeed = 1.0;
@@ -195,7 +195,7 @@ class ThreeDPane(val appModel:Controller) extends AbstractThreeDPane {
 
 }
 
-class DisabledThreeDPane extends AbstractThreeDPane {
+class DisabledThreeDTab extends AbstractThreeDTab {
   def receiver = null
   def reset = {}
   def setProgress(p:Int) = {}

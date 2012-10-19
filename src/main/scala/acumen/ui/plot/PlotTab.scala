@@ -43,7 +43,7 @@ case class Lines() extends PlotStyle
 case class Dots() extends PlotStyle
 case class Both() extends PlotStyle
 
-class TraceView(plotSimulator:Boolean, plotNextChild:Boolean, 
+class PlotTab(plotSimulator:Boolean, plotNextChild:Boolean, 
 	        plotSeeds:Boolean, tmodel: TraceModel) 
   extends BorderPanel with TableModelListener 
 {
@@ -96,7 +96,7 @@ class TraceView(plotSimulator:Boolean, plotNextChild:Boolean,
         val fc = new FileChooser(currentDir) {
           selectedFile = new File(inputField.text)
         }
-        val returnVal = fc.showOpenDialog(TraceView.this)
+        val returnVal = fc.showOpenDialog(PlotTab.this)
         if (returnVal == FileChooser.Result.Approve) {
           val file = fc.selectedFile
           inputField.text = file.getAbsolutePath
