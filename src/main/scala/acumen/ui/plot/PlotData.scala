@@ -168,8 +168,11 @@ class EnclosurePath() extends PlotEntity {
   }
 }
 
-class PlotData(plotSimulator:Boolean, plotNextChild: Boolean, 
-               plotSeeds:Boolean, tb:TraceModel) 
+case class PlotParms(plotSimulator:Boolean = false, 
+		             plotNextChild:Boolean = false, 
+		             plotSeeds:Boolean = false)
+		             
+class PlotData(parms: PlotParms, tb:TraceModel) 
 {
   var polys = new ArrayBuffer[PlotEntity]
   var axes  = new ArrayBuffer[MyPath2D]
@@ -181,10 +184,10 @@ class PlotData(plotSimulator:Boolean, plotNextChild: Boolean,
   var columnIndices = new ArrayBuffer[Int]
   var yTransformations = new ArrayBuffer[(Double, Double)]
 
-  def plotit(p: Plottable) = {
-    (plotSimulator || !p.simulator) && 
-    (plotNextChild || p.fn != Name("nextChild",0)) &&
-        	(plotSeeds || (p.fn != Name("seed1",0) && p.fn !=  Name("seed2",0)))
+  private def plotit(p: Plottable) = {
+    (parms.plotSimulator || !p.simulator) && 
+    (parms.plotNextChild || p.fn != Name("nextChild",0)) &&
+        	(parms.plotSeeds || (p.fn != Name("seed1",0) && p.fn !=  Name("seed2",0)))
   }
 
   if (tb == null || tb.isEmpty) ()

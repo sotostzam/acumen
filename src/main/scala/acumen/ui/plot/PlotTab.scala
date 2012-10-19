@@ -43,14 +43,13 @@ case class Lines() extends PlotStyle
 case class Dots() extends PlotStyle
 case class Both() extends PlotStyle
 
-class PlotTab(plotSimulator:Boolean, plotNextChild:Boolean, 
-	        plotSeeds:Boolean, tmodel: TraceModel) 
+class PlotTab(tmodel: TraceModel) 
   extends BorderPanel with TableModelListener 
 {
   /* for some reason forwarding events causes stack overflows, so we pass
      this to Plotter, which will ask this to publish events ... */
   private val plotter = 
-    new PlotPanel(plotSimulator, plotNextChild, plotSeeds, tmodel, this)
+    new PlotPanel(tmodel, this)
 
   val resetZoom = new Action("Reset Zoom") {
     icon = Icons.home

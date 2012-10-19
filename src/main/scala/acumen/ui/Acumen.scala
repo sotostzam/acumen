@@ -87,7 +87,7 @@ class Acumen extends SimpleSwingApplication {
     autoResizeMode = Table.AutoResizeMode.Off
   }
 
-  val traceView = new plot.PlotTab(false, false, false, traceModel)
+  val traceView = new plot.PlotTab(traceModel)
   val pointedView = new plot.PointedView(traceView)
 
   val tab1 = new BorderPanel {

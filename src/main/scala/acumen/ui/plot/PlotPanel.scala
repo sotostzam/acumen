@@ -17,21 +17,20 @@ import scala.collection.mutable.{ArrayBuffer, Stack}
 import scala.swing._
 import scala.swing.event._
 
-import Errors._
 import util.Canonical._
 import util.Conversions._
 import interpreter._
 
 case class PointedAtEvent(time:Double, name:String, value:String) extends Event
 
-class PlotPanel(_plotSimulator: Boolean, _plotNextChild:Boolean, 
-	           _plotSeeds:Boolean, tb:TraceModel, pub:Publisher) 
+class PlotPanel(tb:TraceModel, pub:Publisher) 
   extends Panel 
 {
   background = Color.gray
   peer.setDoubleBuffered(true)
 
-  private var pd = new PlotData(false,false,false,null)
+  private var pp = PlotParms()
+  private var pd = new PlotData(PlotParms(),null)
  
   private val selectionBorderColor = new Color(68, 127, 231)
   private val selectionFillColor   = new Color(165, 189, 231, 150)
@@ -48,13 +47,10 @@ class PlotPanel(_plotSimulator: Boolean, _plotNextChild:Boolean,
   private var viewChanged = true
   private var transform = new AffineTransform()
 
-  private var plotNextChild = _plotNextChild
-  private var plotSimulator = _plotSimulator
-  private var plotSeeds = _plotSeeds
   private var plotStyle : PlotStyle = Lines()
 
   def clear = {
-    pd = new PlotData(false,false,false,null)
+    pd = new PlotData(PlotParms(),null)
     buffer = null
     hoveredBox = None
     dotX = 0.0d
@@ -429,25 +425,25 @@ class PlotPanel(_plotSimulator: Boolean, _plotNextChild:Boolean,
 
   def redraw = {
     println("Redraw man!")
-    pd = new PlotData(plotSimulator,plotNextChild,plotSeeds,tb)
+    pd = new PlotData(pp,tb)
     viewChanged = true
     repaint
   }
 
   def toggleSimulator(b:Boolean) = { 
-    plotSimulator = b
+    pp = pp.copy(plotSimulator = b)
     hoveredBox = None
     redraw
     fit
   }
   def toggleNextChild(b:Boolean) = {
-    plotNextChild = b
+    pp = pp.copy(plotNextChild = b)
     hoveredBox = None
     redraw
     fit
   }
   def toggleSeeds(b:Boolean) = {
-    plotSeeds = b
+    pp = pp.copy(plotSeeds = b)
     hoveredBox = None
     redraw
     fit
