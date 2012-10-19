@@ -13,5 +13,13 @@ target/
 
 # Eclipse #
 ###########
+.classpath
 .cache
+.project
+.settings/
 bin/
+
+# Ensime #
+###########
+.ensime
+.ensime_lucene/
