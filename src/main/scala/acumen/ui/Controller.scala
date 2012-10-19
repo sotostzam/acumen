@@ -38,7 +38,7 @@ class Controller extends DaemonActor {
   private var state : State = Stopped
 
   val tmodel = new TraceModel(FakeTraceModelData)
-  var threeDData = new ThreeDData;
+  var threeDData = new threeD.ThreeDData;
   var producer : Actor = null
 
   /* ------ application logic --------- */

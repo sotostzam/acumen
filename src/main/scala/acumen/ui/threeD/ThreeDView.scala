@@ -1,5 +1,6 @@
 package acumen
 package ui
+package threeD
 
 import Errors._
 import com.sun.j3d.utils.universe._

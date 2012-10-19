@@ -92,14 +92,14 @@ class Acumen extends SimpleSwingApplication {
   }
   val tab2 = new ScrollPane(traceTable) 
   var threeDtab = try {
-    new ThreeDPane(controller)
+    new threeD.ThreeDPane(controller)
   } catch {
     case e:UnsatisfiedLinkError => 
       console.log("Error loading Java3D: " + e)
       console.newLine
       console.log("Disabling 3D Tab.")
       console.newLine
-      new DisabledThreeDPane
+      new threeD.DisabledThreeDPane
   }
   
   val rightPane = new TabbedPane {
