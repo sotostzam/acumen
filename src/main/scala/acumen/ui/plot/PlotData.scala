@@ -4,9 +4,10 @@ package plot
 
 import Errors._
 import interpreters._
-import java.awt.{AlphaComposite, BasicStroke}
+import java.awt.{AlphaComposite, BasicStroke, Color, RenderingHints}
 import java.awt.geom.{AffineTransform, Area}
 import java.awt.geom.{Line2D, Path2D, Point2D, Rectangle2D}
+import java.awt.image.BufferedImage
 import scala.collection.JavaConversions._
 import scala.collection.mutable.ArrayBuffer
 import scala.swing._
@@ -174,8 +175,8 @@ case class PlotParms(plotSimulator:Boolean = false,
 		             
 class PlotData(parms: PlotParms, tb:TraceModel) 
 {
-  var polys = new ArrayBuffer[PlotEntity]
-  var axes  = new ArrayBuffer[MyPath2D]
+  private var polys = new ArrayBuffer[PlotEntity]
+  private var axes  = new ArrayBuffer[MyPath2D]
   var boxes = new ArrayBuffer[Rectangle2D]
   var boundingBox = (0.0, 0.0)
 
@@ -250,6 +251,48 @@ class PlotData(parms: PlotParms, tb:TraceModel)
       boxes += new Rectangle2D.Double(p.x1, i*1.2, p.width, 1.0)
     }
     boundingBox = (time(time.size-1), 1.2*polys.size - 0.2)
+  }
+
+  def paint(tr:AffineTransform, buf:BufferedImage, plotStyle: PlotStyle) = {
+    val bg = buf.getGraphics.asInstanceOf[Graphics2D]
+    bg.setRenderingHint(
+      RenderingHints.KEY_ANTIALIASING,
+      RenderingHints.VALUE_ANTIALIAS_ON)
+
+    /* paint background */
+    bg.setBackground(Color.lightGray)
+    bg.clearRect(0, 0, buf.getWidth, buf.getHeight)
+
+    /* clip the area to the size of the buffer */
+    bg.setClip(new Rectangle2D.Double(0, 0, buf.getWidth, buf.getHeight))
+
+    /* actual drawing */
+    for (((p,a),b) <- polys zip axes zip boxes) {
+
+      // fill bounding box
+      bg.setPaint(Color.white)
+      bg.fill(applyTrR(tr, b))
+
+      // draw y=0 axis
+      bg.setPaint(Color.blue)
+      bg.setStroke(new BasicStroke(1.0f))
+      a.draw(bg, tr)
+
+      // draw curve
+      bg.setPaint(Color.red)
+      bg.setStroke(new BasicStroke(1.0f))
+      plotStyle match {
+        case Dots() => 
+          p.drawDots(bg, tr) 
+        case Lines() => 
+          p.draw(bg, tr)
+        case Both() =>
+          p.draw(bg, tr)
+          p.drawDots(bg, tr) 
+      }
+    }
+
+    buf.flush
   }
 }
 

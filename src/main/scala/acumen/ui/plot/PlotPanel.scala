@@ -125,48 +125,6 @@ class PlotPanel(tb:TraceModel, pub:Publisher)
     tr
   }
 
-  private def paintBackground(tr:AffineTransform, buf:BufferedImage) = {
-    val bg = buf.getGraphics.asInstanceOf[Graphics2D]
-    bg.setRenderingHint(
-      RenderingHints.KEY_ANTIALIASING,
-      RenderingHints.VALUE_ANTIALIAS_ON)
-
-    /* paint background */
-    bg.setBackground(Color.lightGray)
-    bg.clearRect(0, 0, buf.getWidth, buf.getHeight)
-
-    /* clip the area to the size of the buffer */
-    bg.setClip(new Rectangle2D.Double(0, 0, buf.getWidth, buf.getHeight))
-
-    /* actual drawing */
-    for (((p,a),b) <- pd.polys zip pd.axes zip pd.boxes) {
-
-      // fill bounding box
-      bg.setPaint(Color.white)
-      bg.fill(applyTrR(tr, b))
-
-      // draw y=0 axis
-      bg.setPaint(Color.blue)
-      bg.setStroke(new BasicStroke(1.0f))
-      a.draw(bg, tr)
-
-      // draw curve
-      bg.setPaint(Color.red)
-      bg.setStroke(new BasicStroke(1.0f))
-      plotStyle match {
-        case Dots() => 
-          p.drawDots(bg, tr) 
-        case Lines() => 
-          p.draw(bg, tr)
-        case Both() =>
-          p.draw(bg, tr)
-          p.drawDots(bg, tr) 
-      }
-    }
-
-    buf.flush
-  }
-
   override def paintComponent(g: Graphics2D) {
 
     g.setRenderingHint(
@@ -181,7 +139,7 @@ class PlotPanel(tb:TraceModel, pub:Publisher)
       /* compute the current transformation */
       transform = computeTransform(buffer.getWidth, buffer.getHeight, viewPort)
       /* draw the background */
-      paintBackground(transform, buffer) 
+      pd.paint(transform, buffer, plotStyle) 
       viewChanged = false
     } 
     
@@ -426,7 +384,7 @@ class PlotPanel(tb:TraceModel, pub:Publisher)
   def render(file:File, w:Int, h:Int) = {
     val tr = computeTransform(w,h,viewPort)
     val buf = new BufferedImage(w, h, BufferedImage.TYPE_INT_ARGB)
-    paintBackground(tr,buf)
+    pd.paint(tr,buf,plotStyle)
     ImageIO.write(buf, "PNG", file)
   }
 }
