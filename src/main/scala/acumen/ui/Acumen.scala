@@ -303,6 +303,7 @@ class Acumen extends SimpleSwingApplication {
         console.newLine
       case AppState.Paused =>
         console.log("Paused. ")
+        console.newLine
       case AppState.Playing =>
         console.log("Running...")
     }
