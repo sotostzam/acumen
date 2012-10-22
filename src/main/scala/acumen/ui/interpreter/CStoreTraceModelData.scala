@@ -134,7 +134,11 @@ class CStoreTraceModelData extends TraceModelData {
               val x = extractDouble(a(idx));
               x
             }
-            override def length = a.length
+            // store length in a local variable since by the time this
+            // data structure is accesses the more data could already
+            // have been added to the cstore
+            val _length = a.length
+            override def length = _length
           }
           res += new PlotDoubles(classes(id) == cmagic, fn, s, idx, vls)
         case _ => ()

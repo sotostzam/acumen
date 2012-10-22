@@ -34,6 +34,8 @@ trait TraceModelData {
   def getColumnName(col:Int) : String
   def getDouble(row:Int, column:Int): Option[Double]
   def isEmpty(): Boolean
+  // getTimes() is expected to have one more element than the data
+  // that is being plotted
   def getTimes(): IndexedSeq[Double]
   def getTraceViewTimes() = getTimes()
   def getPlottables(): Iterable[Plottable]
