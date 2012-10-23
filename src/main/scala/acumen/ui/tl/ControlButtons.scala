@@ -67,11 +67,9 @@ class ControlButtons extends FlowPanel {
     step.enabled = state.stepEnabled 
 
     state.state match {
-      case AppState.Stopped =>
+      case _:AppState.Ready =>
         bPlay.action = play
-      case AppState.Paused =>
-        bPlay.action = play
-      case AppState.Playing =>
+      case _:AppState.Playing =>
         bPlay.action = pause
     }
   }

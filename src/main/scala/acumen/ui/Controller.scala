@@ -80,15 +80,15 @@ class Controller extends DaemonActor {
           producer = interpreter.init(progText, this)
           link(producer)
           producer.start()
-          setState(Playing)
+          setState(Starting)
         case Play  =>
-          newState = Playing
+          newState = Resuming
           println("PLAY")
           if (producer == null) {
             Acumen.actor ! SendInit
           } else {
             producer ! IC.GoOn
-            setState(Playing)
+            setState(Resuming)
           }
         case Pause => 
           println("PAUSE")
@@ -103,7 +103,7 @@ class Controller extends DaemonActor {
             Acumen.actor ! SendInit
           } else {
             producer ! IC.Step
-            setState(Playing)
+            setState(Resuming)
           }
         case Stop  => 
           println("STOP")
@@ -119,7 +119,7 @@ class Controller extends DaemonActor {
         //
         case IC.Chunk(d) =>
           println("Chunk")
-          if (newState == Playing) {println("...GoOn"); producer ! IC.GoOn}
+          if (newState == Resuming) {println("...GoOn"); if (producer != null /* FIXME: Don't think this should happen*/) producer ! IC.GoOn}
           if (d != null) flush(d)
           setState(newState)
         case Exit(_,ue:UncaughtException) =>
