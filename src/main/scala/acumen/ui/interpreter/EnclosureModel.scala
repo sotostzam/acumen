@@ -11,7 +11,7 @@ import acumen.interpreters.enclosure.UnivariateAffineEnclosure
 import acumen.interpreters.enclosure.UnivariateAffineScalarEnclosure
 import scala.math.Ordering
 
-class EnclosureTraceModelData extends TraceModelData {
+class EnclosureModel extends InterpreterModel {
 
   var es = new ArrayBuffer[UnivariateAffineEnclosure]
 

@@ -6,11 +6,11 @@ import collection.mutable.ArrayBuffer
 import scala.actors._
 import acumen.interpreters.enclosure.UnivariateAffineEnclosure
 import acumen.interpreters.enclosure.EnclosureInterpreterCallbacks
-import InterpreterModel._
+import InterpreterCntrl._
 
-class EnclosureInterpreter(val interpreter: RecursiveInterpreter) extends InterpreterModel {
+class EnclosureCntrl(val interpreter: RecursiveInterpreter) extends InterpreterCntrl {
 
-  def newTraceModelData = interpreter.newTraceModelData
+  def newInterpreterModel = interpreter.newInterpreterModel
 
   def init(progText: String, consumer:Actor) = new InterpreterActor(progText, consumer) {
 

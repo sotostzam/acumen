@@ -4,11 +4,11 @@ package interpreter
 
 import collection.immutable.Queue
 import scala.actors._
-import InterpreterModel._
+import InterpreterCntrl._
 
-class CStoreInterpreter(val interpreter: Interpreter) extends InterpreterModel {
+class CStoreCntrl(val interpreter: Interpreter) extends InterpreterCntrl {
 
-  def newTraceModelData = interpreter.newTraceModelData
+  def newInterpreterModel = interpreter.newInterpreterModel
 
   def init(progText: String, consumer:Actor) = new InterpreterActor(progText, consumer) {
 

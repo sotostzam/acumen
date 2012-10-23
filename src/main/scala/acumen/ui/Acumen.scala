@@ -186,7 +186,7 @@ class Acumen extends SimpleSwingApplication {
       mnemonic = Key.S
       val rb1 = new RadioMenuItem("") {
         selected = true // This is the default semantics
-        action = Action("Purely Functional") { setInterpreter(new CStoreInterpreter(interpreters.reference.Interpreter)) }
+        action = Action("Purely Functional") { setInterpreter(new CStoreCntrl(interpreters.reference.Interpreter)) }
       }
       val rb2 = new RadioMenuItem("") {
         selected = false
@@ -198,7 +198,7 @@ class Acumen extends SimpleSwingApplication {
           def go: Unit = try {
             def n: String = diag.getOrElse(n)
             lastNumberOfThreads = Integer.parseInt(n)
-            setInterpreter(new CStoreInterpreter(new interpreters.parallel.Interpreter(lastNumberOfThreads)))
+            setInterpreter(new CStoreCntrl(new interpreters.parallel.Interpreter(lastNumberOfThreads)))
             console.log("Number of threads set to " + lastNumberOfThreads + ".")
           } catch {
             case _ =>
@@ -210,7 +210,7 @@ class Acumen extends SimpleSwingApplication {
       }
       val rb3 = new RadioMenuItem("") {
         selected = false 
-        action = Action("Enclosure") { setInterpreter(new EnclosureInterpreter(interpreters.enclosure.Interpreter)) }
+        action = Action("Enclosure") { setInterpreter(new EnclosureCntrl(interpreters.enclosure.Interpreter)) }
       }
       contents ++= Seq(rb1,rb2,rb3)
       new ButtonGroup(rb1,rb2,rb3)
@@ -281,8 +281,8 @@ class Acumen extends SimpleSwingApplication {
   /* ----- events handling ---- */
   
   var state : AppState = AppState(AppState.Stopped)
-  var interpreter : InterpreterModel = new CStoreInterpreter(interpreters.reference.Interpreter)
-  def setInterpreter(i : InterpreterModel) = {
+  var interpreter : InterpreterCntrl = new CStoreCntrl(interpreters.reference.Interpreter)
+  def setInterpreter(i : InterpreterCntrl) = {
     interpreter = i
     reflectState
   }

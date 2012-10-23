@@ -24,7 +24,7 @@ case class CStoreTraceData(data: Iterable[CStore])
   def iterator = data.iterator
 }
 
-class CStoreTraceModelData extends TraceModelData {
+class CStoreModel extends InterpreterModel {
   // array of (id, field name, maybe index in vector, start frame, values)
   var stores = new ArrayBuffer[(CId, Name, Option[Int], Int, ArrayBuffer[CValue])]
   var classes = new HashMap[CId,ClassName]

@@ -20,7 +20,7 @@ trait EnclosureInterpreterCallbacks extends InterpreterCallbacks {
  */
 object Interpreter extends acumen.RecursiveInterpreter with Solver with Transform {
 
-  def newTraceModelData = new EnclosureTraceModelData
+  def newInterpreterModel = new EnclosureModel
 
   //FIXME do this properly
   override def runInterpreter(des: Prog, cb0: InterpreterCallbacks) {

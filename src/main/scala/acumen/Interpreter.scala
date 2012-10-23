@@ -6,7 +6,7 @@ import ui.interpreter._
 
 trait Interpreter {
 
-  def newTraceModelData = new CStoreTraceModelData
+  def newInterpreterModel = new CStoreModel
   
   type Store
   def repr (s:Store) : CStore
@@ -37,6 +37,6 @@ trait Interpreter {
 abstract class InterpreterCallbacks
 
 trait RecursiveInterpreter {
-  def newTraceModelData : TraceModelData
+  def newInterpreterModel : InterpreterModel
   def runInterpreter(prog:Prog, cb0: InterpreterCallbacks) : Unit = null
 }

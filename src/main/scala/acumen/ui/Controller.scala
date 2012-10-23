@@ -12,7 +12,7 @@ import util.Conversions._
 
 import AppState._
 import interpreter._
-import interpreter.{InterpreterModel => IM}
+import interpreter.{InterpreterCntrl => IC}
 
 case object SendInit
 
@@ -24,7 +24,7 @@ case class ProgressMsg(msg:String) extends AppEvent
 case class Progress3d(percent: Int) extends AppEvent
 
 sealed abstract class AppActions
-case class Init(t:String, i:InterpreterModel) extends AppActions
+case class Init(t:String, i:InterpreterCntrl) extends AppActions
 case object Play extends AppActions
 case object Stop extends AppActions
 case object Pause extends AppActions
@@ -38,7 +38,7 @@ class Controller extends DaemonActor {
 
   private var state : State = Stopped
 
-  val tmodel = new TraceModel(FakeTraceModelData)
+  val tmodel = new TraceModel(FakeInterpreterModel)
   var threeDData = new threeD.ThreeDData;
   var producer : Actor = null
 
@@ -76,7 +76,7 @@ class Controller extends DaemonActor {
         //
         case Init(progText, interpreter) => 
           println("INIT")
-          tmodel.data = interpreter.newTraceModelData
+          tmodel.data = interpreter.newInterpreterModel
           producer = interpreter.init(progText, this)
           link(producer)
           producer.start()
@@ -87,13 +87,13 @@ class Controller extends DaemonActor {
           if (producer == null) {
             Acumen.actor ! SendInit
           } else {
-            producer ! IM.GoOn
+            producer ! IC.GoOn
             setState(Playing)
           }
         case Pause => 
           println("PAUSE")
           if (producer != null)
-            producer ! IM.Flush
+            producer ! IC.Flush
           newState = Paused
           println("^^^PAUSE^^^\n")
         case Step  => 
@@ -102,7 +102,7 @@ class Controller extends DaemonActor {
           if (producer == null) {
             Acumen.actor ! SendInit
           } else {
-            producer ! IM.Step
+            producer ! IC.Step
             setState(Playing)
           }
         case Stop  => 
@@ -111,21 +111,21 @@ class Controller extends DaemonActor {
             setState(Stopped)
           } else {
             println("Sending Stop")
-            producer ! IM.Stop
+            producer ! IC.Stop
             newState = Stopped
           }
         //
         // messages from Producer
         //
-        case IM.Chunk(d) =>
+        case IC.Chunk(d) =>
           println("Chunk")
-          if (newState == Playing) {println("...GoOn"); producer ! IM.GoOn}
+          if (newState == Playing) {println("...GoOn"); producer ! IC.GoOn}
           if (d != null) flush(d)
           setState(newState)
         case Exit(_,ue:UncaughtException) =>
           Acumen.actor ! Error(ue.cause)
           setState(Stopped)
-        case msg@(IM.Done | Exit(_,_)) => 
+        case msg@(IC.Done | Exit(_,_)) => 
           println("Done|Exit: " + msg)
           setState(Stopped)
         

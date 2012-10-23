@@ -2,60 +2,57 @@ package acumen
 package ui
 package interpreter
 
-import scala.actors._
-import scala.util.control.ControlThrowable
+import collection.{Iterable, IndexedSeq}
 
-abstract class InterpreterActor(val progText : String, val consumer : Actor) extends Actor {
-
-  var prog : Prog = null
-
-  // the actor may also use this method to emit optional messages to
-  // the console
-
-  def emitError(e:Throwable) = Acumen.actor ! Error(e)
-  def emitProgressMsg(msg:String) = Acumen.actor ! ProgressMsg(msg)
-
-  // do not override this, see parse() and produce() instead
-  
-  final def act() = {
-    parse()
-    produce()
-  }
-
-  // optionally override this to change how the program is parsed
-
-  def parse() = {
-    val ast = Parser.run(Parser.prog, progText)
-    val dif = SD.run(ast)
-    val des = Desugarer.run(dif)
-    prog = des
-  }
-
-  // Override this to produce results. When starting send back the
-  // first bit of data (equivalent to one step) and then wait for
-  // further instructions.
-  def produce() : Unit
+sealed abstract class Plottable(val simulator: Boolean, 
+                                val fn: Name, 
+                                val startFrame: Int,
+                                val column: Int /* column in trace table */ )
+{
+  def values : IndexedSeq[Any]
 }
 
-object InterpreterModel {
-  // messages the Actor can expect from the consumer
-  
-  case object Flush // flush all data and wait for further instructions
-  case object Stop  // exit immensely, optionally flushing all data if possible
-  case object GoOn  // resume normal operation, may send data in chunks
-  case object Step  // single step
-
-  // messages the Actor may send to the consumer
-
-  case class Chunk(css: TraceData) // data computer so far
-  case object Done // finished computation, no more data
+class PlotDoubles(simulator: Boolean, fn: Name, startFrame: Int, column: Int,
+                  val v: IndexedSeq[Double]) extends Plottable(simulator,fn,startFrame,column)
+{
+  override def values : IndexedSeq[Double] = v;
 }
 
-abstract class InterpreterModel {
-  // Returns a new trace model that holds the results of the
-  // computation
-  def newTraceModelData : TraceModelData
+case class Enclosure(loLeft:Double, hiLeft:Double, loRight:Double, hiRight:Double)
+class PlotEnclosure(simulator: Boolean, fn: Name, startFrame: Int, column: Int,
+                    val v: IndexedSeq[Enclosure]) extends Plottable(simulator,fn,startFrame,column)
+{
+  override def values : IndexedSeq[Enclosure] = v;
+}
 
-  // Creates a new actor to perform the computation.
-  def init(prog: String, consumer:Actor) : InterpreterActor
+abstract class TraceData(val curTime : Double, val endTime : Double) extends Iterable[Object]
+
+trait InterpreterModel {
+  def getRowCount() : Int
+  def getColumnCount() : Int
+  def getValueAt(row:Int, column:Int) : String
+  def getColumnName(col:Int) : String
+  def getDouble(row:Int, column:Int): Option[Double]
+  def isEmpty(): Boolean
+  // getTimes() is expected to have one more element than the data
+  // that is being plotted
+  def getTimes(): IndexedSeq[Double]
+  def getTraceViewTimes() = getTimes()
+  def getPlottables(): Iterable[Plottable]
+  def addData(d: TraceData, updateCache: Boolean): Unit
+}
+
+// FIXME: Eventually Eliminate
+
+object FakeInterpreterModel extends InterpreterModel {
+  def getRowCount() = 0
+  def getColumnCount() = 0
+  def getValueAt(row:Int, column:Int) = ""
+  def getColumnName(col:Int) = ""
+  def getDouble(row:Int, column:Int) = None
+  def isEmpty() = true
+  def getTimes() = IndexedSeq()
+  override def getTraceViewTimes() = IndexedSeq()
+  def getPlottables(): Iterable[Plottable] = Iterable()
+  def addData(d: TraceData, updateCache: Boolean) = {}
 }

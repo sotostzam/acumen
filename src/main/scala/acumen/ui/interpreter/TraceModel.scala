@@ -7,7 +7,7 @@ import Pretty._
 
 import javax.swing.table.AbstractTableModel
 
-class TraceModel(var data: TraceModelData) extends AbstractTableModel {
+class TraceModel(var data: InterpreterModel) extends AbstractTableModel {
 
   @volatile protected var _lastSeqNum : Int = 0
   def lastSeqNum = _lastSeqNum
