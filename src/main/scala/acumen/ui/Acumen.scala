@@ -77,17 +77,13 @@ class Acumen extends SimpleSwingApplication {
       resizeWeight = 0.9
     }
 
-  val traceModel = controller.tmodel
-  //val traceModel = new IntervalTraceModel(controller.tmodel)
-  //val traceModel = new FakeEnclosureTraceModel(controller.tmodel)
-
   /* 2 right pane */
   val traceTable = new Table { 
-    model = traceModel
+    //model = traceModel
     autoResizeMode = Table.AutoResizeMode.Off
   }
 
-  val traceView = new plot.PlotTab(traceModel)
+  val traceView = new plot.PlotTab
   val pointedView = new plot.PointedView(traceView)
 
   val tab1 = new BorderPanel {
@@ -123,7 +119,7 @@ class Acumen extends SimpleSwingApplication {
       oneTouchExpandable = true
       resizeWeight = 0.2
     }
-
+  
   /* menu bar */
  
   val bar = new MenuBar {
@@ -346,6 +342,22 @@ class Acumen extends SimpleSwingApplication {
   upperButtons.listenTo(actor)
   codeArea.listenTo(actor)
  
+  val defTableModel = traceTable.model
+  traceTable.listenTo(actor)
+  traceTable.reactions += {
+    case StateChanged(st) => 
+      st match {
+        case AppState.Starting => 
+          traceTable.model = defTableModel
+        case AppState.Resuming =>
+          traceTable.enabled = false
+        case _:AppState.Ready if controller.model != null => 
+          val tm = controller.model.getTraceModel
+          traceTable.model = tm
+          tm.fireTableStructureChanged()
+        case _ => 
+      }
+  }
 
   /* ----- initialisation ----- */
   

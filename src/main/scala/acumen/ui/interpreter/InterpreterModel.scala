@@ -27,7 +27,7 @@ class PlotEnclosure(simulator: Boolean, fn: Name, startFrame: Int, column: Int,
 
 abstract class TraceData(val curTime : Double, val endTime : Double) extends Iterable[Object]
 
-trait InterpreterModel {
+trait PlotModel {
   def getRowCount() : Int
   def getColumnCount() : Int
   def getValueAt(row:Int, column:Int) : String
@@ -39,20 +39,29 @@ trait InterpreterModel {
   def getTimes(): IndexedSeq[Double]
   def getTraceViewTimes() = getTimes()
   def getPlottables(): Iterable[Plottable]
-  def addData(d: TraceData, updateCache: Boolean): Unit
 }
 
-// FIXME: Eventually Eliminate
+abstract class TraceModel extends javax.swing.table.AbstractTableModel {}
 
-object FakeInterpreterModel extends InterpreterModel {
-  def getRowCount() = 0
-  def getColumnCount() = 0
-  def getValueAt(row:Int, column:Int) = ""
-  def getColumnName(col:Int) = ""
-  def getDouble(row:Int, column:Int) = None
-  def isEmpty() = true
-  def getTimes() = IndexedSeq()
-  override def getTraceViewTimes() = IndexedSeq()
-  def getPlottables(): Iterable[Plottable] = Iterable()
-  def addData(d: TraceData, updateCache: Boolean) = {}
+trait InterpreterModel {
+  // used temporary
+  @volatile protected var _lastSeqNum : Int = 0
+  def lastSeqNum = _lastSeqNum
+  def incSeqNum() = {_lastSeqNum += 1; _lastSeqNum}
+
+  // Add data from the interpreter.  Must not invalid any live Plot
+  // models, which will be accessed in another thread.  Will be
+  // called with a lock on this.
+  def addData(d: TraceData): Unit
+
+  // Returns an updated plot model for plotting.  If a new object is
+  // returned than any previous models are invalided.  Will be called
+  // with a lock on this.
+  def getPlotModel : PlotModel
+
+  // Return a new table model for the trace table.  Will be called on
+  // the EDT, so it should be fast.  Also, addData will not get called
+  // while the returned object is live.
+  def getTraceModel : TraceModel
 }
+

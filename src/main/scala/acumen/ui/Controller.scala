@@ -38,7 +38,7 @@ class Controller extends DaemonActor {
 
   private var state : AppState = Stopped
 
-  val tmodel = new TraceModel(FakeInterpreterModel)
+  var model : InterpreterModel = null
   var threeDData = new threeD.ThreeDData;
   var producer : Actor = null
 
@@ -76,7 +76,7 @@ class Controller extends DaemonActor {
         //
         case Init(progText, interpreter) => 
           println("INIT")
-          tmodel.data = interpreter.newInterpreterModel
+          model = interpreter.newInterpreterModel
           producer = interpreter.init(progText, this)
           link(producer)
           producer.start()
@@ -146,17 +146,19 @@ class Controller extends DaemonActor {
   def flush(d: TraceData) : Unit = {
     if (d.isEmpty)
       return
-    val seqNum = tmodel.incSeqNum()
+    val seqNum = model.incSeqNum()
     Swing.onEDT {
       println("Processing Data")
-      tmodel.addData(d, seqNum)
+      model.addData(d)
       
       // FIXME: Do This here?
       // FIXME: be more precise ?
-      if (seqNum == tmodel.lastSeqNum)  
-        tmodel.fireTableStructureChanged()
-      else 
+      if (seqNum == model.lastSeqNum) {
+        Acumen.ui.traceView.plotter.resetPlotModel(model.getPlotModel)
+        //tmodel.fireTableStructureChanged()
+      } else {
         println("SKIPPING THIS ROUND!")
+      }
       
       // d.isInstanceOf[Iterable[CStore]] will not work due to type
       // erasure, must check the first element for its type

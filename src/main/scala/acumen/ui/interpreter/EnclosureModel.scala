@@ -11,7 +11,7 @@ import acumen.interpreters.enclosure.UnivariateAffineEnclosure
 import acumen.interpreters.enclosure.UnivariateAffineScalarEnclosure
 import scala.math.Ordering
 
-class EnclosureModel extends InterpreterModel {
+class EnclosureModel extends TraceModel with PlotModel with InterpreterModel {
 
   var es = new ArrayBuffer[UnivariateAffineEnclosure]
 
@@ -127,13 +127,22 @@ class EnclosureModel extends InterpreterModel {
 
   override def getPlottables() = data.plottables
 
-  override def addData(d:TraceData, updateCache: Boolean) = {
+  var stale : Boolean = false;
+
+  override def addData(d:TraceData) = {
 
     es ++= d.asInstanceOf[Iterable[UnivariateAffineEnclosure]]
-
-    if (updateCache)
-      data.recompute()
+    stale = true
   }
+
+  def syncData() {
+    if (stale)
+      data.recompute()
+    stale = true
+  }
+
+  override def getPlotModel = {syncData(); this}
+  override def getTraceModel = {syncData(); this}
 }
 
 class EnclosureTraceData(val data: Iterable[UnivariateAffineEnclosure], endTime: Double)

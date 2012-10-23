@@ -43,13 +43,12 @@ case class Lines() extends PlotStyle
 case class Dots() extends PlotStyle
 case class Both() extends PlotStyle
 
-class PlotTab(tmodel: TraceModel) 
-  extends BorderPanel with TableModelListener 
+class PlotTab extends BorderPanel
 {
   /* for some reason forwarding events causes stack overflows, so we pass
      this to Plotter, which will ask this to publish events ... */
-  private val plotter = 
-    new PlotPanel(tmodel, this)
+  /*private*/ val plotter = 
+    new PlotPanel(this)
 
   val resetZoom = new Action("Reset Zoom") {
     icon = Icons.home
@@ -149,12 +148,12 @@ class PlotTab(tmodel: TraceModel)
   add(plotter, BorderPanel.Position.Center)
   add(rightBottomButtons, BorderPanel.Position.South)
   check.selected = true
-  tmodel.addTableModelListener(this)
+  //tmodel.addTableModelListener(this)
 
-  def redraw : Unit = { plotter.redraw; fit }
+  def redraw : Unit = { println("REDRAW (PlotTab)"); plotter.redraw; fit }
   private def fit = plotter.fit
-  override def tableChanged(e: TableModelEvent) = 
-    if (check.selected) redraw
+  //override def tableChanged(e: TableModelEvent) = 
+  //  if (check.selected) redraw
 
   def toggleSimulator(b:Boolean) = plotter.toggleSimulator(b)
   def toggleNextChild(b:Boolean) = plotter.toggleNextChild(b)

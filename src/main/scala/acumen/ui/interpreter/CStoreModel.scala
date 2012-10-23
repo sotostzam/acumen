@@ -24,7 +24,7 @@ case class CStoreTraceData(data: Iterable[CStore])
   def iterator = data.iterator
 }
 
-class CStoreModel extends InterpreterModel {
+class CStoreModel extends TraceModel with InterpreterModel with PlotModel {
   // array of (id, field name, maybe index in vector, start frame, values)
   var stores = new ArrayBuffer[(CId, Name, Option[Int], Int, ArrayBuffer[CValue])]
   var classes = new HashMap[CId,ClassName]
@@ -46,7 +46,19 @@ class CStoreModel extends InterpreterModel {
     }
   }
 
-  override def addData(sts:TraceData, uc: Boolean) = {
+  val pending = new ArrayBuffer[TraceData]()
+
+  def addData(sts:TraceData) = {
+    pending += sts
+  }
+
+  def flushPending() {
+    for (sts <- pending)
+      addDataHelper(sts)
+    pending.clear()
+  }
+
+  def addDataHelper(sts:TraceData) = {
     def compIds(ido1:(CId,_), ido2:(CId,_)) = ido1._1 < ido2._1
     def compFields(p1:(Name,CValue),p2:(Name,CValue)) = 
       Ordering[(String,Int)] lt ((p1._1.x, p1._1.primes),(p2._1.x, p2._1.primes))
@@ -145,6 +157,9 @@ class CStoreModel extends InterpreterModel {
       }
     res
   }
+
+  override def getPlotModel = {flushPending(); this}
+  override def getTraceModel = {flushPending(); this}
 }
 
 

@@ -173,7 +173,7 @@ case class PlotParms(plotSimulator:Boolean = false,
 		             plotNextChild:Boolean = false, 
 		             plotSeeds:Boolean = false)
 		             
-class PlotData(parms: PlotParms, tb:TraceModel) 
+class PlotData(parms: PlotParms, tb:PlotModel) 
 {
   private var polys = new ArrayBuffer[PlotEntity]
   private var axes  = new ArrayBuffer[MyPath2D]

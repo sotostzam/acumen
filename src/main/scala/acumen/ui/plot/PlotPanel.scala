@@ -23,7 +23,7 @@ import interpreter._
 
 case class PointedAtEvent(time:Double, name:String, value:String) extends Event
 
-class PlotPanel(tb:TraceModel, pub:Publisher) 
+class PlotPanel(pub:Publisher) 
   extends Panel 
 {
   background = Color.gray
@@ -31,6 +31,7 @@ class PlotPanel(tb:TraceModel, pub:Publisher)
 
   private var pp = PlotParms()
   private var pd = new PlotData(PlotParms(),null)
+  private var model : PlotModel = null
  
   private val selectionBorderColor = new Color(68, 127, 231)
   private val selectionFillColor   = new Color(165, 189, 231, 150)
@@ -238,27 +239,27 @@ class PlotPanel(tb:TraceModel, pub:Publisher)
           // corresponding column in the trace model
           val column = pd.columnIndices(hb)
           // name of the column
-          val name = tb.getColumnName(column)
+          val name = model.getColumnName(column)
           // value of the column as a string
-          var value = tb.getValueAt(row, column).asInstanceOf[String]
+          var value = model.getValueAt(row, column).asInstanceOf[String]
           // FIXME: This is an incredible ugly hack to check if we area
           //   displaying enclosures instead of a real trace view.
-          if (tb.getColumnName(0) == "time" && value(0) == '[') {
+          if (model.getColumnName(0) == "time" && value(0) == '[') {
             if (row == 0)
               value = "(-,%s)".format(value)
-            else if (row == tb.getRowCount() - 1)
+            else if (row == model.getRowCount() - 1)
               value = "(%s,-)".format(value)
             else {
               if (row % 2 == 0) row -= 1
-              value = "(%s,%s)".format(tb.getValueAt(row, column).asInstanceOf[String],
-                                       tb.getValueAt(row + 1, column).asInstanceOf[String])
+              value = "(%s,%s)".format(model.getValueAt(row, column).asInstanceOf[String],
+                                       model.getValueAt(row + 1, column).asInstanceOf[String])
             }
           }
           // publish a pointed at event
           pub.publish(PointedAtEvent(qt, name, value))
           // update the green dot Y coordinate
           val (scale, shift) = pd.yTransformations(hb)
-          dotY = for (y <- tb.getDouble(row, column))
+          dotY = for (y <- model.getDouble(row, column))
                    yield applyTr(new Point2D.Double(0, y*scale + shift)).getY
           // updating the hovered box number
           hoveredBox = Some(hb)
@@ -350,9 +351,15 @@ class PlotPanel(tb:TraceModel, pub:Publisher)
   def zoom(factor:Double) = 
     zoomAround(viewPort.getCenterX, viewPort.getCenterY, factor)
 
+  def resetPlotModel(pm: PlotModel) = {
+    model = pm
+    redraw
+    fit
+  }
+
   def redraw = {
     println("Redraw man!")
-    pd = new PlotData(pp,tb)
+    pd = new PlotData(pp,model)
     viewChanged = true
     repaint
   }
