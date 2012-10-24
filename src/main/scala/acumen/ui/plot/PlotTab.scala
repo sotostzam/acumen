@@ -136,7 +136,7 @@ class PlotTab extends BorderPanel
   private val b4 = new Button(zoomOut) { peer.setHideActionText(true) }
   private val b5 = new Button(saveAs) { peer.setHideActionText(true) }
   private val hint = new Label("Hint: Right click on image & drag to move")
-  private val check = new CheckBox("") { 
+  /*private*/ val check = new CheckBox("") { 
     action = Action("Draw") { 
       if (selected) redraw 
       else plotter.clear

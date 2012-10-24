@@ -23,7 +23,6 @@ class EnclosureModel extends TraceModel with PlotModel with InterpreterModel {
     var columnNames : IndexedSeq[String] = IndexedSeq.empty[String]
 
     def recompute() = {
-
       times = es.map(_.domain.hiDouble).foldLeft(ArrayBuffer(es.head.domain.loDouble)) { case (res, t) => res += t }
 
       // 
@@ -130,15 +129,21 @@ class EnclosureModel extends TraceModel with PlotModel with InterpreterModel {
   var stale : Boolean = false;
 
   override def addData(d:TraceData) = {
-
-    es ++= d.asInstanceOf[Iterable[UnivariateAffineEnclosure]]
-    stale = true
+    synchronized  {
+      es ++= d.asInstanceOf[Iterable[UnivariateAffineEnclosure]]
+      stale = true
+    }
   }
 
   def syncData() {
-    if (stale)
-      data.recompute()
-    stale = true
+    synchronized  {
+      if (stale) {
+        val d = new Data()
+        d.recompute()
+        data = d
+      }
+      stale = false
+    }
   }
 
   override def getPlotModel = {syncData(); this}

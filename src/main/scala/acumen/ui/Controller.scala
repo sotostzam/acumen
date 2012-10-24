@@ -154,7 +154,13 @@ class Controller extends DaemonActor {
       // FIXME: Do This here?
       // FIXME: be more precise ?
       if (seqNum == model.lastSeqNum) {
-        Acumen.ui.traceView.plotter.resetPlotModel(model.getPlotModel)
+        val tm = model.getTraceModel
+        //Swing.onEDTWait {
+          Acumen.ui.traceTable.model = tm
+          tm.fireTableStructureChanged()
+        //}
+        // FIMXE: Well you know ... (you = kevina)
+        Acumen.ui.traceView.plotter.resetPlotModel(model.getPlotModel,Acumen.ui.traceView.check.selected)
         //tmodel.fireTableStructureChanged()
       } else {
         println("SKIPPING THIS ROUND!")

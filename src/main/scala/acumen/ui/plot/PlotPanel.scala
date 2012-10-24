@@ -350,11 +350,14 @@ class PlotPanel(pub:Publisher)
 
   def zoom(factor:Double) = 
     zoomAround(viewPort.getCenterX, viewPort.getCenterY, factor)
-
-  def resetPlotModel(pm: PlotModel) = {
+    
+  // FIXME: This needs work
+  def resetPlotModel(pm: PlotModel, doRedraw: Boolean) = {
     model = pm
-    redraw
-    fit
+    if (doRedraw) {
+      redraw
+      fit
+    }
   }
 
   def redraw = {

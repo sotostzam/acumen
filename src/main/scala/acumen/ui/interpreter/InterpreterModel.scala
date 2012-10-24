@@ -27,13 +27,21 @@ class PlotEnclosure(simulator: Boolean, fn: Name, startFrame: Int, column: Int,
 
 abstract class TraceData(val curTime : Double, val endTime : Double) extends Iterable[Object]
 
+// Accesses to certain members, such as getValueAt, can happen at
+// unpredictable times and on the EDT.  These members should not
+// block, see TraceModel for more info.  Accesses to the other
+// members, such as getPlottable, will not be called while the model
+// is being updated.  If for some reason these members are called as
+// the model is being updated than it is acceptable to throw an
+// exception.
 trait PlotModel {
+  // These mebers may be called on the EDT:
   def getRowCount() : Int
-  def getColumnCount() : Int
   def getValueAt(row:Int, column:Int) : String
   def getColumnName(col:Int) : String
   def getDouble(row:Int, column:Int): Option[Double]
   def isEmpty(): Boolean
+  // These members will not get called when the model is updating:
   // getTimes() is expected to have one more element than the data
   // that is being plotted
   def getTimes(): IndexedSeq[Double]
@@ -41,27 +49,31 @@ trait PlotModel {
   def getPlottables(): Iterable[Plottable]
 }
 
+// Accesses to members of this class can happen at unpredictable times
+// and always on the EDT.  Methods should never block waiting for a
+// lock.  To avoid data contention issues values should be cached when
+// possible and when that is not possible a dummy value should be
+// returned if the model is being updated.
 abstract class TraceModel extends javax.swing.table.AbstractTableModel {}
 
-trait InterpreterModel {
+trait InterpreterModel
+{
   // used temporary
   @volatile protected var _lastSeqNum : Int = 0
   def lastSeqNum = _lastSeqNum
   def incSeqNum() = {_lastSeqNum += 1; _lastSeqNum}
 
-  // Add data from the interpreter.  Must not invalid any live Plot
-  // models, which will be accessed in another thread.  Will be
-  // called with a lock on this.
+  // Add data to eventually be added to the models, Will be called by
+  // the Consumer actor, should be fast.  Should not touch the data
+  // used by the PlotModel or TraceModel in an thread unsafe way.
+  // Should use any necessary locks to prevent problems if
+  // getPlotModel or getTraceModel is called at the same time by a
+  // different thread.
   def addData(d: TraceData): Unit
 
-  // Returns an updated plot model for plotting.  If a new object is
-  // returned than any previous models are invalided.  Will be called
-  // with a lock on this.
+  // Returns an updated plot model for plotting.
   def getPlotModel : PlotModel
 
-  // Return a new table model for the trace table.  Will be called on
-  // the EDT, so it should be fast.  Also, addData will not get called
-  // while the returned object is live.
+  // Return an updated table model for the trace table.
   def getTraceModel : TraceModel
 }
-
