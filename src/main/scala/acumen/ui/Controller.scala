@@ -68,6 +68,7 @@ class Controller extends DaemonActor {
   var newState : AppState = Stopped
 
   def act() {
+    Supervisor.watch(this, "Controller")
     trapExit = true
     loop {
       react {

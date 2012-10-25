@@ -294,6 +294,7 @@ class Acumen extends SimpleSwingApplication {
     start()
     
     def act() {
+      Supervisor.watch(this, "Main UI")
       trapExit = true
       link(controller)
       loop {
@@ -307,10 +308,6 @@ class Acumen extends SimpleSwingApplication {
           case EXIT => println("...Exiting UI Actor."); exit
 
           case SendInit => controller ! Init(codeArea.text, interpreter)
-
-          case Exit(_,ue:UncaughtException) =>
-            System.err.println("Actor Died Unexpected!")
-            ue.cause.printStackTrace()
 
           case msg => println("Unknown Msg in GM: " + msg)
         }
@@ -378,4 +375,35 @@ object Acumen {
   var ui : Acumen = null
   var actor : Actor = null
 
+
+
 }
+
+object Supervisor extends Actor {
+  case class Link(a: AbstractActor, n: String)
+  val watching = new collection.mutable.ListMap[OutputChannel[Any],String]
+  def act() = {
+    trapExit = true
+    println("Supervisor Actor Starting.")
+    loop {react {
+      case Link(a,s) =>
+        println("Linking with " + s)
+        watching += ((a,s))
+        link(a)
+      case Exit(_,ue:UncaughtException) =>
+        val name = watching.getOrElse(sender, "An Unknown")
+        println("*** " + name + " actor Died Unexpected!")
+        ue.cause.printStackTrace()
+      case Exit(_,_) =>
+        val name = watching.getOrElse(sender,"An Unknown")
+        println("*** " + name + " actor Terminated!")
+      case msg =>
+        println("*** " + "Supervisor Actor: Unknown msg: " + msg)
+    }}
+  }
+  start()
+  // watch the calling actor
+  def watch(a: AbstractActor, n: String) =
+    this ! Link(a,n)
+}
+
