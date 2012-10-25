@@ -29,7 +29,7 @@ case object Stop extends AppActions
 case object Pause extends AppActions
 case object Step extends AppActions
 
-class Controller extends Actor {
+class Controller extends DaemonActor {
 
   //*************************
 
