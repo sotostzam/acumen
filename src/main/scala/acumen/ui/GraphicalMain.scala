@@ -423,9 +423,11 @@ object GraphicalMain extends SimpleSwingApplication {
     //timer3d.destroy=true
     //receiver.destroy=true
     //threeDView.exit
-    if (!editedSinceLastSave || confirmContinue(body.peer))
-	      quit
-				
+    if (!editedSinceLastSave || confirmContinue(body.peer)) {
+      println("Exiting...")
+      actor ! EXIT				
+      quit
+    }
   }
 
   def withErrorReporting(action: => Unit) : Unit = {
@@ -499,6 +501,7 @@ object GraphicalMain extends SimpleSwingApplication {
 
   // Create a special actor to listen to events from other threads
 
+  case object EXIT
   val actor = new Actor {
     override val scheduler = new SchedulerAdapter {
       def execute(fun: => Unit) { Swing.onEDT(fun) }
@@ -514,6 +517,8 @@ object GraphicalMain extends SimpleSwingApplication {
           case Progress(p)    => statusZone.setProgress(p)
           case ProgressMsg(m) => console.log(m); console.newLine
           case Progress3d(p)  => threeDtab.setProgress(p)
+
+          case EXIT => println("...Exiting UI Actor."); exit
         }
       }
     }
