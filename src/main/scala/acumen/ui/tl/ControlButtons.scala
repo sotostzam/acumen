@@ -57,21 +57,20 @@ class ControlButtons extends FlowPanel {
   contents += bPlay
   contents += bStep
   contents += bStop
+  
+  reactions += {
+    case StateChanged(st) => 
+      play.enabled  = st match {case _:AppState.Playing => false; case _ => true}
+      stop.enabled  = st match {case AppState.Stopped => false; case _ => true}
+      pause.enabled = st match {case _:AppState.Playing => true; case _ => false}
+      step.enabled  = st match {case _:AppState.Ready => true; case _ => false}
 
-  // Fixme: consider elimiting, maybe should listen to a StateChange
-  // event instead --kevina
-  def setState(state: AppState) {
-    play.enabled = state.playEnabled
-    stop.enabled = state.stopEnabled 
-    pause.enabled = state.pauseEnabled 
-    step.enabled = state.stepEnabled 
-
-    state.state match {
-      case _:AppState.Ready =>
-        bPlay.action = play
-      case _:AppState.Playing =>
-        bPlay.action = pause
-    }
+      st match {
+        case _:AppState.Ready =>
+          bPlay.action = play
+        case _:AppState.Playing =>
+          bPlay.action = pause
+      }
   }
 
 }

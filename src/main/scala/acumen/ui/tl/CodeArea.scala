@@ -172,5 +172,13 @@ class CodeArea extends EditorPane {
 
   def withErrorReporting(action: => Unit) = Acumen.ui.withErrorReporting(action)
 
+  reactions += {
+    case StateChanged(st) => 
+      st match {
+        case AppState.Stopped => enabled = true
+        case _                => enabled = false
+      }
+  }
+
 }
 

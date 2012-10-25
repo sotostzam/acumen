@@ -17,7 +17,7 @@ import interpreter.{InterpreterCntrl => IC}
 case object SendInit
 
 sealed abstract class AppEvent extends Event
-case class StateChanged(st: AppState.State) extends AppEvent
+case class StateChanged(st: AppState) extends AppEvent
 case class Error(e: Throwable) extends AppEvent
 case class Progress(percent: Int) extends AppEvent
 case class ProgressMsg(msg:String) extends AppEvent
@@ -36,7 +36,7 @@ class Controller extends DaemonActor {
 
   /* ---- state ---- */
 
-  private var state : State = Stopped
+  private var state : AppState = Stopped
 
   val tmodel = new TraceModel(FakeInterpreterModel)
   var threeDData = new threeD.ThreeDData;
@@ -44,7 +44,7 @@ class Controller extends DaemonActor {
 
   /* ------ application logic --------- */
 
-  private def setState(s: State) = {
+  private def setState(s: AppState) = {
     println("State Now: " + s)
     if (state != s) {
       state = s
@@ -65,7 +65,7 @@ class Controller extends DaemonActor {
   /* ------ actor logic ------------ */
 
   // The state to be in after receiving a chunk
-  var newState : State = Stopped
+  var newState : AppState = Stopped
 
   def act() {
     trapExit = true

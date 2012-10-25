@@ -280,43 +280,18 @@ class Acumen extends SimpleSwingApplication {
 
   /* ----- events handling ---- */
   
-  var state : AppState = AppState(AppState.Stopped)
+  var state : AppState = AppState.Stopped
   var interpreter : InterpreterCntrl = new CStoreCntrl(interpreters.reference.Interpreter)
   def setInterpreter(i : InterpreterCntrl) = {
     interpreter = i
-    reflectState
   }
-
-
-  // FIXME: Eliminate, each major component should be responsible for
-  //   updating its own state
-
-  def reflectState = {
-
-    upperButtons.setState(state)
-    
-    codeArea.enabled = state.codeEnabled
-    println("GM: New State: " + state.state)
-    state.state match {
-      case AppState.Stopped =>
-        console.log("Stopped.")
-        console.newLine
-      case AppState.Paused =>
-        console.log("Paused. ")
-        console.newLine
-      case AppState.Starting =>
-        console.log("Starting...")
-      case AppState.Resuming =>
-        console.log("Resuming...")
-    }
-  }
-
-  // Create a special actor to listen to events from other threads
 
   controller.start()
 
+  // Create a special actor to listen to events from other threads
+
   case object EXIT
-  val actor = new Actor {
+  val actor = new Actor with Publisher {
     override val scheduler = new SchedulerAdapter {
       def execute(fun: => Unit) { Swing.onEDT(fun) }
     }
@@ -327,7 +302,7 @@ class Acumen extends SimpleSwingApplication {
       link(controller)
       loop {
         react {
-          case StateChanged(st) => {println("GM: State Changed!"); state = AppState(st); reflectState}
+          case msg@StateChanged(st) => println("GM: State Changed!"); publish(msg)
           case Error(e)       => reportError(e)
           case Progress(p)    => statusZone.setProgress(p)
           case ProgressMsg(m) => console.log(m); console.newLine
@@ -347,13 +322,38 @@ class Acumen extends SimpleSwingApplication {
     }
   }
 
+  listenTo(actor)
+  reactions += {
+    case StateChanged(st) => 
+      println("GM: New State: " + st)
+      st match {
+        case AppState.Stopped =>
+          console.log("Stopped.")
+          console.newLine
+        case AppState.Paused =>
+          console.log("Paused. ")
+          console.newLine
+        case AppState.Starting =>
+          console.log("Starting...")
+        case AppState.Resuming if state != AppState.Starting =>
+          console.log("Resuming...")
+        case _ =>
+      }
+      state = st
+  }
+  
+  // FIXME: Possible Move me.
+  upperButtons.listenTo(actor)
+  codeArea.listenTo(actor)
+ 
+
   /* ----- initialisation ----- */
   
-  reflectState
   codeArea.listenDocument
   console.log("<html>Welcome to Acumen.<br/>"+
               "Please see LICENSE file for licensing details.</html>")
   console.newLine
+  actor.publish(StateChanged(AppState.Stopped))
 }
 
 object Acumen {
