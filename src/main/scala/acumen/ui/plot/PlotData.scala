@@ -175,8 +175,8 @@ case class PlotParms(plotSimulator:Boolean = false,
 		             
 class PlotData(parms: PlotParms, tb:PlotModel) 
 {
-  private var polys = new ArrayBuffer[PlotEntity]
-  private var axes  = new ArrayBuffer[MyPath2D]
+  /*private*/ var polys = new ArrayBuffer[PlotEntity]
+  /*private*/ var axes  = new ArrayBuffer[MyPath2D]
   var boxes = new ArrayBuffer[Rectangle2D]
   var boundingBox = (0.0, 0.0)
 
@@ -252,8 +252,26 @@ class PlotData(parms: PlotParms, tb:PlotModel)
     }
     boundingBox = (time(time.size-1), 1.2*polys.size - 0.2)
   }
+}
 
-  def paint(tr:AffineTransform, buf:BufferedImage, plotStyle: PlotStyle) = {
+class PlotImage(pd: PlotData, 
+                val buf: BufferedImage, plotStyle: PlotStyle,
+                var viewPort : Rectangle2D = null) 
+{
+  if (viewPort == null) {
+    val bb = new Rectangle2D.Double(0, 0, pd.boundingBox._1, pd.boundingBox._2)
+    val tr = computeTransform(buf.getWidth, buf.getHeight, bb)
+    val trbb = applyTrR(tr, bb)
+    trbb.setRect(trbb.getX-10, trbb.getY-10, trbb.getWidth+20, trbb.getHeight+20)
+    viewPort = unapplyTrR(tr, trbb)
+  }
+
+  val transform = computeTransform(buf.getWidth, buf.getHeight, viewPort)
+
+  {
+    val tr = transform
+
+    //println("The Transform: " + tr)
     val bg = buf.getGraphics.asInstanceOf[Graphics2D]
     bg.setRenderingHint(
       RenderingHints.KEY_ANTIALIASING,
@@ -267,7 +285,7 @@ class PlotData(parms: PlotParms, tb:PlotModel)
     bg.setClip(new Rectangle2D.Double(0, 0, buf.getWidth, buf.getHeight))
 
     /* actual drawing */
-    for (((p,a),b) <- polys zip axes zip boxes) {
+    for (((p,a),b) <- pd.polys zip pd.axes zip pd.boxes) {
 
       // fill bounding box
       bg.setPaint(Color.white)
@@ -291,9 +309,6 @@ class PlotData(parms: PlotParms, tb:PlotModel)
           p.drawDots(bg, tr) 
       }
     }
-
     buf.flush
   }
 }
-
-

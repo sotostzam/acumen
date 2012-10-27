@@ -258,7 +258,7 @@ class Acumen extends SimpleSwingApplication {
     e.printStackTrace()
   }
 
-  def redraw = traceView.redraw
+  //def redraw = traceView.redraw
 
   /* ------ simple dialogs ----- */
 
@@ -348,10 +348,10 @@ class Acumen extends SimpleSwingApplication {
           traceTable.model = defTableModel
         case AppState.Resuming =>
           traceTable.enabled = false
-        case _:AppState.Ready if controller.model != null => 
-          val tm = controller.model.getTraceModel
-          traceTable.model = tm
-          tm.fireTableStructureChanged()
+        //case _:AppState.Ready if controller.model != null => 
+        // val tm = controller.model.getTraceModel
+        // traceTable.model = tm
+        // tm.fireTableStructureChanged()
         case _ => 
       }
   }

@@ -52,7 +52,7 @@ class PlotTab extends BorderPanel
 
   val resetZoom = new Action("Reset Zoom") {
     icon = Icons.home
-    def apply = fit
+    def apply = {plotPanel.plotter ! Repaint }
     toolTip = "Reset View"
   }
   val zoomIn = new Action("Zoom In") {
@@ -138,8 +138,9 @@ class PlotTab extends BorderPanel
   private val hint = new Label("Hint: Right click on image & drag to move")
   /*private*/ val check = new CheckBox("") { 
     action = Action("Draw") { 
-      if (selected) redraw 
-      else plotPanel.clear
+      // FIXME: This still not right
+      //if (selected) plotter.plotter ! Replot
+      //else plotter.clear
     }
   }
   private val rightBottomButtons =
@@ -150,8 +151,7 @@ class PlotTab extends BorderPanel
   check.selected = true
   //tmodel.addTableModelListener(this)
 
-  def redraw : Unit = { println("REDRAW (PlotTab)"); plotPanel.redraw; fit }
-  private def fit = plotPanel.fit
+  //private def fit = plotter.fit
   //override def tableChanged(e: TableModelEvent) = 
   //  if (check.selected) redraw
 

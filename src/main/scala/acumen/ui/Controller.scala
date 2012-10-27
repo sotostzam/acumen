@@ -154,25 +154,11 @@ class Controller extends DaemonActor {
     if (d.isEmpty)
       return
     val seqNum = model.incSeqNum()
+    model.addData(d)
+    // FIXME: This is still sick
+    Acumen.ui.traceView.plotPanel.plotter ! plot.Refresh
+      
     Swing.onEDT {
-      println("Processing Data")
-      model.addData(d)
-      
-      // FIXME: Do This here?
-      // FIXME: be more precise ?
-      if (seqNum == model.lastSeqNum) {
-        val tm = model.getTraceModel
-        //Swing.onEDTWait {
-          Acumen.ui.traceTable.model = tm
-          tm.fireTableStructureChanged()
-        //}
-        // FIMXE: Well you know ... (you = kevina)
-        Acumen.ui.traceView.plotPanel.resetPlotModel(model.getPlotModel,Acumen.ui.traceView.check.selected)
-        //tmodel.fireTableStructureChanged()
-      } else {
-        println("SKIPPING THIS ROUND!")
-      }
-      
       // d.isInstanceOf[Iterable[CStore]] will not work due to type
       // erasure, must check the first element for its type
       if (!d.isEmpty() && d.head.isInstanceOf[CStore]) {

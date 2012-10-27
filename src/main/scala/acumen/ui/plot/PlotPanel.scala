@@ -23,46 +23,39 @@ import interpreter._
 
 case class PointedAtEvent(time:Double, name:String, value:String) extends Event
 
-class PlotPanel(pub:Publisher) 
-  extends Panel 
+class PlotPanel(pub:Publisher) extends Panel 
 {
   background = Color.gray
   peer.setDoubleBuffered(true)
 
-  private var pp = PlotParms()
-  private var pd = new PlotData(PlotParms(),null)
-  private var model : PlotModel = null
+  /*private*/ @volatile var pp = PlotParms()
+  /*private*/ var pd : PlotData = new PlotData(PlotParms(),null)
+  var pi : PlotImage = null
+  /*private*/ var model : PlotModel = null
  
   private val selectionBorderColor = new Color(68, 127, 231)
   private val selectionFillColor   = new Color(165, 189, 231, 150)
  
-  private var buffer : BufferedImage = null
   private var hoveredBox : Option[Int] = None
   private var dotX : Double = 0.0d
   private var dotY : Option[Double] = None
   private var selection : Option[(Point2D, Point2D)] = None
   private var drag : Option[(Point2D,Point2D)] = None
 
-  private var viewPort : Rectangle2D = new Rectangle2D.Double(0,0,0,0)
   private val undoStack = new Stack[Rectangle2D] 
-  private var viewChanged = true
-  private var transform = new AffineTransform()
 
-  private var plotStyle : PlotStyle = Lines()
+  /*private*/ @volatile var plotStyle : PlotStyle = Lines()
 
   def clear = {
     pd = new PlotData(PlotParms(),null)
-    buffer = null
+    pi = null
     hoveredBox = None
     dotX = 0.0d
     dotY = None
     selection = None
     drag = None
     pd.boundingBox = (0.0, 0.0)
-    viewPort = new Rectangle2D.Double(0,0,0,0)
-    undoStack.clear 
-    viewChanged = true
-    transform = new AffineTransform()
+    resetViewPort(new Rectangle2D.Double(0,0,0,0))
     repaint
   }
 
@@ -73,8 +66,7 @@ class PlotPanel(pub:Publisher)
   def undo = {
     if (undoStack.nonEmpty) {
       viewPort = undoStack.pop
-      viewChanged = true
-      repaint
+      plotter ! Repaint(viewPort)
     }
   }
 
@@ -84,22 +76,16 @@ class PlotPanel(pub:Publisher)
     )
   }
   
-  def applyTr(p:Point2D) : Point2D = applyTrP(transform, p)
-  def applyTr(r:Rectangle2D) : Rectangle2D = applyTrR(transform, r)
-  def unapplyTr(p:Point2D) : Point2D = unapplyTrP(transform, p)
-  def unapplyTr(r:Rectangle2D) : Rectangle2D = unapplyTrR(transform, r)
+  def applyTr(p:Point2D) : Point2D = applyTrP(pi.transform, p)
+  def applyTr(r:Rectangle2D) : Rectangle2D = applyTrR(pi.transform, r)
+  def unapplyTr(p:Point2D) : Point2D = unapplyTrP(pi.transform, p)
+  def unapplyTr(r:Rectangle2D) : Rectangle2D = unapplyTrR(pi.transform, r)
 
-  def fit : Unit = {
-    if (buffer != null) {
-      undoStack.clear
-      val bb = new Rectangle2D.Double(0, 0, pd.boundingBox._1, pd.boundingBox._2)
-      val tr = computeTransform(buffer.getWidth, buffer.getHeight, bb)
-      val trbb = applyTrR(tr, bb)
-      trbb.setRect(trbb.getX-10, trbb.getY-10, trbb.getWidth+20, trbb.getHeight+20)
-      viewPort = unapplyTrR(tr, trbb)
-      viewChanged = true
-      repaint
-    }
+  private var viewPort : Rectangle2D = null
+  def resetViewPort(vp: Rectangle2D) = {
+    println("Restting view port")
+    undoStack.clear
+    viewPort = vp
   }
 
   private def selectionRectangle = 
@@ -108,14 +94,6 @@ class PlotPanel(pub:Publisher)
                                    math.min(p1.getY, p2.getY),
                                    math.abs(p1.getX - p2.getX),
                                    math.abs(p1.getY - p2.getY))
-
-  def paintLater = 
-    new TimerTask {
-      def run = {
-        viewChanged = true
-        repaint
-      }
-    }
 
   /* translate then scale according to the viewport */
   private def computeTransform(width:Double, height:Double, view:Rectangle2D) = {
@@ -133,26 +111,16 @@ class PlotPanel(pub:Publisher)
       RenderingHints.VALUE_ANTIALIAS_ON)
     super.paintComponent(g)
 
-    if (viewChanged) {
-      println("View Changed Man!!")
-      /* create a new buffer for the background */
-      buffer = mkBuffer
-      /* compute the current transformation */
-      transform = computeTransform(buffer.getWidth, buffer.getHeight, viewPort)
-      /* draw the background */
-      pd.paint(transform, buffer, plotStyle) 
-      viewChanged = false
-    } 
-    
     // clip the area to what the user can see
     g.setClip(new Rectangle2D.Double(0, 0, size.getWidth, size.getHeight))
     
     // blit buffer
+    if (pi != null)
     drag match {
       case Some((_,v)) => 
-        g.drawImage(buffer, null, v.getX.round.toInt, v.getY.round.toInt)
+        g.drawImage(pi.buf, null, v.getX.round.toInt, v.getY.round.toInt)
       case None => 
-        g.drawImage(buffer, null, 0, 0)
+        g.drawImage(pi.buf, null, 0, 0)
     }
 
     // draw selected box
@@ -303,16 +271,15 @@ class PlotPanel(pub:Publisher)
         val v = drag.get._2
         pushCurrentViewport
         viewPort.setRect(
-          viewPort.getX - v.getX / transform.getScaleX, 
-          viewPort.getY - v.getY / transform.getScaleY,
+          viewPort.getX - v.getX / pi.transform.getScaleX, 
+          viewPort.getY - v.getY / pi.transform.getScaleY,
           viewPort.getWidth, 
           viewPort.getHeight)
         drag = None
-        viewChanged = true
-        repaint
+        plotter ! Repaint(viewPort)
       } else if (e.peer.getButton == 1) {
-          val selected = selectionRectangle.get
-          if (math.abs(selected.getWidth * selected.getHeight) > 1) {
+        val selected = selectionRectangle.get
+        if (math.abs(selected.getWidth * selected.getHeight) > 1) {
           // there is no way to transform a rectangle and get a rectangle
           // so we have to do it ourselves...
           val p1 = unapplyTr(new Point2D.Double(selected.getMinX, selected.getMinY))
@@ -320,8 +287,7 @@ class PlotPanel(pub:Publisher)
           pushCurrentViewport
           viewPort.setFrameFromDiagonal(p1,p2)
           selection = None
-          viewChanged = true
-          repaint
+          plotter ! Repaint(viewPort)
         }
       }
       /*
@@ -332,8 +298,7 @@ class PlotPanel(pub:Publisher)
       zoomAround(cx,cy,factor)
     */
     case ComponentResized(_) =>
-      viewChanged = true
-      repaint
+      plotter ! Repaint
   }
 
   def zoomAround(cx:Double, cy:Double, factor:Double) =  {
@@ -344,57 +309,39 @@ class PlotPanel(pub:Publisher)
                       (viewPort.getMaxY-cy) * f + cy)
     pushCurrentViewport
     viewPort.setFrameFromDiagonal(p1x, p1y, p2x, p2y)
-    viewChanged = true
-    repaint
+    plotter ! Repaint(viewPort)
   }
 
-  def zoom(factor:Double) = 
+  def zoom(factor:Double) =
     zoomAround(viewPort.getCenterX, viewPort.getCenterY, factor)
     
-  // FIXME: This needs work
-  def resetPlotModel(pm: PlotModel, doRedraw: Boolean) = {
-    model = pm
-    if (doRedraw) {
-      redraw
-      fit
-    }
-  }
-
-  def redraw = {
-    println("Redraw man!")
-    pd = new PlotData(pp,model)
-    viewChanged = true
-    repaint
-  }
-
-  def toggleSimulator(b:Boolean) = { 
+  val plotter = new PlotActor(this)
+  plotter.start()
+  
+  def toggleSimulator(b:Boolean) = {
     pp = pp.copy(plotSimulator = b)
     hoveredBox = None
-    redraw
-    fit
+    plotter ! Replot
   }
   def toggleNextChild(b:Boolean) = {
     pp = pp.copy(plotNextChild = b)
     hoveredBox = None
-    redraw
-    fit
+    plotter ! Replot
   }
   def toggleSeeds(b:Boolean) = {
     pp = pp.copy(plotSeeds = b)
     hoveredBox = None
-    redraw
-    fit
+    plotter ! Replot
   }
   def setPlotStyle(ps:PlotStyle) = {
     plotStyle = ps
-    viewChanged = true
-    repaint
+    plotter ! Repaint(viewPort)
   }
 
   def render(file:File, w:Int, h:Int) = {
-    val tr = computeTransform(w,h,viewPort)
+    // FIXME: This should't be done on the EDT...
     val buf = new BufferedImage(w, h, BufferedImage.TYPE_INT_ARGB)
-    pd.paint(tr,buf,plotStyle)
+    new PlotImage(pd, buf, plotStyle, viewPort)
     ImageIO.write(buf, "PNG", file)
   }
 }
