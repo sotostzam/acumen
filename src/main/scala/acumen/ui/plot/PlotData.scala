@@ -173,7 +173,7 @@ case class PlotParms(plotSimulator:Boolean = false,
 		             plotNextChild:Boolean = false, 
 		             plotSeeds:Boolean = false)
 		             
-class PlotData(parms: PlotParms, tb:PlotModel) 
+class PlotData(parms: PlotParms = null, tb:PlotModel = null) 
 {
   /*private*/ var polys = new ArrayBuffer[PlotEntity]
   /*private*/ var axes  = new ArrayBuffer[MyPath2D]
@@ -255,7 +255,7 @@ class PlotData(parms: PlotParms, tb:PlotModel)
 }
 
 class PlotImage(pd: PlotData, 
-                val buf: BufferedImage, plotStyle: PlotStyle,
+                val buf: BufferedImage, plotStyle: PlotStyle = null,
                 var viewPort : Rectangle2D = null) 
 {
   if (viewPort == null) {

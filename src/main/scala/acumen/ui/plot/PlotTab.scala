@@ -46,9 +46,8 @@ case class Both() extends PlotStyle
 class PlotTab extends BorderPanel
 {
   /* for some reason forwarding events causes stack overflows, so we pass
-     this to Plotter, which will ask this to publish events ... */
-  /*private*/ val plotPanel = 
-    new PlotPanel(this)
+     "this" to Plotter, which will ask this to publish events ... */
+  val plotPanel = new PlotPanel(this)
 
   val resetZoom = new Action("Reset Zoom") {
     icon = Icons.home
@@ -138,9 +137,8 @@ class PlotTab extends BorderPanel
   private val hint = new Label("Hint: Right click on image & drag to move")
   /*private*/ val check = new CheckBox("") { 
     action = Action("Draw") { 
-      // FIXME: This still not right
-      //if (selected) plotter.plotter ! Replot
-      //else plotter.clear
+      plotPanel.plotI.enabled = selected
+      if (selected) plotPanel.plotter ! Replot
     }
   }
   private val rightBottomButtons =

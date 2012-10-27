@@ -5,7 +5,6 @@ package plot
 import java.awt.geom.Rectangle2D
 import java.awt.image.BufferedImage
 
-import swing.Swing
 import scala.actors._
 import interpreter._
 
@@ -17,8 +16,28 @@ case object Replot extends PlotterAction // implies repaint
 case class Repaint(viewPort : Rectangle2D) extends PlotterAction
 object Repaint extends Repaint(null)
 
-class PlotActor(ppn: PlotPanel) extends DaemonActor {
+class TableInput(val model : () => TraceModel) 
 
+class PlotInput(val model : () => PlotModel,
+                val buffer : () => BufferedImage) 
+{
+  @volatile var enabled = true
+  @volatile var parms = PlotParms()
+  @volatile var plotStyle : PlotStyle = Lines()
+}
+
+case class TraceModelReady(model: TraceModel) 
+     extends swing.event.Event
+
+case class PlotReady(model: PlotModel,
+                     data: PlotData,
+                     image: PlotImage,
+                     newPlot: Boolean) // as oppose to a new view on the existing plot
+     extends swing.event.Event
+
+class PlotActor(tableI: TableInput, plotI: PlotInput) 
+  extends DaemonActor with scala.swing.Publisher 
+{
   var lastMsg: PlotterAction = null
 
   def act() {
@@ -59,45 +78,26 @@ class PlotActor(ppn: PlotPanel) extends DaemonActor {
     }
   }
 
-  var pnum = 1
   def refresh {
-    val tm = Acumen.ui.controller.model.getTraceModel
-    Swing.onEDTWait {
-      Acumen.ui.traceTable.model = tm
-      tm.fireTableStructureChanged()
-    }
+    val tm = tableI.model()
+    Acumen.ui.actor ! TraceModelReady(tm)
     replot
   }
 
   var pm : PlotModel = null
   var pd : PlotData = null
 
-  def replot {
-    if (Acumen.ui.traceView.check.selected) {
-      println("=== NEW PLOT # " + pnum + "!!!")
-      pm = Acumen.ui.controller.model.getPlotModel
-      pd = new PlotData(ppn.pp,pm)
-      repaint()
-    }
+  def replot = if (plotI.enabled) {
+    pm = plotI.model()
+    println("pm = " + pm)
+    pd = new PlotData(plotI.parms,pm)
+    repaint()
   }
 
-  def repaint(vp: Rectangle2D = null) {
-    var buf : BufferedImage = null
-    Swing.onEDTWait {
-      buf = ppn.mkBuffer
-    }
-    val pi = new PlotImage(pd, buf, ppn.plotStyle, vp)
-    //javax.imageio.ImageIO.write(buf, "PNG", new java.io.File("plot-" + pnum + ".png"))
-    Swing.onEDTWait {
-      println("Starting plot # " + pnum)
-      ppn.model = pm
-      ppn.pd = pd
-      ppn.pi = pi
-      if (vp == null)
-        ppn.resetViewPort(pi.viewPort)
-      ppn.repaint
-    }
-    pnum += 1
+  def repaint(vp: Rectangle2D = null) = {
+    var buf = plotI.buffer()
+    val pi = new PlotImage(pd, buf, plotI.plotStyle, vp)
+    Acumen.ui.actor ! PlotReady(pm,pd,pi,vp == null)
   }
 }
 

@@ -28,10 +28,9 @@ class PlotPanel(pub:Publisher) extends Panel
   background = Color.gray
   peer.setDoubleBuffered(true)
 
-  /*private*/ @volatile var pp = PlotParms()
-  /*private*/ var pd : PlotData = new PlotData(PlotParms(),null)
-  var pi : PlotImage = null
-  /*private*/ var model : PlotModel = null
+  private var pd : PlotData = null
+  private var pi : PlotImage = null
+  private var model : PlotModel = null
  
   private val selectionBorderColor = new Color(68, 127, 231)
   private val selectionFillColor   = new Color(165, 189, 231, 150)
@@ -42,20 +41,31 @@ class PlotPanel(pub:Publisher) extends Panel
   private var selection : Option[(Point2D, Point2D)] = None
   private var drag : Option[(Point2D,Point2D)] = None
 
+  private var viewPort : Rectangle2D = null
   private val undoStack = new Stack[Rectangle2D] 
 
-  /*private*/ @volatile var plotStyle : PlotStyle = Lines()
+  def getModel()  = {Acumen.ui.controller.model.getPlotModel}
+  val plotI = new PlotInput(getModel,mkBuffer)
 
-  def clear = {
-    pd = new PlotData(PlotParms(),null)
-    pi = null
+  override def paint(g : Graphics2D) = {
+    if (model == null) clear
+    super.paint(g)
+  }
+
+  private def clear = {
+    pd = new PlotData()
+    pi = new PlotImage(pd, mkBuffer)
     hoveredBox = None
     dotX = 0.0d
     dotY = None
     selection = None
     drag = None
-    pd.boundingBox = (0.0, 0.0)
     resetViewPort(new Rectangle2D.Double(0,0,0,0))
+    enabled = false
+  }
+
+  def reset = {
+    clear
     repaint
   }
 
@@ -70,7 +80,7 @@ class PlotPanel(pub:Publisher) extends Panel
     }
   }
 
-  def mkBuffer =  {
+  def mkBuffer() =  {
     peer.getGraphicsConfiguration.createCompatibleImage(
       size.width, size.height, Transparency.OPAQUE
     )
@@ -81,9 +91,7 @@ class PlotPanel(pub:Publisher) extends Panel
   def unapplyTr(p:Point2D) : Point2D = unapplyTrP(pi.transform, p)
   def unapplyTr(r:Rectangle2D) : Rectangle2D = unapplyTrR(pi.transform, r)
 
-  private var viewPort : Rectangle2D = null
   def resetViewPort(vp: Rectangle2D) = {
-    println("Restting view port")
     undoStack.clear
     viewPort = vp
   }
@@ -115,7 +123,6 @@ class PlotPanel(pub:Publisher) extends Panel
     g.setClip(new Rectangle2D.Double(0, 0, size.getWidth, size.getHeight))
     
     // blit buffer
-    if (pi != null)
     drag match {
       case Some((_,v)) => 
         g.drawImage(pi.buf, null, v.getX.round.toInt, v.getY.round.toInt)
@@ -192,7 +199,19 @@ class PlotPanel(pub:Publisher) extends Panel
   listenTo(this)
 
   reactions += {
-    case MouseMoved(_, p, _) =>
+    case StateChanged(AppState.Starting) => 
+      reset
+    case m:PlotReady => 
+      println("Got PlotReady Message!")
+      model = m.model
+      pd = m.data
+      pi = m.image
+      if (m.newPlot)
+        resetViewPort(pi.viewPort)
+      enabled = true
+      repaint
+
+    case MouseMoved(_, p, _) if (enabled) => 
       if (pd.columnIndices.size > 0) {
         // p in the original coordinate system
         val op = unapplyTr(p)
@@ -250,7 +269,7 @@ class PlotPanel(pub:Publisher) extends Panel
         repaint
       }
       */
-    case e@MousePressed(_,p,_,_,_) =>
+    case e@MousePressed(_,p,_,_,_) if (enabled) =>
       if (e.peer.getButton == 3)
         drag = Some((p, new Point2D.Double(0,0)))
       else if (e.peer.getButton == 1)
@@ -266,7 +285,7 @@ class PlotPanel(pub:Publisher) extends Panel
         case None => ()
       }
       repaint
-    case e@MouseReleased(_,p,_,_,_) =>
+    case e@MouseReleased(_,p,_,_,_) if (enabled) =>
       if (e.peer.getButton == 3) {
         val v = drag.get._2
         pushCurrentViewport
@@ -297,11 +316,11 @@ class PlotPanel(pub:Publisher) extends Panel
       val factor = math.pow(1.5,i)
       zoomAround(cx,cy,factor)
     */
-    case ComponentResized(_) =>
+    case ComponentResized(_) if (enabled) =>
       plotter ! Repaint
   }
 
-  def zoomAround(cx:Double, cy:Double, factor:Double) =  {
+  def zoomAround(cx:Double, cy:Double, factor:Double) =  if (enabled) {
     val f = 1/factor
     val (p1x, p1y) = ((viewPort.getMinX-cx) * f + cx, 
                       (viewPort.getMinY-cy) * f + cy)
@@ -312,36 +331,38 @@ class PlotPanel(pub:Publisher) extends Panel
     plotter ! Repaint(viewPort)
   }
 
-  def zoom(factor:Double) =
+  def zoom(factor:Double) = 
     zoomAround(viewPort.getCenterX, viewPort.getCenterY, factor)
+
+  val tableI = new TableInput({() => Acumen.ui.controller.model.getTraceModel})
     
-  val plotter = new PlotActor(this)
+  val plotter = new PlotActor(tableI,plotI)
   plotter.start()
   
   def toggleSimulator(b:Boolean) = {
-    pp = pp.copy(plotSimulator = b)
+    plotI.parms = plotI.parms.copy(plotSimulator = b)
     hoveredBox = None
     plotter ! Replot
   }
   def toggleNextChild(b:Boolean) = {
-    pp = pp.copy(plotNextChild = b)
+    plotI.parms = plotI.parms.copy(plotNextChild = b)
     hoveredBox = None
     plotter ! Replot
   }
   def toggleSeeds(b:Boolean) = {
-    pp = pp.copy(plotSeeds = b)
+    plotI.parms = plotI.parms.copy(plotSeeds = b)
     hoveredBox = None
     plotter ! Replot
   }
   def setPlotStyle(ps:PlotStyle) = {
-    plotStyle = ps
+    plotI.plotStyle = ps
     plotter ! Repaint(viewPort)
   }
 
-  def render(file:File, w:Int, h:Int) = {
+  def render(file:File, w:Int, h:Int) = if (enabled) {
     // FIXME: This should't be done on the EDT...
     val buf = new BufferedImage(w, h, BufferedImage.TYPE_INT_ARGB)
-    new PlotImage(pd, buf, plotStyle, viewPort)
+    new PlotImage(pd, buf, plotI.plotStyle, viewPort)
     ImageIO.write(buf, "PNG", file)
   }
 }

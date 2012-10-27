@@ -339,9 +339,6 @@ class Acumen extends SimpleSwingApplication {
   }
   
   // FIXME: Possible Move me.
-  upperButtons.listenTo(actor)
-  codeArea.listenTo(actor)
- 
   val defTableModel = traceTable.model
   traceTable.listenTo(actor)
   traceTable.reactions += {
@@ -349,16 +346,20 @@ class Acumen extends SimpleSwingApplication {
       st match {
         case AppState.Starting => 
           traceTable.model = defTableModel
-        case AppState.Resuming =>
-          traceTable.enabled = false
-        //case _:AppState.Ready if controller.model != null => 
-        // val tm = controller.model.getTraceModel
-        // traceTable.model = tm
-        // tm.fireTableStructureChanged()
+        case _:AppState.Ready if traceTable.model.isInstanceOf[TraceModel] => 
+          traceTable.model.asInstanceOf[TraceModel].fireTableStructureChanged()
         case _ => 
       }
+    case plot.TraceModelReady(model) =>
+      traceTable.model = model
+      //model.fireTableStructureChanged()
   }
 
+  /* ----- stuff that should't be here ---- */
+  upperButtons.listenTo(actor)
+  codeArea.listenTo(actor)
+  traceView.plotPanel.listenTo(actor)
+  
   /* ----- initialisation ----- */
   
   codeArea.listenDocument
