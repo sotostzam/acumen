@@ -23,13 +23,17 @@ abstract class Expression {
    * expression.
    */
   def apply(x: Box)(implicit rnd: Rounding): Interval = {
-    assert(varNames subsetOf x.keySet, "The box must contain the names of all variables in the expression.")
+    assert(varNames subsetOf x.keySet, "The box " + x + " must contain the names of all variables in the expression " + this)
     this match {
       case Constant(v) => v
       case Variable(name) => x(name)
+      case Abs(e) => e(x).abs
+      case Sqrt(e) => e(x).sqrt
       case Negate(e) => -e(x)
       case Plus(l, r) => l(x) + r(x)
-      case Multiply(l, r) => l(x) * r(x)
+      case Multiply(l, r) =>
+        if (l == r) l(x) square
+        else l(x) * r(x)
       case Divide(e, Constant(v)) => e(x) / v
     }
   }
@@ -116,6 +120,8 @@ abstract class Expression {
   def varNames: Set[VarName] = this match {
     case Constant(_) => Set()
     case Variable(name) => Set(name)
+    case Abs(e) => e.varNames
+    case Sqrt(e) => e.varNames
     case Negate(e) => e.varNames
     case Plus(l, r) => l.varNames union r.varNames
     case Multiply(l, r) => l.varNames union r.varNames
@@ -163,8 +169,16 @@ case class Variable(name: String) extends Expression {
   override def toString = name
 }
 
+case class Abs(expression: Expression) extends Expression {
+  override def toString = "abs(" + expression + ")"
+}
+
+case class Sqrt(expression: Expression) extends Expression {
+	override def toString = "sqrt(" + expression + ")"
+}
+
 case class Negate(expression: Expression) extends Expression {
-  override def toString = "-" + expression
+	override def toString = "-" + expression
 }
 
 case class Plus(left: Expression, right: Expression) extends Expression {
@@ -179,3 +193,10 @@ case class Divide(left: Expression, right: Expression) extends Expression {
   override def toString = "(" + left + " / " + right + ")"
 }
 
+object ExpressionApp extends App {
+  implicit val rnd = Rounding(10)
+  val dom = Box("x" -> Interval(-0.5,3),"y" -> Interval(-0.5,3))
+  val x = Variable("x")
+  val y = Variable("y")
+  println((y*y)(dom))
+}

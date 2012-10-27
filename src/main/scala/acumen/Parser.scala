@@ -81,7 +81,7 @@ object Parser extends MyStdTokenParsers {
     List("(", ")", "{", "}", "[", "]", ";", "=", "=[i]", "=[t]", "[=]", "'", ",",
       ".", "+", "-", "*", "/", "^", ".+", ".-", ".*", "./", ".^",
       ":", "<", ">", "<=", ">=", "==", "~=", "||",
-      "&&", "<<", ">>", "&", "|", "%", "@")
+      "&&", "<<", ">>", "&", "|", "%", "..")
 
   lexical.reserved ++=
     List("for", "end", "if", "else", "create", "move", "in",
@@ -101,7 +101,8 @@ object Parser extends MyStdTokenParsers {
 
   def run[A](p: Parser[A], s: java.io.Reader): A = {
     val res = phrase(p)(new lexical.Scanner(StreamReader(s)))
-    if (!res.successful) throw ParseError(res.toString)
+    if (!res.successful) 
+      throw ParseError(res.toString)
     else res.get
   }
 
@@ -243,7 +244,7 @@ object Parser extends MyStdTokenParsers {
   def level7: Parser[Expr] =
     levelColon * ("<<" ^^^ { (x: Expr, y: Expr) => mkOp("<<", x, y) }
       | ">>" ^^^ { (x: Expr, y: Expr) => mkOp(">>", x, y) })
-
+      
   def levelColon: Parser[Expr] =
     level6 >> { x =>
       (":" ~! level5 >> {
@@ -275,7 +276,7 @@ object Parser extends MyStdTokenParsers {
     ("-" ~! access ^^ { case _ ~ e => smartMinus(e) }
       | access)
 
-  def access: Parser[Expr] =
+  def access: Parser[Expr] = 
     atom >> { e =>
       ("." ~ name ^^ { case _ ~ x => Dot(e, x) }
         | success(e))
@@ -283,18 +284,31 @@ object Parser extends MyStdTokenParsers {
 
   def atom: Parser[Expr] =
     ("sum" ~! expr ~! "for" ~! name ~! "in" ~! expr ~! "if" ~! expr ^^ { case _ ~ e ~ _ ~ i ~ _ ~ c ~ _ ~ t => Sum(e, i, c, t) }
+      | interval
       | "type" ~! parens(className) ^^ { case _ ~ cn => TypeOf(cn) }
       | name >> { n => args(expr) ^^ { es => Op(n, es) } | success(Var(n)) }
       | brackets(repsep(expr, ",")) ^^ ExprVector
       | gvalue ^^ Lit
       | parens(expr))
 
+  def interval: Parser[Expr] =
+//    nlit ~ ".." ~ nlit ^^ { case lo ~ ".." ~ hi => ExprInterval(lo,hi) }
+      "[" ~> nlit ~ ":" ~ nlit <~ "]" ^^ { case lo ~ ":" ~ hi => ExprInterval(lo,hi) }
+      
   def lit = (gint | gfloat | gstr) ^^ Lit
 
   def name: Parser[Name] =
     ident ~! rep("'") ^^ { case id ~ ps => Name(id, ps.size) }
 
   def className: Parser[ClassName] = ident ^^ (ClassName(_))
+
+  def nlit = (gfloat | gint) ^^ Lit
+  
+  def get(gv: GroundValue): Double = gv match {
+    case GInt(i) => i
+    case GDouble(d) => d
+    case _ => sys.error("could not convert " + gv + "to GDouble")
+  }
 
   /* interpreter configurations parser */
 

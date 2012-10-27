@@ -2,6 +2,7 @@ package acumen.interpreters.enclosure.solver
 
 import acumen.interpreters.enclosure._
 import acumen.interpreters.enclosure.Types._
+import UnivariateAffineEnclosure._
 
 trait SolveVtE {
 
@@ -11,13 +12,34 @@ trait SolveVtE {
     T: Interval,
     q: Mode,
     Y: UnivariateAffineEnclosure)(implicit rnd: Rounding): Outcome = {
+    /**
+     * This is likely where we get the issues with enclosures exploding from. The
+     * events that are deemed possible are determined by evaluating the guard over
+     * the range of the enclosure, rather than directly on the enclosure which is
+     * a major source of imprecision!
+     */
     val events = H.events.filter(e => e.sigma == q && H.guards(e)(Y.range) != Set(false))
-    if (events.isEmpty) {
-      MaybeOneOf(events)
-    } else {
-      if (H.domains(q)(Y(Y.domain.high)) == Set(false)) CertainlyOneOf(events)
-      else MaybeOneOf(events)
-    }
+    //    println("E' = " + events)
+    val res =
+      if (events.isEmpty) {
+        MaybeOneOf(events)
+      } else {
+        if (H.domains(q)(Y(Y.domain.high)) == Set(false)) {
+//          println("########## @" + T) // PRINTME
+//          println("invariant:  " + H.domains(q)) // PRINTME
+//          println("Y(" + T.high + "): " + Y(Y.domain.high)) // PRINTME
+//          println("detectNextEvent: " + CertainlyOneOf(events)) // PRINTME
+          CertainlyOneOf(events)
+        } else {
+//          println("########## @" + T) // PRINTME
+//          println("invariant:  " + H.domains(q)) // PRINTME
+//          println("Y(" + T.high + "): " + Y(Y.domain.high)) // PRINTME
+//          println("detectNextEvent: " + MaybeOneOf(events)) // PRINTME
+          MaybeOneOf(events)
+        }
+      }
+    //    println("detected: " + res)
+    res
   }
 
   // TODO add description
@@ -39,9 +61,13 @@ trait SolveVtE {
     }
     if (res != tmp)
       None
-    else
+    else {
+      //      println("######## range of r at " + T + " is " + unionThem(res.prunedEnclosures).head("r").range)
+      //      println(res.maximalSequences.map(v => (v +: v.prefixes).map(_.mayBeLast)).head)
+      //      println(res.endTimeStates.map(_.initialCondition))
       Some((res.endTimeStates, res.prunedEnclosures))
-//      Some((res.endTimeStates, res.enclosures))
+      //      Some((res.endTimeStates, res.enclosures))
+    }
   }
 
 }

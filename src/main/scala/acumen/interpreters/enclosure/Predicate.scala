@@ -28,7 +28,7 @@ abstract class Predicate {
 
   // TODO do something about the code duplication in these instances! 
   /**
-   * Evaluate the predicate by composing with the enclosure and taking the 
+   * Evaluate the predicate by composing with the enclosure and taking the
    * variables to range over the domains of the variables.
    */
   def apply(x: UnivariateAffineEnclosure)(implicit rnd: Rounding): Set[Boolean] = this match {
@@ -44,11 +44,11 @@ abstract class Predicate {
     case _ => sys.error("Predicate.eval: " + this.toString)
   }
 
-  /** 
-   * Compute an interval box wrapping the intersection of x with the support 
-   * of the predicate. 
+  /**
+   * Compute an interval box wrapping the intersection of x with the support
+   * of the predicate.
    */
-  def support(x: Box)(implicit rnd: Rounding): Box = this match {	
+  def support(x: Box)(implicit rnd: Rounding): Box = this match {
     case All(rs) => rs.foldLeft(x)((res, r) => r.support(res))
   }
 
@@ -61,3 +61,19 @@ case class All(conjuncts: Seq[Relation]) extends Predicate {
     case s => s
   }
 }
+
+object PredicateApp extends App {
+  implicit val rnd = Rounding(10)
+
+  val b = Box("r" -> Interval(0, 1), "v" -> Interval(0, 1))
+  val r = Variable("r")
+  val v = Variable("v")
+
+  println(Relation.nonPositive(r - v * v / 2).support(b))
+
+}
+
+
+
+
+

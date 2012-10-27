@@ -53,23 +53,33 @@ case class AffineScalarEnclosure private[enclosure] (
 
   // TODO write tests!
   // TODO add better description!
-  /** 
-   * Contracts the domain by back-propagating the interval ran. 
-   * 
-   * The algorithm uses HC4 style back-propagation, see "Revising hull and box consistency" 
-   * by Benhamou et al, which contracts the domains of variables in an expression using the 
+  /**
+   * Contracts the domain by back-propagating the interval ran.
+   *
+   * The algorithm uses HC4 style back-propagation, see "Revising hull and box consistency"
+   * by Benhamou et al, which contracts the domains of variables in an expression using the
    * constraint that the value of the expression should lie within the ran interval.
    */
-  def contractDomain(ran: Interval)(implicit rnd: Rounding) = {
-    def contractDom(name: VarName): Interval =
-      if (coefficients(name) isZero) normalizedDomain(name)
-      else {
-        // The name term is equal to the range minus the other terms
-        val nameTerm = -AffineScalarEnclosure(domain, normalizedDomain, constant - ran, coefficients - name)
-        val nameVariableDomain = (nameTerm / coefficients(name)).range
-        nameVariableDomain \/ normalizedDomain(name)
-      }
-    normalizedDomain.keys.foldLeft(normalizedDomain) { case (box, name) => box + (name -> (contractDom(name) + domain(name).low)) }
+  def contractDomain(desiredRange: Interval)(implicit rnd: Rounding) = {
+    def contractDom(name: VarName): Interval = {
+      //      println("--------------")
+      //      println("VarName:       " + name)
+
+      val contractedRange = range \/ desiredRange
+      val nameDomain = normalizedDomain(name)
+      val nameCoefficient = coefficients.getOrElse(name, Interval(0))
+      // The name term is equal to the range minus the other terms
+      val nameTerm = -AffineScalarEnclosure(domain, normalizedDomain, constant - contractedRange, coefficients - name).range
+      val contrctedNameTerm = nameTerm \/ (nameCoefficient * nameDomain)
+      if (nameCoefficient isZero) normalizedDomain(name)
+      else normalizedDomain(name) \/ (contrctedNameTerm / nameCoefficient)
+    }
+    //    println("desired range: " + desiredRange)
+    //    println("actual range:  " + this.range)
+    //    println("coefficients:  " + this.coefficients)
+//    if (range disjointFrom desiredRange) domain
+//    else
+      normalizedDomain.keys.foldLeft(normalizedDomain) { case (box, name) => box + (name -> (contractDom(name) + domain(name).low)) }
   }
 
   /**
@@ -94,7 +104,7 @@ case class AffineScalarEnclosure private[enclosure] (
       val width = domain.values.head.width
       val coeffLo = (minAtHi - minAtLo) / width
       val coeffHi = (maxAtHi - maxAtLo) / width
-
+      // FIXME ...
     }
   }
 
@@ -366,4 +376,16 @@ object AffineScalarEnclosure extends Plotter {
     else AffineScalarEnclosure(domain, const, Box(name1 -> m2, name2 -> m1))
   }
 
+}
+
+object PruneTest extends App {
+
+  implicit val rnd = Rounding(10)
+  val dom = Box("x" -> Interval(-1, 0))
+  val x = AffineScalarEnclosure(dom, "x")
+  //  println((x - 1).contractDomain(0))
+  //  println((x * Interval(0, 1) - 1).contractDomain(0))
+  val p = x - (x * x)
+  UnivariateAffineScalarEnclosure.plot(UnivariateAffineScalarEnclosure(p))
+  println("moo = " + p.range)
 }

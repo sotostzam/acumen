@@ -16,6 +16,29 @@ class Box(val self: Map[VarName, Interval]) extends MapProxy[VarName, Interval] 
     box.keys.forall { name => this(name) contains box(name) }
   }
 
+  /** Component-wise union. */
+  def union(that: Box)(implicit rnd: Rounding): Box = {
+    require(keySet == that.keySet)
+    map { case (k, v) => k -> that(k) /\ v }
+  }
+
+  def intersect(that: Box)(implicit rnd: Rounding): Box = {
+    require(keySet == that.keySet)
+    //    map { case (k, v) => k -> (if (v disjointFrom that(k)) v else that(k) /\ v) }
+    map { case (k, v) => k -> that(k) \/ v }
+  }
+
+  /** Split the interval of the 'name' component. */
+  def split(name: VarName)(implicit rnd: Rounding): Set[Box] = {
+    require(keySet contains name)
+    val (l, r) = this(name).split
+    Set(this + (name -> l), this + (name -> r))
+  }
+
+  /** Split the interval of each component. */
+  def split(implicit rnd: Rounding): Set[Box] =
+    foldLeft(Set(this)) { case (res, (name, _)) => res flatMap (_ split name) }
+
 }
 object Box {
 
@@ -27,7 +50,7 @@ object Box {
 
   /**
    * Translate the domain so that each interval is of the form [0,_].
-   * For each interval i in "box", use i.width.high as the new end-point to give a safe 
+   * For each interval i in "box", use i.width.high as the new end-point to give a safe
    * over-approximation of the end-point.
    */
   def normalize(box: Box)(implicit rnd: Rounding): Box = box.mapValues { i => 0 /\ i.width.high }
@@ -45,4 +68,11 @@ object Box {
 
   implicit def toBox(m: Map[VarName, Interval]): Box = new Box(m)
 
+}
+
+object BoxApp extends App {
+  implicit val rnd = Rounding(10)
+  val b1 = Box("y" -> Interval(1), "x" -> Interval(1))
+  val b2 = Box("x" -> Interval(1), "y" -> Interval(1))
+  println(b1 == b2)
 }

@@ -33,13 +33,18 @@ case class Interval private (
   private val lo: Real,
   private val hi: Real)(implicit val rnd: Rounding) {
   import rnd._
+
   def low = Interval(lo)
+
   def high = Interval(hi)
-  def bounds = (Interval(lo), Interval(hi))
+
+  def bounds = (low, high)
+
   def split = {
     val mid = hi.subtract(lo, dn).divide(Interval(2).lo, dn).add(lo, dn)
     (Interval(lo, mid), Interval(mid, hi))
   }
+
   def refine(pieces: Int) = {
     val mesh = width.lo.divide(Interval(pieces).hi, dn)
     (0 until pieces - 1).map {
@@ -48,6 +53,27 @@ case class Interval private (
           lo.add(mesh.multiply(Interval(i).lo, dn), dn), lo.add(mesh.multiply(Interval(i + 1).lo, dn), dn))
     } :+ Interval(lo.add(mesh.multiply(Interval(pieces - 1).lo, dn), dn), hi)
   }
+
+  /** Interval of absolute values of elements in this interval. */
+  def abs = Interval.max(this /\ -this, Interval(0))
+
+  /** Interval of possible square roots elements in this interval. */
+  def sqrt(implicit rnd: Rounding) = {
+    def sqrt(dir: java.math.MathContext)(x: Real) = {
+      val half = new Real(0.5, dir)
+      val xinit = x.round(dir)
+      var res = xinit
+      var tmp = xinit.subtract(xinit, dir) // == 0
+      while (res != tmp) {
+        tmp = res
+        res = half.multiply(res.add(xinit.divide(res, dir), dir), dir)
+      }
+      res
+    }
+    if (this lessThan Interval(0)) sys.error("sqrt is undefined on " + this)
+    else Interval(sqrt(dn)(max(lo,lo.subtract(lo))), sqrt(up)(hi))
+  }
+
   /**
    * Adds that interval to this one.
    *  @param that the interval to add.
@@ -56,6 +82,7 @@ case class Interval private (
    *  precision.
    */
   def +(that: Interval) = Interval(lo.add(that.lo, dn), hi.add(that.hi, up))
+
   /**
    * Subtracts that interval from this one.
    *  @param that the interval to subtract.
@@ -64,11 +91,13 @@ case class Interval private (
    *  given precision.
    */
   def -(that: Interval) = Interval(lo.subtract(that.hi, dn), hi.subtract(that.lo, up))
+
   /**
    * Negation of this interval.
    *  @return an interval which is the negation of this.
    */
   def unary_- = Interval(hi.negate, lo.negate)
+
   /**
    * Multiplies that interval with this one.
    *  @param that the interval to multiply with.
@@ -81,7 +110,12 @@ case class Interval private (
     val prodsUP: List[Real] = List(lo.multiply(that.hi, up), hi.multiply(that.lo, up), hi.multiply(that.hi, up))
     Interval(prodsDN.foldLeft(lo.multiply(that.lo, dn))(min(_, _)), prodsUP.foldLeft(lo.multiply(that.lo, up))(max(_, _)))
   }
+
   def *(that: Double): Interval = this * Interval(that)
+
+  /** Squares this interval. */
+  def square = max(Interval(0), this * this)
+
   /**
    * Divides this interval by that one.
    *  @param that the divisor.
@@ -96,7 +130,9 @@ case class Interval private (
       Interval(divsDN.foldLeft(lo.divide(that.lo, dn))(min(_, _)), divsUP.foldLeft(lo.divide(that.lo, up))(max(_, _)))
     }
   }
+
   def /(that: Double): Interval = this / Interval(that)
+
   /**
    * Take the meet, or g.l.b., of this and that interval.
    *  @param that the interval to take the the meet with.
@@ -107,6 +143,7 @@ case class Interval private (
    *  contains both A and B.
    */
   def /\(that: Interval) = Interval(min(lo, that.lo), max(hi, that.hi))
+
   /**
    * Take the join, or l.u.b., of this and that interval.
    * The intersection of this and that must be non-empty!
@@ -115,11 +152,13 @@ case class Interval private (
    *  and that.
    */
   def \/(that: Interval) = {
-    require(!(this disjointFrom that))
+    require(!(this disjointFrom that), "cannot intersect disjoint intervals " + this + " and " + that)
     Interval(max(lo, that.lo), min(hi, that.hi))
   }
+
   def disjointFrom(that: Interval) =
     that.hi.compareTo(this.lo) < 0 || this.hi.compareTo(that.lo) < 0
+
   /**
    * The width of this interval.
    * @return the least interval containing this.hi-this.lo
@@ -129,6 +168,7 @@ case class Interval private (
    * property: for any interval X it holds that (-X).width == X.width.
    */
   def width = Interval(hi.subtract(lo, dn), hi.subtract(lo, up))
+
   /**
    * Comparison operations on intervals. WARNING!
    * They are not each other's negations. E.g.
@@ -142,25 +182,30 @@ case class Interval private (
    * is true then B lessThan D is true.
    */
   def lessThan(that: Interval) = hi.compareTo(that.lo) < 0
+
   /**
    * property (positive monotonicity): for any intervals A,B,C,D such
    * that A contains B and C contains D it holds that if A lessThanOrEqualTo C
    * is true then B lessThanOrEqualTo D is true.
    */
   def lessThanOrEqualTo(that: Interval) = hi.compareTo(that.lo) <= 0
+
   /**
    * property (positive monotonicity): for any intervals A,B,C,D such
    * that A contains B and C contains D it holds that if A greaterThanOrEqualTo C
    * is true then B greaterThanOrEqualTo D is true.
    */
-  def equalTo(that: Interval) = this == that
+  def equalTo(that: Interval) = (this.lo compareTo that.lo) == 0 && (this.hi compareTo that.hi) == 0
+
   def greaterThanOrEqualTo(that: Interval) = lo.compareTo(that.hi) >= 0
+
   /**
    * property (positive monotonicity): for any intervals A,B,C,D such
    * that A contains B and C contains D it holds that if A greaterThan C
    * is true then B greaterThan D is true.
    */
   def greaterThan(that: Interval) = lo.compareTo(that.hi) > 0
+
   /**
    * Determine if this interval contains that interval.
    * @param that the interval to test containment of.
@@ -170,13 +215,21 @@ case class Interval private (
    *  relation holds!
    */
   def contains(that: Interval) = lo.compareTo(that.lo) <= 0 && that.hi.compareTo(hi) <= 0
+
   def contains(x: Real) = lo.compareTo(x) <= 0 && x.compareTo(hi) <= 0
+
   def contains(x: Double) = {
     val it = Interval(x)
     lo.compareTo(it.lo) <= 0 && it.hi.compareTo(hi) <= 0
   }
 
+  def isThin = (lo compareTo hi) == 0
+
   def isZero = equalTo(Interval(0))
+
+  def almostEqualTo(that: Interval) =
+    (epsilon contains this.low - that.low) && (epsilon contains this.high - that.high)
+
   /**
    * @return a string representation of the interval in the usual
    * notation for closed intervals.
@@ -210,6 +263,15 @@ object Interval {
   implicit def toInterval(x: Real)(implicit rnd: Rounding) = Interval(x)
   implicit def toInterval(x: Double)(implicit rnd: Rounding) = Interval(x)
   implicit def toInterval(x: Int)(implicit rnd: Rounding) = Interval(x)
+  def epsilon(implicit rnd: Rounding) = {
+    val eps = new Real(0.1).pow(rnd.precision - 1, rnd.up)
+    Interval(eps.negate, eps)
+  }
+}
 
-  def zero(implicit rnd: Rounding) = Interval(0)
+object IntervalApp extends App {
+  implicit val rnd = Rounding(10)
+  val left = Interval(2, 4)
+  val right = Interval(1, 2)
+  println(epsilon)
 }

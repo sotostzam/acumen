@@ -23,11 +23,13 @@ case class UnivariateAffineEnclosure private[enclosure] (
   /** The high bound enclosure of this enclosure. */
   def high = UnivariateAffineEnclosure(domain, normalizedDomain, components.mapValues(_.high))
 
+  def isConstant = components.values.forall(_.isConstant)
+
   /** Get the "name" component of the enclosure. */
   def apply(name: VarName): UnivariateAffineScalarEnclosure = components(name)
 
   def varNames = components.keys
-  
+
   /**
    * Evaluate the enclosure at the interval x.
    *
@@ -69,8 +71,9 @@ case class UnivariateAffineEnclosure private[enclosure] (
     UnivariateAffineEnclosure(domain, normalizedDomain,
       components.map { case (name, component) => name -> (component union (that.components(name))) })
   }
+
 }
-object UnivariateAffineEnclosure extends Plotter {
+object UnivariateAffineEnclosure {
 
   /** Convenience method, normalizes the domain. */
   private[enclosure] def apply(domain: Interval, components: Map[VarName, UnivariateAffineScalarEnclosure])(implicit rnd: Rounding): UnivariateAffineEnclosure =
@@ -94,6 +97,12 @@ object UnivariateAffineEnclosure extends Plotter {
       that.domain(name),
       that.normalizedDomain(name),
       that.components.mapValues(UnivariateAffineScalarEnclosure(_)))
+  }
+
+  /** Takes the union of them enclosures */
+  def unionThem(them: Seq[UnivariateAffineEnclosure]): Seq[UnivariateAffineEnclosure] = them match {
+    case l :: (tail @ (r :: rest)) => unionThem((l union r) :: rest)
+    case _ => them
   }
 
 }

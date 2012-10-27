@@ -23,7 +23,9 @@ case class UnivariateAffineScalarEnclosure private[enclosure] (
 
   /** The high bound enclosure of this enclosure. */
   def high = UnivariateAffineScalarEnclosure(domain, normalizedDomain, constant.high, coefficient.high)
-  
+
+  def isConstant = coefficient equalTo 0
+
   // FIXME commented out assertion FOR_NOW to be able to plot
   /**
    * Evaluate the enclosure at the interval x.
@@ -197,7 +199,7 @@ case class UnivariateAffineScalarEnclosure private[enclosure] (
   }
   def /(that: Interval)(implicit rnd: Rounding): UnivariateAffineScalarEnclosure =
     UnivariateAffineScalarEnclosure(domain, normalizedDomain, constant / that, coefficient / that)
-    
+
   // TODO improve description
   /** For plotting */
   def toEnclosure: Enclosure = {

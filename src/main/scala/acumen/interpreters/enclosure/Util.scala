@@ -32,4 +32,10 @@ object Util {
     } finally fw.close
   }
 
+  def fixedPoint[A](f: A => A)(x: A)(implicit rnd: Rounding): A = {
+    val y = f(x)
+    if (x == y) x
+    else fixedPoint(f)(y)
+  }
+
 }

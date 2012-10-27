@@ -51,14 +51,12 @@ case class HybridSystem(
   // computes the set of variables that variable i depends on via fields(e) 
   // property: if i is not in dependentVariables(e)(i) then 
   //           changing x(i) does not change fields(e)(x)
-  def dependentVariables(f: Field)(name: VarName): Set[VarName] = {
-    var current = Set[VarName]()
-    var next = variables(f.components(name))
-    while (current != next) {
-      current = next
-      next ++= current.flatMap(n => dependentVariables(f)(n))
-    }
-    current
+  // FIXME does not detect algebraic loops!!!
+  def dependentVariables(f: Field)(name: VarName): Set[VarName] =
+    dependentVariables0(f)(variables(f.components(name)))
+  def dependentVariables0(f: Field)(seen: Set[VarName]): Set[VarName] = {
+    val deps = seen union seen.flatMap(name => variables(f.components(name)))
+    if (seen == deps) seen else dependentVariables0(f)(deps)
   }
 
   // helper function for dependentVariables
@@ -86,3 +84,13 @@ object HybridSystem {
 
 }
 
+object HybridSystemApp extends App {
+  import HybridSystem._
+  implicit val rnd = Rounding(10)
+  val a = Variable("a")
+  val b = Variable("b")
+  val c = Variable("c")
+  val f = Field(Map("a" -> b,"b" -> a))
+  println(empty.dependentVariables(f)("a"))
+  println(empty.dependentVariables(f)("b"))
+}

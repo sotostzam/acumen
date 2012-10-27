@@ -31,6 +31,7 @@ trait SolveVt {
     n: Int, // maximum number of iterations before inclusion of iterates
     output: String // path to write output 
     )(implicit rnd: Rounding): UnivariateAffineEnclosure = {
+
     val timeName = A.keys.fold("_")(_ + _)
     val a = initialConditionsAsFunctions(timeName, A, T)
     // First approximation of the solution
@@ -41,28 +42,28 @@ trait SolveVt {
     var current = Y0
     var next = Q(current)
     var i = 0
-    while (!current.contains(next) && !iterationLimitReached(i, n)) {
+    while (!current.contains(next) && !iterationLimitReached(i, n)(T)) {
       current = next
       next = Q(current)
       i += 1
     }
     improveApproximation(current, Q, m) // Apply the Picard operator an additional m times
-    UnivariateAffineEnclosure(convertToSolutionOnlyOfT(current, timeName, T))
+    UnivariateAffineEnclosure(convertToSolutionOnlyOfTime(current, timeName, T))
   }
 
   /**
    * Iteration may not terminate (e.g. when F is not Leipzig) and is stopped
    * after n attempts.
    */
-  private def iterationLimitReached(i: Int, n: Int)(implicit rnd: Rounding) =
-    if (i < n) false else sys.error("solveVt: terminated after " + n + " Picard iterations")
+  private def iterationLimitReached(i: Int, n: Int)(T: Interval)(implicit rnd: Rounding) =
+    if (i < n) false else sys.error("solveVt: terminated at " + T + " after " + n + " Picard iterations")
 
   /**
    * Obtain a solution approximation that is a function of 't' only.
    * Naively, this could be thought of as replacing each occurrence of a_i
    * in the solution with its corresponding A_i.
    */
-  private def convertToSolutionOnlyOfT(approx: AffineEnclosure, timeName: VarName, T: Interval)(implicit rnd: Rounding) = {
+  private def convertToSolutionOnlyOfTime(approx: AffineEnclosure, timeName: VarName, T: Interval)(implicit rnd: Rounding) = {
     val onNornaizedDomain = approx.collapse((approx.domain.keys.toList - timeName): _*)
     AffineEnclosure(
       onNornaizedDomain.domain.mapValues(_ => T), // assuming only variable is timeName

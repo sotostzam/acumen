@@ -239,9 +239,78 @@ object AffineScalarEnclosureUnitTest extends Properties("AffineScalarEnclosure.U
     val box = Box("l" -> Interval(4, 5))
     val l = AffineScalarEnclosure(box, "l")
     val e = l * l
-    println("e.enclosureEval(box)" + e(box))
+    //    println("e.enclosureEval(box)" + e(box))
     Interval(15.75, 25) contains e(box)
   }
 
-}
+  def x(b: Box) = AffineScalarEnclosure(b, "x")
+  def y(b: Box) = AffineScalarEnclosure(b, "y")
 
+  property("contract linear 1") = {
+    val dom = Box("x" -> Interval(0, 1), "y" -> Interval(1, 2))
+    def e(b: Box) = x(b) - y(b)
+    val cdom = e(dom).contractDomain(0)
+    cdom("x") == Interval(1) && cdom("y") == Interval(1)
+  }
+
+  property("contract linear 2") = {
+    val dom = Box("x" -> Interval(0, 1), "y" -> Interval(0, 1))
+    def e(b: Box) = x(b) * 3 - y(b)
+    val cdom = e(dom).contractDomain(0)
+    (cdom("x") contains Interval(0, 1) / 3) &&
+      !(cdom("x") contains Interval(2, 3) / 3)
+  }
+
+  property("contract affine 1") = {
+    val dom = Box("x" -> Interval(0, 3))
+    def e(b: Box) = x(b) - 1
+    val cdom = e(dom).contractDomain(0)
+    cdom("x") == Interval(1)
+  }
+
+  property("contract affine 2") = {
+    val dom = Box("x" -> Interval(0, 3))
+    def e(b: Box) = x(b) * 2 - 1
+    val cdom = e(dom).contractDomain(0)
+    cdom("x") == Interval(0.5)
+  }
+
+  property("contract quadratic(x) 1") = {
+    val dom = Box("x" -> Interval(0, 3))
+    def e(b: Box) = x(b) * x(b) - x(b)
+    val cdom = e(dom).contractDomain(0)
+    (cdom("x") contains Interval(0, 1)) &&
+      !(cdom("x") contains Interval(2, 3))
+  }
+
+  property("contract quadratic(x) 2") = {
+    val dom = Box("x" -> Interval(1, 2))
+    def e(b: Box) = x(b) * x(b)
+    var tmp = dom
+    var res = e(tmp).contractDomain(2)
+    var iters = 1
+    while (tmp != res) {
+      println(res + " after " + iters + " iterations")
+      tmp = res
+      res = e(res).contractDomain(2)
+      iters += 1
+    }
+    !(res("x") contains Interval(1, 1.4142)) && !(res("x") contains Interval(1.4143, 2))
+  }
+
+  property("contract quadratic(x,y) 1") = {
+    val dom = Box("x" -> Interval(0, 2), "y" -> Interval(0, 2))
+    def e(b: Box) = x(b) * x(b) + y(b) * y(b)
+    var tmp = dom
+    var res = e(tmp).contractDomain(1)
+    var iters = 1
+    while (tmp != res) {
+      println(res + " after " + iters + " iterations")
+      tmp = res
+      res = e(res).contractDomain(1)
+      iters += 1
+    }
+    false
+  }
+
+}

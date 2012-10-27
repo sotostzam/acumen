@@ -158,16 +158,19 @@ case class AffineEnclosure private[enclosure] (
 object AffineEnclosure extends Plotter {
 
   /** Convenience method, normalizes the domain. */
-  private[enclosure] def apply(domain: Box, components: Map[VarName, AffineScalarEnclosure])(implicit rnd:Rounding): AffineEnclosure =
+  private[enclosure] def apply(domain: Box, components: Map[VarName, AffineScalarEnclosure])(implicit rnd: Rounding): AffineEnclosure =
     AffineEnclosure(domain, Box.normalize(domain), components)
 
   /** Lifts a constant interval box to a constant enclosure. */
-  def apply(domain: Box, constant: Box)(implicit rnd:Rounding): AffineEnclosure = {
+  def apply(domain: Box, constant: Box)(implicit rnd: Rounding): AffineEnclosure = {
     AffineEnclosure(domain, constant.mapValues(interval => AffineScalarEnclosure(domain, interval)))
   }
 
   //TODO Check that the below comment is correct.
-  /** Lifts a collection "names" of variables in the domain to a thin enclosure consisting of identity functions over the corresponding box. */
+  /**
+   * Lifts a collection "names" of variables in the domain to a thin enclosure consisting of identity
+   * functions over the corresponding box.
+   */
   def apply(domain: Box, names: VarName*)(implicit rnd: Rounding): AffineEnclosure = {
     assert(names.forall(name => domain contains name),
       "Projecting is only possible for variables in the domain.")

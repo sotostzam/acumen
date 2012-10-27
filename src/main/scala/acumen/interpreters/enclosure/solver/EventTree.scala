@@ -111,15 +111,20 @@ case class EventTree(
     def newSequences(v: EventSequence, es: Set[Event]) = {
       es.map { e =>
         {
-          val A = H.resets(e)(H.guards(e).support(v.enclosure.range))
+          //          println("Guard:   " + H.guards(e))
+          //          println("Box:     " + v.enclosure.range)
+          //          println("Support: " + H.guards(e).support(v.enclosure.range))
+          val A = H.domains(e.tau).support(H.resets(e)(H.guards(e).support(v.enclosure.range)))
           val N = solveVt(H.fields(e.tau), T, A, delta, m, n, output).range
           val lastEvent = e
+          //          println("Domain:  " + H.domains(e.tau))
+          //          println("Box:     " + N)
+          //          println("Support: " + H.domains(e.tau).support(N))
           val affines = onlyUpdateAffectedComponents(e, v.enclosure, H.domains(e.tau).support(N))
           val enclosure = UnivariateAffineEnclosure(v.domain, affines)
           val mayBeLast = false
           val prefix = v
-          NonemptySequence(lastEvent, enclosure, mayBeLast, prefix).
-            asInstanceOf[EventSequence]
+          NonemptySequence(lastEvent, enclosure, mayBeLast, prefix).asInstanceOf[EventSequence]
         }
       }
     }
@@ -196,11 +201,11 @@ case class EventTree(
     sequences.map(_.enclosure).toSeq
   }
 
-  /** 
+  /**
    * Takes the box-hull of enclosures for non-empty event sequences
    * and intersects with the target mode domain invariant.
-   * 
-   * This has the effect of "shaving off" of the parts of enclosures that e.g. 
+   *
+   * This has the effect of "shaving off" of the parts of enclosures that e.g.
    * in the bouncing ball example "dip below" the ground.
    */
   def prunedEnclosures(implicit rnd: Rounding): Seq[UnivariateAffineEnclosure] =

@@ -26,7 +26,7 @@ case class Field(components: Map[VarName, Expression]) {
 }
 
 object Field {
-
+ 
   /** The identity field, returns its argument when evaluated. */
   // TODO test the description.
   def id(names: Set[VarName]) = Field(names.map(name => name -> Variable(name)).toMap)

@@ -6,7 +6,7 @@ import util.Canonical._
 import Types._
 import ui.TraceModel
 import acumen.interpreters.Common.classDef
-import acumen.interpreters.enclosure.solver.Solver
+import acumen.interpreters.enclosure.solver._
 import acumen.interpreters.enclosure.solver.HybridSystem
 import acumen.ui.EnclosureTraceModel
 import acumen.ui.EnclosureTraceData
@@ -20,7 +20,7 @@ abstract class EnclosureInterpreterCallbacks extends InterpreterCallbacks {
 /**
  * Proxy for the enclosure-based solver.
  */
-object Interpreter extends acumen.Interpreter with Solver with Transform {
+object Interpreter extends acumen.Interpreter with Solver with Extract {
 
   def newTraceModel = new EnclosureTraceModel
 
@@ -45,7 +45,7 @@ object Interpreter extends acumen.Interpreter with Solver with Transform {
       ps.maxEventTreeSize,
       ps.minTimeStep,
       ps.maxTimeStep,
-      ps.simulationTime,
+      ps.minImprovement,
       "output",
       cb)
   }
@@ -75,7 +75,7 @@ object Interpreter extends acumen.Interpreter with Solver with Transform {
 
 }
 
-object BBA extends App with Transform {
+object BBA extends App with Extract {
 
   val txt = """
 class Main(simulator)
@@ -105,7 +105,7 @@ end
 
 }
 
-object Ticker extends App with Transform {
+object Ticker extends App with Extract {
 
   val txt = """
 class Main(simulator) 
