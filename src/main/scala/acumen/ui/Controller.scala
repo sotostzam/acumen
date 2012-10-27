@@ -48,6 +48,7 @@ class Controller extends DaemonActor {
     println("State Now: " + s)
     if (state != s) {
       state = s
+      println("Acumen Actor State: " + Acumen.actor.getState)
       Acumen.actor ! StateChanged(state)
       if (state == Stopped) {
         unlink(producer)
@@ -86,8 +87,11 @@ class Controller extends DaemonActor {
           newState = Resuming
           println("PLAY")
           if (producer == null) {
+            println("No Producer Requesting Init")
+            println("Acumen.actor state: " + Acumen.actor.getState)
             Acumen.actor ! SendInit
           } else {
+            println("Producer State: " + producer.getState)
             producer ! IC.GoOn
             setState(Resuming)
           }
@@ -109,9 +113,11 @@ class Controller extends DaemonActor {
         case Stop  => 
           println("STOP")
           if (producer == null) {
+            println("No producer.")
             setState(Stopped)
           } else {
             println("Sending Stop")
+            println("Producer State: " + producer.getState)
             producer ! IC.Stop
             newState = Stopped
           }
