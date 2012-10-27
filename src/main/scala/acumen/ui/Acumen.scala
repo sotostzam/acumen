@@ -299,7 +299,6 @@ class Acumen extends SimpleSwingApplication {
       link(controller)
       loop {
         react {
-          case msg@StateChanged(st) => println("GM: State Changed!"); publish(msg)
           case Error(e)       => reportError(e)
           case Progress(p)    => statusZone.setProgress(p)
           case ProgressMsg(m) => console.log(m); console.newLine
@@ -308,6 +307,10 @@ class Acumen extends SimpleSwingApplication {
           case EXIT => println("...Exiting UI Actor."); exit
 
           case SendInit => controller ! Init(codeArea.text, interpreter)
+
+          case msg : Event => 
+            println("Publishing This Msg: " + msg)
+            publish(msg)
 
           case msg => println("Unknown Msg in GM: " + msg)
         }
