@@ -47,7 +47,7 @@ class PlotTab extends BorderPanel
 {
   /* for some reason forwarding events causes stack overflows, so we pass
      this to Plotter, which will ask this to publish events ... */
-  /*private*/ val plotter = 
+  /*private*/ val plotPanel = 
     new PlotPanel(this)
 
   val resetZoom = new Action("Reset Zoom") {
@@ -57,17 +57,17 @@ class PlotTab extends BorderPanel
   }
   val zoomIn = new Action("Zoom In") {
     icon = Icons.zoomIn
-    def apply = plotter.zoom(1.5)
+    def apply = plotPanel.zoom(1.5)
     toolTip = "Zoom In"
   }
   val zoomOut = new Action("Zoom Out") {
     icon = Icons.zoomOut
-    def apply = plotter.zoom(1/1.5) 
+    def apply = plotPanel.zoom(1/1.5) 
     toolTip = "Zoom Out"
   }
   val undo = new Action("Undo") {
     icon = Icons.undo
-    def apply = plotter.undo
+    def apply = plotPanel.undo
     toolTip = "Undo Previous Action"
   }
   val saveAs = new Action("Save As") {
@@ -119,7 +119,7 @@ class PlotTab extends BorderPanel
         currentDir = f.getParentFile
         currentHeight  = heightSpin.getValue.asInstanceOf[Int]
         currentWidth = widthSpin.getValue.asInstanceOf[Int]
-        plotter.render(f, currentWidth, currentHeight)
+        plotPanel.render(f, currentWidth, currentHeight)
         dispose
       }
       val buttons = new FlowPanel(FlowPanel.Alignment.Trailing)(cancel,save)
@@ -139,26 +139,26 @@ class PlotTab extends BorderPanel
   /*private*/ val check = new CheckBox("") { 
     action = Action("Draw") { 
       if (selected) redraw 
-      else plotter.clear
+      else plotPanel.clear
     }
   }
   private val rightBottomButtons =
     new FlowPanel(FlowPanel.Alignment.Leading)(check, b5, b1, b2, b3, b4, hint)
 
-  add(plotter, BorderPanel.Position.Center)
+  add(plotPanel, BorderPanel.Position.Center)
   add(rightBottomButtons, BorderPanel.Position.South)
   check.selected = true
   //tmodel.addTableModelListener(this)
 
-  def redraw : Unit = { println("REDRAW (PlotTab)"); plotter.redraw; fit }
-  private def fit = plotter.fit
+  def redraw : Unit = { println("REDRAW (PlotTab)"); plotPanel.redraw; fit }
+  private def fit = plotPanel.fit
   //override def tableChanged(e: TableModelEvent) = 
   //  if (check.selected) redraw
 
-  def toggleSimulator(b:Boolean) = plotter.toggleSimulator(b)
-  def toggleNextChild(b:Boolean) = plotter.toggleNextChild(b)
-  def toggleSeeds(b:Boolean) = plotter.toggleSeeds(b)
-  def setPlotStyle(ps:PlotStyle) = plotter.setPlotStyle(ps)
+  def toggleSimulator(b:Boolean) = plotPanel.toggleSimulator(b)
+  def toggleNextChild(b:Boolean) = plotPanel.toggleNextChild(b)
+  def toggleSeeds(b:Boolean) = plotPanel.toggleSeeds(b)
+  def setPlotStyle(ps:PlotStyle) = plotPanel.setPlotStyle(ps)
 }
 
 

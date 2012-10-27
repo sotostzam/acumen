@@ -167,7 +167,7 @@ class Controller extends DaemonActor {
           tm.fireTableStructureChanged()
         //}
         // FIMXE: Well you know ... (you = kevina)
-        Acumen.ui.traceView.plotter.resetPlotModel(model.getPlotModel,Acumen.ui.traceView.check.selected)
+        Acumen.ui.traceView.plotPanel.resetPlotModel(model.getPlotModel,Acumen.ui.traceView.check.selected)
         //tmodel.fireTableStructureChanged()
       } else {
         println("SKIPPING THIS ROUND!")
