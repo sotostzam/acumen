@@ -43,7 +43,7 @@ class Plotter(tableI: TableInput, plotI: PlotInput)
   var lastMsg: PlotterAction = null
 
   def act() {
-    Supervisor.watch(this, "Plotter")
+    Supervisor.watch(this, "Plotter", {restart})
     waitForMsg()
   }
   

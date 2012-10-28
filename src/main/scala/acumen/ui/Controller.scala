@@ -50,7 +50,7 @@ class Controller extends DaemonActor {
       state = s
       println("Acumen Actor State: " + Acumen.actor.getState)
       Acumen.actor ! StateChanged(state)
-      if (state == Stopped) {
+      if (state == Stopped && producer != null) {
         unlink(producer)
         producer = null
       }
@@ -69,8 +69,9 @@ class Controller extends DaemonActor {
   var newState : AppState = Stopped
 
   def act() {
-    Supervisor.watch(this, "Controller")
+    Supervisor.watch(this, "Controller", {restart})
     trapExit = true
+    setState(Stopped)
     loop {
       react {
         //
@@ -124,11 +125,11 @@ class Controller extends DaemonActor {
         //
         // messages from Producer
         //
-        case IC.Chunk(d) =>
-          println("Chunk")
-          if (newState == Resuming) {println("...GoOn"); if (producer != null /* FIXME: Don't think this should happen*/) producer ! IC.GoOn}
+        case IC.Chunk(d) if sender == producer =>
+          if (newState == Resuming) producer ! IC.GoOn
           if (d != null) flush(d)
           setState(newState)
+        case IC.Chunk(d) => // ignore chunks from supposedly dead producers
         case Exit(_,ue:UncaughtException) =>
           Acumen.actor ! Error(ue.cause)
           setState(Stopped)
