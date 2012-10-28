@@ -25,6 +25,8 @@ case class PointedAtEvent(time:Double, name:String, value:String) extends Event
 
 class PlotPanel(pub:Publisher) extends Panel 
 {
+  import PlotPanel._
+
   background = Color.gray
   peer.setDoubleBuffered(true)
 
@@ -62,6 +64,7 @@ class PlotPanel(pub:Publisher) extends Panel
     drag = None
     resetViewPort(new Rectangle2D.Double(0,0,0,0))
     enabled = false
+    Acumen.publish(Disabled)
   }
 
   def reset = {
@@ -204,8 +207,10 @@ class PlotPanel(pub:Publisher) extends Panel
       reset
     case StateChanged(_:AppState.Playing) => 
       enabled = false
+      Acumen.publish(Disabled)
     case StateChanged(_:AppState.Ready) => 
       enabled = true
+      Acumen.publish(Enabled)
     case m:PlotReady => 
       println("Got PlotReady Message!")
       model = m.model
@@ -340,7 +345,7 @@ class PlotPanel(pub:Publisher) extends Panel
 
   val tableI = new TableInput({() => Acumen.ui.controller.model.getTraceModel})
     
-  val plotter = new PlotActor(tableI,plotI)
+  val plotter = new Plotter(tableI,plotI)
   plotter.start()
   
   def toggleSimulator(b:Boolean) = {
@@ -371,3 +376,8 @@ class PlotPanel(pub:Publisher) extends Panel
   }
 }
 
+object PlotPanel {
+  sealed abstract class State extends Event
+  case object Disabled extends State
+  case object Enabled extends State
+}

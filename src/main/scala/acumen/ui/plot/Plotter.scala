@@ -35,9 +35,11 @@ case class PlotReady(model: PlotModel,
                      newPlot: Boolean) // as oppose to a new view on the existing plot
      extends swing.event.Event
 
-class PlotActor(tableI: TableInput, plotI: PlotInput) 
+class Plotter(tableI: TableInput, plotI: PlotInput) 
   extends DaemonActor with scala.swing.Publisher 
 {
+  import Plotter._
+
   var lastMsg: PlotterAction = null
 
   def act() {
@@ -46,7 +48,7 @@ class PlotActor(tableI: TableInput, plotI: PlotInput)
   }
   
   def waitForMsg() {
-    Acumen.actor ! PlotStateChanged(Ready)
+    Acumen ! Ready
     react {
       case msg : PlotterAction => 
         mergeMsgs(msg)
@@ -67,7 +69,7 @@ class PlotActor(tableI: TableInput, plotI: PlotInput)
         println("SKIPPING PLOT!")
         mergeMsgs(msg)
       case TIMEOUT => 
-        Acumen.actor ! PlotStateChanged(Busy)
+        Acumen ! Busy
         msg match {
           case Refresh => refresh
           case Replot  => replot
@@ -82,7 +84,7 @@ class PlotActor(tableI: TableInput, plotI: PlotInput)
 
   def refresh {
     val tm = tableI.model()
-    Acumen.ui.actor ! TraceModelReady(tm)
+    Acumen ! TraceModelReady(tm)
     replot
   }
 
@@ -91,7 +93,6 @@ class PlotActor(tableI: TableInput, plotI: PlotInput)
 
   def replot = if (plotI.enabled) {
     pm = plotI.model()
-    println("pm = " + pm)
     pd = new PlotData(plotI.parms,pm)
     repaint()
   }
@@ -99,7 +100,14 @@ class PlotActor(tableI: TableInput, plotI: PlotInput)
   def repaint(vp: Rectangle2D = null) = {
     var buf = plotI.buffer()
     val pi = new PlotImage(pd, buf, plotI.plotStyle, vp)
-    Acumen.ui.actor ! PlotReady(pm,pd,pi,vp == null)
+    Acumen ! PlotReady(pm,pd,pi,vp == null)
   }
 }
 
+object Plotter {
+  import scala.swing.event.Event
+
+  abstract sealed class State extends Event
+  case object Ready extends State
+  case object Busy  extends State
+}

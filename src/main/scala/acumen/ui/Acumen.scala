@@ -378,6 +378,9 @@ object Acumen {
 
   var actor : Actor = null
   var pub : Publisher = null
+
+  def ! (e: Any) = actor ! e
+  def publish(e: Event) = pub.publish(e)
 }
 
 object Supervisor extends Actor {

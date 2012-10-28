@@ -43,11 +43,6 @@ case class Lines() extends PlotStyle
 case class Dots() extends PlotStyle
 case class Both() extends PlotStyle
 
-abstract sealed class PlotterState
-case object Ready extends PlotterState
-case object Busy  extends PlotterState
-case class PlotStateChanged(st: PlotterState) extends Event 
-
 class PlotTab extends BorderPanel
 {
   /* for some reason forwarding events causes stack overflows, so we pass
@@ -139,9 +134,10 @@ class PlotTab extends BorderPanel
   private val b3 = new Button(zoomIn) { peer.setHideActionText(true) }
   private val b4 = new Button(zoomOut) { peer.setHideActionText(true) }
   private val b5 = new Button(saveAs) { peer.setHideActionText(true) }
+  buttonsEnabled(false)
   private val hint = new Label("Hint: Right click on image & drag to move")
   /*private*/ val check = new CheckBox("") { 
-    action = Action("Draw") { 
+    action = Action("Draw") {
       plotPanel.plotI.enabled = selected
       if (selected) plotPanel.plotter ! Replot
     }
@@ -153,14 +149,17 @@ class PlotTab extends BorderPanel
   }
   listenTo(Acumen.pub) 
   var appState : AppState = null
-  var plotState : PlotterState = null
+  var plotState : Plotter.State = null
+  var panelState : PlotPanel.State = null
   reactions += {
-    case StateChanged(st)     => appState = st; foo
-    case PlotStateChanged(st) => plotState = st; foo
+    case StateChanged(st)   => appState = st; foo
+    case st:Plotter.State   => plotState = st; foo
+    case st:PlotPanel.State => panelState = st; foo
   }
   def foo = (plotState,appState) match {
-    case (Busy,_:AppState.Playing)  => buttonsEnabled(false)
-    case (Ready,_:AppState.Ready)   => buttonsEnabled(true)
+    case _ if panelState == PlotPanel.Disabled => buttonsEnabled(false)
+    case (Plotter.Busy,_:AppState.Playing)    => buttonsEnabled(false)
+    case (Plotter.Ready,_:AppState.Ready)   => buttonsEnabled(true)
     case _ => 
   }
 
