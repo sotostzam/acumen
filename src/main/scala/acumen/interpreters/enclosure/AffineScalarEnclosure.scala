@@ -377,15 +377,3 @@ object AffineScalarEnclosure extends Plotter {
   }
 
 }
-
-object PruneTest extends App {
-
-  implicit val rnd = Rounding(10)
-  val dom = Box("x" -> Interval(-1, 0))
-  val x = AffineScalarEnclosure(dom, "x")
-  //  println((x - 1).contractDomain(0))
-  //  println((x * Interval(0, 1) - 1).contractDomain(0))
-  val p = x - (x * x)
-  UnivariateAffineScalarEnclosure.plot(UnivariateAffineScalarEnclosure(p))
-  println("moo = " + p.range)
-}

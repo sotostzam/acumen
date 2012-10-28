@@ -3,6 +3,7 @@ package acumen.interpreters.enclosure
 import Interval._
 import acumen.interpreters.enclosure.solver.Plotter
 import acumen.ui.Enclosure
+import java.awt.Color
 
 /**
  * Type to represent functions of a single variable.
@@ -246,17 +247,31 @@ object UnivariateAffineScalarEnclosure extends Plotter {
       that.coefficients(name))
   }
 
-  def plot(them: UnivariateAffineScalarEnclosure*)(implicit rnd: Rounding): Unit =
+//  def plot(them: UnivariateAffineScalarEnclosure*)(implicit rnd: Rounding): Unit =
+//    plot("Picard plotter")(them.map(e => (Color.BLUE, e)): _*)
+
+  def plot(them: (Color, UnivariateAffineScalarEnclosure)*)(implicit rnd: Rounding): Unit =
     plot("Picard plotter")(them: _*)
 
-  def plot(frametitle: String)(them: UnivariateAffineScalarEnclosure*)(implicit rnd: Rounding) = {
+  //  def plot(frametitle: String)(them: UnivariateAffineScalarEnclosure*)(implicit rnd: Rounding) = {
+  //    createFrame(frametitle)
+  //    for (it <- them) {
+  //      def low(t: Double) = it.low(t) match { case Interval(lo, _) => lo.doubleValue }
+  //      def high(t: Double) = it.high(t) match { case Interval(_, hi) => hi.doubleValue }
+  //      val dom = it.domain
+  //      val (lo, hi) = dom match { case Interval(l, h) => (l.doubleValue, h.doubleValue) }
+  //      addFunctionEnclosure(lo, hi, high, low, 0, "")
+  //    }
+  //  }
+
+  private def plot(frametitle: String)(them: (Color, UnivariateAffineScalarEnclosure)*)(implicit rnd: Rounding) = {
     createFrame(frametitle)
-    for (it <- them) {
+    for ((color, it) <- them) {
       def low(t: Double) = it.low(t) match { case Interval(lo, _) => lo.doubleValue }
       def high(t: Double) = it.high(t) match { case Interval(_, hi) => hi.doubleValue }
       val dom = it.domain
       val (lo, hi) = dom match { case Interval(l, h) => (l.doubleValue, h.doubleValue) }
-      addFunctionEnclosure(lo, hi, high, low, 0, "")
+      addColoredFunctionEnclosure(lo, hi, high, low, 0, "", color)
     }
   }
 

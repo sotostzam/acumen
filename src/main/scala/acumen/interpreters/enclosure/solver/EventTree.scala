@@ -8,12 +8,13 @@ import acumen.interpreters.enclosure.Util._
 // TODO add tests
 abstract class EventSequence {
   val enclosure: UnivariateAffineEnclosure
-  var mayBeLast: Boolean
+  val mayBeLast: Boolean
   def sigma: Mode
   def tau: Set[Mode]
   def prefixes: Seq[EventSequence]
   val size: Int
   val domain: Interval
+  def setMayBeLastTo(value: Boolean): EventSequence
 }
 
 /** TODO add description */
@@ -21,12 +22,15 @@ abstract class EventSequence {
 case class EmptySequence(
   val initialMode: Mode,
   val enclosure: UnivariateAffineEnclosure,
-  var mayBeLast: Boolean) extends EventSequence {
+  val mayBeLast: Boolean) extends EventSequence {
   def sigma = initialMode
   def tau = Set(initialMode)
   def prefixes = Seq()
   val size = 0
   val domain = enclosure.domain
+  def setMayBeLastTo(value: Boolean) =
+    if (mayBeLast == value) this
+    else EmptySequence(initialMode, enclosure, value)
 }
 
 /** TODO add description */
@@ -34,13 +38,16 @@ case class EmptySequence(
 case class NonemptySequence(
   val lastEvent: Event,
   val enclosure: UnivariateAffineEnclosure,
-  var mayBeLast: Boolean,
+  val mayBeLast: Boolean,
   val prefix: EventSequence) extends EventSequence {
   def sigma = prefix.sigma
   def tau = Set(lastEvent.tau)
   def prefixes = prefix +: prefix.prefixes
   val size = prefix.size + 1
   val domain = prefix.domain
+  def setMayBeLastTo(value: Boolean) =
+    if (mayBeLast == value) this
+    else NonemptySequence(lastEvent, enclosure, value, prefix)
 }
 
 /** TODO add description */
@@ -108,23 +115,37 @@ case class EventTree(
   /** TODO add description */
   // TODO add tests
   def addLayer(implicit rnd: Rounding): EventTree = {
+
     def newSequences(v: EventSequence, es: Set[Event]) = {
       es.map { e =>
         {
           //          println("Guard:   " + H.guards(e))
           //          println("Box:     " + v.enclosure.range)
           //          println("Support: " + H.guards(e).support(v.enclosure.range))
-          val A = H.domains(e.tau).support(H.resets(e)(H.guards(e).support(v.enclosure.range)))
-          val N = solveVt(H.fields(e.tau), T, A, delta, m, n, output).range
-          val lastEvent = e
-          //          println("Domain:  " + H.domains(e.tau))
-          //          println("Box:     " + N)
-          //          println("Support: " + H.domains(e.tau).support(N))
-          val affines = onlyUpdateAffectedComponents(e, v.enclosure, H.domains(e.tau).support(N))
-          val enclosure = UnivariateAffineEnclosure(v.domain, affines)
-          val mayBeLast = false
-          val prefix = v
-          NonemptySequence(lastEvent, enclosure, mayBeLast, prefix).asInstanceOf[EventSequence]
+          //          println("T: " + T)
+          /**
+           * try-catch HACK, handle this properly by detecting when empty intersections
+           * indicate inconsistent model and when impossible transitions!
+           */
+          try {
+            val A = H.domains(e.tau).support(H.resets(e)(H.guards(e).support(v.enclosure.range)))
+            //          val A = H.domains(e.tau).support(H.resets(e)(H.guards(e).support(v.enclosure.range)))
+            //            println("A: " + A)
+            val N = solveVt(H.fields(e.tau), T, A, delta, m, n, output).range
+            //            println("N: " + N)
+            val lastEvent = e
+            //          println("Domain:  " + H.domains(e.tau))
+            //          println("Box:     " + N)
+            //          println("Support: " + H.domains(e.tau).support(N))
+            val affines = onlyUpdateAffectedComponents(e, v.enclosure, H.domains(e.tau).support(N))
+            //            println("Y(ve): " + affines)
+            val enclosure = UnivariateAffineEnclosure(v.domain, affines)
+            val mayBeLast = false
+            val prefix = v
+            NonemptySequence(lastEvent, enclosure, mayBeLast, prefix).asInstanceOf[EventSequence]
+          } catch {
+            case _ => v
+          }
         }
       }
     }
@@ -134,26 +155,29 @@ case class EventTree(
       if (v.prefixes.exists { w =>
         w.tau == v.tau && w.enclosure.contains(v.enclosure)
       }) {
+        println("\naddLayer: containment!\n") // PRINTME
         Set(v)
       } else {
         val mode = v.tau.head
         val enclosure = v.enclosure
         val decision = detectNextEvent(H, T, mode, enclosure)
+        //        println("\naddLayer: " + decision) // PRINTME
         decision match {
           case CertainlyOneOf(es) => newSequences(v, es)
           case MaybeOneOf(es) => {
             if (es.isEmpty) {
-              v.mayBeLast = true
-              Set(v)
+              Set(v.setMayBeLastTo(true))
             } else {
-              v.mayBeLast = true
-              newSequences(v, es)
+              newSequences(v.setMayBeLastTo(true), es)
             }
           }
         }
       }
     }
-    EventTree(newMaximalSequences, T, H, S, delta, m, n, output)
+
+    val res = EventTree(newMaximalSequences, T, H, S, delta, m, n, output)
+    println("addLayer: " + res)
+    res
   }
 
   /** TODO add description */
@@ -238,7 +262,10 @@ object EventTree extends SolveVt {
     //    println("Yinit = " + enclosure)
     val mayBeLast = false
     val sequences = Set(EmptySequence(mode, enclosure, mayBeLast).asInstanceOf[EventSequence])
-    EventTree(sequences, T, H, S, delta, m, n, output)
+    val res = EventTree(sequences, T, H, S, delta, m, n, output)
+    println("\n############\n")
+    println("initialTree: " + res)
+    res
   }
 
 }

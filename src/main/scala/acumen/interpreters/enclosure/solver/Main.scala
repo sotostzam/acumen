@@ -15,10 +15,10 @@ object PlotTest extends App with SolveVt {
   val K = 30
   val d = 0.1
   val res = solveVt(H.fields(Mode("Fly")), 0 /\ 1.5, Box("x" -> 5, "x'" -> 0), delta, m, n, "output")
-  UnivariateAffineScalarEnclosure.plot(res.components.values.toSeq: _*)
+//  UnivariateAffineScalarEnclosure.plot(res.components.values.toSeq: _*)
 }
 
-object BouncingBall extends App with FixedStepSolver {
+object BouncingBall extends App with Solver {
   implicit val rnd = Rounding(10)
   val H = Systems.BB(10, 0.5)
   val T = Interval(0, 1.5)
@@ -44,10 +44,10 @@ object BouncingBall extends App with FixedStepSolver {
   //    es = es :+ res(i)
   //    i += step
   //  }
-  UnivariateAffineScalarEnclosure.plot(
-    "min time step = " + d +
-      ", target precision = " + targetPrecision +
-      ", produced " + res.size + " enclosures")(res.flatMap(e => Seq(e("x"))): _*)
+//  UnivariateAffineScalarEnclosure.plot(
+//    "min time step = " + d +
+//      ", target precision = " + targetPrecision +
+//      ", produced " + res.size + " enclosures")(res.flatMap(e => Seq(e("x"))): _*)
   //  AffineEnclosure.plot(es: _*)
 }
 
@@ -69,7 +69,7 @@ object TwoTanks extends App with Solver {
   val time = end - start
   println("computed " + res.size + " enclosures in " + time / 1000.0 + " seconds")
   // TODO implement plot for UnivariateAffineEnclosure
-  UnivariateAffineScalarEnclosure.plot(res.flatMap(e => Seq(e("left"), e("right"))): _*)
+//  UnivariateAffineScalarEnclosure.plot(res.flatMap(e => Seq(e("left"), e("right"))): _*)
 }
 
 object Saw extends App with Solver {
@@ -90,6 +90,6 @@ object Saw extends App with Solver {
   val time = end - start
   println("computed " + res.size + " enclosures in " + time / 1000.0 + " seconds")
   // TODO implement plot for UnivariateAffineEnclosure
-  UnivariateAffineScalarEnclosure.plot(res.map(_("x")): _*)
+//  UnivariateAffineScalarEnclosure.plot(res.map(_("x")): _*)
 }
 

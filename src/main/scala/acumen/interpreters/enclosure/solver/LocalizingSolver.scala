@@ -87,7 +87,7 @@ object LocalizingSolverApp extends LocalizingSolver with App {
   val minTimeStep = 0.05
   val maxTimeStep = 0.1
   val result = piecewisePicard(field, 0, 20, 200, minTimeStep, maxTimeStep, "output", Solver.defaultCallback)(initalCondition, time)
-  UnivariateAffineScalarEnclosure.plot(
-    "min time step = " + minTimeStep +
-      " produced " + result.size + " enclosures")(result.flatMap(e => Seq(e("x"))): _*)
+//  UnivariateAffineScalarEnclosure.plot(
+//    "min time step = " + minTimeStep +
+//      " produced " + result.size + " enclosures")(result.flatMap(e => Seq(e("x"))): _*)
 }

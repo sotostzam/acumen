@@ -72,6 +72,19 @@ trait Plotter {
     res
   }
 
+  def addColoredFunctionEnclosure(
+    intervalStart: Double,
+    intervalEnd: Double,
+    upperApproximation: Double => Double,
+    lowerApproximation: Double => Double,
+    //    stepSize: Double,
+    extraSamples: Int,
+    legendLabel: String,
+    color:Color) {
+    addEnclosure(intervalStart, intervalEnd, upperApproximation, lowerApproximation, extraSamples, //stepSize,
+      color, legendLabel)
+  }
+  
   def addFunctionEnclosure(
     intervalStart: Double,
     intervalEnd: Double,

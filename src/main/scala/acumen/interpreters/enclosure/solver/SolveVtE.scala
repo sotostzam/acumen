@@ -22,19 +22,22 @@ trait SolveVtE {
     //    println("E' = " + events)
     val res =
       if (events.isEmpty) {
+        println("\ndetectNextEvent: " + MaybeOneOf(events) + "\n") // PRINTME
         MaybeOneOf(events)
       } else {
         if (H.domains(q)(Y(Y.domain.high)) == Set(false)) {
-//          println("########## @" + T) // PRINTME
-//          println("invariant:  " + H.domains(q)) // PRINTME
-//          println("Y(" + T.high + "): " + Y(Y.domain.high)) // PRINTME
-//          println("detectNextEvent: " + CertainlyOneOf(events)) // PRINTME
+          //          println("########## @" + T) // PRINTME
+          //          println("invariant:  " + H.domains(q)) // PRINTME
+          //          println("Y(" + T.high + "): " + Y(Y.domain.high)) // PRINTME
+          println("\ndetectNextEvent: " + H.domains(q)) // PRINTME
+          println("detectNextEvent: " + "Y(" + T.high + ") = " + Y(Y.domain.high)) // PRINTME
+          println("detectNextEvent: " + CertainlyOneOf(events) + "\n") // PRINTME
           CertainlyOneOf(events)
         } else {
-//          println("########## @" + T) // PRINTME
-//          println("invariant:  " + H.domains(q)) // PRINTME
-//          println("Y(" + T.high + "): " + Y(Y.domain.high)) // PRINTME
-//          println("detectNextEvent: " + MaybeOneOf(events)) // PRINTME
+          //          println("########## @" + T) // PRINTME
+          //          println("invariant:  " + H.domains(q)) // PRINTME
+          //          println("Y(" + T.high + "): " + Y(Y.domain.high)) // PRINTME
+          println("\ndetectNextEvent: " + MaybeOneOf(events) + "\n") // PRINTME
           MaybeOneOf(events)
         }
       }
@@ -63,10 +66,10 @@ trait SolveVtE {
       None
     else {
       //      println("######## range of r at " + T + " is " + unionThem(res.prunedEnclosures).head("r").range)
-      //      println(res.maximalSequences.map(v => (v +: v.prefixes).map(_.mayBeLast)).head)
-      //      println(res.endTimeStates.map(_.initialCondition))
-      Some((res.endTimeStates, res.prunedEnclosures))
-      //      Some((res.endTimeStates, res.enclosures))
+      println("\nsolveVtE: " + res.endTimeStates.map(_.initialCondition)) // PRINTME
+      println("\nsolveVtE: " + res.enclosures)
+      //      Some((res.endTimeStates, res.prunedEnclosures))
+      Some((res.endTimeStates, res.enclosures))
     }
   }
 

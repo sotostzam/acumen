@@ -14,8 +14,64 @@ import acumen.interpreters.enclosure.UnivariateAffineEnclosure
 import TransformTest._
 import acumen.ui.EnclosureTraceModel
 import acumen.ui.PlotEnclosure
+import java.awt.Color
 
 object Sandbox extends App with Extract with Solver {
+
+  val mik1 = """
+////////////////////////////////////////////////////////////////
+// This file is called bouncing_ball_explicit_energy_mik2.acm //
+// It implements the EBB model from the paper.                //
+////////////////////////////////////////////////////////////////
+class Main(simulator)
+  private 
+    mode = "Fly"; 
+    x1 = 5; x1' = 0; x1'' = 0;  
+    r1 = 100; r1' = 0;
+  end
+  simulator.endTime = 3.5;
+  simulator.minTimeStep = 0.01;
+  switch mode
+    case "Fly"
+    assume x1 >= 0 && 0 <= r1 && r1 == x1'*x1' + 20*x1
+      if x1 == 0 && x1' <= 0
+        x1' = -0.5*x1';
+        r1 = [0:0.25]*r1;
+        mode = "Fly";
+      end;
+      x1'' [=] -10;
+      r1'  [=] 0;
+  end
+end
+"""
+
+  val mik2 = """
+////////////////////////////////////////////////////////////////
+// This file is called bouncing_ball_explicit_energy_mik2.acm //
+// It implements the EBB model from the paper.                //
+////////////////////////////////////////////////////////////////
+class Main(simulator)
+  private 
+    mode = "Fly"; 
+    x1 = 5; x1' = 0; x1'' = 0;  
+    r1 = 100; r1' = 0;
+  end
+  simulator.endTime = 3.5;
+  simulator.minTimeStep = 0.5;
+  simulator.maxTimeStep = 1;
+  switch mode
+    case "Fly"
+    assume x1 >= 0 && 0 <= r1 && r1 == x1'*x1' + 20*x1
+      if x1 == 0 && x1' <= 0
+        x1' = -0.5*x1';
+        r1 = 0.25*r1;
+        mode = "Fly";
+      end;
+      x1'' [=] -10;
+      r1'  [=] 0;
+  end
+end
+"""
 
   val tic = """ 
 class Main (simulator)
@@ -147,7 +203,7 @@ class Main(simulator)
 end
 """
 
-  val prog = Parser.run(Parser.prog, tic)
+  val prog = Parser.run(Parser.prog, mik1)
   val des = Desugarer.run(prog)
   val main = classDef(ClassName("Main"), des)
 
@@ -172,6 +228,7 @@ end
   val end = System.currentTimeMillis
   val time = end - start
   println("computed " + res.size + " enclosures in " + time / 1000.0 + " seconds")
-  UnivariateAffineScalarEnclosure.plot(res.map(_("x")): _*)
+  UnivariateAffineScalarEnclosure.plot(
+    res.map(e => (Color.BLUE, e("x1"))) ++ res.map(e => (new Color(0, 127, 0), e("x1'"))) ++ res.map(e => (Color.RED, e("r1"))): _*)
 
 }

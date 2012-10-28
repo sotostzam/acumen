@@ -103,11 +103,31 @@ abstract class Relation extends Contract {
    * as the relation is evaluated over the domains of variables, i.e. sets of reals.
    */
   def apply(x: UnivariateAffineEnclosure)(implicit rnd: Rounding): Set[Boolean] = this match {
-    case BinaryRelation(relname, l, r) => relname match {
-      case Le => UnaryRelation(Negative, l - r)(x)
-      case Leq => UnaryRelation(NonPositive, l - r)(x)
-      case Le => UnaryRelation(EqualToZero, l - r)(x)
-    }
+    case BinaryRelation(relname, l, r) =>
+      val left = l(x)
+      val right = r(x)
+      val (lo, hi) = x.domain.bounds
+      relname match {
+        case Le =>
+          if ((left(lo) lessThan right(lo)) && (left(hi) lessThan right(hi))) Set(true)
+          else if ((left(lo) greaterThanOrEqualTo right(lo)) && (left(hi) greaterThanOrEqualTo right(hi))) Set(false)
+          else Set(true, false)
+        case Leq =>
+          if ((left(lo) lessThanOrEqualTo right(lo)) && (left(hi) lessThanOrEqualTo right(hi))) Set(true)
+          else if ((left(lo) greaterThan right(lo)) && (left(hi) greaterThan right(hi))) Set(false)
+          else Set(true, false)
+        case Eq =>
+          if (((left(lo) lessThanOrEqualTo right(lo)) && (left(hi) greaterThanOrEqualTo right(hi))) ||
+            ((left(lo) greaterThanOrEqualTo right(lo)) && (left(hi) lessThanOrEqualTo right(hi)))) Set(true)
+          else if (((left(lo) lessThan right(lo)) && (left(hi) lessThan right(hi))) ||
+            ((left(lo) greaterThan right(lo)) && (left(hi) greaterThan right(hi)))) Set(false)
+          else Set(true, false)
+      }
+    //    case BinaryRelation(relname, l, r) => relname match {
+    //      case Le => UnaryRelation(Negative, l - r)(x)
+    //      case Leq => UnaryRelation(NonPositive, l - r)(x)
+    //      case Eq => UnaryRelation(EqualToZero, l - r)(x)
+    //    }
     case UnaryRelation(relname, e) => {
       val value = e(x).range
       relname match {
@@ -145,10 +165,10 @@ abstract class Relation extends Contract {
   def support(x: Box)(implicit rnd: Rounding): Box = {
     this match {
       case BinaryRelation(relname, l, r) =>
-        val res = contract(this)(x)
-        require(x contains res)
         //        println("support of: " + this)
         //        println("over:       " + x)
+        val res = contract(this)(x)
+        require(x contains res)
         //        println("is:         " + res)
         res
       case UnaryRelation(relname, e) =>

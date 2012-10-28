@@ -65,7 +65,7 @@ trait Solver extends SolveVtE {
         val onlT = Ss.map(solveVtE(H, lT, _, delta, m, n, K, output, cb.log))
         if (onlT contains None) {
           cb.sendResult(resultForT._2)
-//          println("solveHybrid: @" + T + ": " + resultForT._1.head.initialCondition) //  PRINTME
+          //          println("solveHybrid: @" + T + ": " + resultForT._1.head.initialCondition) //  PRINTME
           resultForT
         } else {
           val (endStatesOnlT, enclosuresOnlT) =
@@ -105,13 +105,15 @@ trait Solver extends SolveVtE {
                 improvement lessThanOrEqualTo minImprovement
               }) {
               cb.sendResult(resultForT._2)
-//              println("solveHybrid: @" + T + ": " + resultForT._1.head.initialCondition) //  PRINTME
+              println("solveHybrid: logged results for " + T) //  PRINTME
+              println("solveHybrid: " + resultForT._1.head.initialCondition) //  PRINTME
+              println("solveHybrid: " + resultForT._2) //  PRINTME
               resultForT
             } else {
               //            cb.log("splitting " + T)
               val (ssl, ysl) = solveHybrid(H, lT, Ss, delta, m, n, K, d, e, minImprovement, output, cb)
               val (ssr, ysr) = solveHybrid(H, rT, ssl, delta, m, n, K, d, e, minImprovement, output, cb)
-//                            println("solveHybrid: @" + T + ": " + ssr.head.initialCondition)  //  PRINTME
+              //                            println("solveHybrid: @" + T + ": " + ssr.head.initialCondition)  //  PRINTME
               (ssr, ysl ++ ysr)
             }
           }
