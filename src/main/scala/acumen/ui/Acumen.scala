@@ -36,6 +36,44 @@ import swing.event._
 
 class Acumen extends SimpleSwingApplication {
 
+  Acumen.ui = this
+
+  // Create a special actor to listen to events from other threads
+
+  case object EXIT
+  val actor = new Actor with Publisher {
+    override val scheduler = new SchedulerAdapter {
+      def execute(fun: => Unit) { Swing.onEDT(fun) }
+    }
+    
+    def act() {
+      Supervisor.watch(this, "Main UI")
+      trapExit = true
+      link(controller)
+      loop {
+        react {
+          case Error(e)       => reportError(e)
+          case Progress(p)    => statusZone.setProgress(p)
+          case ProgressMsg(m) => console.log(m); console.newLine
+          case Progress3d(p)  => threeDtab.setProgress(p)
+
+          case EXIT => println("...Exiting UI Actor."); exit
+
+          case SendInit => controller ! Init(codeArea.text, interpreter)
+
+          case msg : Event => 
+            println("Publishing This Msg: " + msg)
+            publish(msg)
+
+          case msg => println("Unknown Msg in GM: " + msg)
+        }
+      }
+    }
+  }
+  
+  Acumen.actor = actor
+  Acumen.pub   = actor
+
   /* ---- state variables ---- */
   val controller = new Controller
   var lastNumberOfThreads = 2
@@ -284,40 +322,6 @@ class Acumen extends SimpleSwingApplication {
 
   controller.start()
 
-  // Create a special actor to listen to events from other threads
-
-  case object EXIT
-  val actor = new Actor with Publisher {
-    override val scheduler = new SchedulerAdapter {
-      def execute(fun: => Unit) { Swing.onEDT(fun) }
-    }
-    start()
-    
-    def act() {
-      Supervisor.watch(this, "Main UI")
-      trapExit = true
-      link(controller)
-      loop {
-        react {
-          case Error(e)       => reportError(e)
-          case Progress(p)    => statusZone.setProgress(p)
-          case ProgressMsg(m) => console.log(m); console.newLine
-          case Progress3d(p)  => threeDtab.setProgress(p)
-
-          case EXIT => println("...Exiting UI Actor."); exit
-
-          case SendInit => controller ! Init(codeArea.text, interpreter)
-
-          case msg : Event => 
-            println("Publishing This Msg: " + msg)
-            publish(msg)
-
-          case msg => println("Unknown Msg in GM: " + msg)
-        }
-      }
-    }
-  }
-
   listenTo(actor)
   reactions += {
     case StateChanged(st) => 
@@ -355,13 +359,9 @@ class Acumen extends SimpleSwingApplication {
       //model.fireTableStructureChanged()
   }
 
-  /* ----- stuff that should't be here ---- */
-  upperButtons.listenTo(actor)
-  codeArea.listenTo(actor)
-  traceView.plotPanel.listenTo(actor)
-  
   /* ----- initialisation ----- */
-  
+
+  actor.start()
   codeArea.listenDocument
   console.log("<html>Welcome to Acumen.<br/>"+
               "Please see LICENSE file for licensing details.</html>")
@@ -370,17 +370,13 @@ class Acumen extends SimpleSwingApplication {
 }
 
 object Acumen {
-
   def init = {
-    ui = new Acumen
-    actor = ui.actor
+    new Acumen // the initialization will set the members below
   }
   
   var ui : Acumen = null
   var actor : Actor = null
-
-
-
+  var pub : Publisher = null
 }
 
 object Supervisor extends Actor {

@@ -172,6 +172,7 @@ class CodeArea extends EditorPane {
 
   def withErrorReporting(action: => Unit) = Acumen.ui.withErrorReporting(action)
 
+  listenTo(Acumen.pub)
   reactions += {
     case StateChanged(st) => 
       st match {

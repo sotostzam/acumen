@@ -143,10 +143,12 @@ class PlotTab extends BorderPanel
   }
   private val rightBottomButtons =
     new FlowPanel(FlowPanel.Alignment.Leading)(check, b5, b1, b2, b3, b4, hint)
+  
 
   add(plotPanel, BorderPanel.Position.Center)
   add(rightBottomButtons, BorderPanel.Position.South)
   check.selected = true
+
   //tmodel.addTableModelListener(this)
 
   //private def fit = plotter.fit

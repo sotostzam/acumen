@@ -58,6 +58,7 @@ class ControlButtons extends FlowPanel {
   contents += bStep
   contents += bStop
   
+  listenTo(Acumen.pub)
   reactions += {
     case StateChanged(st) => 
       play.enabled  = st match {case _:AppState.Playing => false; case _ => true}

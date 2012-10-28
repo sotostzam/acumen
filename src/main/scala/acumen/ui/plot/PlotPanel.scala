@@ -197,10 +197,15 @@ class PlotPanel(pub:Publisher) extends Panel
   listenTo(mouse.clicks)
   //listenTo(mouse.wheel)
   listenTo(this)
+  listenTo(Acumen.pub)
 
   reactions += {
     case StateChanged(AppState.Starting) => 
       reset
+    case StateChanged(_:AppState.Playing) => 
+      enabled = false
+    case StateChanged(_:AppState.Ready) => 
+      enabled = true
     case m:PlotReady => 
       println("Got PlotReady Message!")
       model = m.model
@@ -208,10 +213,9 @@ class PlotPanel(pub:Publisher) extends Panel
       pi = m.image
       if (m.newPlot)
         resetViewPort(pi.viewPort)
-      enabled = true
       repaint
 
-    case MouseMoved(_, p, _) if (enabled) => 
+    case MouseMoved(_, p, _) => 
       if (pd.columnIndices.size > 0) {
         // p in the original coordinate system
         val op = unapplyTr(p)
