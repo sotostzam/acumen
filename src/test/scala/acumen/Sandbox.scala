@@ -18,6 +18,34 @@ import java.awt.Color
 
 object Sandbox extends App with Extract with Solver {
 
+  val convergent = """
+//////////////////////////////////////////////////////////////////////
+// This file is called bouncing_ball_explicit_energy_convergent.acm //
+// It implements a version of the EBB model from the paper.         //
+//////////////////////////////////////////////////////////////////////
+class Main(simulator)
+  private 
+    mode = "Fly"; 
+    x = 5; x' = 0; x'' = 0;  
+    r = 100; r' = 0;
+  end
+  simulator.endTime = 4.5;
+  simulator.minTimeStep = 0.0001;
+  simulator.maxTimeStep = 0.1;
+  switch mode
+    case "Fly" 
+    assume x >= 0 && r == x'*x' + 20*x
+      if x == 0 && x' <= 0
+        x' = -0.5*x';
+        r = [0:0.25]*r;
+        mode = "Fly";
+      end;
+      x'' [=] -10;
+      r'  [=] 0;
+  end
+end
+"""
+  
   val mik1 = """
 ////////////////////////////////////////////////////////////////
 // This file is called bouncing_ball_explicit_energy_mik2.acm //
