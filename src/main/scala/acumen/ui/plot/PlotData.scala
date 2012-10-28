@@ -193,7 +193,6 @@ class PlotData(parms: PlotParms = null, tb:PlotModel = null)
 
   if (tb == null || tb.isEmpty) ()
   else {
-    printf("REDRAWING NOW!!!!")
 
     time = tb.getTimes()
     traceViewTime = tb.getTraceViewTimes()
@@ -271,7 +270,6 @@ class PlotImage(pd: PlotData,
   {
     val tr = transform
 
-    //println("The Transform: " + tr)
     val bg = buf.getGraphics.asInstanceOf[Graphics2D]
     bg.setRenderingHint(
       RenderingHints.KEY_ANTIALIASING,

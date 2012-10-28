@@ -212,7 +212,7 @@ class PlotPanel(pub:Publisher) extends Panel
       enabled = true
       App.publish(Enabled)
     case m:PlotReady => 
-      println("Got PlotReady Message!")
+      //println("Got PlotReady Message!")
       model = m.model
       pd = m.data
       pi = m.image

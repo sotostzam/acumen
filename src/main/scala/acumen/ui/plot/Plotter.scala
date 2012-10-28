@@ -66,7 +66,7 @@ class Plotter(tableI: TableInput, plotI: PlotInput)
     }
     reactWithin (0) {
       case msg : PlotterAction => 
-        println("SKIPPING PLOT!")
+        //println("SKIPPING PLOT!")
         mergeMsgs(msg)
       case TIMEOUT => 
         App ! Busy

@@ -44,10 +44,10 @@ class Controller extends DaemonActor {
   /* ------ application logic --------- */
 
   private def setState(s: State) = {
-    println("State Now: " + s)
+    //println("State Now: " + s)
     if (state != s) {
       state = s
-      println("Acumen Actor State: " + actor.getState)
+      //println("Acumen Actor State: " + actor.getState)
       actor ! state
       if (state == Stopped && producer != null) {
         unlink(producer)
@@ -77,7 +77,7 @@ class Controller extends DaemonActor {
         // messages from UI
         //
         case Init(progText, interpreter) => 
-          println("INIT")
+          //println("INIT")
           model = interpreter.newInterpreterModel
           producer = interpreter.init(progText, this)
           link(producer)
@@ -85,24 +85,24 @@ class Controller extends DaemonActor {
           setState(Starting)
         case Play  =>
           newState = Resuming
-          println("PLAY")
+          //println("PLAY")
           if (producer == null) {
-            println("No Producer Requesting Init")
-            println("Acumen.actor state: " + actor.getState)
+            //println("No Producer Requesting Init")
+            //println("Acumen.actor state: " + actor.getState)
             actor ! SendInit
           } else {
-            println("Producer State: " + producer.getState)
+            //println("Producer State: " + producer.getState)
             producer ! IC.GoOn
             setState(Resuming)
           }
         case Pause => 
-          println("PAUSE")
+          //println("PAUSE")
           if (producer != null)
             producer ! IC.Flush
           newState = Paused
-          println("^^^PAUSE^^^\n")
+          //println("^^^PAUSE^^^\n")
         case Step  => 
-          println("STEP")
+          //println("STEP")
           newState = Paused
           if (producer == null) {
             actor ! SendInit
@@ -111,13 +111,13 @@ class Controller extends DaemonActor {
             setState(Resuming)
           }
         case Stop  => 
-          println("STOP")
+          //println("STOP")
           if (producer == null) {
             println("No producer.")
             setState(Stopped)
           } else {
-            println("Sending Stop")
-            println("Producer State: " + producer.getState)
+            //println("Sending Stop")
+            //println("Producer State: " + producer.getState)
             producer ! IC.Stop
             newState = Stopped
           }
@@ -133,7 +133,7 @@ class Controller extends DaemonActor {
           actor ! Error(ue.cause)
           setState(Stopped)
         case msg@(IC.Done | Exit(_,_)) => 
-          println("Done|Exit: " + msg)
+          //println("Done|Exit: " + msg)
           setState(Stopped)
         
         //
