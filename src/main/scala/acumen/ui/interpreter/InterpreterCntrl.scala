@@ -12,8 +12,8 @@ abstract class InterpreterActor(val progText : String, val consumer : Actor) ext
   // the actor may also use this method to emit optional messages to
   // the console
 
-  def emitError(e:Throwable) = Acumen.actor ! Error(e)
-  def emitProgressMsg(msg:String) = Acumen.actor ! ProgressMsg(msg)
+  def emitError(e:Throwable) = App.actor ! Error(e)
+  def emitProgressMsg(msg:String) = App.actor ! ProgressMsg(msg)
 
   // do not override this, see parse() and produce() instead
   

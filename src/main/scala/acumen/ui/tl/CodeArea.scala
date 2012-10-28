@@ -98,7 +98,7 @@ class CodeArea extends EditorPane {
       })
 
   def newFile : Unit = withErrorReporting {
-    if (!editedSinceLastSave || confirmContinue(Acumen.ui.body.peer)) {
+    if (!editedSinceLastSave || confirmContinue(App.ui.body.peer)) {
       text = ""
       listenDocument
       setCurrentFile(None)
@@ -107,9 +107,9 @@ class CodeArea extends EditorPane {
   }
 
   def openFile(path: File) : Unit = withErrorReporting {
-    if (!editedSinceLastSave || confirmContinue(Acumen.ui.body.peer)) {
+    if (!editedSinceLastSave || confirmContinue(App.ui.body.peer)) {
       val fc = new FileChooser(path)
-      val returnVal = fc.showOpenDialog(Acumen.ui.body)
+      val returnVal = fc.showOpenDialog(App.ui.body)
       if (returnVal == FileChooser.Result.Approve) {
         val file = fc.selectedFile
         peer.setPage(file.toURI.toString)
@@ -137,10 +137,10 @@ class CodeArea extends EditorPane {
 
   def saveFileAs : Unit = withErrorReporting {
     val fc = new FileChooser(currentDir)
-    val returnVal = fc.showSaveDialog(Acumen.ui.body)
+    val returnVal = fc.showSaveDialog(App.ui.body)
     if (returnVal == FileChooser.Result.Approve) {
       val file = fc.selectedFile
-      if (!file.exists || confirmSave(Acumen.ui.body.peer, file)) {
+      if (!file.exists || confirmSave(App.ui.body.peer, file)) {
         val writer = new FileWriter(fc.selectedFile)
         writer.write(text)
         writer.close
@@ -170,9 +170,9 @@ class CodeArea extends EditorPane {
     }
   }
 
-  def withErrorReporting(action: => Unit) = Acumen.ui.withErrorReporting(action)
+  def withErrorReporting(action: => Unit) = App.ui.withErrorReporting(action)
 
-  listenTo(Acumen.pub)
+  listenTo(App.pub)
   reactions += {
     case StateChanged(st) => 
       st match {

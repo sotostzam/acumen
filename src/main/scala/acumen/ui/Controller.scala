@@ -48,8 +48,8 @@ class Controller extends DaemonActor {
     println("State Now: " + s)
     if (state != s) {
       state = s
-      println("Acumen Actor State: " + Acumen.actor.getState)
-      Acumen.actor ! StateChanged(state)
+      println("Acumen Actor State: " + App.actor.getState)
+      App.actor ! StateChanged(state)
       if (state == Stopped && producer != null) {
         unlink(producer)
         producer = null
@@ -60,7 +60,7 @@ class Controller extends DaemonActor {
   private def updateProgress(s: TraceData) = {
     val time = s.curTime
     val endTime = s.endTime
-    Acumen.actor ! Progress((time * 100 / endTime).toInt)
+    App.actor ! Progress((time * 100 / endTime).toInt)
   }
 
   /* ------ actor logic ------------ */
@@ -89,8 +89,8 @@ class Controller extends DaemonActor {
           println("PLAY")
           if (producer == null) {
             println("No Producer Requesting Init")
-            println("Acumen.actor state: " + Acumen.actor.getState)
-            Acumen.actor ! SendInit
+            println("Acumen.actor state: " + App.actor.getState)
+            App.actor ! SendInit
           } else {
             println("Producer State: " + producer.getState)
             producer ! IC.GoOn
@@ -106,7 +106,7 @@ class Controller extends DaemonActor {
           println("STEP")
           newState = Paused
           if (producer == null) {
-            Acumen.actor ! SendInit
+            App.actor ! SendInit
           } else {
             producer ! IC.Step
             setState(Resuming)
@@ -131,7 +131,7 @@ class Controller extends DaemonActor {
           setState(newState)
         case IC.Chunk(d) => // ignore chunks from supposedly dead producers
         case Exit(_,ue:UncaughtException) =>
-          Acumen.actor ! Error(ue.cause)
+          App.actor ! Error(ue.cause)
           setState(Stopped)
         case msg@(IC.Done | Exit(_,_)) => 
           println("Done|Exit: " + msg)
@@ -157,7 +157,7 @@ class Controller extends DaemonActor {
     val seqNum = model.incSeqNum()
     model.addData(d)
     // FIXME: This is still sick
-    Acumen.ui.traceView.plotPanel.plotter ! plot.Refresh
+    App.ui.traceView.plotPanel.plotter ! plot.Refresh
       
     Swing.onEDT {
       // d.isInstanceOf[Iterable[CStore]] will not work due to type

@@ -400,7 +400,7 @@ class _3DDisplay(app: ThreeDView, slider: Slider3d,
   }
 
   // Update the slider value
-  private def emitProgress(p: Int) = Acumen.actor ! Progress3d(p)
+  private def emitProgress(p: Int) = App.actor ! Progress3d(p)
   // Fix this code 
   var f3d = new Font3D(new Font("", Font.PLAIN, 1),
     new FontExtrusion());

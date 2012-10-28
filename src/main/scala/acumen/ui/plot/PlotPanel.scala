@@ -46,7 +46,7 @@ class PlotPanel(pub:Publisher) extends Panel
   private var viewPort : Rectangle2D = null
   private val undoStack = new Stack[Rectangle2D] 
 
-  def getModel()  = {Acumen.ui.controller.model.getPlotModel}
+  def getModel()  = {App.ui.controller.model.getPlotModel}
   val plotI = new PlotInput(getModel,mkBuffer)
 
   override def paint(g : Graphics2D) = {
@@ -64,7 +64,7 @@ class PlotPanel(pub:Publisher) extends Panel
     drag = None
     resetViewPort(new Rectangle2D.Double(0,0,0,0))
     enabled = false
-    Acumen.publish(Disabled)
+    App.publish(Disabled)
   }
 
   def reset = {
@@ -200,17 +200,17 @@ class PlotPanel(pub:Publisher) extends Panel
   listenTo(mouse.clicks)
   //listenTo(mouse.wheel)
   listenTo(this)
-  listenTo(Acumen.pub)
+  listenTo(App.pub)
 
   reactions += {
     case StateChanged(AppState.Starting) => 
       reset
     case StateChanged(_:AppState.Playing) => 
       enabled = false
-      Acumen.publish(Disabled)
+      App.publish(Disabled)
     case StateChanged(_:AppState.Ready) => 
       enabled = true
-      Acumen.publish(Enabled)
+      App.publish(Enabled)
     case m:PlotReady => 
       println("Got PlotReady Message!")
       model = m.model
@@ -343,7 +343,7 @@ class PlotPanel(pub:Publisher) extends Panel
   def zoom(factor:Double) = 
     zoomAround(viewPort.getCenterX, viewPort.getCenterY, factor)
 
-  val tableI = new TableInput({() => Acumen.ui.controller.model.getTraceModel})
+  val tableI = new TableInput({() => App.ui.controller.model.getTraceModel})
     
   val plotter = new Plotter(tableI,plotI)
   plotter.start()

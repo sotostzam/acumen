@@ -34,9 +34,9 @@ import swing.event._
 // we make it a seperate class and have GraphicalMain top() method
 // initialize it
 
-class Acumen extends SimpleSwingApplication {
+class App extends SimpleSwingApplication {
 
-  Acumen.ui = this
+  App.ui = App.this
 
   // Create a special actor to listen to events from other threads
 
@@ -69,8 +69,8 @@ class Acumen extends SimpleSwingApplication {
     }
   }
   
-  Acumen.actor = actor
-  Acumen.pub   = actor
+  App.actor = actor
+  App.pub = actor
 
   /* ---- state variables ---- */
   val controller = new Controller
@@ -367,12 +367,12 @@ class Acumen extends SimpleSwingApplication {
   actor.publish(StateChanged(AppState.Stopped))
 }
 
-object Acumen {
+object App {
   def init = {
-    new Acumen // the initialization will set the members below
+    new App // the initialization will set the members below
   }
 
-  var ui : Acumen = null
+  var ui : App = null
 
   var actor : Actor = null
   var pub : Publisher = null

@@ -30,23 +30,23 @@ class ControlButtons extends FlowPanel {
 
   val play = new Action("play") {
     icon = Icons.play
-    def apply = {Acumen.ui.controller.threeDData.reset; Acumen.ui.threeDtab.reset; Acumen.ui.codeArea.autoSave; Acumen.ui.controller ! Play}
+    def apply = {App.ui.controller.threeDData.reset; App.ui.threeDtab.reset; App.ui.codeArea.autoSave; App.ui.controller ! Play}
     toolTip = "Run Simulation"
   }
   val step = new Action("step") {
     icon = Icons.step
-    def apply = { Acumen.ui.codeArea.autoSave; Acumen.ui.controller ! Step }
+    def apply = { App.ui.codeArea.autoSave; App.ui.controller ! Step }
     toolTip = "Compute one simulation step"
   }
   val pause = new Action("pause") {
     icon = Icons.pause
-    def apply = Acumen.ui.controller ! Pause
+    def apply = App.ui.controller ! Pause
     toolTip = "Pause simulation"
 	
   }
   val stop = new Action("stop") {
     icon = Icons.stop    
-    def apply = { println("Controller state = " + Acumen.ui.controller.getState); Acumen.ui.controller ! Stop; }
+    def apply = { println("Controller state = " + App.ui.controller.getState); App.ui.controller ! Stop; }
     toolTip = "Stop simulation (cannot resume)"
   }
 
@@ -58,7 +58,7 @@ class ControlButtons extends FlowPanel {
   contents += bStep
   contents += bStop
   
-  listenTo(Acumen.pub)
+  listenTo(App.pub)
   reactions += {
     case StateChanged(st) => 
       play.enabled  = st match {case _:AppState.Playing => false; case _ => true}

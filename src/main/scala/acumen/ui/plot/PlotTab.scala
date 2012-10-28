@@ -147,7 +147,7 @@ class PlotTab extends BorderPanel
   def buttonsEnabled(v: Boolean) = {
     b1.enabled = v; b2.enabled = v; b3.enabled = v; b4.enabled = v; b5.enabled = v
   }
-  listenTo(Acumen.pub) 
+  listenTo(App.pub) 
   var appState : AppState = null
   var plotState : Plotter.State = null
   var panelState : PlotPanel.State = null

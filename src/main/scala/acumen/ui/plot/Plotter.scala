@@ -48,7 +48,7 @@ class Plotter(tableI: TableInput, plotI: PlotInput)
   }
   
   def waitForMsg() {
-    Acumen ! Ready
+    App ! Ready
     react {
       case msg : PlotterAction => 
         mergeMsgs(msg)
@@ -69,7 +69,7 @@ class Plotter(tableI: TableInput, plotI: PlotInput)
         println("SKIPPING PLOT!")
         mergeMsgs(msg)
       case TIMEOUT => 
-        Acumen ! Busy
+        App ! Busy
         msg match {
           case Refresh => refresh
           case Replot  => replot
@@ -84,7 +84,7 @@ class Plotter(tableI: TableInput, plotI: PlotInput)
 
   def refresh {
     val tm = tableI.model()
-    Acumen ! TraceModelReady(tm)
+    App ! TraceModelReady(tm)
     replot
   }
 
@@ -100,7 +100,7 @@ class Plotter(tableI: TableInput, plotI: PlotInput)
   def repaint(vp: Rectangle2D = null) = {
     var buf = plotI.buffer()
     val pi = new PlotImage(pd, buf, plotI.plotStyle, vp)
-    Acumen ! PlotReady(pm,pd,pi,vp == null)
+    App ! PlotReady(pm,pd,pi,vp == null)
   }
 }
 

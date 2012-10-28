@@ -30,8 +30,8 @@ object GraphicalMain extends SimpleSwingApplication {
   debug.EventDispatchThreadHangMonitor.initMonitoring()
 
   def top = {
-    Acumen.init
-    val ret = Acumen.ui.top
+    App.init
+    val ret = App.ui.top
 
     ret
   }
