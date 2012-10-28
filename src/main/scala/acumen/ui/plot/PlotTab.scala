@@ -43,6 +43,11 @@ case class Lines() extends PlotStyle
 case class Dots() extends PlotStyle
 case class Both() extends PlotStyle
 
+abstract sealed class PlotterState
+case object Ready extends PlotterState
+case object Busy  extends PlotterState
+case class PlotStateChanged(st: PlotterState) extends Event 
+
 class PlotTab extends BorderPanel
 {
   /* for some reason forwarding events causes stack overflows, so we pass
@@ -143,7 +148,21 @@ class PlotTab extends BorderPanel
   }
   private val rightBottomButtons =
     new FlowPanel(FlowPanel.Alignment.Leading)(check, b5, b1, b2, b3, b4, hint)
-  
+  def buttonsEnabled(v: Boolean) = {
+    b1.enabled = v; b2.enabled = v; b3.enabled = v; b4.enabled = v; b5.enabled = v
+  }
+  listenTo(Acumen.pub) 
+  var appState : AppState = null
+  var plotState : PlotterState = null
+  reactions += {
+    case StateChanged(st)     => appState = st; foo
+    case PlotStateChanged(st) => plotState = st; foo
+  }
+  def foo = (plotState,appState) match {
+    case (Busy,_:AppState.Playing)  => buttonsEnabled(false)
+    case (Ready,_:AppState.Ready)   => buttonsEnabled(true)
+    case _ => 
+  }
 
   add(plotPanel, BorderPanel.Position.Center)
   add(rightBottomButtons, BorderPanel.Position.South)
@@ -160,5 +179,4 @@ class PlotTab extends BorderPanel
   def toggleSeeds(b:Boolean) = plotPanel.toggleSeeds(b)
   def setPlotStyle(ps:PlotStyle) = plotPanel.setPlotStyle(ps)
 }
-
 

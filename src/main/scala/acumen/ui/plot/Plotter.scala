@@ -10,7 +10,7 @@ import interpreter._
 
 // Plotter actor primary resposable for plotting but also updating the trace table
 
-abstract sealed case class PlotterAction
+abstract sealed class PlotterAction
 case object Refresh extends PlotterAction // implies repaint
 case object Replot extends PlotterAction // implies repaint
 case class Repaint(viewPort : Rectangle2D) extends PlotterAction
@@ -46,6 +46,7 @@ class PlotActor(tableI: TableInput, plotI: PlotInput)
   }
   
   def waitForMsg() {
+    Acumen.actor ! PlotStateChanged(Ready)
     react {
       case msg : PlotterAction => 
         mergeMsgs(msg)
@@ -66,6 +67,7 @@ class PlotActor(tableI: TableInput, plotI: PlotInput)
         println("SKIPPING PLOT!")
         mergeMsgs(msg)
       case TIMEOUT => 
+        Acumen.actor ! PlotStateChanged(Busy)
         msg match {
           case Refresh => refresh
           case Replot  => replot

@@ -373,8 +373,9 @@ object Acumen {
   def init = {
     new Acumen // the initialization will set the members below
   }
-  
+
   var ui : Acumen = null
+
   var actor : Actor = null
   var pub : Publisher = null
 }
