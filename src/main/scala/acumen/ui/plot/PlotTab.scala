@@ -148,18 +148,21 @@ class PlotTab extends BorderPanel
     b1.enabled = v; b2.enabled = v; b3.enabled = v; b4.enabled = v; b5.enabled = v
   }
   listenTo(App.pub) 
-  var appState : AppState = null
+  var appState : App.State = null
   var plotState : Plotter.State = null
   var panelState : PlotPanel.State = null
   reactions += {
-    case StateChanged(st)   => appState = st; foo
+    case st:App.State       => appState = st; foo
     case st:Plotter.State   => plotState = st; foo
     case st:PlotPanel.State => panelState = st; foo
   }
   def foo = (plotState,appState) match {
-    case _ if panelState == PlotPanel.Disabled => buttonsEnabled(false)
-    case (Plotter.Busy,_:AppState.Playing)    => buttonsEnabled(false)
-    case (Plotter.Ready,_:AppState.Ready)   => buttonsEnabled(true)
+    case _ if panelState == PlotPanel.Disabled => 
+      buttonsEnabled(false)
+    case (Plotter.Busy,_:App.Playing) => 
+      buttonsEnabled(false)
+    case (Plotter.Ready,_:App.Ready) if panelState == PlotPanel.Enabled => 
+      buttonsEnabled(true)
     case _ => 
   }
 

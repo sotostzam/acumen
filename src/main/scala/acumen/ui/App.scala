@@ -35,8 +35,9 @@ import swing.event._
 // initialize it
 
 class App extends SimpleSwingApplication {
+  import App._
 
-  App.ui = App.this
+  App.ui = this
 
   // Create a special actor to listen to events from other threads
 
@@ -55,12 +56,12 @@ class App extends SimpleSwingApplication {
           case ProgressMsg(m) => console.log(m); console.newLine
           case Progress3d(p)  => threeDtab.setProgress(p)
 
-          case EXIT => println("...Exiting UI Actor."); exit
+          case EXIT => exit
 
           case SendInit => controller ! Init(codeArea.text, interpreter)
 
           case msg : Event => 
-            println("Publishing This Msg: " + msg)
+            //println("Publishing This Msg: " + msg)
             publish(msg)
 
           case msg => println("Unknown Msg in GM: " + msg)
@@ -276,7 +277,6 @@ class App extends SimpleSwingApplication {
     //threeDView.exit
     
     if (!codeArea.editedSinceLastSave || codeArea.confirmContinue(body.peer)) {
-      println("Exiting...")
       actor ! EXIT				
       quit
     }
@@ -312,7 +312,7 @@ class App extends SimpleSwingApplication {
 
   /* ----- events handling ---- */
   
-  var state : AppState = AppState.Stopped
+  var state : State = Stopped
   var interpreter : InterpreterCntrl = new CStoreCntrl(interpreters.reference.Interpreter)
   def setInterpreter(i : InterpreterCntrl) = {
     interpreter = i
@@ -322,18 +322,18 @@ class App extends SimpleSwingApplication {
 
   listenTo(actor)
   reactions += {
-    case StateChanged(st) => 
-      println("GM: New State: " + st)
+    case st:State => 
+      //println("GM: New State: " + st)
       st match {
-        case AppState.Stopped =>
+        case Stopped =>
           console.log("Stopped.")
           console.newLine
-        case AppState.Paused =>
+        case Paused =>
           console.log("Paused. ")
           console.newLine
-        case AppState.Starting =>
+        case Starting =>
           console.log("Starting...")
-        case AppState.Resuming if state != AppState.Starting =>
+        case Resuming if state != Starting =>
           console.log("Resuming...")
         case _ =>
       }
@@ -344,11 +344,11 @@ class App extends SimpleSwingApplication {
   val defTableModel = traceTable.model
   traceTable.listenTo(actor)
   traceTable.reactions += {
-    case StateChanged(st) => 
+    case st:State => 
       st match {
-        case AppState.Starting => 
+        case Starting => 
           traceTable.model = defTableModel
-        case _:AppState.Ready if traceTable.model.isInstanceOf[TraceModel] => 
+        case _:Ready if traceTable.model.isInstanceOf[TraceModel] => 
           traceTable.model.asInstanceOf[TraceModel].fireTableStructureChanged()
         case _ => 
       }
@@ -364,7 +364,7 @@ class App extends SimpleSwingApplication {
   console.log("<html>Welcome to Acumen.<br/>"+
               "Please see LICENSE file for licensing details.</html>")
   console.newLine
-  actor.publish(StateChanged(AppState.Stopped))
+  actor.publish(Stopped)
 }
 
 object App {
@@ -379,6 +379,14 @@ object App {
 
   def ! (e: Any) = actor ! e
   def publish(e: Event) = pub.publish(e)
+
+  sealed abstract class State extends Event
+  sealed abstract class Ready extends State
+  sealed abstract class Playing extends State
+  case object Starting extends Playing
+  case object Resuming extends Playing
+  case object Stopped extends Ready
+  case object Paused extends Ready
 }
 
 object Supervisor extends Actor {
@@ -386,10 +394,10 @@ object Supervisor extends Actor {
   val watching = new collection.mutable.ListMap[OutputChannel[Any],(String,()=>Unit)]
   def act() = {
     trapExit = true
-    println("Supervisor Actor Starting.")
+    //println("Supervisor Actor Starting.")
     loop {react {
       case Link(a,s,rs) =>
-        println("Linking with " + s)
+        //println("Linking with " + s)
         watching += ((a,(s,rs)))
         link(a)
       case Exit(a,ue:UncaughtException) =>

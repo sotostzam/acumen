@@ -60,16 +60,16 @@ class ControlButtons extends FlowPanel {
   
   listenTo(App.pub)
   reactions += {
-    case StateChanged(st) => 
-      play.enabled  = st match {case _:AppState.Playing => false; case _ => true}
-      stop.enabled  = st match {case AppState.Stopped => false; case _ => true}
-      pause.enabled = st match {case _:AppState.Playing => true; case _ => false}
-      step.enabled  = st match {case _:AppState.Ready => true; case _ => false}
+    case st:App.State => 
+      play.enabled  = st match {case _:App.Playing => false; case _ => true}
+      stop.enabled  = st match {case App.Stopped => false; case _ => true}
+      pause.enabled = st match {case _:App.Playing => true; case _ => false}
+      step.enabled  = st match {case _:App.Ready => true; case _ => false}
 
       st match {
-        case _:AppState.Ready =>
+        case _:App.Ready =>
           bPlay.action = play
-        case _:AppState.Playing =>
+        case _:App.Playing =>
           bPlay.action = pause
       }
   }

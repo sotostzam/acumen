@@ -174,10 +174,10 @@ class CodeArea extends EditorPane {
 
   listenTo(App.pub)
   reactions += {
-    case StateChanged(st) => 
+    case st:App.State => 
       st match {
-        case AppState.Stopped => enabled = true
-        case _                => enabled = false
+        case App.Stopped => enabled = true
+        case _           => enabled = false
       }
   }
 

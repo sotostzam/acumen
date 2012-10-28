@@ -203,12 +203,12 @@ class PlotPanel(pub:Publisher) extends Panel
   listenTo(App.pub)
 
   reactions += {
-    case StateChanged(AppState.Starting) => 
+    case App.Starting => 
       reset
-    case StateChanged(_:AppState.Playing) => 
+    case _:App.Playing => 
       enabled = false
       App.publish(Disabled)
-    case StateChanged(_:AppState.Ready) => 
+    case _:App.Ready => 
       enabled = true
       App.publish(Enabled)
     case m:PlotReady => 

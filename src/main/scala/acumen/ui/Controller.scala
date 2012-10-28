@@ -10,14 +10,12 @@ import scala.swing.event._
 import util.Canonical._
 import util.Conversions._
 
-import AppState._
 import interpreter._
 import interpreter.{InterpreterCntrl => IC}
 
 case object SendInit
 
-sealed abstract class AppEvent extends Event
-case class StateChanged(st: AppState) extends AppEvent
+sealed abstract class AppEvent
 case class Error(e: Throwable) extends AppEvent
 case class Progress(percent: Int) extends AppEvent
 case class ProgressMsg(msg:String) extends AppEvent
@@ -31,12 +29,13 @@ case object Pause extends AppActions
 case object Step extends AppActions
 
 class Controller extends DaemonActor {
+  import App._
 
   //*************************
 
   /* ---- state ---- */
 
-  private var state : AppState = Stopped
+  private var state : State = Stopped
 
   var model : InterpreterModel = null
   var threeDData = new threeD.ThreeDData;
@@ -44,12 +43,12 @@ class Controller extends DaemonActor {
 
   /* ------ application logic --------- */
 
-  private def setState(s: AppState) = {
+  private def setState(s: State) = {
     println("State Now: " + s)
     if (state != s) {
       state = s
-      println("Acumen Actor State: " + App.actor.getState)
-      App.actor ! StateChanged(state)
+      println("Acumen Actor State: " + actor.getState)
+      actor ! state
       if (state == Stopped && producer != null) {
         unlink(producer)
         producer = null
@@ -60,13 +59,13 @@ class Controller extends DaemonActor {
   private def updateProgress(s: TraceData) = {
     val time = s.curTime
     val endTime = s.endTime
-    App.actor ! Progress((time * 100 / endTime).toInt)
+    actor ! Progress((time * 100 / endTime).toInt)
   }
 
   /* ------ actor logic ------------ */
 
   // The state to be in after receiving a chunk
-  var newState : AppState = Stopped
+  var newState : State = Stopped
 
   def act() {
     Supervisor.watch(this, "Controller", {restart})
@@ -89,8 +88,8 @@ class Controller extends DaemonActor {
           println("PLAY")
           if (producer == null) {
             println("No Producer Requesting Init")
-            println("Acumen.actor state: " + App.actor.getState)
-            App.actor ! SendInit
+            println("Acumen.actor state: " + actor.getState)
+            actor ! SendInit
           } else {
             println("Producer State: " + producer.getState)
             producer ! IC.GoOn
@@ -106,7 +105,7 @@ class Controller extends DaemonActor {
           println("STEP")
           newState = Paused
           if (producer == null) {
-            App.actor ! SendInit
+            actor ! SendInit
           } else {
             producer ! IC.Step
             setState(Resuming)
@@ -131,7 +130,7 @@ class Controller extends DaemonActor {
           setState(newState)
         case IC.Chunk(d) => // ignore chunks from supposedly dead producers
         case Exit(_,ue:UncaughtException) =>
-          App.actor ! Error(ue.cause)
+          actor ! Error(ue.cause)
           setState(Stopped)
         case msg@(IC.Done | Exit(_,_)) => 
           println("Done|Exit: " + msg)
