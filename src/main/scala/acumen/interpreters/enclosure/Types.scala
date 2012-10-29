@@ -63,6 +63,9 @@ object Types {
       pair match { case (k, v) => UncertainState(k, v) }
   }
 
+  /** The L1 norm as a measure of precision for a box. */
+  def precision(box: Box)(implicit rnd: Rounding) = box.values.fold(Interval(0))(_ + _.width)
+
   /**
    * Map a collection of UncertainStates to one with unique modes.
    *

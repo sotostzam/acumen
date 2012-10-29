@@ -74,9 +74,6 @@ trait LocalizingSolver extends SolveVt {
     }
   }
 
-  /** The L1 norm as a measure of precision for a box. */
-  def precision(box: Box)(implicit rnd: Rounding) = box.values.fold(Interval(0))(_ + _.width)
-
 }
 
 object LocalizingSolverApp extends LocalizingSolver with App {

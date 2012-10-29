@@ -67,9 +67,9 @@ trait SolveVtE {
     else {
       //      println("######## range of r at " + T + " is " + unionThem(res.prunedEnclosures).head("r").range)
       println("\nsolveVtE: " + res.endTimeStates.map(_.initialCondition)) // PRINTME
-      println("\nsolveVtE: " + res.enclosures)
+      println("\nsolveVtE: " + res.unprunedEnclosures)
       Some((res.endTimeStates, res.prunedEnclosures))
-      //      Some((res.endTimeStates, res.enclosures))
+      //      Some((res.endTimeStates, res.unprunedEnclosures))
     }
   }
 

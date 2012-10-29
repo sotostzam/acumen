@@ -40,8 +40,14 @@ case class Interval private (
 
   def bounds = (low, high)
 
+  private def midpoint = hi.subtract(lo, dn).divide(Interval(2).lo, dn).add(lo, dn)
+
+  def left = Interval(lo, midpoint)
+
+  def right = Interval(midpoint, hi)
+
   def split = {
-    val mid = hi.subtract(lo, dn).divide(Interval(2).lo, dn).add(lo, dn)
+    val mid = midpoint
     (Interval(lo, mid), Interval(mid, hi))
   }
 
@@ -71,7 +77,7 @@ case class Interval private (
       res
     }
     if (this lessThan Interval(0)) sys.error("sqrt is undefined on " + this)
-    else Interval(sqrt(dn)(max(lo,lo.subtract(lo))), sqrt(up)(hi))
+    else Interval(sqrt(dn)(max(lo, lo.subtract(lo))), sqrt(up)(hi))
   }
 
   /**

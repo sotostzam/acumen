@@ -220,7 +220,7 @@ case class EventTree(
 
   /** TODO add description */
   // TODO add tests
-  def enclosures(implicit rnd: Rounding): Seq[UnivariateAffineEnclosure] = {
+  def unprunedEnclosures(implicit rnd: Rounding): Seq[UnivariateAffineEnclosure] = {
     val sequences = maximalSequences.flatMap(v => (v +: v.prefixes).toSet)
     sequences.map(_.enclosure).toSeq
   }
@@ -241,6 +241,7 @@ case class EventTree(
           case (res, mode) => H.domains(mode).support(res)
         }).map(ran => UnivariateAffineEnclosure(T, ran)).toSeq
     }
+
 }
 
 object EventTree extends SolveVt {

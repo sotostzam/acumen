@@ -16,8 +16,37 @@ import acumen.ui.EnclosureTraceModel
 import acumen.ui.PlotEnclosure
 import java.awt.Color
 
-object Sandbox extends App with Extract with Solver {
+object Sandbox extends App with Extract with HybridSolver {
 
+  val bbrf = """
+class Main(simulator)
+  private 
+    mode = "Fall"; 
+    x = 5; x' = 0; x'' = 0;  
+    r = 100; r' = 0;
+  end
+  simulator.endTime = 3.5;
+  simulator.minTimeStep = 0.1;
+  simulator.maxTimeStep = 0.2;
+  switch mode
+    case "Rise" assume x >= 0 && x' >= 0 && 0 <= r && r == x'*x' + 20*x
+      if x' == 0
+        mode = "Fall";
+      end;
+      x'' [=] -10;
+      r' [=] 0;
+    case "Fall" assume x >= 0 && x' <= 0 && 0 <= r && r == x'*x' + 20*x
+      if x == 0
+        x' = -0.5 * x';
+        r = [0:0.25]*r;
+        mode = "Rise";
+      end;
+      x'' [=] -10;
+      r' [=] 0;
+  end
+end
+"""
+  
   val convergent = """
 //////////////////////////////////////////////////////////////////////
 // This file is called bouncing_ball_explicit_energy_convergent.acm //
@@ -29,7 +58,7 @@ class Main(simulator)
     x = 5; x' = 0; x'' = 0;  
     r = 100; r' = 0;
   end
-  simulator.endTime = 4.5;
+  simulator.endTime = 3.5;
   simulator.minTimeStep = 0.0001;
   simulator.maxTimeStep = 0.1;
   switch mode
@@ -48,27 +77,27 @@ end
   
   val mik1 = """
 ////////////////////////////////////////////////////////////////
-// This file is called bouncing_ball_explicit_energy_mik2.acm //
+// This file is called bouncing_ball_explicit_energy_mik1.acm //
 // It implements the EBB model from the paper.                //
 ////////////////////////////////////////////////////////////////
 class Main(simulator)
   private 
     mode = "Fly"; 
-    x1 = 5; x1' = 0; x1'' = 0;  
-    r1 = 100; r1' = 0;
+    x = 5; x' = 0; x'' = 0;  
+    r = 100; r' = 0;
   end
   simulator.endTime = 3.5;
   simulator.minTimeStep = 0.01;
   switch mode
     case "Fly"
-    assume x1 >= 0 && 0 <= r1 && r1 == x1'*x1' + 20*x1
-      if x1 == 0 && x1' <= 0
-        x1' = -0.5*x1';
-        r1 = [0:0.25]*r1;
+    assume x >= 0 && 0 <= r && r == x'*x' + 20*x
+      if x == 0 && x' <= 0
+        x' = -0.5*x';
+        r = [0:0.25]*r;
         mode = "Fly";
       end;
-      x1'' [=] -10;
-      r1'  [=] 0;
+      x'' [=] -10;
+      r'  [=] 0;
   end
 end
 """
@@ -231,7 +260,7 @@ class Main(simulator)
 end
 """
 
-  val prog = Parser.run(Parser.prog, mik1)
+  val prog = Parser.run(Parser.prog, bbrf)
   val des = Desugarer.run(prog)
   val main = classDef(ClassName("Main"), des)
 
@@ -257,6 +286,6 @@ end
   val time = end - start
   println("computed " + res.size + " enclosures in " + time / 1000.0 + " seconds")
   UnivariateAffineScalarEnclosure.plot(
-    res.map(e => (Color.BLUE, e("x1"))) ++ res.map(e => (new Color(0, 127, 0), e("x1'"))) ++ res.map(e => (Color.RED, e("r1"))): _*)
+    res.map(e => (Color.BLUE, e("x"))) ++ res.map(e => (new Color(0, 127, 0), e("x'"))) ++ res.map(e => (Color.RED, e("r"))): _*)
 
 }
