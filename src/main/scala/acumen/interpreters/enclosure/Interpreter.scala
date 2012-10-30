@@ -12,9 +12,9 @@ import acumen.ui.EnclosureTraceModel
 import acumen.ui.EnclosureTraceData
 
 abstract class EnclosureInterpreterCallbacks extends InterpreterCallbacks {
-  def log(msg: String) : Unit
-  var endTime : Double = 0.0
-  def sendResult(data: Iterable[UnivariateAffineEnclosure]) : Unit = {}
+  def log(msg: String): Unit
+  var endTime: Double = 0.0
+  def sendResult(data: Iterable[UnivariateAffineEnclosure]): Unit = {}
 }
 
 /**
@@ -94,7 +94,7 @@ end
   val prog = Parser.run(Parser.prog, txt)
   val des = Desugarer.run(prog)
   val main = classDef(ClassName("Main"), des)
-  
+
   val ps = parameters(main)
   implicit val rnd = Rounding(ps.precision)
   val (h, ic) = extract(main)
@@ -124,7 +124,7 @@ end
   val prog = Parser.run(Parser.prog, txt)
   val des = Desugarer.run(prog)
   val main = classDef(ClassName("Main"), des)
-  
+
   val ps = parameters(main)
   implicit val rnd = Rounding(ps.precision)
   val (h, ic) = extract(main)
