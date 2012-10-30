@@ -18,7 +18,7 @@ import java.awt.Color
 
 object Sandbox extends App with Extract with Solver {
 
-  val prog = Parser.run(Parser.prog, Models.two_tanks_sum)
+  val prog = Parser.run(Parser.prog, Models.kevin_test)
   val des = Desugarer.run(prog)
   val main = classDef(ClassName("Main"), des)
 
