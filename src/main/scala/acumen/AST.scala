@@ -101,6 +101,7 @@ package acumen {
   case class TypeOf(cn: ClassName) extends Expr
   /* Example: [a:b] deprecated, now a--b and m+/-r*/
   case class ExprInterval(lo: Expr, hi: Expr) extends Expr
+  case class ExprIntervalM(mid: Expr, pm: Expr) extends Expr
 
   /* ground values (common to expressions and values) */
 

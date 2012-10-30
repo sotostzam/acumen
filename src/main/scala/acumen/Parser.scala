@@ -81,7 +81,7 @@ object Parser extends MyStdTokenParsers {
     List("(", ")", "{", "}", "[", "]", ";", "=", "=[i]", "=[t]", "[=]", "'", ",",
       ".", "+", "-", "*", "/", "^", ".+", ".-", ".*", "./", ".^",
       ":", "<", ">", "<=", ">=", "==", "~=", "||",
-      "&&", "<<", ">>", "&", "|", "%", "..")
+      "&&", "<<", ">>", "&", "|", "%", "..", "+/-")
 
   lexical.reserved ++=
     List("for", "end", "if", "else", "create", "move", "in",
@@ -269,8 +269,11 @@ object Parser extends MyStdTokenParsers {
       | "%" ^^^ { (x: Expr, y: Expr) => mkOp("%", x, y) })
 
   def level4: Parser[Expr] =
-    level3 * ("^" ^^^ { (x: Expr, y: Expr) => mkOp("^", x, y) }
+    levelI * ("^" ^^^ { (x: Expr, y: Expr) => mkOp("^", x, y) }
       | ".^" ^^^ { (x: Expr, y: Expr) => mkOp("^", x, y) })
+
+  def levelI: Parser[Expr] =
+    level3 * ("+/-" ^^^ { (mid:Expr, pm:Expr) => ExprIntervalM(mid,pm) })
 
   def level3: Parser[Expr] =
     ("-" ~! access ^^ { case _ ~ e => smartMinus(e) }

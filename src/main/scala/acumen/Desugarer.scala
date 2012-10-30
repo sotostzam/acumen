@@ -79,6 +79,7 @@ object Desugarer {
         if ((p.defs map (_.name)) contains cn) TypeOf(cn)
         else throw ClassNotDefined(cn)
       case i @ ExprInterval(_, _) => i
+      case i @ ExprIntervalM(_, _) => i
     }
   }
 

@@ -306,6 +306,10 @@ trait Extract {
     case Lit(GInt(d)) => Constant(d)
     case Lit(GDouble(d)) => Constant(d)
     case ExprInterval(lo, hi) => Constant(foldConstant(lo).value /\ foldConstant(hi).value)
+    case ExprIntervalM(mid0, pm0) => 
+      val mid = foldConstant(mid0).value
+      val pm = foldConstant(pm0).value
+      Constant((mid-pm) /\ (mid+pm))
     case Var(Name(name, n)) => Variable(name + "'" * n)
     case Dot(Var(Name(self, 0)), Name(name, n)) => Variable(name + "'" * n)
     case Op(Name("-", 0), List(x)) => Negate(acumenExprToExpression(x))
