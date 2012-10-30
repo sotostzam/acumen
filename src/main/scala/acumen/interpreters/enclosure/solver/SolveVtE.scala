@@ -31,13 +31,13 @@ trait SolveVtE {
           //          println("Y(" + T.high + "): " + Y(Y.domain.high)) // PRINTME
           println("\ndetectNextEvent: " + H.domains(q)) // PRINTME
           println("detectNextEvent: " + "Y(" + T.high + ") = " + Y(Y.domain.high)) // PRINTME
-          println("detectNextEvent: " + CertainlyOneOf(events) + "\n") // PRINTME
+          println("detectNextEvent: " + CertainlyOneOf(events)) // PRINTME
           CertainlyOneOf(events)
         } else {
           //          println("########## @" + T) // PRINTME
           //          println("invariant:  " + H.domains(q)) // PRINTME
           //          println("Y(" + T.high + "): " + Y(Y.domain.high)) // PRINTME
-          println("\ndetectNextEvent: " + MaybeOneOf(events) + "\n") // PRINTME
+          println("\ndetectNextEvent: " + MaybeOneOf(events)) // PRINTME
           MaybeOneOf(events)
         }
       }
@@ -56,21 +56,23 @@ trait SolveVtE {
     K: Int,
     output: String,
     log: String => Unit)(implicit rnd: Rounding): Option[(Set[UncertainState], Seq[UnivariateAffineEnclosure])] = {
-    var res = EventTree.initialTree(T, H, S, delta, m, n, output)
-    var tmp = res.addLayer
-    while (res.size < K && tmp != res) {
-      res = tmp
-      tmp = tmp.addLayer
-    }
-    if (res != tmp)
-      None
-    else {
-      //      println("######## range of r at " + T + " is " + unionThem(res.prunedEnclosures).head("r").range)
-      println("\nsolveVtE: " + res.endTimeStates.map(_.initialCondition)) // PRINTME
-      println("\nsolveVtE: " + res.unprunedEnclosures)
-      Some((res.endTimeStates, res.prunedEnclosures))
-      //      Some((res.endTimeStates, res.unprunedEnclosures))
-    }
+//    try {
+      var res = EventTree.initialTree(T, H, S, delta, m, n, output)
+      var tmp = res.addLayer
+      while (res.size < K && tmp != res) {
+        res = tmp
+        tmp = tmp.addLayer
+      }
+      if (res != tmp)
+        None
+      else {
+        //      println("######## range of r at " + T + " is " + unionThem(res.prunedEnclosures).head("r").range)
+        println("\nsolveVtE: " + res.endTimeStates.map(_.initialCondition)) // PRINTME
+        println("\nsolveVtE: " + res.unprunedEnclosures)
+        Some((res.endTimeStates, res.prunedEnclosures))
+        //      Some((res.endTimeStates, res.unprunedEnclosures))
+      }
+//    } catch { case _ => None }
   }
 
 }

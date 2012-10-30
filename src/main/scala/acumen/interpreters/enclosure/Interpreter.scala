@@ -20,7 +20,7 @@ abstract class EnclosureInterpreterCallbacks extends InterpreterCallbacks {
 /**
  * Proxy for the enclosure-based solver.
  */
-object Interpreter extends acumen.Interpreter with HybridSolver with Extract {
+object Interpreter extends acumen.Interpreter with Solver with Extract {
 
   def newTraceModel = new EnclosureTraceModel
 

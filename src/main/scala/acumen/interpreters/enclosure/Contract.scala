@@ -6,43 +6,61 @@ import Interval._
 trait Contract {
 
   /** Contracts the environment box for the variables in the relation. */
-  def contract(rel: Relation)(env: Box)(implicit rnd: Rounding): Box = rel match {
-    case BinaryRelation(relname, l, r) => relname match {
-      case Eq => contractEq(l, r)(env)
-      case Le | Leq => contractLeq(l, r)(env)
+  def contract(rel: Relation)(env: Box)(implicit rnd: Rounding): Box = {
+    println("\ncontract: " + rel)
+    rel match {
+      case BinaryRelation(relname, l, r) => relname match {
+        case Eq => contractEq(l, r)(env)
+        case Le | Leq => contractLeq(l, r)(env)
+      }
     }
   }
 
   def contractEq(left: Expression, right: Expression)(env: Box)(implicit rnd: Rounding): Box = {
-    val ran = left(env) \/ right(env)
-    val envl = backPropagate(env, ran, left)
-    val envr = backPropagate(env, ran, right)
-    val contracted = envl intersect envr
-    val res =
-      if (almostEqual(env, contracted)) env
-      else contractEq(left, right)(contracted)
-    require(env contains res)
-    res
+    println("\ncontractEq: box before = " + env)
+    println("contractEq: left  = " + left + " range " + left(env))
+    println("contractEq: right = " + right + " range " + right(env))
+    val ranl = left(env)
+    val ranr = right(env)
+    if (ranl almostEqualTo ranl) env
+    else {
+      val ran = ranl \/ ranr
+      println("contractEq: backpropagate " + ran)
+      val envl = backPropagate(env, ran, left)
+      val envr = backPropagate(env, ran, right)
+      val contracted = envl intersect envr
+      println("contractEq: box after = " + contracted)
+      val res =
+        if (contracted almostEqualTo env) env
+        else contractEq(left, right)(contracted)
+      require(env contains res)
+      res
+    }
   }
 
   def contractLeq(left: Expression, right: Expression)(env: Box)(implicit rnd: Rounding): Box = {
-    val ranl = left(env)
-    val ranr = right(env)
-    require(!(ranl greaterThan ranr), left.toString + " <= " + right.toString + " cannot hold over " + env + "!")
-    val envl = backPropagate(env, min(ranl, ranr.high), left)
-    val envr = backPropagate(env, max(ranl.low, ranr), right)
-    val contracted = envl intersect envr
-    val res =
-      if (almostEqual(env, contracted)) env
-      else contractLeq(left, right)(contracted)
-    require(env contains res)
-    res
-
-  }
-
-  def almostEqual(left: Box, right: Box)(implicit rnd: Rounding): Boolean = {
-    require(left.keySet == right.keySet)
-    left.forall { case (name, interval) => interval almostEqualTo right(name) }
+    println("\ncontractLeq: box before = " + env)
+    println("contractLeq: left  = " + left + " range " + left(env))
+    println("contractLeq: right = " + right + " range " + right(env))
+    val leftRan = left(env)
+    val rightRan = right(env)
+    if (leftRan almostEqualTo rightRan) env
+    else {
+      require(!(leftRan greaterThan rightRan), left.toString + " <= " + right.toString + " cannot hold over " + env + "!")
+      val ranl = min(leftRan, rightRan.high)
+      println("contractEq: left backpropagate  " + ranl)
+      val ranr = max(leftRan.low, rightRan)
+      println("contractEq: right backpropagate " + ranr)
+      val envl = backPropagate(env, ranl, left)
+      val envr = backPropagate(env, ranr, right)
+      val contracted = envl intersect envr
+      println("contractLeq: box after = " + contracted)
+      val res =
+        if (contracted almostEqualTo env) env
+        else contractLeq(left, right)(contracted)
+      require(env contains res)
+      res
+    }
   }
 
   /** Contracts the environment box for the variables in the expression. */
@@ -81,7 +99,7 @@ trait Contract {
     case Multiply(Constant(x), e) =>
       val newran = if (x contains 0) e(env) else e(env) \/ (ran / x)
       backPropagate(env, newran, e)
-    case Multiply(e, Constant(x)) => 
+    case Multiply(e, Constant(x)) =>
       val newran = if (x contains 0) e(env) else e(env) \/ (ran / x)
       backPropagate(env, newran, e)
     case Multiply(l, r) =>

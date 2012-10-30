@@ -39,6 +39,11 @@ class Box(val self: Map[VarName, Interval]) extends MapProxy[VarName, Interval] 
   def split(implicit rnd: Rounding): Set[Box] =
     foldLeft(Set(this)) { case (res, (name, _)) => res flatMap (_ split name) }
 
+  def almostEqualTo(that: Box)(implicit rnd: Rounding): Boolean = {
+    require(keySet == that.keySet)
+    this.forall { case (name, interval) => interval almostEqualTo that(name) }
+  }
+
 }
 object Box {
 

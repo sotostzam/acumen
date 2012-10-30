@@ -128,11 +128,17 @@ case class EventTree(
            * indicate inconsistent model and when impossible transitions!
            */
           try {
+            println("\naddLayer: range             = " + v.enclosure.range)
+            println("addLayer: domain before     = " + H.domains(e.tau))
+            println("\naddLayer: contracted range  = " + H.guards(e).support(v.enclosure.range))
+            println("addLayer: reset             = " + H.resets(e))
+            println("\naddLayer: range after reset = " + H.resets(e)(H.guards(e).support(v.enclosure.range)))
+            println("addLayer: domain after      = " + H.domains(e.tau))
             val A = H.domains(e.tau).support(H.resets(e)(H.guards(e).support(v.enclosure.range)))
             //          val A = H.domains(e.tau).support(H.resets(e)(H.guards(e).support(v.enclosure.range)))
-            //            println("A: " + A)
+            println("addLayer: A = " + A)
             val N = solveVt(H.fields(e.tau), T, A, delta, m, n, output).range
-            //            println("N: " + N)
+            println("addLayer: N = " + N)
             val lastEvent = e
             //          println("Domain:  " + H.domains(e.tau))
             //          println("Box:     " + N)
@@ -176,7 +182,7 @@ case class EventTree(
     }
 
     val res = EventTree(newMaximalSequences, T, H, S, delta, m, n, output)
-    println("addLayer: " + res)
+    println("\naddLayer: " + res)
     res
   }
 

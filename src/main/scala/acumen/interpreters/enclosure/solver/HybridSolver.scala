@@ -25,7 +25,7 @@ trait HybridSolver extends AtomicStep {
     cb: EnclosureInterpreterCallbacks)(implicit rnd: Rounding): Seq[UnivariateAffineEnclosure] = {
     Util.newFile(output)
     cb.endTime = T.hiDouble
-    val res = solveHybrid(H, delta, m, n, K, output, cb.log)(d, minImprovement)(Ss, T).get._1
+	    val res = solveHybrid(H, delta, m, n, K, output, cb.log)(d, minImprovement)(Ss, T).get._1
     println(res)
     res
   }

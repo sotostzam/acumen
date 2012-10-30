@@ -49,7 +49,10 @@ abstract class Predicate {
    * of the predicate.
    */
   def support(x: Box)(implicit rnd: Rounding): Box = this match {
-    case All(rs) => rs.foldLeft(x)((res, r) => r.support(res))
+    case All(rs) =>
+      val contracted = rs.foldLeft(x)((res, r) => r.support(res))
+      if (contracted almostEqualTo x) x
+      else support(contracted)
   }
 
 }
