@@ -293,7 +293,7 @@ object Parser extends MyStdTokenParsers {
 
   def interval: Parser[Expr] =
 //    nlit ~ ".." ~ nlit ^^ { case lo ~ ".." ~ hi => ExprInterval(lo,hi) }
-      "[" ~> nlit ~ ":" ~ nlit <~ "]" ^^ { case lo ~ ":" ~ hi => ExprInterval(lo,hi) }
+      "[" ~> nlit ~ ".." ~ nlit <~ "]" ^^ { case lo ~ ".." ~ hi => ExprInterval(lo,hi) }
       
   def lit = (gint | gfloat | gstr) ^^ Lit
 
