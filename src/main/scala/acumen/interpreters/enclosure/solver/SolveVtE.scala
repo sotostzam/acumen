@@ -70,7 +70,7 @@ trait SolveVtE {
         println("\nsolveVtE: " + res.endTimeStates.map(_.initialCondition)) // PRINTME
         println("\nsolveVtE: " + res.unprunedEnclosures)
         Some((res.endTimeStates, res.prunedEnclosures))
-        //      Some((res.endTimeStates, res.unprunedEnclosures))
+//              Some((res.endTimeStates, res.unprunedEnclosures))
       }
 //    } catch { case _ => None }
   }

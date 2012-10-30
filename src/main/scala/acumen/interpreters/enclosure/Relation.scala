@@ -3,7 +3,6 @@ package acumen.interpreters.enclosure
 import Expression._
 import Interval._
 import Types._
-import com.sun.tools.corba.se.idl.constExpr.LessThan
 
 object BinaryRelationName extends Enumeration {
   type BinaryRelationName = Value
