@@ -127,31 +127,40 @@ case class EventTree(
            * try-catch HACK, handle this properly by detecting when empty intersections
            * indicate inconsistent model and when impossible transitions!
            */
-          try {
-            println("\naddLayer: range             = " + v.enclosure.range)
-            println("addLayer: domain before     = " + H.domains(e.tau))
-            println("\naddLayer: contracted range  = " + H.guards(e).support(v.enclosure.range))
-            println("addLayer: reset             = " + H.resets(e))
-            println("\naddLayer: range after reset = " + H.resets(e)(H.guards(e).support(v.enclosure.range)))
-            println("addLayer: domain after      = " + H.domains(e.tau))
-            val A = H.domains(e.tau).support(H.resets(e)(H.guards(e).support(v.enclosure.range)))
-            //          val A = H.domains(e.tau).support(H.resets(e)(H.guards(e).support(v.enclosure.range)))
-            println("addLayer: A = " + A)
-            val N = solveVt(H.fields(e.tau), T, A, delta, m, n, output).range
-            println("addLayer: N = " + N)
-            val lastEvent = e
-            //          println("Domain:  " + H.domains(e.tau))
-            //          println("Box:     " + N)
-            //          println("Support: " + H.domains(e.tau).support(N))
-            val affines = onlyUpdateAffectedComponents(e, v.enclosure, H.domains(e.tau).support(N))
-            //            println("Y(ve): " + affines)
-            val enclosure = UnivariateAffineEnclosure(v.domain, affines)
-            val mayBeLast = false
-            val prefix = v
-            NonemptySequence(lastEvent, enclosure, mayBeLast, prefix).asInstanceOf[EventSequence]
-          } catch {
-            case _ => v
-          }
+          //          try {
+          println("\naddLayer: range             = " + v.enclosure.range)
+          println("addLayer: domain before     = " + H.domains(e.tau))
+          println("\naddLayer: contracted range  = " + H.guards(e).support(v.enclosure.range))
+          println("addLayer: reset             = " + H.resets(e))
+          if (H.resets(e)(H.guards(e).support(v.enclosure.range)) == Set(false)) println("\naddLayer: illegal reset!")
+          println("\naddLayer: range after reset  = " + H.resets(e)(H.guards(e).support(v.enclosure.range)))
+          println("addLayer: domain after reset = " + H.domains(e.tau))
+          if (H.domains(e.tau)(H.resets(e)(H.guards(e).support(v.enclosure.range))) != Set(false))
+            println("\naddLayer: consistent value after reset!")
+          val A = H.domains(e.tau).support(H.resets(e)(H.guards(e).support(v.enclosure.range)))
+          //          val A = H.domains(e.tau).support(H.resets(e)(H.guards(e).support(v.enclosure.range)))
+          println("\naddLayer: A         = " + A)
+          println("addLayer: field     = " + H.fields(e.tau))
+          //            println("addLayer: enclosure = " + solveVt(H.fields(e.tau), T, A, delta, m, n, output))
+          val N = solveVt(H.fields(e.tau), T, A, delta, m, n, output).range
+          println("addLayer: N         = " + N)
+          val lastEvent = e
+          //          println("Domain:  " + H.domains(e.tau))
+          //          println("Box:     " + N)
+          //          println("Support: " + H.domains(e.tau).support(N))
+          if (H.domains(e.tau)(N) == Set(false)) println("\naddLayer: illegal enclosure!")
+          println("addLayer: contracted N = " + H.domains(e.tau).support(N))
+          // onlyUpdateAffectedComponents introduces some errors! FIXME
+          val affines = N // onlyUpdateAffectedComponents(e, v.enclosure, H.domains(e.tau).support(N))
+          println("addLayer: disregarding unaffectd components N = " + affines)
+          //            println("Y(ve): " + affines)
+          val enclosure = UnivariateAffineEnclosure(v.domain, affines)
+          val mayBeLast = false
+          val prefix = v
+          NonemptySequence(lastEvent, enclosure, mayBeLast, prefix).asInstanceOf[EventSequence]
+          //          } catch {
+          //            case _ => v
+          //          }
         }
       }
     }

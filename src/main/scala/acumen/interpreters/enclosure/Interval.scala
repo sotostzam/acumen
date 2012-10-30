@@ -233,8 +233,12 @@ case class Interval private (
 
   def isZero = equalTo(Interval(0))
 
-  def almostEqualTo(that: Interval) =
-    (epsilon contains this.low - that.low) && (epsilon contains this.high - that.high)
+  def almostEqualTo(that: Interval) = {
+//    println("almostEqualTo: " + epsilon + " contains " + (this.low - that.low) + " is " + (epsilon contains (this.low - that.low)))
+//    println("almostEqualTo: " + epsilon + " contains " + (this.high - that.high) + " is " + (epsilon contains (this.high - that.high)))
+    (epsilon contains (this.low - that.low)) &&
+      (epsilon contains (this.high - that.high))
+  }
 
   /**
    * @return a string representation of the interval in the usual

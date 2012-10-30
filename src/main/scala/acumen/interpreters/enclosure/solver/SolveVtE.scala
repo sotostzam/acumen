@@ -19,17 +19,19 @@ trait SolveVtE {
      * a major source of imprecision!
      */
     val events = H.events.filter(e => e.sigma == q && H.guards(e)(Y.range) != Set(false))
+    println("\ndetectNextEvent: E' = " + events) // PRINTME
+
     //    println("E' = " + events)
     val res =
       if (events.isEmpty) {
-        println("\ndetectNextEvent: " + MaybeOneOf(events) + "\n") // PRINTME
+        println("detectNextEvent: " + MaybeOneOf(events) + "\n") // PRINTME
         MaybeOneOf(events)
       } else {
         if (H.domains(q)(Y(Y.domain.high)) == Set(false)) {
           //          println("########## @" + T) // PRINTME
           //          println("invariant:  " + H.domains(q)) // PRINTME
           //          println("Y(" + T.high + "): " + Y(Y.domain.high)) // PRINTME
-          println("\ndetectNextEvent: " + H.domains(q)) // PRINTME
+          println("detectNextEvent: " + H.domains(q)) // PRINTME
           println("detectNextEvent: " + "Y(" + T.high + ") = " + Y(Y.domain.high)) // PRINTME
           println("detectNextEvent: " + CertainlyOneOf(events)) // PRINTME
           CertainlyOneOf(events)
@@ -37,7 +39,7 @@ trait SolveVtE {
           //          println("########## @" + T) // PRINTME
           //          println("invariant:  " + H.domains(q)) // PRINTME
           //          println("Y(" + T.high + "): " + Y(Y.domain.high)) // PRINTME
-          println("\ndetectNextEvent: " + MaybeOneOf(events)) // PRINTME
+          println("detectNextEvent: " + MaybeOneOf(events)) // PRINTME
           MaybeOneOf(events)
         }
       }
@@ -56,23 +58,23 @@ trait SolveVtE {
     K: Int,
     output: String,
     log: String => Unit)(implicit rnd: Rounding): Option[(Set[UncertainState], Seq[UnivariateAffineEnclosure])] = {
-//    try {
-      var res = EventTree.initialTree(T, H, S, delta, m, n, output)
-      var tmp = res.addLayer
-      while (res.size < K && tmp != res) {
-        res = tmp
-        tmp = tmp.addLayer
-      }
-      if (res != tmp)
-        None
-      else {
-        //      println("######## range of r at " + T + " is " + unionThem(res.prunedEnclosures).head("r").range)
-        println("\nsolveVtE: " + res.endTimeStates.map(_.initialCondition)) // PRINTME
-        println("\nsolveVtE: " + res.unprunedEnclosures)
-        Some((res.endTimeStates, res.prunedEnclosures))
-//              Some((res.endTimeStates, res.unprunedEnclosures))
-      }
-//    } catch { case _ => None }
+    //    try {
+    var res = EventTree.initialTree(T, H, S, delta, m, n, output)
+    var tmp = res.addLayer
+    while (res.size < K && tmp != res) {
+      res = tmp
+      tmp = tmp.addLayer
+    }
+    if (res != tmp)
+      None
+    else {
+      //      println("######## range of r at " + T + " is " + unionThem(res.prunedEnclosures).head("r").range)
+      println("\nsolveVtE: " + res.endTimeStates.map(_.initialCondition)) // PRINTME
+      println("\nsolveVtE: " + res.unprunedEnclosures)
+      Some((res.endTimeStates, res.prunedEnclosures))
+      //              Some((res.endTimeStates, res.unprunedEnclosures))
+    }
+    //    } catch { case _ => None }
   }
 
 }

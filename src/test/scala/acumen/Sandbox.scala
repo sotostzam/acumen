@@ -16,9 +16,9 @@ import acumen.ui.EnclosureTraceModel
 import acumen.ui.PlotEnclosure
 import java.awt.Color
 
-object Sandbox extends App with Extract with HybridSolver {
+object Sandbox extends App with Extract with Solver {
 
-  val prog = Parser.run(Parser.prog, Models.bbfu)
+  val prog = Parser.run(Parser.prog, Models.two_tanks_sum)
   val des = Desugarer.run(prog)
   val main = classDef(ClassName("Main"), des)
 
@@ -44,7 +44,8 @@ object Sandbox extends App with Extract with HybridSolver {
   val time = end - start
   println("computed " + res.size + " enclosures in " + time / 1000.0 + " seconds")
   UnivariateAffineScalarEnclosure.plot(
-//    res.map(e => (Color.BLUE, e("x"))) ++ res.map(e => (new Color(0, 127, 0), e("x'"))) ++ res.map(e => (Color.RED, e("r"))): _*)
-    res.map(e => (Color.BLUE, e("x1"))) ++ res.map(e => (new Color(0, 127, 0), e("x2"))): _*)
-
+    res.map(e => (
+        Color.getHSBColor(0.25f,1.0f,0.5f), e("x1"))) ++ 
+        res.map(e => (Color.getHSBColor(0.5f,1.0f,0.5f), e("x2"))) ++ 
+        res.map(e => (Color.getHSBColor(0.75f,1.0f,0.5f), e("x12"))): _*)
 }
