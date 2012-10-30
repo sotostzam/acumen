@@ -16,7 +16,7 @@ import acumen.ui.EnclosureTraceModel
 import acumen.ui.PlotEnclosure
 import java.awt.Color
 
-object Sandbox extends App with Extract with HybridSolver {
+object Sandbox extends App with Extract with ReusingSolver {
 
   val bbrf = """
 class Main(simulator)
@@ -260,7 +260,7 @@ class Main(simulator)
 end
 """
 
-  val prog = Parser.run(Parser.prog, bbrf)
+  val prog = Parser.run(Parser.prog, convergent)
   val des = Desugarer.run(prog)
   val main = classDef(ClassName("Main"), des)
 
