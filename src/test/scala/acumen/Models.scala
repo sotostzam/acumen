@@ -142,7 +142,7 @@ class Main(simulator)
     case "Fall" assume x >= 0 && x' <= 0 && 0 <= r && r == x'*x' + 20*x
       if x == 0
         x' = -0.5 * x';
-        r = [0:0.25]*r;
+        r = [0..0.25]*r;
         mode = "Rise";
       end;
       x'' [=] -10;
@@ -170,7 +170,7 @@ class Main(simulator)
     assume x >= 0 && r == x'*x' + 20*x
       if x == 0 && x' <= 0
         x' = -0.5*x';
-        r = [0:0.25]*r;
+        r = [0..0.25]*r;
         mode = "Fly";
       end;
       x'' [=] -10;
@@ -239,7 +239,7 @@ end
 // This file is called ticker.acm //
 ////////////////////////////////////
 cclass Main (simulator)
- private x = [1:1]; x' = -1; mode = "decreasing" end
+ private x = [1..1]; x' = -1; mode = "decreasing" end
  simulator.endTime = 2.5;
  simulator.minTimeStep = 0.1;
  simulator.maxTimeStep = 0.25;
