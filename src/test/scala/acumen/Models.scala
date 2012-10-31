@@ -4,12 +4,12 @@ object Models {
 
   val kevin_test = """
 class Main(simulator)
-private x = 0.99 +/- 1.01; x' = -1; mode = 0 end
+private x = 1 +/- 0.01; x' = -1; mode = 0 end
   simulator.maxTimeStep = 0.1;
   switch mode 
     case 0 assume x >= 0 
       if x == 0 
-        x = [0.99:1.01];
+        x = 1 +/- 0.01;
         mode = 0;
       end;
       x' [=] -1;
@@ -197,8 +197,8 @@ class Main(simulator)
     assume x >= 0 && 0 <= r && r == x'*x' + 20*x
       if x == 0 && x' <= 0
         x' = -0.5*x';
-        r = [0:0.25]*r;
-        mode = "Fly";
+        r = (0.125 +/- 0.125)*r;
+    mode = "Fly";
       end;
       x'' [=] -10;
       r'  [=] 0;
@@ -336,7 +336,7 @@ class Main(simulator)
   private 
     mode = "Fly"; 
     x = 5; x' = 0; x'' = 0;  
-    r = [0:100]; r' = 0;
+    r = [0..100]; r' = 0;
   end
   simulator.endTime = 3.5;
   simulator.minTimeStep = 4.7e-7;
@@ -363,7 +363,7 @@ class Main(simulator)
   private 
     mode = "Fly"; 
     x = 5; x' = 0; x'' = 0;  
-    r = [0:100]; r' = 0;
+    r = [0..100]; r' = 0;
   end
   simulator.endTime = 3.5;
   simulator.minTimeStep = 4.7e-7;
@@ -375,7 +375,7 @@ class Main(simulator)
            x == (r-x'*x')/20
       if x == 0 && x' <= 0
         x' = -0.5*x';
-        r = [0:0.25]*r;
+        r = [0..0.25]*r;
         mode = "Fly";
       end;
       x'' [=] -10;
