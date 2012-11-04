@@ -1,9 +1,9 @@
 package acumen
 package tests
 
-import ui.AppModel
+import ui.Controller
 
-import ui.Console
+import ui.tl.Console
 import Pretty._
 import Generators._
 import org.scalacheck.Gen._
@@ -12,7 +12,7 @@ import org.scalacheck.Properties
 import org.scalacheck.Prop._
 
 object _3DTests extends Properties("acumen") {
-  val app = new AppModel("",new Console);
+  val app = new Controller;
   /* Check if it is a int or a double */
 	def isNumber(x:Value[CId]) : Boolean = {
 		x match{
@@ -26,9 +26,9 @@ object _3DTests extends Properties("acumen") {
 	property("checkVecorContent Correctness") =
     forAll { (x:List[VLit[CId]]) =>
 			if ((x.size == 3) && isNumber(x(0)) && isNumber(x(1)) && isNumber(x(2)))	
-				app.data.checkVectorContent(x) == true 
+				app.threeDData.checkVectorContent(x) == true 
       else
-			  app.data.checkVectorContent(x) == false
+			  app.threeDData.checkVectorContent(x) == false
     }
 	
 	/* _3D object's type should be a string or an int */
@@ -36,7 +36,7 @@ object _3DTests extends Properties("acumen") {
 		forAll { (x:Value[CId]) => {
 		  var flag = true;
       try { 
-        app.data.extractType(x); 
+        app.threeDData.extractType(x); 
       } catch {
         case e => {flag = false}
       }
@@ -54,32 +54,32 @@ object _3DTests extends Properties("acumen") {
 	property("extractSize Correctness") =
 		forAll { (x:Value[CId]) => {
 		  var flag = true;
-			app.data._3DType = 
+			app.threeDData._3DType = 
 			_3DType.sample match {
 												case Some(x) => x;
 												case None    => "text";
 												};
 		
       try { 
-        app.data.extractSize(x); 
+        app.threeDData.extractSize(x); 
       } catch {
         case e => {flag = false}
       }
-				//println(app.data._3DType + "  " + app.data._3DSize.length.toString  )
+				//println(app.threeDData._3DType + "  " + app.threeDData._3DSize.length.toString  )
 			x match{
 				case VLit(GDouble(s)) => 
-					{if (app.data._3DType == "Sphere" || app.data._3DType == "text") flag == true
+					{if (app.threeDData._3DType == "Sphere" || app.threeDData._3DType == "text") flag == true
 					 else flag == false}
 				case VLit(GInt(s))   =>
-					{if (app.data._3DType == "Sphere" || app.data._3DType == "text") flag == true
+					{if (app.threeDData._3DType == "Sphere" || app.threeDData._3DType == "text") flag == true
 					 else flag == false}
 				case VVector(vs)     =>
-					{if      (app.data._3DType == "Box"      && app.data._3DSize.length  == 3) flag == true
-					 else if (app.data._3DType == "Cylinder" && app.data._3DSize.length  == 2) flag == true
-					 else if (app.data._3DType == "Cone"     && app.data._3DSize.length  == 2) flag == true
+					{if      (app.threeDData._3DType == "Box"      && app.threeDData._3DSize.length  == 3) flag == true
+					 else if (app.threeDData._3DType == "Cylinder" && app.threeDData._3DSize.length  == 2) flag == true
+					 else if (app.threeDData._3DType == "Cone"     && app.threeDData._3DSize.length  == 2) flag == true
 					 /* "Sphere" => [1.0] is allowed */
-					 else if ((app.data._3DType == "Sphere" || app.data._3DType == "text")
-										&& app.data._3DSize.length  == 1) flag == true
+					 else if ((app.threeDData._3DType == "Sphere" || app.threeDData._3DType == "text")
+										&& app.threeDData._3DSize.length  == 1) flag == true
 					 else flag == false}
 				case _             => flag == false	
 			}
@@ -87,23 +87,23 @@ object _3DTests extends Properties("acumen") {
     }
 
 	/* Can extract simulation end time correctly */	
-	property("extractSimulationTime Correctness") =
-		forAll { (x:Double) => (x > 0 && x != 10) ==> {
-		  var flag = true;
-			val txt = """
-				class Main(simulator)
-					simulator.endTime = """ + x.toString + """
-				end
-			"""
-			//println(txt)
-			val appModel = new AppModel(txt,new Console);
-			appModel.play
-			/* Wait until simulation progress finish. Exclude 10 is because it's the 
-			 * default endTime and will leads to false result at first time step (initalization) */
-			while(appModel.state != ui.Stopped() || appModel.data.endTime == 10){
-				val a = "Busy waiting";
-			}
-			(appModel.data.endTime == x)	
-			}
-    }
+	property("extractSimulationTime Correctness") = throw new java.lang.Exception("Unimplemented")
+    //     	forAll { (x:Double) => (x > 0 && x != 10) ==> {
+    //     	  var flag = true;
+    //     		val txt = """
+    //     			class Main(simulator)
+    //     				simulator.endTime = """ + x.toString + """
+    //     			end
+    //     		"""
+    //     		//println(txt)
+    //     		val appModel = new Controller(txt,new Console); // FIXME: This needs to be redone
+    //     		appModel.play
+    //     		/* Wait until simulation progress finish. Exclude 10 is because it's the 
+    //     		 * default endTime and will leads to false result at first time step (initalization) */
+    //     		while(appModel.state != ui.Stopped() || appModel.data.endTime == 10){
+    //     			val a = "Busy waiting";
+    //     		}
+    //     		(appModel.data.endTime == x)	
+    //     		}
+    // }
 }

@@ -6,8 +6,8 @@ import util.Filters._
 import util.Names._
 import util.Canonical._
 import interpreters.reference.Interpreter
-import ui.AppModel
-import ui.Console
+import ui.Controller
+import ui.tl.Console
 import scala.math._
 
 import java.io.FileInputStream
@@ -26,8 +26,9 @@ import org.scalacheck.Prop._
 class _3DTest extends Suite with ShouldMatchers {
 
   def run(file:String) = {
-    val appModel = new AppModel(file,new Console);
-	appModel.play
+    throw new java.lang.Exception("Unimplemented")
+    // val appModel = new Controller(file,new Console); // FIXME: This needs to be redone
+    //     appModel.play
   }
   def getError(file:String) : Option[AcumenError] = {
     try {   run(file); None}

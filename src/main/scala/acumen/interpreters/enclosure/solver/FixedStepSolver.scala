@@ -3,7 +3,7 @@ package acumen.interpreters.enclosure.solver
 import acumen.interpreters.enclosure._
 import acumen.interpreters.enclosure.Interval._
 import acumen.interpreters.enclosure.Types._
-import acumen.ui.Enclosure
+import acumen.ui.interpreter.Enclosure
 
 trait FixedStepSolver extends SolveVtE {
 

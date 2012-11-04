@@ -4,14 +4,12 @@ package enclosure
 
 import util.Canonical._
 import Types._
-import ui.TraceModel
+import ui.interpreter._
 import acumen.interpreters.Common.classDef
 import acumen.interpreters.enclosure.solver._
 import acumen.interpreters.enclosure.solver.HybridSystem
-import acumen.ui.EnclosureTraceModel
-import acumen.ui.EnclosureTraceData
 
-abstract class EnclosureInterpreterCallbacks extends InterpreterCallbacks {
+trait EnclosureInterpreterCallbacks extends InterpreterCallbacks {
   def log(msg: String): Unit
   var endTime: Double = 0.0
   def sendResult(data: Iterable[UnivariateAffineEnclosure]): Unit = {}
@@ -20,15 +18,13 @@ abstract class EnclosureInterpreterCallbacks extends InterpreterCallbacks {
 /**
  * Proxy for the enclosure-based solver.
  */
-object Interpreter extends acumen.Interpreter with Solver with Extract {
+object Interpreter extends acumen.RecursiveInterpreter with Solver with Extract {
 
-  def newTraceModel = new EnclosureTraceModel
+  def newInterpreterModel = new EnclosureModel
 
   //FIXME do this properly
-  override def runInterpreter(text: String, cb0: InterpreterCallbacks) {
+  override def runInterpreter(des: Prog, cb0: InterpreterCallbacks) {
     val cb = cb0.asInstanceOf[EnclosureInterpreterCallbacks]
-    val prog = Parser.run(Parser.prog, text)
-    val des = Desugarer.run(prog)
     val main = classDef(ClassName("Main"), des)
 
     val ps = parameters(main)
@@ -49,18 +45,6 @@ object Interpreter extends acumen.Interpreter with Solver with Extract {
       "output",
       cb)
   }
-
-  type Store = Seq[UnivariateAffineEnclosure]
-
-  val emptyStore: CStore = Map.empty
-
-  def repr(s: Store): CStore = emptyStore
-
-  def fromCStore(cs: CStore, root: CId): Store = null
-
-  def init(prog: Prog): (Prog, Store) = (prog, null)
-
-  def step(p: Prog, st: Store): Option[Store] = Some(null)
 
   // Simulator object
   def magicClassTxt =

@@ -1,19 +1,20 @@
 package acumen
 package ui
+package threeD
 
 import scala.actors._
 import scala.collection.JavaConversions._
 import scala.collection.mutable.{Buffer, Map}
 import scala.swing._
 
-abstract class AbstractThreeDPane extends BorderPanel {
+abstract class AbstractThreeDTab extends BorderPanel {
   def receiver : Publisher
   def reset : Unit
   def setProgress(p:Int) : Unit
   var enableTab = true
 }
 
-class ThreeDPane(val appModel:AppModel) extends AbstractThreeDPane {
+class ThreeDTab(val appModel:Controller) extends AbstractThreeDTab {
 
   var threeDView  = new ThreeDView()
   var playSpeed = 1.0;
@@ -80,7 +81,7 @@ class ThreeDPane(val appModel:AppModel) extends AbstractThreeDPane {
     def apply = {
 			threedpause.toolTip = "pause"
 			threedpause.icon    = Icons.pause
-			endTime = appModel.data.endTime
+			endTime = appModel.threeDData.endTime
 			if(played){    
 				receiver.stop;
 			timer3d.destroy = true;
@@ -94,7 +95,7 @@ class ThreeDPane(val appModel:AppModel) extends AbstractThreeDPane {
 	    _3DDataBuffer.clear 
 			lastFrame = 0;
 			statusZone3d.setSpeed("1.0")
-        for((id,map) <- appModel.data._3DData){
+        for((id,map) <- appModel.threeDData._3DData){
           var temp = Map[Int,Buffer[List[_]]]()
           for((objectNumber,l)<-map){
              temp += (objectNumber->l.reverse.toBuffer)
@@ -106,13 +107,13 @@ class ThreeDPane(val appModel:AppModel) extends AbstractThreeDPane {
             }
           _3DDataBuffer += id->temp              
          }
-			appModel.data.reset;
+			appModel.threeDData.reset;
     }        
      threeDView.branches.clear  
      threeDView.trans.clear         
      _receiver = new _3DDisplay(threeDView,statusZone3d,_3DDataBuffer,lastFrame,
-			       appModel.data.endTime)
-     timer3d  = new ScalaTimer(receiver,appModel.data.endTime,playSpeed)
+			       appModel.threeDData.endTime)
+     timer3d  = new ScalaTimer(receiver,appModel.threeDData.endTime,playSpeed)
      receiver.start()
      timer3d.start()
      listenTo(receiver)
@@ -161,9 +162,9 @@ class ThreeDPane(val appModel:AppModel) extends AbstractThreeDPane {
   }
 
   var _receiver   =  new _3DDisplay(threeDView,statusZone3d,
-                                   _3DDataBuffer,lastFrame,appModel.data.endTime)
+                                   _3DDataBuffer,lastFrame,appModel.threeDData.endTime)
   
-  var timer3d      = new  ScalaTimer(receiver,appModel.data.endTime,playSpeed)
+  var timer3d      = new  ScalaTimer(receiver,appModel.threeDData.endTime,playSpeed)
 
   //
   //
@@ -194,7 +195,7 @@ class ThreeDPane(val appModel:AppModel) extends AbstractThreeDPane {
 
 }
 
-class DisabledThreeDPane extends AbstractThreeDPane {
+class DisabledThreeDTab extends AbstractThreeDTab {
   def receiver = null
   def reset = {}
   def setProgress(p:Int) = {}

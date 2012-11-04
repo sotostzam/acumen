@@ -1,5 +1,6 @@
 package acumen
 package ui
+package interpreter
 
 import Errors._
 import Pretty._
@@ -10,7 +11,7 @@ import acumen.interpreters.enclosure.UnivariateAffineEnclosure
 import acumen.interpreters.enclosure.UnivariateAffineScalarEnclosure
 import scala.math.Ordering
 
-class EnclosureTraceModel extends AbstractTraceModel {
+class EnclosureModel extends TraceModel with PlotModel with InterpreterModel {
 
   var es = new ArrayBuffer[UnivariateAffineEnclosure]
 
@@ -22,7 +23,6 @@ class EnclosureTraceModel extends AbstractTraceModel {
     var columnNames : IndexedSeq[String] = IndexedSeq.empty[String]
 
     def recompute() = {
-
       times = es.map(_.domain.hiDouble).foldLeft(ArrayBuffer(es.head.domain.loDouble)) { case (res, t) => res += t }
 
       // 
@@ -126,23 +126,28 @@ class EnclosureTraceModel extends AbstractTraceModel {
 
   override def getPlottables() = data.plottables
 
+  var stale : Boolean = false;
+
   override def addData(d:TraceData) = {
-
-    es ++= d.asInstanceOf[Iterable[UnivariateAffineEnclosure]]
-
-    data.recompute()
-    
-    fireTableStructureChanged()
+    synchronized  {
+      es ++= d.asInstanceOf[Iterable[UnivariateAffineEnclosure]]
+      stale = true
+    }
   }
 
-  override def reset = {
-    
-    es.clear()
-
-    data = new Data
-    
+  def syncData() {
+    synchronized  {
+      if (stale) {
+        val d = new Data()
+        d.recompute()
+        data = d
+      }
+      stale = false
+    }
   }
 
+  override def getPlotModel = {syncData(); this}
+  override def getTraceModel = {syncData(); this}
 }
 
 class EnclosureTraceData(val data: Iterable[UnivariateAffineEnclosure], endTime: Double)

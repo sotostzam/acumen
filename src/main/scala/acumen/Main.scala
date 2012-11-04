@@ -39,7 +39,7 @@ object Main {
         case "--semantics" => args(1) match {
           case "reference" => (interpreters.reference.Interpreter, 2)
           case "parallel" => (new interpreters.parallel.Interpreter(2), 2)
-          case "enclosure" => (interpreters.enclosure.Interpreter, 2)
+          //case "enclosure" => (interpreters.enclosure.Interpreter, 2)
           case _ => (interpreters.reference.Interpreter, 0)
         }
         case _ => (interpreters.reference.Interpreter, 0)

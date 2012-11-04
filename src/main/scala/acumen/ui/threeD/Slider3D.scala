@@ -1,17 +1,10 @@
 package acumen
 package ui
+package threeD
 
 import swing._
 import swing.event._
 
-
-class StatusZone extends BoxPanel(Orientation.Horizontal) { 
-  val bar = new ProgressBar { min = 0; max = 100; minimumSize = new Dimension(200,0) }
-  def setProgress(p:Int) = bar.value = p
-  border = javax.swing.BorderFactory.createEmptyBorder(5,5,5,5)
-  contents += new Label("Progress: ")
-  contents += bar
-}
 class Slider3d extends BoxPanel(Orientation.Horizontal) {
   val bar = new Slider { value=0;min = 0; max = 100; minimumSize = new Dimension(100,0);preferredSize= new Dimension(300,0) }
   var labelTime = new Label {

@@ -21,8 +21,6 @@ import util.Random
 import Common._
 import util.Canonical._
 
-import ui.TraceModel
-
 trait Common {
 
   type Store = Object
@@ -483,8 +481,6 @@ object Interpreter extends Common {
 
 class Interpreter(nbThreads: Int) extends Common with acumen.Interpreter {
 
-  def newTraceModel = new TraceModel
-  
   lazy val threadPool = new SimpleThreadPool[Changeset](nbThreads)
   def dispose = threadPool.dispose
 

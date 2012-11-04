@@ -1,5 +1,6 @@
 package acumen
 package ui
+package interpreter
 
 import Pretty._
 import util.Canonical._
@@ -23,16 +24,65 @@ case class CStoreTraceData(data: Iterable[CStore])
   def iterator = data.iterator
 }
 
-class TraceModel extends AbstractTraceModel {
+class CStoreModel extends TraceModel with InterpreterModel with PlotModel {
   // array of (id, field name, maybe index in vector, start frame, values)
-  var stores = new ArrayBuffer[(CId, Name, Option[Int], Int, ArrayBuffer[CValue])]
-  var classes = new HashMap[CId,ClassName]
-  var indexes = new HashMap[(CId,Name,Option[Int]),Int]
-  var ids = new HashSet[CId]
-  var frame = 0
-  
+  private var stores = new ArrayBuffer[(CId, Name, Option[Int], Int, ArrayBuffer[CValue])]
+  private var classes = new HashMap[CId,ClassName]
+  private var indexes = new HashMap[(CId,Name,Option[Int]),Int]
+  private var ids = new HashSet[CId]
+  private var frame = 0
+
+  // package all variables that need to be updated Atomically into
+  // a case class
+  case class Data(columnNames: Array[String],
+                  rowCount: Int,
+                  updatingData: Boolean)
+  @volatile var d : Data = Data(new Array[String](0), 0, false)
+
+  val pending = new ArrayBuffer[TraceData]()
+
+  def addData(sts:TraceData) = {
+    pending.synchronized {
+      pending += sts
+    }
+  }
+
+  def flushPending() : Unit = {
+    try {
+      var pd : Array[TraceData] = null
+      pending.synchronized {
+        if (d.updatingData) 
+          throw new java.lang.IllegalStateException
+        if (pending.isEmpty())
+          return
+        d = d.copy(updatingData = true)
+        pd = pending.toArray
+        pending.clear()
+      }
+      for (sts <- pd)
+        addDataHelper(sts)
+      d = Data(columnNames = stores.indices map {i => getColumnNameLive(i)} toArray,
+               rowCount = frame,
+               updatingData = false)
+    } catch {
+      case e => 
+        d = d.copy(updatingData = false)
+        throw e
+    }
+  }
+
+  def getColumnNameLive(col:Int) = {
+    try {
+      val (id,x,i,_,_) = stores(col)
+      "(#" + id + " : " + classes(id).x + ")." + x.x + "'" * x.primes + 
+      (i match { case Some(k) => "["+k+"]" case None => "" }) 
+    } catch { case _ => "" }
+  }
+
+
+ 
   //def ids = stores map { case (id,_,_,_,_) => id }
-  def addVal(id:CId, x:Name, v:CValue) = {
+  private def addVal(id:CId, x:Name, v:CValue) = {
     v match {
       case VVector(u) =>
         for ((ui,i) <- u zipWithIndex) {
@@ -45,7 +95,7 @@ class TraceModel extends AbstractTraceModel {
     }
   }
 
-  override def addData(sts:TraceData) = {
+  private def addDataHelper(sts:TraceData) = {
     def compIds(ido1:(CId,_), ido2:(CId,_)) = ido1._1 < ido2._1
     def compFields(p1:(Name,CValue),p2:(Name,CValue)) = 
       Ordering[(String,Int)] lt ((p1._1.x, p1._1.primes),(p2._1.x, p2._1.primes))
@@ -77,16 +127,15 @@ class TraceModel extends AbstractTraceModel {
       }
       frame += 1
     }
-    // FIXME: be more precise ?
-    fireTableStructureChanged()
-    //fireTableDataChanged()
   }
 
-  override def getRowCount = frame
-  override def getColumnCount = stores.size
+  override def getRowCount = d.rowCount
+  override def getColumnCount = d.columnNames.length
 
   override def getValueAt(row:Int, column:Int) = {
-    try {
+    if (d.updatingData) 
+      "???"
+    else try {
       val col = stores(column)
       val v = col._5(row - col._4)
       pprint(v)
@@ -94,33 +143,22 @@ class TraceModel extends AbstractTraceModel {
   }
 
   override def getDouble(row:Int, column:Int) = {
-    try {
+    if (d.updatingData)
+      None
+    else try {
       val col = stores(column)
       val x = extractDouble(col._5(row - col._4))
       Some(x)
     } catch { case _ => None }
   }
 
-  override def getColumnName(col:Int) = {
-    try {
-      val (id,x,i,_,_) = stores(col)
-      "(#" + id + " : " + classes(id).x + ")." + x.x + "'" * x.primes + 
-        (i match { case Some(k) => "["+k+"]" case None => "" }) 
-    } catch { case _ => "" }
-  }
+  override def getColumnName(col:Int) = d.columnNames(col)
 
-  override def reset = {
-    stores = new ArrayBuffer[(CId,Name,Option[Int],Int,ArrayBuffer[CValue])]
-    classes = new HashMap[CId,ClassName]
-    indexes = new HashMap[(CId,Name,Option[Int]),Int]
-    ids = new HashSet[CId]
-    fireTableStructureChanged()
-    frame = 0
-  }
-
-  override def isEmpty() = {stores.isEmpty}
+  override def isEmpty() = d.rowCount == 0
 
   override def getTimes() = {
+    if (d.updatingData) 
+      throw new java.lang.IllegalStateException
     (stores find {
       case (id,Name(x, 0),None,_,_) => 
         x == "time" && classes(id) == cmagic
@@ -135,6 +173,8 @@ class TraceModel extends AbstractTraceModel {
   }
 
   override def getPlottables() : IndexedSeq[PlotDoubles] = {
+    if (d.updatingData) 
+      throw new java.lang.IllegalStateException
     val res = new ArrayBuffer[PlotDoubles]
 
     for (((id,fn,_,s,a),idx) <- stores zipWithIndex)
@@ -145,13 +185,18 @@ class TraceModel extends AbstractTraceModel {
               val x = extractDouble(a(idx));
               x
             }
-            override def length = a.length
+            // store length in a local variable since by the time this
+            // data structure is accesses the more data could already
+            // have been added to the cstore
+            val _length = a.length
+            override def length = _length
           }
-        res += new PlotDoubles(classes(id) == cmagic, fn, s, idx, vls)
+          res += new PlotDoubles(classes(id) == cmagic, fn, s, idx, vls)
         case _ => ()
       }
     res
   }
+
+  override def getPlotModel = {flushPending(); this}
+  override def getTraceModel = {flushPending(); this}
 }
-
-
