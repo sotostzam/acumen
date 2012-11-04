@@ -154,7 +154,7 @@ object GraphicalMain extends SimpleSwingApplication {
     autoResizeMode = Table.AutoResizeMode.Off
   }
 
-  val traceView = new TraceView(false, false, false, false, traceModel)
+  val traceView = new TraceView(false, false, false, traceModel)
   val pointedView = new PointedView(traceView)
 
   val tab1 = new BorderPanel {
@@ -253,10 +253,7 @@ object GraphicalMain extends SimpleSwingApplication {
       mnemonic = Key.S
       val rb1 = new RadioMenuItem("") {
         selected = true // This is the default semantics
-        action = Action("Purely Functional") { 
-          appModel.setInterpreter(interpreters.reference.Interpreter)
-          traceView.setEnabledTicksCheckbox(false)
-        }
+        action = Action("Purely Functional") { appModel.setInterpreter(interpreters.reference.Interpreter) }
       }
       val rb2 = new RadioMenuItem("") {
         selected = false
@@ -275,16 +272,12 @@ object GraphicalMain extends SimpleSwingApplication {
               console.logError("Bad number of threads.")
               go
           }
-          traceView.setEnabledTicksCheckbox(false)
           go
         }
       }
       val rb3 = new RadioMenuItem("") {
         selected = false 
-        action = Action("Enclosure") { 
-          appModel.setInterpreter(interpreters.enclosure.Interpreter) 
-          traceView.setEnabledTicksCheckbox(true)
-        }
+        action = Action("Enclosure") { appModel.setInterpreter(interpreters.enclosure.Interpreter) }
       }
       contents ++= Seq(rb1,rb2,rb3)
       new ButtonGroup(rb1,rb2,rb3)

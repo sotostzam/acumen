@@ -43,13 +43,13 @@ case class Both() extends PlotStyle
 
 class TraceView(
 	plotSimulator:Boolean, plotNextChild:Boolean, 
-	plotSeeds:Boolean, plotTicks:Boolean, tmodel: AbstractTraceModel) 
+	plotSeeds:Boolean, tmodel: AbstractTraceModel) 
   extends BorderPanel with TableModelListener {
     /* for some reason forwarding events causes stack overflows, so we pass
        this to Plotter, which will ask this to publish events ... */
     private val plotter = 
-			new Plotter(plotSimulator, plotNextChild, plotSeeds, plotTicks, tmodel, this)
-    
+			new Plotter(plotSimulator, plotNextChild, plotSeeds, tmodel, this)
+
     val resetZoom = new Action("Reset Zoom") {
       icon = Icons.home
       def apply = fit
@@ -136,40 +136,29 @@ class TraceView(
     private val b4 = new Button(zoomOut) { peer.setHideActionText(true) }
     private val b5 = new Button(saveAs) { peer.setHideActionText(true) }
     private val hint = new Label("Hint: Right click on image & drag to move")
-    private val drawCheckbox:CheckBox = new CheckBox("") { 
+    private val check = new CheckBox("") { 
       action = Action("Draw") { 
-        ticksCheckbox.enabled = drawCheckbox.selected
         if (selected) redraw 
         else plotter.clear
       }
     }
-    private val ticksCheckbox:CheckBox = new CheckBox("") { 
-      action = Action("Ticks") { 
-    	plotter.toggleTicks(ticksCheckbox.selected)
-        redraw
-      }
-    }
     private val rightBottomButtons =
-      new FlowPanel(FlowPanel.Alignment.Leading)(drawCheckbox, ticksCheckbox, b5, b1, b2, b3, b4, hint)
+      new FlowPanel(FlowPanel.Alignment.Leading)(check, b5, b1, b2, b3, b4, hint)
     
     add(plotter, BorderPanel.Position.Center)
     add(rightBottomButtons, BorderPanel.Position.South)
-    drawCheckbox.selected = true
-    ticksCheckbox.selected = false
-    ticksCheckbox.enabled = false
+    check.selected = true
     tmodel.addTableModelListener(this)
 
     def redraw : Unit = { plotter.redraw; fit }
     private def fit = plotter.fit
     override def tableChanged(e: TableModelEvent) = 
-      if (drawCheckbox.selected) redraw
+      if (check.selected) redraw
 
 
     def toggleSimulator(b:Boolean) = plotter.toggleSimulator(b)
     def toggleNextChild(b:Boolean) = plotter.toggleNextChild(b)
     def toggleSeeds(b:Boolean) = plotter.toggleSeeds(b)
-    def toggleTicks(b:Boolean) = plotter.toggleTicks(b)
-    def setEnabledTicksCheckbox(b:Boolean) = ticksCheckbox.enabled = b
     def setPlotStyle(ps:PlotStyle) = plotter.setPlotStyle(ps)
 }
 
@@ -246,15 +235,7 @@ class MyPath2D() extends PlotEntity {
   }
 }
 
-class EnclosurePath(plotTicks: Boolean) extends PlotEntity {
-  private val STROKE_ONE = new BasicStroke(1)
-  private val STROKE_DASH =  
-    new BasicStroke(1.0f,                   // Width
-                    BasicStroke.CAP_SQUARE, // End cap
-                    BasicStroke.JOIN_MITER, // Join style
-                    10.0f,                  // Miter limit
-                    Array(1.0f,5.0f),       // Dash pattern
-                    0.0f);                  // Dash phase
+class EnclosurePath() extends PlotEntity {
   private var p1  = new Point2D.Double(0,0)
   private var p2  = new Point2D.Double(0,0)
   case class PolyPoints(a:Point2D.Double, b:Point2D.Double,
@@ -266,8 +247,6 @@ class EnclosurePath(plotTicks: Boolean) extends PlotEntity {
       tr.transform(c,res.c)
       tr.transform(d,res.d)
     }
-    def ymax = math.max(a.y, math.max(b.y, math.max(c.y, d.y)))
-    def ymin = math.min(a.y, math.min(b.y, math.min(c.y, d.y)))
   }
   private var polys = new ArrayBuffer[PolyPoints]
 
@@ -296,18 +275,15 @@ class EnclosurePath(plotTicks: Boolean) extends PlotEntity {
   }
   def draw(g:Graphics2D, tr:AffineTransform) = {
     val area = new Area();
-    val lines = new ArrayBuffer[Line2D.Double]
-    val enclosureColor = g.getColor();
-    val (ymin,ymax) = yminmax(polys,tr) 
+    val lines = new ArrayBuffer[Line2D.Double];
+    g.setStroke(new BasicStroke(1))
     for (polyPoints <- polys) {
-      g.setStroke(STROKE_ONE)
-      g.setColor(enclosureColor)
       val toDraw = PolyPoints(new Point2D.Double,
                               new Point2D.Double,
                               new Point2D.Double,
-                              new Point2D.Double)
+                              new Point2D.Double);
       polyPoints.transform(tr, toDraw)
-      val polyPath = new Path2D.Double
+      val polyPath = new Path2D.Double;
       polyPath.moveTo(toDraw.a.getX(),toDraw.a.getY())
       polyPath.lineTo(toDraw.b.getX(),toDraw.b.getY())
       polyPath.lineTo(toDraw.c.getX(),toDraw.c.getY())
@@ -316,38 +292,13 @@ class EnclosurePath(plotTicks: Boolean) extends PlotEntity {
       area.add(new Area(polyPath))
       // Draw exact solutions as a line
       if (toDraw.a == toDraw.d && toDraw.b == toDraw.c)
-        g.draw(new Line2D.Double(toDraw.a,toDraw.b))
-      if (plotTicks) {
-        val prevComposite = g.getComposite()
-        g.setStroke(STROKE_DASH);
-        g.setColor(Color.LIGHT_GRAY)
-        val tick = toDraw.a.getX()
-        g.draw(new Line2D.Double(tick, ymin, tick, ymax))
-        g.setComposite(prevComposite)
-      }
+        g.draw(new Line2D.Double(toDraw.a.getX(),toDraw.a.getY(),toDraw.b.getX(),toDraw.b.getY()))
     }
-    g.setStroke(STROKE_ONE);
-    g.setColor(enclosureColor)
     g.draw(area)
     val prevComposite = g.getComposite()
     g.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.10f))
     g.fill(area)
     g.setComposite(prevComposite)
-  }
-
-  private def yminmax(polys: ArrayBuffer[PolyPoints], tr:AffineTransform) = {
-    var ymin = Double.MaxValue
-    var ymax = Double.MinValue
-    for (polyPoints <- polys) {
-      val t = PolyPoints(new Point2D.Double,
-        new Point2D.Double,
-        new Point2D.Double,
-        new Point2D.Double)
-      polyPoints.transform(tr, t)
-      ymin = math.min(ymin, t.ymin)
-      ymax = math.max(ymax, t.ymax)
-    }
-    (ymin, ymax)
   }
 
   def drawDots(g:Graphics2D, tr:AffineTransform) = draw(g,tr)
@@ -369,7 +320,7 @@ case class PointedAtEvent(time:Double, name:String, value:String) extends Event
 
 class Plotter(
   _plotSimulator: Boolean, _plotNextChild:Boolean, 
-	_plotSeeds:Boolean, _plotTicks:Boolean, tb:AbstractTraceModel, pub:Publisher) extends Panel {
+	_plotSeeds:Boolean, tb:AbstractTraceModel, pub:Publisher) extends Panel {
 
   background = Color.gray
   peer.setDoubleBuffered(true)
@@ -381,7 +332,6 @@ class Plotter(
   private var polys = new ArrayBuffer[PlotEntity]()
   private var axes  = new ArrayBuffer[MyPath2D]()
   private var boxes = new ArrayBuffer[Rectangle2D]()
-  private var ticks = new ArrayBuffer[PlotEntity]()
   private var hoveredBox : Option[Int] = None
   private var dotX : Double = 0.0d
   private var dotY : Option[Double] = None
@@ -401,15 +351,13 @@ class Plotter(
   private var plotNextChild = _plotNextChild
   private var plotSimulator = _plotSimulator
   private var plotSeeds = _plotSeeds
-  private var plotTicks = _plotTicks
   private var plotStyle : PlotStyle = Lines()
 
   def clear = {
     buffer = null
-    polys  = new ArrayBuffer[PlotEntity]()
-    axes   = new ArrayBuffer[MyPath2D]()
-    boxes  = new ArrayBuffer[Rectangle2D]()
-    ticks  = new ArrayBuffer[PlotEntity]()
+    polys = new ArrayBuffer[PlotEntity]()
+    axes  = new ArrayBuffer[MyPath2D]()
+    boxes = new ArrayBuffer[Rectangle2D]()
     hoveredBox = None
     dotX = 0.0d
     dotY = None
@@ -640,7 +588,6 @@ class Plotter(
     polys = new ArrayBuffer[PlotEntity]
     axes  = new ArrayBuffer[MyPath2D]
     boxes = new ArrayBuffer[Rectangle2D]
-    ticks = new ArrayBuffer[PlotEntity]
     yTransformations = new ArrayBuffer[(Double,Double)]
     
     if (tb.isEmpty) ()
@@ -672,7 +619,7 @@ class Plotter(
             polys += line
           }
           case p:PlotEnclosure => {
-            val path = new EnclosurePath(plotTicks)
+            val path = new EnclosurePath
             var prevTime = time(s)
             for (f <- 1 until p.values.size;
                  val frame = s + f) {
@@ -879,10 +826,6 @@ class Plotter(
     hoveredBox = None
     redraw
     fit
-  }
-  def toggleTicks(b:Boolean) = {
-	plotTicks = b
-	repaint
   }
   def setPlotStyle(ps:PlotStyle) = {
     plotStyle = ps
