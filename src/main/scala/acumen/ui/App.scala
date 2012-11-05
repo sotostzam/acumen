@@ -129,7 +129,11 @@ class App extends SimpleSwingApplication {
     add(traceView, BorderPanel.Position.Center)
   }
   val tab2 = new ScrollPane(traceTable) 
-  var threeDtab = try {
+  var threeDtab = if (GraphicalMain.disable3D) {
+    console.log("Acumen3D disabled.")
+    console.newLine
+    new threeD.DisabledThreeDTab
+  } else try {
     new threeD.ThreeDTab(controller)
   } catch {
     case e:UnsatisfiedLinkError => 
