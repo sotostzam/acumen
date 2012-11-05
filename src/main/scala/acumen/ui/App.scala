@@ -393,7 +393,7 @@ object App {
   case object Paused extends Ready
 }
 
-object Supervisor extends Actor {
+object Supervisor extends DaemonActor {
   case class Link(a: AbstractActor, n: String, restart: ()=>Unit)
   val watching = new collection.mutable.ListMap[OutputChannel[Any],(String,()=>Unit)]
   def act() = {
