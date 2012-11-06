@@ -12,8 +12,6 @@ import acumen.interpreters.enclosure.solver.Solver._
 import acumen.interpreters.enclosure.UnivariateAffineScalarEnclosure
 import acumen.interpreters.enclosure.UnivariateAffineEnclosure
 import TransformTest._
-import acumen.ui.EnclosureTraceModel
-import acumen.ui.PlotEnclosure
 import java.awt.Color
 
 object Sandbox extends App with Extract with Solver {
