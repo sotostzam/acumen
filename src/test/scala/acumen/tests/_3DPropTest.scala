@@ -11,6 +11,9 @@ import org.scalacheck.Gen._
 import org.scalacheck.Properties
 import org.scalacheck.Prop._
 
+import org.scalatest.Ignore
+
+@Ignore
 object _3DTests extends Properties("acumen") {
   val app = new Controller;
   /* Check if it is a int or a double */

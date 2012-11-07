@@ -22,7 +22,9 @@ import Generators._
 import org.scalacheck.Properties
 import org.scalacheck.Prop._
 
+import org.scalatest.Ignore
 
+@Ignore
 class _3DTest extends Suite with ShouldMatchers {
 
   def run(file:String) = {
