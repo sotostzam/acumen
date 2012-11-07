@@ -25,8 +25,8 @@ import swing.event._
 
 object GraphicalMain extends SimpleSwingApplication {
   // Swing debugging
-  javax.swing.RepaintManager.setCurrentManager(new debug.CheckThreadViolationRepaintManager)
-  debug.EventDispatchThreadHangMonitor.initMonitoring()
+//  javax.swing.RepaintManager.setCurrentManager(new debug.CheckThreadViolationRepaintManager)
+//  debug.EventDispatchThreadHangMonitor.initMonitoring()
 
   var disable3D = true;
 
