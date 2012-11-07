@@ -152,11 +152,11 @@ class PlotTab extends BorderPanel
   var plotState : Plotter.State = null
   var panelState : PlotPanel.State = null
   reactions += {
-    case st:App.State       => appState = st; foo
-    case st:Plotter.State   => plotState = st; foo
-    case st:PlotPanel.State => panelState = st; foo
+    case st:App.State       => appState = st; stateUpdateResponse
+    case st:Plotter.State   => plotState = st; stateUpdateResponse
+    case st:PlotPanel.State => panelState = st; stateUpdateResponse
   }
-  def foo = (plotState,appState) match {
+  def stateUpdateResponse = (plotState,appState) match {
     case _ if panelState == PlotPanel.Disabled => 
       buttonsEnabled(false)
     case (Plotter.Busy,_:App.Playing) => 
