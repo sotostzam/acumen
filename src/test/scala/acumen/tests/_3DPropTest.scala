@@ -11,9 +11,6 @@ import org.scalacheck.Gen._
 import org.scalacheck.Properties
 import org.scalacheck.Prop._
 
-import org.scalatest.Ignore
-
-@Ignore
 object _3DTests extends Properties("acumen") {
   val app = new Controller;
   /* Check if it is a int or a double */
@@ -90,7 +87,8 @@ object _3DTests extends Properties("acumen") {
     }
 
 	/* Can extract simulation end time correctly */	
-	property("extractSimulationTime Correctness") = throw new java.lang.Exception("Unimplemented")
+        // FIXME: Reenable once fixed
+        //property("extractSimulationTime Correctness") = throw new java.lang.Exception("Unimplemented")
     //     	forAll { (x:Double) => (x > 0 && x != 10) ==> {
     //     	  var flag = true;
     //     		val txt = """
