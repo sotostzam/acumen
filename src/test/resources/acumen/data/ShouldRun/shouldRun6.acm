@@ -1,8 +1,8 @@
 // bug 31
 
 class Main (simulator)
-  private x  = 0; x' = 1; x'' = 0 end
-  x'' [=] - 4 * x
+  private x  := 0; x' := 1; x'' := 0 end
+  x'' = - 4 * x
 end
 
 

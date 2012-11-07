@@ -12,26 +12,26 @@ class Ball(mode, x,x',x'')
   switch mode
     case "Fly"
       if x < 0 && x' < 0
-        mode = "Bounce"
+        mode := "Bounce"
       else
-        x'' [=] -9.8
+        x'' = -9.8
       end
     case "Bounce"
-      x' = -x';
-      mode = "Fly"
+      x' := -x';
+      mode := "Fly"
   end
 end
 
 class Main(simulator)
   private
-    mode = "Init"
+    mode := "Init"
   end
   switch mode
     case "Init"
-      simulator.timeStep = 0.01;
-      simulator.endTime = 5.0;
+      simulator.timeStep := 0.01;
+      simulator.endTime := 5.0;
       create Ball("Fly", 1,0,0);
-      mode = "Persist"
+      mode := "Persist"
     case "Persist"
   end
 end

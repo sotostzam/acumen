@@ -5,5 +5,5 @@ class Main(simulator)
 end
 
 class A(main)
-  main.mode = "Foo"
+  main.mode := "Foo"
 end

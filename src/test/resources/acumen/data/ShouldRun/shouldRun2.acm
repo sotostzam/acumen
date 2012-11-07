@@ -4,7 +4,7 @@ class A(x) end
 
 class Main(sim)
   private 
-    x = create A(1);
-    y = create A(2)
+    x := create A(1);
+    y := create A(2)
   end
 end

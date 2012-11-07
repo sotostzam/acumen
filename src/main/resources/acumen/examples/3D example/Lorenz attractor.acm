@@ -1,13 +1,13 @@
 class Main(simulator)
  private
-   s = 10; r = 28; b = 2.667;
-   x = 0; y = 1; z = 1.05; x' = 0; y' = 0; z' = 0;
-   _3D  = ["Sphere",[1,1,05,0],0.05,[0.3,0.7,0.2],[0,0,0]];
+   s := 10; r := 28; b := 2.667;
+   x := 0; y := 1; z := 1.05; x' := 0; y' := 0; z' := 0;
+   _3D  := ["Sphere",[1,1,05,0],0.05,[0.3,0.7,0.2],[0,0,0]];
  end
- simulator.timeStep = 0.01;
- simulator.endTime = 5.0;
- _3D [=] ["Sphere",[y/10,z/10,x/10],0.05,[0.3,0.7,0.2],[0,0,0]];
- x' [=] s*(y-x);
- y' [=] r*x-y-x*z;
- z' [=] x*y-b*z;
+ simulator.timeStep := 0.01;
+ simulator.endTime := 5.0;
+ _3D = ["Sphere",[y/10,z/10,x/10],0.05,[0.3,0.7,0.2],[0,0,0]];
+ x' = s*(y-x);
+ y' = r*x-y-x*z;
+ z' = x*y-b*z;
 end

@@ -1,9 +1,9 @@
 class Ball(mode, p, p', p'', m)
   private
-    ux = [1,0,0];
-    uy = [0,1,0];
-    uz = [0,0,1];
-    plane = [1,1,0]
+    ux := [1,0,0];
+    uy := [0,1,0];
+    uz := [0,0,1];
+    plane := [1,1,0]
   end
   switch mode
     case "Fly"
@@ -23,27 +23,27 @@ class Ball(mode, p, p', p'', m)
                       m/2);
           terminate self
         else
-          mode = "Bounce"
+          mode := "Bounce"
         end
       else
-        p'' [=] [0,0,-9.8]
+        p'' = [0,0,-9.8]
       end
     case "Bounce"
-      p' = p' .* [0.8, 0.8, -0.8];
-      mode = "Fly"
+      p' := p' .* [0.8, 0.8, -0.8];
+      mode := "Fly"
   end
 end
 
 class Main(simulator)
   private
-    mode = "Init"
+    mode := "Init"
   end
   switch mode
     case "Init"
-      simulator.timeStep = 0.01;
-      simulator.endTime = 10;
+      simulator.timeStep := 0.01;
+      simulator.endTime := 10;
       create Ball("Fly", [0,0,1], [1,-1,0], [0,0,0], 1000);
-      mode = "Persist"
+      mode := "Persist"
     case "Persist"
   end
 end

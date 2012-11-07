@@ -5,14 +5,14 @@
 
 class Head(p) 
  private
-  p'=[0,0,0];
-  mode="Moving";
-  _3D = [["Sphere",[0,0,1.2],0.3, [1,1,1],[0,0,0]],
+  p':=[0,0,0];
+  mode:="Moving";
+  _3D := [["Sphere",[0,0,1.2],0.3, [1,1,1],[0,0,0]],
          ["Sphere",[0,0,1.2],0.05,[0,0,1],[0,0,0]],
 				 ["Sphere",[0,0,1.2],0.05,[0,0,1],[0,0,0]],
 				 ["Sphere",[0,0,1.2],0.04,[0,0,0],[0,0,0]]];
  end
-_3D [=] [["Sphere",p,                   0.3, [1,1,1],[0,0,0]],
+_3D = [["Sphere",p,                   0.3, [1,1,1],[0,0,0]],
 		// Different offsets
         ["Sphere",p+[0.12,-0.32,0.15], 0.05,[0,0,1],[0,0,0]],
 	      ["Sphere",p+[-0.12,-0.32,0.15],0.05,[0,0,1],[0,0,0]],
@@ -21,46 +21,46 @@ end
 
 class upperPart(p) 
  private
-  p'=[0,0,0];
-  mode="Moving";  
-  _3D = [["Cylinder",[0,0,0.7],[0.2,1.2], [1,1,1],[0,0,0]],
+  p':=[0,0,0];
+  mode:="Moving";  
+  _3D := [["Cylinder",[0,0,0.7],[0.2,1.2], [1,1,1],[0,0,0]],
          ["Sphere",[0,0,1.2],0.25,[0,0,0.5],[0,0,0]],
 				 ["Sphere",[0,0,1.2],0.25,[0,0,0.5],[0,0,0]],
 				 ["Cylinder",[0,0,1.2],[0.1,0.8],[1,1,1],[0,0,0]],
 				 ["Cylinder",[0,0,1.2],[0.1,0.8],[1,1,1],[0,0,0]]];
-  armAngle = 1;       armAngle' = 0; armAngle'' = 0;
-  leftP    = [0,0,0]; rightP    = [0,0,0];
+  armAngle := 1;       armAngle' := 0; armAngle'' := 0;
+  leftP    := [0,0,0]; rightP    := [0,0,0];
   	
  end
- _3D [=] [["Cylinder",p,         [0.2,1.2], [1,1,1],  [0,0,3.14/2]],
+ _3D = [["Cylinder",p,         [0.2,1.2], [1,1,1],  [0,0,3.14/2]],
           ["Sphere",  p-[0.6,0,0],0.25,     [0,0,0.5],[0,0,0]],
 				  ["Sphere",  p+[0.6,0,0],0.25,     [0,0,0.5],[0,0,0]],
 		      ["Cylinder",leftP,     [0.1,0.8], [1,1,1],  [3.14/2 - armAngle,0,0]],
 		      ["Cylinder",rightP,    [0.1,0.8], [1,1,1],  [3.14/2 + armAngle,0,0]]];
-armAngle'' [=] -10*sin(armAngle); 
-leftP [=] p + [0.6,-0.05,-0.4]  + [0,-0.45*sin(armAngle),(0.45-0.45*cos(armAngle))];
-rightP[=] p + [-0.6,-0.05,-0.4] + [0,0.45*sin(armAngle),(0.45-0.45*cos(armAngle))];
+armAngle'' = -10*sin(armAngle); 
+leftP = p + [0.6,-0.05,-0.4]  + [0,-0.45*sin(armAngle),(0.45-0.45*cos(armAngle))];
+rightP= p + [-0.6,-0.05,-0.4] + [0,0.45*sin(armAngle),(0.45-0.45*cos(armAngle))];
 end
 
 class lowerPart(p)  
  private
-  t=0;t'=0;
-  //p=[0,0,0.4];
-  p'=[0,0,0];
-  mode="Moving";  
-  axisP         = [0,0,0];
-  leftLegP      = [0,0,0];
-  leftLeg2P     = [0,0,0];
-  leftBearingP  = [0,0,0];
-  leftBearing2P = [0,0,0];
-  leftFootP     = [0,0,0];
-  rightLegP      = [0,0,0];
-  rightLeg2P     = [0,0,0];
-  rightBearingP  = [0,0,0];
-  rightBearing2P = [0,0,0];
-  rightFootP     = [0,0,0];
+  t:=0;t':=0;
+  //p:=[0,0,0.4];
+  p':=[0,0,0];
+  mode:="Moving";  
+  axisP         := [0,0,0];
+  leftLegP      := [0,0,0];
+  leftLeg2P     := [0,0,0];
+  leftBearingP  := [0,0,0];
+  leftBearing2P := [0,0,0];
+  leftFootP     := [0,0,0];
+  rightLegP      := [0,0,0];
+  rightLeg2P     := [0,0,0];
+  rightBearingP  := [0,0,0];
+  rightBearing2P := [0,0,0];
+  rightFootP     := [0,0,0];
   
-  _3D = [["Box",   [0,0,0.4],[0.6,0.5,0.5], [1,1,1],[0,0,0]],
+  _3D := [["Box",   [0,0,0.4],[0.6,0.5,0.5], [1,1,1],[0,0,0]],
          //Axis
          ["Cylinder",[0,0,1.2],[0.16,0.5],    [1,1,1],  [0,0,0]],
 		 ["Cylinder",[0,0,1.2],[0.18,0.5],    [1,1,1],  [0,0,0]],  // LeftLeg
@@ -75,22 +75,22 @@ class lowerPart(p)
 		 ["Sphere",  [0,0,1.2],  0.12,        [0,0,0.5],[0,0,0]],  // RightBearing2
 		 ["Box",     [0,0,1.2],[0.3,0.7,0.15],[1,1,1],  [0,0,0]]];  // RightFoot
 		
-  angle = 0;angle' = 0;
+  angle := 0;angle' := 0;
  end
- t'[=]1;
+ t'=1;
 
-leftBearingP  [=] axisP + [-0.2,0,-0.12];
-leftBearing2P [=] leftLegP + [0,-0.25*sin(angle),-0.25*cos(angle)];
-leftLegP      [=] leftBearingP + [0,0,-0.28]+[0,-0.35*sin(angle),(0.35-0.35*cos(angle))];
-leftLeg2P     [=] leftBearing2P + [0,-0.05,-0.28];
-leftFootP     [=] leftLeg2P     + [0,-0.1,-0.1-0.25]; 
-rightBearingP [=] axisP + [0.2,0,-0.12];
-rightBearing2P[=] rightLegP+[0,-0.25*sin(-angle),-0.25*cos(angle)];
-rightLegP     [=] rightBearingP+[0,0,-0.28]+[0,-0.35*sin(-angle),(0.35-0.35*cos(angle))];
-rightLeg2P    [=] rightBearing2P+[0,0,-0.28];
-rightFootP    [=] rightLeg2P+[0,-0.1,-0.1-0.25]; 
+leftBearingP  = axisP + [-0.2,0,-0.12];
+leftBearing2P = leftLegP + [0,-0.25*sin(angle),-0.25*cos(angle)];
+leftLegP      = leftBearingP + [0,0,-0.28]+[0,-0.35*sin(angle),(0.35-0.35*cos(angle))];
+leftLeg2P     = leftBearing2P + [0,-0.05,-0.28];
+leftFootP     = leftLeg2P     + [0,-0.1,-0.1-0.25]; 
+rightBearingP = axisP + [0.2,0,-0.12];
+rightBearing2P= rightLegP+[0,-0.25*sin(-angle),-0.25*cos(angle)];
+rightLegP     = rightBearingP+[0,0,-0.28]+[0,-0.35*sin(-angle),(0.35-0.35*cos(angle))];
+rightLeg2P    = rightBearing2P+[0,0,-0.28];
+rightFootP    = rightLeg2P+[0,-0.1,-0.1-0.25]; 
 
-_3D [=] [["Box",       p,[0.6,0.5,0.5], [1,1,1],[0,0,0]],
+_3D = [["Box",       p,[0.6,0.5,0.5], [1,1,1],[0,0,0]],
          //Axis
      ["Cylinder",  axisP,     [0.16,0.5],     [1,1,1],  [0,0,3.14/2]],
 		 ["Cylinder",leftLegP,    [0.18,0.5],     [1,1,1],  [3.14/2-angle,0,0]],  // LeftLeg
@@ -105,41 +105,41 @@ _3D [=] [["Box",       p,[0.6,0.5,0.5], [1,1,1],[0,0,0]],
 		 ["Sphere",  rightBearing2P,  0.12,       [0,0,0.5],[0,0,0]],  // RightBearing2
 		 ["Box",     rightFootP,  [0.3,0.7,0.15], [1,1,1],  [0.3*angle,0,0]]];  // RightFoot
 
-axisP[=]p+[0,0,-0.35];
+axisP=p+[0,0,-0.35];
 if(t<3)
- angle'[=]0.2;
+ angle'=0.2;
 end;
 if(t>=3&&t<9)
- angle'[=]-0.2;
+ angle'=-0.2;
 end;
 if(t>9&&t<12)
- angle'[=]0.2
+ angle'=0.2
 end;
 if(t>12) 
- t=0;
+ t:=0;
 end;
 end
 class Robot(p1,p2,p3)
   private
-  t=0;t'=1;
-  head      = create Head(p1);
-  upperPart = create upperPart(p2);
-  lowerPart = create lowerPart(p3);
+  t:=0;t':=1;
+  head      := create Head(p1);
+  upperPart := create upperPart(p2);
+  lowerPart := create lowerPart(p3);
   end
-  head.p'      [=] [0,-0.2,0];
-  upperPart.p' [=] [0,-0.2,0];
-  lowerPart.p' [=] [0,-0.2,0];
+  head.p'      = [0,-0.2,0];
+  upperPart.p' = [0,-0.2,0];
+  lowerPart.p' = [0,-0.2,0];
 
 end
 class Main(simulator)
   private
-    mode = "Init";
-	//_3D = ["Box",[0,0,-1.3],[8,20,0.1],[0.9,0.2,0.2],[0,0,0]];
+    mode := "Init";
+	//_3D := ["Box",[0,0,-1.3],[8,20,0.1],[0.9,0.2,0.2],[0,0,0]];
   end
   switch mode
     case "Init"
-      simulator.timeStep = 0.01;
-      simulator.endTime = 2;
+      simulator.timeStep := 0.01;
+      simulator.endTime := 2;
       
 	  create Robot([0,2,1.2], [0,2,0.7], [0,2,0.4]);
     /* create Robot([-2,2,1.2],[-2,2,0.7],[-2,2,0.4]);  
@@ -151,7 +151,7 @@ class Main(simulator)
       create Robot([0,-2,1.2], [0,-2,0.7], [0,-2,0.4]);
       create Robot([-2,-2,1.2],[-2,-2,0.7],[-2,-2,0.4]);  
       create Robot([2,-2,1.2], [2,-2,0.7], [2,-2,0.4]);   */
-      mode = "Persist"
+      mode := "Persist"
     case "Persist"
   end
 end

@@ -3,71 +3,71 @@
     - accesses magic
 */
 
-// Glucose = 45
-// Insulin = 5 * 1000000;
+// Glucose := 45
+// Insulin := 5 * 1000000;
 class GlucoseMinimalModel(mode,time,x,x',g,g',glucose,insulin)
   private
-    p1 = 0.03168360775;
-    p2 = 0.0123362991;
-    p3 = 4.891692162 / 1000000;
-    ib = 0;//11;
-    gb = 92;
-    h  = 79.03532257;
-    gamma = 0.003911687955;
-    n  = 0.2673230345;
-    ra = create Ra(0, 0, 0);
-    ir = create IR("Normal",0,0,0,0,0,0,0,0,0)
+    p1 := 0.03168360775;
+    p2 := 0.0123362991;
+    p3 := 4.891692162 / 1000000;
+    ib := 0;//11;
+    gb := 92;
+    h  := 79.03532257;
+    gamma := 0.003911687955;
+    n  := 0.2673230345;
+    ra := create Ra(0, 0, 0);
+    ir := create IR("Normal",0,0,0,0,0,0,0,0,0)
   end
   switch mode
     case "EAT"
-      ra = create Ra(glucose, time, 0);
-      mode = "NORMAL"
+      ra := create Ra(glucose, time, 0);
+      mode := "NORMAL"
     case "INJECT"
-      ir = create IR("Inject", insulin,0,0,0,0,0,0,0,0);
-      mode = "NORMAL"
+      ir := create IR("Inject", insulin,0,0,0,0,0,0,0,0);
+      mode := "NORMAL"
     case "NORMAL"
   end;
-  x' [=] -p2 * x + p3 * (ir.y2 - ib);
-  g' [=] -x * g + p1 * (gb - g) + ra.value / 80;
-  ra.time = time
+  x' = -p2 * x + p3 * (ir.y2 - ib);
+  g' = -x * g + p1 * (gb - g) + ra.value / 80;
+  ra.time := time
 end
 
 class Ra(load,time,value)
   private
-    vmax = 360;
-    ta = 0;
-    td = 0;
-    tmax = 0
+    vmax := 360;
+    ta := 0;
+    td := 0;
+    tmax := 0
   end
   if load == 0
-    value = 0
+    value := 0
   else 
     if load < 10
-      ta = load * 1000 / vmax;
-      td = load * 1000 / vmax;
+      ta := load * 1000 / vmax;
+      td := load * 1000 / vmax;
       if time <= ta
-        value = time*(vmax/ta)
+        value := time*(vmax/ta)
       else 
         if time > ta && time < (ta+td)
-          value = vmax - vmax/td*(time-ta)
+          value := vmax - vmax/td*(time-ta)
         else 
-          value = 0
+          value := 0
         end
       end
     else
-      ta = 30;
-      td = 30;
-      tmax = (load*1000/180 - vmax/180*(ta+td) ) / (vmax/180);
+      ta := 30;
+      td := 30;
+      tmax := (load*1000/180 - vmax/180*(ta+td) ) / (vmax/180);
       if time <= ta
-        value = time*(vmax/ta)
+        value := time*(vmax/ta)
       else 
         if time > ta && time <= (ta+tmax)
-          value = vmax
+          value := vmax
         else 
           if time > (ta + tmax) && time < (tmax + ta + td)
-            value = vmax - vmax/td*(time-ta-tmax)
+            value := vmax - vmax/td*(time-ta-tmax)
           else
-            value = 0
+            value := 0
           end
         end
       end
@@ -77,28 +77,28 @@ end
 
 class IR(mode,injection,basal,x,x',y,y',z,z',y2)
   private
-    k12 = 0.017;
-    k20 = 0.0029;
-    k23 = 0.048;
-    k30 = 0.133;
-    it = 1;
-    v = 0.08 * 70000
+    k12 := 0.017;
+    k20 := 0.0029;
+    k23 := 0.048;
+    k30 := 0.133;
+    it := 1;
+    v := 0.08 * 70000
   end
   switch mode
     case "Normal"
-      injection = 0
+      injection := 0
     case "Inject"
-      it [=] it - 1;
+      it = it - 1;
       if it == 0
-        it = 1;
-        mode = "Normal"
+        it := 1;
+        mode := "Normal"
       else
       end
   end;
-  x' [=] injection + basal - k12 * x;
-  y' [=] k12 * x - (k20+k23) * y;
-  z' [=] k23 * y - k30 * z;
-  y2 [=] z / v
+  x' = injection + basal - k12 * x;
+  y' = k12 * x - (k20+k23) * y;
+  z' = k23 * y - k30 * z;
+  y2 = z / v
 end
 
 
@@ -106,15 +106,15 @@ class A() end
 
 class Main(sim)
   private
-    mode = "Init";
-    gmm = create GlucoseMinimalModel("NORMAL",sim.time,0,0,89,0,0,0)
+    mode := "Init";
+    gmm := create GlucoseMinimalModel("NORMAL",sim.time,0,0,89,0,0,0)
   end
   switch mode
     case "Init"
-      sim.timeStep = 1;
-      sim.endTime = 180;
-      mode = "Persist"
+      sim.timeStep := 1;
+      sim.endTime := 180;
+      mode := "Persist"
     case "Persist"
-      gmm.time = sim.time
+      gmm.time := sim.time
   end
 end

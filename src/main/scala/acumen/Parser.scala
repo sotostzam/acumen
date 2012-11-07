@@ -78,7 +78,7 @@ class MyStdTokenParsers extends StdTokenParsers {
 object Parser extends MyStdTokenParsers {
 
   lexical.delimiters ++=
-    List("(", ")", "{", "}", "[", "]", ";", "=", "=[i]", "=[t]", "[=]", "'", ",",
+    List("(", ")", "{", "}", "[", "]", ";", "=", ":=", "=[i]", "=[t]", "'", ",",
       ".", "+", "-", "*", "/", "^", ".+", ".-", ".*", "./", ".^",
       ":", "<", ">", "<=", ">=", "==", "~=", "||",
       "&&", "<<", ">>", "&", "|", "%", "@", "..", "+/-")
@@ -157,7 +157,7 @@ object Parser extends MyStdTokenParsers {
     ("private" ~> repsep(init, ";") <~ (opt(";") ~ "end")
       | success(Nil))
 
-  def init = name ~! "=" ~! initrhs ^^ { case x ~ _ ~ rhs => Init(x, rhs) }
+  def init = name ~! ":=" ~! initrhs ^^ { case x ~ _ ~ rhs => Init(x, rhs) }
 
   def initrhs =
     ("create" ~! className ~! args(expr) ^^ { case _ ~ cn ~ es => NewRhs(cn, es) }
@@ -199,8 +199,8 @@ object Parser extends MyStdTokenParsers {
 
   def assignOrEquation =
     expr >> { e =>
-      ("=" ~> assignrhs(e) ^^ Discretely
-        | "[=]" ~> expr ^^ (e1 => Continuously(Equation(e, e1)))
+      (":=" ~> assignrhs(e) ^^ Discretely
+        | "=" ~> expr ^^ (e1 => Continuously(Equation(e, e1)))
         | "=[i]" ~> expr ^^ (e1 => Continuously(EquationI(e, e1)))
         | "=[t]" ~> expr ^^ (e1 => Continuously(EquationT(e, e1))))
     }

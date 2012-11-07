@@ -107,7 +107,7 @@ object Pretty {
   implicit def prettyInit : PrettyAble[Init] =
     PrettyAble { 
       case Init(x,rhs) =>
-        pretty(x) :: " = " :: (
+        pretty(x) :: " := " :: (
           rhs match {
             case NewRhs(cn,es) => "create " :: pretty(cn) :: args(es map pretty[Expr])
             case ExprRhs(e) => pretty(e)
@@ -144,16 +144,16 @@ object Pretty {
   
   implicit def prettyContinuousAction : PrettyAble[ContinuousAction] =
     PrettyAble {
-      case Equation(lhs,rhs)  => pretty(lhs) :: " [=] " :: pretty(rhs) 
+      case Equation(lhs,rhs)  => pretty(lhs) :: " = " :: pretty(rhs) 
       case EquationI(lhs,rhs) => pretty(lhs) :: " =[i] " :: pretty(rhs) 
       case EquationT(lhs,rhs) => pretty(lhs) :: " =[t] " :: pretty(rhs) 
     }
 
   implicit def prettyDiscreteAction : PrettyAble[DiscreteAction] =
     PrettyAble {
-      case Assign(lhs,rhs) => pretty(lhs) :: " = " :: pretty(rhs)
+      case Assign(lhs,rhs) => pretty(lhs) :: " := " :: pretty(rhs)
       case Create(lhs,c,as) =>
-        (lhs match { case Some(e) => pretty(e) :: " = " case None => DocNil }) ::
+        (lhs match { case Some(e) => pretty(e) :: " := " case None => DocNil }) ::
         "create " :: pretty(c) :: args(as map pretty[Expr]) 
       case Elim(e) => "terminate" :: pretty(e)
       case Move(o,p) => "move" :: " " :: pretty(o) :: " " :: pretty(p)

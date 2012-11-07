@@ -1,2 +1,2 @@
 // name resolution error
-class Main(simulator) self.x = 1 end
+class Main(simulator) self.x := 1 end

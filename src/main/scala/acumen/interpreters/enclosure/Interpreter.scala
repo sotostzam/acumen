@@ -67,10 +67,10 @@ class Main(simulator)
   switch mode
     case "Fly" assume x >= 0
       if x < 0 && x' < 0
-        x' = -x';
+        x' := -x';
         mode = "Fly"
       end;
-      x'' [=] -9.8
+      x'' = -9.8
   end
 end
 """
@@ -96,9 +96,9 @@ class Main(simulator)
 private mode = 0; x = 1; x' = -1 end
   switch mode
     case 0 assume x >= 0
-      x' [=] -1; 
+      x' = -1; 
       if x == 0
-        x = 1; 
+        x := 1; 
         mode = 0 
       end
   end

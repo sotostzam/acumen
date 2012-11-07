@@ -65,7 +65,7 @@ package acumen {
   /* TODO: use the phase distinction/refinement types trick
            to make sure we get rid of any Equation after the
            desugaring phase */
-  /* Example: x'' [=] -g (is desugared into =[t]s and =[i]s) */
+  /* Example: x'' = -g (is desugared into =[t]s and =[i]s) */
   case class Equation(lhs: Expr, rhs: Expr) extends ContinuousAction
   /* Example: x'' =[i] -g (performs x'' = x'' + -g * dt) */
   case class EquationI(lhs: Expr, rhs: Expr) extends ContinuousAction
@@ -73,9 +73,9 @@ package acumen {
   case class EquationT(lhs: Expr, rhs: Expr) extends ContinuousAction
 
   sealed abstract class DiscreteAction
-  /* Example: x = 3 */
+  /* Example: x := 3 */
   case class Assign(lhs: Expr, rhs: Expr) extends DiscreteAction
-  /* Example: x = create Ball(1) */
+  /* Example: x := create Ball(1) */
   case class Create(x: Option[Expr], // Some(x) means "x = create ..." 
     name: ClassName,
     args: List[Expr]) extends DiscreteAction

@@ -1,12 +1,12 @@
 class Main(simulator)
-  private mode = "Fly"; x = 5; x' = 0; x'' = 0 end
-  simulator.endTime = 3;
+  private mode := "Fly"; x := 5; x' := 0; x'' := 0 end
+  simulator.endTime := 3;
   switch mode
     case "Fly" assume x >= 0
       if x == 0 && x' <= 0
-        x' = -0.5 * x';
-        mode = "Fly"
+        x' := -0.5 * x';
+        mode := "Fly"
       end;
-      x'' [=] -10
+      x'' = -10
   end
 end

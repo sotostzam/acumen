@@ -1,18 +1,18 @@
 class Main(simulator) 
   private 
-    mode = "FillLeft"; 
-    x1 = 1; x1' = 2;  
-    x2 = 1; x2' = -3;
+    mode := "FillLeft"; 
+    x1 := 1; x1' := 2;  
+    x2 := 1; x2' := -3;
   end
-  simulator.endTime = 2.5;
-  simulator.minTimeStep = 4.7e-7;
+  simulator.endTime := 2.5;
+  simulator.minTimeStep := 4.7e-7;
   switch mode
     case "FillLeft" assume x1 >= 0 && x2 >= 0
-      if x2 == 0 mode = "FillRight" end; 
-      x1' [=] 2; 
-      x2' [=] -3;
+      if x2 == 0 mode := "FillRight" end; 
+      x1' = 2; 
+      x2' = -3;
     case "FillRight" assume x1 >= 0 && x2 >= 0
-      if x1 == 0 mode = "FillLeft" end; 
-      x1' [=] -2; x2' [=] 1;
+      if x1 == 0 mode := "FillLeft" end; 
+      x1' = -2; x2' = 1;
   end
 end

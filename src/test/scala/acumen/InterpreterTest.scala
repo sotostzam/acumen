@@ -153,7 +153,7 @@ class InterpreterTest extends Suite with ShouldMatchers {
       """
       class Simulator(time, timeStep, endTime, stepType) end
       class Ball(x, x', x'') 
-        self.x'' [=] -9.8
+        self.x'' = -9.8
       end
       class Main(mode, simulation) end
       """
@@ -194,8 +194,8 @@ class InterpreterTest extends Suite with ShouldMatchers {
       """
       class Simulator(time, timeStep, endTime, stepType) end
       class Ball(x, x', x'', y,y',y'') 
-        self.y'' [=] -9.8;
-        self.x'' [=] 0
+        self.y'' = -9.8;
+        self.x'' = 0
       end
       class Main(mode, simulation) end
       """

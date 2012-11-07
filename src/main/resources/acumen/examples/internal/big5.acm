@@ -6,27 +6,27 @@ class Ball(mode, x,x',x'', y,y',y'')
         create Ball("Bounce", x, x'-0.2, 0, y, y', 0);
         terminate self
       else
-        y'' [=] -9.8;
-        x'' [=] 0
+        y'' = -9.8;
+        x'' = 0
       end
     case "Bounce"
-      y = 0;
-      x' =  0.8 * x';
-      y' = -0.8 * y';
-      mode = "Fly"
+      y := 0;
+      x' :=  0.8 * x';
+      y' := -0.8 * y';
+      mode := "Fly"
   end
 end
 
 class Main(simulator)
   private
-    mode = "Init"
+    mode := "Init"
   end
   switch mode
     case "Init"
-      simulator.timeStep = 0.005;
-      simulator.endTime = 4.6;
+      simulator.timeStep := 0.005;
+      simulator.endTime := 4.6;
       create Ball("Fly", 0,0,0, 1.5,0,1.0);
-      mode = "Persist"
+      mode := "Persist"
     case "Persist"
   end
 end
