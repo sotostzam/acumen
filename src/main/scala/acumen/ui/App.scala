@@ -39,6 +39,11 @@ class App extends SimpleSwingApplication {
 
   App.ui = this
 
+  val PAGE_NEW_PLOT = (0,"New Plot")
+  val PAGE_PLOT     = (1,"Plot")
+  val PAGE_TRACE    = (2,"Trace")
+  val PAGE_3D       = (3,"3D")
+  
   // Create a special actor to listen to events from other threads
 
   case object EXIT
@@ -121,12 +126,17 @@ class App extends SimpleSwingApplication {
   }
 
   val traceView = new plot.PlotTab
+  val traceViewJFree = new plot.JFreePlotTab
   val pointedView = new plot.PointedView(traceView)
 
+  val tab0 = new BorderPanel {
+    //TODO Implement and add something like pointedView for the new plotting code
+    add(traceViewJFree, BorderPanel.Position.Center)
+  }
   val tab1 = new BorderPanel {
-    add(new FlowPanel(FlowPanel.Alignment.Leading)(pointedView), 
-        BorderPanel.Position.North)
-    add(traceView, BorderPanel.Position.Center)
+	  add(new FlowPanel(FlowPanel.Alignment.Leading)(pointedView), 
+			  BorderPanel.Position.North)
+			  add(traceView, BorderPanel.Position.Center)
   }
   val tab2 = new ScrollPane(traceTable) 
   var threeDtab = if (GraphicalMain.disable3D) {
@@ -146,11 +156,12 @@ class App extends SimpleSwingApplication {
   
   val rightPane = new TabbedPane {
     assert(pages.size == 0)
-    pages ++= List(new TabbedPane.Page("Plot", tab1), 
-                   new TabbedPane.Page("Trace", tab2),
-                   new TabbedPane.Page("3D",threeDtab))
+    pages ++= List(new TabbedPane.Page(PAGE_NEW_PLOT._2, tab0),
+                   new TabbedPane.Page(PAGE_PLOT._2,     tab1), 
+                   new TabbedPane.Page(PAGE_TRACE._2,    tab2),
+                   new TabbedPane.Page(PAGE_3D._2,       threeDtab))
     if (!threeDtab.enableTab)
-      pages(2).enabled = false
+      pages(PAGE_3D._1).enabled = false
   }
 
 
