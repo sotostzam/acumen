@@ -21,7 +21,7 @@ object Types {
   }
 
   /** Type for mode invariants */
-  type Domain = All
+  type Domain = Predicate
 
   def domain(conjuncts: Relation*) = All(conjuncts)
 

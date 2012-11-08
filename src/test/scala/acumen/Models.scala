@@ -10,11 +10,11 @@ object Models {
 //////////////////////////////////////////////////
 class Main(simulator)
 private x := 1; x' := 0; x'' := 0; mode := "on" end
-  simulator.endTime := 10;
+  simulator.endTime := 9;
   simulator.minTimeStep := 0.001;
   simulator.maxTimeStep := 0.002; 
   switch mode
-    case "on" assume x <= 10
+    case "on" 
       x'' = -x'/2 - x;
   end
 end

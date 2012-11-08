@@ -29,36 +29,6 @@ object Sandbox extends App with Extract with Solver with SolveVt {
 
   val start = System.currentTimeMillis
 
-  val field = Field(Map(
-    "x" -> Variable("x'"),
-    "x'" -> -10))
-  val t = Interval(1.999511718, 2.0003621)
-
-  val resPreBounce = solveVt(
-    field,
-    t,
-    Box("x" -> Interval(0.002135, 0.002836),
-      "x'" -> Interval(-4.995575, -4.994354)),
-    0,
-    20,
-    200,
-    "output")
-
-  val resBounce =
-    UnivariateAffineEnclosure(t, Box("x" -> Interval(0.0, 0.002821)))
-
-  val resPostBounce = solveVt(
-    field,
-    t,
-    Box("x" -> Interval(0.0, 0.002821),
-      "x'" -> Interval(0.5 * 4.995575, 0.5 * 4.994354)), //Interval(-5.0, 2.5)),
-    0,
-    20,
-    200,
-    "output")
-
-  val resCons = Seq(resPreBounce, resBounce, resPostBounce)
-
   val res = solver(
     h,
     ps.simulationTime,

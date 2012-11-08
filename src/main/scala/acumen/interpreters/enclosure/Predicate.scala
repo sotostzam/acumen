@@ -49,6 +49,7 @@ abstract class Predicate {
    * of the predicate.
    */
   def support(x: Box)(implicit rnd: Rounding): Box = this match {
+    case True => x
     case All(rs) =>
       val contracted = rs.foldLeft(x)((res, r) => r.support(res))
       if (contracted almostEqualTo x) x
@@ -58,6 +59,9 @@ abstract class Predicate {
 }
 
 /** Type representing a predicate that consists of a conjunction of inequalities. */
+case object True extends Predicate {
+  override def toString = "TRUE"
+}
 case class All(conjuncts: Seq[Relation]) extends Predicate {
   override def toString = conjuncts.map(_.toString).mkString(" /\\ ") match {
     case "" => "TRUE"
