@@ -4,6 +4,8 @@ import Interval._
 import Types._
 import Util._
 import acumen.interpreters.enclosure.solver.Plotter
+import org.jfree.ui.ApplicationFrame
+import java.awt.Color
 
 /**
  * Type to represent vector-valued functions of a single variable.
@@ -14,7 +16,8 @@ import acumen.interpreters.enclosure.solver.Plotter
 case class UnivariateAffineEnclosure private[enclosure] (
   domain: Interval,
   private[enclosure]normalizedDomain: Interval,
-  private[enclosure]components: Map[VarName, UnivariateAffineScalarEnclosure])(implicit rnd: Rounding) {
+  //  private[enclosure]
+  components: Map[VarName, UnivariateAffineScalarEnclosure])(implicit rnd: Rounding) {
   assert(normalizedDomain.low equalTo 0, "The low end-point of the normalizedDomain should be zero!")
 
   /** The low bound enclosure of this enclosure. */
@@ -73,7 +76,7 @@ case class UnivariateAffineEnclosure private[enclosure] (
   }
 
 }
-object UnivariateAffineEnclosure {
+object UnivariateAffineEnclosure extends Plotter {
 
   /** Convenience method, normalizes the domain. */
   private[enclosure] def apply(domain: Interval, components: Map[VarName, UnivariateAffineScalarEnclosure])(implicit rnd: Rounding): UnivariateAffineEnclosure =
@@ -103,6 +106,23 @@ object UnivariateAffineEnclosure {
   def unionThem(them: Seq[UnivariateAffineEnclosure]): Seq[UnivariateAffineEnclosure] = them match {
     case l :: (tail @ (r :: rest)) => unionThem((l union r) :: rest)
     case _ => them
+  }
+
+  private def plotUAE(e: UnivariateAffineEnclosure, f: ApplicationFrame)(implicit rnd: Rounding) = {
+    val color = Color.red
+    for ((varName, it) <- e.components) {
+      def low(t: Double) = it.low(t) match { case Interval(lo, _) => lo.doubleValue }
+      def high(t: Double) = it.high(t) match { case Interval(_, hi) => hi.doubleValue }
+      val dom = it.domain
+      val (lo, hi) = dom match { case Interval(l, h) => (l.doubleValue, h.doubleValue) }
+      addColoredFunctionEnclosure(lo, hi, high, low, 0, varName, color, f)
+    }
+  }
+
+  def plot(frametitle: String)(es: Seq[UnivariateAffineEnclosure])(implicit rnd: Rounding) = {
+    val f = createFrame(frametitle)
+    for (e <- es) plotUAE(e, f)
+    f.pack()
   }
 
 }

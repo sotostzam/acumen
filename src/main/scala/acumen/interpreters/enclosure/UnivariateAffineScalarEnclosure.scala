@@ -12,7 +12,8 @@ import java.awt.Color
  * AffineScalarEnclosure.
  */
 case class UnivariateAffineScalarEnclosure private[enclosure] (
-  private[enclosure]domain: Interval,
+//  private[enclosure]
+  domain: Interval,
   private[enclosure]normalizedDomain: Interval,
   private[enclosure]constant: Interval,
   private[enclosure]coefficient: Interval)(implicit rnd: Rounding) {
@@ -265,13 +266,13 @@ object UnivariateAffineScalarEnclosure extends Plotter {
   //  }
 
   private def plot(frametitle: String)(them: (Color, UnivariateAffineScalarEnclosure)*)(implicit rnd: Rounding) = {
-    createFrame(frametitle)
+    val f = createFrame(frametitle)
     for ((color, it) <- them) {
       def low(t: Double) = it.low(t) match { case Interval(lo, _) => lo.doubleValue }
       def high(t: Double) = it.high(t) match { case Interval(_, hi) => hi.doubleValue }
       val dom = it.domain
       val (lo, hi) = dom match { case Interval(l, h) => (l.doubleValue, h.doubleValue) }
-      addColoredFunctionEnclosure(lo, hi, high, low, 0, "", color)
+      addColoredFunctionEnclosure(lo, hi, high, low, 0, "", color, f)
     }
   }
 

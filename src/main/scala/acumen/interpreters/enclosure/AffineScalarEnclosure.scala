@@ -5,6 +5,8 @@ import Interval._
 import solver.Plotter
 import Types._
 import Util._
+import org.jfree.ui.ApplicationFrame
+import java.awt.Color
 
 /**
  * Type used to approximate expressions over a given domain.
@@ -77,9 +79,9 @@ case class AffineScalarEnclosure private[enclosure] (
     //    println("desired range: " + desiredRange)
     //    println("actual range:  " + this.range)
     //    println("coefficients:  " + this.coefficients)
-//    if (range disjointFrom desiredRange) domain
-//    else
-      normalizedDomain.keys.foldLeft(normalizedDomain) { case (box, name) => box + (name -> (contractDom(name) + domain(name).low)) }
+    //    if (range disjointFrom desiredRange) domain
+    //    else
+    normalizedDomain.keys.foldLeft(normalizedDomain) { case (box, name) => box + (name -> (contractDom(name) + domain(name).low)) }
   }
 
   /**

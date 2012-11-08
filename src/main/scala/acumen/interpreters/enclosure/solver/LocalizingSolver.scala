@@ -61,7 +61,7 @@ trait LocalizingSolver extends SolveVt {
         val leftEnclosure = solveVt(field, leftSegment, initialCondition, initialConditionPadding, extraPicardIterations, maxPicardIterations, outputFile)
         var rightInitialCondition = leftEnclosure(leftSegment.high)
         val rightEnclosure = solveVt(field, rightSegment, rightInitialCondition, initialConditionPadding, extraPicardIterations, maxPicardIterations, outputFile)
-        if (precision(rightEnclosure(segment.high)) lessThan precision(enclosure(segment.high))) {
+        if (norm(rightEnclosure(segment.high)) lessThan norm(enclosure(segment.high))) {
           val leftEnclosures = piecewisePicardHelper(initialCondition, leftSegment)
           rightInitialCondition = leftEnclosures.last(leftSegment.high)
           val rightEnclosures = piecewisePicardHelper(rightInitialCondition, rightSegment)
@@ -78,13 +78,16 @@ trait LocalizingSolver extends SolveVt {
 
 object LocalizingSolverApp extends LocalizingSolver with App {
   implicit val rnd = Rounding(10)
-  val initalCondition = Box("x" -> Interval(0))
-  val field = Field(Map("x" -> (100 - Variable("x"))))
-  val time = Interval(0, 10)
-  val minTimeStep = 0.05
-  val maxTimeStep = 0.1
+  val initalCondition = Box(
+    "x" -> Interval(1),
+    "x'" -> Interval(0))
+  val field = Field(Map(
+    "x" -> Variable("x'"),
+    "x'" -> -(0.5 * Variable("x'") + Variable("x"))))
+  println(field)
+  val time = Interval(0, 5)
+  val minTimeStep = 0.001
+  val maxTimeStep = 1
   val result = piecewisePicard(field, 0, 20, 200, minTimeStep, maxTimeStep, "output", Solver.defaultCallback)(initalCondition, time)
-//  UnivariateAffineScalarEnclosure.plot(
-//    "min time step = " + minTimeStep +
-//      " produced " + result.size + " enclosures")(result.flatMap(e => Seq(e("x"))): _*)
+  UnivariateAffineEnclosure.plot("x'' = -x'/2 - x")(result)
 }

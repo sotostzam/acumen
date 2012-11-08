@@ -1,30 +1,64 @@
 package acumen
 
-import acumen.interpreters.Common._
-import acumen.interpreters.enclosure.Types._
+import acumen.interpreters.Common.classDef
+import acumen.interpreters.enclosure.UnivariateAffineEnclosure.plot
+import acumen.interpreters.enclosure.solver.Solver.defaultCallback
+import acumen.interpreters.enclosure.solver.FixedStepSolver
+import acumen.interpreters.enclosure.solver.HybridSystem
 import acumen.interpreters.enclosure.Extract
 import acumen.interpreters.enclosure.Rounding
+import acumen.interpreters.enclosure.solver.Solver
+import acumen.interpreters.enclosure.solver.SolveVt
+import acumen.interpreters.enclosure.Variable
+import acumen.interpreters.enclosure.solver.Field
 import acumen.interpreters.enclosure.Interval
-import acumen.interpreters.enclosure.Interval._
-import acumen.interpreters.enclosure.Types._
-import acumen.interpreters.enclosure.solver._
-import acumen.interpreters.enclosure.solver.Solver._
-import acumen.interpreters.enclosure.UnivariateAffineScalarEnclosure
+import acumen.interpreters.enclosure.Box
 import acumen.interpreters.enclosure.UnivariateAffineEnclosure
 import TransformTest._
 import java.awt.Color
 
-object Sandbox extends App with Extract with Solver {
+object Sandbox extends App with Extract with Solver with SolveVt {
 
-  val prog = Parser.run(Parser.prog, Models.kevin_test)
+  val prog = Parser.run(Parser.prog, Models.damped_spring)
   val des = Desugarer.run(prog)
   val main = classDef(ClassName("Main"), des)
 
   val ps = parameters(main)
   implicit val rnd = Rounding(ps.precision)
-  val (h, us) = extract(main)
+  val (h: HybridSystem, us) = extract(main)
 
   val start = System.currentTimeMillis
+
+  val field = Field(Map(
+    "x" -> Variable("x'"),
+    "x'" -> -10))
+  val t = Interval(1.999511718, 2.0003621)
+
+  val resPreBounce = solveVt(
+    field,
+    t,
+    Box("x" -> Interval(0.002135, 0.002836),
+      "x'" -> Interval(-4.995575, -4.994354)),
+    0,
+    20,
+    200,
+    "output")
+
+  val resBounce =
+    UnivariateAffineEnclosure(t, Box("x" -> Interval(0.0, 0.002821)))
+
+  val resPostBounce = solveVt(
+    field,
+    t,
+    Box("x" -> Interval(0.0, 0.002821),
+      "x'" -> Interval(0.5 * 4.995575, 0.5 * 4.994354)), //Interval(-5.0, 2.5)),
+    0,
+    20,
+    200,
+    "output")
+
+  val resCons = Seq(resPreBounce, resBounce, resPostBounce)
+
   val res = solver(
     h,
     ps.simulationTime,
@@ -38,12 +72,12 @@ object Sandbox extends App with Extract with Solver {
     ps.minImprovement,
     "output",
     defaultCallback)
+
   val end = System.currentTimeMillis
   val time = end - start
-  println("computed " + res.size + " enclosures in " + time / 1000.0 + " seconds")
-  UnivariateAffineScalarEnclosure.plot(
-    res.map(e => (
-        Color.getHSBColor(0.25f,1.0f,0.5f), e("x1"))) ++ 
-        res.map(e => (Color.getHSBColor(0.5f,1.0f,0.5f), e("x2"))) ++ 
-        res.map(e => (Color.getHSBColor(0.75f,1.0f,0.5f), e("x12"))): _*)
+  //  println("computed " + resPreBounce.size + " enclosures in " + time / 1000.0 + " seconds")
+
+  plot("Plotter mockup")(res)(new Rounding(10))
+  //  plot("Plotter mockup")(resCons)(new Rounding(10))
+
 }

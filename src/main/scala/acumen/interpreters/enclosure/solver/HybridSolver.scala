@@ -25,9 +25,7 @@ trait HybridSolver extends AtomicStep {
     cb: EnclosureInterpreterCallbacks)(implicit rnd: Rounding): Seq[UnivariateAffineEnclosure] = {
     Util.newFile(output)
     cb.endTime = T.hiDouble
-	    val res = solveHybrid(H, delta, m, n, K, output, cb.log)(d, minImprovement)(Ss, T).get._1
-    println(res)
-    res
+    solveHybrid(H, delta, m, n, K, output, cb)(d, minImprovement)(Ss, T).get._1
   }
 
   def solveHybrid(
@@ -37,17 +35,21 @@ trait HybridSolver extends AtomicStep {
     n: Int,
     K: Int,
     output: String,
-    log: String => Unit)(
+    cb: EnclosureInterpreterCallbacks)(
       minTimeStep: Double,
-      minImprovement: Double)(us: Set[UncertainState], t: Interval)(implicit rnd: Rounding): MaybeResult = {
-    val maybeResultT = atomicStep(H, delta, m, n, K, output, log)(us, t)
+      minImprovement: Double)(
+        us: Set[UncertainState],
+        t: Interval)(implicit rnd: Rounding): MaybeResult = {
+    val maybeResultT = atomicStep(H, delta, m, n, K, output, cb.log)(us, t)
     if (t.width lessThanOrEqualTo minTimeStep) maybeResultT
     else maybeResultT match {
-      case None => subdivideAndRecur(H, delta, m, n, K, output, log)(minTimeStep, minImprovement)(us, t)
+      case None => subdivideAndRecur(H, delta, m, n, K, output, cb)(minTimeStep, minImprovement)(us, t)
       case Some(resultT) =>
-        val maybeResultTR = subdivideOneLevelOnly(H, delta, m, n, K, output, log)(us, t)
-        if (bestOf(resultT, maybeResultTR) == resultT) Some(resultT)
-        else subdivideAndRecur(H, delta, m, n, K, output, log)(minTimeStep, minImprovement)(us, t)
+        val maybeResultTR = subdivideOneLevelOnly(H, delta, m, n, K, output, cb.log)(us, t)
+        if (bestOf(minImprovement)(resultT, maybeResultTR) == resultT) {
+          cb.sendResult(resultT._1)
+          Some(resultT)
+        } else subdivideAndRecur(H, delta, m, n, K, output, cb)(minTimeStep, minImprovement)(us, t)
     }
   }
 
@@ -58,13 +60,15 @@ trait HybridSolver extends AtomicStep {
     n: Int,
     K: Int,
     output: String,
-    log: String => Unit)(
+    cb: EnclosureInterpreterCallbacks)(
       minTimeStep: Double,
-      minImprovement: Double)(us: Set[UncertainState], t: Interval)(implicit rnd: Rounding): MaybeResult =
-    solveHybrid(H, delta, m, n, K, output, log)(minTimeStep, minImprovement)(us, t.left) match {
+      minImprovement: Double)(
+        us: Set[UncertainState],
+        t: Interval)(implicit rnd: Rounding): MaybeResult =
+    solveHybrid(H, delta, m, n, K, output, cb)(minTimeStep, minImprovement)(us, t.left) match {
       case None => None
       case Some((esl, usl)) =>
-        solveHybrid(H, delta, m, n, K, output, log)(minTimeStep, minImprovement)(usl, t.right) match {
+        solveHybrid(H, delta, m, n, K, output, cb)(minTimeStep, minImprovement)(usl, t.right) match {
           case None => None
           case Some((esr, usr)) =>
             Some((esl ++ esr, usr))
@@ -78,7 +82,9 @@ trait HybridSolver extends AtomicStep {
     n: Int,
     K: Int,
     output: String,
-    log: String => Unit)(us: Set[UncertainState], t: Interval)(implicit rnd: Rounding): MaybeResult =
+    log: String => Unit)(
+      us: Set[UncertainState],
+      t: Interval)(implicit rnd: Rounding): MaybeResult =
     atomicStep(H, delta, m, n, K, output, log)(us, t.left) match {
       case None => None
       case Some((es, usl)) => atomicStep(H, delta, m, n, K, output, log)(usl, t.right)

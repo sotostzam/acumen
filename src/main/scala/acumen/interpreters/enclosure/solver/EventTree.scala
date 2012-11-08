@@ -152,7 +152,7 @@ case class EventTree(
           println("addLayer: contracted N = " + H.domains(e.tau).support(N))
           // onlyUpdateAffectedComponents introduces some errors! FIXME
           val affines = N // onlyUpdateAffectedComponents(e, v.enclosure, H.domains(e.tau).support(N))
-          println("addLayer: disregarding unaffectd components N = " + affines)
+          //          println("addLayer: disregarding unaffectd components N = " + affines)
           //            println("Y(ve): " + affines)
           val enclosure = UnivariateAffineEnclosure(v.domain, affines)
           val mayBeLast = false

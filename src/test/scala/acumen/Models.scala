@@ -2,6 +2,19 @@ package acumen
 
 object Models {
 
+  val damped_spring = """
+class Main(simulator)
+private x = 1; x' = 0; x'' = 0; mode = "on" end
+  simulator.endTime = 7;
+  simulator.minTimeStep = 0.001;
+  simulator.maxTimeStep = 0.002; 
+  switch mode
+    case "on" assume x <= 10
+      x'' [=] -x'/2 - x;
+  end
+end
+"""
+  
   val kevin_test = """
 class Main(simulator)
 private x := 1 +/- 0.01; x' := -1; mode := 0 end
@@ -16,7 +29,7 @@ private x := 1 +/- 0.01; x' := -1; mode := 0 end
   end
 end
 """
-  
+
   val bouncing_ball_floorup = """
 ////////////////////////////////////////////////////
 // This file is called bouncing_ball_floorup.acm  //
@@ -36,7 +49,7 @@ class Main(simulator)
   end
 end
 """
-  
+
   val two_tanks_sum = """
 ////////////////////////////////////////////////
 // This file is called two_tanks_sum.acm      //
@@ -162,9 +175,9 @@ class Main(simulator)
     x := 5; x' := 0; x'' := 0;  
     r := 100; r' := 0;
   end
-  simulator.endTime := 3.5;
-  simulator.minTimeStep := 0.0001;
-  simulator.maxTimeStep := 0.1;
+  simulator.endTime = 3.5;
+  simulator.minTimeStep = 0.001;
+  simulator.maxTimeStep = 0.1;
   switch mode
     case "Fly" 
     assume x >= 0 && r == x'*x' + 20*x
@@ -190,8 +203,9 @@ class Main(simulator)
     x := 5; x' := 0; x'' := 0;  
     r := 100; r' := 0;
   end
-  simulator.endTime := 3.5;
-  simulator.minTimeStep := 0.01;
+  simulator.endTime = 3.5;
+  simulator.minTimeStep = 0.01;
+  simulator.maxTimeStep = 0.1;
   switch mode
     case "Fly"
     assume x >= 0 && 0 <= r && r == x'*x' + 20*x
@@ -217,9 +231,9 @@ class Main(simulator)
     x1 := 5; x1' := 0; x1'' := 0;  
     r1 := 100; r1' := 0;
   end
-  simulator.endTime := 3.5;
-  simulator.minTimeStep := 0.5;
-  simulator.maxTimeStep := 1;
+  simulator.endTime = 3.5;
+  simulator.minTimeStep = 0.01;
+  simulator.maxTimeStep = 0.1;
   switch mode
     case "Fly"
     assume x1 >= 0 && 0 <= r1 && r1 == x1'*x1' + 20*x1
@@ -238,11 +252,11 @@ end
 ////////////////////////////////////
 // This file is called ticker.acm //
 ////////////////////////////////////
-cclass Main (simulator)
- private x := [1.0 .. 1.0]; x' := -1; mode := "decreasing" end
- simulator.endTime := 2.5;
- simulator.minTimeStep := 0.1;
- simulator.maxTimeStep := 0.25;
+class Main (simulator)
+ private x = 1; x' = -1; mode = "decreasing" end
+ simulator.endTime = 2.5;
+ simulator.minTimeStep = 0.01;
+ simulator.maxTimeStep = 0.1;
  switch mode
    case "decreasing" assume x >= 0
      if x == 0 
