@@ -7,7 +7,7 @@ trait Contract {
 
   /** Contracts the environment box for the variables in the relation. */
   def contract(rel: Relation)(env: Box)(implicit rnd: Rounding): Box = {
-    println("\ncontract: " + rel)
+    //    println("\ncontract: " + rel)
     rel match {
       case BinaryRelation(relname, l, r) => relname match {
         case Eq => contractEq(l, r)(env)
@@ -17,22 +17,22 @@ trait Contract {
   }
 
   def contractEq(left: Expression, right: Expression)(env: Box)(implicit rnd: Rounding): Box = {
-    println("\ncontractEq: box before = " + env)
-    println("contractEq: left       = " + left + " range " + left(env))
-    println("contractEq: right      = " + right + " range " + right(env))
+    //    println("\ncontractEq: box before = " + env)
+    //    println("contractEq: left       = " + left + " range " + left(env))
+    //    println("contractEq: right      = " + right + " range " + right(env))
     val ranl = left(env)
     val ranr = right(env)
-    println("\ncontractEq: " + ranl + " == " + ranr)
+    //    println("\ncontractEq: " + ranl + " == " + ranr)
     if (ranl almostEqualTo ranr) {
-      println("contractEq: " + ranl + " almostEqualTo " + ranr)
+      //      println("contractEq: " + ranl + " almostEqualTo " + ranr)
       env
     } else {
       val ran = ranl \/ ranr
-      println("contractEq: backpropagate " + ran)
+      //      println("contractEq: backpropagate " + ran)
       val envl = backPropagate(env, ran, left)
       val envr = backPropagate(env, ran, right)
       val contracted = envl intersect envr
-      println("contractEq: box after  = " + contracted)
+      //      println("contractEq: box after  = " + contracted)
       val res =
         if (contracted almostEqualTo env) env
         else contractEq(left, right)(contracted)
@@ -42,25 +42,25 @@ trait Contract {
   }
 
   def contractLeq(left: Expression, right: Expression)(env: Box)(implicit rnd: Rounding): Box = {
-    println("\ncontractLeq: box before = " + env)
-    println("contractLeq: left       = " + left + " range " + left(env))
-    println("contractLeq: right      = " + right + " range " + right(env))
+    //    println("\ncontractLeq: box before = " + env)
+    //    println("contractLeq: left       = " + left + " range " + left(env))
+    //    println("contractLeq: right      = " + right + " range " + right(env))
     val leftRan = left(env)
     val rightRan = right(env)
     if (leftRan lessThanOrEqualTo rightRan) env
     else {
       require(!(leftRan greaterThan rightRan), left.toString + " <= " + right.toString + " cannot hold over " + env + "!")
       println()
-      println("contractLeq: " + leftRan + " <= " + rightRan)
+      //      println("contractLeq: " + leftRan + " <= " + rightRan)
       val ranl = min(leftRan, rightRan.high)
-      println("contractLeq: left backpropagate  " + ranl)
+      //      println("contractLeq: left backpropagate  " + ranl)
       val ranr = max(leftRan.low, rightRan)
-      println("contractLeq: " + ranl + " <= " + ranr)
-      println("contractLeq: right backpropagate " + ranr)
+      //      println("contractLeq: " + ranl + " <= " + ranr)
+      //      println("contractLeq: right backpropagate " + ranr)
       val envl = backPropagate(env, ranl, left)
       val envr = backPropagate(env, ranr, right)
       val contracted = envl intersect envr
-      println("contractLeq: box after  = " + contracted)
+      //      println("contractLeq: box after  = " + contracted)
       val res =
         if (contracted almostEqualTo env) env
         else contractLeq(left, right)(contracted)

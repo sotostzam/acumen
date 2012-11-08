@@ -3,14 +3,19 @@ package acumen
 object Models {
 
   val damped_spring = """
+//////////////////////////////////////////////////
+// This file is called damped_spring.acm        //
+// It is an example of a continuous first-order //
+// control system.                              //
+//////////////////////////////////////////////////
 class Main(simulator)
-private x = 1; x' = 0; x'' = 0; mode = "on" end
-  simulator.endTime = 7;
-  simulator.minTimeStep = 0.001;
-  simulator.maxTimeStep = 0.002; 
+private x := 1; x' := 0; x'' := 0; mode := "on" end
+  simulator.endTime := 10;
+  simulator.minTimeStep := 0.001;
+  simulator.maxTimeStep := 0.002; 
   switch mode
     case "on" assume x <= 10
-      x'' [=] -x'/2 - x;
+      x'' = -x'/2 - x;
   end
 end
 """

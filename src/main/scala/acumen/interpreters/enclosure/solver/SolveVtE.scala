@@ -19,7 +19,7 @@ trait SolveVtE {
      * a major source of imprecision!
      */
     val events = H.events.filter(e => e.sigma == q && H.guards(e)(Y.range) != Set(false))
-    println("\ndetectNextEvent: E' = " + events) // PRINTME
+    //    println("\ndetectNextEvent: E' = " + events) // PRINTME
 
     val res =
       if (events.isEmpty) {

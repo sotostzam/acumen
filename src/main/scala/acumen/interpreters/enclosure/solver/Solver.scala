@@ -106,8 +106,8 @@ trait Solver extends SolveVtE {
               }) {
               cb.sendResult(resultForT._2)
               println("solveHybrid: logged results for " + T) //  PRINTME
-              println("solveHybrid: " + resultForT._1.head.initialCondition) //  PRINTME
-              println("solveHybrid: " + resultForT._2) //  PRINTME
+              //              println("solveHybrid: " + resultForT._1.head.initialCondition) //  PRINTME
+              //              println("solveHybrid: " + resultForT._2) //  PRINTME
               resultForT
             } else {
               //            cb.log("splitting " + T)

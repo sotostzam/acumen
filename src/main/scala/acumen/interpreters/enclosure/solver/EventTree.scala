@@ -128,28 +128,28 @@ case class EventTree(
            * indicate inconsistent model and when impossible transitions!
            */
           //          try {
-          println("\naddLayer: range             = " + v.enclosure.range)
-          println("addLayer: domain before     = " + H.domains(e.tau))
-          println("\naddLayer: contracted range  = " + H.guards(e).support(v.enclosure.range))
-          println("addLayer: reset             = " + H.resets(e))
+          //          println("\naddLayer: range             = " + v.enclosure.range)
+          //          println("addLayer: domain before     = " + H.domains(e.tau))
+          //          println("\naddLayer: contracted range  = " + H.guards(e).support(v.enclosure.range))
+          //          println("addLayer: reset             = " + H.resets(e))
           if (H.resets(e)(H.guards(e).support(v.enclosure.range)) == Set(false)) println("\naddLayer: illegal reset!")
-          println("\naddLayer: range after reset  = " + H.resets(e)(H.guards(e).support(v.enclosure.range)))
-          println("addLayer: domain after reset = " + H.domains(e.tau))
+          //          println("\naddLayer: range after reset  = " + H.resets(e)(H.guards(e).support(v.enclosure.range)))
+          //          println("addLayer: domain after reset = " + H.domains(e.tau))
           if (H.domains(e.tau)(H.resets(e)(H.guards(e).support(v.enclosure.range))) != Set(false))
             println("\naddLayer: consistent value after reset!")
           val A = H.domains(e.tau).support(H.resets(e)(H.guards(e).support(v.enclosure.range)))
           //          val A = H.domains(e.tau).support(H.resets(e)(H.guards(e).support(v.enclosure.range)))
-          println("\naddLayer: A         = " + A)
-          println("addLayer: field     = " + H.fields(e.tau))
+          //          println("\naddLayer: A         = " + A)
+          //          println("addLayer: field     = " + H.fields(e.tau))
           //            println("addLayer: enclosure = " + solveVt(H.fields(e.tau), T, A, delta, m, n, output))
           val N = solveVt(H.fields(e.tau), T, A, delta, m, n, output).range
-          println("addLayer: N         = " + N)
+          //          println("addLayer: N         = " + N)
           val lastEvent = e
           //          println("Domain:  " + H.domains(e.tau))
           //          println("Box:     " + N)
           //          println("Support: " + H.domains(e.tau).support(N))
           if (H.domains(e.tau)(N) == Set(false)) println("\naddLayer: illegal enclosure!")
-          println("addLayer: contracted N = " + H.domains(e.tau).support(N))
+          //          println("addLayer: contracted N = " + H.domains(e.tau).support(N))
           // onlyUpdateAffectedComponents introduces some errors! FIXME
           val affines = N // onlyUpdateAffectedComponents(e, v.enclosure, H.domains(e.tau).support(N))
           //          println("addLayer: disregarding unaffectd components N = " + affines)
@@ -170,7 +170,7 @@ case class EventTree(
       if (v.prefixes.exists { w =>
         w.tau == v.tau && w.enclosure.contains(v.enclosure)
       }) {
-        println("\naddLayer: containment!\n") // PRINTME
+        //        println("\naddLayer: containment!\n") // PRINTME
         Set(v)
       } else {
         val mode = v.tau.head
@@ -191,7 +191,7 @@ case class EventTree(
     }
 
     val res = EventTree(newMaximalSequences, T, H, S, delta, m, n, output)
-    println("\naddLayer: " + res)
+    //    println("\naddLayer: " + res)
     res
   }
 
@@ -279,8 +279,8 @@ object EventTree extends SolveVt {
     val mayBeLast = false
     val sequences = Set(EmptySequence(mode, enclosure, mayBeLast).asInstanceOf[EventSequence])
     val res = EventTree(sequences, T, H, S, delta, m, n, output)
-    println("\n############\n")
-    println("initialTree: " + res)
+    //    println("\n############\n")
+    //    println("initialTree: " + res)
     res
   }
 
