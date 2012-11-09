@@ -53,49 +53,42 @@ import org.jfree.ui.ApplicationFrame
 import javax.swing.JFrame
 import PlotData._
 import scala.collection.mutable.LinkedHashSet
+import acumen.interpreters.enclosure.{AbstractFrame,UnivariateAffineEnclosure,
+                                      Rounding}
 
 class JFreePlotTab extends BorderPanel
 {
-  
-  val combinedPlot = new CombinedDomainXYPlot(new NumberAxis("Time"))
-  val subPlots: Map[String, (XYPlot, Int)] = Map[String, (XYPlot, Int)]()
-  val chart = new JFreeChart("",JFreeChart.DEFAULT_TITLE_FONT, combinedPlot, false);
-  val plotPanel = new ChartPanel(chart, true, true, true, true, false)
-  plotPanel.setBackground(Color.white)
-  val enclosureRen = enclosureRenderer(Color.red)
-  
-  private def clear = {
+  // val combinedPlot = new CombinedDomainXYPlot(new NumberAxis("Time"))
+  // val subPlots: Map[String, (XYPlot, Int)] = Map[String, (XYPlot, Int)]()
+  // val chart = new JFreeChart("",JFreeChart.DEFAULT_TITLE_FONT, combinedPlot, false);
+  // val plotPanel = new ChartPanel(chart, true, true, true, true, false)
+  // plotPanel.setBackground(Color.white)
+  // val enclosureRen = enclosureRenderer(Color.red)
 
-  }
-  
-  /** Renders enclosures as colored outlines with a semi-transparent fill of the same color. */
-  private def enclosureRenderer(color: Color) = {
-    val semiTransparentColor = new Color(color.getRed(), color.getGreen(), color.getBlue(), 20)
-    val ren = new XYDifferenceRenderer(color, semiTransparentColor, false)
-    ren.setStroke(new BasicStroke(1.0f))
-    ren.setSeriesPaint(0, color)
-    ren.setSeriesPaint(1, color)
-    ren
-  }
-  
+  val plotPanel = new BoxPanel(Orientation.Vertical)
+
   val resetZoom = new Action("Reset Zoom") {
     icon = Icons.home
-    def apply = { plotPanel.restoreAutoBounds() }
+    def apply = null
+    //def apply = { plotPanel.restoreAutoBounds() }
     toolTip = "Reset View"
   }
   val zoomIn = new Action("Zoom In") {
     icon = Icons.zoomIn
-    def apply = plotPanel.setZoomInFactor(plotPanel.getZoomInFactor() * 1.5) 
+    def apply = null
+    //def apply = plotPanel.setZoomInFactor(plotPanel.getZoomInFactor() * 1.5) 
     toolTip = "Zoom In"
   }
   val zoomOut = new Action("Zoom Out") {
     icon = Icons.zoomOut
-    def apply = plotPanel.setZoomInFactor(plotPanel.getZoomInFactor() / 1.5) 
+    def apply = null
+    //def apply = plotPanel.setZoomInFactor(plotPanel.getZoomInFactor() / 1.5) 
     toolTip = "Zoom Out"
   }
   val undo = new Action("Undo") {
     icon = Icons.undo
-    def apply = plotPanel.restoreAutoBounds() //TODO Implement undo for zooming
+    def apply = null
+    //def apply = plotPanel.restoreAutoBounds() //TODO Implement undo for zooming
     toolTip = "Undo Previous Action"
   }
   val saveAs = new Action("Save As") {
@@ -147,7 +140,7 @@ class JFreePlotTab extends BorderPanel
         currentDir = f.getParentFile
         currentHeight  = heightSpin.getValue.asInstanceOf[Int]
         currentWidth = widthSpin.getValue.asInstanceOf[Int]
-        ChartUtilities.saveChartAsPNG(f, chart, currentWidth, currentHeight)
+        //ChartUtilities.saveChartAsPNG(f, chart, currentWidth, currentHeight)
         dispose
       }
       val buttons = new FlowPanel(FlowPanel.Alignment.Trailing)(cancel,save)
@@ -167,9 +160,9 @@ class JFreePlotTab extends BorderPanel
   private val hint = new Label("Hint: Right click on image & drag to move") //TODO Make sure that this works
   /*private*/ val check = new CheckBox("") { 
     action = Action("Draw") {
-      chart.setNotify(selected)
-      if (selected)
-        chart.fireChartChanged()
+      //chart.setNotify(selected)
+      //if (selected)
+      //  chart.fireChartChanged()
     }
   }
   private val rightBottomButtons =
@@ -177,115 +170,55 @@ class JFreePlotTab extends BorderPanel
   def buttonsEnabled(v: Boolean) = {
     b1.enabled = v; b2.enabled = v; b3.enabled = v; b4.enabled = v; b5.enabled = v
   }
-  
-  var appState : App.State = null
-  var plotState : Plotter.State = null
-  var panelState : PlotPanel.State = null
-  
-  listenTo(App.pub)
-
-  import App._
-  
+  listenTo(App.pub) 
+  // var appState : App.State = null
+  // var plotState : Plotter.State = null
+  // var panelState : PlotPanel.State = null
+  // reactions += {
+  //   case st:App.State       => appState = st; stateUpdateResponse
+  //   case st:Plotter.State   => plotState = st; stateUpdateResponse
+  //   case st:PlotPanel.State => panelState = st; stateUpdateResponse
+  // }
+  // def stateUpdateResponse = (plotState,appState) match {
+  //   case _ if panelState == PlotPanel.Disabled => 
+  //     buttonsEnabled(false)
+  //   case (Plotter.Busy,_:App.Playing) => 
+  //     buttonsEnabled(false)
+  //   case (Plotter.Ready,_:App.Ready) if panelState == PlotPanel.Enabled => 
+  //     buttonsEnabled(true)
+  //   case _ => 
+  // }
   reactions += {
-    case Stopped => {
-      clear
-      enabled = true
-      appState = Stopped
-      plot
-    }
-    case Paused => {
-      clear
-      enabled = true
-      appState = Paused
-      plot 
-    }
-    case Resuming => { 
-      enabled = false
-      appState = Resuming
-      stateUpdateResponse
-    }
-    case Starting => { 
-      enabled = false
-      appState = Starting
-      stateUpdateResponse
-    }
-    case st:Plotter.State => { 
-      plotState = st
-      stateUpdateResponse
-    }
-  }
-  
-  
-  def stateUpdateResponse = (plotState,appState) match {
-    case _ if panelState == PlotPanel.Disabled => 
-      buttonsEnabled(false)
-    case (Plotter.Busy,_:App.Playing) => 
-      buttonsEnabled(false)
-    case (Plotter.Ready,_:App.Ready) if panelState == PlotPanel.Enabled => 
-      buttonsEnabled(true)
-    case _ => 
+    case st:App.Ready => plot
   }
 
-  add(Component.wrap(plotPanel), BorderPanel.Position.Center)
-  add(rightBottomButtons, BorderPanel.Position.South)
+  add(plotPanel, BorderPanel.Position.Center)
+  //Don't display for now, may do something better
+  //add(rightBottomButtons, BorderPanel.Position.South)
   check.selected = true
 
-  def getModel() = { App.ui.controller.model.getPlotModel }
-  
-  private def plot: Unit = {
-    if (App.ui.controller.model == null) return
-    val m = getModel
-    //FIXME Handle this where these are getting generated instead
-    val ts = m.getTimes
-    val timePairs =  ts zip ts.tail
-    // Each plottable is an enclosure (flow pipe)
-    println(">>>>>> ts: " + ts)
-    println(">>>>>> timePairs: " + timePairs)
-    for (p <- m.getPlottables if plotit(p)) {
-      println(">>>> plottable values: " + p.values)
-      val legendLabel = m.getColumnName(p.column)
-      val (subPlot, numberOfDatasets) = subPlots.get(legendLabel) match {
-        case Some(t) => t
-        case None => {
-          val p = new XYPlot()
-          p.setDomainGridlinesVisible(true)
-          p.setRangeGridlinesVisible(true)
-          p.setRangeGridlinePaint(Color.gray)
-          p.setDomainGridlinePaint(Color.gray)
-          p.setRangeAxis(0, new NumberAxis(legendLabel))
-          combinedPlot.add(p, 1)
-          (p, 0)
-        }
-      }
-      // Create enclosure dataset
-      for (((t1, t2), Enclosure(loL, hiL, loR, hiR)) <- timePairs zip p.values.tail) {
-        val lower = new XYSeries(legendLabel, false, false)
-    	val upper = new XYSeries("HIDE_ME", false, false)
-        println(">>>>> Enclosure :" + (loL, hiL, loR, hiR))
-        println(">>>>> Times :" + (t1,t2))
-        if (t1 != t2) {
-    	lower.add(t1, loL)
-        upper.add(t1, hiL)
-        lower.add(t2, loR)
-        upper.add(t2, hiR)
-        } else { println(">>>> Sart time and end time are the same, skipping enclosure.") }
-        val e = new DefaultTableXYDataset
-        e.addSeries(lower)
-        e.addSeries(upper)
-//        e.setIntervalWidth(0.01) //TODO Check that this interval width makes sense!
-        subPlot.setDataset(numberOfDatasets, e)
-        subPlot.setRenderer(numberOfDatasets, enclosureRen)
-        subPlots(legendLabel) = (subPlot, numberOfDatasets + 1)
-      }
-      chart.setNotify(true)
-    }
-    
+  def getModel() = try {
+    App.ui.controller.model.getPlotModel 
+  } catch {
+    case _:java.lang.IllegalStateException => null
   }
   
-  private def plotit(p: Plottable) = {
-    (!p.simulator) && 
-    (p.fn != Name("nextChild",0)) &&
-    ((p.fn != Name("seed1",0) && p.fn !=  Name("seed2",0)))
+  private def plot: Unit = {
+    plotPanel.peer.removeAll()
+    UnivariateAffineEnclosure.chartPanels.clear
+    if (App.ui.controller.model == null) return
+    val m = getModel
+    if (m == null) return
+    val es = m.getNewPlottables().asInstanceOf[Seq[UnivariateAffineEnclosure]]
+    if (es == null) return
+    println("New Plot Working!")
+    def wrapper = new AbstractFrame {
+      def add(c: JComponent) = plotPanel.peer.add(c)
+      def invalidate = plotPanel.peer.invalidate()
+    }
+    for (e <- es) UnivariateAffineEnclosure.plotUAE(e, wrapper)(new Rounding(10))
+    plotPanel.peer.validate
+    println("New Plot Done!")
   }
   
   //TODO Check if the below need to be re-enabled
