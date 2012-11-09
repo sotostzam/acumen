@@ -23,6 +23,7 @@ import scala.collection.mutable.Map
 import javax.swing.event.ChangeListener
 import org.jfree.chart.event.ChartChangeListener
 import org.jfree.chart.event.ChartChangeEvent
+import acumen.interpreters.enclosure.AbstractFrame
 
 abstract trait Plotter {
   
@@ -79,7 +80,7 @@ abstract trait Plotter {
     extraSamples: Int,
     legendLabel: String,
     color:Color,
-    frame:ApplicationFrame) {
+    frame:AbstractFrame) {
     addEnclosure(intervalStart, intervalEnd, upperApproximation, lowerApproximation, extraSamples, //stepSize,
       color, legendLabel, frame)
   }
@@ -92,7 +93,7 @@ abstract trait Plotter {
     //    stepSize: Double,
     extraSamples: Int,
     legendLabel: String,
-    frame:ApplicationFrame) {
+    frame:AbstractFrame) {
     addEnclosure(intervalStart, intervalEnd, upperApproximation, lowerApproximation, extraSamples, //stepSize,
       Color.blue, legendLabel, frame)
   }
@@ -105,7 +106,7 @@ abstract trait Plotter {
     //    stepSize: Double,
     extraSamples: Int,
     legendLabel: String,
-    frame:ApplicationFrame) {
+    frame:AbstractFrame) {
     addEnclosure(intervalStart, intervalEnd, upperApproximation, lowerApproximation, extraSamples, //stepSize,
       new Color(0, 127, 0), legendLabel, frame)
   }
@@ -119,7 +120,7 @@ abstract trait Plotter {
     extraSamples: Int,
     color: Color,
     legendLabel: String,
-    frame:ApplicationFrame) {
+    frame:AbstractFrame) {
 
     val (chartPanel: ChartPanel, numberOfDatasets: Int) = chartPanels.get(legendLabel) match {
        case None => {
@@ -130,7 +131,7 @@ abstract trait Plotter {
         chart.getXYPlot().setRangeGridlinePaint(Color.gray)
         chart.getXYPlot().setDomainGridlinePaint(Color.gray)
         val chartPanel: ChartPanel = new ChartPanel(chart);
-        frame.getContentPane.add(chartPanel);
+        frame.add(chartPanel);
         (chartPanel,0)
       }
       case Some(t) => t

@@ -108,7 +108,7 @@ object UnivariateAffineEnclosure extends Plotter {
     case _ => them
   }
 
-  private def plotUAE(e: UnivariateAffineEnclosure, f: ApplicationFrame)(implicit rnd: Rounding) = {
+  def plotUAE(e: UnivariateAffineEnclosure, f: AbstractFrame)(implicit rnd: Rounding) = {
     val color = Color.red
     for ((varName, it) <- e.components) {
       def low(t: Double) = it.low(t) match { case Interval(lo, _) => lo.doubleValue }
@@ -121,7 +121,7 @@ object UnivariateAffineEnclosure extends Plotter {
 
   def plot(frametitle: String)(es: Seq[UnivariateAffineEnclosure])(implicit rnd: Rounding) = {
     val f = createFrame(frametitle)
-    for (e <- es) plotUAE(e, f)
+    for (e <- es) plotUAE(e, AbstractFrame.wrap(f))
     f.pack()
   }
 
