@@ -151,8 +151,8 @@ class App extends SimpleSwingApplication {
   
   val rightPane = new TabbedPane {
     assert(pages.size == 0)
-    pages ++= List(new TabbedPane.Page("New Plot", newPlotTab),
-                   new TabbedPane.Page("Plot",     plotTab), 
+    pages ++= List(new TabbedPane.Page("Plot",     plotTab), 
+                   new TabbedPane.Page("New Plot", newPlotTab),
                    new TabbedPane.Page("Trace",    traceTab),
                    new TabbedPane.Page("3D",       threeDtab))
     if (!threeDtab.enableTab)
