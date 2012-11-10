@@ -1,0 +1,31 @@
+/////////////////////////////////////// 
+// This file is called radiator.acm  //
+// It implements the furnace system. //
+///////////////////////////////////////
+class Main (simulator)
+  private 
+    mode := "on"; x := 22; x' := 0; 
+  end
+  simulator.precision := 10;
+  simulator.startTime := 0;
+  simulator.endTime := 2;
+  simulator.initialConditionPadding := 0;
+  simulator.extraPicardIterations := 20;
+  simulator.maxPicardIterations := 200;
+  simulator.maxEventSequenceLength := 30;
+  simulator.minTimeStep := 0.00001;
+  simulator.maxTimeStep := 0.1;
+  simulator.minImprovament := 0.0001;  
+  switch mode
+    case "on" assume x <= 25
+      if x == 25
+        mode := "off"
+      end;
+      x' = 100 - x;
+    case "off" assume x >= 19
+      if x == 19
+        mode := "on"
+      end;
+      x' = - x;
+  end
+end

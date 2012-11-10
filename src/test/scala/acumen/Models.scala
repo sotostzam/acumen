@@ -2,6 +2,40 @@ package acumen
 
 object Models {
 
+  val walid_1 = """
+//////////////////////////////////////////////
+// This file is called walid_1.acm          //
+// It is an example of a continuous system. //
+//////////////////////////////////////////////
+class Main(simulator)
+private x := 1; x' := 1; x'' := 0; mode := "on" end
+  simulator.endTime := 9;
+  simulator.minTimeStep := 0.001;
+  simulator.maxTimeStep := 0.02; 
+  switch mode
+    case "on" 
+      x'' = -x';
+  end
+end
+"""
+
+  val harmonic_oscillator = """
+//////////////////////////////////////////////////
+// This file is called harmonic_oscillator.acm  //
+// It is an example of a continuous system.     //
+//////////////////////////////////////////////////
+class Main(simulator)
+private x := 0; x' := 1; x'' := 0; mode := "on" end
+  simulator.endTime := 7;
+  simulator.minTimeStep := 0.001;
+  simulator.maxTimeStep := 0.01; 
+  switch mode
+    case "on" 
+      x'' = -x;
+  end
+end
+"""
+  
   val damped_spring = """
 //////////////////////////////////////////////////
 // This file is called damped_spring.acm        //
@@ -110,7 +144,8 @@ class Main(simulator)
       x1' = -2; 
       x2' = 1;
   end
-end"""
+end
+"""
 
   val bouncing_ball_air = """
 ////////////////////////////////////////////////
@@ -137,9 +172,9 @@ class Main(simulator)
 end
 """
 
-  val bouncing_ball_risefall_explicit_energy_equality = """
+  val bouncing_ball_risefall_explicit_energy_equality_2 = """
 /////////////////////////////////////////////////////////////////////////////
-// This file is called bouncing_ball_risefall_explicit_energy_equality.acm //
+// This file is called bouncing_ball_risefall_explicit_energy_equality_2.acm //
 /////////////////////////////////////////////////////////////////////////////
 class Main(simulator)
   private 

@@ -105,7 +105,7 @@ trait Solver extends SolveVtE {
                 improvement lessThanOrEqualTo minImprovement
               }) {
               cb.sendResult(resultForT._2)
-              println("solveHybrid: logged results for " + T) //  PRINTME
+              //              println("solveHybrid: logged results for " + T) //  PRINTME
               //              println("solveHybrid: " + resultForT._1.head.initialCondition) //  PRINTME
               //              println("solveHybrid: " + resultForT._2) //  PRINTME
               resultForT

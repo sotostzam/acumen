@@ -274,9 +274,11 @@ trait Extract {
     val initializationsByName = priv.groupBy { case Init(Name(name, _), _) => name }
     val ordersByName = initializationsByName.mapValues { _.map { case Init(Name(_, order), _) => order } }
     val maxOrderByName = ordersByName.mapValues(_.max)
-    priv.filter {
-      case Init(Name(name, order), _) => maxOrderByName(name) == 0 || maxOrderByName(name) > order
-    }.map { case Init(Name(name, order), _) => name + "'" * order }.toList
+    priv.
+      filter {
+        case Init(Name(name, order), _) => maxOrderByName(name) == 0 || maxOrderByName(name) > order
+      }.
+      map { case Init(Name(name, order), _) => name + "'" * order }.toList
   }
 
   def acumenExprToPredicate(e: Expr)(implicit rnd: Rounding): Predicate = e match {

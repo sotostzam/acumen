@@ -1,0 +1,32 @@
+//////////////////////////////////////////////////////////////
+// This file is called bouncing_ball_explicit_energy_2.acm  //
+// It implements a version of the EBB model from the paper. //
+//////////////////////////////////////////////////////////////
+class Main(simulator)
+  private 
+    mode := "Fly"; 
+    x2 := 5; x2' := 0; x2'' := 0;  
+    r2 := [0.0..100.0]; r2' := 0;
+  end
+  simulator.precision := 10;
+  simulator.startTime := 0;
+  simulator.endTime := 3.5;
+  simulator.initialConditionPadding := 0;
+  simulator.extraPicardIterations := 20;
+  simulator.maxPicardIterations := 200;
+  simulator.maxEventSequenceLength := 30;
+  simulator.minTimeStep := 4.7e-7;
+  simulator.maxTimeStep := 1;
+  simulator.minImprovament := 0.0001;  
+  switch mode
+    case "Fly" 
+    assume x2 >= 0 && r2 == x2'*x2' + 20*x2 + [-0.5..0.5]
+      if x2 == 0 && x2' <= 0
+        x2' := -0.5*x2';
+        r2  := [0.0..0.25]*r2;
+        mode := "Fly";
+      end;
+      x2'' = -10;
+      r2'  = 0;
+  end
+end

@@ -1,0 +1,38 @@
+////////////////////////////////////////////////
+////////////////////////////////////////////////
+class Main(simulator)
+  private 
+    mode := "Rise"; 
+    x := 5; x' := 0; x'' := 0;  
+    r := 100; r' := 0;
+  end
+  simulator.precision := 10;
+  simulator.startTime := 0;
+  simulator.endTime := 3.5;
+  simulator.initialConditionPadding := 0;
+  simulator.extraPicardIterations := 20;
+  simulator.maxPicardIterations := 200;
+  simulator.maxEventSequenceLength := 30;
+  simulator.minTimeStep := 0.01;
+  simulator.maxTimeStep := 0.2;
+  simulator.minImprovament := 0.0001;  
+  switch mode
+    case "Rise" assume x >= 0 && x' >= 0 && 0 <= r && r == x'*x' + 20*x
+      if x' == 0
+        x  := x;
+        x' := x';
+        r  := r;
+        mode := "Fall";
+      end;
+      x'' = -10;
+      r'  = 0;
+    case "Fall" assume x >= 0 && x' <= 0 && 0 <= r && r == x'*x' + 20*x
+      if x == 0
+        x' := -0.5 * x';
+        r  := [0.0..0.25]*r;
+        mode := "Rise";
+      end;
+      x'' = -10;
+      r'  = 0;
+  end
+end
