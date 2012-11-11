@@ -24,6 +24,10 @@ import javax.swing.event.ChangeListener
 import org.jfree.chart.event.ChartChangeListener
 import org.jfree.chart.event.ChartChangeEvent
 import acumen.interpreters.enclosure.AbstractFrame
+import javax.swing.JMenuItem
+import java.awt.event.ActionListener
+import java.awt.event.ActionEvent
+import acumen.ui.plot.SaveAsDailog
 
 abstract trait Plotter {
   
@@ -131,6 +135,16 @@ abstract trait Plotter {
         chart.getXYPlot().setRangeGridlinePaint(Color.gray)
         chart.getXYPlot().setDomainGridlinePaint(Color.gray)
         val chartPanel: ChartPanel = new ChartPanel(chart);
+        val saveAsPdf = new JMenuItem("Save as PDF")
+        val comp = this
+        saveAsPdf.addActionListener(new ActionListener() {
+          def actionPerformed(event: ActionEvent) {
+            val d = new SaveAsDailog(Component.wrap(chartPanel), chart)
+            d.pack
+            d.open
+          }
+        })
+        chartPanel.getPopupMenu.add(saveAsPdf)
         frame.add(chartPanel);
         (chartPanel,0)
       }

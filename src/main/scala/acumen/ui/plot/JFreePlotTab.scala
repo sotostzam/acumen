@@ -53,8 +53,14 @@ import org.jfree.ui.ApplicationFrame
 import javax.swing.JFrame
 import PlotData._
 import scala.collection.mutable.LinkedHashSet
-import acumen.interpreters.enclosure.{AbstractFrame,UnivariateAffineEnclosure,
-                                      Rounding}
+import com.itextpdf.text.Document
+import com.itextpdf.text.pdf.PdfWriter
+import java.io.FileOutputStream
+import com.itextpdf.awt.DefaultFontMapper
+import interpreters.enclosure.UnivariateAffineEnclosure
+import scala.collection.Seq
+import interpreters.enclosure.AbstractFrame
+import interpreters.enclosure.Rounding
 
 class JFreePlotTab extends BorderPanel
 {
@@ -101,12 +107,12 @@ class JFreePlotTab extends BorderPanel
     private var currentHeight = 480
 
     def apply : Unit = {
-      val cp = new SaveAsDailog
-      cp.pack
-      cp.open
+//      val cp = new SaveAsDailog
+//      cp.pack
+//      cp.open
     }
 
-    class SaveAsDailog extends Dialog(null) {
+    class SaveAsDailog (parent: Component, chart:JFreeChart) extends Dialog(null) {
       modal = true
       val widthSpin = new JSpinner() { setValue(currentWidth) }
       val heightSpin = new JSpinner() { setValue(currentHeight) }
@@ -140,7 +146,8 @@ class JFreePlotTab extends BorderPanel
         currentDir = f.getParentFile
         currentHeight  = heightSpin.getValue.asInstanceOf[Int]
         currentWidth = widthSpin.getValue.asInstanceOf[Int]
-        //ChartUtilities.saveChartAsPNG(f, chart, currentWidth, currentHeight)
+//        ChartUtilities.saveChartAsPNG(f, chart, currentWidth, currentHeight)
+        
         dispose
       }
       val buttons = new FlowPanel(FlowPanel.Alignment.Trailing)(cancel,save)
@@ -209,17 +216,19 @@ class JFreePlotTab extends BorderPanel
     if (App.ui.controller.model == null) return
     val m = getModel
     if (m == null) return
-    val es = m.getNewPlottables().asInstanceOf[Seq[UnivariateAffineEnclosure]]
+    val es = m.getNewPlottables.asInstanceOf[Seq[UnivariateAffineEnclosure]]
     if (es == null) return
     println("New Plot Working!")
     def wrapper = new AbstractFrame {
       def add(c: JComponent) = plotPanel.peer.add(c)
-      def invalidate = plotPanel.peer.invalidate()
+      def invalidate = plotPanel.peer.invalidate
     }
     for (e <- es) UnivariateAffineEnclosure.plotUAE(e, wrapper)(new Rounding(10))
     plotPanel.peer.validate
     println("New Plot Done!")
   }
+
+  
   
   //TODO Check if the below need to be re-enabled
 //  def toggleSimulator(b:Boolean) = plotPanel.toggleSimulator(b)
