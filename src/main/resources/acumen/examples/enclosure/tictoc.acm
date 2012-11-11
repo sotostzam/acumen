@@ -17,7 +17,7 @@ class Main (simulator)
   simulator.maxEventSequenceLength := 30;
   simulator.minTimeStep := 0.0001;
   simulator.maxTimeStep := 1;
-  simulator.minImprovament := 0.001;  
+  simulator.minImprovement := 0.001;  
   switch mode
     case "decreasing" assume x >= 0
       if x == 0 

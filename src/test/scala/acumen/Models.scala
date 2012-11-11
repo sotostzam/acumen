@@ -240,24 +240,32 @@ end
 class Main(simulator)
   private 
     mode := "Fly"; 
-    x := 5; x' := 0; x'' := 0;  
-    r := 100; r' := 0;
+    x1 := 5; x1' := 0; x1'' := 0;  
+    r1 := 100.0; r1' := 0;
   end
-  simulator.endTime = 3.5;
-  simulator.minTimeStep = 0.01;
-  simulator.maxTimeStep = 0.1;
+  simulator.precision := 10;
+  simulator.startTime := 0;
+  simulator.endTime := 3.5;
+  simulator.initialConditionPadding := 0;
+  simulator.extraPicardIterations := 20;
+  simulator.maxPicardIterations := 200;
+  simulator.maxEventSequenceLength := 30;
+  simulator.minTimeStep := 0.01;
+  simulator.maxTimeStep := 0.5;
+  simulator.minImprovement := 0.0001;
   switch mode
     case "Fly"
-    assume x >= 0 && 0 <= r && r == x'*x' + 20*x
-      if x == 0 && x' <= 0
-        x' := -0.5*x';
-        r := (0.125 +/- 0.125)*r;
-    mode := "Fly";
+    assume x1 >= 0 && 0 <= r1 && 
+           r1 == x1'*x1' + 20*x1
+      if x1 == 0 && x1' <= 0
+        x1' := -0.5*x1';
+        r1  := 0.25*r1;
+        mode := "Fly";
       end;
-      x'' = -10;
-      r'  = 0;
+      x1'' = -10;
   end
 end
+
 """
 
   val bouncing_ball_explicit_energy_mik2 = """

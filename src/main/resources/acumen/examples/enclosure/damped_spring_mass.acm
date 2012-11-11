@@ -14,7 +14,7 @@ private x := 1; x' := 0; x'' := 0; mode := "on" end
   simulator.maxEventSequenceLength := 30;
   simulator.minTimeStep := 0.001;
   simulator.maxTimeStep := 0.01;
-  simulator.minImprovament := 0.0001;  
+  simulator.minImprovement := 0.0001;  
   switch mode
     case "on" 
       x'' = -x'/2 - x;

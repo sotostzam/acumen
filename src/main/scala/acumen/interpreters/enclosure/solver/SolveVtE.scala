@@ -57,9 +57,11 @@ trait SolveVtE {
       res = tmp
       tmp = tmp.addLayer
     }
-    if (res != tmp)
+    if (res != tmp) {
+      println("solveVtE: res = " + res)
+      println("solveVtE: tmp = " + tmp)
       None
-    else {
+    } else {
       //      println("\nsolveVtE: " + res.endTimeStates.map(_.initialCondition)) // PRINTME
       //      println("\nsolveVtE: " + res.prunedEnclosures)
       Some((res.endTimeStates, res.prunedEnclosures))

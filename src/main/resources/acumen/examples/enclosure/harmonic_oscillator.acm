@@ -15,7 +15,7 @@ class Main(simulator)
   simulator.maxEventSequenceLength := 30;
   simulator.minTimeStep := 0.001;
   simulator.maxTimeStep := 0.01;
-  simulator.minImprovament := 0.001;  
+  simulator.minImprovement := 0.001;  
   switch mode
     case "on" 
       x'' = -x;

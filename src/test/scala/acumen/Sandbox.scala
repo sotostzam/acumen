@@ -19,7 +19,7 @@ import java.awt.Color
 
 object Sandbox extends App with Extract with Solver with SolveVt {
 
-  val prog = Parser.run(Parser.prog, Models.walid_1)
+  val prog = Parser.run(Parser.prog, Models.bouncing_ball_explicit_energy_mik1)
   val des = Desugarer.run(prog)
   val main = classDef(ClassName("Main"), des)
 
@@ -48,8 +48,9 @@ object Sandbox extends App with Extract with Solver with SolveVt {
   println("computed " + res.size + " enclosures in " + time / 1000.0 + " seconds")
 
   def twoMinusExpOfMinusT(t: Double) = 2 - scala.math.exp(-t) // DELETEME
-  
-  plot("Plotter mockup")(twoMinusExpOfMinusT)(res)(new Rounding(10))
+  def fiveMinusFiveTSquare(t: Double) = 5 - 5 * scala.math.pow(t, 2) // DELETEME
+
+  plot("Plotter mockup")(null)(res)(new Rounding(10))
   //  plot("Plotter mockup")(resCons)(new Rounding(10))
 
 }
