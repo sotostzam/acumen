@@ -25,21 +25,22 @@ class CodeArea extends EditorPane {
   font = monospaced
 
   //
-  // Undo: Copied from scala web site
+  // Undo: Copied from 
+  //   http://docs.oracle.com/javase/tutorial/uiswing/components/generaltext.html
   //
 
-   // New text utilities, e.g., undo, redo
-  val undo = new UndoManager()
-  var doc  = peer.getDocument() 
+  //var undo = new UndoManager()
+  var undo = new UndoManager()
   // Create a undo action and add it to the text component
   peer.getActionMap().put("Undo",
          new javax.swing.text.TextAction("Undo") {
            def actionPerformed(e:java.awt.event.ActionEvent) {
-                 try {
+                 //try {
                      if (undo.canUndo()) {
+                         println("Undoing!")
                          undo.undo();
                      }
-                 } catch {case e:Exception => }
+                 //} catch {case e:Exception => }
                  
              }
         });
@@ -47,16 +48,14 @@ class CodeArea extends EditorPane {
    peer.getActionMap().put("Redo",
          new javax.swing.text.TextAction("Redo") {
            def actionPerformed(e:java.awt.event.ActionEvent) {
-                 try {
+                 //try {
                      if (undo.canRedo()) {
                          undo.redo();
                      }
-                 } catch {case e:Exception => }
+                 //} catch {case e:Exception => }
                  
              }
         });
-  // Listen for undo and redo events
-  doc.addUndoableEditListener(undo);
   // Bind the undo action to ctl-Z
   peer.getInputMap().put(KeyStroke.getKeyStroke("control Z"), "Undo");
   // Bind the redo action to ctl-Y
@@ -89,19 +88,23 @@ class CodeArea extends EditorPane {
     editedSinceLastAutoSave = true
   }
 
-  def listenDocument = 
+  def listenDocument = {
     peer.getDocument.addDocumentListener(
       new DocumentListener {
         def changedUpdate(e:DocumentEvent) { setEdited }
         def insertUpdate(e:DocumentEvent) { setEdited }
         def removeUpdate(e:DocumentEvent) { setEdited }
       })
+    // Listen for undo and redo events
+    peer.getDocument.addUndoableEditListener(undo)
+  }
 
   def newFile : Unit = withErrorReporting {
     if (!editedSinceLastSave || confirmContinue(App.ui.body.peer)) {
       text = ""
       setCurrentFile(None)
       editedSinceLastSave = false
+      undo.discardAllEdits()
     }
   }
 
@@ -112,6 +115,7 @@ class CodeArea extends EditorPane {
       if (returnVal == FileChooser.Result.Approve) {
         val file = fc.selectedFile
         peer.setPage(file.toURI.toString)
+        undo = new UndoManager()
         listenDocument
         setCurrentFile(Some(file))
         editedSinceLastSave = false
