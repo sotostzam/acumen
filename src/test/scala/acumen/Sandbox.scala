@@ -29,19 +29,20 @@ object Sandbox extends App with Extract with Solver with SolveVt {
 
   val start = System.currentTimeMillis
 
-  val res = solver(
-    h,
-    ps.simulationTime,
-    Set(us),
-    ps.solveVtInitialConditionPadding,
-    ps.extraPicardIterations,
-    ps.maxPicardIterations,
-    ps.maxEventTreeSize,
-    ps.minTimeStep,
-    ps.maxTimeStep,
-    ps.minImprovement,
-    "output",
-    defaultCallback)
+  val res =
+    solver(
+      h,
+      ps.simulationTime,
+      Set(us),
+      ps.solveVtInitialConditionPadding,
+      ps.extraPicardIterations,
+      ps.maxPicardIterations,
+      ps.maxEventTreeSize,
+      ps.minTimeStep,
+      ps.maxTimeStep,
+      ps.minImprovement,
+      "output",
+      defaultCallback)
 
   val end = System.currentTimeMillis
   val time = end - start

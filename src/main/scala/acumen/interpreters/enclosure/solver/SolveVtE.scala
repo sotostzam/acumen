@@ -6,6 +6,8 @@ import UnivariateAffineEnclosure._
 
 trait SolveVtE {
 
+  case class SolveVtEException(message: String) extends Exception
+  
   // TODO add description
   def detectNextEvent(
     H: HybridSystem,
@@ -58,8 +60,7 @@ trait SolveVtE {
       tmp = tmp.addLayer
     }
     if (res != tmp) {
-      println("solveVtE: res = " + res)
-      println("solveVtE: tmp = " + tmp)
+      throw SolveVtEException("gave up for maxEventSequenceLength " + K + " at " + T)
       None
     } else {
       //      println("\nsolveVtE: " + res.endTimeStates.map(_.initialCondition)) // PRINTME
