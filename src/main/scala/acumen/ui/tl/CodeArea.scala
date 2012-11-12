@@ -100,7 +100,6 @@ class CodeArea extends EditorPane {
   def newFile : Unit = withErrorReporting {
     if (!editedSinceLastSave || confirmContinue(App.ui.body.peer)) {
       text = ""
-      listenDocument
       setCurrentFile(None)
       editedSinceLastSave = false
     }
