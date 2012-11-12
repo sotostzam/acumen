@@ -50,7 +50,7 @@ trait Contract {
     if (leftRan lessThanOrEqualTo rightRan) env
     else {
       require(!(leftRan greaterThan rightRan), left.toString + " <= " + right.toString + " cannot hold over " + env + "!")
-      println()
+      //      println()
       //      println("contractLeq: " + leftRan + " <= " + rightRan)
       val ranl = min(leftRan, rightRan.high)
       //      println("contractLeq: left backpropagate  " + ranl)
