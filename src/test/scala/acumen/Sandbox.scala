@@ -19,7 +19,7 @@ import java.awt.Color
 
 object Sandbox extends App with Extract with Solver with SolveVt {
 
-  val prog = Parser.run(Parser.prog, Models.damped_spring)
+  val prog = Parser.run(Parser.prog, Models.bouncing_ball_explicit_energy_mik1)
   val des = Desugarer.run(prog)
   val main = classDef(ClassName("Main"), des)
 
@@ -29,25 +29,29 @@ object Sandbox extends App with Extract with Solver with SolveVt {
 
   val start = System.currentTimeMillis
 
-  val res = solver(
-    h,
-    ps.simulationTime,
-    Set(us),
-    ps.solveVtInitialConditionPadding,
-    ps.extraPicardIterations,
-    ps.maxPicardIterations,
-    ps.maxEventTreeSize,
-    ps.minTimeStep,
-    ps.maxTimeStep,
-    ps.minImprovement,
-    "output",
-    defaultCallback)
+  val res =
+    solver(
+      h,
+      ps.simulationTime,
+      Set(us),
+      ps.solveVtInitialConditionPadding,
+      ps.extraPicardIterations,
+      ps.maxPicardIterations,
+      ps.maxEventTreeSize,
+      ps.minTimeStep,
+      ps.maxTimeStep,
+      ps.minImprovement,
+      "output",
+      defaultCallback)
 
   val end = System.currentTimeMillis
   val time = end - start
-  //  println("computed " + resPreBounce.size + " enclosures in " + time / 1000.0 + " seconds")
+  println("computed " + res.size + " enclosures in " + time / 1000.0 + " seconds")
 
-  plot("Plotter mockup")(res)(new Rounding(10))
+  def twoMinusExpOfMinusT(t: Double) = 2 - scala.math.exp(-t) // DELETEME
+  def fiveMinusFiveTSquare(t: Double) = 5 - 5 * scala.math.pow(t, 2) // DELETEME
+
+  plot("Plotter mockup")(null)(res)(new Rounding(10))
   //  plot("Plotter mockup")(resCons)(new Rounding(10))
 
 }

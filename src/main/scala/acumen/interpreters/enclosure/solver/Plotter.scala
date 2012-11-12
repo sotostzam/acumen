@@ -49,18 +49,23 @@ abstract trait Plotter {
     lowerApproximation: Double => Double,
     //    stepSize: Double,
     extraSamples: Int,
-    legendLabel: String): TableXYDataset = {
-    val lower: XYSeries = new XYSeries(legendLabel, false, false)
-    val upper: XYSeries = new XYSeries("HIDE_ME", false, false)
+    legendLabel: String,
+    fun: Double => Double): TableXYDataset = {
+    val lower: XYSeries     = new XYSeries(legendLabel, false, false)
+    val upper: XYSeries     = new XYSeries("HIDE_ME", false, false)
+    val funSeries: XYSeries = new XYSeries("SOME_FUNCTION", false, false)
     lower.add(intervalStart, lowerApproximation(intervalStart));
     upper.add(intervalStart, upperApproximation(intervalStart))
+    if (fun != null) funSeries.add(intervalStart, fun(intervalStart))
     for (i <- 1 to extraSamples) {
       val x = (intervalStart + intervalEnd) * (i.doubleValue) / (extraSamples + 1)
       lower.add(x, lowerApproximation(x))
       upper.add(x, upperApproximation(x))
+      if (fun != null) funSeries.add(x, fun(x))
     }
-    lower.add(intervalEnd, lowerApproximation(intervalEnd));
+    lower.add(intervalEnd, lowerApproximation(intervalEnd))
     upper.add(intervalEnd, upperApproximation(intervalEnd))
+    if (fun != null) funSeries.add(intervalEnd, fun(intervalEnd))
     //    for {
     //      x <- (0 to Math.floor((intervalEnd - intervalStart) / stepSize).toInt)
     //        .map((p) => intervalStart + (p * stepSize))
@@ -71,6 +76,7 @@ abstract trait Plotter {
     val res: DefaultTableXYDataset = new DefaultTableXYDataset()
     res.addSeries(lower)
     res.addSeries(upper)
+    if (fun != null) res.addSeries(funSeries)
     res.setIntervalWidth(0.01)
     res
   }
@@ -84,9 +90,10 @@ abstract trait Plotter {
     extraSamples: Int,
     legendLabel: String,
     color:Color,
-    frame:AbstractFrame) {
+    frame:AbstractFrame,
+    fun: Double => Double) {
     addEnclosure(intervalStart, intervalEnd, upperApproximation, lowerApproximation, extraSamples, //stepSize,
-      color, legendLabel, frame)
+      color, legendLabel, frame, fun)
   }
   
   def addFunctionEnclosure(
@@ -97,9 +104,10 @@ abstract trait Plotter {
     //    stepSize: Double,
     extraSamples: Int,
     legendLabel: String,
-    frame:AbstractFrame) {
+    frame: AbstractFrame, 
+    fun: Double => Double) {
     addEnclosure(intervalStart, intervalEnd, upperApproximation, lowerApproximation, extraSamples, //stepSize,
-      Color.blue, legendLabel, frame)
+      Color.blue, legendLabel, frame, fun)
   }
 
   def addDerivativeEnclosure(
@@ -110,9 +118,10 @@ abstract trait Plotter {
     //    stepSize: Double,
     extraSamples: Int,
     legendLabel: String,
-    frame:AbstractFrame) {
+    frame:AbstractFrame,
+    fun: Double => Double) {
     addEnclosure(intervalStart, intervalEnd, upperApproximation, lowerApproximation, extraSamples, //stepSize,
-      new Color(0, 127, 0), legendLabel, frame)
+      new Color(0, 127, 0), legendLabel, frame, fun)
   }
 
   def addEnclosure(
@@ -124,11 +133,13 @@ abstract trait Plotter {
     extraSamples: Int,
     color: Color,
     legendLabel: String,
-    frame:AbstractFrame) {
+    frame:AbstractFrame,
+    fun: Double => Double) {
 
     val (chartPanel: ChartPanel, numberOfDatasets: Int) = chartPanels.get(legendLabel) match {
        case None => {
         val chart: JFreeChart = createChart("", "Time", legendLabel)
+        chart.setNotify(false)
         chart.getPlot().setBackgroundPaint(Color.white)
         chart.getXYPlot().setDomainGridlinesVisible(true)
         chart.getXYPlot().setRangeGridlinesVisible(true)
@@ -153,7 +164,7 @@ abstract trait Plotter {
     val chart = chartPanel.getChart
     
     val e = createEnclosureDataset(intervalStart, intervalEnd, upperApproximation, lowerApproximation, extraSamples, //stepSize,
-      legendLabel)
+      legendLabel, fun)
 
     val semiTransparentColor = new Color(color.getRed(), color.getGreen(), color.getBlue(), 20) //127)
     val ren = new XYDifferenceRenderer(Color.red, semiTransparentColor, false)
@@ -161,6 +172,7 @@ abstract trait Plotter {
     ren.setStroke(new BasicStroke(1.0f))
     ren.setSeriesPaint(0, color)
     ren.setSeriesPaint(1, color)
+    if (fun != null) ren.setSeriesPaint(2, Color.BLACK)
 
     val plot: XYPlot = chart.getXYPlot()
     plot.setDataset(numberOfDatasets, e)

@@ -12,7 +12,7 @@ import java.awt.Color
  * AffineScalarEnclosure.
  */
 case class UnivariateAffineScalarEnclosure private[enclosure] (
-//  private[enclosure]
+  //  private[enclosure]
   domain: Interval,
   private[enclosure]normalizedDomain: Interval,
   private[enclosure]constant: Interval,
@@ -248,8 +248,8 @@ object UnivariateAffineScalarEnclosure extends Plotter {
       that.coefficients(name))
   }
 
-//  def plot(them: UnivariateAffineScalarEnclosure*)(implicit rnd: Rounding): Unit =
-//    plot("Picard plotter")(them.map(e => (Color.BLUE, e)): _*)
+  //  def plot(them: UnivariateAffineScalarEnclosure*)(implicit rnd: Rounding): Unit =
+  //    plot("Picard plotter")(them.map(e => (Color.BLUE, e)): _*)
 
   def plot(them: (Color, UnivariateAffineScalarEnclosure)*)(implicit rnd: Rounding): Unit =
     plot("Picard plotter")(them: _*)
@@ -272,7 +272,8 @@ object UnivariateAffineScalarEnclosure extends Plotter {
       def high(t: Double) = it.high(t) match { case Interval(_, hi) => hi.doubleValue }
       val dom = it.domain
       val (lo, hi) = dom match { case Interval(l, h) => (l.doubleValue, h.doubleValue) }
-      addColoredFunctionEnclosure(lo, hi, high, low, 0, "", color, AbstractFrame.wrap(f))
+      addColoredFunctionEnclosure(lo, hi, high, low, 0, "", color, AbstractFrame.wrap(f), null)
+      chartPanels.mapValues(_._1.getChart.setNotify(false))
     }
   }
 

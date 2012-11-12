@@ -2,6 +2,40 @@ package acumen
 
 object Models {
 
+  val walid_1 = """
+//////////////////////////////////////////////
+// This file is called walid_1.acm          //
+// It is an example of a continuous system. //
+//////////////////////////////////////////////
+class Main(simulator)
+private x := 1; x' := 1; x'' := 0; mode := "on" end
+  simulator.endTime := 9;
+  simulator.minTimeStep := 0.001;
+  simulator.maxTimeStep := 0.02; 
+  switch mode
+    case "on" 
+      x'' = -x';
+  end
+end
+"""
+
+  val harmonic_oscillator = """
+//////////////////////////////////////////////////
+// This file is called harmonic_oscillator.acm  //
+// It is an example of a continuous system.     //
+//////////////////////////////////////////////////
+class Main(simulator)
+private x := 0; x' := 1; x'' := 0; mode := "on" end
+  simulator.endTime := 7;
+  simulator.minTimeStep := 0.001;
+  simulator.maxTimeStep := 0.01; 
+  switch mode
+    case "on" 
+      x'' = -x;
+  end
+end
+"""
+  
   val damped_spring = """
 //////////////////////////////////////////////////
 // This file is called damped_spring.acm        //
@@ -110,7 +144,8 @@ class Main(simulator)
       x1' = -2; 
       x2' = 1;
   end
-end"""
+end
+"""
 
   val bouncing_ball_air = """
 ////////////////////////////////////////////////
@@ -137,9 +172,9 @@ class Main(simulator)
 end
 """
 
-  val bouncing_ball_risefall_explicit_energy_equality = """
+  val bouncing_ball_risefall_explicit_energy_equality_2 = """
 /////////////////////////////////////////////////////////////////////////////
-// This file is called bouncing_ball_risefall_explicit_energy_equality.acm //
+// This file is called bouncing_ball_risefall_explicit_energy_equality_2.acm //
 /////////////////////////////////////////////////////////////////////////////
 class Main(simulator)
   private 
@@ -205,24 +240,32 @@ end
 class Main(simulator)
   private 
     mode := "Fly"; 
-    x := 5; x' := 0; x'' := 0;  
-    r := 100; r' := 0;
+    x1 := 5; x1' := 0; x1'' := 0;  
+    r1 := 100.0; r1' := 0;
   end
-  simulator.endTime = 3.5;
-  simulator.minTimeStep = 0.01;
-  simulator.maxTimeStep = 0.1;
+  simulator.precision := 10;
+  simulator.startTime := 0;
+  simulator.endTime := 3.5;
+  simulator.initialConditionPadding := 0;
+  simulator.extraPicardIterations := 20;
+  simulator.maxPicardIterations := 200;
+  simulator.maxEventSequenceLength := 30;
+  simulator.minTimeStep := 0.01;
+  simulator.maxTimeStep := 0.5;
+  simulator.minImprovement := 0.0001;
   switch mode
     case "Fly"
-    assume x >= 0 && 0 <= r && r == x'*x' + 20*x
-      if x == 0 && x' <= 0
-        x' := -0.5*x';
-        r := (0.125 +/- 0.125)*r;
-    mode := "Fly";
+    assume x1 >= 0 && 0 <= r1 && 
+           r1 == x1'*x1' + 20*x1
+      if x1 == 0 && x1' <= 0
+        x1' := -0.5*x1';
+        r1  := 0.25*r1;
+        mode := "Fly";
       end;
-      x'' = -10;
-      r'  = 0;
+      x1'' = -10;
   end
 end
+
 """
 
   val bouncing_ball_explicit_energy_mik2 = """

@@ -266,21 +266,24 @@ trait Extract {
         val e = acumenExprToExpression(highestDerivatives.getOrElse(v, v))
         k -> acumenExprToExpression(highestDerivatives.getOrElse(v, v))
     }
-    Field(stateVariables.map(name => name -> fieldComponents.getOrElse(name, Variable(name))).toMap)
+    //    Field(stateVariables.map(name => name -> fieldComponents.getOrElse(name, Variable(name))).toMap)
+    Field(stateVariables.map(name => name -> fieldComponents.getOrElse(name, Constant(0))).toMap)
   }
 
   def getStateVariables(priv: List[Init]): List[String] = {
     val initializationsByName = priv.groupBy { case Init(Name(name, _), _) => name }
     val ordersByName = initializationsByName.mapValues { _.map { case Init(Name(_, order), _) => order } }
     val maxOrderByName = ordersByName.mapValues(_.max)
-    priv.filter {
-      case Init(Name(name, order), _) => maxOrderByName(name) == 0 || maxOrderByName(name) > order
-    }.map { case Init(Name(name, order), _) => name + "'" * order }.toList
+    priv.
+      filter {
+        case Init(Name(name, order), _) => maxOrderByName(name) == 0 || maxOrderByName(name) > order
+      }.
+      map { case Init(Name(name, order), _) => name + "'" * order }.toList
   }
 
   def acumenExprToPredicate(e: Expr)(implicit rnd: Rounding): Predicate = e match {
-    case Lit(GBool(b)) if b => True 
-    case _ => All(acumenExprToRelations(e)) 
+    case Lit(GBool(b)) if b => True
+    case _ => All(acumenExprToRelations(e))
   }
 
   def acumenExprToRelations(e: Expr)(implicit rnd: Rounding): List[Relation] = e match {
@@ -308,10 +311,10 @@ trait Extract {
     case Lit(GInt(d)) => Constant(d)
     case Lit(GDouble(d)) => Constant(d)
     case ExprInterval(lo, hi) => Constant(foldConstant(lo).value /\ foldConstant(hi).value)
-    case ExprIntervalM(mid0, pm0) => 
+    case ExprIntervalM(mid0, pm0) =>
       val mid = foldConstant(mid0).value
       val pm = foldConstant(pm0).value
-      Constant((mid-pm) /\ (mid+pm))
+      Constant((mid - pm) /\ (mid + pm))
     case Var(Name(name, n)) => Variable(name + "'" * n)
     case Dot(Var(Name(self, 0)), Name(name, n)) => Variable(name + "'" * n)
     case Op(Name("-", 0), List(x)) => Negate(acumenExprToExpression(x))

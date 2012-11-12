@@ -223,7 +223,7 @@ class JFreePlotTab extends BorderPanel
       def add(c: JComponent) = plotPanel.peer.add(c)
       def invalidate = plotPanel.peer.invalidate
     }
-    for (e <- es) UnivariateAffineEnclosure.plotUAE(e, wrapper)(new Rounding(10))
+    for (e <- es) UnivariateAffineEnclosure.plotUAE(e, wrapper, null)(new Rounding(10))
     plotPanel.peer.validate
     println("New Plot Done!")
   }
