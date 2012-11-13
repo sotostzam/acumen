@@ -13,13 +13,13 @@ import acumen.interpreters.enclosure.Variable
 import acumen.interpreters.enclosure.solver.Field
 import acumen.interpreters.enclosure.Interval
 import acumen.interpreters.enclosure.Box
-import acumen.interpreters.enclosure.UnivariateAffineEnclosure
 import TransformTest._
 import java.awt.Color
+import acumen.interpreters.enclosure.UnivariateAffineEnclosure
 
 object Sandbox extends App with Extract with Solver with SolveVt {
 
-  val prog = Parser.run(Parser.prog, Models.bouncing_ball_explicit_energy_mik1)
+  val prog = Parser.run(Parser.prog, Models.bouncing_ball_air)
   val des = Desugarer.run(prog)
   val main = classDef(ClassName("Main"), des)
 
@@ -51,7 +51,6 @@ object Sandbox extends App with Extract with Solver with SolveVt {
   def twoMinusExpOfMinusT(t: Double) = 2 - scala.math.exp(-t) // DELETEME
   def fiveMinusFiveTSquare(t: Double) = 5 - 5 * scala.math.pow(t, 2) // DELETEME
 
-  plot("Plotter mockup")(null)(res)(new Rounding(10))
-  //  plot("Plotter mockup")(resCons)(new Rounding(10))
+  UnivariateAffineEnclosure.plot("Plotter mockup")(null)(res)(new Rounding(10))
 
 }

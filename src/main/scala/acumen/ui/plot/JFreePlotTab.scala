@@ -71,7 +71,7 @@ class JFreePlotTab extends BorderPanel
   // plotPanel.setBackground(Color.white)
   // val enclosureRen = enclosureRenderer(Color.red)
 
-  val plotPanel = new BoxPanel(Orientation.Vertical)
+  val plotPanel = UnivariateAffineEnclosure.createChartPanel
 
   val resetZoom = new Action("Reset Zoom") {
     icon = Icons.home
@@ -199,7 +199,7 @@ class JFreePlotTab extends BorderPanel
     case st:App.Ready => plot
   }
 
-  add(plotPanel, BorderPanel.Position.Center)
+  add(Component.wrap(plotPanel), BorderPanel.Position.Center)
   //Don't display for now, may do something better
   //add(rightBottomButtons, BorderPanel.Position.South)
   check.selected = true
@@ -211,8 +211,7 @@ class JFreePlotTab extends BorderPanel
   }
   
   private def plot: Unit = {
-    plotPanel.peer.removeAll()
-    UnivariateAffineEnclosure.chartPanels.clear
+    plotPanel.removeAll
     if (App.ui.controller.model == null) return
     val m = getModel
     if (m == null) return
@@ -220,11 +219,11 @@ class JFreePlotTab extends BorderPanel
     if (es == null) return
     println("New Plot Working!")
     def wrapper = new AbstractFrame {
-      def add(c: JComponent) = plotPanel.peer.add(c)
-      def invalidate = plotPanel.peer.invalidate
+      def add(c: JComponent) = plotPanel.add(c)
+      def invalidate = plotPanel.invalidate
     }
     for (e <- es) UnivariateAffineEnclosure.plotUAE(e, wrapper, null)(new Rounding(10))
-    plotPanel.peer.validate
+    plotPanel.validate
     println("New Plot Done!")
   }
 

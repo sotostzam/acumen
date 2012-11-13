@@ -28,14 +28,36 @@ import javax.swing.JMenuItem
 import java.awt.event.ActionListener
 import java.awt.event.ActionEvent
 import acumen.ui.plot.SaveAsDailog
+import org.jfree.chart.axis.NumberAxis
 
 abstract trait Plotter {
-  
-  val chartPanels: Map[String,(ChartPanel,Int)] = Map[String,(ChartPanel,Int)]()
 
+  val combinedPlot = new CombinedDomainXYPlot(new NumberAxis("Time"))
+  val subPlots: Map[String, (XYPlot, Int)] = Map[String, (XYPlot, Int)]()
+  val enclosureRen = enclosureRenderer(Color.red)
+
+  def createChartPanel = {
+    val chart = new JFreeChart("", JFreeChart.DEFAULT_TITLE_FONT, combinedPlot, false);
+    val panel = new ChartPanel(chart, true, true, true, true, false)
+    val saveAsPdf = new JMenuItem("Save as PDF")
+    val comp = this //TODO Find out if this is how this should be done
+    saveAsPdf.addActionListener(new ActionListener() {
+      def actionPerformed(event: ActionEvent) {
+        val d = new SaveAsDailog(Component.wrap(panel), chart)
+        d.pack
+        d.open
+      }
+    })
+    panel.getPopupMenu.add(saveAsPdf)
+    panel.setBackground(Color.white)
+    panel
+  }
+  
   def createFrame(frametitle: String) = {
     val frame = new ApplicationFrame(frametitle)
     frame.getContentPane.setLayout(new BoxLayout(frame.getContentPane,BoxLayout.Y_AXIS))
+    val panel = createChartPanel
+    frame.setContentPane(panel)
     frame.setBounds(0, 0, 600, 400)
     frame.setVisible(true)
     frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE)
@@ -51,35 +73,24 @@ abstract trait Plotter {
     extraSamples: Int,
     legendLabel: String,
     fun: Double => Double): TableXYDataset = {
-    val lower: XYSeries     = new XYSeries(legendLabel, false, false)
-    val upper: XYSeries     = new XYSeries("HIDE_ME", false, false)
-    val funSeries: XYSeries = new XYSeries("SOME_FUNCTION", false, false)
+    val lower: XYSeries = new XYSeries(legendLabel, false, false)
+    val upper: XYSeries = new XYSeries("HIDE_ME", false, false)
     lower.add(intervalStart, lowerApproximation(intervalStart));
     upper.add(intervalStart, upperApproximation(intervalStart))
-    if (fun != null) funSeries.add(intervalStart, fun(intervalStart))
     for (i <- 1 to extraSamples) {
       val x = (intervalStart + intervalEnd) * (i.doubleValue) / (extraSamples + 1)
       lower.add(x, lowerApproximation(x))
       upper.add(x, upperApproximation(x))
-      if (fun != null) funSeries.add(x, fun(x))
     }
-    lower.add(intervalEnd, lowerApproximation(intervalEnd))
+    lower.add(intervalEnd, lowerApproximation(intervalEnd));
     upper.add(intervalEnd, upperApproximation(intervalEnd))
-    if (fun != null) funSeries.add(intervalEnd, fun(intervalEnd))
-    //    for {
-    //      x <- (0 to Math.floor((intervalEnd - intervalStart) / stepSize).toInt)
-    //        .map((p) => intervalStart + (p * stepSize))
-    //    } {
-    //      lower.add(x, lowerApproximation(x));
-    //      upper.add(x, upperApproximation(x))
-    //    }
     val res: DefaultTableXYDataset = new DefaultTableXYDataset()
     res.addSeries(lower)
     res.addSeries(upper)
-    if (fun != null) res.addSeries(funSeries)
     res.setIntervalWidth(0.01)
     res
   }
+
 
   def addColoredFunctionEnclosure(
     intervalStart: Double,
@@ -95,34 +106,6 @@ abstract trait Plotter {
     addEnclosure(intervalStart, intervalEnd, upperApproximation, lowerApproximation, extraSamples, //stepSize,
       color, legendLabel, frame, fun)
   }
-  
-  def addFunctionEnclosure(
-    intervalStart: Double,
-    intervalEnd: Double,
-    upperApproximation: Double => Double,
-    lowerApproximation: Double => Double,
-    //    stepSize: Double,
-    extraSamples: Int,
-    legendLabel: String,
-    frame: AbstractFrame, 
-    fun: Double => Double) {
-    addEnclosure(intervalStart, intervalEnd, upperApproximation, lowerApproximation, extraSamples, //stepSize,
-      Color.blue, legendLabel, frame, fun)
-  }
-
-  def addDerivativeEnclosure(
-    intervalStart: Double,
-    intervalEnd: Double,
-    upperApproximation: Double => Double,
-    lowerApproximation: Double => Double,
-    //    stepSize: Double,
-    extraSamples: Int,
-    legendLabel: String,
-    frame:AbstractFrame,
-    fun: Double => Double) {
-    addEnclosure(intervalStart, intervalEnd, upperApproximation, lowerApproximation, extraSamples, //stepSize,
-      new Color(0, 127, 0), legendLabel, frame, fun)
-  }
 
   def addEnclosure(
     intervalStart: Double,
@@ -135,65 +118,42 @@ abstract trait Plotter {
     legendLabel: String,
     frame:AbstractFrame,
     fun: Double => Double) {
-
-    val (chartPanel: ChartPanel, numberOfDatasets: Int) = chartPanels.get(legendLabel) match {
-       case None => {
-        val chart: JFreeChart = createChart("", "Time", legendLabel)
-        chart.setNotify(false)
-        chart.getPlot().setBackgroundPaint(Color.white)
-        chart.getXYPlot().setDomainGridlinesVisible(true)
-        chart.getXYPlot().setRangeGridlinesVisible(true)
-        chart.getXYPlot().setRangeGridlinePaint(Color.gray)
-        chart.getXYPlot().setDomainGridlinePaint(Color.gray)
-        val chartPanel: ChartPanel = new ChartPanel(chart);
-        val saveAsPdf = new JMenuItem("Save as PDF")
-        val comp = this
-        saveAsPdf.addActionListener(new ActionListener() {
-          def actionPerformed(event: ActionEvent) {
-            val d = new SaveAsDailog(Component.wrap(chartPanel), chart)
-            d.pack
-            d.open
-          }
-        })
-        chartPanel.getPopupMenu.add(saveAsPdf)
-        frame.add(chartPanel);
-        (chartPanel,0)
-      }
+	
+    combinedPlot.setNotify(false)
+    val (subPlot, numberOfDatasets) = subPlots.get(legendLabel) match {
       case Some(t) => t
+      case None => {
+        val p = new XYPlot()
+        p.setDomainGridlinesVisible(true)
+        p.setRangeGridlinesVisible(true)
+        p.setRangeGridlinePaint(Color.gray)
+        p.setDomainGridlinePaint(Color.gray)
+        p.setRangeAxis(0,new NumberAxis(legendLabel))
+        combinedPlot.add(p, 1)
+        (p, 0)
+      }
     }
-    val chart = chartPanel.getChart
-    
+        
     val e = createEnclosureDataset(intervalStart, intervalEnd, upperApproximation, lowerApproximation, extraSamples, //stepSize,
       legendLabel, fun)
 
-    val semiTransparentColor = new Color(color.getRed(), color.getGreen(), color.getBlue(), 20) //127)
-    val ren = new XYDifferenceRenderer(Color.red, semiTransparentColor, false)
+    subPlot.setDataset(numberOfDatasets, e)
+    subPlot.setRenderer(numberOfDatasets, enclosureRen)
+    subPlots(legendLabel) = (subPlot, numberOfDatasets + 1)
+    
+    combinedPlot.setNotify(false)
+    
+    frame.invalidate
+  }
 
+  //TODO Make this visually merge overlapping enclosures into a single area with one outline.
+  def enclosureRenderer(color: Color) = {
+    val semiTransparentColor = new Color(color.getRed(), color.getGreen(), color.getBlue(), 20)
+    val ren = new XYDifferenceRenderer(Color.red, semiTransparentColor, false)
     ren.setStroke(new BasicStroke(1.0f))
     ren.setSeriesPaint(0, color)
     ren.setSeriesPaint(1, color)
-    if (fun != null) ren.setSeriesPaint(2, Color.BLACK)
-
-    val plot: XYPlot = chart.getXYPlot()
-    plot.setDataset(numberOfDatasets, e)
-    plot.setRenderer(numberOfDatasets, ren)
-    chart.removeLegend
-    frame.invalidate
-    chartPanels(legendLabel) = (chartPanel,numberOfDatasets + 1)
-  }
-
-  def createChart(title: String, xlabel: String, ylabel: String): JFreeChart = {
-    val c = ChartFactory.createStackedXYAreaChart(
-      title,
-      xlabel,
-      ylabel,
-      null,
-      PlotOrientation.VERTICAL,
-      true, // legend
-      true, // tool tips
-      false // URLs
-      )
-    c
+    ren
   }
 
   def convertToPDF(chart: JFreeChart, width: Int, height: Int, filename: String) {

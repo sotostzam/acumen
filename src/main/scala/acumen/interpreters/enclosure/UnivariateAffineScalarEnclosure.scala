@@ -273,8 +273,8 @@ object UnivariateAffineScalarEnclosure extends Plotter {
       val dom = it.domain
       val (lo, hi) = dom match { case Interval(l, h) => (l.doubleValue, h.doubleValue) }
       addColoredFunctionEnclosure(lo, hi, high, low, 0, "", color, AbstractFrame.wrap(f), null)
-      chartPanels.mapValues(_._1.getChart.setNotify(false))
     }
+    f.pack
   }
 
 }

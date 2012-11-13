@@ -119,16 +119,10 @@ object UnivariateAffineEnclosure extends Plotter {
     }
   }
 
-//  def plot(frametitle: String)(es: Seq[UnivariateAffineEnclosure])(implicit rnd: Rounding) = {
-//    val f = createFrame(frametitle)
-//    for (e <- es) plotUAE(e, AbstractFrame.wrap(f), null)
-//    f.pack()
-//  }
-
   def plot(frametitle: String)(fun: Double => Double)(es: Seq[UnivariateAffineEnclosure])(implicit rnd: Rounding) = {
     val frame = createFrame(frametitle)
     for (e <- es) plotUAE(e, AbstractFrame.wrap(frame), fun)
-    frame.pack()
+    frame.pack
   }
   
 }
