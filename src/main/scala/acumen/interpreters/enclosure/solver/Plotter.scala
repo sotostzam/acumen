@@ -91,22 +91,6 @@ abstract trait Plotter {
     res
   }
 
-
-  def addColoredFunctionEnclosure(
-    intervalStart: Double,
-    intervalEnd: Double,
-    upperApproximation: Double => Double,
-    lowerApproximation: Double => Double,
-    //    stepSize: Double,
-    extraSamples: Int,
-    legendLabel: String,
-    color:Color,
-    frame:AbstractFrame,
-    fun: Double => Double) {
-    addEnclosure(intervalStart, intervalEnd, upperApproximation, lowerApproximation, extraSamples, //stepSize,
-      color, legendLabel, frame, fun)
-  }
-
   def addEnclosure(
     intervalStart: Double,
     intervalEnd: Double,
@@ -141,7 +125,7 @@ abstract trait Plotter {
     subPlot.setRenderer(numberOfDatasets, enclosureRen)
     subPlots(legendLabel) = (subPlot, numberOfDatasets + 1)
     
-    combinedPlot.setNotify(false)
+    combinedPlot.setNotify(true)
     
     frame.invalidate
   }

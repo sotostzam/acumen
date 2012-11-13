@@ -115,7 +115,7 @@ object UnivariateAffineEnclosure extends Plotter {
       def high(t: Double) = it.high(t) match { case Interval(_, hi) => hi.doubleValue }
       val dom = it.domain
       val (lo, hi) = dom match { case Interval(l, h) => (l.doubleValue, h.doubleValue) }
-      addColoredFunctionEnclosure(lo, hi, high, low, 0, varName, color, frame, fun)
+      addEnclosure(lo, hi, high, low, 0, color, varName, frame, fun)
     }
   }
 
