@@ -32,32 +32,40 @@ import org.jfree.chart.axis.NumberAxis
 
 abstract trait Plotter {
 
-  val combinedPlot = new CombinedDomainXYPlot(new NumberAxis("Time"))
-  val subPlots: Map[String, (XYPlot, Int)] = Map[String, (XYPlot, Int)]()
+  var combinedPlot : CombinedDomainXYPlot = null
+  var subPlots: Map[String, (XYPlot, Int)] = Map[String, (XYPlot, Int)]()
   val enclosureRen = enclosureRenderer(Color.red)
+  var chart : JFreeChart = null
+  var chartPanel : ChartPanel = null
 
-  def createChartPanel = {
-    val chart = new JFreeChart("", JFreeChart.DEFAULT_TITLE_FONT, combinedPlot, false);
-    val panel = new ChartPanel(chart, true, true, true, true, false)
+  def initPlot = {
+    chartPanel = new ChartPanel(null, true, true, true, true, false)
     val saveAsPdf = new JMenuItem("Save as PDF")
     val comp = this //TODO Find out if this is how this should be done
     saveAsPdf.addActionListener(new ActionListener() {
       def actionPerformed(event: ActionEvent) {
-        val d = new SaveAsDailog(Component.wrap(panel), chart)
+        val d = new SaveAsDailog(Component.wrap(chartPanel), chart)
         d.pack
         d.open
       }
     })
-    panel.getPopupMenu.add(saveAsPdf)
-    panel.setBackground(Color.white)
-    panel
+    chartPanel.getPopupMenu.add(saveAsPdf)
+    chartPanel.setBackground(Color.white)
+    resetPlot
+  }
+
+  def resetPlot = {
+    combinedPlot = new CombinedDomainXYPlot(new NumberAxis("Time"))
+    subPlots.clear
+    chart = new JFreeChart("", JFreeChart.DEFAULT_TITLE_FONT, combinedPlot, false);
+    chartPanel.setChart(chart)
   }
   
   def createFrame(frametitle: String) = {
+    initPlot
     val frame = new ApplicationFrame(frametitle)
     frame.getContentPane.setLayout(new BoxLayout(frame.getContentPane,BoxLayout.Y_AXIS))
-    val panel = createChartPanel
-    frame.setContentPane(panel)
+    frame.setContentPane(chartPanel)
     frame.setBounds(0, 0, 600, 400)
     frame.setVisible(true)
     frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE)

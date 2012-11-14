@@ -64,15 +64,9 @@ import interpreters.enclosure.Rounding
 
 class JFreePlotTab extends BorderPanel
 {
-  // val combinedPlot = new CombinedDomainXYPlot(new NumberAxis("Time"))
-  // val subPlots: Map[String, (XYPlot, Int)] = Map[String, (XYPlot, Int)]()
-  // val chart = new JFreeChart("",JFreeChart.DEFAULT_TITLE_FONT, combinedPlot, false);
-  // val plotPanel = new ChartPanel(chart, true, true, true, true, false)
-  // plotPanel.setBackground(Color.white)
-  // val enclosureRen = enclosureRenderer(Color.red)
-
-  val plotPanel = UnivariateAffineEnclosure.createChartPanel
-
+  def plotPanel = UnivariateAffineEnclosure.chartPanel
+  UnivariateAffineEnclosure.initPlot
+  
   val resetZoom = new Action("Reset Zoom") {
     icon = Icons.home
     def apply = null
@@ -211,7 +205,7 @@ class JFreePlotTab extends BorderPanel
   }
   
   private def plot: Unit = {
-    plotPanel.removeAll
+    UnivariateAffineEnclosure.resetPlot
     if (App.ui.controller.model == null) return
     val m = getModel
     if (m == null) return
