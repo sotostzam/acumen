@@ -121,14 +121,19 @@ class App extends SimpleSwingApplication {
   }
 
   val traceView = new plot.PlotTab
+  val traceViewJFree = new plot.JFreePlotTab
   val pointedView = new plot.PointedView(traceView)
 
-  val tab1 = new BorderPanel {
+  val plotTab = new BorderPanel {
     add(new FlowPanel(FlowPanel.Alignment.Leading)(pointedView), 
-        BorderPanel.Position.North)
+	BorderPanel.Position.North)
     add(traceView, BorderPanel.Position.Center)
   }
-  val tab2 = new ScrollPane(traceTable) 
+  val newPlotTab = new BorderPanel {
+    //TODO Implement and add something like pointedView for the new plotting code
+    add(traceViewJFree, BorderPanel.Position.Center)
+  }
+  val traceTab = new ScrollPane(traceTable) 
   var threeDtab = if (GraphicalMain.disable3D) {
     console.log("Acumen3D disabled.")
     console.newLine
@@ -146,11 +151,12 @@ class App extends SimpleSwingApplication {
   
   val rightPane = new TabbedPane {
     assert(pages.size == 0)
-    pages ++= List(new TabbedPane.Page("Plot", tab1), 
-                   new TabbedPane.Page("Trace", tab2),
-                   new TabbedPane.Page("3D",threeDtab))
+    pages ++= List(new TabbedPane.Page("Plot",     plotTab), 
+                   new TabbedPane.Page("New Plot", newPlotTab),
+                   new TabbedPane.Page("Trace",    traceTab),
+                   new TabbedPane.Page("3D",       threeDtab))
     if (!threeDtab.enableTab)
-      pages(2).enabled = false
+      pages(3).enabled = false
   }
 
 

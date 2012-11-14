@@ -47,6 +47,7 @@ trait PlotModel {
   def getTimes(): IndexedSeq[Double]
   def getTraceViewTimes() = getTimes()
   def getPlottables(): Iterable[Plottable]
+  def getNewPlottables(): Object
 }
 
 // Accesses to members of this class can happen at unpredictable times
