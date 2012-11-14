@@ -1,7 +1,7 @@
 package acumen
 
 object Models {
-
+  
   val walid_1 = """
 //////////////////////////////////////////////
 // This file is called walid_1.acm          //
@@ -44,12 +44,12 @@ end
 //////////////////////////////////////////////////
 class Main(simulator)
 private x := 1; x' := 0; x'' := 0; mode := "on" end
-  simulator.endTime := 9;
-  simulator.minTimeStep := 0.001;
-  simulator.maxTimeStep := 0.002; 
+  simulator.endTime := 5;
+  simulator.minTimeStep := 0.01;
+  simulator.maxTimeStep := 0.02; 
   switch mode
     case "on" 
-      x'' = -x'/2 - x;
+      x'' = -x' - x;
   end
 end
 """
@@ -215,9 +215,9 @@ class Main(simulator)
     x := 5; x' := 0; x'' := 0;  
     r := 100; r' := 0;
   end
-  simulator.endTime = 3.5;
-  simulator.minTimeStep = 0.001;
-  simulator.maxTimeStep = 0.1;
+  simulator.endTime := 3.5;
+  simulator.minTimeStep := 0.001;
+  simulator.maxTimeStep := 0.1;
   switch mode
     case "Fly" 
     assume x >= 0 && r == x'*x' + 20*x
