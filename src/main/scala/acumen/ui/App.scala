@@ -121,7 +121,6 @@ class App extends SimpleSwingApplication {
   }
 
   val traceView = new plot.PlotTab
-  val traceViewJFree = new plot.JFreePlotTab
   val pointedView = new plot.PointedView(traceView)
 
   val plotTab = new BorderPanel {
@@ -129,9 +128,14 @@ class App extends SimpleSwingApplication {
 	BorderPanel.Position.North)
     add(traceView, BorderPanel.Position.Center)
   }
-  val newPlotTab = new BorderPanel {
-    //TODO Implement and add something like pointedView for the new plotting code
-    add(traceViewJFree, BorderPanel.Position.Center)
+  val newPlotTab = if (GraphicalMain.disableNewPlot) {
+    null 
+  } else {
+    val traceViewJFree = new plot.JFreePlotTab
+    new BorderPanel {
+      //TODO Implement and add something like pointedView for the new plotting code
+      add(traceViewJFree, BorderPanel.Position.Center)
+    }
   }
   val traceTab = new ScrollPane(traceTable) 
   var threeDtab = if (GraphicalMain.disable3D) {
@@ -151,12 +155,13 @@ class App extends SimpleSwingApplication {
   
   val rightPane = new TabbedPane {
     assert(pages.size == 0)
-    pages ++= List(new TabbedPane.Page("Plot",     plotTab), 
-                   new TabbedPane.Page("New Plot", newPlotTab),
-                   new TabbedPane.Page("Trace",    traceTab),
-                   new TabbedPane.Page("3D",       threeDtab))
+    pages += new TabbedPane.Page("Plot",     plotTab)
+    if (newPlotTab != null)
+      pages += new TabbedPane.Page("New Plot", newPlotTab)
+    pages += new TabbedPane.Page("Trace",    traceTab)
+    pages += new TabbedPane.Page("3D",       threeDtab)
     if (!threeDtab.enableTab)
-      pages(3).enabled = false
+      pages.last.enabled = false
   }
 
 

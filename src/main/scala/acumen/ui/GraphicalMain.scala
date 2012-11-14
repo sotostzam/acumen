@@ -28,7 +28,8 @@ object GraphicalMain extends SimpleSwingApplication {
   javax.swing.RepaintManager.setCurrentManager(new debug.CheckThreadViolationRepaintManager)
   debug.EventDispatchThreadHangMonitor.initMonitoring()
 
-  var disable3D = true;
+  var disable3D = true
+  var disableNewPlot = true
 
   override def main(args: Array[String]) {
     if (args.size > 1) {
@@ -38,6 +39,10 @@ object GraphicalMain extends SimpleSwingApplication {
         disable3D = false
       else if (args(0) == "--disable-3d")
         disable3D = true
+      if (args(0) == "--enable-newplot")
+        disableNewPlot = false
+      else if (args(0) == "--disable-newplot")
+        disableNewPlot = true
       else
         usage
     }
@@ -45,7 +50,7 @@ object GraphicalMain extends SimpleSwingApplication {
   }
 
   def usage() {
-    System.err.println("Error: Only accepted options are --enable-3d or --disable-3d.")
+    System.err.println("Error: Only accepted options are --enable|disable-3d or --enable|disable-newplot")
     exit
   }
 
