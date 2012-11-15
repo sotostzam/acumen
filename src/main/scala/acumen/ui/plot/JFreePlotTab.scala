@@ -59,7 +59,6 @@ import java.io.FileOutputStream
 import com.itextpdf.awt.DefaultFontMapper
 import interpreters.enclosure.UnivariateAffineEnclosure
 import scala.collection.Seq
-import interpreters.enclosure.AbstractFrame
 import interpreters.enclosure.Rounding
 
 class JFreePlotTab extends BorderPanel
@@ -213,11 +212,7 @@ class JFreePlotTab extends BorderPanel
     val es = m.getNewPlottables.asInstanceOf[Seq[UnivariateAffineEnclosure]]
     if (es == null) return
     println("New Plot Working!")
-    def wrapper = new AbstractFrame {
-      def add(c: JComponent) = plotPanel.add(c)
-      def invalidate = plotPanel.invalidate
-    }
-    for (e <- es) plotter.plotUAE(e, wrapper, null)(new Rounding(10))
+    for (e <- es) plotter.plotUAE(e, null)(new Rounding(10))
     plotPanel.validate
     println("New Plot Done!")
   }
