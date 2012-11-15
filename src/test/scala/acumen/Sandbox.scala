@@ -19,7 +19,7 @@ import acumen.interpreters.enclosure.UnivariateAffineEnclosure
 
 object Sandbox extends App with Extract with Solver with SolveVt {
 
-  val prog = Parser.run(Parser.prog, Models.bouncing_ball_air)
+  val prog = Parser.run(Parser.prog, Models("bouncing_ball_air"))
   val des = Desugarer.run(prog)
   val main = classDef(ClassName("Main"), des)
 
