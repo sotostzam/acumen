@@ -50,7 +50,7 @@ object Sandbox extends App with Extract with Solver with SolveVt {
   def twoMinusExpOfMinusT(t: Double) = 2 - scala.math.exp(-t) // DELETEME
   def fiveMinusFiveTSquare(t: Double) = 5 - 5 * scala.math.pow(t, 2) // DELETEME
 
-  val plotter = new acumen.interpreters.enclosure.solver.Plotter
+  val plotter = new acumen.interpreters.enclosure.Plotter
   plotter.plot("Plotter mockup")(null)(res)(new Rounding(10))
 
 }

@@ -1,8 +1,6 @@
 package acumen.interpreters.enclosure
 
-import acumen.interpreters.enclosure.solver.Plotter
 import Interval._
-import solver.Plotter
 import Types._
 import Util._
 import org.jfree.ui.ApplicationFrame

@@ -1,7 +1,6 @@
 package acumen.interpreters.enclosure
 
 import Types._
-import acumen.interpreters.enclosure.solver.Plotter
 
 /**
  * Type used to approximate vector-valued functions over a domain.

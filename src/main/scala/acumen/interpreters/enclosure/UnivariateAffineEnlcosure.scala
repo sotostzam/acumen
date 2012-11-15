@@ -3,7 +3,6 @@ package acumen.interpreters.enclosure
 import Interval._
 import Types._
 import Util._
-import acumen.interpreters.enclosure.solver.Plotter
 import org.jfree.ui.ApplicationFrame
 import java.awt.Color
 

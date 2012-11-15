@@ -1,7 +1,6 @@
 package acumen.interpreters.enclosure
 
 import Interval._
-import acumen.interpreters.enclosure.solver.Plotter
 import acumen.ui.interpreter.Enclosure
 import java.awt.Color
 

@@ -1,4 +1,4 @@
-package acumen.interpreters.enclosure.solver
+package acumen.interpreters.enclosure
 
 import java.awt.geom.Rectangle2D
 import java.awt.BasicStroke
