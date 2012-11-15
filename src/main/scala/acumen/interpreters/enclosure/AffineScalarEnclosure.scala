@@ -311,7 +311,7 @@ case class AffineScalarEnclosure private[enclosure] (
 }
 
 // TODO improve how the plotting is done
-object AffineScalarEnclosure extends Plotter {
+object AffineScalarEnclosure {
 
   /** Convenience method, normalizes the domain. */
   private[enclosure] def apply(domain: Box, constant: Interval, coefficients: Box)(implicit rnd: Rounding): AffineScalarEnclosure =

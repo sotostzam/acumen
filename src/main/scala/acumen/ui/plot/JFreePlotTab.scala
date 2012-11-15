@@ -64,8 +64,9 @@ import interpreters.enclosure.Rounding
 
 class JFreePlotTab extends BorderPanel
 {
-  def plotPanel = UnivariateAffineEnclosure.chartPanel
-  UnivariateAffineEnclosure.initPlot
+  def plotter = new interpreters.enclosure.solver.Plotter
+  def plotPanel = plotter.chartPanel
+  plotter.initPlot
   
   val resetZoom = new Action("Reset Zoom") {
     icon = Icons.home
@@ -205,7 +206,7 @@ class JFreePlotTab extends BorderPanel
   }
   
   private def plot: Unit = {
-    UnivariateAffineEnclosure.resetPlot
+    plotter.resetPlot
     if (App.ui.controller.model == null) return
     val m = getModel
     if (m == null) return
@@ -216,7 +217,7 @@ class JFreePlotTab extends BorderPanel
       def add(c: JComponent) = plotPanel.add(c)
       def invalidate = plotPanel.invalidate
     }
-    for (e <- es) UnivariateAffineEnclosure.plotUAE(e, wrapper, null)(new Rounding(10))
+    for (e <- es) plotter.plotUAE(e, wrapper, null)(new Rounding(10))
     plotPanel.validate
     println("New Plot Done!")
   }
