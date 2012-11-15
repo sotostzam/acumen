@@ -110,7 +110,6 @@ class Plotter {
     legendLabel: String,
     fun: Double => Double) {
 	
-    combinedPlot.setNotify(false)
     val (subPlot, numberOfDatasets) = subPlots.get(legendLabel) match {
       case Some(t) => t
       case None => {
@@ -132,7 +131,6 @@ class Plotter {
     subPlot.setRenderer(numberOfDatasets, enclosureRen)
     subPlots(legendLabel) = (subPlot, numberOfDatasets + 1)
     
-    combinedPlot.setNotify(true)
     chartPanel.invalidate
   }
 
@@ -182,7 +180,9 @@ class Plotter {
   }
 
   def plot(es: Seq[UnivariateAffineEnclosure], fun: Double => Double)(implicit rnd: Rounding) : Unit = {
+    combinedPlot.setNotify(false)
     for (e <- es) plotUAE(e, fun)
+    combinedPlot.setNotify(true)
   }
 
   // Plot into a new frame
