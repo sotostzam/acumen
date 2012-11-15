@@ -39,7 +39,7 @@ object GraphicalMain extends SimpleSwingApplication {
         disable3D = false
       else if (args(0) == "--disable-3d")
         disable3D = true
-      if (args(0) == "--enable-newplot")
+      else if (args(0) == "--enable-newplot")
         disableNewPlot = false
       else if (args(0) == "--disable-newplot")
         disableNewPlot = true
