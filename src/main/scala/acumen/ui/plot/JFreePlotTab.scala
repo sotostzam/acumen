@@ -212,7 +212,7 @@ class JFreePlotTab extends BorderPanel
     val es = m.getNewPlottables.asInstanceOf[Seq[UnivariateAffineEnclosure]]
     if (es == null) return
     println("New Plot Working!")
-    for (e <- es) plotter.plotUAE(e, null)(new Rounding(10))
+    plotter.plot(es, null)(new Rounding(10))
     plotPanel.validate
     println("New Plot Done!")
   }

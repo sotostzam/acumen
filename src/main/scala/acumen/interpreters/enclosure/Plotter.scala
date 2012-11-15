@@ -181,9 +181,15 @@ class Plotter {
     }
   }
 
-  def plot(frametitle: String)(fun: Double => Double)(es: Seq[UnivariateAffineEnclosure])(implicit rnd: Rounding) = {
-    val frame = createFrame(frametitle)
+  def plot(es: Seq[UnivariateAffineEnclosure], fun: Double => Double)(implicit rnd: Rounding) : Unit = {
     for (e <- es) plotUAE(e, fun)
   }
+
+  // Plot into a new frame
+  def plot(frametitle: String)(fun: Double => Double)(es: Seq[UnivariateAffineEnclosure])(implicit rnd: Rounding) : Unit = {
+    val frame = createFrame(frametitle)
+    plot(es, fun)
+  }
+
 
 }
