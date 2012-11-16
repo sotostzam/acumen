@@ -33,15 +33,30 @@ import acumen.interpreters.enclosure._
 class Plotter {
 
   var combinedPlot : CombinedDomainXYPlot = null
+  var combinedPlotAll = combinedPlot
   var subPlots: Map[String, (XYPlot, Int)] = Map[String, (XYPlot, Int)]()
   val enclosureRen = enclosureRenderer(Color.red)
   var chart : JFreeChart = null
   var chartPanel : ChartPanel = null
+  var popupLocation = new java.awt.Point(0,0)
 
   def initPlot = {
-    chartPanel = new ChartPanel(null, true, true, true, true, false)
     val saveAsPdf = new JMenuItem("Save as PDF")
-    val comp = this //TODO Find out if this is how this should be done
+    val hideOther = new JMenuItem("Hide Other Plots")
+    val hideThis = new JMenuItem("Hide This Plot")
+    val showAll = new JMenuItem("Show All Plots")
+    var curPlot : XYPlot = null
+    chartPanel = new ChartPanel(null, true, true, true, true, false) {
+      override def displayPopupMenu(x: Int, y: Int) {
+        curPlot = combinedPlot.findSubplot(chartPanel.getChartRenderingInfo().getPlotInfo(), 
+                                           new java.awt.Point(x,y))
+        val enableShowHide = curPlot != null
+        hideOther.setEnabled(enableShowHide)
+        hideThis.setEnabled(enableShowHide)
+        super.displayPopupMenu(x,y)
+      }
+    }
+
     saveAsPdf.addActionListener(new ActionListener() {
       def actionPerformed(event: ActionEvent) {
         val d = new SaveAsDailog(Component.wrap(chartPanel), chart)
@@ -49,16 +64,58 @@ class Plotter {
         d.open
       }
     })
-    chartPanel.getPopupMenu.add(saveAsPdf)
+    val popupMenu = chartPanel.getPopupMenu
+    popupMenu.addSeparator
+    popupMenu.add(saveAsPdf)
+    hideOther.addActionListener(new ActionListener() {
+      def actionPerformed(event: ActionEvent) {
+        if (combinedPlotAll == combinedPlot)
+          combinedPlotAll = combinedPlot.clone.asInstanceOf[CombinedDomainXYPlot]
+        import scala.collection.JavaConversions._
+        val oldPlots = combinedPlot.getSubplots.toArray
+        for (p <- oldPlots) {
+          if (p != curPlot)
+            combinedPlot.remove(p.asInstanceOf[XYPlot])
+        }
+      }
+    })
+    hideThis.addActionListener(new ActionListener() {
+      def actionPerformed(event: ActionEvent) {
+        if (combinedPlotAll == combinedPlot)
+          combinedPlotAll = combinedPlot.clone.asInstanceOf[CombinedDomainXYPlot]
+        import scala.collection.JavaConversions._
+        val oldPlots = combinedPlot.getSubplots.toArray
+        for (p <- oldPlots) {
+          if (p == curPlot)
+            combinedPlot.remove(p.asInstanceOf[XYPlot])
+        }
+      }
+    })
+    showAll.addActionListener(new ActionListener() {
+      def actionPerformed(event: ActionEvent) {
+        resetPlotView(combinedPlotAll)
+      }
+    })
+    popupMenu.addSeparator
+    popupMenu.add(hideOther)
+    popupMenu.add(hideThis)
+    popupMenu.add(showAll)
     chartPanel.setBackground(Color.white)
     resetPlot
   }
+  
+  def newCombinedPlot = new CombinedDomainXYPlot(new NumberAxis("Time"))
+
+  def resetPlotView(pl: CombinedDomainXYPlot) = { 
+    combinedPlot = pl
+    chart = new JFreeChart("", JFreeChart.DEFAULT_TITLE_FONT, pl, false)
+    chartPanel.setChart(chart)
+  }
 
   def resetPlot = {
-    combinedPlot = new CombinedDomainXYPlot(new NumberAxis("Time"))
+    resetPlotView(newCombinedPlot)
+    combinedPlotAll = combinedPlot
     subPlots.clear
-    chart = new JFreeChart("", JFreeChart.DEFAULT_TITLE_FONT, combinedPlot, false);
-    chartPanel.setChart(chart)
   }
   
   def createFrame(frametitle: String) = {
