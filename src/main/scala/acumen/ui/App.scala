@@ -233,7 +233,7 @@ class App extends SimpleSwingApplication {
     contents += new Menu("Semantics") {
       mnemonic = Key.S
       val rb1 = new RadioMenuItem("") {
-        selected = true // This is the default semantics
+        selected = !GraphicalMain.useEnclosures
         action = Action("Purely Functional") { setInterpreter(new CStoreCntrl(interpreters.reference.Interpreter)) }
       }
       val rb2 = new RadioMenuItem("") {
@@ -257,7 +257,7 @@ class App extends SimpleSwingApplication {
         }
       }
       val rb3 = new RadioMenuItem("") {
-        selected = false 
+        selected = GraphicalMain.useEnclosures
         action = Action("Enclosure") { setInterpreter(new EnclosureCntrl(interpreters.enclosure.Interpreter)) }
       }
       contents ++= Seq(rb1,rb2,rb3)
@@ -328,7 +328,11 @@ class App extends SimpleSwingApplication {
   /* ----- events handling ---- */
   
   var state : State = Stopped
-  var interpreter : InterpreterCntrl = new CStoreCntrl(interpreters.reference.Interpreter)
+  var interpreter : InterpreterCntrl = 
+    if (GraphicalMain.useEnclosures)
+      new EnclosureCntrl(interpreters.enclosure.Interpreter)
+    else
+      new CStoreCntrl(interpreters.reference.Interpreter)
   def setInterpreter(i : InterpreterCntrl) = {
     interpreter = i
   }
@@ -380,6 +384,9 @@ class App extends SimpleSwingApplication {
               "Please see LICENSE file for licensing details.</html>")
   console.newLine
   actor.publish(Stopped)
+
+  if (GraphicalMain.autoPlay)
+    upperButtons.bPlay.doClick()
 }
 
 object App {
