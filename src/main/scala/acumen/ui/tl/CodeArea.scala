@@ -10,11 +10,22 @@ import javax.swing.text._
 import javax.swing.undo._
 import scala.collection.JavaConversions._
 import scala.swing._
+import org.fife.ui.rsyntaxtextarea.RSyntaxTextArea
+import java.awt.LayoutManager
+import java.awt.BorderLayout
+import org.fife.ui.rsyntaxtextarea.SyntaxConstants
+import org.fife.ui.rsyntaxtextarea.TokenMakerFactory
+import org.fife.ui.rsyntaxtextarea.AbstractTokenMakerFactory
 
-class CodeArea extends EditorPane {
+import acumen.ui.App;
+import acumen.ui.Files;
 
-  val monospaced = new Font("Monospaced", Font.PLAIN, 12) 
+class CodeArea extends Panel { //EditorPane {
 
+  val syntaxTextArea = createSyntaxTextArea
+  this.peer.setLayout(new BorderLayout)
+  this.peer.add(syntaxTextArea,BorderLayout.CENTER)
+  
   /* ---- state variables ---- */
   var currentFile : Option[File] = None
   var editedSinceLastSave : Boolean = false
@@ -22,8 +33,23 @@ class CodeArea extends EditorPane {
 
   val filenameLabel = new Label("[Untitled]")
 
-  font = monospaced
-
+  /** 
+   * Create RSyntaxTextArea component. It provides features such as syntax highlighting and indentation.
+   * The highlighting is based on a syntax specification AcumenTokenMakerMaker.xml which has been compiled 
+   * to the java class acumen.ui.tl.AcumenTokenMaker.java.
+   * For more information, see https://github.com/effective-modeling/acumen/wiki/Acumen-development
+   */
+  def createSyntaxTextArea: RSyntaxTextArea = {
+    val sta = new RSyntaxTextArea
+    TokenMakerFactory.getDefaultInstance.asInstanceOf[AbstractTokenMakerFactory].
+      putMapping("AcumenTokenMaker", classOf[acumen.ui.tl.AcumenTokenMaker].getName)
+    sta.setSyntaxEditingStyle("AcumenTokenMaker")
+    sta.setHighlightCurrentLine(false)
+    sta.setTabSize(2)
+    sta.setFont(new Font("Monospaced", Font.PLAIN, 12))
+    sta
+  }
+  
   //
   // Undo: Copied from 
   //   http://docs.oracle.com/javase/tutorial/uiswing/components/generaltext.html
@@ -89,19 +115,19 @@ class CodeArea extends EditorPane {
   }
 
   def listenDocument = {
-    peer.getDocument.addDocumentListener(
+    syntaxTextArea.getDocument.addDocumentListener(
       new DocumentListener {
         def changedUpdate(e:DocumentEvent) { setEdited }
         def insertUpdate(e:DocumentEvent) { setEdited }
         def removeUpdate(e:DocumentEvent) { setEdited }
       })
     // Listen for undo and redo events
-    peer.getDocument.addUndoableEditListener(undo)
+    syntaxTextArea.getDocument.addUndoableEditListener(undo)
   }
 
   def newFile : Unit = withErrorReporting {
     if (!editedSinceLastSave || confirmContinue(App.ui.body.peer)) {
-      text = ""
+      syntaxTextArea.setText("")
       setCurrentFile(None)
       editedSinceLastSave = false
       undo.discardAllEdits()
@@ -114,7 +140,8 @@ class CodeArea extends EditorPane {
       val returnVal = fc.showOpenDialog(App.ui.body)
       if (returnVal == FileChooser.Result.Approve) {
         val file = fc.selectedFile
-        peer.setPage(file.toURI.toString)
+//        peer.setPage(file.toURI.toString)
+        syntaxTextArea.read(new FileReader(file),null)
         undo = new UndoManager()
         listenDocument
         setCurrentFile(Some(file))
@@ -145,7 +172,7 @@ class CodeArea extends EditorPane {
       val file = fc.selectedFile
       if (!file.exists || confirmSave(App.ui.body.peer, file)) {
         val writer = new FileWriter(fc.selectedFile)
-        writer.write(text)
+        writer.write(syntaxTextArea.getText)
         writer.close
         setCurrentFile(Some(file))
         editedSinceLastSave = false
@@ -157,7 +184,7 @@ class CodeArea extends EditorPane {
     currentFile match {
       case Some(f) =>
         val writer = new FileWriter(f)
-        writer.write(text)
+        writer.write(syntaxTextArea.getText)
         writer.close
         editedSinceLastSave = false
       case None => saveFileAs
@@ -168,7 +195,7 @@ class CodeArea extends EditorPane {
     if (editedSinceLastAutoSave) {
       val file = Files.getFreshFile
       val writer = new FileWriter(file)
-      writer.write(text)
+      writer.write(syntaxTextArea.getText)
       writer.close
     }
   }

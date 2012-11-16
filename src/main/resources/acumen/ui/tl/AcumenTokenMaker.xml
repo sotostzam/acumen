@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<TokenMakerDefinition>
+  <general>
+    <package>acumen.ui.tl</package>
+    <className>AcumenTokenMaker</className>
+    <extendedClass>AbstractJFlexCTokenMaker</extendedClass>
+    <classComment/>
+    <ignoreCase>false</ignoreCase>
+    <booleanLiterals>false</booleanLiterals>
+  </general>
+  <comments>
+    <lineComments enabled="true" start="//"/>
+    <multiLineComments enabled="false" end="" start=""/>
+    <docComments enabled="false" end="" start=""/>
+  </comments>
+  <keywords>
+    <keyword>Continuous</keyword>
+    <keyword>Discrete</keyword>
+    <keyword>assume</keyword>
+    <keyword>case</keyword>
+    <keyword>class</keyword>
+    <keyword>create</keyword>
+    <keyword>else</keyword>
+    <keyword>end</keyword>
+    <keyword>false</keyword>
+    <keyword>for</keyword>
+    <keyword>if</keyword>
+    <keyword>in</keyword>
+    <keyword>move</keyword>
+    <keyword>none</keyword>
+    <keyword>private</keyword>
+    <keyword>sum</keyword>
+    <keyword>switch</keyword>
+    <keyword>terminate</keyword>
+    <keyword>true</keyword>
+    <keyword>type</keyword>
+  </keywords>
+  <keywords2/>
+  <dataTypes/>
+  <functions>
+    <function>abs</function>
+    <function>acos</function>
+    <function>asin</function>
+    <function>atan2</function>
+    <function>cos</function>
+    <function>cross</function>
+    <function>dot</function>
+    <function>exp</function>
+    <function>log</function>
+    <function>norm</function>
+    <function>not</function>
+    <function>round</function>
+    <function>sin</function>
+    <function>sqrt</function>
+    <function>xor</function>
+  </functions>
+  <numbers>
+    <hexLiteral>0x{HexDigit}+</hexLiteral>
+    <intLiteral>{Digit}+</intLiteral>
+    <floatLiteral>({Digit}+)("."{Digit}+)?(e[+-]?{Digit}+)? | ({Digit}+)?("."{Digit}+)(e[+-]?{Digit}+)?</floatLiteral>
+  </numbers>
+  <stringLiterals enabled="true" multiLine="false"/>
+  <charLiterals enabled="false" multiLine="false"/>
+  <backtickLiterals enabled="false"/>
+  <operators>
+    <operator>%</operator>
+    <operator>&amp;</operator>
+    <operator>&amp;&amp;</operator>
+    <operator>*</operator>
+    <operator>+</operator>
+    <operator>+/-</operator>
+    <operator>-</operator>
+    <operator>.*</operator>
+    <operator>.+</operator>
+    <operator>.-</operator>
+    <operator>..</operator>
+    <operator>./</operator>
+    <operator>.^</operator>
+    <operator>/</operator>
+    <operator>:</operator>
+    <operator>:=</operator>
+    <operator>&lt;</operator>
+    <operator>&lt;&lt;</operator>
+    <operator>&lt;=</operator>
+    <operator>=</operator>
+    <operator>==</operator>
+    <operator>=[i]</operator>
+    <operator>=[t]</operator>
+    <operator>&gt;</operator>
+    <operator>&gt;=</operator>
+    <operator>&gt;&gt;</operator>
+    <operator>@</operator>
+    <operator>^</operator>
+    <operator>|</operator>
+    <operator>||</operator>
+    <operator>~=</operator>
+  </operators>
+</TokenMakerDefinition>

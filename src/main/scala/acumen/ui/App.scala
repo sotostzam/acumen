@@ -58,7 +58,7 @@ class App extends SimpleSwingApplication {
 
           case EXIT => exit
 
-          case SendInit => controller ! Init(codeArea.text, interpreter)
+          case SendInit => controller ! Init(codeArea.syntaxTextArea.getText, interpreter)
 
           case msg : Event => 
             //println("Publishing This Msg: " + msg)
