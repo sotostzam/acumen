@@ -120,13 +120,13 @@ class App extends SimpleSwingApplication {
     autoResizeMode = Table.AutoResizeMode.Off
   }
 
-  val traceView = new plot.PlotTab
-  val pointedView = new plot.PointedView(traceView)
+  val plotView = new plot.PlotTab
+  val pointedView = new plot.PointedView(plotView)
 
   val plotTab = new BorderPanel {
     add(new FlowPanel(FlowPanel.Alignment.Leading)(pointedView), 
 	BorderPanel.Position.North)
-    add(traceView, BorderPanel.Position.Center)
+    add(plotView, BorderPanel.Position.Center)
   }
   val newPlotTab = if (GraphicalMain.disableNewPlot) {
     null 
@@ -205,15 +205,15 @@ class App extends SimpleSwingApplication {
       contents += new Menu("Style") {
         val rb1 = new RadioMenuItem("") {
           selected = true
-          action = Action("Lines") { traceView.setPlotStyle(plot.Lines()) }
+          action = Action("Lines") { plotView.setPlotStyle(plot.Lines()) }
         }
         val rb2 = new RadioMenuItem("") {
           selected = false
-          action = Action("Dots") { traceView.setPlotStyle(plot.Dots()) }
+          action = Action("Dots") { plotView.setPlotStyle(plot.Dots()) }
         }
         val rb3 = new RadioMenuItem("") {
           selected = false
-          action = Action("Both") { traceView.setPlotStyle(plot.Both()) }
+          action = Action("Both") { plotView.setPlotStyle(plot.Both()) }
         }
         contents ++= Seq(rb1,rb2,rb3)
         new ButtonGroup(rb1,rb2,rb3)
@@ -221,19 +221,19 @@ class App extends SimpleSwingApplication {
       contents += new CheckMenuItem("") {
         selected = false
         action = Action("Automatically plot simulator fields") { 
-                    traceView.toggleSimulator(this.selected) 
+                    plotView.toggleSimulator(this.selected) 
                 }
       }
       contents += new CheckMenuItem("") {
         selected = false
         action = Action("Automatically plot child counter fields") { 
-                    traceView.toggleNextChild(this.selected) 
+                    plotView.toggleNextChild(this.selected) 
                 }
       }
       contents += new CheckMenuItem("") {
         selected = false
         action = Action("Automatically random number generator seeds") { 
-                    traceView.toggleSeeds(this.selected)
+                    plotView.toggleSeeds(this.selected)
                 }
       }
     }
@@ -385,10 +385,10 @@ class App extends SimpleSwingApplication {
       model.fireTableStructureChanged()
     case ViewChanged(idx) =>
       if (idx == views.TABLE_IDX) {
-        traceView.plotPanel.tableI.enabled = true
-        traceView.plotPanel.plotter ! plot.Refresh
+        plotView.plotPanel.tableI.enabled = true
+        plotView.plotPanel.plotter ! plot.Refresh
       } else {
-        traceView.plotPanel.tableI.enabled = false
+        plotView.plotPanel.tableI.enabled = false
       }
   }
 
