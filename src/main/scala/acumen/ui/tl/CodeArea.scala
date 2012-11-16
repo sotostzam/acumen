@@ -145,22 +145,24 @@ class CodeArea extends Panel { //EditorPane {
     }
   }
 
+  def loadFile(file: File) : Unit = withErrorReporting {
+    syntaxTextArea.read(new FileReader(file),null)
+    undo = new UndoManager()
+    listenDocument
+    setCurrentFile(Some(file))
+    editedSinceLastSave = false
+  }
+
   def openFile(path: File) : Unit = withErrorReporting {
     if (!editedSinceLastSave || confirmContinue(App.ui.body.peer)) {
       val fc = new FileChooser(path)
       val returnVal = fc.showOpenDialog(App.ui.body)
       if (returnVal == FileChooser.Result.Approve) {
-        val file = fc.selectedFile
-//        peer.setPage(file.toURI.toString)
-        syntaxTextArea.read(new FileReader(file),null)
-        undo = new UndoManager()
-        listenDocument
-        setCurrentFile(Some(file))
-        editedSinceLastSave = false
+        loadFile(fc.selectedFile)
       }
     }
   }
-  
+
   def confirmSave(c: java.awt.Component, f:File) = {
     val message = 
       "File " + f.toString + 
@@ -220,6 +222,12 @@ class CodeArea extends Panel { //EditorPane {
         case App.Stopped => enabled = true
         case _           => enabled = false
       }
+  }
+
+  if (GraphicalMain.useExample != null) {
+    val file = new File(getClass.getClassLoader.getResource("acumen/examples").getFile,
+                        GraphicalMain.useExample + ".acm")
+    loadFile(file)
   }
 
 }

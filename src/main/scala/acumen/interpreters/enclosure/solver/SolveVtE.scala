@@ -7,7 +7,7 @@ import UnivariateAffineEnclosure._
 trait SolveVtE {
 
   case class SolveVtEException(message: String) extends Exception
-  
+
   // TODO add description
   def detectNextEvent(
     H: HybridSystem,
@@ -50,10 +50,11 @@ trait SolveVtE {
     delta: Double,
     m: Int,
     n: Int,
+    degree: Int,
     K: Int,
     output: String,
     log: String => Unit)(implicit rnd: Rounding): Option[(Set[UncertainState], Seq[UnivariateAffineEnclosure])] = {
-    var res = EventTree.initialTree(T, H, S, delta, m, n, output)
+    var res = EventTree.initialTree(T, H, S, delta, m, n, degree, output)
     var tmp = res.addLayer
     while (res.size < K && tmp != res) {
       res = tmp

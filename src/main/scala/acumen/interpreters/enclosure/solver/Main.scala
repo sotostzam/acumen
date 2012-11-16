@@ -14,7 +14,7 @@ object PlotTest extends App with SolveVt {
   val n = 200
   val K = 30
   val d = 0.1
-  val res = solveVt(H.fields(Mode("Fly")), 0 /\ 1.5, Box("x" -> 5, "x'" -> 0), delta, m, n, "output")
+  val res = solveVt(H.fields(Mode("Fly")), 0 /\ 1.5, Box("x" -> 5, "x'" -> 0), delta, m, n, 1, "output")
 //  UnivariateAffineScalarEnclosure.plot(res.components.values.toSeq: _*)
 }
 
@@ -33,7 +33,7 @@ object BouncingBall extends App with Solver {
   val start = System.currentTimeMillis
   val targetPrecision = 0
   //  val res = solveWalid("x", 0, H, T, Ss, delta, m, n, K, d, e, "output", Solver.defaultCallback)
-  val res = solver(H, T, Ss, delta, m, n, K, d, e, minImprovement, "output", Solver.defaultCallback)
+  val res = solver(H, T, Ss, delta, m, n, 1, K, d, e, minImprovement, "output", Solver.defaultCallback)
   val end = System.currentTimeMillis
   val time = end - start
   println("computed " + res.size + " enclosures in " + time / 1000.0 + " seconds")
@@ -64,7 +64,7 @@ object TwoTanks extends App with Solver {
   val e = T.width match { case Interval(_, hi) => hi.doubleValue }
   val minImprovement = 0.0001
   val start = System.currentTimeMillis
-  val res = solver(H, T, Ss, delta, m, n, K, d, e, minImprovement, "output", Solver.defaultCallback)
+  val res = solver(H, T, Ss, delta, m, n, 1, K, d, e, minImprovement, "output", Solver.defaultCallback)
   val end = System.currentTimeMillis
   val time = end - start
   println("computed " + res.size + " enclosures in " + time / 1000.0 + " seconds")
@@ -85,7 +85,7 @@ object Saw extends App with Solver {
   val e = T match { case Interval(_, hi) => hi.doubleValue / 2 }
   val minImprovement = 0.0001
   val start = System.currentTimeMillis
-  val res = solver(H, T, Ss, delta, m, n, K, d, e, minImprovement, "output", Solver.defaultCallback)
+  val res = solver(H, T, Ss, delta, m, n, 1, K, d, e, minImprovement, "output", Solver.defaultCallback)
   val end = System.currentTimeMillis
   val time = end - start
   println("computed " + res.size + " enclosures in " + time / 1000.0 + " seconds")

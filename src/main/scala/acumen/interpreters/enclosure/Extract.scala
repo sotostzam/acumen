@@ -84,7 +84,8 @@ trait Extract {
     maxEventTreeSize: Int, // maximum event tree size in solveVtE, gives termination condition for tree enlargement
     minTimeStep: Double, // minimum time step size
     maxTimeStep: Double, // maximum time step size
-    minImprovement: Double // minimum improvement of enclosure
+    minImprovement: Double, // minimum improvement of enclosure
+    splittingDegree: Int // number of pieces to split each initial condition variable 
     ) {
     implicit val rnd = Rounding(precision)
     val simulationTime = Interval(startTime, endTime)
@@ -129,7 +130,8 @@ trait Extract {
           "maxEventSequenceLength" -> 30,
           "minTimeStep" -> 0.01,
           "maxTimeStep" -> 3,
-          "minImprovement" -> 0.0001)
+          "minImprovement" -> 0.0000001,
+          "splittingDegree" -> 1)
         val params = assignments.foldLeft(defaultParameters) {
           case (res, (param, Lit(GInt(i)))) => res + (param -> i.toDouble)
           case (res, (param, Lit(GDouble(d)))) => res + (param -> d)
@@ -145,7 +147,8 @@ trait Extract {
           params("maxEventSequenceLength").toInt,
           params("minTimeStep"),
           params("maxTimeStep"),
-          params("minImprovement"))
+          params("minImprovement"),
+          params("splittingDegree").toInt)
       }
     }
 

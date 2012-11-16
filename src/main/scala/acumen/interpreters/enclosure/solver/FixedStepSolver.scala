@@ -22,6 +22,7 @@ trait FixedStepSolver extends SolveVtE {
     delta: Double, // padding for initial condition in solveVt
     m: Int, // number of extra Picard iterations in solveVt
     n: Int, // maximum number of Picard iterations in solveVt
+    degree:Int, // pieces to split each initial condition interval
     K: Int, // maximum event tree size in solveVtE
     d: Double, // minimum time step size
     e: Double, // maximum time step size
@@ -41,7 +42,7 @@ trait FixedStepSolver extends SolveVtE {
       T: Interval, // time segment to simulate over
       uncertainStates: Set[UncertainState] // initial modes and initial conditions
       ): Option[(Set[UncertainState], Seq[UnivariateAffineEnclosure])] = {
-      val onT = uncertainStates.map(solveVtE(H, T, _, delta, m, n, K, output, cb.log))
+      val onT = uncertainStates.map(solveVtE(H, T, _, delta, m, n, K, degree, output, cb.log))
       val failedToComputeAnEnclosure = onT contains None
       if (failedToComputeAnEnclosure) None
       else Some(onT.map(_.get).

@@ -10,6 +10,7 @@ case class HybridSystem(
   events: Set[Event],
   domains: Map[Mode, Domain],
   fields: Map[Mode, Field],
+//  flows: Map[Mode, Flow],
   guards: Map[Event, Guard],
   resets: Map[Event, ResetMap]) {
 

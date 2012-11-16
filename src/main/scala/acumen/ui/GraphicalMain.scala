@@ -31,28 +31,38 @@ object GraphicalMain extends SimpleSwingApplication {
 
   var disable3D = true
   var disableNewPlot = true
+  var useExample: String = null
+  var autoPlay = false
+  var useEnclosures = false
 
-  override def main(args: Array[String]) {
-    if (args.size > 1) {
-      usage
-    } else if (args.size == 1) {
-      if (args(0) == "--enable-3d")
-        disable3D = false
-      else if (args(0) == "--disable-3d")
-        disable3D = true
-      else if (args(0) == "--enable-newplot")
-        disableNewPlot = false
-      else if (args(0) == "--disable-newplot")
-        disableNewPlot = true
-      else
-        usage
+  def parseOpts(args: List[String]) {
+    args match {
+      case Nil =>
+      case ("--enable-3d" | "--3d") :: tail => 
+        disable3D = false; parseOpts(tail)
+      case ("--disable-3d" | "--no-3d") :: tail => 
+        disable3D = true; parseOpts(tail)
+      case ("--enable-newplot" | "--newplot") :: tail => 
+        disableNewPlot = false; parseOpts(tail)
+      case ("--disable-newplot" | "--no-newplot") :: tail => 
+        disableNewPlot = true; parseOpts(tail)
+      case "--example" :: name :: tail =>
+        useExample = name; parseOpts(tail)
+      case "--play" :: tail =>
+        autoPlay = true; parseOpts(tail)
+      case "--enclosures" :: tail =>
+        useEnclosures = true; parseOpts(tail)
+      case "--no-enclosures" :: tail =>
+        useEnclosures = false; parseOpts(tail)
+      case opt =>
+        System.err.println("Unrecognized Option: " + opt)
+        exit
     }
-    super.main(args)
   }
 
-  def usage() {
-    System.err.println("Error: Only accepted options are --enable|disable-3d or --enable|disable-newplot")
-    exit
+  override def main(args: Array[String]) {
+    parseOpts(args.toList)
+    super.main(args)
   }
 
   def top = {

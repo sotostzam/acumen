@@ -17,6 +17,26 @@ trait Solver extends SolveVtE {
   case class Aborted(resultSoFar: Seq[UnivariateAffineEnclosure]) extends Exception
 
   // TODO add description
+  def solver(
+    H: HybridSystem, // system to simulate
+    T: Interval, // time segment to simulate over
+    Ss: Set[UncertainState], // initial modes and initial conditions
+    delta: Double, // parameter of solveVt
+    m: Int, // parameter of solveVt
+    n: Int, // maximum number of Picard iterations in solveVt
+    degree: Int, // number of pieces to split each initial condition interval
+    K: Int, // maximum event tree size in solveVtE
+    d: Double, // minimum time step size
+    e: Double, // maximum time step size
+    minImprovement: Double, // minimum improvement of enclosure
+    output: String, // path to write output 
+    cb: EnclosureInterpreterCallbacks)(implicit rnd: Rounding): Seq[UnivariateAffineEnclosure] = {
+    Util.newFile(output)
+    cb.endTime = T.hiDouble
+    solveHybrid(H, T, Ss, delta, m, n, degree, K, d, e, minImprovement, output, cb)._2
+  }
+
+  // TODO add description
   def solveHybrid(
     H: HybridSystem, // system to simulate
     T: Interval, // time segment to simulate over
@@ -24,6 +44,7 @@ trait Solver extends SolveVtE {
     delta: Double, // padding for initial condition in solveVt
     m: Int, // number of extra Picard iterations in solveVt
     n: Int, // maximum number of Picard iterations in solveVt
+    degree: Int, // number of pieces to split each initial condition interval
     K: Int, // maximum event tree size in solveVtE, gives termination condition for tree enlargement
     d: Double, // minimum time step size
     e: Double, // maximum time step size
@@ -40,19 +61,19 @@ trait Solver extends SolveVtE {
         throw SolverException("gave up for minimum step size " + d + " at " + T)
       } else {
         //        cb.log("splitting " + T)
-        val (ssl, ysl) = solveHybrid(H, lT, Ss, delta, m, n, K, d, e, minImprovement, output, cb)
-        val (ssr, ysr) = solveHybrid(H, rT, ssl, delta, m, n, K, d, e, minImprovement, output, cb)
+        val (ssl, ysl) = solveHybrid(H, lT, Ss, delta, m, n, degree, K, d, e, minImprovement, output, cb)
+        val (ssr, ysr) = solveHybrid(H, rT, ssl, delta, m, n, degree, K, d, e, minImprovement, output, cb)
         (ssr, ysl ++ ysr)
       }
     } else {
-      val onT = Ss.map(solveVtE(H, T, _, delta, m, n, K, output, cb.log))
+      val onT = Ss.map(solveVtE(H, T, _, delta, m, n, degree, K, output, cb.log))
       if (onT contains None)
         if (cannotSplit) {
           throw SolverException("gave up for minimum step size " + d + " at " + T)
         } else {
           //        cb.log("splitting " + T)
-          val (ssl, ysl) = solveHybrid(H, lT, Ss, delta, m, n, K, d, e, minImprovement, output, cb)
-          val (ssr, ysr) = solveHybrid(H, rT, ssl, delta, m, n, K, d, e, minImprovement, output, cb)
+          val (ssl, ysl) = solveHybrid(H, lT, Ss, delta, m, n, degree, K, d, e, minImprovement, output, cb)
+          val (ssr, ysr) = solveHybrid(H, rT, ssl, delta, m, n, degree, K, d, e, minImprovement, output, cb)
           (ssr, ysl ++ ysr)
         }
       else {
@@ -62,7 +83,7 @@ trait Solver extends SolveVtE {
           }
         val ssT = M(endStatesOnT)
 
-        val onlT = Ss.map(solveVtE(H, lT, _, delta, m, n, K, output, cb.log))
+        val onlT = Ss.map(solveVtE(H, lT, _, delta, m, n, degree, K, output, cb.log))
         if (onlT contains None) {
           cb.sendResult(resultForT._2)
           //          println("solveHybrid: @" + T + ": " + resultForT._1.head.initialCondition) //  PRINTME
@@ -74,7 +95,7 @@ trait Solver extends SolveVtE {
             }
           val sslT = M(endStatesOnlT)
 
-          val onrT = sslT.map(solveVtE(H, rT, _, delta, m, n, K, output, cb.log))
+          val onrT = sslT.map(solveVtE(H, rT, _, delta, m, n, degree, K, output, cb.log))
           if (onrT contains None) {
             cb.sendResult(resultForT._2)
             resultForT
@@ -111,8 +132,8 @@ trait Solver extends SolveVtE {
               resultForT
             } else {
               //            cb.log("splitting " + T)
-              val (ssl, ysl) = solveHybrid(H, lT, Ss, delta, m, n, K, d, e, minImprovement, output, cb)
-              val (ssr, ysr) = solveHybrid(H, rT, ssl, delta, m, n, K, d, e, minImprovement, output, cb)
+              val (ssl, ysl) = solveHybrid(H, lT, Ss, delta, m, n, degree, K, d, e, minImprovement, output, cb)
+              val (ssr, ysr) = solveHybrid(H, rT, ssl, delta, m, n, degree, K, d, e, minImprovement, output, cb)
               //                            println("solveHybrid: @" + T + ": " + ssr.head.initialCondition)  //  PRINTME
               (ssr, ysl ++ ysr)
             }
@@ -122,24 +143,6 @@ trait Solver extends SolveVtE {
     }
   }
 
-  // TODO add description
-  def solver(
-    H: HybridSystem, // system to simulate
-    T: Interval, // time segment to simulate over
-    Ss: Set[UncertainState], // initial modes and initial conditions
-    delta: Double, // parameter of solveVt
-    m: Int, // parameter of solveVt
-    n: Int, // maximum number of Picard iterations in solveVt
-    K: Int, // maximum event tree size in solveVtE
-    d: Double, // minimum time step size
-    e: Double, // maximum time step size
-    minImprovement: Double, // minimum improvement of enclosure
-    output: String, // path to write output 
-    cb: EnclosureInterpreterCallbacks)(implicit rnd: Rounding): Seq[UnivariateAffineEnclosure] = {
-    Util.newFile(output)
-    cb.endTime = T.hiDouble
-    solveHybrid(H, T, Ss, delta, m, n, K, d, e, minImprovement, output, cb)._2
-  }
 }
 
 object Solver {

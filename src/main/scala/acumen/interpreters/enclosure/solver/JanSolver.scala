@@ -26,6 +26,7 @@ trait JanSolver extends SolveVtE {
     delta: Double, // parameter of solveVt
     m: Int, // parameter of solveVt
     n: Int, // maximum number of Picard iterations in solveVt
+    degree:Int, // splittingDegree
     K: Int, // maximum event tree size in solveVtE
     d: Double, // minimum time step size
     e: Double, // maximum time step size
@@ -46,7 +47,7 @@ trait JanSolver extends SolveVtE {
         null
       }
 
-      val onT = Ss.map(solveVtE(H, T, _, delta, m, n, K, output, cb.log))
+      val onT = Ss.map(solveVtE(H, T, _, delta, m, n, degree, K, output, cb.log))
       val mustSplit = T.width greaterThan e
       val (lT, rT) = T.split
       val cannotSplit = !(min(lT.width, rT.width) greaterThan d)
@@ -66,7 +67,7 @@ trait JanSolver extends SolveVtE {
           }
         val ssT = M(endStatesOnT)
 
-        val onlT = Ss.map(solveVtE(H, lT, _, delta, m, n, K, output, cb.log))
+        val onlT = Ss.map(solveVtE(H, lT, _, delta, m, n, degree, K, output, cb.log))
         if (onlT contains None) {
           /**
            * STOP SUBDIVISION
@@ -80,7 +81,7 @@ trait JanSolver extends SolveVtE {
             }
           val sslT = M(endStatesOnlT)
 
-          val onrT = sslT.map(solveVtE(H, rT, _, delta, m, n, K, output, cb.log))
+          val onrT = sslT.map(solveVtE(H, rT, _, delta, m, n, K, degree, output, cb.log))
           if (onrT contains None) {
             /**
              * STOP SUBDIVISION
