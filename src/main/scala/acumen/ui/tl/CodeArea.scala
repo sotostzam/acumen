@@ -218,10 +218,10 @@ class CodeArea extends Panel { //EditorPane {
   listenTo(App.pub)
   reactions += {
     case st:App.State => 
-      st match {
-        case App.Stopped => enabled = true
-        case _           => enabled = false
-      }
+      syntaxTextArea setEnabled (st match {
+        case App.Stopped => true
+        case _           => false
+      })
   }
 
   if (GraphicalMain.useExample != null) {
