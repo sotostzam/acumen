@@ -4,7 +4,6 @@ package ui
 import java.lang.Thread
 
 import scala.actors._
-import acumen.ui.App;
 import collection.JavaConversions._
 
 import java.awt.Font
