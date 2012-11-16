@@ -60,6 +60,7 @@ case class EventTree(
   delta: Double,
   m: Int,
   n: Int,
+  degree: Int,
   output: String) extends Solver with SolveVt {
 
   /** TODO add description */
@@ -150,7 +151,7 @@ case class EventTree(
             //          println("\naddLayer: A         = " + A)
             //          println("addLayer: field     = " + H.fields(e.tau))
             //            println("addLayer: enclosure = " + solveVt(H.fields(e.tau), T, A, delta, m, n, output))
-            val N = solveVt(H.fields(e.tau), T, A, delta, m, n, output).range
+            val N = solveVt(H.fields(e.tau), T, A, delta, m, n, degree, output).range
             //          println("addLayer: N         = " + N)
             val lastEvent = e
             //          println("Domain:  " + H.domains(e.tau))
@@ -192,7 +193,7 @@ case class EventTree(
       }
     }
 
-    val res = EventTree(newMaximalSequences, T, H, S, delta, m, n, output)
+    val res = EventTree(newMaximalSequences, T, H, S, delta, m, n, degree, output)
     //    println("\naddLayer: " + res)
     res
   }
@@ -272,15 +273,16 @@ object EventTree extends SolveVt {
     delta: Double,
     m: Int,
     n: Int,
+    degree: Int,
     output: String)(implicit rnd: Rounding) = {
     //    Util.appendFile(output, "segment width " + T.width.hi.round(Rounding(3).up) + " segment " + T + "\n")
     //    println("segment width " + T.width.hi.round(Rounding(3).up) + " segment " + T)
     val mode = S.mode
-    val enclosure = solveVt(H.fields(mode), T, S.initialCondition, delta, m, n, output)
+    val enclosure = solveVt(H.fields(mode), T, S.initialCondition, delta, m, n, degree, output)
     //    println("Yinit = " + enclosure)
     val mayBeLast = false
     val sequences = Set(EmptySequence(mode, enclosure, mayBeLast).asInstanceOf[EventSequence])
-    val res = EventTree(sequences, T, H, S, delta, m, n, output)
+    val res = EventTree(sequences, T, H, S, delta, m, n, degree, output)
     //    println("\n############\n")
     //    println("initialTree: " + res)
     res

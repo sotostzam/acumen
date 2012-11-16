@@ -23,6 +23,7 @@ trait WalidSolver extends SolveVtE {
     delta: Double, // padding for initial condition in solveVt
     m: Int, // number of extra Picard iterations in solveVt
     n: Int, // maximum number of Picard iterations in solveVt
+    degree:Int, // number of pieces to split each initial condition interval
     K: Int, // maximum event tree size in solveVtE, gives termination condition for tree enlargement
     d: Double, // minimum time step size
     e: Double, // maximum time step size
@@ -41,7 +42,7 @@ trait WalidSolver extends SolveVtE {
     while (leftEndpoint lessThan rightEndpoint) {
       val currentSegment = leftEndpoint /\ rightEndpoint
       val canSubdivide = currentSegment.width / 2 greaterThanOrEqualTo d
-      val makeAtomicStep = atomicStep(H, currentSegment, initialCondition, delta, m, n, K, d, e, output, cb)
+      val makeAtomicStep = atomicStep(H, currentSegment, initialCondition, delta, m, n, degree, K, d, e, output, cb)
       makeAtomicStep match {
         case None =>
           println("failed to construct enclosure on " + currentSegment)
@@ -80,13 +81,14 @@ trait WalidSolver extends SolveVtE {
     delta: Double, // padding for initial condition in solveVt
     m: Int, // number of extra Picard iterations in solveVt
     n: Int, // maximum number of Picard iterations in solveVt
+    degree:Int, // splittingDegree
     K: Int, // maximum event tree size in solveVtE, gives termination condition for tree enlargement
     d: Double, // minimum time step size
     e: Double, // maximum time step size
     output: String, // path to write output 
     cb: EnclosureInterpreterCallbacks // carrier for call-backs for communicating with the GUI
     )(implicit rnd: Rounding): Option[(Set[UncertainState], UnivariateAffineEnclosure)] = {
-    val onT = uncertainStates.map(solveVtE(H, T, _, delta, m, n, K, output, cb.log))
+    val onT = uncertainStates.map(solveVtE(H, T, _, delta, m, n, degree, K, output, cb.log))
     val failedToComputeAnEnclosure = onT contains None
     if (failedToComputeAnEnclosure) None
     else Some(onT.map(_.get).foldLeft((Set[UncertainState](), Seq[UnivariateAffineEnclosure]())) {

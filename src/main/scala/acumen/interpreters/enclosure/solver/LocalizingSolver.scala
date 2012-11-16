@@ -24,10 +24,11 @@ trait LocalizingSolver extends SolveVt {
     maxEventTreeSize: Int, // maximum event tree size in solveVtE
     minTimeStep: Double, // minimum time step size
     maxTimeStep: Double, // maximum time step size
+    splittingDegree: Int, // initial condition splitting degree
     outputFile: String, // path to write output 
     cb: EnclosureInterpreterCallbacks)(implicit rnd: Rounding): Seq[UnivariateAffineEnclosure] = {
     // get an enclosure for each uncertain state
-    val enclosures = uncertainStates.toSeq.flatMap(us => piecewisePicard(system.fields(us.mode), initialConditionPadding, extraPicardIterations, maxPicardIterations, minTimeStep, maxTimeStep, outputFile, cb)(us.initialCondition, time))
+    val enclosures = uncertainStates.toSeq.flatMap(us => piecewisePicard(system.fields(us.mode), initialConditionPadding, extraPicardIterations, maxPicardIterations, minTimeStep, maxTimeStep, splittingDegree, outputFile, cb)(us.initialCondition, time))
     enclosures
   }
 
@@ -42,9 +43,10 @@ trait LocalizingSolver extends SolveVt {
     maxPicardIterations: Int,
     minTimeStep: Double,
     maxTimeStep: Double,
+    splittingDegree: Int, 
     outputFile: String,
     cb: EnclosureInterpreterCallbacks)(initialCondition: Box, segment: Interval)(implicit rnd: Rounding): Seq[UnivariateAffineEnclosure] = {
-    def piecewisePicardHelper = piecewisePicard(field, initialConditionPadding, extraPicardIterations, maxPicardIterations, minTimeStep, maxTimeStep, outputFile, cb)_
+    def piecewisePicardHelper = piecewisePicard(field, initialConditionPadding, extraPicardIterations, maxPicardIterations, minTimeStep, maxTimeStep, splittingDegree, outputFile, cb)_
     if (segment.width greaterThan maxTimeStep) {
       val (leftSegment, rightSegment) = segment.split
       val leftEnclosures = piecewisePicardHelper(initialCondition, leftSegment)
@@ -52,15 +54,15 @@ trait LocalizingSolver extends SolveVt {
       val rightEnclosures = piecewisePicardHelper(rightInitialCondition, rightSegment)
       leftEnclosures ++ rightEnclosures
     } else {
-      val enclosure = solveVt(field, segment, initialCondition, initialConditionPadding, extraPicardIterations, maxPicardIterations, outputFile)
+      val enclosure = solveVt(field, segment, initialCondition, initialConditionPadding, extraPicardIterations, maxPicardIterations, splittingDegree, outputFile)
       if (segment.width lessThan minTimeStep * 2) {
         println("minimum step size at " + segment)
         Seq(enclosure)
       } else {
         val (leftSegment, rightSegment) = segment.split
-        val leftEnclosure = solveVt(field, leftSegment, initialCondition, initialConditionPadding, extraPicardIterations, maxPicardIterations, outputFile)
+        val leftEnclosure = solveVt(field, leftSegment, initialCondition, initialConditionPadding, extraPicardIterations, maxPicardIterations, splittingDegree, outputFile)
         var rightInitialCondition = leftEnclosure(leftSegment.high)
-        val rightEnclosure = solveVt(field, rightSegment, rightInitialCondition, initialConditionPadding, extraPicardIterations, maxPicardIterations, outputFile)
+        val rightEnclosure = solveVt(field, rightSegment, rightInitialCondition, initialConditionPadding, extraPicardIterations, maxPicardIterations, splittingDegree, outputFile)
         if (norm(rightEnclosure(segment.high)) lessThan norm(enclosure(segment.high))) {
           val leftEnclosures = piecewisePicardHelper(initialCondition, leftSegment)
           rightInitialCondition = leftEnclosures.last(leftSegment.high)
@@ -85,10 +87,10 @@ object LocalizingSolverApp extends LocalizingSolver with App {
     "x" -> Variable("x'"),
     "x'" -> -(0.5 * Variable("x'") + Variable("x"))))
   println(field)
-  val time = Interval(0, 5)
-  val minTimeStep = 0.001
+  val time = Interval(0, 4)
+  val minTimeStep = 0.01
   val maxTimeStep = 1
-  val result = piecewisePicard(field, 0, 20, 200, minTimeStep, maxTimeStep, "output", Solver.defaultCallback)(initalCondition, time)
+  val result = piecewisePicard(field, 0, 20, 200, minTimeStep, maxTimeStep, 1, "output", Solver.defaultCallback)(initalCondition, time)
   val plotter = new Plotter
   plotter.plot("x'' = -x'/2 - x")(null)(result)
 }

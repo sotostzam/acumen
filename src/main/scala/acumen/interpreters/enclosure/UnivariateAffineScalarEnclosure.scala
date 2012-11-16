@@ -99,7 +99,7 @@ case class UnivariateAffineScalarEnclosure private[enclosure] (
 
   //TODO Update the below comment.
   /**
-   * Compute the union of the enclosures.
+   * Compute the union of `this` and `that` enclosure.
    *
    * Implementation note: TODO
    */
@@ -125,7 +125,12 @@ case class UnivariateAffineScalarEnclosure private[enclosure] (
     }
   }
 
-  /** Returns an enclosure with the same constant and coefficient as this enclosure, redefined over a sub-interval of the domain. */
+  /**
+   * The restriction of `this` enclosure to a sub-interval of its domain.
+   * 
+   * Returns an enclosure with the same constant and coefficient as `this`
+   * enclosure, redefined over a sub-interval of its domain.
+   */
   //TODO Add property
   def restrictTo(subDomain: Interval)(implicit rnd: Rounding): UnivariateAffineScalarEnclosure = {
     require((domain contains subDomain) && (normalizedDomain contains 0 /\ subDomain.width.high))

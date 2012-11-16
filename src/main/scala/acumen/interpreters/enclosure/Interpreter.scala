@@ -38,6 +38,7 @@ object Interpreter extends acumen.RecursiveInterpreter with Solver with Extract 
       ps.solveVtInitialConditionPadding,
       ps.extraPicardIterations,
       ps.maxPicardIterations,
+      ps.splittingDegree, 
       ps.maxEventTreeSize,
       ps.minTimeStep,
       ps.maxTimeStep,
