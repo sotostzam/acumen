@@ -16,9 +16,15 @@ import java.awt.BorderLayout
 import org.fife.ui.rsyntaxtextarea.SyntaxConstants
 import org.fife.ui.rsyntaxtextarea.TokenMakerFactory
 import org.fife.ui.rsyntaxtextarea.AbstractTokenMakerFactory
-
-import acumen.ui.App;
-import acumen.ui.Files;
+import acumen.ui.App
+import acumen.ui.Files
+import org.fife.ui.autocomplete.AutoCompletion
+import org.fife.ui.autocomplete.DefaultCompletionProvider
+import org.fife.ui.autocomplete.BasicCompletion
+import java.util.Scanner
+import scala.xml.XML
+import org.fife.ui.rsyntaxtextarea.templates.StaticCodeTemplate
+import java.awt.event.ActionEvent
 
 class CodeArea extends Panel { //EditorPane {
 
@@ -47,50 +53,55 @@ class CodeArea extends Panel { //EditorPane {
     sta.setHighlightCurrentLine(false)
     sta.setTabSize(2)
     sta.setFont(new Font("Monospaced", Font.PLAIN, 12))
+    val completionProvider = createCompletionProvider(sta)
+    val autoCompletion = new AutoCompletion(completionProvider)
+    autoCompletion install sta
+    RSyntaxTextArea setTemplatesEnabled true
+    createCodeTemplateManager
     sta
   }
   
-  //
-  // Undo: Copied from 
-  //   http://docs.oracle.com/javase/tutorial/uiswing/components/generaltext.html
-  //
+  def createCompletionProvider(syntaxTextArea: RSyntaxTextArea) = {
+    val cp = new DefaultCompletionProvider
+    val style = syntaxTextArea.getSyntaxEditingStyle
+    val acumenTokenMakerSpec = 
+      XML.load(getClass.getClassLoader.getResource("acumen/ui/tl/AcumenTokenMaker.xml").getFile)
+    for (val keyword <- acumenTokenMakerSpec \\ "keyword")
+      cp.addCompletion(new BasicCompletion(cp, keyword.text))
+    for (val keyword <- acumenTokenMakerSpec \\ "function")
+      cp.addCompletion(new BasicCompletion(cp, keyword.text))
+    cp.addCompletion(new BasicCompletion(cp, "simulator"))
+    cp
+  }
 
-  //var undo = new UndoManager()
-  var undo = new UndoManager()
+  def createCodeTemplateManager = 
+    for (t <- List(
+ 	  ("class",   "class ()\n  private  end\nend"),
+      ("main",    "class Main(simulator)\n  private  end\nend"),
+ 	  ("private", "private  end"),
+      ("if",      "if \n  \nend;"),
+      ("switch",  "switch \n  case \n    \nend;"),
+      ("case",    "case\n  "),
+      ("hs",      "class Main(simulator)\n  private mode := \"\"; end\n  switch mode\n    case \"\"\n      \n  end\nend"),
+      ("mode",    "case \"\"\n  if  mode := \"\" end;\n  "),
+      ("event",   "if  mode := \"\" end;\n")
+    )) { RSyntaxTextArea.getCodeTemplateManager addTemplate new StaticCodeTemplate(t._1, t._2, null) }
+  
+  // Undo based on http://docs.oracle.com/javase/tutorial/uiswing/components/generaltext.html
+  var undo = new UndoManager
+  
   // Create a undo action and add it to the text component
-  peer.getActionMap().put("Undo",
-         new javax.swing.text.TextAction("Undo") {
-           def actionPerformed(e:java.awt.event.ActionEvent) {
-                 //try {
-                     if (undo.canUndo()) {
-                         println("Undoing!")
-                         undo.undo();
-                     }
-                 //} catch {case e:Exception => }
-                 
-             }
-        });
- // Create a redo action and add it to the text component
-   peer.getActionMap().put("Redo",
-         new javax.swing.text.TextAction("Redo") {
-           def actionPerformed(e:java.awt.event.ActionEvent) {
-                 //try {
-                     if (undo.canRedo()) {
-                         undo.redo();
-                     }
-                 //} catch {case e:Exception => }
-                 
-             }
-        });
+  peer.getActionMap() put ("Undo",
+    new TextAction("Undo") { def actionPerformed(e: ActionEvent) = if (undo canUndo) undo undo })
+  // Create a redo action and add it to the text component
+  peer.getActionMap() put ("Redo",
+    new TextAction("Redo") { def actionPerformed(e: ActionEvent) = if (undo canRedo) undo redo })
+   
   // Bind the undo action to ctl-Z
-  peer.getInputMap().put(KeyStroke.getKeyStroke("control Z"), "Undo");
+  peer.getInputMap put (KeyStroke.getKeyStroke("control Z"), "Undo")
   // Bind the redo action to ctl-Y
-  peer.getInputMap().put(KeyStroke.getKeyStroke("control Y"), "Redo");		
-
-  //
-  // End copy
-  //
-
+  peer.getInputMap put (KeyStroke.getKeyStroke("control Y"), "Redo")		
+  
   /* --- file handling ---- */
 
   def currentDir =
