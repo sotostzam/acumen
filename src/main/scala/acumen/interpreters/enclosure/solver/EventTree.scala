@@ -61,7 +61,7 @@ case class EventTree(
   m: Int,
   n: Int,
   degree: Int,
-  output: String) extends Solver with SolveVt {
+  output: String) extends Solver with SolveIVP {
 
   /** TODO add description */
   // TODO add tests
@@ -145,7 +145,9 @@ case class EventTree(
           } else {
             require(
               H.domains(e.tau)(H.resets(e)(H.guards(e).support(v.enclosure.range))) != Set(false),
-              "Reset must map into target domain")
+              "Reset " + H.resets(e) +
+                "\nmust map contracted enclosure " + H.guards(e).support(v.enclosure.range) +
+                "\ninto target domain " + H.domains(e.tau))
             val A = H.domains(e.tau).support(H.resets(e)(H.guards(e).support(v.enclosure.range)))
             //          val A = H.domains(e.tau).support(H.resets(e)(H.guards(e).support(v.enclosure.range)))
             //          println("\naddLayer: A         = " + A)
@@ -219,7 +221,9 @@ case class EventTree(
     modewiseMayBeLastStates.mapValues(xs => xs.tail.foldLeft(xs.head) {
       (res, x) =>
         zipDefault(res, x, Interval(0)).mapValues { case (l, r) => l /\ r }
-    }).map { case (q, b) => UncertainState(q, H.domains(q).support(b)) }.toSet
+    }).map {
+      case (q, b) => UncertainState(q, H.domains(q).support(b))
+    }.toSet
   }
 
   /** TODO add description */
@@ -262,7 +266,7 @@ case class EventTree(
 
 }
 
-object EventTree extends SolveVt {
+object EventTree extends SolveIVP {
 
   /** TODO add description */
   // TODO add tests

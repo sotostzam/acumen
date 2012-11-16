@@ -61,7 +61,7 @@ trait SolveVtE {
       tmp = tmp.addLayer
     }
     if (res != tmp) {
-      throw SolveVtEException("gave up for maxEventSequenceLength " + K + " at " + T)
+      sys.error("gave up for maxEventSequenceLength " + K + " at " + T)
       None
     } else {
       //      println("\nsolveVtE: " + res.endTimeStates.map(_.initialCondition)) // PRINTME

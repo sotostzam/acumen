@@ -18,7 +18,8 @@ import acumen.interpreters.enclosure.UnivariateAffineEnclosure
 
 object Sandbox extends App with Extract with Solver with SolveVt {
 
-  val prog = Parser.run(Parser.prog, Models("bouncing_ball_convergent"))
+  //  val prog = Parser.run(Parser.prog, Models("bouncing_ball_convergent"))
+  val prog = Parser.run(Parser.prog, Models.fullers_phenomenon)
   val des = Desugarer.run(prog)
   val main = classDef(ClassName("Main"), des)
 
@@ -36,7 +37,7 @@ object Sandbox extends App with Extract with Solver with SolveVt {
       ps.solveVtInitialConditionPadding,
       ps.extraPicardIterations,
       ps.maxPicardIterations,
-      ps.splittingDegree, 
+      ps.splittingDegree,
       ps.maxEventTreeSize,
       ps.minTimeStep,
       ps.maxTimeStep,

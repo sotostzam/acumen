@@ -58,7 +58,7 @@ trait Solver extends SolveVtE {
     val cannotSplit = !(min(lT.width, rT.width) greaterThan d)
     if (mustSplit) {
       if (cannotSplit) {
-        throw SolverException("gave up for minimum step size " + d + " at " + T)
+        sys.error("gave up for minimum step size " + d + " at " + T)
       } else {
         //        cb.log("splitting " + T)
         val (ssl, ysl) = solveHybrid(H, lT, Ss, delta, m, n, degree, K, d, e, minImprovement, output, cb)
@@ -69,7 +69,7 @@ trait Solver extends SolveVtE {
       val onT = Ss.map(solveVtE(H, T, _, delta, m, n, degree, K, output, cb.log))
       if (onT contains None)
         if (cannotSplit) {
-          throw SolverException("gave up for minimum step size " + d + " at " + T)
+          sys.error("gave up for minimum step size " + d + " at " + T)
         } else {
           //        cb.log("splitting " + T)
           val (ssl, ysl) = solveHybrid(H, lT, Ss, delta, m, n, degree, K, d, e, minImprovement, output, cb)

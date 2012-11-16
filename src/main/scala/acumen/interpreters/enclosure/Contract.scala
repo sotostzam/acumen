@@ -49,7 +49,7 @@ trait Contract {
     val rightRan = right(env)
     if (leftRan lessThanOrEqualTo rightRan) env
     else {
-      require(!(leftRan greaterThan rightRan), left.toString + " <= " + right.toString + " cannot hold over " + env + "!")
+      require(!(leftRan greaterThan rightRan), "contractLeq: " + left.toString + " <= " + right.toString + " cannot hold over " + env + "!")
       //      println()
       //      println("contractLeq: " + leftRan + " <= " + rightRan)
       val ranl = min(leftRan, rightRan.high)
@@ -91,8 +91,10 @@ trait Contract {
     case Sqrt(e) => backPropagate(env, e(env) \/ ran.square, e)
     case Negate(e) => backPropagate(env, e(env) \/ (-ran), e)
     case Plus(l, r) =>
-      val left = backPropagate(env, l(env) \/ inverseRelation(env, ran, Left, expr), l)
-      val right = backPropagate(env, r(env) \/ inverseRelation(env, ran, Right, expr), r)
+      val lenv = l(env)
+      val renv = r(env)
+      val left = backPropagate(env, lenv \/ (ran - renv), l)
+      val right = backPropagate(env, renv \/ (ran - lenv), r)
       left intersect right
     case Multiply(l, r) if l == r =>
       val ransqrt = ran.sqrt
@@ -109,13 +111,20 @@ trait Contract {
       val newran = if (x contains 0) e(env) else e(env) \/ (ran / x)
       backPropagate(env, newran, e)
     case Multiply(l, r) =>
-      val left = backPropagate(env, l(env) \/ inverseRelation(env, ran, Left, expr), l)
-      val right = backPropagate(env, r(env) \/ inverseRelation(env, ran, Right, expr), r)
-      left intersect right
+      val lenv = l(env)
+      val renv = r(env)
+      if (lenv.contains(0) || renv.contains(0)) env
+      else {
+        lazy val left = backPropagate(env, lenv \/ (ran / renv), l)
+        lazy val right = backPropagate(env, renv \/ (ran / lenv), r)
+        left intersect right
+      }
     case Divide(e, Constant(x)) => backPropagate(env, e(env) \/ (ran * x), e)
     case Divide(l, r) =>
-      val left = backPropagate(env, l(env) \/ inverseRelation(env, ran, Left, expr), l)
-      val right = backPropagate(env, r(env) \/ inverseRelation(env, ran, Right, expr), r)
+      val lenv = l(env)
+      val renv = r(env)
+      val right = backPropagate(env, renv \/ (ran * renv), r)
+      val left = backPropagate(env, lenv \/ (lenv / ran), l)
       left intersect right
   }
 
@@ -124,10 +133,11 @@ trait Contract {
       case Left => ran - r(env)
       case Right => ran - l(env)
     }
-    case Multiply(l, r) => arg match {
-      case Left => ran / r(env)
-      case Right => ran / l(env)
-    }
+    case Multiply(l, r) =>
+      arg match {
+        case Left => ran / r(env)
+        case Right => ran / l(env)
+      }
     case Divide(l, r) => arg match { // ran = l / r
       case Left => ran * r(env) // l = ran * r
       case Right => l(env) / ran // r = l / ran

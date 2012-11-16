@@ -130,11 +130,10 @@ case class Interval private (
    *  given precision.
    */
   def /(that: Interval) = {
-    if (that.contains(0)) sys.error("division by 0") else {
-      val divsDN: List[Real] = List(lo.divide(that.hi, dn), hi.divide(that.lo, dn), hi.divide(that.hi, dn))
-      val divsUP: List[Real] = List(lo.divide(that.hi, up), hi.divide(that.lo, up), hi.divide(that.hi, up))
-      Interval(divsDN.foldLeft(lo.divide(that.lo, dn))(min(_, _)), divsUP.foldLeft(lo.divide(that.lo, up))(max(_, _)))
-    }
+    require(!that.contains(0), "division by 0")
+    val divsDN: List[Real] = List(lo.divide(that.hi, dn), hi.divide(that.lo, dn), hi.divide(that.hi, dn))
+    val divsUP: List[Real] = List(lo.divide(that.hi, up), hi.divide(that.lo, up), hi.divide(that.hi, up))
+    Interval(divsDN.foldLeft(lo.divide(that.lo, dn))(min(_, _)), divsUP.foldLeft(lo.divide(that.lo, up))(max(_, _)))
   }
 
   def /(that: Double): Interval = this / Interval(that)
@@ -234,8 +233,8 @@ case class Interval private (
   def isZero = equalTo(Interval(0))
 
   def almostEqualTo(that: Interval) = {
-//    println("almostEqualTo: " + epsilon + " contains " + (this.low - that.low) + " is " + (epsilon contains (this.low - that.low)))
-//    println("almostEqualTo: " + epsilon + " contains " + (this.high - that.high) + " is " + (epsilon contains (this.high - that.high)))
+    //    println("almostEqualTo: " + epsilon + " contains " + (this.low - that.low) + " is " + (epsilon contains (this.low - that.low)))
+    //    println("almostEqualTo: " + epsilon + " contains " + (this.high - that.high) + " is " + (epsilon contains (this.high - that.high)))
     (epsilon contains (this.low - that.low)) &&
       (epsilon contains (this.high - that.high))
   }

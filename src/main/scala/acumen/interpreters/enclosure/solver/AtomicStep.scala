@@ -10,7 +10,7 @@ trait AtomicStep extends SolveVtE {
 
   type MaybeResult = Option[(Seq[UnivariateAffineEnclosure], Set[UncertainState])]
 
-  private def union(bs: Set[Box])(implicit rnd: Rounding) = bs.tail.fold(bs.head)(_ union _)
+  private def union(bs: Set[Box])(implicit rnd: Rounding) = bs.tail.fold(bs.head)(_ hull _)
 
   def bestOf(minImprovement: Double)(
     result: (Seq[UnivariateAffineEnclosure], Set[UncertainState]),

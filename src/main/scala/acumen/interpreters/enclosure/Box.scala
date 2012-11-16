@@ -17,7 +17,7 @@ class Box(val self: Map[VarName, Interval]) extends MapProxy[VarName, Interval] 
   }
 
   /** Component-wise union. */
-  def union(that: Box)(implicit rnd: Rounding): Box = {
+  def hull(that: Box)(implicit rnd: Rounding): Box = {
     require(keySet == that.keySet)
     map { case (k, v) => k -> that(k) /\ v }
   }
@@ -33,6 +33,12 @@ class Box(val self: Map[VarName, Interval]) extends MapProxy[VarName, Interval] 
     require(keySet contains name)
     val (l, r) = this(name).split
     Set(this + (name -> l), this + (name -> r))
+  }
+
+  /** Split the interval of each 'names' component. */
+  def split(names: VarName*)(implicit rnd: Rounding): Set[Box] = {
+    require(names.toSet subsetOf keySet)
+    names.foldLeft(Set(this)) { case (res, name) => res flatMap (_ split name) }
   }
 
   /** Split the interval of each component. */

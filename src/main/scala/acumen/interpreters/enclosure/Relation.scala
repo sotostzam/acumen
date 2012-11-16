@@ -217,7 +217,7 @@ abstract class Relation extends Contract {
       case _ => supportBoxes ++ queue.map(_._2)
     }
     supportHelper(Seq(), Seq((0, box))) match {
-      case b :: bs => Some(bs.foldLeft(b)(_ union _))
+      case b :: bs => Some(bs.foldLeft(b)(_ hull _))
       case _ => None
     }
   }

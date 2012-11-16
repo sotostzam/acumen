@@ -15,7 +15,41 @@ object Models {
     str
   }
   
-  val walid_1 = """
+  
+  lazy val fullers_phenomenon = """
+////////////////////////////////////////////////
+// This file is called fullers_phenomenon.acm //
+// It implements Example 3 from the paper     //
+// "Zeno hybrid systems" by Zhang et al.      //
+////////////////////////////////////////////////
+class Main(simulator) 
+ private 
+   mode := "q1"; 
+   x := 0; x' := 1; x'' := 1; 
+   C  := [0.001 .. 0.5];
+ end
+ switch mode
+   case "q1" assume x + C * x' * x' <= 0
+     x''  = 1;
+     if x + C * x' * x' > 0 mode := "q2" end;
+   case "q2" assume x - C * x' * x' >= 0 
+     x''  = -1;
+     if x - C * x' * x' < 0 mode := "q1" end;
+ end;
+ simulator.precision := 10;
+ simulator.startTime := 0;
+ simulator.endTime := 3.5;
+ simulator.initialConditionPadding := 0;
+ simulator.extraPicardIterations := 20;
+ simulator.maxPicardIterations := 200;
+ simulator.maxEventSequenceLength := 30;
+ simulator.minTimeStep := 0.001;
+ simulator.maxTimeStep := 0.01;
+ simulator.minImprovement := 0.1;
+end
+"""
+  
+  lazy val walid_1 = """
 //////////////////////////////////////////////
 // This file is called walid_1.acm          //
 // It is an example of a continuous system. //
