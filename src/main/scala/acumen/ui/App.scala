@@ -367,7 +367,8 @@ class App extends SimpleSwingApplication {
       state = st
   }
   
-  // FIXME: Possible Move me.
+  // FIXME: Move me into a seperate TraceTable class
+  // and move tableI out of plotter and into the new class
   val defaultTableModel = traceTable.model
   traceTable.listenTo(actor)
   traceTable.reactions += {
@@ -375,13 +376,20 @@ class App extends SimpleSwingApplication {
       st match {
         case Starting => 
           traceTable.model = defaultTableModel
-        case _:Ready if traceTable.model.isInstanceOf[TraceModel] => 
-          traceTable.model.asInstanceOf[TraceModel].fireTableStructureChanged()
+        //case _:Ready if traceTable.model.isInstanceOf[TraceModel] => 
+        //  traceTable.model.asInstanceOf[TraceModel].fireTableStructureChanged()
         case _ => 
       }
     case plot.TraceModelReady(model) =>
       traceTable.model = model
-      //model.fireTableStructureChanged()
+      model.fireTableStructureChanged()
+    case ViewChanged(idx) =>
+      if (idx == views.TABLE_IDX) {
+        traceView.plotPanel.tableI.enabled = true
+        traceView.plotPanel.plotter ! plot.Refresh
+      } else {
+        traceView.plotPanel.tableI.enabled = false
+      }
   }
 
   /* ----- initialisation ----- */
