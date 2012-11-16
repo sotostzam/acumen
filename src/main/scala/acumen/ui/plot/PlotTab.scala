@@ -155,6 +155,12 @@ class PlotTab extends BorderPanel
     case st:App.State       => appState = st; stateUpdateResponse
     case st:Plotter.State   => plotState = st; stateUpdateResponse
     case st:PlotPanel.State => panelState = st; stateUpdateResponse
+
+    case App.ViewChanged(idx) => 
+      if (idx == App.ui.views.PLOT_IDX)
+        check.action()
+      else 
+        plotPanel.plotI.enabled = false
   }
   def stateUpdateResponse = (plotState,appState) match {
     case _ if panelState == PlotPanel.Disabled => 

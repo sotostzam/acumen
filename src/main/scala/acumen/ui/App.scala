@@ -3,12 +3,9 @@ package ui
 
 import tl._
 import interpreter._
-
 import java.lang.Thread
-
 import scala.actors._
 import collection.JavaConversions._
-
 import java.awt.Font
 import java.awt.Color
 import java.awt.RenderingHints
@@ -22,11 +19,13 @@ import javax.swing.text._
 import javax.swing.KeyStroke
 import javax.swing.event.DocumentListener
 import javax.swing.event.DocumentEvent
-
 import swing._
 import swing.event._
-
-//import tl
+import java.awt.KeyboardFocusManager
+import java.awt.KeyEventDispatcher
+import java.awt.event.KeyEvent
+import scala.Boolean
+import java.awt.Toolkit
 
 // class Acumen = Everything that use to be GraphicalMain.  Graphical
 // Main can't be an object it will cause Swing components to be
@@ -120,13 +119,13 @@ class App extends SimpleSwingApplication {
     autoResizeMode = Table.AutoResizeMode.Off
   }
 
-  val traceView = new plot.PlotTab
-  val pointedView = new plot.PointedView(traceView)
+  val plotView = new plot.PlotTab
+  val pointedView = new plot.PointedView(plotView)
 
   val plotTab = new BorderPanel {
     add(new FlowPanel(FlowPanel.Alignment.Leading)(pointedView), 
 	BorderPanel.Position.North)
-    add(traceView, BorderPanel.Position.Center)
+    add(plotView, BorderPanel.Position.Center)
   }
   val newPlotTab = if (GraphicalMain.disableNewPlot) {
     null 
@@ -153,21 +152,29 @@ class App extends SimpleSwingApplication {
       new threeD.DisabledThreeDTab
   }
   
-  val rightPane = new TabbedPane {
+  val views = new TabbedPane {
     assert(pages.size == 0)
     pages += new TabbedPane.Page("Plot",     plotTab)
+    val PLOT_IDX = pages.last.index
     if (newPlotTab != null)
       pages += new TabbedPane.Page("New Plot", newPlotTab)
+    val NEW_PLOT_IDX = if (newPlotTab != null) pages.last.index else -1
     pages += new TabbedPane.Page("Trace",    traceTab)
+    val TABLE_IDX = pages.last.index
+    
     pages += new TabbedPane.Page("3D",       threeDtab)
     if (!threeDtab.enableTab)
       pages.last.enabled = false
-  }
 
+    selection.reactions += {
+      case SelectionChanged(_) =>
+        actor.publish(ViewChanged(selection.index))
+    }
+  }
 
   /* main component */
   val body = 
-    new SplitPane(Orientation.Vertical, leftPane, rightPane) { 
+    new SplitPane(Orientation.Vertical, leftPane, views) { 
       oneTouchExpandable = true
       resizeWeight = 0.2
     }
@@ -197,15 +204,15 @@ class App extends SimpleSwingApplication {
       contents += new Menu("Style") {
         val rb1 = new RadioMenuItem("") {
           selected = true
-          action = Action("Lines") { traceView.setPlotStyle(plot.Lines()) }
+          action = Action("Lines") { plotView.setPlotStyle(plot.Lines()) }
         }
         val rb2 = new RadioMenuItem("") {
           selected = false
-          action = Action("Dots") { traceView.setPlotStyle(plot.Dots()) }
+          action = Action("Dots") { plotView.setPlotStyle(plot.Dots()) }
         }
         val rb3 = new RadioMenuItem("") {
           selected = false
-          action = Action("Both") { traceView.setPlotStyle(plot.Both()) }
+          action = Action("Both") { plotView.setPlotStyle(plot.Both()) }
         }
         contents ++= Seq(rb1,rb2,rb3)
         new ButtonGroup(rb1,rb2,rb3)
@@ -213,19 +220,19 @@ class App extends SimpleSwingApplication {
       contents += new CheckMenuItem("") {
         selected = false
         action = Action("Automatically plot simulator fields") { 
-                    traceView.toggleSimulator(this.selected) 
+                    plotView.toggleSimulator(this.selected) 
                 }
       }
       contents += new CheckMenuItem("") {
         selected = false
         action = Action("Automatically plot child counter fields") { 
-                    traceView.toggleNextChild(this.selected) 
+                    plotView.toggleNextChild(this.selected) 
                 }
       }
       contents += new CheckMenuItem("") {
         selected = false
         action = Action("Automatically random number generator seeds") { 
-                    traceView.toggleSeeds(this.selected)
+                    plotView.toggleSeeds(this.selected)
                 }
       }
     }
@@ -359,26 +366,49 @@ class App extends SimpleSwingApplication {
       state = st
   }
   
-  // FIXME: Possible Move me.
-  val defTableModel = traceTable.model
+  // FIXME: Move me into a seperate TraceTable class
+  // and move tableI out of plotter and into the new class
+  val defaultTableModel = traceTable.model
   traceTable.listenTo(actor)
   traceTable.reactions += {
     case st:State => 
       st match {
         case Starting => 
-          traceTable.model = defTableModel
-        case _:Ready if traceTable.model.isInstanceOf[TraceModel] => 
-          traceTable.model.asInstanceOf[TraceModel].fireTableStructureChanged()
+          traceTable.model = defaultTableModel
+        //case _:Ready if traceTable.model.isInstanceOf[TraceModel] => 
+        //  traceTable.model.asInstanceOf[TraceModel].fireTableStructureChanged()
         case _ => 
       }
     case plot.TraceModelReady(model) =>
       traceTable.model = model
-      //model.fireTableStructureChanged()
+      model.fireTableStructureChanged()
+    case ViewChanged(idx) =>
+      if (idx == views.TABLE_IDX) {
+        plotView.plotPanel.tableI.enabled = true
+        plotView.plotPanel.plotter ! plot.Refresh
+      } else {
+        plotView.plotPanel.tableI.enabled = false
+      }
   }
+  
+  // Add application-wide keyboard shortcuts
+  
+  KeyboardFocusManager.getCurrentKeyboardFocusManager.addKeyEventDispatcher(new KeyEventDispatcher {
+      def dispatchKeyEvent(e: KeyEvent): Boolean =
+        if (e.getModifiers == Toolkit.getDefaultToolkit.getMenuShortcutKeyMask ||
+            e.getModifiers == java.awt.event.InputEvent.CTRL_MASK)
+            e.getKeyCode match {
+              case java.awt.event.KeyEvent.VK_R  => upperButtons.bPlay.doClick ; true
+              case java.awt.event.KeyEvent.VK_T  => upperButtons.bStop.doClick ; true
+              case java.awt.event.KeyEvent.VK_G  => upperButtons.bStep.doClick ; true
+              case _                             => false 
+            }
+        else false 
+    })
 
   /* ----- initialisation ----- */
 
-  actor.start()
+  actor.start
   codeArea.listenDocument
   console.log("<html>Welcome to Acumen.<br/>"+
               "Please see LICENSE file for licensing details.</html>")
@@ -386,7 +416,7 @@ class App extends SimpleSwingApplication {
   actor.publish(Stopped)
 
   if (GraphicalMain.autoPlay)
-    upperButtons.bPlay.doClick()
+    upperButtons.bPlay.doClick
 }
 
 object App {
@@ -409,39 +439,6 @@ object App {
   case object Resuming extends Playing
   case object Stopped extends Ready
   case object Paused extends Ready
-}
 
-object Supervisor extends DaemonActor {
-  case class Link(a: AbstractActor, n: String, restart: ()=>Unit)
-  val watching = new collection.mutable.ListMap[OutputChannel[Any],(String,()=>Unit)]
-  def act() = {
-    trapExit = true
-    //println("Supervisor Actor Starting.")
-    loop {react {
-      case Link(a,s,rs) =>
-        //println("Linking with " + s)
-        watching += ((a,(s,rs)))
-        link(a)
-      case Exit(a,ue:UncaughtException) =>
-        val (name,restart) = watching.getOrElse(sender, ("An Unknown",null))
-        println("*** " + name + " actor Died Unexpected!")
-        ue.cause.printStackTrace()
-        unlink(a)
-        if (restart != null) {
-          println("*** Restating " + name + ".")
-          restart()
-        }
-      case Exit(a,_) =>
-        val (name,_) = watching.getOrElse(sender,("An Unknown", null))
-        println("*** " + name + " actor Terminated!")
-        unlink(a)
-      case msg =>
-        println("*** " + "Supervisor Actor: Unknown msg: " + msg)
-    }}
-  }
-  start()
-  // watch the calling actor
-  def watch(a: AbstractActor, n: String, restart: ()=>Unit = null) =
-    this ! Link(a,n,restart)
+  case class ViewChanged(idx: Int) extends Event
 }
-

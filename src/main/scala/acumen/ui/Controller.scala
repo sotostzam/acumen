@@ -156,7 +156,7 @@ class Controller extends DaemonActor {
     val seqNum = model.incSeqNum()
     model.addData(d)
     // FIXME: This is still sick
-    App.ui.traceView.plotPanel.plotter ! plot.Refresh
+    App.ui.plotView.plotPanel.plotter ! plot.Refresh
       
     Swing.onEDT {
       // d.isInstanceOf[Iterable[CStore]] will not work due to type

@@ -17,6 +17,9 @@ case class Repaint(viewPort : Rectangle2D) extends PlotterAction
 object Repaint extends Repaint(null)
 
 class TableInput(val model : () => TraceModel) 
+{
+  @volatile var enabled = false
+}
 
 class PlotInput(val model : () => PlotModel,
                 val buffer : () => BufferedImage) 
@@ -66,7 +69,7 @@ class Plotter(tableI: TableInput, plotI: PlotInput)
     }
     reactWithin (0) {
       case msg : PlotterAction => 
-        //println("SKIPPING PLOT!")
+        println("SKIPPING UPDATE!")
         mergeMsgs(msg)
       case TIMEOUT => 
         App ! Busy
@@ -83,8 +86,10 @@ class Plotter(tableI: TableInput, plotI: PlotInput)
   }
 
   def refresh {
-    val tm = tableI.model()
-    App ! TraceModelReady(tm)
+    if (tableI.enabled) {
+      val tm = tableI.model()
+      App ! TraceModelReady(tm)
+    }
     replot
   }
 
