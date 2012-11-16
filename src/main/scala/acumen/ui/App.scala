@@ -3,12 +3,9 @@ package ui
 
 import tl._
 import interpreter._
-
 import java.lang.Thread
-
 import scala.actors._
 import collection.JavaConversions._
-
 import java.awt.Font
 import java.awt.Color
 import java.awt.RenderingHints
@@ -22,11 +19,13 @@ import javax.swing.text._
 import javax.swing.KeyStroke
 import javax.swing.event.DocumentListener
 import javax.swing.event.DocumentEvent
-
 import swing._
 import swing.event._
-
-//import tl
+import java.awt.KeyboardFocusManager
+import java.awt.KeyEventDispatcher
+import java.awt.event.KeyEvent
+import scala.Boolean
+import java.awt.Toolkit
 
 // class Acumen = Everything that use to be GraphicalMain.  Graphical
 // Main can't be an object it will cause Swing components to be
@@ -375,10 +374,25 @@ class App extends SimpleSwingApplication {
       traceTable.model = model
       //model.fireTableStructureChanged()
   }
+  
+  // Add application-wide keyboard shortcuts
+  
+  KeyboardFocusManager.getCurrentKeyboardFocusManager.addKeyEventDispatcher(new KeyEventDispatcher {
+      def dispatchKeyEvent(e: KeyEvent): Boolean =
+        if (e.getModifiers == Toolkit.getDefaultToolkit.getMenuShortcutKeyMask ||
+            e.getModifiers == java.awt.event.InputEvent.CTRL_MASK)
+            e.getKeyCode match {
+              case java.awt.event.KeyEvent.VK_R  => upperButtons.bPlay.doClick ; true
+              case java.awt.event.KeyEvent.VK_T  => upperButtons.bStop.doClick ; true
+              case java.awt.event.KeyEvent.VK_G  => upperButtons.bStep.doClick ; true
+              case _                             => false 
+            }
+        else false 
+    })
 
   /* ----- initialisation ----- */
 
-  actor.start()
+  actor.start
   codeArea.listenDocument
   console.log("<html>Welcome to Acumen.<br/>"+
               "Please see LICENSE file for licensing details.</html>")
@@ -386,7 +400,7 @@ class App extends SimpleSwingApplication {
   actor.publish(Stopped)
 
   if (GraphicalMain.autoPlay)
-    upperButtons.bPlay.doClick()
+    upperButtons.bPlay.doClick
 }
 
 object App {
