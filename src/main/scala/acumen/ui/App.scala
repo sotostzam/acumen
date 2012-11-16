@@ -153,21 +153,29 @@ class App extends SimpleSwingApplication {
       new threeD.DisabledThreeDTab
   }
   
-  val rightPane = new TabbedPane {
+  val views = new TabbedPane {
     assert(pages.size == 0)
     pages += new TabbedPane.Page("Plot",     plotTab)
+    val PLOT_IDX = pages.last.index
     if (newPlotTab != null)
       pages += new TabbedPane.Page("New Plot", newPlotTab)
+    val NEW_PLOT_IDX = if (newPlotTab != null) pages.last.index else -1
     pages += new TabbedPane.Page("Trace",    traceTab)
+    val TABLE_IDX = pages.last.index
+    
     pages += new TabbedPane.Page("3D",       threeDtab)
     if (!threeDtab.enableTab)
       pages.last.enabled = false
-  }
 
+    selection.reactions += {
+      case SelectionChanged(_) =>
+        actor.publish(ViewChanged(selection.index))
+    }
+  }
 
   /* main component */
   val body = 
-    new SplitPane(Orientation.Vertical, leftPane, rightPane) { 
+    new SplitPane(Orientation.Vertical, leftPane, views) { 
       oneTouchExpandable = true
       resizeWeight = 0.2
     }
@@ -360,13 +368,13 @@ class App extends SimpleSwingApplication {
   }
   
   // FIXME: Possible Move me.
-  val defTableModel = traceTable.model
+  val defaultTableModel = traceTable.model
   traceTable.listenTo(actor)
   traceTable.reactions += {
     case st:State => 
       st match {
         case Starting => 
-          traceTable.model = defTableModel
+          traceTable.model = defaultTableModel
         case _:Ready if traceTable.model.isInstanceOf[TraceModel] => 
           traceTable.model.asInstanceOf[TraceModel].fireTableStructureChanged()
         case _ => 
@@ -409,6 +417,8 @@ object App {
   case object Resuming extends Playing
   case object Stopped extends Ready
   case object Paused extends Ready
+
+  case class ViewChanged(idx: Int) extends Event
 }
 
 object Supervisor extends DaemonActor {
