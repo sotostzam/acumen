@@ -24,4 +24,20 @@ case class Field(components: Map[VarName, Expression]) {
     AffineEnclosure(x.domain, x.normalizedDomain, components.mapValues(_(x)))
   }
 
+  /**
+   * The components of the Jacobian matrix of the field.
+   */
+  def jacobian(component: VarName, variable: VarName)(implicit rnd: Rounding): Expression = {
+    require(components.keySet contains component, this + " must have a " + component + " component!")
+    components(component).dif(variable)
+  }
+  
+}
+
+object FieldApp extends App {
+
+  implicit val rnd = Rounding(10)
+
+  println(Field(Map("x" -> "x'", "x'" -> -(Variable("x") + Variable("x'")))).jacobian("x", "x'"))
+
 }
