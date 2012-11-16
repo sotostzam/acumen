@@ -25,7 +25,7 @@ class SaveAsDailog (parent: Component, chart:JFreeChart) extends Dialog(null) {
   modal = true
 
   private var currentDir = new File(".")
-  private def fresh = Files.getFreshFile(currentDir, "png")
+  private def fresh = Files.getFreshFile(currentDir, "pdf")
   private var currentWidth = 640
   private var currentHeight = 480
 

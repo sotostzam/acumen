@@ -1,7 +1,6 @@
 package acumen
 
 import acumen.interpreters.Common.classDef
-import acumen.interpreters.enclosure.UnivariateAffineEnclosure.plot
 import acumen.interpreters.enclosure.solver.Solver.defaultCallback
 import acumen.interpreters.enclosure.solver.FixedStepSolver
 import acumen.interpreters.enclosure.solver.HybridSystem
@@ -51,6 +50,7 @@ object Sandbox extends App with Extract with Solver with SolveVt {
   def twoMinusExpOfMinusT(t: Double) = 2 - scala.math.exp(-t) // DELETEME
   def fiveMinusFiveTSquare(t: Double) = 5 - 5 * scala.math.pow(t, 2) // DELETEME
 
-  UnivariateAffineEnclosure.plot("Plotter mockup")(null)(res)(new Rounding(10))
+  val plotter = new acumen.interpreters.enclosure.Plotter
+  plotter.plot("Plotter mockup")(null)(res)(new Rounding(10))
 
 }

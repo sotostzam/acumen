@@ -1,4 +1,4 @@
-package acumen.interpreters.enclosure.solver
+package acumen.interpreters.enclosure
 
 import java.awt.geom.Rectangle2D
 import java.awt.BasicStroke
@@ -23,25 +23,40 @@ import scala.collection.mutable.Map
 import javax.swing.event.ChangeListener
 import org.jfree.chart.event.ChartChangeListener
 import org.jfree.chart.event.ChartChangeEvent
-import acumen.interpreters.enclosure.AbstractFrame
 import javax.swing.JMenuItem
 import java.awt.event.ActionListener
 import java.awt.event.ActionEvent
 import acumen.ui.plot.SaveAsDailog
 import org.jfree.chart.axis.NumberAxis
+import acumen.interpreters.enclosure._
 
-abstract trait Plotter {
+class Plotter {
 
   var combinedPlot : CombinedDomainXYPlot = null
+  var combinedPlotAll = combinedPlot
   var subPlots: Map[String, (XYPlot, Int)] = Map[String, (XYPlot, Int)]()
   val enclosureRen = enclosureRenderer(Color.red)
   var chart : JFreeChart = null
   var chartPanel : ChartPanel = null
+  var popupLocation = new java.awt.Point(0,0)
 
   def initPlot = {
-    chartPanel = new ChartPanel(null, true, true, true, true, false)
     val saveAsPdf = new JMenuItem("Save as PDF")
-    val comp = this //TODO Find out if this is how this should be done
+    val hideOther = new JMenuItem("Hide Other Plots")
+    val hideThis = new JMenuItem("Hide This Plot")
+    val showAll = new JMenuItem("Show All Plots")
+    var curPlot : XYPlot = null
+    chartPanel = new ChartPanel(null, true, true, true, true, false) {
+      override def displayPopupMenu(x: Int, y: Int) {
+        curPlot = combinedPlot.findSubplot(chartPanel.getChartRenderingInfo().getPlotInfo(), 
+                                           new java.awt.Point(x,y))
+        val enableShowHide = curPlot != null
+        hideOther.setEnabled(enableShowHide)
+        hideThis.setEnabled(enableShowHide)
+        super.displayPopupMenu(x,y)
+      }
+    }
+
     saveAsPdf.addActionListener(new ActionListener() {
       def actionPerformed(event: ActionEvent) {
         val d = new SaveAsDailog(Component.wrap(chartPanel), chart)
@@ -49,16 +64,58 @@ abstract trait Plotter {
         d.open
       }
     })
-    chartPanel.getPopupMenu.add(saveAsPdf)
+    val popupMenu = chartPanel.getPopupMenu
+    popupMenu.addSeparator
+    popupMenu.add(saveAsPdf)
+    hideOther.addActionListener(new ActionListener() {
+      def actionPerformed(event: ActionEvent) {
+        if (combinedPlotAll == combinedPlot)
+          combinedPlotAll = combinedPlot.clone.asInstanceOf[CombinedDomainXYPlot]
+        import scala.collection.JavaConversions._
+        val oldPlots = combinedPlot.getSubplots.toArray
+        for (p <- oldPlots) {
+          if (p != curPlot)
+            combinedPlot.remove(p.asInstanceOf[XYPlot])
+        }
+      }
+    })
+    hideThis.addActionListener(new ActionListener() {
+      def actionPerformed(event: ActionEvent) {
+        if (combinedPlotAll == combinedPlot)
+          combinedPlotAll = combinedPlot.clone.asInstanceOf[CombinedDomainXYPlot]
+        import scala.collection.JavaConversions._
+        val oldPlots = combinedPlot.getSubplots.toArray
+        for (p <- oldPlots) {
+          if (p == curPlot)
+            combinedPlot.remove(p.asInstanceOf[XYPlot])
+        }
+      }
+    })
+    showAll.addActionListener(new ActionListener() {
+      def actionPerformed(event: ActionEvent) {
+        resetPlotView(combinedPlotAll)
+      }
+    })
+    popupMenu.addSeparator
+    popupMenu.add(hideOther)
+    popupMenu.add(hideThis)
+    popupMenu.add(showAll)
     chartPanel.setBackground(Color.white)
     resetPlot
   }
+  
+  def newCombinedPlot = new CombinedDomainXYPlot(new NumberAxis("Time"))
+
+  def resetPlotView(pl: CombinedDomainXYPlot) = { 
+    combinedPlot = pl
+    chart = new JFreeChart("", JFreeChart.DEFAULT_TITLE_FONT, pl, false)
+    chartPanel.setChart(chart)
+  }
 
   def resetPlot = {
-    combinedPlot = new CombinedDomainXYPlot(new NumberAxis("Time"))
+    resetPlotView(newCombinedPlot)
+    combinedPlotAll = combinedPlot
     subPlots.clear
-    chart = new JFreeChart("", JFreeChart.DEFAULT_TITLE_FONT, combinedPlot, false);
-    chartPanel.setChart(chart)
   }
   
   def createFrame(frametitle: String) = {
@@ -80,7 +137,7 @@ abstract trait Plotter {
     //    stepSize: Double,
     extraSamples: Int,
     legendLabel: String,
-    fun: Double => Double): TableXYDataset = {
+    fun: Double => Double): XYSeriesCollection = {
     val lower: XYSeries = new XYSeries(legendLabel, false, false)
     val upper: XYSeries = new XYSeries("HIDE_ME", false, false)
     lower.add(intervalStart, lowerApproximation(intervalStart));
@@ -92,7 +149,7 @@ abstract trait Plotter {
     }
     lower.add(intervalEnd, lowerApproximation(intervalEnd));
     upper.add(intervalEnd, upperApproximation(intervalEnd))
-    val res: DefaultTableXYDataset = new DefaultTableXYDataset()
+    val res = new XYSeriesCollection()
     res.addSeries(lower)
     res.addSeries(upper)
     res.setIntervalWidth(0.01)
@@ -108,10 +165,8 @@ abstract trait Plotter {
     extraSamples: Int,
     color: Color,
     legendLabel: String,
-    frame:AbstractFrame,
     fun: Double => Double) {
 	
-    combinedPlot.setNotify(false)
     val (subPlot, numberOfDatasets) = subPlots.get(legendLabel) match {
       case Some(t) => t
       case None => {
@@ -133,9 +188,7 @@ abstract trait Plotter {
     subPlot.setRenderer(numberOfDatasets, enclosureRen)
     subPlots(legendLabel) = (subPlot, numberOfDatasets + 1)
     
-    combinedPlot.setNotify(true)
-    
-    frame.invalidate
+    chartPanel.invalidate
   }
 
   //TODO Make this visually merge overlapping enclosures into a single area with one outline.
@@ -166,5 +219,34 @@ abstract trait Plotter {
       document.close()
     }
   }
+
+  // FIXME?: Maybe move these two methods into a
+  // UnivariateAffineEnclosurePlotter to keep plotter from depending
+  // on UnivariateAffineEnclosure, than again, maybe its not worth it.
+  // -- kevina
+
+  def plotUAE(e: UnivariateAffineEnclosure, fun: Double => Double)(implicit rnd: Rounding) = {
+    val color = Color.red
+    for ((varName, it) <- e.components) {
+      def low(t: Double) = it.low(t) match { case Interval(lo, _) => lo.doubleValue }
+      def high(t: Double) = it.high(t) match { case Interval(_, hi) => hi.doubleValue }
+      val dom = it.domain
+      val (lo, hi) = dom match { case Interval(l, h) => (l.doubleValue, h.doubleValue) }
+      addEnclosure(lo, hi, high, low, 0, color, varName, fun)
+    }
+  }
+
+  def plot(es: Seq[UnivariateAffineEnclosure], fun: Double => Double)(implicit rnd: Rounding) : Unit = {
+    combinedPlot.setNotify(false)
+    for (e <- es) plotUAE(e, fun)
+    combinedPlot.setNotify(true)
+  }
+
+  // Plot into a new frame
+  def plot(frametitle: String)(fun: Double => Double)(es: Seq[UnivariateAffineEnclosure])(implicit rnd: Rounding) : Unit = {
+    val frame = createFrame(frametitle)
+    plot(es, fun)
+  }
+
 
 }

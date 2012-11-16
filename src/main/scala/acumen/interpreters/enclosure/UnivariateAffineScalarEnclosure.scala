@@ -1,7 +1,6 @@
 package acumen.interpreters.enclosure
 
 import Interval._
-import acumen.interpreters.enclosure.solver.Plotter
 import acumen.ui.interpreter.Enclosure
 import java.awt.Color
 
@@ -219,7 +218,7 @@ case class UnivariateAffineScalarEnclosure private[enclosure] (
 }
 
 // TODO improve how the plotting is done
-object UnivariateAffineScalarEnclosure extends Plotter {
+object UnivariateAffineScalarEnclosure {
 
   /** Convenience method, normalizes the domain. */
   private[enclosure] def apply(domain: Interval, constant: Interval, coefficient: Interval)(implicit rnd: Rounding): UnivariateAffineScalarEnclosure =
@@ -248,19 +247,19 @@ object UnivariateAffineScalarEnclosure extends Plotter {
       that.coefficients(name))
   }
 
-  def plot(them: (Color, UnivariateAffineScalarEnclosure)*)(implicit rnd: Rounding): Unit =
-    plot("Picard plotter")(them: _*)
+  // def plot(them: (Color, UnivariateAffineScalarEnclosure)*)(implicit rnd: Rounding): Unit =
+  //   plot("Picard plotter")(them: _*)
 
-  private def plot(frametitle: String)(them: (Color, UnivariateAffineScalarEnclosure)*)(implicit rnd: Rounding) = {
-    val f = createFrame(frametitle)
-    for ((color, it) <- them) {
-      def low(t: Double) = it.low(t) match { case Interval(lo, _) => lo.doubleValue }
-      def high(t: Double) = it.high(t) match { case Interval(_, hi) => hi.doubleValue }
-      val dom = it.domain
-      val (lo, hi) = dom match { case Interval(l, h) => (l.doubleValue, h.doubleValue) }
-      addEnclosure(lo, hi, high, low, 0, color, "", AbstractFrame.wrap(f), null)
-    }
-    f.pack
-  }
+  // private def plot(frametitle: String)(them: (Color, UnivariateAffineScalarEnclosure)*)(implicit rnd: Rounding) = {
+  //   val f = createFrame(frametitle)
+  //   for ((color, it) <- them) {
+  //     def low(t: Double) = it.low(t) match { case Interval(lo, _) => lo.doubleValue }
+  //     def high(t: Double) = it.high(t) match { case Interval(_, hi) => hi.doubleValue }
+  //     val dom = it.domain
+  //     val (lo, hi) = dom match { case Interval(l, h) => (l.doubleValue, h.doubleValue) }
+  //     addEnclosure(lo, hi, high, low, 0, color, "", AbstractFrame.wrap(f), null)
+  //   }
+  //   f.pack
+  // }
 
 }

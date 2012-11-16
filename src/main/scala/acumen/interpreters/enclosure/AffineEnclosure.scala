@@ -1,7 +1,6 @@
 package acumen.interpreters.enclosure
 
 import Types._
-import acumen.interpreters.enclosure.solver.Plotter
 
 /**
  * Type used to approximate vector-valued functions over a domain.
@@ -155,7 +154,7 @@ case class AffineEnclosure private[enclosure] (
 
 }
 
-object AffineEnclosure extends Plotter {
+object AffineEnclosure {
 
   /** Convenience method, normalizes the domain. */
   private[enclosure] def apply(domain: Box, components: Map[VarName, AffineScalarEnclosure])(implicit rnd: Rounding): AffineEnclosure =

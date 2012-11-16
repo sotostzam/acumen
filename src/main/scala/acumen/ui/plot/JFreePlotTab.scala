@@ -59,13 +59,13 @@ import java.io.FileOutputStream
 import com.itextpdf.awt.DefaultFontMapper
 import interpreters.enclosure.UnivariateAffineEnclosure
 import scala.collection.Seq
-import interpreters.enclosure.AbstractFrame
 import interpreters.enclosure.Rounding
 
 class JFreePlotTab extends BorderPanel
 {
-  def plotPanel = UnivariateAffineEnclosure.chartPanel
-  UnivariateAffineEnclosure.initPlot
+  val plotter = new interpreters.enclosure.Plotter
+  def plotPanel = plotter.chartPanel
+  plotter.initPlot
   
   val resetZoom = new Action("Reset Zoom") {
     icon = Icons.home
@@ -205,18 +205,14 @@ class JFreePlotTab extends BorderPanel
   }
   
   private def plot: Unit = {
-    UnivariateAffineEnclosure.resetPlot
+    plotter.resetPlot
     if (App.ui.controller.model == null) return
     val m = getModel
     if (m == null) return
     val es = m.getNewPlottables.asInstanceOf[Seq[UnivariateAffineEnclosure]]
     if (es == null) return
     println("New Plot Working!")
-    def wrapper = new AbstractFrame {
-      def add(c: JComponent) = plotPanel.add(c)
-      def invalidate = plotPanel.invalidate
-    }
-    for (e <- es) UnivariateAffineEnclosure.plotUAE(e, wrapper, null)(new Rounding(10))
+    plotter.plot(es, null)(new Rounding(10))
     plotPanel.validate
     println("New Plot Done!")
   }
