@@ -137,7 +137,7 @@ class Plotter {
     //    stepSize: Double,
     extraSamples: Int,
     legendLabel: String,
-    fun: Double => Double): TableXYDataset = {
+    fun: Double => Double): XYSeriesCollection = {
     val lower: XYSeries = new XYSeries(legendLabel, false, false)
     val upper: XYSeries = new XYSeries("HIDE_ME", false, false)
     lower.add(intervalStart, lowerApproximation(intervalStart));
@@ -149,7 +149,7 @@ class Plotter {
     }
     lower.add(intervalEnd, lowerApproximation(intervalEnd));
     upper.add(intervalEnd, upperApproximation(intervalEnd))
-    val res: DefaultTableXYDataset = new DefaultTableXYDataset()
+    val res = new XYSeriesCollection()
     res.addSeries(lower)
     res.addSeries(upper)
     res.setIntervalWidth(0.01)
