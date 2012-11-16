@@ -90,7 +90,7 @@ case class AffineScalarEnclosure private[enclosure] (
   def union(that: AffineScalarEnclosure)(implicit rnd: Rounding) = {
     assert(this.domain == that.domain, "Union can only be taken of enclosures over the same domain.")
     assert(this.dimension == that.dimension, "Union is only implemented for enclosures of dimension 1.")
-    val Seq(lo, hi) = Box.corners(domain)
+    val Seq(lo, hi) = domain.corners
     if (lo == hi) this(lo) /\ that(lo)
     else {
       val thisLo = this.low

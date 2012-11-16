@@ -44,6 +44,17 @@ class Box(val self: Map[VarName, Interval]) extends MapProxy[VarName, Interval] 
     this.forall { case (name, interval) => interval almostEqualTo that(name) }
   }
 
+  /** The corners of the box. */
+  def corners = cornersHelper(this, Seq(Box.empty))
+  private def cornersHelper(dom: Map[VarName, Interval], corners: Seq[Map[VarName, Interval]]): Seq[Map[VarName, Interval]] =
+    dom.keys.toList match {
+      case Nil => corners
+      case k :: ks => cornersHelper(dom - k, corners.flatMap(corner => {
+        val (lo, hi) = dom(k).bounds
+        Seq(corner + (k -> lo), corner + (k -> hi))
+      }))
+    }
+
 }
 object Box {
 
@@ -61,15 +72,7 @@ object Box {
   def normalize(box: Box)(implicit rnd: Rounding): Box = box.mapValues { i => 0 /\ i.width.high }
 
   /** The corners of the box. */
-  def corners(box: Box) = cornersHelper(box, Seq(Box.empty))
-  private def cornersHelper(dom: Map[VarName, Interval], corners: Seq[Map[VarName, Interval]]): Seq[Map[VarName, Interval]] =
-    dom.keys.toList match {
-      case Nil => corners
-      case k :: ks => cornersHelper(dom - k, corners.flatMap(corner => {
-        val (lo, hi) = dom(k).bounds
-        Seq(corner + (k -> lo), corner + (k -> hi))
-      }))
-    }
+  def corners(box: Box) = box.corners
 
   implicit def toBox(m: Map[VarName, Interval]): Box = new Box(m)
 
