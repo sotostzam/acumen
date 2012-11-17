@@ -46,7 +46,13 @@ class PlotPanel(pub:Publisher) extends Panel
   private var viewPort : Rectangle2D = null
   private val undoStack = new Stack[Rectangle2D] 
 
-  def getModel()  = {App.ui.controller.model.getPlotModel}
+  def getModel()  = {
+    val m = App.ui.controller.model
+    if (m != null)
+      m.getPlotModel
+    else
+      null
+  }
   val plotI = new PlotInput(getModel,mkBuffer)
 
   override def paint(g : Graphics2D) = {

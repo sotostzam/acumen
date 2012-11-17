@@ -98,8 +98,10 @@ class Plotter(tableI: TableInput, plotI: PlotInput)
 
   def replot = if (plotI.enabled) {
     pm = plotI.model()
-    pd = new PlotData(plotI.parms,pm)
-    repaint()
+    if (pm != null) {
+      pd = new PlotData(plotI.parms,pm)
+      repaint()
+    }
   }
 
   def repaint(vp: Rectangle2D = null) = {
