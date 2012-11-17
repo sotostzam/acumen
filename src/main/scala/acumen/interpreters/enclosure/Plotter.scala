@@ -45,6 +45,7 @@ class Plotter {
     val hideOther = new JMenuItem("Hide Other Plots")
     val hideThis = new JMenuItem("Hide This Plot")
     val showAll = new JMenuItem("Show All Plots")
+    val mergeVisible = new JMenuItem("Merge Visible Plots")
     var curPlot : XYPlot = null
     chartPanel = new ChartPanel(null, true, true, true, true, false) {
       override def displayPopupMenu(x: Int, y: Int) {
@@ -53,6 +54,7 @@ class Plotter {
         val enableShowHide = curPlot != null
         hideOther.setEnabled(enableShowHide)
         hideThis.setEnabled(enableShowHide)
+        mergeVisible.setEnabled(combinedPlot.getSubplots.size > 1)
         super.displayPopupMenu(x,y)
       }
     }
@@ -96,10 +98,31 @@ class Plotter {
         resetPlotView(combinedPlotAll)
       }
     })
+    mergeVisible.addActionListener(new ActionListener() {
+      def actionPerformed(event: ActionEvent) {
+        if (combinedPlotAll == combinedPlot)
+          combinedPlotAll = combinedPlot.clone.asInstanceOf[CombinedDomainXYPlot]
+        val mergedPlot = initXYPlot("")
+        var dataSetIndex = 0
+        for (p <- combinedPlot.getSubplots.toArray) {
+          val xyp = p.asInstanceOf[XYPlot]
+          for (i <- 0 to xyp.getDatasetCount - 1) {
+            val dataSet = xyp getDataset i
+            mergedPlot setDataset (dataSetIndex, dataSet)
+            mergedPlot setRenderer (dataSetIndex, enclosureRen)
+            dataSetIndex += 1
+          }
+          val newPlot = newCombinedPlot
+          newPlot add mergedPlot
+          resetPlotView(newPlot)
+        }
+      }
+    })
     popupMenu.addSeparator
     popupMenu.add(hideOther)
     popupMenu.add(hideThis)
     popupMenu.add(showAll)
+    popupMenu.add(mergeVisible)
     chartPanel.setBackground(Color.white)
     resetPlot
   }
@@ -111,7 +134,7 @@ class Plotter {
     chart = new JFreeChart("", JFreeChart.DEFAULT_TITLE_FONT, pl, false)
     chartPanel.setChart(chart)
   }
-
+  
   def resetPlot = {
     resetPlotView(newCombinedPlot)
     combinedPlotAll = combinedPlot
@@ -170,12 +193,7 @@ class Plotter {
     val (subPlot, numberOfDatasets) = subPlots.get(legendLabel) match {
       case Some(t) => t
       case None => {
-        val p = new XYPlot()
-        p.setDomainGridlinesVisible(true)
-        p.setRangeGridlinesVisible(true)
-        p.setRangeGridlinePaint(Color.gray)
-        p.setDomainGridlinePaint(Color.gray)
-        p.setRangeAxis(0,new NumberAxis(legendLabel))
+        val p = initXYPlot(legendLabel)
         combinedPlot.add(p, 1)
         (p, 0)
       }
@@ -189,6 +207,16 @@ class Plotter {
     subPlots(legendLabel) = (subPlot, numberOfDatasets + 1)
     
     chartPanel.invalidate
+  }
+  
+  def initXYPlot(legendLabel: String) = {
+    val p = new XYPlot()
+    p.setDomainGridlinesVisible(true)
+    p.setRangeGridlinesVisible(true)
+    p.setRangeGridlinePaint(Color.gray)
+    p.setDomainGridlinePaint(Color.gray)
+    p.setRangeAxis(0, new NumberAxis(legendLabel))
+    p
   }
 
   //TODO Make this visually merge overlapping enclosures into a single area with one outline.
