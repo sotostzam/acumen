@@ -183,7 +183,7 @@ class ThreeDView() extends BorderPanel {
 
 /* Timer for 3D-visualization, sends message to 3D renderer to coordinate animation */
 class ScalaTimer(receiver: _3DDisplay, endTime: Double,
-  playSpeed: Double) extends Publisher with Actor {
+                 playSpeed: Double) extends Publisher with Actor {
   var pause = true
   var destroy = false
   var sleepTime = 0.0
@@ -338,7 +338,7 @@ class _3DDisplay(app: ThreeDView, slider: Slider3d,
    *
    */
   def addToBranches(branches: Map[List[_], BranchGroup],
-    trans: Map[List[_], TransformGroup], key: List[_]) {
+                    trans: Map[List[_], TransformGroup], key: List[_]) {
     var tr = new Transform3D()
     val id = key
     trans += (id -> new TransformGroup(tr))
@@ -351,7 +351,8 @@ class _3DDisplay(app: ThreeDView, slider: Slider3d,
    * Moving and rotating the object
    */
   def transformObject(id: List[_], trans: Map[List[_], TransformGroup],
-    buffer: scala.collection.mutable.Buffer[List[_]], currentFrame: Int) {
+                      buffer: scala.collection.mutable.Buffer[List[_]], 
+                      currentFrame: Int) {
     var tempPosition = Array[Double](0.0, 0.0, 0.0)
     var tempAngle = Array[Double](0.0, 0.0, 0.0)
     /* Find the corresponding index of the object */
@@ -385,7 +386,8 @@ class _3DDisplay(app: ThreeDView, slider: Slider3d,
    * If so, delete it and create a new one
    */
   def checkLook(id: List[_], lastLook: Map[List[_], List[_]],
-    buffer: scala.collection.mutable.Buffer[List[_]], currentFrame: Int, frame: List[_]) {
+                buffer: scala.collection.mutable.Buffer[List[_]], 
+                currentFrame: Int, frame: List[_]) {
     if (lastLook.contains(id)) {
       if (lastLook(id)(0) != bufferSize(frame) ||
         lastLook(id)(1) != bufferColor(frame) ||
@@ -438,7 +440,7 @@ class _3DDisplay(app: ThreeDView, slider: Slider3d,
    * Add an 3D-object to the scene
    */
   def addObj(c: List[_], buffer: scala.collection.mutable.Buffer[List[_]],
-    currentFrame: Int): BranchGroup = {
+             currentFrame: Int): BranchGroup = {
     var color = List[Double](1.0, 1.0, 1.0)
     var size = List[Double](1.0)
     var name = " "
