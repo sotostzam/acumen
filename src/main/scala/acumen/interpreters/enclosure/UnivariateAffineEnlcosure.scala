@@ -102,9 +102,8 @@ object UnivariateAffineEnclosure {
   }
 
   /** Takes the union of them enclosures */
-  def unionThem(them: Seq[UnivariateAffineEnclosure]): Seq[UnivariateAffineEnclosure] = them match {
-    case l :: (tail @ (r :: rest)) => unionThem((l union r) :: rest)
-    case _ => them
-  }
+  def unionThem(them: Seq[UnivariateAffineEnclosure]): Seq[UnivariateAffineEnclosure] =
+    if (them isEmpty) them
+    else Seq(them.tail.fold(them.head)(_ union _))
 
 }
