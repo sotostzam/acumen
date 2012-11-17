@@ -180,20 +180,22 @@ class App extends SimpleSwingApplication {
     }
   
   /* menu bar */
+
+  val enabledWhenStopped = scala.collection.mutable.Buffer[MenuItem]()
  
   val bar = new MenuBar {
     contents += new Menu("File") {
       mnemonic = Key.F
       contents += new MenuItem(Action("New")({ codeArea.newFile })) 
-                      { mnemonic = Key.N }
+                      { mnemonic = Key.N; enabledWhenStopped += this}
       contents += new MenuItem(Action("Open")({ codeArea.openFile(codeArea.currentDir) })) 
-                      { mnemonic = Key.O }
+                      { mnemonic = Key.O; enabledWhenStopped += this}
       contents += new MenuItem(Action("Save")(codeArea.saveFile))
                       { mnemonic = Key.S }
       contents += new MenuItem(Action("Save As")(codeArea.saveFileAs))
                       { mnemonic = Key.A }
       contents += new MenuItem(Action("Recover")({ codeArea.openFile(Files.autoSavedDir) }))
-                      { mnemonic = Key.R }
+                      { mnemonic = Key.R; enabledWhenStopped += this}
       contents += new MenuItem(Action("Exit")(exit))
                       { mnemonic = Key.E }
     }
@@ -242,6 +244,7 @@ class App extends SimpleSwingApplication {
       val rb1 = new RadioMenuItem("") {
         selected = !GraphicalMain.useEnclosures
         action = Action("Purely Functional") { setInterpreter(new CStoreCntrl(interpreters.reference.Interpreter)) }
+        enabledWhenStopped += this
       }
       val rb2 = new RadioMenuItem("") {
         selected = false
@@ -262,10 +265,12 @@ class App extends SimpleSwingApplication {
           }
           go
         }
+        enabledWhenStopped += this
       }
       val rb3 = new RadioMenuItem("") {
         selected = GraphicalMain.useEnclosures
         action = Action("Enclosure") { setInterpreter(new EnclosureCntrl(interpreters.enclosure.Interpreter)) }
+        enabledWhenStopped += this
       }
       contents ++= Seq(rb1,rb2,rb3)
       new ButtonGroup(rb1,rb2,rb3)
@@ -347,6 +352,17 @@ class App extends SimpleSwingApplication {
   controller.start()
 
   listenTo(actor)
+  // disable and enable menu items
+  reactions += {
+    case st:State =>
+      st match {
+        case Stopped =>
+          for (el <- enabledWhenStopped) el.enabled = true
+        case _ =>
+          for (el <- enabledWhenStopped) el.enabled = false
+      }
+  }
+  // update console
   reactions += {
     case st:State => 
       //println("GM: New State: " + st)
@@ -365,6 +381,7 @@ class App extends SimpleSwingApplication {
       }
       state = st
   }
+          
   
   // FIXME: Move me into a seperate TraceTable class
   // and move tableI out of plotter and into the new class
