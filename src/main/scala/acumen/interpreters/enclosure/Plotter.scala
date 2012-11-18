@@ -104,14 +104,20 @@ class Plotter {
           combinedPlotAll = combinedPlot.clone.asInstanceOf[CombinedDomainXYPlot]
         val mergedPlot = initXYPlot("")
         var dataSetIndex = 0
-        for (p <- combinedPlot.getSubplots.toArray) {
+        var pi = 0
+        val varNames = Seq[String]()
+        val sps = combinedPlot.getSubplots.toArray
+        for (p <- sps) {
           val xyp = p.asInstanceOf[XYPlot]
-          for (i <- 0 to xyp.getDatasetCount - 1) {
+          val c = xyp.getDatasetCount - 1
+          val ren = enclosureRenderer(Color.getHSBColor((1.0f*pi)/(1.0f*sps.size), 1.0f, 0.7f))
+          for (i <- 0 until c) {
             val dataSet = xyp getDataset i
             mergedPlot setDataset (dataSetIndex, dataSet)
-            mergedPlot setRenderer (dataSetIndex, enclosureRen)
+            mergedPlot setRenderer (dataSetIndex, ren)
             dataSetIndex += 1
           }
+          pi += 1
           val newPlot = newCombinedPlot
           newPlot add mergedPlot
           resetPlotView(newPlot)
