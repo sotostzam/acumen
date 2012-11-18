@@ -52,7 +52,8 @@ proguardOptions += "-keep class javax.media.j3d.**"
 
 // temporary hack to get proguard working with enclosure code
 proguardOptions ++= Seq("-keep class org.jfree.resources.**",
-                        "-keep class org.jfree.chart.resources.**")
+                        "-keep class org.jfree.chart.resources.**",
+                        "-keep class org.fife.**")
 
 // for faster jar creation (but larger file)
 proguardDefaultArgs += "-dontoptimize"

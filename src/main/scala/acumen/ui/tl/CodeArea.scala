@@ -2,29 +2,32 @@ package acumen
 package ui
 package tl
 
+import java.awt.event.ActionEvent
+import java.awt.BorderLayout
 import java.awt.Font
 import java.io._
-import javax.swing.{JOptionPane, KeyStroke}
-import javax.swing.event.{DocumentEvent, DocumentListener}
-import javax.swing.text._
-import javax.swing.undo._
+import java.util.HashSet
+
 import scala.collection.JavaConversions._
 import scala.swing._
-import org.fife.ui.rsyntaxtextarea.RSyntaxTextArea
-import java.awt.LayoutManager
-import java.awt.BorderLayout
-import org.fife.ui.rsyntaxtextarea.SyntaxConstants
-import org.fife.ui.rsyntaxtextarea.TokenMakerFactory
+import scala.xml.XML
+
+import org.fife.ui.autocomplete.AutoCompletion
+import org.fife.ui.autocomplete.BasicCompletion
+import org.fife.ui.autocomplete.DefaultCompletionProvider
+import org.fife.ui.rsyntaxtextarea.templates.StaticCodeTemplate
 import org.fife.ui.rsyntaxtextarea.AbstractTokenMakerFactory
+import org.fife.ui.rsyntaxtextarea.RSyntaxTextArea
+import org.fife.ui.rsyntaxtextarea.TokenMakerFactory
+
 import acumen.ui.App
 import acumen.ui.Files
-import org.fife.ui.autocomplete.AutoCompletion
-import org.fife.ui.autocomplete.DefaultCompletionProvider
-import org.fife.ui.autocomplete.BasicCompletion
-import java.util.Scanner
-import scala.xml.XML
-import org.fife.ui.rsyntaxtextarea.templates.StaticCodeTemplate
-import java.awt.event.ActionEvent
+import javax.swing.event.DocumentEvent
+import javax.swing.event.DocumentListener
+import javax.swing.text._
+import javax.swing.undo._
+import javax.swing.JOptionPane
+import javax.swing.KeyStroke
 
 class CodeArea extends Panel { //EditorPane {
 
@@ -64,12 +67,14 @@ class CodeArea extends Panel { //EditorPane {
   def createCompletionProvider(syntaxTextArea: RSyntaxTextArea) = {
     val cp = new DefaultCompletionProvider
     val style = syntaxTextArea.getSyntaxEditingStyle
-    val acumenTokenMakerSpec = 
-      XML.load(getClass.getClassLoader.getResource("acumen/ui/tl/AcumenTokenMaker.xml").getFile)
-    for (val keyword <- acumenTokenMakerSpec \\ "keyword")
-      cp.addCompletion(new BasicCompletion(cp, keyword.text))
-    for (val keyword <- acumenTokenMakerSpec \\ "function")
-      cp.addCompletion(new BasicCompletion(cp, keyword.text))
+    val acumenTokenMakerSpec = XML.load(getClass.getClassLoader.getResourceAsStream("acumen/ui/tl/AcumenTokenMaker.xml"))
+    if (acumenTokenMakerSpec != null) { // Try to read keywords and functions from XML
+      for (val keyword <- acumenTokenMakerSpec \\ "keyword")
+        cp.addCompletion(new BasicCompletion(cp, keyword.text))
+      for (val keyword <- acumenTokenMakerSpec \\ "function")
+        cp.addCompletion(new BasicCompletion(cp, keyword.text))
+    } // If this is unsuccessful, add the reserved words specified in the parser
+    else for (k <- Parser.lexical.reserved) cp.addCompletion(new BasicCompletion(cp, k))
     cp.addCompletion(new BasicCompletion(cp, "simulator"))
     cp
   }
