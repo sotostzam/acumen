@@ -178,25 +178,24 @@ class Plotter {
     frame
   }
 
-  def createEnclosureDataset(
-    intervalStart: Double,
-    intervalEnd: Double,
-    upperApproximation: Double => Double,
-    lowerApproximation: Double => Double,
-    //    stepSize: Double,
-    extraSamples: Int,
-    legendLabel: String,
-    fun: Double => Double): XYSeriesCollection = {
+  def createEnclosureDataset(intervalStart: Double,
+                             intervalEnd: Double,
+                             upperApproximation: Double => Double,
+                             lowerApproximation: Double => Double,
+                             //stepSize: Double,
+                             extraSamples: Int,
+                             legendLabel: String,
+                             fun: Double => Double): XYSeriesCollection = {
     val lower: XYSeries = new XYSeries(legendLabel, false, false)
     val upper: XYSeries = new XYSeries("HIDE_ME", false, false)
-    lower.add(intervalStart, lowerApproximation(intervalStart));
+    lower.add(intervalStart, lowerApproximation(intervalStart))
     upper.add(intervalStart, upperApproximation(intervalStart))
     for (i <- 1 to extraSamples) {
       val x = (intervalStart + intervalEnd) * (i.doubleValue) / (extraSamples + 1)
       lower.add(x, lowerApproximation(x))
       upper.add(x, upperApproximation(x))
     }
-    lower.add(intervalEnd, lowerApproximation(intervalEnd));
+    lower.add(intervalEnd, lowerApproximation(intervalEnd))
     upper.add(intervalEnd, upperApproximation(intervalEnd))
     val res = new XYSeriesCollection()
     res.addSeries(lower)
@@ -205,17 +204,16 @@ class Plotter {
     res
   }
 
-  def addEnclosure(
-    intervalStart: Double,
-    intervalEnd: Double,
-    upperApproximation: Double => Double,
-    lowerApproximation: Double => Double,
-    //    stepSize: Double,
-    extraSamples: Int,
-    color: Color,
-    legendLabel: String,
-    fun: Double => Double) {
-	
+  def addEnclosure(intervalStart: Double, 
+                   intervalEnd: Double,
+                   upperApproximation: Double => Double,
+                   lowerApproximation: Double => Double,
+                   //stepSize: Double,
+                   extraSamples: Int,
+                   color: Color,
+                   legendLabel: String,
+                   fun: Double => Double) {
+    
     val (subPlot, numberOfDatasets) = subPlots.get(legendLabel) match {
       case Some(t) => t
       case None => {
@@ -224,8 +222,9 @@ class Plotter {
         (p, 0)
       }
     }
-        
-    val e = createEnclosureDataset(intervalStart, intervalEnd, upperApproximation, lowerApproximation, extraSamples, //stepSize,
+
+    val e = createEnclosureDataset(intervalStart, intervalEnd,
+      upperApproximation, lowerApproximation, extraSamples, //stepSize,
       legendLabel, fun)
 
     subPlot.setDataset(numberOfDatasets, e)
