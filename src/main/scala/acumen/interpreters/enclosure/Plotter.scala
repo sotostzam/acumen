@@ -1,6 +1,5 @@
 package acumen.interpreters.enclosure
 
-import java.awt.geom.Rectangle2D
 import java.awt.BasicStroke
 import java.awt.Color
 import java.io.FileOutputStream
@@ -29,6 +28,8 @@ import java.awt.event.ActionEvent
 import acumen.ui.plot.SaveAsDailog
 import org.jfree.chart.axis.NumberAxis
 import acumen.interpreters.enclosure._
+import java.awt.geom.Rectangle2D
+import scala.collection.JavaConversions._
 
 class Plotter {
 
@@ -73,7 +74,6 @@ class Plotter {
       def actionPerformed(event: ActionEvent) {
         if (combinedPlotAll == combinedPlot)
           combinedPlotAll = combinedPlot.clone.asInstanceOf[CombinedDomainXYPlot]
-        import scala.collection.JavaConversions._
         val oldPlots = combinedPlot.getSubplots.toArray
         for (p <- oldPlots) {
           if (p != curPlot)
@@ -102,12 +102,10 @@ class Plotter {
       def actionPerformed(event: ActionEvent) {
         if (combinedPlotAll == combinedPlot)
           combinedPlotAll = combinedPlot.clone.asInstanceOf[CombinedDomainXYPlot]
-        val mergedPlot = initXYPlot("")
+        val mergedPlot = initXYPlot("") //TODO Externalize string, make settable from CLI
         var dataSetIndex = 0
-        var pi = 0
-        val varNames = Seq[String]()
         val sps = combinedPlot.getSubplots.toArray
-        for (p <- sps) {
+        for ((p,pi) <- sps zip Stream.from(0)) {
           val xyp = p.asInstanceOf[XYPlot]
           val c = xyp.getDatasetCount - 1
           val ren = enclosureRenderer(Color.getHSBColor((1.0f*pi)/(1.0f*sps.size), 1.0f, 0.7f))
@@ -117,10 +115,10 @@ class Plotter {
             mergedPlot setRenderer (dataSetIndex, ren)
             dataSetIndex += 1
           }
-          pi += 1
           val newPlot = newCombinedPlot
           newPlot add mergedPlot
           resetPlotView(newPlot)
+          chart addLegend createLegend(mergedPlot)
         }
       }
     })
@@ -128,9 +126,34 @@ class Plotter {
     popupMenu.add(hideOther)
     popupMenu.add(hideThis)
     popupMenu.add(showAll)
+    popupMenu.addSeparator
     popupMenu.add(mergeVisible)
     chartPanel.setBackground(Color.white)
     resetPlot
+  }
+  
+  def createLegend(plot: XYPlot) = {
+    val legendItemsOld = plot.getLegendItems
+    val legendItemsNew = new LegendItemCollection()
+    for (i <- 0 until legendItemsOld.getItemCount) {
+      val li = legendItemsOld get i
+      val varName = li.getLabel
+      val shouldAdd = { // Check if label was already added, or should be hidden
+        for (k <- 0 until legendItemsNew.getItemCount)
+          if (varName == legendItemsNew.get(k).getLabel) false
+        varName != "HIDE_ME"
+      }
+      if (shouldAdd)
+        legendItemsNew add li
+    }
+    val source = new LegendItemSource() {
+      val lic = new LegendItemCollection()
+      lic addAll legendItemsNew
+      def getLegendItems = lic
+    }
+    val lt = new LegendTitle(source)
+    lt setPosition RectangleEdge.TOP
+    lt
   }
   
   def newCombinedPlot = new CombinedDomainXYPlot(new NumberAxis("Time"))
