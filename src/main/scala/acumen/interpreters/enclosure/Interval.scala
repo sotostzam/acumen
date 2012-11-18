@@ -280,7 +280,5 @@ object Interval {
 
 object IntervalApp extends App {
   implicit val rnd = Rounding(10)
-  val left = Interval(2, 4)
-  val right = Interval(1, 2)
-  println(epsilon)
+  println(Interval(-4, 2).refine(3))
 }
