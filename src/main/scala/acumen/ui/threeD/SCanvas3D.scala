@@ -60,10 +60,9 @@ import scala.swing.event._
 class SCanvas3D(private val c: Canvas3D) extends Component {
 	
   override lazy val peer: JPanel = new JPanel(new BorderLayout) { // with SuperMixin 	
-	c.setMinimumSize(new Dimension(0, 0)) // make it resizable
-	add(c, BorderLayout.CENTER)
+    c.setMinimumSize(new Dimension(0, 0)) // make it resizable
+    add(c, BorderLayout.CENTER)
   }
-  
   override def toString = "scala.swing Canvas3D wrapper " + c.toString
   
   //
@@ -100,9 +99,9 @@ class SCanvas3D(private val c: Canvas3D) extends Component {
    */
   object canvasMouseClick extends Publisher {
     c.addMouseListener(new MouseListener {
-      def mouseEntered(e: java.awt.event.MouseEvent) { }
-      def mouseExited(e: java.awt.event.MouseEvent) { }
-      def mouseClicked(e: java.awt.event.MouseEvent) { 
+      def mouseEntered(e: java.awt.event.MouseEvent) {}
+      def mouseExited(e: java.awt.event.MouseEvent) {}
+      def mouseClicked(e: java.awt.event.MouseEvent) {
         e.setSource(peer)
         publish(new MouseClicked(e))
       }
@@ -110,7 +109,7 @@ class SCanvas3D(private val c: Canvas3D) extends Component {
         e.setSource(peer)
         publish(new MousePressed(e))
       }
-      def mouseReleased(e: java.awt.event.MouseEvent) { 
+      def mouseReleased(e: java.awt.event.MouseEvent) {
         e.setSource(peer)
         publish(new MouseReleased(e))
       }
@@ -121,7 +120,7 @@ class SCanvas3D(private val c: Canvas3D) extends Component {
    */
   object canvasMouseMove extends Publisher {
     c.addMouseListener(new MouseListener {
-      def mouseEntered(e: java.awt.event.MouseEvent) { 
+      def mouseEntered(e: java.awt.event.MouseEvent) {
         e.setSource(peer)
         publish(new MouseEntered(e))
       }
@@ -130,15 +129,15 @@ class SCanvas3D(private val c: Canvas3D) extends Component {
         publish(new MouseExited(e))
       }
       def mouseClicked(e: java.awt.event.MouseEvent) {}
-      def mousePressed(e: java.awt.event.MouseEvent) { }
-      def mouseReleased(e: java.awt.event.MouseEvent) { }
+      def mousePressed(e: java.awt.event.MouseEvent) {}
+      def mouseReleased(e: java.awt.event.MouseEvent) {}
     })
     c.addMouseMotionListener(new MouseMotionListener {
-      def mouseMoved(e: java.awt.event.MouseEvent) { 
+      def mouseMoved(e: java.awt.event.MouseEvent) {
         e.setSource(peer)
         publish(new MouseMoved(e))
       }
-      def mouseDragged(e: java.awt.event.MouseEvent) { 
+      def mouseDragged(e: java.awt.event.MouseEvent) {
         e.setSource(peer)
         publish(new MouseDragged(e))
       }
@@ -168,11 +167,11 @@ class SCanvas3D(private val c: Canvas3D) extends Component {
    */
   object canvasKeys extends Publisher {
     c.addKeyListener(new KeyListener {
-      def keyPressed(e: java.awt.event.KeyEvent) { 
+      def keyPressed(e: java.awt.event.KeyEvent) {
         e.setSource(peer)
-        publish(new KeyPressed(e)) 
+        publish(new KeyPressed(e))
       }
-      def keyReleased(e: java.awt.event.KeyEvent) { 
+      def keyReleased(e: java.awt.event.KeyEvent) {
         e.setSource(peer)
         publish(new KeyReleased(e))
       }
@@ -185,24 +184,25 @@ class SCanvas3D(private val c: Canvas3D) extends Component {
   
   /** Publishes focus events of the wrapped heavyweight Canvas3D instance.
    */
-  object canvasFocus extends Publisher {   
+  object canvasFocus extends Publisher {
     c.addFocusListener(new java.awt.event.FocusListener {
       def other(e: java.awt.event.FocusEvent) = e.getOppositeComponent match {
-        case c: javax.swing.JComponent => Some(c.getClientProperty("scala.swingWrapper").asInstanceOf[Component])
+        case c: javax.swing.JComponent =>
+          Some(c.getClientProperty("scala.swingWrapper").asInstanceOf[Component])
         case _ => None
       }
-    
-      def focusGained(e: java.awt.event.FocusEvent) { 
-    	val option: Option[Component] = other(e)
-    	e.setSource(peer)
-        publish(FocusGained(SCanvas3D.this, option, e.isTemporary)) 
+
+      def focusGained(e: java.awt.event.FocusEvent) {
+        val option: Option[Component] = other(e)
+        e.setSource(peer)
+        publish(FocusGained(SCanvas3D.this, option, e.isTemporary))
       }
       def focusLost(e: java.awt.event.FocusEvent) {
-    	val option: Option[Component] = other(e)
-    	e.setSource(peer)
-        publish(FocusLost(SCanvas3D.this, option, e.isTemporary)) 
+        val option: Option[Component] = other(e)
+        e.setSource(peer)
+        publish(FocusLost(SCanvas3D.this, option, e.isTemporary))
       }
-    }) 
+    })
   }
-  
+
 }
