@@ -8,10 +8,11 @@ class Main(simulator)
   end
   simulator.precision := 10;
   simulator.startTime := 0;
-  simulator.endTime := 20;
+  simulator.endTime := 10;
   simulator.initialConditionPadding := 0;
   simulator.extraPicardIterations := 20;
   simulator.maxPicardIterations := 200;
+  simulator.splittingDegree := 2;
   simulator.maxEventSequenceLength := 30;
   simulator.minTimeStep := 0.01;
   simulator.maxTimeStep := 0.1;

@@ -24,7 +24,8 @@ trait SolveIVP {
     )(implicit rnd: Rounding): UnivariateAffineEnclosure = {
     val as = degree match {
       case 1 => Set(A)
-      case 2 => A.split(A.keySet.filter(name => !(F.components(name) == Constant(0))).toSeq: _*)
+      case d if d > 1 => A.refine(degree, A.keySet.filter(name => !(F.components(name) == Constant(0))).toSeq: _*)
+      //      case 2 => A.split(A.keySet.filter(name => !(F.components(name) == Constant(0))).toSeq: _*)
       case _ => sys.error("solveVt: splittingDegree " + degree + " not supported!")
     }
     val es = as map (solveIVP(F, T, _, delta, m, n, degree, output))

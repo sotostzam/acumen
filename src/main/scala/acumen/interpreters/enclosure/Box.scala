@@ -45,6 +45,19 @@ class Box(val self: Map[VarName, Interval]) extends MapProxy[VarName, Interval] 
   def split(implicit rnd: Rounding): Set[Box] =
     foldLeft(Set(this)) { case (res, (name, _)) => res flatMap (_ split name) }
 
+  /** Refine the interval of the 'name' component. */
+  def refine(pieces: Int, name: VarName)(implicit rnd: Rounding): Set[Box] = {
+    require(keySet contains name)
+    (this(name) refine (pieces) map ((i: Interval) =>
+      (this + (name -> i)): Box)).toSet
+  }
+
+  /** Refine the interval of each 'names' component. */
+  def refine(pieces: Int, names: VarName*)(implicit rnd: Rounding): Set[Box] = {
+    require(names.toSet subsetOf keySet)
+    names.foldLeft(Set(this)) { case (res, name) => res flatMap (_ refine (pieces, name)) }
+  }
+
   def almostEqualTo(that: Box)(implicit rnd: Rounding): Boolean = {
     require(keySet == that.keySet)
     this.forall { case (name, interval) => interval almostEqualTo that(name) }
@@ -87,6 +100,6 @@ object Box {
 object BoxApp extends App {
   implicit val rnd = Rounding(10)
   val b1 = Box("y" -> Interval(1), "x" -> Interval(1))
-  val b2 = Box("x" -> Interval(1), "y" -> Interval(1))
-  println(b1 == b2)
+  val b2 = Box("x" -> Interval(0, 1), "y" -> Interval(0, 1))
+  println(b1.refine(3,"x","y").size) // b2.keys.toSeq: _*))
 }
