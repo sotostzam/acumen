@@ -1,0 +1,34 @@
+///////////////////////////////////////////////////////////////
+// This file is called bouncing_ball_platzer_parametric.acm  //
+// Example 2.2 on Page 45 of book "Logical Analysis of H.S." //
+///////////////////////////////////////////////////////////////
+class Main(simulator)
+  private 
+  	mode := "";
+  	h := 5; h' := 0;
+  	v := 0; v' := -10;
+  	t := 0; t' := 1;
+  end
+  switch mode
+    case "" assume h >= 0
+      if h == 0 && t > 0
+        v := -0.5*v; 
+        t := 0;
+        mode := "";
+      end;
+      h' = v;
+      v' = -10;
+      t' = 1;
+  end;
+  simulator.precision := 10;
+  simulator.startTime := 0;
+  simulator.endTime := 3.5;
+  simulator.initialConditionPadding := 0;
+  simulator.extraPicardIterations := 20;
+  simulator.maxPicardIterations := 200;
+  simulator.splittingDegree := 1; 
+  simulator.maxEventSequenceLength := 100;
+  simulator.minTimeStep := 0.001;
+  simulator.maxTimeStep := 1;
+  simulator.minImprovement := 0.01;
+end
