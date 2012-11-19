@@ -19,6 +19,7 @@ import com.itextpdf.text.Document
 import javax.swing.JFrame
 import javax.swing.BoxLayout
 import scala.collection.mutable.Map
+import scala.collection.mutable.Buffer
 import javax.swing.event.ChangeListener
 import org.jfree.chart.event.ChartChangeListener
 import org.jfree.chart.event.ChartChangeEvent
@@ -34,8 +35,8 @@ import scala.collection.JavaConversions._
 class Plotter {
 
   var combinedPlot : CombinedDomainXYPlot = null
-  var combinedPlotAll = combinedPlot
-  var subPlots: Map[String, (XYPlot, Int)] = Map[String, (XYPlot, Int)]()
+  var subPlots = Map[String, (XYPlot, Int)]()
+  var subPlotsList = Buffer[XYPlot]()
   val enclosureRen = enclosureRenderer(Color.red)
   var chart : JFreeChart = null
   var chartPanel : ChartPanel = null
@@ -45,8 +46,8 @@ class Plotter {
     val saveAsPdf = new JMenuItem("Save as PDF")
     val hideOther = new JMenuItem("Hide Other Plots")
     val hideThis = new JMenuItem("Hide This Plot")
-    val showAll = new JMenuItem("Show All Plots")
     val mergeVisible = new JMenuItem("Merge Visible Plots")
+    val resetView = new JMenuItem("Reset View")
     var curPlot : XYPlot = null
     chartPanel = new ChartPanel(null, true, true, true, true, false) {
       override def displayPopupMenu(x: Int, y: Int) {
@@ -72,8 +73,6 @@ class Plotter {
     popupMenu.add(saveAsPdf)
     hideOther.addActionListener(new ActionListener() {
       def actionPerformed(event: ActionEvent) {
-        if (combinedPlotAll == combinedPlot)
-          combinedPlotAll = combinedPlot.clone.asInstanceOf[CombinedDomainXYPlot]
         val oldPlots = combinedPlot.getSubplots.toArray
         for (p <- oldPlots) {
           if (p != curPlot)
@@ -83,8 +82,6 @@ class Plotter {
     })
     hideThis.addActionListener(new ActionListener() {
       def actionPerformed(event: ActionEvent) {
-        if (combinedPlotAll == combinedPlot)
-          combinedPlotAll = combinedPlot.clone.asInstanceOf[CombinedDomainXYPlot]
         import scala.collection.JavaConversions._
         val oldPlots = combinedPlot.getSubplots.toArray
         for (p <- oldPlots) {
@@ -93,16 +90,9 @@ class Plotter {
         }
       }
     })
-    showAll.addActionListener(new ActionListener() {
-      def actionPerformed(event: ActionEvent) {
-        resetPlotView(combinedPlotAll)
-      }
-    })
     // Merge the currently visible plots
     mergeVisible.addActionListener(new ActionListener() {
       def actionPerformed(event: ActionEvent) {
-        if (combinedPlotAll == combinedPlot)
-          combinedPlotAll = combinedPlot.clone.asInstanceOf[CombinedDomainXYPlot]
         val mergedPlot = initXYPlot("") //TODO Externalize string, make settable from CLI
         var dataSetIndex = 0
         val sps = combinedPlot.getSubplots.toArray
@@ -117,17 +107,27 @@ class Plotter {
           }
           val newPlot = newCombinedPlot
           newPlot.add(mergedPlot)
-          resetPlotView(newPlot)
+          resetChart(newPlot)
           chart.addLegend(createLegend(mergedPlot))
         }
+      }
+    })
+    resetView.addActionListener(new ActionListener() {
+      def actionPerformed(event: ActionEvent) {
+        combinedPlot = newCombinedPlot
+        for (p <- subPlotsList)
+          combinedPlot.add(p,1)
+        resetChart(combinedPlot)
+        chartPanel.restoreAutoBounds()
       }
     })
     popupMenu.addSeparator
     popupMenu.add(hideOther)
     popupMenu.add(hideThis)
-    popupMenu.add(showAll)
-    popupMenu.addSeparator
+    popupMenu.addSeparator 
     popupMenu.add(mergeVisible)
+    popupMenu.addSeparator
+    popupMenu.add(resetView)
     chartPanel.setBackground(Color.white)
     resetPlot
   }
@@ -155,16 +155,16 @@ class Plotter {
   
   def newCombinedPlot = new CombinedDomainXYPlot(new NumberAxis("Time"))
 
-  def resetPlotView(pl: CombinedDomainXYPlot) = { 
+  def resetChart(pl: CombinedDomainXYPlot) = { 
     combinedPlot = pl
     chart = new JFreeChart("", JFreeChart.DEFAULT_TITLE_FONT, pl, false)
     chartPanel.setChart(chart)
   }
   
   def resetPlot = {
-    resetPlotView(newCombinedPlot)
-    combinedPlotAll = combinedPlot
+    resetChart(newCombinedPlot)
     subPlots.clear
+    subPlotsList.clear
   }
   
   def createFrame(frametitle: String) = {
@@ -219,6 +219,7 @@ class Plotter {
       case None => {
         val p = initXYPlot(legendLabel)
         combinedPlot.add(p, 1)
+        subPlotsList += p
         (p, 0)
       }
     }
