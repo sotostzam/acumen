@@ -1,7 +1,7 @@
 package acumen.interpreters.enclosure
 
 import acumen._
-import acumen.interpreters.enclosure.solver._
+import acumen.interpreters.enclosure.tree._
 import Interpreter._
 import Expression._
 import Relation._

@@ -1,15 +1,15 @@
 package acumen
 
 import acumen.interpreters.Common.classDef
-import acumen.interpreters.enclosure.solver.Solver.defaultCallback
-import acumen.interpreters.enclosure.solver.FixedStepSolver
-import acumen.interpreters.enclosure.solver.HybridSystem
+import acumen.interpreters.enclosure.tree.Solver.defaultCallback
+import acumen.interpreters.enclosure.tree.FixedStepSolver
+import acumen.interpreters.enclosure.tree.HybridSystem
 import acumen.interpreters.enclosure.Extract
 import acumen.interpreters.enclosure.Rounding
-import acumen.interpreters.enclosure.solver.Solver
-import acumen.interpreters.enclosure.solver.SolveVt
+import acumen.interpreters.enclosure.tree.Solver
+import acumen.interpreters.enclosure.tree.SolveVt
 import acumen.interpreters.enclosure.Variable
-import acumen.interpreters.enclosure.solver.Field
+import acumen.interpreters.enclosure.tree.Field
 import acumen.interpreters.enclosure.Interval
 import acumen.interpreters.enclosure.Box
 import TransformTest._

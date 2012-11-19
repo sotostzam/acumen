@@ -1,4 +1,4 @@
-package acumen.interpreters.enclosure.solver
+package acumen.interpreters.enclosure.tree
 
 import acumen.interpreters.enclosure.Interval.min
 import acumen.interpreters.enclosure.Interval.toInterval
@@ -7,11 +7,13 @@ import acumen.interpreters.enclosure.Types.UncertainState
 import acumen.interpreters.enclosure.Types.endTimeInterval
 import acumen.interpreters.enclosure.EnclosureInterpreterCallbacks
 import acumen.interpreters.enclosure.Interval
+import acumen.interpreters.enclosure.Relation
 import acumen.interpreters.enclosure.Rounding
 import acumen.interpreters.enclosure.UnivariateAffineEnclosure
 import acumen.interpreters.enclosure.Util
+import javax.management.relation.Relation
 
-trait Solver extends SolveVtE {
+trait JanSolver extends SolveVtE {
 
   case class SolverException(message: String) extends Exception
   case class Aborted(resultSoFar: Seq[UnivariateAffineEnclosure]) extends Exception
@@ -24,56 +26,38 @@ trait Solver extends SolveVtE {
     delta: Double, // parameter of solveVt
     m: Int, // parameter of solveVt
     n: Int, // maximum number of Picard iterations in solveVt
-    degree: Int, // number of pieces to split each initial condition interval
+    degree:Int, // splittingDegree
     K: Int, // maximum event tree size in solveVtE
     d: Double, // minimum time step size
     e: Double, // maximum time step size
-    minImprovement: Double, // minimum improvement of enclosure
     output: String, // path to write output 
     cb: EnclosureInterpreterCallbacks)(implicit rnd: Rounding): Seq[UnivariateAffineEnclosure] = {
-    Util.newFile(output)
-    cb.endTime = T.hiDouble
-    solveHybrid(H, T, Ss, delta, m, n, degree, K, d, e, minImprovement, output, cb)._2
-  }
 
-  // TODO add description
-  def solveHybrid(
-    H: HybridSystem, // system to simulate
-    T: Interval, // time segment to simulate over
-    Ss: Set[UncertainState], // initial modes and initial conditions
-    delta: Double, // padding for initial condition in solveVt
-    m: Int, // number of extra Picard iterations in solveVt
-    n: Int, // maximum number of Picard iterations in solveVt
-    degree: Int, // number of pieces to split each initial condition interval
-    K: Int, // maximum event tree size in solveVtE, gives termination condition for tree enlargement
-    d: Double, // minimum time step size
-    e: Double, // maximum time step size
-    minImprovement: Double, // minimum improvement of enclosure
-    output: String, // path to write output 
-    cb: EnclosureInterpreterCallbacks // carrier for call-backs for communicating with the GUI
-    )(implicit rnd: Rounding): (Set[UncertainState], Seq[UnivariateAffineEnclosure]) = {
-    //    println("solveHybrid: on so" + T)
-    val mustSplit = T.width greaterThan e
-    val (lT, rT) = T.split
-    val cannotSplit = !(min(lT.width, rT.width) greaterThan d)
-    if (mustSplit) {
-      if (cannotSplit) {
-        sys.error("gave up for minimum step size " + d + " at " + T)
-      } else {
-        //        cb.log("splitting " + T)
-        val (ssl, ysl) = solveHybrid(H, lT, Ss, delta, m, n, degree, K, d, e, minImprovement, output, cb)
-        val (ssr, ysr) = solveHybrid(H, rT, ssl, delta, m, n, degree, K, d, e, minImprovement, output, cb)
-        (ssr, ysl ++ ysr)
+    // TODO add description
+    def solveHybrid(
+      T: Interval, // time segment to simulate over
+      Ss: Set[UncertainState] // initial modes and initial conditions
+      ): (Set[UncertainState], Seq[UnivariateAffineEnclosure]) = {
+
+      def localizeEvents: Interval = {
+        def maybeContainsEvent(x: Interval): Boolean = {
+          
+          true
+        }
+        null
       }
-    } else {
+
       val onT = Ss.map(solveVtE(H, T, _, delta, m, n, degree, K, output, cb.log))
-      if (onT contains None)
+      val mustSplit = T.width greaterThan e
+      val (lT, rT) = T.split
+      val cannotSplit = !(min(lT.width, rT.width) greaterThan d)
+      if (mustSplit || (onT contains None))
         if (cannotSplit) {
-          sys.error("gave up for minimum step size " + d + " at " + T)
+          throw SolverException("gave up for minimum step size " + d + " at " + T)
         } else {
           //        cb.log("splitting " + T)
-          val (ssl, ysl) = solveHybrid(H, lT, Ss, delta, m, n, degree, K, d, e, minImprovement, output, cb)
-          val (ssr, ysr) = solveHybrid(H, rT, ssl, delta, m, n, degree, K, d, e, minImprovement, output, cb)
+          val (ssl, ysl) = solveHybrid(lT, Ss)
+          val (ssr, ysr) = solveHybrid(rT, ssl)
           (ssr, ysl ++ ysr)
         }
       else {
@@ -85,8 +69,10 @@ trait Solver extends SolveVtE {
 
         val onlT = Ss.map(solveVtE(H, lT, _, delta, m, n, degree, K, output, cb.log))
         if (onlT contains None) {
+          /**
+           * STOP SUBDIVISION
+           */
           cb.sendResult(resultForT._2)
-          //          println("solveHybrid: @" + T + ": " + resultForT._1.head.initialCondition) //  PRINTME
           resultForT
         } else {
           val (endStatesOnlT, enclosuresOnlT) =
@@ -95,8 +81,11 @@ trait Solver extends SolveVtE {
             }
           val sslT = M(endStatesOnlT)
 
-          val onrT = sslT.map(solveVtE(H, rT, _, delta, m, n, degree, K, output, cb.log))
+          val onrT = sslT.map(solveVtE(H, rT, _, delta, m, n, K, degree, output, cb.log))
           if (onrT contains None) {
+            /**
+             * STOP SUBDIVISION
+             */
             cb.sendResult(resultForT._2)
             resultForT
           } else {
@@ -123,30 +112,69 @@ trait Solver extends SolveVtE {
             if (cannotSplit ||
               {
                 //              log("improvement : " + improvement);
-                improvement lessThanOrEqualTo minImprovement
+                improvement lessThanOrEqualTo Interval(0.00001)
               }) {
+              /**
+               * STOP SUBDIVISION
+               */
               cb.sendResult(resultForT._2)
-              //              println("solveHybrid: logged results for " + T) //  PRINTME
-              //              println("solveHybrid: " + resultForT._1.head.initialCondition) //  PRINTME
-              //              println("solveHybrid: " + resultForT._2) //  PRINTME
               resultForT
             } else {
               //            cb.log("splitting " + T)
-              val (ssl, ysl) = solveHybrid(H, lT, Ss, delta, m, n, degree, K, d, e, minImprovement, output, cb)
-              val (ssr, ysr) = solveHybrid(H, rT, ssl, delta, m, n, degree, K, d, e, minImprovement, output, cb)
-              //                            println("solveHybrid: @" + T + ": " + ssr.head.initialCondition)  //  PRINTME
+              val (ssl, ysl) = solveHybrid(lT, Ss)
+              val (ssr, ysr) = solveHybrid(rT, ssl)
               (ssr, ysl ++ ysr)
             }
           }
         }
       }
     }
+
+    Util.newFile(output)
+    cb.endTime = T.hiDouble
+    solveHybrid(T, Ss)._2
+  }
+
+  def leftBiasedDepthFirstSearch(maxDepth: Int, satisfies: Interval => Boolean, t: Interval): Option[Interval] =
+    depthFirstSearch { case (x, y) => (x, y) }(maxDepth, satisfies, t)
+
+  def rightBiasedDepthFirstSearch(maxDepth: Int, satisfies: Interval => Boolean, t: Interval): Option[Interval] =
+    depthFirstSearch { case (x, y) => (y, x) }(maxDepth, satisfies, t)
+
+  def depthFirstSearch(baise: ((Interval, Interval)) => (Interval, Interval))(maxDepth: Int, satisfies: Interval => Boolean, t: Interval): Option[Interval] = {
+    require(maxDepth >= 0, "maxDepth has to be nonnegative!")
+    def helper(queue: Seq[(Int, Interval)]): Option[Interval] = queue match {
+      case (depth, s) :: ss =>
+        if (depth < maxDepth)
+          if (!satisfies(s)) helper(ss)
+          else {
+            val (l, r) = baise(s.split)
+            helper((depth + 1, r) :: (depth + 1, l) :: ss)
+          }
+        else Some(s /\ ss.last._2)
+      case _ => None
+    }
+    helper(Seq((0, t)))
   }
 
 }
 
-object Solver {
+object JanSolver {
   def defaultCallback = new EnclosureInterpreterCallbacks {
     override def log(msg: String) = println(msg)
   }
 }
+
+object JanSolverApp extends App with JanSolver {
+  implicit val rnd = Rounding(10)
+  def property(x: Interval) = false
+  val x = Interval(0, 1)
+  val lo = leftBiasedDepthFirstSearch(50, property, x)
+  val hi = rightBiasedDepthFirstSearch(50, property, x)
+  val result = lo.getOrElse(x.low).high /\ hi.getOrElse(x.high).low
+  println(result)
+}
+
+
+
+

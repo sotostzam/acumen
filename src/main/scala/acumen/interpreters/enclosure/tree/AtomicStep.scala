@@ -1,4 +1,4 @@
-package acumen.interpreters.enclosure.solver
+package acumen.interpreters.enclosure.tree
 
 import acumen.interpreters.enclosure.UnivariateAffineEnclosure
 import acumen.interpreters.enclosure.Rounding
