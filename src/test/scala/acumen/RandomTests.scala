@@ -3,9 +3,9 @@ package tests
 
 import Pretty._
 import Generators._
-
 import org.scalacheck.Properties
 import org.scalacheck.Prop._
+import acumen._
 
 object RandomTests extends Properties("acumen") {
 
