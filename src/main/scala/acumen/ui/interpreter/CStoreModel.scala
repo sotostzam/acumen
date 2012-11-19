@@ -198,6 +198,7 @@ class CStoreModel extends TraceModel with InterpreterModel with PlotModel {
   }
 
   override def getNewPlottables() = null
+  override def getNewData() = null
 
   override def getPlotModel = {flushPending(); this}
   override def getTraceModel = {flushPending(); this}

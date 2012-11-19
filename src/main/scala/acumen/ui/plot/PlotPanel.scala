@@ -351,7 +351,7 @@ class PlotPanel(pub:Publisher) extends Panel
 
   val tableI = new TableInput({() => App.ui.controller.model.getTraceModel})
     
-  val plotter = new Plotter(tableI,plotI)
+  val plotter = new Plotter(tableI,plotI,App.ui.jPlotI)
   plotter.start()
   
   def toggleSimulator(b:Boolean) = {

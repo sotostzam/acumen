@@ -15,6 +15,8 @@ class EnclosureModel extends TraceModel with PlotModel with InterpreterModel {
 
   var es = new ArrayBuffer[UnivariateAffineEnclosure]
 
+  var es2: ArrayBuffer[UnivariateAffineEnclosure] = null
+
   class Data {
     var times  = new ArrayBuffer[Double] 
     var plottables : Iterable[PlotEnclosure] = Iterable.empty[PlotEnclosure]
@@ -126,26 +128,31 @@ class EnclosureModel extends TraceModel with PlotModel with InterpreterModel {
 
   override def getPlottables() = data.plottables
 
+  override def getNewData() = synchronized {
+    val res = es2
+    es2 = null
+    res
+  }
+
   override def getNewPlottables() = es
 
   var stale : Boolean = false;
 
-  override def addData(d:TraceData) = {
-    synchronized  {
-      es ++= d.asInstanceOf[Iterable[UnivariateAffineEnclosure]]
-      stale = true
-    }
+  override def addData(d:TraceData) = synchronized {
+    es ++= d.asInstanceOf[Iterable[UnivariateAffineEnclosure]]
+    if (es2 == null)
+      es2 = new ArrayBuffer[UnivariateAffineEnclosure]
+    es2 ++= d.asInstanceOf[Iterable[UnivariateAffineEnclosure]]
+    stale = true
   }
 
-  def syncData() {
-    synchronized  {
-      if (stale) {
-        val d = new Data()
-        d.recompute()
-        data = d
-      }
-      stale = false
+  def syncData() = synchronized {
+    if (stale) {
+      val d = new Data()
+      d.recompute()
+      data = d
     }
+    stale = false
   }
 
   override def getPlotModel = {syncData(); this}

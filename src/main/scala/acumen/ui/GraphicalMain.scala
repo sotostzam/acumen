@@ -33,6 +33,7 @@ object GraphicalMain extends SimpleSwingApplication {
   var useExample: String = null
   var autoPlay = false
   var useEnclosures = false
+  var useCompletion = false
 
   def parseOpts(args: List[String]) {
     args match {
@@ -53,6 +54,8 @@ object GraphicalMain extends SimpleSwingApplication {
         useEnclosures = true; parseOpts(tail)
       case "--no-enclosures" :: tail =>
         useEnclosures = false; parseOpts(tail)
+      case "--completion" :: tail =>
+        useCompletion = true; parseOpts(tail)
       case opt =>
         System.err.println("Unrecognized Option: " + opt)
         exit
