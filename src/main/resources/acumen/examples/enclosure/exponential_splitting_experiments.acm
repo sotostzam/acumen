@@ -1,0 +1,49 @@
+//////////////////////////////////////////////
+// This file is called exponential_2.acm    //
+// It is an example of a continuous system. //
+//////////////////////////////////////////////
+class Main(simulator)
+  private 
+    mode := "on"; 
+//    x   := [-0.1..0.1]; x'   := 1;
+    y   := [-0.1..0.0]; y'   := 1;
+    z   := [ 0.0..0.1]; z'   := 1;
+//    a   := [-0.1..-0.075]; a'   := 1;
+//    e   := [-0.075..-0.05]; e'   := 1;
+//    b   := [-0.05..-0.025]; b'   := 1;
+//    c   := [-0.025..0.0]; c'   := 1;
+//    g   := [ 0.0..0.025]; g'   := 1;
+//    d   := [ 0.025..0.05]; d'   := 1;
+//    f   := [ 0.05..0.075]; f'   := 1;
+//    h   := [ 0.075..0.1]; h'   := 1;
+//    xhi :=  0.1       ; xhi' := 1;
+//    xlo := -0.1       ; xlo' := 1;
+  end
+  switch mode
+    case "on" 
+//      x'   = -x;
+      y'   = -y;
+      z'   = -z;
+//      a'   = -a;
+//      b'   = -b;
+//      c'   = -c;
+//      d'   = -d;
+//      e'   = -e;
+//      f'   = -f;
+//      g'   = -g;
+//      h'   = -h;
+//      xhi' = -xhi;
+//      xlo' = -xlo;
+  end;
+  simulator.precision := 10;
+  simulator.startTime := 0;
+  simulator.endTime := 0.1;
+  simulator.initialConditionPadding := 0;
+  simulator.extraPicardIterations := 20;
+  simulator.maxPicardIterations := 200;
+  simulator.splittingDegree := 1;
+  simulator.maxEventSequenceLength := 30;
+  simulator.minTimeStep := 0.1;
+  simulator.maxTimeStep := 0.2;
+  simulator.minImprovement := 0.1; 
+end
