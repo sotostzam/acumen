@@ -27,7 +27,7 @@ trait SolveIVP {
       case d if d > 1 => A.refine(degree, A.keySet.filter(name => !(F.components(name) == Constant(0))).toSeq: _*)
       //      case 2 => A.split(A.keySet.filter(name => !(F.components(name) == Constant(0))).toSeq: _*)
       case _ => sys.error("solveVt: splittingDegree " + degree + " not supported!")
-    }
+    }    
     val es = as map (solveIVP(F, T, _, delta, m, n, degree, output))
     UnivariateAffineEnclosure.unionThem(es.toSeq).head
   }
