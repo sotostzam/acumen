@@ -14,6 +14,7 @@ abstract class Predicate {
    * intervals of the box x.
    */
   def apply(x: Box)(implicit rnd: Rounding): Set[Boolean] = this match {
+    case True => Set(true)
     case All(ps) => {
       ps.foldLeft(Set(true)) {
         case (res, p) => {
@@ -32,6 +33,7 @@ abstract class Predicate {
    * variables to range over the domains of the variables.
    */
   def apply(x: UnivariateAffineEnclosure)(implicit rnd: Rounding): Set[Boolean] = this match {
+    case True => Set(true)
     case All(ps) => {
       ps.foldLeft(Set(true)) {
         case (res, p) => {
