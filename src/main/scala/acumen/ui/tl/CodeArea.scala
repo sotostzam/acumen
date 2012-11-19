@@ -56,11 +56,13 @@ class CodeArea extends Panel { //EditorPane {
     sta.setHighlightCurrentLine(false)
     sta.setTabSize(2)
     sta.setFont(new Font("Monospaced", Font.PLAIN, 12))
-    val completionProvider = createCompletionProvider(sta)
-    val autoCompletion = new AutoCompletion(completionProvider)
-    autoCompletion install sta
-    RSyntaxTextArea setTemplatesEnabled true
-    createCodeTemplateManager
+    if (GraphicalMain.useCompletion) {
+      val completionProvider = createCompletionProvider(sta)
+      val autoCompletion = new AutoCompletion(completionProvider)
+      autoCompletion install sta
+      RSyntaxTextArea setTemplatesEnabled true
+      createCodeTemplateManager
+    }
     sta
   }
   
