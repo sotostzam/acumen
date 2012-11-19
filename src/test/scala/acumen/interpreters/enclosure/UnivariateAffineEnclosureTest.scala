@@ -11,10 +11,9 @@ import Box._
 import Generators._
 import Interval._
 import Types._
+import TestingContext._
 
 object UnivariateAffineEnclosureTest extends Properties("UnivariateAffineEnclosure") {
-
-  import TestingContext._
 
   property("union soundness") =
     forAllNoShrink(genInterval) { dom =>
@@ -23,6 +22,17 @@ object UnivariateAffineEnclosureTest extends Properties("UnivariateAffineEnclosu
         genBoxUnivariateAffineScalarEnclosure(dom)) { (f, g) =>
           val u = f union g
           (u contains f) && (u contains g)
+        }
+    }
+  
+  property("union endpoint soundness") =
+    forAllNoShrink(genInterval, choose(1,1)) { (dom:Interval, n:Int) =>
+      forAllNoShrink(
+        genDimDomUnivariateAffineEnclosure(n,dom),
+        genDimDomUnivariateAffineEnclosure(n,dom)) { (f, g) =>
+          val u = f union g
+          (u(dom.low) almostEqualTo (f(dom.low) hull g(dom.low))) && 
+          (u(dom.high) contains (f(dom.high) hull g(dom.high)))
         }
     }
 
@@ -47,4 +57,14 @@ object UnivariateAffineEnclosureTest extends Properties("UnivariateAffineEnclosu
         }
     }
 
+  /* Generator tests */
+
+  property("genUnivariateAffineEnclosure") = {
+    forAllNoShrink(genUnivariateAffineEnclosure) { e =>
+      val d = e.components("0")
+      e.components.values.forall(_.domain == d.domain)
+    }
+  }
+  
 }
+
