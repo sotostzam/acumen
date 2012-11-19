@@ -169,9 +169,13 @@ class App extends SimpleSwingApplication {
     assert(pages.size == 0)
     pages += new TabbedPane.Page("Plot",     plotTab)
     val PLOT_IDX = pages.last.index
-    if (newPlotTab != null)
+    val NEW_PLOT_IDX = if (newPlotTab != null) {
       pages += new TabbedPane.Page("New Plot", newPlotTab)
-    val NEW_PLOT_IDX = if (newPlotTab != null) pages.last.index else -1
+      selection.index = pages.last.index
+      pages.last.index
+    } else {
+      -1
+    }
     pages += new TabbedPane.Page("Trace",    traceTab)
     val TABLE_IDX = pages.last.index
     
