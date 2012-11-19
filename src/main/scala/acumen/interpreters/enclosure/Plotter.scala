@@ -111,14 +111,14 @@ class Plotter {
           val ren = enclosureRenderer( // Make a unique color for this enclosure
               Color.getHSBColor(pi/(1.0f*sps.size), 1.0f, 0.7f))
           for (i <- 0 until xyp.getDatasetCount) {
-            mergedPlot setDataset (dataSetIndex, xyp getDataset i)
-            mergedPlot setRenderer (dataSetIndex, ren)
+            mergedPlot.setDataset(dataSetIndex, xyp.getDataset(i))
+            mergedPlot.setRenderer(dataSetIndex, ren)
             dataSetIndex += 1
           }
           val newPlot = newCombinedPlot
-          newPlot add mergedPlot
+          newPlot.add(mergedPlot)
           resetPlotView(newPlot)
-          chart addLegend createLegend(mergedPlot)
+          chart.addLegend(createLegend(mergedPlot))
         }
       }
     })
@@ -137,19 +137,19 @@ class Plotter {
     val legendItemsOld = plot.getLegendItems
     val legendItemsNew = new LegendItemCollection()
     for (i <- 0 until legendItemsOld.getItemCount) {
-      val li = legendItemsOld get i
+      val li = legendItemsOld.get(i)
       val varName = li.getLabel
       val legendItems = for {x <- legendItemsNew.iterator} yield x
       val shouldAdd = varName != "HIDE_ME" && !(legendItems exists (_.asInstanceOf[LegendItem].getLabel == varName))
       if (shouldAdd)
-        legendItemsNew add li
+        legendItemsNew.add(li)
     }
     val lt = new LegendTitle(new LegendItemSource() {
       val lic = new LegendItemCollection
-      lic addAll legendItemsNew
+      lic.addAll(legendItemsNew)
       def getLegendItems = lic
     })
-    lt setPosition RectangleEdge.TOP
+    lt.setPosition(RectangleEdge.TOP)
     lt
   }
   
