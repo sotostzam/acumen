@@ -119,6 +119,17 @@ class App extends SimpleSwingApplication {
     autoResizeMode = Table.AutoResizeMode.Off
   }
 
+  // FIXME: This probably should't be here -- kevina
+  val jPlotI = new plot.JPlotInput {
+    import interpreters.enclosure._
+    val rnd = new Rounding(10)
+    def newData() = controller.model.getNewData
+    def addToPlot(d: Object) = {
+      newPlotView.plotter.plot(d.asInstanceOf[Seq[UnivariateAffineEnclosure]],null)(rnd)
+      newPlotView.plotPanel.validate
+    }
+  }
+
   val plotView = new plot.PlotTab
   val pointedView = new plot.PointedView(plotView)
 
@@ -127,15 +138,17 @@ class App extends SimpleSwingApplication {
 	BorderPanel.Position.North)
     add(plotView, BorderPanel.Position.Center)
   }
+  lazy val newPlotView = new plot.JFreePlotTab
   val newPlotTab = if (GraphicalMain.disableNewPlot) {
     null 
   } else {
-    val traceViewJFree = new plot.JFreePlotTab
     new BorderPanel {
       //TODO Implement and add something like pointedView for the new plotting code
-      add(traceViewJFree, BorderPanel.Position.Center)
+      add(newPlotView, BorderPanel.Position.Center)
     }
   }
+  jPlotI.enabled = newPlotTab != null
+
   val traceTab = new ScrollPane(traceTable) 
   var threeDtab = if (GraphicalMain.disable3D) {
     console.log("Acumen3D disabled.")

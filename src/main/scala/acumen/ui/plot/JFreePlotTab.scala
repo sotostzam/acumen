@@ -190,7 +190,7 @@ class JFreePlotTab extends BorderPanel
   //   case _ => 
   // }
   reactions += {
-    case st:App.Ready => plot
+    case App.Starting => plotter.resetPlot
   }
 
   add(Component.wrap(plotPanel), BorderPanel.Position.Center)
@@ -198,27 +198,6 @@ class JFreePlotTab extends BorderPanel
   //add(rightBottomButtons, BorderPanel.Position.South)
   check.selected = true
 
-  def getModel() = try {
-    App.ui.controller.model.getPlotModel 
-  } catch {
-    case _:java.lang.IllegalStateException => null
-  }
-  
-  private def plot: Unit = {
-    plotter.resetPlot
-    if (App.ui.controller.model == null) return
-    val m = getModel
-    if (m == null) return
-    val es = m.getNewPlottables.asInstanceOf[Seq[UnivariateAffineEnclosure]]
-    if (es == null) return
-    println("New Plot Working!")
-    plotter.plot(es, null)(new Rounding(10))
-    plotPanel.validate
-    println("New Plot Done!")
-  }
-
-  
-  
   //TODO Check if the below need to be re-enabled
 //  def toggleSimulator(b:Boolean) = plotPanel.toggleSimulator(b)
 //  def toggleNextChild(b:Boolean) = plotPanel.toggleNextChild(b)

@@ -70,10 +70,18 @@ trait InterpreterModel
   // Should use any necessary locks to prevent problems if
   // getPlotModel or getTraceModel is called at the same time by a
   // different thread.
+  // (new way: use necessary locks to avoid data contention issues
+  // with getNewData)
   def addData(d: TraceData): Unit
 
   // Returns an updated plot model for plotting.
+  // (old way)
   def getPlotModel : PlotModel
+
+  // Returns new data to plot, the object returned should be
+  // considered immutable.
+  // (new way)
+  def getNewData : Object
 
   // Return an updated table model for the trace table.
   def getTraceModel : TraceModel
