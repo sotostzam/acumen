@@ -46,6 +46,11 @@ case class Interval private (
 
   def right = Interval(midpoint, hi)
 
+  def \(that: Interval) =
+    if (that contains lo) Interval(that.hi, hi)
+    else if (that contains hi) Interval(lo, that.lo)
+    else this
+
   def split = {
     val mid = midpoint
     (Interval(lo, mid), Interval(mid, hi))
@@ -280,5 +285,5 @@ object Interval {
 
 object IntervalApp extends App {
   implicit val rnd = Rounding(10)
-  println(Interval(-4, 2).refine(3))
+  println(Interval(5,6) \ Interval(2,4))
 }
