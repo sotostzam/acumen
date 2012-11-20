@@ -47,7 +47,7 @@ case class Interval private (
   def right = Interval(midpoint, hi)
 
   def \(that: Interval) =
-    if (this equalTo that) sys.error("Interval.\\ cannot be called with identical arguments!")
+    if (that contains this) sys.error("Interval.\\ empty difference!")
     else if (that contains lo) Interval(that.hi, hi)
     else if (that contains hi) Interval(lo, that.lo)
     else this
