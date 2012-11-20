@@ -46,11 +46,20 @@ case class Interval private (
 
   def right = Interval(midpoint, hi)
 
+  /** 
+   * Set difference. 
+   * 
+   * Note: yields None for empty intersections. 
+   */
   def \(that: Interval): Option[Interval] =
     if (that contains this) None
     else if (that contains lo) Some(Interval(that.hi, hi))
     else if (that contains hi) Some(Interval(lo, that.lo))
     else Some(this)
+
+  def intersect(that: Interval): Option[Interval] =
+    if (this disjointFrom that) None
+    else Some(this \/ that)
 
   def split = {
     val mid = midpoint

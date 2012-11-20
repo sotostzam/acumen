@@ -22,15 +22,31 @@ class Box(val self: Map[VarName, Interval]) extends MapProxy[VarName, Interval] 
     map { case (k, v) => k -> that(k) /\ v }
   }
 
+  /** Component-wise union. */  
   def \(that: Box)(implicit rnd: Rounding): Option[Box] = {
     require(keySet == that.keySet)
-    if (exists{case (name,interval) => that(name) contains interval}) None
-    else Some(map{case (name,interval) => name -> (interval \ that(name)).get})
+    if (exists { case (name, interval) => that(name) contains interval }) None
+    else Some(map { case (name, interval) => name -> (interval \ that(name)).get })
   }
 
-  def intersect(that: Box)(implicit rnd: Rounding): Box = {
+  /** 
+   * Component-wise intersection. 
+   * 
+   * Note: yields None whenever intersect yields None for a component. 
+   */
+  def intersect(that: Box)(implicit rnd: Rounding): Option[Box] = {
+    require(this.keySet == that.keySet)
+    if (this.exists { case (name, interval) => that(name) disjointFrom interval }) None
+    else Some(this \/ that)
+  }
+
+  /** 
+   * Component-wise intersection.
+   * 
+   * Note: partial operation, fails whenever \/ fails for a component.
+   */
+  def \/(that: Box)(implicit rnd: Rounding): Box = {
     require(keySet == that.keySet)
-    //    map { case (k, v) => k -> (if (v disjointFrom that(k)) v else that(k) /\ v) }
     map { case (k, v) => k -> that(k) \/ v }
   }
 

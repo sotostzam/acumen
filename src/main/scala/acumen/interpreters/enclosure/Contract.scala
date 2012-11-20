@@ -31,7 +31,7 @@ trait Contract {
       //      println("contractEq: backpropagate " + ran)
       val envl = backPropagate(env, ran, left)
       val envr = backPropagate(env, ran, right)
-      val contracted = envl intersect envr
+      val contracted = envl \/ envr
       //      println("contractEq: box after  = " + contracted)
       val res =
         if (contracted almostEqualTo env) env
@@ -59,7 +59,7 @@ trait Contract {
       //      println("contractLeq: right backpropagate " + ranr)
       val envl = backPropagate(env, ranl, left)
       val envr = backPropagate(env, ranr, right)
-      val contracted = envl intersect envr
+      val contracted = envl \/ envr
       //      println("contractLeq: box after  = " + contracted)
       val res =
         if (contracted almostEqualTo env) env
@@ -95,7 +95,7 @@ trait Contract {
       val renv = r(env)
       val left = backPropagate(env, lenv \/ (ran - renv), l)
       val right = backPropagate(env, renv \/ (ran - lenv), r)
-      left intersect right
+      left \/ right
     case Multiply(l, r) if l == r =>
       val ransqrt = ran.sqrt
       val envl = l(env)
@@ -117,7 +117,7 @@ trait Contract {
       else {
         lazy val left = backPropagate(env, lenv \/ (ran / renv), l)
         lazy val right = backPropagate(env, renv \/ (ran / lenv), r)
-        left intersect right
+        left \/ right
       }
     case Divide(e, Constant(x)) => backPropagate(env, e(env) \/ (ran * x), e)
     case Divide(l, r) =>
@@ -125,7 +125,7 @@ trait Contract {
       val renv = r(env)
       val right = backPropagate(env, renv \/ (ran * renv), r)
       val left = backPropagate(env, lenv \/ (lenv / ran), l)
-      left intersect right
+      left \/ right
   }
 
   def inverseRelation(env: Box, ran: Interval, arg: Arg, e: Expression)(implicit rnd: Rounding): Interval = e match {

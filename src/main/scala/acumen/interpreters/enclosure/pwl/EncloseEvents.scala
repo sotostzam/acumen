@@ -42,7 +42,12 @@ class EncloseEvents(implicit rnd: Rounding) extends App {
     l.map { case (mode, obox) => mode -> ominus(obox, r(mode)) }
   }
 
-  def intersectInv(s: StateEnclosure): StateEnclosure = null
+  /** mode-wise intersection with invariant */
+  def intersectInv(h: HybridSystem, s: StateEnclosure): StateEnclosure = {
+	s.map{case (mode,obox) => }
+	s //FIXME
+  }
+
   def intersectGuard(e: Event, s: StateEnclosure): StateEnclosure = null
   def reset(e: Event, r: StateEnclosure): StateEnclosure = null
   def emptyState(H: HybridSystem): StateEnclosure = H.modes.map(_ -> None).toMap
@@ -66,13 +71,13 @@ class EncloseEvents(implicit rnd: Rounding) extends App {
   def encloseOneEvent(h: HybridSystem, s: StateEnclosure): StateEnclosure =
     union(h.events.map(e => reset(e, intersectGuard(e, s))))
 
-  def encloseFlowNoEvents(H: HybridSystem, S_In: StateEnclosure, T: Interval): (StateEnclosure, StateEnclosure) = {
-    val sPreAndFinalPre = S_In map {
+  def encloseFlowNoEvents(h: HybridSystem, sIn: StateEnclosure, t: Interval): (StateEnclosure, StateEnclosure) = {
+    val sPreAndFinalPre = sIn map {
       case (q, None) => (q, (None, None))
-      case (q, Some(box)) => (q, encloseFlowRange(H.fields(q), T, box))
+      case (q, Some(box)) => (q, encloseFlowRange(h.fields(q), t, box))
     }
-    val s = intersectInv(sPreAndFinalPre.mapValues(_._1))
-    val fin = intersectInv(sPreAndFinalPre.mapValues(_._2))
+    val s = intersectInv(h, sPreAndFinalPre.mapValues(_._1))
+    val fin = intersectInv(h, sPreAndFinalPre.mapValues(_._2))
     (s, fin)
   }
 
