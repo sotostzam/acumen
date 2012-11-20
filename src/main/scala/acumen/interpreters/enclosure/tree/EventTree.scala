@@ -61,7 +61,7 @@ case class EventTree(
   m: Int,
   n: Int,
   degree: Int,
-  output: String) extends Solver with SolveIVP {
+  output: String) extends SolveVtE with SolveIVP {
 
   /** TODO add description */
   // TODO add tests

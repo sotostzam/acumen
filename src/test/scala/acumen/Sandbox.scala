@@ -18,7 +18,7 @@ import acumen.interpreters.enclosure._
 import acumen.interpreters.enclosure.UnivariateAffineEnclosure._
 import acumen.interpreters.enclosure.UnivariateAffineScalarEnclosure._
 
-object Sandbox extends App with Extract with Solver with SolveVt {
+object Sandbox extends App with Extract with Solver { // with SolveVt {
 
   //  val prog = Parser.run(Parser.prog, Models("bouncing_ball_convergent"))
   //  val prog = Parser.run(Parser.prog, Models.fullers_phenomenon)

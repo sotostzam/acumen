@@ -4,13 +4,17 @@ import acumen.interpreters.enclosure.Types._
 import acumen.interpreters.enclosure.Types.Mode
 import acumen.interpreters.enclosure.tree.Field
 import acumen.interpreters.enclosure.tree.HybridSystem
+import acumen.interpreters.enclosure.tree.SolveIVP
 import acumen.interpreters.enclosure.Box
 import acumen.interpreters.enclosure.Interval
+import acumen.interpreters.enclosure.Parameters
 import acumen.interpreters.enclosure.Rounding
 import acumen.interpreters.enclosure.UnivariateAffineEnclosure
-import acumen.interpreters.enclosure.tree.SolveIVP
-import acumen.interpreters.enclosure.Parameters
 
+/**
+ * Mix in this trait in place of SolveVtE to get PWL
+ * rather than EventTree based event handling.
+ */
 trait EncloseEvents extends SolveIVP {
 
   // main function
@@ -125,5 +129,38 @@ trait EncloseEvents extends SolveIVP {
   /** check that `s` is empty for each mode */
   def isDefinitelyEmpty(s: StateEnclosure): Boolean =
     s.forall(_._2 isEmpty)
+
+  // plumbing to enable drop-in replacement of solveVtE by encloseEvents
+
+  def solveVtE(
+    h: HybridSystem,
+    t: Interval,
+    u: UncertainState,
+    delta: Double,
+    m: Int,
+    n: Int,
+    degree: Int,
+    K: Int,
+    output: String,
+    log: String => Unit)(implicit rnd: Rounding): Option[(Set[UncertainState], Seq[UnivariateAffineEnclosure])] = {
+    val ps = Parameters(rnd.precision, t.loDouble, t.hiDouble,
+      delta, m, n,
+      K, 0, 0, 0, // these are not used - any value will do
+      degree)
+    val init: StateEnclosure = Map()
+    val (s, fin) = encloseEvents(ps, h, t, init)
+    val us = uncertainStates(s)
+    val es = enclosures(t, s)
+    if (us.isEmpty || es.isEmpty) None
+    else Some(us, es)
+  }
+
+  def uncertainStates(s: StateEnclosure): Set[UncertainState] =
+    for ((mode, obox) <- s.toSet if obox.isDefined)
+      yield UncertainState(mode, obox.get)
+
+  def enclosures(t: Interval, s: StateEnclosure)(implicit rnd: Rounding): Seq[UnivariateAffineEnclosure] =
+    for ((_, obox) <- s.toSeq if obox.isDefined)
+      yield UnivariateAffineEnclosure(t, obox.get)
 
 }
