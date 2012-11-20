@@ -22,10 +22,10 @@ class Box(val self: Map[VarName, Interval]) extends MapProxy[VarName, Interval] 
     map { case (k, v) => k -> that(k) /\ v }
   }
 
-  def \(that: Box)(implicit rnd: Rounding): Box = {
+  def \(that: Box)(implicit rnd: Rounding): Option[Box] = {
     require(keySet == that.keySet)
-    require(!exists { case (name, interval) => that(name) contains interval }, "Box.\\ empty difference!")
-    foldLeft(this){case (res,(name,interval)) => res + (name -> interval \ that(name))}
+    if (exists{case (name,interval) => that(name) contains interval}) None
+    else Some(map{case (name,interval) => name -> (interval \ that(name)).get})
   }
 
   def intersect(that: Box)(implicit rnd: Rounding): Box = {
@@ -108,7 +108,7 @@ object Box {
 
 object BoxApp extends App {
   implicit val rnd = Rounding(10)
-  val b1 = Box("y" -> Interval(0,0.5), "x" -> Interval(1))
+  val b1 = Box("y" -> Interval(0, 0.5), "x" -> Interval(1))
   val b2 = Box("x" -> Interval(0, 1), "y" -> Interval(0, 1))
   println(b2 \ b1) // b2.keys.toSeq: _*))
 }
