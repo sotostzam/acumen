@@ -12,11 +12,10 @@ import acumen.interpreters.enclosure.tree.SolveIVP
 import acumen.interpreters.enclosure.Parameters
 
 trait EncloseEvents extends SolveIVP {
-  
+
   // main function
 
-  def encloseEvents(ps: Parameters, h: HybridSystem, t: Interval, s: StateEnclosure): (StateEnclosure, StateEnclosure) = {
-    implicit val rnd = ps.rnd
+  def encloseEvents(ps: Parameters, h: HybridSystem, t: Interval, s: StateEnclosure)(implicit rnd: Rounding): (StateEnclosure, StateEnclosure) = {
     val (s0, fin0) = encloseFlowNoEvents(ps, h, s, t)
     val sEvents = reachableStatesPWL(ps, h, t, emptyState(h), s0)
     (union(Set(s0, sEvents)), union(Set(fin0, sEvents)))
@@ -24,8 +23,7 @@ trait EncloseEvents extends SolveIVP {
 
   // helper functions
 
-  def reachableStatesPWL(ps: Parameters, h: HybridSystem, t: Interval, pIn: StateEnclosure, wIn: StateEnclosure): StateEnclosure = {
-    implicit val rnd = ps.rnd
+  def reachableStatesPWL(ps: Parameters, h: HybridSystem, t: Interval, pIn: StateEnclosure, wIn: StateEnclosure)(implicit rnd: Rounding): StateEnclosure =
     if (isDefinitelyEmpty(wIn)) pIn
     else {
       val (sEvolved, _) = encloseFlowNoEvents(ps, h, encloseOneEvent(h, wIn), t)
@@ -33,13 +31,11 @@ trait EncloseEvents extends SolveIVP {
       val p = union(Set(pIn, sEvolved))
       reachableStatesPWL(ps, h, t, p, w)
     }
-  }
 
   def encloseOneEvent(h: HybridSystem, s: StateEnclosure)(implicit rnd: Rounding): StateEnclosure =
     union(h.events.map(e => reset(h, e, intersectGuard(h, e, s))))
 
-  def encloseFlowNoEvents(ps: Parameters, h: HybridSystem, sIn: StateEnclosure, t: Interval): (StateEnclosure, StateEnclosure) = {
-    implicit val rnd = ps.rnd
+  def encloseFlowNoEvents(ps: Parameters, h: HybridSystem, sIn: StateEnclosure, t: Interval)(implicit rnd: Rounding): (StateEnclosure, StateEnclosure) = {
     val sPreAndFinalPre = sIn map {
       case (q, None) => (q, (None, None))
       case (q, Some(box)) => (q, encloseFlowRange(ps, h.fields(q), t, box))
@@ -49,20 +45,18 @@ trait EncloseEvents extends SolveIVP {
     (s, fin)
   }
 
-  def encloseFlowRange(ps: Parameters, f: Field, t: Interval, b: Box): (OBox, OBox) = {
+  def encloseFlowRange(ps: Parameters, f: Field, t: Interval, b: Box)(implicit rnd: Rounding): (OBox, OBox) = {
     val flow = encloseFlow(ps, f, t, b)
     (Some(flow(t)), Some(flow(t.high)))
   }
 
-  def encloseFlow(ps: Parameters, f: Field, t: Interval, b: Box): UnivariateAffineEnclosure = {
-    implicit val rnd = ps.rnd
+  def encloseFlow(ps: Parameters, f: Field, t: Interval, b: Box)(implicit rnd: Rounding): UnivariateAffineEnclosure =
     solveVt(f, t, b,
       ps.solveVtInitialConditionPadding,
       ps.extraPicardIterations,
       ps.maxPicardIterations,
       ps.splittingDegree,
       "output")
-  }
 
   // types for representing enclosures
 
