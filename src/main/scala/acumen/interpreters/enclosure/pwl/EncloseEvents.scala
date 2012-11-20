@@ -1,13 +1,13 @@
 package acumen.interpreters.enclosure.pwl
 
-import acumen.interpreters.enclosure.Box
-import acumen.interpreters.enclosure.Types.Mode
-import acumen.interpreters.enclosure.tree.HybridSystem
-import acumen.interpreters.enclosure.Interval
 import acumen.interpreters.enclosure.Types._
+import acumen.interpreters.enclosure.Types.Mode
 import acumen.interpreters.enclosure.tree.Field
-import acumen.interpreters.enclosure.UnivariateAffineEnclosure
+import acumen.interpreters.enclosure.tree.HybridSystem
+import acumen.interpreters.enclosure.Box
+import acumen.interpreters.enclosure.Interval
 import acumen.interpreters.enclosure.Rounding
+import acumen.interpreters.enclosure.UnivariateAffineEnclosure
 
 class EncloseEvents(implicit rnd: Rounding) extends App {
 
@@ -43,15 +43,37 @@ class EncloseEvents(implicit rnd: Rounding) extends App {
   }
 
   /** mode-wise intersection with invariant */
-  def intersectInv(h: HybridSystem, s: StateEnclosure): StateEnclosure = {
-	s.map{case (mode,obox) => }
-	s //FIXME
-  }
+  // TODO solve this without try-catch
+  def intersectInv(h: HybridSystem, s: StateEnclosure): StateEnclosure =
+    s.map {
+      case (mode, obox) => mode ->
+        (try {
+          Some(h.domains(mode).support(obox.get))
+        } catch { case _ => None })
+    }
 
-  def intersectGuard(e: Event, s: StateEnclosure): StateEnclosure = null
-  def reset(e: Event, r: StateEnclosure): StateEnclosure = null
+  /** mode-wise intersection with the guard of `e` */
+  // TODO solve this without try-catch
+  def intersectGuard(h: HybridSystem, e: Event, s: StateEnclosure): StateEnclosure =
+    s.mapValues(
+      obox => try {
+        Some(h.guards(e).support(obox.get))
+      } catch { case _ => None })
+
+  /** mode-wise application of reset for `e` */
+  // TODO solve this without try-catch
+  def reset(h: HybridSystem, e: Event, s: StateEnclosure): StateEnclosure =
+    s.mapValues(
+      obox => try {
+        Some(h.resets(e)(obox.get))
+      } catch { case _ => None })
+
+  /** the state enclosure that is empty in each mode */
   def emptyState(H: HybridSystem): StateEnclosure = H.modes.map(_ -> None).toMap
-  def isDefinitelyEmpty(s: StateEnclosure): Boolean = s == None
+
+  /** check that `s` is empty for each mode */
+  def isDefinitelyEmpty(s: StateEnclosure): Boolean =
+    s.forall(_._2 isEmpty)
 
   def encloseEvents(h: HybridSystem, t: Interval, s: StateEnclosure): (StateEnclosure, StateEnclosure) = {
     val (s0, fin0) = encloseFlowNoEvents(h, s, t)
@@ -69,7 +91,7 @@ class EncloseEvents(implicit rnd: Rounding) extends App {
     }
 
   def encloseOneEvent(h: HybridSystem, s: StateEnclosure): StateEnclosure =
-    union(h.events.map(e => reset(e, intersectGuard(e, s))))
+    union(h.events.map(e => reset(h, e, intersectGuard(h, e, s))))
 
   def encloseFlowNoEvents(h: HybridSystem, sIn: StateEnclosure, t: Interval): (StateEnclosure, StateEnclosure) = {
     val sPreAndFinalPre = sIn map {
