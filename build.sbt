@@ -40,6 +40,16 @@ retrieveManaged := true
 seq(ScctPlugin.instrumentSettings : _*)
 
 //
+// Exclude files that start with XXX from the jar file
+//
+
+mappings in (Compile,packageBin) ~= { (ms: Seq[(File, String)]) =>
+  ms filter { case (file, toPath) =>
+    !toPath.contains("/XXX")
+  }
+}
+
+//
 // enable proguard
 //
 
