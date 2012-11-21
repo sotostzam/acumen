@@ -48,7 +48,7 @@ JFreeChart (1.0.14)
 JCommon (1.0.17)
 
   http://www.jfree.org/
-  LGPL v2.1 or latter
+  LGPL v2.1 or later
 
 xml-apis (1.3.04)
 
@@ -67,6 +67,11 @@ bcprov (jdk14-138)
   http://www.bouncycastle.org/
   Adaptation of the MIT X11 License
   http://www.bouncycastle.org/licence.html
+
+Swing Debugging Aids
+
+  (source in src/main/java/debug)
+  LGPL v2.1 or later
 
 Gnome high contrast icons
   
