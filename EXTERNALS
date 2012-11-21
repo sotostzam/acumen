@@ -1,0 +1,84 @@
+Acumen depends on or includes the following:
+
+Java 3D (1.5.2)
+Vecmath (1.5.2)
+
+  Orignal URL: https://java3d.dev.java.net/
+  Also: http://www.oracle.com/technetwork/java/javase/tech/index-jsp-138252.html
+  GPL v2 + linking exception
+  (Exception means can link against it without being contaminated)
+
+Scala Libraries (2.9.2)
+(including Swing)
+ 
+  http://www.scala-lang.org
+  BSD Like
+  http://www.scala-lang.org/node/146
+
+Scalatest (2.9.2)
+
+  http://www.scalatest.org/
+  Apache 2.0 license
+
+scalacheck (2.9.2)
+ 
+  https://github.com/rickynils/scalacheck/
+  BSD Like
+  https://github.com/rickynils/scalacheck/blob/master/LICENSE
+
+[Scala] test-interface (0.5)
+
+  https://github.com/harrah/test-interface/
+  BSD Like
+  https://github.com/harrah/test-interface/blob/master/LICENSE
+
+SCCT (Scala Code Coverage Tool)
+
+  https://github.com/mtkopone/scct
+  Apache 2.0 license
+
+RSyntaxTextArea (2.0.2)
+AutoComplete (2.0.2)
+
+  http://fifesoft.com/
+  Modified BSD license.
+  http://fifesoft.com/rsyntaxtextarea/RSyntaxTextArea.License.txt
+
+JFreeChart (1.0.14)
+JCommon (1.0.17)
+
+  http://www.jfree.org/
+  LGPL v2.1 or latter
+
+xml-apis (1.3.04)
+
+  Part of XML commons
+  http://xerces.apache.org/xml-commons/
+  Apache 2.0 license
+
+fastutil
+  
+  http://fastutil.di.unimi.it/
+  Apache 2.0 license
+
+bcmail (jdk14-138)
+bcprov (jdk14-138)
+
+  http://www.bouncycastle.org/
+  Adaptation of the MIT X11 License
+  http://www.bouncycastle.org/licence.html
+
+Gnome high contrast icons
+  
+  Orignal URL: http://people.freedesktop.org/~jimmac/icons/#highcontrast
+  Also: http://commons.wikimedia.org/wiki/Category:GNOME_High_contrast_icons
+  Licence Unclear.  Maybe LGPL
+
+
+GIT VERSION ONLY (NOT IN PUBLIC RELEASES):
+
+ITextPDF (5.3.0)
+
+  http://itextpdf.com/
+  GNU Affero General Public License version 3
+
