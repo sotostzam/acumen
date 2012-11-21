@@ -31,8 +31,8 @@ trait EncloseEvents extends SolveIVP {
     output: String,
     log: String => Unit)(implicit rnd: Rounding): Option[(Set[UncertainState], Seq[UnivariateAffineEnclosure])] = {
     val noEventEnclosure = solveVt(h.fields(u.mode), t, u.initialCondition, delta, m, n, degree, output)
-    val possibleEvents = h.guards.values.toSeq.flatMap(_(noEventEnclosure.range).toSeq).toSet
-    if (possibleEvents contains true) {
+    val existPossibleEvents = h.guards.values.exists(_(noEventEnclosure.range) contains true)
+    if (existPossibleEvents) {
       val ps = Parameters(rnd.precision, t.loDouble, t.hiDouble,
         delta, m, n,
         K, 0, 0, 0, // these are not used - any value will do
@@ -148,18 +148,16 @@ trait EncloseEvents extends SolveIVP {
   /** mode-wise intersection with the guard of `e` */
   // TODO solve this without try-catch
   def intersectGuard(h: HybridSystem, e: Event, s: StateEnclosure)(implicit rnd: Rounding): StateEnclosure =
-    s.mapValues(
-      obox => try {
-        Some(h.guards(e).support(obox.get))
-      } catch { case _ => None })
+    s.mapValues(obox => try {
+      Some(h.guards(e).support(obox.get))
+    } catch { case _ => None })
 
   /** mode-wise application of reset for `e` */
   // TODO solve this without try-catch
   def reset(h: HybridSystem, e: Event, s: StateEnclosure)(implicit rnd: Rounding): StateEnclosure =
-    s.mapValues(
-      obox => try {
-        Some(h.resets(e)(obox.get))
-      } catch { case _ => None })
+    s.mapValues(obox => try {
+      Some(h.resets(e)(obox.get))
+    } catch { case _ => None })
 
   /** the state enclosure that is empty in each mode */
   def emptyState(h: HybridSystem): StateEnclosure = h.modes.map(_ -> None).toMap
