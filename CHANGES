@@ -1,0 +1,12 @@
+Important Changed For Acumen 2012:
+
+  3D visualization
+
+  Syntax Change:
+
+    [=] is now =
+    and
+    = is now :=
+      (except where the = is part of the "for" syntax)
+
+
