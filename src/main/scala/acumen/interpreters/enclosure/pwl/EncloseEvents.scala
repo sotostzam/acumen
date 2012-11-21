@@ -131,7 +131,7 @@ trait EncloseEvents extends SolveIVP {
     require(l.keySet == r.keySet, "EncloseEvents.minus: cannot take the set difference of " + l + " and " + r)
     def ominus(l: OBox, r: OBox): OBox =
       if (l.isEmpty || r.isEmpty) l
-      else l.get \ r.get
+      else l.get setminus r.get
     l.map { case (mode, obox) => mode -> ominus(obox, r(mode)) }
   }
 

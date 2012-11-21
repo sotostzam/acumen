@@ -46,16 +46,26 @@ case class Interval private (
 
   def right = Interval(midpoint, hi)
 
-  /** 
-   * Set difference. 
-   * 
-   * Note: yields None for empty intersections. 
+  /**
+   * Set difference.
+   *
+   * Note: yields None for empty intersections.
    */
-  def \(that: Interval): Option[Interval] =
+  def setminus(that: Interval): Option[Interval] =
     if (that contains this) None
-    else if (that contains lo) Some(Interval(that.hi, hi))
-    else if (that contains hi) Some(Interval(lo, that.lo))
-    else Some(this)
+    else Some(this \ that)
+
+  /**
+   * Set difference.
+   *
+   * Note: partial operation, fails for empty intersections.
+   */
+  def \(that: Interval): Interval = {
+    require(!(that contains this), "Interval.\\: cannot produce empty set difference!")
+    if (that contains lo) Interval(that.hi, hi)
+    else if (that contains hi) Interval(lo, that.lo)
+    else this
+  }
 
   def intersect(that: Interval): Option[Interval] =
     if (this disjointFrom that) None
@@ -295,5 +305,5 @@ object Interval {
 
 object IntervalApp extends App {
   implicit val rnd = Rounding(10)
-  println(Interval(5, 6) \ Interval(2, 4))
+  println(Interval(5, 6) setminus Interval(2, 4))
 }

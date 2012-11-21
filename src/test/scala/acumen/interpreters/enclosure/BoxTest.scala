@@ -14,6 +14,30 @@ object BoxTest extends Properties("Box") {
 
   /* Properties */
 
+//  property("\\ isotonic in left argument") =
+//    forAll(genBox) { box =>
+//      forAll(genSubBox(box)) { sbox =>
+//        forAll(genSubBox(sbox)) { ssbox =>
+//        	
+//        }
+//      }
+//    }
+
+  property("hull is isotonic") =
+    forAll { b1: Box =>
+      forAll(genNamesBox(b1.keySet)) { b2 =>
+        val h = b1 hull b2
+        (h contains b1) && (h contains b2)
+      }
+    }
+
+  property("contains soundness") =
+    forAll { box: Box =>
+      forAll(genSubBox(box)) { sbox =>
+        box contains sbox
+      }
+    }
+
   property("collapsing") = {
     val dom = Box("x" -> Interval(0, 1), "y" -> Interval(0, 1))
     val ndom = Box.normalize(dom)

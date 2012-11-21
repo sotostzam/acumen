@@ -22,17 +22,23 @@ class Box(val self: Map[VarName, Interval]) extends MapProxy[VarName, Interval] 
     map { case (k, v) => k -> that(k) /\ v }
   }
 
-  /** Component-wise union. */  
-  def \(that: Box)(implicit rnd: Rounding): Option[Box] = {
+  /** Component-wise set difference. */
+  def setminus(that: Box)(implicit rnd: Rounding): Option[Box] = {
     require(keySet == that.keySet)
     if (exists { case (name, interval) => that(name) contains interval }) None
-    else Some(map { case (name, interval) => name -> (interval \ that(name)).get })
+    else Some(map { case (name, interval) => name -> (interval setminus that(name)).get })
   }
 
-  /** 
-   * Component-wise intersection. 
-   * 
-   * Note: yields None whenever intersect yields None for a component. 
+  /** Component-wise set difference. */
+  def \(that: Box)(implicit rnd: Rounding): Box = {
+    require(keySet == that.keySet)
+    map { case (name, interval) => name -> (interval setminus that(name)).get }
+  }
+
+  /**
+   * Component-wise intersection.
+   *
+   * Note: yields None whenever intersect yields None for a component.
    */
   def intersect(that: Box)(implicit rnd: Rounding): Option[Box] = {
     require(this.keySet == that.keySet)
@@ -40,9 +46,9 @@ class Box(val self: Map[VarName, Interval]) extends MapProxy[VarName, Interval] 
     else Some(this \/ that)
   }
 
-  /** 
+  /**
    * Component-wise intersection.
-   * 
+   *
    * Note: partial operation, fails whenever \/ fails for a component.
    */
   def \/(that: Box)(implicit rnd: Rounding): Box = {
@@ -126,5 +132,5 @@ object BoxApp extends App {
   implicit val rnd = Rounding(10)
   val b1 = Box("y" -> Interval(0, 0.5), "x" -> Interval(1))
   val b2 = Box("x" -> Interval(0, 1), "y" -> Interval(0, 1))
-  println(b2 \ b1) // b2.keys.toSeq: _*))
+  println(b2 setminus b1) // b2.keys.toSeq: _*))
 }
