@@ -2,7 +2,10 @@ package acumen.interpreters.enclosure
 
 import java.io.FileWriter
 
-object Util {
+object Util extends App {
+
+  def unzipMap[K, V, W](m: Map[K, (V, W)]): (Map[K, V], Map[K, W]) =
+    (m.mapValues(_._1), m.mapValues(_._2))
 
   /**
    * Given two maps, creates a new map which has as keys the union of the keys

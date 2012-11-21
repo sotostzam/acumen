@@ -17,7 +17,7 @@ import acumen.interpreters.enclosure.UnivariateAffineEnclosure
  */
 trait EncloseEvents extends SolveIVP {
 
-  // plumbing to enable drop-in replacement of solveVtE by encloseEvents
+  // plumbing to enable drop-in replacement for solveVtE 
 
   def solveVtE(
     h: HybridSystem,
@@ -155,9 +155,10 @@ trait EncloseEvents extends SolveIVP {
   /** mode-wise application of reset for `e` */
   // TODO solve this without try-catch
   def reset(h: HybridSystem, e: Event, s: StateEnclosure)(implicit rnd: Rounding): StateEnclosure =
-    s.mapValues(obox => try {
-      Some(h.resets(e)(obox.get))
-    } catch { case _ => None })
+    s.mapValues {
+      case Some(box) => Some(h.resets(e)(box))
+      case None => None
+    }
 
   /** the state enclosure that is empty in each mode */
   def emptyState(h: HybridSystem): StateEnclosure = h.modes.map(_ -> None).toMap
