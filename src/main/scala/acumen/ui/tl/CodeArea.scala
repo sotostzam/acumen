@@ -55,6 +55,7 @@ class CodeArea extends Panel { //EditorPane {
     sta.setSyntaxEditingStyle("AcumenTokenMaker")
     sta.setHighlightCurrentLine(false)
     sta.setTabSize(2)
+    sta.setTabsEmulated(true) // Use soft tabs
     sta.setFont(new Font("Monospaced", Font.PLAIN, 12))
     if (GraphicalMain.useCompletion) {
       val completionProvider = createCompletionProvider(sta)
