@@ -2,92 +2,92 @@
 
 class Kong(n)
  private
-  stl=0;
-  hs="hitpos";
-  mode          = "Wait";
-  bounced   = false;           // Tell whether the ball bounced or not
-  serve = false;               // The Game class will set serve flag to true
-  hit   = false;               // when it's your turn
-  count = 0;
-  ballv = [0,0,0];
-  ballp = [0,0,0];
-  batp  = [1.6,0,0.2];
-  v         = [0,0,0];             // Bat's speed
-  batAngle   = [0,0,0.1];  // Normal vector of the bat's plane
-  batAngle'  = [0,0,0];
+  stl:=0;
+  hs:="hitpos";
+  mode          := "Wait";
+  bounced   := false;           // Tell whether the ball bounced or not
+  serve := false;               // The Game class will set serve flag to true
+  hit   := false;               // when it's your turn
+  count := 0;
+  ballv := [0,0,0];
+  ballp := [0,0,0];
+  batp  := [1.6,0,0.2];
+  v         := [0,0,0];             // Bat's speed
+  batAngle   := [0,0,0.1];  // Normal vector of the bat's plane
+  batAngle'  := [0,0,0];
   // Player(1) starts at [-1.6,0,0.2], Player(2) starts at [1.6,0,0.2]
-  startPoint = [1.6*(-1)^n,0,0.2];
-  t   = 0;
-  t'  = 1;
+  startPoint := [1.6*(-1)^n,0,0.2];
+  t   := 0;
+  t'  := 1;
  end
  if mode ~= "Wait" && mode ~= "Prepare" && mode ~= "Hit"
-   mode = "Panic!";
+   mode := "Panic!";
  end;
- t'  [=] 1;
+ t'  = 1;
  switch mode
   case "Wait"                   // While waiting, moving the bat to starting point
-   count          = 0;
+   count          := 0;
    if n == 1
-         v             [=] startPoint-batp;
+         v             = startPoint-batp;
    else
-         v             [=] startPoint + [0,0.75,0] - batp;
+         v             = startPoint + [0,0.75,0] - batp;
    end;
-   batAngle' [=] [0,0,0]-batAngle;
-   hit        = false;
+   batAngle' = [0,0,0]-batAngle;
+   hit        := false;
    if serve == true
-        mode        = "Prepare";
-        bounced = false;
+        mode        := "Prepare";
+        bounced := false;
    else
-        mode = "Wait";
+        mode := "Wait";
    end;
   case "Prepare"                 // Prepare to hit the ball
    if bounced == true            // After the ball has bounced,
                                  // start moving the bat towards the ball
-         v [=] (ballp-batp).*[0,20,0] + (ballp-batp).*[0,0,25] +
+         v = (ballp-batp).*[0,20,0] + (ballp-batp).*[0,0,25] +
                (ballp+[0.12*(-1)^n,0,0]-batp).*[25,0,0];
          if norm(batp - ballp)<0.15 && abs(dot(ballp,[1,0,0])) >=
                                    abs(dot(startPoint,[1,0,0]))
-          count = count+1;
-          mode  = "Hit";
+          count := count+1;
+          mode  := "Hit";
          end;
    end;
    // When the ball has bounced and it is at the highest position
    if count > 0 && dot(ballv,[0,0,1]) < 0.1 && bounced == true
-        mode = "Hit";         // This player decide to hit.
+        mode := "Hit";         // This player decide to hit.
    end;
    if dot(ballp,[0,0,1]) < 0 && bounced == false
-        bounced = true;
+        bounced := true;
    end;
    if(serve ~= true)
-         mode = "Wait";
+         mode := "Wait";
    end;
  case "Hit"               // Decide how you want hit the ball,
   if n == 2
   if stl>30
-        hs = "hitn";end;
+        hs := "hitn";end;
  if dot(ballp,[0,1,0]) <= -0.30
- hs = "hitpos";end;
+ hs := "hitpos";end;
  if (dot(ballp,[0,1,0]) > -0.30) && (dot(ballp,[0,1,0]) < 0.30)
- hs = "hitnear";end;
+ hs := "hitnear";end;
  if (dot(ballp,[0,1,0]) >= 0.30)
-            hs = "hitneg";end;
+            hs := "hitneg";end;
    if (hs == "hitpos")
-            v = [3.8,0.80,14.5];
-            batAngle = [0.95,0.13,-0.3];end;
+            v := [3.8,0.80,14.5];
+            batAngle := [0.95,0.13,-0.3];end;
    if (hs == "hitneg")
-             v = [3.8,-0.8,14.5];
-             batAngle = [0.95,0.05,-0.32];end;
+             v := [3.8,-0.8,14.5];
+             batAngle := [0.95,0.05,-0.32];end;
  if (hs == "hitnear")
-            v = [3.5,-0.5*dot(ballv,[0,1,0]),15.0];
-            batAngle = [0.95,-0.2,-0.28];end;
+            v := [3.5,-0.5*dot(ballv,[0,1,0]),15.0];
+            batAngle := [0.95,-0.2,-0.28];end;
  if (hs == "hitn")
-            v = [3.5,0.3,13.0];
-            batAngle = [0.95,0.0,-0.28];end;
- stl= stl+1;
+            v := [3.5,0.3,13.0];
+            batAngle := [0.95,0.0,-0.28];end;
+ stl:= stl+1;
    end;
-  serve  = false;
-  hit        = true;
-  mode   = "Wait";
+  serve  := false;
+  hit        := true;
+  mode   := "Wait";
  case "Panic!"
  end
 end
@@ -96,62 +96,62 @@ end
 
 class Pisces(n)
 
- private  mode      = "Wait";
-  bounced   = false;       // Tell whether the ball bounced or not
-  serve = false;           // The Game class will set serve flag to true
-  hit   = false;           // when it's your turn
-  count = 0;
-  ballv = [0,0,0];
-  ballp = [0,0,0];
-  batp  = [1.6,0,0.2];
-  v     = [0,0,0];         // Bat's speed
-  batAngle   = [0,0,0.1];  // Normal vector of the bat's plane
-  batAngle'  = [0,0,0];
+ private  mode      := "Wait";
+  bounced   := false;       // Tell whether the ball bounced or not
+  serve := false;           // The Game class will set serve flag to true
+  hit   := false;           // when it's your turn
+  count := 0;
+  ballv := [0,0,0];
+  ballp := [0,0,0];
+  batp  := [1.6,0,0.2];
+  v     := [0,0,0];         // Bat's speed
+  batAngle   := [0,0,0.1];  // Normal vector of the bat's plane
+  batAngle'  := [0,0,0];
   // Player(1) starts at [-1.6,0,0.2], Player(2) starts at [1.6,0,0.2]
-  startPoint = [1.6*(-1)^n,0,0.2];
-  t   = 0;
-  t'  = 1;
+  startPoint := [1.6*(-1)^n,0,0.2];
+  t   := 0;
+  t'  := 1;
  end
  if mode ~= "Wait" && mode ~= "Prepare" && mode ~= "Hit"
-   mode = "Panic!";
+   mode := "Panic!";
  end;
- t'  [=] 1;
+ t'  = 1;
  switch mode
   case "Wait"               // While waiting, moving the bat to starting point
-   count      = 0;
+   count      := 0;
    if n == 1
-     v         [=] startPoint-batp;
+     v         = startPoint-batp;
    else
-     v         [=] startPoint + [0,0.75,0] - batp;
+     v         = startPoint + [0,0.75,0] - batp;
    end;
-   batAngle' [=] [0,0,0]-batAngle;
-   hit    = false;
+   batAngle' = [0,0,0]-batAngle;
+   hit    := false;
    if serve == true
-    mode    = "Prepare";
-    bounced = false;
+    mode    := "Prepare";
+    bounced := false;
    else
-    mode = "Wait";
+    mode := "Wait";
    end;
   case "Prepare"             // Prepare to hit the ball
    if bounced == true        // After the ball has bounced,
                              // start moving the bat towards the ball
-     v [=] (ballp-batp).*[0,20,0] + (ballp-batp).*[0,0,25] +
+     v = (ballp-batp).*[0,20,0] + (ballp-batp).*[0,0,25] +
            (ballp+[0.12*(-1)^n,0,0]-batp).*[25,0,0];
      if norm(batp - ballp)<0.15 && abs(dot(ballp,[1,0,0])) >=
                                abs(dot(startPoint,[1,0,0]))
-      count = count+1;
-      mode  = "Hit";
+      count := count+1;
+      mode  := "Hit";
      end;
    end;
    // When the ball has bounced and it is at the highest position
    if count > 0 && dot(ballv,[0,0,1]) < 0.1 && bounced == true
-    mode = "Hit";     // This player decide to hit.
+    mode := "Hit";     // This player decide to hit.
    end;
    if dot(ballp,[0,0,1]) < 0 && bounced == false
-    bounced = true;
+    bounced := true;
    end;
    if(serve ~= true)
-     mode = "Wait";
+     mode := "Wait";
    end;
  case "Hit"           // Decide how you want hit the ball,
 
@@ -162,17 +162,17 @@ if(dot(ballv,[1,0,0]) >=3)
                       // in the BallActuator() class
     if(dot(ballp,[0,1,0])>0.1&& dot(ballp,[0,1,0])<=0.35)
       if(dot(ballp,[1,0,0])>0&& dot(ballp,[1,0,0])<=0.5)
-       v    = [-0.38,0.40,1.2];
-       batAngle = [0.9471,0.35,-0.2];
+       v    := [-0.38,0.40,1.2];
+       batAngle := [0.9471,0.35,-0.2];
         
        else
         if(dot(ballp,[1,0,0])>0.5&& dot(ballp,[1,0,0])<=1)
-       v        = [-0.38,0.40,1.2];
-        batAngle = [0.9471,0.35,-0.5];
+       v        := [-0.38,0.40,1.2];
+        batAngle := [0.9471,0.35,-0.5];
         else
          if(dot(ballp,[1,0,0])>1)
-       v        = [-0.38,0.40,1.2];
-       batAngle = [0.9471,0.2,-0.4];
+       v        := [-0.38,0.40,1.2];
+       batAngle := [0.9471,0.2,-0.4];
        end;
        end;
        end;
@@ -180,34 +180,34 @@ if(dot(ballv,[1,0,0]) >=3)
 
     if(dot(ballp,[0,1,0])>0.35&& dot(ballp,[0,1,0])<=0.6)
       if(dot(ballp,[1,0,0])>0&& dot(ballp,[1,0,0])<=0.5)
-       v    = [-0.38,0.40,1.2];
-       batAngle = [0.9471,0.25,-0.2];
+       v    := [-0.38,0.40,1.2];
+       batAngle := [0.9471,0.25,-0.2];
         
        else
         if(dot(ballp,[1,0,0])>0.5&& dot(ballp,[1,0,0])<=1)
-       v        = [-0.38,0.40,1.2];
-        batAngle = [0.9471,0.25,-0.3];
+       v        := [-0.38,0.40,1.2];
+        batAngle := [0.9471,0.25,-0.3];
         else
          if(dot(ballp,[1,0,0])>1)
-       v        = [-0.38,0.40,1.2];
-       batAngle = [0.9471,0.0,-0.4];
+       v        := [-0.38,0.40,1.2];
+       batAngle := [0.9471,0.0,-0.4];
        end;
        end;
        end;
        end;
     if(dot(ballp,[0,1,0])>0.6)
       if(dot(ballp,[1,0,0])>0&& dot(ballp,[1,0,0])<=0.5)
-       v    = [-0.38,0.40,1.2];
-       batAngle = [0.9471,0.25,-0.2];
+       v    := [-0.38,0.40,1.2];
+       batAngle := [0.9471,0.25,-0.2];
         
        else
         if(dot(ballp,[1,0,0])>0.5&& dot(ballp,[1,0,0])<=1)
-       v        = [-0.38,0.40,1.2];
-        batAngle = [0.9471,0.3,-0.3];
+       v        := [-0.38,0.40,1.2];
+        batAngle := [0.9471,0.3,-0.3];
         else
          if(dot(ballp,[1,0,0])>1)
-       v        = [-0.38,0.40,1.2];
-       batAngle = [0.9471,0.3,-0.4];
+       v        := [-0.38,0.40,1.2];
+       batAngle := [0.9471,0.3,-0.4];
        end;
        end;
        end;
@@ -216,48 +216,48 @@ if(dot(ballv,[1,0,0]) >=3)
 
 if(dot(ballp,[0,1,0])<-0.1&& dot(ballp,[0,1,0])>=-0.35)
       if(dot(ballp,[1,0,0])>0&& dot(ballp,[1,0,0])<=0.5)
-       v        = [-0.7,-0.2,3.86];
-     batAngle = [0.96,-0.5,-0.2258];        
+       v        := [-0.7,-0.2,3.86];
+     batAngle := [0.96,-0.5,-0.2258];        
        else
         if(dot(ballp,[1,0,0])>0.5&& dot(ballp,[1,0,0])<=1)
-       v        = [-0.7,-0.2,3.86];
-     batAngle = [0.96,-0.5,-0.2258];
+       v        := [-0.7,-0.2,3.86];
+     batAngle := [0.96,-0.5,-0.2258];
 else
          if(dot(ballp,[1,0,0])>1)
-       v        = [-0.7,-0.2,3.86];
-     batAngle = [0.96,-0.5,-0.4];
+       v        := [-0.7,-0.2,3.86];
+     batAngle := [0.96,-0.5,-0.4];
        end;
        end;
        end;
        end;
 if(dot(ballp,[0,1,0])<-0.35&&dot(ballp,[0,1,0])>-0.6)
       if(dot(ballp,[1,0,0])>0&& dot(ballp,[1,0,0])<=0.5)
-       v        = [-0.7,-0.2,3.86];
-     batAngle = [0.96,-0.1,-0.2258];        
+       v        := [-0.7,-0.2,3.86];
+     batAngle := [0.96,-0.1,-0.2258];        
        else
         if(dot(ballp,[1,0,0])>0.5&& dot(ballp,[1,0,0])<=1)
-       v        = [-0.7,-0.2,3.86];
-     batAngle = [0.96,-0.1,-0.2258];
+       v        := [-0.7,-0.2,3.86];
+     batAngle := [0.96,-0.1,-0.2258];
 else
          if(dot(ballp,[1,0,0])>1)
-       v        = [-0.7,-0.2,3.86];
-     batAngle = [0.96,-0.1,-0.4];
+       v        := [-0.7,-0.2,3.86];
+     batAngle := [0.96,-0.1,-0.4];
        end;
        end;
        end;
        end;
 if(dot(ballp,[0,1,0])<-0.6)
       if(dot(ballp,[1,0,0])>0&& dot(ballp,[1,0,0])<=0.5)
-       v        = [-0.7,-0.2,3.86];
-     batAngle = [0.96,-0.1,-0.2258];        
+       v        := [-0.7,-0.2,3.86];
+     batAngle := [0.96,-0.1,-0.2258];        
        else
         if(dot(ballp,[1,0,0])>0.5&& dot(ballp,[1,0,0])<=1)
-       v        = [-0.7,-0.2,3.86];
-     batAngle = [0.96,-0.3,-0.3];
+       v        := [-0.7,-0.2,3.86];
+     batAngle := [0.96,-0.3,-0.3];
 else
          if(dot(ballp,[1,0,0])>1)
-       v        = [-0.7,-0.2,3.86];
-     batAngle = [0.96,-0.3,-0.4];
+       v        := [-0.7,-0.2,3.86];
+     batAngle := [0.96,-0.3,-0.4];
        end;
        end;
        end;
@@ -265,17 +265,17 @@ else
 
 if(dot(ballp,[0,1,0])<=0.1&& dot(ballp,[0,1,0])>=-0.1)
       if(dot(ballp,[1,0,0])>0&& dot(ballp,[1,0,0])<=0.5)
-       v    = [-0.38,0.40,1.2];
-       batAngle = [0.9471,0,-0.6];
+       v    := [-0.38,0.40,1.2];
+       batAngle := [0.9471,0,-0.6];
         
        else
         if(dot(ballp,[1,0,0])>0.5&& dot(ballp,[1,0,0])<=1)
-       v        = [-0.38,0.40,1.2];
-        batAngle = [0.9471,0,-0.5];
+       v        := [-0.38,0.40,1.2];
+        batAngle := [0.9471,0,-0.5];
         else
          if(dot(ballp,[1,0,0])>1)
-       v        = [-0.38,0.40,1.2];
-       batAngle = [0.9471,0,-0.4];
+       v        := [-0.38,0.40,1.2];
+       batAngle := [0.9471,0,-0.4];
        end;
        end;
        end;
@@ -286,17 +286,17 @@ end;
 if(dot(ballv,[1,0,0]) >=1&& dot(ballv,[1,0,0]) <3)
     if(dot(ballp,[0,1,0])>0.1&& dot(ballp,[0,1,0])<=0.35)
       if(dot(ballp,[1,0,0])>0&& dot(ballp,[1,0,0])<=0.5)
-       v    = [-1,0.40,1.2];
-       batAngle = [0.9471,0.2,-0.5];
+       v    := [-1,0.40,1.2];
+       batAngle := [0.9471,0.2,-0.5];
         
        else
         if(dot(ballp,[1,0,0])>0.5&& dot(ballp,[1,0,0])<=1)
-       v        = [-1,0.40,1.2];
-        batAngle = [0.9471,0.2,-0.4];
+       v        := [-1,0.40,1.2];
+        batAngle := [0.9471,0.2,-0.4];
         else
          if(dot(ballp,[1,0,0])>1)
-       v        = [-1,0.40,1.2];
-       batAngle = [0.9471,0.2,-0.3];
+       v        := [-1,0.40,1.2];
+       batAngle := [0.9471,0.2,-0.3];
        end;
        end;
        end;
@@ -304,34 +304,34 @@ if(dot(ballv,[1,0,0]) >=1&& dot(ballv,[1,0,0]) <3)
 
     if(dot(ballp,[0,1,0])>0.35&& dot(ballp,[0,1,0])<=0.6)
       if(dot(ballp,[1,0,0])>0&& dot(ballp,[1,0,0])<=0.5)
-       v    = [-1,0.40,1.2];
-       batAngle = [0.9471,0.3,-0.5];
+       v    := [-1,0.40,1.2];
+       batAngle := [0.9471,0.3,-0.5];
         
        else
         if(dot(ballp,[1,0,0])>0.5&& dot(ballp,[1,0,0])<=1)
-       v        = [-1,0.40,1.2];
-        batAngle = [0.9471,0.3,-0.4];
+       v        := [-1,0.40,1.2];
+        batAngle := [0.9471,0.3,-0.4];
         else
          if(dot(ballp,[1,0,0])>1)
-       v        = [-1,0.40,1.2];
-       batAngle = [0.9471, 0.3,-0.3];
+       v        := [-1,0.40,1.2];
+       batAngle := [0.9471, 0.3,-0.3];
        end;
        end;
        end;
        end;
     if(dot(ballp,[0,1,0])>0.6)
       if(dot(ballp,[1,0,0])>0&& dot(ballp,[1,0,0])<=0.5)
-       v    = [-1,0.40,1.2];
-       batAngle = [0.9471,0.4,-0.5];
+       v    := [-1,0.40,1.2];
+       batAngle := [0.9471,0.4,-0.5];
         
        else
         if(dot(ballp,[1,0,0])>0.5&& dot(ballp,[1,0,0])<=1)
-       v        = [-1,0.40,1.2];
-        batAngle = [0.9471,0.4,-0.4];
+       v        := [-1,0.40,1.2];
+        batAngle := [0.9471,0.4,-0.4];
         else
          if(dot(ballp,[1,0,0])>1)
-       v        = [-1,0.40,1.2];
-       batAngle = [0.9471,0.4,-0.3];
+       v        := [-1,0.40,1.2];
+       batAngle := [0.9471,0.4,-0.3];
        end;
        end;
        end;
@@ -340,48 +340,48 @@ if(dot(ballv,[1,0,0]) >=1&& dot(ballv,[1,0,0]) <3)
 
 if(dot(ballp,[0,1,0])<-0.1&& dot(ballp,[0,1,0])>=-0.35)
       if(dot(ballp,[1,0,0])>0&& dot(ballp,[1,0,0])<=0.5)
-       v        = [-1,-0.2,3.86];
-     batAngle = [0.96,-0.2,-0.5];        
+       v        := [-1,-0.2,3.86];
+     batAngle := [0.96,-0.2,-0.5];        
        else
         if(dot(ballp,[1,0,0])>0.5&& dot(ballp,[1,0,0])<=1)
-       v        = [-1,-0.2,3.86];
-     batAngle = [0.96,-0.2,-0.4];
+       v        := [-1,-0.2,3.86];
+     batAngle := [0.96,-0.2,-0.4];
 else
          if(dot(ballp,[1,0,0])>1)
-       v        = [-1,-0.2,3.86];
-     batAngle = [0.96,-0.2,-0.3];
+       v        := [-1,-0.2,3.86];
+     batAngle := [0.96,-0.2,-0.3];
        end;
        end;
        end;
        end;
 if(dot(ballp,[0,1,0])<-0.35&&dot(ballp,[0,1,0])>-0.6)
       if(dot(ballp,[1,0,0])>0&& dot(ballp,[1,0,0])<=0.5)
-       v        = [-1,-0.2,3.86];
-     batAngle = [0.96,-0.3,-0.5];        
+       v        := [-1,-0.2,3.86];
+     batAngle := [0.96,-0.3,-0.5];        
        else
         if(dot(ballp,[1,0,0])>0.5&& dot(ballp,[1,0,0])<=1)
-       v        = [-1,-0.2,3.86];
-     batAngle = [0.96,-0.3,-0.4];
+       v        := [-1,-0.2,3.86];
+     batAngle := [0.96,-0.3,-0.4];
 else
          if(dot(ballp,[1,0,0])>1)
-       v        = [-1,-0.2,3.86];
-     batAngle = [0.96,-0.3,-0.3];
+       v        := [-1,-0.2,3.86];
+     batAngle := [0.96,-0.3,-0.3];
        end;
        end;
        end;
        end;
 if(dot(ballp,[0,1,0])<-0.6)
       if(dot(ballp,[1,0,0])>0&& dot(ballp,[1,0,0])<=0.5)
-       v        = [-1,-0.2,3.86];
-     batAngle = [0.96,-0.4,-0.5];        
+       v        := [-1,-0.2,3.86];
+     batAngle := [0.96,-0.4,-0.5];        
        else
         if(dot(ballp,[1,0,0])>0.5&& dot(ballp,[1,0,0])<=1)
-       v        = [-1,-0.2,3.86];
-     batAngle = [0.96,-0.4,-0.4];
+       v        := [-1,-0.2,3.86];
+     batAngle := [0.96,-0.4,-0.4];
 else
          if(dot(ballp,[1,0,0])>1)
-       v        = [-1,-0.2,3.86];
-     batAngle = [0.96,-0.4,-0.3];
+       v        := [-1,-0.2,3.86];
+     batAngle := [0.96,-0.4,-0.3];
        end;
        end;
        end;
@@ -389,17 +389,17 @@ else
 
 if(dot(ballp,[0,1,0])<=0.1&& dot(ballp,[0,1,0])>=-0.1)
       if(dot(ballp,[1,0,0])>0&& dot(ballp,[1,0,0])<=0.5)
-       v    = [-1,0.40,1.2];
-       batAngle = [0.9471,0,-0.5];
+       v    := [-1,0.40,1.2];
+       batAngle := [0.9471,0,-0.5];
         
        else
         if(dot(ballp,[1,0,0])>0.5&& dot(ballp,[1,0,0])<=1)
-       v        = [-1,0.40,1.2];
-        batAngle = [0.9471,0,-0.4];
+       v        := [-1,0.40,1.2];
+        batAngle := [0.9471,0,-0.4];
         else
          if(dot(ballp,[1,0,0])>1)
-       v        = [-1,0.40,1.2];
-       batAngle = [0.9471,0,-0.3];
+       v        := [-1,0.40,1.2];
+       batAngle := [0.9471,0,-0.3];
        end;
        end;
        end;
@@ -408,17 +408,17 @@ end;
 if(dot(ballv,[1,0,0]) <1)
     if(dot(ballp,[0,1,0])>0.1&& dot(ballp,[0,1,0])<=0.35)
       if(dot(ballp,[1,0,0])>0&& dot(ballp,[1,0,0])<=0.5)
-       v    = [-1.38,0.40,1.2];
-       batAngle = [0.9471,0.2,-0.4];
+       v    := [-1.38,0.40,1.2];
+       batAngle := [0.9471,0.2,-0.4];
         
        else
         if(dot(ballp,[1,0,0])>0.5&& dot(ballp,[1,0,0])<=1)
-       v        = [-1.38,0.40,1.2];
-        batAngle = [0.9471,0.2,-0.3];
+       v        := [-1.38,0.40,1.2];
+        batAngle := [0.9471,0.2,-0.3];
         else
          if(dot(ballp,[1,0,0])>1)
-       v        = [-1.38,0.40,1.2];
-       batAngle = [0.9471,0.2,-0.2];
+       v        := [-1.38,0.40,1.2];
+       batAngle := [0.9471,0.2,-0.2];
        end;
        end;
        end;
@@ -426,34 +426,34 @@ if(dot(ballv,[1,0,0]) <1)
 
     if(dot(ballp,[0,1,0])>0.35&& dot(ballp,[0,1,0])<=0.6)
       if(dot(ballp,[1,0,0])>0&& dot(ballp,[1,0,0])<=0.5)
-       v    = [-1.38,0.40,1.2];
-       batAngle = [0.9471,0.3,-0.4];
+       v    := [-1.38,0.40,1.2];
+       batAngle := [0.9471,0.3,-0.4];
         
        else
         if(dot(ballp,[1,0,0])>0.5&& dot(ballp,[1,0,0])<=1)
-       v        = [-1.38,0.40,1.2];
-        batAngle = [0.9471,0.3,-0.3];
+       v        := [-1.38,0.40,1.2];
+        batAngle := [0.9471,0.3,-0.3];
         else
          if(dot(ballp,[1,0,0])>1)
-       v        = [-1.38,0.40,1.2];
-       batAngle = [0.9471,0.3,-0.2];
+       v        := [-1.38,0.40,1.2];
+       batAngle := [0.9471,0.3,-0.2];
        end;
        end;
        end;
        end;
     if(dot(ballp,[0,1,0])>0.6)
       if(dot(ballp,[1,0,0])>0&& dot(ballp,[1,0,0])<=0.5)
-       v    = [-1.38,0.40,1.2];
-       batAngle = [0.9471,0.4,-0.4];
+       v    := [-1.38,0.40,1.2];
+       batAngle := [0.9471,0.4,-0.4];
         
        else
         if(dot(ballp,[1,0,0])>0.5&& dot(ballp,[1,0,0])<=1)
-       v        = [-1.38,0.40,1.2];
-        batAngle = [0.9471,0.4,-0.3];
+       v        := [-1.38,0.40,1.2];
+        batAngle := [0.9471,0.4,-0.3];
         else
          if(dot(ballp,[1,0,0])>1)
-       v        = [-1.38,0.40,1.2];
-       batAngle = [0.9471,0.4,-0.2];
+       v        := [-1.38,0.40,1.2];
+       batAngle := [0.9471,0.4,-0.2];
        end;
        end;
        end;
@@ -462,48 +462,48 @@ if(dot(ballv,[1,0,0]) <1)
 
 if(dot(ballp,[0,1,0])<-0.1&& dot(ballp,[0,1,0])>=-0.35)
       if(dot(ballp,[1,0,0])>0&& dot(ballp,[1,0,0])<=0.5)
-       v        = [-1.7,-0.2,3.86];
-     batAngle = [0.96,-0.2,-0.4];        
+       v        := [-1.7,-0.2,3.86];
+     batAngle := [0.96,-0.2,-0.4];        
        else
         if(dot(ballp,[1,0,0])>0.5&& dot(ballp,[1,0,0])<=1)
-       v        = [-1.7,-0.2,3.86];
-     batAngle = [0.96,-0.2,-0.3];
+       v        := [-1.7,-0.2,3.86];
+     batAngle := [0.96,-0.2,-0.3];
 else
          if(dot(ballp,[1,0,0])>1)
-       v        = [-1.7,-0.2,3.86];
-     batAngle = [0.96,-0.2,-0.2];
+       v        := [-1.7,-0.2,3.86];
+     batAngle := [0.96,-0.2,-0.2];
        end;
        end;
        end;
        end;
 if(dot(ballp,[0,1,0])<-0.35&&dot(ballp,[0,1,0])>-0.6)
       if(dot(ballp,[1,0,0])>0&& dot(ballp,[1,0,0])<=0.5)
-       v        = [-1.7,-0.2,3.86];
-     batAngle = [0.96,-0.3,-0.4];        
+       v        := [-1.7,-0.2,3.86];
+     batAngle := [0.96,-0.3,-0.4];        
        else
         if(dot(ballp,[1,0,0])>0.5&& dot(ballp,[1,0,0])<=1)
-       v        = [-1.7,-0.2,3.86];
-     batAngle = [0.96,-0.3,-0.3];
+       v        := [-1.7,-0.2,3.86];
+     batAngle := [0.96,-0.3,-0.3];
 else
          if(dot(ballp,[1,0,0])>1)
-       v        = [-1.7,-0.2,3.86];
-     batAngle = [0.96,-0.3,-0.2];
+       v        := [-1.7,-0.2,3.86];
+     batAngle := [0.96,-0.3,-0.2];
        end;
        end;
        end;
        end;
 if(dot(ballp,[0,1,0])<-0.6)
       if(dot(ballp,[1,0,0])>0&& dot(ballp,[1,0,0])<=0.5)
-       v        = [-1.7,-0.2,3.86];
-     batAngle = [0.96,-0.4,-0.4];        
+       v        := [-1.7,-0.2,3.86];
+     batAngle := [0.96,-0.4,-0.4];        
        else
         if(dot(ballp,[1,0,0])>0.5&& dot(ballp,[1,0,0])<=1)
-       v        = [-1.7,-0.2,3.86];
-     batAngle = [0.96,-0.4,-0.3];
+       v        := [-1.7,-0.2,3.86];
+     batAngle := [0.96,-0.4,-0.3];
 else
          if(dot(ballp,[1,0,0])>1)
-       v        = [-0.7,-0.2,3.86];
-     batAngle = [0.96,-0.4,-0.2];
+       v        := [-0.7,-0.2,3.86];
+     batAngle := [0.96,-0.4,-0.2];
        end;
        end;
        end;
@@ -511,17 +511,17 @@ else
 
 if(dot(ballp,[0,1,0])<=0.1&& dot(ballp,[0,1,0])>=-0.1)
       if(dot(ballp,[1,0,0])>0&& dot(ballp,[1,0,0])<=0.5)
-       v    = [-1.38,0.40,1.2];
-       batAngle = [0.9471,0,-0.4];
+       v    := [-1.38,0.40,1.2];
+       batAngle := [0.9471,0,-0.4];
         
        else
         if(dot(ballp,[1,0,0])>0.5&& dot(ballp,[1,0,0])<=1)
-       v        = [-1.38,0.40,1.2];
-        batAngle = [0.9471,0,-0.3];
+       v        := [-1.38,0.40,1.2];
+        batAngle := [0.9471,0,-0.3];
         else
          if(dot(ballp,[1,0,0])>1)
-            v        = [-1.38,0.40,1.2];
-       batAngle = [0.9471,0,-0.2];
+            v        := [-1.38,0.40,1.2];
+       batAngle := [0.9471,0,-0.2];
        end;
        end;
        end;
@@ -530,111 +530,111 @@ end;
 
 else
   if(dot(ballv,[0,1,0]) < 0)
-    v        = [0.1,-0.15,3.85];
-    batAngle = [-0.938,-0.162,-0.29];
+    v        := [0.1,-0.15,3.85];
+    batAngle := [-0.938,-0.162,-0.29];
    else
-    v        = [1,0,2.85];
-    batAngle = [-0.938,0.202,-0.29];
+    v        := [1,0,2.85];
+    batAngle := [-0.938,0.202,-0.29];
     end;
 end;
 
-  serve  = false;
-  hit    = true;
-  mode   = "Wait";
+  serve  := false;
+  hit    := true;
+  mode   := "Wait";
  case "Panic!"
  end
 end
 
 class PingPing(n)
  private
-  mode      = "Wait";
-  bounced   = false;       // Tell whether the ball bounced or not
-  serve = false;           // The Game class will set serve flag to true
-  hit   = false;           // when it's your turn
-  count = 0;
-  scount = 0;
-  ballv = [0,0,0];
-  ballp = [0,0,0];
-  batp  = [1.6,0,0.2];
-  v     = [0,0,0];         // Bat's speed
-  batAngle   = [0,0,0.1];  // Normal vector of the bat's plane
-  batAngle'  = [0,0,0];
+  mode      := "Wait";
+  bounced   := false;       // Tell whether the ball bounced or not
+  serve := false;           // The Game class will set serve flag to true
+  hit   := false;           // when it's your turn
+  count := 0;
+  scount := 0;
+  ballv := [0,0,0];
+  ballp := [0,0,0];
+  batp  := [1.6,0,0.2];
+  v     := [0,0,0];         // Bat's speed
+  batAngle   := [0,0,0.1];  // Normal vector of the bat's plane
+  batAngle'  := [0,0,0];
   // Player(1) starts at [-1.6,0,0.2], Player(2) starts at [1.6,0,0.2]
-  startPoint = [1.6*(-1)^n,0,0.2];
-  t   = 0;
-  t'  = 1;
+  startPoint := [1.6*(-1)^n,0,0.2];
+  t   := 0;
+  t'  := 1;
  end
  if mode ~= "Wait" && mode ~= "Prepare" && mode ~= "Hit"
-   mode = "Panic!";
+   mode := "Panic!";
  end;
- t'  [=] 1;
+ t'  = 1;
  switch mode
   case "Wait"               // While waiting, moving the bat to starting point
-   count      = 0;
+   count      := 0;
    if n == 2
         if(batp == startPoint)
-                scount = 0;
+                scount := 0;
         end;
-     v         [=] [0,0,0]
-     //v         [=] startPoint-batp;
+     v         = [0,0,0]
+     //v         = startPoint-batp;
    else
-     v         [=] [0,0,0]
-     //v         [=] startPoint-batp;
+     v         = [0,0,0]
+     //v         = startPoint-batp;
    end;
-   batAngle' [=] [0,0,0]-batAngle;
-   hit    = false;
+   batAngle' = [0,0,0]-batAngle;
+   hit    := false;
    if serve == true
-    mode    = "Prepare";
-    bounced = false;
+    mode    := "Prepare";
+    bounced := false;
    else
-    mode = "Wait";
+    mode := "Wait";
    end;
   case "Prepare"             // Prepare to hit the ball
    if bounced == true        // After the ball has bounced,
                              // start moving the bat towards the ball
-     v [=] (ballp-batp).*[0,20,0] + (ballp-batp).*[0,0,25] +
+     v = (ballp-batp).*[0,20,0] + (ballp-batp).*[0,0,25] +
             (ballp+[0.12*(-1)^n,0,0]-batp).*[25,0,0];
      if norm(batp - ballp)<0.15 && abs(dot(ballp,[1,0,0])) >=
                                 abs(dot(startPoint,[1,0,0]))
-      count = count+1;
-      mode  = "Hit";
+      count := count+1;
+      mode  := "Hit";
      end;
    end;
    // When the ball has bounced and it is at the highest position
    if count > 0 && dot(ballv,[0,0,1]) < 0.1 && bounced == true
-            mode = "Hit";     // This player decide to hit.
+            mode := "Hit";     // This player decide to hit.
    end;
    if dot(ballp,[0,0,1]) < 0 && bounced == false
-    bounced = true;
+    bounced := true;
    end;
    if(serve ~= true)
-     mode = "Wait";
+     mode := "Wait";
    end;
  case "Hit"           // Decide how you want hit the ball,
    if n == 2
      if(serve == true && scount == 0)
         if(dot(ballp,[0,1,0]) > 0)
-          v        = [-1,0.2,1.2];
-            batAngle = [dot(ballp,[1,0,0])+1.3,dot(ballp,[0,1,0])+0.7,-0.2]/
+          v        := [-1,0.2,1.2];
+            batAngle := [dot(ballp,[1,0,0])+1.3,dot(ballp,[0,1,0])+0.7,-0.2]/
           norm([dot(ballp,[1,0,0])+1.3,dot(ballp,[0,1,0])+0.7,-0.2]);        
         else
-          v        = [-1,0.2,1.2];
-            batAngle = [dot(ballp,[1,0,0])+1.3,dot(ballp,[0,1,0])-0.7,-0.2]/
+          v        := [-1,0.2,1.2];
+            batAngle := [dot(ballp,[1,0,0])+1.3,dot(ballp,[0,1,0])-0.7,-0.2]/
           norm([dot(ballp,[1,0,0])+1.3,dot(ballp,[0,1,0])+0.7,-0.2]);
         end;        
         if(dot(ballp,[0,1,0]) <= 0.2 && dot(ballp,[0,1,0]) >= -0.2)
-          v        = [-1,0,1.2];
-            batAngle = [0.95,0,-0.2];
+          v        := [-1,0,1.2];
+            batAngle := [0.95,0,-0.2];
         end;
-            scount = 1;
+            scount := 1;
      else
         if(dot(ballp,[0,1,0]) > 0)        //Right of P2
-          v        = [-1,0.2,1.2];
-          batAngle = [dot(ballp,[1,0,0])+1.3,dot(ballp,[0,1,0])+0.7,-0.2]/
+          v        := [-1,0.2,1.2];
+          batAngle := [dot(ballp,[1,0,0])+1.3,dot(ballp,[0,1,0])+0.7,-0.2]/
           norm([dot(ballp,[1,0,0])+1.3,dot(ballp,[0,1,0])+0.7,-0.2]);        
         else                                //Left of P2
-          v        = [-1,0.2,1.2];
-          batAngle = [dot(ballp,[1,0,0])+1.3,dot(ballp,[0,1,0])-0.7,-0.2]/
+          v        := [-1,0.2,1.2];
+          batAngle := [dot(ballp,[1,0,0])+1.3,dot(ballp,[0,1,0])-0.7,-0.2]/
           norm([dot(ballp,[1,0,0])+1.3,dot(ballp,[0,1,0])+0.7,-0.2]);        
         end;
     end;
@@ -642,25 +642,25 @@ class PingPing(n)
 
       if(dot(ballv,[0,1,0]) < 0)        //Right of P1
         if( dot(ballp,[0,1,0]) > -0.4)
-                    v        = [0.1,-0.15,3.85];
-                    batAngle = [-0.938,-0.162,-0.29];
+                    v        := [0.1,-0.15,3.85];
+                    batAngle := [-0.938,-0.162,-0.29];
         else
-                v        = [0.1,-0.15,3.85];
-                    batAngle = [-0.938,-0.362,-0.29];
+                v        := [0.1,-0.15,3.85];
+                    batAngle := [-0.938,-0.362,-0.29];
         end;
       else                                //Left of P1
            if(dot(ballv,[0,1,0]) > 0.4)
-                    v        = [1,0,2.85];
-                    batAngle = [-0.938,0.4,-0.29];
+                    v        := [1,0,2.85];
+                    batAngle := [-0.938,0.4,-0.29];
            else
-                v        = [1,0,2.85];
-                    batAngle = [-0.938,0.202,-0.29];
+                v        := [1,0,2.85];
+                    batAngle := [-0.938,0.202,-0.29];
            end;
       end;
   end;
-  serve  = false;
-  hit    = true;
-  mode   = "Wait";
+  serve  := false;
+  hit    := true;
+  mode   := "Wait";
  case "Panic!"
  end
 end
@@ -669,335 +669,335 @@ end
 
 class WiffWaff(n)
  private
-  mode      = "Wait";
-  bounced   = false;       // Tell whether the ball bounced or not
-  serve = false;           // The Game class will set serve flag to true
-  hit   = false;           // when it's your turn
-  count = 0;
-  ballv = [0,0,0];
-  ballp = [0,0,0];
-  batp  = [1.6,0,0.2];
-  v     = [0,0,0];         // Bat's speed
-  batAngle   = [0,0,0.1];  // Normal vector of the bat's plane
-  batAngle'  = [0,0,0];
+  mode      := "Wait";
+  bounced   := false;       // Tell whether the ball bounced or not
+  serve := false;           // The Game class will set serve flag to true
+  hit   := false;           // when it's your turn
+  count := 0;
+  ballv := [0,0,0];
+  ballp := [0,0,0];
+  batp  := [1.6,0,0.2];
+  v     := [0,0,0];         // Bat's speed
+  batAngle   := [0,0,0.1];  // Normal vector of the bat's plane
+  batAngle'  := [0,0,0];
   // Player(1) starts at [-1.6,0,0.2], Player(2) starts at [1.6,0,0.2]
-  startPoint = [1.6*(-1)^n,0,0.2];
-  v2         = [0,0,0];    // The output speed of the ball, which we desired
-  v21        = [0,0,0];
-  z   = 0;
-  n1   = 0;
-  t   = 0;
-  t'  = 1;
-  number = n;
+  startPoint := [1.6*(-1)^n,0,0.2];
+  v2         := [0,0,0];    // The output speed of the ball, which we desired
+  v21        := [0,0,0];
+  z   := 0;
+  n1   := 0;
+  t   := 0;
+  t'  := 1;
+  number := n;
  end
- number [=] n;
- startPoint [=] [1.6*(-1)^number,0,0.2];
+ number = n;
+ startPoint = [1.6*(-1)^number,0,0.2];
  if mode ~= "Wait" && mode ~= "Prepare" && mode ~= "Hit"
-   mode = "Panic!";
+   mode := "Panic!";
  end;
- t'  [=] 1;
+ t'  = 1;
  switch mode
   case "Wait"               // While waiting, moving the bat to starting point
-   count      = 0;
+   count      := 0;
    if n == 1
-     v         [=] startPoint-batp;
+     v         = startPoint-batp;
    else
-     v         [=] startPoint-batp;
+     v         = startPoint-batp;
    end;
-   batAngle' [=] [0,0,0]-batAngle;
-   hit    = false;
+   batAngle' = [0,0,0]-batAngle;
+   hit    := false;
    if serve == true
-    mode    = "Prepare";
-    bounced = false;
+    mode    := "Prepare";
+    bounced := false;
    else
-    mode = "Wait";
+    mode := "Wait";
    end;
   case "Prepare"             // Prepare to hit the ball
    if bounced == true        // After the ball has bounced,
                              // start moving the bat towards the ball
-     v [=] (ballp-batp).*[0,20,0] + (ballp-batp).*[0,0,25] +
+     v = (ballp-batp).*[0,20,0] + (ballp-batp).*[0,0,25] +
                    (ballp+[0.12*(-1)^n,0,0]-batp).*[25,0,0];
      if norm(batp - ballp)<0.15 && abs(dot(ballp,[1,0,0])) >=
                                       0.8* abs(dot(startPoint,[1,0,0]))
-      count = count+1;
-      mode  = "Hit";
+      count := count+1;
+      mode  := "Hit";
      end;
    end;
    // When the ball has bounced and it is at the highest position
    if count > 0 && dot(ballv,[0,0,1]) < 0.1 && bounced == true
-    mode = "Hit";     // This player decide to hit.
+    mode := "Hit";     // This player decide to hit.
    end;
    if dot(ballp,[0,0,1]) < 0 && bounced == false
-    bounced = true;
+    bounced := true;
    end;
    if(serve ~= true)
-     mode = "Wait";
+     mode := "Wait";
    end;
  case "Hit"           // Decide how you want hit the ball,
   if n == 2
-    v2  = [-(dot(ballp, [1,0,0] ) + 0.75 + 0.5 ), -dot( ballp, [0,1,0]
+    v2  := [-(dot(ballp, [1,0,0] ) + 0.75 + 0.5 ), -dot( ballp, [0,1,0]
 ), 5 - dot(ballp,[0,0,1])];
-        v21 = (v2 - ballv) / (-2) ;
-        n1   =  norm(v21);
-        batAngle = v21 / n1;
-        z = (n1- dot(batAngle, [1,0,0])*4) / dot(batAngle, [0,0,1]);
-        v = ballv - [4,0,z];
-        //v        = [-0.5,0.71,1.37];
-    //batAngle = [0.87,0.14,-0.47];
+        v21 := (v2 - ballv) / (-2) ;
+        n1   :=  norm(v21);
+        batAngle := v21 / n1;
+        z := (n1- dot(batAngle, [1,0,0])*4) / dot(batAngle, [0,0,1]);
+        v := ballv - [4,0,z];
+        //v        := [-0.5,0.71,1.37];
+    //batAngle := [0.87,0.14,-0.47];
   else
-    v2  = [(-dot(ballp, [1,0,0] ) + 0.75 + 0.5 ), -dot( ballp, [0,1,0]
+    v2  := [(-dot(ballp, [1,0,0] ) + 0.75 + 0.5 ), -dot( ballp, [0,1,0]
 ), 5 - dot(ballp,[0,0,1])];
-        v21 = (v2 - ballv) / (-2) ;
-        n1   =  norm(v21);
-        batAngle = v21 / n1;
-        z = (n1- dot(batAngle, [1,0,0])*4) / dot(batAngle, [0,0,1]);
-        v = ballv - [4,0,z];
+        v21 := (v2 - ballv) / (-2) ;
+        n1   :=  norm(v21);
+        batAngle := v21 / n1;
+        z := (n1- dot(batAngle, [1,0,0])*4) / dot(batAngle, [0,0,1]);
+        v := ballv - [4,0,z];
    end;
-  serve  = false;
-  hit    = true;
-  mode   = "Wait";
+  serve  := false;
+  hit    := true;
+  mode   := "Wait";
  case "Panic!"
  end
 end
 
 class ParadoX(n)
 private
-  mode      = "Wait";
-  bounced   = false;       // Tell whether the ball bounced or not
-  serve = false;           // The Game class will set serve flag to true
-  hit   = false;           // when it's your turn
-  count = 0;
-  ballv = [0,0,0];
-  ballp = [0,0,0];
-  batp  = [1.6,0,0.2];
-  v     = [0,0,0];         // Bat's speed
-  batAngle   = [0,0,0.1];  // Normal vector of the bat's plane
-  batAngle'  = [0,0,0];
+  mode      := "Wait";
+  bounced   := false;       // Tell whether the ball bounced or not
+  serve := false;           // The Game class will set serve flag to true
+  hit   := false;           // when it's your turn
+  count := 0;
+  ballv := [0,0,0];
+  ballp := [0,0,0];
+  batp  := [1.6,0,0.2];
+  v     := [0,0,0];         // Bat's speed
+  batAngle   := [0,0,0.1];  // Normal vector of the bat's plane
+  batAngle'  := [0,0,0];
   // Player(1) starts at [-1.6,0,0.2], Player(2) starts at [1.6,0,0.2]
-  startPoint = [1.6*(-1)^n,0,0.2];
-  t   = 0;
-  t'  = 1;
+  startPoint := [1.6*(-1)^n,0,0.2];
+  t   := 0;
+  t'  := 1;
  end
  if mode ~= "Wait" && mode ~= "Prepare" && mode ~= "Hit"
-   mode = "Panic!";
+   mode := "Panic!";
  end;
- t'  [=] 1;
+ t'  = 1;
  switch mode
   case "Wait"               // While waiting, moving the bat to starting point
-   count      = 0;
+   count      := 0;
    if n == 1
-     v         [=] startPoint-batp;
+     v         = startPoint-batp;
    else
-     v         [=] startPoint + [0,0.75,0] - batp;
+     v         = startPoint + [0,0.75,0] - batp;
    end;
-   batAngle' [=] [0,0,0]-batAngle;
-   hit    = false;
+   batAngle' = [0,0,0]-batAngle;
+   hit    := false;
    if serve == true
-    mode    = "Prepare";
-    bounced = false;
+    mode    := "Prepare";
+    bounced := false;
    else
-    mode = "Wait";
+    mode := "Wait";
    end;
   case "Prepare"             // Prepare to hit the ball
    if bounced == true        // After the ball has bounced,
                              // start moving the bat towards the ball
-     v [=] (ballp-batp).*[0,20,0] + (ballp-batp).*[0,0,25] +
+     v = (ballp-batp).*[0,20,0] + (ballp-batp).*[0,0,25] +
             (ballp+[0.12*(-1)^n,0,0]-batp).*[25,0,0];
      if norm(batp - ballp)<0.15 && abs(dot(ballp,[1,0,0])) >=
                                 abs(dot(startPoint,[1,0,0]))
-      mode  = "Hit";
+      mode  := "Hit";
      end;
    end;
    // When the ball has bounced and it is at the highest position
    if count > 0 && dot(ballv,[0,0,1]) < 0.1 && dot(ballp,[0,0,1]) >
 0.1 && bounced == true
-    mode = "Hit";     // This player decide to hit.
+    mode := "Hit";     // This player decide to hit.
    end;
    if dot(ballp,[0,0,1]) < 0 && bounced == false
-    bounced = true;
-count = 1;
+    bounced := true;
+count := 1;
    end;
    if(serve ~= true)
-     mode = "Wait";
+     mode := "Wait";
    end;
  case "Hit"           // Decide how you want hit the ball,
           if n == 2
-                            v        = [-0.1,-0.15,3.85];
-                           batAngle = [0.938,0.162,-0.29];
+                            v        := [-0.1,-0.15,3.85];
+                           batAngle := [0.938,0.162,-0.29];
   else
    if(dot(ballv,[0,1,0]) < 0)
-    v        = [0.1,-0.15,3.85];
-    batAngle = [-0.938,-0.162,-0.29];
+    v        := [0.1,-0.15,3.85];
+    batAngle := [-0.938,-0.162,-0.29];
    else
-    v        = [1,0,2.85];
-    batAngle = [-0.938,0.202,-0.29];
+    v        := [1,0,2.85];
+    batAngle := [-0.938,0.202,-0.29];
     end;
    end;
-  serve  = false;
-  hit    = true;
-  mode   = "Wait";
+  serve  := false;
+  hit    := true;
+  mode   := "Wait";
  case "Panic!"
  end
 end
 
 class XPTO(n)
  private
-  mode          = "Wait";
-  bounced   = false;           // Tell whether the ball bounced or not
-  serve = false;               // The Game class will set serve flag to true
-  hit   = false;               // when it's your turn
-  count = 0;
-  ballv = [0,0,0];
-  ballp = [0,0,0];
-  batp  = [1.6,0,0.2];
-  v         = [0,0,0];             // Bat's speed
-  batAngle   = [0,0,0.1];  // Normal vector of the bat's plane
-  batAngle'  = [0,0,0];
+  mode          := "Wait";
+  bounced   := false;           // Tell whether the ball bounced or not
+  serve := false;               // The Game class will set serve flag to true
+  hit   := false;               // when it's your turn
+  count := 0;
+  ballv := [0,0,0];
+  ballp := [0,0,0];
+  batp  := [1.6,0,0.2];
+  v         := [0,0,0];             // Bat's speed
+  batAngle   := [0,0,0.1];  // Normal vector of the bat's plane
+  batAngle'  := [0,0,0];
   // Player(1) starts at [-1.6,0,0.2], Player(2) starts at [1.6,0,0.2]
-  startPoint = [1.6,0,0.2];
-  t   = 0;
-  t'  = 1;
+  startPoint := [1.6,0,0.2];
+  t   := 0;
+  t'  := 1;
  end
  if mode ~= "Wait" && mode ~= "Prepare" && mode ~= "Hit"
-   mode = "Panic!";
+   mode := "Panic!";
  end;
- t'  [=] 1;
+ t'  = 1;
  switch mode
   case "Wait"                   // While waiting, moving the bat to starting point
-   count          = 0;
-   v             [=] startPoint- batp;
-   batAngle' [=] [0,0,0]-batAngle;
-   hit        = false;
+   count          := 0;
+   v             = startPoint- batp;
+   batAngle' = [0,0,0]-batAngle;
+   hit        := false;
    if serve == true
-        mode        = "Prepare";
-        bounced = false;
+        mode        := "Prepare";
+        bounced := false;
    else
-        mode = "Wait";
+        mode := "Wait";
    end;
   case "Prepare"                 // Prepare to hit the ball
    if bounced == true            // After the ball has bounced,
                                  // start moving the bat towards the ball
-         v [=] (ballp-batp).*[0,20,0] + (ballp-batp).*[0,0,25] +
+         v = (ballp-batp).*[0,20,0] + (ballp-batp).*[0,0,25] +
                (ballp+[0.12*(-1)^2,0,0]-batp).*[25,0,0];
          if norm(batp - ballp)<0.15 && abs(dot(ballp,[1,0,0])) >=
                                    abs(dot(startPoint,[1,0,0]))
-          count = count+1;
-          mode  = "Hit";
+          count := count+1;
+          mode  := "Hit";
          end;
    end;
    // When the ball has bounced and it is at the highest position
    if count > 0 && dot(ballv,[0,0,1]) < 0.1 && bounced == true
-        mode = "Hit";         // This player decide to hit.
+        mode := "Hit";         // This player decide to hit.
    end;
    if dot(ballp,[0,0,1]) < 0 && bounced == false
-        bounced = true;
+        bounced := true;
    end;
    if(serve ~= true)
-         mode = "Wait";
+         mode := "Wait";
    end;
  case "Hit"               // Decide how you want hit the ball,
          if(t<1||t>5)           // you may want to check the formulas
                           // in the BallActuator() class
-           v            = [-1, 0.40, 1.2];
-           batAngle = [0.92, 0, -0.1];
+           v            := [-1, 0.40, 1.2];
+           batAngle := [0.92, 0, -0.1];
          else
            if t > 4 && t < 5
-             v            = [-0.88, -0.2, 0.2];
-             batAngle = [0.92, 0.05, -0.1];
+             v            := [-0.88, -0.2, 0.2];
+             batAngle := [0.92, 0.05, -0.1];
            else
-             v            = [-0.7, -0.2, 3.76];
-             batAngle = [0.96, 0.1, -0.2258];
+             v            := [-0.7, -0.2, 3.76];
+             batAngle := [0.96, 0.1, -0.2258];
            end;
          end;
 
-  serve  = false;
-  hit        = true;
-  mode   = "Wait";
+  serve  := false;
+  hit        := true;
+  mode   := "Wait";
  case "Panic!"
  end
 end
 
 class Virtue(n)
  private
-  mode      = "Wait";
-  bounced   = false;       // Tell whether the ball bounced or not
-  serve = false;           // The Game class will set serve flag to true
-  hit   = false;           // when it's your turn
-  count = 0;
-  ballv = [0,0,0];
-  ballp = [0,0,0];
-  batp  = [1.6,0,0.2];
-  v     = [0,0,0];         // Bat's speed
-  batAngle   = [0,0,0.1];  // Normal vector of the bat's plane
-  batAngle'  = [0,0,0];
+  mode      := "Wait";
+  bounced   := false;       // Tell whether the ball bounced or not
+  serve := false;           // The Game class will set serve flag to true
+  hit   := false;           // when it's your turn
+  count := 0;
+  ballv := [0,0,0];
+  ballp := [0,0,0];
+  batp  := [1.6,0,0.2];
+  v     := [0,0,0];         // Bat's speed
+  batAngle   := [0,0,0.1];  // Normal vector of the bat's plane
+  batAngle'  := [0,0,0];
   // Player(1) starts at [-1.6,0,0.2], Player(2) starts at [1.6,0,0.2]
-  startPoint = [1.6*(-1)^n,0,0.2];
-  t   = 0;
-  t'  = 1;
+  startPoint := [1.6*(-1)^n,0,0.2];
+  t   := 0;
+  t'  := 1;
  end
  if mode ~= "Wait" && mode ~= "Prepare" && mode ~= "Hit"
-   mode = "Panic!";
+   mode := "Panic!";
  end;
- t'  [=] 1;
+ t'  = 1;
  switch mode
   case "Wait"               // While waiting, moving the bat to starting point
-   count      = 0;
+   count      := 0;
    if n == 1
-     v         [=] startPoint-batp;
+     v         = startPoint-batp;
    else
-     v         [=] startPoint + [0,0.75,0] - batp;
+     v         = startPoint + [0,0.75,0] - batp;
    end;
-   batAngle' [=] [0,0,0]-batAngle;
-   hit    = false;
+   batAngle' = [0,0,0]-batAngle;
+   hit    := false;
    if serve == true
-    mode    = "Prepare";
-    bounced = false;
+    mode    := "Prepare";
+    bounced := false;
    else
-    mode = "Wait";
+    mode := "Wait";
    end;
   case "Prepare"             // Prepare to hit the ball
    if bounced == true        // After the ball has bounced,
                              // start moving the bat towards the ball
-     v [=] (ballp-batp).*[0,20,0] + (ballp-batp).*[0,0,25] +
+     v = (ballp-batp).*[0,20,0] + (ballp-batp).*[0,0,25] +
            (ballp+[0.12*(-1)^n,0,0]-batp).*[25,0,0];
      if norm(batp - ballp)<0.15 && abs(dot(ballp,[1,0,0])) >=
                                abs(dot(startPoint,[1,0,0]))
-      count = count+1;
-      mode  = "Hit";
+      count := count+1;
+      mode  := "Hit";
      end;
    end;
    // When the ball has bounced and it is at the highest position
    if count > 0 && dot(ballv,[0,0,1]) > -0.6 && bounced == true  //vvv <0.5 -> >-0.6 hit earlier
-    mode = "Hit";     // This player decide to hit.
+    mode := "Hit";     // This player decide to hit.
    end;
    if dot(ballp,[0,0,1]) < 0 && bounced == false
-    bounced = true;
+    bounced := true;
    end;
    if(serve ~= true)
-     mode = "Wait";
+     mode := "Wait";
    end;
  case "Hit"           // Decide how you want hit the ball,
   if n == 2
    if(t<1||t>5)       // you may want to check the formulas
                       // in the BallActuator() class
-    v        = [-0.38,0.40,1.2];   // vvv -1.38 -> -0.38 less acc in x dir
-    batAngle = [0.9471,0.25,-0.7]; // vvv -0.2->-0.7 big parable
+    v        := [-0.38,0.40,1.2];   // vvv -1.38 -> -0.38 less acc in x dir
+    batAngle := [0.9471,0.25,-0.7]; // vvv -0.2->-0.7 big parable
    else
     if t > 4 && t < 5
-     v        = [-0.88,-0.5,0.2];
-     batAngle = [0.9471,0.25,-0.2];
+     v        := [-0.88,-0.5,0.2];
+     batAngle := [0.9471,0.25,-0.2];
     else
-     v        = [-1.7,-0.2,3.86];
-     batAngle = [0.96,-0.1,-0.2258];
+     v        := [-1.7,-0.2,3.86];
+     batAngle := [0.96,-0.1,-0.2258];
     end;
    end;
   else
-   v        = [0.6,4.45,0.95]; // vvv 0.2->0.6, 3.85->4.45, 0.85->0.95big parable
-   batAngle = [-0.938,-0.162,-0.29];
+   v        := [0.6,4.45,0.95]; // vvv 0.2->0.6, 3.85->4.45, 0.85->0.95big parable
+   batAngle := [-0.938,-0.162,-0.29];
   end;
-  serve  = false;
-  hit    = true;
-  mode   = "Wait";
+  serve  := false;
+  hit    := true;
+  mode   := "Wait";
  case "Panic!"
  end
 end
@@ -1010,32 +1010,32 @@ end
 **/
 class Ball ()
  private
-  mode = "Fly";
-  k_z  = [1,1,-0.99];       // Coefficient of restitution
-  k2   = 1/6;               // Coefficient of the air resistance
-  p    = [0,0,0.5];         // Position of the ball
-  p'   = [5,1,-3];
-  p''  = [0,0,0];
-  _3D  = ["Sphere",[0,0,0.5],0.03,[1,1,1],[0,0,0]];
+  mode := "Fly";
+  k_z  := [1,1,-0.99];       // Coefficient of restitution
+  k2   := 1/6;               // Coefficient of the air resistance
+  p    := [0,0,0.5];         // Position of the ball
+  p'   := [5,1,-3];
+  p''  := [0,0,0];
+  _3D  := ["Sphere",[0,0,0.5],0.03,[1,1,1],[0,0,0]];
  end
- _3D [=] ["Sphere",p,0.03,[1,1,1],[0,0,0]];
+ _3D = ["Sphere",p,0.03,[1,1,1],[0,0,0]];
  // Valid modes
  if mode ~= "Fly" && mode ~= "Bounce" && mode ~= "Freeze"
-   mode = "Panic!";
+   mode := "Panic!";
  end;
  switch mode
   case "Fly"
    if dot(p,[0,0,1]) < 0 && dot(p',[0,0,1])< 0
-    mode = "Bounce";
+    mode := "Bounce";
    else
-    p'' [=] -k2 * norm(p') * p' + [0,0,-9.8];
+    p'' = -k2 * norm(p') * p' + [0,0,-9.8];
    end;
   case "Bounce"
-    p'   =  p' .* k_z;    // Bouncing  will lose some energy
-    mode = "Fly";
+    p'   :=  p' .* k_z;    // Bouncing  will lose some energy
+    mode := "Fly";
   case "Freeze"           // The ball becomes red to show what is going wrong
-    p'  [=] [0,0,0]; p'' [=] [0,0,0];
-    _3D [=] ["Sphere",p,0.03,[1,0,0],[0,0,0]];
+    p'  = [0,0,0]; p'' = [0,0,0];
+    _3D = ["Sphere",p,0.03,[1,0,0],[0,0,0]];
   case "Panic!"
   end
 end
@@ -1045,16 +1045,16 @@ end
 
 class BatActuator(p1)
  private
-  p       = p1;
-  p'      = [0,0,0];
-  angle   = [0,0,0];
-  energy  = 0;
-  energy' = 0;
+  p       := p1;
+  p'      := [0,0,0];
+  angle   := [0,0,0];
+  energy  := 0;
+  energy' := 0;
  end
   if norm(p') > 5
-   p' = p'/norm(p') * 5 ;
+   p' := p'/norm(p') * 5 ;
   end;
-  energy' [=] norm(p');
+  energy' = norm(p');
 end
 
 
@@ -1062,29 +1062,29 @@ end
 
 class Bat(n,p1)
  private
-  p     = p1;
-  p'    = [0,0,0];
-  angle = [0,0,0.1];
-  displayAngle = [0,0,0];
-  mode  = "Run";
-  _3D   = ["Cylinder",p1,[0.15,0.05],[0.1,0.1,0.1],[0,0,0.5]];
+  p     := p1;
+  p'    := [0,0,0];
+  angle := [0,0,0.1];
+  displayAngle := [0,0,0];
+  mode  := "Run";
+  _3D   := ["Cylinder",p1,[0.15,0.05],[0.1,0.1,0.1],[0,0,0.5]];
  end
  switch mode
   case "Run"
    if n == 2
-     displayAngle  [=] [0,dot(angle,[0,0,1])*(3.14/2)/norm(angle),
+     displayAngle  = [0,dot(angle,[0,0,1])*(3.14/2)/norm(angle),
                       dot(angle,[0,1,0])*(3.14/2)/norm(angle)]+[0,0,3.14/2];
-    _3D            [=] ["Cylinder",p+[0.05,0,0],[0.15,0.05],
+    _3D            = ["Cylinder",p+[0.05,0,0],[0.15,0.05],
                         [0.1,0.1,0.1],displayAngle];
    else
-      displayAngle [=] [dot(angle,[0,0,1])*(3.14/2),0,
+      displayAngle = [dot(angle,[0,0,1])*(3.14/2),0,
                     dot(angle,[0,1,0])*(3.14/2)]+[0,0,3.14/2];
-     _3D           [=] ["Cylinder",p+[-0.05,0,0],[0.15,0.05],
+     _3D           = ["Cylinder",p+[-0.05,0,0],[0.15,0.05],
                         [1,0.1,0.1],-1 * displayAngle];
  end;
   case "Rest"
-    p'            [=] [0,0,0];
- _3D           [=] ["Box",p+[-0.05,0,0],[0.3,0.3,0.3],
+    p'            = [0,0,0];
+ _3D           = ["Box",p+[-0.05,0,0],[0.3,0.3,0.3],
                         [1,1,0.1],-1 * displayAngle];
  end
 end
@@ -1099,90 +1099,90 @@ end
 **/
 class Player(n)
  private
-  mode      = "Wait";
-  bounced   = false;       // Tell whether the ball bounced or not
-  serve = false;           // The Game class will set serve flag to true
-  hit   = false;           // when it's your turn
-  count = 0;
-  ballv = [0,0,0];
-  ballp = [0,0,0];
-  batp  = [1.6,0,0.2];
-  v     = [0,0,0];         // Bat's speed
-  batAngle   = [0,0,0.1];  // Normal vector of the bat's plane
-  batAngle'  = [0,0,0];
+  mode      := "Wait";
+  bounced   := false;       // Tell whether the ball bounced or not
+  serve := false;           // The Game class will set serve flag to true
+  hit   := false;           // when it's your turn
+  count := 0;
+  ballv := [0,0,0];
+  ballp := [0,0,0];
+  batp  := [1.6,0,0.2];
+  v     := [0,0,0];         // Bat's speed
+  batAngle   := [0,0,0.1];  // Normal vector of the bat's plane
+  batAngle'  := [0,0,0];
   // Player(1) starts at [-1.6,0,0.2], Player(2) starts at [1.6,0,0.2]
-  startPoint = [1.6*(-1)^n,0,0.2];
-  t   = 0;
-  t'  = 1;
+  startPoint := [1.6*(-1)^n,0,0.2];
+  t   := 0;
+  t'  := 1;
  end
  if mode ~= "Wait" && mode ~= "Prepare" && mode ~= "Hit"
-   mode = "Panic!";
+   mode := "Panic!";
  end;
- t'  [=] 1;
+ t'  = 1;
  switch mode
   case "Wait"               // While waiting, moving the bat to starting point
-   count      = 0;
+   count      := 0;
    if n == 1
-     v         [=] startPoint-batp;
+     v         = startPoint-batp;
    else
-     v         [=] startPoint + [0,0.75,0] - batp;
+     v         = startPoint + [0,0.75,0] - batp;
    end;
-   batAngle' [=] [0,0,0]-batAngle;
-   hit    = false;
+   batAngle' = [0,0,0]-batAngle;
+   hit    := false;
    if serve == true
-    mode    = "Prepare";
-    bounced = false;
+    mode    := "Prepare";
+    bounced := false;
    else
-    mode = "Wait";
+    mode := "Wait";
    end;
   case "Prepare"             // Prepare to hit the ball
    if bounced == true        // After the ball has bounced,
                              // start moving the bat towards the ball
-     v [=] (ballp-batp).*[0,20,0] + (ballp-batp).*[0,0,25] +
+     v = (ballp-batp).*[0,20,0] + (ballp-batp).*[0,0,25] +
            (ballp+[0.12*(-1)^n,0,0]-batp).*[25,0,0];
      if norm(batp - ballp)<0.15 && abs(dot(ballp,[1,0,0])) >=
                                abs(dot(startPoint,[1,0,0]))
-      count = count+1;
-      mode  = "Hit";
+      count := count+1;
+      mode  := "Hit";
      end;
    end;
    // When the ball has bounced and it is at the highest position
    if count > 0 && dot(ballv,[0,0,1]) < 0.1 && bounced == true
-    mode = "Hit";     // This player decide to hit.
+    mode := "Hit";     // This player decide to hit.
    end;
    if dot(ballp,[0,0,1]) < 0 && bounced == false
-    bounced = true;
+    bounced := true;
    end;
    if(serve ~= true)
-     mode = "Wait";
+     mode := "Wait";
    end;
  case "Hit"           // Decide how you want hit the ball,
   if n == 2
    if(t<1||t>5)       // you may want to check the formulas
                       // in the BallActuator() class
-    v        = [-1.38,0.40,1.2];
-    batAngle = [0.9471,0.25,-0.2];
+    v        := [-1.38,0.40,1.2];
+    batAngle := [0.9471,0.25,-0.2];
    else
     if t > 4 && t < 5
-     v        = [-0.88,-0.5,0.2];
-     batAngle = [0.9471,0.25,-0.2];
+     v        := [-0.88,-0.5,0.2];
+     batAngle := [0.9471,0.25,-0.2];
  else
-     v        = [-1.7,-0.2,3.86];
-     batAngle = [0.96,-0.1,-0.2258];
+     v        := [-1.7,-0.2,3.86];
+     batAngle := [0.96,-0.1,-0.2258];
  end;
    end;
   else
    if(dot(ballv,[0,1,0]) < 0)
-    v        = [0.1,-0.15,3.85];
-    batAngle = [-0.938,-0.162,-0.29];
+    v        := [0.1,-0.15,3.85];
+    batAngle := [-0.938,-0.162,-0.29];
    else
-    v        = [1,0,2.85];
-    batAngle = [-0.938,0.202,-0.29];
+    v        := [1,0,2.85];
+    batAngle := [-0.938,0.202,-0.29];
     end;
    end;
-  serve  = false;
-  hit    = true;
-  mode   = "Wait";
+  serve  := false;
+  hit    := true;
+  mode   := "Wait";
  case "Panic!"
  end
 end
@@ -1193,7 +1193,7 @@ end
 class Table()   // The table
  private
                 // Table
- _3D = [["Box", [0,0,-0.05],[3,1.5,0.03],[0.1,0.1,1.0],[0,0,0]],
+ _3D := [["Box", [0,0,-0.05],[3,1.5,0.03],[0.1,0.1,1.0],[0,0,0]],
                 // TableBases 1~4
         ["Box", [-1.4,0.6,-0.3-0.04], [0.05,0.05,0.6], [0.8,0.8,0.8],[0,0,0]],
         ["Box", [-1.4,-0.6,-0.3-0.04], [0.05,0.05,0.6], [0.8,0.8,0.8],[0,0,0]],
@@ -1211,31 +1211,31 @@ end
 
 class BallActuator()  // Calculate result of impact
   private
-   mode="Initialize";
-   v1 = [0,0,0];      // Input ball speed
-   v2 = [0,0,0];      // Output ball speed
-   v3 = [0,0,0];      // Bat's speed during the impact
-   angle = [0,0,0];   // Bat's normal vector
-   done  = false;
-   action = 0;
+   mode:="Initialize";
+   v1 := [0,0,0];      // Input ball speed
+   v2 := [0,0,0];      // Output ball speed
+   v3 := [0,0,0];      // Bat's speed during the impact
+   angle := [0,0,0];   // Bat's normal vector
+   done  := false;
+   action := 0;
  end
   if mode ~= "Initialize" && mode ~= "Calculate" && mode ~= "Wait"
-   mode = "Panic!";
+   mode := "Panic!";
   end;
  switch mode
   case "Initialize"
-   done[=]false;
+   done=false;
    if action == 1
-    mode = "Calculate";
+    mode := "Calculate";
    end;
  case "Calculate"
-  v2     = v1-dot(2.*(v1-v3),angle)*angle;
-  action = 0;
+  v2     := v1-dot(2.*(v1-v3),angle)*angle;
+  action := 0;
   if action == 0
-   mode = "Wait";
+   mode := "Wait";
   end;
  case "Wait"
-  done [=] true;
+  done = true;
  case "Panic!"
  end
 end
@@ -1246,35 +1246,35 @@ end
 // Sample the velocity of the ball and feed back to the players.
 class BallObserver()
  private
-  mode = "Sample";
-  p  = [0,0,0];
-  v  = [0,0,0];
-  pp = [0,0,0];
-  ap = [0,0,0];
-  t  = 0;
-  t' = 1;
+  mode := "Sample";
+  p  := [0,0,0];
+  v  := [0,0,0];
+  pp := [0,0,0];
+  ap := [0,0,0];
+  t  := 0;
+  t' := 1;
  end
- t'[=]1;
+ t'=1;
  if mode ~= "Sample" && mode ~= "Estimate0" && mode ~= "Estimate1"
-  mode = "Panic!";
+  mode := "Panic!";
  end;
  switch mode
    case "Sample"
     if t > 0
-     pp  = p;
-     t   = 0;
-     mode= "Estimate0"
+     pp  := p;
+     t   := 0;
+     mode:= "Estimate0"
     end;
    case "Estimate0"
  if t == 0.01   // Calculate the average speed
-     ap   = p;
-     mode = "Estimate1";
+     ap   := p;
+     mode := "Estimate1";
     end;
    case "Estimate1"
-    v    = dot((ap-pp),[1,0,0])/0.01*[1,0,0]+dot((ap-pp),[0,0,1])/0.01*[0,0,1]+
+    v    := dot((ap-pp),[1,0,0])/0.01*[1,0,0]+dot((ap-pp),[0,0,1])/0.01*[0,0,1]+
         dot((ap-pp),[0,1,0])/0.01*[0,1,0];
-    mode = "Sample";
-    t    = 0;
+    mode := "Sample";
+    t    := 0;
    case "Panic!"
   end
 end
@@ -1284,72 +1284,72 @@ end
 
 class Referee()  // This class will monitors the whole process of the game.
  private
-  mode="Initialize";
-  x = 0;x' = 0;
-  z = 0;z' = 0;
-  y = 0;
-  t = 0;t' = 1;
-  player1Score = 0;
-  player2Score = 0;
-  serveNumber  = 2;
-  lastHit      = 0;
-  reason       = "Nothing";
-  checked      = false;    // For the net checking
-  bounced      = false;
-  restart      = 0;        // Tell the Game to restart
-  acknowledged = 0;        // Check if the Game class has received
+  mode:="Initialize";
+  x := 0;x' := 0;
+  z := 0;z' := 0;
+  y := 0;
+  t := 0;t' := 1;
+  player1Score := 0;
+  player2Score := 0;
+  serveNumber  := 2;
+  lastHit      := 0;
+  reason       := "Nothing";
+  checked      := false;    // For the net checking
+  bounced      := false;
+  restart      := 0;        // Tell the Game to restart
+  acknowledged := 0;        // Check if the Game class has received
                            //  the restart signal
-  bounceTime   = 0;
-  status       = "Normal"
+  bounceTime   := 0;
+  status       := "Normal"
  end
  if mode ~= "Initialize" && mode ~= "Player1Lost" && mode ~= "Player2Lost"
     && mode ~= "SendMessage" && status ~= "Normal" && reason ~= "Nothing"
     && status ~= "Report" && reason ~= "BallOutOfBoundary"
  && reason ~= "BallBouncedTwice" && reason ~= "BallTouchNet"
-  mode = "Panic!";
+  mode := "Panic!";
  end;
-  t'[=]1;
+  t'=1;
   if z<0.05 && z'<0 && status == "Normal"  // Check if anyone fouls
    if (abs(y)>0.78||abs(x)>1.53) && status == "Normal"
-    reason     = "BallOutOfBoundary";
+    reason     := "BallOutOfBoundary";
     if bounced == false
      if x>0
-      mode = "Player1Lost";
+      mode := "Player1Lost";
      else
-      mode = "Player2Lost";
+      mode := "Player2Lost";
      end;
     else
      if bounced == "YesIn2"    // The ball has bounced in player2's court,
-      mode = "Player2Lost"     // and out of boundary now, so player2 lose.
+      mode := "Player2Lost"     // and out of boundary now, so player2 lose.
      end;
      if bounced == "YesIn1"
-      mode = "Player1Lost";
+      mode := "Player1Lost";
      end;
     end;
-    status = "Report";
+    status := "Report";
    end;
    if(abs(y)<0.78 && abs(x)<1.53) && bounced ~= false
       && t>(bounceTime+0.1) && status=="Normal"
  // The ball has bounced twice in player2's court
     if bounced == "YesIn2" && x > 0
-     mode   = "Player2Lost";
-     reason = "BallBouncedTwice";
-  bounceTime = t;
+     mode   := "Player2Lost";
+     reason := "BallBouncedTwice";
+  bounceTime := t;
     end;
  // The ball has bounced twice in player1's court
     if bounced == "YesIn1" && x < 0
-     mode   = "Player1Lost";
-     reason = "BallBouncedTwice";
-  bounceTime = t;
+     mode   := "Player1Lost";
+     reason := "BallBouncedTwice";
+  bounceTime := t;
     end;
    end;
    if x<0 && x>-1.5 && bounced == false && status == "Normal"
-    bounced    = "YesIn1";
-    bounceTime = t;
+    bounced    := "YesIn1";
+    bounceTime := t;
    end;
    if x>=0 && x<1.5 && bounced == false && status == "Normal"
-    bounced    = "YesIn2";
-    bounceTime = t;
+    bounced    := "YesIn2";
+    bounceTime := t;
    end;
  end;
 
@@ -1357,41 +1357,41 @@ class Referee()  // This class will monitors the whole process of the game.
 
 
  if bounced == "YesIn1" && x>0 && status == "Normal"
-  bounced = false
+  bounced := false
  end;
  if bounced == "YesIn2" && x<=0 && status == "Normal"
-  bounced = false
+  bounced := false
  end;
   // Time to check if the ball touches the net
  if abs(x)<0.025 && t>0.1 && checked == false && status == "Normal"
   if z<0.25
     if x'>0
-     mode   = "Player1Lost";
+     mode   := "Player1Lost";
     else
-     mode   = "Player2Lost"
+     mode   := "Player2Lost"
     end;
-    reason  = "BallTouchNet";
-    checked = true;
+    reason  := "BallTouchNet";
+    checked := true;
   end;
  end;
 switch mode
  case "Initialize"
  case "Player1Lost"
-  player2Score = player2Score+1;
-  mode = "SendMessage";
+  player2Score := player2Score+1;
+  mode := "SendMessage";
  case "Player2Lost"
-  player1Score = player1Score+1;
-  mode = "SendMessage";
+  player1Score := player1Score+1;
+  mode := "SendMessage";
  case "SendMessage"
-  t = 0; // Wait until the Game class gets the restart signal
-  restart = 1;
+  t := 0; // Wait until the Game class gets the restart signal
+  restart := 1;
   if acknowledged == 1
-    mode = "Initialize";
-    acknowledged = 0;
-    restart = 0;
-    status  = "Normal";
-    checked = false;
-    bounced = false;
+    mode := "Initialize";
+    acknowledged := 0;
+    restart := 0;
+    status  := "Normal";
+    checked := false;
+    bounced := false;
   end;
   case "Panic!"
  end
@@ -1406,179 +1406,179 @@ end
 **/
 class Game ()
  private
-  player2 = create PingPing(2); // Player(1);
-  player1 = create Kong(1);    // Player(2);
-  ball    = create Ball ();
-  ballob  = create BallObserver();
-  actuator= create BallActuator();
-  batActuator1 = create BatActuator([-1.6,0,0.2]);
-  batActuator2 = create BatActuator([1.6,0,0.2]);
-  bat1    = create Bat(1,[-1.6,0,0.2]);
-  bat2    = create Bat(2,[1.6,0,0.2]);
-  table   = create Table();
-  gameMonitor = create Referee();
-  mode    = "Player2Serve";       // Player2 starts first
-  player2Score = 0;
-  player1Score = 0;
-  serveNumber  = 2;
-  t  = 0;
-  t' = 1;
-  maxEnergy    = 18;
+  player2 := create PingPing(2); // Player(1);
+  player1 := create Kong(1);    // Player(2);
+  ball    := create Ball ();
+  ballob  := create BallObserver();
+  actuator:= create BallActuator();
+  batActuator1 := create BatActuator([-1.6,0,0.2]);
+  batActuator2 := create BatActuator([1.6,0,0.2]);
+  bat1    := create Bat(1,[-1.6,0,0.2]);
+  bat2    := create Bat(2,[1.6,0,0.2]);
+  table   := create Table();
+  gameMonitor := create Referee();
+  mode    := "Player2Serve";       // Player2 starts first
+  player2Score := 0;
+  player1Score := 0;
+  serveNumber  := 2;
+  t  := 0;
+  t' := 1;
+  maxEnergy    := 18;
  end
   if mode ~= "Restart" && mode ~= "Player1Serve" && mode ~= "Player2Serve"
   && mode ~= "Impact"  && mode ~= "Freeze" && mode ~= "ChangeSide"
   && mode ~= "Act"
-   mode = "Panic!"
+   mode := "Panic!"
   end;
-  t'[=]1;
-  gameMonitor.x  [=] dot(ball.p,[1,0,0]);
-  gameMonitor.x' [=] dot(ball.p',[1,0,0]);
-  gameMonitor.z  [=] dot(ball.p,[0,0,1]);
-  gameMonitor.z' [=] dot(ball.p',[0,0,1]);
-  gameMonitor.y  [=] dot(ball.p,[0,1,0]);
-  gameMonitor.serveNumber [=] serveNumber;
-  player1Score  [=] gameMonitor.player1Score;
-  player2Score  [=] gameMonitor.player2Score;
-  ballob.p          [=] ball.p;
-  player1.ballp     [=] ballob.p;
-  player2.ballp     [=] ballob.p;
-  player1.ballv     [=] ballob.v;
-  player2.ballv     [=] ballob.v;
+  t'=1;
+  gameMonitor.x  = dot(ball.p,[1,0,0]);
+  gameMonitor.x' = dot(ball.p',[1,0,0]);
+  gameMonitor.z  = dot(ball.p,[0,0,1]);
+  gameMonitor.z' = dot(ball.p',[0,0,1]);
+  gameMonitor.y  = dot(ball.p,[0,1,0]);
+  gameMonitor.serveNumber = serveNumber;
+  player1Score  = gameMonitor.player1Score;
+  player2Score  = gameMonitor.player2Score;
+  ballob.p          = ball.p;
+  player1.ballp     = ballob.p;
+  player2.ballp     = ballob.p;
+  player1.ballv     = ballob.v;
+  player2.ballv     = ballob.v;
   if bat1.mode ~= "Rest"
-   batActuator1.p' [=] player1.v;
+   batActuator1.p' = player1.v;
   end;
   if bat2.mode ~= "Rest"
-   batActuator2.p' [=] player2.v;
+   batActuator2.p' = player2.v;
   end;
-  player1.batp  [=] bat1.p;
-  player2.batp  [=] bat2.p;
-  batActuator1.angle [=] player1.batAngle;
-  batActuator2.angle [=] player2.batAngle;
-  bat1.p  [=] batActuator1.p;
-  bat1.p' [=] batActuator1.p';
-  bat2.p  [=] batActuator2.p;
-  bat2.p' [=] batActuator2.p';
-  bat1.angle [=] batActuator1.angle;
-  bat2.angle [=] batActuator2.angle;
+  player1.batp  = bat1.p;
+  player2.batp  = bat2.p;
+  batActuator1.angle = player1.batAngle;
+  batActuator2.angle = player2.batAngle;
+  bat1.p  = batActuator1.p;
+  bat1.p' = batActuator1.p';
+  bat2.p  = batActuator2.p;
+  bat2.p' = batActuator2.p';
+  bat1.angle = batActuator1.angle;
+  bat2.angle = batActuator2.angle;
   if batActuator1.energy > maxEnergy
-     bat1.mode = "Rest";
- bat1.p'   = [0,0,0];
- batActuator1.p' [=] [0,0,0];
+     bat1.mode := "Rest";
+ bat1.p'   := [0,0,0];
+ batActuator1.p' = [0,0,0];
   end;
   if batActuator2.energy > maxEnergy
-     bat2.mode = "Rest";
- bat2.p'   = [0,0,0];
- batActuator2.p' [=] [0,0,0];
+     bat2.mode := "Rest";
+ bat2.p'   := [0,0,0];
+ batActuator2.p' = [0,0,0];
   end;
  switch mode
   case "Restart" // Put everything back to the starting point
-   ball.p            = [0,0,0.5];
-   ball.p'           = [5,1,-3];
-   bat2.p            = [1.6,0,0.2];
-   player2.batp      = [1.6,0,0.2];
-   player2.v         = [0,0,0];
-   player2.batAngle  = [0.01,0,0];
-   player2.bounced   = false;
-   player2.ballp     = [1.6,0,0.2];
-   bat1.p            = [-1.6,0,0.2];
-   player1.batp      = [-1.6,0,0.2];
-   player1.v         = [0,0,0];
-   player1.batAngle  = [0.01,0,0];
-   player1.bounced   = false;
-   player1.ballp     = [-1.6,0,0.2];
-   batActuator1.p    = [-1.6,0,0.2];
-   batActuator2.p    = [1.6,0,0.2];
-   serveNumber       = 2;
-   gameMonitor.bounced      = false;
-   gameMonitor.checked      = false;
-   gameMonitor.acknowledged = 1;
-   mode         = "Player2Serve";
-   player1.mode = "Wait";
-   player2.mode = "Wait";
+   ball.p            := [0,0,0.5];
+   ball.p'           := [5,1,-3];
+   bat2.p            := [1.6,0,0.2];
+   player2.batp      := [1.6,0,0.2];
+   player2.v         := [0,0,0];
+   player2.batAngle  := [0.01,0,0];
+   player2.bounced   := false;
+   player2.ballp     := [1.6,0,0.2];
+   bat1.p            := [-1.6,0,0.2];
+   player1.batp      := [-1.6,0,0.2];
+   player1.v         := [0,0,0];
+   player1.batAngle  := [0.01,0,0];
+   player1.bounced   := false;
+   player1.ballp     := [-1.6,0,0.2];
+   batActuator1.p    := [-1.6,0,0.2];
+   batActuator2.p    := [1.6,0,0.2];
+   serveNumber       := 2;
+   gameMonitor.bounced      := false;
+   gameMonitor.checked      := false;
+   gameMonitor.acknowledged := 1;
+   mode         := "Player2Serve";
+   player1.mode := "Wait";
+   player2.mode := "Wait";
   case "Player2Serve" // Player 2 is serving
-   player1.serve [=] false;
-   player2.serve [=]  true;
+   player1.serve = false;
+   player2.serve =  true;
    if player2.hit == true && norm(bat2.p - ball.p) < 0.15
-    mode = "Impact"
+    mode := "Impact"
    end;
    if gameMonitor.restart == 1
-    mode = "Freeze";
-    t    = 0;
+    mode := "Freeze";
+    t    := 0;
    end;
  case "Player1Serve" // Player 1 is serving
-  player2.serve [=] false;
-  player1.serve [=] true;
+  player2.serve = false;
+  player1.serve = true;
   if player1.hit == true && norm(bat1.p - ball.p) < 0.15
-   mode = "Impact"
+   mode := "Impact"
   end;
   if gameMonitor.restart == 1
-   mode = "Freeze";
-   t    = 0;
+   mode := "Freeze";
+   t    := 0;
   end;
  case "Impact" // When one player hits the ball
-  actuator.v1 = ball.p';
+  actuator.v1 := ball.p';
   if serveNumber == 2 // Give player2's data to actuator
-   batActuator2.p' = player2.v;
-   bat2.p'         = batActuator2.p';
-   actuator.v3     = bat2.p';
-   bat2.angle      = player2.batAngle;
-   actuator.angle  = bat2.angle;
-   actuator.action = 1; // Tell actuator to act
-   gameMonitor.lastHit = 2;
-   mode = "Act";
+   batActuator2.p' := player2.v;
+   bat2.p'         := batActuator2.p';
+   actuator.v3     := bat2.p';
+   bat2.angle      := player2.batAngle;
+   actuator.angle  := bat2.angle;
+   actuator.action := 1; // Tell actuator to act
+   gameMonitor.lastHit := 2;
+   mode := "Act";
     if gameMonitor.restart == 1
-      mode = "Freeze";
-      t = 0;
+      mode := "Freeze";
+      t := 0;
     end;
   end;
   if serveNumber == 1 // Give player1's data to actuator
-   batActuator1.p' = player1.v;
-   bat1.p'         = batActuator1.p';
-   actuator.v3     = bat1.p';
-   bat1.angle      = player1.batAngle;
-   actuator.angle  = bat1.angle;
-   actuator.action = 1; // Tell actuator to act
-   gameMonitor.lastHit = 1;
-   mode = "Act";
+   batActuator1.p' := player1.v;
+   bat1.p'         := batActuator1.p';
+   actuator.v3     := bat1.p';
+   bat1.angle      := player1.batAngle;
+   actuator.angle  := bat1.angle;
+   actuator.action := 1; // Tell actuator to act
+   gameMonitor.lastHit := 1;
+   mode := "Act";
    if gameMonitor.restart == 1
-    mode = "Freeze";
-    t    = 0;
+    mode := "Freeze";
+    t    := 0;
    end;
   end
  case "Act" // Wait till actuator finish
   if gameMonitor.restart == 1
-   mode = "Freeze";
-   t    = 0;
+   mode := "Freeze";
+   t    := 0;
   end;
   if actuator.done == true
-   ball.p'       = actuator.v2;
-   actuator.mode = "Initialize";
-   mode          = "ChangeSide";
+   ball.p'       := actuator.v2;
+   actuator.mode := "Initialize";
+   mode          := "ChangeSide";
   end;
  case "ChangeSide" // Change the serve number
   if gameMonitor.restart == 1
-   mode = "Freeze";
-   t    = 0;
+   mode := "Freeze";
+   t    := 0;
   end;
   if serveNumber == 2 && dot(ball.p,[1,0,0]) >0 && gameMonitor.restart ~= 1
-   serveNumber     = 1;
-   mode            = "Player1Serve";
-   player1.mode    = "Wait";
-   player1.bounced = false;
+   serveNumber     := 1;
+   mode            := "Player1Serve";
+   player1.mode    := "Wait";
+   player1.bounced := false;
   end;
   if serveNumber == 1 && dot(ball.p,[1,0,0]) <= 0 && gameMonitor.restart ~= 1
-   serveNumber     = 2;
-   mode            = "Player2Serve";
-   player2.mode    = "Wait";
-   player2.bounced = false;
+   serveNumber     := 2;
+   mode            := "Player2Serve";
+   player2.mode    := "Wait";
+   player2.bounced := false;
   end;
  // When someone fouls, showing what's going wrong for 1 second
  case "Freeze"
    if t<1
-    ball.mode = "Freeze";
+    ball.mode := "Freeze";
    else
-    mode      = "Restart";
-    ball.mode = "Fly";
+    mode      := "Restart";
+    ball.mode := "Fly";
    end;
  case "Panic!"
  end
@@ -1586,18 +1586,18 @@ end
 
 class Main(simulator)
  private
-  mode = "Initialize";
-  score1 = 0;
-  score2 = 0;
-  game = 0;
+  mode := "Initialize";
+  score1 := 0;
+  score2 := 0;
+  game := 0;
  end
 switch mode
  case "Initialize"
-  simulator.endTime = 40;
-  game = create Game();
-  mode = "Persist";
+  simulator.endTime := 40;
+  game := create Game();
+  mode := "Persist";
  case   "Persist"
-  score1 [=] game.player1Score;
-  score2 [=] game.player2Score;
+  score1 = game.player1Score;
+  score2 = game.player2Score;
  end
 end
