@@ -13,114 +13,104 @@ import java.io.FileInputStream
 import java.io.InputStreamReader
 
 import org.scalatest.matchers.ShouldMatchers
-import org.scalatest.Suite
+import org.scalatest.FunSuite
+import java.io.File
 
-class InterpreterTest extends Suite with ShouldMatchers {
+abstract class InterpreterTestBase extends FunSuite with ShouldMatchers {
+  def run(in: InputStreamReader) : Unit
 
-  def run(filename:String) = {
+  def run(filename:String) : Unit = {
     val in  = 
       new InputStreamReader(this.getClass.getResourceAsStream("/acumen/"+filename))
-  	val ast = Parser.run(Parser.prog, in)
-    val des = Desugarer.run(ast)
-    Interpreter.run(des)
-  }
-  
-  def test_bouncing_ball_1d = {
-    (for (_ <- run("examples/bouncing_ball_1d.acm")) ()) should be ()
-  }
-  def test_bouncing_ball_2d = {
-    for (_ <- run("examples/bouncing_ball_2d.acm")) () should be ()
-  }
-  def test_bouncing_ball_3d = {
-    for (_ <- run("examples/bouncing_ball_3d.acm")) () should be ()
-  }
-  def test_breaking_ball_1d = {
-    for (_ <- run("examples/breaking_ball_1d.acm")) () should be ()
-  }
-  def test_breaking_ball_2d = {
-    for (_ <- run("examples/breaking_ball_2d.acm")) () should be ()
-  }
-  def test_breaking_ball_3d = {
-    for (_ <- run("examples/breaking_ball_3d.acm")) () should be ()
-  }
-  def test_iccps_mass_pendulum = {
-    for (_ <- run("examples/iccps_mass_pendulum.acm")) () should be ()
-  }
-  def test_iccps_pendulum = {
-    for (_ <- run("examples/iccps_pendulum.acm")) () should be ()
-  }
-  def test_nbodies = {
-    for (_ <- run("examples/nbodies.acm")) () should be ()
-  }
-  def test_random = {
-    for (_ <- run("examples/random.acm")) () should be ()
-  }
-  
-  def testShouldRun1 = {
-    for (_ <- run("data/ShouldRun/shouldRun1.acm")) () should be ()
-  }
-  def testShouldRun2 = {
-    for (_ <- run("data/ShouldRun/shouldRun2.acm")) () should be ()
-  }
-  def testShouldRun3 = {
-    for (_ <- run("data/ShouldRun/shouldRun3.acm")) () should be ()
-  }
-  def testShouldRun4 = {
-    for (_ <- run("data/ShouldRun/shouldRun4.acm")) () should be ()
-  }
-  def testShouldRun5 = {
-    for (_ <- run("data/ShouldRun/shouldRun5.acm")) () should be ()
-  }
-  def testShouldRun6 = {
-    for (_ <- run("data/ShouldRun/shouldRun6.acm")) () should be ()
+    run(in)
   }
 
+  def run(f: File) : Unit = {
+    run(new InputStreamReader(new FileInputStream(f)))
+  }
+
+  def testExampleDir(d: File) : Unit = {
+    def filter = new java.io.FilenameFilter {
+      def accept(d: File, fn: String) =
+        fn.substring(0,3) != "XXX"
+    }
+    for (f <- d.listFiles(filter)) {
+      def fn = f.getName
+      if (f.isDirectory) testExampleDir(f)
+      else if (fn.endsWith(".acm")) test("example " + fn) {run(f) should be ()}
+    }
+  }
+
+  def testExamples = {
+    testExampleDir(new File(getClass.getClassLoader.getResource("acumen/examples").getFile))
+  }
+
+  def testShouldRun = {
+    var toTest = List("shouldRun1.acm", "shouldRun2.acm", "shouldRun3.acm",
+                      "shouldRun4.acm", "shouldRun5.acm", "shouldRun6.acm")
+    for (fn <- toTest) {
+      test(fn) {run("data/ShouldRun/" + fn) should be ()}
+    }
+  }
+}
+
+class InterpreterTest extends InterpreterTestBase with ShouldMatchers {
+
+  def run(in: InputStreamReader) : Unit = {
+    val ast = Parser.run(Parser.prog, in)
+    val des = Desugarer.run(ast)
+    for (_ <- Interpreter.run(des)) ()
+  }
+
+  testExamples
+  testShouldRun
+  
   def getError(file:String) : Option[AcumenError] = {
-    try { for (_ <- run(file)) (); None }
+    try { run(file) ; None }
     catch { case e:AcumenError => Some(e) }
   }
 
-  def testError1 = {
+  test("Error1") {
     val err = ClassNotDefined(cmain)
     getError("data/ShouldCrash/Error1.acm") should be (Some(err))
   }
-  def testError2 = {
+  test("Error2") {
     val err = VariableNotDeclared(name("y"))
     getError("data/ShouldCrash/Error2.acm") should be (Some(err))
   }
-  def testError3 = {
+  test("Error3") {
     val err = VariableNotDeclared(name("x"))
     getError("data/ShouldCrash/Error3.acm") should be (Some(err))
   }
-  def testError4 = {
+  test("Error4") {
     val err = UnknownOperator("f")
     getError("data/ShouldCrash/Error4.acm") should be (Some(err))
   }
-  def testError5 = {
+  test("Error5") {
     val err = NotAnObject(VLit(GInt(1)))
     getError("data/ShouldCrash/Error5.acm") should be (Some(err))
   }
-  def testError6 = {
+  test("Error6") {
     val err = NotAnObject(VLit(GInt(1)))
     getError("data/ShouldCrash/Error6.acm") should be (Some(err))
   }
-  def testError7 = {
+  test("Error7") {
     val err = AccessDenied(CId(), CId(1), Nil)
     getError("data/ShouldCrash/Error7.acm") should be (Some(err))
   }
-  def testError8 = {
+  ignore("Error8 ") {
     val err = AccessDenied(CId(0,0,1), CId(1), List(CId(1,1),CId(0,1)))
     getError("data/ShouldCrash/Error8.acm") should be (Some(err))
   }
-  def testError9 = {
+  test("Error9") {
     val err = NotAChildOf(CId(0,0,1), CId(0,1))
     getError("data/ShouldCrash/Error9.acm") should be (Some(err))
   }
-  def testError10 = {
+  test("Error10 ") {
     val err = ClassNotDefined(ClassName("B"))
     getError("data/ShouldCrash/Error10.acm") should be (Some(err))
   }
-  def testError11 = {
+  test("Error11 ") {
     val err = ClassDefinedTwice(ClassName("A"))
     getError("data/ShouldCrash/Error11.acm") should be (Some(err))
   }
@@ -148,7 +138,7 @@ class InterpreterTest extends Suite with ShouldMatchers {
     (Desugarer.run(Parser.run(Parser.prog, p)), 
      Parser.run(Parser.store, st))
 
-  def testGravity1d = {
+  test("Gravity1d") {
     val progTxt =
       """
       class Simulator(time, timeStep, endTime, stepType) end
@@ -189,7 +179,7 @@ class InterpreterTest extends Suite with ShouldMatchers {
     assert(matches(xs, expected))
   }
 
-  def testGravity2d = {
+  test("Gravity2d") {
     val progTxt =
       """
       class Simulator(time, timeStep, endTime, stepType) end

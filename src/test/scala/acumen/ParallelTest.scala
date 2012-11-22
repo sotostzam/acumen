@@ -9,9 +9,9 @@ import org.scalatest.Suite
 import java.io.FileInputStream
 import java.io.InputStreamReader
 
-class ParallelTest extends Suite with ShouldMatchers {
+class ParallelTest extends InterpreterTestBase {
 
-  def testStoreConversions1 = {
+  test("StoreConversions1") {
     import interpreters.parallel.Interpreter._
     val txt = """
       #0 { className = Main, parent = none, 
@@ -22,7 +22,7 @@ class ParallelTest extends Suite with ShouldMatchers {
     cst should be (repr(st))
   }
   
-  def testStoreConversions2 = {
+  test("StoreConversions2") {
     import interpreters.parallel.Interpreter._
     val txt = """
       #0   { className = Main, parent = none, 
@@ -37,7 +37,7 @@ class ParallelTest extends Suite with ShouldMatchers {
     cst should be (repr(st))
   }
 
-  def testStoreConversions3 = {
+  test("StoreConversions3") {
     import interpreters.parallel.Interpreter._
     val txt = """
 #0.1 {
@@ -110,69 +110,18 @@ class ParallelTest extends Suite with ShouldMatchers {
     else t1.isEmpty && t2.isEmpty
   }
 
-  def run(filename:String) = {
+  def run(in: InputStreamReader) = {
     val RI = interpreters.reference.Interpreter
     val PIO = interpreters.parallel.Interpreter
-    val in  = 
-      new InputStreamReader(this.getClass.getResourceAsStream("/acumen/"+filename))
-  	val ast = Parser.run(Parser.prog, in)
+    val ast = Parser.run(Parser.prog, in)
     val des = Desugarer.run(ast)
     val trace1 = RI.run(des)
-    PIO.withInterpreter(2) { PI => 
+    val res = PIO.withInterpreter(2) { PI => 
       eqstreams(trace1, PI.run(des) map PI.repr) 
     }
+    assert(res)
   }
-  def test_bouncing_ball_1d = {
-    assert(run("examples/bouncing_ball_1d.acm"))
-  }
-  def test_bouncing_ball_2d = {
-    assert(run("examples/bouncing_ball_2d.acm"))
-  }
-  def test_bouncing_ball_3d = {
-    assert(run("examples/bouncing_ball_2d.acm"))
-  }
-  def test_breaking_ball_1d = {
-    assert(run("examples/breaking_ball_1d.acm"))
-  }
-  def test_breaking_ball_2d = {
-    assert(run("examples/breaking_ball_2d.acm"))
-  }
-  def test_breaking_ball_3d = {
-    assert(run("examples/breaking_ball_3d.acm"))
-  }
-  def test_iccps_mass_pendulum = {
-    assert(run("examples/iccps_mass_pendulum.acm"))
-  }
-  def test_iccps_pendulum = {
-    assert(run("examples/iccps_pendulum.acm"))
-  }
-  def test_nbodies = {
-    assert(run("examples/nbodies.acm"))
-  }
-  def test_random = {
-    assert(run("examples/random.acm"))
-  }
-  /*
-  def test_bh = {
-    assert(run("examples/bh.acm"))
-  }
-  */
-  def test_shouldRun1 = {
-    assert(run("data/ShouldRun/shouldRun1.acm"))
-  }
-  def test_shouldRun2 = {
-    assert(run("data/ShouldRun/shouldRun2.acm"))
-  }
-  def test_shouldRun3 = {
-    assert(run("data/ShouldRun/shouldRun3.acm"))
-  }
-  def test_shouldRun4 = {
-    assert(run("data/ShouldRun/shouldRun4.acm"))
-  }
-  def test_shouldRun5 = {
-    assert(run("data/ShouldRun/shouldRun5.acm"))
-  }
-  def test_shouldRun6 = {
-    assert(run("data/ShouldRun/shouldRun6.acm"))
-  }
+
+  testExamples
+  testShouldRun
 }
