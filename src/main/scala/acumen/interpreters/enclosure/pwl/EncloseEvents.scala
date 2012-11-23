@@ -31,28 +31,31 @@ trait EncloseEvents extends SolveIVP {
     output: String,
     log: String => Unit)(implicit rnd: Rounding): Option[(Set[UncertainState], Seq[UnivariateAffineEnclosure])] = {
     val noEventEnclosure = solveVt(h.fields(u.mode), t, u.initialCondition, delta, m, n, degree, output)
-    val existPossibleEvents = h.guards.values.exists(_(noEventEnclosure.range) contains true)
-    if (existPossibleEvents) {
+    val noPossibleEvents = !h.guards.exists {
+      case (event, guard) => event.sigma == u.mode && (guard(noEventEnclosure.range) contains true)
+    }
+    if (noPossibleEvents)
+      Some((Set(UncertainState(u.mode, noEventEnclosure(t.high))), Seq(noEventEnclosure)))
+    else {
       val ps = Parameters(rnd.precision, t.loDouble, t.hiDouble,
         delta, m, n,
         K, 0, 0, 0, // these are not used - any value will do
         degree)
       val init: StateEnclosure = emptyState(h) + (u.mode -> Some(u.initialCondition))
       val (s, fin) = encloseEvents(ps, h, t, init)
-      val us = uncertainStates(s)
+      val us = uncertainStates(fin)
       val es = enclosures(t, s)
       if (us.isEmpty || es.isEmpty) None
       else Some(us, es)
-    } else
-      Some((Set(UncertainState(u.mode, noEventEnclosure(t.high))), Seq(noEventEnclosure)))
+    }
   }
 
   def uncertainStates(s: StateEnclosure): Set[UncertainState] =
-    for ((mode, obox) <- s.toSet if obox.isDefined)
+    for ((mode, obox) <- s.toSet if obox isDefined)
       yield UncertainState(mode, obox.get)
 
   def enclosures(t: Interval, s: StateEnclosure)(implicit rnd: Rounding): Seq[UnivariateAffineEnclosure] =
-    for ((_, obox) <- s.toSeq if obox.isDefined)
+    for ((_, obox) <- s.toSeq if obox isDefined)
       yield UnivariateAffineEnclosure(t, obox.get)
 
   // main function
@@ -60,7 +63,9 @@ trait EncloseEvents extends SolveIVP {
   def encloseEvents(ps: Parameters, h: HybridSystem, t: Interval, s: StateEnclosure)(implicit rnd: Rounding): (StateEnclosure, StateEnclosure) = {
     val (s0, fin0) = encloseFlowNoEvents(ps, h, s, t)
     val sEvents = reachableStatesPWL(ps, h, t, emptyState(h), s0)
-    (union(Set(s0, sEvents)), union(Set(fin0, sEvents)))
+    val sEnclosed = union(Set(s0, sEvents))
+    val finEnclosed = union(Set(fin0, sEvents))
+    (sEnclosed, finEnclosed)
   }
 
   // helper functions
@@ -69,13 +74,14 @@ trait EncloseEvents extends SolveIVP {
     if (isDefinitelyEmpty(wIn)) pIn
     else {
       val (sEvolved, _) = encloseFlowNoEvents(ps, h, encloseOneEvent(h, wIn), t)
-      val w = minus(sEvolved, pIn)
       val p = union(Set(pIn, sEvolved))
+      val w = minus(sEvolved, pIn)
       reachableStatesPWL(ps, h, t, p, w)
     }
 
   def encloseOneEvent(h: HybridSystem, s: StateEnclosure)(implicit rnd: Rounding): StateEnclosure =
-    union(h.events.map(e => reset(h, e, intersectGuard(h, e, s))))
+    union(h.events.map(e =>
+      reset(h, e, intersectGuard(h, e, s))))
 
   def encloseFlowNoEvents(ps: Parameters, h: HybridSystem, sIn: StateEnclosure, t: Interval)(implicit rnd: Rounding): (StateEnclosure, StateEnclosure) = {
     val sPreAndFinalPre = sIn map {
@@ -138,27 +144,17 @@ trait EncloseEvents extends SolveIVP {
   /** mode-wise intersection with invariant */
   // TODO solve this without try-catch
   def intersectInv(h: HybridSystem, s: StateEnclosure)(implicit rnd: Rounding): StateEnclosure =
-    s.map {
-      case (mode, obox) => mode ->
-        (try {
-          Some(h.domains(mode).support(obox.get))
-        } catch { case _ => None })
-    }
+    s.map { case (mode, obox) => mode -> (try { Some(h.domains(mode).support(obox.get)) } catch { case _ => None }) }
 
   /** mode-wise intersection with the guard of `e` */
   // TODO solve this without try-catch
   def intersectGuard(h: HybridSystem, e: Event, s: StateEnclosure)(implicit rnd: Rounding): StateEnclosure =
-    s.mapValues(obox => try {
-      Some(h.guards(e).support(obox.get))
-    } catch { case _ => None })
+    emptyState(h) + (e.sigma -> (try { Some(h.guards(e).support(s(e.sigma).get)) } catch { case _ => None }))
 
-  /** mode-wise application of reset for `e` */
+  /** "element-wise" application of reset for `e` */
   // TODO solve this without try-catch
   def reset(h: HybridSystem, e: Event, s: StateEnclosure)(implicit rnd: Rounding): StateEnclosure =
-    s.mapValues {
-      case Some(box) => Some(h.resets(e)(box))
-      case None => None
-    }
+    emptyState(h) + (e.tau -> (try { Some(h.resets(e)(s(e.sigma).get)) } catch { case _ => None }))
 
   /** the state enclosure that is empty in each mode */
   def emptyState(h: HybridSystem): StateEnclosure = h.modes.map(_ -> None).toMap

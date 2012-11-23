@@ -16,6 +16,11 @@ class Box(val self: Map[VarName, Interval]) extends MapProxy[VarName, Interval] 
     box.keys.forall { name => this(name) contains box(name) }
   }
 
+  def disjointFrom(that: Box)(implicit rnd: Rounding): Boolean = {
+    require(keySet == that.keySet)
+    keySet.exists(name => this(name) disjointFrom that(name))
+  }
+
   /** Component-wise union. */
   def hull(that: Box)(implicit rnd: Rounding): Box = {
     require(keySet == that.keySet)
