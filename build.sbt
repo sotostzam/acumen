@@ -29,8 +29,7 @@ resolvers ++= Seq(
 
 libraryDependencies ++= Seq( 
    "org.jfree" % "jfreechart" % "1.0.14",
-   "org.jfree" % "jcommon" % "1.0.17",
-   "com.itextpdf" % "itextpdf" % "5.3.0"
+   "org.jfree" % "jcommon" % "1.0.17"
 )
 
 // FIXME: Is this necessary
