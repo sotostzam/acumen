@@ -114,7 +114,9 @@ package acumen {
   case class GBool(b: Boolean) extends GroundValue
   /* Example: "foo" */
   case class GStr(s: String) extends GroundValue
-
+  /* Constants */
+  case object GConstPi extends GroundValue  
+  
   /* ==== values ==== */
 
   sealed abstract class StepType

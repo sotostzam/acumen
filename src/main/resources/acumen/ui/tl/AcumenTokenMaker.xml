@@ -53,6 +53,7 @@
     <function>sin</function>
     <function>sqrt</function>
     <function>xor</function>
+    <function>pi</function>
   </functions>
   <numbers>
     <hexLiteral>0x{HexDigit}+</hexLiteral>
