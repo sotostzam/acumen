@@ -24,7 +24,7 @@ class TableInput(val model : () => TraceModel)
 class PlotInput(val model : () => PlotModel,
                 val buffer : () => BufferedImage) 
 {
-  @volatile var enabled = true
+  @volatile var enabled = false
   @volatile var parms = PlotParms()
   @volatile var plotStyle : PlotStyle = Lines()
 }
@@ -106,10 +106,8 @@ class Plotter(tableI: TableInput, plotI: PlotInput, jPlotI: JPlotInput)
 
   def replot = if (plotI.enabled) {
     pm = plotI.model()
-    if (pm != null) {
-      pd = new PlotData(plotI.parms,pm)
-      repaint()
-    }
+    pd = new PlotData(plotI.parms,pm)
+    repaint()
   }
 
   def updateJPlot = if (jPlotI.enabled) {

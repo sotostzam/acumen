@@ -136,10 +136,12 @@ class PlotTab extends BorderPanel
   private val b5 = new Button(saveAs) { peer.setHideActionText(true) }
   buttonsEnabled(false)
   private val hint = new Label("Hint: Right click on image & drag to move")
+  def updatePlotEnabled : Unit = 
+     plotPanel.plotI.enabled = check.selected && App.ui.controller.model != null
   /*private*/ val check = new CheckBox("") { 
     action = Action("Draw") {
-      plotPanel.plotI.enabled = selected
-      if (selected) plotPanel.plotter ! Replot
+      updatePlotEnabled
+      if (plotPanel.plotI.enabled) plotPanel.plotter ! Replot
     }
   }
   private val rightBottomButtons =
@@ -162,14 +164,17 @@ class PlotTab extends BorderPanel
       else 
         plotPanel.plotI.enabled = false
   }
-  def stateUpdateResponse = (plotState,appState) match {
-    case _ if panelState == PlotPanel.Disabled => 
-      buttonsEnabled(false)
-    case (Plotter.Busy,_:App.Playing) => 
-      buttonsEnabled(false)
-    case (Plotter.Ready,_:App.Ready) if panelState == PlotPanel.Enabled => 
-      buttonsEnabled(true)
-    case _ => 
+  def stateUpdateResponse = {
+    updatePlotEnabled
+    (plotState,appState) match {
+      case _ if panelState == PlotPanel.Disabled => 
+        buttonsEnabled(false)
+      case (Plotter.Busy,_:App.Playing) => 
+        buttonsEnabled(false)
+      case (Plotter.Ready,_:App.Ready) if panelState == PlotPanel.Enabled => 
+        buttonsEnabled(true)
+      case _ => 
+    }
   }
 
   add(plotPanel, BorderPanel.Position.Center)
