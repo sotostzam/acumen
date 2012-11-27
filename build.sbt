@@ -56,6 +56,9 @@ seq(ProguardPlugin.proguardSettings :_*)
 
 proguardDefaultArgs := Seq("-dontwarn", "-dontobfuscate")
 
+// don't shrink as proguard gets it wrong in some cases
+proguardDefaultArgs += "-dontshrink"
+
 // make sure all target specific Java 3d dependencies are included
 proguardOptions += "-keep class javax.media.j3d.**"
 
