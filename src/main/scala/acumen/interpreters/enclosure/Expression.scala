@@ -163,7 +163,9 @@ abstract class Expression {
     case Plus(l, r) => l.dif(name) + r.dif(name)
     case Multiply(l, r) => l.dif(name) * r + l * r.dif(name)
     case Divide(e, c @ Constant(_)) => Divide(e.dif(name), c)
-    case _ => sys.error(this + ".dif(" + name + ") is not defined!")
+    // fixme: Figure out why plain "this" will not work here and
+    //   "this.toString" is now required -- kevina
+    case _ => sys.error(this.toString + ".dif(" + name + ") is not defined!")
   }
 
 }

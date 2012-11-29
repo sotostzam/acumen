@@ -29,7 +29,7 @@ import scala.math._
 import Stream._
 import Errors._
 
-object Interpreter extends acumen.Interpreter {
+object Interpreter extends acumen.CStoreInterpreter {
   
   type Store = CStore
   type Env = Map[Name, CValue]

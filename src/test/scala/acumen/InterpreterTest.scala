@@ -59,7 +59,7 @@ class InterpreterTest extends InterpreterTestBase with ShouldMatchers {
   def run(in: InputStreamReader) : Unit = {
     val ast = Parser.run(Parser.prog, in)
     val des = Desugarer.run(ast)
-    for (_ <- Interpreter.run(des)) ()
+    for (_ <- Interpreter.run(des).ctrace) ()
   }
 
   testExamples

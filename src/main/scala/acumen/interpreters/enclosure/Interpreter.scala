@@ -15,6 +15,11 @@ trait EnclosureInterpreterCallbacks extends InterpreterCallbacks {
   def sendResult(data: Iterable[UnivariateAffineEnclosure]): Unit = {}
 }
 
+case class EnclosureRes(res: Seq[UnivariateAffineEnclosure]) extends InterpreterRes {
+  def print = println(res)
+  def printLast = println(res.last)
+}
+
 /**
  * Proxy for the enclosure-based solver.
  */
@@ -22,8 +27,13 @@ object Interpreter extends acumen.RecursiveInterpreter with Solver with Extract 
 
   def newInterpreterModel = new EnclosureModel
 
+  def run (des: Prog) = {
+    runInterpreter(des, new EnclosureInterpreterCallbacks {
+      override def log(msg: String) = println(msg)
+    })
+  }
   //FIXME do this properly
-  override def runInterpreter(des: Prog, cb0: InterpreterCallbacks) {
+  def runInterpreter(des: Prog, cb0: InterpreterCallbacks) = {
     val cb = cb0.asInstanceOf[EnclosureInterpreterCallbacks]
     val main = classDef(ClassName("Main"), des)
 
@@ -31,7 +41,7 @@ object Interpreter extends acumen.RecursiveInterpreter with Solver with Extract 
     implicit val rnd = Rounding(ps.precision)
     val (hs, uss) = extract(main)
 
-    solver(
+    val res = solver(
       hs,
       ps.simulationTime,
       Set(uss),
@@ -45,6 +55,8 @@ object Interpreter extends acumen.RecursiveInterpreter with Solver with Extract 
       ps.minImprovement,
       "output",
       cb)
+    
+    EnclosureRes(res)
   }
 
 }

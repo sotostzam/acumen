@@ -6,7 +6,7 @@ import collection.immutable.Queue
 import scala.actors._
 import InterpreterCntrl._
 
-class CStoreCntrl(val interpreter: Interpreter) extends InterpreterCntrl {
+class CStoreCntrl(val interpreter: CStoreInterpreter) extends InterpreterCntrl {
 
   def newInterpreterModel = interpreter.newInterpreterModel
 

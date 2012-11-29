@@ -115,9 +115,9 @@ class ParallelTest extends InterpreterTestBase {
     val PIO = interpreters.parallel.Interpreter
     val ast = Parser.run(Parser.prog, in)
     val des = Desugarer.run(ast)
-    val trace1 = RI.run(des)
+    val trace1 = RI.run(des).ctrace
     val res = PIO.withInterpreter(2) { PI => 
-      eqstreams(trace1, PI.run(des) map PI.repr) 
+      eqstreams(trace1, PI.run(des).ctrace) 
     }
     assert(res)
   }

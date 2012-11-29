@@ -17,6 +17,10 @@ import javax.swing._
 
 object Main {
 
+  def as_ctrace(trace: InterpreterRes) = {
+    trace match {case CStoreRes(r) => r; case _ => null}    
+  }
+
   def main(args: Array[String]): Unit = {
     val I = interpreters.reference.Interpreter
     //val I = new interpreters.parallel.Interpreter(2)
@@ -31,7 +35,7 @@ object Main {
     lazy val spec_out   = Specializer.run(bta_out)
     lazy val nodiff_out = AD.run(spec_out)
     lazy val trace      = I.run(nodiff_out)
-    lazy val ctrace     = trace map I.repr
+    lazy val ctrace     = as_ctrace(trace)
 
     try {
       /* See if user wants to choose a specific interpreter. */
@@ -39,7 +43,7 @@ object Main {
         case "--semantics" => args(1) match {
           case "reference" => (interpreters.reference.Interpreter, 2)
           case "parallel" => (new interpreters.parallel.Interpreter(2), 2)
-          //case "enclosure" => (interpreters.enclosure.Interpreter, 2)
+          case "enclosure" => (interpreters.enclosure.Interpreter, 2)
           case _ => (interpreters.reference.Interpreter, 0)
         }
         case _ => (interpreters.reference.Interpreter, 0)
@@ -53,8 +57,8 @@ object Main {
       lazy val spec_out = Specializer.run(bta_out)
       lazy val nodiff_out = AD.run(spec_out)
       lazy val trace = i.run(nodiff_out)
-      lazy val ctrace = trace map i.repr
-      /* Perform user-selected action. */
+      lazy val ctrace = as_ctrace(trace)
+     /* Perform user-selected action. */
       args(firstNonSemanticsArg + 1) match {
         case "pretty" => println(pprint(ast))
         case "desugar" => println(pprint(desugared))
@@ -64,7 +68,7 @@ object Main {
         case "java3d" => new MainFrame(new Java3D(ctrace), 256, 256);
         case "json" => for (st <- ctrace) println(JSon.toJSON(st))
         case "last" =>
-          println(pprint(prettyStore(i.repr(trace.last))))
+          trace.printLast
         case "bench" =>
           val start: Int = Integer.parseInt(args(1))
           val stop: Int = Integer.parseInt(args(2))
@@ -72,21 +76,16 @@ object Main {
           for (nbThreads <- start to stop) {
             print(nbThreads + " threads: ")
             withInterpreter(nbThreads) { PI =>
-              PI.run(forced).last
+              as_ctrace(PI.run(forced)).last
               print(".")
               val startTime = System.currentTimeMillis()
-              for (_ <- 0 until 10) { print("."); PI.run(forced).last }
+              for (_ <- 0 until 10) { print("."); as_ctrace(PI.run(forced)).last }
               val endTime = System.currentTimeMillis()
               println(endTime - startTime)
             }
           }
         case "trace" =>
-          var i = 0
-          for (st <- ctrace) {
-            println(pprint(prettyStore(st)))
-            println("-" * 30 + i)
-            i += 1
-          }
+          trace.print
         case _ =>
           throw BadProgramOptions(
             List("pretty", "desugar", "3d", "2d", "java2d",

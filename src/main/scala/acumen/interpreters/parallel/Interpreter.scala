@@ -479,7 +479,7 @@ object Interpreter extends Common {
 
 }
 
-class Interpreter(nbThreads: Int) extends Common with acumen.Interpreter {
+class Interpreter(nbThreads: Int) extends Common with acumen.CStoreInterpreter {
 
   lazy val threadPool = new SimpleThreadPool[Changeset](nbThreads)
   def dispose = threadPool.dispose
