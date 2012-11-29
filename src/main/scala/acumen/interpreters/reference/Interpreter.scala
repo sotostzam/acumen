@@ -69,12 +69,12 @@ object Interpreter extends acumen.Interpreter {
     promote(setObjectField(id,f,v,_))
 	}
 
-	/* splits self's seed into (s1,s2), assigns s1 to self and returns s2 */
-	def getNewSeed(self:CId) : Eval[(Int,Int)] = {
-		for { (s1,s2) <- asks(getSeed(self,_)) map Random.split
-					_ <- changeSeedM(self, s1)
-		} yield s2
-	}
+  /* splits self's seed into (s1,s2), assigns s1 to self and returns s2 */
+  def getNewSeed(self:CId) : Eval[(Int,Int)] = {
+    for { (s1,s2) <- asks(getSeed(self,_)) map Random.split
+	  _ <- changeSeedM(self, s1)
+    } yield s2
+  }
   
   /* transfer parenthood of a list of objects,
    * whose ids are "cs", to address p */
@@ -95,12 +95,12 @@ object Interpreter extends acumen.Interpreter {
   /* create an env from a class spec and init values */
   def mkObj(c:ClassName, p:Prog, prt:Option[CId], sd:(Int,Int),
             v:List[CValue], childrenCounter:Int =0) : Eval[CId] = {
-		val cd = classDef(c,p)
+    val cd = classDef(c,p)
     val base = HashMap(
       (classf, VClassName(c)),
       (parent, VObjId(prt)),
-			(seed1, VLit(GInt(sd._1))),
-			(seed2, VLit(GInt(sd._2))),
+      (seed1, VLit(GInt(sd._1))),
+      (seed2, VLit(GInt(sd._2))),
       (nextChild, VLit(GInt(childrenCounter))))
     val pub = base ++ (cd.fields zip v)
 
@@ -124,8 +124,8 @@ object Interpreter extends acumen.Interpreter {
                   { case NewRhs(cn,es) =>
                       for { ves <- asks(st => es map (
                             evalExpr(_, p, Map(self -> VObjId(Some(fid))), st)))
-														nsd <- getNewSeed(fid)
-														oid <- mkObj(cn, p, Some(fid), nsd, ves)
+			    nsd <- getNewSeed(fid)
+			    oid <- mkObj(cn, p, Some(fid), nsd, ves)
                       } yield VObjId(Some(oid))
                     case ExprRhs(e) =>
                       asks(evalExpr(e, p, Map(self -> VObjId(Some(fid))), _))
@@ -303,7 +303,7 @@ object Interpreter extends acumen.Interpreter {
               lhs <- asks(getObjectField(a, x, _))
         } setObjectFieldM(a, x, lhs match {
             case VLit(d) => 
-							VLit(GDouble(extractDouble(d) + extractDouble(vt) * dt))
+	      VLit(GDouble(extractDouble(d) + extractDouble(vt) * dt))
             case VVector(u) => 
               val us = extractDoubles(u)
               val ts = extractDoubles(vt)
@@ -345,11 +345,11 @@ object Interpreter extends acumen.Interpreter {
  
   def init(prog:Prog) : (Prog, Store) = {
     val mprog = Prog(magicClass :: prog.defs)
-  	val (sd1,sd2) = Random.split(Random.mkGen(0))
+    val (sd1,sd2) = Random.split(Random.mkGen(0))
     val (id,_,_,st1) = 
-			mkObj(cmain, mprog, None, sd1, List(VObjId(Some(CId(0)))), 1)(initStore)
-			val st2 = changeParent(CId(0), id, st1)
-		  val st3 = changeSeed(CId(0), sd2, st2)
+      mkObj(cmain, mprog, None, sd1, List(VObjId(Some(CId(0)))), 1)(initStore)
+    val st2 = changeParent(CId(0), id, st1)
+    val st3 = changeSeed(CId(0), sd2, st2)
     (mprog, st3)
   }
 

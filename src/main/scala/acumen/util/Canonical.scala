@@ -16,19 +16,19 @@ object Canonical {
   val stepType  = name("stepType")
   val endTime   = name("endTime") 
   val nextChild = name("nextChild")
-	val seed1     = name("seed1")
-	val seed2     = name("seed2")
+  val seed1     = name("seed1")
+  val seed2     = name("seed2")
   val cmain     = ClassName("Main")
   val cmagic    = ClassName("Simulator")
 
   /* object getters */
   def parentOf(o:CObject) : Option[CId] = { val VObjId(id) = o(parent); id }
   def classOf(o:CObject)  : ClassName = { val VClassName(cn) = o(classf); cn }
-	def seedOf(o:CObject) : (Int,Int) = { extractSeed(o(seed1), o(seed2)) }
+  def seedOf(o:CObject) : (Int,Int) = { extractSeed(o(seed1), o(seed2)) }
 
   /* compute children of id */
   def childrenOf(id:CId, st:CStore) : List[CId] =
-	  st filter { case (_,o) => parentOf(o) == Some(id) } map (_._1) toList
+    st filter { case (_,o) => parentOf(o) == Some(id) } map (_._1) toList
 
   /* get the object id of a singleton object */
   def single(cn:ClassName)(st:CStore) : CId = 
@@ -47,17 +47,18 @@ object Canonical {
   def getObjectField(id:CId, f:Name, st:CStore) =
     deref(id,st)(f)
 
-	// getClass is already defined in Any
-	def getCls(id:CId, st:CStore) = 
-		classOf(deref(id,st))
+  // getClass is already defined in Any
 
-	def getParent(id:CId, st:CStore) = 
-		parentOf(deref(id,st))
+  def getCls(id:CId, st:CStore) = 
+    classOf(deref(id,st))
 
-	def getSeed(id:CId, st:CStore) = 
-		seedOf(deref(id,st))
+  def getParent(id:CId, st:CStore) = 
+    parentOf(deref(id,st))
 
-	/* store modification */
+  def getSeed(id:CId, st:CStore) = 
+    seedOf(deref(id,st))
+
+  /* store modification */
 
   def setField(o:CObject, n:Name, v:CValue) : CObject = {
     if (o exists { case (m,_) => m.x == n.x }) o.updated(n,v) 
@@ -75,21 +76,21 @@ object Canonical {
   def setParent(o:CObject, a:CId) : CObject = 
     setField(o, parent, VObjId(Some(a)))
 
-	def setSeed(o:CObject, s:(Int,Int)) : CObject = {
-		val (s1,s2) = s
-		val o1 = setField(o, seed1, VLit(GInt(s1)))
-		setField(o1, seed2, VLit(GInt(s2)))
-	}
+  def setSeed(o:CObject, s:(Int,Int)) : CObject = {
+    val (s1,s2) = s
+    val o1 = setField(o, seed1, VLit(GInt(s1)))
+    setField(o1, seed2, VLit(GInt(s2)))
+  }
 
   def changeParent(id:CId, p:CId, st:CStore) : CStore = {
     val obj = deref(id,st)
     setObject(id, setParent(obj, p), st)
   }
 
-	def changeSeed(id:CId, s:(Int,Int), st:CStore) : CStore = {
-		val obj = deref(id, st)
-		setObject(id, setSeed(obj, s), st)
-	}
+  def changeSeed(id:CId, s:(Int,Int), st:CStore) : CStore = {
+    val obj = deref(id, st)
+    setObject(id, setSeed(obj, s), st)
+  }
 
   /* magic fields getters and setters */
 

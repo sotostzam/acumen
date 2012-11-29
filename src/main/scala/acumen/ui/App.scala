@@ -418,7 +418,7 @@ class App extends SimpleSwingApplication {
       traceTable.model = model
       model.fireTableStructureChanged()
     case ViewChanged(idx) =>
-      if (idx == views.TABLE_IDX) {
+      if (idx == views.TABLE_IDX && App.ui.controller.model != null) {
         plotView.plotPanel.tableI.enabled = true
         plotView.plotPanel.plotter ! plot.Refresh
       } else {
