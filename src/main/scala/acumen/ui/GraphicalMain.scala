@@ -30,11 +30,10 @@ object GraphicalMain extends SimpleSwingApplication {
 
   var disable3D = true
   var disableNewPlot = true
-  var useExample: String = null
+  var openFile: File = null
   var autoPlay = false
   var useEnclosures = false
   var useCompletion = false
-  var homeDir: String = null
 
   def parseOpts(args: List[String]) {
     args match {
@@ -48,7 +47,7 @@ object GraphicalMain extends SimpleSwingApplication {
       case ("--disable-newplot" | "--no-newplot") :: tail => 
         disableNewPlot = true; parseOpts(tail)
       case "--example" :: name :: tail =>
-        useExample = name; parseOpts(tail)
+        openFile = new File("examples", name + ".acm"); parseOpts(tail)
       case "--play" :: tail =>
         autoPlay = true; parseOpts(tail)
       case "--enclosures" :: tail =>
@@ -57,9 +56,16 @@ object GraphicalMain extends SimpleSwingApplication {
         useEnclosures = false; parseOpts(tail)
       case "--completion" :: tail =>
         useCompletion = true; parseOpts(tail)
-      case opt =>
+      case opt ::  tail if opt.startsWith("-") =>
         System.err.println("Unrecognized Option: " + opt)
-        exit
+        exit(1)
+      case fn :: tail => 
+        openFile = new File(fn)
+        if (!openFile.exists) {
+          System.err.println("File not found: " + openFile)
+          exit(1)
+        }
+        parseOpts(tail)
     }
   }
 
