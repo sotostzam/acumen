@@ -233,8 +233,7 @@ class CodeArea extends Panel { //EditorPane {
   }
 
   if (GraphicalMain.useExample != null) {
-    val file = new File(getClass.getClassLoader.getResource("acumen/examples").getFile,
-                        GraphicalMain.useExample + ".acm")
+    val file = new File("examples", GraphicalMain.useExample + ".acm")
     loadFile(file)
   }
 

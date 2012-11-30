@@ -16,6 +16,7 @@ object Files {
   val currentDir = {
     val md = new File("examples")
     if (md.exists()) md
+    else new File(".")
   }
   private val home = new File(_home)
   private val saved = new File(_saved)
