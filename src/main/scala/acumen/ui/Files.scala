@@ -15,9 +15,16 @@ object Files {
 
   val currentDir = {
     val md = getClass.getClassLoader.getResource("acumen/examples")
+    val mdForDevs = {
+      val here = getClass.getClassLoader.getResource(".")
+      if (here != null)
+    	  new File(List(here.getPath,"..","..","..","src","main","resources","acumen","examples").mkString(File.separator))
+      else null
+    }
     new File(
       if (GraphicalMain.homeDir != null) 
-        getClass.getClassLoader.getResource(".").getPath + "/" + GraphicalMain.homeDir
+        getClass.getClassLoader.getResource(".").getPath + File.separator + GraphicalMain.homeDir
+      else if (mdForDevs != null) mdForDevs.getPath
       else if (md != null) md.getFile
       else "."
     )
