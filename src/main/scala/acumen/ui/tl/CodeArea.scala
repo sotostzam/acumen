@@ -153,7 +153,7 @@ class CodeArea extends Panel { //EditorPane {
     }
   }
 
-  def loadFile(file: File) : Unit = withErrorReporting {
+  def loadFile(file: File) : Unit = {
     syntaxTextArea.read(new FileReader(file),null)
     undo = new UndoManager()
     listenDocument
@@ -233,9 +233,15 @@ class CodeArea extends Panel { //EditorPane {
       })
   }
 
-  if (GraphicalMain.useExample != null) {
-    val file = new File("examples", GraphicalMain.useExample + ".acm")
-    loadFile(file)
+  if (GraphicalMain.openFile != null) {
+    try {
+      loadFile(GraphicalMain.openFile)
+    } catch {
+      case e => 
+        System.err.println("Unable To Open File: ")
+        System.err.println("  " + e)
+        exit(2)
+    }
   }
 
 }
