@@ -42,7 +42,7 @@ abstract class InterpreterTestBase extends FunSuite with ShouldMatchers {
   }
 
   def testExamples = {
-    testExampleDir(new File(getClass.getClassLoader.getResource("acumen/examples").getFile))
+    testExampleDir(new File("examples"))
   }
 
   def testShouldRun = {

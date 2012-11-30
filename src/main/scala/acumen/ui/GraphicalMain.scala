@@ -57,8 +57,6 @@ object GraphicalMain extends SimpleSwingApplication {
         useEnclosures = false; parseOpts(tail)
       case "--completion" :: tail =>
         useCompletion = true; parseOpts(tail)
-      case "--home" :: dir :: tail =>
-        homeDir = dir; parseOpts(tail)
       case opt =>
         System.err.println("Unrecognized Option: " + opt)
         exit

@@ -14,20 +14,8 @@ object Files {
   private def _now = _saved + File.separator + timeTag + ".acm"
 
   val currentDir = {
-    val md = getClass.getClassLoader.getResource("acumen/examples")
-    val mdForDevs = {
-      val here = getClass.getClassLoader.getResource(".")
-      if (here != null)
-    	  new File(List(here.getPath,"..","..","..","src","main","resources","acumen","examples").mkString(File.separator))
-      else null
-    }
-    new File(
-      if (GraphicalMain.homeDir != null) 
-        getClass.getClassLoader.getResource(".").getPath + File.separator + GraphicalMain.homeDir
-      else if (mdForDevs != null) mdForDevs.getPath
-      else if (md != null) md.getFile
-      else "."
-    )
+    val md = new File("examples")
+    if (md.exists()) md
   }
   private val home = new File(_home)
   private val saved = new File(_saved)
