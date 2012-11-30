@@ -436,6 +436,8 @@ class App extends SimpleSwingApplication {
               case java.awt.event.KeyEvent.VK_R  => upperButtons.bPlay.doClick ; true
               case java.awt.event.KeyEvent.VK_T  => upperButtons.bStop.doClick ; true
               case java.awt.event.KeyEvent.VK_G  => upperButtons.bStep.doClick ; true
+              case java.awt.event.KeyEvent.VK_S  => codeArea.saveFile ; true
+              case java.awt.event.KeyEvent.VK_O  => codeArea.openFile(codeArea.currentDir) ; true
               case _                             => false 
             }
         else false 

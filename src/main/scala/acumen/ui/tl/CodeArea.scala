@@ -207,6 +207,7 @@ class CodeArea extends Panel { //EditorPane {
         val writer = new FileWriter(f)
         writer.write(syntaxTextArea.getText)
         writer.close
+        setCurrentFile(currentFile)
         editedSinceLastSave = false
       case None => saveFileAs
     }
