@@ -4,6 +4,7 @@ import java.io._
 import java.util.Date
 import java.text.DateFormat
 import java.text.SimpleDateFormat
+import java.net.URL
 
 
 object Files {
@@ -15,7 +16,9 @@ object Files {
   val currentDir = {
     val md = getClass.getClassLoader.getResource("acumen/examples")
     new File(
-      if (md != null) md.getFile
+      if (GraphicalMain.homeDir != null) 
+        getClass.getClassLoader.getResource(".").getPath + "/" + GraphicalMain.homeDir
+      else if (md != null) md.getFile
       else "."
     )
   }
