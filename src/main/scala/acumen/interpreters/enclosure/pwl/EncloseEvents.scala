@@ -46,7 +46,8 @@ trait EncloseEvents extends SolveIVP {
       val us = uncertainStates(fin)
       val es = enclosures(t, s)
       if (us.isEmpty || es.isEmpty) None
-      else Some(us, es)
+//      else Some(us, es)
+      else Some(us, noEventEnclosure +: es)
     }
   }
 
@@ -79,9 +80,10 @@ trait EncloseEvents extends SolveIVP {
       reachableStatesPWL(ps, h, t, p, w)
     }
 
-  def encloseOneEvent(h: HybridSystem, s: StateEnclosure)(implicit rnd: Rounding): StateEnclosure =
-    union(h.events.map(e =>
-      reset(h, e, intersectGuard(h, e, s))))
+  def encloseOneEvent(h: HybridSystem, s: StateEnclosure)(implicit rnd: Rounding): StateEnclosure = {
+    val allPossibleResets = h.events.map(e => reset(h, e, intersectGuard(h, e, s)))
+    intersectInv(h, union(allPossibleResets))
+  }
 
   def encloseFlowNoEvents(ps: Parameters, h: HybridSystem, sIn: StateEnclosure, t: Interval)(implicit rnd: Rounding): (StateEnclosure, StateEnclosure) = {
     val sPreAndFinalPre = sIn map {
