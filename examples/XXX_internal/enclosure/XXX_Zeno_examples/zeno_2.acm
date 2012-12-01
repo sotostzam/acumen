@@ -1,5 +1,5 @@
 /* Zeno 2
- * Author: Adam Duracz
+ * Authors: Walid Taha and Adam Duracz
  */
 class Main(simulator)
   private
