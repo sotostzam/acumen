@@ -46,8 +46,8 @@ trait EncloseEvents extends SolveIVP {
       val us = uncertainStates(fin)
       val es = enclosures(t, s)
       if (us.isEmpty || es.isEmpty) None
-//      else Some(us, es)
-      else Some(us, noEventEnclosure +: es)
+      else Some(us, es)
+//      else Some(us, noEventEnclosure +: es)
     }
   }
 
