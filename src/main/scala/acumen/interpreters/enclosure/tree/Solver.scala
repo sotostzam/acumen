@@ -1,4 +1,4 @@
-package acumen.interpreters.enclosure.solver
+package acumen.interpreters.enclosure.tree
 
 import acumen.interpreters.enclosure.Interval.min
 import acumen.interpreters.enclosure.Interval.toInterval
@@ -10,8 +10,9 @@ import acumen.interpreters.enclosure.Interval
 import acumen.interpreters.enclosure.Rounding
 import acumen.interpreters.enclosure.UnivariateAffineEnclosure
 import acumen.interpreters.enclosure.Util
+import acumen.interpreters.enclosure.pwl.EncloseEvents
 
-trait Solver extends SolveVtE {
+trait Solver extends EncloseEvents { // SolveVtE {
 
   case class SolverException(message: String) extends Exception
   case class Aborted(resultSoFar: Seq[UnivariateAffineEnclosure]) extends Exception

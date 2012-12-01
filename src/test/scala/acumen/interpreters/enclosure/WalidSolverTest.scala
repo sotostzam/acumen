@@ -4,7 +4,7 @@ import org.scalacheck.Prop._
 import org.scalacheck.Properties
 import Interval._
 import Types._
-import solver.WalidSolver
+import tree.WalidSolver
 
 object WalidSolverTest extends Properties("WalidSolver") with WalidSolver {
 

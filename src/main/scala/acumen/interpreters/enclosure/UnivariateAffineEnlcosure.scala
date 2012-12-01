@@ -78,7 +78,8 @@ case class UnivariateAffineEnclosure private[enclosure] (
 object UnivariateAffineEnclosure {
 
   /** Convenience method, normalizes the domain. */
-  private[enclosure] def apply(domain: Interval, components: Map[VarName, UnivariateAffineScalarEnclosure])(implicit rnd: Rounding): UnivariateAffineEnclosure =
+//  private[enclosure] 
+  def apply(domain: Interval, components: Map[VarName, UnivariateAffineScalarEnclosure])(implicit rnd: Rounding): UnivariateAffineEnclosure =
     UnivariateAffineEnclosure(domain, 0 /\ domain.width.high, components)
 
   /** Lifts a constant interval box to a constant enclosure. */

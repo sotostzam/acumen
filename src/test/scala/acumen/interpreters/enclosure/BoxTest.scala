@@ -74,4 +74,46 @@ object BoxTest extends Properties("Box") {
       }
     }
 
+  property("contains soundness") =
+    forAll { box: Box =>
+      forAll(genSubBox(box)) { sbox =>
+        box contains sbox
+      }
+    }
+
+  property("hull is isotonic") =
+    forAll { b1: Box =>
+      forAll(genNamesBox(b1.keySet)) { b2 =>
+        val h = b1 hull b2
+        (h contains b1) && (h contains b2)
+      }
+    }
+
+  property("\\ is isotonic in left argument") =
+    forAll(genBox) { box =>
+      forAll(genSubBox(box)) { sbox =>
+        !(box equalTo sbox) ==> (box contains (box \ sbox))
+      }
+    }
+
+  property("\\ is antitonic in right argument") =
+    forAll(genBox) { box =>
+      forAll(genSubBox(box)) { sbox =>
+        forAll(genSubBox(sbox)) { ssbox =>
+          !((box equalTo sbox) || (box equalTo ssbox)) ==>
+            ((box \ ssbox) contains (box \ sbox))
+        }
+      }
+    }
+
+//  property("intersection of disjoint boxes is empty") =
+//    forAll(genBox, genBox) { (b1, b2) =>
+//      (b1 disjointFrom b2) ==> ((b1 /\ b2) isEmpty)
+//    }
+
+  property("intersection of non-disjoint boxes is non-empty") =
+    forAll(genBox, genBox) { (b1, b2) =>
+      false
+    }
+
 }

@@ -16,15 +16,48 @@ class Box(val self: Map[VarName, Interval]) extends MapProxy[VarName, Interval] 
     box.keys.forall { name => this(name) contains box(name) }
   }
 
+  def disjointFrom(that: Box)(implicit rnd: Rounding): Boolean = {
+    require(keySet == that.keySet)
+    keySet.exists(name => this(name) disjointFrom that(name))
+  }
+
   /** Component-wise union. */
   def hull(that: Box)(implicit rnd: Rounding): Box = {
     require(keySet == that.keySet)
     map { case (k, v) => k -> that(k) /\ v }
   }
 
-  def intersect(that: Box)(implicit rnd: Rounding): Box = {
+  /** Component-wise set difference. */
+  def setminus(that: Box)(implicit rnd: Rounding): Option[Box] = {
     require(keySet == that.keySet)
-    //    map { case (k, v) => k -> (if (v disjointFrom that(k)) v else that(k) /\ v) }
+    if (exists { case (name, interval) => that(name) contains interval }) None
+    else Some(map { case (name, interval) => name -> (interval setminus that(name)).get })
+  }
+
+  /** Component-wise set difference. */
+  def \(that: Box)(implicit rnd: Rounding): Box = {
+    require(keySet == that.keySet)
+    map { case (name, interval) => name -> (interval setminus that(name)).get }
+  }
+
+  /**
+   * Component-wise intersection.
+   *
+   * Note: yields None whenever intersect yields None for a component.
+   */
+  def intersect(that: Box)(implicit rnd: Rounding): Option[Box] = {
+    require(this.keySet == that.keySet)
+    if (this.exists { case (name, interval) => that(name) disjointFrom interval }) None
+    else Some(this \/ that)
+  }
+
+  /**
+   * Component-wise intersection.
+   *
+   * Note: partial operation, fails whenever \/ fails for a component.
+   */
+  def \/(that: Box)(implicit rnd: Rounding): Box = {
+    require(keySet == that.keySet)
     map { case (k, v) => k -> that(k) \/ v }
   }
 
@@ -57,6 +90,9 @@ class Box(val self: Map[VarName, Interval]) extends MapProxy[VarName, Interval] 
     require(names.toSet subsetOf keySet)
     names.foldLeft(Set(this)) { case (res, name) => res flatMap (_ refine (pieces, name)) }
   }
+
+  def equalTo(that: Box)(implicit rnd: Rounding): Boolean =
+    (keySet == that.keySet) && forall { case (name, interval) => that(name) equalTo interval }
 
   def almostEqualTo(that: Box)(implicit rnd: Rounding): Boolean = {
     require(keySet == that.keySet)
@@ -99,7 +135,7 @@ object Box {
 
 object BoxApp extends App {
   implicit val rnd = Rounding(10)
-  val b1 = Box("y" -> Interval(1), "x" -> Interval(1))
+  val b1 = Box("y" -> Interval(0, 0.5), "x" -> Interval(1))
   val b2 = Box("x" -> Interval(0, 1), "y" -> Interval(0, 1))
-  println(b1.refine(3,"x","y").size) // b2.keys.toSeq: _*))
+  println(b2 setminus b1) // b2.keys.toSeq: _*))
 }

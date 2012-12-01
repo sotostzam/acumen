@@ -10,8 +10,8 @@ import scala.util.control.Exception
 import acumen.interpreters.enclosure.Rounding
 import acumen.interpreters.enclosure.Extract
 import acumen.interpreters.enclosure.Types._
-import acumen.interpreters.enclosure.solver.Systems._
-import acumen.interpreters.enclosure.solver.HybridSystem
+import acumen.interpreters.enclosure.tree.Systems._
+import acumen.interpreters.enclosure.tree.HybridSystem
 
 object TransformTest extends Properties("Transform") with Extract {
 

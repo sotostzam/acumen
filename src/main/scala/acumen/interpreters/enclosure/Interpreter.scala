@@ -6,8 +6,8 @@ import util.Canonical._
 import Types._
 import ui.interpreter._
 import acumen.interpreters.Common.classDef
-import acumen.interpreters.enclosure.solver._
-import acumen.interpreters.enclosure.solver.HybridSystem
+import acumen.interpreters.enclosure.tree._
+import acumen.interpreters.enclosure.tree.HybridSystem
 
 trait EnclosureInterpreterCallbacks extends InterpreterCallbacks {
   def log(msg: String): Unit

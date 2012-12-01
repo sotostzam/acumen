@@ -126,8 +126,29 @@ case class UnivariateAffineScalarEnclosure private[enclosure] (
   }
 
   /**
-   * The restriction of `this` enclosure to a sub-interval of its domain.
+   * Shorter version of union. 
    * 
+   * FIXME: should wrap thinning unions in non-widening ones!
+   */
+  def newUnion(that: UnivariateAffineScalarEnclosure) = {
+    assert(this.domain == that.domain, "Union can only be taken of enclosures over the same domain.")
+    val domLow = domain.low
+    val domHigh = domain.high
+    if (domLow equalTo domHigh)
+      UnivariateAffineScalarEnclosure(domain, normalizedDomain, this.constant /\ that.constant, Interval(0))
+    else {
+      val resConstant = this.constant /\ that.constant
+      val resAtDomHigh = this(domHigh) /\ that(domHigh)
+      val resCoefficientLow = resAtDomHigh.low - resConstant.low
+      val resCoefficientHigh = resAtDomHigh.high - resConstant.high
+      val resCoefficient = resCoefficientLow /\ resCoefficientHigh
+      UnivariateAffineScalarEnclosure(domain, normalizedDomain, resConstant, resCoefficient)
+    }
+  }
+
+  /**
+   * The restriction of `this` enclosure to a sub-interval of its domain.
+   *
    * Returns an enclosure with the same constant and coefficient as `this`
    * enclosure, redefined over a sub-interval of its domain.
    */
@@ -226,7 +247,8 @@ case class UnivariateAffineScalarEnclosure private[enclosure] (
 object UnivariateAffineScalarEnclosure {
 
   /** Convenience method, normalizes the domain. */
-  private[enclosure] def apply(domain: Interval, constant: Interval, coefficient: Interval)(implicit rnd: Rounding): UnivariateAffineScalarEnclosure =
+  //  private[enclosure] 
+  def apply(domain: Interval, constant: Interval, coefficient: Interval)(implicit rnd: Rounding): UnivariateAffineScalarEnclosure =
     UnivariateAffineScalarEnclosure(domain, 0 /\ domain.width.high, constant, coefficient)
 
   /** Lifts a constant interval to a constant enclosure. */

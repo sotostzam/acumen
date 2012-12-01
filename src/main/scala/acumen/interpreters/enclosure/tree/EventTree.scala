@@ -1,4 +1,4 @@
-package acumen.interpreters.enclosure.solver
+package acumen.interpreters.enclosure.tree
 
 import acumen.interpreters.enclosure._
 import acumen.interpreters.enclosure.Types._
@@ -61,7 +61,7 @@ case class EventTree(
   m: Int,
   n: Int,
   degree: Int,
-  output: String) extends Solver with SolveIVP {
+  output: String) extends SolveVtE with SolveIVP {
 
   /** TODO add description */
   // TODO add tests

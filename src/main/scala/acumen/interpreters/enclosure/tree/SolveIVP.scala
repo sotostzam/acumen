@@ -1,11 +1,36 @@
-package acumen.interpreters.enclosure.solver
+package acumen.interpreters.enclosure.tree
 
 import acumen.interpreters.enclosure._
 import acumen.interpreters.enclosure.Interval._
 import acumen.interpreters.enclosure.Types._
 import acumen.interpreters.enclosure.UnivariateAffineEnclosure._
 
-trait SolveVt {
+trait SolveIVP {
+
+  /**
+   * Implementation detail: do not split initial conditions for variables
+   * with zero field components. These values do not change over T and so
+   * splitting them will not improve the solution.
+   */
+  def solveVt(
+    F: Field, // field
+    T: Interval, // domain of t
+    A: Box, // (A1,...,An), initial condition
+    delta: Double, // padding 
+    m: Int, // extra iterations after inclusion of iterates
+    n: Int, // maximum number of iterations before inclusion of iterates
+    degree: Int, // number of pieces to split each initial condition interval
+    output: String // path to write output 
+    )(implicit rnd: Rounding): UnivariateAffineEnclosure = {
+    val as = degree match {
+      case 1 => Set(A)
+      case d if d > 1 => A.refine(degree, A.keySet.filter(name => !(F.components(name) == Constant(0))).toSeq: _*)
+      //      case 2 => A.split(A.keySet.filter(name => !(F.components(name) == Constant(0))).toSeq: _*)
+      case _ => sys.error("solveVt: splittingDegree " + degree + " not supported!")
+    }    
+    val es = as map (solveIVP(F, T, _, delta, m, n, degree, output))
+    UnivariateAffineEnclosure.unionThem(es.toSeq).head
+  }
 
   /**
    * Solves an ODE-IVP given by a field F for a time interval T and
@@ -22,7 +47,7 @@ trait SolveVt {
    * 3. Collapse the obtained enclosure onto an enclosure over T.
    *
    */
-  def solveVt(
+  def solveIVP(
     F: Field, // field
     T: Interval, // domain of t
     A: Box, // (A1,...,An), initial condition

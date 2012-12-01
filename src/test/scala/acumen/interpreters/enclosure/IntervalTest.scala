@@ -98,6 +98,13 @@ object IntervalTest extends Properties("Interval") {
       }
     }
 
+  property("isotonicity of \\") =
+    forAll(genInterval) { x =>
+      forAll(genSubInterval(x)) { y =>
+        (x equalTo y) || (x contains (x \ y))
+      }
+    }
+
 }
 
 object IntervalUnitTest extends Properties("Interval.UnitTest") {
