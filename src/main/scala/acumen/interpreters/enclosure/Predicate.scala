@@ -9,6 +9,11 @@ import Types._
  */
 abstract class Predicate {
 
+  def compose(that: Expression, intoVariable: String): Predicate = this match {
+    case True => True
+    case all @ All(_) => All(all.conjuncts.map(_.compose(that, intoVariable)))
+  }
+
   /**
    * Evaluate the predicate by taking the variables to range over the
    * intervals of the box x.
