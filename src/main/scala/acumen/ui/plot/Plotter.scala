@@ -27,6 +27,8 @@ class PlotInput(val model : () => PlotModel,
   @volatile var enabled = false
   @volatile var parms = PlotParms()
   @volatile var plotStyle : PlotStyle = Lines()
+  val DISABLE_THRESHOLD = 25
+  @volatile var disableThreshold = DISABLE_THRESHOLD
 }
 
 abstract class JPlotInput {
@@ -106,7 +108,7 @@ class Plotter(tableI: TableInput, plotI: PlotInput, jPlotI: JPlotInput)
 
   def replot = if (plotI.enabled) {
     pm = plotI.model()
-    pd = new PlotData(plotI.parms,pm)
+    pd = new PlotData(plotI.parms,pm,plotI.disableThreshold)
     repaint()
   }
 

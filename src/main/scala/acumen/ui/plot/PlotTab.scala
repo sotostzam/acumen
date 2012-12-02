@@ -70,7 +70,6 @@ class PlotTab extends BorderPanel
     toolTip = "Undo Previous Action"
   }
   val saveAs = new Action("Save As") {
-
     icon = Icons.save
     tooltip = "Save As"
     private var currentDir = new File(".")
@@ -138,10 +137,19 @@ class PlotTab extends BorderPanel
   private val hint = new Label("Hint: Right click on image & drag to move")
   def updatePlotEnabled : Unit = 
      plotPanel.plotI.enabled = check.selected && App.ui.controller.model != null
+  var userDisabled = false
+  def resetCheckBox {
+    if (!userDisabled)
+      check.selected = true
+    plotPanel.plotI.disableThreshold = plotPanel.plotI.DISABLE_THRESHOLD
+  }
   /*private*/ val check = new CheckBox("") { 
     action = Action("Plot") {
       updatePlotEnabled
-      if (plotPanel.plotI.enabled) plotPanel.plotter ! Replot
+      if (selected)
+        plotPanel.plotI.disableThreshold = Integer.MAX_VALUE
+      plotPanel.plotter ! Replot
+      userDisabled = !selected
     }
   }
   private val rightBottomButtons =
@@ -159,12 +167,21 @@ class PlotTab extends BorderPanel
     case st:PlotPanel.State => panelState = st; stateUpdateResponse
 
     case App.ViewChanged(idx) => 
-      if (idx == App.ui.views.PLOT_IDX)
-        check.action()
-      else 
+      if (idx == App.ui.views.PLOT_IDX) {
+        updatePlotEnabled
+        plotPanel.plotter ! Replot
+      } else {
         plotPanel.plotI.enabled = false
+      }
+
+    case m:PlotReady =>
+      if (m.data.disableThreshold == Integer.MAX_VALUE)
+        plotPanel.plotI.disableThreshold = m.data.plottables.size + plotPanel.plotI.DISABLE_THRESHOLD
+      else if (m.data.disabled) 
+        check.selected = false
   }
   def stateUpdateResponse = {
+    if (appState == App.Starting) resetCheckBox
     updatePlotEnabled
     (plotState,appState) match {
       case _ if panelState == PlotPanel.Disabled => 
