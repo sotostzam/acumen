@@ -113,7 +113,7 @@ class Controller extends DaemonActor {
         case Stop  => 
           //println("STOP")
           if (producer == null) {
-            println("No producer.")
+            //println("No producer.")
             setState(Stopped)
           } else {
             //println("Sending Stop")

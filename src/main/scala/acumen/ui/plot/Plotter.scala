@@ -78,7 +78,7 @@ class Plotter(tableI: TableInput, plotI: PlotInput, jPlotI: JPlotInput)
     }
     reactWithin (0) {
       case msg : PlotterAction => 
-        println("SKIPPING UPDATE!")
+        //println("SKIPPING UPDATE!")
         mergeMsgs(msg)
       case TIMEOUT => 
         App ! Busy

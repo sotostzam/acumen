@@ -24,8 +24,8 @@ object Supervisor extends DaemonActor {
           restart()
         }
       case Exit(a,_) =>
-        val (name,_) = watching.getOrElse(sender,("An Unknown", null))
-        println("*** " + name + " actor Terminated!")
+        //val (name,_) = watching.getOrElse(sender,("An Unknown", null))
+        //println("*** " + name + " actor Terminated!")
         unlink(a)
       case msg =>
         println("*** " + "Supervisor Actor: Unknown msg: " + msg)
