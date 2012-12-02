@@ -9,7 +9,7 @@ class Main(simulator)
   end
   switch mode
     case ""
-      if d <= s 
+      if d == s 
         s := s/2; 
         mode := "" 
       end;
@@ -18,7 +18,7 @@ class Main(simulator)
   end;
   simulator.precision := 10;
   simulator.startTime := 0;
-  simulator.endTime := 3.5;
+  simulator.endTime := 1.3;
   simulator.initialConditionPadding := 0;
   simulator.extraPicardIterations := 20;
   simulator.maxPicardIterations := 200;

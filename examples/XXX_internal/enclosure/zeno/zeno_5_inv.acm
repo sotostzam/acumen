@@ -1,29 +1,29 @@
-/* Zeno 4
+/* Zeno 5
  * Authors: Walid Taha and Adam Duracz
+ * Zeno point of system is ln(2) =~ 0.693.
  */
 class Main(simulator)
   private
-    d := 1; d' := 0;
-    s := 1/2; s' := 1/2; s'' := 0;
+    d := 1; d' := -2;
+    s := 1/2;
     mode := ""; 
   end
   switch mode
-    case ""
+    case "" assume s <= abs(d)
       if d == s 
         s := s/2; 
         mode := "" 
       end;
-      d'  = -1;
-      s'' = d - s - s';
+      d' = -(d + 1);
   end;
   simulator.precision := 10;
   simulator.startTime := 0;
-  simulator.endTime := 1.1;
+  simulator.endTime := 0.8;
   simulator.initialConditionPadding := 0;
   simulator.extraPicardIterations := 20;
   simulator.maxPicardIterations := 200;
   simulator.maxEventSequenceLength := 50;
-  simulator.minTimeStep := 0.0001;
+  simulator.minTimeStep := 0.000001;
   simulator.maxTimeStep := 0.1;
-  simulator.minImprovement := 0.01;
+  simulator.minImprovement := 0.0000001;
 end
