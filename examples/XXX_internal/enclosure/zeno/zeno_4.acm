@@ -1,24 +1,24 @@
-/* Zeno 3
+/* Zeno 4
  * Authors: Walid Taha and Adam Duracz
  */
 class Main(simulator)
   private
     d := 1; d' := 0;
-    s := 1/2; s' := 1/2;
+    s := 1/2; s' := 1/2; s'' := 0;
     mode := ""; 
   end
   switch mode
     case ""
-      if d <= s 
+      if d == s 
         s := s/2; 
         mode := "" 
       end;
-      d' = -1;
-      s' = d - s;
+      d'  = -1;
+      s'' = d - s - s';
   end;
   simulator.precision := 10;
   simulator.startTime := 0;
-  simulator.endTime := 3.5;
+  simulator.endTime := 1.1;
   simulator.initialConditionPadding := 0;
   simulator.extraPicardIterations := 20;
   simulator.maxPicardIterations := 200;

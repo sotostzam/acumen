@@ -173,7 +173,7 @@ case class PlotParms(plotSimulator:Boolean = false,
 		             plotNextChild:Boolean = false, 
 		             plotSeeds:Boolean = false)
 		             
-class PlotData(parms: PlotParms = null, tb:PlotModel = null) 
+class PlotData(parms: PlotParms = null, tb:PlotModel = null, val disableThreshold: Int = 24) 
 {
   /*private*/ var polys = new ArrayBuffer[PlotEntity]
   /*private*/ var axes  = new ArrayBuffer[MyPath2D]
@@ -191,14 +191,16 @@ class PlotData(parms: PlotParms = null, tb:PlotModel = null)
         	(parms.plotSeeds || (p.fn != Name("seed1",0) && p.fn !=  Name("seed2",0)))
   }
 
-  if (tb == null || tb.isEmpty) ()
-  else {
+  val plottables = if (tb == null) Nil else tb.getPlottables() filter plotit
+  val disabled = plottables.size >= disableThreshold
 
+  if (plottables.size == 0 || disabled) ()
+  else {
     time = tb.getTimes()
     traceViewTime = tb.getTraceViewTimes()
 
     columnIndices = new ArrayBuffer[Int]
-    for (p <- tb.getPlottables() if plotit(p)) {
+    for (p <- plottables) {
       var s = p.startFrame
       columnIndices += p.column
 
