@@ -139,7 +139,7 @@ class PlotTab extends BorderPanel
   def updatePlotEnabled : Unit = 
      plotPanel.plotI.enabled = check.selected && App.ui.controller.model != null
   /*private*/ val check = new CheckBox("") { 
-    action = Action("Draw") {
+    action = Action("Plot") {
       updatePlotEnabled
       if (plotPanel.plotI.enabled) plotPanel.plotter ! Replot
     }
