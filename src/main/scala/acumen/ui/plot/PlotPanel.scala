@@ -224,6 +224,7 @@ class PlotPanel(pub:Publisher) extends Panel
       pi = m.image
       if (m.newPlot)
         resetViewPort(pi.viewPort)
+      hoveredBox = None
       repaint
 
     case MouseMoved(_, p, _) => 
