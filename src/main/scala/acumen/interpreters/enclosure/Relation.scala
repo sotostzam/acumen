@@ -27,6 +27,12 @@ object UnaryRelationName extends Enumeration {
  */
 abstract class Relation extends Contract {
 
+  // TODO add comment
+  def compose(that: Expression, intoVariable: String): Relation = this match {
+    case BinaryRelation(relname, l, r) => BinaryRelation(relname, l.compose(that, intoVariable), r.compose(that, intoVariable))
+    case UnaryRelation(relname, e) => UnaryRelation(relname, e.compose(that, intoVariable))
+  }
+
   /**
    * Evaluate the predicate by taking the variables to range over the intervals
    * of the box x.

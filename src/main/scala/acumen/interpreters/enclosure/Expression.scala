@@ -18,6 +18,18 @@ abstract class Expression {
     case _ => false
   }
 
+  // FIXME implement map for Expressions to avoid this
+  def compose(that: Expression, intoVariable: String): Expression = this match {
+    case Variable(name) if name == intoVariable => that
+    case Constant(_) | Variable(_) => this
+    case Abs(e) => Abs(e.compose(that, intoVariable))
+    case Sqrt(e) => Sqrt(e.compose(that, intoVariable))
+    case Negate(e) => Negate(e.compose(that, intoVariable))
+    case Plus(l, r) => Plus(l.compose(that, intoVariable), r.compose(that, intoVariable))
+    case Multiply(l, r) => Multiply(l.compose(that, intoVariable), r.compose(that, intoVariable))
+    case Divide(l, r) => Divide(l.compose(that, intoVariable), r.compose(that, intoVariable))
+  }
+
   /**
    * Evaluate the expression at the box x using intervals.
    *
@@ -221,5 +233,5 @@ object ExpressionApp extends App {
   implicit val rnd = Rounding(10)
   val x = Variable("x")
   val y = Variable("y")
-  println(((x + 1) * (y + 1)).dif("y"))
+  println((x*(x+y)).compose(1+y,"x"))
 }
