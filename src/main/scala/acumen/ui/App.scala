@@ -95,7 +95,9 @@ class App extends SimpleSwingApplication {
   }
   val upperPane = new BorderPanel {
     add(codeArea.filenameLabel, BorderPanel.Position.North)
-    add(new ScrollPane(codeArea), BorderPanel.Position.Center)
+    val sp = new ScrollPane(codeArea)
+    sp.verticalScrollBar.peer.setUnitIncrement(10)
+    add(sp, BorderPanel.Position.Center)
     add(upperBottomPane,  BorderPanel.Position.South) 
   }
   
