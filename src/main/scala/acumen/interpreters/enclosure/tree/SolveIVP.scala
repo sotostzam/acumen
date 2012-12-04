@@ -19,8 +19,7 @@ trait SolveIVP {
     delta: Double, // padding 
     m: Int, // extra iterations after inclusion of iterates
     n: Int, // maximum number of iterations before inclusion of iterates
-    degree: Int, // number of pieces to split each initial condition interval
-    output: String // path to write output 
+    degree: Int // number of pieces to split each initial condition interval
     )(implicit rnd: Rounding): UnivariateAffineEnclosure = {
     val as = degree match {
       case 1 => Set(A)
@@ -28,7 +27,7 @@ trait SolveIVP {
       //      case 2 => A.split(A.keySet.filter(name => !(F.components(name) == Constant(0))).toSeq: _*)
       case _ => sys.error("solveVt: splittingDegree " + degree + " not supported!")
     }    
-    val es = as map (solveIVP(F, T, _, delta, m, n, degree, output))
+    val es = as map (solveIVP(F, T, _, delta, m, n))
     UnivariateAffineEnclosure.unionThem(es.toSeq).head
   }
 
@@ -53,9 +52,7 @@ trait SolveIVP {
     A: Box, // (A1,...,An), initial condition
     delta: Double, // padding 
     m: Int, // extra iterations after inclusion of iterates
-    n: Int, // maximum number of iterations before inclusion of iterates
-    degree: Int, // number of pieces to split each initial condition interval
-    output: String // path to write output 
+    n: Int // maximum number of iterations before inclusion of iterates
     )(implicit rnd: Rounding): UnivariateAffineEnclosure = {
 
     val timeName = A.keys.fold("_")(_ + _)

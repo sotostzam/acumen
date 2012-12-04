@@ -29,8 +29,7 @@ trait SolveVt {
     delta: Double, // padding 
     m: Int, // extra iterations after inclusion of iterates
     n: Int, // maximum number of iterations before inclusion of iterates
-    degree: Int, // number of pieces to split each initial condition interval
-    output: String // path to write output 
+    degree: Int // number of pieces to split each initial condition interval 
     )(implicit rnd: Rounding): UnivariateAffineEnclosure = {
 
     val timeName = A.keys.fold("_")(_ + _)

@@ -53,7 +53,6 @@ object Interpreter extends acumen.RecursiveInterpreter with Solver with Extract 
       ps.minTimeStep,
       ps.maxTimeStep,
       ps.minImprovement,
-      "output",
       cb)
     
     EnclosureRes(res)

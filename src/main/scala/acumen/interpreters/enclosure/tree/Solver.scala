@@ -31,11 +31,9 @@ trait Solver extends EncloseEvents {
     d: Double, // minimum time step size
     e: Double, // maximum time step size
     minImprovement: Double, // minimum improvement of enclosure
-    output: String, // path to write output 
     cb: EnclosureInterpreterCallbacks)(implicit rnd: Rounding): Seq[UnivariateAffineEnclosure] = {
-    Util.newFile(output)
     cb.endTime = T.hiDouble
-    solveHybrid(H, T, Ss, delta, m, n, degree, K, d, e, minImprovement, output, cb)._2
+    solveHybrid(H, T, Ss, delta, m, n, degree, K, d, e, minImprovement, cb)._2
   }
 
   // TODO add description
@@ -51,7 +49,6 @@ trait Solver extends EncloseEvents {
     d: Double, // minimum time step size
     e: Double, // maximum time step size
     minImprovement: Double, // minimum improvement of enclosure
-    output: String, // path to write output 
     cb: EnclosureInterpreterCallbacks // carrier for call-backs for communicating with the GUI
     )(implicit rnd: Rounding): (Set[UncertainState], Seq[UnivariateAffineEnclosure]) = {
     //    println("solveHybrid: on so" + T)
@@ -63,19 +60,19 @@ trait Solver extends EncloseEvents {
         sys.error("gave up for minimum step size " + d + " at " + T)
       } else {
         //        cb.log("splitting " + T)
-        val (ssl, ysl) = solveHybrid(H, lT, Ss, delta, m, n, degree, K, d, e, minImprovement, output, cb)
-        val (ssr, ysr) = solveHybrid(H, rT, ssl, delta, m, n, degree, K, d, e, minImprovement, output, cb)
+        val (ssl, ysl) = solveHybrid(H, lT, Ss, delta, m, n, degree, K, d, e, minImprovement, cb)
+        val (ssr, ysr) = solveHybrid(H, rT, ssl, delta, m, n, degree, K, d, e, minImprovement, cb)
         (ssr, ysl ++ ysr)
       }
     } else {
-      val onT = Ss.map(solveVtE(H, T, _, delta, m, n, degree, K, output, cb.log))
+      val onT = Ss.map(solveVtE(H, T, _, delta, m, n, degree, K, cb.log))
       if (onT contains None)
         if (cannotSplit) {
           sys.error("gave up for minimum step size " + d + " at " + T)
         } else {
           //        cb.log("splitting " + T)
-          val (ssl, ysl) = solveHybrid(H, lT, Ss, delta, m, n, degree, K, d, e, minImprovement, output, cb)
-          val (ssr, ysr) = solveHybrid(H, rT, ssl, delta, m, n, degree, K, d, e, minImprovement, output, cb)
+          val (ssl, ysl) = solveHybrid(H, lT, Ss, delta, m, n, degree, K, d, e, minImprovement, cb)
+          val (ssr, ysr) = solveHybrid(H, rT, ssl, delta, m, n, degree, K, d, e, minImprovement, cb)
           (ssr, ysl ++ ysr)
         }
       else {
@@ -85,7 +82,7 @@ trait Solver extends EncloseEvents {
           }
         val ssT = M(endStatesOnT)
 
-        val onlT = Ss.map(solveVtE(H, lT, _, delta, m, n, degree, K, output, cb.log))
+        val onlT = Ss.map(solveVtE(H, lT, _, delta, m, n, degree, K, cb.log))
         if (onlT contains None) {
           cb.sendResult(resultForT._2)
           //          println("solveHybrid: @" + T + ": " + resultForT._1.head.initialCondition) //  PRINTME
@@ -97,7 +94,7 @@ trait Solver extends EncloseEvents {
             }
           val sslT = M(endStatesOnlT)
 
-          val onrT = sslT.map(solveVtE(H, rT, _, delta, m, n, degree, K, output, cb.log))
+          val onrT = sslT.map(solveVtE(H, rT, _, delta, m, n, degree, K, cb.log))
           if (onrT contains None) {
             cb.sendResult(resultForT._2)
             resultForT
@@ -134,8 +131,8 @@ trait Solver extends EncloseEvents {
               resultForT
             } else {
               //            cb.log("splitting " + T)
-              val (ssl, ysl) = solveHybrid(H, lT, Ss, delta, m, n, degree, K, d, e, minImprovement, output, cb)
-              val (ssr, ysr) = solveHybrid(H, rT, ssl, delta, m, n, degree, K, d, e, minImprovement, output, cb)
+              val (ssl, ysl) = solveHybrid(H, lT, Ss, delta, m, n, degree, K, d, e, minImprovement, cb)
+              val (ssr, ysr) = solveHybrid(H, rT, ssl, delta, m, n, degree, K, d, e, minImprovement, cb)
               //                            println("solveHybrid: @" + T + ": " + ssr.head.initialCondition)  //  PRINTME
               (ssr, ysl ++ ysr)
             }
