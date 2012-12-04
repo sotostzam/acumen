@@ -1,5 +1,7 @@
-/* Zeno 4
+/* Zeno 4 with invariant
  * Authors: Walid Taha and Adam Duracz
+ * Adds invariant in order to improve the 
+ * post-Zeno enclosure.
  */
 class Main(simulator)
   private

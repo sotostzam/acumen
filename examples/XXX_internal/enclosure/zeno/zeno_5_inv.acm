@@ -1,5 +1,7 @@
-/* Zeno 5
+/* Zeno 5 with invariant
  * Authors: Walid Taha and Adam Duracz
+ * Adds invariant in order to improve the 
+ * post-Zeno enclosure.
  * Zeno point of system is ln(2) =~ 0.693.
  */
 class Main(simulator)
