@@ -54,15 +54,15 @@ trait LocalizingSolver extends SolveVt {
       val rightEnclosures = piecewisePicardHelper(rightInitialCondition, rightSegment)
       leftEnclosures ++ rightEnclosures
     } else {
-      val enclosure = solveVt(field, segment, initialCondition, initialConditionPadding, extraPicardIterations, maxPicardIterations, splittingDegree, outputFile)
+      val enclosure = solveVt(field, segment, initialCondition, initialConditionPadding, extraPicardIterations, maxPicardIterations, splittingDegree)
       if (segment.width lessThan minTimeStep * 2) {
         println("minimum step size at " + segment)
         Seq(enclosure)
       } else {
         val (leftSegment, rightSegment) = segment.split
-        val leftEnclosure = solveVt(field, leftSegment, initialCondition, initialConditionPadding, extraPicardIterations, maxPicardIterations, splittingDegree, outputFile)
+        val leftEnclosure = solveVt(field, leftSegment, initialCondition, initialConditionPadding, extraPicardIterations, maxPicardIterations, splittingDegree)
         var rightInitialCondition = leftEnclosure(leftSegment.high)
-        val rightEnclosure = solveVt(field, rightSegment, rightInitialCondition, initialConditionPadding, extraPicardIterations, maxPicardIterations, splittingDegree, outputFile)
+        val rightEnclosure = solveVt(field, rightSegment, rightInitialCondition, initialConditionPadding, extraPicardIterations, maxPicardIterations, splittingDegree)
         if (norm(rightEnclosure(segment.high)) lessThan norm(enclosure(segment.high))) {
           val leftEnclosures = piecewisePicardHelper(initialCondition, leftSegment)
           rightInitialCondition = leftEnclosures.last(leftSegment.high)

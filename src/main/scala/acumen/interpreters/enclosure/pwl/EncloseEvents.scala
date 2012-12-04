@@ -28,9 +28,8 @@ trait EncloseEvents extends SolveIVP {
     n: Int,
     degree: Int,
     K: Int,
-    output: String,
     log: String => Unit)(implicit rnd: Rounding): Option[(Set[UncertainState], Seq[UnivariateAffineEnclosure])] = {
-    val noEventEnclosure = solveVt(h.fields(u.mode), t, u.initialCondition, delta, m, n, degree, output)
+    val noEventEnclosure = solveVt(h.fields(u.mode), t, u.initialCondition, delta, m, n, degree)
     val noPossibleEvents = !h.guards.exists {
       case (event, guard) => event.sigma == u.mode && (guard(noEventEnclosure.range) contains true)
     }
@@ -46,8 +45,8 @@ trait EncloseEvents extends SolveIVP {
       val us = uncertainStates(fin)
       val es = enclosures(t, s)
       if (us.isEmpty || es.isEmpty) None
-      else Some(us, es)
-//      else Some(us, noEventEnclosure +: es)
+//      else Some(us, es)
+      else Some(us, noEventEnclosure +: es)
     }
   }
 
@@ -105,8 +104,7 @@ trait EncloseEvents extends SolveIVP {
       ps.solveVtInitialConditionPadding,
       ps.extraPicardIterations,
       ps.maxPicardIterations,
-      ps.splittingDegree,
-      "output")
+      ps.splittingDegree)
 
   // types for representing enclosures
 

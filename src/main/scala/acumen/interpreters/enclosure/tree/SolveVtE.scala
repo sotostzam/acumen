@@ -54,7 +54,7 @@ trait SolveVtE {
     K: Int,
     output: String,
     log: String => Unit)(implicit rnd: Rounding): Option[(Set[UncertainState], Seq[UnivariateAffineEnclosure])] = {
-    var res = EventTree.initialTree(T, H, S, delta, m, n, degree, output)
+    var res = EventTree.initialTree(T, H, S, delta, m, n, degree)
     var tmp = res.addLayer
     while (res.size < K && tmp != res) {
       res = tmp
