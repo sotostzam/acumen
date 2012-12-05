@@ -1,13 +1,18 @@
+
+// Bouncing Ball with Pseudo-Random impacts
+// By Paul Brauner
+
 class RandomBall(mode, time)
   private
-    b := create Ball("Fly", 1, 1,0,0);
-    rg := create RandomGen(time)
+    b  := create Ball("Fly", 1, 1,0,0);
+    rg := create RandomGenerator(time)
   end
   rg.time := time;
   b.k := rg.rndUnit
 end
 
 class Ball(mode, k, x,x',x'')
+  private last_k := 0  end
   switch mode
     case "Fly"
       if x < 0 && x' < 0
@@ -16,16 +21,17 @@ class Ball(mode, k, x,x',x'')
         x'' = -9.8
       end
     case "Bounce"
-      x' := -abs(k) * x';
+      last_k := (0.75 + abs(k)/2);
+      x' := - last_k * x';
       mode := "Fly"
   end
 end
 
-class RandomGen(time)
+class RandomGenerator(time)
   private
     mZ := 1;
     mW := 2;
-    rndUnit := 1;
+    rndUnit := 0;
     unsigned := 0;
     lastWrite := time
   end
