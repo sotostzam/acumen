@@ -39,21 +39,35 @@
   <dataTypes/>
   <functions>
     <function>abs</function>
-    <function>acos</function>
     <function>asin</function>
     <function>atan2</function>
-    <function>cos</function>
     <function>cross</function>
     <function>dot</function>
-    <function>exp</function>
-    <function>log</function>
     <function>norm</function>
     <function>not</function>
-    <function>round</function>
-    <function>sin</function>
-    <function>sqrt</function>
     <function>xor</function>
     <function>pi</function>
+    <function>sin</function>
+    <function>cos</function>
+    <function>tan</function>
+    <function>acos</function>
+    <function>asin</function>
+    <function>atan</function>
+    <function>toRadians</function>
+    <function>toDegrees</function>
+    <function>exp</function>
+    <function>log</function>
+    <function>log10</function>
+    <function>sqrt</function>
+    <function>cbrt</function>
+    <function>ceil</function>
+    <function>floor</function>
+    <function>rint</function>
+    <function>round</function>
+    <function>sinh</function>
+    <function>cosh</function>
+    <function>tanh</function>
+    <function>signum</function>
   </functions>
   <numbers>
     <hexLiteral>0x{HexDigit}+</hexLiteral>
