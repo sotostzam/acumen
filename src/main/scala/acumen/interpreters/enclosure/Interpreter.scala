@@ -23,21 +23,30 @@ case class EnclosureRes(res: Seq[UnivariateAffineEnclosure]) extends Interpreter
 /**
  * Proxy for the enclosure-based solver.
  */
-object Interpreter extends acumen.RecursiveInterpreter with Solver with Extract {
+class Interpreter extends acumen.RecursiveInterpreter with Solver with Extract {
 
   def newInterpreterModel = new EnclosureModel
 
-  def run (des: Prog) = {
-    runInterpreter(des, new EnclosureInterpreterCallbacks {
-      override def log(msg: String) = println(msg)
-    })
+  val defaultInterpreterCallbacks = new EnclosureInterpreterCallbacks {
+    override def log(msg: String) = println(msg)
   }
+
+  val noAdjustParms = (p: Parameters) => p
+
+  def run (des: Prog) = runInterpreter(des, defaultInterpreterCallbacks)
+
+  def runInterpreter(des: Prog, cb0: InterpreterCallbacks) = 
+    runInterpreter(des, cb0, noAdjustParms)
+                     
   //FIXME do this properly
-  def runInterpreter(des: Prog, cb0: InterpreterCallbacks) = {
+  def runInterpreter(des: Prog, 
+                     cb0: InterpreterCallbacks,
+                     adjustParms: Parameters => Parameters) = {
     val cb = cb0.asInstanceOf[EnclosureInterpreterCallbacks]
     val main = classDef(ClassName("Main"), des)
 
-    val ps = parameters(main)
+    val ps0 = parameters(main)
+    val ps = adjustParms(ps0)
     implicit val rnd = Rounding(ps.precision)
     val (hs, uss) = extract(main)
 
@@ -59,3 +68,5 @@ object Interpreter extends acumen.RecursiveInterpreter with Solver with Extract 
   }
 
 }
+
+object Interpreter extends Interpreter
