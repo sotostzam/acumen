@@ -43,6 +43,7 @@ class Interpreter extends acumen.RecursiveInterpreter with Solver with Extract {
                      cb0: InterpreterCallbacks,
                      adjustParms: Parameters => Parameters) = {
     val cb = cb0.asInstanceOf[EnclosureInterpreterCallbacks]
+    if (des.defs.size > 1) sys.error("Multiple classes are not currently supported by the enclosure interperter!") 
     val main = classDef(ClassName("Main"), des)
 
     val ps0 = parameters(main)
