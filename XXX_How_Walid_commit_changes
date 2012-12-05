@@ -1,0 +1,50 @@
+How to commit into the git hib rep
+
+by Kevin Atkinson
+
+First do a
+
+  git status
+
+Then, to incorporate your changes, execute the following command:
+
+  git add -u ./
+
+If you have added new files that you'd like to put in the rep, then you MUST add them one by one, as follows:
+
+  git add FILE
+
+Do a "git status" again.  Any files you changes will be under "Changed
+but not updated", you should add those also assuming they are part of
+the updated arithmetic operators.  Everything that is to be committed
+should be under "Changes to be committed".  Make sure anything under
+another category is something you don't want to add.
+
+What you just did is known as "staging" the changes. Now you can
+commit them.  Just use:
+
+  git commit
+
+and hopefully the emacs editor will come up.  Please type a useful
+commit message describing your changes.  As an innocent suggestion,
+since you don't have a working spell checker, maybe you can type the
+message in an editor that does spellcheck and copy and paste them into
+emacs.  (Just reformat them using ESC q).
+
+Now see you changes by doing a:
+
+  git log --stat
+
+which should show you commit.
+
+Once that is done do a:
+
+  git push origin devel-e
+
+And let me know when that done and I will review the changes, and if
+there is a problem I will let you know.  If not I will merge them into
+acumen-e/devel-e.
+
+If you run into trouble please let me know.  Fell free to call me on
+skype if you think that will be helpful.  I will be available for the
+next hour or so.

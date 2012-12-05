@@ -1,4 +1,6 @@
 
+COPYRIGHT ISSUES - Read carefully before working on code!
+
 By agreeing to contribute to the development of this software, the
 authors agree that Walid Taha:
 
@@ -11,3 +13,8 @@ authors agree that Walid Taha:
 
 If you have any questions, please contact Walid Taha at
 (maroneal@gmail.com).
+
+---
+TECHNICAL TIPS
+
+- To start internal version with 3D support, use: sbt "run --3d"
