@@ -1,20 +1,20 @@
-/* Zeno 4
+/* Zeno 2
  * Authors: Walid Taha and Adam Duracz
  */
 class Main(simulator)
   private
     d := 1; d' := 0;
-    s := 1/2; s' := 1/2; s'' := 0;
+    s := 1/2; s' := 1;
     mode := ""; 
   end
   switch mode
-    case "" assume s <= abs(d)
+    case ""
       if d == s 
         s := s/2; 
         mode := "" 
       end;
-      d'  = -1;
-      s'' = d - s - s';
+      d' = -1;
+      s' = 1;
   end;
   simulator.precision := 10;
   simulator.startTime := 0;

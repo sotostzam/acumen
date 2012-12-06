@@ -84,12 +84,15 @@ object Main {
               println(endTime - startTime)
             }
           }
+        case "bench-enclosures" => 
+          BenchEnclosures.run(i, nodiff_out, args, firstNonSemanticsArg + 2)
         case "trace" =>
           trace.print
-        case _ =>
+        case what =>
+          println(what)
           throw BadProgramOptions(
             List("pretty", "desugar", "3d", "2d", "java2d",
-              "java3d", "json", "last", "bench from to", "trace"))
+              "java3d", "json", "last", "bench from to", "bench-enclosures ...", "trace"))
       }
     } catch {
       case e: AcumenError =>
@@ -98,4 +101,5 @@ object Main {
       case e => throw e
     }
   }
+
 }

@@ -1,22 +1,22 @@
-/* Zeno 3 with invaritant
+/* Zeno 2 with invaritant
  * Authors: Walid Taha and Adam Duracz
- * Adds invariant in order to improve the 
+ * Adds invariant in order to improve the
  * post-Zeno enclosure.
  */
 class Main(simulator)
   private
     d := 1; d' := 0;
-    s := 1/2; s' := 1/2;
+    s := 1/2; s' := 1;
     mode := ""; 
   end
   switch mode
-    case "" assume s <= abs(d)
+    case "" assume s <= abs(d) 
       if d == s 
         s := s/2; 
         mode := "" 
       end;
       d' = -1;
-      s' = d - s;
+      s' = 1;
   end;
   simulator.precision := 10;
   simulator.startTime := 0;
@@ -25,7 +25,7 @@ class Main(simulator)
   simulator.extraPicardIterations := 20;
   simulator.maxPicardIterations := 200;
   simulator.maxEventSequenceLength := 50;
-  simulator.minTimeStep := 0.001;
-  simulator.maxTimeStep := 0.5;
+  simulator.minTimeStep := 0.00001;
+  simulator.maxTimeStep := 0.01;
   simulator.minImprovement := 0.00001;
 end

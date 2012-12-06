@@ -19,13 +19,28 @@ object Common {
    * at the ground values level */
   def unaryGroundOp(f:String, vx:GroundValue) = {
     def implem(f:String, x:Double) = f match {
-        case "log"  => log(x)
-        case "sqrt" => sqrt(x)
-        case "cos" => cos(x)
         case "sin" => sin(x)
-		case "acos"=> acos(x)
-		case "asin"=> asin(x)
-		case "exp" => exp(x)
+        case "cos" => cos(x)
+        case "tan" => tan(x)
+        case "acos"=> acos(x)
+        case "asin"=> asin(x)
+        case "atan"=> atan(x)
+        case "toRadians"  => toRadians(x)
+        case "toDegrees"  => toDegrees(x)
+        case "exp"  => exp(x)
+        case "log"  => log(x)
+        case "log10"  => log10(x)
+        case "sqrt" => sqrt(x)
+        case "cbrt" => cbrt(x)
+        case "ceil"=> ceil(x)
+        case "floor"=> floor(x)
+        case "rint"=> rint(x)
+        case "round"=> round(x)
+        case "sinh" => sinh(x)
+        case "cosh" => cosh(x)
+        case "tanh" => tanh(x)
+        case "signum"=> signum(x)
+
     }
     (f, vx) match {
       case ("not", GBool(x))   => GBool(!x)
@@ -165,7 +180,6 @@ object Common {
          binScalarVectorOp(op,x,u)
        case (_, VVector(u)::VLit(x)::Nil) =>
          binVectorScalarOp(op,u,x)
-	  
        case _ =>
          throw UnknownOperator(op)    
     }

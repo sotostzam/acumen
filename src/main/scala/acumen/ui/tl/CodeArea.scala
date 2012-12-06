@@ -28,6 +28,8 @@ import javax.swing.text._
 import javax.swing.undo._
 import javax.swing.JOptionPane
 import javax.swing.KeyStroke
+import java.awt.Color
+import org.fife.ui.rsyntaxtextarea.SyntaxConstants
 
 class CodeArea extends Panel { //EditorPane {
 
@@ -167,6 +169,7 @@ class CodeArea extends Panel { //EditorPane {
       val returnVal = fc.showOpenDialog(App.ui.body)
       if (returnVal == FileChooser.Result.Approve) {
         loadFile(fc.selectedFile)
+        syntaxTextArea setCaretPosition 0
       }
     }
   }
@@ -227,10 +230,18 @@ class CodeArea extends Panel { //EditorPane {
   listenTo(App.pub)
   reactions += {
     case st:App.State => 
-      syntaxTextArea setEnabled (st match {
-        case App.Stopped => true
-        case _           => false
-      })
+      st match {
+        case App.Stopped => {
+          syntaxTextArea setEnabled (true) 
+          syntaxTextArea setSyntaxEditingStyle "AcumenTokenMaker"
+          syntaxTextArea setForeground Color.black
+        }
+        case _           => {
+          syntaxTextArea setEnabled (false)
+          syntaxTextArea setSyntaxEditingStyle SyntaxConstants.SYNTAX_STYLE_NONE
+          syntaxTextArea setForeground Color.gray
+        }
+      }
   }
 
   if (GraphicalMain.openFile != null) {
