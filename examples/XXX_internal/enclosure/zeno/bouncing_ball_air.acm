@@ -14,12 +14,12 @@ class Main(simulator)
   simulator.maxTimeStep := 0.1;
   simulator.minImprovement := 0.01;
   switch mode
-    case "Rise" assume x >= 0 && x' >= 0
+    case "Rise" require x >= 0 && x' >= 0
       if x' == 0
         mode := "Fall"
       end;
       x'' = -10 - 0.1*x'*x'
-    case "Fall" assume x >= 0 && x' <= 0
+    case "Fall" require x >= 0 && x' <= 0
       if x == 0
         x' := -0.5 * x';
         mode := "Rise"

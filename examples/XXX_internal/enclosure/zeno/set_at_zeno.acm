@@ -13,7 +13,7 @@ class Main(simulator)
      c  := 0.5;
  end
  switch mode
-    case "q1" assume x1 >= 0
+    case "q1" require x1 >= 0
      if -0.1 <= x1 && x1 <= 0
      &&               x2 <= 0
        x1   := 5;
@@ -22,7 +22,7 @@ class Main(simulator)
      end;
      x1' = x2;
      x2' = -10;
-    case "q2" assume x1 >= 3
+    case "q2" require x1 >= 3
      if 4.9 <= x1 && x1 <= 5
      &&              x2 <= 0
        x1   := 3;

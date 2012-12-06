@@ -20,7 +20,7 @@ class Main(simulator)
   simulator.maxTimeStep := 1;
   simulator.minImprovement := 0.0001;  
   switch mode
-    case "Fly" assume x >= 0
+    case "Fly" require x >= 0
       if x == y && x' <= 0
         x' := -0.5 * x';
         mode := "Fly";
