@@ -11,8 +11,8 @@ object BenchEnclosures {
   val REPEAT = 3
 
   def run(i: Interpreter, prog: Prog, args: Array[String], argsOffset : Int) {
-    val parms : List[(String, List[Double])] = getParms(args.slice(argsOffset, Int.MaxValue))
-    var trials = cartesianProduct(parms)
+    val parms = getParms(args.slice(argsOffset, Int.MaxValue))
+    var trials = flatten(cartesianProduct(parms))
     trials = duplicate(3, trials)
     trials = scala.util.Random.shuffle(trials)
     val ie = i.asInstanceOf[acumen.interpreters.enclosure.Interpreter]
@@ -42,7 +42,7 @@ object BenchEnclosures {
     val grouped = res.groupBy{_._1.map{_._2}.toSeq}.mapValues{_.map{_._2}.toArray.sorted}
     println("===")
     println("RESULTS")
-    println(parms.map{_._1}.mkString(" ") + " : " +
+    println(parms.map{_._1}.flatten.mkString(" ") + " : " +
             "avg sd : " +
             "raw_data_sorted " + Stream.fill(REPEAT-1)("-").toList.mkString(" "))
     for (adjustments <- grouped.keys.toList.sorted) {
@@ -55,25 +55,37 @@ object BenchEnclosures {
     }
   }
 
-  def getParms(args: Array[String]) : List[(String, List[Double])] = 
+  def getParms(args: Array[String]) : List[(Array[String], List[Array[Double]])] = 
     args.map{arg: String => val name :: vals :: nil = arg.split("=").toList
-                            (name, vals.split(",").toList.map{_.toDouble})}
+                            (name.split(":"), 
+                             vals.split(",").toList.map{_.split(":").map{_.toDouble}})}
       .toList
 
-  def cartesianProduct(parms: List[(String, List[Double])]) : List[List[(String, Double)]] = {
-    def step(ps: List[(String, List[Double])]) : List[List[(String, Double)]] = ps match {
-      case (key, vals) :: rest => product(vals.map{v: Double => (key, v)}, step(rest))
+  def cartesianProduct(parms: List[(Array[String], List[Array[Double]])]) : List[List[(Array[String], Array[Double])]] = {
+    def step(ps: List[(Array[String], List[Array[Double]])]) : List[List[(Array[String], Array[Double])]] = ps match {
+      case (key, vals) :: rest => product(vals.map{v => (key, v)}, step(rest))
       case what                => List(Nil)
     }
-    def product(heads: List[(String, Double)], tails: List[List[(String, Double)]]) = {
+    def product(heads: List[(Array[String], Array[Double])], tails: List[List[(Array[String], Array[Double])]]) = {
       val res = for (head <- heads; tail <- tails) yield head :: tail
       res
     }
     step(parms)
   }
+
+  def flatten(trials: List[List[(Array[String], Array[Double])]]) : List[List[(String, Double)]] =
+    trials.map{adjs : List[(Array[String], Array[Double])] => 
+      var res : List[(String, Double)] = Nil
+      for ((key,v) <- adjs) {
+        for (idx <- key.indices) {
+          res = (key(idx), v(idx)) :: res
+        }
+      }
+      res.reverse
+    }
   
-  def duplicate(times: Int, parms: List[List[(String, Double)]]) : List[List[(String, Double)]] = 
-    if (times <= 1) parms
-    else parms ++ duplicate(times -1, parms)
+  def duplicate(times: Int, trials: List[List[(String, Double)]]) : List[List[(String, Double)]] = 
+    if (times <= 1) trials
+    else trials ++ duplicate(times -1, trials)
 
 }
