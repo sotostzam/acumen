@@ -11,7 +11,8 @@ object BenchEnclosures {
   val REPEAT = 3
 
   def run(i: Interpreter, prog: Prog, args: Array[String], argsOffset : Int) {
-    val parms = getParms(args.slice(argsOffset, Int.MaxValue))
+    val prefix = args(argsOffset)
+    val parms = getParms(args.slice(argsOffset + 1, Int.MaxValue))
     var trials = flatten(cartesianProduct(parms))
     trials = duplicate(3, trials)
     trials = scala.util.Random.shuffle(trials)
@@ -41,18 +42,27 @@ object BenchEnclosures {
     }
     val grouped = res.groupBy{_._1.map{_._2}.toSeq}.mapValues{_.map{_._2}.toArray.sorted}
     println("===")
-    println("RESULTS")
-    println(parms.map{_._1}.flatten.mkString(" ") + " : " +
-            "avg sd : " +
-            "raw_data_sorted " + Stream.fill(REPEAT-1)("-").toList.mkString(" "))
+    val fn = prefix + ".dat"
+    val out =  new java.io.PrintWriter(new java.io.FileWriter(prefix + ".dat"))
+    out.println("# Args: " + args.mkString(" "))
+    out.println(parms.map{_._1}.flatten.mkString(" ") + " : " +
+                "avg sd : " +
+                "raw_data_sorted " + Stream.fill(REPEAT-1)("-").toList.mkString(" "))
     for (adjustments <- grouped.keys.toList.sorted) {
       val vals = grouped(adjustments)
       val avg = vals.sum / vals.length
       val sd = math.sqrt(vals.map{x => math.pow(x - avg,2)}.sum / (vals.length - 1))
-      println(adjustments.map{_.toString}.mkString(" ") + " : " + 
-              avg + " +- " + sd + " : " +
-              vals.map{_.toString}.mkString(" "))
+      out.println(adjustments.map{_.toString}.mkString(" ") + " : " + 
+                  avg + " +- " + sd + " : " +
+                  vals.map{_.toString}.mkString(" "))
     }
+    out.close
+    val in = new java.io.BufferedReader(new java.io.FileReader(fn));
+    println("RESULTS from " + fn)
+    var line : String = null
+    while ({line = in.readLine; line != null})
+      println(line)
+    in.close
   }
 
   def getParms(args: Array[String]) : List[(Array[String], List[Array[Double]])] = 
