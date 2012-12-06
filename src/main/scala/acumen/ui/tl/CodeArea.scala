@@ -167,6 +167,7 @@ class CodeArea extends Panel { //EditorPane {
       val returnVal = fc.showOpenDialog(App.ui.body)
       if (returnVal == FileChooser.Result.Approve) {
         loadFile(fc.selectedFile)
+        syntaxTextArea setCaretPosition 0
       }
     }
   }
