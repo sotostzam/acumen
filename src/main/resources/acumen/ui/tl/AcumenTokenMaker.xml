@@ -10,7 +10,7 @@
   </general>
   <comments>
     <lineComments enabled="true" start="//"/>
-    <multiLineComments enabled="false" end="" start=""/>
+    <multiLineComments enabled="true" end="*/" start="/*"/>
     <docComments enabled="false" end="" start=""/>
   </comments>
   <keywords>
