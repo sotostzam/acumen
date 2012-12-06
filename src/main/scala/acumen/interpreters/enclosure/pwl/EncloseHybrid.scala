@@ -13,41 +13,39 @@ trait EncloseHybrid extends EncloseEvents {
   def encloseHybrid(ps: Parameters, h: HybridSystem, t: Interval, sInit: StateEnclosure)(implicit rnd: Rounding): Seq[UnivariateAffineEnclosure] = {
 
     // call event localising ODE solver for each possible mode:
-    //   for mode : possibleModes(S_init) do
-    //       lfes[mode] = encloseUntilEventDetected(ps, H, TL, mode, S_init(mode))
-    //   end for
     val lfes: Map[Mode, LFE] = for ((mode, obox) <- sInit if obox.isDefined) yield mode -> encloseUntilEventDetected(ps, h, t, mode, obox.get)
 
-    // extract the localised intervals from the resulting lfe’s:
-    //   for mode : lfes.keys do
-    //       if lfes[mode].compl then
-    //           TEs[mode] = lfes[mode].mae.T
-    //   end for
-    val tes: Map[Mode, Interval] = for ((mode, (_, mae, compl)) <- lfes if compl) yield mode -> domain(mae)
+    // extract the localised intervals from the resulting lfe’s:  
+    val teLRs: Map[Mode, Interval] = for ((mode, (_, mae, compl)) <- lfes if compl) yield mode -> domain(mae)
+    val teLs: Map[Mode, Interval] = for ((mode, (_, mae, compl)) <- lfes if !compl) yield mode -> domain(mae).low
 
-    // if no localisation succeeded, use any left-only localised intervals:
-    //   if TEs = empty then // no potential event was localised
-    //       for mode : lfes.keys do
-    //           if lfes[mode].mae != empty then
-    //               TEs[mode] = lfes[mode].mae.T
-    //       end for
-    //   else {}
-    lazy val ltes: Map[Mode, Interval] = for ((mode, (_, mae, _)) <- lfes if !mae.isEmpty) yield mode -> domain(mae)
-
-    //   if TEs = empty then // proved that there no event at all on T
-    //       unionOfEnclosureLists(map getNoe lfes)
-    //   else
-    //       TE = leftmostComponentOfUnion(TEs.values)
-    //       noe = unionOfEnclosureLists(map getNoeUntil(TE.left) lfes)
-    //       for mode:lfes.keys do SE_init(mode) = lfes[mode] `evalAt` TE.left
-    //       (SE, SE_final) = encloseEvents(ps, H, TE, SE_init)
-    //       if TE.right == T.right then
-    //           noe ++ [SE]
-    //       else
-    //           TF = interval(TE.right, T.right)
-    //           rest = encloseHybrid(ps, H, TF, SE_final)
-    //           noe ++ [SE] ++ rest
-    if (tes.isEmpty && ltes.isEmpty) unionOfEnclosureLists(lfes map { case (noe, _, _) => noe })
+    if (teLRs.isEmpty && teLs.isEmpty) // proved that there no event at all on T
+      unionOfEnclosureLists(lfes.values.toSeq.flatMap { case (noe, _, _) => noe })
+    else {
+      val teLsLeftmost = teLs.values.map(_.low).toList.sortWith(_.lessThanOrEqualTo(_)).head
+      val te =
+        if (teLRs.isEmpty) // no potential event was fully localised on T
+          teLsLeftmost /\ t.high
+        else {
+          val tePre = leftmostComponentOfUnion(teLRs.values.toSeq)
+          if (tePre lessThan teLsLeftmost) tePre
+          else tePre /\ teLsLeftmost
+        }
+      val noe = unionOfEnclosureLists(lfes.values.toSeq.flatMap(getNoeUntil(te.low, _)))
+      val seInit: StateEnclosure = sInit.map {
+        case (mode, _) => mode -> (lfes.get(mode) match {
+          case Some(lfe) => Some(evalAt(lfe, te.low))
+          case None => None
+        })
+      }
+      val (se, seFinal) = encloseEvents(ps, h, te, seInit)
+      if (te.high equalTo t.high) noe ++ enclosures(te, se)
+      else {
+        val tf = te.high /\ t.high
+        val rest = encloseHybrid(ps, h, tf, seFinal)
+        noe ++ enclosures(te, se) ++ rest
+      }
+    }
   }
 
   def encloseUntilEventDetected(ps: Parameters, h: HybridSystem, t: Interval, m: Mode, init: Box)(implicit rnd: Rounding): LFE =
@@ -102,6 +100,20 @@ trait EncloseHybrid extends EncloseEvents {
 
   // operations on LFEs
 
+  // get the first component of `lfe` truncated at `time`
+  // FIXME implement!
+  def getNoeUntil(time: Interval, lfe: LFE): Seq[UnivariateAffineEnclosure] = null
+
+  // assumes that `x` is in the domain of some enclosure in `lfe`
+  // assumes that `lfe` is nonempty
+  def evalAt(lfe: LFE, x: Interval)(implicit rnd: Rounding): Box = lfe match {
+    case (noe, mae, _) =>
+      val es = noe ++ mae
+      require(es.exists(_.domain.contains(x)))
+      val bs = for (e <- es if e.domain.contains(x)) yield e(x)
+      bs.tail.fold(bs.head)(_ hull _)
+  }
+
   def evalAtRightEndpoint(lfe: LFE): Box = {
     val e = lfe match { case (noe, mae, _) => (noe ++ mae).last }
     e(e.domain.high)
@@ -120,10 +132,16 @@ trait EncloseHybrid extends EncloseEvents {
 
   // auxiliary operations
 
+  // the union of the intervals in `es` that transitively have nonempty intersection 
+  // with the one(s) with least left end-point, i.e. the leftmost component of `es`
+  // FIXME implement!
+  def leftmostComponentOfUnion(es: Seq[Interval]): Interval = null
+
   // refines the enclosures so that their domains only intersect at the end-points
   // assumes that the domains of consecutive elements are connected
-  def unionOfEnclosureLists(es: Seq[UnivariateAffineEnclosure]) = null
-  
+  // FIXME implement!
+  def unionOfEnclosureLists(es: Seq[UnivariateAffineEnclosure]): Seq[UnivariateAffineEnclosure] = null
+
   // assumes that the domains of consecutive elements are connected
   def domain(es: Seq[UnivariateAffineEnclosure]) = {
     require(es.nonEmpty)
