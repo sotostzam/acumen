@@ -1,4 +1,6 @@
-package acumen.interpreters.enclosure
+package acumen
+package ui
+package plot
 
 import java.awt.BasicStroke
 import java.awt.Color
@@ -26,13 +28,12 @@ import org.jfree.chart.event.ChartChangeEvent
 import javax.swing.JMenuItem
 import java.awt.event.ActionListener
 import java.awt.event.ActionEvent
-import acumen.ui.plot.SaveAsDailog
 import org.jfree.chart.axis.NumberAxis
 import acumen.interpreters.enclosure._
 import java.awt.geom.Rectangle2D
 import scala.collection.JavaConversions._
 
-class Plotter {
+class JFreePlotter {
 
   var combinedPlot : CombinedDomainXYPlot = null
   var subPlots = Map[String, (XYPlot, Int)]()
