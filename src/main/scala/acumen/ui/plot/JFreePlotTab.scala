@@ -63,7 +63,7 @@ import interpreters.enclosure.Rounding
 
 class JFreePlotTab extends BorderPanel
 {
-  val plotter = new interpreters.enclosure.Plotter
+  val plotter = new EnclosurePlotter
   def plotPanel = plotter.chartPanel
   plotter.initPlot
   
