@@ -91,6 +91,6 @@ object LocalizingSolverApp extends LocalizingSolver with App {
   val minTimeStep = 0.01
   val maxTimeStep = 1
   val result = piecewisePicard(field, 0, 20, 200, minTimeStep, maxTimeStep, 1, "output", Solver.defaultCallback)(initalCondition, time)
-  val plotter = new acumen.ui.plot.JFreePlotter
+  val plotter = new acumen.ui.plot.EnclosurePlotter
   plotter.plot("x'' = -x'/2 - x")(null)(result)
 }

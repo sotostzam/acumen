@@ -2,11 +2,10 @@ package acumen
 package ui
 package plot
 
-import acumen.interpreters.enclosure._
 import com.itextpdf.awt.DefaultFontMapper
 import com.itextpdf.text.Document
 import com.itextpdf.text.pdf.{PdfContentByte, PdfTemplate, PdfWriter}
-import java.awt.{BasicStroke, Color}
+import java.awt.Color
 import java.awt.event.{ActionEvent, ActionListener}
 import java.awt.geom.Rectangle2D
 import java.io.FileOutputStream
@@ -14,7 +13,7 @@ import javax.swing.{BoxLayout, JFrame, JMenuItem}
 import org.jfree.chart._
 import org.jfree.chart.axis.NumberAxis
 import org.jfree.chart.plot._
-import org.jfree.chart.renderer.xy.XYDifferenceRenderer
+import org.jfree.chart.renderer.xy.XYItemRenderer
 import org.jfree.chart.title.LegendTitle
 import org.jfree.data.xy._
 import org.jfree.ui.{ApplicationFrame, RectangleEdge}
@@ -22,15 +21,14 @@ import scala.collection.JavaConversions._
 import scala.collection.mutable.{Buffer, Map}
 import scala.swing._
 
-class JFreePlotter {
+abstract class JFreePlotter {
 
   var combinedPlot : CombinedDomainXYPlot = null
   var subPlots = Map[String, (XYPlot, Int)]()
   var subPlotsList = Buffer[XYPlot]()
-  val enclosureRen = enclosureRenderer(Color.red)
   var chart : JFreeChart = null
   var chartPanel : ChartPanel = null
-  var popupLocation = new java.awt.Point(0,0)
+  //var popupLocation = new java.awt.Point(0,0)
 
   def initPlot = {
     val saveAsPdf = new JMenuItem("Save as PDF")
@@ -88,7 +86,7 @@ class JFreePlotter {
         val sps = combinedPlot.getSubplots.toArray
         for ((p,pi) <- sps zip Stream.from(0)) {
           val xyp = p.asInstanceOf[XYPlot]
-          val ren = enclosureRenderer( // Make a unique color for this enclosure
+          val ren = renderer( // Make a unique color for this enclosure
               Color.getHSBColor(pi/(1.0f*sps.size), 1.0f, 0.7f))
           for (i <- 0 until xyp.getDatasetCount) {
             mergedPlot.setDataset(dataSetIndex, xyp.getDataset(i))
@@ -168,63 +166,6 @@ class JFreePlotter {
     frame
   }
 
-  def createEnclosureDataset(intervalStart: Double,
-                             intervalEnd: Double,
-                             upperApproximation: Double => Double,
-                             lowerApproximation: Double => Double,
-                             //stepSize: Double,
-                             extraSamples: Int,
-                             legendLabel: String,
-                             fun: Double => Double): XYSeriesCollection = {
-    val lower: XYSeries = new XYSeries(legendLabel, false, false)
-    val upper: XYSeries = new XYSeries("HIDE_ME", false, false)
-    lower.add(intervalStart, lowerApproximation(intervalStart))
-    upper.add(intervalStart, upperApproximation(intervalStart))
-    for (i <- 1 to extraSamples) {
-      val x = (intervalStart + intervalEnd) * (i.doubleValue) / (extraSamples + 1)
-      lower.add(x, lowerApproximation(x))
-      upper.add(x, upperApproximation(x))
-    }
-    lower.add(intervalEnd, lowerApproximation(intervalEnd))
-    upper.add(intervalEnd, upperApproximation(intervalEnd))
-    val res = new XYSeriesCollection()
-    res.addSeries(lower)
-    res.addSeries(upper)
-    res.setIntervalWidth(0.01)
-    res
-  }
-
-  def addEnclosure(intervalStart: Double, 
-                   intervalEnd: Double,
-                   upperApproximation: Double => Double,
-                   lowerApproximation: Double => Double,
-                   //stepSize: Double,
-                   extraSamples: Int,
-                   color: Color,
-                   legendLabel: String,
-                   fun: Double => Double) {
-    
-    val (subPlot, numberOfDatasets) = subPlots.get(legendLabel) match {
-      case Some(t) => t
-      case None => {
-        val p = initXYPlot(legendLabel)
-        combinedPlot.add(p, 1)
-        subPlotsList += p
-        (p, 0)
-      }
-    }
-
-    val e = createEnclosureDataset(intervalStart, intervalEnd,
-      upperApproximation, lowerApproximation, extraSamples, //stepSize,
-      legendLabel, fun)
-
-    subPlot.setDataset(numberOfDatasets, e)
-    subPlot.setRenderer(numberOfDatasets, enclosureRen)
-    subPlots(legendLabel) = (subPlot, numberOfDatasets + 1)
-    
-    chartPanel.invalidate
-  }
-  
   def initXYPlot(legendLabel: String) = {
     val p = new XYPlot()
     p.setDomainGridlinesVisible(true)
@@ -235,15 +176,7 @@ class JFreePlotter {
     p
   }
 
-  //TODO Make this visually merge overlapping enclosures into a single area with one outline.
-  def enclosureRenderer(color: Color) = {
-    val semiTransparentColor = new Color(color.getRed(), color.getGreen(), color.getBlue(), 20)
-    val ren = new XYDifferenceRenderer(Color.red, semiTransparentColor, false)
-    ren.setStroke(new BasicStroke(1.0f))
-    ren.setSeriesPaint(0, color)
-    ren.setSeriesPaint(1, color)
-    ren
-  }
+  def renderer(color: Color) : XYItemRenderer
 
   def convertToPDF(chart: JFreeChart, width: Int, height: Int, filename: String) {
     val document: Document = new Document(new com.itextpdf.text.Rectangle(width, height))
@@ -263,34 +196,5 @@ class JFreePlotter {
       document.close()
     }
   }
-
-  // FIXME?: Maybe move these two methods into a
-  // UnivariateAffineEnclosurePlotter to keep plotter from depending
-  // on UnivariateAffineEnclosure, than again, maybe its not worth it.
-  // -- kevina
-
-  def plotUAE(e: UnivariateAffineEnclosure, fun: Double => Double)(implicit rnd: Rounding) = {
-    val color = Color.red
-    for ((varName, it) <- e.components) {
-      def low(t: Double) = it.low(t) match { case Interval(lo, _) => lo.doubleValue }
-      def high(t: Double) = it.high(t) match { case Interval(_, hi) => hi.doubleValue }
-      val dom = it.domain
-      val (lo, hi) = dom match { case Interval(l, h) => (l.doubleValue, h.doubleValue) }
-      addEnclosure(lo, hi, high, low, 0, color, varName, fun)
-    }
-  }
-
-  def plot(es: Seq[UnivariateAffineEnclosure], fun: Double => Double)(implicit rnd: Rounding) : Unit = {
-    combinedPlot.setNotify(false)
-    for (e <- es) plotUAE(e, fun)
-    combinedPlot.setNotify(true)
-  }
-
-  // Plot into a new frame
-  def plot(frametitle: String)(fun: Double => Double)(es: Seq[UnivariateAffineEnclosure])(implicit rnd: Rounding) : Unit = {
-    val frame = createFrame(frametitle)
-    plot(es, fun)
-  }
-
 
 }
