@@ -101,8 +101,14 @@ trait EncloseHybrid extends EncloseEvents {
   // operations on LFEs
 
   // get the first component of `lfe` truncated at `time`
-  // FIXME implement!
-  def getNoeUntil(time: Interval, lfe: LFE): Seq[UnivariateAffineEnclosure] = null
+  // TODO utilize that the enclosures in `lfe` are ordered to optimize this inefficient version
+  def getNoeUntil(x: Interval, lfe: LFE)(implicit rnd: Rounding): Seq[UnivariateAffineEnclosure] = lfe match {
+    case (noe, _, _) =>
+      val unchanged = noe.filter(_.domain.high lessThanOrEqualTo x)
+      val toBeRestricted = noe.filter(e => (e.domain.low lessThanOrEqualTo x) && (x lessThan e.domain.high))
+      val restricted = toBeRestricted.map(e => e.restrictTo(e.domain.low /\ x))
+      unchanged ++ restricted
+  }
 
   // assumes that `x` is in the domain of some enclosure in `lfe`
   // assumes that `lfe` is nonempty
@@ -130,17 +136,40 @@ trait EncloseHybrid extends EncloseEvents {
       case ((noe1, mae1, _), (noe2, mae2, compl2)) if noe2.isEmpty => (noe1, mae1 ++ mae2, compl2)
     }
 
-  // auxiliary operations
+  // auxiliary operations 
+  // TODO move most of them out of this section
 
   // the union of the intervals in `es` that transitively have nonempty intersection 
   // with the one(s) with least left end-point, i.e. the leftmost component of `es`
-  // FIXME implement!
-  def leftmostComponentOfUnion(es: Seq[Interval]): Interval = null
+  def leftmostComponentOfUnion(is: Seq[Interval]): Interval = {
+    require(!is.isEmpty)
+    val sorted = is.sortWith(_.low lessThanOrEqualTo _.low)
+    // assumes `is` is sorted by low end-point
+    def leftmostComponentOfUnionHelper(is: Seq[Interval]): Seq[Interval] =
+      if (is.isEmpty) Seq()
+      else {
+        val (intersecting, rest) = is.tail.span(!_.disjointFrom(is.head))
+        intersecting.fold(is.head)(_ /\ _) +: leftmostComponentOfUnionHelper(rest)
+      }
+    leftmostComponentOfUnionHelper(sorted).head
+  }
 
   // refines the enclosures so that their domains only intersect at the end-points
   // assumes that the domains of consecutive elements are connected
-  // FIXME implement!
-  def unionOfEnclosureLists(es: Seq[UnivariateAffineEnclosure]): Seq[UnivariateAffineEnclosure] = null
+  def unionOfEnclosureLists(es: Seq[UnivariateAffineEnclosure]): Seq[UnivariateAffineEnclosure] =
+    es.groupBy(_.domain).values.toList.flatMap(UnivariateAffineEnclosure.unionThem(_)).
+      sortWith { _.domain.low lessThanOrEqualTo _.domain.low }
+
+  // TODO optimize this incredibly inefficient implementation
+  def synchroniseEnclosures(es: Seq[UnivariateAffineEnclosure])(implicit rnd: Rounding): Seq[UnivariateAffineEnclosure] = {
+    val endpoints = es.flatMap(e => Seq(e.domain.low, e.domain.high)).sortWith(_ lessThanOrEqualTo _)
+    es.flatMap { e =>
+      val (lo, hi) = e.domain.split
+      val interiorPoints = endpoints.filter(x => (lo lessThan x) && (x lessThan hi))
+      if (interiorPoints.isEmpty) Seq(e)
+      else for ((l, h) <- (lo +: interiorPoints) zip (interiorPoints :+ hi)) yield (e.restrictTo(l /\ h))
+    }
+  }
 
   // assumes that the domains of consecutive elements are connected
   def domain(es: Seq[UnivariateAffineEnclosure]) = {

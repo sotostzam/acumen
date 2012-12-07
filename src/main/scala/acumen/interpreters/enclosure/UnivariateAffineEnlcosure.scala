@@ -74,11 +74,16 @@ case class UnivariateAffineEnclosure private[enclosure] (
       components.map { case (name, component) => name -> (component union (that.components(name))) })
   }
 
+  def restrictTo(subDomain: Interval)(implicit rnd: Rounding): UnivariateAffineEnclosure = {
+    require((domain contains subDomain) && (normalizedDomain contains 0 /\ subDomain.width.high))
+    UnivariateAffineEnclosure(subDomain, 0 /\ subDomain.width.high, components.mapValues(_.restrictTo(subDomain)))
+  }
+
 }
 object UnivariateAffineEnclosure {
 
   /** Convenience method, normalizes the domain. */
-//  private[enclosure] 
+  //  private[enclosure] 
   def apply(domain: Interval, components: Map[VarName, UnivariateAffineScalarEnclosure])(implicit rnd: Rounding): UnivariateAffineEnclosure =
     UnivariateAffineEnclosure(domain, 0 /\ domain.width.high, components)
 
