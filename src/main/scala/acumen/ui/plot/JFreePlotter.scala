@@ -2,36 +2,25 @@ package acumen
 package ui
 package plot
 
-import java.awt.BasicStroke
-import java.awt.Color
+import acumen.interpreters.enclosure._
+import com.itextpdf.awt.DefaultFontMapper
+import com.itextpdf.text.Document
+import com.itextpdf.text.pdf.{PdfContentByte, PdfTemplate, PdfWriter}
+import java.awt.{BasicStroke, Color}
+import java.awt.event.{ActionEvent, ActionListener}
+import java.awt.geom.Rectangle2D
 import java.io.FileOutputStream
-import scala.swing._
+import javax.swing.{BoxLayout, JFrame, JMenuItem}
+import org.jfree.chart._
+import org.jfree.chart.axis.NumberAxis
 import org.jfree.chart.plot._
 import org.jfree.chart.renderer.xy.XYDifferenceRenderer
 import org.jfree.chart.title.LegendTitle
-import org.jfree.chart._
 import org.jfree.data.xy._
-import org.jfree.ui.ApplicationFrame
-import org.jfree.ui.RectangleEdge
-import com.itextpdf.awt.DefaultFontMapper
-import com.itextpdf.text.pdf.PdfContentByte
-import com.itextpdf.text.pdf.PdfTemplate
-import com.itextpdf.text.pdf.PdfWriter
-import com.itextpdf.text.Document
-import javax.swing.JFrame
-import javax.swing.BoxLayout
-import scala.collection.mutable.Map
-import scala.collection.mutable.Buffer
-import javax.swing.event.ChangeListener
-import org.jfree.chart.event.ChartChangeListener
-import org.jfree.chart.event.ChartChangeEvent
-import javax.swing.JMenuItem
-import java.awt.event.ActionListener
-import java.awt.event.ActionEvent
-import org.jfree.chart.axis.NumberAxis
-import acumen.interpreters.enclosure._
-import java.awt.geom.Rectangle2D
+import org.jfree.ui.{ApplicationFrame, RectangleEdge}
 import scala.collection.JavaConversions._
+import scala.collection.mutable.{Buffer, Map}
+import scala.swing._
 
 class JFreePlotter {
 
