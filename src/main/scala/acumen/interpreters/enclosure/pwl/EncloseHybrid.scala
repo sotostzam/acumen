@@ -26,8 +26,8 @@ trait EncloseHybrid extends EncloseEvents {
 
     if (teLRs.isEmpty && teLs.isEmpty) { // proved that there no event at all on T
       val ret = unionOfEnclosureLists(lfes.values.toSeq.flatMap { case (noe, _, _) => noe })
-//      cb.sendResult(ret)
-//      println("FLOW OVER " + domain(ret))
+      //      cb.sendResult(ret)
+      //      println("FLOW OVER " + domain(ret))
       ret
     } else {
       lazy val teLsLeftmost = teLs.values.map(_.low).toList.sortWith(_.lessThanOrEqualTo(_)).head
@@ -50,15 +50,15 @@ trait EncloseHybrid extends EncloseEvents {
       val (se, seFinal) = encloseEvents(ps, h, te, seInit)
       if (te.high equalTo t.high) {
         val ret = noe ++ enclosures(te, se)
-//        cb.sendResult(ret)
-//        println("FINISHED FOR " + domain(ret))
+        //        cb.sendResult(ret)
+        //        println("FINISHED FOR " + domain(ret))
         ret
       } else {
         val tf = te.high /\ t.high
         val rest = encloseHybrid(ps, h, tf, seFinal, cb)
         val ret = noe ++ enclosures(te, se) ++ rest
-//        cb.sendResult(ret)
-//        println("LOCALIZED IN " + domain(ret))
+        //        cb.sendResult(ret)
+        //        println("LOCALIZED IN " + domain(ret))
         ret
       }
     }
@@ -105,23 +105,31 @@ trait EncloseHybrid extends EncloseEvents {
   def encloseUntilEventDetected(ps: Parameters, h: HybridSystem, t: Interval, m: Mode, init: Box)(implicit rnd: Rounding): LFE =
     if (t.width greaterThan ps.maxTimeStep) repeatEncloseUntilEventDetected(ps, h, t, m, init)
     else {
-      val e = solveVt(h.fields(m), t, init, ps.solveVtInitialConditionPadding, ps.extraPicardIterations, ps.maxPicardIterations, ps.splittingDegree)
-      val (eLFE, eLFEisBad) = toLFE(h, e, m)
-      if (t.width lessThan ps.minTimeStep * 2) eLFE
-      else {
-        val (tL, tR) = t.split
-        val eL = solveVt(h.fields(m), tL, init, ps.solveVtInitialConditionPadding, ps.extraPicardIterations, ps.maxPicardIterations, ps.splittingDegree)
-        val initR = eL(tL.high)
-        val eR = solveVt(h.fields(m), tR, initR, ps.solveVtInitialConditionPadding, ps.extraPicardIterations, ps.maxPicardIterations, ps.splittingDegree)
-        val (eLLFE, _) = toLFE(h, eL, m)
-        val (eRLFE, _) = toLFE(h, eR, m)
-        val eLRLFE = concatenate(eLLFE, eRLFE)
-        val enclosureHasImporved = significantImprovement(e, eR, t.high, ps.minImprovement)
-        if (enclosureHasImporved ||
-          (!enclosureHasNoEventInfo(ps, h, e, m) &&
-            (eLFEisBad || isBetterLFEThan(eLRLFE, eLFE))))
-          repeatEncloseUntilEventDetected(ps, h, t, m, init)
-        else eLFE
+      val oe = try {
+        val success = solveVt(h.fields(m), t, init, ps.solveVtInitialConditionPadding, ps.extraPicardIterations, ps.maxPicardIterations, ps.splittingDegree)
+        Some(success)
+      } catch { case _ => None }
+      oe match {
+        case None if t.width lessThan ps.minTimeStep * 2 => sys.error("gave up at ...")
+        case None => repeatEncloseUntilEventDetected(ps, h, t, m, init)
+        case Some(e) =>
+          val (eLFE, eLFEisBad) = toLFE(h, e, m)
+          if (t.width lessThan ps.minTimeStep * 2) eLFE
+          else {
+            val (tL, tR) = t.split
+            val eL = solveVt(h.fields(m), tL, init, ps.solveVtInitialConditionPadding, ps.extraPicardIterations, ps.maxPicardIterations, ps.splittingDegree)
+            val initR = eL(tL.high)
+            val eR = solveVt(h.fields(m), tR, initR, ps.solveVtInitialConditionPadding, ps.extraPicardIterations, ps.maxPicardIterations, ps.splittingDegree)
+            val (eLLFE, _) = toLFE(h, eL, m)
+            val (eRLFE, _) = toLFE(h, eR, m)
+            val eLRLFE = concatenate(eLLFE, eRLFE)
+            val enclosureHasImporved = significantImprovement(e, eR, t.high, ps.minImprovement)
+            if (enclosureHasImporved ||
+              (!enclosureHasNoEventInfo(ps, h, e, m) &&
+                (eLFEisBad || isBetterLFEThan(eLRLFE, eLFE))))
+              repeatEncloseUntilEventDetected(ps, h, t, m, init)
+            else eLFE
+          }
       }
     }
 
