@@ -185,7 +185,7 @@ case class Interval private (
     require(!(this disjointFrom that), "cannot intersect disjoint intervals " + this + " and " + that)
     Interval(max(lo, that.lo), min(hi, that.hi))
   }
-
+  
   def disjointFrom(that: Interval) =
     that.hi.compareTo(this.lo) < 0 || this.hi.compareTo(that.lo) < 0
 
@@ -253,6 +253,10 @@ case class Interval private (
     lo.compareTo(it.lo) <= 0 && it.hi.compareTo(hi) <= 0
   }
 
+  // FIXME improve this
+  def properlyContains(that:Interval):Boolean = 
+    contains(that) && (lo.compareTo(that.lo) < 0 || that.hi.compareTo(hi) < 0)
+  
   def isThin = (lo compareTo hi) == 0
 
   def isZero = equalTo(Interval(0))

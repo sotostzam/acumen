@@ -52,7 +52,14 @@ class Interpreter extends acumen.RecursiveInterpreter with Solver with Extract w
     implicit val rnd = Rounding(ps.precision)
     val (hs, uss) = extract(main)
 
-    val res = encloseHybrid(ps, hs, ps.simulationTime, emptyState(hs) + (uss.mode -> Some(uss.initialCondition)))
+    cb.endTime = ps.endTime
+    val res = encloseHybrid(
+      ps,
+      hs,
+      ps.simulationTime,
+      emptyState(hs) + (uss.mode -> Some(uss.initialCondition)),
+      cb)
+    cb.sendResult(res)
 
     //    val res = solver(
     //      hs,
