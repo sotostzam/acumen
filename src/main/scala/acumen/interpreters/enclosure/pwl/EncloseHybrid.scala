@@ -26,8 +26,8 @@ trait EncloseHybrid extends EncloseEvents {
 
     if (teLRs.isEmpty && teLs.isEmpty) { // proved that there no event at all on T
       val ret = unionOfEnclosureLists(lfes.values.toSeq.flatMap { case (noe, _, _) => noe })
-      //      cb.sendResult(ret)
-      //      println("FLOW OVER " + domain(ret))
+      cb.sendResult(ret)
+      cb.log("FLOW OVER " + domain(ret))
       ret
     } else {
       lazy val teLsLeftmost = teLs.values.map(_.low).toList.sortWith(_.lessThanOrEqualTo(_)).head
@@ -50,15 +50,16 @@ trait EncloseHybrid extends EncloseEvents {
       val (se, seFinal) = encloseEvents(ps, h, te, seInit)
       if (te.high equalTo t.high) {
         val ret = noe ++ enclosures(te, se)
-        //        cb.sendResult(ret)
-        //        println("FINISHED FOR " + domain(ret))
+        cb.sendResult(ret)
+        cb.log("FINISHED FOR " + domain(ret))
         ret
       } else {
         val tf = te.high /\ t.high
+        val done = noe ++ enclosures(te, se)
+        cb.sendResult(done)
+        cb.log("DONE OVER " + domain(done))
         val rest = encloseHybrid(ps, h, tf, seFinal, cb)
-        val ret = noe ++ enclosures(te, se) ++ rest
-        //        cb.sendResult(ret)
-        //        println("LOCALIZED IN " + domain(ret))
+        val ret = done ++ rest
         ret
       }
     }
@@ -81,22 +82,15 @@ trait EncloseHybrid extends EncloseEvents {
         val tH = shortestHead.domain.high
         val isLastSegment = t lessThanOrEqualTo tH
         val tHT = if (isLastSegment) t else tH
-        // TODO check that the implementation of chopAt is correct
         def chopAt(here: Interval)(e: UnivariateAffineEnclosure) =
           if (e.domain properlyContains here)
-            Seq(e.restrictTo(e.domain.low /\ here))
-          else Seq(e)
+            e.restrictTo(e.domain.low /\ here)
+          else e
         val headsChopped = heads.map(chopAt(tHT))
-        val (headHeads, headTails) = headsChopped.tail.
-          foldLeft((Seq(headsChopped.head.head), Seq(headsChopped.head.tail))) {
-            case ((hs, ts), es) =>
-              (es.head +: hs, es.tail +: ts)
-          }
-        val nextEnclosure = headHeads.tail.fold(headHeads.head)(_ union _)
+        val nextEnclosure = headsChopped.tail.fold(headsChopped.head)(_ union _)
         if (isLastSegment) Seq(nextEnclosure)
         else {
-          val tailEnclosureLists = (headTails zip tails).map { case (l, r) => l ++ r }
-          nextEnclosure +: unionOfEnclosureListsUntil(t, tailEnclosureLists)
+          nextEnclosure +: unionOfEnclosureListsUntil(t, tails)
         }
       }
     }
