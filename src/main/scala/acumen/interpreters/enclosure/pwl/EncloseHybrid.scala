@@ -12,6 +12,7 @@ import acumen.interpreters.enclosure.Predicate
 import acumen.interpreters.enclosure.All
 import acumen.interpreters.enclosure.BinaryRelation
 import acumen.interpreters.enclosure.BinaryRelationName._
+import acumen.interpreters.enclosure.tree.Field
 
 trait EncloseHybrid extends EncloseEvents {
 
@@ -27,7 +28,7 @@ trait EncloseHybrid extends EncloseEvents {
     if (teLRs.isEmpty && teLs.isEmpty) { // proved that there no event at all on T
       val ret = unionOfEnclosureLists(lfes.values.toSeq.flatMap { case (noe, _, _) => noe })
       cb.sendResult(ret)
-      cb.log("FLOW OVER " + domain(ret))
+      //      cb.log("FLOW OVER " + domain(ret))
       ret
     } else {
       lazy val teLsLeftmost = teLs.values.map(_.low).toList.sortWith(_.lessThanOrEqualTo(_)).head
@@ -51,13 +52,13 @@ trait EncloseHybrid extends EncloseEvents {
       if (te.high equalTo t.high) {
         val ret = noe ++ enclosures(te, se)
         cb.sendResult(ret)
-        cb.log("FINISHED FOR " + domain(ret))
+        //        cb.log("FINISHED FOR " + domain(ret))
         ret
       } else {
         val tf = te.high /\ t.high
         val done = noe ++ enclosures(te, se)
         cb.sendResult(done)
-        cb.log("DONE OVER " + domain(done))
+        //        cb.log("DONE OVER " + domain(done))
         val rest = encloseHybrid(ps, h, tf, seFinal, cb)
         val ret = done ++ rest
         ret
@@ -180,9 +181,9 @@ trait EncloseHybrid extends EncloseEvents {
       case _ => false
     }
     val conjunctionSplit = cond match {
-      case All(Seq(c1, c2)) if c1(e) == Set(true) =>
+      case All(Seq(c1, c2)) if c1(e.range) == Set(true) =>
         conditionNowhereFalsifiableOnEnclosure(e, All(Seq(c2)))
-      case All(Seq(c1, c2)) if c2(e) == Set(true) =>
+      case All(Seq(c1, c2)) if c2(e.range) == Set(true) =>
         conditionNowhereFalsifiableOnEnclosure(e, All(Seq(c1)))
       case All(Seq(c1, c2)) =>
         conditionNowhereFalsifiableOnEnclosure(e, All(Seq(c1))) &&
