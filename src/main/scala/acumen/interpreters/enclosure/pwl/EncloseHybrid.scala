@@ -15,7 +15,7 @@ trait EncloseHybrid extends EncloseEvents {
     // call event localising ODE solver for each possible mode:
     val lfes: Map[Mode, LFE] = for ((mode, obox) <- sInit if obox.isDefined) yield mode -> encloseUntilEventDetected(ps, h, t, mode, obox.get)
 
-    // extract the localised intervals from the resulting lfe’s:  
+    // extract the localised intervals from the resulting lfes:  
     val teLRs: Map[Mode, Interval] = for ((mode, (_, mae, compl)) <- lfes if compl) yield mode -> domain(mae)
     val teLs: Map[Mode, Interval] = for ((mode, (_, mae, compl)) <- lfes if !compl) yield mode -> domain(mae).low
 
