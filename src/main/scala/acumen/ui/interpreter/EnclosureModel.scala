@@ -134,8 +134,6 @@ class EnclosureModel extends TraceModel with PlotModel with InterpreterModel {
     res
   }
 
-  override def getNewPlottables() = es
-
   var stale : Boolean = false;
 
   override def addData(d:TraceData) = synchronized {
