@@ -49,6 +49,10 @@ trait EncloseHybrid extends EncloseEvents {
         })
       }
       val (se, seFinal) = encloseEvents(ps, h, te, seInit)
+      if (isDefinitelyEmpty(seFinal)) {
+        cb.sendResult(noe)
+        sys.error("Empty state for " + te)
+      }
       if (te.high equalTo t.high) {
         val ret = noe ++ enclosures(te, se)
         cb.sendResult(ret)
