@@ -21,7 +21,7 @@ import java.io.FileOutputStream
 import com.itextpdf.awt.DefaultFontMapper
 import java.awt.geom.Rectangle2D
 
-class SaveAsDailog (parent: Component, chart:JFreeChart) extends Dialog(null) {
+class SaveAsDailog (parent: Component, chart: JFreeChart) extends Dialog(null) {
   modal = true
 
   private var currentDir = new File(".")
@@ -62,7 +62,7 @@ class SaveAsDailog (parent: Component, chart:JFreeChart) extends Dialog(null) {
     currentHeight = heightSpin.getValue.asInstanceOf[Int]
     currentWidth = widthSpin.getValue.asInstanceOf[Int]
 //    plotPanel.render(f, currentWidth, currentHeight)
-    convertToPDF(chart, currentWidth, currentHeight, inputField.text)
+    JFreePlotter.convertToPDF(chart, currentWidth, currentHeight, inputField.text)
     dispose
   }
   val buttons = new FlowPanel(FlowPanel.Alignment.Trailing)(cancel, save)
@@ -70,25 +70,5 @@ class SaveAsDailog (parent: Component, chart:JFreeChart) extends Dialog(null) {
     add(options, BorderPanel.Position.Center)
     add(buttons, BorderPanel.Position.South)
   }
-  
-  def convertToPDF(c: JFreeChart, width: Int, height: Int, filename: String) {
-    val document = new Document(new com.itextpdf.text.Rectangle(width, height))
-    try {
-      val writer = PdfWriter.getInstance(document, new FileOutputStream(filename))
-      document.open
-      val cb = writer.getDirectContent
-      val tp = cb.createTemplate(width, height)
-      val g2d = tp.createGraphics(width, height, new DefaultFontMapper)
-      val r2d = new Rectangle2D.Double(0, 0, width, height)
-      c.draw(g2d, r2d)
-      g2d.dispose
-      cb.addTemplate(tp, 0, 0)
-    } catch {
-      case e: Exception => e.printStackTrace
-    } finally {
-      document.close()
-    }
-  }
-  
-  
+
 }

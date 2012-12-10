@@ -178,6 +178,14 @@ abstract class JFreePlotter {
 
   def renderer(color: Color) : XYItemRenderer
 
+  def convertToPDF(width: Int, height: Int, filename: String) {
+    JFreePlotter.convertToPDF(chart, width, height, filename)
+  }
+
+}
+
+object JFreePlotter {
+
   def convertToPDF(chart: JFreeChart, width: Int, height: Int, filename: String) {
     val document: Document = new Document(new com.itextpdf.text.Rectangle(width, height))
     try {
@@ -196,5 +204,6 @@ abstract class JFreePlotter {
       document.close()
     }
   }
-
 }
+
+
