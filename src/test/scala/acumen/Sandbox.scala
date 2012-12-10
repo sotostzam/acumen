@@ -62,7 +62,7 @@ object Sandbox extends App with Extract with Solver { // with SolveVt {
   def rename(e: UnivariateAffineEnclosure, oldName: String, newName: String) =
     UnivariateAffineEnclosure(e.domain, e.components.map { case (k, v) => ((if (k == oldName) newName else k), v) })
 
-  val plotter = new interpreters.enclosure.Plotter
+  val plotter = new acumen.ui.plot.EnclosurePlotter
   val dom = Interval(0, 0.5)
 //  val dom = Interval(0, 0.5)
   val y = UnivariateAffineEnclosure(dom, Map("x" ->
