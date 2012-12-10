@@ -17,7 +17,7 @@ class Main(simulator)
   simulator.maxTimeStep := 0.2;
   simulator.minImprovement := 0.0001;  
   switch mode
-    case "Rise" assume x >= 0 && x' >= 0 && 0 <= r && r == x'*x' + 20*x
+    case "Rise" require x >= 0 && x' >= 0 && 0 <= r && r == x'*x' + 20*x
       if x' == 0
         x  := x;
         x' := x';
@@ -26,7 +26,7 @@ class Main(simulator)
       end;
       x'' = -10;
       r'  = 0;
-    case "Fall" assume x >= 0 && x' <= 0 && 0 <= r && r == x'*x' + 20*x
+    case "Fall" require x >= 0 && x' <= 0 && 0 <= r && r == x'*x' + 20*x
       if x == 0
         x' := -0.5 * x';
         r  := [0.0..0.25]*r;

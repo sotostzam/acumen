@@ -17,12 +17,12 @@ class Main (simulator)
   simulator.maxTimeStep := 0.1;
   simulator.minImprovement := 0.0001;  
   switch mode
-    case "on" assume x <= 25
+    case "on" require x <= 25
       if x == 25
         mode := "off"
       end;
       x' = 100 - x;
-    case "off" assume x >= 19
+    case "off" require x >= 19
       if x == 19
         mode := "on"
       end;

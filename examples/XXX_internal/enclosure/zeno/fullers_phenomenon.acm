@@ -11,11 +11,11 @@ private
   C  := [0.0 .. 0.5]
 end
   switch mode
-    case "q1" assume x1 + C * x2 * x2 <= 0
+    case "q1" require x1 + C * x2 * x2 <= 0
       if x1 + C * x2 * x2 > 0 mode := "q2" end;
       x1'  = x2;
       x2'  = 1;
-    case "q2" assume x1 - C * x2 * x2 >= 0
+    case "q2" require x1 - C * x2 * x2 >= 0
       if x1 - C * x2 * x2 < 0 mode := "q1" end;
       x1'  = x2;
       x2'  = -1;
