@@ -2,9 +2,11 @@ package acumen
 
 import Errors._
 import Pretty._
-import interpreters.parallel.Interpreter._
 import util.Filters._
 import Ordering.Implicits._
+import acumen.interpreters._
+import collection._
+import collection.mutable.MutableList
 
 object BenchEnclosures {
 
@@ -16,10 +18,13 @@ object BenchEnclosures {
     var trials = flatten(cartesianProduct(parms))
     trials = duplicate(3, trials)
     trials = scala.util.Random.shuffle(trials)
-    val ie = i.asInstanceOf[acumen.interpreters.enclosure.Interpreter]
+    val ie = i.asInstanceOf[enclosure.Interpreter]
     //val res = trials.map{el: List[(String, Double)] => 
     //  (el.map{(_._2)}.toArray, new Array[Double](3))}.toMap
-    var res = collection.mutable.MutableList[(List[(String, Double)],Double)]()
+    var res = new mutable.ListMap[String,MutableList[(List[(String, Double)],Double)]] {
+      def add(key: String, adjs: List[(String, Double)], v: Double) = 
+        getOrElseUpdate(key,MutableList[(List[(String, Double)],Double)]()) += ((adjs,v))
+    }
     println("Prepping with default parms.")
     ie.run(prog)
     println("Prep done, time irrelevant")
@@ -34,35 +39,50 @@ object BenchEnclosures {
         }}
       println("Starting with parms: " + adjustments)
       val s = System.currentTimeMillis
-      val r = ie.runInterpreter(prog,ie.defaultInterpreterCallbacks,adjustParms)
-      r.printLast
-      val time = (System.currentTimeMillis - s)/1000.0
-      println("Time to run simulation: %f".format(time))
-      res += ((adjustments, time))
+      var r = try {
+        ie.runInterpreter(prog,ie.defaultInterpreterCallbacks,adjustParms)
+      } catch {
+        case e => println(e); null
+      }
+      if (r != null) {
+        val time = (System.currentTimeMillis - s)/1000.0
+        println("Time to run simulation: %f".format(time))
+        res.add("runtime",adjustments, time)
+        r.printLast
+        implicit val rnd = enclosure.Rounding(10)
+        val e = r.res.last
+        res.add("precision-norm",adjustments, enclosure.Types.norm(e(e.domain.high)).hiDouble)
+        for (v <- e.varNames) {
+          val ev = e(v)
+          res.add("precision-" + v, adjustments, ev(ev.domain.high).width.hiDouble)
+        }
+      }
     }
-    val grouped = res.groupBy{_._1.map{_._2}.toSeq}.mapValues{_.map{_._2}.toArray.sorted}
-    println("===")
-    val fn = prefix + ".dat"
-    val out =  new java.io.PrintWriter(new java.io.FileWriter(prefix + ".dat"))
-    out.println("# Args: " + args.mkString(" "))
-    out.println(parms.map{_._1}.flatten.mkString(" ") + " : " +
-                "avg sd : " +
-                "raw_data_sorted " + Stream.fill(REPEAT-1)("-").toList.mkString(" "))
-    for (adjustments <- grouped.keys.toList.sorted) {
-      val vals = grouped(adjustments)
-      val avg = vals.sum / vals.length
-      val sd = math.sqrt(vals.map{x => math.pow(x - avg,2)}.sum / (vals.length - 1))
-      out.println(adjustments.map{_.toString}.mkString(" ") + " : " + 
-                  avg + " +- " + sd + " : " +
-                  vals.map{_.toString}.mkString(" "))
-    }
-    out.close
-    val in = new java.io.BufferedReader(new java.io.FileReader(fn));
-    println("RESULTS from " + fn)
-    var line : String = null
-    while ({line = in.readLine; line != null})
+    for (what <- res.keys) {
+      val grouped = res(what).groupBy{_._1.map{_._2}.toSeq}.mapValues{_.map{_._2}.toArray.sorted}
+      println("===")
+      val fn = prefix + "-" + what + ".dat"
+      val out =  new java.io.PrintWriter(new java.io.FileWriter(fn))
+      out.println("# Args: " + args.mkString(" "))
+      out.println(parms.map{_._1}.flatten.mkString(" ") + " : " +
+                  "avg sd : " +
+                  "raw_data_sorted " + Stream.fill(REPEAT-1)("-").toList.mkString(" "))
+      for (adjustments <- grouped.keys.toList.sorted) {
+        val vals = grouped(adjustments)
+        val avg = vals.sum / vals.length
+        val sd = math.sqrt(vals.map{x => math.pow(x - avg,2)}.sum / (vals.length - 1))
+        out.println(adjustments.map{_.toString}.mkString(" ") + " : " + 
+                    avg + " +- " + sd + " : " +
+                    vals.map{_.toString}.mkString(" "))
+      }
+      out.close
+      val in = new java.io.BufferedReader(new java.io.FileReader(fn));
+      println("RESULTS from " + fn)
+      var line : String = null
+      while ({line = in.readLine; line != null})
       println(line)
-    in.close
+      in.close
+    }
   }
 
   def getParms(args: Array[String]) : List[(Array[String], List[Array[Double]])] = 
