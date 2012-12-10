@@ -52,27 +52,28 @@ class Interpreter extends acumen.RecursiveInterpreter with Solver with Extract w
     implicit val rnd = Rounding(ps.precision)
     val (hs, uss) = extract(main)
 
-    //    cb.endTime = ps.endTime
-    //    val res = encloseHybrid(
-    //      ps,
-    //      hs,
-    //      ps.simulationTime,
-    //      emptyState(hs) + (uss.mode -> Some(uss.initialCondition)),
-    //      cb)
-
-    val res = solver(
+    cb.endTime = ps.endTime
+    val res = encloseHybrid(
+      ps,
       hs,
       ps.simulationTime,
-      Set(uss),
-      ps.solveVtInitialConditionPadding,
-      ps.extraPicardIterations,
-      ps.maxPicardIterations,
-      ps.splittingDegree,
-      ps.maxEventTreeSize,
-      ps.minTimeStep,
-      ps.maxTimeStep,
-      ps.minImprovement,
+      emptyState(hs) + (uss.mode -> Some(uss.initialCondition)),
       cb)
+//    cb.sendResult(res)
+
+    //    val res = solver(
+    //      hs,
+    //      ps.simulationTime,
+    //      Set(uss),
+    //      ps.solveVtInitialConditionPadding,
+    //      ps.extraPicardIterations,
+    //      ps.maxPicardIterations,
+    //      ps.splittingDegree, 
+    //      ps.maxEventTreeSize,
+    //      ps.minTimeStep,
+    //      ps.maxTimeStep,
+    //      ps.minImprovement,
+    //      cb)
 
     EnclosureRes(res)
   }
