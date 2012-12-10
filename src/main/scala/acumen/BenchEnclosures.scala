@@ -25,9 +25,11 @@ object BenchEnclosures {
       def add(key: String, adjs: List[(String, Double)], v: Double) = 
         getOrElseUpdate(key,MutableList[(List[(String, Double)],Double)]()) += ((adjs,v))
     }
+    var first = mutable.HashSet[List[(String, Double)]]()
     println("Prepping with default parms.")
     ie.run(prog)
     println("Prep done, time irrelevant")
+    implicit val rnd = enclosure.Rounding(10)
     for (adjustments <- trials) {
       println("===")
       def adjustParms(p: acumen.interpreters.enclosure.Parameters) =
@@ -49,12 +51,19 @@ object BenchEnclosures {
         println("Time to run simulation: %f".format(time))
         res.add("runtime",adjustments, time)
         r.printLast
-        implicit val rnd = enclosure.Rounding(10)
         val e = r.res.last
         res.add("precision-norm",adjustments, enclosure.Types.norm(e(e.domain.high)).hiDouble)
         for (v <- e.varNames) {
           val ev = e(v)
           res.add("precision-" + v, adjustments, ev(ev.domain.high).width.hiDouble)
+        }
+        if (!first.contains(adjustments)) {
+          val plotFn = prefix + "-" + adjustments.map{_._2.toString}.mkString(",") + ".pdf"
+          println("Making PDF of plot to " + plotFn)
+          val plotter = new ui.plot.EnclosurePlotter
+          plotter.plotForSaving(r.res)
+          plotter.convertToPDF(640, 480, plotFn)
+          first += adjustments
         }
       }
     }

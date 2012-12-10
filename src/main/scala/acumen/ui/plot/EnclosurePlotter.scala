@@ -109,5 +109,10 @@ class EnclosurePlotter extends JFreePlotter {
     plot(es, fun)
   }
 
+  def plotForSaving(es: Seq[UnivariateAffineEnclosure])(implicit rnd: Rounding) : Unit = {
+    initPlot
+    plot(es,null)
+  }
+
 }
 
