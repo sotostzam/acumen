@@ -59,7 +59,6 @@ class Interpreter extends acumen.RecursiveInterpreter with Solver with Extract w
       ps.simulationTime,
       emptyState(hs) + (uss.mode -> Some(uss.initialCondition)),
       cb)
-//    cb.sendResult(res)
 
     //    val res = solver(
     //      hs,

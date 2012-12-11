@@ -126,8 +126,8 @@ case class UnivariateAffineScalarEnclosure private[enclosure] (
   }
 
   /**
-   * Shorter version of union. 
-   * 
+   * Shorter version of union.
+   *
    * FIXME: should wrap thinning unions in non-widening ones!
    */
   def newUnion(that: UnivariateAffineScalarEnclosure) = {
@@ -155,7 +155,7 @@ case class UnivariateAffineScalarEnclosure private[enclosure] (
   //TODO Add property
   def restrictTo(subDomain: Interval)(implicit rnd: Rounding): UnivariateAffineScalarEnclosure = {
     require((domain contains subDomain) && (normalizedDomain contains 0 /\ subDomain.width.high))
-    UnivariateAffineScalarEnclosure(subDomain, 0 /\ subDomain.width.high, constant, coefficient)
+    UnivariateAffineScalarEnclosure(subDomain, constant + (coefficient * (subDomain.low-domain.low)), coefficient)
   }
 
   /* Arithmetic operations */
@@ -290,3 +290,12 @@ object UnivariateAffineScalarEnclosure {
   // }
 
 }
+
+object UnivariateAffineScalarEnclosureApp extends App {
+  implicit val rnd = Rounding(10)
+  val e = UnivariateAffineScalarEnclosure(Interval(0,1),1,-1)
+  val (dL,dR) = e.domain.split
+  println(e.restrictTo(dL))
+  println(e.restrictTo(dR))
+}
+

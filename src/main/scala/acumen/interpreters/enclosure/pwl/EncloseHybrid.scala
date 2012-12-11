@@ -19,7 +19,7 @@ trait EncloseHybrid extends EncloseEvents {
   def encloseHybrid(ps: Parameters, h: HybridSystem, t: Interval, sInit: StateEnclosure, cb: EnclosureInterpreterCallbacks)(implicit rnd: Rounding): Seq[UnivariateAffineEnclosure] = {
 
     // call event localising ODE solver for each possible mode:
-    val lfes: Map[Mode, LFE] = for ((mode, obox) <- sInit if obox.isDefined) yield mode -> encloseUntilEventDetected(ps, h, t, mode, obox.get)
+    val lfes: Map[Mode, LFE] = for ((mode, obox) <- sInit if obox.isDefined) yield mode -> encloseUntilEventDetected(ps, h, t, mode, obox.get, cb)
 
     // extract the localised intervals from the resulting lfes:  
     val teLRs: Map[Mode, Interval] = for ((mode, (_, mae, compl)) <- lfes if compl) yield mode -> domain(mae)
@@ -101,8 +101,84 @@ trait EncloseHybrid extends EncloseEvents {
     }
   }
 
-  def encloseUntilEventDetected(ps: Parameters, h: HybridSystem, t: Interval, m: Mode, init: Box)(implicit rnd: Rounding): LFE =
-    if (t.width greaterThan ps.maxTimeStep) repeatEncloseUntilEventDetected(ps, h, t, m, init)
+  def encloseUntilEventDetected(ps: Parameters, h: HybridSystem, t: Interval, m: Mode, init: Box, cb: EnclosureInterpreterCallbacks)(implicit rnd: Rounding): LFE =
+    encloseUntilEventDetected_New(ps, h, t, m, init, cb)
+  //      encloseUntilEventDetected_Old(ps, h, t, m, init, cb)
+
+  def encloseUntilEventDetected_New(ps: Parameters, h: HybridSystem, t: Interval, m: Mode, init: Box, cb: EnclosureInterpreterCallbacks)(implicit rnd: Rounding): LFE = {
+
+    def computeLFE(t: Interval, init: Box): LFE =
+      if (t.width greaterThan ps.maxTimeStep) splitAndRepeatComputeLFE(t, init)
+      else try {
+        val e = solveVt(h.fields(m), t, init, ps.solveVtInitialConditionPadding, ps.extraPicardIterations, ps.maxPicardIterations, ps.splittingDegree)
+        if (t.width lessThan ps.minTimeStepODEsolving * 2)
+          computeLFEnoODE(e)
+        else {
+          val (eL, eR) = splitAndSolveVt(t, init)
+          if (significantImprovement(e, eR, t.high, ps.minImprovement))
+            try { splitAndRepeatComputeLFE(t, init) }
+            catch { case _ => computeLFEnoODE(e) } // FIXME use ComputeLFEFailure solver specific exception
+          else computeLFEnoODE(e)
+        }
+      } catch {
+        case _ => // FIXME do this properly using specialized exceptions re-throwing messages...
+          if (t.width lessThan ps.minTimeStepODEsolving * 2)
+            sys.error("solveVt: terminated at " + t + " after " + ps.maxPicardIterations + " Picard iterations")
+          else splitAndRepeatComputeLFE(t, init)
+      }
+
+    def splitAndSolveVt(t: Interval, init: Box) = {
+      val (tL, tR) = t.split
+      val eL = solveVt(h.fields(m), tL, init, ps.solveVtInitialConditionPadding, ps.extraPicardIterations, ps.maxPicardIterations, ps.splittingDegree)
+      val initR = eL(tL.high)
+      val eR = solveVt(h.fields(m), tR, initR, ps.solveVtInitialConditionPadding, ps.extraPicardIterations, ps.maxPicardIterations, ps.splittingDegree)
+      (eL, eR)
+    }
+
+    def splitAndRepeatComputeLFE(t: Interval, init: Box) = {
+      val (tL, tR) = t.split
+      val lfeL @ (_, _, lfeLcompl) = computeLFE(tL, init)
+      if (lfeLcompl) lfeL
+      else {
+        val initR = evalAt(lfeL, tL.high)
+        val lfeR = computeLFE(tR, initR)
+        concatenateLFEs(lfeL, lfeR)
+      }
+    }
+
+    def computeLFEnoODE(e: UnivariateAffineEnclosure)(implicit rnd: Rounding): LFE = {
+      val (eLFE, eLFEisBad) = enclosureToLFE(h, m, e)
+      val eLFEisHopeless = enclosureHasNoEventInfo(ps, h, m, e)
+      if (eLFEisHopeless || (e.domain.width lessThan ps.minTimeStepLocalisation * 2)) {
+        // plot the noe part of eLFE here
+        //        val (noe, _, _) = eLFE
+        //        cb.sendResult(noe)
+        eLFE
+      } else {
+        val (domL, domR) = e.domain.split
+        val eL = e.restrictTo(domL) // TODO factor out as enclosure method
+        val eR = e.restrictTo(domR) // TODO factor out as enclosure method 
+        val (eLlfe, _) = enclosureToLFE(h, m, eL)
+        val (eRlfe, _) = enclosureToLFE(h, m, eR)
+        val eLRlfe = concatenateLFEs(eLlfe, eRlfe)
+        if (eLFEisBad || isBetterLFEThan(eLRlfe, eLFE)) {
+          val lfeL @ (_, _, lfeLcompl) = computeLFEnoODE(eL)
+          if (lfeLcompl) lfeL
+          else concatenateLFEs(lfeL, computeLFEnoODE(eR))
+        } else {
+          // plot the noe part of eLFE here
+          //          val (noe, _, _) = eLFE
+          //          cb.sendResult(noe)
+          eLFE
+        }
+      }
+    }
+
+    computeLFE(t, init)
+  }
+
+  def encloseUntilEventDetected_Old(ps: Parameters, h: HybridSystem, t: Interval, m: Mode, init: Box, cb: EnclosureInterpreterCallbacks)(implicit rnd: Rounding): LFE =
+    if (t.width greaterThan ps.maxTimeStep) repeatEncloseUntilEventDetected(ps, h, t, m, init, cb)
     else {
       val oe = try {
         val success = solveVt(h.fields(m), t, init, ps.solveVtInitialConditionPadding, ps.extraPicardIterations, ps.maxPicardIterations, ps.splittingDegree)
@@ -110,7 +186,7 @@ trait EncloseHybrid extends EncloseEvents {
       } catch { case _ => None }
       oe match {
         case None if t.width lessThan ps.minTimeStep * 2 => sys.error("gave up at ...")
-        case None => repeatEncloseUntilEventDetected(ps, h, t, m, init)
+        case None => repeatEncloseUntilEventDetected(ps, h, t, m, init, cb)
         case Some(e) =>
           val (eLFE, eLFEisBad) = toLFE(h, e, m)
           if (t.width lessThan ps.minTimeStep * 2) eLFE
@@ -121,25 +197,25 @@ trait EncloseHybrid extends EncloseEvents {
             val eR = solveVt(h.fields(m), tR, initR, ps.solveVtInitialConditionPadding, ps.extraPicardIterations, ps.maxPicardIterations, ps.splittingDegree)
             val (eLLFE, _) = toLFE(h, eL, m)
             val (eRLFE, _) = toLFE(h, eR, m)
-            val eLRLFE = concatenate(eLLFE, eRLFE)
+            val eLRLFE = concatenateLFEs(eLLFE, eRLFE)
             val enclosureHasImporved = significantImprovement(e, eR, t.high, ps.minImprovement)
             if (enclosureHasImporved ||
-              (!enclosureHasNoEventInfo(ps, h, e, m) &&
+              (!enclosureHasNoEventInfo(ps, h, m, e) &&
                 (eLFEisBad || isBetterLFEThan(eLRLFE, eLFE))))
-              repeatEncloseUntilEventDetected(ps, h, t, m, init)
+              repeatEncloseUntilEventDetected(ps, h, t, m, init, cb)
             else eLFE
           }
       }
     }
 
-  def repeatEncloseUntilEventDetected(ps: Parameters, h: HybridSystem, t: Interval, m: Mode, init: Box)(implicit rnd: Rounding): LFE = {
+  def repeatEncloseUntilEventDetected(ps: Parameters, h: HybridSystem, t: Interval, m: Mode, init: Box, cb: EnclosureInterpreterCallbacks)(implicit rnd: Rounding): LFE = {
     val (tL, tR) = t.split
-    val lfeL = encloseUntilEventDetected(ps, h, tL, m, init)
+    val lfeL = encloseUntilEventDetected(ps, h, tL, m, init, cb)
     if (!(domain(lfeL) equalTo tL)) lfeL
     else {
       val initR = evalAtRightEndpoint(lfeL)
-      val lfeR = encloseUntilEventDetected(ps, h, tR, m, initR)
-      concatenate(lfeL, lfeR)
+      val lfeR = encloseUntilEventDetected(ps, h, tR, m, initR, cb)
+      concatenateLFEs(lfeL, lfeR)
     }
   }
 
@@ -147,6 +223,15 @@ trait EncloseHybrid extends EncloseEvents {
     val normOld = norm(eOld(x))
     val normNew = norm(eNew(x))
     normOld - normNew greaterThan minImprovement
+  }
+
+  def enclosureToLFE(h: HybridSystem, m: Mode, e: UnivariateAffineEnclosure)(implicit rnd: Rounding): (LFE, Boolean) = {
+    val eRange = e.range
+    val res @ (lfe, lfeIsBad) =
+      if (!h.events.filter(_.sigma == m).exists(h.guards(_)(eRange).contains(true))) ((Seq(e), Seq(), false), false)
+      else if (eventCertain(h, e, m)) ((Seq(), Seq(e), true), false)
+      else ((Seq(), Seq(e), false), true)
+    res
   }
 
   def toLFE(h: HybridSystem, e: UnivariateAffineEnclosure, m: Mode)(implicit rnd: Rounding): (LFE, Boolean) = {
@@ -164,7 +249,7 @@ trait EncloseHybrid extends EncloseEvents {
     h.events.filter(_.sigma == m).exists(h.guards(_)(eAtRightEndpoint) == Set(true))
   }
 
-  def enclosureHasNoEventInfo(ps: Parameters, h: HybridSystem, e: UnivariateAffineEnclosure, m: Mode)(implicit rnd: Rounding): Boolean = {
+  def enclosureHasNoEventInfo(ps: Parameters, h: HybridSystem, m: Mode, e: UnivariateAffineEnclosure)(implicit rnd: Rounding): Boolean = {
     val guards = h.events.filter(_.sigma == m).map(h.guards(_))
     val inv = h.domains(m)
     conditionNowhereFalsifiableOnEnclosure(e, inv) &&
@@ -265,7 +350,7 @@ trait EncloseHybrid extends EncloseEvents {
   def domain(lfe: LFE): Interval =
     lfe match { case (noe, mae, _) => val es = noe ++ mae; es.first.domain /\ es.last.domain }
 
-  def concatenate(lfe1: LFE, lfe2: LFE): LFE =
+  def concatenateLFEs(lfe1: LFE, lfe2: LFE): LFE =
     (lfe1, lfe2) match {
       case ((_, _, compl1), _) if compl1 => lfe1
       case ((noe1, mae1, _), (noe2, mae2, compl2)) if mae1.isEmpty => (noe1 ++ noe2, mae2, compl2)
