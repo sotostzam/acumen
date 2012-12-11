@@ -13,6 +13,7 @@ title="Zeno Half Overconstrained"
 model=examples/XXX_internal/enclosure/zeno/02_Zeno_Half_Overconstrained.acm
 resultDir=benchmark-res
 prefix=Zeno_Half_Overconstrained-minImprovment,minTimeStep
+repeat=3
 parm1=minImprovement
 values1=0.00001,0.0001,0.001,0.005
 parm2=minTimeStep
@@ -22,7 +23,7 @@ PREFIX="./$resultDir/$prefix"
 
 mkdir -p $resultDir
 
-sbt "run-main acumen.Main --semantics enclosure $model bench-enclosures $PREFIX $parm1=$values1 $parm2=$values2"
+sbt "run-main acumen.Main --semantics enclosure $model bench-enclosures $PREFIX $repeat $parm1=$values1 $parm2=$values2"
 
 gnuplot <<EOF
 set terminal png

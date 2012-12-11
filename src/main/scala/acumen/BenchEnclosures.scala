@@ -10,13 +10,12 @@ import collection.mutable.MutableList
 
 object BenchEnclosures {
 
-  val REPEAT = 3
-
   def run(i: Interpreter, prog: Prog, args: Array[String], argsOffset : Int) {
     val prefix = args(argsOffset)
-    val parms = getParms(args.slice(argsOffset + 1, Int.MaxValue))
+    val repeat = args(argsOffset+1).toInt
+    val parms = getParms(args.slice(argsOffset + 2, Int.MaxValue))
     var trials = flatten(cartesianProduct(parms))
-    trials = duplicate(3, trials)
+    trials = duplicate(repeat, trials)
     trials = scala.util.Random.shuffle(trials)
     val ie = i.asInstanceOf[enclosure.Interpreter]
     //val res = trials.map{el: List[(String, Double)] => 
@@ -75,11 +74,12 @@ object BenchEnclosures {
       out.println("# Args: " + args.mkString(" "))
       out.println(parms.map{_._1}.flatten.mkString(" ") + " : " +
                   "avg sd : " +
-                  "raw_data_sorted " + Stream.fill(REPEAT-1)("-").toList.mkString(" "))
+                  "raw_data_sorted " + Stream.fill(repeat-1)("-").toList.mkString(" "))
       for (adjustments <- grouped.keys.toList.sorted) {
         val vals = grouped(adjustments)
         val avg = vals.sum / vals.length
-        val sd = math.sqrt(vals.map{x => math.pow(x - avg,2)}.sum / (vals.length - 1))
+        val sd = if (vals.length <= 1) 0 
+                 else math.sqrt(vals.map{x => math.pow(x - avg,2)}.sum / (vals.length - 1))
         out.println(adjustments.map{_.toString}.mkString(" ") + " : " + 
                     avg + " +- " + sd + " : " +
                     vals.map{_.toString}.mkString(" "))

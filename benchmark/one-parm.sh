@@ -3,9 +3,6 @@
 #
 # Example script to run enclosure benchmarks varying one parameter.
 #
-# For each value specified the model is run three times, and the
-# average and std-dev is taken.
-#
 # Run this scipt in the root of the source tree, not in the
 # benchmark directory.  Its usage will be:
 #   sh benchmark/one-parm.sh
@@ -29,6 +26,7 @@ title="Zeno Half Overconstrained"
 model=examples/XXX_internal/enclosure/zeno/02_Zeno_Half_Overconstrained.acm
 resultDir=benchmark-res
 prefix=Zeno_Half_Overconstrained-minImprovment
+repeat=3
 parm=minImprovement
 values=0.00001,0.0001,0.001,0.005
 
@@ -36,7 +34,7 @@ PREFIX="./$resultDir/$prefix"
 
 mkdir -p $resultDir
 
-sbt "run-main acumen.Main --semantics enclosure $model bench-enclosures $PREFIX $parm=$values"
+sbt "run-main acumen.Main --semantics enclosure $model bench-enclosures $PREFIX $repeat $parm=$values"
 
 gnuplot <<EOF
 set terminal png
