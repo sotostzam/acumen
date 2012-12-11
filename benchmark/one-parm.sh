@@ -1,9 +1,12 @@
 #!/bin/sh
 
 #
-# Example script to run enclosure benchmarks varying one parameter
+# Example script to run enclosure benchmarks varying one parameter.
 #
-# Run this example in the root of the source tree, not in the
+# For each value specified the model is run three times, and the
+# average and std-dev is taken.
+#
+# Run this scipt in the root of the source tree, not in the
 # benchmark directory.  Its usage will be:
 #   sh benchmark/one-parm.sh
 # the results by default will go in a new dir: benchmark-res
