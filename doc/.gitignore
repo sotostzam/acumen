@@ -1,0 +1,4 @@
+*.aux
+main.pdf
+*.log
+*.toc
