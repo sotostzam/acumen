@@ -10,12 +10,13 @@ case class Parameters(
   maxPicardIterations: Int, // maximum number of Picard iterations in solveVt
   maxEventTreeSize: Int, // maximum event tree size in solveVtE, gives termination condition for tree enlargement
   minTimeStep: Double, // minimum time step size
-  minTimeStepODEsolving: Double, // minimum time step size during ODE solving
-  minTimeStepLocalisation: Double, // minimum time step size during event localization
+  localizationTimeStepReductionFactor: Double, // FIXME find better name please! 
   maxTimeStep: Double, // maximum time step size
   minImprovement: Double, // minimum improvement of enclosure
   splittingDegree: Int // number of pieces to split each initial condition variable 
   ) {
   implicit val rnd = Rounding(precision)
   val simulationTime = Interval(startTime, endTime)
+  val minTimeStepODEsolving = minTimeStep // minimum time step size during ODE solving
+  val minTimeStepLocalisation = minTimeStep * localizationTimeStepReductionFactor // minimum time step size during event localization
 }

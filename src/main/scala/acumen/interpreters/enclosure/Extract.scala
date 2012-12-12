@@ -111,8 +111,7 @@ trait Extract {
           "maxPicardIterations" -> 200,
           "maxEventSequenceLength" -> 30,
           "minTimeStep" -> 0.01,
-          "minTimeStepODEsolving" -> 0.01,
-          "minTimeStepLocalisation" -> 0.001,
+          "localizationTimeStepReductionFactor" -> 0.01,
           "maxTimeStep" -> 3,
           "minImprovement" -> 0.0000001,
           "splittingDegree" -> 1)
@@ -130,8 +129,7 @@ trait Extract {
           params("maxPicardIterations").toInt,
           params("maxEventSequenceLength").toInt,
           params("minTimeStep"),
-          params("minTimeStepODEsolving"),
-          params("minTimeStepLocalisation"),
+          params("localizationTimeStepReductionFactor"),
           params("maxTimeStep"),
           params("minImprovement"),
           params("splittingDegree").toInt)
