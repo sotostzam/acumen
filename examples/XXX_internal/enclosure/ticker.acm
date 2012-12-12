@@ -1,8 +1,6 @@
 class Main(simulator) 
 private mode := "On"; x := 1; x' := -1 end
   simulator.endTime := 2.5;
-  simulator.minTimeStep := 0.001;
-  simulator.maxTimeStep := 1; 
   switch mode
     case "On" require x >= 0
       if x == 0

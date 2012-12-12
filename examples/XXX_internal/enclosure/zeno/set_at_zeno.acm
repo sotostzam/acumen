@@ -38,14 +38,14 @@ class Main(simulator)
      x1' = x2;
      x2' = -10;       
   end;
-   simulator.precision := 10;
-   simulator.startTime := 0;
-   simulator.endTime := 13;
-   simulator.initialConditionPadding := 0;
-   simulator.extraPicardIterations := 20;
-   simulator.maxPicardIterations := 200;
-   simulator.maxEventSequenceLength := 30;
-   simulator.minTimeStep := 0.0001;
-   simulator.maxTimeStep := 1;
-   simulator.minImprovement := 0.0001;
+  simulator.precision := 10;
+  simulator.startTime := 0;
+  simulator.endTime := 13;
+  simulator.initialConditionPadding := 0;
+  simulator.extraPicardIterations := 20;
+  simulator.maxPicardIterations := 200;
+  simulator.maxEventSequenceLength := 30;
+  simulator.minTimeStepODEsolving := 0.1;
+  simulator.minTimeStepLocalisation := 0.01;
+  simulator.minImprovement := 0.01;
 end

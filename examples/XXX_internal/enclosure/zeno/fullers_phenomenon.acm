@@ -27,7 +27,7 @@ end
   simulator.extraPicardIterations := 20;
   simulator.maxPicardIterations := 200;
   simulator.maxEventSequenceLength := 100;
-  simulator.minTimeStep := 0.0001;
-  simulator.maxTimeStep := 0.1;
+  simulator.minTimeStepODEsolving := 0.01;
+  simulator.minTimeStepLocalisation := 0.001;
   simulator.minImprovement := 0.01;
 end
