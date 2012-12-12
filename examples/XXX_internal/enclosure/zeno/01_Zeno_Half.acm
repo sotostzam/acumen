@@ -1,4 +1,4 @@
-/* Zeno 1
+/* Zeno Half
  * Authors: Walid Taha and Adam Duracz
  */
 class Main(simulator)
@@ -23,6 +23,8 @@ class Main(simulator)
   simulator.maxPicardIterations := 200;
   simulator.maxEventSequenceLength := 100;
   simulator.minTimeStep := 0.00001;
+  simulator.minTimeStepODEsolving := 0.1;
+  simulator.minTimeStepLocalisation := 0.001;
   simulator.maxTimeStep := 0.01;
-  simulator.minImprovement := 0.000001;
+  simulator.minImprovement := 0.001;
 end

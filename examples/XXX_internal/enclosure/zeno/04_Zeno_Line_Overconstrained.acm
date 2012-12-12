@@ -1,7 +1,5 @@
-/* Zeno 2 with invaritant
+/* Zeno Line Overconstrained
  * Authors: Walid Taha and Adam Duracz
- * Adds invariant in order to improve the
- * post-Zeno enclosure.
  */
 class Main(simulator)
   private
@@ -26,6 +24,8 @@ class Main(simulator)
   simulator.maxPicardIterations := 200;
   simulator.maxEventSequenceLength := 50;
   simulator.minTimeStep := 0.00001;
+  simulator.minTimeStepODEsolving := 0.01;
+  simulator.minTimeStepLocalisation := 0.0005;
   simulator.maxTimeStep := 0.01;
-  simulator.minImprovement := 0.00001;
+  simulator.minImprovement := 0.001;
 end

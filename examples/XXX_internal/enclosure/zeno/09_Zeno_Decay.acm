@@ -1,4 +1,4 @@
-/* Zeno 5
+/* Zeno Decay
  * Authors: Walid Taha and Adam Duracz
  * Zeno point of system is ln(2) =~ 0.693.
  */
@@ -24,6 +24,8 @@ class Main(simulator)
   simulator.maxPicardIterations := 200;
   simulator.maxEventSequenceLength := 50;
   simulator.minTimeStep := 0.0001;
-  simulator.maxTimeStep := 0.5;
-  simulator.minImprovement := 0.00001;
+  simulator.minTimeStepODEsolving := 0.001;
+  simulator.minTimeStepLocalisation := 0.0001;
+  simulator.maxTimeStep := 0.9;
+  simulator.minImprovement := 0.0001;
 end
