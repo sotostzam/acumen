@@ -113,7 +113,7 @@ trait Extract {
           "minTimeStep" -> 0.01,
           "localizationTimeStepReductionFactor" -> 0.01,
           "maxTimeStep" -> 3,
-          "minImprovement" -> 0.0000001,
+          "minImprovement" -> 0.0001,
           "splittingDegree" -> 1)
         val params = assignments.foldLeft(defaultParameters) {
           case (res, (param, Lit(GInt(i)))) => res + (param -> i.toDouble)
