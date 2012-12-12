@@ -8,16 +8,6 @@ class Main(simulator)
     x3 := 5; x3' := 0; x3'' := 0;  
     r3 := [0.0..100.0]; r3' := 0;
   end
-  simulator.precision := 10;
-  simulator.startTime := 0;
-  simulator.endTime := 3.5;
-  simulator.initialConditionPadding := 0;
-  simulator.extraPicardIterations := 20;
-  simulator.maxPicardIterations := 200;
-  simulator.maxEventSequenceLength := 30;
-  simulator.minTimeStepODEsolving := 0.01;
-  simulator.minTimeStepLocalisation := 0.001;
-  simulator.minImprovement := 0.0001;  
   switch mode
     case "Fly" 
     require x3 >= 0 && r3 == [0.5..1.5]*(x3'*x3' + 20*x3)
@@ -28,5 +18,15 @@ class Main(simulator)
       end;
       x3'' = -10;
       r3'  = 0;
-  end
+  end;
+  simulator.precision := 10;
+  simulator.startTime := 0;
+  simulator.endTime := 3.5;
+  simulator.initialConditionPadding := 0;
+  simulator.extraPicardIterations := 20;
+  simulator.maxPicardIterations := 200;
+  simulator.maxEventSequenceLength := 30;
+  simulator.minTimeStepODEsolving := 0.01;
+  simulator.minTimeStepLocalisation := 0.001;
+  simulator.minImprovement := 0.0001;
 end
