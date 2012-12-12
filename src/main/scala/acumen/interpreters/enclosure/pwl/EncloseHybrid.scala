@@ -17,24 +17,23 @@ import acumen.interpreters.enclosure.tree.Field
 trait EncloseHybrid extends EncloseEvents {
 
   def encloseHybrid(ps: Parameters, h: HybridSystem, t: Interval, sInit: StateEnclosure, cb: EnclosureInterpreterCallbacks)(implicit rnd: Rounding): Seq[UnivariateAffineEnclosure] =
-    //      encloseHybrid_Old(ps, h, t, sInit, cb)
-    encloseHybrid_New(ps, h, t, sInit, cb)
+//    encloseHybrid_New(ps, h, t, sInit, cb)
+    encloseHybrid_Old(ps, h, t, sInit, cb)
 
   def encloseHybrid_New(ps: Parameters, h: HybridSystem, t: Interval, sInit: StateEnclosure, cb: EnclosureInterpreterCallbacks)(implicit rnd: Rounding): Seq[UnivariateAffineEnclosure] = {
 
     // call event localising ODE solver for each possible mode:
     val lfes: Map[Mode, LFE] = for ((mode, obox) <- sInit if obox.isDefined) yield mode -> encloseUntilEventDetected(ps, h, t, mode, obox.get, cb)
 
-    val teL =
-      (for ((mae, _, _) <- lfes.values if !mae.isEmpty) yield domain(mae).low).
-        foldLeft(t.high) { case (res, x) => Interval.min(res, x) }
+    val teL = (for ((mae, _, _) <- lfes.values if !mae.isEmpty) yield domain(mae).low).foldLeft(t.high)(Interval.min)
 
-    val teR =
-      (for ((mae, _, _) <- lfes.values if !mae.isEmpty) yield domain(mae).high).
-        foldLeft(t.high) { case (res, x) => Interval.min(res, x) }
+    val teR = (for ((mae, _, compl) <- lfes.values if compl && !mae.isEmpty) yield domain(mae).high).foldLeft(t.high)(Interval.min)
 
-    if (teL equalTo t.high)
-      unionOfEnclosureLists(lfes.values.toSeq.flatMap { case (noe, _, _) => noe })
+    if (teL equalTo t.high) { // proved that there no event at all on T
+      val ret = unionOfEnclosureLists(lfes.values.toSeq.flatMap { case (noe, _, _) => noe })
+      cb.sendResult(ret)
+      ret
+    } 
     else {
       val noe = unionOfEnclosureListsUntil(teL, lfes.values.toSeq.map { case (noe, _, _) => noe })
       val seInit: StateEnclosure = for ((mode, _) <- sInit) yield {
@@ -50,16 +49,13 @@ trait EncloseHybrid extends EncloseEvents {
         cb.sendResult(ret)
         ret
       } else {
-        val tf = teR /\ t.high
-        val rest = encloseHybrid_New(ps, h, tf, seFinal, cb)
         val done = noe ++ enclosures(te, se)
         cb.sendResult(done)
+        val tf = teR /\ t.high
+        val rest = encloseHybrid_New(ps, h, tf, seFinal, cb)
         done ++ rest
       }
     }
-
-    Seq() // proved that there no event at all on T
-
   }
 
   def encloseHybrid_Old(ps: Parameters, h: HybridSystem, t: Interval, sInit: StateEnclosure, cb: EnclosureInterpreterCallbacks)(implicit rnd: Rounding): Seq[UnivariateAffineEnclosure] = {
