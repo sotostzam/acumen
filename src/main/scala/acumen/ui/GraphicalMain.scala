@@ -54,6 +54,8 @@ object GraphicalMain extends SimpleSwingApplication {
         useEnclosures = true; parseOpts(tail)
       case "--no-enclosures" :: tail =>
         useEnclosures = false; parseOpts(tail)
+      case "--non-localizing" :: tail =>
+        interpreters.enclosure.Interpreter.localizing = false; parseOpts(tail)
       case "--completion" :: tail =>
         useCompletion = true; parseOpts(tail)
       case opt ::  tail if opt.startsWith("-") =>

@@ -39,6 +39,8 @@ class Interpreter extends acumen.RecursiveInterpreter with Solver with Extract w
   def runInterpreter(des: Prog, cb0: InterpreterCallbacks) =
     runInterpreter(des, cb0, noAdjustParms)
 
+  var localizing = true
+
   //FIXME do this properly
   def runInterpreter(des: Prog,
     cb0: InterpreterCallbacks,
@@ -53,26 +55,32 @@ class Interpreter extends acumen.RecursiveInterpreter with Solver with Extract w
     val (hs, uss) = extract(main)
 
     cb.endTime = ps.endTime
-    val res = encloseHybrid(
-      ps,
-      hs,
-      ps.simulationTime,
-      emptyState(hs) + (uss.mode -> Some(uss.initialCondition)),
-      cb)
 
-    //    val res = solver(
-    //      hs,
-    //      ps.simulationTime,
-    //      Set(uss),
-    //      ps.solveVtInitialConditionPadding,
-    //      ps.extraPicardIterations,
-    //      ps.maxPicardIterations,
-    //      ps.splittingDegree, 
-    //      ps.maxEventTreeSize,
-    //      ps.minTimeStep,
-    //      ps.maxTimeStep,
-    //      ps.minImprovement,
-    //      cb)
+    val res = if (localizing) {
+
+      encloseHybrid(
+        ps,
+        hs,
+        ps.simulationTime,
+        emptyState(hs) + (uss.mode -> Some(uss.initialCondition)),
+        cb)
+
+    } else {
+
+      solver(
+        hs,
+        ps.simulationTime,
+        Set(uss),
+        ps.solveVtInitialConditionPadding,
+        ps.extraPicardIterations,
+        ps.maxPicardIterations,
+        ps.splittingDegree, 
+        ps.maxEventTreeSize,
+        ps.minTimeStep,
+        ps.maxTimeStep,
+        ps.minImprovement,
+        cb)
+    }
 
     EnclosureRes(res)
   }
@@ -80,3 +88,7 @@ class Interpreter extends acumen.RecursiveInterpreter with Solver with Extract w
 }
 
 object Interpreter extends Interpreter
+
+object InterpreterNonLocalizing extends Interpreter {
+  localizing = false
+}
