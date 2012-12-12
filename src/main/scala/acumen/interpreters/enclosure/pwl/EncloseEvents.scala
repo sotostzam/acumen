@@ -143,15 +143,15 @@ trait EncloseEvents extends SolveIVP {
     else {
       val ps = Parameters(rnd.precision, t.loDouble, t.hiDouble,
         delta, m, n,
-        K, 0, 0, 0, // these are not used - any value will do
+        K, 0, 0, 0, 0, 0, // these are not used - any value will do
         degree)
       val init: StateEnclosure = emptyState(h) + (u.mode -> Some(u.initialCondition))
       val (s, fin) = encloseEvents(ps, h, t, init)
       val us = uncertainStates(fin)
       val es = enclosures(t, s)
       if (us.isEmpty || es.isEmpty) None
-      else Some(us, es)
-      //      else Some(us, noEventEnclosure +: es)
+      //      else Some(us, es)
+      else Some(us, noEventEnclosure +: es)
     }
   }
 
