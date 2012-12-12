@@ -25,9 +25,11 @@ object BenchEnclosures {
         getOrElseUpdate(key,MutableList[(List[(String, Double)],Double)]()) += ((adjs,v))
     }
     var first = mutable.HashSet[List[(String, Double)]]()
-    println("Prepping with default parms.")
-    ie.run(prog)
-    println("Prep done, time irrelevant")
+    if (repeat > 1) {
+      println("Prepping with default parms.")
+      ie.run(prog)
+      println("Prep done, time irrelevant")
+    }
     implicit val rnd = enclosure.Rounding(10)
     for (adjustments <- trials) {
       println("===")
