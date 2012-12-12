@@ -153,7 +153,8 @@ class App extends SimpleSwingApplication {
   var threeDtab = if (GraphicalMain.disable3D) {
     console.log("Acumen3D disabled.")
     console.newLine
-    new threeD.DisabledThreeDTab
+    new threeD.DisabledThreeDTab("Acumen 3D disabled via the command line.")
+    //null
   } else try {
     new threeD.ThreeDTab(controller)
   } catch {
@@ -162,7 +163,7 @@ class App extends SimpleSwingApplication {
       console.newLine
       console.log("Disabling 3D Tab.")
       console.newLine
-      new threeD.DisabledThreeDTab
+    new threeD.DisabledThreeDTab("Acumen 3D disabled.\nError loading Java3D: " + e)
   }
   
   val views = new TabbedPane {
@@ -179,9 +180,9 @@ class App extends SimpleSwingApplication {
     pages += new TabbedPane.Page("Trace",    traceTab)
     val TABLE_IDX = pages.last.index
     
-    pages += new TabbedPane.Page("3D",       threeDtab)
-    if (!threeDtab.enableTab)
-      pages.last.enabled = false
+    if (threeDtab != null) {
+      pages += new TabbedPane.Page("3D",       threeDtab)
+    }
 
     selection.reactions += {
       case SelectionChanged(_) =>

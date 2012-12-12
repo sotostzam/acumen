@@ -11,7 +11,6 @@ abstract class AbstractThreeDTab extends BorderPanel {
   def receiver: Publisher
   def reset: Unit
   def setProgress(p: Int): Unit
-  var enableTab = true
 }
 
 class ThreeDTab(val appModel: Controller) extends AbstractThreeDTab {
@@ -199,10 +198,14 @@ class ThreeDTab(val appModel: Controller) extends AbstractThreeDTab {
 
 }
 
-class DisabledThreeDTab extends AbstractThreeDTab {
+class DisabledThreeDTab(msg: String) extends AbstractThreeDTab {
   def receiver = null
   def reset = {}
   def setProgress(p:Int) = {}
-  enableTab = false
+  val msgBox = new TextArea("\n" + msg)
+  msgBox.editable = false
+  msgBox.lineWrap = true
+  msgBox.peer.setWrapStyleWord(true)
+  add(msgBox,BorderPanel.Position.Center)
 }
 
