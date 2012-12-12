@@ -116,10 +116,20 @@ trait Extract {
           "maxTimeStep" -> 3,
           "minImprovement" -> 0.0001,
           "splittingDegree" -> 1)
-        val params = assignments.foldLeft(defaultParameters) {
-          case (res, (param, Lit(GInt(i)))) => res + (param -> i.toDouble)
-          case (res, (param, Lit(GDouble(d)))) => res + (param -> d)
-          case _ => sys.error("Should never happen!")
+        val params = {
+          val assignedParameters = assignments.map(_._1)
+          val updatedParameters = assignments.foldLeft(defaultParameters) {
+            case (res, (param, l)) =>
+              if (defaultParameters.keySet contains param) res + (param -> toDouble(l))
+              else sys.error(param + " is not a recognized parameter.")
+            case _ => sys.error("Should never happen!")
+          }
+          if (assignedParameters contains "maxTimeStep") updatedParameters
+          else {
+            val startTime = updatedParameters("startTime")
+            val endTime = updatedParameters("endTime")
+            updatedParameters + ("maxTimeStep" -> (endTime - startTime))
+          }
         }
         Parameters(
           params("precision").toInt,
@@ -327,6 +337,12 @@ trait Extract {
     case Op(Name("*", 0), List(l, r)) => Constant(foldConstant(l).value * foldConstant(r).value)
     case Op(Name("/", 0), List(l, r)) => Constant(foldConstant(l).value / foldConstant(r).value)
     case _ => sys.error("foldConstant called with nonconstant expression!")
+  }
+
+  def toDouble(l: Lit): Double = l match {
+    case Lit(GInt(i)) => i
+    case Lit(GDouble(d)) => d
+    case _ => sys.error("Non numeric literal cannot be cast to Double.")
   }
 
   def toGDouble(gv: GroundValue): GDouble = gv match {
