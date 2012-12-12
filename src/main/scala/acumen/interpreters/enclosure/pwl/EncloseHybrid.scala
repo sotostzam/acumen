@@ -16,7 +16,53 @@ import acumen.interpreters.enclosure.tree.Field
 
 trait EncloseHybrid extends EncloseEvents {
 
-  def encloseHybrid(ps: Parameters, h: HybridSystem, t: Interval, sInit: StateEnclosure, cb: EnclosureInterpreterCallbacks)(implicit rnd: Rounding): Seq[UnivariateAffineEnclosure] = {
+  def encloseHybrid(ps: Parameters, h: HybridSystem, t: Interval, sInit: StateEnclosure, cb: EnclosureInterpreterCallbacks)(implicit rnd: Rounding): Seq[UnivariateAffineEnclosure] =
+    //      encloseHybrid_Old(ps, h, t, sInit, cb)
+    encloseHybrid_New(ps, h, t, sInit, cb)
+
+  def encloseHybrid_New(ps: Parameters, h: HybridSystem, t: Interval, sInit: StateEnclosure, cb: EnclosureInterpreterCallbacks)(implicit rnd: Rounding): Seq[UnivariateAffineEnclosure] = {
+
+    // call event localising ODE solver for each possible mode:
+    val lfes: Map[Mode, LFE] = for ((mode, obox) <- sInit if obox.isDefined) yield mode -> encloseUntilEventDetected(ps, h, t, mode, obox.get, cb)
+
+    val teL =
+      (for ((mae, _, _) <- lfes.values if !mae.isEmpty) yield domain(mae).low).
+        foldLeft(t.high) { case (res, x) => Interval.min(res, x) }
+
+    val teR =
+      (for ((mae, _, _) <- lfes.values if !mae.isEmpty) yield domain(mae).high).
+        foldLeft(t.high) { case (res, x) => Interval.min(res, x) }
+
+    if (teL equalTo t.high)
+      unionOfEnclosureLists(lfes.values.toSeq.flatMap { case (noe, _, _) => noe })
+    else {
+      val noe = unionOfEnclosureListsUntil(teL, lfes.values.toSeq.map { case (noe, _, _) => noe })
+      val seInit: StateEnclosure = for ((mode, _) <- sInit) yield {
+        lfes.get(mode) match {
+          case None => mode -> None
+          case Some(lfe) => mode -> Some(evalAt(lfe, teL))
+        }
+      }
+      val te = teL /\ teR
+      val (se, seFinal) = encloseEvents(ps, h, te, seInit)
+      if (teR equalTo t.high) {
+        val ret = noe ++ enclosures(te, se)
+        cb.sendResult(ret)
+        ret
+      } else {
+        val tf = teR /\ t.high
+        val rest = encloseHybrid_New(ps, h, tf, seFinal, cb)
+        val done = noe ++ enclosures(te, se)
+        cb.sendResult(done)
+        done ++ rest
+      }
+    }
+
+    Seq() // proved that there no event at all on T
+
+  }
+
+  def encloseHybrid_Old(ps: Parameters, h: HybridSystem, t: Interval, sInit: StateEnclosure, cb: EnclosureInterpreterCallbacks)(implicit rnd: Rounding): Seq[UnivariateAffineEnclosure] = {
 
     // call event localising ODE solver for each possible mode:
     val lfes: Map[Mode, LFE] = for ((mode, obox) <- sInit if obox.isDefined) yield mode -> encloseUntilEventDetected(ps, h, t, mode, obox.get, cb)
@@ -63,7 +109,7 @@ trait EncloseHybrid extends EncloseEvents {
         val done = noe ++ enclosures(te, se)
         cb.sendResult(done)
         //        cb.log("DONE OVER " + domain(done))
-        val rest = encloseHybrid(ps, h, tf, seFinal, cb)
+        val rest = encloseHybrid_Old(ps, h, tf, seFinal, cb)
         val ret = done ++ rest
         ret
       }
