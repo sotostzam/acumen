@@ -114,5 +114,10 @@ class EnclosurePlotter extends JFreePlotter {
     plot(es,null)
   }
 
+  val defRnd = new Rounding(10)
+  def addToPlot(d: Object) = {
+    plot(d.asInstanceOf[Seq[UnivariateAffineEnclosure]],null)(defRnd)
+  }
+
 }
 

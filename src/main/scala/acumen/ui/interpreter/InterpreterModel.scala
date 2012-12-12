@@ -84,4 +84,8 @@ trait InterpreterModel
 
   // Return an updated table model for the trace table.
   def getTraceModel : TraceModel
+
+  //
+  def getPlotter : acumen.ui.plot.JFreePlotter
+
 }

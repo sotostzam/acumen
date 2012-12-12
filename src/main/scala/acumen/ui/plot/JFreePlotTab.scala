@@ -57,16 +57,13 @@ import com.itextpdf.text.Document
 import com.itextpdf.text.pdf.PdfWriter
 import java.io.FileOutputStream
 import com.itextpdf.awt.DefaultFontMapper
-import interpreters.enclosure.UnivariateAffineEnclosure
 import scala.collection.Seq
-import interpreters.enclosure.Rounding
 
 class JFreePlotTab extends BorderPanel
 {
-  val plotter = new EnclosurePlotter
-  def plotPanel = plotter.chartPanel
-  plotter.initPlot
-  
+  var plotter : JFreePlotter = null
+  //val plotPanel = plotter.chartPanel
+
   val resetZoom = new Action("Reset Zoom") {
     icon = Icons.home
     def apply = null
@@ -190,10 +187,17 @@ class JFreePlotTab extends BorderPanel
   //   case _ => 
   // }
   reactions += {
-    case App.Starting => plotter.resetPlot
+    case App.Starting => reset
   }
 
-  add(Component.wrap(plotPanel), BorderPanel.Position.Center)
+  def reset = {
+    plotter = App.ui.controller.model.getPlotter
+    plotter.initPlot
+    peer.removeAll
+    peer.add(plotter.chartPanel)
+    peer.revalidate()
+  }
+
   //Don't display for now, may do something better
   //add(rightBottomButtons, BorderPanel.Position.South)
   check.selected = true

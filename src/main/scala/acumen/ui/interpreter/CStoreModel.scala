@@ -40,10 +40,14 @@ class CStoreModel extends TraceModel with InterpreterModel with PlotModel {
   @volatile var d : Data = Data(new Array[String](0), 0, false)
 
   val pending = new ArrayBuffer[TraceData]()
+  val newData = new ArrayBuffer[TraceData]()
 
   def addData(sts:TraceData) = {
     pending.synchronized {
       pending += sts
+    }
+    newData.synchronized {
+      newData += sts
     }
   }
 
@@ -197,8 +201,14 @@ class CStoreModel extends TraceModel with InterpreterModel with PlotModel {
     res
   }
 
-  override def getNewData() = null
+  override def getNewData() = newData.synchronized {
+    val res = newData.toArray
+    newData.clear
+    res
+  }
 
   override def getPlotModel = {flushPending(); this}
   override def getTraceModel = {flushPending(); this}
+
+  override def getPlotter = new acumen.ui.plot.CStorePlotter()
 }

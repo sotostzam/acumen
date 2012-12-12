@@ -178,10 +178,11 @@ abstract class JFreePlotter {
 
   def renderer(color: Color) : XYItemRenderer
 
+  def addToPlot(d: Object) : Unit
+
   def convertToPDF(width: Int, height: Int, filename: String) {
     JFreePlotter.convertToPDF(chart, width, height, filename)
   }
-
 }
 
 object JFreePlotter {

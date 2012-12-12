@@ -123,12 +123,10 @@ class App extends SimpleSwingApplication {
 
   // FIXME: This probably should't be here -- kevina
   val jPlotI = new plot.JPlotInput {
-    import interpreters.enclosure._
-    val rnd = new Rounding(10)
     def newData() = controller.model.getNewData
     def addToPlot(d: Object) = {
-      newPlotView.plotter.plot(d.asInstanceOf[Seq[UnivariateAffineEnclosure]],null)(rnd)
-      newPlotView.plotPanel.validate
+      newPlotView.plotter.addToPlot(d)
+      newPlotView.plotter.chartPanel.validate
     }
   }
 
