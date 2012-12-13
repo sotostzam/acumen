@@ -81,7 +81,7 @@ NEW PLOTTING CODE
 This preview release ships with experimental plotting code based on
 JFreeChart.  However, it has known performance problems, especially
 with simulations with lots of data points, and is also broken on
-Windows, so it is disabled by default.  It You can enable it with the
+Windows, so it is disabled by default.  You can enable it with the
 "--newplot" command line option.
 
 SUPPORT
