@@ -59,11 +59,15 @@ object BenchEnclosures {
           res.add("precision-" + v, adjustments, ev(ev.domain.high).width.hiDouble)
         }
         if (!first.contains(adjustments)) {
-          val plotFn = prefix + "-" + adjustments.map{_._2.toString}.mkString(",") + ".pdf"
-          println("Making PDF of plot to " + plotFn)
+          def plotFn(extra: String) = prefix + extra +
+            (if (adjustments.size > 0) "-" + adjustments.map{_._2.toString}.mkString(",")
+             else "") + ".pdf"
+          println("Making PDF of plot to " + plotFn(""))
           val plotter = new ui.plot.EnclosurePlotter
           plotter.plotForSaving(r.res)
-          plotter.convertToPDF(640, 480, plotFn)
+          plotter.convertToPDF(640, 480, plotFn(""))
+          plotter.mergeVisablePlots
+          plotter.convertToPDF(640, 480, plotFn("-merged"))
           first += adjustments
         }
       }

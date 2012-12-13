@@ -1,0 +1,25 @@
+/* Zeno Line overconstrained
+ * Authors: Walid Taha and Adam Duracz
+ * Adding an invariant hints at the behavior around the Zeno point.
+ */
+class Main(simulator)
+  private
+    d  := 1;    d' := 0;
+    s  := 1/2;  s' := 1;
+    mode := ""; 
+  end
+  switch mode
+    case "" require s <= abs(d)
+      if d == s 
+        s  := s/2; 
+        mode := "" 
+      end;
+      d'  = -1;
+      s'  = 1;
+  end;
+  simulator.startTime := 0;
+  simulator.endTime := 1.2;
+  simulator.minTimeStepODEsolving := 1.2;
+  simulator.minTimeStepLocalisation := 0.1;
+  simulator.minImprovement := 0;
+end

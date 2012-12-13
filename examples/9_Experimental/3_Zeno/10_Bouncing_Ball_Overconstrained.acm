@@ -1,7 +1,7 @@
-////////////////////////////////////////////////
-// This file is called bouncing_ball.acm      //
-// It implements the BB model from the paper. //
-////////////////////////////////////////////////
+/* Bouncing Ball overconstrained
+ * Authors: Michal Konecny and Jan Duracz
+ * Adding a simple constraint improves the enclosure considerably.
+ */
 class Main(simulator)
   private 
     mode := "Fly"; x := 5; x' := 0; x'' := 0 
@@ -17,6 +17,6 @@ class Main(simulator)
   simulator.startTime := 0;
   simulator.endTime := 3.5;
   simulator.minTimeStepODEsolving := 0.02;
-  simulator.minTimeStepLocalisation := 0.01;
+  simulator.minTimeStepLocalisation := 0.001;
   simulator.minImprovement := 0.001;
 end

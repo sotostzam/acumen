@@ -1,6 +1,6 @@
-/* Bouncing ball with explicit energy, convergent
- * Auhtors: Michal Kone?n? and Jan Duracz
- * Implements a version of the EBB model from the paper.
+/* Bouncing Ball overconstrained with improved precision
+ * Authors: Michal Konecny and Jan Duracz
+ * An additional invariant, based on a helper variable, makes the post-Zeno enclosure convergent.
  */
 class Main(simulator)
   private 

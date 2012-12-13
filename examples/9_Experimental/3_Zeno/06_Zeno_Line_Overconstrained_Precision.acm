@@ -1,0 +1,25 @@
+/* Zeno Line overconstrained with improved precision
+ * Authors: Walid Taha and Adam Duracz
+ * By decreasing the time step, the enclosure before and after Zeno appears in more detail.
+ */
+class Main(simulator)
+  private
+    d  := 1;    d' := 0;
+    s  := 1/2;  s' := 1;
+    mode := ""; 
+  end
+  switch mode
+    case "" require s <= abs(d)
+      if d == s 
+        s  := s/2; 
+        mode := "" 
+      end;
+      d'  = -1;
+      s'  = 1;
+  end;
+  simulator.startTime := 0;
+  simulator.endTime := 1.2;
+  simulator.minTimeStepODEsolving := 1.2;
+  simulator.minTimeStepLocalisation := 0.0001;
+  simulator.minImprovement := 0;
+end

@@ -2,21 +2,22 @@
 ACUMEN 2012 PREVIEW RELEASE, RELEASE NOTES
 ------------------------------------------
 
-This is a preview release of exciting things to come in 2013.
+This is a preview release of new features to come in 2013.  
+New features since the last major Acumen release include:
 
-New features from the last major Acumen release include.
-
- - Acumen 3D
- - Enclosure Support
+ - 3D support based on Yingfu Zeng's Masters thesis
+ - Enlcosure semantics with support for Zeno systems
  - A more responsive user interface
- - Exterminate new plotting code
- - Better Syntax for acumen models
+ - Some improvements to syntax (such as = and := )
+ - Syntax highlighting
 
-As this is only a preview release there are a number of known issues
-which we hope to fix in early 2013.
+This is only a preview release, as there are a few known 
+issues which we plan to fix in early 2013.
+
+Some known issues:
 
   - Acumen 3D has known problems on Linux platforms
-  - The system may not shut down cleanly
+  - The system may need to be shut down externally
 
 For users of Acumen 2010 please note the following important syntax
 change:
@@ -71,29 +72,22 @@ tab:
 Acumen3D is known to have stability problems on Linux.  If you do not
 require 3D support you can disable it by passing the "--disable-3d"
 when running the jar file.  For example, from the command line:
-  ava -jar FIXME.jar --disable-3d
-
-NEW PLOTTING CODE
------------------
-
-This preview release ships with experimental plotting code based on
-JFreeChart.  However, it has known performance problems, especially
-with simulations with lots of data points, and is also broken on
-Windows, so it is disabled by default.  It You can enable it with the
-"--newplot" command line option.
+  java -jar FIXME.jar --disable-3d
 
 SUPPORT
 -------
 
-FIXME: This is from the original README, needs updating
-
-A graphical user interface should start immediately.  If not, please
-contact the project-acumen-l@mailman.rice.edu and include
+If you can not get acumen started please email help@acumen-language.org
+with the following information:
 
   1) The name of the OS that you are using (Windows, Mac OS X, etc),
   2) Any specific version information you might have about the OS,
   3) The version of Java that you are using.  To check which version
      of Java you have, please use the website:  http://javatester.org/
+
+We also welcome your feedback on ways to make Acumen better, please
+send and bug reports are just general suggestions to the same address
+(help@acumen-language.org).
 
 COMPILING
 ---------

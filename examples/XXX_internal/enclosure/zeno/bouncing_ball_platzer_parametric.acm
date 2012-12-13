@@ -1,7 +1,7 @@
-///////////////////////////////////////////////////////////////
-// This file is called bouncing_ball_platzer_parametric.acm  //
-// Example 2.2 on Page 45 of book "Logical Analysis of H.S." //
-///////////////////////////////////////////////////////////////
+/* Bouncing ball Platzer Parametric
+ * Author: Adam Duracz
+ * Example 2.2 on Page 45 of book "Logical Analysis of H.S."
+ */
 class Main(simulator)
   private 
   	mode := "";
@@ -20,15 +20,9 @@ class Main(simulator)
       v' = -10;
       t' = 1;
   end;
-  simulator.precision := 10;
   simulator.startTime := 0;
   simulator.endTime := 3.5;
-  simulator.initialConditionPadding := 0;
-  simulator.extraPicardIterations := 20;
-  simulator.maxPicardIterations := 200;
-  simulator.splittingDegree := 1; 
-  simulator.maxEventSequenceLength := 100;
-  simulator.minTimeStepODEsolving := 0.01;
-  simulator.minTimeStepLocalisation := 0.001;
+  simulator.minTimeStepODEsolving := 0.1;
+  simulator.minTimeStepLocalisation := 0.1;
   simulator.minImprovement := 0.01;
 end
