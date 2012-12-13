@@ -8,7 +8,6 @@ New features since the last major Acumen release include:
  - 3D support based on Yingfu Zeng's Masters thesis
  - Enlcosure semantics with support for Zeno systems
  - A more responsive user interface
- - New plotting code
  - Some improvements to syntax (such as = and := )
  - Syntax highlighting
 
@@ -74,15 +73,6 @@ Acumen3D is known to have stability problems on Linux.  If you do not
 require 3D support you can disable it by passing the "--disable-3d"
 when running the jar file.  For example, from the command line:
   ava -jar FIXME.jar --disable-3d
-
-NEW PLOTTING CODE
------------------
-
-This preview release ships with experimental plotting code based on
-JFreeChart.  However, it has known performance problems, especially
-with simulations with lots of data points, and is also broken on
-Windows, so it is disabled by default.  You can enable it with the
-"--newplot" command line option.
 
 SUPPORT
 -------
