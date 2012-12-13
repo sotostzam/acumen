@@ -14,7 +14,8 @@ case class Parameters(
   minTimeStepLocalisation: Double, // minimum time step size during event localization
   maxTimeStep: Double, // maximum time step size
   minImprovement: Double, // minimum improvement of enclosure
-  splittingDegree: Int // number of pieces to split each initial condition variable 
+  splittingDegree: Int, // number of pieces to split each initial condition variable
+  maxIterations:Int // maximum number of PWL reachable states computation iterations
   ) {
   implicit val rnd = Rounding(precision)
   val simulationTime = Interval(startTime, endTime)

@@ -115,7 +115,8 @@ trait Extract {
           "minTimeStepLocalisation" -> 0.001,
           "maxTimeStep" -> 3,
           "minImprovement" -> 0.0001,
-          "splittingDegree" -> 1)
+          "splittingDegree" -> 1,
+          "maxIterations" -> 100)
         val params = {
           val assignedParameters = assignments.map(_._1)
           val updatedParameters = assignments.foldLeft(defaultParameters) {
@@ -145,7 +146,8 @@ trait Extract {
           params("minTimeStepLocalisation"),
           params("maxTimeStep"),
           params("minImprovement"),
-          params("splittingDegree").toInt)
+          params("splittingDegree").toInt,
+          params("maxIterations").toInt)
       }
     }
 
