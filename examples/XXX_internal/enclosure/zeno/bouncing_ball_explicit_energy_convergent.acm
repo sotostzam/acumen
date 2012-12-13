@@ -1,5 +1,5 @@
 /* Bouncing ball with explicit energy, convergent
- * Auhtors: Michal Kone?n? and Jan Duracz
+ * Authors: Michal Konecny and Jan Duracz
  * Implements a version of the EBB model from the paper.
  */
 class Main(simulator)

@@ -1,7 +1,7 @@
-/////////////////////////////////////////////////
-// This file is called two_tanks.acm           //
-// It implements the S2T model from the paper. //
-/////////////////////////////////////////////////
+/* Two tanks
+ * Authors: Michal Konecny and Jan Duracz
+ * Implements the S2T model from the paper.
+ */
 class Main(simulator) 
   private 
     mode := "Fill1"; 
@@ -18,14 +18,9 @@ class Main(simulator)
       x1' = -2; 
       x2' = 1;
   end;
-  simulator.precision := 10;
   simulator.startTime := 0;
   simulator.endTime := 2.5;
-  simulator.initialConditionPadding := 0;
-  simulator.extraPicardIterations := 20;
-  simulator.maxPicardIterations := 200;
-  simulator.maxEventSequenceLength := 30;
-  simulator.minTimeStepODEsolving := 0.01;
+  simulator.minTimeStepODEsolving := 2.5;
   simulator.minTimeStepLocalisation := 0.001;
-  simulator.minImprovement := 0.1;    
+  simulator.minImprovement := 0;    
 end

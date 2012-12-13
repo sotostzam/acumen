@@ -1,6 +1,5 @@
-////////////////////////////////////////////////
-// This file is called bouncing_ball_air.acm  //
-////////////////////////////////////////////////
+/* Bouncing ball air
+ */
 class Main(simulator)
   private mode := "Fall"; x := 5; x' := 0; x'' := 0 end
   switch mode

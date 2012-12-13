@@ -1,7 +1,7 @@
-////////////////////////////////////////////////
-// This file is called bouncing_ball.acm      //
-// It implements the BB model from the paper. //
-////////////////////////////////////////////////
+/* Bouncing_ball
+ * Authors: Michal Konecny and Jan Duracz
+ * Implements the BB model from the paper.
+ */
 class Main(simulator)
   private 
     mode := "Fly"; x := 5; x' := 0; x'' := 0 
