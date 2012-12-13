@@ -1,11 +1,90 @@
 
-TO COMPILE AND RUN ACUMEN
--------------------------
+ACUMEN 2012 PREVIEW RELEASE, RELEASE NOTES
+------------------------------------------
 
-Follow the instructions at http://code.google.com/p/simple-build-tool/wiki/Setup
+This is a preview release of exciting things to come in 2013.
 
-TO TROUBLE SHOOT
-----------------
+New features from the last major Acumen release include.
+
+ - Acumen 3D
+ - Enclosure Support
+ - A more responsive user interface
+ - Exterminate new plotting code
+ - Better Syntax for acumen models
+
+As this is only a preview release there are a number of known issues
+which we hope to fix in early 2013.
+
+  - Acumen 3D has known problems on Linux platforms
+  - The system may not shut down cleanly
+
+For users of Acumen 2010 please note the following important syntax
+change:
+
+  - [=] is now =  and
+  - =   is now :=
+
+PREREQUISITES
+-------------
+
+Users of recent version of Mac OS X should already have all necessary
+dependencies installed.
+
+If you are using fairly modern Linux distribution installing
+openjdk-6, libjava3d, that comes with your distribution will likely
+work fine.
+
+If you are using Windows than follow instructions to get the necessary
+requirements to run Acumem with 3D support.
+
+If you are not running Windows 7, or running a windows 7-32 bits
+
+  1. Download and install jre-7u7-windows-i586.exe from here
+  http://www.oracle.com/technetwork/java/javase/downloads/jre7u7-downloads-1836441.html
+  2. Download and install java3d-1_5_1-windows-i586.exe from here
+  http://www.oracle.com/technetwork/java/javasebusiness/downloads/java-archive-downloads-java-client-419417.html#java3d-1.5.1-oth-JPR
+
+If you are running a 64-bit windows 7, you need to uninstall your Java
+32 bit first (if applicable) then
+
+  1. Download jre-7u7-windows-x64.exe from here
+  http://www.oracle.com/technetwork/java/javase/downloads/jre7u7-downloads-1836441.html
+  2. Download and install java3d-1_5_1-windows-amd64.exe from here
+  http://www.oracle.com/technetwork/java/javasebusiness/downloads/java-archive-downloads-java-client-419417.html#java3d-1.5.1-oth-JPR
+  3. Follow the instructions about copying the files here
+  http://www.christoph-lauer.de/Homepage/Blog/Eintrage/2012/5/23_Note__how_to_install_Java3D_on_a_64bit_Windows_7_machine.html
+
+RUNNING
+-------
+
+To run acumen you should be able to run the provided jar file directly.
+
+To run it from the command line something like:
+
+  java -jar FIXME.jar
+
+Certain version of Mac OS way require the VM argument as a command
+line parameter in to avoid performance problems when running on the 3D
+tab:
+  -Dapple.awt.graphics.UseQuartz=true
+
+Acumen3D is known to have stability problems on Linux.  If you do not
+require 3D support you can disable it by passing the "--disable-3d"
+when running the jar file.  For example, from the command line:
+  ava -jar FIXME.jar --disable-3d
+
+NEW PLOTTING CODE
+-----------------
+
+This preview release ships with experimental plotting code based on
+JFreeChart.  However, it has known performance problems, especially
+with simulations with lots of data points, so it is disabled by
+default.  You can enable it with the "--newplot" command line option.
+
+SUPPORT
+-------
+
+FIXME: This is from the original README, needs updating
 
 A graphical user interface should start immediately.  If not, please
 contact the project-acumen-l@mailman.rice.edu and include
@@ -14,4 +93,3 @@ contact the project-acumen-l@mailman.rice.edu and include
   2) Any specific version information you might have about the OS,
   3) The version of Java that you are using.  To check which version
      of Java you have, please use the website:  http://javatester.org/
-
