@@ -16,16 +16,14 @@ import acumen.interpreters.enclosure.tree.Field
 
 trait EncloseHybrid extends EncloseEvents {
 
-  def encloseHybrid(ps: Parameters, h: HybridSystem, t: Interval, sInit: StateEnclosure, cb: EnclosureInterpreterCallbacks)(implicit rnd: Rounding): Seq[UnivariateAffineEnclosure] =
-    encloseHybrid_New(ps, h, t, sInit, cb)
-  //    encloseHybrid_Old(ps, h, t, sInit, cb)
-
-  def encloseHybrid_New(ps: Parameters, h: HybridSystem, t: Interval, sInit: StateEnclosure, cb: EnclosureInterpreterCallbacks)(implicit rnd: Rounding): Seq[UnivariateAffineEnclosure] = {
+  def encloseHybrid(ps: Parameters, h: HybridSystem, t: Interval, sInit: StateEnclosure, cb: EnclosureInterpreterCallbacks)(implicit rnd: Rounding): Seq[UnivariateAffineEnclosure] = {
 
     // call event localising ODE solver for each possible mode:
-    val lfes: Map[Mode, LFE] = for ((mode, obox) <- sInit if obox.isDefined) yield mode -> encloseUntilEventDetected(ps, h, t, mode, obox.get, cb)
+    val lfes: Map[Mode, LFE] = for ((mode, obox) <- sInit if obox.isDefined) yield mode -> encloseFlowUntilEventDetected(ps, h, t, mode, obox.get, cb)
 
     val teL = (for ((_, mae, _) <- lfes.values if !mae.isEmpty) yield domain(mae).low).foldLeft(t.high)(Interval.min)
+
+    val teR = (for ((_, mae, compl) <- lfes.values if compl) yield domain(mae).high).foldLeft(t.high)(Interval.min)
 
     val noe = unionOfEnclosureListsUntil(teL, lfes.values.toSeq.map { case (noe, _, _) => noe })
     if (teL equalTo t.high) { // proved that there no event at all on T
@@ -38,8 +36,8 @@ trait EncloseHybrid extends EncloseEvents {
           case Some(lfe) => mode -> Some(evalAt(lfe, teL))
         }
       }
-      val (teR, se, seFinal) = teRAndEncloseEvents(ps, h, t, lfes, seInit, teL, t.high - teL)
       val te = teL /\ teR
+      val (se, seFinal) = encloseEvents(ps, h, te, seInit)
       if (teR equalTo t.high) {
         val ret = noe ++ enclosures(te, se)
         cb.sendResult(ret)
@@ -48,75 +46,8 @@ trait EncloseHybrid extends EncloseEvents {
         val done = noe ++ enclosures(te, se)
         cb.sendResult(done)
         val tf = teR /\ t.high
-        val rest = encloseHybrid_New(ps, h, tf, seFinal, cb)
+        val rest = encloseHybrid(ps, h, tf, seFinal, cb)
         done ++ rest
-      }
-    }
-  }
-
-  def teRAndEncloseEvents(ps: Parameters, h: HybridSystem, t: Interval, lfes: Map[Mode, LFE], seInit: StateEnclosure, teL: Interval, pad: Interval)(implicit rnd: Rounding): (Interval, StateEnclosure, StateEnclosure) =
-    try {
-      val teR = (for ((_, mae, compl) <- lfes.values if compl) yield domain(mae).high).foldLeft((Interval.min(t.high, teL + pad)))(Interval.min)
-      val te = teL /\ teR
-      val (se, seFinal) = encloseEvents(ps, h, te, seInit)
-      (teR, se, seFinal)
-    } catch {
-      case PicardIterationsExceeded(interval,iterations) =>
-        if (pad * 2 lessThan ps.minTimeStepLocalisation)
-          sys.error("solveVt: terminated at " + interval + " after " + iterations + " Picard iterations")
-        else teRAndEncloseEvents(ps, h, t, lfes, seInit, teL, pad / 2)
-    }
-
-  def encloseHybrid_Old(ps: Parameters, h: HybridSystem, t: Interval, sInit: StateEnclosure, cb: EnclosureInterpreterCallbacks)(implicit rnd: Rounding): Seq[UnivariateAffineEnclosure] = {
-
-    // call event localising ODE solver for each possible mode:
-    val lfes: Map[Mode, LFE] = for ((mode, obox) <- sInit if obox.isDefined) yield mode -> encloseUntilEventDetected(ps, h, t, mode, obox.get, cb)
-
-    // extract the localised intervals from the resulting lfes:  
-    val teLRs: Map[Mode, Interval] = for ((mode, (_, mae, compl)) <- lfes if compl) yield mode -> domain(mae)
-    val teLs: Map[Mode, Interval] = for ((mode, (_, mae, compl)) <- lfes if !compl && !mae.isEmpty) yield mode -> domain(mae).low
-
-    if (teLRs.isEmpty && teLs.isEmpty) { // proved that there no event at all on T
-      val ret = unionOfEnclosureLists(lfes.values.toSeq.flatMap { case (noe, _, _) => noe })
-      cb.sendResult(ret)
-      //      cb.log("FLOW OVER " + domain(ret))
-      ret
-    } else {
-      lazy val teLsLeftmost = teLs.values.map(_.low).toList.sortWith(_.lessThanOrEqualTo(_)).head
-      val te =
-        if (teLRs.isEmpty) // no potential event was fully localised on T
-          teLsLeftmost /\ t.high
-        else {
-          val tePre = leftmostComponentOfUnion(teLRs.values.toSeq)
-          if (teLs.isEmpty || (tePre lessThan teLsLeftmost)) tePre
-          else tePre /\ teLsLeftmost
-        }
-      //      val noe = unionOfEnclosureLists(lfes.values.toSeq.flatMap(getNoeUntil(te.low, _)))
-      val noe = unionOfEnclosureListsUntil(te.low, lfes.values.toSeq.map { case (noe, _, _) => noe })
-      val seInit: StateEnclosure = sInit.map {
-        case (mode, _) => mode -> (lfes.get(mode) match {
-          case Some(lfe) => Some(evalAt(lfe, te.low))
-          case None => None
-        })
-      }
-      val (se, seFinal) = encloseEvents(ps, h, te, seInit)
-      if (isDefinitelyEmpty(seFinal)) {
-        cb.sendResult(noe)
-        sys.error("Empty state for " + te)
-      }
-      if (te.high equalTo t.high) {
-        val ret = noe ++ enclosures(te, se)
-        cb.sendResult(ret)
-        //        cb.log("FINISHED FOR " + domain(ret))
-        ret
-      } else {
-        val tf = te.high /\ t.high
-        val done = noe ++ enclosures(te, se)
-        cb.sendResult(done)
-        //        cb.log("DONE OVER " + domain(done))
-        val rest = encloseHybrid_Old(ps, h, tf, seFinal, cb)
-        val ret = done ++ rest
-        ret
       }
     }
   }
@@ -152,11 +83,7 @@ trait EncloseHybrid extends EncloseEvents {
     }
   }
 
-  def encloseUntilEventDetected(ps: Parameters, h: HybridSystem, t: Interval, m: Mode, init: Box, cb: EnclosureInterpreterCallbacks)(implicit rnd: Rounding): LFE =
-    encloseUntilEventDetected_New(ps, h, t, m, init, cb)
-  //      encloseUntilEventDetected_Old(ps, h, t, m, init, cb)
-
-  def encloseUntilEventDetected_New(ps: Parameters, h: HybridSystem, t: Interval, m: Mode, init: Box, cb: EnclosureInterpreterCallbacks)(implicit rnd: Rounding): LFE = {
+  def encloseFlowUntilEventDetected(ps: Parameters, h: HybridSystem, t: Interval, m: Mode, init: Box, cb: EnclosureInterpreterCallbacks)(implicit rnd: Rounding): LFE = {
 
     def computeLFE(t: Interval, init: Box): LFE =
       if (t.width greaterThan ps.maxTimeStep) splitAndRepeatComputeLFE(t, init)
@@ -225,55 +152,19 @@ trait EncloseHybrid extends EncloseEvents {
       }
     }
 
-    computeLFE(t, init)
+    val res = computeLFE(t, init)
+    res
   }
-
-  def encloseUntilEventDetected_Old(ps: Parameters, h: HybridSystem, t: Interval, m: Mode, init: Box, cb: EnclosureInterpreterCallbacks)(implicit rnd: Rounding): LFE =
-    if (t.width greaterThan ps.maxTimeStep) repeatEncloseUntilEventDetected(ps, h, t, m, init, cb)
-    else {
-      val oe = try {
-        val success = solveVt(h.fields(m), t, init, ps.solveVtInitialConditionPadding, ps.extraPicardIterations, ps.maxPicardIterations, ps.splittingDegree)
-        Some(success)
-      } catch { case _ => None }
-      oe match {
-        case None if t.width lessThan ps.minTimeStep * 2 => sys.error("gave up at ...")
-        case None => repeatEncloseUntilEventDetected(ps, h, t, m, init, cb)
-        case Some(e) =>
-          val (eLFE, eLFEisBad) = enclosureToLFE(h, m, e)
-          if (t.width lessThan ps.minTimeStep * 2) eLFE
-          else {
-            val (tL, tR) = t.split
-            val eL = solveVt(h.fields(m), tL, init, ps.solveVtInitialConditionPadding, ps.extraPicardIterations, ps.maxPicardIterations, ps.splittingDegree)
-            val initR = eL(tL.high)
-            val eR = solveVt(h.fields(m), tR, initR, ps.solveVtInitialConditionPadding, ps.extraPicardIterations, ps.maxPicardIterations, ps.splittingDegree)
-            val (eLLFE, _) = enclosureToLFE(h, m, eL)
-            val (eRLFE, _) = enclosureToLFE(h, m, eR)
-            val eLRLFE = concatenateLFEs(eLLFE, eRLFE)
-            val enclosureHasImporved = significantImprovement(e, eR, t.high, ps.minImprovement)
-            if (enclosureHasImporved ||
-              (!enclosureHasNoEventInfo(ps, h, m, e) &&
-                (eLFEisBad || isBetterLFEThan(eLRLFE, eLFE))))
-              repeatEncloseUntilEventDetected(ps, h, t, m, init, cb)
-            else eLFE
-          }
-      }
-    }
 
   def repeatEncloseUntilEventDetected(ps: Parameters, h: HybridSystem, t: Interval, m: Mode, init: Box, cb: EnclosureInterpreterCallbacks)(implicit rnd: Rounding): LFE = {
     val (tL, tR) = t.split
-    val lfeL = encloseUntilEventDetected(ps, h, tL, m, init, cb)
+    val lfeL = encloseFlowUntilEventDetected(ps, h, tL, m, init, cb)
     if (!(domain(lfeL) equalTo tL)) lfeL
     else {
       val initR = evalAtRightEndpoint(lfeL)
-      val lfeR = encloseUntilEventDetected(ps, h, tR, m, initR, cb)
+      val lfeR = encloseFlowUntilEventDetected(ps, h, tR, m, initR, cb)
       concatenateLFEs(lfeL, lfeR)
     }
-  }
-
-  def significantImprovement(eOld: UnivariateAffineEnclosure, eNew: UnivariateAffineEnclosure, x: Interval, minImprovement: Double)(implicit rnd: Rounding) = {
-    val normOld = norm(eOld(x))
-    val normNew = norm(eNew(x))
-    normOld - normNew greaterThan minImprovement
   }
 
   def enclosureToLFE(h: HybridSystem, m: Mode, e: UnivariateAffineEnclosure)(implicit rnd: Rounding): (LFE, Boolean) = {

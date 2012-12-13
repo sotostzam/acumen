@@ -21,7 +21,7 @@ trait EncloseEvents extends SolveIVP {
 
   def encloseEvents(ps: Parameters, h: HybridSystem, t: Interval, s: StateEnclosure)(implicit rnd: Rounding): (StateEnclosure, StateEnclosure) = {
     val (s0, fin0) = encloseFlowNoEvents(ps, h, s, t)
-    val sEvents = reachableStatesPWL(ps, h, t, emptyState(h), s0)
+    val sEvents = reachableStatesPWL(ps, h, t, ps.maxIterations, emptyState(h), s0)
     val sEnclosed = union(Set(s0, sEvents))
     val finEnclosed = union(Set(fin0, sEvents))
     (sEnclosed, finEnclosed)
@@ -29,14 +29,17 @@ trait EncloseEvents extends SolveIVP {
 
   // helper functions
 
-  def reachableStatesPWL(ps: Parameters, h: HybridSystem, t: Interval, pIn: StateEnclosure, wIn: StateEnclosure)(implicit rnd: Rounding): StateEnclosure =
-    if (isDefinitelyEmpty(wIn)) pIn
+  def reachableStatesPWL(ps: Parameters, h: HybridSystem, t: Interval, maxIterations: Int, pIn: StateEnclosure, wIn: StateEnclosure)(implicit rnd: Rounding): StateEnclosure =
+    if (maxIterations == 0) sys.error("EncloseEventsFailure")
     else {
-      val oneEventEnclosed = encloseOneEvent(h, wIn)
-      val (sEvolved, _) = encloseFlowNoEvents(ps, h, oneEventEnclosed, t)
-      val p = union(Set(pIn, sEvolved))
-      val w = minus(sEvolved, pIn)
-      reachableStatesPWL(ps, h, t, p, w)
+      if (isDefinitelyEmpty(wIn)) pIn
+      else {
+        val oneEventEnclosed = encloseOneEvent(h, wIn)
+        val (sEvolved, _) = encloseFlowNoEvents(ps, h, oneEventEnclosed, t)
+        val p = union(Set(pIn, sEvolved))
+        val w = minus(sEvolved, pIn)
+        reachableStatesPWL(ps, h, t, maxIterations - 1, p, w)
+      }
     }
 
   def encloseOneEvent(h: HybridSystem, s: StateEnclosure)(implicit rnd: Rounding): StateEnclosure = {
@@ -55,12 +58,58 @@ trait EncloseEvents extends SolveIVP {
     (s, fin)
   }
 
-  def encloseFlowRange(ps: Parameters, f: Field, t: Interval, b: Box)(implicit rnd: Rounding): (OBox, OBox) = {
-    val flow = encloseFlow(ps, f, t, b)
-    (Some(flow(t)), Some(flow(t.high)))
+  def encloseFlowRange(ps: Parameters, f: Field, t: Interval, init: Box)(implicit rnd: Rounding): (OBox, OBox) = {
+    val flow = encloseFlow(ps, f, t, init)
+    if (flow isEmpty) (None, None)
+    else {
+      val ranges = flow.map(_.range)
+      (Some(ranges.tail.fold(ranges.head)(_ hull _)), Some(flow.last(t.high)))
+    }
   }
 
-  def encloseFlow(ps: Parameters, f: Field, t: Interval, b: Box)(implicit rnd: Rounding): UnivariateAffineEnclosure =
+  def encloseFlow(ps: Parameters, f: Field, t: Interval, init: Box)(implicit rnd: Rounding): Seq[UnivariateAffineEnclosure] = {
+    if (t.width greaterThan ps.maxTimeStep)
+      splitAndRepeatEncloseFlow(ps, f, t, init)
+    else
+      try {
+        val e = encloseFlowStep(ps, f, t, init)
+        if (t.width lessThan ps.minTimeStepODEsolving * 2) Seq(e)
+        else {
+          val (eL, eR) = splitAndEncloseFlowStep(ps, f, t, init)
+          if (significantImprovement(e, eR, t.high, ps.minImprovement))
+            try { splitAndRepeatEncloseFlow(ps, f, t, init) } catch { case _ => Seq(e) }
+          else Seq(e)
+        }
+      } catch {
+        case _ =>
+          if (t.width lessThan ps.minTimeStepODEsolving * 2) sys.error("EncloseFlowFailure")
+          else splitAndRepeatEncloseFlow(ps, f, t, init)
+      }
+  }
+
+  def significantImprovement(eOld: UnivariateAffineEnclosure, eNew: UnivariateAffineEnclosure, x: Interval, minImprovement: Double)(implicit rnd: Rounding) = {
+    val normOld = norm(eOld(x))
+    val normNew = norm(eNew(x))
+    normOld - normNew greaterThan minImprovement
+  }
+
+  def splitAndEncloseFlowStep(ps: Parameters, field: Field, t: Interval, init: Box)(implicit rnd: Rounding): (UnivariateAffineEnclosure, UnivariateAffineEnclosure) = {
+    val (tL, tR) = t.split
+    val eL = encloseFlowStep(ps, field, tL, init)
+    val initR = eL(tL.high)
+    val eR = encloseFlowStep(ps, field, tR, initR)
+    (eL, eR)
+  }
+
+  def splitAndRepeatEncloseFlow(ps: Parameters, field: Field, t: Interval, init: Box)(implicit rnd: Rounding): Seq[UnivariateAffineEnclosure] = {
+    val (tL, tR) = t.split
+    val esL = encloseFlow(ps, field, tL, init)
+    val initR = esL.filter(_.domain.contains(tL.high)).last(tL.high)
+    val esR = encloseFlow(ps, field, tR, initR)
+    esL ++ esR
+  }
+
+  def encloseFlowStep(ps: Parameters, f: Field, t: Interval, b: Box)(implicit rnd: Rounding): UnivariateAffineEnclosure =
     solveVt(f, t, b,
       ps.solveVtInitialConditionPadding,
       ps.extraPicardIterations,
@@ -146,7 +195,9 @@ trait EncloseEvents extends SolveIVP {
       val ps = Parameters(rnd.precision, t.loDouble, t.hiDouble,
         delta, m, n,
         K, 0, 0, 0, 0, 0, // these are not used - any value will do
-        degree)
+        degree,
+        0 // these are not used - any value will do
+        )
       val init: StateEnclosure = emptyState(h) + (u.mode -> Some(u.initialCondition))
       val (s, fin) = encloseEvents(ps, h, t, init)
       val us = uncertainStates(fin)
