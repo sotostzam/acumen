@@ -80,25 +80,7 @@ abstract class JFreePlotter {
     })
     // Merge the currently visible plots
     mergeVisible.addActionListener(new ActionListener() {
-      def actionPerformed(event: ActionEvent) {
-        val mergedPlot = initXYPlot("") //TODO Externalize string, make settable from CLI
-        var dataSetIndex = 0
-        val sps = combinedPlot.getSubplots.toArray
-        for ((p,pi) <- sps zip Stream.from(0)) {
-          val xyp = p.asInstanceOf[XYPlot]
-          val ren = renderer( // Make a unique color for this enclosure
-              Color.getHSBColor(pi/(1.0f*sps.size), 1.0f, 0.7f))
-          for (i <- 0 until xyp.getDatasetCount) {
-            mergedPlot.setDataset(dataSetIndex, xyp.getDataset(i))
-            mergedPlot.setRenderer(dataSetIndex, ren)
-            dataSetIndex += 1
-          }
-          val newPlot = newCombinedPlot
-          newPlot.add(mergedPlot)
-          resetChart(newPlot)
-          chart.addLegend(createLegend(mergedPlot))
-        }
-      }
+      def actionPerformed(event: ActionEvent) = mergeVisablePlots
     })
     resetView.addActionListener(new ActionListener() {
       def actionPerformed(event: ActionEvent) {
@@ -118,6 +100,26 @@ abstract class JFreePlotter {
     popupMenu.add(resetView)
     chartPanel.setBackground(Color.white)
     resetPlot
+  }
+
+  def mergeVisablePlots = {
+    val mergedPlot = initXYPlot("") //TODO Externalize string, make settable from CLI
+    var dataSetIndex = 0
+    val sps = combinedPlot.getSubplots.toArray
+    for ((p,pi) <- sps zip Stream.from(0)) {
+      val xyp = p.asInstanceOf[XYPlot]
+      val ren = renderer( // Make a unique color for this enclosure
+        Color.getHSBColor(pi/(1.0f*sps.size), 1.0f, 0.7f))
+      for (i <- 0 until xyp.getDatasetCount) {
+        mergedPlot.setDataset(dataSetIndex, xyp.getDataset(i))
+        mergedPlot.setRenderer(dataSetIndex, ren)
+        dataSetIndex += 1
+      }
+      val newPlot = newCombinedPlot
+      newPlot.add(mergedPlot)
+      resetChart(newPlot)
+      chart.addLegend(createLegend(mergedPlot))
+    }
   }
   
   /** Add a legend, making sure there are no duplicate legend items. */
