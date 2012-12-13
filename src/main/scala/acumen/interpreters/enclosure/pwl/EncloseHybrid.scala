@@ -27,15 +27,14 @@ trait EncloseHybrid extends EncloseEvents {
 
     val teL = (for ((_, mae, _) <- lfes.values if !mae.isEmpty) yield domain(mae).low).foldLeft(t.high)(Interval.min)
 
-    val teR = (for ((_, mae, compl) <- lfes.values if compl) yield domain(mae).high).foldLeft(t.high)(Interval.min)
+    val teR = (for ((_, mae, compl) <- lfes.values if compl) yield domain(mae).high).foldLeft((Interval.min(t.high, teL + ps.maxTimeStepLocalisation)))(Interval.min)
 
+    val noe = unionOfEnclosureListsUntil(teL, lfes.values.toSeq.map { case (noe, _, _) => noe })
     if (teL equalTo t.high) { // proved that there no event at all on T
-      val ret = unionOfEnclosureLists(lfes.values.toSeq.flatMap { case (noe, _, _) => noe })
-      cb.sendResult(ret)
-      ret
+      cb.sendResult(noe)
+      noe
     } 
     else {
-      val noe = unionOfEnclosureListsUntil(teL, lfes.values.toSeq.map { case (noe, _, _) => noe })
       val seInit: StateEnclosure = for ((mode, _) <- sInit) yield {
         lfes.get(mode) match {
           case None => mode -> None
