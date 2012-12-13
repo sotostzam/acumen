@@ -17,4 +17,5 @@ If you have any questions, please contact Walid Taha at
 ---
 TECHNICAL TIPS
 
-- To start internal version with 3D support, use: sbt "run --3d"
+- To start internal version with 3D support,   use: sbt "run --3d"
+- To start internal version with new plotting, use: sbt "run --newplot"
