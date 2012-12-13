@@ -74,14 +74,14 @@ trait SolveIVP {
     UnivariateAffineEnclosure(convertToSolutionOnlyOfTime(current, timeName, T))
   }
 
-  case class SolveVtException(t: Interval) extends Exception
+  case class PicardIterationsExceeded(t: Interval, iterations: Int) extends Exception
 
   /**
    * Iteration may not terminate (e.g. when F is not Leipzig) and is stopped
    * after n attempts.
    */
   private def iterationLimitReached(i: Int, n: Int)(T: Interval)(implicit rnd: Rounding) =
-    if (i < n) false else throw SolveVtException(T)
+    if (i < n) false else throw PicardIterationsExceeded(T, n)
   //      sys.error("solveVt: terminated at " + T + " after " + n + " Picard iterations")
 
   /**
@@ -99,11 +99,15 @@ trait SolveIVP {
       })
   }
 
+  //  case class PicardOverflow extends Exception
+
   /**
    * The Picard operator
    */
   private def picard(timeName: VarName, a: AffineEnclosure, F: Field)(X: AffineEnclosure)(implicit rnd: Rounding): AffineEnclosure = {
-    a + (F(X).primitive(timeName))
+//    try {
+      a + (F(X).primitive(timeName))
+//    } catch { case _ => throw PicardOverflow() }
   }
 
   /**
