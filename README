@@ -80,10 +80,17 @@ SUPPORT
 If you can not get acumen started please email help@acumen-language.org
 with the following information:
 
-  1) The name of the OS that you are using (Windows, Mac OS X, etc),
-  2) Any specific version information you might have about the OS,
-  3) The version of Java that you are using.  To check which version
+  1) The acumen version you are using (which should be part of the
+     name of the jar file).
+  2) The name of the OS that you are using (Windows, Mac OS X, etc),
+  3) Any specific version information you might have about the OS,
+  4) The version of Java that you are using.  To check which version
      of Java you have, please use the website:  http://javatester.org/
+
+If you are having problem with a particular model rather then getting
+acumen started than also:
+
+  5) The code you where trying to execute.
 
 We also welcome your feedback on ways to make Acumen better, please
 send and bug reports are just general suggestions to the same address
