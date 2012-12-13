@@ -113,7 +113,6 @@ trait Extract {
           "minTimeStep" -> 0.01,
           "minTimeStepODEsolving" -> 0.01,
           "minTimeStepLocalisation" -> 0.001,
-          "maxEventStepSize" -> 0.1,
           "maxTimeStep" -> 3,
           "minImprovement" -> 0.0001,
           "splittingDegree" -> 1)
@@ -132,12 +131,6 @@ trait Extract {
             val endTime = updatedParameters("endTime")
             updatedParameters + ("maxTimeStep" -> (endTime - startTime))
           }
-          if (assignedParameters contains "maxEventStepSize")
-            updatedParameters
-          else {
-            val minTimeStepLocalisation = updatedParameters("minTimeStepLocalisation")
-            updatedParameters + ("maxEventStepSize" -> (minTimeStepLocalisation * 100))
-          }
         }
         Parameters(
           params("precision").toInt,
@@ -150,7 +143,6 @@ trait Extract {
           params("minTimeStep"),
           params("minTimeStepODEsolving"),
           params("minTimeStepLocalisation"),
-          params("maxEventStepSize"),
           params("maxTimeStep"),
           params("minImprovement"),
           params("splittingDegree").toInt)
