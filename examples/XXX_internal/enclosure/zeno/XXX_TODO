@@ -1,0 +1,31 @@
+Let's number each different example separelty.  The numbers are there
+mainly for ordering, not for grouping.  Each example should have a
+different name independent of the number that it starts with.
+
+When one example is similar to the revious one, the naming should be
+similar and the difference should be highlighted in the comments.  In
+addition, each example should contain a single line comment that makes
+sense when you look at the examples in sequence.  That single line
+comment should provide "the moral behind presenting this example".
+For the Zeno example, that single line comment should answer the
+question "Why does the graph for this example look like this".
+
+In a sequence, it is best to progress from worst-performing to best
+performing, where the point of bad behavior is to illustrate a real
+problem that we solve.  (So, always avoid superflous problems, because
+you don't people to say that you are solving that kind).
+
+Finally, it would be good to tweak the parameters of all examples so
+that they can run as fast as possible.  This is important to avoid
+giving the impression that our approach is not too slow.
+
+01_Bouncing_Invariant.acm    ->  02_Zeno_Half_Overconstrained.acm
+01_Bouncing_Simple.acm       ->  01_Zeno_Half.acm
+02_Bouncing_Invariant.acm    ->  04_Zeno_Line_Overconstrained.acm  [enclosure still not tight]
+02_Bouncing_Simple.acm       ->  03_Zeno_Line.acm
+03_Bouncing_Invariant.acm    ->  06_Zeno_Expo_Overconstrained.acm  [enclosure still explodes]
+03_Bouncing_Simple.acm       ->  05_Zeno_Expo.acm
+04_Bouncing_Invariant.acm    ->  08_Zeno_Sine_Overconstrained.acm  [enclosure still explodes]
+04_Bouncing_Simple.acm       ->  07_Zeno_Sine.acm
+05_Bouncing_Invariant.acm    ->  10_Zeno_Decay_Overconstrained.acm [very slow, still explodes]
+05_Bouncing_Simple.acm       ->  09_Zeno_Decay.acm

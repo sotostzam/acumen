@@ -45,6 +45,6 @@ And let me know when that done and I will review the changes, and if
 there is a problem I will let you know.  If not I will merge them into
 acumen-e/devel-e.
 
-If you run into trouble please let me know.  Fell free to call me on
-skype if you think that will be helpful.  I will be available for the
-next hour or so.
+If you need to get the latest version, just do this:
+
+  git pull acumen-e devel-e

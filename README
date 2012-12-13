@@ -2,21 +2,23 @@
 ACUMEN 2012 PREVIEW RELEASE, RELEASE NOTES
 ------------------------------------------
 
-This is a preview release of exciting things to come in 2013.
+This is a preview release of new features to come in 2013.  
+New features since the last major Acumen release include:
 
-New features from the last major Acumen release include.
-
- - Acumen 3D
- - Enclosure Support
+ - 3D support based on Yingfu Zeng's Masters thesis
+ - Enlcosure semantics with support for Zeno systems
  - A more responsive user interface
- - Exterminate new plotting code
- - Better Syntax for acumen models
+ - New plotting code
+ - Some improvements to syntax (such as = and := )
+ - Syntax highlighting
 
-As this is only a preview release there are a number of known issues
-which we hope to fix in early 2013.
+This is only a preview release, as there are a few known 
+issues which we plan to fix in early 2013.
+
+Some known issues:
 
   - Acumen 3D has known problems on Linux platforms
-  - The system may not shut down cleanly
+  - The system may need to be shut down externally
 
 For users of Acumen 2010 please note the following important syntax
 change:
