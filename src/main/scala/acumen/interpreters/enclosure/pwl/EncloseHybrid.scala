@@ -18,7 +18,7 @@ trait EncloseHybrid extends EncloseEvents {
 
   def encloseHybrid(ps: Parameters, h: HybridSystem, t: Interval, sInit: StateEnclosure, cb: EnclosureInterpreterCallbacks)(implicit rnd: Rounding): Seq[UnivariateAffineEnclosure] =
     encloseHybrid_New(ps, h, t, sInit, cb)
-//    encloseHybrid_Old(ps, h, t, sInit, cb)
+  //    encloseHybrid_Old(ps, h, t, sInit, cb)
 
   def encloseHybrid_New(ps: Parameters, h: HybridSystem, t: Interval, sInit: StateEnclosure, cb: EnclosureInterpreterCallbacks)(implicit rnd: Rounding): Seq[UnivariateAffineEnclosure] = {
 
@@ -27,22 +27,19 @@ trait EncloseHybrid extends EncloseEvents {
 
     val teL = (for ((_, mae, _) <- lfes.values if !mae.isEmpty) yield domain(mae).low).foldLeft(t.high)(Interval.min)
 
-    val teR = (for ((_, mae, compl) <- lfes.values if compl) yield domain(mae).high).foldLeft((Interval.min(t.high, teL + ps.maxEventStepSize)))(Interval.min)
-
     val noe = unionOfEnclosureListsUntil(teL, lfes.values.toSeq.map { case (noe, _, _) => noe })
     if (teL equalTo t.high) { // proved that there no event at all on T
       cb.sendResult(noe)
       noe
-    } 
-    else {
+    } else {
       val seInit: StateEnclosure = for ((mode, _) <- sInit) yield {
         lfes.get(mode) match {
           case None => mode -> None
           case Some(lfe) => mode -> Some(evalAt(lfe, teL))
         }
       }
+      val (teR, se, seFinal) = teRAndEncloseEvents(ps, h, t, lfes, seInit, teL, t.high - teL)
       val te = teL /\ teR
-      val (se, seFinal) = encloseEvents(ps, h, te, seInit)
       if (teR equalTo t.high) {
         val ret = noe ++ enclosures(te, se)
         cb.sendResult(ret)
@@ -56,6 +53,19 @@ trait EncloseHybrid extends EncloseEvents {
       }
     }
   }
+
+  def teRAndEncloseEvents(ps: Parameters, h: HybridSystem, t: Interval, lfes: Map[Mode, LFE], seInit: StateEnclosure, teL: Interval, pad: Interval)(implicit rnd: Rounding): (Interval, StateEnclosure, StateEnclosure) =
+    try {
+      val teR = (for ((_, mae, compl) <- lfes.values if compl) yield domain(mae).high).foldLeft((Interval.min(t.high, teL + pad)))(Interval.min)
+      val te = teL /\ teR
+      val (se, seFinal) = encloseEvents(ps, h, te, seInit)
+      (teR, se, seFinal)
+    } catch {
+      case _ =>
+        if (pad * 2 lessThan ps.minTimeStepLocalisation)
+          sys.error("solveVt: terminated at " + t + " after " + ps.maxPicardIterations + " Picard iterations")
+        else teRAndEncloseEvents(ps, h, t, lfes, seInit, teL, pad / 2)
+    }
 
   def encloseHybrid_Old(ps: Parameters, h: HybridSystem, t: Interval, sInit: StateEnclosure, cb: EnclosureInterpreterCallbacks)(implicit rnd: Rounding): Seq[UnivariateAffineEnclosure] = {
 
