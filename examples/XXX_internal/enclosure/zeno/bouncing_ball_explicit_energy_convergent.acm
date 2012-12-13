@@ -26,7 +26,7 @@ class Main(simulator)
   simulator.maxPicardIterations := 200;
   simulator.splittingDegree := 2; 
   simulator.maxEventSequenceLength := 30;
-  simulator.minTimeStep := 0.01;
-  simulator.maxTimeStep := 0.1;
+  simulator.minTimeStepODEsolving := 0.01;
+  simulator.minTimeStepLocalisation := 0.001;
   simulator.minImprovement := 0.1;
 end

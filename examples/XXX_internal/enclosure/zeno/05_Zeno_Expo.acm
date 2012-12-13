@@ -23,9 +23,7 @@ class Main(simulator)
   simulator.extraPicardIterations := 20;
   simulator.maxPicardIterations := 200;
   simulator.maxEventSequenceLength := 50;
-  simulator.minTimeStep := 0.0001;
   simulator.minTimeStepODEsolving := 0.01;
   simulator.minTimeStepLocalisation := 0.001;
-  simulator.maxTimeStep := 0.1;
   simulator.minImprovement := 0.001;
 end

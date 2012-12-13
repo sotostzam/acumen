@@ -34,7 +34,7 @@ PREFIX="./$resultDir/$prefix"
 
 mkdir -p $resultDir
 
-sbt "run-main acumen.Main --semantics enclosure $model bench-enclosures $PREFIX $repeat $parm=$values"
+sbt "java -jar acumen-10-devel.jar --semantics enclosure $model bench-enclosures $PREFIX $repeat $parm=$values"
 
 gnuplot <<EOF
 set terminal png

@@ -2,8 +2,6 @@
  * By Yingfu Zeng, Jawad Masood and Adam Duracz
  * Implemented as a constrained double pendulum.
  */
-
-
 class DoublePendulum (theta1, theta2)
   private
     theta1' := 0; theta1'' := 0;
