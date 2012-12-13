@@ -26,7 +26,7 @@ trait SolveIVP {
       case d if d > 1 => A.refine(degree, A.keySet.filter(name => !(F.components(name) == Constant(0))).toSeq: _*)
       //      case 2 => A.split(A.keySet.filter(name => !(F.components(name) == Constant(0))).toSeq: _*)
       case _ => sys.error("solveVt: splittingDegree " + degree + " not supported!")
-    }    
+    }
     val es = as map (solveIVP(F, T, _, delta, m, n))
     UnivariateAffineEnclosure.unionThem(es.toSeq).head
   }
@@ -74,12 +74,15 @@ trait SolveIVP {
     UnivariateAffineEnclosure(convertToSolutionOnlyOfTime(current, timeName, T))
   }
 
+  case class SolveVtException(t: Interval) extends Exception
+
   /**
    * Iteration may not terminate (e.g. when F is not Leipzig) and is stopped
    * after n attempts.
    */
   private def iterationLimitReached(i: Int, n: Int)(T: Interval)(implicit rnd: Rounding) =
-    if (i < n) false else sys.error("solveVt: terminated at " + T + " after " + n + " Picard iterations")
+    if (i < n) false else throw SolveVtException(T)
+  //      sys.error("solveVt: terminated at " + T + " after " + n + " Picard iterations")
 
   /**
    * Obtain a solution approximation that is a function of 't' only.
