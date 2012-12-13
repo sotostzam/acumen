@@ -1,0 +1,24 @@
+/* Large localization time step
+ * Authors: Walid Taha and Adam Duracz
+ * Due to a large localization time step, few resets are evaluated, yielding a wide enclosure. 
+ */
+class Main(simulator)
+  private
+    d := 1; d' := -1;
+    s := 1/2;
+    mode := ""; 
+  end
+  switch mode
+    case "" require s <= abs(d)
+      if s == d 
+        s := s/2; 
+        mode := "" 
+      end;
+      d' = -1;
+  end;
+  simulator.startTime := 0;
+  simulator.endTime := 1.1;
+  simulator.minTimeStepODEsolving := 1.1;
+  simulator.minTimeStepLocalisation := 0.01;
+  simulator.minImprovement := 0;
+end
