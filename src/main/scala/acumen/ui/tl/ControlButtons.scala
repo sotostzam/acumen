@@ -46,7 +46,7 @@ class ControlButtons extends FlowPanel {
   }
   val stop = new Action("stop") {
     icon = Icons.stop    
-    def apply = { println("Controller state = " + App.ui.controller.getState); App.ui.controller ! Stop; }
+    def apply = { App.ui.controller ! Stop; }
     toolTip = "Stop simulation (cannot resume)"
   }
 
