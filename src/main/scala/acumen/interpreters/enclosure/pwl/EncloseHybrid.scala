@@ -61,9 +61,9 @@ trait EncloseHybrid extends EncloseEvents {
       val (se, seFinal) = encloseEvents(ps, h, te, seInit)
       (teR, se, seFinal)
     } catch {
-      case _ =>
+      case SolveVtException(interval) =>
         if (pad * 2 lessThan ps.minTimeStepLocalisation)
-          sys.error("solveVt: terminated at " + t + " after " + ps.maxPicardIterations + " Picard iterations")
+          sys.error("solveVt: terminated at " + interval + " after " + ps.maxPicardIterations + " Picard iterations")
         else teRAndEncloseEvents(ps, h, t, lfes, seInit, teL, pad / 2)
     }
 
