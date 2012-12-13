@@ -93,3 +93,26 @@ contact the project-acumen-l@mailman.rice.edu and include
   2) Any specific version information you might have about the OS,
   3) The version of Java that you are using.  To check which version
      of Java you have, please use the website:  http://javatester.org/
+
+COMPILING
+---------
+
+To compile from source you need to install SBT.  The easiest thing is
+to download this file:
+  http://repo.typesafe.com/typesafe/ivy-releases/org.scala-sbt/sbt-launch/0.12.0/sbt-launch.jar
+and save it to ~/bin/sbt-launch.jar.  Then, create a shell script
+called sbt with the following contents
+  java -Xmx2g -XX:MaxPermSize=1g -XX:ReservedCodeCacheSize=128m -jar ~/bin/sbt-launch.jar "$@"
+
+Then to compile and run acumen use:
+
+  sbt run
+
+To create a jar file use:
+
+  sbt proguard
+
+which will create a jar file in target/scala-2.9.2/acumen-FIXME.jar
+
+To do more read up on how how to use sbt at
+https://github.com/harrah/xsbt/wiki.
