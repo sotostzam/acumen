@@ -1,5 +1,5 @@
 /* Bouncing ball explicit energy mik2
- * Auhtors: Michal Konecny and Jan Duracz
+ * Authors: Michal Konecny and Jan Duracz
  * Implements the EBB model from the paper.
  */
 class Main(simulator)
