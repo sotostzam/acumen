@@ -1,0 +1,22 @@
+/* Bouncing Ball overconstrained
+ * Authors: Michal Konecny and Jan Duracz
+ * Adding a simple constraint improves the enclosure considerably.
+ */
+class Main(simulator)
+  private 
+    mode := "Fly"; x := 5; x' := 0; x'' := 0 
+  end
+  switch mode
+    case "Fly" require x >= 0
+      if x == 0 && x' <= 0
+        x' := -0.5 * x';
+        mode := "Fly"
+      end;
+      x'' = -10
+  end;
+  simulator.startTime := 0;
+  simulator.endTime := 3.5;
+  simulator.minTimeStepODEsolving := 0.02;
+  simulator.minTimeStepLocalisation := 0.001;
+  simulator.minImprovement := 0.001;
+end

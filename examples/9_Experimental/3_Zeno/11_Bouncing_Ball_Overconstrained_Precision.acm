@@ -1,0 +1,26 @@
+/* Bouncing Ball overconstrained with improved precision
+ * Authors: Michal Konecny and Jan Duracz
+ * An additional invariant, based on a helper variable, makes the post-Zeno enclosure convergent.
+ */
+class Main(simulator)
+  private 
+    mode := "Fly"; 
+    x := 5; x' := 0; x'' := 0;  
+    r := 100; r' := 0;
+  end
+  switch mode
+    case "Fly" require x >= 0 && r == x'*x' + 20*x
+      if x == 0 && x' <= 0
+        x' := -0.5*x';
+        r  := [0.0..0.25]*r;
+        mode := "Fly";
+      end;
+      x'' = -10;
+      r'  = 0;
+  end;
+  simulator.startTime := 0;
+  simulator.endTime := 3.5;
+  simulator.minTimeStepODEsolving := 0.01;
+  simulator.minTimeStepLocalisation := 0.01;
+  simulator.minImprovement := 0.001;
+end

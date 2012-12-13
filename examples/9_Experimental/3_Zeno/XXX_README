@@ -1,0 +1,66 @@
+Progression of models for the Zeno paper
+----------------------------------------
+
+The idea is to show a procedure for studying the
+enclosure of systems after their Zeno point, which
+goes something like this:
+
+  1 Run the model in its naïve formulation, i.e.
+    no invariants and with parameter settings that
+    make the model fast to run.
+    
+  2 Add knowledge about the system in terms of 
+    invariants in order to improve the precision
+    of the enclosure.
+  
+  3 Tweak the solver/simulator parameters to further
+    improve the precision of the enclosure. At this
+    stage the enclosure can get right enough to get
+    a good picture of how the system behaves before
+    and after the Zeno point. I suggest that changing
+    simulator parameters is done last because it 
+    usually makes the simulation take a lot longer.
+
+I selected the following models to demonstrate the
+above procedure:
+
+ - The simplest possible Zeno system. Nicely demonstrates 
+   the effect of adding an invariant and the localization 
+   time step parameter.
+
+   01_Zeno_Half.acm
+   02_Zeno_Half_Overconstrained.acm
+   03_Zeno_Half_Improved_Precision.acm
+   
+ - A slightly more complicated model, where it already 
+   takes some thinking to imagine the post-Zeno behavior. 
+   By following the procedure (adding an invariant, 
+   tweaking the parameters) we can see that the system is
+   not stable after Zeno, which is reasonable if one thinks 
+   about it.
+  
+   04_Zeno_Line.acm
+   05_Zeno_Line_Overconstrained.acm
+   06_Zeno_Line_Overconstrained_Precision.acm
+   
+ - A system which has stable (even convergent) post-Zeno 
+   dynamics. In this case adding a simple invariant is not 
+   enough to prove this (the enclosure after Zeno diverges 
+   in the first model). Here, in the second model, adding 
+   a helper variable and expressing an invariant in terms 
+   of it gives a tight enclosure after Zeno.
+   I have not been able to confirm it, but the enclosure 
+   after Zeno seems to shrink as time progresses, so it is
+   possibly another case of a convergent enclosure.
+   
+   07_Two_Tanks-Overconstrained.acm
+   08_Two_Tanks_Overconstrained_Helper_Variable.acm
+  
+ - The bouncing ball finally demonstrates the procedure 
+   used for the Two Tanks model on a system with a non-
+   linear ODE solution. In this case, the convergence after 
+   Zeno is fast enough to be clearly visible.
+  
+   09_Bouncing_Ball.acm
+   10_Bouncing_Ball_Overconstrained.acm
+   11_Bouncing_Ball_Overconstrained_Helper_Variable.acm
