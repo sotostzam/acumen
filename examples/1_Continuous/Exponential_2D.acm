@@ -1,12 +1,10 @@
 //////////////////////////////////////////////
-// This file is called exponential_1.acm    //
-// It is an example of a continuous system. //
 //////////////////////////////////////////////
 class Main(simulator)
   private 
     mode := "on"; x := 1; x' := 1; x'' := 0; 
   end
-  simulator.precision := 10;
+  simulator.bigDecimalDigits := 10;
   simulator.startTime := 0;
   simulator.endTime := 9;
   simulator.initialConditionPadding := 0;

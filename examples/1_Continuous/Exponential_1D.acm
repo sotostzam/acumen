@@ -1,23 +1,29 @@
 //////////////////////////////////////////////
-// This file is called exponential_1.acm    //
+// This file is called exponential_2.acm    //
 // It is an example of a continuous system. //
 //////////////////////////////////////////////
 class Main(simulator)
   private 
-    mode := "on"; x := 1; x' := 1; x'' := 0; 
+    mode := "on"; 
+    x   := [-0.1..0.1]; x'   := 1;
+    hi :=  0.1       ; hi' := 1;
+    lo := -0.1       ; lo' := 1;
   end
-  simulator.precision := 10;
+  switch mode
+    case "on" 
+      x'   = -x;
+      hi' = -hi;
+      lo' = -lo;
+  end;
+  simulator.bigDecimalDigits := 10;
   simulator.startTime := 0;
-  simulator.endTime := 9;
+  simulator.endTime := 1;
   simulator.initialConditionPadding := 0;
   simulator.extraPicardIterations := 20;
   simulator.maxPicardIterations := 200;
+  simulator.splittingDegree := 1;
   simulator.maxEventSequenceLength := 30;
   simulator.minSolverStep := 0.01;
   simulator.minLocalizationStep := 0.001;
-  simulator.minImprovement := 0.0001; 
-  switch mode
-    case "on" 
-      x'' = -x';
-  end
+  simulator.minImprovement := 0.1; 
 end

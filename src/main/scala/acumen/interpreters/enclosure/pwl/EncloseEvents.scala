@@ -73,7 +73,7 @@ trait EncloseEvents extends SolveIVP {
     else
       try {
         val e = encloseFlowStep(ps, f, t, init)
-        if (t.width lessThan ps.minTimeStepODEsolving * 2) Seq(e)
+        if (t.width lessThan ps.minSolverStep * 2) Seq(e)
         else {
           val (eL, eR) = splitAndEncloseFlowStep(ps, f, t, init)
           if (significantImprovement(e, eR, t.high, ps.minImprovement))
@@ -82,7 +82,7 @@ trait EncloseEvents extends SolveIVP {
         }
       } catch {
         case _ =>
-          if (t.width lessThan ps.minTimeStepODEsolving * 2) sys.error("EncloseFlowFailure")
+          if (t.width lessThan ps.minSolverStep * 2) sys.error("EncloseFlowFailure")
           else splitAndRepeatEncloseFlow(ps, f, t, init)
       }
   }

@@ -1,0 +1,18 @@
+class Main(simulator)
+  private 
+    mode := "on"; 
+    x   := [-0.1..0.1]; x'   := 1;
+    hi :=  0.1       ; hi' := 1;
+    lo := -0.1       ; lo' := 1;
+  end
+  switch mode
+    case "on" 
+      x'   = -x;
+      hi' = -hi;
+      lo' = -lo;
+  end;
+  simulator.endTime := 10;
+  simulator.minSolverStep := 0.01;
+  simulator.minLocalizationStep := 0.1;
+  simulator.minImprovement := 0.001; 
+end

@@ -89,7 +89,7 @@ trait EncloseHybrid extends EncloseEvents {
       if (t.width greaterThan ps.maxTimeStep) splitAndRepeatComputeLFE(t, init)
       else try {
         val e = solveVt(h.fields(m), t, init, ps.solveVtInitialConditionPadding, ps.extraPicardIterations, ps.maxPicardIterations, ps.splittingDegree)
-        if (t.width lessThan ps.minTimeStepODEsolving * 2)
+        if (t.width lessThan ps.minSolverStep * 2)
           computeLFEnoODE(e)
         else {
           val (eL, eR) = splitAndSolveVt(t, init)
@@ -100,7 +100,7 @@ trait EncloseHybrid extends EncloseEvents {
         }
       } catch {
         case _ => // FIXME do this properly using specialized exceptions re-throwing messages...
-          if (t.width lessThan ps.minTimeStepODEsolving * 2)
+          if (t.width lessThan ps.minSolverStep * 2)
             sys.error("solveVt: terminated at " + t + " after " + ps.maxPicardIterations + " Picard iterations")
           else splitAndRepeatComputeLFE(t, init)
       }
@@ -127,7 +127,7 @@ trait EncloseHybrid extends EncloseEvents {
     def computeLFEnoODE(e: UnivariateAffineEnclosure)(implicit rnd: Rounding): LFE = {
       val (eLFE, eLFEisBad) = enclosureToLFE(h, m, e)
       val eLFEisHopeless = enclosureHasNoEventInfo(ps, h, m, e)
-      if (eLFEisHopeless || (e.domain.width lessThan ps.minTimeStepLocalisation * 2)) {
+      if (eLFEisHopeless || (e.domain.width lessThan ps.minLocalizationStep * 2)) {
         // plot the noe part of eLFE here
         //        val (noe, _, _) = eLFE
         //        cb.sendResult(noe)
