@@ -111,7 +111,7 @@ trait EncloseEvents extends SolveIVP {
 
   def encloseFlowStep(ps: Parameters, f: Field, t: Interval, b: Box)(implicit rnd: Rounding): UnivariateAffineEnclosure =
     solveVt(f, t, b,
-      ps.solveVtInitialConditionPadding,
+      ps.initialPicardPadding,
       ps.picardImprovements,
       ps.maxPicardIterations,
       ps.splittingDegree)

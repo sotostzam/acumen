@@ -36,7 +36,7 @@ object Sandbox extends App with Extract with Solver { // with SolveVt {
   //      h,
   //      ps.simulationTime,
   //      Set(us),
-  //      ps.solveVtInitialConditionPadding,
+  //      ps.initialPicardPadding,
   //      ps.picardImprovements,
   //      ps.maxPicardIterations,
   //      ps.splittingDegree,

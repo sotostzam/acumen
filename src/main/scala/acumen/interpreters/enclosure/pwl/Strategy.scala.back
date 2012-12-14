@@ -66,13 +66,13 @@ trait Strategy extends EncloseEvents with SolveIVP {
   def piecewisePicard(ps: Parameters, f: Field, t: Interval, b: Box)(implicit rnd: Rounding): Seq[UnivariateAffineEnclosure] = {
     if (t.width greaterThan ps.maxTimeStep) repeatPiecewisePicard(ps, f, t, b)
     else {
-      val e = solveVt(f, t, b, ps.solveVtInitialConditionPadding, ps.picardImprovements, ps.maxPicardIterations, ps.splittingDegree)
+      val e = solveVt(f, t, b, ps.initialPicardPadding, ps.picardImprovements, ps.maxPicardIterations, ps.splittingDegree)
       if (t.width lessThan ps.minTimeStep * 2) Seq(e) // HERE
       else {
         val (tL, tR) = t.split
-        val eL = solveVt(f, tL, b, ps.solveVtInitialConditionPadding, ps.picardImprovements, ps.maxPicardIterations, ps.splittingDegree)
+        val eL = solveVt(f, tL, b, ps.initialPicardPadding, ps.picardImprovements, ps.maxPicardIterations, ps.splittingDegree)
         val bR = eL(tL.high)
-        val eR = solveVt(f, tR, bR, ps.solveVtInitialConditionPadding, ps.picardImprovements, ps.maxPicardIterations, ps.splittingDegree)
+        val eR = solveVt(f, tR, bR, ps.initialPicardPadding, ps.picardImprovements, ps.maxPicardIterations, ps.splittingDegree)
         if (norm(e(t.high)) - norm(eR(t.high)) lessThan ps.minComputationImprovement) Seq(e) // HERE
         else repeatPiecewisePicard(ps, f, t, b)
       }

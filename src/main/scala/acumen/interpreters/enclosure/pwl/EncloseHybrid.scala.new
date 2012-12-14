@@ -51,14 +51,14 @@ trait EncloseHybrid extends EncloseEvents {
   def encloseUntilEventDetected(ps: Parameters, h: HybridSystem, t: Interval, m: Mode, init: Box)(implicit rnd: Rounding): LFE =
     if (t.width greaterThan ps.maxTimeStep) repeatEncloseUntilEventDetected(ps, h, t, m, init)
     else {
-      val e = solveVt(h.fields(m), t, init, ps.solveVtInitialConditionPadding, ps.picardImprovements, ps.maxPicardIterations, ps.splittingDegree)
+      val e = solveVt(h.fields(m), t, init, ps.initialPicardPadding, ps.picardImprovements, ps.maxPicardIterations, ps.splittingDegree)
       val (eLFE, eLFEisGood) = toLFE(h, e, m)
       if (t.width lessThan ps.minTimeStep * 2) eLFE
       else {
         val (tL, tR) = t.split
-        val eL = solveVt(h.fields(m), tL, init, ps.solveVtInitialConditionPadding, ps.picardImprovements, ps.maxPicardIterations, ps.splittingDegree)
+        val eL = solveVt(h.fields(m), tL, init, ps.initialPicardPadding, ps.picardImprovements, ps.maxPicardIterations, ps.splittingDegree)
         val initR = eL(tL.high)
-        val eR = solveVt(h.fields(m), tR, initR, ps.solveVtInitialConditionPadding, ps.picardImprovements, ps.maxPicardIterations, ps.splittingDegree)
+        val eR = solveVt(h.fields(m), tR, initR, ps.initialPicardPadding, ps.picardImprovements, ps.maxPicardIterations, ps.splittingDegree)
         if (!significantImprovement(e, eR, t.right, ps.minComputationImprovement) && eLFEisGood) eLFE
         else repeatEncloseUntilEventDetected(ps, h, t, m, init)
       }
