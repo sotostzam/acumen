@@ -21,12 +21,12 @@ trait ReusingSolver extends AtomicStep {
     K: Int, // maximum event tree size in solveVtE
     minTimeStep: Double, // minimum time step size
     maxTimeStep: Double, // maximum time step size
-    minImprovement: Double, // minimum improvement of enclosure
+    minComputationImprovement: Double, // minimum improvement of enclosure
     output: String, // path to write output 
     cb: EnclosureInterpreterCallbacks)(implicit rnd: Rounding): Seq[UnivariateAffineEnclosure] = {
     Util.newFile(output)
     cb.endTime = T.hiDouble
-    solveHybrid(H, delta, m, n, degree, K, output, cb)(minTimeStep, maxTimeStep, minImprovement)(Ss, T).get._1
+    solveHybrid(H, delta, m, n, degree, K, output, cb)(minTimeStep, maxTimeStep, minComputationImprovement)(Ss, T).get._1
   }
 
   def solveHybrid(
@@ -40,16 +40,16 @@ trait ReusingSolver extends AtomicStep {
     cb: EnclosureInterpreterCallbacks)(
       minTimeStep: Double,
       maxTimeStep: Double,
-      minImprovement: Double)(
+      minComputationImprovement: Double)(
         us: Set[UncertainState],
         t: Interval)(implicit rnd: Rounding): MaybeResult = {
     if (t.width lessThanOrEqualTo maxTimeStep) {
       val maybeResultT = atomicStep(H, delta, m, n, degree, K, output, cb.log)(us, t)
-      solveHybridAux(H, delta, m, n, degree, K, output, cb)(minTimeStep, maxTimeStep: Double, minImprovement)(us, t, maybeResultT)
+      solveHybridAux(H, delta, m, n, degree, K, output, cb)(minTimeStep, maxTimeStep: Double, minComputationImprovement)(us, t, maybeResultT)
     } else
-      solveHybrid(H, delta, m, n, degree, K, output, cb)(minTimeStep, maxTimeStep, minImprovement)(us, t.left) match {
+      solveHybrid(H, delta, m, n, degree, K, output, cb)(minTimeStep, maxTimeStep, minComputationImprovement)(us, t.left) match {
         case None => None
-        case Some((esl, usl)) => solveHybrid(H, delta, m, n, degree, K, output, cb)(minTimeStep, maxTimeStep, minImprovement)(usl, t.right) match {
+        case Some((esl, usl)) => solveHybrid(H, delta, m, n, degree, K, output, cb)(minTimeStep, maxTimeStep, minComputationImprovement)(usl, t.right) match {
           case None => None
           case Some((esr, usr)) => Some(esl ++ esr, usr)
         }
@@ -67,19 +67,19 @@ trait ReusingSolver extends AtomicStep {
     cb: EnclosureInterpreterCallbacks)(
       minTimeStep: Double,
       maxTimeStep: Double,
-      minImprovement: Double)(
+      minComputationImprovement: Double)(
         us: Set[UncertainState],
         t: Interval,
         maybeResultT: MaybeResult)(implicit rnd: Rounding): MaybeResult = {
     if (t.width lessThanOrEqualTo minTimeStep) maybeResultT
     else maybeResultT match {
-      case None => subdivideAndRecur(H, delta, m, n, degree, K, output, cb)(minTimeStep, maxTimeStep, minImprovement)(us, t, None)
+      case None => subdivideAndRecur(H, delta, m, n, degree, K, output, cb)(minTimeStep, maxTimeStep, minComputationImprovement)(us, t, None)
       case Some(resultT) =>
         val (maybeResultTL, maybeResultTR) = subdivideOneLevelOnly(H, delta, m, n, degree, K, output, cb.log)(us, t)
-        if (bestOf(minImprovement)(resultT, maybeResultTR) == resultT) {
+        if (bestOf(minComputationImprovement)(resultT, maybeResultTR) == resultT) {
           cb.sendResult(resultT._1)
           Some(resultT)
-        } else subdivideAndRecur(H, delta, m, n, degree, K, output, cb)(minTimeStep, maxTimeStep, minImprovement)(us, t, maybeResultTL)
+        } else subdivideAndRecur(H, delta, m, n, degree, K, output, cb)(minTimeStep, maxTimeStep, minComputationImprovement)(us, t, maybeResultTL)
     }
   }
 
@@ -94,14 +94,14 @@ trait ReusingSolver extends AtomicStep {
     cb: EnclosureInterpreterCallbacks)(
       minTimeStep: Double,
       maxTimeStep: Double,
-      minImprovement: Double)(
+      minComputationImprovement: Double)(
         us: Set[UncertainState],
         t: Interval,
         maybeResultTL: MaybeResult)(implicit rnd: Rounding): MaybeResult =
-    solveHybridAux(H, delta, m, n, degree, K, output, cb)(minTimeStep, maxTimeStep, minImprovement)(us, t.left, maybeResultTL) match {
+    solveHybridAux(H, delta, m, n, degree, K, output, cb)(minTimeStep, maxTimeStep, minComputationImprovement)(us, t.left, maybeResultTL) match {
       case None => None
       case Some((esl, usl)) =>
-        solveHybrid(H, delta, m, n, degree, K, output, cb)(minTimeStep, maxTimeStep, minImprovement)(usl, t.right) match {
+        solveHybrid(H, delta, m, n, degree, K, output, cb)(minTimeStep, maxTimeStep, minComputationImprovement)(usl, t.right) match {
           case None => None
           case Some((esr, usr)) => Some((esl ++ esr, usr))
         }

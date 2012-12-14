@@ -19,7 +19,7 @@ trait LocalizingSolver extends SolveVt {
     time: Interval, // time segment to simulate over
     uncertainStates: Set[UncertainState], // initial modes and initial conditions
     initialConditionPadding: Double, // parameter of solveVt
-    extraPicardIterations: Int, // parameter of solveVt
+    picardImprovements: Int, // parameter of solveVt
     maxPicardIterations: Int, // maximum number of Picard iterations in solveVt
     maxEventTreeSize: Int, // maximum event tree size in solveVtE
     minTimeStep: Double, // minimum time step size
@@ -28,7 +28,7 @@ trait LocalizingSolver extends SolveVt {
     outputFile: String, // path to write output 
     cb: EnclosureInterpreterCallbacks)(implicit rnd: Rounding): Seq[UnivariateAffineEnclosure] = {
     // get an enclosure for each uncertain state
-    val enclosures = uncertainStates.toSeq.flatMap(us => piecewisePicard(system.fields(us.mode), initialConditionPadding, extraPicardIterations, maxPicardIterations, minTimeStep, maxTimeStep, splittingDegree, outputFile, cb)(us.initialCondition, time))
+    val enclosures = uncertainStates.toSeq.flatMap(us => piecewisePicard(system.fields(us.mode), initialConditionPadding, picardImprovements, maxPicardIterations, minTimeStep, maxTimeStep, splittingDegree, outputFile, cb)(us.initialCondition, time))
     enclosures
   }
 
@@ -39,14 +39,14 @@ trait LocalizingSolver extends SolveVt {
   def piecewisePicard(
     field: Field,
     initialConditionPadding: Double,
-    extraPicardIterations: Int,
+    picardImprovements: Int,
     maxPicardIterations: Int,
     minTimeStep: Double,
     maxTimeStep: Double,
     splittingDegree: Int, 
     outputFile: String,
     cb: EnclosureInterpreterCallbacks)(initialCondition: Box, segment: Interval)(implicit rnd: Rounding): Seq[UnivariateAffineEnclosure] = {
-    def piecewisePicardHelper = piecewisePicard(field, initialConditionPadding, extraPicardIterations, maxPicardIterations, minTimeStep, maxTimeStep, splittingDegree, outputFile, cb)_
+    def piecewisePicardHelper = piecewisePicard(field, initialConditionPadding, picardImprovements, maxPicardIterations, minTimeStep, maxTimeStep, splittingDegree, outputFile, cb)_
     if (segment.width greaterThan maxTimeStep) {
       val (leftSegment, rightSegment) = segment.split
       val leftEnclosures = piecewisePicardHelper(initialCondition, leftSegment)
@@ -54,15 +54,15 @@ trait LocalizingSolver extends SolveVt {
       val rightEnclosures = piecewisePicardHelper(rightInitialCondition, rightSegment)
       leftEnclosures ++ rightEnclosures
     } else {
-      val enclosure = solveVt(field, segment, initialCondition, initialConditionPadding, extraPicardIterations, maxPicardIterations, splittingDegree)
+      val enclosure = solveVt(field, segment, initialCondition, initialConditionPadding, picardImprovements, maxPicardIterations, splittingDegree)
       if (segment.width lessThan minTimeStep * 2) {
         println("minimum step size at " + segment)
         Seq(enclosure)
       } else {
         val (leftSegment, rightSegment) = segment.split
-        val leftEnclosure = solveVt(field, leftSegment, initialCondition, initialConditionPadding, extraPicardIterations, maxPicardIterations, splittingDegree)
+        val leftEnclosure = solveVt(field, leftSegment, initialCondition, initialConditionPadding, picardImprovements, maxPicardIterations, splittingDegree)
         var rightInitialCondition = leftEnclosure(leftSegment.high)
-        val rightEnclosure = solveVt(field, rightSegment, rightInitialCondition, initialConditionPadding, extraPicardIterations, maxPicardIterations, splittingDegree)
+        val rightEnclosure = solveVt(field, rightSegment, rightInitialCondition, initialConditionPadding, picardImprovements, maxPicardIterations, splittingDegree)
         if (norm(rightEnclosure(segment.high)) lessThan norm(enclosure(segment.high))) {
           val leftEnclosures = piecewisePicardHelper(initialCondition, leftSegment)
           val rightInitialCondition = leftEnclosures.last(leftSegment.high)

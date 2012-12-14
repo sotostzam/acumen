@@ -103,18 +103,18 @@ trait Extract {
         }
         // FIXME coercing each integer to a double and back is not ideal...
         val defaultParameters = Map[String, Double](
-          "precision" -> 10,
+          "bigDecimalDigits" -> 10,
           "startTime" -> 0,
           "endTime" -> 3,
-          "initialConditionPadding" -> 0,
-          "extraPicardIterations" -> 20,
+          "initialPicardPadding" -> 0,
+          "picardImprovements" -> 20,
           "maxPicardIterations" -> 200,
-          "maxEventSequenceLength" -> 30,
+          "maxEventTreeSize" -> 30,
           "minTimeStep" -> 0.01,
-          "minTimeStepODEsolving" -> 0.01,
-          "minTimeStepLocalisation" -> 0.001,
+          "minSolverStep" -> 0.01,
+          "minLocalizationStep" -> 0.001,
           "maxTimeStep" -> 3,
-          "minImprovement" -> 0.0001,
+          "minComputationImprovement" -> 0.0001,
           "splittingDegree" -> 1,
           "maxIterations" -> 100)
         val params = {
@@ -134,18 +134,18 @@ trait Extract {
           }
         }
         Parameters(
-          params("precision").toInt,
+          params("bigDecimalDigits").toInt,
           params("startTime"),
           params("endTime"),
-          params("initialConditionPadding"),
-          params("extraPicardIterations").toInt,
+          params("initialPicardPadding"),
+          params("picardImprovements").toInt,
           params("maxPicardIterations").toInt,
-          params("maxEventSequenceLength").toInt,
+          params("maxEventTreeSize").toInt,
           params("minTimeStep"),
-          params("minTimeStepODEsolving"),
-          params("minTimeStepLocalisation"),
+          params("minSolverStep"),
+          params("minLocalizationStep"),
           params("maxTimeStep"),
-          params("minImprovement"),
+          params("minComputationImprovement"),
           params("splittingDegree").toInt,
           params("maxIterations").toInt)
       }

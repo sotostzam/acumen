@@ -20,7 +20,7 @@ class Main(simulator)
   end;
   simulator.startTime := 0;
   simulator.endTime := 3.5;
-  simulator.minTimeStepODEsolving := 0.01;
-  simulator.minTimeStepLocalisation := 0.01;
-  simulator.minImprovement := 0.001;
+  simulator.minSolverStep := 0.01;
+  simulator.minLocalizationStep := 0.01;
+  simulator.minComputationImprovement := 0.001;
 end

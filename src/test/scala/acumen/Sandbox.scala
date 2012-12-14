@@ -26,7 +26,7 @@ object Sandbox extends App with Extract with Solver { // with SolveVt {
   //  val main = classDef(ClassName("Main"), des)
   //
   //  val ps = parameters(main)
-  //  implicit val rnd = Rounding(ps.precision)
+  //  implicit val rnd = Rounding(ps.bigDecimalDigits)
   //  val (h: HybridSystem, us) = extract(main)
   //
   //  val start = System.currentTimeMillis
@@ -36,14 +36,14 @@ object Sandbox extends App with Extract with Solver { // with SolveVt {
   //      h,
   //      ps.simulationTime,
   //      Set(us),
-  //      ps.solveVtInitialConditionPadding,
-  //      ps.extraPicardIterations,
+  //      ps.initialPicardPadding,
+  //      ps.picardImprovements,
   //      ps.maxPicardIterations,
   //      ps.splittingDegree,
   //      ps.maxEventTreeSize,
   //      ps.minTimeStep,
   //      ps.maxTimeStep,
-  //      ps.minImprovement,
+  //      ps.minComputationImprovement,
   //      "output",
   //      defaultCallback)
   //

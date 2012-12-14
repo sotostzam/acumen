@@ -30,10 +30,10 @@ trait Solver extends EncloseEvents {
     K: Int, // maximum event tree size in solveVtE
     d: Double, // minimum time step size
     e: Double, // maximum time step size
-    minImprovement: Double, // minimum improvement of enclosure
+    minComputationImprovement: Double, // minimum improvement of enclosure
     cb: EnclosureInterpreterCallbacks)(implicit rnd: Rounding): Seq[UnivariateAffineEnclosure] = {
     cb.endTime = T.hiDouble
-    solveHybrid(H, T, Ss, delta, m, n, degree, K, d, e, minImprovement, cb)._2
+    solveHybrid(H, T, Ss, delta, m, n, degree, K, d, e, minComputationImprovement, cb)._2
   }
 
   // TODO add description
@@ -48,7 +48,7 @@ trait Solver extends EncloseEvents {
     K: Int, // maximum event tree size in solveVtE, gives termination condition for tree enlargement
     d: Double, // minimum time step size
     e: Double, // maximum time step size
-    minImprovement: Double, // minimum improvement of enclosure
+    minComputationImprovement: Double, // minimum improvement of enclosure
     cb: EnclosureInterpreterCallbacks // carrier for call-backs for communicating with the GUI
     )(implicit rnd: Rounding): (Set[UncertainState], Seq[UnivariateAffineEnclosure]) = {
     //    println("solveHybrid: on so" + T)
@@ -60,8 +60,8 @@ trait Solver extends EncloseEvents {
         sys.error("gave up for minimum step size " + d + " at " + T)
       } else {
         //        cb.log("splitting " + T)
-        val (ssl, ysl) = solveHybrid(H, lT, Ss, delta, m, n, degree, K, d, e, minImprovement, cb)
-        val (ssr, ysr) = solveHybrid(H, rT, ssl, delta, m, n, degree, K, d, e, minImprovement, cb)
+        val (ssl, ysl) = solveHybrid(H, lT, Ss, delta, m, n, degree, K, d, e, minComputationImprovement, cb)
+        val (ssr, ysr) = solveHybrid(H, rT, ssl, delta, m, n, degree, K, d, e, minComputationImprovement, cb)
         (ssr, ysl ++ ysr)
       }
     } else {
@@ -71,8 +71,8 @@ trait Solver extends EncloseEvents {
           sys.error("gave up for minimum step size " + d + " at " + T)
         } else {
           //        cb.log("splitting " + T)
-          val (ssl, ysl) = solveHybrid(H, lT, Ss, delta, m, n, degree, K, d, e, minImprovement, cb)
-          val (ssr, ysr) = solveHybrid(H, rT, ssl, delta, m, n, degree, K, d, e, minImprovement, cb)
+          val (ssl, ysl) = solveHybrid(H, lT, Ss, delta, m, n, degree, K, d, e, minComputationImprovement, cb)
+          val (ssr, ysr) = solveHybrid(H, rT, ssl, delta, m, n, degree, K, d, e, minComputationImprovement, cb)
           (ssr, ysl ++ ysr)
         }
       else {
@@ -122,7 +122,7 @@ trait Solver extends EncloseEvents {
             if (cannotSplit ||
               {
                 //              log("improvement : " + improvement);
-                improvement lessThanOrEqualTo minImprovement
+                improvement lessThanOrEqualTo minComputationImprovement
               }) {
               cb.sendResult(resultForT._2)
               //              println("solveHybrid: logged results for " + T) //  PRINTME
@@ -131,8 +131,8 @@ trait Solver extends EncloseEvents {
               resultForT
             } else {
               //            cb.log("splitting " + T)
-              val (ssl, ysl) = solveHybrid(H, lT, Ss, delta, m, n, degree, K, d, e, minImprovement, cb)
-              val (ssr, ysr) = solveHybrid(H, rT, ssl, delta, m, n, degree, K, d, e, minImprovement, cb)
+              val (ssl, ysl) = solveHybrid(H, lT, Ss, delta, m, n, degree, K, d, e, minComputationImprovement, cb)
+              val (ssr, ysr) = solveHybrid(H, rT, ssl, delta, m, n, degree, K, d, e, minComputationImprovement, cb)
               //                            println("solveHybrid: @" + T + ": " + ssr.head.initialCondition)  //  PRINTME
               (ssr, ysl ++ ysr)
             }

@@ -27,7 +27,7 @@ model=examples/XXX_internal/enclosure/zeno/02_Zeno_Half_Overconstrained.acm
 resultDir=benchmark-res
 prefix=Zeno_Half_Overconstrained-minImprovment
 repeat=3
-parm=minImprovement
+parm=minComputationImprovement
 values=0.00001,0.0001,0.001,0.005
 
 PREFIX="./$resultDir/$prefix"
@@ -53,7 +53,7 @@ set terminal png
 set output "$PREFIX-precision.png"
 set title "$title"
 set xlabel "$parm"
-set ylabel "precision"
+set ylabel "bigDecimalDigits"
 unset key # don't display a legend
 set logscale x
 plot "$PREFIX-precision-norm.dat" using 1:3 with lines

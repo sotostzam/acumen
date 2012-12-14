@@ -26,7 +26,7 @@ trait FixedStepSolver extends SolveVtE {
     K: Int, // maximum event tree size in solveVtE
     d: Double, // minimum time step size
     e: Double, // maximum time step size
-    minImprovement: Double, // minimum improvement of enclosure
+    minComputationImprovement: Double, // minimum improvement of enclosure
     output: String, // path to write output 
     cb: EnclosureInterpreterCallbacks // carrier for GUI call-backs 
     )(implicit rnd: Rounding): Seq[UnivariateAffineEnclosure] = {

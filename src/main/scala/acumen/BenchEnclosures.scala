@@ -37,7 +37,7 @@ object BenchEnclosures {
         adjustments.foldLeft(p){case (p,(k,v)) => k match {
           case "minTimeStep"    => p.copy(minTimeStep = v)
           case "maxTimeStep"    => p.copy(maxTimeStep = v)
-          case "minImprovement" => p.copy(minImprovement = v)
+          case "minComputationImprovement" => p.copy(minComputationImprovement = v)
           case what              => throw new Error("Unknown parm: " + what)
         }}
       println("Starting with parms: " + adjustments)

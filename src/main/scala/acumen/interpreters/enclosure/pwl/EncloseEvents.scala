@@ -73,24 +73,24 @@ trait EncloseEvents extends SolveIVP {
     else
       try {
         val e = encloseFlowStep(ps, f, t, init)
-        if (t.width lessThan ps.minTimeStepODEsolving * 2) Seq(e)
+        if (t.width lessThan ps.minSolverStep * 2) Seq(e)
         else {
           val (eL, eR) = splitAndEncloseFlowStep(ps, f, t, init)
-          if (significantImprovement(e, eR, t.high, ps.minImprovement))
+          if (significantImprovement(e, eR, t.high, ps.minComputationImprovement))
             try { splitAndRepeatEncloseFlow(ps, f, t, init) } catch { case _ => Seq(e) }
           else Seq(e)
         }
       } catch {
         case _ =>
-          if (t.width lessThan ps.minTimeStepODEsolving * 2) sys.error("EncloseFlowFailure")
+          if (t.width lessThan ps.minSolverStep * 2) sys.error("EncloseFlowFailure")
           else splitAndRepeatEncloseFlow(ps, f, t, init)
       }
   }
 
-  def significantImprovement(eOld: UnivariateAffineEnclosure, eNew: UnivariateAffineEnclosure, x: Interval, minImprovement: Double)(implicit rnd: Rounding) = {
+  def significantImprovement(eOld: UnivariateAffineEnclosure, eNew: UnivariateAffineEnclosure, x: Interval, minComputationImprovement: Double)(implicit rnd: Rounding) = {
     val normOld = norm(eOld(x))
     val normNew = norm(eNew(x))
-    normOld - normNew greaterThan minImprovement
+    normOld - normNew greaterThan minComputationImprovement
   }
 
   def splitAndEncloseFlowStep(ps: Parameters, field: Field, t: Interval, init: Box)(implicit rnd: Rounding): (UnivariateAffineEnclosure, UnivariateAffineEnclosure) = {
@@ -111,8 +111,8 @@ trait EncloseEvents extends SolveIVP {
 
   def encloseFlowStep(ps: Parameters, f: Field, t: Interval, b: Box)(implicit rnd: Rounding): UnivariateAffineEnclosure =
     solveVt(f, t, b,
-      ps.solveVtInitialConditionPadding,
-      ps.extraPicardIterations,
+      ps.initialPicardPadding,
+      ps.picardImprovements,
       ps.maxPicardIterations,
       ps.splittingDegree)
 

@@ -21,12 +21,12 @@ trait HybridSolver extends AtomicStep {
     K: Int, // maximum event tree size in solveVtE
     d: Double, // minimum time step size
     e: Double, // maximum time step size
-    minImprovement: Double, // minimum improvement of enclosure
+    minComputationImprovement: Double, // minimum improvement of enclosure
     output: String, // path to write output 
     cb: EnclosureInterpreterCallbacks)(implicit rnd: Rounding): Seq[UnivariateAffineEnclosure] = {
     Util.newFile(output)
     cb.endTime = T.hiDouble
-    solveHybrid(H, delta, m, n, degree, K, output, cb)(d, minImprovement)(Ss, T).get._1
+    solveHybrid(H, delta, m, n, degree, K, output, cb)(d, minComputationImprovement)(Ss, T).get._1
   }
 
   def solveHybrid(
@@ -39,19 +39,19 @@ trait HybridSolver extends AtomicStep {
     output: String,
     cb: EnclosureInterpreterCallbacks)(
       minTimeStep: Double,
-      minImprovement: Double)(
+      minComputationImprovement: Double)(
         us: Set[UncertainState],
         t: Interval)(implicit rnd: Rounding): MaybeResult = {
     val maybeResultT = atomicStep(H, delta, m, n, degree, K, output, cb.log)(us, t)
     if (t.width lessThanOrEqualTo minTimeStep) maybeResultT
     else maybeResultT match {
-      case None => subdivideAndRecur(H, delta, m, n, degree, K, output, cb)(minTimeStep, minImprovement)(us, t)
+      case None => subdivideAndRecur(H, delta, m, n, degree, K, output, cb)(minTimeStep, minComputationImprovement)(us, t)
       case Some(resultT) =>
         val maybeResultTR = subdivideOneLevelOnly(H, delta, m, n, degree, K, output, cb.log)(us, t)
-        if (bestOf(minImprovement)(resultT, maybeResultTR) == resultT) {
+        if (bestOf(minComputationImprovement)(resultT, maybeResultTR) == resultT) {
           cb.sendResult(resultT._1)
           Some(resultT)
-        } else subdivideAndRecur(H, delta, m, n, degree, K, output, cb)(minTimeStep, minImprovement)(us, t)
+        } else subdivideAndRecur(H, delta, m, n, degree, K, output, cb)(minTimeStep, minComputationImprovement)(us, t)
     }
   }
 
@@ -65,13 +65,13 @@ trait HybridSolver extends AtomicStep {
     output: String,
     cb: EnclosureInterpreterCallbacks)(
       minTimeStep: Double,
-      minImprovement: Double)(
+      minComputationImprovement: Double)(
         us: Set[UncertainState],
         t: Interval)(implicit rnd: Rounding): MaybeResult =
-    solveHybrid(H, delta, m, n, degree, K, output, cb)(minTimeStep, minImprovement)(us, t.left) match {
+    solveHybrid(H, delta, m, n, degree, K, output, cb)(minTimeStep, minComputationImprovement)(us, t.left) match {
       case None => None
       case Some((esl, usl)) =>
-        solveHybrid(H, delta, m, n, degree, K, output, cb)(minTimeStep, minImprovement)(usl, t.right) match {
+        solveHybrid(H, delta, m, n, degree, K, output, cb)(minTimeStep, minComputationImprovement)(usl, t.right) match {
           case None => None
           case Some((esr, usr)) =>
             Some((esl ++ esr, usr))
