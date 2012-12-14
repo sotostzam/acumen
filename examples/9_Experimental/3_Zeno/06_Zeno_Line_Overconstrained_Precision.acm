@@ -17,7 +17,6 @@ class Main(simulator)
       d'  = -1;
       s'  = 1;
   end;
-  simulator.startTime := 0;
   simulator.endTime := 1.2;
   simulator.minSolverStep := 1.2;
   simulator.minLocalizationStep := 0.0001;
