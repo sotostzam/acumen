@@ -25,5 +25,5 @@ class Main(simulator)
   simulator.maxEventSequenceLength := 30;
   simulator.minSolverStep := 0.01;
   simulator.minLocalizationStep := 0.001;
-  simulator.minImprovement := 0.1; 
+  simulator.minComputationImprovement := 0.1; 
 end

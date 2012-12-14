@@ -114,7 +114,7 @@ trait Extract {
           "minSolverStep" -> 0.01,
           "minLocalizationStep" -> 0.001,
           "maxTimeStep" -> 3,
-          "minImprovement" -> 0.0001,
+          "minComputationImprovement" -> 0.0001,
           "splittingDegree" -> 1,
           "maxIterations" -> 100)
         val params = {
@@ -145,7 +145,7 @@ trait Extract {
           params("minSolverStep"),
           params("minLocalizationStep"),
           params("maxTimeStep"),
-          params("minImprovement"),
+          params("minComputationImprovement"),
           params("splittingDegree").toInt,
           params("maxIterations").toInt)
       }

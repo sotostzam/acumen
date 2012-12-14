@@ -13,7 +13,7 @@ case class Parameters(
   minSolverStep: Double, // minimum time step size during ODE solving
   minLocalizationStep: Double, // minimum time step size during event localization
   maxTimeStep: Double, // maximum time step size
-  minImprovement: Double, // minimum improvement of enclosure
+  minComputationImprovement: Double, // minimum improvement of enclosure
   splittingDegree: Int, // number of pieces to split each initial condition variable
   maxIterations:Int // maximum number of PWL reachable states computation iterations
   ) {

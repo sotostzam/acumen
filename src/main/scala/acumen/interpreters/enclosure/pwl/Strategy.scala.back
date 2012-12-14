@@ -73,7 +73,7 @@ trait Strategy extends EncloseEvents with SolveIVP {
         val eL = solveVt(f, tL, b, ps.solveVtInitialConditionPadding, ps.extraPicardIterations, ps.maxPicardIterations, ps.splittingDegree)
         val bR = eL(tL.high)
         val eR = solveVt(f, tR, bR, ps.solveVtInitialConditionPadding, ps.extraPicardIterations, ps.maxPicardIterations, ps.splittingDegree)
-        if (norm(e(t.high)) - norm(eR(t.high)) lessThan ps.minImprovement) Seq(e) // HERE
+        if (norm(e(t.high)) - norm(eR(t.high)) lessThan ps.minComputationImprovement) Seq(e) // HERE
         else repeatPiecewisePicard(ps, f, t, b)
       }
     }

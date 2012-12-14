@@ -43,7 +43,7 @@ object Sandbox extends App with Extract with Solver { // with SolveVt {
   //      ps.maxEventTreeSize,
   //      ps.minTimeStep,
   //      ps.maxTimeStep,
-  //      ps.minImprovement,
+  //      ps.minComputationImprovement,
   //      "output",
   //      defaultCallback)
   //

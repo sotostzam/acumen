@@ -28,5 +28,5 @@ class Main(simulator)
  simulator.maxEventSequenceLength := 50;
  simulator.minTimeStep := 0.01;
  simulator.maxTimeStep := 1;
- simulator.minImprovement := 0.001;
+ simulator.minComputationImprovement := 0.001;
 end

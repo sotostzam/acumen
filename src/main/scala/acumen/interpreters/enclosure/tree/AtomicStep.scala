@@ -12,7 +12,7 @@ trait AtomicStep extends SolveVtE {
 
   private def union(bs: Set[Box])(implicit rnd: Rounding) = bs.tail.fold(bs.head)(_ hull _)
 
-  def bestOf(minImprovement: Double)(
+  def bestOf(minComputationImprovement: Double)(
     result: (Seq[UnivariateAffineEnclosure], Set[UncertainState]),
     maybeResult: MaybeResult)(implicit rnd: Rounding) =
     (result, maybeResult) match {
@@ -21,7 +21,7 @@ trait AtomicStep extends SolveVtE {
       case ((_, us1), Some(result2 @ (_, us2))) =>
         val norm1 = norm(union(us1.map(_.initialCondition)))
         val norm2 = norm(union(us2.map(_.initialCondition)))
-        if ((norm1 - norm2) lessThan minImprovement) result
+        if ((norm1 - norm2) lessThan minComputationImprovement) result
         else result2
     }
   

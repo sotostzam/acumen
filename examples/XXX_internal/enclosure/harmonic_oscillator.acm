@@ -15,7 +15,7 @@ class Main(simulator)
   simulator.maxEventSequenceLength := 30;
   simulator.minSolverStep := 0.01;
   simulator.minLocalizationStep := 0.001;
-  simulator.minImprovement := 0.001;  
+  simulator.minComputationImprovement := 0.001;  
   switch mode
     case "on" 
       x'' = -x;

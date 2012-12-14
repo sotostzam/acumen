@@ -27,7 +27,7 @@ model=examples/XXX_internal/enclosure/zeno/02_Zeno_Half_Overconstrained.acm
 resultDir=benchmark-res
 prefix=Zeno_Half_Overconstrained-minImprovment
 repeat=3
-parm=minImprovement
+parm=minComputationImprovement
 values=0.00001,0.0001,0.001,0.005
 
 PREFIX="./$resultDir/$prefix"

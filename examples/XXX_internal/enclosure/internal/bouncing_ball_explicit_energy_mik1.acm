@@ -17,7 +17,7 @@ class Main(simulator)
   simulator.maxEventSequenceLength := 30;
   simulator.minSolverStep := 0.01;
   simulator.minLocalizationStep := 0.001;
-  simulator.minImprovement := 0.0001;
+  simulator.minComputationImprovement := 0.0001;
   switch mode
     case "Fly"
     require x1 >= 0 && 0 <= r1 && r1 == x1'*x1' + 20*x1

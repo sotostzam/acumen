@@ -93,7 +93,7 @@ trait EncloseHybrid extends EncloseEvents {
           computeLFEnoODE(e)
         else {
           val (eL, eR) = splitAndSolveVt(t, init)
-          if (significantImprovement(e, eR, t.high, ps.minImprovement))
+          if (significantImprovement(e, eR, t.high, ps.minComputationImprovement))
             try { splitAndRepeatComputeLFE(t, init) }
             catch { case _ => computeLFEnoODE(e) } // FIXME use ComputeLFEFailure solver specific exception
           else computeLFEnoODE(e)

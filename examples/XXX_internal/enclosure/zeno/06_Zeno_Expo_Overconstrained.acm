@@ -20,5 +20,5 @@ class Main(simulator)
   simulator.endTime := 1.1;
   simulator.minSolverStep := 0.01;
   simulator.minLocalizationStep := 0.001;
-  simulator.minImprovement := 0;
+  simulator.minComputationImprovement := 0;
 end

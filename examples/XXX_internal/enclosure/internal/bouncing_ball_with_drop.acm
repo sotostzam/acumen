@@ -12,7 +12,7 @@ class Main(simulator)
   simulator.endTime := 3.5;
   simulator.minSolverStep := 0.1;
   simulator.minLocalizationStep := 0.1;
-  simulator.minImprovement := 0.1;  
+  simulator.minComputationImprovement := 0.1;  
   switch mode
     case "Fly" require x >= 0
       if x == y && x' <= 0

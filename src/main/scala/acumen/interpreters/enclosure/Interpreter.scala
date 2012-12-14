@@ -78,7 +78,7 @@ class Interpreter extends acumen.RecursiveInterpreter with Solver with Extract w
         ps.maxEventTreeSize,
         ps.minTimeStep,
         ps.maxTimeStep,
-        ps.minImprovement,
+        ps.minComputationImprovement,
         cb)
     }
 
