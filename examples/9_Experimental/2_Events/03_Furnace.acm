@@ -1,0 +1,25 @@
+/* Furnace
+ * Authors: Adam Duracz and Jan Duracz
+ * A model of a controller for a furnace.
+ */
+class Main (simulator)
+  private 
+    mode := "on"; x := 10; x' := 0; 
+  end
+  switch mode
+    case "on" require x <= 25
+      if x == 25
+        mode := "off"
+      end;
+      x' = 100 - x;
+    case "off" require x >= 19
+      if x == 19
+        mode := "on"
+      end;
+      x' = - x;
+  end;
+  simulator.endTime := 2;
+  simulator.minSolverStep := 0.01;
+  simulator.minLocalizationStep := 0.001;
+  simulator.minComputationImprovement := 0;  
+end
