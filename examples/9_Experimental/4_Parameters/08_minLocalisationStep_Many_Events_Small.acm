@@ -1,0 +1,25 @@
+/* minLocalisationStep many events small enclosure
+ * Author: Jan Duracz
+ * A smaller minTimeStepLocalisation gives smaller enclosures when many events happen. 
+ */
+class Main (simulator)
+  private 
+    mode := "decreasing"; x := 1; x' := -1; 
+  end
+  switch mode
+    case "decreasing" require x >= 0
+      if x == 0 
+        mode := "increasing"
+      end;
+      x' = -1;
+    case "increasing" require x <= 1
+      if x == 1 
+        mode := "decreasing"
+      end;
+      x' = 1;
+  end;
+  simulator.endTime := 15.0;
+  simulator.minTimeStepODEsolving := 15.0;
+  simulator.minTimeStepLocalisation := 0.0001;
+  simulator.minImprovement := 0;
+end

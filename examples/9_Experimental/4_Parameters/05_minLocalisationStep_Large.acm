@@ -1,0 +1,23 @@
+/* minLocalisationStep large
+ * Authors: Walid Taha and Adam Duracz
+ * Due to a large minLocalisationStep, few resets are evaluated, yielding a wide enclosure. 
+ */
+class Main(simulator)
+  private
+    d := 1; d' := -1;
+    s := 1/2;
+    mode := ""; 
+  end
+  switch mode
+    case "" require s <= abs(d)
+      if s == d 
+        s := s/2; 
+        mode := "" 
+      end;
+      d' = -1;
+  end;
+  simulator.endTime := 1.1;
+  simulator.minSolverStep := 1.1;
+  simulator.minLocalisationStep := 0.01;
+  simulator.minComputationImprovement := 0;
+end

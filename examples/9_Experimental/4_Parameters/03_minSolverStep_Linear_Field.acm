@@ -1,0 +1,18 @@
+/* minSolverStep linear field
+ * Author: Jan Duracz
+ * A large minSolverStep gives a large enclosure when fields are linear.
+ */
+class Main(simulator)
+  private 
+    mode := "on"; 
+    x :=  0.1; x' := 1;
+  end
+  switch mode
+    case "on" 
+      x' = -x;
+  end;
+  simulator.endTime := 1;
+  simulator.minSolverStep := 0.25;
+  simulator.minLocalisationStep := 0.25;
+  simulator.minComputationImprovement := 0; 
+end
