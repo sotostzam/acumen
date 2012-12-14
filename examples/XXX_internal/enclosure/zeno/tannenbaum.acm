@@ -22,7 +22,7 @@ class Main(simulator)
  simulator.bigDecimalDigits := 10;
  simulator.startTime := 0;
  simulator.endTime := 1.1;
- simulator.initialConditionPadding := 0;
+ simulator.initialPicardPadding := 0;
  simulator.extraPicardIterations := 20;
  simulator.maxPicardIterations := 200;
  simulator.maxEventSequenceLength := 50;
