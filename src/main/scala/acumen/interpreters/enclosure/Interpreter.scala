@@ -51,7 +51,7 @@ class Interpreter extends acumen.RecursiveInterpreter with Solver with Extract w
 
     val ps0 = parameters(main)
     val ps = adjustParms(ps0)
-    implicit val rnd = Rounding(ps.precision)
+    implicit val rnd = Rounding(ps.bigDecimalDigits)
     val (hs, uss) = extract(main)
 
     cb.endTime = ps.endTime

@@ -8,7 +8,7 @@ class Main (simulator)
   private 
     mode := "decreasing"; x := 1; x' := -1; 
   end
-  simulator.precision := 10;
+  simulator.bigDecimalDigits := 10;
   simulator.startTime := 0;
   simulator.endTime := 1.5;
   simulator.initialConditionPadding := 0;

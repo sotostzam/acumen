@@ -35,7 +35,7 @@ class Main(simulator)
 //      xhi' = -xhi;
 //      xlo' = -xlo;
   end;
-  simulator.precision := 10;
+  simulator.bigDecimalDigits := 10;
   simulator.startTime := 0;
   simulator.endTime := 0.1;
   simulator.initialConditionPadding := 0;

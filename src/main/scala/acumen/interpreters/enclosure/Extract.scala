@@ -103,7 +103,7 @@ trait Extract {
         }
         // FIXME coercing each integer to a double and back is not ideal...
         val defaultParameters = Map[String, Double](
-          "precision" -> 10,
+          "bigDecimalDigits" -> 10,
           "startTime" -> 0,
           "endTime" -> 3,
           "initialConditionPadding" -> 0,
@@ -134,7 +134,7 @@ trait Extract {
           }
         }
         Parameters(
-          params("precision").toInt,
+          params("bigDecimalDigits").toInt,
           params("startTime"),
           params("endTime"),
           params("initialConditionPadding"),

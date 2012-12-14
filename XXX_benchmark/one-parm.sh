@@ -53,7 +53,7 @@ set terminal png
 set output "$PREFIX-precision.png"
 set title "$title"
 set xlabel "$parm"
-set ylabel "precision"
+set ylabel "bigDecimalDigits"
 unset key # don't display a legend
 set logscale x
 plot "$PREFIX-precision-norm.dat" using 1:3 with lines

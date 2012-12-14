@@ -26,7 +26,7 @@ object Sandbox extends App with Extract with Solver { // with SolveVt {
   //  val main = classDef(ClassName("Main"), des)
   //
   //  val ps = parameters(main)
-  //  implicit val rnd = Rounding(ps.precision)
+  //  implicit val rnd = Rounding(ps.bigDecimalDigits)
   //  val (h: HybridSystem, us) = extract(main)
   //
   //  val start = System.currentTimeMillis

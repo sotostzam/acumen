@@ -15,7 +15,7 @@ class Main(simulator)
       hi' = -hi;
       lo' = -lo;
   end;
-  simulator.precision := 10;
+  simulator.bigDecimalDigits := 10;
   simulator.startTime := 0;
   simulator.endTime := 1;
   simulator.initialConditionPadding := 0;

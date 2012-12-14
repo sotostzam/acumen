@@ -6,7 +6,7 @@ class Main (simulator)
   private 
     mode := "on"; x := 22; x' := 0; 
   end
-  simulator.precision := 10;
+  simulator.bigDecimalDigits := 10;
   simulator.startTime := 0;
   simulator.endTime := 2;
   simulator.initialConditionPadding := 0;

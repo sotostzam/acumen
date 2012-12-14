@@ -2,7 +2,7 @@ package acumen.interpreters.enclosure
 
 /** Parameters for solve-hybrid */
 case class Parameters(
-  precision: Int,
+  bigDecimalDigits: Int,
   startTime: Double, // simulation start time
   endTime: Double, // simulation end time
   solveVtInitialConditionPadding: Double, // padding for initial condition in solveVt
@@ -17,6 +17,6 @@ case class Parameters(
   splittingDegree: Int, // number of pieces to split each initial condition variable
   maxIterations:Int // maximum number of PWL reachable states computation iterations
   ) {
-  implicit val rnd = Rounding(precision)
+  implicit val rnd = Rounding(bigDecimalDigits)
   val simulationTime = Interval(startTime, endTime)
 }
