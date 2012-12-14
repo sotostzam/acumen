@@ -11,7 +11,7 @@ class Main(simulator)
     case "on" 
       x' = -x;
   end;
-  simulator.endTime := 10;
+  simulator.endTime := 5;
   simulator.minSolverStep := 0.1;
   simulator.minLocalizationStep := 0.1;
   simulator.minComputationImprovement := 0; 

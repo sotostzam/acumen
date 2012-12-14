@@ -1,0 +1,39 @@
+Examples illustrating simulation of continuous systems
+------------------------------------------------------
+
+These examples illustrate how we can use an enclosure
+based solver to simulate continuous systems. To obtain
+good simulation results as fast as possible usually
+involves two steps:
+
+  1 Simulate the model with the following parameters
+    set to relatively large values:
+      - simulator.minSolverStep
+      - simulator.minComputationImprovement
+
+  2 Incrementally decrease the parameters until the
+    desired enclosure quality is achieved. 
+
+The examples illustrate progressively complex continuous
+systems, with parameters set to produce enclosures quickly. 
+
+ - A continuous model with linear solution.
+
+   01_Linear_Decay.acm
+   
+ - A continuous model with exponential solution.
+   
+   02_Exponential_Decay.acm
+
+ - A continuous model with rational solution.
+
+   03_Rational_Decay.acm
+   
+ - A continuous model with exponential solution and derivative.
+   
+   04_Exponentials.acm
+
+ - A continuous model with sine and cosine solution and derivative.
+
+   05_Trigonometrics.acm
+   
