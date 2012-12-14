@@ -1,0 +1,18 @@
+/* Linear Decay
+ * Autohors: Jan Duracz and Adam Duracz
+ * A continuous model with linear solution.
+ */
+class Main(simulator)
+  private 
+    mode := "on"; 
+    x := 1; x' := 1;
+  end
+  switch mode
+    case "on" 
+      x' = -1;
+  end;
+  simulator.endTime := 10;
+  simulator.minSolverStep := 0.1;
+  simulator.minLocalizationStep := 0.1;
+  simulator.minComputationImprovement := 0; 
+end
