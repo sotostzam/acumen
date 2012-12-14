@@ -1,6 +1,6 @@
 /* Furnace
  * Authors: Adam Duracz and Jan Duracz
- * A model of a controller for a furnace.
+ * A model of a controller, where events correspond to switching a furnace on and off.
  */
 class Main (simulator)
   private 

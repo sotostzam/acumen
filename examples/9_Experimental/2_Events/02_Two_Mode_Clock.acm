@@ -1,6 +1,6 @@
 /* Two Mode Clock
  * Authors: Jan Duracz
- * A model of a clock with two modes.
+ * A system periodically switching between with two modes.
  */
 class Main (simulator)
   private 
