@@ -19,7 +19,7 @@ the specific simulator parameter they illustrate.
    03_minSolverStep_Linear_Field.acm 
    04_minSolverStep_Linear_Field_Smaller_Enclosure.acm
 
- - simulator.minLocalisationStep
+ - simulator.minLocalizationStep
    This parameter is the smallest segment of time over which
    event localisation will happen. Setting this to a lower 
    value makes it possible to more precisely determine the 
@@ -28,10 +28,10 @@ the specific simulator parameter they illustrate.
    cost of an increased simulation time. The value of this
    parameter must be greater or equal to minSolverStep.
 
-   05_minLocalisationStep_Large.acm
-   06_minLocalisationStep_Small.acm
-   07_minLocalisationStep_Many_Events.acm
-   08_minLocalisationStep_Many_Events_Small.acm
+   05_minLocalizationStep_Large.acm
+   06_minLocalizationStep_Small.acm
+   07_minLocalizationStep_Many_Events.acm
+   08_minLocalizationStep_Many_Events_Small.acm
    
  - simulator.minComputationImprovement
    This parameter is a measure of the amount of improvement
@@ -44,5 +44,3 @@ the specific simulator parameter they illustrate.
  
    09_minComputationImprovement_Large.acm
    10_minComputationImprovement_Small.acm
-   11_minComputationImprovement_Zero_NoImprovement.acm 
-   12_minComputationImprovement_Zero_Improvement.acm

@@ -13,6 +13,6 @@ class Main(simulator)
   end;
   simulator.endTime := 1;
   simulator.minSolverStep := 0.1;
-  simulator.minLocalisationStep := 0.1;
+  simulator.minLocalizationStep := 0.1;
   simulator.minComputationImprovement := 0; 
 end

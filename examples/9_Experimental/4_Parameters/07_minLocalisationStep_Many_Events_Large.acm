@@ -1,6 +1,6 @@
-/* minLocalisationStep many events large enclosure
+/* minLocalizationStep many events large enclosure
  * Author: Jan Duracz
- * A large minTimeStepLocalisation gives large enclosures when many events happen. 
+ * A large minLocalizationStep gives large enclosures when many events happen. 
  */
 class Main (simulator)
   private 
@@ -20,6 +20,6 @@ class Main (simulator)
   end;
   simulator.endTime := 15.0;
   simulator.minSolverStep := 15.0;
-  simulator.minLocalisationStep := 0.05;
+  simulator.minLocalizationStep := 0.05;
   simulator.minComputationImprovement := 0;
 end
