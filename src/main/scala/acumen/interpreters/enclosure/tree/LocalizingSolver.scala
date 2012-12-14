@@ -19,7 +19,7 @@ trait LocalizingSolver extends SolveVt {
     time: Interval, // time segment to simulate over
     uncertainStates: Set[UncertainState], // initial modes and initial conditions
     initialConditionPadding: Double, // parameter of solveVt
-    extraPicardIterations: Int, // parameter of solveVt
+    picardImprovements: Int, // parameter of solveVt
     maxPicardIterations: Int, // maximum number of Picard iterations in solveVt
     maxEventTreeSize: Int, // maximum event tree size in solveVtE
     minTimeStep: Double, // minimum time step size
@@ -39,7 +39,7 @@ trait LocalizingSolver extends SolveVt {
   def piecewisePicard(
     field: Field,
     initialConditionPadding: Double,
-    extraPicardIterations: Int,
+    picardImprovements: Int,
     maxPicardIterations: Int,
     minTimeStep: Double,
     maxTimeStep: Double,

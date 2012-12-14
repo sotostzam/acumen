@@ -6,7 +6,7 @@ case class Parameters(
   startTime: Double, // simulation start time
   endTime: Double, // simulation end time
   initialPicardPadding: Double, // padding for initial condition in solveVt
-  extraPicardIterations: Int, // number of extra Picard iterations in solveVt
+  picardImprovements: Int, // number of extra Picard iterations in solveVt
   maxPicardIterations: Int, // maximum number of Picard iterations in solveVt
   maxEventTreeSize: Int, // maximum event tree size in solveVtE, gives termination condition for tree enlargement
   minTimeStep: Double, // minimum time step size

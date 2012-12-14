@@ -23,9 +23,9 @@ class Main(simulator)
  simulator.startTime := 0;
  simulator.endTime := 1.1;
  simulator.initialPicardPadding := 0;
- simulator.extraPicardIterations := 20;
+ simulator.picardImprovements := 20;
  simulator.maxPicardIterations := 200;
- simulator.maxEventSequenceLength := 50;
+ simulator.maxEventTreeSize := 50;
  simulator.minTimeStep := 0.01;
  simulator.maxTimeStep := 1;
  simulator.minComputationImprovement := 0.001;

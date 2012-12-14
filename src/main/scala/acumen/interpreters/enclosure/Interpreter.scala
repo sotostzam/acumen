@@ -72,7 +72,7 @@ class Interpreter extends acumen.RecursiveInterpreter with Solver with Extract w
         ps.simulationTime,
         Set(uss),
         ps.solveVtInitialConditionPadding,
-        ps.extraPicardIterations,
+        ps.picardImprovements,
         ps.maxPicardIterations,
         ps.splittingDegree, 
         ps.maxEventTreeSize,
