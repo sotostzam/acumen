@@ -41,18 +41,18 @@ case class AffineScalarEnclosure private[enclosure] (
   /** The high bound enclosure of this enclosure. */
   def high = AffineScalarEnclosure(domain, normalizedDomain, constant.high, coefficients.mapValues(_.high))
 
-//  /** Compose `that` enclosure into variable `name` in `this` enclosure. */
-//  // TODO first simple version, improve using monotonicity analysis!
-//  def compose(name: VarName, that: AffineScalarEnclosure)(implicit rnd: Rounding): AffineScalarEnclosure = {
-//    require(domain.keySet contains name, "The composition variable must be in the domain of the outer enclosure!")
-//    require(domain(name) contains that.range, "The inner enclosure must map into the domain of the composition variable!")
-//    require((domain.keySet.intersect(that.domain.keySet) - name).forall(n => domain(n).equalTo(that.domain(n))),
-//      "The domains of shared variables of the composed enclosures must conincide!")
-//    if (coefficients contains name) {
-//      val coeff = coefficients(name)
-//      val dom = 
-//    } else this
-//  }
+  //  /** Compose `that` enclosure into variable `name` in `this` enclosure. */
+  //  // TODO first simple version, improve using monotonicity analysis!
+  //  def compose(name: VarName, that: AffineScalarEnclosure)(implicit rnd: Rounding): AffineScalarEnclosure = {
+  //    require(domain.keySet contains name, "The composition variable must be in the domain of the outer enclosure!")
+  //    require(domain(name) contains that.range, "The inner enclosure must map into the domain of the composition variable!")
+  //    require((domain.keySet.intersect(that.domain.keySet) - name).forall(n => domain(n).equalTo(that.domain(n))),
+  //      "The domains of shared variables of the composed enclosures must conincide!")
+  //    if (coefficients contains name) {
+  //      val coeff = coefficients(name)
+  //      val dom = 
+  //    } else this
+  //  }
 
   /**
    * Get the linear terms of this enclosure.
@@ -150,12 +150,16 @@ case class AffineScalarEnclosure private[enclosure] (
      * current domain of the enclosure into consideration. E.g. normalize maps
      * thin intervals to [0,0]! */
     val nx = x.map { case (name, value) => name -> (value - (domain(name).low)) }
-    val c :: cs = Box.corners(nx)
-    val lo = low
-    val hi = high
-    cs.foldLeft((lo evalThinAtThin c) /\ (hi evalThinAtThin c)) {
-      case (res, corner) => res /\ (lo evalThinAtThin corner) /\ (hi evalThinAtThin corner)
-    }
+    //    lazy val wastefulUnnecessaryComputation = {
+    //      val c :: cs = Box.corners(nx)
+    //      val lo = low
+    //      val hi = high
+    //      cs.foldLeft((lo evalThinAtThin c) /\ (hi evalThinAtThin c)) {
+    //        case (res, corner) => res /\ (lo evalThinAtThin corner) /\ (hi evalThinAtThin corner)
+    //      }
+    //    }
+    //    wastefulUnnecessaryComputation
+    evalThinAtThin(nx)
   }
   /**
    * Naive evaluation of this enclosure at a box.

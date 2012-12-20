@@ -41,10 +41,14 @@ case class UnivariateAffineScalarEnclosure private[enclosure] (
     //        "domain contains x: " + (domain contains x))
     /* Since the enclosure is represented over the normalizedDomain, the argument interval must 
      * be translated into the normalizedDomain. */
-    val (xlo, xhi) = (x - domain.low).bounds
-    val lo = low
-    val hi = high
-    min(lo evalThinAtThin xlo, lo evalThinAtThin xhi) /\ max(hi evalThinAtThin xlo, hi evalThinAtThin xhi)
+    //    lazy val wastefulUnnecessaryComputation = {
+    //      val (xlo, xhi) = (x - domain.low).bounds
+    //      val lo = low
+    //      val hi = high
+    //      min(lo evalThinAtThin xlo, lo evalThinAtThin xhi) /\ max(hi evalThinAtThin xlo, hi evalThinAtThin xhi)
+    //    }
+    //    wastefulUnnecessaryComputation
+    evalThinAtThin(x - domain.low)
   }
 
   // FIXME commented out assertion FOR_NOW to be able to plot
@@ -155,7 +159,7 @@ case class UnivariateAffineScalarEnclosure private[enclosure] (
   //TODO Add property
   def restrictTo(subDomain: Interval)(implicit rnd: Rounding): UnivariateAffineScalarEnclosure = {
     require((domain contains subDomain) && (normalizedDomain contains 0 /\ subDomain.width.high))
-    UnivariateAffineScalarEnclosure(subDomain, constant + (coefficient * (subDomain.low-domain.low)), coefficient)
+    UnivariateAffineScalarEnclosure(subDomain, constant + (coefficient * (subDomain.low - domain.low)), coefficient)
   }
 
   /* Arithmetic operations */
@@ -293,8 +297,8 @@ object UnivariateAffineScalarEnclosure {
 
 object UnivariateAffineScalarEnclosureApp extends App {
   implicit val rnd = Rounding(10)
-  val e = UnivariateAffineScalarEnclosure(Interval(0,1),1,-1)
-  val (dL,dR) = e.domain.split
+  val e = UnivariateAffineScalarEnclosure(Interval(0, 1), 1, -1)
+  val (dL, dR) = e.domain.split
   println(e.restrictTo(dL))
   println(e.restrictTo(dR))
 }
