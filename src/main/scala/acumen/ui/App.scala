@@ -153,7 +153,7 @@ class App extends SimpleSwingApplication {
   var threeDtab = if (GraphicalMain.disable3D) {
     console.log("Acumen3D disabled.")
     console.newLine
-    new threeD.DisabledThreeDTab("Acumen 3D disabled via the command line.")
+    new threeD.DisabledThreeDTab("To enable 3D visualization, use the --3d option.")
     //null
   } else try {
     new threeD.ThreeDTab(controller)
