@@ -252,7 +252,7 @@ trait EncloseHybrid extends EncloseEvents {
       val tR = domain(maeR)
       (tR lessThan tL) ||
         (tR properlyContains tL) ||
-        ((tL almostEqualTo tR) && !complL && complR)
+        ((tL almostEqualTo tR) && !complR && complL)
   }
 
   // get the first component of `lfe` truncated at `time`
