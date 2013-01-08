@@ -34,6 +34,7 @@ object GraphicalMain extends SimpleSwingApplication {
   var autoPlay = false
   var useEnclosures = false
   var useCompletion = false
+  var useTemplates = false
 
   def parseOpts(args: List[String]) {
     args match {
@@ -58,6 +59,8 @@ object GraphicalMain extends SimpleSwingApplication {
         interpreters.enclosure.Interpreter.localizing = false; parseOpts(tail)
       case "--completion" :: tail =>
         useCompletion = true; parseOpts(tail)
+      case "--templates" :: tail =>
+        useTemplates = true; parseOpts(tail)
       case opt ::  tail if opt.startsWith("-") =>
         System.err.println("Unrecognized Option: " + opt)
         exit(1)
