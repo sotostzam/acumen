@@ -29,9 +29,9 @@ import java.math.BigDecimal
  * such that A_i is contained in B_i for each i, f(A_1,...,A_n) is
  * contained in f(B_1,...,B_n).
  */
-case class Interval private (
-  private val lo: Real,
-  private val hi: Real)(implicit val rnd: Rounding) {
+case class Interval (
+  val lo: Real,
+  val hi: Real)(implicit val rnd: Rounding) {
   import rnd._
 
   def low = Interval(lo)
