@@ -2,17 +2,21 @@ Walid's simple interface to GIThub :-)
 
 by Kevin Atkinson
 
-* Remember:  Always COMMIT before doing and PULL.  Otherwise,
-             you will end up finding yourself doing a merge.
+* Good news:  Now you can say "git push" and "git pull"
+              without any extra argument.
 
-* Remember:  A PULL is not "an svn update"! :-)
+Summary:  ADD, COMMIT, PULL, then PUSH, in that order!
 
-* The different reps out there:
+Repositories:
+
+The different reps out there:
    - The mother rep:  effective-modeling/devel
      Not really active, but it's there.  You can ignore it.
    - The active rep:  acumen-e/devel-e
      That's the one that everyone is working on right now
    - Your clone of the rep:  That's the one on your machine
+
+COMMIT
 
 In general, it's a good thing to check the status of your clone
 before doing anything with the rep.  That is done by typing:
@@ -58,14 +62,24 @@ Now see you changes by doing a:
 
 which should show you commit.
 
+PUSH
+
 Once that is done do a:
 
-  git push origin devel-e
+  git push
 
 And let me know when that done and I will review the changes, and if
 there is a problem I will let you know.  If not I will merge them into
 acumen-e/devel-e.
 
+PULL
+
 If you need to get the latest version, just do this:
 
-  git pull acumen-e devel-e
+  git pull
+
+After doing a PULL, make sure the word "conflict" did not appear in
+the output of that operation.  If there is a conflict, talk to Kevin
+right away!  If there is no conflict, do "git status" and make sure
+there are no "C"onflict markers.
+
