@@ -63,6 +63,8 @@ class CodeArea extends Panel { //EditorPane {
       val completionProvider = createCompletionProvider(sta)
       val autoCompletion = new AutoCompletion(completionProvider)
       autoCompletion install sta
+    }
+    if (GraphicalMain.useTemplates) {
       RSyntaxTextArea setTemplatesEnabled true
       createCodeTemplateManager
     }
@@ -94,7 +96,8 @@ class CodeArea extends Panel { //EditorPane {
       ("case",    "case\n  "),
       ("hs",      "class Main(simulator)\n  private mode := \"\"; end\n  switch mode\n    case \"\"\n      \n  end\nend"),
       ("mode",    "case \"\"\n  if  mode := \"\" end;\n  "),
-      ("event",   "if  mode := \"\" end;\n")
+      ("event",   "if  mode := \"\" end;\n"),
+      ("ps",      "simulator.endTime := 3;\nsimulator.minSolverStep := 0.01;\nsimulator.minLocalizationStep := 0.001;\nsimulator.minComputationImprovement := 0.0001;")
     )) { RSyntaxTextArea.getCodeTemplateManager addTemplate new StaticCodeTemplate(t._1, t._2, null) }
   
   // Undo based on http://docs.oracle.com/javase/tutorial/uiswing/components/generaltext.html
