@@ -1,18 +1,39 @@
-How to commit into the git hib rep
+Walid's simple interface to GIThub :-)
 
 by Kevin Atkinson
 
-First do a
+* Remember:  Always COMMIT before doing and PULL.  Otherwise,
+             you will end up finding yourself doing a merge.
+
+* Remember:  A PULL is not "an svn update"! :-)
+
+* The different reps out there:
+   - The mother rep:  effective-modeling/devel
+     Not really active, but it's there.  You can ignore it.
+   - The active rep:  acumen-e/devel-e
+     That's the one that everyone is working on right now
+   - Your clone of the rep:  That's the one on your machine
+
+In general, it's a good thing to check the status of your clone
+before doing anything with the rep.  That is done by typing:
 
   git status
 
-Then, to incorporate your changes, execute the following command:
+Then, to stage the changes in your clone so that they can be committed
+to your shared rep on gitfhub, you execute the following command:
 
   git add -u ./
 
-If you have added new files that you'd like to put in the rep, then you MUST add them one by one, as follows:
+If you have added new files that you'd like to put in the rep, then 
+you need to add them one by one, as follows:
 
   git add FILE
+
+If you have a new directory with some files in it, clean it up and
+make sure it only contains things that you want to committ, and then
+you can say
+
+  git add directory-name
 
 Do a "git status" again.  Any files you changes will be under "Changed
 but not updated", you should add those also assuming they are part of
