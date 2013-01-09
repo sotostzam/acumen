@@ -23,7 +23,8 @@ trait EncloseHybrid extends EncloseEvents {
 
     val teL = (for ((_, mae, _) <- lfes.values if !mae.isEmpty) yield domain(mae).low).foldLeft(t.high)(Interval.min)
 
-    val teR = (for ((_, mae, compl) <- lfes.values if compl) yield domain(mae).high).foldLeft(t.high)(Interval.min)
+//    val teR = (for ((_, mae, compl) <- lfes.values if compl) yield domain(mae).high).foldLeft(t.high)(Interval.min)
+    val teR = (for ((_, mae, compl) <- lfes.values if !mae.isEmpty) yield domain(mae).high).foldLeft(t.high)(Interval.min)
 
     val noe = unionOfEnclosureListsUntil(teL, lfes.values.toSeq.map { case (noe, _, _) => noe })
     if (teL equalTo t.high) { // proved that there no event at all on T
@@ -251,8 +252,7 @@ trait EncloseHybrid extends EncloseEvents {
       val tL = domain(maeL)
       val tR = domain(maeR)
       (tR lessThan tL) ||
-        (tR properlyContains tL) ||
-        ((tL almostEqualTo tR) && !complR && complL)
+        (tR properlyContains tL) //|| ((tL almostEqualTo tR) && !complR && complL)
   }
 
   // get the first component of `lfe` truncated at `time`
@@ -316,15 +316,15 @@ trait EncloseHybrid extends EncloseEvents {
       sortWith { _.domain.low lessThanOrEqualTo _.domain.low }
 
   // TODO optimize this incredibly inefficient implementation
-  def synchroniseEnclosures(es: Seq[UnivariateAffineEnclosure])(implicit rnd: Rounding): Seq[UnivariateAffineEnclosure] = {
-    val endpoints = es.flatMap(e => Seq(e.domain.low, e.domain.high)).sortWith(_ lessThanOrEqualTo _)
-    es.flatMap { e =>
-      val (lo, hi) = e.domain.split
-      val interiorPoints = endpoints.filter(x => (lo lessThan x) && (x lessThan hi))
-      if (interiorPoints.isEmpty) Seq(e)
-      else for ((l, h) <- (lo +: interiorPoints) zip (interiorPoints :+ hi)) yield (e.restrictTo(l /\ h))
-    }
-  }
+//  def synchroniseEnclosures(es: Seq[UnivariateAffineEnclosure])(implicit rnd: Rounding): Seq[UnivariateAffineEnclosure] = {
+//    val endpoints = es.flatMap(e => Seq(e.domain.low, e.domain.high)).sortWith(_ lessThanOrEqualTo _)
+//    es.flatMap { e =>
+//      val (lo, hi) = e.domain.split
+//      val interiorPoints = endpoints.filter(x => (lo lessThan x) && (x lessThan hi))
+//      if (interiorPoints.isEmpty) Seq(e)
+//      else for ((l, h) <- (lo +: interiorPoints) zip (interiorPoints :+ hi)) yield (e.restrictTo(l /\ h))
+//    }
+//  }
 
   // assumes that the domains of consecutive elements are connected
   def domain(es: Seq[UnivariateAffineEnclosure]) = {
