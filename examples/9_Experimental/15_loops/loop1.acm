@@ -1,0 +1,11 @@
+class Main(simulator)
+  private x := 0; x' := 0; mode := "a"; end
+  switch mode
+    case "a"
+      mode := "b";
+      x' = 1;
+    case "b"
+      mode := "a";
+      x' = -1;
+  end
+end
