@@ -2,10 +2,11 @@ Walid's simple interface to GIThub :-)
 
 by Kevin Atkinson
 
-* Good news:  Now you can say "git push" and "git pull"
-              without any extra argument.
+---------------------------------------------------------------------
 
 Summary:  ADD, COMMIT, PULL, then PUSH, in that order!
+
+---------------------------------------------------------------------
 
 Repositories:
 
@@ -16,7 +17,9 @@ The different reps out there:
      That's the one that everyone is working on right now
    - Your clone of the rep:  That's the one on your machine
 
-COMMIT
+---------------------------------------------------------------------
+
+ADD
 
 In general, it's a good thing to check the status of your clone
 before doing anything with the rep.  That is done by typing:
@@ -45,6 +48,10 @@ the updated arithmetic operators.  Everything that is to be committed
 should be under "Changes to be committed".  Make sure anything under
 another category is something you don't want to add.
 
+---------------------------------------------------------------------
+
+COMMIT
+
 What you just did is known as "staging" the changes. Now you can
 commit them.  Just use:
 
@@ -62,15 +69,7 @@ Now see you changes by doing a:
 
 which should show you commit.
 
-PUSH
-
-Once that is done do a:
-
-  git push
-
-And let me know when that done and I will review the changes, and if
-there is a problem I will let you know.  If not I will merge them into
-acumen-e/devel-e.
+---------------------------------------------------------------------
 
 PULL
 
@@ -83,3 +82,16 @@ the output of that operation.  If there is a conflict, talk to Kevin
 right away!  If there is no conflict, do "git status" and make sure
 there are no "C"onflict markers.
 
+---------------------------------------------------------------------
+
+PUSH
+
+Once that is done do a:
+
+  git push
+
+And let me know when that done and I will review the changes, and if
+there is a problem I will let you know.  If not I will merge them into
+acumen-e/devel-e.
+
+---------------------------------------------------------------------
