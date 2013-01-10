@@ -11,7 +11,7 @@
 # time at which the ball's velocity changes sign. The simulator parameter minSolverStep is 
 # set to 0.15, and localizationTimeStep is given the following values:
 # 
-#   minSolverStep / 2^n, 0 <= n <= 10.
+#   minSolverStep / 2^n, 0 <= n <= 7.
 #
 # The minComputationImprovement simulator parameter has been set to 0 in order to force
 # the algorithm to improve the solution if this is possible.
