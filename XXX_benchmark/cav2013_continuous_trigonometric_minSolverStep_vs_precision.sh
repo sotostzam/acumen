@@ -33,7 +33,7 @@ PREFIX="./$resultDir/$prefix"
 
 mkdir -p $resultDir
 
-sbt "run-main acumen.Main --semantics enclosure $model bench-enclosures $PREFIX $repeat $parm=$values endTime=1.5 minComputationImprovement=0 minLocalizationStep=9.765625e-4"
+#sbt "run-main acumen.Main --semantics enclosure $model bench-enclosures $PREFIX $repeat $parm=$values endTime=1.5 minComputationImprovement=0 minLocalizationStep=9.765625e-4"
 
 gnuplot <<EOF
 set terminal png
@@ -52,9 +52,9 @@ set terminal png
 set output "$PREFIX-precision.png"
 set title "$title"
 set xlabel "$parm"
-set ylabel "bigDecimalDigits"
+set ylabel "aggregate enclosure width at end time"
 unset key # don't display a legend
 #set logscale x
-plot "$PREFIX-precision-norm.dat" using 1:6 with lines
+plot "$PREFIX-precision-norm.dat" using 1:6 with linespoints
 EOF
 
