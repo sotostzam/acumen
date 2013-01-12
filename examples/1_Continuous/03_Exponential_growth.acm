@@ -1,9 +1,0 @@
-
-// Solutions of equations as fixed points
-
-class Main(simulator)
-private
- x=1; x'=0
-end
- x' [=] x
-end

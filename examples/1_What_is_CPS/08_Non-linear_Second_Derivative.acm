@@ -1,0 +1,11 @@
+
+// Non-Linear Second Derivative
+// Solution is not a sum of complex exponentials
+// Solving non-linear equations using Picard iteration
+
+class Main(simulator)
+private
+ x:=3.1; x':=0; x'':=0
+end
+ x'' = -10*sin(x)
+end

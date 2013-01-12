@@ -1,0 +1,11 @@
+
+// Self as First Derivative
+// Self-reference.  Exponential growth
+// Solving involves computing a fixed point
+
+class Main(simulator)
+private
+ x:=1; x':=0
+end
+ x' = x
+end

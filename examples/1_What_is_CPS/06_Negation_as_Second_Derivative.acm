@@ -1,0 +1,10 @@
+
+// Negation as Second Derivative
+// Oscillation.  Trigonometric function
+
+class Main(simulator)
+private
+ x:=1; x':=0; x'':=0
+end
+ x'' = -x
+end

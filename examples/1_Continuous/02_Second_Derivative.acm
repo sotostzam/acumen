@@ -1,9 +1,0 @@
-
-// Illustrates second derivatives
-
-class Main(simulator)
-private
- x=-10; x'=0; x''=0
-end
- x'' [=] 1
-end
