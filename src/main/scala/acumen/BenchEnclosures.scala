@@ -35,10 +35,21 @@ object BenchEnclosures {
       println("===")
       def adjustParms(p: acumen.interpreters.enclosure.Parameters) =
         adjustments.foldLeft(p){case (p,(k,v)) => k match {
-          case "minTimeStep"    => p.copy(minTimeStep = v)
-          case "maxTimeStep"    => p.copy(maxTimeStep = v)
+          case "bigDecimalDigits"          => p.copy(bigDecimalDigits = v.intValue)
+          case "startTime"                 => p.copy(startTime = v)
+          case "endTime"                   => p.copy(endTime = v)
+          case "initialPicardPadding"      => p.copy(initialPicardPadding = v)
+          case "picardImprovements"        => p.copy(picardImprovements = v.intValue)
+          case "maxPicardIterations"       => p.copy(maxPicardIterations = v.intValue)
+          case "maxEventTreeSize"          => p.copy(maxEventTreeSize = v.intValue)
+          case "minTimeStep"               => p.copy(minTimeStep = v)
+          case "minSolverStep"             => p.copy(minSolverStep = v)
+          case "minLocalizationStep"       => p.copy(minLocalizationStep = v)
+          case "maxTimeStep"               => p.copy(maxTimeStep = v)
           case "minComputationImprovement" => p.copy(minComputationImprovement = v)
-          case what              => throw new Error("Unknown parm: " + what)
+          case "splittingDegree"           => p.copy(splittingDegree = v.intValue)
+          case "maxIterations"             => p.copy(maxIterations = v.intValue)
+          case what                        => throw new Error("Unknown parm: " + what)
         }}
       println("Starting with parms: " + adjustments)
       val s = System.currentTimeMillis
