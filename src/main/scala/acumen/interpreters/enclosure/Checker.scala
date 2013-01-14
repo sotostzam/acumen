@@ -64,12 +64,10 @@ trait Checker {
 
   // checks that the actions `as` define a field
 
-  def isField(as: List[Action]) = {
-    println(as)
+  def isField(as: List[Action]) = 
     containsOnlyContinuousAssignments(as) &&
       atMostOneContinuousAssignmentPerVariable(as) &&
       onlyContinuousAssignmentsToPrimedVariables(as)
-  }
 
   // note: assumes being called on desugared program
   def containsOnlyContinuousAssignments(as: List[Action]) =
