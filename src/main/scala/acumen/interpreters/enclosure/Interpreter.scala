@@ -24,7 +24,12 @@ case class EnclosureRes(res: Seq[UnivariateAffineEnclosure]) extends Interpreter
 /**
  * Proxy for the enclosure-based solver.
  */
-class Interpreter extends acumen.RecursiveInterpreter with Solver with Extract with EncloseHybrid {
+class Interpreter
+  extends acumen.RecursiveInterpreter
+  with Checker
+  with Extract
+  with Solver
+  with EncloseHybrid {
 
   def newInterpreterModel = new EnclosureModel
 
@@ -48,6 +53,9 @@ class Interpreter extends acumen.RecursiveInterpreter with Solver with Extract w
     val cb = cb0.asInstanceOf[EnclosureInterpreterCallbacks]
     if (des.defs.size > 1) sys.error("Multiple classes are not currently supported by the enclosure interperter!")
     val main = classDef(ClassName("Main"), des)
+
+    // checking that main class embeds a hybrid automaton
+    if (!embedsAutomaton(main)) sys.error("Syntax not supported by the enclosure interpreter!")
 
     val ps0 = parameters(main)
     val ps = adjustParms(ps0)
@@ -74,7 +82,7 @@ class Interpreter extends acumen.RecursiveInterpreter with Solver with Extract w
         ps.initialPicardPadding,
         ps.picardImprovements,
         ps.maxPicardIterations,
-        ps.splittingDegree, 
+        ps.splittingDegree,
         ps.maxEventTreeSize,
         ps.minTimeStep,
         ps.maxTimeStep,
