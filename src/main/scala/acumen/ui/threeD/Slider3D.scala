@@ -33,7 +33,7 @@ class Slider3d extends BoxPanel(Orientation.Horizontal) {
   }
   def setSpeed(p: String) = labelSpeed.text = "Speed:" + p + "x"
   border = javax.swing.BorderFactory.createEmptyBorder(5, 5, 5, 5)
-  contents += new Label("TimeLine: ")
+//  contents += new Label("Time: ")
   contents += bar
   contents += labels
 }

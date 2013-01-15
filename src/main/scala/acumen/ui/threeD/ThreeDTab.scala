@@ -146,7 +146,7 @@ class ThreeDTab(val appModel: Controller) extends AbstractThreeDTab {
     peer.setHideActionText(true); preferredSize = s
   }
   val check = new CheckBox("") {
-    action = Action("Axis-On") {
+    action = Action("Axis") {
       if (selected) threeDView.axisOn
       else threeDView.axisOff
     }
@@ -154,8 +154,8 @@ class ThreeDTab(val appModel: Controller) extends AbstractThreeDTab {
   check.selected = true
   def hide(button: Button) { button.peer.setEnabled(false) }
   val threeDButtons =
-    new FlowPanel(FlowPanel.Alignment.Leading)(b3dplay,
-      b3dpause, b3dslower, b3dfaster, b3dstop, check)
+    new FlowPanel(FlowPanel.Alignment.Leading)(check, b3dplay,
+      b3dpause, b3dstop, b3dslower, b3dfaster)
 
   val statusZone3d = new Slider3d
 
