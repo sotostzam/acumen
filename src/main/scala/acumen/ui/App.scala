@@ -177,7 +177,7 @@ class App extends SimpleSwingApplication {
     } else {
       -1
     }
-    pages += new TabbedPane.Page("Trace",    traceTab)
+    pages += new TabbedPane.Page("Table",    traceTab)
     val TABLE_IDX = pages.last.index
     
     if (threeDtab != null) {
