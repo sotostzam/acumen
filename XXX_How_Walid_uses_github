@@ -75,7 +75,7 @@ PULL
 
 If you need to get the latest version, just do this:
 
-  git pull
+  git pull --no-edit
 
 After doing a PULL, make sure the word "conflict" did not appear in
 the output of that operation.  If there is a conflict, talk to Kevin
