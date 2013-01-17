@@ -9,14 +9,15 @@ class Main(simulator)
     mode := ""; 
   end
   switch mode
-    case "" require s <= abs(d)
+    case "" 
+      require s <= abs(d) // Constraint added!
       if s == d 
         s := s/2; 
         mode := "" 
       end;
       d' = -1;
   end;
-  simulator.endTime := 1.1;
+  simulator.endTime := 2.0;
   simulator.minSolverStep := 1.1;
   simulator.minLocalizationStep := 0.1;
   simulator.minComputationImprovement := 0;
