@@ -33,6 +33,12 @@ object GraphicalMain extends SimpleSwingApplication {
   debug.EventDispatchThreadHangMonitor.initMonitoring()
 
   var threeDState = ThreeDState.LAZY
+  val osname = System.getProperty("os.name").toLowerCase
+  var need_quarts = false
+  if (osname == "mac os x" && System.getProperty("apple.awt.graphics.UseQuartz") == "true") {
+    threeDState = ThreeDState.DISABLE
+    need_quarts = true
+  }
   var disableNewPlot = true
   var openFile: File = null
   var autoPlay = false
@@ -44,10 +50,13 @@ object GraphicalMain extends SimpleSwingApplication {
     args match {
       case Nil =>
       case ("--enable-3d" | "--3d") :: tail => 
+        need_quarts = false
         threeDState = ThreeDState.ENABLE; parseOpts(tail)
       case ("--lazy-3d" | "--3d") :: tail => 
+        need_quarts = false
         threeDState = ThreeDState.LAZY; parseOpts(tail)
       case ("--disable-3d" | "--no-3d") :: tail => 
+        need_quarts = false
         threeDState = ThreeDState.DISABLE; parseOpts(tail)
       case ("--enable-newplot" | "--newplot") :: tail => 
         disableNewPlot = false; parseOpts(tail)

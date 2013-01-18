@@ -153,7 +153,11 @@ class App extends SimpleSwingApplication {
   var threeDtab = if (GraphicalMain.threeDState == ThreeDState.DISABLE) {
     console.log("Acumen3D disabled.")
     console.newLine
-    new threeD.DisabledThreeDTab("Acumen 3D disabled on the command line.")
+    if (GraphicalMain.need_quarts) {
+      new threeD.DisabledThreeDTab("Acumen 3D disabled due to performace problems on Mac OS X. \n\nTo enable restart Java with -Dapple.awt.graphics.UseQuartz=true or use --3d to force 3D to be enabled.")
+    } else {
+      new threeD.DisabledThreeDTab("Acumen 3D disabled on the command line.")
+    }
     //null
   } else if (GraphicalMain.threeDState == ThreeDState.LAZY) {
     new threeD.DisabledThreeDTab("Acumen 3D will be enabled when needed.")
