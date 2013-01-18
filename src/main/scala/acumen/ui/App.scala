@@ -150,25 +150,34 @@ class App extends SimpleSwingApplication {
   jPlotI.enabled = newPlotTab != null
 
   val traceTab = new ScrollPane(traceTable) 
-  var threeDtab = if (GraphicalMain.disable3D) {
+  var threeDtab = if (GraphicalMain.threeDState == ThreeDState.DISABLE) {
     console.log("Acumen3D disabled.")
     console.newLine
-    new threeD.DisabledThreeDTab("Acumen 3D disabled.  To enable use the --3d option.")
+    new threeD.DisabledThreeDTab("Acumen 3D disabled on the command line.")
     //null
-  } else try {
-    new threeD.ThreeDTab(controller)
+  } else if (GraphicalMain.threeDState == ThreeDState.LAZY) {
+    new threeD.DisabledThreeDTab("Acumen 3D will be enabled when needed.")
+  } else {
+    start3D
+  }
+  
+  def start3D = try {
+    val res = new threeD.ThreeDTab(controller)
+    GraphicalMain.threeDState = ThreeDState.ENABLE
+    res
   } catch {
     case e:UnsatisfiedLinkError => 
       console.log("Error loading Java3D: " + e)
       console.newLine
       console.log("Disabling 3D Tab.")
       console.newLine
-    new threeD.DisabledThreeDTab("Acumen 3D disabled.\nError loading Java3D: " + e)
+      GraphicalMain.threeDState = ThreeDState.ERROR
+      new threeD.DisabledThreeDTab("Acumen 3D disabled.\nError loading Java3D: " + e)
   }
-  
+
   val views = new TabbedPane {
     assert(pages.size == 0)
-    pages += new TabbedPane.Page("Plot",     plotTab)
+    pages += new TabbedPane.Page("Plot", plotTab)
     val PLOT_IDX = pages.last.index
     val NEW_PLOT_IDX = if (newPlotTab != null) {
       pages += new TabbedPane.Page("New Plot", newPlotTab)
@@ -177,16 +186,23 @@ class App extends SimpleSwingApplication {
     } else {
       -1
     }
-    pages += new TabbedPane.Page("Table",    traceTab)
+    pages += new TabbedPane.Page("Table", traceTab)
     val TABLE_IDX = pages.last.index
     
-    if (threeDtab != null) {
-      pages += new TabbedPane.Page("3D",       threeDtab)
-    }
+    pages += new TabbedPane.Page("3D", threeDtab)
+    val THREED_IDX = pages.last.index
 
     selection.reactions += {
       case SelectionChanged(_) =>
+        possibleEnable3D
         actor.publish(ViewChanged(selection.index))
+    }
+
+    var shouldEnable3D = false
+
+    def possibleEnable3D = {
+      if (selection.index == THREED_IDX && shouldEnable3D)
+        pages(THREED_IDX).content = start3D
     }
   }
 
@@ -400,7 +416,14 @@ class App extends SimpleSwingApplication {
       }
       state = st
   }
-          
+  // enable 3d if required
+  reactions += {
+    case Stopped =>
+      if (GraphicalMain.threeDState == ThreeDState.LAZY && 
+          !controller.threeDData._3DData.isEmpty)
+        views.shouldEnable3D = true
+      views.possibleEnable3D
+  }
   
   // FIXME: Move me into a seperate TraceTable class
   // and move tableI out of plotter and into the new class

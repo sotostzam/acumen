@@ -23,12 +23,16 @@ import javax.swing.event.DocumentEvent
 import swing._
 import swing.event._
 
+object ThreeDState extends Enumeration {
+  val ERROR,DISABLE,LAZY,ENABLE = Value
+}
+
 object GraphicalMain extends SimpleSwingApplication {
   // Swing debugging
   javax.swing.RepaintManager.setCurrentManager(new debug.CheckThreadViolationRepaintManager)
   debug.EventDispatchThreadHangMonitor.initMonitoring()
 
-  var disable3D = true
+  var threeDState = ThreeDState.LAZY
   var disableNewPlot = true
   var openFile: File = null
   var autoPlay = false
@@ -40,9 +44,11 @@ object GraphicalMain extends SimpleSwingApplication {
     args match {
       case Nil =>
       case ("--enable-3d" | "--3d") :: tail => 
-        disable3D = false; parseOpts(tail)
+        threeDState = ThreeDState.ENABLE; parseOpts(tail)
+      case ("--lazy-3d" | "--3d") :: tail => 
+        threeDState = ThreeDState.LAZY; parseOpts(tail)
       case ("--disable-3d" | "--no-3d") :: tail => 
-        disable3D = true; parseOpts(tail)
+        threeDState = ThreeDState.DISABLE; parseOpts(tail)
       case ("--enable-newplot" | "--newplot") :: tail => 
         disableNewPlot = false; parseOpts(tail)
       case ("--disable-newplot" | "--no-newplot") :: tail => 
