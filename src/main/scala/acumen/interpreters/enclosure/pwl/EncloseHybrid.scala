@@ -182,7 +182,7 @@ trait EncloseHybrid extends EncloseEvents {
     (try { h.domains(m).support(eAtRightEndpoint); false } catch { case _ => true }) || 
       (h.domains(m)(eAtRightEndpoint) == Set(false)) || 
       h.events.filter(_.sigma == m).exists(h.guards(_)(eAtRightEndpoint) == Set(true))
-  }
+  } 
 
   def enclosureHasNoEventInfo(ps: Parameters, h: HybridSystem, m: Mode, e: UnivariateAffineEnclosure)(implicit rnd: Rounding): Boolean = {
     val guards = h.events.filter(_.sigma == m).map(h.guards(_))
