@@ -11,7 +11,7 @@ the specific simulator parameter they illustrate.
    fields, this can be set equal to the simulation end time.
    For models with nonconstant fields, setting this to a 
    lower value can shrink the enclosure, at the cost of an 
-   increased simulation time. The value of this parameters
+   increased simulation time. The value of this parameter
    must be positive.
    
    01_minSolverStep_Constant_Field.acm
@@ -26,7 +26,7 @@ the specific simulator parameter they illustrate.
    time at which an event occurred. This can translate to an
    overall improvement in the size of the enclosure, at the 
    cost of an increased simulation time. The value of this
-   parameter must be greater or equal to minSolverStep.
+   parameter must be less than or equal to minSolverStep.
 
    05_minLocalizationStep_Large.acm
    06_minLocalizationStep_Small.acm
