@@ -21,9 +21,9 @@ good simulation results involves three steps:
 
 The example models are variations of four systems.
 
- - The simplest possible Zeno system. Nicely demonstrates 
-   the effect of adding an invariant and the localization 
-   time step parameter.
+ - A minimal Zeno system. Models demonstrate the effect 
+   of adding an invariant and the localization time step 
+   parameter.
 
    01_Zeno_Half.acm
    02_Zeno_Half_Overconstrained.acm
