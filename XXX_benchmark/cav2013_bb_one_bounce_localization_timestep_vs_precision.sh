@@ -5,7 +5,7 @@
 #
 # Experiment
 #
-# Model: examples/9_Experimental/3_Zeno/11_Bouncing_Ball_Overconstrained_Helper_Variable.acm
+# Model: examples/9_Experimental/1_Enclosures/3_Zeno/11_Bouncing_Ball_Overconstrained_Helper_Variable.acm
 #
 # Description: The endTime simulator parameter has been overwritten to be equal to 1.5, the 
 # time at which the ball's velocity changes sign. The simulator parameter minSolverStep is 
@@ -19,7 +19,7 @@
 set -e
 
 title="Zeno Half Overconstrained, minLocalizationStep versus end-time precision"
-model=examples/9_Experimental/3_Zeno/11_Bouncing_Ball_Overconstrained_Helper_Variable.acm
+model=examples/9_Experimental/1_Enclosures/3_Zeno/11_Bouncing_Ball_Overconstrained_Helper_Variable.acm
 resultDir=benchmark-res
 prefix=Zeno_Half_Overconstrained-minLocalizationStep
 repeat=3

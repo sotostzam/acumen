@@ -6,7 +6,7 @@
 #
 # Experiment
 #
-# Model: examples/9_Experimental/1_Continuous/05_Trigonometrics.acm
+# Model: examples/9_Experimental/1_Enclosures/1_Continuous/05_Trigonometrics.acm
 #
 # Description: 
 # The minComputationImprovement simulator parameter has been set to 0 in
@@ -22,7 +22,7 @@
 set -e
 
 title="Trigonometrics, minSolverStep versus end-time precision"
-model=examples/9_Experimental/1_Continuous/05_Trigonometrics.acm
+model=examples/9_Experimental/1_Enclosures/1_Continuous/05_Trigonometrics.acm
 resultDir=benchmark-res
 prefix=Trigonometrics-minSolverStep
 repeat=3
