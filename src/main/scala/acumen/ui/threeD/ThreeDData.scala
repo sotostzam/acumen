@@ -28,7 +28,8 @@ class ThreeDData extends Publisher {
   var _3DSize = Array[Double]();
   var _3DColor = Array[Double](1.0, 1.0, 1.0)
   var _3DAngle = Array[Double](0.0, 0.0, 0.0)
-
+  var _3DPath = ""
+  var _3DText = ""
   def reset() {
     _3DData.clear
     frameNumber = 0;
@@ -80,6 +81,22 @@ class ThreeDData extends Publisher {
       case _ => throw ShouldNeverHappen()
     }
   }
+  
+  /* _3D OBJ path should be a string */
+  def extractPath(value: Value[_]){
+	value match {
+		case VLit(GStr(obj)) => _3DPath = obj
+		case _ => throw _3DNameError(value)
+	}
+  }
+  
+ def extractText(value: Value[_]) {
+    value match {
+      case VLit(GStr(s)) => _3DText = s;
+      case VLit(GInt(i)) => _3DText = i.toString;
+      case _ => throw _3DNameError(value)
+    }
+  }
   /* _3D size should be either a vector or an number */
   def extractSize(value: Value[_]) {
     value match {
@@ -111,7 +128,7 @@ class ThreeDData extends Publisher {
       var vector = value(i);
       vector match {
         case VVector(l) => {
-          if (l.size != 5)
+          if (l.size != 5 && l.size != 6)
             throw _3DError(vector)
           else {
             extractType(l(0))
@@ -119,12 +136,23 @@ class ThreeDData extends Publisher {
             extractVector(l(1), "position")
             extractVector(l(3), "color")
             extractVector(l(4), "angle")
+            if (_3DType == "Text")
+			  extractText(l(5))
+			if (_3DType == "OBJ")
+			  extractPath(l(5))
           }
         }
         case _ => throw ShouldNeverHappen()
       }
-      _3DData(id)(i) = List(_3DType, _3DPosition,
-        _3DSize, _3DColor, _3DAngle, frameNumber) :: _3DData(id)(i)
+      if (_3DType == "Text")
+	    _3DData(id)(i) = List(_3DType, _3DPosition,
+          _3DSize, _3DColor, _3DAngle, _3DText,frameNumber) :: _3DData(id)(i)
+	  else if (_3DType == "OBJ")
+	    _3DData(id)(i) = List(_3DType, _3DPosition,
+          _3DSize, _3DColor, _3DAngle, _3DPath, frameNumber) :: _3DData(id)(i)
+      else
+        _3DData(id)(i) = List(_3DType, _3DPosition,
+          _3DSize, _3DColor, _3DAngle, frameNumber) :: _3DData(id)(i)
     }
   }
   /* Look for endTime in "Main" class */

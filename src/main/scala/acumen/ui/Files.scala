@@ -18,6 +18,15 @@ object Files {
     if (md.exists()) md
     else new File(".")
   }
+ 
+ /* Question:  How come the absolute pate of the new File is 
+               the correct one automatically ? In my case 
+               /Users/yingfuzeng/Desktop/work/newAcumen/acumen/_3D  */
+  val _3DDir = {
+	val md = new File("_3D")
+    if (md.exists()) md
+    else{ md.mkdirs; md } 
+  }
   private val home = new File(_home)
   private val saved = new File(_saved)
   private def now = new File(_now)

@@ -6,7 +6,10 @@ import Errors._
 import com.sun.j3d.utils.universe._
 import com.sun.j3d.utils.geometry._
 import com.sun.j3d.utils.behaviors.mouse._
+import com.sun.j3d.loaders.objectfile.ObjectFile;
+import com.sun.j3d.loaders._;
 
+import java.io._
 import javax.media.j3d._
 import javax.media.j3d.Group
 import javax.media.j3d.ColoringAttributes
@@ -215,6 +218,8 @@ class _3DDisplay(app: ThreeDView, slider: Slider3d,
                  lastFrame1: Double, endTime: Double) extends Publisher with Actor 
 {
   var lastLook = Map[List[_], List[_]]() // Store the size and color of each object
+  /* Default directory where all the OBJ files are */
+  private val _3DBasePath = Files._3DDir.getAbsolutePath()
   var currentFrame = 0 // FrameNumber
   var totalFrames = 2
   var lastFrame = 2.0
@@ -235,8 +240,12 @@ class _3DDisplay(app: ThreeDView, slider: Slider3d,
         if (firstFrame(buffer) <= currentFrame && lastFrame(buffer) >= currentFrame) {
           if (!app.branches.contains(List(id, objectNumber))) {
             addToBranches(app.branches, app.trans, List(id, objectNumber))
-            lastLook += List(id, objectNumber) -> List(bufferSize(buffer.head),
-              bufferColor(buffer.head), bufferType(buffer.head))
+            if (buffer.head.size == 6)
+              lastLook += List(id, objectNumber) -> List(bufferSize(buffer.head),
+                bufferColor(buffer.head), bufferType(buffer.head))
+            else
+              lastLook += List(id, objectNumber) -> List(bufferSize(buffer.head),
+                bufferColor(buffer.head), bufferType(buffer.head), bufferString(buffer.head))
             app.add(addObj(List(id, objectNumber), buffer, currentFrame))
           }
           val frame = (currentFrame - bufferFrame(buffer.head)).toInt
@@ -284,7 +293,7 @@ class _3DDisplay(app: ThreeDView, slider: Slider3d,
   }
 
   def bufferFrame(list: List[_]): Int = {
-    list(5) match {
+    list.last match {
       case time: Int => time
       case _ => throw ShouldNeverHappen()
     }
@@ -319,15 +328,21 @@ class _3DDisplay(app: ThreeDView, slider: Slider3d,
       case _ => throw ShouldNeverHappen()
     }
   }
+ def bufferString(list: List[_]): String = {
+    list(5) match {
+      case s:String => s
+      case _ => throw ShouldNeverHappen()
+    }
+  }
   // Return the first frame number of the object
   def firstFrame(buffer: scala.collection.mutable.Buffer[List[_]]): Int = {
-    buffer.head(5) match {
+    buffer.head.last match {
       case first: Int => first
       case _ => throw ShouldNeverHappen()
     }
   }
   def lastFrame(buffer: scala.collection.mutable.Buffer[List[_]]): Int = {
-    buffer.last(5) match {
+    buffer.last.last match {
       case last: Int => last
       case _ => throw ShouldNeverHappen()
     }
@@ -391,14 +406,18 @@ class _3DDisplay(app: ThreeDView, slider: Slider3d,
     if (lastLook.contains(id)) {
       if (lastLook(id)(0) != bufferSize(frame) ||
         lastLook(id)(1) != bufferColor(frame) ||
-        lastLook(id)(2) != bufferType(frame)) {
+        lastLook(id)(2) != bufferType(frame) ||
+        ((frame.size == 7) && (lastLook(id)(3) != bufferString(frame)))) {
         deleteObj(id)
         app.add(addObj(id, buffer, currentFrame))
       }
     }
     val key = id
     lastLook -= key // Update last look
-    lastLook += key -> List(bufferSize(frame), bufferColor(frame), bufferType(frame))
+    if (frame.size == 6)
+     lastLook += key -> List(bufferSize(frame), bufferColor(frame), bufferType(frame))
+    else
+     lastLook += key -> List(bufferSize(frame), bufferColor(frame), bufferType(frame), bufferString(frame))
   }
 
   // Update the slider value
@@ -436,6 +455,43 @@ class _3DDisplay(app: ThreeDView, slider: Slider3d,
       app.trans -= c
     }
   }
+
+  
+  // Load .obj fil
+  def loadObj(path:String, ap: Appearance, size:Double): TransformGroup ={
+	 var scene:Scene = null;
+	 var shape = new Shape3D();
+
+	 //read in the geometry information from the data file
+	 val objFileloader = new ObjectFile( ObjectFile.RESIZE );
+	 //objFileloader.setBasePath(path.split('.')(0))
+     ///objFileloader.setBasePath("/Users/yingfuzeng/Desktop/shoe/Maps")
+	 try
+	 {
+	  scene = objFileloader.load(_3DBasePath + File.separator +path);
+	 }
+	 catch {
+	   case e:Exception => {scene = null;throw e}
+	 }
+
+	 //retrieve the Shape3D objects from the scene
+	 val branchGroup = scene.getSceneGroup();
+	
+	 //Store every part of the object 
+	 val children = branchGroup.getAllChildren()
+     // while(children.hasMoreElements()){
+     // 	   shape = children.nextElement().asInstanceOf[Shape3D]
+     //        shape.setAppearance(ap)
+     //       }
+     var TG = new TransformGroup()
+     TG.addChild(branchGroup)
+     var transform = new Transform3D()
+     transform.setScale(size)
+     TG.setTransform(transform)
+     TG
+	 //scene.getSceneGroup()
+  }
+
   /**
    * Add an 3D-object to the scene
    */
@@ -444,12 +500,18 @@ class _3DDisplay(app: ThreeDView, slider: Slider3d,
     var color = List[Double](1.0, 1.0, 1.0)
     var size = List[Double](1.0)
     var name = " "
+    var path = ""
+    var text = ""
     val index = (currentFrame - bufferFrame(buffer.head)).toInt
     if (index >= 0 && index < buffer.size) {
       val list = buffer(index);
       color = bufferColor(list) // Get the color and size of the object
       size = bufferSize(list)
       name = bufferType(list)
+      if (name == "Text")
+        text = bufferString(list)
+      if (name == "OBJ")
+	    path = bufferString(list)
     }
     app.trans -= c
     app.branches -= c
@@ -485,8 +547,8 @@ class _3DDisplay(app: ThreeDView, slider: Slider3d,
           case "Sphere" =>
             app.trans(c).addChild(new Sphere(abs(size(0).toFloat),
               com.sun.j3d.utils.geometry.Primitive.GENERATE_NORMALS, 30, ap));
-          case text: String => { addText(app.trans(c), text, size(0).toInt, color); }
-
+         case "Text" => { addText(app.trans(c), text, size(0).toInt, color); }
+         case "OBJ" => {app.trans(c).addChild(loadObj(path,ap,size(0)))}
           case _ => throw ShouldNeverHappen()
         }
       }
