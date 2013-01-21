@@ -33,7 +33,7 @@ PREFIX="./$resultDir/$prefix"
 
 mkdir -p $resultDir
 
-#sbt "run-main acumen.Main --semantics enclosure $model bench-enclosures $PREFIX $repeat $parm=$values endTime=1.5 minComputationImprovement=0 minLocalizationStep=9.765625e-4"
+sbt "run-main acumen.Main --semantics enclosure $model bench-enclosures $PREFIX $repeat $parm=$values endTime=1.5 minComputationImprovement=0 minLocalizationStep=9.765625e-4"
 
 gnuplot <<EOF
 set terminal png
