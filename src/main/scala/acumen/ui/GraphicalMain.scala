@@ -53,7 +53,7 @@ object GraphicalMain extends SimpleSwingApplication {
       case ("--enable-3d" | "--3d") :: tail => 
         need_quarts = false
         threeDState = ThreeDState.ENABLE; parseOpts(tail)
-      case ("--lazy-3d" | "--3d") :: tail => 
+      case ("--lazy-3d") :: tail => 
         need_quarts = false
         threeDState = ThreeDState.LAZY; parseOpts(tail)
       case ("--disable-3d" | "--no-3d") :: tail => 
