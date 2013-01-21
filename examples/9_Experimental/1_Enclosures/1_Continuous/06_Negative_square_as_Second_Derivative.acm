@@ -1,19 +1,19 @@
 
-/* Linear Decay
+/  Trigonometrics
    Autohors: Jan Duracz and Adam Duracz
-   A continuous model with linear solution.
+   A continuous model with sine and cosine solution and derivative.
 */
 
 class Main(simulator)
   private 
     mode := "on"; 
-    x := 1; x' := 1;
+    x   := 0; x' := 1; x'' := 2;
   end
   switch mode
     case "on" 
-      x' = -1;
+      x'' = -x*x;
   end;
-  simulator.endTime := 10;
+  simulator.endTime := 1;
   simulator.minSolverStep := 0.1;
   simulator.minLocalizationStep := 0.1;
   simulator.minComputationImprovement := 0; 

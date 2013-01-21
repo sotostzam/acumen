@@ -1,5 +1,7 @@
-Examples illustrating simulation of continuous systems
-------------------------------------------------------
+Examples of enclosures for continuous systems
+
+The purpose of this series is to give some basic examples of how
+Acumen's experimental enclosure-based solver can be used to construct enclosures for some basic continuous systems.
 
 These examples illustrate how we can use an enclosure
 based solver to simulate continuous systems. To obtain
