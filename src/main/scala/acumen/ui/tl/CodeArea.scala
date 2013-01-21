@@ -43,6 +43,13 @@ class CodeArea extends Panel { //EditorPane {
   var editedSinceLastAutoSave : Boolean = false
 
   val filenameLabel = new Label("[Untitled]")
+  val acumenFileFilter = new javax.swing.filechooser.FileFilter() {
+    val acumenFileName = """.*\.acm|README""".r 
+    def accept(f: File): Boolean = 
+      if (f isDirectory) true
+      else acumenFileName.pattern.matcher(f getName).matches
+    def getDescription = ".acm and README files"
+  } 
 
   /** 
    * Create RSyntaxTextArea component. It provides features such as syntax highlighting and indentation.
@@ -169,6 +176,7 @@ class CodeArea extends Panel { //EditorPane {
   def openFile(path: File) : Unit = withErrorReporting {
     if (!editedSinceLastSave || confirmContinue(App.ui.body.peer)) {
       val fc = new FileChooser(path)
+      fc.fileFilter = acumenFileFilter
       val returnVal = fc.showOpenDialog(App.ui.body)
       if (returnVal == FileChooser.Result.Approve) {
         loadFile(fc.selectedFile)
