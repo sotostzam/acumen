@@ -34,10 +34,10 @@ object GraphicalMain extends SimpleSwingApplication {
 
   var threeDState = ThreeDState.LAZY
   val osname = System.getProperty("os.name").toLowerCase
-  var need_quarts = false
+  var need_quartz = false
   if (osname == "mac os x" && !(System.getProperty("apple.awt.graphics.UseQuartz") == "true")) {
     threeDState = ThreeDState.DISABLE
-    need_quarts = true
+    need_quartz = true
   }
   var disableNewPlot = true
   var openFile: File = null
@@ -55,7 +55,7 @@ object GraphicalMain extends SimpleSwingApplication {
       case ("--lazy-3d") :: tail => 
         threeDState = ThreeDState.LAZY; parseOpts(tail)
       case ("--disable-3d" | "--no-3d") :: tail => 
-        need_quarts = false
+        need_quartz = false
         threeDState = ThreeDState.DISABLE; parseOpts(tail)
       case ("--enable-newplot" | "--newplot") :: tail => 
         disableNewPlot = false; parseOpts(tail)
@@ -90,11 +90,12 @@ object GraphicalMain extends SimpleSwingApplication {
     }
   }
 
+  // Approximation of the amount of heap available when setting heap size to 1g
   val MIN_MAX_MEM = (1024*7/8)*1024*1024
 
   def maybeFork(args: Array[String]) {
     val maxMem = Runtime.getRuntime().maxMemory()
-    val shouldFork = maxMem < MIN_MAX_MEM || need_quarts
+    val shouldFork = maxMem < MIN_MAX_MEM || need_quartz
     val mayFork = !dontFork
     if (shouldFork && mayFork) {
       val separator = System.getProperty("file.separator");
@@ -105,8 +106,8 @@ object GraphicalMain extends SimpleSwingApplication {
       realArgs.add(path)
       realArgs.addAll(bean.getInputArguments())
       realArgs.add("-Xmx1g")
-      val quarts = if (need_quarts) "-Dapple.awt.graphics.UseQuartz=true" else ""
-      if (need_quarts) realArgs.add(quarts)
+      val quartz = if (need_quartz) "-Dapple.awt.graphics.UseQuartz=true" else ""
+      if (need_quartz) realArgs.add(quartz)
       realArgs.add("-cp")
       realArgs.add(classpath)
       realArgs.add("acumen.ui.GraphicalMain")
@@ -114,7 +115,7 @@ object GraphicalMain extends SimpleSwingApplication {
       realArgs.add("--dont-fork")
       val processBuilder = new ProcessBuilder(realArgs)
       System.err.println("Forking new JVM with: " + processBuilder.command.mkString(" "))
-      System.err.println("  to avoid use --dont-fork or start java with -Xmx1g " +quarts)
+      System.err.println("  to avoid use --dont-fork or start java with -Xmx1g " + quartz)
       try {
         val process = processBuilder.start();
         inheritIO(process.getInputStream(), System.out)
