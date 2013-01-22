@@ -170,7 +170,7 @@ class App extends SimpleSwingApplication {
     GraphicalMain.threeDState = ThreeDState.ENABLE
     res
   } catch {
-    case e:UnsatisfiedLinkError => 
+    case e =>
       console.log("Error loading Java3D: " + e)
       console.newLine
       console.log("Disabling 3D Tab.")
