@@ -67,12 +67,7 @@ To run it from the command line something like:
 Certain version of Mac OS way require the VM argument as a command
 line parameter in to avoid performance problems when running on the 3D
 tab:
-  -Dapple.awt.graphics.UseQuartz=true
-
-Acumen3D is known to have stability problems on Linux.  If you do not
-require 3D support you can disable it by passing the "--disable-3d"
-when running the jar file.  For example, from the command line:
-  java -jar FIXME.jar --disable-3d
+  java -Dapple.awt.graphics.UseQuartz=true -jar FIXME.jar
 
 SUPPORT
 -------
