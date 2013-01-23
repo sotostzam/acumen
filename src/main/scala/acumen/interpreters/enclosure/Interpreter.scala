@@ -55,7 +55,7 @@ class Interpreter
     val main = classDef(ClassName("Main"), des)
 
     // checking that main class embeds a hybrid automaton
-    if (!embedsAutomaton(main)) sys.error("Syntax not supported by the enclosure interpreter!")
+    checkValidAutomatonEmbedding(main)
 
     val ps0 = parameters(main)
     val ps = adjustParms(ps0)
