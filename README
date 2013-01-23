@@ -64,9 +64,9 @@ To run it from the command line something like:
 
   java -jar FIXME.jar
 
-Certain version of Mac OS way require the VM argument as a command
-line parameter in to avoid performance problems when running on the 3D
-tab:
+If running on Mac OS X, performance may suffer when using Acumen3D
+unless the Java is started with UseQuartz enabled:
+
   java -Dapple.awt.graphics.UseQuartz=true -jar FIXME.jar
 
 SUPPORT
