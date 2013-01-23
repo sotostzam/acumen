@@ -1,0 +1,13 @@
+
+// Negation as Second Derivative
+// Exponential Decay
+
+class Main(simulator)
+private x:=1; x':=0; mode := ""; end
+  switch mode
+    case ""
+      x' = -x
+  end;
+  simulator.endTime := 1.0;
+  simulator.minSolverStep := 0.05;
+end

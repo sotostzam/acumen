@@ -1,7 +1,8 @@
 Examples of enclosures for continuous systems
 
-The purpose of this series is to give some basic examples of how
-Acumen's experimental enclosure-based solver can be used to construct enclosures for some basic continuous systems.
+The purpose of this series is to give some examples of how
+Acumen's experimental enclosure-based solver can be used to 
+construct enclosures for some basic continuous systems.
 
 These examples illustrate how we can use an enclosure
 based solver to simulate continuous systems. To obtain
@@ -18,24 +19,3 @@ involves two steps:
 
 The examples illustrate progressively complex continuous
 systems, with parameters set to produce enclosures quickly. 
-
- - A continuous model with linear solution.
-
-   01_Linear_Decay.acm
-   
- - A continuous model with exponential solution.
-   
-   02_Exponential_Decay.acm
-
- - A continuous model with rational solution.
-
-   03_Rational_Decay.acm
-   
- - A continuous model with exponential solution and derivative.
-   
-   04_Exponentials.acm
-
- - A continuous model with sine and cosine solution and derivative.
-
-   05_Trigonometrics.acm
-   
