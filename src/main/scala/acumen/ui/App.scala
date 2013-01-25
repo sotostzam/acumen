@@ -176,7 +176,10 @@ class App extends SimpleSwingApplication {
       console.log("Disabling 3D Tab.")
       console.newLine
       GraphicalMain.threeDState = ThreeDState.ERROR
-      new threeD.DisabledThreeDTab("Acumen 3D disabled.\nError loading Java3D: " + e)
+      val errors = new StringWriter()
+      e.printStackTrace(new PrintWriter(errors))
+      new threeD.DisabledThreeDTab("Acumen 3D disabled.\nError loading Java3D: " + e +
+                                   "\n\nFull backtrace:\n" + errors)
   }
 
   val views = new TabbedPane {
