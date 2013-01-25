@@ -101,4 +101,6 @@ proguardOptions <<= (proguardOptions, theMainClass) {
   (prev, main) => prev :+ (keepMain(main))
 }
 
+fork in run := true
 
+javaOptions in run += "-Xmx1G"
