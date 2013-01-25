@@ -35,7 +35,7 @@ object GraphicalMain extends SimpleSwingApplication {
   var threeDState = ThreeDState.LAZY
   val osname = System.getProperty("os.name").toLowerCase
   var need_quarts = false
-  if (osname == "mac os x" && System.getProperty("apple.awt.graphics.UseQuartz") == "false") {
+  if (osname == "mac os x" && !(System.getProperty("apple.awt.graphics.UseQuartz") == "true")) {
     threeDState = ThreeDState.DISABLE
     need_quarts = true
   }
