@@ -123,10 +123,11 @@ object GraphicalMain extends SimpleSwingApplication {
         val rv = process.waitFor()
         if (rv == 0)
           exit(0);
+        System.err.println("Fork failed with exit code: " + rv);
       } catch {
-        case e => System.err.println(e.getMessage())
+        case e => System.err.println("Fork failed with error: " + e.getMessage())
       }
-      System.err.println("Fork failed, continuing anyway, acumen may be slow...")
+      System.err.println("Continuing anyway, acumen may be slow...")
     }
   }
 
