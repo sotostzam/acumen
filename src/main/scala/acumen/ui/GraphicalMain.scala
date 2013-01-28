@@ -127,28 +127,41 @@ object GraphicalMain extends SimpleSwingApplication {
       val processBuilder = new ProcessBuilder(realArgs)
       System.err.println("Forking new JVM with: " + processBuilder.command.mkString(" "))
       System.err.println("  to avoid use --dont-fork or start java with -Xmx1g " + quartz)
+      var rv = 255
       try {
         val process = processBuilder.start();
-        inheritIO(process.getInputStream(), System.out)
-        inheritIO(process.getErrorStream(), System.err)
-        val rv = process.waitFor()
+        inheritIO(process.getInputStream(), System.out, magicStartString)
+        inheritIO(process.getErrorStream(), System.err, null)
+        rv = process.waitFor()
         if (rv == 0)
           exit(0);
         System.err.println("Fork failed with exit code: " + rv);
       } catch {
         case e => System.err.println("Fork failed with error: " + e.getMessage())
       }
-      System.err.println("Continuing anyway, acumen may be slow...")
+      if (foundIt)
+        exit(rv)
+      else
+        System.err.println("Continuing anyway, acumen may be slow...")
     }
   }
 
-  def inheritIO(src:InputStream, dest:PrintStream) {
+  val magicStartString = "Acumen Started."
+
+  var foundIt = false;
+
+  def inheritIO(src0:InputStream, dest:PrintStream, scanFor0:String) {
+    var scanFor = scanFor0
+    def src = new BufferedReader(new InputStreamReader(src0))
     new Thread(new Runnable() {
       def run() {
-        val buf = new Array[Byte](1024)
-        var c = 0
-        while ({c = src.read(buf); c > 0}) {
-          dest.write(buf,0,c)
+        var line:String = null
+        while ({line = src.readLine; line != null}) {
+          if (scanFor != null && line == scanFor) {
+            foundIt = true
+            scanFor = null
+          }
+          dest.println(line)
         }
       }
     }).start();
@@ -163,7 +176,7 @@ object GraphicalMain extends SimpleSwingApplication {
   def top = {
     App.init
     val ret = App.ui.top
-
+    println(magicStartString)
     ret
   }
 }
