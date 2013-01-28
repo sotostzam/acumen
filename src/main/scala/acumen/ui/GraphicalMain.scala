@@ -32,14 +32,23 @@ object GraphicalMain extends SimpleSwingApplication {
   javax.swing.RepaintManager.setCurrentManager(new debug.CheckThreadViolationRepaintManager)
   debug.EventDispatchThreadHangMonitor.initMonitoring()
 
-  var threeDState = ThreeDState.LAZY
   val osname = System.getProperty("os.name").toLowerCase
   var need_quartz = false
+  // ThreeDStates default to lazy as loading it can cause performance
+  // problems on some platforms (mainly Linux).  On Windows load it
+  // eagerly as the 3D code was tested the most on Windows.  On OS X
+  // load it eagerly as loading as loading lazily can cause a crash
+  // if the libraries are not available.
+  var threeDState = ThreeDState.LAZY
   if (osname.startsWith("windows ")) {
     threeDState = ThreeDState.ENABLE
-  } else if (osname == "mac os x" && !(System.getProperty("apple.awt.graphics.UseQuartz") == "true")) {
-    threeDState = ThreeDState.DISABLE
-    need_quartz = true
+  } else if (osname.contains("os x")) {
+    if (!(System.getProperty("apple.awt.graphics.UseQuartz") == "true")) {
+      threeDState = ThreeDState.DISABLE
+      need_quartz = true
+    } else {
+      threeDState = ThreeDState.ENABLE
+    }
   }
   var disableNewPlot = true
   var openFile: File = null
