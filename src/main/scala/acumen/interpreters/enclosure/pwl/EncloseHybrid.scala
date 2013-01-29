@@ -171,7 +171,7 @@ trait EncloseHybrid extends EncloseEvents {
   def enclosureToLFE(h: HybridSystem, m: Mode, e: UnivariateAffineEnclosure)(implicit rnd: Rounding): (LFE, Boolean) = {
     val eRange = e.range
     val res @ (lfe, lfeIsBad) =
-      if (!h.events.filter(_.sigma == m).exists(h.guards(_)(eRange).contains(true))) ((Seq(e), Seq(), false), false)
+      if (!h.events.filter(_.sigma == m).exists(h.guards(_)(eRange).contains(true))) ((Seq(e), Seq(), false), false) // TODO LaTeX specification says narrow to 0 here
       else if (eventCertain(h, e, m)) ((Seq(), Seq(e), true), false)
       else ((Seq(), Seq(e), false), true)
     res
@@ -179,10 +179,10 @@ trait EncloseHybrid extends EncloseEvents {
 
   def eventCertain(h: HybridSystem, e: UnivariateAffineEnclosure, m: Mode)(implicit rnd: Rounding): Boolean = {
     val eAtRightEndpoint = e(e.domain.high)
-    (try { h.domains(m).support(eAtRightEndpoint); false } catch { case _ => true }) || 
-      (h.domains(m)(eAtRightEndpoint) == Set(false)) || 
+    (try { h.domains(m).support(eAtRightEndpoint); false } catch { case _ => true }) ||
+      (h.domains(m)(eAtRightEndpoint) == Set(false)) || // TODO LaTeX specification only narrows to 0 here
       h.events.filter(_.sigma == m).exists(h.guards(_)(eAtRightEndpoint) == Set(true))
-  } 
+  }
 
   def enclosureHasNoEventInfo(ps: Parameters, h: HybridSystem, m: Mode, e: UnivariateAffineEnclosure)(implicit rnd: Rounding): Boolean = {
     val guards = h.events.filter(_.sigma == m).map(h.guards(_))
@@ -253,7 +253,8 @@ trait EncloseHybrid extends EncloseEvents {
       val tL = domain(maeL)
       val tR = domain(maeR)
       (tR lessThan tL) ||
-        (tR properlyContains tL) //|| ((tL almostEqualTo tR) && !complR && complL)
+        //|| ((tL almostEqualTo tR) && !complR && complL) // TODO this is included in the LaTeX specification
+        (tR properlyContains tL)
   }
 
   // get the first component of `lfe` truncated at `time`
