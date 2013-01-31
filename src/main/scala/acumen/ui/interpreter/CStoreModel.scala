@@ -185,14 +185,7 @@ class CStoreModel extends TraceModel with InterpreterModel with PlotModel {
       a(0) match {
         case VLit(GDouble(_) | GInt(_)) | VLit(GInt(_)) =>
           val vls = new IndexedSeq[Double] {
-            override def apply(idx: Int) = { 
-              try {
-                val x = extractDouble(a(idx));
-                x
-              } catch {
-                case _ => Double.NaN
-              }
-            }
+            override def apply(idx: Int) = extractDoubleNoThrow(a(idx))
             // store length in a local variable since by the time this
             // data structure is accesses the more data could already
             // have been added to the cstore

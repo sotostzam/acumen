@@ -128,12 +128,12 @@ class CStorePlotter extends JFreePlotter {
       for ((ui,i) <- u zipWithIndex) {
         val idx = indexes((id,x,Some(i)))
         if (idx != -1)
-          addPoint(idx, t, extractDouble(ui))
+          addPoint(idx, t, extractDoubleNoThrow(ui))
       }
     case _ =>
       val idx = indexes((id,x,None))
       if (idx != -1) 
-        addPoint(idx, t, extractDouble(v))
+        addPoint(idx, t, extractDoubleNoThrow(v))
   }
 
   private def addPoint(idx: Int, t: Double, v: Double) {
