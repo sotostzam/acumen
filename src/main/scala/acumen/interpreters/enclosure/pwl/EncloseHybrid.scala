@@ -226,7 +226,7 @@ trait EncloseHybrid extends EncloseEvents {
     val isNonThinEquality = cond match {
       case All(Seq(BinaryRelation(Eq, lhs, rhs))) => 
         // test that the equality has at least one non-thin enclosure
-        (lhs(e)-lhs(e)).range.isZero || (rhs(e)-rhs(e)).range.isZero
+        !(lhs(e)-lhs(e)).range.isZero || !(rhs(e)-rhs(e)).range.isZero
       case _ => false
     }
     val conjunctionSplit = cond match {
