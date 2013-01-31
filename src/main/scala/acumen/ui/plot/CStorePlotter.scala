@@ -2,18 +2,17 @@ package acumen
 package ui
 package plot
 
-import acumen.interpreters.enclosure._
 import java.awt.{BasicStroke, Color}
+import scala.collection.JavaConversions._
+import scala.collection.mutable.{Buffer, Map,HashMap,HashSet,ArrayBuffer}
 import org.jfree.chart._
 import org.jfree.chart.plot._
 import org.jfree.chart.renderer.xy.XYDifferenceRenderer
 import org.jfree.data.xy._
 import org.jfree.ui.ApplicationFrame
-import scala.collection.JavaConversions._
-import scala.collection.mutable.{Buffer, Map}
+
+import acumen.interpreters.enclosure._
 import acumen.ui.interpreter.TraceData
-import collection.mutable.{HashMap,HashSet}
-import collection.mutable.ArrayBuffer
 import acumen.util.Canonical._
 import acumen.util.Conversions._
 
