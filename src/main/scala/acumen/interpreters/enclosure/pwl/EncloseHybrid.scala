@@ -223,8 +223,10 @@ trait EncloseHybrid extends EncloseEvents {
     val oneTrueOneFalse =
       (condAtLoRan == Set(true) && condAtHiRan == Set(false)) ||
         (condAtLoRan == Set(false) && condAtHiRan == Set(true))
-    val isEquality = cond match {
-      case All(Seq(BinaryRelation(Eq, _, _))) => true
+    val isNonThinEquality = cond match {
+      case All(Seq(BinaryRelation(Eq, lhs, rhs))) => 
+        // test that the equality has at least one non-thin enclosure
+        (lhs(e)-lhs(e)).range.isZero || (rhs(e)-rhs(e)).range.isZero
       case _ => false
     }
     val conjunctionSplit = cond match {
@@ -237,7 +239,7 @@ trait EncloseHybrid extends EncloseEvents {
           conditionNowhereProvableOnEnclosure(e, All(Seq(c2)))
       case _ => false
     }
-    oneTrueOneFalse || isEquality || conjunctionSplit
+    oneTrueOneFalse || isNonThinEquality || conjunctionSplit
   }
 
   // a type for representing enclosure lists with first event 
