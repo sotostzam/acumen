@@ -20,6 +20,16 @@ object Conversions {
       case _        => throw ConversionError(v, "double")
     }
 
+  def extractDoubleNoThrow(v:Value[_]) : Double = 
+    try {
+      v match {
+        case VLit(gv) => extractDouble(gv)
+        case _        => throw ConversionError(v, "double")
+      }
+    } catch {
+      case _ => Double.NaN
+    }
+
   def extractDoubles(vs:List[Value[_]]) : List[Double] =
     vs map extractDouble
 
