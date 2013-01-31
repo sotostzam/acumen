@@ -2,24 +2,29 @@ package acumen
 package ui
 package plot
 
-import com.itextpdf.awt.DefaultFontMapper
-import com.itextpdf.text.Document
-import com.itextpdf.text.pdf.{PdfContentByte, PdfTemplate, PdfWriter}
-import java.awt.Color
-import java.awt.event.{ActionEvent, ActionListener}
+import java.awt.event.{ActionListener, ActionEvent}
 import java.awt.geom.Rectangle2D
+import java.awt.Color
 import java.io.FileOutputStream
-import javax.swing.{BoxLayout, JFrame, JMenuItem}
-import org.jfree.chart._
+
+import scala.Array.canBuildFrom
+import scala.collection.JavaConversions.asScalaIterator
+import scala.collection.mutable.{Map, Buffer}
+import scala.swing.Graphics2D
+import scala.swing.Component
+
 import org.jfree.chart.axis.NumberAxis
-import org.jfree.chart.plot._
+import org.jfree.chart.plot.{XYPlot, CombinedDomainXYPlot}
 import org.jfree.chart.renderer.xy.XYItemRenderer
 import org.jfree.chart.title.LegendTitle
-import org.jfree.data.xy._
-import org.jfree.ui.{ApplicationFrame, RectangleEdge}
-import scala.collection.JavaConversions._
-import scala.collection.mutable.{Buffer, Map}
-import scala.swing._
+import org.jfree.chart.{LegendItemSource, LegendItemCollection, LegendItem, JFreeChart, ChartPanel}
+import org.jfree.ui.{RectangleEdge, ApplicationFrame}
+
+import com.itextpdf.awt.DefaultFontMapper
+import com.itextpdf.text.pdf.{PdfWriter, PdfTemplate, PdfContentByte}
+import com.itextpdf.text.Document
+
+import javax.swing.{JMenuItem, JFrame, BoxLayout}
 
 abstract class JFreePlotter {
 
