@@ -1,23 +1,31 @@
 
 // Bouncing Ball overconstrained with improved precision
 // Authors: Michal Konecny and Jan Duracz
-// An additional invariant, based on a helper variable, makes the post-Zeno enclosure convergent.
+// An additional invariant, based on a helper variable, 
+// makes the post-Zeno enclosure convergent.
+//
+// The helper variable r bounds the total energy of the 
+// system in terms of x and x'. The constraint added 
+// based on r is used to express that energy is lost on 
+// each impact (event).
 
 class Main(simulator)
   private 
     mode := "Fly"; 
     x := 5; x' := 0; x'' := 0;  
-    r := 100; r' := 0;
+    r := 100; r' := 0; // Helper variable added!
   end
   switch mode
-    case "Fly" require x >= 0 && r == x'*x' + 20*x
+    case "Fly" 
+      require x >= 0 && 
+              r == x'*x' + 20*x // Constraint added!
       if x == 0 && x' <= 0
         x' := -0.5*x';
-        r  := [0.0..0.25]*r;
+        r  := [0.0..0.25]*r; // Energy loss
         mode := "Fly";
       end;
       x'' = -10;
-      r'  = 0;
+      r'  = 0; // Energy bound constant between events
   end;
   simulator.endTime := 3.5;
   simulator.minSolverStep := 0.01;

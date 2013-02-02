@@ -1,7 +1,13 @@
 
 // Two Mode Clock
 // Authors: Jan Duracz
-// A system periodically switching between with two modes.
+// A system periodically switching between two modes.
+//
+// The value of x starts at 1 and evolves according to a 
+// the differential equation x' = -1, corresponding to 
+// mode "descreasing". When the value of x reaches 0, the 
+// differential equation according to which x evolves 
+// changes to x = 1, corresponding to mode "increasing".
 
 class Main (simulator)
   private 
@@ -10,12 +16,12 @@ class Main (simulator)
   switch mode
     case "decreasing" require x >= 0
       if x == 0 
-        mode := "increasing"
+        mode := "increasing" // Switch to other mode
       end;
       x' = -1;
-    case "increasing" require x <= 1
+    case "increasing" require x <= 1 // Additional mode!
       if x == 1 
-        mode := "decreasing"
+        mode := "decreasing" // Switch to other mode
       end;
       x' = 1;
   end;
