@@ -1,7 +1,8 @@
-/* Zeno Line overconstrained
- * Authors: Walid Taha and Adam Duracz
- * Adding an invariant hints at the behavior around the Zeno point.
- */
+
+// Zeno Line overconstrained
+// Authors: Walid Taha and Adam Duracz
+// Adding an invariant hints at the behavior around the Zeno point.
+
 class Main(simulator)
   private
     d  := 1;    d' := 0;

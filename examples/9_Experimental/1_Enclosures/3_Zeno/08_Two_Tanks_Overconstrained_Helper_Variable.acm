@@ -1,7 +1,8 @@
-/* Two Tanks overconstrained with a helper variable
- * Authors: Michal Konecny and Jan Duracz
- * An additional invariant, based on a helper variable, stabilizes the post-Zeno enclosure.
- */
+
+// Two Tanks overconstrained with a helper variable
+// Authors: Michal Konecny and Jan Duracz
+// An additional invariant, based on a helper variable, stabilizes the post-Zeno enclosure.
+
 class Main(simulator) 
   private 
     mode := "Fill1"; 

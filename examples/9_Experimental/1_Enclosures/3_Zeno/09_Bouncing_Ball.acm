@@ -1,7 +1,8 @@
-/* Bouncing Ball
- * Authors: Michal Konecny and Jan Duracz
- * A model with nonlinear ODE solutions.
- */
+
+// Bouncing Ball
+// Authors: Michal Konecny and Jan Duracz
+// A model with nonlinear ODE solutions.
+
 class Main(simulator)
   private 
     mode := "Fly"; x := 5; x' := 0; x'' := 0 

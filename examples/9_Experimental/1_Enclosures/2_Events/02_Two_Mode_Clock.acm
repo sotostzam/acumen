@@ -1,7 +1,8 @@
-/* Two Mode Clock
- * Authors: Jan Duracz
- * A system periodically switching between with two modes.
- */
+
+// Two Mode Clock
+// Authors: Jan Duracz
+// A system periodically switching between with two modes.
+
 class Main (simulator)
   private 
     mode := "decreasing"; x := 1; x' := -1; 

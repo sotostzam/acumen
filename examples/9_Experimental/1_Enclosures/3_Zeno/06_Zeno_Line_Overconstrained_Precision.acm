@@ -1,7 +1,8 @@
-/* Zeno Line overconstrained with improved precision
- * Authors: Walid Taha and Adam Duracz
- * By decreasing the time step, the enclosure before and after Zeno appears in more detail.
- */
+
+// Zeno Line overconstrained with improved precision
+// Authors: Walid Taha and Adam Duracz
+// By decreasing the time step, the enclosure before and after Zeno appears in more detail.
+
 class Main(simulator)
   private
     d  := 1;    d' := 0;

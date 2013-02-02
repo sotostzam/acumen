@@ -1,7 +1,8 @@
-/* minLocalisationStep many events small enclosure
- * Author: Jan Duracz
- * A smaller minLocalizationStep gives smaller enclosures when many events happen. 
- */
+
+// minLocalisationStep many events small enclosure
+// Author: Jan Duracz
+// A smaller minLocalizationStep gives smaller enclosures when many events happen. 
+
 class Main (simulator)
   private 
     mode := "decreasing"; x := 1; x' := -1; 

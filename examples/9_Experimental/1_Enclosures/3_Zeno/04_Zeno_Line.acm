@@ -1,7 +1,8 @@
-/* Zeno Line
- * Authors: Walid Taha and Adam Duracz
- * An example of a system with nonstable dynamics.
- */
+
+// Zeno Line
+// Authors: Walid Taha and Adam Duracz
+// An example of a system with nonstable dynamics.
+
 class Main(simulator)
   private
     d  := 1;    d' := 0;

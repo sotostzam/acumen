@@ -1,7 +1,8 @@
-/* minLocalizationStep large
- * Authors: Walid Taha and Adam Duracz
- * Due to a large minLocalizationStep, few resets are evaluated, yielding a wide enclosure. 
- */
+
+// minLocalizationStep large
+// Authors: Walid Taha and Adam Duracz
+// Due to a large minLocalizationStep, few resets are evaluated, yielding a wide enclosure. 
+
 class Main(simulator)
   private
     d := 1; d' := -1;

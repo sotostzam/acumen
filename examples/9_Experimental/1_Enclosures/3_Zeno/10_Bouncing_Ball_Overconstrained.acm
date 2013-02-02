@@ -1,7 +1,8 @@
-/* Bouncing Ball overconstrained
- * Authors: Michal Konecny and Jan Duracz
- * Adding a simple constraint improves the enclosure considerably.
- */
+
+// Bouncing Ball overconstrained
+// Authors: Michal Konecny and Jan Duracz
+// Adding a simple constraint improves the enclosure considerably.
+
 class Main(simulator)
   private 
     mode := "Fly"; x := 5; x' := 0; x'' := 0 

@@ -1,7 +1,8 @@
-/* Bouncing Ball overconstrained with improved precision
- * Authors: Michal Konecny and Jan Duracz
- * An additional invariant, based on a helper variable, makes the post-Zeno enclosure convergent.
- */
+
+// Bouncing Ball overconstrained with improved precision
+// Authors: Michal Konecny and Jan Duracz
+// An additional invariant, based on a helper variable, makes the post-Zeno enclosure convergent.
+
 class Main(simulator)
   private 
     mode := "Fly"; 

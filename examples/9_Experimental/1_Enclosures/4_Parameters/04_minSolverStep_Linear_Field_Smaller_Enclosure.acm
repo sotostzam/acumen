@@ -1,7 +1,8 @@
-/* minSolverStep linear field
- * Author: Jan Duracz
- * A smaller minSolverStep gives a smaller enclosure when fields are linear.
- */
+
+// minSolverStep linear field
+// Author: Jan Duracz
+// A smaller minSolverStep gives a smaller enclosure when fields are linear.
+
 class Main(simulator)
   private 
     mode := "on"; 

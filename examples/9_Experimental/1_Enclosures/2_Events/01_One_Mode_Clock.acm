@@ -1,7 +1,8 @@
-/* One Mode Clock
- * Authors: Jan Duracz
- * A system with periodic resets.
- */
+
+// One Mode Clock
+// Author: Jan Duracz
+// A system with periodic resets.
+
 class Main(simulator) 
 private mode := "On"; x := 1; x' := -1 end
   switch mode
