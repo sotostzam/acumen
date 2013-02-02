@@ -1,7 +1,8 @@
 
 // Zeno Line overconstrained
 // Authors: Walid Taha and Adam Duracz
-// Adding an invariant hints at the behavior around the Zeno point.
+// Adding an invariant hints at the behavior around the 
+// Zeno point.
 
 class Main(simulator)
   private
@@ -10,7 +11,7 @@ class Main(simulator)
     mode := ""; 
   end
   switch mode
-    case "" require s <= abs(d)
+    case "" require s <= abs(d) // Constraint added!
       if d == s 
         s  := s/2; 
         mode := "" 
