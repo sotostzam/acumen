@@ -67,7 +67,7 @@ trait Checker {
     case Discretely(Assign(Dot(Var(Name(self, 0)), x), _)) => x == modeName
     case _ => false
   }.size != 1) sys.error(
-      "Multiple assignments to switched variable \"" + pprint(modeName) + "\" in the same if statement not allowed.")
+      "Precisely one assignment to switched variable \"" + pprint(modeName) + "\" in each if statement is required.")
   
   def containsOnlyAssignments(as: List[Action]) = as.map {
     case Discretely(Assign(_, _)) => 
