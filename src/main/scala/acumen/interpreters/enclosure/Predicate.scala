@@ -59,7 +59,7 @@ abstract class Predicate {
     case True => x
     case All(rs) =>
       val contracted = rs.foldLeft(x)((res, r) => r.support(res))
-      if (contracted almostEqualTo x) x
+      if (contracted almostEqualTo x) contracted
       else support(contracted)
   }
 

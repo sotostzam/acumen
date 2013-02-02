@@ -53,8 +53,10 @@ trait EncloseEvents extends SolveIVP {
       case (q, None) => (q, (None, None))
       case (q, Some(box)) => (q, encloseFlowRange(ps, h.fields(q), t, box))
     }
-    val s = intersectInv(h, sPreAndFinalPre.mapValues(_._1))
-    val fin = intersectInv(h, sPreAndFinalPre.mapValues(_._2))
+    val sPre = sPreAndFinalPre.mapValues(_._1)
+    val finalPre = sPreAndFinalPre.mapValues(_._2)
+    val s = intersectInv(h, sPre)
+    val fin = intersectInv(h, finalPre)
     (s, fin)
   }
 
@@ -154,7 +156,13 @@ trait EncloseEvents extends SolveIVP {
   /** mode-wise intersection with invariant */
   // TODO solve this without try-catch
   def intersectInv(h: HybridSystem, s: StateEnclosure)(implicit rnd: Rounding): StateEnclosure =
-    s.map { case (mode, obox) => mode -> (try { Some(h.domains(mode).support(obox.get)) } catch { case _ => None }) }
+    s.map {
+      case (mode, obox) =>
+        mode -> (try {
+          val box = obox.get
+          Some(h.domains(mode).support(box))
+        } catch { case _ => None })
+    }
 
   /** mode-wise intersection with the guard of `e` */
   // TODO solve this without try-catch
@@ -212,8 +220,12 @@ trait EncloseEvents extends SolveIVP {
     for ((mode, obox) <- s.toSet if obox isDefined)
       yield UncertainState(mode, obox.get)
 
-  def enclosures(t: Interval, s: StateEnclosure)(implicit rnd: Rounding): Seq[UnivariateAffineEnclosure] =
-    for ((_, obox) <- s.toSeq if obox isDefined)
-      yield UnivariateAffineEnclosure(t, obox.get)
+  def enclosures(t: Interval, s: StateEnclosure)(implicit rnd: Rounding): Seq[UnivariateAffineEnclosure] = {
+    //    for ((_, obox) <- s.toSeq if obox isDefined)
+    //      yield UnivariateAffineEnclosure(t, obox.get)
+    val boxes = s.toSeq.map(_._2).filter(_.isDefined).map(_.get)
+    require(!boxes.isEmpty)
+    Seq(UnivariateAffineEnclosure(t, boxes.tail.fold(boxes.head)(_ hull _)))
+  }
 
 }
