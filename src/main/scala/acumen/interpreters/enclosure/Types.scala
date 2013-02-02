@@ -39,7 +39,7 @@ object Types {
   }
 
   /** Type for hybrid automaton transition guards */
-  type Guard = All
+  type Guard = Predicate
 
   def guard(conjuncts: Relation*) = All(conjuncts)
 
