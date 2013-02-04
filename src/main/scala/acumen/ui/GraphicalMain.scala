@@ -101,7 +101,7 @@ object GraphicalMain extends SimpleSwingApplication {
     }
   }
 
-  // Approximation of the amount of heap available when setting heap size to 1g
+  // Approximation of the amount of heap available when setting heap size to 1G
   val MIN_MAX_MEM = (1024*7/8)*1024*1024
 
   def maybeFork(args: Array[String]) {
@@ -176,7 +176,7 @@ object GraphicalMain extends SimpleSwingApplication {
   def top = {
     App.init
     val ret = App.ui.top
-    println(magicStartString)
+    println(magicStartString) // Do not remove, needed by forking code
     ret
   }
 }
