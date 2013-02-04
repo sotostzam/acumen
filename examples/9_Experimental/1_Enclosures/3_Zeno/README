@@ -1,5 +1,5 @@
-Sequence of examples of Zeno systems
-------------------------------------
+Examples of Zeno systems
+------------------------
 
 These exmaples illustrate how we can use an enclosure 
 based solver to simulate Zeno systems. Usually getting 
@@ -22,8 +22,8 @@ good simulation results involves three steps:
 The example models are variations of four systems.
 
  - A minimal Zeno system. Models demonstrate the effect 
-   of adding an invariant and the localization time step 
-   parameter.
+   of adding an invariant and the localization time 
+   step parameter.
 
    01_Zeno_Half.acm
    02_Zeno_Half_Overconstrained.acm
@@ -40,11 +40,12 @@ The example models are variations of four systems.
    06_Zeno_Line_Overconstrained_Precision.acm
    
  - A system which has stable (even convergent) post-Zeno 
-   dynamics. In this case adding a simple invariant is not 
-   enough to prove this, the enclosure after Zeno diverges 
-   in the first model. Here, in the second model, adding 
-   a helper variable and expressing an invariant in terms 
-   of it gives a small enclosure after Zeno.
+   dynamics. In this case adding a simple invariant is 
+   not enough to prove this, the enclosure after Zeno 
+   diverges in the first model. Here, in the second 
+   model, adding a helper variable and expressing an 
+   invariant in terms of it gives a small enclosure 
+   after Zeno.
    
    07_Two_Tanks-Overconstrained.acm
    08_Two_Tanks_Overconstrained_Helper_Variable.acm

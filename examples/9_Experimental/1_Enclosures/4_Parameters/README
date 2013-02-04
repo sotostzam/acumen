@@ -1,18 +1,19 @@
 Examples illustrating simulator parameters
 ------------------------------------------
 
-These exmaples illustrate how simulator parameters affect 
-simulation results. The examples are grouped according to 
-the specific simulator parameter they illustrate.
+These exmaples illustrate how simulator parameters 
+affect simulation results. The examples are grouped 
+according to the specific simulator parameter they 
+illustrate.
 
  - simulator.minSolverStep
-   This parameter is the smallest segment of time over which
-   model ODEs will be solved. For models with constant
-   fields, this can be set equal to the simulation end time.
-   For models with nonconstant fields, setting this to a 
-   lower value can shrink the enclosure, at the cost of an 
-   increased simulation time. The value of this parameter
-   must be positive.
+   This parameter is the smallest segment of time over 
+   which model ODEs will be solved. For models with 
+   constant fields, this can be set equal to the 
+   simulation end time. For models with nonconstant 
+   fields, setting this to a lower value can shrink the 
+   enclosure, at the cost of an increased simulation 
+   time. The value of this parameter must be positive.
    
    01_minSolverStep_Constant_Field.acm
    02_minSolverStep_Constant_Field_No_Improvement.acm
@@ -20,13 +21,14 @@ the specific simulator parameter they illustrate.
    04_minSolverStep_Linear_Field_Smaller_Enclosure.acm
 
  - simulator.minLocalizationStep
-   This parameter is the smallest segment of time over which
-   event localisation will happen. Setting this to a lower 
-   value makes it possible to more precisely determine the 
-   time at which an event occurred. This can translate to an
-   overall improvement in the size of the enclosure, at the 
-   cost of an increased simulation time. The value of this
-   parameter must be less than or equal to minSolverStep.
+   This parameter is the smallest segment of time over 
+   which event localisation will happen. Setting this 
+   to a lower value makes it possible to more precisely 
+   determine the time at which an event occurred. This 
+   can translate to an overall improvement in the size 
+   of the enclosure, at the cost of an increased 
+   simulation time. The value of this parameter must 
+   be less than or equal to minSolverStep.
 
    05_minLocalizationStep_Large.acm
    06_minLocalizationStep_Small.acm
@@ -34,13 +36,15 @@ the specific simulator parameter they illustrate.
    08_minLocalizationStep_Many_Events_Small.acm
    
  - simulator.minComputationImprovement
-   This parameter is a measure of the amount of improvement
-   necessary for the algorithm to continue improving the 
-   enclosure. A lower value can give a smaller enclosure, at
-   the cost of an increased simulation time. The value of this 
-   parameter must be nonnegative. Setting this parameter to 
-   zero effectively disables it, meaning that the size of 
-   enclosures depends on the values of the remaining parameters.
+   This parameter is a measure of the amount of 
+   improvement necessary for the algorithm to continue 
+   improving the enclosure. A lower value can give a 
+   smaller enclosure, at the cost of an increased 
+   simulation time. The value of this parameter must be 
+   non-negative. Setting this parameter to zero 
+   effectively disables it, meaning that the size of 
+   enclosures depends on the values of the remaining 
+   parameters.
  
    09_minComputationImprovement_Large.acm
    10_minComputationImprovement_Small.acm
