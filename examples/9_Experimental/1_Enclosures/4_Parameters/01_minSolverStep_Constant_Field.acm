@@ -1,7 +1,8 @@
 
 // minSolverStep model with constant field
 // Author: Jan Duracz
-// Setting minSolverStep to endTime works well fields are constant.
+// Setting minSolverStep to endTime works well when 
+// fields are constant.
 
 class Main(simulator) 
 private mode := "On"; x := 1; x' := -1 end
@@ -11,7 +12,7 @@ private mode := "On"; x := 1; x' := -1 end
         x := 1; 
         mode := "On"
       end; 
-      x' = -1 
+      x' = -1 // Constant field
   end;
   simulator.endTime := 2.5;
   simulator.minSolverStep := 2.5;

@@ -1,7 +1,8 @@
 
 // minSolverStep linear field
 // Author: Jan Duracz
-// A large minSolverStep gives a large enclosure when fields are linear.
+// A large minSolverStep gives a large enclosure when 
+// fields are linear.
 
 class Main(simulator)
   private 
@@ -10,7 +11,7 @@ class Main(simulator)
   end
   switch mode
     case "on" 
-      x' = -x;
+      x' = -x; // Linear field
   end;
   simulator.endTime := 1;
   simulator.minSolverStep := 0.25;

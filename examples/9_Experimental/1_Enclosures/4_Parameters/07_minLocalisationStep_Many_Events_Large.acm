@@ -1,7 +1,8 @@
 
 // minLocalizationStep many events large enclosure
 // Author: Jan Duracz
-// A large minLocalizationStep gives large enclosures when many events happen. 
+// A large minLocalizationStep gives large enclosures 
+// when many events happen. 
 
 class Main (simulator)
   private 

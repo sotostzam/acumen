@@ -1,7 +1,8 @@
 
 // minSolverStep linear field
 // Author: Jan Duracz
-// A smaller minSolverStep gives a smaller enclosure when fields are linear.
+// A smaller minSolverStep gives a smaller enclosure 
+// when fields are linear.
 
 class Main(simulator)
   private 
@@ -13,7 +14,7 @@ class Main(simulator)
       x' = -x;
   end;
   simulator.endTime := 1;
-  simulator.minSolverStep := 0.1;
+  simulator.minSolverStep := 0.1; // Decreased!
   simulator.minLocalizationStep := 0.1;
   simulator.minComputationImprovement := 0; 
 end

@@ -1,7 +1,8 @@
 
 // minLocalizationStep small
 // Authors: Walid Taha and Adam Duracz
-// Due to a small minLocalizationStep, more resets are evaluated, narrowing the enclosure. 
+// Due to a small minLocalizationStep, more resets are 
+// evaluated, narrowing the enclosure. 
 
 class Main(simulator)
   private
@@ -19,6 +20,6 @@ class Main(simulator)
   end;
   simulator.endTime := 1.1;
   simulator.minSolverStep := 1.1;
-  simulator.minLocalizationStep := 0.001;
+  simulator.minLocalizationStep := 0.001; // Decreased!
   simulator.minComputationImprovement := 0;
 end
