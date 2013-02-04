@@ -1,7 +1,9 @@
-/* Two Tanks
- * Authors: Michal Konecny and Jan Duracz
- * System where invariants do not suffice to study its convergent post-Zeno dynamtics.
- */
+
+// Two Tanks
+// Authors: Michal Konecny and Jan Duracz
+// System where invariants do not suffice to study its 
+// convergent post-Zeno dynamtics.
+
 class Main(simulator) 
   private 
     mode := "Fill1"; 
@@ -21,6 +23,6 @@ class Main(simulator)
   simulator.startTime := 0;
   simulator.endTime := 2.5;
   simulator.minSolverStep := 2.5;
-  simulator.minLocalizationStep := 0.001;
+  simulator.minLocalizationStep := 0.000001;
   simulator.minComputationImprovement := 0;    
 end

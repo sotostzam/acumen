@@ -1,7 +1,13 @@
-/* Zeno Half
- * Authors: Walid Taha and Adam Duracz
- * An example where, without an invariant, the solver can not tell for certain that the first event occurs.
- */
+
+// Zeno Half
+// Authors: Walid Taha and Adam Duracz
+// An example where, without an invariant, the solver can 
+// not tell for certain that the first event occurs.
+//
+// This example illustrates Zeno behavior in a minimal 
+// setting, where the value of the variable s is constant
+// between resets.
+
 class Main(simulator)
   private
     d := 1; d' := -1;

@@ -1,7 +1,8 @@
-/* minComputationImprovement small
- * Authors: Michal Konecny and Jan Duracz
- * A smaller minComputationImprovement results in a smaller enclosure.
- */
+
+// minComputationImprovement small
+// Authors: Michal Konecny and Jan Duracz
+// A smaller minComputationImprovement results in a smaller enclosure.
+
 class Main(simulator)
   private 
     mode := "Fly"; x := 5; x' := 0; x'' := 0 

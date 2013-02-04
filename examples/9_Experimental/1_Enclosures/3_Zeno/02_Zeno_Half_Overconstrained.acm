@@ -1,7 +1,9 @@
-/* Zeno Half overconstrained
- * Authors: Walid Taha and Adam Duracz
- * Adding an invariant, the solver is able to ascertain that the first event occurs.
- */
+
+// Zeno Half overconstrained
+// Authors: Walid Taha and Adam Duracz
+// Adding an invariant, the solver is able to ascertain 
+// that the first event occurs.
+
 class Main(simulator)
   private
     d := 1; d' := -1;

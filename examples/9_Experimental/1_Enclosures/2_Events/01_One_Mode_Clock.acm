@@ -1,14 +1,34 @@
-/* One Mode Clock
- * Authors: Jan Duracz
- * A system with periodic resets.
- */
-class Main(simulator) 
+
+// One Mode Clock
+// Author: Jan Duracz
+// A system with periodic, discrete resets.
+//
+// The value of x starts at 1 and decreases linearly, 
+// according to a single differential equation 
+// (corresponding to mode "On"). When the value of x 
+// reaches 0 it is reset to 1. Prior knowledge about 
+// the variable x, i.e. that its value may never go 
+// below zero, is expressed using a mode invariant. 
+//
+// Note on Acumen: This example introduces the if 
+//  statement. It is used to express hybrid systems, 
+//  in which the dynamics switch discretely between 
+//  modes, each expressed using a case clause. The 
+//  guard (predicate) of an if statement is the 
+//  condition under which the system switches between 
+//  modes. The example also introduces the require key 
+//  word, used to express mode invariants. In this 
+//  example there is only one mode ("On"), but the 
+//  state of the system is reset discretely and the 
+//  system is thus still hybird.
+
+class Main(simulator)
 private mode := "On"; x := 1; x' := -1 end
   switch mode
-    case "On" require x >= 0
-      if x == 0
-        x := 1; 
-        mode := "On"
+    case "On" require x >= 0 // Invariant for mode "On"
+      if x == 0 // Guard
+        x := 1; // Reset variable x to 1 
+        mode := "On" // Switch to the same mode "On".
       end; 
       x' = -1 
   end;

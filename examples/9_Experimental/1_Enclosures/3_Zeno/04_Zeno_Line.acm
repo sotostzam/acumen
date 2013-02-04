@@ -1,7 +1,12 @@
-/* Zeno Line
- * Authors: Walid Taha and Adam Duracz
- * An example of a system with nonstable dynamics.
- */
+
+// Zeno Line
+// Authors: Walid Taha and Adam Duracz
+// An example of a Zeno system with piecewise linear 
+// dynamics.
+//
+// This is a minimal example of a Zeno system where
+// the value of the variable s changes between resets.
+
 class Main(simulator)
   private
     d  := 1;    d' := 0;
@@ -10,12 +15,12 @@ class Main(simulator)
   end
   switch mode
     case ""
-      if d == s 
+      if d == s
         s  := s/2; 
         mode := "" 
       end;
-      d'  = -1;
-      s'  = 1;
+      d' = -1;
+      s' = 1; // s increases linearly
   end;
   simulator.endTime := 1.2;
   simulator.minSolverStep := 1.2;

@@ -1,7 +1,8 @@
-/* minComputationImprovement large
- * Authors: Michal Konecny and Jan Duracz
- * A large minComputationImprovement results in a large enclosure.
- */
+
+// minComputationImprovement large
+// Authors: Michal Konecny and Jan Duracz
+// A large minComputationImprovement results in a large enclosure.
+
 class Main(simulator)
   private 
     mode := "Fly"; x := 5; x' := 0; x'' := 0 

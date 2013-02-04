@@ -24,7 +24,7 @@ trait EncloseHybrid extends EncloseEvents {
     val teL = (for ((_, mae, _) <- lfes.values if !mae.isEmpty) yield domain(mae).low).foldLeft(t.high)(Interval.min)
 
     //    val teR = (for ((_, mae, compl) <- lfes.values if compl) yield domain(mae).high).foldLeft(t.high)(Interval.min)
-    val teR = (for ((_, mae, compl) <- lfes.values if !mae.isEmpty) yield domain(mae).high).foldLeft(t.high)(Interval.min)
+    val teR = (for ((_, mae, _) <- lfes.values if !mae.isEmpty) yield domain(mae).high).foldLeft(t.high)(Interval.min)
 
     val noe = unionOfEnclosureListsUntil(teL, lfes.values.toSeq.map { case (noe, _, _) => noe })
     if (teL equalTo t.high) { // proved that there no event at all on T
@@ -126,32 +126,52 @@ trait EncloseHybrid extends EncloseEvents {
     }
 
     def computeLFEnoODE(e: UnivariateAffineEnclosure)(implicit rnd: Rounding): LFE = {
-      val (eLFE, eLFEisBad) = enclosureToLFE(h, m, e)
-      val eLFEisHopeless = enclosureHasNoEventInfo(ps, h, m, e)
-      if (eLFEisHopeless || (e.domain.width lessThan ps.minLocalizationStep * 2)) {
-        // plot the noe part of eLFE here
-        //        val (noe, _, _) = eLFE
-        //        cb.sendResult(noe)
-        eLFE
-      } else {
-        val (domL, domR) = e.domain.split
-        val eL = e.restrictTo(domL) // TODO factor out as enclosure method
-        val eR = e.restrictTo(domR) // TODO factor out as enclosure method 
-        val (eLlfe, _) = enclosureToLFE(h, m, eL)
-        val (eRlfe, _) = enclosureToLFE(h, m, eR)
-        val eLRlfe = concatenateLFEs(eLlfe, eRlfe)
-        if (eLFEisBad || isBetterLFEThan(eLRlfe, eLFE)) {
-          val lfeL @ (_, _, lfeLcompl) = computeLFEnoODE(eL)
-          if (lfeLcompl) lfeL
-          else concatenateLFEs(lfeL, computeLFEnoODE(eR))
-        } else {
-          // plot the noe part of eLFE here
-          //          val (noe, _, _) = eLFE
-          //          cb.sendResult(noe)
-          eLFE
+      val eHasNoLocalizationInfo = enclosureHasNoEventInfo(ps, h, m, e)
+      val (eLFE, _) = enclosureToLFE(h, m, e)
+      val (_, wm, _) = eLFE
+      val eLFEdoesNotRuleOutEvent = wm.nonEmpty
+      val shouldSplit =
+        (e.domain.width greaterThanOrEqualTo ps.minLocalizationStep * 2) &&
+          !eHasNoLocalizationInfo &&
+          eLFEdoesNotRuleOutEvent
+      if (!shouldSplit) eLFE
+      else {
+        val (domL, domR) = e.domain.split // TODO factor out as bisectAE
+        val eL = e.restrictTo(domL) // TODO factor out as bisectAE
+        val eLlfeRecur @ (_, _, locatedLeft) = computeLFEnoODE(eL)
+        if (locatedLeft) eLlfeRecur
+        else {
+          val eR = e.restrictTo(domR) // TODO factor out as bisectAE 
+          val eRlfeRecur = computeLFEnoODE(eR)
+          val eLRlfe = concatenateLFEs(eLlfeRecur, eRlfeRecur)
+          eLRlfe
         }
       }
     }
+
+    // OLD version before synchronizing with LaTeX specification 
+    //    def computeLFEnoODE(e: UnivariateAffineEnclosure)(implicit rnd: Rounding): LFE = {
+    //    	val (eLFE, eLFEisBad) = enclosureToLFE(h, m, e)
+    //    			val eLFEisHopeless = enclosureHasNoEventInfo(ps, h, m, e)
+    //    			if (eLFEisHopeless || (e.domain.width lessThan ps.minLocalizationStep * 2)) {
+    //    				eLFE
+    //    			} else {
+    //    				val (domL, domR) = e.domain.split
+    //    						val eL = e.restrictTo(domL) // TODO factor out as enclosure method
+    //    						val eR = e.restrictTo(domR) // TODO factor out as enclosure method 
+    //    						val (eLlfe, _) = enclosureToLFE(h, m, eL)
+    //    						val (eRlfe, _) = enclosureToLFE(h, m, eR)
+    //    						val eLRlfe = concatenateLFEs(eLlfe, eRlfe)
+    //    						if (eLFEisBad || isBetterLFEThan(eLRlfe, eLFE)) {
+    //    							val lfeL @ (_, _, lfeLcompl) = computeLFEnoODE(eL)
+    //    									if (lfeLcompl) lfeL
+    //    									else 
+    //    										concatenateLFEs(lfeL, computeLFEnoODE(eR))
+    //    						} else {
+    //    							eLFE
+    //    						}
+    //    			}
+    //    }
 
     val res = computeLFE(t, init)
     res
@@ -180,7 +200,7 @@ trait EncloseHybrid extends EncloseEvents {
   def eventCertain(h: HybridSystem, e: UnivariateAffineEnclosure, m: Mode)(implicit rnd: Rounding): Boolean = {
     val eAtRightEndpoint = e(e.domain.high)
     (try { h.domains(m).support(eAtRightEndpoint); false } catch { case _ => true }) ||
-      (h.domains(m)(eAtRightEndpoint) == Set(false)) || // TODO LaTeX specification only narrows to 0 here
+      // (h.domains(m)(eAtRightEndpoint) == Set(false)) || // TODO LaTeX specification only narrows to empty box here
       h.events.filter(_.sigma == m).exists(h.guards(_)(eAtRightEndpoint) == Set(true))
   }
 
@@ -223,8 +243,10 @@ trait EncloseHybrid extends EncloseEvents {
     val oneTrueOneFalse =
       (condAtLoRan == Set(true) && condAtHiRan == Set(false)) ||
         (condAtLoRan == Set(false) && condAtHiRan == Set(true))
-    val isEquality = cond match {
-      case All(Seq(BinaryRelation(Eq, _, _))) => true
+    val isNonThinEquality = cond match {
+      case All(Seq(BinaryRelation(Eq, lhs, rhs))) =>
+        // test that the equality has at least one non-thin enclosure
+        !(lhs(e) - lhs(e)).range.isZero || !(rhs(e) - rhs(e)).range.isZero
       case _ => false
     }
     val conjunctionSplit = cond match {
@@ -237,7 +259,7 @@ trait EncloseHybrid extends EncloseEvents {
           conditionNowhereProvableOnEnclosure(e, All(Seq(c2)))
       case _ => false
     }
-    oneTrueOneFalse || isEquality || conjunctionSplit
+    oneTrueOneFalse || isNonThinEquality || conjunctionSplit
   }
 
   // a type for representing enclosure lists with first event 
@@ -253,7 +275,7 @@ trait EncloseHybrid extends EncloseEvents {
       val tL = domain(maeL)
       val tR = domain(maeR)
       (tR lessThan tL) ||
-        //|| ((tL almostEqualTo tR) && !complR && complL) // TODO this is included in the LaTeX specification
+        // ((tL almostEqualTo tR) && !complR && complL) || // TODO this is included in the LaTeX specification
         (tR properlyContains tL)
   }
 

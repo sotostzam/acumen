@@ -1,9 +1,9 @@
-/* Zeno Half overconstrained with improved precision
- * Authors: Walid Taha and Adam Duracz
- * Decreasing the localisation time step 
- * from 0.1 to 0.001
- * improves the end-time precision. 
- */
+
+// Zeno Half overconstrained with improved precision
+// Authors: Walid Taha and Adam Duracz
+// Decreasing the localisation time step from 0.1 to 
+// 0.001 improves the end-time precision. 
+
 class Main(simulator)
   private
     d := 1; d' := -1;
@@ -21,6 +21,6 @@ class Main(simulator)
   end;
   simulator.endTime := 2.1;
   simulator.minSolverStep := 1.1;
-  simulator.minLocalizationStep := 0.001; // Smaller!
+  simulator.minLocalizationStep := 0.001; // Decreased!
   simulator.minComputationImprovement := 0;
 end
