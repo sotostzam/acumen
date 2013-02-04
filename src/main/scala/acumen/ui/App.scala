@@ -482,6 +482,7 @@ class App extends SimpleSwingApplication {
               "Please see LICENSE file for licensing details.</html>")
   console.newLine
   actor.publish(Stopped)
+  actor.publish(ViewChanged(views.selection.index))
 
   if (GraphicalMain.autoPlay)
     upperButtons.bPlay.doClick
