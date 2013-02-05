@@ -1,0 +1,27 @@
+Examples of looping systems
+---------------------------
+
+These exmaples illustrate how we can use an enclosure 
+based solver to simulate systems which exhibit an
+infinite number of transitions during simulation.
+
+ - Minimal example of a system that exhibits an infinite 
+   number of transitions during simulation.
+   
+   1_One_Mode_Loop.acm
+
+ - Example with infinite transitions between two modes. 
+   
+   2_Two_Mode_Loop.acm
+
+ - Example of a system for which the reachability analysis
+   does not terminate.
+     
+   3_Divergent_Loop.acm
+   
+ - A variation of the Divergent loop example, where the
+   initial state has been modified to include all reachable
+   states of the system. This makes the reachability 
+   analysis terminate.
+ 
+   4_Terminating_Loop.acm
