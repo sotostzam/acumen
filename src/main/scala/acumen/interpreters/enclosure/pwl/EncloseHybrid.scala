@@ -120,7 +120,9 @@ trait EncloseHybrid extends EncloseEvents {
       if (lfeLcompl) lfeL
       else {
         val initR = evalAt(lfeL, tL.high)
-        val lfeR = computeLFE(tR, initR)
+        val vm = h.domains(m).support(initR)
+        val lfeR = computeLFE(tR, vm) 
+        // val lfeR = computeLFE(tR, initR)
         concatenateLFEs(lfeL, lfeR)
       }
     }
