@@ -110,7 +110,9 @@ trait EncloseHybrid extends EncloseEvents {
       val (tL, tR) = t.split
       val eL = solveVt(h.fields(m), tL, init, ps.initialPicardPadding, ps.picardImprovements, ps.maxPicardIterations, ps.splittingDegree)
       val initR = eL(tL.high)
-      val eR = solveVt(h.fields(m), tR, initR, ps.initialPicardPadding, ps.picardImprovements, ps.maxPicardIterations, ps.splittingDegree)
+      val vs = h.domains(m).support(initR)
+      val eR = solveVt(h.fields(m), tR, vs, ps.initialPicardPadding, ps.picardImprovements, ps.maxPicardIterations, ps.splittingDegree)
+      // val eR = solveVt(h.fields(m), tR, initR, ps.initialPicardPadding, ps.picardImprovements, ps.maxPicardIterations, ps.splittingDegree)
       (eL, eR)
     }
 
@@ -120,7 +122,9 @@ trait EncloseHybrid extends EncloseEvents {
       if (lfeLcompl) lfeL
       else {
         val initR = evalAt(lfeL, tL.high)
-        val lfeR = computeLFE(tR, initR)
+        val vm = h.domains(m).support(initR)
+        val lfeR = computeLFE(tR, vm)
+        // val lfeR = computeLFE(tR, initR)
         concatenateLFEs(lfeL, lfeR)
       }
     }

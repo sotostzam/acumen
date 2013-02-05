@@ -135,8 +135,8 @@ class PlotTab extends BorderPanel
   private val b5 = new Button(saveAs) { peer.setHideActionText(true) }
   buttonsEnabled(false)
   private val hint = new Label("Hint: Right click on image & drag to move")
-  def updatePlotEnabled : Unit = 
-     plotPanel.plotI.enabled = check.selected && App.ui.controller.model != null
+  def updatePlotEnabled : Unit =
+     plotPanel.plotI.enabled = tabSelected && check.selected && App.ui.controller.model != null
   var userDisabled = false
   def resetCheckBox {
     if (!userDisabled)
@@ -161,6 +161,7 @@ class PlotTab extends BorderPanel
   var appState : App.State = null
   var plotState : Plotter.State = null
   var panelState : PlotPanel.State = null
+  var tabSelected = false
   reactions += {
     case st:App.State       => appState = st; stateUpdateResponse
     case st:Plotter.State   => plotState = st; stateUpdateResponse
@@ -168,10 +169,12 @@ class PlotTab extends BorderPanel
 
     case App.ViewChanged(idx) => 
       if (idx == App.ui.views.PLOT_IDX) {
+        tabSelected = true
         updatePlotEnabled
         plotPanel.plotter ! Replot
       } else {
-        plotPanel.plotI.enabled = false
+        tabSelected = false
+        updatePlotEnabled
       }
 
     case m:PlotReady =>
