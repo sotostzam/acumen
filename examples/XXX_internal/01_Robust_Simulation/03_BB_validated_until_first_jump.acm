@@ -1,0 +1,24 @@
+
+// BB valdiated, going until first jump
+// Author:  WT, based on model by MK and JD
+
+class Main(simulator)
+  private 
+    mode := "Fly"; 
+    x   := 5;    
+    x'  := 0; 
+    x'' := 0;  
+  end
+  switch mode
+    case "Fly" 
+      if x == 0 && x' <= 0
+        x' := -0.5*x';
+        mode := "Fly";
+      end;
+      x'' = -10;
+  end;
+  simulator.endTime := 1;
+  simulator.minSolverStep := 0.01;
+  simulator.minLocalizationStep := 0.01;
+  simulator.minComputationImprovement := 0.001;
+end

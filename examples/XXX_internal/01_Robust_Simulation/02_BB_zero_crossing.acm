@@ -1,0 +1,21 @@
+
+// BB traditional, w proper zero crossing constraint
+// Author:  WT
+
+class Main(simulator)
+  private 
+    mode := "Fly"; 
+    x   := 5;    
+    x'  := 0; 
+    x'' := 0;  
+  end
+  switch mode
+    case "Fly" 
+      if x == 0 && x' <= 0 // NB correct spec
+        x' := -0.5*x';
+        mode := "Fly";
+      end;
+      x'' = -10;
+  end;
+  simulator.endTime := 2;
+end
