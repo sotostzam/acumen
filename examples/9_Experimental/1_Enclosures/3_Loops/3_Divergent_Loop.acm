@@ -1,0 +1,22 @@
+
+// Divergent loop
+// This model is an example of a looping system with a
+// non-constant reset, which prevents the reachability 
+// analysis from terminating.
+//
+// Note on Acumen: The set of reachable states after n-1
+//  transitions is { 0.5^k | k = 0 .. n-1 }. Because the
+//  n:th transition reaches the value 0.5^n, which is 
+//  not in the so far observed set, the reachability
+//  analysis does not terminate.
+
+class Main(simulator)
+private mode := "one"; x := 1 end
+  switch mode
+    case "one"
+      if true
+        mode := "one";
+        x := x/2; // Non-constant reset! 
+      end;
+  end;
+end

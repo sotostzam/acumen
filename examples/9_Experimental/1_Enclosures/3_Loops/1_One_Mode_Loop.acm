@@ -1,0 +1,17 @@
+
+// One mode loop
+// This model illustrates handling of an infinite number
+// of transitions, occurring at each instance in time
+// during the simulation.
+
+class Main(simulator)
+private mode := "m"; x := 1; end
+  switch mode
+    case "m"
+      if true
+        mode := "m";
+      end
+  end;
+  simulator.endTime := 2.5;
+  simulator.minLocalizationStep := 0.5;
+end
