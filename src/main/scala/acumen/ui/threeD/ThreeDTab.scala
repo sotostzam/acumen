@@ -100,7 +100,8 @@ class ThreeDTab(val appModel: Controller) extends AbstractThreeDTab {
             temp(objectNumber).last(5) match {
               // The animation's length
               case n: Int => if (n > lastFrame) { lastFrame = n }
-              case _ =>
+              case _ => {val n = temp(objectNumber).last(6).asInstanceOf[Int];
+	                     if ( n > lastFrame) { lastFrame = n }}
             }
           }
           _3DDataBuffer += id -> temp
