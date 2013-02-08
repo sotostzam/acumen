@@ -208,15 +208,17 @@ class PlotPanel(pub:Publisher) extends Panel
   listenTo(this)
   listenTo(App.pub)
 
+  var readyState = false
+
   reactions += {
     case App.Starting => 
       reset
     case _:App.Playing => 
+      readyState = false
       enabled = false
       App.publish(Disabled)
     case _:App.Ready => 
-      enabled = true
-      App.publish(Enabled)
+      readyState = true
     case m:PlotReady => 
       //println("Got PlotReady Message!")
       model = m.model
@@ -226,6 +228,10 @@ class PlotPanel(pub:Publisher) extends Panel
         resetViewPort(pi.viewPort)
       hoveredBox = None
       repaint
+      if (readyState && !enabled) {
+        enabled = true
+        App.publish(Enabled)
+      }
 
     case MouseMoved(_, p, _) => 
       if (pd.columnIndices.size > 0) {

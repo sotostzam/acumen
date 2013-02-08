@@ -186,6 +186,7 @@ class PlotTab extends BorderPanel
   def stateUpdateResponse = {
     if (appState == App.Starting) resetCheckBox
     updatePlotEnabled
+    //println("sur> %s %s %s %s".format(plotState,appState,panelState, plotPanel.plotI.enabled))
     (plotState,appState) match {
       case _ if panelState == PlotPanel.Disabled => 
         buttonsEnabled(false)
