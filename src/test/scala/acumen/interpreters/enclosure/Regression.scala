@@ -31,10 +31,14 @@ object Regression extends Properties("Regression") {
               false
             case Some(result) =>
               val success = enclosures.toString == result
+              if (!success) throw (new Error(name))
               success
           }
         } catch {
-          case _ => false
+          case err =>
+            val name = err.getMessage 
+            println(name + ".acm INCONSISTENT")
+            false
         }
     }
   }
