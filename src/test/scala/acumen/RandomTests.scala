@@ -7,10 +7,11 @@ import org.scalacheck.Properties
 import org.scalacheck.Prop._
 import acumen._
 
-object RandomTests extends Properties("acumen") {
+object RandomTests extends Properties("Random") {
 
-  property("parse-pretty consistency") =
-    forAll { (x:Prog) =>
+  property("parse-pretty consistency") = {
+	import acumen.tests.Generators.arbProg
+    forAll { (x:Prog) => 
       val px = pprint(x)
       try { 
         (Parser.run(Parser.prog, px) == x) :| ("pretty:\n" + px)
@@ -18,4 +19,6 @@ object RandomTests extends Properties("acumen") {
         case e => false :| ("res:\n" + e +"\npretty:\n" + px)
       }
     }
+  }
+
 }
