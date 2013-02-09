@@ -209,14 +209,25 @@ class PlotPanel(pub:Publisher) extends Panel
   listenTo(App.pub)
 
   var readyState = false
+  var donePlotting = false
+
+  def updateEnabled {
+    var newEnabled = readyState && donePlotting
+    if (newEnabled && !enabled) {
+      enabled = true
+      App.publish(Enabled)
+    } else if (!newEnabled && enabled) {
+      enabled = false
+      App.publish(Disabled)
+    }
+  }
 
   reactions += {
     case App.Starting => 
       reset
     case _:App.Playing => 
       readyState = false
-      enabled = false
-      App.publish(Disabled)
+      updateEnabled
     case _:App.Ready => 
       readyState = true
     case m:PlotReady => 
@@ -228,10 +239,18 @@ class PlotPanel(pub:Publisher) extends Panel
         resetViewPort(pi.viewPort)
       hoveredBox = None
       repaint
-      if (readyState && !enabled) {
-        enabled = true
-        App.publish(Enabled)
-      }
+      // Don't think updateEnabled is needed here -- kevina
+      //updateEnabled
+    
+    case Plotter.Ready => 
+      donePlotting = true
+      println("Plotter Ready!")
+      updateEnabled
+
+    case Plotter.Busy => 
+      donePlotting = false
+      println("Plotter Buzy!")
+      updateEnabled
 
     case MouseMoved(_, p, _) => 
       if (pd.columnIndices.size > 0) {
