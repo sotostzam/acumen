@@ -279,7 +279,6 @@ object AffineScalarEnclosureUnitTest extends Properties("AffineScalarEnclosure.U
     var res = e(tmp).contractDomain(2)
     var iters = 1
     while (tmp != res) {
-      println(res + " after " + iters + " iterations")
       tmp = res
       res = e(res).contractDomain(2)
       iters += 1
