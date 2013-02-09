@@ -29,7 +29,7 @@ import java.math.BigDecimal
  * such that A_i is contained in B_i for each i, f(A_1,...,A_n) is
  * contained in f(B_1,...,B_n).
  */
-case class Interval (
+case class Interval(
   val lo: Real,
   val hi: Real)(implicit val rnd: Rounding) {
   import rnd._
@@ -260,6 +260,7 @@ case class Interval (
   def isThin = (lo compareTo hi) == 0
 
   def isZero = equalTo(Interval(0))
+  def isNonnegative = greaterThanOrEqualTo(Interval(0))
 
   def almostEqualTo(that: Interval) = {
     //    println("almostEqualTo: " + epsilon + " contains " + (this.low - that.low) + " is " + (epsilon contains (this.low - that.low)))
