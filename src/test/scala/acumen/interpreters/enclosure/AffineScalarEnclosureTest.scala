@@ -287,19 +287,4 @@ object AffineScalarEnclosureUnitTest extends Properties("AffineScalarEnclosure.U
     !(res("x") contains Interval(1, 1.4142)) && !(res("x") contains Interval(1.4143, 2))
   }
 
-  property("contract quadratic(x,y) 1") = {
-    val dom = Box("x" -> Interval(0, 2), "y" -> Interval(0, 2))
-    def e(b: Box) = x(b) * x(b) + y(b) * y(b)
-    var tmp = dom
-    var res = e(tmp).contractDomain(1)
-    var iters = 1
-    while (tmp != res) {
-      println(res + " after " + iters + " iterations")
-      tmp = res
-      res = e(res).contractDomain(1)
-      iters += 1
-    }
-    false
-  }
-
 }
