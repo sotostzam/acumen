@@ -1,9 +1,9 @@
 package acumen.interpreters.enclosure
 
 import org.scalacheck.Arbitrary._
-import org.scalacheck.Gen
 import org.scalacheck.Gen._
 import org.scalacheck.Prop._
+import org.scalacheck.Gen
 import org.scalacheck.Properties
 
 import AffineScalarEnclosure._
@@ -152,24 +152,6 @@ object AffineScalarEnclosureTest extends Properties("AffineScalarEnclosure") {
       }
     }
 
-  property("upper bound monotonicity of approximations of quadratics on normalized domains") =
-    forAllNoShrink(choose[Int](1, 10)) { dim =>
-      forAllNoShrink(genDimBox(dim)) { dom =>
-        val ndom = Box.normalize(dom)
-        println("ndom = " + ndom)
-        forAllNoShrink(
-          genSubBox(ndom),
-          oneOf(dom.keys.toList)) { (subDom, name) =>
-            val nSubDom = Box.normalize(subDom)
-            println("nSubDom = " + nSubDom)
-            val (x, subx) =
-              if (ndom(name).high.greaterThanOrEqualTo(nSubDom(name).high)) (ndom, nSubDom)
-              else (nSubDom, ndom)
-            quadratic(x, name).restrictTo(subx) contains quadratic(subx, name).high
-          }
-      }
-    }
-
   property("quadratic terms consistency") =
     forAllNoShrink(genDimBox(1)) { dom =>
       {
@@ -297,27 +279,11 @@ object AffineScalarEnclosureUnitTest extends Properties("AffineScalarEnclosure.U
     var res = e(tmp).contractDomain(2)
     var iters = 1
     while (tmp != res) {
-      println(res + " after " + iters + " iterations")
       tmp = res
       res = e(res).contractDomain(2)
       iters += 1
     }
     !(res("x") contains Interval(1, 1.4142)) && !(res("x") contains Interval(1.4143, 2))
-  }
-
-  property("contract quadratic(x,y) 1") = {
-    val dom = Box("x" -> Interval(0, 2), "y" -> Interval(0, 2))
-    def e(b: Box) = x(b) * x(b) + y(b) * y(b)
-    var tmp = dom
-    var res = e(tmp).contractDomain(1)
-    var iters = 1
-    while (tmp != res) {
-      println(res + " after " + iters + " iterations")
-      tmp = res
-      res = e(res).contractDomain(1)
-      iters += 1
-    }
-    false
   }
 
 }
