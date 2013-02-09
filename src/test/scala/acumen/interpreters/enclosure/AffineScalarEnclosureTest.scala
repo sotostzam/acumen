@@ -1,9 +1,9 @@
 package acumen.interpreters.enclosure
 
 import org.scalacheck.Arbitrary._
-import org.scalacheck.Gen
 import org.scalacheck.Gen._
 import org.scalacheck.Prop._
+import org.scalacheck.Gen
 import org.scalacheck.Properties
 
 import AffineScalarEnclosure._
@@ -148,24 +148,6 @@ object AffineScalarEnclosureTest extends Properties("AffineScalarEnclosure") {
           genSubBox(dom),
           genBoxAffineScalarEnclosure(dom)) { (subDom, e) =>
             e.range contains e.restrictTo(subDom).range
-          }
-      }
-    }
-
-  property("upper bound monotonicity of approximations of quadratics on normalized domains") =
-    forAllNoShrink(choose[Int](1, 10)) { dim =>
-      forAllNoShrink(genDimBox(dim)) { dom =>
-        val ndom = Box.normalize(dom)
-        println("ndom = " + ndom)
-        forAllNoShrink(
-          genSubBox(ndom),
-          oneOf(dom.keys.toList)) { (subDom, name) =>
-            val nSubDom = Box.normalize(subDom)
-            println("nSubDom = " + nSubDom)
-            val (x, subx) =
-              if (ndom(name).high.greaterThanOrEqualTo(nSubDom(name).high)) (ndom, nSubDom)
-              else (nSubDom, ndom)
-            quadratic(x, name).restrictTo(subx) contains quadratic(subx, name).high
           }
       }
     }
