@@ -12,7 +12,6 @@ import acumen.interpreters.enclosure.Variable
 import acumen.interpreters.enclosure.tree.Field
 import acumen.interpreters.enclosure.Interval
 import acumen.interpreters.enclosure.Box
-import TransformTest._
 import java.awt.Color
 import acumen.interpreters.enclosure._
 import acumen.interpreters.enclosure.UnivariateAffineEnclosure._
