@@ -34,6 +34,7 @@ abstract class JFreePlotter {
   var chart : JFreeChart = null
   var chartPanel : ChartPanel = null
   //var popupLocation = new java.awt.Point(0,0)
+  @volatile var attached = false
 
   def initPlot = {
     val saveAsPdf = new JMenuItem("Save as PDF")
@@ -53,7 +54,6 @@ abstract class JFreePlotter {
         super.displayPopupMenu(x,y)
       }
     }
-
     saveAsPdf.addActionListener(new ActionListener() {
       def actionPerformed(event: ActionEvent) {
         val d = new SaveAsDailog(Component.wrap(chartPanel), chart)
@@ -99,7 +99,7 @@ abstract class JFreePlotter {
     popupMenu.addSeparator
     popupMenu.add(hideOther)
     popupMenu.add(hideThis)
-    popupMenu.addSeparator 
+    popupMenu.addSeparator
     popupMenu.add(mergeVisible)
     popupMenu.addSeparator
     popupMenu.add(resetView)
@@ -151,8 +151,22 @@ abstract class JFreePlotter {
   def newCombinedPlot = new CombinedDomainXYPlot(new NumberAxis("Time"))
 
   def resetChart(pl: CombinedDomainXYPlot) = { 
+    detachChart
     combinedPlot = pl
     chart = new JFreeChart("", JFreeChart.DEFAULT_TITLE_FONT, pl, false)
+  }
+
+  // FIXME (if its worth it): If setChart throws we will be in an
+  //   inconsistent state - kevina
+  def detachChart = {
+    attached = false
+    chartPanel.setChart(null)
+  }
+
+  def attachChart = {
+    if (!App.ui.jPlotI.enabled) 
+      throw new RuntimeException("attaching when disabled!")
+    attached = true
     chartPanel.setChart(chart)
   }
   
