@@ -25,18 +25,6 @@ object Main {
     val I = interpreters.reference.Interpreter
     //val I = new interpreters.parallel.Interpreter(2)
 
-    val in = new InputStreamReader(System.in)
-    
-    lazy val ast        = Parser.run(Parser.prog, in)
-    lazy val diffed     = SD.run(ast)
-    lazy val desugared  = Desugarer.run(diffed)
-    lazy val dva_out    = DVA.run(desugared)
-    lazy val bta_out    = BTA.run(dva_out)
-    lazy val spec_out   = Specializer.run(bta_out)
-    lazy val nodiff_out = AD.run(spec_out)
-    lazy val trace      = I.run(nodiff_out)
-    lazy val ctrace     = as_ctrace(trace)
-
     try {
       /* See if user wants to choose a specific interpreter. */
       val (i, firstNonSemanticsArg) = args(0) match {
@@ -50,7 +38,9 @@ object Main {
         case _ => (interpreters.reference.Interpreter, 0)
       }
       /* Read the Acumen source, parse, pre-process and interpret it. */
-      val in = new InputStreamReader(new FileInputStream(args(firstNonSemanticsArg)))
+      val in = new InputStreamReader(
+        if (System.in.available != -1) System.in 
+        else new FileInputStream(args(firstNonSemanticsArg)))
       lazy val ast = Parser.run(Parser.prog, in)
       lazy val desugared = Desugarer.run(ast)
       lazy val dva_out = DVA.run(desugared)
@@ -59,7 +49,7 @@ object Main {
       lazy val nodiff_out = AD.run(spec_out)
       lazy val trace = i.run(nodiff_out)
       lazy val ctrace = as_ctrace(trace)
-     /* Perform user-selected action. */
+      /* Perform user-selected action. */
       args(firstNonSemanticsArg + 1) match {
         case "pretty" => println(pprint(ast))
         case "desugar" => println(pprint(desugared))

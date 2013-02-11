@@ -58,14 +58,14 @@ case class AffineEnclosure private[enclosure] (
    *
    * Implementation note: see the implementation note for AffineScalarEnclosure.collapse.
    */
-  private def collapse(name: VarName)(implicit rnd: Rounding) = {
+  private def collapseName(name: VarName)(implicit rnd: Rounding) = {
     val collapsedDomain = domain - name
     val collapsedNormalizedDomain = normalizedDomain - name
     AffineEnclosure(collapsedDomain, collapsedNormalizedDomain, components.mapValues(_.collapse(name)))
   }
 
   def collapse(names: VarName*)(implicit rnd: Rounding): AffineEnclosure =
-    names.foldLeft(this)((res, name) => res.collapse(name))
+    names.foldLeft(this)((res, name) => res.collapseName(name))
 
   /**
    * Component-wise containment of enclosures.

@@ -1,9 +1,9 @@
 package acumen.interpreters.enclosure
 
 import org.scalacheck.Arbitrary._
-import org.scalacheck.Gen
 import org.scalacheck.Gen._
 import org.scalacheck.Prop._
+import org.scalacheck.Gen
 import org.scalacheck.Properties
 
 import AffineScalarEnclosure._
@@ -152,17 +152,6 @@ object AffineScalarEnclosureTest extends Properties("AffineScalarEnclosure") {
       }
     }
 
-  property("upper bound monotonicity of approximations of quadratics on normalized domains") =
-    forAllNoShrink(choose[Int](1, 10)) { dim =>
-      forAllNoShrink(genDimBox(dim)) { dom =>
-        forAllNoShrink(
-          genSubBox(dom),
-          oneOf(dom.keys.toList)) { (subDom, name) =>
-            quadratic(dom, name).restrictTo(subDom) contains quadratic(subDom, name).high
-          }
-      }
-    }
-
   property("quadratic terms consistency") =
     forAllNoShrink(genDimBox(1)) { dom =>
       {
@@ -191,8 +180,8 @@ object AffineScalarEnclosureTest extends Properties("AffineScalarEnclosure") {
       }
     }
 
-  property("affine enclosure of primitive function") =
-    false // TODO Implement property
+  //  property("affine enclosure of primitive function") =
+  //    false // TODO Implement property
 
   property("collapsing removes the collapsed variable") =
     forAll(choose(1, 10)) { dim =>
@@ -290,27 +279,11 @@ object AffineScalarEnclosureUnitTest extends Properties("AffineScalarEnclosure.U
     var res = e(tmp).contractDomain(2)
     var iters = 1
     while (tmp != res) {
-      println(res + " after " + iters + " iterations")
       tmp = res
       res = e(res).contractDomain(2)
       iters += 1
     }
     !(res("x") contains Interval(1, 1.4142)) && !(res("x") contains Interval(1.4143, 2))
-  }
-
-  property("contract quadratic(x,y) 1") = {
-    val dom = Box("x" -> Interval(0, 2), "y" -> Interval(0, 2))
-    def e(b: Box) = x(b) * x(b) + y(b) * y(b)
-    var tmp = dom
-    var res = e(tmp).contractDomain(1)
-    var iters = 1
-    while (tmp != res) {
-      println(res + " after " + iters + " iterations")
-      tmp = res
-      res = e(res).contractDomain(1)
-      iters += 1
-    }
-    false
   }
 
 }

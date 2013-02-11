@@ -9,7 +9,7 @@ import org.scalatest.Suite
 import java.io.FileInputStream
 import java.io.InputStreamReader
 
-class ParallelTest extends InterpreterTestBase {
+class ParallelInterpreterTest extends InterpreterTestBase {
 
   test("StoreConversions1") {
     import interpreters.parallel.Interpreter._
