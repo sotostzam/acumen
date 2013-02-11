@@ -123,7 +123,7 @@ class App extends SimpleSwingApplication {
 
   // FIXME: This probably should't be here -- kevina
   val jPlotI = new plot.JPlotInput {
-    def obj() = if (newPlotView != null) newPlotView.plotter else null
+    def obj() = newPlotView
     def newData() = if (controller.model != null) controller.model.getNewData else null // XXX: Why is null check required?
     def addToPlot(d: Object) = {
       newPlotView.plotter.addToPlot(d)

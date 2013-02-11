@@ -35,7 +35,7 @@ abstract class JPlotInput {
   @volatile var enabled = false
   @volatile var tooSlow = false
   @volatile var forsedDisable = false
-  def obj : JFreePlotter;
+  def obj : plot.JFreePlotTab;
   def newData(): Object;
   def addToPlot(d: Object): Unit;
 }
@@ -118,32 +118,36 @@ class Plotter(tableI: TableInput, plotI: PlotInput, jPlotI: JPlotInput)
     repaint()
   }
 
-  def updateJPlot = if (jPlotI.enabled) {
+  def updateJPlot = if (jPlotI.enabled && jPlotI.obj.plotter != null) { // FIXME: null check should't be required
     val data = jPlotI.newData()
-    if (data != null) {
-      //println("Updating JPlot.")
-      def toRun = {
-        val startTime = System.currentTimeMillis
-        jPlotI.addToPlot(data)
-        val endTime = System.currentTimeMillis
-        val runTime = (endTime-startTime) / 1000.0
-        //println("Time to add data = " + runTime)
-        if (runTime > 0.35 && updatesSkipped > 0) {
+    //println("Updating JPlot with data: " + data)
+    def toRun = {
+      val startTime = System.currentTimeMillis
+      jPlotI.addToPlot(data)
+      val endTime = System.currentTimeMillis
+      val runTime = (endTime-startTime) / 1000.0
+      //println("Time to add data = " + runTime)
+      if (runTime > 0.35 && updatesSkipped > 0) {
           //println("Updates taking to long disabling NewPlot!")
-          jPlotI.obj.detachChart
-          jPlotI.enabled = false
-          jPlotI.tooSlow = true
-        }
+        jPlotI.tooSlow = true
+        swing.Swing.onEDT {jPlotI.obj.fixPlotState}
       }
-      if (jPlotI.obj.attached) {
+    }
+    if (jPlotI.obj.plotter.attached) {
+      println("Update with plotter attached.")
+      if (data != null)
         swing.Swing.onEDTWait {toRun}
-      } else {
+    } else {
+      println("Update with plotter detatched.")
+      swing.Swing.onEDTWait {jPlotI.obj.setPlotPending}
+      if (data != null)
         toRun
-        // chart might have been disabled by toRun itself or by
-        // addToPlot so need to check again
-        if (jPlotI.enabled)
-          jPlotI.obj.attachChart
-      }
+      // chart might have been disabled by toRun itself or by
+      // addToPlot so need to check again
+        if (jPlotI.enabled) {
+          jPlotI.obj.plotter.attachChart
+          swing.Swing.onEDTWait {jPlotI.obj.showPlot}
+        }
     }
   }
   

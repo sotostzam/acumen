@@ -32,7 +32,6 @@ class JFreePlotTab extends BorderPanel
   //   too many plots // enabled by user option
   //   user disabled  // enabled by user option
 
-
   // Need to handle the siteration when the plot was updating in the
   //  background, and the plot got reset.... 
 
@@ -143,11 +142,24 @@ class JFreePlotTab extends BorderPanel
     App.ui.jPlotI.enabled = tabSelected && check.selected && !App.ui.jPlotI.tooSlow && !App.ui.jPlotI.forsedDisable
   def fixPlotState : Unit = {
     setPlotState
-    if (App.ui.jPlotI.enabled)
+    if (!check.selected) 
+      showMessage("( Plotting disabled. )")
+    else if (App.ui.jPlotI.forsedDisable)
+      showMessage("( Too many subplots!  Plotting Disabled. )")
+    else if (App.ui.jPlotI.tooSlow)
+      showMessage("( Live plotting disabled. )")
+    else if (!App.ui.jPlotI.enabled)
+      showNothing
+    if (App.ui.jPlotI.enabled) {
+      println("Updating Plot")
       App.ui.plotView.plotPanel.plotter ! Refresh
-    else if (plotter != null)
+    } else if (plotter != null) {
+      println("Detaching Plot")
       plotter.detachChart
+    }
   }
+  def setPlotPending =
+    showMessage("Plotting in progress ...")
 
   listenTo(App.pub) 
   reactions += {
@@ -171,14 +183,44 @@ class JFreePlotTab extends BorderPanel
   def reset = {
     App.ui.jPlotI.tooSlow = false
     App.ui.jPlotI.forsedDisable = false
-    setPlotState
     plotter = App.ui.controller.model.getPlotter
     plotter.initPlot
-    peer.removeAll
-    add(Component.wrap(plotter.chartPanel), BorderPanel.Position.Center)
-    add(check, BorderPanel.Position.South)
     check.selected = !userDisabled
+    setPlotState
+    showNothing
+  }
+
+  def clearPanel = {
+    peer.removeAll
+    add(check, BorderPanel.Position.South)
+  }
+
+  def showNothing = {
+    clearPanel
     peer.revalidate()
+    repaint()
+  }
+
+  def showMessage(msg:String) = {
+    clearPanel
+    val label = new Label(msg)
+    label.horizontalAlignment = Alignment.Center
+    label.verticalAlignment = Alignment.Bottom
+    add(label, BorderPanel.Position.Center)
+    peer.revalidate()
+    repaint()
+  }
+
+  def showPlot {
+    clearPanel
+    add(Component.wrap(plotter.chartPanel), BorderPanel.Position.Center)
+    peer.revalidate()
+    repaint()
+  }
+
+  def attachPlot {
+    plotter.attachChart
+    showPlot
   }
 
   //check.horizontalAlignment = Alignment.Right
