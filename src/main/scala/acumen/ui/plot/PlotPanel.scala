@@ -244,12 +244,10 @@ class PlotPanel(pub:Publisher) extends Panel
     
     case Plotter.Ready => 
       donePlotting = true
-      println("Plotter Ready!")
       updateEnabled
 
     case Plotter.Busy => 
       donePlotting = false
-      println("Plotter Buzy!")
       updateEnabled
 
     case MouseMoved(_, p, _) => 
