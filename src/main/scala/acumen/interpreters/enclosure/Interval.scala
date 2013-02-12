@@ -40,7 +40,7 @@ case class Interval(
 
   def bounds = (low, high)
 
-  private def midpoint = hi.subtract(lo, dn).divide(Interval(2).lo, dn).add(lo, dn)
+  def midpoint = hi.subtract(lo, dn).divide(Interval(2).lo, dn).add(lo, dn)
 
   def left = Interval(lo, midpoint)
 
