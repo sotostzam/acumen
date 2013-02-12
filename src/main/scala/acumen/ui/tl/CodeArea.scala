@@ -251,7 +251,6 @@ class CodeArea extends Panel { //EditorPane {
 
   def enableEditing = {
     syntaxTextArea setEnabled (true)
-    //syntaxTextArea setSyntaxEditingStyle "AcumenTokenMaker"
     syntaxTextArea setSyntaxEditingStyle (currentFile match {
       case Some(f) if f.getName.endsWith(FILE_SUFFIX_MODEL) => "AcumenTokenMaker"
       case None => "AcumenTokenMaker" // Just started Acumen, assume we are editing a model
