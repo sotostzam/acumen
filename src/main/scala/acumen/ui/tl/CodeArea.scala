@@ -22,6 +22,7 @@ import org.fife.ui.rsyntaxtextarea.TokenMakerFactory
 
 import acumen.ui.App
 import acumen.ui.Files
+import acumen.util.System.FILE_SUFFIX_MODEL
 import javax.swing.event.DocumentEvent
 import javax.swing.event.DocumentListener
 import javax.swing.text._
@@ -170,6 +171,7 @@ class CodeArea extends Panel { //EditorPane {
     undo = new UndoManager()
     listenDocument
     setCurrentFile(Some(file))
+    enableEditing
     editedSinceLastSave = false
   }
 
@@ -242,17 +244,26 @@ class CodeArea extends Panel { //EditorPane {
   reactions += {
     case st:App.State => 
       st match {
-        case App.Stopped => {
-          syntaxTextArea setEnabled (true) 
-          syntaxTextArea setSyntaxEditingStyle "AcumenTokenMaker"
-          syntaxTextArea setForeground Color.black
-        }
-        case _           => {
-          syntaxTextArea setEnabled (false)
-          syntaxTextArea setSyntaxEditingStyle SyntaxConstants.SYNTAX_STYLE_NONE
-          syntaxTextArea setForeground Color.gray
-        }
+        case App.Stopped => enableEditing
+        case _           => disableEditing
       }
+  }
+
+  def enableEditing = {
+    syntaxTextArea setEnabled (true)
+    //syntaxTextArea setSyntaxEditingStyle "AcumenTokenMaker"
+    syntaxTextArea setSyntaxEditingStyle (currentFile match {
+      case Some(f) if f.getName.endsWith(FILE_SUFFIX_MODEL) => "AcumenTokenMaker"
+      case None => "AcumenTokenMaker" // Just started Acumen, assume we are editing a model
+      case _ => SyntaxConstants.SYNTAX_STYLE_NONE
+    })
+    syntaxTextArea setForeground Color.black
+  }
+  
+  def disableEditing = {
+    syntaxTextArea setEnabled (false)
+    syntaxTextArea setSyntaxEditingStyle SyntaxConstants.SYNTAX_STYLE_NONE
+    syntaxTextArea setForeground Color.gray
   }
 
   if (GraphicalMain.openFile != null) {
