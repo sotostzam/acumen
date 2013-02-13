@@ -59,8 +59,8 @@ object Main {
         case "last" =>
           trace.printLast
         case "bench" =>
-          val start: Int = Integer.parseInt(args(1))
-          val stop: Int = Integer.parseInt(args(2))
+          val start: Int = Integer.parseInt(args(firstNonSemanticsArg + 1 + 1))
+          val stop: Int = Integer.parseInt(args(firstNonSemanticsArg + 1 + 2))
           val forced = nodiff_out
           for (nbThreads <- start to stop) {
             print(nbThreads + " threads: ")
