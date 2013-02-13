@@ -38,9 +38,7 @@ object Main {
         case _ => (interpreters.reference.Interpreter, 0)
       }
       /* Read the Acumen source, parse, pre-process and interpret it. */
-      val in = new InputStreamReader(
-        if (System.in.available != -1) System.in 
-        else new FileInputStream(args(firstNonSemanticsArg)))
+      val in = new InputStreamReader(new FileInputStream(args(firstNonSemanticsArg)))
       lazy val ast = Parser.run(Parser.prog, in)
       lazy val desugared = Desugarer.run(ast)
       lazy val dva_out = DVA.run(desugared)
