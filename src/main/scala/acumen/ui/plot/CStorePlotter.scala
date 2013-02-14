@@ -10,11 +10,14 @@ import org.jfree.chart.plot._
 import org.jfree.chart.renderer.xy.XYDifferenceRenderer
 import org.jfree.data.xy._
 import org.jfree.ui.ApplicationFrame
+import swing.Swing
 
 import acumen.interpreters.enclosure._
 import acumen.ui.interpreter.TraceData
 import acumen.util.Canonical._
 import acumen.util.Conversions._
+
+case object TooManySubplots extends Exception
 
 class CStorePlotter extends JFreePlotter {
 
@@ -27,7 +30,7 @@ class CStorePlotter extends JFreePlotter {
     ren
   }
 
-  def addToPlot(d: Object) = {
+  def addToPlot(d: Object) = try {
     //combinedPlot.setNotify(false)
     val ds = d.asInstanceOf[Array[interpreter.TraceData]]
     for (sts <- ds)
@@ -40,6 +43,8 @@ class CStorePlotter extends JFreePlotter {
     //  p.notifyListeners(new org.jfree.chart.event.PlotChangeEvent(p))
     //}
     //combinedPlot.notifyListeners(new org.jfree.chart.event.PlotChangeEvent(combinedPlot))
+  } catch {
+    case TooManySubplots =>
   }
 
   private def plotit(v: CValue, cn: ClassName, fn: Name) = v match {
@@ -51,32 +56,28 @@ class CStorePlotter extends JFreePlotter {
   }
   
   val dataSets = ArrayBuffer[XYSeries]()
-  var disabled = true
 
   private def addSubPlot(legendLabel: String) = {
-    if (!disabled && subPlotsList.size >= 24) {
-      super.resetPlot
-      dataSets.clear
-      disabled = true
-      for (key <- indexes.keys)
-        indexes(key) = -1
-      App.ui.console.log("Too Many Subplots!  Disable New Plot Tab...")
-      -1
-    } else if (!disabled) {
-      val p = initXYPlot(legendLabel)
-      //p.setNotify(false)
-      val s = new XYSeries(legendLabel,false,true)
-      //s.setNotify(false)
-      dataSets += s
-      val sc = new XYSeriesCollection(s)
-      p.setDataset(sc)
-      p.setRenderer(renderer(Color.red))
-      combinedPlot.add(p, 1)
-      subPlotsList += p
-      subPlotsList.size - 1
-    } else {
-      -1
+    if (!App.ui.jPlotI.forsedDisable && subPlotsList.size > 24) {
+      println("Too Many Subplots, Disabling!")
+      App.ui.jPlotI.enabled = false
+      App.ui.jPlotI.tooSlow = true
+      App.ui.jPlotI.forsedDisable = true
+      App.ui.newPlotView.fixPlotState
+      //App.ui.console.log("Too Many Subplots!  Disable New Plot Tab...")
+      throw TooManySubplots
     }
+    val p = initXYPlot(legendLabel)
+    //p.setNotify(false)
+    val s = new XYSeries(legendLabel,false,true)
+    //s.setNotify(false)
+    dataSets += s
+    val sc = new XYSeriesCollection(s)
+    p.setDataset(sc)
+    p.setRenderer(renderer(Color.red))
+    combinedPlot.add(p, 1)
+    subPlotsList += p
+    subPlotsList.size - 1
   }
 
   private def addDataHelper(sts:interpreter.TraceData) = {
@@ -145,7 +146,6 @@ class CStorePlotter extends JFreePlotter {
     ids.clear
     indexes.clear
     dataSets.clear
-    disabled = false
   }
 
 }

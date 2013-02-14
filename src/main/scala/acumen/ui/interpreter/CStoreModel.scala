@@ -199,9 +199,13 @@ class CStoreModel extends TraceModel with InterpreterModel with PlotModel {
   }
 
   override def getNewData() = newData.synchronized {
-    val res = newData.toArray
-    newData.clear
-    res
+    if (!newData.isEmpty) {
+      val res = newData.toArray
+      newData.clear
+      res
+    } else {
+      null
+    }
   }
 
   override def getPlotModel = {flushPending(); this}

@@ -123,7 +123,8 @@ class App extends SimpleSwingApplication {
 
   // FIXME: This probably should't be here -- kevina
   val jPlotI = new plot.JPlotInput {
-    def newData() = controller.model.getNewData
+    def obj() = newPlotView
+    def newData() = if (controller.model != null) controller.model.getNewData else null // XXX: Why is null check required?
     def addToPlot(d: Object) = {
       newPlotView.plotter.addToPlot(d)
       newPlotView.plotter.chartPanel.validate
@@ -138,16 +139,16 @@ class App extends SimpleSwingApplication {
 	BorderPanel.Position.North)
     add(plotView, BorderPanel.Position.Center)
   }
-  lazy val newPlotView = new plot.JFreePlotTab
-  val newPlotTab = if (GraphicalMain.disableNewPlot) {
-    null 
-  } else {
-    new BorderPanel {
+  var newPlotView : plot.JFreePlotTab = null
+  var newPlotTab : BorderPanel = null
+  if (!GraphicalMain.disableNewPlot) {
+    newPlotView = new plot.JFreePlotTab
+    newPlotTab = new BorderPanel {
       //TODO Implement and add something like pointedView for the new plotting code
       add(newPlotView, BorderPanel.Position.Center)
     }
+    jPlotI.enabled = true
   }
-  jPlotI.enabled = newPlotTab != null
 
   val traceTab = new ScrollPane(traceTable) 
   var threeDtab = if (GraphicalMain.threeDState == ThreeDState.DISABLE) {
