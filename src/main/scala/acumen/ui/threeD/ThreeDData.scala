@@ -94,6 +94,7 @@ class ThreeDData extends Publisher {
     value match {
       case VLit(GStr(s)) => _3DText = s;
       case VLit(GInt(i)) => _3DText = i.toString;
+      case VLit(GDouble(i)) => _3DText = i.toInt.toString;
       case _ => throw _3DNameError(value)
     }
   }
