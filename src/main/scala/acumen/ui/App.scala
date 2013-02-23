@@ -24,8 +24,10 @@ import swing.event._
 import java.awt.KeyboardFocusManager
 import java.awt.KeyEventDispatcher
 import java.awt.event.KeyEvent
+import java.awt.event.KeyEvent._
 import scala.Boolean
 import java.awt.Toolkit
+import org.fife.ui.rtextarea.RTextScrollPane
 
 // class Acumen = Everything that use to be GraphicalMain.  Graphical
 // Main can't be an object it will cause Swing components to be
@@ -57,7 +59,7 @@ class App extends SimpleSwingApplication {
 
           case EXIT => exit
 
-          case SendInit => controller ! Init(codeArea.syntaxTextArea.getText, interpreter)
+          case SendInit => controller ! Init(codeArea.textArea.getText, interpreter)
 
           case msg : Event => 
             //println("Publishing This Msg: " + msg)
@@ -87,18 +89,21 @@ class App extends SimpleSwingApplication {
   val upperButtons = new ControlButtons
 
   val codeArea = new CodeArea
-
+  val codeAreaScrollPane = new RTextScrollPane(codeArea.textArea,false)
+  codeAreaScrollPane.setVerticalScrollBarPolicy(javax.swing.ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED)
+  
+  def toggleLineNumbers = codeAreaScrollPane.setLineNumbersEnabled(!codeAreaScrollPane.getLineNumbersEnabled)
+  
   val statusZone = new StatusZone
   val upperBottomPane = new BoxPanel(Orientation.Horizontal) {
     contents += upperButtons
     contents += statusZone
   }
+  
   val upperPane = new BorderPanel {
     add(codeArea.filenameLabel, BorderPanel.Position.North)
-    val sp = new ScrollPane(codeArea)
-    sp.verticalScrollBar.peer.setUnitIncrement(codeArea.syntaxTextArea.getLineHeight)
-    add(sp, BorderPanel.Position.Center)
-    add(upperBottomPane,  BorderPanel.Position.South) 
+    add(Component.wrap(codeAreaScrollPane), BorderPanel.Position.Center)
+    add(upperBottomPane, BorderPanel.Position.South) 
   }
   
   /* 1.2 lower pane */
@@ -240,6 +245,31 @@ class App extends SimpleSwingApplication {
                       { mnemonic = Key.R; enabledWhenStopped += this}
       contents += new MenuItem(Action("Exit")(exit))
                       { mnemonic = Key.E }
+    }
+    
+    contents += new Menu("View") {
+      mnemonic = Key.V
+      contents += new MenuItem(Action("Increase font size")(codeArea increaseFontSize))
+                      { mnemonic = Key.I }
+      contents += new MenuItem(Action("Decrease font size")(codeArea decreaseFontSize))
+                      { mnemonic = Key.D }
+      contents += new MenuItem(Action("Reset font size")(codeArea resetFontSize))
+                      { mnemonic = Key.R }
+      contents += new Menu("Font") {
+	    mnemonic = Key.F
+	    val fontNames = codeArea.supportedFonts.map { fontName =>
+	      new RadioMenuItem(fontName) {
+		    selected = codeArea.textArea.getFont.getName == fontName
+		    action = Action(fontName) { codeArea setFontName fontName }
+		  } 
+	    }
+	    contents ++= fontNames
+	    new ButtonGroup(fontNames:_*)
+	  }
+      contents += new CheckMenuItem("Show line numbers") { 
+        mnemonic = Key.L
+        action = Action("Show line numbers") { toggleLineNumbers }
+      }
     }
 
     contents += new Menu("Plotting") {
@@ -462,15 +492,21 @@ class App extends SimpleSwingApplication {
   
   KeyboardFocusManager.getCurrentKeyboardFocusManager.addKeyEventDispatcher(new KeyEventDispatcher {
       def dispatchKeyEvent(e: KeyEvent): Boolean =
-        if (e.getModifiers == Toolkit.getDefaultToolkit.getMenuShortcutKeyMask ||
-            e.getModifiers == java.awt.event.InputEvent.CTRL_MASK)
+        if ((e.getModifiers == Toolkit.getDefaultToolkit.getMenuShortcutKeyMask ||
+             e.getModifiers == java.awt.event.InputEvent.CTRL_MASK) &&
+             e.getID        == java.awt.event.KeyEvent.KEY_PRESSED)
             e.getKeyCode match {
-              case java.awt.event.KeyEvent.VK_R  => upperButtons.bPlay.doClick ; true
-              case java.awt.event.KeyEvent.VK_T  => upperButtons.bStop.doClick ; true
-              case java.awt.event.KeyEvent.VK_G  => upperButtons.bStep.doClick ; true
-              case java.awt.event.KeyEvent.VK_S  => codeArea.saveFile ; true
-              case java.awt.event.KeyEvent.VK_O  => codeArea.openFile(codeArea.currentDir) ; true
-              case _                             => false 
+              case VK_R      => upperButtons.bPlay.doClick ; true
+              case VK_T      => upperButtons.bStop.doClick ; true
+              case VK_G      => upperButtons.bStep.doClick ; true
+              case VK_S      => codeArea.saveFile ; true
+              case VK_O      => codeArea.openFile(codeArea.currentDir) ; true
+              case VK_L      => toggleLineNumbers ; true
+              case VK_PLUS | 
+              	   VK_EQUALS => codeArea increaseFontSize ; true
+              case VK_MINUS  => codeArea decreaseFontSize ; true
+              case VK_0      => codeArea resetFontSize ; true
+              case _         => false 
             }
         else false 
     })
@@ -512,3 +548,4 @@ object App {
 
   case class ViewChanged(idx: Int) extends Event
 }
+	

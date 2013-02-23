@@ -5,21 +5,20 @@ package tl
 import java.awt.event.ActionEvent
 import java.awt.BorderLayout
 import java.awt.Font
+import java.awt.GraphicsEnvironment
 import java.io._
 import java.util.HashSet
-
 import scala.collection.JavaConversions._
 import scala.swing._
 import scala.xml.XML
-
 import org.fife.ui.autocomplete.AutoCompletion
 import org.fife.ui.autocomplete.BasicCompletion
 import org.fife.ui.autocomplete.DefaultCompletionProvider
 import org.fife.ui.rsyntaxtextarea.templates.StaticCodeTemplate
 import org.fife.ui.rsyntaxtextarea.AbstractTokenMakerFactory
 import org.fife.ui.rsyntaxtextarea.RSyntaxTextArea
+import org.fife.ui.rsyntaxtextarea.SyntaxConstants
 import org.fife.ui.rsyntaxtextarea.TokenMakerFactory
-
 import acumen.ui.App
 import acumen.ui.Files
 import acumen.util.System.FILE_SUFFIX_MODEL
@@ -30,13 +29,20 @@ import javax.swing.undo._
 import javax.swing.JOptionPane
 import javax.swing.KeyStroke
 import java.awt.Color
-import org.fife.ui.rsyntaxtextarea.SyntaxConstants
+
 
 class CodeArea extends Panel { //EditorPane {
 
-  val syntaxTextArea = createSyntaxTextArea
+  val textArea = createSyntaxTextArea
+
+  val DEFAULT_FONT_SIZE = 12
+  val DEFAULT_FONT_NAME = Font.MONOSPACED
+  val KNOWN_FONTS = Set("courier new", "courier", "monaco", "consolas", "lucida console", 
+		  				"andale mono", "profont", "monofur", "proggy", "droid sans mono", 
+		  			    "lettergothic", "bitstream vera sans mono", "crystal", "ubuntu monospace")
+  
   this.peer.setLayout(new BorderLayout)
-  this.peer.add(syntaxTextArea,BorderLayout.CENTER)
+  this.peer.add(textArea,BorderLayout.CENTER)
   
   /* ---- state variables ---- */
   var currentFile : Option[File] = None
@@ -50,8 +56,8 @@ class CodeArea extends Panel { //EditorPane {
       if (f isDirectory) true
       else acumenFileName.pattern.matcher(f getName).matches
     def getDescription = ".acm and README files"
-  } 
-
+  }
+  
   /** 
    * Create RSyntaxTextArea component. It provides features such as syntax highlighting and indentation.
    * The highlighting is based on a syntax specification AcumenTokenMakerMaker.xml which has been compiled 
@@ -60,13 +66,13 @@ class CodeArea extends Panel { //EditorPane {
    */
   def createSyntaxTextArea: RSyntaxTextArea = {
     val sta = new RSyntaxTextArea
+    sta.setFont(new Font("Monospaced", Font.PLAIN, 12))
     TokenMakerFactory.getDefaultInstance.asInstanceOf[AbstractTokenMakerFactory].
       putMapping("AcumenTokenMaker", classOf[acumen.ui.tl.AcumenTokenMaker].getName)
     sta.setSyntaxEditingStyle("AcumenTokenMaker")
     sta.setHighlightCurrentLine(false)
     sta.setTabSize(2)
     sta.setTabsEmulated(true) // Use soft tabs
-    sta.setFont(new Font("Monospaced", Font.PLAIN, 12))
     if (GraphicalMain.useCompletion) {
       val completionProvider = createCompletionProvider(sta)
       val autoCompletion = new AutoCompletion(completionProvider)
@@ -79,9 +85,9 @@ class CodeArea extends Panel { //EditorPane {
     sta
   }
   
-  def createCompletionProvider(syntaxTextArea: RSyntaxTextArea) = {
+  def createCompletionProvider(textArea: RSyntaxTextArea) = {
     val cp = new DefaultCompletionProvider
-    val style = syntaxTextArea.getSyntaxEditingStyle
+    val style = textArea.getSyntaxEditingStyle
     val acumenTokenMakerSpec = XML.load(getClass.getClassLoader.getResourceAsStream("acumen/ui/tl/AcumenTokenMaker.xml"))
     if (acumenTokenMakerSpec != null) { // Try to read keywords and functions from XML
       for (val keyword <- acumenTokenMakerSpec \\ "keyword")
@@ -147,19 +153,19 @@ class CodeArea extends Panel { //EditorPane {
   }
 
   def listenDocument = {
-    syntaxTextArea.getDocument.addDocumentListener(
+    textArea.getDocument.addDocumentListener(
       new DocumentListener {
         def changedUpdate(e:DocumentEvent) { setEdited }
         def insertUpdate(e:DocumentEvent) { setEdited }
         def removeUpdate(e:DocumentEvent) { setEdited }
       })
     // Listen for undo and redo events
-    syntaxTextArea.getDocument.addUndoableEditListener(undo)
+    textArea.getDocument.addUndoableEditListener(undo)
   }
 
   def newFile : Unit = withErrorReporting {
     if (!editedSinceLastSave || confirmContinue(App.ui.body.peer)) {
-      syntaxTextArea.setText("")
+      textArea.setText("")
       setCurrentFile(None)
       editedSinceLastSave = false
       undo.discardAllEdits()
@@ -167,7 +173,7 @@ class CodeArea extends Panel { //EditorPane {
   }
 
   def loadFile(file: File) : Unit = {
-    syntaxTextArea.read(new FileReader(file),null)
+    textArea.read(new FileReader(file),null)
     undo = new UndoManager()
     listenDocument
     setCurrentFile(Some(file))
@@ -182,7 +188,7 @@ class CodeArea extends Panel { //EditorPane {
       val returnVal = fc.showOpenDialog(App.ui.body)
       if (returnVal == FileChooser.Result.Approve) {
         loadFile(fc.selectedFile)
-        syntaxTextArea setCaretPosition 0
+        textArea setCaretPosition 0
       }
     }
   }
@@ -209,7 +215,7 @@ class CodeArea extends Panel { //EditorPane {
       val file = fc.selectedFile
       if (!file.exists || confirmSave(App.ui.body.peer, file)) {
         val writer = new FileWriter(fc.selectedFile)
-        writer.write(syntaxTextArea.getText)
+        writer.write(textArea.getText)
         writer.close
         setCurrentFile(Some(file))
         editedSinceLastSave = false
@@ -221,7 +227,7 @@ class CodeArea extends Panel { //EditorPane {
     currentFile match {
       case Some(f) =>
         val writer = new FileWriter(f)
-        writer.write(syntaxTextArea.getText)
+        writer.write(textArea.getText)
         writer.close
         setCurrentFile(currentFile)
         editedSinceLastSave = false
@@ -233,7 +239,7 @@ class CodeArea extends Panel { //EditorPane {
     if (editedSinceLastAutoSave) {
       val file = Files.getFreshFile
       val writer = new FileWriter(file)
-      writer.write(syntaxTextArea.getText)
+      writer.write(textArea.getText)
       writer.close
     }
   }
@@ -250,19 +256,19 @@ class CodeArea extends Panel { //EditorPane {
   }
 
   def enableEditing = {
-    syntaxTextArea setEnabled (true)
-    syntaxTextArea setSyntaxEditingStyle (currentFile match {
+    textArea setEnabled (true)
+    textArea setSyntaxEditingStyle (currentFile match {
       case Some(f) if f.getName.endsWith(FILE_SUFFIX_MODEL) => "AcumenTokenMaker"
       case None => "AcumenTokenMaker" // Just started Acumen, assume we are editing a model
       case _ => SyntaxConstants.SYNTAX_STYLE_NONE
     })
-    syntaxTextArea setForeground Color.black
+    textArea setForeground Color.black
   }
   
   def disableEditing = {
-    syntaxTextArea setEnabled (false)
-    syntaxTextArea setSyntaxEditingStyle SyntaxConstants.SYNTAX_STYLE_NONE
-    syntaxTextArea setForeground Color.gray
+    textArea setEnabled (false)
+    textArea setSyntaxEditingStyle SyntaxConstants.SYNTAX_STYLE_NONE
+    textArea setForeground Color.gray
   }
 
   if (GraphicalMain.openFile != null) {
@@ -275,6 +281,22 @@ class CodeArea extends Panel { //EditorPane {
         exit(2)
     }
   }
+  
+  /* Font management */
+  
+  def setFontName(n: String) =
+    textArea.setFont(new Font(n, textArea.getFont getStyle, textArea.getFont getSize))
+  
+  val supportedFonts =  
+    DEFAULT_FONT_NAME +: GraphicsEnvironment.getLocalGraphicsEnvironment.getAvailableFontFamilyNames.filter(KNOWN_FONTS contains _.toLowerCase)
+    
+  private def setFontSize(size: Int) = 
+    textArea.setFont(new Font(textArea.getFont getName, textArea.getFont getStyle, size))
+    
+  def increaseFontSize = setFontSize(textArea.getFont.getSize + 2)
+  
+  def decreaseFontSize = if (textArea.getFont.getSize > 3) setFontSize(textArea.getFont.getSize - 2)
 
+  def resetFontSize = setFontSize(DEFAULT_FONT_SIZE)
+    
 }
-
