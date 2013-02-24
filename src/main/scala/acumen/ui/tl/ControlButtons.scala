@@ -7,6 +7,7 @@ import java.lang.Thread
 import scala.actors._
 import collection.JavaConversions._
 
+import java.awt.event.{InputEvent, KeyEvent}
 import java.awt.Font
 import java.awt.Color
 import java.awt.RenderingHints
@@ -31,23 +32,23 @@ class ControlButtons extends FlowPanel {
   val play = new Action("play") {
     icon = Icons.play
     def apply = {App.ui.controller.threeDData.reset; App.ui.threeDtab.reset; App.ui.codeArea.autoSave; App.ui.controller ! Play}
-    toolTip = "Run Simulation"
+    toolTip = "Run Simulation" + " [^G]"
   }
   val step = new Action("step") {
     icon = Icons.step
     def apply = { App.ui.codeArea.autoSave; App.ui.controller ! Step }
-    toolTip = "Compute one simulation step"
+    toolTip = "Compute one simulation step" + " [^B]"
   }
   val pause = new Action("pause") {
     icon = Icons.pause
     def apply = App.ui.controller ! Pause
-    toolTip = "Pause simulation"
+    toolTip = "Pause simulation" + " [^H]"
 	
   }
   val stop = new Action("stop") {
-    icon = Icons.stop    
+    icon = Icons.stop
     def apply = { App.ui.controller ! Stop; }
-    toolTip = "Stop simulation (cannot resume)"
+    toolTip = "Stop simulation (cannot resume)" + " [^T]"
   }
 
   val bPlay = new Button(play) { peer.setHideActionText(true) }
