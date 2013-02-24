@@ -252,11 +252,11 @@ class App extends SimpleSwingApplication {
     def apply = act
   } 
   
-  private val playAction   = mkAction("Run",  VK_R, VK_G, upperButtons.bPlay.doClick)
-  private val pauseAction  = mkAction("Pause",  VK_R, VK_G, upperButtons.bPlay.doClick)
+  private val playAction   =              mkAction("Run",   VK_R, VK_G, upperButtons.bPlay.doClick)
+  private val pauseAction  =              mkAction("Pause", VK_R, VK_G, upperButtons.bPlay.doClick)
   private val playMenuItem = new MenuItem(playAction) 
-  private val stepMenuItem = new MenuItem(mkAction("Step", VK_T, VK_B, upperButtons.bStep.doClick))
-  private val stopMenuItem = new MenuItem(mkAction("Stop", VK_S, VK_T, upperButtons.bStop.doClick))
+  private val stepMenuItem = new MenuItem(mkAction("Step",  VK_T, VK_B, upperButtons.bStep.doClick))
+  private val stopMenuItem = new MenuItem(mkAction("Stop",  VK_S, VK_T, upperButtons.bStop.doClick))
  
   val bar = new MenuBar {
     contents += new Menu("File") {
