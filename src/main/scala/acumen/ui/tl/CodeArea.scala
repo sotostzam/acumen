@@ -114,21 +114,6 @@ class CodeArea extends Panel { //EditorPane {
       ("ps",      "simulator.endTime := 3;\nsimulator.minSolverStep := 0.01;\nsimulator.minLocalizationStep := 0.001;\nsimulator.minComputationImprovement := 0.0001;")
     )) { RSyntaxTextArea.getCodeTemplateManager addTemplate new StaticCodeTemplate(t._1, t._2, null) }
   
-  // Undo based on http://docs.oracle.com/javase/tutorial/uiswing/components/generaltext.html
-  var undo = new UndoManager
-  
-  // Create a undo action and add it to the text component
-  peer.getActionMap() put ("Undo",
-    new TextAction("Undo") { def actionPerformed(e: ActionEvent) = if (undo canUndo) undo undo })
-  // Create a redo action and add it to the text component
-  peer.getActionMap() put ("Redo",
-    new TextAction("Redo") { def actionPerformed(e: ActionEvent) = if (undo canRedo) undo redo })
-   
-  // Bind the undo action to ctl-Z
-  peer.getInputMap put (KeyStroke.getKeyStroke("control Z"), "Undo")
-  // Bind the redo action to ctl-Y
-  peer.getInputMap put (KeyStroke.getKeyStroke("control Y"), "Redo")		
-  
   /* --- file handling ---- */
 
   def currentDir =
@@ -159,8 +144,7 @@ class CodeArea extends Panel { //EditorPane {
         def insertUpdate(e:DocumentEvent) { setEdited }
         def removeUpdate(e:DocumentEvent) { setEdited }
       })
-    // Listen for undo and redo events
-    textArea.getDocument.addUndoableEditListener(undo)
+    textArea.discardAllEdits()
   }
 
   def newFile : Unit = withErrorReporting {
@@ -168,13 +152,12 @@ class CodeArea extends Panel { //EditorPane {
       textArea.setText("")
       setCurrentFile(None)
       editedSinceLastSave = false
-      undo.discardAllEdits()
+      textArea.discardAllEdits()
     }
   }
 
   def loadFile(file: File) : Unit = {
     textArea.read(new FileReader(file),null)
-    undo = new UndoManager()
     listenDocument
     setCurrentFile(Some(file))
     enableEditing
