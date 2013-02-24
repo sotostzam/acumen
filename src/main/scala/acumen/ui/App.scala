@@ -322,44 +322,50 @@ class App extends SimpleSwingApplication {
         		 { mnemonic = KeyEvent.VK_R; def apply = plotView.toggleSeeds(selected) }
       }
     }
-
-    contents += new Menu("Semantics") {
+    
+    contents += new Menu("Simulator") {
       mnemonic = Key.S
-      val rb1 = new RadioMenuItem("") {
-        selected = !GraphicalMain.useEnclosures
-   		enabledWhenStopped += this
-        action = mkAction("Purely Functional", VK_F, VK_1, 
-        				  { setInterpreter(new CStoreCntrl(interpreters.reference.Interpreter)) })
+      contents += new MenuItem(mkAction("Run",  VK_R, VK_G, upperButtons.bPlay.doClick)) 
+      contents += new MenuItem(mkAction("Step", VK_T, VK_Y, upperButtons.bStep.doClick))
+      contents += new MenuItem(mkAction("Stop", VK_S, VK_T, upperButtons.bStop.doClick))
+      contents += new Menu("Semantics") {
+        mnemonic = Key.S
+        val rb1 = new RadioMenuItem("") {
+          selected = !GraphicalMain.useEnclosures
+   		  enabledWhenStopped += this
+          action = mkAction("Purely Functional", VK_F, VK_1, 
+                            { setInterpreter(new CStoreCntrl(interpreters.reference.Interpreter)) })
+        }
+        val rb2 = new RadioMenuItem("") {
+          selected = false
+          enabledWhenStopped += this
+          action = mkAction("Imperative (Parallel)", VK_P, VK_2, {
+            def diag = Dialog.showInput(
+              body, "Choose a number of threads",
+              "Parallel Interpreter", Dialog.Message.Question,
+              Swing.EmptyIcon, Seq(), lastNumberOfThreads.toString)
+            def go: Unit = try {
+              def n: String = diag.getOrElse(n)
+              lastNumberOfThreads = Integer.parseInt(n)
+              setInterpreter(new CStoreCntrl(new interpreters.parallel.Interpreter(lastNumberOfThreads)))
+              console.log("Number of threads set to " + lastNumberOfThreads + ".")
+            } catch {
+              case _ =>
+                console.logError("Bad number of threads.")
+                go
+            }
+            go
+          })
+        }
+        val rb3 = new RadioMenuItem("") {
+          selected = GraphicalMain.useEnclosures
+   		  enabledWhenStopped += this
+          action = mkAction("Enclosure", VK_E, VK_3, 
+                            { setInterpreter(new EnclosureCntrl(interpreters.enclosure.Interpreter)) })
+        }
+        contents ++= Seq(rb1,rb2,rb3)
+        new ButtonGroup(rb1,rb2,rb3)
       }
-      val rb2 = new RadioMenuItem("") {
-        selected = false
-        enabledWhenStopped += this
-        action = mkAction("Imperative (Parallel)", VK_P, VK_2, {
-          def diag = Dialog.showInput(
-            body, "Choose a number of threads",
-            "Parallel Interpreter", Dialog.Message.Question,
-            Swing.EmptyIcon, Seq(), lastNumberOfThreads.toString)
-          def go: Unit = try {
-            def n: String = diag.getOrElse(n)
-            lastNumberOfThreads = Integer.parseInt(n)
-            setInterpreter(new CStoreCntrl(new interpreters.parallel.Interpreter(lastNumberOfThreads)))
-            console.log("Number of threads set to " + lastNumberOfThreads + ".")
-          } catch {
-            case _ =>
-              console.logError("Bad number of threads.")
-              go
-          }
-          go
-        })
-      }
-      val rb3 = new RadioMenuItem("") {
-        selected = GraphicalMain.useEnclosures
-   		enabledWhenStopped += this
-        action = mkAction("Enclosure", VK_E, VK_3, 
-        				  { setInterpreter(new EnclosureCntrl(interpreters.enclosure.Interpreter)) })
-      }
-      contents ++= Seq(rb1,rb2,rb3)
-      new ButtonGroup(rb1,rb2,rb3)
     }
    
     contents += new Menu("Help") {

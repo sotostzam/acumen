@@ -32,23 +32,23 @@ class ControlButtons extends FlowPanel {
   val play = new Action("play") {
     icon = Icons.play
     def apply = {App.ui.controller.threeDData.reset; App.ui.threeDtab.reset; App.ui.codeArea.autoSave; App.ui.controller ! Play}
-    toolTip = "Run Simulation" + " [^G]"
+    toolTip = "Run Simulation"
   }
   val step = new Action("step") {
     icon = Icons.step
     def apply = { App.ui.codeArea.autoSave; App.ui.controller ! Step }
-    toolTip = "Compute one simulation step" + " [^B]"
+    toolTip = "Compute one simulation step"
   }
   val pause = new Action("pause") {
     icon = Icons.pause
     def apply = App.ui.controller ! Pause
-    toolTip = "Pause simulation" + " [^H]"
+    toolTip = "Pause simulation"
 	
   }
   val stop = new Action("stop") {
     icon = Icons.stop
     def apply = { App.ui.controller ! Stop; }
-    toolTip = "Stop simulation (cannot resume)" + " [^T]"
+    toolTip = "Stop simulation (cannot resume)"
   }
 
   val bPlay = new Button(play) { peer.setHideActionText(true) }
