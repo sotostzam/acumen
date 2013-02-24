@@ -235,6 +235,7 @@ class App extends SimpleSwingApplication {
   /* menu bar */
 
   val enabledWhenStopped = scala.collection.mutable.Buffer[MenuItem]()
+  val enabledWhenRunning = scala.collection.mutable.Buffer[MenuItem]()
   
   /** Same as mkActionAccelMask, but with a default accelerator mask CTRL_MASK. */
   private def mkAction(name: String, m: Int, a: Int, act: => Unit) = mkActionAccelMask(name, m, a, CTRL_MASK, act)
@@ -326,8 +327,11 @@ class App extends SimpleSwingApplication {
     contents += new Menu("Simulator") {
       mnemonic = Key.S
       contents += new MenuItem(mkAction("Run",  VK_R, VK_G, upperButtons.bPlay.doClick)) 
+                      { enabledWhenStopped += this }
       contents += new MenuItem(mkAction("Step", VK_T, VK_Y, upperButtons.bStep.doClick))
+                      { enabledWhenStopped += this }
       contents += new MenuItem(mkAction("Stop", VK_S, VK_T, upperButtons.bStop.doClick))
+                      { enabledWhenRunning += this }
       contents += new Menu("Semantics") {
         mnemonic = Key.S
         val rb1 = new RadioMenuItem("") {
@@ -449,8 +453,10 @@ class App extends SimpleSwingApplication {
       st match {
         case Stopped =>
           for (el <- enabledWhenStopped) el.enabled = true
+          for (el <- enabledWhenRunning) el.enabled = false
         case _ =>
           for (el <- enabledWhenStopped) el.enabled = false
+          for (el <- enabledWhenRunning) el.enabled = st != Paused
       }
   }
   // update console
