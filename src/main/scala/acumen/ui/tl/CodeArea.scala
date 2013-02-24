@@ -155,7 +155,7 @@ class CodeArea extends Panel { //EditorPane {
   def listenDocument = {
     textArea.getDocument.addDocumentListener(
       new DocumentListener {
-        def changedUpdate(e:DocumentEvent) { setEdited }
+        def changedUpdate(e:DocumentEvent) {}
         def insertUpdate(e:DocumentEvent) { setEdited }
         def removeUpdate(e:DocumentEvent) { setEdited }
       })
