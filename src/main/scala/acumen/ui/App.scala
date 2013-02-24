@@ -34,6 +34,7 @@ import scala.Boolean
 import java.awt.Toolkit
 import org.fife.ui.rtextarea.RTextScrollPane
 import scala.swing.Separator
+import acumen.ui.tl.ControlButtons
 
 // class Acumen = Everything that use to be GraphicalMain.  Graphical
 // Main can't be an object it will cause Swing components to be
@@ -235,7 +236,6 @@ class App extends SimpleSwingApplication {
   /* menu bar */
 
   val enabledWhenStopped = scala.collection.mutable.Buffer[MenuItem]()
-  val enabledWhenRunning = scala.collection.mutable.Buffer[MenuItem]()
   
   /** Same as mkActionAccelMask, but with a default accelerator mask CTRL_MASK. */
   private def mkAction(name: String, m: Int, a: Int, act: => Unit) = mkActionAccelMask(name, m, a, CTRL_MASK, act)
@@ -252,6 +252,12 @@ class App extends SimpleSwingApplication {
     def apply = act
   } 
   
+  private val playAction   = mkAction("Run",  VK_R, VK_G, upperButtons.bPlay.doClick)
+  private val pauseAction  = mkAction("Pause",  VK_R, VK_G, upperButtons.bPlay.doClick)
+  private val playMenuItem = new MenuItem(playAction) 
+  private val stepMenuItem = new MenuItem(mkAction("Step", VK_T, VK_Y, upperButtons.bStep.doClick))
+  private val stopMenuItem = new MenuItem(mkAction("Stop", VK_S, VK_T, upperButtons.bStop.doClick))
+ 
   val bar = new MenuBar {
     contents += new Menu("File") {
       mnemonic = Key.F
@@ -326,12 +332,7 @@ class App extends SimpleSwingApplication {
     
     contents += new Menu("Simulator") {
       mnemonic = Key.S
-      contents += new MenuItem(mkAction("Run",  VK_R, VK_G, upperButtons.bPlay.doClick)) 
-                      { enabledWhenStopped += this }
-      contents += new MenuItem(mkAction("Step", VK_T, VK_Y, upperButtons.bStep.doClick))
-                      { enabledWhenStopped += this }
-      contents += new MenuItem(mkAction("Stop", VK_S, VK_T, upperButtons.bStop.doClick))
-                      { enabledWhenRunning += this }
+      contents ++= Seq(playMenuItem, stepMenuItem, stopMenuItem)
       contents += new Menu("Semantics") {
         mnemonic = Key.S
         val rb1 = new RadioMenuItem("") {
@@ -450,13 +451,18 @@ class App extends SimpleSwingApplication {
   // disable and enable menu items
   reactions += {
     case st:State =>
+      playMenuItem.enabled = st match {case _:App.Playing => false; case _ => true}
+      stopMenuItem.enabled = st match {case   App.Stopped => false; case _ => true}
+      stepMenuItem.enabled = st match {case _:App.Ready   => true;  case _ => false}
+      for (el <- enabledWhenStopped) el.enabled = st == Stopped
       st match {
-        case Stopped =>
-          for (el <- enabledWhenStopped) el.enabled = true
-          for (el <- enabledWhenRunning) el.enabled = false
+        case _:App.Ready =>
+          playMenuItem.text = "Run"
+          playMenuItem.action = playAction
+        case _:App.Playing =>
+          playMenuItem.text = "Pause"
+          playMenuItem.action = pauseAction
         case _ =>
-          for (el <- enabledWhenStopped) el.enabled = false
-          for (el <- enabledWhenRunning) el.enabled = st != Paused
       }
   }
   // update console
@@ -518,9 +524,6 @@ class App extends SimpleSwingApplication {
       def dispatchKeyEvent(e: KeyEvent): Boolean =
         if (e.getModifiers == CTRL_MASK && e.getID == KEY_PRESSED)
             e.getKeyCode match {
-              case VK_G      => upperButtons.bPlay.doClick ; true
-              case VK_T      => upperButtons.bStop.doClick ; true
-              case VK_B      => upperButtons.bStep.doClick ; true
               case VK_EQUALS => codeArea increaseFontSize ; true
               case _         => false 
             }
