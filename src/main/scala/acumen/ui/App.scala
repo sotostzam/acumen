@@ -33,6 +33,7 @@ import java.awt.event.InputEvent._
 import scala.Boolean
 import java.awt.Toolkit
 import org.fife.ui.rtextarea.RTextScrollPane
+import scala.swing.Separator
 
 // class Acumen = Everything that use to be GraphicalMain.  Graphical
 // Main can't be an object it will cause Swing components to be
@@ -262,6 +263,15 @@ class App extends SimpleSwingApplication {
       contents += new MenuItem(mkAction("Recover", VK_R, VK_R, codeArea.openFile(Files.autoSavedDir)))
                       { enabledWhenStopped += this }
       contents += new MenuItem(mkAction("Exit", VK_E, VK_Q, exit))
+    }
+    
+    contents += new Menu("Edit") {
+      mnemonic = Key.E
+      contents += new MenuItem(mkAction("Cut",        VK_T, VK_X, codeArea.textArea.cut)) 
+      contents += new MenuItem(mkAction("Copy",       VK_C, VK_C, codeArea.textArea.copyAsRtf))
+      contents += new MenuItem(mkAction("Paste",      VK_P, VK_V, codeArea.textArea.paste))
+      contents += new Separator
+      contents += new MenuItem(mkAction("Select all", VK_A, VK_A, codeArea.textArea.selectAll))
     }
     
     contents += new Menu("View") {
