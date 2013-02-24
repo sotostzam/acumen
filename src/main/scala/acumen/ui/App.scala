@@ -539,13 +539,13 @@ object App {
   def publish(e: Event) = pub.publish(e)
 
   sealed abstract class State extends Event
-  sealed abstract class Ready extends State
-  sealed abstract class Playing extends State
-  case object Starting extends Playing
-  case object Resuming extends Playing
-  case object Stopped extends Ready
-  case object Paused extends Ready
+  sealed abstract class Ready extends State   // Meta state: Simulation not running
+  sealed abstract class Playing extends State // Meta state: Simulation running
+  case object Starting extends Playing // State when starting for the first time
+  case object Resuming extends Playing // State when resuming from paused state
+  case object Stopped extends Ready    // State when stopped
+  case object Paused extends Ready     // State when paused
 
   case class ViewChanged(idx: Int) extends Event
 }
-	
+
