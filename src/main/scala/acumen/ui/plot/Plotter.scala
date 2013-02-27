@@ -33,10 +33,12 @@ class PlotInput(val model : () => PlotModel,
 
 abstract class JPlotInput {
   @volatile var enabled = false
+  @volatile var tooSlow = false
+  @volatile var forsedDisable = false
+  def obj : plot.JFreePlotTab;
   def newData(): Object;
   def addToPlot(d: Object): Unit;
 }
-
 
 case class TraceModelReady(model: TraceModel) 
      extends swing.event.Event
@@ -69,6 +71,8 @@ class Plotter(tableI: TableInput, plotI: PlotInput, jPlotI: JPlotInput)
     }
   }
 
+  var updatesSkipped = 0
+
   def mergeMsgs(msg: PlotterAction) {
     lastMsg match {
       case Refresh                      => lastMsg = Refresh
@@ -78,7 +82,8 @@ class Plotter(tableI: TableInput, plotI: PlotInput, jPlotI: JPlotInput)
     }
     reactWithin (0) {
       case msg : PlotterAction => 
-        //println("SKIPPING UPDATE!")
+        updatesSkipped += 1
+        //println("SKIPPING UPDATE! : #" + updatesSkipped)
         mergeMsgs(msg)
       case TIMEOUT => 
         App ! Busy
@@ -88,6 +93,7 @@ class Plotter(tableI: TableInput, plotI: PlotInput, jPlotI: JPlotInput)
           case Repaint(vp) => if (pm != null) repaint(vp)
         }
         lastMsg = null
+        updatesSkipped = 0
         waitForMsg()
       case msg =>
         println("Unknown Msg in Plotter:: " + msg)
@@ -112,13 +118,39 @@ class Plotter(tableI: TableInput, plotI: PlotInput, jPlotI: JPlotInput)
     repaint()
   }
 
-  def updateJPlot = if (jPlotI.enabled) {
+  def updateJPlot = if (jPlotI.enabled && jPlotI.obj.plotter != null) { // FIXME: null check should't be required
     val data = jPlotI.newData()
-    if (data != null) swing.Swing.onEDTWait {
+    //println("Updating JPlot with data: " + data)
+    def toRun = {
+      val startTime = System.currentTimeMillis
       jPlotI.addToPlot(data)
+      val endTime = System.currentTimeMillis
+      val runTime = (endTime-startTime) / 1000.0
+      //println("Time to add data = " + runTime)
+      if (runTime > 0.35 && updatesSkipped > 0) {
+          //println("Updates taking to long disabling NewPlot!")
+        jPlotI.tooSlow = true
+        swing.Swing.onEDT {jPlotI.obj.fixPlotState}
+      }
+    }
+    if (jPlotI.obj.plotter.attached) {
+      println("Update with plotter attached.")
+      if (data != null)
+        swing.Swing.onEDTWait {toRun}
+    } else {
+      println("Update with plotter detatched.")
+      swing.Swing.onEDTWait {jPlotI.obj.setPlotPending}
+      if (data != null)
+        toRun
+      // chart might have been disabled by toRun itself or by
+      // addToPlot so need to check again
+        if (jPlotI.enabled) {
+          jPlotI.obj.plotter.attachChart
+          swing.Swing.onEDTWait {jPlotI.obj.showPlot}
+        }
     }
   }
-
+  
   def repaint(vp: Rectangle2D = null) = {
     var buf = plotI.buffer()
     val pi = new PlotImage(pd, buf, plotI.plotStyle, vp)

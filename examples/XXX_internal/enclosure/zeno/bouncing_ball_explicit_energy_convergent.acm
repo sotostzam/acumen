@@ -6,10 +6,10 @@ class Main(simulator)
   private 
     mode := "Fly"; 
     x := 5; x' := 0; x'' := 0;  
-    r := 100; r' := 0;
+    r := 50; r' := 0;
   end
   switch mode
-    case "Fly" require x >= 0 && r == x'*x' + 20*x
+    case "Fly" require x >= 0 && r == x'*x'/2 + 10*x
       if x == 0 && x' <= 0
         x' := -0.5*x';
         r  := [0.0..0.25]*r;

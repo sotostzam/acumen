@@ -146,7 +146,13 @@ object Generators {
     components <- listOfN(dom.size, genBoxAffineScalarEnclosure(dom))
   } yield AffineEnclosure(dom, dom.keys.zip(components).toMap)
   implicit def arbitraryAffineEnclosure: Arbitrary[AffineEnclosure] = Arbitrary(genAffineEnclosure)
-  
+
+  /** Generates a plain enclosure. */
+  def genDimAffineEnclosure(dim: Int)(implicit rnd: Rounding): Gen[AffineEnclosure] = for {
+    dom <- genDimBox(dim)
+    components <- listOfN(dom.size, genBoxAffineScalarEnclosure(dom))
+  } yield AffineEnclosure(dom, dom.keys.zip(components).toMap)
+
   /* UnivariateAffineScalarEnclosure */
 
   /** Generates a plain univariate enclosure. */
@@ -168,10 +174,10 @@ object Generators {
   } yield UnivariateAffineScalarEnclosure(e.domain, e.normalizedDomain, constant, coefficient)
 
   /* UnivariateAffineEnclosure */
-  
+
   /** Generates a univariate enclosure with given number of components (variables) over the given interval. */
   def genDimDomUnivariateAffineEnclosure(dim: Int, dom: Interval): Gen[UnivariateAffineEnclosure] = for {
-	components <- listOfN(dim, genBoxUnivariateAffineScalarEnclosure(dom))
+    components <- listOfN(dim, genBoxUnivariateAffineScalarEnclosure(dom))
   } yield UnivariateAffineEnclosure(dom, (((0 to dim) map (_.toString)) zip components) toMap)
 
   /** Generates a univariate enclosure with given number of components (variables). */
@@ -179,13 +185,13 @@ object Generators {
     dom <- arbitrary[Interval]
     e <- genDimDomUnivariateAffineEnclosure(dim, dom)
   } yield e
-  
+
   /** Generates a univariate enclosure over the domain. */
   def genUnivariateAffineEnclosure: Gen[UnivariateAffineEnclosure] = for {
-    n <- chooseNum(1,6) // TODO Externalize this constant
+    n <- chooseNum(1, 6) // TODO Externalize this constant
     e <- genDimUnivariateAffineEnclosure(n)
   } yield e
-  
+
   // TODO write generators corresponding to those for AffineScalarEnclosure
 
   /* Expression */

@@ -18,7 +18,22 @@ import interpreter._
 class JFreePlotTab extends BorderPanel
 {
   var plotter : JFreePlotter = null
+
+  var tabSelected = false
+  var userDisabled = false
+  var selfDisabled = false
+
   //val plotPanel = plotter.chartPanel
+
+  // reasons for disabled
+  // need to keep track of each one and handle the logic correctly
+  //   too slow  // enable when stopped
+  //   other tab // enable when active
+  //   too many plots // enabled by user option
+  //   user disabled  // enabled by user option
+
+  // Need to handle the siteration when the plot was updating in the
+  //  background, and the plot got reset.... 
 
   val resetZoom = new Action("Reset Zoom") {
     icon = Icons.home
@@ -113,10 +128,9 @@ class JFreePlotTab extends BorderPanel
   buttonsEnabled(false)
   private val hint = new Label("Hint: Right click on image & drag to move") //TODO Make sure that this works
   /*private*/ val check = new CheckBox("") { 
-    action = Action("Draw") {
-      //chart.setNotify(selected)
-      //if (selected)
-      //  chart.fireChartChanged()
+    action = Action("Plot") {
+      userDisabled = !selected
+      fixPlotState
     }
   }
   private val rightBottomButtons =
@@ -124,39 +138,97 @@ class JFreePlotTab extends BorderPanel
   def buttonsEnabled(v: Boolean) = {
     b1.enabled = v; b2.enabled = v; b3.enabled = v; b4.enabled = v; b5.enabled = v
   }
+  def setPlotState = 
+    App.ui.jPlotI.enabled = tabSelected && check.selected && !App.ui.jPlotI.tooSlow && !App.ui.jPlotI.forsedDisable
+  def fixPlotState : Unit = {
+    setPlotState
+    if (!check.selected) 
+      showMessage("( Plotting disabled. )")
+    else if (App.ui.jPlotI.forsedDisable)
+      showMessage("( Too many subplots!  Plotting Disabled. )")
+    else if (App.ui.jPlotI.tooSlow)
+      showMessage("( Live plotting disabled. )")
+    else if (!App.ui.jPlotI.enabled)
+      showNothing
+    if (App.ui.jPlotI.enabled) {
+      println("Updating Plot")
+      App.ui.plotView.plotPanel.plotter ! Refresh
+    } else if (plotter != null) {
+      println("Detaching Plot")
+      plotter.detachChart
+    }
+  }
+  def setPlotPending =
+    showMessage("Plotting in progress ...")
+
   listenTo(App.pub) 
-  // var appState : App.State = null
-  // var plotState : Plotter.State = null
-  // var panelState : PlotPanel.State = null
-  // reactions += {
-  //   case st:App.State       => appState = st; stateUpdateResponse
-  //   case st:Plotter.State   => plotState = st; stateUpdateResponse
-  //   case st:PlotPanel.State => panelState = st; stateUpdateResponse
-  // }
-  // def stateUpdateResponse = (plotState,appState) match {
-  //   case _ if panelState == PlotPanel.Disabled => 
-  //     buttonsEnabled(false)
-  //   case (Plotter.Busy,_:App.Playing) => 
-  //     buttonsEnabled(false)
-  //   case (Plotter.Ready,_:App.Ready) if panelState == PlotPanel.Enabled => 
-  //     buttonsEnabled(true)
-  //   case _ => 
-  // }
   reactions += {
-    case App.Starting => reset
+    case App.Starting => 
+      reset
+
+    case _:App.Ready => 
+      App.ui.jPlotI.tooSlow = false
+      fixPlotState
+
+    case App.ViewChanged(idx) => 
+      if (idx == App.ui.views.NEW_PLOT_IDX) {
+        tabSelected = true
+        fixPlotState
+      } else {
+        tabSelected = false
+        fixPlotState
+      }
   }
 
   def reset = {
+    App.ui.jPlotI.tooSlow = false
+    App.ui.jPlotI.forsedDisable = false
     plotter = App.ui.controller.model.getPlotter
     plotter.initPlot
-    peer.removeAll
-    peer.add(plotter.chartPanel)
-    peer.revalidate()
+    check.selected = !userDisabled
+    setPlotState
+    showNothing
   }
+
+  def clearPanel = {
+    peer.removeAll
+    add(check, BorderPanel.Position.South)
+  }
+
+  def showNothing = {
+    clearPanel
+    peer.revalidate()
+    repaint()
+  }
+
+  def showMessage(msg:String) = {
+    clearPanel
+    val label = new Label(msg)
+    label.horizontalAlignment = Alignment.Center
+    label.verticalAlignment = Alignment.Bottom
+    add(label, BorderPanel.Position.Center)
+    peer.revalidate()
+    repaint()
+  }
+
+  def showPlot {
+    clearPanel
+    add(Component.wrap(plotter.chartPanel), BorderPanel.Position.Center)
+    peer.revalidate()
+    repaint()
+  }
+
+  def attachPlot {
+    plotter.attachChart
+    showPlot
+  }
+
+  //check.horizontalAlignment = Alignment.Right
+  add(check, BorderPanel.Position.South)
+  check.selected = true
 
   //Don't display for now, may do something better
   //add(rightBottomButtons, BorderPanel.Position.South)
-  check.selected = true
 
   //TODO Check if the below need to be re-enabled
 //  def toggleSimulator(b:Boolean) = plotPanel.toggleSimulator(b)

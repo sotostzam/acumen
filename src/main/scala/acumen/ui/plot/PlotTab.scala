@@ -159,23 +159,20 @@ class PlotTab extends BorderPanel
   }
   listenTo(App.pub) 
   var appState : App.State = null
-  var plotState : Plotter.State = null
   var panelState : PlotPanel.State = null
   var tabSelected = false
   reactions += {
     case st:App.State       => appState = st; stateUpdateResponse
-    case st:Plotter.State   => plotState = st; stateUpdateResponse
     case st:PlotPanel.State => panelState = st; stateUpdateResponse
 
     case App.ViewChanged(idx) => 
       if (idx == App.ui.views.PLOT_IDX) {
         tabSelected = true
-        updatePlotEnabled
         plotPanel.plotter ! Replot
       } else {
         tabSelected = false
-        updatePlotEnabled
       }
+      updatePlotEnabled
 
     case m:PlotReady =>
       if (m.data.disableThreshold == Integer.MAX_VALUE)
@@ -185,16 +182,9 @@ class PlotTab extends BorderPanel
   }
   def stateUpdateResponse = {
     if (appState == App.Starting) resetCheckBox
+    buttonsEnabled(panelState == PlotPanel.Enabled)
     updatePlotEnabled
-    (plotState,appState) match {
-      case _ if panelState == PlotPanel.Disabled => 
-        buttonsEnabled(false)
-      case (Plotter.Busy,_:App.Playing) => 
-        buttonsEnabled(false)
-      case (Plotter.Ready,_:App.Ready) if panelState == PlotPanel.Enabled => 
-        buttonsEnabled(true)
-      case _ => 
-    }
+    //println("sur> %s %s %s %s".format(plotState,appState,panelState, plotPanel.plotI.enabled))
   }
 
   add(plotPanel, BorderPanel.Position.Center)

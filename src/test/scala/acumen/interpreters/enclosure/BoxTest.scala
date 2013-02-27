@@ -106,14 +106,15 @@ object BoxTest extends Properties("Box") {
       }
     }
 
-//  property("intersection of disjoint boxes is empty") =
-//    forAll(genBox, genBox) { (b1, b2) =>
-//      (b1 disjointFrom b2) ==> ((b1 /\ b2) isEmpty)
-//    }
+  //  property("intersection of disjoint boxes is empty") =
+  //    forAll(genBox, genBox) { (b1, b2) =>
+  //      (b1 disjointFrom b2) ==> ((b1 /\ b2) isEmpty)
+  //    }
 
-  property("intersection of non-disjoint boxes is non-empty") =
-    forAll(genBox, genBox) { (b1, b2) =>
-      false
-    }
+  //  TODO: implement porperty!
+  //  property("intersection of non-disjoint boxes is non-empty") =
+  //    forAll(genBox, genBox) { (b1, b2) =>
+  //      false
+  //    }
 
 }
