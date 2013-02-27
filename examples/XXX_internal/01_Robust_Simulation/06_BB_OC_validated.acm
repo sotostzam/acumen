@@ -14,10 +14,10 @@ class Main(simulator)
   switch mode
     case "Fly" 
       require x >= 0 && 
-              r == x'*x' + 20*x
+              r == x'*x' + 20*x //
       if x == 0 && x' <= 0
         x' := -0.5*x';
-        r  := [0.0..0.25]*r;
+        r  := 0.25*r;    //
         mode := "Fly";
       end;
       x'' = -10;
