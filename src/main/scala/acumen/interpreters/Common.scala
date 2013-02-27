@@ -41,6 +41,8 @@ object Common {
         case "tanh" => tanh(x)
         case "signum"=> signum(x)
 
+// Should abs and and - above?
+
     }
     (f, vx) match {
       case ("not", GBool(x))   => GBool(!x)
