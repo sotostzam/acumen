@@ -63,7 +63,6 @@ object Main {
           val start: Int = Integer.parseInt(args(offset + 0))
           val stop: Int = Integer.parseInt(args(offset + 1))
           val warmup : Int = if (args.size > offset + 2) Integer.parseInt(args(offset+2)) else 0
-          println(args.size + " " + (offset + 3))
           val repeat : Int = if (args.size > offset + 3) Integer.parseInt(args(offset+3)) else 10
           val forced = nodiff_out
           for (nbThreads <- start to stop) {
