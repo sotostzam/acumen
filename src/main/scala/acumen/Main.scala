@@ -61,21 +61,21 @@ object Main {
         case "bench" =>
           val offset = firstNonSemanticsArg + 1 + 1;
           val start: Int = Integer.parseInt(args(offset + 0))
-		  val stop: Int = Integer.parseInt(args(offset + 1))
-		  val warmup : Int = if (args.size > offset + 2) Integer.parseInt(args(offset+2)) else 0
-		  val repeat : Int = if (args.size > offset + 3) Integer.parseInt(args(offset+3)) else 10
-		  val forced = nodiff_out
-		  for (nbThreads <- start to stop) {
-			print(nbThreads + " threads: ")
-			withInterpreter(nbThreads) { PI =>
-			  as_ctrace(PI.run(forced)).last
-			  for (_ <- 0 until warmup) { print("w"); as_ctrace(PI.run(forced)).last }
-			  val startTime = System.currentTimeMillis()
-			  for (_ <- 0 until repeat) { print("."); as_ctrace(PI.run(forced)).last }
-			  val endTime = System.currentTimeMillis()
-			  println(endTime - startTime)
-		    }
-		  }
+          val stop: Int = Integer.parseInt(args(offset + 1))
+          val warmup : Int = if (args.size > offset + 2) Integer.parseInt(args(offset+2)) else 0
+          val repeat : Int = if (args.size > offset + 3) Integer.parseInt(args(offset+3)) else 10
+          val forced = nodiff_out
+          for (nbThreads <- start to stop) {
+            print(nbThreads + " threads: ")
+            withInterpreter(nbThreads) { PI =>
+              as_ctrace(PI.run(forced)).last
+              for (_ <- 0 until warmup) { print("w"); as_ctrace(PI.run(forced)).last }
+              val startTime = System.currentTimeMillis()
+              for (_ <- 0 until repeat) { print("."); as_ctrace(PI.run(forced)).last }
+              val endTime = System.currentTimeMillis()
+              println(endTime - startTime)
+            }
+          }
         // the first six lines are shared with the "bench" case and would ideally not be repeated
         case "bench-gnuplot" =>
           val offset = firstNonSemanticsArg + 1 + 1;
