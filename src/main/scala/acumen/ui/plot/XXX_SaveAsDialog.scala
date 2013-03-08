@@ -58,8 +58,8 @@ class SaveAsDailog (parent: Component, chart: JFreeChart) extends Dialog(null) {
     currentDir = f.getParentFile
     currentHeight = heightSpin.getValue.asInstanceOf[Int]
     currentWidth = widthSpin.getValue.asInstanceOf[Int]
-//    plotPanel.render(f, currentWidth, currentHeight)
-    JFreePlotter.convertToPDF(chart, currentWidth, currentHeight, inputField.text)
+    //plotPanel.render(f, currentWidth, currentHeight)
+    ToPDF.JFreeChartToPDF(chart, currentWidth, currentHeight, inputField.text)
     dispose
   }
   val buttons = new FlowPanel(FlowPanel.Alignment.Trailing)(cancel, save)

@@ -76,9 +76,9 @@ object BenchEnclosures {
           println("Making PDF of plot to " + plotFn(""))
           val plotter = new ui.plot.EnclosurePlotter
           plotter.plotForSaving(r.res)
-          plotter.convertToPDF(640, 480, plotFn(""))
-          plotter.mergeVisablePlots
-          plotter.convertToPDF(640, 480, plotFn("-merged"))
+          //plotter.convertToPDF(640, 480, plotFn(""))
+          //plotter.mergeVisablePlots
+          //plotter.convertToPDF(640, 480, plotFn("-merged"))
           first += adjustments
         }
       }
