@@ -15,10 +15,7 @@ import scala.swing.FileChooser
 import java.io.File
 import scala.swing.Component
 import org.jfree.chart.JFreeChart
-import com.itextpdf.text.pdf.PdfWriter
-import com.itextpdf.text.Document
 import java.io.FileOutputStream
-import com.itextpdf.awt.DefaultFontMapper
 import java.awt.geom.Rectangle2D
 
 class SaveAsDailog (parent: Component, chart: JFreeChart) extends Dialog(null) {
