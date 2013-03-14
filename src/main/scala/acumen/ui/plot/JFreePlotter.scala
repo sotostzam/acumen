@@ -2,29 +2,22 @@ package acumen
 package ui
 package plot
 
-import java.awt.event.{ActionListener, ActionEvent}
-import java.awt.geom.Rectangle2D
 import java.awt.Color
-import java.io.FileOutputStream
+import java.awt.event.{ActionEvent, ActionListener}
+
+import javax.swing.{BoxLayout, JFrame, JMenuItem}
 
 import scala.Array.canBuildFrom
 import scala.collection.JavaConversions.asScalaIterator
-import scala.collection.mutable.{Map, Buffer}
-import scala.swing.Graphics2D
+import scala.collection.mutable.{Buffer, Map}
 import scala.swing.Component
 
+import org.jfree.chart.{ChartPanel, JFreeChart, LegendItem, LegendItemCollection, LegendItemSource}
 import org.jfree.chart.axis.NumberAxis
-import org.jfree.chart.plot.{XYPlot, CombinedDomainXYPlot}
+import org.jfree.chart.plot.{CombinedDomainXYPlot, XYPlot}
 import org.jfree.chart.renderer.xy.XYItemRenderer
 import org.jfree.chart.title.LegendTitle
-import org.jfree.chart.{LegendItemSource, LegendItemCollection, LegendItem, JFreeChart, ChartPanel}
-import org.jfree.ui.{RectangleEdge, ApplicationFrame}
-
-import com.itextpdf.awt.DefaultFontMapper
-import com.itextpdf.text.pdf.{PdfWriter, PdfTemplate, PdfContentByte}
-import com.itextpdf.text.Document
-
-import javax.swing.{JMenuItem, JFrame, BoxLayout}
+import org.jfree.ui.{ApplicationFrame, RectangleEdge}
 
 abstract class JFreePlotter {
 
@@ -37,7 +30,7 @@ abstract class JFreePlotter {
   @volatile var attached = false
 
   def initPlot = {
-    val saveAsPdf = new JMenuItem("Save as PDF")
+    val saveAsPdf = new JMenuItem("Save as PDF") // NRL: Non-BSD Dep.
     val hideOther = new JMenuItem("Hide Other Plots")
     val hideThis = new JMenuItem("Hide This Plot")
     val mergeVisible = new JMenuItem("Merge Visible Plots")
@@ -54,16 +47,16 @@ abstract class JFreePlotter {
         super.displayPopupMenu(x,y)
       }
     }
-    saveAsPdf.addActionListener(new ActionListener() {
-      def actionPerformed(event: ActionEvent) {
-        val d = new SaveAsDailog(Component.wrap(chartPanel), chart)
-        d.pack
-        d.open
-      }
-    })
+    saveAsPdf.addActionListener(new ActionListener() {               // NRL: Non-BSD Dep.
+      def actionPerformed(event: ActionEvent) {                      // NRL
+        val d = new SaveAsDailog(Component.wrap(chartPanel), chart)  // NRL
+        d.pack                                                       // NRL
+        d.open                                                       // NRL
+      }                                                              // NRL  
+    })                                                               // NRL
     val popupMenu = chartPanel.getPopupMenu
     popupMenu.addSeparator
-    popupMenu.add(saveAsPdf)
+    popupMenu.add(saveAsPdf) // NRL: Non-BSD Dep.
     hideOther.addActionListener(new ActionListener() {
       def actionPerformed(event: ActionEvent) {
         val oldPlots = combinedPlot.getSubplots.toArray
@@ -201,31 +194,10 @@ abstract class JFreePlotter {
 
   def addToPlot(d: Object) : Unit
 
-  def convertToPDF(width: Int, height: Int, filename: String) {
-    JFreePlotter.convertToPDF(chart, width, height, filename)
-  }
+  def convertToPDF(width: Int, height: Int, filename: String) { // NRL: Non BSD. Dep
+    ToPDF.JFreeChartToPDF(chart, width, height, filename)   // NRL
+  }                                                             // NRL
 }
 
-object JFreePlotter {
-
-  def convertToPDF(chart: JFreeChart, width: Int, height: Int, filename: String) {
-    val document: Document = new Document(new com.itextpdf.text.Rectangle(width, height))
-    try {
-      val writer: PdfWriter = PdfWriter.getInstance(document, new FileOutputStream(filename))
-      document.open
-      val cb: PdfContentByte = writer.getDirectContent
-      val tp: PdfTemplate = cb.createTemplate(width, height)
-      val g2d: Graphics2D = tp.createGraphics(width, height, new DefaultFontMapper)
-      val r2d: Rectangle2D = new Rectangle2D.Double(0, 0, width, height)
-      chart.draw(g2d, r2d)
-      g2d.dispose
-      cb.addTemplate(tp, 0, 0)
-    } catch {
-      case e: Exception => e.printStackTrace
-    } finally {
-      document.close()
-    }
-  }
-}
 
 
