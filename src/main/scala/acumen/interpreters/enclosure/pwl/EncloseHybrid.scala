@@ -12,9 +12,10 @@ import acumen.interpreters.enclosure.Predicate
 import acumen.interpreters.enclosure.All
 import acumen.interpreters.enclosure.BinaryRelation
 import acumen.interpreters.enclosure.BinaryRelationName._
-import acumen.interpreters.enclosure.tree.Field
+import acumen.interpreters.enclosure.Field
+import acumen.interpreters.enclosure.SolveIVP
 
-trait EncloseHybrid extends EncloseEvents {
+trait EncloseHybrid extends EncloseEvents with SolveIVP {
 
   def encloseHybrid(ps: Parameters, h: HybridSystem, t: Interval, sInit: StateEnclosure, cb: EnclosureInterpreterCallbacks)(implicit rnd: Rounding): Seq[UnivariateAffineEnclosure] = {
 

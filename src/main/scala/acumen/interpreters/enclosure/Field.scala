@@ -1,4 +1,4 @@
-package acumen.interpreters.enclosure.tree
+package acumen.interpreters.enclosure
 
 import acumen.interpreters.enclosure.Types._
 import acumen.interpreters.enclosure.Rounding
