@@ -7,8 +7,8 @@ import Pretty._
 import collection.mutable.ArrayBuffer
 import collection.mutable.WrappedArray
 import javax.swing.event.TableModelListener
-import acumen.interpreters.enclosure.UnivariateAffineEnclosure
-import acumen.interpreters.enclosure.UnivariateAffineScalarEnclosure
+import acumen.interpreters.enclosure.affine.UnivariateAffineEnclosure
+import acumen.interpreters.enclosure.affine.UnivariateAffineScalarEnclosure
 import scala.math.Ordering
 
 class EnclosureModel extends TraceModel with PlotModel with InterpreterModel {

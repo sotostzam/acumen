@@ -1,16 +1,19 @@
-package acumen.interpreters.enclosure
+package acumen.interpreters.enclosure.affine
 
 import org.scalacheck.Arbitrary._
 import org.scalacheck.Gen._
 import org.scalacheck.Prop._
 import org.scalacheck.Gen
 import org.scalacheck.Properties
-
 import AffineScalarEnclosure._
-import Box._
-import Generators._
-import Interval._
-import Types._
+import acumen.interpreters.enclosure.Box._
+import acumen.interpreters.enclosure.Generators._
+import acumen.interpreters.enclosure.Interval._
+import acumen.interpreters.enclosure.Types._
+import acumen.interpreters.enclosure.Rounding
+import acumen.interpreters.enclosure.TestingContext
+import acumen.interpreters.enclosure.Box
+import acumen.interpreters.enclosure.Interval
 
 object AffineScalarEnclosureTest extends Properties("AffineScalarEnclosure") {
 

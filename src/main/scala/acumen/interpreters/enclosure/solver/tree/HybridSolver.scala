@@ -1,8 +1,8 @@
-package acumen.interpreters.enclosure.tree
+package acumen.interpreters.enclosure.solver.tree
 
 import acumen.interpreters.enclosure.Interval
 import acumen.interpreters.enclosure.Types._
-import acumen.interpreters.enclosure.UnivariateAffineEnclosure
+import acumen.interpreters.enclosure.affine.UnivariateAffineEnclosure
 import acumen.interpreters.enclosure.Rounding
 import acumen.interpreters.enclosure.Box
 import acumen.interpreters.enclosure.EnclosureInterpreterCallbacks

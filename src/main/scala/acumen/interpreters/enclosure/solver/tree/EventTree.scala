@@ -1,10 +1,12 @@
-package acumen.interpreters.enclosure.tree
+package acumen.interpreters.enclosure.solver.tree
 
 import acumen.interpreters.enclosure._
-import acumen.interpreters.enclosure.SolveIVP
+import acumen.interpreters.enclosure.solver.SolveIVP
 import acumen.interpreters.enclosure.Types.Event
 import acumen.interpreters.enclosure.Types._
 import acumen.interpreters.enclosure.Util._
+import acumen.interpreters.enclosure.affine.UnivariateAffineEnclosure
+import acumen.interpreters.enclosure.affine.UnivariateAffineScalarEnclosure
 
 /** TODO add description */
 // TODO add tests

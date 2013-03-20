@@ -1,10 +1,13 @@
-package acumen.interpreters.enclosure
+package acumen.interpreters.enclosure.affine
 
-import Interval._
-import Types._
-import Util._
+import acumen.interpreters.enclosure.Interval._
+import acumen.interpreters.enclosure.Types._
+import acumen.interpreters.enclosure.Util._
 import org.jfree.ui.ApplicationFrame
 import java.awt.Color
+import acumen.interpreters.enclosure.Rounding
+import acumen.interpreters.enclosure.Interval
+import acumen.interpreters.enclosure.Box
 
 /**
  * Type used to approximate expressions over a given domain.

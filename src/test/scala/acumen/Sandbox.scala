@@ -1,21 +1,11 @@
 package acumen
 
-import acumen.interpreters.Common.classDef
-import acumen.interpreters.enclosure.tree.Solver.defaultCallback
-import acumen.interpreters.enclosure.tree.FixedStepSolver
-import acumen.interpreters.enclosure.tree.HybridSystem
+import acumen.interpreters.enclosure.affine.UnivariateAffineEnclosure
+import acumen.interpreters.enclosure.affine.UnivariateAffineScalarEnclosure
+import acumen.interpreters.enclosure.solver.tree.Solver
 import acumen.interpreters.enclosure.Extract
-import acumen.interpreters.enclosure.Rounding
-import acumen.interpreters.enclosure.tree.Solver
-import acumen.interpreters.enclosure.tree.SolveVt
-import acumen.interpreters.enclosure.Variable
-import acumen.interpreters.enclosure.Field
 import acumen.interpreters.enclosure.Interval
-import acumen.interpreters.enclosure.Box
-import java.awt.Color
-import acumen.interpreters.enclosure._
-import acumen.interpreters.enclosure.UnivariateAffineEnclosure._
-import acumen.interpreters.enclosure.UnivariateAffineScalarEnclosure._
+import acumen.interpreters.enclosure.Rounding
 
 object Sandbox extends App with Extract with Solver { // with SolveVt {
 
