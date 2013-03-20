@@ -9,7 +9,7 @@ import acumen.interpreters.enclosure.Rounding
 import acumen.interpreters.enclosure.tree.Solver
 import acumen.interpreters.enclosure.tree.SolveVt
 import acumen.interpreters.enclosure.Variable
-import acumen.interpreters.enclosure.tree.Field
+import acumen.interpreters.enclosure.Field
 import acumen.interpreters.enclosure.Interval
 import acumen.interpreters.enclosure.Box
 import java.awt.Color

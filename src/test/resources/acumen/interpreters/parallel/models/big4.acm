@@ -1,0 +1,20 @@
+class Leaf()
+  private x := 1 end
+  x = sum i*i for i in 1:100 if true
+end
+
+class Main(simulator)
+  private
+    mode := "Init"
+  end
+  switch mode
+    case "Init"
+      simulator.timeStep := 1;
+      simulator.endTime := 100;
+      for i=1:100
+        create Leaf()
+      end;
+      mode := "Idle"
+    case "Idle"
+  end
+end

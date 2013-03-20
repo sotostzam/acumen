@@ -1,4 +1,4 @@
-package acumen.interpreters.enclosure.tree
+package acumen.interpreters.enclosure
 
 import acumen.interpreters.enclosure._
 import acumen.interpreters.enclosure.Interval._

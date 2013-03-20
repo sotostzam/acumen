@@ -15,10 +15,7 @@ import scala.swing.FileChooser
 import java.io.File
 import scala.swing.Component
 import org.jfree.chart.JFreeChart
-import com.itextpdf.text.pdf.PdfWriter
-import com.itextpdf.text.Document
 import java.io.FileOutputStream
-import com.itextpdf.awt.DefaultFontMapper
 import java.awt.geom.Rectangle2D
 
 class SaveAsDailog (parent: Component, chart: JFreeChart) extends Dialog(null) {
@@ -61,8 +58,8 @@ class SaveAsDailog (parent: Component, chart: JFreeChart) extends Dialog(null) {
     currentDir = f.getParentFile
     currentHeight = heightSpin.getValue.asInstanceOf[Int]
     currentWidth = widthSpin.getValue.asInstanceOf[Int]
-//    plotPanel.render(f, currentWidth, currentHeight)
-    JFreePlotter.convertToPDF(chart, currentWidth, currentHeight, inputField.text)
+    //plotPanel.render(f, currentWidth, currentHeight)
+    ToPDF.JFreeChartToPDF(chart, currentWidth, currentHeight, inputField.text)
     dispose
   }
   val buttons = new FlowPanel(FlowPanel.Alignment.Trailing)(cancel, save)

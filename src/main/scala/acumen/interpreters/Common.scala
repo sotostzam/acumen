@@ -75,7 +75,7 @@ object Common {
       case "*" => x * y
       case "^" => pow(x,y)
       case "/" => x / y
-      case "atan2" => atan2(y,x)
+      case "atan2" => atan2(x,y)
       case _ => throw UnknownOperator(f)
     }
     def implem3(f:String, x:Int, y:Int) = f match {

@@ -5,6 +5,8 @@ import acumen.interpreters.enclosure.Interval._
 import acumen.interpreters.enclosure.Types._
 import acumen.interpreters.enclosure.UnivariateAffineEnclosure._
 
+/* This trait is now deprecated, use SolveIVP instead. */
+@deprecated
 trait SolveVt {
 
   /**

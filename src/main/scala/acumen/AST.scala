@@ -17,6 +17,7 @@ package acumen {
     override def hashCode = System.identityHashCode(this)
     override def equals(that: Any) = this eq (that.asInstanceOf[AnyRef])
     override def toString = "Name(" + x + "," + primes + ")"
+    def <(that: Name) = Name.nameOrdering.compare(this, that) < 0
   }
   object Name {
     private case class Key(x: String, p: Int)
@@ -27,6 +28,11 @@ package acumen {
     }
     def unapply(x: Name): Option[(String, Int)] =
       Some(Tuple2(x.x, x.primes))
+    implicit def nameOrdering: Ordering[Name] =
+      Ordering.fromLessThan {
+      case (Name(x1, ps1), Name(x2, ps2)) =>
+      if (x1 == x2) ps1 < ps2 else x1 < x2
+      }
   }
 
   /* Examples:  Ball, World, etc */
@@ -115,8 +121,8 @@ package acumen {
   /* Example: "foo" */
   case class GStr(s: String) extends GroundValue
   /* Constants */
-  case object GConstPi extends GroundValue  
-  
+  case object GConstPi extends GroundValue
+
   /* ==== values ==== */
 
   sealed abstract class StepType
