@@ -13,9 +13,9 @@ import acumen.interpreters.enclosure.All
 import acumen.interpreters.enclosure.BinaryRelation
 import acumen.interpreters.enclosure.BinaryRelationName._
 import acumen.interpreters.enclosure.Field
-import acumen.interpreters.enclosure.solver.SolveIVP
 
-trait EncloseHybrid extends EncloseEvents with SolveIVP {
+trait EncloseHybrid extends EncloseEvents 
+{
 
   def encloseHybrid(ps: Parameters, h: HybridSystem, t: Interval, sInit: StateEnclosure, cb: EnclosureInterpreterCallbacks)(implicit rnd: Rounding): Seq[UnivariateAffineEnclosure] = {
 
@@ -90,7 +90,7 @@ trait EncloseHybrid extends EncloseEvents with SolveIVP {
     def computeLFE(t: Interval, init: Box): LFE =
       if (t.width greaterThan ps.maxTimeStep) splitAndRepeatComputeLFE(t, init)
       else try {
-        val e = solveVt(h.fields(m), t, init, ps.initialPicardPadding, ps.picardImprovements, ps.maxPicardIterations, ps.splittingDegree)
+        val (e, _) = solveVt(h.fields(m), t, init, ps.initialPicardPadding, ps.picardImprovements, ps.maxPicardIterations, ps.splittingDegree)
         if (t.width lessThan ps.minSolverStep * 2)
           computeLFEnoODE(e)
         else {
@@ -109,10 +109,10 @@ trait EncloseHybrid extends EncloseEvents with SolveIVP {
 
     def splitAndSolveVt(t: Interval, init: Box) = {
       val (tL, tR) = t.split
-      val eL = solveVt(h.fields(m), tL, init, ps.initialPicardPadding, ps.picardImprovements, ps.maxPicardIterations, ps.splittingDegree)
-      val initR = eL(tL.high)
+      val (eL, initR) = solveVt(h.fields(m), tL, init, ps.initialPicardPadding, ps.picardImprovements, ps.maxPicardIterations, ps.splittingDegree)
+//      val initR = eL(tL.high)
       val vs = h.domains(m).support(initR)
-      val eR = solveVt(h.fields(m), tR, vs, ps.initialPicardPadding, ps.picardImprovements, ps.maxPicardIterations, ps.splittingDegree)
+      val (eR, _) = solveVt(h.fields(m), tR, vs, ps.initialPicardPadding, ps.picardImprovements, ps.maxPicardIterations, ps.splittingDegree)
       // val eR = solveVt(h.fields(m), tR, initR, ps.initialPicardPadding, ps.picardImprovements, ps.maxPicardIterations, ps.splittingDegree)
       (eL, eR)
     }
@@ -153,30 +153,6 @@ trait EncloseHybrid extends EncloseEvents with SolveIVP {
         }
       }
     }
-
-    // OLD version before synchronizing with LaTeX specification 
-    //    def computeLFEnoODE(e: UnivariateAffineEnclosure)(implicit rnd: Rounding): LFE = {
-    //    	val (eLFE, eLFEisBad) = enclosureToLFE(h, m, e)
-    //    			val eLFEisHopeless = enclosureHasNoEventInfo(ps, h, m, e)
-    //    			if (eLFEisHopeless || (e.domain.width lessThan ps.minLocalizationStep * 2)) {
-    //    				eLFE
-    //    			} else {
-    //    				val (domL, domR) = e.domain.split
-    //    						val eL = e.restrictTo(domL) // TODO factor out as enclosure method
-    //    						val eR = e.restrictTo(domR) // TODO factor out as enclosure method 
-    //    						val (eLlfe, _) = enclosureToLFE(h, m, eL)
-    //    						val (eRlfe, _) = enclosureToLFE(h, m, eR)
-    //    						val eLRlfe = concatenateLFEs(eLlfe, eRlfe)
-    //    						if (eLFEisBad || isBetterLFEThan(eLRlfe, eLFE)) {
-    //    							val lfeL @ (_, _, lfeLcompl) = computeLFEnoODE(eL)
-    //    									if (lfeLcompl) lfeL
-    //    									else 
-    //    										concatenateLFEs(lfeL, computeLFEnoODE(eR))
-    //    						} else {
-    //    							eLFE
-    //    						}
-    //    			}
-    //    }
 
     val res = computeLFE(t, init)
     res
