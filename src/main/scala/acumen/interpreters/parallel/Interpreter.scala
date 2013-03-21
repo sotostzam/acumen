@@ -30,7 +30,7 @@ trait Common {
 
   type MMap[A, B] = scala.collection.mutable.Map[A, B]
   val MMap = scala.collection.mutable.Map
-  
+
   case class Object(
       val id: CId,
       var fields: MMap[Name, Val],
@@ -488,34 +488,33 @@ class Interpreter(nbThreads: Int) extends Common with acumen.CStoreInterpreter {
     threadPool.reset
     val magic = getSimulator(st)
     if (getTime(magic) > getEndTime(magic)) None
-    else Some(
-      {
-        val chtset =
-          if (nbThreads > 1) iterateMain(evalStep(p, magic), st, nbThreads)
-          else iterateSimple(evalStep(p, magic), st)
-        getStepType(magic) match {
-          case Discrete() =>
-            chtset match {
-              case SomeChange(dead, rps) =>
-                for ((o, p) <- rps)
-                  changeParent(o, p)
-                for (o <- dead) {
-                  o.parent match {
-                    case None => ()
-                    case Some(op) =>
-                      for (oc <- o.children) changeParent(oc, op)
-                      op.children = op.children diff Seq(o)
-                  }
+    else Some {
+      val chtset =
+        if (nbThreads > 1) iterateMain(evalStep(p, magic), st, nbThreads)
+        else iterateSimple(evalStep(p, magic), st)
+      getStepType(magic) match {
+        case Discrete() =>
+          chtset match {
+            case SomeChange(dead, rps) =>
+              for ((o, p) <- rps)
+                changeParent(o, p)
+              for (o <- dead) {
+                o.parent match {
+                  case None => ()
+                  case Some(op) =>
+                    for (oc <- o.children) changeParent(oc, op)
+                    op.children = op.children diff Seq(o)
                 }
-              case NoChange() =>
-                setStepType(magic, Continuous())
-            }
-          case Continuous() =>
-            setStepType(magic, Discrete())
-            setTime(magic, getTime(magic) + getTimeStep(magic))
-        }
-        st
-      })
+              }
+            case NoChange() =>
+              setStepType(magic, Continuous())
+          }
+        case Continuous() =>
+          setStepType(magic, Discrete())
+          setTime(magic, getTime(magic) + getTimeStep(magic))
+      }
+      st
+    }
   }
 
   def parCombine[A](xs: Traversable[A], f: A => Changeset): Changeset = {
@@ -530,8 +529,7 @@ class Interpreter(nbThreads: Int) extends Common with acumen.CStoreInterpreter {
     splitInto(len, n) match {
       case Some(slices) =>
         parCombine[(Int, Int)](
-          slices,
-          {
+          slices, {
             case (b, e) =>
               var res: Changeset = noChange
               for (i <- b to e) res = res || iterateSimple(f, cs(i))
