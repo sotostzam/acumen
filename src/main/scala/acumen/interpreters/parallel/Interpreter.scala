@@ -30,7 +30,7 @@ trait Common {
 
   type MMap[A, B] = scala.collection.mutable.Map[A, B]
   val MMap = scala.collection.mutable.Map
-
+  
   case class Object(
       val id: CId,
       var fields: MMap[Name, Val],
@@ -525,7 +525,7 @@ class Interpreter(nbThreads: Int) extends Common with acumen.CStoreInterpreter {
     res
   }
 
-  def recurse(f: ObjId => Changeset, cs: Vector[ObjId], n: Int): Changeset = {
+  def gatherChanges(f: ObjId => Changeset, cs: Vector[ObjId], n: Int): Changeset = {
     val len = cs.length
     splitInto(len, n) match {
       case Some(slices) =>
@@ -561,7 +561,7 @@ class Interpreter(nbThreads: Int) extends Common with acumen.CStoreInterpreter {
   def iterateMain(f: ObjId => Changeset, root: ObjId, n: Int): Changeset = {
     val r = f(root)
     val cs = root.children filter (getField(_, classf) != VClassName(cmagic))
-    r || recurse(f, cs, n)
+    r || gatherChanges(f, cs, n)
   }
 
   def iterateThreaded(f: ObjId => Changeset, root: ObjId, n: Int): Changeset = {
@@ -569,7 +569,7 @@ class Interpreter(nbThreads: Int) extends Common with acumen.CStoreInterpreter {
     else {
       val r = f(root)
       val cs = root.children
-      r || recurse(f, cs, n)
+      r || gatherChanges(f, cs, n)
     }
   }
 
