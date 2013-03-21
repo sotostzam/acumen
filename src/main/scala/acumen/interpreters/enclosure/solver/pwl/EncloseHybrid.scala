@@ -14,8 +14,7 @@ import acumen.interpreters.enclosure.BinaryRelation
 import acumen.interpreters.enclosure.BinaryRelationName._
 import acumen.interpreters.enclosure.Field
 
-trait EncloseHybrid extends EncloseEvents 
-{
+trait EncloseHybrid extends EncloseEvents {
 
   def encloseHybrid(ps: Parameters, h: HybridSystem, t: Interval, sInit: StateEnclosure, cb: EnclosureInterpreterCallbacks)(implicit rnd: Rounding): Seq[UnivariateAffineEnclosure] = {
 
@@ -90,7 +89,7 @@ trait EncloseHybrid extends EncloseEvents
     def computeLFE(t: Interval, init: Box): LFE =
       if (t.width greaterThan ps.maxTimeStep) splitAndRepeatComputeLFE(t, init)
       else try {
-        val (e, _) = solveVt(h.fields(m), t, init, ps.initialPicardPadding, ps.picardImprovements, ps.maxPicardIterations, ps.splittingDegree)
+        val (e, _) = ivpSolver.solveVt(h.fields(m), t, init, ps.initialPicardPadding, ps.picardImprovements, ps.maxPicardIterations, ps.splittingDegree)
         if (t.width lessThan ps.minSolverStep * 2)
           computeLFEnoODE(e)
         else {
@@ -109,10 +108,10 @@ trait EncloseHybrid extends EncloseEvents
 
     def splitAndSolveVt(t: Interval, init: Box) = {
       val (tL, tR) = t.split
-      val (eL, initR) = solveVt(h.fields(m), tL, init, ps.initialPicardPadding, ps.picardImprovements, ps.maxPicardIterations, ps.splittingDegree)
-//      val initR = eL(tL.high)
+      val (eL, initR) = ivpSolver.solveVt(h.fields(m), tL, init, ps.initialPicardPadding, ps.picardImprovements, ps.maxPicardIterations, ps.splittingDegree)
+      //      val initR = eL(tL.high)
       val vs = h.domains(m).support(initR)
-      val (eR, _) = solveVt(h.fields(m), tR, vs, ps.initialPicardPadding, ps.picardImprovements, ps.maxPicardIterations, ps.splittingDegree)
+      val (eR, _) = ivpSolver.solveVt(h.fields(m), tR, vs, ps.initialPicardPadding, ps.picardImprovements, ps.maxPicardIterations, ps.splittingDegree)
       // val eR = solveVt(h.fields(m), tR, initR, ps.initialPicardPadding, ps.picardImprovements, ps.maxPicardIterations, ps.splittingDegree)
       (eL, eR)
     }

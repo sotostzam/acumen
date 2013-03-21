@@ -4,6 +4,7 @@ package enclosure
 
 import org.scalacheck.Properties
 import scala.util.parsing.input.StreamReader
+import acumen.interpreters.enclosure.solver.PicardSolver
 
 object Regression extends Properties("Regression") {
 
@@ -17,14 +18,13 @@ object Regression extends Properties("Regression") {
     val models = readFiles("src/test/resources/acumen/interpreters/enclosure/models/", FILE_SUFFIX_MODEL)
     val results = readFiles("src/test/resources/acumen/interpreters/enclosure/expected/", FILE_SUFFIX_RESULT)
 
-    val i = new Interpreter
     val resultKeySet = results.keySet
     models.forall {
       case (name, model) =>
         try {
           val ast = Parser.run(Parser.prog, model)
           val des = Desugarer.run(ast)
-          val enclosures = i.run(des).res
+          val enclosures = Interpreter.run(des).res
           results.get(name) match {
             case None =>
               println(name + ".result is missing for comparison with result:\n" + enclosures)

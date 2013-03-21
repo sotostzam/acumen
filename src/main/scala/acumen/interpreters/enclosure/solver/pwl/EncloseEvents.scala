@@ -10,13 +10,16 @@ import acumen.interpreters.enclosure.Parameters
 import acumen.interpreters.enclosure.Rounding
 import acumen.interpreters.enclosure.solver.tree.HybridSystem
 import acumen.interpreters.enclosure.affine.UnivariateAffineEnclosure
+import acumen.interpreters.enclosure.solver.SolveIVP
 
 /**
  * Mix in this trait in place of SolveVtE to get PWL
  * rather than EventTree based event handling.
  */
-trait EncloseEvents extends PicardSolver {
+trait EncloseEvents {
 
+  var ivpSolver: SolveIVP
+  
   // main function
 
   def encloseEvents(ps: Parameters, h: HybridSystem, t: Interval, s: StateEnclosure)(implicit rnd: Rounding): (StateEnclosure, StateEnclosure) = {
@@ -112,7 +115,7 @@ trait EncloseEvents extends PicardSolver {
   }
 
   def encloseFlowStep(ps: Parameters, f: Field, t: Interval, b: Box)(implicit rnd: Rounding): (UnivariateAffineEnclosure, Box) =
-    solveVt(f, t, b,
+    ivpSolver.solveVt(f, t, b,
       ps.initialPicardPadding,
       ps.picardImprovements,
       ps.maxPicardIterations,
@@ -193,7 +196,7 @@ trait EncloseEvents extends PicardSolver {
     degree: Int,
     K: Int,
     log: String => Unit)(implicit rnd: Rounding): Option[(Set[UncertainState], Seq[UnivariateAffineEnclosure])] = {
-    val (noEventEnclosure, endTimeValue) = solveVt(h.fields(u.mode), t, u.initialCondition, delta, m, n, degree)
+    val (noEventEnclosure, endTimeValue) = ivpSolver.solveVt(h.fields(u.mode), t, u.initialCondition, delta, m, n, degree)
     val noPossibleEvents = !h.guards.exists {
       case (event, guard) => event.sigma == u.mode && (guard(noEventEnclosure.range) contains true)
     }

@@ -2,13 +2,17 @@ package acumen
 package interpreters
 package enclosure
 
-import util.Canonical._
-import Types._
-import ui.interpreter._
+import acumen.InterpreterCallbacks
+import acumen.InterpreterRes
+import acumen.Prog
 import acumen.interpreters.Common.classDef
-import acumen.interpreters.enclosure.solver.tree._
-import acumen.interpreters.enclosure.solver.pwl.EncloseHybrid
 import acumen.interpreters.enclosure.affine.UnivariateAffineEnclosure
+import acumen.interpreters.enclosure.solver.PicardSolver
+import acumen.interpreters.enclosure.solver.SolveIVP
+import acumen.interpreters.enclosure.solver.VeroSolver
+import acumen.interpreters.enclosure.solver.pwl.EncloseHybrid
+import acumen.interpreters.enclosure.solver.tree.Solver
+import ui.interpreter.EnclosureModel
 
 trait EnclosureInterpreterCallbacks extends InterpreterCallbacks {
   def log(msg: String): Unit
@@ -24,7 +28,7 @@ case class EnclosureRes(res: Seq[UnivariateAffineEnclosure]) extends Interpreter
 /**
  * Proxy for the enclosure-based solver.
  */
-class Interpreter
+class Interpreter(override var ivpSolver: SolveIVP)
   extends acumen.RecursiveInterpreter
   with Checker
   with Extract
@@ -95,8 +99,14 @@ class Interpreter
 
 }
 
-object Interpreter extends Interpreter
+/** Singleton interpreter. All concrete IVP solvers are declared here */
+object Interpreter extends Interpreter(null) {
+  private lazy val picard = new PicardSolver {}
+  private lazy val vero = new VeroSolver {}
+  ivpSolver = picard // default IVP solver
 
-object InterpreterNonLocalizing extends Interpreter {
-  localizing = false
-}
+  def asPicard: Interpreter = { ivpSolver = picard; this }
+  def asVero: Interpreter = { ivpSolver = vero; this }
+  def asLocalizing: Interpreter = { localizing = true; this }
+  def asNonLocalizing: Interpreter = { localizing = false; this }
+} 
