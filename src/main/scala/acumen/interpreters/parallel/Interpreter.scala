@@ -481,7 +481,7 @@ object Interpreter extends Common {
 
 class Interpreter(nbThreads: Int) extends Common with acumen.CStoreInterpreter {
 
-  lazy val threadPool = new SimpleThreadPool[Changeset](nbThreads)
+  lazy val threadPool = new SharingThreadPool[Changeset](nbThreads)
   def dispose = threadPool.dispose
 
   def step(p: Prog, st: Store): Option[Store] = {
@@ -490,7 +490,7 @@ class Interpreter(nbThreads: Int) extends Common with acumen.CStoreInterpreter {
     if (getTime(magic) > getEndTime(magic)) None
     else Some {
       val chtset =
-        if (nbThreads > 1) iterateMain(evalStep(p, magic), st, nbThreads)
+        if (nbThreads > 1) iterateMain(evalStep(p, magic), st)
         else iterateSimple(evalStep(p, magic), st)
       getStepType(magic) match {
         case Discrete() =>
@@ -517,64 +517,27 @@ class Interpreter(nbThreads: Int) extends Common with acumen.CStoreInterpreter {
     }
   }
 
-  def parCombine[A](xs: Traversable[A], f: A => Changeset): Changeset = {
-    val boxes = xs map { x => threadPool.run(() => f(x)) }
-    var res: Changeset = noChange
-    for (b <- boxes) res = res || b.get
-    res
-  }
-
-  def gatherChanges(f: ObjId => Changeset, cs: Vector[ObjId], n: Int): Changeset = {
-    val len = cs.length
-    splitInto(len, n) match {
-      case Some(slices) =>
-        parCombine[(Int, Int)](
-          slices, {
-            case (b, e) =>
-              var res: Changeset = noChange
-              for (i <- b to e) res = res || iterateSimple(f, cs(i))
-              res
-          })
-      case None =>
-        if (len > 1) {
-          val tasks = n - len + 1
-          val quot = tasks / len
-          val rem = tasks % len
-          val (load :: loads) = List.fill(rem)(quot + 1) ::: List.fill(len - rem)(quot)
-          val threads = (cs zip loads) map {
-            case (c, i) => threadPool.run(() => iterateThreaded(f, c, i))
-          }
-          var res = iterateThreaded(f, cs.last, load)
-          for (t <- threads) res = res || t.get
-          res
-        }
-        else if (len == 1) {
-          iterateThreaded(f, cs.head, n)
-        }
-        else noChange
-    }
-  }
+  //TODO This should call iterateThreaded, but at the moment this causes a deadlock.
+  def gatherChanges(f: ObjId => Changeset, cs: Vector[ObjId]): Changeset =
+    threadPool.mapReduce[ObjId](cs, iterateSimple(f, _), noChange, (_||_))
 
   /* precondition: n != 0 */
-  def iterateMain(f: ObjId => Changeset, root: ObjId, n: Int): Changeset = {
+  def iterateMain(f: ObjId => Changeset, root: ObjId): Changeset = {
     val r = f(root)
     val cs = root.children filter (getField(_, classf) != VClassName(cmagic))
-    r || gatherChanges(f, cs, n)
+    if (cs.isEmpty) r else r || gatherChanges(f, cs)
   }
 
-  def iterateThreaded(f: ObjId => Changeset, root: ObjId, n: Int): Changeset = {
-    if (n == 0) iterateSimple(f, root)
-    else {
-      val r = f(root)
-      val cs = root.children
-      r || gatherChanges(f, cs, n)
-    }
+  def iterateThreaded(f: ObjId => Changeset, root: ObjId): Changeset = {
+    val r = f(root)
+    val cs = root.children
+    if (cs.isEmpty) r else r || gatherChanges(f, cs)
   }
 
   def iterateSimple(f: ObjId => Changeset, root: ObjId): Changeset = {
     val r = f(root)
     val cs = root.children
-    r || combine(cs, iterateSimple(f, _: ObjId))
+    if (cs.isEmpty) r else r || combine(cs, iterateSimple(f, _: ObjId))
   }
 }
 
