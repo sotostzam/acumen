@@ -11,6 +11,7 @@ import scala.collection.immutable.BitSet
 import scala.collection.immutable.Set
 import scala.collection.immutable.Vector
 import scala.math._
+import scala.concurrent.SyncVar
 
 import Errors._
 import Pretty._
@@ -517,21 +518,36 @@ class Interpreter(nbThreads: Int) extends Common with acumen.CStoreInterpreter {
     }
   }
 
-  //TODO This should call iterateThreaded, but at the moment this causes a deadlock.
-  def gatherChanges(f: ObjId => Changeset, cs: Vector[ObjId]): Changeset =
-    threadPool.mapReduce[ObjId](cs, iterateSimple(f, _), noChange, (_||_))
+  def parCombine(f: ObjId => Changeset, cs: Vector[ObjId]): Changeset =
+    if (cs.length > 1) {
+      val (firstHalf, lastHalf) = cs.splitAt(cs.length / 2)
+      val r = threadPool.synchronized {
+        if (threadPool.free > 0) {
+          threadPool.free = threadPool.free - 1 
+          Left(threadPool.run(() => parCombine(f, lastHalf)))
+        }
+        else
+          Right(parCombine(f, lastHalf))
+      }
+      val l = parCombine(f, lastHalf)
+      l || (r match {
+        case Left(pr)  => pr.get
+        case Right(sr) => sr
+      })
+    }
+    else iterateThreaded(f, cs(0))
 
   /* precondition: n != 0 */
   def iterateMain(f: ObjId => Changeset, root: ObjId): Changeset = {
     val r = f(root)
     val cs = root.children filter (getField(_, classf) != VClassName(cmagic))
-    if (cs.isEmpty) r else r || gatherChanges(f, cs)
+    if (cs.isEmpty) r else r || parCombine(f, cs)
   }
 
   def iterateThreaded(f: ObjId => Changeset, root: ObjId): Changeset = {
     val r = f(root)
     val cs = root.children
-    if (cs.isEmpty) r else r || gatherChanges(f, cs)
+    if (cs.isEmpty) r else r || parCombine(f, cs)
   }
 
   def iterateSimple(f: ObjId => Changeset, root: ObjId): Changeset = {
