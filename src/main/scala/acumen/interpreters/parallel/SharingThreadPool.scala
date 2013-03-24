@@ -1,6 +1,6 @@
 package acumen.interpreters.parallel
 
-import java.util.concurrent.LinkedBlockingDeque
+import java.util.concurrent.LinkedBlockingQueue
 
 import scala.concurrent.SyncVar
 
@@ -18,21 +18,20 @@ import scala.concurrent.SyncVar
  * The constructor parameter n is the number of threads in the pool.
  */
 class SharingThreadPool[A](val n: Int) {
-  val self = this 
+  private val pool = this
   private val threads = new Array[AcumenThread](n)
-  var free = threads.size
-  
+  /** Note: Mutation of this variable must be done atomically */
+  @volatile var free = threads.size
+
   case class WorkItem(f: () => A, outbox: SyncVar[A])
 
-  private val workQueue =
-    new LinkedBlockingDeque[WorkItem]()
+  val workQueue = new LinkedBlockingQueue[WorkItem]()
 
   for (i <- 0 until threads.size) {
     val tr = new AcumenThread(i + 1)
     tr.start
     threads(i) = tr
   }
-  
 
   def reset = workQueue.clear
 
@@ -42,34 +41,17 @@ class SharingThreadPool[A](val n: Int) {
     box
   }
 
-  def dispose = self.synchronized { for (t <- threads) t.join }
+  def dispose = pool.synchronized { for (t <- threads) t.join }
 
   class AcumenThread(i: Int) extends Thread("acumen thread #" + i) {
     var keepRunning = true
     override def run = while (keepRunning) {
       val WorkItem(f, outbox) = workQueue.take
+      pool synchronized ( free -= 1 )
       val res = f()
       outbox.set(res)
-      self.synchronized { free = free + 1 }
+      pool synchronized ( free += 1 )
     }
-  }
-  
-  def qts = {
-    var s = new StringBuilder
-    for (wi <- workQueue.toArray)
-      s.append("|")
-  }
-
-  /** Map mapOp over xs and fold redOp over the result, beginning with zero. */
-  def mapReduce[I](
-    xs: Traversable[I],
-    mapOp: I => A,
-    zero: A,
-    redOp: (A, A) => A): A = {
-    val boxes = xs map { x: I => mapOp(x) }
-    var res: A = zero
-    for (b <- boxes) res = redOp(res, b)
-    res
   }
 
 }

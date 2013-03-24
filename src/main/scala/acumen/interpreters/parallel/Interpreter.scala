@@ -491,8 +491,8 @@ class Interpreter(nbThreads: Int) extends Common with acumen.CStoreInterpreter {
     if (getTime(magic) > getEndTime(magic)) None
     else Some {
       val chtset =
-        if (nbThreads > 1) iterateMain(evalStep(p, magic), st)
-        else iterateSimple(evalStep(p, magic), st)
+        if (nbThreads > 1) traverseMain(evalStep(p, magic), st)
+        else traverseSimple(evalStep(p, magic), st)
       getStepType(magic) match {
         case Discrete() =>
           chtset match {
@@ -518,42 +518,84 @@ class Interpreter(nbThreads: Int) extends Common with acumen.CStoreInterpreter {
     }
   }
 
+  /**
+   * Produces a Seq of n parts (each a Seq[A]), consisting of elements
+   * of the input Seq[A]. Each part differs in length by at most one
+   * compared to the other parts.
+   */
+  def divideEvenly[A](v: Seq[A], n: Int): Seq[Seq[A]] = {
+    val sizes = Array.fill(n)(0)
+    var t = 0
+    while (t < v.length) {
+      sizes(t % n) += 1
+      t = t + 1
+    }
+    val chunkStartIndices = sizes.scan(0)(_ + _)
+    val chunks = chunkStartIndices zip chunkStartIndices.tail
+    chunks.map { case (b, e) => v.slice(b, e) }.toIndexedSeq
+  }
+
+  /**
+   * Divide up the work (objects to be evaluated into Changesets) into
+   * work to be done by the current thread and chunks to be processed
+   * by available threads. If there are free threads in the thread pool,
+   * divide the objects in cs into chunks and schedule them on these
+   * threads, returning a SyncVar for each ObjectId, which can later be
+   * evaluated to obtain the resulting Changeset.
+   */
+  def divideWork(f: ObjId => Changeset, cs: Vector[ObjId]) =
+    threadPool.synchronized(
+      if (threadPool.free == 0) (cs, None)
+      else {
+        val chunks = divideEvenly(cs, threadPool.free + 1)
+        (chunks.head,
+          Some(chunks.tail.map(chunk =>
+            threadPool.run(() => traverseCombineThreaded(f, chunk)))))
+      })
+
+  /**
+   * Evaluates the objects in s (into Changesets) and combines these
+   * into a single Changeset.
+   */
+  def traverseCombineThreaded(f: ObjId => Changeset, s: Seq[ObjId]) =
+    combine(s.map(traverseThreaded(f, _: ObjId)))
+
+  /**
+   * Evaluates the objects in cs (into Changesets) and combines these
+   * into a single Changeset. This is done in parallel if there are
+   * free threads in the threadPool.
+   */
   def parCombine(f: ObjId => Changeset, cs: Vector[ObjId]): Changeset =
-    if (cs.length > 1) {
-      val (firstHalf, lastHalf) = cs.splitAt(cs.length / 2)
-      val r = threadPool.synchronized {
-        if (threadPool.free > 0) {
-          threadPool.free = threadPool.free - 1 
-          Left(threadPool.run(() => parCombine(f, lastHalf)))
+    if (cs.length == 1) traverseThreaded(f, cs(0))
+    else {
+      val (myWork, theirWork) = divideWork(f, cs)
+      traverseCombineThreaded(f, myWork) || (theirWork match {
+        case None => noChange
+        case Some(i) => {
+          var r: Changeset = noChange
+          for { c <- i } { r = r || c.get }
+          r
         }
-        else
-          Right(parCombine(f, lastHalf))
-      }
-      val l = parCombine(f, lastHalf)
-      l || (r match {
-        case Left(pr)  => pr.get
-        case Right(sr) => sr
       })
     }
-    else iterateThreaded(f, cs(0))
 
   /* precondition: n != 0 */
-  def iterateMain(f: ObjId => Changeset, root: ObjId): Changeset = {
+  def traverseMain(f: ObjId => Changeset, root: ObjId): Changeset = {
     val r = f(root)
     val cs = root.children filter (getField(_, classf) != VClassName(cmagic))
     if (cs.isEmpty) r else r || parCombine(f, cs)
   }
 
-  def iterateThreaded(f: ObjId => Changeset, root: ObjId): Changeset = {
+  def traverseThreaded(f: ObjId => Changeset, root: ObjId): Changeset = {
     val r = f(root)
     val cs = root.children
     if (cs.isEmpty) r else r || parCombine(f, cs)
   }
 
-  def iterateSimple(f: ObjId => Changeset, root: ObjId): Changeset = {
+  def traverseSimple(f: ObjId => Changeset, root: ObjId): Changeset = {
     val r = f(root)
     val cs = root.children
-    if (cs.isEmpty) r else r || combine(cs, iterateSimple(f, _: ObjId))
+    if (cs.isEmpty) r else r || combine(cs, traverseSimple(f, _: ObjId))
   }
 }
 
