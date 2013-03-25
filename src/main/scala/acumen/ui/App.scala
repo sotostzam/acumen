@@ -328,7 +328,7 @@ class App extends SimpleSwingApplication {
           def go: Unit = try {
             def n: String = diag.getOrElse(n)
             lastNumberOfThreads = Integer.parseInt(n)
-            setInterpreter(new CStoreCntrl(new interpreters.parallel.Interpreter(lastNumberOfThreads)))
+            setInterpreter(new CStoreCntrl(interpreters.parallel.Interpreter(lastNumberOfThreads)))
             console.log("Number of threads set to " + lastNumberOfThreads + ".")
           } catch {
             case _ =>

@@ -15,11 +15,11 @@ import scala.concurrent.SyncVar
  * the functions that are passed to run and must be the same over all calls to run
  * for a specific instance of SharingThreadPool.
  *
- * The constructor parameter n is the number of threads in the pool.
+ * The constructor parameter nbThreads is the number of threads in the pool.
  */
-class SharingThreadPool[A](val n: Int) {
+class SharingThreadPool[A](val nbThreads: Int) extends ThreadPool[A] {
   private val pool = this
-  private val threads = new Array[AcumenThread](n)
+  private val threads = new Array[AcumenThread](nbThreads)
   /** Note: Mutation of this variable must be done atomically */
   @volatile var free = threads.size
 

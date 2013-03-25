@@ -29,7 +29,7 @@ object Regression extends Properties("Regression") {
       }: _*)
     }
 
-    val i = new Interpreter(2)
+    val i = Interpreter(2)
     val resultKeySet = results.keySet
     models.forall {
       case (name, model) =>

@@ -2,11 +2,11 @@ package acumen.interpreters.parallel
 import scala.concurrent.SyncVar
 import acumen.Errors._
 
-class SimpleThreadPool[A](val n:Int) {
-  private val threads = new Array[AcumenThread](n)
+class StaticThreadPool[A](val nbThreads: Int) extends ThreadPool[A] {
+  private val threads = new Array[AcumenThread](nbThreads)
   private var next = 0
 
-  for (i <- 0 until n) {
+  for (i <- 0 until nbThreads) {
     val tr = new AcumenThread(i+1)
     tr.start
     threads(i) = tr
@@ -15,7 +15,7 @@ class SimpleThreadPool[A](val n:Int) {
   def reset = { next = 0 }
 
   def run(f: ()=>A) : SyncVar[A] = synchronized {
-    if (next >= n) 
+    if (next >= nbThreads) 
       throw ShouldNeverHappen()
     else {
       val box = new SyncVar[A]
