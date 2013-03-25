@@ -37,6 +37,7 @@ class CStoreCntrl(val interpreter: CStoreInterpreter) extends InterpreterCntrl {
     }
 
     def produce : Unit = {
+      val startTime = System.currentTimeMillis
       val I = interpreter
       val (p, store) = I.init(prog)
       val cstore = I.repr(store)
@@ -53,6 +54,7 @@ class CStoreCntrl(val interpreter: CStoreInterpreter) extends InterpreterCntrl {
       } andThen {
         sendChunk
         consumer ! Done
+        System.err.println("Total simulation time: " + ((System.currentTimeMillis - startTime) / 1000) + "s")
       }
     }
   }

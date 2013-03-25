@@ -18,8 +18,9 @@ trait Scheduler {
   def traverseMain(f: ObjId => Changeset, root: ObjId): Changeset
   val threadPool: ThreadPool[Changeset]
   def nbThreads = threadPool.nbThreads  
-  def dispose = threadPool.dispose
-  def reset = threadPool.reset
+  def dispose: Unit = threadPool.dispose
+  def reset: Unit = threadPool.reset
+  def reset(n: Int): Unit = { threadPool.reset(n) }
 }
 
 /**
@@ -33,18 +34,19 @@ trait ThreadPool[A] {
   def run(f: () => A): SyncVar[A]
   def nbThreads: Int
   def dispose: Unit
-  def reset: Unit
+  def reset: Unit = reset(nbThreads)
+  def reset(n: Int): Unit
 }
 
-class Interpreter(var scheduler: Scheduler) extends CStoreInterpreter {
+class Interpreter(private var scheduler: Scheduler) extends CStoreInterpreter {
 
   type Store = Interpreter.Store
-  def dispose = scheduler.dispose
+  def dispose: Unit = scheduler.dispose
 
   def init(prog: Prog) = Interpreter.init(prog)
   def fromCStore(st: CStore, root: CId) = Interpreter.fromCStore(st, root)
   def repr(st: Store) = Interpreter.repr(st)
-  
+   
   def step(p: Prog, st: Store): Option[Store] = {
     scheduler.reset
     val magic = getSimulator(st)
@@ -81,15 +83,23 @@ class Interpreter(var scheduler: Scheduler) extends CStoreInterpreter {
 }
 
 object Interpreter extends Common {
+  
+  private val cores = Runtime.getRuntime.availableProcessors
+  
+  private val sharingTP = new SharingThreadPool[Changeset](0, cores)
+  private val sharingS = new SharingScheduler(sharingTP)
+  
+  private val staticTP = new StaticThreadPool[Changeset](0, cores)
+  private val staticS = new StaticScheduler(staticTP)
+  
+  val instance = new Interpreter(sharingS) 
 
-  def staticInterpreter(nbThreads: Int) =
-	new Interpreter(new StaticScheduler(new StaticThreadPool[Changeset](nbThreads)))
+  def sharingInterpreter(n: Int) = { sharingTP.reset(n); instance.scheduler = sharingS; instance }
+  def staticInterpreter(n: Int) = { staticTP.reset(n); instance.scheduler = staticS; instance } 
 
-  def sharingInterpreter(nbThreads: Int) =
-	new Interpreter(new SharingScheduler(new SharingThreadPool[Changeset](nbThreads)))
-
-  def apply(nbThreads: Int) = sharingInterpreter(nbThreads)
-
+  def apply() = { instance.scheduler.reset(cores); instance }
+  def apply(nbThreads: Int) = { instance.scheduler.reset(nbThreads); instance }
+    
   def withInterpreter[A](nbThreads: Int)(f: Interpreter => A): A = {
     val pi = Interpreter(nbThreads)
     try { f(pi) } finally { pi.dispose }

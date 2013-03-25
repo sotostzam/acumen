@@ -40,6 +40,8 @@ class App extends SimpleSwingApplication {
 
   App.ui = this
 
+  private val cores = Runtime.getRuntime.availableProcessors
+  
   // Create a special actor to listen to events from other threads
 
   case object EXIT
@@ -327,11 +329,18 @@ class App extends SimpleSwingApplication {
             Swing.EmptyIcon, Seq(), lastNumberOfThreads.toString)
           def go: Unit = try {
             def n: String = diag.getOrElse(n)
-            lastNumberOfThreads = Integer.parseInt(n)
+            val userNumberOfThreads = Integer.parseInt(n)
+            lastNumberOfThreads = if (userNumberOfThreads > cores) {
+              console.log("Number of threads set to " + cores + ", the number of cores available to Acumen.\n")
+              cores
+            }
+            else {
+              console.log("Number of threads set to " + userNumberOfThreads + ".\n")
+              userNumberOfThreads
+            }
             setInterpreter(new CStoreCntrl(interpreters.parallel.Interpreter(lastNumberOfThreads)))
-            console.log("Number of threads set to " + lastNumberOfThreads + ".")
           } catch {
-            case _ =>
+            case e =>
               console.logError("Bad number of threads.")
               go
           }

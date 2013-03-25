@@ -2,20 +2,25 @@ package acumen.interpreters.parallel
 import scala.concurrent.SyncVar
 import acumen.Errors._
 
-class StaticThreadPool[A](val nbThreads: Int) extends ThreadPool[A] {
-  private val threads = new Array[AcumenThread](nbThreads)
+class StaticThreadPool[A](private var active: Int, val total: Int) extends ThreadPool[A] {
+  private val threads = new Array[StaticAcumenThread](total)
   private var next = 0
 
-  for (i <- 0 until nbThreads) {
-    val tr = new AcumenThread(i+1)
+  for (i <- 0 until total) {
+    val tr = new StaticAcumenThread(i+1)
     tr.start
     threads(i) = tr
   }
 
-  def reset = { next = 0 }
+  def nbThreads = active
+  
+  def reset(n: Int) = {
+    active = n
+    next = 0 
+  }
 
   def run(f: ()=>A) : SyncVar[A] = synchronized {
-    if (next >= nbThreads) 
+    if (next >= active) 
       throw ShouldNeverHappen()
     else {
       val box = new SyncVar[A]
@@ -33,11 +38,11 @@ class StaticThreadPool[A](val nbThreads: Int) extends ThreadPool[A] {
     }
   }
 
-  class AcumenThread(i:Int) extends Thread("acumen thread #"+i) {
+  class StaticAcumenThread(i:Int) extends Thread("acumen static thread #"+i) {
     setDaemon(true)
     val inbox = new SyncVar[Option[Tuple2[() => A, SyncVar[A]]]]
+	@volatile var done = false 
     override def run = {
-      var done = false 
       while (!done) {
         inbox.take match {
           case Some((f,outbox)) =>
@@ -48,4 +53,5 @@ class StaticThreadPool[A](val nbThreads: Int) extends ThreadPool[A] {
       }
     }
   }
+  
 }

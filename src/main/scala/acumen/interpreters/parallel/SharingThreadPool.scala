@@ -17,40 +17,69 @@ import scala.concurrent.SyncVar
  *
  * The constructor parameter nbThreads is the number of threads in the pool.
  */
-class SharingThreadPool[A](val nbThreads: Int) extends ThreadPool[A] {
-  private val pool = this
-  private val threads = new Array[AcumenThread](nbThreads)
-  /** Note: Mutation of this variable must be done atomically */
-  @volatile var free = threads.size
+class SharingThreadPool[A](@volatile private var active: Int, val total: Int) extends ThreadPool[A] {
 
-  case class WorkItem(f: () => A, outbox: SyncVar[A])
-
+  sealed abstract class WorkItem
+  case class Compute(f: () => A, outbox: SyncVar[A]) extends WorkItem
+  case object Sleep extends WorkItem
+  case object Kill extends WorkItem
+  
   val workQueue = new LinkedBlockingQueue[WorkItem]()
 
-  for (i <- 0 until threads.size) {
-    val tr = new AcumenThread(i + 1)
+  private val pool = this
+  private var threads = new Array[SharingAcumenThread](total)
+  /** Note: Mutation of this variable must be done atomically */
+  @volatile var free = active
+  
+  for (i <- 0 until total) {
+    val tr = new SharingAcumenThread(i + 1)
     tr.start
     threads(i) = tr
   }
 
-  def reset = workQueue.clear
+  def nbThreads = active
+
+  def reset(n: Int) = {
+    active = n
+	for (i <- 0 until total) threads(i).waker.set(true)
+    for (i <- active until total) workQueue.put(Sleep)
+  }
 
   def run(f: () => A): SyncVar[A] = this.synchronized {
     val box = new SyncVar[A]
-    workQueue.put(WorkItem(f, box))
+    workQueue.put(Compute(f, box))
     box
   }
 
-  def dispose = pool.synchronized { for (t <- threads) t.join }
+  def dispose = pool synchronized {
+    for (t <- threads) { t.waker.set(true); workQueue.put(Kill) }
+    for (t <- threads) { t join }
+    workQueue.clear
+  }
 
-  class AcumenThread(i: Int) extends Thread("acumen thread #" + i) {
-    var keepRunning = true
-    override def run = while (keepRunning) {
-      val WorkItem(f, outbox) = workQueue.take
-      pool synchronized ( free -= 1 )
-      val res = f()
-      outbox.set(res)
-      pool synchronized ( free += 1 )
+  class SharingAcumenThread(i: Int) extends Thread("acumen sharing thread #" + i) {
+    setDaemon(true)
+    @volatile var alive = true
+    private var awake = false
+    val waker = new SyncVar[Boolean]
+    override def run = {
+      while (alive) {
+        awake = waker.take
+        pool.synchronized{ free += 1 }
+        while (awake) {
+          workQueue.take match {
+            case Compute(f, outbox) =>
+              pool.synchronized{ free -= 1 }
+              outbox.set(f())
+              pool.synchronized{ free += 1 }
+            case Sleep =>
+              pool.synchronized{ free -= 1 }
+              awake = false
+            case Kill =>
+              alive = false
+          }
+        }
+      }
     }
   }
 
