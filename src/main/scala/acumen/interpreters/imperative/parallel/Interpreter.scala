@@ -1,13 +1,9 @@
-package acumen
-package interpreters
-package parallel
+package acumen.interpreters.imperative.parallel
 
 import scala.math._
 import scala.concurrent.SyncVar
-
-import util.Canonical.{ classf, cmagic }
-import Common._
-import Interpreter._
+import acumen.util.Canonical.{ classf, cmagic }
+import acumen.interpreters.Common._
 
 /**
  * A scheduler is a strategy for evaluating an object into a Changeset. 
@@ -15,6 +11,7 @@ import Interpreter._
  * which is called on the root object of a model by the interpreter.
  */
 trait Scheduler {
+  import Interpreter._
   def traverseMain(f: ObjId => Changeset, root: ObjId): Changeset
   val threadPool: ThreadPool[Changeset]
   def nbThreads = threadPool.nbThreads  
@@ -38,15 +35,18 @@ trait ThreadPool[A] {
   def reset(n: Int): Unit
 }
 
-class Interpreter(private var scheduler: Scheduler) extends CStoreInterpreter {
+class Interpreter(private var scheduler: Scheduler) extends acumen.CStoreInterpreter {
+  val I = acumen.interpreters.imperative.parallel.Interpreter
+  import I._
+  import acumen._
+  
+  type Store = I.Store
+  def init(prog: Prog) = I.init(prog)
+  def fromCStore(st: CStore, root: CId) = I.fromCStore(st, root)
+  def repr(st: Store) = I.repr(st)
 
-  type Store = Interpreter.Store
   def dispose: Unit = scheduler.dispose
-
-  def init(prog: Prog) = Interpreter.init(prog)
-  def fromCStore(st: CStore, root: CId) = Interpreter.fromCStore(st, root)
-  def repr(st: Store) = Interpreter.repr(st)
-   
+  
   def step(p: Prog, st: Store): Option[Store] = {
     scheduler.reset
     val magic = getSimulator(st)
@@ -82,7 +82,7 @@ class Interpreter(private var scheduler: Scheduler) extends CStoreInterpreter {
 
 }
 
-object Interpreter extends Common {
+object Interpreter extends acumen.interpreters.imperative.Common {
   
   private val cores = Runtime.getRuntime.availableProcessors
   

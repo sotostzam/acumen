@@ -2,26 +2,32 @@ package acumen
 package interpreters
 package imperative
 
-import scala.collection.Map
 import scala.collection.immutable.HashMap
-import scala.collection.immutable.HashSet
-import scala.collection.immutable.IntMap
-import scala.collection.immutable.Queue
-import scala.collection.immutable.BitSet
-import scala.collection.immutable.Set
-import scala.collection.immutable.Vector
-import scala.math._
 
-import Errors._
-import Pretty._
-import util.Names._
-import util.Conversions._
-import util.Random
+import acumen.Errors._
+import acumen.Pretty._
+import acumen.util.Conversions._
+import acumen.util.Random
+import acumen.interpreters.Common.{ classDef, evalOp }
+import acumen.util.Canonical.{
+  childrenOf, 
+  classf,
+  cmain,
+  cmagic,
+  endTime,
+  nextChild,
+  parentOf,
+  parent,
+  seedOf,
+  seed1,
+  seed2,
+  self,
+  stepType,
+  time,
+  timeStep
+}
 
-import Common._
-import util.Canonical._
-
-trait Common {
+trait Common extends {
 
   type Store = Object
   type ObjId = Object
@@ -32,12 +38,12 @@ trait Common {
   val MMap = scala.collection.mutable.Map
 
   case class Object(
-    val id: CId,
-    var fields: MMap[Name, Val],
-    var parent: Option[Object],
-    var ccounter: Int,
-    var seed: (Int, Int),
-    var children: Vector[Object]) {
+      val id: CId,
+      var fields: MMap[Name, Val],
+      var parent: Option[Object],
+      var ccounter: Int,
+      var seed: (Int, Int),
+      var children: Vector[Object]) {
     override def hashCode = System.identityHashCode(this)
     override def toString = {
       val cn =
@@ -53,17 +59,17 @@ trait Common {
   def repr(st: Store): CStore = {
     def convertValue(v: Val): CValue =
       v match {
-        case VObjId(None) => VObjId(None)
+        case VObjId(None)    => VObjId(None)
         case VObjId(Some(t)) => VObjId(Some(t.id))
-        case VList(vs) => VList(vs map (convertValue(_)))
-        case VVector(vs) => VVector(vs map (convertValue(_)))
-        case VLit(l) => VLit(l)
-        case VClassName(cn) => VClassName(cn)
-        case VStepType(st) => VStepType(st)
+        case VList(vs)       => VList(vs map (convertValue(_)))
+        case VVector(vs)     => VVector(vs map (convertValue(_)))
+        case VLit(l)         => VLit(l)
+        case VClassName(cn)  => VClassName(cn)
+        case VStepType(st)   => VStepType(st)
       }
     def convertObject(o: Object): CObject = {
       val p = VObjId(o.parent match {
-        case None => None
+        case None    => None
         case Some(p) => Some(p.id)
       })
       val fields = Map.empty ++ o.fields
@@ -97,22 +103,22 @@ trait Common {
     def referenced(o: CObject): Set[CId] = {
       def helper(v: CValue): Set[CId] =
         v match {
-          case VList(l) => concat(l map helper)
-          case VVector(l) => concat(l map helper)
+          case VList(l)        => concat(l map helper)
+          case VVector(l)      => concat(l map helper)
           case VObjId(Some(a)) => Set(a)
-          case _ => Set.empty[CId]
+          case _               => Set.empty[CId]
         }
       concat(o.values map helper)
     }
     def convertVal(v: Value[CId]): Val =
       v match {
-        case VLit(gv) => VLit(gv)
-        case VList(l) => VList(l map convertVal)
-        case VVector(l) => VVector(l map convertVal)
+        case VLit(gv)        => VLit(gv)
+        case VList(l)        => VList(l map convertVal)
+        case VVector(l)      => VVector(l map convertVal)
         case VObjId(Some(a)) => VObjId(Some(addresses(a)))
-        case VObjId(None) => VObjId(None)
-        case VClassName(cn) => VClassName(cn)
-        case VStepType(s) => VStepType(s)
+        case VObjId(None)    => VObjId(None)
+        case VClassName(cn)  => VClassName(cn)
+        case VStepType(s)    => VStepType(s)
       }
     def convertId(id: CId): Unit = {
       if (!treated(id)) {
@@ -159,7 +165,7 @@ trait Common {
   def selfObjId(e: Env): ObjId =
     e(self) match {
       case VObjId(Some(a)) => a
-      case _ => throw ShouldNeverHappen()
+      case _               => throw ShouldNeverHappen()
     }
 
   /* objects fields setters and getters */
@@ -170,7 +176,8 @@ trait Common {
     if (o.fields contains f) {
       if (o.fields(f) == v) noChange
       else { o.fields(f) = v; logModified }
-    } else throw VariableNotDeclared(f)
+    }
+    else throw VariableNotDeclared(f)
 
   /* get the class associated to an object */
   def getClassOf(o: Object): ClassName = {
@@ -182,7 +189,7 @@ trait Common {
   def getSimulator(main: Object) =
     (main.children find (getField(_, classf) == VClassName(cmagic))) match {
       case Some(o) => o
-      case None => throw NoInstanceFound(cmagic)
+      case None    => throw NoInstanceFound(cmagic)
     }
 
   /* fetch values in magic */
@@ -202,7 +209,7 @@ trait Common {
   def changeParent(o: Object, p: Object): Unit = {
     o.parent match {
       case Some(op) => op.children = op.children diff Seq(o)
-      case None => ()
+      case None     => ()
     }
     o.parent = Some(p)
     p.children = p.children :+ o
@@ -211,7 +218,7 @@ trait Common {
   /* SIDE EFFECT */
   def getNewSeed(o: Object): (Int, Int) = {
     val (sd1, sd2) = Random.split(o.seed)
-    o.seed = sd1: (Int, Int)
+    o.seed = sd1
     sd2
   }
 
@@ -220,9 +227,9 @@ trait Common {
   def evalExpr(e: Expr, p: Prog, env: Env): Val = {
     def eval(env: Env, e: Expr): Val = {
       e match {
-        case Lit(i) => VLit(i)
+        case Lit(i)        => VLit(i)
         case ExprVector(l) => VVector(l map (eval(env, _)))
-        case Var(n) => env(n)
+        case Var(n)        => env(n)
         case Dot(v, Name("children", 0)) =>
           val VObjId(Some(id)) = eval(env, v)
           //id synchronized { VList((id.children map VObjId[ObjId]).toList) }
@@ -251,15 +258,28 @@ trait Common {
             if (b) {
               val ev = eval(env + ((i, v)), e)
               evalOp("+", List(acc, ev))
-            } else acc
+            }
+            else acc
           }
           val vc = eval(env, c)
           val vs = vc match {
-            case VList(vs) => vs
+            case VList(vs)   => vs
             case VVector(vs) => vs
-            case _ => throw NotACollection(vc)
+            case _           => throw NotACollection(vc)
           }
           vs.foldLeft(VLit(GDouble(0)): Val)(helper)
+        case CpuSpin(n) =>
+          var acum = 0.0
+          var i = 0
+          while (i < 10000) {
+            var j = 0
+            while (j < n) {
+              j += 1
+              acum += 1.0;
+            }
+            i += 1
+          }
+          VLit(GDouble(acum))
         case TypeOf(cn) =>
           VClassName(cn)
       }
@@ -269,7 +289,7 @@ trait Common {
 
   /* create an env from a class spec and init values */
   def mkObj(c: ClassName, p: Prog, prt: Option[ObjId], sd: (Int, Int),
-    v: List[Val], magic: Object, childrenCounter: Int = 0): Object = {
+            v: List[Val], magic: Object, childrenCounter: Int = 0): Object = {
     val cd = classDef(c, p)
     val base = MMap((classf, VClassName(c)))
     val pub = base ++ (cd.fields zip v)
@@ -391,16 +411,16 @@ trait Common {
       case ForEach(i, l, b) =>
         val seq = evalExpr(l, p, env)
         val vs = seq match {
-          case VList(vs) => vs
+          case VList(vs)   => vs
           case VVector(vs) => vs
-          case _ => throw NotACollection(seq)
+          case _           => throw NotACollection(seq)
         }
         combine(vs, ((v: Val) => evalActions(b, env + ((i, v)), p, magic)))
       case Switch(s, cls) =>
         val VLit(gv) = evalExpr(s, p, env)
         (cls find (_.lhs == gv)) match {
           case Some(c) => evalActions(c.rhs, env, p, magic)
-          case None => throw NoMatch(gv)
+          case None    => throw NoMatch(gv)
         }
       case Discretely(da) =>
         val ty = getStepType(magic)
@@ -419,6 +439,30 @@ trait Common {
     val as = classDef(getClassOf(o), p).body
     val env = HashMap((self, VObjId(Some(o))))
     evalActions(as, env, p, magic)
+  }
+
+  def splitInto(size: Int, chunks: Int): Option[List[(Int, Int)]] = {
+    if (chunks > size) None
+    else {
+      val len = size / chunks
+      val rem = size % chunks
+      def helper1(i: Int, r: Int, acc: List[(Int, Int)]): List[(Int, Int)] = {
+        if (r > 0) helper2(i, len, r - 1, i, acc)
+        else helper2(i, len - 1, r, i, acc)
+      }
+      def helper2(i: Int, k: Int, r: Int, start: Int, acc: List[(Int, Int)]): List[(Int, Int)] = {
+        if (i == size - 1) {
+          ((start, i) :: acc).reverse
+        }
+        else if (k == 0) {
+          helper1(i + 1, r, ((start, i) :: acc))
+        }
+        else {
+          helper2(i + 1, k - 1, r, start, acc)
+        }
+      }
+      Some(helper1(0, rem, Nil))
+    }
   }
 
   def magicClassTxt =
@@ -442,55 +486,11 @@ trait Common {
     changeParent(magic, mainObj)
     (Prog(magicClass :: prog.defs), mainObj)
   }
-}
-
-object Interpreter extends Common {
-
-  def withInterpreter[A](f: Interpreter => A): A = {
-    val pi = new interpreters.imperative.Interpreter
-    f(pi)
-  }
-
-}
-
-class Interpreter extends Common with acumen.CStoreInterpreter {
-
-  def step(p: Prog, st: Store): Option[Store] = {
-    val magic = getSimulator(st)
-    if (getTime(magic) > getEndTime(magic)) None
-    else Some(
-      {
-        val chtset = iterateSimple(evalStep(p, magic), st)
-        getStepType(magic) match {
-          case Discrete() =>
-            chtset match {
-              case SomeChange(dead, rps) =>
-                for ((o, p) <- rps)
-                  changeParent(o, p)
-                for (o <- dead) {
-                  o.parent match {
-                    case None => ()
-                    case Some(op) =>
-                      for (oc <- o.children) changeParent(oc, op)
-                      op.children = op.children diff Seq(o)
-                  }
-                }
-              case NoChange() =>
-                setStepType(magic, Continuous())
-            }
-          case Continuous() =>
-            setStepType(magic, Discrete())
-            setTime(magic, getTime(magic) + getTimeStep(magic))
-        }
-        st
-      })
-  }
-
-  def iterateSimple(f: ObjId => Changeset, root: ObjId): Changeset = {
+  
+  def traverseSimple(f: ObjId => Changeset, root: ObjId): Changeset = {
     val r = f(root)
     val cs = root.children
-    r || combine(cs, iterateSimple(f, _: ObjId))
+    if (cs.isEmpty) r else r || combine(cs, traverseSimple(f, _: ObjId))
   }
+  
 }
-
-

@@ -1,17 +1,14 @@
-package acumen
-package interpreters
-package parallel
+package acumen.interpreters.imperative.parallel
 
-import util.Canonical.{ classf, cmagic  }
-import Interpreter.{ Changeset, combine, getField, noChange, ObjId }
-import Interpreter.{ splitInto, traverseSimple }
+import acumen.util.Canonical.{ classf, cmagic  }
+import Interpreter.{ Changeset, combine, getField, noChange, ObjId, splitInto, traverseSimple }
 
 class StaticScheduler(val threadPool: StaticThreadPool[Changeset]) extends Scheduler {
   
   /* precondition: n != 0 */
   def traverseMain(f:ObjId => Changeset, root:ObjId) : Changeset = {
     val r = f(root)
-    val cs = root.children filter (getField(_,classf) != VClassName(cmagic))
+    val cs = root.children filter (getField(_,classf) != acumen.VClassName(cmagic))
     r || recurse(f, cs, threadPool.nbThreads)
   }
   

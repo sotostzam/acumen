@@ -6,7 +6,7 @@ import java.io.FileInputStream
 
 import Errors._
 import util.Filters._
-import interpreters.parallel.Interpreter._
+import interpreters.imperative.parallel.Interpreter._
 import render.ToPython._
 import render.Java3D
 import Pretty._
@@ -23,15 +23,15 @@ object Main {
 
   def main(args: Array[String]): Unit = {
     val I = interpreters.reference.Interpreter
-    //val I = new interpreters.parallel.Interpreter(2)
+    //val I = new interpreters.imperative.parallel.Interpreter(2)
 
     try {
       /* See if user wants to choose a specific interpreter. */
-      val (i, firstNonSemanticsArg) = args(0) match {
+      val (i: Interpreter, firstNonSemanticsArg: Int) = args(0) match {
         case "--semantics" => args(1) match {
           case "reference" => (interpreters.reference.Interpreter, 2)
-          case "parallel" => (interpreters.parallel.Interpreter(), 2)
-          case "imperative" => (new interpreters.imperative.Interpreter, 2)
+          case "parallel" => (interpreters.imperative.parallel.Interpreter, 2)
+          case "imperative" => (new interpreters.imperative.sequential.Interpreter, 2)
           case "enclosure" => (interpreters.enclosure.Interpreter, 2)
           case "enclosure-non-localizing" => (interpreters.enclosure.InterpreterNonLocalizing, 2)
           case _ => (interpreters.reference.Interpreter, 0)

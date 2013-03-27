@@ -1,6 +1,10 @@
-package acumen.interpreters.parallel
+package acumen
+package interpreters
+package imperative
+package parallel
+
 import scala.concurrent.SyncVar
-import acumen.Errors._
+import Errors._
 
 class StaticThreadPool[A](private var active: Int, val total: Int) extends ThreadPool[A] {
   private val threads = new Array[StaticAcumenThread](total)

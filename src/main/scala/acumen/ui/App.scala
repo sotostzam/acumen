@@ -321,7 +321,7 @@ class App extends SimpleSwingApplication {
         enabledWhenStopped += this
       }
       val rb2a = new RadioMenuItem("") {
-        action = Action("Imperative") { setInterpreter(new CStoreCntrl(new interpreters.imperative.Interpreter)) }
+        action = Action("Imperative") { setInterpreter(new CStoreCntrl(new interpreters.imperative.sequential.Interpreter)) }
         enabledWhenStopped += this
       }
       val rb2 = new RadioMenuItem("") {
@@ -342,7 +342,7 @@ class App extends SimpleSwingApplication {
               console.log("Number of threads set to " + userNumberOfThreads + ".\n")
               userNumberOfThreads
             }
-            setInterpreter(new CStoreCntrl(interpreters.parallel.Interpreter(lastNumberOfThreads)))
+            setInterpreter(new CStoreCntrl(interpreters.imperative.parallel.Interpreter(lastNumberOfThreads)))
           } catch {
             case e =>
               console.logError("Bad number of threads.")
