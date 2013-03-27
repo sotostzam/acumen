@@ -41,6 +41,7 @@ class SharingThreadPool[A](@volatile private var active: Int, val total: Int) ex
 
   def reset(n: Int) = {
     active = n
+    workQueue.clear
 	for (i <- 0 until total) threads(i).waker.set(true)
     for (i <- active until total) workQueue.put(Sleep)
   }
@@ -49,12 +50,6 @@ class SharingThreadPool[A](@volatile private var active: Int, val total: Int) ex
     val box = new SyncVar[A]
     workQueue.put(Compute(f, box))
     box
-  }
-
-  def dispose = pool synchronized {
-    for (t <- threads) { t.waker.set(true); workQueue.put(Kill) }
-    for (t <- threads) { t join }
-    workQueue.clear
   }
 
   class SharingAcumenThread(i: Int) extends Thread("acumen sharing thread #" + i) {

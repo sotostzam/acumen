@@ -15,7 +15,6 @@ trait Scheduler {
   def traverseMain(f: ObjId => Changeset, root: ObjId): Changeset
   val threadPool: ThreadPool[Changeset]
   def nbThreads = threadPool.nbThreads  
-  def dispose: Unit = threadPool.dispose
   def reset: Unit = threadPool.reset
   def reset(n: Int): Unit = { threadPool.reset(n) }
 }
@@ -30,7 +29,6 @@ trait Scheduler {
 trait ThreadPool[A] {
   def run(f: () => A): SyncVar[A]
   def nbThreads: Int
-  def dispose: Unit
   def reset: Unit = reset(nbThreads)
   def reset(n: Int): Unit
 }
@@ -45,8 +43,6 @@ class Interpreter(private var scheduler: Scheduler) extends acumen.CStoreInterpr
   def fromCStore(st: CStore, root: CId) = I.fromCStore(st, root)
   def repr(st: Store) = I.repr(st)
 
-  def dispose: Unit = scheduler.dispose
-  
   def step(p: Prog, st: Store): Option[Store] = {
     scheduler.reset
     val magic = getSimulator(st)
@@ -102,7 +98,7 @@ object Interpreter extends acumen.interpreters.imperative.Common {
     
   def withInterpreter[A](nbThreads: Int)(f: Interpreter => A): A = {
     val pi = Interpreter(nbThreads)
-    try { f(pi) } finally { pi.dispose }
+    try { f(pi) } finally { pi.scheduler.reset(nbThreads) }
   }
 
 }

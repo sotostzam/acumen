@@ -30,7 +30,7 @@ object Main {
       val (i: Interpreter, firstNonSemanticsArg: Int) = args(0) match {
         case "--semantics" => args(1) match {
           case "reference" => (interpreters.reference.Interpreter, 2)
-          case "parallel" => (interpreters.imperative.parallel.Interpreter, 2)
+          case "parallel" => (interpreters.imperative.parallel.Interpreter(), 2)
           case "imperative" => (new interpreters.imperative.sequential.Interpreter, 2)
           case "enclosure" => (interpreters.enclosure.Interpreter, 2)
           case "enclosure-non-localizing" => (interpreters.enclosure.InterpreterNonLocalizing, 2)
