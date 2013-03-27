@@ -320,6 +320,10 @@ class App extends SimpleSwingApplication {
         action = Action("Purely Functional") { setInterpreter(new CStoreCntrl(interpreters.reference.Interpreter)) }
         enabledWhenStopped += this
       }
+      val rb2a = new RadioMenuItem("") {
+        action = Action("Imperative") { setInterpreter(new CStoreCntrl(new interpreters.imperative.Interpreter)) }
+        enabledWhenStopped += this
+      }
       val rb2 = new RadioMenuItem("") {
         selected = false
         action = Action("Imperative (Parallel)") {
@@ -353,8 +357,8 @@ class App extends SimpleSwingApplication {
         action = Action("Enclosure") { setInterpreter(new EnclosureCntrl(interpreters.enclosure.Interpreter)) }
         enabledWhenStopped += this
       }
-      contents ++= Seq(rb1,rb2,rb3)
-      new ButtonGroup(rb1,rb2,rb3)
+      contents ++= Seq(rb1,rb2a,rb2,rb3)
+      new ButtonGroup(rb1,rb2a,rb2,rb3)
     }
    
     contents += new Menu("Help") {

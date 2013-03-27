@@ -31,6 +31,7 @@ object Main {
         case "--semantics" => args(1) match {
           case "reference" => (interpreters.reference.Interpreter, 2)
           case "parallel" => (interpreters.parallel.Interpreter(), 2)
+          case "imperative" => (new interpreters.imperative.Interpreter, 2)
           case "enclosure" => (interpreters.enclosure.Interpreter, 2)
           case "enclosure-non-localizing" => (interpreters.enclosure.InterpreterNonLocalizing, 2)
           case _ => (interpreters.reference.Interpreter, 0)
@@ -76,6 +77,29 @@ object Main {
               println(endTime - startTime)
             }
           }
+        // the first six lines are shared with the "bench" case and would ideally not be repeated
+        case "bench-gnuplot" =>
+          val offset = firstNonSemanticsArg + 1 + 1;
+          val start: Int = Integer.parseInt(args(offset + 0))
+          val stop: Int = Integer.parseInt(args(offset + 1))
+          val warmup : Int = if (args.size > offset + 2) Integer.parseInt(args(offset+2)) else 0
+          val repeat : Int = if (args.size > offset + 3) Integer.parseInt(args(offset+3)) else 10
+          val forced = nodiff_out
+          var data = Map[Int,Double]()
+          for (nbThreads <- start to stop) {
+            val time = withInterpreter(nbThreads) { PI =>
+              as_ctrace(PI.run(forced)).last
+              for (_ <- 0 until warmup) { as_ctrace(PI.run(forced)).last }
+              val startTime = System.currentTimeMillis()
+              for (_ <- 0 until repeat) { as_ctrace(PI.run(forced)).last }
+              val endTime = System.currentTimeMillis()
+              endTime - startTime
+            }
+            data += nbThreads -> time 
+          }
+          // the result would ideally be written to a file, which would allow for 
+          // outputting progress information as is done in the "bench" case
+          println(Gnuplot.script(data))
         case "bench-enclosures" => 
           BenchEnclosures.run(i, nodiff_out, args, firstNonSemanticsArg + 2)
         case "trace" =>

@@ -85,7 +85,7 @@ object Parser extends MyStdTokenParsers {
 
   lexical.reserved ++=
     List("for", "end", "if", "else", "create", "move", "in",
-      "terminate", "class", "sum", "true", "false",
+      "terminate", "class", "sum", "cpuspin", "true", "false",
       "private", "switch", "case", "Continuous", "Discrete", "none", "type", "require",
       "pi")
 
@@ -288,6 +288,7 @@ object Parser extends MyStdTokenParsers {
 
   def atom: Parser[Expr] =
     ("sum" ~! expr ~! "for" ~! name ~! "in" ~! expr ~! "if" ~! expr ^^ { case _ ~ e ~ _ ~ i ~ _ ~ c ~ _ ~ t => Sum(e, i, c, t) }
+      | "cpuspin" ~! gint ^^ { case _ ~ GInt(v) => CpuSpin(v) }
       | interval
       | constant
       | "type" ~! parens(className) ^^ { case _ ~ cn => TypeOf(cn) }
