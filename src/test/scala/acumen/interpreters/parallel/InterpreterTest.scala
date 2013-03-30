@@ -118,9 +118,7 @@ import interpreters.imperative.parallel.Interpreter._
     val ast = Parser.run(Parser.prog, in)
     val des = Desugarer.run(ast)
     val trace1 = RI.run(des).ctrace
-    val res = PIO.withInterpreter(2) { PI => 
-      eqstreams(trace1, PI.run(des).ctrace) 
-    }
+    val res = eqstreams(trace1, PIO.instance.run(des).ctrace) 
     assert(res)
   }
 

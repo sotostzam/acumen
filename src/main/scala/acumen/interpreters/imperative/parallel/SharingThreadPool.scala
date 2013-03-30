@@ -22,7 +22,7 @@ class SharingThreadPool[A](@volatile private var active: Int, val total: Int) ex
   sealed abstract class WorkItem
   case class Compute(f: () => A, outbox: SyncVar[A]) extends WorkItem
   case object Sleep extends WorkItem
-  case object Kill extends WorkItem
+  case object Die extends WorkItem
   
   val workQueue = new LinkedBlockingQueue[WorkItem]()
 
@@ -36,14 +36,20 @@ class SharingThreadPool[A](@volatile private var active: Int, val total: Int) ex
     tr.start
     threads(i) = tr
   }
+  
+  /** Increment the count of available threads */
+  private def release = pool.synchronized { free += 1 }
+  /** Decrement the count of available threads */
+  private def reserve = pool.synchronized { free -= 1 }
 
   def nbThreads = active
 
   def reset(n: Int) = {
     active = n
     workQueue.clear
-	for (i <- 0 until total) threads(i).waker.set(true)
-    for (i <- active until total) workQueue.put(Sleep)
+    while(threads.exists(_.awake)) workQueue put Sleep
+    workQueue.clear
+    for (i <- 0 until active) threads(i).wake
   }
 
   def run(f: () => A): SyncVar[A] = this.synchronized {
@@ -53,24 +59,26 @@ class SharingThreadPool[A](@volatile private var active: Int, val total: Int) ex
   }
 
   class SharingAcumenThread(i: Int) extends Thread("acumen sharing thread #" + i) {
+    /** Make thread listen to messages on the workQueue. */
+    def wake = waker set true
     setDaemon(true)
     @volatile var alive = true
-    private var awake = false
-    val waker = new SyncVar[Boolean]
+    @volatile var awake = false
+    private val waker = new SyncVar[Boolean]
     override def run = {
       while (alive) {
         awake = waker.take
-        pool.synchronized{ free += 1 }
+        release
         while (awake) {
           workQueue.take match {
             case Compute(f, outbox) =>
-              pool.synchronized{ free -= 1 }
+              reserve
               outbox.set(f())
-              pool.synchronized{ free += 1 }
+              release
             case Sleep =>
-              pool.synchronized{ free -= 1 }
               awake = false
-            case Kill =>
+              reserve
+            case Die =>
               alive = false
           }
         }

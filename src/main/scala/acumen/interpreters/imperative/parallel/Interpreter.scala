@@ -88,17 +88,15 @@ object Interpreter extends acumen.interpreters.imperative.Common {
   private val staticTP = new StaticThreadPool[Changeset](0, cores)
   private val staticS = new StaticScheduler(staticTP)
   
-  val instance = new Interpreter(sharingS) 
+  val instance = new Interpreter(staticS) 
 
-  def sharingInterpreter(n: Int) = { sharingTP.reset(n); instance.scheduler = sharingS; instance }
-  def staticInterpreter(n: Int) = { staticTP.reset(n); instance.scheduler = staticS; instance } 
+  def sharing: Interpreter = sharing(cores) 
+  def sharing(n: Int) = { sharingTP.reset(n); instance.scheduler = sharingS; instance }
+  
+  def static: Interpreter = static(cores)
+  def static(n: Int) = { staticTP.reset(n); instance.scheduler = staticS; instance } 
 
   def apply() = { instance.scheduler.reset(cores); instance }
   def apply(nbThreads: Int) = { instance.scheduler.reset(nbThreads); instance }
     
-  def withInterpreter[A](nbThreads: Int)(f: Interpreter => A): A = {
-    val pi = Interpreter(nbThreads)
-    try { f(pi) } finally { pi.scheduler.reset(nbThreads) }
-  }
-
 }
