@@ -1,7 +1,7 @@
 package acumen.interpreters.imperative.parallel
 
 import acumen.util.Canonical.{ classf, cmagic  }
-import Interpreter.{ Changeset, combine, getField, noChange, ObjId, splitInto, traverseSimple }
+import Interpreter.{ Changeset, combine, getField, noChange, ObjId, traverseSimple }
 
 class StaticScheduler(val threadPool: StaticThreadPool[Changeset]) extends Scheduler {
   
@@ -18,7 +18,31 @@ class StaticScheduler(val threadPool: StaticThreadPool[Changeset]) extends Sched
     for (b <- boxes) res = res || b.get 
     res
   }
-
+  
+  def splitInto(size: Int, chunks: Int): Option[List[(Int, Int)]] = {
+    if (chunks > size) None
+    else {
+      val len = size / chunks
+      val rem = size % chunks
+      def helper1(i: Int, r: Int, acc: List[(Int, Int)]): List[(Int, Int)] = {
+        if (r > 0) helper2(i, len, r - 1, i, acc)
+        else helper2(i, len - 1, r, i, acc)
+      }
+      def helper2(i: Int, k: Int, r: Int, start: Int, acc: List[(Int, Int)]): List[(Int, Int)] = {
+        if (i == size - 1) {
+          ((start, i) :: acc).reverse
+        }
+        else if (k == 0) {
+          helper1(i + 1, r, ((start, i) :: acc))
+        }
+        else {
+          helper2(i + 1, k - 1, r, start, acc)
+        }
+      }
+      Some(helper1(0, rem, Nil))
+    }
+  }
+  
   def recurse(f:ObjId => Changeset, cs:Vector[ObjId], n:Int) : Changeset = {
     val len = cs.length
     splitInto(len, n) match {
@@ -30,7 +54,7 @@ class StaticScheduler(val threadPool: StaticThreadPool[Changeset]) extends Sched
               for (i <- b to e) res = res || traverseSimple(f, cs(i))
               res
           })
-      case None =>
+      case None => // n < len
         if (len>1) {
           val tasks = n-len+1 
           val quot = tasks / len
