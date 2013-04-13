@@ -34,7 +34,7 @@ object Main {
           case "imperative" => (new interpreters.imperative.sequential.Interpreter, 2)
           case "enclosure" => (interpreters.enclosure.Interpreter, 2)
           case "enclosure-non-localizing" => (interpreters.enclosure.InterpreterNonLocalizing, 2)
-          case _ => (interpreters.reference.Interpreter, 0)
+          case _ => (interpreters.reference.Interpreter, 2) // FIXME: Throw error! -kevina
         }
         case _ => (interpreters.reference.Interpreter, 0)
       }
@@ -42,14 +42,15 @@ object Main {
       val in = new InputStreamReader(new FileInputStream(args(firstNonSemanticsArg)))
       lazy val ast = Parser.run(Parser.prog, in)
       lazy val desugared = Desugarer.run(ast)
-      lazy val dva_out = DVA.run(desugared)
-      lazy val bta_out = BTA.run(dva_out)
-      lazy val spec_out = Specializer.run(bta_out)
-      lazy val nodiff_out = AD.run(spec_out)
+      lazy val dva_out = DVA.run(desugared) // Currently NOOP
+      lazy val bta_out = BTA.run(dva_out) // Currently NOOP
+      lazy val spec_out = Specializer.run(bta_out) // Currently NOOP
+      lazy val nodiff_out = AD.run(spec_out) // Currently NOOP
       lazy val trace = i.run(nodiff_out)
       lazy val ctrace = as_ctrace(trace)
       /* Perform user-selected action. */
       args(firstNonSemanticsArg + 1) match {
+        case "compile" => interpreters.compiler.Interpreter.init(nodiff_out)
         case "pretty" => println(pprint(ast))
         case "desugar" => println(pprint(desugared))
         case "3d" => toPython3D(toSummary3D(ctrace))

@@ -470,3 +470,6 @@ trait Common {
   }
   
 }
+
+object Common extends Common {}
+

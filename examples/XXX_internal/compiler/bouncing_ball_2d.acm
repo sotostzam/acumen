@@ -1,0 +1,31 @@
+
+// Example:  Bouncing Ball (2D)
+
+class Main(simulator)
+  private
+    mode:="Init"; x:=5; x':=10; x'':=0; y:=5; y':=0; y'':=0; m:=1.0;
+  end
+  switch mode
+    case "Init"
+      simulator.timeStep := 0.003;
+      simulator.endTime := 10.0;
+      mode := "Fly"
+    case "Fly"
+      if x < 0 && x' < 0 || x > 5 && x' > 0
+        mode := "BounceX"
+      else
+        if y < 0 && y' < 0 || y > 5 && y' > 0
+          mode := "BounceY"
+        else
+          y'' = -9.8;
+          x'' = 0
+        end
+      end
+    case "BounceX"
+      x' := -x';
+      mode := "Fly"
+    case "BounceY"
+      y' := -y';
+      mode := "Fly"
+  end
+end
