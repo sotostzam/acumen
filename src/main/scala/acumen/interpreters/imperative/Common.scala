@@ -27,7 +27,7 @@ import acumen.util.Canonical.{
   timeStep
 }
 
-trait Common extends {
+trait Common {
 
   type Store = Object
   type ObjId = Object
