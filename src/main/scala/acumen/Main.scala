@@ -60,6 +60,12 @@ object Main {
         case "json" => for (st <- ctrace) println(JSon.toJSON(st))
         case "last" =>
           trace.printLast
+        case "time" => 
+          val forced = nodiff_out
+          val startTime = System.currentTimeMillis()
+          trace.printLast
+          val endTime = System.currentTimeMillis()
+          println("Time to run: " + (endTime - startTime)/1000.0)
         case "bench" =>
           val offset = firstNonSemanticsArg + 1 + 1;
           val start: Int = Integer.parseInt(args(offset + 0))
