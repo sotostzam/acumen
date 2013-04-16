@@ -5,6 +5,7 @@ import acumen.interpreters.enclosure.affine.UnivariateAffineEnclosure
 import acumen.interpreters.enclosure.affine.AffineScalarEnclosure
 import acumen.interpreters.enclosure.affine.UnivariateAffineScalarEnclosure
 import acumen.interpreters.enclosure.affine.AffineEnclosure
+import scala.collection.SortedMap
 
 /**
  * Type used to represent expressions used to define functions and
@@ -19,19 +20,19 @@ abstract class Expression {
 
   def isConstant = this match {
     case Constant(_) => true
-    case _ => false
+    case _           => false
   }
 
   // FIXME implement map for Expressions to avoid this
   def compose(that: Expression, intoVariable: String): Expression = this match {
     case Variable(name) if name == intoVariable => that
-    case Constant(_) | Variable(_) => this
-    case Abs(e) => Abs(e.compose(that, intoVariable))
-    case Sqrt(e) => Sqrt(e.compose(that, intoVariable))
-    case Negate(e) => Negate(e.compose(that, intoVariable))
-    case Plus(l, r) => Plus(l.compose(that, intoVariable), r.compose(that, intoVariable))
-    case Multiply(l, r) => Multiply(l.compose(that, intoVariable), r.compose(that, intoVariable))
-    case Divide(l, r) => Divide(l.compose(that, intoVariable), r.compose(that, intoVariable))
+    case Constant(_) | Variable(_)              => this
+    case Abs(e)                                 => Abs(e.compose(that, intoVariable))
+    case Sqrt(e)                                => Sqrt(e.compose(that, intoVariable))
+    case Negate(e)                              => Negate(e.compose(that, intoVariable))
+    case Plus(l, r)                             => Plus(l.compose(that, intoVariable), r.compose(that, intoVariable))
+    case Multiply(l, r)                         => Multiply(l.compose(that, intoVariable), r.compose(that, intoVariable))
+    case Divide(l, r)                           => Divide(l.compose(that, intoVariable), r.compose(that, intoVariable))
   }
 
   /**
@@ -46,12 +47,12 @@ abstract class Expression {
   def apply(x: Box)(implicit rnd: Rounding): Interval = {
     assert(varNames subsetOf x.keySet, "The box " + x + " must contain the names of all variables in the expression " + this)
     this match {
-      case Constant(v) => v
+      case Constant(v)    => v
       case Variable(name) => x(name)
-      case Abs(e) => e(x).abs
-      case Sqrt(e) => e(x).sqrt
-      case Negate(e) => -e(x)
-      case Plus(l, r) => l(x) + r(x)
+      case Abs(e)         => e(x).abs
+      case Sqrt(e)        => e(x).sqrt
+      case Negate(e)      => -e(x)
+      case Plus(l, r)     => l(x) + r(x)
       case Multiply(l, r) =>
         if (l == r) l(x) square
         else l(x) * r(x)
@@ -74,11 +75,11 @@ abstract class Expression {
     assert(varNames subsetOf x.components.keySet,
       "The enclosure must contain the names of all variables in the expression.")
     this match {
-      case Constant(v) => UnivariateAffineScalarEnclosure(x.domain, v)
-      case Variable(name) => x(name)
-      case Negate(e) => -e(x)
-      case Plus(l, r) => l(x) + r(x)
-      case Multiply(l, r) => l(x) * r(x)
+      case Constant(v)            => UnivariateAffineScalarEnclosure(x.domain, v)
+      case Variable(name)         => x(name)
+      case Negate(e)              => -e(x)
+      case Plus(l, r)             => l(x) + r(x)
+      case Multiply(l, r)         => l(x) * r(x)
       case Divide(e, Constant(v)) => e(x) / v
     }
   }
@@ -94,11 +95,11 @@ abstract class Expression {
    * expression.
    */
   def apply(x: AffineEnclosure)(implicit rnd: Rounding): AffineScalarEnclosure = this match {
-    case Constant(v) => AffineScalarEnclosure(x.domain, v)
-    case Variable(name) => x(name)
-    case Negate(e) => -e(x)
-    case Plus(l, r) => l(x) + r(x)
-    case Multiply(l, r) => l(x) * r(x)
+    case Constant(v)            => AffineScalarEnclosure(x.domain, v)
+    case Variable(name)         => x(name)
+    case Negate(e)              => -e(x)
+    case Plus(l, r)             => l(x) + r(x)
+    case Multiply(l, r)         => l(x) * r(x)
     case Divide(e, Constant(v)) => e(x) / v
   }
 
@@ -125,11 +126,11 @@ abstract class Expression {
    * evaluation from prematurely using the top-level apply.
    */
   private def enclosureEvalHelper(x: Box)(implicit rnd: Rounding): AffineScalarEnclosure = this match {
-    case Constant(v) => AffineScalarEnclosure(x, v)
-    case Variable(name) => AffineScalarEnclosure(x, name)
-    case Negate(e) => -(e.enclosureEvalHelper(x))
-    case Plus(l, r) => l.enclosureEvalHelper(x) + r.enclosureEvalHelper(x)
-    case Multiply(l, r) => l.enclosureEvalHelper(x) * r.enclosureEvalHelper(x)
+    case Constant(v)            => AffineScalarEnclosure(x, v)
+    case Variable(name)         => AffineScalarEnclosure(x, name)
+    case Negate(e)              => -(e.enclosureEvalHelper(x))
+    case Plus(l, r)             => l.enclosureEvalHelper(x) + r.enclosureEvalHelper(x)
+    case Multiply(l, r)         => l.enclosureEvalHelper(x) * r.enclosureEvalHelper(x)
     case Divide(e, Constant(v)) => e.enclosureEvalHelper(x) / v
   }
 
@@ -139,50 +140,52 @@ abstract class Expression {
 
   /** Returns the set of variable names which occur in the expression. */
   def varNames: Set[VarName] = this match {
-    case Constant(_) => Set()
+    case Constant(_)    => Set()
     case Variable(name) => Set(name)
-    case Abs(e) => e.varNames
-    case Sqrt(e) => e.varNames
-    case Negate(e) => e.varNames
-    case Plus(l, r) => l.varNames union r.varNames
+    case Abs(e)         => e.varNames
+    case Sqrt(e)        => e.varNames
+    case Negate(e)      => e.varNames
+    case Plus(l, r)     => l.varNames union r.varNames
     case Multiply(l, r) => l.varNames union r.varNames
-    case Divide(l, r) => l.varNames union r.varNames
+    case Divide(l, r)   => l.varNames union r.varNames
   }
 
   /* Arithmetic operations */
 
   def unary_- = this match {
     case Constant(v) => Constant(-v)
-    case _ => Negate(this)
+    case _           => Negate(this)
   }
   def +(that: Expression)(implicit rnd: Rounding) = (this, that) match {
     case (Constant(c), e) if c isZero => e
     case (e, Constant(c)) if c isZero => e
-    case (l, r) if l == r => Multiply(Constant(2), l)
-    case _ => Plus(this, that)
+    case (l, r) if l == r             => Multiply(Constant(2), l)
+    case _                            => Plus(this, that)
   }
   def -(that: Expression)(implicit rnd: Rounding) = this + (-that)
   def *(that: Expression)(implicit rnd: Rounding) = (this, that) match {
     case (Constant(c), e) if c equalTo 1 => e
-    case (Constant(c), e) if c isZero => Constant(0)
+    case (Constant(c), e) if c isZero    => Constant(0)
     case (e, Constant(c)) if c equalTo 1 => e
-    case (e, Constant(c)) if c isZero => Constant(0)
-    case _ => Multiply(this, that)
+    case (e, Constant(c)) if c isZero    => Constant(0)
+    case _                               => Multiply(this, that)
   }
   /** Only division by constants currently supported. */
   def /(that: Double)(implicit rnd: Rounding) = Divide(this, Constant(that))
 
   def dif(name: VarName)(implicit rnd: Rounding): Expression = this match {
-    case Constant(_) => Constant(0)
-    case Variable(n) => if (n == name) Constant(1) else Constant(0)
-    case Negate(e) => Negate(e.dif(name))
-    case Plus(l, r) => l.dif(name) + r.dif(name)
-    case Multiply(l, r) => l.dif(name) * r + l * r.dif(name)
+    case Constant(_)                => Constant(0)
+    case Variable(n)                => if (n == name) Constant(1) else Constant(0)
+    case Negate(e)                  => Negate(e.dif(name))
+    case Plus(l, r)                 => l.dif(name) + r.dif(name)
+    case Multiply(l, r)             => l.dif(name) * r + l * r.dif(name)
     case Divide(e, c @ Constant(_)) => Divide(e.dif(name), c)
     // fixme: Figure out why plain "this" will not work here and
     //   "this.toString" is now required -- kevina
-    case _ => sys.error(this.toString + ".dif(" + name + ") is not defined!")
+    case _                          => sys.error(this.toString + ".dif(" + name + ") is not defined!")
   }
+
+  def taylorCoefficient(multiIndex: SortedMap[VarName, Int]) = null
 
 }
 object Expression {
@@ -237,5 +240,6 @@ object ExpressionApp extends App {
   implicit val rnd = Rounding(10)
   val x = Variable("x")
   val y = Variable("y")
-  println((x*(x+y)).compose(1+y,"x"))
+  println((x * (x + y)).compose(1 + y, "x"))
+  
 }

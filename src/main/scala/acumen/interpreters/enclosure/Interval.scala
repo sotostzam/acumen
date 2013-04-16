@@ -30,8 +30,8 @@ import java.math.BigDecimal
  * contained in f(B_1,...,B_n).
  */
 case class Interval(
-  val lo: Real,
-  val hi: Real)(implicit val rnd: Rounding) {
+    val lo: Real,
+    val hi: Real)(implicit val rnd: Rounding) {
   import rnd._
 
   def low = Interval(lo)
@@ -162,6 +162,16 @@ case class Interval(
   }
 
   def /(that: Double): Interval = this / Interval(that)
+
+  // FIXME: terrible solution.. please fix this
+  def pow(power: Int): Interval = {
+    require(power >= 0, "negative power " + power + "not allowed")
+    val powsDN: List[Real] = List(lo.pow(power, dn), hi.pow(power, dn), hi.pow(power, dn))
+    val powsUP: List[Real] = List(lo.pow(power, up), hi.pow(power, up), hi.pow(power, up))
+    val pow = Interval(powsDN.foldLeft(lo.pow(power, dn))(min(_, _)), powsUP.foldLeft(lo.pow(power, up))(max(_, _)))
+    if (this.isNonnegative || power == 0) pow
+    else Interval(0) /\ pow
+  }
 
   /**
    * Take the meet, or g.l.b., of this and that interval.
