@@ -8,21 +8,26 @@ import acumen.util.Conversions._
 import acumen.util.Canonical._
 import acumen.{Continuous, Discrete, Prog}
 
+import scala.annotation.tailrec
+
 class Interpreter extends acumen.CStoreInterpreter {
   val I = acumen.interpreters.imperative.sequential.Interpreter
   import I._
   import acumen._
-  
+
   type Store = I.Store
-  def init(prog: Prog) = I.init(prog)
+  def init(prog: Prog, opts: CStoreOpts) = {I.init(prog,opts)}
   def fromCStore(st: CStore, root: CId) = I.fromCStore(st, root)
   def repr(st: Store) = I.repr(st)
   
   def step(p: Prog, st: Store): Option[Store] = {
     val magic = getSimulator(st)
-    if (getTime(magic) > getEndTime(magic)) None
-    else Some(
-      {
+    if (getTime(magic) > getEndTime(magic)) {
+      None
+    } else {
+      @tailrec def step0() : Unit = {
+        if (getTime(magic) > getEndTime(magic))
+          return
         val chtset = iterateSimple(evalStep(p, magic), st)
         getStepType(magic) match {
           case Discrete() =>
@@ -38,15 +43,20 @@ class Interpreter extends acumen.CStoreInterpreter {
                       op.children = op.children diff Seq(o)
                   }
                 }
+                if (!I.cstoreOpts.outputSomeDiscrete) return step0()
               case NoChange() =>
                 setStepType(magic, Continuous())
+                if (!I.cstoreOpts.outputAllRows) return step0()
             }
           case Continuous() =>
             setStepType(magic, Discrete())
             setTime(magic, getTime(magic) + getTimeStep(magic))
+            if (I.cstoreOpts.outputLastOnly) return step0()
         }
-        st
-      })
+      }
+      step0()
+      Some(st)
+    }
   }
 
   def iterateSimple(f: ObjId => Changeset, root: ObjId): Changeset = {

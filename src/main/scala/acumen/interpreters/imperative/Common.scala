@@ -27,7 +27,9 @@ import acumen.util.Canonical.{
   timeStep
 }
 
-trait Common extends {
+abstract class Common {
+
+  var cstoreOpts = new CStoreOpts
 
   type Store = Object
   type ObjId = Object
@@ -451,7 +453,8 @@ trait Common extends {
   lazy val magicClass = Parser.run(Parser.classDef, magicClassTxt)
   lazy val magicCObj = Parser.run(Parser.store, initStoreTxt)
 
-  def init(prog: Prog): (Prog, Store) = {
+  def init(prog: Prog, opts: CStoreOpts): (Prog, Store) = {
+    cstoreOpts = opts
     val magic = fromCStore(magicCObj, CId(0))
     /* WARNING: the following line works because there is no children access check
        if one of the instructions of the provate section tries to access magic,

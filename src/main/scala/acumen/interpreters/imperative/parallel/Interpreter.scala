@@ -5,6 +5,8 @@ import scala.concurrent.SyncVar
 import acumen.util.Canonical.{ classf, cmagic }
 import acumen.interpreters.Common._
 
+import scala.annotation.tailrec
+
 /**
  * A scheduler is a strategy for evaluating an object into a Changeset. 
  * This strategy is realized by implementing the traverseMain method, 
@@ -39,40 +41,49 @@ class Interpreter(private var scheduler: Scheduler) extends acumen.CStoreInterpr
   import acumen._
   
   type Store = I.Store
-  def init(prog: Prog) = I.init(prog)
+  def init(prog: Prog, opts: CStoreOpts) = {I.init(prog, opts)}
   def fromCStore(st: CStore, root: CId) = I.fromCStore(st, root)
   def repr(st: Store) = I.repr(st)
 
   def step(p: Prog, st: Store): Option[Store] = {
-    scheduler.reset
     val magic = getSimulator(st)
-    if (getTime(magic) > getEndTime(magic)) None
-    else Some {
-      val chtset =
-        if (scheduler.nbThreads > 1) scheduler.traverseMain(evalStep(p, magic), st)
-        else traverseSimple(evalStep(p, magic), st)
-      getStepType(magic) match {
-        case Discrete() =>
-          chtset match {
-            case SomeChange(dead, rps) =>
-              for ((o, p) <- rps)
-                changeParent(o, p)
-              for (o <- dead) {
-                o.parent match {
-                  case None => ()
-                  case Some(op) =>
-                    for (oc <- o.children) changeParent(oc, op)
-                    op.children = op.children diff Seq(o)
+    if (getTime(magic) > getEndTime(magic)) {
+      None
+    } else {
+      @tailrec def step0() : Unit = {
+        scheduler.reset
+        if (getTime(magic) > getEndTime(magic))
+          return
+        val chtset =
+          if (scheduler.nbThreads > 1) scheduler.traverseMain(evalStep(p, magic), st)
+          else traverseSimple(evalStep(p, magic), st)
+        getStepType(magic) match {
+          case Discrete() =>
+            chtset match {
+              case SomeChange(dead, rps) =>
+                for ((o, p) <- rps)
+                  changeParent(o, p)
+                for (o <- dead) {
+                  o.parent match {
+                    case None => ()
+                    case Some(op) =>
+                      for (oc <- o.children) changeParent(oc, op)
+                      op.children = op.children diff Seq(o)
+                  }
                 }
-              }
-            case NoChange() =>
-              setStepType(magic, Continuous())
-          }
-        case Continuous() =>
-          setStepType(magic, Discrete())
-          setTime(magic, getTime(magic) + getTimeStep(magic))
+                if (!I.cstoreOpts.outputSomeDiscrete) return step0()
+              case NoChange() =>
+                setStepType(magic, Continuous())
+                if (!I.cstoreOpts.outputAllRows) return step0()
+            }
+          case Continuous() =>
+            setStepType(magic, Discrete())
+            setTime(magic, getTime(magic) + getTimeStep(magic))
+            if (I.cstoreOpts.outputLastOnly) return step0()
+        }
       }
-      st
+      step0()
+      Some(st)
     }
   }
 

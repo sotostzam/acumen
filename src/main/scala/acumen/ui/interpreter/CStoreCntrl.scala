@@ -39,7 +39,7 @@ class CStoreCntrl(val interpreter: CStoreInterpreter) extends InterpreterCntrl {
     def produce : Unit = {
       val startTime = System.currentTimeMillis
       val I = interpreter
-      val (p, store) = I.init(prog)
+      val (p, store) = I.init(prog, new CStoreOpts)
       val cstore = I.repr(store)
       // Enqueue (what I belive is --kevina) the initialization Chunk
       buffer enqueue cstore
