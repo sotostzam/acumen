@@ -27,7 +27,14 @@ import acumen.util.Canonical.{
   timeStep
 }
 
-case class CVar (name: String, ctype: String)
+// Notes on assumptions:
+//   Assuming vector length can be determined at compile time
+
+case class CType (name: String, arrayPart: String = "")
+
+case class CVar (name: String, ctype: CType) {
+  def toDecl = ctype.name + " " + name + ctype.arrayPart
+}
 
 object Collector {
   val prelude = new CompileWriter
@@ -35,26 +42,29 @@ object Collector {
   val globals = new CompileWriter
   val funDecls = new scala.collection.mutable.ListBuffer[String]
   val funDefns = new scala.collection.mutable.ListBuffer[String]
+  val symbols = new scala.collection.mutable.HashSet[String]
 
   def newStruct(name: String, fields: List[CVar]) {
     val cr = new CompileWriter
     cr.print("typedef struct " + name + "{").newline.indent(2)
-    fields.foreach { case CVar(name, ctype) => 
-      cr.print(ctype + " " + name + ";").newline
+    fields.foreach { el => 
+      cr.print(el.toDecl + ";").newline
     }
     cr.indent(-2).print("} " + name + ";").newline
     structDefns += cr.toString
+    symbols.add(name)
   }
-  def newFun(name: String, args: List[CVar], returnType: String, body: String) {
+  def newFun(name: String, args: List[CVar], returnType: String, body: String, flags: String = "static ") {
     val cr = new CompileWriter
-    cr.print(returnType + " " + name + "(");
-    cr.print(args map {case CVar(name, ctype) => ctype + " " + name} mkString(", "));
+    cr.print(flags + returnType + " " + name + "(");
+    cr.print(args map {el => el.toDecl} mkString(", "));
     cr.print(") {").newline
     cr.print(body)
     cr.print("}").newline
     funDefns += cr.toString
+    symbols.add(name)
   }
-
+  def haveSym(name: String) = symbols.contains(name)
   def writeOut = {
     val out = new java.io.PrintWriter(new java.io.FileWriter("model.c"))
     out.print(prelude.toString)
@@ -172,7 +182,7 @@ object Interpreter {
     body.indent(-2).print("}").newline
     body.print("/* main loop end */").newline
     body.print("return 0;").newline
-    Collector.newFun("main", Nil, "int", body.toString)
+    Collector.newFun("main", Nil, "int", body.toString, "")
 
     Collector.writeOut
 
@@ -185,13 +195,14 @@ object Interpreter {
     out.println("set ylabel \"Time\"")
     val magicFields = getFilteredSortedFields(magicObj)
     val mainFields = getFilteredSortedFields(mainObj)
-    val timeIdx = mainFields.size + magicFields.indexWhere { case (n,_,_) => n.x == "time" } + 1
+    val timeIdx = mainFields.size + magicFields.indexWhere { case (n,_,_,_) => n.x == "time" } + 1
     var idx = 1
-    mainFields.foreach{ case (name, f, _) =>
+    mainFields.foreach{ case (name, arrayIdx, f, _) =>
       if (f == "%f") {
         out.println()
-        out.println("set xlabel \"" + name.x + "'" * name.primes + "\"")
-        out.println("set output \"model_" + to_c_name(name) + ".png\"")
+        out.println("set xlabel \"" + name.x + "'" * name.primes + arrayPart(arrayIdx) +"\"")
+        val arrayPartForFn = arrayIdx match { case Some(i) => "_" + i; case _ => ""}
+        out.println("set output \"model_" + to_c_name(name) + arrayPartForFn + ".png\"")
         out.println("plot \"model.res\" using " + timeIdx + ":" + idx + " with lines notitle")
       }
       idx += 1            
@@ -204,8 +215,8 @@ object Interpreter {
     val cn =  getClassOf(obj).x;
     val cd = if (cn != "Simulator") classDef(getClassOf(obj), p) else null
     val classFields = if (cd != null) cd.fields else Nil
-    val fieldTypes = MMap.empty[Name,String]
-    classFields.foreach { name => fieldTypes.update(name, "void *") }
+    val fieldTypes = MMap.empty[Name,CType]
+    classFields.foreach { name => fieldTypes.update(name, CType("void *")) }
 
     // Hack, force any int fields to be doubles, they are likely meant
     // to be double even if the initial value is an int
@@ -231,16 +242,17 @@ object Interpreter {
     } toList)
 
     // Now output the initialization function
-    val args = List(CVar("obj", cn + " *")) ++
+    val args = List(CVar("obj", CType(cn + " *"))) ++
       classFields.map { name => CVar(to_c_name(name), fieldTypes(name)) }
     var body = new CompileWriter(2)
-    obj.fields.foreach { case (name, value) =>
-      body.print("obj->" + to_c_name(name) + " = ")
-      if (fieldTypes.contains(name))
-        body.print(to_c_name(name))
-      else
-        body.print(to_c_value(value))
-      body.print(";").newline                  
+    obj.fields.foreach { 
+      case (name, value) =>
+        body.print("obj->" + to_c_name(name) + " = ")
+        if (fieldTypes.contains(name))
+            body.print(to_c_name(name))
+        else
+          body.print(to_c_value(value))
+        body.print(";").newline                  
     }
     Collector.newFun("init_" + cn, args, "void", body.toString)
 
@@ -249,9 +261,8 @@ object Interpreter {
       val env = HashMap((self, VObjId(Some(obj))))
       body = new CompileWriter(2)
       compileActions(body, cd.body, env, p, magic)
-      Collector.newFun("step_" + cn, List(CVar("obj", cn + " *")), "void", body.toString)
+      Collector.newFun("step_" + cn, List(CVar("obj", CType(cn + " *"))), "void", body.toString)
     }
-    
   }
 
   def compileActions(cr: CompileWriter, as: List[Action], env: Env, p: Prog, magic: Object) =
@@ -272,7 +283,7 @@ object Interpreter {
       case Switch(s, cls) =>
         cr.print("{").newline.indent(2)
         val VLit(gv) = evalExpr(s, p, env)
-        cr.print(to_c_type(gv) + " " + "switchVal = ")
+        cr.print(CVar("switchVal", to_c_type(gv)).toDecl + " = ")
         cr.print(compileExpr(s, p, env))
         cr.print(";").newline
         var first = true
@@ -301,12 +312,16 @@ object Interpreter {
       case Assign(ed@Dot(e, x), t) =>
         val VObjId(Some(o)) = evalExpr(e, p, env)
         val lhs = compileExpr(ed, p, env) // FIXME: Verify this is doing the right thing
-        val rhs =  compileExpr(t, p, env)
-        val VLit(gv) = o.fields(x)
-        cr.print("if (" + c_cmp_inv(gv, lhs,rhs) + " ) {").newline.indent(2)
-        cr.print(lhs + " = " + rhs + ";").newline
-        cr.print("somethingChanged = 1;").newline
-        cr.indent(-2).print("}").newline
+        val rhs = compileExpr(t, p, env)
+        o.fields(x) match {
+          case VLit(gv) => 
+            cr.print("if (" + c_cmp_inv(gv, lhs,rhs) + " ) {").newline.indent(2)
+            cr.print(lhs + " = " + rhs + ";").newline
+            cr.print("somethingChanged = 1;").newline
+            cr.indent(-2).print("}").newline
+          case VVector(l) => 
+            cr.print(mkCallVectorAssignIfChanged(l.size, lhs, rhs, p, env) + ";").newline
+        }
       case _ => 
         cr.print("/*Unimplemented*/").newline
     }
@@ -324,15 +339,15 @@ object Interpreter {
         val VObjId(Some(id)) = evalExpr(e, p, env)
         //val vt = evalExpr(t, p, env)
         val lhs = getField(id, x)
-        cr.print("obj->" + to_c_name(x) + " += ")
         // FIXME: Assuming single object case
         lhs match {
           case VLit(d) =>
+            cr.print("obj->" + to_c_name(x) + " += ")
             cr.print(compileExpr(t, p, env))
-            //VLit(GDouble(extractDouble(d) + extractDouble(vt) * dt))
             cr.print(" * " + "simulator.timeStep_0")
+            //VLit(GDouble(extractDouble(d) + extractDouble(vt) * dt))
           case VVector(u) =>
-            cr.print("/* Unimplemented */")
+            cr.print(mkCallVectorContinuous(u.size, "obj->" + to_c_name(x), compileExpr(t, p, env), p, env) + ";").newline
           case _ =>
             throw BadLhs()
         }
@@ -345,10 +360,18 @@ object Interpreter {
     "/* UNIMPLEMENTED: " + e + "*/"
   }
 
+  def vectorType(sz: Int) : String = {
+    val typeName = "Vec" + sz
+    if (!Collector.haveSym(typeName))
+      Collector.newStruct(typeName, List(CVar("d", CType("double", arrayPart(sz)))))
+    typeName
+  }
+
   def compileExpr(e: Expr, p: Prog, env: Env): String = {
     e match {
       case Lit(i)        => to_c_value(i)
-      case ExprVector(l) => unimplemented(e)
+      case ExprVector(l) => 
+        "(" + vectorType(l.size) + "){" + l.map{e => compileExpr(e,p,env)}.mkString(", ") + "}"
       case Var(n)        => "obj->" + to_c_name(n)
       case Dot(v, Name("children", 0)) => unimplemented(e)
         //val VObjId(Some(id)) = eval(env, v)
@@ -380,17 +403,17 @@ object Interpreter {
          unimplemented(exp)
        case (_, VLit(xv)::Nil, x :: Nil) =>
          compileUnaryOp(op,xv,x,p,env)
-       case (_, VList(u)::Nil, _) =>
-         unimplemented(exp)
-       case (_, VVector(u)::Nil, _) =>
-         unimplemented(exp)
        case (_,VLit(xv)::VLit(yv)::Nil, x :: y :: Nil) =>  
          compileBinOp(op,xv,yv,x,y,p,env)
-       case (_, VVector(u)::VVector(v)::Nil, _) =>
-         unimplemented(exp)
-       case (_, VLit(x)::VVector(u)::Nil, _) =>
-         unimplemented(exp)
-       case (_, VVector(u)::VLit(x)::Nil, _) =>
+       case (_, VVector(u)::Nil, x :: Nil) =>
+         compileUnaryVectorOp(op,u,x,p,env)
+       case (_, VVector(u)::VVector(v)::Nil, x :: y :: Nil) =>
+         compileBinVectorOp(op,u,v,x,y,p,env)
+       case (_, VLit(xv)::VVector(u)::Nil, x :: y :: Nil) =>
+         compileBinScalarVectorOp(op,xv,u,x,y,p,env)
+       case (_, VVector(u)::VLit(xv)::Nil, x :: y :: Nil) =>
+         compileBinVectorScalarOp(op,u,xv,x,y,p,env)
+       case (_, VList(u)::Nil, _) =>
          unimplemented(exp)
        case _ =>
          throw UnknownOperator(op)    
@@ -436,7 +459,7 @@ object Interpreter {
       case _                   => implem(f, extractDouble(vx))
     }
   }
-  
+
   /* purely functional binary operator evaluation 
    * at the ground values level */
   def compileBinOp(f:String, vx:GroundValue, vy:GroundValue, xe: Expr, ye: Expr, p: Prog, env: Env) = {
@@ -481,6 +504,127 @@ object Interpreter {
     }
   }
 
+  def compileUnaryVectorOp(op: String,u: List[Val],xe: Expr, p: Prog, env: Env) : String = {
+    op match {
+      //case "length" => VLit(GInt(u.length)) 
+      case "norm" => "/* unimplemented: norm */"
+      case _ => throw InvalidVectorOp(op)
+    }
+  }
+  
+  def compileBinVectorOp(op: String,u: List[Val],v: List[Val],
+                         xe: Expr, ye: Expr, p: Prog, env: Env) : String = {
+    val sz = u.size
+    def mkCall(fname: String, f: (String, String) => String) = {
+      val fullName = "bin_vector_" + fname + "_" + sz
+      mkCallBinVectorFun(fullName, sz, vectorType(sz), vectorType(sz), xe, ye, f("x[i]", "y"), p, env)
+    }
+    op match {
+      case ".*"  => mkCall("times", (x,y) => x + "*" + y)
+      case "./"  => mkCall("div", (x,y) => x + "/" + y)
+      case ".^"  => mkCall("pow", (x,y) => "pow(" + x + "," + y + ")")
+      case "+"   => mkCall("plus", (x,y) => x + "+" + y)
+      case "-"   => mkCall("minus", (x,y) => x + "-" + y)
+      case "dot" => mkCallVectorDot(sz, xe, ye, p, env)
+      case "cross" => "/* unimplemented: cross */"
+    }
+  }
+
+  def compileBinScalarVectorOp(op: String, xv: GroundValue,u: List[Val], 
+                               xe: Expr, ye: Expr, p: Prog, env: Env) : String = {
+    op match {
+      case "+" => compileBinVectorScalarOp(op,u,xv,ye,xe,p,env)
+      case "*" => compileBinVectorScalarOp(op,u,xv,ye,xe,p,env)
+      case _ => throw InvalidScalarVectorOp(op)
+    }
+  }
+  
+  def compileBinVectorScalarOp(op: String,u: List[Val],xv: GroundValue, 
+                               xe: Expr, ye: Expr, p: Prog, env: Env) : String = {
+    val sz = u.size
+    def mkCall(fname: String, f: (String, String) => String) = {
+      val fullName = "bin_vector_scalar_" + fname + "_" + sz
+      mkCallBinVectorFun(fullName, sz, vectorType(sz), "double", xe, ye, f("x[i]", "y"), p, env)
+    }
+    op match {
+      case "+" => mkCall("plus", (x,y) => x + "+" + y)
+      case "*" => mkCall("times",(x,y) => x + "*" + y)
+      case "/" => mkCall("div", (x,y) => x + "/" + y)
+      case ".^" => mkCall("pow", (x,y) => "pow(" + x + "," + y + ")")
+      case _ => throw InvalidVectorScalarOp(op)
+    }
+  }
+
+  def mkCallBinVectorFun(fullName: String, sz: Int, 
+                         xType: String, yType: String,
+                         xe: Expr, ye: Expr, 
+                         loopBodyExpr: String, p: Prog, env: Env) : String = {
+    if (!Collector.haveSym(fullName)) {
+      val body = new CompileWriter(2)
+      body.print(vectorType(sz) +" res;").newline
+      body.print("int i;").newline
+      body.print("for (i = 0; i != " + sz + "; ++i) {").newline.indent(2)
+      body.print("res.d[i] = " + loopBodyExpr + ";").newline
+      body.indent(-2).print("}").newline
+      body.print("return res")
+      Collector.newFun(fullName, List(CVar("x", CType(xType)), CVar("y", CType(yType))),
+                       vectorType(sz), body.toString, "static inline ")
+    }
+    return fullName + "(" + compileExpr(xe,p,env) + "," + compileExpr(ye,p,env) + ")";
+  }
+
+  def mkCallVectorAssignIfChanged(sz: Int, xe: String, ye: String, p: Prog, env: Env) : String = {
+    val fullName = "vector_assign_if_changed_" + sz;
+    if (!Collector.haveSym(fullName)) {
+      val body = new CompileWriter(2)
+      body.print("int i = 0;").newline
+      body.print("while (i != " + sz + ") {").newline.indent(2)
+      body.print("if (x->d[i] != y.d[i]) {").newline.indent(2)
+      body.print("*x = y;").newline
+      body.print("somethingChanged = 1;").newline
+      body.print("return;").newline
+      body.indent(-2).print("} else {").indent(2).newline
+      body.print("++i;").newline
+      body.indent(-2).print("}").newline
+      body.indent(-2).print("}").newline
+      Collector.newFun(fullName, List(CVar("x", CType((vectorType(sz) + " *"))), 
+                                      CVar("y", CType(vectorType(sz)))),
+                       "void", body.toString, "static inline ")
+    }
+    return fullName + "(" + "&" + "(" + xe + ")" + "," + ye + ")";
+  }
+
+  def mkCallVectorContinuous(sz: Int, xe: String, ye: String, p: Prog, env: Env) : String = {
+    val fullName = "vector_continuous_" + sz;
+    if (!Collector.haveSym(fullName)) {
+      val body = new CompileWriter(2)
+      body.print("int i;").newline
+      body.print("for (i = 0; i != " + sz + "; ++i) {").newline.indent(2)
+      body.print("x->d[i] += y.d[i] * simulator.timeStep_0;").newline
+      body.indent(-2).print("}").newline
+      Collector.newFun(fullName, List(CVar("x", CType((vectorType(sz) + " *"))), 
+                                      CVar("y", CType(vectorType(sz)))),
+                       "void", body.toString, "static inline ")
+    }
+    return fullName + "(" + "&" + "(" + xe + ")" + "," + ye + ")";
+  }
+
+  def mkCallVectorDot(sz: Int, xe: Expr, ye: Expr, p: Prog, env: Env) : String = {
+    val fullName = "vector_dot_" + sz;
+    if (!Collector.haveSym(fullName)) {
+      val body = new CompileWriter(2)
+      body.print("double res = 0;").newline
+      body.print("int i;").newline
+      body.print("for (i = 0; i != " + sz + "; ++i) {").newline.indent(2)
+      body.print("res += x.d[i] * y.d[i];").newline
+      body.indent(-2).print("}").newline
+      body.print("return res;").newline
+      Collector.newFun(fullName, List(CVar("x", CType(vectorType(sz))), CVar("y", CType(vectorType(sz)))),
+                       "double", body.toString)
+    }
+    return fullName + "(" + compileExpr(xe,p,env) + "," + compileExpr(ye,p,env) + ")";
+  }
+
   //
   // Utility Function/Methods
   // 
@@ -489,25 +633,34 @@ object Interpreter {
     return name.x + "_" + name.primes
   }
 
+  def to_c_name(name: Name, idx: Option[Int]) : String = {
+    def cname = to_c_name(name)
+    idx match {
+      case Some(i) => cname + ".d[" + i + "]"
+      case _ => cname
+    }
+  }
+
   def to_c_string(str: String) : String = "\"" + str + "\""
 
-  def to_c_type(value: GroundValue): String = value match {
-    case GInt(_)    => "double"
+  def to_c_type(value: GroundValue): CType = value match {
+    case GInt(_)    => CType("double")
     // ^^ a double is far more likely than an int, so just assume
     // a double for now rather than getting it wrong.  Making it
     // an int will be considered an optimizaton :) - kevina
-    case GDouble(_) => "double"
-    case GBool(_)   => "Boolean"
-    case GStr(_)    => "const char *"
-    case v          => "/*"+v+"*/double" // FIXME
+    case GDouble(_) => CType("double")
+    case GBool(_)   => CType("Boolean")
+    case GStr(_)    => CType("const char *")
+    case v          => CType("/*"+v+"*/double") // FIXME
   }
 
-  def to_c_type(value: Val): String = value match {
+  def to_c_type(value: Val): CType = value match {
     case VLit(v) => to_c_type(v)
-    case VObjId((Some(o))) => getClassOf(o).x + " *"
-    case VClassName(ClassName(n)) => "const char *"
-    case VStepType(_) => "StepType"
-    case n => "/*"+ n + "*/ void *" // FIXME
+    case VObjId((Some(o))) => CType(getClassOf(o).x + " *")
+    case VClassName(ClassName(n)) => CType("const char *")
+    case VStepType(_) => CType("StepType")
+    case VVector(l) => CType(vectorType(l.size))
+    case n => CType("/*"+ n + "*/ void *") // FIXME
   } 
 
   def to_c_value(value: GroundValue) = value match {
@@ -526,18 +679,27 @@ object Interpreter {
       case VClassName(ClassName(n)) => to_c_string(n)
       case VStepType(Discrete()) => "DISCRETE"
       case VStepType(Continuous()) => "CONTINUOUS"
+      case VVector(l) => "(" + vectorType(l.size) + ")" + "{" + l.map{v => to_c_value(v)}.mkString(", ") + "}"
       case _ => "NULL" // FIXME
     }
   }
 
   def c_cmp (theType: GroundValue, x: String, y: String) = theType match {
     case GStr(_) => "strcmp(" + x + ", " + y + ")" + "== 0"
-    case _ => x + " == " + y
+    case _ => x + " == " + y;
   }
 
   def c_cmp_inv (theType: GroundValue, x: String, y: String) = theType match {
     case GStr(_) => "strcmp(" + x + ", " + y + ")" + "!= 0"
-    case _ => x + " != " + y
+    case _ => x + " != " + y;
+  }
+
+  def arrayPart(i: Int) : String = {
+    "[" + i + "]"
+  }
+  def arrayPart(idx: Option[Int]) : String = idx match {
+    case Some(i) => "[" + i + "]"
+    case _ => ""
   }
 
   def compileToCBinOp(cop: String, x: Expr, y: Expr, p: Prog, env: Env) : String = {
@@ -556,28 +718,31 @@ object Interpreter {
     val cn =  getClassOf(o).x;
     val fields = getFilteredSortedFields(o);
     cr.print("printf(\"%s\", \"");
-    cr.print(fields.map{case (n,_,_) => cn + "." + n.x + "'"*n.primes}.mkString(" "))
+    cr.print(fields.map{case (n,i,_,_) => cn + "." + n.x + "'"*n.primes+arrayPart(i)}.mkString(" "))
     cr.print(" \");").newline
   }
 
   def compileDumpObj(cr: CompileWriter, prefix:String, o: Object, p: Prog) : Unit = {
     val fields = getFilteredSortedFields(o);
     cr.print("printf(\"");
-    cr.print(fields.map( {case (_,f,_) => f}).mkString(" "))
+    cr.print(fields.map( {case (_,_,f,_) => f}).mkString(" "))
     cr.print(" \", ")
-    cr.print(fields.map{case (n,_,f) => f(prefix + to_c_name(n))}.mkString(","))
+    cr.print(fields.map{case (n,i,_,f) => f(prefix + to_c_name(n,i))}.mkString(","))
     cr.print(");").newline
   }
 
-  def getFilteredSortedFields(o: Object) : List[(Name,String,String => String)] = {
-    o.fields.toList.sortWith{(x,y) => x._1 < y._1}.map { case (name, value) =>
+  def getFilteredSortedFields(o: Object) : List[(Name,Option[Int],String,String => String)] = {
+    val res = o.fields.toList.sortWith{(x,y) => x._1 < y._1}.map { case (name, value) =>
       value match {
-        case VLit(GDouble(_)) => (name, "%f", {n:String => n})
-        case VLit(GStr(_)) => (name, "%s", {n:String => n})
-        case VStepType(_) => (name, "%s", {n:String => n + "== DISCRETE ? \"@Discrete\" : \"@Continuous\""})
-        case _ => null
+        case VLit(GDouble(_)) => List((name, None, "%f", {n:String => n}))
+        case VLit(GStr(_)) => List((name, None, "%s", {n:String => n}))
+        case VStepType(_) => List((name, None, "%s", 
+                              {n:String => n + "== DISCRETE ? \"@Discrete\" : \"@Continuous\""}))
+        case VVector(l) => l.indices.map{i => (name, Some(i), "%f", {n:String => n})}.toList
+        case _ => Nil
       }
-    }.filter{x => x != null}
+    }
+    List.flatten(res)
   }
 
 }
