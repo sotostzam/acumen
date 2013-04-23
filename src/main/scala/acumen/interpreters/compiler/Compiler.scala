@@ -30,6 +30,10 @@ import acumen.util.Canonical.{
 // Notes on assumptions:
 //   Assuming vector length can be determined at compile time
 
+// Note on parentheses handling:  If a function returns an expression
+// that might need parantances when combined with other expression it
+// should go ahead and wrap the the string in parentheses.
+
 case class CType (name: String, arrayPart: String = "")
 
 case class CVar (name: String, ctype: CType) {
@@ -46,7 +50,7 @@ object Collector {
 
   def newStruct(name: String, fields: List[CVar]) {
     val cr = new CompileWriter
-    cr.print("typedef struct " + name + "{").newline.indent(2)
+    cr.print("typedef struct " + name + " {").newline.indent(2)
     fields.foreach { el => 
       cr.print(el.toDecl + ";").newline
     }
@@ -68,10 +72,14 @@ object Collector {
   def writeOut = {
     val out = new java.io.PrintWriter(new java.io.FileWriter("model.c"))
     out.print(prelude.toString)
-    structDefns.foreach {v => out.print(v)}
+    out.print("\n")
+    structDefns.foreach {v => out.print(v); out.print("\n")}
+    out.print("\n")
     out.print(globals.toString)
-    funDecls.foreach {v => out.print(v)}
-    funDefns.foreach {v => out.print(v)}
+    out.print("\n\n")
+    funDecls.foreach {v => out.print(v); out.print("\n")}
+    out.print("\n")
+    funDefns.foreach {v => out.print(v); out.print("\n")}
     System.out.println("*** C Code Written to model.c")
     out.close
   }
@@ -450,11 +458,11 @@ object Interpreter {
 
     }
     (f, vx) match {
-      case ("not", GBool(x))   => "(! " + compileExpr(xe, p, env) + ")"
+      case ("not", GBool(x))   => "(!" + compileExpr(xe, p, env) + ")"
       case ("abs", GInt(i))    => compileToCFunCall("abs", List(xe), p, env)
-      case ("-",   GInt(i))    => "(- " + compileExpr(xe, p, env) + ")"
+      case ("-",   GInt(i))    => "(-" + compileExpr(xe, p, env) + ")"
       case ("abs", GDouble(x)) => compileToCFunCall("fabs", List(xe), p, env)
-      case ("-",   GDouble(x)) => "(- " + compileExpr(xe, p, env) + ")"
+      case ("-",   GDouble(x)) => "(-" + compileExpr(xe, p, env) + ")"
       case ("round", GDouble(x)) => compileToCFunCall("round", List(xe), p, env)
       case _                   => implem(f, extractDouble(vx))
     }
@@ -566,11 +574,11 @@ object Interpreter {
       body.print("for (i = 0; i != " + sz + "; ++i) {").newline.indent(2)
       body.print("res.d[i] = " + loopBodyExpr + ";").newline
       body.indent(-2).print("}").newline
-      body.print("return res")
+      body.print("return res;")
       Collector.newFun(fullName, List(CVar("x", CType(xType)), CVar("y", CType(yType))),
-                       vectorType(sz), body.toString, "static inline ")
+                       vectorType(sz), body.toString, "static ")
     }
-    return fullName + "(" + compileExpr(xe,p,env) + "," + compileExpr(ye,p,env) + ")";
+    return fullName + "(" + compileExpr(xe,p,env) + ", " + compileExpr(ye,p,env) + ")";
   }
 
   def mkCallVectorAssignIfChanged(sz: Int, xe: String, ye: String, p: Prog, env: Env) : String = {
@@ -589,9 +597,9 @@ object Interpreter {
       body.indent(-2).print("}").newline
       Collector.newFun(fullName, List(CVar("x", CType((vectorType(sz) + " *"))), 
                                       CVar("y", CType(vectorType(sz)))),
-                       "void", body.toString, "static inline ")
+                       "void", body.toString)
     }
-    return fullName + "(" + "&" + "(" + xe + ")" + "," + ye + ")";
+    return fullName + "(" + "&" + xe + ", " + ye + ")";
   }
 
   def mkCallVectorContinuous(sz: Int, xe: String, ye: String, p: Prog, env: Env) : String = {
@@ -604,9 +612,9 @@ object Interpreter {
       body.indent(-2).print("}").newline
       Collector.newFun(fullName, List(CVar("x", CType((vectorType(sz) + " *"))), 
                                       CVar("y", CType(vectorType(sz)))),
-                       "void", body.toString, "static inline ")
+                       "void", body.toString)
     }
-    return fullName + "(" + "&" + "(" + xe + ")" + "," + ye + ")";
+    return fullName + "(" + "&" + xe + ", " + ye + ")";
   }
 
   def mkCallVectorDot(sz: Int, xe: Expr, ye: Expr, p: Prog, env: Env) : String = {
@@ -685,12 +693,12 @@ object Interpreter {
   }
 
   def c_cmp (theType: GroundValue, x: String, y: String) = theType match {
-    case GStr(_) => "strcmp(" + x + ", " + y + ")" + "== 0"
+    case GStr(_) => "(strcmp(" + x + ", " + y + ")" + "== 0)"
     case _ => x + " == " + y;
   }
 
   def c_cmp_inv (theType: GroundValue, x: String, y: String) = theType match {
-    case GStr(_) => "strcmp(" + x + ", " + y + ")" + "!= 0"
+    case GStr(_) => "(strcmp(" + x + ", " + y + ")" + "!= 0)"
     case _ => x + " != " + y;
   }
 
@@ -703,11 +711,11 @@ object Interpreter {
   }
 
   def compileToCBinOp(cop: String, x: Expr, y: Expr, p: Prog, env: Env) : String = {
-    "(" + compileExpr(x, p, env) + cop + compileExpr(y, p, env) + ")"
+    "(" + compileExpr(x, p, env) + " " + cop + " " + compileExpr(y, p, env) + ")"
   }
 
   def compileToCBinOpForceInt(cop: String, x: Expr, y: Expr, p: Prog, env: Env) : String = {
-    "(" + "(int)(" + compileExpr(x, p, env) + ")" + cop + "(int)(" + compileExpr(y, p, env) + "))"
+    "(" + "(int)(" + compileExpr(x, p, env) + ") " + cop + " (int)(" + compileExpr(y, p, env) + "))"
   }
 
   def compileToCFunCall(funName: String, args: List[Expr], p: Prog, env: Env) : String = {
