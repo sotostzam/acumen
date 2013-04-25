@@ -1,7 +1,5 @@
 
-// Sine of Self as Second Derivative
-// Solution is not a sum of complex exponentials
-// Solving non-linear (transcendental) equations using Picard iteration
+// Sine of Self as Second Derivative Example
 
 class Main(simulator)
 private
@@ -9,3 +7,7 @@ private
 end
  x'' = -10*sin(x)
 end
+
+// Note:  "More" non-linear than previous example
+// Note:  We can still use Picard method to approximate
+//          solutions
