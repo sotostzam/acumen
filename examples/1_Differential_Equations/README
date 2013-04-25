@@ -1,0 +1,8 @@
+
+The purpose of this series is to help us get comfortable with
+differential equations.  The series starts with x'=1 and goes to
+x''=-sin(x).  It stimulates a discussion about how differential
+equations model interesting behavior and how they can be solved.
+Trivial differential equations can be solved by direct integration.
+Linear equations have elegant special form solutions.  Non-linear
+equations get a bit more tricky!

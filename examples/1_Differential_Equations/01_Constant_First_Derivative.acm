@@ -1,0 +1,15 @@
+
+// Constant Derivative
+// Solvable by integration, fundamental theorem of calculus
+//
+// Note on Acumen:  This example also introduces the 
+//  basic form of Acumen models, including a Main class, 
+//  the private section, dense time variables (like x),
+//  derivatives (like x'), and continuous assignment (=)
+
+class Main(simulator)
+private
+ x:=0; x':=0
+end
+ x' = 1
+end

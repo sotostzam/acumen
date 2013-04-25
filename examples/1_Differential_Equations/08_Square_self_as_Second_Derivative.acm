@@ -1,0 +1,11 @@
+
+// Square of Self as Second Derivative
+// Solution is not a sum of complex exponentials
+// Solving non-linear (algebraic) equations using Picard iteration
+
+class Main(simulator)
+private
+ x:=0; x':=1; x'':=2
+end
+ x'' = -x*x
+end
