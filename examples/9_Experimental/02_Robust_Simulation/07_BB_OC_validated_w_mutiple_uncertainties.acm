@@ -1,14 +1,19 @@
 
-// BB OC w multiple uncertainties
+// The classic bouncing ball example 
+// with proper zero crossing
+//
 // Author:  WT, based on model by MK and JD
+//
+// Note:  Run this with Semantics -> Enclosure
+// Note:  Introducing uncertainties in model
 
 class Main(simulator)
   private 
     mode := "Fly"; 
-    x   := [4.0..5.5];    // Unc. in initial height
+    x   := [4.0..5.5];    // Uncertainty in height
     x'  := 0; 
     x'' := 0;  
-    r   := [80.0..110.0]; // Unc. in initial energy
+    r   := [80.0..110.0]; // Uncertainty in energy
     r' := 0;
   end
   switch mode

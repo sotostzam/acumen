@@ -1,3 +1,12 @@
 
-Series of examples illustrated feasibility of robust simulation
+Series of examples illustrating the feasibility of robust simulation
+using enclosure methods.  The examples start first with illustrating
+the problems of classical numerical methods using single
+fixed-precision floating-point numbers and fixed-size steps.
+Difficulties with Zero crossing are pointed out to motivate the need
+for enclosure methods.  Issues arising with enclosure methods are then
+discussed and progress builds up until we show that we can get good
+enclosures for a Zeno system.  The final step is to show how this same
+machinary naturally handles uncertainties about model parameters and
+initial values.
 

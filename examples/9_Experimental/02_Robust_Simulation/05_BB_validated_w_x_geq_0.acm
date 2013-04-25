@@ -1,6 +1,12 @@
 
-// BB OC with x>=0 constraint
+// The classic bouncing ball example 
+// with proper zero crossing
+//
 // Author:  WT, based on model by MK and JD
+//
+// Note:  Run this with Semantics -> Enclosure
+// Note:  Using constraints to cut out impossible
+//        trajectories
 
 class Main(simulator)
   private 
@@ -11,7 +17,7 @@ class Main(simulator)
   end
   switch mode
     case "Fly" 
-      require x >= 0 // New constraint
+      require x >= 0 // Ball never pierces floor
       if x == 0 && x' <= 0
         x' := -0.5*x';
         mode := "Fly";

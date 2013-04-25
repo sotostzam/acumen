@@ -1,6 +1,12 @@
 
-// BB valdiated, going until first jump
+// The classic bouncing ball example 
+// with proper zero crossing
+//
 // Author:  WT, based on model by MK and JD
+//
+// Note:  Run this with Semantics -> Enclosure
+// Note:  Reduced end time to stop at first bounce
+// Note:  New, artificially dumbed down step sizes
 
 class Main(simulator)
   private 
@@ -17,8 +23,8 @@ class Main(simulator)
       end;
       x'' = -10;
   end;
-  simulator.endTime := 1;
-  simulator.minSolverStep := 0.01;
-  simulator.minLocalizationStep := 0.01;
-  simulator.minComputationImprovement := 0.001;
+  simulator.endTime := 1; // Changed from 2
+  simulator.minSolverStep := 0.01;              // New
+  simulator.minLocalizationStep := 0.01;        // New
+  simulator.minComputationImprovement := 0.001; // New
 end

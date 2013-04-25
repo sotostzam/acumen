@@ -1,6 +1,11 @@
 
-// BB valdiated, going beyond first jump
+// The classic bouncing ball example 
+// with proper zero crossing
+//
 // Author:  WT, based on model by MK and JD
+//
+// Note:  Run this with Semantics -> Enclosure
+// Note:  End time changed to go beyond first jump
 
 class Main(simulator)
   private 
@@ -17,7 +22,7 @@ class Main(simulator)
       end;
       x'' = -10;
   end;
-  simulator.endTime := 4.5;
+  simulator.endTime := 4.5; // Changed from 1.0
   simulator.minSolverStep := 0.01;
   simulator.minLocalizationStep := 0.01;
   simulator.minComputationImprovement := 0.001;

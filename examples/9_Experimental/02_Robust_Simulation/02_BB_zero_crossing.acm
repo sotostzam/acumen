@@ -1,6 +1,11 @@
 
-// BB traditional, w proper zero crossing constraint
-// Author:  WT
+// The classic bouncing ball example 
+// with proper zero crossing
+//
+// Author:  WT, based on model by MK and JD
+//
+// Note:  Run this with Semantics -> Purely Functional
+// Note:  Reduced end time
 
 class Main(simulator)
   private 
@@ -11,11 +16,11 @@ class Main(simulator)
   end
   switch mode
     case "Fly" 
-      if x == 0 && x' <= 0 // NB correct spec
+      if x == 0 && x' <= 0 // Note corrected check
         x' := -0.5*x';
         mode := "Fly";
       end;
       x'' = -10;
   end;
-  simulator.endTime := 2;
+  simulator.endTime := 2; // Changed from 4.5
 end
