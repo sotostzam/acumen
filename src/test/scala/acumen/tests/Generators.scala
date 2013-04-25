@@ -230,7 +230,28 @@ object Generators  {
 		Arbitrary{
 			arbitrary[List[VLit[CId]]].map(VVector[CId])
 		}	
-	
+
+  implicit def arbCObject: Arbitrary[CObject] =
+    Arbitrary {
+      for (
+        ns <- listOf(arbitrary[Name]);
+        vs <- listOf(arbitrary[CValue])
+      ) yield (ns zip vs).toMap
+    }
+
+  implicit def arbCStore: Arbitrary[CStore] =
+    Arbitrary {
+      for (
+        ids <- listOf(arbitrary[CId]);
+        objs <- listOf(arbitrary[CObject])
+      ) yield (ids zip objs).toMap
+    }
+
+  implicit def arbCId: Arbitrary[CId] =
+    Arbitrary {
+      for (ints <- listOf(posNum[Int])) yield new CId(ints)
+    }
+
 	/* End of new generators */
 
   implicit def arbIDoubleLit : Arbitrary[GDouble] = 
