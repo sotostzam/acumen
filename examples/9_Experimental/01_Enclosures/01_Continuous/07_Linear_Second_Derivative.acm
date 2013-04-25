@@ -1,12 +1,16 @@
 
-// Linear Second Derivative
-// Stabilizing Oscillation
-// Linear Systems
-// Solutions to linear systems are a sum of complex exponentials
+// Linear Second Derivative Example
 
 class Main(simulator)
 private
- x:=1; x':=0; x'':=0
+ x:=1; x':=0; x'':=0;
+ mode := ""
 end
+ switch mode
+ case ""
  x'' = -x'/2-x/2
+ end;
+  simulator.minSolverStep := 0.1;
 end
+
+// Note:  Proper second order linear equations work, too
