@@ -1,7 +1,8 @@
 
-// Sine of Self as Second Derivative
-// Solution is not a sum of complex exponentials
-// Solving non-linear (transcendental) equations using Picard iteration
+// XXX_Note:  This is just waiting for Adam to
+//   implement trig and transcendental functions
+
+// Sine of Self as Second Derivative Example
 
 class Main(simulator)
 private

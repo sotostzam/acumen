@@ -1,18 +1,26 @@
 
-// Constant Derivative
-// Solvable by integration, fundamental theorem of calculus
+// Constant First Derivative Example
 //
-// Note on Acumen:  This example also introduces the 
-//  basic form of Acumen enclosure models, including a 
-//  Main class, the private section, a switch statement
-//  with a case representing a discrete mode of the 
-//  system, dense time variables (like x), derivatives 
-//  (like x'), and continuous assignment (=).
+// Note:  Run using Semantics -> Enclosure
 
 class Main(simulator)
-private x:=0; x':=0; mode := ""; end
-  switch mode
-    case ""
+private 
+ x:=0; 
+ x':=0; 
+ mode := ""   //
+end
+  switch mode //
+    case ""   //
       x' = 1
   end
 end
+
+// Note:  It's fast for linear problems
+// Note:  It solves this problem in *one* step
+// Note:  The *entire* enclosure here is thin (unusual)
+
+// Note:  The currently enclosure semantics *requires*
+//          that models have a very specific form, in
+//          particular, they must always have exactly
+//          one mode, and consist of one big switch
+//          statement on that mode
