@@ -85,6 +85,12 @@ object Collector {
   }
 }
 
+class CompiledClass(val name: String, val inherits : String = null) {
+  val body = new CompileWriter(2)
+  def addField(v: CVar) = {body.print(v.toDecl).newline}
+  def addMethod(name: String, args: List[CVar], returnType: String, body: String, flags: String = "virtual ") = {}
+}
+
 class CompileWriter(initial_indent : Int = 0) {
   var indent_amount = initial_indent
   var need_indent = true;
