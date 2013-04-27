@@ -2,7 +2,7 @@
 
 set -e
 sbt "run-main acumen.Main "$1" compile"
-gcc -O model.c -lm
+g++ -O model.cpp -lm
 time ./a.out > model.res
 time ./a.out > model.res
 time ./a.out > model.res

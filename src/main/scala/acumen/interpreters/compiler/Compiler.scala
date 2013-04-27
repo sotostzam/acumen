@@ -36,6 +36,12 @@ import acumen.util.Canonical.{
 
 case class CType (name: String, arrayPart: String = "")
 
+object CType {
+  def ptr(name: String) = CType(name + " *")
+  def mutRef(name: String) = CType(name + " &")
+  def cref(name: String) = CType("const " + name + " &")
+}
+
 case class CVar (name: String, ctype: CType) {
   def toDecl = ctype.name + " " + name + ctype.arrayPart
 }
@@ -68,9 +74,13 @@ object Collector {
     funDefns += cr.toString
     symbols.add(name)
   }
+  def addClass(cc: CompiledClass) {
+    structDefns += ("class " + cc.name + " {\npublic:\n" + cc.body.toString + "};\n")
+    symbols.add(cc.name)
+  }
   def haveSym(name: String) = symbols.contains(name)
   def writeOut = {
-    val out = new java.io.PrintWriter(new java.io.FileWriter("model.c"))
+    val out = new java.io.PrintWriter(new java.io.FileWriter("model.cpp"))
     out.print(prelude.toString)
     out.print("\n")
     structDefns.foreach {v => out.print(v); out.print("\n")}
@@ -80,14 +90,14 @@ object Collector {
     funDecls.foreach {v => out.print(v); out.print("\n")}
     out.print("\n")
     funDefns.foreach {v => out.print(v); out.print("\n")}
-    System.out.println("*** C Code Written to model.c")
+    System.out.println("*** C++ Code Written to model.cpp")
     out.close
   }
 }
 
 class CompiledClass(val name: String, val inherits : String = null) {
   val body = new CompileWriter(2)
-  def addField(v: CVar) = {body.print(v.toDecl).newline}
+  def addField(v: CVar) = {body.print(v.toDecl).print(";").newline}
   def addMethod(name: String, args: List[CVar], returnType: String, body: String, flags: String = "virtual ") = {}
 }
 
@@ -189,10 +199,10 @@ object Interpreter {
     body.indent(-2).print("} while (somethingChanged);").newline
     body.print("simulator.stepType_0 = CONTINUOUS;").newline
     body.print("step_Main(&mainObj);").newline 
+    body.print("simulator.time_0 += simulator.timeStep_0;").newline
     compileDumpObj(body, "mainObj.", mainObj, prog)
     compileDumpObj(body, "simulator.",magicObj, prog)
     body.print("printf(\"\\n\");").newline
-    body.print("simulator.time_0 += simulator.timeStep_0;").newline
     body.indent(-2).print("}").newline
     body.print("/* main loop end */").newline
     body.print("return 0;").newline
@@ -376,8 +386,18 @@ object Interpreter {
 
   def vectorType(sz: Int) : String = {
     val typeName = "Vec" + sz
-    if (!Collector.haveSym(typeName))
-      Collector.newStruct(typeName, List(CVar("d", CType("double", arrayPart(sz)))))
+    if (!Collector.haveSym(typeName)) {
+      val cc = new CompiledClass(typeName);
+      cc.addField(CVar("d", CType("double", arrayPart(sz))))
+      cc.body.print("double operator[] (int i) const {return d[i];};").newline
+      cc.body.print("double & operator[] (int i) {return d[i];};").newline
+      cc.body.print(typeName + "() {}").newline
+      val args = Seq.range(0,sz).map{i => "i" + i}
+      cc.body.print(typeName + "(" + Seq.range(0,sz).map{i=>"double i" + i}.mkString(", ") + ") {").newline.indent(2);
+      Seq.range(0,sz).foreach{i => cc.body.print("d[" + i + "] = i" + i + ";").newline}
+      cc.body.indent(-2).print("}").newline
+      Collector.addClass(cc)
+    }
     typeName
   }
 
@@ -530,8 +550,8 @@ object Interpreter {
                          xe: Expr, ye: Expr, p: Prog, env: Env) : String = {
     val sz = u.size
     def mkCall(fname: String, f: (String, String) => String) = {
-      val fullName = "bin_vector_" + fname + "_" + sz
-      mkCallBinVectorFun(fullName, sz, vectorType(sz), vectorType(sz), xe, ye, f("x[i]", "y"), p, env)
+      val fullName = "v_" + fname
+      mkCallBinVectorFun(fullName, sz, CType.cref(vectorType(sz)), CType.cref(vectorType(sz)), xe, ye, f("x[i]", "y"), p, env)
     }
     op match {
       case ".*"  => mkCall("times", (x,y) => x + "*" + y)
@@ -557,8 +577,8 @@ object Interpreter {
                                xe: Expr, ye: Expr, p: Prog, env: Env) : String = {
     val sz = u.size
     def mkCall(fname: String, f: (String, String) => String) = {
-      val fullName = "bin_vector_scalar_" + fname + "_" + sz
-      mkCallBinVectorFun(fullName, sz, vectorType(sz), "double", xe, ye, f("x[i]", "y"), p, env)
+      val fullName = "vs_" + fname + "_" + sz
+      mkCallBinVectorFun(fullName, sz, CType.cref(vectorType(sz)), CType("double"), xe, ye, f("x[i]", "y"), p, env)
     }
     op match {
       case "+" => mkCall("plus", (x,y) => x + "+" + y)
@@ -570,7 +590,7 @@ object Interpreter {
   }
 
   def mkCallBinVectorFun(fullName: String, sz: Int, 
-                         xType: String, yType: String,
+                         xType: CType, yType: CType,
                          xe: Expr, ye: Expr, 
                          loopBodyExpr: String, p: Prog, env: Env) : String = {
     if (!Collector.haveSym(fullName)) {
@@ -578,62 +598,63 @@ object Interpreter {
       body.print(vectorType(sz) +" res;").newline
       body.print("int i;").newline
       body.print("for (i = 0; i != " + sz + "; ++i) {").newline.indent(2)
-      body.print("res.d[i] = " + loopBodyExpr + ";").newline
+      body.print("res[i] = " + loopBodyExpr + ";").newline
       body.indent(-2).print("}").newline
       body.print("return res;")
-      Collector.newFun(fullName, List(CVar("x", CType(xType)), CVar("y", CType(yType))),
+      Collector.newFun(fullName, List(CVar("x", xType), CVar("y", yType)),
                        vectorType(sz), body.toString, "static ")
     }
     return fullName + "(" + compileExpr(xe,p,env) + ", " + compileExpr(ye,p,env) + ")";
   }
 
   def mkCallVectorAssignIfChanged(sz: Int, xe: String, ye: String, p: Prog, env: Env) : String = {
-    val fullName = "vector_assign_if_changed_" + sz;
+    val fullName = "v_assign_if_changed";
     if (!Collector.haveSym(fullName)) {
       val body = new CompileWriter(2)
       body.print("int i = 0;").newline
       body.print("while (i != " + sz + ") {").newline.indent(2)
-      body.print("if (x->d[i] != y.d[i]) {").newline.indent(2)
-      body.print("*x = y;").newline
+      body.print("if (x[i] != y[i]) {").newline.indent(2)
+      body.print("x = y;").newline
       body.print("somethingChanged = 1;").newline
       body.print("return;").newline
       body.indent(-2).print("} else {").indent(2).newline
       body.print("++i;").newline
       body.indent(-2).print("}").newline
       body.indent(-2).print("}").newline
-      Collector.newFun(fullName, List(CVar("x", CType((vectorType(sz) + " *"))), 
-                                      CVar("y", CType(vectorType(sz)))),
+      Collector.newFun(fullName, List(CVar("x", CType.mutRef(vectorType(sz))), 
+                                      CVar("y", CType.cref(vectorType(sz)))),
                        "void", body.toString)
     }
-    return fullName + "(" + "&" + xe + ", " + ye + ")";
+    return fullName + "(" + xe + ", " + ye + ")";
   }
 
   def mkCallVectorContinuous(sz: Int, xe: String, ye: String, p: Prog, env: Env) : String = {
-    val fullName = "vector_continuous_" + sz;
+    val fullName = "v_continuous";
     if (!Collector.haveSym(fullName)) {
       val body = new CompileWriter(2)
       body.print("int i;").newline
       body.print("for (i = 0; i != " + sz + "; ++i) {").newline.indent(2)
-      body.print("x->d[i] += y.d[i] * simulator.timeStep_0;").newline
+      body.print("x[i] += y[i] * simulator.timeStep_0;").newline
       body.indent(-2).print("}").newline
-      Collector.newFun(fullName, List(CVar("x", CType((vectorType(sz) + " *"))), 
-                                      CVar("y", CType(vectorType(sz)))),
+      Collector.newFun(fullName, List(CVar("x", CType.mutRef(vectorType(sz))), 
+                                      CVar("y", CType.cref(vectorType(sz)))),
                        "void", body.toString)
     }
-    return fullName + "(" + "&" + xe + ", " + ye + ")";
+    return fullName + "(" + xe + ", " + ye + ")";
   }
 
   def mkCallVectorDot(sz: Int, xe: Expr, ye: Expr, p: Prog, env: Env) : String = {
-    val fullName = "vector_dot_" + sz;
+    val fullName = "v_dot";
     if (!Collector.haveSym(fullName)) {
       val body = new CompileWriter(2)
       body.print("double res = 0;").newline
       body.print("int i;").newline
       body.print("for (i = 0; i != " + sz + "; ++i) {").newline.indent(2)
-      body.print("res += x.d[i] * y.d[i];").newline
+      body.print("res += x[i] * y[i];").newline
       body.indent(-2).print("}").newline
       body.print("return res;").newline
-      Collector.newFun(fullName, List(CVar("x", CType(vectorType(sz))), CVar("y", CType(vectorType(sz)))),
+      Collector.newFun(fullName, List(CVar("x", CType.cref(vectorType(sz))), 
+                                      CVar("y", CType.cref(vectorType(sz)))),
                        "double", body.toString)
     }
     return fullName + "(" + compileExpr(xe,p,env) + "," + compileExpr(ye,p,env) + ")";
@@ -650,7 +671,7 @@ object Interpreter {
   def to_c_name(name: Name, idx: Option[Int]) : String = {
     def cname = to_c_name(name)
     idx match {
-      case Some(i) => cname + ".d[" + i + "]"
+      case Some(i) => cname + "[" + i + "]"
       case _ => cname
     }
   }
@@ -693,7 +714,7 @@ object Interpreter {
       case VClassName(ClassName(n)) => to_c_string(n)
       case VStepType(Discrete()) => "DISCRETE"
       case VStepType(Continuous()) => "CONTINUOUS"
-      case VVector(l) => "(" + vectorType(l.size) + ")" + "{" + l.map{v => to_c_value(v)}.mkString(", ") + "}"
+      case VVector(l) => vectorType(l.size) + "(" + l.map{v => to_c_value(v)}.mkString(", ") + ")"
       case _ => "NULL" // FIXME
     }
   }
