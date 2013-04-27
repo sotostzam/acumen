@@ -47,9 +47,7 @@ case class CVar (name: String, ctype: CType) {
 }
 
 object Collector {
-  val prelude = new CompileWriter
   val structDefns = new scala.collection.mutable.ListBuffer[String]
-  val globals = new CompileWriter
   val funDecls = new scala.collection.mutable.ListBuffer[String]
   val funDefns = new scala.collection.mutable.ListBuffer[String]
   val symbols = new scala.collection.mutable.HashSet[String]
@@ -75,21 +73,33 @@ object Collector {
     symbols.add(name)
   }
   def addClass(cc: CompiledClass) {
-    structDefns += ("class " + cc.name + " {\npublic:\n" + cc.body.toString + "};\n")
+    structDefns += ("class " + cc.name 
+                    + (if (cc.inherits != null) " : public " + cc.inherits else "") 
+                    + " {\npublic:\n" + cc.body.toString + "};\n")
     symbols.add(cc.name)
   }
   def haveSym(name: String) = symbols.contains(name)
   def writeOut = {
     val out = new java.io.PrintWriter(new java.io.FileWriter("model.cpp"))
-    out.print(prelude.toString)
-    out.print("\n")
+    def section(desc: String) = {
+      out.print("\n");
+      out.print("//////////////////////////////////////////////////////\n")
+      out.print("//\n");
+      out.print("// " + desc + "\n");
+      out.print("//\n\n");
+    }
+    section("prelude.hpp");
+    scala.io.Source.fromInputStream(getClass().getResourceAsStream("prelude.hpp")).getLines()
+      .foreach {v => out.print(v); out.print("\n")}
+    section("class/struct definitions")
     structDefns.foreach {v => out.print(v); out.print("\n")}
-    out.print("\n")
-    out.print(globals.toString)
-    out.print("\n\n")
+    section("class/struct definitions")
     funDecls.foreach {v => out.print(v); out.print("\n")}
-    out.print("\n")
+    section("method/function definations")
     funDefns.foreach {v => out.print(v); out.print("\n")}
+    section("acumen.cpp")
+    scala.io.Source.fromInputStream(getClass().getResourceAsStream("acumen.cpp")).getLines()
+      .foreach {v => out.print(v); out.print("\n")}
     System.out.println("*** C++ Code Written to model.cpp")
     out.close
   }
@@ -98,7 +108,15 @@ object Collector {
 class CompiledClass(val name: String, val inherits : String = null) {
   val body = new CompileWriter(2)
   def addField(v: CVar) = {body.print(v.toDecl).print(";").newline}
-  def addMethod(name: String, args: List[CVar], returnType: String, body: String, flags: String = "virtual ") = {}
+  def addMethod(methodName: String, args: List[CVar], returnType: String, methodBody: String, flags: String = "") = {
+    val argsStr = "(" + args.map{el => el.toDecl}.mkString(", ") + ")";
+    body.print(flags + returnType + " " + methodName + argsStr + ";").newline
+    val defn = new CompileWriter;
+    defn.print(returnType + " " + name + "::" +  methodName + argsStr + " {").newline
+    defn.printMultiline(methodBody);
+    defn.print("}").newline
+    Collector.funDefns += defn.toString
+  }
 }
 
 class CompileWriter(initial_indent : Int = 0) {
@@ -109,6 +127,11 @@ class CompileWriter(initial_indent : Int = 0) {
   def print(str: String) = {
     if (need_indent) {buf ++= " "*indent_amount; need_indent = false;}
     buf ++= str; this;}
+  def printMultiline(str:String) {
+    need_indent = true;
+    buf ++= str; 
+    this; 
+  }
   def newline = {buf += '\n'; need_indent = true; this;}
   def indent(v: Int) = {indent_amount += v; this;}
   override def toString : String = {buf.toString}
@@ -154,9 +177,6 @@ object Interpreter {
        and there was a check, this would crash (which we don't want) */
     val (sd1, sd2) = Random.split(Random.mkGen(0))
     val mainObj = mkObj(cmain, prog, None, sd1, List(VObjId(Some(magic))), magic, 1)
-    //cr.print("int main() {").newline.indent(2)
-    //cr.print("struct Main main_;").newline
-    //cr.indent(-2).print("}").newline
     magic.seed = sd2
     //changeParent(magic, mainObj) //FIXME: Needed? (as  we are a compiler...)
     compile(magic,mainObj,prog)
@@ -165,48 +185,10 @@ object Interpreter {
 
   def compile(magicObj: Object, mainObj: Object, prog: Prog) {
 
-    Collector.prelude.print("#include <stdlib.h>").newline
-    Collector.prelude.print("#include <math.h>").newline
-    Collector.prelude.print("#include <stdio.h>").newline
-    Collector.prelude.print("#include <string.h>").newline
-    Collector.prelude.newline
-    
-    Collector.prelude.print("typedef enum {DISCRETE, CONTINUOUS} StepType;").newline
-    Collector.prelude.print("typedef int Boolean;").newline
-
-    Collector.globals.print("static Simulator simulator;").newline
-    Collector.globals.print("static Boolean somethingChanged;").newline
-
     compileObj(magicObj, prog, magicObj)
     compileObj(mainObj, prog, magicObj)
     
     val body = new CompileWriter(2)
-    body.print("init_Simulator(&simulator);").newline
-    body.print("Main mainObj;").newline
-    body.print("init_Main(&mainObj,&simulator);").newline
-    body.print("/* main loop */").newline
-    compileDumpObjHeader(body, "mainObj.", mainObj, prog)
-    compileDumpObjHeader(body, "simulator.", magicObj, prog)
-    body.print("printf(\"\\n\");").newline
-    body.print("while (simulator.time_0 < simulator.endTime_0) {").newline.indent(2)
-    body.print("simulator.stepType_0 = DISCRETE;").newline
-    body.print("do {").newline.indent(2)
-    compileDumpObj(body, "mainObj.", mainObj, prog)
-    compileDumpObj(body, "simulator.", magicObj, prog)
-    body.print("printf(\"\\n\");").newline
-    body.print("somethingChanged = 0;").newline
-    body.print("step_Main(&mainObj);").newline
-    body.indent(-2).print("} while (somethingChanged);").newline
-    body.print("simulator.stepType_0 = CONTINUOUS;").newline
-    body.print("step_Main(&mainObj);").newline 
-    body.print("simulator.time_0 += simulator.timeStep_0;").newline
-    compileDumpObj(body, "mainObj.", mainObj, prog)
-    compileDumpObj(body, "simulator.",magicObj, prog)
-    body.print("printf(\"\\n\");").newline
-    body.indent(-2).print("}").newline
-    body.print("/* main loop end */").newline
-    body.print("return 0;").newline
-    Collector.newFun("main", Nil, "int", body.toString, "")
 
     Collector.writeOut
 
@@ -251,42 +233,59 @@ object Interpreter {
       }
     }                                 
 
+    val cc = new CompiledClass(cn, "AcumenObject");
+    cc.body.print(cn + "() : AcumenObject(" + to_c_string(cn) + ") {}").newline
+
+    // FIXME: Comment out of date
     // First create a c struct for the object, the type for the struct
     // fields are based on the initial value in the object.  At the
     // same time set the types for any fields (it paramaters to the
     // object constructor) as they will be needed later.  
-    Collector.newStruct(cn, obj.fields.map { case (name, value) => 
+    obj.fields.foreach { case (name, value) => 
       val cname = to_c_name(name)
       val ctype = to_c_type(value)
       if (fieldTypes.contains(name)) {
         println("Updating " + name + " to " + ctype)
         fieldTypes.update(name, ctype)
       }
-      CVar(cname, ctype) 
-    } toList)
+      cc.addField(CVar(cname, ctype))
+    }
 
     // Now output the initialization function
-    val args = List(CVar("obj", CType(cn + " *"))) ++
-      classFields.map { name => CVar(to_c_name(name), fieldTypes(name)) }
-    var body = new CompileWriter(2)
+    val args = classFields.map { name => CVar(to_c_name(name), fieldTypes(name)) }
+    var body = new CompileWriter(4)
     obj.fields.foreach { 
       case (name, value) =>
-        body.print("obj->" + to_c_name(name) + " = ")
+        body.print("this->" + to_c_name(name) + " = ")
         if (fieldTypes.contains(name))
             body.print(to_c_name(name))
         else
           body.print(to_c_value(value))
         body.print(";").newline                  
     }
-    Collector.newFun("init_" + cn, args, "void", body.toString)
+    cc.addMethod("init", args, "void", body.toString)
 
     // Now output a function for the object actions
-    if (cn != "Simulator") {
-      val env = HashMap((self, VObjId(Some(obj))))
-      body = new CompileWriter(2)
+    val env = HashMap((self, VObjId(Some(obj))))
+    body = new CompileWriter(4)
+    if (cn != "Simulator")
       compileActions(body, cd.body, env, p, magic)
-      Collector.newFun("step_" + cn, List(CVar("obj", CType(cn + " *"))), "void", body.toString)
-    }
+    body.print("return KEEP_ME;").newline
+    cc.addMethod("step", List(CVar("stepType", CType("StepType")), 
+                              CVar("somethingChanged", CType.mutRef("bool")), 
+                              CVar("timeStep", CType("double"))), 
+                 "KillMe", body.toString)
+    cc.addMethod("discrete_step", List(CVar("somethingChanged", CType.mutRef("bool"))),
+                 "KillMe", "    return step(DISCRETE, somethingChanged, 0.0);\n");
+    cc.addMethod("continuous_step", List(CVar("timeStep", CType("double"))),
+                 "void", "    bool dummy = false; step(CONTINUOUS, dummy, timeStep);\n")
+    val body2 = new CompileWriter(4)
+    compileDumpObjHeader(body2, "", obj, p)
+    cc.addMethod("dump_header", List(), "void", body2.toString)
+    val body3 = new CompileWriter(4)
+    compileDumpObj(body3, "", obj, p)
+    cc.addMethod("dump_state", List(), "void", body3.toString)
+    Collector.addClass(cc)
   }
 
   def compileActions(cr: CompileWriter, as: List[Action], env: Env, p: Prog, magic: Object) =
@@ -321,11 +320,11 @@ object Interpreter {
         cr.indent(-2).print("} else { abort(); }").newline
         cr.indent(-2).print("}").newline
       case Discretely(da) =>
-        cr.print("if (simulator.stepType_0 == DISCRETE) {").newline.indent(2)
+        cr.print("if (stepType == DISCRETE) {").newline.indent(2)
         compileDiscreteAction(cr, da, env, p, magic)
         cr.indent(-2).print("}").newline
       case Continuously(ca) =>
-        cr.print("if (simulator.stepType_0 == CONTINUOUS) {").newline.indent(2)
+        cr.print("if (stepType == CONTINUOUS) {").newline.indent(2)
         compileContinuousAction(cr, ca, env, p, magic)
         cr.indent(-2).print("}").newline
     }
@@ -355,7 +354,7 @@ object Interpreter {
       case EquationT(Dot(e, x), t) =>
         // val VObjId(Some(a)) = evalExpr(e, p, env)
         // FIXME: Assuming single object case
-        cr.print("obj->" + to_c_name(x) + " = ");
+        cr.print(to_c_name(x) + " = ");
         cr.print(compileExpr(t, p, env))
         cr.print(";").newline
       case EquationI(Dot(e, x), t) =>
@@ -366,12 +365,12 @@ object Interpreter {
         // FIXME: Assuming single object case
         lhs match {
           case VLit(d) =>
-            cr.print("obj->" + to_c_name(x) + " += ")
+            cr.print(to_c_name(x) + " += ")
             cr.print(compileExpr(t, p, env))
-            cr.print(" * " + "simulator.timeStep_0")
-            //VLit(GDouble(extractDouble(d) + extractDouble(vt) * dt))
+            cr.print(" * " + "timeStep")
+          //VLit(GDouble(extractDouble(d) + extractDouble(vt) * dt))
           case VVector(u) =>
-            cr.print(mkCallVectorContinuous(u.size, "obj->" + to_c_name(x), compileExpr(t, p, env), p, env) + ";").newline
+            cr.print(mkCallVectorContinuous(u.size, to_c_name(x), compileExpr(t, p, env), p, env) + ";").newline
           case _ =>
             throw BadLhs()
         }
@@ -405,14 +404,14 @@ object Interpreter {
     e match {
       case Lit(i)        => to_c_value(i)
       case ExprVector(l) => 
-        "(" + vectorType(l.size) + "){" + l.map{e => compileExpr(e,p,env)}.mkString(", ") + "}"
-      case Var(n)        => "obj->" + to_c_name(n)
+        vectorType(l.size) + "(" + l.map{e => compileExpr(e,p,env)}.mkString(", ") + ")"
+      case Var(n)        => to_c_name(n)
       case Dot(v, Name("children", 0)) => unimplemented(e)
         //val VObjId(Some(id)) = eval(env, v)
         ///id synchronized { VList((id.children map VObjId[ObjId]).toList) }
         //VList((id.children map (c => VObjId(Some(c)))).toList)
       /* e.f */
-      case Dot(Var(Name("self", 0)), f) => "obj->" + to_c_name(f)
+      case Dot(Var(Name("self", 0)), f) => "this->" + to_c_name(f)
       case Dot(e, f) => 
         compileExpr(e, p, env) + "->" + to_c_name(f)
         //val VObjId(Some(id)) = eval(env, e)
@@ -622,10 +621,11 @@ object Interpreter {
       body.indent(-2).print("}").newline
       body.indent(-2).print("}").newline
       Collector.newFun(fullName, List(CVar("x", CType.mutRef(vectorType(sz))), 
-                                      CVar("y", CType.cref(vectorType(sz)))),
+                                      CVar("y", CType.cref(vectorType(sz))),
+                                      CVar("somethingChanged", CType.mutRef("bool"))),
                        "void", body.toString)
     }
-    return fullName + "(" + xe + ", " + ye + ")";
+    return fullName + "(" + xe + ", " + ye + ", somethingChanged)";
   }
 
   def mkCallVectorContinuous(sz: Int, xe: String, ye: String, p: Prog, env: Env) : String = {
@@ -634,13 +634,14 @@ object Interpreter {
       val body = new CompileWriter(2)
       body.print("int i;").newline
       body.print("for (i = 0; i != " + sz + "; ++i) {").newline.indent(2)
-      body.print("x[i] += y[i] * simulator.timeStep_0;").newline
+      body.print("x[i] += y[i] * timeStep;").newline
       body.indent(-2).print("}").newline
       Collector.newFun(fullName, List(CVar("x", CType.mutRef(vectorType(sz))), 
-                                      CVar("y", CType.cref(vectorType(sz)))),
+                                      CVar("y", CType.cref(vectorType(sz))),
+                                      CVar("timeStep", CType("double"))),
                        "void", body.toString)
     }
-    return fullName + "(" + xe + ", " + ye + ")";
+    return fullName + "(" + xe + ", " + ye + ", timeStep)"
   }
 
   def mkCallVectorDot(sz: Int, xe: Expr, ye: Expr, p: Prog, env: Env) : String = {
