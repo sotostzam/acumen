@@ -19,6 +19,7 @@ public:
   virtual KillMe discrete_step(bool & somethingChanged) = 0;
   virtual void continuous_step(double stepSize) = 0;
   virtual void dump_header() = 0;
+  virtual void dump_state_line() = 0;
   virtual void dump_state() = 0;
   AcumenObject(const char * cn, AcumenObject * p) 
     : className_0(cn), parent(p), children(), children_ip(&children), back_ptr(), next() 

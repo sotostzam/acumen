@@ -20,6 +20,12 @@ static void dump_header(AcumenObject * root) {
     dump_header(node);
 }
 
+static void dump_state_line(AcumenObject * root) {
+  root->dump_state_line();
+  for (AcumenObject * node = root->children; node; node = node->next)
+    dump_state_line(node);
+}
+
 static void dump_state(AcumenObject * root) {
   root->dump_state();
   for (AcumenObject * node = root->children; node; node = node->next)
@@ -42,29 +48,42 @@ static void continuous_step(AcumenObject * root, double stepSize) {
     continuous_step(node, stepSize);
 }
 
-void main_loop(AcumenObject * root, Simulator * simulator) {
-  dump_header(root);
-  printf("\n");
+void main_loop(AcumenObject * root, Simulator * simulator, bool last) {
+  if (!last) {
+    dump_header(root);
+    printf("\n");
+  }
   while (simulator->time_0 < simulator->endTime_0) {
     simulator->stepType_0 = DISCRETE;
     bool somethingChanged;
     do {
       somethingChanged = false;
-      dump_state(root);
-      printf("\n");
+      if (!last) {
+        dump_state_line(root);
+        printf("\n");
+      }
       discrete_step(root, somethingChanged);
     } while (somethingChanged);
     simulator->stepType_0 = CONTINUOUS;
     continuous_step(root, simulator->timeStep_0);
     simulator->time_0 += simulator->timeStep_0;
+    if (!last) {
+      dump_state_line(root);
+      printf("\n");
+    }
+  }
+  if (last) {
     dump_state(root);
-    printf("\n");
   }
 }
 
-int main() {
+int main(int argc, const char* argv[]) {
+  bool last = false;
+  if (argc == 2 && strcmp(argv[1], "last") == 0) {
+    last = true;
+  }
   Simulator * simulator = new Simulator(NULL);
   Main * main = new Main(NULL, simulator);
   main->add_child(simulator);
-  main_loop(main, simulator);
+  main_loop(main, simulator, last);
 }

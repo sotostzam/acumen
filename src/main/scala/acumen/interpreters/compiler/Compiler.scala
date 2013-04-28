@@ -297,7 +297,10 @@ object Interpreter {
     cc.addMethod("dump_header", List(), "void", body2.toString)
     val body3 = new CompileWriter(4)
     compileDumpObj(body3, "", obj, p)
-    cc.addMethod("dump_state", List(), "void", body3.toString)
+    cc.addMethod("dump_state_line", List(), "void", body3.toString)
+    val body4 = new CompileWriter(4)
+    compileDumpObjState(body4, "", obj, p)
+    cc.addMethod("dump_state", List(), "void", body4.toString)
     Collector.addClass(cc)
   }
 
@@ -792,6 +795,16 @@ object Interpreter {
     cr.print("printf(\"");
     cr.print(fields.map( {case (_,_,f,_) => f}).mkString(" "))
     cr.print(" \", ")
+    cr.print(fields.map{case (n,i,_,f) => f(prefix + to_c_name(n,i))}.mkString(","))
+    cr.print(");").newline
+  }
+
+  def compileDumpObjState(cr: CompileWriter, prefix:String, o: Object, p: Prog) : Unit = {
+    val cn =  getClassOf(o).x;
+    val fields = getFilteredSortedFields(o);
+    cr.print("printf(" + to_c_string(cn) + "\" {\\n");
+    cr.print(fields.map( {case (n,i,fmt,_) => "  " + n.x + "'"*n.primes+arrayPart(i) + " = " + fmt + "\\n"}).mkString(""))
+    cr.print("}\\n\", ")
     cr.print(fields.map{case (n,i,_,f) => f(prefix + to_c_name(n,i))}.mkString(","))
     cr.print(");").newline
   }
