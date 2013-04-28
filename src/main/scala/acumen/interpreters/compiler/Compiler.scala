@@ -162,7 +162,7 @@ class Interpreter extends acumen.CStoreInterpreter {
 }
 
 object Interpreter {
-  import imperative.Common.{Object, evalExpr, mkObj, getClassOf, getField}
+  import imperative.Common.{Object, evalExpr, mkObj, getClassOf, getField, selfObjId, getNewSeed}
 
   type Store = Object
   type ObjId = Object
@@ -229,7 +229,7 @@ object Interpreter {
   }
 
 
-  def compileObj(obj: Object, p: Prog, magic: Object) {
+  def compileObj(obj: Object, p: Prog, magic: Object) : Unit = {
     val cn =  getClassOf(obj).x;
     val cd = if (cn != "Simulator") classDef(getClassOf(obj), p) else null
     val classFields = if (cd != null) cd.fields else Nil
@@ -358,6 +358,22 @@ object Interpreter {
           case VVector(l) => 
             cr.print(mkCallVectorAssignIfChanged(l.size, lhs, rhs, p, env) + ";").newline
         }
+      case Create(lhs, c, es) =>
+        if (!Collector.haveSym(c.x)) {
+          val ves = es map (evalExpr(_, p, env))
+          val self = selfObjId(env)
+          val sd = getNewSeed(self)
+          val fa = mkObj(c, p, Some(self), sd, ves, magic)
+          compileObj(fa, p, magic)
+        }
+        cr.print("new " + c.x + "(this, " + es.map{e => compileExpr(e,p,env)}.mkString(", ") + ");").newline
+        //lhs match {
+        //  case None => logModified
+        //  case Some(Dot(e, x)) =>
+        //    val VObjId(Some(id)) = evalExpr(e, p, env)
+        //    logModified || setField(id, x, VObjId(Some(fa)))
+        //  case Some(_) => throw BadLhs()
+        //}
       case _ => 
         cr.print("/*Unimplemented*/").newline
     }
