@@ -85,5 +85,8 @@ int main(int argc, const char* argv[]) {
   Simulator * simulator = new Simulator(NULL);
   Main * main = new Main(NULL, simulator);
   main->add_child(simulator);
+  main->id.data.push_back(0);
+  simulator->id.set(main->id, main->next_child);
+  main->next_child++;
   main_loop(main, simulator, last);
 }
