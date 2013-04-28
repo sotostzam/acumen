@@ -63,10 +63,8 @@ void main_loop(AcumenObject * root, Simulator * simulator) {
 }
 
 int main() {
-  Simulator * simulator = new Simulator;
-  simulator->init();
-  Main * main = new Main;
-  main->init(simulator);
+  Simulator * simulator = new Simulator(NULL);
+  Main * main = new Main(NULL, simulator);
   main->add_child(simulator);
   main_loop(main, simulator);
 }

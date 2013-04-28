@@ -117,6 +117,18 @@ class CompiledClass(val name: String, val inherits : String = null) {
     defn.print("}").newline
     Collector.funDefns += defn.toString
   }
+  def addConstructor(args: List[CVar], initList: String, methodBody: String) = {
+    val argsStr = "(" + args.map{el => el.toDecl}.mkString(", ") + ")";
+    body.print(name + argsStr + ";").newline
+    val defn = new CompileWriter;
+    defn.print(name + "::" +  name + argsStr).newline
+    if (initList != null)
+      defn.indent(2).print(initList).newline.indent(-2)
+    defn.print("{").newline
+    defn.printMultiline(methodBody);
+    defn.print("}").newline
+    Collector.funDefns += defn.toString
+  }
 }
 
 class CompileWriter(initial_indent : Int = 0) {
@@ -234,7 +246,6 @@ object Interpreter {
     }                                 
 
     val cc = new CompiledClass(cn, "AcumenObject");
-    cc.body.print(cn + "() : AcumenObject(" + to_c_string(cn) + ") {}").newline
 
     // FIXME: Comment out of date
     // First create a c struct for the object, the type for the struct
@@ -263,7 +274,9 @@ object Interpreter {
           body.print(to_c_value(value))
         body.print(";").newline                  
     }
-    cc.addMethod("init", args, "void", body.toString)
+    cc.addConstructor(List(CVar("p", CType.ptr("AcumenObject"))) ++ args, 
+                      ": AcumenObject(" + to_c_string(cn) + ", p)",
+                      body.toString)
 
     // Now output a function for the object actions
     val env = HashMap((self, VObjId(Some(obj))))

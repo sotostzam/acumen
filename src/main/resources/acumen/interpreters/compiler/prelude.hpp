@@ -20,8 +20,9 @@ public:
   virtual void continuous_step(double stepSize) = 0;
   virtual void dump_header() = 0;
   virtual void dump_state() = 0;
-  AcumenObject(const char * cn) 
-    : className_0(cn), parent(), children(), children_ip(&children), back_ptr(), next() {}
+  AcumenObject(const char * cn, AcumenObject * p) 
+    : className_0(cn), parent(p), children(), children_ip(&children), back_ptr(), next() 
+    {if (p) p->add_child(this);}
   void add_child(AcumenObject * child) {
     child->parent = this;
     *children_ip = child;
