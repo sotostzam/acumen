@@ -1,0 +1,29 @@
+
+// The classic bouncing ball example 
+// with proper zero crossing
+//
+// Author:  WT, based on model by MK and JD
+//
+// Note:  Run this with Semantics -> Enclosure
+// Note:  End time changed to go beyond first jump
+
+class Main(simulator)
+  private 
+    mode := "Fly"; 
+    x   := 5;    
+    x'  := 0; 
+    x'' := 0;  
+  end
+  switch mode
+    case "Fly" 
+      if x == 0 && x' <= 0
+        x' := -0.5*x';
+        mode := "Fly";
+      end;
+      x'' = -10;
+  end;
+  simulator.endTime := 4.5; // Changed from 1.0
+  simulator.minSolverStep := 0.01;
+  simulator.minLocalizationStep := 0.01;
+  simulator.minComputationImprovement := 0.001;
+end
