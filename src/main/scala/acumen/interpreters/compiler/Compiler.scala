@@ -231,6 +231,7 @@ object Interpreter {
 
   def compileObj(obj: Object, p: Prog, magic: Object) : Unit = {
     val cn =  getClassOf(obj).x;
+    Collector.symbols.add(cn);
     val cd = if (cn != "Simulator") classDef(getClassOf(obj), p) else null
     val classFields = if (cd != null) cd.fields else Nil
     val fieldTypes = MMap.empty[Name,CType]
@@ -370,6 +371,7 @@ object Interpreter {
           compileObj(fa, p, magic)
         }
         cr.print("new " + c.x + "(this, " + es.map{e => compileExpr(e,p,env)}.mkString(", ") + ");").newline
+        cr.print("somethingChanged = 1;").newline
         //lhs match {
         //  case None => logModified
         //  case Some(Dot(e, x)) =>
@@ -377,6 +379,8 @@ object Interpreter {
         //    logModified || setField(id, x, VObjId(Some(fa)))
         //  case Some(_) => throw BadLhs()
         //}
+      case Elim(Var(Name("self", 0))) =>
+        cr.print("return KILL_ME;").newline
       case _ => 
         cr.print("/*Unimplemented*/").newline
     }
