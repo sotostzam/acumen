@@ -549,8 +549,7 @@ object Interpreter {
       case "*" => compileToCBinOp("*", xe, ye, p, env)
       case "^" => compileToCFunCall("pow", List(xe, ye), p, env)
       case "/" => compileToCBinOp("/", xe, ye, p, env)
-      case "atan2" => compileToCFunCall("atan2", List(ye, xe), p, env) 
-      /* ^^ yes the order is reversed, not a bug */
+      case "atan2" => compileToCFunCall("atan2", List(xe, ye), p, env) 
       case _ => throw UnknownOperator(f)
     }
     def implem3(f:String, x:Int, y:Int) = f match {
