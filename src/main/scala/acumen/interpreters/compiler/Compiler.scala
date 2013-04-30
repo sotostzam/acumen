@@ -576,7 +576,7 @@ object Interpreter {
   def compileUnaryVectorOp(op: String,u: List[Val],xe: Expr, p: Prog, env: Env) : String = {
     op match {
       //case "length" => VLit(GInt(u.length)) 
-      case "norm" => "/* unimplemented: norm */"
+      case "norm" => mkCallVectorNorm(u.size, xe, p, env)
       case _ => throw InvalidVectorOp(op)
     }
   }
@@ -695,6 +695,22 @@ object Interpreter {
                        "double", body.toString)
     }
     return fullName + "(" + compileExpr(xe,p,env) + "," + compileExpr(ye,p,env) + ")";
+  }
+
+  def mkCallVectorNorm(sz: Int, xe: Expr, p: Prog, env: Env) : String = {
+    val fullName = "v_norm";
+    if (!Collector.haveSym(fullName)) {
+      val body = new CompileWriter(2)
+      body.print("double res = 0;").newline
+      body.print("int i;").newline
+      body.print("for (i = 0; i != " + sz + "; ++i) {").newline.indent(2)
+      body.print("res += x[i] * x[i];").newline
+      body.indent(-2).print("}").newline
+      body.print("return sqrt(res);").newline
+      Collector.newFun(fullName, List(CVar("x", CType.cref(vectorType(sz)))), 
+                       "double", body.toString)
+    }
+    return fullName + "(" + compileExpr(xe,p,env) + ")";
   }
 
   //
