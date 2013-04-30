@@ -2,66 +2,70 @@ package acumen
 package ui
 package tl
 
-import java.awt.event.ActionEvent
 import java.awt.BorderLayout
+import java.awt.Color
 import java.awt.Font
 import java.awt.GraphicsEnvironment
-import java.io._
-import java.util.HashSet
-import scala.collection.JavaConversions._
-import scala.swing._
+import java.io.File
+import java.io.FileReader
+import java.io.FileWriter
+import scala.Array.canBuildFrom
+import scala.collection.mutable.ArrayBuffer
+import scala.collection.mutable.Buffer
+import scala.swing.FileChooser
+import scala.swing.Label
+import scala.swing.Panel
 import scala.xml.XML
 import org.fife.ui.autocomplete.AutoCompletion
 import org.fife.ui.autocomplete.BasicCompletion
 import org.fife.ui.autocomplete.DefaultCompletionProvider
-import org.fife.ui.rsyntaxtextarea.templates.StaticCodeTemplate
 import org.fife.ui.rsyntaxtextarea.AbstractTokenMakerFactory
 import org.fife.ui.rsyntaxtextarea.RSyntaxTextArea
 import org.fife.ui.rsyntaxtextarea.SyntaxConstants
 import org.fife.ui.rsyntaxtextarea.TokenMakerFactory
 import org.fife.ui.rsyntaxtextarea.TokenTypes
+import org.fife.ui.rsyntaxtextarea.templates.StaticCodeTemplate
+import acumen.Parser
 import acumen.ui.App
 import acumen.ui.Files
+import acumen.ui.GraphicalMain
 import acumen.util.System.FILE_SUFFIX_MODEL
+import javax.swing.JFileChooser
+import javax.swing.JOptionPane
+import javax.swing.event.ChangeEvent
+import javax.swing.event.ChangeListener
 import javax.swing.event.DocumentEvent
 import javax.swing.event.DocumentListener
-import javax.swing.text._
-import javax.swing.undo._
-import javax.swing.JOptionPane
-import javax.swing.KeyStroke
-import java.awt.Color
+import javax.swing.event.TreeSelectionEvent
+import javax.swing.event.TreeSelectionListener
+import javax.swing.UIManager
+import scala.swing.Button
 
-
-class CodeArea extends Panel { //EditorPane {
+class CodeArea extends Panel with TreeSelectionListener {
 
   val textArea = createSyntaxTextArea
 
   val DEFAULT_FONT_SIZE = 12
   val DEFAULT_FONT_NAME = Font.MONOSPACED
-  val KNOWN_FONTS = Set("courier new", "courier", "monaco", "consolas", "lucida console", 
-		  				"andale mono", "profont", "monofur", "proggy", "droid sans mono", 
-		  			    "lettergothic", "bitstream vera sans mono", "crystal", "ubuntu monospace")
-  
+  val KNOWN_FONTS = Set("courier new", "courier", "monaco", "consolas", "lucida console",
+    "andale mono", "profont", "monofur", "proggy", "droid sans mono",
+    "lettergothic", "bitstream vera sans mono", "crystal", "ubuntu monospace")
+
   this.peer.setLayout(new BorderLayout)
-  this.peer.add(textArea,BorderLayout.CENTER)
-  
+  this.peer.add(textArea, BorderLayout.CENTER)
+
   /* ---- state variables ---- */
-  var currentFile : Option[File] = None
-  var editedSinceLastSave : Boolean = false
-  var editedSinceLastAutoSave : Boolean = false
+  var currentFile: Option[File] = None
+  var editedSinceLastSave: Boolean = false
+  var editedSinceLastAutoSave: Boolean = false
 
   val filenameLabel = new Label("[Untitled]")
-  val acumenFileFilter = new javax.swing.filechooser.FileFilter() {
-    val acumenFileName = """.*\.acm|README""".r 
-    def accept(f: File): Boolean = 
-      if (f isDirectory) true
-      else acumenFileName.pattern.matcher(f getName).matches
-    def getDescription = ".acm and README files"
-  }
   
-  /** 
+  private val pathChangeListeners: Buffer[ChangeListener] = new ArrayBuffer
+
+  /**
    * Create RSyntaxTextArea component. It provides features such as syntax highlighting and indentation.
-   * The highlighting is based on a syntax specification AcumenTokenMakerMaker.xml which has been compiled 
+   * The highlighting is based on a syntax specification AcumenTokenMakerMaker.xml which has been compiled
    * to the java class acumen.ui.tl.AcumenTokenMaker.java.
    * For more information, see https://github.com/effective-modeling/acumen/wiki/Acumen-development
    */
@@ -87,7 +91,7 @@ class CodeArea extends Panel { //EditorPane {
     }
     sta
   }
-  
+
   def createCompletionProvider(textArea: RSyntaxTextArea) = {
     val cp = new DefaultCompletionProvider
     val style = textArea.getSyntaxEditingStyle
@@ -103,31 +107,32 @@ class CodeArea extends Panel { //EditorPane {
     cp
   }
 
-  def createCodeTemplateManager = 
-    for (t <- List(
- 	  ("class",   "class ()\n  private  end\nend"),
-      ("main",    "class Main(simulator)\n  private  end\nend"),
- 	  ("private", "private  end"),
-      ("if",      "if \n  \nend;"),
-      ("switch",  "switch \n  case \n    \nend;"),
-      ("case",    "case\n  "),
-      ("hs",      "class Main(simulator)\n  private mode := \"\"; end\n  switch mode\n    case \"\"\n      \n  end\nend"),
-      ("mode",    "case \"\"\n  if  mode := \"\" end;\n  "),
-      ("event",   "if  mode := \"\" end;\n"),
-      ("ps",      "simulator.endTime := 3;\nsimulator.minSolverStep := 0.01;\nsimulator.minLocalizationStep := 0.001;\nsimulator.minComputationImprovement := 0.0001;")
-    )) { RSyntaxTextArea.getCodeTemplateManager addTemplate new StaticCodeTemplate(t._1, t._2, null) }
-  
+  def createCodeTemplateManager =
+    for (
+      t <- List(
+        ("class", "class ()\n  private  end\nend"),
+        ("main", "class Main(simulator)\n  private  end\nend"),
+        ("private", "private  end"),
+        ("if", "if \n  \nend;"),
+        ("switch", "switch \n  case \n    \nend;"),
+        ("case", "case\n  "),
+        ("hs", "class Main(simulator)\n  private mode := \"\"; end\n  switch mode\n    case \"\"\n      \n  end\nend"),
+        ("mode", "case \"\"\n  if  mode := \"\" end;\n  "),
+        ("event", "if  mode := \"\" end;\n"),
+        ("ps", "simulator.endTime := 3;\nsimulator.minSolverStep := 0.01;\nsimulator.minLocalizationStep := 0.001;\nsimulator.minComputationImprovement := 0.0001;"))
+    ) { RSyntaxTextArea.getCodeTemplateManager addTemplate new StaticCodeTemplate(t._1, t._2, null) }
+
   /* --- file handling ---- */
 
   def currentDir =
     currentFile match {
-      case Some(f) => f.getParentFile
+      case Some(f) => if (f.isDirectory) f else f.getParentFile
       case None    => Files.currentDir
     }
 
-  def setCurrentFile(f:Option[File]) = {
+  def setCurrentFile(f: Option[File]) = {
     currentFile = f
-    filenameLabel.text = 
+    filenameLabel.text =
       currentFile match {
         case Some(f) => f.getName
         case None    => "[Untitled]"
@@ -143,15 +148,15 @@ class CodeArea extends Panel { //EditorPane {
   def listenDocument = {
     textArea.getDocument.addDocumentListener(
       new DocumentListener {
-        def changedUpdate(e:DocumentEvent) {}
-        def insertUpdate(e:DocumentEvent) { setEdited }
-        def removeUpdate(e:DocumentEvent) { setEdited }
+        def changedUpdate(e: DocumentEvent) {}
+        def insertUpdate(e: DocumentEvent) { setEdited }
+        def removeUpdate(e: DocumentEvent) { setEdited }
       })
     textArea.discardAllEdits()
   }
 
-  def newFile : Unit = withErrorReporting {
-    if (!editedSinceLastSave || confirmContinue(App.ui.body.peer)) {
+  def newFile: Unit = withErrorReporting {
+    preventWorkLoss {
       textArea.setText("")
       setCurrentFile(None)
       editedSinceLastSave = false
@@ -159,42 +164,69 @@ class CodeArea extends Panel { //EditorPane {
     }
   }
 
-  def loadFile(file: File) : Unit = {
-    textArea.read(new FileReader(file),null)
+  def loadFile(file: File): Unit = {
+    textArea.read(new FileReader(file), null)
     listenDocument
     setCurrentFile(Some(file))
     enableEditing
     editedSinceLastSave = false
+    textArea setCaretPosition 0
   }
 
-  def openFile(path: File) : Unit = withErrorReporting {
-    if (!editedSinceLastSave || confirmContinue(App.ui.body.peer)) {
-      val fc = new FileChooser(path)
-      fc.fileFilter = acumenFileFilter
+  def openFile(path: File): Unit = withErrorReporting {
+    preventWorkLoss {
+      val fc = new FileChooser(path) {
+        override lazy val peer: JFileChooser = new JFileChooser(path) {
+          
+        }
+      }
+      enableChooseButton(fc.peer)
+      fc.peer.setFileSelectionMode(JFileChooser.FILES_AND_DIRECTORIES)
+      fc.fileFilter = CodeArea.acumenFileFilter
       val returnVal = fc.showOpenDialog(App.ui.body)
       if (returnVal == FileChooser.Result.Approve) {
-        loadFile(fc.selectedFile)
-        textArea setCaretPosition 0
+        if (fc.selectedFile.isFile)
+          loadFile(fc.selectedFile)
+        else { // Selected a directory => Clear current file 
+          textArea.setText("")
+          setCurrentFile(Some(fc.selectedFile))
+          editedSinceLastSave = false
+          textArea.discardAllEdits()
+        }
+        notifyPathChangeListeners
       }
     }
   }
 
-  def confirmSave(c: java.awt.Component, f:File) = {
-    val message = 
-      "File " + f.toString + 
-      " already exists.\nAre you sure you want to overwrite it?"
+  /* Hack to enable JFileChooser's Choose button */
+  def enableChooseButton(c: javax.swing.JComponent) {
+    for (comp <- c.getComponents) {
+      println(">>>" + comp)
+      if (comp.isInstanceOf[Button]) 
+        if (comp != null) println(comp.asInstanceOf[Button].text)//setEnabled(true)
+      else if (comp.isInstanceOf[javax.swing.JPanel])
+        enableChooseButton(comp.asInstanceOf[javax.swing.JPanel])
+    }
+  }
+  
+  def preventWorkLoss(a: => Unit) { if (!editedSinceLastSave || confirmContinue(App.ui.body.peer)) a } 
+
+  def confirmSave(c: java.awt.Component, f: File) = {
+    val message =
+      "File " + f.toString +
+        " already exists.\nAre you sure you want to overwrite it?"
     JOptionPane.showConfirmDialog(c, message,
       "Really?", JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION
   }
 
-  def confirmContinue(c:java.awt.Component) = {
+  def confirmContinue(c: java.awt.Component) = {
     val message = "Last changes have not been saved\n" +
-                  "Are you sure you want to continue?"
+      "Are you sure you want to continue?"
     JOptionPane.showConfirmDialog(c, message,
       "Really?", JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION
   }
 
-  def saveFileAs : Unit = withErrorReporting {
+  def saveFileAs: Unit = withErrorReporting {
     val fc = new FileChooser(currentDir)
     val returnVal = fc.showSaveDialog(App.ui.body)
     if (returnVal == FileChooser.Result.Approve) {
@@ -209,14 +241,18 @@ class CodeArea extends Panel { //EditorPane {
     }
   }
 
-  def saveFile : Unit = withErrorReporting {
+  def saveFile: Unit = withErrorReporting {
     currentFile match {
       case Some(f) =>
-        val writer = new FileWriter(f)
-        writer.write(textArea.getText)
-        writer.close
-        setCurrentFile(currentFile)
-        editedSinceLastSave = false
+        if (f.isDirectory)
+          saveFileAs
+        else {
+          val writer = new FileWriter(f)
+          writer.write(textArea.getText)
+          writer.close
+          setCurrentFile(currentFile)
+          editedSinceLastSave = false
+        }
       case None => saveFileAs
     }
   }
@@ -232,13 +268,20 @@ class CodeArea extends Panel { //EditorPane {
 
   def withErrorReporting(action: => Unit) = App.ui.withErrorReporting(action)
 
+  /* Listen to simulation state changes. When running, the editor is disabled. */
   listenTo(App.pub)
   reactions += {
-    case st:App.State => 
+    case st: App.State =>
       st match {
         case App.Stopped => enableEditing
         case _           => disableEditing
       }
+  }
+  
+  /* Listen for selection events in FileTree browser. */
+  def valueChanged(e: TreeSelectionEvent) {
+    val file = e.getPath.getLastPathComponent.asInstanceOf[TreeFile]
+    if (file.isFile) preventWorkLoss(loadFile(file))
   }
 
   def enableEditing = {
@@ -250,7 +293,7 @@ class CodeArea extends Panel { //EditorPane {
     })
     textArea setForeground Color.black
   }
-  
+
   def disableEditing = {
     textArea setEnabled (false)
     textArea setSyntaxEditingStyle SyntaxConstants.SYNTAX_STYLE_NONE
@@ -260,29 +303,50 @@ class CodeArea extends Panel { //EditorPane {
   if (GraphicalMain.openFile != null) {
     try {
       loadFile(GraphicalMain.openFile)
-    } catch {
-      case e => 
+      notifyPathChangeListeners
+    }
+    catch {
+      case e =>
         System.err.println("Unable To Open File: ")
         System.err.println("  " + e)
         exit(2)
     }
   }
-  
+
   /* Font management */
-  
+
   def setFontName(n: String) =
     textArea.setFont(new Font(n, textArea.getFont getStyle, textArea.getFont getSize))
-  
-  val supportedFonts =  
+
+  val supportedFonts =
     DEFAULT_FONT_NAME +: GraphicsEnvironment.getLocalGraphicsEnvironment.getAvailableFontFamilyNames.filter(KNOWN_FONTS contains _.toLowerCase)
-    
-  private def setFontSize(size: Int) = 
+
+  private def setFontSize(size: Int) =
     textArea.setFont(new Font(textArea.getFont getName, textArea.getFont getStyle, size))
-    
+
   def increaseFontSize = setFontSize(textArea.getFont.getSize + 2)
-  
+
   def decreaseFontSize = if (textArea.getFont.getSize > 3) setFontSize(textArea.getFont.getSize - 2)
 
   def resetFontSize = setFontSize(DEFAULT_FONT_SIZE)
-    
+
+  /* Let the FileTree browser listen for path changes, due to file open/save actions. 
+   * Open and Save As may change the path. 
+   */
+  def addPathChangeListener(l : ChangeListener) { pathChangeListeners += l }
+  def removePathChangeListener(l : ChangeListener) { pathChangeListeners -= l }
+  def notifyPathChangeListeners() { for (l <- pathChangeListeners) l.stateChanged(new ChangeEvent(this)) }
 }
+
+object CodeArea {
+
+  val acumenFileFilter = new javax.swing.filechooser.FileFilter() {
+    val acumenFileName = """.*\.acm|README""".r
+    def accept(f: File): Boolean =
+      if (f isDirectory) true
+      else acumenFileName.pattern.matcher(f getName).matches
+    def getDescription = ".acm and README files"
+  }
+  
+}
+

@@ -28,6 +28,7 @@ import java.awt.event.KeyEvent._
 import scala.Boolean
 import java.awt.Toolkit
 import org.fife.ui.rtextarea.RTextScrollPane
+import javax.swing.JTree
 
 // class Acumen = Everything that use to be GraphicalMain.  Graphical
 // Main can't be an object it will cause Swing components to be
@@ -108,10 +109,17 @@ class App extends SimpleSwingApplication {
   
   /* 1.2 lower pane */
   val console = new tl.Console
-
-  val lowerPane = new BorderPanel {
-    add(new Label("Console"), BorderPanel.Position.North)
-    add(new ScrollPane(console), BorderPanel.Position.Center)
+  val fileTree = new tl.FileTree(Files.currentDir.getAbsolutePath)
+  fileTree.peer.addTreeSelectionListener(codeArea)
+  codeArea.addPathChangeListener(fileTree)
+  
+  val lowerPane = new TabbedPane {
+    pages += new TabbedPane.Page("Console", new BorderPanel {
+      add(new ScrollPane(console), BorderPanel.Position.Center)
+    })
+    pages += new TabbedPane.Page("File Browser", new BorderPanel {
+      add(new ScrollPane(fileTree), BorderPanel.Position.Center)
+    })
   }
 
   val leftPane = 
