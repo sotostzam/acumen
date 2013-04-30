@@ -586,7 +586,7 @@ object Interpreter {
     val sz = u.size
     def mkCall(fname: String, f: (String, String) => String) = {
       val fullName = "v_" + fname
-      mkCallBinVectorFun(fullName, sz, CType.cref(vectorType(sz)), CType.cref(vectorType(sz)), xe, ye, f("x[i]", "y"), p, env)
+      mkCallBinVectorFun(fullName, sz, CType.cref(vectorType(sz)), CType.cref(vectorType(sz)), xe, ye, f("x[i]", "y[i]"), p, env)
     }
     op match {
       case ".*"  => mkCall("times", (x,y) => x + "*" + y)
@@ -635,7 +635,7 @@ object Interpreter {
       body.print("for (i = 0; i != " + sz + "; ++i) {").newline.indent(2)
       body.print("res[i] = " + loopBodyExpr + ";").newline
       body.indent(-2).print("}").newline
-      body.print("return res;")
+      body.print("return res;").newline
       Collector.newFun(fullName, List(CVar("x", xType), CVar("y", yType)),
                        vectorType(sz), body.toString, "static ")
     }
