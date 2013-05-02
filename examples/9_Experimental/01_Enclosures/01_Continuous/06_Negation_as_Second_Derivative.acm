@@ -4,16 +4,21 @@
 // Note:  Run with Semantics -> Enclosure
 
 class Main(simulator)
-private x:=1; x':=0; x'':=0; mode := ""; end
+  private 
+    x := 1; x' := 0; x'' := 0; 
+    mode := ""
+  end
   switch mode
     case ""
       x'' = -x
   end;
-  simulator.endTime := 2.0;
-  simulator.minSolverStep := 0.01;
+  simulator.endTime := 2.0; // Exposes non-monotonicity
+  simulator.minSolverStep := 0.05; // Affects precision
 end
 
-// Note:  For the (very basic) continuous solver that
-//          this enclosure semantics uses (Picard
-//          iteration), imprecision error can accumulate
-//          very quickly
+// Note:  For the (very basic) differential equation 
+//        solver that this enclosure semantics uses 
+//        (Picard iteration), imprecision error can 
+//        accumulate very quickly.
+// Note:  A smaller minSolverStep increases precision
+//        at the cost of slower simulation.

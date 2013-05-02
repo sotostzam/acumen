@@ -4,7 +4,10 @@
 // Note:  Run with Semantics -> Enclosure
 
 class Main(simulator)
-private x:=0; x':=1; x'':=2; mode := ""; end
+  private 
+    x := 0; x' := 1; x'' := 2; 
+    mode := ""
+  end
   switch mode
     case ""
       x'' = -x*x/6
@@ -13,5 +16,8 @@ private x:=0; x':=1; x'':=2; mode := ""; end
   simulator.minSolverStep := 0.1;
 end
 
+// Note:  Nonlinear differential equation.
 // Note:  This equation seems to have a singularity
-//          around 10
+//        around 10.
+// Note:  On slower systems, this simulation can
+//        take a while to run.

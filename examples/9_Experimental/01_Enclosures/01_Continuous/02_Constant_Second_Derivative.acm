@@ -4,22 +4,22 @@
 // Note:  Run with Semantics -> Enclosure
 
 class Main(simulator)
-private 
-  x:=-10; 
-  x':=0; 
-  x'':=0; 
-  mode:= ""
-end
+  private 
+    x := 0; x' := 0; x'' := 1; 
+    mode := ""
+  end
   switch mode
     case ""
       x'' = 1
   end;
   simulator.endTime := 1.5;
-  simulator.minSolverStep := 0.1;
+  simulator.minSolverStep := 0.1; // Affects thickness
 end
 
 // Note:  The plot thickens :-)
-// Note:  Thickness starts from initial value
-//          due to use of Picard method
-// Note:  Additional lost of information on transitions
-// Note:  Steps are constant because of minSolverStep
+// Note:  Thick at t=0 due to linear (lower bound) 
+//        approximation of nonlinear solution.
+// Note:  Jagged lower bounds are due to convexity of
+//        the solution.
+// Note:  Steps are >= minSolverStep, and depend on
+//        the endTime.

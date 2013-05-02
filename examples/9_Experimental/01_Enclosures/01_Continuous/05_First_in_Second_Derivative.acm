@@ -4,7 +4,10 @@
 // Note:  Run with Semantics -> Enclosure
 
 class Main(simulator)
-private x:=1; x':=1; x'':=0; mode := ""; end
+  private 
+    x := 1; x' := 1; x'' := 0; 
+    mode := ""
+  end
   switch mode
     case ""
       x'' = -x'
@@ -13,4 +16,4 @@ private x:=1; x':=1; x'':=0; mode := ""; end
   simulator.minSolverStep := 0.1;
 end
 
-// Note:  Second order equations work, too
+// Note:  Second order equations work, too.
