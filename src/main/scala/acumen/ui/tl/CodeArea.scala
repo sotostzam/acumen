@@ -267,7 +267,10 @@ class CodeArea extends Panel with TreeSelectionListener {
   /* Listen for selection events in FileTree browser. */
   def valueChanged(e: TreeSelectionEvent) {
     if (GraphicalMain.syncEditorWithBrowser) {
-      val file = e.getPath.getLastPathComponent.asInstanceOf[TreeFile]
+      val lpc = e.getPath.getLastPathComponent
+      val file =
+        if (lpc.isInstanceOf[TreeFile]) lpc.asInstanceOf[TreeFile]
+        else lpc.asInstanceOf[File]
       if (file.isFile) preventWorkLoss(loadFile(file))
     }
   }

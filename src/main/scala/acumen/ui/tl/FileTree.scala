@@ -23,6 +23,7 @@ import javax.swing.tree.TreeModel
 import javax.swing.tree.TreePath
 import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
+import javax.swing.text.Position
 
 /** Wrapper for FileTree, provides navigation and configuration buttons. */
 class FileBrowser(initialPath: File, editor: CodeArea) extends BorderPanel {
@@ -32,9 +33,10 @@ class FileBrowser(initialPath: File, editor: CodeArea) extends BorderPanel {
   /* When synchronization is not enabled, double-clicking a model opens it in the editor */
   fileTree.peer.addMouseListener(new MouseAdapter {
     override def mousePressed(e: MouseEvent) {
-      val clicked = fileTree.peer.getPathForLocation(e.getX, e.getY).getLastPathComponent
-      if (!GraphicalMain.syncEditorWithBrowser && clicked != null && e.getClickCount == 2) {
-        val f = clicked.asInstanceOf[File]
+      val clicked = fileTree.peer.getPathForLocation(e.getX, e.getY)
+      if (!GraphicalMain.syncEditorWithBrowser && e.getClickCount == 2 &&
+        clicked != null && clicked.getLastPathComponent != null) {
+        val f = clicked.getLastPathComponent.asInstanceOf[File]
         if (f.isFile) editor.loadFile(f)
       }
     }
@@ -56,13 +58,11 @@ class FileBrowser(initialPath: File, editor: CodeArea) extends BorderPanel {
   syncButton.setAction(new AbstractAction("sync", Icons.sync) {
     override def actionPerformed(e: ActionEvent) {
       GraphicalMain.syncEditorWithBrowser = !GraphicalMain.syncEditorWithBrowser
-      fileTree.getSelectedFile match {
-        case Some(_) => fileTree.refresh
-        case None => editor.currentFile match {
-          case Some(file) => fileTree.reset(file.getParentFile)
+      if (GraphicalMain.syncEditorWithBrowser)
+        editor.currentFile match {
+          case Some(file) => fileTree.focus(file)
           case None       => fileTree.refresh
         }
-      }
     }
   })
   syncButton.setSelected(GraphicalMain.syncEditorWithBrowser)
@@ -104,9 +104,29 @@ class FileTree(initialPath: File) extends Component with ChangeListener {
     tree
   }
 
-  /** Focus the file tree on a path */
+  /**
+   * Focus the file tree on a path.
+   * Current node selection and expansion state will be restored.
+   * Unlike reset(), if the path is a descendant of the current 
+   * root, tree nodes corresponding to the path will be expanded.
+   */
+  def focus(path: File) {
+    descendantOfRoot(path) match {
+      case Some(treePath) => // Path is a descendant of the root 
+        peer.expandPath(treePath)
+        peer.getSelectionModel.setSelectionPath(treePath)
+        peer.scrollPathToVisible(treePath)
+      case None => // Path is not a descendant of the root, need to reset the view
+        reset(path)
+    }
+  }
+
+  /**
+   * Reset the file tree on a path.
+   * Current node selection and expansion state will be restored.
+   */
   def reset(path: File) {
-    // save expanded nodes
+    // save expanded/selected nodes
     val expanded = ArrayBuffer[TreePath]()
     val expDescendants = peer.getExpandedDescendants(new TreePath(peer.getModel.getRoot))
     if (expDescendants != null)
@@ -115,22 +135,49 @@ class FileTree(initialPath: File) extends Component with ChangeListener {
         if (nextPath.getLastPathComponent != peer.getModel.getRoot)
           expanded += nextPath
       }
+    val selected = peer.getSelectionModel.getSelectionPaths
     // focus model on path
-    peer.setModel(new FileSystemModel(path))
-    // restore expanded nodes
+    peer.setModel(new FileSystemModel(
+      if (path.isDirectory) path
+      else path.getParentFile))
+    // restore expanded/selected nodes
     for (i <- (peer.getRowCount - 1) to 0 by -1)
       peer collapseRow i
     for (path <- expanded)
       peer expandPath path
+    if (selected != null) {
+      peer.getSelectionModel.setSelectionPath(selected.first)
+      peer.scrollPathToVisible(selected.first)
+    }
   }
-  
+
+  /**
+   * If path is a sub-directory of the current tree's root, returns a TreePath to
+   * this sub-directory wrapped in Some, otherwise returns None
+   */
+  private def descendantOfRoot(path: File): Option[TreePath] = {
+    val r = peer.getModel.getRoot.asInstanceOf[File].getCanonicalFile.getAbsolutePath
+    val p = path.getCanonicalFile.getAbsolutePath
+    if (r != p && p.startsWith(r)) {
+      val pathElems = p.substring(r.length).split("/").tail //FIXME Make sure this work on Windows
+      var treePath: TreePath = null
+      for (e <- pathElems) {
+        val row = if (treePath == null) 0 else peer.getRowForPath(treePath)
+        treePath = peer.getNextMatch(e, row, Position.Bias.Forward)
+        peer.expandPath(treePath)
+      }
+      Some(treePath)
+    }
+    else None
+  }
+
   /** Reload the contents of the model's folder into the tree view */
-  def refresh() = reset(peer.getModel.getRoot.asInstanceOf[File])
+  def refresh() = focus(peer.getModel.getRoot.asInstanceOf[File])
 
   /** Focus the browser on the parent folder */
   def goUp() = {
     val parent = peer.getModel.getRoot.asInstanceOf[File].getAbsoluteFile.getParentFile
-    if (parent != null) reset(parent)
+    if (parent != null) focus(parent)
   }
 
   /** Focus the browser on the currently selected folder */
@@ -138,27 +185,28 @@ class FileTree(initialPath: File) extends Component with ChangeListener {
     case Some(file) => reset(file)
     case None       => // Do nothing
   }
-  
+
+  /** Returns the file currently selected in the tree */
   def getSelectedFile(): Option[File] = {
     val selectionPath = peer.getSelectionModel.getSelectionPath
-    if (selectionPath != null)
+    if (selectionPath != null && selectionPath.getLastPathComponent != null)
       Some(selectionPath.getLastPathComponent.asInstanceOf[TreeFile])
-    else
-      None
+    else None
   }
 
-  /* If the user opened or saved the current file to a new name, check if the path needs to be adjusted. */
+  /* 
+   * If the user opened or saved the current file to a new name, check if the 
+   * path needs to be adjusted. 
+   */
   override def stateChanged(e: ChangeEvent) {
-    if (GraphicalMain.syncEditorWithBrowser) {
-      val ca = e.getSource.asInstanceOf[CodeArea]
-      ca.currentFile match {
-        case Some(file) => // Check what was selected through File > Open
-          if (file.isDirectory) reset(file) // Directory..
-          else if (file.getParentFile != null) reset(file.getParentFile) // File..
-        case _ =>
-      }
+    val ca = e.getSource.asInstanceOf[CodeArea]
+    val f = peer.getModel.getRoot.asInstanceOf[File]
+    ca.currentFile match {
+      case Some(file) => // Check what was selected through File > Open
+        if (GraphicalMain.syncEditorWithBrowser) focus(file)
+        if (file.isDirectory) peer.clearSelection
+      case None => // Do nothing
     }
-    else refresh
   }
 
 }
