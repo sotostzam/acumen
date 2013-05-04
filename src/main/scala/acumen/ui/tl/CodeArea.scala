@@ -182,7 +182,7 @@ class CodeArea extends Panel with TreeSelectionListener {
       if (returnVal == FileChooser.Result.Approve) {
         if (fc.selectedFile.isFile)
           loadFile(fc.selectedFile)
-        else { // Selected a directory => Clear current fileÊ
+        else { // Selected a directory => Clear current file
           textArea.setText("")
           setCurrentFile(Some(fc.selectedFile))
           editedSinceLastSave = false
