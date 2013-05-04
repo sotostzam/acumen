@@ -175,12 +175,7 @@ class CodeArea extends Panel with TreeSelectionListener {
 
   def openFile(path: File): Unit = withErrorReporting {
     preventWorkLoss {
-      val fc = new FileChooser(path) {
-        override lazy val peer: JFileChooser = new JFileChooser(path) {
-          
-        }
-      }
-      enableChooseButton(fc.peer)
+      val fc = new FileChooser(path)
       fc.peer.setFileSelectionMode(JFileChooser.FILES_AND_DIRECTORIES)
       fc.fileFilter = CodeArea.acumenFileFilter
       val returnVal = fc.showOpenDialog(App.ui.body)
@@ -195,17 +190,6 @@ class CodeArea extends Panel with TreeSelectionListener {
         }
         notifyPathChangeListeners
       }
-    }
-  }
-
-  /* Hack to enable JFileChooser's Choose button */
-  def enableChooseButton(c: javax.swing.JComponent) {
-    for (comp <- c.getComponents) {
-      println(">>>" + comp)
-      if (comp.isInstanceOf[Button]) 
-        if (comp != null) println(comp.asInstanceOf[Button].text)//setEnabled(true)
-      else if (comp.isInstanceOf[javax.swing.JPanel])
-        enableChooseButton(comp.asInstanceOf[javax.swing.JPanel])
     }
   }
   
@@ -236,6 +220,7 @@ class CodeArea extends Panel with TreeSelectionListener {
         writer.write(textArea.getText)
         writer.close
         setCurrentFile(Some(file))
+        notifyPathChangeListeners
         editedSinceLastSave = false
       }
     }
@@ -251,6 +236,7 @@ class CodeArea extends Panel with TreeSelectionListener {
           writer.write(textArea.getText)
           writer.close
           setCurrentFile(currentFile)
+          notifyPathChangeListeners
           editedSinceLastSave = false
         }
       case None => saveFileAs
@@ -277,11 +263,13 @@ class CodeArea extends Panel with TreeSelectionListener {
         case _           => disableEditing
       }
   }
-  
+
   /* Listen for selection events in FileTree browser. */
   def valueChanged(e: TreeSelectionEvent) {
-    val file = e.getPath.getLastPathComponent.asInstanceOf[TreeFile]
-    if (file.isFile) preventWorkLoss(loadFile(file))
+    if (GraphicalMain.syncEditorWithBrowser) {
+      val file = e.getPath.getLastPathComponent.asInstanceOf[TreeFile]
+      if (file.isFile) preventWorkLoss(loadFile(file))
+    }
   }
 
   def enableEditing = {

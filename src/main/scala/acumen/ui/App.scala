@@ -40,6 +40,9 @@ class App extends SimpleSwingApplication {
   import App._
 
   App.ui = this
+  
+  val DEFAULT_HEIGHT = 1024
+  val DEFAULT_WIDTH = 768
 
   // Create a special actor to listen to events from other threads
 
@@ -109,23 +112,22 @@ class App extends SimpleSwingApplication {
   
   /* 1.2 lower pane */
   val console = new tl.Console
-  val fileTree = new tl.FileTree(Files.currentDir.getAbsolutePath)
-  fileTree.peer.addTreeSelectionListener(codeArea)
-  codeArea.addPathChangeListener(fileTree)
+  val fileBrowser = new FileBrowser(Files.currentDir, codeArea)
+  fileBrowser.fileTree.peer.addTreeSelectionListener(codeArea)
+  codeArea.addPathChangeListener(fileBrowser.fileTree)
   
   val lowerPane = new TabbedPane {
     pages += new TabbedPane.Page("Console", new BorderPanel {
       add(new ScrollPane(console), BorderPanel.Position.Center)
     })
-    pages += new TabbedPane.Page("File Browser", new BorderPanel {
-      add(new ScrollPane(fileTree), BorderPanel.Position.Center)
-    })
+    pages += new TabbedPane.Page("File Browser", fileBrowser)
+    preferredSize = new Dimension(DEFAULT_HEIGHT/4, preferredSize.width)
   }
 
   val leftPane = 
     new SplitPane(Orientation.Horizontal, upperPane, lowerPane) { 
       oneTouchExpandable = true
-      resizeWeight = 0.9
+      resizeWeight = 1.0
     }
 
   /* 2 right pane */
@@ -370,7 +372,7 @@ class App extends SimpleSwingApplication {
     title = "Acumen"
     contents = body
     menuBar = bar
-    size = new Dimension(1024,768)
+    size = new Dimension(DEFAULT_HEIGHT,DEFAULT_WIDTH)
     // XXX: consider deleting
     override def closeOperation() {     
     exit
