@@ -1,8 +1,8 @@
 
-// minComputationImprovement large
-// Authors: Michal Konecny and Jan Duracz
-// A large minComputationImprovement results in a large 
-// enclosure.
+// minComputationImprovement Large Example
+//
+// Authors:  Michal Konecny and Jan Duracz
+// Note:     Run using Semantics -> Enclosure
 
 class Main(simulator)
   private 
@@ -19,5 +19,8 @@ class Main(simulator)
   simulator.endTime := 2;
   simulator.minSolverStep := 0.01;
   simulator.minLocalizationStep := 0.001;
-  simulator.minComputationImprovement := 0.1;
+  simulator.minComputationImprovement := 0.1
 end
+
+// Note:  A large minComputationImprovement results in
+//        a large enclosure.
