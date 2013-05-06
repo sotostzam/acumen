@@ -5,7 +5,8 @@
 
 class Main(simulator)
   private 
-    x := 1; x' := 0; 
+    x    := 1; 
+    x'   := 0; 
     mode := ""
   end
   switch mode
@@ -13,7 +14,7 @@ class Main(simulator)
       x' = -x
   end;
   simulator.endTime := 1.0;
-  simulator.minSolverStep := 0.1;
+  simulator.minSolverStep := 0.1
 end
 
-// Note:  No surprises here.
+// Note:  No surprises.
