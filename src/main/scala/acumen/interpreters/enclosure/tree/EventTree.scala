@@ -1,6 +1,8 @@
 package acumen.interpreters.enclosure.tree
 
 import acumen.interpreters.enclosure._
+import acumen.interpreters.enclosure.SolveIVP
+import acumen.interpreters.enclosure.Types.Event
 import acumen.interpreters.enclosure.Types._
 import acumen.interpreters.enclosure.Util._
 

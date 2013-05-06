@@ -59,16 +59,19 @@ object Main {
         case "last" =>
           trace.printLast
         case "bench" =>
-          val start: Int = Integer.parseInt(args(firstNonSemanticsArg + 1 + 1))
-          val stop: Int = Integer.parseInt(args(firstNonSemanticsArg + 1 + 2))
+          val offset = firstNonSemanticsArg + 1 + 1;
+          val start: Int = Integer.parseInt(args(offset + 0))
+          val stop: Int = Integer.parseInt(args(offset + 1))
+          val warmup : Int = if (args.size > offset + 2) Integer.parseInt(args(offset+2)) else 0
+          val repeat : Int = if (args.size > offset + 3) Integer.parseInt(args(offset+3)) else 10
           val forced = nodiff_out
           for (nbThreads <- start to stop) {
             print(nbThreads + " threads: ")
             withInterpreter(nbThreads) { PI =>
               as_ctrace(PI.run(forced)).last
-              print(".")
+              for (_ <- 0 until warmup) { print("w"); as_ctrace(PI.run(forced)).last }
               val startTime = System.currentTimeMillis()
-              for (_ <- 0 until 10) { print("."); as_ctrace(PI.run(forced)).last }
+              for (_ <- 0 until repeat) { print("."); as_ctrace(PI.run(forced)).last }
               val endTime = System.currentTimeMillis()
               println(endTime - startTime)
             }

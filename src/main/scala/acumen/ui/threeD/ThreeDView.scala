@@ -428,9 +428,11 @@ class _3DDisplay(app: ThreeDView, slider: Slider3d,
   var text3d = new Text3D(f3d);
   text3d.setString("a");
   // 
-  def addText(tg: TransformGroup, text: String, size: Int, color: List[Double]) {
-    // Font for text	
-    f3d = new Font3D(new Font("", Font.PLAIN, size),
+  def addText(tg: TransformGroup, text: String, size: Double, color: List[Double]) {
+    // Font for text
+    // Initialize the size of the font to 1, then scale it 
+    // according to the size parameter	
+    f3d = new Font3D(new Font("", Font.PLAIN, 1),
       new FontExtrusion());
     text3d = new Text3D(f3d);
     text3d.setString(text);
@@ -442,7 +444,14 @@ class _3DDisplay(app: ThreeDView, slider: Slider3d,
     var sh = new Shape3D();
     sh.setGeometry(text3d);
     sh.setAppearance(a);
-    tg addChild sh
+    // Scale the 3D text
+    var tgScale = new Transform3D();
+    tgScale.setScale(size);
+    var tg1 = new TransformGroup();
+    tg1.setTransform(tgScale);
+    tg1 addChild sh
+    tg addChild tg1
+    //tg addChild sh
   }
 
   /**
@@ -547,7 +556,7 @@ class _3DDisplay(app: ThreeDView, slider: Slider3d,
           case "Sphere" =>
             app.trans(c).addChild(new Sphere(abs(size(0).toFloat),
               com.sun.j3d.utils.geometry.Primitive.GENERATE_NORMALS, 30, ap));
-         case "Text" => { addText(app.trans(c), text, size(0).toInt, color); }
+         case "Text" => { addText(app.trans(c), text, size(0), color); }
          case "OBJ" => {app.trans(c).addChild(loadObj(path,ap,size(0)))}
           case _ => throw ShouldNeverHappen()
         }

@@ -1,0 +1,14 @@
+class Main(simulator)
+private 
+  mode := "";
+  x := 0.5; x' := -0.25;
+  y := 0; y' := 0.75;
+end
+switch mode
+  case ""
+    x' = 1+(x*x)*y-2.5*x;
+    y' = 1.5*x-(x*x)*y;
+end;
+simulator.endTime := 3;
+//simulator.minSolverStep := 0.01;
+end

@@ -17,6 +17,7 @@ package acumen {
     override def hashCode = System.identityHashCode(this)
     override def equals(that: Any) = this eq (that.asInstanceOf[AnyRef])
     override def toString = "Name(" + x + "," + primes + ")"
+    def <(that: Name) = Name.nameOrdering.compare(this, that) < 0
   }
   object Name {
     private case class Key(x: String, p: Int)
@@ -27,6 +28,11 @@ package acumen {
     }
     def unapply(x: Name): Option[(String, Int)] =
       Some(Tuple2(x.x, x.primes))
+    implicit def nameOrdering: Ordering[Name] =
+      Ordering.fromLessThan {
+      case (Name(x1, ps1), Name(x2, ps2)) =>
+      if (x1 == x2) ps1 < ps2 else x1 < x2
+      }
   }
 
   /* Examples:  Ball, World, etc */
@@ -115,8 +121,8 @@ package acumen {
   /* Example: "foo" */
   case class GStr(s: String) extends GroundValue
   /* Constants */
-  case object GConstPi extends GroundValue  
-  
+  case object GConstPi extends GroundValue
+
   /* ==== values ==== */
 
   sealed abstract class StepType
@@ -128,17 +134,24 @@ package acumen {
   /* A value is parameterized over the representation of object ids.
      For the reference interpreter, object ids are instances of CId (cf. below).
      For the parallel interpreter, object ids are simply references to scala objects. */
+
   sealed abstract class Value[+Id]
+
   /* Example: 42 (or "a", or 4.2 ...) */
   case class VLit[Id](gv: GroundValue) extends Value[Id]
+
   /* Example: 1::3::4::nil */
   case class VList[Id](l: List[Value[Id]]) extends Value[Id]
+
   /* Example: [1,3,4] */
   case class VVector[Id](l: List[Value[Id]]) extends Value[Id]
+
   /* Example: #0.1.1.2 */
   case class VObjId[Id](a: Option[Id]) extends Value[Id]
+
   /* Example: Ball */
   case class VClassName[Id](cn: ClassName) extends Value[Id]
+
   /* Example: @Continuous */
   case class VStepType[Id](s: StepType) extends Value[Id]
 
@@ -151,6 +164,7 @@ package acumen {
      #0 to not confuse the user. Similarly, the id #a.b.c.d is pretty-printed
      and parsed as #0.a.b.c.d. Thus, the id printed and parsed as 
      #0.k1.k2. ... .kn is represented as List(kn,...,k2,k1) */
+
   class CId(val id: List[Int]) extends Ordered[CId] {
     override def hashCode = id.hashCode
     override def equals(that: Any) = that match {

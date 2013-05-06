@@ -6,11 +6,17 @@ import interpreter._
 import java.lang.Thread
 import scala.actors._
 import collection.JavaConversions._
-import java.awt.Font
 import java.awt.Color
-import java.awt.RenderingHints
-import java.awt.GraphicsEnvironment
 import java.awt.Desktop
+import java.awt.Font
+import java.awt.GraphicsEnvironment
+import java.awt.KeyboardFocusManager
+import java.awt.KeyEventDispatcher
+import java.awt.RenderingHints
+import java.awt.Toolkit
+import java.awt.event.KeyEvent
+import java.awt.event.KeyEvent._
+import java.awt.event.InputEvent._
 import java.io._
 import javax.swing.JOptionPane
 import javax.swing.SwingUtilities
@@ -19,22 +25,14 @@ import javax.swing.text._
 import javax.swing.KeyStroke
 import javax.swing.event.DocumentListener
 import javax.swing.event.DocumentEvent
+import org.fife.ui.rtextarea.RTextScrollPane
 import swing.{Action, BorderPanel, BoxPanel, ButtonGroup, CheckMenuItem, 
-			  Component, Dialog, Dimension, FlowPanel,
-			  Label, Menu, MainFrame, MenuBar, MenuItem, Orientation, Publisher, 
-			  RadioMenuItem, ScrollPane, SimpleSwingApplication, SplitPane, Swing,
+			  Component, Dialog, Dimension, FlowPanel, Label, Menu, MainFrame, 
+			  MenuBar, MenuItem, Orientation, Publisher, RadioMenuItem, 
+			  ScrollPane, Separator, SimpleSwingApplication, SplitPane, Swing, 
 			  TabbedPane, Table}
 import swing.event._
-import java.awt.KeyboardFocusManager
-import java.awt.KeyEventDispatcher
-import java.awt.event.KeyEvent
-import java.awt.event.KeyEvent._
-import java.awt.event.InputEvent._
 import scala.Boolean
-import java.awt.Toolkit
-import org.fife.ui.rtextarea.RTextScrollPane
-import scala.swing.Separator
-import acumen.ui.tl.ControlButtons
 
 // class Acumen = Everything that use to be GraphicalMain.  Graphical
 // Main can't be an object it will cause Swing components to be
@@ -46,6 +44,9 @@ class App extends SimpleSwingApplication {
   import App._
 
   App.ui = this
+  
+  val DEFAULT_HEIGHT = 1024
+  val DEFAULT_WIDTH = 768
 
   // Create a special actor to listen to events from other threads
 
@@ -115,16 +116,22 @@ class App extends SimpleSwingApplication {
   
   /* 1.2 lower pane */
   val console = new tl.Console
-
-  val lowerPane = new BorderPanel {
-    add(new Label("Console"), BorderPanel.Position.North)
-    add(new ScrollPane(console), BorderPanel.Position.Center)
+  val fileBrowser = new FileBrowser(Files.currentDir, codeArea)
+  fileBrowser.fileTree.peer.addTreeSelectionListener(codeArea)
+  codeArea.addPathChangeListener(fileBrowser.fileTree)
+  
+  val lowerPane = new TabbedPane {
+    pages += new TabbedPane.Page("Console", new BorderPanel {
+      add(new ScrollPane(console), BorderPanel.Position.Center)
+    })
+    pages += new TabbedPane.Page("File Browser", fileBrowser)
+    preferredSize = new Dimension(DEFAULT_HEIGHT/4, preferredSize.width)
   }
 
   val leftPane = 
     new SplitPane(Orientation.Horizontal, upperPane, lowerPane) { 
       oneTouchExpandable = true
-      resizeWeight = 0.9
+      resizeWeight = 1.0
     }
 
   /* 2 right pane */
@@ -385,7 +392,7 @@ class App extends SimpleSwingApplication {
     title = "Acumen"
     contents = body
     menuBar = bar
-    size = new Dimension(1024,768)
+    size = new Dimension(DEFAULT_HEIGHT,DEFAULT_WIDTH)
     // XXX: consider deleting
     override def closeOperation() {     
     exit
@@ -558,13 +565,13 @@ object App {
   def publish(e: Event) = pub.publish(e)
 
   sealed abstract class State extends Event
-  sealed abstract class Ready extends State
-  sealed abstract class Playing extends State
-  case object Starting extends Playing
-  case object Resuming extends Playing
-  case object Stopped extends Ready
-  case object Paused extends Ready
+  sealed abstract class Ready extends State   // Meta state: Simulation not running
+  sealed abstract class Playing extends State // Meta state: Simulation running
+  case object Starting extends Playing // State when starting for the first time
+  case object Resuming extends Playing // State when resuming from paused state
+  case object Stopped extends Ready    // State when stopped
+  case object Paused extends Ready     // State when paused
 
   case class ViewChanged(idx: Int) extends Event
 }
-	
+

@@ -1,0 +1,35 @@
+
+// The classic bouncing ball example 
+// with proper zero crossing
+//
+// Author:  WT, based on model by MK and JD
+//
+// Note:  Run this with Semantics -> Enclosure
+// Note:  Over-constraining model to converge post-Zeno
+
+class Main(simulator)
+  private 
+    mode := "Fly"; 
+    x   := 5;    
+    x'  := 0; 
+    x'' := 0;  
+    r   := 100;  // Estimate of (twice) the energy
+    r'  := 0;
+  end
+  switch mode
+    case "Fly" 
+      require x >= 0 && 
+              r == x'*x' + 20*x // E = (1/2)mv^2 + mgh
+      if x == 0 && x' <= 0
+        x' := -0.5*x';
+        r  := 0.25*r;           // E := (0.5)^2 * E
+        mode := "Fly";
+      end;
+      x'' = -10;
+      r'  = 0;
+  end;
+  simulator.endTime := 4.5;
+  simulator.minSolverStep := 0.01;
+  simulator.minLocalizationStep := 0.01;
+  simulator.minComputationImprovement := 0.001;
+end

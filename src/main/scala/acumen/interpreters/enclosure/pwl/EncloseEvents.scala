@@ -2,14 +2,14 @@ package acumen.interpreters.enclosure.pwl
 
 import acumen.interpreters.enclosure.Types._
 import acumen.interpreters.enclosure.Types.Mode
-import acumen.interpreters.enclosure.tree.Field
-import acumen.interpreters.enclosure.tree.HybridSystem
-import acumen.interpreters.enclosure.tree.SolveIVP
+import acumen.interpreters.enclosure.Field
+import acumen.interpreters.enclosure.SolveIVP
 import acumen.interpreters.enclosure.Box
 import acumen.interpreters.enclosure.Interval
 import acumen.interpreters.enclosure.Parameters
 import acumen.interpreters.enclosure.Rounding
 import acumen.interpreters.enclosure.UnivariateAffineEnclosure
+import acumen.interpreters.enclosure.tree.HybridSystem
 
 /**
  * Mix in this trait in place of SolveVtE to get PWL
