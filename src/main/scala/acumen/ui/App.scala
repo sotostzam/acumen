@@ -91,7 +91,30 @@ class App extends SimpleSwingApplication {
    
 
   /* ----- UI setup ------- */
-
+   
+  /* Reusable actions */
+  private val playAction             = mkAction(         "Run",                VK_R, VK_G,       upperButtons.bPlay.doClick)
+  private val pauseAction            = mkAction(         "Pause",              VK_R, VK_G,       upperButtons.bPlay.doClick)
+  private val stepAction             = mkAction(         "Step",               VK_T, VK_B,       upperButtons.bStep.doClick)
+  private val stopAction             = mkAction(         "Stop",               VK_S, VK_T,       upperButtons.bStop.doClick)
+  private val newAction              = mkAction(         "New",                VK_N, VK_N,       codeArea.newFile)
+  private val openAction             = mkAction(         "Open",               VK_O, VK_O,       codeArea.openFile(codeArea.currentDir))
+  private val saveAction             = mkAction(         "Save",               VK_S, VK_S,       codeArea.saveFile)
+  private val saveAsAction           = mkActionAccelMask("Save As",            VK_A, VK_S,       CTRL_MASK | SHIFT_MASK, codeArea.saveFileAs)
+  private val recoverAction          = mkAction(         "Recover",            VK_R, VK_R,       codeArea.openFile(Files.autoSavedDir))
+  private val exitAction             = mkAction(         "Exit",               VK_E, VK_Q,       exit)
+  private val cutAction              = mkAction(         "Cut",                VK_T, VK_X,       codeArea.textArea.cut)
+  private val copyAction             = mkAction(         "Copy",               VK_C, VK_C,       codeArea.textArea.copyAsRtf)
+  private val pasteAction            = mkAction(         "Paste",              VK_P, VK_V,       codeArea.textArea.paste)
+  private val selectAllAction        = mkAction(         "Select all",         VK_A, VK_A,       codeArea.textArea.selectAll)
+  private val increaseFontSizeAction = mkAction(         "Increase font size", VK_I, VK_PLUS,    codeArea increaseFontSize)
+  private val decreaseFontSizeAction = mkAction(         "Decrease font size", VK_D, VK_MINUS,   codeArea decreaseFontSize)
+  private val resetFontSizeAction    = mkAction(         "Reset font size",    VK_R, VK_0,       codeArea resetFontSize)
+  private val showLineNumbersAction  = mkAction(         "Show line numbers",  VK_L, VK_L,       toggleLineNumbers)
+  private val plotStyleLinesAction   = new Action(       "Lines") { mnemonic = VK_L; def apply = plotView.setPlotStyle(plot.Lines()) }
+  private val plotStyleDotsAction    = new Action(       "Dots") { mnemonic =  VK_D; def apply =  plotView.setPlotStyle(plot.Dots()) }
+  private val plotStyleBothAction    = new Action(       "Both") { mnemonic =  VK_B; def apply = plotView.setPlotStyle(plot.Both()) }
+  
   /* 1. left pane */
   /* 1.1 upper pane */
   val upperButtons = new ControlButtons
@@ -258,41 +281,36 @@ class App extends SimpleSwingApplication {
     mnemonic = m; accelerator = Some(KeyStroke.getKeyStroke(a, aMask))
     def apply = act
   } 
-  
-  private val playAction   =              mkAction("Run",   VK_R, VK_G, upperButtons.bPlay.doClick)
-  private val pauseAction  =              mkAction("Pause", VK_R, VK_G, upperButtons.bPlay.doClick)
+ 
   private val playMenuItem = new MenuItem(playAction) 
-  private val stepMenuItem = new MenuItem(mkAction("Step",  VK_T, VK_B, upperButtons.bStep.doClick))
-  private val stopMenuItem = new MenuItem(mkAction("Stop",  VK_S, VK_T, upperButtons.bStop.doClick))
+  private val stepMenuItem = new MenuItem(stepAction)
+  private val stopMenuItem = new MenuItem(stopAction)
  
   val bar = new MenuBar {
     contents += new Menu("File") {
       mnemonic = Key.F
-      contents += new MenuItem(mkAction("New", VK_N, VK_N, codeArea.newFile )) 
-                      { enabledWhenStopped += this }
-      contents += new MenuItem(mkAction("Open", VK_O, VK_O, codeArea.openFile(codeArea.currentDir))) 
-                      { enabledWhenStopped += this }
-      contents += new MenuItem(mkAction("Save", VK_S, VK_S, codeArea.saveFile))
-      contents += new MenuItem(mkActionAccelMask("Save As", VK_A, VK_S, CTRL_MASK | SHIFT_MASK, codeArea.saveFileAs))
-      contents += new MenuItem(mkAction("Recover", VK_R, VK_R, codeArea.openFile(Files.autoSavedDir)))
-                      { enabledWhenStopped += this }
-      contents += new MenuItem(mkAction("Exit", VK_E, VK_Q, exit))
+      contents += new MenuItem(newAction)     { enabledWhenStopped += this }
+      contents += new MenuItem(openAction)    { enabledWhenStopped += this }
+      contents += new MenuItem(saveAction)
+      contents += new MenuItem(saveAsAction)
+      contents += new MenuItem(recoverAction) { enabledWhenStopped += this }
+      contents += new MenuItem(exitAction)
     }
     
     contents += new Menu("Edit") {
       mnemonic = Key.E
-      contents += new MenuItem(mkAction("Cut",        VK_T, VK_X, codeArea.textArea.cut)) 
-      contents += new MenuItem(mkAction("Copy",       VK_C, VK_C, codeArea.textArea.copyAsRtf))
-      contents += new MenuItem(mkAction("Paste",      VK_P, VK_V, codeArea.textArea.paste))
+      contents += new MenuItem(cutAction) 
+      contents += new MenuItem(copyAction)
+      contents += new MenuItem(pasteAction)
       contents += new Separator
-      contents += new MenuItem(mkAction("Select all", VK_A, VK_A, codeArea.textArea.selectAll))
+      contents += new MenuItem(selectAllAction)
     }
     
     contents += new Menu("View") {
       mnemonic = Key.V
-      contents += new MenuItem(mkAction("Increase font size", VK_I, VK_PLUS, codeArea increaseFontSize)) 
-      contents += new MenuItem(mkAction("Decrease font size", VK_D, VK_MINUS,  codeArea decreaseFontSize))
-      contents += new MenuItem(mkAction("Reset font size",    VK_R, VK_0,      codeArea resetFontSize))
+      contents += new MenuItem(increaseFontSizeAction) 
+      contents += new MenuItem(decreaseFontSizeAction)
+      contents += new MenuItem(resetFontSizeAction)
       contents += new Menu("Font") {
 	    mnemonic = Key.F
 	    val fontNames = codeArea.supportedFonts.map { fontName =>
@@ -304,22 +322,16 @@ class App extends SimpleSwingApplication {
 	    contents ++= fontNames
 	    new ButtonGroup(fontNames:_*)
 	  }
-      contents += new CheckMenuItem("") { action = mkAction("Show line numbers", VK_L, VK_L, toggleLineNumbers) }
+      contents += new CheckMenuItem("") { action = showLineNumbersAction }
     }
 
     contents += new Menu("Plotting") {
       mnemonic = Key.P
       contents += new Menu("Style") {
         mnemonic = Key.S
-        val rb1 = new RadioMenuItem("") { selected = true
-          action = new Action("Lines") { mnemonic = VK_L; def apply = plotView.setPlotStyle(plot.Lines()) }
-        }
-        val rb2 = new RadioMenuItem("") { selected = false
-          action = new Action("Dots") { mnemonic = VK_D; def apply = plotView.setPlotStyle(plot.Dots()) }
-        }
-        val rb3 = new RadioMenuItem("") { selected = false
-          action = new Action("Both") { mnemonic = VK_B; def apply = plotView.setPlotStyle(plot.Both()) }
-        }
+        val rb1 = new RadioMenuItem("") { selected = true; action = plotStyleLinesAction }
+        val rb2 = new RadioMenuItem("") { selected = false; action = plotStyleDotsAction }
+        val rb3 = new RadioMenuItem("") { selected = false; action = plotStyleBothAction }
         contents ++= Seq(rb1,rb2,rb3)
         new ButtonGroup(rb1,rb2,rb3)
       }
