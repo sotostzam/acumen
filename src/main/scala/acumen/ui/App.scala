@@ -101,7 +101,7 @@ class App extends SimpleSwingApplication {
   private val newAction              = mkAction(         "New",                VK_N, VK_N,       codeArea.newFile)
   private val openAction             = mkAction(         "Open",               VK_O, VK_O,       codeArea.openFile(codeArea.currentDir))
   private val saveAction             = mkAction(         "Save",               VK_S, VK_S,       codeArea.saveFile)
-  private val saveAsAction           = mkActionAccelMask("Save As",            VK_A, VK_S,       CTRL_MASK | SHIFT_MASK, codeArea.saveFileAs)
+  private val saveAsAction           = mkActionAccelMask("Save As",            VK_A, VK_S,       shortcutMask | SHIFT_MASK, codeArea.saveFileAs)
   private val recoverAction          = mkAction(         "Recover",            VK_R, VK_R,       codeArea.openFile(Files.autoSavedDir))
   private val exitAction             = mkAction(         "Exit",               VK_E, VK_Q,       exit)
   private val cutAction              = mkAction(         "Cut",                VK_T, VK_X,       codeArea.textArea.cut)
@@ -268,13 +268,15 @@ class App extends SimpleSwingApplication {
 
   val enabledWhenStopped = scala.collection.mutable.Buffer[MenuItem]()
 
-  /** Same as mkActionAccelMask, but with a default accelerator mask CTRL_MASK. */
+  /** Same as mkActionAccelMask, but with a default accelerator mask (depending on OS). */
   private def mkAction(name: String, m: Int, a: Int, act: => Unit) =
-    mkActionAccelMask(name, m, a, detectOperatingSystem match {
-      case Windows | Unix | Other => CTRL_MASK
-      case Mac => java.awt.event.InputEvent.META_MASK
-    }, act)
-    
+    mkActionAccelMask(name, m, a, shortcutMask, act)
+
+  /** Depending on the operating system, returns the appropriate mask key. */
+  private def shortcutMask() = detectOperatingSystem match {
+    case Windows | Unix | Other => CTRL_MASK
+    case Mac => java.awt.event.InputEvent.META_MASK
+  }
   
   /** 
    * Used to construct actions for MenuItems. Both m and a should be some VK from KeyEvent. 
@@ -547,7 +549,7 @@ class App extends SimpleSwingApplication {
   
   KeyboardFocusManager.getCurrentKeyboardFocusManager.addKeyEventDispatcher(new KeyEventDispatcher {
       def dispatchKeyEvent(e: KeyEvent): Boolean =
-        if (e.getModifiers == CTRL_MASK && e.getID == KEY_PRESSED)
+        if (e.getModifiers == shortcutMask && e.getID == KEY_PRESSED)
             e.getKeyCode match {
               case VK_EQUALS => codeArea increaseFontSize ; true
               case _         => false 
