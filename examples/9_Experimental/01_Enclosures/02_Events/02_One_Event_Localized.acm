@@ -19,7 +19,7 @@ class Main(simulator)
   end;
   simulator.endTime := 1.1;
   simulator.minLocalizationStep := 0.1; // Decreased
-  simulator.minSolverStep := 1.1;
+  simulator.minSolverStep := 1.1
 end
 
 // Note:  The time at which an event is possible has
