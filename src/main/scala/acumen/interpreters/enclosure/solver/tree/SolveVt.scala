@@ -1,9 +1,12 @@
-package acumen.interpreters.enclosure.tree
+package acumen.interpreters.enclosure.solver.tree
 
 import acumen.interpreters.enclosure._
 import acumen.interpreters.enclosure.Interval._
 import acumen.interpreters.enclosure.Types._
-import acumen.interpreters.enclosure.UnivariateAffineEnclosure._
+import acumen.interpreters.enclosure.affine.UnivariateAffineEnclosure._
+import acumen.interpreters.enclosure.affine.UnivariateAffineEnclosure
+import acumen.interpreters.enclosure.affine.AffineEnclosure
+import acumen.interpreters.enclosure.affine.AffineScalarEnclosure
 
 /* This trait is now deprecated, use SolveIVP instead. */
 @deprecated

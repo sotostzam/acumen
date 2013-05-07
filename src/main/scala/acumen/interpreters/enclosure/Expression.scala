@@ -1,6 +1,10 @@
 package acumen.interpreters.enclosure
 
 import Types._
+import acumen.interpreters.enclosure.affine.UnivariateAffineEnclosure
+import acumen.interpreters.enclosure.affine.AffineScalarEnclosure
+import acumen.interpreters.enclosure.affine.UnivariateAffineScalarEnclosure
+import acumen.interpreters.enclosure.affine.AffineEnclosure
 
 /**
  * Type used to represent expressions used to define functions and

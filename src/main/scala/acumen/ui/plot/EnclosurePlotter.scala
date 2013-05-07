@@ -11,6 +11,7 @@ import org.jfree.data.xy._
 import org.jfree.ui.ApplicationFrame
 import scala.collection.JavaConversions._
 import scala.collection.mutable.{Buffer, Map}
+import acumen.interpreters.enclosure.affine.UnivariateAffineEnclosure
 
 
 class EnclosurePlotter extends JFreePlotter {

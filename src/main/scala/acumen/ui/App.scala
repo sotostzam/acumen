@@ -1,33 +1,23 @@
 package acumen
 package ui
 
-import tl._
-import interpreter._
-import java.lang.Thread
-import scala.actors._
-import collection.JavaConversions._
-import java.awt.Font
-import java.awt.Color
-import java.awt.RenderingHints
-import java.awt.GraphicsEnvironment
 import java.awt.Desktop
-import java.io._
-import javax.swing.JOptionPane
-import javax.swing.SwingUtilities
-import javax.swing.undo._
-import javax.swing.text._
-import javax.swing.KeyStroke
-import javax.swing.event.DocumentListener
-import javax.swing.event.DocumentEvent
-import swing._
-import swing.event._
-import java.awt.KeyboardFocusManager
+import java.awt.Font
 import java.awt.KeyEventDispatcher
+import java.awt.KeyboardFocusManager
+import java.awt.Toolkit
 import java.awt.event.KeyEvent
 import java.awt.event.KeyEvent._
-import scala.Boolean
-import java.awt.Toolkit
+import java.io._
+import scala.actors._
+import scala.collection.JavaConversions._
+import scala.swing._
+import scala.swing.event._
 import org.fife.ui.rtextarea.RTextScrollPane
+import interpreter._
+import scala.Boolean
+import tl._
+import javax.swing.JOptionPane
 
 // class Acumen = Everything that use to be GraphicalMain.  Graphical
 // Main can't be an object it will cause Swing components to be
@@ -47,21 +37,22 @@ class App extends SimpleSwingApplication {
     override val scheduler = new SchedulerAdapter {
       def execute(fun: => Unit) { Swing.onEDT(fun) }
     }
-    
+
     def act() {
-      Supervisor.watch(this, "Main UI", {restart})
+      Supervisor.watch(this, "Main UI", { restart })
       loop {
         react {
-          case Error(e)       => reportError(e)
-          case Progress(p)    => statusZone.setProgress(p)
-          case ProgressMsg(m) => console.log(m); console.newLine
-          case Progress3d(p)  => threeDtab.setProgress(p)
+          case Error(e) => reportError(e)
+          case Progress(p) => statusZone.setProgress(p)
+          case ProgressMsg(m) =>
+            console.log(m); console.newLine
+          case Progress3d(p) => threeDtab.setProgress(p)
 
           case EXIT => exit
 
           case SendInit => controller ! Init(codeArea.textArea.getText, interpreter)
 
-          case msg : Event => 
+          case msg: Event =>
             //println("Publishing This Msg: " + msg)
             publish(msg)
 
@@ -70,17 +61,16 @@ class App extends SimpleSwingApplication {
       }
     }
   }
-  
+
   App.actor = actor
   App.pub = actor
 
   /* ---- state variables ---- */
   val controller = new Controller
   var lastNumberOfThreads = 2
-  
-//**************************************
-//**************************************
-   
+
+  //**************************************
+  //**************************************
 
   /* ----- UI setup ------- */
 
@@ -89,23 +79,23 @@ class App extends SimpleSwingApplication {
   val upperButtons = new ControlButtons
 
   val codeArea = new CodeArea
-  val codeAreaScrollPane = new RTextScrollPane(codeArea.textArea,false)
+  val codeAreaScrollPane = new RTextScrollPane(codeArea.textArea, false)
   codeAreaScrollPane.setVerticalScrollBarPolicy(javax.swing.ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED)
-  
+
   def toggleLineNumbers = codeAreaScrollPane.setLineNumbersEnabled(!codeAreaScrollPane.getLineNumbersEnabled)
-  
+
   val statusZone = new StatusZone
   val upperBottomPane = new BoxPanel(Orientation.Horizontal) {
     contents += upperButtons
     contents += statusZone
   }
-  
+
   val upperPane = new BorderPanel {
     add(codeArea.filenameLabel, BorderPanel.Position.North)
     add(Component.wrap(codeAreaScrollPane), BorderPanel.Position.Center)
-    add(upperBottomPane, BorderPanel.Position.South) 
+    add(upperBottomPane, BorderPanel.Position.South)
   }
-  
+
   /* 1.2 lower pane */
   val console = new tl.Console
 
@@ -114,14 +104,14 @@ class App extends SimpleSwingApplication {
     add(new ScrollPane(console), BorderPanel.Position.Center)
   }
 
-  val leftPane = 
-    new SplitPane(Orientation.Horizontal, upperPane, lowerPane) { 
+  val leftPane =
+    new SplitPane(Orientation.Horizontal, upperPane, lowerPane) {
       oneTouchExpandable = true
       resizeWeight = 0.9
     }
 
   /* 2 right pane */
-  val traceTable = new Table { 
+  val traceTable = new Table {
     //model = traceModel
     autoResizeMode = Table.AutoResizeMode.Off
   }
@@ -140,12 +130,12 @@ class App extends SimpleSwingApplication {
   val pointedView = new plot.PointedView(plotView)
 
   val plotTab = new BorderPanel {
-    add(new FlowPanel(FlowPanel.Alignment.Leading)(pointedView), 
-	BorderPanel.Position.North)
+    add(new FlowPanel(FlowPanel.Alignment.Leading)(pointedView),
+      BorderPanel.Position.North)
     add(plotView, BorderPanel.Position.Center)
   }
-  var newPlotView : plot.JFreePlotTab = null
-  var newPlotTab : BorderPanel = null
+  var newPlotView: plot.JFreePlotTab = null
+  var newPlotTab: BorderPanel = null
   if (!GraphicalMain.disableNewPlot) {
     newPlotView = new plot.JFreePlotTab
     newPlotTab = new BorderPanel {
@@ -155,7 +145,7 @@ class App extends SimpleSwingApplication {
     jPlotI.enabled = true
   }
 
-  val traceTab = new ScrollPane(traceTable) 
+  val traceTab = new ScrollPane(traceTable)
   var threeDtab = if (GraphicalMain.threeDState == ThreeDState.DISABLE) {
     console.log("Acumen3D disabled.")
     console.newLine
@@ -170,7 +160,7 @@ class App extends SimpleSwingApplication {
   } else {
     start3D
   }
-  
+
   def start3D = try {
     val res = new threeD.ThreeDTab(controller)
     GraphicalMain.threeDState = ThreeDState.ENABLE
@@ -185,7 +175,7 @@ class App extends SimpleSwingApplication {
       val errors = new StringWriter()
       e.printStackTrace(new PrintWriter(errors))
       new threeD.DisabledThreeDTab("Acumen 3D disabled.\nError loading Java3D: " + e +
-                                   "\n\nFull backtrace:\n" + errors)
+        "\n\nFull backtrace:\n" + errors)
   }
 
   val views = new TabbedPane {
@@ -201,7 +191,7 @@ class App extends SimpleSwingApplication {
     }
     pages += new TabbedPane.Page("Table", traceTab)
     val TABLE_IDX = pages.last.index
-    
+
     pages += new TabbedPane.Page("3D", threeDtab)
     val THREED_IDX = pages.last.index
 
@@ -220,16 +210,16 @@ class App extends SimpleSwingApplication {
   }
 
   /* main component */
-  val body = 
-    new SplitPane(Orientation.Vertical, leftPane, views) { 
+  val body =
+    new SplitPane(Orientation.Vertical, leftPane, views) {
       oneTouchExpandable = true
       resizeWeight = 0.2
     }
-  
+
   /* menu bar */
 
   val enabledWhenStopped = scala.collection.mutable.Buffer[MenuItem]()
- 
+
   val bar = new MenuBar {
     contents += new Menu("File") {
       mnemonic = Key.F
@@ -248,34 +238,31 @@ class App extends SimpleSwingApplication {
       contents += new MenuItem(Action("Exit")(exit))
                       { mnemonic = Key.E }
     }
-    
+
     contents += new Menu("View") {
       mnemonic = Key.V
-      contents += new MenuItem(Action("Increase font size")(codeArea increaseFontSize))
-                      { mnemonic = Key.I }
-      contents += new MenuItem(Action("Decrease font size")(codeArea decreaseFontSize))
-                      { mnemonic = Key.D }
-      contents += new MenuItem(Action("Reset font size")(codeArea resetFontSize))
-                      { mnemonic = Key.R }
+      contents += new MenuItem(Action("Increase font size")(codeArea increaseFontSize)) { mnemonic = Key.I }
+      contents += new MenuItem(Action("Decrease font size")(codeArea decreaseFontSize)) { mnemonic = Key.D }
+      contents += new MenuItem(Action("Reset font size")(codeArea resetFontSize)) { mnemonic = Key.R }
       contents += new Menu("Font") {
-	    mnemonic = Key.F
-	    val fontNames = codeArea.supportedFonts.map { fontName =>
-	      new RadioMenuItem(fontName) {
-		    selected = codeArea.textArea.getFont.getName == fontName
-		    action = Action(fontName) { codeArea setFontName fontName }
-		  } 
-	    }
-	    contents ++= fontNames
-	    new ButtonGroup(fontNames:_*)
-	  }
-      contents += new CheckMenuItem("Show line numbers") { 
+        mnemonic = Key.F
+        val fontNames = codeArea.supportedFonts.map { fontName =>
+          new RadioMenuItem(fontName) {
+            selected = codeArea.textArea.getFont.getName == fontName
+            action = Action(fontName) { codeArea setFontName fontName }
+          }
+        }
+        contents ++= fontNames
+        new ButtonGroup(fontNames: _*)
+      }
+      contents += new CheckMenuItem("Show line numbers") {
         mnemonic = Key.L
         action = Action("Show line numbers") { toggleLineNumbers }
       }
     }
 
     contents += new Menu("Plotting") {
-      
+
       mnemonic = Key.P
       contents += new Menu("Style") {
         val rb1 = new RadioMenuItem("") {
@@ -290,26 +277,26 @@ class App extends SimpleSwingApplication {
           selected = false
           action = Action("Both") { plotView.setPlotStyle(plot.Both()) }
         }
-        contents ++= Seq(rb1,rb2,rb3)
-        new ButtonGroup(rb1,rb2,rb3)
+        contents ++= Seq(rb1, rb2, rb3)
+        new ButtonGroup(rb1, rb2, rb3)
       }
       contents += new CheckMenuItem("") {
         selected = false
-        action = Action("Automatically plot simulator fields") { 
-                    plotView.toggleSimulator(this.selected) 
-                }
+        action = Action("Automatically plot simulator fields") {
+          plotView.toggleSimulator(this.selected)
+        }
       }
       contents += new CheckMenuItem("") {
         selected = false
-        action = Action("Automatically plot child counter fields") { 
-                    plotView.toggleNextChild(this.selected) 
-                }
+        action = Action("Automatically plot child counter fields") {
+          plotView.toggleNextChild(this.selected)
+        }
       }
       contents += new CheckMenuItem("") {
         selected = false
-        action = Action("Automatically random number generator seeds") { 
-                    plotView.toggleSeeds(this.selected)
-                }
+        action = Action("Automatically random number generator seeds") {
+          plotView.toggleSeeds(this.selected)
+        }
       }
     }
 
@@ -346,52 +333,50 @@ class App extends SimpleSwingApplication {
         action = Action("Enclosure") { setInterpreter(new EnclosureCntrl(interpreters.enclosure.Interpreter)) }
         enabledWhenStopped += this
       }
-      contents ++= Seq(rb1,rb2,rb3)
-      new ButtonGroup(rb1,rb2,rb3)
+      contents ++= Seq(rb1, rb2, rb3)
+      new ButtonGroup(rb1, rb2, rb3)
     }
-   
+
     contents += new Menu("Help") {
       mnemonic = Key.H
-      contents += new MenuItem(Action("Tutorial")(tutorial))
-                      { mnemonic = Key.T }
-      contents += new MenuItem(Action("About")(about))
-                      { mnemonic = Key.A }
+      contents += new MenuItem(Action("Tutorial")(tutorial)) { mnemonic = Key.T }
+      contents += new MenuItem(Action("About")(about)) { mnemonic = Key.A }
     }
   }
- 
+
   /* gluing everything together */
   def top = new MainFrame {
     title = "Acumen"
     contents = body
     menuBar = bar
-    size = new Dimension(1024,768)
+    size = new Dimension(1024, 768)
     // XXX: consider deleting
-    override def closeOperation() {     
-    exit
-     }
-    
+    override def closeOperation() {
+      exit
+    }
+
   }
 
-  def exit {  
+  def exit {
     //timer3d.destroy=true
     //receiver.destroy=true
     //threeDView.exit
-    
+
     if (!codeArea.editedSinceLastSave || codeArea.confirmContinue(body.peer)) {
       controller ! Stop
-      actor ! EXIT				
+      actor ! EXIT
       quit
     }
   }
 
-  def withErrorReporting(action: => Unit) : Unit = {
-    try action 
+  def withErrorReporting(action: => Unit): Unit = {
+    try action
     catch { case e => reportError(e) }
   }
 
-  def reportError(e:Throwable) {
+  def reportError(e: Throwable) {
     val em = e.getMessage
-    console.logError(if (em!=null) em else e.toString)
+    console.logError(if (em != null) em else e.toString)
     System.err.println("Note: Redirected this exception to console log:")
     e.printStackTrace()
   }
@@ -400,27 +385,27 @@ class App extends SimpleSwingApplication {
 
   /* ------ simple dialogs ----- */
 
-  def about = { 
+  def about = {
     val version = acumen.util.System.version
     Dialog.showMessage(body, "Acumen " + version, "About")
   }
   def tutorial = {
     if (Desktop.isDesktopSupported) {
       val desktop = Desktop.getDesktop
-      try { desktop.browse(acumen.util.System.tutorialUrl) } 
-      catch { case e:IOException => reportError(e) }
+      try { desktop.browse(acumen.util.System.tutorialUrl) }
+      catch { case e: IOException => reportError(e) }
     } else reportError(new Exception("Could not find a web browser."))
   }
 
   /* ----- events handling ---- */
-  
-  var state : State = Stopped
-  var interpreter : InterpreterCntrl = 
+
+  var state: State = Stopped
+  var interpreter: InterpreterCntrl =
     if (GraphicalMain.useEnclosures)
-      new EnclosureCntrl(interpreters.enclosure.Interpreter)
+      new EnclosureCntrl(GraphicalMain.enclosureInterpreter)
     else
       new CStoreCntrl(interpreters.reference.Interpreter)
-  def setInterpreter(i : InterpreterCntrl) = {
+  def setInterpreter(i: InterpreterCntrl) = {
     interpreter = i
   }
 
@@ -429,7 +414,7 @@ class App extends SimpleSwingApplication {
   listenTo(actor)
   // disable and enable menu items
   reactions += {
-    case st:State =>
+    case st: State =>
       st match {
         case Stopped =>
           for (el <- enabledWhenStopped) el.enabled = true
@@ -439,7 +424,7 @@ class App extends SimpleSwingApplication {
   }
   // update console
   reactions += {
-    case st:State => 
+    case st: State =>
       //println("GM: New State: " + st)
       st match {
         case Stopped =>
@@ -459,24 +444,24 @@ class App extends SimpleSwingApplication {
   // enable 3d if required
   reactions += {
     case Stopped =>
-      if (GraphicalMain.threeDState == ThreeDState.LAZY && 
-          !controller.threeDData._3DData.isEmpty)
+      if (GraphicalMain.threeDState == ThreeDState.LAZY &&
+        !controller.threeDData._3DData.isEmpty)
         views.shouldEnable3D = true
       views.possibleEnable3D
   }
-  
+
   // FIXME: Move me into a seperate TraceTable class
   // and move tableI out of plotter and into the new class
   val defaultTableModel = traceTable.model
   traceTable.listenTo(actor)
   traceTable.reactions += {
-    case st:State => 
+    case st: State =>
       st match {
-        case Starting => 
+        case Starting =>
           traceTable.model = defaultTableModel
         //case _:Ready if traceTable.model.isInstanceOf[TraceModel] => 
         //  traceTable.model.asInstanceOf[TraceModel].fireTableStructureChanged()
-        case _ => 
+        case _ =>
       }
     case plot.TraceModelReady(model) =>
       traceTable.model = model
@@ -489,6 +474,7 @@ class App extends SimpleSwingApplication {
         plotView.plotPanel.tableI.enabled = false
       }
   }
+
   def confirmSave(c: java.awt.Component, f:File) = {
     val message = 
       "File " + f.toString + 
@@ -533,34 +519,43 @@ class App extends SimpleSwingApplication {
   }
   
   // Add application-wide keyboard shortcuts
-  
+
   KeyboardFocusManager.getCurrentKeyboardFocusManager.addKeyEventDispatcher(new KeyEventDispatcher {
-      def dispatchKeyEvent(e: KeyEvent): Boolean =
-        if ((e.getModifiers == Toolkit.getDefaultToolkit.getMenuShortcutKeyMask ||
-             e.getModifiers == java.awt.event.InputEvent.CTRL_MASK) &&
-             e.getID        == java.awt.event.KeyEvent.KEY_PRESSED)
-            e.getKeyCode match {
-              case VK_R      => upperButtons.bPlay.doClick ; true
-              case VK_T      => upperButtons.bStop.doClick ; true
-              case VK_G      => upperButtons.bStep.doClick ; true
-              case VK_S      => codeArea.saveFile ; true
-              case VK_O      => codeArea.openFile(codeArea.currentDir) ; true
-              case VK_L      => toggleLineNumbers ; true
-              case VK_PLUS | 
-              	   VK_EQUALS => codeArea increaseFontSize ; true
-              case VK_MINUS  => codeArea decreaseFontSize ; true
-              case VK_0      => codeArea resetFontSize ; true
-              case _         => false 
-            }
-        else false 
-    })
+    def dispatchKeyEvent(e: KeyEvent): Boolean =
+      if ((e.getModifiers == Toolkit.getDefaultToolkit.getMenuShortcutKeyMask ||
+        e.getModifiers == java.awt.event.InputEvent.CTRL_MASK) &&
+        e.getID == java.awt.event.KeyEvent.KEY_PRESSED)
+        e.getKeyCode match {
+          case VK_R =>
+            upperButtons.bPlay.doClick; true
+          case VK_T =>
+            upperButtons.bStop.doClick; true
+          case VK_G =>
+            upperButtons.bStep.doClick; true
+          case VK_S =>
+            codeArea.saveFile; true
+          case VK_O =>
+            codeArea.openFile(codeArea.currentDir); true
+          case VK_L =>
+            toggleLineNumbers; true
+          case VK_PLUS |
+            VK_EQUALS =>
+            codeArea increaseFontSize; true
+          case VK_MINUS =>
+            codeArea decreaseFontSize; true
+          case VK_0 =>
+            codeArea resetFontSize; true
+          case _ => false
+        }
+      else false
+  })
 
   /* ----- initialisation ----- */
 
   actor.start
   codeArea.listenDocument
-  console.log("<html>Welcome to Acumen.<br/>"+
-              "Please see LICENSE file for licensing details.</html>")
+  console.log("<html>Welcome to Acumen.<br/>" +
+    "Please see LICENSE file for licensing details.</html>")
   console.newLine
   actor.publish(Stopped)
   actor.publish(ViewChanged(views.selection.index))
@@ -574,21 +569,21 @@ object App {
     new App // the initialization will set the members below
   }
 
-  var ui : App = null
+  var ui: App = null
 
-  var actor : Actor = null
-  var pub : Publisher = null
+  var actor: Actor = null
+  var pub: Publisher = null
 
-  def ! (e: Any) = actor ! e
+  def !(e: Any) = actor ! e
   def publish(e: Event) = pub.publish(e)
 
   sealed abstract class State extends Event
-  sealed abstract class Ready extends State   // Meta state: Simulation not running
+  sealed abstract class Ready extends State // Meta state: Simulation not running
   sealed abstract class Playing extends State // Meta state: Simulation running
   case object Starting extends Playing // State when starting for the first time
   case object Resuming extends Playing // State when resuming from paused state
-  case object Stopped extends Ready    // State when stopped
-  case object Paused extends Ready     // State when paused
+  case object Stopped extends Ready // State when stopped
+  case object Paused extends Ready // State when paused
 
   case class ViewChanged(idx: Int) extends Event
 }

@@ -1,10 +1,13 @@
-package acumen.interpreters.enclosure.tree
+package acumen.interpreters.enclosure.solver.tree
 
 import acumen.interpreters.enclosure._
-import acumen.interpreters.enclosure.SolveIVP
+import acumen.interpreters.enclosure.solver.SolveIVP
 import acumen.interpreters.enclosure.Types.Event
 import acumen.interpreters.enclosure.Types._
 import acumen.interpreters.enclosure.Util._
+import acumen.interpreters.enclosure.affine.UnivariateAffineEnclosure
+import acumen.interpreters.enclosure.affine.UnivariateAffineScalarEnclosure
+import acumen.interpreters.enclosure.solver.PicardSolver
 
 /** TODO add description */
 // TODO add tests
@@ -62,7 +65,7 @@ case class EventTree(
   delta: Double,
   m: Int,
   n: Int,
-  degree: Int) extends SolveVtE with SolveIVP {
+  degree: Int) extends SolveVtE with PicardSolver {
 
   /** TODO add description */
   // TODO add tests
@@ -154,7 +157,7 @@ case class EventTree(
             //          println("\naddLayer: A         = " + A)
             //          println("addLayer: field     = " + H.fields(e.tau))
             //            println("addLayer: enclosure = " + solveVt(H.fields(e.tau), T, A, delta, m, n, output))
-            val N = solveVt(H.fields(e.tau), T, A, delta, m, n, degree).range
+            val N = solveVt(H.fields(e.tau), T, A, delta, m, n, degree)._1.range
             //          println("addLayer: N         = " + N)
             val lastEvent = e
             //          println("Domain:  " + H.domains(e.tau))
@@ -267,7 +270,7 @@ case class EventTree(
 
 }
 
-object EventTree extends SolveIVP {
+object EventTree extends PicardSolver {
 
   /** TODO add description */
   // TODO add tests
@@ -282,7 +285,7 @@ object EventTree extends SolveIVP {
     //    Util.appendFile(output, "segment width " + T.width.hi.round(Rounding(3).up) + " segment " + T + "\n")
     //    println("segment width " + T.width.hi.round(Rounding(3).up) + " segment " + T)
     val mode = S.mode
-    val enclosure = solveVt(H.fields(mode), T, S.initialCondition, delta, m, n, degree)
+    val (enclosure, _) = solveVt(H.fields(mode), T, S.initialCondition, delta, m, n, degree)
     //    println("Yinit = " + enclosure)
     val mayBeLast = false
     val sequences = Set(EmptySequence(mode, enclosure, mayBeLast).asInstanceOf[EventSequence])

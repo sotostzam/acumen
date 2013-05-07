@@ -1,11 +1,7 @@
 package acumen.interpreters.enclosure
 
 import acumen.interpreters.enclosure.Types._
-import acumen.interpreters.enclosure.Rounding
-import acumen.interpreters.enclosure.AffineEnclosure
-import acumen.interpreters.enclosure.Expression
-import acumen.interpreters.enclosure.Variable
-import acumen.interpreters.enclosure.Constant
+import acumen.interpreters.enclosure.affine.AffineEnclosure
 
 /**
  * Type for representing fields of differential equations.

@@ -1,22 +1,25 @@
-package acumen.interpreters.enclosure.pwl
+package acumen.interpreters.enclosure.solver.pwl
 
 import acumen.interpreters.enclosure.Types._
 import acumen.interpreters.enclosure.Types.Mode
 import acumen.interpreters.enclosure.Field
-import acumen.interpreters.enclosure.SolveIVP
+import acumen.interpreters.enclosure.solver.PicardSolver
 import acumen.interpreters.enclosure.Box
 import acumen.interpreters.enclosure.Interval
 import acumen.interpreters.enclosure.Parameters
 import acumen.interpreters.enclosure.Rounding
-import acumen.interpreters.enclosure.UnivariateAffineEnclosure
-import acumen.interpreters.enclosure.tree.HybridSystem
+import acumen.interpreters.enclosure.solver.tree.HybridSystem
+import acumen.interpreters.enclosure.affine.UnivariateAffineEnclosure
+import acumen.interpreters.enclosure.solver.SolveIVP
 
 /**
  * Mix in this trait in place of SolveVtE to get PWL
  * rather than EventTree based event handling.
  */
-trait EncloseEvents extends SolveIVP {
+trait EncloseEvents {
 
+  var ivpSolver: SolveIVP
+  
   // main function
 
   def encloseEvents(ps: Parameters, h: HybridSystem, t: Interval, s: StateEnclosure)(implicit rnd: Rounding): (StateEnclosure, StateEnclosure) = {
@@ -74,7 +77,7 @@ trait EncloseEvents extends SolveIVP {
       splitAndRepeatEncloseFlow(ps, f, t, init)
     else
       try {
-        val e = encloseFlowStep(ps, f, t, init)
+        val (e, _) = encloseFlowStep(ps, f, t, init)
         if (t.width lessThan ps.minSolverStep * 2) Seq(e)
         else {
           val (eL, eR) = splitAndEncloseFlowStep(ps, f, t, init)
@@ -97,9 +100,9 @@ trait EncloseEvents extends SolveIVP {
 
   def splitAndEncloseFlowStep(ps: Parameters, field: Field, t: Interval, init: Box)(implicit rnd: Rounding): (UnivariateAffineEnclosure, UnivariateAffineEnclosure) = {
     val (tL, tR) = t.split
-    val eL = encloseFlowStep(ps, field, tL, init)
-    val initR = eL(tL.high)
-    val eR = encloseFlowStep(ps, field, tR, initR)
+    val (eL, initR) = encloseFlowStep(ps, field, tL, init)
+    //    val initR = eL(tL.high)
+    val (eR, _) = encloseFlowStep(ps, field, tR, initR)
     (eL, eR)
   }
 
@@ -111,8 +114,8 @@ trait EncloseEvents extends SolveIVP {
     esL ++ esR
   }
 
-  def encloseFlowStep(ps: Parameters, f: Field, t: Interval, b: Box)(implicit rnd: Rounding): UnivariateAffineEnclosure =
-    solveVt(f, t, b,
+  def encloseFlowStep(ps: Parameters, f: Field, t: Interval, b: Box)(implicit rnd: Rounding): (UnivariateAffineEnclosure, Box) =
+    ivpSolver.solveVt(f, t, b,
       ps.initialPicardPadding,
       ps.picardImprovements,
       ps.maxPicardIterations,
@@ -193,12 +196,12 @@ trait EncloseEvents extends SolveIVP {
     degree: Int,
     K: Int,
     log: String => Unit)(implicit rnd: Rounding): Option[(Set[UncertainState], Seq[UnivariateAffineEnclosure])] = {
-    val noEventEnclosure = solveVt(h.fields(u.mode), t, u.initialCondition, delta, m, n, degree)
+    val (noEventEnclosure, endTimeValue) = ivpSolver.solveVt(h.fields(u.mode), t, u.initialCondition, delta, m, n, degree)
     val noPossibleEvents = !h.guards.exists {
       case (event, guard) => event.sigma == u.mode && (guard(noEventEnclosure.range) contains true)
     }
     if (noPossibleEvents)
-      Some((Set(UncertainState(u.mode, noEventEnclosure(t.high))), Seq(noEventEnclosure)))
+      Some((Set(UncertainState(u.mode, endTimeValue)), Seq(noEventEnclosure)))
     else {
       val ps = Parameters(rnd.precision, t.loDouble, t.hiDouble,
         delta, m, n,

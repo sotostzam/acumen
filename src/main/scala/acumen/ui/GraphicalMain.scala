@@ -57,6 +57,7 @@ object GraphicalMain extends SimpleSwingApplication {
   var useCompletion = false
   var useTemplates = false
   var dontFork = false
+  var enclosureInterpreter = interpreters.enclosure.Interpreter
 
   def parseOpts(args: List[String]) {
     args match {

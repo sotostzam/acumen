@@ -1,11 +1,13 @@
-package acumen.interpreters.enclosure
+package acumen.interpreters.enclosure.solver
 
 import acumen.interpreters.enclosure._
 import acumen.interpreters.enclosure.Interval._
 import acumen.interpreters.enclosure.Types._
-import acumen.interpreters.enclosure.UnivariateAffineEnclosure._
+import acumen.interpreters.enclosure.affine.UnivariateAffineEnclosure
+import acumen.interpreters.enclosure.affine.AffineEnclosure
+import acumen.interpreters.enclosure.affine.AffineScalarEnclosure
 
-trait SolveIVP {
+trait PicardSolver extends SolveIVP {
 
   /**
    * Implementation detail: do not split initial conditions for variables
@@ -20,7 +22,7 @@ trait SolveIVP {
     m: Int, // extra iterations after inclusion of iterates
     n: Int, // maximum number of iterations before inclusion of iterates
     degree: Int // number of pieces to split each initial condition interval
-    )(implicit rnd: Rounding): UnivariateAffineEnclosure = {
+    )(implicit rnd: Rounding): (UnivariateAffineEnclosure, Box) = {
     val as = degree match {
       case 1 => Set(A)
       case d if d > 1 => A.refine(degree, A.keySet.filter(name => !(F.components(name) == Constant(0))).toSeq: _*)
@@ -28,7 +30,9 @@ trait SolveIVP {
       case _ => sys.error("solveVt: splittingDegree " + degree + " not supported!")
     }
     val es = as map (solveIVP(F, T, _, delta, m, n))
-    UnivariateAffineEnclosure.unionThem(es.toSeq).head
+    val enclosure = UnivariateAffineEnclosure.unionThem(es.toSeq).head
+    val endTimeValue = enclosure(T.high)
+    (enclosure, endTimeValue)
   }
 
   /**
@@ -105,9 +109,9 @@ trait SolveIVP {
    * The Picard operator
    */
   private def picard(timeName: VarName, a: AffineEnclosure, F: Field)(X: AffineEnclosure)(implicit rnd: Rounding): AffineEnclosure = {
-//    try {
-      a + (F(X).primitive(timeName))
-//    } catch { case _ => throw PicardOverflow() }
+    //    try {
+    a + (F(X).primitive(timeName))
+    //    } catch { case _ => throw PicardOverflow() }
   }
 
   /**

@@ -1,8 +1,9 @@
-package acumen.interpreters.enclosure.tree
+package acumen.interpreters.enclosure.solver.tree
 
-import acumen.interpreters.enclosure._
+import acumen.interpreters.enclosure.affine.UnivariateAffineEnclosure._
 import acumen.interpreters.enclosure.Types._
-import UnivariateAffineEnclosure._
+import acumen.interpreters.enclosure._
+import acumen.interpreters.enclosure.affine.UnivariateAffineEnclosure
 
 trait SolveVtE {
 

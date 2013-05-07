@@ -1,7 +1,8 @@
-package acumen.interpreters.enclosure.tree
+package acumen.interpreters.enclosure.solver.tree
 
 import acumen.interpreters.enclosure._
 import Types._
+import acumen.interpreters.enclosure.affine.UnivariateAffineEnclosure
 
 trait LocalizingSolver extends SolveVt {
 

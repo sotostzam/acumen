@@ -1,20 +1,19 @@
-package acumen.interpreters.enclosure
+package acumen.interpreters.enclosure.affine
 
 import org.scalacheck.Arbitrary._
 import org.scalacheck.Gen
 import org.scalacheck.Gen._
 import org.scalacheck.Prop._
 import org.scalacheck.Properties
-
 import UnivariateAffineScalarEnclosure._
-import Box._
-import Generators._
-import Interval._
-import Types._
+import acumen.interpreters.enclosure.Box._
+import acumen.interpreters.enclosure.Generators._
+import acumen.interpreters.enclosure.Interval._
+import acumen.interpreters.enclosure.Types._
+import acumen.interpreters.enclosure.TestingContext._
+import acumen.interpreters.enclosure.Interval
 
-object UnivariateAffineScalarEnclosureTest extends Properties("UnivariateAffineScalarEnclosure") {
-
-  import TestingContext._
+object UnivariateAffineEnclosureTest extends Properties("UnivariateAffineEnclosure") {
 
   property("union soundness") =
     forAllNoShrink(genInterval) { dom =>
@@ -23,6 +22,17 @@ object UnivariateAffineScalarEnclosureTest extends Properties("UnivariateAffineS
         genBoxUnivariateAffineScalarEnclosure(dom)) { (f, g) =>
           val u = f union g
           (u contains f) && (u contains g)
+        }
+    }
+  
+  property("union endpoint soundness") =
+    forAllNoShrink(genInterval, choose(1,1)) { (dom:Interval, n:Int) =>
+      forAllNoShrink(
+        genDimDomUnivariateAffineEnclosure(n,dom),
+        genDimDomUnivariateAffineEnclosure(n,dom)) { (f, g) =>
+          val u = f union g
+          (u(dom.low) almostEqualTo (f(dom.low) hull g(dom.low))) && 
+          (u(dom.high) contains (f(dom.high) hull g(dom.high)))
         }
     }
 
@@ -47,10 +57,14 @@ object UnivariateAffineScalarEnclosureTest extends Properties("UnivariateAffineS
         }
     }
 
+  /* Generator tests */
+
+  property("genUnivariateAffineEnclosure") = {
+    forAllNoShrink(genUnivariateAffineEnclosure) { e =>
+      val d = e.components("0")
+      e.components.values.forall(_.domain == d.domain)
+    }
+  }
+  
 }
 
-object UnivariateAffineScalarEnclosureUnitTest extends Properties("UnivariateAffineScalarEnclosureUnitTest") {
-
-  import TestingContext._
-
-}

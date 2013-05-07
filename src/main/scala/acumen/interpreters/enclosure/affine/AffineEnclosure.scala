@@ -1,6 +1,9 @@
-package acumen.interpreters.enclosure
+package acumen.interpreters.enclosure.affine
 
-import Types._
+import acumen.interpreters.enclosure.Types._
+import acumen.interpreters.enclosure.Rounding
+import acumen.interpreters.enclosure.Interval
+import acumen.interpreters.enclosure.Box
 
 /**
  * Type used to approximate vector-valued functions over a domain.

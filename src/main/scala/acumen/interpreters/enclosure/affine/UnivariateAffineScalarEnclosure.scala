@@ -1,8 +1,10 @@
-package acumen.interpreters.enclosure
+package acumen.interpreters.enclosure.affine
 
-import Interval._
+import acumen.interpreters.enclosure.Interval._
 import acumen.ui.interpreter.Enclosure
 import java.awt.Color
+import acumen.interpreters.enclosure.Rounding
+import acumen.interpreters.enclosure.Interval
 
 /**
  * Type to represent functions of a single variable.
