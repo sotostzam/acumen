@@ -1,6 +1,7 @@
 package acumen
 package ui
 
+import acumen.util.System.{detectOperatingSystem, Mac, Other, Unix, Windows}
 import tl._
 import interpreter._
 import java.lang.Thread
@@ -266,9 +267,14 @@ class App extends SimpleSwingApplication {
   /* menu bar */
 
   val enabledWhenStopped = scala.collection.mutable.Buffer[MenuItem]()
-  
+
   /** Same as mkActionAccelMask, but with a default accelerator mask CTRL_MASK. */
-  private def mkAction(name: String, m: Int, a: Int, act: => Unit) = mkActionAccelMask(name, m, a, CTRL_MASK, act)
+  private def mkAction(name: String, m: Int, a: Int, act: => Unit) =
+    mkActionAccelMask(name, m, a, detectOperatingSystem match {
+      case Windows | Unix | Other => CTRL_MASK
+      case Mac => java.awt.event.InputEvent.META_MASK
+    }, act)
+    
   
   /** 
    * Used to construct actions for MenuItems. Both m and a should be some VK from KeyEvent. 

@@ -6,12 +6,25 @@ import java.io.FileInputStream
 object System {
  
   val FILE_SUFFIX_MODEL = ".acm"
+  private val osName = java.lang.System.getProperty("os.name").toLowerCase()
   
   val version = {
     val md = getClass.getClassLoader.getResource("acumen/version")
     if (md == null) "unknown version"
     else { io.Source.fromFile(md.getFile).mkString }
   }
+  
+  sealed abstract class OS
+  case class Windows extends OS
+  case class Unix extends OS
+  case class Mac extends OS
+  case class Other extends OS
+
+  def detectOperatingSystem() =
+    if (osName contains "win") Windows
+    else if (List("nix","nux","aix").exists(osName contains _)) Unix
+    else if (osName contains "mac") Mac
+    else Other
   
   //val version = "10.10.25"
   val tutorialUrl = 
