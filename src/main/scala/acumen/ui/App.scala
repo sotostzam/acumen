@@ -113,7 +113,7 @@ class App extends SimpleSwingApplication {
   private val resetFontSizeAction    = mkAction(         "Reset font size",    VK_R, VK_0,       codeArea resetFontSize)
   private val showLineNumbersAction  = mkAction(         "Show line numbers",  VK_L, VK_L,       toggleLineNumbers)
   private val plotStyleLinesAction   = new Action(       "Lines") { mnemonic = VK_L; def apply = plotView.setPlotStyle(plot.Lines()) }
-  private val plotStyleDotsAction    = new Action(       "Dots") { mnemonic =  VK_D; def apply =  plotView.setPlotStyle(plot.Dots()) }
+  private val plotStyleDotsAction    = new Action(       "Dots") { mnemonic =  VK_D; def apply = plotView.setPlotStyle(plot.Dots()) }
   private val plotStyleBothAction    = new Action(       "Both") { mnemonic =  VK_B; def apply = plotView.setPlotStyle(plot.Both()) }
   
   /* 1. left pane */
@@ -357,49 +357,50 @@ class App extends SimpleSwingApplication {
       }
     }
     
-    contents += new Menu("Simulator") {
+    contents += new Menu("Model") {
       mnemonic = Key.S
       contents ++= Seq(playMenuItem, stepMenuItem, stopMenuItem)
-      contents += new Menu("Semantics") {
-        mnemonic = Key.S
-        val rb1 = new RadioMenuItem("") {
-          selected = !GraphicalMain.useEnclosures
-   		  enabledWhenStopped += this
-          action = mkAction("Purely Functional", VK_F, VK_1, 
-                            { setInterpreter(new CStoreCntrl(interpreters.reference.Interpreter)) })
-        }
-        val rb2 = new RadioMenuItem("") {
-          selected = false
-          enabledWhenStopped += this
-          action = mkAction("Imperative (Parallel)", VK_P, VK_2, {
-            def diag = Dialog.showInput(
-              body, "Choose a number of threads",
-              "Parallel Interpreter", Dialog.Message.Question,
-              Swing.EmptyIcon, Seq(), lastNumberOfThreads.toString)
-            def go: Unit = try {
-              def n: String = diag.getOrElse(n)
-              lastNumberOfThreads = Integer.parseInt(n)
-              setInterpreter(new CStoreCntrl(new interpreters.parallel.Interpreter(lastNumberOfThreads)))
-              console.log("Number of threads set to " + lastNumberOfThreads + ".")
-            } catch {
-              case _ =>
-                console.logError("Bad number of threads.")
-                go
-            }
-            go
-          })
-        }
-        val rb3 = new RadioMenuItem("") {
-          selected = GraphicalMain.useEnclosures
-   		  enabledWhenStopped += this
-          action = mkAction("Enclosure", VK_E, VK_3, 
-                            { setInterpreter(new EnclosureCntrl(interpreters.enclosure.Interpreter)) })
-        }
-        contents ++= Seq(rb1,rb2,rb3)
-        new ButtonGroup(rb1,rb2,rb3)
-      }
     }
-   
+
+    contents += new Menu("Semantics") {
+      mnemonic = Key.S
+      val rb1 = new RadioMenuItem("") {
+        selected = !GraphicalMain.useEnclosures
+        enabledWhenStopped += this
+        action = mkAction("Purely Functional", VK_F, VK_1,
+          { setInterpreter(new CStoreCntrl(interpreters.reference.Interpreter)) })
+      }
+      val rb2 = new RadioMenuItem("") {
+        selected = false
+        enabledWhenStopped += this
+        action = mkAction("Imperative (Parallel)", VK_P, VK_2, {
+          def diag = Dialog.showInput(
+            body, "Choose a number of threads",
+            "Parallel Interpreter", Dialog.Message.Question,
+            Swing.EmptyIcon, Seq(), lastNumberOfThreads.toString)
+          def go: Unit = try {
+            def n: String = diag.getOrElse(n)
+            lastNumberOfThreads = Integer.parseInt(n)
+            setInterpreter(new CStoreCntrl(new interpreters.parallel.Interpreter(lastNumberOfThreads)))
+            console.log("Number of threads set to " + lastNumberOfThreads + ".")
+          } catch {
+            case _ =>
+              console.logError("Bad number of threads.")
+              go
+          }
+          go
+        })
+      }
+      val rb3 = new RadioMenuItem("") {
+        selected = GraphicalMain.useEnclosures
+        enabledWhenStopped += this
+        action = mkAction("Enclosure", VK_E, VK_3,
+          { setInterpreter(new EnclosureCntrl(interpreters.enclosure.Interpreter)) })
+      }
+      contents ++= Seq(rb1, rb2, rb3)
+      new ButtonGroup(rb1, rb2, rb3)
+    }
+    
     contents += new Menu("Help") {
       mnemonic = Key.H
       contents += new MenuItem(mkActionAccelMask("Tutorial", VK_T, VK_F1, 0, tutorial))
