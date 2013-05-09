@@ -1,0 +1,19 @@
+Acumen can be run in server mode, in which before running the
+simulation, the server waits for a client to connect. After connection
+is established, the data of each simulation step is serialized to JSON
+and sent to the connected client.  The server continues the simulation
+by reading from the client socket, de-serializing the JSON that the
+client sends and using it as the current simulation step.
+
+The entry point for the command line version is acumen.Main. Given a
+jar file with this entry point, the following command line syntax is
+used to start the server:
+
+  java -jar acumen-10-devel.jar <acumen-model-file> listen <port>
+
+A concrete example would be:
+
+  java -jar acumen-10-devel.jar /path/to/model.acm listen 1234
+
+After starting the server, it will block waiting for a client to
+connect. Currently there are sample echo clients in Java and OCaml.
