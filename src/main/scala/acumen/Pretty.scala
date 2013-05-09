@@ -6,7 +6,7 @@ import util.Stores._
 import util.Collections._
 import scala.util.parsing.json._
 import com.sun.corba.se.impl.corba.CORBAObjectImpl
-import acumen.Errors.ShouldNeverHappen
+import acumen.Errors.{FromJSONError, ShouldNeverHappen}
 
 object Pretty {
 
@@ -286,6 +286,19 @@ object JSon {
   def showList(l:List[Document]) =
     brackets(sepBy(comma :: " ", l))
 
+  // Handle the special cases in which a double value is not a number:
+  //   PositiveInfinity
+  //   NegativeInfinity
+  //   NaN
+  def showDouble(d:Double) : String = {
+    d match {
+      case Double.PositiveInfinity => '"' + Double.PositiveInfinity.toString() + '"'
+      case Double.NegativeInfinity => '"' + Double.NegativeInfinity.toString() + '"'
+      case Double.NaN => '"' + Double.NaN.toString()
+      case _ => d.toString()
+    }
+  }
+
   def showOption(o:Option[_]) : String = o match {
 	  case None => "\"\""
 	  case Some(s) => '"' + s.toString + '"'
@@ -310,7 +323,7 @@ object JSon {
 
   def toJSON(gv:GroundValue) = gv match {
     case GInt(i)    => showVal("int",    i.toString)
-    case GDouble(x) => showVal("double", x.toString)
+    case GDouble(x) => showVal("double", showDouble(x))
     case GBool(b)   => showVal("bool",   b.toString)
     case GStr(s)    => showVal("string", quotes(s.toString))
   }
@@ -328,12 +341,16 @@ object JSon {
   def fromJSON(s:String) : CStore = {
     val p = JSON.parseFull(s)
     var cs = new HashMap[CId, CObject]
-    p match {
-      case Some(m: Map[_,_]) => m collect {
-        case (k: String, v: Map[String,Map[String,_]]) => {
-          cs += (strToCId(k) -> fromJSON(v))
+    try {
+      p match {
+        case Some(m: Map[_,_]) => m collect {
+          case (k: String, v: Map[String,Map[String,_]]) => {
+            cs += (strToCId(k) -> fromJSON(v))
+          }
         }
       }
+    } catch {
+      case ex:Exception => throw FromJSONError(s)
     }
     cs
   }
@@ -380,9 +397,14 @@ object JSon {
     }
   }
 
+  // A double value is not necessary serialized to a number.
+  // When its value is non-numeric, it's treated as a string.
   def getDouble(v: Any) = {
     v match {
       case d: Double => VLit(GDouble(d))
+      case "-Infinity" => VLit(GDouble(Double.NegativeInfinity))
+      case "Infinity" => VLit(GDouble(Double.PositiveInfinity))
+      case "NaN" => VLit(GDouble(Double.NaN))
       case _ => throw ShouldNeverHappen()
     }
   }
@@ -390,6 +412,7 @@ object JSon {
   def getBool(v: Any) = {
     v match {
       case s: String => VLit(GBool(s.toBoolean))
+      case b: Boolean => VLit(GBool(b))
       case _ => throw ShouldNeverHappen()
     }
   }
@@ -405,6 +428,7 @@ object JSon {
     v match {
       case s: String if (s.length() == 0) => VObjId(None)
       case s: String => VObjId(Some(strToCId(s)))
+      case _ => throw ShouldNeverHappen()
     }
   }
 
@@ -440,13 +464,16 @@ object JSon {
   }
 
   // Converts a string in the form of "0.0" in a CId object (CId(0) in this case)
+  // There is a special case that the root object has string representation of "0".
   def strToCId(s:String) : CId = {
-    // Remove the 0. prefix
-    val x = s.split('.').toList.tail
+    // Convert from string to a list of integers
+    // and remove the 0. prefix (the first element)
+    val x = s.split('.').toList.map(_.toInt).tail
+
     x.size match {
       case 0 => CId()
-      case 1 => CId(x.head.toInt)
-      case _ => new CId(x.map(_.toInt).reverse)
+      case 1 => CId(x.head)
+      case _ => new CId(x.reverse)
     }
   }
 }

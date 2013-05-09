@@ -73,6 +73,7 @@ object Main {
           val x = JSon.fromJSON(JSon.toJSON(st).toString)
           println(x)
         case "listen" =>
+          println("Model: " + args(firstNonSemanticsArg))
           serverMode = true
           portNo = args(firstNonSemanticsArg + 2).toInt
           serverSocket = new ServerSocket(portNo)
@@ -80,7 +81,7 @@ object Main {
           val socket = serverSocket.accept()
           serverBufferedReader = new BufferedReader(new InputStreamReader(socket.getInputStream))
           serverBufferedWriter = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream))
-          println(ctrace.size)
+          ctrace.size // Force evaluation of the lazy value
         case "last" =>
           println(ctrace(0))
         case "bench" =>
