@@ -1,6 +1,5 @@
 
-// Negation as Second Derivative
-// Exponential Decay
+// Negation as Second Derivative Example
 
 class Main(simulator)
 private
@@ -8,3 +7,6 @@ private
 end
  x' = -x
 end
+
+// Note:  Solution is exponential function with 
+//          negative exponent ("Exponential Decay")

@@ -1,0 +1,25 @@
+
+// One Mode Loop Example
+//
+// Author:  Walid Taha
+// Note:    Run using Semantics -> Enclosure
+
+class Main(simulator)
+private mode := "m"; x := 1 end
+  switch mode
+    case "m"
+      if true
+        mode := "m"
+      end
+  end;
+  simulator.endTime := 2.5;
+  simulator.minLocalizationStep := 0.5
+end
+
+// Note:  This model exhibits an infinite number of
+//        transitions, from mode "m" to itself, 
+//        occurring at each instance in time during the 
+//        simulation.
+// Note:  The enclosure is the constant function [1..1], 
+//        corresponding to the only value that the 
+//        variable x can assume.

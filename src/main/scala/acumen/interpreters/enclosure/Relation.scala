@@ -3,16 +3,19 @@ package acumen.interpreters.enclosure
 import Expression._
 import Interval._
 import Types._
+import acumen.interpreters.enclosure.affine.UnivariateAffineEnclosure
 
 object BinaryRelationName extends Enumeration {
   type BinaryRelationName = Value
   val Le, Leq, Eq, Neq = Value
-}; import BinaryRelationName._
+}; 
+import BinaryRelationName._
 
 object UnaryRelationName extends Enumeration {
   type UnaryRelationName = Value
   val Positive, NonNegative, EqualToZero, NonPositive, Negative = Value
-}; import UnaryRelationName._
+}; 
+import UnaryRelationName._
 
 /**
  * Type used to represent relations used to define predicates.

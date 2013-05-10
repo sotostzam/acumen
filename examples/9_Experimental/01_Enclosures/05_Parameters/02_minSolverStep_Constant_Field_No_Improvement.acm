@@ -1,0 +1,27 @@
+
+// minSolverStep Constant Field, No Improvement Example
+//
+// Authors:  Jan Duracz
+// Note:     Run using Semantics -> Enclosure
+   
+class Main(simulator) 
+  private
+    x := 1; x' := -1;
+    mode := "On"
+  end
+  switch mode
+    case "On" require x >= 0
+      if x == 0
+        x := 1; 
+        mode := "On"
+      end; 
+      x' = -1 
+  end;
+  simulator.endTime := 2.5;
+  simulator.minSolverStep := 0.01; // Decreased
+  simulator.minLocalizationStep := 0.001;
+  simulator.minComputationImprovement := 0
+end
+
+// Note:  When fields are constant a lower minSolverStep
+//        does not improve enclosures.

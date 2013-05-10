@@ -1,6 +1,5 @@
 
-// Negation as Second Derivative
-// Oscillation.  Trigonometric function
+// Negation as Second Derivative Example
 
 class Main(simulator)
 private
@@ -8,3 +7,11 @@ private
 end
  x'' = -x
 end
+
+// Note:  Differential equations can express
+//          "oscillation".  Different explanations
+//          possible.
+// Note:  Solution is a trigonometric function
+// Note:  Connection between trigonometric functions
+//          and exponentiation
+// Note:  Linear differential equations

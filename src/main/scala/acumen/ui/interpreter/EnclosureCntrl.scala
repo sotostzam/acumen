@@ -4,8 +4,8 @@ package interpreter
 
 import collection.mutable.ArrayBuffer
 import scala.actors._
-import acumen.interpreters.enclosure.UnivariateAffineEnclosure
 import acumen.interpreters.enclosure.EnclosureInterpreterCallbacks
+import acumen.interpreters.enclosure.affine.UnivariateAffineEnclosure
 import InterpreterCntrl._
 
 class EnclosureCntrl(val interpreter: RecursiveInterpreter) extends InterpreterCntrl {

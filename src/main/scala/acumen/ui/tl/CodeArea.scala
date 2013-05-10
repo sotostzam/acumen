@@ -19,6 +19,7 @@ import org.fife.ui.rsyntaxtextarea.AbstractTokenMakerFactory
 import org.fife.ui.rsyntaxtextarea.RSyntaxTextArea
 import org.fife.ui.rsyntaxtextarea.SyntaxConstants
 import org.fife.ui.rsyntaxtextarea.TokenMakerFactory
+import org.fife.ui.rsyntaxtextarea.TokenTypes
 import acumen.ui.App
 import acumen.ui.Files
 import acumen.util.System.FILE_SUFFIX_MODEL
@@ -70,6 +71,8 @@ class CodeArea extends Panel { //EditorPane {
     TokenMakerFactory.getDefaultInstance.asInstanceOf[AbstractTokenMakerFactory].
       putMapping("AcumenTokenMaker", classOf[acumen.ui.tl.AcumenTokenMaker].getName)
     sta.setSyntaxEditingStyle("AcumenTokenMaker")
+    val commentStyle = sta.getSyntaxScheme.getStyle(TokenTypes.COMMENT_EOL)
+    commentStyle.font = commentStyle.font.deriveFont(Font.PLAIN)
     sta.setHighlightCurrentLine(false)
     sta.setTabSize(2)
     sta.setTabsEmulated(true) // Use soft tabs

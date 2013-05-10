@@ -1,11 +1,16 @@
 
-// Square of Self as Second Derivative
-// Solution is not a sum of complex exponentials
-// Solving non-linear (algebraic) equations using Picard iteration
+// Square of Self as Second Derivative Example
 
 class Main(simulator)
 private
  x:=0; x':=1; x'':=2
 end
- x'' = -x*x
+ x'' = -x*x/6
 end
+
+// Note:  Non-linear equation
+// Note:  Solution is not a sum of complex exponentials
+// Note:  We can still use the Picard method to
+//          construct approximate solutions to non-linear
+//          equations
+// Note:  Singularity!

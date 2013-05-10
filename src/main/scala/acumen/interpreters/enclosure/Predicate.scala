@@ -1,6 +1,7 @@
 package acumen.interpreters.enclosure
 
 import Types._
+import acumen.interpreters.enclosure.affine.UnivariateAffineEnclosure
 
 /**
  * Type used to represent predicates.

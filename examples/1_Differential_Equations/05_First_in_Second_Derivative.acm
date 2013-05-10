@@ -1,7 +1,5 @@
 
-// First Derivative as Second Derivative
-// Essentially something we have already seen
-// What's x in terms of x'?
+// First Derivative as Second Derivative Example
 
 class Main(simulator)
 private
@@ -9,3 +7,6 @@ private
 end
  x'' = -x'
 end
+
+// Note:  Essentially something we have already seen
+// Quiz:  What's x in terms of x'?

@@ -1,0 +1,10 @@
+
+Walid: This sequence of examples is interesting and OK for the most
+part, but it is not as focused as the basic differential equations
+sequence or the robust simulation examples.  We should work on
+tightening up this sequence.  The examples don't need to change, but
+we should make more use of these examples to illustrate more features
+of process of computing enclosures.  As we have more support for
+running simulations with both enclosure-based and traditional solvers,
+we'll probably have more things to talk about with this very same
+(basic) sequence.

@@ -1,11 +1,11 @@
 package acumen.interpreters.enclosure
 
-import acumen._
-import acumen.interpreters.enclosure.tree._
-import Interpreter._
-import Expression._
 import Relation._
 import Types._
+import acumen.interpreters.enclosure.Box.toBox
+import acumen.interpreters.enclosure.solver.tree.HybridSystem
+import acumen.interpreters.enclosure.solver.tree.ResetMap
+import acumen._
 
 trait Extract {
 

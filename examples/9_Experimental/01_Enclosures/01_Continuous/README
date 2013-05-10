@@ -1,0 +1,22 @@
+
+The purpose of this series is to give some examples of 
+how Acumen's experimental enclosure-based solver can be 
+used to construct enclosures for some basic continuous 
+systems.
+
+These examples illustrate how we can use an enclosure
+based solver to simulate continuous systems. To obtain
+good simulation results as fast as possible usually
+involves two steps:
+
+  1 Simulate the model with the following parameters
+    set to relatively large values:
+      - simulator.minSolverStep
+      - simulator.minComputationImprovement
+
+  2 Incrementally decrease the parameters until the
+    desired enclosure quality is achieved. 
+
+The examples illustrate progressively complex continuous
+systems, with parameters set to produce enclosures 
+quickly. 

@@ -1,6 +1,5 @@
 
-// Constant Second Derivatives
-// Polynomials are closed under integration
+// Constant Second Derivatives Example
 
 class Main(simulator)
 private
@@ -8,3 +7,5 @@ private
 end
  x'' = 1
 end
+
+// Note:  Polynomials are closed under integration

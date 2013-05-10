@@ -1,8 +1,5 @@
 
-// Linear Second Derivative
-// Stabilizing Oscillation
-// Linear Systems
-// Solutions to linear systems are a sum of complex exponentials
+// Linear Second Derivative Example
 
 class Main(simulator)
 private
@@ -10,3 +7,7 @@ private
 end
  x'' = -x'/2-x/2
 end
+
+// Note:  Mixing derivatives helps stabilize oscillation
+// Note:  Solutions to linear systems are a sum of 
+//          complex exponentials

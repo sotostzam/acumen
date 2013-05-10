@@ -1,15 +1,18 @@
 package acumen.interpreters.enclosure
 
-import scala.math.min
 import scala.math.max
-import org.scalacheck.Arbitrary
+import scala.math.min
 import org.scalacheck.Arbitrary.arbitrary
-import org.scalacheck.Gen
 import org.scalacheck.Gen._
-import acumen.interpreters.enclosure.Interval._
-import acumen.interpreters.enclosure.Types._
-
-import AffineScalarEnclosure._
+import org.scalacheck.Arbitrary
+import org.scalacheck.Gen
+import acumen.interpreters.enclosure.affine.AffineScalarEnclosure._
+import Types._
+import Interval._
+import acumen.interpreters.enclosure.affine.UnivariateAffineEnclosure
+import acumen.interpreters.enclosure.affine.AffineScalarEnclosure
+import acumen.interpreters.enclosure.affine.UnivariateAffineScalarEnclosure
+import acumen.interpreters.enclosure.affine.AffineEnclosure
 
 object Generators {
 

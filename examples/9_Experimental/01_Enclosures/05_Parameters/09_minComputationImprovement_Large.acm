@@ -1,0 +1,26 @@
+
+// minComputationImprovement Large Example
+//
+// Authors:  Michal Konecny and Jan Duracz
+// Note:     Run using Semantics -> Enclosure
+
+class Main(simulator)
+  private 
+    mode := "Fly"; x := 5; x' := 0; x'' := 0 
+  end
+  switch mode
+    case "Fly" require x >= 0
+      if x == 0 && x' <= 0
+        x' := -0.5 * x';
+        mode := "Fly"
+      end;
+      x'' = -10
+  end;
+  simulator.endTime := 2;
+  simulator.minSolverStep := 0.01;
+  simulator.minLocalizationStep := 0.001;
+  simulator.minComputationImprovement := 0.1
+end
+
+// Note:  A large minComputationImprovement results in
+//        a large enclosure.

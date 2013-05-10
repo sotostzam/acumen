@@ -3,10 +3,10 @@ package acumen.interpreters.enclosure
 import org.scalacheck.Properties
 import org.scalacheck.Prop._
 import org.scalacheck.Gen._
-
 import Types._
-
 import Generators._
+import acumen.interpreters.enclosure.affine.AffineScalarEnclosure
+import acumen.interpreters.enclosure.affine.AffineEnclosure
 
 object BoxTest extends Properties("Box") {
 
