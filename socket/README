@@ -13,11 +13,11 @@ Using the interface requires running Acumen in the command line
 mode.  The following command line syntax can be used to start
 Acumen in this mode (as a server):
 
-  java -jar acumen-10-devel.jar <acumen-model-file> listen <port>
+  java -jar acumen-VERSION.jar <acumen-model-file> listen <port>
 
 As a concrete example, you may type:
 
-  java -jar acumen-10-devel.jar examples/3_Hybrid_Systems/bouncing_ball_3d.acm listen 5000
+  java -jar acumen-VERSION.jar examples/3_Hybrid_Systems/bouncing_ball_3d.acm listen 5000
 
 to start Acumen running the file bouncing_ball_3d.acm and communicating
 over port 5000.
