@@ -1,3 +1,5 @@
+Acumen Socket Interface
+=======================
 Acumen can be run in server mode, in which before running the
 simulation, the server waits for a client to connect. After connection
 is established, the data of each simulation step is serialized to JSON
@@ -5,15 +7,74 @@ and sent to the connected client.  The server continues the simulation
 by reading from the client socket, de-serializing the JSON that the
 client sends and using it as the current simulation step.
 
-The entry point for the command line version is acumen.Main. Given a
-jar file with this entry point, the following command line syntax is
-used to start the server:
+The following command line syntax is used to start the server:
 
   java -jar acumen-10-devel.jar <acumen-model-file> listen <port>
 
 A concrete example would be:
 
-  java -jar acumen-10-devel.jar /path/to/model.acm listen 1234
+  java -jar acumen-10-devel.jar examples/3_Hybrid_Systems/bouncing_ball_3d.acm listen 5000
 
 After starting the server, it will block waiting for a client to
 connect. Currently there are sample echo clients in Java and OCaml.
+
+
+
+Java Client Usage
+=================
+Original from Acumen Ocaml:
+$Id: INSTALL 9625 2007-11-02 04:10:51Z yz2 $
+
+PREREQUISITES
+
+This client requires:
+- Java JDK
+
+From the root acumen source directory, do:
+
+   cd socket/client-examples/java/echoclient/
+   make
+
+alternatively you can just type:
+
+  javac EchoClient.java
+
+To start the client, make sure that the Acumen server is running and
+listening for a client on a certain port. To start the client:
+
+   java EchoClient <server-ip> <server-port>
+
+For example if the acumen server is running on the same machine and
+waiting on port 1234 do:
+
+   java EchoClient 127.0.0.1 5000
+
+
+
+OCaml Client Usage
+==================
+Original from Acumen Ocaml:
+$Id: INSTALL 9625 2007-11-02 04:10:51Z yz2 $
+
+PREREQUISITES
+
+This client requires:
+- ocaml
+
+From the root acumen source directory, do:
+
+   cd socket/client-examples/ocaml/echoclient/
+   make
+
+To start the client, make sure that the Acumen server is running and
+listening for a client on a certain port. To start the client:
+
+   ./echo_client <server-ip> <server-port>
+
+For example if the acumen server is running on the same machine and
+waiting on port 5000 do:
+
+   ./echo_client 127.0.0.1 5000
+
+
+
