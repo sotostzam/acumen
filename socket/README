@@ -1,36 +1,40 @@
+
 Acumen Socket Interface
 =======================
-Acumen can be run in server mode, in which before running the
-simulation, the server waits for a client to connect. After connection
-is established, the data of each simulation step is serialized to JSON
-and sent to the connected client.  The server continues the simulation
-by reading from the client socket, de-serializing the JSON that the
-client sends and using it as the current simulation step.
 
-The following command line syntax is used to start the server:
+The socket interface is provided with Acumen to allow users to
+run an Acumen simulation in cooperation with another simulation.
+The socket connection sends the entire state back and forth
+between Acumen (working as a server) to the other program (working
+as a client).  The client can read and modify any part of the
+entire state before sending it back.
+
+Using the interface requires running Acumen in the command line
+mode.  The following command line syntax can be used to start
+Acumen in this mode (as a server):
 
   java -jar acumen-10-devel.jar <acumen-model-file> listen <port>
 
-A concrete example would be:
+As a concrete example, you may type:
 
   java -jar acumen-10-devel.jar examples/3_Hybrid_Systems/bouncing_ball_3d.acm listen 5000
 
-After starting the server, it will block waiting for a client to
-connect. Currently there are sample echo clients in Java and OCaml.
+to start Acumen running the file bouncing_ball_3d.acm and communicating
+over port 5000.
 
+Acumen sends and reads back the data in JSON format.
 
+After starting the server in this mannter, Acumen will wait (block) 
+for a client to connect to that same port. Currently we also provide
+in this directory sample echo clients written in Java and OCaml.
+In what follows we will illustrate how those clients can be used.
 
-Java Client Usage
+Java Client Usage (Originally by Cherif Salama and/or Angela Yun Zhu)
 =================
-Original from Acumen Ocaml:
-$Id: INSTALL 9625 2007-11-02 04:10:51Z yz2 $
 
-PREREQUISITES
+This client requires having Java JDK installed.
 
-This client requires:
-- Java JDK
-
-From the root acumen source directory, do:
+From the root Acumen source directory, do:
 
    cd socket/client-examples/java/echoclient/
    make
@@ -44,24 +48,18 @@ listening for a client on a certain port. To start the client:
 
    java EchoClient <server-ip> <server-port>
 
-For example if the acumen server is running on the same machine and
-waiting on port 1234 do:
+For example if the Acumen server is running on the same machine and
+waiting on port 5000 do:
 
    java EchoClient 127.0.0.1 5000
 
 
-
-OCaml Client Usage
+OCaml Client Usage (Originally by Cherif Salama and/or Angela Yun Zhu)
 ==================
-Original from Acumen Ocaml:
-$Id: INSTALL 9625 2007-11-02 04:10:51Z yz2 $
 
-PREREQUISITES
+This client requires having OCaml installed.
 
-This client requires:
-- ocaml
-
-From the root acumen source directory, do:
+From the root Acumen source directory, do:
 
    cd socket/client-examples/ocaml/echoclient/
    make
@@ -71,10 +69,7 @@ listening for a client on a certain port. To start the client:
 
    ./echo_client <server-ip> <server-port>
 
-For example if the acumen server is running on the same machine and
+For example if the Acumen server is running on the same machine and
 waiting on port 5000 do:
 
    ./echo_client 127.0.0.1 5000
-
-
-
