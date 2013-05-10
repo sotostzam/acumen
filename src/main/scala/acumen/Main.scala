@@ -83,7 +83,7 @@ object Main {
           serverBufferedWriter = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream))
           ctrace.size // Force evaluation of the lazy value
         case "last" =>
-          println(ctrace(0))
+          trace.printLast
         case "bench" =>
           val offset = firstNonSemanticsArg + 1 + 1;
           val start: Int = Integer.parseInt(args(offset + 0))
