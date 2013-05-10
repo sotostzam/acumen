@@ -169,9 +169,13 @@ object GraphicalMain extends SimpleSwingApplication {
   }
 
   override def main(args: Array[String]) {
-    parseOpts(args.toList)
-    maybeFork(args)
-    super.main(args)
+    if (args.size > 0 && (args(0) == "--semantics" || !args(0).startsWith("-"))) {
+      acumen.Main.main(args)
+    } else {
+      parseOpts(args.toList)
+      maybeFork(args)
+      super.main(args)
+    }
   }
 
   def top = {
