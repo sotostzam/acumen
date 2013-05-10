@@ -10,14 +10,14 @@ class Ball(mode, p, p', p'', m)
       if dot(uz,p) < 0  && dot(uz,p') < 0
         if m >= 1
           create Ball("Bounce",p,
-                      [norm(p' .* plane) * cos(atan2(dot(ux,p'), dot(uy,p')) + 3.14/8),
-                       norm(p' .* plane) * sin(atan2(dot(ux,p'), dot(uy,p')) + 3.14/8),
+                      [norm(p' .* plane) * cos(atan2(dot(uy,p'), dot(ux,p')) + 3.14/8),
+                       norm(p' .* plane) * sin(atan2(dot(uy,p'), dot(ux,p')) + 3.14/8),
                        dot(uz,p')],
                       [0,0,0],
                       m/2);
           create Ball("Bounce",p,
-                      [norm(p' .* plane) * cos(atan2(dot(ux,p'), dot(uy,p')) - 3.14/8),
-                       norm(p' .* plane) * cos(atan2(dot(ux,p'), dot(uy,p')) - 3.14/8),
+                      [norm(p' .* plane) * cos(atan2(dot(uy,p'), dot(ux,p')) - 3.14/8),
+                       norm(p' .* plane) * cos(atan2(dot(uy,p'), dot(ux,p')) - 3.14/8),
                        dot(uz,p')],
                       [0,0,0],
                       m/2);
