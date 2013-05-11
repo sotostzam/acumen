@@ -7,6 +7,7 @@ package acumen.interpreters.enclosure
  */
 import Interval._
 import java.math.BigDecimal
+import java.math.MathContext
 
 /**
  * Intervals with outward-rounded operations.
@@ -30,8 +31,8 @@ import java.math.BigDecimal
  * contained in f(B_1,...,B_n).
  */
 case class Interval(
-  val lo: Real,
-  val hi: Real)(implicit val rnd: Rounding) {
+    val lo: Real,
+    val hi: Real)(implicit val rnd: Rounding) {
   import rnd._
 
   def low = Interval(lo)
@@ -103,6 +104,10 @@ case class Interval(
     }
     if (this lessThan Interval(0)) sys.error("sqrt is undefined on " + this)
     else Interval(sqrt(dn)(max(lo, lo.subtract(lo))), sqrt(up)(hi))
+  }
+
+  /** Interval of possible  values of the exponential function over this interval. */
+  def exp(implicit rnd: Rounding) = {
   }
 
   /**
@@ -331,9 +336,14 @@ object Interval {
     if (is.isEmpty) sys.error("Interval.union: empty union")
     else is.tail.fold(is.head)(_ /\ _)
 
+  def max(is: Iterable[Interval])(implicit rnd: Rounding): Interval = {
+    require(is.nonEmpty)
+    is.tail.fold(is.head)(max(_, _))
+  }
+
 }
 
 object IntervalApp extends App {
   implicit val rnd = Rounding(10)
-  println(Interval(5, 6) setminus Interval(2, 4))
+  println(Interval(0, 1).exp)
 }
