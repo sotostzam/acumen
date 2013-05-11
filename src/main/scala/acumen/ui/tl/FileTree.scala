@@ -90,25 +90,28 @@ class FileTree(initialPath: File) extends Component with ChangeListener {
     val tree = new JTree(fileSystemModel) with SuperMixin
     tree setEditable false
     tree setRootVisible false
+    /* Override behavior of the and right keyboard arrows.
+     * When a top level folder is selected, pressing the left arrow 
+     * causes the root to be reset to the parent of the current root.
+     * If an expanded folder is selected, pressing the right arrow 
+     * causes the root to be reset to selected node.
+     */
     tree addKeyListener new KeyAdapter {
-      override def keyPressed(e: KeyEvent) =
-        getSelectedFile match {
+      override def keyPressed(e: KeyEvent) = {
+        val leftPressed = e.getKeyCode == KeyEvent.VK_LEFT
+        val selectedFile = getSelectedFile 
+        selectedFile match {
           case Some(f) =>
-            /* Override behavior of left arrow on the keyboard.
-             * When a top level folder is selected, pressing the left arrow 
-             * causes the root to be reset to the parent of the current root.
-             */
-            if (e.getKeyCode == KeyEvent.VK_LEFT && !peer.isExpanded(peer.getSelectionPath) &&
-              f.getParentFile.getCanonicalFile == tree.getModel.getRoot.asInstanceOf[File].getCanonicalFile)
+            if (leftPressed &&
+              (f == tree.getModel.getRoot || // Directory is empty (no visible node is selected)
+                (!peer.isExpanded(peer.getSelectionPath) && // A top-level node is selected
+                  f.getParentFile.getCanonicalFile == tree.getModel.getRoot.asInstanceOf[File].getCanonicalFile)))
               goUp
-            /* Override behavior of right arrow on the keyboard.
-             * If an expanded folder is selected, pressing the right arrow 
-             * causes the root to be reset to selected node.
-             */
             else if (e.getKeyCode == KeyEvent.VK_RIGHT && peer.isExpanded(peer.getSelectionPath))
               goInto
-          case None => if (e.getKeyCode == KeyEvent.VK_LEFT) goUp
+          case None => if (leftPressed) goUp
         }
+      }
     }
     tree
   }
