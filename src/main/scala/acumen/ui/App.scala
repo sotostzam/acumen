@@ -48,8 +48,8 @@ class App extends SimpleSwingApplication {
 
   App.ui = this
   
-  val DEFAULT_HEIGHT = 1024
-  val DEFAULT_WIDTH = 768
+  val DEFAULT_HEIGHT = 768
+  val DEFAULT_WIDTH = 1024
 
   // Create a special actor to listen to events from other threads
 
@@ -419,7 +419,7 @@ class App extends SimpleSwingApplication {
     title = "Acumen"
     contents = body
     menuBar = bar
-    size = new Dimension(DEFAULT_HEIGHT,DEFAULT_WIDTH)
+    size = new Dimension(DEFAULT_WIDTH,DEFAULT_HEIGHT)
     // XXX: consider deleting
     override def closeOperation() {     
     exit
