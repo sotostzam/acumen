@@ -20,10 +20,6 @@ object Icons {
   private val replayUrl  = this.getClass.getResource("icons/replay.png")
   private val fasterUrl  = this.getClass.getResource("icons/faster.png")
   private val slowerUrl  = this.getClass.getResource("icons/slower.png")
-  /* File browser */
-  private val goUpUrl    = this.getClass.getResource("icons/goup.png")
-  private val goIntoUrl  = this.getClass.getResource("icons/gointo.png")
-  private val syncUrl    = this.getClass.getResource("icons/sync.png")
   
   private val default = new ImageIcon()
   private def get(u: URL) : Icon = {
@@ -43,8 +39,5 @@ object Icons {
   lazy val replay  = get(replayUrl)
   lazy val faster  = get(fasterUrl)
   lazy val slower  = get(slowerUrl)
-  lazy val goUp    = get(goUpUrl)
-  lazy val goInto  = get(goIntoUrl)
-  lazy val sync    = get(syncUrl)
   
 }

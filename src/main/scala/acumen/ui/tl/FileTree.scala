@@ -28,6 +28,7 @@ import javax.swing.JComponent
 import scala.swing.event.Key
 import java.awt.event.KeyAdapter
 import java.awt.event.KeyEvent
+import javax.swing.JCheckBox
 
 /** Wrapper for FileTree, provides navigation and configuration buttons. */
 class FileBrowser(initialPath: File, editor: CodeArea) extends BorderPanel {
@@ -46,21 +47,8 @@ class FileBrowser(initialPath: File, editor: CodeArea) extends BorderPanel {
     }
   })
 
-  val goUpButton = new JButton()
-  goUpButton.setAction(new AbstractAction("goUp", Icons.goUp) {
-    override def actionPerformed(e: ActionEvent) { fileTree.goUp }
-  })
-  goUpButton.setToolTipText("Browse the parent directory")
-
-  val goIntoButton = new JButton()
-  goIntoButton.setAction(new AbstractAction("goInto", Icons.goInto) {
-    override def actionPerformed(e: ActionEvent) { fileTree.goInto }
-  })
-  
-  goIntoButton.setToolTipText("Focus file browser on selected directory")
-
-  val syncButton = new JToggleButton()
-  syncButton.setAction(new AbstractAction("sync", Icons.sync) {
+  val syncButton = new JCheckBox()
+  syncButton.setAction(new AbstractAction("Synchronize with editor") {
     override def actionPerformed(e: ActionEvent) {
       GraphicalMain.syncEditorWithBrowser = !GraphicalMain.syncEditorWithBrowser
       if (GraphicalMain.syncEditorWithBrowser)
@@ -77,13 +65,9 @@ class FileBrowser(initialPath: File, editor: CodeArea) extends BorderPanel {
   val toolbar = new JToolBar()
   toolbar.setFloatable(false)
 
-  for (b <- List(goUpButton, goIntoButton, syncButton)) {
-    b.setHideActionText(true)
-    b.setFocusable(false)
-    b.setBorderPainted(false)
-    toolbar.add(b)
-  }
-  syncButton.setBorderPainted(true) // Show toggle status
+  syncButton.setFocusable(false)
+  syncButton.setBorderPainted(false)
+  toolbar.add(syncButton)
 
   add(Component.wrap(toolbar), BorderPanel.Position.North)
   add(new ScrollPane(fileTree), BorderPanel.Position.Center)
