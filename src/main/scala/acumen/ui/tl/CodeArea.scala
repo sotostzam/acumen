@@ -140,7 +140,7 @@ class CodeArea extends Panel with TreeSelectionListener {
   }
 
   def setEdited = {
-    if (!editedSinceLastSave) filenameLabel.text += " (changed)"
+    if (!editedSinceLastSave) filenameLabel.text += " (unsaved)"
     editedSinceLastSave = true
     editedSinceLastAutoSave = true
   }
