@@ -15,9 +15,9 @@ import acumen.interpreters.enclosure.Box
  * Implementation notes: see the implementation notes for
  * AffineEnclosure.
  */
-case class UnivariateAffineEnclosure private[enclosure] (
+case class UnivariateAffineEnclosure private[affine] (
   domain: Interval,
-  private[enclosure]normalizedDomain: Interval,
+  private[affine]normalizedDomain: Interval,
   //  private[enclosure]
   components: Map[VarName, UnivariateAffineScalarEnclosure])(implicit rnd: Rounding) {
   assert(normalizedDomain.low equalTo 0, "The low end-point of the normalizedDomain should be zero!")
