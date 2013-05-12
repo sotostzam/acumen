@@ -1,11 +1,14 @@
 
-// minSolverStep model with constant field, no improvement
-// Author: Jan Duracz
-// When fields are constant a lower minSolverStep does 
-// not improve enclosures.
+// minSolverStep Constant Field, No Improvement Example
+//
+// Authors:  Jan Duracz
+// Note:     Run using Semantics -> Enclosure
    
 class Main(simulator) 
-private mode := "On"; x := 1; x' := -1 end
+  private
+    x := 1; x' := -1;
+    mode := "On"
+  end
   switch mode
     case "On" require x >= 0
       if x == 0
@@ -15,7 +18,10 @@ private mode := "On"; x := 1; x' := -1 end
       x' = -1 
   end;
   simulator.endTime := 2.5;
-  simulator.minSolverStep := 0.01; // Decreased!
+  simulator.minSolverStep := 0.01; // Decreased
   simulator.minLocalizationStep := 0.001;
-  simulator.minComputationImprovement := 0; 
+  simulator.minComputationImprovement := 0
 end
+
+// Note:  When fields are constant a lower minSolverStep
+//        does not improve enclosures.

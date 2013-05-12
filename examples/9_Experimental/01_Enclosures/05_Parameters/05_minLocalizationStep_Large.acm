@@ -1,14 +1,14 @@
 
-// minLocalizationStep large
-// Authors: Walid Taha and Adam Duracz
-// Due to a large minLocalizationStep, few resets are 
-// evaluated, yielding a wide enclosure. 
+// minLocalizationStep Large Example
+//
+// Authors:  Walid Taha and Adam Duracz
+// Note:     Run using Semantics -> Enclosure
 
 class Main(simulator)
   private
     d := 1; d' := -1;
     s := 1/2;
-    mode := ""; 
+    mode := "" 
   end
   switch mode
     case "" require s <= abs(d)
@@ -16,10 +16,13 @@ class Main(simulator)
         s := s/2; 
         mode := "" 
       end;
-      d' = -1;
+      d' = -1
   end;
   simulator.endTime := 1.1;
   simulator.minSolverStep := 1.1;
   simulator.minLocalizationStep := 0.01;
-  simulator.minComputationImprovement := 0;
+  simulator.minComputationImprovement := 0
 end
+
+// Note:  Due to a large minLocalizationStep, few resets
+//        are evaluated, yielding a wide enclosure. 

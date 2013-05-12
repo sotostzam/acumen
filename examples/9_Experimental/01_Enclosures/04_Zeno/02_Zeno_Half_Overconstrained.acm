@@ -1,18 +1,18 @@
 
-// Zeno Half overconstrained
-// Authors: Walid Taha and Adam Duracz
-// Adding an invariant, the solver is able to ascertain 
-// that the first event occurs.
+// Zeno Half Overconstrained Example
+//
+// Authors:  Walid Taha and Adam Duracz
+// Note:     Run using Semantics -> Enclosure
 
 class Main(simulator)
   private
     d := 1; d' := -1;
     s := 1/2;
-    mode := ""; 
+    mode := ""
   end
   switch mode
     case "" 
-      require s <= abs(d) // Constraint added!
+      require s <= abs(d) // Invariant added!
       if s == d 
         s := s/2; 
         mode := "" 
@@ -22,5 +22,8 @@ class Main(simulator)
   simulator.endTime := 2.0;
   simulator.minSolverStep := 1.1;
   simulator.minLocalizationStep := 0.1;
-  simulator.minComputationImprovement := 0;
+  simulator.minComputationImprovement := 0
 end
+
+// Note:  Adding an invariant, the solver is able to 
+//        ascertain that the first event occurs.

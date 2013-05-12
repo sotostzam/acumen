@@ -17,6 +17,7 @@ import org.fife.ui.rtextarea.RTextScrollPane
 import interpreter._
 import scala.Boolean
 import tl._
+import javax.swing.JOptionPane
 
 // class Acumen = Everything that use to be GraphicalMain.  Graphical
 // Main can't be an object it will cause Swing components to be
@@ -222,12 +223,20 @@ class App extends SimpleSwingApplication {
   val bar = new MenuBar {
     contents += new Menu("File") {
       mnemonic = Key.F
-      contents += new MenuItem(Action("New")({ codeArea.newFile })) { mnemonic = Key.N; enabledWhenStopped += this }
-      contents += new MenuItem(Action("Open")({ codeArea.openFile(codeArea.currentDir) })) { mnemonic = Key.O; enabledWhenStopped += this }
-      contents += new MenuItem(Action("Save")(codeArea.saveFile)) { mnemonic = Key.S }
-      contents += new MenuItem(Action("Save As")(codeArea.saveFileAs)) { mnemonic = Key.A }
-      contents += new MenuItem(Action("Recover")({ codeArea.openFile(Files.autoSavedDir) })) { mnemonic = Key.R; enabledWhenStopped += this }
-      contents += new MenuItem(Action("Exit")(exit)) { mnemonic = Key.E }
+      contents += new MenuItem(Action("New")({ codeArea.newFile })) 
+                      { mnemonic = Key.N; enabledWhenStopped += this}
+      contents += new MenuItem(Action("Open")({ codeArea.openFile(codeArea.currentDir) })) 
+                      { mnemonic = Key.O; enabledWhenStopped += this}
+      contents += new MenuItem(Action("Save")(codeArea.saveFile))
+                      { mnemonic = Key.S }
+      contents += new MenuItem(Action("Save As")(codeArea.saveFileAs))
+                      { mnemonic = Key.A }
+      contents += new MenuItem(Action("Recover")({ codeArea.openFile(Files.autoSavedDir) }))
+                      { mnemonic = Key.R; enabledWhenStopped += this}
+      contents += new MenuItem(Action("Export Table")(exportTable))
+                      { enabledWhenStopped += this}
+      contents += new MenuItem(Action("Exit")(exit))
+                      { mnemonic = Key.E }
     }
 
     contents += new Menu("View") {
@@ -466,6 +475,49 @@ class App extends SimpleSwingApplication {
       }
   }
 
+  def confirmSave(c: java.awt.Component, f:File) = {
+    val message = 
+      "File " + f.toString + 
+      " already exists.\nAre you sure you want to overwrite it?"
+    JOptionPane.showConfirmDialog(c, message,
+      "Really?", JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION
+  }
+  def exportTable = {
+    val fc = new FileChooser()
+    val returnVal = fc.showSaveDialog(App.ui.body)
+    if (returnVal == FileChooser.Result.Approve) {
+
+      // Hack to make sure table data is populated
+      val prev = plotView.plotPanel.tableI.enabled
+      plotView.plotPanel.tableI.enabled = true
+      plotView.plotPanel.plotter ! plot.Refresh
+      plotView.plotPanel.tableI.enabled = prev
+
+      val file = fc.selectedFile
+      if (!file.exists || confirmSave(App.ui.body.peer, file)) {
+        val model = traceTable.model
+        val out = new FileWriter(fc.selectedFile)
+        var i = 0
+        while (i < model.getColumnCount()) {
+	  out.write(model.getColumnName(i) + "\t");
+          i += 1
+	}
+	out.write("\n");
+        i = 0
+	while (i< model.getRowCount) {
+          var j = 0;
+	  while (j < model.getColumnCount) {
+	    out.write(model.getValueAt(i,j).toString()+"\t");
+            j += 1;
+	  }
+	  out.write("\n");
+          i += 1;
+	}
+	out.close();
+      }
+    }
+  }
+  
   // Add application-wide keyboard shortcuts
 
   KeyboardFocusManager.getCurrentKeyboardFocusManager.addKeyEventDispatcher(new KeyEventDispatcher {

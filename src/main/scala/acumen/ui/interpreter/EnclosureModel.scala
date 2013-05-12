@@ -73,7 +73,7 @@ class EnclosureModel extends TraceModel with PlotModel with InterpreterModel {
       tableTimes(i) = timeGrouping(j)._1
 
       // prep the table array
-      tableData = Array.fill(plottables.size + 1){null:Array[String]}
+      tableData = Array.fill(plottables.size*2 + 1){null:Array[String]}
 
       // fill in the first column with the time value
       tableData(0) = tableTimes.map {t => "%f".format(t)}
@@ -85,27 +85,33 @@ class EnclosureModel extends TraceModel with PlotModel with InterpreterModel {
           val data = enclosures.slice(start,stop)
           val lo = data.map {encl => encl.loLeft}.min
           val hi = data.map {encl => encl.hiLeft}.max
-          "[%f,%f]".format(lo,hi)
+          ("%f".format(lo), "%f".format(hi))
         }
         def getRight(idx: Int) = {
           val (_,start,stop) = timeGrouping(idx)
           val data = enclosures.slice(start,stop)
           val lo = data.map {encl => encl.loRight}.min
           val hi = data.map {encl => encl.hiRight}.max
-          "[%f,%f]".format(lo,hi)
+          ("%f".format(lo), "%f".format(hi))
         }
-        val r = Array.fill(timeGrouping.size * 2 - 2){null:String}
+        val rLo = Array.fill(timeGrouping.size * 2 - 2){null:String}
+        val rHi = Array.fill(timeGrouping.size * 2 - 2){null:String}
         var i = 0; var j = 1
         while (j < timeGrouping.size) {
-          r(i) = getLeft(j)
-          i += 1
-          r(i) = getRight(j)
+          val (a,b) = getLeft(j)
+          rLo(i) = a
+          rHi(i) = b
+          i += 1;
+          val (c,d) = getRight(j)
+          rLo(i) = c
+          rHi(i) = d
           i += 1; j += 1
         }
-        tableData(idx) = r
+        tableData((idx-1)*2+1) = rLo
+        tableData((idx-1)*2+2) = rHi
       }
 
-      columnNames = IndexedSeq("time") ++ enclSeqs.map{case(n,_,_) => n}
+      columnNames = IndexedSeq("time") ++ enclSeqs.map{case(n,_,_) => List(n+".min", n+".max")}.flatten
     }
   }
 

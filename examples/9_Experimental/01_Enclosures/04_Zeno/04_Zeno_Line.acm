@@ -1,17 +1,14 @@
 
-// Zeno Line
-// Authors: Walid Taha and Adam Duracz
-// An example of a Zeno system with piecewise linear 
-// dynamics.
+// Zeno Line Example
 //
-// This is a minimal example of a Zeno system where
-// the value of the variable s changes between resets.
+// Authors:  Walid Taha and Adam Duracz
+// Note:     Run using Semantics -> Enclosure
 
 class Main(simulator)
   private
-    d  := 1;    d' := 0;
-    s  := 1/2;  s' := 1;
-    mode := ""; 
+    d := 1; d' := 0;
+    s := 1/2; s' := 1;
+    mode := ""
   end
   switch mode
     case ""
@@ -20,10 +17,16 @@ class Main(simulator)
         mode := "" 
       end;
       d' = -1;
-      s' = 1; // s increases linearly
+      s' =  1 // s increases linearly
   end;
   simulator.endTime := 1.2;
   simulator.minSolverStep := 1.2;
   simulator.minLocalizationStep := 0.1;
-  simulator.minComputationImprovement := 0;
+  simulator.minComputationImprovement := 0
 end
+
+// Note:  This system has piecewise linear dynamics.
+//
+// Note:  This is a minimal example of a Zeno system 
+//        where the value of the variable s changes 
+//        between resets.

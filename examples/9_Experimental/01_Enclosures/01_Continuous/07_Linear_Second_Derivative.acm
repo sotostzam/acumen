@@ -1,16 +1,20 @@
 
 // Linear Second Derivative Example
+//
+// Note:  Run with Semantics -> Enclosure
 
 class Main(simulator)
-private
- x:=1; x':=0; x'':=0;
- mode := ""
-end
- switch mode
- case ""
- x'' = -x'/2-x/2
- end;
-  simulator.minSolverStep := 0.1;
+  private
+    x    := 1;
+    x'   := 0;
+    x''  := 0;
+    mode := ""
+  end
+  switch mode
+    case ""
+      x'' = -x'/2 - x/2
+  end;
+  simulator.minSolverStep := 0.1
 end
 
 // Note:  Proper second order linear equations work, too

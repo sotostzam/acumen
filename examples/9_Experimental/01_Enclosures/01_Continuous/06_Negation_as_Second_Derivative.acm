@@ -14,6 +14,6 @@ private x:=1; x':=0; x'':=0; mode := ""; end
 end
 
 // Note:  For the (very basic) continuous solver that
-//          this enclosure semantics uses (Picard
-//          iteration), imprecision error can accumulate
-//          very quickly
+//        this enclosure semantics uses (Picard
+//        iteration), imprecision error can accumulate
+//        very quickly

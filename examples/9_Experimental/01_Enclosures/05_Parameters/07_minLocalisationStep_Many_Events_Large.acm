@@ -1,27 +1,31 @@
 
-// minLocalizationStep many events large enclosure
-// Author: Jan Duracz
-// A large minLocalizationStep gives large enclosures 
-// when many events happen. 
+// minLocalizationStep Many Events Large Enclosure
+//
+// Author:  Jan Duracz
+// Note:    Run using Semantics -> Enclosure
 
 class Main (simulator)
   private 
-    mode := "decreasing"; x := 1; x' := -1; 
+    x := 1; x' := -1;
+    mode := "decreasing"
   end
   switch mode
     case "decreasing" require x >= 0
       if x == 0 
         mode := "increasing"
       end;
-      x' = -1;
+      x' = -1
     case "increasing" require x <= 1
       if x == 1 
         mode := "decreasing"
       end;
-      x' = 1;
+      x' = 1
   end;
   simulator.endTime := 15.0;
   simulator.minSolverStep := 15.0;
   simulator.minLocalizationStep := 0.05;
-  simulator.minComputationImprovement := 0;
+  simulator.minComputationImprovement := 0
 end
+
+// Note:  A large minLocalizationStep gives large 
+//        enclosures when many events happen.

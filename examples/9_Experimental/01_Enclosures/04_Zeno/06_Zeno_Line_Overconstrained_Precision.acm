@@ -1,14 +1,14 @@
 
-// Zeno Line overconstrained with improved precision
-// Authors: Walid Taha and Adam Duracz
-// By decreasing the time step, the enclosure before and 
-// after Zeno appears in more detail.
+// Zeno Line Overconstrained Improved Precision Example
+//
+// Authors:  Walid Taha and Adam Duracz
+// Note:     Run using Semantics -> Enclosure
 
 class Main(simulator)
   private
-    d  := 1;    d' := 0;
-    s  := 1/2;  s' := 1;
-    mode := ""; 
+    d := 1; d' := 0;
+    s := 1/2; s' := 1;
+    mode := ""
   end
   switch mode
     case "" require s <= abs(d)
@@ -17,10 +17,13 @@ class Main(simulator)
         mode := "" 
       end;
       d'  = -1;
-      s'  = 1;
+      s'  =  1
   end;
   simulator.endTime := 1.2;
   simulator.minSolverStep := 1.2;
-  simulator.minLocalizationStep := 0.0001; // Decreased!
-  simulator.minComputationImprovement := 0;
+  simulator.minLocalizationStep := 0.0001; // Decreased
+  simulator.minComputationImprovement := 0
 end
+
+// Note:  By decreasing the time step, the enclosure 
+//        before and after Zeno appears in more detail.

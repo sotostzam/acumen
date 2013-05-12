@@ -1,26 +1,29 @@
 
-// Two mode loop
-// This model illustrates handling of an infinite number
-// of transitions between different modes.
+// Two Mode Loop Example
 //
-// Note on Acumen: At each point in time, the computed 
-//  interval is the smallest one that contains all the
-//  values that x can assume, i.e. 1 and 2.
+// Author:  Adam Duracz
+// Note:    Run using Semantics -> Enclosure
 
 class Main(simulator)
-private mode := "one"; x := 1; end
+private mode := "one"; x := 1 end
   switch mode
     case "one"
       if true
         mode := "two";
-        x := 2;
+        x := 2
       end
-    case "two" // Another mode!
+    case "two" // Another mode
       if true
         mode := "one";
-        x := 1;
+        x := 1
       end
   end;
   simulator.endTime := 2.5;
-  simulator.minLocalizationStep := 0.5;
+  simulator.minLocalizationStep := 0.5
 end
+
+// Note:  An infinite number of transitions between
+//        different different modes is also supported.
+// Note:  At each point in time, the computed interval 
+//        is the smallest one that contains all the
+//        values that x can assume, i.e. 1 and 2.
