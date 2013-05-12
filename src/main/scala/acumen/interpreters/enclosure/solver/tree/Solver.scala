@@ -12,8 +12,7 @@ import acumen.interpreters.enclosure.Util
 import acumen.interpreters.enclosure.solver.pwl.EncloseEvents
 import acumen.interpreters.enclosure.affine.UnivariateAffineEnclosure
 
-trait Solver extends EncloseEvents { 
-//trait Solver extends SolveVtE {
+trait Solver extends SolveVtE {
 
   case class SolverException(message: String) extends Exception
   case class Aborted(resultSoFar: Seq[UnivariateAffineEnclosure]) extends Exception

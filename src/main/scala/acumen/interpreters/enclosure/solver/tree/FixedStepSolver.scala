@@ -43,7 +43,7 @@ trait FixedStepSolver extends SolveVtE {
       T: Interval, // time segment to simulate over
       uncertainStates: Set[UncertainState] // initial modes and initial conditions
       ): Option[(Set[UncertainState], Seq[UnivariateAffineEnclosure])] = {
-      val onT = uncertainStates.map(solveVtE(H, T, _, delta, m, n, K, degree, output, cb.log))
+      val onT = uncertainStates.map(solveVtE(H, T, _, delta, m, n, K, degree, cb.log))
       val failedToComputeAnEnclosure = onT contains None
       if (failedToComputeAnEnclosure) None
       else Some(onT.map(_.get).

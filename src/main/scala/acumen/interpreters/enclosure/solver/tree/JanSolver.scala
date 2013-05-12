@@ -47,7 +47,7 @@ trait JanSolver extends SolveVtE {
         null
       }
 
-      val onT = Ss.map(solveVtE(H, T, _, delta, m, n, degree, K, output, cb.log))
+      val onT = Ss.map(solveVtE(H, T, _, delta, m, n, degree, K, cb.log))
       val mustSplit = T.width greaterThan e
       val (lT, rT) = T.split
       val cannotSplit = !(min(lT.width, rT.width) greaterThan d)
@@ -67,7 +67,7 @@ trait JanSolver extends SolveVtE {
           }
         val ssT = M(endStatesOnT)
 
-        val onlT = Ss.map(solveVtE(H, lT, _, delta, m, n, degree, K, output, cb.log))
+        val onlT = Ss.map(solveVtE(H, lT, _, delta, m, n, degree, K, cb.log))
         if (onlT contains None) {
           /**
            * STOP SUBDIVISION
@@ -81,7 +81,7 @@ trait JanSolver extends SolveVtE {
             }
           val sslT = M(endStatesOnlT)
 
-          val onrT = sslT.map(solveVtE(H, rT, _, delta, m, n, K, degree, output, cb.log))
+          val onrT = sslT.map(solveVtE(H, rT, _, delta, m, n, K, degree, cb.log))
           if (onrT contains None) {
             /**
              * STOP SUBDIVISION

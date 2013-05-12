@@ -36,7 +36,7 @@ trait AtomicStep extends SolveVtE {
     log: String => Unit)(
       us: Set[UncertainState],
       t: Interval)(implicit rnd: Rounding): MaybeResult = {
-    val res = us.map(solveVtE(H, t, _, delta, m, n, degree, K, output, log))
+    val res = us.map(solveVtE(H, t, _, delta, m, n, degree, K, log))
     if (res contains None) None
     else {
       val (us2, es) = res.map(_.get).foldLeft((Set[UncertainState](), Seq[UnivariateAffineEnclosure]())) {
