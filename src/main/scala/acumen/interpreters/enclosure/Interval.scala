@@ -85,7 +85,11 @@ case class Interval(
   /** Interval of absolute values of elements in this interval. */
   def abs = Interval.max(this /\ -this, Interval(0))
 
-  /** Interval of p:th power values of elements in this interval. */
+  /**
+   * Interval of n:th power values of elements in this interval.
+   *
+   * @precondition n >= 0.
+   */
   def pow(n: Int): Interval = {
     require(n >= 0)
     val h = hi.pow(n, rnd.up)
@@ -404,8 +408,7 @@ object Interval {
 }
 
 object IntervalApp extends App {
+
   implicit val rnd = Rounding(10)
-  val x = Interval(3, 5)
-  val n = 3
-  println(x.exp)
+
 }
