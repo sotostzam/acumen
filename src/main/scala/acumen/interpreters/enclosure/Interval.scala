@@ -1,13 +1,9 @@
 package acumen.interpreters.enclosure
 
-/**
- * A class for outward rounded intervals with BigDeciaml end-points.
- * @define lo and hi fields holding the lower and upper bound of the
- * interval.
- */
-import Interval._
 import java.math.BigDecimal
 import java.math.MathContext
+
+import Interval._
 
 /**
  * Intervals with outward-rounded operations.
@@ -81,13 +77,25 @@ case class Interval(
     val mesh = width.lo.divide(Interval(pieces).hi, dn)
     (0 until pieces - 1).map {
       i =>
-        Interval(
-          lo.add(mesh.multiply(Interval(i).lo, dn), dn), lo.add(mesh.multiply(Interval(i + 1).lo, dn), dn))
+        Interval(lo.add(mesh.multiply(Interval(i).lo, dn), dn),
+          lo.add(mesh.multiply(Interval(i + 1).lo, dn), dn))
     } :+ Interval(lo.add(mesh.multiply(Interval(pieces - 1).lo, dn), dn), hi)
   }
 
   /** Interval of absolute values of elements in this interval. */
   def abs = Interval.max(this /\ -this, Interval(0))
+
+  /** Interval of p:th power values of elements in this interval. */
+  def pow(n: Int)(implicit rnd: Rounding): Interval = {
+    require(n >= 0)
+    val h = hi.pow(n, rnd.up)
+    val l = lo.pow(n, rnd.dn)
+    val res = Interval(l) /\ Interval(h)
+    val result =
+      if ((n % 2 != 0) || !(this contains 0)) res
+      else Interval(0) /\ res
+    result
+  }
 
   /** Interval of possible square roots elements in this interval. */
   def sqrt(implicit rnd: Rounding) = {
@@ -106,8 +114,60 @@ case class Interval(
     else Interval(sqrt(dn)(max(lo, lo.subtract(lo))), sqrt(up)(hi))
   }
 
-  /** Interval of possible  values of the exponential function over this interval. */
+  /**
+   * Interval of possible values of the exponential function over this interval.
+   *
+   * FIXME: need to check that truncation is accounted for!
+   */
   def exp(implicit rnd: Rounding) = {
+    val zero = Interval(0)
+    val one = Interval(1)
+    val unit = Interval(-1, 1)
+    // scales this interval into [-1,1] 
+    // returns scaled interval and the power to take when scaling back
+    def scaleDownByHalving(x: Interval): (Interval, Int) = {
+      var result = x
+      var power = 1
+      while (!(unit contains result)) {
+        result /= 2
+        power *= 2
+      }
+      val res = (result, power)
+      res
+    }
+    // expects thin x
+    def expThin(x: Interval) = {
+      require(x.low == x.high, x + " should be thin!")
+      // expects thin nonnegative x
+      def expThinNonneg(x: Interval) = {
+        require(x greaterThanOrEqualTo zero)
+        if (x contains 0) one
+        else {
+          // expects degree > 1
+          def expTaylor(x: Interval, degree: Int): Interval = {
+            require(degree > 1)
+            var pow = x
+            var res = one + pow
+            for (i <- 2 to degree) {
+              pow *= x / i
+              res += pow
+            }
+            res
+          }
+          // arbitrarily chosen degree to be odd and grow with precision
+          expTaylor(x, 2 * rnd.precision + 1)
+        }
+      }
+      if (x lessThan zero) one / expThinNonneg(-x)
+      else expThinNonneg(x)
+    }
+    val (scaledLow, halvingsLow) = scaleDownByHalving(low)
+    val (scaledHigh, halvingsHigh) = scaleDownByHalving(high)
+    val scaledLowExp = expThin(scaledLow.low)
+    val scaledHighExp = expThin(scaledHigh.high)
+    val resLow = scaledLowExp.low.pow(halvingsLow).low
+    val resHigh = scaledHighExp.high.pow(halvingsHigh).high
+    resLow /\ resHigh
   }
 
   /**
@@ -345,5 +405,7 @@ object Interval {
 
 object IntervalApp extends App {
   implicit val rnd = Rounding(10)
-  println(Interval(0, 1).exp)
+  val x = Interval(3,5)
+  val n = 3
+  println(x.exp)
 }
