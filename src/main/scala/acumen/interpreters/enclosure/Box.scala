@@ -9,7 +9,7 @@ class Box(val self: Map[VarName, Interval])(implicit rnd: Rounding) extends MapP
   import rnd._
 
   /** Look up an interval in the box. Return the [0,0] interval as default if the variable name not exist. */
-  def apply(name: VarName): Interval = self getOrElse (name, Interval(0, 0))
+  override def apply(name: VarName): Interval = self getOrElse (name, Interval(0, 0))
 
   /** Returns true if all intervals in "subBox" are contained in the corresponding interval in "box". */
   def contains(box: Box) = {
