@@ -96,27 +96,30 @@ class App extends SimpleSwingApplication {
   /* ----- UI setup ------- */
    
   /* Reusable actions */
-  private val playAction             = mkAction(         "Run",                VK_R, VK_G,       upperButtons.bPlay.doClick)
-  private val pauseAction            = mkAction(         "Pause",              VK_R, VK_G,       upperButtons.bPlay.doClick)
-  private val stepAction             = mkAction(         "Step",               VK_T, VK_B,       upperButtons.bStep.doClick)
-  private val stopAction             = mkAction(         "Stop",               VK_S, VK_T,       upperButtons.bStop.doClick)
-  private val newAction              = mkAction(         "New",                VK_N, VK_N,       codeArea.newFile)
-  private val openAction             = mkAction(         "Open",               VK_O, VK_O,       codeArea.openFile(codeArea.currentDir))
-  private val saveAction             = mkAction(         "Save",               VK_S, VK_S,       codeArea.saveFile)
-  private val saveAsAction           = mkActionAccelMask("Save As",            VK_A, VK_S,       shortcutMask | SHIFT_MASK, codeArea.saveFileAs)
-  private val recoverAction          = mkAction(         "Recover",            VK_R, VK_R,       codeArea.openFile(Files.autoSavedDir))
-  private val exitAction             = mkAction(         "Exit",               VK_E, VK_Q,       exit)
-  private val cutAction              = mkAction(         "Cut",                VK_T, VK_X,       codeArea.textArea.cut)
-  private val copyAction             = mkAction(         "Copy",               VK_C, VK_C,       codeArea.textArea.copyAsRtf)
-  private val pasteAction            = mkAction(         "Paste",              VK_P, VK_V,       codeArea.textArea.paste)
-  private val selectAllAction        = mkAction(         "Select all",         VK_A, VK_A,       codeArea.textArea.selectAll)
-  private val increaseFontSizeAction = mkAction(         "Increase font size", VK_I, VK_PLUS,    codeArea increaseFontSize)
-  private val decreaseFontSizeAction = mkAction(         "Decrease font size", VK_D, VK_MINUS,   codeArea decreaseFontSize)
-  private val resetFontSizeAction    = mkAction(         "Reset font size",    VK_R, VK_0,       codeArea resetFontSize)
-  private val showLineNumbersAction  = mkAction(         "Show line numbers",  VK_L, VK_L,       toggleLineNumbers)
-  private val plotStyleLinesAction   = new Action(       "Lines") { mnemonic = VK_L; def apply = plotView.setPlotStyle(plot.Lines()) }
-  private val plotStyleDotsAction    = new Action(       "Dots") { mnemonic =  VK_D; def apply = plotView.setPlotStyle(plot.Dots()) }
-  private val plotStyleBothAction    = new Action(       "Both") { mnemonic =  VK_B; def apply = plotView.setPlotStyle(plot.Both()) }
+  private val playAction             = mkAction(    "Run",                     VK_R, VK_G,       upperButtons.bPlay.doClick)
+  private val pauseAction            = mkAction(    "Pause",                   VK_R, VK_G,       upperButtons.bPlay.doClick)
+  private val stepAction             = mkAction(    "Step",                    VK_T, VK_B,       upperButtons.bStep.doClick)
+  private val stopAction             = mkAction(    "Stop",                    VK_S, VK_T,       upperButtons.bStop.doClick)
+  private val newAction              = mkAction(    "New",                     VK_N, VK_N,       codeArea.newFile)
+  private val openAction             = mkAction(    "Open",                    VK_O, VK_O,       codeArea.openFile(codeArea.currentDir))
+  private val saveAction             = mkAction(    "Save",                    VK_S, VK_S,       codeArea.saveFile)
+  private val saveAsAction           = mkActionMask("Save As",                 VK_A, VK_S,       shortcutMask | SHIFT_MASK, codeArea.saveFileAs)
+  private val recoverAction          = mkAction(    "Recover",                 VK_R, VK_R,       codeArea.openFile(Files.autoSavedDir))
+  private val exitAction             = mkAction(    "Exit",                    VK_E, VK_Q,       exit)
+  private val cutAction              = mkAction(    "Cut",                     VK_T, VK_X,       codeArea.textArea.cut)
+  private val copyAction             = mkAction(    "Copy",                    VK_C, VK_C,       codeArea.textArea.copyAsRtf)
+  private val pasteAction            = mkAction(    "Paste",                   VK_P, VK_V,       codeArea.textArea.paste)
+  private val selectAllAction        = mkAction(    "Select all",              VK_A, VK_A,       codeArea.textArea.selectAll)
+  private val increaseFontSizeAction = mkAction(    "Increase font size",      VK_I, VK_PLUS,    codeArea increaseFontSize)
+  private val decreaseFontSizeAction = mkAction(    "Decrease font size",      VK_D, VK_MINUS,   codeArea decreaseFontSize)
+  private val resetFontSizeAction    = mkAction(    "Reset font size",         VK_R, VK_0,       codeArea resetFontSize)
+  private val showLineNumbersAction  = mkAction(    "Show line numbers",       VK_L, VK_L,       toggleLineNumbers)
+  private val plotStyleLinesAction   = new Action(  "Lines")      { mnemonic = VK_L; def apply = plotView.setPlotStyle(plot.Lines()) }
+  private val plotStyleDotsAction    = new Action(  "Dots")       { mnemonic = VK_D; def apply = plotView.setPlotStyle(plot.Dots()) }
+  private val plotStyleBothAction    = new Action(  "Both")       { mnemonic = VK_B; def apply = plotView.setPlotStyle(plot.Both()) }
+  private val purelyFunctionalAction = mkAction(    "Purely Functional",       VK_F, VK_1,       setInterpreter(new CStoreCntrl(interpreters.reference.Interpreter))) 
+  private val pwlAction              = mkAction(    "PWL",                     VK_P, VK_3,       setInterpreter(new EnclosureCntrl(interpreters.enclosure.Interpreter.asLocalizing))) 
+  private val eventTreeAction        = mkAction(    "Event Tree",              VK_E, VK_4,       setInterpreter(new EnclosureCntrl(interpreters.enclosure.Interpreter.asNonLocalizing))) 
   
   /* 1. left pane */
   /* 1.1 upper pane */
@@ -272,7 +275,7 @@ class App extends SimpleSwingApplication {
 
   /** Same as mkActionAccelMask, but with a default accelerator mask (depending on OS). */
   private def mkAction(name: String, m: Int, a: Int, act: => Unit) =
-    mkActionAccelMask(name, m, a, shortcutMask, act)
+    mkActionMask(name, m, a, shortcutMask, act)
 
   /** Depending on the operating system, returns the appropriate mask key. */
   private def shortcutMask() = util.System.detectOperatingSystem match {
@@ -287,7 +290,7 @@ class App extends SimpleSwingApplication {
    * aMask: Key to be pressed together with accelerator key to launch the action.
    * act:   Action to be performed when item is selected. 
    **/
-  private def mkActionAccelMask(name: String, m: Int, a: Int, aMask: Int, act: => Unit) = new Action(name) { 
+  private def mkActionMask(name: String, m: Int, a: Int, aMask: Int, act: => Unit) = new Action(name) { 
     mnemonic = m; accelerator = Some(KeyStroke.getKeyStroke(a, aMask))
     def apply = act
   } 
@@ -373,8 +376,7 @@ class App extends SimpleSwingApplication {
       val rb1 = new RadioMenuItem("") {
         selected = !GraphicalMain.useEnclosures
         enabledWhenStopped += this
-        action = mkAction("Purely Functional", VK_F, VK_1,
-          { setInterpreter(new CStoreCntrl(interpreters.reference.Interpreter)) })
+        action = purelyFunctionalAction
       }
       val rb2 = new RadioMenuItem("") {
         selected = false
@@ -397,19 +399,28 @@ class App extends SimpleSwingApplication {
           go
         })
       }
-      val rb3 = new RadioMenuItem("") {
+
+      val pwl = new RadioMenuItem("") {
+        action = pwlAction
+        selected = interpreters.enclosure.Interpreter.localizing
+      }
+      val et = new RadioMenuItem("") {
+        action = eventTreeAction
+        selected = !interpreters.enclosure.Interpreter.localizing
+      }
+      val rb3 = new Menu("Enclosure") {
         selected = GraphicalMain.useEnclosures
         enabledWhenStopped += this
-        action = mkAction("Enclosure", VK_E, VK_3,
-          { setInterpreter(new EnclosureCntrl(interpreters.enclosure.Interpreter)) })
+        contents ++= Seq(pwl, et)
       }
+      
       contents ++= Seq(rb1, rb2, rb3)
-      new ButtonGroup(rb1, rb2, rb3)
+      new ButtonGroup(rb1, rb2, rb3, pwl, et)
     }
    
     contents += new Menu("Help") {
       mnemonic = Key.H
-      contents += new MenuItem(mkActionAccelMask("Tutorial", VK_T, VK_F1, 0, tutorial))
+      contents += new MenuItem(mkActionMask("Tutorial", VK_T, VK_F1, 0, tutorial))
       contents += new MenuItem(new Action("About") { mnemonic = VK_A; def apply = about }) 
     }
   }
