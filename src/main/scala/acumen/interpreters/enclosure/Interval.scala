@@ -86,7 +86,7 @@ case class Interval(
   def abs = Interval.max(this /\ -this, Interval(0))
 
   /** Interval of p:th power values of elements in this interval. */
-  def pow(n: Int)(implicit rnd: Rounding): Interval = {
+  def pow(n: Int): Interval = {
     require(n >= 0)
     val h = hi.pow(n, rnd.up)
     val l = lo.pow(n, rnd.dn)
@@ -98,7 +98,7 @@ case class Interval(
   }
 
   /** Interval of possible square roots elements in this interval. */
-  def sqrt(implicit rnd: Rounding) = {
+  def sqrt = {
     def sqrt(dir: java.math.MathContext)(x: Real) = {
       val half = new Real(0.5, dir)
       val xinit = x.round(dir)
@@ -227,16 +227,6 @@ case class Interval(
   }
 
   def /(that: Double): Interval = this / Interval(that)
-
-  // FIXME: terrible solution.. please fix this
-  def pow(power: Int): Interval = {
-    require(power >= 0, "negative power " + power + "not allowed")
-    val powsDN: List[Real] = List(lo.pow(power, dn), hi.pow(power, dn), hi.pow(power, dn))
-    val powsUP: List[Real] = List(lo.pow(power, up), hi.pow(power, up), hi.pow(power, up))
-    val pow = Interval(powsDN.foldLeft(lo.pow(power, dn))(min(_, _)), powsUP.foldLeft(lo.pow(power, up))(max(_, _)))
-    if (this.isNonnegative || power == 0) pow
-    else Interval(0) /\ pow
-  }
 
   /**
    * Take the meet, or g.l.b., of this and that interval.
@@ -415,7 +405,7 @@ object Interval {
 
 object IntervalApp extends App {
   implicit val rnd = Rounding(10)
-  val x = Interval(3,5)
+  val x = Interval(3, 5)
   val n = 3
   println(x.exp)
 }
