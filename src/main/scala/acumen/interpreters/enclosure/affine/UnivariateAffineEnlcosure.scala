@@ -22,6 +22,8 @@ case class UnivariateAffineEnclosure private[affine] (
   components: Map[VarName, UnivariateAffineScalarEnclosure])(implicit rnd: Rounding) {
   assert(normalizedDomain.low equalTo 0, "The low end-point of the normalizedDomain should be zero!")
 
+  def rounding = rnd
+  
   /** The low bound enclosure of this enclosure. */
   def low = UnivariateAffineEnclosure(domain, normalizedDomain, components.mapValues(_.low))
 
