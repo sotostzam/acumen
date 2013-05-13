@@ -15,6 +15,7 @@ class ThreeDData extends Publisher {
   type _3DStore = Map[CId, _3DClass];
   /* Stores 3D-visualization information for a class */
   type _3DClass = Map[Int, List[List[_]]]
+  type ViewInfo  = Tuple2[Array[Double], Array[Double]]
   var _3DData: _3DStore = Map[CId, _3DClass]()
   /* The number of 3D-objects */
   var objectCount = 1;
@@ -30,8 +31,11 @@ class ThreeDData extends Publisher {
   var _3DAngle = Array[Double](0.0, 0.0, 0.0)
   var _3DPath = ""
   var _3DText = ""
+  /* Camera's position and orientation*/
+  var _3DView = List[ViewInfo]()
   def reset() {
     _3DData.clear
+    _3DView = List[ViewInfo]()
     frameNumber = 0;
   }
   def init3DClassStore(id: CId, _3DData: _3DStore, objectCount: Int): Unit = {
@@ -166,10 +170,30 @@ class ThreeDData extends Publisher {
       }
     }
   }
+
+/* Look for 3D camera's position and orientation in "Main" class */
+  def lookUpViewInfo(id: CId, o: CObject) {
+    //  CId(List()) is the main class
+    if(id.equals(new CId(List()))) {
+      for ((name, value) <- o.toList) {
+        if (name.x == "_3DView") {
+	       value match {
+              case VVector(l) => {
+	            _3DView = new Tuple2(extractDoubles(l(0)).toArray,
+	                                 extractDoubles(l(1)).toArray) :: _3DView       
+                }
+              case _ => throw _3DError(value)
+           }
+           
+        }
+      }
+    }
+  }
   /* Add _3D information of every class to _3DStore */
   def getData(s: CStore) {
     for ((id, o) <- s.toList) {
-      lookUpEndTime(id, o);
+      lookUpEndTime(id, o)
+      lookUpViewInfo(id, o)
       /* Look for variable named _3D */
       for ((name, value) <- o.toList) {
         if (name.x == "_3D") {
