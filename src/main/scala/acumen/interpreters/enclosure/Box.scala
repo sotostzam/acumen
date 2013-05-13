@@ -114,6 +114,28 @@ class Box(val self: Map[VarName, Interval])(implicit rnd: Rounding) extends MapP
   /** The midpoint of this box. */
   def midpoint(implicit rnd: Rounding): Box = Box.toBox(mapValues(_.midpoint))
 
+  /**
+   * Approximation of the max norm for interval vectors.
+   *
+   * @precondition this.nonEmpty
+   */
+  def maxNorm = {
+    require(this.nonEmpty, "Cannot take the norm of empty box " + this)
+    val v :: vs = values.map(_.width.high).toList
+    vs.tail.fold(v)(Interval.max)
+  }
+
+  /**
+   * Approximation of the L^1 norm for interval vectors.
+   *
+   * @precondition this.nonEmpty
+   */
+  def l1Norm = {
+    require(this.nonEmpty, "Cannot take the norm of empty box " + this)
+    val v :: vs = values.map(_.width.high).toList
+    vs.tail.fold(v)(_ + _)
+  }
+
 }
 object Box {
 
