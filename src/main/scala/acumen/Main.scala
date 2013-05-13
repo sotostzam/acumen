@@ -53,6 +53,11 @@ object Main {
         case "compile" => interpreters.compiler.Interpreter.init(nodiff_out)
         case "pretty" => println(pprint(ast))
         case "desugar" => println(pprint(desugared))
+        case "typecheck" => 
+          val res = new TypeCheck(desugared).run()
+          println("\nTYPE CHECK RESULT: " + TypeCheck.errorLevelStr(res) + "\n")
+          Pretty.withType = true
+          println(pprint(desugared))
         case "3d" => toPython3D(toSummary3D(ctrace))
         case "2d" => toPython2D(toSummary2D(ctrace))
         case "java2d" => new MainFrame(new Java3D(addThirdDimension(ctrace)), 256, 256);

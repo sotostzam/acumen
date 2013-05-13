@@ -7,6 +7,9 @@ import util.Collections._
 
 object Pretty {
 
+  var withType = false
+  var exprWithType = false
+
   // A "typeclass" for types that can be pretty-printed
   trait PrettyAble[A] {
     def pretty(x:A) : Document
@@ -93,12 +96,16 @@ object Pretty {
       breaks(p.defs map pretty[ClassDef])
     }
   
+  // FIXME: Evil global!
+  var _types : Option[scala.collection.Map[Name, TypeLike]] = None
 
   implicit def prettyClassDef : PrettyAble[ClassDef] =
     PrettyAble { d =>
+      if (withType && d._types != null)
+        _types = Some(d._types)
       DocNest(2, 
         "class " :: pretty(d.name) :: 
-        args(d.fields map pretty[Name]) :/:
+        args(d.fields map prettyNameWithType) :/:
         DocGroup(DocNest(2, 
           "private" :/: breakWith(";", d.priv map pretty[Init])) :/: "end") :/:
         pretty(d.body)) :/: "end"
@@ -107,12 +114,20 @@ object Pretty {
   implicit def prettyInit : PrettyAble[Init] =
     PrettyAble { 
       case Init(x,rhs) =>
-        pretty(x) :: " := " :: (
+        prettyNameWithType(x)  :: ":= " :: (
           rhs match {
             case NewRhs(cn,es) => "create " :: pretty(cn) :: args(es map pretty[Expr])
             case ExprRhs(e) => pretty(e)
           })
     }
+
+  def prettyNameWithType(x: Name) : Document = {
+    pretty(x) ::
+    (_types match {
+      case Some(typs) => ":" + typs(x).toString
+      case None => ""
+    })
+  }
 
   implicit def prettyActions : PrettyAble[List[Action]] =
     PrettyAble { as => breakWith(semi, as map pretty[Action]) }
@@ -170,7 +185,7 @@ object Pretty {
         case Sum(e,i,c,t)     => "sum " :: pretty(e) :: " for " :: pretty(i) :: 
                                  " in " :: pretty(c) :: " if " :: pretty(t)
         case TypeOf(cn)       => "type" :: parens(pretty(cn))
-      })
+      }) :: (if (exprWithType && e._type != null) ":" + e._type.toString else "")
     }
   
   def prettyOp(f:Name,es:List[Expr]) =
