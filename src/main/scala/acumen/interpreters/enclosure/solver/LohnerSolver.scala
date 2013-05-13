@@ -32,8 +32,17 @@ trait LohnerSolver extends PicardSolver {
     )(implicit rnd: Rounding): (PaddedUnivariateAffineEnclosure, Box) = {
 
     val (midpointEnclosure, midpointEndTimeBox) = super.solveVt(F, T, A, delta, m, n, degree)
+
+    /**
+     * Since we are taking the log norm w.r.t. the max norm, it is optimal
+     * to pad each component with the full padding below. 
+     * 
+     * Note: for other norms it may be wasteful to scale with this padding
+     * as the will account for the padding multiple times, e.g. in the case
+     * of the L^1 norm, a weighted average of the padding can be used instead. 
+     */
     def padding(x: Interval): Interval =
-      (F.jacobianLogNorm(A).low * x).exp * Interval(-1, 1) * norm(A)
+      (F.jacobianLogMaxNorm(A).high * x).exp * Interval(-1, 1) * norm(A)
 
     (PaddedUnivariateAffineEnclosure(midpointEnclosure, padding),
       midpointEndTimeBox.mapValues(_ + padding(T.high)))
