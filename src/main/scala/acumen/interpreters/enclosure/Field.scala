@@ -44,7 +44,7 @@ case class Field(components: Map[VarName, Expression])(implicit rnd: Rounding) {
   /**
    * The logarithmic norm for the max norm evaluated in the Jacobian of the field.
    */
-  def jacobianLogNorm(b: Box)(implicit rnd: Rounding): Interval =
+  def jacobianLogMaxNorm(b: Box)(implicit rnd: Rounding): Interval =
     Interval.max(components.keys.map(component => {
       (components.keySet - component).foldLeft(jacobian(component)(component)(b)) {
         case (res, variable) => res + jacobian(component)(variable)(b)
@@ -68,7 +68,7 @@ object FieldApp extends App {
   }
   println("")
 
-  println(field.jacobianLogNorm(b))
+  println(field.jacobianLogMaxNorm(b))
 
 }
 
