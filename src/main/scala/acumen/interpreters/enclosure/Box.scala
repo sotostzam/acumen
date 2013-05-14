@@ -121,8 +121,8 @@ class Box(val self: Map[VarName, Interval])(implicit rnd: Rounding) extends MapP
    */
   def maxNorm = {
     require(this.nonEmpty, "Cannot take the norm of empty box " + this)
-    val v :: vs = values.map(_.width.high).toList
-    vs.tail.fold(v)(Interval.max)
+    val vs = values.map(_.width.high)
+    vs.tail.fold(vs.head)(Interval.max)
   }
 
   /**
@@ -132,8 +132,8 @@ class Box(val self: Map[VarName, Interval])(implicit rnd: Rounding) extends MapP
    */
   def l1Norm = {
     require(this.nonEmpty, "Cannot take the norm of empty box " + this)
-    val v :: vs = values.map(_.width.high).toList
-    vs.tail.fold(v)(_ + _)
+    val vs = values.map(_.width.high)
+    vs.tail.fold(vs.head)(_ + _)
   }
 
 }

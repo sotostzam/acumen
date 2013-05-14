@@ -13,13 +13,15 @@ import acumen.interpreters.enclosure.Interval
  * AffineScalarEnclosure.
  */
 case class UnivariateAffineScalarEnclosure private[enclosure] (
-  //  private[enclosure]
-  domain: Interval,
-  private[enclosure]normalizedDomain: Interval,
-  private[enclosure]constant: Interval,
-  private[enclosure]coefficient: Interval)(implicit rnd: Rounding) {
+    //  private[enclosure]
+    domain: Interval,
+    private[enclosure]normalizedDomain: Interval,
+    private[enclosure]constant: Interval,
+    private[enclosure]coefficient: Interval)(implicit rnd: Rounding) {
   assert(normalizedDomain.low equalTo 0,
     "The low end-point of the normalizedDomain should be zero!")
+
+  def rounding = rnd
 
   /** The low bound enclosure of this enclosure. */
   def low = UnivariateAffineScalarEnclosure(domain, normalizedDomain, constant.low, coefficient.low)
