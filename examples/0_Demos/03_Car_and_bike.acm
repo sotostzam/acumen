@@ -13,7 +13,7 @@ end
 */
 class Vehicle(p,d,s,name)
  private
-  _3D :=["OBJ",p ,s,[0,0,1],[pi/2,0,d*pi/2],name];
+  _3D :=[];
  end
  _3D :=["OBJ",p ,s,[0,0,1],[pi/2,0,d*pi/2],name];
 end
