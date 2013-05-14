@@ -117,9 +117,9 @@ class App extends SimpleSwingApplication {
   private val plotStyleLinesAction   = new Action(  "Lines")      { mnemonic = VK_L; def apply = plotView.setPlotStyle(plot.Lines()) }
   private val plotStyleDotsAction    = new Action(  "Dots")       { mnemonic = VK_D; def apply = plotView.setPlotStyle(plot.Dots()) }
   private val plotStyleBothAction    = new Action(  "Both")       { mnemonic = VK_B; def apply = plotView.setPlotStyle(plot.Both()) }
-  private val purelyFunctionalAction = mkAction(    "Purely Functional",       VK_F, VK_1,       setInterpreter(new CStoreCntrl(interpreters.reference.Interpreter))) 
-  private val pwlAction              = mkAction(    "PWL",                     VK_P, VK_3,       setInterpreter(new EnclosureCntrl(interpreters.enclosure.Interpreter.asLocalizing))) 
-  private val eventTreeAction        = mkAction(    "Event Tree",              VK_E, VK_4,       setInterpreter(new EnclosureCntrl(interpreters.enclosure.Interpreter.asNonLocalizing))) 
+  private val purelyFunctionalAction = mkAction(    "Floating Point",       VK_F, VK_1,       setInterpreter(new CStoreCntrl(interpreters.reference.Interpreter))) 
+  private val pwlAction              = mkAction(    "Enclosure",                     VK_P, VK_3,       setInterpreter(new EnclosureCntrl(interpreters.enclosure.Interpreter.asLocalizing))) 
+  private val eventTreeAction        = mkAction(    "Enclosure 2",              VK_E, VK_4,       setInterpreter(new EnclosureCntrl(interpreters.enclosure.Interpreter.asNonLocalizing))) 
   
   /* 1. left pane */
   /* 1.1 upper pane */
@@ -381,7 +381,7 @@ class App extends SimpleSwingApplication {
       val rb2 = new RadioMenuItem("") {
         selected = false
         enabledWhenStopped += this
-        action = mkAction("Imperative (Parallel)", VK_P, VK_2, {
+        action = mkAction("Floating Point P.", VK_P, VK_2, {
           def diag = Dialog.showInput(
             body, "Choose a number of threads",
             "Parallel Interpreter", Dialog.Message.Question,
