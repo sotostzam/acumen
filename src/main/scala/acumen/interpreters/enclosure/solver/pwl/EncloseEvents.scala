@@ -184,41 +184,6 @@ trait EncloseEvents {
   def isDefinitelyEmpty(s: StateEnclosure): Boolean =
     s.forall(_._2 isEmpty)
 
-  // plumbing to enable drop-in replacement for solveVtE 
-
-  def solveVtE(
-    h: HybridSystem,
-    t: Interval,
-    u: UncertainState,
-    delta: Double,
-    m: Int,
-    n: Int,
-    degree: Int,
-    K: Int,
-    log: String => Unit)(implicit rnd: Rounding): Option[(Set[UncertainState], Seq[UnivariateAffineEnclosure])] = {
-    val (noEventEnclosure, endTimeValue) = ivpSolver.solveVt(h.fields(u.mode), t, u.initialCondition, delta, m, n, degree)
-    val noPossibleEvents = !h.guards.exists {
-      case (event, guard) => event.sigma == u.mode && (guard(noEventEnclosure.range) contains true)
-    }
-    if (noPossibleEvents)
-      Some((Set(UncertainState(u.mode, endTimeValue)), Seq(noEventEnclosure)))
-    else {
-      val ps = Parameters(rnd.precision, t.loDouble, t.hiDouble,
-        delta, m, n,
-        K, 0, 0, 0, 0, 0, // these are not used - any value will do
-        degree,
-        0 // these are not used - any value will do
-        )
-      val init: StateEnclosure = emptyState(h) + (u.mode -> Some(u.initialCondition))
-      val (s, fin) = encloseEvents(ps, h, t, init)
-      val us = uncertainStates(fin)
-      val es = enclosures(t, s)
-      if (us.isEmpty || es.isEmpty) None
-      else Some(us, es)
-      //      else Some(us, noEventEnclosure +: es)
-    }
-  }
-
   def uncertainStates(s: StateEnclosure): Set[UncertainState] =
     for ((mode, obox) <- s.toSet if obox isDefined)
       yield UncertainState(mode, obox.get)

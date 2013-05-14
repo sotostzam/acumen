@@ -19,7 +19,7 @@ class Main(simulator)
   end;
   simulator.endTime := 1.1;
   simulator.minLocalizationStep := 0.001; // Decreased
-  simulator.minSolverStep := 1.1;
+  simulator.minSolverStep := 1.1
 end
 
 // Note:  By further decreasing the parameter

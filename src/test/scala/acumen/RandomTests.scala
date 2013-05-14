@@ -21,4 +21,14 @@ object RandomTests extends Properties("Random") {
     }
   }
 
+  property("parse-json consistency") =
+    forAll { (c:CStore) =>
+      val json = JSon.toJSON(c).toString
+      try {
+        (JSon.fromJSON(json) == c) :| ("json:\n" + json)
+      } catch {
+        case e => false :| ("res:\n" + e +"\njson:\n" + json)
+      }
+    }
+
 }

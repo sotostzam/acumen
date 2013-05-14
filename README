@@ -62,12 +62,12 @@ To run acumen you should be able to run the provided jar file directly.
 
 To run it from the command line something like:
 
-  java -jar FIXME.jar
+  java -jar acumen-VERSION.jar
 
 If running on Mac OS X, performance may suffer when using Acumen3D
 unless the Java is started with UseQuartz enabled:
 
-  java -Dapple.awt.graphics.UseQuartz=true -jar FIXME.jar
+  java -Dapple.awt.graphics.UseQuartz=true -jar acumen-VERSION.jar
 
 SUPPORT
 -------
@@ -109,7 +109,7 @@ To create a jar file use:
 
   sbt proguard
 
-which will create a jar file in target/scala-2.9.2/acumen-FIXME.jar
+which will create a jar file in target/scala-2.9.2/acumen-VERSION.jar
 
 To do more read up on how how to use sbt at
 https://github.com/harrah/xsbt/wiki.

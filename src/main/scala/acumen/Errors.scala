@@ -173,4 +173,9 @@ object Errors {
     override def getMessage = 
 			pprint(v) + " is not a valid 3D object"
   }
+
+  case class FromJSONError(s:String) extends AcumenError {
+    override def getMessage =
+      "fromJSON failed with input: " + s
+  }
 }

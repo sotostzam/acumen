@@ -1,0 +1,54 @@
+
+/*
+* p denotes position
+* d denotes direction
+* s denotes size
+* name denotes obj file name
+*/
+class Vehicle(p,d,s,name)
+ private
+  //_3D :=["OBJ",p ,s,[0,0,1],[pi/2,0,d*pi/2],name];
+  _3D :=["OBJ",p ,1,[0,0,1],[pi/2,0,d*pi/2],name];
+ end
+ //_3D =["OBJ",p ,s,[0,0,1],[pi/2,0,d*pi/2],name];
+ _3D =["OBJ",p ,1,[0,0,1],[pi/2,0,d*pi/2],name];
+end
+
+class Road(p,l)
+ private
+  _3D := [["Box", p, [l, 6, 0.05], [0.3, 0.3, 0.3], [0,0,pi/2]],
+          ["Box", p+[0,0,0.05], [l, 0.1, 0.05], [1, 1, 1], [0,0,pi/2]]]
+ end
+end
+
+/*
+* _3DView specifies the position and orientation
+* of the camera.  This example illustrates how to
+* set the camera to move along with the car.
+*/
+
+
+class Main(simulator)
+  private
+     x:=20; x' := -5;
+     x1:= -20; x1' := 5;
+     x2:= -10; x2' := 5;
+     t:=0;  t' := 0.5;
+     road := create Road([0,0,-0.5], 100);
+     car := create Vehicle([2, 20, 0],1,2, "car.obj");
+     car1 := create Vehicle([2, 20, 0],-1,2, "car.obj");
+     car2 := create Vehicle([2, 20, 0],-1,2, "car.obj");
+     //motor := create Vehicle([-2,20,0.3],0,1.5, "motor.obj");
+     _3DView := [[0, 20, 0.5], [0,0,pi]];
+  end
+     _3DView := [[2,x+4,1], [0,0,pi]];
+     simulator.endTime = 10;
+     car.p = [2,x,0];
+     car1.p = [-2,x1,0];
+     car2.p = [-2,x2,0];
+     //motor.p = [-2, 1.5*x, 0.3];
+     x' = -3;
+     x1' = 3;
+     x2' = 3;
+end
+
