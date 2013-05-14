@@ -252,14 +252,14 @@ class FileSystemModel(rootDirectory: File) extends TreeModel {
 
   override def getChild(parent: Object, index: Int): Object = {
     val directory = parent.asInstanceOf[File]
-    val children = directory.listFiles.filter(CodeArea.acumenFileFilter.accept(_)).map(_.getName)
+    val children = listAcumenFilesSorted(directory).map(_.getName)
     new TreeFile(directory, children(index))
   }
 
   def getChildCount(parent: Object): Int = {
     val file = parent.asInstanceOf[File]
     if (file.isDirectory) {
-      val fileList = file.listFiles.filter(CodeArea.acumenFileFilter.accept(_))
+      val fileList = listAcumenFiles(file)
       if (fileList == null) 0
       else fileList.length
     }
@@ -271,8 +271,14 @@ class FileSystemModel(rootDirectory: File) extends TreeModel {
   def getIndexOfChild(parent: Object, child: Object): Int = {
     val directory = parent.asInstanceOf[File]
     val file = child.asInstanceOf[File]
-    directory.listFiles.filter(CodeArea.acumenFileFilter.accept(_)).indexWhere(_ == file.getName)
+    listAcumenFilesSorted(directory).indexWhere(_ == file.getName)
   }
+  
+  /** Returns the list of Acumen files (*.acm and README*) under path. */
+  def listAcumenFiles(path: File) = path.listFiles.filter(CodeArea.acumenFileFilter.accept(_))
+
+  /** Returns the list of Acumen files (*.acm and README*) under path, ordered by filename */
+  def listAcumenFilesSorted(path: File) = listAcumenFiles(path).sortWith(_.getName.toLowerCase < _.getName.toLowerCase)
 
   def valueForPathChanged(path: TreePath, value: Object) {
     val oldFile = path.getLastPathComponent.asInstanceOf[File]
