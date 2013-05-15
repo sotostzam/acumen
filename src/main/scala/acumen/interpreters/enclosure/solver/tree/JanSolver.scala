@@ -164,17 +164,3 @@ object JanSolver {
     override def log(msg: String) = println(msg)
   }
 }
-
-object JanSolverApp extends App with JanSolver {
-  implicit val rnd = Rounding(10)
-  def property(x: Interval) = false
-  val x = Interval(0, 1)
-  val lo = leftBiasedDepthFirstSearch(50, property, x)
-  val hi = rightBiasedDepthFirstSearch(50, property, x)
-  val result = lo.getOrElse(x.low).high /\ hi.getOrElse(x.high).low
-  println(result)
-}
-
-
-
-

@@ -105,10 +105,11 @@ object Interpreter extends Interpreter(null) {
   private lazy val picard = new PicardSolver {}
   private lazy val lohner = new LohnerSolver {}
   private lazy val vero = new VeroSolver {}
-  ivpSolver = lohner // picard // default IVP solver
+  ivpSolver = picard // default IVP solver
 
   def asPicard: Interpreter = { ivpSolver = picard; this }
   def asVero: Interpreter = { ivpSolver = vero; this }
+  def asLohner: Interpreter = { ivpSolver = lohner; this }
   def asLocalizing: Interpreter = { localizing = true; this }
   def asNonLocalizing: Interpreter = { localizing = false; this }
 } 

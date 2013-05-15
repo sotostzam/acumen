@@ -30,20 +30,20 @@ trait LohnerSolver extends PicardSolver {
     n: Int, // maximum number of iterations before inclusion of iterates
     degree: Int // number of pieces to split each initial condition interval
     )(implicit rnd: Rounding): (PaddedUnivariateAffineEnclosure, Box) = {
-    println("LohnerSolver.solveVt")
-    println("Field = " + F)
-    println("Time  = " + T)
-    println("Box   = " + A)
+        println("LohnerSolver.solveVt")
+    //    println("Field = " + F)
+    //    println("Time  = " + T)
+    //    println("Box   = " + A)
 
     val enclosure = super.solveVt(F, T, A.midpoint, delta, m, n, degree)
 
-    println(enclosure._2) //.maxNorm)
-    println("exit: Picard solver")
+    //    println(enclosure._2) //.maxNorm)
+    //    println("exit: Picard solver")
 
     val (midpointEnclosure, midpointEndTimeBox) = enclosure
 
     val logNormBound = F.jacobianLogMaxNorm(A).high
-    println("logNormBound = " + logNormBound)
+    //    println("logNormBound = " + logNormBound)
 
     /**
      * Since we are taking the log norm w.r.t. the max norm, it is optimal
@@ -53,8 +53,7 @@ trait LohnerSolver extends PicardSolver {
      * as the will account for the padding multiple times, e.g. in the case
      * of the L^1 norm, a weighted average of the padding can be used instead.
      */
-    def padding(x: Interval): Interval =
-	      (logNormBound * x).exp * Interval(-0.5, 0.5) * A.maxNorm
+    def padding(x: Interval): Interval = (logNormBound * x).exp * Interval(-0.5, 0.5) * A.maxNorm
 
     def paddedEnclosure = PaddedUnivariateAffineEnclosure(midpointEnclosure, padding)
 
@@ -62,14 +61,3 @@ trait LohnerSolver extends PicardSolver {
   }
 
 }
-
-object LohnerSolverApp extends LohnerSolver with App {
-
-  implicit val rnd = Rounding(10)
-
-  val field = Field(Map("x" -> -Variable("x")))
-
-  println(field.jacobianLogMaxNorm(Box("x" -> 1)))
-
-}
-
