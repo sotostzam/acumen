@@ -96,30 +96,50 @@ class App extends SimpleSwingApplication {
   /* ----- UI setup ------- */
    
   /* Reusable actions */
-  private val playAction             = mkAction(    "Run",                     VK_R, VK_G,       upperButtons.bPlay.doClick)
-  private val pauseAction            = mkAction(    "Pause",                   VK_R, VK_G,       upperButtons.bPlay.doClick)
-  private val stepAction             = mkAction(    "Step",                    VK_T, VK_B,       upperButtons.bStep.doClick)
-  private val stopAction             = mkAction(    "Stop",                    VK_S, VK_T,       upperButtons.bStop.doClick)
-  private val newAction              = mkAction(    "New",                     VK_N, VK_N,       codeArea.newFile)
-  private val openAction             = mkAction(    "Open",                    VK_O, VK_O,       codeArea.openFile(codeArea.currentDir))
-  private val saveAction             = mkAction(    "Save",                    VK_S, VK_S,       codeArea.saveFile)
-  private val saveAsAction           = mkActionMask("Save As",                 VK_A, VK_S,       shortcutMask | SHIFT_MASK, codeArea.saveFileAs)
-  private val recoverAction          = mkAction(    "Recover",                 VK_R, VK_R,       codeArea.openFile(Files.autoSavedDir))
-  private val exitAction             = mkAction(    "Exit",                    VK_E, VK_Q,       exit)
-  private val cutAction              = mkAction(    "Cut",                     VK_T, VK_X,       codeArea.textArea.cut)
-  private val copyAction             = mkAction(    "Copy",                    VK_C, VK_C,       codeArea.textArea.copyAsRtf)
-  private val pasteAction            = mkAction(    "Paste",                   VK_P, VK_V,       codeArea.textArea.paste)
-  private val selectAllAction        = mkAction(    "Select all",              VK_A, VK_A,       codeArea.textArea.selectAll)
-  private val increaseFontSizeAction = mkAction(    "Increase font size",      VK_I, VK_PLUS,    codeArea increaseFontSize)
-  private val decreaseFontSizeAction = mkAction(    "Decrease font size",      VK_D, VK_MINUS,   codeArea decreaseFontSize)
-  private val resetFontSizeAction    = mkAction(    "Reset font size",         VK_R, VK_0,       codeArea resetFontSize)
-  private val showLineNumbersAction  = mkAction(    "Show line numbers",       VK_L, VK_L,       toggleLineNumbers)
-  private val plotStyleLinesAction   = new Action(  "Lines")      { mnemonic = VK_L; def apply = plotView.setPlotStyle(plot.Lines()) }
-  private val plotStyleDotsAction    = new Action(  "Dots")       { mnemonic = VK_D; def apply = plotView.setPlotStyle(plot.Dots()) }
-  private val plotStyleBothAction    = new Action(  "Both")       { mnemonic = VK_B; def apply = plotView.setPlotStyle(plot.Both()) }
-  private val purelyFunctionalAction = mkAction(    "Purely Functional",       VK_F, VK_1,       setInterpreter(new CStoreCntrl(interpreters.reference.Interpreter))) 
-  private val pwlAction              = mkAction(    "PWL",                     VK_P, VK_3,       setInterpreter(new EnclosureCntrl(interpreters.enclosure.Interpreter.asLocalizing))) 
-  private val eventTreeAction        = mkAction(    "Event Tree",              VK_E, VK_4,       setInterpreter(new EnclosureCntrl(interpreters.enclosure.Interpreter.asNonLocalizing))) 
+  private val playAction                  = mkAction(    "Run",                     VK_R, VK_G,       upperButtons.bPlay.doClick)
+  private val pauseAction                 = mkAction(    "Pause",                   VK_R, VK_G,       upperButtons.bPlay.doClick)
+  private val stepAction                  = mkAction(    "Step",                    VK_T, VK_B,       upperButtons.bStep.doClick)
+  private val stopAction                  = mkAction(    "Stop",                    VK_S, VK_T,       upperButtons.bStop.doClick)
+  private val newAction                   = mkAction(    "New",                     VK_N, VK_N,       codeArea.newFile)
+  private val openAction                  = mkAction(    "Open",                    VK_O, VK_O,       codeArea.openFile(codeArea.currentDir))
+  private val saveAction                  = mkAction(    "Save",                    VK_S, VK_S,       codeArea.saveFile)
+  private val saveAsAction                = mkActionMask("Save As",                 VK_A, VK_S,       shortcutMask | SHIFT_MASK, codeArea.saveFileAs)
+  private val recoverAction               = mkAction(    "Recover",                 VK_R, VK_R,       codeArea.openFile(Files.autoSavedDir))
+  private val exitAction                  = mkAction(    "Exit",                    VK_E, VK_Q,       exit)
+  private val cutAction                   = mkAction(    "Cut",                     VK_T, VK_X,       codeArea.textArea.cut)
+  private val copyAction                  = mkAction(    "Copy",                    VK_C, VK_C,       codeArea.textArea.copyAsRtf)
+  private val pasteAction                 = mkAction(    "Paste",                   VK_P, VK_V,       codeArea.textArea.paste)
+  private val selectAllAction             = mkAction(    "Select all",              VK_A, VK_A,       codeArea.textArea.selectAll)
+  private val increaseFontSizeAction      = mkAction(    "Increase font size",      VK_I, VK_PLUS,    codeArea increaseFontSize)
+  private val decreaseFontSizeAction      = mkAction(    "Decrease font size",      VK_D, VK_MINUS,   codeArea decreaseFontSize)
+  private val resetFontSizeAction         = mkAction(    "Reset font size",         VK_R, VK_0,       codeArea resetFontSize)
+  private val showLineNumbersAction       = mkAction(    "Show line numbers",       VK_L, VK_L,       toggleLineNumbers)
+  private val plotStyleLinesAction        = new Action(  "Lines")      { mnemonic = VK_L; def apply = plotView.setPlotStyle(plot.Lines()) }
+  private val plotStyleDotsAction         = new Action(  "Dots")       { mnemonic = VK_D; def apply = plotView.setPlotStyle(plot.Dots()) }
+  private val plotStyleBothAction         = new Action(  "Both")       { mnemonic = VK_B; def apply = plotView.setPlotStyle(plot.Both()) }
+  private val floatingPointAction         = mkAction(    "Floating Point",          VK_F, VK_1,       setInterpreter(new CStoreCntrl(interpreters.reference.Interpreter))) 
+  private val floatingPointParallelAction = mkAction(    "Floating Point Parallel", VK_P, VK_2,       promptForNumberOfThreads)
+  private val pwlAction                   = mkAction(    "Enclosure",               VK_P, VK_3,       setInterpreter(new EnclosureCntrl(interpreters.enclosure.Interpreter.asLocalizing))) 
+  private val eventTreeAction             = mkAction(    "Enclosure 2",             VK_E, VK_4,       setInterpreter(new EnclosureCntrl(interpreters.enclosure.Interpreter.asNonLocalizing)))
+  
+  /* Shows a dialog asking the user how many threads to use in the parallel interpreter. */
+  def promptForNumberOfThreads = {
+    def diag = Dialog.showInput(
+      body, "Choose a number of threads",
+      "Parallel Interpreter", Dialog.Message.Question,
+      Swing.EmptyIcon, Seq(), lastNumberOfThreads.toString)
+    def go: Unit = try {
+      def n: String = diag.getOrElse(n)
+      lastNumberOfThreads = Integer.parseInt(n)
+      setInterpreter(new CStoreCntrl(new interpreters.parallel.Interpreter(lastNumberOfThreads)))
+      console.log("Number of threads set to " + lastNumberOfThreads + ".")
+    } catch {
+      case _ =>
+        console.logError("Bad number of threads.")
+        go
+    }
+    go
+  }
   
   /* 1. left pane */
   /* 1.1 upper pane */
@@ -370,52 +390,31 @@ class App extends SimpleSwingApplication {
       mnemonic = Key.S
       contents ++= Seq(playMenuItem, stepMenuItem, stopMenuItem)
     }
-
+    
     contents += new Menu("Semantics") {
       mnemonic = Key.S
-      val rb1 = new RadioMenuItem("") {
+      val ref = new RadioMenuItem("") {
         selected = !GraphicalMain.useEnclosures
         enabledWhenStopped += this
-        action = purelyFunctionalAction
+        action = floatingPointAction
       }
-      val rb2 = new RadioMenuItem("") {
+      val par = new RadioMenuItem("") {
         selected = false
         enabledWhenStopped += this
-        action = mkAction("Imperative (Parallel)", VK_P, VK_2, {
-          def diag = Dialog.showInput(
-            body, "Choose a number of threads",
-            "Parallel Interpreter", Dialog.Message.Question,
-            Swing.EmptyIcon, Seq(), lastNumberOfThreads.toString)
-          def go: Unit = try {
-            def n: String = diag.getOrElse(n)
-            lastNumberOfThreads = Integer.parseInt(n)
-            setInterpreter(new CStoreCntrl(new interpreters.parallel.Interpreter(lastNumberOfThreads)))
-            console.log("Number of threads set to " + lastNumberOfThreads + ".")
-          } catch {
-            case _ =>
-              console.logError("Bad number of threads.")
-              go
-          }
-          go
-        })
+        action = floatingPointParallelAction
       }
-
       val pwl = new RadioMenuItem("") {
         action = pwlAction
-        selected = interpreters.enclosure.Interpreter.localizing
+        enabledWhenStopped += this
+        selected = GraphicalMain.useEnclosures && interpreters.enclosure.Interpreter.localizing
       }
       val et = new RadioMenuItem("") {
         action = eventTreeAction
-        selected = !interpreters.enclosure.Interpreter.localizing
-      }
-      val rb3 = new Menu("Enclosure") {
-        selected = GraphicalMain.useEnclosures
         enabledWhenStopped += this
-        contents ++= Seq(pwl, et)
+        selected = GraphicalMain.useEnclosures && !interpreters.enclosure.Interpreter.localizing
       }
-      
-      contents ++= Seq(rb1, rb2, rb3)
-      new ButtonGroup(rb1, rb2, rb3, pwl, et)
+      contents ++= Seq(ref, par, pwl, et)
+      new ButtonGroup(ref, par, pwl, et)
     }
    
     contents += new Menu("Help") {
