@@ -69,7 +69,7 @@ class FileBrowser(initialPath: File, editor: CodeArea) extends BorderPanel {
   syncButton.setBorderPainted(false)
   toolbar.add(syncButton)
 
-  add(Component.wrap(toolbar), BorderPanel.Position.North)
+  add(Component.wrap(toolbar), BorderPanel.Position.South)
   add(new ScrollPane(fileTree), BorderPanel.Position.Center)
 }
 
