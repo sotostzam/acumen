@@ -57,7 +57,7 @@ object GraphicalMain extends SimpleSwingApplication {
   var useCompletion = false
   var useTemplates = false
   var dontFork = false
-  var syncEditorWithBrowser = false // Synchronize code editor with file browser
+  var syncEditorWithBrowser = true // Synchronize code editor with file browser
   var enclosureInterpreter = interpreters.enclosure.Interpreter
 
   def parseOpts(args: List[String]) {
