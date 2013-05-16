@@ -59,7 +59,7 @@ class Interpreter(override var ivpSolver: SolveIVP)
     val main = classDef(ClassName("Main"), des)
 
     // checking that main class embeds a hybrid automaton
-    checkValidAutomatonEmbedding(main)
+//    checkValidAutomatonEmbedding(main)
 
     val ps0 = parameters(main)
     val ps = adjustParms(ps0)
