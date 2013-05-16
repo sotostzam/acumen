@@ -5,12 +5,20 @@ import acumen.interpreters.enclosure.Types._
 import acumen.interpreters.enclosure.Relation._
 import acumen.interpreters.enclosure.UnaryRelationName._
 
+/**
+ * Defines a hybrid system in terms of: 
+ *  - modes (discrete states)
+ *  - events (discrete transitions)
+ *  - domains (mode invariant)
+ *  - fields (differential equations describing how continuous dynamics for a mode)
+ *  - guards (activation rule for event)
+ *  - resets (discrete update rule for event)
+ */
 case class HybridSystem(
   modes: Set[Mode],
   events: Set[Event],
   domains: Map[Mode, Domain],
   fields: Map[Mode, Field],
-//  flows: Map[Mode, Flow],
   guards: Map[Event, Guard],
   resets: Map[Event, ResetMap]) {
 
@@ -31,23 +39,6 @@ case class HybridSystem(
       fields,
       guards + (event -> guard),
       resets + (event -> reset))
-
-  // FIXME: DEPRECATED
-  // defined in section 6.1
-  // property: guardPrime(e)(x) implies not(domains(e)(x))
-  //  def guardPrime(event: Event): Guard =
-  //    guard(guards(event).conjuncts.flatMap {
-  //      case UnaryRelation(n, e) => n match {
-  //        case NonPositive => Set(UnaryRelation(Negative, e))
-  //        case NonNegative => Set(UnaryRelation(Positive, e))
-  //        case EqualToZero =>
-  //          domains(event.sigma).conjuncts.filter(_.isNonStrict) flatMap {
-  //            case UnaryRelation(NonPositive, e) => Set(positive(e))
-  //            case UnaryRelation(NonNegative, e) => Set(negative(e))
-  //            case _ => sys.error("the impossible just happened in guardPrime")
-  //          }
-  //      }
-  //    }: _*)
 
   // described in 6.3
   // computes the set of variables that variable i depends on via fields(e) 
@@ -84,15 +75,4 @@ object HybridSystem {
     Map[Event, Guard](),
     Map[Event, ResetMap]())
 
-}
-
-object HybridSystemApp extends App {
-  import HybridSystem._
-  implicit val rnd = Rounding(10)
-  val a = Variable("a")
-  val b = Variable("b")
-  val c = Variable("c")
-  val f = Field(Map("a" -> b, "b" -> a))
-  println(empty.dependentVariables(f)("a"))
-  println(empty.dependentVariables(f)("b"))
 }
