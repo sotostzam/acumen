@@ -353,7 +353,17 @@ object Interpreter extends acumen.CStoreInterpreter {
     (mprog, st3)
   }
 
-  def step(p:Prog, st:Store) : Option[Store] = 
+  override def expose_externally(store: Store) : Store = {
+    if (Main.serverMode) {
+      val json1 = JSon.toJSON(store).toString
+      val store2 = JSon.fromJSON(Main.send_recv(json1))
+      store2
+    } else {
+      store
+    }
+  }
+
+  def step(p:Prog, st:Store) : Option[Store] =
     if (getTime(st) > getEndTime(st)) None
     else Some(
       { val (_,ids,rps,st1) = iterate(evalStep(p), mainId(st))(st)

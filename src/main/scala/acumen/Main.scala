@@ -1,8 +1,6 @@
 package acumen
 
-import scala.io._
-import java.io.InputStreamReader
-import java.io.FileInputStream
+import java.io._
 
 import Errors._
 import util.Filters._
@@ -12,9 +10,23 @@ import Pretty._
 
 import com.sun.j3d.utils.applet.MainFrame
 
-import javax.swing._
+import java.net.{Socket, InetAddress, ServerSocket}
+import acumen.Errors.BadProgramOptions
 
 object Main {
+
+  var portNo : Int = 9999
+  var serverSocket : ServerSocket = null
+  var serverMode : Boolean = false
+  var serverBufferedReader : BufferedReader = null
+  var serverBufferedWriter : BufferedWriter = null
+
+  def send_recv(s: String) : String = {
+    serverBufferedWriter.write(s)
+    serverBufferedWriter.newLine()
+    serverBufferedWriter.flush()
+    serverBufferedReader.readLine()
+  }
 
   def as_ctrace(trace: InterpreterRes) = {
     trace match {case CStoreRes(r) => r; case _ => null}    
@@ -33,7 +45,7 @@ object Main {
           case "parallel-sharing" => (interpreters.imperative.parallel.Interpreter.sharing, 2)
           case "imperative" => (new interpreters.imperative.sequential.Interpreter, 2)
           case "enclosure" => (interpreters.enclosure.Interpreter, 2)
-          case "enclosure-non-localizing" => (interpreters.enclosure.InterpreterNonLocalizing, 2)
+          case "enclosure-non-localizing" => (interpreters.enclosure.Interpreter.asNonLocalizing, 2)
           case _ => (interpreters.reference.Interpreter, 0)
         }
         case _ => (interpreters.reference.Interpreter, 0)
@@ -57,6 +69,20 @@ object Main {
         case "java2d" => new MainFrame(new Java3D(addThirdDimension(ctrace)), 256, 256);
         case "java3d" => new MainFrame(new Java3D(ctrace), 256, 256);
         case "json" => for (st <- ctrace) println(JSon.toJSON(st))
+        case "fromJson" =>
+          val st = ctrace(0)
+          val x = JSon.fromJSON(JSon.toJSON(st).toString)
+          println(x)
+        case "listen" =>
+          println("Model: " + args(firstNonSemanticsArg))
+          serverMode = true
+          portNo = args(firstNonSemanticsArg + 2).toInt
+          serverSocket = new ServerSocket(portNo)
+          println("Listening on port " + portNo)
+          val socket = serverSocket.accept()
+          serverBufferedReader = new BufferedReader(new InputStreamReader(socket.getInputStream))
+          serverBufferedWriter = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream))
+          ctrace.size // Force evaluation of the lazy value
         case "last" =>
           trace.printLast
         case "bench" =>
@@ -116,5 +142,4 @@ object Main {
       case e => throw e
     }
   }
-
 }

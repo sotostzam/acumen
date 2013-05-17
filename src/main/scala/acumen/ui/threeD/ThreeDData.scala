@@ -15,6 +15,7 @@ class ThreeDData extends Publisher {
   type _3DStore = Map[CId, _3DClass];
   /* Stores 3D-visualization information for a class */
   type _3DClass = Map[Int, List[List[_]]]
+  type ViewInfo  = Tuple2[Array[Double], Array[Double]]
   var _3DData: _3DStore = Map[CId, _3DClass]()
   /* The number of 3D-objects */
   var objectCount = 1;
@@ -30,8 +31,13 @@ class ThreeDData extends Publisher {
   var _3DAngle = Array[Double](0.0, 0.0, 0.0)
   var _3DPath = ""
   var _3DText = ""
+  /* Optinal field to indicate transparent object or not */
+  var _3DTexture = ""
+  /* Camera's position and orientation*/
+  var _3DView = List[ViewInfo]()
   def reset() {
     _3DData.clear
+    _3DView = List[ViewInfo]()
     frameNumber = 0;
   }
   def init3DClassStore(id: CId, _3DData: _3DStore, objectCount: Int): Unit = {
@@ -89,6 +95,13 @@ class ThreeDData extends Publisher {
 		case _ => throw _3DNameError(value)
 	}
   }
+  /* _3D texture should be a string */
+  def extractTexture(value: Value[_]){
+	value match {
+		case VLit(GStr(tex)) => _3DTexture = tex
+		case _ => throw _3DNameError(value)
+	}
+  }
   
  def extractText(value: Value[_]) {
     value match {
@@ -139,8 +152,10 @@ class ThreeDData extends Publisher {
             extractVector(l(4), "angle")
             if (_3DType == "Text")
 			  extractText(l(5))
-			if (_3DType == "OBJ")
+			else if (_3DType == "OBJ")
 			  extractPath(l(5))
+			else if(l.size == 6)
+			  extractTexture(l(5))
           }
         }
         case _ => throw ShouldNeverHappen()
@@ -151,9 +166,14 @@ class ThreeDData extends Publisher {
 	  else if (_3DType == "OBJ")
 	    _3DData(id)(i) = List(_3DType, _3DPosition,
           _3DSize, _3DColor, _3DAngle, _3DPath, frameNumber) :: _3DData(id)(i)
-      else
+      else if(_3DTexture == "transparent")
         _3DData(id)(i) = List(_3DType, _3DPosition,
+          _3DSize, _3DColor, _3DAngle, _3DTexture, frameNumber) :: _3DData(id)(i)
+      else
+       _3DData(id)(i) = List(_3DType, _3DPosition,
           _3DSize, _3DColor, _3DAngle, frameNumber) :: _3DData(id)(i)
+       
+      _3DTexture = ""   
     }
   }
   /* Look for endTime in "Main" class */
@@ -166,10 +186,30 @@ class ThreeDData extends Publisher {
       }
     }
   }
+
+/* Look for 3D camera's position and orientation in "Main" class */
+  def lookUpViewInfo(id: CId, o: CObject) {
+    //  CId(List()) is the main class
+    if(id.equals(new CId(List()))) {
+      for ((name, value) <- o.toList) {
+        if (name.x == "_3DView") {
+	       value match {
+              case VVector(l) => {
+	            _3DView = new Tuple2(extractDoubles(l(0)).toArray,
+	                                 extractDoubles(l(1)).toArray) :: _3DView       
+                }
+              case _ => throw _3DError(value)
+           }
+           
+        }
+      }
+    }
+  }
   /* Add _3D information of every class to _3DStore */
   def getData(s: CStore) {
     for ((id, o) <- s.toList) {
-      lookUpEndTime(id, o);
+      lookUpEndTime(id, o)
+      lookUpViewInfo(id, o)
       /* Look for variable named _3D */
       for ((name, value) <- o.toList) {
         if (name.x == "_3D") {

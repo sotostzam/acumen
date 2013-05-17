@@ -31,7 +31,7 @@ my $find_res = <F>;
 close F or die $find_err_string;
 
 open F, "| xargs -0 rm -rf" or die $xargs_err_string;
-print F <F>;
+print F $find_res;
 close F or die $xargs_err_string;
 
 File::Find::find(sub {
@@ -49,4 +49,3 @@ File::Find::find(sub {
 }, 'src/');
 
 unlink "READY_FOR_CENSOR";
-

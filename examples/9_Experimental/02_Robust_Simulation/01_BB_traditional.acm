@@ -1,0 +1,25 @@
+
+// The classic bouncing ball example done
+// the traditional way
+//
+// Author:  WT, based on model by MK and JD
+//
+// Note:  Run this with Semantics -> Purely Functional
+
+class Main(simulator)
+  private 
+    mode := "Fly"; 
+    x   := 5;    
+    x'  := 0; 
+    x'' := 0;  
+  end
+  switch mode
+    case "Fly" 
+      if x <= 0 && x' <= 0 // Note the redundant check!
+        x' := -0.5*x';
+        mode := "Fly";
+      end;
+      x'' = -10;
+  end;
+  simulator.endTime := 4.5;
+end

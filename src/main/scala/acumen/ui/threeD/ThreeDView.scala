@@ -41,7 +41,11 @@ class ThreeDView() extends BorderPanel {
   var jCanvas = new Canvas3D(config)
   var canvas = new SCanvas3D(jCanvas)
   var u = new SimpleUniverse(jCanvas)
+  var view = u.getViewer().getView()
+  var viewInfo = new ViewInfo(view)
   var backGround = new BranchGroup()
+  /* Flag indicates if user customized the camera */
+  var customView = false
 
   /* Create a canvas for 3D-rendering */
   def init(): SCanvas3D = {
@@ -58,12 +62,19 @@ class ThreeDView() extends BorderPanel {
   }
 
   def defaultView(): Transform3D = {
+    
     val tr = new Transform3D()
-    tr.rotX(-Pi * 3.5 / 8)
     val scale = new Transform3D()
     scale.setScale(new Vector3d(0.35f, 0.35f, 0.35f))
     val tr2 = new Transform3D()
-    tr2.rotZ(Pi * 0.1)
+    /* Default camera set up won't be used once the user customized the view*/
+    if(customView){
+	  tr.rotX(-Pi * 0.5)
+    }
+    else{
+	  tr.rotX(-Pi * 3.5 / 8)
+	  tr2.rotZ(Pi * 0.1)
+    }
     tr.mul(scale)
     tr.mul(tr2)
     tr
@@ -116,8 +127,43 @@ class ThreeDView() extends BorderPanel {
     sceneRoot1 addChild myMouseZoom
     u.getViewingPlatform().setNominalViewingTransform();
     u.addBranchGraph(sceneRoot1);
-    u.getViewer.getView.setMinimumFrameCycleTime(1) // Fatest rendering
+    //u.getViewer.getView.setMinimumFrameCycleTime(1) // Fatest rendering
   }
+  
+  def transformView(p:Array[Double], ori:Array[Double]){
+    var t3d = new Transform3D()
+    val scale = 0.35
+    //t3d.rotX(-Pi * 0.5)   
+    val transAngleX = new Transform3D()
+    val transAngleY = new Transform3D()
+    val transAngleZ = new Transform3D()
+    
+    // The difference between Acumen cooridinates
+    // and Java3D cooridinates
+    transAngleY.rotY(ori(2))
+    transAngleX.rotX(ori(0))
+    transAngleZ.rotZ(ori(1))
+    t3d.mul(transAngleY)
+    t3d.mul(transAngleX)
+    t3d.mul(transAngleZ)
+    /* Since we first rotate the scene world around x-axis of pi/2,
+     * viewing platform still in Java3D's default coordinates.
+     * x' = x; y' = z; z'= -y'
+     */
+    t3d.setTranslation(new Vector3d(p(0)*scale,p(2)*scale,-p(1)*scale));
+    val tg = u.getViewer( ).getViewingPlatform( ).getViewPlatformTransform( );
+    tg.setTransform( t3d );   
+   //u.getViewingPlatform().getViewPlatformTransform().setTransform(t3d)
+    //viewInfo.updateViewPlatform()
+    //viewInfo.updateCanvas(jCanvas)
+    //viewInfo.updateView()
+    var trV = new Transform3D();
+    //viewInfo.getCoexistenceToVworld(jCanvas,trV)
+    //println(trV)
+    //u.getViewingPlatform( ).getViewPlatform( ).setActivationRadius( 100 );
+  }
+
+   
 
   // Create the scene
   def createSceneGraph(): BranchGroup = {
@@ -215,7 +261,7 @@ class ScalaTimer(receiver: _3DDisplay, endTime: Double,
 /* 3D renderer */
 class _3DDisplay(app: ThreeDView, slider: Slider3d,
                  _3DDateBuffer: Map[CId, Map[Int, scala.collection.mutable.Buffer[List[_]]]],
-                 lastFrame1: Double, endTime: Double) extends Publisher with Actor 
+                 lastFrame1: Double, endTime: Double, _3DView: List[(Array[Double],Array[Double])]) extends Publisher with Actor 
 {
   var lastLook = Map[List[_], List[_]]() // Store the size and color of each object
   /* Default directory where all the OBJ files are */
@@ -264,8 +310,10 @@ class _3DDisplay(app: ThreeDView, slider: Slider3d,
       if (destroy)
         exit
       react {
-        case "go" => {
-          renderCurrentFrame
+        case "go" => {   
+	     renderCurrentFrame
+	      if(currentFrame < _3DView.size -1)
+	        app.transformView(_3DView(currentFrame+1)._1, _3DView(currentFrame+1)._2);	        	                      
           if (currentFrame == totalFrames) // Animation is over
             emitProgress(100)
           if (totalFrames > 0)
@@ -512,6 +560,7 @@ class _3DDisplay(app: ThreeDView, slider: Slider3d,
     var path = ""
     var text = ""
     val index = (currentFrame - bufferFrame(buffer.head)).toInt
+    var opaque = false
     if (index >= 0 && index < buffer.size) {
       val list = buffer(index);
       color = bufferColor(list) // Get the color and size of the object
@@ -519,8 +568,10 @@ class _3DDisplay(app: ThreeDView, slider: Slider3d,
       name = bufferType(list)
       if (name == "Text")
         text = bufferString(list)
-      if (name == "OBJ")
+      else if (name == "OBJ")
 	    path = bufferString(list)
+	  else if (list(5) == "transparent")
+	    opaque = true
     }
     app.trans -= c
     app.branches -= c
@@ -537,8 +588,11 @@ class _3DDisplay(app: ThreeDView, slider: Slider3d,
     mat.setAmbientColor(new Color3f(color(0).toFloat, color(1).toFloat, color(2).toFloat))
     mat.setDiffuseColor(new Color3f(color(0).toFloat, color(1).toFloat, color(2).toFloat))
     mat.setShininess(100);
-    val ap = new Appearance()
-    ap.setMaterial(mat)
+    var ap = new Appearance()
+    if (opaque)
+      ap = new Glass(new Color3f(color(0).toFloat, color(1).toFloat, color(2).toFloat))
+    else
+      ap.setMaterial(mat)
 
     app.trans(c) match {
       case trans: Group => {
@@ -574,10 +628,10 @@ class _3DDisplay(app: ThreeDView, slider: Slider3d,
 }
 
 // Transparent box 
-object Glass extends Appearance {
+class Glass(color: Color3f) extends Appearance {
   val mat = new Material()
-  mat.setAmbientColor(new Color3f(1, 1, 1))
-  mat.setDiffuseColor(new Color3f(1, 1, 1))
+  mat.setAmbientColor(color)
+  mat.setDiffuseColor(color)
 
   val pa = new PolygonAttributes()
   pa.setCullFace(PolygonAttributes.CULL_NONE)
@@ -594,7 +648,7 @@ object Glass extends Appearance {
 // The box
 class MainBox extends TransformGroup {
   val tr = new Transform3D()
-  val box = new Box(0.5f, 0.5f, 0.5f, Primitive.GENERATE_NORMALS, Glass)
+  val box = new Box(0.5f, 0.5f, 0.5f, Primitive.GENERATE_NORMALS, new Glass(new Color3f(1, 1, 1)))
   this.addChild(box)
 }
 
@@ -604,7 +658,7 @@ class Axis extends Shape3D {
   ap.setLineAttributes(new LineAttributes(1f, LineAttributes.PATTERN_SOLID, true))
 
   setGeometry(createGeometry)
-  setAppearance(Glass)
+  setAppearance(new Glass(new Color3f(1, 1, 1)))
 
   private def createGeometry: Geometry = {
     val line = new LineArray(6, GeometryArray.COORDINATES | GeometryArray.COLOR_3)

@@ -7,6 +7,7 @@ import java.lang.Thread
 import scala.actors._
 import collection.JavaConversions._
 
+import java.awt.event.{InputEvent, KeyEvent}
 import java.awt.Font
 import java.awt.Color
 import java.awt.RenderingHints
@@ -45,7 +46,7 @@ class ControlButtons extends FlowPanel {
 	
   }
   val stop = new Action("stop") {
-    icon = Icons.stop    
+    icon = Icons.stop
     def apply = { App.ui.controller ! Stop; }
     toolTip = "Stop simulation (cannot resume)"
   }

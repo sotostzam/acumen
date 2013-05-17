@@ -106,12 +106,17 @@ class ThreeDTab(val appModel: Controller) extends AbstractThreeDTab {
           }
           _3DDataBuffer += id -> temp
         }
+        _3DView = appModel.threeDData._3DView.reverse
         appModel.threeDData.reset;
       }
       threeDView.branches.clear
       threeDView.trans.clear
+      threeDView.customView = (_3DView.size > 0)
+      if(_3DView.size != 0)
+        threeDView.reset
+  
       _receiver = new _3DDisplay(threeDView, statusZone3d, _3DDataBuffer, lastFrame,
-    		                     appModel.threeDData.endTime)
+    		                     appModel.threeDData.endTime,_3DView)
       timer3d = new ScalaTimer(receiver, appModel.threeDData.endTime, playSpeed)
       receiver.start()
       timer3d.start()
@@ -127,6 +132,7 @@ class ThreeDTab(val appModel: Controller) extends AbstractThreeDTab {
 
   // _3DDataBuffer: Where all the state is stored
   var _3DDataBuffer = Map[CId, Map[Int, scala.collection.mutable.Buffer[List[_]]]]()
+  var _3DView = List[Tuple2[Array[Double], Array[Double]]]()
   var lastFrame = 2.0
   var endTime = 10.0
 
@@ -166,7 +172,7 @@ class ThreeDTab(val appModel: Controller) extends AbstractThreeDTab {
   }
 
   var _receiver = new _3DDisplay(threeDView, statusZone3d,
-    _3DDataBuffer, lastFrame, appModel.threeDData.endTime)
+    _3DDataBuffer, lastFrame, appModel.threeDData.endTime,appModel.threeDData._3DView.reverse)
 
   var timer3d = new ScalaTimer(receiver, appModel.threeDData.endTime, playSpeed)
 

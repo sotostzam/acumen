@@ -61,11 +61,17 @@ trait CStoreInterpreter extends Interpreter {
   def fromCStore(st:CStore) : Store =
     fromCStore(st, mainId(st))
 
+  def expose_externally(store:Store) : Store = {
+    store
+  }
+
   /* main loop */
   def loop(p:Prog, st:Store) : History = {
     st #:: (step(p, st) match {
         case None      => empty
-        case Some(st1) => loop(p, st1)
+        case Some(st1) => 
+		      val st2 = expose_externally(st1)
+		      loop(p, st2)
       })
   }
 

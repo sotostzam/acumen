@@ -1,0 +1,12 @@
+
+// XXX_Note:  This is just waiting for Adam to
+//   implement trig and transcendental functions
+
+// Sine of Self as Second Derivative Example
+
+class Main(simulator)
+  private
+    x:=3.1; x':=0; x'':=0
+  end
+  x'' = -10*sin(x)
+end

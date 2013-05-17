@@ -1,0 +1,33 @@
+
+// Zeno Half Example
+//
+// Authors:  Walid Taha and Adam Duracz
+// Note:     Run using Semantics -> Enclosure
+
+class Main(simulator)
+  private
+    d := 1; d' := -1;
+    s := 1/2;
+    mode := ""
+  end
+  switch mode
+    case ""
+      if s == d 
+        s := s/2; 
+        mode := "" 
+      end;
+      d' = -1
+  end;
+  simulator.endTime := 2.0;
+  simulator.minSolverStep := 1.1;
+  simulator.minLocalizationStep := 0.1;
+  simulator.minComputationImprovement := 0
+end
+
+// Note:  Without an invariant, the solver can not 
+//        tell for certain that the first event 
+//        occurs.
+//
+// Note:  This example illustrates Zeno behavior in a 
+//        minimal setting, where the value of the 
+//        variable s is constant between resets.

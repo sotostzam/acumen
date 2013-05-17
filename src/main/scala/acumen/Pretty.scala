@@ -1,9 +1,12 @@
 package acumen
 
 import scala.text._
-import scala.collection.immutable.StringOps
+import collection.immutable.{HashMap, StringOps}
 import util.Stores._
 import util.Collections._
+import scala.util.parsing.json._
+import com.sun.corba.se.impl.corba.CORBAObjectImpl
+import acumen.Errors.{FromJSONError, ShouldNeverHappen}
 
 object Pretty {
 
@@ -283,6 +286,24 @@ object JSon {
   def showList(l:List[Document]) =
     brackets(sepBy(comma :: " ", l))
 
+  // Handle the special cases in which a double value is not a number:
+  //   PositiveInfinity
+  //   NegativeInfinity
+  //   NaN
+  def showDouble(d:Double) : String = {
+    d match {
+      case Double.PositiveInfinity => '"' + Double.PositiveInfinity.toString() + '"'
+      case Double.NegativeInfinity => '"' + Double.NegativeInfinity.toString() + '"'
+      case Double.NaN => '"' + Double.NaN.toString()
+      case _ => d.toString()
+    }
+  }
+
+  def showOption(o:Option[_]) : String = o match {
+	  case None => "\"\""
+	  case Some(s) => '"' + s.toString + '"'
+  }
+
   /* translation to JSON */
 
   def toJSON(t:StepType) = 
@@ -295,25 +316,164 @@ object JSon {
     case VLit(i)       => toJSON(i)
     case VList(l)      => showVal("list", showList(l map toJSON))
     case VVector(l)    => showVal("vector", showList(l map toJSON))
-    case VObjId(id)    => showVal("objId", id.toString)
+    case VObjId(id)    => showVal("objId", showOption(id))
     case VClassName(n) => showVal("className", quotes(n.x))
     case VStepType(t)  => showVal("stepType", toJSON(t))
   }
 
   def toJSON(gv:GroundValue) = gv match {
     case GInt(i)    => showVal("int",    i.toString)
-    case GDouble(x) => showVal("double", x.toString)
+    case GDouble(x) => showVal("double", showDouble(x))
     case GBool(b)   => showVal("bool",   b.toString)
     case GStr(s)    => showVal("string", quotes(s.toString))
   }
 
   def toJSONObj(e:Map[Name, Value[_]]) : Document = {
-    val it = e map { case (x,v) => (x.x, toJSON(v)) }
+    val it = e map { case (x,v) => (x.x + "/" + x.primes, toJSON(v)) }
     obj(it)
   }
 
   def toJSON(s:CStore) : Document = {
     val it = s map { case (i,o) => (i.toString, toJSONObj(o)) }
     obj(it)
+  }
+
+  def fromJSON(s:String) : CStore = {
+    val p = JSON.parseFull(s)
+    var cs = new HashMap[CId, CObject]
+    try {
+      p match {
+        case Some(m: Map[_,_]) => m collect {
+          case (k: String, v: Map[String,Map[String,_]]) => {
+            cs += (strToCId(k) -> fromJSON(v))
+          }
+        }
+      }
+    } catch {
+      case ex:Exception => throw FromJSONError(s)
+    }
+    cs
+  }
+
+  // m to be transformed into a HashMap[Name, CObject]
+  def fromJSON(m: Map[String,Map[String,_]]) : CObject = {
+    var co = new HashMap[Name, CValue]
+    for ((k,v) <- m) {
+      val (name,primes) = getNameAndPrimes(k)
+      co += (Name(name, primes) -> fromJSONCVal(v))
+    }
+    co
+  }
+
+  def getNameAndPrimes(s: String) : (String, Int) = {
+    s.split("/") match {
+      case Array(name, primes) => (name, primes.toInt)
+      case _ => throw ShouldNeverHappen()
+    }
+  }
+
+  def fromJSONCVal(m: Map[String,_]) : CValue = {
+    m("type") match {
+      case "int"    => getInt(m("value"))
+      case "double" => getDouble(m("value"))
+      case "bool"   => getBool(m("value"))
+      case "string" => getStr(m("value"))
+
+      case "list"   => getList(m("value"))
+      case "vector" => getVector(m("value"))
+      case "objId"  => getObjId(m("value"))
+      case "className" => getClassName(m("value"))
+      case "stepType" => getStepType(m("value"))
+
+      case _ => throw ShouldNeverHappen()
+    }
+  }
+
+  def getInt(v: Any) = {
+    v match {
+      case s: String => VLit(GInt(s.toInt))
+      case d: Double => VLit(GInt(d.toInt))
+      case _ => throw ShouldNeverHappen()
+    }
+  }
+
+  // A double value is not necessary serialized to a number.
+  // When its value is non-numeric, it's treated as a string.
+  def getDouble(v: Any) = {
+    v match {
+      case d: Double => VLit(GDouble(d))
+      case "-Infinity" => VLit(GDouble(Double.NegativeInfinity))
+      case "Infinity" => VLit(GDouble(Double.PositiveInfinity))
+      case "NaN" => VLit(GDouble(Double.NaN))
+      case _ => throw ShouldNeverHappen()
+    }
+  }
+
+  def getBool(v: Any) = {
+    v match {
+      case s: String => VLit(GBool(s.toBoolean))
+      case b: Boolean => VLit(GBool(b))
+      case _ => throw ShouldNeverHappen()
+    }
+  }
+
+  def getStr(v: Any) = {
+    v match {
+      case s: String => VLit(GStr(s))
+      case _ => throw ShouldNeverHappen()
+    }
+  }
+
+  def getObjId(v: Any) = {
+    v match {
+      case s: String if (s.length() == 0) => VObjId(None)
+      case s: String => VObjId(Some(strToCId(s)))
+      case _ => throw ShouldNeverHappen()
+    }
+  }
+
+  def getClassName(v: Any) = {
+    v match {
+      case s: String => VClassName(ClassName(s))
+      case _ => throw ShouldNeverHappen()
+    }
+  }
+
+  def getStepType(v: Any) = {
+    v match {
+      case "Discrete" => VStepType(Discrete())
+      case "Continuous" => VStepType(Continuous())
+      case _ => throw ShouldNeverHappen()
+    }
+  }
+
+  def getVector(v: Any) = {
+    v match {
+      case list: List[Map[String,_]] => VVector(list.map { e => fromJSONCVal(e) })
+      case List() => VVector(List())
+      case _ => throw ShouldNeverHappen()
+    }
+  }
+
+  def getList(v: Any) = {
+    v match {
+      case list: List[Map[String,_]] => VList(list.map { e => fromJSONCVal(e) })
+      case List() => VList(List())
+      case _ => throw ShouldNeverHappen()
+    }
+  }
+
+  // Converts a string in the form of "0.0" in a CId object (CId(0) in this case)
+  // There is a special case that the root object has string representation of "0".
+  def strToCId(s:String) : CId = {
+    // Convert from string to a list of integers
+    // and remove the 0. prefix (the first element)
+    val x = s.split('.').toList.map(_.toInt).tail
+
+    x.size match {
+      case 0 => CId()
+      case 1 => CId(x.head)
+      case _ => new CId(x.reverse)
+    }
   }
 }

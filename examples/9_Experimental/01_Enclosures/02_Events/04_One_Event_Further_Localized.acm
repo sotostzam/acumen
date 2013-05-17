@@ -1,0 +1,28 @@
+
+// One Event Further Localized Example
+//
+// Author:  Adam Duracz
+// Note:    Run using Semantics -> Enclosure
+
+class Main(simulator)
+  private 
+    x := 1; x' := -1; 
+    mode := "m"
+  end
+  switch mode
+    case "m" require x >= 0
+      if x == 0 
+        x := 1;
+        mode := "m" 
+      end; 
+      x' = -1 
+  end;
+  simulator.endTime := 1.1;
+  simulator.minLocalizationStep := 0.001; // Decreased
+  simulator.minSolverStep := 1.1
+end
+
+// Note:  By further decreasing the parameter
+//        minlocalizationTimeStep the event can be
+//        studied in detail.
+   

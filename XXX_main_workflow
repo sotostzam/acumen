@@ -1,0 +1,20 @@
+
+Release Workflow (2013/05/10)
+-----------------------------
+
+There are two repositories:
+
+  - acumen-dev   This is where active development happens
+    		      - master      This is the main development branch
+
+  - acumen       This has two branches:
+    		      - master      Snapshots of acumen-dev/master
+		      - release     Sensored (released) snapshot of prerelease
+
+Most people working on development work on "master".
+
+In preparing for a release, changes in "acumen-dev/master" are tagged
+and coppied to "acumen/master".
+
+The actual release involves removing (censoring) files marked with
+XXX, and the remainder is sent to "release".
