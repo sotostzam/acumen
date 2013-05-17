@@ -560,6 +560,7 @@ class _3DDisplay(app: ThreeDView, slider: Slider3d,
     var path = ""
     var text = ""
     val index = (currentFrame - bufferFrame(buffer.head)).toInt
+    var opaque = false
     if (index >= 0 && index < buffer.size) {
       val list = buffer(index);
       color = bufferColor(list) // Get the color and size of the object
@@ -567,8 +568,10 @@ class _3DDisplay(app: ThreeDView, slider: Slider3d,
       name = bufferType(list)
       if (name == "Text")
         text = bufferString(list)
-      if (name == "OBJ")
+      else if (name == "OBJ")
 	    path = bufferString(list)
+	  else if (list(5) == "transparent")
+	    opaque = true
     }
     app.trans -= c
     app.branches -= c
@@ -585,8 +588,11 @@ class _3DDisplay(app: ThreeDView, slider: Slider3d,
     mat.setAmbientColor(new Color3f(color(0).toFloat, color(1).toFloat, color(2).toFloat))
     mat.setDiffuseColor(new Color3f(color(0).toFloat, color(1).toFloat, color(2).toFloat))
     mat.setShininess(100);
-    val ap = new Appearance()
-    ap.setMaterial(mat)
+    var ap = new Appearance()
+    if (opaque)
+      ap = new Glass(new Color3f(color(0).toFloat, color(1).toFloat, color(2).toFloat))
+    else
+      ap.setMaterial(mat)
 
     app.trans(c) match {
       case trans: Group => {
@@ -622,10 +628,10 @@ class _3DDisplay(app: ThreeDView, slider: Slider3d,
 }
 
 // Transparent box 
-object Glass extends Appearance {
+class Glass(color: Color3f) extends Appearance {
   val mat = new Material()
-  mat.setAmbientColor(new Color3f(1, 1, 1))
-  mat.setDiffuseColor(new Color3f(1, 1, 1))
+  mat.setAmbientColor(color)
+  mat.setDiffuseColor(color)
 
   val pa = new PolygonAttributes()
   pa.setCullFace(PolygonAttributes.CULL_NONE)
@@ -642,7 +648,7 @@ object Glass extends Appearance {
 // The box
 class MainBox extends TransformGroup {
   val tr = new Transform3D()
-  val box = new Box(0.5f, 0.5f, 0.5f, Primitive.GENERATE_NORMALS, Glass)
+  val box = new Box(0.5f, 0.5f, 0.5f, Primitive.GENERATE_NORMALS, new Glass(new Color3f(1, 1, 1)))
   this.addChild(box)
 }
 
@@ -652,7 +658,7 @@ class Axis extends Shape3D {
   ap.setLineAttributes(new LineAttributes(1f, LineAttributes.PATTERN_SOLID, true))
 
   setGeometry(createGeometry)
-  setAppearance(Glass)
+  setAppearance(new Glass(new Color3f(1, 1, 1)))
 
   private def createGeometry: Geometry = {
     val line = new LineArray(6, GeometryArray.COORDINATES | GeometryArray.COLOR_3)
