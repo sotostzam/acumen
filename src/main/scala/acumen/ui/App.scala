@@ -96,7 +96,7 @@ class App extends SimpleSwingApplication {
   //**************************************
 
   /* ----- UI setup ------- */
-   
+  
   /* Reusable actions */
   private val playAction                    = mkAction(    "Run",                       VK_R, VK_G,       upperButtons.bPlay.doClick)
   private val pauseAction                   = mkAction(    "Pause",                     VK_R, VK_G,       upperButtons.bPlay.doClick)
@@ -119,11 +119,11 @@ class App extends SimpleSwingApplication {
   private val plotStyleLinesAction          = new Action(  "Lines")      { mnemonic =   VK_L; def apply = plotView.setPlotStyle(plot.Lines()) }
   private val plotStyleDotsAction           = new Action(  "Dots")       { mnemonic =   VK_D; def apply = plotView.setPlotStyle(plot.Dots()) }
   private val plotStyleBothAction           = new Action(  "Both")       { mnemonic =   VK_B; def apply = plotView.setPlotStyle(plot.Both()) }
-  private val floatingPointAction           = mkAction(    "Floating Point Reference",  VK_F, VK_1,       setInterpreter(new CStoreCntrl(interpreters.reference.Interpreter))) 
-  private val floatingPointImperativeAction = mkAction(    "Floating Point Imparative", VK_F, VK_9,       setInterpreter(new CStoreCntrl(new interpreters.imperative.sequential.Interpreter))) 
-  private val floatingPointParallelAction   = mkAction(    "Floating Point Parallel",   VK_P, VK_2,       promptForNumberOfThreads)
-  private val pwlAction                     = mkAction(    "Enclosure",                 VK_P, VK_3,       setInterpreter(new EnclosureCntrl(interpreters.enclosure.Interpreter.asLocalizing))) 
-  private val eventTreeAction               = mkAction(    "Enclosure 2",               VK_E, VK_4,       setInterpreter(new EnclosureCntrl(interpreters.enclosure.Interpreter.asNonLocalizing)))
+  private val floatingPointAction           = mkActionMask("Floating Point Reference",  VK_R, VK_R,       shortcutMask | SHIFT_MASK, setInterpreter(new CStoreCntrl(interpreters.reference.Interpreter))) 
+  private val floatingPointImperativeAction = mkActionMask("Floating Point Imparative", VK_I, VK_I,       shortcutMask | SHIFT_MASK, setInterpreter(new CStoreCntrl(new interpreters.imperative.sequential.Interpreter))) 
+  private val floatingPointParallelAction   = mkActionMask("Floating Point Parallel",   VK_P, VK_P,       shortcutMask | SHIFT_MASK, promptForNumberOfThreads)
+  private val pwlAction                     = mkActionMask("Enclosure",                 VK_E, VK_E,       shortcutMask | SHIFT_MASK, setInterpreter(new EnclosureCntrl(interpreters.enclosure.Interpreter.asLocalizing))) 
+  private val eventTreeAction               = mkActionMask("Enclosure 2",               VK_2, VK_2,       shortcutMask | SHIFT_MASK, setInterpreter(new EnclosureCntrl(interpreters.enclosure.Interpreter.asNonLocalizing)))
   
   /* Shows a dialog asking the user how many threads to use in the parallel interpreter. */
   def promptForNumberOfThreads = {
