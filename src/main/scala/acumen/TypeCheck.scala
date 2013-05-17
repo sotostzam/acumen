@@ -175,6 +175,8 @@ class TypeCheck(val prog: Prog) {
     env.update(Name("time", 0), NumericType)
     env.update(Name("timeStep", 0), NumericType)
     env.update(Name("endTime", 0), NumericType)
+    env.update(Name("stepType", 0), StepTypeType)
+    addSpecialFields(ClassType(NamedClass(simulator.name)), env)
   }
 
   def addSpecialFields(ct: ClassType, env: Env) {

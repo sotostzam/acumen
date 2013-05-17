@@ -50,7 +50,10 @@ object Main {
       lazy val ctrace = as_ctrace(trace)
       /* Perform user-selected action. */
       args(firstNonSemanticsArg + 1) match {
-        case "compile" => interpreters.compiler.Interpreter.init(nodiff_out)
+        case "compile" => 
+          val typeChecker = new TypeCheck(desugared)
+          val res = typeChecker.run()
+          interpreters.compiler.Interpreter.compile(desugared, typeChecker)
         case "pretty" => println(pprint(ast))
         case "desugar" => println(pprint(desugared))
         case "typecheck" => 

@@ -82,7 +82,7 @@ int main(int argc, const char* argv[]) {
   if (argc == 2 && strcmp(argv[1], "last") == 0) {
     last = true;
   }
-  Simulator * simulator = new Simulator(NULL);
+  Simulator * simulator = new Simulator(NULL, 0.0, 0.01, 10.0, DISCRETE);
   Main * main = new Main(NULL, simulator);
   main->add_child(simulator);
   main->id.data.push_back(0);

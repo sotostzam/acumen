@@ -8,7 +8,7 @@ import acumen.Errors._
 import acumen.Pretty._
 import acumen.util.Conversions._
 import acumen.util.Random
-import acumen.interpreters.Common.{ classDef, evalOp }
+import acumen.interpreters.Common.{ classDef }
 import acumen.util.Canonical.{
   childrenOf, 
   classf,
@@ -154,7 +154,7 @@ class Interpreter extends acumen.CStoreInterpreter {
   import acumen._
   
   type Store = I.Store
-  def init(prog: Prog) = I.init(prog)
+  def init(prog: Prog) = null
   def fromCStore(st: CStore, root: CId) = null
   def repr(st: Store) = null
 
@@ -162,128 +162,92 @@ class Interpreter extends acumen.CStoreInterpreter {
 }
 
 object Interpreter {
-  import imperative.Common.{Object, evalExpr, mkObj, getClassOf, getField, selfObjId, getNewSeed}
+  val FIXME = null
+  val UNSUPPORTED = FIXME // these should throw a specific exception
 
   type Store = Object
   type ObjId = Object
   type Val = Value[ObjId]
-  type Env = Map[Name, Val]
+  type Env = scala.collection.mutable.Map[Name, TypeLike]
   
   type MMap[A, B] = scala.collection.mutable.Map[A, B]
   val MMap = scala.collection.mutable.Map
 
   def magicClassTxt =
-    """class Simulator(time, timeStep, endTime, stepType, lastCreatedId) end"""
-  def initStoreTxt =
-    """#0.0 { className = Simulator, parent = none, time = 0.0, timeStep = 0.01, 
-              endTime = 10.0, stepType = @Discrete, nextChild = 0,
-						  seed1 = 0, seed2 = 0 }"""
+    """class Simulator(time, timeStep, endTime, stepType) end"""
 
   lazy val magicClass = Parser.run(Parser.classDef, magicClassTxt)
-  lazy val magicCObj = Parser.run(Parser.store, initStoreTxt)
 
-  def init(prog: Prog): (Prog, Store) = {
-    val magic = imperative.Common.fromCStore(magicCObj, CId(0))
-    /* WARNING: the following line works because there is no children access check
-       if one of the instructions of the provate section tries to access magic,
-       and there was a check, this would crash (which we don't want) */
-    val (sd1, sd2) = Random.split(Random.mkGen(0))
-    val mainObj = mkObj(cmain, prog, None, sd1, List(VObjId(Some(magic))), magic, 1)
-    magic.seed = sd2
-    //changeParent(magic, mainObj) //FIXME: Needed? (as  we are a compiler...)
-    compile(magic,mainObj,prog)
-    (Prog(magicClass :: prog.defs), mainObj)
-  }
+  def compile(prog: Prog, typeChecker: TypeCheck) = {
 
-  def compile(magicObj: Object, mainObj: Object, prog: Prog) {
+    magicClass._types = typeChecker.simulator._types
+    // ^^ get type information into magicClass (i.e. simulator, evil I know)
 
-    compileObj(magicObj, prog, magicObj)
-    compileObj(mainObj, prog, magicObj)
+    compileClass(magicClass, prog, magicClass)
+    compileClass(classDef(cmain, prog), prog, magicClass)
     
     val body = new CompileWriter(2)
 
     Collector.writeOut
 
-    gnuPlot(magicObj, mainObj)
+    //gnuPlot(magicObj, mainObj)
   }
 
-  def gnuPlot(magicObj: Object, mainObj: Object) {
-    val out = new java.io.PrintWriter(new java.io.FileWriter("model.gpl"))
-    out.println("set terminal png")
-    out.println("set ylabel \"Time\"")
-    val magicFields = getFilteredSortedFields(magicObj)
-    val mainFields = getFilteredSortedFields(mainObj)
-    val timeIdx = mainFields.size + magicFields.indexWhere { case (n,_,_,_) => n.x == "time" } + 1
-    var idx = 1
-    mainFields.foreach{ case (name, arrayIdx, f, _) =>
-      if (f == "%f") {
-        out.println()
-        out.println("set xlabel \"" + name.x + "'" * name.primes + arrayPart(arrayIdx) +"\"")
-        val arrayPartForFn = arrayIdx match { case Some(i) => "_" + i; case _ => ""}
-        out.println("set output \"model_" + to_c_name(name) + arrayPartForFn + ".png\"")
-        out.println("plot \"model.res\" using " + timeIdx + ":" + idx + " with lines notitle")
-      }
-      idx += 1            
-    }
-    out.close
-  }
+  // FIXME: Fix or remove
+  // def gnuPlot(magicObj: Object, mainObj: Object) {
+  //   val out = new java.io.PrintWriter(new java.io.FileWriter("model.gpl"))
+  //   out.println("set terminal png")
+  //   out.println("set ylabel \"Time\"")
+  //   val magicFields = getFilteredSortedFields(magicObj)
+  //   val mainFields = getFilteredSortedFields(mainObj)
+  //   val timeIdx = mainFields.size + magicFields.indexWhere { case (n,_,_,_) => n.x == "time" } + 1
+  //   var idx = 1
+  //   mainFields.foreach{ case (name, arrayIdx, f, _) =>
+  //     if (f == "%f") {
+  //       out.println()
+  //       out.println("set xlabel \"" + name.x + "'" * name.primes + arrayPart(arrayIdx) +"\"")
+  //       val arrayPartForFn = arrayIdx match { case Some(i) => "_" + i; case _ => ""}
+  //       out.println("set output \"model_" + to_c_name(name) + arrayPartForFn + ".png\"")
+  //       out.println("plot \"model.res\" using " + timeIdx + ":" + idx + " with lines notitle")
+  //     }
+  //     idx += 1            
+  //   }
+  //   out.close
+  // }
 
-
-  def compileObj(obj: Object, p: Prog, magic: Object) : Unit = {
-    val cn =  getClassOf(obj).x;
+  def compileClass(cd: ClassDef, p: Prog, magic: ClassDef) : Unit = {
+    val cn =  cd.name.x;
     Collector.symbols.add(cn);
-    val cd = if (cn != "Simulator") classDef(getClassOf(obj), p) else null
-    val classFields = if (cd != null) cd.fields else Nil
-    val fieldTypes = MMap.empty[Name,CType]
-    classFields.foreach { name => fieldTypes.update(name, CType("void *")) }
-
-    // Hack, force any int fields to be doubles, they are likely meant
-    // to be double even if the initial value is an int
-    obj.fields.foreach { case (name, value) => 
-      value match {
-        case VLit(GInt(v)) => obj.fields.update(name, VLit(GDouble(v)))
-        case _ => 
-      }
-    }                                 
 
     val cc = new CompiledClass(cn, "AcumenObject");
-
-    // FIXME: Comment out of date
-    // First create a c struct for the object, the type for the struct
-    // fields are based on the initial value in the object.  At the
-    // same time set the types for any fields (it paramaters to the
-    // object constructor) as they will be needed later.  
-    obj.fields.foreach { case (name, value) => 
-      val cname = to_c_name(name)
-      val ctype = to_c_type(value)
-      if (fieldTypes.contains(name)) {
-        println("Updating " + name + " to " + ctype)
-        fieldTypes.update(name, ctype)
-      }
-      cc.addField(CVar(cname, ctype))
+    
+    // Create a c struct for the objec
+    getAllFields(cd).foreach { case (name) => 
+      cc.addField(CVar(to_c_name(name), to_c_type(cd._types(name))))
     }
 
-    // Now output the initialization function
-    val args = classFields.map { name => CVar(to_c_name(name), fieldTypes(name)) }
+    // Output the initialization function
+    val args = cd.fields.map { name => CVar(to_c_name(name), to_c_type(cd._types(name))) }
     var body = new CompileWriter(4)
-    obj.fields.foreach { 
-      case (name, value) =>
-        body.print("this->" + to_c_name(name) + " = ")
-        if (fieldTypes.contains(name))
-            body.print(to_c_name(name))
-        else
-          body.print(to_c_value(value))
-        body.print(";").newline                  
+    cd.fields.foreach { name => 
+      body.print("this->" + to_c_name(name) + " = " + to_c_name(name) + ";").newline
+    }
+    cd.priv.foreach { case Init (name, rhs) => 
+      body.print("this->" + to_c_name(name) + " = ")
+      rhs match {
+        case NewRhs(c, fields) => body.print(compileCreate(c, fields, cd._types, p, magic))
+        case ExprRhs(e) => body.print(compileExpr(e, p, cd._types))
+      }
+      body.print(";").newline
     }
     cc.addConstructor(List(CVar("p", CType.ptr("AcumenObject"))) ++ args, 
                       ": AcumenObject(" + to_c_string(cn) + ", p)",
                       body.toString)
 
-    // Now output a function for the object actions
-    val env = HashMap((self, VObjId(Some(obj))))
+    // Output a function for the object actions
     body = new CompileWriter(4)
     if (cn != "Simulator")
-      compileActions(body, cd.body, env, p, magic)
+      compileActions(body, cd.body, cd._types, p, magic)
     body.print("return KEEP_ME;").newline
     cc.addMethod("step", List(CVar("stepType", CType("StepType")), 
                               CVar("somethingChanged", CType.mutRef("bool")), 
@@ -294,21 +258,21 @@ object Interpreter {
     cc.addMethod("continuous_step", List(CVar("timeStep", CType("double"))),
                  "void", "    bool dummy = false; step(CONTINUOUS, dummy, timeStep);\n")
     val body2 = new CompileWriter(4)
-    compileDumpObjHeader(body2, "", obj, p)
+    compileDumpObjHeader(body2, "", cd, p)
     cc.addMethod("dump_header", List(), "void", body2.toString)
     val body3 = new CompileWriter(4)
-    compileDumpObj(body3, "", obj, p)
+    compileDumpObj(body3, "", cd, p)
     cc.addMethod("dump_state_line", List(), "void", body3.toString)
     val body4 = new CompileWriter(4)
-    compileDumpObjState(body4, "", obj, p)
+    compileDumpObjState(body4, "", cd, p)
     cc.addMethod("dump_state", List(), "void", body4.toString)
     Collector.addClass(cc)
   }
 
-  def compileActions(cr: CompileWriter, as: List[Action], env: Env, p: Prog, magic: Object) =
+  def compileActions(cr: CompileWriter, as: List[Action], env: Env, p: Prog, magic: ClassDef) =
     as.foreach {a => compileAction(cr, a, env, p, magic)}
 
-  def compileAction(cr: CompileWriter, a: Action, env: Env, p: Prog, magic: Object) {
+  def compileAction(cr: CompileWriter, a: Action, env: Env, p: Prog, magic: ClassDef) {
     a match {
       case IfThenElse(c, a1, a2) =>
         cr.print("if (")
@@ -322,15 +286,14 @@ object Interpreter {
         cr.print("/* UNIMPLEMENTED: ForEach */").newline
       case Switch(s, cls) =>
         cr.print("{").newline.indent(2)
-        val VLit(gv) = evalExpr(s, p, env)
-        cr.print(CVar("switchVal", to_c_type(gv)).toDecl + " = ")
+        cr.print(CVar("switchVal", to_c_type(s._type)).toDecl + " = ")
         cr.print(compileExpr(s, p, env))
         cr.print(";").newline
         var first = true
         cls.foreach { cl => 
           if (!first)
             cr.indent(-2).print("} else ")
-          cr.print("if (" + c_cmp(gv, "switchVal", to_c_value(cl.lhs))  + ") {").newline.indent(2)
+          cr.print("if (" + c_cmp(s._type, "switchVal", to_c_value(cl.lhs))  + ") {").newline.indent(2)
           compileActions(cr, cl.rhs, env, p, magic)
           first = false
         }
@@ -347,30 +310,23 @@ object Interpreter {
     }
   }
 
-  def compileDiscreteAction(cr: CompileWriter, a: DiscreteAction, env: Env, p: Prog, magic: Object) =
+  def compileDiscreteAction(cr: CompileWriter, a: DiscreteAction, env: Env, p: Prog, magic: ClassDef) =
     a match {
       case Assign(ed@Dot(e, x), t) =>
-        val VObjId(Some(o)) = evalExpr(e, p, env)
         val lhs = compileExpr(ed, p, env) // FIXME: Verify this is doing the right thing
         val rhs = compileExpr(t, p, env)
-        o.fields(x) match {
-          case VLit(gv) => 
-            cr.print("if (" + c_cmp_inv(gv, lhs,rhs) + " ) {").newline.indent(2)
+        ed._type.vectorSize match {
+          case -1 => 
+            cr.print("if (" + c_cmp_inv(ed._type, lhs,rhs) + " ) {").newline.indent(2)
             cr.print(lhs + " = " + rhs + ";").newline
             cr.print("somethingChanged = 1;").newline
             cr.indent(-2).print("}").newline
-          case VVector(l) => 
-            cr.print(mkCallVectorAssignIfChanged(l.size, lhs, rhs, p, env) + ";").newline
+          case sz => 
+            cr.print(mkCallVectorAssignIfChanged(sz, lhs, rhs, p, env) + ";").newline
         }
       case Create(lhs, c, es) =>
-        if (!Collector.haveSym(c.x)) {
-          val ves = es map (evalExpr(_, p, env))
-          val self = selfObjId(env)
-          val sd = getNewSeed(self)
-          val fa = mkObj(c, p, Some(self), sd, ves, magic)
-          compileObj(fa, p, magic)
-        }
-        cr.print("new " + c.x + "(this, " + es.map{e => compileExpr(e,p,env)}.mkString(", ") + ");").newline
+        val createExpr = compileCreate(c, es, env, p, magic)
+        cr.print(createExpr + ";").newline
         cr.print("somethingChanged = 1;").newline
         //lhs match {
         //  case None => logModified
@@ -385,30 +341,23 @@ object Interpreter {
         cr.print("/*Unimplemented*/").newline
     }
 
-  def compileContinuousAction(cr: CompileWriter, a: ContinuousAction, env: Env, p: Prog, magic: Object) : Unit =
+  def compileContinuousAction(cr: CompileWriter, a: ContinuousAction, env: Env, p: Prog, magic: ClassDef) : Unit =
     a match {
       case EquationT(Dot(e, x), t) =>
-        // val VObjId(Some(a)) = evalExpr(e, p, env)
         // FIXME: Assuming single object case
         cr.print(to_c_name(x) + " = ");
         cr.print(compileExpr(t, p, env))
         cr.print(";").newline
       case EquationI(Dot(e, x), t) =>
-        //val dt = getTimeStep(magic)
-        val VObjId(Some(id)) = evalExpr(e, p, env)
-        //val vt = evalExpr(t, p, env)
-        val lhs = getField(id, x)
+        val lhs = env(x)
         // FIXME: Assuming single object case
-        lhs match {
-          case VLit(d) =>
+        lhs.vectorSize match {
+          case -1 =>
             cr.print(to_c_name(x) + " += ")
             cr.print(compileExpr(t, p, env))
             cr.print(" * " + "timeStep")
-          //VLit(GDouble(extractDouble(d) + extractDouble(vt) * dt))
-          case VVector(u) =>
-            cr.print(mkCallVectorContinuous(u.size, to_c_name(x), compileExpr(t, p, env), p, env) + ";").newline
-          case _ =>
-            throw BadLhs()
+          case sz =>
+            cr.print(mkCallVectorContinuous(sz, to_c_name(x), compileExpr(t, p, env), p, env) + ";").newline
         }
         cr.print(";").newline
       case _ =>
@@ -436,6 +385,14 @@ object Interpreter {
     typeName
   }
 
+  def compileCreate(name: ClassName, args: List[Expr], env: Env, p: Prog, magic: ClassDef) : String = {
+    if (!Collector.haveSym(name.x)) {
+      val cd = classDef(name, p)
+      compileClass(cd, p, magic)
+    }
+    "new " + name.x + "(this, " + args.map{e => compileExpr(e,p,env)}.mkString(", ") + ")"
+  }
+
   def compileExpr(e: Expr, p: Prog, env: Env): String = {
     e match {
       case Lit(i)        => to_c_value(i)
@@ -455,7 +412,7 @@ object Interpreter {
       /* x && y */
       case Op(Name("&&", 0), x :: y :: Nil) => compileToCBinOp("&&", x, y, p, env)
       case Op(Name("||", 0), x :: y :: Nil) => compileToCBinOp("||", x, y, p, env)
-      case Op(Name(op, 0), args) => compileOp(e, op, args map (evalExpr(_, p, env)), args,p,env)
+      case Op(Name(op, 0), args) => compileOp(e, op, args,p,env)
       /* sum e for i in c st t */
       case Sum(e, i, c, t) => unimplemented(e)
       case CpuSpin(n) => unimplemented(e)
@@ -464,26 +421,26 @@ object Interpreter {
     //cr.print("/*="+ e + "*/ ") 
   }
 
-  def compileOp(exp: Expr, op:String, argTypes:List[Val], args: List[Expr], p: Prog, env: Env) : String = {
-    (op,argTypes,args) match {
-       case ("==", _, x :: y :: Nil) => compileToCBinOp("==", x, y, p, env)
-       case ("~=", _, x :: y :: Nil) => compileToCBinOp("!=", x, y, p, env)
-       case ("_:_:_", VLit(GInt(s))::VLit(GInt(d))::VLit(GInt(e))::Nil, _) =>
+  def compileOp(exp: Expr, op:String, args: List[Expr], p: Prog, env: Env) : String = {
+    (op,args) match {
+       case ("==", x :: y :: Nil) => compileToCBinOp("==", x, y, p, env)
+       case ("~=", x :: y :: Nil) => compileToCBinOp("!=", x, y, p, env)
+       case ("_:_:_", _) =>
          unimplemented(exp)
-       case (_, VLit(xv)::Nil, x :: Nil) =>
-         compileUnaryOp(op,xv,x,p,env)
-       case (_,VLit(xv)::VLit(yv)::Nil, x :: y :: Nil) =>  
-         compileBinOp(op,xv,yv,x,y,p,env)
-       case (_, VVector(u)::Nil, x :: Nil) =>
-         compileUnaryVectorOp(op,u,x,p,env)
-       case (_, VVector(u)::VVector(v)::Nil, x :: y :: Nil) =>
-         compileBinVectorOp(op,u,v,x,y,p,env)
-       case (_, VLit(xv)::VVector(u)::Nil, x :: y :: Nil) =>
-         compileBinScalarVectorOp(op,xv,u,x,y,p,env)
-       case (_, VVector(u)::VLit(xv)::Nil, x :: y :: Nil) =>
-         compileBinVectorScalarOp(op,u,xv,x,y,p,env)
-       case (_, VList(u)::Nil, _) =>
-         unimplemented(exp)
+       case (_, x :: Nil) if x._type.numericLike =>
+         compileUnaryOp(op,x,p,env)
+       case (_, x :: y :: Nil) if x._type.numericLike && y._type.numericLike =>  
+         compileBinOp(op,x,y,p,env) 
+       case (_, x :: Nil) if x._type.isVector =>
+         compileUnaryVectorOp(op,x,p,env)
+       case (_, x :: y :: Nil) if x._type.isVector && y._type.isVector =>
+         compileBinVectorOp(op,x,y,p,env)
+       case (_, x :: y :: Nil) if x._type.numericLike && y._type.isVector =>
+         compileBinScalarVectorOp(op,x,y,p,env)
+       case (_, x :: y :: Nil) if x._type.isVector && y._type.numericLike =>
+         compileBinVectorScalarOp(op,x,y,p,env)
+       //case (_, VList(u)::Nil, _) =>
+       //  unimplemented(exp)
        case _ =>
          throw UnknownOperator(op)    
     }
@@ -491,8 +448,8 @@ object Interpreter {
 
   /* purely functional unary operator evaluation 
    * at the ground values level */
-  def compileUnaryOp(f:String, vx:GroundValue, xe: Expr, p: Prog, env: Env) : String = {
-    def implem(f:String, x:Double) = f match {
+  def compileUnaryOp(f:String, xe: Expr, p: Prog, env: Env) : String = {
+    def implem(f:String) = f match {
         case "sin" => compileToCFunCall("sin", List(xe), p, env)
         case "cos" => compileToCFunCall("cos", List(xe), p, env)
         case "tan" => compileToCFunCall("tan", List(xe), p, env)
@@ -518,21 +475,22 @@ object Interpreter {
 // Should abs and and - above?
 
     }
-    (f, vx) match {
-      case ("not", GBool(x))   => "(!" + compileExpr(xe, p, env) + ")"
-      case ("abs", GInt(i))    => compileToCFunCall("abs", List(xe), p, env)
-      case ("-",   GInt(i))    => "(-" + compileExpr(xe, p, env) + ")"
-      case ("abs", GDouble(x)) => compileToCFunCall("fabs", List(xe), p, env)
-      case ("-",   GDouble(x)) => "(-" + compileExpr(xe, p, env) + ")"
-      case ("round", GDouble(x)) => compileToCFunCall("round", List(xe), p, env)
-      case _                   => implem(f, extractDouble(vx))
+    (f, xe._type) match {
+      case ("not", BoolType)   => "(!" + compileExpr(xe, p, env) + ")"
+      case ("abs", IntType)    => compileToCFunCall("abs", List(xe), p, env)
+      case ("-",   IntType)    => "(-" + compileExpr(xe, p, env) + ")"
+      case ("abs", NumericType) => compileToCFunCall("fabs", List(xe), p, env)
+      case ("-",   NumericType) => "(-" + compileExpr(xe, p, env) + ")"
+      case ("round", NumericType) => compileToCFunCall("round", List(xe), p, env)
+      case _                   => implem(f)
     }
   }
 
   /* purely functional binary operator evaluation 
    * at the ground values level */
-  def compileBinOp(f:String, vx:GroundValue, vy:GroundValue, xe: Expr, ye: Expr, p: Prog, env: Env) = {
-    def implem1(f:String, x:Int, y:Int) = f match {
+  def compileBinOp(f:String, xe: Expr, ye: Expr, p: Prog, env: Env) = {
+    def implem1(f:String) = f match {
+      // Int bin ops
       case "+" => compileToCBinOpForceInt("+", xe, ye, p, env)
       case "-" => compileToCBinOpForceInt("-", xe, ye, p, env)
       case "*" => compileToCBinOpForceInt("*", xe, ye, p, env)
@@ -543,7 +501,8 @@ object Interpreter {
       case "%"  => compileToCBinOpForceInt("%", xe, ye, p, env)
       case "xor" => compileToCBinOpForceInt("^", xe, ye, p, env)
     }
-    def implem2(f:String, x:Double, y:Double) = f match {
+    def implem2(f:String) = f match {
+      // Double bin ops
       case "+" => compileToCBinOp("+", xe, ye, p, env)
       case "-" => compileToCBinOp("-", xe, ye, p, env)
       case "*" => compileToCBinOp("*", xe, ye, p, env)
@@ -552,37 +511,39 @@ object Interpreter {
       case "atan2" => compileToCFunCall("atan2", List(xe, ye), p, env) 
       case _ => throw UnknownOperator(f)
     }
-    def implem3(f:String, x:Int, y:Int) = f match {
+    def implem3(f:String) = f match {
+      // Int bin ops
       case "<"  => compileToCBinOpForceInt("<", xe, ye, p, env)
       case ">"  => compileToCBinOpForceInt(">", xe, ye, p, env)
       case "<=" => compileToCBinOpForceInt("<=", xe, ye, p, env)
       case ">=" => compileToCBinOpForceInt(">=", xe, ye, p, env)
     }
-    def implem4(f:String, x:Double, y:Double) = f match {
+    def implem4(f:String) = f match {
+      // Double bin ops
       case "<" => compileToCBinOp("<", xe, ye, p, env)
       case ">" => compileToCBinOp(">", xe, ye, p, env)
       case "<=" => compileToCBinOp("<=", xe, ye, p, env)
       case ">=" => compileToCBinOp(">=", xe, ye, p, env)
     }
-    (f, vx, vy) match {
-      case (">="|"<="|"<"|">", GInt(n), GInt(m)) => implem3(f,n,m)
-      case ("<"|">"|"<="|">=", _, _) => implem4(f,extractDouble(vx),extractDouble(vy))
-      case ("+"|"-"|"*"|"<<"|">>"|"&"|"|"|"%"|"xor", GInt(n), GInt(m)) => implem1(f,n,m)
-      case _  => implem2(f, extractDouble(vx), extractDouble(vy))
+    (f, xe._type, ye._type) match {
+      case (">="|"<="|"<"|">", IntType, IntType) => implem3(f)
+      case ("<"|">"|"<="|">=", _, _) => implem4(f)
+      case ("+"|"-"|"*"|"<<"|">>"|"&"|"|"|"%"|"xor", IntType, IntType) => implem1(f)
+      case _  => implem2(f)
     }
   }
 
-  def compileUnaryVectorOp(op: String,u: List[Val],xe: Expr, p: Prog, env: Env) : String = {
+  def compileUnaryVectorOp(op: String,xe: Expr, p: Prog, env: Env) : String = {
     op match {
       //case "length" => VLit(GInt(u.length)) 
-      case "norm" => mkCallVectorNorm(u.size, xe, p, env)
+      case "norm" => mkCallVectorNorm(xe._type.vectorSize, xe, p, env)
       case _ => throw InvalidVectorOp(op)
     }
   }
   
-  def compileBinVectorOp(op: String,u: List[Val],v: List[Val],
+  def compileBinVectorOp(op: String,
                          xe: Expr, ye: Expr, p: Prog, env: Env) : String = {
-    val sz = u.size
+    val sz = xe._type.vectorSize
     def mkCall(fname: String, f: (String, String) => String) = {
       val fullName = "v_" + fname
       mkCallBinVectorFun(fullName, sz, CType.cref(vectorType(sz)), CType.cref(vectorType(sz)), xe, ye, f("x[i]", "y[i]"), p, env)
@@ -598,18 +559,18 @@ object Interpreter {
     }
   }
 
-  def compileBinScalarVectorOp(op: String, xv: GroundValue,u: List[Val], 
+  def compileBinScalarVectorOp(op: String, 
                                xe: Expr, ye: Expr, p: Prog, env: Env) : String = {
     op match {
-      case "+" => compileBinVectorScalarOp(op,u,xv,ye,xe,p,env)
-      case "*" => compileBinVectorScalarOp(op,u,xv,ye,xe,p,env)
+      case "+" => compileBinVectorScalarOp(op,xe,xe,p,env)
+      case "*" => compileBinVectorScalarOp(op,ye,xe,p,env)
       case _ => throw InvalidScalarVectorOp(op)
     }
   }
   
-  def compileBinVectorScalarOp(op: String,u: List[Val],xv: GroundValue, 
+  def compileBinVectorScalarOp(op: String,
                                xe: Expr, ye: Expr, p: Prog, env: Env) : String = {
-    val sz = u.size
+    val sz = xe._type.vectorSize
     def mkCall(fname: String, f: (String, String) => String) = {
       val fullName = "vs_" + fname + "_" + sz
       mkCallBinVectorFun(fullName, sz, CType.cref(vectorType(sz)), CType("double"), xe, ye, f("x[i]", "y"), p, env)
@@ -730,25 +691,18 @@ object Interpreter {
 
   def to_c_string(str: String) : String = "\"" + str + "\""
 
-  def to_c_type(value: GroundValue): CType = value match {
-    case GInt(_)    => CType("double")
-    // ^^ a double is far more likely than an int, so just assume
-    // a double for now rather than getting it wrong.  Making it
-    // an int will be considered an optimizaton :) - kevina
-    case GDouble(_) => CType("double")
-    case GBool(_)   => CType("Boolean")
-    case GStr(_)    => CType("const char *")
+  def to_c_type(typ: TypeLike): CType = typ match {
+    case IntType => CType("int")
+    case NumericType => CType("double")
+    case BoolType => CType("Boolean")
+    case StrType => CType("const char *")
+    case SeqType(st@FixedSize(lst)) if st.isNumeric =>  CType(vectorType(lst.size))
+    case SeqType(_) => UNSUPPORTED
+    case StepTypeType => CType("StepType")
+    case ClassType(NamedClass(cn)) => CType(cn.x + " *")
+    case ClassType(_) => UNSUPPORTED
     case v          => CType("/*"+v+"*/double") // FIXME
   }
-
-  def to_c_type(value: Val): CType = value match {
-    case VLit(v) => to_c_type(v)
-    case VObjId((Some(o))) => CType(getClassOf(o).x + " *")
-    case VClassName(ClassName(n)) => CType("const char *")
-    case VStepType(_) => CType("StepType")
-    case VVector(l) => CType(vectorType(l.size))
-    case n => CType("/*"+ n + "*/ void *") // FIXME
-  } 
 
   def to_c_value(value: GroundValue) = value match {
     case GInt(v) => v.toDouble.toString 
@@ -771,13 +725,13 @@ object Interpreter {
     }
   }
 
-  def c_cmp (theType: GroundValue, x: String, y: String) = theType match {
-    case GStr(_) => "(strcmp(" + x + ", " + y + ")" + "== 0)"
+  def c_cmp (theType: TypeLike, x: String, y: String) = theType match {
+    case StrType => "(strcmp(" + x + ", " + y + ")" + "== 0)"
     case _ => x + " == " + y;
   }
 
-  def c_cmp_inv (theType: GroundValue, x: String, y: String) = theType match {
-    case GStr(_) => "(strcmp(" + x + ", " + y + ")" + "!= 0)"
+  def c_cmp_inv (theType: TypeLike, x: String, y: String) = theType match {
+    case StrType => "(strcmp(" + x + ", " + y + ")" + "!= 0)"
     case _ => x + " != " + y;
   }
 
@@ -801,16 +755,16 @@ object Interpreter {
     funName + "(" + args.map{arg => compileExpr(arg, p, env)}.mkString(", ") + ")"
   }
 
-  def compileDumpObjHeader(cr: CompileWriter, prefix: String, o: Object, p: Prog) : Unit = {
-    val cn =  getClassOf(o).x;
-    val fields = getFilteredSortedFields(o);
+  def compileDumpObjHeader(cr: CompileWriter, prefix: String, cd: ClassDef, p: Prog) : Unit = {
+    val cn =  cd.name.x
+    val fields = getFilteredSortedFields(cd);
     cr.print("printf(\"%s\", \"");
     cr.print(fields.map{case (n,i,_,_) => cn + "." + n.x + "'"*n.primes+arrayPart(i)}.mkString(" "))
     cr.print(" \");").newline
   }
 
-  def compileDumpObj(cr: CompileWriter, prefix:String, o: Object, p: Prog) : Unit = {
-    val fields = getFilteredSortedFields(o);
+  def compileDumpObj(cr: CompileWriter, prefix:String, cd: ClassDef, p: Prog) : Unit = {
+    val fields = getFilteredSortedFields(cd);
     cr.print("printf(\"");
     cr.print(fields.map( {case (_,_,f,_) => f}).mkString(" "))
     cr.print(" \", ")
@@ -818,9 +772,9 @@ object Interpreter {
     cr.print(");").newline
   }
 
-  def compileDumpObjState(cr: CompileWriter, prefix:String, o: Object, p: Prog) : Unit = {
-    val cn =  getClassOf(o).x;
-    val fields = getFilteredSortedFields(o);
+  def compileDumpObjState(cr: CompileWriter, prefix:String, cd: ClassDef, p: Prog) : Unit = {
+    val cn =  cd.name.x;
+    val fields = getFilteredSortedFields(cd);
     cr.print("printf(\"%s \" " + to_c_string(cn) + "\" {\\n");
     cr.print(fields.map( {case (n,i,fmt,_) => "  " + n.x + "'"*n.primes+arrayPart(i) + " = " + fmt + "\\n"}).mkString(""))
     cr.print("}\\n\", id.to_str(), ")
@@ -828,14 +782,19 @@ object Interpreter {
     cr.print(");").newline
   }
 
-  def getFilteredSortedFields(o: Object) : List[(Name,Option[Int],String,String => String)] = {
-    val res = o.fields.toList.sortWith{(x,y) => x._1 < y._1}.map { case (name, value) =>
-      value match {
-        case VLit(GDouble(_)) => List((name, None, "%f", {n:String => n}))
-        case VLit(GStr(_)) => List((name, None, "%s", {n:String => n}))
-        case VStepType(_) => List((name, None, "%s", 
-                              {n:String => n + "== DISCRETE ? \"@Discrete\" : \"@Continuous\""}))
-        case VVector(l) => l.indices.map{i => (name, Some(i), "%f", {n:String => n})}.toList
+  def getAllFields(cd: ClassDef) : List[Name] = 
+    cd.fields ++ cd.priv.map {case Init(name, _) => name}
+
+  def getFilteredSortedFields(cd: ClassDef) : List[(Name,Option[Int],String,String => String)] = {
+    val res = getAllFields(cd).sortWith{(x,y) => x < y}.map { name =>
+      cd._types(name) match {
+        case NumericType => List((name, None, "%f", {n:String => n}))
+        case IntType => List((name, None, "%i", {n:String => n}))
+        case StrType => List((name, None, "%s", {n:String => n}))
+        case StepTypeType => List((name, None, "%s", 
+                                   {n:String => n + "== DISCRETE ? \"@Discrete\" : \"@Continuous\""}))
+        case SeqType(st@FixedSize(lst)) if st.isNumeric =>
+          (0 until lst.size).map{i => (name, Some(i), "%f", {n:String => n})}.toList 
         case _ => Nil
       }
     }

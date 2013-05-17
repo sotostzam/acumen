@@ -202,6 +202,8 @@ package acumen {
     // numericLike and finalized are here becuase pattern matching on
     // abstract base classes and traits is buggy in Scala
     def numericLike = false
+    final def isVector = vectorSize != 1
+    def vectorSize = -1
     def finalized : Boolean
     def classLike = false
     def classSubType : ClassSubType = null
@@ -265,10 +267,17 @@ package acumen {
   case class SeqType(subType: SeqSubType) extends Type // FIXME: Lie
   // SeqType represents both vectors and lists, sz is None is the size
   // is not known at compile time
+  {
+    override def vectorSize = 
+      subType match {
+        case FixedSize(l) if subType.isNumeric => l.size
+        case _                                 => -1
+      }
+  }
 
-  case object ObjIdType extends Type
+  // case object ObjIdType extends Type -- not used
   case object StepTypeType extends Type
-  //case object ClassNameType extends Type // overkill for now
+  //case object ClassNameType extends Type -- overkill for now
 
   sealed abstract class ClassSubType 
   case object BaseClass extends ClassSubType
