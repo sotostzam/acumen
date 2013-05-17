@@ -521,6 +521,7 @@ class App extends SimpleSwingApplication {
           console.log("Paused. ")
           console.newLine
         case Starting =>
+          console.fadeOldMessages()
           console.log("Starting...")
         case Resuming if state != Starting =>
           console.log("Resuming...")
