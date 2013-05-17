@@ -35,7 +35,7 @@ class Main(simulator)
 //  simulator.minComputationImprovement := 0.001; // needed to get thin pre Zeno
   // event-tree paramters
   simulator.minTimeStep := 0.00001;
-  simulator.maxTimeStep := 0.01?; // needed to get thin post Zeno
+  simulator.maxTimeStep := 0.01; // needed to get thin post Zeno
   // pwl paramters
   simulator.minSolverStep := 0.02;
   simulator.minLocalizationStep := 0.001;
