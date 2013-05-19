@@ -55,6 +55,8 @@ abstract class InterpreterCntrl {
   // Returns a new interpreter model that holds the results of the
   // computation
   def newInterpreterModel : InterpreterModel
+  
+  def interpreter: Interpreter
 
   // Creates a new actor to perform the computation.
   def init(prog: String, consumer:Actor) : InterpreterActor

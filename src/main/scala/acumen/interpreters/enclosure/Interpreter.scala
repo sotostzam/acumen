@@ -112,4 +112,5 @@ object Interpreter extends Interpreter(null) {
   def asLohner: Interpreter = { ivpSolver = lohner; this }
   def asLocalizing: Interpreter = { localizing = true; this }
   def asNonLocalizing: Interpreter = { localizing = false; this }
+  def toggleContraction: Unit = { ivpSolver = if (ivpSolver == lohner) picard else lohner }
 } 

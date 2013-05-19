@@ -37,7 +37,6 @@ import swing.{Action, BorderPanel, BoxPanel, ButtonGroup, CheckMenuItem,
 import swing.event._
 import scala.Boolean
 import acumen.interpreters.enclosure.solver.PicardSolver
-import acumen.interpreters.enclosure.solver.PicardSolver
 import acumen.interpreters.enclosure.solver.LohnerSolver
 
 // class Acumen = Everything that use to be GraphicalMain.  Graphical
@@ -120,15 +119,14 @@ class App extends SimpleSwingApplication {
   private val plotStyleLinesAction        = new Action(  "Lines")      { mnemonic = VK_L; def apply = plotView.setPlotStyle(plot.Lines()) }
   private val plotStyleDotsAction         = new Action(  "Dots")       { mnemonic = VK_D; def apply = plotView.setPlotStyle(plot.Dots()) }
   private val plotStyleBothAction         = new Action(  "Both")       { mnemonic = VK_B; def apply = plotView.setPlotStyle(plot.Both()) }
-  private val floatingPointAction         = mkAction(    "Floating Point",          VK_F, VK_1,       setInterpreter(new CStoreCntrl(interpreters.reference.Interpreter))) 
-  private val floatingPointParallelAction = mkAction(    "Floating Point Parallel", VK_P, VK_2,       promptForNumberOfThreads)
-  private val pwlHybridSolverAction       = mkAction(    "Enclosure 1",             VK_P, VK_3,       setInterpreter(new EnclosureCntrl(interpreters.enclosure.Interpreter.asLocalizing))) 
-  private val eventTreeHybridSolverAction = mkAction(    "Enclosure 2",  			VK_E, VK_4,       setInterpreter(new EnclosureCntrl(interpreters.enclosure.Interpreter.asNonLocalizing)))
-  private val picardSolverAction          = mkActionMask("Picard",                  VK_P, VK_P,       shortcutMask | SHIFT_MASK, setInterpreter(new EnclosureCntrl(interpreters.enclosure.Interpreter.asPicard)))
-  private val lohnerSolverAction          = mkActionMask("Lohner",                  VK_L, VK_L,       shortcutMask | SHIFT_MASK, setInterpreter(new EnclosureCntrl(interpreters.enclosure.Interpreter.asLohner)))
+  private val floatingPointAction         = mkActionMask("Floating Point",          VK_R, VK_R,       shortcutMask | SHIFT_MASK, setInterpreter(new CStoreCntrl(interpreters.reference.Interpreter))) 
+  private val floatingPointParallelAction = mkActionMask("Floating Point Parallel", VK_P, VK_P,       shortcutMask | SHIFT_MASK, promptForNumberOfThreads)
+  private val pwlHybridSolverAction       = mkActionMask("Enclosure PWL",           VK_L, VK_L,       shortcutMask | SHIFT_MASK, setInterpreter(new EnclosureCntrl(interpreters.enclosure.Interpreter.asLocalizing))) 
+  private val eventTreeHybridSolverAction = mkActionMask("Enclosure EVT",           VK_T, VK_T,       shortcutMask | SHIFT_MASK, setInterpreter(new EnclosureCntrl(interpreters.enclosure.Interpreter.asNonLocalizing)))
+  private val lohnerSolverAction          = mkActionMask("Lohner",                  VK_C, VK_C,       shortcutMask | SHIFT_MASK, interpreters.enclosure.Interpreter.toggleContraction)
   
   /* Shows a dialog asking the user how many threads to use in the parallel interpreter. */
-  def promptForNumberOfThreads = {
+  private def promptForNumberOfThreads = {
     def diag = Dialog.showInput(
       body, "Choose a number of threads",
       "Parallel Interpreter", Dialog.Message.Question,
@@ -296,8 +294,13 @@ class App extends SimpleSwingApplication {
 
   /* menu bar */
 
-  val enabledWhenStopped = scala.collection.mutable.Buffer[MenuItem]()
-
+  /* Used to enable the contained MenuItems when the simulator stops and if the 
+   * condition () => Boolean evaluates to true.
+   */
+  private val enabledWhenStopped = scala.collection.mutable.Buffer[(MenuItem,() => Boolean)]()
+  
+  private def enableWhenStopped(m: MenuItem) = enabledWhenStopped += (m, ()=>true)  
+  
   /** Same as mkActionAccelMask, but with a default accelerator mask (depending on OS). */
   private def mkAction(name: String, m: Int, a: Int, act: => Unit) =
     mkActionMask(name, m, a, shortcutMask, act)
@@ -327,11 +330,11 @@ class App extends SimpleSwingApplication {
   val bar = new MenuBar {
     contents += new Menu("File") {
       mnemonic = Key.F
-      contents += new MenuItem(newAction)     { enabledWhenStopped += this }
-      contents += new MenuItem(openAction)    { enabledWhenStopped += this }
+      contents += new MenuItem(newAction)     { enableWhenStopped(this) }
+      contents += new MenuItem(openAction)    { enableWhenStopped(this) }
       contents += new MenuItem(saveAction)
       contents += new MenuItem(saveAsAction)
-      contents += new MenuItem(recoverAction) { enabledWhenStopped += this }
+      contents += new MenuItem(recoverAction) { enableWhenStopped(this) }
       contents += new MenuItem(exitAction)
     }
     
@@ -400,44 +403,38 @@ class App extends SimpleSwingApplication {
       mnemonic = Key.S
       val ref = new RadioMenuItem("") {
         selected = !GraphicalMain.useEnclosures
-        enabledWhenStopped += this
+        enableWhenStopped(this)
         action = floatingPointAction
       }
       val par = new RadioMenuItem("") {
         selected = false
-        enabledWhenStopped += this
+        enableWhenStopped(this)
         action = floatingPointParallelAction
       }
-      val encl = new Menu("Enclosure") {
-        
-    	  val pwl = new RadioMenuItem("") {
-    		action = pwlHybridSolverAction
-    		enabledWhenStopped += this
-    		selected = GraphicalMain.useEnclosures && interpreters.enclosure.Interpreter.localizing
-    	  }
-    	  val et = new RadioMenuItem("") {
-    		action = eventTreeHybridSolverAction
-    		enabledWhenStopped += this
-    		selected = GraphicalMain.useEnclosures && !interpreters.enclosure.Interpreter.localizing
-    	  }
-    	  val ps = new RadioMenuItem("") {
-    		action = picardSolverAction
-    		enabledWhenStopped += this
-    		val pc = classOf[PicardSolver] 
-    		selected = GraphicalMain.useEnclosures && interpreters.enclosure.Interpreter.ivpSolver.getClass == classOf[PicardSolver] //FIXME
-    	  }
-    	  val ls = new RadioMenuItem("") {
-    		action = lohnerSolverAction
-    		enabledWhenStopped += this
-    		selected = GraphicalMain.useEnclosures && interpreters.enclosure.Interpreter.ivpSolver.getClass == classOf[LohnerSolver]
-    	  }
-    	  new ButtonGroup(pwl, et)
-    	  new ButtonGroup(ps, ls)
-    	  contents ++= Seq(pwl, et, new Separator, ps, ls)
-      }
-
-      contents ++= Seq(ref, par, encl)
-      new ButtonGroup(ref, par)
+	  val pwl = new RadioMenuItem("") {
+		action = pwlHybridSolverAction
+		enableWhenStopped(this)
+		selected = GraphicalMain.useEnclosures && interpreters.enclosure.Interpreter.localizing
+	  }
+	  val et = new RadioMenuItem("") {
+		action = eventTreeHybridSolverAction
+		enableWhenStopped(this) 
+		selected = GraphicalMain.useEnclosures && !interpreters.enclosure.Interpreter.localizing
+	  }
+	  val bg = new ButtonGroup(ref, par, pwl, et)
+	  val ls = new CheckMenuItem("") {
+		action = lohnerSolverAction
+		enabledWhenStopped += (this, () => interpreter.interpreter.getClass == interpreters.enclosure.Interpreter.getClass)
+		enabled = GraphicalMain.useEnclosures
+		selected = interpreters.enclosure.Interpreter.ivpSolver.getClass == classOf[LohnerSolver]
+		/* Enable/disable Lohner menu item depending on the chosen semantics */
+		for (b <- bg.buttons) listenTo(b) 
+		reactions += {
+		  case  e: ButtonClicked =>
+		    enabled = interpreter.interpreter.getClass == interpreters.enclosure.Interpreter.getClass
+		}
+	  }
+      contents ++= Seq(ref, par, new Separator, pwl, et, ls)
     }
    
     contents += new Menu("Help") {
@@ -521,7 +518,7 @@ class App extends SimpleSwingApplication {
       playMenuItem.enabled = st match {case _:App.Playing => false; case _ => true}
       stopMenuItem.enabled = st match {case   App.Stopped => false; case _ => true}
       stepMenuItem.enabled = st match {case _:App.Ready   => true;  case _ => false}
-      for (el <- enabledWhenStopped) el.enabled = st == Stopped
+      for ((el,cond) <- enabledWhenStopped) el.enabled = st == Stopped && cond() 
       st match {
         case _:App.Ready =>
           playMenuItem.text = "Run"
