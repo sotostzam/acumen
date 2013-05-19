@@ -36,6 +36,9 @@ import swing.{Action, BorderPanel, BoxPanel, ButtonGroup, CheckMenuItem,
 			  TabbedPane, Table}
 import swing.event._
 import scala.Boolean
+import acumen.interpreters.enclosure.solver.PicardSolver
+import acumen.interpreters.enclosure.solver.PicardSolver
+import acumen.interpreters.enclosure.solver.LohnerSolver
 
 // class Acumen = Everything that use to be GraphicalMain.  Graphical
 // Main can't be an object it will cause Swing components to be
@@ -119,8 +122,10 @@ class App extends SimpleSwingApplication {
   private val plotStyleBothAction         = new Action(  "Both")       { mnemonic = VK_B; def apply = plotView.setPlotStyle(plot.Both()) }
   private val floatingPointAction         = mkAction(    "Floating Point",          VK_F, VK_1,       setInterpreter(new CStoreCntrl(interpreters.reference.Interpreter))) 
   private val floatingPointParallelAction = mkAction(    "Floating Point Parallel", VK_P, VK_2,       promptForNumberOfThreads)
-  private val pwlAction                   = mkAction(    "Enclosure",               VK_P, VK_3,       setInterpreter(new EnclosureCntrl(interpreters.enclosure.Interpreter.asLocalizing))) 
-  private val eventTreeAction             = mkAction(    "Enclosure 2",             VK_E, VK_4,       setInterpreter(new EnclosureCntrl(interpreters.enclosure.Interpreter.asNonLocalizing)))
+  private val pwlHybridSolverAction       = mkAction(    "Enclosure 1",             VK_P, VK_3,       setInterpreter(new EnclosureCntrl(interpreters.enclosure.Interpreter.asLocalizing))) 
+  private val eventTreeHybridSolverAction = mkAction(    "Enclosure 2",  			VK_E, VK_4,       setInterpreter(new EnclosureCntrl(interpreters.enclosure.Interpreter.asNonLocalizing)))
+  private val picardSolverAction          = mkActionMask("Picard",                  VK_P, VK_P,       shortcutMask | SHIFT_MASK, setInterpreter(new EnclosureCntrl(interpreters.enclosure.Interpreter.asPicard)))
+  private val lohnerSolverAction          = mkActionMask("Lohner",                  VK_L, VK_L,       shortcutMask | SHIFT_MASK, setInterpreter(new EnclosureCntrl(interpreters.enclosure.Interpreter.asLohner)))
   
   /* Shows a dialog asking the user how many threads to use in the parallel interpreter. */
   def promptForNumberOfThreads = {
@@ -403,18 +408,36 @@ class App extends SimpleSwingApplication {
         enabledWhenStopped += this
         action = floatingPointParallelAction
       }
-      val pwl = new RadioMenuItem("") {
-        action = pwlAction
-        enabledWhenStopped += this
-        selected = GraphicalMain.useEnclosures && interpreters.enclosure.Interpreter.localizing
+      val encl = new Menu("Enclosure") {
+        
+    	  val pwl = new RadioMenuItem("") {
+    		action = pwlHybridSolverAction
+    		enabledWhenStopped += this
+    		selected = GraphicalMain.useEnclosures && interpreters.enclosure.Interpreter.localizing
+    	  }
+    	  val et = new RadioMenuItem("") {
+    		action = eventTreeHybridSolverAction
+    		enabledWhenStopped += this
+    		selected = GraphicalMain.useEnclosures && !interpreters.enclosure.Interpreter.localizing
+    	  }
+    	  val ps = new RadioMenuItem("") {
+    		action = picardSolverAction
+    		enabledWhenStopped += this
+    		val pc = classOf[PicardSolver] 
+    		selected = GraphicalMain.useEnclosures && interpreters.enclosure.Interpreter.ivpSolver.getClass == classOf[PicardSolver] //FIXME
+    	  }
+    	  val ls = new RadioMenuItem("") {
+    		action = lohnerSolverAction
+    		enabledWhenStopped += this
+    		selected = GraphicalMain.useEnclosures && interpreters.enclosure.Interpreter.ivpSolver.getClass == classOf[LohnerSolver]
+    	  }
+    	  new ButtonGroup(pwl, et)
+    	  new ButtonGroup(ps, ls)
+    	  contents ++= Seq(pwl, et, new Separator, ps, ls)
       }
-      val et = new RadioMenuItem("") {
-        action = eventTreeAction
-        enabledWhenStopped += this
-        selected = GraphicalMain.useEnclosures && !interpreters.enclosure.Interpreter.localizing
-      }
-      contents ++= Seq(ref, par, pwl, et)
-      new ButtonGroup(ref, par, pwl, et)
+
+      contents ++= Seq(ref, par, encl)
+      new ButtonGroup(ref, par)
     }
    
     contents += new Menu("Help") {

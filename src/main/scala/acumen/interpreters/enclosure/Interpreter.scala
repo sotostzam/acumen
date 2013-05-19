@@ -13,6 +13,7 @@ import acumen.interpreters.enclosure.solver.VeroSolver
 import acumen.interpreters.enclosure.solver.pwl.EncloseHybrid
 import acumen.interpreters.enclosure.solver.tree.Solver
 import ui.interpreter.EnclosureModel
+import acumen.interpreters.enclosure.solver.LohnerSolver
 
 trait EnclosureInterpreterCallbacks extends InterpreterCallbacks {
   def log(msg: String): Unit
@@ -29,11 +30,11 @@ case class EnclosureRes(res: Seq[UnivariateAffineEnclosure]) extends Interpreter
  * Proxy for the enclosure-based solver.
  */
 class Interpreter(override var ivpSolver: SolveIVP)
-  extends acumen.RecursiveInterpreter
-  with Checker
-  with Extract
-  with Solver
-  with EncloseHybrid {
+    extends acumen.RecursiveInterpreter
+    with Checker
+    with Extract
+    with Solver
+    with EncloseHybrid {
 
   def newInterpreterModel = new EnclosureModel
 
@@ -52,8 +53,8 @@ class Interpreter(override var ivpSolver: SolveIVP)
 
   //FIXME do this properly
   def runInterpreter(des: Prog,
-    cb0: InterpreterCallbacks,
-    adjustParms: Parameters => Parameters) = {
+                     cb0: InterpreterCallbacks,
+                     adjustParms: Parameters => Parameters) = {
     val cb = cb0.asInstanceOf[EnclosureInterpreterCallbacks]
     if (des.defs.size > 1) sys.error("Multiple classes are not currently supported by the enclosure interperter!")
     val main = classDef(ClassName("Main"), des)
@@ -69,7 +70,6 @@ class Interpreter(override var ivpSolver: SolveIVP)
     cb.endTime = ps.endTime
 
     val res = if (localizing) {
-
       encloseHybrid(
         ps,
         hs,
@@ -77,7 +77,8 @@ class Interpreter(override var ivpSolver: SolveIVP)
         emptyState(hs) + (uss.mode -> Some(uss.initialCondition)),
         cb)
 
-    } else {
+    }
+    else {
 
       solver(
         hs,
@@ -102,11 +103,13 @@ class Interpreter(override var ivpSolver: SolveIVP)
 /** Singleton interpreter. All concrete IVP solvers are declared here */
 object Interpreter extends Interpreter(null) {
   private lazy val picard = new PicardSolver {}
+  private lazy val lohner = new LohnerSolver {}
   private lazy val vero = new VeroSolver {}
   ivpSolver = picard // default IVP solver
 
   def asPicard: Interpreter = { ivpSolver = picard; this }
   def asVero: Interpreter = { ivpSolver = vero; this }
+  def asLohner: Interpreter = { ivpSolver = lohner; this }
   def asLocalizing: Interpreter = { localizing = true; this }
   def asNonLocalizing: Interpreter = { localizing = false; this }
 } 

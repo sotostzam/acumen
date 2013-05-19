@@ -1,0 +1,21 @@
+
+// Negative exponentials with thin initial conditions
+
+class Main(simulator)
+  private 
+    h    := -1.0 ; h' :=  1.0 ;
+    l    :=  1.0 ; l' := -1.0 ;
+    mode := ""
+  end
+  switch mode
+    case ""
+      h' = -h;
+      l' = -l;
+  end;
+  simulator.endTime := 1; // can't get past 2! 
+  simulator.minSolverStep := 0.1;
+  simulator.minComputationImprovement := 0.1;
+  simulator.minTimeStep := 0.1;
+  simulator.maxTimeStep := 0.2;
+end
+
