@@ -1,17 +1,23 @@
 
 // Negative exponential with thin initial condition
+//
+// Author:  JD
+//
+// Please run this with "Semantics -> Enclosures"
+//  and with "Contraction" unchecked.   
 
 class Main(simulator)
   private 
-    h    := 1.0 ; h' := -1.0 ;
+    x  := 1.0; 
+    x' := -1.0;
     mode := ""
   end
   switch mode
     case ""
-      h' = -h;
+      x' = -x;
   end;
   simulator.endTime := 30; 
-  simulator.minSolverStep := 1;
+  simulator.minSolverStep := 0.1;
   simulator.minComputationImprovement := 0.1;
   simulator.minTimeStep := 0.5;
   simulator.maxTimeStep := 0.2;
