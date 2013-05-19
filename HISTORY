@@ -1,0 +1,5 @@
+  - Add keyboard shortcuts to most actions -- Adam Duracz
+  - New file browser for IDE (ACUMEN-135) -- Adam Duracz
+  - 3D View: Be able to manipulate camera angle from within the model -- Yingfu Zang
+  - Update to SBT 0.12.3 -- Kevin Atkinson
+2013.05.10:
