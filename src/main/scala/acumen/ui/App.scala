@@ -123,7 +123,7 @@ class App extends SimpleSwingApplication {
   private val floatingPointParallelAction = mkActionMask("Floating Point Parallel", VK_P, VK_P,       shortcutMask | SHIFT_MASK, promptForNumberOfThreads)
   private val pwlHybridSolverAction       = mkActionMask("Enclosure PWL",           VK_L, VK_L,       shortcutMask | SHIFT_MASK, setInterpreter(new EnclosureCntrl(interpreters.enclosure.Interpreter.asLocalizing))) 
   private val eventTreeHybridSolverAction = mkActionMask("Enclosure EVT",           VK_T, VK_T,       shortcutMask | SHIFT_MASK, setInterpreter(new EnclosureCntrl(interpreters.enclosure.Interpreter.asNonLocalizing)))
-  private val lohnerSolverAction          = mkActionMask("Lohner",                  VK_C, VK_C,       shortcutMask | SHIFT_MASK, interpreters.enclosure.Interpreter.toggleContraction)
+  private val contractionAction           = mkActionMask("Contraction",             VK_C, VK_C,       shortcutMask | SHIFT_MASK, interpreters.enclosure.Interpreter.toggleContraction)
   
   /* Shows a dialog asking the user how many threads to use in the parallel interpreter. */
   private def promptForNumberOfThreads = {
@@ -423,11 +423,11 @@ class App extends SimpleSwingApplication {
 	  }
 	  val bg = new ButtonGroup(ref, par, pwl, et)
 	  val ls = new CheckMenuItem("") {
-		action = lohnerSolverAction
+		action = contractionAction
 		enabledWhenStopped += (this, () => interpreter.interpreter.getClass == interpreters.enclosure.Interpreter.getClass)
 		enabled = GraphicalMain.useEnclosures
 		selected = interpreters.enclosure.Interpreter.ivpSolver.getClass == classOf[LohnerSolver]
-		/* Enable/disable Lohner menu item depending on the chosen semantics */
+		/* Enable/disable Contraction menu item depending on the chosen semantics */
 		for (b <- bg.buttons) listenTo(b) 
 		reactions += {
 		  case  e: ButtonClicked =>
