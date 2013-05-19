@@ -10,10 +10,10 @@ class Main(simulator)
     case ""
       h' = -h;
   end;
-  simulator.endTime := 5; 
-  simulator.minSolverStep := 0.1;
+  simulator.endTime := 30; 
+  simulator.minSolverStep := 1;
   simulator.minComputationImprovement := 0.1;
-  simulator.minTimeStep := 0.1;
+  simulator.minTimeStep := 0.5;
   simulator.maxTimeStep := 0.2;
 end
 
