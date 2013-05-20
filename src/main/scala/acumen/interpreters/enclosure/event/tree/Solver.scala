@@ -1,4 +1,4 @@
-package acumen.interpreters.enclosure.ivp.tree
+package acumen.interpreters.enclosure.event.tree
 
 import acumen.interpreters.enclosure.Interval.min
 import acumen.interpreters.enclosure.Interval.toInterval
@@ -9,7 +9,7 @@ import acumen.interpreters.enclosure.EnclosureInterpreterCallbacks
 import acumen.interpreters.enclosure.Interval
 import acumen.interpreters.enclosure.Rounding
 import acumen.interpreters.enclosure.Util
-import acumen.interpreters.enclosure.ivp.pwl.EncloseEvents
+import acumen.interpreters.enclosure.event.pwl.EncloseEvents
 import acumen.interpreters.enclosure.affine.UnivariateAffineEnclosure
 
 trait Solver extends SolveVtE {

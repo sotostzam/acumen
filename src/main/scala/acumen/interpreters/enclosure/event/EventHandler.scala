@@ -4,7 +4,7 @@ import acumen.interpreters.enclosure.Interval
 import acumen.interpreters.enclosure.Parameters
 import acumen.interpreters.enclosure.Rounding
 import acumen.interpreters.enclosure.ivp.SolveIVP
-import acumen.interpreters.enclosure.ivp.tree.HybridSystem
+import acumen.interpreters.enclosure.event.tree.HybridSystem
 
 trait EventHandler extends StateEnclosure {
 

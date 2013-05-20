@@ -1,10 +1,10 @@
-package acumen.interpreters.enclosure.ivp.pwl
+package acumen.interpreters.enclosure.event.pwl
 
 import acumen.interpreters.enclosure.Box
 import acumen.interpreters.enclosure.Interval
 import acumen.interpreters.enclosure.Parameters
 import acumen.interpreters.enclosure.Rounding
-import acumen.interpreters.enclosure.ivp.tree.HybridSystem
+import acumen.interpreters.enclosure.event.tree.HybridSystem
 import acumen.interpreters.enclosure.Types._
 import acumen.interpreters.enclosure.affine.UnivariateAffineEnclosure
 import acumen.interpreters.enclosure.EnclosureInterpreterCallbacks

@@ -1,4 +1,4 @@
-package acumen.interpreters.enclosure.ivp.tree
+package acumen.interpreters.enclosure.event.tree
 
 import acumen.interpreters.enclosure.Interval
 import acumen.interpreters.enclosure.Types._

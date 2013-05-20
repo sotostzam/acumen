@@ -3,8 +3,8 @@ package acumen.interpreters.enclosure
 import Relation._
 import Types._
 import acumen.interpreters.enclosure.Box.toBox
-import acumen.interpreters.enclosure.ivp.tree.HybridSystem
-import acumen.interpreters.enclosure.ivp.tree.ResetMap
+import acumen.interpreters.enclosure.event.tree.HybridSystem
+import acumen.interpreters.enclosure.event.tree.ResetMap
 import acumen._
 
 trait Extract {
@@ -17,6 +17,7 @@ trait Extract {
    * The state variables of the automaton are declared as private
    * variables, each by a single initialization assignment and by
    * a primed version also declared as a private variable by a
+
    * single initialization assignment.
    *
    * Higher derivatives are not allowed.

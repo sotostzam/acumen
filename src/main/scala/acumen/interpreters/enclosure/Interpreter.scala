@@ -10,8 +10,8 @@ import acumen.interpreters.enclosure.affine.UnivariateAffineEnclosure
 import acumen.interpreters.enclosure.ivp.PicardSolver
 import acumen.interpreters.enclosure.ivp.SolveIVP
 import acumen.interpreters.enclosure.ivp.VeroSolver
-import acumen.interpreters.enclosure.ivp.pwl.EncloseHybrid
-import acumen.interpreters.enclosure.ivp.tree.Solver
+import acumen.interpreters.enclosure.event.pwl.EncloseHybrid
+import acumen.interpreters.enclosure.event.tree.Solver
 import ui.interpreter.EnclosureModel
 import acumen.interpreters.enclosure.ivp.LohnerSolver
 

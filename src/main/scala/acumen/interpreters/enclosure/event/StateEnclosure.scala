@@ -8,7 +8,7 @@ import acumen.interpreters.enclosure.Types.Event
 import acumen.interpreters.enclosure.Types.Mode
 import acumen.interpreters.enclosure.Types.UncertainState
 import acumen.interpreters.enclosure.affine.UnivariateAffineEnclosure
-import acumen.interpreters.enclosure.ivp.tree.HybridSystem
+import acumen.interpreters.enclosure.event.tree.HybridSystem
 
 trait StateEnclosure {
 

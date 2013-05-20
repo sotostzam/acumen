@@ -1,4 +1,4 @@
-package acumen.interpreters.enclosure.ivp.pwl
+package acumen.interpreters.enclosure.event.pwl
 
 import acumen.interpreters.enclosure.Types._
 import acumen.interpreters.enclosure.Types.Mode
@@ -8,14 +8,13 @@ import acumen.interpreters.enclosure.Box
 import acumen.interpreters.enclosure.Interval
 import acumen.interpreters.enclosure.Parameters
 import acumen.interpreters.enclosure.Rounding
-import acumen.interpreters.enclosure.ivp.tree.HybridSystem
 import acumen.interpreters.enclosure.affine.UnivariateAffineEnclosure
 import acumen.interpreters.enclosure.ivp.SolveIVP
 import acumen.interpreters.enclosure.event.EventHandler
+import acumen.interpreters.enclosure.event.tree.HybridSystem
 
 /**
- * Mix in this trait in place of SolveVtE to get PWL
- * rather than EventTree based event handling.
+ * Mix in this trait in place of SolveVtE to get PWL rather than EventTree based event handling.
  */
 trait EncloseEvents extends EventHandler {
 
