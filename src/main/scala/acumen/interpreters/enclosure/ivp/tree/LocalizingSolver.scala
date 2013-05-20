@@ -44,7 +44,7 @@ trait LocalizingSolver extends SolveVt {
     maxPicardIterations: Int,
     minTimeStep: Double,
     maxTimeStep: Double,
-    splittingDegree: Int, 
+    splittingDegree: Int,
     outputFile: String,
     cb: EnclosureInterpreterCallbacks)(initialCondition: Box, segment: Interval)(implicit rnd: Rounding): Seq[UnivariateAffineEnclosure] = {
     def piecewisePicardHelper = piecewisePicard(field, initialConditionPadding, picardImprovements, maxPicardIterations, minTimeStep, maxTimeStep, splittingDegree, outputFile, cb)_
@@ -54,22 +54,25 @@ trait LocalizingSolver extends SolveVt {
       val rightInitialCondition = leftEnclosures.last(leftSegment.high)
       val rightEnclosures = piecewisePicardHelper(rightInitialCondition, rightSegment)
       leftEnclosures ++ rightEnclosures
-    } else {
+    }
+    else {
       val enclosure = solveVt(field, segment, initialCondition, initialConditionPadding, picardImprovements, maxPicardIterations, splittingDegree)
       if (segment.width lessThan minTimeStep * 2) {
         println("minimum step size at " + segment)
         Seq(enclosure)
-      } else {
+      }
+      else {
         val (leftSegment, rightSegment) = segment.split
         val leftEnclosure = solveVt(field, leftSegment, initialCondition, initialConditionPadding, picardImprovements, maxPicardIterations, splittingDegree)
         var rightInitialCondition = leftEnclosure(leftSegment.high)
         val rightEnclosure = solveVt(field, rightSegment, rightInitialCondition, initialConditionPadding, picardImprovements, maxPicardIterations, splittingDegree)
-        if (norm(rightEnclosure(segment.high)) lessThan norm(enclosure(segment.high))) {
+        if (rightEnclosure(segment.high).l1Norm lessThan enclosure(segment.high).l1Norm) {
           val leftEnclosures = piecewisePicardHelper(initialCondition, leftSegment)
           val rightInitialCondition = leftEnclosures.last(leftSegment.high)
           val rightEnclosures = piecewisePicardHelper(rightInitialCondition, rightSegment)
           leftEnclosures ++ rightEnclosures
-        } else {
+        }
+        else {
           println("optimal enclosure at " + segment)
           Seq(enclosure)
         }

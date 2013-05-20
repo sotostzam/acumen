@@ -81,6 +81,7 @@ trait StateEnclosure {
   def isDefinitelyEmpty(s: StateEnclosure): Boolean =
     s.forall(_._2 isEmpty)
 
+  /** TBA */
   def uncertainStates(s: StateEnclosure): Set[UncertainState] =
     for ((mode, obox) <- s.toSet if obox isDefined)
       yield UncertainState(mode, obox.get)

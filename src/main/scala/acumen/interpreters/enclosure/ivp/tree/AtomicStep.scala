@@ -19,8 +19,8 @@ trait AtomicStep extends SolveVtE {
       case (_, None) =>
         result
       case ((_, us1), Some(result2 @ (_, us2))) =>
-        val norm1 = norm(union(us1.map(_.initialCondition)))
-        val norm2 = norm(union(us2.map(_.initialCondition)))
+        val norm1 = union(us1.map(_.initialCondition)).l1Norm
+        val norm2 = union(us2.map(_.initialCondition)).l1Norm
         if ((norm1 - norm2) lessThan minComputationImprovement) result
         else result2
     }

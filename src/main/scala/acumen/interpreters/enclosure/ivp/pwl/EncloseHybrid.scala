@@ -38,7 +38,7 @@ trait EncloseHybrid extends EncloseEvents {
         }
       }
       val te = teL /\ teR
-      val (se, seFinal) = encloseEvents(ps, h, te, seInit)
+      val (se, seFinal) = handleEvents(ps, h, te, seInit)
       if (teR equalTo t.high) {
         val ret = noe ++ enclosures(te, se)
         cb.sendResult(ret)
