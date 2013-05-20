@@ -94,7 +94,10 @@ class CodeArea extends Panel with TreeSelectionListener {
   }
 
   def createCompletionProvider(textArea: RSyntaxTextArea) = {
-    val cp = new DefaultCompletionProvider
+    val cp = new DefaultCompletionProvider {
+      // Make it possible to complete strings ending with .
+      override def isValidChar(ch: Char) = super.isValidChar(ch) || ch=='.';
+    }
     val style = textArea.getSyntaxEditingStyle
     val acumenTokenMakerSpec = XML.load(getClass.getClassLoader.getResourceAsStream("acumen/ui/tl/AcumenTokenMaker.xml"))
     if (acumenTokenMakerSpec != null) { // Try to read keywords and functions from XML
@@ -105,6 +108,8 @@ class CodeArea extends Panel with TreeSelectionListener {
     } // If this is unsuccessful, add the reserved words specified in the parser
     else for (k <- Parser.lexical.reserved) cp.addCompletion(new BasicCompletion(cp, k))
     cp.addCompletion(new BasicCompletion(cp, "simulator"))
+    for (paramName <- Parameters.defaults.map(_._1))
+      cp.addCompletion(new BasicCompletion(cp, "simulator." + paramName))
     cp
   }
 
