@@ -40,6 +40,7 @@ import javax.swing.event.TreeSelectionEvent
 import javax.swing.event.TreeSelectionListener
 import javax.swing.UIManager
 import scala.swing.Button
+import acumen.interpreters.enclosure.Parameters
 
 class CodeArea extends Panel with TreeSelectionListener {
 
@@ -119,7 +120,7 @@ class CodeArea extends Panel with TreeSelectionListener {
         ("hs", "class Main(simulator)\n  private mode := \"\"; end\n  switch mode\n    case \"\"\n      \n  end\nend"),
         ("mode", "case \"\"\n  if  mode := \"\" end;\n  "),
         ("event", "if  mode := \"\" end;\n"),
-        ("ps", "simulator.endTime := 3;\nsimulator.minSolverStep := 0.01;\nsimulator.minLocalizationStep := 0.001;\nsimulator.minComputationImprovement := 0.0001;"))
+        ("ps", Parameters.defaults.map{case (p,v) => "simulator.%s := %s".format(p,v)}.mkString(";\n")))
     ) { RSyntaxTextArea.getCodeTemplateManager addTemplate new StaticCodeTemplate(t._1, t._2, null) }
 
   /* --- file handling ---- */
