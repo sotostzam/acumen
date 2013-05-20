@@ -1,4 +1,4 @@
-package acumen.interpreters.enclosure.ivp.lohner
+package acumen.interpreters.enclosure.taylor
 
 import acumen.interpreters.enclosure.ivp.LohnerSolver
 import acumen.interpreters.enclosure.Types.{ VarName }
