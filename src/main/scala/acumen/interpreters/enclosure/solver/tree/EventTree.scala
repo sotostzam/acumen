@@ -284,7 +284,7 @@ object EventTree {
     degree: Int,
     ivpSolver: SolveIVP)(implicit rnd: Rounding) = {
     val mode = S.mode
-    val (enclosure, _) = ivpSolver.solveIVP(H.fields(mode), T, S.initialCondition, delta, m, n, degree)
+    val (enclosure, _) = ivpSolver.solveIVP(H.fields(mode), T, S.initialCondition, delta, m, n, degree)(rnd)
     val mayBeLast = false
     val sequences = Set(EmptySequence(mode, enclosure, mayBeLast).asInstanceOf[EventSequence])
     EventTree(sequences, T, H, S, delta, m, n, degree)

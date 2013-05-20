@@ -11,7 +11,7 @@ trait VeroSolver extends SolveIVP {
   /**
    * TODO add description!
    */
-  def solveVt(
+  def solveIVP(
     F: Field, // field
     T: Interval, // domain of t
     A: Box, // (A1,...,An), initial condition
