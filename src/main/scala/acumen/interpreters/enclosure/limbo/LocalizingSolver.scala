@@ -1,8 +1,11 @@
-package acumen.interpreters.enclosure.event.tree
+package acumen.interpreters.enclosure.limbo
 
 import acumen.interpreters.enclosure._
-import Types._
+import acumen.interpreters.enclosure.Types._
 import acumen.interpreters.enclosure.affine.UnivariateAffineEnclosure
+import acumen.interpreters.enclosure.Expression.lift
+import acumen.interpreters.enclosure.Interval.toInterval
+import acumen.interpreters.enclosure.event.tree.Solver
 
 trait LocalizingSolver extends SolveVt {
 

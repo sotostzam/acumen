@@ -1,12 +1,15 @@
-package acumen.interpreters.enclosure.event.tree
+package acumen.interpreters.enclosure.limbo
 
-import acumen.interpreters.enclosure._
-import acumen.interpreters.enclosure.Interval._
-import acumen.interpreters.enclosure.Types._
-import acumen.interpreters.enclosure.affine.UnivariateAffineEnclosure._
-import acumen.interpreters.enclosure.affine.UnivariateAffineEnclosure
+import acumen.interpreters.enclosure.Box
+import acumen.interpreters.enclosure.Box.toBox
+import acumen.interpreters.enclosure.Field
+import acumen.interpreters.enclosure.Interval
+import acumen.interpreters.enclosure.Interval.toInterval
+import acumen.interpreters.enclosure.Rounding
+import acumen.interpreters.enclosure.Types.VarName
 import acumen.interpreters.enclosure.affine.AffineEnclosure
 import acumen.interpreters.enclosure.affine.AffineScalarEnclosure
+import acumen.interpreters.enclosure.affine.UnivariateAffineEnclosure
 
 /* This trait is now deprecated, use SolveIVP instead. */
 @deprecated

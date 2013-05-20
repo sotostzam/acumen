@@ -8,6 +8,7 @@ import acumen.interpreters.enclosure.Util._
 import acumen.interpreters.enclosure.affine.UnivariateAffineEnclosure
 import acumen.interpreters.enclosure.affine.UnivariateAffineScalarEnclosure
 import acumen.interpreters.enclosure.ivp.PicardSolver
+import acumen.interpreters.enclosure.HybridSystem
 
 /** TODO add description */
 // TODO add tests

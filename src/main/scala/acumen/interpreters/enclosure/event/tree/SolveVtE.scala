@@ -5,6 +5,7 @@ import acumen.interpreters.enclosure.Types._
 import acumen.interpreters.enclosure._
 import acumen.interpreters.enclosure.affine.UnivariateAffineEnclosure
 import acumen.interpreters.enclosure.ivp.SolveIVP
+import acumen.interpreters.enclosure.HybridSystem
 
 trait SolveVtE {
 

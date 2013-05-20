@@ -11,7 +11,7 @@ import acumen.interpreters.enclosure.Rounding
 import acumen.interpreters.enclosure.affine.UnivariateAffineEnclosure
 import acumen.interpreters.enclosure.ivp.SolveIVP
 import acumen.interpreters.enclosure.event.EventHandler
-import acumen.interpreters.enclosure.event.tree.HybridSystem
+import acumen.interpreters.enclosure.HybridSystem
 
 /**
  * Mix in this trait in place of SolveVtE to get PWL rather than EventTree based event handling.

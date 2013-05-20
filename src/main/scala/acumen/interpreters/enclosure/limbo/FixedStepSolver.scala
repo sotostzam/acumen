@@ -1,10 +1,11 @@
-package acumen.interpreters.enclosure.event.tree
+package acumen.interpreters.enclosure.limbo
 
 import acumen.interpreters.enclosure._
 import acumen.interpreters.enclosure.Interval._
 import acumen.interpreters.enclosure.Types._
-import acumen.ui.interpreter.Enclosure
 import acumen.interpreters.enclosure.affine.UnivariateAffineEnclosure
+import acumen.interpreters.enclosure.HybridSystem
+import acumen.interpreters.enclosure.event.tree.SolveVtE
 
 trait FixedStepSolver extends SolveVtE {
 

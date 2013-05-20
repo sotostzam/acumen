@@ -3,8 +3,8 @@ package acumen.interpreters.enclosure
 import Relation._
 import Types._
 import acumen.interpreters.enclosure.Box.toBox
-import acumen.interpreters.enclosure.event.tree.HybridSystem
-import acumen.interpreters.enclosure.event.tree.ResetMap
+import acumen.interpreters.enclosure.HybridSystem
+import acumen.interpreters.enclosure.ResetMap
 import acumen._
 
 trait Extract {

@@ -1,4 +1,4 @@
-package acumen.interpreters.enclosure.event.tree
+package acumen.interpreters.enclosure.limbo
 
 import acumen.interpreters.enclosure.Interval.min
 import acumen.interpreters.enclosure.Interval.toInterval
@@ -7,11 +7,11 @@ import acumen.interpreters.enclosure.Types.UncertainState
 import acumen.interpreters.enclosure.Types.endTimeInterval
 import acumen.interpreters.enclosure.EnclosureInterpreterCallbacks
 import acumen.interpreters.enclosure.Interval
-import acumen.interpreters.enclosure.Relation
 import acumen.interpreters.enclosure.Rounding
 import acumen.interpreters.enclosure.affine.UnivariateAffineEnclosure
 import acumen.interpreters.enclosure.Util
-import javax.management.relation.Relation
+import acumen.interpreters.enclosure.HybridSystem
+import acumen.interpreters.enclosure.event.tree.SolveVtE
 
 trait JanSolver extends SolveVtE {
 

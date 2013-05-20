@@ -1,12 +1,13 @@
-package acumen.interpreters.enclosure.event.tree
+package acumen.interpreters.enclosure.limbo
 
-import acumen.interpreters.enclosure.Interval
-import acumen.interpreters.enclosure.Types._
-import acumen.interpreters.enclosure.affine.UnivariateAffineEnclosure
-import acumen.interpreters.enclosure.Rounding
-import acumen.interpreters.enclosure.Box
 import acumen.interpreters.enclosure.EnclosureInterpreterCallbacks
+import acumen.interpreters.enclosure.HybridSystem
+import acumen.interpreters.enclosure.Interval
+import acumen.interpreters.enclosure.Interval.toInterval
+import acumen.interpreters.enclosure.Rounding
+import acumen.interpreters.enclosure.Types.UncertainState
 import acumen.interpreters.enclosure.Util
+import acumen.interpreters.enclosure.affine.UnivariateAffineEnclosure
 
 trait HybridSolver extends AtomicStep {
 

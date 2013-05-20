@@ -11,6 +11,7 @@ import acumen.interpreters.enclosure.Rounding
 import acumen.interpreters.enclosure.Util
 import acumen.interpreters.enclosure.event.pwl.EncloseEvents
 import acumen.interpreters.enclosure.affine.UnivariateAffineEnclosure
+import acumen.interpreters.enclosure.HybridSystem
 
 trait Solver extends SolveVtE {
 

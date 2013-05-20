@@ -1,4 +1,4 @@
-package acumen.interpreters.enclosure.event.tree
+package acumen.interpreters.enclosure
 
 import acumen.interpreters.enclosure._
 import acumen.interpreters.enclosure.Types._
