@@ -6,7 +6,7 @@ import acumen.interpreters.enclosure.affine.UnivariateAffineEnclosure
 trait SolveIVP {
 
   /* TODO add description! */
-  def solveVt(
+  def solveIVP(
     F: Field, // field
     T: Interval, // domain of the independent variable
     A: Box, // initial condition

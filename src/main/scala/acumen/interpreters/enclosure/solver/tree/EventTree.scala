@@ -143,7 +143,7 @@ case class EventTree(
                 "\nmust map contracted enclosure " + H.guards(e).support(v.enclosure.range) +
                 "\ninto target domain " + H.domains(e.tau))
             val A = H.domains(e.tau).support(H.resets(e)(H.guards(e).support(v.enclosure.range)))
-            val N = ivpSolver.solveVt(H.fields(e.tau), T, A, delta, m, n, degree)._1.range
+            val N = ivpSolver.solveIVP(H.fields(e.tau), T, A, delta, m, n, degree)._1.range
             val lastEvent = e
             val affines = N
             val enclosure = UnivariateAffineEnclosure(v.domain, affines)
@@ -284,7 +284,7 @@ object EventTree {
     degree: Int,
     ivpSolver: SolveIVP)(implicit rnd: Rounding) = {
     val mode = S.mode
-    val (enclosure, _) = ivpSolver.solveVt(H.fields(mode), T, S.initialCondition, delta, m, n, degree)
+    val (enclosure, _) = ivpSolver.solveIVP(H.fields(mode), T, S.initialCondition, delta, m, n, degree)
     val mayBeLast = false
     val sequences = Set(EmptySequence(mode, enclosure, mayBeLast).asInstanceOf[EventSequence])
     EventTree(sequences, T, H, S, delta, m, n, degree)

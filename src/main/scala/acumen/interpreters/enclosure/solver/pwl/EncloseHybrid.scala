@@ -89,7 +89,7 @@ trait EncloseHybrid extends EncloseEvents {
     def computeLFE(t: Interval, init: Box): LFE =
       if (t.width greaterThan ps.maxTimeStep) splitAndRepeatComputeLFE(t, init)
       else try {
-        val (e, _) = ivpSolver.solveVt(h.fields(m), t, init, ps.initialPicardPadding, ps.picardImprovements, ps.maxPicardIterations, ps.splittingDegree)
+        val (e, _) = ivpSolver.solveIVP(h.fields(m), t, init, ps.initialPicardPadding, ps.picardImprovements, ps.maxPicardIterations, ps.splittingDegree)
         if (t.width lessThan ps.minSolverStep * 2)
           computeLFEnoODE(e)
         else {
@@ -108,10 +108,10 @@ trait EncloseHybrid extends EncloseEvents {
 
     def splitAndSolveVt(t: Interval, init: Box) = {
       val (tL, tR) = t.split
-      val (eL, initR) = ivpSolver.solveVt(h.fields(m), tL, init, ps.initialPicardPadding, ps.picardImprovements, ps.maxPicardIterations, ps.splittingDegree)
+      val (eL, initR) = ivpSolver.solveIVP(h.fields(m), tL, init, ps.initialPicardPadding, ps.picardImprovements, ps.maxPicardIterations, ps.splittingDegree)
       //      val initR = eL(tL.high)
       val vs = h.domains(m).support(initR)
-      val (eR, _) = ivpSolver.solveVt(h.fields(m), tR, vs, ps.initialPicardPadding, ps.picardImprovements, ps.maxPicardIterations, ps.splittingDegree)
+      val (eR, _) = ivpSolver.solveIVP(h.fields(m), tR, vs, ps.initialPicardPadding, ps.picardImprovements, ps.maxPicardIterations, ps.splittingDegree)
       // val eR = solveVt(h.fields(m), tR, initR, ps.initialPicardPadding, ps.picardImprovements, ps.maxPicardIterations, ps.splittingDegree)
       (eL, eR)
     }
