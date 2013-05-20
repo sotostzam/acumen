@@ -72,7 +72,7 @@ trait Extract {
         (hybridSystem, uncertainInitialState)
       }
     }
-
+  
   /**
    * Extracts solver parameter values embedded in an Acumen class
    *
@@ -101,27 +101,11 @@ trait Extract {
             case _ => sys.error("Muliple assignments to simulator." + n + " are not allowed!")
           }
         }
-        // FIXME coercing each integer to a double and back is not ideal...
-        val defaultParameters = Map[String, Double](
-          "bigDecimalDigits" -> 10,
-          "startTime" -> 0,
-          "endTime" -> 3,
-          "initialPicardPadding" -> 0,
-          "picardImprovements" -> 20,
-          "maxPicardIterations" -> 200,
-          "maxEventTreeSize" -> 30,
-          "minTimeStep" -> 0.01,
-          "minSolverStep" -> 0.01,
-          "minLocalizationStep" -> 0.001,
-          "maxTimeStep" -> 3,
-          "minComputationImprovement" -> 0.0001,
-          "splittingDegree" -> 1,
-          "maxIterations" -> 100)
         val params = {
           val assignedParameters = assignments.map(_._1)
-          val updatedParameters = assignments.foldLeft(defaultParameters) {
+          val updatedParameters = assignments.foldLeft(Parameters.defaults) {
             case (res, (param, l)) =>
-              if (defaultParameters.keySet contains param) res + (param -> toDouble(l))
+              if (Parameters.defaults.keySet contains param) res + (param -> toDouble(l))
               else sys.error(param + " is not a recognized parameter.")
             case _ => sys.error("Should never happen!")
           }
@@ -355,3 +339,4 @@ trait Extract {
   }
 
 }
+
