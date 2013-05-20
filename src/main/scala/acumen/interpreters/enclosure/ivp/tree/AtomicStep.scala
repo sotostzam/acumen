@@ -1,4 +1,4 @@
-package acumen.interpreters.enclosure.solver.tree
+package acumen.interpreters.enclosure.ivp.tree
 
 import acumen.interpreters.enclosure.Rounding
 import acumen.interpreters.enclosure.Box

@@ -1,6 +1,6 @@
-package acumen.interpreters.enclosure.solver.lohner
+package acumen.interpreters.enclosure.ivp.lohner
 
-import acumen.interpreters.enclosure.solver.LohnerSolver
+import acumen.interpreters.enclosure.ivp.LohnerSolver
 import acumen.interpreters.enclosure.Types.{ VarName }
 import acumen.interpreters.enclosure.Rounding
 import acumen.interpreters.enclosure.Box

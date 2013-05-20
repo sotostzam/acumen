@@ -1,17 +1,40 @@
-package acumen.interpreters.enclosure.solver.tree
+package acumen.interpreters.enclosure.ivp
 
 import acumen.interpreters.enclosure._
 import acumen.interpreters.enclosure.Interval._
 import acumen.interpreters.enclosure.Types._
-import acumen.interpreters.enclosure.affine.UnivariateAffineEnclosure._
 import acumen.interpreters.enclosure.affine.UnivariateAffineEnclosure
 import acumen.interpreters.enclosure.affine.AffineEnclosure
 import acumen.interpreters.enclosure.affine.AffineScalarEnclosure
 
-/* This trait is now deprecated, use SolveIVP instead. */
-@deprecated
-trait SolveVt {
+trait PicardSolver extends SolveIVP {
 
+  /**
+   * Implementation detail: do not split initial conditions for variables
+   * with zero field components. These values do not change over T and so
+   * splitting them will not improve the solution.
+   */
+  def solveIVP(
+    F: Field, // field
+    T: Interval, // domain of t
+    A: Box, // (A1,...,An), initial condition
+    delta: Double, // padding 
+    m: Int, // extra iterations after inclusion of iterates
+    n: Int, // maximum number of iterations before inclusion of iterates
+    degree: Int // number of pieces to split each initial condition interval
+    )(implicit rnd: Rounding): (UnivariateAffineEnclosure, Box) = {
+    val as = degree match {
+      case 1          => Set(A)
+      case d if d > 1 => A.refine(degree, A.keySet.filter(name => !(F.components(name) == Constant(0))).toSeq: _*)
+      //      case 2 => A.split(A.keySet.filter(name => !(F.components(name) == Constant(0))).toSeq: _*)
+      case _          => sys.error("solveVt: splittingDegree " + degree + " not supported!")
+    }
+    val es = as map (solveIVP(F, T, _, delta, m, n))
+    val enclosure = UnivariateAffineEnclosure.unionThem(es.toSeq).head
+    val endTimeValue = enclosure(T.high)
+    (enclosure, endTimeValue)
+  }
+  
   /**
    * Solves an ODE-IVP given by a field F for a time interval T and
    * initial condition A by iteratively applying the Picard operator.
@@ -27,14 +50,13 @@ trait SolveVt {
    * 3. Collapse the obtained enclosure onto an enclosure over T.
    *
    */
-  def solveVt(
+  private def solveIVP(
     F: Field, // field
     T: Interval, // domain of t
     A: Box, // (A1,...,An), initial condition
     delta: Double, // padding 
     m: Int, // extra iterations after inclusion of iterates
-    n: Int, // maximum number of iterations before inclusion of iterates
-    degree: Int // number of pieces to split each initial condition interval 
+    n: Int // maximum number of iterations before inclusion of iterates
     )(implicit rnd: Rounding): UnivariateAffineEnclosure = {
 
     val timeName = A.keys.fold("_")(_ + _)
@@ -56,12 +78,15 @@ trait SolveVt {
     UnivariateAffineEnclosure(convertToSolutionOnlyOfTime(current, timeName, T))
   }
 
+  case class PicardIterationsExceeded(t: Interval, iterations: Int) extends Exception
+
   /**
    * Iteration may not terminate (e.g. when F is not Leipzig) and is stopped
    * after n attempts.
    */
   private def iterationLimitReached(i: Int, n: Int)(T: Interval)(implicit rnd: Rounding) =
-    if (i < n) false else sys.error("solveVt: terminated at " + T + " after " + n + " Picard iterations")
+    if (i < n) false else throw PicardIterationsExceeded(T, n)
+  //      sys.error("solveVt: terminated at " + T + " after " + n + " Picard iterations")
 
   /**
    * Obtain a solution approximation that is a function of 't' only.
@@ -78,11 +103,15 @@ trait SolveVt {
       })
   }
 
+  //  case class PicardOverflow extends Exception
+
   /**
    * The Picard operator
    */
   private def picard(timeName: VarName, a: AffineEnclosure, F: Field)(X: AffineEnclosure)(implicit rnd: Rounding): AffineEnclosure = {
+    //    try {
     a + (F(X).primitive(timeName))
+    //    } catch { case _ => throw PicardOverflow() }
   }
 
   /**

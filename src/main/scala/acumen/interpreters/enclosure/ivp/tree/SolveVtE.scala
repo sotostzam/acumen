@@ -1,10 +1,10 @@
-package acumen.interpreters.enclosure.solver.tree
+package acumen.interpreters.enclosure.ivp.tree
 
 import acumen.interpreters.enclosure.affine.UnivariateAffineEnclosure._
 import acumen.interpreters.enclosure.Types._
 import acumen.interpreters.enclosure._
 import acumen.interpreters.enclosure.affine.UnivariateAffineEnclosure
-import acumen.interpreters.enclosure.solver.SolveIVP
+import acumen.interpreters.enclosure.ivp.SolveIVP
 
 trait SolveVtE {
 

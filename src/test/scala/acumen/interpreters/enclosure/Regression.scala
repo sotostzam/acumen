@@ -4,7 +4,7 @@ package enclosure
 
 import org.scalacheck.Properties
 import scala.util.parsing.input.StreamReader
-import acumen.interpreters.enclosure.solver.PicardSolver
+import acumen.interpreters.enclosure.ivp.PicardSolver
 
 object Regression extends Properties("Regression") {
 

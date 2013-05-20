@@ -36,8 +36,8 @@ import swing.{Action, BorderPanel, BoxPanel, ButtonGroup, CheckMenuItem,
 			  TabbedPane, Table}
 import swing.event._
 import scala.Boolean
-import acumen.interpreters.enclosure.solver.PicardSolver
-import acumen.interpreters.enclosure.solver.LohnerSolver
+import acumen.interpreters.enclosure.ivp.PicardSolver
+import acumen.interpreters.enclosure.ivp.LohnerSolver
 
 // class Acumen = Everything that use to be GraphicalMain.  Graphical
 // Main can't be an object it will cause Swing components to be
