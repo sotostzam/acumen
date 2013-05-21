@@ -111,11 +111,11 @@ class App extends SimpleSwingApplication {
   private val cutAction                   = mkAction(    "Cut",                     VK_T, VK_X,       codeArea.textArea.cut)
   private val copyAction                  = mkAction(    "Copy",                    VK_C, VK_C,       codeArea.textArea.copyAsRtf)
   private val pasteAction                 = mkAction(    "Paste",                   VK_P, VK_V,       codeArea.textArea.paste)
-  private val selectAllAction             = mkAction(    "Select all",              VK_A, VK_A,       codeArea.textArea.selectAll)
-  private val increaseFontSizeAction      = mkAction(    "Increase font size",      VK_I, VK_PLUS,    codeArea increaseFontSize)
-  private val decreaseFontSizeAction      = mkAction(    "Decrease font size",      VK_D, VK_MINUS,   codeArea decreaseFontSize)
-  private val resetFontSizeAction         = mkAction(    "Reset font size",         VK_R, VK_0,       codeArea resetFontSize)
-  private val showLineNumbersAction       = mkAction(    "Show line numbers",       VK_L, VK_L,       toggleLineNumbers)
+  private val selectAllAction             = mkAction(    "Select All",              VK_A, VK_A,       codeArea.textArea.selectAll)
+  private val increaseFontSizeAction      = mkAction(    "Enlarge Font",            VK_I, VK_PLUS,    codeArea increaseFontSize)
+  private val decreaseFontSizeAction      = mkAction(    "Reduce Font",             VK_D, VK_MINUS,   codeArea decreaseFontSize)
+  private val resetFontSizeAction         = mkAction(    "Reset Font",              VK_R, VK_0,       codeArea resetFontSize)
+  private val showLineNumbersAction       = mkAction(    "Line Numbers",            VK_L, VK_L,       toggleLineNumbers)
   private val plotStyleLinesAction        = new Action(  "Lines")      { mnemonic = VK_L; def apply = plotView.setPlotStyle(plot.Lines()) }
   private val plotStyleDotsAction         = new Action(  "Dots")       { mnemonic = VK_D; def apply = plotView.setPlotStyle(plot.Dots()) }
   private val plotStyleBothAction         = new Action(  "Both")       { mnemonic = VK_B; def apply = plotView.setPlotStyle(plot.Both()) }
@@ -124,6 +124,8 @@ class App extends SimpleSwingApplication {
   private val pwlHybridSolverAction       = mkActionMask("Enclosure PWL",           VK_L, VK_L,       shortcutMask | SHIFT_MASK, setInterpreter(new EnclosureCntrl(interpreters.enclosure.Interpreter.asLocalizing))) 
   private val eventTreeHybridSolverAction = mkActionMask("Enclosure EVT",           VK_T, VK_T,       shortcutMask | SHIFT_MASK, setInterpreter(new EnclosureCntrl(interpreters.enclosure.Interpreter.asNonLocalizing)))
   private val contractionAction           = mkActionMask("Contraction",             VK_C, VK_C,       shortcutMask | SHIFT_MASK, interpreters.enclosure.Interpreter.toggleContraction)
+  private val tutorialAction              = mkAction(    "Core Acumen Tutorial",    VK_T, VK_F1,      tutorial)
+  private val aboutAction                 = new Action(  "About")      { mnemonic = VK_A; def apply = about }
   
   /* Shows a dialog asking the user how many threads to use in the parallel interpreter. */
   private def promptForNumberOfThreads = {
@@ -365,7 +367,7 @@ class App extends SimpleSwingApplication {
 	  }
       contents += new CheckMenuItem("Show line numbers") { 
         mnemonic = Key.L
-        action = Action("Show line numbers") { toggleLineNumbers }
+        action = showLineNumbersAction
       }
     }
 
@@ -381,15 +383,15 @@ class App extends SimpleSwingApplication {
         new ButtonGroup(rb1,rb2,rb3)
       }
       contents += new CheckMenuItem("") { selected = false
-        action = new Action("Automatically plot simulator fields") 
+        action = new Action("Simulator Fields") 
         		 { mnemonic = KeyEvent.VK_S; def apply = plotView.toggleSimulator(selected) }
       }
       contents += new CheckMenuItem("") { selected = false
-        action = new Action("Automatically plot child counter fields") 
+        action = new Action("Child Count") 
         		 { mnemonic = KeyEvent.VK_C; def apply = plotView.toggleNextChild(selected) }
       }
       contents += new CheckMenuItem("") { selected = false
-        action = new Action("Automatically random number generator seeds") 
+        action = new Action("RNG Seeds") 
         		 { mnemonic = KeyEvent.VK_R; def apply = plotView.toggleSeeds(selected) }
       }
     }
@@ -439,8 +441,8 @@ class App extends SimpleSwingApplication {
    
     contents += new Menu("Help") {
       mnemonic = Key.H
-      contents += new MenuItem(mkActionMask("Tutorial", VK_T, VK_F1, 0, tutorial))
-      contents += new MenuItem(new Action("About") { mnemonic = VK_A; def apply = about }) 
+      contents += new MenuItem(tutorialAction)
+      contents += new MenuItem(aboutAction) 
     }
   }
 
