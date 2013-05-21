@@ -1,7 +1,7 @@
 package acumen.interpreters.enclosure.event.tree
 
 import acumen.interpreters.enclosure._
-import acumen.interpreters.enclosure.ivp.SolveIVP
+import acumen.interpreters.enclosure.ivp.IVPSolver
 import acumen.interpreters.enclosure.Types.Event
 import acumen.interpreters.enclosure.Types._
 import acumen.interpreters.enclosure.Util._
@@ -121,7 +121,7 @@ case class EventTree(
   /**
    * Adds another event to the event sequences in the tree.
    */
-  def addLayer(ivpSolver: SolveIVP)(implicit rnd: Rounding): EventTree = {
+  def addLayer(ivpSolver: IVPSolver)(implicit rnd: Rounding): EventTree = {
 
     def newSequences(v: EventSequence, o: Outcome) = {
       o.events.map { e =>
@@ -283,7 +283,7 @@ object EventTree {
     m: Int,
     n: Int,
     degree: Int,
-    ivpSolver: SolveIVP)(implicit rnd: Rounding) = {
+    ivpSolver: IVPSolver)(implicit rnd: Rounding) = {
     val mode = S.mode
     val (enclosure, _) = ivpSolver.solveIVP(H.fields(mode), T, S.initialCondition, delta, m, n, degree)(rnd)
     val mayBeLast = false

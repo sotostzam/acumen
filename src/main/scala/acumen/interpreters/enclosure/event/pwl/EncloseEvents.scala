@@ -9,7 +9,7 @@ import acumen.interpreters.enclosure.Interval
 import acumen.interpreters.enclosure.Parameters
 import acumen.interpreters.enclosure.Rounding
 import acumen.interpreters.enclosure.affine.UnivariateAffineEnclosure
-import acumen.interpreters.enclosure.ivp.SolveIVP
+import acumen.interpreters.enclosure.ivp.IVPSolver
 import acumen.interpreters.enclosure.event.EventHandler
 import acumen.interpreters.enclosure.HybridSystem
 

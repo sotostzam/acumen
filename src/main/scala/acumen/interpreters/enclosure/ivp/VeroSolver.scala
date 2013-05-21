@@ -6,7 +6,7 @@ import acumen.interpreters.enclosure.Interval
 import acumen.interpreters.enclosure.Rounding
 import acumen.interpreters.enclosure.affine.UnivariateAffineEnclosure
 
-trait VeroSolver extends SolveIVP {
+trait VeroSolver extends IVPSolver {
 
   /**
    * TODO add description!

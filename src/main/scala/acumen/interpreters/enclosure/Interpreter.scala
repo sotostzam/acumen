@@ -11,7 +11,7 @@ import acumen.interpreters.enclosure.event.pwl.EncloseHybrid
 import acumen.interpreters.enclosure.event.tree.Solver
 import acumen.interpreters.enclosure.ivp.LohnerSolver
 import acumen.interpreters.enclosure.ivp.PicardSolver
-import acumen.interpreters.enclosure.ivp.SolveIVP
+import acumen.interpreters.enclosure.ivp.IVPSolver
 import acumen.interpreters.enclosure.ivp.VeroSolver
 import ui.interpreter.EnclosureModel
 
@@ -29,7 +29,7 @@ case class EnclosureRes(res: Seq[UnivariateAffineEnclosure]) extends Interpreter
 /**
  * Proxy for the enclosure-based solver.
  */
-class Interpreter(override var ivpSolver: SolveIVP)
+class Interpreter(override var ivpSolver: IVPSolver)
     extends acumen.RecursiveInterpreter
     with Checker
     with Extract

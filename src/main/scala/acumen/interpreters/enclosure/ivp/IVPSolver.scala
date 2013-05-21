@@ -3,7 +3,7 @@ package acumen.interpreters.enclosure.ivp
 import acumen.interpreters.enclosure.{Rounding,Interval,Field,Box}
 import acumen.interpreters.enclosure.affine.UnivariateAffineEnclosure
 
-trait SolveIVP {
+trait IVPSolver {
 
   /* TODO add description! */
   def solveIVP(

@@ -4,12 +4,12 @@ import acumen.interpreters.enclosure.affine.UnivariateAffineEnclosure._
 import acumen.interpreters.enclosure.Types._
 import acumen.interpreters.enclosure._
 import acumen.interpreters.enclosure.affine.UnivariateAffineEnclosure
-import acumen.interpreters.enclosure.ivp.SolveIVP
+import acumen.interpreters.enclosure.ivp.IVPSolver
 import acumen.interpreters.enclosure.HybridSystem
 
 trait SolveVtE {
 
-  var ivpSolver: SolveIVP
+  var ivpSolver: IVPSolver
 
   case class SolveVtEException(message: String) extends Exception
 

@@ -7,14 +7,14 @@ import acumen.interpreters.enclosure.affine.UnivariateAffineEnclosure
 import acumen.interpreters.enclosure.affine.AffineEnclosure
 import acumen.interpreters.enclosure.affine.AffineScalarEnclosure
 
-trait PicardSolver extends SolveIVP {
+trait PicardSolver extends IVPSolver {
 
   /**
    * Implementation detail: do not split initial conditions for variables
    * with zero field components. These values do not change over T and so
    * splitting them will not improve the solution.
    */
-  def solveIVP(
+  override def solveIVP(
     F: Field, // field
     T: Interval, // domain of t
     A: Box, // (A1,...,An), initial condition
