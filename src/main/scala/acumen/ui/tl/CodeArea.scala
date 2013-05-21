@@ -41,6 +41,7 @@ import javax.swing.event.TreeSelectionListener
 import javax.swing.UIManager
 import scala.swing.Button
 import acumen.interpreters.enclosure.Parameters
+import javax.swing.KeyStroke
 
 class CodeArea extends Panel with TreeSelectionListener {
 
@@ -84,6 +85,7 @@ class CodeArea extends Panel with TreeSelectionListener {
     if (GraphicalMain.useCompletion) {
       val completionProvider = createCompletionProvider(sta)
       val autoCompletion = new AutoCompletion(completionProvider)
+      autoCompletion setTriggerKey KeyStroke.getKeyStroke("TAB")
       autoCompletion install sta
     }
     if (GraphicalMain.useTemplates) {
