@@ -6,17 +6,10 @@ the repository would be basically as described below.
 ---------------------------------------------------------------------
 
 Summary:  ADD, COMMIT, PULL, then PUSH, in that order!
+ 
+          How to switch to another branch and get back, safely.
 
----------------------------------------------------------------------
-
-Repositories:
-
-The different reps out there:
-   - The mother rep:  effective-modeling/devel
-     Not really active, but it's there.  You can ignore it.
-   - The active rep:  acumen-e/devel-e
-     That's the one that everyone is working on right now
-   - Your clone of the rep:  That's the one on your machine
+          Note:  Repositories are described in the file XXX_main_workflow
 
 ---------------------------------------------------------------------
 
@@ -94,5 +87,23 @@ Once that is done do a:
 And let me know when that done and I will review the changes, and if
 there is a problem I will let you know.  If not I will merge them into
 acumen-e/devel-e.
+
+---------------------------------------------------------------------
+
+How to switch to another branch and get back, safely.
+
+If you have a prompt that indicates what branch you are on, this helps.
+Adam has a good .profile for doing that.
+
+The basic rountine for swtiching to another branch and getting back
+is as follows:
+
+  git stash                   ## Saves any unsaved work on initial/current branch
+  git checkout lohner         ## Here "lohner" is the name of the other branch
+  git ...                     ## Work as usual
+  git push -u origin lohner   ## Pushes just to that branch
+  git checkout master         ## Here "master" is what you worked on initially
+  git stash pop               ## Brings back any unsaved work on initial branch
+  git status                  ## Just a sanity check
 
 ---------------------------------------------------------------------
