@@ -109,6 +109,7 @@ class CodeArea extends Panel with TreeSelectionListener {
       for (keyword <- acumenTokenMakerSpec \\ "function" if (!censored.contains(keyword.text)))
         cp.addCompletion(new BasicCompletion(cp, keyword.text))
     }
+    cp.addCompletion(new BasicCompletion(cp, "Main"))
     cp.addCompletion(new BasicCompletion(cp, "simulator"))
     for (paramName <- Parameters.defaults.map(_._1))
       cp.addCompletion(new BasicCompletion(cp, "simulator." + paramName))
