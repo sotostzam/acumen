@@ -50,15 +50,25 @@ class StateEnclosure(val self: Map[Mode, Option[Box]])(implicit rnd: Rounding) e
   def reset(h: HybridSystem, e: Event): StateEnclosure =
     new StateEnclosure(emptyState(h) + (e.tau -> (try { Some(Box.toBox(h.resets(e)(this(e.sigma).get))) } catch { case _ => None })))
 
-  /** check that `s` is empty for each mode */
+  /** check that this is empty for each mode */
   def isDefinitelyEmpty: Boolean =
     this.forall(_._2 isEmpty)
 
-  /** TBA */
-  def uncertainStates(s: StateEnclosure): Set[UncertainState] =
-    for ((mode, obox) <- s.toSet if obox isDefined)
+  /**
+   * Convert this to a set of UncertainStates.
+   *
+   * This is a utility method for integrating the tree event handler with the localizing strategy.
+   */
+  def uncertainStates: Set[UncertainState] =
+    for ((mode, obox) <- this.toSet if obox isDefined)
       yield UncertainState(mode, obox.get)
 
+  /**
+   * Convert this to a sequence of UnivariateAffineEnclosures.
+   * 
+   * This is used to produce an enclosure representation that can be combined with enclosures 
+   * produced over intervals without events. 
+   */
   def enclosures(t: Interval): Seq[UnivariateAffineEnclosure] = {
     val boxes = this.toSeq.map(_._2).filter(_.isDefined).map(_.get)
     require(!boxes.isEmpty)
