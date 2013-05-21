@@ -20,3 +20,21 @@ case class Parameters(
   implicit val rnd = Rounding(bigDecimalDigits)
   val simulationTime = Interval(startTime, endTime)
 }
+object Parameters {
+  // FIXME coercing each integer to a double and back is not ideal...
+  val defaults = Map[String, Double](
+    "bigDecimalDigits" -> 10,
+    "startTime" -> 0,
+    "endTime" -> 3,
+    "initialPicardPadding" -> 0,
+    "picardImprovements" -> 20,
+    "maxPicardIterations" -> 200,
+    "maxEventTreeSize" -> 30,
+    "minTimeStep" -> 0.01,
+    "minSolverStep" -> 0.01,
+    "minLocalizationStep" -> 0.001,
+    "maxTimeStep" -> 3,
+    "minComputationImprovement" -> 0.0001,
+    "splittingDegree" -> 1,
+    "maxIterations" -> 100)
+}

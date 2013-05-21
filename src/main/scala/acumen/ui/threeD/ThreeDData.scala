@@ -31,6 +31,8 @@ class ThreeDData extends Publisher {
   var _3DAngle = Array[Double](0.0, 0.0, 0.0)
   var _3DPath = ""
   var _3DText = ""
+  /* Optinal field to indicate transparent object or not */
+  var _3DTexture = ""
   /* Camera's position and orientation*/
   var _3DView = List[ViewInfo]()
   def reset() {
@@ -93,6 +95,13 @@ class ThreeDData extends Publisher {
 		case _ => throw _3DNameError(value)
 	}
   }
+  /* _3D texture should be a string */
+  def extractTexture(value: Value[_]){
+	value match {
+		case VLit(GStr(tex)) => _3DTexture = tex
+		case _ => throw _3DNameError(value)
+	}
+  }
   
  def extractText(value: Value[_]) {
     value match {
@@ -143,8 +152,10 @@ class ThreeDData extends Publisher {
             extractVector(l(4), "angle")
             if (_3DType == "Text")
 			  extractText(l(5))
-			if (_3DType == "OBJ")
+			else if (_3DType == "OBJ")
 			  extractPath(l(5))
+			else if(l.size == 6)
+			  extractTexture(l(5))
           }
         }
         case _ => throw ShouldNeverHappen()
@@ -155,9 +166,14 @@ class ThreeDData extends Publisher {
 	  else if (_3DType == "OBJ")
 	    _3DData(id)(i) = List(_3DType, _3DPosition,
           _3DSize, _3DColor, _3DAngle, _3DPath, frameNumber) :: _3DData(id)(i)
-      else
+      else if(_3DTexture == "transparent")
         _3DData(id)(i) = List(_3DType, _3DPosition,
+          _3DSize, _3DColor, _3DAngle, _3DTexture, frameNumber) :: _3DData(id)(i)
+      else
+       _3DData(id)(i) = List(_3DType, _3DPosition,
           _3DSize, _3DColor, _3DAngle, frameNumber) :: _3DData(id)(i)
+       
+      _3DTexture = ""   
     }
   }
   /* Look for endTime in "Main" class */

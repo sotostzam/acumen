@@ -1,0 +1,45 @@
+// created by Anita Sant'Anna 2012
+// Switched converter pole
+// this converter can deliver variable power to the circuit
+
+// trigger source, saw-tooth wave between zero and 10, 
+// and frequency 1KHz
+class TriggerSource()
+   private Vtri:=0; Vtri':=1000; end  
+   Vtri'=1000; 
+   if Vtri>=10  Vtri=0; end  
+end
+
+// swtiched converter pole, controls Van based on the relationship
+// between the trigger signal, Vtri, and the control voltage, Vca.
+// If Vtri >= Vca, the converter delivers the source voltage, Vd.
+// If Vtri < Vca, the converter delivers zero voltage.
+// Van is the voltage delivered by the converter.
+// The current (power) delivered to the circuit can be controlled
+// by adjusting Vca. 
+class SwitchedConverter(Vd,Vca)
+   private 
+     Van := 0; 
+     trigger := create TriggerSource(); 
+   end     
+   if trigger.Vtri>=Vca  Van = Vd; 
+     else  Van = 0; end
+end
+
+// equivalent pole circuit
+// the input voltage to this circuit is delivered by
+// the conveter, Van.
+class EquivalentCircuit(R,L,E)
+   private i:=0; i':=0; 
+      converter := create SwitchedConverter(100,8);
+   end
+   i' = converter.Van/L - E/L - (R/L)*i; 
+end
+
+class Main(simulator)
+   private circuit := create EquivalentCircuit(0.5,0.012,40); end
+   // simulator parameters
+   simulator.timeStep = 0.0001;        
+   simulator.endTime = 0.1;  
+end
+

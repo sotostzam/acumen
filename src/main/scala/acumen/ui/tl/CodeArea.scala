@@ -40,6 +40,7 @@ import javax.swing.event.TreeSelectionEvent
 import javax.swing.event.TreeSelectionListener
 import javax.swing.UIManager
 import scala.swing.Button
+import acumen.interpreters.enclosure.Parameters
 
 class CodeArea extends Panel with TreeSelectionListener {
 
@@ -93,7 +94,10 @@ class CodeArea extends Panel with TreeSelectionListener {
   }
 
   def createCompletionProvider(textArea: RSyntaxTextArea) = {
-    val cp = new DefaultCompletionProvider
+    val cp = new DefaultCompletionProvider {
+      // Make it possible to complete strings ending with .
+      override def isValidChar(ch: Char) = super.isValidChar(ch) || ch=='.';
+    }
     val style = textArea.getSyntaxEditingStyle
     val acumenTokenMakerSpec = XML.load(getClass.getClassLoader.getResourceAsStream("acumen/ui/tl/AcumenTokenMaker.xml"))
     if (acumenTokenMakerSpec != null) { // Try to read keywords and functions from XML
@@ -104,6 +108,8 @@ class CodeArea extends Panel with TreeSelectionListener {
     } // If this is unsuccessful, add the reserved words specified in the parser
     else for (k <- Parser.lexical.reserved) cp.addCompletion(new BasicCompletion(cp, k))
     cp.addCompletion(new BasicCompletion(cp, "simulator"))
+    for (paramName <- Parameters.defaults.map(_._1))
+      cp.addCompletion(new BasicCompletion(cp, "simulator." + paramName))
     cp
   }
 
@@ -119,7 +125,7 @@ class CodeArea extends Panel with TreeSelectionListener {
         ("hs", "class Main(simulator)\n  private mode := \"\"; end\n  switch mode\n    case \"\"\n      \n  end\nend"),
         ("mode", "case \"\"\n  if  mode := \"\" end;\n  "),
         ("event", "if  mode := \"\" end;\n"),
-        ("ps", "simulator.endTime := 3;\nsimulator.minSolverStep := 0.01;\nsimulator.minLocalizationStep := 0.001;\nsimulator.minComputationImprovement := 0.0001;"))
+        ("ps", Parameters.defaults.map{case (p,v) => "simulator.%s := %s".format(p,v)}.mkString(";\n")))
     ) { RSyntaxTextArea.getCodeTemplateManager addTemplate new StaticCodeTemplate(t._1, t._2, null) }
 
   /* --- file handling ---- */
