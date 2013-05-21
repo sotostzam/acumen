@@ -12,6 +12,8 @@ import acumen.interpreters.enclosure.affine.UnivariateAffineEnclosure
 import acumen.interpreters.enclosure.ivp.IVPSolver
 import acumen.interpreters.enclosure.event.EventHandler
 import acumen.interpreters.enclosure.HybridSystem
+import acumen.interpreters.enclosure.StateEnclosure._
+import acumen.interpreters.enclosure.StateEnclosure
 
 /**
  * Mix in this trait in place of SolveVtE to get PWL rather than EventTree based event handling.
@@ -37,20 +39,20 @@ trait EncloseEvents extends EventHandler {
   private def reachableStatesPWL(ps: Parameters, h: HybridSystem, t: Interval, maxIterations: Int, pIn: StateEnclosure, wIn: StateEnclosure)(implicit rnd: Rounding): StateEnclosure =
     if (maxIterations == 0) sys.error("EncloseEventsFailure")
     else {
-      if (isDefinitelyEmpty(wIn)) pIn
+      if (wIn.isDefinitelyEmpty) pIn
       else {
         val oneEventEnclosed = encloseOneEvent(h, wIn)
         val (sEvolved, _) = encloseFlowNoEvents(ps, h, oneEventEnclosed, t)
         val p = union(Set(pIn, sEvolved))
-        val w = minus(sEvolved, pIn)
+        val w = sEvolved.minus(pIn)
         reachableStatesPWL(ps, h, t, maxIterations - 1, p, w)
       }
     }
 
   private def encloseOneEvent(h: HybridSystem, s: StateEnclosure)(implicit rnd: Rounding): StateEnclosure = {
-    val allPossibleResets = h.events.map(e => reset(h, e, intersectGuard(h, e, s)))
+    val allPossibleResets = h.events.map(e => s.intersectGuard(h, e).reset(h, e))
     val unionOfResets = union(allPossibleResets)
-    intersectInv(h, unionOfResets)
+    unionOfResets.intersectInv(h)
   }
 
   private def encloseFlowNoEvents(ps: Parameters, h: HybridSystem, sIn: StateEnclosure, t: Interval)(implicit rnd: Rounding): (StateEnclosure, StateEnclosure) = {
@@ -58,14 +60,14 @@ trait EncloseEvents extends EventHandler {
       case (q, None)      => (q, (None, None))
       case (q, Some(box)) => (q, encloseFlowRange(ps, h.fields(q), t, box))
     }
-    val sPre = sPreAndFinalPre.mapValues(_._1)
-    val finalPre = sPreAndFinalPre.mapValues(_._2)
-    val s = intersectInv(h, sPre)
-    val fin = intersectInv(h, finalPre)
+    val sPre = new StateEnclosure(sPreAndFinalPre.mapValues(_._1))
+    val finalPre = new StateEnclosure(sPreAndFinalPre.mapValues(_._2))
+    val s = sPre.intersectInv(h)
+    val fin = finalPre.intersectInv(h)
     (s, fin)
   }
 
-  private def encloseFlowRange(ps: Parameters, f: Field, t: Interval, init: Box)(implicit rnd: Rounding): (OBox, OBox) = {
+  private def encloseFlowRange(ps: Parameters, f: Field, t: Interval, init: Box)(implicit rnd: Rounding): (Option[Box], Option[Box]) = {
     val flow = encloseFlow(ps, f, t, init)
     if (flow isEmpty) (None, None)
     else {

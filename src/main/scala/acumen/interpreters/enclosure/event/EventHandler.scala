@@ -1,12 +1,13 @@
 package acumen.interpreters.enclosure.event
 
+import acumen.interpreters.enclosure.HybridSystem
 import acumen.interpreters.enclosure.Interval
 import acumen.interpreters.enclosure.Parameters
 import acumen.interpreters.enclosure.Rounding
+import acumen.interpreters.enclosure.StateEnclosure
 import acumen.interpreters.enclosure.ivp.IVPSolver
-import acumen.interpreters.enclosure.HybridSystem
 
-trait EventHandler extends StateEnclosure {
+trait EventHandler {
 
   var ivpSolver: IVPSolver // IVP solver
 

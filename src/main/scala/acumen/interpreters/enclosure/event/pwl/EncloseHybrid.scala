@@ -13,6 +13,7 @@ import acumen.interpreters.enclosure.All
 import acumen.interpreters.enclosure.BinaryRelation
 import acumen.interpreters.enclosure.BinaryRelationName._
 import acumen.interpreters.enclosure.Field
+import acumen.interpreters.enclosure.StateEnclosure
 
 trait EncloseHybrid extends EncloseEvents {
 
@@ -30,21 +31,23 @@ trait EncloseHybrid extends EncloseEvents {
     if (teL equalTo t.high) { // proved that there no event at all on T
       cb.sendResult(noe)
       noe
-    } else {
-      val seInit: StateEnclosure = for ((mode, _) <- sInit) yield {
+    }
+    else {
+      val seInit = new StateEnclosure(for ((mode, _) <- sInit) yield {
         lfes.get(mode) match {
-          case None => mode -> None
+          case None      => mode -> None
           case Some(lfe) => mode -> Some(evalAt(lfe, teL))
         }
-      }
+      })
       val te = teL /\ teR
       val (se, seFinal) = handleEvents(ps, h, te, seInit)
       if (teR equalTo t.high) {
-        val ret = noe ++ enclosures(te, se)
+        val ret = noe ++ se.enclosures(te)
         cb.sendResult(ret)
         ret
-      } else {
-        val done = noe ++ enclosures(te, se)
+      }
+      else {
+        val done = noe ++ se.enclosures(te)
         cb.sendResult(done)
         val tf = teR /\ t.high
         val rest = encloseHybrid(ps, h, tf, seFinal, cb)
@@ -99,7 +102,8 @@ trait EncloseHybrid extends EncloseEvents {
             catch { case _ => computeLFEnoODE(e) } // FIXME use ComputeLFEFailure solver specific exception
           else computeLFEnoODE(e)
         }
-      } catch {
+      }
+      catch {
         case _ => // FIXME do this properly using specialized exceptions re-throwing messages...
           if (t.width lessThan ps.minSolverStep * 2)
             sys.error("solveVt: terminated at " + t + " after " + ps.maxPicardIterations + " Picard iterations")
@@ -289,9 +293,9 @@ trait EncloseHybrid extends EncloseEvents {
 
   def concatenateLFEs(lfe1: LFE, lfe2: LFE): LFE =
     (lfe1, lfe2) match {
-      case ((_, _, compl1), _) if compl1 => lfe1
+      case ((_, _, compl1), _) if compl1                           => lfe1
       case ((noe1, mae1, _), (noe2, mae2, compl2)) if mae1.isEmpty => (noe1 ++ noe2, mae2, compl2)
-      case ((noe1, mae1, _), (noe2, _, _)) if !noe2.isEmpty => (noe1, mae1, true)
+      case ((noe1, mae1, _), (noe2, _, _)) if !noe2.isEmpty        => (noe1, mae1, true)
       case ((noe1, mae1, _), (noe2, mae2, compl2)) if noe2.isEmpty => (noe1, mae1 ++ mae2, compl2)
     }
 

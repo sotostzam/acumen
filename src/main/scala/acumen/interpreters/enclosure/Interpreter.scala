@@ -74,7 +74,7 @@ class Interpreter(override var ivpSolver: IVPSolver)
         ps,
         hs,
         ps.simulationTime,
-        emptyState(hs) + (uss.mode -> Some(uss.initialCondition)),
+        new StateEnclosure(StateEnclosure.emptyState(hs) + (uss.mode -> Some(uss.initialCondition))),
         cb)
 
     }
