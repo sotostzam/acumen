@@ -25,9 +25,9 @@ abstract class EventSequence {
 /** TODO add description */
 // TODO add tests
 case class EmptySequence(
-  val initialMode: Mode,
-  val enclosure: UnivariateAffineEnclosure,
-  val mayBeLast: Boolean) extends EventSequence {
+    val initialMode: Mode,
+    val enclosure: UnivariateAffineEnclosure,
+    val mayBeLast: Boolean) extends EventSequence {
   def sigma = initialMode
   def tau = Set(initialMode)
   def prefixes = Seq()
@@ -41,10 +41,10 @@ case class EmptySequence(
 /** TODO add description */
 // TODO add tests
 case class NonemptySequence(
-  val lastEvent: Event,
-  val enclosure: UnivariateAffineEnclosure,
-  val mayBeLast: Boolean,
-  val prefix: EventSequence) extends EventSequence {
+    val lastEvent: Event,
+    val enclosure: UnivariateAffineEnclosure,
+    val mayBeLast: Boolean,
+    val prefix: EventSequence) extends EventSequence {
   def sigma = prefix.sigma
   def tau = Set(lastEvent.tau)
   def prefixes = prefix +: prefix.prefixes
@@ -58,14 +58,14 @@ case class NonemptySequence(
 /** TODO add description */
 // TODO add tests
 case class EventTree(
-  maximalSequences: Set[EventSequence],
-  T: Interval,
-  H: HybridSystem,
-  S: UncertainState,
-  delta: Double,
-  m: Int,
-  n: Int,
-  degree: Int) extends SolveVtE with PicardSolver {
+    maximalSequences: Set[EventSequence],
+    T: Interval,
+    H: HybridSystem,
+    S: UncertainState,
+    delta: Double,
+    m: Int,
+    n: Int,
+    degree: Int) {
 
   /** TODO add description */
   // TODO add tests
@@ -117,26 +117,15 @@ case class EventTree(
       }
     }
 
-  /** TODO add description */
-  // TODO add tests
-  def addLayer(implicit rnd: Rounding): EventTree = {
+  /**
+   * Adds another event to the event sequences in the tree.
+   */
+  def addLayer(ivpSolver: SolveIVP)(implicit rnd: Rounding): EventTree = {
 
     def newSequences(v: EventSequence, o: Outcome) = {
       o.events.map { e =>
         {
-          //          println("Guard:   " + H.guards(e))
-          //          println("Box:     " + v.enclosure.range)
-          //          println("Support: " + H.guards(e).support(v.enclosure.range))
-          //          println("T: " + T)
-          //          println("\naddLayer: range             = " + v.enclosure.range)
-          //          println("addLayer: domain before     = " + H.domains(e.tau))
-          //          println("\naddLayer: contracted range  = " + H.guards(e).support(v.enclosure.range))
-          //          println("addLayer: reset             = " + H.resets(e))
           if (H.resets(e)(H.guards(e).support(v.enclosure.range)) == Set(false)) println("\naddLayer: illegal reset!")
-          //          println("\naddLayer: range after reset  = " + H.resets(e)(H.guards(e).support(v.enclosure.range)))
-          //          println("addLayer: domain after reset = " + H.domains(e.tau))
-          //          if (H.domains(e.tau)(H.resets(e)(H.guards(e).support(v.enclosure.range))) != Set(false))
-          //            println("\naddLayer: consistent value after reset!")
           require(H.guards(e)(v.enclosure.range) != Set(false), "Rand(Y(v)) \\/ C_e must be nonempty")
           if (o.isInstanceOf[MaybeOneOf] &&
             H.domains(e.tau)(H.resets(e)(H.guards(e).support(v.enclosure.range))) == Set(false)) {
@@ -146,29 +135,17 @@ case class EventTree(
              * of the domain invariant of the target mode of e.
              */
             v.setMayBeLastTo(true)
-          } else {
+          }
+          else {
             require(
               H.domains(e.tau)(H.resets(e)(H.guards(e).support(v.enclosure.range))) != Set(false),
               "Reset " + H.resets(e) +
                 "\nmust map contracted enclosure " + H.guards(e).support(v.enclosure.range) +
                 "\ninto target domain " + H.domains(e.tau))
             val A = H.domains(e.tau).support(H.resets(e)(H.guards(e).support(v.enclosure.range)))
-            //          val A = H.domains(e.tau).support(H.resets(e)(H.guards(e).support(v.enclosure.range)))
-            //          println("\naddLayer: A         = " + A)
-            //          println("addLayer: field     = " + H.fields(e.tau))
-            //            println("addLayer: enclosure = " + solveVt(H.fields(e.tau), T, A, delta, m, n, output))
-            val N = solveVt(H.fields(e.tau), T, A, delta, m, n, degree)._1.range
-            //          println("addLayer: N         = " + N)
+            val N = ivpSolver.solveVt(H.fields(e.tau), T, A, delta, m, n, degree)._1.range
             val lastEvent = e
-            //          println("Domain:  " + H.domains(e.tau))
-            //          println("Box:     " + N)
-            //          println("Support: " + H.domains(e.tau).support(N))
-            //          if (H.domains(e.tau)(N) == Set(false)) println("\naddLayer: illegal enclosure!")
-            //          println("addLayer: contracted N = " + H.domains(e.tau).support(N))
-            // onlyUpdateAffectedComponents introduces some errors! FIXME
-            val affines = N // onlyUpdateAffectedComponents(e, v.enclosure, H.domains(e.tau).support(N))
-            //          println("addLayer: disregarding unaffectd components N = " + affines)
-            //            println("Y(ve): " + affines)
+            val affines = N
             val enclosure = UnivariateAffineEnclosure(v.domain, affines)
             val mayBeLast = false
             val prefix = v
@@ -179,29 +156,52 @@ case class EventTree(
     }
 
     /** TODO add description */
-    val newMaximalSequences = maximalSequences.flatMap { v =>
-      if (v.prefixes.exists { w =>
-        w.tau == v.tau && w.enclosure.contains(v.enclosure)
-      }) {
-        //        println("\naddLayer: containment!\n") // PRINTME
-        Set(v)
-      } else {
-        val mode = v.tau.head
-        val enclosure = v.enclosure
-        val decision = detectNextEvent(H, T, mode, enclosure)
-        //        println("\naddLayer: " + decision) // PRINTME
+    val newMaximalSequences = {
 
-        if (decision.events isEmpty) Set(v.setMayBeLastTo(true))
-        else decision match {
-          case CertainlyOneOf(es) => newSequences(v, decision)
-          case MaybeOneOf(es) => newSequences(v.setMayBeLastTo(true), decision)
+      /**
+       * This is the main event detection algorithm.
+       */
+      def detectNextEvent(
+        H: HybridSystem,
+        T: Interval,
+        q: Mode,
+        Y: UnivariateAffineEnclosure)(implicit rnd: Rounding): Outcome = {
+        /**
+         * This is likely where we get the issues with enclosures exploding from. The
+         * events that are deemed possible are determined by evaluating the guard over
+         * the range of the enclosure, rather than directly on the enclosure which is
+         * a major source of imprecision!
+         */
+        val events = H.events.filter(e => e.sigma == q && H.guards(e)(Y.range) != Set(false))
+        if (events.isEmpty)
+          MaybeOneOf(events)
+        else if (H.domains(q)(Y(Y.domain.high)) == Set(false))
+          CertainlyOneOf(events)
+        else
+          MaybeOneOf(events)
+      }
+
+      maximalSequences.flatMap { v =>
+        if (v.prefixes.exists { w =>
+          w.tau == v.tau && w.enclosure.contains(v.enclosure)
+        }) {
+          Set(v)
+        }
+        else {
+          val mode = v.tau.head
+          val enclosure = v.enclosure
+          val decision = detectNextEvent(H, T, mode, enclosure)
+
+          if (decision.events isEmpty) Set(v.setMayBeLastTo(true))
+          else decision match {
+            case CertainlyOneOf(es) => newSequences(v, decision)
+            case MaybeOneOf(es)     => newSequences(v.setMayBeLastTo(true), decision)
+          }
         }
       }
     }
 
-    val res = EventTree(newMaximalSequences, T, H, S, delta, m, n, degree)
-    //    println("\naddLayer: " + res)
-    res
+    EventTree(newMaximalSequences, T, H, S, delta, m, n, degree)
   }
 
   /** TODO add description */
@@ -270,7 +270,7 @@ case class EventTree(
 
 }
 
-object EventTree extends PicardSolver {
+object EventTree {
 
   /** TODO add description */
   // TODO add tests
@@ -281,18 +281,13 @@ object EventTree extends PicardSolver {
     delta: Double,
     m: Int,
     n: Int,
-    degree: Int)(implicit rnd: Rounding) = {
-    //    Util.appendFile(output, "segment width " + T.width.hi.round(Rounding(3).up) + " segment " + T + "\n")
-    //    println("segment width " + T.width.hi.round(Rounding(3).up) + " segment " + T)
+    degree: Int,
+    ivpSolver: SolveIVP)(implicit rnd: Rounding) = {
     val mode = S.mode
-    val (enclosure, _) = solveVt(H.fields(mode), T, S.initialCondition, delta, m, n, degree)
-    //    println("Yinit = " + enclosure)
+    val (enclosure, _) = ivpSolver.solveVt(H.fields(mode), T, S.initialCondition, delta, m, n, degree)
     val mayBeLast = false
     val sequences = Set(EmptySequence(mode, enclosure, mayBeLast).asInstanceOf[EventSequence])
-    val res = EventTree(sequences, T, H, S, delta, m, n, degree)
-    //    println("\n############\n")
-    //    println("initialTree: " + res)
-    res
+    EventTree(sequences, T, H, S, delta, m, n, degree)
   }
 
 }
