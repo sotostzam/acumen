@@ -19,10 +19,10 @@ trait EventEncloser {
    * The second encloses the system at the end time t.high, generally providing a tighter
    * approximation than the first enclosure.
    */
-  def handleEvents(
+  def encloseEvents(
     ps: Parameters, // parameters for controlling event handling and IVP solving
-    h: HybridSystem, // the system
-    t: Interval, // the time interval
+    h: HybridSystem, // the system 
+    t: Interval, // the time interval 
     s: StateEnclosure // initial states at t.low
     )(implicit rnd: Rounding): (StateEnclosure, StateEnclosure)
 

@@ -20,13 +20,10 @@ import acumen.interpreters.enclosure.event.EventEncloser
  */
 trait EncloseEvents extends EventEncloser {
 
-  /** Implements the event handler method in EventHandler. */
-  override def handleEvents(ps: Parameters, h: HybridSystem, t: Interval, s: StateEnclosure)(implicit rnd: Rounding) =
-    encloseEvents(ps, h, t, s)
-
   // main function
 
-  private def encloseEvents(ps: Parameters, h: HybridSystem, t: Interval, s: StateEnclosure)(implicit rnd: Rounding): (StateEnclosure, StateEnclosure) = {
+  /** Implements the event handler method in EventHandler. */
+  override def encloseEvents(ps: Parameters, h: HybridSystem, t: Interval, s: StateEnclosure)(implicit rnd: Rounding): (StateEnclosure, StateEnclosure) = {
     val (s0, fin0) = encloseFlowNoEvents(ps, h, s, t)
     val sEvents = reachableStatesPWL(ps, h, t, ps.maxIterations, emptyState(h), s0)
     val sEnclosed = union(Set(s0, sEvents))

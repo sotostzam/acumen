@@ -1,21 +1,22 @@
-package acumen.interpreters.enclosure.event.pwl
+package acumen.interpreters.enclosure.strategy
 
-import acumen.interpreters.enclosure.Box
-import acumen.interpreters.enclosure.Interval
-import acumen.interpreters.enclosure.Parameters
-import acumen.interpreters.enclosure.Rounding
-import acumen.interpreters.enclosure.HybridSystem
-import acumen.interpreters.enclosure.Types._
-import acumen.interpreters.enclosure.affine.UnivariateAffineEnclosure
-import acumen.interpreters.enclosure.EnclosureInterpreterCallbacks
-import acumen.interpreters.enclosure.Predicate
 import acumen.interpreters.enclosure.All
 import acumen.interpreters.enclosure.BinaryRelation
-import acumen.interpreters.enclosure.BinaryRelationName._
-import acumen.interpreters.enclosure.Field
+import acumen.interpreters.enclosure.BinaryRelationName.Eq
+import acumen.interpreters.enclosure.Box
+import acumen.interpreters.enclosure.EnclosureInterpreterCallbacks
+import acumen.interpreters.enclosure.HybridSystem
+import acumen.interpreters.enclosure.Interval
+import acumen.interpreters.enclosure.Interval.toInterval
+import acumen.interpreters.enclosure.Parameters
+import acumen.interpreters.enclosure.Predicate
+import acumen.interpreters.enclosure.Rounding
 import acumen.interpreters.enclosure.StateEnclosure
+import acumen.interpreters.enclosure.Types.Mode
+import acumen.interpreters.enclosure.affine.UnivariateAffineEnclosure
+import acumen.interpreters.enclosure.event.EventEncloser
 
-trait EncloseHybrid extends EncloseEvents {
+trait LocalizingStrategy extends EventEncloser {
 
   def encloseHybrid(ps: Parameters, h: HybridSystem, t: Interval, sInit: StateEnclosure, cb: EnclosureInterpreterCallbacks)(implicit rnd: Rounding): Seq[UnivariateAffineEnclosure] = {
 
