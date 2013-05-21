@@ -10,15 +10,15 @@ import acumen.interpreters.enclosure.Parameters
 import acumen.interpreters.enclosure.Rounding
 import acumen.interpreters.enclosure.affine.UnivariateAffineEnclosure
 import acumen.interpreters.enclosure.ivp.IVPSolver
-import acumen.interpreters.enclosure.event.EventHandler
 import acumen.interpreters.enclosure.HybridSystem
 import acumen.interpreters.enclosure.StateEnclosure._
 import acumen.interpreters.enclosure.StateEnclosure
+import acumen.interpreters.enclosure.event.EventEncloser
 
 /**
  * Mix in this trait in place of SolveVtE to get PWL rather than EventTree based event handling.
  */
-trait EncloseEvents extends EventHandler {
+trait EncloseEvents extends EventEncloser {
 
   /** Implements the event handler method in EventHandler. */
   override def handleEvents(ps: Parameters, h: HybridSystem, t: Interval, s: StateEnclosure)(implicit rnd: Rounding) =
@@ -95,12 +95,6 @@ trait EncloseEvents extends EventHandler {
           if (t.width lessThan ps.minSolverStep * 2) sys.error("EncloseFlowFailure")
           else splitAndRepeatEncloseFlow(ps, f, t, init)
       }
-  }
-
-  def significantImprovement(eOld: UnivariateAffineEnclosure, eNew: UnivariateAffineEnclosure, x: Interval, minComputationImprovement: Double)(implicit rnd: Rounding) = {
-    val normOld = eOld(x).l1Norm
-    val normNew = eNew(x).l1Norm
-    normOld - normNew greaterThan minComputationImprovement
   }
 
   private def splitAndEncloseFlowStep(ps: Parameters, field: Field, t: Interval, init: Box)(implicit rnd: Rounding): (UnivariateAffineEnclosure, UnivariateAffineEnclosure) = {

@@ -7,13 +7,13 @@ import acumen.InterpreterRes
 import acumen.Prog
 import acumen.interpreters.Common.classDef
 import acumen.interpreters.enclosure.affine.UnivariateAffineEnclosure
-import acumen.interpreters.enclosure.event.pwl.EncloseHybrid
 import acumen.interpreters.enclosure.event.tree.Solver
 import acumen.interpreters.enclosure.ivp.LohnerSolver
 import acumen.interpreters.enclosure.ivp.PicardSolver
 import acumen.interpreters.enclosure.ivp.IVPSolver
 import acumen.interpreters.enclosure.ivp.VeroSolver
 import ui.interpreter.EnclosureModel
+import acumen.interpreters.enclosure.event.pwl.EncloseHybrid
 
 trait EnclosureInterpreterCallbacks extends InterpreterCallbacks {
   def log(msg: String): Unit

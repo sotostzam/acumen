@@ -6,8 +6,9 @@ import acumen.interpreters.enclosure.Parameters
 import acumen.interpreters.enclosure.Rounding
 import acumen.interpreters.enclosure.StateEnclosure
 import acumen.interpreters.enclosure.ivp.IVPSolver
+import acumen.interpreters.enclosure.affine.UnivariateAffineEnclosure
 
-trait EventHandler {
+trait EventEncloser {
 
   var ivpSolver: IVPSolver // IVP solver
 
@@ -24,5 +25,11 @@ trait EventHandler {
     t: Interval, // the time interval
     s: StateEnclosure // initial states at t.low
     )(implicit rnd: Rounding): (StateEnclosure, StateEnclosure)
+
+  def significantImprovement(eOld: UnivariateAffineEnclosure, eNew: UnivariateAffineEnclosure, x: Interval, minComputationImprovement: Double)(implicit rnd: Rounding) = {
+    val normOld = eOld(x).l1Norm
+    val normNew = eNew(x).l1Norm
+    normOld - normNew greaterThan minComputationImprovement
+  }
 
 }
