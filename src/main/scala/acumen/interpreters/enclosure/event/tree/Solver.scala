@@ -9,11 +9,11 @@ import acumen.interpreters.enclosure.EnclosureInterpreterCallbacks
 import acumen.interpreters.enclosure.Interval
 import acumen.interpreters.enclosure.Rounding
 import acumen.interpreters.enclosure.Util
-import acumen.interpreters.enclosure.event.pwl.EncloseEvents
+import acumen.interpreters.enclosure.event.pwl.PWLEventEncloser
 import acumen.interpreters.enclosure.affine.UnivariateAffineEnclosure
 import acumen.interpreters.enclosure.HybridSystem
 
-trait Solver extends SolveVtE {
+trait Solver extends TreeEventEncloser {
 
   case class SolverException(message: String) extends Exception
   case class Aborted(resultSoFar: Seq[UnivariateAffineEnclosure]) extends Exception

@@ -16,9 +16,12 @@ import acumen.interpreters.enclosure.Types.Mode
 import acumen.interpreters.enclosure.affine.UnivariateAffineEnclosure
 import acumen.interpreters.enclosure.event.EventEncloser
 
-trait LocalizingStrategy extends EventEncloser {
+class LocalizingStrategy(override var eventEncloser: EventEncloser) extends Strategy {
 
-  def encloseHybrid(ps: Parameters, h: HybridSystem, t: Interval, sInit: StateEnclosure, cb: EnclosureInterpreterCallbacks)(implicit rnd: Rounding): Seq[UnivariateAffineEnclosure] = {
+  override def enclosePiecewise(ps: Parameters, h: HybridSystem, t: Interval, s: StateEnclosure, cb: EnclosureInterpreterCallbacks)(implicit rnd: Rounding): Seq[UnivariateAffineEnclosure] =
+    encloseHybrid(ps, h, t, s, cb)
+
+  private def encloseHybrid(ps: Parameters, h: HybridSystem, t: Interval, sInit: StateEnclosure, cb: EnclosureInterpreterCallbacks)(implicit rnd: Rounding): Seq[UnivariateAffineEnclosure] = {
 
     // call event localising ODE solver for each possible mode:
     val lfes: Map[Mode, LFE] = for ((mode, obox) <- sInit if obox.isDefined) yield mode -> encloseFlowUntilEventDetected(ps, h, t, mode, obox.get, cb)
@@ -41,7 +44,7 @@ trait LocalizingStrategy extends EventEncloser {
         }
       })
       val te = teL /\ teR
-      val (se, seFinal) = encloseEvents(ps, h, te, seInit)
+      val (se, seFinal) = eventEncloser.encloseEvents(ps, h, te, seInit)
       if (teR equalTo t.high) {
         val ret = noe ++ se.enclosures(te)
         cb.sendResult(ret)
@@ -57,7 +60,7 @@ trait LocalizingStrategy extends EventEncloser {
     }
   }
 
-  def unionOfEnclosureListsUntil(t: Interval, enclosureLists: Seq[Seq[UnivariateAffineEnclosure]])(implicit rnd: Rounding): Seq[UnivariateAffineEnclosure] = {
+  private def unionOfEnclosureListsUntil(t: Interval, enclosureLists: Seq[Seq[UnivariateAffineEnclosure]])(implicit rnd: Rounding): Seq[UnivariateAffineEnclosure] = {
     require(!enclosureLists.isEmpty)
     val lists = enclosureLists.filter(!_.isEmpty)
     if (lists.isEmpty) Seq()
@@ -88,17 +91,17 @@ trait LocalizingStrategy extends EventEncloser {
     }
   }
 
-  def encloseFlowUntilEventDetected(ps: Parameters, h: HybridSystem, t: Interval, m: Mode, init: Box, cb: EnclosureInterpreterCallbacks)(implicit rnd: Rounding): LFE = {
+  private def encloseFlowUntilEventDetected(ps: Parameters, h: HybridSystem, t: Interval, m: Mode, init: Box, cb: EnclosureInterpreterCallbacks)(implicit rnd: Rounding): LFE = {
 
     def computeLFE(t: Interval, init: Box): LFE =
       if (t.width greaterThan ps.maxTimeStep) splitAndRepeatComputeLFE(t, init)
       else try {
-        val (e, _) = ivpSolver.solveIVP(h.fields(m), t, init, ps.initialPicardPadding, ps.picardImprovements, ps.maxPicardIterations, ps.splittingDegree)
+        val (e, _) = eventEncloser.ivpSolver.solveIVP(h.fields(m), t, init, ps.initialPicardPadding, ps.picardImprovements, ps.maxPicardIterations, ps.splittingDegree)
         if (t.width lessThan ps.minSolverStep * 2)
           computeLFEnoODE(e)
         else {
           val (eL, eR) = splitAndSolveVt(t, init)
-          if (significantImprovement(e, eR, t.high, ps.minComputationImprovement))
+          if (eventEncloser.significantImprovement(e, eR, t.high, ps.minComputationImprovement))
             try { splitAndRepeatComputeLFE(t, init) }
             catch { case _ => computeLFEnoODE(e) } // FIXME use ComputeLFEFailure solver specific exception
           else computeLFEnoODE(e)
@@ -113,10 +116,10 @@ trait LocalizingStrategy extends EventEncloser {
 
     def splitAndSolveVt(t: Interval, init: Box) = {
       val (tL, tR) = t.split
-      val (eL, initR) = ivpSolver.solveIVP(h.fields(m), tL, init, ps.initialPicardPadding, ps.picardImprovements, ps.maxPicardIterations, ps.splittingDegree)
+      val (eL, initR) = eventEncloser.ivpSolver.solveIVP(h.fields(m), tL, init, ps.initialPicardPadding, ps.picardImprovements, ps.maxPicardIterations, ps.splittingDegree)
       //      val initR = eL(tL.high)
       val vs = h.domains(m).support(initR)
-      val (eR, _) = ivpSolver.solveIVP(h.fields(m), tR, vs, ps.initialPicardPadding, ps.picardImprovements, ps.maxPicardIterations, ps.splittingDegree)
+      val (eR, _) = eventEncloser.ivpSolver.solveIVP(h.fields(m), tR, vs, ps.initialPicardPadding, ps.picardImprovements, ps.maxPicardIterations, ps.splittingDegree)
       // val eR = solveVt(h.fields(m), tR, initR, ps.initialPicardPadding, ps.picardImprovements, ps.maxPicardIterations, ps.splittingDegree)
       (eL, eR)
     }
@@ -162,7 +165,7 @@ trait LocalizingStrategy extends EventEncloser {
     res
   }
 
-  def repeatEncloseUntilEventDetected(ps: Parameters, h: HybridSystem, t: Interval, m: Mode, init: Box, cb: EnclosureInterpreterCallbacks)(implicit rnd: Rounding): LFE = {
+  private def repeatEncloseUntilEventDetected(ps: Parameters, h: HybridSystem, t: Interval, m: Mode, init: Box, cb: EnclosureInterpreterCallbacks)(implicit rnd: Rounding): LFE = {
     val (tL, tR) = t.split
     val lfeL = encloseFlowUntilEventDetected(ps, h, tL, m, init, cb)
     if (!(domain(lfeL) equalTo tL)) lfeL
@@ -173,7 +176,7 @@ trait LocalizingStrategy extends EventEncloser {
     }
   }
 
-  def enclosureToLFE(h: HybridSystem, m: Mode, e: UnivariateAffineEnclosure)(implicit rnd: Rounding): (LFE, Boolean) = {
+  private def enclosureToLFE(h: HybridSystem, m: Mode, e: UnivariateAffineEnclosure)(implicit rnd: Rounding): (LFE, Boolean) = {
     val eRange = e.range
     val res @ (lfe, lfeIsBad) =
       if (!h.events.filter(_.sigma == m).exists(h.guards(_)(eRange).contains(true))) ((Seq(e), Seq(), false), false) // TODO LaTeX specification says narrow to 0 here
@@ -182,14 +185,14 @@ trait LocalizingStrategy extends EventEncloser {
     res
   }
 
-  def eventCertain(h: HybridSystem, e: UnivariateAffineEnclosure, m: Mode)(implicit rnd: Rounding): Boolean = {
+  private def eventCertain(h: HybridSystem, e: UnivariateAffineEnclosure, m: Mode)(implicit rnd: Rounding): Boolean = {
     val eAtRightEndpoint = e(e.domain.high)
     (try { h.domains(m).support(eAtRightEndpoint); false } catch { case _ => true }) ||
       // (h.domains(m)(eAtRightEndpoint) == Set(false)) || // TODO LaTeX specification only narrows to empty box here
       h.events.filter(_.sigma == m).exists(h.guards(_)(eAtRightEndpoint) == Set(true))
   }
 
-  def enclosureHasNoEventInfo(ps: Parameters, h: HybridSystem, m: Mode, e: UnivariateAffineEnclosure)(implicit rnd: Rounding): Boolean = {
+  private def enclosureHasNoEventInfo(ps: Parameters, h: HybridSystem, m: Mode, e: UnivariateAffineEnclosure)(implicit rnd: Rounding): Boolean = {
     val guards = h.events.filter(_.sigma == m).map(h.guards(_))
     val inv = h.domains(m)
     conditionNowhereFalsifiableOnEnclosure(e, inv) &&
@@ -197,7 +200,7 @@ trait LocalizingStrategy extends EventEncloser {
       (guards.forall(conditionNowhereProvableOnEnclosure(e, _)))
   }
 
-  def conditionNowhereFalsifiableOnEnclosure(e: UnivariateAffineEnclosure, cond: Predicate)(implicit rnd: Rounding): Boolean = {
+  private def conditionNowhereFalsifiableOnEnclosure(e: UnivariateAffineEnclosure, cond: Predicate)(implicit rnd: Rounding): Boolean = {
     val condAtLoRan = cond(e.low.range)
     val condAtHiRan = cond(e.high.range)
     val oneTrueOneFalse =
@@ -222,7 +225,7 @@ trait LocalizingStrategy extends EventEncloser {
     oneTrueOneFalse || equalityNowhereFalsified || conjunctionSplit
   }
 
-  def conditionNowhereProvableOnEnclosure(e: UnivariateAffineEnclosure, cond: Predicate)(implicit rnd: Rounding): Boolean = {
+  private def conditionNowhereProvableOnEnclosure(e: UnivariateAffineEnclosure, cond: Predicate)(implicit rnd: Rounding): Boolean = {
     val condAtLoRan = cond(e.low.range)
     val condAtHiRan = cond(e.high.range)
     val oneTrueOneFalse =
@@ -253,7 +256,7 @@ trait LocalizingStrategy extends EventEncloser {
 
   // operations on LFEs
 
-  def isBetterLFEThan(left: LFE, right: LFE): Boolean = (left, right) match {
+  private def isBetterLFEThan(left: LFE, right: LFE): Boolean = (left, right) match {
     case ((_, maeL, _), _) if maeL.isEmpty => false
     case (_, (_, maeR, _)) if maeR.isEmpty => true
     case ((_, maeL, complL), (_, maeR, complR)) =>
@@ -266,7 +269,7 @@ trait LocalizingStrategy extends EventEncloser {
 
   // get the first component of `lfe` truncated at `time`
   // TODO utilize that the enclosures in `lfe` are ordered to optimize this inefficient version
-  def getNoeUntil(x: Interval, lfe: LFE)(implicit rnd: Rounding): Seq[UnivariateAffineEnclosure] = lfe match {
+  private def getNoeUntil(x: Interval, lfe: LFE)(implicit rnd: Rounding): Seq[UnivariateAffineEnclosure] = lfe match {
     case (noe, _, _) =>
       val unchanged = noe.filter(_.domain.high lessThanOrEqualTo x)
       val toBeRestricted = noe.filter(e => (e.domain.low lessThanOrEqualTo x) && (x lessThan e.domain.high))
@@ -276,7 +279,7 @@ trait LocalizingStrategy extends EventEncloser {
 
   // assumes that `x` is in the domain of some enclosure in `lfe`
   // assumes that `lfe` is nonempty
-  def evalAt(lfe: LFE, x: Interval)(implicit rnd: Rounding): Box = lfe match {
+  private def evalAt(lfe: LFE, x: Interval)(implicit rnd: Rounding): Box = lfe match {
     case (noe, mae, _) =>
       val es = noe ++ mae
       require(es.exists(_.domain.contains(x)))
@@ -284,15 +287,15 @@ trait LocalizingStrategy extends EventEncloser {
       bs.tail.fold(bs.head)(_ hull _)
   }
 
-  def evalAtRightEndpoint(lfe: LFE): Box = {
+  private def evalAtRightEndpoint(lfe: LFE): Box = {
     val e = lfe match { case (noe, mae, _) => (noe ++ mae).last }
     e(e.domain.high)
   }
 
-  def domain(lfe: LFE): Interval =
+  private def domain(lfe: LFE): Interval =
     lfe match { case (noe, mae, _) => val es = noe ++ mae; es.first.domain /\ es.last.domain }
 
-  def concatenateLFEs(lfe1: LFE, lfe2: LFE): LFE =
+  private def concatenateLFEs(lfe1: LFE, lfe2: LFE): LFE =
     (lfe1, lfe2) match {
       case ((_, _, compl1), _) if compl1                           => lfe1
       case ((noe1, mae1, _), (noe2, mae2, compl2)) if mae1.isEmpty => (noe1 ++ noe2, mae2, compl2)
@@ -305,7 +308,7 @@ trait LocalizingStrategy extends EventEncloser {
 
   // the union of the intervals in `es` that transitively have nonempty intersection 
   // with the one(s) with least left end-point, i.e. the leftmost component of `es`
-  def leftmostComponentOfUnion(is: Seq[Interval]): Interval = {
+  private def leftmostComponentOfUnion(is: Seq[Interval]): Interval = {
     require(!is.isEmpty)
     val sorted = is.sortWith(_.low lessThanOrEqualTo _.low)
     // assumes `is` is sorted by low end-point
@@ -320,12 +323,12 @@ trait LocalizingStrategy extends EventEncloser {
 
   // refines the enclosures so that their domains only intersect at the end-points
   // assumes that the domains of consecutive elements are connected
-  def unionOfEnclosureLists(es: Seq[UnivariateAffineEnclosure]): Seq[UnivariateAffineEnclosure] =
+  private def unionOfEnclosureLists(es: Seq[UnivariateAffineEnclosure]): Seq[UnivariateAffineEnclosure] =
     es.groupBy(_.domain).values.toList.flatMap(UnivariateAffineEnclosure.unionThem(_)).
       sortWith { _.domain.low lessThanOrEqualTo _.domain.low }
 
   // assumes that the domains of consecutive elements are connected
-  def domain(es: Seq[UnivariateAffineEnclosure]) = {
+  private def domain(es: Seq[UnivariateAffineEnclosure]) = {
     require(es.nonEmpty)
     es.first.domain /\ es.last.domain
   }

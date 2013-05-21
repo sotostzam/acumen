@@ -16,13 +16,15 @@ import acumen.interpreters.enclosure.StateEnclosure
 import acumen.interpreters.enclosure.event.EventEncloser
 
 /**
+ * EncloseEvents
+ * 
  * Mix in this trait in place of SolveVtE to get PWL rather than EventTree based event handling.
  */
-trait EncloseEvents extends EventEncloser {
+class PWLEventEncloser(override var ivpSolver: IVPSolver) extends EventEncloser {
 
   // main function
 
-  /** Implements the event handler method in EventHandler. */
+  /** Implements the event handler method in EventEncloser. */
   override def encloseEvents(ps: Parameters, h: HybridSystem, t: Interval, s: StateEnclosure)(implicit rnd: Rounding): (StateEnclosure, StateEnclosure) = {
     val (s0, fin0) = encloseFlowNoEvents(ps, h, s, t)
     val sEvents = reachableStatesPWL(ps, h, t, ps.maxIterations, emptyState(h), s0)

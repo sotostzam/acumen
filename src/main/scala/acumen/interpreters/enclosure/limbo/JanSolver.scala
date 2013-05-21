@@ -11,9 +11,9 @@ import acumen.interpreters.enclosure.Rounding
 import acumen.interpreters.enclosure.affine.UnivariateAffineEnclosure
 import acumen.interpreters.enclosure.Util
 import acumen.interpreters.enclosure.HybridSystem
-import acumen.interpreters.enclosure.event.tree.SolveVtE
+import acumen.interpreters.enclosure.event.tree.TreeEventEncloser
 
-trait JanSolver extends SolveVtE {
+trait JanSolver extends TreeEventEncloser {
 
   case class SolverException(message: String) extends Exception
   case class Aborted(resultSoFar: Seq[UnivariateAffineEnclosure]) extends Exception

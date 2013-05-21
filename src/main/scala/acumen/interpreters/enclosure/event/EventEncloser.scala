@@ -26,6 +26,7 @@ trait EventEncloser {
     s: StateEnclosure // initial states at t.low
     )(implicit rnd: Rounding): (StateEnclosure, StateEnclosure)
 
+  // FIXME move to a method of UnivariateAffineEnclosure
   def significantImprovement(eOld: UnivariateAffineEnclosure, eNew: UnivariateAffineEnclosure, x: Interval, minComputationImprovement: Double)(implicit rnd: Rounding) = {
     val normOld = eOld(x).l1Norm
     val normNew = eNew(x).l1Norm

@@ -15,7 +15,7 @@ import acumen.interpreters.enclosure.BinaryRelationName._
 import acumen.interpreters.enclosure.Field
 import acumen.interpreters.enclosure.StateEnclosure
 
-trait EncloseHybrid extends EncloseEvents {
+trait EncloseHybrid extends PWLEventEncloser {
 
   def encloseHybrid(ps: Parameters, h: HybridSystem, t: Interval, sInit: StateEnclosure, cb: EnclosureInterpreterCallbacks)(implicit rnd: Rounding): Seq[UnivariateAffineEnclosure] = {
 

@@ -7,9 +7,9 @@ import acumen.interpreters.enclosure.Types._
 import acumen.interpreters.enclosure.affine.UnivariateAffineEnclosure
 import acumen.interpreters.enclosure.HybridSystem
 import acumen.interpreters.enclosure.Interval.toInterval
-import acumen.interpreters.enclosure.event.tree.SolveVtE
+import acumen.interpreters.enclosure.event.tree.TreeEventEncloser
 
-trait AtomicStep extends SolveVtE {
+trait AtomicStep extends TreeEventEncloser {
 
   type MaybeResult = Option[(Seq[UnivariateAffineEnclosure], Set[UncertainState])]
 

@@ -38,6 +38,9 @@ import swing.event._
 import scala.Boolean
 import acumen.interpreters.enclosure.ivp.PicardSolver
 import acumen.interpreters.enclosure.ivp.LohnerSolver
+import acumen.interpreters.enclosure.event.pwl.PWLEventEncloser
+import acumen.interpreters.enclosure.event.pwl.PWLEventEncloser
+import acumen.interpreters.enclosure.event.tree.TreeEventEncloser
 
 // class Acumen = Everything that use to be GraphicalMain.  Graphical
 // Main can't be an object it will cause Swing components to be
@@ -121,8 +124,8 @@ class App extends SimpleSwingApplication {
   private val plotStyleBothAction         = new Action(  "Both")       { mnemonic = VK_B; def apply = plotView.setPlotStyle(plot.Both()) }
   private val floatingPointAction         = mkActionMask("Floating Point",          VK_R, VK_R,       shortcutMask | SHIFT_MASK, setInterpreter(new CStoreCntrl(interpreters.reference.Interpreter))) 
   private val floatingPointParallelAction = mkActionMask("Floating Point Parallel", VK_P, VK_P,       shortcutMask | SHIFT_MASK, promptForNumberOfThreads)
-  private val pwlHybridSolverAction       = mkActionMask("Enclosure PWL",           VK_L, VK_L,       shortcutMask | SHIFT_MASK, setInterpreter(new EnclosureCntrl(interpreters.enclosure.Interpreter.asLocalizing))) 
-  private val eventTreeHybridSolverAction = mkActionMask("Enclosure EVT",           VK_T, VK_T,       shortcutMask | SHIFT_MASK, setInterpreter(new EnclosureCntrl(interpreters.enclosure.Interpreter.asNonLocalizing)))
+  private val pwlHybridSolverAction       = mkActionMask("Enclosure PWL",           VK_L, VK_L,       shortcutMask | SHIFT_MASK, setInterpreter(new EnclosureCntrl(interpreters.enclosure.Interpreter.asPWL))) 
+  private val eventTreeHybridSolverAction = mkActionMask("Enclosure EVT",           VK_T, VK_T,       shortcutMask | SHIFT_MASK, setInterpreter(new EnclosureCntrl(interpreters.enclosure.Interpreter.asEVT)))
   private val contractionAction           = mkActionMask("Contraction",             VK_C, VK_C,       shortcutMask | SHIFT_MASK, interpreters.enclosure.Interpreter.toggleContraction)
   
   /* Shows a dialog asking the user how many threads to use in the parallel interpreter. */
@@ -414,19 +417,21 @@ class App extends SimpleSwingApplication {
 	  val pwl = new RadioMenuItem("") {
 		action = pwlHybridSolverAction
 		enableWhenStopped(this)
-		selected = GraphicalMain.useEnclosures && interpreters.enclosure.Interpreter.localizing
+		selected = GraphicalMain.useEnclosures && 
+		  interpreters.enclosure.Interpreter.strategy.eventEncloser.getClass == classOf[PWLEventEncloser] 
 	  }
 	  val et = new RadioMenuItem("") {
 		action = eventTreeHybridSolverAction
 		enableWhenStopped(this) 
-		selected = GraphicalMain.useEnclosures && !interpreters.enclosure.Interpreter.localizing
+		selected = GraphicalMain.useEnclosures &&
+		  interpreters.enclosure.Interpreter.strategy.eventEncloser.getClass == classOf[TreeEventEncloser]
 	  }
 	  val bg = new ButtonGroup(ref, par, pwl, et)
 	  val ls = new CheckMenuItem("") {
 		action = contractionAction
 		enabledWhenStopped += (this, () => interpreter.interpreter.getClass == interpreters.enclosure.Interpreter.getClass)
 		enabled = GraphicalMain.useEnclosures
-		selected = interpreters.enclosure.Interpreter.ivpSolver.getClass == classOf[LohnerSolver]
+		selected = interpreters.enclosure.Interpreter.strategy.eventEncloser.ivpSolver.getClass == classOf[LohnerSolver]
 		/* Enable/disable Contraction menu item depending on the chosen semantics */
 		for (b <- bg.buttons) listenTo(b) 
 		reactions += {

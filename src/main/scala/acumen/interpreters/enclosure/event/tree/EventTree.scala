@@ -1,14 +1,14 @@
 package acumen.interpreters.enclosure.event.tree
 
 import acumen.interpreters.enclosure._
-import acumen.interpreters.enclosure.ivp.IVPSolver
-import acumen.interpreters.enclosure.Types.Event
+import acumen.interpreters.enclosure.HybridSystem
 import acumen.interpreters.enclosure.Types._
+import acumen.interpreters.enclosure.Types.Event
 import acumen.interpreters.enclosure.Util._
 import acumen.interpreters.enclosure.affine.UnivariateAffineEnclosure
 import acumen.interpreters.enclosure.affine.UnivariateAffineScalarEnclosure
+import acumen.interpreters.enclosure.ivp.IVPSolver
 import acumen.interpreters.enclosure.ivp.PicardSolver
-import acumen.interpreters.enclosure.HybridSystem
 
 /** TODO add description */
 // TODO add tests
@@ -267,6 +267,27 @@ case class EventTree(
         sequences.map(s => s.tau.foldLeft(s.enclosure.range) {
           case (res, mode) => H.domains(mode).support(res)
         }).map(ran => UnivariateAffineEnclosure(T, ran)).toSeq
+    }
+
+  // StateEnclosure extraction methods
+
+  /** TODO add description */
+  def stateEnclosure(implicit rnd: Rounding): StateEnclosure =
+    maximalSequences.head match {
+      case EmptySequence(initialMode, enclosure, _) =>
+        new StateEnclosure(Map(initialMode -> Some(enclosure.range)))
+      case _ =>
+        val sequences = maximalSequences.flatMap(v => (v +: v.prefixes).toSet)
+        new StateEnclosure(sequences.map(s =>
+          s.tau.head -> Some(H.domains(s.tau.head).support(s.enclosure.range))).
+          toMap[Mode, Option[Box]])
+    }
+
+  /** TODO add description */
+  def endTimeStateEnclosure(implicit rnd: Rounding) =
+    endTimeStates.foldLeft(StateEnclosure.emptyState(H)) {
+      case (res, ustate) =>
+        new StateEnclosure(res + (ustate.mode -> Some(ustate.initialCondition)))
     }
 
 }
