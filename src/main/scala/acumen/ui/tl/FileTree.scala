@@ -1,34 +1,31 @@
 package acumen.ui.tl
 
 import java.awt.event.ActionEvent
+import java.awt.event.KeyAdapter
+import java.awt.event.KeyEvent
+import java.awt.event.MouseAdapter
+import java.awt.event.MouseEvent
 import java.io.File
+
 import scala.Array.canBuildFrom
 import scala.collection.mutable.ArrayBuffer
 import scala.collection.mutable.Buffer
 import scala.swing.BorderPanel
 import scala.swing.Component
 import scala.swing.ScrollPane
+
 import acumen.ui.GraphicalMain
-import acumen.ui.Icons
 import javax.swing.AbstractAction
-import javax.swing.JButton
-import javax.swing.JToggleButton
+import javax.swing.JCheckBox
 import javax.swing.JToolBar
 import javax.swing.JTree
 import javax.swing.event.ChangeEvent
 import javax.swing.event.ChangeListener
 import javax.swing.event.TreeModelEvent
 import javax.swing.event.TreeModelListener
+import javax.swing.text.Position
 import javax.swing.tree.TreeModel
 import javax.swing.tree.TreePath
-import java.awt.event.MouseAdapter
-import java.awt.event.MouseEvent
-import javax.swing.text.Position
-import javax.swing.JComponent
-import scala.swing.event.Key
-import java.awt.event.KeyAdapter
-import java.awt.event.KeyEvent
-import javax.swing.JCheckBox
 
 /** Wrapper for FileTree, provides navigation and configuration buttons. */
 class FileBrowser(initialPath: File, editor: CodeArea) extends BorderPanel {
@@ -228,6 +225,7 @@ class FileTree(initialPath: File) extends Component with ChangeListener {
    * path needs to be adjusted. 
    */
   override def stateChanged(e: ChangeEvent) {
+    refresh
     val ca = e.getSource.asInstanceOf[CodeArea]
     val f = peer.getModel.getRoot.asInstanceOf[File]
 	// Check what was selected through File > Open
@@ -256,7 +254,7 @@ class FileSystemModel(rootDirectory: File) extends TreeModel {
     new TreeFile(directory, children(index))
   }
 
-  def getChildCount(parent: Object): Int = {
+  override def getChildCount(parent: Object): Int = {
     val file = parent.asInstanceOf[File]
     if (file.isDirectory) {
       val fileList = listAcumenFiles(file)
@@ -266,9 +264,9 @@ class FileSystemModel(rootDirectory: File) extends TreeModel {
     else 0
   }
 
-  def isLeaf(node: Object) = node.asInstanceOf[File].isFile;
+  override def isLeaf(node: Object) = node.asInstanceOf[File].isFile;
 
-  def getIndexOfChild(parent: Object, child: Object): Int = {
+  override def getIndexOfChild(parent: Object, child: Object): Int = {
     val directory = parent.asInstanceOf[File]
     val file = child.asInstanceOf[File]
     listAcumenFilesSorted(directory).indexWhere(_ == file.getName)
@@ -280,7 +278,7 @@ class FileSystemModel(rootDirectory: File) extends TreeModel {
   /** Returns the list of Acumen files (*.acm and README*) under path, ordered by filename */
   def listAcumenFilesSorted(path: File) = listAcumenFiles(path).sortWith(_.getName.toLowerCase < _.getName.toLowerCase)
 
-  def valueForPathChanged(path: TreePath, value: Object) {
+  override def valueForPathChanged(path: TreePath, value: Object) {
     val oldFile = path.getLastPathComponent.asInstanceOf[File]
     val fileParentPath = oldFile.getParent
     val newFileName = value.asInstanceOf[String]
@@ -289,7 +287,7 @@ class FileSystemModel(rootDirectory: File) extends TreeModel {
     val parent = new File(fileParentPath)
     val changedChildrenIndices = List(getIndexOfChild(parent, targetFile)).toArray
     val changedChildren = List(targetFile.asInstanceOf[Object]).toArray
-    fireTreeNodesChanged(path.getParentPath, changedChildrenIndices, changedChildren);
+    fireTreeNodesChanged(path.getParentPath, changedChildrenIndices, changedChildren)
   }
 
   private def fireTreeNodesChanged(parentPath: TreePath, indices: Array[Int], children: Array[Object]) = {
@@ -297,8 +295,8 @@ class FileSystemModel(rootDirectory: File) extends TreeModel {
     for (l <- listeners) l.treeNodesChanged(event)
   }
 
-  def addTreeModelListener(listener: TreeModelListener) { listeners += listener }
+  override def addTreeModelListener(listener: TreeModelListener) { listeners += listener }
 
-  def removeTreeModelListener(listener: TreeModelListener) { listeners -= listener }
+  override def removeTreeModelListener(listener: TreeModelListener) { listeners -= listener }
 
 }

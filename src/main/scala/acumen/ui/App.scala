@@ -464,7 +464,7 @@ class App extends SimpleSwingApplication {
     //receiver.destroy=true
     //threeDView.exit
 
-    if (!codeArea.editedSinceLastSave || codeArea.confirmContinue(body.peer)) {
+    if (!codeArea.editedSinceLastSave || codeArea.confirmContinue()) {
       controller ! Stop
       actor ! EXIT
       quit
