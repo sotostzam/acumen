@@ -100,13 +100,13 @@ class CodeArea extends Panel with TreeSelectionListener {
     }
     val style = textArea.getSyntaxEditingStyle
     val acumenTokenMakerSpec = XML.load(getClass.getClassLoader.getResourceAsStream("acumen/ui/tl/AcumenTokenMaker.xml"))
+    val censored = List("Continuous", "Discrete", "rint")
     if (acumenTokenMakerSpec != null) { // Try to read keywords and functions from XML
-      for (val keyword <- acumenTokenMakerSpec \\ "keyword")
+      for (keyword <- acumenTokenMakerSpec \\ "keyword" if (!censored.contains(keyword.text)))
         cp.addCompletion(new BasicCompletion(cp, keyword.text))
-      for (val keyword <- acumenTokenMakerSpec \\ "function")
+      for (keyword <- acumenTokenMakerSpec \\ "function" if (!censored.contains(keyword.text)))
         cp.addCompletion(new BasicCompletion(cp, keyword.text))
-    } // If this is unsuccessful, add the reserved words specified in the parser
-    else for (k <- Parser.lexical.reserved) cp.addCompletion(new BasicCompletion(cp, k))
+    }
     cp.addCompletion(new BasicCompletion(cp, "simulator"))
     for (paramName <- Parameters.defaults.map(_._1))
       cp.addCompletion(new BasicCompletion(cp, "simulator." + paramName))
