@@ -1,0 +1,91 @@
+
+// Magnus Egerstedt aircraft collision avoidance
+// problem
+
+class aircraft (w,c,s)
+private
+ phi := pi/2; phi' :=0;
+ p := [0,0];   p' := [0,0];
+ x :=0 ; y:=0;
+ _3D := [];
+end
+ _3D := ["Box",[x,y,0],[0.1,0.1,0.1],c,[0,0,0]];
+ x = dot (p, [1,0]);
+ y = dot (p, [0,1]);
+ p'   = s*[(cos(phi)), (sin(phi))];
+ phi' = w;
+end
+
+class controller ()
+private 
+ i1 := [0,0]; // Direction to goal
+ i2 := 0;     // Current heading
+ o  := 0;
+ g  := 0;     // Error in angle to goal
+end
+ g = atan2(dot(i1,[0,1]), dot(i1,[1,0])) - i2;
+ o = 2*atan2(sin(g),cos(g));
+end
+
+class controller2 ()
+private 
+ i1 := [0,0]; // Direction to goal
+ i2 := 0;     // Current heading
+ d  := 0;     // Distance to goal
+ o  := 0;
+ g  := 0;     // Error in angle to goal
+ mode := "Straight";
+ _3D := [];
+end
+ d = norm(i1);
+ g = atan2(dot(i1,[0,1]), dot(i1,[1,0])) - i2;
+
+ switch mode
+ case "Straight"
+  _3D := ["Box",[0,0,0],[0.1,0.1,0.1],[1,0,0],[0,0,0]];
+  o=0;
+  if (d<0.5) && (g<0)
+   mode := "Right";
+  else
+   if (d<0.5) && (g>=0)
+     mode := "Left"
+   end
+  end
+ case "Right"
+  _3D := ["Box",[0,0,0],[0.1,0.1,0.1],[0,1,0],[0,0,0]];
+  o = 2;
+  if (d>0.55) mode:= "Straight" end;
+ case "Left"
+  _3D := ["Box",[0,0,0],[0.1,0.1,0.1],[0,0,1],[0,0,0]]; 
+  o = -2;
+  if (d>0.55) mode:= "Straight" end;
+ end 
+end
+
+class Main(simulator)
+private
+ a := create aircraft (1,[1,0,0],0.7); // lead
+ b := create aircraft (0,[0,1,0],0.8); // follower
+ c := create aircraft (0,[0,0,1],1); // follower
+ c1 := create controller ();
+ c2 := create controller ();
+ c3 := create controller2 ();
+ mode := "Init";
+end
+ switch mode
+ case "Init"
+   a.p := [0,0];
+   b.p := [0,1];
+   c.p := [1,0];
+   mode := "Persist"
+  case "Persist"
+   c1.i1 = (a.p-b.p); c1.i2 = b.phi;
+   b.w   = c1.o;
+
+   c2.i1 = (b.p-c.p); c2.i2 = c.phi;
+   c.w   = c2.o; 
+
+   c3.i1 = (a.p-b.p); c3.i2 = a.phi;
+   a.w   = c3.o;
+  end
+end
