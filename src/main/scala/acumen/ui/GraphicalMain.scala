@@ -83,8 +83,8 @@ object GraphicalMain extends SimpleSwingApplication {
       case "--no-enclosures" :: tail =>
         useEnclosures = false; parseOpts(tail)
       case "--non-localizing" :: tail =>
-        interpreters.enclosure.Interpreter.localizing = false; parseOpts(tail)
-      case "--enable-completion" :: tail =>
+        interpreters.enclosure.Interpreter.asNonLocalizing(); parseOpts(tail)
+      case "--completion" :: tail =>
         useCompletion = true; parseOpts(tail)
       case "--disable-completion" :: tail =>
         useCompletion = false; parseOpts(tail)

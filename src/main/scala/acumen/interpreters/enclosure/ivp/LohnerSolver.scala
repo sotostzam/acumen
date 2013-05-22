@@ -1,4 +1,4 @@
-package acumen.interpreters.enclosure.solver
+package acumen.interpreters.enclosure.ivp
 
 import acumen.interpreters.enclosure.Box
 import acumen.interpreters.enclosure.Constant
@@ -21,7 +21,7 @@ trait LohnerSolver extends PicardSolver {
   /**
    * TODO add description!
    */
-  override def solveVt(
+  override def solveIVP(
     F: Field, // field
     T: Interval, // domain of t
     A: Box, // (A1,...,An), initial condition
@@ -31,7 +31,7 @@ trait LohnerSolver extends PicardSolver {
     degree: Int // number of pieces to split each initial condition interval
     )(implicit rnd: Rounding): (PaddedUnivariateAffineEnclosure, Box) = {
 
-    val enclosure = super.solveVt(F, T, A.midpoint, delta, m, n, degree)
+    val enclosure = super.solveIVP(F, T, A.midpoint, delta, m, n, degree)
     val (midpointEnclosure, midpointEndTimeBox) = enclosure
     val logNormBound = F.jacobianLogMaxNorm(A).high
 

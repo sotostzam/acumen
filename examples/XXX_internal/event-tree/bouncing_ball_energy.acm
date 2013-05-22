@@ -22,10 +22,7 @@ class Main(simulator)
   // common paramters
   simulator.startTime := 0;
   simulator.endTime := 3.5;
-  // event-tree paramters
-  simulator.minTimeStep := 0.0000001;
-  simulator.maxTimeStep := 0.1; // needed to get thin trajectory
   // pwl paramters
-  simulator.minSolverStep := 0.02;
-  simulator.minLocalizationStep := 0.001;
+  simulator.minSolverStep := 0.01;
+  simulator.minLocalizationStep := 0.01;
 end

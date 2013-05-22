@@ -1,12 +1,15 @@
-package acumen.interpreters.enclosure.solver.tree
+package acumen.interpreters.enclosure.limbo
 
 import acumen.interpreters.enclosure.Rounding
 import acumen.interpreters.enclosure.Box
 import acumen.interpreters.enclosure.Interval
 import acumen.interpreters.enclosure.Types._
 import acumen.interpreters.enclosure.affine.UnivariateAffineEnclosure
+import acumen.interpreters.enclosure.HybridSystem
+import acumen.interpreters.enclosure.Interval.toInterval
+import acumen.interpreters.enclosure.event.tree.TreeEventEncloser
 
-trait AtomicStep extends SolveVtE {
+trait AtomicStep extends TreeEventEncloser {
 
   type MaybeResult = Option[(Seq[UnivariateAffineEnclosure], Set[UncertainState])]
 
@@ -19,8 +22,8 @@ trait AtomicStep extends SolveVtE {
       case (_, None) =>
         result
       case ((_, us1), Some(result2 @ (_, us2))) =>
-        val norm1 = norm(union(us1.map(_.initialCondition)))
-        val norm2 = norm(union(us2.map(_.initialCondition)))
+        val norm1 = union(us1.map(_.initialCondition)).l1Norm
+        val norm2 = union(us2.map(_.initialCondition)).l1Norm
         if ((norm1 - norm2) lessThan minComputationImprovement) result
         else result2
     }

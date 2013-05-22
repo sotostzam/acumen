@@ -16,14 +16,14 @@ import acumen.interpreters.enclosure.Box
  * AffineEnclosure.
  */
 case class UnivariateAffineEnclosure private[affine] (
-  domain: Interval,
-  private[affine]normalizedDomain: Interval,
-  //  private[enclosure]
-  components: Map[VarName, UnivariateAffineScalarEnclosure])(implicit rnd: Rounding) {
+    domain: Interval,
+    private[affine]normalizedDomain: Interval,
+    //  private[enclosure]
+    components: Map[VarName, UnivariateAffineScalarEnclosure])(implicit rnd: Rounding) {
   assert(normalizedDomain.low equalTo 0, "The low end-point of the normalizedDomain should be zero!")
 
   def rounding = rnd
-  
+
   /** The low bound enclosure of this enclosure. */
   def low = UnivariateAffineEnclosure(domain, normalizedDomain, components.mapValues(_.low))
 
@@ -82,6 +82,12 @@ case class UnivariateAffineEnclosure private[affine] (
   def restrictTo(subDomain: Interval)(implicit rnd: Rounding): UnivariateAffineEnclosure = {
     require((domain contains subDomain) && (normalizedDomain contains 0 /\ subDomain.width.high))
     UnivariateAffineEnclosure(subDomain, components.mapValues(_.restrictTo(subDomain)))
+  }
+
+  def improvesOn(that: UnivariateAffineEnclosure, at: Interval, improvement: Double)(implicit rnd: Rounding) = {
+    val normOld = that(at).l1Norm
+    val normNew = this(at).l1Norm
+    normOld - normNew greaterThan improvement
   }
 
 }

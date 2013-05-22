@@ -1,13 +1,14 @@
-package acumen.interpreters.enclosure.solver.tree
+package acumen.interpreters.enclosure.event.tree
 
 import acumen.interpreters.enclosure._
-import acumen.interpreters.enclosure.solver.SolveIVP
-import acumen.interpreters.enclosure.Types.Event
+import acumen.interpreters.enclosure.HybridSystem
 import acumen.interpreters.enclosure.Types._
+import acumen.interpreters.enclosure.Types.Event
 import acumen.interpreters.enclosure.Util._
 import acumen.interpreters.enclosure.affine.UnivariateAffineEnclosure
 import acumen.interpreters.enclosure.affine.UnivariateAffineScalarEnclosure
-import acumen.interpreters.enclosure.solver.PicardSolver
+import acumen.interpreters.enclosure.ivp.IVPSolver
+import acumen.interpreters.enclosure.ivp.PicardSolver
 
 /** TODO add description */
 // TODO add tests
@@ -120,7 +121,7 @@ case class EventTree(
   /**
    * Adds another event to the event sequences in the tree.
    */
-  def addLayer(ivpSolver: SolveIVP)(implicit rnd: Rounding): EventTree = {
+  def addLayer(ivpSolver: IVPSolver)(implicit rnd: Rounding): EventTree = {
 
     def newSequences(v: EventSequence, o: Outcome) = {
       o.events.map { e =>
@@ -143,7 +144,7 @@ case class EventTree(
                 "\nmust map contracted enclosure " + H.guards(e).support(v.enclosure.range) +
                 "\ninto target domain " + H.domains(e.tau))
             val A = H.domains(e.tau).support(H.resets(e)(H.guards(e).support(v.enclosure.range)))
-            val N = ivpSolver.solveVt(H.fields(e.tau), T, A, delta, m, n, degree)._1.range
+            val N = ivpSolver.solveIVP(H.fields(e.tau), T, A, delta, m, n, degree)._1.range
             val lastEvent = e
             val affines = N
             val enclosure = UnivariateAffineEnclosure(v.domain, affines)
@@ -268,6 +269,27 @@ case class EventTree(
         }).map(ran => UnivariateAffineEnclosure(T, ran)).toSeq
     }
 
+  // StateEnclosure extraction methods
+
+  /** TODO add description */
+  def stateEnclosure(implicit rnd: Rounding): StateEnclosure =
+    maximalSequences.head match {
+      case EmptySequence(initialMode, enclosure, _) =>
+        new StateEnclosure(Map(initialMode -> Some(enclosure.range)))
+      case _ =>
+        val sequences = maximalSequences.flatMap(v => (v +: v.prefixes).toSet)
+        new StateEnclosure(sequences.map(s =>
+          s.tau.head -> Some(H.domains(s.tau.head).support(s.enclosure.range))).
+          toMap[Mode, Option[Box]])
+    }
+
+  /** TODO add description */
+  def endTimeStateEnclosure(implicit rnd: Rounding) =
+    endTimeStates.foldLeft(StateEnclosure.emptyState(H)) {
+      case (res, ustate) =>
+        new StateEnclosure(res + (ustate.mode -> Some(ustate.initialCondition)))
+    }
+
 }
 
 object EventTree {
@@ -282,9 +304,9 @@ object EventTree {
     m: Int,
     n: Int,
     degree: Int,
-    ivpSolver: SolveIVP)(implicit rnd: Rounding) = {
+    ivpSolver: IVPSolver)(implicit rnd: Rounding) = {
     val mode = S.mode
-    val (enclosure, _) = ivpSolver.solveVt(H.fields(mode), T, S.initialCondition, delta, m, n, degree)
+    val (enclosure, _) = ivpSolver.solveIVP(H.fields(mode), T, S.initialCondition, delta, m, n, degree)(rnd)
     val mayBeLast = false
     val sequences = Set(EmptySequence(mode, enclosure, mayBeLast).asInstanceOf[EventSequence])
     EventTree(sequences, T, H, S, delta, m, n, degree)

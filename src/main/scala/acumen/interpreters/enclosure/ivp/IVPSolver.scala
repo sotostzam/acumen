@@ -1,12 +1,12 @@
-package acumen.interpreters.enclosure.solver
+package acumen.interpreters.enclosure.ivp
 
 import acumen.interpreters.enclosure.{Rounding,Interval,Field,Box}
 import acumen.interpreters.enclosure.affine.UnivariateAffineEnclosure
 
-trait SolveIVP {
+trait IVPSolver {
 
   /* TODO add description! */
-  def solveVt(
+  def solveIVP(
     F: Field, // field
     T: Interval, // domain of the independent variable
     A: Box, // initial condition
