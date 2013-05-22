@@ -104,8 +104,8 @@ class App extends SimpleSwingApplication {
   private val stopAction                  = mkAction(    "Stop",                    VK_S, VK_T,       upperButtons.bStop.doClick)
   private val newAction                   = mkAction(    "New",                     VK_N, VK_N,       codeArea.newFile)
   private val openAction                  = mkAction(    "Open",                    VK_O, VK_O,       codeArea.openFile(codeArea.currentDir))
-  private val saveAction                  = mkAction(    "Save",                    VK_S, VK_S,       codeArea.saveFile)
-  private val saveAsAction                = mkActionMask("Save As",                 VK_A, VK_S,       shortcutMask | SHIFT_MASK, codeArea.saveFileAs)
+  private val saveAction                  = mkAction(    "Save",                    VK_S, VK_S,       codeArea.saveFile())
+  private val saveAsAction                = mkActionMask("Save As",                 VK_A, VK_S,       shortcutMask | SHIFT_MASK, codeArea.saveFileAs())
   private val recoverAction               = mkAction(    "Recover",                 VK_R, VK_R,       codeArea.openFile(Files.autoSavedDir))
   private val exitAction                  = mkAction(    "Exit",                    VK_E, VK_Q,       exit)
   private val cutAction                   = mkAction(    "Cut",                     VK_T, VK_X,       codeArea.textArea.cut)
@@ -639,7 +639,7 @@ class App extends SimpleSwingApplication {
               case VK_R      => upperButtons.bPlay.doClick ; true
               case VK_T      => upperButtons.bStop.doClick ; true
               case VK_G      => upperButtons.bStep.doClick ; true
-              case VK_S      => codeArea.saveFile ; true
+              case VK_S      => codeArea.saveFile() ; true
               case VK_O      => codeArea.openFile(codeArea.currentDir) ; true
               case VK_L      => toggleLineNumbers ; true
               case VK_PLUS | 

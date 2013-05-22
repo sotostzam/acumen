@@ -224,45 +224,54 @@ class CodeArea extends Panel with TreeSelectionListener {
     possibleActions(JOptionPane.showOptionDialog(
       null, message, "Warning", JOptionPane.DEFAULT_OPTION, JOptionPane.WARNING_MESSAGE,
       null, possibleActions, possibleActions(2))) match {
-      case PROMPT_SAVE_AND_CONTINUE    => saveFile; true 
+      case PROMPT_SAVE_AND_CONTINUE    => saveFile(updateCurrentFile = false); true 
       case PROMPT_DISCARD_AND_CONTINUE => true
       case PROMPT_CANCEL               => false
     }
   }
-
-  def saveFileAs: Unit = withErrorReporting {
-    val fc = new FileChooser(currentDir)
-    val returnVal = fc.showSaveDialog(App.ui.body)
-    if (returnVal == FileChooser.Result.Approve) {
-      val file = fc.selectedFile
-      if (!file.exists || confirmSave(App.ui.body.peer, file)) {
-        val writer = new FileWriter(fc.selectedFile)
-        writer.write(textArea.getText)
-        writer.close
-        setCurrentFile(Some(file))
-        editedSinceLastSave = false
-        notifyPathChangeListeners
-      }
-    }
-  }
-
-  def saveFile: Unit = withErrorReporting {
+  
+  /**
+   * Used to save the editor's contents to the current file.
+   * The parameter updateCurrentFile can be used when the save 
+   * is done as an auxiliary action, to prevent other GUI 
+   * components from reacting by focusing on the saved file. 
+   */
+  def saveFile(updateCurrentFile: Boolean = true): Unit = withErrorReporting {
     currentFile match {
       case Some(f) =>
-        if (f.isDirectory)
-          saveFileAs
-        else {
-          val writer = new FileWriter(f)
-          writer.write(textArea.getText)
-          writer.close
-          setCurrentFile(currentFile)
-          editedSinceLastSave = false
-          notifyPathChangeListeners
-        }
-      case None => saveFileAs
+        if (f.isDirectory) saveFileAs(updateCurrentFile)
+        else writeText(f, updateCurrentFile)
+      case None => 
+        saveFileAs(updateCurrentFile)
+    }
+  }
+  
+  /**
+   * Used to save the editor's contents to the a new file.
+   * The parameter updateCurrentFile can be used when the save 
+   * is done as an auxiliary action, to prevent other GUI 
+   * components from reacting by focusing on the saved file. 
+   */
+  def saveFileAs(updateCurrentFile: Boolean = true): Unit = withErrorReporting {
+    val fc = new FileChooser(currentDir)
+    if (fc.showSaveDialog(App.ui.body) == FileChooser.Result.Approve) {
+      val f = fc.selectedFile
+      if (!f.exists || confirmSave(App.ui.body.peer, f))
+        writeText(f, updateCurrentFile)
     }
   }
 
+  /** Write editor text contents to file, optionally updating the current file reference. */
+  private def writeText(file: File, updateCurrentFile: Boolean) = {
+    val writer = new FileWriter(file)
+    writer.write(textArea.getText)
+    writer.close
+    if (updateCurrentFile)
+      setCurrentFile(Some(file))
+    editedSinceLastSave = false
+    notifyPathChangeListeners
+  }
+  
   def autoSave = withErrorReporting {
     if (editedSinceLastAutoSave) {
       val file = Files.getFreshFile

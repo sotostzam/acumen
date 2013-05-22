@@ -225,14 +225,12 @@ class FileTree(initialPath: File) extends Component with ChangeListener {
    * path needs to be adjusted. 
    */
   override def stateChanged(e: ChangeEvent) {
-    refresh
-    val ca = e.getSource.asInstanceOf[CodeArea]
-    val f = peer.getModel.getRoot.asInstanceOf[File]
 	// Check what was selected through File > Open
-    ca.currentFile.foreach { file =>
+    e.getSource.asInstanceOf[CodeArea].currentFile.foreach { file =>
       if (GraphicalMain.syncEditorWithBrowser) focus(file)
       if (file.isDirectory) peer.clearSelection
     }
+    refresh
   }
 
 }
