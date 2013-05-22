@@ -41,20 +41,25 @@ import javax.swing.event.TreeSelectionListener
 import javax.swing.UIManager
 import scala.swing.Button
 import acumen.interpreters.enclosure.Parameters
+import javax.swing.KeyStroke
 
 class CodeArea extends Panel with TreeSelectionListener {
 
   val textArea = createSyntaxTextArea
-
+  
   val DEFAULT_FONT_SIZE = 12
   val DEFAULT_FONT_NAME = Font.MONOSPACED
   val KNOWN_FONTS = Set("courier new", "courier", "monaco", "consolas", "lucida console",
     "andale mono", "profont", "monofur", "proggy", "droid sans mono",
     "lettergothic", "bitstream vera sans mono", "crystal", "ubuntu monospace")
 
+  val PROMPT_CANCEL = "Cancel"
+  val PROMPT_SAVE_AND_CONTINUE = "Save and continue"
+  val PROMPT_DISCARD_AND_CONTINUE = "Discard and continue"
+    
   this.peer.setLayout(new BorderLayout)
   this.peer.add(textArea, BorderLayout.CENTER)
-
+  
   /* ---- state variables ---- */
   var currentFile: Option[File] = None
   var editedSinceLastSave: Boolean = false
@@ -84,6 +89,7 @@ class CodeArea extends Panel with TreeSelectionListener {
     if (GraphicalMain.useCompletion) {
       val completionProvider = createCompletionProvider(sta)
       val autoCompletion = new AutoCompletion(completionProvider)
+      autoCompletion setTriggerKey KeyStroke.getKeyStroke("TAB")
       autoCompletion install sta
     }
     if (GraphicalMain.useTemplates) {
@@ -100,13 +106,14 @@ class CodeArea extends Panel with TreeSelectionListener {
     }
     val style = textArea.getSyntaxEditingStyle
     val acumenTokenMakerSpec = XML.load(getClass.getClassLoader.getResourceAsStream("acumen/ui/tl/AcumenTokenMaker.xml"))
+    val censored = List("Continuous", "Discrete", "rint")
     if (acumenTokenMakerSpec != null) { // Try to read keywords and functions from XML
-      for (val keyword <- acumenTokenMakerSpec \\ "keyword")
+      for (keyword <- acumenTokenMakerSpec \\ "keyword" if (!censored.contains(keyword.text)))
         cp.addCompletion(new BasicCompletion(cp, keyword.text))
-      for (val keyword <- acumenTokenMakerSpec \\ "function")
+      for (keyword <- acumenTokenMakerSpec \\ "function" if (!censored.contains(keyword.text)))
         cp.addCompletion(new BasicCompletion(cp, keyword.text))
-    } // If this is unsuccessful, add the reserved words specified in the parser
-    else for (k <- Parser.lexical.reserved) cp.addCompletion(new BasicCompletion(cp, k))
+    }
+    cp.addCompletion(new BasicCompletion(cp, "Main"))
     cp.addCompletion(new BasicCompletion(cp, "simulator"))
     for (paramName <- Parameters.defaults.map(_._1))
       cp.addCompletion(new BasicCompletion(cp, "simulator." + paramName))
@@ -199,7 +206,7 @@ class CodeArea extends Panel with TreeSelectionListener {
     }
   }
   
-  def preventWorkLoss(a: => Unit) { if (!editedSinceLastSave || confirmContinue(App.ui.body.peer)) a } 
+  def preventWorkLoss(a: => Unit) { if (!editedSinceLastSave || confirmContinue()) a } 
 
   def confirmSave(c: java.awt.Component, f: File) = {
     val message =
@@ -209,11 +216,18 @@ class CodeArea extends Panel with TreeSelectionListener {
       "Really?", JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION
   }
 
-  def confirmContinue(c: java.awt.Component) = {
-    val message = "Last changes have not been saved\n" +
-      "Are you sure you want to continue?"
-    JOptionPane.showConfirmDialog(c, message,
-      "Really?", JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION
+  def confirmContinue() = {
+    val message = "You have changed this file since the last time it was saved.\n" +
+                  "Please confirm your desired action."
+    val possibleActions: Array[Object] =
+      Array(PROMPT_SAVE_AND_CONTINUE, PROMPT_DISCARD_AND_CONTINUE, PROMPT_CANCEL)
+    possibleActions(JOptionPane.showOptionDialog(
+      null, message, "Warning", JOptionPane.DEFAULT_OPTION, JOptionPane.WARNING_MESSAGE,
+      null, possibleActions, possibleActions(2))) match {
+      case PROMPT_SAVE_AND_CONTINUE    => saveFile; true 
+      case PROMPT_DISCARD_AND_CONTINUE => true
+      case PROMPT_CANCEL               => false
+    }
   }
 
   def saveFileAs: Unit = withErrorReporting {
@@ -226,8 +240,8 @@ class CodeArea extends Panel with TreeSelectionListener {
         writer.write(textArea.getText)
         writer.close
         setCurrentFile(Some(file))
-        notifyPathChangeListeners
         editedSinceLastSave = false
+        notifyPathChangeListeners
       }
     }
   }
@@ -242,8 +256,8 @@ class CodeArea extends Panel with TreeSelectionListener {
           writer.write(textArea.getText)
           writer.close
           setCurrentFile(currentFile)
-          notifyPathChangeListeners
           editedSinceLastSave = false
+          notifyPathChangeListeners
         }
       case None => saveFileAs
     }
