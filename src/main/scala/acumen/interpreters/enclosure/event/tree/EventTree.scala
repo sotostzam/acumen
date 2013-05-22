@@ -18,6 +18,7 @@ abstract class EventSequence {
   def sigma: Mode
   def tau: Set[Mode]
   def prefixes: Seq[EventSequence]
+  def subSequences: Set[EventSequence]
   val size: Int
   val domain: Interval
   def setMayBeLastTo(value: Boolean): EventSequence
@@ -32,6 +33,7 @@ case class EmptySequence(
   def sigma = initialMode
   def tau = Set(initialMode)
   def prefixes = Seq()
+  def subSequences = Set(this)
   val size = 0
   val domain = enclosure.domain
   def setMayBeLastTo(value: Boolean) =
@@ -49,6 +51,7 @@ case class NonemptySequence(
   def sigma = prefix.sigma
   def tau = Set(lastEvent.tau)
   def prefixes = prefix +: prefix.prefixes
+  def subSequences = prefix.subSequences + this
   val size = prefix.size + 1
   val domain = prefix.domain
   def setMayBeLastTo(value: Boolean) =
@@ -67,6 +70,8 @@ case class EventTree(
     m: Int,
     n: Int,
     degree: Int) {
+
+  def sequences = maximalSequences.flatMap(_.subSequences)
 
   /** TODO add description */
   // TODO add tests
@@ -273,22 +278,13 @@ case class EventTree(
 
   /** TODO add description */
   def stateEnclosure(implicit rnd: Rounding): StateEnclosure =
-    maximalSequences.head match {
-      case EmptySequence(initialMode, enclosure, _) =>
-        new StateEnclosure(Map(initialMode -> Some(enclosure.range)))
-      case _ =>
-        val sequences = maximalSequences.flatMap(v => (v +: v.prefixes).toSet)
-        new StateEnclosure(sequences.map(s =>
-          s.tau.head -> Some(H.domains(s.tau.head).support(s.enclosure.range))).
-          toMap[Mode, Option[Box]])
-    }
+    StateEnclosure.union(sequences.map(s => new StateEnclosure(Map(
+      s.tau.head -> Some(H.domains(s.tau.head).support(s.enclosure.range))))))
 
   /** TODO add description */
   def endTimeStateEnclosure(implicit rnd: Rounding) =
-    endTimeStates.foldLeft(StateEnclosure.emptyState(H)) {
-      case (res, ustate) =>
-        new StateEnclosure(res + (ustate.mode -> Some(ustate.initialCondition)))
-    }
+    StateEnclosure.union(endTimeStates.map(s =>
+      new StateEnclosure(Map(s.mode -> Some(s.initialCondition)))))
 
 }
 
