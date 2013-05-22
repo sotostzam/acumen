@@ -1,4 +1,4 @@
-package acumen.interpreters.enclosure.solver
+package acumen.interpreters.enclosure.ivp
 
 import acumen.interpreters.enclosure.Box
 import acumen.interpreters.enclosure.Field
@@ -6,12 +6,12 @@ import acumen.interpreters.enclosure.Interval
 import acumen.interpreters.enclosure.Rounding
 import acumen.interpreters.enclosure.affine.UnivariateAffineEnclosure
 
-trait VeroSolver extends SolveIVP {
+trait VeroSolver extends IVPSolver {
 
   /**
    * TODO add description!
    */
-  def solveVt(
+  def solveIVP(
     F: Field, // field
     T: Interval, // domain of t
     A: Box, // (A1,...,An), initial condition

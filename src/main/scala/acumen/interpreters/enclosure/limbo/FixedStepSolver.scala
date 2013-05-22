@@ -1,12 +1,13 @@
-package acumen.interpreters.enclosure.solver.tree
+package acumen.interpreters.enclosure.limbo
 
 import acumen.interpreters.enclosure._
 import acumen.interpreters.enclosure.Interval._
 import acumen.interpreters.enclosure.Types._
-import acumen.ui.interpreter.Enclosure
 import acumen.interpreters.enclosure.affine.UnivariateAffineEnclosure
+import acumen.interpreters.enclosure.HybridSystem
+import acumen.interpreters.enclosure.event.tree.TreeEventEncloser
 
-trait FixedStepSolver extends SolveVtE {
+trait FixedStepSolver extends TreeEventEncloser {
 
   case class SolverException(message: String) extends Exception
   case class Aborted(resultSoFar: Seq[UnivariateAffineEnclosure]) extends Exception

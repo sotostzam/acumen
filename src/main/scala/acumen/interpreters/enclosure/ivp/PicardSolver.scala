@@ -1,4 +1,4 @@
-package acumen.interpreters.enclosure.solver
+package acumen.interpreters.enclosure.ivp
 
 import acumen.interpreters.enclosure._
 import acumen.interpreters.enclosure.Interval._
@@ -7,14 +7,14 @@ import acumen.interpreters.enclosure.affine.UnivariateAffineEnclosure
 import acumen.interpreters.enclosure.affine.AffineEnclosure
 import acumen.interpreters.enclosure.affine.AffineScalarEnclosure
 
-trait PicardSolver extends SolveIVP {
+trait PicardSolver extends IVPSolver {
 
   /**
    * Implementation detail: do not split initial conditions for variables
    * with zero field components. These values do not change over T and so
    * splitting them will not improve the solution.
    */
-  def solveVt(
+  override def solveIVP(
     F: Field, // field
     T: Interval, // domain of t
     A: Box, // (A1,...,An), initial condition
@@ -34,7 +34,7 @@ trait PicardSolver extends SolveIVP {
     val endTimeValue = enclosure(T.high)
     (enclosure, endTimeValue)
   }
-
+  
   /**
    * Solves an ODE-IVP given by a field F for a time interval T and
    * initial condition A by iteratively applying the Picard operator.
@@ -50,7 +50,7 @@ trait PicardSolver extends SolveIVP {
    * 3. Collapse the obtained enclosure onto an enclosure over T.
    *
    */
-  def solveIVP(
+  private def solveIVP(
     F: Field, // field
     T: Interval, // domain of t
     A: Box, // (A1,...,An), initial condition
