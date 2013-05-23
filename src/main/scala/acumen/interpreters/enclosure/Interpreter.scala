@@ -57,7 +57,8 @@ class Interpreter
                      adjustParms: Parameters => Parameters) = {
     val cb = cb0.asInstanceOf[EnclosureInterpreterCallbacks]
     if (des.defs.size > 1) sys.error("Multiple classes are not currently supported by the enclosure interperter!")
-    val main = classDef(ClassName("Main"), des)
+    val cdes = CleanParameters.run(des, EnclosureInterpreterType)
+    val main = classDef(ClassName("Main"), cdes)
 
     // checking that main class embeds a hybrid automaton
     checkValidAutomatonEmbedding(main)
