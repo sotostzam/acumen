@@ -345,7 +345,8 @@ object Interpreter extends acumen.CStoreInterpreter {
  
   def init(prog:Prog) : (Prog, Store) = {
     val cprog = CleanParameters.run(prog, CStoreInterpreterType)
-    val mprog = Prog(magicClass :: cprog.defs)
+    val sprog = Simplifier.run(cprog)
+    val mprog = Prog(magicClass :: sprog.defs)
     val (sd1,sd2) = Random.split(Random.mkGen(0))
     val (id,_,_,st1) = 
       mkObj(cmain, mprog, None, sd1, List(VObjId(Some(CId(0)))), 1)(initStore)
