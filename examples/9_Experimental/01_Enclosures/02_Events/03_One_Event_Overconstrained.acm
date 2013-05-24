@@ -10,7 +10,7 @@ class Main(simulator)
     mode := "m"
   end
   switch mode
-    case "m" require x >= 0 // Invariant added
+    case "m" claim x >= 0 // Invariant added
       if x == 0 
         x := 1;
         mode := "m" 

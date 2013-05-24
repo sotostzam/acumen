@@ -6,7 +6,7 @@ good simulation results involves three steps:
   1 Simulate the model in its original formulation.
     
   2 Add knowledge about the system using invariants,
-    captured by the require clause, in order to 
+    captured by the claim clause, in order to 
     improve the size of the enclosure.
   
   3 Vary the simulator parameters to further improve 

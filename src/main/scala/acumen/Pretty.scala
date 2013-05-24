@@ -126,7 +126,7 @@ object Pretty {
   implicit def prettyClause : PrettyAble[Clause] =
     PrettyAble {
       case Clause(lhs,assertion:Expr,rhs) => 
-        DocNest(2, "case " :: pretty(lhs) :: " require " :: pretty(assertion) :/: pretty(rhs)) 
+        DocNest(2, "case " :: pretty(lhs) :: " claim " :: pretty(assertion) :/: pretty(rhs)) 
     }
 
   implicit def prettyAction : PrettyAble[Action] =

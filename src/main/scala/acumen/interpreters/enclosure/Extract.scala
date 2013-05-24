@@ -25,7 +25,7 @@ trait Extract {
    * The automaton graph is represented as a single switch statement
    * with the variable that is switched on acting as a mode designator.
    *
-   * The domain invariant of the mode is declared by the 'require' keyword
+   * The domain invariant of the mode is declared by the 'claim' keyword
    * which may be provided after the value matched on in the case clause.
    * Omitted requiress are parsed as constant 'true' invariants.
    *

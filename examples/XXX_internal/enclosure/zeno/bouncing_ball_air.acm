@@ -3,12 +3,12 @@
 class Main(simulator)
   private mode := "Fall"; x := 5; x' := 0; x'' := 0 end
   switch mode
-    case "Rise" require x >= 0 && x' >= 0
+    case "Rise" claim x >= 0 && x' >= 0
       if x' == 0
         mode := "Fall"
       end;
       x'' = -10 - 0.1*x'*x'
-    case "Fall" require x >= 0 && x' <= 0
+    case "Fall" claim x >= 0 && x' <= 0
       if x == 0
         x' := -0.5 * x';
         mode := "Rise"

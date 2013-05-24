@@ -10,7 +10,7 @@ class Main(simulator)
     mode := "m"
   end
   switch mode
-    case "m" require x >= 0
+    case "m" claim x >= 0
       if x == 0 && x' <= 0
         x' := -0.5 * x';
         mode := "m" 

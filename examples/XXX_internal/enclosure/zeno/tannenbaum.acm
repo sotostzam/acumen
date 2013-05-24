@@ -9,7 +9,7 @@ class Main(simulator)
    mode := ""; 
  end
  switch mode
-   case "" require spd == s + d && s <= abs(d)
+   case "" claim spd == s + d && s <= abs(d)
      if d == s 
        s    := d - s/2; 
        spd  := 2*d  - s/2; 

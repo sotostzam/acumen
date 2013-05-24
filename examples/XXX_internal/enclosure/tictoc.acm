@@ -19,12 +19,12 @@ class Main (simulator)
   simulator.minLocalizationStep := 0.001;
   simulator.minComputationImprovement := 0.001;  
   switch mode
-    case "decreasing" require x >= 0
+    case "decreasing" claim x >= 0
       if x == 0 
         mode := "increasing"
       end;
       x' = -1;
-    case "increasing" require x <= 1
+    case "increasing" claim x <= 1
       if x == 1 
         mode := "decreasing"
       end;

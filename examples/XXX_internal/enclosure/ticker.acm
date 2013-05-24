@@ -2,7 +2,7 @@ class Main(simulator)
 private mode := "On"; x := 1; x' := -1 end
   simulator.endTime := 2.5;
   switch mode
-    case "On" require x >= 0
+    case "On" claim x >= 0
       if x == 0
         x := 1; 
         mode := "On"

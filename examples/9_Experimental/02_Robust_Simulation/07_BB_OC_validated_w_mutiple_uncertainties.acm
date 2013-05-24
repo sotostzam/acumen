@@ -18,8 +18,8 @@ class Main(simulator)
   end
   switch mode
     case "Fly" 
-      require x >= 0 && 
-              r == x'*x' + 20*x
+      claim x >= 0 && 
+             r == x'*x' + 20*x
       if x == 0 && x' <= 0
         x' := [-0.55..-0.45]*x'; // Unc. in coef. rest.
         r  := [0.0..0.3025]*r;

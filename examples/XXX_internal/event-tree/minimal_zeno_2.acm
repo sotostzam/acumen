@@ -7,12 +7,12 @@ class Main(simulator)
     mode := "xIsPositive" 
   end
   switch mode
-    case "xIsPositive" require x > 0
+    case "xIsPositive" claim x > 0
       if x <= 0 
         mode := "xIsNonpositive"
       end;
       x' = -1;
-    case "xIsNonpositive" require x <= 0
+    case "xIsNonpositive" claim x <= 0
       if x > 0 
         mode := "xIsPositive"
       end;
