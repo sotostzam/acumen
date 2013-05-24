@@ -344,7 +344,9 @@ object Interpreter extends acumen.CStoreInterpreter {
   lazy val initStore  = Parser.run(Parser.store, initStoreTxt)
  
   def init(prog:Prog) : (Prog, Store) = {
-    val mprog = Prog(magicClass :: prog.defs)
+    val cprog = CleanParameters.run(prog, CStoreInterpreterType)
+    val sprog = Simplifier.run(cprog)
+    val mprog = Prog(magicClass :: sprog.defs)
     val (sd1,sd2) = Random.split(Random.mkGen(0))
     val (id,_,_,st1) = 
       mkObj(cmain, mprog, None, sd1, List(VObjId(Some(CId(0)))), 1)(initStore)
@@ -382,4 +384,11 @@ object Interpreter extends acumen.CStoreInterpreter {
         }
       }
     )
+
+
+  // a bit evil I know -- kevina
+  List("time", "timeStep", "endTime", "stepType", "lastCreatedId").foreach { parm => 
+    acumen.CleanParameters.parms.registerParm(parm, acumen.CStoreInterpreterType)
+  }
+
 }
