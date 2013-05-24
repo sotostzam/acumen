@@ -31,3 +31,5 @@ end
 // Note:  This example illustrates Zeno behavior in a 
 //        minimal setting, where the value of the 
 //        variable s is constant between resets.
+
+// "tortoise and hare"
