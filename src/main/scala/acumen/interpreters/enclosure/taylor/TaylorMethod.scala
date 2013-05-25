@@ -1,16 +1,23 @@
 package acumen.interpreters.enclosure.taylor
 
-import acumen.interpreters.enclosure.Negate
 import scala.collection.mutable.ArrayBuffer
-import acumen.interpreters.enclosure.Multiply
-import acumen.interpreters.enclosure.Rounding
-import acumen.interpreters.enclosure.Constant
+
 import acumen.interpreters.enclosure.Box
-import acumen.interpreters.enclosure.Variable
+import acumen.interpreters.enclosure.Constant
+import acumen.interpreters.enclosure.Cos
+import acumen.interpreters.enclosure.Divide
+import acumen.interpreters.enclosure.Exp
 import acumen.interpreters.enclosure.Expression
-import acumen.interpreters.enclosure.Interval
-import acumen.interpreters.enclosure.Plus
 import acumen.interpreters.enclosure.Field
+import acumen.interpreters.enclosure.Interval
+import acumen.interpreters.enclosure.Log
+import acumen.interpreters.enclosure.Multiply
+import acumen.interpreters.enclosure.Negate
+import acumen.interpreters.enclosure.Plus
+import acumen.interpreters.enclosure.Rounding
+import acumen.interpreters.enclosure.Sin
+import acumen.interpreters.enclosure.Sqrt
+import acumen.interpreters.enclosure.Variable
 
 trait TaylorMethod {
 
@@ -37,7 +44,7 @@ trait TaylorMethod {
   }
 
   /**
-   * TODO add description.
+   * FIXME add description.
    */
   def taylorTable(f: Field, d: Int, b: Box, h: Interval)(implicit rnd: Rounding) = {
     val table = new scala.collection.mutable.HashMap[Expression, scala.collection.mutable.ArrayBuffer[Interval]]
@@ -58,6 +65,11 @@ trait TaylorMethod {
         case Constant(v) => table(e) + Interval(0)
         case Variable(n) => table(e)
         case Negate(e)   => table(e).map(-(_))
+        case Sqrt(e)     => sys.error("undefined")
+        case Exp(e)      => sys.error("undefined")
+        case Log(e)      => sys.error("undefined")
+        case Sin(e)      => sys.error("undefined")
+        case Cos(e)      => sys.error("undefined")
         case Plus(l, r)  => (table(l) zip table(r)).map { case (l, r) => l + r }
         case Multiply(l, r) =>
           val ls = table(l)
@@ -92,12 +104,27 @@ trait TaylorMethod {
         for (j <- 1 to k) res += ls(j) * rs(k - j)
         res
       }
+      def divide(ls: Array[Interval], rs: Array[Interval], d: Int) = {
+        var res = (Array.fill(d + 1)(1 / rs(0)))
+        for (k <- 0 to d) {
+          var rk = ls(k)
+          for (j <- 1 to k) rk -= rs(j) * res(k - j)
+          res(k) *= rk
+        }
+        res
+      }
       x match {
         case Constant(v)    => table += x -> (v :: (1 to d).toList.map(_ => Interval(0))).toArray
         case Variable(n)    => table += x -> (b(n) :: h(n) :: (1 until d).toList.map(_ => Interval(0))).toArray
         case Negate(e)      => table += x -> table(e).map(-(_))
+        case Sqrt(e)        => sys.error("undefined")
+        case Exp(e)         => sys.error("undefined")
+        case Log(e)         => sys.error("undefined")
+        case Sin(e)         => sys.error("undefined")
+        case Cos(e)         => sys.error("undefined")
         case Plus(l, r)     => table += x -> (table(l) zip table(r)).map { case (l, r) => l + r }
         case Multiply(l, r) => table += x -> (0 to d).map(k => multiply(table(l), table(r), k)).toArray
+        case Divide(l, r)   => table += x -> divide(table(l), table(r), d)
       }
     }
     codeList(e).map(addToTable)
@@ -113,8 +140,11 @@ trait TaylorMethod {
     def memoise(e: Expression): Expression = e match {
       case Constant(_) | Variable(_) => mem(e)
       case Negate(e)                 => mem(Negate(memoise(e)))
+      case Sqrt(e)                   => mem(Sqrt(memoise(e)))
+      case Exp(e)                    => mem(Exp(memoise(e)))
       case Plus(l, r)                => mem(Plus(memoise(l), memoise(r)))
       case Multiply(l, r)            => mem(Multiply(memoise(l), memoise(r)))
+      case Divide(l, r)              => mem(Divide(memoise(l), memoise(r)))
       case _                         => sys.error("memoisation of " + e + " not supported!")
     }
     es.map(memoise(_))
