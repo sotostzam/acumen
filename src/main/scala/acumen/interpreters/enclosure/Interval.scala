@@ -2,8 +2,8 @@ package acumen.interpreters.enclosure
 
 import java.math.BigDecimal
 import java.math.MathContext
-
 import Interval._
+import java.math.RoundingMode
 
 /**
  * Intervals with outward-rounded operations.
@@ -344,13 +344,13 @@ case class Interval(
    */
   override def toString = "[" + lo + "," + hi + "]"
 
-  // TODO improve description
-  /** UNSAFE only to be used for plotting */
-  def loDouble: Double = lo.doubleValue()
+  /** Utilities for safe cast to Double interval. */
+  private lazy val dnToDouble = new java.math.MathContext(15, java.math.RoundingMode.FLOOR)
+  private lazy val upToDouble = new java.math.MathContext(15, java.math.RoundingMode.CEILING)
 
-  // TODO improve description
-  /** UNSAFE only to be used for plotting */
-  def hiDouble: Double = hi.doubleValue()
+  def loDouble: Double = lo.round(dnToDouble).doubleValue()
+  def hiDouble: Double = hi.round(upToDouble).doubleValue()
+
 }
 
 object Interval {
