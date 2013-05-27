@@ -1,0 +1,14 @@
+class Main(simulator)
+private
+  x := 1; x' := 0; 
+  t := 0; t' := 1;
+  mode := "";
+end
+  switch mode
+    case "" claim cos(t) <= x && x <= cos(t)
+      x' = [-1.0..1.0];
+      t' = 1;
+  end;
+  simulator.endTime := 3.2;
+  simulator.minSolverStep := 0.01;
+end

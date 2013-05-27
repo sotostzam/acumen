@@ -74,10 +74,10 @@ trait Contract {
       }
     case Negate(e) => backPropagate(env, e(env) \/ (-ran), e)
     case Sqrt(e)   => backPropagate(env, e(env) \/ ran.square, e)
-    case Exp(e)    => sys.error("undefined")
-    case Log(e)    => sys.error("undefined")
-    case Sin(e)    => sys.error("undefined")
-    case Cos(e)    => sys.error("undefined")
+    case Exp(e)    => sys.error("backPropagate: undefined")
+    case Log(e)    => sys.error("backPropagate: undefined")
+    case Sin(e)    => sys.error("backPropagate: undefined")
+    case Cos(e)    => backPropagate(env, e(env) \/ (ran \/ Interval(-1,1)).acos, e) // intersect with [-1,1] to get in domain of acos
     case Plus(l, r) =>
       val lenv = l(env)
       val renv = r(env)

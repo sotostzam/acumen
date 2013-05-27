@@ -2,8 +2,10 @@ package acumen.interpreters.enclosure
 
 import java.math.BigDecimal
 import java.math.MathContext
-import Interval._
 import java.math.RoundingMode
+import Interval._
+import net.sourceforge.interval.ia_math.IAMath
+import net.sourceforge.interval.ia_math.RealInterval
 
 /**
  * Intervals with outward-rounded operations.
@@ -350,6 +352,26 @@ case class Interval(
 
   def loDouble: Double = lo.round(dnToDouble).doubleValue()
   def hiDouble: Double = hi.round(upToDouble).doubleValue()
+
+  /** Interval function wrappers for IAMath functions. */
+
+  def cos: Interval = {
+    val value = IAMath.cos(new RealInterval(loDouble, hiDouble))
+    require(!value.lo.isNaN && !value.hi.isNaN)
+    Interval(value.lo, value.hi)
+  }
+
+  /**
+   * Inverse cosine, currently added for back-propagation over cosine.
+   *
+   * Precondition: this.abs in [-1,1] (inherited from java.math.Math.acos)
+   */
+  def acos: Interval = {
+    require(Interval(-1, 1) contains this)
+    val value = IAMath.acos(new RealInterval(loDouble, hiDouble))
+    require(!value.lo.isNaN && !value.hi.isNaN)
+    Interval(value.lo, value.hi)
+  }
 
 }
 
