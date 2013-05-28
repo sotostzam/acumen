@@ -1,4 +1,4 @@
-
+// Author: Jawad Masood
 //Jawad had created the first simulation case for the active driver assistance systems 
 //longitudinal function called Collision Imminent Braking. The simulation case describes 
 //the testing vehicle approaching from behind towards the reference stationary object 
@@ -44,26 +44,25 @@ end
 class Main(simulator)
   private 
     system := create VehicleMechanics(5,0,0);    
-    box := create VehicleT([0,0,0],1,2,"car.obj",0);
-    target := create VehicleS([50,0,0],1,2,"car.obj",0);
+    box := create VehicleT([0,0,0],1,2,"car.obj");
+    target := create VehicleS([50,0,0],1,2,"car.obj");
     environment := create Road();
     controller1 := create Control(0);
     _3DView := [];     
  end
  box.p = [system.x,0,0];
- box.F = system.F;
  system.F = controller1.F;
  _3DView = [[system.x-3,0,0.5],[0,0,-1*pi/2]];
  simulator.endTime = 6;
 end
 //**************************VISUALIZATION***************************************//
-class VehicleT(p,d,s,name,F)
+class VehicleT(p,d,s,name)
   private
     _3D := [];
   end      
   _3D = ["OBJ",p,1,[0,0,1],[pi/2,0,d*pi],name];
 end
-class VehicleS(p,d,s,name,F)
+class VehicleS(p,d,s,name)
   private
     _3D := [];
   end      
