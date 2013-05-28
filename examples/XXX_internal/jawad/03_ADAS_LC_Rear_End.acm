@@ -1,3 +1,4 @@
+//Author: Jawad Masood
 //*****************Vehicle Mechanics************************************************//
 class VehicleMechanics(m1,m2,Fx,Fy,x0)// Point mass 2D-dynamics
   private 
