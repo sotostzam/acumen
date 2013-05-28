@@ -1,3 +1,26 @@
+// Authors: Jawad Masood and Roland Philippsen
+//The simulation case describes the testing vehicle 
+//approaching from behind towards the reference object 
+//(car/pedestrian). Simulation shows the testing vehicle 
+//kinematic maneuver (Smooth steering) when critical distance 
+//between testing vehicle and reference stationary 
+//object/Vehicle crosses threshold values. Planar 
+//differential vehicle was modeled in local reference frame, 
+//where the position, orientation, linear velocity and 
+//rotational velocity were defined in terms of right and 
+//left side wheels. The yaw angle, vertical distance and 
+//horizontal distance were used as the control variable for 
+//safe maneuver. The local planner position and velocity 
+//vectors were then transformed in Global Cartesian 
+//Coordinates.  3D visualization of the planar vehicle was 
+//represented by rectangular box; the straight road was 
+//represented by a fixed rectangular box; the sensor was 
+//represented by the single variable which 
+//calculate(ideally without uncertainty and faults) the 
+//distance between testing vehicle and stationary vehicle. 
+//The left and right tire constant velocity was provided to 
+//get the velocity and orientation at the center of the 
+//vehicle.
 //*****************Vehicle Mechanics************************************************//
 class VehicleMechanics(x0,y0,th0,V0,w0)
   private 
