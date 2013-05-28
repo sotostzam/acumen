@@ -1,3 +1,24 @@
+//Author: Jawad Masood
+//The simulation case describes the testing vehicle 
+//approaching from behind towards the reference 
+//stationary object (car/pedestrian). Simulation shows 
+//the testing vehicle kinematic maneuver when critical 
+//distance between testing vehicle and reference stationary 
+//object/Vehicle crosses threshold values. Two wheel planar 
+//differential vehicle was modeled in local reference frame, 
+//where the position, orientation, linear velocity and 
+//rotational velocity were defined in terms of right and 
+//left side wheels. The yaw angle was used as the control 
+//variable for safe maneuver. The local planner position and 
+//velocity vector was then translated in global cartesian 
+//coordinates.  3D visualization of the planar vehicle was 
+//represented by rectangular box; the straight road was 
+//represented by a fixed rectangular box; the sensor was 
+//represented by the single variable which calculate the 
+//distance between testing vehicle and stationary vehicle. 
+//The left and right tire constant velocity was provided to 
+//get the velocity and orientation at the center of the 
+//vehicle. 
 //*****************Vehicle Mechanics************************************************//
 class VehicleMechanics(v_r,v_l,l,x0)//(Planner Kinematics)
   private 
