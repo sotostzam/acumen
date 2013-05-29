@@ -1,0 +1,130 @@
+// Authors: Jawad Masood and Roland Philippsen
+//The simulation case describes the testing vehicle 
+//approaching from behind towards the reference object 
+//(car/pedestrian). Simulation shows the testing vehicle 
+//kinematic maneuver (Smooth steering) when critical distance 
+//between testing vehicle and reference stationary 
+//object/Vehicle crosses threshold values. Planar 
+//differential vehicle was modeled in local reference frame, 
+//where the position, orientation, linear velocity and 
+//rotational velocity were defined in terms of right and 
+//left side wheels. The yaw angle, vertical distance and 
+//horizontal distance were used as the control variable for 
+//safe maneuver. The local planner position and velocity 
+//vectors were then transformed in Global Cartesian 
+//Coordinates.  3D visualization of the planar vehicle was 
+//represented by rectangular box; the straight road was 
+//represented by a fixed rectangular box; the sensor was 
+//represented by the single variable which 
+//calculate(ideally without uncertainty and faults) the 
+//distance between testing vehicle and stationary vehicle. 
+//The left and right tire constant velocity was provided to 
+//get the velocity and orientation at the center of the 
+//vehicle.
+//*****************Vehicle Mechanics************************************************//
+class VehicleMechanics(x0,y0,th0,V0,w0)
+  private 
+         x:=x0;
+         x':=0;
+         y:=y0;
+         y':=0;
+         th':=0;
+         R:=0;
+         w:=w0;
+         V:=V0;
+         s:=0;
+         th := th0;       
+  end
+  x'= V*cos(th);
+  y' = V*sin(th);
+  th'= w;
+ end
+ //*********************Machine Sensor********************************************// 
+ class Sensor(x0,y0,th0,s0,s1,s2)
+ private
+ x := x0;
+ y := y0;
+ th := th0;
+ sx := s0;
+ sy := s1;
+ sth := s2;
+ end  
+sx  = x; // Ideal sensing model  along X-direction. We can adjust this parameter according to our sensor range
+sy  = y; // Ideal sensing model along Y-diretcion.
+sth = th; // Ideal sensing model for angle 
+ end
+//*********************ADAS********************************************// 
+class Control(s0,s1,s2,V0,w0)//(Switch control)
+ private
+  x := s0;
+  y := s1;
+  th := s2;
+  V := V0; 
+  w := w0;
+  T_x := 50;
+  T_y := 0;
+  T_th := 0.0;
+  k_v := 3;
+  k_b := -1.5;
+  k_a := 8;
+  ex := 0;
+  ey := 0;
+  eth := 0;
+   t := 0;
+  t' := 0;
+  t_c := 0.01;
+  state := 0;
+ end 
+if (state == 0)
+    if (x > 20)
+      state := 1;
+    end;
+  else
+    if (state == 1)
+      if (x > 40)
+        if (y > 1)
+          state = 2
+        end;
+      end;
+    end;
+  end;
+  // state actions
+  if (state == 0)
+    T_y := 0;
+  else
+    if (state == 1)
+      T_y := 2;
+    else
+      T_y := 0;
+    end;
+  end;
+  // controller sampling 
+  t' = 1;
+  if (t > t_c)
+    t := 0;
+    //// quick hack for a kind of constant speed
+    //ex := T_x - x;
+    ex := 10.0;
+    ey := T_y - y;
+    eth := T_th - th;
+    V := k_v * sqrt(ex * ex + ey * ey);
+    w := (k_a - k_b) * atan2(ex, ey) + k_a * eth;
+  end;
+  end  
+//**********************SIMULATOR*******************************************//
+class Main(simulator)
+  private 
+    mechanics := create VehicleMechanics(0,0,0,0,0);    
+    sens := create Sensor(0,0,0,0,0,0);
+    controller := create Control(0,0,0,0,0);   
+ end
+ sens.x = mechanics.x;
+ sens.y = mechanics.y;
+ sens.th = mechanics.th;
+ controller.x = sens.x;
+ controller.y = sens.y;
+ controller.th = sens.th;
+ mechanics.V = controller.V; 
+ mechanics.w = controller.w; 
+ simulator.endTime = 5;
+end
