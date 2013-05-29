@@ -21,7 +21,10 @@ import java.awt.event.KeyEvent
 import java.awt.event.KeyEvent._
 import java.awt.event.InputEvent._
 import java.io._
+import javax.swing.AbstractAction
+import javax.swing.JCheckBox
 import javax.swing.JOptionPane
+import javax.swing.JToolBar
 import javax.swing.SwingUtilities
 import javax.swing.undo._
 import javax.swing.text._
@@ -177,13 +180,39 @@ class App extends SimpleSwingApplication {
   fileBrowser.fileTree.peer.addTreeSelectionListener(codeArea)
   codeArea.addPathChangeListener(fileBrowser.fileTree)
   
-  val lowerPane = new TabbedPane {
-    pages += new TabbedPane.Page("Console", new BorderPanel {
-      add(new ScrollPane(console), BorderPanel.Position.Center)
+  val lowerPane = new BorderPanel {
+    // Synch button
+    val synchButton = new JCheckBox()
+    synchButton.setAction(new AbstractAction("Synch File Browser and Editor") {
+      override def actionPerformed(e: java.awt.event.ActionEvent) {
+        GraphicalMain.synchEditorWithBrowser = !GraphicalMain.synchEditorWithBrowser
+        if (GraphicalMain.synchEditorWithBrowser)
+          codeArea.currentFile match {
+            case Some(file) => fileBrowser.fileTree.focus(file)
+            case None => fileBrowser.fileTree.refresh
+          }
+      }
     })
-    pages += new TabbedPane.Page("File Browser", fileBrowser)
-    preferredSize = new Dimension(DEFAULT_HEIGHT/4, preferredSize.width)
+    synchButton.setSelected(GraphicalMain.synchEditorWithBrowser)
+    val toolbar = new JToolBar()
+    toolbar.setFloatable(false)
+    synchButton.setFocusable(false)
+    synchButton.setBorderPainted(false)
+    toolbar.add(synchButton)
+
+    // Console / File Browser 
+    val tabs = new TabbedPane {
+      pages += new TabbedPane.Page("Console", new BorderPanel {
+        add(new ScrollPane(console), BorderPanel.Position.Center)
+      })
+      pages += new TabbedPane.Page("File Browser", fileBrowser)
+      preferredSize = new Dimension(DEFAULT_HEIGHT / 4, preferredSize.width)
+    }
+
+    add(Component.wrap(toolbar), BorderPanel.Position.North)
+    add(tabs, BorderPanel.Position.Center)
   }
+  
 
   val leftPane =
     new SplitPane(Orientation.Horizontal, upperPane, lowerPane) {
