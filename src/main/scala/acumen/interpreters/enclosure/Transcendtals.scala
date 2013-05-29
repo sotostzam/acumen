@@ -2,6 +2,7 @@ package acumen.interpreters.enclosure
 
 import Types.Mode
 import acumen.interpreters.enclosure.affine.UnivariateAffineEnclosure
+import sun.tools.tree.GreaterOrEqualExpression
 
 case class Transcendentals(ps: Parameters) {
 
@@ -51,26 +52,38 @@ case class Transcendentals(ps: Parameters) {
   private val firstQuadrant = Interval(0) /\ (pi / 2)
   private val secondQuadrant = (pi / 2) /\ pi
 
-  def cos(x: Interval) =
-    if (x.width greaterThanOrEqualTo pi * 2) Interval(-1, 1)
-    else {
-      val low =
-
-        null
-    }
-
-  private def shiftInto2pi(x:Interval) = {
-    
+  /**
+   * This implementation will fail when used with `x` with end points
+   * exceeding in modulus 2*maxInt.
+   *
+   * To fix this the shifting of `x` into [0,2pi] has to be improved.
+   */
+  def cos(x: Interval) = {
+    val res =
+      if (x.width greaterThanOrEqualTo pi * 2) Interval(-1, 1)
+      else if ((Interval(0) /\ pi * 2) contains x) cos2pi(x)
+      else {
+        val absx = x.abs // cosine is an even function 
+        var i = 0
+        while (!(Interval(0) /\ pi * 2 contains (absx - (pi * i)))) i += 1
+        val shiftedAbsx = absx - (pi * i)
+        cos2pi(shiftedAbsx) * (if (i % 2 == 0) 1 else -1)
+      }
+    Interval.max(-1, res.low) /\ Interval.min(res.high, 1)
   }
-  
+
+  private def shiftInto2pi(x: Interval) = {
+
+  }
+
   private def cos2pi(x: Interval) = {
     val dom = Interval(0) /\ pi * 2
     require(dom contains x, x + " is not contained in " + dom)
     val firstTwoQuadrants = Interval(0) /\ pi
     val secondTwoQuadrants = pi /\ (pi * 2)
     if (firstTwoQuadrants contains x) cospi(x)
-    else if (secondTwoQuadrants contains x) -cospi(x)
-    else cospi(x.low) /\ -cospi(x.high) /\ -1
+    else if (secondTwoQuadrants contains x) -cospi((x - pi) \/ firstTwoQuadrants)
+    else cospi(x.low) /\ -cospi(x.high - pi) /\ -1
   }
 
   private def cospi(x: Interval) = {
@@ -98,10 +111,10 @@ case class Transcendentals(ps: Parameters) {
 }
 object Transcendentals extends Transcendentals(Parameters.default) with Application {
 
-  val its = coenc
+  lazy val its = coenc
 
-//  for (it <- its) println(it)
+  //  for (it <- its) println(it)
 
-  println(cosSecondQuadrant(Interval.pi - Interval(1)))
+  println(cos(pi*2))
 
 }
