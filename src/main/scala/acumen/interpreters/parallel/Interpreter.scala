@@ -466,7 +466,9 @@ trait Common {
     val mainObj = mkObj(cmain, prog, None, sd1, List(VObjId(Some(magic))), magic, 1)
 		magic.seed = sd2
     changeParent(magic, mainObj)
-    (Prog(magicClass :: prog.defs), mainObj)
+    val cprog = CleanParameters.run(prog, CStoreInterpreterType)
+    val mprog = Prog(magicClass :: cprog.defs)
+    (mprog , mainObj)
   }
 }
 
@@ -475,6 +477,11 @@ object Interpreter extends Common {
   def withInterpreter[A](nbThreads:Int)(f: Interpreter => A) : A = {
      val pi = new interpreters.parallel.Interpreter(nbThreads)
      try { f(pi) } finally { pi.dispose }
+  }
+  
+  // a bit evil I know -- kevina
+  List("time", "timeStep", "endTime", "stepType", "lastCreatedId").foreach { parm => 
+    acumen.CleanParameters.parms.registerParm(parm, acumen.CStoreInterpreterType)
   }
 
 }
