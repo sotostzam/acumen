@@ -83,7 +83,9 @@ case class Interval(
   }
 
   /** Interval of absolute values of elements in this interval. */
-  def abs = Interval.max(this /\ -this, Interval(0))
+  def abs =
+    if (this contains 0) Interval.max(this /\ -this, Interval(0))
+    else Interval.max(this, -this)
 
   /**
    * Interval of n:th power values of elements in this interval.
