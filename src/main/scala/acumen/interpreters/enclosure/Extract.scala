@@ -307,6 +307,8 @@ trait Extract {
     case Dot(Var(Name(self, 0)), Name(name, n)) => Variable(name + "'" * n)
     case Op(Name("-", 0), List(x))              => Negate(acumenExprToExpression(x))
     case Op(Name("abs", 0), List(x))            => Abs(acumenExprToExpression(x))
+    case Op(Name("cos", 0), List(x))            => Cos(acumenExprToExpression(x))
+    case Op(Name("sin", 0), List(x))            => Sin(acumenExprToExpression(x))
     case Op(Name("sqrt", 0), List(x))           => Sqrt(acumenExprToExpression(x))
     case Op(Name("-", 0), List(l, r))           => acumenExprToExpression(l) - acumenExprToExpression(r)
     case Op(Name("+", 0), List(l, r))           => acumenExprToExpression(l) + acumenExprToExpression(r)

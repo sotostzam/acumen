@@ -114,8 +114,8 @@ sealed abstract class Expression {
     case Sqrt(e)                => sys.error("undefined")
     case Exp(e)                 => sys.error("undefined")
     case Log(e)                 => sys.error("undefined")
-    case Sin(e)                 => sys.error("undefined")
-    case Cos(e)                 => sys.error("undefined")
+    case Cos(e)                 => rnd.transcendentals.cos(e(x))
+    case Sin(e)                 => rnd.transcendentals.sin(e(x))
     case Plus(l, r)             => l(x) + r(x)
     case Multiply(l, r)         => l(x) * r(x)
     case Divide(e, Constant(v)) => e(x) / v // division not supported by enclosure arithmetic

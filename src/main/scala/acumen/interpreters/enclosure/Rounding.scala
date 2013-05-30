@@ -16,8 +16,10 @@ package acumen.interpreters.enclosure
 case class Rounding(ps: Parameters) {
 
   def precision = ps.bigDecimalDigits
-  
+
   val up: java.math.MathContext = new java.math.MathContext(ps.bigDecimalDigits, java.math.RoundingMode.CEILING)
   val dn: java.math.MathContext = new java.math.MathContext(ps.bigDecimalDigits, java.math.RoundingMode.FLOOR)
+
+  lazy val transcendentals = new Transcendentals(ps)
 
 }

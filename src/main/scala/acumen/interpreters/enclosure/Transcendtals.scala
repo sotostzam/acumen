@@ -21,6 +21,58 @@ case class Transcendentals(ps: Parameters) {
   def sin(x: Interval) = cos((pi / 2) - x)
 
   /**
+   * Type for representing the "enclosure table" for the interval
+   * cosine function.
+   */
+  type PiecewiseEnclosure = Seq[UnivariateAffineEnclosure]
+
+  /**
+   * Compute the range of the piecewise function over an interval.
+   *
+   * Note: The variable name y whose range over `it` is returned is
+   * hard-coded. Make it parameter when factoring out for reuse.
+   */
+  def eval(it: PiecewiseEnclosure)(at: Interval): Interval = {
+    require(it.nonEmpty && it.tail.map(_.domain).fold(it.head.domain)(_ /\ _).contains(at),
+      "the argument must be contained in the union of the pieces' domains")
+    val res = it.filterNot(_.domain.disjointFrom(at)).map(e => e(e.domain \/ at)("y"))
+    res.tail.fold(res.head)(_ /\ _)
+  }
+
+  // 1. Compute enclosure table for cosine
+
+  // 1.1 Create a field
+
+  private val cosineField = Field(Map( // y'' = -y translated to first-order system:
+    "y" -> Variable("y'"), // (y)' = y'
+    "y'" -> -Variable("y"))); // (y')' = -y
+  private val mode = Mode("mode"); // token mode
+  private val cosineHybridSystem = HybridSystem(
+    Set(mode), // single mode continuous system
+    Set(), // no events
+    Map(mode -> True), // trivial domain invariant
+    Map(mode -> cosineField), // single field 
+    Map(), // no guards
+    Map()); // no resets
+
+  // 1.2 Solve it over [0,1.6]
+
+  private val cosineDomain = Interval(0, 1.6) // Where we will compute the solution
+  private val initialCondition = Box(
+    "y" -> Interval(1), // y(0) = 1
+    "y'" -> Interval(0)); // y'(0) = 0
+  private val cosineInitialConditionStateEnclosure =
+    new StateEnclosure(Map(mode -> Some(initialCondition)));
+
+  private lazy val cosineTable: PiecewiseEnclosure =
+    Interpreter.strategy.enclosePiecewise(
+      ps,
+      cosineHybridSystem,
+      cosineDomain,
+      cosineInitialConditionStateEnclosure,
+      Interpreter.defaultInterpreterCallbacks)
+
+  /**
    * Computes the interval cosine function by solving
    *
    *   y''(t) = -y(t) with y(0) = 1 and y'(0) = 0
@@ -34,58 +86,6 @@ case class Transcendentals(ps: Parameters) {
    * shifting of `x` into [0,2pi] has to be improved.
    */
   def cos(x: Interval) = {
-
-    // 1. Compute enclosure table for cosine
-
-    // 1.1 Create a field
-
-    val field = Field(Map( // y'' = -y translated to first-order system:
-      "y" -> Variable("y'"), // (y)' = y'
-      "y'" -> -Variable("y"))); // (y')' = -y
-    val mode = Mode("mode"); // token mode
-    val hysys = HybridSystem(
-      Set(mode), // single mode continuous system
-      Set(), // no events
-      Map(mode -> True), // trivial domain invariant
-      Map(mode -> field), // single field 
-      Map(), // no guards
-      Map()); // no resets
-
-    // 1.2 Solve it over [0,1.6]
-
-    val domain = Interval(0, 1.6) // Where we will compute the solution
-    val initialCondition = Box(
-      "y" -> Interval(1), // y(0) = 1
-      "y'" -> Interval(0)); // y'(0) = 0
-    val initialConditionStateEnclosure =
-      new StateEnclosure(Map(mode -> Some(initialCondition)));
-
-    /**
-     * Type for representing the "enclosure table" for the interval
-     * cosine function.
-     */
-    type PiecewiseEnclosure = Seq[UnivariateAffineEnclosure]
-
-    /**
-     * Compute the range of the piecewise function over an interval.
-     *
-     * Note: The variable name y whose range over `it` is returned is
-     * hard-coded. Make it parameter when factoring out for reuse.
-     */
-    def eval(it: PiecewiseEnclosure)(at: Interval): Interval = {
-      require(it.nonEmpty && it.tail.map(_.domain).fold(it.head.domain)(_ /\ _).contains(at),
-        "the argument must be contained in the union of the pieces' domains")
-      val res = it.filterNot(_.domain.disjointFrom(at)).map(e => e(e.domain \/ at)("y"))
-      res.tail.fold(res.head)(_ /\ _)
-    }
-
-    val table: PiecewiseEnclosure =
-      Interpreter.strategy.enclosePiecewise(
-        ps,
-        hysys,
-        domain,
-        initialConditionStateEnclosure,
-        Interpreter.defaultInterpreterCallbacks)
 
     // quadrants
     val firstQuadrant = Interval(0) /\ (pi / 2)
@@ -127,7 +127,7 @@ case class Transcendentals(ps: Parameters) {
     // cosine over [0,pi/2]
     def cosFirstQuadrant(x: Interval) = {
       require(firstQuadrant contains x, x + " is not contined in " + firstQuadrant)
-      Interval(0, 1) \/ eval(table)(x)
+      Interval(0, 1) \/ eval(cosineTable)(x)
     }
 
     // returned result
