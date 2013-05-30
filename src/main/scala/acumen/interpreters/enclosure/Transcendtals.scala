@@ -2,7 +2,7 @@ package acumen.interpreters.enclosure
 
 import Types.Mode
 import acumen.interpreters.enclosure.affine.UnivariateAffineEnclosure
-import sun.tools.tree.GreaterOrEqualExpression
+//import sun.tools.tree.GreaterOrEqualExpression
 
 case class Transcendentals(ps: Parameters) {
 

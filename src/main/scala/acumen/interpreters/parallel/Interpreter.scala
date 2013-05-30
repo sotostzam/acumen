@@ -467,7 +467,8 @@ trait Common {
 		magic.seed = sd2
     changeParent(magic, mainObj)
     val cprog = CleanParameters.run(prog, CStoreInterpreterType)
-    val mprog = Prog(magicClass :: cprog.defs)
+    val sprog = Simplifier.run(cprog)
+    val mprog = Prog(magicClass :: sprog.defs)
     (mprog , mainObj)
   }
 }
@@ -479,11 +480,6 @@ object Interpreter extends Common {
      try { f(pi) } finally { pi.dispose }
   }
   
-  // a bit evil I know -- kevina
-  List("time", "timeStep", "endTime", "stepType", "lastCreatedId").foreach { parm => 
-    acumen.CleanParameters.parms.registerParm(parm, acumen.CStoreInterpreterType)
-  }
-
 }
 
 class Interpreter(nbThreads: Int) extends Common with acumen.CStoreInterpreter {

@@ -15,7 +15,6 @@ import scala.swing.Component
 import scala.swing.ScrollPane
 
 import acumen.ui.GraphicalMain
-import javax.swing.AbstractAction
 import javax.swing.JCheckBox
 import javax.swing.JToolBar
 import javax.swing.JTree
@@ -36,7 +35,7 @@ class FileBrowser(initialPath: File, editor: CodeArea) extends BorderPanel {
   fileTree.peer.addMouseListener(new MouseAdapter {
     override def mousePressed(e: MouseEvent) {
       val clicked = fileTree.peer.getPathForLocation(e.getX, e.getY)
-      if (!GraphicalMain.syncEditorWithBrowser && e.getClickCount == 2 &&
+      if (!GraphicalMain.synchEditorWithBrowser && e.getClickCount == 2 &&
         clicked != null && clicked.getLastPathComponent != null) {
         val f = clicked.getLastPathComponent.asInstanceOf[File]
         if (f.isFile) editor.loadFile(f)
@@ -44,29 +43,6 @@ class FileBrowser(initialPath: File, editor: CodeArea) extends BorderPanel {
     }
   })
 
-  val syncButton = new JCheckBox()
-  syncButton.setAction(new AbstractAction("Synchronize with editor") {
-    override def actionPerformed(e: ActionEvent) {
-      GraphicalMain.syncEditorWithBrowser = !GraphicalMain.syncEditorWithBrowser
-      if (GraphicalMain.syncEditorWithBrowser)
-        editor.currentFile match {
-          case Some(file) => fileTree.focus(file)
-          case None       => fileTree.refresh
-        }
-    }
-  })
-  syncButton.setSelected(GraphicalMain.syncEditorWithBrowser)
-
-  syncButton.setToolTipText("Synchronize editor with file browser")
-
-  val toolbar = new JToolBar()
-  toolbar.setFloatable(false)
-
-  syncButton.setFocusable(false)
-  syncButton.setBorderPainted(false)
-  toolbar.add(syncButton)
-
-  add(Component.wrap(toolbar), BorderPanel.Position.South)
   add(new ScrollPane(fileTree), BorderPanel.Position.Center)
 }
 
@@ -227,7 +203,7 @@ class FileTree(initialPath: File) extends Component with ChangeListener {
   override def stateChanged(e: ChangeEvent) {
 	// Check what was selected through File > Open
     e.getSource.asInstanceOf[CodeArea].currentFile.foreach { file =>
-      if (GraphicalMain.syncEditorWithBrowser) focus(file)
+      if (GraphicalMain.synchEditorWithBrowser) focus(file)
       if (file.isDirectory) peer.clearSelection
     }
     refresh
