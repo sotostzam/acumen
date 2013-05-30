@@ -5,6 +5,7 @@ import acumen.interpreters.enclosure.Interval
 import acumen.interpreters.enclosure.Rounding
 import acumen.interpreters.enclosure.affine.UnivariateAffineEnclosure
 import acumen.interpreters.enclosure.affine.UnivariateAffineScalarEnclosure
+import acumen.interpreters.enclosure.Parameters
 
 object Sandbox extends App with Extract { // with SolveVt {
 
@@ -45,7 +46,7 @@ object Sandbox extends App with Extract { // with SolveVt {
   //  val plotter = new acumen.interpreters.enclosure.Plotter
   //  plotter.plot("Plotter mockup")(null)(res)(new Rounding(10))
 
-  implicit val rnd = Rounding(10)
+  implicit val rnd = Parameters.default.rnd
 
   def rename(e: UnivariateAffineEnclosure, oldName: String, newName: String) =
     UnivariateAffineEnclosure(e.domain, e.components.map { case (k, v) => ((if (k == oldName) newName else k), v) })

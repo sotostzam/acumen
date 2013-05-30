@@ -86,7 +86,7 @@ trait LocalizingSolver extends SolveVt {
 }
 
 object LocalizingSolverApp extends LocalizingSolver with App {
-  implicit val rnd = Rounding(10)
+  implicit val rnd = Parameters.default.rnd
   val initalCondition = Box(
     "x" -> Interval(1),
     "x'" -> Interval(0))

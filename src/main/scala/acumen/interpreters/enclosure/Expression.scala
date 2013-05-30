@@ -111,11 +111,11 @@ sealed abstract class Expression {
     case Constant(v)            => AffineScalarEnclosure(x.domain, v)
     case Variable(name)         => x(name)
     case Negate(e)              => -e(x)
-    case Sqrt(e)                => sys.error("apply: undefined")
-    case Exp(e)                 => sys.error("apply: undefined")
-    case Log(e)                 => sys.error("apply: undefined")
-    case Sin(e)                 => sys.error("apply: undefined")
-    case Cos(e)                 => sys.error("apply: undefined")
+    case Sqrt(e)                => sys.error("undefined")
+    case Exp(e)                 => sys.error("undefined")
+    case Log(e)                 => sys.error("undefined")
+    case Cos(e)                 => rnd.transcendentals.cos(e(x))
+    case Sin(e)                 => rnd.transcendentals.sin(e(x))
     case Plus(l, r)             => l(x) + r(x)
     case Multiply(l, r)         => l(x) * r(x)
     case Divide(e, Constant(v)) => e(x) / v // division not supported by enclosure arithmetic
@@ -293,7 +293,8 @@ case class Divide(left: Expression, right: Expression) extends Expression {
 }
 
 object ExpressionApp extends App {
-  implicit val rnd = Rounding(10)
+
+  implicit val rnd = Parameters.default.rnd
   val x = Variable("x")
   val y = Variable("y")
   println((x * (x + y)).compose(1 + y, "x"))

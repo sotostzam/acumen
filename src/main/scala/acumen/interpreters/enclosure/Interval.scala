@@ -33,13 +33,13 @@ case class Interval(
     val hi: Real)(implicit val rnd: Rounding) {
   import rnd._
 
-  def low = Interval(lo)
+  lazy val low = Interval(lo)
 
-  def high = Interval(hi)
+  lazy val high = Interval(hi)
 
-  def bounds = (low, high)
+  lazy val bounds = (low, high)
 
-  def midpoint = hi.subtract(lo, dn).divide(Interval(2).lo, dn).add(lo, dn)
+  lazy val midpoint = hi.subtract(lo, dn).divide(Interval(2).lo, dn).add(lo, dn)
 
   def left = Interval(lo, midpoint)
 
@@ -85,7 +85,9 @@ case class Interval(
   }
 
   /** Interval of absolute values of elements in this interval. */
-  def abs = Interval.max(this /\ -this, Interval(0))
+  def abs =
+    if (this contains 0) Interval.max(this /\ -this, Interval(0))
+    else Interval.max(this, -this)
 
   /**
    * Interval of n:th power values of elements in this interval.
@@ -431,6 +433,6 @@ object Interval {
 
 object IntervalApp extends App {
 
-  implicit val rnd = Rounding(10)
+  implicit val rnd = Parameters.default.rnd
 
 }

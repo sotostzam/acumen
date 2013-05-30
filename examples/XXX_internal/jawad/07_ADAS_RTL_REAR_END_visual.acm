@@ -1,85 +1,143 @@
-//Author: Jawad Masood
+// Authors: Jawad Masood and Roland Philippsen
 //The simulation case describes the testing vehicle 
-//approaching from behind towards the reference 
-//stationary object (car/pedestrian). Simulation shows 
-//the testing vehicle kinematic maneuver when critical 
-//distance between testing vehicle and reference stationary 
-//object/Vehicle crosses threshold values. Two wheel planar 
+//approaching from behind towards the reference object 
+//(car/pedestrian). Simulation shows the testing vehicle 
+//kinematic maneuver (Smooth steering) when critical distance 
+//between testing vehicle and reference stationary 
+//object/Vehicle crosses threshold values. Planar 
 //differential vehicle was modeled in local reference frame, 
 //where the position, orientation, linear velocity and 
 //rotational velocity were defined in terms of right and 
-//left side wheels. The yaw angle was used as the control 
-//variable for safe maneuver. The local planner position and 
-//velocity vector was then translated in global cartesian 
-//coordinates.  3D visualization of the planar vehicle was 
+//left side wheels. The yaw angle, vertical distance and 
+//horizontal distance were used as the control variable for 
+//safe maneuver. The local planner position and velocity 
+//vectors were then transformed in Global Cartesian 
+//Coordinates.  3D visualization of the planar vehicle was 
 //represented by rectangular box; the straight road was 
 //represented by a fixed rectangular box; the sensor was 
-//represented by the single variable which calculate the 
+//represented by the single variable which 
+//calculate(ideally without uncertainty and faults) the 
 //distance between testing vehicle and stationary vehicle. 
 //The left and right tire constant velocity was provided to 
 //get the velocity and orientation at the center of the 
-//vehicle. 
+//vehicle.
 //*****************Vehicle Mechanics************************************************//
-class VehicleMechanics(v_r,v_l,l,x0)//(Planner Kinematics)
+class VehicleMechanics(x0,y0,th0,V0,w0)
   private 
          x:=x0;
          x':=0;
-         y:=0;
+         y:=y0;
          y':=0;
          th':=0;
          R:=0;
-         w:=0;
-         V:=0;
+         w:=w0;
+         V:=V0;
          s:=0;
-         th := 0;       
+         th := th0;       
   end
-  V= (1/2)*(v_r+v_l);
-  w= (v_r-v_l)/l;
+  //V= (1/2)*(v_r+v_l);
+  //w= (v_r-v_l)/l;
   x'= V*cos(th);
   y' = V*sin(th);
   th'= w;
  end
  //*********************Machine Sensor********************************************// 
- class Sensor(x0,s0)
+ class Sensor(x0,y0,th0,s0,s1,s2)
  private
- x:=x0;
- s:=s0;
+ x := x0;
+ y := y0;
+ th := th0;
+ sx := s0;
+ sy := s1;
+ sth := s2;
  end  
-s = 50-x;
+sx  = x; // Ideal sensing model  along X-direction. We can adjust this parameter according to our sensor range
+sy  = y; // Ideal sensing model along Y-diretcion.
+sth = th; // Ideal sensing model for angle 
  end
 //*********************ADAS********************************************// 
-class Control(s0,th0)//(Switch control)
+class Control(s0,s1,s2,V0,w0)//(Switch control)
  private
- s := s0;
- th := th0;
+  x := s0;
+  y := s1;
+  th := s2;
+  V := V0; 
+  w := w0;
+  T_x := 50;
+  T_y := 0;
+  T_th := 0.0;
+  k_v := 3;
+  k_b := -1.5;
+  k_a := 8;
+  ex := 0;
+  ey := 0;
+  eth := 0;
+   t := 0;
+  t' := 0;
+  t_c := 0.01;
+  state := 0;
  end 
-    if (s<=10&&s>=7)
-        th = -(pi/4);
-          else if(s<=-7&&s>=-10)
-                 th = (pi/4);
-                    else
-                        th = 0;
-                    end
-          end
-  end
+if (state == 0)
+    if (x > 20)
+      state := 1;
+    end;
+  else
+    if (state == 1)
+      if (x > 40)
+        if (y > 1)
+          state = 2
+        end;
+      end;
+    end;
+  end;
+  // state actions
+  if (state == 0)
+    T_y := 0;
+  else
+    if (state == 1)
+      T_y := 1.25;
+    else
+      T_y := 0;
+    end;
+  end;
+  // controller sampling 
+  t' = 1;
+  if (t > t_c)
+    t := 0;
+    //// quick hack for a kind of constant speed
+    //ex := T_x - x;
+    ex := 10.0;
+    //
+    ey := T_y - y;
+    eth := T_th - th;
+    V := k_v * sqrt(ex * ex + ey * ey);
+    w := (k_a - k_b) * atan2(ex, ey) + k_a * eth;
+  end;
+  end  
 //**********************SIMULATOR*******************************************//
 class Main(simulator)
   private 
-    mechanics := create VehicleMechanics(10,10,0.5,0);    
+    mechanics := create VehicleMechanics(0,0,0,0,0);    
     subject := create VehicleT([0,0,0],1,2,[0,0,0],"car.obj");
-    target := create VehicleS([50,0,0],1,2,"car.obj");
+    target := create VehicleS([45,0,0],1,2,"car.obj");
     environment := create Road();
-    sens := create Sensor(0,0);
-    controller := create Control(0,0);
+    sens := create Sensor(0,0,0,0,0,0);
+    controller := create Control(0,0,0,0,0);
     _3DView := [];     
  end
- sens.x = mechanics.x ;
- controller.s = sens.s;
- mechanics.th = controller.th;
+ sens.x = mechanics.x;
+ sens.y = mechanics.y;
+ sens.th = mechanics.th;
+ controller.x = sens.x;
+ controller.y = sens.y;
+ controller.th = sens.th;
+ mechanics.V = controller.V; 
+ mechanics.w = controller.w; 
  subject.p = [mechanics.x,mechanics.y,0];
- subject.o = [mechanics.th+pi/2,0,1*pi];
+ subject.o = [pi/2,0,1*pi+mechanics.th];
  _3DView = [[mechanics.x-3,mechanics.y,0.5],[0,0,-1*pi/2]];
- simulator.endTime = 25;
+ simulator.endTime = 10;
+ simulator.timeStep = 0.001;
 end
 
 //**********************Environment*******************************************//

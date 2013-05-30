@@ -35,8 +35,8 @@ object IntervalTest extends Properties("Interval") {
       (a, b, i, j) =>
         val (lo, hi) = if (a < b) (a, b) else (b, a)
         val (lop, hip) = if (i < j) (i, j) else (j, i)
-        val x = Interval(lo, hi)(Rounding(lop))
-        val y = Interval(lo, hi)(Rounding(hip))
+        val x = Interval(lo, hi)
+        val y = Interval(lo, hi)
         x contains y
     }
 

@@ -43,7 +43,7 @@ end
  switch mode
  case "Straight"
   _3D := ["Box",[0,0,0],[0.1,0.1,0.1],[1,0,0],[0,0,0]];
-  o=0;
+  o=0; // Can be undertain
   if (d<0.5) && (g<0)
    mode := "Right";
   else
@@ -53,11 +53,11 @@ end
   end
  case "Right"
   _3D := ["Box",[0,0,0],[0.1,0.1,0.1],[0,1,0],[0,0,0]];
-  o = 2;
+  o = 2;  // Can be uncertain
   if (d>0.55) mode:= "Straight" end;
  case "Left"
   _3D := ["Box",[0,0,0],[0.1,0.1,0.1],[0,0,1],[0,0,0]]; 
-  o = -2;
+  o = -2; // Can be uncertain
   if (d>0.55) mode:= "Straight" end;
  end 
 end
@@ -66,7 +66,7 @@ class Main(simulator)
 private
  a := create aircraft (1,[1,0,0],0.7); // lead
  b := create aircraft (0,[0,1,0],0.8); // follower
- c := create aircraft (0,[0,0,1],1); // follower
+ c := create aircraft (0,[0,0,1],1);   // clown :-)
  c1 := create controller ();
  c2 := create controller ();
  c3 := create controller2 ();
@@ -74,9 +74,9 @@ private
 end
  switch mode
  case "Init"
-   a.p := [0,0];
-   b.p := [0,1];
-   c.p := [1,0];
+   a.p := [0,0];  // Can be uncertain
+   b.p := [0,1];  // Can be uncertain
+   c.p := [1,0];  // Can be uncertain
    mode := "Persist"
   case "Persist"
    c1.i1 = (a.p-b.p); c1.i2 = b.phi;

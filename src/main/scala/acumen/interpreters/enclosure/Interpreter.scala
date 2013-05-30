@@ -65,7 +65,7 @@ class Interpreter
 
     val ps0 = parameters(main)
     val ps = adjustParms(ps0)
-    implicit val rnd = Rounding(ps.bigDecimalDigits)
+    implicit val rnd = Rounding(ps)
     val (hs, uss) = extract(main)
 
     cb.endTime = ps.endTime

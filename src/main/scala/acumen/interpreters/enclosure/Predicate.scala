@@ -11,7 +11,7 @@ import acumen.interpreters.enclosure.affine.UnivariateAffineEnclosure
 abstract class Predicate {
 
   def compose(that: Expression, intoVariable: String): Predicate = this match {
-    case True => True
+    case True         => True
     case all @ All(_) => All(all.conjuncts.map(_.compose(that, intoVariable)))
   }
 
@@ -73,12 +73,13 @@ case object True extends Predicate {
 case class All(conjuncts: Seq[Relation]) extends Predicate {
   override def toString = conjuncts.map(_.toString).mkString(" /\\ ") match {
     case "" => "TRUE"
-    case s => s
+    case s  => s
   }
 }
 
 object PredicateApp extends App {
-  implicit val rnd = Rounding(10)
+
+  implicit val rnd = Parameters.default.rnd
 
   val b = Box("r" -> Interval(0, 1), "v" -> Interval(0, 1))
   val r = Variable("r")

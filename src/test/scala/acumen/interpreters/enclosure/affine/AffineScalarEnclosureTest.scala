@@ -14,11 +14,12 @@ import acumen.interpreters.enclosure.Rounding
 import acumen.interpreters.enclosure.TestingContext
 import acumen.interpreters.enclosure.Box
 import acumen.interpreters.enclosure.Interval
+import acumen.interpreters.enclosure.Parameters
 
 object AffineScalarEnclosureTest extends Properties("AffineScalarEnclosure") {
 
   //  import TestingContext._
-  implicit val rnd = Rounding(10)
+  implicit val rnd = Parameters.default.rnd
 
   /* Type synonyms */
 

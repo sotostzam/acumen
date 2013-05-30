@@ -466,7 +466,10 @@ trait Common {
     val mainObj = mkObj(cmain, prog, None, sd1, List(VObjId(Some(magic))), magic, 1)
 		magic.seed = sd2
     changeParent(magic, mainObj)
-    (Prog(magicClass :: prog.defs), mainObj)
+    val cprog = CleanParameters.run(prog, CStoreInterpreterType)
+    val sprog = Simplifier.run(cprog)
+    val mprog = Prog(magicClass :: sprog.defs)
+    (mprog , mainObj)
   }
 }
 
@@ -476,7 +479,7 @@ object Interpreter extends Common {
      val pi = new interpreters.parallel.Interpreter(nbThreads)
      try { f(pi) } finally { pi.dispose }
   }
-
+  
 }
 
 class Interpreter(nbThreads: Int) extends Common with acumen.CStoreInterpreter {

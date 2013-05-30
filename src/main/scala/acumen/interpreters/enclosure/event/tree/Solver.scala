@@ -13,6 +13,17 @@ import acumen.interpreters.enclosure.event.pwl.PWLEventEncloser
 import acumen.interpreters.enclosure.affine.UnivariateAffineEnclosure
 import acumen.interpreters.enclosure.HybridSystem
 
+/**
+ * Old implementation of the event tree based hybrid solver.
+ *
+ * Contains an implementation of the "simple recursive" time
+ * subdivision strategy. It may be useful to factor out this
+ * strategy and use it to give an alternative to the localizing
+ * one, as an example of what needs to be done to implement a
+ * strategy, and as an example of one that is too simplistic
+ * (it is sensitive to parameters of the simulation, such as
+ * endTime and gives simulation output that is hard to analyze.)
+ */
 trait Solver extends TreeEventEncloser {
 
   case class SolverException(message: String) extends Exception
@@ -58,18 +69,21 @@ trait Solver extends TreeEventEncloser {
     if (mustSplit) {
       if (cannotSplit) {
         sys.error("gave up for minimum step size " + d + " at " + T)
-      } else {
+      }
+      else {
         //        cb.log("splitting " + T)
         val (ssl, ysl) = solveHybrid(H, lT, Ss, delta, m, n, degree, K, d, e, minComputationImprovement, cb)
         val (ssr, ysr) = solveHybrid(H, rT, ssl, delta, m, n, degree, K, d, e, minComputationImprovement, cb)
         (ssr, ysl ++ ysr)
       }
-    } else {
+    }
+    else {
       val onT = Ss.map(solveVtE(H, T, _, delta, m, n, degree, K, cb.log))
       if (onT contains None)
         if (cannotSplit) {
           sys.error("gave up for minimum step size " + d + " at " + T)
-        } else {
+        }
+        else {
           //        cb.log("splitting " + T)
           val (ssl, ysl) = solveHybrid(H, lT, Ss, delta, m, n, degree, K, d, e, minComputationImprovement, cb)
           val (ssr, ysr) = solveHybrid(H, rT, ssl, delta, m, n, degree, K, d, e, minComputationImprovement, cb)
@@ -87,7 +101,8 @@ trait Solver extends TreeEventEncloser {
           cb.sendResult(resultForT._2)
           //          println("solveHybrid: @" + T + ": " + resultForT._1.head.initialCondition) //  PRINTME
           resultForT
-        } else {
+        }
+        else {
           val (endStatesOnlT, enclosuresOnlT) =
             onlT.map(_.get).foldLeft((Set[UncertainState](), Seq[UnivariateAffineEnclosure]())) {
               case ((resss, resys), (ss, ys)) => (resss ++ ss, resys ++ ys)
@@ -98,7 +113,8 @@ trait Solver extends TreeEventEncloser {
           if (onrT contains None) {
             cb.sendResult(resultForT._2)
             resultForT
-          } else {
+          }
+          else {
             val (endStatesOnrT, enclosuresOnrT) =
               onrT.map(_.get).foldLeft((Set[UncertainState](), Seq[UnivariateAffineEnclosure]())) {
                 case ((resss, resys), (ss, ys)) => (resss ++ ss, resys ++ ys)
@@ -129,7 +145,8 @@ trait Solver extends TreeEventEncloser {
               //              println("solveHybrid: " + resultForT._1.head.initialCondition) //  PRINTME
               //              println("solveHybrid: " + resultForT._2) //  PRINTME
               resultForT
-            } else {
+            }
+            else {
               //            cb.log("splitting " + T)
               val (ssl, ysl) = solveHybrid(H, lT, Ss, delta, m, n, degree, K, d, e, minComputationImprovement, cb)
               val (ssr, ysr) = solveHybrid(H, rT, ssl, delta, m, n, degree, K, d, e, minComputationImprovement, cb)

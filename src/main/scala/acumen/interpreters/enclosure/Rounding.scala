@@ -13,7 +13,13 @@ package acumen.interpreters.enclosure
  * @define dn MathContext with the given precision and rounding
  * modes "towards -oo".
  */
-case class Rounding(precision: Int) {
-  val up: java.math.MathContext = new java.math.MathContext(precision, java.math.RoundingMode.CEILING)
-  val dn: java.math.MathContext = new java.math.MathContext(precision, java.math.RoundingMode.FLOOR)
+case class Rounding(ps: Parameters) {
+
+  def precision = ps.bigDecimalDigits
+
+  val up: java.math.MathContext = new java.math.MathContext(ps.bigDecimalDigits, java.math.RoundingMode.CEILING)
+  val dn: java.math.MathContext = new java.math.MathContext(ps.bigDecimalDigits, java.math.RoundingMode.FLOOR)
+
+  lazy val transcendentals = new Transcendentals(ps)
+
 }
