@@ -411,6 +411,6 @@ object Interval {
 
 object IntervalApp extends App {
 
-  implicit val rnd = Rounding(10)
+  implicit val rnd = Parameters.default.rnd
 
 }

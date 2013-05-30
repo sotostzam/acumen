@@ -30,7 +30,7 @@ object BenchEnclosures {
       ie.run(prog)
       println("Prep done, time irrelevant")
     }
-    implicit val rnd = enclosure.Rounding(10)
+  implicit val rnd = interpreters.enclosure.Parameters.default.rnd
     for (adjustments <- trials) {
       println("===")
       def adjustParms(p: acumen.interpreters.enclosure.Parameters) =

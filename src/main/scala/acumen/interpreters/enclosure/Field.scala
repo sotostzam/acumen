@@ -55,7 +55,7 @@ case class Field(components: Map[VarName, Expression])(implicit rnd: Rounding) {
 
 object FieldApp extends App {
 
-  implicit val rnd = Rounding(10)
+  implicit val rnd = Parameters.default.rnd
 
   val field = Field(Map("x" -> Variable("x'"), "x'" -> -(Variable("x") + Variable("x'"))))
   val b = Box("x" -> Interval(-1, 1), "x'" -> Interval(-1, 1))

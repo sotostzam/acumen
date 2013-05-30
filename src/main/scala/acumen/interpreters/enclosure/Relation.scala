@@ -281,7 +281,7 @@ case class UnaryRelation(name: UnaryRelationName, expression: Expression) extend
 }
 
 object RelationApp extends App {
-  implicit val rnd = Rounding(10)
+  implicit val rnd = Parameters.default.rnd
   val dom = Box("x" -> Interval(0, 0.4890632644), "v" -> Interval(-4.014587403, 1.069793702), "r" -> Interval(0, 1.562500000))
   val x: Expression = "x"
   val v: Expression = "v"
@@ -293,7 +293,7 @@ object RelationApp extends App {
 }
 
 object SupportApp extends App {
-  implicit val rnd = Rounding(10)
+  implicit val rnd = Parameters.default.rnd
   val b = Box("r" -> Interval(0, 1), "v" -> Interval(-1, 1), "x" -> Interval(0.5, 1))
   val r = Variable("r")
   val v = Variable("v")

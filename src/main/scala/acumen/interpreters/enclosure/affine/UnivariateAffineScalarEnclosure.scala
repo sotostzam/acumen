@@ -5,6 +5,7 @@ import acumen.ui.interpreter.Enclosure
 import java.awt.Color
 import acumen.interpreters.enclosure.Rounding
 import acumen.interpreters.enclosure.Interval
+import acumen.interpreters.enclosure.Parameters
 
 /**
  * Type to represent functions of a single variable.
@@ -300,10 +301,12 @@ object UnivariateAffineScalarEnclosure {
 }
 
 object UnivariateAffineScalarEnclosureApp extends App {
-  implicit val rnd = Rounding(10)
+
+  implicit val rnd = Parameters.default.rnd
   val e = UnivariateAffineScalarEnclosure(Interval(0, 1), 1, -1)
   val (dL, dR) = e.domain.split
   println(e.restrictTo(dL))
   println(e.restrictTo(dR))
+
 }
 

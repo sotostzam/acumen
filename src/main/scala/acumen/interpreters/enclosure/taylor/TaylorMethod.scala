@@ -1,7 +1,6 @@
 package acumen.interpreters.enclosure.taylor
 
 import scala.collection.mutable.ArrayBuffer
-
 import acumen.interpreters.enclosure.Box
 import acumen.interpreters.enclosure.Constant
 import acumen.interpreters.enclosure.Cos
@@ -18,6 +17,7 @@ import acumen.interpreters.enclosure.Rounding
 import acumen.interpreters.enclosure.Sin
 import acumen.interpreters.enclosure.Sqrt
 import acumen.interpreters.enclosure.Variable
+import acumen.interpreters.enclosure.Parameters
 
 trait TaylorMethod {
 
@@ -155,7 +155,7 @@ trait TaylorMethod {
 
 object TaylorMethodApp extends App with TaylorMethod {
 
-  implicit val rnd = Rounding(10)
+  implicit val rnd = Parameters.default.rnd
 
   val f = Field(Map("" -> Variable("")))
   val d = 10

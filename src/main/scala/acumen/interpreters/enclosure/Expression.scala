@@ -291,7 +291,8 @@ case class Divide(left: Expression, right: Expression) extends Expression {
 }
 
 object ExpressionApp extends App {
-  implicit val rnd = Rounding(10)
+
+  implicit val rnd = Parameters.default.rnd
   val x = Variable("x")
   val y = Variable("y")
   println((x * (x + y)).compose(1 + y, "x"))

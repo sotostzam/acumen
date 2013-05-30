@@ -17,7 +17,7 @@ case class Parameters(
     splittingDegree: Int, // number of pieces to split each initial condition variable
     maxIterations: Int // maximum number of PWL reachable states computation iterations
     ) {
-  implicit val rnd = Rounding(bigDecimalDigits)
+  implicit val rnd = Rounding(this)
   val simulationTime = Interval(startTime, endTime)
 }
 object Parameters {

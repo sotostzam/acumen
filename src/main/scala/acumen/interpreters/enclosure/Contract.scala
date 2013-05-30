@@ -135,7 +135,8 @@ trait Contract {
 }
 
 object ContractApp extends App with Contract {
-  implicit val rnd = Rounding(10)
+
+  implicit val rnd = Parameters.default.rnd
 
   println(contract(Box("x" -> Interval(0, 2)), Interval(2), Multiply(Variable("x"), Variable("x"))))
 

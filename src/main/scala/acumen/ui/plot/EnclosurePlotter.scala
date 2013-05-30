@@ -3,16 +3,15 @@ package ui
 package plot
 
 import acumen.interpreters.enclosure._
-import java.awt.{BasicStroke, Color}
+import java.awt.{ BasicStroke, Color }
 import org.jfree.chart._
 import org.jfree.chart.plot._
 import org.jfree.chart.renderer.xy.XYDifferenceRenderer
 import org.jfree.data.xy._
 import org.jfree.ui.ApplicationFrame
 import scala.collection.JavaConversions._
-import scala.collection.mutable.{Buffer, Map}
+import scala.collection.mutable.{ Buffer, Map }
 import acumen.interpreters.enclosure.affine.UnivariateAffineEnclosure
-
 
 class EnclosurePlotter extends JFreePlotter {
 
@@ -44,7 +43,7 @@ class EnclosurePlotter extends JFreePlotter {
     res
   }
 
-  def addEnclosure(intervalStart: Double, 
+  def addEnclosure(intervalStart: Double,
                    intervalEnd: Double,
                    upperApproximation: Double => Double,
                    lowerApproximation: Double => Double,
@@ -53,7 +52,7 @@ class EnclosurePlotter extends JFreePlotter {
                    color: Color,
                    legendLabel: String,
                    fun: Double => Double) {
-    
+
     val (subPlot, numberOfDatasets) = subPlots.get(legendLabel) match {
       case Some(t) => t
       case None => {
@@ -71,7 +70,7 @@ class EnclosurePlotter extends JFreePlotter {
     subPlot.setDataset(numberOfDatasets, e)
     subPlot.setRenderer(numberOfDatasets, enclosureRen)
     subPlots(legendLabel) = (subPlot, numberOfDatasets + 1)
-    
+
     chartPanel.invalidate
   }
 
@@ -86,7 +85,7 @@ class EnclosurePlotter extends JFreePlotter {
     ren.setSeriesPaint(1, color)
     ren
   }
-  
+
   def plotUAE(e: UnivariateAffineEnclosure, fun: Double => Double)(implicit rnd: Rounding) = {
     val color = Color.red
     for ((varName, it) <- e.components) {
@@ -98,26 +97,26 @@ class EnclosurePlotter extends JFreePlotter {
     }
   }
 
-  def plot(es: Seq[UnivariateAffineEnclosure], fun: Double => Double)(implicit rnd: Rounding) : Unit = {
+  def plot(es: Seq[UnivariateAffineEnclosure], fun: Double => Double)(implicit rnd: Rounding): Unit = {
     combinedPlot.setNotify(false)
     for (e <- es) plotUAE(e, fun)
     combinedPlot.setNotify(true)
   }
 
   // Plot into a new frame
-  def plot(frametitle: String)(fun: Double => Double)(es: Seq[UnivariateAffineEnclosure])(implicit rnd: Rounding) : Unit = {
+  def plot(frametitle: String)(fun: Double => Double)(es: Seq[UnivariateAffineEnclosure])(implicit rnd: Rounding): Unit = {
     val frame = createFrame(frametitle)
     plot(es, fun)
   }
 
-  def plotForSaving(es: Seq[UnivariateAffineEnclosure])(implicit rnd: Rounding) : Unit = {
+  def plotForSaving(es: Seq[UnivariateAffineEnclosure])(implicit rnd: Rounding): Unit = {
     initPlot
-    plot(es,null)
+    plot(es, null)
   }
 
-  val defRnd = new Rounding(10)
+  val defRnd = new Rounding(Parameters.default)
   def addToPlot(d: Object) = {
-    plot(d.asInstanceOf[Seq[UnivariateAffineEnclosure]],null)(defRnd)
+    plot(d.asInstanceOf[Seq[UnivariateAffineEnclosure]], null)(defRnd)
   }
 
 }

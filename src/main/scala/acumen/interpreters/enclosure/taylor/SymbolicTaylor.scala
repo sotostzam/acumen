@@ -7,6 +7,7 @@ import acumen.interpreters.enclosure.Box
 import acumen.interpreters.enclosure.Variable
 import acumen.interpreters.enclosure.Expression
 import acumen.interpreters.enclosure.Interval
+import acumen.interpreters.enclosure.Parameters
 
 /**
  * Symbolic differentiation-based computation of Taylor expansions of Expressions.
@@ -78,7 +79,7 @@ trait SymbolicTaylor {
 
 object LohnerSolverApp extends SymbolicTaylor with App {
 
-  implicit val rnd = Rounding(10)
+  implicit val rnd = Parameters.default.rnd
   val x = Variable("x")
   val y = Variable("y")
   val e = x * x

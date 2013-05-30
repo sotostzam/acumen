@@ -7,13 +7,13 @@ import acumen.interpreters.enclosure.UnaryRelationName._
 import acumen.interpreters.enclosure.ResetMap
 
 case class HybridSystem(
-  modes: Set[Mode],
-  events: Set[Event],
-  domains: Map[Mode, Domain],
-  fields: Map[Mode, Field],
-//  flows: Map[Mode, Flow],
-  guards: Map[Event, Guard],
-  resets: Map[Event, ResetMap]) {
+    modes: Set[Mode],
+    events: Set[Event],
+    domains: Map[Mode, Domain],
+    fields: Map[Mode, Field],
+    //  flows: Map[Mode, Flow],
+    guards: Map[Event, Guard],
+    resets: Map[Event, ResetMap]) {
 
   def addMode(mode: Mode, domain: Domain, field: Field): HybridSystem =
     HybridSystem(
@@ -65,12 +65,12 @@ case class HybridSystem(
   // helper function for dependentVariables
   // the set of indices of variables in e
   private def variables(e: Expression): Set[VarName] = e match {
-    case Constant(_) => Set()
+    case Constant(_)    => Set()
     case Variable(name) => Set(name)
-    case Negate(arg) => variables(arg)
-    case Plus(l, r) => variables(l) ++ variables(r)
+    case Negate(arg)    => variables(arg)
+    case Plus(l, r)     => variables(l) ++ variables(r)
     case Multiply(l, r) => variables(l) ++ variables(r)
-    case Divide(l, r) => variables(l) ++ variables(r)
+    case Divide(l, r)   => variables(l) ++ variables(r)
   }
 
 }
@@ -88,12 +88,14 @@ object HybridSystem {
 }
 
 object HybridSystemApp extends App {
+
   import HybridSystem._
-  implicit val rnd = Rounding(10)
+  implicit val rnd = Parameters.default.rnd
   val a = Variable("a")
   val b = Variable("b")
   val c = Variable("c")
   val f = Field(Map("a" -> b, "b" -> a))
   println(empty.dependentVariables(f)("a"))
   println(empty.dependentVariables(f)("b"))
+
 }

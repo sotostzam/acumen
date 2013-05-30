@@ -2,13 +2,20 @@ package acumen.interpreters.enclosure
 
 import Types.Mode
 import acumen.interpreters.enclosure.affine.UnivariateAffineEnclosure
-//import sun.tools.tree.GreaterOrEqualExpression
+import acumen.interpreters.enclosure.affine.AffineScalarEnclosure
+import acumen.interpreters.enclosure.affine.AffineEnclosure
 
 case class Transcendentals(ps: Parameters) {
 
   implicit val rnd = ps.rnd
-
   private val pi = Interval.pi
+
+  /** Lift function on intervals to function on scalar enclosures. */
+  private def lift(f: Interval => Interval)(x: AffineScalarEnclosure): AffineScalarEnclosure =
+    AffineScalarEnclosure(x.domain, f(x.range))
+
+  def sin(x: AffineScalarEnclosure): AffineScalarEnclosure = lift(sin)(x)
+  def cos(x: AffineScalarEnclosure): AffineScalarEnclosure = lift(cos)(x)
 
   /** Computes the interval sine function. */
   def sin(x: Interval) = cos((pi / 2) - x)
