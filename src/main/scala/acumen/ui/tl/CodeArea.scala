@@ -300,7 +300,8 @@ class CodeArea extends Panel with TreeSelectionListener {
       val file =
         if (lpc.isInstanceOf[TreeFile]) lpc.asInstanceOf[TreeFile]
         else lpc.asInstanceOf[File]
-      if (file.isFile) preventWorkLoss(loadFile(file))
+      if (file.isFile && !(currentFile.isDefined && currentFile.get.getAbsolutePath == file.getAbsolutePath))
+        preventWorkLoss(loadFile(file))
     }
   }
 
