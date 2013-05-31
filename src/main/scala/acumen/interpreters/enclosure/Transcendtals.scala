@@ -14,8 +14,8 @@ case class Transcendentals(ps: Parameters) {
   private def lift(f: Interval => Interval)(x: AffineScalarEnclosure): AffineScalarEnclosure =
     AffineScalarEnclosure(x.domain, f(x.range))
 
-  def sin(x: AffineScalarEnclosure): AffineScalarEnclosure = lift(sin)(x)
-  def cos(x: AffineScalarEnclosure): AffineScalarEnclosure = lift(cos)(x)
+  def sin(x: AffineScalarEnclosure): AffineScalarEnclosure = lift(_.sin)(x)
+  def cos(x: AffineScalarEnclosure): AffineScalarEnclosure = lift(_.cos)(x)
   def atan(x: AffineScalarEnclosure): AffineScalarEnclosure = lift(_.atan)(x)
 
   /** Computes the interval sine function. */
