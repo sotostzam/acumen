@@ -1,8 +1,0 @@
-/* 2010/08/11, Walid.
-
-   When my Acumen starts in the mac, right next to the
-   apple sign it says "acumen.ui.GraphicalMain".  That does
-   not seem like the right thing to say there.  It would
-   probably be better if that said something like "Acumen".
-
-*/
