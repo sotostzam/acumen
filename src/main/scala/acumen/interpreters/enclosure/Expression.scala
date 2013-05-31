@@ -33,6 +33,7 @@ sealed abstract class Expression {
     case Log(e)                                 => Log(e.compose(that, intoVariable))
     case Sin(e)                                 => Sin(e.compose(that, intoVariable))
     case Cos(e)                                 => Cos(e.compose(that, intoVariable))
+    case Atan(e)                                => Atan(e.compose(that, intoVariable))
     case Negate(e)                              => Negate(e.compose(that, intoVariable))
     case Plus(l, r)                             => Plus(l.compose(that, intoVariable), r.compose(that, intoVariable))
     case Multiply(l, r)                         => Multiply(l.compose(that, intoVariable), r.compose(that, intoVariable))
@@ -57,8 +58,9 @@ sealed abstract class Expression {
       case Sqrt(e)        => e(x).sqrt
       case Exp(e)         => e(x).exp
       case Log(e)         => sys.error("apply: undefined")
-      case Sin(e)         => sys.error("apply: undefined")
+      case Sin(e)         => e(x).sin
       case Cos(e)         => e(x).cos
+      case Atan(e)        => e(x).atan
       case Negate(e)      => -e(x)
       case Plus(l, r)     => l(x) + r(x)
       case Multiply(l, r) =>
@@ -91,6 +93,7 @@ sealed abstract class Expression {
       case Log(e)                 => sys.error("apply: undefined")
       case Sin(e)                 => sys.error("apply: undefined")
       case Cos(e)                 => sys.error("apply: undefined")
+      case Atan(e)                => sys.error("apply: undefined")
       case Plus(l, r)             => l(x) + r(x)
       case Multiply(l, r)         => l(x) * r(x)
       case Divide(e, Constant(v)) => e(x) / v // division not supported by enclosure arithmetic
@@ -108,17 +111,18 @@ sealed abstract class Expression {
    * expression.
    */
   def apply(x: AffineEnclosure)(implicit rnd: Rounding): AffineScalarEnclosure = this match {
-    case Constant(v)            => AffineScalarEnclosure(x.domain, v)
-    case Variable(name)         => x(name)
-    case Negate(e)              => -e(x)
-    case Sqrt(e)                => sys.error("undefined")
-    case Exp(e)                 => sys.error("undefined")
-    case Log(e)                 => sys.error("undefined")
-    case Cos(e)                 => rnd.transcendentals.cos(e(x))
-    case Sin(e)                 => rnd.transcendentals.sin(e(x))
-    case Plus(l, r)             => l(x) + r(x)
-    case Multiply(l, r)         => l(x) * r(x)
-    case Divide(e, Constant(v)) => e(x) / v // division not supported by enclosure arithmetic
+    case Constant(v)    => AffineScalarEnclosure(x.domain, v)
+    case Variable(name) => x(name)
+    case Negate(e)      => -e(x)
+    case Sqrt(e)        => AffineScalarEnclosure(x.domain, e(x).range.sqrt)
+    case Exp(e)         => AffineScalarEnclosure(x.domain, e(x).range.exp)
+    case Log(e)         => sys.error("undefined")
+    case Sin(e)         => rnd.transcendentals.sin(e(x))
+    case Cos(e)         => rnd.transcendentals.cos(e(x))
+    case Atan(e)        => rnd.transcendentals.atan(e(x))
+    case Plus(l, r)     => l(x) + r(x)
+    case Multiply(l, r) => l(x) * r(x)
+    case Divide(l, r)   => AffineScalarEnclosure(x.domain, l(x).range / r(x).range)
   }
 
   /**
@@ -150,8 +154,8 @@ sealed abstract class Expression {
     case Sqrt(e)                => sys.error("enclosureEvalHelper: undefined")
     case Exp(e)                 => sys.error("enclosureEvalHelper: undefined")
     case Log(e)                 => sys.error("enclosureEvalHelper: undefined")
-    case Sin(e)                 => sys.error("enclosureEvalHelper: undefined")
     case Cos(e)                 => sys.error("enclosureEvalHelper: undefined")
+    case Sin(e)                 => sys.error("enclosureEvalHelper: undefined")
     case Plus(l, r)             => l.enclosureEvalHelper(x) + r.enclosureEvalHelper(x)
     case Multiply(l, r)         => l.enclosureEvalHelper(x) * r.enclosureEvalHelper(x)
     case Divide(e, Constant(v)) => e.enclosureEvalHelper(x) / v
@@ -171,6 +175,7 @@ sealed abstract class Expression {
     case Log(e)         => e.varNames
     case Sin(e)         => e.varNames
     case Cos(e)         => e.varNames
+    case Atan(e)        => e.varNames
     case Negate(e)      => e.varNames
     case Plus(l, r)     => l.varNames union r.varNames
     case Multiply(l, r) => l.varNames union r.varNames
@@ -208,6 +213,7 @@ sealed abstract class Expression {
   def log = Log(this)
   def sin = Sin(this)
   def cos = Cos(this)
+  def atan = Atan(this)
 
   def dif(name: VarName)(implicit rnd: Rounding): Expression = this match {
     case Constant(_)    => Constant(0)
@@ -216,6 +222,7 @@ sealed abstract class Expression {
     case Sqrt(e)        => e.dif(name) * 0.5 / this
     case Sin(e)         => Cos(e) * e.dif(name)
     case Cos(e)         => -Sin(e) * e.dif(name)
+    case Atan(e)        => e.dif(name) / (1 + (e * e))
     case Exp(e)         => this * e.dif(name)
     case Plus(l, r)     => l.dif(name) + r.dif(name)
     case Multiply(l, r) => l.dif(name) * r + l * r.dif(name)
@@ -274,6 +281,10 @@ case class Sin(expression: Expression) extends Expression {
 
 case class Cos(expression: Expression) extends Expression {
   override def toString = "cos(" + expression + ")"
+}
+
+case class Atan(expression: Expression) extends Expression {
+  override def toString = "atan(" + expression + ")"
 }
 
 case class Negate(expression: Expression) extends Expression {

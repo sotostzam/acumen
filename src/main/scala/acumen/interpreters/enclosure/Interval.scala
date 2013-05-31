@@ -363,14 +363,14 @@ case class Interval(
     Interval(value.lo, value.hi)
   }
 
-  /**
-   * Inverse cosine, currently added for back-propagation over cosine.
-   *
-   * Precondition: this.abs in [-1,1] (inherited from java.math.Math.acos)
-   */
-  def acos: Interval = {
-    require(Interval(-1, 1) contains this)
-    val value = IAMath.acos(new RealInterval(loDouble, hiDouble))
+  def sin: Interval = {
+    val value = IAMath.sin(new RealInterval(loDouble, hiDouble))
+    require(!value.lo.isNaN && !value.hi.isNaN)
+    Interval(value.lo, value.hi)
+  }
+
+  def atan: Interval = {
+    val value = IAMath.atan(new RealInterval(loDouble, hiDouble))
     require(!value.lo.isNaN && !value.hi.isNaN)
     Interval(value.lo, value.hi)
   }
@@ -434,5 +434,7 @@ object Interval {
 object IntervalApp extends App {
 
   implicit val rnd = Parameters.default.rnd
+  
+  println((101*pi).cos)
 
 }

@@ -16,6 +16,7 @@ case class Transcendentals(ps: Parameters) {
 
   def sin(x: AffineScalarEnclosure): AffineScalarEnclosure = lift(sin)(x)
   def cos(x: AffineScalarEnclosure): AffineScalarEnclosure = lift(cos)(x)
+  def atan(x: AffineScalarEnclosure): AffineScalarEnclosure = lift(_.atan)(x)
 
   /** Computes the interval sine function. */
   def sin(x: Interval) = cos((pi / 2) - x)
