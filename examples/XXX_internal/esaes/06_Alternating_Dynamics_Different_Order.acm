@@ -1,0 +1,29 @@
+
+// Alternating Dynamics Different Order Example
+
+class Main(simulator)
+  private
+    a := 0; b := 0; 
+    x := 0; x' := 1; x'' := 0;
+    t := 0; t' := 1
+  end
+  t' = 1;
+  if t < 1
+    x' = 1;  // First order equation
+  end;
+  if 1 <= t && t < 2
+    x' = -1; // First order equation
+  end;
+  if 2 <= t && x <= 0
+    x'' = -x // Second order equation
+  end;
+  if 2 <= t && x > 0
+    t := 0 
+  end
+end
+
+// Note: In this system the continuous dynamics of the
+//       system switches between a first order and a
+//       second order differential equation.
+
+
