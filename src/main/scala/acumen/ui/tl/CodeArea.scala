@@ -189,19 +189,13 @@ class CodeArea extends Panel with TreeSelectionListener {
   def openFile(path: File): Unit = withErrorReporting {
     preventWorkLoss {
       val fc = new FileChooser(path)
-      fc.peer.setFileSelectionMode(JFileChooser.FILES_AND_DIRECTORIES)
       fc.fileFilter = CodeArea.acumenFileFilter
       val returnVal = fc.showOpenDialog(App.ui.body)
       if (returnVal == FileChooser.Result.Approve) {
-        if (fc.selectedFile.isFile)
+        if (fc.selectedFile.isFile) {
           loadFile(fc.selectedFile)
-        else { // Selected a directory => Clear current file
-          textArea.setText("")
-          setCurrentFile(Some(fc.selectedFile))
-          editedSinceLastSave = false
-          textArea.discardAllEdits()
+          notifyPathChangeListeners
         }
-        notifyPathChangeListeners
       }
     }
   }
