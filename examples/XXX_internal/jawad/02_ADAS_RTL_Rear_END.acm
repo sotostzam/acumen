@@ -1,4 +1,5 @@
 //Author: Jawad Masood
+//ID: A2
 //The simulation case describes the testing vehicle 
 //approaching from behind towards the reference 
 //stationary object (car/pedestrian). Simulation shows 
@@ -40,12 +41,12 @@ class VehicleMechanics(v_r,v_l,l,x0)//(Planner Kinematics)
   th'= w;
  end
  //*********************Machine Sensor********************************************// 
- class Sensor(x0,s0)
+ class Sensor(x0,s0,r)
  private
  x:=x0;
  s:=s0;
  end  
-s = 50-x;
+s = r-x;
  end
 //*********************ADAS********************************************// 
 class Control(s0,th0)//(Switch control)
@@ -54,9 +55,9 @@ class Control(s0,th0)//(Switch control)
  th := th0;
  end 
     if (s<=10&&s>=7)
-        th = -(pi/4);
+        th = -(pi/8);
           else if(s<=-7&&s>=-10)
-                 th = (pi/4);
+                 th = (pi/8);
                     else
                         th = 0;
                     end
@@ -69,7 +70,7 @@ class Main(simulator)
     subject := create VehicleT([0,0,0],1,2,[0,0,0],"car.obj");
     target := create VehicleS([50,0,0],1,2,"car.obj");
     environment := create Road();
-    sens := create Sensor(0,0);
+    sens := create Sensor(0,0,50);
     controller := create Control(0,0);
     _3DView := [];     
  end
@@ -77,7 +78,7 @@ class Main(simulator)
  controller.s = sens.s;
  mechanics.th = controller.th;
  subject.p = [mechanics.x,mechanics.y,0];
- subject.o = [mechanics.th+pi/2,0,1*pi];
+ subject.o = [pi/2,0,pi+mechanics.th];
  _3DView = [[mechanics.x-3,mechanics.y,0.5],[0,0,-1*pi/2]];
  simulator.endTime = 25;
 end
