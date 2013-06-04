@@ -1,0 +1,39 @@
+// Author: Jawad Masood
+// ID: A1E
+//Jawad had created the first simulation case for the active driver assistance systems 
+//longitudinal function called Collision Imminent Braking. The simulation case describes 
+//the testing vehicle approaching from behind towards the reference stationary object 
+//(car/pedestrian). The simplest possible mathematical models were modeled using 
+//new version of Acumen and Acumen 3d e.g. the car was represented by a point mass 
+//without friction; the straight road was represented by a fixed rectangular box; the 
+//sensor was represented by the single variable which calculate the distance between testing 
+//vehicle and stationary vehicle; one dimensional force was applied in x-axis direction while 
+//all forces in remaining five dimensions (two translations and three rotations) 
+//were neglected; The deceleration of testing vehicle was modeled by applying braking 
+//force in negative x-axis direction; the activation of function was modeled when distance 
+//sensor detects the critical distance (< = 3m) between testing vehicle and the reference 
+//vehicle 
+//**********************SIMULATOR*******************************************//
+class Main(simulator)
+  private 
+         x := 0; 
+         x' := 5; 
+         x'' := 0; 
+         F := 0;
+         mode := "push"; 
+          t := 0; 
+         t' := 0;
+         m := 5;   
+ end
+ x'' = F/m;
+ t' = 1;
+   switch mode
+    case "push"
+          F = 20;
+         if t>=1.5
+         mode="brake";
+    end
+    case "brake"
+         F = -10;
+   end
+end
