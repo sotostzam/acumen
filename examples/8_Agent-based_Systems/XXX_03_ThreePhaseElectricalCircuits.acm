@@ -1,11 +1,78 @@
-// created by Anita Sant'Anna 2013
-// This is a simple model of the electrical system of a house.
-// This model creates a three-phase source, and a circuit with 
-// two three-phase RL–Y loads. In order to illustrate the operation 
-// of a breaker, we simulate a fault in phase 1 of load1.
-// classes for three-phase delta connected loads, and single phase
-// loads are also provided.
-
+// Three-phase and single phase electrical circuits
+//
+// Author:  Anita Sant'Anna, 2013
+//
+// This example illustrates how to model:
+//  - a three-phase voltage source representing the grid;
+//  - three-phase R-L loads in Why and Delta configurations;
+//  - single phase R-L loads; and
+//  - how to connect several loads to create a circuit which is protected 
+//    by a circuit breaker limiting the current in the circuit
+//
+// In order to illustrate the operation of a circuit breaker, 
+// this example simulates a fault in phase 1 of load1.
+//
+// Run this example, view plots, experiment with creating new circuits
+// 
+// The three phases of the power grid are modeled as follows:
+// 
+//   v1 = V*sqrt(2)*cos(2*pi*f*t);
+//   v2 = V*sqrt(2)*cos(2*pi*f*t - pi*120/180);
+//   v3 = V*sqrt(2)*cos(2*pi*f*t - pi*240/180);
+//
+//   where:
+//     v1: voltage of phase 1
+//     v2: voltage of phase 2
+//     v3: voltage of phase 3
+//     V: rms value of the voltage 
+//     f: frequency in Hz
+//
+// Note that indexes 1,2,3 will always refer to the respective phases
+// small case letters indicate a time series and CAPITAL CASE letters
+// indicate rms values. 
+//
+// Single phase loads are modeled by the differential equation:
+//
+//   i' = (v - R*i)/L   -> in case of R-L load
+//   or
+//   i = v/R            -> in case of R load
+//     
+//   where:
+//     i: current drawn by the load
+//     v: phase voltage
+//     R: equivalent resistance of the load
+//     L: equivalent inductance of the load  
+//
+// Three-phase loads in Why configuration is modeled as follows:
+//
+//   i1' = (v1 - R1*i1)/L1  | 
+//   i2' = (v2 - R2*i2)/L2  |-> in case of RL load
+//   i3' = (v3 - R3*i3)/L3  |
+//   or
+//   i1 = v1/R1             |
+//   i2 = v2/R2             |-> in case of R load
+//   i3 = v3/R3             |
+//
+// Three-phase loads in Delta configuration are modeled as:
+// 
+//   i12' = (v1 - v2 - R12*i12)/L12  |
+//   i23' = (v2 - v3 - R23*i23)/L23  |
+//   i31' = (v3 - v1 - R31*i31)/L31  |
+//   i1 = i31 - i12                  |-> in case of RL load
+//   i2 = i12 - i23                  |
+//   i3 = i23 - i31                  |
+//   or
+//   i12 = (v1 - v2)/R12             |
+//   i23 = (v2 - v3)/R23             |
+//   i31 = (v3 - v1)/R31             |
+//   i1 = i31 - i12                  |-> in case of R load
+//   i2 = i12 - i23                  |
+//   i3 = i23 - i31                  |
+//
+//  The circuit breaker works by disrupting the circuit if the
+//  phase current surpasses the limit current of the breaker.
+//
+//
 // three-phase source representing the grid
 class ThreePhaseSourceIdeal(V, f)
   private t:=0; t':=1; v1:=0; v2:=0; v3:=0; end

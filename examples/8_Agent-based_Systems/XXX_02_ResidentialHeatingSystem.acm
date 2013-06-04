@@ -1,8 +1,85 @@
-// created by Anita Sant'Anna 2012
-// model of a residential heating system opperating dependent on
-// weather and electricity costs (demand response program)
+// Smart residential heating system 
+//
+// Author:  Anita Sant'Anna, 2013
+//
+// Run this example, view Plot, change weather profile and view plot. 
+//
+// This example models a smart residential heating system which
+// opperates dependent on weather and electricity costs (demand response program)
 
+// The heating system is composed of an electric heat pump, a hot water storage
+// and a forced convection system (fans).
 
+// The thermodynamic mode of the system is:
+//
+//   T_H'   = (K_H*(T_O - T_H) - Y_TM_H*(T_H - T_TM)) / (m_H*C_H);
+//   T_TM'  = (Q_HP_prime - Y_TM_H*(T_TM - T_H)) / (m_TM*C_TM);
+// 
+//   where:
+//     T_H: house temperature
+//     T_TM: boiler temperature
+//     T_O: outside temperature (according to Portland, Colorado Springs or Halmstad weather)
+//     K_H: heat transfer coefficient of the house insulation
+//     Y_TM_H: coefficient of heat transfer between boiler and house (due to fans)
+//     m_TM: mass of the water in the boiler
+//     m_H: mass of the air in the house
+//     Q_HP_prime: amount of heat the heat pump transfers to the boiler
+
+// The heat pump heats the water in the storage tank. The forced convection
+// system uses air fans to tranfer heat from the water storage tank to the 
+// house. 
+
+// The heat pump operates in three different modes: low, medium and high.
+// It tries to maintain the temperature of the water in the storage at 65 C.
+// It must also switch off during peak time-of-use (TUR) rates when the electricity
+// is the most expensive. The pump must wait 5 min between switching off and on again.
+// The heat pump control follows the following rules:
+//
+//   Q_HP_prime = 0        if (T_TM > 65 && count > 5) or (rate > 13 && count > 5) 
+//   Q_HP_prime = 10.5*0.3 if (T_TM > 64 && T_TM < 65)   
+//   Q_HP_prime = 10.5*0.6 if (T_TM > 62 && T_TM < 64)
+//   Q_HP_prime = 10.5     if (T_TM < 62)
+//
+//   where:
+//     Q_HP_prime: heat transfered from heat pump to boiler
+//     T_TM: temperature of water in the storage tank
+//     count: time since last switch off
+//     rate: time-of-use rate
+//
+// The total cost of electricity depends on time-of-use rates (TUR)
+// and the coefficient of performance (COP) of the heat pump
+// according to the following equation:
+//
+//  if Q_HP_prime = low    COP = -0.0002592*T_O^2 + 0.0358*T_O + 4.0181;
+//  if Q_HP_prime = medium COP = -0.0002592*T_O^2 + 0.0313*T_O + 3.6381;
+//  if Q_HP_prime = high   COP = -0.0002592*T_O^2 + 0.0268*T_O + 3.2581;
+//
+//  power=power + (Q_HP_prime/COP)*(1/60);          // [kW.h]
+//  cost=cost + (rate/100)*(Q_HP_prime/COP)*(1/60); // [dollars]
+// 
+//  where: 
+//    power: total power consumed by heat pump
+//    cost: total cost of electricity used
+//    rate: time-of-use rate
+//    T_O: outdoor temperature
+//
+// Time-of-use rates are defined as follows:
+//    rate = 13.266 from 06:00 to 10:00 and from 17:00 to 20:00 
+//    rate = 7.500  from 10:== to 17:00 and from 20:00 to 22:00 
+//    rate = 4.422  from 22:00 to 06:00 
+//
+// The forced convection system tries to maintain the temperature of
+// the house around 21 C. It follows the follwoing rules:
+//
+//   Y_TM_H = 0       if (T_H >= 21)
+//   Y_TM_H = 0.1303  if (T_H > 20 && T_H < 21) 
+//   Y_TM_H = 0.2605  if (T_H < 20)
+//   
+//   where:
+//     Y_TM_H: coefficient of heat transfer between boiler and house
+//     T_H: temperature of the house 
+//     
+//
 // weather profile for Portland Oregon, hourly averages for January 
 class WeatherPortland()
  private mode := "hour"; T_O := 3; tx  := 1; tx' := 1/3600; i:=1; end
@@ -127,10 +204,7 @@ class WeatherColoradoSprings()
   end
 end
 
-// calculates total cost of electricity based on time of use rates and 
-// coefficient of performance (COP) of the heat pump
-// power: power consumed by heat pump
-// cost: cost of electricity used
+
 class CostAssessment()
   private Q_HP_prime:=0; COP:=0; rate:=0; power:=0; cost:=0; mode:="off"; T_O:=0; end
   switch mode
@@ -204,12 +278,7 @@ class TimeUseRate()
 end
 
 
-// model of a heat pump with 3 opperation modes: low, medium and high
-// the heat pump must switch off during peak time of use rates
-// outside of peak hours, the heat pump tries to stabilize the boiler temperature, T_TM, 
-// around 65 degrees celcius.
-// Q_HP_prime: heat transfered from heat pump to boiler
-// T_TM: temperature of water in the boiler
+
 class HeatPump()
   private Q_HP_prime:=0; T_TM:=65; mode:="off"; rate:=0; count:=0; end
   count=count+1;
@@ -260,25 +329,6 @@ class HeatPump()
   end
 end
 
-// model of the residential heating system.
-// heat transfer equations between water boiler and the house (Y_TM_H);
-// the house and the outside (K_H). A forced convection system (fans) controls 
-// the heat transfer between the water boiler and the house. 
-// The opperation of the fan is represented by different values of Y_TM_H. 
-// The forced convection system tries to keep the house temperature, T_H, 
-// around 21 degrees celcius.
-// The system is modeled by a system of ODEs:
-// T_H'   = (K_H*(T_O - T_H) - Y_TM_H*(T_H - T_TM)) / (m_H*C_H);
-// T_TM'  = (Q_HP_prime - Y_TM_H*(T_TM - T_H)) / (m_TM*C_TM);
-// where:
-// T_H: house temperature
-// T_TM: boiler temperature
-// T_O: outside temperature
-// K_H: heat transfer coefficient of the house insulation
-// Y_TM_H: coefficient of heat transfer between boiler and house (due to fans)
-// m_TM: mass of the water in the boiler
-// m_H: mass of the air in the house
-// Q_HP_prime: amount of heat the heat pump transfers to the boiler
 class HeatingSystem(m_H, K_H, C_H, m_TM, C_TM)
   private
     Y_TM_H:=0; T_H:=20; T_H':=0; T_TM:=65; T_TM':=0; T_O:=0; Q_HP_prime:=0;
