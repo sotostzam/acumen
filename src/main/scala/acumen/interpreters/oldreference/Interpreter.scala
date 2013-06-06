@@ -11,7 +11,7 @@
 
 package acumen
 package interpreters
-package reference
+package oldreference
 
 import Eval._
 
@@ -80,9 +80,6 @@ object Interpreter extends acumen.CStoreInterpreter {
    * whose ids are "cs", to address p */
   def reparent(cs:List[CId], p:CId) : Eval[Unit] =
     mapM_ (logReparent(_:CId,p), cs)
-    
-  /* assign the value v to a field n in object o */
-  def assign(o: CId, n: Name, v:CValue) : Eval[Unit] = logAssign(o, n, v)
 
   /* log an id as being dead */
   def kill(a:CId) : Eval[Unit] = logCId(a)
@@ -217,7 +214,7 @@ object Interpreter extends acumen.CStoreInterpreter {
     eval(env,e)
   }
 
-  def evalActions(as:List[Action], env:Env, p:Prog) : Eval[Unit] =
+  def evalActions(as:List[Action], env:Env, p:Prog) : Eval[Unit] = 
     mapM_((a:Action) => evalAction(a, env, p), as)
   
   def evalAction(a:Action, env:Env, p:Prog) : Eval[Unit] = {
@@ -255,11 +252,11 @@ object Interpreter extends acumen.CStoreInterpreter {
  
   def evalDiscreteAction(a:DiscreteAction, env:Env, p:Prog) : Eval[Unit] =
     a match {
-      case Assign(d@Dot(e,x),t) => 
+      case Assign(Dot(e,x),t) =>
         for { id <- asks(evalExpr(e, p, env, _)) map extractId
-        	vt <- asks(evalExpr(t, p, env, _))
-        	_  <- asks(checkAccessOk(id, env, _))
-        } assign(id, x, vt)
+              vt <- asks(evalExpr(t, p, env, _))
+              _  <- asks(checkAccessOk(id, env, _))
+        } setObjectFieldM(id, x, vt)
       /* Basically, following says that variable names must be 
          fully qualified at this language level */
       case Assign(_,_) => 
@@ -351,7 +348,7 @@ object Interpreter extends acumen.CStoreInterpreter {
     val sprog = Simplifier.run(cprog)
     val mprog = Prog(magicClass :: sprog.defs)
     val (sd1,sd2) = Random.split(Random.mkGen(0))
-    val (id,_,_,_,st1) = 
+    val (id,_,_,st1) = 
       mkObj(cmain, mprog, None, sd1, List(VObjId(Some(CId(0)))), 1)(initStore)
     val st2 = changeParent(CId(0), id, st1)
     val st3 = changeSeed(CId(0), sd2, st2)
@@ -371,17 +368,15 @@ object Interpreter extends acumen.CStoreInterpreter {
   def step(p:Prog, st:Store) : Option[Store] =
     if (getTime(st) > getEndTime(st)) None
     else Some(
-      { val (_,ids,rps,ass,st1) = iterate(evalStep(p), mainId(st))(st)
+      { val (_,ids,rps,st1) = iterate(evalStep(p), mainId(st))(st)
         getStepType(st) match {
           case Discrete() => 
-            if (st == st1 && ids.isEmpty && rps.isEmpty && ass.isEmpty) 
+            if (st == st1 && ids.isEmpty && rps.isEmpty) 
               setStepType(Continuous(), st1)
             else {
-              def assHelper(a: (CId,Name,CValue)) = setObjectFieldM(a._1, a._2, a._3)
-              val stA = mapM_(assHelper, ass.toList) ~> st1
-              def repHelper(pair:(CId, CId)) = changeParentM(pair._1, pair._2) 
-              val stR = mapM_(repHelper, rps.toList) ~> stA
-              stR -- ids
+              def helper(pair:(CId, CId)) = changeParentM(pair._1, pair._2) 
+              val st2 = mapM_(helper, rps.toList) ~> st1
+              st2 -- ids
             }
           case Continuous() =>
             val st2 = setStepType(Discrete(), st1)
