@@ -23,14 +23,17 @@ class LocalizingStrategy(override var eventEncloser: EventEncloser) extends Stra
 
   private def encloseHybrid(ps: Parameters, h: HybridSystem, t: Interval, sInit: StateEnclosure, cb: EnclosureInterpreterCallbacks)(implicit rnd: Rounding): Seq[UnivariateAffineEnclosure] = {
 
-    // call event localising ODE solver for each possible mode:
+    // call event localizing ODE solver for each possible mode
     val lfes: Map[Mode, LFE] = for ((mode, obox) <- sInit if obox.isDefined) yield mode -> encloseFlowUntilEventDetected(ps, h, t, mode, obox.get, cb)
 
+    // left endpoint of event interval
     val teL = (for ((_, mae, _) <- lfes.values if !mae.isEmpty) yield domain(mae).low).foldLeft(t.high)(Interval.min)
 
+    // right endpoint of event interval
     //    val teR = (for ((_, mae, compl) <- lfes.values if compl) yield domain(mae).high).foldLeft(t.high)(Interval.min)
     val teR = (for ((_, mae, _) <- lfes.values if !mae.isEmpty) yield domain(mae).high).foldLeft(t.high)(Interval.min)
 
+    // take the union of no-event enclosures up to the start of the event interval
     val noe = unionOfEnclosureListsUntil(teL, lfes.values.toSeq.map { case (noe, _, _) => noe })
     if (teL equalTo t.high) { // proved that there no event at all on T
       cb.sendResult(noe)
@@ -252,7 +255,7 @@ class LocalizingStrategy(override var eventEncloser: EventEncloser) extends Stra
 
   // a type for representing enclosure lists with first event 
 
-  type LFE = (Seq[UnivariateAffineEnclosure], Seq[UnivariateAffineEnclosure], Boolean)
+  private type LFE = (Seq[UnivariateAffineEnclosure], Seq[UnivariateAffineEnclosure], Boolean)
 
   // operations on LFEs
 
