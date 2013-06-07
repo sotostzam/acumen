@@ -256,10 +256,12 @@ object Interpreter extends acumen.CStoreInterpreter {
   def evalDiscreteAction(a:DiscreteAction, env:Env, p:Prog) : Eval[Unit] =
     a match {
       case Assign(d@Dot(e,x),t) => 
+        /* Schedule the assignment if it changes x, otherwise do nothing */
         for { id <- asks(evalExpr(e, p, env, _)) map extractId
-        	vt <- asks(evalExpr(t, p, env, _))
-        	_  <- asks(checkAccessOk(id, env, _))
-        } assign(id, x, vt)
+        	  vt <- asks(evalExpr(t, p, env, _))
+        	  _  <- asks(checkAccessOk(id, env, _))
+        	  vx <- asks(evalExpr(d, p, env, _)) 
+        } if (vt != vx) assign(id, x, vt) else pass
       /* Basically, following says that variable names must be 
          fully qualified at this language level */
       case Assign(_,_) => 
