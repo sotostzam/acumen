@@ -71,6 +71,7 @@ object Eval {
   def logAssign(o: CId, n: Name, v:CValue) : Eval[Unit] =
     mkEval(s => ((), Set.empty, Set.empty, Set((o,n,v)), s))
   
+  /* Apply f to the store and wrap it in an Eval */
   def asks[A](f : Store => A) : Eval[A] = 
     getStore >>= ((s:Store) => pure(f(s)))
   
