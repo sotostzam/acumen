@@ -1,0 +1,32 @@
+class Main(simulator)
+private
+  v := [10.0..11.0]; 
+  x := 0; x' := 10;
+  y := 0; y' := 0;
+  t := 0; t' := 1;
+  theta := 0;
+  mode := "Before"
+end
+  switch mode
+    case "Before" claim t <= 1.5
+      if t == 1.5 
+        theta := pi/4;
+        mode := "Stear"
+      end;
+      x' = v*cos(theta);
+      y' = v*sin(theta);
+      t' = 1;
+    case "Stear" claim 1.5 <= t && t <= 1.65
+      if t == 1.65  
+        theta := 0;
+        mode := "After"
+      end;
+      x' = v*cos(theta);
+      y' = v*sin(theta);
+      t' = 1;
+    case "After" claim t >= 1.65 
+      x' = v*cos(theta);
+      y' = v*sin(theta);
+      t' = 1;
+  end
+end

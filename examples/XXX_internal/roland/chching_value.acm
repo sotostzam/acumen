@@ -1,0 +1,32 @@
+// this example shows how to cache the value
+// of a variable at a specific time or event
+// and use it to compute some result that depends
+// on the chached value
+class Main(simulator)
+private
+  x := 1; x' := 0;
+  t := 0; t' := 1;
+  value := 0;
+  result := 0; 
+  mode := "Before"
+end
+  switch mode
+    case "Before" claim t <= 1
+      if t == 1 // condition for caching the value
+        value := x;
+        result := value*25;
+        mode := "Temp"
+      end;
+      x' = -atan(x);
+      t' = 1;
+    case "Temp" claim t == 1 // hack to allow assigning an expression to a variable
+      if true
+        result := value*25; // computing the result in terms of the chached value
+        mode := "After"
+      end;
+      t' = 1;
+    case "After" claim t >= 1 // life continues...
+      x' = -atan(x);
+      t' = 1;
+  end
+end

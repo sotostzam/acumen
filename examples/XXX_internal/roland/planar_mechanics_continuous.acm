@@ -1,0 +1,15 @@
+class Main(simulator)
+private
+  v := 10; 
+  x := 0; x' := 10;
+  y := 0; y' := 0;
+  t := 0; t' := 1;
+  mode := "Stear"
+end
+  switch mode
+    case "Stear"
+      x' = v*cos(t);
+      y' = v*sin(t);
+      t' = 1;
+  end
+end

@@ -1,0 +1,19 @@
+class Main(simulator)
+private
+  d1  := [10.0..11.0];
+  d2  := [40.0..42.0];
+  x  := 0; x' := [15.0..20.0]; x'' := -5.0;
+  mode := "braking"
+end
+  switch mode
+    case "braking" claim x >= 0 && x' >= 0
+      if x' == 0
+        mode := "stopped"
+      end;
+      x'' = [-5.0..-4.0]
+    case "stopped"
+      x'' = 0
+  end;
+  simulator.endTime := 5;
+  simulator.minSolverStep := 0.01;
+end
