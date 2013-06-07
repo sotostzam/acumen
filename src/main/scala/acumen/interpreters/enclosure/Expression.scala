@@ -1,11 +1,12 @@
 package acumen.interpreters.enclosure
 
-import Types._
-import acumen.interpreters.enclosure.affine.UnivariateAffineEnclosure
-import acumen.interpreters.enclosure.affine.AffineScalarEnclosure
-import acumen.interpreters.enclosure.affine.UnivariateAffineScalarEnclosure
-import acumen.interpreters.enclosure.affine.AffineEnclosure
 import scala.collection.SortedMap
+
+import Types._
+import acumen.interpreters.enclosure.affine.AffineEnclosure
+import acumen.interpreters.enclosure.affine.AffineScalarEnclosure
+import acumen.interpreters.enclosure.affine.UnivariateAffineEnclosure
+import acumen.interpreters.enclosure.affine.UnivariateAffineScalarEnclosure
 
 /**
  * Type used to represent expressions used to define functions and
@@ -18,10 +19,12 @@ import scala.collection.SortedMap
  */
 sealed abstract class Expression {
 
-  def isConstant = this match {
-    case Constant(_) => true
-    case _           => false
-  }
+  // TODO : implement testing for constantness as a simple way of  
+  // supporting constant folding  
+  //def isConstant = this match {
+  //    case Constant(_) => true
+  //    case _           => false
+  //  }
 
   // FIXME implement map for Expressions to avoid this
   def compose(that: Expression, intoVariable: String): Expression = this match {
@@ -35,6 +38,8 @@ sealed abstract class Expression {
     case Cos(e)                                 => Cos(e.compose(that, intoVariable))
     case Atan(e)                                => Atan(e.compose(that, intoVariable))
     case Negate(e)                              => Negate(e.compose(that, intoVariable))
+    case Min(l, r)                              => Min(l.compose(that, intoVariable), r.compose(that, intoVariable))
+    case Max(l, r)                              => Max(l.compose(that, intoVariable), r.compose(that, intoVariable))
     case Plus(l, r)                             => Plus(l.compose(that, intoVariable), r.compose(that, intoVariable))
     case Multiply(l, r)                         => Multiply(l.compose(that, intoVariable), r.compose(that, intoVariable))
     case Divide(l, r)                           => Divide(l.compose(that, intoVariable), r.compose(that, intoVariable))
@@ -63,6 +68,8 @@ sealed abstract class Expression {
       case Atan(e)        => e(x).atan
       case Negate(e)      => -e(x)
       case Plus(l, r)     => l(x) + r(x)
+      case Min(l, r)      => Interval.min(l(x), r(x))
+      case Max(l, r)      => Interval.max(l(x), r(x))
       case Multiply(l, r) =>
         if (l == r) l(x) square
         else l(x) * r(x)
@@ -94,6 +101,8 @@ sealed abstract class Expression {
       case Sin(e)                 => sys.error("apply: undefined")
       case Cos(e)                 => sys.error("apply: undefined")
       case Atan(e)                => sys.error("apply: undefined")
+      case Min(l, r)              => sys.error("apply: undefined") // (l(x) union r(x)).low is only the lower bound
+      case Max(l, r)              => sys.error("apply: undefined") // (l(x) union r(x)).high is only the upper bound
       case Plus(l, r)             => l(x) + r(x)
       case Multiply(l, r)         => l(x) * r(x)
       case Divide(e, Constant(v)) => e(x) / v // division not supported by enclosure arithmetic
@@ -123,6 +132,7 @@ sealed abstract class Expression {
     case Plus(l, r)     => l(x) + r(x)
     case Multiply(l, r) => l(x) * r(x)
     case Divide(l, r)   => AffineScalarEnclosure(x.domain, l(x).range / r(x).range)
+    case _              => sys.error("(" + this + ").apply is not defined for enclosures.")
   }
 
   /**
@@ -151,14 +161,10 @@ sealed abstract class Expression {
     case Constant(v)            => AffineScalarEnclosure(x, v)
     case Variable(name)         => AffineScalarEnclosure(x, name)
     case Negate(e)              => -(e.enclosureEvalHelper(x))
-    case Sqrt(e)                => sys.error("enclosureEvalHelper: undefined")
-    case Exp(e)                 => sys.error("enclosureEvalHelper: undefined")
-    case Log(e)                 => sys.error("enclosureEvalHelper: undefined")
-    case Cos(e)                 => sys.error("enclosureEvalHelper: undefined")
-    case Sin(e)                 => sys.error("enclosureEvalHelper: undefined")
     case Plus(l, r)             => l.enclosureEvalHelper(x) + r.enclosureEvalHelper(x)
     case Multiply(l, r)         => l.enclosureEvalHelper(x) * r.enclosureEvalHelper(x)
     case Divide(e, Constant(v)) => e.enclosureEvalHelper(x) / v
+    case _                      => sys.error("enclosureEvalHelper: unsupported operator")
   }
 
   // TODO add explanation!
@@ -177,6 +183,8 @@ sealed abstract class Expression {
     case Cos(e)         => e.varNames
     case Atan(e)        => e.varNames
     case Negate(e)      => e.varNames
+    case Min(l, r)      => l.varNames union r.varNames
+    case Max(l, r)      => l.varNames union r.varNames
     case Plus(l, r)     => l.varNames union r.varNames
     case Multiply(l, r) => l.varNames union r.varNames
     case Divide(l, r)   => l.varNames union r.varNames
@@ -245,6 +253,9 @@ object Expression {
   /** Implicit lifting of variable names allows for writing e.g. x + "y". */
   implicit def lift(name: String) = Variable(name)
 
+  def min(left: Expression, right: Expression): Expression = Min(left, right)
+  def max(left: Expression, right: Expression): Expression = Max(left, right)
+
 }
 
 case class Constant(value: Interval) extends Expression {
@@ -289,6 +300,14 @@ case class Atan(expression: Expression) extends Expression {
 
 case class Negate(expression: Expression) extends Expression {
   override def toString = "-" + expression
+}
+
+case class Min(left: Expression, right: Expression) extends Expression {
+  override def toString = "min(" + left + " + " + right + ")"
+}
+
+case class Max(left: Expression, right: Expression) extends Expression {
+  override def toString = "max(" + left + " + " + right + ")"
 }
 
 case class Plus(left: Expression, right: Expression) extends Expression {
