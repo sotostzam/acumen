@@ -268,9 +268,11 @@ trait Extract {
       map { case Init(Name(name, order), _) => name + "'" * order }.toList
   }
 
-  def acumenExprToPredicate(e: Expr)(implicit rnd: Rounding): Predicate = e match {
-    case Lit(GBool(b)) if b => True
-    case _                  => All(acumenExprToRelations(e))
+  def acumenExprToPredicate(e: Expr)(implicit rnd: Rounding): Predicate = {
+    e match {
+      case Lit(GBool(b)) => if (b) True else False
+      case _             => All(acumenExprToRelations(e))
+    }
   }
 
   def acumenExprToRelations(e: Expr)(implicit rnd: Rounding): List[Relation] = e match {

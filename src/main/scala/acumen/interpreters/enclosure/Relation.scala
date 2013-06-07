@@ -186,13 +186,13 @@ abstract class Relation extends Contract {
         relname match {
           case Positive | NonNegative =>
             val ran = e(x)
-            if (ran.high greaterThanOrEqualTo 0) res = e.contractBox(x, max(ran, 0))
-            else sys.error("empty support: " + ran + " /\\ " + max(ran, 0))
+            if (ran.high greaterThanOrEqualTo 0) res = e.contractBox(x, Interval.max(ran, 0))
+            else sys.error("empty support: " + ran + " /\\ " + Interval.max(ran, 0))
           case EqualToZero => res = e.contractBox(x, 0)
           case NonPositive | Negative =>
             val ran = e(x)
-            if (ran.low lessThanOrEqualTo 0) res = e.contractBox(x, min(ran, 0))
-            else sys.error("empty support" + ran + " /\\ " + min(ran, 0))
+            if (ran.low lessThanOrEqualTo 0) res = e.contractBox(x, Interval.min(ran, 0))
+            else sys.error("empty support" + ran + " /\\ " + Interval.min(ran, 0))
         }
         //      res = supportBySplitting(5)(res) match {
         //        case Some(box) => box

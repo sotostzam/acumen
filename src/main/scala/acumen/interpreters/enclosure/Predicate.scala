@@ -12,6 +12,7 @@ abstract class Predicate {
 
   def compose(that: Expression, intoVariable: String): Predicate = this match {
     case True         => True
+    case False        => False
     case all @ All(_) => All(all.conjuncts.map(_.compose(that, intoVariable)))
   }
 
@@ -20,7 +21,8 @@ abstract class Predicate {
    * intervals of the box x.
    */
   def apply(x: Box)(implicit rnd: Rounding): Set[Boolean] = this match {
-    case True => Set(true)
+    case True  => Set(true)
+    case False => Set(false)
     case All(ps) => {
       ps.foldLeft(Set(true)) {
         case (res, p) => {
@@ -39,7 +41,8 @@ abstract class Predicate {
    * variables to range over the domains of the variables.
    */
   def apply(x: UnivariateAffineEnclosure)(implicit rnd: Rounding): Set[Boolean] = this match {
-    case True => Set(true)
+    case True  => Set(true)
+    case False => Set(false)
     case All(ps) => {
       ps.foldLeft(Set(true)) {
         case (res, p) => {
@@ -57,7 +60,8 @@ abstract class Predicate {
    * of the predicate.
    */
   def support(x: Box)(implicit rnd: Rounding): Box = this match {
-    case True => x
+    case True  => x
+    case False => sys.error("FALSE.support is empty")
     case All(rs) =>
       val contracted = rs.foldLeft(x)((res, r) => r.support(res))
       if (contracted almostEqualTo x) contracted
@@ -69,6 +73,10 @@ abstract class Predicate {
 /** Type representing a predicate that consists of a conjunction of inequalities. */
 case object True extends Predicate {
   override def toString = "TRUE"
+}
+/** Type representing a predicate that consists of a conjunction of inequalities. */
+case object False extends Predicate {
+  override def toString = "FALSE"
 }
 case class All(conjuncts: Seq[Relation]) extends Predicate {
   override def toString = conjuncts.map(_.toString).mkString(" /\\ ") match {
