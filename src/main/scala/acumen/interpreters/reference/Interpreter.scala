@@ -379,6 +379,11 @@ object Interpreter extends acumen.CStoreInterpreter {
             if (st == st1 && ids.isEmpty && rps.isEmpty && ass.isEmpty) 
               setStepType(Continuous(), st1)
             else {
+              val duplAss = ass.groupBy(a => (a._1,a._2)).filter{ case (_, l) => l.size > 1 }.keys.toList
+              if (duplAss.size != 0) {
+                val n = duplAss(0)._2
+            	sys.error("Repeated assignment to variable (" + n.x + "'" * n.primes + ") is not allowed.")
+              }
               def assHelper(a: (CId,Name,CValue)) = setObjectFieldM(a._1, a._2, a._3)
               val stA = mapM_(assHelper, ass.toList) ~> st1
               def repHelper(pair:(CId, CId)) = changeParentM(pair._1, pair._2) 
