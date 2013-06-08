@@ -125,7 +125,8 @@ class App extends SimpleSwingApplication {
   private val plotStyleLinesAction        = new Action(  "Lines")      { mnemonic = VK_L; def apply = plotView.setPlotStyle(plot.Lines()) }
   private val plotStyleDotsAction         = new Action(  "Dots")       { mnemonic = VK_D; def apply = plotView.setPlotStyle(plot.Dots()) }
   private val plotStyleBothAction         = new Action(  "Both")       { mnemonic = VK_B; def apply = plotView.setPlotStyle(plot.Both()) }
-  private val floatingPointAction         = mkActionMask("Floating Point",          VK_R, VK_R,       shortcutMask | SHIFT_MASK, setInterpreter(new CStoreCntrl(interpreters.reference.Interpreter))) 
+  private val floatingPointNewAction      = mkActionMask("Floating Point (New)",    VK_F, VK_F,       shortcutMask | SHIFT_MASK, setInterpreter(new CStoreCntrl(interpreters.reference.Interpreter)))
+  private val floatingPointAction         = mkActionMask("Floating Point",          VK_R, VK_R,       shortcutMask | SHIFT_MASK, setInterpreter(new CStoreCntrl(interpreters.oldreference.Interpreter))) 
   private val floatingPointParallelAction = mkActionMask("Floating Point Parallel", VK_P, VK_P,       shortcutMask | SHIFT_MASK, promptForNumberOfThreads)
   private val pwlHybridSolverAction       = mkActionMask("Enclosure PWL",           VK_L, VK_L,       shortcutMask | SHIFT_MASK, setInterpreter(new EnclosureCntrl(interpreters.enclosure.Interpreter.asPWL))) 
   private val eventTreeHybridSolverAction = mkActionMask("Enclosure EVT",           VK_T, VK_T,       shortcutMask | SHIFT_MASK, setInterpreter(new EnclosureCntrl(interpreters.enclosure.Interpreter.asEVT)))
@@ -436,6 +437,11 @@ class App extends SimpleSwingApplication {
     contents += new Menu("Semantics") {
       mnemonic = Key.S
       val ref = new RadioMenuItem("") {
+        selected = false
+        enableWhenStopped(this)
+        action = floatingPointNewAction
+      }
+      val oldRef = new RadioMenuItem("") {
         selected = !GraphicalMain.useEnclosures
         enableWhenStopped(this)
         action = floatingPointAction
@@ -457,7 +463,7 @@ class App extends SimpleSwingApplication {
 		selected = GraphicalMain.useEnclosures &&
 		  interpreters.enclosure.Interpreter.strategy.eventEncloser.getClass == classOf[TreeEventEncloser]
 	  }
-	  val bg = new ButtonGroup(ref, par, pwl, et)
+	  val bg = new ButtonGroup(oldRef, ref, par, pwl, et)
 	  val ls = new CheckMenuItem("") {
 		action = contractionAction
 		enabledWhenStopped += (this, () => interpreter.interpreter.getClass == interpreters.enclosure.Interpreter.getClass)
@@ -470,7 +476,7 @@ class App extends SimpleSwingApplication {
 		    enabled = interpreter.interpreter.getClass == interpreters.enclosure.Interpreter.getClass
 		}
 	  }
-      contents ++= Seq(ref, par, new Separator, pwl, et, ls)
+      contents ++= Seq(oldRef, ref, par, new Separator, pwl, et, ls)
     }
    
     contents += new Menu("Help") {
