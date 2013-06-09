@@ -275,10 +275,68 @@ trait Extract {
     }
   }
 
+  /**
+   * FIXME: add description!
+   */
   def acumenExprToRelations(e: Expr)(implicit rnd: Rounding): List[Relation] = e match {
+    case Op(Name("||", 0), List(a, b)) if isInequality(a) && isInequality(b) =>
+      /* a r1 b || c r2 d ~~> min(f,g) <= 0 */
+      println("a r1 b || c r2 d ~~> min(f,g) <= 0")
+      val Op(Name("<=", 0), List(aLhs, Lit(GInt(0) | GDouble(0)))) = acumenIneqToLeqThanZero(a)
+      val Op(Name("<=", 0), List(bLhs, Lit(GInt(0) | GDouble(0)))) = acumenIneqToLeqThanZero(b)
+      acumenExprToRelations(Op(Name("<=", 0), List(Op(Name("min", 0), List(aLhs, bLhs)), Lit(GDouble(0)))))
+    case Op(Name("||", 0), List(a, Op(Name("==", 0), List(b, c)))) =>
+      /* a || b == c ~~> a || (b <= c && b >= c) */
+      acumenExprToRelations(
+        Op(Name("||", 0), List(
+          a,
+          Op(Name("&&", 0), List(
+            Op(Name("<=", 0), List(b, c)),
+            Op(Name(">=", 0), List(b, c)))))))
+    case Op(Name("||", 0), List(Op(Name("==", 0), List(a, b)), c)) =>
+      /* a == b || c ~~> (a <= b && a >= b) || c */
+      acumenExprToRelations(
+        Op(Name("||", 0), List(
+          Op(Name("&&", 0), List(
+            Op(Name("<=", 0), List(a, b)),
+            Op(Name(">=", 0), List(a, b)))),
+          c)))
+    case Op(Name("||", 0), List(a, Op(Name("&&", 0), List(b, c)))) =>
+      /* a || (b && c) ~~> (a || b) && (a || c) */
+      acumenExprToRelations(
+        Op(Name("&&", 0), List(
+          Op(Name("||", 0), List(a, b)),
+          Op(Name("||", 0), List(a, c)))))
+    case Op(Name("||", 0), List(Op(Name("&&", 0), List(a, b)), c)) =>
+      /* (a && b) || c ~~> (a || c) && (b || c) */
+      acumenExprToRelations(
+        Op(Name("&&", 0), List(
+          Op(Name("||", 0), List(a, c)),
+          Op(Name("||", 0), List(b, c)))))
     case Op(Name("&&", 0), List(l, r)) => acumenExprToRelations(l) ++ acumenExprToRelations(r)
     case Op(Name("<=" | "<" | "==" | ">" | ">=", _), _) => List(acumenExprToRelation(e))
     case _ => sys.error("Handling of predicates " + e + "not implemented!")
+  }
+
+  def isInequality(e: Expr): Boolean = e match {
+    case Op(Name("<=" | "<" | ">" | ">=", 0), _) => true
+    case _                                       => false
+  }
+
+  /** Put an Acumen Expr representing an inequality into e <= 0 form. */
+  def acumenIneqToLeqThanZero(e: Expr): Expr = {
+    require(isInequality(e))
+    e match {
+      case Op(Name("<=" | "<", 0), List(x, y)) =>
+        Op(Name("<=", 0), List(
+          Op(Name("-", 0), List(x, y)),
+          Lit(GDouble(0))))
+      case Op(Name(">=" | ">", 0), List(x, y)) =>
+        Op(Name("<=", 0), List(
+          Op(Name("-", 0), List(y, x)),
+          Lit(GDouble(0))))
+      case _ => sys.error("Handling of relation " + e + " not implemented!")
+    }
   }
 
   def acumenExprToRelation(e: Expr)(implicit rnd: Rounding): Relation = e match {
@@ -288,11 +346,6 @@ trait Extract {
     case Op(Name("~=", 0), List(x, y)) => notEqualTo(acumenExprToExpression(x), acumenExprToExpression(y))
     case Op(Name(">", 0), List(x, y))  => lessThan(acumenExprToExpression(y), acumenExprToExpression(x))
     case Op(Name(">=", 0), List(x, y)) => lessThanOrEqualTo(acumenExprToExpression(y), acumenExprToExpression(x))
-    //    case Op(Name("<=", 0), List(x, y)) => nonPositive(acumenExprToExpression(x) - acumenExprToExpression(y))
-    //    case Op(Name("<", 0), List(x, y)) => negative(acumenExprToExpression(x) - acumenExprToExpression(y))
-    //    case Op(Name("==", 0), List(x, y)) => equalToZero(acumenExprToExpression(x) - acumenExprToExpression(y))
-    //    case Op(Name(">", 0), List(x, y)) => positive(acumenExprToExpression(x) - acumenExprToExpression(y))
-    //    case Op(Name(">=", 0), List(x, y)) => nonNegative(acumenExprToExpression(x) - acumenExprToExpression(y))
     case _                             => sys.error("Handling of relation " + e + " not implemented!")
   }
 
@@ -314,6 +367,7 @@ trait Extract {
     case Op(Name("cos", 0), List(x))            => Cos(acumenExprToExpression(x))
     case Op(Name("atan", 0), List(x))           => Atan(acumenExprToExpression(x))
     case Op(Name("sqrt", 0), List(x))           => Sqrt(acumenExprToExpression(x))
+    case Op(Name("min", 0), List(l, r))         => Min(acumenExprToExpression(l), acumenExprToExpression(r))
     case Op(Name("-", 0), List(l, r))           => acumenExprToExpression(l) - acumenExprToExpression(r)
     case Op(Name("+", 0), List(l, r))           => acumenExprToExpression(l) + acumenExprToExpression(r)
     case Op(Name("/", 0), List(l, r))           => Divide(acumenExprToExpression(l), acumenExprToExpression(r))
@@ -322,21 +376,22 @@ trait Extract {
   }
 
   def foldConstant(e: Expr)(implicit rnd: Rounding): Constant = e match {
-    case Lit(GInt(i))                 => Constant(i)
-    case Lit(GDouble(d))              => Constant(d)
-    case Lit(_)                       => sys.error("foldConstant called with non-numeric expression!")
-    case Op(Name("-", 0), List(x))    => Constant(-foldConstant(x).value)
-    case Op(Name("abs", 0), List(x))  => Constant(foldConstant(x).value.abs)
-    case Op(Name("exp", 0), List(x))  => Constant(foldConstant(x).value.exp)
-    case Op(Name("sin", 0), List(x))  => Constant(foldConstant(x).value.sin)
-    case Op(Name("cos", 0), List(x))  => Constant(foldConstant(x).value.cos)
-    case Op(Name("atan", 0), List(x)) => Constant(foldConstant(x).value.atan)
-    case Op(Name("sqrt", 0), List(x)) => Constant(foldConstant(x).value.sqrt)
-    case Op(Name("-", 0), List(l, r)) => Constant(foldConstant(l).value - foldConstant(r).value)
-    case Op(Name("+", 0), List(l, r)) => Constant(foldConstant(l).value + foldConstant(r).value)
-    case Op(Name("*", 0), List(l, r)) => Constant(foldConstant(l).value * foldConstant(r).value)
-    case Op(Name("/", 0), List(l, r)) => Constant(foldConstant(l).value / foldConstant(r).value)
-    case _                            => sys.error("foldConstant called with nonconstant expression!")
+    case Lit(GInt(i))                   => Constant(i)
+    case Lit(GDouble(d))                => Constant(d)
+    case Lit(_)                         => sys.error("foldConstant called with non-numeric expression!")
+    case Op(Name("-", 0), List(x))      => Constant(-foldConstant(x).value)
+    case Op(Name("abs", 0), List(x))    => Constant(foldConstant(x).value.abs)
+    case Op(Name("exp", 0), List(x))    => Constant(foldConstant(x).value.exp)
+    case Op(Name("sin", 0), List(x))    => Constant(foldConstant(x).value.sin)
+    case Op(Name("cos", 0), List(x))    => Constant(foldConstant(x).value.cos)
+    case Op(Name("atan", 0), List(x))   => Constant(foldConstant(x).value.atan)
+    case Op(Name("sqrt", 0), List(x))   => Constant(foldConstant(x).value.sqrt)
+    case Op(Name("min", 0), List(l, r)) => Constant(Interval.min(foldConstant(l).value, foldConstant(r).value))
+    case Op(Name("-", 0), List(l, r))   => Constant(foldConstant(l).value - foldConstant(r).value)
+    case Op(Name("+", 0), List(l, r))   => Constant(foldConstant(l).value + foldConstant(r).value)
+    case Op(Name("*", 0), List(l, r))   => Constant(foldConstant(l).value * foldConstant(r).value)
+    case Op(Name("/", 0), List(l, r))   => Constant(foldConstant(l).value / foldConstant(r).value)
+    case _                              => sys.error("foldConstant called with nonconstant expression!")
   }
 
   def toDouble(l: Lit): Double = l match {
