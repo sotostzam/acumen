@@ -56,13 +56,15 @@ abstract class Predicate {
    * Compute an interval box wrapping the intersection of x with the support
    * of the predicate.
    */
-  def support(x: Box)(implicit rnd: Rounding): Box = this match {
-    case True => x
-    case All(rs) =>
-      val contracted = rs.foldLeft(x)((res, r) => r.support(res))
-      if (contracted almostEqualTo x) contracted
-      else support(contracted)
-  }
+  def support(x: Box)(implicit rnd: Rounding): Box =
+    if (this(x) == Set(false)) sys.error("empty box")
+    else this match {
+      case True => x
+      case All(rs) =>
+        val contracted = rs.foldLeft(x)((res, r) => r.support(res))
+        if (contracted almostEqualTo x) contracted
+        else support(contracted)
+    }
 
 }
 
