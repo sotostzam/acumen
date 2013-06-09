@@ -1,4 +1,5 @@
 //Author: Jawad Masood
+//ID: A3
 //*****************Vehicle Mechanics************************************************//
 class VehicleMechanics(m1,m2,Fx,Fy,x0)// Point mass 2D-dynamics
   private 
@@ -13,12 +14,12 @@ class VehicleMechanics(m1,m2,Fx,Fy,x0)// Point mass 2D-dynamics
   y'' = -Fy/m2 - 10*y' ; //Lateral Acceleration
  end
 //*********************Machine Sensor********************************************// 
- class Sensor(x0,s0)
+ class Sensor(x0,s0,r)
  private
  x := x0;
  sx := s0;
  end  
- sx  = 5-x; // Ideal sensing model  along X-direction. We can adjust this parameter according to our sensor range 
+ sx  = r-x; // Ideal sensing model  along X-direction. We can adjust this parameter according to our sensor range 
  end
 //*********************ADAS********************************************// 
 class Control(s0,y0,vy0,Fy0,kP,kD)//PD controller Open loop
@@ -41,7 +42,7 @@ class Main(simulator)
     subject := create VehicleT([0,1,0],1,"car.obj");
     target := create VehicleS([50,1,0],1,"car.obj");
     environment := create Road();
-    sens := create Sensor(0,0);
+    sens := create Sensor(0,0,5);
     controller := create Control(0,0,0,0,3,6);
    _3DView := [];     
  end

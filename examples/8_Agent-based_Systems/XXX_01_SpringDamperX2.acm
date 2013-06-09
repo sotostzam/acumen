@@ -1,18 +1,30 @@
-// created by Anita Sant'Anna 2012
-// This example creates two spring-damper systems and connects them in series.
+// Two spring-damper-mass systems connected in series
+//
+// Author:  Anita Sant'Anna, 2012
+//
+// Run this example, view Plot, and then 3D
 
-// Simple spring damper system where a mass is connected by a spring and damper to another point.
-// This system is defined by the system of ODEs:
-//  Fs= k*(x0-x) - c*x';
-//  x''=(Fs - F)/m;
-// where:
-// Fs: force exerted by spring
-// F: external force applied to the mass (compressing the spring)
-// k: spring constant
-// x0: initial position of the mass
-// x: position of the mass
-// c: damper coefficient
-// m: mass
+// This example makes use of the spring-damper-mass system
+// created in ~\examples\2_Modeling_Physical_Systems
+//
+// This example creates two spring-damper-mass systems. The first one is 
+// connected to a fixed point at one end, and to the other system
+// at the other end. 
+
+// Each spring-damper-mass system is modeled by the system of ODEs: 
+//
+//    Fs  = k*(x0-x) - c*x';
+//    x'' = (Fs - F)/m;
+//      where:
+//      Fs: force exerted on mass by spring and damper
+//      F: external force applied to the mass (compressing the spring)
+//      k: spring constant
+//      x0: initial position of the mass
+//      x: position of the mass
+//      c: damper coefficient
+//      m: mass
+
+
 class SpringDamper(c,k,m,x0)
   private x:=x0; x':=0; x'':=0; F:=0; Fs:=0; 
     _3D:=[["Box",[x0,0,0],[0.1*m,0.1*m,0.1*m],[0,0,1],[0,0,0]],

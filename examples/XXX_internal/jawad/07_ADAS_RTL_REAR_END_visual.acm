@@ -1,4 +1,5 @@
 // Authors: Jawad Masood and Roland Philippsen
+// ID: A7
 //The simulation case describes the testing vehicle 
 //approaching from behind towards the reference object 
 //(car/pedestrian). Simulation shows the testing vehicle 
@@ -111,7 +112,7 @@ if (state == 0)
     ey := T_y - y;
     eth := T_th - th;
     V := k_v * sqrt(ex * ex + ey * ey);
-    w := (k_a - k_b) * atan2(ex, ey) + k_a * eth;
+    w := (k_a - k_b) * atan2(ey, ex) + k_a * eth;
   end;
   end  
 //**********************SIMULATOR*******************************************//
@@ -136,7 +137,7 @@ class Main(simulator)
  subject.p = [mechanics.x,mechanics.y,0];
  subject.o = [pi/2,0,1*pi+mechanics.th];
  _3DView = [[mechanics.x-3,mechanics.y,0.5],[0,0,-1*pi/2]];
- simulator.endTime = 10;
+ simulator.endTime = 5;
  simulator.timeStep = 0.001;
 end
 
