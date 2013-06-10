@@ -8,11 +8,12 @@ import acumen.interpreters.enclosure.affine.UnivariateAffineEnclosure
  *
  * Implementation note: TODO motivate why predicates are separated from relations.
  */
-abstract class Predicate {
+sealed abstract class Predicate {
 
   def compose(that: Expression, intoVariable: String): Predicate = this match {
-    case True         => True
-    case all @ All(_) => All(all.conjuncts.map(_.compose(that, intoVariable)))
+    case True            => True
+    case Or(left, right) => Or(left.compose(that, intoVariable), right.compose(that, intoVariable))
+    case all @ All(_)    => All(all.conjuncts.map(_.compose(that, intoVariable)))
   }
 
   /**
@@ -20,7 +21,8 @@ abstract class Predicate {
    * intervals of the box x.
    */
   def apply(x: Box)(implicit rnd: Rounding): Set[Boolean] = this match {
-    case True => Set(true)
+    case True            => Set(true)
+    case Or(left, right) => for (l <- left(x); r <- right(x)) yield l || r
     case All(ps) => {
       ps.foldLeft(Set(true)) {
         case (res, p) => {
@@ -39,7 +41,8 @@ abstract class Predicate {
    * variables to range over the domains of the variables.
    */
   def apply(x: UnivariateAffineEnclosure)(implicit rnd: Rounding): Set[Boolean] = this match {
-    case True => Set(true)
+    case True            => Set(true)
+    case Or(left, right) => for (l <- left(x); r <- right(x)) yield l || r
     case All(ps) => {
       ps.foldLeft(Set(true)) {
         case (res, p) => {
@@ -57,7 +60,8 @@ abstract class Predicate {
    * of the predicate.
    */
   def support(x: Box)(implicit rnd: Rounding): Box = this match {
-    case True => x
+    case True            => x
+    case Or(left, right) => x // FIXME desugar Or into min a'la Realpaver-0.4 user manual, page 16 and contract over min! 
     case All(rs) =>
       val contracted = rs.foldLeft(x)((res, r) => r.support(res))
       if (contracted almostEqualTo x) contracted
@@ -66,10 +70,13 @@ abstract class Predicate {
 
 }
 
-/** Type representing a predicate that consists of a conjunction of inequalities. */
 case object True extends Predicate {
   override def toString = "TRUE"
 }
+case class Or(left: Predicate, right: Predicate) extends Predicate {
+  override def toString = "(" + left + " \\/ " + right + ")"
+}
+/** Type representing a predicate that consists of a conjunction of inequalities. */
 case class All(conjuncts: Seq[Relation]) extends Predicate {
   override def toString = conjuncts.map(_.toString).mkString(" /\\ ") match {
     case "" => "TRUE"
@@ -85,7 +92,8 @@ object PredicateApp extends App {
   val r = Variable("r")
   val v = Variable("v")
 
-  println(Relation.nonPositive(r - v * v / 2).support(b))
+  //  println(Relation.nonPositive(r - v * v / 2).support(b))
+  println(Or(True, All(Seq(Relation.equalTo(0, 1), Relation.lessThan(2, 3)))))
 
 }
 
