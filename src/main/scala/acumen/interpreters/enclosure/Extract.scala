@@ -269,8 +269,9 @@ trait Extract {
   }
 
   def acumenExprToPredicate(e: Expr)(implicit rnd: Rounding): Predicate = e match {
-    case Lit(GBool(b)) if b => True
-    case _                  => All(acumenExprToRelations(e))
+    case Lit(GBool(b)) if b            => True
+    case Op(Name("||", 0), List(l, r)) => Or(acumenExprToPredicate(l), acumenExprToPredicate(r))
+    case _                             => All(acumenExprToRelations(e))
   }
 
   def acumenExprToRelations(e: Expr)(implicit rnd: Rounding): List[Relation] = e match {
