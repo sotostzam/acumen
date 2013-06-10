@@ -60,8 +60,23 @@ sealed abstract class Predicate {
    * of the predicate.
    */
   def support(x: Box)(implicit rnd: Rounding): Box = this match {
-    case True            => x
-    case Or(left, right) => x // FIXME desugar Or into min a'la Realpaver-0.4 user manual, page 16 and contract over min! 
+    case True => x
+    case Or(left, right) => // FIXME desugar Or into min a'la Realpaver-0.4 user manual, page 16 and contract over min! 
+      try { // FIXME avoid re-computation of l, _or better_ re-implement partiality using Option in place of exceptions
+        val l = left.support(x)
+        val r = right.support(x)
+        l hull r
+      }
+      catch {
+        case _ => try {
+          left.support(x)
+        }
+        catch {
+          case _ => try {
+            right.support(x)
+          }
+        }
+      }
     case All(rs) =>
       val contracted = rs.foldLeft(x)((res, r) => r.support(res))
       if (contracted almostEqualTo x) contracted
@@ -92,8 +107,7 @@ object PredicateApp extends App {
   val r = Variable("r")
   val v = Variable("v")
 
-  //  println(Relation.nonPositive(r - v * v / 2).support(b))
-  println(Or(True, All(Seq(Relation.equalTo(0, 1), Relation.lessThan(2, 3)))))
+  println(Or(All(Seq(Relation.nonPositive(r - v * v / 2))), True).support(b))
 
 }
 
