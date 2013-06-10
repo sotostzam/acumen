@@ -269,14 +269,34 @@ trait Extract {
   }
 
   def acumenExprToPredicate(e: Expr)(implicit rnd: Rounding): Predicate = e match {
-    case Lit(GBool(b)) if b            => True
+    case Lit(GBool(b))                 => if (b) True else False
+    case Op(Name("not", 0), List(e))   => acumenExprToPredicate(negateExpression(e))
     case Op(Name("||", 0), List(l, r)) => Or(acumenExprToPredicate(l), acumenExprToPredicate(r))
     case _                             => All(acumenExprToRelations(e))
   }
 
+  def negateExpression(e: Expr): Expr = e match {
+    case Lit(GBool(b))                 => Lit(GBool(!b))
+    case Op(Name("&&", 0), List(l, r)) => Op(Name("||", 0), List(negateExpression(l), negateExpression(r)))
+    case Op(Name("||", 0), List(l, r)) => Op(Name("&&", 0), List(negateExpression(l), negateExpression(r)))
+    case Op(Name("not", 0), List(e))   => e
+    case Op(Name("<=", 0), es)         => Op(Name(">", 0), es)
+    case Op(Name("<", 0), es)          => Op(Name(">=", 0), es)
+    case Op(Name("==", 0), es)         => Op(Name("~=", 0), es)
+    case Op(Name("~=", 0), es)         => Op(Name("==", 0), es)
+    case Op(Name(">", 0), es)          => Op(Name("<=", 0), es)
+    case Op(Name(">=", 0), es)         => Op(Name("<", 0), es)
+    case _                             => sys.error("cannot negate " + e)
+  }
+
+  def isRelation(e: Expr) = e match {
+    case Op(Name("<=" | "<" | "==" | "~=" | ">" | ">=", _), _) => true
+    case _ => false
+  }
+
   def acumenExprToRelations(e: Expr)(implicit rnd: Rounding): List[Relation] = e match {
     case Op(Name("&&", 0), List(l, r)) => acumenExprToRelations(l) ++ acumenExprToRelations(r)
-    case Op(Name("<=" | "<" | "==" | ">" | ">=", _), _) => List(acumenExprToRelation(e))
+    case Op(Name("<=" | "<" | "==" | "~=" | ">" | ">=", _), _) => List(acumenExprToRelation(e))
     case _ => sys.error("Handling of predicates " + e + "not implemented!")
   }
 

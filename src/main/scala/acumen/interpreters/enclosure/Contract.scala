@@ -10,6 +10,7 @@ trait Contract {
     rel match {
       case BinaryRelation(relname, l, r) => relname match {
         case Eq       => contractEq(l, r)(env)
+        case Neq      => contractNeq(l, r)(env)
         case Le | Leq => contractLeq(l, r)(env)
       }
     }
@@ -32,6 +33,13 @@ trait Contract {
       require(env contains res)
       res
     }
+  }
+
+  def contractNeq(left: Expression, right: Expression)(env: Box)(implicit rnd: Rounding): Box = {
+    val ranl = left(env)
+    val ranr = right(env)
+    if (!ranl.isThin || !ranr.isThin || !ranl.equalTo(ranr)) env
+    else sys.error("contracted to empty box") // only when both lhs and rhs are thin can equality be established
   }
 
   def contractLeq(left: Expression, right: Expression)(env: Box)(implicit rnd: Rounding): Box = {
