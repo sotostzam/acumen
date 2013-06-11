@@ -108,17 +108,17 @@ sealed abstract class Expression {
    * expression.
    */
   def apply(x: AffineEnclosure)(implicit rnd: Rounding): AffineScalarEnclosure = this match {
-    case Constant(v)            => AffineScalarEnclosure(x.domain, v)
-    case Variable(name)         => x(name)
-    case Negate(e)              => -e(x)
-    case Sqrt(e)                => sys.error("undefined")
-    case Exp(e)                 => sys.error("undefined")
-    case Log(e)                 => sys.error("undefined")
-    case Cos(e)                 => rnd.transcendentals.cos(e(x))
-    case Sin(e)                 => rnd.transcendentals.sin(e(x))
-    case Plus(l, r)             => l(x) + r(x)
-    case Multiply(l, r)         => l(x) * r(x)
-    case Divide(e, Constant(v)) => e(x) / v // division not supported by enclosure arithmetic
+    case Constant(v)    => AffineScalarEnclosure(x.domain, v)
+    case Variable(name) => x(name)
+    case Negate(e)      => -e(x)
+    case Sqrt(e)        => sys.error("undefined")
+    case Exp(e)         => sys.error("undefined")
+    case Log(e)         => sys.error("undefined")
+    case Cos(e)         => rnd.transcendentals.cos(e(x))
+    case Sin(e)         => rnd.transcendentals.sin(e(x))
+    case Plus(l, r)     => l(x) + r(x)
+    case Multiply(l, r) => l(x) * r(x)
+    case Divide(l, r)   => rnd.transcendentals.div(l(x), r(x))
   }
 
   /**

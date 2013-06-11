@@ -13,9 +13,13 @@ case class Transcendentals(ps: Parameters) {
   /** Lift function on intervals to function on scalar enclosures. */
   private def lift(f: Interval => Interval)(x: AffineScalarEnclosure): AffineScalarEnclosure =
     AffineScalarEnclosure(x.domain, f(x.range))
+  private def lift(f: (Interval, Interval) => Interval)(x: AffineScalarEnclosure, y: AffineScalarEnclosure): AffineScalarEnclosure =
+    AffineScalarEnclosure(x.domain, f(x.range, y.range))
 
-  def sin(x: AffineScalarEnclosure): AffineScalarEnclosure = lift(sin)(x)
-  def cos(x: AffineScalarEnclosure): AffineScalarEnclosure = lift(cos)(x)
+  def sin(x: AffineScalarEnclosure): AffineScalarEnclosure = lift(sin: Interval => Interval)(x)
+  def cos(x: AffineScalarEnclosure): AffineScalarEnclosure = lift(cos: Interval => Interval)(x)
+  /* FIXME implement as proper enclosure rather than as lifting of interval function, which introduces excessive wrapping */
+  def div(x: AffineScalarEnclosure, y: AffineScalarEnclosure): AffineScalarEnclosure = lift(_ / _)(x, y)
 
   /** Computes the interval sine function. */
   def sin(x: Interval) = cos((pi / 2) - x)
