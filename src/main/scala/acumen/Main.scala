@@ -63,6 +63,9 @@ object Main {
       args(firstNonSemanticsArg + 1) match {
         case "pretty" => println(pprint(ast))
         case "desugar" => println(pprint(desugared))
+        case "extract" =>
+          val extr = new Extract(desugared)
+          println(pprint(extr.res))
         case "3d" => toPython3D(toSummary3D(ctrace))
         case "2d" => toPython2D(toSummary2D(ctrace))
         case "java2d" => new MainFrame(new Java3D(addThirdDimension(ctrace)), 256, 256);

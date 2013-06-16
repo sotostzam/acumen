@@ -59,6 +59,7 @@ object GraphicalMain extends SimpleSwingApplication {
   var dontFork = false
   var synchEditorWithBrowser = true // Synchronize code editor with file browser
   var enclosureInterpreter = interpreters.enclosure.Interpreter
+  var extractHA = false
 
   def parseOpts(args: List[String]) {
     args match {
@@ -92,6 +93,8 @@ object GraphicalMain extends SimpleSwingApplication {
         useTemplates = true; parseOpts(tail)
       case "--dont-fork" :: tail =>
         dontFork = true; parseOpts(tail)
+      case "--extract-ha" :: tail =>
+        extractHA = true; parseOpts(tail)
       case opt ::  tail if opt.startsWith("-") =>
         System.err.println("Unrecognized Option: " + opt)
         exit(1)
