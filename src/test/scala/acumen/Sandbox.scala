@@ -1,13 +1,13 @@
 package acumen
 
-import acumen.interpreters.enclosure.Extract
+//import acumen.interpreters.enclosure.Extract
 import acumen.interpreters.enclosure.Interval
 import acumen.interpreters.enclosure.Rounding
 import acumen.interpreters.enclosure.affine.UnivariateAffineEnclosure
 import acumen.interpreters.enclosure.affine.UnivariateAffineScalarEnclosure
 import acumen.interpreters.enclosure.Parameters
 
-object Sandbox extends App with Extract { // with SolveVt {
+object Sandbox extends App with acumen.interpreters.enclosure.Extract { // with SolveVt {
 
   //  val prog = Parser.run(Parser.prog, Models("bouncing_ball_convergent"))
   //  val prog = Parser.run(Parser.prog, Models.fullers_phenomenon)
