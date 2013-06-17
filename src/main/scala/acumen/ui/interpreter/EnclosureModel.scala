@@ -23,6 +23,7 @@ class EnclosureModel extends TraceModel with PlotModel with InterpreterModel {
     var tableTimes = Array.ofDim[Double](0)
     var tableData  = Array.ofDim[String](0,0)
     var columnNames : IndexedSeq[String] = IndexedSeq.empty[String]
+    var plotTitles : IndexedSeq[String] = IndexedSeq.empty[String]
 
     def recompute() = {
       times = es.map(_.domain.hiDouble).foldLeft(ArrayBuffer(es.head.domain.loDouble)) { case (res, t) => res += t }
@@ -111,6 +112,7 @@ class EnclosureModel extends TraceModel with PlotModel with InterpreterModel {
         tableData((idx-1)*2+2) = rHi
       }
 
+      plotTitles = IndexedSeq("time") ++ enclSeqs.map{case(n,_,_) => n}
       columnNames = IndexedSeq("time") ++ enclSeqs.map{case(n,_,_) => List(n+".min", n+".max")}.flatten
     }
   }
@@ -123,6 +125,8 @@ class EnclosureModel extends TraceModel with PlotModel with InterpreterModel {
   override def getValueAt(row: Int, column: Int) = data.tableData(column)(row)
 
   override def getDouble(row: Int, column: Int) = None
+
+  override def getPlotTitle(col: Int) = data.plotTitles(col)
 
   override def getColumnName(col: Int) = data.columnNames(col)
 
