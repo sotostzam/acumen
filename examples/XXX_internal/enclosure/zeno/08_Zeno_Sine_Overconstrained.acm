@@ -8,7 +8,7 @@ class Main(simulator)
     mode := ""; 
   end
   switch mode
-    case "" require s <= abs(d)
+    case "" claim s <= abs(d)
       if d == s 
         s := s/2; 
         mode := "" 

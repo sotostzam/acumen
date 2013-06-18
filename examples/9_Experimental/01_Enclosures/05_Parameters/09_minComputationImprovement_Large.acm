@@ -9,7 +9,7 @@ class Main(simulator)
     mode := "Fly"; x := 5; x' := 0; x'' := 0 
   end
   switch mode
-    case "Fly" require x >= 0
+    case "Fly" claim x >= 0
       if x == 0 && x' <= 0
         x' := -0.5 * x';
         mode := "Fly"

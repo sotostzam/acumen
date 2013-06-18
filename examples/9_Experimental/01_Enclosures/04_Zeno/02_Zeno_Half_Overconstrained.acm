@@ -12,7 +12,7 @@ class Main(simulator)
   end
   switch mode
     case "" 
-      require s <= abs(d) // Invariant added!
+      claim s <= abs(d) // Invariant added!
       if s == d 
         s := s/2; 
         mode := "" 

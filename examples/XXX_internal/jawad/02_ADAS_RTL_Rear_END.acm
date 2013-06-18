@@ -1,0 +1,133 @@
+//Author: Jawad Masood
+//ID: A2
+//The simulation case describes the testing vehicle 
+//approaching from behind towards the reference 
+//stationary object (car/pedestrian). Simulation shows 
+//the testing vehicle kinematic maneuver when critical 
+//distance between testing vehicle and reference stationary 
+//object/Vehicle crosses threshold values. Two wheel planar 
+//differential vehicle was modeled in local reference frame, 
+//where the position, orientation, linear velocity and 
+//rotational velocity were defined in terms of right and 
+//left side wheels. The yaw angle was used as the control 
+//variable for safe maneuver. The local planner position and 
+//velocity vector was then translated in global cartesian 
+//coordinates.  3D visualization of the planar vehicle was 
+//represented by rectangular box; the straight road was 
+//represented by a fixed rectangular box; the sensor was 
+//represented by the single variable which calculate the 
+//distance between testing vehicle and stationary vehicle. 
+//The left and right tire constant velocity was provided to 
+//get the velocity and orientation at the center of the 
+//vehicle. 
+//*****************Vehicle Mechanics************************************************//
+class VehicleMechanics(v_r,v_l,l,x0)//(Planner Kinematics)
+  private 
+         x:=x0;
+         x':=0;
+         y:=0;
+         y':=0;
+         th':=0;
+         R:=0;
+         w:=0;
+         V:=0;
+         s:=0;
+         th := 0;       
+  end
+  V= (1/2)*(v_r+v_l);
+  w= (v_r-v_l)/l;
+  x'= V*cos(th);
+  y' = V*sin(th);
+  th'= w;
+ end
+ //*********************Machine Sensor********************************************// 
+ class Sensor(x0,s0,r)
+ private
+ x:=x0;
+ s:=s0;
+ end  
+s = r-x;
+ end
+//*********************ADAS********************************************// 
+class Control(s0,th0)//(Switch control)
+ private
+ s := s0;
+ th := th0;
+ end 
+    if (s<=10&&s>=7)
+        th = -(pi/8);
+          else if(s<=-7&&s>=-10)
+                 th = (pi/8);
+                    else
+                        th = 0;
+                    end
+          end
+  end
+//**********************SIMULATOR*******************************************//
+class Main(simulator)
+  private 
+    mechanics := create VehicleMechanics(10,10,0.5,0);    
+    subject := create VehicleT([0,0,0],1,2,[0,0,0],"car.obj");
+    target := create VehicleS([50,0,0],1,2,"car.obj");
+    environment := create Road();
+    sens := create Sensor(0,0,50);
+    controller := create Control(0,0);
+    _3DView := [];     
+ end
+ sens.x = mechanics.x ;
+ controller.s = sens.s;
+ mechanics.th = controller.th;
+ subject.p = [mechanics.x,mechanics.y,0];
+ subject.o = [pi/2,0,pi+mechanics.th];
+ _3DView = [[mechanics.x-3,mechanics.y,0.5],[0,0,-1*pi/2]];
+ simulator.endTime = 25;
+end
+
+//**********************Environment*******************************************//
+class Road()
+  private
+    mode := "spawn";
+      _3D := [];
+  end
+  _3D = [["Box",[0,0,-0.9144/2],[1000,3.9624,0.1],[0.3,0.3,0.3],[0,0,0]], // Straignt Single Standard Road
+         ["Box",[0,3.9624/2,-0.93/2],[1000,0.15,0.11],[255,255,255],[0,0,0]], // left road side line
+         ["Box",[0,-3.9624/2,-0.93/2],[1000,0.15,0.1],[255,255,255],[0,0,0]], // right road side line
+         ["Box",[0,0,-0.90/2],[3,0.15,0.1],[255,255,255],[0,0,0]]];
+switch mode
+    case "spawn"
+      create Stripe(0, 33);
+      mode := "persist";
+    case "persist" 
+end
+end
+
+class Stripe(xstart, stripesLeft)
+  private
+    _3D := [["Box",[xstart,0,-0.90/2],[3,0.15,0.1],[255,255,255],[0,0,0]]];
+   mode := "spawn";
+  end
+  switch mode
+    case "spawn"
+      if (stripesLeft > 0)
+        create Stripe(xstart + 7.5, stripesLeft - 1);
+        mode := "persist";
+      end;
+    case "persist"
+  end;
+  _3D = [["Box",[xstart,0,-0.90/2],[3,0.15,0.1],[255,255,255],[0,0,0]]]; // center lane
+end
+
+//**************************VISUALIZATION***************************************//
+class VehicleT(p,d,s,o,name)
+  private
+    _3D := [];
+  end      
+  _3D = ["OBJ",p,1,[0,0,1],o,name];
+end
+class VehicleS(p,d,s,name)
+  private
+    _3D := [];
+  end      
+  _3D = ["OBJ",p,1,[0,0,1],[pi/2,0,d*pi],name];
+end
+

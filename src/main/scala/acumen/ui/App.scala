@@ -21,7 +21,10 @@ import java.awt.event.KeyEvent
 import java.awt.event.KeyEvent._
 import java.awt.event.InputEvent._
 import java.io._
+import javax.swing.AbstractAction
+import javax.swing.JCheckBox
 import javax.swing.JOptionPane
+import javax.swing.JToolBar
 import javax.swing.SwingUtilities
 import javax.swing.undo._
 import javax.swing.text._
@@ -36,6 +39,11 @@ import swing.{Action, BorderPanel, BoxPanel, ButtonGroup, CheckMenuItem,
 			  TabbedPane, Table}
 import swing.event._
 import scala.Boolean
+import acumen.interpreters.enclosure.ivp.PicardSolver
+import acumen.interpreters.enclosure.ivp.LohnerSolver
+import acumen.interpreters.enclosure.event.pwl.PWLEventEncloser
+import acumen.interpreters.enclosure.event.pwl.PWLEventEncloser
+import acumen.interpreters.enclosure.event.tree.TreeEventEncloser
 
 // class Acumen = Everything that use to be GraphicalMain.  Graphical
 // Main can't be an object it will cause Swing components to be
@@ -104,29 +112,32 @@ class App extends SimpleSwingApplication {
   private val stopAction                    = mkAction(    "Stop",                      VK_S, VK_T,       upperButtons.bStop.doClick)
   private val newAction                     = mkAction(    "New",                       VK_N, VK_N,       codeArea.newFile)
   private val openAction                    = mkAction(    "Open",                      VK_O, VK_O,       codeArea.openFile(codeArea.currentDir))
-  private val saveAction                    = mkAction(    "Save",                      VK_S, VK_S,       codeArea.saveFile)
-  private val saveAsAction                  = mkActionMask("Save As",                   VK_A, VK_S,       shortcutMask | SHIFT_MASK, codeArea.saveFileAs)
+  private val saveAction                    = mkAction(    "Save",                      VK_S, VK_S,       codeArea.saveFile())
+  private val saveAsAction                  = mkActionMask("Save As",                   VK_A, VK_S,       shortcutMask | SHIFT_MASK, codeArea.saveFileAs())
   private val recoverAction                 = mkAction(    "Recover",                   VK_R, VK_R,       codeArea.openFile(Files.autoSavedDir))
   private val exitAction                    = mkAction(    "Exit",                      VK_E, VK_Q,       exit)
   private val cutAction                     = mkAction(    "Cut",                       VK_T, VK_X,       codeArea.textArea.cut)
   private val copyAction                    = mkAction(    "Copy",                      VK_C, VK_C,       codeArea.textArea.copyAsRtf)
   private val pasteAction                   = mkAction(    "Paste",                     VK_P, VK_V,       codeArea.textArea.paste)
-  private val selectAllAction               = mkAction(    "Select all",                VK_A, VK_A,       codeArea.textArea.selectAll)
-  private val increaseFontSizeAction        = mkAction(    "Increase font size",        VK_I, VK_PLUS,    codeArea increaseFontSize)
-  private val decreaseFontSizeAction        = mkAction(    "Decrease font size",        VK_D, VK_MINUS,   codeArea decreaseFontSize)
-  private val resetFontSizeAction           = mkAction(    "Reset font size",           VK_R, VK_0,       codeArea resetFontSize)
-  private val showLineNumbersAction         = mkAction(    "Show line numbers",         VK_L, VK_L,       toggleLineNumbers)
+  private val selectAllAction               = mkAction(    "Select All",                VK_A, VK_A,       codeArea.textArea.selectAll)
+  private val increaseFontSizeAction        = mkAction(    "Enlarge Font",              VK_I, VK_PLUS,    codeArea increaseFontSize)
+  private val decreaseFontSizeAction        = mkAction(    "Reduce Font",               VK_D, VK_MINUS,   codeArea decreaseFontSize)
+  private val resetFontSizeAction           = mkAction(    "Reset Font",                VK_R, VK_0,       codeArea resetFontSize)
+  private val showLineNumbersAction         = mkAction(    "Line Numbers",              VK_L, VK_L,       toggleLineNumbers)
   private val plotStyleLinesAction          = new Action(  "Lines")      { mnemonic =   VK_L; def apply = plotView.setPlotStyle(plot.Lines()) }
   private val plotStyleDotsAction           = new Action(  "Dots")       { mnemonic =   VK_D; def apply = plotView.setPlotStyle(plot.Dots()) }
   private val plotStyleBothAction           = new Action(  "Both")       { mnemonic =   VK_B; def apply = plotView.setPlotStyle(plot.Both()) }
   private val floatingPointAction           = mkActionMask("Floating Point Reference",  VK_R, VK_R,       shortcutMask | SHIFT_MASK, setInterpreter(new CStoreCntrl(interpreters.reference.Interpreter))) 
   private val floatingPointImperativeAction = mkActionMask("Floating Point Imparative", VK_I, VK_I,       shortcutMask | SHIFT_MASK, setInterpreter(new CStoreCntrl(new interpreters.imperative.sequential.Interpreter))) 
   private val floatingPointParallelAction   = mkActionMask("Floating Point Parallel",   VK_P, VK_P,       shortcutMask | SHIFT_MASK, promptForNumberOfThreads)
-  private val pwlAction                     = mkActionMask("Enclosure",                 VK_E, VK_E,       shortcutMask | SHIFT_MASK, setInterpreter(new EnclosureCntrl(interpreters.enclosure.Interpreter.asLocalizing))) 
-  private val eventTreeAction               = mkActionMask("Enclosure 2",               VK_2, VK_2,       shortcutMask | SHIFT_MASK, setInterpreter(new EnclosureCntrl(interpreters.enclosure.Interpreter.asNonLocalizing)))
+  private val pwlHybridSolverAction         = mkActionMask("Enclosure PWL",             VK_L, VK_L,       shortcutMask | SHIFT_MASK, setInterpreter(new EnclosureCntrl(interpreters.enclosure.Interpreter.asPWL))) 
+  private val eventTreeHybridSolverAction   = mkActionMask("Enclosure EVT",             VK_T, VK_T,       shortcutMask | SHIFT_MASK, setInterpreter(new EnclosureCntrl(interpreters.enclosure.Interpreter.asEVT)))
+  private val contractionAction             = mkActionMask("Contraction",               VK_C, VK_C,       shortcutMask | SHIFT_MASK, interpreters.enclosure.Interpreter.toggleContraction)
+  private val tutorialAction                = mkAction(    "Core Acumen Tutorial",      VK_T, VK_F1,      tutorial)
+  private val aboutAction                   = new Action(  "About")      { mnemonic =   VK_A; def apply = about }
   
   /* Shows a dialog asking the user how many threads to use in the parallel interpreter. */
-  def promptForNumberOfThreads = {
+  private def promptForNumberOfThreads = {
     def diag = Dialog.showInput(
       body, "Choose a number of threads",
       "Parallel Interpreter", Dialog.Message.Question,
@@ -178,13 +189,39 @@ class App extends SimpleSwingApplication {
   fileBrowser.fileTree.peer.addTreeSelectionListener(codeArea)
   codeArea.addPathChangeListener(fileBrowser.fileTree)
   
-  val lowerPane = new TabbedPane {
-    pages += new TabbedPane.Page("Console", new BorderPanel {
-      add(new ScrollPane(console), BorderPanel.Position.Center)
+  val lowerPane = new BorderPanel {
+    // Synch button
+    val synchButton = new JCheckBox()
+    synchButton.setAction(new AbstractAction("Synch File Browser and Editor") {
+      override def actionPerformed(e: java.awt.event.ActionEvent) {
+        GraphicalMain.synchEditorWithBrowser = !GraphicalMain.synchEditorWithBrowser
+        if (GraphicalMain.synchEditorWithBrowser)
+          codeArea.currentFile match {
+            case Some(file) => fileBrowser.fileTree.focus(file)
+            case None => fileBrowser.fileTree.refresh
+          }
+      }
     })
-    pages += new TabbedPane.Page("File Browser", fileBrowser)
-    preferredSize = new Dimension(DEFAULT_HEIGHT/4, preferredSize.width)
+    synchButton.setSelected(GraphicalMain.synchEditorWithBrowser)
+    val toolbar = new JToolBar()
+    toolbar.setFloatable(false)
+    synchButton.setFocusable(false)
+    synchButton.setBorderPainted(false)
+    toolbar.add(synchButton)
+
+    // Console / File Browser 
+    val tabs = new TabbedPane {
+      pages += new TabbedPane.Page("Console", new BorderPanel {
+        add(new ScrollPane(console), BorderPanel.Position.Center)
+      })
+      pages += new TabbedPane.Page("File Browser", fileBrowser)
+      preferredSize = new Dimension(DEFAULT_HEIGHT / 4, preferredSize.width)
+    }
+
+    add(Component.wrap(toolbar), BorderPanel.Position.North)
+    add(tabs, BorderPanel.Position.Center)
   }
+  
 
   val leftPane =
     new SplitPane(Orientation.Horizontal, upperPane, lowerPane) {
@@ -300,8 +337,13 @@ class App extends SimpleSwingApplication {
 
   /* menu bar */
 
-  val enabledWhenStopped = scala.collection.mutable.Buffer[MenuItem]()
-
+  /* Used to enable the contained MenuItems when the simulator stops and if the 
+   * condition () => Boolean evaluates to true.
+   */
+  private val enabledWhenStopped = scala.collection.mutable.Buffer[(MenuItem,() => Boolean)]()
+  
+  private def enableWhenStopped(m: MenuItem) = enabledWhenStopped += (m, ()=>true)  
+  
   /** Same as mkActionAccelMask, but with a default accelerator mask (depending on OS). */
   private def mkAction(name: String, m: Int, a: Int, act: => Unit) =
     mkActionMask(name, m, a, shortcutMask, act)
@@ -331,11 +373,11 @@ class App extends SimpleSwingApplication {
   val bar = new MenuBar {
     contents += new Menu("File") {
       mnemonic = Key.F
-      contents += new MenuItem(newAction)     { enabledWhenStopped += this }
-      contents += new MenuItem(openAction)    { enabledWhenStopped += this }
+      contents += new MenuItem(newAction)     { enableWhenStopped(this) }
+      contents += new MenuItem(openAction)    { enableWhenStopped(this) }
       contents += new MenuItem(saveAction)
       contents += new MenuItem(saveAsAction)
-      contents += new MenuItem(recoverAction) { enabledWhenStopped += this }
+      contents += new MenuItem(recoverAction) { enableWhenStopped(this) }
       contents += new MenuItem(exitAction)
     }
     
@@ -366,7 +408,7 @@ class App extends SimpleSwingApplication {
 	  }
       contents += new CheckMenuItem("Show line numbers") { 
         mnemonic = Key.L
-        action = Action("Show line numbers") { toggleLineNumbers }
+        action = showLineNumbersAction
       }
     }
 
@@ -382,15 +424,15 @@ class App extends SimpleSwingApplication {
         new ButtonGroup(rb1,rb2,rb3)
       }
       contents += new CheckMenuItem("") { selected = false
-        action = new Action("Automatically plot simulator fields") 
+        action = new Action("Simulator Fields") 
         		 { mnemonic = KeyEvent.VK_S; def apply = plotView.toggleSimulator(selected) }
       }
       contents += new CheckMenuItem("") { selected = false
-        action = new Action("Automatically plot child counter fields") 
+        action = new Action("Child Count") 
         		 { mnemonic = KeyEvent.VK_C; def apply = plotView.toggleNextChild(selected) }
       }
       contents += new CheckMenuItem("") { selected = false
-        action = new Action("Automatically random number generator seeds") 
+        action = new Action("RNG Seeds") 
         		 { mnemonic = KeyEvent.VK_R; def apply = plotView.toggleSeeds(selected) }
       }
     }
@@ -404,37 +446,51 @@ class App extends SimpleSwingApplication {
       mnemonic = Key.S
       val ref = new RadioMenuItem("") {
         selected = !GraphicalMain.useEnclosures
-        enabledWhenStopped += this
+        enableWhenStopped(this)
         action = floatingPointAction
       }
       val impr = new RadioMenuItem("") {
         selected = false
-        enabledWhenStopped += this
+        enableWhenStopped(this)
         action = floatingPointImperativeAction
       }
       val par = new RadioMenuItem("") {
         selected = false
-        enabledWhenStopped += this
+        enableWhenStopped(this)
         action = floatingPointParallelAction
       }
       val pwl = new RadioMenuItem("") {
-        action = pwlAction
-        enabledWhenStopped += this
-        selected = GraphicalMain.useEnclosures && interpreters.enclosure.Interpreter.localizing
+        action = pwlHybridSolverAction
+        enableWhenStopped(this)
+        selected = GraphicalMain.useEnclosures && 
+          interpreters.enclosure.Interpreter.strategy.eventEncloser.getClass == classOf[PWLEventEncloser] 
       }
       val et = new RadioMenuItem("") {
-        action = eventTreeAction
-        enabledWhenStopped += this
-        selected = GraphicalMain.useEnclosures && !interpreters.enclosure.Interpreter.localizing
+        action = eventTreeHybridSolverAction
+        enableWhenStopped(this) 
+        selected = GraphicalMain.useEnclosures &&
+          interpreters.enclosure.Interpreter.strategy.eventEncloser.getClass == classOf[TreeEventEncloser]
       }
-      contents ++= Seq(ref, impr, par, pwl, et)
-      new ButtonGroup(ref, impr, par, pwl, et)
+      val bg = new ButtonGroup(ref, impr, par, pwl, et)
+      val ls = new CheckMenuItem("") {
+        action = contractionAction
+        enabledWhenStopped += (this, () => interpreter.interpreter.getClass == interpreters.enclosure.Interpreter.getClass)
+        enabled = GraphicalMain.useEnclosures
+        selected = interpreters.enclosure.Interpreter.strategy.eventEncloser.ivpSolver.getClass == classOf[LohnerSolver]
+        /* Enable/disable Contraction menu item depending on the chosen semantics */
+        for (b <- bg.buttons) listenTo(b) 
+        reactions += {
+          case e: ButtonClicked =>
+            enabled = interpreter.interpreter.getClass == interpreters.enclosure.Interpreter.getClass
+        }
+      }
+      contents ++= Seq(ref, impr, par, new Separator, pwl, et, ls)
     }
    
     contents += new Menu("Help") {
       mnemonic = Key.H
-      contents += new MenuItem(mkActionMask("Tutorial", VK_T, VK_F1, 0, tutorial))
-      contents += new MenuItem(new Action("About") { mnemonic = VK_A; def apply = about }) 
+      contents += new MenuItem(tutorialAction)
+      contents += new MenuItem(aboutAction) 
     }
   }
 
@@ -456,7 +512,7 @@ class App extends SimpleSwingApplication {
     //receiver.destroy=true
     //threeDView.exit
 
-    if (!codeArea.editedSinceLastSave || codeArea.confirmContinue(body.peer)) {
+    if (!codeArea.editedSinceLastSave || codeArea.confirmContinue()) {
       controller ! Stop
       actor ! EXIT
       quit
@@ -512,7 +568,7 @@ class App extends SimpleSwingApplication {
       playMenuItem.enabled = st match {case _:App.Playing => false; case _ => true}
       stopMenuItem.enabled = st match {case   App.Stopped => false; case _ => true}
       stepMenuItem.enabled = st match {case _:App.Ready   => true;  case _ => false}
-      for (el <- enabledWhenStopped) el.enabled = st == Stopped
+      for ((el,cond) <- enabledWhenStopped) el.enabled = st == Stopped && cond() 
       st match {
         case _:App.Ready =>
           playMenuItem.text = "Run"
@@ -535,6 +591,7 @@ class App extends SimpleSwingApplication {
           console.log("Paused. ")
           console.newLine
         case Starting =>
+          console.fadeOldMessages()
           console.log("Starting...")
         case Resuming if state != Starting =>
           console.log("Resuming...")
@@ -630,7 +687,7 @@ class App extends SimpleSwingApplication {
               case VK_R      => upperButtons.bPlay.doClick ; true
               case VK_T      => upperButtons.bStop.doClick ; true
               case VK_G      => upperButtons.bStep.doClick ; true
-              case VK_S      => codeArea.saveFile ; true
+              case VK_S      => codeArea.saveFile() ; true
               case VK_O      => codeArea.openFile(codeArea.currentDir) ; true
               case VK_L      => toggleLineNumbers ; true
               case VK_PLUS | 

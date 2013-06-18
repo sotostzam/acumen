@@ -10,7 +10,7 @@ class Main(simulator)
   	t := 0; t' := 1;
   end
   switch mode
-    case "" require h >= 0
+    case "" claim h >= 0
       if h == 0 && t > 0
         v := -0.5*v; 
         t := 0;

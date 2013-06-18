@@ -1,0 +1,8 @@
+  - Merge in lonar branch -- Jan Duracz *** FIXME: REMOVE AND REPLACE WITH A PROPER ENTRY
+  - 3D View: Allow user to create transparent object  --  Yingfu Zeng
+  - Add keyboard shortcuts to most actions -- Adam Duracz
+  - New file browser for IDE (ACUMEN-135) -- Adam Duracz
+  - 3D View: Be able to manipulate camera angle from within the model -- Yingfu Zeng
+  - Update to SBT 0.12.3 -- Kevin Atkinson
+  - Various bug fixes (ACUMEN-65) -- Misc. Authors
+2013.05.10:

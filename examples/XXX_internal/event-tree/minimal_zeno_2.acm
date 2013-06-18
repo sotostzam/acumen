@@ -1,0 +1,26 @@
+
+// Bouncing ball 
+
+class Main(simulator)
+  private 
+    x := 1; x' := -1;
+    mode := "xIsPositive" 
+  end
+  switch mode
+    case "xIsPositive" claim x > 0
+      if x <= 0 
+        mode := "xIsNonpositive"
+      end;
+      x' = -1;
+    case "xIsNonpositive" claim x <= 0
+      if x > 0 
+        mode := "xIsPositive"
+      end;
+      x' = 1;
+  end;
+  // common paramters
+  simulator.startTime := 0;
+  simulator.endTime := 3.5;
+  simulator.minSolverStep := 1;
+  simulator.minLocalizationStep := 0.001;
+end

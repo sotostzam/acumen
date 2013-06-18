@@ -40,20 +40,26 @@ import javax.swing.event.TreeSelectionEvent
 import javax.swing.event.TreeSelectionListener
 import javax.swing.UIManager
 import scala.swing.Button
+import acumen.interpreters.enclosure.Parameters
+import javax.swing.KeyStroke
 
 class CodeArea extends Panel with TreeSelectionListener {
 
   val textArea = createSyntaxTextArea
-
+  
   val DEFAULT_FONT_SIZE = 12
   val DEFAULT_FONT_NAME = Font.MONOSPACED
   val KNOWN_FONTS = Set("courier new", "courier", "monaco", "consolas", "lucida console",
     "andale mono", "profont", "monofur", "proggy", "droid sans mono",
     "lettergothic", "bitstream vera sans mono", "crystal", "ubuntu monospace")
 
+  val PROMPT_CANCEL = "Cancel"
+  val PROMPT_SAVE_AND_CONTINUE = "Save and continue"
+  val PROMPT_DISCARD_AND_CONTINUE = "Discard and continue"
+    
   this.peer.setLayout(new BorderLayout)
   this.peer.add(textArea, BorderLayout.CENTER)
-
+  
   /* ---- state variables ---- */
   var currentFile: Option[File] = None
   var editedSinceLastSave: Boolean = false
@@ -83,6 +89,7 @@ class CodeArea extends Panel with TreeSelectionListener {
     if (GraphicalMain.useCompletion) {
       val completionProvider = createCompletionProvider(sta)
       val autoCompletion = new AutoCompletion(completionProvider)
+      autoCompletion setTriggerKey KeyStroke.getKeyStroke("TAB")
       autoCompletion install sta
     }
     if (GraphicalMain.useTemplates) {
@@ -93,17 +100,23 @@ class CodeArea extends Panel with TreeSelectionListener {
   }
 
   def createCompletionProvider(textArea: RSyntaxTextArea) = {
-    val cp = new DefaultCompletionProvider
+    val cp = new DefaultCompletionProvider {
+      // Make it possible to complete strings ending with .
+      override def isValidChar(ch: Char) = super.isValidChar(ch) || ch=='.';
+    }
     val style = textArea.getSyntaxEditingStyle
     val acumenTokenMakerSpec = XML.load(getClass.getClassLoader.getResourceAsStream("acumen/ui/tl/AcumenTokenMaker.xml"))
+    val censored = List("Continuous", "Discrete", "rint")
     if (acumenTokenMakerSpec != null) { // Try to read keywords and functions from XML
-      for (val keyword <- acumenTokenMakerSpec \\ "keyword")
+      for (keyword <- acumenTokenMakerSpec \\ "keyword" if (!censored.contains(keyword.text)))
         cp.addCompletion(new BasicCompletion(cp, keyword.text))
-      for (val keyword <- acumenTokenMakerSpec \\ "function")
+      for (keyword <- acumenTokenMakerSpec \\ "function" if (!censored.contains(keyword.text)))
         cp.addCompletion(new BasicCompletion(cp, keyword.text))
-    } // If this is unsuccessful, add the reserved words specified in the parser
-    else for (k <- Parser.lexical.reserved) cp.addCompletion(new BasicCompletion(cp, k))
+    }
+    cp.addCompletion(new BasicCompletion(cp, "Main"))
     cp.addCompletion(new BasicCompletion(cp, "simulator"))
+    for (paramName <- Parameters.defaults.map(_._1))
+      cp.addCompletion(new BasicCompletion(cp, "simulator." + paramName))
     cp
   }
 
@@ -119,7 +132,7 @@ class CodeArea extends Panel with TreeSelectionListener {
         ("hs", "class Main(simulator)\n  private mode := \"\"; end\n  switch mode\n    case \"\"\n      \n  end\nend"),
         ("mode", "case \"\"\n  if  mode := \"\" end;\n  "),
         ("event", "if  mode := \"\" end;\n"),
-        ("ps", "simulator.endTime := 3;\nsimulator.minSolverStep := 0.01;\nsimulator.minLocalizationStep := 0.001;\nsimulator.minComputationImprovement := 0.0001;"))
+        ("ps", Parameters.defaults.map{case (p,v) => "simulator.%s := %s".format(p,v)}.mkString(";\n")))
     ) { RSyntaxTextArea.getCodeTemplateManager addTemplate new StaticCodeTemplate(t._1, t._2, null) }
 
   /* --- file handling ---- */
@@ -176,24 +189,18 @@ class CodeArea extends Panel with TreeSelectionListener {
   def openFile(path: File): Unit = withErrorReporting {
     preventWorkLoss {
       val fc = new FileChooser(path)
-      fc.peer.setFileSelectionMode(JFileChooser.FILES_AND_DIRECTORIES)
       fc.fileFilter = CodeArea.acumenFileFilter
       val returnVal = fc.showOpenDialog(App.ui.body)
       if (returnVal == FileChooser.Result.Approve) {
-        if (fc.selectedFile.isFile)
+        if (fc.selectedFile.isFile) {
           loadFile(fc.selectedFile)
-        else { // Selected a directory => Clear current file
-          textArea.setText("")
-          setCurrentFile(Some(fc.selectedFile))
-          editedSinceLastSave = false
-          textArea.discardAllEdits()
+          notifyPathChangeListeners
         }
-        notifyPathChangeListeners
       }
     }
   }
   
-  def preventWorkLoss(a: => Unit) { if (!editedSinceLastSave || confirmContinue(App.ui.body.peer)) a } 
+  def preventWorkLoss(a: => Unit) { if (!editedSinceLastSave || confirmContinue()) a } 
 
   def confirmSave(c: java.awt.Component, f: File) = {
     val message =
@@ -203,46 +210,62 @@ class CodeArea extends Panel with TreeSelectionListener {
       "Really?", JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION
   }
 
-  def confirmContinue(c: java.awt.Component) = {
-    val message = "Last changes have not been saved\n" +
-      "Are you sure you want to continue?"
-    JOptionPane.showConfirmDialog(c, message,
-      "Really?", JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION
-  }
-
-  def saveFileAs: Unit = withErrorReporting {
-    val fc = new FileChooser(currentDir)
-    val returnVal = fc.showSaveDialog(App.ui.body)
-    if (returnVal == FileChooser.Result.Approve) {
-      val file = fc.selectedFile
-      if (!file.exists || confirmSave(App.ui.body.peer, file)) {
-        val writer = new FileWriter(fc.selectedFile)
-        writer.write(textArea.getText)
-        writer.close
-        setCurrentFile(Some(file))
-        notifyPathChangeListeners
-        editedSinceLastSave = false
-      }
+  def confirmContinue() = {
+    val message = "You have changed this file since the last time it was saved.\n" +
+                  "Please confirm your desired action."
+    val possibleActions: Array[Object] =
+      Array(PROMPT_SAVE_AND_CONTINUE, PROMPT_DISCARD_AND_CONTINUE, PROMPT_CANCEL)
+    possibleActions(JOptionPane.showOptionDialog(
+      null, message, "Warning", JOptionPane.DEFAULT_OPTION, JOptionPane.WARNING_MESSAGE,
+      null, possibleActions, possibleActions(2))) match {
+      case PROMPT_SAVE_AND_CONTINUE    => saveFile(updateCurrentFile = false); true 
+      case PROMPT_DISCARD_AND_CONTINUE => true
+      case PROMPT_CANCEL               => false
     }
   }
-
-  def saveFile: Unit = withErrorReporting {
+  
+  /**
+   * Used to save the editor's contents to the current file.
+   * The parameter updateCurrentFile can be used when the save 
+   * is done as an auxiliary action, to prevent other GUI 
+   * components from reacting by focusing on the saved file. 
+   */
+  def saveFile(updateCurrentFile: Boolean = true): Unit = withErrorReporting {
     currentFile match {
       case Some(f) =>
-        if (f.isDirectory)
-          saveFileAs
-        else {
-          val writer = new FileWriter(f)
-          writer.write(textArea.getText)
-          writer.close
-          setCurrentFile(currentFile)
-          notifyPathChangeListeners
-          editedSinceLastSave = false
-        }
-      case None => saveFileAs
+        if (f.isDirectory) saveFileAs(updateCurrentFile)
+        else writeText(f, updateCurrentFile)
+      case None => 
+        saveFileAs(updateCurrentFile)
+    }
+  }
+  
+  /**
+   * Used to save the editor's contents to the a new file.
+   * The parameter updateCurrentFile can be used when the save 
+   * is done as an auxiliary action, to prevent other GUI 
+   * components from reacting by focusing on the saved file. 
+   */
+  def saveFileAs(updateCurrentFile: Boolean = true): Unit = withErrorReporting {
+    val fc = new FileChooser(currentDir)
+    if (fc.showSaveDialog(App.ui.body) == FileChooser.Result.Approve) {
+      val f = fc.selectedFile
+      if (!f.exists || confirmSave(App.ui.body.peer, f))
+        writeText(f, updateCurrentFile)
     }
   }
 
+  /** Write editor text contents to file, optionally updating the current file reference. */
+  private def writeText(file: File, updateCurrentFile: Boolean) = {
+    val writer = new FileWriter(file)
+    writer.write(textArea.getText)
+    writer.close
+    if (updateCurrentFile)
+      setCurrentFile(Some(file))
+    editedSinceLastSave = false
+    notifyPathChangeListeners
+  }
+  
   def autoSave = withErrorReporting {
     if (editedSinceLastAutoSave) {
       val file = Files.getFreshFile
@@ -266,12 +289,13 @@ class CodeArea extends Panel with TreeSelectionListener {
 
   /* Listen for selection events in FileTree browser. */
   def valueChanged(e: TreeSelectionEvent) {
-    if (GraphicalMain.syncEditorWithBrowser) {
+    if (GraphicalMain.synchEditorWithBrowser) {
       val lpc = e.getPath.getLastPathComponent
       val file =
         if (lpc.isInstanceOf[TreeFile]) lpc.asInstanceOf[TreeFile]
         else lpc.asInstanceOf[File]
-      if (file.isFile) preventWorkLoss(loadFile(file))
+      if (file.isFile && !(currentFile.isDefined && currentFile.get.getAbsolutePath == file.getAbsolutePath))
+        preventWorkLoss(loadFile(file))
     }
   }
 

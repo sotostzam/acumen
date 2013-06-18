@@ -1,0 +1,13 @@
+
+// If-Then-Else-Based Bouncing Ball Example
+
+class Main(simulator)
+  private
+    x := 5; x' := 0; x'' := 0;
+  end
+  if x <= 0 && x' <= 0
+    x' := -0.5 * x'
+  else
+    x'' = -10
+  end
+end

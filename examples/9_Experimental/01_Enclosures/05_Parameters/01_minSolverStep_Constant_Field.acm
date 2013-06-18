@@ -10,7 +10,7 @@ class Main(simulator)
     mode := "On"
   end
   switch mode
-    case "On" require x >= 0
+    case "On" claim x >= 0
       if x == 0
         x := 1; 
         mode := "On"

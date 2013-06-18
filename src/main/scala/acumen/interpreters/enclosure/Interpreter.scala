@@ -7,12 +7,17 @@ import acumen.InterpreterRes
 import acumen.Prog
 import acumen.interpreters.Common.classDef
 import acumen.interpreters.enclosure.affine.UnivariateAffineEnclosure
-import acumen.interpreters.enclosure.solver.PicardSolver
-import acumen.interpreters.enclosure.solver.SolveIVP
-import acumen.interpreters.enclosure.solver.VeroSolver
-import acumen.interpreters.enclosure.solver.pwl.EncloseHybrid
-import acumen.interpreters.enclosure.solver.tree.Solver
+import acumen.interpreters.enclosure.event.EventEncloser
+import acumen.interpreters.enclosure.event.pwl.PWLEventEncloser
+import acumen.interpreters.enclosure.event.tree.Solver
+import acumen.interpreters.enclosure.ivp.IVPSolver
+import acumen.interpreters.enclosure.ivp.LohnerSolver
+import acumen.interpreters.enclosure.ivp.PicardSolver
+import acumen.interpreters.enclosure.ivp.VeroSolver
+import acumen.interpreters.enclosure.strategy.LocalizingStrategy
+import acumen.interpreters.enclosure.strategy.Strategy
 import ui.interpreter.EnclosureModel
+import acumen.interpreters.enclosure.event.tree.TreeEventEncloser
 
 trait EnclosureInterpreterCallbacks extends InterpreterCallbacks {
   def log(msg: String): Unit
@@ -28,12 +33,10 @@ case class EnclosureRes(res: Seq[UnivariateAffineEnclosure]) extends Interpreter
 /**
  * Proxy for the enclosure-based solver.
  */
-class Interpreter(override var ivpSolver: SolveIVP)
-  extends acumen.RecursiveInterpreter
-  with Checker
-  with Extract
-  with Solver
-  with EncloseHybrid {
+class Interpreter
+    extends acumen.RecursiveInterpreter
+    with Checker
+    with Extract {
 
   def newInterpreterModel = new EnclosureModel
 
@@ -48,65 +51,67 @@ class Interpreter(override var ivpSolver: SolveIVP)
   def runInterpreter(des: Prog, cb0: InterpreterCallbacks) =
     runInterpreter(des, cb0, noAdjustParms)
 
-  var localizing = true
-
   //FIXME do this properly
   def runInterpreter(des: Prog,
-    cb0: InterpreterCallbacks,
-    adjustParms: Parameters => Parameters) = {
+                     cb0: InterpreterCallbacks,
+                     adjustParms: Parameters => Parameters) = {
     val cb = cb0.asInstanceOf[EnclosureInterpreterCallbacks]
     if (des.defs.size > 1) sys.error("Multiple classes are not currently supported by the enclosure interperter!")
-    val main = classDef(ClassName("Main"), des)
+    val cdes = CleanParameters.run(des, EnclosureInterpreterType)
+    val main = classDef(ClassName("Main"), cdes)
 
     // checking that main class embeds a hybrid automaton
     checkValidAutomatonEmbedding(main)
 
     val ps0 = parameters(main)
     val ps = adjustParms(ps0)
-    implicit val rnd = Rounding(ps.bigDecimalDigits)
+    implicit val rnd = Rounding(ps)
     val (hs, uss) = extract(main)
 
     cb.endTime = ps.endTime
 
-    val res = if (localizing) {
-
-      encloseHybrid(
-        ps,
-        hs,
-        ps.simulationTime,
-        emptyState(hs) + (uss.mode -> Some(uss.initialCondition)),
-        cb)
-
-    } else {
-
-      solver(
-        hs,
-        ps.simulationTime,
-        Set(uss),
-        ps.initialPicardPadding,
-        ps.picardImprovements,
-        ps.maxPicardIterations,
-        ps.splittingDegree,
-        ps.maxEventTreeSize,
-        ps.minTimeStep,
-        ps.maxTimeStep,
-        ps.minComputationImprovement,
-        cb)
-    }
-
-    EnclosureRes(res)
+    EnclosureRes(Interpreter.strategy.enclosePiecewise(
+      ps,
+      hs,
+      ps.simulationTime,
+      new StateEnclosure(StateEnclosure.emptyState(hs) + (uss.mode -> Some(uss.initialCondition))),
+      cb))
   }
 
 }
 
 /** Singleton interpreter. All concrete IVP solvers are declared here */
-object Interpreter extends Interpreter(null) {
-  private lazy val picard = new PicardSolver {}
-  private lazy val vero = new VeroSolver {}
-  ivpSolver = picard // default IVP solver
+object Interpreter extends Interpreter {
 
-  def asPicard: Interpreter = { ivpSolver = picard; this }
-  def asVero: Interpreter = { ivpSolver = vero; this }
-  def asLocalizing: Interpreter = { localizing = true; this }
-  def asNonLocalizing: Interpreter = { localizing = false; this }
-} 
+  // IVP solvers
+  private val picard = new PicardSolver {}
+  private val vero = new VeroSolver {}
+  private val lohner = new LohnerSolver {}
+
+  var strategy = new LocalizingStrategy(new PWLEventEncloser(new PicardSolver {}))
+
+  /** Sets the IVP solver to PicardSolver */
+  def asPicard() = { strategy.eventEncloser.ivpSolver = picard; this }
+  /** Sets the IVP solver to VeroSolver */
+  def asVero() = { strategy.eventEncloser.ivpSolver = vero; this }
+  /** Sets the IVP solver to LohnerSolver */
+  def asLohner() = { strategy.eventEncloser.ivpSolver = lohner; this }
+
+  /** Sets the event handler to PWL */
+  def asPWL() = { strategy.eventEncloser = new PWLEventEncloser(strategy.eventEncloser.ivpSolver); this }
+  /** Sets the event handler to EVT */
+  def asEVT() = { strategy.eventEncloser = new TreeEventEncloser(strategy.eventEncloser.ivpSolver); this }
+
+  /** Sets the strategy LocalizingStrategy */
+  def asLocalizing() = { strategy = new LocalizingStrategy(strategy.eventEncloser); this }
+  /** Sets the strategy to the non-localizing SimpleRecursiveStrategy */
+  //FIXME Jan: Replace with non-localizing strategy
+  def asNonLocalizing() = { strategy = new LocalizingStrategy(strategy.eventEncloser); this }
+
+  /** Toggles between PicardSolver and LohnerSolver IVP solvers */
+  def toggleContraction(): Unit = {
+    strategy.eventEncloser.ivpSolver =
+      if (strategy.eventEncloser.ivpSolver == lohner) picard else lohner
+  }
+
+}

@@ -3,8 +3,8 @@ package acumen.interpreters.enclosure
 import Relation._
 import Types._
 import acumen.interpreters.enclosure.Box.toBox
-import acumen.interpreters.enclosure.solver.tree.HybridSystem
-import acumen.interpreters.enclosure.solver.tree.ResetMap
+import acumen.interpreters.enclosure.HybridSystem
+import acumen.interpreters.enclosure.ResetMap
 import acumen._
 
 trait Extract {
@@ -17,6 +17,7 @@ trait Extract {
    * The state variables of the automaton are declared as private
    * variables, each by a single initialization assignment and by
    * a primed version also declared as a private variable by a
+   *
    * single initialization assignment.
    *
    * Higher derivatives are not allowed.
@@ -24,7 +25,7 @@ trait Extract {
    * The automaton graph is represented as a single switch statement
    * with the variable that is switched on acting as a mode designator.
    *
-   * The domain invariant of the mode is declared by the 'require' keyword
+   * The domain invariant of the mode is declared by the 'claim' keyword
    * which may be provided after the value matched on in the case clause.
    * Omitted requiress are parsed as constant 'true' invariants.
    *
@@ -65,7 +66,7 @@ trait Extract {
               (getHybridSystem(modeVariable, stateVariables - modeVariable, clauses),
                 getInitialState(modeVariable, stateVariables - modeVariable, priv))
             case Switch(e, _) => sys.error("Switching on " + e + " not allowed!")
-            case _ => sys.error("Handling of state machines expressed using control constructs other than switch not implemented!")
+            case _            => sys.error("Handling of state machines expressed using control constructs other than switch not implemented!")
           }
           case _ => sys.error("Handling of multiple switch statements not implemented!")
         }
@@ -101,27 +102,11 @@ trait Extract {
             case _ => sys.error("Muliple assignments to simulator." + n + " are not allowed!")
           }
         }
-        // FIXME coercing each integer to a double and back is not ideal...
-        val defaultParameters = Map[String, Double](
-          "bigDecimalDigits" -> 10,
-          "startTime" -> 0,
-          "endTime" -> 3,
-          "initialPicardPadding" -> 0,
-          "picardImprovements" -> 20,
-          "maxPicardIterations" -> 200,
-          "maxEventTreeSize" -> 30,
-          "minTimeStep" -> 0.01,
-          "minSolverStep" -> 0.01,
-          "minLocalizationStep" -> 0.001,
-          "maxTimeStep" -> 3,
-          "minComputationImprovement" -> 0.0001,
-          "splittingDegree" -> 1,
-          "maxIterations" -> 100)
         val params = {
           val assignedParameters = assignments.map(_._1)
-          val updatedParameters = assignments.foldLeft(defaultParameters) {
+          val updatedParameters = assignments.foldLeft(Parameters.defaults) {
             case (res, (param, l)) =>
-              if (defaultParameters.keySet contains param) res + (param -> toDouble(l))
+              if (Parameters.defaults.keySet contains param) res + (param -> toDouble(l))
               else sys.error(param + " is not a recognized parameter.")
             case _ => sys.error("Should never happen!")
           }
@@ -168,10 +153,10 @@ trait Extract {
   def getInitialState(modeVariable: String, stateVariables: List[VarName], priv: List[Init])(implicit rnd: Rounding) = {
     val initialMode = priv.filter {
       case Init(Name(i, 0), m) => i == modeVariable
-      case _ => false
+      case _                   => false
     } match {
       case List(Init(_, ExprRhs(Lit(gv)))) => groundValueToMode(gv)
-      case _ => sys.error("Could not identify initial mode!")
+      case _                               => sys.error("Could not identify initial mode!")
     }
     val intializations = priv.map {
       case Init(name, ExprRhs(initialValueExpr)) => (name.x + "'" * name.primes) -> initialValueExpr
@@ -211,7 +196,7 @@ trait Extract {
       case _ => List()
     } match {
       case List(e) => e
-      case _ => sys.error("Each if-branch in conditional statements must contain precisely one assignment to " + modeVariable)
+      case _       => sys.error("Each if-branch in conditional statements must contain precisely one assignment to " + modeVariable)
     }
 
   def getGuard(cond: Expr)(implicit rnd: Rounding) = acumenExprToPredicate(cond).asInstanceOf[Guard]
@@ -225,7 +210,7 @@ trait Extract {
         if (name == modeVariable) List()
         else List((lhs, rhs))
       case Discretely(Assign(lhs, rhs)) => sys.error("Assignment of " + rhs + " to " + lhs + " is not supported.")
-      case _ => List()
+      case _                            => List()
     }.toMap.map {
       case (Dot(_, kName), v) =>
         val Variable(k) = acumenExprToExpression(Var(kName))
@@ -246,10 +231,10 @@ trait Extract {
   }
 
   def groundValueToMode(gv: GroundValue) = Mode(gv match {
-    case GInt(i) => i.toString
+    case GInt(i)    => i.toString
     case GDouble(d) => d.toString
-    case GBool(b) => b.toString
-    case GStr(s) => s
+    case GBool(b)   => b.toString
+    case GStr(s)    => s
   })
 
   def getField(stateVariables: List[VarName], as: List[Action])(implicit rnd: Rounding) = {
@@ -284,74 +269,98 @@ trait Extract {
   }
 
   def acumenExprToPredicate(e: Expr)(implicit rnd: Rounding): Predicate = e match {
-    case Lit(GBool(b)) if b => True
-    case _ => All(acumenExprToRelations(e))
+    case Lit(GBool(b))                 => if (b) True else False
+    case Op(Name("not", 0), List(e))   => acumenExprToPredicate(negateExpression(e))
+    case Op(Name("||", 0), List(l, r)) => Or(acumenExprToPredicate(l), acumenExprToPredicate(r))
+    case _                             => All(acumenExprToRelations(e))
+  }
+
+  def negateExpression(e: Expr): Expr = e match {
+    case Lit(GBool(b))                 => Lit(GBool(!b))
+    case Op(Name("&&", 0), List(l, r)) => Op(Name("||", 0), List(negateExpression(l), negateExpression(r)))
+    case Op(Name("||", 0), List(l, r)) => Op(Name("&&", 0), List(negateExpression(l), negateExpression(r)))
+    case Op(Name("not", 0), List(e))   => e
+    case Op(Name("<=", 0), es)         => Op(Name(">", 0), es)
+    case Op(Name("<", 0), es)          => Op(Name(">=", 0), es)
+    case Op(Name("==", 0), es)         => Op(Name("~=", 0), es)
+    case Op(Name("~=", 0), es)         => Op(Name("==", 0), es)
+    case Op(Name(">", 0), es)          => Op(Name("<=", 0), es)
+    case Op(Name(">=", 0), es)         => Op(Name("<", 0), es)
+    case _                             => sys.error("cannot negate " + e)
+  }
+
+  def isRelation(e: Expr) = e match {
+    case Op(Name("<=" | "<" | "==" | "~=" | ">" | ">=", _), _) => true
+    case _ => false
   }
 
   def acumenExprToRelations(e: Expr)(implicit rnd: Rounding): List[Relation] = e match {
     case Op(Name("&&", 0), List(l, r)) => acumenExprToRelations(l) ++ acumenExprToRelations(r)
-    case Op(Name("<=" | "<" | "==" | ">" | ">=", _), _) => List(acumenExprToRelation(e))
+    case Op(Name("<=" | "<" | "==" | "~=" | ">" | ">=", _), _) => List(acumenExprToRelation(e))
     case _ => sys.error("Handling of predicates " + e + "not implemented!")
   }
 
   def acumenExprToRelation(e: Expr)(implicit rnd: Rounding): Relation = e match {
     case Op(Name("<=", 0), List(x, y)) => lessThanOrEqualTo(acumenExprToExpression(x), acumenExprToExpression(y))
-    case Op(Name("<", 0), List(x, y)) => lessThan(acumenExprToExpression(x), acumenExprToExpression(y))
+    case Op(Name("<", 0), List(x, y))  => lessThan(acumenExprToExpression(x), acumenExprToExpression(y))
     case Op(Name("==", 0), List(x, y)) => equalTo(acumenExprToExpression(x), acumenExprToExpression(y))
     case Op(Name("~=", 0), List(x, y)) => notEqualTo(acumenExprToExpression(x), acumenExprToExpression(y))
-    case Op(Name(">", 0), List(x, y)) => lessThan(acumenExprToExpression(y), acumenExprToExpression(x))
+    case Op(Name(">", 0), List(x, y))  => lessThan(acumenExprToExpression(y), acumenExprToExpression(x))
     case Op(Name(">=", 0), List(x, y)) => lessThanOrEqualTo(acumenExprToExpression(y), acumenExprToExpression(x))
     //    case Op(Name("<=", 0), List(x, y)) => nonPositive(acumenExprToExpression(x) - acumenExprToExpression(y))
     //    case Op(Name("<", 0), List(x, y)) => negative(acumenExprToExpression(x) - acumenExprToExpression(y))
     //    case Op(Name("==", 0), List(x, y)) => equalToZero(acumenExprToExpression(x) - acumenExprToExpression(y))
     //    case Op(Name(">", 0), List(x, y)) => positive(acumenExprToExpression(x) - acumenExprToExpression(y))
     //    case Op(Name(">=", 0), List(x, y)) => nonNegative(acumenExprToExpression(x) - acumenExprToExpression(y))
-    case _ => sys.error("Handling of relation " + e + " not implemented!")
+    case _                             => sys.error("Handling of relation " + e + " not implemented!")
   }
 
   def acumenExprToExpression(e: Expr)(implicit rnd: Rounding): Expression = e match {
-    case Lit(GInt(d)) => Constant(d)
-    case Lit(GDouble(d)) => Constant(d)
-    case Lit(GConstPi) => Constant(Interval.pi)
+    case Lit(GInt(d))         => Constant(d)
+    case Lit(GDouble(d))      => Constant(d)
+    case Lit(GConstPi)        => Constant(Interval.pi)
     case ExprInterval(lo, hi) => Constant(foldConstant(lo).value /\ foldConstant(hi).value)
     case ExprIntervalM(mid0, pm0) =>
       val mid = foldConstant(mid0).value
       val pm = foldConstant(pm0).value
       Constant((mid - pm) /\ (mid + pm))
-    case Var(Name(name, n)) => Variable(name + "'" * n)
+    case Var(Name(name, n))                     => Variable(name + "'" * n)
     case Dot(Var(Name(self, 0)), Name(name, n)) => Variable(name + "'" * n)
-    case Op(Name("-", 0), List(x)) => Negate(acumenExprToExpression(x))
-    case Op(Name("abs", 0), List(x)) => Abs(acumenExprToExpression(x))
-    case Op(Name("sqrt", 0), List(x)) => Sqrt(acumenExprToExpression(x))
-    case Op(Name("-", 0), List(l, r)) => acumenExprToExpression(l) - acumenExprToExpression(r)
-    case Op(Name("+", 0), List(l, r)) => acumenExprToExpression(l) + acumenExprToExpression(r)
-    case Op(Name("/", 0), List(l, r)) => Divide(acumenExprToExpression(l), acumenExprToExpression(r))
-    case Op(Name("*", 0), List(l, r)) => acumenExprToExpression(l) * acumenExprToExpression(r)
-    case _ => sys.error("Handling of expression " + e + " not implemented!")
+    case Op(Name("-", 0), List(x))              => Negate(acumenExprToExpression(x))
+    case Op(Name("abs", 0), List(x))            => Abs(acumenExprToExpression(x))
+    case Op(Name("cos", 0), List(x))            => Cos(acumenExprToExpression(x))
+    case Op(Name("sin", 0), List(x))            => Sin(acumenExprToExpression(x))
+    case Op(Name("sqrt", 0), List(x))           => Sqrt(acumenExprToExpression(x))
+    case Op(Name("-", 0), List(l, r))           => acumenExprToExpression(l) - acumenExprToExpression(r)
+    case Op(Name("+", 0), List(l, r))           => acumenExprToExpression(l) + acumenExprToExpression(r)
+    case Op(Name("/", 0), List(l, r))           => Divide(acumenExprToExpression(l), acumenExprToExpression(r))
+    case Op(Name("*", 0), List(l, r))           => acumenExprToExpression(l) * acumenExprToExpression(r)
+    case _                                      => sys.error("Handling of expression " + e + " not implemented!")
   }
 
   def foldConstant(e: Expr)(implicit rnd: Rounding): Constant = e match {
-    case Lit(GInt(i)) => Constant(i)
-    case Lit(GDouble(d)) => Constant(d)
-    case Lit(_) => sys.error("foldConstant called with non-numeric expression!")
-    case Op(Name("-", 0), List(x)) => Constant(-foldConstant(x).value)
+    case Lit(GInt(i))                 => Constant(i)
+    case Lit(GDouble(d))              => Constant(d)
+    case Lit(_)                       => sys.error("foldConstant called with non-numeric expression!")
+    case Op(Name("-", 0), List(x))    => Constant(-foldConstant(x).value)
     case Op(Name("-", 0), List(l, r)) => Constant(foldConstant(l).value - foldConstant(r).value)
     case Op(Name("+", 0), List(l, r)) => Constant(foldConstant(l).value + foldConstant(r).value)
     case Op(Name("*", 0), List(l, r)) => Constant(foldConstant(l).value * foldConstant(r).value)
     case Op(Name("/", 0), List(l, r)) => Constant(foldConstant(l).value / foldConstant(r).value)
-    case _ => sys.error("foldConstant called with nonconstant expression!")
+    case _                            => sys.error("foldConstant called with nonconstant expression!")
   }
 
   def toDouble(l: Lit): Double = l match {
-    case Lit(GInt(i)) => i
+    case Lit(GInt(i))    => i
     case Lit(GDouble(d)) => d
-    case _ => sys.error("Non numeric literal cannot be cast to Double.")
+    case _               => sys.error("Non numeric literal cannot be cast to Double.")
   }
 
   def toGDouble(gv: GroundValue): GDouble = gv match {
-    case GInt(i) => GDouble(i)
+    case GInt(i)    => GDouble(i)
     case GDouble(_) => gv.asInstanceOf[GDouble]
-    case _ => sys.error("found: " + gv + " , expected: GInt or GDouble")
+    case _          => sys.error("found: " + gv + " , expected: GInt or GDouble")
   }
 
 }
+

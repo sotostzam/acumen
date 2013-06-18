@@ -3,12 +3,12 @@ class Main (simulator)
     mode := "on"; x := 22; x' := 0; 
   end
   switch mode
-    case "on" require x <= 25
+    case "on" claim x <= 25
       if x == 25
         mode := "off"
       end;
       x' = 100 - x;
-    case "off" require x >= 19
+    case "off" claim x >= 19
       if x == 19
         mode := "on"
       end;

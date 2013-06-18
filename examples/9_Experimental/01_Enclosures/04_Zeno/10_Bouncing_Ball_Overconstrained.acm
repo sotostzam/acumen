@@ -10,7 +10,7 @@ class Main(simulator)
     mode := "Fly" 
   end
   switch mode
-    case "Fly" require x >= 0 // Constraint added
+    case "Fly" claim x >= 0 // Constraint added
       if x == 0 && x' <= 0
         x' := -0.5 * x';
         mode := "Fly"

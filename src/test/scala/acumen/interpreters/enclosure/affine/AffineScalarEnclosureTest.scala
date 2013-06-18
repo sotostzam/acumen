@@ -14,11 +14,12 @@ import acumen.interpreters.enclosure.Rounding
 import acumen.interpreters.enclosure.TestingContext
 import acumen.interpreters.enclosure.Box
 import acumen.interpreters.enclosure.Interval
+import acumen.interpreters.enclosure.Parameters
 
 object AffineScalarEnclosureTest extends Properties("AffineScalarEnclosure") {
 
   //  import TestingContext._
-  implicit val rnd = Rounding(10)
+  implicit val rnd = Parameters.default.rnd
 
   /* Type synonyms */
 
@@ -220,10 +221,10 @@ object AffineScalarEnclosureUnitTest extends Properties("AffineScalarEnclosure.U
     val u = Box("t" -> unit)
     val x = AffineScalarEnclosure(u, "t")
     x(u) == unit &&
-      (x + x)(rnd)(u) == 2 * unit &&
-      (x * unit)(rnd)(u) == unit &&
-      (x * unit)(rnd)(u) == unit &&
-      (x * 5)(rnd)(u) == 5 * unit
+      (x + x)(u) == 2 * unit &&
+      (x * unit)(u) == unit &&
+      (x * unit)(u) == unit &&
+      (x * 5)(u) == 5 * unit
   }
 
   property("enclosure scala evaluation failing test case") = {

@@ -463,7 +463,10 @@ abstract class Common {
     val mainObj = mkObj(cmain, prog, None, sd1, List(VObjId(Some(magic))), magic, 1)
     magic.seed = sd2
     changeParent(magic, mainObj)
-    (Prog(magicClass :: prog.defs), mainObj)
+    val cprog = CleanParameters.run(prog, CStoreInterpreterType)
+    val sprog = Simplifier.run(cprog)
+    val mprog = Prog(magicClass :: sprog.defs)
+    (mprog , mainObj)
   }
   
   def traverseSimple(f: ObjId => Changeset, root: ObjId): Changeset = {

@@ -1,0 +1,105 @@
+//Author: Jawad Masood
+//ID: A3
+//*****************Vehicle Mechanics************************************************//
+class VehicleMechanics(m1,m2,Fx,Fy,x0)// Point mass 2D-dynamics
+  private 
+  x:=x0; 
+  x':=5; 
+  x'':= 0; 
+  y:=1; 
+  y':=0; 
+  y'':=0;      
+  end
+  x'' = Fx/m1 ; // Longitudenal Acceleration
+  y'' = -Fy/m2 - 10*y' ; //Lateral Acceleration
+ end
+//*********************Machine Sensor********************************************// 
+ class Sensor(x0,s0,r)
+ private
+ x := x0;
+ sx := s0;
+ end  
+ sx  = r-x; // Ideal sensing model  along X-direction. We can adjust this parameter according to our sensor range 
+ end
+//*********************ADAS********************************************// 
+class Control(s0,y0,vy0,Fy0,kP,kD)//PD controller Open loop
+ private
+  s := s0;
+  y := y0;
+  y' := vy0;
+  Fy := Fy0;
+ end 
+if s<=3 
+Fy = kP*(5-y)+kD*(0.1-y'); 
+else 
+Fy = 0; 
+end
+end 
+//**********************SIMULATOR*******************************************//
+class Main(simulator)
+  private 
+    mechanics := create VehicleMechanics(5,5,10,0,0);    
+    subject := create VehicleT([0,1,0],1,"car.obj");
+    target := create VehicleS([50,1,0],1,"car.obj");
+    environment := create Road();
+    sens := create Sensor(0,0,5);
+    controller := create Control(0,0,0,0,3,6);
+   _3DView := [];     
+ end
+ sens.x = mechanics.x;
+ sens.sx = controller.s ;
+ controller.y' = mechanics.y';
+ controller.y  = mechanics.y; 
+ mechanics.Fy = controller.Fy;
+ subject.p = [mechanics.x,mechanics.y,0];
+ _3DView = [[mechanics.x-3,mechanics.y,0.5],[0,0,-1*pi/2]];
+ simulator.endTime = 6;
+end
+
+//**********************Environment*******************************************//
+class Road()
+  private
+    mode := "spawn";
+      _3D := [];
+  end
+  _3D = [["Box",[0,0,-0.9144/2],[1000,3.9624,0.1],[0.3,0.3,0.3],[0,0,0]], // Straignt Single Standard Road
+         ["Box",[0,3.9624/2,-0.93/2],[1000,0.15,0.11],[255,255,255],[0,0,0]], // left road side line
+         ["Box",[0,-3.9624/2,-0.93/2],[1000,0.15,0.1],[255,255,255],[0,0,0]], // right road side line
+         ["Box",[0,0,-0.90/2],[3,0.15,0.1],[255,255,255],[0,0,0]]];
+switch mode
+    case "spawn"
+      create Stripe(0, 33);
+      mode := "persist";
+    case "persist" 
+end
+end
+
+class Stripe(xstart, stripesLeft)
+  private
+    _3D := [["Box",[xstart,0,-0.90/2],[3,0.15,0.1],[255,255,255],[0,0,0]]];
+   mode := "spawn";
+  end
+  switch mode
+    case "spawn"
+      if (stripesLeft > 0)
+        create Stripe(xstart + 7.5, stripesLeft - 1);
+        mode := "persist";
+      end;
+    case "persist"
+  end;
+  _3D = [["Box",[xstart,0,-0.90/2],[3,0.15,0.1],[255,255,255],[0,0,0]]]; // center lane
+end
+
+//**************************VISUALIZATION***************************************//
+class VehicleT(p,d,name)
+  private
+    _3D := [];
+  end      
+  _3D = ["OBJ",p,1,[0,0,1],[pi/2,0,d*pi],name];
+end
+class VehicleS(p,d,name)
+  private
+    _3D := [];
+  end      
+  _3D = ["OBJ",p,1,[0,0,1],[pi/2,0,d*pi],name];
+end

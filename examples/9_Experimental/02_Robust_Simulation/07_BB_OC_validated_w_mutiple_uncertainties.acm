@@ -3,6 +3,7 @@
 // with proper zero crossing
 //
 // Author:  WT, based on model by MK and JD
+//          and Magnus Egerstedt
 //
 // Note:  Run this with Semantics -> Enclosure
 // Note:  Introducing uncertainties in model
@@ -10,16 +11,16 @@
 class Main(simulator)
   private 
     mode := "Fly"; 
-    x   := [4.0..5.5];    // Uncertainty in height
-    x'  := 0; 
+    x   := [4.0..4.2];    // Uncertainty in height
+    x'  := [-0.5..0.5];   // Uncertainty in speed
     x'' := 0;  
-    r   := [80.0..110.0]; // Uncertainty in energy
+    r   := [80.0..150.0]; // Uncertainty in energy
     r' := 0;
   end
   switch mode
     case "Fly" 
-      require x >= 0 && 
-              r == x'*x' + 20*x
+      claim x >= 0 && 
+             r == x'*x' + 20*x
       if x == 0 && x' <= 0
         x' := [-0.55..-0.45]*x'; // Unc. in coef. rest.
         r  := [0.0..0.3025]*r;

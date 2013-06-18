@@ -17,7 +17,7 @@ class Main(simulator)
   end
   switch mode
     case "Fly" 
-      require x >= 0 // Ball never pierces floor
+      claim x >= 0 // Ball never pierces floor
       if x == 0 && x' <= 0
         x' := -0.5*x';
         mode := "Fly";
