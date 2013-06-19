@@ -1,5 +1,6 @@
 package acumen
-package tests
+package interpreters
+package reference
 
 import Errors._
 import util.Filters._
@@ -14,7 +15,7 @@ import util.Transform
 import interpreters.reference.Interpreter
 
 
-class ReferenceInterpreterTest extends InterpreterTestBase with ShouldMatchers {
+class InterpreterTest extends InterpreterTestBase with ShouldMatchers {
 
   def run(in: InputStreamReader) : Unit = {
     val ast = Parser.run(Parser.prog, in)

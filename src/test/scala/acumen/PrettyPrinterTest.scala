@@ -1,5 +1,4 @@
 package acumen
-package tests
 
 import Pretty._
 

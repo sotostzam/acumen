@@ -1,5 +1,6 @@
 package acumen
-package tests
+package ui
+package threeD
 
 import Errors._
 import util.Filters._
@@ -17,7 +18,7 @@ import org.scalatest.matchers.ShouldMatchers
 import org.scalatest.Suite
 import org.scalacheck.Arbitrary.arbitrary
 import Pretty._
-import Generators._
+import testutil.Generators._
 
 import org.scalacheck.Properties
 import org.scalacheck.Prop._

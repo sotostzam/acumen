@@ -1,17 +1,19 @@
 package acumen
-package tests
+package interpreters
+package imperative
+package parallel
 
 import Pretty._
 
 import org.scalatest.matchers.ShouldMatchers
 import org.scalatest.Suite
 
-import acumen.interpreters.imperative.parallel.Interpreter._
+import Interpreter._
 
 import java.io.FileInputStream
 import java.io.InputStreamReader
 
-class ParallelInterpreterTest extends tests.InterpreterTestBase {
+class InterpreterTest extends InterpreterTestBase {
 
   test("StoreConversions1") {
     import interpreters.imperative.parallel.Interpreter._

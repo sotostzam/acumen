@@ -1,11 +1,12 @@
 package acumen
-package tests
+package ui
+package threeD
 
 import ui.Controller
 
 import ui.tl.Console
 import Pretty._
-import Generators._
+import testutil.Generators._
 import org.scalacheck.Gen._
 
 import org.scalacheck.Properties

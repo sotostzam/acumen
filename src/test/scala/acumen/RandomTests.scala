@@ -1,8 +1,7 @@
 package acumen
-package tests
 
 import Pretty._
-import Generators._
+import testutil.Generators._
 import org.scalacheck.Properties
 import org.scalacheck.Prop._
 import acumen._
@@ -10,7 +9,7 @@ import acumen._
 object RandomTests extends Properties("Random") {
 
   property("parse-pretty consistency") = {
-	import acumen.tests.Generators.arbProg
+	import acumen.testutil.Generators.arbProg
     forAll { (x:Prog) => 
       val px = pprint(x)
       try { 

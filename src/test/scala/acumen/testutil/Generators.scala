@@ -1,5 +1,5 @@
 package acumen
-package tests
+package testutil
 
 import org.scalacheck._
 import Gen._

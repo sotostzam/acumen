@@ -1,4 +1,4 @@
-package acumen.tests
+package acumen
 
 import org.scalatest.matchers.ShouldMatchers
 import org.scalatest.Suite

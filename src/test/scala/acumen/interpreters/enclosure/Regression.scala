@@ -1,6 +1,4 @@
-package acumen
-package interpreters
-package enclosure
+package acumen.interpreters.enclosure
 
 import org.scalacheck.Properties
 import scala.util.parsing.input.StreamReader
@@ -9,6 +7,7 @@ import acumen.interpreters.enclosure.ivp.PicardSolver
 object Regression extends Properties("Regression") {
 
   import TestingContext._
+  import acumen._
   import util.System._
 
   val FILE_SUFFIX_RESULT = ".result"

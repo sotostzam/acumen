@@ -1,5 +1,5 @@
 package acumen
-package tests
+package interpreters
 
 import Errors._
 import util.Filters._
@@ -37,7 +37,8 @@ abstract class InterpreterTestBase extends FunSuite with ShouldMatchers {
       def accept(d: File, fn: String) = {
         fn.substring(0,3) 		 != "XXX" && // Ignore internal files
         d.getName.substring(0,3) != "XXX" && // Ignore internal directories
-        d.getName 				 != "1_Enclosures" //FIXME Support enclosure sim. params in CStore interpreters 
+        d.getName 				 != "01_Enclosures" && //FIXME Support enclosure sim. params in CStore interpreters 
+        d.getName 				 != "02_Robust_Simulation" //FIXME Support enclosure sim. params in CStore interpreters 
       }
     }
     for (f <- d.listFiles(filter)) {
