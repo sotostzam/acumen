@@ -29,6 +29,23 @@ case class CStoreRes(ctrace: Stream[CStore]) extends InterpreterRes {
   }
 }
 
+object CStoreOpts {
+  object OutputRows extends Enumeration {
+    val AllRows, DiscreteWhenChanged, ContinuousOnly, Last = Value
+  }
+}
+
+class CStoreOpts {
+  import CStoreOpts._
+  var outputRows = OutputRows.DiscreteWhenChanged
+  var outputInternalState = true // controls "parent", "nextChild", "seed1", "seed2"
+  var outputSimulatorState = true // does not control Simulator.time and Simulator.stepType
+  var outputNonPlottables = true // 
+  def outputAllRows = outputRows == OutputRows.AllRows
+  def outputSomeDiscrete = outputRows == OutputRows.AllRows || outputRows == OutputRows.DiscreteWhenChanged
+  def outputLastOnly = outputRows == OutputRows.Last
+}
+
 trait CStoreInterpreter extends Interpreter {
   type Store
   def repr (s:Store) : CStore
@@ -36,7 +53,7 @@ trait CStoreInterpreter extends Interpreter {
   override def newInterpreterModel = new CStoreModel
   
   def fromCStore (cs:CStore, root:CId) : Store
-  def init(prog:Prog) : (Prog, Store)
+  def init(prog:Prog, opts: CStoreOpts) : (Prog, Store)
   def step(p:Prog, st:Store) : Option[Store]
 
   type History = Stream[Store]
@@ -60,7 +77,7 @@ trait CStoreInterpreter extends Interpreter {
 
   /* all-in-one main-loop */
   def run(p:Prog) = {
-    val (p1,st) = init(p)
+    val (p1,st) = init(p, new CStoreOpts)
     val trace = loop (p1, st)
     CStoreRes(trace map repr)
   }

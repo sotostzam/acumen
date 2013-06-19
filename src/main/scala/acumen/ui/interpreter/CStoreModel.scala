@@ -156,6 +156,7 @@ class CStoreModel extends TraceModel with InterpreterModel with PlotModel {
     } catch { case _ => None }
   }
 
+  override def getPlotTitle(col:Int) = d.columnNames(col)
   override def getColumnName(col:Int) = d.columnNames(col)
 
   override def isEmpty() = d.rowCount == 0

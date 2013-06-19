@@ -38,7 +38,7 @@ trait PlotModel {
   // These mebers may be called on the EDT:
   def getRowCount() : Int
   def getValueAt(row:Int, column:Int) : String
-  def getColumnName(col:Int) : String
+  def getPlotTitle(col:Int) : String
   def getDouble(row:Int, column:Int): Option[Double]
   def isEmpty(): Boolean
   // These members will not get called when the model is updating:

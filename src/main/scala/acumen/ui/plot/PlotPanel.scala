@@ -265,12 +265,12 @@ class PlotPanel(pub:Publisher) extends Panel
           // corresponding column in the trace model
           val column = pd.columnIndices(hb)
           // name of the column
-          val name = model.getColumnName(column)
+          val name = model.getPlotTitle(column)
           // value of the column as a string
           var value = model.getValueAt(row, column).asInstanceOf[String]
           // FIXME: This is an incredible ugly hack to check if we area
           //   displaying enclosures instead of a real trace view.
-          if (model.getColumnName(0) == "time" && value(0) == '[') {
+          if (model.getPlotTitle(0) == "time" && value(0) == '[') {
             if (row == 0)
               value = "(-,%s)".format(value)
             else if (row == model.getRowCount() - 1)

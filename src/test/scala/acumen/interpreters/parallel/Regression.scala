@@ -1,6 +1,4 @@
-package acumen
-package interpreters
-package parallel
+package acumen.interpreters.imperative.parallel
 
 import org.scalacheck.Properties
 import scala.util.parsing.input.StreamReader
@@ -8,7 +6,8 @@ import scala.collection.immutable.SortedMap
 
 object Regression extends Properties("Regression") {
 
-  import util.System._
+  import acumen.util.System._
+  import acumen.{ CId, CObject, CValue, Desugarer, Name, Parser }
 
   val FILE_SUFFIX_RESULT = ".result"
 
@@ -29,7 +28,7 @@ object Regression extends Properties("Regression") {
       }: _*)
     }
 
-    val i = new Interpreter(2)
+    val i = Interpreter(2)
     val resultKeySet = results.keySet
     models.forall {
       case (name, model) =>

@@ -59,6 +59,8 @@ class App extends SimpleSwingApplication {
   val DEFAULT_HEIGHT = 768
   val DEFAULT_WIDTH = 1024
 
+  private val cores = Runtime.getRuntime.availableProcessors
+  
   // Create a special actor to listen to events from other threads
 
   case object EXIT
@@ -102,37 +104,38 @@ class App extends SimpleSwingApplication {
   //**************************************
 
   /* ----- UI setup ------- */
-   
+  
   /* Reusable actions */
-  private val playAction                  = mkAction(    "Run",                     VK_R, VK_G,       upperButtons.bPlay.doClick)
-  private val pauseAction                 = mkAction(    "Pause",                   VK_R, VK_G,       upperButtons.bPlay.doClick)
-  private val stepAction                  = mkAction(    "Step",                    VK_T, VK_B,       upperButtons.bStep.doClick)
-  private val stopAction                  = mkAction(    "Stop",                    VK_S, VK_T,       upperButtons.bStop.doClick)
-  private val newAction                   = mkAction(    "New",                     VK_N, VK_N,       codeArea.newFile)
-  private val openAction                  = mkAction(    "Open",                    VK_O, VK_O,       codeArea.openFile(codeArea.currentDir))
-  private val saveAction                  = mkAction(    "Save",                    VK_S, VK_S,       codeArea.saveFile())
-  private val saveAsAction                = mkActionMask("Save As",                 VK_A, VK_S,       shortcutMask | SHIFT_MASK, codeArea.saveFileAs())
-  private val recoverAction               = mkAction(    "Recover",                 VK_R, VK_R,       codeArea.openFile(Files.autoSavedDir))
-  private val exitAction                  = mkAction(    "Exit",                    VK_E, VK_Q,       exit)
-  private val cutAction                   = mkAction(    "Cut",                     VK_T, VK_X,       codeArea.textArea.cut)
-  private val copyAction                  = mkAction(    "Copy",                    VK_C, VK_C,       codeArea.textArea.copyAsRtf)
-  private val pasteAction                 = mkAction(    "Paste",                   VK_P, VK_V,       codeArea.textArea.paste)
-  private val selectAllAction             = mkAction(    "Select All",              VK_A, VK_A,       codeArea.textArea.selectAll)
-  private val increaseFontSizeAction      = mkAction(    "Enlarge Font",            VK_I, VK_PLUS,    codeArea increaseFontSize)
-  private val decreaseFontSizeAction      = mkAction(    "Reduce Font",             VK_D, VK_MINUS,   codeArea decreaseFontSize)
-  private val resetFontSizeAction         = mkAction(    "Reset Font",              VK_R, VK_0,       codeArea resetFontSize)
-  private val showLineNumbersAction       = mkAction(    "Line Numbers",            VK_L, VK_L,       toggleLineNumbers)
-  private val plotStyleLinesAction        = new Action(  "Lines")      { mnemonic = VK_L; def apply = plotView.setPlotStyle(plot.Lines()) }
-  private val plotStyleDotsAction         = new Action(  "Dots")       { mnemonic = VK_D; def apply = plotView.setPlotStyle(plot.Dots()) }
-  private val plotStyleBothAction         = new Action(  "Both")       { mnemonic = VK_B; def apply = plotView.setPlotStyle(plot.Both()) }
-  private val floatingPointNewAction      = mkActionMask("Floating Point (New)",    VK_F, VK_F,       shortcutMask | SHIFT_MASK, setInterpreter(new CStoreCntrl(interpreters.newreference.Interpreter)))
-  private val floatingPointAction         = mkActionMask("Floating Point",          VK_R, VK_R,       shortcutMask | SHIFT_MASK, setInterpreter(new CStoreCntrl(interpreters.reference.Interpreter))) 
-  private val floatingPointParallelAction = mkActionMask("Floating Point Parallel", VK_P, VK_P,       shortcutMask | SHIFT_MASK, promptForNumberOfThreads)
-  private val pwlHybridSolverAction       = mkActionMask("Enclosure PWL",           VK_L, VK_L,       shortcutMask | SHIFT_MASK, setInterpreter(new EnclosureCntrl(interpreters.enclosure.Interpreter.asPWL))) 
-  private val eventTreeHybridSolverAction = mkActionMask("Enclosure EVT",           VK_T, VK_T,       shortcutMask | SHIFT_MASK, setInterpreter(new EnclosureCntrl(interpreters.enclosure.Interpreter.asEVT)))
-  private val contractionAction           = mkActionMask("Contraction",             VK_C, VK_C,       shortcutMask | SHIFT_MASK, interpreters.enclosure.Interpreter.toggleContraction)
-  private val tutorialAction              = mkAction(    "Core Acumen Tutorial",    VK_T, VK_F1,      tutorial)
-  private val aboutAction                 = new Action(  "About")      { mnemonic = VK_A; def apply = about }
+  private val playAction                    = mkAction(    "Run",                       VK_R, VK_G,       upperButtons.bPlay.doClick)
+  private val pauseAction                   = mkAction(    "Pause",                     VK_R, VK_G,       upperButtons.bPlay.doClick)
+  private val stepAction                    = mkAction(    "Step",                      VK_T, VK_B,       upperButtons.bStep.doClick)
+  private val stopAction                    = mkAction(    "Stop",                      VK_S, VK_T,       upperButtons.bStop.doClick)
+  private val newAction                     = mkAction(    "New",                       VK_N, VK_N,       codeArea.newFile)
+  private val openAction                    = mkAction(    "Open",                      VK_O, VK_O,       codeArea.openFile(codeArea.currentDir))
+  private val saveAction                    = mkAction(    "Save",                      VK_S, VK_S,       codeArea.saveFile())
+  private val saveAsAction                  = mkActionMask("Save As",                   VK_A, VK_S,       shortcutMask | SHIFT_MASK, codeArea.saveFileAs())
+  private val recoverAction                 = mkAction(    "Recover",                   VK_R, VK_R,       codeArea.openFile(Files.autoSavedDir))
+  private val exitAction                    = mkAction(    "Exit",                      VK_E, VK_Q,       exit)
+  private val cutAction                     = mkAction(    "Cut",                       VK_T, VK_X,       codeArea.textArea.cut)
+  private val copyAction                    = mkAction(    "Copy",                      VK_C, VK_C,       codeArea.textArea.copyAsRtf)
+  private val pasteAction                   = mkAction(    "Paste",                     VK_P, VK_V,       codeArea.textArea.paste)
+  private val selectAllAction               = mkAction(    "Select All",                VK_A, VK_A,       codeArea.textArea.selectAll)
+  private val increaseFontSizeAction        = mkAction(    "Enlarge Font",              VK_I, VK_PLUS,    codeArea increaseFontSize)
+  private val decreaseFontSizeAction        = mkAction(    "Reduce Font",               VK_D, VK_MINUS,   codeArea decreaseFontSize)
+  private val resetFontSizeAction           = mkAction(    "Reset Font",                VK_R, VK_0,       codeArea resetFontSize)
+  private val showLineNumbersAction         = mkAction(    "Line Numbers",              VK_L, VK_L,       toggleLineNumbers)
+  private val plotStyleLinesAction          = new Action(  "Lines")      { mnemonic =   VK_L; def apply = plotView.setPlotStyle(plot.Lines()) }
+  private val plotStyleDotsAction           = new Action(  "Dots")       { mnemonic =   VK_D; def apply = plotView.setPlotStyle(plot.Dots()) }
+  private val plotStyleBothAction           = new Action(  "Both")       { mnemonic =   VK_B; def apply = plotView.setPlotStyle(plot.Both()) }
+  private val floatingPointNewAction        = mkActionMask("Floating Point (New)",      VK_F, VK_F,       shortcutMask | SHIFT_MASK, setInterpreter(new CStoreCntrl(interpreters.newreference.Interpreter)))
+  private val floatingPointAction           = mkActionMask("Floating Point Reference",  VK_R, VK_R,       shortcutMask | SHIFT_MASK, setInterpreter(new CStoreCntrl(interpreters.reference.Interpreter))) 
+  private val floatingPointImperativeAction = mkActionMask("Floating Point Imparative", VK_I, VK_I,       shortcutMask | SHIFT_MASK, setInterpreter(new CStoreCntrl(new interpreters.imperative.sequential.Interpreter))) 
+  private val floatingPointParallelAction   = mkActionMask("Floating Point Parallel",   VK_P, VK_P,       shortcutMask | SHIFT_MASK, promptForNumberOfThreads)
+  private val pwlHybridSolverAction         = mkActionMask("Enclosure PWL",             VK_L, VK_L,       shortcutMask | SHIFT_MASK, setInterpreter(new EnclosureCntrl(interpreters.enclosure.Interpreter.asPWL))) 
+  private val eventTreeHybridSolverAction   = mkActionMask("Enclosure EVT",             VK_T, VK_T,       shortcutMask | SHIFT_MASK, setInterpreter(new EnclosureCntrl(interpreters.enclosure.Interpreter.asEVT)))
+  private val contractionAction             = mkActionMask("Contraction",               VK_C, VK_C,       shortcutMask | SHIFT_MASK, interpreters.enclosure.Interpreter.toggleContraction)
+  private val tutorialAction                = mkAction(    "Core Acumen Tutorial",      VK_T, VK_F1,      tutorial)
+  private val aboutAction                   = new Action(  "About")      { mnemonic =   VK_A; def apply = about }
   
   /* Shows a dialog asking the user how many threads to use in the parallel interpreter. */
   private def promptForNumberOfThreads = {
@@ -142,9 +145,15 @@ class App extends SimpleSwingApplication {
       Swing.EmptyIcon, Seq(), lastNumberOfThreads.toString)
     def go: Unit = try {
       def n: String = diag.getOrElse(n)
-      lastNumberOfThreads = Integer.parseInt(n)
-      setInterpreter(new CStoreCntrl(new interpreters.parallel.Interpreter(lastNumberOfThreads)))
-      console.log("Number of threads set to " + lastNumberOfThreads + ".")
+      val userNumberOfThreads = Integer.parseInt(n)
+      lastNumberOfThreads = if (userNumberOfThreads > cores) {
+        console.log("Number of threads set to " + cores + ", the number of cores available to Acumen.\n")
+        cores
+      } else {
+        console.log("Number of threads set to " + userNumberOfThreads + ".\n")
+        userNumberOfThreads
+      }
+      setInterpreter(new CStoreCntrl(interpreters.imperative.parallel.Interpreter(lastNumberOfThreads)))
     } catch {
       case _ =>
         console.logError("Bad number of threads.")
@@ -446,37 +455,42 @@ class App extends SimpleSwingApplication {
         enableWhenStopped(this)
         action = floatingPointAction
       }
+      val impr = new RadioMenuItem("") {
+        selected = false
+        enableWhenStopped(this)
+        action = floatingPointImperativeAction
+      }
       val par = new RadioMenuItem("") {
         selected = false
         enableWhenStopped(this)
         action = floatingPointParallelAction
       }
-	  val pwl = new RadioMenuItem("") {
-		action = pwlHybridSolverAction
-		enableWhenStopped(this)
-		selected = GraphicalMain.useEnclosures && 
-		  interpreters.enclosure.Interpreter.strategy.eventEncloser.getClass == classOf[PWLEventEncloser] 
-	  }
-	  val et = new RadioMenuItem("") {
-		action = eventTreeHybridSolverAction
-		enableWhenStopped(this) 
-		selected = GraphicalMain.useEnclosures &&
-		  interpreters.enclosure.Interpreter.strategy.eventEncloser.getClass == classOf[TreeEventEncloser]
-	  }
-	  val bg = new ButtonGroup(ref, newRef, par, pwl, et)
-	  val ls = new CheckMenuItem("") {
-		action = contractionAction
-		enabledWhenStopped += (this, () => interpreter.interpreter.getClass == interpreters.enclosure.Interpreter.getClass)
-		enabled = GraphicalMain.useEnclosures
-		selected = interpreters.enclosure.Interpreter.strategy.eventEncloser.ivpSolver.getClass == classOf[LohnerSolver]
-		/* Enable/disable Contraction menu item depending on the chosen semantics */
-		for (b <- bg.buttons) listenTo(b) 
-		reactions += {
-		  case  e: ButtonClicked =>
-		    enabled = interpreter.interpreter.getClass == interpreters.enclosure.Interpreter.getClass
-		}
-	  }
-      contents ++= Seq(ref, newRef, par, new Separator, pwl, et, ls)
+      val pwl = new RadioMenuItem("") {
+        action = pwlHybridSolverAction
+        enableWhenStopped(this)
+        selected = GraphicalMain.useEnclosures && 
+          interpreters.enclosure.Interpreter.strategy.eventEncloser.getClass == classOf[PWLEventEncloser] 
+      }
+      val et = new RadioMenuItem("") {
+        action = eventTreeHybridSolverAction
+        enableWhenStopped(this) 
+        selected = GraphicalMain.useEnclosures &&
+          interpreters.enclosure.Interpreter.strategy.eventEncloser.getClass == classOf[TreeEventEncloser]
+      }
+      val bg = new ButtonGroup(ref, newRef, impr, par, pwl, et)
+      val ls = new CheckMenuItem("") {
+        action = contractionAction
+        enabledWhenStopped += (this, () => interpreter.interpreter.getClass == interpreters.enclosure.Interpreter.getClass)
+        enabled = GraphicalMain.useEnclosures
+        selected = interpreters.enclosure.Interpreter.strategy.eventEncloser.ivpSolver.getClass == classOf[LohnerSolver]
+        /* Enable/disable Contraction menu item depending on the chosen semantics */
+        for (b <- bg.buttons) listenTo(b) 
+        reactions += {
+          case e: ButtonClicked =>
+            enabled = interpreter.interpreter.getClass == interpreters.enclosure.Interpreter.getClass
+        }
+      }
+      contents ++= Seq(ref, newRef, impr, par, new Separator, pwl, et, ls)
     }
    
     contents += new Menu("Help") {

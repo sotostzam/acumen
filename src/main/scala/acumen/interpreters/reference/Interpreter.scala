@@ -343,7 +343,7 @@ object Interpreter extends acumen.CStoreInterpreter {
   lazy val magicClass = Parser.run(Parser.classDef, magicClassTxt)
   lazy val initStore  = Parser.run(Parser.store, initStoreTxt)
  
-  def init(prog:Prog) : (Prog, Store) = {
+  def init(prog:Prog, opts: CStoreOpts) : (Prog, Store) = {
     val cprog = CleanParameters.run(prog, CStoreInterpreterType)
     val sprog = Simplifier.run(cprog)
     val mprog = Prog(magicClass :: sprog.defs)

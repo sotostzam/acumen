@@ -4,7 +4,6 @@ import java.io._
 
 import Errors._
 import util.Filters._
-import interpreters.parallel.Interpreter._
 import render.ToPython._
 import render.Java3D
 import Pretty._
@@ -35,14 +34,16 @@ object Main {
 
   def main(args: Array[String]): Unit = {
     val I = interpreters.reference.Interpreter
-    //val I = new interpreters.parallel.Interpreter(2)
+    //val I = new interpreters.imperative.parallel.Interpreter(2)
 
     try {
       /* See if user wants to choose a specific interpreter. */
-      val (i, firstNonSemanticsArg) = args(0) match {
+      val (i: Interpreter, firstNonSemanticsArg: Int) = args(0) match {
         case "--semantics" => args(1) match {
           case "reference" => (interpreters.reference.Interpreter, 2)
-          case "parallel" => (new interpreters.parallel.Interpreter(2), 2)
+          case "parallel-static" => (interpreters.imperative.parallel.Interpreter.static, 2)
+          case "parallel-sharing" => (interpreters.imperative.parallel.Interpreter.sharing, 2)
+          case "imperative" => (new interpreters.imperative.sequential.Interpreter, 2)
           case "enclosure" => (interpreters.enclosure.Interpreter, 2)
           case "enclosure-non-localizing" => (interpreters.enclosure.Interpreter.asNonLocalizing, 2)
           case _ => (interpreters.reference.Interpreter, 0)
@@ -95,16 +96,38 @@ object Main {
           val repeat : Int = if (args.size > offset + 3) Integer.parseInt(args(offset+3)) else 10
           val forced = nodiff_out
           for (nbThreads <- start to stop) {
+        	interpreters.imperative.parallel.Interpreter(nbThreads)
             print(nbThreads + " threads: ")
-            withInterpreter(nbThreads) { PI =>
-              as_ctrace(PI.run(forced)).last
-              for (_ <- 0 until warmup) { print("w"); as_ctrace(PI.run(forced)).last }
-              val startTime = System.currentTimeMillis()
-              for (_ <- 0 until repeat) { print("."); as_ctrace(PI.run(forced)).last }
-              val endTime = System.currentTimeMillis()
-              println(endTime - startTime)
-            }
+            as_ctrace(i.run(forced)).last
+            for (_ <- 0 until warmup) { print("w"); as_ctrace(i.run(forced)).last }
+            val startTime = System.currentTimeMillis()
+            for (_ <- 0 until repeat) { print("."); as_ctrace(i.run(forced)).last }
+            val endTime = System.currentTimeMillis()
+            println(endTime - startTime)
           }
+        // the first six lines are shared with the "bench" case and would ideally not be repeated
+        case "bench-gnuplot" =>
+          val offset = firstNonSemanticsArg + 1 + 1;
+          val start: Int = Integer.parseInt(args(offset + 0))
+          val stop: Int = Integer.parseInt(args(offset + 1))
+          val warmup : Int = if (args.size > offset + 2) Integer.parseInt(args(offset+2)) else 0
+          val repeat : Int = if (args.size > offset + 3) Integer.parseInt(args(offset+3)) else 10
+          val forced = nodiff_out
+          var data = Map[Int,Double]()
+          for (nbThreads <- start to stop) {
+            interpreters.imperative.parallel.Interpreter(nbThreads)
+            as_ctrace(i.run(forced)).last
+            for (_ <- 0 until warmup) { as_ctrace(i.run(forced)).last }
+            val startTime = System.currentTimeMillis()
+            for (_ <- 0 until repeat) { as_ctrace(i.run(forced)).last }
+            val endTime = System.currentTimeMillis()
+            val time = endTime - startTime
+            System.err.print(".")
+            data += nbThreads -> time 
+          }
+          // the result would ideally be written to a file, which would allow for 
+          // outputting progress information as is done in the "bench" case
+          println(Gnuplot.script(data))
         case "bench-enclosures" => 
           BenchEnclosures.run(i, nodiff_out, args, firstNonSemanticsArg + 2)
         case "trace" =>

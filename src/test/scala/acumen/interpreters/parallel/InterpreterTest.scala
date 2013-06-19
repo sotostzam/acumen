@@ -6,13 +6,15 @@ import Pretty._
 import org.scalatest.matchers.ShouldMatchers
 import org.scalatest.Suite
 
+import acumen.interpreters.imperative.parallel.Interpreter._
+
 import java.io.FileInputStream
 import java.io.InputStreamReader
 
-class ParallelInterpreterTest extends InterpreterTestBase {
+class ParallelInterpreterTest extends tests.InterpreterTestBase {
 
   test("StoreConversions1") {
-    import interpreters.parallel.Interpreter._
+    import interpreters.imperative.parallel.Interpreter._
     val txt = """
       #0 { className = Main, parent = none, 
 					 nextChild = 0, seed1 = 0, seed2 = 1 }
@@ -23,7 +25,7 @@ class ParallelInterpreterTest extends InterpreterTestBase {
   }
   
   test("StoreConversions2") {
-    import interpreters.parallel.Interpreter._
+    import interpreters.imperative.parallel.Interpreter._
     val txt = """
       #0   { className = Main, parent = none, 
 						 nextChild = 3, seed1 = 0, seed2 = 1 }
@@ -38,7 +40,7 @@ class ParallelInterpreterTest extends InterpreterTestBase {
   }
 
   test("StoreConversions3") {
-    import interpreters.parallel.Interpreter._
+import interpreters.imperative.parallel.Interpreter._
     val txt = """
 #0.1 {
   parent = #0.2,
@@ -112,13 +114,11 @@ class ParallelInterpreterTest extends InterpreterTestBase {
 
   def run(in: InputStreamReader) = {
     val RI = interpreters.reference.Interpreter
-    val PIO = interpreters.parallel.Interpreter
+    val PIO = interpreters.imperative.parallel.Interpreter
     val ast = Parser.run(Parser.prog, in)
     val des = Desugarer.run(ast)
     val trace1 = RI.run(des).ctrace
-    val res = PIO.withInterpreter(2) { PI => 
-      eqstreams(trace1, PI.run(des).ctrace) 
-    }
+    val res = eqstreams(trace1, PIO.instance.run(des).ctrace) 
     assert(res)
   }
 
