@@ -54,11 +54,8 @@ object Main {
       val in = new InputStreamReader(new FileInputStream(args(firstNonSemanticsArg)))
       lazy val ast = Parser.run(Parser.prog, in)
       lazy val desugared = Desugarer.run(ast)
-      lazy val dva_out = DVA.run(desugared)
-      lazy val bta_out = BTA.run(dva_out)
-      lazy val spec_out = Specializer.run(bta_out)
-      lazy val nodiff_out = AD.run(spec_out)
-      lazy val trace = i.run(nodiff_out)
+      lazy val final_out = desugared // final output after all passes
+      lazy val trace = i.run(final_out)
       lazy val ctrace = as_ctrace(trace)
       /* Perform user-selected action. */
       args(firstNonSemanticsArg + 1) match {
@@ -94,7 +91,7 @@ object Main {
           val stop: Int = Integer.parseInt(args(offset + 1))
           val warmup : Int = if (args.size > offset + 2) Integer.parseInt(args(offset+2)) else 0
           val repeat : Int = if (args.size > offset + 3) Integer.parseInt(args(offset+3)) else 10
-          val forced = nodiff_out
+          val forced = final_out
           for (nbThreads <- start to stop) {
         	interpreters.imperative.parallel.Interpreter(nbThreads)
             print(nbThreads + " threads: ")
@@ -112,7 +109,7 @@ object Main {
           val stop: Int = Integer.parseInt(args(offset + 1))
           val warmup : Int = if (args.size > offset + 2) Integer.parseInt(args(offset+2)) else 0
           val repeat : Int = if (args.size > offset + 3) Integer.parseInt(args(offset+3)) else 10
-          val forced = nodiff_out
+          val forced = final_out
           var data = Map[Int,Double]()
           for (nbThreads <- start to stop) {
             interpreters.imperative.parallel.Interpreter(nbThreads)
@@ -129,7 +126,7 @@ object Main {
           // outputting progress information as is done in the "bench" case
           println(Gnuplot.script(data))
         case "bench-enclosures" => 
-          BenchEnclosures.run(i, nodiff_out, args, firstNonSemanticsArg + 2)
+          BenchEnclosures.run(i, final_out, args, firstNonSemanticsArg + 2)
         case "trace" =>
           trace.print
         case what =>
