@@ -75,7 +75,6 @@ object Desugarer {
       case ExprVector(es) => ExprVector(es map des)
       case Sum(e, i, col, cond) =>
         Sum(desugar(p, fs, i :: env, e), i, des(col), desugar(p, fs, i :: env, cond))
-      case CpuSpin(v) => CpuSpin(v)
       case TypeOf(cn) =>
         if ((p.defs map (_.name)) contains cn) TypeOf(cn)
         else throw ClassNotDefined(cn)

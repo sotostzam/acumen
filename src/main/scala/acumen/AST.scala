@@ -103,8 +103,6 @@ package acumen {
   case class ExprVector(l: List[Expr]) extends Expr
   /* Example: sum i*i for i=1:10 if i % 2 == 0 */
   case class Sum(e: Expr, i: Name, col: Expr, cond: Expr) extends Expr
-  /* Example cpuspin 1000 */
-  case class CpuSpin(i: Int) extends Expr
   /* Example: type(Ball) */
   case class TypeOf(cn: ClassName) extends Expr
   /* Example: [a:b] deprecated, now a--b and m+/-r*/

@@ -270,18 +270,6 @@ abstract class Common {
             case _           => throw NotACollection(vc)
           }
           vs.foldLeft(VLit(GDouble(0)): Val)(helper)
-        case CpuSpin(n) =>
-          var acum = 0.0
-          var i = 0
-          while (i < 10000) {
-            var j = 0
-            while (j < n) {
-              j += 1
-              acum += 1.0;
-            }
-            i += 1
-          }
-          VLit(GDouble(acum))
         case TypeOf(cn) =>
           VClassName(cn)
       }
