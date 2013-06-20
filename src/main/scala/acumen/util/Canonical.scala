@@ -8,18 +8,18 @@ import Conversions._
 object Canonical {
 
   /* special variables */
-  val self      = name("self")
-  val parent    = name("parent")
-  val classf    = name("className")
-  val time      = name("time")
-  val timeStep  = name("timeStep")
-  val stepType  = name("stepType")
-  val endTime   = name("endTime") 
-  val nextChild = name("nextChild")
-  val seed1     = name("seed1")
-  val seed2     = name("seed2")
-  val cmain     = ClassName("Main")
-  val cmagic    = ClassName("Simulator")
+  val self         = name("self")
+  val parent       = name("parent")
+  val classf       = name("className")
+  val time         = name("time")
+  val timeStep     = name("timeStep")
+  val nextStepType = name("nextStepType")
+  val endTime      = name("endTime") 
+  val nextChild    = name("nextChild")
+  val seed1        = name("seed1")
+  val seed2        = name("seed2")
+  val cmain        = ClassName("Main")
+  val cmagic       = ClassName("Simulator")
 
   /* object getters */
   def parentOf(o:CObject) : Option[CId] = { val VObjId(id) = o(parent); id }
@@ -103,9 +103,9 @@ object Canonical {
   def getTime(st:CStore)     = extractDouble(getInSimulator(time, st))
   def getTimeStep(st:CStore) = extractDouble(getInSimulator(timeStep, st))
   def getEndTime(st:CStore)  = extractDouble(getInSimulator(endTime, st))
-  def getStepType(st:CStore) = { val VStepType(t) = getInSimulator(stepType, st); t }
+  def getNextStepType(st:CStore) = { val VStepType(t) = getInSimulator(nextStepType, st); t }
 
   def setTime(d:Double, s:CStore)       = setInSimulator(time, VLit(GDouble(d)), s)
-  def setStepType(t:StepType, s:CStore) = setInSimulator(stepType, VStepType(t), s)
+  def setNextStepType(t:StepType, s:CStore) = setInSimulator(nextStepType, VStepType(t), s)
 }
 

@@ -15,14 +15,14 @@
 //    if (getTime(magic) > getEndTime(magic)) None
 //    else Some {
 //      val chtset = t(st)
-//      getStepType(magic) match {
+//      getNextStepType(magic) match {
 //        case Discrete() =>
 //          chtset match {
 //            case SomeChange => // Continue fixpoint computation
-//            case NoChange => setStepType(magic, Continuous())
+//            case NoChange => setNextStepType(magic, Continuous())
 //          }
 //        case Continuous() =>
-//          setStepType(magic, Discrete())
+//          setNextStepType(magic, Discrete())
 //          setTime(magic, getTime(magic) + getTimeStep(magic))
 //      }
 //      st

@@ -22,7 +22,7 @@ import acumen.util.Canonical.{
   seed1,
   seed2,
   self,
-  stepType,
+  nextStepType,
   time,
   timeStep
 }
@@ -198,13 +198,13 @@ abstract class Common {
   def getTime(magic: Object) = extractDouble(getField(magic, time))
   def getTimeStep(magic: Object) = extractDouble(getField(magic, timeStep))
   def getEndTime(magic: Object) = extractDouble(getField(magic, endTime))
-  def getStepType(magic: Object) = { val VStepType(t) = getField(magic, stepType); t }
+  def getNextStepType(magic: Object) = { val VStepType(t) = getField(magic, nextStepType); t }
 
   /* write in magic */
   /* SIDE EFFECT */
   def setTime(magic: Object, d: Double) = setField(magic, time, VLit(GDouble(d)))
   /* SIDE EFFECT */
-  def setStepType(magic: Object, t: StepType) = setField(magic, stepType, VStepType(t))
+  def setNextStepType(magic: Object, t: StepType) = setField(magic, nextStepType, VStepType(t))
 
   /* SIDE EFFECT 
      NOT THREAD SAFE */
@@ -413,12 +413,12 @@ abstract class Common {
           case None    => throw NoMatch(gv)
         }
       case Discretely(da) =>
-        val ty = getStepType(magic)
+        val ty = getNextStepType(magic)
         if (ty == Discrete())
           evalDiscreteAction(da, env, p, magic)
         else noChange
       case Continuously(ca) =>
-        val ty = getStepType(magic)
+        val ty = getNextStepType(magic)
         if (ty == Continuous())
           evalContinuousAction(ca, env, p, magic)
         noChange
@@ -432,10 +432,10 @@ abstract class Common {
   }
 
   def magicClassTxt =
-    """class Simulator(time, timeStep, endTime, stepType, lastCreatedId) end"""
+    """class Simulator(time, timeStep, endTime, nextStepType, lastCreatedId) end"""
   def initStoreTxt =
     """#0.0 { className = Simulator, parent = none, time = 0.0, timeStep = 0.01, 
-              endTime = 10.0, stepType = @Discrete, nextChild = 0,
+              endTime = 10.0, nextStepType = @Discrete, nextChild = 0,
 						  seed1 = 0, seed2 = 0 }"""
 
   lazy val magicClass = Parser.run(Parser.classDef, magicClassTxt)

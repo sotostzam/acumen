@@ -240,11 +240,11 @@ object Interpreter extends acumen.CStoreInterpreter {
           }
         }
       case Discretely(da) =>
-        for (ty <- asks(getStepType))
+        for (ty <- asks(getNextStepType))
           if (ty == Continuous()) pass
           else evalDiscreteAction(da, env, p)
       case Continuously(ca) =>
-        for (ty <- asks(getStepType))
+        for (ty <- asks(getNextStepType))
           if (ty == Discrete()) pass
           else evalContinuousAction(ca, env, p) 
     }
@@ -334,10 +334,10 @@ object Interpreter extends acumen.CStoreInterpreter {
   /* Main simulation loop */  
 
   def magicClassTxt = 
-    """class Simulator(time, timeStep, endTime, stepType, lastCreatedId) end"""
+    """class Simulator(time, timeStep, endTime, nextStepType, lastCreatedId) end"""
   def initStoreTxt  = 
     """#0.0 { className = Simulator, parent = #0, time = 0.0, timeStep = 0.01, 
-              endTime = 10.0, stepType = @Discrete, nextChild = 0,
+              endTime = 10.0, nextStepType = @Discrete, nextChild = 0,
 						  seed1 = 0, seed2 = 0 }"""
   
   lazy val magicClass = Parser.run(Parser.classDef, magicClassTxt)
@@ -369,17 +369,17 @@ object Interpreter extends acumen.CStoreInterpreter {
     if (getTime(st) > getEndTime(st)) None
     else Some(
       { val (_,ids,rps,st1) = iterate(evalStep(p), mainId(st))(st)
-        getStepType(st) match {
+        getNextStepType(st) match {
           case Discrete() => 
             if (st == st1 && ids.isEmpty && rps.isEmpty) 
-              setStepType(Continuous(), st1)
+              setNextStepType(Continuous(), st1)
             else {
               def helper(pair:(CId, CId)) = changeParentM(pair._1, pair._2) 
               val st2 = mapM_(helper, rps.toList) ~> st1
               st2 -- ids
             }
           case Continuous() =>
-            val st2 = setStepType(Discrete(), st1)
+            val st2 = setNextStepType(Discrete(), st1)
             setTime(getTime(st1) + getTimeStep(st1), st2)
         }
       }
@@ -387,7 +387,7 @@ object Interpreter extends acumen.CStoreInterpreter {
 
 
   // a bit evil I know -- kevina
-  List("time", "timeStep", "endTime", "stepType", "lastCreatedId").foreach { parm => 
+  List("time", "timeStep", "endTime", "nextStepType", "lastCreatedId").foreach { parm => 
     acumen.CleanParameters.parms.registerParm(parm, acumen.CStoreInterpreterType)
   }
 
