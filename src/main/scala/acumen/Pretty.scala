@@ -220,13 +220,13 @@ object Pretty {
  
   // better not make it implicit : this is a type alias
   def prettyEnv(e:Map[Name, Value[_]]) : Document = {
-    val it = e map { case (x,v) => pretty(x) :: " = " :: pretty(v) }
-    breakWith(comma, it.toList)
+    val it = e.toList.sortWith { (a,b) => a._1 < b._1 } map { case (x,v) => pretty(x) :: " = " :: pretty(v) }
+    breakWith(comma, it)
   }
   
   // better not make it implicit : this is a type alias
   def prettyStore(s:CStore) : Document = {
-    val it = s map { case (i,o) => 
+    val it = s.toList.sortWith { (a,b) => a._1 < b._1 } map { case (i,o) => 
       "#" + i.toString :: " " :: prettyObject(o) 
     }
     breaks(it.toList)
