@@ -113,6 +113,7 @@ class App extends SimpleSwingApplication {
   private val saveAction                  = mkAction(    "Save",                    VK_S, VK_S,       codeArea.saveFile())
   private val saveAsAction                = mkActionMask("Save As",                 VK_A, VK_S,       shortcutMask | SHIFT_MASK, codeArea.saveFileAs())
   private val recoverAction               = mkAction(    "Recover",                 VK_R, VK_R,       codeArea.openFile(Files.autoSavedDir))
+  private val exportTableAction           = new Action(  "Export Table"){mnemonic = VK_E; def apply = exportTable}
   private val exitAction                  = mkAction(    "Exit",                    VK_E, VK_Q,       exit)
   private val cutAction                   = mkAction(    "Cut",                     VK_T, VK_X,       codeArea.textArea.cut)
   private val copyAction                  = mkAction(    "Copy",                    VK_C, VK_C,       codeArea.textArea.copyAsRtf)
@@ -367,7 +368,8 @@ class App extends SimpleSwingApplication {
       contents += new MenuItem(newAction)     { enableWhenStopped(this) }
       contents += new MenuItem(openAction)    { enableWhenStopped(this) }
       contents += new MenuItem(saveAction)
-      contents += new MenuItem(saveAsAction)
+      contents += new MenuItem(saveAsAction)  
+      contents += new MenuItem(exportTableAction) { enableWhenStopped(this) }
       contents += new MenuItem(recoverAction) { enableWhenStopped(this) }
       contents += new MenuItem(exitAction)
     }
