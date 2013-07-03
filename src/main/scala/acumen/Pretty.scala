@@ -199,6 +199,7 @@ object Pretty {
       case GDouble(x) => x.toString
       case GBool(b)   => b.toString
       case GStr(s)    => dquotes(s)
+      case _          => "??"
     }
   
   /* pretty printing of interpreter's internals */
