@@ -8,7 +8,9 @@ import scala.util.parsing.json._
 import com.sun.corba.se.impl.corba.CORBAObjectImpl
 import acumen.Errors.{FromJSONError, ShouldNeverHappen}
 
-object Pretty {
+class Pretty {
+
+  var filterStore = false
 
   // A "typeclass" for types that can be pretty-printed
   trait PrettyAble[A] {
@@ -221,7 +223,17 @@ object Pretty {
  
   // better not make it implicit : this is a type alias
   def prettyEnv(e:Map[Name, Value[_]]) : Document = {
-    val it = e.toList.sortWith { (a,b) => a._1 < b._1 } map { case (x,v) => pretty(x) :: " = " :: pretty(v) }
+    val sorted = e.toList.sortWith { (a,b) => a._1 < b._1 } 
+    val filtered = if (filterStore) {
+      val VClassName(ClassName(name)) = e.get(Name("className",0)).orNull
+      if (name == "Simulator")
+        sorted.filter { case (x,v) => x.x == "className" || x.x == "time"}
+      else
+        sorted.filter { case (x,_) => x.x == "className" || interpreters.Common.specialFields.indexOf(x.x) == -1 }
+    } else {
+      sorted
+    }
+    val it = filtered.map { case (x,v) => pretty(x) :: " = " :: pretty(v) }
     breakWith(comma, it)
   }
   
@@ -239,6 +251,8 @@ object Pretty {
       case Continuous() => "@Continuous"
     }
 }
+
+object Pretty extends Pretty
 
 object JSon {
 
@@ -478,3 +492,4 @@ object JSon {
     }
   }
 }
+
