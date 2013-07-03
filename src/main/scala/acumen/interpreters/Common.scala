@@ -6,6 +6,10 @@ import util.Conversions._
 import scala.math._
 import Errors._
 
+//
+// Common stuff to CStore Interpreters
+//
+
 object Common {
  
   /* get the definition associated with a classname in p */
@@ -186,5 +190,12 @@ object Common {
          throw UnknownOperator(op)    
     }
   }
+
+  // register valid simulator parameters
+  List("time", "timeStep", "endTime", "nextStepType", "lastCreatedId").foreach { parm => 
+    acumen.CleanParameters.parms.registerParm(parm, acumen.CStoreInterpreterType)
+  }
+
+  val specialFields = List("nextChild","parent","className","seed1","seed2")
  
 }

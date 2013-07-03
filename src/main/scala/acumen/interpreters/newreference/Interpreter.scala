@@ -396,11 +396,4 @@ object Interpreter extends acumen.CStoreInterpreter {
         }
       }
     )
-
-
-  // a bit evil I know -- kevina
-  List("time", "timeStep", "endTime", "nextStepType", "lastCreatedId").foreach { parm => 
-    acumen.CleanParameters.parms.registerParm(parm, acumen.CStoreInterpreterType)
-  }
-
 }
