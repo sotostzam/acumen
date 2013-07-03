@@ -87,8 +87,9 @@ class CStoreModel extends TraceModel with InterpreterModel with PlotModel {
  
   //def ids = stores map { case (id,_,_,_,_) => id }
   private def addVal(id:CId, x:Name, v:CValue) = {
-    v match {
-      case VVector(u) =>
+    (x.x, v) match {
+      case ("_3D"|"_3DView", _) => ()
+      case (_,VVector(u)) =>
         for ((ui,i) <- u zipWithIndex) {
           val idx = indexes((id,x,Some(i)))
           stores(idx)._5 += ui
@@ -182,9 +183,10 @@ class CStoreModel extends TraceModel with InterpreterModel with PlotModel {
       throw new java.lang.IllegalStateException
     val res = new ArrayBuffer[PlotDoubles]
 
-    for (((id,fn,_,s,a),idx) <- stores zipWithIndex)
-      a(0) match {
-        case VLit(GDouble(_) | GInt(_)) | VLit(GInt(_)) =>
+    for (((id,fn,_,s,a),idx) <- stores zipWithIndex) {
+      (a(0),fn.x) match {
+        case (_, "_3D"|"_3DView") => ()
+        case (VLit(GDouble(_) | GInt(_)) | VLit(GInt(_)), _) =>
           val vls = new IndexedSeq[Double] {
             override def apply(idx: Int) = extractDoubleNoThrow(a(idx))
             // store length in a local variable since by the time this
@@ -196,6 +198,7 @@ class CStoreModel extends TraceModel with InterpreterModel with PlotModel {
           res += new PlotDoubles(classes(id) == cmagic, fn, s, idx, vls)
         case _ => ()
       }
+    }
     res
   }
 
