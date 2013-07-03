@@ -108,3 +108,5 @@ javaOptions in run += "-Xmx1G"
 // disable parallel test Execution for now due to a possible race
 // condition that needs to be tracked down and causes a hang
 parallelExecution in Test := false
+
+logBuffered in Test := false
