@@ -15,6 +15,8 @@ import java.io.InputStreamReader
 
 class InterpreterTest extends InterpreterTestBase {
 
+  override def suiteName = "Parallel InterpreterTest"
+
   test("StoreConversions1") {
     import interpreters.imperative.parallel.Interpreter._
     val txt = """
