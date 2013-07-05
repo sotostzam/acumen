@@ -3,6 +3,7 @@
 
 import scala.math._
 import scala.collection.mutable.HashMap
+import scala.collection.mutable.{Map => MutMap}
 
 package acumen {
 
@@ -41,7 +42,7 @@ package acumen {
   case class Prog(defs: List[ClassDef])
   /* Example:  Ball (x,x,x'' ) { ... } */
   case class ClassDef(name: ClassName, fields: List[Name],
-    priv: List[Init], body: List[Action])
+    priv: List[Init], body: List[Action]) {var _types : MutMap[Name, TypeLike] = null;}
 
   /* Example: x = rhs (inside a private ... end section) */
   case class Init(x: Name, rhs: InitRhs)
@@ -89,8 +90,16 @@ package acumen {
   case class Elim(e: Expr) extends DiscreteAction
   /* Example: move x o */
   case class Move(obj: Expr, newParent: Expr) extends DiscreteAction
+  
+  abstract class TypeEnv {
+    def update(name: Name, typ: TypeLike) : Unit
+    def get(name: Name) : Option[TypeLike]
+  }
 
-  sealed abstract class Expr
+  sealed abstract class Expr {
+    var _lvalue : Option[(TypeEnv, Name)] = None
+    var _type : TypeLike = null
+  }
   /* Example: 42 (or "a", or 4.2 ...) */
   case class Lit(gv: GroundValue) extends Expr
   /* Example: x'' */
@@ -197,11 +206,109 @@ package acumen {
     def unapplySeq(subject: CId): Option[Seq[Int]] = Some(subject.id)
   }
 
+  /* Type system */
+  abstract class TypeLike {
+    // numericLike and finalized are here becuase pattern matching on
+    // abstract base classes and traits is buggy in Scala
+    def numericLike = false
+    final def isVector = vectorSize != 1
+    def vectorSize = -1
+    def finalized : Boolean
+    def classLike = false
+    def classSubType : ClassSubType = null
+  }
+
+  sealed abstract class Type extends TypeLike {
+    override def finalized = true
+  }
+
+  case object DynamicType extends Type     // conflicting types (bottom)
+  
+  trait NumericLike extends TypeLike {
+    override def numericLike = true
+  }
+
+  sealed abstract class SomeNumericType extends Type with NumericLike
+  case object IntType extends SomeNumericType
+  case object NumericType extends SomeNumericType
+  // normally Double but can also be an interval or enclosure
+
+  case object BoolType extends Type
+  case object StrType extends Type
+
+  sealed abstract class SeqSubType {
+    def map(f: TypeLike => TypeLike) = this match {
+      case DynamicSize(typ)   => DynamicSize(f(typ))
+      case FixedSize(typs)    => FixedSize(typs.map(f))
+    }
+    def size = this match {
+      case DynamicSize(typ)   => None
+      case FixedSize(typs)    => typs.size
+    }
+    def foreach(f: TypeLike => TypeLike) : Unit = map(f)
+    def zip(that: SeqSubType, f: (TypeLike, TypeLike) => TypeLike) = (this, that) match {
+      case (DynamicSize(x), DynamicSize(y)) => DynamicSize(f(x,y))
+      case (FixedSize(x), FixedSize(y))     => FixedSize(x.zip(y).map{case (a,b) => f(a,b)})
+      case _                                => null
+    }
+    def isNumeric = this match {
+      case DynamicSize(_:NumericLike) => true
+      case FixedSize(typs) => typs.forall{t => t match {case _:NumericLike => true; case _ => false}}
+      case _ => false
+    }
+    def uniformType = this match {
+      case DynamicSize(t) => Some(t)
+      case FixedSize(h::t) => if (t.forall(_ == h)) Some(h) else None
+      case _ => None
+    }
+    override def toString = this match {
+      case DynamicSize(t) => t.toString
+      case FixedSize(typs) => uniformType match {
+        case Some(null) => "<error>"
+        case Some(typ)  => typ.toString + " x " + typs.size
+        case None       => typs.toString
+      }
+    }
+  }
+  case class DynamicSize(typ: TypeLike) extends SeqSubType
+  case class FixedSize(typs: List[TypeLike]) extends SeqSubType
+
+  case class SeqType(subType: SeqSubType) extends Type // FIXME: Lie
+  // SeqType represents both vectors and lists, sz is None is the size
+  // is not known at compile time
+  {
+    override def vectorSize = 
+      subType match {
+        case FixedSize(l) if subType.isNumeric => l.size
+        case _                                 => -1
+      }
+  }
+
+  // case object ObjIdType extends Type -- not used
+  case object StepTypeType extends Type
+  //case object ClassNameType extends Type -- overkill for now
+
+  sealed abstract class ClassSubType 
+  case object BaseClass extends ClassSubType
+  case object DynamicClass extends ClassSubType
+  case class NamedClass(cn: ClassName) extends ClassSubType
+
+  case class ClassType(subType: ClassSubType) extends Type {
+    override def classLike = true
+    override def classSubType = subType
+    override def toString = subType match {
+      case BaseClass => "BaseClass"
+      case DynamicClass => "DynamicClass"
+      case NamedClass(cn) => cn.x
+    }
+  }
+
 }
 
 // type aliases have to be declared in a package *object* in scala
 package object acumen {
-  /* canonical (reference) representation of store/values 
+
+ /* canonical (reference) representation of store/values 
      'C' is for canonical */
 
   type CValue = Value[CId]

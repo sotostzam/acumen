@@ -46,7 +46,7 @@ object Main {
           case "imperative" => (new interpreters.imperative.sequential.Interpreter, 2)
           case "enclosure" => (interpreters.enclosure.Interpreter, 2)
           case "enclosure-non-localizing" => (interpreters.enclosure.Interpreter.asNonLocalizing, 2)
-          case _ => (interpreters.reference.Interpreter, 0)
+          case _ => (interpreters.reference.Interpreter, 2) // FIXME: Throw error! -kevina
         }
         case _ => (interpreters.reference.Interpreter, 0)
       }
@@ -59,11 +59,20 @@ object Main {
       lazy val ctrace = as_ctrace(trace)
       /* Perform user-selected action. */
       args(firstNonSemanticsArg + 1) match {
+        case "compile" => 
+          val typeChecker = new TypeCheck(desugared)
+          val res = typeChecker.run()
+          interpreters.compiler.Interpreter.compile(desugared, typeChecker)
         case "pretty" => println(pprint(ast))
         case "desugar" => println(pprint(desugared))
         case "extract" =>
           val extr = new Extract(desugared)
           println(pprint(extr.res))
+        case "typecheck" => 
+          val res = new TypeCheck(desugared).run()
+          println("\nTYPE CHECK RESULT: " + TypeCheck.errorLevelStr(res) + "\n")
+          Pretty.withType = true
+          println(pprint(desugared))
         case "3d" => toPython3D(toSummary3D(ctrace))
         case "2d" => toPython2D(toSummary2D(ctrace))
         case "java2d" => new MainFrame(new Java3D(addThirdDimension(ctrace)), 256, 256);
@@ -85,6 +94,12 @@ object Main {
           ctrace.size // Force evaluation of the lazy value
         case "last" =>
           trace.printLast
+        case "time" => 
+          val forced = final_out
+          val startTime = System.currentTimeMillis()
+          trace.printLast
+          val endTime = System.currentTimeMillis()
+          println("Time to run: " + (endTime - startTime)/1000.0)
         case "bench" =>
           val offset = firstNonSemanticsArg + 1 + 1;
           val start: Int = Integer.parseInt(args(offset + 0))

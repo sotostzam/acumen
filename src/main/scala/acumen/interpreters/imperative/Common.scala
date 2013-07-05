@@ -464,3 +464,6 @@ abstract class Common {
   }
   
 }
+
+object Common extends Common {}
+
