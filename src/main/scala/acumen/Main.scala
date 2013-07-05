@@ -51,7 +51,7 @@ object Main {
         case _ => (interpreters.reference.Interpreter, 0)
       }
       /* Read the Acumen source, parse, pre-process and interpret it. */
-      val in = new InputStreamReader(new FileInputStream(args(firstNonSemanticsArg)))
+      lazy val in = new InputStreamReader(new FileInputStream(args(firstNonSemanticsArg)))
       lazy val ast = Parser.run(Parser.prog, in)
       lazy val desugared = Desugarer.run(ast)
       lazy val final_out = desugared // final output after all passes
@@ -129,6 +129,22 @@ object Main {
           BenchEnclosures.run(i, final_out, args, firstNonSemanticsArg + 2)
         case "trace" =>
           trace.print
+        case "examples" =>
+          var somethingUpdated = false
+          Examples.cstoreExamplesAction{(dn, f) =>
+            val loc = Examples.expectLoc
+            val resFile = Examples.resultFile(loc, dn, f)
+            if (resFile.exists) {
+              println("skipping " + f + "")
+            } else {
+              somethingUpdated = true
+              Examples.writeExampleResult(loc, dn, f, interpreters.reference.Interpreter.run(_))
+              println("PROCESSED " + f)
+            }
+          }
+          if (somethingUpdated) {
+            println("Results updated.  Be sure to git add & commit the updated files as appropriate.")
+          }
         case what =>
           println(what)
           throw BadProgramOptions(

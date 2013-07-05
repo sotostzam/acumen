@@ -19,13 +19,15 @@ class InterpreterTest extends InterpreterTestBase with ShouldMatchers {
 
   override def suiteName = "Reference InterpreterTest"
 
+  def runInterpreter(p: Prog) = interpreters.reference.Interpreter.run(p)
+
   def run(in: InputStreamReader) : Unit = {
     val ast = Parser.run(Parser.prog, in)
     val tr = Transform.transform(ast)
     for (_ <- (interpreters.reference.Interpreter run tr).ctrace) ()
   }
 
-  testExamples
+  testExamples()
   testShouldRun
   
   def getError(file:String) : Option[AcumenError] = {

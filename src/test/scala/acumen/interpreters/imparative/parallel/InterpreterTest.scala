@@ -17,6 +17,8 @@ class InterpreterTest extends InterpreterTestBase {
 
   override def suiteName = "Parallel InterpreterTest"
 
+  def runInterpreter(p: Prog) = interpreters.imperative.parallel.Interpreter.instance.run(p)
+
   test("StoreConversions1") {
     import interpreters.imperative.parallel.Interpreter._
     val txt = """
@@ -128,6 +130,7 @@ import interpreters.imperative.parallel.Interpreter._
     //assert(res)
   }
 
-  testExamples
+  testExamples(List("examples/A_Ping_Pong/FinalTournamentWithPlayers.acm",
+                    "examples/A_Ping_Pong/pp-project-halmstad-2012-3.acm"))
   testShouldRun
 }
