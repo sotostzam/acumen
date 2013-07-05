@@ -22,7 +22,7 @@ object Filters {
   def onlyAfterContinuous(h:Stream[CStore]) = {
     def helper(flag:Boolean, h:Stream[CStore]) : Stream[CStore] = {
       if (h.isEmpty) Stream.empty
-      else if (getNextStepType(h.head) == Continuous()) helper(true, h.tail)
+      else if (getResultType(h.head) == FixedPoint) helper(true, h.tail)
       else { if (flag) h.head #:: helper(false, h.tail) else helper(false, h.tail) } 
     }
     helper(false, h)

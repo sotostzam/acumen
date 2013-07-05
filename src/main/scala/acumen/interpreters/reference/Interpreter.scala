@@ -240,12 +240,12 @@ object Interpreter extends acumen.CStoreInterpreter {
           }
         }
       case Discretely(da) =>
-        for (ty <- asks(getNextStepType))
-          if (ty == Continuous()) pass
+        for (ty <- asks(getResultType))
+          if (ty == FixedPoint) pass
           else evalDiscreteAction(da, env, p)
       case Continuously(ca) =>
-        for (ty <- asks(getNextStepType))
-          if (ty == Discrete()) pass
+        for (ty <- asks(getResultType))
+          if (ty != FixedPoint) pass
           else evalContinuousAction(ca, env, p) 
     }
   }
@@ -334,10 +334,10 @@ object Interpreter extends acumen.CStoreInterpreter {
   /* Main simulation loop */  
 
   def magicClassTxt = 
-    """class Simulator(time, timeStep, endTime, nextStepType, lastCreatedId) end"""
+    """class Simulator(time, timeStep, endTime, resultType, lastCreatedId) end"""
   def initStoreTxt  = 
     """#0.0 { className = Simulator, parent = #0, time = 0.0, timeStep = 0.01, 
-              endTime = 10.0, nextStepType = @Discrete, nextChild = 0,
+              endTime = 10.0, resultType = @Discrete, nextChild = 0,
 						  seed1 = 0, seed2 = 0 }"""
   
   lazy val magicClass = Parser.run(Parser.classDef, magicClassTxt)
@@ -369,17 +369,18 @@ object Interpreter extends acumen.CStoreInterpreter {
     if (getTime(st) > getEndTime(st)) None
     else Some(
       { val (_,ids,rps,st1) = iterate(evalStep(p), mainId(st))(st)
-        getNextStepType(st) match {
-          case Discrete() => 
+        getResultType(st) match {
+          case Discrete | Continuous => 
             if (st == st1 && ids.isEmpty && rps.isEmpty) 
-              setNextStepType(Continuous(), st1)
+              setResultType(FixedPoint, st1)
             else {
               def helper(pair:(CId, CId)) = changeParentM(pair._1, pair._2) 
               val st2 = mapM_(helper, rps.toList) ~> st1
-              st2 -- ids
+              val st3 = st2 -- ids
+              setResultType(Discrete, st3)
             }
-          case Continuous() =>
-            val st2 = setNextStepType(Discrete(), st1)
+          case FixedPoint =>
+            val st2 = setResultType(Continuous, st1)
             setTime(getTime(st1) + getTimeStep(st1), st2)
         }
       }

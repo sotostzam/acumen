@@ -338,7 +338,7 @@ object Parser extends MyStdTokenParsers {
 
   def vObjId = ("none" ^^^ None | objid ^^ (id => Some(id))) ^^ VObjId[CId]
   def vClassName = className ^^ VClassName[CId]
-  def vStepType = "@" ~! ("Continuous" ^^^ Continuous() | "Discrete" ^^^ Discrete()) ^^
-    { case _ ~ st => VStepType[CId](st) }
+  def vStepType = "@" ~! ("Continuous" ^^^ Continuous | "FixedPoint" ^^^ FixedPoint | "Discrete" ^^^ Discrete) ^^
+    { case _ ~ st => VResultType[CId](st) }
 
 }

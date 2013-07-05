@@ -214,7 +214,7 @@ class Pretty {
       case VObjId(Some(a)) => "#" :: a.toString
       case VObjId(None)    => "#none"
       case VClassName(n)   => pretty(n)
-      case VStepType(t)    => pretty(t)
+      case VResultType(t)  => pretty(t)
     }
   
 
@@ -245,10 +245,11 @@ class Pretty {
     breaks(it.toList)
   }
   
-  implicit def prettyStepType : PrettyAble[StepType] =
+  implicit def prettyStepType : PrettyAble[ResultType] =
     PrettyAble {
-      case Discrete()   => "@Discrete"
-      case Continuous() => "@Continuous"
+      case Discrete   => "@Discrete"
+      case FixedPoint => "@FixedPoint"
+      case Continuous => "@Continuous"
     }
 }
 
@@ -321,10 +322,11 @@ object JSon {
 
   /* translation to JSON */
 
-  def toJSON(t:StepType) = 
+  def toJSON(t:ResultType) = 
     quotes(t match {
-      case Discrete()   => "Discrete"
-      case Continuous() => "Continuous" 
+      case Discrete   => "Discrete"
+      case FixedPoint => "FixedPoint"
+      case Continuous => "Continuous" 
     })
 
   def toJSON(v:Value[_]) : Document = v match {
@@ -333,7 +335,7 @@ object JSon {
     case VVector(l)    => showVal("vector", showList(l map toJSON))
     case VObjId(id)    => showVal("objId", showOption(id))
     case VClassName(n) => showVal("className", quotes(n.x))
-    case VStepType(t)  => showVal("stepType", toJSON(t))
+    case VResultType(t)=> showVal("resultType", toJSON(t))
   }
 
   def toJSON(gv:GroundValue) = gv match {
@@ -398,7 +400,7 @@ object JSon {
       case "vector" => getVector(m("value"))
       case "objId"  => getObjId(m("value"))
       case "className" => getClassName(m("value"))
-      case "stepType" => getStepType(m("value"))
+      case "resultType" => getResultType(m("value"))
 
       case _ => throw ShouldNeverHappen()
     }
@@ -454,10 +456,11 @@ object JSon {
     }
   }
 
-  def getStepType(v: Any) = {
+  def getResultType(v: Any) = {
     v match {
-      case "Discrete" => VStepType(Discrete())
-      case "Continuous" => VStepType(Continuous())
+      case "Discrete"   => VResultType(Discrete)
+      case "FixedPoint" => VResultType(FixedPoint)
+      case "Continuous" => VResultType(Continuous)
       case _ => throw ShouldNeverHappen()
     }
   }

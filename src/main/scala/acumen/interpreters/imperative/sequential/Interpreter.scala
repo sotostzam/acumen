@@ -29,8 +29,8 @@ class Interpreter extends acumen.CStoreInterpreter {
         if (getTime(magic) > getEndTime(magic))
           return
         val chtset = iterateSimple(evalStep(p, magic), st)
-        getNextStepType(magic) match {
-          case Discrete() =>
+        getResultType(magic) match {
+          case Discrete | Continuous =>
             chtset match {
               case SomeChange(dead, rps) =>
                 for ((o, p) <- rps)
@@ -43,13 +43,14 @@ class Interpreter extends acumen.CStoreInterpreter {
                       op.children = op.children diff Seq(o)
                   }
                 }
+                setResultType(magic, Discrete)
                 if (!I.cstoreOpts.outputSomeDiscrete) return step0()
               case NoChange() =>
-                setNextStepType(magic, Continuous())
+                setResultType(magic, FixedPoint)
                 if (!I.cstoreOpts.outputAllRows) return step0()
             }
-          case Continuous() =>
-            setNextStepType(magic, Discrete())
+          case FixedPoint =>
+            setResultType(magic, Continuous)
             setTime(magic, getTime(magic) + getTimeStep(magic))
             if (I.cstoreOpts.outputLastOnly) return step0()
         }

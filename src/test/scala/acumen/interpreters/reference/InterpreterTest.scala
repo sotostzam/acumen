@@ -124,7 +124,7 @@ class InterpreterTest extends InterpreterTestBase with ShouldMatchers {
              time = 0.0, 
              timeStep = 0.001, 
              endTime = 2.0, 
-             nextStepType = @Discrete,
+             resultType = @Discrete,
              nextChild = 0 }
 
       #0.2 { className = Ball,
@@ -166,7 +166,7 @@ class InterpreterTest extends InterpreterTestBase with ShouldMatchers {
              time = 0.0, 
              timeStep = 0.001, 
              endTime = 2.0, 
-             nextStepType = @Discrete,
+             resultType = @Discrete,
              nextChild = 0 }
 
       #0.3 { className = Ball,

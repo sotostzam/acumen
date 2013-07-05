@@ -192,7 +192,7 @@ object Common {
   }
 
   // register valid simulator parameters
-  List("time", "timeStep", "endTime", "nextStepType", "lastCreatedId").foreach { parm => 
+  List("time", "timeStep", "endTime", "resultType", "lastCreatedId").foreach { parm => 
     acumen.CleanParameters.parms.registerParm(parm, acumen.CStoreInterpreterType)
   }
 

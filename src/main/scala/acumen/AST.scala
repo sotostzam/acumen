@@ -125,11 +125,14 @@ package acumen {
 
   /* ==== values ==== */
 
-  sealed abstract class StepType
+  sealed abstract class ResultType
+
   /* (only) example: @Discrete */
-  case class Discrete() extends StepType
+  case object Discrete extends ResultType
+  /* (only) example @FixedPoint */
+  case object FixedPoint extends ResultType
   /* (only) example: @Continuous */
-  case class Continuous() extends StepType
+  case object Continuous extends ResultType
 
   /* A value is parameterized over the representation of object ids.
      For the reference interpreter, object ids are instances of CId (cf. below).
@@ -153,7 +156,7 @@ package acumen {
   case class VClassName[Id](cn: ClassName) extends Value[Id]
 
   /* Example: @Continuous */
-  case class VStepType[Id](s: StepType) extends Value[Id]
+  case class VResultType[Id](s: ResultType) extends Value[Id]
 
   /* ==== Canonical (reference) representation of object ids. ==== */
 

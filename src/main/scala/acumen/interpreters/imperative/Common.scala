@@ -22,7 +22,7 @@ import acumen.util.Canonical.{
   seed1,
   seed2,
   self,
-  nextStepType,
+  resultType,
   time,
   timeStep
 }
@@ -67,7 +67,7 @@ abstract class Common {
         case VVector(vs)     => VVector(vs map (convertValue(_)))
         case VLit(l)         => VLit(l)
         case VClassName(cn)  => VClassName(cn)
-        case VStepType(st)   => VStepType(st)
+        case VResultType(st) => VResultType(st)
       }
     def convertObject(o: Object): CObject = {
       val p = VObjId(o.parent match {
@@ -120,7 +120,7 @@ abstract class Common {
         case VObjId(Some(a)) => VObjId(Some(addresses(a)))
         case VObjId(None)    => VObjId(None)
         case VClassName(cn)  => VClassName(cn)
-        case VStepType(s)    => VStepType(s)
+        case VResultType(s)  => VResultType(s)
       }
     def convertId(id: CId): Unit = {
       if (!treated(id)) {
@@ -198,13 +198,13 @@ abstract class Common {
   def getTime(magic: Object) = extractDouble(getField(magic, time))
   def getTimeStep(magic: Object) = extractDouble(getField(magic, timeStep))
   def getEndTime(magic: Object) = extractDouble(getField(magic, endTime))
-  def getNextStepType(magic: Object) = { val VStepType(t) = getField(magic, nextStepType); t }
+  def getResultType(magic: Object) = { val VResultType(t) = getField(magic, resultType); t }
 
   /* write in magic */
   /* SIDE EFFECT */
   def setTime(magic: Object, d: Double) = setField(magic, time, VLit(GDouble(d)))
   /* SIDE EFFECT */
-  def setNextStepType(magic: Object, t: StepType) = setField(magic, nextStepType, VStepType(t))
+  def setResultType(magic: Object, t: ResultType) = setField(magic, resultType, VResultType(t))
 
   /* SIDE EFFECT 
      NOT THREAD SAFE */
@@ -413,13 +413,13 @@ abstract class Common {
           case None    => throw NoMatch(gv)
         }
       case Discretely(da) =>
-        val ty = getNextStepType(magic)
-        if (ty == Discrete())
+        val ty = getResultType(magic)
+        if (ty != FixedPoint)
           evalDiscreteAction(da, env, p, magic)
         else noChange
       case Continuously(ca) =>
-        val ty = getNextStepType(magic)
-        if (ty == Continuous())
+        val ty = getResultType(magic)
+        if (ty == FixedPoint)
           evalContinuousAction(ca, env, p, magic)
         noChange
     }
@@ -432,10 +432,10 @@ abstract class Common {
   }
 
   def magicClassTxt =
-    """class Simulator(time, timeStep, endTime, nextStepType, lastCreatedId) end"""
+    """class Simulator(time, timeStep, endTime, resultType, lastCreatedId) end"""
   def initStoreTxt =
     """#0.0 { className = Simulator, parent = none, time = 0.0, timeStep = 0.01, 
-              endTime = 10.0, nextStepType = @Discrete, nextChild = 0,
+              endTime = 10.0, resultType = @Discrete, nextChild = 0,
 						  seed1 = 0, seed2 = 0 }"""
 
   lazy val magicClass = Parser.run(Parser.classDef, magicClassTxt)

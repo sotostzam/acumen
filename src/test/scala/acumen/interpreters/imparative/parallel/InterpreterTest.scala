@@ -52,7 +52,7 @@ import interpreters.imperative.parallel.Interpreter._
   parent = #0.2,
   time = 7.596000000000177,
   className = Simulator,
-  nextStepType = @Discrete,
+  resultType = @Discrete,
   endTime = 10.0,
   timeStep = 0.0030,
   nextChild = 0,

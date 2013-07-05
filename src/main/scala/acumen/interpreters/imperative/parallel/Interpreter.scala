@@ -57,8 +57,8 @@ class Interpreter(private var scheduler: Scheduler) extends acumen.CStoreInterpr
         val chtset =
           if (scheduler.nbThreads > 1) scheduler.traverseMain(evalStep(p, magic), st)
           else traverseSimple(evalStep(p, magic), st)
-        getNextStepType(magic) match {
-          case Discrete() =>
+        getResultType(magic) match {
+          case Discrete | Continuous =>
             chtset match {
               case SomeChange(dead, rps) =>
                 for ((o, p) <- rps)
@@ -71,13 +71,14 @@ class Interpreter(private var scheduler: Scheduler) extends acumen.CStoreInterpr
                       op.children = op.children diff Seq(o)
                   }
                 }
+                setResultType(magic, Discrete)
                 if (!I.cstoreOpts.outputSomeDiscrete) return step0()
               case NoChange() =>
-                setNextStepType(magic, Continuous())
+                setResultType(magic, FixedPoint)
                 if (!I.cstoreOpts.outputAllRows) return step0()
             }
-          case Continuous() =>
-            setNextStepType(magic, Discrete())
+          case FixedPoint =>
+            setResultType(magic, Continuous)
             setTime(magic, getTime(magic) + getTimeStep(magic))
             if (I.cstoreOpts.outputLastOnly) return step0()
         }

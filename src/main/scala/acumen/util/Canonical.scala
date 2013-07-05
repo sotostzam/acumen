@@ -13,7 +13,7 @@ object Canonical {
   val classf       = name("className")
   val time         = name("time")
   val timeStep     = name("timeStep")
-  val nextStepType = name("nextStepType")
+  val resultType   = name("resultType")
   val endTime      = name("endTime") 
   val nextChild    = name("nextChild")
   val seed1        = name("seed1")
@@ -103,9 +103,9 @@ object Canonical {
   def getTime(st:CStore)     = extractDouble(getInSimulator(time, st))
   def getTimeStep(st:CStore) = extractDouble(getInSimulator(timeStep, st))
   def getEndTime(st:CStore)  = extractDouble(getInSimulator(endTime, st))
-  def getNextStepType(st:CStore) = { val VStepType(t) = getInSimulator(nextStepType, st); t }
+  def getResultType(st:CStore)  =  { val VResultType(t) = getInSimulator(resultType, st); t }
 
   def setTime(d:Double, s:CStore)       = setInSimulator(time, VLit(GDouble(d)), s)
-  def setNextStepType(t:StepType, s:CStore) = setInSimulator(nextStepType, VStepType(t), s)
+  def setResultType(t:ResultType, s:CStore) = setInSimulator(resultType, VResultType(t), s)
 }
 
