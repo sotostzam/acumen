@@ -37,7 +37,7 @@ object CStoreOpts {
 
 class CStoreOpts {
   import CStoreOpts._
-  var outputRows = OutputRows.DiscreteWhenChanged
+  var outputRows = OutputRows.AllRows
   var outputInternalState = true // controls "parent", "nextChild", "seed1", "seed2"
   var outputSimulatorState = true // does not control Simulator.time and Simulator.stepType
   var outputNonPlottables = true // 
