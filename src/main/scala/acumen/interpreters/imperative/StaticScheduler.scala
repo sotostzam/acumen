@@ -1,7 +1,7 @@
-package acumen.interpreters.imperative.parallel
+package acumen.interpreters.imperative
 
 import acumen.util.Canonical.{ classf, cmagic  }
-import Interpreter.{ Changeset, combine, getField, noChange, ObjId, traverseSimple }
+import Common.{ Changeset, combine, getField, noChange, ObjId, traverseSimple }
 
 class StaticScheduler(val threadPool: StaticThreadPool[Changeset]) extends Scheduler {
   

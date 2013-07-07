@@ -1,26 +1,23 @@
 package acumen
 package interpreters
 package imperative
-package parallel
 
 import Pretty._
 
 import org.scalatest.matchers.ShouldMatchers
 import org.scalatest.Suite
 
-import Interpreter._
+import Common._
 
 import java.io.FileInputStream
 import java.io.InputStreamReader
 
-class InterpreterTest extends InterpreterTestBase {
+class ParallelInterpreterTest extends InterpreterTestBase {
 
-  override def suiteName = "Parallel InterpreterTest"
-
-  def runInterpreter(p: Prog) = interpreters.imperative.parallel.Interpreter.instance.run(p)
+  def runInterpreter(p: Prog) = interpreters.imperative.ParallelInterpreter.instance.run(p)
 
   test("StoreConversions1") {
-    import interpreters.imperative.parallel.Interpreter._
+    import ParallelInterpreter._
     val txt = """
       #0 { className = Main, parent = none, 
 					 nextChild = 0, seed1 = 0, seed2 = 1 }
@@ -31,7 +28,7 @@ class InterpreterTest extends InterpreterTestBase {
   }
   
   test("StoreConversions2") {
-    import interpreters.imperative.parallel.Interpreter._
+    import ParallelInterpreter._
     val txt = """
       #0   { className = Main, parent = none, 
 						 nextChild = 3, seed1 = 0, seed2 = 1 }
@@ -46,7 +43,7 @@ class InterpreterTest extends InterpreterTestBase {
   }
 
   test("StoreConversions3") {
-import interpreters.imperative.parallel.Interpreter._
+    import ParallelInterpreter._
     val txt = """
 #0.1 {
   parent = #0.2,
@@ -120,7 +117,7 @@ import interpreters.imperative.parallel.Interpreter._
 
   def run(in: InputStreamReader) = {
     //val RI = interpreters.reference.Interpreter
-    val PIO = interpreters.imperative.parallel.Interpreter
+    val PIO = ParallelInterpreter
     val ast = Parser.run(Parser.prog, in)
     val des = Desugarer.run(ast)
     for (_ <- (PIO.instance.run(des).ctrace)) ()

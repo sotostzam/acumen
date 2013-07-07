@@ -13,7 +13,7 @@ object ConsistencyTest extends Properties("parallel.ConsistencyTest") {
 
   property("reference-parallel-consistency") = consistencyTest(interpreters.reference.Interpreter)
   
-  property("parallel-parallel-consistency (determinism)") = consistencyTest(interpreters.imperative.parallel.Interpreter(2))
+  property("parallel-parallel-consistency (determinism)") = consistencyTest(interpreters.imperative.ParallelInterpreter(2))
   
   def consistencyTest(base: CStoreInterpreter) = {
     def notEqual(left: CStore, right: CStore): Boolean = {
@@ -37,7 +37,7 @@ object ConsistencyTest extends Properties("parallel.ConsistencyTest") {
     // src/test/resources/acumen/interpreters/parallel/models/
     // and the last CStore of the resulting Histories 
     // are compared for structural equality.
-    val par = interpreters.imperative.parallel.Interpreter(2)
+    val par = interpreters.imperative.ParallelInterpreter(2)
     val models = readFiles("src/test/resources/acumen/interpreters/parallel/models/", FILE_SUFFIX_MODEL)
     if (models.isEmpty) {
       println("no models loaded!")

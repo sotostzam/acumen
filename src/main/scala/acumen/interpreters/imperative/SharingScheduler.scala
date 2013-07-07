@@ -1,9 +1,9 @@
-package acumen.interpreters.imperative.parallel
+package acumen.interpreters.imperative
 
-import Interpreter.ObjId;
+import Common.ObjId
 
 import acumen.util.Canonical.{ classf, cmagic }
-import Interpreter.{ Changeset, combine, getField, noChange, ObjId }
+import Common.{ Changeset, combine, getField, noChange, ObjId }
 
 class SharingScheduler(val threadPool: SharingThreadPool[Changeset]) extends Scheduler {
   

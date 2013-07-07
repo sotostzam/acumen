@@ -41,9 +41,9 @@ object Main {
       val (i: Interpreter, firstNonSemanticsArg: Int) = args(0) match {
         case "--semantics" => args(1) match {
           case "reference" => (interpreters.reference.Interpreter, 2)
-          case "parallel-static" => (interpreters.imperative.parallel.Interpreter.static, 2)
-          case "parallel-sharing" => (interpreters.imperative.parallel.Interpreter.sharing, 2)
-          case "imperative" => (new interpreters.imperative.sequential.Interpreter, 2)
+          case "parallel-static" => (interpreters.imperative.ParallelInterpreter.static, 2)
+          case "parallel-sharing" => (interpreters.imperative.ParallelInterpreter.sharing, 2)
+          case "imperative" => (new interpreters.imperative.ImperativeInterpreter, 2)
           case "enclosure" => (interpreters.enclosure.Interpreter, 2)
           case "enclosure-non-localizing" => (interpreters.enclosure.Interpreter.asNonLocalizing, 2)
           case _ => (interpreters.reference.Interpreter, 2) // FIXME: Throw error! -kevina
@@ -108,7 +108,7 @@ object Main {
           val repeat : Int = if (args.size > offset + 3) Integer.parseInt(args(offset+3)) else 10
           val forced = final_out
           for (nbThreads <- start to stop) {
-        	interpreters.imperative.parallel.Interpreter(nbThreads)
+        	interpreters.imperative.ParallelInterpreter(nbThreads)
             print(nbThreads + " threads: ")
             as_ctrace(i.run(forced)).last
             for (_ <- 0 until warmup) { print("w"); as_ctrace(i.run(forced)).last }
@@ -127,7 +127,7 @@ object Main {
           val forced = final_out
           var data = Map[Int,Double]()
           for (nbThreads <- start to stop) {
-            interpreters.imperative.parallel.Interpreter(nbThreads)
+            interpreters.imperative.ParallelInterpreter(nbThreads)
             as_ctrace(i.run(forced)).last
             for (_ <- 0 until warmup) { as_ctrace(i.run(forced)).last }
             val startTime = System.currentTimeMillis()

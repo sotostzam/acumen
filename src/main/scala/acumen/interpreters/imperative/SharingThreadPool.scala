@@ -1,4 +1,4 @@
-package acumen.interpreters.imperative.parallel
+package acumen.interpreters.imperative
 
 import java.util.concurrent.LinkedBlockingQueue
 

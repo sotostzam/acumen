@@ -129,7 +129,7 @@ class App extends SimpleSwingApplication {
   private val plotStyleBothAction           = new Action(  "Both")       { mnemonic =   VK_B; def apply = plotView.setPlotStyle(plot.Both()) }
   private val floatingPointNewAction        = mkActionMask("Floating Point (New)",      VK_F, VK_F,       shortcutMask | SHIFT_MASK, setInterpreter(new CStoreCntrl(interpreters.newreference.Interpreter)))
   private val floatingPointAction           = mkActionMask("Floating Point Reference",  VK_R, VK_R,       shortcutMask | SHIFT_MASK, setInterpreter(new CStoreCntrl(interpreters.reference.Interpreter))) 
-  private val floatingPointImperativeAction = mkActionMask("Floating Point Imparative", VK_I, VK_I,       shortcutMask | SHIFT_MASK, setInterpreter(new CStoreCntrl(new interpreters.imperative.sequential.Interpreter))) 
+  private val floatingPointImperativeAction = mkActionMask("Floating Point Imparative", VK_I, VK_I,       shortcutMask | SHIFT_MASK, setInterpreter(new CStoreCntrl(new interpreters.imperative.ImperativeInterpreter))) 
   private val floatingPointParallelAction   = mkActionMask("Floating Point Parallel",   VK_P, VK_P,       shortcutMask | SHIFT_MASK, promptForNumberOfThreads)
   private val pwlHybridSolverAction         = mkActionMask("Enclosure PWL",             VK_L, VK_L,       shortcutMask | SHIFT_MASK, setInterpreter(new EnclosureCntrl(interpreters.enclosure.Interpreter.asPWL))) 
   private val eventTreeHybridSolverAction   = mkActionMask("Enclosure EVT",             VK_T, VK_T,       shortcutMask | SHIFT_MASK, setInterpreter(new EnclosureCntrl(interpreters.enclosure.Interpreter.asEVT)))
@@ -153,7 +153,7 @@ class App extends SimpleSwingApplication {
         console.log("Number of threads set to " + userNumberOfThreads + ".\n")
         userNumberOfThreads
       }
-      setInterpreter(new CStoreCntrl(interpreters.imperative.parallel.Interpreter(lastNumberOfThreads)))
+      setInterpreter(new CStoreCntrl(interpreters.imperative.ParallelInterpreter(lastNumberOfThreads)))
     } catch {
       case _ =>
         console.logError("Bad number of threads.")
