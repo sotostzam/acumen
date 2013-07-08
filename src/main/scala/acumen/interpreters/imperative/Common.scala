@@ -29,12 +29,11 @@ import acumen.util.Canonical.{
 import scala.annotation.tailrec
 
 object Common {
-
   type Store = Object
   type ObjId = Object
   type Val = Value[ObjId]
   type Env = Map[Name, Val]
-
+  
   type MMap[A, B] = scala.collection.mutable.Map[A, B]
   val MMap = scala.collection.mutable.Map
 
@@ -429,16 +428,6 @@ object Common {
     val env = HashMap((self, VObjId(Some(o))))
     evalActions(as, env, p, magic)
   }
-
-  def magicClassTxt =
-    """class Simulator(time, timeStep, endTime, resultType, lastCreatedId) end"""
-  def initStoreTxt =
-    """#0.0 { className = Simulator, parent = none, time = 0.0, timeStep = 0.01, 
-              endTime = 10.0, resultType = @Discrete, nextChild = 0,
-						  seed1 = 0, seed2 = 0 }"""
-
-  lazy val magicClass = Parser.run(Parser.classDef, magicClassTxt)
-  lazy val magicCObj = Parser.run(Parser.store, initStoreTxt)
 
   def traverseSimple(f: ObjId => Changeset, root: ObjId): Changeset = {
     val r = f(root)

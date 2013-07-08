@@ -8,7 +8,7 @@ import acumen.Errors._
 import acumen.Pretty._
 import acumen.util.Conversions._
 import acumen.util.Random
-import acumen.interpreters.Common.{ classDef, evalOp }
+import acumen.interpreters.Common.{ classDef, evalOp, initStoreImpr, magicClass }
 import acumen.util.Canonical.{
   childrenOf, 
   classf,
@@ -39,7 +39,7 @@ class ImperativeInterpreter extends CStoreInterpreter {
 
   def init(prog: Prog, opts: CStoreOpts): (Prog, Store) = {
     cstoreOpts = opts
-    val magic = fromCStore(magicCObj, CId(0))
+    val magic = fromCStore(initStoreImpr, CId(0))
     /* WARNING: the following line works because there is no children access check
        if one of the instructions of the provate section tries to access magic,
        and there was a check, this would crash (which we don't want) */

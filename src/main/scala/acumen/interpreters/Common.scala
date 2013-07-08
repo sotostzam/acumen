@@ -191,9 +191,19 @@ object Common {
     }
   }
 
+  val magicClassTxt =
+    """class Simulator(time, timeStep, endTime, resultType, lastCreatedId) end"""
+  val initStoreTxt =
+    """#0.0 { className = Simulator, parent = %s, time = 0.0, timeStep = 0.01, 
+              endTime = 10.0, resultType = @Discrete, nextChild = 0,
+						  seed1 = 0, seed2 = 0 }"""
+
+  lazy val magicClass = Parser.run(Parser.classDef, magicClassTxt)
+  lazy val initStoreRef = Parser.run(Parser.store, initStoreTxt.format("#0"))
+  lazy val initStoreImpr = Parser.run(Parser.store, initStoreTxt.format("none"))
+                                  
   // register valid simulator parameters
   val simulatorFields = List("time", "timeStep", "endTime", "resultType", "lastCreatedId")
 
   val specialFields = List("nextChild","parent","className","seed1","seed2")
- 
 }
