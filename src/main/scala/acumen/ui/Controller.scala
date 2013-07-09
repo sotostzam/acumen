@@ -162,7 +162,8 @@ class Controller extends DaemonActor {
       // d.isInstanceOf[Iterable[GStore]] will not work due to type
       // erasure, must check the first element for its type
       if (!d.isEmpty() && d.head.isInstanceOf[GStore]) {
-        val _3DSampleInterval = 3;
+        val _3DSampleInterval = 1; // should no longer be needed due
+                                   // to ability to reduce rows outputted
         for (cs <- d.asInstanceOf[Iterable[GStore]]) {
           if (n == 0 || n > _3DSampleInterval) {
             threeDData.getData(cs)
