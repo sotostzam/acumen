@@ -192,9 +192,7 @@ object Common {
   }
 
   // register valid simulator parameters
-  List("time", "timeStep", "endTime", "resultType", "lastCreatedId").foreach { parm => 
-    acumen.CleanParameters.parms.registerParm(parm, acumen.CStoreInterpreterType)
-  }
+  val simulatorFields = List("time", "timeStep", "endTime", "resultType", "lastCreatedId")
 
   val specialFields = List("nextChild","parent","className","seed1","seed2")
  

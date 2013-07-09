@@ -13,10 +13,22 @@ trait Parameters extends scala.collection.Map[String, List[InterpreterType]]
 }
 
 object CleanParameters {
+
   val parms = new scala.collection.mutable.ListMap[String, List[InterpreterType]] with Parameters {
     def registerParm(parm: String, intr: InterpreterType) = 
       update(parm, intr :: get(parm).getOrElse(Nil))
   }
+
+  // add paramaters for CStore based interpreters
+  acumen.interpreters.Common.simulatorFields.foreach { parm => 
+    parms.registerParm(parm, acumen.CStoreInterpreterType)
+  }
+  // add paramters for Enclosure based interpreters
+  acumen.interpreters.enclosure.Parameters.defaults.foreach {
+    case (parm, _) =>
+      acumen.CleanParameters.parms.registerParm(parm, acumen.EnclosureInterpreterType)
+  }
+
 
   case object AssignToSimulator extends Throwable
 
