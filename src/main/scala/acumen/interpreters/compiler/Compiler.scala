@@ -173,7 +173,7 @@ object Interpreter {
   val MMap = scala.collection.mutable.Map
 
   def magicClassTxt =
-    """class Simulator(time, timeStep, endTime, stepType) end"""
+    """class Simulator(time, timeStep, endTime, resultType) end"""
 
   lazy val magicClass = Parser.run(Parser.classDef, magicClassTxt)
 
@@ -248,7 +248,7 @@ object Interpreter {
     if (cn != "Simulator")
       compileActions(body, cd.body, cd._types, p, magic)
     body.print("return KEEP_ME;").newline
-    cc.addMethod("step", List(CVar("stepType", CType("StepType")), 
+    cc.addMethod("step", List(CVar("resultType", CType("ResultType")), 
                               CVar("somethingChanged", CType.mutRef("bool")), 
                               CVar("timeStep", CType("double"))), 
                  "KillMe", body.toString)
@@ -299,11 +299,11 @@ object Interpreter {
         cr.indent(-2).print("} else { abort(); }").newline
         cr.indent(-2).print("}").newline
       case Discretely(da) =>
-        cr.print("if (stepType == DISCRETE) {").newline.indent(2)
+        cr.print("if (resultType == DISCRETE) {").newline.indent(2)
         compileDiscreteAction(cr, da, env, p, magic)
         cr.indent(-2).print("}").newline
       case Continuously(ca) =>
-        cr.print("if (stepType == CONTINUOUS) {").newline.indent(2)
+        cr.print("if (resultType == CONTINUOUS) {").newline.indent(2)
         compileContinuousAction(cr, ca, env, p, magic)
         cr.indent(-2).print("}").newline
     }
@@ -696,7 +696,7 @@ object Interpreter {
     case StrType => CType("const char *")
     case SeqType(st@FixedSize(lst)) if st.isNumeric =>  CType(vectorType(lst.size))
     case SeqType(_) => UNSUPPORTED
-    case StepTypeType => CType("StepType")
+    case ResultTypeType => CType("ResultType")
     case ClassType(NamedClass(cn)) => CType(cn.x + " *")
     case ClassType(_) => UNSUPPORTED
     case v          => CType("/*"+v+"*/double") // FIXME
@@ -790,8 +790,8 @@ object Interpreter {
         case NumericType => List((name, None, "%f", {n:String => n}))
         case IntType => List((name, None, "%i", {n:String => n}))
         case StrType => List((name, None, "%s", {n:String => n}))
-        case StepTypeType => List((name, None, "%s", 
-                                   {n:String => n + "== DISCRETE ? \"@Discrete\" : \"@Continuous\""}))
+        case ResultTypeType => List((name, None, "%s", // FIXME: Add support for @FixedPoint
+                                     {n:String => n + "== DISCRETE ? \"@Discrete\" : \"@Continuous\""}))
         case SeqType(st@FixedSize(lst)) if st.isNumeric =>
           (0 until lst.size).map{i => (name, Some(i), "%f", {n:String => n})}.toList 
         case _ => Nil

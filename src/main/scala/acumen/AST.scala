@@ -288,7 +288,7 @@ package acumen {
   }
 
   // case object ObjIdType extends Type -- not used
-  case object StepTypeType extends Type
+  case object ResultTypeType extends Type
   //case object ClassNameType extends Type -- overkill for now
 
   sealed abstract class ClassSubType 

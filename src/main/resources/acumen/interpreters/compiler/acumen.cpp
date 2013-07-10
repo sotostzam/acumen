@@ -54,7 +54,7 @@ void main_loop(AcumenObject * root, Simulator * simulator, bool last) {
     printf("\n");
   }
   while (simulator->time_0 < simulator->endTime_0) {
-    simulator->stepType_0 = DISCRETE;
+    simulator->resultType_0 = DISCRETE;
     bool somethingChanged;
     do {
       somethingChanged = false;
@@ -64,7 +64,7 @@ void main_loop(AcumenObject * root, Simulator * simulator, bool last) {
       }
       discrete_step(root, somethingChanged);
     } while (somethingChanged);
-    simulator->stepType_0 = CONTINUOUS;
+    simulator->resultType_0 = CONTINUOUS;
     continuous_step(root, simulator->timeStep_0);
     simulator->time_0 += simulator->timeStep_0;
     if (!last) {

@@ -8,7 +8,7 @@
 
 using namespace std;
 
-enum StepType {DISCRETE, CONTINUOUS};
+enum ResultType {DISCRETE, FIXED_POINT, CONTINUOUS};
 enum KillMe {KEEP_ME, KILL_ME};
 
 class ObjectId {
