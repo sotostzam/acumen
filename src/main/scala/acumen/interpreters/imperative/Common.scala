@@ -43,7 +43,8 @@ object Common {
       var parent: Option[Object],
       var ccounter: Int,
       var seed: (Int, Int),
-      var children: Vector[Object]) {
+      var children: Vector[Object]) extends GId {
+    override def cid = id
     override def hashCode = System.identityHashCode(this)
     override def toString = {
       val cn =

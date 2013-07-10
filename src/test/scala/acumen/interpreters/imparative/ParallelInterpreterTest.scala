@@ -14,7 +14,7 @@ import java.io.InputStreamReader
 
 class ParallelInterpreterTest extends InterpreterTestBase {
 
-  def runInterpreter(p: Prog) = interpreters.imperative.ParallelInterpreter.instance.run(p)
+  override def interpreter : CStoreInterpreter = interpreters.imperative.ParallelInterpreter.instance
 
   test("StoreConversions1") {
     import ParallelInterpreter._
@@ -127,7 +127,6 @@ class ParallelInterpreterTest extends InterpreterTestBase {
     //assert(res)
   }
 
-  testExamples(List("examples/A_Ping_Pong/FinalTournamentWithPlayers.acm",
-                    "examples/A_Ping_Pong/pp-project-halmstad-2012-3.acm"))
+  testExamples()
   testShouldRun
 }

@@ -153,7 +153,7 @@ class Interpreter extends acumen.CStoreInterpreter {
   import acumen._
   
   type Store = I.Store
-  def init(prog: Prog, opts: CStoreOpts) = null
+  def init(prog: Prog) = null
   def fromCStore(st: CStore, root: CId) = null
   def repr(st: Store) = null
 

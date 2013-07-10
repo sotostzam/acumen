@@ -19,7 +19,7 @@ class InterpreterTest extends InterpreterTestBase with ShouldMatchers {
 
   override def suiteName = "New Reference InterpreterTest"
 
-  def runInterpreter(p: Prog) = interpreters.newreference.Interpreter.run(p)
+  def interpreter = interpreters.newreference.Interpreter
 
   def run(in: InputStreamReader) : Unit = {
     val ast = Parser.run(Parser.prog, in)

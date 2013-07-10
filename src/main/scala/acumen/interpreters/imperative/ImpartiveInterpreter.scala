@@ -35,10 +35,7 @@ class ImperativeInterpreter extends CStoreInterpreter {
   def repr (s:Store) : CStore = Common.repr(s)
   def fromCStore (cs:CStore, root:CId) : Store = Common.fromCStore(cs, root)
 
-  var cstoreOpts = new CStoreOpts
-
-  def init(prog: Prog, opts: CStoreOpts): (Prog, Store) = {
-    cstoreOpts = opts
+  def init(prog: Prog): (Prog, Store) = {
     val magic = fromCStore(initStoreImpr, CId(0))
     /* WARNING: the following line works because there is no children access check
        if one of the instructions of the provate section tries to access magic,
@@ -53,46 +50,79 @@ class ImperativeInterpreter extends CStoreInterpreter {
     (mprog , mainObj)
   }
 
-  def step(p: Prog, st: Store): Option[Store] = {
+  def localStep(p: Prog, st: Store): ResultType = {
     val magic = getSimulator(st)
+    stepInit
     if (getTime(magic) > getEndTime(magic)) {
-      None
+      null
     } else {
-      @tailrec def step0() : Unit = {
-        stepInit
-        if (getTime(magic) > getEndTime(magic))
-          return
-        val chtset = traverse(evalStep(p, magic), st)
-        getResultType(magic) match {
-          case Discrete | Continuous =>
-            chtset match {
-              case SomeChange(dead, rps) =>
-                for ((o, p) <- rps)
-                  changeParent(o, p)
-                for (o <- dead) {
-                  o.parent match {
-                    case None => ()
-                    case Some(op) =>
-                      for (oc <- o.children) changeParent(oc, op)
-                      op.children = op.children diff Seq(o)
-                  }
+      val chtset = traverse(evalStep(p, magic), st)
+      val rt = getResultType(magic) match {
+        case Discrete | Continuous =>
+          chtset match {
+            case SomeChange(dead, rps) =>
+              for ((o, p) <- rps)
+                changeParent(o, p)
+              for (o <- dead) {
+                o.parent match {
+                  case None => ()
+                  case Some(op) =>
+                    for (oc <- o.children) changeParent(oc, op)
+                    op.children = op.children diff Seq(o)
                 }
-                setResultType(magic, Discrete)
-                if (!cstoreOpts.outputSomeDiscrete) return step0()
-              case NoChange() =>
-                setResultType(magic, FixedPoint)
-                if (!cstoreOpts.outputAllRows) return step0()
-            }
-          case FixedPoint =>
-            setResultType(magic, Continuous)
-            setTime(magic, getTime(magic) + getTimeStep(magic))
-            if (cstoreOpts.outputLastOnly) return step0()
-        }
+              }
+              Discrete
+            case NoChange() =>
+              FixedPoint
+          }
+        case FixedPoint =>
+          setTime(magic, getTime(magic) + getTimeStep(magic))
+          Continuous
       }
-      step0()
-      Some(st)
+      setResultType(magic, rt)
+      rt
     }
   }
+
+  def step(p: Prog, st: Store): Option[Store] = {
+    val res = localStep(p, st)
+    if (res == null) None
+    else Some(st)
+  }
+
+  // always returns the last known step, the adder callback is used to
+  // determine when teh simulation is done
+  override def multiStep(p: Prog, st: Store, adder: DataAdder): Store = {
+    val magic = getSimulator(st)
+    var shouldAddData = ShouldAddData.IfLast
+    // ^^ set to IfLast on purpose to make things work
+    @tailrec def step0() : Unit = {
+      val res = localStep(p, st)
+      stepInit
+      if (res == null) {
+        if (shouldAddData == ShouldAddData.IfLast)
+          addData(st, adder)
+        adder.noMoreData()
+      } else {
+        shouldAddData = adder.newStep(res)
+        if (shouldAddData == ShouldAddData.Yes)
+          addData(st, adder)
+        if (adder.continue)
+          step0()
+      }
+    }
+    step0()
+    st
+  }
+
+  def addData(st: Store, adder: DataAdder) : Unit = {
+    // Note: Conversion to a CStore just to add the data is certainly
+    // not the most efficient way to go about things, but for now it
+    // will do. --kevina
+    adder.addData(st.id, st.fields)
+    st.children.foreach { child => addData(child, adder) }
+  }
+
   def stepInit : Unit = {}
   def traverse(f: ObjId => Changeset, root: ObjId): Changeset =
     traverseSimple(f, root)
@@ -101,5 +131,4 @@ class ImperativeInterpreter extends CStoreInterpreter {
 
 // The ImperativeInterpreter is stateless hence it is okay to have a
 // single global instance
-// FIXME: Make the above statement true ...
 object ImperativeInterpreter extends ImperativeInterpreter

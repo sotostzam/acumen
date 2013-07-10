@@ -13,13 +13,11 @@ import java.io.FileInputStream
 import java.io.InputStreamReader
 
 class ImperativeInterpreterTest extends ParallelInterpreterTest {
-  val instance = new ImperativeInterpreter
-
-  override def runInterpreter(p: Prog) = instance.run(p)
+  override def interpreter : CStoreInterpreter = ImperativeInterpreter
 
   override def run(in: InputStreamReader) = {    
     val ast = Parser.run(Parser.prog, in)
     val des = Desugarer.run(ast)
-    for (_ <- (instance.run(des).ctrace)) ()
+    for (_ <- (ImperativeInterpreter.run(des).ctrace)) ()
   }
 }

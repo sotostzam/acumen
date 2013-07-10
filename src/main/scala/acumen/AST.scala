@@ -159,7 +159,7 @@ package acumen {
   case class VVector[Id](l: List[Value[Id]]) extends Value[Id]
 
   /* Example: #0.1.1.2 */
-  case class VObjId[Id](a: Option[Id]) extends Value[Id]
+  case class VObjId[Id <: GId](a: Option[Id]) extends Value[Id]
 
   /* Example: Ball */
   case class VClassName[Id](cn: ClassName) extends Value[Id]
@@ -177,7 +177,10 @@ package acumen {
      and parsed as #0.a.b.c.d. Thus, the id printed and parsed as 
      #0.k1.k2. ... .kn is represented as List(kn,...,k2,k1) */
 
-  class CId(val id: List[Int]) extends Ordered[CId] {
+  trait GId {def cid : CId}
+
+  class CId(val id: List[Int]) extends Ordered[CId] with GId {
+    def cid = this
     override def hashCode = id.hashCode
     override def equals(that: Any) = that match {
       case cid: CId => id.equals(cid.id)
@@ -308,10 +311,15 @@ package acumen {
 // type aliases have to be declared in a package *object* in scala
 package object acumen {
 
- /* canonical (reference) representation of store/values 
+ /* canonical (reference) representation of (maybe filtered) store/values 
      'C' is for canonical */
 
   type CValue = Value[CId]
   type CObject = Map[Name, CValue]
   type CStore = Map[CId, CObject]
+
+  // 'G' is for generic
+  type GValue = Value[_]
+  type GObject = collection.Iterable[(Name, GValue)]
+  type GStore = collection.Iterable[(CId, GObject)]
 }

@@ -13,7 +13,7 @@ import java.io.File
 import util.Transform
 
 abstract class InterpreterTestBase extends FunSuite with ShouldMatchers {
-  def runInterpreter(p: Prog) : CStoreRes 
+  def interpreter : CStoreInterpreter
 
   def run(in: InputStreamReader) : Unit
 
@@ -45,7 +45,7 @@ abstract class InterpreterTestBase extends FunSuite with ShouldMatchers {
         ignore(testName) {}
       } else if (resFile.exists)
         test(testName) { 
-          Examples.writeExampleResult(Examples.gotLoc, dn, f, runInterpreter(_))
+          Examples.writeExampleResult(Examples.gotLoc, dn, f, interpreter)
           class Result(loc: String) {
             val file = Examples.resultFile(loc, dn, f)
             val reader = new BufferedReader(new InputStreamReader(new FileInputStream(file)))

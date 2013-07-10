@@ -18,15 +18,15 @@ import javax.swing.table.AbstractTableModel
 
 import Errors._
 
-case class CStoreTraceData(data: Iterable[CStore]) 
-  extends TraceData(getTime(data.last), getEndTime(data.last)) with Iterable[CStore] 
+case class CStoreTraceData(data: Iterable[GStore]) 
+  extends TraceData(getTime(data.last), getEndTime(data.last)) with Iterable[GStore] 
 {
   def iterator = data.iterator
 }
 
 class CStoreModel extends TraceModel with InterpreterModel with PlotModel {
   // array of (id, field name, maybe index in vector, start frame, values)
-  private var stores = new ArrayBuffer[(CId, Name, Option[Int], Int, ArrayBuffer[CValue])]
+  private var stores = new ArrayBuffer[(CId, Name, Option[Int], Int, ArrayBuffer[GValue])]
   private var classes = new HashMap[CId,ClassName]
   private var indexes = new HashMap[(CId,Name,Option[Int]),Int]
   private var ids = new HashSet[CId]
@@ -86,7 +86,7 @@ class CStoreModel extends TraceModel with InterpreterModel with PlotModel {
 
  
   //def ids = stores map { case (id,_,_,_,_) => id }
-  private def addVal(id:CId, x:Name, v:CValue) = {
+  private def addVal(id:CId, x:Name, v:GValue) = {
     v match {
       case VVector(u) =>
         for ((ui,i) <- u zipWithIndex) {
@@ -101,10 +101,10 @@ class CStoreModel extends TraceModel with InterpreterModel with PlotModel {
 
   private def addDataHelper(sts:TraceData) = {
     def compIds(ido1:(CId,_), ido2:(CId,_)) = ido1._1 < ido2._1
-    def compFields(p1:(Name,CValue),p2:(Name,CValue)) = 
+    def compFields(p1:(Name,GValue),p2:(Name,GValue)) = 
       Ordering[(String,Int)] lt ((p1._1.x, p1._1.primes),(p2._1.x, p2._1.primes))
     for (st <- sts) {
-      for ((id,o) <- st.asInstanceOf[CStore].toList sortWith(compIds)) {
+      for ((id,o) <- st.asInstanceOf[GStore].toList sortWith(compIds)) {
         if (ids contains id) 
           for ((x,v) <- o.toList) addVal(id,x,v)
         else {
@@ -112,14 +112,14 @@ class CStoreModel extends TraceModel with InterpreterModel with PlotModel {
             v match {
               case VVector(u) =>
                 for ((ui,i) <- u zipWithIndex) {
-                  val ar = new ArrayBuffer[CValue]
+                  val ar = new ArrayBuffer[GValue]
                   ar += ui
                   stores += ((id,x,Some(i),frame,ar))
                   indexes += (((id,x,Some(i)), stores.size-1))
                   ids += id
                 }
               case _ =>
-                val ar = new ArrayBuffer[CValue]
+                val ar = new ArrayBuffer[GValue]
                 ar += v
                 stores += ((id,x,None,frame,ar))
                 indexes += (((id,x,None), stores.size-1))

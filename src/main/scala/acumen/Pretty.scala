@@ -226,7 +226,7 @@ class Pretty {
       case VLit(i)         => pretty(i)
       case VList(l)        => sepBy("::", l map pretty[Value[A]]) :: "::nil"
       case VVector(l)      => brackets(sepBy(comma :: " ", l map pretty[Value[A]]))
-      case VObjId(Some(a)) => "#" :: a.toString
+      case VObjId(Some(a)) => "#" :: a.cid.toString
       case VObjId(None)    => "#none"
       case VClassName(n)   => pretty(n)
       case VResultType(t)  => pretty(t)
@@ -234,13 +234,13 @@ class Pretty {
   
 
   // better not make it implicit : this is a type alias
-  def prettyObject(o : Map[Name, Value[_]]) = block(prettyEnv(o))
+  def prettyObject(o : GObject) = block(prettyEnv(o))
  
   // better not make it implicit : this is a type alias
-  def prettyEnv(e:Map[Name, Value[_]]) : Document = {
+  def prettyEnv(e:GObject) : Document = {
     val sorted = e.toList.sortWith { (a,b) => a._1 < b._1 } 
     val filtered = if (filterStore) {
-      val VClassName(ClassName(name)) = e.get(Name("className",0)).orNull
+      val VClassName(ClassName(name)) = e.find{_._1 == Name("className",0)}.get._2
       if (name == "Simulator")
         sorted.filter { case (x,v) => x.x == "className" || x.x == "time"}
       else
@@ -253,7 +253,7 @@ class Pretty {
   }
   
   // better not make it implicit : this is a type alias
-  def prettyStore(s:CStore) : Document = {
+  def prettyStore(s:GStore) : Document = {
     val it = s.toList.sortWith { (a,b) => a._1 < b._1 } map { case (i,o) => 
       "#" + i.toString :: " " :: prettyObject(o) 
     }

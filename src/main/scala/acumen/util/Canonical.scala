@@ -107,5 +107,20 @@ object Canonical {
 
   def setTime(d:Double, s:CStore)       = setInSimulator(time, VLit(GDouble(d)), s)
   def setResultType(t:ResultType, s:CStore) = setInSimulator(resultType, VResultType(t), s)
+
+
+  // helper methods for a GStore, used by CStoreModel
+  def classOf(o:GObject)  : ClassName = { val VClassName(cn) = o.find{_._1 == classf}.get._2; cn }
+  def magicId(st:GStore) : CId = 
+    st find { case (_,o) => classOf(o) equals cmagic } match {
+      case None => throw NoInstanceFound(cmagic)
+      case Some((id,_)) => id
+    }
+  def deref(a:CId, st:GStore) : GObject = st.find{_._1 == a}.get._2
+  def getObjectField(id:CId, f:Name, st:GStore) = deref(id,st).find{_._1 == f}.get._2
+  def getInSimulator(f:Name, st:GStore) = getObjectField(magicId(st), f, st)
+  def getTime(st:GStore)     = extractDouble(getInSimulator(time, st))
+  def getEndTime(st:GStore)  = extractDouble(getInSimulator(endTime, st))
+
 }
 

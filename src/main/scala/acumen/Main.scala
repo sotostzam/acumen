@@ -153,7 +153,7 @@ object Main {
               println("skipping " + f + "")
             } else {
               somethingUpdated = true
-              Examples.writeExampleResult(loc, dn, f, interpreters.reference.Interpreter.run(_))
+              Examples.writeExampleResult(loc, dn, f, interpreters.reference.Interpreter)
               println("PROCESSED " + f)
             }
           }

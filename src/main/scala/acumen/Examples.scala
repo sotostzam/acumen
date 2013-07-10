@@ -33,7 +33,7 @@ object Examples {
   def resultFile(loc: String, dn: String, f: File) =
     new File(new File(loc, dn), f.getName+".res")
 
-  def writeExampleResult(loc: String, dn: String, f: File, run: Prog => CStoreRes) : Unit = {
+  def writeExampleResult(loc: String, dn: String, f: File, intr: CStoreInterpreter) : Unit = {
     val d2 =new File(loc,dn)
     d2.mkdirs()
     val f2 = new File(d2, f.getName+".res")
@@ -41,8 +41,7 @@ object Examples {
     val in = new InputStreamReader(new FileInputStream(f))
     val ast = Parser.run(Parser.prog, in)
     val tr = util.Transform.transform(ast)
-    val trace = run(tr).ctrace
-    CStoreRes(trace).dumpSample(out)
+    intr.run(tr, new DumpSample(out)).last
     out.close
     in.close
   }

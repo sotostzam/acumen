@@ -47,7 +47,7 @@ class CStorePlotter extends JFreePlotter {
     case TooManySubplots =>
   }
 
-  private def plotit(v: CValue, cn: ClassName, fn: Name) = v match {
+  private def plotit(v: GValue, cn: ClassName, fn: Name) = v match {
     case VLit(GDouble(_) | GInt(_)) =>
       cn != cmagic && 
         (fn != Name("nextChild",0)) && 
@@ -82,20 +82,20 @@ class CStorePlotter extends JFreePlotter {
 
   private def addDataHelper(sts:interpreter.TraceData) = {
     def compIds(ido1:(CId,_), ido2:(CId,_)) = ido1._1 < ido2._1
-    def compFields(p1:(Name,CValue),p2:(Name,CValue)) = 
+    def compFields(p1:(Name,GValue),p2:(Name,GValue)) = 
       Ordering[(String,Int)] lt ((p1._1.x, p1._1.primes),(p2._1.x, p2._1.primes))
     // First dig out the time value
     for (st <- sts) {
       // first dig out the time value
       var time = 0.0
-      for ((id,o) <- st.asInstanceOf[CStore].toList) {
+      for ((id,o) <- st.asInstanceOf[GStore]) {
         for ((x,v) <- o.toList) 
           if (x == Name("time",0) && classOf(o) == cmagic) {
             time = extractDouble(v)
           }
       }
       // now we can plot the rest
-      for ((id,o) <- st.asInstanceOf[CStore].toList sortWith(compIds)) {
+      for ((id,o) <- st.asInstanceOf[GStore].toList.sortWith(compIds)) {
         if (!ids.contains(id)) {
           for ((x,v) <- o.toList sortWith(compFields)) {
             v match {
@@ -124,7 +124,7 @@ class CStorePlotter extends JFreePlotter {
     }
   }
 
-  private def addVal(id:CId, x:Name, t:Double, v:CValue) = v match {
+  private def addVal(id:CId, x:Name, t:Double, v:GValue) = v match {
     case VVector(u) =>
       for ((ui,i) <- u zipWithIndex) {
         val idx = indexes((id,x,Some(i)))
