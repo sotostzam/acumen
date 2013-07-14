@@ -105,6 +105,7 @@ class App extends SimpleSwingApplication {
 
   /* ----- UI setup ------- */
   
+  private val NONE = VK_UNDEFINED
   /* Reusable actions */
   private val playAction                    = mkAction(    "Run",                       VK_R, VK_G,       upperButtons.bPlay.doClick)
   private val pauseAction                   = mkAction(    "Pause",                     VK_R, VK_G,       upperButtons.bPlay.doClick)
@@ -127,10 +128,10 @@ class App extends SimpleSwingApplication {
   private val plotStyleLinesAction          = new Action(  "Lines")      { mnemonic =   VK_L; def apply = plotView.setPlotStyle(plot.Lines()) }
   private val plotStyleDotsAction           = new Action(  "Dots")       { mnemonic =   VK_D; def apply = plotView.setPlotStyle(plot.Dots()) }
   private val plotStyleBothAction           = new Action(  "Both")       { mnemonic =   VK_B; def apply = plotView.setPlotStyle(plot.Both()) }
-  private val floatingPointNewAction        = mkActionMask("Floating Point (New)",      VK_F, VK_F,       shortcutMask | SHIFT_MASK, setInterpreter(new CStoreCntrl(interpreters.newreference.Interpreter)))
-  private val floatingPointAction           = mkActionMask("Floating Point Reference",  VK_R, VK_R,       shortcutMask | SHIFT_MASK, setInterpreter(new CStoreCntrl(interpreters.reference.Interpreter))) 
-  private val floatingPointImperativeAction = mkActionMask("Floating Point Imparative", VK_I, VK_I,       shortcutMask | SHIFT_MASK, setInterpreter(new CStoreCntrl(new interpreters.imperative.ImperativeInterpreter))) 
-  private val floatingPointParallelAction   = mkActionMask("Floating Point Parallel",   VK_P, VK_P,       shortcutMask | SHIFT_MASK, promptForNumberOfThreads)
+  private val floatingPointNewAction        = mkActionMask("Traditional Functional 2",  VK_2, NONE,       shortcutMask | SHIFT_MASK, setInterpreter(new CStoreCntrl(interpreters.newreference.Interpreter)))
+  private val floatingPointAction           = mkActionMask("Traditional Functional",    VK_F, VK_R,       shortcutMask | SHIFT_MASK, setInterpreter(new CStoreCntrl(interpreters.reference.Interpreter))) 
+  private val floatingPointImperativeAction = mkActionMask("Traditional Imparative",    VK_I, VK_I,       shortcutMask | SHIFT_MASK, setInterpreter(new CStoreCntrl(new interpreters.imperative.ImperativeInterpreter))) 
+  private val floatingPointParallelAction   = mkActionMask("Traditional Parallel",      VK_P, VK_P,       shortcutMask | SHIFT_MASK, promptForNumberOfThreads)
   private val pwlHybridSolverAction         = mkActionMask("Enclosure PWL",             VK_L, VK_L,       shortcutMask | SHIFT_MASK, setInterpreter(new EnclosureCntrl(interpreters.enclosure.Interpreter.asPWL))) 
   private val eventTreeHybridSolverAction   = mkActionMask("Enclosure EVT",             VK_T, VK_T,       shortcutMask | SHIFT_MASK, setInterpreter(new EnclosureCntrl(interpreters.enclosure.Interpreter.asEVT)))
   private val contractionAction             = mkActionMask("Contraction",               VK_C, VK_C,       shortcutMask | SHIFT_MASK, interpreters.enclosure.Interpreter.toggleContraction)
@@ -363,7 +364,7 @@ class App extends SimpleSwingApplication {
    * act:   Action to be performed when item is selected. 
    **/
   private def mkActionMask(name: String, m: Int, a: Int, aMask: Int, act: => Unit) = new Action(name) { 
-    mnemonic = m; accelerator = Some(KeyStroke.getKeyStroke(a, aMask))
+    mnemonic = m; accelerator = if (a != NONE) Some(KeyStroke.getKeyStroke(a, aMask)) else None
     def apply = act
   } 
  
@@ -490,7 +491,7 @@ class App extends SimpleSwingApplication {
             enabled = interpreter.interpreter.getClass == interpreters.enclosure.Interpreter.getClass
         }
       }
-      contents ++= Seq(ref, newRef, impr, par, new Separator, pwl, et, ls)
+      contents ++= Seq(ref, newRef, impr, par, new Separator, pwl, et, new Separator, ls)
     }
    
     contents += new Menu("Help") {

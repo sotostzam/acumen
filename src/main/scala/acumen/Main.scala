@@ -144,7 +144,7 @@ object Main {
           BenchEnclosures.run(i, final_out, args, firstNonSemanticsArg + 2)
         case "trace" =>
           trace.print
-        case "examples" =>
+        case "examples"|"record-reference-outputs" =>
           var somethingUpdated = false
           Examples.cstoreExamplesAction{(dn, f) =>
             val loc = Examples.expectLoc
