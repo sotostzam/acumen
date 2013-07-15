@@ -49,6 +49,8 @@ object ParallelInterpreter {
   
   private val cores = Runtime.getRuntime.availableProcessors
   
+  // Note: The work sharing thread pool is considered experimental and
+  //       should not be enabled in a release without review -- Walid and Kevin
   private val sharingTP = new SharingThreadPool[Changeset](0, cores)
   private val sharingS = new SharingScheduler(sharingTP)
   
