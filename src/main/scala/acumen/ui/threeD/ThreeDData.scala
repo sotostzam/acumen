@@ -193,8 +193,9 @@ class ThreeDData extends Publisher {
     if(id.equals(new CId(List()))) {
       for ((name, value) <- o.toList) {
         if (name.x == "_3DView") {
-	       value match {
+              value match {
               case VVector(l) => {
+                  if(l.size > 0)
 	            _3DView = new Tuple2(extractDoubles(l(0)).toArray,
 	                                 extractDoubles(l(1)).toArray) :: _3DView       
                 }
@@ -215,9 +216,9 @@ class ThreeDData extends Publisher {
         if (name.x == "_3D") {
           value match {
             case VVector(l) => {
-              if (l.size == 0)
-                throw _3DError(value)
-              else
+             if (l.size == 0)
+                { }//
+             else
                 l(0) match {
                   /* If it's only one object, _3D will start with a string or an int, 
 								*		example:  _3D = ["Sphere",...,...,..] 
