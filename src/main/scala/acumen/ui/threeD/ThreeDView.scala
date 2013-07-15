@@ -152,15 +152,9 @@ class ThreeDView() extends BorderPanel {
      */
     t3d.setTranslation(new Vector3d(p(0)*scale,p(2)*scale,-p(1)*scale));
     val tg = u.getViewer( ).getViewingPlatform( ).getViewPlatformTransform( );
+    
     tg.setTransform( t3d );   
-   //u.getViewingPlatform().getViewPlatformTransform().setTransform(t3d)
-    //viewInfo.updateViewPlatform()
-    //viewInfo.updateCanvas(jCanvas)
-    //viewInfo.updateView()
     var trV = new Transform3D();
-    //viewInfo.getCoexistenceToVworld(jCanvas,trV)
-    //println(trV)
-    //u.getViewingPlatform( ).getViewPlatform( ).setActivationRadius( 100 );
   }
 
    
@@ -303,17 +297,21 @@ class _3DDisplay(app: ThreeDView, slider: Slider3d,
         }
       }
     }
+   if(currentFrame<_3DView.size){
+    app.transformView(_3DView(currentFrame)._1, _3DView(currentFrame)._2);	        	       view.stopView()
+    //view.startView() 
+    view.renderOnce() 
+   }
   }
   // Main execution loop
+  var view = app.u.getViewer.getView
   def act() {
     loopWhile(!destroy) {
       if (destroy)
         exit
       react {
-        case "go" => {   
-	     renderCurrentFrame
-	      if(currentFrame < _3DView.size -1)
-	        app.transformView(_3DView(currentFrame+1)._1, _3DView(currentFrame+1)._2);	        	                      
+        case "go" => {    
+	  renderCurrentFrame
           if (currentFrame == totalFrames) // Animation is over
             emitProgress(100)
           if (totalFrames > 0)
