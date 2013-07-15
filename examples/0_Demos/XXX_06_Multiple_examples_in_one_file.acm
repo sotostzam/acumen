@@ -304,14 +304,14 @@ end
 class controller_pid (k_p,k_i,k_d)
  private g:=[0,0,0]; v:=[0,0,0]; s:=[0,0,0]; f:=[0,0,0];
          i:=[0,0,0]; i':=[0,0,0] end
- f  = k_p * (g-v) + k_i*i - k_d*s;  // We might write as k_d*(g’ - v’)
+ f  = k_p * (g-v) + k_i*i - k_d*s;  // We might write as k_d*(g‚Äô - v‚Äô)
  i' = (g-v)                                // We might define error instead of g -v 
 end
 
 // 6. Disturbance (autonomous)
 
 class disturbance (k)
- private t:=0; t':=0; t'':=0; f:=[0,0,0] end // No need for t’’ 
+ private t:=0; t':=0; t'':=0; f:=[0,0,0] end // No need for t‚Äô‚Äô 
  t' = 4;
  f  = k*[sin(t), cos(t), sin(2*t+cos(3*t))]
 end
@@ -432,6 +432,7 @@ class example_12 (k_p,k_i,k_d,D)
  private g := create mass (0.5, [0,0,1],D);
          r := create mass (4,[0,0,0],D);
          c := create controller_pid (k_p,k_i,k_d);
+         d := create disturbance (1);
          flag := 0;
  end
   if(flag == 1)
@@ -443,7 +444,7 @@ class example_12 (k_p,k_i,k_d,D)
  c.g   = g.p;
  c.v   = r.p;
  c.s   = r.p';
- r.f   = c.f + [0,0,-9.8]; // + d.f;
+ r.f   = c.f + [0,0,-9.8] + d.f;
 end
 
 class dumbbell (mp,mq,D)
@@ -683,15 +684,7 @@ class VisualCopter(p,roll,pitch,yaw) // Global position and orientation
     rotor2p := [0,-1,0];
     rotor1p := [1,0,0];
     rotor3p := [-1,0,0];
-    _3D := [
-            ["Cylinder",[1,0,0], [0.25,0.05],[0.5,0.5,0.5],[pi/2,0,0]] , // Rotor1
-            ["Cylinder",[-1,0,0], [0.25,0.05],[0.5,0.5,0.5],[pi/2,0,0]] , // Rotor3
-            ["Cylinder",[0,1,0], [0.25,0.05],[0.5,0.5,0.5],[pi/2,0,0]] , // Rotor2
-            ["Cylinder",[0,-1,0], [0.25,0.05],[0.5,0.5,0.5],[pi/2,0,0]] , // Rotor4
-            ["Cylinder",p,[0.025,2],[1,0,0],[roll,0,-yaw]],  //Local y-axis
-            ["Cylinder",p,[0.025,2],[0,0,1],[0,-pitch,-yaw+pi/2]]  // Local x-axis
-            
-           ]
+    _3D := []
   end
      rotor4p = p+[l/2 * cos(roll) * sin(yaw), l/2 * cos(roll) * cos(yaw),l/2 * sin(roll)];
      rotor2p = p-[l/2 * cos(roll) * sin(yaw), l/2 * cos(roll) * cos(yaw),l/2 * sin(roll)];
@@ -710,7 +703,7 @@ class example_14()
   private
     mode := "Init";
     copter := create QuadCopter([2.2,0,1],0,-0.5,0);
-    visual := create VisualCopter([0,0,0],0,0,0);
+    visual := create VisualCopter([2.2,0,1],0,-0.5,0);
     f1 := create Display_bar1(0,[0.1,0.8,0.1],[1,0,0]);
     f2 := create Display_bar1(0,[0.1,0.8,0.1],[0,-1,0]);
     f3 := create Display_bar1(0,[0.1,0.8,0.1],[-1,0,0]);
@@ -788,10 +781,12 @@ class Main(simulator)
           t := 0; t' := 0;
           mode := "init";
           example := 1;
-          exampleTime := 10;
+          exampleTime := 5;
+          caption := "";
           _3D := [];
  end
- _3D = ["Text",[1,0,1],1,[2,2,0],[pi/2,0,-0.2],example];
+ _3D = [["Text",[-1.5,0.2,-2],0.5,[1.6,1.6,0.5],[pi/2-0.3,0,-0.3],example],
+        ["Text",[-0.5,0,-2],0.3,[1.6,1.6,0.1],[pi/2-0.3,0,-0.3],caption]];
  t' = 1;
  switch mode
   case "init"
@@ -800,6 +795,7 @@ class Main(simulator)
    e := create example_1([0,0,0]);
    mode := "1Continue"
   case "1Continue"
+   caption = "Falling Ball";
    if (t > exampleTime)
     mode := "terminate"
    end;
@@ -807,6 +803,7 @@ class Main(simulator)
    e := create example_2([0,0,0]);
    mode := "2Continue"
   case "2Continue"
+   caption = "2Mass 1Spring";
    if (t > exampleTime)
     mode := "terminate"
    end;
@@ -814,6 +811,7 @@ class Main(simulator)
    e := create example_3([0,0,0]);
    mode := "3Continue"
   case "3Continue"
+   caption = "3Mass 2Spring";
    if (t > exampleTime)
     mode := "terminate"
    end;
@@ -821,6 +819,7 @@ class Main(simulator)
    e := create example_4([0,0,0]);
    mode := "4Continue"
   case "4Continue"
+   caption = "P Control";
    if (t > exampleTime)
     mode := "terminate"
    end;
@@ -828,6 +827,7 @@ class Main(simulator)
    e := create example_5([0,0,0]);
    mode := "5Continue"
   case "5Continue"
+   caption = "PD Control";
    if (t > exampleTime)
     mode := "terminate"
    end;
@@ -835,6 +835,7 @@ class Main(simulator)
    e := create example_6([0,0,0]);
    mode := "6Continue"
   case "6Continue"
+   caption = "None P PD";
    if (t > exampleTime)
     mode := "terminate"
    end;
@@ -842,6 +843,7 @@ class Main(simulator)
    e := create example_7([0,0,0]);
    mode := "7Continue"
   case "7Continue"
+   caption = "2 Spring-Pendulum";
    if (t > exampleTime)
     mode := "terminate"
    end;
@@ -849,6 +851,7 @@ class Main(simulator)
    e := create example_8([0,0,0]);
    mode := "8Continue"
   case "8Continue"
+   caption = "PD for Mass";
    if (t > exampleTime)
     mode := "terminate"
    end;
@@ -856,6 +859,7 @@ class Main(simulator)
    e := create example_9([0,0,0]);
    mode := "9Continue"
   case "9Continue"
+   caption = "PID for Mass";
    if (t > exampleTime)
     mode := "terminate"
    end;
@@ -863,6 +867,7 @@ class Main(simulator)
    e := create example_10(40,10,10,[0,0,0]);
    mode := "10Continue"
   case "10Continue"
+   caption = "PID for Mass-Rod";
    if (t > exampleTime)
     mode := "terminate"
    end;
@@ -870,6 +875,7 @@ class Main(simulator)
    e := create example_11([0,0,0]);
    mode := "11Continue"
   case "11Continue"
+   caption = "Vary PID parameters";
    if (t > exampleTime)
     mode := "terminate"
    end;
@@ -877,6 +883,7 @@ class Main(simulator)
    e := create example_12(25,8,3,[0,0,0]);
    mode := "12Continue"
   case "12Continue"
+   caption = "PID with disturbance";
    if (t > exampleTime)
     mode := "terminate"
    end;
@@ -884,6 +891,7 @@ class Main(simulator)
    e := create example_13(20,2,8,[0,0,0]);
    mode := "13Continue"
   case "13Continue"
+   caption = "PID for 3D-rod";
    if (t > exampleTime)
     mode := "terminate"
    end;
@@ -891,6 +899,7 @@ class Main(simulator)
    e := create example_14();
    mode := "14Continue"
   case "14Continue"
+   caption = "PID for Quad-Copter";
    if (t > exampleTime)
     mode := "terminate"
    end;
@@ -903,5 +912,6 @@ class Main(simulator)
     example := example + 1;
     t := 0;
  end;
- simulator.endTime := 139.5;
+ simulator.endTime := 70;
 end
+
