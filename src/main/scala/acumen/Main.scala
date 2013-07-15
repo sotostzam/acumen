@@ -153,7 +153,13 @@ object Main {
               println("skipping " + f + "")
             } else {
               somethingUpdated = true
-              Examples.writeExampleResult(loc, dn, f, interpreters.reference.Interpreter)
+              try {
+                Examples.writeExampleResult(loc, dn, f, interpreters.reference.Interpreter)
+              } catch {
+                case e => 
+                  println("ERROR when processing " + f + ":")
+                  println("  " + e)
+              }
               println("PROCESSED " + f)
             }
           }

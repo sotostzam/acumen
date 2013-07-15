@@ -18,7 +18,7 @@ object Examples {
       }
     }
     def helper(d: File, relPath: List[String]) : Unit = 
-      for (f <- d.listFiles(filter)) {
+      for (f <- d.listFiles(filter).sorted) {
         val fn = f.getName
         if (f.isDirectory) helper(f, relPath :+ fn)
         else if (fn.endsWith(".acm")) action(relPath.mkString(File.separator), f)
@@ -39,11 +39,16 @@ object Examples {
     val f2 = new File(d2, f.getName+".res")
     val out = new PrintStream(f2)
     val in = new InputStreamReader(new FileInputStream(f))
-    val ast = Parser.run(Parser.prog, in)
-    val tr = util.Transform.transform(ast)
-    intr.run(tr, new DumpSample(out)).last
-    out.close
-    in.close
+    var incompleteOutput = false
+    try {
+      val ast = Parser.run(Parser.prog, in)
+      val tr = util.Transform.transform(ast)
+      intr.run(tr, new DumpSample(out)).last
+    } catch {
+      case e => out.close; f2.delete; throw e
+    } finally {
+      out.close
+      in.close
+    }
   }
-
 }

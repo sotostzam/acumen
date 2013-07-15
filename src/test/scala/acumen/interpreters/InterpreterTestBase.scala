@@ -33,7 +33,7 @@ abstract class InterpreterTestBase extends FunSuite with ShouldMatchers {
     i run tr
   }
 
-  def testExamples(skip: Seq[String] = Nil) = {
+  def testExamples(skip: String => Boolean = {_ => false}) = {
     // Note: 
     //  - To add result file for newly created examples use: sbt "run . examples"
     //  - To update existing result file remove the file and then use the above command
@@ -41,7 +41,7 @@ abstract class InterpreterTestBase extends FunSuite with ShouldMatchers {
       //info(f.toString)
       val testName = "example " + f
       val resFile = Examples.resultFile(Examples.expectLoc, dn, f)
-      if (skip.contains(f.toString)) {
+      if (skip(f.toString)) {
         ignore(testName) {}
       } else if (resFile.exists)
         test(testName) { 
