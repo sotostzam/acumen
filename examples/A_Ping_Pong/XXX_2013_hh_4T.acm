@@ -1,0 +1,1244 @@
+// 2013 Class key feedback:
+//   - Need documentation for models, and interface between
+//     the player and the models.
+//     - It would really help to state very clearly at the start of
+//       the semester what the inputs and outputs to each player are.
+//       Also to know exactly what changes from model to model.
+//   - Please add the energy visualization tool.
+//   - It is really confusing when the model writes variables of
+//     the player.
+//   - “The model currently assumes too much about the player”
+//   - Why does the model change between stages of the project?
+//   - “There are a lot of loopholes in the code”
+//   - It doesn’t make sense to allow the player to set the velocity
+//     in the acceleration model.  That variable looks dead when
+//     you are developing the model, but it is used when there is
+//     a hit.
+//   - In BallActuator, the formula for computing v2 is unnecessarily
+//     complicated (and becomes hard to invert)
+//   - Being able to set initial values for all variables can lead
+//     to unnecessary problems in debuging (such as setting a polar
+//     coordinate to [0,0,0], for example)
+//   - There is a problem with the conventions for bat angles
+//   [Might want to finalize last model, and then work backwards
+//    from that.]
+
+
+// Program:   3-D ping pong (bat controlled through acceleration)
+// Author :   Yingfu Zeng, Adam Duracz, Walid Taha
+// Date   :   2012/02/20
+// License:   BSD, GPL(V2), or other by agreement with Walid Taha
+//
+
+
+/* Players 2013:  
+*/
+
+
+// ----------------------------------------------------------------------
+// Project Terminator: the ball breaking robot
+// Release codename: Fireball
+// ======================================================================
+// Date    : 2013/03/07
+// Authors : Jonas Jonson and Alexey Taktarov
+// ----------------------------------------------------------------------
+class Terminator(n)
+private
+  name       := "Terminator";
+  mode       := "Wait";       // Initial mode is to “Wait”
+  bounced    := false;        // Has the ball bounced?
+  serve      := false;        // Your turn to serve?  (set by Parent)
+  hit        := false;        // Set this to true to hit the ball
+  count      := 0;            // Bounce count
+  ballv      := [0,0,0];      // Ball velocity (set by Parent)
+  ballp      := [0,0,0];      // Ball position (set by Parent)
+  batp       := [1.6,0,0.2];  // Bat  position
+  v          := [0,0,0];      // Bat velocity
+  batAngle   := [0,0,0.1];    // Normal vector of the bat's plane
+  batAngle'  := [0,0,0];
+
+
+  // Player(1) startPoint is [-1.6,0,0.2] and
+  // Player(2) startPoint is [1.6,0,0.2]
+  startPoint := [1.6*(-1)^n,0,0.2];
+  
+  // These coefficients are needed for prediction of ball movement
+  // Coefficient of restitution
+  k_z := [1.0, 1.0, -0.99];
+  // Coeffiecent of air resistance
+  k_a := -1/6;
+
+
+  // Ball acceleration (predicted)
+  ball_a   := [0.0, 0.0, -9.8];
+
+
+  // First prediction poit: time, position, speed
+  // When ball hits the table
+  t1  := 0.0;
+  p1  := [0, 0, 0];
+  pv1 := [0, 0, 0];
+
+
+  // Second prediction point: time, position, speed
+  // The maximum point of the second parabola
+  t2  := 0.0;
+  p2  := [0, 0, 0];
+  pv2 := [0, 0, 0];
+
+
+  // Local timer
+  t          := 0.0;
+  t'         := 1.0;
+
+
+  // Delay
+  reaction   := 0.1;
+
+
+  // Hit point timer
+  timer        := 0.0;
+  timer'       := 5.0;
+
+
+  // Introduced in torunament 2
+  a              := [0,0,0];             // Bat's acceleration (computed by you)
+  estimatedBatV  := [0,0,0];             // Predicted result of acceleration
+  estimatedBatV' := [0,0,0];             // Equated to computed acceleration signal
+  desiredBatP    := [1.6*(-1)^n,0,0.2];  // Desired bat position (from derive)
+  desiredBatP'   := [0,0,0];             // Desired bat speed (from naive)
+
+
+  // Hitting algorithm
+  PredictedHitTime     := 0;
+  PredictedHitTimeMin  := 0.6;
+  PredictedBallSpeed   := 0;
+  HitPoint             := [0,0,0];
+  ChosenHitPoint       := [0,0,0];
+
+
+  // WiffWaff's hitting
+  v2  := [0,0,0];
+  zh  := 0;
+
+
+  // 3rd Tournament Variables  
+  l := 0.447; l' := 0; l'' := 0;
+  alpha := 0.44;        alpha' := 0; alpha'' := 0;
+  theta := 3.1415926/2; theta' := 0; theta'' := 0;
+
+
+  x := 1.6*(-1)^n; x' := 0; x'' := 0;
+  y := 0;    y' := 0; y'' := 0;
+  z := 0.2;  z' := 0; z'' :=0;
+
+
+
+
+  x1 := 1.6*(-1)^n; x1' := 0; x1'' := 0;
+  y1 := 0;    y1' := 0; y1'' := 0;
+  z1 := 0.2;  z1' := 0; z1'' :=0;
+
+
+  xx := -2*(-1)^n;
+  
+  // Prediction pointers (for debugging)
+  _3D := [];
+end
+  t'     = 1;
+  timer' = 5;
+
+
+ // Plan B Cheat :)
+ if norm(a) > 100
+   a := a/norm(a) * 100;
+ end;
+ if norm(estimatedBatV) > 5
+   estimatedBatV := estimatedBatV/norm(estimatedBatV) * 5 ;
+ end;
+
+
+ HitPoint = [(-1)^(n+1) * 0.25 * abs(sin(timer)) + 1*(-1)^(n+1),(-1)^(n+1) * 0.40 * cos(timer),0];
+
+
+ estimatedBatV' = a;
+ desiredBatP'   = estimatedBatV;
+
+
+  _3D := [["Sphere",p1,0.02,[200,0,0],[0,0,0]],
+          ["Sphere",p2,0.02,[0,0,200],[0,0,0]],
+          ["Sphere", ChosenHitPoint,0.02,[0,0,0],[0,0,0]],
+          ["Sphere", HitPoint, 0.02,[0,0,0],[0,0,0]]
+         ];
+   
+  x'' = dot(a, [1,0,0]);
+  y'' = dot(a, [0,1,0]);
+  z'' = dot(a, [0,0,1]);
+
+
+  l'' = ( (x')^2 + (y')^2 + (z')^2 + (x+xx)*x'' +y*y'' +z*z'') / sqrt((x+xx)^2 + y^2 + z^2) -
+        ( ( (x+xx)*x' +y*y' +z*z')^2 ) / sqrt((x+xx)^2 + y^2 + z^2);
+
+
+  alpha'' = (l* (z^3) * l'' + (l^2) * z * (2*(l'^2) - z * z'' + z'^2) - (z^3) * (l'^2) - l^3 * (z* l'' + 2*l'*z') + (l^4)*z'')/(l^3 * (l^2 - z^2) * sqrt( 1 - (z^2)/(l^2) ));      
+  theta'' = -((x+xx) * ( (x+xx) * y * (2 * (x'^2) + y * y'' - 2 * y'^2  ) - (x+xx)^2 * (y * x'' + 2*x'*y') + (y^2) *(2 * x' * y' - y * x'') + ((x+xx)^3)* y''))/(sqrt( ((x+xx)^2) / ( (x+xx)^2 + y^2)) *  (((x+xx)^2+y^2)^(5/2)) );
+switch mode
+  
+  case "Wait"
+    // Reset all variables
+    hit     := false;
+    bounced := false;
+
+
+    a = -50.0 * estimatedBatV;
+    
+    t = 0;
+    
+    if serve == true
+      mode := "Predict";
+    end;
+
+
+  case "Predict"
+    // Bouncing condition
+    if dot(ballp,[0,0,1]) < 0 && bounced == false
+      bounced := true;
+    end;
+
+
+    if bounced == true
+      p1  = ballp;
+      pv1 = ballv;
+      t1  = 0;
+    else
+      // Calculating first prediction point
+      // Linearized air resistance
+      ball_a = [0, 0, -9.8] + k_a * norm(ballv) * ballv;
+     
+      t1 = (1/dot(ball_a, [0, 0, 1])) *        // 1/a
+             (-dot(ballv, [0, 0, 1])      // -v0
+             - 1*sqrt(dot(ballv, [0, 0, 1])*dot(ballv, [0, 0, 1])
+             - 2*dot(ball_a, [0,0,1])*dot(ballp, [0, 0, 1])));
+             
+      p1  =  ballp + ballv .* [t1, t1, t1] + 0.5 * ball_a .* [t1, t1, t1] .* [t1, t1, t1];
+      pv1 =  (ballv + ball_a .* [t1, t1, t1]) .* k_z;
+
+
+      // Check if ball is going out of bounds
+      // We can predict this before it actually happens
+      // This actually can decrease power consuption in some cases.
+      if t > 0.2*t1
+        if dot(p1, [1, 0, 0])*(-1)^n > 1.5 ||
+           dot(p1, [1, 0, 0])*(-1)^n < 0   ||
+           abs(dot(p1, [0, 1, 0])) > 0.75
+          serve := false;
+          mode := "Wait";
+        end;
+      end;
+    end;
+      // Calculating second prediction point
+      // Linearized air resistance
+      ball_a = [0, 0, -9.8] + k_a * norm(pv1) * pv1;
+      
+      t2 = -dot(pv1, [0,0,1]) / dot([0,0,1], ball_a);
+      p2 = p1 + pv1 .* [t2, t2, t2] + 0.5 * ball_a .* [t2, t2, t2] .* [t2, t2, t2];
+      pv2 = p1 + ball_a .* [t2, t2, t2];
+
+
+      if t > reaction*t1
+          // Moving our bat to second prediction point
+          // This is old code for affecting speed directly
+          // v = 1.0 * (p2 - batp) / (t1 + t2);
+
+
+         a = 2 / ((t1 + t2)*(t1 + t2)) * (p2 - batp - estimatedBatV * (t1 + t2));
+      end;
+
+
+      // Is it time to hit the ball?
+      if norm(batp - ballp) < 0.15
+        mode  := "Hit";
+      end;
+
+
+       
+ case "Hit"     
+   ChosenHitPoint := HitPoint;
+   
+   ball_a := [0, 0, -9.8] + k_a * norm(ballv) * ballv;
+   PredictedHitTime := sqrt( -2 * dot(ballp, [0,0,1]) / dot(ball_a, [0,0,1]));
+
+
+   if PredictedHitTime < PredictedHitTimeMin
+     PredictedHitTime := PredictedHitTimeMin;
+   end;
+   
+   PredictedBallSpeed :=  1.2 * (1 / PredictedHitTime) * (
+     ChosenHitPoint -
+     ballp -
+     ball_a * PredictedHitTime * PredictedHitTime / 2
+   );
+
+
+   // WiffWaff's algorithm
+   v2 := (PredictedBallSpeed - ballv) / (-2) ;
+   batAngle := v2 / norm(v2);
+   zh := (norm(v2) - dot(batAngle, [1,0,0])*4) / dot(batAngle, [0,0,1]);
+  
+   v := ballv - [4,0,zh];
+   
+   serve  := false;
+   hit    := true;
+   mode   := "Wait";
+   
+  case "Panic!"
+end;
+end
+
+
+class Player(n) // Based on WiffWaff's speed-control player
+private
+mode      := "Wait";
+name      := "WiffWaff";
+bounced   := false;       // Tell whether the ball bounced or not
+serve := false;           // The Game class will set serve flag to true
+hit   := false;           // when it's your turn
+count := 0;
+ballv := [0,0,0];
+ballp := [0,0,0];
+batp  := [1.6,0,0.2];
+v     := [0,0,0];         // Bat's speed
+a     := [0,0,0];         // Bat's acceleration (computed by controller)
+estimatedBatV  := [0,0,0]; // Predicted result of acceleration
+estimatedBatV' := [0,0,0]; // Equated to computed acceleration signal
+desiredBatP  := [1.6*(-1)^n,0,0.2];     // Desired bat position (from derive)
+desiredBatP' := [0,0,0];     // Desired bat speed (from naive)
+batAngle   := [0,0,0.1];  // Normal vector of the bat's plane
+batAngle'  := [0,0,0];
+// Player(1) starts at [-1.6,0,0.2], Player(2) starts at [1.6,0,0.2]
+startPoint := [1.6*(-1)^n,0,0.2];
+v2         := [0,0,0];    // The output speed of the ball, which we desired
+v21        := [0,0,0];
+zz   := 0;
+n1   := 0;
+t   := 0;
+t'  := 1;
+number := n;
+//
+l := 0.447;l' := 0; l'' := 0;
+alpha := 0.44;        alpha' := 0; alpha'' := 0;
+theta := 3.1415926/2; theta' := 0; theta'' := 0;
+x := 1.6*(-1)^n; x' := 0; x'' := 0;
+y := 0;    y' := 0; y'' := 0;
+z := 0.2;  z' := 0; z'' :=0;
+x1 := 1.6*(-1)^n; x1' := 0; x1'' := 0;
+y1 := 0;    y1' := 0; y1'' := 0;
+z1 := 0.2;  z1' := 0; z1'' :=0;
+polar := [0,0,0];
+end
+number = n;
+startPoint = [1.6*(-1)^number,0,0.2];
+if mode ~= "Wait" && mode ~= "Prepare" && mode ~= "Hit" && mode ~= "Restart"
+mode := "Panic!";
+end;
+t'  = 1;
+switch mode
+case "Wait"               // While waiting, moving the bat to starting point
+count      := 0;
+if n == 1
+v         = startPoint-batp;
+else
+v         = startPoint-batp;
+end;
+batAngle' = [0,0,0]-batAngle;
+hit    := false;
+if serve == true
+mode    := "Prepare";
+bounced := false;
+else
+mode := "Wait";
+end;
+case "Prepare"
+// Prepare to hit the ball
+if bounced == true        // After the ball has bounced,
+// start moving the bat towards the ball
+v = (ballp-batp).*[0,30,0] + (ballp-batp).*[0,0,25] +
+(ballp-batp).*[25,0,0];
+if norm(batp - ballp)<0.15
+count := count+1;
+mode  := "Hit";
+end;
+end;
+// When the ball has bounced and it is at the highest position
+// if count > 0 && dot(ballv,[0,0,1]) < 0.1 && bounced == true
+// mode := "Hit";     // This player decide to hit.
+// end;
+if dot(ballp,[0,0,1]) < 0 && bounced == false
+bounced := true;
+end;
+if(serve ~= true)
+mode := "Wait";
+end;
+case "Hit"           // Decide how you want hit the ball,
+if n == 2
+v2  := [-(dot(ballp, [1,0,0] ) + 0.75 + 0.5 ), -dot( ballp, [0,1,0]
+), 5 - dot(ballp,[0,0,1])];
+v21 := (v2 - ballv) / (-2) ;
+n1   :=  norm(v21);
+batAngle := v21 / n1;
+zz := (n1- dot(batAngle, [1,0,0])*4) / dot(batAngle, [0,0,1]);
+v := ballv - [4,0,zz];
+//v        := [-0.5,0.71,1.37];
+//batAngle := [0.87,0.14,-0.47];
+else
+v2  := [(-dot(ballp, [1,0,0] ) + 0.75 + 0.5 ), -dot( ballp, [0,1,0]
+), 5 - dot(ballp,[0,0,1])];
+v21 := (v2 - ballv) / (-2) ;
+n1   :=  norm(v21);
+batAngle := v21 / n1;
+zz := (n1- dot(batAngle, [1,0,0])*4) / dot(batAngle, [0,0,1]);
+v := ballv - [3,0,zz];
+end;
+serve  := false;
+hit    := true;
+mode   := "Wait";
+desiredBatP := startPoint;
+if n == 1
+estimatedBatV := v - [0,0,10];
+else
+estimatedBatV := v ;
+end;
+
+
+case "Panic!"
+end;
+
+
+// Compute the desired position based on the computed "control" speed
+desiredBatP' = v;
+
+
+// Basic controller to actuate acceleration
+a = 13*(desiredBatP'-estimatedBatV)+ 50*(desiredBatP-batp);
+
+
+// Keep track of effect of acceleration to estimate actual bat speed
+estimatedBatV' = a;
+
+
+x'' = dot(a, [1,0,0]);
+y'' = dot(a, [0,1,0]);
+z'' = dot(a, [0,0,1]);
+
+
+// Fill in the correct equation for l'', theta'', alpha''.
+//
+// The new BatActuator class converts your [l'',theta'',alpha'']
+// back into the cartesian representation [x,y,z]
+
+
+ if n == 2
+ l''     = ((x'^2 + x''*(x-2 ) + y'^2 + y'' * y + z'^2 + z'' * z)*l  - l' * ((x-2 ) * x' + y*y' + z*z'))/ l^2;
+ alpha'' = ((z''*l - l''*z) * l^2 *cos(alpha) - (2*l*l'*cos(alpha) - sin(alpha)*alpha'*l^2)*(z'*l - z*l'))/ (l^2 * cos(alpha))^2;
+ if l*cos(alpha) > 0
+ theta'' = ((-(y''*l*cos(alpha) + (l'*cos(alpha) - sin(alpha)*alpha'*l)*y') + (l''*cos(alpha)*y + (y'*cos(alpha) - sin(alpha)*alpha'*y)*l') - ((cos(alpha)*alpha' + alpha''*sin(alpha))*l*y + (l'*y + y'*l)*sin(alpha)*alpha')
+ )*((2-x)*l*cos(alpha)) - (-x'*l*cos(alpha) + (l'*cos(alpha) - sin(alpha)*alpha'*l)*(2-x))*(-y'*l*cos(alpha) + l'*cos(alpha)*y - sin(alpha)*alpha'*l*y))/((2-x)*l*cos(alpha))^2;
+ else
+ theta'' = ((-(y''*l*cos(alpha) + (l'*cos(alpha) - sin(alpha)*alpha'*l)*y') + (l''*cos(alpha)*y + (y'*cos(alpha) - sin(alpha)*alpha'*y)*l') - ((cos(alpha)*alpha' + alpha''*sin(alpha))*l*y + (l'*y + y'*l)*sin(alpha)*alpha')
+ )*(-(2-x)*l*cos(alpha)) +(-x'*l*cos(alpha) + (l'*cos(alpha) - sin(alpha)*alpha'*l)*(2-x))*(-y'*l*cos(alpha) + l'*cos(alpha)*y - sin(alpha)*alpha'*l*y))/((2-x)*l*cos(alpha))^2;
+ end;
+ 
+ else
+ l''     = ((x'^2 + x''*(x+2 ) + y'^2 + y'' * y + z'^2 + z'' * z)*l  - l' * ((x+2 ) * x' + y*y' + z*z'))/ l^2;
+ alpha'' = ((z''*l - l''*z) * l^2 *cos(alpha) - (2*l*l'*cos(alpha) - sin(alpha)*alpha'*l^2)*(z'*l - z*l'))/ (l^2 * cos(alpha))^2;
+ if cos(alpha) > 0
+ theta'' = ((-(y''*l*cos(alpha) + (l'*cos(alpha) - sin(alpha)*alpha'*l)*y') + (l''*cos(alpha)*y + (y'*cos(alpha) - sin(alpha)*alpha'*y)*l') - ((cos(alpha)*alpha' + alpha''*sin(alpha))*l*y + (l'*y + y'*l)*sin(alpha)*alpha')
+ )*((x+2)*l*cos(alpha)) - (x'*l*cos(alpha) + (l'*cos(alpha) - sin(alpha)*alpha'*l)*(x+2))*(-y'*l*cos(alpha) + l'*cos(alpha)*y - sin(alpha)*alpha'*l*y))/((x+2)*l*cos(alpha))^2;
+ else
+ theta'' = ((-(y''*l*cos(alpha) + (l'*cos(alpha) - sin(alpha)*alpha'*l)*y') + (l''*cos(alpha)*y + (y'*cos(alpha) - sin(alpha)*alpha'*y)*l') - ((cos(alpha)*alpha' + alpha''*sin(alpha))*l*y + (l'*y + y'*l)*sin(alpha)*alpha')
+ )*(-(x+2)*l*cos(alpha)) +(x'*l*cos(alpha) + (l'*cos(alpha) - sin(alpha)*alpha'*l)*(x+2))*(-y'*l*cos(alpha) + l'*cos(alpha)*y - sin(alpha)*alpha'*l*y))/((x+2)*l*cos(alpha))^2;
+ end;
+ end;
+
+
+
+
+end
+
+
+class BatActuator(p1)
+private
+p       := p1;
+p'      := [0,0,0];
+p''     := [0,0,0];
+q       := p1;
+q'      := [0,0,0];
+q''     := [0,0,0];
+angle   := [0,0,0];
+r       := p1;
+r'      := [0,0,0];
+r''     := [0,0,0];
+x := -1.6; x' := 0; x'' := 0;
+y := 0;    y' := 0; y'' := 0;
+z := 0.2;  z' := 0; z'' :=0;
+x1 := -1.6; x1' := 0; x1'' := 0;
+y1 := 0;    y1' := 0; y1'' := 0;
+z1 := 0.2;  z1' := 0; z1'' :=0;
+energy_q  := 0;
+energy_q' := 0;
+energy :=  0;
+energy' := 0;
+l := 0.447;l' := 0; l'' := 0;
+alpha := 0.44;        alpha' := 0; alpha'' := 0;
+theta := 3.1415926/2; theta' := 0; theta'' := 0;
+polar := [0,0,0];
+// For visualization
+l1 := 0.447;
+alpha1 := 0.44;
+theta1 := 3.1415926/2;
+p_center := [0,0,0];
+p_origin := [-2,0,0];
+value := 0;
+diff := 0;
+
+
+mode := "Normal";
+_3D := ["Cylinder",[1,1,1],[0.05,1],[1,1,1],[-0.44,0,3.14/2]];
+
+
+
+
+end
+_3D = ["Cylinder",p_center,[0.05,l1],[1,1,1],[alpha1,0,- theta1]];
+
+
+if norm(p') > 5
+p' := p'/norm(p') * 5 ;
+end;
+if norm(p'') > 100
+p'' := p''/norm(p'') * 100;
+end;
+
+
+if (norm([x,y,z])>2) || (norm([x1,y1,z1]) > 2)
+mode := "ReSet";
+end;
+
+
+p'' = [x1'',y1'',z1''] ;
+polar = [l'', theta'', alpha''];
+
+
+switch mode
+
+
+case "Normal"
+p_center = 0.5*(p + p_origin);
+l1 = norm(p- p_origin);
+alpha1 = asin(dot(p-p_origin, [0,0,1])/l1) ;
+theta1 = asin(dot(p-p_origin, [1,0,0])/(l1*cos(alpha1)));
+// Energy function
+energy' = sqrt(abs(norm(p')*norm(p'')))/2;
+
+
+// g function x'' :=> l''
+z1'' = (l''*sin(alpha) + cos(alpha)*alpha'*l') + (-l*sin(alpha)*alpha'^2 + (alpha''* l + l'*alpha')*cos(alpha));
+y1'' = ((l''*cos(alpha) - sin(alpha)*alpha'*l' - ((cos(alpha)*alpha'^2 + alpha''*sin(alpha))*l + l'*sin(alpha)*alpha'))*cos(theta)+ (-sin(theta)*theta'*(l'*cos(alpha) - sin(alpha)*alpha'*l)) -
+((cos(theta)*theta'^2 + theta''*sin(theta))* l * cos(alpha) + (l'*cos(alpha) - sin(alpha)*alpha'*l)*sin(theta)*theta'));
+x1'' = (l''*cos(alpha) - sin(alpha)*alpha'*l' - ((cos(alpha)*alpha'^2 + alpha''*sin(alpha))*l + l'*sin(alpha)*alpha'))*sin(theta) + (cos(theta)*theta'*(l'*cos(alpha) - sin(alpha)*alpha'*l))
++((-sin(theta)*theta'^2 + theta''*cos(theta))* l * cos(alpha) + (l'*cos(alpha) - sin(alpha)*alpha'*l)*cos(theta)*theta');
+
+
+case "ReSet"
+x := dot(q,[1,0,0]); x' := dot(q',[1,0,0]); //x'' := 0;
+y := dot(q,[0,1,0]); y' := dot(q',[0,1,0]); //y'' := 0;
+z := dot(q,[0,0,1]); z' := dot(q',[0,0,1]); //z'' :=0;
+x1 := dot(q,[1,0,0]); x1' := dot(q',[1,0,0]);// x1'' := 0;
+y1 := dot(q,[0,1,0]); y1' := dot(q',[0,1,0]);// y1'' := 0;
+z1 := dot(q,[0,0,1]); z1' := dot(q',[0,0,1]);// z1'' :=0;
+l := sqrt ((x+2)^2 + y^2 + z^2);
+alpha := asin(z/l);
+theta := acos(y/(l*cos(alpha)));
+l'     := ((x+2)*x' + y*y' + z*z')/l;
+alpha' := (z'*l- z*l')/(l*sqrt(l^2 - z^2));
+theta' := -1*(y'*l*cos(alpha) - (l'*cos(alpha) - sin(alpha)*alpha'*l)*y)/(l*cos(alpha)*(x+2));
+mode := "Normal";
+case "Rest"
+p'' = [0,0,0];
+p'  = [0,0,0];
+q'' = [0,0,0];
+q'  = [0,0,0];
+l1 = 0.447;           l' = 0; l'' = 0;
+alpha1 = 0.44;        alpha' = 0; alpha'' = 0;
+theta1 = 3.1415926/2; theta' = 0; theta'' = 0;
+case "Restart"
+x := -1.6; x' := 0; x'' := 0;
+y := 0;    y' := 0; y'' := 0;
+z := 0.2;  z' := 0; z'' :=0;
+x1 := -1.6; x1' := 0; x1'' := 0;
+y1:= 0;    y1' := 0; y1'' := 0;
+z1 := 0.2;  z1' := 0; z1'' :=0;
+l := 0.447;l' := 0; l'' := 0;
+alpha := 0.44;        alpha' := 0; alpha'' := 0;
+theta := 3.1415926/2; theta' := 0; theta'' := 0;
+p       := p1;
+p'      := [0,0,0];
+p''     := [0,0,0];
+mode := "Normal";
+p_center := 0.5*(p + p_origin);
+l1 := norm(p- p_origin);
+alpha1 := asin(dot(p-p_origin, [0,0,1])/l1) ;
+theta1 := asin(dot(p-p_origin, [1,0,0])/(l1*cos(alpha1)));
+end;
+end
+
+
+class BatActuator2(p1)
+private
+p       := p1;
+p'      := [0,0,0];
+p''     := [0,0,0];
+q       := p1;
+q'      := [0,0,0];
+q''     := [0,0,0];
+angle   := [0,0,0];
+energy_q  := 0;
+energy_q' := 0;
+energy :=  0;
+energy' := 0;
+l := 0.447;l' := 0; l'' := 0;
+alpha := 0.44;        alpha' := 0; alpha'' := 0;
+theta := 3.1415926/2; theta' := 0; theta'' := 0;
+x := 1.6; x' := 0; x'' := 0;
+y := 0;    y' := 0; y'' := 0;
+z := 0.2;  z' := 0; z'' :=0;
+x1 := 1.6;  x1' := 0; x1'' := 0;
+y1 := 0;    y1' := 0; y1'' := 0;
+z1 := 0.2;  z1' := 0; z1'' :=0;
+l1 := 0.447;
+alpha1 := 0.44;
+theta1 := 3.1415926/2;
+p_center := [0,0,0];
+p_origin := [2,0,0];
+mode := "Normal";
+_3D := ["Cylinder",[1,1,1],[0.05,1],[1,1,1],[-0.44,0,3.14/2]];
+
+
+
+
+end
+_3D = ["Cylinder",p_center,[0.05,l1],[1,1,1],[alpha1,0, theta1]];
+if (norm([x,y,z])>2) || (norm([x1,y1,z1]) > 2)
+mode := "ReSet";
+end;
+if norm(p') > 5
+p' := p'/norm(p') * 5 ;
+end;
+if norm(p'') > 100
+p'' := p''/norm(p'') * 100;
+end;
+p'' = [x1'',y1'',z1''];
+switch mode
+case "Normal"
+energy' = sqrt(abs(norm(p')*norm(p'')))/2;
+p_center = 0.5*(p + p_origin);
+l1 = norm(p- p_origin);
+alpha1 = asin(dot(p-p_origin, [0,0,1])/l1) ;
+// Range of asin is -Pi/2 ~ Pi/2, and range of acos is 0 ~ Pi
+
+
+if(dot(p,[0,1,0])) >= 0
+theta1 = asin(dot(p_origin -p, [1,0,0])/(l1*cos(alpha1)));
+else
+theta1 = 3.1415926 - asin(dot(p_origin -p, [1,0,0])/(l1*cos(alpha1)));
+end;
+z1'' = (l''*sin(alpha) + cos(alpha)*alpha'*l') + (-l*sin(alpha)*alpha'^2 + (alpha''* l + l'*alpha')*cos(alpha));
+y1'' = ((l''*cos(alpha) - sin(alpha)*alpha'*l' - ((cos(alpha)*alpha'^2 + alpha''*sin(alpha))*l + l'*sin(alpha)*alpha'))*cos(theta)+ (-sin(theta)*theta'*(l'*cos(alpha) - sin(alpha)*alpha'*l)) -
+((cos(theta)*theta'^2 + theta''*sin(theta))* l * cos(alpha) + (l'*cos(alpha) - sin(alpha)*alpha'*l)*sin(theta)*theta'));
+x1'' = -1*((l''*cos(alpha) - sin(alpha)*alpha'*l' - ((cos(alpha)*alpha'^2 + alpha''*sin(alpha))*l + l'*sin(alpha)*alpha'))*sin(theta) + (cos(theta)*theta'*(l'*cos(alpha) - sin(alpha)*alpha'*l))
++((-sin(theta)*theta'^2 + theta''*cos(theta))* l * cos(alpha) + (l'*cos(alpha) - sin(alpha)*alpha'*l)*cos(theta)*theta'));
+case "Restart"
+x := 1.6; x' := 0; x'' := 0;
+y := 0;    y' := 0; y'' := 0;
+z := 0.2;  z' := 0; z'' :=0;
+x1 := 1.6; x1' := 0; x1'' := 0;
+y1:= 0;    y1' := 0; y1'' := 0;
+z1 := 0.2;  z1' := 0; z1'' :=0;
+l := 0.447;l' := 0; l'' := 0;
+alpha := 0.44;        alpha' := 0; alpha'' := 0;
+theta := 3.1415926/2; theta' := 0; theta'' := 0;
+p       := p1;
+p'      := [0,0,0];
+p''     := [0,0,0];
+mode := "Normal";
+p_center := 0.5*(p + p_origin);
+l1 := norm(p- p_origin);
+alpha1 := asin(dot(p-p_origin, [0,0,1])/l1) ;
+theta1 := asin(dot(p_origin - p, [1,0,0])/(l1*cos(alpha1)));
+case "ReSet"
+x := dot(q,[1,0,0]); x' := dot(q',[1,0,0]); //x'' := 0;
+y := dot(q,[0,1,0]); y' := dot(q',[0,1,0]); //y'' := 0;
+z := dot(q,[0,0,1]); z' := dot(q',[0,0,1]); //z'' :=0;
+x1 := dot(q,[1,0,0]); x1' := dot(q',[1,0,0]);// x1'' := 0;
+y1 := dot(q,[0,1,0]); y1' := dot(q',[0,1,0]);// y1'' := 0;
+z1 := dot(q,[0,0,1]); z1' := dot(q',[0,0,1]);// z1'' :=0;
+l := sqrt ((x-2)^2 + y^2 + z^2);
+alpha := asin(z/l);
+theta := acos(y/(l*cos(alpha)));
+l'     := ((x-2)*x' + y*y' + z*z')/l;
+alpha' := (z'*l- z*l')/(l*sqrt(l^2 - z^2));
+theta' := -1*(y'*l*cos(alpha) - (l'*cos(alpha) - sin(alpha)*alpha'*l)*y)/(l*cos(alpha)*(2-x));
+mode := "Normal";
+case "Rest"
+p'' = [0,0,0];
+p'  = [0,0,0];
+q'' = [0,0,0];
+q'  = [0,0,0];
+l1 = 0.447;           l' = 0; l'' = 0;
+alpha1 = 0.44;        alpha' = 0; alpha'' = 0;
+theta1 = 3.1415926/2; theta' = 0; theta'' = 0;
+end;
+end
+
+
+class Ball ()
+private
+mode := "Fly";
+k_z  := [1,1,-0.99];       // Coefficient of restitution
+k2   := 1/6;               // Coefficient of the air resistance
+p    := [0,0,0.5];         // Position of the ball
+p'   := [5,1,-3];
+p''  := [0,0,0];
+_3D  := ["Sphere",[0,0,0.5],0.03,[1,1,1],[0,0,0]];
+end
+_3D = ["Sphere",p,0.03,[1,1,1],[0,0,0]];
+// Valid modes
+if mode ~= "Fly" && mode ~= "Bounce" && mode ~= "Freeze"
+mode := "Panic!";
+end;
+switch mode
+case "Fly"
+if dot(p,[0,0,1]) < 0 && dot(p',[0,0,1])< 0
+mode := "Bounce";
+else
+p'' = -k2 * norm(p') * p' + [0,0,-9.8];
+end;
+case "Bounce"
+p'   :=  p' .* k_z;    // Bouncing  will lose some energy
+mode := "Fly";
+case "Freeze"           // The ball becomes red to show what is going wrong
+p'  = [0,0,0]; p'' = [0,0,0];
+_3D = ["Sphere",p,0.03,[1,0,0],[0,0,0]];
+case "Panic!"
+end
+end
+class Bat(n,p1)
+private
+p     := p1;
+p'    := [0,0,0];
+angle := [0,0,0.1];
+displayAngle := [0,0,0];
+mode  := "Run";
+_3D   := ["Cylinder",p1,[0.15,0.01],[0.1,0.1,0.1],[0,0,0.5]];
+end
+switch mode
+case "Run"
+if n == 2
+displayAngle  = [0,dot(angle,[0,0,1])*(3.14/2)/norm(angle),
+dot(angle,[0,1,0])*(3.14/2)/norm(angle)]+[0,0,3.14/2];
+_3D            = ["Cylinder",p,[0.15,0.001],
+[0.1,0.1,0.1],displayAngle];
+else
+displayAngle = [dot(angle,[0,0,1])*(3.14/2),0,
+dot(angle,[0,1,0])*(3.14/2)]+[0,0,3.14/2];
+_3D           = ["Cylinder",p,[0.15,0.001],
+[1,0.1,0.1],-1 * displayAngle];
+end;
+case "Rest"
+p'            = [0,0,0];
+_3D           = ["Box",p+[-0.05,0,0],[0.3,0.3,0.3],
+[1,1,0.1],-1 * displayAngle];
+end
+end
+
+
+
+
+class Table()   // The table
+private
+// Table
+_3D := [["Box", [0,0,-0.05],[3,1.5,0.03],[0.1,0.1,1.0],[0,0,0]],
+// TableBases 1~4
+["Box", [-1.4,0.6,-0.3-0.04], [0.05,0.05,0.6], [0.8,0.8,0.8],[0,0,0]],
+["Box", [-1.4,-0.6,-0.3-0.04], [0.05,0.05,0.6], [0.8,0.8,0.8],[0,0,0]],
+["Box", [1.4,-0.6,-0.3-0.04], [0.05,0.05,0.6], [0.8,0.8,0.8],[0,0,0]],
+["Box", [1.4,0.6,-0.3-0.04], [0.05,0.05,0.6], [0.8,0.8,0.8],[0,0,0]],
+// Net
+["Box", [0,0,0.125-0.02], [0.05,1.5,0.25], [0.2,0.8,0.2],[0,0,0]],
+// MiddleLine
+["Box", [0,0,0],[3,0.02,0.02-0.02],[1,1,1],[0,0,0]]]
+end
+end
+
+
+class BallActuator()  // Calculate result of impact
+private
+mode:="Initialize";
+v1 := [0,0,0];      // Input ball speed
+v2 := [0,0,0];      // Output ball speed
+v3 := [0,0,0];      // Bat's speed during the impact
+angle := [0,0,0];   // Bat's normal vector
+done  := false;
+action := 0;
+end
+if mode ~= "Initialize" && mode ~= "Calculate" && mode ~= "Wait"
+mode := "Panic!";
+end;
+switch mode
+case "Initialize"
+done=false;
+if action == 1
+mode := "Calculate";
+end;
+case "Calculate"
+v2     := v1-dot(2.*(v1-v3),angle)*angle;
+action := 0;
+if action == 0
+mode := "Wait";
+end;
+case "Wait"
+done = true;
+case "Panic!"
+end
+end
+
+
+// Sample the velocity of the ball and feed back to the players.
+class BallObserver()
+private
+mode := "Sample";
+p  := [0,0,0];
+v  := [0,0,0];
+pp := [0,0,0];
+ap := [0,0,0];
+t  := 0;
+t' := 1;
+end
+t'=1;
+if mode ~= "Sample" && mode ~= "Estimate0" && mode ~= "Estimate1"
+mode := "Panic!";
+end;
+switch mode
+case "Sample"
+if t > 0
+pp  := p;
+t   := 0;
+mode:= "Estimate0"
+end;
+case "Estimate0"
+if t == 0.01   // Calculate the average speed
+ap   := p;
+mode := "Estimate1";
+end;
+case "Estimate1"
+v    := dot((ap-pp),[1,0,0])/0.01*[1,0,0]+dot((ap-pp),[0,0,1])/0.01*[0,0,1]+
+dot((ap-pp),[0,1,0])/0.01*[0,1,0];
+mode := "Sample";
+t    := 0;
+case "Panic!"
+end
+end
+
+
+class Referee()  // This class will monitors the whole process of the game.
+private
+mode:="Initialize";
+x := 0;x' := 0;
+z := 0;z' := 0;
+y := 0;
+t := 0;t' := 1;
+player1Score := 0;
+player2Score := 0;
+serveNumber  := 2;
+lastHit      := 0;
+reason       := "Nothing";
+checked      := false;    // For the net checking
+bounced      := false;
+restart      := 0;        // Tell the Game to restart
+acknowledged := 0;        // Check if the Game class has received
+//  the restart signal
+bounceTime   := 0;
+status       := "Normal"
+end
+if mode ~= "Initialize" && mode ~= "Player1Lost" && mode ~= "Player2Lost"
+&& mode ~= "SendMessage" && status ~= "Normal" && reason ~= "Nothing"
+&& status ~= "Report" && reason ~= "BallOutOfBoundary"
+&& reason ~= "BallBouncedTwice" && reason ~= "BallTouchNet"
+mode := "Panic!";
+end;
+t'=1;
+if z<0.05 && z'<0 && status == "Normal"  // Check if anyone fouls
+if (abs(y)>0.78||abs(x)>1.53) && status == "Normal"
+reason     := "BallOutOfBoundary";
+if bounced == false
+if x>0
+mode := "Player1Lost";
+else
+mode := "Player2Lost";
+end;
+else
+if bounced == "YesIn2"    // The ball has bounced in player2's court,
+mode := "Player2Lost"     // and out of boundary now, so player2 lose.
+end;
+if bounced == "YesIn1"
+mode := "Player1Lost";
+end;
+end;
+status := "Report";
+end;
+if(abs(y)<0.78 && abs(x)<1.53) && bounced ~= false
+&& t>(bounceTime+0.1) && status=="Normal"
+// The ball has bounced twice in player2's court
+if bounced == "YesIn2" && x > 0
+mode   := "Player2Lost";
+reason := "BallBouncedTwice";
+bounceTime := t;
+end;
+// The ball has bounced twice in player1's court
+if bounced == "YesIn1" && x < 0
+mode   := "Player1Lost";
+reason := "BallBouncedTwice";
+bounceTime := t;
+end;
+end;
+if x<0 && x>-1.5 && bounced == false && status == "Normal"
+bounced    := "YesIn1";
+bounceTime := t;
+end;
+if x>=0 && x<1.5 && bounced == false && status == "Normal"
+bounced    := "YesIn2";
+bounceTime := t;
+end;
+end;
+
+
+
+
+
+
+
+
+if bounced == "YesIn1" && x>0 && status == "Normal"
+bounced := false
+end;
+if bounced == "YesIn2" && x<=0 && status == "Normal"
+bounced := false
+end;
+// Time to check if the ball touches the net
+if abs(x)<0.025 && t>0.1 && checked == false && status == "Normal"
+if z<0.25
+if x'>0
+mode   := "Player1Lost";
+else
+mode   := "Player2Lost"
+end;
+reason  := "BallTouchNet";
+checked := true;
+end;
+end;
+switch mode
+case "Initialize"
+case "Player1Lost"
+player2Score := player2Score+1;
+mode := "SendMessage";
+case "Player2Lost"
+player1Score := player1Score+1;
+mode := "SendMessage";
+case "SendMessage"
+t := 0; // Wait until the Game class gets the restart signal
+restart := 1;
+if acknowledged == 1
+mode := "Initialize";
+acknowledged := 0;
+restart := 0;
+status  := "Normal";
+checked := false;
+bounced := false;
+end;
+case "Panic!"
+end
+end
+
+
+/**
+ * The parent of all the other classes, who controls the
+ * whole process of the game.
+ **/
+class Game ()
+private
+ball    := create Ball ();
+ballob  := create BallObserver();
+ballActuator:= create BallActuator();
+batActuator1 := create BatActuator([-1.6,0,0.2]);
+batActuator2 := create BatActuator2([1.6,0,0.2]);
+player1 := create Player(1);
+player2 := create Player(2);
+bat1    := create Bat(1,[-1.6,0,0.2]);
+bat2    := create Bat(2,[1.6,0,0.2]);
+table   := create Table();
+referee := create Referee();
+mode := "Player2Serve";       // Player2 starts first
+player2Score := 0;
+player1Score := 0;
+serveNumber  := 2;
+t  := 0;
+t' := 1;
+finish := false;
+maxEnergy    := 36;
+diff := 0;
+
+
+_3D := [["Text",[-2.8,6.5,-4],1,[0.3,0,0],[1.7,0,0],""],
+["Text",[2.8,6.5,-4],1,[0.3,0.3,0.3],[1.7,0,0],""],
+["Text",[-1.8,6.5,-0.5],1,[0.6,0,0],[1.7,0,0],""],
+["Text",[1.8,6.5,-0.5],1,[0.1,0.1,0.1],[1.7,0,0],""]];
+
+
+end
+
+
+_3D = [["Text",[-2.8,6.5,-4],1,[0.9,0,0],[1.7,0,0],player1.name],
+["Text",[2.8,6.5,-4],1,[0.1,0.1,0.1],[1.7,0,0],player2.name],
+["Text",[-1.5,6.5,-5],1,[0.6,0,0],[1.7,0,0],player1Score],
+["Text",[4.5,6.5,-5],1,[0.1,0.1,0.1],[1.7,0,0],player2Score]];
+if mode ~= "Restart" && mode ~= "Player1Serve" && mode ~= "Player2Serve"
+&& mode ~= "Impact"  && mode ~= "Freeze" && mode ~= "ChangeSide" && mode ~= "Init"
+&& mode ~= "Act"
+mode := "Panic!"
+end;
+t'=1;
+//diff = norm(batActuator1.polar - player1.polar);
+referee.x  = dot(ball.p,[1,0,0]);
+referee.x' = dot(ball.p',[1,0,0]);
+referee.z  = dot(ball.p,[0,0,1]);
+referee.z' = dot(ball.p',[0,0,1]);
+referee.y  = dot(ball.p,[0,1,0]);
+referee.serveNumber = serveNumber;
+player1Score  = referee.player1Score;
+player2Score  = referee.player2Score;
+ballob.p          = ball.p;
+player1.ballp     = ballob.p;
+player2.ballp     = ballob.p;
+player1.ballv     = ballob.v;
+player2.ballv     = ballob.v;
+if bat1.mode ~= "Rest"
+batActuator1.q'' = player1.a;// [player1.x1'',player1.y1'',player1.z1''];
+batActuator1.l'' = player1.l'';
+batActuator1.theta'' = player1.theta'';
+batActuator1.alpha'' = player1.alpha'';
+
+
+end;
+if bat2.mode ~= "Rest"
+batActuator2.q'' = player2.a;
+batActuator2.l'' = player2.l'';
+batActuator2.theta'' = player2.theta'';
+batActuator2.alpha'' = player2.alpha'';
+end;
+player1.batp  = bat1.p;
+player2.batp  = bat2.p;
+batActuator1.angle = player1.batAngle;
+batActuator2.angle = player2.batAngle;
+
+
+bat1.p  = batActuator1.p;
+bat2.p  = batActuator2.p;
+bat1.angle = batActuator1.angle;
+bat2.angle = batActuator2.angle;
+if batActuator1.energy > maxEnergy
+bat1.mode := "Rest";
+bat1.p'   := [0,0,0];
+batActuator1.p' = [0,0,0]; // Exception
+batActuator1.mode := "Rest";
+
+
+end;
+if batActuator2.energy > maxEnergy
+bat2.mode := "Rest";
+bat2.p'   := [0,0,0];
+batActuator2.p' = [0,0,0]; // Exception
+batActuator2.mode := "Rest";
+
+
+end;
+switch mode
+case "Restart" // Put everything back to the starting point
+ball.p            := [0,0,0.5];
+ball.p'           := [5,1,-3];
+bat2.p            := [1.6,0,0.2];
+player2.batp      := [1.6,0,0.2];
+player2.desiredBatP := player2.batp; // New variables must also be updated
+player2.a         := [0,0,0];
+player2.l := 0.447;player2.l' := 0; player2.l'' := 0;
+player2.alpha := 0.44;        player2.alpha' := 0; player2.alpha'' := 0;
+player2.theta := 3.1415926/2; player2.theta' := 0; player2.theta'' := 0;
+player2.x := 1.6; player2.x' := 0; player2.x'' := 0;
+player2.y := 0;    player2.y' := 0; player2.y'' := 0;
+player2.z := 0.2;  player2.z' := 0; player2.z'' :=0;
+player2.x1 := 1.6; player2.x1' := 0; player2.x1'' := 0;
+player2.y1 := 0;    player2.y1' := 0; player2.y1'' := 0;
+player2.z1 := 0.2;  player2.z1' := 0; player2.z1'' :=0;
+player2.estimatedBatV  := [0,0,0];
+player2.v         := [0,0,0];
+player2.batAngle  := [0.01,0,0];
+player2.bounced   := false;
+player2.ballp     := [1.6,0,0.2];
+bat1.p            := [-1.6,0,0.2];
+player1.batp      := [-1.6,0,0.2];
+player1.v         := [0,0,0];
+batActuator1.mode := "Restart";
+batActuator2.mode := "Restart";
+player1.l := 0.447;player1.l' := 0; player1.l'' := 0;
+player1.alpha := 0.44;        player1.alpha' := 0; player1.alpha'' := 0;
+player1.theta := 3.1415926/2; player1.theta' := 0; player1.theta'' := 0;
+player1.x := -1.6; player1.x' := 0; player1.x'' := 0;
+player1.y := 0;    player1.y' := 0; player1.y'' := 0;
+player1.z := 0.2;  player1.z' := 0; player1.z'' :=0;
+player1.x1 := -1.6; player1.x1' := 0; player1.x1'' := 0;
+player1.y1 := 0;    player1.y1' := 0; player1.y1'' := 0;
+player1.z1 := 0.2;  player1.z1' := 0; player1.z1'' :=0;
+player1.batAngle  := [0.01,0,0];
+player1.bounced   := false;
+player1.batp      := [-1.6,0,0.2];
+player1.desiredBatP := player1.batp; // New variables must also be updated
+player1.a         := [0,0,0];
+player1.estimatedBatV  := [0,0,0];
+batActuator1.p    := [-1.6,0,0.2];
+batActuator1.p'   := [0,0,0];
+batActuator1.p''  := [0,0,0];
+batActuator1.q    := [-1.6,0,0.2];
+batActuator1.q'   := [0,0,0];
+batActuator1.q''  := [0,0,0];
+batActuator2.p    := [1.6,0,0.2];
+batActuator2.p'   := [0,0,0];
+batActuator2.p''  := [0,0,0];
+batActuator2.q    := [1.6,0,0.2];
+batActuator2.q'   := [0,0,0];
+batActuator2.q''  := [0,0,0];
+serveNumber       := 2;
+referee.bounced      := false;
+referee.checked      := false;
+referee.acknowledged := 1;
+mode         := "Player2Serve";
+player1.mode := "Wait";
+player2.mode := "Wait";
+case "Player2Serve" // Player 2 is serving
+player1.serve = false;
+player2.serve =  true;
+if player2.hit == true && norm(bat2.p - ball.p) < 0.15 && bat2.mode ~= "Rest"
+mode := "Impact"
+end;
+if referee.restart == 1
+mode := "Freeze";
+t    := 0;
+end;
+case "Player1Serve" // Player 1 is serving
+player2.serve = false;
+player1.serve = true;
+if player1.hit == true && norm(bat1.p - ball.p) < 0.15 && bat1.mode ~= "Rest"
+mode := "Impact"
+end;
+if referee.restart == 1
+mode := "Freeze";
+t    := 0;
+end;
+case "Impact" // When one player hits the ball
+ballActuator.v1 := ball.p';
+if serveNumber == 2 // Give player2's data to bat actuator
+batActuator2.mode := "ReSet";
+ballActuator.v3     := player2.v;
+bat2.angle      := player2.batAngle;
+ballActuator.angle  := bat2.angle;
+ballActuator.action := 1; // Tell ball actuator to act
+referee.lastHit := 2;
+mode := "Act";
+if referee.restart == 1
+mode := "Freeze";
+t := 0;
+end;
+end;
+if serveNumber == 1 // Give player1's data to actuator
+batActuator1.mode := "ReSet";
+bat1.angle      := player1.batAngle;
+ballActuator.v3     := player1.v;
+bat1.angle      := player1.batAngle;
+ballActuator.angle  := bat1.angle;
+ballActuator.action := 1; // Tell ball Actuator to act
+referee.lastHit := 1;
+mode := "Act";
+if referee.restart == 1
+mode := "Freeze";
+t    := 0;
+end;
+end
+case "Act" // Wait till actuator finish
+if referee.restart == 1
+mode := "Freeze";
+t    := 0;
+end;
+if ballActuator.done == true
+ball.p'       := ballActuator.v2;
+ballActuator.mode := "Initialize";
+mode          := "ChangeSide";
+end;
+case "ChangeSide" // Change the serve number
+if referee.restart == 1
+mode := "Freeze";
+t    := 0;
+end;
+if serveNumber == 2 && dot(ball.p,[1,0,0]) >0 && referee.restart ~= 1
+serveNumber     := 1;
+//batActuator2.mode := "ReSet";
+mode            := "Player1Serve";
+player1.mode    := "Wait";
+player1.bounced := false;
+end;
+if serveNumber == 1 && dot(ball.p,[1,0,0]) <= 0 && referee.restart ~= 1
+serveNumber     := 2;
+//batActuator1.mode := "ReSet";
+mode            := "Player2Serve";
+player2.mode    := "Wait";
+player2.bounced := false;
+end;
+// When someone fouls, showing what's going wrong for 1 second
+case "Freeze"
+if t < 1
+ball.mode := "Freeze";
+batActuator1.mode := "Rest";
+batActuator2.mode := "Rest";
+else
+mode      := "Restart";
+ball.mode := "Fly";
+end;
+case "Panic!"
+end
+end
+
+
+class Main(simulator)
+private
+mode := "Initialize";
+end
+
+
+switch mode
+case "Initialize"
+simulator.timeStep := 0.005;
+simulator.endTime := 20;
+create Game();
+mode := "Round1";
+case  "Round1"
+
+
+end
+end
