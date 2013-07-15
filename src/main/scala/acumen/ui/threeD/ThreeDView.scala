@@ -298,8 +298,8 @@ class _3DDisplay(app: ThreeDView, slider: Slider3d,
       }
     }
    if(currentFrame<_3DView.size){
-    app.transformView(_3DView(currentFrame)._1, _3DView(currentFrame)._2);	        	       view.stopView()
-    //view.startView() 
+    app.transformView(_3DView(currentFrame)._1, _3DView(currentFrame)._2);	        	   
+    view.stopView()
     view.renderOnce() 
    }
   }
