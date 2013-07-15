@@ -55,8 +55,4 @@ object Parameters {
     "minComputationImprovement" -> 0.0001,
     "splittingDegree" -> 1,
     "maxIterations" -> 100)
-  defaults.foreach {
-    case (parm, _) =>
-      acumen.CleanParameters.parms.registerParm(parm, acumen.EnclosureInterpreterType)
-  }
 }

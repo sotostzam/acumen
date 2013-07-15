@@ -27,3 +27,5 @@ bin/
 # Other #
 #########
 benchmark-res/
+model*
+a.out

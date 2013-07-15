@@ -6,6 +6,10 @@ import util.Conversions._
 import scala.math._
 import Errors._
 
+//
+// Common stuff to CStore Interpreters
+//
+
 object Common {
  
   /* get the definition associated with a classname in p */
@@ -50,7 +54,7 @@ object Common {
       case ("-",   GInt(i))    => GInt(-i)
       case ("abs", GDouble(x)) => GDouble(abs(x))
       case ("-",   GDouble(x)) => GDouble(-x)
-	  case ("round", GDouble(x)) => GInt(x.toInt)
+      case ("round", GDouble(x)) => GInt(x.toInt)
       case _                   => GDouble(implem(f, extractDouble(vx)))
     }
   }
@@ -186,5 +190,21 @@ object Common {
          throw UnknownOperator(op)    
     }
   }
- 
+
+  val magicClassTxt =
+    """class Simulator(time, timeStep, outputRows, continuousSkip, endTime, resultType, lastCreatedId) end"""
+  val initStoreTxt =
+    """#0.0 { className = Simulator, parent = %s, time = 0.0, timeStep = 0.01, 
+              outputRows = "WhenChanged", continuousSkip = 0,
+              endTime = 10.0, resultType = @Discrete, nextChild = 0,
+						  seed1 = 0, seed2 = 0 }"""
+
+  lazy val magicClass = Parser.run(Parser.classDef, magicClassTxt)
+  lazy val initStoreRef = Parser.run(Parser.store, initStoreTxt.format("#0"))
+  lazy val initStoreImpr = Parser.run(Parser.store, initStoreTxt.format("none"))
+                                  
+  // register valid simulator parameters
+  val simulatorFields = List("time", "timeStep", "outputRows", "continuousSkip", "endTime", "resultType", "lastCreatedId")
+
+  val specialFields = List("nextChild","parent","className","seed1","seed2")
 }

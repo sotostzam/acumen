@@ -59,7 +59,9 @@ sealed abstract class Predicate {
    * Compute an interval box wrapping the intersection of x with the support
    * of the predicate.
    */
-  def support(x: Box)(implicit rnd: Rounding): Box = this match {
+  def support(x: Box)(implicit rnd: Rounding): Box =
+    if (this(x) == Set(false)) sys.error("empty box")
+    else this match {
     case True  => x
     case False => sys.error("empty support") // note that this represents the empty box not a program failure!
     case Or(left, right) => // FIXME desugar Or into min a'la Realpaver-0.4 user manual, page 16 and contract over min! 
@@ -78,11 +80,11 @@ sealed abstract class Predicate {
           }
         }
       }
-    case All(rs) =>
-      val contracted = rs.foldLeft(x)((res, r) => r.support(res))
-      if (contracted almostEqualTo x) contracted
-      else support(contracted)
-  }
+      case All(rs) =>
+        val contracted = rs.foldLeft(x)((res, r) => r.support(res))
+        if (contracted almostEqualTo x) contracted
+        else support(contracted)
+    }
 
 }
 

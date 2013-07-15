@@ -8,7 +8,12 @@ import scala.util.parsing.json._
 import com.sun.corba.se.impl.corba.CORBAObjectImpl
 import acumen.Errors.{FromJSONError, ShouldNeverHappen}
 
-object Pretty {
+class Pretty {
+
+  var filterStore = false
+
+  var withType = false
+  var exprWithType = false
 
   // A "typeclass" for types that can be pretty-printed
   trait PrettyAble[A] {
@@ -96,12 +101,16 @@ object Pretty {
       breaks(p.defs map pretty[ClassDef])
     }
   
+  // FIXME: Evil global!
+  var _types : Option[scala.collection.Map[Name, TypeLike]] = None
 
   implicit def prettyClassDef : PrettyAble[ClassDef] =
     PrettyAble { d =>
+      if (withType && d._types != null)
+        _types = Some(d._types)
       DocNest(2, 
         "class " :: pretty(d.name) :: 
-        args(d.fields map pretty[Name]) :/:
+        args(d.fields map prettyNameWithType) :/:
         DocGroup(DocNest(2, 
           "private" :/: breakWith(";", d.priv map pretty[Init])) :/: "end") :/:
         pretty(d.body)) :/: "end"
@@ -110,12 +119,20 @@ object Pretty {
   implicit def prettyInit : PrettyAble[Init] =
     PrettyAble { 
       case Init(x,rhs) =>
-        pretty(x) :: " := " :: (
+        prettyNameWithType(x)  :: ":= " :: (
           rhs match {
             case NewRhs(cn,es) => "create " :: pretty(cn) :: args(es map pretty[Expr])
             case ExprRhs(e) => pretty(e)
           })
     }
+
+  def prettyNameWithType(x: Name) : Document = {
+    pretty(x) ::
+    (_types match {
+      case Some(typs) => ":" + typs(x).toString
+      case None => ""
+    })
+  }
 
   implicit def prettyActions : PrettyAble[List[Action]] =
     PrettyAble { as => breakWith(semi, as map pretty[Action]) }
@@ -173,7 +190,7 @@ object Pretty {
         case Sum(e,i,c,t)     => "sum " :: pretty(e) :: " for " :: pretty(i) :: 
                                  " in " :: pretty(c) :: " if " :: pretty(t)
         case TypeOf(cn)       => "type" :: parens(pretty(cn))
-      })
+      }) :: (if (exprWithType && e._type != null) ":" + e._type.toString else "")
     }
   
   def prettyOp(f:Name,es:List[Expr]) =
@@ -199,6 +216,7 @@ object Pretty {
       case GDouble(x) => x.toString
       case GBool(b)   => b.toString
       case GStr(s)    => dquotes(s)
+      case _          => "??"
     }
   
   /* pretty printing of interpreter's internals */
@@ -208,36 +226,49 @@ object Pretty {
       case VLit(i)         => pretty(i)
       case VList(l)        => sepBy("::", l map pretty[Value[A]]) :: "::nil"
       case VVector(l)      => brackets(sepBy(comma :: " ", l map pretty[Value[A]]))
-      case VObjId(Some(a)) => "#" :: a.toString
+      case VObjId(Some(a)) => "#" :: a.cid.toString
       case VObjId(None)    => "#none"
       case VClassName(n)   => pretty(n)
-      case VStepType(t)    => pretty(t)
+      case VResultType(t)  => pretty(t)
     }
   
 
   // better not make it implicit : this is a type alias
-  def prettyObject(o : Map[Name, Value[_]]) = block(prettyEnv(o))
+  def prettyObject(o : GObject) = block(prettyEnv(o))
  
   // better not make it implicit : this is a type alias
-  def prettyEnv(e:Map[Name, Value[_]]) : Document = {
-    val it = e map { case (x,v) => pretty(x) :: " = " :: pretty(v) }
-    breakWith(comma, it.toList)
+  def prettyEnv(e:GObject) : Document = {
+    val sorted = e.toList.sortWith { (a,b) => a._1 < b._1 } 
+    val filtered = if (filterStore) {
+      val VClassName(ClassName(name)) = e.find{_._1 == Name("className",0)}.get._2
+      if (name == "Simulator")
+        sorted.filter { case (x,v) => x.x == "className" || x.x == "time"}
+      else
+        sorted.filter { case (x,_) => x.x == "className" || interpreters.Common.specialFields.indexOf(x.x) == -1 }
+    } else {
+      sorted
+    }
+    val it = filtered.map { case (x,v) => pretty(x) :: " = " :: pretty(v) }
+    breakWith(comma, it)
   }
   
   // better not make it implicit : this is a type alias
-  def prettyStore(s:CStore) : Document = {
-    val it = s map { case (i,o) => 
+  def prettyStore(s:GStore) : Document = {
+    val it = s.toList.sortWith { (a,b) => a._1 < b._1 } map { case (i,o) => 
       "#" + i.toString :: " " :: prettyObject(o) 
     }
     breaks(it.toList)
   }
   
-  implicit def prettyStepType : PrettyAble[StepType] =
+  implicit def prettyStepType : PrettyAble[ResultType] =
     PrettyAble {
-      case Discrete()   => "@Discrete"
-      case Continuous() => "@Continuous"
+      case Discrete   => "@Discrete"
+      case FixedPoint => "@FixedPoint"
+      case Continuous => "@Continuous"
     }
 }
+
+object Pretty extends Pretty
 
 object JSon {
 
@@ -306,10 +337,11 @@ object JSon {
 
   /* translation to JSON */
 
-  def toJSON(t:StepType) = 
+  def toJSON(t:ResultType) = 
     quotes(t match {
-      case Discrete()   => "Discrete"
-      case Continuous() => "Continuous" 
+      case Discrete   => "Discrete"
+      case FixedPoint => "FixedPoint"
+      case Continuous => "Continuous" 
     })
 
   def toJSON(v:Value[_]) : Document = v match {
@@ -318,7 +350,7 @@ object JSon {
     case VVector(l)    => showVal("vector", showList(l map toJSON))
     case VObjId(id)    => showVal("objId", showOption(id))
     case VClassName(n) => showVal("className", quotes(n.x))
-    case VStepType(t)  => showVal("stepType", toJSON(t))
+    case VResultType(t)=> showVal("resultType", toJSON(t))
   }
 
   def toJSON(gv:GroundValue) = gv match {
@@ -383,7 +415,7 @@ object JSon {
       case "vector" => getVector(m("value"))
       case "objId"  => getObjId(m("value"))
       case "className" => getClassName(m("value"))
-      case "stepType" => getStepType(m("value"))
+      case "resultType" => getResultType(m("value"))
 
       case _ => throw ShouldNeverHappen()
     }
@@ -439,10 +471,11 @@ object JSon {
     }
   }
 
-  def getStepType(v: Any) = {
+  def getResultType(v: Any) = {
     v match {
-      case "Discrete" => VStepType(Discrete())
-      case "Continuous" => VStepType(Continuous())
+      case "Discrete"   => VResultType(Discrete)
+      case "FixedPoint" => VResultType(FixedPoint)
+      case "Continuous" => VResultType(Continuous)
       case _ => throw ShouldNeverHappen()
     }
   }
@@ -477,3 +510,4 @@ object JSon {
     }
   }
 }
+

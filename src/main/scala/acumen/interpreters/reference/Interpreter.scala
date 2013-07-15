@@ -240,12 +240,12 @@ object Interpreter extends acumen.CStoreInterpreter {
           }
         }
       case Discretely(da) =>
-        for (ty <- asks(getStepType))
-          if (ty == Continuous()) pass
+        for (ty <- asks(getResultType))
+          if (ty == FixedPoint) pass
           else evalDiscreteAction(da, env, p)
       case Continuously(ca) =>
-        for (ty <- asks(getStepType))
-          if (ty == Discrete()) pass
+        for (ty <- asks(getResultType))
+          if (ty != FixedPoint) pass
           else evalContinuousAction(ca, env, p) 
     }
   }
@@ -333,23 +333,13 @@ object Interpreter extends acumen.CStoreInterpreter {
 
   /* Main simulation loop */  
 
-  def magicClassTxt = 
-    """class Simulator(time, timeStep, endTime, stepType, lastCreatedId) end"""
-  def initStoreTxt  = 
-    """#0.0 { className = Simulator, parent = #0, time = 0.0, timeStep = 0.01, 
-              endTime = 10.0, stepType = @Discrete, nextChild = 0,
-						  seed1 = 0, seed2 = 0 }"""
-  
-  lazy val magicClass = Parser.run(Parser.classDef, magicClassTxt)
-  lazy val initStore  = Parser.run(Parser.store, initStoreTxt)
- 
   def init(prog:Prog) : (Prog, Store) = {
     val cprog = CleanParameters.run(prog, CStoreInterpreterType)
     val sprog = Simplifier.run(cprog)
     val mprog = Prog(magicClass :: sprog.defs)
     val (sd1,sd2) = Random.split(Random.mkGen(0))
     val (id,_,_,st1) = 
-      mkObj(cmain, mprog, None, sd1, List(VObjId(Some(CId(0)))), 1)(initStore)
+      mkObj(cmain, mprog, None, sd1, List(VObjId(Some(CId(0)))), 1)(initStoreRef)
     val st2 = changeParent(CId(0), id, st1)
     val st3 = changeSeed(CId(0), sd2, st2)
     (mprog, st3)
@@ -369,26 +359,21 @@ object Interpreter extends acumen.CStoreInterpreter {
     if (getTime(st) > getEndTime(st)) None
     else Some(
       { val (_,ids,rps,st1) = iterate(evalStep(p), mainId(st))(st)
-        getStepType(st) match {
-          case Discrete() => 
+        getResultType(st) match {
+          case Discrete | Continuous => 
             if (st == st1 && ids.isEmpty && rps.isEmpty) 
-              setStepType(Continuous(), st1)
+              setResultType(FixedPoint, st1)
             else {
               def helper(pair:(CId, CId)) = changeParentM(pair._1, pair._2) 
               val st2 = mapM_(helper, rps.toList) ~> st1
-              st2 -- ids
+              val st3 = st2 -- ids
+              setResultType(Discrete, st3)
             }
-          case Continuous() =>
-            val st2 = setStepType(Discrete(), st1)
+          case FixedPoint =>
+            val st2 = setResultType(Continuous, st1)
             setTime(getTime(st1) + getTimeStep(st1), st2)
         }
       }
     )
-
-
-  // a bit evil I know -- kevina
-  List("time", "timeStep", "endTime", "stepType", "lastCreatedId").foreach { parm => 
-    acumen.CleanParameters.parms.registerParm(parm, acumen.CStoreInterpreterType)
-  }
 
 }

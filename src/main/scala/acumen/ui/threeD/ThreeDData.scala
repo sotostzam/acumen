@@ -177,9 +177,9 @@ class ThreeDData extends Publisher {
     }
   }
   /* Look for endTime in "Main" class */
-  def lookUpEndTime(id: CId, o: CObject) {
+  def lookUpEndTime(id: CId, o: GObject) {
     if (id.equals(new CId(List(0)))) {
-      for ((name, value) <- o.toList) {
+      for ((name, value) <- o) {
         if (name.x == "endTime") {
           this.endTime = extractDouble(value)
         }
@@ -188,10 +188,10 @@ class ThreeDData extends Publisher {
   }
 
 /* Look for 3D camera's position and orientation in "Main" class */
-  def lookUpViewInfo(id: CId, o: CObject) {
+  def lookUpViewInfo(id: CId, o: GObject) {
     //  CId(List()) is the main class
     if(id.equals(new CId(List()))) {
-      for ((name, value) <- o.toList) {
+      for ((name, value) <- o) {
         if (name.x == "_3DView") {
               value match {
               case VVector(l) => {
@@ -207,12 +207,12 @@ class ThreeDData extends Publisher {
     }
   }
   /* Add _3D information of every class to _3DStore */
-  def getData(s: CStore) {
-    for ((id, o) <- s.toList) {
+  def getData(s: GStore) {
+    for ((id, o) <- s) {
       lookUpEndTime(id, o)
       lookUpViewInfo(id, o)
       /* Look for variable named _3D */
-      for ((name, value) <- o.toList) {
+      for ((name, value) <- o) {
         if (name.x == "_3D") {
           value match {
             case VVector(l) => {

@@ -159,11 +159,12 @@ class Controller extends DaemonActor {
     App.ui.plotView.plotPanel.plotter ! plot.Refresh
       
     Swing.onEDT {
-      // d.isInstanceOf[Iterable[CStore]] will not work due to type
+      // d.isInstanceOf[Iterable[GStore]] will not work due to type
       // erasure, must check the first element for its type
-      if (!d.isEmpty() && d.head.isInstanceOf[CStore]) {
-        val _3DSampleInterval = 3;
-        for (cs <- d.asInstanceOf[Iterable[CStore]]) {
+      if (!d.isEmpty() && d.head.isInstanceOf[GStore]) {
+        val _3DSampleInterval = 1; // should no longer be needed due
+                                   // to ability to reduce rows outputted
+        for (cs <- d.asInstanceOf[Iterable[GStore]]) {
           if (n == 0 || n > _3DSampleInterval) {
             threeDData.getData(cs)
             n = 1;

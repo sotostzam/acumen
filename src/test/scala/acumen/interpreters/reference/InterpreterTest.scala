@@ -1,5 +1,6 @@
 package acumen
-package tests
+package interpreters
+package reference
 
 import Errors._
 import util.Filters._
@@ -14,7 +15,11 @@ import util.Transform
 import interpreters.reference.Interpreter
 
 
-class ReferenceInterpreterTest extends InterpreterTestBase with ShouldMatchers {
+class InterpreterTest extends InterpreterTestBase with ShouldMatchers {
+
+  override def suiteName = "Reference InterpreterTest"
+
+  def interpreter = interpreters.reference.Interpreter
 
   def run(in: InputStreamReader) : Unit = {
     val ast = Parser.run(Parser.prog, in)
@@ -22,7 +27,7 @@ class ReferenceInterpreterTest extends InterpreterTestBase with ShouldMatchers {
     for (_ <- (interpreters.reference.Interpreter run tr).ctrace) ()
   }
 
-  testExamples
+  testExamples()
   testShouldRun
   
   def getError(file:String) : Option[AcumenError] = {
@@ -119,7 +124,7 @@ class ReferenceInterpreterTest extends InterpreterTestBase with ShouldMatchers {
              time = 0.0, 
              timeStep = 0.001, 
              endTime = 2.0, 
-             stepType = @Discrete,
+             resultType = @Discrete,
              nextChild = 0 }
 
       #0.2 { className = Ball,
@@ -161,7 +166,7 @@ class ReferenceInterpreterTest extends InterpreterTestBase with ShouldMatchers {
              time = 0.0, 
              timeStep = 0.001, 
              endTime = 2.0, 
-             stepType = @Discrete,
+             resultType = @Discrete,
              nextChild = 0 }
 
       #0.3 { className = Ball,
