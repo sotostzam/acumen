@@ -24,13 +24,17 @@ case class CStoreTraceData(data: Iterable[GStore])
   def iterator = data.iterator
 }
 
+case class ResultKey(id: CId, name: Name, vectorIdx: Option[Int])
+class Result(val key: ResultKey, val startFrame: Int) extends ArrayBuffer[GValue]
+
 class CStoreModel extends TraceModel with InterpreterModel with PlotModel {
   // array of (id, field name, maybe index in vector, start frame, values)
-  private var stores = new ArrayBuffer[(CId, Name, Option[Int], Int, ArrayBuffer[GValue])]
+  private var stores = new ArrayBuffer[Result]
   private var classes = new HashMap[CId,ClassName]
-  private var indexes = new HashMap[(CId,Name,Option[Int]),Int]
+  private var indexes = new HashMap[ResultKey,Int]
   private var ids = new HashSet[CId]
   private var frame = 0
+  private var timeKey : ResultKey = null
 
   // package all variables that need to be updated Atomically into
   // a case class
@@ -77,7 +81,7 @@ class CStoreModel extends TraceModel with InterpreterModel with PlotModel {
 
   def getColumnNameLive(col:Int) = {
     try {
-      val (id,x,i,_,_) = stores(col)
+      val ResultKey(id,x,i) = stores(col).key
       "(#" + id + " : " + classes(id).x + ")." + x.x + "'" * x.primes + 
       (i match { case Some(k) => "["+k+"]" case None => "" }) 
     } catch { case _ => "" }
@@ -91,12 +95,12 @@ class CStoreModel extends TraceModel with InterpreterModel with PlotModel {
       case ("_3D"|"_3DView", _) => ()
       case (_,VVector(u)) =>
         for ((ui,i) <- u zipWithIndex) {
-          val idx = indexes((id,x,Some(i)))
-          stores(idx)._5 += ui
+          val idx = indexes(ResultKey(id,x,Some(i)))
+          stores(idx) += ui
         }
       case _ =>
-        val idx = indexes((id,x,None))
-        stores(idx)._5 += v
+        val idx = indexes(ResultKey(id,x,None))
+        stores(idx) += v
     }
   }
 
@@ -113,21 +117,24 @@ class CStoreModel extends TraceModel with InterpreterModel with PlotModel {
             v match {
               case VVector(u) =>
                 for ((ui,i) <- u zipWithIndex) {
-                  val ar = new ArrayBuffer[GValue]
+                  val ar = new Result(ResultKey(id,x,Some(i)),frame)
                   ar += ui
-                  stores += ((id,x,Some(i),frame,ar))
-                  indexes += (((id,x,Some(i)), stores.size-1))
+                  stores += ar
+                  indexes += ((ar.key, stores.size-1))
                   ids += id
                 }
               case _ =>
-                val ar = new ArrayBuffer[GValue]
+                val ar = new Result(ResultKey(id,x,None),frame)
                 ar += v
-                stores += ((id,x,None,frame,ar))
-                indexes += (((id,x,None), stores.size-1))
+                stores += ar
+                indexes += ((ar.key, stores.size-1))
                 ids += id
             } 
           }
-          classes += ((id, classOf(o)))
+          val className = classOf(o)
+          classes += ((id, className))
+          if (className == cmagic)
+            timeKey = ResultKey(id, Name("time", 0), None)
         }
       }
       frame += 1
@@ -142,7 +149,7 @@ class CStoreModel extends TraceModel with InterpreterModel with PlotModel {
       "???"
     else try {
       val col = stores(column)
-      val v = col._5(row - col._4)
+      val v = col(row - col.startFrame)
       pprint(v)
     } catch { case e => "" } 
   }
@@ -152,7 +159,7 @@ class CStoreModel extends TraceModel with InterpreterModel with PlotModel {
       None
     else try {
       val col = stores(column)
-      val x = extractDouble(col._5(row - col._4))
+      val x = extractDouble(col(row - col.startFrame))
       Some(x)
     } catch { case _ => None }
   }
@@ -165,17 +172,13 @@ class CStoreModel extends TraceModel with InterpreterModel with PlotModel {
   override def getTimes() = {
     if (d.updatingData) 
       throw new java.lang.IllegalStateException
-    (stores find {
-      case (id,Name(x, 0),None,_,_) => 
-        x == "time" && classes(id) == cmagic
-      case _ => false
-    }) match {
-      case Some((_,_,_,_,arr)) => arr map { 
+    if (timeKey == null)
+      new Array[Double](0)
+    else 
+      stores(indexes(timeKey)) map { 
         case VLit(GDouble(x)) => x 
         case _ => throw BadTimeType()
       }
-      case None => throw NoInstanceFound(cmagic)
-    }
   }
 
   override def getPlottables() : IndexedSeq[PlotDoubles] = {
@@ -183,8 +186,8 @@ class CStoreModel extends TraceModel with InterpreterModel with PlotModel {
       throw new java.lang.IllegalStateException
     val res = new ArrayBuffer[PlotDoubles]
 
-    for (((id,fn,_,s,a),idx) <- stores zipWithIndex) {
-      (a(0),fn.x) match {
+    for ((a,idx) <- stores zipWithIndex) {
+      (a(0),a.key.name.x) match {
         case (_, "_3D"|"_3DView") => ()
         case (VLit(GDouble(_) | GInt(_)) | VLit(GInt(_)), _) =>
           val vls = new IndexedSeq[Double] {
@@ -195,7 +198,7 @@ class CStoreModel extends TraceModel with InterpreterModel with PlotModel {
             val _length = a.length
             override def length = _length
           }
-          res += new PlotDoubles(classes(id) == cmagic, fn, s, idx, vls)
+          res += new PlotDoubles(classes(a.key.id) == cmagic, a.key.name, a.startFrame, idx, vls)
         case _ => ()
       }
     }
