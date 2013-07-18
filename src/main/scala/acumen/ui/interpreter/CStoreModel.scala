@@ -58,14 +58,10 @@ class CStoreModel extends TraceModel with InterpreterModel with PlotModel {
   @volatile var d : Data = Data(new Array[String](0), 0, false)
 
   val pending = new ArrayBuffer[TraceData]()
-  val newData = new ArrayBuffer[TraceData]()
 
   def addData(sts:TraceData) = {
     pending.synchronized {
       pending += sts
-    }
-    newData.synchronized {
-      newData += sts
     }
   }
 
@@ -222,15 +218,7 @@ class CStoreModel extends TraceModel with InterpreterModel with PlotModel {
     res
   }
 
-  override def getNewData() = newData.synchronized {
-    if (!newData.isEmpty) {
-      val res = newData.toArray
-      newData.clear
-      res
-    } else {
-      null
-    }
-  }
+  override def getNewData() = {flushPending(); this}
 
   override def getPlotModel = {flushPending(); this}
   override def getTraceModel = {flushPending(); this}

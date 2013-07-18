@@ -5,8 +5,8 @@ package interpreter
 import collection.{Iterable, IndexedSeq}
 
 sealed abstract class Plottable(val simulator: Boolean, 
-                                val fn: Name, 
-                                val startFrame: Int,
+                                val fn: Name,  // fixme: rename
+                                val startFrame: Int, // fixme: rename to offset?
                                 val column: Int /* column in trace table */ )
 {
   def values : IndexedSeq[Any]
