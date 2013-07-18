@@ -24,12 +24,26 @@ case class CStoreTraceData(data: Iterable[GStore])
   def iterator = data.iterator
 }
 
-case class ResultKey(id: CId, name: Name, vectorIdx: Option[Int])
-class Result(val key: ResultKey, val startFrame: Int) extends ArrayBuffer[GValue]
+case class ResultKey(objId: CId, fieldName: Name, vectorIdx: Option[Int])
+abstract class Result[V](val key: ResultKey, val startFrame: Int) extends ArrayBuffer[V] {
+  def getAsString(i: Int) : String
+  def getAsDouble(i: Int) : Double
+  def asDoubles : Seq[Double]
+}
+class DoubleResult(key: ResultKey, startFrame: Int) extends Result[Double](key, startFrame) {
+  def getAsString(i: Int) = apply(i).toString
+  def getAsDouble(i: Int) = apply(i)
+  def asDoubles = this
+}
+class GenericResult(key: ResultKey, startFrame: Int) extends Result[GValue](key, startFrame) {
+  def getAsString(i: Int) = pprint(apply(i))
+  def getAsDouble(i: Int) = extractDoubleNoThrow(apply(i))
+  def asDoubles = view.map{extractDoubleNoThrow(_)}
+}
 
 class CStoreModel extends TraceModel with InterpreterModel with PlotModel {
   // array of (id, field name, maybe index in vector, start frame, values)
-  private var stores = new ArrayBuffer[Result]
+  private var stores = new ArrayBuffer[Result[_]]
   private var classes = new HashMap[CId,ClassName]
   private var indexes = new HashMap[ResultKey,Int]
   private var ids = new HashSet[CId]
@@ -91,16 +105,21 @@ class CStoreModel extends TraceModel with InterpreterModel with PlotModel {
  
   //def ids = stores map { case (id,_,_,_,_) => id }
   private def addVal(id:CId, x:Name, v:GValue) = {
+    def add(idx: Int, vectorIdx: Option[Int], v: GValue) = 
+      (stores(idx), v) match {
+        case (sts:DoubleResult, _) =>                 sts += extractDoubleNoThrow(v)
+        case (sts:GenericResult, _) =>                sts += v
+      }
     (x.x, v) match {
       case ("_3D"|"_3DView", _) => ()
       case (_,VVector(u)) =>
         for ((ui,i) <- u zipWithIndex) {
           val idx = indexes(ResultKey(id,x,Some(i)))
-          stores(idx) += ui
+          add(idx, Some(i), ui)
         }
       case _ =>
         val idx = indexes(ResultKey(id,x,None))
-        stores(idx) += v
+        add(idx, None, v)
     }
   }
 
@@ -114,18 +133,26 @@ class CStoreModel extends TraceModel with InterpreterModel with PlotModel {
           for ((x,v) <- o.toList) addVal(id,x,v)
         else {
           for ((x,v) <- o.toList sortWith(compFields)) {
+            def newResultObj (vectorIdx: Option[Int], v: GValue) = v match {
+              case VLit(GDouble(_)|GInt(_)) => 
+                val ar = new DoubleResult(ResultKey(id,x,vectorIdx),frame)
+                ar += extractDoubleNoThrow(v)
+                ar 
+              case _ =>
+                val ar = new GenericResult(ResultKey(id,x,vectorIdx),frame)
+                ar += v
+                ar
+            }
             v match {
               case VVector(u) =>
                 for ((ui,i) <- u zipWithIndex) {
-                  val ar = new Result(ResultKey(id,x,Some(i)),frame)
-                  ar += ui
+                  var ar = newResultObj(Some(i), ui)
                   stores += ar
                   indexes += ((ar.key, stores.size-1))
                   ids += id
                 }
               case _ =>
-                val ar = new Result(ResultKey(id,x,None),frame)
-                ar += v
+                var ar = newResultObj(None, v)
                 stores += ar
                 indexes += ((ar.key, stores.size-1))
                 ids += id
@@ -149,9 +176,10 @@ class CStoreModel extends TraceModel with InterpreterModel with PlotModel {
       "???"
     else try {
       val col = stores(column)
-      val v = col(row - col.startFrame)
-      pprint(v)
-    } catch { case e => "" } 
+      col.getAsString(row - col.startFrame)
+    } catch {
+      case _ => ""
+    }
   }
 
   override def getDouble(row:Int, column:Int) = {
@@ -159,7 +187,7 @@ class CStoreModel extends TraceModel with InterpreterModel with PlotModel {
       None
     else try {
       val col = stores(column)
-      val x = extractDouble(col(row - col.startFrame))
+      val x = col.getAsDouble(row - col.startFrame)
       Some(x)
     } catch { case _ => None }
   }
@@ -175,10 +203,7 @@ class CStoreModel extends TraceModel with InterpreterModel with PlotModel {
     if (timeKey == null)
       new Array[Double](0)
     else 
-      stores(indexes(timeKey)) map { 
-        case VLit(GDouble(x)) => x 
-        case _ => throw BadTimeType()
-      }
+      stores(indexes(timeKey)).asInstanceOf[IndexedSeq[Double]]
   }
 
   override def getPlottables() : IndexedSeq[PlotDoubles] = {
@@ -187,18 +212,10 @@ class CStoreModel extends TraceModel with InterpreterModel with PlotModel {
     val res = new ArrayBuffer[PlotDoubles]
 
     for ((a,idx) <- stores zipWithIndex) {
-      (a(0),a.key.name.x) match {
+      (a,a.key.fieldName.x) match {
         case (_, "_3D"|"_3DView") => ()
-        case (VLit(GDouble(_) | GInt(_)) | VLit(GInt(_)), _) =>
-          val vls = new IndexedSeq[Double] {
-            override def apply(idx: Int) = extractDoubleNoThrow(a(idx))
-            // store length in a local variable since by the time this
-            // data structure is accesses the more data could already
-            // have been added to the cstore
-            val _length = a.length
-            override def length = _length
-          }
-          res += new PlotDoubles(classes(a.key.id) == cmagic, a.key.name, a.startFrame, idx, vls)
+        case (a0:DoubleResult, _) =>
+          res += new PlotDoubles(classes(a.key.objId) == cmagic, a.key.fieldName, a.startFrame, idx, a0)
         case _ => ()
       }
     }
