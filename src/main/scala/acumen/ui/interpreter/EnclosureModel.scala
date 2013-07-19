@@ -5,28 +5,37 @@ package interpreter
 import Errors._
 import Pretty._
 import collection.mutable.ArrayBuffer
-import collection.mutable.WrappedArray
+import collection.immutable.Vector
+import collection.{immutable => im}
 import javax.swing.event.TableModelListener
 import acumen.interpreters.enclosure.affine.UnivariateAffineEnclosure
 import acumen.interpreters.enclosure.affine.UnivariateAffineScalarEnclosure
 import scala.math.Ordering
 
-class EnclosureModel extends TraceModel with PlotModel with InterpreterModel {
+// Unsafe becuase we can't make an array constant, so it 
+// is still possible to modify the contents even though
+// we are suppose to be immutable
+class UnsafeWrappedArray (val array: Array[Double]) extends im.IndexedSeq[Double] {
+  def apply(i: Int) = array(i)
+  def length = array.length
+}
+
+class EnclosureModel extends InterpreterModel {
 
   var es = new ArrayBuffer[UnivariateAffineEnclosure]
 
   var es2: ArrayBuffer[UnivariateAffineEnclosure] = null
 
-  class Data {
-    var times  = new ArrayBuffer[Double] 
-    var plottables : Iterable[PlotEnclosure] = Iterable.empty[PlotEnclosure]
-    var tableTimes = Array.ofDim[Double](0)
+  class Data extends TraceModel with PlotModel {
+    var times  = Vector.empty[Double]
+    var plottables = im.Seq.empty[PlotEnclosure]
+    var tableTimes = Array.empty[Double]
     var tableData  = Array.ofDim[String](0,0)
     var columnNames : IndexedSeq[String] = IndexedSeq.empty[String]
     var plotTitles : IndexedSeq[String] = IndexedSeq.empty[String]
 
-    def recompute() = {
-      times = es.map(_.domain.hiDouble).foldLeft(ArrayBuffer(es.head.domain.loDouble)) { case (res, t) => res += t }
+    {
+      times = es.map(_.domain.hiDouble).foldLeft(Vector(es.head.domain.loDouble)) { case (res, t) => res :+ t }
 
       // 
 
@@ -37,7 +46,7 @@ class EnclosureModel extends TraceModel with PlotModel with InterpreterModel {
           (varn, primes)
       }
 
-      val enclSeqs = es.head.varNames.
+      val enclSeqs = es.head.varNames.toList.
         map{name => (name, null +: es.map(_(name).toEnclosure))}.toSeq.
         sortWith{(x, y) => Ordering[(String,Int)].lt(splitPrimePartOut(x._1, 0),splitPrimePartOut(y._1, 0))}.
         zipWithIndex.map{case ((name, data),(idx)) => (name, idx + 1, data)}
@@ -115,28 +124,28 @@ class EnclosureModel extends TraceModel with PlotModel with InterpreterModel {
       plotTitles = IndexedSeq("time") ++ enclSeqs.map{case(n,_,_) => n}
       columnNames = IndexedSeq("time") ++ enclSeqs.map{case(n,_,_) => List(n+".min", n+".max")}.flatten
     }
+
+    override def getRowCount() = if (tableData.isEmpty) 0 else tableData(0).size
+    override def getColumnCount() = tableData.size
+    
+    override def getValueAt(row: Int, column: Int) = tableData(column)(row)
+    
+    override def getDouble(row: Int, column: Int) = None
+    
+    override def getPlotTitle(col: Int) = plotTitles(col)
+    
+    override def getColumnName(col: Int) = columnNames(col)
+    
+    override def isEmpty() = tableData.isEmpty
+    
+    override def getTimes() = times
+    
+    override def getTraceViewTimes() = new UnsafeWrappedArray(tableTimes)
+    
+    override def getPlottables() = plottables
   }
 
-  var data = new Data
-
-  override def getRowCount() = if (data.tableData.isEmpty) 0 else data.tableData(0).size
-  override def getColumnCount() = data.tableData.size
-
-  override def getValueAt(row: Int, column: Int) = data.tableData(column)(row)
-
-  override def getDouble(row: Int, column: Int) = None
-
-  override def getPlotTitle(col: Int) = data.plotTitles(col)
-
-  override def getColumnName(col: Int) = data.columnNames(col)
-
-  override def isEmpty() = es.isEmpty
-
-  override def getTimes() = data.times
-
-  override def getTraceViewTimes() = data.tableTimes
-
-  override def getPlottables() = data.plottables
+  var data : Data = null
 
   override def getNewData() = synchronized {
     val res = es2
@@ -156,15 +165,13 @@ class EnclosureModel extends TraceModel with PlotModel with InterpreterModel {
 
   def syncData() = synchronized {
     if (stale) {
-      val d = new Data()
-      d.recompute()
-      data = d
+      data = new Data()
     }
     stale = false
   }
 
-  override def getPlotModel = {syncData(); this}
-  override def getTraceModel = {syncData(); this}
+  override def getPlotModel = {syncData(); data}
+  override def getTraceModel = {syncData(); data}
 
   override def getPlotter = new acumen.ui.plot.EnclosurePlotter()
 }

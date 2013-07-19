@@ -2,7 +2,7 @@ package acumen
 package ui
 package interpreter
 
-import collection.{Iterable, IndexedSeq}
+import scala.collection.immutable._
 
 sealed abstract class Plottable(val simulator: Boolean, 
                                 val fn: Name,  // fixme: rename
@@ -25,35 +25,25 @@ class PlotEnclosure(simulator: Boolean, fn: Name, startFrame: Int, column: Int,
   override def values : IndexedSeq[Enclosure] = v;
 }
 
-abstract class TraceData(val curTime : Double, val endTime : Double) extends Iterable[Object]
+abstract class TraceData(val curTime : Double, val endTime : Double) extends collection.Iterable[Object]
 
-// Accesses to certain members, such as getValueAt, can happen at
-// unpredictable times and on the EDT.  These members should not
-// block, see TraceModel for more info.  Accesses to the other
-// members, such as getPlottable, will not be called while the model
-// is being updated.  If for some reason these members are called as
-// the model is being updated than it is acceptable to throw an
-// exception.
+// PlotModel is immutable.  Access to members of this class can happen
+// at unpredictable times and possible on the EDT; thus, all accesses
+// should be fast and if at all possible lock-free.
 trait PlotModel {
-  // These mebers may be called on the EDT:
   def getRowCount() : Int
   def getValueAt(row:Int, column:Int) : String
   def getPlotTitle(col:Int) : String
   def getDouble(row:Int, column:Int): Option[Double]
   def isEmpty(): Boolean
-  // These members will not get called when the model is updating:
   // getTimes() is expected to have one more element than the data
-  // that is being plotted
-  def getTimes(): IndexedSeq[Double]
+  // that is being plotted when the plottables are enclosures
+  def getTimes(): IndexedSeq[Double] 
   def getTraceViewTimes() = getTimes()
   def getPlottables(): Iterable[Plottable]
 }
 
-// Accesses to members of this class can happen at unpredictable times
-// and always on the EDT.  Methods should never block waiting for a
-// lock.  To avoid data contention issues values should be cached when
-// possible and when that is not possible a dummy value should be
-// returned if the model is being updated.
+// Follows the same guidelines as the PlotModel
 abstract class TraceModel extends javax.swing.table.AbstractTableModel {}
 
 trait InterpreterModel
@@ -64,22 +54,20 @@ trait InterpreterModel
   def incSeqNum() = {_lastSeqNum += 1; _lastSeqNum}
 
   // Add data to eventually be added to the models, Will be called by
-  // the Consumer actor, should be fast.  Should not touch the data
-  // used by the PlotModel or TraceModel in an thread unsafe way.
+  // the Consumer actor, should be fast.
   // Should use any necessary locks to prevent problems if
   // getPlotModel or getTraceModel is called at the same time by a
   // different thread.
-  // (new way: use necessary locks to avoid data contention issues
-  // with getNewData)
   def addData(d: TraceData): Unit
 
-  // Returns an updated plot model for plotting.
-  // (old way)
+  // Returns an updated plot model for plotting, the object returned
+  // should be considered immutable.
   def getPlotModel : PlotModel
 
   // Returns new data to plot, the object returned should be
   // considered immutable.
-  // (new way)
+  // (new way) -- FIXME: eliminate the need, the new plotter should
+  // just the the plot model
   def getNewData : Object
 
   // Return an updated table model for the trace table.
