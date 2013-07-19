@@ -10,6 +10,7 @@ import Errors._
 import Pretty._
 import util.Canonical._
 import util.Conversions._
+import acumen.interpreters.Common.threeDField
 
 case class CStoreTraceData(data: Iterable[GStore]) 
   extends TraceData(getTime(data.last), getEndTime(data.last)) with Iterable[GStore] 
@@ -107,8 +108,8 @@ case class DataModel(columnNames: im.IndexedSeq[String], rowCount: Int,
     val res = new ListBuffer[PlotDoubles]
     for ((a,idx) <- stores zipWithIndex) {
       (a,a.key.fieldName.x) match {
-        case (_, "_3D"|"_3DView") => ()
-        case (a0:DoubleResult, fn) if (parms.plotSimulator || !a.isSimulator) && 
+        case (a0:DoubleResult, fn) if !threeDField(fn) &&
+                                      (parms.plotSimulator || !a.isSimulator) && 
                                       (parms.plotNextChild || fn != "nextChild") && 
                                       (parms.plotSeeds || (fn != "seed1" && fn != "seed2")) =>
           res += new PlotDoubles(a.isSimulator, a.key.fieldName, a.startFrame, idx, a0)
@@ -119,7 +120,8 @@ case class DataModel(columnNames: im.IndexedSeq[String], rowCount: Int,
   }
 }
 
-class CStoreModel extends InterpreterModel {
+class CStoreModel(ops: CStoreOpts) extends InterpreterModel {
+  private var keep3D = ops.keep3D
   private var stores = new ArrayBuffer[ResultCollector[_]]
   private var classes = new HashMap[CId,ClassName]
   private var indexes = new HashMap[ResultKey,Int]
@@ -223,7 +225,7 @@ class CStoreModel extends InterpreterModel {
                   ar
               }
             }
-            v match {
+            if (keep3D || !threeDField(x.x)) v match {
               case VVector(u) =>
                 for ((ui,i) <- u zipWithIndex) {
                   var ar = newResultObj(Some(i), ui)
