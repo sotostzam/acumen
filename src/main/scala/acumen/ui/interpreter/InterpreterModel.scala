@@ -40,7 +40,6 @@ trait PlotModel {
   // getTimes() is expected to have one more element than the data
   // that is being plotted when the plottables are enclosures
   def getTimes(): IndexedSeq[Double] 
-  def getTraceViewTimes() = getTimes()
   def getPlottables(parms: PlotParms): Iterable[Plottable]
 }
 

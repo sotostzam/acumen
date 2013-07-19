@@ -26,7 +26,7 @@ class EnclosureModel extends InterpreterModel {
 
   var es2: ArrayBuffer[UnivariateAffineEnclosure] = null
 
-  class Data extends TraceModel with PlotModel {
+  class Data {
     var times  = Vector.empty[Double]
     var plottables = im.Seq.empty[PlotEnclosure]
     var tableTimes = Array.empty[Double]
@@ -125,24 +125,39 @@ class EnclosureModel extends InterpreterModel {
       columnNames = IndexedSeq("time") ++ enclSeqs.map{case(n,_,_) => List(n+".min", n+".max")}.flatten
     }
 
-    override def getRowCount() = if (tableData.isEmpty) 0 else tableData(0).size
-    override def getColumnCount() = tableData.size
-    
-    override def getValueAt(row: Int, column: Int) = tableData(column)(row)
-    
-    override def getDouble(row: Int, column: Int) = None
-    
-    override def getPlotTitle(col: Int) = plotTitles(col)
-    
-    override def getColumnName(col: Int) = columnNames(col)
-    
-    override def isEmpty() = tableData.isEmpty
-    
-    override def getTimes() = times
-    
-    override def getTraceViewTimes() = new UnsafeWrappedArray(tableTimes)
-    
-    override def getPlottables(p: PlotParms) = plottables
+    val plotModel = new PlotModel {
+      override def getRowCount() = times.length
+      
+      override def getValueAt(row: Int, column: Int) = {
+        val encls = plottables(column-1).values
+        if (row == 0)
+          "(-,[%f,%f])".format(encls(row+1).loLeft, encls(row+1).hiLeft)
+        else if (row == getRowCount() - 1)
+          "([%f,%f],-)".format(encls(row).loRight, encls(row).hiRight)
+        else
+          "([%f,%f],[%f,%f])".format(encls(row).loRight, encls(row).hiRight,
+                                     encls(row+1).loLeft, encls(row+1).hiLeft)
+      }
+      
+      override def getDouble(row: Int, column: Int) = None
+      
+      override def getPlotTitle(col: Int) = plotTitles(col)
+      
+      override def isEmpty() = tableData.isEmpty
+      
+      override def getTimes() = times
+      
+      override def getPlottables(p: PlotParms) = plottables
+    }
+
+    val traceModel = new TraceModel {
+      override def getRowCount() = if (tableData.isEmpty) 0 else tableData(0).size
+      override def getColumnCount() = tableData.size
+      
+      override def getValueAt(row: Int, column: Int) = tableData(column)(row)
+      
+      override def getColumnName(col: Int) = columnNames(col)
+    }
   }
 
   var data : Data = null
@@ -170,8 +185,8 @@ class EnclosureModel extends InterpreterModel {
     stale = false
   }
 
-  override def getPlotModel = {syncData(); data}
-  override def getTraceModel = {syncData(); data}
+  override def getPlotModel = {syncData(); data.plotModel}
+  override def getTraceModel = {syncData(); data.traceModel}
 
   override def getPlotter = new acumen.ui.plot.EnclosurePlotter()
 }

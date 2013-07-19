@@ -177,7 +177,6 @@ class PlotData(parms: PlotParms = null, tb:PlotModel = null, val disableThreshol
   var boundingBox = (0.0, 0.0)
 
   var time : IndexedSeq[Double] = new ArrayBuffer[Double]
-  var traceViewTime : IndexedSeq[Double]= new ArrayBuffer[Double]
   var columnIndices = new ArrayBuffer[Int]
   var yTransformations = new ArrayBuffer[(Double, Double)]
 
@@ -187,7 +186,6 @@ class PlotData(parms: PlotParms = null, tb:PlotModel = null, val disableThreshol
   if (plottables.size == 0 || disabled) ()
   else {
     time = tb.getTimes()
-    traceViewTime = tb.getTraceViewTimes()
 
     columnIndices = new ArrayBuffer[Int]
     for (p <- plottables) {
