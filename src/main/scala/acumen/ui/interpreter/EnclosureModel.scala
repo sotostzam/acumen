@@ -142,7 +142,7 @@ class EnclosureModel extends InterpreterModel {
     
     override def getTraceViewTimes() = new UnsafeWrappedArray(tableTimes)
     
-    override def getPlottables() = plottables
+    override def getPlottables(p: PlotParms) = plottables
   }
 
   var data : Data = null

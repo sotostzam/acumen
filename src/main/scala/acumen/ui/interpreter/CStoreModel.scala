@@ -103,12 +103,14 @@ case class DataModel(columnNames: im.IndexedSeq[String], rowCount: Int,
 
   override def getTimes() = times
 
-  override def getPlottables() : im.Iterable[PlotDoubles] = {
+  override def getPlottables(parms: PlotParms) : im.Iterable[PlotDoubles] = {
     val res = new ListBuffer[PlotDoubles]
     for ((a,idx) <- stores zipWithIndex) {
       (a,a.key.fieldName.x) match {
         case (_, "_3D"|"_3DView") => ()
-        case (a0:DoubleResult, _) =>
+        case (a0:DoubleResult, fn) if (parms.plotSimulator || !a.isSimulator) && 
+                                      (parms.plotNextChild || fn != "nextChild") && 
+                                      (parms.plotSeeds || (fn != "seed1" && fn != "seed2")) =>
           res += new PlotDoubles(a.isSimulator, a.key.fieldName, a.startFrame, idx, a0)
         case _ => ()
       }

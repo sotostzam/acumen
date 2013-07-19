@@ -27,9 +27,10 @@ class PlotEnclosure(simulator: Boolean, fn: Name, startFrame: Int, column: Int,
 
 abstract class TraceData(val curTime : Double, val endTime : Double) extends collection.Iterable[Object]
 
-// PlotModel is immutable.  Access to members of this class can happen
-// at unpredictable times and possible on the EDT; thus, all accesses
-// should be fast and if at all possible lock-free.
+case class PlotParms(plotSimulator: Boolean = false, 
+		     plotNextChild: Boolean = false, 
+		     plotSeeds: Boolean = false)
+
 trait PlotModel {
   def getRowCount() : Int
   def getValueAt(row:Int, column:Int) : String
@@ -40,7 +41,7 @@ trait PlotModel {
   // that is being plotted when the plottables are enclosures
   def getTimes(): IndexedSeq[Double] 
   def getTraceViewTimes() = getTimes()
-  def getPlottables(): Iterable[Plottable]
+  def getPlottables(parms: PlotParms): Iterable[Plottable]
 }
 
 // Follows the same guidelines as the PlotModel

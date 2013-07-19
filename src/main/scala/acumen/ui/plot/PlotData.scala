@@ -169,10 +169,6 @@ class EnclosurePath() extends PlotEntity {
   }
 }
 
-case class PlotParms(plotSimulator:Boolean = false, 
-		             plotNextChild:Boolean = false, 
-		             plotSeeds:Boolean = false)
-		             
 class PlotData(parms: PlotParms = null, tb:PlotModel = null, val disableThreshold: Int = 24) 
 {
   /*private*/ var polys = new ArrayBuffer[PlotEntity]
@@ -185,13 +181,7 @@ class PlotData(parms: PlotParms = null, tb:PlotModel = null, val disableThreshol
   var columnIndices = new ArrayBuffer[Int]
   var yTransformations = new ArrayBuffer[(Double, Double)]
 
-  private def plotit(p: Plottable) = {
-    (parms.plotSimulator || !p.simulator) && 
-    (parms.plotNextChild || p.fn != Name("nextChild",0)) &&
-        	(parms.plotSeeds || (p.fn != Name("seed1",0) && p.fn !=  Name("seed2",0)))
-  }
-
-  val plottables = if (tb == null) Nil else tb.getPlottables() filter plotit
+  val plottables = if (tb == null) Nil else tb.getPlottables(parms)
   val disabled = plottables.size >= disableThreshold
 
   if (plottables.size == 0 || disabled) ()

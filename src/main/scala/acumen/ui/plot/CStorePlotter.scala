@@ -13,7 +13,7 @@ import org.jfree.ui.ApplicationFrame
 import swing.Swing
 
 import acumen.interpreters.enclosure._
-import acumen.ui.interpreter.{PlotDoubles,PlotModel}
+import acumen.ui.interpreter.{PlotParms, PlotDoubles,PlotModel}
 import acumen.util.Canonical._
 import acumen.util.Conversions._
 
@@ -32,7 +32,7 @@ class CStorePlotter extends JFreePlotter {
     println("Yep adding to plot")
     val model = d.asInstanceOf[PlotModel]
     try {
-      for (toPlot <- model.getPlottables) {
+      for (toPlot <- model.getPlottables(PlotParms())) {
         addDataHelper(model, toPlot.asInstanceOf[PlotDoubles])
       }
       //combinedPlot.setNotify(true)
@@ -50,14 +50,6 @@ class CStorePlotter extends JFreePlotter {
     case TooManySubplots =>
   }
 
-  private def plotit(v: GValue, cn: ClassName, fn: Name) = v match {
-    case VLit(GDouble(_) | GInt(_)) =>
-      cn != cmagic && 
-        (fn != Name("nextChild",0)) && 
-        (fn != Name("seed1",0) && fn !=  Name("seed2",0))
-    case _ => false
-  }
-  
   val dataSets = new HashMap[Int,XYSeries]
 
   private def newSubPlot(legendLabel: String, idx: Int) = { // FIXME: rename
@@ -83,7 +75,6 @@ class CStorePlotter extends JFreePlotter {
   var lastFrame = 0
   
   private def addDataHelper(model: PlotModel, toPlot: PlotDoubles) = {
-    // FIXME: Check if we should plot this...
     val times = model.getTimes
     val series = dataSets.getOrElseUpdate(toPlot.column, 
                                           newSubPlot(model.getPlotTitle(toPlot.column), toPlot.column))
