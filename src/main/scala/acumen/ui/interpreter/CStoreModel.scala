@@ -253,4 +253,6 @@ class CStoreModel(ops: CStoreOpts) extends InterpreterModel {
 
   override def getPlotter = new acumen.ui.plot.CStorePlotter()
 
+  override def flush() = {flushPending()}
+
 }

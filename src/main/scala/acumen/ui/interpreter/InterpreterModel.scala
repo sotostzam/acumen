@@ -76,4 +76,7 @@ trait InterpreterModel
   //
   def getPlotter : acumen.ui.plot.JFreePlotter
 
+  // flush pending data to avoid using too much memory if
+  // no other method is called to trigger it
+  def flush() = {}
 }

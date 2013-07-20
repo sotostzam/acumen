@@ -101,6 +101,7 @@ class Plotter(tableI: TableInput, plotI: PlotInput, jPlotI: JPlotInput)
   }
 
   def refresh {
+    App.ui.controller.model.flush
     if (tableI.enabled) {
       val tm = tableI.model()
       App ! TraceModelReady(tm)
@@ -116,7 +117,7 @@ class Plotter(tableI: TableInput, plotI: PlotInput, jPlotI: JPlotInput)
     pm = plotI.model()
     pd = new PlotData(plotI.parms,pm,plotI.disableThreshold)
     repaint()
-  }
+  } 
 
   def updateJPlot = if (jPlotI.enabled && jPlotI.obj.plotter != null) { // FIXME: null check should't be required
     val data = jPlotI.newData()
@@ -149,8 +150,8 @@ class Plotter(tableI: TableInput, plotI: PlotInput, jPlotI: JPlotInput)
           swing.Swing.onEDTWait {jPlotI.obj.showPlot}
         }
     }
-  }
-  
+  } 
+
   def repaint(vp: Rectangle2D = null) = {
     var buf = plotI.buffer()
     val pi = new PlotImage(pd, buf, plotI.plotStyle, vp)
