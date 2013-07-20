@@ -332,13 +332,13 @@ object Parser extends MyStdTokenParsers {
   def field = name ~! "=" ~! value ^^ { case x ~ _ ~ v => (x, v) }
 
   def value: Parser[CValue] =
-    gvalue ^^ VLit[CId] | vObjId | vClassName | vStepType
+    gvalue ^^ VLit | vObjId | vClassName | vStepType
 
   def objid = cidLit ^^ toCId
 
   def vObjId = ("none" ^^^ None | objid ^^ (id => Some(id))) ^^ VObjId[CId]
-  def vClassName = className ^^ VClassName[CId]
+  def vClassName = className ^^ VClassName
   def vStepType = "@" ~! ("Continuous" ^^^ Continuous | "FixedPoint" ^^^ FixedPoint | "Discrete" ^^^ Discrete) ^^
-    { case _ ~ st => VResultType[CId](st) }
+    { case _ ~ st => VResultType(st) }
 
 }

@@ -25,7 +25,7 @@ object _3DTests extends Properties("acumen") {
 	
 	/* _3D Position,color,angle should all be a vector with 3 numbers */
 	property("checkVecorContent Correctness") =
-    forAll { (x:List[VLit[CId]]) =>
+    forAll { (x:List[VLit]) =>
 			if ((x.size == 3) && isNumber(x(0)) && isNumber(x(1)) && isNumber(x(2)))	
 				app.threeDData.checkVectorContent(x) == true 
       else

@@ -212,9 +212,9 @@ object Generators  {
   
 	/* New generators */
 	/* Value class has an type of CId, see AST file for details */
-	implicit def arbLitGroundValue : Arbitrary[VLit[CId]] =
+	implicit def arbLitGroundValue : Arbitrary[VLit] =
 		Arbitrary {
-			arbitrary[GroundValue].map(VLit[CId])
+			arbitrary[GroundValue].map(VLit)
 		/*
 			val genLitInt    :Gen[VLit[GroundValue]]   = for(e <- Arbitrary.arbitrary[GInt])    yield VLit(e)
 			val genLitDouble :Gen[VLit[GroundValue]]   = for(e <- Arbitrary.arbitrary[GDouble]) yield VLit(e)
@@ -224,11 +224,11 @@ object Generators  {
 		*/
   }
 	implicit def arbValue : Arbitrary[Value[CId]] = 
-		Arbitrary(arbitrary[VLit[CId]] | arbitrary[VVector[CId]] )
+		Arbitrary(arbitrary[VLit] | arbitrary[VVector[CId]] )
 	// TODO: Arbitrary generated VVector will casue over flow, when vector's elements can also be vector	
 	implicit def arbVVector : Arbitrary[VVector[CId]] = 
 		Arbitrary{
-			arbitrary[List[VLit[CId]]].map(VVector[CId])
+			arbitrary[List[VLit]].map(VVector[CId])
 		}	
 
   implicit def arbCObject: Arbitrary[CObject] =
