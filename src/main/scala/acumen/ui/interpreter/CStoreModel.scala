@@ -2,21 +2,15 @@ package acumen
 package ui
 package interpreter
 
+import scala.collection.JavaConversions._
+import scala.collection.mutable.{ArrayBuffer, HashMap, HashSet, ListBuffer}
+import scala.collection.{immutable => im}
+
+import Errors._
 import Pretty._
 import util.Canonical._
 import util.Conversions._
-
-import scala.io._
-import collection.mutable.ArrayBuffer
-import collection.mutable.HashMap
-import collection.mutable.HashSet
-import collection.JavaConversions._
-import scala.collection.immutable.Stream
-
-import javax.swing.table.TableModel
-import javax.swing.table.AbstractTableModel
-
-import Errors._
+import acumen.interpreters.Common.threeDField
 
 case class CStoreTraceData(data: Iterable[GStore]) 
   extends TraceData(getTime(data.last), getEndTime(data.last)) with Iterable[GStore] 
@@ -24,30 +18,128 @@ case class CStoreTraceData(data: Iterable[GStore])
   def iterator = data.iterator
 }
 
-class CStoreModel extends TraceModel with InterpreterModel with PlotModel {
-  // array of (id, field name, maybe index in vector, start frame, values)
-  private var stores = new ArrayBuffer[(CId, Name, Option[Int], Int, ArrayBuffer[GValue])]
+// Note: This class is a prime canadaite for speculation
+class Collector[T : ClassManifest] extends IndexedSeq[T] {
+  private[this] var _data = new Array[T](32)
+  private[this] var _size = 0
+  def array = _data
+  def length = _size
+  def apply(index: Int) = _data(index)
+  def += (el: T) = {
+    if (_data.size == _size) {
+      val newData = new Array[T](_data.size * 2)
+      Array.copy(_data, 0, newData, 0, _data.size)
+      _data = newData
+    }
+    _data(size) = el
+    _size += 1
+  }
+}
+class Snapshot[T](coll: Collector[T]) extends im.IndexedSeq[T]  {
+  val length = coll.length
+  val array = coll.array
+  def apply(index: Int) = array(index)
+}
+
+case class ResultKey(objId: CId, fieldName: Name, vectorIdx: Option[Int])
+
+abstract class ResultCollector[T : ClassManifest](val key: ResultKey, val isSimulator: Boolean, val startFrame: Int) extends Collector[T] {
+  def snapshot : Result[T]
+}
+class DoubleResultCollector(key: ResultKey, simulator: Boolean, startFrame: Int) extends ResultCollector[Double](key, simulator, startFrame) {
+  override def snapshot = new DoubleResult(this)
+}
+class GenericResultCollector(key: ResultKey, simulator: Boolean, startFrame: Int) extends ResultCollector[GValue](key, simulator, startFrame) {
+  override def snapshot = new GenericResult(this)
+}
+
+abstract class Result[T](coll: ResultCollector[T]) extends Snapshot[T](coll) {
+  val key = coll.key
+  val isSimulator = coll.isSimulator
+  val startFrame = coll.startFrame
+  def getAsString(i: Int) : String
+  def getAsDouble(i: Int) : Double
+  def asDoubles : Seq[Double]
+}
+class DoubleResult(coll: ResultCollector[Double]) extends Result[Double](coll) 
+{
+  def getAsString(i: Int) = apply(i).toString
+  def getAsDouble(i: Int) = apply(i)
+  def asDoubles = this
+}
+class GenericResult(coll: ResultCollector[GValue]) extends Result[GValue](coll) {
+  def getAsString(i: Int) = pprint(apply(i))
+  def getAsDouble(i: Int) = extractDoubleNoThrow(apply(i))
+  def asDoubles = view.map{extractDoubleNoThrow(_)}
+}
+
+case class DataModel(columnNames: im.IndexedSeq[String], rowCount: Int, 
+                     times: im.IndexedSeq[Double], stores: im.IndexedSeq[Result[_]])
+     extends TraceModel with PlotModel 
+{
+  override def getRowCount = rowCount
+  override def getColumnCount = columnNames.length
+
+  override def getValueAt(row:Int, column:Int) = {
+    try {
+      val col = stores(column)
+      col.getAsString(row - col.startFrame)
+    } catch {
+      case _ => ""
+    }
+  }
+
+  override def getDouble(row:Int, column:Int) = {
+    try {
+      val col = stores(column)
+      val x = col.getAsDouble(row - col.startFrame)
+      Some(x)
+    } catch { case _ => None }
+  }
+
+  override def getPlotTitle(col:Int) = columnNames(col)
+  override def getColumnName(col:Int) = columnNames(col)
+
+  override def isEmpty() = rowCount == 0
+
+  override def getTimes() = times
+
+  override def getPlottables(parms: PlotParms) : im.Iterable[PlotDoubles] = {
+    val res = new ListBuffer[PlotDoubles]
+    for ((a,idx) <- stores zipWithIndex) {
+      (a,a.key.fieldName.x) match {
+        case (a0:DoubleResult, fn) if !threeDField(fn) &&
+                                      (parms.plotSimulator || !a.isSimulator) && 
+                                      (parms.plotNextChild || fn != "nextChild") && 
+                                      (parms.plotSeeds || (fn != "seed1" && fn != "seed2")) =>
+          res += new PlotDoubles(a.isSimulator, a.key.fieldName, a.startFrame, idx, a0)
+        case _ => ()
+      }
+    }
+    res.toList
+  }
+}
+
+class CStoreModel(ops: CStoreOpts) extends InterpreterModel {
+  private var keep3D = ops.keep3D
+  private var stores = new ArrayBuffer[ResultCollector[_]]
   private var classes = new HashMap[CId,ClassName]
-  private var indexes = new HashMap[(CId,Name,Option[Int]),Int]
+  private var indexes = new HashMap[ResultKey,Int]
   private var ids = new HashSet[CId]
   private var frame = 0
+  private var timeKey : ResultKey = null
 
   // package all variables that need to be updated Atomically into
   // a case class
-  case class Data(columnNames: Array[String],
-                  rowCount: Int,
+  case class Data(model: DataModel,
                   updatingData: Boolean)
-  @volatile var d : Data = Data(new Array[String](0), 0, false)
+  @volatile var d : Data = Data(DataModel(im.IndexedSeq.empty,0,im.IndexedSeq.empty,im.IndexedSeq.empty), false)
 
   val pending = new ArrayBuffer[TraceData]()
-  val newData = new ArrayBuffer[TraceData]()
 
   def addData(sts:TraceData) = {
     pending.synchronized {
       pending += sts
-    }
-    newData.synchronized {
-      newData += sts
     }
   }
 
@@ -65,8 +157,10 @@ class CStoreModel extends TraceModel with InterpreterModel with PlotModel {
       }
       for (sts <- pd)
         addDataHelper(sts)
-      d = Data(columnNames = stores.indices map {i => getColumnNameLive(i)} toArray,
-               rowCount = frame,
+      d = Data(model = DataModel(columnNames = stores.indices.map{i => getColumnNameLive(i)},
+                                 rowCount = frame,
+                                 times = stores(indexes(timeKey)).asInstanceOf[DoubleResultCollector].snapshot,
+                                 stores = stores.view.map{st => st.snapshot}.toIndexedSeq),
                updatingData = false)
     } catch {
       case e => 
@@ -77,26 +171,29 @@ class CStoreModel extends TraceModel with InterpreterModel with PlotModel {
 
   def getColumnNameLive(col:Int) = {
     try {
-      val (id,x,i,_,_) = stores(col)
+      val ResultKey(id,x,i) = stores(col).key
       "(#" + id + " : " + classes(id).x + ")." + x.x + "'" * x.primes + 
       (i match { case Some(k) => "["+k+"]" case None => "" }) 
     } catch { case _ => "" }
   }
-
-
  
   //def ids = stores map { case (id,_,_,_,_) => id }
   private def addVal(id:CId, x:Name, v:GValue) = {
+    def add(idx: Int, vectorIdx: Option[Int], v: GValue) = 
+      (stores(idx), v) match {
+        case (sts:DoubleResultCollector, _) =>  sts += extractDoubleNoThrow(v)
+        case (sts:GenericResultCollector, _) => sts += v
+      }
     (x.x, v) match {
       case ("_3D"|"_3DView", _) => ()
       case (_,VVector(u)) =>
         for ((ui,i) <- u zipWithIndex) {
-          val idx = indexes((id,x,Some(i)))
-          stores(idx)._5 += ui
+          val idx = indexes(ResultKey(id,x,Some(i)))
+          add(idx, Some(i), ui)
         }
       case _ =>
-        val idx = indexes((id,x,None))
-        stores(idx)._5 += v
+        val idx = indexes(ResultKey(id,x,None))
+        add(idx, None, v)
     }
   }
 
@@ -109,111 +206,53 @@ class CStoreModel extends TraceModel with InterpreterModel with PlotModel {
         if (ids contains id) 
           for ((x,v) <- o.toList) addVal(id,x,v)
         else {
+          val className = classOf(o)
+          val isSimulator = className == cmagic
+          if (isSimulator)
+            timeKey = ResultKey(id, Name("time", 0), None)
+          classes += ((id, className))
           for ((x,v) <- o.toList sortWith(compFields)) {
-            v match {
+            def newResultObj (vectorIdx: Option[Int], v: GValue) = {
+              val key = ResultKey(id,x,vectorIdx)
+              v match {
+                case VLit(GDouble(_)|GInt(_)) => 
+                  val ar = new DoubleResultCollector(ResultKey(id,x,vectorIdx),isSimulator,frame)
+                  ar += extractDoubleNoThrow(v)
+                  ar 
+                case _ =>
+                  val ar = new GenericResultCollector(ResultKey(id,x,vectorIdx),isSimulator,frame)
+                  ar += v
+                  ar
+              }
+            }
+            if (keep3D || !threeDField(x.x)) v match {
               case VVector(u) =>
                 for ((ui,i) <- u zipWithIndex) {
-                  val ar = new ArrayBuffer[GValue]
-                  ar += ui
-                  stores += ((id,x,Some(i),frame,ar))
-                  indexes += (((id,x,Some(i)), stores.size-1))
+                  var ar = newResultObj(Some(i), ui)
+                  stores += ar
+                  indexes += ((ar.key, stores.size-1))
                   ids += id
                 }
               case _ =>
-                val ar = new ArrayBuffer[GValue]
-                ar += v
-                stores += ((id,x,None,frame,ar))
-                indexes += (((id,x,None), stores.size-1))
+                var ar = newResultObj(None, v)
+                stores += ar
+                indexes += ((ar.key, stores.size-1))
                 ids += id
             } 
           }
-          classes += ((id, classOf(o)))
         }
       }
       frame += 1
     }
   }
 
-  override def getRowCount = d.rowCount
-  override def getColumnCount = d.columnNames.length
+  override def getNewData() = {flushPending(); d.model}
 
-  override def getValueAt(row:Int, column:Int) = {
-    if (d.updatingData) 
-      "???"
-    else try {
-      val col = stores(column)
-      val v = col._5(row - col._4)
-      pprint(v)
-    } catch { case e => "" } 
-  }
-
-  override def getDouble(row:Int, column:Int) = {
-    if (d.updatingData)
-      None
-    else try {
-      val col = stores(column)
-      val x = extractDouble(col._5(row - col._4))
-      Some(x)
-    } catch { case _ => None }
-  }
-
-  override def getPlotTitle(col:Int) = d.columnNames(col)
-  override def getColumnName(col:Int) = d.columnNames(col)
-
-  override def isEmpty() = d.rowCount == 0
-
-  override def getTimes() = {
-    if (d.updatingData) 
-      throw new java.lang.IllegalStateException
-    (stores find {
-      case (id,Name(x, 0),None,_,_) => 
-        x == "time" && classes(id) == cmagic
-      case _ => false
-    }) match {
-      case Some((_,_,_,_,arr)) => arr map { 
-        case VLit(GDouble(x)) => x 
-        case _ => throw BadTimeType()
-      }
-      case None => throw NoInstanceFound(cmagic)
-    }
-  }
-
-  override def getPlottables() : IndexedSeq[PlotDoubles] = {
-    if (d.updatingData) 
-      throw new java.lang.IllegalStateException
-    val res = new ArrayBuffer[PlotDoubles]
-
-    for (((id,fn,_,s,a),idx) <- stores zipWithIndex) {
-      (a(0),fn.x) match {
-        case (_, "_3D"|"_3DView") => ()
-        case (VLit(GDouble(_) | GInt(_)) | VLit(GInt(_)), _) =>
-          val vls = new IndexedSeq[Double] {
-            override def apply(idx: Int) = extractDoubleNoThrow(a(idx))
-            // store length in a local variable since by the time this
-            // data structure is accesses the more data could already
-            // have been added to the cstore
-            val _length = a.length
-            override def length = _length
-          }
-          res += new PlotDoubles(classes(id) == cmagic, fn, s, idx, vls)
-        case _ => ()
-      }
-    }
-    res
-  }
-
-  override def getNewData() = newData.synchronized {
-    if (!newData.isEmpty) {
-      val res = newData.toArray
-      newData.clear
-      res
-    } else {
-      null
-    }
-  }
-
-  override def getPlotModel = {flushPending(); this}
-  override def getTraceModel = {flushPending(); this}
+  override def getPlotModel = {flushPending(); d.model}
+  override def getTraceModel = {flushPending(); d.model}
 
   override def getPlotter = new acumen.ui.plot.CStorePlotter()
+
+  override def flush() = {flushPending()}
+
 }

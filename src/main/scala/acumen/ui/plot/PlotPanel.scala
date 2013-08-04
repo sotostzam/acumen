@@ -186,20 +186,20 @@ class PlotPanel(pub:Publisher) extends Panel
   private def findTimeIndex(t:Double) : (Double, Int) = {
     def findIn(min:Int, max:Int) : (Double, Int) = {
       if (max - min <= 1) {
-        val tmax = pd.traceViewTime(max)
-        val tmin = pd.traceViewTime(min)
+        val tmax = pd.time(max)
+        val tmin = pd.time(min)
         if (math.abs(tmax-t) < math.abs(tmin-t)) 
           (tmax, max)
         else (tmin, min)
       }
       else {
         val middle = (max+min)/2
-        if (pd.traceViewTime(middle) < t) findIn(middle, max)
+        if (pd.time(middle) < t) findIn(middle, max)
         else findIn(min, middle)
       }
     }
-    if (pd.traceViewTime.isEmpty) (0,0)
-    else findIn(0, pd.traceViewTime.size-1)
+    if (pd.time.isEmpty) (0,0)
+    else findIn(0, pd.time.size-1)
   }
 
   listenTo(mouse.moves)
@@ -267,21 +267,7 @@ class PlotPanel(pub:Publisher) extends Panel
           // name of the column
           val name = model.getPlotTitle(column)
           // value of the column as a string
-          var value = model.getValueAt(row, column).asInstanceOf[String]
-          // FIXME: This is an incredible ugly hack to check if we area
-          //   displaying enclosures instead of a real trace view.
-          if (model.getPlotTitle(0) == "time" && value(0) == '[') {
-            if (row == 0)
-              value = "(-,%s)".format(value)
-            else if (row == model.getRowCount() - 1)
-              value = "(%s,-)".format(value)
-            else {
-              if (row % 2 == 0) row -= 1
-              value = "(%s,%s)".format(model.getValueAt(row, column).asInstanceOf[String],
-                                       model.getValueAt(row + 1, column).asInstanceOf[String])
-            }
-          }
-          // publish a pointed at event
+          var value = model.getValueAt(row, column)
           pub.publish(PointedAtEvent(qt, name, value))
           // update the green dot Y coordinate
           val (scale, shift) = pd.yTransformations(hb)

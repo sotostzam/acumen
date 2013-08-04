@@ -2,14 +2,14 @@ name := "acumen"
 
 version := "10-devel"
 
-scalaVersion := "2.9.2"
+scalaVersion := "2.9.3"
 
 theMainClass := "acumen.ui.GraphicalMain"
 
 libraryDependencies ++= Seq(
-  "org.scala-lang" % "scala-swing" % "2.9.2",
-  "org.scalatest" %% "scalatest" % "2.0.M1" % "test",
-  "org.scalacheck" %% "scalacheck" % "1.10.0" % "test"
+  "org.scala-lang" % "scala-swing" % "2.9.3",
+  "org.scalatest" %% "scalatest" % "2.0.M5b" % "test",
+  "org.scalacheck" %% "scalacheck" % "1.10.1" % "test"
 )
 
 resolvers += "tuxfamily" at "http://download.tuxfamily.org/arakhne/maven/"
@@ -35,8 +35,8 @@ libraryDependencies ++= Seq(
 // FIXME: Is this necessary
 retrieveManaged := true
 
-/* SCCT */
-seq(ScctPlugin.instrumentSettings : _*)
+// SCCT
+// seq(ScctPlugin.instrumentSettings : _*)
 
 //
 // Exclude files that start with XXX from the jar file

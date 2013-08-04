@@ -109,9 +109,10 @@ class CStoreOpts {
   var continuousSkip = 0
   var outputInternalState = false // controls "parent", "nextChild", "seed1", "seed2" but not "className"
   var outputSimulatorState = false // does not control Simulator.time, Simulator.resultType, or Simulator.endTime
-  var outputPlottables = true 
-  var output3D = true 
-  var outputMisc = true // anything not covered by the above
+  var keep3D = false
+  //var outputPlottables = true 
+  //var output3D = true 
+  //var outputMisc = true // anything not covered by the above
 }
 
 object ShouldAddData extends Enumeration {
@@ -246,8 +247,8 @@ trait CStoreInterpreter extends Interpreter {
   type Store
   def repr (s:Store) : CStore
 
-  override def newInterpreterModel = new CStoreModel
-  
+  override def newInterpreterModel = new CStoreModel(new CStoreOpts)
+
   def fromCStore (cs:CStore, root:CId) : Store
   def init(prog:Prog) : (Prog, Store)
   def step(p:Prog, st:Store) : Option[Store]

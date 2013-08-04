@@ -4,7 +4,7 @@ package plot
 
 import java.awt.{BasicStroke, Color}
 import scala.collection.JavaConversions._
-import scala.collection.mutable.{Buffer, Map,HashMap,HashSet,ArrayBuffer}
+import scala.collection.mutable.{Buffer,Map,HashMap,HashSet,ArrayBuffer}
 import org.jfree.chart._
 import org.jfree.chart.plot._
 import org.jfree.chart.renderer.xy.XYDifferenceRenderer
@@ -13,16 +13,13 @@ import org.jfree.ui.ApplicationFrame
 import swing.Swing
 
 import acumen.interpreters.enclosure._
-import acumen.ui.interpreter.TraceData
+import acumen.ui.interpreter.{PlotParms, PlotDoubles,PlotModel}
 import acumen.util.Canonical._
 import acumen.util.Conversions._
 
 case object TooManySubplots extends Exception
 
 class CStorePlotter extends JFreePlotter {
-
-  private var ids = new HashSet[CId]
-  private var indexes = new HashMap[(CId,Name,Option[Int]),Int]
 
   def renderer(color: Color) = {
     val ren = new org.jfree.chart.renderer.xy.XYLineAndShapeRenderer(true,false)
@@ -32,12 +29,18 @@ class CStorePlotter extends JFreePlotter {
 
   def addToPlot(d: Object) = try {
     //combinedPlot.setNotify(false)
-    val ds = d.asInstanceOf[Array[interpreter.TraceData]]
-    for (sts <- ds)
-      addDataHelper(sts)
-    //combinedPlot.setNotify(true)
-    for (ds <- dataSets) {
-      ds.fireSeriesChanged()
+    println("Yep adding to plot")
+    val model = d.asInstanceOf[PlotModel]
+    try {
+      for (toPlot <- model.getPlottables(PlotParms())) {
+        addDataHelper(model, toPlot.asInstanceOf[PlotDoubles])
+      }
+      //combinedPlot.setNotify(true)
+      for (ds <- dataSets.values) {
+        ds.fireSeriesChanged()
+      }
+    } finally {
+      lastFrame = model.getRowCount
     }
     //for (p <- subPlotsList) {
     //  p.notifyListeners(new org.jfree.chart.event.PlotChangeEvent(p))
@@ -47,17 +50,9 @@ class CStorePlotter extends JFreePlotter {
     case TooManySubplots =>
   }
 
-  private def plotit(v: GValue, cn: ClassName, fn: Name) = v match {
-    case VLit(GDouble(_) | GInt(_)) =>
-      cn != cmagic && 
-        (fn != Name("nextChild",0)) && 
-        (fn != Name("seed1",0) && fn !=  Name("seed2",0))
-    case _ => false
-  }
-  
-  val dataSets = ArrayBuffer[XYSeries]()
+  val dataSets = new HashMap[Int,XYSeries]
 
-  private def addSubPlot(legendLabel: String) = {
+  private def newSubPlot(legendLabel: String, idx: Int) = { // FIXME: rename
     if (!App.ui.jPlotI.forsedDisable && subPlotsList.size > 24) {
       println("Too Many Subplots, Disabling!")
       App.ui.jPlotI.enabled = false
@@ -68,84 +63,35 @@ class CStorePlotter extends JFreePlotter {
       throw TooManySubplots
     }
     val p = initXYPlot(legendLabel)
-    //p.setNotify(false)
     val s = new XYSeries(legendLabel,false,true)
-    //s.setNotify(false)
-    dataSets += s
     val sc = new XYSeriesCollection(s)
     p.setDataset(sc)
     p.setRenderer(renderer(Color.red))
     combinedPlot.add(p, 1)
     subPlotsList += p
-    subPlotsList.size - 1
+    s
   }
-
-  private def addDataHelper(sts:interpreter.TraceData) = {
-    def compIds(ido1:(CId,_), ido2:(CId,_)) = ido1._1 < ido2._1
-    def compFields(p1:(Name,GValue),p2:(Name,GValue)) = 
-      Ordering[(String,Int)] lt ((p1._1.x, p1._1.primes),(p2._1.x, p2._1.primes))
-    // First dig out the time value
-    for (st <- sts) {
-      // first dig out the time value
-      var time = 0.0
-      for ((id,o) <- st.asInstanceOf[GStore]) {
-        for ((x,v) <- o.toList) 
-          if (x == Name("time",0) && classOf(o) == cmagic) {
-            time = extractDouble(v)
-          }
-      }
-      // now we can plot the rest
-      for ((id,o) <- st.asInstanceOf[GStore].toList.sortWith(compIds)) {
-        if (!ids.contains(id)) {
-          for ((x,v) <- o.toList sortWith(compFields)) {
-            v match {
-              case VVector(u) =>
-                for ((ui,i) <- u zipWithIndex) {
-                  if (plotit(ui, classOf(o), x)) {
-                    val idx = addSubPlot("(#" + id + " : " + classOf(o).x + ")." + x.x + "'" * x.primes + "["+i+"]")
-                    indexes += (((id,x,Some(i)), idx))
-                  } else {
-                    indexes += (((id,x,Some(i)), -1))
-                  }
-                }
-              case _ =>
-                if (plotit(v, classOf(o), x)) {
-                  val idx = addSubPlot("(#" + id + " : " + classOf(o).x + ")." + x.x + "'" * x.primes)
-                  indexes += (((id,x,None), idx))
-                } else {
-                  indexes += (((id,x,None), -1))
-                }
-            } 
-          }
-          ids += id
-        }
-        for ((x,v) <- o.toList) addVal(id,x,time,v)
-      }
+  
+  var lastFrame = 0
+  
+  private def addDataHelper(model: PlotModel, toPlot: PlotDoubles) = {
+    val times = model.getTimes
+    val series = dataSets.getOrElseUpdate(toPlot.column, 
+                                          newSubPlot(model.getPlotTitle(toPlot.column), toPlot.column))
+    var i = lastFrame
+    val offset = toPlot.startFrame
+    series.setNotify(false) 
+    while (i - offset < toPlot.values.length) {
+      series.add(times(i),toPlot.values(i-offset),true)
+      i += 1
     }
-  }
-
-  private def addVal(id:CId, x:Name, t:Double, v:GValue) = v match {
-    case VVector(u) =>
-      for ((ui,i) <- u zipWithIndex) {
-        val idx = indexes((id,x,Some(i)))
-        if (idx != -1)
-          addPoint(idx, t, extractDoubleNoThrow(ui))
-      }
-    case _ =>
-      val idx = indexes((id,x,None))
-      if (idx != -1) 
-        addPoint(idx, t, extractDoubleNoThrow(v))
-  }
-
-  private def addPoint(idx: Int, t: Double, v: Double) {
-    dataSets(idx).add(t, v, false)
+    series.setNotify(true)
   }
 
   override def resetPlot = {
     super.resetPlot
-    ids.clear
-    indexes.clear
     dataSets.clear
+    lastFrame = 0
   }
 
 }

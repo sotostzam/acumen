@@ -37,7 +37,7 @@ object Filters {
           case (_,o) => {
             if (o contains ny) {
               val y = o(ny)
-              o.updated(ny,VLit[CId](GDouble(0))).updated(nz,y)
+              o.updated(ny,VLit(GDouble(0))).updated(nz,y)
             } else o
           } 
         }

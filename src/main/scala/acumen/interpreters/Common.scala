@@ -207,4 +207,7 @@ object Common {
   val simulatorFields = List("time", "timeStep", "outputRows", "continuousSkip", "endTime", "resultType", "lastCreatedId")
 
   val specialFields = List("nextChild","parent","className","seed1","seed2")
+
+  def threeDField(name: String) = 
+    name == "_3D" || name == "_3DView"
 }

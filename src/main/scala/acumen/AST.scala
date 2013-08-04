@@ -150,7 +150,7 @@ package acumen {
   sealed abstract class Value[+Id]
 
   /* Example: 42 (or "a", or 4.2 ...) */
-  case class VLit[Id](gv: GroundValue) extends Value[Id]
+  case class VLit(gv: GroundValue) extends Value
 
   /* Example: 1::3::4::nil */
   case class VList[Id](l: List[Value[Id]]) extends Value[Id]
@@ -162,10 +162,10 @@ package acumen {
   case class VObjId[Id <: GId](a: Option[Id]) extends Value[Id]
 
   /* Example: Ball */
-  case class VClassName[Id](cn: ClassName) extends Value[Id]
+  case class VClassName(cn: ClassName) extends Value
 
   /* Example: @Continuous */
-  case class VResultType[Id](s: ResultType) extends Value[Id]
+  case class VResultType(s: ResultType) extends Value
 
   /* ==== Canonical (reference) representation of object ids. ==== */
 
