@@ -213,7 +213,7 @@ class Pretty {
   implicit def prettyGroundValue : PrettyAble[GroundValue] =
     PrettyAble {
       case GInt(i)    => i.toString
-      case GDouble(x) => x.toString
+      case GDouble(x) => "%f".format(x)
       case GBool(b)   => b.toString
       case GStr(s)    => dquotes(s)
       case _          => "??"

@@ -1,8 +1,8 @@
 #0 { className = Main, mode = "Persist", simulator = #0.0 }
-#0.0 { className = Simulator, time = 0.0 }
+#0.0 { className = Simulator, time = 0.000000 }
 #0.1 {
   className = Ball,
-  m = 1.0,
+  m = 1.000000,
   mode = "Fly",
   x = 5,
   x' = 10,
@@ -13,58 +13,58 @@
 }
 ------------------------------0
 #0 { className = Main, mode = "Persist", simulator = #0.0 }
-#0.0 { className = Simulator, time = 0.003 }
+#0.0 { className = Simulator, time = 0.003000 }
 #0.1 {
   className = Ball,
-  m = 1.0,
+  m = 1.000000,
   mode = "Fly",
-  x = 5.03,
-  x' = -10.0,
+  x = 5.030000,
+  x' = -10.000000,
   x'' = 0,
-  y = 4.9999118,
-  y' = -0.029400000000000003,
-  y'' = -9.8
+  y = 4.999912,
+  y' = -0.029400,
+  y'' = -9.800000
 }
 ------------------------------2
 #0 { className = Main, mode = "Persist", simulator = #0.0 }
-#0.0 { className = Simulator, time = 0.5070000000000003 }
+#0.0 { className = Simulator, time = 0.507000 }
 #0.1 {
   className = Ball,
-  m = 1.0,
+  m = 1.000000,
   mode = "Fly",
-  x = -0.00999999999999665,
-  x' = 10.0,
+  x = -0.010000,
+  x' = 10.000000,
   x'' = 0,
-  y = 3.7330070000000015,
-  y' = -4.96859999999999,
-  y'' = -9.8
+  y = 3.733007,
+  y' = -4.968600,
+  y'' = -9.800000
 }
 ------------------------------171
 #0 { className = Main, mode = "Persist", simulator = #0.0 }
-#0.0 { className = Simulator, time = 1.0110000000000003 }
+#0.0 { className = Simulator, time = 1.011000 }
 #0.1 {
   className = Ball,
-  m = 1.0,
+  m = 1.000000,
   mode = "Fly",
-  x = 5.03,
-  x' = -10.0,
+  x = 5.030000,
+  x' = -10.000000,
   x'' = 0,
-  y = -0.023254599999994404,
-  y' = 9.907800000000025,
-  y'' = -9.8
+  y = -0.023255,
+  y' = 9.907800,
+  y'' = -9.800000
 }
 ------------------------------340
 #0 { className = Main, mode = "Persist", simulator = #0.0 }
-#0.0 { className = Simulator, time = 10.002000000000267 }
+#0.0 { className = Simulator, time = 10.002000 }
 #0.1 {
   className = Ball,
-  m = 1.0,
+  m = 1.000000,
   mode = "Fly",
-  x = 4.2199999999999935,
-  x' = 10.0,
+  x = 4.220000,
+  x' = 10.000000,
   x'' = 0,
-  y = 4.8416809999999995,
-  y' = 0.4703999999999998,
-  y'' = -9.8
+  y = 4.841681,
+  y' = 0.470400,
+  y'' = -9.800000
 }
 ------------------------------3357
