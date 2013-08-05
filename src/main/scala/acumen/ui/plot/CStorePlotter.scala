@@ -29,7 +29,7 @@ class CStorePlotter extends JFreePlotter {
 
   def addToPlot(d: Object) = try {
     //combinedPlot.setNotify(false)
-    println("Yep adding to plot")
+    println("Adding data to plot")
     val model = d.asInstanceOf[PlotModel]
     try {
       for (toPlot <- model.getPlottables(PlotParms())) {
