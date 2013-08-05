@@ -40,7 +40,6 @@ object Examples {
     val f2 = new File(d2, f.getName+".res")
     val out = new PrintStream(f2)
     val in = new InputStreamReader(new FileInputStream(f))
-    var incompleteOutput = false
     try {
       val ast = Parser.run(Parser.prog, in)
       val tr = util.Transform.transform(ast)

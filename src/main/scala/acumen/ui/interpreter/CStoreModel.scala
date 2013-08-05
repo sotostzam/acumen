@@ -18,7 +18,7 @@ case class CStoreTraceData(data: Iterable[GStore])
   def iterator = data.iterator
 }
 
-// Note: This class is a prime canadaite for speculation
+// Note: This class is a prime candidate for specialization
 class Collector[T : ClassManifest] extends IndexedSeq[T] {
   private[this] var _data = new Array[T](32)
   private[this] var _size = 0
