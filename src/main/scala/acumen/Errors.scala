@@ -3,7 +3,7 @@ import Pretty._
 
 object Errors {
 
-  sealed abstract class AcumenError extends Exception
+  sealed abstract class AcumenError extends RuntimeException
   case class ParseError(message:String) extends AcumenError {
     override def getMessage = message
   }
