@@ -170,7 +170,7 @@ object Generators  {
       for {
         lhs <- arbitrary[GroundValue]
         inv <- arbitrary[Expr]
-            rhs <- arbitrary[List[Action]]
+        rhs <- arbitrary[List[Action]]
       } yield Clause(lhs, inv, rhs)
     }
 
