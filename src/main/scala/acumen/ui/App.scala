@@ -39,6 +39,7 @@ import swing.{Action, BorderPanel, BoxPanel, ButtonGroup, CheckMenuItem,
 			  TabbedPane, Table}
 import swing.event._
 import scala.Boolean
+import acumen.interpreters.{reference,newreference,enclosure,imperative}
 import acumen.interpreters.enclosure.ivp.PicardSolver
 import acumen.interpreters.enclosure.ivp.LohnerSolver
 import acumen.interpreters.enclosure.event.pwl.PWLEventEncloser
@@ -129,13 +130,13 @@ class App extends SimpleSwingApplication {
   private val plotStyleLinesAction          = new Action(  "Lines")      { mnemonic =   VK_L; def apply = plotView.setPlotStyle(plot.Lines()) }
   private val plotStyleDotsAction           = new Action(  "Dots")       { mnemonic =   VK_D; def apply = plotView.setPlotStyle(plot.Dots()) }
   private val plotStyleBothAction           = new Action(  "Both")       { mnemonic =   VK_B; def apply = plotView.setPlotStyle(plot.Both()) }
-  private val floatingPointNewAction        = mkActionMask("Traditional Functional 2",  VK_2, NONE,       shortcutMask | SHIFT_MASK, setInterpreter(new CStoreCntrl(interpreters.newreference.Interpreter)))
-  private val floatingPointAction           = mkActionMask("Traditional Functional",    VK_F, VK_R,       shortcutMask | SHIFT_MASK, setInterpreter(new CStoreCntrl(interpreters.reference.Interpreter))) 
-  private val floatingPointImperativeAction = mkActionMask("Traditional Imparative",    VK_I, VK_I,       shortcutMask | SHIFT_MASK, setInterpreter(new CStoreCntrl(new interpreters.imperative.ImperativeInterpreter))) 
+  private val floatingPointNewAction        = mkActionMask("Traditional Functional 2",  VK_2, NONE,       shortcutMask | SHIFT_MASK, setInterpreter("newreference"))
+  private val floatingPointAction           = mkActionMask("Traditional Functional",    VK_F, VK_R,       shortcutMask | SHIFT_MASK, setInterpreter("reference"))
+  private val floatingPointImperativeAction = mkActionMask("Traditional Imparative",    VK_I, VK_I,       shortcutMask | SHIFT_MASK, setInterpreter("imperative")) 
   private val floatingPointParallelAction   = mkActionMask("Traditional Parallel",      VK_P, VK_P,       shortcutMask | SHIFT_MASK, promptForNumberOfThreads)
-  private val pwlHybridSolverAction         = mkActionMask("Enclosure PWL",             VK_L, VK_L,       shortcutMask | SHIFT_MASK, setInterpreter(new EnclosureCntrl(interpreters.enclosure.Interpreter.asPWL))) 
-  private val eventTreeHybridSolverAction   = mkActionMask("Enclosure EVT",             VK_T, VK_T,       shortcutMask | SHIFT_MASK, setInterpreter(new EnclosureCntrl(interpreters.enclosure.Interpreter.asEVT)))
-  private val contractionAction             = mkActionMask("Contraction",               VK_C, VK_C,       shortcutMask | SHIFT_MASK, interpreters.enclosure.Interpreter.toggleContraction)
+  private val pwlHybridSolverAction         = mkActionMask("Enclosure PWL",             VK_L, VK_L,       shortcutMask | SHIFT_MASK, setInterpreter("enclosure-pwl")) 
+  private val eventTreeHybridSolverAction   = mkActionMask("Enclosure EVT",             VK_T, VK_T,       shortcutMask | SHIFT_MASK, setInterpreter("enclosure-evt"))
+  private val contractionAction             = mkActionMask("Contraction",               VK_C, VK_C,       shortcutMask | SHIFT_MASK, enclosure.Interpreter.toggleContraction)
   private val tutorialAction                = mkAction(    "Core Acumen Tutorial",      VK_T, VK_F1,      tutorial)
   private val aboutAction                   = new Action(  "About")      { mnemonic =   VK_A; def apply = about }
   
@@ -155,7 +156,7 @@ class App extends SimpleSwingApplication {
         console.log("Number of threads set to " + userNumberOfThreads + ".\n")
         userNumberOfThreads
       }
-      setInterpreter(new CStoreCntrl(interpreters.imperative.ParallelInterpreter(lastNumberOfThreads)))
+      setInterpreter("parallel", lastNumberOfThreads.toString)
     } catch {
       case _ =>
         console.logError("Bad number of threads.")
@@ -445,16 +446,15 @@ class App extends SimpleSwingApplication {
       mnemonic = Key.S
       contents ++= Seq(playMenuItem, stepMenuItem, stopMenuItem)
     }
-    
-    contents += new Menu("Semantics") {
-      mnemonic = Key.S
+
+    object semantics {
       val newRef = new RadioMenuItem("") {
         selected = false
         enableWhenStopped(this)
         action = floatingPointNewAction
       }
       val ref = new RadioMenuItem("") {
-        selected = !GraphicalMain.useEnclosures
+        selected = false
         enableWhenStopped(this)
         action = floatingPointAction
       }
@@ -471,28 +471,33 @@ class App extends SimpleSwingApplication {
       val pwl = new RadioMenuItem("") {
         action = pwlHybridSolverAction
         enableWhenStopped(this)
-        selected = GraphicalMain.useEnclosures && 
-          interpreters.enclosure.Interpreter.strategy.eventEncloser.getClass == classOf[PWLEventEncloser] 
+        selected = false // GraphicalMain.useEnclosures && 
+          //enclosure.Interpreter.strategy.eventEncloser.getClass == classOf[PWLEventEncloser] 
       }
       val et = new RadioMenuItem("") {
         action = eventTreeHybridSolverAction
         enableWhenStopped(this) 
-        selected = GraphicalMain.useEnclosures &&
-          interpreters.enclosure.Interpreter.strategy.eventEncloser.getClass == classOf[TreeEventEncloser]
+        selected = false // GraphicalMain.useEnclosures &&
+          //enclosure.Interpreter.strategy.eventEncloser.getClass == classOf[TreeEventEncloser]
       }
       val bg = new ButtonGroup(ref, newRef, impr, par, pwl, et)
       val ls = new CheckMenuItem("") {
         action = contractionAction
-        enabledWhenStopped += (this, () => interpreter.interpreter.getClass == interpreters.enclosure.Interpreter.getClass)
-        enabled = GraphicalMain.useEnclosures
-        selected = interpreters.enclosure.Interpreter.strategy.eventEncloser.ivpSolver.getClass == classOf[LohnerSolver]
+        enabledWhenStopped += (this, () => interpreter.interpreter.getClass == enclosure.Interpreter.getClass)
+        enabled = false //GraphicalMain.useEnclosures
+        selected = enclosure.Interpreter.strategy.eventEncloser.ivpSolver.getClass == classOf[LohnerSolver]
         /* Enable/disable Contraction menu item depending on the chosen semantics */
         for (b <- bg.buttons) listenTo(b) 
         reactions += {
           case e: ButtonClicked =>
-            enabled = interpreter.interpreter.getClass == interpreters.enclosure.Interpreter.getClass
+            enabled = interpreter.interpreter.getClass == enclosure.Interpreter.getClass
         }
       }
+    }
+    
+    contents += new Menu("Semantics") {
+      import semantics._
+      mnemonic = Key.S
       contents ++= Seq(ref, newRef, impr, par, new Separator, pwl, et, new Separator, ls)
     }
    
@@ -559,13 +564,19 @@ class App extends SimpleSwingApplication {
   /* ----- events handling ---- */
 
   var state: State = Stopped
-  var interpreter: InterpreterCntrl =
-    if (GraphicalMain.useEnclosures)
-      new EnclosureCntrl(interpreters.enclosure.Interpreter)
-    else
-      new CStoreCntrl(interpreters.reference.Interpreter)
-  def setInterpreter(i: InterpreterCntrl) = {
-    interpreter = i
+  var interpreter: InterpreterCntrl = null;
+  def setInterpreter(args: String*) = {
+    val intr = Main.selectInterpreter(args:_*)
+    interpreter = InterpreterCntrl.cntrlForInterpreter(intr);
+  }
+  setInterpreter(GraphicalMain.interpreterString)
+  interpreter.interpreter.id.toList match {
+    case "reference" :: _=> bar.semantics.ref.selected = true
+    case "newreference" :: _ => bar.semantics.newRef.selected = true
+    case "imparative" :: _ => bar.semantics.impr.selected = true
+    case "parallel" :: _ => bar.semantics.par.selected = true
+    case "enclosure" :: tail if tail.contains("pwl") => bar.semantics.pwl.selected = true
+    case "enclosure" :: tail if tail.contains("evt") => bar.semantics.et.selected = true
   }
 
   controller.start()

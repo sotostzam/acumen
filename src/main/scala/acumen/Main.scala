@@ -32,6 +32,55 @@ object Main {
     trace match {case CStoreRes(r) => r; case _ => null}    
   }
 
+  def selectInterpreter(args0: String*) : Interpreter = {
+    val args = args0.flatMap(_.split('-')).toList
+    import interpreters._
+    val res = args match {
+      case ("" | "reference") :: Nil => reference.Interpreter
+      case "newreference" :: Nil => newreference.Interpreter
+      case "parallel" :: tail => selectParallellInterpreter(tail)
+      case "imperative" :: Nil => imperative.ImperativeInterpreter
+      case "enclosure" :: tail => selectEnclosureInterpreter(tail)
+      case _ => null
+    }
+    if (res == null) 
+      throw UnrecognizedInterpreterString(args.mkString("-"))
+      res
+  }
+  def interpreterHelpString = "reference|newreference|parallel[-<num threads>]|enclosure[-pwl|-evt]"
+  // parallel-sharing should not be documented but recognized for testing
+
+  def selectParallellInterpreter(args: List[String], 
+                                 numThreads: Int = -1, 
+                                 scheduler: String = "static") : Interpreter =
+  {
+    import interpreters.imperative.ParallelInterpreter._
+    args match {
+      case ("static"|"sharing") :: tail => selectParallellInterpreter(tail, numThreads, args(0))
+      case head :: tail if head.matches("\\d+") => selectParallellInterpreter(tail, Integer.parseInt(head), scheduler)
+      case Nil => (numThreads, scheduler) match {
+        case (-1, "static") => static
+        case (_, "static") => static(numThreads)
+        case (-1, "sharing") => sharing
+        case (_, "sharing") => sharing(numThreads)
+      }
+      case _ => null
+    }
+  }
+
+  def selectEnclosureInterpreter(args: List[String], 
+                                 eventHandler: String = "pwl") : Interpreter = {
+    import interpreters.enclosure.Interpreter._
+    args match {
+      case ("pwl"|"evt") :: tail => selectEnclosureInterpreter(tail, args(0))
+      case Nil => eventHandler match {
+        case "pwl" => asPWL
+        case "evt" => asEVT
+      }
+      case _ => null
+    }
+  }
+
   def main(args: Array[String]): Unit = {
     val I = interpreters.reference.Interpreter
     //val I = new interpreters.imperative.parallel.Interpreter(2)
@@ -39,17 +88,10 @@ object Main {
     try {
       /* See if user wants to choose a specific interpreter. */
       val (i: Interpreter, firstNonSemanticsArg: Int) = args(0) match {
-        case "--semantics" => args(1) match {
-          case "reference" => (interpreters.reference.Interpreter, 2)
-          case "parallel-static" => (interpreters.imperative.ParallelInterpreter.static, 2)
-          case "parallel-sharing" => (interpreters.imperative.ParallelInterpreter.sharing, 2)
-          case "imperative" => (new interpreters.imperative.ImperativeInterpreter, 2)
-          case "enclosure" => (interpreters.enclosure.Interpreter, 2)
-          case "enclosure-non-localizing" => (interpreters.enclosure.Interpreter.asNonLocalizing, 2)
-          case _ => (interpreters.reference.Interpreter, 2) // FIXME: Throw error! -kevina
-        }
+        case "--semantics" => (selectInterpreter(args(1)), 2)
         case _ => (interpreters.reference.Interpreter, 0)
       }
+
       /* Read the Acumen source, parse, pre-process and interpret it. */
       lazy val in = new InputStreamReader(new FileInputStream(args(firstNonSemanticsArg)))
       lazy val ast = Parser.run(Parser.prog, in)

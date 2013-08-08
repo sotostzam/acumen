@@ -30,6 +30,8 @@ import Stream._
 import Errors._
 
 object Interpreter extends acumen.CStoreInterpreter {
+
+  override def id = Array("reference")
   
   type Store = CStore
   type Env = Map[Name, CValue]

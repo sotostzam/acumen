@@ -127,6 +127,11 @@ object Errors {
       "Bad command-line options. Valid options are " + valid.mkString(", ") + "."
   }
 
+  case class UnrecognizedInterpreterString(theString: String) extends AcumenError {
+    override def getMessage = 
+      "Unrecognized interpreter string: " + theString
+  }
+
   /* special errors */
 
   case class ShouldNeverHappen() extends AcumenError {

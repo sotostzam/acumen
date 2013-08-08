@@ -53,6 +53,15 @@ object InterpreterCntrl {
 
   case class Chunk(css: TraceData) // data computer so far
   case object Done // finished computation, no more data
+
+  def cntrlForInterpreter(intr: Interpreter) : InterpreterCntrl = {
+    intr match {
+      case intr:CStoreInterpreter => new CStoreCntrl(intr)
+      case intr:RecursiveInterpreter => new EnclosureCntrl(intr) 
+        // fixme^: might need to be more precise
+      case _ => null; // Should never happen
+    }
+  }
 }
 
 abstract class InterpreterCntrl {

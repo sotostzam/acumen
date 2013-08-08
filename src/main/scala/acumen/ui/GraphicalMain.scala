@@ -53,7 +53,7 @@ object GraphicalMain extends SimpleSwingApplication {
   var disableNewPlot = true
   var openFile: File = null
   var autoPlay = false
-  var useEnclosures = false
+  var interpreterString = ""
   var useCompletion = true
   var useTemplates = false
   var dontFork = false
@@ -64,6 +64,8 @@ object GraphicalMain extends SimpleSwingApplication {
   def parseOpts(args: List[String]) {
     args match {
       case Nil =>
+      case ("--semantics"|"--interpreter"|"-i") :: i :: tail =>
+        interpreterString = i
       case ("--enable-3d" | "--3d") :: tail => 
         threeDState = ThreeDState.ENABLE; parseOpts(tail)
       case ("--lazy-3d") :: tail => 
@@ -79,12 +81,6 @@ object GraphicalMain extends SimpleSwingApplication {
         openFile = new File("examples", name + ".acm"); parseOpts(tail)
       case "--play" :: tail =>
         autoPlay = true; parseOpts(tail)
-      case "--enclosures" :: tail =>
-        useEnclosures = true; parseOpts(tail)
-      case "--no-enclosures" :: tail =>
-        useEnclosures = false; parseOpts(tail)
-      case "--non-localizing" :: tail =>
-        interpreters.enclosure.Interpreter.asNonLocalizing(); parseOpts(tail)
       case "--enable-completion" :: tail =>
         useCompletion = true; parseOpts(tail)
       case "--disable-completion" :: tail =>
@@ -185,7 +181,13 @@ object GraphicalMain extends SimpleSwingApplication {
   }
 
   def top = {
-    App.init
+    try {
+      App.init
+    } catch {
+      case e: Errors.AcumenError =>
+        System.err.println(e.getMessage)
+        System.exit(1)
+    }
     val ret = App.ui.top
     println(magicStartString) // Do not remove, needed by forking code
     ret

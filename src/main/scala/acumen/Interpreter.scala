@@ -13,6 +13,7 @@ abstract class InterpreterRes {
 trait Interpreter {
   def newInterpreterModel : InterpreterModel
   def run(p:Prog) : InterpreterRes
+  def id : Array[String] // id, as would be passed in the command line
 }
 
 case class CStoreRes(ctrace: Stream[CStore]) extends InterpreterRes {

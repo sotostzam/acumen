@@ -29,6 +29,9 @@ import acumen.util.Canonical.{
 import scala.annotation.tailrec
 
 class ImperativeInterpreter extends CStoreInterpreter {
+
+  override def id = Array("imperative")
+
   import Common._
 
   type Store = Common.Store
