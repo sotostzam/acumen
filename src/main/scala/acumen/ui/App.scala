@@ -198,15 +198,15 @@ class App extends SimpleSwingApplication {
     val synchButton = new JCheckBox()
     synchButton.setAction(new AbstractAction("Synch File Browser and Editor") {
       override def actionPerformed(e: java.awt.event.ActionEvent) {
-        GraphicalMain.synchEditorWithBrowser = !GraphicalMain.synchEditorWithBrowser
-        if (GraphicalMain.synchEditorWithBrowser)
+        Main.synchEditorWithBrowser = !Main.synchEditorWithBrowser
+        if (Main.synchEditorWithBrowser)
           codeArea.currentFile match {
             case Some(file) => fileBrowser.fileTree.focus(file)
             case None => fileBrowser.fileTree.refresh
           }
       }
     })
-    synchButton.setSelected(GraphicalMain.synchEditorWithBrowser)
+    synchButton.setSelected(Main.synchEditorWithBrowser)
     val toolbar = new JToolBar()
     toolbar.setFloatable(false)
     synchButton.setFocusable(false)
@@ -259,7 +259,7 @@ class App extends SimpleSwingApplication {
   }
   var newPlotView: plot.JFreePlotTab = null
   var newPlotTab: BorderPanel = null
-  if (!GraphicalMain.disableNewPlot) {
+  if (!Main.disableNewPlot) {
     newPlotView = new plot.JFreePlotTab
     newPlotTab = new BorderPanel {
       //TODO Implement and add something like pointedView for the new plotting code
@@ -269,16 +269,16 @@ class App extends SimpleSwingApplication {
   }
 
   val traceTab = new ScrollPane(traceTable)
-  var threeDtab = if (GraphicalMain.threeDState == ThreeDState.DISABLE) {
+  var threeDtab = if (Main.threeDState == ThreeDState.DISABLE) {
     console.log("Acumen3D disabled.")
     console.newLine
-    if (GraphicalMain.need_quartz) {
+    if (Main.need_quartz) {
       new threeD.DisabledThreeDTab("3D visualization disabled due to performace problems on Mac OS X. \n\nTo enable restart Java with -Dapple.awt.graphics.UseQuartz=true or use --3d to force 3D to be enabled.")
     } else {
       new threeD.DisabledThreeDTab("3D visualization disabled on the command line.")
     }
     //null
-  } else if (GraphicalMain.threeDState == ThreeDState.LAZY) {
+  } else if (Main.threeDState == ThreeDState.LAZY) {
     new threeD.DisabledThreeDTab("3D visualization will be enabled when needed.")
   } else {
     start3D
@@ -286,7 +286,7 @@ class App extends SimpleSwingApplication {
 
   def start3D = try {
     val res = new threeD.ThreeDTab(controller)
-    GraphicalMain.threeDState = ThreeDState.ENABLE
+    Main.threeDState = ThreeDState.ENABLE
     res
   } catch {
     case e =>
@@ -294,7 +294,7 @@ class App extends SimpleSwingApplication {
       console.newLine
       console.log("Disabling 3D Tab.")
       console.newLine
-      GraphicalMain.threeDState = ThreeDState.ERROR
+      Main.threeDState = ThreeDState.ERROR
       val errors = new StringWriter()
       e.printStackTrace(new PrintWriter(errors))
       new threeD.DisabledThreeDTab("Acumen 3D disabled.\nError loading Java3D: " + e +
@@ -471,20 +471,20 @@ class App extends SimpleSwingApplication {
       val pwl = new RadioMenuItem("") {
         action = pwlHybridSolverAction
         enableWhenStopped(this)
-        selected = false // GraphicalMain.useEnclosures && 
+        selected = false // Main.useEnclosures && 
           //enclosure.Interpreter.strategy.eventEncloser.getClass == classOf[PWLEventEncloser] 
       }
       val et = new RadioMenuItem("") {
         action = eventTreeHybridSolverAction
         enableWhenStopped(this) 
-        selected = false // GraphicalMain.useEnclosures &&
+        selected = false // Main.useEnclosures &&
           //enclosure.Interpreter.strategy.eventEncloser.getClass == classOf[TreeEventEncloser]
       }
       val bg = new ButtonGroup(ref, newRef, impr, par, pwl, et)
       val ls = new CheckMenuItem("") {
         action = contractionAction
         enabledWhenStopped += (this, () => interpreter.interpreter.getClass == enclosure.Interpreter.getClass)
-        enabled = false //GraphicalMain.useEnclosures
+        enabled = false //Main.useEnclosures
         selected = enclosure.Interpreter.strategy.eventEncloser.ivpSolver.getClass == classOf[LohnerSolver]
         /* Enable/disable Contraction menu item depending on the chosen semantics */
         for (b <- bg.buttons) listenTo(b) 
@@ -569,7 +569,7 @@ class App extends SimpleSwingApplication {
     val intr = Main.selectInterpreter(args:_*)
     interpreter = InterpreterCntrl.cntrlForInterpreter(intr);
   }
-  setInterpreter(GraphicalMain.interpreterString)
+  interpreter = InterpreterCntrl.cntrlForInterpreter(Main.interpreter);
   interpreter.interpreter.id.toList match {
     case "reference" :: _=> bar.semantics.ref.selected = true
     case "newreference" :: _ => bar.semantics.newRef.selected = true
@@ -622,7 +622,7 @@ class App extends SimpleSwingApplication {
   // enable 3d if required
   reactions += {
     case Stopped =>
-      if (GraphicalMain.threeDState == ThreeDState.LAZY &&
+      if (Main.threeDState == ThreeDState.LAZY &&
         !controller.threeDData._3DData.isEmpty)
         views.shouldEnable3D = true
       views.possibleEnable3D
@@ -729,7 +729,7 @@ class App extends SimpleSwingApplication {
   actor.publish(Stopped)
   actor.publish(ViewChanged(views.selection.index))
 
-  if (GraphicalMain.autoPlay)
+  if (Main.autoPlay)
     upperButtons.bPlay.doClick
 }
 

@@ -122,11 +122,6 @@ object Errors {
 
   /* Command-line errors */
 
-  case class BadProgramOptions(valid:Seq[String]) extends AcumenError {
-    override def getMessage =
-      "Bad command-line options. Valid options are " + valid.mkString(", ") + "."
-  }
-
   case class UnrecognizedInterpreterString(theString: String) extends AcumenError {
     override def getMessage = 
       "Unrecognized interpreter string: " + theString
