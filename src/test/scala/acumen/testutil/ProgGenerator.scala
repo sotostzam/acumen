@@ -9,7 +9,7 @@ import org.scalacheck.Properties
 import org.scalacheck.Prop._
 import acumen.Pretty.pprint
 import acumen.testutil.Generators.{ 
-  arbName, genSetBasedOn, genDistinctSetOfN, genSmallDouble
+  arbName, genSetBasedOn, genCompliantSetOfN, genDistinctSetOfN, genSmallDouble
 }
 import ODESystemGenerator.{
   genLinearODESystem, genEventfulUnivatiatePredicate
@@ -54,6 +54,14 @@ import acumen.interpreters.enclosure.TestingContext.{
  *      assignments.
  */
 object ProgGenerator extends Properties("Prog") {
+
+  property("testTheGenerator") = {
+    val emptyProg = Prog(Nil)
+    forAllNoShrink(genProg) { p =>
+      println(pprint(p) ++ "\n")
+      true
+    }
+  }
   
   implicit def arbProg: Arbitrary[Prog] = Arbitrary { genProg }
   
@@ -92,15 +100,23 @@ object ProgGenerator extends Properties("Prog") {
     for {
       name                <- classNameGen
       minVars             <- chooseNum(2,5)
-      distinctNames       <- genDistinctSetOfN(minVars, arbitrary[Name])
-      allNames            =  completeNames(distinctNames)
-      numberOfFields      <- chooseNum[Int](0: Int, if (isMain || allNames.isEmpty) 0 else allNames.size)
-      (fields, privNames) =  allNames.splitAt(numberOfFields)
-      privs               <- genPrivateSection(privNames)
-      equations           <- genLinearODESystem(distinctNames)
-      actions             <- genActions(equations, timeDomain) 
-    } yield ClassDef(name, if (isMain) List(Name("simulator",0)) else fields.toList, privs.toList, actions.toList) 
+      distinctVarNames    <- genDistinctSetOfN(minVars, arbitrary[Name])
+      minModeVars         <- chooseNum(0,4)
+      modeNames           <- genModeVarNames(minModeVars, distinctVarNames)
+      modesPerName        <- listOfN(modeNames.size, choose[Int](2, 5))
+      modes               =  modeNames zip modesPerName.map(n => (0 to n).toList.map(GInt): List[GroundValue])
+      varNames            =  completeNames(distinctVarNames)
+      numberOfFields      <- chooseNum[Int](0: Int, if (isMain || varNames.isEmpty) 0 else varNames.size)
+      (fields, privNames) =  varNames.splitAt(numberOfFields)
+      privs               <- genPrivateSection(privNames, modes)
+      equations           <- genLinearODESystem(distinctVarNames)
+      actions             <- genActions(equations, modes, timeDomain) 
+    } yield ClassDef(name, if (isMain) List(Name("simulator",0)) else fields.toList, privs.toList, actions.toList)
 
+  def genModeVarNames(minAmount: Int, banned: Set[Name]) =
+    genCompliantSetOfN(minAmount, for { n <- arbitrary[Name] } yield Name(n.x, 0),
+      (candidate: Set[Name], compliant: Set[Name]) =>
+        candidate.forall(e => !compliant.contains(e) && !banned.contains(e)))
     
   /**
    * Generate actions for a scope.
@@ -112,38 +128,47 @@ object ProgGenerator extends Properties("Prog") {
    * (e.g. those of then and else statements of conditionals). 
    */
   // TODO Add discrete assignments
-  def genActions(availableEquations: Set[Equation], timeDomain: Interval): Gen[Set[Action]] =
+  def genActions(availableEquations: Set[Equation], modes: Set[(Name,List[GroundValue])], timeDomain: Interval): Gen[Set[Action]] =
     if (availableEquations.isEmpty) Set[Action]()
     else for {
-      nbrEquationsToUse         <- chooseNum[Int](1, availableEquations.size) // How many to use in this scope
+      nbrEquationsToUse      <- chooseNum[Int](1, availableEquations.size) // How many to use in this scope
       (now,later)            =  availableEquations.toList.splitAt(nbrEquationsToUse)
       equations: Set[Action] =  now.map(Continuously).toSet
       nbrControlFlowStmts    <- chooseNum[Int](1, 3)
       controlFlow            <- if (later.isEmpty) value(List()) 
                                 else listOfN(nbrControlFlowStmts, 
-                                             genControlFlowStatement(later.toSet, timeDomain))
+                                             genControlFlowStatement(later.toSet, modes, timeDomain))
     } yield if (later.isEmpty) equations
             else equations union controlFlow.toSet
   
-  // TODO Add switch statement
-  def genControlFlowStatement(availableEquations: Set[Equation], timeDomain: Interval): Gen[Action] =
-    genIfThenElse(availableEquations, timeDomain)
+  def genControlFlowStatement(availableEquations: Set[Equation], modes: Set[(Name,List[GroundValue])], timeDomain: Interval): Gen[Action] =
+    frequency(5 -> genIfThenElse(availableEquations, modes, timeDomain), 
+              1 -> genSwitch(availableEquations, modes, timeDomain))
   
-  def genIfThenElse(availableEquations: Set[Equation], timeDomain: Interval): Gen[Action] =
+  def genIfThenElse(availableEquations: Set[Equation], modes: Set[(Name,List[GroundValue])], timeDomain: Interval): Gen[Action] =
     for {
       cond       <- genEventfulUnivatiatePredicate(availableEquations, timeDomain)
-      thenClause <- genActions(availableEquations, timeDomain)
-      elseClause <- genActions(availableEquations, timeDomain)
+      thenClause <- genActions(availableEquations, modes, timeDomain)
+      elseClause <- genActions(availableEquations, modes, timeDomain)
     } yield IfThenElse(cond, thenClause.toList, elseClause.toList)
+  
+  def genSwitch(availableEquations: Set[Equation], modes: Set[(Name,List[GroundValue])], timeDomain: Interval): Gen[Action] =
+    for {
+      (name, vs) <- oneOf(modes.toList)
+      clauses    <- listOfN(vs.size, genActions(availableEquations, modes, timeDomain))
+      assertion  =  Lit(GBool(true)) // TODO Generate mode invariants
+    } yield Switch(Var(name), vs.zip(clauses).map{ case (v, as) => Clause(v, assertion, as.toList) })
   
   /**
    * Generates initialization statements for the input variable names.
    * NOTE: Assumes that the initial conditions for differential equations can be chosen arbitrarily!      
    */
-  def genPrivateSection(varNames: Set[Name]): Gen[Set[Init]] =
+  def genPrivateSection(varNames: Set[Name], modes: Set[(Name,List[GroundValue])]): Gen[Set[Init]] =
     for { //TODO Generate more interesting initial conditions!
-      rhss: List[Double] <- listOfN(varNames.size, genSmallDouble)
-    } yield (varNames zip rhss).map { case (l, r) => Init(l, ExprRhs(Lit(GDouble(r)))) }
+      varRhss   <- listOfN(varNames.size, genSmallDouble)
+      varInits  =  (varNames zip varRhss).map { case (l, r) => Init(l, ExprRhs(Lit(GDouble(r)))) }
+      modeInits =  modes.map{ case (n, vs) => Init(n, ExprRhs(Lit(vs(0)))) }
+    } yield varInits union modeInits
   
   /**
    * Generate set of distinct variable Names that is complete, in the sense that if the set 
