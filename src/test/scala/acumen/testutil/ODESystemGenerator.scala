@@ -4,17 +4,26 @@ package testutil
 import org.scalacheck._
 import Gen._
 import Arbitrary.arbitrary
-
 import org.scalacheck.Properties
 import org.scalacheck.Prop._
-
 import acumen.Pretty.pprint
-
 import acumen.testutil.Generators.{ 
   arbName, genSetBasedOn, genDistinctSetOfN, genSmallDouble
-} 
+}
+import scala.Array.{
+  ofDim
+}
+import acumen.interpreters.enclosure.TestingContext.{
+  rnd
+}
+import acumen.interpreters.enclosure.Generators.{
+  genSubInterval
+}
+import acumen.interpreters.enclosure.Box
+import acumen.interpreters.enclosure.Interval
+import acumen.interpreters.enclosure.Types
+import acumen.interpreters.enclosure.Variable
 
-import scala.Array.{ ofDim }
 
 /**
  * Class for generating systems of ODEs which are guaranteed to have (known) solutions.
@@ -34,7 +43,8 @@ import scala.Array.{ ofDim }
  *    of exponential functions with coefficients that are multiples of the initial conditions,
  *    which may be chosen arbitrarily.
  */
-object ODESystemGenerator extends Properties("ODESystemGenerator") {
+object ODESystemGenerator extends Properties("ODESystemGenerator")
+                          with    acumen.interpreters.enclosure.Extract {
 
   /**
    * An equation system here means a set of equations which is guaranteed to have 
@@ -53,6 +63,24 @@ object ODESystemGenerator extends Properties("ODESystemGenerator") {
       terms = (0 to lhs.primes).map(Name(lhs.x, _))
     } yield Equation(Var(lhs), linearCombination(coefficients zip terms))
 
+  /* EventGenerator */
+  
+  /**
+   * Generate a boolean expression (in one variable) which will change its value 
+   * at some point during the simulation.
+   */
+  def genEventfulUnivatiatePredicate(system: Set[Equation], timeDomain: Interval): Gen[Expr] =
+    for {
+      equation            <- oneOf(system.toList)
+      rhs                 =  equation.rhs
+      Var(variable)       =  equation.lhs
+      enclosureExpression =  acumenExprToExpression(rhs)
+      box                 =  new Box(enclosureExpression.variables.map((_ -> timeDomain)).toMap)
+      range               =  enclosureExpression(box)
+      subRange            <- genSubInterval(range)
+    } yield Op(Name("&&",0), List(Op(Name("<", 0), List(Lit(GDouble(subRange.loDouble)), rhs)),
+                                  Op(Name(">", 0), List(Lit(GDouble(subRange.hiDouble)), rhs))))
+    
   /* Utilities */
 
   def linearCombination(terms: List[(Double, Name)]): Expr =

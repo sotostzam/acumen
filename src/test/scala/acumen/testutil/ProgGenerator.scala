@@ -5,17 +5,18 @@ import org.scalacheck._
 import Gen._
 import Shrink._
 import Arbitrary.arbitrary
-
 import org.scalacheck.Properties
 import org.scalacheck.Prop._
-
 import acumen.Pretty.pprint
-
 import acumen.testutil.Generators.{ 
   arbName, genSetBasedOn, genDistinctSetOfN, genSmallDouble
 }
 import ODESystemGenerator.{
-  genLinearODESystem
+  genLinearODESystem, genEventfulUnivatiatePredicate
+}
+import acumen.interpreters.enclosure.Interval
+import acumen.interpreters.enclosure.TestingContext.{
+  rnd
 }
 
 /**
@@ -53,18 +54,10 @@ import ODESystemGenerator.{
  *      assignments.
  */
 object ProgGenerator extends Properties("Prog") {
-
- property("testTheGenerator") = {
-    val emptyProg = Prog(Nil)
-    forAllNoShrink(genProg) { p =>
-      println(pprint(p) ++ "\n")
-      true
-    }
-  }
-
+  
   implicit def arbProg: Arbitrary[Prog] = Arbitrary { genProg }
   
-  //TODO Implement generation of models with more than one class.
+  // TODO Implement generation of models with more than one class.
   /**
    * Basic algorithm:
    * 1. Generate list of leaf classes and add these to Prog.
@@ -77,6 +70,7 @@ object ProgGenerator extends Properties("Prog") {
       main <-
         genClassDef( isLeaf = true
                    , isMain = true
+                   , timeDomain = Interval(0, 10)
                    , emptyProg 
                    , oneOf(List(ClassName("Main")))
                    )
@@ -91,6 +85,7 @@ object ProgGenerator extends Properties("Prog") {
    */
   def genClassDef( isLeaf: Boolean
                  , isMain: Boolean
+                 , timeDomain: Interval
                  , p: Prog
                  , classNameGen: => Gen[ClassName]
                  ): Gen[ClassDef] =
@@ -103,9 +98,44 @@ object ProgGenerator extends Properties("Prog") {
       (fields, privNames) =  allNames.splitAt(numberOfFields)
       privs               <- genPrivateSection(privNames)
       equations           <- genLinearODESystem(distinctNames)
-      actions             =  equations.toList.map(Continuously) // TODO Add discrete actions
-    } yield ClassDef(name, if (isMain) List(Name("simulator",0)) else fields.toList, privs.toList, actions) 
+      actions             <- genActions(equations, timeDomain) 
+    } yield ClassDef(name, if (isMain) List(Name("simulator",0)) else fields.toList, privs.toList, actions.toList) 
 
+    
+  /**
+   * Generate actions for a scope.
+   * 
+   * In order to avoid generation of continuous assignments to variables for which a
+   * continuous assignment is already in scope, a set of available equations is maintained. 
+   * If a continuous assignment to a variable is generated, it is will be removed from 
+   * the from the list of available names passed to generators of actions for new scopes 
+   * (e.g. those of then and else statements of conditionals). 
+   */
+  // TODO Add discrete assignments
+  def genActions(availableEquations: Set[Equation], timeDomain: Interval): Gen[Set[Action]] =
+    if (availableEquations.isEmpty) Set[Action]()
+    else for {
+      nbrEquationsToUse         <- chooseNum[Int](1, availableEquations.size) // How many to use in this scope
+      (now,later)            =  availableEquations.toList.splitAt(nbrEquationsToUse)
+      equations: Set[Action] =  now.map(Continuously).toSet
+      nbrControlFlowStmts    <- chooseNum[Int](1, 3)
+      controlFlow            <- if (later.isEmpty) value(List()) 
+                                else listOfN(nbrControlFlowStmts, 
+                                             genControlFlowStatement(later.toSet, timeDomain))
+    } yield if (later.isEmpty) equations
+            else equations union controlFlow.toSet
+  
+  // TODO Add switch statement
+  def genControlFlowStatement(availableEquations: Set[Equation], timeDomain: Interval): Gen[Action] =
+    genIfThenElse(availableEquations, timeDomain)
+  
+  def genIfThenElse(availableEquations: Set[Equation], timeDomain: Interval): Gen[Action] =
+    for {
+      cond       <- genEventfulUnivatiatePredicate(availableEquations, timeDomain)
+      thenClause <- genActions(availableEquations, timeDomain)
+      elseClause <- genActions(availableEquations, timeDomain)
+    } yield IfThenElse(cond, thenClause.toList, elseClause.toList)
+  
   /**
    * Generates initialization statements for the input variable names.
    * NOTE: Assumes that the initial conditions for differential equations can be chosen arbitrarily!      
