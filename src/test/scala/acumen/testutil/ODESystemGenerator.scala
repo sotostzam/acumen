@@ -24,7 +24,6 @@ import acumen.interpreters.enclosure.Interval
 import acumen.interpreters.enclosure.Types
 import acumen.interpreters.enclosure.Variable
 
-
 /**
  * Class for generating systems of ODEs which are guaranteed to have (known) solutions.
  * 
@@ -43,8 +42,9 @@ import acumen.interpreters.enclosure.Variable
  *    of exponential functions with coefficients that are multiples of the initial conditions,
  *    which may be chosen arbitrarily.
  */
-object ODESystemGenerator extends Properties("ODESystemGenerator")
-                          with    acumen.interpreters.enclosure.Extract {
+object ODESystemGenerator extends acumen.interpreters.enclosure.Extract {
+
+  type Solution = Expr
 
   /**
    * An equation system here means a set of equations which is guaranteed to have 
@@ -57,37 +57,81 @@ object ODESystemGenerator extends Properties("ODESystemGenerator")
     genSetBasedOn(distinctNames, genLinearODE)
   } 
   
+  /** Generate a linear ODE with constant coefficients. */
   def genLinearODE(lhs: Name): Gen[Equation] =
     for {
       coefficients <- listOfN(lhs.primes, genSmallDouble)
       terms = (0 to lhs.primes).map(Name(lhs.x, _))
-    } yield Equation(Var(lhs), linearCombination(coefficients zip terms))
+    } yield Equation(lhs, univariatePolynomial(coefficients zip terms))
 
-  /* EventGenerator */
+  /* Event generator */
   
   /**
-   * Generate a boolean expression (in one variable) which will change its value 
+   * Generate a boolean expression (in timeVar) which will change its value 
    * at some point during the simulation.
    */
-  def genEventfulUnivatiatePredicate(system: Set[Equation], timeDomain: Interval): Gen[Expr] =
+  def genEventfulTimeBasedPredicate(time: (Name, Interval)): Gen[Expr] =
+  for { //FIXME Make sure this does not trigger at time 0
+    subRange <- genSubInterval(time._2)
+  } yield and(lessThan(subRange.loDouble, time._1), 
+              lessThan(time._1, subRange.hiDouble))
+
+  def genPredicate(varNames: Set[Name], time: (Name, Interval)): Gen[Expr] =
+    frequency( 3 -> genEventfulTimeBasedPredicate(time)
+             , 1 -> genBinaryRelation(varNames, time)
+             , 2 -> genLogicalOp(varNames, time)
+             )
+
+  def genOp(ops: List[String], argGen: => Gen[Expr]) =
     for {
-      equation            <- oneOf(system.toList)
-      rhs                 =  equation.rhs
-      Var(variable)       =  equation.lhs
-      enclosureExpression =  acumenExprToExpression(rhs)
-      box                 =  new Box(enclosureExpression.variables.map((_ -> timeDomain)).toMap)
-      range               =  enclosureExpression(box)
-      subRange            <- genSubInterval(range)
-    } yield Op(Name("&&",0), List(Op(Name("<", 0), List(Lit(GDouble(subRange.loDouble)), rhs)),
-                                  Op(Name(">", 0), List(Lit(GDouble(subRange.hiDouble)), rhs))))
+      op   <- oneOf(ops)
+      args <- listOfN(2, argGen)
+    } yield Op(Name(op, 0), args)
+    
+  def genBinaryOp(varNames: Set[Name], time: (Name, Interval)): Gen[Op] =
+    genOp(List("+", "-", "*"), genExpr(varNames, time)) //TODO Add support for /, vectors etc. 
+    
+  def genBinaryRelation(varNames: Set[Name], time: (Name, Interval)): Gen[Op] =
+    genOp(List("<", ">", "<=", ">=", "=="), genExpr(varNames, time))
+
+  def genLogicalOp(varNames: Set[Name], time: (Name, Interval)): Gen[Op] =
+    genOp(List("||", "&&"), genPredicate(varNames, time))
+    
+  def genExpr(varNames: Set[Name], time: (Name, Interval)): Gen[Expr] =
+    frequency( 1 -> arbGDouble
+             , 2 -> Var(time._1)
+             , 1 -> oneOf(varNames.toList).map(Var)
+             , 1 -> genBinaryOp(varNames, time)
+             )
+
+  def arbGDouble = genSmallDouble.map(d => Lit(GDouble(d))) 
     
   /* Utilities */
 
-  def linearCombination(terms: List[(Double, Name)]): Expr =
-    terms.foldLeft(Lit(GDouble(0)): Expr) { case (e, (c, t)) => sum(powerProduct(c, t), e) }
+  def linearCombination(terms: List[(Double, Expr)]): Expr =
+    terms.foldLeft(0: Expr) { case (e, (c, t)) => sum(powerProduct(c, t), e) }
+
+  def univariatePolynomial(terms: List[(Double, Name)]): Expr =
+    linearCombination(terms.map { case (d, n) => (d, Var(n)) })
   
-  def powerProduct(d: Double, n: Name) = Op(Name("*", 0), List(Lit(GDouble(d)), Var(n)))
+  def exp(e: Expr) = Op(Name("exp", 0), List(e))
+
+  def powerProduct(d: Double, e: Expr) = op("*", d, e)
   
-  def sum(l: Expr, r: Expr) = Op(Name("+", 0), List(l, r))
+  def sum(l: Expr, r: Expr) = op("+", l, r)
+
+  def pow(l: Expr, r: Expr) = op("^", l, r)
+  
+  def and(l: Expr, r: Expr) = op("&&", l, r)
+
+  def or(l: Expr, r: Expr) = op("||", l, r)
+
+  def lessThan(l: Expr, r: Expr) = op("<", l, r)
+
+  def op(o: String, l: Expr, r: Expr) = Op(Name(o, 0), List(l, r))
+  
+  implicit def doubleToLit(d: Double): Expr = Lit(GDouble(d))
+
+  implicit def nameToVar(n: Name): Expr = Var(n)
   
 }
