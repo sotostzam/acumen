@@ -57,16 +57,6 @@ object ProgGenerator extends Properties("Prog") {
   type Unassigned = Boolean
   type Active = Boolean
   
-  property("extract is semantics preserving") = {
-    forAll { (p: Prog) =>
-      try {
-        println(pprint(p) + "\n\n")
-      }
-      catch { case e => e.printStackTrace; throw e }
-      true
-    }
-  }
-  
   implicit def arbProg: Arbitrary[Prog] = Arbitrary { genProg }
   
   // TODO Implement generation of models with more than one class.
@@ -105,18 +95,11 @@ object ProgGenerator extends Properties("Prog") {
       name                <- classNameGen
       minVars             <- chooseNum(2,5)
       (timeVar, timeVarD) =  (Name("t", 0), Name("t", 1))
-      distinctVarNames    <- genCompliantSetOfN(minVars, 
-                                                arbitrary[Name], 
-                                                (candidate: Set[Name], extension: Set[Name]) => 
-                                                  extension.forall(n => !candidate.contains(n) && 
-                                                                        n != timeVar && 
-                                                                        n != timeVarD) )
+      distinctVarNames    <- genCompliantSetOfN(minVars, arbitrary[Name], 
+                               (candidate: Set[Name], extension: Set[Name]) => 
+                                 extension.forall(n => !candidate.contains(n) && n != timeVar && n != timeVarD) )
       distinctVarNamesT   =  distinctVarNames + timeVar + timeVarD
-      minModeVars         <- chooseNum(0,4)
-      modeNames           <- genModeVarNames(minModeVars, distinctVarNamesT)
-      modesPerName        <- listOfN(modeNames.size, choose[Int](2, 5))
-      modes               =  (modeNames zip modesPerName.map(n => (0 to n).toList.map(GInt): List[GroundValue])).
-                             map { case (m, n) => (false, m, n) }
+      modes               <- genModes(distinctVarNamesT)
       varNames            =  completeNames(distinctVarNames)
       numberOfFields      <- chooseNum[Int](0: Int, if (isMain || varNames.isEmpty) 0 else varNames.size)
       (fields, privNames) =  varNames.splitAt(numberOfFields)
@@ -127,10 +110,25 @@ object ProgGenerator extends Properties("Prog") {
       actionsT            =  Continuously(Equation(timeVarD, 1)) +: actions.toList 
     } yield ClassDef(name, if (isMain) List(Name("simulator",0)) else fields.toList, privsT, actionsT)
 
-  def genModeVarNames(minAmount: Int, banned: Set[Name]) =
-    genCompliantSetOfN(minAmount, for { n <- arbitrary[Name] } yield Name(n.x, 0),
-      (candidate: Set[Name], compliant: Set[Name]) =>
-        candidate.forall(e => !compliant.contains(e) && !banned.contains(e)))
+  /**
+   * Generates triples (a,n,vs) representing a mode variable:
+   * a:  When this boolean is set to true, this means that the current generator is 
+   *     executed in the context of a switch statement which switches on the mode 
+   *     variable corresponding to the Name in the same triple.
+   * n:  The name of the mode variable.
+   * vs: The possible values to which the mode variable can be switched (one case
+   *     clause per such value will be generated for a switch based on this triple).
+   */
+  def genModes(banned: Set[Name]): Gen[Set[(Active,Name,List[GroundValue])]] =
+    for {
+      minModeVars         <- chooseNum(0,4)
+      modeNames           <- genCompliantSetOfN(minModeVars, for { n <- arbitrary[Name] } yield Name(n.x, 0),
+                               (candidate: Set[Name], compliant: Set[Name]) =>
+                                 candidate.forall(e => !compliant.contains(e) && !banned.contains(e)))
+      modesPerName        <- listOfN(modeNames.size, choose[Int](2, 5))
+      modes               =  (modeNames zip modesPerName.map(n => (0 to n).toList.map(GInt): List[GroundValue])).
+                             map { case (m, n) => (false, m, n) }
+    } yield modes
     
   /**
    * Generate actions for a scope.
