@@ -10,7 +10,7 @@ object AcumenProject extends Build {
     .settings( testOptions in Test := Seq(Tests.Filter(testFilter)) )
     .settings( testOptions in FullTest := Seq(Tests.Filter(fullTestFilter)) )
   
-  def slowTest(name:String) = name == "acumen.RandomTests"
+  def slowTest(name:String) = name == "acumen.RandomTests" || name == "acumen.ExtractTest"
   def testFilter(name:String) = !slowTest(name)
   def fullTestFilter(name:String) = true
   
