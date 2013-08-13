@@ -18,6 +18,9 @@ import acumen.interpreters.enclosure.Interval
 import acumen.interpreters.enclosure.TestingContext.{
   rnd
 }
+import java.io.ByteArrayOutputStream
+import java.io.PrintStream
+import acumen.util.Canonical
 
 /**
  * Issues:
@@ -54,10 +57,15 @@ import acumen.interpreters.enclosure.TestingContext.{
  */
 object ProgGenerator extends Properties("Prog") {
   
-  type Unassigned = Boolean
-  type Active = Boolean
+  var skipped = 0
   
+  // Used to indicate whether a discrete variable has been assigned to
+  type Unassigned = Boolean
+  // Indicates whether a generator executes in the context of a switch base on a particular mode variable
+  type Active = Boolean
+
   implicit def arbProg: Arbitrary[Prog] = Arbitrary { genProg }
+  val emptyProg = Prog(Nil)
   
   // TODO Implement generation of models with more than one class.
   /**
@@ -66,8 +74,7 @@ object ProgGenerator extends Properties("Prog") {
    * 2. Randomize a small number n, and do the following n times:
    * 3. Generate list of classes, based on Prog, and add these to Prog.
    */
-  def genProg: Gen[Prog] = {
-    val emptyProg = Prog(Nil)
+  def genProg: Gen[Prog] =
     for {
       main <-
         genClassDef( isLeaf = true
@@ -76,8 +83,28 @@ object ProgGenerator extends Properties("Prog") {
                    , emptyProg 
                    , oneOf(List(ClassName("Main")))
                    )
-    } yield Prog(List(main))
-  }
+      m = Prog(List(main))
+      p <- if (simulatesOK(m)) value(m) else genProg
+    } yield p
+  
+  /**
+   * Attempts to execute the Prog p using the new reference interpreter. 
+   * Returns false if an exception is thrown during execution, e.g. when a repeated assignment 
+   * is detected in the interpreter, or if a possible infinite loop is detected (more than 1000 
+   * consecutive discrete steps).
+   */
+  def simulatesOK(p: Prog): Boolean =
+    try {
+      var discreteStepsInARow = 0
+      val CStoreRes(r) = interpreters.newreference.Interpreter.run(Desugarer.desugar(p))
+      for (cstore <- r) {
+        if (Canonical.getResultType(cstore) == Discrete) discreteStepsInARow += 1
+        else discreteStepsInARow = 0
+        if (discreteStepsInARow > 1000)
+          throw new RuntimeException("Model exceeded maximum number of discrete steps in fixpoint iteration. Possible infinite loop.")
+      }
+      true
+    } catch { case e => false }
   
   /**
    * Generate a class definition.
@@ -106,7 +133,7 @@ object ProgGenerator extends Properties("Prog") {
       privs               <- genPrivateSection(privNames.map((true,_)), modes)
       privsT              =  Init(timeVar, ExprRhs(0)) +: Init(timeVarD, ExprRhs(1)) +: privs.toList 
       equations           <- genLinearODESystem(distinctVarNames)
-      actions             <- genActions(isTopLevel = true, equations, (privNames ++ fields).map((true,_)), modes, (timeVar, timeDomain))
+      actions             <- genActions(isTopLevel = true, equations, (privNames ++ fields).map((true,_)), modes, (timeVar, timeDomain), nesting = 0)
       actionsT            =  Continuously(Equation(timeVarD, 1)) +: actions.toList 
     } yield ClassDef(name, if (isMain) List(Name("simulator",0)) else fields.toList, privsT, actionsT)
 
@@ -143,12 +170,14 @@ object ProgGenerator extends Properties("Prog") {
    *       the context of a switch statement based on the given mode variable. 
    */
   // TODO Add discrete assignments
-  def genActions( isTopLevel: Boolean 
-                , availableEquations: Set[Equation]
-                , varNames: Set[(Unassigned,Name)]
-                , modes: Set[(Active,Name,List[GroundValue])]
-                , time: (Name,Interval)
-                ): Gen[Set[Action]] =
+  def genActions
+    ( isTopLevel: Boolean 
+    , availableEquations: Set[Equation]
+    , varNames: Set[(Unassigned,Name)]
+    , modes: Set[(Active,Name,List[GroundValue])]
+    , time: (Name,Interval)
+    , nesting: Int
+    ): Gen[Set[Action]] =
     if (availableEquations.isEmpty) Set[Action]()
     else for {
       nbrEquationsToUse          <- chooseNum[Int](1, availableEquations.size) // How many to use in this scope
@@ -158,35 +187,51 @@ object ProgGenerator extends Properties("Prog") {
       es                         =  if (someEquations isEmpty) equations else someEquations
       (discrAs, updVarNames)     <- genDiscreteActions(isTopLevel, varNames.filter(_._1), modes)
       nbrConditionalStmts        <- chooseNum[Int](1, 3)
-      nbrSwitchStmts             <- chooseNum[Int](0, 1)
+      nbrSwitchStmts             <- chooseNum[Int](0, if (later.size > nesting + 1) 1 else 0)
       conditionals               <- listOfNIf(later.nonEmpty, nbrConditionalStmts, 
-                                      genIfThenElse(later.toSet, updVarNames, modes, time))
+                                      genIfThenElse(later.toSet, updVarNames, modes, time, nesting))
       switches                   <- listOfNIf(later.nonEmpty, nbrSwitchStmts,
-                                      genSwitch(later.toSet, updVarNames, modes, time))
+                                      genSwitch(later.toSet, updVarNames, modes, time, nesting))
     } yield es union conditionals.toSet union switches.toSet union discrAs
   
   def listOfNIf[E](cond: Boolean, size: Int, gen: Gen[E]): Gen[List[E]] =
     if (!cond) value(List()) else listOfN(size, gen)
     
-  def genDiscreteActions(isTopLevel: Boolean, unassignedVars: Set[(Unassigned,Name)], modes: Set[(Active,Name,List[GroundValue])]): Gen[(Set[Action], Set[(Unassigned,Name)])] =
+  def genDiscreteActions
+    ( isTopLevel: Boolean
+    , unassignedVars: Set[(Unassigned,Name)]
+    , modes: Set[(Active,Name,List[GroundValue])]
+    ): Gen[(Set[Action], Set[(Unassigned,Name)])] =
    for {
       nbrDiscrAssgsToUse  <- chooseNum[Int](1, unassignedVars.size) // How many to use in this scope
       (now,later)         =  unassignedVars.toList.splitAt(nbrDiscrAssgsToUse)
       discreteAssignments <- genDiscreteAssignments(now.toSet, modes)
     } yield if (isTopLevel) (Set(), unassignedVars) else (discreteAssignments, later.toSet)
     
-  def genIfThenElse(availableEquations: Set[Equation], varNames: Set[(Unassigned,Name)], modes: Set[(Active,Name,List[GroundValue])], time: (Name, Interval)): Gen[Action] =
+  def genIfThenElse
+    ( availableEquations: Set[Equation]
+    , varNames: Set[(Unassigned,Name)]
+    , modes: Set[(Active,Name,List[GroundValue])]
+    , time: (Name, Interval)
+    , nesting: Int
+    ): Gen[Action] =
     for {
       cond       <- genPredicate(varNames.map(_._2), time)
-      thenClause <- genActions(isTopLevel = false, availableEquations, varNames, modes, time)
-      elseClause <- genActions(isTopLevel = false, availableEquations, varNames, modes, time)
+      thenClause <- genActions(isTopLevel = false, availableEquations, varNames, modes, time, nesting + 1)
+      elseClause <- genActions(isTopLevel = false, availableEquations, varNames, modes, time, nesting + 1)
     } yield IfThenElse(cond, thenClause.toList, elseClause.toList)
   
-  def genSwitch(availableEquations: Set[Equation], varNames: Set[(Unassigned,Name)], modes: Set[(Active,Name,List[GroundValue])], time: (Name, Interval)): Gen[Action] =
+  def genSwitch
+    ( availableEquations: Set[Equation]
+    , varNames: Set[(Unassigned,Name)]
+    , modes: Set[(Active,Name,List[GroundValue])]
+    , time: (Name, Interval)
+    , nesting: Int
+    ): Gen[Action] =
     for {
       m@(active, name, vs) <- oneOf(modes.toList)
       mA                   =  (true, name, vs)
-      clauses              <- listOfN(vs.size, genActions(isTopLevel = true, availableEquations, varNames, modes - m + mA, time))
+      clauses              <- listOfN(vs.size, genActions(isTopLevel = true, availableEquations, varNames, modes - m + mA, time, nesting + 1))
       assertion            =  Lit(GBool(true)) // TODO Generate mode invariants
     } yield Switch(name, vs.zip(clauses).map{ case (v, as) => Clause(v, assertion, as.toList) })
   
