@@ -12,10 +12,19 @@ import scala.util.control.Breaks.{ break, breakable }
 
 import Pretty._
 
+/***************************************************************************
+ * Exception used for error reporting.
+ ***************************************************************************/
+
 case class UnhandledSyntax[T](syntax: T, reason: String)(implicit prettyAble:PrettyAble[T]) extends Errors.AcumenError {
   override def getMessage = 
     "H.A. Extraction: Unhandled Syntax: " + pprint(syntax)
 }
+
+/***************************************************************************
+ * Data structures used for the extraction.  The act of forming these
+ * data structures performs the SPLIT, TRANSFORM and FLATTEN steps
+ ***************************************************************************/
 
 sealed abstract class Cond { def toExpr: Expr }
 case class Eq(name: Name, value: GroundValue) extends Cond {
@@ -225,7 +234,7 @@ class Ifs[ActionT, IfT <: If[ActionT]](mkIf: MkIf[IfT]) {
   def reset() { data.values.foreach(_.reset); }
 }
 
-class Extraction(actions0: List[Action]) {
+class Extraction {
   var contIfs = new Ifs[ContinuousAction, ContIf](ContIf)
   var discrIfs = new Ifs[Assign, DiscrIf](DiscrIf)
   // notConds is here to simplify other operations
@@ -260,24 +269,38 @@ class Extraction(actions0: List[Action]) {
   def extract(conds: Seq[Cond], claims: List[Cond], notConds: Seq[Cond], actions: List[Action]) {
     actions.foreach { action => extract(conds, claims, notConds, action) }
   }
-  extract(Nil, Nil, Nil, actions0)
 }
 
-class Extract(prog: Prog) extends Extraction(prog.defs.find { cd => cd.name == ClassName("Main") }.orNull.body) {
+/***************************************************************************
+ * The algorithm
+ ***************************************************************************/
 
+class Extract(prog: Prog) extends Extraction {
+  
+  // Paramaters
   val forceGuards = false
   val unsafe = true
 
-  val mainClass = prog.defs.find { cd => cd.name == ClassName("Main") }.orNull
+  // State variables
+  val mainClass = prog.defs.find { cd => cd.name == ClassName("Main") }.orNull // FIXME: Check that no other classes exist
   var init = mainClass.priv
   val simulatorName = mainClass.fields(0)
   var simulatorAssigns: Seq[Assign] = Nil
 
+  // Constant
   val MODE = Name("$mode", 0)
   val MODE_VAR = Dot(Var(Name("self", 0)), MODE)
   val MODE0 = Name("$mode0", 0)
 
+  ////
+  //// CHECK, SPLIT, TRANSFORM & FLATTEN (and part of ADD MODE VAR)
+  ////
 
+  // Build the initial data structures
+  extract(Nil, Nil, Nil, mainClass.body)
+
+  // Removes simulator assigns at the top level.  Basically the CHECK
+  // step.  Needs to be done before uniquify is called.
   def extractSimulatorAssigns(if0: DiscrIf) = {
     var (sim, non) = if0.actions.partition {
       _ match {
@@ -289,12 +312,18 @@ class Extract(prog: Prog) extends Extraction(prog.defs.find { cd => cd.name == C
     simulatorAssigns ++= sim
     if0.actions = non
   }
-  // remove simulator assigns at the top level
   discrIfs.data.get(Nil).foreach(extractSimulatorAssigns(_))
 
+  // Finish the building of the data structure.  Parts of the
+  // TRANSFORM step
   contIfs.uniquify
   discrIfs.uniquify
 
+  ////
+  //// Note: At this point the first 4 steps are now done
+  ////
+
+  // Used later
   val contLHSDeps = contIfs.data.values.flatMap(_.actions.flatMap(Cond.extractLHSDeps(_))).toList.distinct
   val contRHSDeps = contIfs.data.values.flatMap(_.actions.flatMap(Cond.extractRHSDeps(_))).toList.distinct
   val contDeps = (contLHSDeps ++ contRHSDeps).distinct
@@ -309,15 +338,27 @@ class Extract(prog: Prog) extends Extraction(prog.defs.find { cd => cd.name == C
   def getDeps(if0: DiscrIf, f: Assign => Expr) =
     if0.actions.flatMap(a => Cond.extractDeps(f(a))).distinct
 
+  ////
+  //// FOLD DISCR STATE
+  ////
+
   def foldDiscrIf =
     discrIfs.data.values.foreach { if0 =>
       breakable { while (true) {
+        // Determine possible candidates to match
         val matches = discrIfs.data.values.filter(_.matchConds(if0.postConds()) == CondTrue).toList
+        // We can only fold if there is a single ??? that matches
         if (matches.size != 1) break
         val if1 = matches(0)
+        // It is possible the ??? is ourselfs, in that case don't fold
+        // as we will get into an infinite loop
         if (if0 == if1) break
+        // Determine if its safe to merge the two sets of actions.
+        // FIXME: Give some intuition on why these tests are needed.
+        // (I think it has something to so with the new semantics)
         if (getDeps(if0, _.rhs).intersect(getDeps(if1, _.lhs)).nonEmpty) break
         if (getDeps(if0, _.lhs).intersect(getDeps(if1, _.rhs)).nonEmpty) break
+        // Now fold them
         matches(0).actions.foreach { action =>
           val toFind = Cond.getName(action.lhs)
           val idx = if (toFind == None) -1 else if0.actions.indexWhere(a => Cond.getName(a.lhs) == toFind)
@@ -330,7 +371,11 @@ class Extract(prog: Prog) extends Extraction(prog.defs.find { cd => cd.name == C
     }
   foldDiscrIf
 
-  def matchUp =
+  ////
+  //// DETERMINE CONT STATE
+  //// 
+
+  def matchUp = // fixme: better name
     discrIfs.data.values.foreach { if0 =>
       val postConds = if0.postConds()
       if0.matches = contIfs.data.values.filter(_.matchConds(postConds) == CondTrue).toList
@@ -349,8 +394,11 @@ class Extract(prog: Prog) extends Extraction(prog.defs.find { cd => cd.name == C
 
   var needGuards = contIfs.data.values.filter { _.needGuard }.toList
 
-  // WARNING: This step makes assumtions that are only true 99.9%
-  // of the time
+  ////
+  //// KILL CONT GUARDS
+  ////
+
+  // WARNING: This makes assumtions that are only true 99.9% of the time
   def killGuards =
     discrIfs.data.values.foreach { if0 =>
       if0.maybe.foreach { if1 =>
@@ -401,6 +449,11 @@ class Extract(prog: Prog) extends Extraction(prog.defs.find { cd => cd.name == C
     foldDiscrIf
     matchUp
   }
+
+  ////
+  //// ADD MODE VAR (Rest of)
+  //// ADD RESETS AND SPECIAL MODES
+  ////
 
   // Determe reachable discrete states from the continuous states and
   // mark them
@@ -556,11 +609,11 @@ class Extract(prog: Prog) extends Extraction(prog.defs.find { cd => cd.name == C
     if0.conds = Eq(MODE, GStr(if0.label)) +: if0.conds
   }
 
-  //
-  // Cleanup
-  // 
+  ////
+  //// CLEAN UP
+  //// 
 
-  // for each mode, kill all uncessary discr. assignemnts in
+  // for each mode, kill all unnecessary discr. assignemnts in
   // the resets, if the reset than has no actions, kill it.
   modes.foreach{if0 => 
     if0.resets.foreach{if1=>
@@ -604,9 +657,10 @@ class Extract(prog: Prog) extends Extraction(prog.defs.find { cd => cd.name == C
   }
   init = init.filter{case Init(n,_) => !kill.exists(_ == n)}
 
-  //
-  // Now put it all together
-  //
+  //// 
+  //// CONVERT TO SWITCH and FIXUP
+  //// i.e. putting it all together to get a new AST
+  ////
 
   val theSwitch = Switch(MODE_VAR,
                          modes.map{if0 => Clause(GStr(if0.label),
