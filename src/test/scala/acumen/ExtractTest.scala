@@ -34,11 +34,11 @@ object ExtractTest extends Properties("Extract") {
       // run desugared program after transformation
       val etrace = i.run(extracted)
       // compare pretty-printed traces
-      val dps = new PrintStream(new ByteArrayOutputStream)
-      val eps = new PrintStream(new ByteArrayOutputStream)
-      val dsample = dtrace.dumpSample(dps)
-      val esample = etrace.dumpSample(eps)
-      same = dps.toString == eps.toString
+      val dbaos = new ByteArrayOutputStream
+      val ebaos = new ByteArrayOutputStream
+      dtrace.dumpSample(new PrintStream(dbaos))
+      etrace.dumpSample(new PrintStream(ebaos))
+      same = dbaos.toString == ebaos.toString
       same
     } catch {
       case e =>
