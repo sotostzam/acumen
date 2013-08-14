@@ -587,10 +587,10 @@ class Extract(prog: Prog) extends Extraction(prog.defs.find { cd => cd.name == C
   val discrDeps = modes.flatMap(_.resets.flatMap{if0 =>
     if0.conds.flatMap(Cond.getDeps(_)) ++ if0.actions.flatMap{case Assign(_,rhs) => Cond.extractDeps(rhs)}
   }).distinct
-  val allDeps = (contRHSDeps ++ discrDeps).distinct :+ MODE // $mode is special and needs to be kept
+  val allDeps = (contDeps ++ discrDeps).distinct :+ MODE // $mode is special and needs to be kept
   val allVars = init.map{case Init(n,_) => n} :+ MODE0 // $mode0 should be killed if not there
                                                                    // is a likely problem
-  val kill = allVars.diff(allDeps)
+  val kill = allVars.filter{case Name(x,_) => !allDeps.exists{case Name(y,_) => x == y}}
   //println("KILL: " + kill)
   
   modes.foreach{if0 =>
@@ -603,6 +603,7 @@ class Extract(prog: Prog) extends Extraction(prog.defs.find { cd => cd.name == C
     if0.resets = if0.resets.filter(_.actions.nonEmpty)
   }
   init = init.filter{case Init(n,_) => !kill.exists(_ == n)}
+
   //
   // Now put it all together
   //
