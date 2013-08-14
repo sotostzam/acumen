@@ -10,6 +10,13 @@ package acumen
 import scala.collection.mutable.{ ListMap => MutListMap, ArrayBuffer }
 import scala.util.control.Breaks.{ break, breakable }
 
+import Pretty._
+
+case class UnhandledSyntax[T](syntax: T, reason: String)(implicit prettyAble:PrettyAble[T]) extends Errors.AcumenError {
+  override def getMessage = 
+    "H.A. Extraction: Unhandled Syntax: " + pprint(syntax)
+}
+
 sealed abstract class Cond { def toExpr: Expr }
 case class Eq(name: Name, value: GroundValue) extends Cond {
   def toExpr = Op(Name("==", 0), List(Var(name), Lit(value)))
@@ -56,8 +63,8 @@ object Cond {
       case Op(_, lst) => lst.flatMap(extractDeps(_)).distinct
       case Var(name) => List(name)
       case Dot(Var(Name("self", 0)), name) => List(name)
-      // fixme: Handle other cases with embeded expr
-      case _ => Nil
+      case Lit(_) => Nil
+      case _ => throw UnhandledSyntax(x, "Can't extract dependencies.")
     }
   def extractLHSDeps(a: ContinuousAction): Seq[Name] = a match {
     case Equation(lhs, rhs) => extractDeps(lhs)
@@ -91,7 +98,7 @@ abstract class If[ActionT](var conds: Seq[Cond], val label: String) {
     val unmatched = conds.filter { a => !have.exists { b => a == b } }
     // if no unmatched predicates return true
     if (unmatched.isEmpty) return CondTrue
-    // if A is in unmatched and ~A is known return false
+    // if A is in unmatched and ~A is known, return false
     if (unmatched.exists { a => have.exists { b => Cond.not(a) == b } }) return CondFalse
     // if SYM == SOMETHING exists and SYM == ANYTHING is known return false
     // (the case when SYM == SOMETHING is known was already eliminated)
@@ -123,7 +130,7 @@ class ContIf(conds0: Seq[Cond], label: String = ContIf.newLabel) extends If[Cont
       resets.map(_.toAST) ++
         actions.map(Continuously(_)).toList, Nil)
   def dump = label + ": " + Pretty.pprint[Action](toAST) + "\n"
-  var claims: List[Cond] = Nil; // i.e. "claims", currently unused
+  var claims: List[Cond] = Nil; // i.e. "claims" used to annotate modes
   var needGuard = false;
   var resets: List[DiscrIf] = Nil;
   var origConds: Seq[Cond] = null;
@@ -159,7 +166,7 @@ class DiscrIf(conds0: Seq[Cond]) extends If[Assign](conds0, DiscrIf.newLabel) {
         case (Some(name), expr) =>
           invalidate(Cond.extractDeps(expr))
         case _ =>
-        /* unhandled case, FIXME, Warning or Error */
+          throw UnhandledSyntax(a:DiscreteAction, "Can't determine PostCond")
       }
     }
     def invalidate(deps: Seq[Name]) = res.indices.foreach { i =>
@@ -191,6 +198,9 @@ class Ifs[ActionT, IfT <: If[ActionT]](mkIf: MkIf[IfT]) {
   var emptyIfs: List[IfT] = null;
   def find(conds: Seq[Cond]): Option[IfT] = data.get(conds)
   def add(conds: Seq[Cond]): IfT = data.getOrElseUpdate(conds, mkIf(conds))
+  // Uniquify transforms a series of ifs into a unique form such that all
+  // actions for a given set of conditions are in exactly one if.
+  // Part of TRANSFORM step.
   def uniquify() {
     var i = 0
     breakable { while (true) {
@@ -241,7 +251,10 @@ class Extraction(actions0: List[Action]) {
       case Discretely(action: Assign) =>
         discrIfs.add(conds).actions += action
         discrIfs.add(notConds)
-      case _ => /* error, unsupported */
+      case _ =>
+        // Note: This will include Discrete actions that are not an
+        // assignment, and hance any object creation
+        throw UnhandledSyntax(action, "")
     }
   }
   def extract(conds: Seq[Cond], claims: List[Cond], notConds: Seq[Cond], actions: List[Action]) {
@@ -336,7 +349,7 @@ class Extract(prog: Prog) extends Extraction(prog.defs.find { cd => cd.name == C
 
   var needGuards = contIfs.data.values.filter { _.needGuard }.toList
 
-  // WARNING: This step makes assumtions that are not only true 99.9%
+  // WARNING: This step makes assumtions that are only true 99.9%
   // of the time
   def killGuards =
     discrIfs.data.values.foreach { if0 =>
@@ -423,7 +436,7 @@ class Extract(prog: Prog) extends Extraction(prog.defs.find { cd => cd.name == C
   }
   var initConds = getInitConds
   def followInitialState: Boolean = { // return true if the initial
-    // state was eliminated
+                                      // state was eliminated
     val matches = discrIfs.data.values.filter(_.matchConds(initConds) == CondTrue).toList
     if (matches.size != 1) return false
     def initState = matches(0)
@@ -481,7 +494,8 @@ class Extract(prog: Prog) extends Extraction(prog.defs.find { cd => cd.name == C
   // extracted)
   
   // Determine continous mode or go into D0 mode if, if it can't be
-  // determined, collect resets that need to be in D0 mode
+  // determined, collect resets that need to be in D0 mode.
+  // The D0 mode is a catch all mode
   var d0ModeNeeded = false
   discrIfs.data.values.foreach{if0 =>
     if (if0.matches.size == 1) {
@@ -589,6 +603,9 @@ class Extract(prog: Prog) extends Extraction(prog.defs.find { cd => cd.name == C
     if0.resets = if0.resets.filter(_.actions.nonEmpty)
   }
   init = init.filter{case Init(n,_) => !kill.exists(_ == n)}
+  //
+  // Now put it all together
+  //
 
   val theSwitch = Switch(MODE_VAR,
                          modes.map{if0 => Clause(GStr(if0.label),
@@ -600,6 +617,4 @@ class Extract(prog: Prog) extends Extraction(prog.defs.find { cd => cd.name == C
                          init, List(theSwitch) ++ simulatorAssigns.map(Discretely(_)))
 
   val res = new Prog(List(newMain))
-
-  // Now put it all together
 } 
