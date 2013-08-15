@@ -242,10 +242,11 @@ class Ifs[ActionT, IfT <: If[ActionT]](mkIf: MkIf[IfT]) {
  ***************************************************************************/
 
 class Extract(prog: Prog, 
+              val allowSeqIfs: Boolean = false,
               val unsafe: Boolean = false)
 {
-  // Additional Paramaters
-  val forceGuards = false
+  // Additional Paramaters (mainly useful for debugging)
+  val forceGuards = false 
 
   // State variables
   val mainClass = {
@@ -272,14 +273,22 @@ class Extract(prog: Prog,
 
   // Build the initial data structures
   // notConds is here to simplify other operations
-  def extract(conds: Seq[Cond], claims: List[Cond], notConds: Seq[Cond], action: Action) {
-    action match {
+  def extract(conds: Seq[Cond], claims: List[Cond], notConds: Seq[Cond], actions: List[Action]) : Unit = {
+    var prevConditional = false
+    def checkPrevConditional() = 
+      if (!allowSeqIfs && prevConditional)
+        throw OtherUnsupported("Multiple conditionals in the same scope unsupported.")
+      else
+         prevConditional = true
+    actions.foreach {
       case IfThenElse(cond, ifTrue, ifFalse) =>
+        checkPrevConditional()
         val ifTrueConds = conds :+ Cond(cond)
         val ifFalseConds = conds :+ Cond.not(cond)
         extract(ifTrueConds, claims, ifFalseConds, ifTrue)
         extract(ifFalseConds, claims, ifTrueConds, ifFalse)
       case Switch(subject, clauses) =>
+        checkPrevConditional()
         val switchNot = conds ++ clauses.map { case Clause(lhs, _, _) => Not(Cond.eq(subject, lhs)) }
         clauses.foreach {
           case Clause(lhs, newClaim, actions) =>
@@ -294,14 +303,11 @@ class Extract(prog: Prog,
       case Discretely(action: Assign) =>
         discrIfs.add(conds).actions += action
         discrIfs.add(notConds)
-      case _ =>
+      case action =>
         // Note: This will include Discrete actions that are not an
         // assignment, and hance any object creation
         throw UnhandledSyntax(action, "")
     }
-  }
-  def extract(conds: Seq[Cond], claims: List[Cond], notConds: Seq[Cond], actions: List[Action]) {
-    actions.foreach { action => extract(conds, claims, notConds, action) }
   }
   extract(Nil, Nil, Nil, mainClass.body)
 
