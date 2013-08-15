@@ -170,7 +170,7 @@ object Generators  {
       for {
         lhs <- arbitrary[GroundValue]
         inv <- arbitrary[Expr]
-            rhs <- arbitrary[List[Action]]
+        rhs <- arbitrary[List[Action]]
       } yield Clause(lhs, inv, rhs)
     }
 
@@ -293,6 +293,33 @@ object Generators  {
              e <- arbitrary[Expr])
           yield Move(p, e))
     )
-		
+    
+  def genSmallDouble = chooseNum[Double](-1.0, 1.0)
+
+  /* Generator combinators */
 	
+  /**
+   * Generates a set of n elements using genElem, each time passing a new 
+   * element of the input list to genElem.
+   */
+  def genSetBasedOn[P, E](params: Set[P], gen: P => Gen[E]): Gen[Set[E]] =
+    if (params.isEmpty) Set[E]()
+    else for {
+      head <- gen(params.head)
+      tail <- genSetBasedOn(params.tail, gen)
+    } yield tail + head
+
+  /** Generates a set of distinct E */
+  def genDistinctSetOfN[E](size: Int, gen: => Gen[E]): Gen[Set[E]] =
+    genCompliantSetOfN(size, gen, (candidate, e) => e.forall(!candidate.contains(_)))
+
+  /** Generates a set of E, where the set complies with condition */
+  def genCompliantSetOfN[E](size: Int, gen: => Gen[E], condition: (Set[E],Set[E]) => Boolean): Gen[Set[E]] =
+    if (size == 0) Set[E]()
+    else for {
+      init <- listOfN(size, gen)
+      distinct = init.toSet
+      rest <- genCompliantSetOfN(size - distinct.size, gen, condition) suchThat (condition(distinct,_))
+    } yield distinct union rest
+    
 }

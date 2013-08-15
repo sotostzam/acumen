@@ -32,7 +32,7 @@ object System {
   
   /** 
    * Reads each file in the folder at path that ends with extensionFilter into a String.
-   * Returns an Iterable of pairs, with the first String equal to the file's contents
+   * Returns an Iterable of pairs, with the first String equal to the filename prefix
    * and the second equal to the text contents of the string (read as UTF-8).
    **/
   def readFiles(path: String, extensionFilter: String): Map[String, String] = {
