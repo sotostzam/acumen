@@ -237,9 +237,40 @@ class Ifs[ActionT, IfT <: If[ActionT]](mkIf: MkIf[IfT]) {
   def reset() { data.values.foreach(_.reset); }
 }
 
-class Extraction {
+/***************************************************************************
+ * The algorithm
+ ***************************************************************************/
+
+class Extract(prog: Prog, 
+              val unsafe: Boolean = false)
+{
+  // Additional Paramaters
+  val forceGuards = false
+
+  // State variables
+  val mainClass = {
+    if (prog.defs.size > 1) 
+      throw OtherUnsupported("Multiple objects not supported.")
+    if (prog.defs(0).name != ClassName("Main"))
+      throw OtherUnsupported("Could not fine Main class.")
+    prog.defs(0)
+  }
+  var init = mainClass.priv
   var contIfs = new Ifs[ContinuousAction, ContIf](ContIf)
   var discrIfs = new Ifs[Assign, DiscrIf](DiscrIf)
+  val simulatorName = mainClass.fields(0)
+  var simulatorAssigns: Seq[Assign] = Nil
+
+  // Constant
+  val MODE = Name("$mode", 0)
+  val MODE_VAR = Dot(Var(Name("self", 0)), MODE)
+  val MODE0 = Name("$mode0", 0)
+
+  ////
+  //// CHECK, SPLIT, TRANSFORM & FLATTEN (and part of ADD MODE VAR)
+  ////
+
+  // Build the initial data structures
   // notConds is here to simplify other operations
   def extract(conds: Seq[Cond], claims: List[Cond], notConds: Seq[Cond], action: Action) {
     action match {
@@ -272,40 +303,6 @@ class Extraction {
   def extract(conds: Seq[Cond], claims: List[Cond], notConds: Seq[Cond], actions: List[Action]) {
     actions.foreach { action => extract(conds, claims, notConds, action) }
   }
-}
-
-/***************************************************************************
- * The algorithm
- ***************************************************************************/
-
-class Extract(prog: Prog) extends Extraction {
-  
-  // Paramaters
-  val forceGuards = false
-  val unsafe = true
-
-  // State variables
-  val mainClass = {
-    if (prog.defs.size > 1) 
-      throw OtherUnsupported("Multiple objects not supported.")
-    if (prog.defs(0).name != ClassName("Main"))
-      throw OtherUnsupported("Could not fine Main class.")
-    prog.defs(0)
-  }
-  var init = mainClass.priv
-  val simulatorName = mainClass.fields(0)
-  var simulatorAssigns: Seq[Assign] = Nil
-
-  // Constant
-  val MODE = Name("$mode", 0)
-  val MODE_VAR = Dot(Var(Name("self", 0)), MODE)
-  val MODE0 = Name("$mode0", 0)
-
-  ////
-  //// CHECK, SPLIT, TRANSFORM & FLATTEN (and part of ADD MODE VAR)
-  ////
-
-  // Build the initial data structures
   extract(Nil, Nil, Nil, mainClass.body)
 
   // Removes simulator assigns at the top level.  Basically the CHECK
