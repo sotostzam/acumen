@@ -20,6 +20,9 @@ case class UnhandledSyntax[T](syntax: T, reason: String)(implicit prettyAble:Pre
   override def getMessage = 
     "H.A. Extraction: Unhandled Syntax: " + pprint(syntax)
 }
+case class OtherUnsupported(msg: String) extends Errors.AcumenError {
+  override def getMessage = "H.A. Extraction: " + msg
+}
 
 /***************************************************************************
  * Data structures used for the extraction.  The act of forming these
@@ -282,7 +285,13 @@ class Extract(prog: Prog) extends Extraction {
   val unsafe = true
 
   // State variables
-  val mainClass = prog.defs.find { cd => cd.name == ClassName("Main") }.orNull // FIXME: Check that no other classes exist
+  val mainClass = {
+    if (prog.defs.size > 1) 
+      throw OtherUnsupported("Multiple objects not supported.")
+    if (prog.defs(0).name != ClassName("Main"))
+      throw OtherUnsupported("Could not fine Main class.")
+    prog.defs(0)
+  }
   var init = mainClass.priv
   val simulatorName = mainClass.fields(0)
   var simulatorAssigns: Seq[Assign] = Nil
