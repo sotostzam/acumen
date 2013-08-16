@@ -199,6 +199,8 @@ object Main {
 
   def main(args: Array[String]) : Unit = {
     parseArgs(args.toList)
+    if (interpreter == null)
+      interpreter = selectInterpreter("")
     if (displayHelp == "normal") {
       println("Options: ");
       optsHelp.foreach{line => println("  " + line)}
@@ -217,7 +219,7 @@ object Main {
       println("Experimental commands:");
       experimentalCommandHelp.foreach{line => println("  " + line)}
     } else {
-      if (positionalArgs.size == 0) "ui" else positionalArgs(0) match {
+      (if (positionalArgs.size == 0) "ui" else positionalArgs(0)) match {
         case "ui" => 
           ui.GraphicalMain.main(args)
         case "examples"|"record-reference-outputs" => 
