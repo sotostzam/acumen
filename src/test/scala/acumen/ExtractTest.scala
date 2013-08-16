@@ -35,9 +35,9 @@ object ExtractTest extends Properties("Extract") {
   property("semantics preserving on continous state (random models)") =
     forAll { (p: Prog) => preservesContinousSemanticsOf(p) }
 
-  property("semantics preserving on continous state (example models)") =
+  property("semantics preserving on continuous state (example models)") =
     existingModels.forall(preservesContinousSemanticsOf)
-    
+
   /** Load models compatible with the transformation from the examples directory. */
   //TODO Update when support for multi-object models is added to Extract
   def existingModels(): Iterable[Prog] =
@@ -64,9 +64,10 @@ object ExtractTest extends Properties("Extract") {
       // run desugared program after transformation
       val etrace = i.run(extracted)
       // compare pretty-printed traces
-      val drl = dumpRelevantLines(dtrace, contNames)
-      val erl = dumpRelevantLines(etrace, contNames)
-      same = drl == erl
+      val ds = dumpSampleToString(dtrace)
+      val es = dumpSampleToString(etrace)
+      val (dcs, ecs) = (onlyContinuousState(dtrace, contNames), onlyContinuousState(etrace, contNames))
+      same = dcs == ecs
       print (if (same) "+" else "-") 
       same
     } catch {
@@ -81,20 +82,33 @@ object ExtractTest extends Properties("Extract") {
     }
   }
   
-  /**
-   * Dump a sample of entries from the CStore, filtered to contain only continuous variables.
-   * NOTE: The implementation assumes that the order of objects and the order of variables 
-   *       within each object is preserved by the transformation.  
-   */
-  //TODO Add support for Progs with multiple classes
-  def dumpRelevantLines(csr: CStoreRes, contNames: Map[ClassName, Set[Name]]): String = {
+  def dumpSampleToString(csr: CStoreRes): String = {
     val baos = new ByteArrayOutputStream
     csr.dumpSample(new PrintStream(baos))
-    val names = contNames(ClassName("Main"))
-    val ls = baos.toString.lines.filter(_.startsWith(" ")).map(_.trim).filter(l => names.exists(n => l.startsWith(n.x)))
-    ls.mkString("\n")
+    baos.toString
   }
-    
+
+  /** Filters away any irrelevant variables from the input CStoreRes. */
+  def onlyContinuousState(csr: CStoreRes, contNames: Map[ClassName, Set[Name]]): CStoreRes =
+    CStoreRes(for { st <- csr.ctrace } yield onlyContinuousState(st, contNames))
+  
+  /** Filters away any irrelevant variables from a CStore. */
+  def onlyContinuousState(cst: CStore, contNames: Map[ClassName, Set[Name]]): CStore =
+    (for { (id, obj) <- cst ; VClassName(className) = obj(Name("className",0)) } 
+      yield (id, for { (name, value) <- obj; if keep(name, className, contNames) } 
+        yield (name, value) )
+    ).toMap
+  
+  /**
+   * Determines if the varName should be taken into account in the test.
+   * This includes continuous variables, fields of the Simulator object as well
+   * as the className varaible of each object. 
+   */
+  def keep(varName: Name, className: ClassName, contNames: Map[ClassName, Set[Name]]) =
+    className == "Simualtor" ||
+      (List("className") contains varName) ||
+      (contNames.getOrElse(className, Set.empty) contains varName) 
+
   /**
    * Returns a Seq of variables Name(n, primes) for which Prog contains a continuous assignment to a
    * variable with Name(n, ps) for any ps. For example, if the Prog contains a continuous assignment
