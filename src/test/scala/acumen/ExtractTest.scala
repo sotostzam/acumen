@@ -54,20 +54,22 @@ object ExtractTest extends Properties("Extract") {
   def preservesContinousSemanticsOf(p: Prog) = {
     var same = false
     val desugared = Desugarer.run(p)
-    val extracted = new Extract(desugared).res
+    var extracted : Prog = null
     try {
+      extracted = new Extract(desugared).res
       val contNames = getContinuousVariables(p)
       // set up the reference interpreter
       val i = interpreters.reference.Interpreter
       // run desugared program before transformation
       val dtrace = i.run(desugared)
+      dtrace.ctrace.last // force evaluation
       // run desugared program after transformation
       val etrace = i.run(extracted)
+      etrace.ctrace.last // force evaluation
       // compare pretty-printed traces
-      val ds = dumpSampleToString(dtrace)
-      val es = dumpSampleToString(etrace)
       val (dcs, ecs) = (onlyContinuousState(dtrace, contNames), onlyContinuousState(etrace, contNames))
-      same = dcs == ecs
+      val (ds, es)  = (dumpSampleToString(dcs), dumpSampleToString(ecs))
+      same = ds == es
       print (if (same) "+" else "-") 
       same
     } catch {
@@ -77,8 +79,10 @@ object ExtractTest extends Properties("Extract") {
     } finally if (!same) {
       System.err.println("\ndesugared: \n")
       System.err.println(pprint(desugared))
-      System.err.println("\n\nextracted: \n")
-      System.err.println(pprint(extracted))
+      if (extracted != null) {
+        System.err.println("\n\nextracted: \n")
+        System.err.println(pprint(extracted))
+      }
     }
   }
   
@@ -105,8 +109,7 @@ object ExtractTest extends Properties("Extract") {
    * as the className varaible of each object. 
    */
   def keep(varName: Name, className: ClassName, contNames: Map[ClassName, Set[Name]]) =
-    className == "Simualtor" ||
-      (List("className") contains varName) ||
+    className.x == "Simulator" || varName.x == "className" ||
       (contNames.getOrElse(className, Set.empty) contains varName) 
 
   /**
