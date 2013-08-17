@@ -76,6 +76,9 @@ object Cond {
       case Var(name) => List(name)
       case Dot(Var(Name("self", 0)), name) => List(name)
       case Lit(_) => Nil
+      case ExprVector(lst) => lst.flatMap(extractDeps(_)).distinct
+      case ExprInterval(e1, e2) => (extractDeps(e1) ++ extractDeps(e2)).distinct
+      case ExprIntervalM(e1, e2) => (extractDeps(e1) ++ extractDeps(e2)).distinct
       case _ => throw UnhandledSyntax(x, "Can't extract dependencies.")
     }
   def extractLHSDeps(a: ContinuousAction): Seq[Name] = a match {
@@ -178,7 +181,9 @@ class DiscrIf(conds0: Seq[Cond]) extends If[Assign](conds0, DiscrIf.newLabel) {
         case (Some(name), expr) =>
           invalidate(Cond.extractDeps(expr))
         case _ =>
-          throw UnhandledSyntax(a:DiscreteAction, "Can't determine PostCond")
+          // If we can't extract a name, than it likely an assignment to the 
+          // simulator parameters so ignore it for now.
+          //throw UnhandledSyntax(a:DiscreteAction, "Can't determine PostCond.")
       }
     }
     def invalidate(deps: Seq[Name]) = res.indices.foreach { i =>
@@ -314,6 +319,7 @@ class Extract(prog: Prog,
   // Removes simulator assigns at the top level.  Basically the CHECK
   // step.  Needs to be done before uniquify is called.
   def extractSimulatorAssigns(if0: DiscrIf) = {
+    // This function is also used later to extract simulator Assigns during the initialization step
     var (sim, non) = if0.actions.partition {
       _ match {
         case Assign(Dot(Var(s), _), Lit(_)) if s == simulatorName => true
