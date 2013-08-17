@@ -31,7 +31,7 @@ case class OtherUnsupported(msg: String) extends Errors.AcumenError {
 
 sealed abstract class Cond { def toExpr: Expr }
 case class Eq(name: Name, value: GroundValue) extends Cond {
-  def toExpr = Op(Name("==", 0), List(Var(name), Lit(value)))
+  def toExpr = Op(Name("==", 0), List(Dot(Var(Name("self", 0)), name), Lit(value)))
 }
 case class Not(cond: Cond) extends Cond {
   def toExpr = Op(Name("not", 0), List(cond.toExpr))
