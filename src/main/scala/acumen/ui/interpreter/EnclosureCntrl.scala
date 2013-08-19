@@ -78,7 +78,7 @@ class EnclosureCntrl(val interpreter: RecursiveInterpreter) extends InterpreterC
       //val dif = SD.run(ast)
       val des = Desugarer.run(ast)
       val des2 = if (Main.extractHA)
-                   new Extract(des).res
+                   new extract.Extract(des).res
                  else
                    des
       prog = des2

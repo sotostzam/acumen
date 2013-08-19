@@ -29,7 +29,7 @@ abstract class InterpreterActor(val progText : String, val consumer : Actor) ext
     val dif = SD.run(ast)
     val des = Desugarer.run(dif)
     val des2 = if (Main.extractHA)
-                 new Extract(des).res
+                 new extract.Extract(des).res
                else
                  des
     prog = des2

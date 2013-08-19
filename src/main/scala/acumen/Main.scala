@@ -271,7 +271,7 @@ object Main {
         case "pretty" => println(pprint(ast))
         case "desugar" => println(pprint(desugared))
         case "extract" =>
-          val extr = new Extract(desugared)
+          val extr = new extract.Extract(desugared)
           println(pprint(extr.res))
         case "typecheck" => 
           val res = new TypeCheck(desugared).run()

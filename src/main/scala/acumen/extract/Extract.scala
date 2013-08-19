@@ -7,244 +7,12 @@
 //  are done.
 
 package acumen
+package extract
+
 import scala.collection.mutable.{ ListMap => MutListMap, ArrayBuffer }
 import scala.util.control.Breaks.{ break, breakable }
 
 import Pretty._
-
-/***************************************************************************
- * Exception used for error reporting.
- ***************************************************************************/
-
-case class UnhandledSyntax[T](syntax: T, reason: String)(implicit prettyAble:PrettyAble[T]) extends Errors.AcumenError {
-  override def getMessage = 
-    "H.A. Extraction: Unhandled Syntax: " + pprint(syntax)
-}
-case class OtherUnsupported(msg: String) extends Errors.AcumenError {
-  override def getMessage = "H.A. Extraction: " + msg
-}
-
-/***************************************************************************
- * Data structures used for the extraction.  The act of forming these
- * data structures performs the SPLIT, TRANSFORM and FLATTEN steps
- ***************************************************************************/
-
-sealed abstract class Cond { def toExpr: Expr }
-case class Eq(name: Name, value: GroundValue) extends Cond {
-  def toExpr = Op(Name("==", 0), List(Dot(Var(Name("self", 0)), name), Lit(value)))
-}
-case class Not(cond: Cond) extends Cond {
-  def toExpr = Op(Name("not", 0), List(cond.toExpr))
-}
-case class OtherCond(expr: Expr, deps: Seq[Name]) extends Cond {
-  def toExpr = expr
-}
-object Cond {
-  def getName(x: Expr): Option[Name] = x match {
-    case Var(name) => Some(name)
-    case Dot(Var(Name("self", 0)), name) => Some(name)
-    case _ => None
-  }
-  def getDeps(cond: Cond): Seq[Name] = cond match {
-    case null => Nil
-    case Eq(name, _) => List(name)
-    case Not(cond) => getDeps(cond)
-    case OtherCond(_, deps) => deps
-  }
-
-  def apply(e: Expr): Cond = e match {
-    case Op(Name("==", 0), List(x, Lit(value))) => eq(x, value)
-    case Op(Name("not", 0), List(x)) => not(Cond(x))
-    case _ => OtherCond(e, extractDeps(e))
-  }
-  def eq(x: Expr, y: Expr): Cond = (x, y) match {
-    case (_, Lit(value)) => eq(x, value)
-    case _ => OtherCond(Op(Name("==", 0), List(x, (y))), extractDeps(x) ++ extractDeps(y))
-  }
-  def eq(x: Expr, y: GroundValue): Cond = (getName(x), y) match {
-    case (Some(name), _) => Eq(name, y)
-    case _ => OtherCond(Op(Name("==", 0), List(x, Lit(y))), extractDeps(x))
-  }
-  def not(cond: Cond): Cond = cond match {
-    case Not(cond) => cond
-    case _ => Not(cond)
-  }
-  def not(x: Expr): Cond = not(Cond(x))
-  def extractDeps(x: Expr): Seq[Name] =
-    x match {
-      case Op(_, lst) => lst.flatMap(extractDeps(_)).distinct
-      case Var(name) => List(name)
-      case Dot(Var(Name("self", 0)), name) => List(name)
-      case Lit(_) => Nil
-      case ExprVector(lst) => lst.flatMap(extractDeps(_)).distinct
-      case ExprInterval(e1, e2) => (extractDeps(e1) ++ extractDeps(e2)).distinct
-      case ExprIntervalM(e1, e2) => (extractDeps(e1) ++ extractDeps(e2)).distinct
-      case _ => throw UnhandledSyntax(x, "Can't extract dependencies.")
-    }
-  def extractLHSDeps(a: ContinuousAction): Seq[Name] = a match {
-    case Equation(lhs, rhs) => extractDeps(lhs)
-    case EquationI(lhs, rhs) => extractDeps(lhs)
-    case EquationT(lhs, rhs) => extractDeps(lhs)
-  }
-  def extractRHSDeps(a: ContinuousAction): Seq[Name] = a match {
-    case Equation(lhs, rhs) => extractDeps(rhs)
-    case EquationI(lhs, rhs) => extractDeps(rhs)
-    case EquationT(lhs, rhs) => extractDeps(rhs)
-  }
-  def toExpr(conds: Seq[Cond]): Expr = 
-    if (conds.nonEmpty) 
-      conds.tail.foldLeft(conds.head.toExpr) { (a, b) => Op(Name("&&", 0), List(a, b.toExpr)) }
-    else
-      Lit(GBool(true))
-}
-
-sealed abstract class MatchRes
-case object CondTrue extends MatchRes;
-case object CondFalse extends MatchRes;
-case class CantTell(unmatched: Seq[Cond]) extends MatchRes;
-
-abstract class If[ActionT](var conds: Seq[Cond], val label: String) {
-  def toAST: IfThenElse
-  var actions = new ArrayBuffer[ActionT];
-  def dump: String;
-  def reset: Unit;
-
-  // matchConds: Given "have" try to determine if the conditionals for
-  //   this if are true or false
-  def matchConds(have: Seq[Cond]): MatchRes = {
-    // filter out predicates that exists in both
-    val unmatched = conds.filter { a => !have.exists { b => a == b } }
-    // if no unmatched predicates return true
-    if (unmatched.isEmpty) return CondTrue
-    // if A is required and ~A is known, return false
-    if (unmatched.exists { a => have.exists { b => Cond.not(a) == b } }) return CondFalse
-    // if SYM == SOMETHING is required and SYM == ANYTHING is known
-    // return false (the case when SYM == SOMETHING is known was
-    // already eliminated)
-    if (unmatched.exists {
-      _ match {
-        case Eq(a, _) => have.exists {
-          _ match {
-            case Eq(b, _) => a == b;
-            case _ => false
-          }
-        }
-        case _ => false
-      }
-    }) return CondFalse
-    // there are predicates that can't be shown to be either true or
-    // false so return maybe
-    return CantTell(unmatched)
-  }
-  var reachable = false
-  var d0Mode = false;
-}
-abstract class MkIf[IfT] {
-  def apply(conds: Seq[Cond]): IfT
-}
-
-class ContIf(conds0: Seq[Cond], label: String = ContIf.newLabel) extends If[ContinuousAction](conds0, label) {
-  def toAST: IfThenElse =
-    IfThenElse(Cond.toExpr(conds),
-      resets.map(_.toAST) ++
-        actions.map(Continuously(_)).toList, Nil)
-  def dump = label + ": " + Pretty.pprint[Action](toAST) + "\n"
-  var claims: List[Cond] = Nil; // i.e. "claims" used to annotate modes
-  var needGuard = false;
-  var resets: List[DiscrIf] = Nil;
-  var origConds: Seq[Cond] = null;
-  def reset() { needGuard = false; resets = null; }
-  def discrConds(deps: Seq[Name]): Seq[Cond] =
-    conds.filter(Cond.getDeps(_).intersect(deps).isEmpty)
-}
-object ContIf extends MkIf[ContIf] {
-  def apply(conds: Seq[Cond]) = new ContIf(conds)
-  var counter = 0
-  def newLabel = { counter += 1; "C" + counter; }
-}
-
-class DiscrIf(conds0: Seq[Cond]) extends If[Assign](conds0, DiscrIf.newLabel) {
-  def toAST: IfThenElse =
-    IfThenElse(Cond.toExpr(conds),
-      actions.map(Discretely(_)).toList, Nil)
-  def dump = {
-    val post = postConds()
-    (label + ": "
-      + Pretty.pprint[Action](toAST)
-      + "\nPost Conds: "
-      + Pretty.pprint[Expr](Cond.toExpr(post))
-      + "\n")
-  }
-  def postConds(conds0: Seq[Cond] = null) : Seq[Cond] = {
-    var res = ArrayBuffer((if (conds0 != null) conds0 else conds): _*)
-    actions.foreach {
-      case a @ Assign(lhs, rhs) => (Cond.getName(lhs), rhs) match {
-        case (Some(name), Lit(value)) =>
-          invalidate(List(name))
-          res += Eq(name, value)
-        case (Some(name), expr) =>
-          invalidate(Cond.extractDeps(expr))
-        case _ =>
-          // If we can't extract a name, than it likely an assignment to the 
-          // simulator parameters so ignore it for now.
-          //throw UnhandledSyntax(a:DiscreteAction, "Can't determine PostCond.")
-      }
-    }
-    def invalidate(deps: Seq[Name]) = res.indices.foreach { i =>
-      val reqDeps = Cond.getDeps(res(i))
-      if (!deps.intersect(reqDeps).isEmpty)
-        res(i) = null
-    }
-    res.filter(_ != null)
-  }
-  var matches: Seq[ContIf] = null;
-  var maybe: Seq[ContIf] = null;
-  def reset = { matches = null; maybe = null; }
-  def dup(conds: Seq[Cond]) = {
-    var res = new DiscrIf(conds)
-    res.actions ++= actions
-    res
-  }
-}
-object DiscrIf extends MkIf[DiscrIf] {
-  def apply(conds: Seq[Cond]) = new DiscrIf(conds)
-  var counter = 0
-  def newLabel = { counter += 1; "d" + counter; }
-}
-
-class Ifs[ActionT, IfT <: If[ActionT]](mkIf: MkIf[IfT]) {
-  //def findAll(Seq[Conds]) : Seq[If[ActionT]]
-  //def find(Seq[Conds]) : Maybe[If[ActionT]]
-  val data = new MutListMap[Seq[Cond], IfT]
-  var emptyIfs: List[IfT] = null;
-  def find(conds: Seq[Cond]): Option[IfT] = data.get(conds)
-  def add(conds: Seq[Cond]): IfT = data.getOrElseUpdate(conds, mkIf(conds))
-  // Uniquify transforms a series of ifs into a unique form such that all
-  // actions for a given set of conditions are in exactly one if.
-  // Part of TRANSFORM step.
-  def uniquify() {
-    var i = 0
-    breakable { while (true) {
-      val bla = withCondsOfLength(i)
-      if (bla.isEmpty) break
-      bla.foreach { if1 =>
-        val ifs2 = withPrefix(if1.conds)
-        ifs2.foreach { if2 =>
-          if2.actions ++= if1.actions
-        }
-        if (!ifs2.isEmpty) if1.actions.clear
-      }
-      i += 1;
-    }}
-    emptyIfs = data.values.filter(_.actions.isEmpty).toList
-    data.retain { (_, if0) => !if0.actions.isEmpty }
-  }
-  def withCondsOfLength(length: Int): Iterable[IfT] =
-    data.filterKeys { _.size == length }.values
-  def withPrefix(toFind: Seq[Cond]): Iterable[IfT] =
-    data.filterKeys { conds => conds.size > toFind.size && conds.startsWith(toFind) }.values
-  def reset() { data.values.foreach(_.reset); }
-}
 
 /***************************************************************************
  * The algorithm
@@ -298,7 +66,7 @@ class Extract(prog: Prog,
         extract(ifFalseConds, claims, ifTrueConds, ifFalse)
       case Switch(subject, clauses) =>
         checkPrevConditional()
-        val switchNot = conds ++ clauses.map { case Clause(lhs, _, _) => Not(Cond.eq(subject, lhs)) }
+        val switchNot = conds ++ clauses.map { case Clause(lhs, _, _) => Cond.Not(Cond.eq(subject, lhs)) }
         clauses.foreach {
           case Clause(lhs, newClaim, actions) =>
             val newClaims = if (newClaim != Lit(GBool(true))) claims :+ Cond(newClaim) else claims
@@ -463,7 +231,7 @@ class Extract(prog: Prog,
       ensureEmpties(if0.conds)
       val modeVal = GStr(if0.label)
       discrIfs.add(if0.conds).actions += Assign(Var(MODE0), Lit(modeVal))
-      if0.conds = if0.conds :+ Eq(MODE0, modeVal)
+      if0.conds = if0.conds :+ Cond.Eq(MODE0, modeVal)
     }
     contIfs.reset
     discrIfs.reset
@@ -505,7 +273,7 @@ class Extract(prog: Prog,
   // eliminate the need for it
   def getInitConds = init.flatMap {
     _ match {
-      case Init(name, ExprRhs(Lit(value))) => List(Eq(name, value))
+      case Init(name, ExprRhs(Lit(value))) => List(Cond.Eq(name, value))
       case _ => Nil
     }
   }
@@ -628,7 +396,7 @@ class Extract(prog: Prog,
   }
 
   modes.foreach{if0 =>
-    if0.conds = Eq(MODE, GStr(if0.label)) +: if0.conds
+    if0.conds = Cond.Eq(MODE, GStr(if0.label)) +: if0.conds
   }
 
   ////
@@ -645,7 +413,7 @@ class Extract(prog: Prog,
       var modeAssign : Assign = null
       if1.actions = if1.actions.filter{case a@Assign(lhs,rhs) => !((Cond.getName(lhs), rhs) match {
         case (Some(name), Lit(value)) => 
-          val res = preConds.exists(_ == Eq(name,value))
+          val res = preConds.exists(_ == Cond.Eq(name,value))
           if (res && name == MODE) modeAssign = a
           res
         case _ => false
