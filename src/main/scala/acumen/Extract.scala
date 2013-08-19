@@ -108,15 +108,19 @@ abstract class If[ActionT](var conds: Seq[Cond], val label: String) {
   var actions = new ArrayBuffer[ActionT];
   def dump: String;
   def reset: Unit;
+
+  // matchConds: Given "have" try to determine if the conditionals for
+  //   this if are true or false
   def matchConds(have: Seq[Cond]): MatchRes = {
     // filter out predicates that exists in both
     val unmatched = conds.filter { a => !have.exists { b => a == b } }
     // if no unmatched predicates return true
     if (unmatched.isEmpty) return CondTrue
-    // if A is in unmatched and ~A is known, return false
+    // if A is required and ~A is known, return false
     if (unmatched.exists { a => have.exists { b => Cond.not(a) == b } }) return CondFalse
-    // if SYM == SOMETHING exists and SYM == ANYTHING is known return false
-    // (the case when SYM == SOMETHING is known was already eliminated)
+    // if SYM == SOMETHING is required and SYM == ANYTHING is known
+    // return false (the case when SYM == SOMETHING is known was
+    // already eliminated)
     if (unmatched.exists {
       _ match {
         case Eq(a, _) => have.exists {
@@ -258,7 +262,7 @@ class Extract(prog: Prog,
     if (prog.defs.size > 1) 
       throw OtherUnsupported("Multiple objects not supported.")
     if (prog.defs(0).name != ClassName("Main"))
-      throw OtherUnsupported("Could not fine Main class.")
+      throw OtherUnsupported("Could not find Main class.")
     prog.defs(0)
   }
   var init = mainClass.priv
