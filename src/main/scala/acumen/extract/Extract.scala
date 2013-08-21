@@ -9,10 +9,6 @@
 package acumen
 package extract
 
-import scala.collection.mutable.{ ListMap => MutListMap, ArrayBuffer }
-import scala.util.control.Breaks.{ break, breakable }
-
-import Pretty._
 import Cond.getName
 
 /***************************************************************************
