@@ -1,5 +1,5 @@
 package acumen
-package extract
+package extractfull
 
 import scala.collection.mutable.{ ListMap => MutListMap, ArrayBuffer }
 import scala.util.control.Breaks.{ break, breakable }
@@ -22,7 +22,7 @@ class MainClass(prog: Prog) {
 
   // Builds the initial data structures
   // notConds is here to simplify other operations
-  def extract(allowSeqIfs: Boolean = false) {
+  def extract(allowSeqIfs: Boolean = false, emptyElses: Boolean = true) {
     def f(conds: Seq[Cond], claims: List[Cond], notConds: Seq[Cond], actions: List[Action]) : Unit = {
       var prevConditional = false
       def checkPrevConditional() = 
@@ -49,10 +49,12 @@ class MainClass(prog: Prog) {
           val if0 = contIfs.add(conds)
           if0.claims = claims
           if0.actions += action
-          contIfs.add(notConds)
+          if (emptyElses)
+            contIfs.add(notConds)
         case Discretely(action: Assign) =>
           discrIfs.add(conds).actions += action
-          discrIfs.add(notConds)
+          if (emptyElses)
+            discrIfs.add(notConds)
         case action =>
           // Note: This will include Discrete actions that are not an
           // assignment, and hance any object creation
