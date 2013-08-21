@@ -1,7 +1,7 @@
 package acumen
 package extract
 
-sealed abstract class Cond { def toExpr: Expr }
+sealed abstract class Cond { def toExpr: Expr; }
 
 object Cond {
 

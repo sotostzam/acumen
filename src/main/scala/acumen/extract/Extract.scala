@@ -20,24 +20,10 @@ import Pretty._
 
 class Extract(prog: Prog, 
               val allowSeqIfs: Boolean = false,
-              val unsafe: Boolean = false)
+              val unsafe: Boolean = false) extends MainClass(prog)
 {
   // Additional Paramaters (mainly useful for debugging)
   val forceGuards = false 
-
-  // State variables
-  val mainClass = {
-    if (prog.defs.size > 1) 
-      throw OtherUnsupported("Multiple objects not supported.")
-    if (prog.defs(0).name != ClassName("Main"))
-      throw OtherUnsupported("Could not find Main class.")
-    prog.defs(0)
-  }
-  var init = mainClass.priv
-  var contIfs = new Ifs[ContinuousAction, ContIf](ContIf)
-  var discrIfs = new Ifs[Assign, DiscrIf](DiscrIf)
-  val simulatorName = mainClass.fields(0)
-  var simulatorAssigns: Seq[Assign] = Nil
 
   // Constant
   val MODE = Name("$mode", 0)
@@ -48,65 +34,19 @@ class Extract(prog: Prog,
   //// CHECK, SPLIT, TRANSFORM & FLATTEN (and part of ADD MODE VAR)
   ////
 
-  // Build the initial data structures
-  // notConds is here to simplify other operations
-  def extract(conds: Seq[Cond], claims: List[Cond], notConds: Seq[Cond], actions: List[Action]) : Unit = {
-    var prevConditional = false
-    def checkPrevConditional() = 
-      if (!allowSeqIfs && prevConditional)
-        throw OtherUnsupported("Multiple conditionals in the same scope unsupported.")
-      else
-         prevConditional = true
-    actions.foreach {
-      case IfThenElse(cond, ifTrue, ifFalse) =>
-        checkPrevConditional()
-        val ifTrueConds = conds :+ Cond(cond)
-        val ifFalseConds = conds :+ Cond.not(cond)
-        extract(ifTrueConds, claims, ifFalseConds, ifTrue)
-        extract(ifFalseConds, claims, ifTrueConds, ifFalse)
-      case Switch(subject, clauses) =>
-        checkPrevConditional()
-        val switchNot = conds ++ clauses.map { case Clause(lhs, _, _) => Cond.Not(Cond.eq(subject, lhs)) }
-        clauses.foreach {
-          case Clause(lhs, newClaim, actions) =>
-            val newClaims = if (newClaim != Lit(GBool(true))) claims :+ Cond(newClaim) else claims
-            extract(conds :+ Cond.eq(subject, lhs), newClaims, switchNot, actions)
-        }
-      case Continuously(action) =>
-        val if0 = contIfs.add(conds)
-        if0.claims = claims
-        if0.actions += action
-        contIfs.add(notConds)
-      case Discretely(action: Assign) =>
-        discrIfs.add(conds).actions += action
-        discrIfs.add(notConds)
-      case action =>
-        // Note: This will include Discrete actions that are not an
-        // assignment, and hance any object creation
-        throw UnhandledSyntax(action, "")
-    }
-  }
-  extract(Nil, Nil, Nil, mainClass.body)
+  // Builds the initial data structures
+  extract(allowSeqIfs)
 
   // Removes simulator assigns at the top level.  Basically the CHECK
-  // step.  Needs to be done before uniquify is called.
-  def extractSimulatorAssigns(if0: DiscrIf) = {
-    // This function is also used later to extract simulator Assigns during the initialization step
-    var (sim, non) = if0.actions.partition {
-      _ match {
-        case Assign(Dot(Var(s), _), Lit(_)) if s == simulatorName => true
-        case Assign(Dot(Dot(Var(Name("self", 0)), s), _), Lit(_)) if s == simulatorName => true
-        case a @ _ => false
-      }
-    }
-    simulatorAssigns ++= sim
-    if0.actions = non
-  }
+  //  step.  Needs to be done before uniquify is called.  (note that
+  //  foreach is applied to an Option not a collection; (the
+  //  overloading of names in Scala like this is rather unfortunate
+  //  and confusing on by view -kevina))
   discrIfs.data.get(Nil).foreach(extractSimulatorAssigns(_))
 
   // Finish the building of the data structure.  Parts of the
   // TRANSFORM step
-  contIfs.uniquify
+  contIfs.uniquify // FIXME: Better name, maybe pushIntoLeaves
   discrIfs.uniquify
 
   ////
@@ -131,6 +71,7 @@ class Extract(prog: Prog,
   ////
   //// FOLD DISCR STATE
   ////
+  //// (An optimization)
 
   def foldDiscrIf =
     discrIfs.data.values.foreach { if0 =>
@@ -164,6 +105,7 @@ class Extract(prog: Prog,
   ////
   //// DETERMINE CONT STATE
   //// 
+  //// (An optimization, we could just force guards...)
 
   def matchUp = // fixme: better name
     discrIfs.data.values.foreach { if0 =>
@@ -187,6 +129,7 @@ class Extract(prog: Prog,
   ////
   //// KILL CONT GUARDS
   ////
+  //// (An unsafe optimization)
 
   // WARNING: This makes assumtions that are only true 99.9% of the time
   def killGuards =
@@ -217,20 +160,16 @@ class Extract(prog: Prog,
     needGuards = contIfs.data.values.filter { _.needGuard }.toList
   }
 
+  ////
+  //// Do something about the guards we can't kill
+  ////
+
   if (needGuards.nonEmpty) {
     discrIfs.data ++= discrIfs.emptyIfs.map { if0 => (if0.conds, if0) }
     contIfs.data.values.filter { _.needGuard }.foreach { if0 =>
       //println("Need guards on " + if0.label)
-      def ensureEmpties(cond: Seq[Cond]): Unit = if (!cond.isEmpty) {
-        val init = cond.init
-        val last = cond.last
-        discrIfs.add(init :+ last)
-        discrIfs.add(init :+ Cond.not(last))
-        ensureEmpties(init)
-      }
-      ensureEmpties(if0.conds)
       val modeVal = GStr(if0.label)
-      discrIfs.add(if0.conds).actions += Assign(Var(MODE0), Lit(modeVal))
+      discrIfs.addwEmpties(if0.conds).actions += Assign(Var(MODE0), Lit(modeVal))
       if0.conds = if0.conds :+ Cond.Eq(MODE0, modeVal)
     }
     contIfs.reset
@@ -401,7 +340,8 @@ class Extract(prog: Prog,
 
   ////
   //// CLEAN UP
-  //// 
+  ////
+  //// (An Optimization) 
 
   // for each mode, kill all unnecessary discr. assignemnts in
   // the resets, if the reset than has no actions, kill it.
@@ -457,8 +397,8 @@ class Extract(prog: Prog,
                                                  Cond.toExpr(if0.claims),
                                                  if0.resets.map(_.toAST) ++
                                                  if0.actions.map(Continuously(_)).toList)})
-  val newMain = ClassDef(mainClass.name,
-                         mainClass.fields,
+  val newMain = ClassDef(origDef.name,
+                         origDef.fields,
                          init, List(theSwitch) ++ simulatorAssigns.map(Discretely(_)))
 
   val res = new Prog(List(newMain))

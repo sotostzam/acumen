@@ -18,7 +18,7 @@ abstract class If[ActionT](var conds: Seq[Cond], val label: String) {
   def toAST: IfThenElse
   var actions = new ArrayBuffer[ActionT];
   def dump: String;
-  def reset: Unit;
+  def reset: Unit; 
 
   // matchConds: Given "have" try to determine if the conditionals for
   //   this if are true or false
@@ -130,6 +130,13 @@ class Ifs[ActionT, IfT <: If[ActionT]](mkIf: MkIf[IfT]) {
   var emptyIfs: List[IfT] = null;
   def find(conds: Seq[Cond]): Option[IfT] = data.get(conds)
   def add(conds: Seq[Cond]): IfT = data.getOrElseUpdate(conds, mkIf(conds))
+  def addwEmpties(conds: Seq[Cond]): IfT = {
+    if (!conds.isEmpty) {
+      addwEmpties(conds.init) // init = all but last element of list
+      add(conds.init :+ Cond.not(conds.last))
+    }
+    add(conds)
+  }
   // Uniquify transforms a series of ifs into a unique form such that all
   // actions for a given set of conditions are in exactly one if.
   // Part of TRANSFORM step.
