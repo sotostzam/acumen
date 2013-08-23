@@ -58,8 +58,8 @@ object ExtractTest extends Properties("Extract") {
     try {
       extracted = new extract.Extract(desugared).res
       val contNames = getContinuousVariables(p)
-      // set up the reference interpreter
-      val i = interpreters.reference.Interpreter
+      // set up the newreference interpreter
+      val i = interpreters.newreference.Interpreter
       // run desugared program before transformation
       val dtrace = i.run(desugared)
       dtrace.ctrace.last // force evaluation
