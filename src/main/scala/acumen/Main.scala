@@ -259,7 +259,8 @@ object Main {
       lazy val in = new InputStreamReader(new FileInputStream(args(1)))
       lazy val ast = Parser.run(Parser.prog, in)
       lazy val desugared = Desugarer.run(ast)
-      lazy val final_out = desugared // final output after all passes
+      lazy val extracted = if (extractHA) new extract.Extract(desugared).res else desugared
+      lazy val final_out = extracted // final output after all passes
       lazy val trace = i.run(final_out)
       lazy val ctrace = as_ctrace(trace)
       /* Perform user-selected action. */
