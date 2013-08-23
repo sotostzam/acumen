@@ -1,10 +1,7 @@
 // Extract a Hybrid automaton
 
-// Mostly follows algo.txt in https://bitbucket.org/effective/paper-esaes
-//  (commit e9a85f9779f26f8719d43d41599074b5725a2332)
-//  The SPLIT, TRANSFORM and FLATTEN are all done at once during the
-//  extraction into a normal form in which all other transformation
-//  are done.
+// Mostly follows algo.txt; however, the data structures used here are
+// slightly different and the order the steps is not exactly the same.
 
 package acumen
 package extract
@@ -22,27 +19,35 @@ class Extract(prog: Prog,
   val MODE = Name("$mode", 0)
   val MODE_VAR = Dot(Var(Name("self", 0)), MODE)
 
-  // Builds the initial data structures
+  // Builds the initial data structures, part of both the cont and discr
+  // TRANSFORM step
   extract(allowSeqIfs)
 
   // Removes simulator assigns at the top level.  Needs to be done before 
   //  uniquify is called.  (note that foreach is applied to an Option
   //  not a collection; (the overloading of names in Scala like this
   //  is rather unfortunate and confusing on by view -kevina))
+  //  The EXTRACT SIMULATOR PARMS step.
   discrIfs.data.get(Nil).foreach(extractSimulatorAssigns(_))
 
   // Push down all continuous actions to the deepest nested if.
-  // Each reaming if becomes a mode.
+  // Each remaining if becomes a mode.
+  // Rest of the TRANSFORM step
   contIfs.pushDown
 
   // Now do magic (FIXME: define magic)
+  // The CONVERT TO MODES step
   contIfs.data.values.foreach { cIf =>
     val dIf = discrIfs.find(cIf.conds)
     dIf.actions += Assign(MODE_VAR, Lit(GStr(cIf.label)))
   }
 
   // Now that we added the magic we can push down the discrete actions
+  // The rest of the TRANSFORM DISCR step
   discrIfs.pushDown
+
+  // The next three steps perform the ADD RESETS AND SPECIAL MODES
+  // step
 
   // If we are not already in a mode after a reset go into the special
   // D0 mode
@@ -63,8 +68,8 @@ class Extract(prog: Prog,
   }
 
   //
-  // Converts the modes into a big switch and create a new model
-  //
+  // Converts the modes into a big switch and create a new mode
+  // The CONVERT TO SWITCH and FIX UP steps
 
   val theSwitch = Switch(MODE_VAR,
                          modes.map{m => Clause(GStr(m.label),
