@@ -47,7 +47,7 @@ class Extract(prog: Prog,
   // If we are not already in a mode after a reset go into the special
   // D0 mode
   discrIfs.data.values.foreach { dIf => 
-    if (getName(dIf.actions.last.lhs).orNull != MODE) {
+    if (!dIf.actions.exists(assign => getName(assign.lhs).orNull == MODE)) {
       dIf.actions += Assign(MODE_VAR, Lit(GStr("D0")))
     }
   }
