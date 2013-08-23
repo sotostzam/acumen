@@ -13,6 +13,7 @@ abstract class If[ActionT](var conds: Seq[Cond], val label: String) {
   def toAST: IfThenElse
   var actions = new ArrayBuffer[ActionT];
   def dump: String;
+  var visited : Boolean = false
 }
 abstract class MkIf[IfT] {
   def apply(conds: Seq[Cond]): IfT
@@ -51,29 +52,33 @@ object DiscrIf extends MkIf[DiscrIf] {
 
 class Ifs[ActionT, IfT <: If[ActionT]](mkIf: MkIf[IfT]) {
   val data = new MutListMap[Seq[Cond], IfT]
-  def find(conds: Seq[Cond]): Option[IfT] = data.get(conds)
+  def find(conds: Seq[Cond]): IfT = data.get(conds) match {
+    case Some(res) => res
+    case None => throw new java.util.NoSuchElementException
+  }
   def add(conds: Seq[Cond]): IfT = data.getOrElseUpdate(conds, mkIf(conds))
   // pushDown transforms a series of ifs into a unique form such that all
   // actions for a given set of conditions are in exactly one if.
   // Requires empty ifs to push the actions into.
-  def pushDown() {
-    var i = 0
-    breakable { while (true) {
-      val bla = withCondsOfLength(i)
-      if (bla.isEmpty) break
-      bla.foreach { if1 =>
-        val ifs2 = withPrefix(if1.conds)
-        ifs2.foreach { if2 =>
-          if2.actions ++= if1.actions
-        }
-        if (!ifs2.isEmpty) if1.actions.clear
+  def pushDown(if0: IfT, actions: List[ActionT]) { // FIXME: Broken!!!!!
+    if0.visited = true
+    val candidates = withPrefix(if0.conds).toList.sortWith {(a,b) => a.conds.size < b.conds.size}
+    if (candidates.nonEmpty) {
+      candidates.foreach{if1 => 
+        if (!if1.visited)
+          pushDown(if1, if0.actions.toList ++ actions)
       }
-      i += 1;
-    }}
+      if0.actions.clear
+    } else {
+      if0.actions ++= actions
+    }
+  }
+
+  def pushDown() {
+    data.values.foreach(_.visited = false)
+    pushDown(find(Nil), Nil)
     data.retain { (_, if0) => !if0.actions.isEmpty }
   }
-  def withCondsOfLength(length: Int): Iterable[IfT] =
-    data.filterKeys { _.size == length }.values
   def withPrefix(toFind: Seq[Cond]): Iterable[IfT] =
     data.filterKeys { conds => conds.size > toFind.size && conds.startsWith(toFind) }.values
 }

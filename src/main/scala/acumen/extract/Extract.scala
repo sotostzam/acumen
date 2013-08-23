@@ -37,7 +37,7 @@ class Extract(prog: Prog,
 
   // Now do magic (FIXME: define magic)
   contIfs.data.values.foreach { cIf =>
-    val dIf = discrIfs.find(cIf.conds).orNull
+    val dIf = discrIfs.find(cIf.conds)
     dIf.actions += Assign(MODE_VAR, Lit(GStr(cIf.label)))
   }
 

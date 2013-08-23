@@ -21,7 +21,8 @@ class MainClass(prog: Prog) {
   var simulatorAssigns: Seq[Assign] = Nil
 
   // Builds the initial data structures
-  // notConds is here to simplify other operations
+  // Creates lots possible empty ifs that are required for the
+  // Ifs#pushDown operation to function correctly
   def extract(allowSeqIfs: Boolean = false) {
     def f(conds: Seq[Cond], claims: List[Cond], notConds: Seq[Cond], actions: List[Action]) : Unit = {
       var prevConditional = false
@@ -61,6 +62,8 @@ class MainClass(prog: Prog) {
           throw UnhandledSyntax(action, "")
       }
     }
+    contIfs.add(Nil)
+    discrIfs.add(Nil)
     f(Nil,Nil,Nil,origDef.body)
   }
 
