@@ -1,7 +1,6 @@
 // Extract a Hybrid automaton
 
-// Mostly follows algo.txt in https://bitbucket.org/effective/paper-esaes
-//  (commit e9a85f9779f26f8719d43d41599074b5725a2332)
+// Mostly follows algo-orig.txt
 //  The SPLIT, TRANSFORM and FLATTEN are all done at once during the
 //  extraction into a normal form in which all other transformation
 //  are done.

@@ -1,0 +1,264 @@
+The goal of this algorithm is to extract a H.A. from a single object
+model with with arbitrary nested ifs and switches.  
+
+Requirements:
+
+In addition to a restricted syntax this algo. also assumes the new
+semantics and no sequential conditional actions (ifs or switches)
+unless they are either mutely exclusive (ie both ifs can not be true
+at the same time) or independent (they do not assign to the same
+variables and the the variables they assigned to are not used in the
+others conditionals).
+
+Also, the algo. assumes that deiscr var. are for internal state
+maintains and can be eliminated.
+
+Notes:
+
+  discr = discrete
+  cont  = continuous
+
+(abbreviations markers are not used, eventually they should just be
+expanded once the algo. is close to something that should be in a
+paper)
+
+CHECK)
+
+  Make sure simulator paramaters are only updated once, if not error out.
+
+  Now note them and remove them.
+
+SPLIT)
+
+  Split the AST into discrete and continuous phases.  Insert NoOps
+  when necessary.
+
+TRANSFORM)
+
+  For BOTH the discr and cont phase:
+
+  a) switches become if
+
+  b) unguarded assignments (both continuous and discrete) iteratively
+     get moved into deeper nested ifs, if necessary introduce else
+     clauses
+
+  for example
+  
+       a := 10
+       if (...)
+         b := 10
+       end
+       c := 30
+
+    becomes
+
+       if (...)
+         a := 10
+         b := 20
+         c := 30
+       else
+         a := 10
+         c := 30
+
+  c) if there are still any ';' seperating anything but assignments
+     FAIL
+
+  For BOTH the discr and cont phase:
+
+  d) else clauses become nots ie:
+
+       if (A) ...
+       else
+
+     becomes
+
+       if (A) ...
+       if (!A) ...
+
+  d2) remove leftover ifs with noops as actions
+
+FLATTEN)
+
+  For BOTH the discr and cont phase:
+
+  Flatten nested ifs by combining predicates with and, eliminate
+  redundant checks if possible
+
+    if (A)
+      if (B)
+      if (!B) 
+    if (!A)
+      if (C)
+
+  becomes
+
+     if (A && B)
+     if (A && !B)
+     if (!A && C)
+
+  number each resulting if (starting with one)
+
+FOLD discr states)
+
+[This step is considered an optimization.]
+
+FIXME: Explain better / add examples.
+
+For each discr if A that meets the conditions for another discr 
+if B, fold the actions of B into A and check again, repeat until 
+none of the conditions for a discr step are matched.
+
+If it can be determined with 100% certainty that a discrete if
+doesn't lead to a fixed point but the next discr state can not be
+determined, flag the if.
+
+DETERMINE CONT STATE)
+
+For each discr if, determine if we meet the conditions for a
+cont if and add a discrete assignment '$mode := "cX"' at the
+end where cX is the number associated.  Move the conditions for the
+continuous assignment into a "claim" and change the condations into
+'$mode == "cX". (FIXME: Describe as operation on a set of discrete
+ifs. If the cont if is already transformed, do not apply the
+transformation again but instead reuse the label.) For example:
+
+DISCR: if mode == "Fill1" && x2 == 0 
+  mode := "Fill2"
+
+CONT: if mode == "Fill2"
+  x1' = 2; 
+  x2' = -3
+
+becomes 
+
+DISCR: if mode == "Fill1" && x2 == 0 
+  mode := "Fill2"
+  $mode := "c1"
+
+CONT: if $mode == "c1" claim (mode == "Fill2")
+  x1' = 2; 
+  x2' = -3
+
+[OPTIONAL] KILL CONT GUARDS)
+
+Warning: This step may greatly simplify the resulting model but makes an
+assumption about the model that may not be valid in a small number of
+cases. The assumption is that at the end of each discrete phase (i.e. 
+when a fixed point is reached) we will be able to execute some cont 
+assignment.
+
+This steps depends on "FOLD DISCR STATES" not being skipped to perform
+well.
+
+If the above step failed, assume that at the end of the discr phase
+of the simulation we must be in a continuous phase.  Giving that
+determine if any conditions can be removed from the continuous ifs to
+make a match, conservatively remove them so that each non flagged
+(from "FOLD DISCR STATES") discr if matches exactly one cont if.
+
+If this step does anything, redo the previous step after the transformation.
+
+ADD MODE VAR)
+  
+  For all remaining untransformed continuous ifs:
+
+    1. convert guard to a claim 
+
+    2. replace guard with one based on the generated label
+
+    3. introduce discr if that does nothing but set the $mode with 
+       the set of conditions for the if.
+
+ADD RESETS AND SPECIAL MODES)
+  
+  Copy all discr if into a body of a new 'if $mode == "d0"' block and
+  also into the body of all cont ifs.
+
+  For example the ifs in the CHECK MODE PARMS step will become
+
+if ($mode == "d0")
+  if mode == "Fill1" && x2 == 0 mode := "Fill2"; $mode := "d0"; end 
+  if mode == "Fill1" && $mode == "c1"; x1' = 2; x2' = -3 end
+end
+
+if $mode == "c1" claim mode == "Fill1" &&
+  if mode == "Fill1" && x2 == 0 mode := "Fill2"; $mode := "d0"; end 
+  if mode == "Fill1" && $mode == "c1"; x1' = 2; x2' = -3 end
+  x1' = 2; x2' = -3 
+end
+
+  For all discr ifs (copies and originals) that do not contain a
+  discrete assignment to $mode, add the following discrete assignment:
+  '$mode := "d0"'.
+  
+  Add a private variable declaration 'cmode := "d0"'.
+
+  Each if is now the basis for a mode and we now have a Hybrid
+  Automaton.
+
+CLEAN UP) [This is an optional, optimiziation step]
+
+For each continuous if:
+
+  1. based on the "claim" preconditions, kill the ifs that can never
+     be true, //FIXME Clarify: no cont/discr assignments
+
+  2. based on the "claim" preconditions eliminate discrete ifs that do
+     nothing, i.e. that have guard that can be determined to be always
+	 (based on the claim) true and for which the discrete assignment
+	 does nothing.
+
+After cleanup if a variable is only used in a claim, kill all uses of
+that variable.
+
+[OPTIONAL] SPLIT DISCRETE MODE) [SKIP FOR NOW]
+
+If there are any non-continuous variables still in use, attempt to
+eliminate them by splitting the discrete mode ("d0").
+
+FIXME: Describe process in detail
+
+For example:
+
+  if $mode == "d0" 
+    if mode == "Fill1" && x2 == 0 mode := "Fill2"; end
+    if mode == "Fill1" && x2 != 0 $mode := "c1"; end
+    if mode == "Fill2" && x1 == 0 mode := "Fill1"; end
+    if mode == "Fill2" && x1 != 0 $mode := "c2"; end
+  end;
+  if $mode == "c1" 
+    if x2 == 0 mode := "Fill2"; $mode := "d0"; end
+    x1' = 2; x2' = -3 
+  end;
+  if $mode == "c2" 
+    if x1 == 0 mode := "Fill1"; $mode := "d0"; end
+    x1' = -2; x2' = 1 
+  end;
+
+becomes
+
+  if $mode == "d0.1" 
+    if x2 == 0 $mode := "d0.2"; end
+    if x2 != 0 $mode := "c1"; end
+  end;
+  if $mode == "d0.2" 
+    if x1 == 0 $mode := "d0.1"; end
+    if x1 != 0 $mode := "c2"; end
+  end;
+  if $mode == "c1" 
+    if x2 == 0 $mode := "d0.2"; end
+    x1' = 2; x2' = -3 
+  end;
+  if $mode == "c2" 
+    if x1 == 0 $mode := "d0.1"; end
+    x1' = -2; x2' = 1 
+  end;
+
+CONVERT TO SWITCH)
+
+Convert the modes into a switch
+
+FIX UP)
+
+Put back any assignments to simulator paramaters on the top level
