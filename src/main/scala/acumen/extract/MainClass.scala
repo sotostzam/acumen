@@ -50,6 +50,8 @@ class MainClass(prog: Prog) {
           if0.claims = claims
           if0.actions += action
           contIfs.add(notConds)
+          discrIfs.add(conds)
+          discrIfs.add(notConds)
         case Discretely(action: Assign) =>
           discrIfs.add(conds).actions += action
           discrIfs.add(notConds)

@@ -51,19 +51,11 @@ object DiscrIf extends MkIf[DiscrIf] {
 
 class Ifs[ActionT, IfT <: If[ActionT]](mkIf: MkIf[IfT]) {
   val data = new MutListMap[Seq[Cond], IfT]
-  var emptyIfs: List[IfT] = null;
   def find(conds: Seq[Cond]): Option[IfT] = data.get(conds)
   def add(conds: Seq[Cond]): IfT = data.getOrElseUpdate(conds, mkIf(conds))
-  def addwEmpties(conds: Seq[Cond]): IfT = {
-    if (!conds.isEmpty) {
-      addwEmpties(conds.init) // init = all but last element of list
-      add(conds.init :+ Cond.not(conds.last))
-    }
-    add(conds)
-  }
   // pushDown transforms a series of ifs into a unique form such that all
   // actions for a given set of conditions are in exactly one if.
-  // Part of TRANSFORM step.
+  // Requires empty ifs to push the actions into.
   def pushDown() {
     var i = 0
     breakable { while (true) {
