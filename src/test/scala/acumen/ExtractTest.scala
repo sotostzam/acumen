@@ -1,5 +1,10 @@
 package acumen
 
+import java.io.ByteArrayOutputStream
+import java.io.PrintStream
+import java.io.File
+import java.io.FilenameFilter
+import scala.util.matching.Regex
 import org.scalacheck._
 import Gen._
 import Shrink._
@@ -7,23 +12,19 @@ import Arbitrary.arbitrary
 import org.scalacheck.Properties
 import org.scalacheck.Prop._
 import acumen.Pretty.pprint
-import testutil.ProgGenerator.{
-  arbProg
-}
 import acumen.util.System.{
   readFiles, FILE_SUFFIX_MODEL
 }
-import java.io.ByteArrayOutputStream
-import java.io.PrintStream
-import java.io.File
-import java.io.FilenameFilter
-
-import scala.util.matching.Regex
+import acumen.testutil.ProgGenerator
 
 object ExtractTest extends Properties("Extract") {
 
   val MODEL_PATH_SINGLE_CLASS = "examples/XXX_internal/one-class"
   val MODEL_PATH_ENCLOSURE    = "examples/9_Experimental/01_Enclosures/"
+  
+  val progGenerator = new ProgGenerator( maxConditionalsPerScope = 1
+                                       , maxSimulationTime       = 25)
+  import progGenerator.arbProg
     
   /**
    * The transformation from Acumen to a hybrid automaton core language 
@@ -77,6 +78,8 @@ object ExtractTest extends Properties("Extract") {
         e.printStackTrace
         throw e
     } finally if (!same) {
+      System.err.println("\nraw: \n")
+      System.err.println(pprint(p))
       System.err.println("\ndesugared: \n")
       System.err.println(pprint(desugared))
       if (extracted != null) {
@@ -106,7 +109,7 @@ object ExtractTest extends Properties("Extract") {
   /**
    * Determines if the varName should be taken into account in the test.
    * This includes continuous variables, fields of the Simulator object as well
-   * as the className varaible of each object. 
+   * as the className variable of each object. 
    */
   def keep(varName: Name, className: ClassName, contNames: Map[ClassName, Set[Name]]) =
     className.x == "Simulator" || varName.x == "className" ||

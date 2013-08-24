@@ -2,13 +2,18 @@ package acumen
 package testutil
 
 import org.scalacheck._
-import Gen._
-import Shrink._
-import Arbitrary.arbitrary
-import org.scalacheck.Properties
+import org.scalacheck.Arbitrary.arbitrary
+import org.scalacheck.Gen._
 import org.scalacheck.Prop._
+import org.scalacheck.Properties
+import org.scalacheck.Shrink._
+
 import acumen.Pretty.pprint
-import acumen.testutil.Generators.{ 
+import acumen.util.Canonical
+import acumen.interpreters.enclosure.Generators.{
+  genSubInterval
+}
+import Generators.{ 
   arbName, genSetBasedOn, genCompliantSetOfN, genDistinctSetOfN, genSmallDouble
 }
 import ODESystemGenerator.{
@@ -20,7 +25,6 @@ import acumen.interpreters.enclosure.TestingContext.{
 }
 import java.io.ByteArrayOutputStream
 import java.io.PrintStream
-import acumen.util.Canonical
 
 /**
  * Issues:
@@ -55,38 +59,48 @@ import acumen.util.Canonical
  *      statements such as If or Switch, containing discrete
  *      assignments.
  */
-object ProgGenerator extends Properties("Prog") {
+class ProgGenerator
+  ( val maxConditionalsPerScope : Int
+  , val maxSimulationTime       : Double
+  ) {
+
+  /* State */
   
   var skipped = 0
+
+  /* Types */
   
   // Used to indicate whether a discrete variable has been assigned to
-  type Unassigned = Boolean
-  // Indicates whether a generator executes in the context of a switch base on a particular mode variable
+  sealed abstract class InitState
+  case object Assigned extends InitState
+  case object Unassigned extends InitState
+  // Indicates whether a generator executes in the context of a switch based on a particular mode variable
   type Active = Boolean
-
+  
   implicit def arbProg: Arbitrary[Prog] = Arbitrary { genProg }
   val emptyProg = Prog(Nil)
-  
-  // TODO Implement generation of models with more than one class.
+
   /**
+   * TODO Implement generation of models with more than one class.
+   * 
    * Basic algorithm:
-   * 1. Generate list of leaf classes and add these to Prog.
-   * 2. Randomize a small number n, and do the following n times:
-   * 3. Generate list of classes, based on Prog, and add these to Prog.
+   * 
+   *  1. Generate list of leaf classes and add these to Prog.
+   *  2. Randomize a small number n, and do the following n times:
+   *  3. Generate list of classes, based on Prog, and add these to Prog.
    */
   def genProg: Gen[Prog] =
-    for {
-      main <-
-        genClassDef( isLeaf = true
-                   , isMain = true
-                   , timeDomain = Interval(0, 10)
-                   , emptyProg 
-                   , oneOf(List(ClassName("Main")))
-                   )
-      m = Prog(List(main))
-      p <- if (simulatesOK(m)) value(m) else genProg
-    } yield p
-  
+      for {
+        main <-
+          genClassDef( isLeaf = true // Prevent generation of constructor calls and child references
+                     , isMain = true // Generate the Main class
+                     , emptyProg     // Environment
+                     , ClassName("Main")
+                     )
+        m = Prog(List(main))
+        p <- if (simulatesOK(m)) value(m) else genProg
+      } yield p
+    
   /**
    * Attempts to execute the Prog p using the new reference interpreter. 
    * Returns false if an exception is thrown during execution, e.g. when a repeated assignment 
@@ -109,12 +123,10 @@ object ProgGenerator extends Properties("Prog") {
   /**
    * Generate a class definition.
    * 
-   * TODO If isLeaf is set to true, no constructor calls or child (Dot) references 
-   * will be generated.
+   * TODO If isLeaf is set to true, no constructor calls or child (Dot) references will be generated.
    */
   def genClassDef( isLeaf: Boolean
                  , isMain: Boolean
-                 , timeDomain: Interval
                  , p: Prog
                  , classNameGen: => Gen[ClassName]
                  ): Gen[ClassDef] =
@@ -130,10 +142,19 @@ object ProgGenerator extends Properties("Prog") {
       varNames            =  completeNames(distinctVarNames)
       numberOfFields      <- chooseNum[Int](0: Int, if (isMain || varNames.isEmpty) 0 else varNames.size)
       (fields, privNames) =  varNames.splitAt(numberOfFields)
-      privs               <- genPrivateSection(privNames.map((true,_)), modes)
+      privs               <- genPrivateSection(privNames.map((Unassigned,_)), modes)
       privsT              =  Init(timeVar, ExprRhs(0)) +: Init(timeVarD, ExprRhs(1)) +: privs.toList 
       equations           <- genLinearODESystem(distinctVarNames)
-      actions             <- genActions(isTopLevel = true, equations, (privNames ++ fields).map((true,_)), modes, (timeVar, timeDomain), nesting = 0)
+      timeDomain          <- for { m <- choose[Double](Double.MinPositiveValue, maxSimulationTime)
+                                   i <- genSubInterval(Interval(0, m))
+                                 } yield i 
+      actions             <- genActions( isTopLevel = true
+                                       , equations
+                                       , (privNames ++ fields).map((Unassigned,_))
+                                       , modes
+                                       , (timeVar, timeDomain)
+                                       , nesting = 0
+                                       )
       actionsT            =  Continuously(Equation(timeVarD, 1)) +: actions.toList 
     } yield ClassDef(name, if (isMain) List(Name("simulator",0)) else fields.toList, privsT, actionsT)
 
@@ -148,13 +169,13 @@ object ProgGenerator extends Properties("Prog") {
    */
   def genModes(banned: Set[Name]): Gen[Set[(Active,Name,List[GroundValue])]] =
     for {
-      minModeVars         <- chooseNum(0,4)
-      modeNames           <- genCompliantSetOfN(minModeVars, for { n <- arbitrary[Name] } yield Name(n.x, 0),
-                               (candidate: Set[Name], compliant: Set[Name]) =>
-                                 candidate.forall(e => !compliant.contains(e) && !banned.contains(e)))
-      modesPerName        <- listOfN(modeNames.size, choose[Int](2, 5))
-      modes               =  (modeNames zip modesPerName.map(n => (0 to n).toList.map(GInt): List[GroundValue])).
-                             map { case (m, n) => (false, m, n) }
+      minModeVars  <- chooseNum(0,4)
+      modeNames    <- genCompliantSetOfN(minModeVars, for { n <- arbitrary[Name] } yield Name(n.x, 0),
+                        (candidate: Set[Name], compliant: Set[Name]) =>
+                          candidate.forall(e => !compliant.contains(e) && !banned.contains(e)))
+      modesPerName <- listOfN(modeNames.size, choose[Int](2, 5))
+      modes        =  (modeNames zip modesPerName.map(n => (0 to n).toList.map(GInt): List[GroundValue])).
+                      map { case (m, n) => (false, m, n) }
     } yield modes
     
   /**
@@ -169,11 +190,10 @@ object ProgGenerator extends Properties("Prog") {
    * Note: Each mode triple contains a boolean indicating whether the action is generated in 
    *       the context of a switch statement based on the given mode variable. 
    */
-  // TODO Add discrete assignments
   def genActions
-    ( isTopLevel: Boolean 
+    ( isTopLevel: Boolean
     , availableEquations: Set[Equation]
-    , varNames: Set[(Unassigned,Name)]
+    , varNames: Set[(InitState,Name)]
     , modes: Set[(Active,Name,List[GroundValue])]
     , time: (Name,Interval)
     , nesting: Int
@@ -185,9 +205,11 @@ object ProgGenerator extends Properties("Prog") {
       equations: Set[Action]     =  now.map(Continuously).toSet
       someEquations: Set[Action] <- someOf(equations.toList).map(_.toSet)
       es                         =  if (someEquations isEmpty) equations else someEquations
-      (discrAs, updVarNames)     <- genDiscreteActions(isTopLevel, varNames.filter(_._1), modes)
-      nbrConditionalStmts        <- chooseNum[Int](1, 3)
-      nbrSwitchStmts             <- chooseNum[Int](0, if (later.size > nesting + 1) 1 else 0)
+      (discrAs, updVarNames)     <- genDiscreteActions(isTopLevel, varNames.filter(_._1 == Unassigned), modes)
+      nbrConditionalStmts        <- chooseNum[Int](0, maxConditionalsPerScope) 
+      nbrSwitchStmts             <- chooseNum[Int](0, Math.min( maxConditionalsPerScope - nbrConditionalStmts 
+                                                              , if (later.size > nesting + 1) 1 else 0 // Avoid nesting explosion
+                                                              ))
       conditionals               <- listOfNIf(later.nonEmpty, nbrConditionalStmts, 
                                       genIfThenElse(later.toSet, updVarNames, modes, time, nesting))
       switches                   <- listOfNIf(later.nonEmpty, nbrSwitchStmts,
@@ -199,9 +221,9 @@ object ProgGenerator extends Properties("Prog") {
     
   def genDiscreteActions
     ( isTopLevel: Boolean
-    , unassignedVars: Set[(Unassigned,Name)]
+    , unassignedVars: Set[(InitState,Name)]
     , modes: Set[(Active,Name,List[GroundValue])]
-    ): Gen[(Set[Action], Set[(Unassigned,Name)])] =
+    ): Gen[(Set[Action], Set[(InitState,Name)])] =
    for {
       nbrDiscrAssgsToUse  <- chooseNum[Int](1, unassignedVars.size) // How many to use in this scope
       (now,later)         =  unassignedVars.toList.splitAt(nbrDiscrAssgsToUse)
@@ -210,7 +232,7 @@ object ProgGenerator extends Properties("Prog") {
     
   def genIfThenElse
     ( availableEquations: Set[Equation]
-    , varNames: Set[(Unassigned,Name)]
+    , varNames: Set[(InitState,Name)]
     , modes: Set[(Active,Name,List[GroundValue])]
     , time: (Name, Interval)
     , nesting: Int
@@ -223,7 +245,7 @@ object ProgGenerator extends Properties("Prog") {
   
   def genSwitch
     ( availableEquations: Set[Equation]
-    , varNames: Set[(Unassigned,Name)]
+    , varNames: Set[(InitState,Name)]
     , modes: Set[(Active,Name,List[GroundValue])]
     , time: (Name, Interval)
     , nesting: Int
@@ -231,11 +253,18 @@ object ProgGenerator extends Properties("Prog") {
     for {
       m@(active, name, vs) <- oneOf(modes.toList)
       mA                   =  (true, name, vs)
-      clauses              <- listOfN(vs.size, genActions(isTopLevel = true, availableEquations, varNames, modes - m + mA, time, nesting + 1))
+      clauses              <- listOfN(vs.size, 
+                                genActions( isTopLevel = true
+                                          , availableEquations
+                                          , varNames
+                                          , modes - m + mA
+                                          , time
+                                          , nesting + 1
+                                          ))
       assertion            =  Lit(GBool(true)) // TODO Generate mode invariants
     } yield Switch(name, vs.zip(clauses).map{ case (v, as) => Clause(v, assertion, as.toList) })
   
-  def genDiscreteAssignments(varNames: Set[(Unassigned,Name)], modes: Set[(Active,Name,List[GroundValue])]): Gen[Set[Action]] =
+  def genDiscreteAssignments(varNames: Set[(InitState,Name)], modes: Set[(Active,Name,List[GroundValue])]): Gen[Set[Action]] =
     for {
       lhss           <- resize(varNames.size / 4, someOf(varNames))
       rhss           <- listOfN(lhss.size, genSmallDouble).map(_.map(d => Lit(GDouble(d)))) //TODO More interesting, state-based resets
@@ -255,8 +284,8 @@ object ProgGenerator extends Properties("Prog") {
    * Generates initialization statements for the input variable names.
    * NOTE: Assumes that the initial conditions for differential equations can be chosen arbitrarily!      
    */
-  def genPrivateSection(varNames: Set[(Unassigned,Name)], modes: Set[(Active,Name,List[GroundValue])]): Gen[Set[Init]] = {
-    val unassignedVarNames = varNames.filter(_._1)
+  def genPrivateSection(varNames: Set[(InitState,Name)], modes: Set[(Active,Name,List[GroundValue])]): Gen[Set[Init]] = {
+    val unassignedVarNames = varNames.filter(_._1 == Unassigned)
     for { //TODO Generate more interesting initial conditions!
       varRhss   <- listOfN(unassignedVarNames.size, genSmallDouble)
       varInits  =  (unassignedVarNames zip varRhss).map { case ((_unassinged,l), r) => Init(l, ExprRhs(Lit(GDouble(r)))) }
@@ -271,6 +300,8 @@ object ProgGenerator extends Properties("Prog") {
   def genCompleteNameSet(minSize: Int): Gen[Set[Name]] =
     for { initial <- genDistinctSetOfN(minSize, arbitrary[Name]) } yield completeNames(initial)
 
+  /* Utilities */
+    
   /**
    * Given a list of Names, completes the list by adding names with lower primes.
    * E.g. the input:
@@ -280,28 +311,5 @@ object ProgGenerator extends Properties("Prog") {
    */
   def completeNames(l: Set[Name]): Set[Name] =
     l.flatMap(n => if(n.primes == 0) List(n) else for(p <- 0 to n.primes) yield Name(n.x, p))
-  
-  /* Properties for utility generators */
-  // TODO Move these
-  
-  property("genCompleteNameSet") = 
-    forAll(chooseNum[Int](0,50)) { (size: Int) =>
-      forAll(genCompleteNameSet(size)) { (ns: Set[Name]) =>
-        ns.forall(n => (0 to n.primes).forall(p => ns.contains(Name(n.x, p))))
-      }
-    }
-    
-  property("genDistinctSetOfN") =
-    forAll(chooseNum[Int](0,10000)) { (size: Int) =>
-      forAll(genDistinctSetOfN(size, choose(0,10000))) { (l: Set[Int]) =>
-        l.size == l.toSet.size
-      }
-    }
-     
-  property("completeNames") =
-    forAll { (l: Set[Name]) =>
-      val cn = completeNames(l)
-      cn.forall(n => (0 to n.primes).forall(p => cn.contains(Name(n.x, p))))
-    } 
   
 }
