@@ -50,20 +50,28 @@ object ODESystemGenerator extends acumen.interpreters.enclosure.Extract {
    * An equation system here means a set of equations which is guaranteed to have 
    * a solution, meaning the solution is finite over the whole simulation.
    * 
-   * Precondition: The names must be distinct in the .x field. 
+   * Precondition: The names must be distinct in the .x field.
+   * Precondition: The elements of lhss must be maximal in possibleTerms with respect 
+   *               to the value of their .primes field.
    */
-  def genLinearODESystem(distinctNames: Set[Name]): Gen[Set[Equation]] = {
-    require(distinctNames.forall(n => distinctNames.filter(_.x == n.x).size == 1))
-    genSetBasedOn(distinctNames, genLinearODE)
+  def genLinearODESystem(lhss: Set[Name], possibleTerms: Set[Name]): Gen[Set[Equation]] = {
+    require(lhss.forall(n => lhss.filter(_.x == n.x).size == 1))
+    require(lhss.forall(n => possibleTerms.filter(_.x == n.x).forall(n.primes >= _.primes)))
+    genSetBasedOn(lhss, genLinearODE(possibleTerms))
   } 
   
-  /** Generate a linear ODE with constant coefficients. */
-  def genLinearODE(lhs: Name): Gen[Equation] =
+  /**
+   * Generate a linear first-order ODE with terms from names and constant coefficients.
+   * Terms will be chosen from names (lhs will be omitted).
+   */
+  def genLinearODE(names: Set[Name])(lhs: Name): Gen[Equation] = {
+    val validNames = names - lhs // Will be used in RHS of equation
     for {
-      coefficients <- listOfN(lhs.primes, genSmallDouble)
-      terms = (0 to lhs.primes).map(Name(lhs.x, _))
+      terms <- someOf(validNames)
+      coefficients <- listOfN(validNames.size, genSmallDouble)
     } yield Equation(lhs, univariatePolynomial(coefficients zip terms))
-
+  }
+    
   /* Event generator */
   
   /**

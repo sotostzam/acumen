@@ -144,7 +144,7 @@ class ProgGenerator
       (fields, privNames) =  varNames.splitAt(numberOfFields)
       privs               <- genPrivateSection(privNames.map((Unassigned,_)), modes)
       privsT              =  Init(timeVar, ExprRhs(0)) +: Init(timeVarD, ExprRhs(1)) +: privs.toList 
-      equations           <- genLinearODESystem(distinctVarNames)
+      equations           <- genLinearODESystem(distinctVarNames, varNames)
       timeDomain          <- for { m <- choose[Double](Double.MinPositiveValue, maxSimulationTime)
                                    i <- genSubInterval(Interval(0, m))
                                  } yield i 
