@@ -14,7 +14,7 @@ import acumen.interpreters.enclosure.Generators.{
   genSubInterval
 }
 import Generators.{ 
-  arbName, genSetBasedOn, genCompliantSetOfN, genDistinctSetOfN, genSmallDouble
+  arbName, completeNames, genSetBasedOn, genCompliantSetOfN, genDistinctSetOfN, genSmallDouble
 }
 import ODESystemGenerator.{
   genLinearODESystem, genPredicate, doubleToLit, nameToVar
@@ -76,6 +76,8 @@ class ProgGenerator
   case object Unassigned extends InitState
   // Indicates whether a generator executes in the context of a switch based on a particular mode variable
   type Active = Boolean
+  // Used to track whether a given name has been used as the LHS of a cont. ass. that is in scope
+  case class ConsumableName(name: Name, isConsumed: Boolean)
   
   implicit def arbProg: Arbitrary[Prog] = Arbitrary { genProg }
   val emptyProg = Prog(Nil)
@@ -144,12 +146,11 @@ class ProgGenerator
       (fields, privNames) =  varNames.splitAt(numberOfFields)
       privs               <- genPrivateSection(privNames.map((Unassigned,_)), modes)
       privsT              =  Init(timeVar, ExprRhs(0)) +: Init(timeVarD, ExprRhs(1)) +: privs.toList 
-      equations           <- genLinearODESystem(distinctVarNames, varNames)
       timeDomain          <- for { m <- choose[Double](Double.MinPositiveValue, maxSimulationTime)
                                    i <- genSubInterval(Interval(0, m))
                                  } yield i 
       actions             <- genActions( isTopLevel = true
-                                       , equations
+                                       , equationNames = distinctVarNames.map(ConsumableName(_, false))
                                        , (privNames ++ fields).map((Unassigned,_))
                                        , modes
                                        , (timeVar, timeDomain)
@@ -192,30 +193,31 @@ class ProgGenerator
    */
   def genActions
     ( isTopLevel: Boolean
-    , availableEquations: Set[Equation]
+    , equationNames: Set[ConsumableName]
     , varNames: Set[(InitState,Name)]
     , modes: Set[(Active,Name,List[GroundValue])]
     , time: (Name,Interval)
     , nesting: Int
-    ): Gen[Set[Action]] =
-    if (availableEquations.isEmpty) Set[Action]()
-    else for {
-      nbrEquationsToUse          <- chooseNum[Int](1, availableEquations.size) // How many to use in this scope
-      (now,later)                =  availableEquations.toList.splitAt(nbrEquationsToUse)
-      equations: Set[Action]     =  now.map(Continuously).toSet
-      someEquations: Set[Action] <- someOf(equations.toList).map(_.toSet)
-      es                         =  if (someEquations isEmpty) equations else someEquations
-      (discrAs, updVarNames)     <- genDiscreteActions(isTopLevel, varNames.filter(_._1 == Unassigned), modes)
-      nbrConditionalStmts        <- chooseNum[Int](0, maxConditionalsPerScope) 
-      nbrSwitchStmts             <- chooseNum[Int](0, Math.min( maxConditionalsPerScope - nbrConditionalStmts 
-                                                              , if (later.size > nesting + 1) 1 else 0 // Avoid nesting explosion
-                                                              ))
-      conditionals               <- listOfNIf(later.nonEmpty, nbrConditionalStmts, 
-                                      genIfThenElse(later.toSet, updVarNames, modes, time, nesting))
-      switches                   <- listOfNIf(later.nonEmpty, nbrSwitchStmts,
-                                      genSwitch(later.toSet, updVarNames, modes, time, nesting))
-    } yield es union conditionals.toSet union switches.toSet union discrAs
-  
+    ): Gen[Set[Action]] = {
+      val (usedEquationNames, freeEquationNames) = equationNames.partition(_.isConsumed)
+      if (freeEquationNames.isEmpty) Set[Action]()
+      else for {
+        nbrEquationsToUse      <- chooseNum[Int](1, freeEquationNames.size) // How many to use in this scope
+        (now,later)            =  freeEquationNames.toList.splitAt(nbrEquationsToUse)
+        updatedEquations       =  now.map(cn => (cn.name, true)) ++ later ++ usedEquationNames
+        equations: Set[Action] <- genLinearODESystem(now.map(_.name).toSet).map(_.map(Continuously): Set[Action])
+        (discrAs, updVarNames) <- genDiscreteActions(isTopLevel, varNames.filter(_._1 == Unassigned), modes)
+        nbrConditionalStmts    <- chooseNum[Int](0, maxConditionalsPerScope) 
+        nbrSwitchStmts         <- chooseNum[Int](0, Math.min( maxConditionalsPerScope - nbrConditionalStmts 
+                                                            , if (later.size > nesting + 1) 1 else 0 // Avoid nesting explosion
+                                                            ))
+        conditionals           <- listOfNIf(later.nonEmpty, nbrConditionalStmts, 
+                                    genIfThenElse(later.toSet, updVarNames, modes, time, nesting))
+        switches               <- listOfNIf(later.nonEmpty, nbrSwitchStmts,
+                                    genSwitch(later.toSet, updVarNames, modes, time, nesting))
+      } yield equations union conditionals.toSet union switches.toSet union discrAs
+    }
+
   def listOfNIf[E](cond: Boolean, size: Int, gen: Gen[E]): Gen[List[E]] =
     if (!cond) value(List()) else listOfN(size, gen)
     
@@ -231,7 +233,7 @@ class ProgGenerator
     } yield if (isTopLevel) (Set(), unassignedVars) else (discreteAssignments, later.toSet)
     
   def genIfThenElse
-    ( availableEquations: Set[Equation]
+    ( equationNames: Set[ConsumableName]
     , varNames: Set[(InitState,Name)]
     , modes: Set[(Active,Name,List[GroundValue])]
     , time: (Name, Interval)
@@ -239,12 +241,12 @@ class ProgGenerator
     ): Gen[Action] =
     for {
       cond       <- genPredicate(varNames.map(_._2), time)
-      thenClause <- genActions(isTopLevel = false, availableEquations, varNames, modes, time, nesting + 1)
-      elseClause <- genActions(isTopLevel = false, availableEquations, varNames, modes, time, nesting + 1)
+      thenClause <- genActions(isTopLevel = false, equationNames, varNames, modes, time, nesting + 1)
+      elseClause <- genActions(isTopLevel = false, equationNames, varNames, modes, time, nesting + 1)
     } yield IfThenElse(cond, thenClause.toList, elseClause.toList)
   
   def genSwitch
-    ( availableEquations: Set[Equation]
+    ( equationNames: Set[ConsumableName]
     , varNames: Set[(InitState,Name)]
     , modes: Set[(Active,Name,List[GroundValue])]
     , time: (Name, Interval)
@@ -255,7 +257,7 @@ class ProgGenerator
       mA                   =  (true, name, vs)
       clauses              <- listOfN(vs.size, 
                                 genActions( isTopLevel = true
-                                          , availableEquations
+                                          , equationNames
                                           , varNames
                                           , modes - m + mA
                                           , time
@@ -300,16 +302,4 @@ class ProgGenerator
   def genCompleteNameSet(minSize: Int): Gen[Set[Name]] =
     for { initial <- genDistinctSetOfN(minSize, arbitrary[Name]) } yield completeNames(initial)
 
-  /* Utilities */
-    
-  /**
-   * Given a list of Names, completes the list by adding names with lower primes.
-   * E.g. the input:
-   *   List(Name(2,"x"), Name(0,"y")) 
-   * yields
-   *   List(Name(1,"x"), Name(1,"x"), Name(2,"x"), Name(0,"y"))  
-   */
-  def completeNames(l: Set[Name]): Set[Name] =
-    l.flatMap(n => if(n.primes == 0) List(n) else for(p <- 0 to n.primes) yield Name(n.x, p))
-  
 }
