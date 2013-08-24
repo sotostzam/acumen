@@ -48,11 +48,5 @@ object ProgGeneratorTest extends Properties("ProgGenerator") {
         l.size == l.toSet.size
       }
     }
-     
-  property("completeNames") =
-    forAll { (l: Set[Name]) =>
-      val cn = completeNames(l)
-      cn.forall(n => (0 to n.primes).forall(p => cn.contains(Name(n.x, p))))
-    } 
   
 }

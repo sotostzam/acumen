@@ -8,7 +8,7 @@ import org.scalacheck.Properties
 import org.scalacheck.Prop._
 import acumen.Pretty.pprint
 import acumen.testutil.Generators.{ 
-  arbName, genSetBasedOn, genDistinctSetOfN, genSmallDouble
+  arbName, completeNames, genSetBasedOn, genDistinctSetOfN, genSmallDouble
 }
 import scala.Array.{
   ofDim
@@ -29,34 +29,18 @@ import acumen.interpreters.enclosure.Variable
  * 
  * This is useful when generating Acumen models which can be seen as encodings of piecewise 
  * systems of differential equations.
- * 
- * 1. Generate complete set of n distinct variable names (e.g. x, x', y, with n = 3).
- * 2. For each variable with Name(n,primes) generate a linear ODE with constant coefficients:
- *    a. For all Name(m_i,p_i), with 0 <= i < primes, generate a Double coefficient c_i.
- *    b. Form an Equation with LHS equal to Name(,primes) and take as LHS the sum (linear 
- *       combination) of the coefficients with the corresponding Name(m_i,p_i), i.e. 
- *       
- *         Name(n,primes) = sum(c_i * Name(m_i, p_i))
- *
- * 3. The set of these equations is guaranteed to have a (real) solution, a linear combination
- *    of exponential functions with coefficients that are multiples of the initial conditions,
- *    which may be chosen arbitrarily.
  */
 object ODESystemGenerator extends acumen.interpreters.enclosure.Extract {
-
-  type Solution = Expr
 
   /**
    * An equation system here means a set of equations which is guaranteed to have 
    * a solution, meaning the solution is finite over the whole simulation.
    * 
    * Precondition: The names must be distinct in the .x field.
-   * Precondition: The elements of lhss must be maximal in possibleTerms with respect 
-   *               to the value of their .primes field.
    */
-  def genLinearODESystem(lhss: Set[Name], possibleTerms: Set[Name]): Gen[Set[Equation]] = {
+  def genLinearODESystem(lhss: Set[Name]): Gen[Set[Equation]] = {
     require(lhss.forall(n => lhss.filter(_.x == n.x).size == 1))
-    require(lhss.forall(n => possibleTerms.filter(_.x == n.x).forall(n.primes >= _.primes)))
+    val possibleTerms = completeNames(lhss)
     genSetBasedOn(lhss, genLinearODE(possibleTerms))
   } 
   
@@ -100,7 +84,7 @@ object ODESystemGenerator extends acumen.interpreters.enclosure.Extract {
     genOp(List("+", "-", "*"), genExpr(varNames, time)) //TODO Add support for /, vectors etc. 
     
   def genBinaryRelation(varNames: Set[Name], time: (Name, Interval)): Gen[Op] =
-    genOp(List("<", ">", "<=", ">=", "=="), genExpr(varNames, time))
+    genOp(List("<", ">", "<=", ">="), genExpr(varNames, time)) // Skipping "=="
 
   def genLogicalOp(varNames: Set[Name], time: (Name, Interval)): Gen[Op] =
     genOp(List("||", "&&"), genPredicate(varNames, time))

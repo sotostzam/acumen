@@ -321,5 +321,17 @@ object Generators  {
       distinct = init.toSet
       rest <- genCompliantSetOfN(size - distinct.size, gen, condition) suchThat (condition(distinct,_))
     } yield distinct union rest
+  
+  /* Utilities */
+    
+  /**
+   * Given a list of Names, completes the list by adding names with lower primes.
+   * E.g. the input:
+   *   List(Name(2,"x"), Name(0,"y")) 
+   * yields
+   *   List(Name(1,"x"), Name(1,"x"), Name(2,"x"), Name(0,"y"))  
+   */
+  def completeNames(l: Set[Name]): Set[Name] =
+    l.flatMap(n => if(n.primes == 0) List(n) else for(p <- 0 to n.primes) yield Name(n.x, p))  
     
 }
