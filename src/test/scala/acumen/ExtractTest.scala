@@ -21,6 +21,7 @@ object ExtractTest extends Properties("Extract") {
 
   val MODEL_PATH_SINGLE_CLASS = "examples/XXX_internal/one-class"
   val MODEL_PATH_ENCLOSURE    = "examples/9_Experimental/01_Enclosures/"
+  val MODEL_PATHS_SKIP        = List("03_Loops")
   
   val progGenerator = new ProgGenerator( maxConditionalsPerScope = 1
                                        , maxSimulationTime       = 25)
@@ -44,7 +45,7 @@ object ExtractTest extends Properties("Extract") {
   def existingModels(): Iterable[Prog] =
     (readFiles(MODEL_PATH_SINGLE_CLASS, FILE_SUFFIX_MODEL) ++
      new File(MODEL_PATH_ENCLOSURE).list(new FilenameFilter ()
-       { def accept(f: File, n: String) = new File(f,n).isDirectory() })
+       { def accept(f: File, n: String) = new File(f,n).isDirectory() && !MODEL_PATHS_SKIP.contains(n) })
        .flatMap(dir => readFiles(MODEL_PATH_ENCLOSURE + dir, FILE_SUFFIX_MODEL)))
     .map { case (_, prog:String) => Parser.run(Parser.prog, prog) }
   
