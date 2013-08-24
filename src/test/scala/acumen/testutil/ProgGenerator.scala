@@ -27,23 +27,11 @@ import java.io.ByteArrayOutputStream
 import java.io.PrintStream
 
 /**
- * Issues:
- *  - When to generate class definitions? One option seems to be to do 
- *    it when a InitRhs is generated (it should randomly choose to make
- *    a new class definition instead of using one that is available in 
- *    the program).
- *    
- *  - Start by generating a valid leaf object class. This will not contain any Dot's as:
- *    1. No expression in the class's statements may call a constructor.
- *    2. The object may not modify the state of any other object.
- */
-
-/**
  * Generator of interesting acumen Prog instances (models).
  *
  * Here, interesting means:
  *
- *  - Executable
+ *  - Executable, e.g.
  *    - Discrete assignments never occur on the top level,
  *      meaning that time will proceed.
  *    - No references to unbound variables are made throughout
