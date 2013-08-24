@@ -70,14 +70,14 @@ class ProgGenerator
 
   /* Types */
   
-  // Used to indicate whether a discrete variable has been assigned to
-  sealed abstract class InitState
-  case object Assigned extends InitState
-  case object Unassigned extends InitState
   // Indicates whether a generator executes in the context of a switch based on a particular mode variable
   type Active = Boolean
-  // Used to track whether a given name has been used as the LHS of a cont. ass. that is in scope
-  case class ConsumableName(name: Name, isConsumed: Boolean)
+  // Used to track whether a given name has been used as the LHS of a continuous or discrete assignment that is in scope
+  abstract class ConsumableName(val name: Name) { def isFree: Boolean }
+  case class FreeName(override val name: Name) extends ConsumableName(name) { override def isFree = true }
+  case class UsedName(override val name: Name) extends ConsumableName(name) { override def isFree = false }
+  
+  /* Generators */
   
   implicit def arbProg: Arbitrary[Prog] = Arbitrary { genProg }
   val emptyProg = Prog(Nil)
@@ -144,14 +144,14 @@ class ProgGenerator
       varNames            =  completeNames(distinctVarNames)
       numberOfFields      <- chooseNum[Int](0: Int, if (isMain || varNames.isEmpty) 0 else varNames.size)
       (fields, privNames) =  varNames.splitAt(numberOfFields)
-      privs               <- genPrivateSection(privNames.map((Unassigned,_)), modes)
+      privs               <- genPrivateSection(privNames.map(FreeName), modes)
       privsT              =  Init(timeVar, ExprRhs(0)) +: Init(timeVarD, ExprRhs(1)) +: privs.toList 
       timeDomain          <- for { m <- choose[Double](Double.MinPositiveValue, maxSimulationTime)
                                    i <- genSubInterval(Interval(0, m))
                                  } yield i 
       actions             <- genActions( isTopLevel = true
-                                       , equationNames = distinctVarNames.map(ConsumableName(_, false))
-                                       , (privNames ++ fields).map((Unassigned,_))
+                                       , equationNames = distinctVarNames.map(FreeName)
+                                       , (privNames ++ fields).map(FreeName)
                                        , modes
                                        , (timeVar, timeDomain)
                                        , nesting = 0
@@ -194,27 +194,27 @@ class ProgGenerator
   def genActions
     ( isTopLevel: Boolean
     , equationNames: Set[ConsumableName]
-    , varNames: Set[(InitState,Name)]
+    , disNames: Set[ConsumableName]
     , modes: Set[(Active,Name,List[GroundValue])]
     , time: (Name,Interval)
     , nesting: Int
     ): Gen[Set[Action]] = {
-      val (usedEquationNames, freeEquationNames) = equationNames.partition(_.isConsumed)
+      val (freeEquationNames, usedEquationNames) = equationNames.partition(_.isFree)
       if (freeEquationNames.isEmpty) Set[Action]()
       else for {
         nbrEquationsToUse      <- chooseNum[Int](1, freeEquationNames.size) // How many to use in this scope
         (now,later)            =  freeEquationNames.toList.splitAt(nbrEquationsToUse)
-        updatedEquations       =  now.map(cn => (cn.name, true)) ++ later ++ usedEquationNames
+        updContNames           =  now.map(cn => UsedName(cn.name)).toSet union later.toSet union usedEquationNames
         equations: Set[Action] <- genLinearODESystem(now.map(_.name).toSet).map(_.map(Continuously): Set[Action])
-        (discrAs, updVarNames) <- genDiscreteActions(isTopLevel, varNames.filter(_._1 == Unassigned), modes)
+        (discrAs, updDisNames) <- genDiscreteActions(isTopLevel, disNames.filter(_.isFree), modes)
         nbrConditionalStmts    <- chooseNum[Int](0, maxConditionalsPerScope) 
         nbrSwitchStmts         <- chooseNum[Int](0, Math.min( maxConditionalsPerScope - nbrConditionalStmts 
                                                             , if (later.size > nesting + 1) 1 else 0 // Avoid nesting explosion
                                                             ))
         conditionals           <- listOfNIf(later.nonEmpty, nbrConditionalStmts, 
-                                    genIfThenElse(later.toSet, updVarNames, modes, time, nesting))
+                                    genIfThenElse(updContNames, updDisNames, modes, time, nesting))
         switches               <- listOfNIf(later.nonEmpty, nbrSwitchStmts,
-                                    genSwitch(later.toSet, updVarNames, modes, time, nesting))
+                                    genSwitch(updContNames, updDisNames, modes, time, nesting))
       } yield equations union conditionals.toSet union switches.toSet union discrAs
     }
 
@@ -223,31 +223,32 @@ class ProgGenerator
     
   def genDiscreteActions
     ( isTopLevel: Boolean
-    , unassignedVars: Set[(InitState,Name)]
+    , unassignedVars: Set[ConsumableName]
     , modes: Set[(Active,Name,List[GroundValue])]
-    ): Gen[(Set[Action], Set[(InitState,Name)])] =
+    ): Gen[(Set[Action], Set[ConsumableName])] =
    for {
       nbrDiscrAssgsToUse  <- chooseNum[Int](1, unassignedVars.size) // How many to use in this scope
       (now,later)         =  unassignedVars.toList.splitAt(nbrDiscrAssgsToUse)
       discreteAssignments <- genDiscreteAssignments(now.toSet, modes)
-    } yield if (isTopLevel) (Set(), unassignedVars) else (discreteAssignments, later.toSet)
+      updatedNames        =  now.map(n => UsedName(n.name)).toSet union later.toSet
+    } yield if (isTopLevel) (Set(), unassignedVars) else (discreteAssignments, updatedNames)
     
   def genIfThenElse
     ( equationNames: Set[ConsumableName]
-    , varNames: Set[(InitState,Name)]
+    , varNames: Set[ConsumableName]
     , modes: Set[(Active,Name,List[GroundValue])]
     , time: (Name, Interval)
     , nesting: Int
     ): Gen[Action] =
     for {
-      cond       <- genPredicate(varNames.map(_._2), time)
+      cond       <- genPredicate(varNames.map(_.name), time)
       thenClause <- genActions(isTopLevel = false, equationNames, varNames, modes, time, nesting + 1)
       elseClause <- genActions(isTopLevel = false, equationNames, varNames, modes, time, nesting + 1)
     } yield IfThenElse(cond, thenClause.toList, elseClause.toList)
   
   def genSwitch
     ( equationNames: Set[ConsumableName]
-    , varNames: Set[(InitState,Name)]
+    , varNames: Set[ConsumableName]
     , modes: Set[(Active,Name,List[GroundValue])]
     , time: (Name, Interval)
     , nesting: Int
@@ -266,7 +267,7 @@ class ProgGenerator
       assertion            =  Lit(GBool(true)) // TODO Generate mode invariants
     } yield Switch(name, vs.zip(clauses).map{ case (v, as) => Clause(v, assertion, as.toList) })
   
-  def genDiscreteAssignments(varNames: Set[(InitState,Name)], modes: Set[(Active,Name,List[GroundValue])]): Gen[Set[Action]] =
+  def genDiscreteAssignments(varNames: Set[ConsumableName], modes: Set[(Active,Name,List[GroundValue])]): Gen[Set[Action]] =
     for {
       lhss           <- resize(varNames.size / 4, someOf(varNames))
       rhss           <- listOfN(lhss.size, genSmallDouble).map(_.map(d => Lit(GDouble(d)))) //TODO More interesting, state-based resets
@@ -277,7 +278,7 @@ class ProgGenerator
                            mAfterReset <- oneOf(vs)
                          } yield Set[Action](Discretely(Assign(Var(m), Lit(mAfterReset))))
     } yield {
-      val nonModeResets: Set[Action] = ((lhss zip rhss) map { case ((_,n), e) => Discretely(Assign(Var(n), e)) }).toSet
+      val nonModeResets: Set[Action] = ((lhss zip rhss) map { case (cn, e) => Discretely(Assign(Var(cn.name), e)) }).toSet
       if (activeModeVars.nonEmpty) nonModeResets union modeResets 
       else nonModeResets
     }
@@ -286,11 +287,11 @@ class ProgGenerator
    * Generates initialization statements for the input variable names.
    * NOTE: Assumes that the initial conditions for differential equations can be chosen arbitrarily!      
    */
-  def genPrivateSection(varNames: Set[(InitState,Name)], modes: Set[(Active,Name,List[GroundValue])]): Gen[Set[Init]] = {
-    val unassignedVarNames = varNames.filter(_._1 == Unassigned)
+  def genPrivateSection(varNames: Set[ConsumableName], modes: Set[(Active,Name,List[GroundValue])]): Gen[Set[Init]] = {
+    val unassignedVarNames = varNames.filter(_.isFree)
     for { //TODO Generate more interesting initial conditions!
       varRhss   <- listOfN(unassignedVarNames.size, genSmallDouble)
-      varInits  =  (unassignedVarNames zip varRhss).map { case ((_unassinged,l), r) => Init(l, ExprRhs(Lit(GDouble(r)))) }
+      varInits  =  (unassignedVarNames zip varRhss).map { case (l, r) => Init(l.name, ExprRhs(Lit(GDouble(r)))) }
       modeInits =  modes.map{ case (_active, n, vs) => Init(n, ExprRhs(Lit(vs(0)))) }
     } yield varInits union modeInits
   }
