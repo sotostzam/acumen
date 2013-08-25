@@ -60,7 +60,7 @@ class Ifs[ActionT, IfT <: If[ActionT]](mkIf: MkIf[IfT]) {
   // pushDown transforms a series of ifs into a unique form such that all
   // actions for a given set of conditions are in exactly one if.
   // Requires empty ifs to push the actions into.
-  def pushDown(if0: IfT, actions: List[ActionT]) { // FIXME: Broken!!!!!
+  def pushDown(if0: IfT, actions: List[ActionT]) {
     if0.visited = true
     val candidates = withPrefix(if0.conds).toList.sortWith {(a,b) => a.conds.size < b.conds.size}
     if (candidates.nonEmpty) {
