@@ -13,6 +13,7 @@ abstract class If[ActionT](var conds: Seq[Cond], val label: String) {
   def toAST: IfThenElse
   var actions = new ArrayBuffer[ActionT];
   def dump: String;
+  var claims: List[Cond] = Nil; // i.e. "claims" used to annotate modes
   var visited : Boolean = false
 }
 abstract class MkIf[IfT] {
@@ -22,16 +23,20 @@ abstract class MkIf[IfT] {
 class ContIf(conds0: Seq[Cond], label: String = ContIf.newLabel) extends If[ContinuousAction](conds0, label) {
   def toAST: IfThenElse =
     IfThenElse(Cond.toExpr(conds),
-      resets.map(_.toAST) ++
         actions.map(Continuously(_)).toList, Nil)
   def dump = label + ": " + Pretty.pprint[Action](toAST) + "\n"
-  var claims: List[Cond] = Nil; // i.e. "claims" used to annotate modes
-  var resets: List[DiscrIf] = Nil;
 }
 object ContIf extends MkIf[ContIf] {
   def apply(conds: Seq[Cond]) = new ContIf(conds)
   var counter = 0
   def newLabel = { counter += 1; "C" + counter; }
+}
+
+class Mode(val label: String, 
+           var claims: List[Cond], 
+           var actions: Seq[ContinuousAction]) 
+{
+  var resets: List[DiscrIf] = Nil
 }
 
 class DiscrIf(conds0: Seq[Cond]) extends If[Assign](conds0, DiscrIf.newLabel) {

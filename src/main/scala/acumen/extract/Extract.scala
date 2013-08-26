@@ -59,7 +59,7 @@ class Extract(prog: Prog,
 
   // Generate a list of possible modes, this is the 
   // speical "D0" mode and all the contifs
-  val modes = new ContIf(Nil, "D0") +: contIfs.data.values.toList
+  val modes = new Mode("D0", Nil, Nil) +: contIfs.data.values.map{cIf => new Mode(cIf.label,cIf.claims,cIf.actions)}.toList
 
   // For every mode add indiscreetly add all the discrIfs as possible
   // events
