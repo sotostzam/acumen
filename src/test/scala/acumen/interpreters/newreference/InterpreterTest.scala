@@ -2,18 +2,20 @@ package acumen
 package interpreters
 package newreference
 
+import java.io.File
+import java.io.InputStreamReader
+import scala.math._
+import org.scalatest.matchers.ShouldMatchers
+import org.scalatest.FunSuite
+
 import Errors._
 import util.Filters._
 import util.Names._
 import util.Canonical._
-import scala.math._
-import java.io.InputStreamReader
-import org.scalatest.matchers.ShouldMatchers
-import org.scalatest.FunSuite
-import java.io.File
 import util.Transform
-import interpreters.reference.Interpreter
-
+import acumen.testutil.TestUtil.{
+  assertEqualTrace
+}
 
 class InterpreterTest extends InterpreterTestBase with ShouldMatchers {
 
@@ -192,5 +194,15 @@ class InterpreterTest extends InterpreterTestBase with ShouldMatchers {
     assert(matches(xs, expectedx))
     assert(matches(ys, expectedy))
   }
-
+  
+  test("continuous assignments are independent") {
+    val head = "class Main(simulator)\n  private x := 0; t := 0; t' := 1 end "
+    val cond = "if t < simulator.timeStep x = 1 else x = -1 end;"
+    val time = "t' = 1;"
+    val tail = "end"
+    val timeFirst = Parser.run(Parser.prog, head ++ time ++ cond ++ tail)
+    val condFirst = Parser.run(Parser.prog, head ++ cond ++ time ++ tail)
+    assertEqualTrace(timeFirst, condFirst, interpreter)
+  }
+  
 }
