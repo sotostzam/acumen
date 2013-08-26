@@ -34,26 +34,26 @@ object ExtractTest extends Properties("Extract") {
    * However, the transformation should preserve the semantics with respect to the value of 
    * continuous variables, which this property checks.
    */
-  property("semantics preserving on continous state (random models)") =
-    forAll { (p: Prog) => preservesContinousSemanticsOf(p) }
-
   property("semantics preserving on continuous state (example models)") =
-    existingModels.forall(preservesContinousSemanticsOf)
+    existingModels.map{ case (name, prog) => preservesContinousSemanticsOf(prog, Some(name)) }.foldRight(true)(_&&_) // Make sure that all models are run
+    
+  property("semantics preserving on continous state (random models)") =
+    forAll { (p: Prog) => preservesContinousSemanticsOf(p, None) }
 
   /** Load models compatible with the transformation from the examples directory. */
   //TODO Update when support for multi-object models is added to Extract
-  def existingModels(): Iterable[Prog] =
+  def existingModels(): Iterable[(String, Prog)] =
     (readFiles(MODEL_PATH_SINGLE_CLASS, FILE_SUFFIX_MODEL) ++
      new File(MODEL_PATH_ENCLOSURE).list(new FilenameFilter ()
        { def accept(f: File, n: String) = new File(f,n).isDirectory() && !MODEL_PATHS_SKIP.contains(n) })
        .flatMap(dir => readFiles(MODEL_PATH_ENCLOSURE + dir, FILE_SUFFIX_MODEL)))
-    .map { case (_, prog:String) => Parser.run(Parser.prog, prog) }
+    .map { case (namePrefix, prog:String) => (namePrefix, Parser.run(Parser.prog, prog)) }
   
   /**
    * Given a Prog p, computes its desugared version d. Checks that the simulation trace
    * of d is the same as that obtained by first applying Extract to d and then simulating.
    */
-  def preservesContinousSemanticsOf(p: Prog) = {
+  def preservesContinousSemanticsOf(p: Prog, modelName: Option[String]) = {
     var same = false
     val desugared = Desugarer.run(p)
     var extracted : Prog = null
@@ -79,6 +79,7 @@ object ExtractTest extends Properties("Extract") {
         e.printStackTrace
         throw e
     } finally if (!same) {
+      modelName.foreach(mn => System.err.println("\nFailing model: " + mn + "\n"))
       System.err.println("\nraw: \n")
       System.err.println(pprint(p))
       System.err.println("\ndesugared: \n")
