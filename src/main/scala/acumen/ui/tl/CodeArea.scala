@@ -86,13 +86,13 @@ class CodeArea extends Panel with TreeSelectionListener {
     sta.setHighlightCurrentLine(false)
     sta.setTabSize(2)
     sta.setTabsEmulated(true) // Use soft tabs
-    if (GraphicalMain.useCompletion) {
+    if (Main.useCompletion) {
       val completionProvider = createCompletionProvider(sta)
       val autoCompletion = new AutoCompletion(completionProvider)
       autoCompletion setTriggerKey KeyStroke.getKeyStroke("TAB")
       autoCompletion install sta
     }
-    if (GraphicalMain.useTemplates) {
+    if (Main.useTemplates) {
       RSyntaxTextArea setTemplatesEnabled true
       createCodeTemplateManager
     }
@@ -289,7 +289,7 @@ class CodeArea extends Panel with TreeSelectionListener {
 
   /* Listen for selection events in FileTree browser. */
   def valueChanged(e: TreeSelectionEvent) {
-    if (GraphicalMain.synchEditorWithBrowser) {
+    if (Main.synchEditorWithBrowser) {
       val lpc = e.getPath.getLastPathComponent
       val file =
         if (lpc.isInstanceOf[TreeFile]) lpc.asInstanceOf[TreeFile]
@@ -315,17 +315,9 @@ class CodeArea extends Panel with TreeSelectionListener {
     textArea setForeground Color.gray
   }
 
-  if (GraphicalMain.openFile != null) {
-    try {
-      loadFile(GraphicalMain.openFile)
-      notifyPathChangeListeners
-    }
-    catch {
-      case e =>
-        System.err.println("Unable To Open File: ")
-        System.err.println("  " + e)
-        exit(2)
-    }
+  if (Main.openFile != null) {
+    loadFile(Main.openFile)
+    notifyPathChangeListeners
   }
 
   /* Font management */

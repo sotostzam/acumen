@@ -11,9 +11,228 @@ import Pretty._
 import com.sun.j3d.utils.applet.MainFrame
 
 import java.net.{Socket, InetAddress, ServerSocket}
-import acumen.Errors.BadProgramOptions
+
+import scala.collection.mutable.ArrayBuffer
+
+object ThreeDState extends Enumeration {
+  val ERROR,DISABLE,LAZY,ENABLE = Value
+}
 
 object Main {
+
+  //
+  // What should be in Main
+  //
+
+  var need_quartz = false
+  var threeDState: ThreeDState.Value = null
+  var disableNewPlot = true
+  var autoPlay = false
+  var openFile: File = null
+  var interpreter : Interpreter = null
+  var useCompletion = true
+  var useTemplates = false
+  var dontFork = false
+  var synchEditorWithBrowser = true // Synchronize code editor with file browser
+  var extractHA = false
+  var displayHelp = "none"
+
+  var positionalArgs = new ArrayBuffer[String]
+
+  // Note: lots of options and commands have alias but in general only
+  //  the preferred version should be showed.  Lots also have
+  //  enable|disable|no version but only one that changes the default
+  //  behavior should be displayed
+  def optsHelp = Array(
+    "--help                  this help message",
+    "-i|--semantics "+ Main.interpreterHelpString,
+    "                        select interpreter to use",
+    "--model <file>          model file to open",
+    "--3d|--lazy-3d|--no-3d  controls the default state for the 3d tab",
+    "--newplot               enable experimental plotter",
+    "--play                  automatically run the model",
+    "--disable-completion    disable code completion in the source code editor",
+    "--dont-fork             disable auto-forking of a new JVM when required")
+  def experimentalOptsHelp = Array(
+    "--full-help",
+    "--extract-ha",
+    "--templates             enables template expansion in the source code editor."
+  )
+  def commandHelp = Array(
+    "ui [<file>]             starts the U.I."
+  )
+  def experimentalCommandHelp = Array(
+    "pretty <file>           pretty print model",
+    "desugar <file>          pretty print desuguared model",
+    "last <file>             run model and print final result",
+    "trace <file>            run model and print trace output",
+    "time <file>             time time it takes to run model",
+    "",
+    "extract <file>          extract H.A. and print result",
+    "compile <file>          compile model to C++",
+    "typecheck <file>        run type checker",
+    "",
+    "bench <file> <start> <stop> [<warmup> [<repeat>]]",
+    "                        parallel benchmark",
+    "bench-gnuplot ...       like \"bench\" but output gnuplot script",
+    "bench-enclosures <file> <prefix> <repeat> [parms]",
+    "                        enclosure benchmark", //  see --help-bench-enclosures",
+    "listen <file> <portnum>",
+    "",
+    "examples                record reference outputs for test suite"
+    //"2d|3d|java2d|java3d" // have no clue what these do! -- kevina
+    //"fromJson",
+  )
+
+  def usage() = {
+    System.err.println("Try --help for more information.")
+    System.exit(1)
+  }
+
+  def parseArgs(args: List[String]) : Unit = try {
+    args match {
+      case Nil =>
+      case ("--help" ) :: tail =>
+        displayHelp = "normal"; parseArgs(tail)
+      case ("--help-full"|"--full-help") :: tail =>
+        displayHelp = "full"; parseArgs(tail)
+      case ("--help-bench-enclosures") :: tail =>
+        displayHelp = "bench-enclosures"; parseArgs(tail)
+      case ("--semantics"|"--interpreter"|"-i") :: i :: tail =>
+        interpreter = selectInterpreter(i); parseArgs(tail)
+      case ("--model") :: f :: tail =>
+        openFile = checkFile(f); parseArgs(tail)
+      case ("--enable-3d" | "--3d") :: tail => 
+        threeDState = ThreeDState.ENABLE; parseArgs(tail)
+      case ("--lazy-3d") :: tail => 
+        threeDState = ThreeDState.LAZY; parseArgs(tail)
+      case ("--disable-3d" | "--no-3d") :: tail => 
+        need_quartz = false
+        threeDState = ThreeDState.DISABLE; 
+        parseArgs(tail)
+      case ("--enable-newplot" | "--newplot") :: tail => 
+        disableNewPlot = false; parseArgs(tail)
+      case ("--disable-newplot" | "--no-newplot") :: tail => 
+        disableNewPlot = true; parseArgs(tail)
+      case "--play" :: tail =>
+        autoPlay = true; parseArgs(tail)
+      case "--enable-completion" :: tail =>
+        useCompletion = true; parseArgs(tail)
+      case "--disable-completion" :: tail =>
+        useCompletion = false; parseArgs(tail)
+      case "--templates" :: tail =>
+        useTemplates = true; parseArgs(tail)
+      case "--dont-fork" :: tail =>
+        dontFork = true; parseArgs(tail)
+      case "--extract-ha" :: tail =>
+        extractHA = true; parseArgs(tail)
+      case opt ::  tail if opt.startsWith("-") =>
+        System.err.println("Unrecognized Option: " + opt)
+        usage()
+      case arg :: tail => 
+        positionalArgs += arg
+        parseArgs(tail)
+    }
+  } catch {
+    case e : AcumenError => 
+      System.err.println(e.getMessage())
+      usage()
+  }
+
+  def checkFile(fn: String) = {
+    val openFile = new File(fn)
+    if (!openFile.exists) {
+      System.err.println("File not found: " + openFile)
+      exit(1)
+    }
+    openFile
+  }
+
+  def selectInterpreter(args0: String*) : Interpreter = {
+    val args = args0.flatMap(_.split('-')).toList
+    import interpreters._
+    val res = args match {
+      case ("" | "reference") :: Nil => reference.Interpreter
+      case "newreference" :: Nil => newreference.Interpreter
+      case "parallel" :: tail => selectParallellInterpreter(tail)
+      case "imperative" :: Nil => imperative.ImperativeInterpreter
+      case "enclosure" :: tail => selectEnclosureInterpreter(tail)
+      case _ => null
+    }
+    if (res == null) 
+      throw UnrecognizedInterpreterString(args.mkString("-"))
+      res
+  }
+  def interpreterHelpString = "reference|newreference|parallel[-<num threads>]|enclosure[-pwl|-evt]"
+  // parallel-sharing should not be documented but recognized for testing
+
+  def selectParallellInterpreter(args: List[String], 
+                                 numThreads: Int = -1, 
+                                 scheduler: String = "static") : Interpreter =
+  {
+    import interpreters.imperative.ParallelInterpreter._
+    args match {
+      case ("static"|"sharing") :: tail => selectParallellInterpreter(tail, numThreads, args(0))
+      case head :: tail if head.matches("\\d+") => selectParallellInterpreter(tail, Integer.parseInt(head), scheduler)
+      case Nil => (numThreads, scheduler) match {
+        case (-1, "static") => static
+        case (_, "static") => static(numThreads)
+        case (-1, "sharing") => sharing
+        case (_, "sharing") => sharing(numThreads)
+      }
+      case _ => null
+    }
+  }
+
+  def selectEnclosureInterpreter(args: List[String], 
+                                 eventHandler: String = "pwl") : Interpreter = {
+    import interpreters.enclosure.Interpreter._
+    args match {
+      case ("pwl"|"evt") :: tail => selectEnclosureInterpreter(tail, args(0))
+      case Nil => eventHandler match {
+        case "pwl" => asPWL
+        case "evt" => asEVT
+      }
+      case _ => null
+    }
+  }
+
+  def main(args: Array[String]) : Unit = {
+    parseArgs(args.toList)
+    if (interpreter == null)
+      interpreter = selectInterpreter("")
+    if (displayHelp == "normal") {
+      println("Options: ");
+      optsHelp.foreach{line => println("  " + line)}
+    } else if (displayHelp == "full") {
+      println("Usage: acumen [options] [command]")
+      println("");
+      println("Options: ");
+      optsHelp.foreach{line => println("  " + line)}
+      println("");
+      println("Experimental options:")
+      experimentalOptsHelp.foreach{line => println("  " + line)}
+      println("");
+      println("Commands: ");
+      commandHelp.foreach{line => println("  " + line)} 
+      println("");
+      println("Experimental commands:");
+      experimentalCommandHelp.foreach{line => println("  " + line)}
+    } else {
+      (if (positionalArgs.size == 0) "ui" else positionalArgs(0)) match {
+        case "ui" => 
+          ui.GraphicalMain.main(args)
+        case "examples"|"record-reference-outputs" => 
+          examples
+        case _ =>
+          origMain(positionalArgs.toArray)
+      }
+    }
+  }
+
+  //
+  // Other stuff that should eventually be factored out
+  //
 
   var portNo : Int = 9999
   var serverSocket : ServerSocket = null
@@ -32,33 +251,19 @@ object Main {
     trace match {case CStoreRes(r) => r; case _ => null}    
   }
 
-  def main(args: Array[String]): Unit = {
-    val I = interpreters.reference.Interpreter
-    //val I = new interpreters.imperative.parallel.Interpreter(2)
-
+  def origMain(args: Array[String]) : Unit = {
     try {
-      /* See if user wants to choose a specific interpreter. */
-      val (i: Interpreter, firstNonSemanticsArg: Int) = args(0) match {
-        case "--semantics" => args(1) match {
-          case "reference" => (interpreters.reference.Interpreter, 2)
-          case "parallel-static" => (interpreters.imperative.ParallelInterpreter.static, 2)
-          case "parallel-sharing" => (interpreters.imperative.ParallelInterpreter.sharing, 2)
-          case "imperative" => (new interpreters.imperative.ImperativeInterpreter, 2)
-          case "enclosure" => (interpreters.enclosure.Interpreter, 2)
-          case "enclosure-non-localizing" => (interpreters.enclosure.Interpreter.asNonLocalizing, 2)
-          case _ => (interpreters.reference.Interpreter, 2) // FIXME: Throw error! -kevina
-        }
-        case _ => (interpreters.reference.Interpreter, 0)
-      }
+      val i = interpreter
+
       /* Read the Acumen source, parse, pre-process and interpret it. */
-      lazy val in = new InputStreamReader(new FileInputStream(args(firstNonSemanticsArg)))
+      lazy val in = new InputStreamReader(new FileInputStream(args(1)))
       lazy val ast = Parser.run(Parser.prog, in)
       lazy val desugared = Desugarer.run(ast)
       lazy val final_out = desugared // final output after all passes
       lazy val trace = i.run(final_out)
       lazy val ctrace = as_ctrace(trace)
       /* Perform user-selected action. */
-      args(firstNonSemanticsArg + 1) match {
+      args(0) match {
         case "compile" => 
           val typeChecker = new TypeCheck(desugared)
           val res = typeChecker.run()
@@ -83,9 +288,9 @@ object Main {
           val x = JSon.fromJSON(JSon.toJSON(st).toString)
           println(x)
         case "listen" =>
-          println("Model: " + args(firstNonSemanticsArg))
+          println("Model: " + args(0))
           serverMode = true
-          portNo = args(firstNonSemanticsArg + 2).toInt
+          portNo = args(2).toInt
           serverSocket = new ServerSocket(portNo)
           println("Listening on port " + portNo)
           val socket = serverSocket.accept()
@@ -101,7 +306,7 @@ object Main {
           val endTime = System.currentTimeMillis()
           println("Time to run: " + (endTime - startTime)/1000.0)
         case "bench" =>
-          val offset = firstNonSemanticsArg + 1 + 1;
+          val offset = 2;
           val start: Int = Integer.parseInt(args(offset + 0))
           val stop: Int = Integer.parseInt(args(offset + 1))
           val warmup : Int = if (args.size > offset + 2) Integer.parseInt(args(offset+2)) else 0
@@ -119,7 +324,7 @@ object Main {
           }
         // the first six lines are shared with the "bench" case and would ideally not be repeated
         case "bench-gnuplot" =>
-          val offset = firstNonSemanticsArg + 1 + 1;
+          val offset = 2;
           val start: Int = Integer.parseInt(args(offset + 0))
           val stop: Int = Integer.parseInt(args(offset + 1))
           val warmup : Int = if (args.size > offset + 2) Integer.parseInt(args(offset+2)) else 0
@@ -141,42 +346,42 @@ object Main {
           // outputting progress information as is done in the "bench" case
           println(Gnuplot.script(data))
         case "bench-enclosures" => 
-          BenchEnclosures.run(i, final_out, args, firstNonSemanticsArg + 2)
+          BenchEnclosures.run(i, final_out, args, 2)
         case "trace" =>
           trace.print
-        case "examples"|"record-reference-outputs" =>
-          var somethingUpdated = false
-          Examples.cstoreExamplesAction{(dn, f) =>
-            val loc = Examples.expectLoc
-            val resFile = Examples.resultFile(loc, dn, f)
-            if (resFile.exists) {
-              println("skipping " + f + "")
-            } else {
-              somethingUpdated = true
-              try {
-                Examples.writeExampleResult(loc, dn, f, interpreters.reference.Interpreter)
-              } catch {
-                case e => 
-                  println("ERROR when processing " + f + ":")
-                  println("  " + e)
-              }
-              println("PROCESSED " + f)
-            }
-          }
-          if (somethingUpdated) {
-            println("Results updated.  Be sure to git add & commit the updated files as appropriate.")
-          }
         case what =>
-          println(what)
-          throw BadProgramOptions(
-            List("pretty", "desugar", "3d", "2d", "java2d",
-              "java3d", "json", "last", "bench from to", "bench-enclosures ...", "trace"))
+          System.err.println("Unrecognized Command: " + what)
+          usage()
       }
     } catch {
       case e: AcumenError =>
         System.err.println(e.getMessage)
         System.exit(1)
       case e => throw e
+    }
+  }
+
+  def examples = {
+    var somethingUpdated = false
+    Examples.cstoreExamplesAction{(dn, f) =>
+      val loc = Examples.expectLoc
+      val resFile = Examples.resultFile(loc, dn, f)
+      if (resFile.exists) {
+        println("skipping " + f + "")
+      } else {
+        somethingUpdated = true
+        try {
+          Examples.writeExampleResult(loc, dn, f, interpreters.reference.Interpreter)
+        } catch {
+          case e => 
+            println("ERROR when processing " + f + ":")
+            println("  " + e)
+        }
+        println("PROCESSED " + f)
+      }
+    }
+    if (somethingUpdated) {
+      println("Results updated.  Be sure to git add & commit the updated files as appropriate.")
     }
   }
 }

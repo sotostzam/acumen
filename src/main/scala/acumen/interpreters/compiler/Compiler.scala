@@ -151,6 +151,8 @@ class CompileWriter(initial_indent : Int = 0) {
 class Interpreter extends acumen.CStoreInterpreter {
   val I = Interpreter
   import acumen._
+
+  def id = null
   
   type Store = I.Store
   def init(prog: Prog) = null

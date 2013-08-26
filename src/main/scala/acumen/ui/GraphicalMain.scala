@@ -23,88 +23,29 @@ import javax.swing.event.DocumentEvent
 import swing._
 import swing.event._
 
-object ThreeDState extends Enumeration {
-  val ERROR,DISABLE,LAZY,ENABLE = Value
-}
-
 object GraphicalMain extends SimpleSwingApplication {
   // Swing debugging
   javax.swing.RepaintManager.setCurrentManager(new debug.CheckThreadViolationRepaintManager)
   debug.EventDispatchThreadHangMonitor.initMonitoring()
 
   val osname = System.getProperty("os.name").toLowerCase
-  var need_quartz = false
   // ThreeDStates default to lazy as loading it can cause performance
   // problems on some platforms (mainly Linux).  On Windows load it
   // eagerly as the 3D code was tested the most on Windows.  On OS X
   // load it eagerly as loading as loading lazily can cause a crash
   // if the libraries are not available.
-  var threeDState = ThreeDState.LAZY
-  if (osname.startsWith("windows ")) {
-    threeDState = ThreeDState.ENABLE
-  } else if (osname.contains("os x")) {
-    if (!(System.getProperty("apple.awt.graphics.UseQuartz") == "true")) {
-      threeDState = ThreeDState.DISABLE
-      need_quartz = true
+  def fixupThreeDState = if (Main.threeDState == null) {
+    if (osname.startsWith("windows ")) {
+      Main.threeDState = ThreeDState.ENABLE
+    } else if (osname.contains("os x")) {
+      if (!(System.getProperty("apple.awt.graphics.UseQuartz") == "true")) {
+        Main.threeDState = ThreeDState.DISABLE
+        Main.need_quartz = true
+      } else {
+        Main.threeDState = ThreeDState.ENABLE
+      }
     } else {
-      threeDState = ThreeDState.ENABLE
-    }
-  }
-  var disableNewPlot = true
-  var openFile: File = null
-  var autoPlay = false
-  var useEnclosures = false
-  var useCompletion = true
-  var useTemplates = false
-  var dontFork = false
-  var synchEditorWithBrowser = true // Synchronize code editor with file browser
-  var enclosureInterpreter = interpreters.enclosure.Interpreter
-  var extractHA = false
-
-  def parseOpts(args: List[String]) {
-    args match {
-      case Nil =>
-      case ("--enable-3d" | "--3d") :: tail => 
-        threeDState = ThreeDState.ENABLE; parseOpts(tail)
-      case ("--lazy-3d") :: tail => 
-        threeDState = ThreeDState.LAZY; parseOpts(tail)
-      case ("--disable-3d" | "--no-3d") :: tail => 
-        need_quartz = false
-        threeDState = ThreeDState.DISABLE; parseOpts(tail)
-      case ("--enable-newplot" | "--newplot") :: tail => 
-        disableNewPlot = false; parseOpts(tail)
-      case ("--disable-newplot" | "--no-newplot") :: tail => 
-        disableNewPlot = true; parseOpts(tail)
-      case "--example" :: name :: tail =>
-        openFile = new File("examples", name + ".acm"); parseOpts(tail)
-      case "--play" :: tail =>
-        autoPlay = true; parseOpts(tail)
-      case "--enclosures" :: tail =>
-        useEnclosures = true; parseOpts(tail)
-      case "--no-enclosures" :: tail =>
-        useEnclosures = false; parseOpts(tail)
-      case "--non-localizing" :: tail =>
-        interpreters.enclosure.Interpreter.asNonLocalizing(); parseOpts(tail)
-      case "--enable-completion" :: tail =>
-        useCompletion = true; parseOpts(tail)
-      case "--disable-completion" :: tail =>
-        useCompletion = false; parseOpts(tail)
-      case "--templates" :: tail =>
-        useTemplates = true; parseOpts(tail)
-      case "--dont-fork" :: tail =>
-        dontFork = true; parseOpts(tail)
-      case "--extract-ha" :: tail =>
-        extractHA = true; parseOpts(tail)
-      case opt ::  tail if opt.startsWith("-") =>
-        System.err.println("Unrecognized Option: " + opt)
-        exit(1)
-      case fn :: tail => 
-        openFile = new File(fn)
-        if (!openFile.exists) {
-          System.err.println("File not found: " + openFile)
-          exit(1)
-        }
-        parseOpts(tail)
+      Main.threeDState = ThreeDState.LAZY
     }
   }
 
@@ -113,8 +54,8 @@ object GraphicalMain extends SimpleSwingApplication {
 
   def maybeFork(args: Array[String]) {
     val maxMem = Runtime.getRuntime().maxMemory()
-    val shouldFork = maxMem < MIN_MAX_MEM || need_quartz
-    val mayFork = !dontFork
+    val shouldFork = maxMem < MIN_MAX_MEM || Main.need_quartz
+    val mayFork = !Main.dontFork
     if (shouldFork && mayFork) {
       val separator = System.getProperty("file.separator");
       val classpath = System.getProperty("java.class.path");
@@ -124,8 +65,8 @@ object GraphicalMain extends SimpleSwingApplication {
       realArgs.add(path)
       realArgs.addAll(bean.getInputArguments())
       realArgs.add("-Xmx1g")
-      val quartz = if (need_quartz) "-Dapple.awt.graphics.UseQuartz=true" else ""
-      if (need_quartz) realArgs.add(quartz)
+      val quartz = if (Main.need_quartz) "-Dapple.awt.graphics.UseQuartz=true" else ""
+      if (Main.need_quartz) realArgs.add(quartz)
       realArgs.add("-cp")
       realArgs.add(classpath)
       realArgs.add("acumen.ui.GraphicalMain")
@@ -175,17 +116,21 @@ object GraphicalMain extends SimpleSwingApplication {
   }
 
   override def main(args: Array[String]) {
-    if (args.size > 0 && (args(0) == "--semantics" || !args(0).startsWith("-"))) {
-      acumen.Main.main(args)
-    } else {
-      parseOpts(args.toList)
-      maybeFork(args)
-      super.main(args)
-    }
+    if (Main.positionalArgs.size() > 1)
+      Main.openFile = Main.checkFile(Main.positionalArgs(1))
+    maybeFork(args)
+    super.main(args)
   }
 
   def top = {
-    App.init
+    fixupThreeDState
+    try {
+      App.init
+    } catch {
+      case e: Errors.AcumenError =>
+        System.err.println(e.getMessage)
+        System.exit(1)
+    }
     val ret = App.ui.top
     println(magicStartString) // Do not remove, needed by forking code
     ret

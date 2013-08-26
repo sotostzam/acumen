@@ -14,7 +14,7 @@ import scala.swing.BorderPanel
 import scala.swing.Component
 import scala.swing.ScrollPane
 
-import acumen.ui.GraphicalMain
+import acumen.Main
 import javax.swing.JCheckBox
 import javax.swing.JToolBar
 import javax.swing.JTree
@@ -35,7 +35,7 @@ class FileBrowser(initialPath: File, editor: CodeArea) extends BorderPanel {
   fileTree.peer.addMouseListener(new MouseAdapter {
     override def mousePressed(e: MouseEvent) {
       val clicked = fileTree.peer.getPathForLocation(e.getX, e.getY)
-      if (!GraphicalMain.synchEditorWithBrowser && e.getClickCount == 2 &&
+      if (!Main.synchEditorWithBrowser && e.getClickCount == 2 &&
         clicked != null && clicked.getLastPathComponent != null) {
         val f = clicked.getLastPathComponent.asInstanceOf[File]
         if (f.isFile) editor.loadFile(f)
@@ -203,7 +203,7 @@ class FileTree(initialPath: File) extends Component with ChangeListener {
   override def stateChanged(e: ChangeEvent) {
 	// Check what was selected through File > Open
     e.getSource.asInstanceOf[CodeArea].currentFile.foreach { file =>
-      if (GraphicalMain.synchEditorWithBrowser) focus(file)
+      if (Main.synchEditorWithBrowser) focus(file)
       if (file.isDirectory) peer.clearSelection
     }
     refresh

@@ -3,7 +3,7 @@ import Pretty._
 
 object Errors {
 
-  sealed abstract class AcumenError extends Exception
+  sealed abstract class AcumenError extends RuntimeException
   case class ParseError(message:String) extends AcumenError {
     override def getMessage = message
   }
@@ -122,9 +122,9 @@ object Errors {
 
   /* Command-line errors */
 
-  case class BadProgramOptions(valid:Seq[String]) extends AcumenError {
-    override def getMessage =
-      "Bad command-line options. Valid options are " + valid.mkString(", ") + "."
+  case class UnrecognizedInterpreterString(theString: String) extends AcumenError {
+    override def getMessage = 
+      "Unrecognized interpreter string: " + theString
   }
 
   /* special errors */

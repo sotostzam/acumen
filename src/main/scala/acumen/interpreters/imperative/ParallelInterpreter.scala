@@ -38,6 +38,8 @@ trait ThreadPool[A] {
 class ParallelInterpreter(private var scheduler: Scheduler) extends ImperativeInterpreter {
   import acumen._
 
+  override def id = ParallelInterpreter.id
+
   override def stepInit : Unit = scheduler.reset
   override def traverse(f: ObjId => Changeset, root: ObjId): Changeset =
     if (scheduler.nbThreads > 1) scheduler.traverseMain(f, root)
@@ -46,6 +48,10 @@ class ParallelInterpreter(private var scheduler: Scheduler) extends ImperativeIn
 
 object ParallelInterpreter {
   import Common._
+
+  var id = Array("parallel")
+  def updateId(args: String*) = 
+    id = Array("parallel") ++ args
   
   private val cores = Runtime.getRuntime.availableProcessors
   
@@ -59,11 +65,11 @@ object ParallelInterpreter {
   
   val instance = new ParallelInterpreter(staticS) 
 
-  def sharing: ParallelInterpreter = sharing(cores) 
-  def sharing(n: Int) = { sharingTP.reset(n); instance.scheduler = sharingS; instance }
+  def sharing: ParallelInterpreter = {updateId("sharing"); sharing(cores)}
+  def sharing(n: Int) = { updateId("sharing", n.toString); sharingTP.reset(n); instance.scheduler = sharingS; instance }
   
-  def static: ParallelInterpreter = static(cores)
-  def static(n: Int) = { staticTP.reset(n); instance.scheduler = staticS; instance } 
+  def static: ParallelInterpreter = {updateId(); static(cores) }
+  def static(n: Int) = { updateId(n.toString); staticTP.reset(n); instance.scheduler = staticS; instance } 
 
   def apply() = { instance.scheduler.reset(cores); instance }
   def apply(nbThreads: Int) = { instance.scheduler.reset(nbThreads); instance }
