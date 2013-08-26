@@ -6,6 +6,8 @@
 package acumen
 package extract
 
+import scala.collection.mutable.ListBuffer
+
 import Cond.getName
 
 /***************************************************************************
@@ -35,11 +37,15 @@ class Extract(prog: Prog,
   // Rest of the TRANSFORM step
   contIfs.pushDown
 
-  // Now do magic (FIXME: define magic)
   // The CONVERT TO MODES step
+  val modes = new ListBuffer[Mode]
+  var idx = 0
   contIfs.data.values.foreach { cIf =>
     val dIf = discrIfs.find(cIf.conds)
-    dIf.actions += Assign(MODE_VAR, Lit(GStr(cIf.label)))
+    val label = "C"+idx
+    dIf.actions += Assign(MODE_VAR, Lit(GStr(label)))
+    modes += new Mode(label,cIf.claims,cIf.actions)
+    idx += 1
   }
 
   // Now that we added the magic we can push down the discrete actions
@@ -48,6 +54,9 @@ class Extract(prog: Prog,
 
   // The next three steps perform the ADD RESETS AND SPECIAL MODES
   // step
+  
+  // Add the specal DO mode
+  modes.prepend(new Mode("D0", Nil, Nil))
 
   // If we are not already in a mode after a reset go into the special
   // D0 mode
@@ -57,11 +66,7 @@ class Extract(prog: Prog,
     }
   }
 
-  // Generate a list of possible modes, this is the 
-  // speical "D0" mode and all the contifs
-  val modes = new Mode("D0", Nil, Nil) +: contIfs.data.values.map{cIf => new Mode(cIf.label,cIf.claims,cIf.actions)}.toList
-
-  // For every mode add indiscreetly add all the discrIfs as possible
+  // For every mode indiscriminately add all the discrIfs as possible
   // events
   modes.foreach { m =>
     m.resets = discrIfs.data.values.toList
@@ -75,7 +80,7 @@ class Extract(prog: Prog,
                          modes.map{m => Clause(GStr(m.label),
                                                Cond.toExpr(m.claims),
                                                m.resets.map(_.toAST) ++
-                                               m.actions.map(Continuously(_)).toList)})
+                                               m.actions.map(Continuously(_)).toList)}.toList)
   val newMain = ClassDef(origDef.name,
                          origDef.fields,
                          init :+ Init(MODE,ExprRhs(Lit(GStr("D0")))), 

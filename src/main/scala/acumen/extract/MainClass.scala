@@ -5,6 +5,7 @@ import scala.collection.mutable.{ ArrayBuffer }
 import scala.util.control.Breaks.{ break, breakable }
 
 class MainClass(prog: Prog) {
+  import ActionOps._
   // State variables
   val origDef = {
     if (prog.defs.size > 1) 
@@ -15,8 +16,8 @@ class MainClass(prog: Prog) {
   }
 
   var init = origDef.priv
-  var contIfs = new Ifs[ContinuousAction, ContIf](ContIf)
-  var discrIfs = new Ifs[Assign, DiscrIf](DiscrIf)
+  var contIfs = new Ifs[ContinuousAction]
+  var discrIfs = new Ifs[Assign]
   val simulatorName = origDef.fields(0)
   var simulatorAssigns: Seq[Assign] = Nil
 
@@ -68,7 +69,7 @@ class MainClass(prog: Prog) {
   }
 
   // Extract simulator assigns from a DiscrIf and add to simulatorAssigns
-  def extractSimulatorAssigns(if0: DiscrIf) = {
+  def extractSimulatorAssigns(if0: If[Assign]) = {
     var (sim, non) = if0.actions.partition {
       _ match {
         case Assign(Dot(Var(s), _), Lit(_)) if s == simulatorName => true

@@ -9,59 +9,44 @@ import scala.util.control.Breaks.{ break, breakable }
  * data structures performs the SPLIT, TRANSFORM and FLATTEN steps
  ***************************************************************************/
 
-abstract class If[ActionT](var conds: Seq[Cond], val label: String) {
-  def toAST: IfThenElse
-  var actions = new ArrayBuffer[ActionT];
-  def dump: String;
-  var claims: List[Cond] = Nil; // i.e. "claims" used to annotate modes
-  var visited : Boolean = false
+// Type classes, the scala way
+trait ActionOps[ActionT] {
+  def toAST(a: ActionT) : Action
 }
-abstract class MkIf[IfT] {
-  def apply(conds: Seq[Cond]): IfT
+object ActionOps {
+  implicit object AssignActionOps extends ActionOps[Assign] {
+    def toAST(a: Assign) = Discretely(a)
+  }
+  implicit object ContActionOps extends ActionOps[ContinuousAction] {
+    def toAST(a: ContinuousAction) = Continuously(a)
+  }
 }
 
-class ContIf(conds0: Seq[Cond], label: String = ContIf.newLabel) extends If[ContinuousAction](conds0, label) {
+class If[ActionT](var conds: Seq[Cond])(implicit ops: ActionOps[ActionT])  {
+  var actions = new ArrayBuffer[ActionT];
+  var claims: List[Cond] = Nil; // i.e. "claims" used to annotate modes
+  var visited : Boolean = false
   def toAST: IfThenElse =
     IfThenElse(Cond.toExpr(conds),
-        actions.map(Continuously(_)).toList, Nil)
-  def dump = label + ": " + Pretty.pprint[Action](toAST) + "\n"
-}
-object ContIf extends MkIf[ContIf] {
-  def apply(conds: Seq[Cond]) = new ContIf(conds)
-  var counter = 0
-  def newLabel = { counter += 1; "C" + counter; }
+        actions.map(ops.toAST(_)).toList, Nil)
+  def dump = Pretty.pprint[Action](toAST) + "\n"
 }
 
 class Mode(val label: String, 
            var claims: List[Cond], 
            var actions: Seq[ContinuousAction]) 
 {
-  var resets: List[DiscrIf] = Nil
+  var resets: List[If[Assign]] = Nil
 }
 
-class DiscrIf(conds0: Seq[Cond]) extends If[Assign](conds0, DiscrIf.newLabel) {
-  def toAST: IfThenElse =
-    IfThenElse(Cond.toExpr(conds),
-      actions.map(Discretely(_)).toList, Nil)
-  def dump = {
-    (label + ": "
-      + Pretty.pprint[Action](toAST)
-      + "\n")
-  }
-}
-object DiscrIf extends MkIf[DiscrIf] {
-  def apply(conds: Seq[Cond]) = new DiscrIf(conds)
-  var counter = 0
-  def newLabel = { counter += 1; "d" + counter; }
-}
-
-class Ifs[ActionT, IfT <: If[ActionT]](mkIf: MkIf[IfT]) {
+class Ifs[ActionT : ActionOps] {
+  type IfT = If[ActionT]
   val data = new MutListMap[Seq[Cond], IfT]
   def find(conds: Seq[Cond]): IfT = data.get(conds) match {
     case Some(res) => res
     case None => throw new java.util.NoSuchElementException
   }
-  def add(conds: Seq[Cond]): IfT = data.getOrElseUpdate(conds, mkIf(conds))
+  def add(conds: Seq[Cond]): IfT = data.getOrElseUpdate(conds, new IfT(conds))
   // pushDown transforms a series of ifs into a unique form such that all
   // actions for a given set of conditions are in exactly one if.
   // Requires empty ifs to push the actions into.
@@ -78,7 +63,6 @@ class Ifs[ActionT, IfT <: If[ActionT]](mkIf: MkIf[IfT]) {
       if0.actions ++= actions
     }
   }
-
   def pushDown() {
     data.values.foreach(_.visited = false)
     pushDown(find(Nil), Nil)
