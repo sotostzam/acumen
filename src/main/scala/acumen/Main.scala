@@ -275,10 +275,10 @@ object Main {
           val extr = new extract.Extract(desugared)
           println(pprint(extr.res))
         case "typecheck" => 
-          val res = new TypeCheck(desugared).run()
+          val (typechecked, res) = new TypeCheck(desugared).run()
           println("\nTYPE CHECK RESULT: " + TypeCheck.errorLevelStr(res) + "\n")
           Pretty.withType = true
-          println(pprint(desugared))
+          println(pprint(typechecked))
         case "3d" => toPython3D(toSummary3D(ctrace))
         case "2d" => toPython2D(toSummary2D(ctrace))
         case "java2d" => new MainFrame(new Java3D(addThirdDimension(ctrace)), 256, 256);
