@@ -127,6 +127,11 @@ object Errors {
       "Unrecognized interpreter string: " + theString
   }
 
+  case class UnrecognizedTransformation(theString: String) extends AcumenError {
+    override def getMessage = 
+      "Unrecognized pass/transformation: " + theString
+  }
+
   /* special errors */
 
   case class ShouldNeverHappen() extends AcumenError {

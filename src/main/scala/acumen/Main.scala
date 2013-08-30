@@ -34,8 +34,7 @@ object Main {
   var useTemplates = false
   var dontFork = false
   var synchEditorWithBrowser = true // Synchronize code editor with file browser
-  var flatten = false
-  var extractHA = false
+  var extraPasses = ""
   var displayHelp = "none"
 
   var positionalArgs = new ArrayBuffer[String]
@@ -56,24 +55,21 @@ object Main {
     "--dont-fork             disable auto-forking of a new JVM when required")
   def experimentalOptsHelp = Array(
     "--full-help",
-    "--flatten",
-    "--extract-ha",
-    "--templates             enables template expansion in the source code editor."
+    "-p|--passes <%s>".format(availPasses.filter{!_.alwaysUsed}.map{_.id}.mkString(",")),
+    "                        comma seperated list of extra passes to run",
+    "--templates             enables template expansion in the source code editor"
   )
   def commandHelp = Array(
     "ui [<file>]             starts the U.I."
   )
   def experimentalCommandHelp = Array(
     "pretty <file>           pretty print model",
-    "desugar <file>          pretty print desuguared model",
     "last <file>             run model and print final result",
     "trace <file>            run model and print trace output",
     "time <file>             time time it takes to run model",
-    "",
-    "flatten <file>          flatten model into a single object",
-    "extract-ha <file>       extract H.A. and print result",
+    "") ++
+    availPasses.map{p => "%-23s run the %s pass and print model".format(p.id,p.desc)} ++ Array("",
     "compile <file>          compile model to C++",
-    "typecheck <file>        run type checker",
     "",
     "bench <file> <start> <stop> [<warmup> [<repeat>]]",
     "                        parallel benchmark",
@@ -127,10 +123,8 @@ object Main {
         useTemplates = true; parseArgs(tail)
       case "--dont-fork" :: tail =>
         dontFork = true; parseArgs(tail)
-      case "--flatten" :: tail =>
-        flatten = true; parseArgs(tail)
-      case "--extract-ha" :: tail =>
-        extractHA = true; parseArgs(tail)
+      case ("--passes"|"-p") :: p :: tail =>
+        validatePassesStr(p); extraPasses = p; parseArgs(tail)
       case opt ::  tail if opt.startsWith("-") =>
         System.err.println("Unrecognized Option: " + opt)
         usage()
@@ -202,6 +196,42 @@ object Main {
     }
   }
 
+  case class Pass(id: String, desc: String, trans: Prog => Prog, alwaysUsed: Boolean = false)
+  val availPasses = Array(
+    Pass("desugar", "Desugarer", {p => p}, alwaysUsed = true),
+    Pass("extract-ha", "H.A. Extraction", new extract.Extract(_).res),
+    Pass("extractfull", "H.A. Extraction (Orig Full Version)", new extractfull.Extract(_).res),
+    Pass("flatten", "Object Flattening", new Flatten(_).res),
+    Pass("typecheck", "Type Checker", {prog => 
+                                         val (typechecked, res) = new TypeCheck(prog).run()
+                                         println("\nTYPE CHECK RESULT: " + TypeCheck.errorLevelStr(res) + "\n")
+                                         typechecked})
+  )
+  val passLookup : Map[String,Pass] = {
+    val m = availPasses.map{v => ((v.id,v))}.toMap; m + (("extract", m("extract-ha")))
+  }
+  
+  // expects desuguared
+  def applyExtraPasses(desugared: Prog, args0: String*) : Prog = {
+    var args1 = if (args0.isEmpty) List(extraPasses) else args0
+    val args = args1.flatMap(_.split(',')).toList
+    var res = desugared
+    args.foreach{arg => passLookup.get(arg) match {
+      case Some(pass) => res = pass.trans(res)
+      case None if arg == "" => /* do nothing */
+      case None => throw UnrecognizedTransformation(arg)
+    }}
+    res
+  }
+  def validatePassesStr(args0: String*) : Unit = {
+    val args = args0.flatMap(_.split(',')).toList
+    args.foreach{arg => passLookup.get(arg) match {
+      case Some(pass) => /* do nothing */
+      case None if arg == "" => /* do nothing */
+      case None => throw UnrecognizedTransformation(arg)
+    }}
+  }
+
   def main(args: Array[String]) : Unit = {
     parseArgs(args.toList)
     if (interpreter == null)
@@ -264,9 +294,7 @@ object Main {
       lazy val in = new InputStreamReader(new FileInputStream(args(1)))
       lazy val ast = Parser.run(Parser.prog, in)
       lazy val desugared = Desugarer.run(ast)
-      lazy val flattened = if (flatten) new Flatten(desugared).res else desugared
-      lazy val extracted = if (extractHA) new extractfull.Extract(flattened).res else flattened
-      lazy val final_out = flattened // final output after all passes
+      lazy val final_out = applyExtraPasses(desugared)
       lazy val trace = i.run(final_out)
       lazy val ctrace = as_ctrace(trace)
       /* Perform user-selected action. */
@@ -276,18 +304,6 @@ object Main {
           val res = typeChecker.run()
           interpreters.compiler.Interpreter.compile(desugared, typeChecker)
         case "pretty" => println(pprint(ast))
-        case "desugar" => println(pprint(desugared))
-        case "flatten" => 
-          val flattened = new Flatten(desugared).res
-          println(pprint(flattened))
-        case "extract-ha" | "extract" =>
-          val extr = new extract.Extract(desugared)
-          println(pprint(extr.res))
-        case "typecheck" => 
-          val (typechecked, res) = new TypeCheck(desugared).run()
-          println("\nTYPE CHECK RESULT: " + TypeCheck.errorLevelStr(res) + "\n")
-          Pretty.withType = true
-          println(pprint(typechecked))
         case "3d" => toPython3D(toSummary3D(ctrace))
         case "2d" => toPython2D(toSummary2D(ctrace))
         case "java2d" => new MainFrame(new Java3D(addThirdDimension(ctrace)), 256, 256);
@@ -359,9 +375,15 @@ object Main {
           BenchEnclosures.run(i, final_out, args, 2)
         case "trace" =>
           trace.print
-        case what =>
-          System.err.println("Unrecognized Command: " + what)
-          usage()
+        case what => try {
+            val transformed = applyExtraPasses(desugared, what)
+            Pretty.withType = true
+            println(pprint(transformed))
+        } catch {
+          case _:UnrecognizedTransformation => 
+            System.err.println("Unrecognized Command: " + what)
+            usage()
+        }
       }
     } catch {
       case e: AcumenError =>

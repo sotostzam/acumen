@@ -77,10 +77,7 @@ class EnclosureCntrl(val interpreter: RecursiveInterpreter) extends InterpreterC
       val ast = Parser.run(Parser.prog, progText)
       //val dif = SD.run(ast)
       val des = Desugarer.run(ast)
-      val des2 = if (Main.extractHA)
-                   new extract.Extract(des).res
-                 else
-                   des
+      val des2 = Main.applyExtraPasses(des)
       prog = des2
     }
 
