@@ -132,7 +132,7 @@ class App extends SimpleSwingApplication {
   private val plotStyleBothAction           = new Action(  "Both")       { mnemonic =   VK_B; def apply = plotView.setPlotStyle(plot.Both()) }
   private val floatingPointNewAction        = mkActionMask("Traditional Functional 2",  VK_2, NONE,       shortcutMask | SHIFT_MASK, setInterpreter("newreference"))
   private val floatingPointAction           = mkActionMask("Traditional Functional",    VK_F, VK_R,       shortcutMask | SHIFT_MASK, setInterpreter("reference"))
-  private val floatingPointImperativeAction = mkActionMask("Traditional Imparative",    VK_I, VK_I,       shortcutMask | SHIFT_MASK, setInterpreter("imperative")) 
+  private val floatingPointImperativeAction = mkActionMask("Traditional Imperative",    VK_I, VK_I,       shortcutMask | SHIFT_MASK, setInterpreter("imperative")) 
   private val floatingPointParallelAction   = mkActionMask("Traditional Parallel",      VK_P, VK_P,       shortcutMask | SHIFT_MASK, promptForNumberOfThreads)
   private val pwlHybridSolverAction         = mkActionMask("Enclosure PWL",             VK_L, VK_L,       shortcutMask | SHIFT_MASK, setInterpreter("enclosure-pwl")) 
   private val eventTreeHybridSolverAction   = mkActionMask("Enclosure EVT",             VK_T, VK_T,       shortcutMask | SHIFT_MASK, setInterpreter("enclosure-evt"))
@@ -573,7 +573,7 @@ class App extends SimpleSwingApplication {
   interpreter.interpreter.id.toList match {
     case "reference" :: _=> bar.semantics.ref.selected = true
     case "newreference" :: _ => bar.semantics.newRef.selected = true
-    case "imparative" :: _ => bar.semantics.impr.selected = true
+    case "imperative" :: _ => bar.semantics.impr.selected = true
     case "parallel" :: _ => bar.semantics.par.selected = true
     case "enclosure" :: tail if tail.contains("pwl") => bar.semantics.pwl.selected = true
     case "enclosure" :: tail if tail.contains("evt") => bar.semantics.et.selected = true

@@ -69,7 +69,7 @@ object GraphicalMain extends SimpleSwingApplication {
       if (Main.need_quartz) realArgs.add(quartz)
       realArgs.add("-cp")
       realArgs.add(classpath)
-      realArgs.add("acumen.ui.GraphicalMain")
+      realArgs.add("acumen.Main")
       realArgs.addAll(args.toList)
       realArgs.add("--dont-fork")
       val processBuilder = new ProcessBuilder(realArgs)

@@ -168,7 +168,7 @@ object Main {
       throw UnrecognizedInterpreterString(args.mkString("-"))
       res
   }
-  def interpreterHelpString = "reference|newreference|parallel[-<num threads>]|enclosure[-pwl|-evt]"
+  def interpreterHelpString = "reference|newreference|imperative|parallel[-<num threads>]|enclosure[-pwl|-evt]"
   // parallel-sharing should not be documented but recognized for testing
 
   def selectParallellInterpreter(args: List[String], 

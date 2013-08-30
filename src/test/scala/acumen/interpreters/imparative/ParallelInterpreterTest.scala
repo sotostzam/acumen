@@ -127,6 +127,6 @@ class ParallelInterpreterTest extends InterpreterTestBase {
     //assert(res)
   }
 
-  testExamples({f => f == "examples/A_Ping_Pong/XXX_2013_hh_4T.acm"})
+  testExamples({f => f == "examples/A_Ping_Pong/2013_hh_4T.acm"})
   testShouldRun
 }
