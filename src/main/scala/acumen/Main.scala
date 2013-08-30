@@ -34,6 +34,7 @@ object Main {
   var useTemplates = false
   var dontFork = false
   var synchEditorWithBrowser = true // Synchronize code editor with file browser
+  var flatten = false
   var extractHA = false
   var displayHelp = "none"
 
@@ -55,6 +56,7 @@ object Main {
     "--dont-fork             disable auto-forking of a new JVM when required")
   def experimentalOptsHelp = Array(
     "--full-help",
+    "--flatten",
     "--extract-ha",
     "--templates             enables template expansion in the source code editor."
   )
@@ -68,7 +70,8 @@ object Main {
     "trace <file>            run model and print trace output",
     "time <file>             time time it takes to run model",
     "",
-    "extract <file>          extract H.A. and print result",
+    "flatten <file>          flatten model into a single object",
+    "extract-ha <file>       extract H.A. and print result",
     "compile <file>          compile model to C++",
     "typecheck <file>        run type checker",
     "",
@@ -124,6 +127,8 @@ object Main {
         useTemplates = true; parseArgs(tail)
       case "--dont-fork" :: tail =>
         dontFork = true; parseArgs(tail)
+      case "--flatten" :: tail =>
+        flatten = true; parseArgs(tail)
       case "--extract-ha" :: tail =>
         extractHA = true; parseArgs(tail)
       case opt ::  tail if opt.startsWith("-") =>
@@ -259,8 +264,9 @@ object Main {
       lazy val in = new InputStreamReader(new FileInputStream(args(1)))
       lazy val ast = Parser.run(Parser.prog, in)
       lazy val desugared = Desugarer.run(ast)
-      lazy val extracted = if (extractHA) new extract.Extract(desugared).res else desugared
-      lazy val final_out = extracted // final output after all passes
+      lazy val flattened = if (flatten) new Flatten(desugared).res else desugared
+      lazy val extracted = if (extractHA) new extractfull.Extract(flattened).res else flattened
+      lazy val final_out = flattened // final output after all passes
       lazy val trace = i.run(final_out)
       lazy val ctrace = as_ctrace(trace)
       /* Perform user-selected action. */
@@ -271,7 +277,10 @@ object Main {
           interpreters.compiler.Interpreter.compile(desugared, typeChecker)
         case "pretty" => println(pprint(ast))
         case "desugar" => println(pprint(desugared))
-        case "extract" =>
+        case "flatten" => 
+          val flattened = new Flatten(desugared).res
+          println(pprint(flattened))
+        case "extract-ha" | "extract" =>
           val extr = new extract.Extract(desugared)
           println(pprint(extr.res))
         case "typecheck" => 
