@@ -202,6 +202,7 @@ object Main {
     Pass("extract-ha", "H.A. Extraction", new extract.Extract(_).res),
     Pass("extractfull", "H.A. Extraction (Orig Full Version)", new extractfull.Extract(_).res),
     Pass("flatten", "Object Flattening", new Flatten(_).res),
+    Pass("inline", "Inline Priv Deps.", InlineInitDeps.proc(_)),
     Pass("toposort", "Topo. Sort. Priv Section", TopoSortInit.proc(_)),
     Pass("typecheck", "Type Checker", {prog => 
                                          val (typechecked, res) = new TypeCheck(prog).run()
