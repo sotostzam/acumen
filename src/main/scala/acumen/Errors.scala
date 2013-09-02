@@ -178,4 +178,8 @@ object Errors {
     override def getMessage =
       "fromJSON failed with input: " + s
   }
+
+  case class ObservesError(msg: String) extends AcumenError {
+    override def getMessage = msg
+  }
 }

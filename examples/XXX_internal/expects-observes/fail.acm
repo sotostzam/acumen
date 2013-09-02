@@ -1,0 +1,12 @@
+class Main(simulator)
+  private
+    mode := "Init"
+  end
+  switch mode
+    case "Init"
+      simulator.expects := 3;
+      mode := "Persist"
+    case "Persist"
+     simulator.observes = 4
+  end
+end
