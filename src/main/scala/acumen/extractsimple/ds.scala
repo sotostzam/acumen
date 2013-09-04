@@ -1,5 +1,5 @@
 package acumen
-package extract
+package extractsimple
 
 import scala.collection.mutable.{ ListMap => MutListMap, ArrayBuffer }
 import scala.util.control.Breaks.{ break, breakable }

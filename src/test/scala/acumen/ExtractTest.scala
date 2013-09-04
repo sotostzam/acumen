@@ -58,7 +58,7 @@ object ExtractTest extends Properties("Extract") {
     val desugared = Desugarer.run(p)
     var extracted : Prog = null
     try {
-      extracted = new extractfull.Extract(desugared).res
+      extracted = new extract.Extract(desugared).res
       val contNames = getContinuousVariables(p)
       // set up the newreference interpreter
       val i = interpreters.newreference.Interpreter

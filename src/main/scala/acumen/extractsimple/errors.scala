@@ -1,5 +1,5 @@
 package acumen
-package extract
+package extractsimple
 
 import Pretty._
 
@@ -7,7 +7,7 @@ import Pretty._
  * Exception used for error reporting.
  ***************************************************************************/
 
-case class UnhandledSyntax[T](syntax: T)(implicit prettyAble:PrettyAble[T]) extends Errors.AcumenError {
+case class UnhandledSyntax[T](syntax: T, reason: String)(implicit prettyAble:PrettyAble[T]) extends Errors.AcumenError {
   override def getMessage = 
     "H.A. Extraction: Unhandled Syntax: " + pprint(syntax)
 }

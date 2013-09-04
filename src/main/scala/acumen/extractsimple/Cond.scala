@@ -1,5 +1,5 @@
 package acumen
-package extract
+package extractsimple
 
 sealed abstract class Cond { def toExpr: Expr; }
 
@@ -9,9 +9,6 @@ object Cond {
   // factor methods/constructors below
   // 
 
-  case object True extends Cond {
-    def toExpr = Lit(GBool(true))
-  }
   case class Eq(name: Name, value: GroundValue) extends Cond {
     def toExpr = Op(Name("==", 0), List(Dot(Var(Name("self", 0)), name), Lit(value)))
   }
@@ -27,8 +24,6 @@ object Cond {
   //
 
   def apply(e: Expr): Cond = e match {
-    case Lit(GBool(true)) => True
-    case Lit(GBool(false)) => Not(True)
     case Op(Name("==", 0), List(x, Lit(value))) => eq(x, value)
     case Op(Name("not", 0), List(x)) => not(Cond(x))
     case _ => Other(e /*, extractDeps(e)*/)
