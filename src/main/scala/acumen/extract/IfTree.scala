@@ -41,7 +41,7 @@ trait IfTree[ActionT] extends Iterable[IfTree[ActionT]] {
 
 object IfTree {
   class Node(val parent: Node, val megId: Int, // meg = mutely exclusive id
-               val localConds: List[Cond], val localClaims: List[Cond] = Nil) extends IfTree[Action] {
+             val localConds: List[Cond], val localClaims: List[Cond] = Nil) extends IfTree[Action] {
     // claims = "claims" used to annotate modes
     var children = new ArrayBuffer[Node]
     var contActions = new ArrayBuffer[ContinuousAction];
@@ -130,16 +130,14 @@ object IfTree {
   // Create an IfNode from a sequence of actions.
   def create(actions: Seq[Action]) : Node = {
     val root = new Node(null, 0, Nil)
-    val megCounter = new {var idx = 1; 
-                          def take() : Int = {val res = idx; idx += 1; res}}
     def populate(parent: Node, actions: Seq[Action]) : Unit = {
       actions.foreach {
         case IfThenElse(cond, ifTrue, ifFalse) =>
-          val megId = megCounter.take()
+          val megId = idCounter
           populate(parent.addChild(megId, List(Cond(cond))), ifTrue)
           populate(parent.addChild(megId, List(Cond.not(cond))), ifFalse)
         case Switch(subject, clauses) =>
-          val megId = megCounter.take()
+          val megId = idCounter
           clauses.foreach {
             case Clause(lhs, claim, actions) =>
               populate(parent.addChild(megId, List(Cond.eq(subject, lhs)), List(Cond(claim))), actions)
@@ -157,6 +155,20 @@ object IfTree {
     }
     populate(root,actions)
     root
+  }
+
+  def mergeNodes(nodes: Seq[Node], megId: Int) : Node = {
+    val parents = nodes.map{_.parent}.groupBy{_.id}
+    assert(parents.size == 1)
+    val parent = parents.values.head.head
+    val res = new Node(parent, megId, nodes.flatMap{_.localConds}.toList, nodes.flatMap{_.localClaims}.toList)
+    nodes.foreach{n => 
+      res.children ++= n.children
+      res.contActions ++= n.contActions
+      res.discrAssigns ++= n.discrAssigns
+      res.otherActions ++= n.otherActions
+    }
+    res
   }
 }
 

@@ -32,6 +32,24 @@ object Extract {
       throw OtherUnsupported(msg)
     body.children.foreach{rejectParallelIfs(_)}
   }
+  def handleParallelIfs(body: IfTree[_]) {
+    val megIds = body.children.groupBy{_.megId}
+    if (megIds.size > 1) {
+      val node = body.node
+      val newMegId = megIds.keys.min
+      node.children = node.children.filter{v => !megIds.get(v.megId).nonEmpty}
+      def allPossib(chosen: List[IfTree.Node], toChoose: List[Seq[IfTree.Node]]) {
+        if (toChoose.nonEmpty) {
+          val (head :: tail) = toChoose
+          head.foreach{choice => allPossib(chosen :+ choice, tail)}
+        } else {
+          node.children += IfTree.mergeNodes(chosen,newMegId)
+        }
+      }
+      allPossib(Nil, megIds.values.map{_.map{_.node}}.toList)
+    }
+    body.children.foreach{handleParallelIfs(_)}
+  }
   // Extract the mode and remove continuous assignments from the tree
   // In also adds the necessary "magic" so that we are guaranteed to
   // always know what mode to go into after a reset
@@ -141,8 +159,9 @@ class Extract(val prog: Prog)
   }
 
   def run() = {
-    rejectParallelIfs(body)
-    convertSimple(true)
+    //rejectParallelIfs(body)
+    handleParallelIfs(body)
+    convertSimple()
     toAST
   }
 
