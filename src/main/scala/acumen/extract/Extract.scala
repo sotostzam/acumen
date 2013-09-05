@@ -32,6 +32,63 @@ object Extract {
       throw OtherUnsupported(msg)
     body.children.foreach{rejectParallelIfs(_)}
   }
+  // Extract the mode and remove continuous assignments from the tree
+  // In also adds the necessary "magic" so that we are guaranteed to
+  // always know what mode to go into after a reset
+  def extractModes(root: IfTree.ContView) : List[Mode] = {
+    val modes = new ListBuffer[Mode]
+    var idx = 1 
+    def doit(parentActions: List[ContinuousAction], body: IfTree.ContView) : Unit = {
+      val actions = parentActions ++ body.actions
+      body.actions.clear()
+      if (body.children.nonEmpty) {
+        body.children.foreach{doit(actions, _)}
+      } else {
+        val label = "C" + idx
+        modes += Mode(label, Nil, actions)
+        body.node.discrAssigns += Assign(MODE_VAR, Lit(GStr(label)))
+        idx += 1
+      }
+    }
+    doit(Nil, root)
+    modes.toList
+  }
+  // Extract resets and remove the discrete assignments from the if tree
+  def extractResets(root: IfTree.DiscrView) : List[Reset] = {
+    val resets = new ListBuffer[Reset]
+    def doit(parentActions: List[Assign], body: IfTree.DiscrView) : Unit = {
+      val actions = parentActions ++ body.actions
+      body.actions.clear()
+      if (body.children.nonEmpty) {
+        body.children.foreach{doit(actions, _)}
+      } else {
+        resets += Reset(body.conds, ListBuffer(actions:_*))
+      }
+    }
+    doit(Nil, root)
+    resets.toList
+  }
+  // Check that no actions are left in the if tree.  If there is
+  // something left it means we have syntax we can not support
+  def sanity(root: IfTree.Node) : Unit = {
+    root.foreach{node => 
+      if (node.actions.nonEmpty) throw UnhandledSyntax(node.actions.head)
+    }
+  }
+  // If we are not already in a mode after a reset go into the special
+  // D0 mode
+  def ensureMode(resets: Seq[Reset]) : Unit =
+    resets.foreach { dIf => 
+      if (!dIf.actions.exists(assign => getName(assign.lhs).orNull == MODE)) {
+        dIf.actions += Assign(MODE_VAR, Lit(GStr("D0")))
+      }
+    }
+  // For every mode indiscriminately add all possible resets
+  def addResetsSimple(resets: Seq[Reset], modes: Seq[Mode]) {
+    modes.foreach { m =>
+      m.resets = resets.toList
+    }
+  }
 }
 
 class Extract(val prog: Prog) 
@@ -50,68 +107,25 @@ class Extract(val prog: Prog)
   val body : IfTree.Node = IfTree.create(origDef.body)
   val simulatorName = origDef.fields(0)
   var simulatorAssigns = body.extractSimulatorAssigns(simulatorName)
-  var modes = new ListBuffer[Mode]
+  var modes : List[Mode] = Nil
+  var initMode = Init(MODE,ExprRhs(Lit(GStr("D0"))))
 
-  def convertSimple() = {
-    // Now extract the mode and remove continuous assignments from the tree
-    var idx = 1 
+  // Convert from an IfTree to a set of Modes with Resets by
+  // populating "modes".  When done IfTree (i.e. body) will no longer
+  // have any actions.
+  def convertSimple(superSimple: Boolean = false) = {
+    modes = extractModes(if (superSimple) body.contOnly else body.contOnly.pruned)
+    val resets = extractResets(body.discrOnly)
+    sanity(body)
 
-    def extractModes(parentContActions: List[ContinuousAction], body: IfTree.ContView) : Unit = {
-      val actions = parentContActions ++ body.actions
-      body.actions.clear()
-      if (body.children.nonEmpty) {
-        body.children.foreach{extractModes(actions, _)}
-      } else {
-        val label = "C" + idx
-        modes += Mode(label, Nil, actions)
-        body.node.discrAssigns += Assign(MODE_VAR, Lit(GStr(label)))
-        idx += 1
-      }
-    }
-    extractModes(Nil, body.contOnly.pruned)
+    modes = Mode("D0", Nil, Nil) +: modes
+    if (!superSimple) ensureMode(resets)
 
-    // Now extract resets and remove the discrete assignments from the if tree
-    var resets = new ListBuffer[Reset]
-    def extractResets(parentActions: List[Assign], body: IfTree.DiscrView) : Unit = {
-      val actions = parentActions ++ body.actions
-      body.actions.clear()
-      if (body.children.nonEmpty) {
-        body.children.foreach{extractResets(actions, _)}
-      } else {
-        resets += Reset(body.conds, ListBuffer(actions:_*))
-      }
-    }
-    extractResets(Nil, body.discrOnly)
-
-    // Check that no actions are left in the if tree.  If there is
-    // something left it means we have syntax we can not support
-    body.foreach{node => 
-      if (node.actions.nonEmpty) throw UnhandledSyntax(node.actions.head)
-    }
-
-    // The next three steps perform the ADD RESETS AND SPECIAL MODES
-    // step
-
-    // Add the specal DO mode
-    modes.prepend(Mode("D0", Nil, Nil))
-
-    // If we are not already in a mode after a reset go into the special
-    // D0 mode
-    resets.foreach { dIf => 
-      if (!dIf.actions.exists(assign => getName(assign.lhs).orNull == MODE)) {
-        dIf.actions += Assign(MODE_VAR, Lit(GStr("D0")))
-      }
-    }
-
-    // For every mode indiscriminately add all the discrIfs as possible
-    // events
-    modes.foreach { m =>
-      m.resets = resets.toList
-    }
+    addResetsSimple(resets, modes)
   }
   
   def toAST = {
-    // Converts the modes into a big switch and create a new mode
+    // Converts the modes into a big switch and return a new prog
     // The CONVERT TO SWITCH and FIX UP steps
     val theSwitch = Switch(MODE_VAR,
                            modes.map{m => Clause(GStr(m.label),
@@ -120,7 +134,7 @@ class Extract(val prog: Prog)
                                                  m.actions.map(Continuously(_)).toList)}.toList)
     val newMain = ClassDef(origDef.name,
                            origDef.fields,
-                           init :+ Init(MODE,ExprRhs(Lit(GStr("D0")))), 
+                           init :+ initMode, 
                            List(theSwitch) ++ simulatorAssigns.map{Discretely(_)})
 
     new Prog(List(newMain))
@@ -128,7 +142,7 @@ class Extract(val prog: Prog)
 
   def run() = {
     rejectParallelIfs(body)
-    convertSimple()
+    convertSimple(true)
     toAST
   }
 
