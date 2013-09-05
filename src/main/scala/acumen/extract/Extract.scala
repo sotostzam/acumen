@@ -8,7 +8,7 @@ package extract
 
 import scala.collection.mutable.{ArrayBuffer,ListBuffer,Map=>MutMap}
 
-import Cond.getName
+import Util.getName
 
 object Extract {
   // Constant
