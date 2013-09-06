@@ -93,9 +93,7 @@ minJarPath <<= (crossTarget, moduleName, version) {
 // set main based on theMainClass setting
 //
 
-mainClass in (Compile,run) <<= theMainClass map { m => Some(m) }
-
-mainClass in (Compile,packageBin) <<= mainClass in (Compile,run)
+mainClass in Compile <<= theMainClass map { m => Some(m) }
 
 proguardOptions <<= (proguardOptions, theMainClass) {
   (prev, main) => prev :+ (keepMain(main))
