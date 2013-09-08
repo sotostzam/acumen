@@ -8,7 +8,7 @@ import org.scalacheck.Properties
 import org.scalacheck.Prop._
 import acumen.Pretty.pprint
 import acumen.testutil.Generators.{ 
-  arbName, completeNames, genSetBasedOn, genDistinctSetOfN, genSmallDouble
+  arbName, completeDots, genSetBasedOn, genDistinctSetOfN, genSmallDouble
 }
 import scala.Array.{
   ofDim
@@ -38,9 +38,9 @@ object ODESystemGenerator extends acumen.interpreters.enclosure.Extract {
    * 
    * Precondition: The names must be distinct in the .x field.
    */
-  def genLinearODESystem(lhss: Set[Name]): Gen[Set[Equation]] = {
-    require(lhss.forall(n => lhss.filter(_.x == n.x).size == 1))
-    val possibleTerms = completeNames(lhss)
+  def genLinearODESystem(lhss: Set[Dot]): Gen[Set[Equation]] = {
+    require(lhss.forall(n => lhss.filter(l => l.obj == n.obj && l.field.x == n.field.x).size == 1), "System may only contain one equation per variable name \n\n" + lhss)
+    val possibleTerms = completeDots(lhss)
     genSetBasedOn(lhss, genLinearODE(possibleTerms))
   } 
   
@@ -48,8 +48,9 @@ object ODESystemGenerator extends acumen.interpreters.enclosure.Extract {
    * Generate a linear first-order ODE with terms from names and constant coefficients.
    * Terms will be chosen from names (lhs will be omitted).
    */
-  def genLinearODE(names: Set[Name])(lhs: Name): Gen[Equation] = {
-    val validNames = names - lhs // Will be used in RHS of equation
+  def genLinearODE(names: Set[Dot])(lhs: Dot): Gen[Equation] = {
+    require(names contains lhs, "names must contain lhs")
+    val validNames = names - lhs
     for {
       terms <- someOf(validNames)
       coefficients <- listOfN(validNames.size, genSmallDouble)
@@ -68,7 +69,7 @@ object ODESystemGenerator extends acumen.interpreters.enclosure.Extract {
   } yield and(lessThan(subRange.loDouble, time._1), 
               lessThan(time._1, subRange.hiDouble))
 
-  def genPredicate(varNames: Set[Name], time: (Name, Interval)): Gen[Expr] =
+  def genPredicate(varNames: Set[Dot], time: (Name, Interval)): Gen[Expr] =
     frequency( 3 -> genEventfulTimeBasedPredicate(time)
              , 1 -> genBinaryRelation(varNames, time)
              , 2 -> genLogicalOp(varNames, time)
@@ -80,19 +81,19 @@ object ODESystemGenerator extends acumen.interpreters.enclosure.Extract {
       args <- listOfN(2, argGen)
     } yield Op(Name(op, 0), args)
     
-  def genBinaryOp(varNames: Set[Name], time: (Name, Interval)): Gen[Op] =
+  def genBinaryOp(varNames: Set[Dot], time: (Name, Interval)): Gen[Op] =
     genOp(List("+", "-", "*"), genExpr(varNames, time)) //TODO Add support for /, vectors etc. 
     
-  def genBinaryRelation(varNames: Set[Name], time: (Name, Interval)): Gen[Op] =
+  def genBinaryRelation(varNames: Set[Dot], time: (Name, Interval)): Gen[Op] =
     genOp(List("<", ">", "<=", ">="), genExpr(varNames, time)) // Skipping "=="
 
-  def genLogicalOp(varNames: Set[Name], time: (Name, Interval)): Gen[Op] =
+  def genLogicalOp(varNames: Set[Dot], time: (Name, Interval)): Gen[Op] =
     genOp(List("||", "&&"), genPredicate(varNames, time))
     
-  def genExpr(varNames: Set[Name], time: (Name, Interval)): Gen[Expr] =
+  def genExpr(varNames: Set[Dot], time: (Name, Interval)): Gen[Expr] =
     frequency( 1 -> arbGDouble
              , 2 -> Var(time._1)
-             , 1 -> oneOf(varNames.toList).map(Var)
+             , 1 -> oneOf(varNames.toList)
              , 1 -> genBinaryOp(varNames, time)
              )
 
@@ -103,8 +104,8 @@ object ODESystemGenerator extends acumen.interpreters.enclosure.Extract {
   def linearCombination(terms: List[(Double, Expr)]): Expr =
     terms.foldLeft(0: Expr) { case (e, (c, t)) => sum(powerProduct(c, t), e) }
 
-  def univariatePolynomial(terms: List[(Double, Name)]): Expr =
-    linearCombination(terms.map { case (d, n) => (d, Var(n)) })
+  def univariatePolynomial(terms: List[(Double, Dot)]): Expr =
+    linearCombination(terms.map { case (dbl, dot) => (dbl, dot) })
   
   def exp(e: Expr) = Op(Name("exp", 0), List(e))
 

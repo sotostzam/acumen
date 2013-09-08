@@ -23,8 +23,15 @@ object ExtractTest extends Properties("Extract") {
   val MODEL_PATH_ENCLOSURE    = "examples/9_Experimental/01_Enclosures/"
   val MODEL_PATHS_SKIP        = List("03_Loops")
   
-  val progGenerator = new ProgGenerator( maxConditionalsPerScope = 1
-                                       , maxSimulationTime       = 25)
+  val progGenerator = 
+    new ProgGenerator( maxConditionalsPerScope     = 2
+                     , maxSimulationTime           = 10.0
+                     , maxClassHierarchyDepth      = 0
+                     , maxClassHierarchyLayerWidth = 2
+                     , minContinuousVarsPerClass   = 2
+                     , maxContinuousVarsPerClass   = 4
+                     )
+  
   import progGenerator.arbProg
     
   /**
@@ -41,7 +48,7 @@ object ExtractTest extends Properties("Extract") {
     forAll { (p: Prog) => preservesContinousSemanticsOf(p, None) }
 
   /** Load models compatible with the transformation from the examples directory. */
-  //TODO Update when support for multi-object models is added to Extract
+  //FIXME Update to support multi-object
   def existingModels(): Iterable[(String, Prog)] =
     (readFiles(MODEL_PATH_SINGLE_CLASS, FILE_SUFFIX_MODEL) ++
      new File(MODEL_PATH_ENCLOSURE).list(new FilenameFilter ()
@@ -49,7 +56,7 @@ object ExtractTest extends Properties("Extract") {
        .flatMap(dir => readFiles(MODEL_PATH_ENCLOSURE + dir, FILE_SUFFIX_MODEL)))
     .map { case (namePrefix, prog:String) => (namePrefix, Parser.run(Parser.prog, prog)) }
   
-  /**
+  /** 
    * Given a Prog p, computes its desugared version d. Checks that the simulation trace
    * of d is the same as that obtained by first applying Extract to d and then simulating.
    */

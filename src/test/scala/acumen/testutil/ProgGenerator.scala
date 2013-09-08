@@ -1,20 +1,22 @@
 package acumen
 package testutil
 
+import scala.collection.mutable.{Map => MutMap}
 import org.scalacheck._
 import org.scalacheck.Arbitrary.arbitrary
 import org.scalacheck.Gen._
 import org.scalacheck.Prop._
 import org.scalacheck.Properties
 import org.scalacheck.Shrink._
-
 import acumen.Pretty.pprint
 import acumen.util.Canonical
 import acumen.interpreters.enclosure.Generators.{
   genSubInterval
 }
 import Generators.{ 
-  arbName, completeNames, genSetBasedOn, genCompliantSetOfN, genDistinctSetOfN, genSmallDouble
+  arbName, boundedListOf, boundedListOfIf, completeNames, 
+  genBoundedSetOfNonMembers, genCompliantSetOfN, genDistinctSetOfN, 
+  genPositiveBoundedInterval, genSetBasedOn, genSmallDouble, listOfNIf
 }
 import ODESystemGenerator.{
   genLinearODESystem, genPredicate, doubleToLit, nameToVar
@@ -23,8 +25,6 @@ import acumen.interpreters.enclosure.Interval
 import acumen.interpreters.enclosure.TestingContext.{
   rnd
 }
-import java.io.ByteArrayOutputStream
-import java.io.PrintStream
 
 /**
  * Generator of interesting acumen Prog instances (models).
@@ -48,48 +48,83 @@ import java.io.PrintStream
  *      assignments.
  */
 class ProgGenerator
-  ( val maxConditionalsPerScope : Int
-  , val maxSimulationTime       : Double
+  ( val maxConditionalsPerScope     : Int    = 2
+  , val maxSimulationTime           : Double = 10.0
+  , val maxClassHierarchyDepth      : Int    = 1
+  , val maxClassHierarchyLayerWidth : Int    = 2
+  , val minContinuousVarsPerClass   : Int    = 2
+  , val maxContinuousVarsPerClass   : Int    = 4
   ) {
-
-  /* State */
-  
-  var skipped = 0
 
   /* Types */
   
   // Indicates whether a generator executes in the context of a switch based on a particular mode variable
   type Active = Boolean
   // Used to track whether a given name has been used as the LHS of a continuous or discrete assignment that is in scope
-  abstract class ConsumableName(val name: Name) { def isFree: Boolean }
-  case class FreeName(override val name: Name) extends ConsumableName(name) { override def isFree = true }
-  case class UsedName(override val name: Name) extends ConsumableName(name) { override def isFree = false }
+  abstract class ConsumableDot(val dot: Dot) { 
+    def isFree: Boolean
+    def asUsed = UsedDot(dot)
+  }
+  case class FreeDot(override val dot: Dot) extends ConsumableDot(dot) { override def isFree = true }
+  object FreeDot{ def apply(n: Name): FreeDot = FreeDot(Dot(self,n)) }
+  case class UsedDot(override val dot: Dot) extends ConsumableDot(dot) { override def isFree = false }  
+  object UsedDot{ def apply(n: Name): UsedDot = UsedDot(Dot(self,n)) }
+  
+  /* Constants */
+  
+  val self = Var(Name("self", 0))
   
   /* Generators */
   
   implicit def arbProg: Arbitrary[Prog] = Arbitrary { genProg }
   val emptyProg = Prog(Nil)
-
+  
+  //FIXME Use gensym to ensure uniqueness
+  def genClassName(): Gen[ClassName] =
+    for {
+      n <- arbitrary[Name]
+    } yield ClassName(n.x.toUpperCase + n.x.tail)
+  
   /**
-   * TODO Implement generation of models with more than one class.
+   * Generator of Acumen models (Prog). 
+   * 
+   * The structure of the generated models can be configured using the 
+   * parameters of the parent class.
    * 
    * Basic algorithm:
    * 
-   *  1. Generate list of leaf classes and add these to Prog.
-   *  2. Randomize a small number n, and do the following n times:
-   *  3. Generate list of classes, based on Prog, and add these to Prog.
+   *  1. Generate list of leaf classes and add these to a environment.
+   *  2. A small, random number of times, generate list of classes,
+   *     based on the environment, and add these to the environment.
+   *  3. Generate a main class based on the environment and wrap in a Prog.
    */
   def genProg: Gen[Prog] =
-      for {
-        main <-
-          genClassDef( isLeaf = true // Prevent generation of constructor calls and child references
-                     , isMain = true // Generate the Main class
-                     , emptyProg     // Environment
-                     , ClassName("Main")
-                     )
-        m = Prog(List(main))
-        p <- if (simulatesOK(m)) value(m) else genProg
-      } yield p
+    for {
+      depth <- chooseNum[Int](0, maxClassHierarchyDepth)
+      env   <- if (depth == 0) value(List[ClassDef]()) 
+               else for { 
+                 firstLayer <- boundedListOf(1, depth, genClassDef(isMain = false, genClassName, Nil))
+                 h <- genClassHierarchy(firstLayer, depth)
+               } yield h
+      m <- genMain(env)
+      p <- if (simulatesOK(m)) value(m) else genProg
+    } yield p
+  
+  /** Generates a hierarchy of ClassDefs which are related through constructor calls and object references. */
+  def genClassHierarchy(children: List[ClassDef], depth: Int): Gen[List[ClassDef]] =
+    if (depth < 0) children
+    else for {
+      layerSize <- chooseNum[Int](1, maxClassHierarchyLayerWidth)
+      nextLayer <- listOfN(layerSize, genClassDef(isMain = false, genClassName, children))
+      f <- genClassHierarchy(nextLayer ++ children, depth - 1)
+    } yield f
+  
+  /** 
+   * Generates a ClassDef for the Main class based on the ClassDefs in env and wraps the 
+   * resulting ClassDefs in a Prog. 
+   */
+  def genMain(env: List[ClassDef]): Gen[Prog] =
+    for { main <- genClassDef(isMain = true, ClassName("Main"), env) } yield Prog(main +: env)
     
   /**
    * Attempts to execute the Prog p using the new reference interpreter. 
@@ -108,47 +143,111 @@ class ProgGenerator
           throw new RuntimeException("Model exceeded maximum number of discrete steps in fixpoint iteration. Possible infinite loop.")
       }
       true
-    } catch { case e => false }
+    } catch { case e => println(e); false }
   
   /**
    * Generate a class definition.
    * 
-   * TODO If isLeaf is set to true, no constructor calls or child (Dot) references will be generated.
+   * TODO Add support for vectors
    */
-  def genClassDef( isLeaf: Boolean
-                 , isMain: Boolean
-                 , p: Prog
+  def genClassDef( isMain: Boolean
                  , classNameGen: => Gen[ClassName]
-                 ): Gen[ClassDef] =
+                 , env: List[ClassDef] // If empty, no constructor calls or child (Dot) references will be generated.
+                 ): Gen[ClassDef] = {
+    val (timeVar, timeVarD) = (Name("t", 0), Name("t", 1))
     for {
-      name                <- classNameGen
-      minVars             <- chooseNum(2,5)
-      (timeVar, timeVarD) =  (Name("t", 0), Name("t", 1))
-      distinctVarNames    <- genCompliantSetOfN(minVars, arbitrary[Name], 
-                               (candidate: Set[Name], extension: Set[Name]) => 
-                                 extension.forall(n => !candidate.contains(n) && n != timeVar && n != timeVarD) )
-      distinctVarNamesT   =  distinctVarNames + timeVar + timeVarD
-      modes               <- genModes(distinctVarNamesT)
-      varNames            =  completeNames(distinctVarNames)
-      numberOfFields      <- chooseNum[Int](0: Int, if (isMain || varNames.isEmpty) 0 else varNames.size)
-      (fields, privNames) =  varNames.splitAt(numberOfFields)
-      privs               <- genPrivateSection(privNames.map(FreeName), modes)
-      privsT              =  Init(timeVar, ExprRhs(0)) +: Init(timeVarD, ExprRhs(1)) +: privs.toList 
-      timeDomain          <- for { m <- choose[Double](Double.MinPositiveValue, maxSimulationTime)
-                                   i <- genSubInterval(Interval(0, m))
-                                 } yield i 
-      actions             <- genActions( isTopLevel = true
-                                       , equationNames = distinctVarNames.map(FreeName)
-                                       , (privNames ++ fields).map(FreeName)
-                                       , modes
-                                       , (timeVar, timeDomain)
-                                       , nesting = 0
+      // Names for continuous, mode and object variables. For mode names, possible values are also generated. 
+      // Names that can be used as LHSs in equations in this ClassDef.
+      lhsContNames        <- genBoundedSetOfNonMembers(minContinuousVarsPerClass, maxContinuousVarsPerClass, 
+                               Set(timeVar,timeVarD), arbitrary[Name])
+      // Names that can be used as LHSs in equations in the parent ClassDef
+      lhsContNamesParent  <- genBoundedSetOfNonMembers(minContinuousVarsPerClass/2, maxContinuousVarsPerClass/2, 
+                               Set(timeVar,timeVarD) union lhsContNames, arbitrary[Name])
+      contNames           =  completeNames(lhsContNames)
+      contNamesParent     =  completeNames(lhsContNamesParent)
+      contNamesAll        =  contNames union contNamesParent
+      bannedModeNames     =  contNamesAll + timeVar + timeVarD
+      modes               <- genModes(bannedModeNames)
+      objectNames         <- genObjectNames(env, bannedModeNames union modes.map(_._2))
+      // Class fields and private variables
+      numberOfFields      <- if (isMain) value(0) else chooseNum[Int](0, contNames.size/2)
+      (fields, privNames) =  contNamesAll splitAt numberOfFields
+      privsNoTime         <- genPrivateSection(privNames.map((n:Name) => FreeDot(n)), modes, objectNames, env)
+      privs               =  Init(timeVar, ExprRhs(0)) +: Init(timeVarD, ExprRhs(1)) +: privsNoTime.toList
+      privsTypes          =  constructTypeMap(privs, contNames, contNamesParent)
+      timeDomain          <- genPositiveBoundedInterval(maxSimulationTime)
+      actionsNoTime       <- genActions( isTopLevel  = true
+                                       , contNames   = lhsContNames map ((n:Name) => FreeDot(n))
+                                       , discrNames  = (privNames ++ fields) map ((n:Name) => FreeDot(n))
+                                       , modes       = modes
+                                       , childRefs   = findFreeChildPrivs(objectNames, privs, privsTypes, env)
+                                       , parentTypes = privsTypes
+                                       , env         = env
+                                       , time        = (timeVar, timeDomain)
+                                       , nesting     = 0
                                        )
-      actionsT            =  Continuously(Equation(timeVarD, 1)) +: actions.toList 
-    } yield ClassDef(name, if (isMain) List(Name("simulator",0)) else fields.toList, privsT, actionsT)
-
+      actions             =  Continuously(Equation(timeVarD, 1)) +: actionsNoTime.toList 
+      className           <- classNameGen
+    } yield {
+      val cd = ClassDef(className, if (isMain) List(Name("simulator",0)) else fields.toList, privs, actions)
+      // Save type information, used to generate object references
+      cd._types = MutMap[Name, TypeLike]()
+      cd._types ++= privsTypes
+      cd
+    }
+  }
+  
+  /** 
+   * Create a map from variable names to type descriptors.
+   * 
+   * Currently only tags variables in the private section with types.
+   * Definition is only useful in the context of ProgGen! See source for details.
+   */
+  def constructTypeMap(privs: List[Init], contNames: Set[Name], contNamesParent: Set[Name]): Map[Name, TypeLike] =
+    privs.map(_ match { case Init(name, rhs) =>
+      (name -> (rhs match {
+        case NewRhs(cn, _) =>
+          ClassType(NamedClass(cn))
+        case ExprRhs(_) => // mode variables are integers, others floating point numbers
+          if (contNamesParent contains name) NumericType 
+          else if (contNames contains name) DynamicType //FIXME Gross hack! See explanation in findFreeChildPrivs
+          else IntType
+      }))}).toMap[Name, TypeLike] 
+  
+  /** 
+   * Collect all private variables of objects listed in objectNames, for which no 
+   * continuous/discrete assignments exist in the corresponding ClassDef.
+   */
+  def findFreeChildPrivs(objectNames: Set[Name], privs: List[Init], privsTypes: Map[Name, TypeLike], env: List[ClassDef]): Set[ConsumableDot] =
+    objectNames flatMap { (objName:Name) =>
+       privsTypes(objName) match { // Look up the object's class name
+         case ClassType(NamedClass(cn)) =>
+           val cd = env.find(_.name == cn).get // Look up ClassDef based on class name 
+           cd.priv.filter { init => // Find privs known not to have assignments in their ClassDef 
+             /* FIXME Gross hack! This relies on the fact that variables that are possibly used 
+              * as LHS in discrete/continuous assignments in the ClassDef in which they are 
+              * declared have their type set to DynamicType. Only variables that are guaranteed 
+              * not to be used as LHS in their host class will be typed as NumericType.
+              */
+             cd._types(init.x).numericLike && init.x.x != "t"  
+           }.map{ init => FreeDot(Dot(objName, init.x)) } 
+         case _ => List()
+       }
+     }
+  
+  /** Generate object names, i.e. names of variables which will be initialized using constructor calls. */
+  def genObjectNames(env: List[ClassDef], banned: Set[Name]): Gen[Set[Name]] = 
+    if (env.isEmpty) Set[Name]() // Leaf class
+    else for {
+      constructThese <- someOf(env)
+      objectNames    <- genSetBasedOn(constructThese.toSet, 
+                          (cd: ClassDef) => for { n <- arbitrary[Name] } yield Name("obj_" + cd.name.x + "_" + n.x, 0))
+      res            <- if (objectNames.exists(banned.contains(_))) genObjectNames(env, banned) else value(objectNames)            
+    } yield res
+    
   /**
-   * Generates triples (a,n,vs) representing a mode variable:
+   * Generates triples (a,n,vs) representing a mode variable.
+   * 
    * a:  When this boolean is set to true, this means that the current generator is 
    *     executed in the context of a switch statement which switches on the mode 
    *     variable corresponding to the Name in the same triple.
@@ -158,10 +257,7 @@ class ProgGenerator
    */
   def genModes(banned: Set[Name]): Gen[Set[(Active,Name,List[GroundValue])]] =
     for {
-      minModeVars  <- chooseNum(0,4)
-      modeNames    <- genCompliantSetOfN(minModeVars, for { n <- arbitrary[Name] } yield Name(n.x, 0),
-                        (candidate: Set[Name], compliant: Set[Name]) =>
-                          candidate.forall(e => !compliant.contains(e) && !banned.contains(e)))
+      modeNames    <- genBoundedSetOfNonMembers(0, 2, banned, for { n <- arbitrary[Name] } yield Name(n.x, 0))
       modesPerName <- listOfN(modeNames.size, choose[Int](2, 5))
       modes        =  (modeNames zip modesPerName.map(n => (0 to n).toList.map(GInt): List[GroundValue])).
                       map { case (m, n) => (false, m, n) }
@@ -181,63 +277,84 @@ class ProgGenerator
    */
   def genActions
     ( isTopLevel: Boolean
-    , equationNames: Set[ConsumableName]
-    , disNames: Set[ConsumableName]
+    , contNames: Set[ConsumableDot]
+    , discrNames: Set[ConsumableDot]
     , modes: Set[(Active,Name,List[GroundValue])]
+    , childRefs: Set[ConsumableDot]
+    , parentTypes: Map[Name, TypeLike]
+    , env: List[ClassDef]
     , time: (Name,Interval)
     , nesting: Int
     ): Gen[Set[Action]] = {
-      val (freeEquationNames, usedEquationNames) = equationNames.partition(_.isFree)
-      if (freeEquationNames.isEmpty) Set[Action]()
+      val (freeContNames, usedContNames) = contNames.partition(_.isFree)
+      val (freeRefs, usedRefs) = childRefs.partition(_.isFree)
+      if (freeContNames.isEmpty) Set[Action]()
       else for {
-        nbrEquationsToUse      <- chooseNum[Int](1, freeEquationNames.size) // How many to use in this scope
-        (now,later)            =  freeEquationNames.toList.splitAt(nbrEquationsToUse)
-        updContNames           =  now.map(cn => UsedName(cn.name)).toSet union later.toSet union usedEquationNames
-        equations: Set[Action] <- genLinearODESystem(now.map(_.name).toSet).map(_.map(Continuously): Set[Action])
-        (discrAs, updDisNames) <- genDiscreteActions(isTopLevel, disNames.filter(_.isFree), modes)
-        nbrConditionalStmts    <- chooseNum[Int](0, maxConditionalsPerScope) 
-        nbrSwitchStmts         <- chooseNum[Int](0, Math.min( maxConditionalsPerScope - nbrConditionalStmts 
-                                                            , if (later.size > nesting + 1) 1 else 0 // Avoid nesting explosion
-                                                            ))
-        conditionals           <- listOfNIf(later.nonEmpty, nbrConditionalStmts, 
-                                    genIfThenElse(updContNames, updDisNames, modes, time, nesting))
-        switches               <- listOfNIf(later.nonEmpty, nbrSwitchStmts,
-                                    genSwitch(updContNames, updDisNames, modes, time, nesting))
+        nbrContNamesToUse        <- chooseNum[Int](1, freeContNames.size) // How many to use in this scope
+        nbrRefsNamesToUse        <- chooseNum[Int](0, freeRefs.size) // 0 in leaf classes
+        (nowC,laterC)            =  freeContNames.toList.splitAt(nbrContNamesToUse)
+        (nowR,laterR)            =  freeRefs.toList.splitAt(nbrRefsNamesToUse)
+        updContNames             =  nowC.map(_.asUsed).toSet union laterC.toSet union usedContNames
+        updRefNames              =  nowR.map(_.asUsed).toSet union laterR.toSet union usedRefs
+        equationLHSs             =  highestDerivatives(nowC ++ nowR).toSet
+        equations                <- genLinearODESystem(equationLHSs).map(_.map(Continuously): Set[Action])
+        (discrAs, updDiscrNames) <- genDiscreteActions(isTopLevel, discrNames, modes, parentTypes)
+        nbrConditionalStmts      <- chooseNum[Int](0, maxConditionalsPerScope) 
+        nbrSwitchStmts           <- chooseNum[Int](0, Math.min( maxConditionalsPerScope - nbrConditionalStmts 
+                                                              , if (Math.min(laterC.size, laterR.size) > nesting + 1) 1 else 0 // Avoid nesting explosion
+                                                              ))
+        conditionals             <- listOfNIf(laterC.nonEmpty, nbrConditionalStmts, 
+                                      genIfThenElse(updContNames, updDiscrNames, modes, updRefNames, parentTypes, env, time, nesting))
+        switches                 <- listOfNIf(laterC.nonEmpty && modes.nonEmpty, nbrSwitchStmts,
+                                      genSwitch(updContNames, updDiscrNames, modes, updRefNames, parentTypes, env, time, nesting))
       } yield equations union conditionals.toSet union switches.toSet union discrAs
     }
+  
+  def highestDerivatives(names: List[ConsumableDot]): List[Dot] = {
+    val dots = names.map(_.dot)
+    dots.filter(n => dots.forall(m => n.obj != m.obj || n.field.primes >= m.field.primes))
+  }
+   
 
-  def listOfNIf[E](cond: Boolean, size: Int, gen: Gen[E]): Gen[List[E]] =
-    if (!cond) value(List()) else listOfN(size, gen)
-    
   def genDiscreteActions
     ( isTopLevel: Boolean
-    , unassignedVars: Set[ConsumableName]
+    , discrVarNames: Set[ConsumableDot]
     , modes: Set[(Active,Name,List[GroundValue])]
-    ): Gen[(Set[Action], Set[ConsumableName])] =
-   for {
-      nbrDiscrAssgsToUse  <- chooseNum[Int](1, unassignedVars.size) // How many to use in this scope
-      (now,later)         =  unassignedVars.toList.splitAt(nbrDiscrAssgsToUse)
+    , parentTypes: Map[Name, TypeLike]
+    ): Gen[(Set[Action], Set[ConsumableDot])] = {
+   val freeVarNames = discrVarNames.filter(_.isFree)
+   if (isTopLevel || freeVarNames.isEmpty) (Set[Action](), discrVarNames) 
+   else for {
+      nbrDiscrAssgsToUse  <- chooseNum[Int](1, freeVarNames.size) // How many to use in this scope
+      (now,later)         =  freeVarNames.toList.splitAt(nbrDiscrAssgsToUse)
       discreteAssignments <- genDiscreteAssignments(now.toSet, modes)
-      updatedNames        =  now.map(n => UsedName(n.name)).toSet union later.toSet
-    } yield if (isTopLevel) (Set(), unassignedVars) else (discreteAssignments, updatedNames)
+      updatedNames        =  now.map(_.asUsed).toSet union later.toSet
+    } yield (discreteAssignments, updatedNames)
+  }
     
   def genIfThenElse
-    ( equationNames: Set[ConsumableName]
-    , varNames: Set[ConsumableName]
+    ( equationNames: Set[ConsumableDot]
+    , varNames: Set[ConsumableDot]
     , modes: Set[(Active,Name,List[GroundValue])]
+    , objectNames: Set[ConsumableDot]
+    , parentTypes: Map[Name, TypeLike]
+    , env: List[ClassDef]
     , time: (Name, Interval)
     , nesting: Int
     ): Gen[Action] =
     for {
-      cond       <- genPredicate(varNames.map(_.name), time)
-      thenClause <- genActions(isTopLevel = false, equationNames, varNames, modes, time, nesting + 1)
-      elseClause <- genActions(isTopLevel = false, equationNames, varNames, modes, time, nesting + 1)
+      cond       <- genPredicate(varNames.map(_.dot), time)
+      thenClause <- genActions(isTopLevel = false, equationNames, varNames, modes, objectNames, parentTypes, env, time, nesting + 1)
+      elseClause <- genActions(isTopLevel = false, equationNames, varNames, modes, objectNames, parentTypes, env, time, nesting + 1)
     } yield IfThenElse(cond, thenClause.toList, elseClause.toList)
   
   def genSwitch
-    ( equationNames: Set[ConsumableName]
-    , varNames: Set[ConsumableName]
+    ( contNames: Set[ConsumableDot]
+    , discrNames: Set[ConsumableDot]
     , modes: Set[(Active,Name,List[GroundValue])]
+    , objectNames: Set[ConsumableDot]
+    , parentTypes: Map[Name, TypeLike]
+    , env: List[ClassDef]
     , time: (Name, Interval)
     , nesting: Int
     ): Gen[Action] =
@@ -245,44 +362,62 @@ class ProgGenerator
       m@(active, name, vs) <- oneOf(modes.toList)
       mA                   =  (true, name, vs)
       clauses              <- listOfN(vs.size, 
-                                genActions( isTopLevel = true
-                                          , equationNames
-                                          , varNames
-                                          , modes - m + mA
-                                          , time
-                                          , nesting + 1
+                                genActions( isTopLevel  = true
+                                          , contNames   = contNames
+                                          , discrNames  = discrNames
+                                          , modes       = modes - m + mA
+                                          , childRefs   = objectNames
+                                          , parentTypes = parentTypes
+                                          , env         = env
+                                          , time        = time
+                                          , nesting     = nesting + 1
                                           ))
       assertion            =  Lit(GBool(true)) // TODO Generate mode invariants
     } yield Switch(name, vs.zip(clauses).map{ case (v, as) => Clause(v, assertion, as.toList) })
   
-  def genDiscreteAssignments(varNames: Set[ConsumableName], modes: Set[(Active,Name,List[GroundValue])]): Gen[Set[Action]] =
+  def genDiscreteAssignments(varNames: Set[ConsumableDot], modes: Set[(Active,Name,List[GroundValue])]): Gen[Set[Action]] =
     for {
       lhss           <- resize(varNames.size / 4, someOf(varNames))
       rhss           <- listOfN(lhss.size, genSmallDouble).map(_.map(d => Lit(GDouble(d)))) //TODO More interesting, state-based resets
       activeModeVars =  modes.toList.filter { case (active, _, _) => active }
-      modeResets     <-  if (activeModeVars.isEmpty) value(Set[Action]()) 
-                         else for {
-                           (_, m, vs)  <- oneOf(activeModeVars)
-                           mAfterReset <- oneOf(vs)
-                         } yield Set[Action](Discretely(Assign(Var(m), Lit(mAfterReset))))
+      modeResets     <- if (activeModeVars.isEmpty) value(Set[Action]()) 
+                        else for {
+                          (_, m, vs)  <- oneOf(activeModeVars)
+                          mAfterReset <- oneOf(vs)
+                        } yield Set[Action](Discretely(Assign(Var(m), Lit(mAfterReset))))
     } yield {
-      val nonModeResets: Set[Action] = ((lhss zip rhss) map { case (cn, e) => Discretely(Assign(Var(cn.name), e)) }).toSet
+      val nonModeResets: Set[Action] = ((lhss zip rhss) map { case (cd, e) => Discretely(Assign(cd.dot, e)) }).toSet
       if (activeModeVars.nonEmpty) nonModeResets union modeResets 
       else nonModeResets
     }
-    
+  
   /**
    * Generates initialization statements for the input variable names.
-   * NOTE: Assumes that the initial conditions for differential equations can be chosen arbitrarily!      
+   * NOTE: Assumes that the initial conditions for differential equations can be chosen arbitrarily!
    */
-  def genPrivateSection(varNames: Set[ConsumableName], modes: Set[(Active,Name,List[GroundValue])]): Gen[Set[Init]] = {
-    val unassignedVarNames = varNames.filter(_.isFree)
+  def genPrivateSection( continuousNames: Set[ConsumableDot]
+                       , modes: Set[(Active, Name, List[GroundValue])]
+                       , objectNames: Set[Name]
+                       , env: List[ClassDef]
+                       ): Gen[Set[Init]] = {
     for { //TODO Generate more interesting initial conditions!
-      varRhss   <- listOfN(unassignedVarNames.size, genSmallDouble)
-      varInits  =  (unassignedVarNames zip varRhss).map { case (l, r) => Init(l.name, ExprRhs(Lit(GDouble(r)))) }
-      modeInits =  modes.map{ case (_active, n, vs) => Init(n, ExprRhs(Lit(vs(0)))) }
-    } yield varInits union modeInits
+      // Generate constructor calls
+      objectRhss   <- if (objectNames.isEmpty) value(Nil) else listOfN(objectNames.size, genConstructorCall(env))
+      objectInits  =  (objectNames zip objectRhss).map { case (l, r) => Init(l, r) }
+      // Generate initial conditions for mode variables 
+      modeInits    =  modes.map{ case (_active, n, vs) => Init(n, ExprRhs(Lit(vs(0)))) }
+      // Generate initial conditions for continuous variables
+      contNames    =  continuousNames.filter(_.isFree)
+      contRhss     <- listOfN(contNames.size, genSmallDouble)
+      contInits    =  (contNames zip contRhss).map { case (l, r) => Init(l.dot.field, ExprRhs(Lit(GDouble(r)))) }
+    } yield objectInits union modeInits union contInits
   }
+  
+  def genConstructorCall(env: List[ClassDef]): Gen[InitRhs] =
+    for {
+      cn <- oneOf(env)
+      fieldValues <- listOfN(cn.fields.size, genSmallDouble)
+    } yield NewRhs(cn.name, fieldValues.map(v => Lit(GDouble(v))))
   
   /**
    * Generate set of distinct variable Names that is complete, in the sense that if the set 

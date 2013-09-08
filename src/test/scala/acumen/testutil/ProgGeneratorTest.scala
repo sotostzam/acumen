@@ -5,7 +5,6 @@ import org.scalacheck.Arbitrary.arbitrary
 import org.scalacheck.Gen._
 import org.scalacheck.Prop._
 import org.scalacheck.Properties
-
 import Generators.{
   genDistinctSetOfN, arbName
 }
