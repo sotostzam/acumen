@@ -53,7 +53,7 @@ object ODESystemGenerator extends acumen.interpreters.enclosure.Extract {
     for {
       terms <- someOf(validNames)
       coefficients <- listOfN(validNames.size, genSmallDouble)
-    } yield Equation(lhs, univariatePolynomial(coefficients zip terms))
+    } yield Equation(lhs, univariatePolynomial(coefficients zip validNames))
   }
     
   /* Event generator */
