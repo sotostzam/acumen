@@ -8,17 +8,26 @@ package extract
 
 import scala.collection.mutable.{ArrayBuffer,ListBuffer,Map=>MutMap}
 
-import Util.getName
+import Util._
 
 object Extract {
   // Constant
   val MODE = Name("$mode", 0)
   val MODE_VAR = Dot(Var(Name("self", 0)), MODE)
 
-  case class Mode(val label: String, 
-                  var claims: List[Cond], 
-                  var actions: List[ContinuousAction], 
-                  var resets: List[Reset] = Nil)
+  case class Mode(val label: String,
+                  //var claims: List[Cond] = Nil,
+                  var actions: List[ContinuousAction] = Nil, 
+                  var resets: List[Reset] = Nil,
+                  var preConds: Seq[Cond] = Nil) 
+  {
+    preConds = Cond.Eq(MODE, GStr(label)) +: preConds
+    def claims = preConds // this is for debugging, need to eventually
+                          // be more careful with claims
+  }
+  // ^^ note: "preConds" are the conditions that must always hold when
+  // in this mode, both after a discr. and cont. step.  Thus it must
+  // not contain any cont. var changed in this mode.
   
   case class Reset(var conds: List[Cond],
                    var actions: ListBuffer[Assign] = ListBuffer.empty) 
@@ -26,7 +35,13 @@ object Extract {
     def toAST: IfThenElse =
       IfThenElse(Cond.toExpr(conds),
                  actions.map(Discretely(_)).toList, Nil)
+    def mode : Option[String] = actions.collectFirst{case Assign(lhs, Lit(GStr(l))) if getName(lhs).orNull == MODE => l}
+    def mode_=(label: Option[String]) = {
+      actions = actions.filter{a => getName(a.lhs).orNull != MODE}
+      label.foreach{l => actions.prepend(Assign(MODE_VAR, Lit(GStr(l))))}
+    }
   }
+
   def rejectParallelIfs(body: IfTree[_], msg: String = "Parallel conditionals unsupported.") {
     if (body.children.map{_.megId}.distinct.length > 1)
       throw OtherUnsupported(msg)
@@ -50,10 +65,11 @@ object Extract {
     }
     body.children.foreach{handleParallelIfs(_)}
   }
+
   // Extract the mode and remove continuous assignments from the tree
   // In also adds the necessary "magic" so that we are guaranteed to
   // always know what mode to go into after a reset
-  def extractModes(root: IfTree.ContView) : List[Mode] = {
+  def extractModes(root: IfTree.ContView) : ListBuffer[Mode] = {
     val modes = new ListBuffer[Mode]
     var idx = 1 
     def doit(parentActions: List[ContinuousAction], body: IfTree.ContView) : Unit = {
@@ -63,20 +79,22 @@ object Extract {
         body.children.foreach{doit(actions, _)}
       } else {
         val label = "C" + idx
-        modes += Mode(label, Nil, actions)
+        modes += Mode(label, actions = actions)
         body.node.discrAssigns += Assign(MODE_VAR, Lit(GStr(label)))
         idx += 1
       }
     }
     doit(Nil, root)
-    modes.toList
+    modes
   }
-  // Extract resets and remove the discrete assignments from the if tree
-  def extractResets(root: IfTree.DiscrView) : List[Reset] = {
+  // Extract resets and (optionally) remove the discrete assignments
+  // from the if tree
+  def extractResets(root: IfTree.DiscrView, clearExtracted: Boolean = true) : List[Reset] = {
     val resets = new ListBuffer[Reset]
     def doit(parentActions: List[Assign], body: IfTree.DiscrView) : Unit = {
       val actions = parentActions ++ body.actions
-      body.actions.clear()
+      if (clearExtracted)
+        body.actions.clear()
       if (body.children.nonEmpty) {
         body.children.foreach{doit(actions, _)}
       } else {
@@ -93,20 +111,119 @@ object Extract {
       if (node.actions.nonEmpty) throw UnhandledSyntax(node.actions.head)
     }
   }
+
   // If we are not already in a mode after a reset go into the special
-  // D0 mode
-  def ensureMode(resets: Seq[Reset]) : Unit =
-    resets.foreach { dIf => 
-      if (!dIf.actions.exists(assign => getName(assign.lhs).orNull == MODE)) {
-        dIf.actions += Assign(MODE_VAR, Lit(GStr("D0")))
-      }
-    }
-  // For every mode indiscriminately add all possible resets
-  def addResetsSimple(resets: Seq[Reset], modes: Seq[Mode]) {
-    modes.foreach { m =>
-      m.resets = resets.toList
+  // catch all mode
+  def ensureModeCatchAll(resets: Seq[Reset], catchAllMode: String) : Unit = {
+    resets.filter(_.mode.isEmpty).foreach { r => 
+      r.mode = Some(catchAllMode)
     }
   }
+
+  // If we are not already in a mode try to find a mode we can go into
+  // based on the mode preconds, if that fails create a new mode
+  def ensureMode(resets: Seq[Reset], modes: ListBuffer[Mode]) {
+    var counter = 1
+    resets.foreach { r => 
+      val postConds = Util.postConds(r.conds, r.actions)
+      var candidates = modes.filter{m => matchConds(postConds, m.preConds) == CondTrue}.toList
+      if (candidates.size != 1) {
+        val m = Mode("D" + counter, preConds = postConds.filter{case Cond.Eq(n, _) if n == MODE => false; case _ => true})
+        counter += 1
+        modes += m
+        candidates = List(m)
+      }
+      assert(candidates.size == 1)
+      r.mode = Some(candidates.head.label)
+    }
+  }
+
+  def enhanceModePreCond(resets: Seq[Reset], modes: ListBuffer[Mode]) {
+    val contVars = modes.flatMap{m => m.actions.flatMap{a => extractLHSDeps(a)}}.distinct
+    assert({val modes = resets.map{_.mode}; !modes.contains(None) && modes.distinct.size == modes.size})
+    resets.foreach{r =>
+      val postConds = Util.postConds(r.conds, r.actions)
+      val modePreConds = discrConds(postConds,contVars)
+      val modeLabel = r.mode.get
+      val mode = modes.find{_.label == modeLabel}.get
+      mode.preConds = modePreConds
+    }
+  }
+
+  def addResets(resets: List[Reset], modes: Seq[Mode]) {
+    modes.foreach { m =>
+      m.resets = resets.map{_.copy()}
+    }
+  }
+
+  // Remove redundant conds from the resets based on the modes precond
+  def pruneResetConds(modes: Seq[Mode]) : Unit = {
+    modes.foreach{m => 
+      m.resets.foreach{r => 
+        r.conds = matchConds(m.preConds, r.conds) match {
+          case CondTrue => Nil
+          case CondFalse => List(Cond.Not(Cond.True)) 
+          case CantTell(unmatched) => unmatched.toList
+        }
+      }
+    }
+  }
+
+  def killDeadResets(modes: Seq[Mode]) : Unit = {
+    modes.foreach{m => 
+      m.resets = m.resets.filter{_.conds != List(Cond.Not(Cond.True))}
+    }
+  }
+
+  def cleanUpAssigns(modes: Seq[Mode]) : Unit = {
+  // for each mode, kill all unnecessary discr. assignemnts in
+  // the resets, if the reset than has no actions, kill it.
+    modes.foreach{m => 
+      m.resets.foreach{r=>
+        val preConds = m.preConds ++ r.conds
+        // keep the mode assignment operation even if the mode does not
+        // change as it is needed by the enclosure interpreter
+        var modeAssign : Assign = null
+        r.actions = r.actions.filter{case a@Assign(lhs,rhs) => !((getName(lhs), rhs) match {
+          case (Some(name), Lit(value)) => 
+            val res = preConds.exists(_ == Cond.Eq(name,value))
+            if (res && name == MODE) modeAssign = a
+            res
+          case _ => false
+        })}
+        if (r.actions.nonEmpty && modeAssign != null) 
+          r.actions += modeAssign
+      }
+      m.resets = m.resets.filter(_.actions.nonEmpty)
+    }
+  }
+
+  def killDeadVars(init: ListBuffer[Init], modes: Seq[Mode]) = {
+    val kill = getDeadVars(init, modes)
+
+    modes.foreach{m =>
+      m.resets.foreach{r => 
+        r.actions = r.actions.filter{case Assign(rhs,_) => getName(rhs) match {
+          case Some(name) => !kill.exists(_ == name)
+          case _ => true
+        }}
+      }
+      m.resets = m.resets.filter(_.actions.nonEmpty)
+    }
+    init--= init.filter{case Init(n,_) => kill.exists(_ == n)}
+  }
+
+  def getDeadVars(init: Seq[Init], modes: Seq[Mode]) = {
+    val contDeps = modes.flatMap(_.actions.flatMap{a => 
+      extractRHSDeps(a) ++ extractLHSDeps(a)}).distinct
+    val discrDeps = modes.flatMap(_.resets.flatMap{r =>
+      r.conds.flatMap(_.deps) ++ r.actions.flatMap{case Assign(_,rhs) => extractDeps(rhs)}
+    }).distinct
+    val allDeps = (contDeps ++ discrDeps).distinct :+ MODE // $mode is special and needs to be kept
+    val allVars = init.map{case Init(n,_) => n}
+    allVars.filter{case Name(x,_) => !allDeps.exists{case Name(y,_) => x == y}}
+  }
+
 }
 
 class Extract(val prog: Prog) 
@@ -121,27 +238,83 @@ class Extract(val prog: Prog)
       throw OtherUnsupported("Could not find Main class.")
     prog.defs(0)
   }
-  var init = origDef.priv
+  var init = ListBuffer(origDef.priv:_*)
   val body : IfTree.Node = IfTree.create(origDef.body)
   val simulatorName = origDef.fields(0)
   var simulatorAssigns = body.extractSimulatorAssigns(simulatorName)
-  var modes : List[Mode] = Nil
+  var modes = ListBuffer.empty[Mode]
   var initMode = Init(MODE,ExprRhs(Lit(GStr("D0"))))
 
-  // Convert from an IfTree to a set of Modes with Resets by
-  // populating "modes".  When done IfTree (i.e. body) will no longer
-  // have any actions.
-  def convertSimple(superSimple: Boolean = false) = {
-    modes = extractModes(if (superSimple) body.contOnly else body.contOnly.pruned)
+  //
+  // Various ways to convert from an IfTree to a set of Modes with
+  // Resets by populating "modes".  When done IfTree (i.e. body) will
+  // no longer have any actions.
+  //
+
+  // The simplest most straightforward way.  
+  def convertSimple() = {
+    modes = extractModes(body.contOnly)
     val resets = extractResets(body.discrOnly)
     sanity(body)
 
-    modes = Mode("D0", Nil, Nil) +: modes
-    if (!superSimple) ensureMode(resets)
+    modes.prepend(Mode("D0"))
 
-    addResetsSimple(resets, modes)
+    addResets(resets, modes)
   }
-  
+
+  def convertMinimalModes() = {
+    modes = extractModes(body.contOnly.pruned)
+    val resets = extractResets(body.discrOnly)
+    sanity(body)
+
+    modes.prepend(Mode("D0"))
+    ensureModeCatchAll(resets, "D0")
+
+    addResets(resets, modes)
+  }
+
+  def convertSimplePreCond() = {
+    modes = extractModes(body.contOnly.pruned)
+    val resets = extractResets(body.discrOnly)
+    sanity(body)
+
+    modes.prepend(Mode("D0", preConds = initPostCond(init)))
+    ensureMode(resets, modes)
+
+    addResets(resets, modes)
+  }
+
+  def convertAdvancedPreCond() = {
+    val contIfPruneSet = body.contOnly.pruned.p.prune
+    modes = extractModes(body.contOnly.withPruneSet(contIfPruneSet))
+    val resetsSpecial = extractResets(body.discrOnly.withPruneSet(contIfPruneSet), clearExtracted = false)
+    val resets = extractResets(body.discrOnly)
+    sanity(body)
+
+    modes.prepend(Mode("D0", preConds = initPostCond(init)))
+
+    enhanceModePreCond(resetsSpecial, modes)
+    ensureMode(resets, modes)
+
+    addResets(resets, modes)
+  }
+
+  // The minimal amout of clean up to be able eliminate unneeded state
+  // variables and hense allow the model to run with the enclosure
+  // interpreter
+  def cleanUpSimple() = {
+    pruneResetConds(modes)
+    killDeadVars(init, modes)
+  }
+
+  // Full clean up pass, get ride of as much crap as possible
+  def cleanUp() = {
+    pruneResetConds(modes)
+    killDeadResets(modes)
+    cleanUpAssigns(modes)
+    killDeadVars(init, modes)
+  }
+
   def toAST = {
     // Converts the modes into a big switch and return a new prog
     // The CONVERT TO SWITCH and FIX UP steps
@@ -152,7 +325,7 @@ class Extract(val prog: Prog)
                                                  m.actions.map(Continuously(_)).toList)}.toList)
     val newMain = ClassDef(origDef.name,
                            origDef.fields,
-                           init :+ initMode, 
+                           initMode :: init.toList, 
                            List(theSwitch) ++ simulatorAssigns.map{Discretely(_)})
 
     new Prog(List(newMain))
@@ -161,10 +334,17 @@ class Extract(val prog: Prog)
   def run() = {
     //rejectParallelIfs(body)
     handleParallelIfs(body)
-    convertSimple()
+    //convertSimplePreCond()
+    convertAdvancedPreCond()
+    cleanUp()
     toAST
   }
 
   val res = run() // FIXME: Eventually remove
+
+  //
+  // Additional utility functions
+  //
+
 }
 

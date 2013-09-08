@@ -92,6 +92,8 @@ object IfTree {
     def actions_=(v: ArrayBuffer[ActionT]) = p.put(node, v)
     def id = node.id
 
+    def withPruneSet(prune2: collection.Set[Int]) = copy(p=p.copy(prune=prune2))
+
     // Return a new view that removes empty nodes while maintain the
     // invariants of the IfTree data structure
     def pruned : View[ActionT] = {
@@ -143,7 +145,7 @@ object IfTree {
               populate(parent.addChild(megId, List(Cond.eq(subject, lhs)), List(Cond(claim))), actions)
           }
           val switchNot = clauses.map { case Clause(lhs, _, _) => Cond.Not(Cond.eq(subject, lhs)) }
-          parent.addChild(megId, switchNot)
+          //parent.addChild(megId, switchNot)
           // FIMXE^: This is an error in acumen, need some to some how make it an error... - kevina
         case Continuously(a) =>
           parent.contActions += a

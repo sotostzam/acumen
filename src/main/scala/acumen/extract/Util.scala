@@ -109,10 +109,16 @@ object Util {
       }
     }
     def invalidate(deps: Seq[Name]) = res.indices.foreach { i =>
-      val reqDeps = res(i).deps
-      if (!deps.intersect(reqDeps).isEmpty)
-        res(i) = null
+      if (res(i) != null) {
+        val reqDeps = res(i).deps
+        if (!deps.intersect(reqDeps).isEmpty)
+          res(i) = null
+      }
     }
     res.filter(_ != null)
   }  
+
+  def discrConds(conds: Seq[Cond], contVars: Seq[Name]) : Seq[Cond] =
+    conds.filter{c => c.deps.intersect(contVars).isEmpty}
+  
 }

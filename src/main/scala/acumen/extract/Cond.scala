@@ -4,6 +4,7 @@ package extract
 sealed abstract class Cond { 
   def toExpr: Expr
   def deps : Seq[Name]
+  //def eval(have: Seq[Cond] = Nil) : Util.MatchRes
 }
 
 object Cond {
@@ -16,17 +17,25 @@ object Cond {
   case object True extends Cond {
     def toExpr = Lit(GBool(true))
     def deps = Nil
+    //def eval(have: Seq[Cond]) = CondTrue
   }
   case class Eq(name: Name, value: GroundValue) extends Cond {
     def toExpr = Op(Name("==", 0), List(Dot(Var(Name("self", 0)), name), Lit(value)))
     def deps = Seq(name)
+    //def eval(have: Seq[Cond]) = CantTell(List(this))
   }
   case class Not(cond: Cond) extends Cond {
     def toExpr = Op(Name("not", 0), List(cond.toExpr))
     def deps = cond.deps
+    //def eval(have: Seq[Cond]) = cond.eval(have) match {
+    //  case CondTrue => CondFalse
+    //  case CondFalse => CondTrue
+    //  case cantTell => cantTell
+    //}
   }
   case class Other(expr: Expr, deps: Seq[Name]) extends Cond {
     def toExpr = expr
+    //def eval(have: Seq[Cond]) = CantTell(List(this))
   }
 
   //
@@ -63,4 +72,8 @@ object Cond {
       conds.tail.foldLeft(conds.head.toExpr) { (a, b) => Op(Name("&&", 0), List(a, b.toExpr)) }
     else
       Lit(GBool(true))
+
+  def toString(conds: Seq[Cond]): String = 
+    Pretty.pprint[Expr](toExpr(conds))
 }
+
