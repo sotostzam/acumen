@@ -331,12 +331,30 @@ class Extract(val prog: Prog)
     new Prog(List(newMain))
   }
 
+  var pif = "handle";
+  var convertLevel = 4;
+  var cleanupLevel = 2;
+
   def run() = {
-    //rejectParallelIfs(body)
-    handleParallelIfs(body)
-    //convertSimplePreCond()
-    convertAdvancedPreCond()
-    cleanUp()
+    pif match {
+      case "ignore" =>
+      case "reject" => rejectParallelIfs(body)
+      case "handle" => handleParallelIfs(body)
+      case _ => throw Errors.ShouldNeverHappen()
+    }
+    convertLevel match {
+      case 1 => convertSimple()
+      case 2 => convertMinimalModes()
+      case 3 => convertSimplePreCond()
+      case 4 => convertAdvancedPreCond()
+      case _ => throw Errors.ShouldNeverHappen()
+    }
+    cleanupLevel match {
+      case 0 => 
+      case 1 => cleanUpSimple()
+      case 2 => cleanUp()
+      case _ => throw Errors.ShouldNeverHappen()
+    }
     toAST
   }
 
