@@ -26,6 +26,6 @@ object FlattenSimpleTest extends Properties("FlattenSimple") {
   import progGenerator.arbProg
   
   property("semantics preserving on continous state (random models)") =
-    forAll { (p: Prog) => preservesContinousSemanticsOf(FlattenSimple.run(_), p, None) }
+    forAll { (p: Prog) => preservesContinousSemanticsOf(p => InlineInitDeps.proc(FlattenSimple.run(p)), p, None) }
 
 }
