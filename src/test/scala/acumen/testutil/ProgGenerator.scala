@@ -14,7 +14,7 @@ import acumen.interpreters.enclosure.Generators.{
   genSubInterval
 }
 import Generators.{ 
-  arbName, boundedListOf, boundedListOfIf, completeNames, 
+  boundedListOf, boundedListOfIf, completeNames, 
   genBoundedSetOfNonMembers, genCompliantSetOfN, genDistinctSetOfN, 
   genPositiveBoundedInterval, genSetBasedOn, genSmallDouble, listOfNIf
 }
@@ -78,12 +78,25 @@ class ProgGenerator
   
   implicit def arbProg: Arbitrary[Prog] = Arbitrary { genProg }
   val emptyProg = Prog(Nil)
-  
-  //FIXME Use gensym to ensure uniqueness
-  def genClassName(): Gen[ClassName] =
+
+  var classNameIndex = 0
+  def genClassName(): Gen[ClassName] = {
+    val name = "C" + classNameIndex
+    classNameIndex += 1
+    ClassName(name)
+  }
+  implicit def arbClassName = Arbitrary(genClassName)
+
+  var varNameIndex = 0
+  def genName(): Gen[Name] = 
     for {
-      n <- arbitrary[Name]
-    } yield ClassName(n.x.toUpperCase + n.x.tail)
+      primes <- oneOf(List(0,1,2,3))
+    } yield {
+      val name = "x" + varNameIndex
+      varNameIndex += 1
+      Name(name, primes)
+    }
+  implicit def arbName = Arbitrary(genName)
   
   /**
    * Generator of Acumen models (Prog). 
@@ -98,7 +111,9 @@ class ProgGenerator
    *     based on the environment, and add these to the environment.
    *  3. Generate a main class based on the environment and wrap in a Prog.
    */
-  def genProg: Gen[Prog] =
+  def genProg: Gen[Prog] = {
+    classNameIndex = 0
+    varNameIndex = 0
     for {
       depth <- chooseNum[Int](0, maxClassHierarchyDepth)
       env   <- if (depth == 0) value(List[ClassDef]()) 
@@ -109,6 +124,7 @@ class ProgGenerator
       m <- genMain(env)
       p <- if (simulatesOK(m)) value(m) else genProg
     } yield p
+  }
   
   /** Generates a hierarchy of ClassDefs which are related through constructor calls and object references. */
   def genClassHierarchy(children: List[ClassDef], depth: Int): Gen[List[ClassDef]] =
