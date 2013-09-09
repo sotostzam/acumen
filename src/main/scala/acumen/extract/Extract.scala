@@ -222,13 +222,9 @@ object Extract {
   }
 
   def eliminateTrueOnlyModes(modes: ListBuffer[Mode], initMode: String) = {
-    val trueOnly = getTrueOnlyModes(modes).filter{_.label != initMode}
     val toRemove = ListBuffer.empty[Mode]
-    trueOnly.foreach{ m =>
-      val actions = m.resets.flatMap{r => r.actions} 
-      // FIXME^: Check for duplicate assigns, if the model is well
-      //         defined there should't be any, but bad things may
-      //         happen if there are conflicts modes
+    modes.filter{m => m.resets.length == 1 && m.resets.head.conds == Cond.True}.foreach{m =>
+      val actions = m.resets.head.actions
       val rs = getResetsWithMode(m.label, modes)
       val canFold = rs.forall{r => canFoldActions(r.actions, actions)}
       if (canFold) {
@@ -238,8 +234,6 @@ object Extract {
     }
     modes --= toRemove
   }
-  def getTrueOnlyModes(modes: Seq[Mode]) : Seq[Mode] = 
-    modes.filter{m => m.resets.forall{r => r.conds == Cond.True}}
   def getResetsWithMode(mode: String, modes: Seq[Mode]) : Seq[Reset] = 
     modes.flatMap{m => m.resets.filter{r => r.mode.orNull == mode}}
   def canFoldActions(first: Seq[Assign], second: Seq[Assign]) : Boolean = 
