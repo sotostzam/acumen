@@ -19,7 +19,7 @@ import Pretty._
 
 class Extract(prog: Prog, 
               val allowSeqIfs: Boolean = false,
-              val unsafe: Boolean = false) extends MainClass(prog)
+              val unsafe: Boolean = true) extends MainClass(prog)
 {
   // Additional Paramaters (mainly useful for debugging)
   val forceGuards = false 

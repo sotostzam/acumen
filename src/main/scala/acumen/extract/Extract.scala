@@ -221,6 +221,44 @@ object Extract {
     allVars.filter{case Name(x,_) => !allDeps.exists{case Name(y,_) => x == y}}
   }
 
+  def eliminateTrueOnlyModes(modes: ListBuffer[Mode], initMode: String) = {
+    val trueOnly = getTrueOnlyModes(modes).filter{_.label != initMode}
+    val toRemove = ListBuffer.empty[Mode]
+    trueOnly.foreach{ m =>
+      val actions = m.resets.flatMap{r => r.actions} 
+      // FIXME^: Check for duplicate assigns, if the model is well
+      //         defined there should't be any, but bad things may
+      //         happen if there are conflicts modes
+      val rs = getResetsWithMode(m.label, modes)
+      val canFold = rs.forall{r => canFoldActions(r.actions, actions)}
+      if (canFold) {
+        rs.foreach{r => foldActions(r.actions, actions)}
+        toRemove += m
+      }
+    }
+    modes --= toRemove
+  }
+  def getTrueOnlyModes(modes: Seq[Mode]) : Seq[Mode] = 
+    modes.filter{m => m.resets.forall{r => r.conds == Cond.True}}
+  def getResetsWithMode(mode: String, modes: Seq[Mode]) : Seq[Reset] = 
+    modes.flatMap{m => m.resets.filter{r => r.mode.orNull == mode}}
+  def canFoldActions(first: Seq[Assign], second: Seq[Assign]) : Boolean = 
+      // FIXME: Give some intuition on why these tests are needed.
+      // (I think it has something to so with the new semantics and the
+      // fact that repeated assignments to the same var are not allowed)
+      getDeps(first, _.rhs).intersect(getDeps(second, _.lhs)).isEmpty &&
+      getDeps(first, _.lhs).intersect(getDeps(second, _.rhs)).isEmpty
+  def getDeps(actions: Seq[Assign], f: Assign => Expr) =
+    actions.flatMap(a => extractDeps(f(a))).distinct
+  def foldActions(first: ListBuffer[Assign], second: Seq[Assign]) : Unit =
+    second.foreach { action =>
+      val toFind = getName(action.lhs)
+      val idx = if (toFind == None) -1 else first.indexWhere(a => getName(a.lhs) == toFind)
+      if (idx != -1)
+        first(idx) = action
+      else
+        first += action
+    }
 }
 
 class Extract(val prog: Prog) 
@@ -240,7 +278,7 @@ class Extract(val prog: Prog)
   val simulatorName = origDef.fields(0)
   var simulatorAssigns = body.extractSimulatorAssigns(simulatorName)
   var modes = ListBuffer.empty[Mode]
-  var initMode = Init(MODE,ExprRhs(Lit(GStr("D0"))))
+  var initMode = "D0"
 
   //
   // Various ways to convert from an IfTree to a set of Modes with
@@ -322,7 +360,7 @@ class Extract(val prog: Prog)
                                                  m.actions.map(Continuously(_)).toList)}.toList)
     val newMain = ClassDef(origDef.name,
                            origDef.fields,
-                           initMode :: init.toList, 
+                           Init(MODE,ExprRhs(Lit(GStr(initMode)))) :: init.toList, 
                            List(theSwitch) ++ simulatorAssigns.map{Discretely(_)})
 
     new Prog(List(newMain))
@@ -330,7 +368,7 @@ class Extract(val prog: Prog)
 
   var pif = "handle";
   var convertLevel = 4;
-  var cleanupLevel = 2;
+  var cleanupLevel = 3;
 
   def run() = {
     pif match {
@@ -350,6 +388,8 @@ class Extract(val prog: Prog)
       case 0 => 
       case 1 => cleanUpSimple()
       case 2 => cleanUp()
+      case 3 => cleanUp()
+                eliminateTrueOnlyModes(modes, initMode)
       case _ => throw Errors.ShouldNeverHappen()
     }
     toAST
