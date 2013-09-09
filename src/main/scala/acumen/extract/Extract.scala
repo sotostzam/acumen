@@ -9,6 +9,7 @@ package extract
 import scala.collection.mutable.{ArrayBuffer,ListBuffer,Map=>MutMap}
 
 import Util._
+import CondAsSeq._
 
 object Extract {
   // Constant
@@ -19,9 +20,9 @@ object Extract {
                   //var claims: List[Cond] = Nil,
                   var actions: List[ContinuousAction] = Nil, 
                   var resets: List[Reset] = Nil,
-                  var preConds: Seq[Cond] = Nil) 
+                  var preConds: Cond = Cond.True) 
   {
-    preConds = Cond.Eq(MODE, GStr(label)) +: preConds
+    preConds = Cond.and(Cond.Eq(MODE, GStr(label)),preConds)
     def claims = preConds // this is for debugging, need to eventually
                           // be more careful with claims
   }
@@ -29,11 +30,11 @@ object Extract {
   // in this mode, both after a discr. and cont. step.  Thus it must
   // not contain any cont. var changed in this mode.
   
-  case class Reset(var conds: List[Cond],
+  case class Reset(var conds: Cond,
                    var actions: ListBuffer[Assign] = ListBuffer.empty) 
   {
     def toAST: IfThenElse =
-      IfThenElse(Cond.toExpr(conds),
+      IfThenElse(conds.toExpr,
                  actions.map(Discretely(_)).toList, Nil)
     def mode : Option[String] = actions.collectFirst{case Assign(lhs, Lit(GStr(l))) if getName(lhs).orNull == MODE => l}
     def mode_=(label: Option[String]) = {
@@ -126,7 +127,7 @@ object Extract {
     var counter = 1
     resets.foreach { r => 
       val postConds = Util.postConds(r.conds, r.actions)
-      var candidates = modes.filter{m => matchConds(postConds, m.preConds) == CondTrue}.toList
+      var candidates = modes.filter{m => m.preConds.eval(postConds) == Cond.True}.toList
       if (candidates.size != 1) {
         val m = Mode("D" + counter, preConds = postConds.filter{case Cond.Eq(n, _) if n == MODE => false; case _ => true})
         counter += 1
@@ -160,18 +161,14 @@ object Extract {
   def pruneResetConds(modes: Seq[Mode]) : Unit = {
     modes.foreach{m => 
       m.resets.foreach{r => 
-        r.conds = matchConds(m.preConds, r.conds) match {
-          case CondTrue => Nil
-          case CondFalse => List(Cond.Not(Cond.True)) 
-          case CantTell(unmatched) => unmatched.toList
-        }
+        r.conds = r.conds.eval(m.preConds)
       }
     }
   }
 
   def killDeadResets(modes: Seq[Mode]) : Unit = {
     modes.foreach{m => 
-      m.resets = m.resets.filter{_.conds != List(Cond.Not(Cond.True))}
+      m.resets = m.resets.filter{_.conds != Cond.False}
     }
   }
 
@@ -180,7 +177,7 @@ object Extract {
   // the resets, if the reset than has no actions, kill it.
     modes.foreach{m => 
       m.resets.foreach{r=>
-        val preConds = m.preConds ++ r.conds
+        val preConds = Cond.and(m.preConds,r.conds)
         // keep the mode assignment operation even if the mode does not
         // change as it is needed by the enclosure interpreter
         var modeAssign : Assign = null
@@ -217,7 +214,7 @@ object Extract {
     val contDeps = modes.flatMap(_.actions.flatMap{a => 
       extractRHSDeps(a) ++ extractLHSDeps(a)}).distinct
     val discrDeps = modes.flatMap(_.resets.flatMap{r =>
-      r.conds.flatMap(_.deps) ++ r.actions.flatMap{case Assign(_,rhs) => extractDeps(rhs)}
+      r.conds.flatMap(_.deps).toList ++ r.actions.flatMap{case Assign(_,rhs) => extractDeps(rhs)}
     }).distinct
     val allDeps = (contDeps ++ discrDeps).distinct :+ MODE // $mode is special and needs to be kept
     val allVars = init.map{case Init(n,_) => n}
@@ -320,7 +317,7 @@ class Extract(val prog: Prog)
     // The CONVERT TO SWITCH and FIX UP steps
     val theSwitch = Switch(MODE_VAR,
                            modes.map{m => Clause(GStr(m.label),
-                                                 Cond.toExpr(m.claims),
+                                                 m.claims.toExpr,
                                                  m.resets.map(_.toAST) ++
                                                  m.actions.map(Continuously(_)).toList)}.toList)
     val newMain = ClassDef(origDef.name,

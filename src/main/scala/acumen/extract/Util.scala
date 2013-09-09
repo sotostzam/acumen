@@ -2,6 +2,7 @@ package acumen
 package extract
 
 import scala.collection.mutable.ArrayBuffer
+import CondAsSeq._
 
 object Util {
 
@@ -49,54 +50,19 @@ object Util {
   }
 
   //
-  // Condition matching
-  //
-
-  sealed abstract class MatchRes
-  case object CondTrue extends MatchRes;
-  case object CondFalse extends MatchRes;
-  case class CantTell(unmatched: Seq[Cond]) extends MatchRes;
-
-  def matchConds(have: Seq[Cond], need: Seq[Cond]): MatchRes = {
-    // filter out predicates that exists in both
-    val unmatched = need.filter { a => !have.exists { b => a == b } }
-    // if no unmatched predicates return true
-    if (unmatched.isEmpty) return CondTrue
-    // if A is required and ~A is known, return false
-    if (unmatched.exists { a => have.exists { b => Cond.not(a) == b } }) return CondFalse
-    // if SYM == SOMETHING is required and SYM == ANYTHING is known
-    // return false (the case when SYM == SOMETHING is known was
-    // already eliminated)
-    if (unmatched.exists {
-      _ match {
-        case Cond.Eq(a, _) => have.exists {
-          _ match {
-            case Cond.Eq(b, _) => a == b;
-            case _ => false
-          }
-        }
-        case _ => false
-      }
-    }) return CondFalse
-    // there are predicates that can't be shown to be either true or
-    // false so return maybe
-    return CantTell(unmatched)
-  }
-
-  //
   // Post Condition analysis
   //
   
-  def initPostCond(init: Seq[Init])  = init.flatMap {
+  def initPostCond(init: Seq[Init])  = Cond.fromSeq(init.flatMap {
     _ match {
       case Init(name, ExprRhs(Lit(value))) => List(Cond.Eq(name, value))
       case _ => Nil
     }
-  }
+  })
 
-  def postConds(conds: Seq[Cond], actions: Seq[Assign]) : Seq[Cond] = 
+  def postConds(cond: Cond, actions: Seq[Assign]) : Cond = 
   {
-    var res = ArrayBuffer(conds: _*)
+    var res = ArrayBuffer(cond.toSeq: _*)
     actions.foreach {
       case a @ Assign(lhs, rhs) => (getName(lhs), rhs) match {
         case (Some(name), Lit(value)) =>
@@ -115,10 +81,14 @@ object Util {
           res(i) = null
       }
     }
-    res.filter(_ != null)
+    Cond.fromSeq(res.filter(_ != null))
   }  
 
-  def discrConds(conds: Seq[Cond], contVars: Seq[Name]) : Seq[Cond] =
+  //
+  // Other
+  //
+
+  def discrConds(conds: Cond, contVars: Seq[Name]) : Cond =
     conds.filter{c => c.deps.intersect(contVars).isEmpty}
   
 }

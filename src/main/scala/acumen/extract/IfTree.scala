@@ -13,10 +13,10 @@ trait IfTree[ActionT] extends Iterable[IfTree[ActionT]] {
   def id : Int
   def megId : Int
 
-  def localConds : List[Cond]
-  def localClaims : List[Cond]
-  def conds : List[Cond] = if (parent != null) parent.conds ++ localConds else localConds
-  def claims : List[Cond] = if (parent != null) parent.claims ++ localClaims else localClaims
+  def localConds : Cond
+  def localClaims : Cond
+  def conds : Cond = if (parent != null) Cond.and(parent.conds,localConds) else localConds
+  def claims : Cond = if (parent != null) Cond.and(parent.claims, localClaims) else localClaims
 
   def actions : Seq[ActionT]
 
@@ -41,7 +41,7 @@ trait IfTree[ActionT] extends Iterable[IfTree[ActionT]] {
 
 object IfTree {
   class Node(val parent: Node, val megId: Int, // meg = mutely exclusive id
-             val localConds: List[Cond], val localClaims: List[Cond] = Nil) extends IfTree[Action] {
+             val localConds: Cond, val localClaims: Cond = Cond.True) extends IfTree[Action] {
     // claims = "claims" used to annotate modes
     var children = new ArrayBuffer[Node]
     var contActions = new ArrayBuffer[ContinuousAction];
@@ -52,11 +52,11 @@ object IfTree {
     def node = this
 
     def toAST: IfThenElse =
-      IfThenElse(Cond.toExpr(localConds),
+      IfThenElse(localConds.toExpr,
                  children.map{_.toAST}.toList ++ actions, Nil)
     def dump = Pretty.pprint[Action](toAST) + "\n"
 
-    def addChild(megId: Int, localConds: List[Cond], localClaims: List[Cond] = Nil) = {
+    def addChild(megId: Int, localConds: Cond, localClaims: Cond = Cond.True) = {
       val if0 = new Node(this, megId, localConds, claims)
       children += if0
       if0
@@ -131,18 +131,18 @@ object IfTree {
 
   // Create an IfNode from a sequence of actions.
   def create(actions: Seq[Action]) : Node = {
-    val root = new Node(null, 0, Nil)
+    val root = new Node(null, 0, Cond.True)
     def populate(parent: Node, actions: Seq[Action]) : Unit = {
       actions.foreach {
         case IfThenElse(cond, ifTrue, ifFalse) =>
           val megId = idCounter
-          populate(parent.addChild(megId, List(Cond(cond))), ifTrue)
-          populate(parent.addChild(megId, List(Cond.not(cond))), ifFalse)
+          populate(parent.addChild(megId, Cond(cond)), ifTrue)
+          populate(parent.addChild(megId, Cond.not(cond)), ifFalse)
         case Switch(subject, clauses) =>
           val megId = idCounter
           clauses.foreach {
             case Clause(lhs, claim, actions) =>
-              populate(parent.addChild(megId, List(Cond.eq(subject, lhs)), List(Cond(claim))), actions)
+              populate(parent.addChild(megId, Cond.eq(subject, lhs), Cond(claim)), actions)
           }
           val switchNot = clauses.map { case Clause(lhs, _, _) => Cond.Not(Cond.eq(subject, lhs)) }
           //parent.addChild(megId, switchNot)
@@ -163,7 +163,7 @@ object IfTree {
     val parents = nodes.map{_.parent}.groupBy{_.id}
     assert(parents.size == 1)
     val parent = parents.values.head.head
-    val res = new Node(parent, megId, nodes.flatMap{_.localConds}.toList, nodes.flatMap{_.localClaims}.toList)
+    val res = new Node(parent, megId, Cond.fromSeq(nodes.map{_.localConds}), Cond.fromSeq(nodes.map{_.localClaims}))
     nodes.foreach{n => 
       res.children ++= n.children
       res.contActions ++= n.contActions
