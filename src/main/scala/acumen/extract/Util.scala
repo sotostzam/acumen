@@ -1,6 +1,7 @@
 package acumen
 package extract
 
+import scala.collection.SeqLike
 import scala.collection.mutable.ArrayBuffer
 import CondAsSeq._
 
@@ -53,12 +54,10 @@ object Util {
   // Post Condition analysis
   //
   
-  def initPostCond(init: Seq[Init])  = Cond.fromSeq(init.flatMap {
-    _ match {
-      case Init(name, ExprRhs(Lit(value))) => List(Cond.Eq(name, value))
-      case _ => Nil
-    }
-  })
+  def initPostCond(init: List[(Name,Expr)]) : Cond = init.toList.flatMap {
+    case (name, Lit(value)) => List(Cond.Eq(name, value))
+    case _ => Nil
+  }
 
   def postConds(cond: Cond, actions: Seq[Assign]) : Cond = 
   {
@@ -90,5 +89,14 @@ object Util {
 
   def discrConds(conds: Cond, contVars: Seq[Name]) : Cond =
     conds.filter{c => c.deps.intersect(contVars).isEmpty}
-  
+
+  def getSimulatorAssigns[SeqT <: SeqLike[Assign,SeqT]](simulatorName: Name, actions: SeqT) : (SeqT,SeqT) =
+    actions.partition {
+      _ match {
+        case Assign(Dot(Var(s), _), Lit(_)) if s == simulatorName => true
+        case Assign(Dot(Dot(Var(Name("self", 0)), s), _), Lit(_)) if s == simulatorName => true
+        case a @ _ => false
+      }
+    }
+
 }

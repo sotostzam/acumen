@@ -67,13 +67,7 @@ object IfTree {
     def discrOnly : DiscrView = View(this, Parms(_.discrAssigns, (n,v) => n.discrAssigns = v, Set.empty))
 
     def extractSimulatorAssigns(simulatorName: Name) : Seq[Assign] = {
-      var (sim, non) = discrAssigns.partition {
-        _ match {
-          case Assign(Dot(Var(s), _), Lit(_)) if s == simulatorName => true
-          case Assign(Dot(Dot(Var(Name("self", 0)), s), _), Lit(_)) if s == simulatorName => true
-          case a @ _ => false
-        }
-      }
+      val (sim, non) = Util.getSimulatorAssigns(simulatorName, discrAssigns)
       discrAssigns = non
       sim
     }

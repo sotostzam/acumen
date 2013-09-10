@@ -195,8 +195,8 @@ object Extract {
     }
   }
 
-  def killDeadVars(init: ListBuffer[Init], modes: Seq[Mode]) = {
-    val kill = getDeadVars(init, modes)
+  def killDeadVars(init: MutMap[Name,Expr], modes: Seq[Mode]) = {
+    val kill = getDeadVars(init.keys, modes)
 
     modes.foreach{m =>
       m.resets.foreach{r => 
@@ -207,17 +207,17 @@ object Extract {
       }
       m.resets = m.resets.filter(_.actions.nonEmpty)
     }
-    init--= init.filter{case Init(n,_) => kill.exists(_ == n)}
+
+    init--= kill
   }
 
-  def getDeadVars(init: Seq[Init], modes: Seq[Mode]) = {
+  def getDeadVars(allVars: Iterable[Name], modes: Seq[Mode]) = {
     val contDeps = modes.flatMap(_.actions.flatMap{a => 
       extractRHSDeps(a) ++ extractLHSDeps(a)}).distinct
     val discrDeps = modes.flatMap(_.resets.flatMap{r =>
       r.conds.flatMap(_.deps).toList ++ r.actions.flatMap{case Assign(_,rhs) => extractDeps(rhs)}
     }).distinct
     val allDeps = (contDeps ++ discrDeps).distinct :+ MODE // $mode is special and needs to be kept
-    val allVars = init.map{case Init(n,_) => n}
     allVars.filter{case Name(x,_) => !allDeps.exists{case Name(y,_) => x == y}}
   }
 
@@ -267,7 +267,7 @@ class Extract(val prog: Prog)
       throw OtherUnsupported("Could not find Main class.")
     prog.defs(0)
   }
-  var init = ListBuffer(origDef.priv:_*)
+  var init = MutMap(origDef.priv.collect{case Init(v,ExprRhs(e)) => (v,e); case init => throw UnhandledSyntax(init)}:_*)
   val body : IfTree.Node = IfTree.create(origDef.body)
   val simulatorName = origDef.fields(0)
   var simulatorAssigns = body.extractSimulatorAssigns(simulatorName)
@@ -307,7 +307,7 @@ class Extract(val prog: Prog)
     val resets = extractResets(body.discrOnly)
     sanity(body)
 
-    modes.prepend(Mode("D0", preConds = initPostCond(init)))
+    modes.prepend(Mode("D0", preConds = initPostCond(init.toList)))
     ensureMode(resets, modes)
 
     addResets(resets, modes)
@@ -320,7 +320,7 @@ class Extract(val prog: Prog)
     val resets = extractResets(body.discrOnly)
     sanity(body)
 
-    modes.prepend(Mode("D0", preConds = initPostCond(init)))
+    modes.prepend(Mode("D0", preConds = initPostCond(init.toList)))
 
     enhanceModePreCond(resetsSpecial, modes)
     ensureMode(resets, modes)
@@ -354,7 +354,7 @@ class Extract(val prog: Prog)
                                                  m.actions.map(Continuously(_)).toList)}.toList)
     val newMain = ClassDef(origDef.name,
                            origDef.fields,
-                           Init(MODE,ExprRhs(Lit(GStr(initMode)))) :: init.toList, 
+                           Init(MODE,ExprRhs(Lit(GStr(initMode)))) :: init.toList.map{case (v,e) =>  Init(v,ExprRhs(e))}, 
                            List(theSwitch) ++ simulatorAssigns.map{Discretely(_)})
 
     new Prog(List(newMain))
@@ -383,6 +383,7 @@ class Extract(val prog: Prog)
       case 1 => cleanUpSimple()
       case 2 => cleanUp()
       case 3 => cleanUp()
+                cleanUpInitMode()
                 eliminateTrueOnlyModes(modes, initMode)
       case _ => throw Errors.ShouldNeverHappen()
     }
@@ -395,5 +396,27 @@ class Extract(val prog: Prog)
   // Additional utility functions
   //
 
+  def cleanUpInitMode() : Unit = {
+    val mode = modes.find{_.label == initMode}.get
+    mode.resets.find{_.conds == Cond.True} match {
+      case None => /* nothing */
+      case Some(r) => 
+        val (sim, non) = getSimulatorAssigns(simulatorName, r.actions)
+        simulatorAssigns ++= sim
+        val whatsLeft = non.flatMap{ a => a match {
+          case Assign(n,Lit(v)) => getName(n) match {
+            case Some(n) => if (n != MODE) init(n) = Lit(v); None
+            case None => Some(a)
+          }
+          case _ => Some(a)
+        }}
+        if (whatsLeft.isEmpty) {
+          modes -= mode
+          initMode = r.mode.get
+        } else {
+          r.actions = whatsLeft
+        }
+    }
+  }
 }
 
