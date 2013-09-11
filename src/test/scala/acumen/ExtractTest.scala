@@ -20,7 +20,9 @@ import testutil.TransformationTestUtil.{
 
 object ExtractTest extends Properties("Extract") {
 
-  val MODEL_PATH_SINGLE_CLASS = "examples/XXX_internal/one-class"
+  val MODEL_PATH_TEST         = List("examples/XXX_internal/one-class",
+                                     "examples/XXX_internal/esaes",
+                                     "examples/XXX_internal/ha-extract")
   val MODEL_PATH_ENCLOSURE    = "examples/9_Experimental/01_Enclosures/"
   val MODEL_PATHS_SKIP        = List("03_Loops")
   
@@ -51,7 +53,7 @@ object ExtractTest extends Properties("Extract") {
   /** Load models compatible with the transformation from the examples directory. */
   //FIXME Update to include multi-object models
   def existingModels(): Iterable[(String, Prog)] =
-    (readFiles(MODEL_PATH_SINGLE_CLASS, FILE_SUFFIX_MODEL) ++
+    (MODEL_PATH_TEST.flatMap{readFiles(_, FILE_SUFFIX_MODEL)} ++
      new File(MODEL_PATH_ENCLOSURE).list(new FilenameFilter ()
        { def accept(f: File, n: String) = new File(f,n).isDirectory() && !MODEL_PATHS_SKIP.contains(n) })
        .flatMap(dir => readFiles(MODEL_PATH_ENCLOSURE + dir, FILE_SUFFIX_MODEL)))
