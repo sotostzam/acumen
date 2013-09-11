@@ -20,11 +20,13 @@ object Extract {
                   //var claims: List[Cond] = Nil,
                   var actions: List[ContinuousAction] = Nil, 
                   var resets: List[Reset] = Nil,
-                  var preConds: Cond = Cond.True) 
+                  var preConds: Cond = null) 
   {
-    preConds = Cond.and(Cond.Eq(MODE, GStr(label)),preConds)
+    if (preConds == null) preConds = Cond.Eq(MODE, GStr(label))
     def claims = preConds // this is for debugging, need to eventually
                           // be more careful with claims
+    def cont = actions.nonEmpty
+    def trans = actions.isEmpty
   }
   // ^^ note: "preConds" are the conditions that must always hold when
   // in this mode, both after a discr. and cont. step.  Thus it must
@@ -121,15 +123,22 @@ object Extract {
     }
   }
 
-  // If we are not already in a mode try to find a mode we can go into
-  // based on the mode preconds, if that fails create a new mode
+  // Find a cont. mode we can go into based on its preconds, if that
+  // fails create a new transient mode
   def ensureMode(resets: Seq[Reset], modes: ListBuffer[Mode]) {
+    val modeVars = resets.flatMap{_.conds.flatMap{case Cond.Eq(n,_) => Some(n); case _ => None}}.distinct
     var counter = 1
     resets.foreach { r => 
-      val postConds = Util.postConds(r.conds, r.actions)
-      var candidates = modes.filter{m => m.preConds.eval(postConds) == Cond.True}.toList
+      var postConds = Util.postConds(r.conds, r.actions)
+      var candidates = modes.filter{m => m.cont && m.preConds.eval(postConds) == Cond.True}.toList
+      val filteredPostConds = discrConds(postConds, modeVars)
+      //println("pc = " + postConds)
       if (candidates.size != 1) {
-        val m = Mode("D" + counter, preConds = postConds.filter{case Cond.Eq(n, _) if n == MODE => false; case _ => true})
+        // see if there is already a trainsint mode with the same preConds
+        candidates = modes.filter{m => m.trans && m.preConds == filteredPostConds}.toList
+      }
+      if (candidates.size != 1) {
+        val m = Mode("D" + counter, preConds = filteredPostConds)
         counter += 1
         modes += m
         candidates = List(m)
@@ -140,14 +149,16 @@ object Extract {
   }
 
   def enhanceModePreCond(resets: Seq[Reset], modes: ListBuffer[Mode]) {
-    val contVars = modes.flatMap{m => m.actions.flatMap{a => extractLHSDeps(a)}}.distinct
+    val modeVars = resets.flatMap{_.conds.flatMap{case Cond.Eq(n,_) => Some(n); case _ => None}}.distinct
     assert({val modes = resets.map{_.mode}; !modes.contains(None) && modes.distinct.size == modes.size})
     resets.foreach{r =>
       val postConds = Util.postConds(r.conds, r.actions)
-      val modePreConds = discrConds(postConds,contVars)
+      val modePreConds = discrConds(postConds,modeVars)
       val modeLabel = r.mode.get
       val mode = modes.find{_.label == modeLabel}.get
-      mode.preConds = modePreConds
+      //println("BB: " + mode.preConds)
+      mode.preConds ++= modePreConds
+      //println("AA: " + mode.preConds)
     }
   }
 
@@ -223,7 +234,7 @@ object Extract {
 
   def eliminateTrueOnlyModes(modes: ListBuffer[Mode], initMode: String) = {
     val toRemove = ListBuffer.empty[Mode]
-    modes.filter{m => m.resets.length == 1 && m.resets.head.conds == Cond.True}.foreach{m =>
+    modes.filter{m => m.trans && m.resets.length == 1 && m.resets.head.conds == Cond.True}.foreach{m =>
       val actions = m.resets.head.actions
       val rs = getResetsWithMode(m.label, modes)
       val canFold = rs.forall{r => canFoldActions(r.actions, actions)}

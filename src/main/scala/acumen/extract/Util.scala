@@ -87,8 +87,8 @@ object Util {
   // Other
   //
 
-  def discrConds(conds: Cond, contVars: Seq[Name]) : Cond =
-    conds.filter{c => c.deps.intersect(contVars).isEmpty}
+  def discrConds(conds: Cond, discrVars: Seq[Name]) : Cond =
+    conds.filter{c => c.deps.diff(discrVars).isEmpty}
 
   def getSimulatorAssigns[SeqT <: SeqLike[Assign,SeqT]](simulatorName: Name, actions: SeqT) : (SeqT,SeqT) =
     actions.partition {
