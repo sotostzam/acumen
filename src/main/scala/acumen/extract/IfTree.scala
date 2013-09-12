@@ -55,7 +55,7 @@ object IfTree {
       IfThenElse(localConds.toExpr,
                  children.map{_.toAST}.toList ++ actions, Nil)
     def dump = Pretty.pprint[Action](toAST) + "\n"
-
+    
     def addChild(megId: Int, localConds: Cond, localClaims: Cond = Cond.True) = {
       val if0 = new Node(this, megId, localConds, claims)
       children += if0
@@ -94,27 +94,13 @@ object IfTree {
       val keep = MutMap.empty[Int,Boolean]
       def markKeeped(n: IfTree[ActionT]) : Unit = {
         n.children.foreach{markKeeped(_)}
-        keep.getOrElse(n.id,{
-          if (n.actions.nonEmpty) {
-            // mark all siblings (including self) with the same megId
-            if (n.parent != null) {
-              n.parent.children.foreach{n2 => 
-                if (n.megId == n2.megId) 
-                  keep.update(n.id, true) }}
-            // mark all parents
-            var parent = n.parent 
-            while (parent != null) {
-              keep.update(parent.id, true); 
-              parent = parent.parent
-            }
-          } else {
-            // just mark self
-            keep.update(n.id, false)
-          }
-        })
+        val megIdsToKeep = n.children.filter{n2 => keep(n2.id)}.map{_.megId}.distinct
+        n.children.foreach{n2 => if (megIdsToKeep.contains(n2.megId)) keep(n2.id) = true}
+        keep(n.id) = n.actions.nonEmpty || megIdsToKeep.nonEmpty
       }
       markKeeped(this)
-      copy(p = p.copy(prune = keep.filter{case (_,v) => !v}.keySet))
+      val prune = keep.filter{case (_,v) => !v}.keySet
+      withPruneSet(prune)
     }
   }
 
