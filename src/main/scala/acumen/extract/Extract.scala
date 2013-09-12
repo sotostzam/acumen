@@ -11,6 +11,186 @@ import scala.collection.mutable.{ArrayBuffer,ListBuffer,Map=>MutMap}
 import Util._
 import CondAsSeq._
 
+class Extract(val prog: Prog) 
+{
+  import Extract._
+
+  //
+  //  Initialization
+  //
+
+  val origDef = {
+    if (prog.defs.size > 1) 
+      throw OtherUnsupported("Multiple objects not supported.")
+    if (prog.defs(0).name != ClassName("Main"))
+      throw OtherUnsupported("Could not find Main class.")
+    prog.defs(0)
+  }
+  var init = MutMap(origDef.priv.collect{case Init(v,ExprRhs(e)) => (v,e); case init => throw UnhandledSyntax(init)}:_*)
+  val body : IfTree.Node = IfTree.create(origDef.body)
+  val simulatorName = origDef.fields(0)
+  var simulatorAssigns = body.extractSimulatorAssigns(simulatorName)
+  var modes = ListBuffer.empty[Mode]
+  var initMode = "D0"
+
+  //
+  // Entry point
+  //
+
+  var pif = "handle";
+  var convertLevel = 9;
+  var cleanupLevel = 9;
+
+  def run() = {
+    pif match {
+      case "ignore" =>
+      case "reject" => rejectParallelIfs(body)
+      case "handle" => handleParallelIfs(body)
+      case _ => throw Errors.ShouldNeverHappen()
+    }
+    convertLevel match {
+      case 1 => convertSimple()
+      case 2 => convertMinimalModes()
+      case 3 => convertSimplePreCond()
+      case 9 => convertAdvancedPreCond()
+      case _ => throw Errors.ShouldNeverHappen()
+    }
+    cleanupLevel match {
+      case 0 => 
+      case 1 => cleanUpSimple()
+      case 2 => cleanUp()
+      case 9 => cleanUp()
+                cleanUpInitMode()
+                eliminateTrueOnlyModes(modes, initMode)
+      case _ => throw Errors.ShouldNeverHappen()
+    }
+    toAST
+  }
+
+  val res = run() // FIXME: Eventually remove
+
+  //
+  // Various ways to convert from an IfTree to a set of Modes with
+  // Resets by populating "modes".  When done IfTree (i.e. body) will
+  // no longer have any actions.
+  //
+
+  // The simplest most straightforward way.  
+  def convertSimple() = {
+    modes = extractModes(body.contOnly)
+    val resets = extractResets(body.discrOnly)
+    sanity(body)
+
+    modes.prepend(Mode("D0", trans=true))
+
+    addResets(resets, modes)
+  }
+
+  def convertMinimalModes() = {
+    modes = extractModes(body.contOnly.pruned)
+    val resets = extractResets(body.discrOnly)
+    sanity(body)
+
+    modes.prepend(Mode("D0", trans=true))
+    ensureModeCatchAll(resets, "D0")
+
+    addResets(resets, modes)
+  }
+
+  def convertSimplePreCond() = {
+    modes = extractModes(body.contOnly.pruned)
+    val resets = extractResets(body.discrOnly)
+    sanity(body)
+
+    modes.prepend(Mode("D0", preConds = initPostCond(init.toList)))
+    ensureMode(resets, modes)
+
+    addResets(resets, modes)
+  }
+
+  def convertAdvancedPreCond() = {
+    val contIfPruneSet = body.contOnly.pruned.p.prune
+    modes = extractModes(body.contOnly.withPruneSet(contIfPruneSet))
+    val resetsSpecial = extractResets(body.discrOnly.withPruneSet(contIfPruneSet), clearExtracted = false)
+    val resets = extractResets(body.discrOnly)
+    sanity(body)
+
+    modes.prepend(Mode("D0", preConds = initPostCond(init.toList)))
+
+    enhanceModePreCond(resetsSpecial, modes)
+    ensureMode(resets, modes)
+
+    addResets(resets, modes)
+  }
+
+  // The minimal amout of clean up to be able eliminate unneeded state
+  // variables and hense allow the model to run with the enclosure
+  // interpreter
+  def cleanUpSimple() = {
+    pruneResetConds(modes)
+    killDeadVars(init, modes)
+  }
+
+  // Full clean up pass, get ride of as much crap as possible
+  def cleanUp() = {
+    pruneResetConds(modes)
+    killDeadResets(modes)
+    cleanUpAssigns(modes)
+    killDeadVars(init, modes)
+  }
+
+  // Attempt to remove the init mode, this passes modifies most of the
+  // internal state so its easiest to define it here rather than in
+  // the companion object like most of the other operations
+  def cleanUpInitMode() : Unit = {
+    val mode = modes.find{_.label == initMode}.get
+    mode.resets.find{_.conds == Cond.True} match {
+      case None => /* nothing */
+      case Some(r) => 
+        val (sim, non) = getSimulatorAssigns(simulatorName, r.actions)
+        simulatorAssigns ++= sim
+        val whatsLeft = non.flatMap{ a => a match {
+          case Assign(n,Lit(v)) => getName(n) match {
+            case Some(n) => if (n != MODE) init(n) = Lit(v); None
+            case None => Some(a)
+          }
+          case _ => Some(a)
+        }}
+        if (whatsLeft.isEmpty) {
+          modes -= mode
+          initMode = r.mode.get
+        } else {
+          r.actions = whatsLeft
+        }
+    }
+  }
+
+  //
+  // Convert the result back to an AST
+  //
+
+  def toAST = {
+    // Converts the modes into a big switch and return a new prog
+    // The CONVERT TO SWITCH and FIX UP steps
+    val theSwitch = Switch(MODE_VAR,
+                           modes.map{m => Clause(GStr(m.label),
+                                                 m.claims.toExpr,
+                                                 m.resets.map(_.toAST) ++
+                                                 m.actions.map(Continuously(_)).toList)}.toList)
+    val newMain = ClassDef(origDef.name,
+                           origDef.fields,
+                           Init(MODE,ExprRhs(Lit(GStr(initMode)))) :: init.toList.map{case (v,e) =>  Init(v,ExprRhs(e))}, 
+                           List(theSwitch) ++ simulatorAssigns.map{Discretely(_)})
+
+    new Prog(List(newMain))
+  }
+
+  //
+  // Additional utility functions
+  //
+
+}
+
 object Extract {
   // Constant
   val MODE = Name("$mode", 0)
@@ -20,13 +200,13 @@ object Extract {
                   //var claims: List[Cond] = Nil,
                   var actions: List[ContinuousAction] = Nil, 
                   var resets: List[Reset] = Nil,
-                  var preConds: Cond = null) 
+                  var preConds: Cond = null,
+                  val trans: Boolean = false) 
   {
     if (preConds == null) preConds = Cond.Eq(MODE, GStr(label))
     def claims = preConds // this is for debugging, need to eventually
                           // be more careful with claims
-    def cont = actions.nonEmpty
-    def trans = actions.isEmpty
+    def cont = !trans
   }
   // ^^ note: "preConds" are the conditions that must always hold when
   // in this mode, both after a discr. and cont. step.  Thus it must
@@ -138,7 +318,7 @@ object Extract {
         candidates = modes.filter{m => m.trans && m.preConds == filteredPostConds}.toList
       }
       if (candidates.size != 1) {
-        val m = Mode("D" + counter, preConds = filteredPostConds)
+        val m = Mode("D" + counter, preConds = filteredPostConds, trans=true)
         counter += 1
         modes += m
         candidates = List(m)
@@ -265,169 +445,3 @@ object Extract {
         first += action
     }
 }
-
-class Extract(val prog: Prog) 
-{
-  import Extract._
-
-  // Initialization
-  val origDef = {
-    if (prog.defs.size > 1) 
-      throw OtherUnsupported("Multiple objects not supported.")
-    if (prog.defs(0).name != ClassName("Main"))
-      throw OtherUnsupported("Could not find Main class.")
-    prog.defs(0)
-  }
-  var init = MutMap(origDef.priv.collect{case Init(v,ExprRhs(e)) => (v,e); case init => throw UnhandledSyntax(init)}:_*)
-  val body : IfTree.Node = IfTree.create(origDef.body)
-  val simulatorName = origDef.fields(0)
-  var simulatorAssigns = body.extractSimulatorAssigns(simulatorName)
-  var modes = ListBuffer.empty[Mode]
-  var initMode = "D0"
-
-  //
-  // Various ways to convert from an IfTree to a set of Modes with
-  // Resets by populating "modes".  When done IfTree (i.e. body) will
-  // no longer have any actions.
-  //
-
-  // The simplest most straightforward way.  
-  def convertSimple() = {
-    modes = extractModes(body.contOnly)
-    val resets = extractResets(body.discrOnly)
-    sanity(body)
-
-    modes.prepend(Mode("D0"))
-
-    addResets(resets, modes)
-  }
-
-  def convertMinimalModes() = {
-    modes = extractModes(body.contOnly.pruned)
-    val resets = extractResets(body.discrOnly)
-    sanity(body)
-
-    modes.prepend(Mode("D0"))
-    ensureModeCatchAll(resets, "D0")
-
-    addResets(resets, modes)
-  }
-
-  def convertSimplePreCond() = {
-    modes = extractModes(body.contOnly.pruned)
-    val resets = extractResets(body.discrOnly)
-    sanity(body)
-
-    modes.prepend(Mode("D0", preConds = initPostCond(init.toList)))
-    ensureMode(resets, modes)
-
-    addResets(resets, modes)
-  }
-
-  def convertAdvancedPreCond() = {
-    val contIfPruneSet = body.contOnly.pruned.p.prune
-    modes = extractModes(body.contOnly.withPruneSet(contIfPruneSet))
-    val resetsSpecial = extractResets(body.discrOnly.withPruneSet(contIfPruneSet), clearExtracted = false)
-    val resets = extractResets(body.discrOnly)
-    sanity(body)
-
-    modes.prepend(Mode("D0", preConds = initPostCond(init.toList)))
-
-    enhanceModePreCond(resetsSpecial, modes)
-    ensureMode(resets, modes)
-
-    addResets(resets, modes)
-  }
-
-  // The minimal amout of clean up to be able eliminate unneeded state
-  // variables and hense allow the model to run with the enclosure
-  // interpreter
-  def cleanUpSimple() = {
-    pruneResetConds(modes)
-    killDeadVars(init, modes)
-  }
-
-  // Full clean up pass, get ride of as much crap as possible
-  def cleanUp() = {
-    pruneResetConds(modes)
-    killDeadResets(modes)
-    cleanUpAssigns(modes)
-    killDeadVars(init, modes)
-  }
-
-  def toAST = {
-    // Converts the modes into a big switch and return a new prog
-    // The CONVERT TO SWITCH and FIX UP steps
-    val theSwitch = Switch(MODE_VAR,
-                           modes.map{m => Clause(GStr(m.label),
-                                                 m.claims.toExpr,
-                                                 m.resets.map(_.toAST) ++
-                                                 m.actions.map(Continuously(_)).toList)}.toList)
-    val newMain = ClassDef(origDef.name,
-                           origDef.fields,
-                           Init(MODE,ExprRhs(Lit(GStr(initMode)))) :: init.toList.map{case (v,e) =>  Init(v,ExprRhs(e))}, 
-                           List(theSwitch) ++ simulatorAssigns.map{Discretely(_)})
-
-    new Prog(List(newMain))
-  }
-
-  var pif = "handle";
-  var convertLevel = 4;
-  var cleanupLevel = 3;
-
-  def run() = {
-    pif match {
-      case "ignore" =>
-      case "reject" => rejectParallelIfs(body)
-      case "handle" => handleParallelIfs(body)
-      case _ => throw Errors.ShouldNeverHappen()
-    }
-    convertLevel match {
-      case 1 => convertSimple()
-      case 2 => convertMinimalModes()
-      case 3 => convertSimplePreCond()
-      case 4 => convertAdvancedPreCond()
-      case _ => throw Errors.ShouldNeverHappen()
-    }
-    cleanupLevel match {
-      case 0 => 
-      case 1 => cleanUpSimple()
-      case 2 => cleanUp()
-      case 3 => cleanUp()
-                cleanUpInitMode()
-                eliminateTrueOnlyModes(modes, initMode)
-      case _ => throw Errors.ShouldNeverHappen()
-    }
-    toAST
-  }
-
-  val res = run() // FIXME: Eventually remove
-
-  //
-  // Additional utility functions
-  //
-
-  def cleanUpInitMode() : Unit = {
-    val mode = modes.find{_.label == initMode}.get
-    mode.resets.find{_.conds == Cond.True} match {
-      case None => /* nothing */
-      case Some(r) => 
-        val (sim, non) = getSimulatorAssigns(simulatorName, r.actions)
-        simulatorAssigns ++= sim
-        val whatsLeft = non.flatMap{ a => a match {
-          case Assign(n,Lit(v)) => getName(n) match {
-            case Some(n) => if (n != MODE) init(n) = Lit(v); None
-            case None => Some(a)
-          }
-          case _ => Some(a)
-        }}
-        if (whatsLeft.isEmpty) {
-          modes -= mode
-          initMode = r.mode.get
-        } else {
-          r.actions = whatsLeft
-        }
-    }
-  }
-}
-
