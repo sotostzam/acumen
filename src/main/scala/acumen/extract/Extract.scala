@@ -9,7 +9,7 @@ package extract
 import scala.collection.mutable.{ArrayBuffer,ListBuffer,Map=>MutMap}
 
 import Util._
-import CondAsSeq._
+import CondImplicits._
 
 class Extract(val prog: Prog) 
 {

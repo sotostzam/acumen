@@ -3,6 +3,7 @@ package extract
 
 import scala.collection.mutable.{ ListMap => MutListMap, ArrayBuffer, Stack => MutStack, ListBuffer, Map => MutMap}
 import scala.util.control.Breaks.{ break, breakable }
+import CondImplicits._
 
 /***************************************************************************
  * Data structures used for the extraction.  The act of forming these
@@ -143,7 +144,7 @@ object IfTree {
     val parents = nodes.map{_.parent}.groupBy{_.id}
     assert(parents.size == 1)
     val parent = parents.values.head.head
-    val res = new Node(parent, megId, Cond.fromSeq(nodes.map{_.localConds}), Cond.fromSeq(nodes.map{_.localClaims}))
+    val res = new Node(parent, megId, nodes.map{_.localConds}, nodes.map{_.localClaims})
     nodes.foreach{n => 
       res.children ++= n.children
       res.contActions ++= n.contActions

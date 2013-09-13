@@ -3,7 +3,7 @@ package extract
 
 import scala.collection.SeqLike
 import scala.collection.mutable.ArrayBuffer
-import CondAsSeq._
+import CondImplicits._
 
 object Util {
 
