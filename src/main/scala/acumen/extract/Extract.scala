@@ -306,7 +306,7 @@ object Extract {
   // Find a cont. mode we can go into based on its preconds, if that
   // fails create a new transient mode
   def ensureMode(resets: Seq[Reset], modes: ListBuffer[Mode]) {
-    val modeVars = resets.flatMap{_.conds.flatMap{case Cond.Eq(n,_) => Some(n); case _ => None}}.distinct
+    val modeVars = getModeVars(resets, modes)
     var counter = 1
     resets.foreach { r => 
       var postConds = Util.postConds(r.conds, r.actions)
@@ -329,7 +329,7 @@ object Extract {
   }
 
   def enhanceModePreCond(resets: Seq[Reset], modes: ListBuffer[Mode]) {
-    val modeVars = resets.flatMap{_.conds.flatMap{case Cond.Eq(n,_) => Some(n); case _ => None}}.distinct
+    val modeVars = getModeVars(resets, modes)
     assert({val modes = resets.map{_.mode}; !modes.contains(None) && modes.distinct.size == modes.size})
     resets.foreach{r =>
       val postConds = Util.postConds(r.conds, r.actions)
@@ -444,4 +444,13 @@ object Extract {
       else
         first += action
     }
+  
+  //
+  // Additional utility
+  // 
+
+  def getModeVars(resets: Seq[Reset], modes: Seq[Mode]) : Seq[Name] = { 
+    val contVars = modes.flatMap{m => m.actions.flatMap{a => extractLHSDeps(a)}}.toSet
+    resets.flatMap{_.conds.collect{case Cond.Eq(n,_) if !contVars.contains(n) => n}}.distinct
+  }
 }
