@@ -72,6 +72,23 @@ object IfTree {
       discrAssigns = non
       sim
     }
+
+    def copy(parent: Node) : Node = {
+      val that = new Node(parent, this.megId, 
+                          this.localConds, this.localClaims)
+      that.children ++= this.children.map{_.copy(that)}
+      that.contActions ++= this.contActions
+      that.discrAssigns ++= this.discrAssigns
+      that.otherActions ++= this.otherActions
+      that
+    }
+
+    def validate() {
+      children.foreach{n =>
+        n.validate()
+        assert(n.parent == this)
+      }
+    }
   }
 
   case class Parms[ActionT](get: Node => ArrayBuffer[ActionT],
@@ -137,6 +154,7 @@ object IfTree {
       }
     }
     populate(root,actions)
+    root.validate()
     root
   }
 
@@ -146,11 +164,12 @@ object IfTree {
     val parent = parents.values.head.head
     val res = new Node(parent, megId, nodes.map{_.localConds}, nodes.map{_.localClaims})
     nodes.foreach{n => 
-      res.children ++= n.children
+      res.children ++= n.children.map{_.copy(res)}
       res.contActions ++= n.contActions
       res.discrAssigns ++= n.discrAssigns
       res.otherActions ++= n.otherActions
     }
+    res.validate()
     res
   }
 }
