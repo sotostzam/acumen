@@ -19,7 +19,7 @@ class Main(simulator)
   switch mode
     case "Fly" 
       claim x >= 0 && 
-             r == x'*x' + 20*x // E = (1/2)mv^2 + mgh
+            r == x'*x' + 20*x   // E = (1/2)mv^2 + mgh
       if x == 0 && x' <= 0
         x' := -0.5*x';
         r  := 0.25*r;           // E := (0.5)^2 * E
