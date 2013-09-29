@@ -58,7 +58,7 @@ object IfTree {
     def dump = Pretty.pprint[Action](toAST) + "\n"
     
     def addChild(megId: Int, localConds: Cond, localClaims: Cond = Cond.True) = {
-      val if0 = new Node(this, megId, localConds, claims)
+      val if0 = new Node(this, megId, localConds, localClaims)
       children += if0
       if0
     }

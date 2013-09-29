@@ -270,7 +270,7 @@ object Extract {
         body.children.foreach{doit(actions, _)}
       } else {
         val label = "C" + idx
-        modes += Mode(label, actions = actions)
+        modes += Mode(label, claims = body.claims, actions = actions)
         body.node.discrAssigns += Assign(MODE_VAR, Lit(GStr(label)))
         idx += 1
       }
