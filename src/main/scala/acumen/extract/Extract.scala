@@ -7,9 +7,11 @@ package acumen
 package extract
 
 import scala.collection.mutable.{ArrayBuffer,ListBuffer,Map=>MutMap}
+import scala.text.Document.nest
 
 import Util._
 import CondImplicits._
+import Pretty._
 
 class Extract(val prog: Prog) 
 {
@@ -64,6 +66,12 @@ class Extract(val prog: Prog)
       case _ => throw Errors.ShouldNeverHappen()
     }
     toAST
+  }
+
+  def dump(label: String = "") = {
+    println("*** " + label + " ***\n")
+    modes.foreach{m => println(m.dump)}
+    println("---\n")
   }
 
   val res = run() // FIXME: Eventually remove
@@ -193,21 +201,23 @@ object Extract {
   val MODE_VAR = Dot(Var(Name("self", 0)), MODE)
 
   case class Mode(val label: String,
-                  //var claims: List[Cond] = Nil,
+                  var claims: Cond = Nil,
                   var actions: List[ContinuousAction] = Nil, 
                   var resets: List[Reset] = Nil,
                   var preConds: Cond = null,
                   var trans: Boolean = false) 
   {
     if (preConds == null) preConds = Cond.Eq(MODE, GStr(label))
-    def claims = preConds // this is for debugging, need to eventually
-                          // be more careful with claims
     def cont = !trans
+    def dump = ("MODE: " + label + (if (trans) " # TRANS \n" else "\n") +
+                "  PRECONDS: " + pprintOneLine(pretty(preConds.toExpr)) + "\n" +
+                "  CLAIMS: " + pprintOneLine(pretty(claims.toExpr)) + "\n" +
+                "  " + pprint(nest(2,pretty(resets.map{_.toAST:Action} ++ actions.map{Continuously(_):Action}))) + "\n")
   }
   // ^^ note: "preConds" are the conditions that must always hold when
   // in this mode, both after a discr. and cont. step.  Thus it must
   // not contain any cont. var changed in this mode.
-  
+ 
   case class Reset(var conds: Cond,
                    var actions: ListBuffer[Assign] = ListBuffer.empty) 
   {

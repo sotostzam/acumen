@@ -43,6 +43,13 @@ class Pretty {
     w.toString()
   }
 
+  def pprintOneLine(d:Document) : String = {
+    val w = new java.io.StringWriter()
+    d.format(Int.MaxValue,w)
+    w.close()
+    w.toString()
+  }
+
 
   // should be in the standard lib instead of their overloaded methods
   implicit def convert(s:String) : Document = DocText(s)
