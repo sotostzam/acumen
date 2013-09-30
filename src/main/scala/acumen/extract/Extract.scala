@@ -211,10 +211,10 @@ object Extract {
   {
     if (preConds == null) preConds = Cond.Eq(MODE, GStr(label))
     def cont = !trans
-    def dump = ("MODE: " + label + (if (trans) " # TRANS \n" else "\n") +
-                "  PRECONDS: " + pprintOneLine(pretty(preConds.toExpr)) + "\n" +
-                "  CLAIMS: " + pprintOneLine(pretty(claims.toExpr)) + "\n" +
-                "  " + pprint(nest(2,pretty(resets.map{_.toAST:Action} ++ actions.map{Continuously(_):Action}))) + "\n")
+    def dump = ("mode " + label + (if (trans) " # trans \n" else "\n") +
+                "  precond " + pprintOneLine(pretty(preConds.toExpr)) + "\n" +
+                "  claim " + pprintOneLine(pretty(claims.toExpr)) + "\n" +
+                "  " + pprint(nest(2,pretty(resets.map{_.toAST:Action} ++ actions.map{Continuously(_):Action}))) + "\nend\n")
   }
   // ^^ note: "preConds" are the conditions that must always hold when
   // in this mode, both after a discr. and cont. step.  Thus it must
