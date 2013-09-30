@@ -204,6 +204,7 @@ class FilterRowsDataAdder(opts: CStoreOpts) extends FilterDataAdder(opts) {
 class DumpSample(out: java.io.PrintStream) extends DataAdder {
   val pp = new Pretty
   pp.filterStore = true
+  pp.predictableDoubles = true
   var stepNum = -1
   var discrStepNum = -1
   var last : CStore = null
