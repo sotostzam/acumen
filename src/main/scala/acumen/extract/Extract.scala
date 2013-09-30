@@ -133,6 +133,8 @@ class Extract(val prog: Prog)
     killDeadResets(modes)
     cleanUpAssigns(modes)
     killDeadVars(init, modes)
+
+    eliminateTrueOnlyModes()
   }
 
   // Attempt to remove the init mode, this passes modifies most of the
