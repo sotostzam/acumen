@@ -3,6 +3,7 @@ package extract
 
 import scala.collection.mutable.{ ListMap => MutListMap, ArrayBuffer, Stack => MutStack, ListBuffer, Map => MutMap}
 import scala.util.control.Breaks.{ break, breakable }
+
 import CondImplicits._
 
 /***************************************************************************
@@ -174,5 +175,24 @@ object IfTree {
     res.validate()
     res
   }
+
+  def dumpLeafs(parentActions: List[Action], body: Node) : String = {
+    val actions = parentActions ++ body.actions
+    if (body.children.nonEmpty) {
+      body.children.map{dumpLeafs(actions, _)}.mkString("\n")
+    } else {
+      dumpSimple(body.conds, body.claims, actions)
+    }
+  }
+  def dumpSimple(conds: Cond, claims: Cond, actions: Seq[Action]) : String = {
+    import scala.text._
+    import scala.text.Document.nest
+    import Pretty._
+    ("if " + pprintOneLine(pretty(conds.toExpr)) + "\n" +
+     "  claim " + pprintOneLine(pretty(claims.toExpr)) + "\n" +
+     (if (actions.nonEmpty) "  " + pprint(DocNest(2, pretty(actions.toList))) + "\n" else "") +
+     "end")
+  }
+
 }
 

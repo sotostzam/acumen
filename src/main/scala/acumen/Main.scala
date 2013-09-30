@@ -37,6 +37,8 @@ object Main {
   var extraPasses = ""
   var displayHelp = "none"
 
+  var debugExtract = false
+
   var positionalArgs = new ArrayBuffer[String]
 
   // Note: lots of options and commands have alias but in general only
@@ -199,7 +201,7 @@ object Main {
   case class Pass(id: String, desc: String, trans: Prog => Prog, alwaysUsed: Boolean = false)
   val availPasses = Array(
     Pass("desugar", "Desugarer", {p => p}, alwaysUsed = true),
-    Pass("extract-ha", "H.A. Extraction", new extract.Extract(_).res),
+    Pass("extract-ha", "H.A. Extraction", new extract.Extract(_,debugExtract).res),
     Pass("extractfull", "H.A. Extraction (Orig Full Version)", new extractfull.Extract(_).res),
     Pass("flatten", "Object Flattening (Simple Version)", FlattenSimple.run(_)),
     //Pass("flattenfull", "Object Flattening (Full Version)", extract.Flatten.run(_)),

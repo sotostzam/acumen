@@ -2,18 +2,18 @@
 
 // Mostly follows algo.txt; however, the data structures used here are
 // slightly different and the order the steps is not exactly the same.
-
 package acumen
 package extract
 
 import scala.collection.mutable.{ArrayBuffer,ListBuffer,Map=>MutMap}
+import scala.text._
 import scala.text.Document.nest
 
 import Util._
 import CondImplicits._
 import Pretty._
 
-class Extract(val prog: Prog) 
+class Extract(val prog: Prog, private val debugMode: Boolean = false) 
 {
   import Extract._
 
@@ -29,7 +29,7 @@ class Extract(val prog: Prog)
     prog.defs(0)
   }
   var init = MutMap(origDef.priv.collect{case Init(v,ExprRhs(e)) => (v,e); case init => throw UnhandledSyntax(init)}:_*)
-  val body : IfTree.Node = IfTree.create(origDef.body)
+  var body : IfTree.Node = IfTree.create(origDef.body)
   val simulatorName = origDef.fields(0)
   var simulatorAssigns = body.extractSimulatorAssigns(simulatorName)
   var modes = ListBuffer.empty[Mode]
@@ -48,30 +48,45 @@ class Extract(val prog: Prog)
   var cleanupLevel = 2;
 
   def run() = {
+    dumpPhase("EXTRACTED")
     pif match {
       case "ignore" =>
       case "reject" => rejectParallelIfs(body)
-      case "handle" => handleParallelIfs(body)
+      case "handle" => handleParallelIfs(body); dumpPhase("HANDLE PARALLEL IF")
       case _ => throw Errors.ShouldNeverHappen()
     }
+    counter = 100; dumpPhase("PRE CONVERT")
     convertLevel match {
       case 1 => convertSimple()
       case 2 => convertWithPreConds()
       case _ => throw Errors.ShouldNeverHappen()
     }
+    counter = 200; dumpPhase("PRE CLEANUP")
     cleanupLevel match {
       case 0 => 
       case 1 => cleanUpSimple()
       case 2 => cleanUp()
       case _ => throw Errors.ShouldNeverHappen()
     }
+    counter = 300; dumpPhase("FINAL")
     toAST
   }
 
-  def dump(label: String = "") = {
-    println("*** " + label + " ***\n")
-    modes.foreach{m => println(m.dump)}
-    println("---\n")
+  def dump(label: String = "", fileName: String = null) = {
+    val out : java.io.PrintStream = if (fileName == null) System.out else new java.io.PrintStream(new java.io.File(fileName + ".out"))
+    out.println("*** " + label + " ***\n")
+    out.println(pprint(DocGroup(DocNest(2, 
+          "private" :/: breakWith(";", initPart map pretty[Init])) :/: "end")) + "\n")
+    //if (simulatorAssigns.nonEmpty)
+    //  println(pprint(DocGroup(DocNest(2, breakWith(";", simulatorAssigns.map{a => pretty[Action](Discretely(a))}.toList) + "\n"))))
+    if (simulatorAssigns.nonEmpty)
+      out.println(simulatorAssigns.map{a => pprint[Action](Discretely(a))}.mkString(";\n") + "\n")
+    if (body != null)
+      out.println(IfTree.dumpLeafs(Nil, body) + "\n")
+    modes.foreach{m => out.println(m.dump)}
+    out.println("---\n")
+    if (fileName != null)
+      out.close
   }
 
   val res = run() // FIXME: Eventually remove
@@ -83,58 +98,67 @@ class Extract(val prog: Prog)
   //
 
   // The simplest most straightforward way.  
-  def convertSimple() = {
-    modes = extractModes(body.contOnly)
-    val resets = extractResets(body.discrOnly)
-    sanity(body)
+  def convertSimple() : Unit = {
+    modes = extractModes(body.contOnly); dumpPhase("EXTRACT MODES")
+    val resets = extractResets(body.discrOnly); dumpPhase("EXTRACT RESETS")
+    sanity(body); body = null; dumpPhase("SANITY")
 
-    modes.prepend(Mode("D0", trans=true))
+    modes.prepend(Mode("D0", trans=true)); dumpPhase("INIT MODE")
 
-    addResets(resets, modes)
+    addResets(resets, modes); dumpPhase("ADD RESETS")
   }
 
-  def convertWithPreConds() = {
-    modes = extractModes(body.contOnly)
-    val resets = extractResets(body.discrOnly)
-    sanity(body)
+  def convertWithPreConds() : Unit = {
+    modes = extractModes(body.contOnly); dumpPhase("EXTRACT MODES")
+    val resets = extractResets(body.discrOnly); dumpPhase("EXTRACT RESETS")
+    sanity(body); body = null; dumpPhase("SANITY")
 
     val env = Env(modeVars = getModeVars(resets, modes))
 
-    enhanceModePreCond(resets, modes, env)
-    modes.prepend(Mode("D0", trans=true, preConds = discrConds(initPostCond(init.toList),env.modeVars)))
+    enhanceModePreCond(resets, modes, env); dumpPhase("ENHANCE MODE PRECONDS")
+    modes.prepend(Mode("D0", trans=true, preConds = discrConds(initPostCond(init.toList),env.modeVars))); ; dumpPhase("INIT MODE")
 
-    addResets(resets, modes)
+    addResets(resets, modes); dumpPhase("ADD RESETS")
   }
 
   // The minimal amout of clean up to be able eliminate unneeded state
   // variables and hense allow the model to run with the enclosure
   // interpreter
-  def cleanUpSimple() = {
-    pruneDeadModes(modes)
-    pruneResetConds(modes)
+  def cleanUpSimple() : Unit = {
+    pruneDeadModes(modes); dumpPhase("PRUNE DEAD MODES") 
+    pruneResetConds(modes); dumpPhase("PRUNE RESET CONDS")
 
-    killDeadVars(init, modes)
+    killDeadVars(init, modes); dumpPhase("KILL DEAD VARS")
   }
 
-  def cleanUp() = {
-    pruneDeadModes(modes)
-    pruneResetConds(modes)
+  def cleanUp() : Unit = {
+    pruneDeadModes(modes); dumpPhase("PRUNE DEAD MODES") 
+    pruneResetConds(modes); dumpPhase("PRUNE RESET CONDS")
     
     // do this early so the initial mode is not a special case
-    cleanUpInitMode()
+    cleanUpInitMode(); dumpPhase("CLEAN UP INIT")
 
-    mergeDupModes(modes)
+    markTransModes(modes); dumpPhase("MARK TRANS MODES")
+
+    mergeDupModes(modes); dumpPhase("MERGE DUP MODES")
     
-    markTransModes(modes)
-    cleanUpTransModes(modes)
+    cleanUpTransModes(modes); dumpPhase("CLEAN UP TRANS MODE")
 
-    eliminateTrueOnlyModes()
+    eliminateTrueOnlyModes(); dumpPhase("ELIMINATE TRUE ONLY")
 
-    killDeadResets(modes)
-    cleanUpAssigns(modes)
-    killDeadVars(init, modes)
+    killDeadResets(modes); dumpPhase("KILL DEAD RESETS")
+    cleanUpAssigns(modes); dumpPhase("CLEAN UP ASSIGNS")
+    
+    killDeadVars(init, modes); dumpPhase("KILL DEAD VARS")
 
-    eliminateTrueOnlyModes()
+    eliminateTrueOnlyModes(); dumpPhase("ELIMINATE TRUE ONLY")
+  }
+
+  var counter = 0;
+  def dumpPhase(name: String) = {
+    if (debugMode)
+      dump("", "%03d-%s".format(counter, name.toLowerCase.replace(' ', '_')))
+    counter += 1;
   }
 
   // Attempt to remove the init mode, this passes modifies most of the
@@ -187,11 +211,14 @@ class Extract(val prog: Prog)
                                                  m.actions.map(Continuously(_)).toList)}.toList)
     val newMain = ClassDef(origDef.name,
                            origDef.fields,
-                           Init(MODE,ExprRhs(Lit(GStr(initMode)))) :: init.toList.map{case (v,e) =>  Init(v,ExprRhs(e))}, 
+                           initPart, 
                            List(theSwitch) ++ simulatorAssigns.map{Discretely(_)})
 
     new Prog(List(newMain))
   }
+
+  def initPart = 
+    Init(MODE,ExprRhs(Lit(GStr(initMode)))) :: init.toList.map{case (v,e) =>  Init(v,ExprRhs(e))}
 
   //
   // Additional utility functions
@@ -213,7 +240,8 @@ object Extract {
   {
     if (preConds == null) preConds = Cond.Eq(MODE, GStr(label))
     def cont = !trans
-    def dump = ("mode " + label + (if (trans) " # trans \n" else "\n") +
+    def dump = (
+                "mode " + label + (if (trans) " # trans \n" else "\n") +
                 "  precond " + pprintOneLine(pretty(preConds.toExpr)) + "\n" +
                 "  claim " + pprintOneLine(pretty(claims.toExpr)) + "\n" +
                 "  " + pprint(nest(2,pretty(resets.map{_.toAST:Action} ++ actions.map{Continuously(_):Action}))) + "\nend\n")
@@ -401,7 +429,7 @@ object Extract {
   }
 
   def mergeDupModes(modes: Seq[Mode]) {
-    val dups = modes.groupBy{m => (sansMode(m.preConds), m.actions)}.filter{case (_, v) => v.length > 1}
+    val dups = modes.groupBy{m => (sansMode(m.preConds), m.actions, m.trans)}.filter{case (_, v) => v.length > 1}
     dups.values.foreach{ms =>
       val target :: toKill = ms.sortWith{(a,b) => a.label < b.label}.toList
       toKill.foreach{m =>
