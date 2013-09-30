@@ -122,15 +122,17 @@ class Extract(val prog: Prog)
     
     // do this early so the initial mode is not a special case
     cleanUpInitMode()
+
+    mergeDupModes(modes)
     
     markTransModes(modes)
     cleanUpTransModes(modes)
 
+    eliminateTrueOnlyModes()
+
     killDeadResets(modes)
     cleanUpAssigns(modes)
     killDeadVars(init, modes)
-
-    eliminateTrueOnlyModes()
   }
 
   // Attempt to remove the init mode, this passes modifies most of the
@@ -394,6 +396,18 @@ object Extract {
     }).distinct
     val allDeps = (contDeps ++ discrDeps).distinct :+ MODE // $mode is special and needs to be kept
     allVars.filter{case Name(x,_) => !allDeps.exists{case Name(y,_) => x == y}}
+  }
+
+  def mergeDupModes(modes: Seq[Mode]) {
+    val dups = modes.groupBy{m => (sansMode(m.preConds), m.actions)}.filter{case (_, v) => v.length > 1}
+    dups.values.foreach{ms =>
+      val target :: toKill = ms.sortWith{(a,b) => a.label < b.label}.toList
+      toKill.foreach{m =>
+        m.resets = placeHolderReset(target.label)
+        m.actions = Nil
+        m.trans = true
+      }
+    }
   }
 
   // This pass needs to be run before dead resets are eliminated There
