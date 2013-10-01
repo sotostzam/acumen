@@ -194,6 +194,8 @@ class Pretty {
         case Sum(e,i,c,t)     => "sum " :: pretty(e) :: " for " :: pretty(i) :: 
                                  " in " :: pretty(c) :: " if " :: pretty(t)
         case TypeOf(cn)       => "type" :: parens(pretty(cn))
+        case ExprInterval(lo,hi) => brackets(pretty(lo) :: " .. " :: pretty(hi))
+        case ExprIntervalM(m,r)  => parens(pretty(m) :: "+/-" :: pretty(r))
       }) :: (if (exprWithType && e._type != null) ":" + e._type.toString else "")
     }
   
