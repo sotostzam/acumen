@@ -12,12 +12,8 @@ object TransformationTestUtil {
    * Given a Prog p, computes its desugared version d. Checks that the simulation trace
    * of d is the same as that obtained by first applying transform to d and then simulating.
    */
-  def preservesContinousSemanticsOf(transform: Prog => Prog, p: Prog, modelName: Option[String]) = {
-    var same = false
-    val desugared = Desugarer.run(p)
-    var transformed : Prog = null
-    try {
-      transformed = transform(desugared)
+  def preservesContinousSemanticsOf(transform: Prog => Prog, p: Prog, modelName: Option[String]) =
+    preservesSemanticsOf(transform, p, modelName, "continuous non-rigorous", { (desugared, transformed) =>
       val contNames = getContinuousVariables(p)
       // set up the newreference interpreter
       val i = interpreters.newreference.Interpreter
@@ -29,8 +25,32 @@ object TransformationTestUtil {
       etrace.ctrace.last // force evaluation
       // compare pretty-printed traces
       val (dcs, ecs) = (onlyContinuousState(dtrace, contNames), onlyContinuousState(etrace, contNames))
-      val (ds, es)  = (dumpSampleToString(dcs), dumpSampleToString(ecs))
-      same = ds == es
+      val (ds, es) = (dumpSampleToString(dcs), dumpSampleToString(ecs))
+      ds == es
+    })
+
+  /**
+   * Given a Prog p, computes its desugared version d. Checks that the enclosure simulation trace
+   * of d is the same as that obtained by first applying transform to d and then simulating.
+   */
+  def preservesEnclosureSemanticsOf(transform: Prog => Prog, p: Prog, modelName: Option[String]) =
+    preservesSemanticsOf(transform, p, modelName, "enclosure", { (desugared, transformed) =>
+      val originalEnclosures = acumen.interpreters.enclosure.Interpreter.run(desugared).res
+      val transformedEnclosures = acumen.interpreters.enclosure.Interpreter.run(transformed).res
+      originalEnclosures.toString == transformedEnclosures.toString
+    })
+  
+  /**
+   * Given a Prog p, computes its desugared version d. Using comparator, checks that the enclosure simulation trace
+   * of d is the same as that obtained by first applying transform to d and then simulating.
+   */
+  def preservesSemanticsOf(transform: Prog => Prog, p: Prog, modelName: Option[String], semanticsType: String, comparator: (Prog,Prog) => Boolean) = {
+    var same = false
+    val desugared = Desugarer.run(p)
+    var transformed : Prog = null
+    try {
+      transformed = transform(desugared)
+      same = comparator(desugared, transformed)
       print (if (same) "+" else "-") 
       same
     } catch {
@@ -38,6 +58,7 @@ object TransformationTestUtil {
         e.printStackTrace
         throw e
     } finally if (!same) {
+      System.err.println("\n Transform is not (" + semanticsType + ") semantics preserving.\n\n")
       modelName.foreach(mn => System.err.println("\nFailing model: " + mn + "\n"))
       System.err.println("\nraw: \n")
       System.err.println(pprint(p))
