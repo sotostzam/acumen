@@ -66,6 +66,7 @@ object CleanParameters {
           }
         case Discretely(_) =>
           Some(action)
+        case Claim(e) => Some(action)
       }
     }
 

@@ -64,6 +64,8 @@ package acumen {
   case class Continuously(a: ContinuousAction) extends Action
   /* Does not explicitely appear in the syntax */
   case class Discretely(a: DiscreteAction) extends Action
+  /* Example: claim x == 0 && x' <= 0 */
+  case class Claim(predicate: Expr) extends Action
 
   /* Example: case 1 x = 3; y = 4 */
   case class Clause(lhs: GroundValue, assertion: Expr, rhs: List[Action])

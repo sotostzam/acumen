@@ -167,6 +167,7 @@ class Pretty {
                                " = " :: pretty(e) :/: pretty(b)) :/: "end"
       case Continuously(ca) => pretty(ca)
       case Discretely(da) => pretty(da)
+      case Claim(e) => "claim " :: pretty(e)
     }
   
   implicit def prettyContinuousAction : PrettyAble[ContinuousAction] =
