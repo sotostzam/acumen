@@ -429,7 +429,7 @@ object Extract {
   }
 
   def mergeDupModes(modes: Seq[Mode]) {
-    val dups = modes.groupBy{m => (sansMode(m.preConds), m.actions, m.trans)}.filter{case (_, v) => v.length > 1}
+    val dups = modes.groupBy{m => (sansMode(m.preConds), m.claims, m.actions, m.trans)}.filter{case (_, v) => v.length > 1}
     dups.values.foreach{ms =>
       val target :: toKill = ms.sortWith{(a,b) => a.label < b.label}.toList
       toKill.foreach{m =>
