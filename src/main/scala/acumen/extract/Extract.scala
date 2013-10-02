@@ -141,17 +141,17 @@ class Extract(val prog: Prog, private val debugMode: Boolean = false)
     markTransModes(modes); dumpPhase("MARK TRANS MODES")
 
     mergeDupModes(modes); dumpPhase("MERGE DUP MODES")
-    
-    cleanUpTransModes(modes); dumpPhase("CLEAN UP TRANS MODE")
-
     eliminateTrueOnlyModes(); dumpPhase("ELIMINATE TRUE ONLY")
 
+    cleanUpTransModes(modes); dumpPhase("CLEAN UP TRANS MODE")
+    eliminateTrueOnlyModes(); dumpPhase("ELIMINATE TRUE ONLY")
+    
     killDeadResets(modes); dumpPhase("KILL DEAD RESETS")
+    eliminateTrueOnlyModes(); dumpPhase("ELIMINATE TRUE ONLY")
+
     cleanUpAssigns(modes); dumpPhase("CLEAN UP ASSIGNS")
     
     killDeadVars(init, modes); dumpPhase("KILL DEAD VARS")
-
-    eliminateTrueOnlyModes(); dumpPhase("ELIMINATE TRUE ONLY")
   }
 
   var counter = 0;
