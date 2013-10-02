@@ -42,7 +42,7 @@ trait IfTree[ActionT] extends Iterable[IfTree[ActionT]] {
 
 object IfTree {
   class Node(val parent: Node, val megId: Int, // meg = mutely exclusive id
-             val localConds: Cond, val localClaims: Cond = Cond.True) extends IfTree[Action] {
+             val localConds: Cond, var localClaims: Cond = Cond.True) extends IfTree[Action] {
     // claims = "claims" used to annotate modes
     var children = new ArrayBuffer[Node]
     var contActions = new ArrayBuffer[ContinuousAction];
@@ -149,6 +149,8 @@ object IfTree {
           parent.contActions += a
         case Discretely(a:Assign) =>
           parent.discrAssigns += a
+        case Claim(predicate: Expr) => 
+          parent.localClaims = Cond.and(parent.localClaims, Cond(predicate))
         case a =>
           parent.otherActions += a
       }
