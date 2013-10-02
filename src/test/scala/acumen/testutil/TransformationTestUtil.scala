@@ -52,7 +52,7 @@ object TransformationTestUtil {
   
   def dumpSampleToString(csr: CStoreRes): String = {
     val baos = new ByteArrayOutputStream
-    csr.dumpSample(new PrintStream(baos))
+    csr.dumpContinuous(new PrintStream(baos))
     baos.toString
   }
 
