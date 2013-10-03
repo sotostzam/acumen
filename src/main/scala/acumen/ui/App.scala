@@ -117,12 +117,13 @@ class App extends SimpleSwingApplication {
   private val saveAction                    = mkAction(    "Save",                            VK_S, VK_S,       codeArea.saveFile())
   private val saveAsAction                  = mkActionMask("Save As",                         VK_A, VK_S,       shortcutMask | SHIFT_MASK, codeArea.saveFileAs())
   private val recoverAction                 = mkAction(    "Recover",                         VK_R, VK_R,       codeArea.openFile(Files.autoSavedDir))
-  private val exportTableAction             = new Action(  "Export Table"){ mnemonic =         VK_E; def apply = exportTable}
+  private val exportTableAction             = new Action(  "Export Table"){ mnemonic =        VK_E; def apply = exportTable}
   private val exitAction                    = mkAction(    "Exit",                            VK_E, VK_Q,       exit)
   private val cutAction                     = mkAction(    "Cut",                             VK_T, VK_X,       codeArea.textArea.cut)
   private val copyAction                    = mkAction(    "Copy",                            VK_C, VK_C,       codeArea.textArea.copyAsRtf)
   private val pasteAction                   = mkAction(    "Paste",                           VK_P, VK_V,       codeArea.textArea.paste)
   private val selectAllAction               = mkAction(    "Select All",                      VK_A, VK_A,       codeArea.textArea.selectAll)
+  private val findReplaceAction             = mkAction(    "Find",                            VK_F, VK_F,       toggleFindReplaceToolbar)
   private val increaseFontSizeAction        = mkAction(    "Enlarge Font",                    VK_I, VK_PLUS,    codeArea increaseFontSize)
   private val decreaseFontSizeAction        = mkAction(    "Reduce Font",                     VK_D, VK_MINUS,   codeArea decreaseFontSize)
   private val resetFontSizeAction           = mkAction(    "Reset Font",                      VK_R, VK_0,       codeArea resetFontSize)
@@ -172,18 +173,28 @@ class App extends SimpleSwingApplication {
   val codeArea = new CodeArea
   val codeAreaScrollPane = new RTextScrollPane(codeArea.textArea, false)
   codeAreaScrollPane.setVerticalScrollBarPolicy(javax.swing.ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED)
-
+  
   def toggleLineNumbers = codeAreaScrollPane.setLineNumbersEnabled(!codeAreaScrollPane.getLineNumbersEnabled)
+  def toggleFindReplaceToolbar = {
+    codeArea.findReplaceToolBar.setVisible(!codeArea.findReplaceToolBar.isVisible)
+    if (codeArea.findReplaceToolBar.isVisible) codeArea.searchField.requestFocus 
+    else codeArea.textArea.requestFocus
+  }
+  
+  val codePanel = new BorderPanel {
+    add(Component.wrap(codeAreaScrollPane), BorderPanel.Position.Center)
+    add(Component.wrap(codeArea.findReplaceToolBar), BorderPanel.Position.South)
+  }
 
   val statusZone = new StatusZone
   val upperBottomPane = new BoxPanel(Orientation.Horizontal) {
     contents += upperButtons
     contents += statusZone
   }
-
+  
   val upperPane = new BorderPanel {
     add(codeArea.filenameLabel, BorderPanel.Position.North)
-    add(Component.wrap(codeAreaScrollPane), BorderPanel.Position.Center)
+    add(codePanel, BorderPanel.Position.Center)  
     add(upperBottomPane, BorderPanel.Position.South)
   }
 
@@ -393,25 +404,29 @@ class App extends SimpleSwingApplication {
       contents += new MenuItem(pasteAction)
       contents += new Separator
       contents += new MenuItem(selectAllAction)
+      contents += new CheckMenuItem("Find") {
+        mnemonic = Key.F
+        action = findReplaceAction
+      }
     }
 
     contents += new Menu("View") {
       mnemonic = Key.V
-      contents += new MenuItem(increaseFontSizeAction) 
+      contents += new MenuItem(increaseFontSizeAction)
       contents += new MenuItem(decreaseFontSizeAction)
       contents += new MenuItem(resetFontSizeAction)
       contents += new Menu("Font") {
-	    mnemonic = Key.F
-	    val fontNames = codeArea.supportedFonts.map { fontName =>
-	      new RadioMenuItem(fontName) {
-		    selected = codeArea.textArea.getFont.getName == fontName
-		    action = Action(fontName) { codeArea setFontName fontName }
-		  } 
-	    }
-	    contents ++= fontNames
-	    new ButtonGroup(fontNames:_*)
-	  }
-      contents += new CheckMenuItem("Show line numbers") { 
+        mnemonic = Key.F
+        val fontNames = codeArea.supportedFonts.map { fontName =>
+          new RadioMenuItem(fontName) {
+            selected = codeArea.textArea.getFont.getName == fontName
+            action = Action(fontName) { codeArea setFontName fontName }
+          }
+        }
+        contents ++= fontNames
+        new ButtonGroup(fontNames: _*)
+      }
+      contents += new CheckMenuItem("Show line numbers") {
         mnemonic = Key.L
         action = showLineNumbersAction
       }
