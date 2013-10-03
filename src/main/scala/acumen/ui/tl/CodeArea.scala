@@ -54,7 +54,7 @@ class CodeArea extends Panel with TreeSelectionListener {
 
   val textArea = createSyntaxTextArea
   val searchField = new JTextField(30)
-  val findReplaceToolBar = createFindReplaceToolbar(searchField)
+  val findReplaceToolBar = createFindReplaceToolbar
   
   val DEFAULT_FONT_SIZE = 12
   val DEFAULT_FONT_NAME = Font.MONOSPACED
@@ -327,7 +327,7 @@ class CodeArea extends Panel with TreeSelectionListener {
   }
   
   /** Find and replace tool bar (currently supports only find). */
-  def createFindReplaceToolbar(searchField: JTextField): JToolBar = {
+  def createFindReplaceToolbar: JToolBar = {
     val toolBar = new JToolBar()
     val matchCaseCB = new JCheckBox("Case Sensitive")
     val regexCB = new JCheckBox("RegEx")
