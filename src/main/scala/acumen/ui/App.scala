@@ -204,6 +204,10 @@ class App extends SimpleSwingApplication {
   fileBrowser.fileTree.peer.addTreeSelectionListener(codeArea)
   codeArea.addPathChangeListener(fileBrowser.fileTree)
   
+  val consolePage = new TabbedPane.Page("Console", new BorderPanel {
+    add(new ScrollPane(console), BorderPanel.Position.Center)
+  })
+  
   val lowerPane = new BorderPanel {
     // Synch button
     val synchButton = new JCheckBox()
@@ -223,12 +227,10 @@ class App extends SimpleSwingApplication {
     synchButton.setFocusable(false)
     synchButton.setBorderPainted(false)
     toolbar.add(synchButton)
-
+    
     // Console / File Browser 
     val tabs = new TabbedPane {
-      pages += new TabbedPane.Page("Console", new BorderPanel {
-        add(new ScrollPane(console), BorderPanel.Position.Center)
-      })
+      pages += consolePage
       pages += new TabbedPane.Page("File Browser", fileBrowser)
       preferredSize = new Dimension(DEFAULT_HEIGHT / 4, preferredSize.width)
     }
