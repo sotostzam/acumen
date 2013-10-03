@@ -15,7 +15,7 @@ import acumen.util.System.{
 }
 import testutil.ProgGenerator
 import testutil.TransformationTestUtil.{
-  preservesContinousSemanticsOf
+  preservesContinousSemanticsOf, preservesEnclosureSemanticsOf
 }
 
 object ExtractTest extends Properties("Extract") {
@@ -47,16 +47,26 @@ object ExtractTest extends Properties("Extract") {
   property("semantics preserving on continuous state (example models)") =
     existingModels.map{ case (name, prog) => preservesContinousSemanticsOf(new extract.Extract(_).res, prog, Some(name)) }.foldRight(true)(_&&_) // Make sure that all models are run
     
+  property("enclosure semantics preserving (enclosure example models)") =
+    enclosureModels.map{ case (name, prog) => preservesEnclosureSemanticsOf(new extract.Extract(_).res, prog, Some(name)) }.foldRight(true)(_&&_) // Make sure that all models are run
+
   property("semantics preserving on continous state (random models)") =
     forAll { (p: Prog) => preservesContinousSemanticsOf(new extract.Extract(_).res, p, None) }
-
+    
   /** Load models compatible with the transformation from the examples directory. */
   //FIXME Update to include multi-object models
   def existingModels(): Iterable[(String, Prog)] =
-    (MODEL_PATH_TEST.flatMap{readFiles(_, FILE_SUFFIX_MODEL)} ++
-     new File(MODEL_PATH_ENCLOSURE).list(new FilenameFilter ()
-       { def accept(f: File, n: String) = new File(f,n).isDirectory() && !MODEL_PATHS_SKIP.contains(n) })
-       .flatMap(dir => readFiles(MODEL_PATH_ENCLOSURE + dir, FILE_SUFFIX_MODEL)))
-    .map { case (namePrefix, prog:String) => (namePrefix, Parser.run(Parser.prog, prog)) }
-  
+    (MODEL_PATH_TEST.flatMap{readFiles(_, FILE_SUFFIX_MODEL)})
+    .map(parseProgs) ++ 
+    enclosureModels
+
+  lazy val enclosureModels: Iterable[(String, Prog)]  = new File(MODEL_PATH_ENCLOSURE).list(
+      new FilenameFilter() { 
+        def accept(f: File, n: String) = new File(f, n).isDirectory() && !MODEL_PATHS_SKIP.contains(n) })
+    .flatMap(dir => readFiles(MODEL_PATH_ENCLOSURE + dir, FILE_SUFFIX_MODEL)) 
+    .map(parseProgs)
+
+  def parseProgs(p: (String, String)) = 
+    p match { case (namePrefix, prog) => (namePrefix, Parser.run(Parser.prog, prog)) }
+    
 } 
