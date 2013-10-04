@@ -54,6 +54,7 @@ object SD {
           runExpr(rhs))
       case _ => discreteAction
     })
+    case Claim(cond) => Claim(runExpr(cond)) 
   }
 
   /**
