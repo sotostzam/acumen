@@ -143,6 +143,15 @@ package acumen {
   /* (only) example: @Continuous */
   case object Continuous extends ResultType
 
+  sealed abstract class ExpectsResult
+
+  /* (only) example: @ExpectationNotSpecified */
+  case object ExpectationUnspecified extends ExpectsResult
+  /* (only) example: @ExpectationMet */
+  case object ExpectationMet extends ExpectsResult
+  /* (only) example: @ExpectationNotMet */
+  case object ExpectationNotMet extends ExpectsResult
+
   /* A value is parameterized over the representation of object ids.
      For the reference interpreter, object ids are instances of CId (cf. below).
      For the parallel interpreter, object ids are simply references to scala objects. */
@@ -166,6 +175,9 @@ package acumen {
 
   /* Example: @Continuous */
   case class VResultType(s: ResultType) extends Value
+
+  /* Example: @ExpectationMet */
+  case class VExpectsResult(s: ExpectsResult) extends Value
 
   /* ==== Canonical (reference) representation of object ids. ==== */
 

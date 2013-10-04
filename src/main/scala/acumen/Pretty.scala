@@ -236,6 +236,7 @@ class Pretty {
       case VObjId(None)    => "#none"
       case VClassName(n)   => pretty(n)
       case VResultType(t)  => pretty(t)
+      case VExpectsResult(t)  => pretty(t)
     }
   
 
@@ -266,11 +267,18 @@ class Pretty {
     breaks(it.toList)
   }
   
-  implicit def prettyStepType : PrettyAble[ResultType] =
+  implicit def prettyResultType : PrettyAble[ResultType] =
     PrettyAble {
       case Discrete   => "@Discrete"
       case FixedPoint => "@FixedPoint"
       case Continuous => "@Continuous"
+    }
+
+  implicit def prettyExpectsResult : PrettyAble[ExpectsResult] =
+    PrettyAble {
+      case ExpectationUnspecified => "@ExpectationUnspecified"
+      case ExpectationMet         => "@ExpectationMet"
+      case ExpectationNotMet      => "@ExpectationNotMet"
     }
 }
 

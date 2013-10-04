@@ -86,8 +86,9 @@ object Parser extends MyStdTokenParsers {
   lexical.reserved ++=
     List("for", "end", "if", "else", "create", "move", "in",
       "terminate", "class", "sum", "true", "false",
-      "private", "switch", "case", "Continuous", "Discrete", "none", "type", "claim",
-      "pi")
+      "private", "switch", "case", "none", "type", "claim",
+      "Continuous", "FixedPoint", "Discrete", "ExpectationUnspecified", "ExpectationMet", "ExpectationNotMet",
+      "pi","NaN")
 
   /* token conversion */
 
@@ -132,7 +133,7 @@ object Parser extends MyStdTokenParsers {
 
   /* ground values parsers */
 
-  def gvalue = gint | gfloat | gstr | gbool
+  def gvalue = gint | gfloat | gstr | gbool | ("NaN" ^^^ GDouble(Double.NaN))
 
   def gint = opt("-") ~ numericLit ^^ {
     case m ~ x =>
@@ -332,13 +333,16 @@ object Parser extends MyStdTokenParsers {
   def field = name ~! "=" ~! value ^^ { case x ~ _ ~ v => (x, v) }
 
   def value: Parser[CValue] =
-    gvalue ^^ VLit | vObjId | vClassName | vStepType
+    gvalue ^^ VLit | vObjId | vClassName | vSpecial
 
   def objid = cidLit ^^ toCId
 
   def vObjId = ("none" ^^^ None | objid ^^ (id => Some(id))) ^^ VObjId[CId]
   def vClassName = className ^^ VClassName
-  def vStepType = "@" ~! ("Continuous" ^^^ Continuous | "FixedPoint" ^^^ FixedPoint | "Discrete" ^^^ Discrete) ^^
-    { case _ ~ st => VResultType(st) }
-
+  def vSpecial = "@" ~! ("Continuous" ^^^  VResultType(Continuous) | 
+                         "FixedPoint" ^^^  VResultType(FixedPoint) | 
+                         "Discrete" ^^^ VResultType(Discrete) |
+                         "ExpectationUnspecified" ^^^ VExpectsResult(ExpectationUnspecified) | 
+                         "ExpectationMet" ^^^ VExpectsResult(ExpectationMet) | 
+                         "ExpectationNotMet" ^^^ VExpectsResult(ExpectationNotMet)) ^^ { case _ ~ st => st}
 }

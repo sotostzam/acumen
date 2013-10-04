@@ -358,9 +358,10 @@ object Interpreter extends acumen.CStoreInterpreter {
   }
 
   def step(p:Prog, st:Store) : Option[Store] =
-    if (getTime(st) > getEndTime(st)) {checkObserves(p, st); None}
-    else Some(
-      { val (_,ids,rps,st1) = iterate(evalStep(p), mainId(st))(st)
+    if (getTime(st) > getEndTime(st)) {None}
+    else {
+      val stRes = { 
+        val (_,ids,rps,st1) = iterate(evalStep(p), mainId(st))(st)
         getResultType(st) match {
           case Discrete | Continuous => 
             if (st == st1 && ids.isEmpty && rps.isEmpty) 
@@ -376,6 +377,11 @@ object Interpreter extends acumen.CStoreInterpreter {
             setTime(getTime(st1) + getTimeStep(st1), st2)
         }
       }
-    )
+      if (getTime(stRes) > getEndTime(stRes)) {
+        Some(util.ExpectsObserves.check(p, stRes))
+      } else {
+        Some(stRes)
+      }
+    }
 
 }

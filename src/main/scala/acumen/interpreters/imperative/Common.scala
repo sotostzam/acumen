@@ -64,9 +64,7 @@ object Common {
         case VObjId(Some(t)) => VObjId(Some(t.id))
         case VList(vs)       => VList(vs map (convertValue(_)))
         case VVector(vs)     => VVector(vs map (convertValue(_)))
-        case VLit(l)         => VLit(l)
-        case VClassName(cn)  => VClassName(cn)
-        case VResultType(st) => VResultType(st)
+        case _               => v.asInstanceOf[CValue]
       }
     def convertObject(o: Object): CObject = {
       val p = VObjId(o.parent match {
@@ -113,13 +111,11 @@ object Common {
     }
     def convertVal(v: Value[CId]): Val =
       v match {
-        case VLit(gv)        => VLit(gv)
         case VList(l)        => VList(l map convertVal)
         case VVector(l)      => VVector(l map convertVal)
         case VObjId(Some(a)) => VObjId(Some(addresses(a)))
         case VObjId(None)    => VObjId(None)
-        case VClassName(cn)  => VClassName(cn)
-        case VResultType(s)  => VResultType(s)
+        case _               => v.asInstanceOf[Val]
       }
     def convertId(id: CId): Unit = {
       if (!treated(id)) {
