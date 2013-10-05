@@ -116,7 +116,7 @@ class Extract(val prog: Prog, private val debugMode: Boolean = false)
     val env = Env(modeVars = getModeVars(resets, modes))
 
     enhanceModePreCond(resets, modes, env); dumpPhase("ENHANCE MODE PRECONDS")
-    modes.prepend(Mode("D0", trans=true, preConds = discrConds(initPostCond(init.toList),env.modeVars))); ; dumpPhase("INIT MODE")
+    modes.prepend(Mode("D0", trans=true, preConds = discrConds(initPostCond(init.toList),env.modeVars))); dumpPhase("INIT MODE")
 
     addResets(resets, modes); dumpPhase("ADD RESETS")
   }
@@ -235,10 +235,9 @@ object Extract {
                   var claims: Cond = Nil,
                   var actions: List[ContinuousAction] = Nil, 
                   var resets: List[Reset] = Nil,
-                  var preConds: Cond = null,
+                  var preConds: Cond = Cond.True,
                   var trans: Boolean = false) 
   {
-    if (preConds == null) preConds = Cond.Eq(MODE, GStr(label))
     def cont = !trans
     def dump = (
                 "mode " + label + (if (trans) " # trans \n" else "\n") +
@@ -380,25 +379,21 @@ object Extract {
   }
 
   def cleanUpAssigns(modes: Seq[Mode]) : Unit = {
-  // for each mode, kill all unnecessary discr. assignemnts in
-  // the resets, if the reset than has no actions, kill it.
+  // for each mode, kill all unnecessary discr. assignemnts in the
+  // resets, if the reset than has no actions other than to go back
+  // into the same mode, kill it.
     modes.foreach{m => 
       m.resets.foreach{r=>
         val preConds = Cond.and(m.preConds,r.conds)
-        // keep the mode assignment operation even if the mode does not
-        // change as it is needed by the enclosure interpreter
-        var modeAssign : Assign = null
         r.actions = r.actions.filter{case a@Assign(lhs,rhs) => !((getName(lhs), rhs) match {
           case (Some(name), Lit(value)) => 
-            val res = preConds.exists(_ == Cond.Eq(name,value))
-            if (res && name == MODE) modeAssign = a
-            res
+            preConds.exists(_ == Cond.Eq(name,value))
           case _ => false
         })}
-        if (r.actions.nonEmpty && modeAssign != null) 
-          r.actions += modeAssign
       }
-      m.resets = m.resets.filter(_.actions.nonEmpty)
+      m.resets = m.resets.filter{r => 
+        !(r.actions.length == 1 && r.mode == Some(m.label))
+      }
     }
   }
 
@@ -429,7 +424,7 @@ object Extract {
   }
 
   def mergeDupModes(modes: Seq[Mode]) {
-    val dups = modes.groupBy{m => (sansMode(m.preConds), m.claims, m.actions, m.trans)}.filter{case (_, v) => v.length > 1}
+    val dups = modes.groupBy{m => (m.preConds, m.claims, m.actions, m.trans)}.filter{case (_, v) => v.length > 1}
     dups.values.foreach{ms =>
       val target :: toKill = ms.sortWith{(a,b) => a.label < b.label}.toList
       toKill.foreach{m =>
@@ -464,9 +459,9 @@ object Extract {
   // does does affect any of the resets).
   def cleanUpTransModes(modes: Seq[Mode]) {
     modes.filter{_.trans}.foreach{m =>
-      var candidates = modes.filter{m2 => !m2.trans && sansMode(m.preConds) == sansMode(m2.preConds)}
+      var candidates = modes.filter{m2 => !m2.trans && m.preConds == m2.preConds}
       if (candidates.size != 1) {
-        candidates = modes.filter{m2 => sansMode(m.preConds) == sansMode(m2.preConds)}
+        candidates = modes.filter{m2 => m.preConds == m2.preConds}
         if (!candidates.isEmpty && candidates.head.label != m.label)
           candidates = List(candidates.head)
         else
@@ -478,8 +473,6 @@ object Extract {
       } 
     }
   }
-  def sansMode(conds: Cond) : Cond = 
-    conds.filter{case Cond.Eq(v,_) if v == MODE => false; case _ => true}
   def placeHolderReset(label: String) = 
       List(Reset(Cond.True, ListBuffer(Assign(MODE_VAR, Lit(GStr(label))))))
 
