@@ -9,7 +9,7 @@ import org.scalacheck.Prop._
 import acumen.Pretty.pprint
 import testutil.ProgGenerator
 import testutil.TransformationTestUtil.{
-  preservesContinousSemanticsOf
+  preservesContinuousReferenceSemanticsOf
 }
 
 object FlattenSimpleTest extends Properties("FlattenSimple") {
@@ -26,6 +26,6 @@ object FlattenSimpleTest extends Properties("FlattenSimple") {
   import progGenerator.arbProg
   
   property("semantics preserving on continous state (random models)") =
-    forAll { (p: Prog) => preservesContinousSemanticsOf(p => InlineInitDeps.proc(FlattenSimple.run(p)), p, None) }
+    forAll { (p: Prog) => preservesContinuousReferenceSemanticsOf(p => InlineInitDeps.proc(FlattenSimple.run(p)), p, None) }
 
 }

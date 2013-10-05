@@ -3,7 +3,24 @@ package testutil
 
 import java.io.ByteArrayOutputStream
 import java.io.PrintStream
+
+import acumen.Action
+import acumen.CStoreRes
+import acumen.ClassName
+import acumen.Continuously
+import acumen.Desugarer
+import acumen.Equation
+import acumen.EquationI
+import acumen.EquationT
+import acumen.ForEach
+import acumen.IfThenElse
+import acumen.Name
 import acumen.Pretty.pprint
+import acumen.Prog
+import acumen.Switch
+import acumen.VClassName
+import acumen.Var
+import acumen.interpreters.enclosure.affine.UnivariateAffineEnclosure
 
 /** Utilities for testing Prog-to-Prog transformations. */
 object TransformationTestUtil {
@@ -12,7 +29,7 @@ object TransformationTestUtil {
    * Given a Prog p, computes its desugared version d. Checks that the simulation trace
    * of d is the same as that obtained by first applying transform to d and then simulating.
    */
-  def preservesContinousSemanticsOf(transform: Prog => Prog, p: Prog, modelName: Option[String]) =
+  def preservesContinuousReferenceSemanticsOf(transform: Prog => Prog, p: Prog, modelName: Option[String]) =
     preservesSemanticsOf(transform, p, modelName, "continuous non-rigorous", { (desugared, transformed) =>
       val contNames = getContinuousVariables(p)
       // set up the newreference interpreter
@@ -30,14 +47,23 @@ object TransformationTestUtil {
     })
 
   /**
-   * Given a Prog p, computes its desugared version d. Checks that the enclosure simulation trace
-   * of d is the same as that obtained by first applying transform to d and then simulating.
+   * Given a Prog p, computes its desugared version d. Checks that the part of the enclosure simulation trace
+   * of d that corresponds to continuous variables is the same as that obtained by first applying transform 
+   * to d and then simulating.
+   *
+   * FIXME: Currently only works on models containing a single class (Main).
    */
-  def preservesEnclosureSemanticsOf(transform: Prog => Prog, p: Prog, modelName: Option[String]) =
+  def preservesContinuousEnclosureSemanticsOf(transform: Prog => Prog, p: Prog, modelName: Option[String]) =
     preservesSemanticsOf(transform, p, modelName, "enclosure", { (desugared, transformed) =>
       val originalEnclosures = acumen.interpreters.enclosure.Interpreter.run(desugared).res
       val transformedEnclosures = acumen.interpreters.enclosure.Interpreter.run(transformed).res
-      originalEnclosures.toString == transformedEnclosures.toString
+      areEqual("Enclosure counts", originalEnclosures.length, transformedEnclosures.length) && {
+        val contNames = getContinuousVariables(p)
+        originalEnclosures.zip(transformedEnclosures).forall {
+          case (orig, trans) => //FIXME Update w.r.t. multi-object models
+            equalOnComponents(orig, trans, varName => !contNames.getOrElse(ClassName("Main"), Set.empty).contains(Name(varName, 0)))
+        }
+      }
     })
   
   /**
@@ -120,6 +146,31 @@ object TransformationTestUtil {
     case ForEach(_,_,as)                       => as.exists(containsContinuousAssignemtTo(n, _))
     case _                                     => false
   }
+    
+  type VarName = String
+    
+  /** Checks that two UnivariateAffineEnclosures are equal with respect to a subset of their components. */
+  def equalOnComponents( left: UnivariateAffineEnclosure
+                       , right: UnivariateAffineEnclosure
+                       , characteristicFunction: VarName => Boolean) =
+    areEqual("Enclosure domains", left.domain, right.domain) &&
+      areEqual("Enclosure component sizes ", left.components.size, right.components.size) && {
+        val leftCompSubset = left.components.filterKeys(characteristicFunction)
+        val rightCompSubset = right.components.filterKeys(characteristicFunction)
+        leftCompSubset.forall {
+          case (varName, enclosure) => 
+            areEqual("Enclosure component " + varName, enclosure.toString, rightCompSubset.getOrElse(varName, "None").toString)
+        }
+      }
+    
+  /** Returns true of expected == observed, otherwise prints an error message and returns false. */
+  def areEqual[T](description: String, expected: T, observed: T) = 
+    if (expected == observed)
+      true
+    else { 
+      System.err.println(description + " mismatch. Expected: " + expected + ", observed: " + observed)
+      false
+    }
   
 }
 
