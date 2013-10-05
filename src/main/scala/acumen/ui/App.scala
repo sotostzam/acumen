@@ -108,37 +108,38 @@ class App extends SimpleSwingApplication {
   
   private val NONE = VK_UNDEFINED
   /* Reusable actions */
-  private val playAction                    = mkAction(    "Run",                       VK_R, VK_G,       upperButtons.bPlay.doClick)
-  private val pauseAction                   = mkAction(    "Pause",                     VK_R, VK_G,       upperButtons.bPlay.doClick)
-  private val stepAction                    = mkAction(    "Step",                      VK_T, VK_B,       upperButtons.bStep.doClick)
-  private val stopAction                    = mkAction(    "Stop",                      VK_S, VK_T,       upperButtons.bStop.doClick)
-  private val newAction                     = mkAction(    "New",                       VK_N, VK_N,       codeArea.newFile)
-  private val openAction                    = mkAction(    "Open",                      VK_O, VK_O,       codeArea.openFile(codeArea.currentDir))
-  private val saveAction                    = mkAction(    "Save",                      VK_S, VK_S,       codeArea.saveFile())
-  private val saveAsAction                  = mkActionMask("Save As",                   VK_A, VK_S,       shortcutMask | SHIFT_MASK, codeArea.saveFileAs())
-  private val recoverAction                 = mkAction(    "Recover",                   VK_R, VK_R,       codeArea.openFile(Files.autoSavedDir))
-  private val exportTableAction           = new Action(  "Export Table"){mnemonic = VK_E; def apply = exportTable}
-  private val exitAction                    = mkAction(    "Exit",                      VK_E, VK_Q,       exit)
-  private val cutAction                     = mkAction(    "Cut",                       VK_T, VK_X,       codeArea.textArea.cut)
-  private val copyAction                    = mkAction(    "Copy",                      VK_C, VK_C,       codeArea.textArea.copyAsRtf)
-  private val pasteAction                   = mkAction(    "Paste",                     VK_P, VK_V,       codeArea.textArea.paste)
-  private val selectAllAction               = mkAction(    "Select All",                VK_A, VK_A,       codeArea.textArea.selectAll)
-  private val increaseFontSizeAction        = mkAction(    "Enlarge Font",              VK_I, VK_PLUS,    codeArea increaseFontSize)
-  private val decreaseFontSizeAction        = mkAction(    "Reduce Font",               VK_D, VK_MINUS,   codeArea decreaseFontSize)
-  private val resetFontSizeAction           = mkAction(    "Reset Font",                VK_R, VK_0,       codeArea resetFontSize)
-  private val showLineNumbersAction         = mkAction(    "Line Numbers",              VK_L, VK_L,       toggleLineNumbers)
-  private val plotStyleLinesAction          = new Action(  "Lines")      { mnemonic =   VK_L; def apply = plotView.setPlotStyle(plot.Lines()) }
-  private val plotStyleDotsAction           = new Action(  "Dots")       { mnemonic =   VK_D; def apply = plotView.setPlotStyle(plot.Dots()) }
-  private val plotStyleBothAction           = new Action(  "Both")       { mnemonic =   VK_B; def apply = plotView.setPlotStyle(plot.Both()) }
-  private val floatingPointNewAction        = mkActionMask("Traditional Functional 2",  VK_2, NONE,       shortcutMask | SHIFT_MASK, setInterpreter("newreference"))
-  private val floatingPointAction           = mkActionMask("Traditional Functional",    VK_F, VK_R,       shortcutMask | SHIFT_MASK, setInterpreter("reference"))
-  private val floatingPointImperativeAction = mkActionMask("Traditional Imperative",    VK_I, VK_I,       shortcutMask | SHIFT_MASK, setInterpreter("imperative")) 
-  private val floatingPointParallelAction   = mkActionMask("Traditional Parallel",      VK_P, VK_P,       shortcutMask | SHIFT_MASK, promptForNumberOfThreads)
-  private val pwlHybridSolverAction         = mkActionMask("Enclosure PWL",             VK_L, VK_L,       shortcutMask | SHIFT_MASK, setInterpreter("enclosure-pwl")) 
-  private val eventTreeHybridSolverAction   = mkActionMask("Enclosure EVT",             VK_T, VK_T,       shortcutMask | SHIFT_MASK, setInterpreter("enclosure-evt"))
-  private val contractionAction             = mkActionMask("Contraction",               VK_C, VK_C,       shortcutMask | SHIFT_MASK, enclosure.Interpreter.toggleContraction)
-  private val tutorialAction                = mkAction(    "Core Acumen Tutorial",      VK_T, VK_F1,      tutorial)
-  private val aboutAction                   = new Action(  "About")      { mnemonic =   VK_A; def apply = about }
+  private val playAction                    = mkAction(    "Run",                             VK_R, VK_G,       upperButtons.bPlay.doClick)
+  private val pauseAction                   = mkAction(    "Pause",                           VK_R, VK_G,       upperButtons.bPlay.doClick)
+  private val stepAction                    = mkAction(    "Step",                            VK_T, VK_B,       upperButtons.bStep.doClick)
+  private val stopAction                    = mkAction(    "Stop",                            VK_S, VK_T,       upperButtons.bStop.doClick)
+  private val newAction                     = mkAction(    "New",                             VK_N, VK_N,       codeArea.newFile)
+  private val openAction                    = mkAction(    "Open",                            VK_O, VK_O,       codeArea.openFile(codeArea.currentDir))
+  private val saveAction                    = mkAction(    "Save",                            VK_S, VK_S,       codeArea.saveFile())
+  private val saveAsAction                  = mkActionMask("Save As",                         VK_A, VK_S,       shortcutMask | SHIFT_MASK, codeArea.saveFileAs())
+  private val recoverAction                 = mkAction(    "Recover",                         VK_R, VK_R,       codeArea.openFile(Files.autoSavedDir))
+  private val exportTableAction             = new Action(  "Export Table"){ mnemonic =        VK_E; def apply = exportTable}
+  private val exitAction                    = mkAction(    "Exit",                            VK_E, VK_Q,       exit)
+  private val cutAction                     = mkAction(    "Cut",                             VK_T, VK_X,       codeArea.textArea.cut)
+  private val copyAction                    = mkAction(    "Copy",                            VK_C, VK_C,       codeArea.textArea.copyAsRtf)
+  private val pasteAction                   = mkAction(    "Paste",                           VK_P, VK_V,       codeArea.textArea.paste)
+  private val selectAllAction               = mkAction(    "Select All",                      VK_A, VK_A,       codeArea.textArea.selectAll)
+  private val findReplaceAction             = mkAction(    "Find",                            VK_F, VK_F,       toggleFindReplaceToolbar)
+  private val increaseFontSizeAction        = mkAction(    "Enlarge Font",                    VK_I, VK_PLUS,    codeArea increaseFontSize)
+  private val decreaseFontSizeAction        = mkAction(    "Reduce Font",                     VK_D, VK_MINUS,   codeArea decreaseFontSize)
+  private val resetFontSizeAction           = mkAction(    "Reset Font",                      VK_R, VK_0,       codeArea resetFontSize)
+  private val showLineNumbersAction         = mkAction(    "Line Numbers",                    VK_L, VK_L,       toggleLineNumbers)
+  private val plotStyleLinesAction          = new Action(  "Lines")       { mnemonic =        VK_L; def apply = plotView.setPlotStyle(plot.Lines()) }
+  private val plotStyleDotsAction           = new Action(  "Dots")        { mnemonic =        VK_D; def apply = plotView.setPlotStyle(plot.Dots()) }
+  private val plotStyleBothAction           = new Action(  "Both")        { mnemonic =        VK_B; def apply = plotView.setPlotStyle(plot.Both()) }
+  private val floatingPointNewAction        = mkActionMask("Traditional Functional 2",        VK_2, NONE,       shortcutMask | SHIFT_MASK, setInterpreter("newreference"))
+  private val floatingPointAction           = mkActionMask("Traditional Functional",          VK_F, VK_R,       shortcutMask | SHIFT_MASK, setInterpreter("reference"))
+  private val floatingPointImperativeAction = mkActionMask("Traditional Imperative",          VK_I, VK_I,       shortcutMask | SHIFT_MASK, setInterpreter("imperative")) 
+  private val floatingPointParallelAction   = mkActionMask("Traditional Parallel",            VK_P, VK_P,       shortcutMask | SHIFT_MASK, promptForNumberOfThreads)
+  private val pwlHybridSolverAction         = mkActionMask("Enclosure PWL",                   VK_L, VK_L,       shortcutMask | SHIFT_MASK, setInterpreter("enclosure-pwl")) 
+  private val eventTreeHybridSolverAction   = mkActionMask("Enclosure EVT",                   VK_T, VK_T,       shortcutMask | SHIFT_MASK, setInterpreter("enclosure-evt"))
+  private val contractionAction             = mkActionMask("Contraction",                     VK_C, VK_C,       shortcutMask | SHIFT_MASK, enclosure.Interpreter.toggleContraction)
+  private val manualAction                  = mkAction(    "User Guide and Reference Manual", VK_M, VK_F1,      manual)
+  private val aboutAction                   = new Action(  "About")       { mnemonic =        VK_A; def apply = about }
   
   /* Shows a dialog asking the user how many threads to use in the parallel interpreter. */
   private def promptForNumberOfThreads = {
@@ -172,18 +173,28 @@ class App extends SimpleSwingApplication {
   val codeArea = new CodeArea
   val codeAreaScrollPane = new RTextScrollPane(codeArea.textArea, false)
   codeAreaScrollPane.setVerticalScrollBarPolicy(javax.swing.ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED)
-
+  
   def toggleLineNumbers = codeAreaScrollPane.setLineNumbersEnabled(!codeAreaScrollPane.getLineNumbersEnabled)
+  def toggleFindReplaceToolbar = {
+    codeArea.findReplaceToolBar.setVisible(!codeArea.findReplaceToolBar.isVisible)
+    if (codeArea.findReplaceToolBar.isVisible) codeArea.searchField.requestFocus 
+    else codeArea.textArea.requestFocus
+  }
+  
+  val codePanel = new BorderPanel {
+    add(Component.wrap(codeAreaScrollPane), BorderPanel.Position.Center)
+    add(Component.wrap(codeArea.findReplaceToolBar), BorderPanel.Position.South)
+  }
 
   val statusZone = new StatusZone
   val upperBottomPane = new BoxPanel(Orientation.Horizontal) {
     contents += upperButtons
     contents += statusZone
   }
-
+  
   val upperPane = new BorderPanel {
     add(codeArea.filenameLabel, BorderPanel.Position.North)
-    add(Component.wrap(codeAreaScrollPane), BorderPanel.Position.Center)
+    add(codePanel, BorderPanel.Position.Center)  
     add(upperBottomPane, BorderPanel.Position.South)
   }
 
@@ -393,25 +404,29 @@ class App extends SimpleSwingApplication {
       contents += new MenuItem(pasteAction)
       contents += new Separator
       contents += new MenuItem(selectAllAction)
+      contents += new CheckMenuItem("Find") {
+        mnemonic = Key.F
+        action = findReplaceAction
+      }
     }
 
     contents += new Menu("View") {
       mnemonic = Key.V
-      contents += new MenuItem(increaseFontSizeAction) 
+      contents += new MenuItem(increaseFontSizeAction)
       contents += new MenuItem(decreaseFontSizeAction)
       contents += new MenuItem(resetFontSizeAction)
       contents += new Menu("Font") {
-	    mnemonic = Key.F
-	    val fontNames = codeArea.supportedFonts.map { fontName =>
-	      new RadioMenuItem(fontName) {
-		    selected = codeArea.textArea.getFont.getName == fontName
-		    action = Action(fontName) { codeArea setFontName fontName }
-		  } 
-	    }
-	    contents ++= fontNames
-	    new ButtonGroup(fontNames:_*)
-	  }
-      contents += new CheckMenuItem("Show line numbers") { 
+        mnemonic = Key.F
+        val fontNames = codeArea.supportedFonts.map { fontName =>
+          new RadioMenuItem(fontName) {
+            selected = codeArea.textArea.getFont.getName == fontName
+            action = Action(fontName) { codeArea setFontName fontName }
+          }
+        }
+        contents ++= fontNames
+        new ButtonGroup(fontNames: _*)
+      }
+      contents += new CheckMenuItem("Show line numbers") {
         mnemonic = Key.L
         action = showLineNumbersAction
       }
@@ -503,7 +518,7 @@ class App extends SimpleSwingApplication {
    
     contents += new Menu("Help") {
       mnemonic = Key.H
-      contents += new MenuItem(tutorialAction)
+      contents += new MenuItem(manualAction)
       contents += new MenuItem(aboutAction) 
     }
   }
@@ -553,13 +568,8 @@ class App extends SimpleSwingApplication {
     val version = acumen.util.System.version
     Dialog.showMessage(body, "Acumen " + version, "About")
   }
-  def tutorial = {
-    if (Desktop.isDesktopSupported) {
-      val desktop = Desktop.getDesktop
-      try { desktop.browse(acumen.util.System.tutorialUrl) }
-      catch { case e: IOException => reportError(e) }
-    } else reportError(new Exception("Could not find a web browser."))
-  }
+  
+  def manual = ManualBrowser.peer.setVisible(true)
 
   /* ----- events handling ---- */
 

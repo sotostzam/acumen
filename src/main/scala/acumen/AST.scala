@@ -116,7 +116,7 @@ package acumen {
   case class Sum(e: Expr, i: Name, col: Expr, cond: Expr) extends Expr
   /* Example: type(Ball) */
   case class TypeOf(cn: ClassName) extends Expr
-  /* Example: [a:b] deprecated, now a--b and m+/-r*/
+  /* Example: [a:b] deprecated, now [a..b] and m+/-r*/
   case class ExprInterval(lo: Expr, hi: Expr) extends Expr
   case class ExprIntervalM(mid: Expr, pm: Expr) extends Expr
 

@@ -136,6 +136,8 @@ object Common {
     op match {
       //case "length" => VLit(GInt(u.length))
       case "norm" => VLit(GDouble(math.sqrt((du map (d => d*d)).sum)))
+      case "floor" => VVector(du map {d => VLit(GDouble(floor(d)))})
+      case "ceil" => VVector(du map {d => VLit(GDouble(ceil(d)))})
       case _ => throw InvalidVectorOp(op)
     }
   }
@@ -192,22 +194,30 @@ object Common {
   }
 
   val magicClassTxt =
-    """class Simulator(time, timeStep, outputRows, continuousSkip, endTime, resultType, lastCreatedId) end"""
+    """class Simulator(time, timeStep, outputRows, continuousSkip, endTime, resultType, lastCreatedId, expects, observes) end"""
   val initStoreTxt =
     """#0.0 { className = Simulator, parent = %s, time = 0.0, timeStep = 0.01, 
               outputRows = "WhenChanged", continuousSkip = 0,
               endTime = 10.0, resultType = @Discrete, nextChild = 0,
-						  seed1 = 0, seed2 = 0 }"""
+	      expects = 0, observes = 0, seed1 = 0, seed2 = 0 }"""
 
   lazy val magicClass = Parser.run(Parser.classDef, magicClassTxt)
   lazy val initStoreRef = Parser.run(Parser.store, initStoreTxt.format("#0"))
   lazy val initStoreImpr = Parser.run(Parser.store, initStoreTxt.format("none"))
                                   
   // register valid simulator parameters
-  val simulatorFields = List("time", "timeStep", "outputRows", "continuousSkip", "endTime", "resultType", "lastCreatedId")
+  val simulatorFields = List("time", "timeStep", "outputRows", "continuousSkip", "endTime", "resultType", "lastCreatedId", "expects", "observes")
 
   val specialFields = List("nextChild","parent","className","seed1","seed2")
 
   def threeDField(name: String) = 
     name == "_3D" || name == "_3DView"
+  
+  def checkObserves(p: Prog, st: CStore) : Unit = {
+    util.ExpectsObserves.check(p, st) match {
+      case Some(err) => throw ObservesError(err)
+      case None => 
+    }
+  }
+
 }

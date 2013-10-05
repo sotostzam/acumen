@@ -196,7 +196,7 @@ abstract class FilterDataAdder(var opts: CStoreOpts) extends DataAdder {
   def mkFilter(e:GObject) : ((Name, GValue)) => Boolean = {
     val VClassName(ClassName(name)) = e.find{_._1 == Name("className",0)}.get._2
     if (name == "Simulator" && !opts.outputSimulatorState)
-      { case (x,v) => x.x == "className" || x.x == "time" || x.x == "endTime" || x.x == "resultType"}
+      { case (x,v) => x.x == "className" || x.x == "time" || x.x == "endTime" || x.x == "resultType" || x.x == "expects" || x.x == "observes" }
     else if (!opts.outputInternalState)
       { case (x,_) => x.x == "className" || interpreters.Common.specialFields.indexOf(x.x) == -1 }
     else
@@ -216,6 +216,7 @@ class FilterRowsDataAdder(opts: CStoreOpts) extends FilterDataAdder(opts) {
 class DumpSample(out: java.io.PrintStream) extends DataAdder {
   val pp = new Pretty
   pp.filterStore = true
+  pp.predictableDoubles = true
   var stepNum = -1
   var discrStepNum = -1
   var last : CStore = null

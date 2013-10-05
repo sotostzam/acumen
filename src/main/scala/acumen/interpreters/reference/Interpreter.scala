@@ -360,7 +360,7 @@ object Interpreter extends acumen.CStoreInterpreter {
   }
 
   def step(p:Prog, st:Store) : Option[Store] =
-    if (getTime(st) > getEndTime(st)) None
+    if (getTime(st) > getEndTime(st)) {checkObserves(p, st); None}
     else Some(
       { val (_,ids,rps,st1) = iterate(evalStep(p), mainId(st))(st)
         getResultType(st) match {

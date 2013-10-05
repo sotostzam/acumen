@@ -2,13 +2,15 @@ package acumen
 package ui
 package tl
 
-import java.awt.BorderLayout
 import java.awt.Color
 import java.awt.Font
 import java.awt.GraphicsEnvironment
+import java.awt.event.ActionEvent
+import java.awt.event.ActionListener
 import java.io.File
 import java.io.FileReader
 import java.io.FileWriter
+
 import scala.Array.canBuildFrom
 import scala.collection.mutable.ArrayBuffer
 import scala.collection.mutable.Buffer
@@ -16,6 +18,7 @@ import scala.swing.FileChooser
 import scala.swing.Label
 import scala.swing.Panel
 import scala.xml.XML
+
 import org.fife.ui.autocomplete.AutoCompletion
 import org.fife.ui.autocomplete.BasicCompletion
 import org.fife.ui.autocomplete.DefaultCompletionProvider
@@ -25,27 +28,33 @@ import org.fife.ui.rsyntaxtextarea.SyntaxConstants
 import org.fife.ui.rsyntaxtextarea.TokenMakerFactory
 import org.fife.ui.rsyntaxtextarea.TokenTypes
 import org.fife.ui.rsyntaxtextarea.templates.StaticCodeTemplate
-import acumen.Parser
+import org.fife.ui.rtextarea.SearchContext
+import org.fife.ui.rtextarea.SearchEngine
+
+import acumen.Main
+import acumen.interpreters.enclosure.Parameters
 import acumen.ui.App
 import acumen.ui.Files
-import acumen.ui.GraphicalMain
 import acumen.util.System.FILE_SUFFIX_MODEL
-import javax.swing.JFileChooser
+import javax.swing.JButton
+import javax.swing.JCheckBox
+import javax.swing.JLabel
 import javax.swing.JOptionPane
+import javax.swing.JTextField
+import javax.swing.JToolBar
+import javax.swing.KeyStroke
 import javax.swing.event.ChangeEvent
 import javax.swing.event.ChangeListener
 import javax.swing.event.DocumentEvent
 import javax.swing.event.DocumentListener
 import javax.swing.event.TreeSelectionEvent
 import javax.swing.event.TreeSelectionListener
-import javax.swing.UIManager
-import scala.swing.Button
-import acumen.interpreters.enclosure.Parameters
-import javax.swing.KeyStroke
 
 class CodeArea extends Panel with TreeSelectionListener {
 
   val textArea = createSyntaxTextArea
+  val searchField = new JTextField(30)
+  val findReplaceToolBar = createFindReplaceToolbar
   
   val DEFAULT_FONT_SIZE = 12
   val DEFAULT_FONT_NAME = Font.MONOSPACED
@@ -57,9 +66,6 @@ class CodeArea extends Panel with TreeSelectionListener {
   val PROMPT_SAVE_AND_CONTINUE = "Save and continue"
   val PROMPT_DISCARD_AND_CONTINUE = "Discard and continue"
     
-  this.peer.setLayout(new BorderLayout)
-  this.peer.add(textArea, BorderLayout.CENTER)
-  
   /* ---- state variables ---- */
   var currentFile: Option[File] = None
   var editedSinceLastSave: Boolean = false
@@ -319,7 +325,50 @@ class CodeArea extends Panel with TreeSelectionListener {
     loadFile(Main.openFile)
     notifyPathChangeListeners
   }
-
+  
+  /** Find and replace tool bar (currently supports only find). */
+  def createFindReplaceToolbar: JToolBar = {
+    val toolBar = new JToolBar()
+    val matchCaseCB = new JCheckBox("Case Sensitive")
+    val regexCB = new JCheckBox("RegEx")
+    val nextButton = new JButton(">")
+    val prevButton = new JButton("<")
+    searchField.addActionListener(new ActionListener{
+      def actionPerformed(e: ActionEvent) = nextButton doClick 0 
+    })
+    nextButton setActionCommand "FindNext"
+    prevButton setActionCommand "FindPrevious"
+    val findActionListener = new ActionListener {
+      def actionPerformed(e: ActionEvent) {
+        val command = e.getActionCommand
+        val forward = "FindNext" equals command
+        val searchContext = new SearchContext()
+        val searchText = searchField.getText
+        if (searchText.nonEmpty) {
+          searchContext setSearchFor searchText
+          searchContext setMatchCase matchCaseCB.isSelected
+          searchContext setRegularExpression regexCB.isSelected
+          searchContext setSearchForward forward
+          searchContext setWholeWord false
+          val found = SearchEngine.find(textArea, searchContext)
+          if (!found)
+            JOptionPane.showMessageDialog(textArea, "Text \"" + searchText + "\" not found")
+        }
+      }
+    }
+    nextButton addActionListener findActionListener
+    prevButton addActionListener findActionListener
+    toolBar add new JLabel("Find")
+    toolBar add searchField
+    toolBar add prevButton
+    toolBar add nextButton
+    toolBar add matchCaseCB
+    toolBar add regexCB
+    toolBar setVisible false
+    toolBar setFloatable false
+    toolBar
+  }
+  
   /* Font management */
 
   def setFontName(n: String) =
