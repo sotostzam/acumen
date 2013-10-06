@@ -55,6 +55,8 @@ object Simplifier {
       case ExprVector(es) => ExprVector(es map des)
       case Sum(e, i, col, cond) =>
         Sum(simplify(e), i, des(col), simplify(cond))
+      case ExprLet(bs,e2) => ExprLet(bs map (b =>(b._1,simplify(b._2))),
+                                     simplify(e2))
       case TypeOf(cn) => e
       case ExprInterval(lo, hi) => Op(Name("/",0),List(Op(Name("+",0), List(lo, hi)), Lit(GDouble(2.0))))
       case ExprIntervalM(mid, _) => mid

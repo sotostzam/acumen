@@ -117,7 +117,8 @@ package acumen {
   /* Example: [a:b] deprecated, now [a..b] and m+/-r*/
   case class ExprInterval(lo: Expr, hi: Expr) extends Expr
   case class ExprIntervalM(mid: Expr, pm: Expr) extends Expr
-
+  /* Example: let x=1+2;y=2+3 in x+y end */
+  case class ExprLet(bindings:List[(Name,Expr)], e2:Expr) extends Expr
   /* ground values (common to expressions and values) */
 
   sealed abstract class GroundValue
