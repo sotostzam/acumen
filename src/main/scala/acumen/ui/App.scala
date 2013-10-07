@@ -726,7 +726,11 @@ class App extends SimpleSwingApplication {
               case VK_0      => codeArea resetFontSize ; true
               case _         => false 
             }
-        else false 
+        else e.getKeyCode match {
+          case VK_ESCAPE if codeArea.findReplaceToolBar.isVisible => 
+            toggleFindReplaceToolbar; true
+          case _ => false
+        }
     })
 
   /* ----- initialisation ----- */
