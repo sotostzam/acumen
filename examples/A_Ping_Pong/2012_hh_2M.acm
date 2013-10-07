@@ -15,7 +15,6 @@ class Ball ()
   p''  := [0,0,0];
   _3D  := ["Sphere",[0,0,0.5],0.03,[1,1,1],[0,0,0]];
  end
- _3D = ["Sphere",p,0.03,[1,1,1],[0,0,0]];
  // If mode is not valid then make mode "Panic!"
  if mode ~= "Fly" && mode ~= "Bounce" && mode ~= "Freeze"
    mode := "Panic!";
@@ -32,10 +31,14 @@ class Ball ()
     p'   :=  p' .* k_z;    // Bounce losing k_z energy
     mode := "Fly";
   case "Freeze"         // The ball becomes red and freezes for a bit
-    p'  = [0,0,0]; p'' = [0,0,0];
-    _3D = ["Sphere",p,0.03,[1,0,0],[0,0,0]];
+    p'  := [0,0,0]; p'' := [0,0,0];
   case "Panic!"
-  end
+  end;
+  if (mode == "Freeze")
+    _3D = ["Sphere",p,0.03,[1,0,0],[0,0,0]];
+  else
+    _3D = ["Sphere",p,0.03,[1,1,1],[0,0,0]];
+  end;
 end
 
 
@@ -62,7 +65,7 @@ end
 class Bat(n,p1)
  private
   p     := p1;
-  p'    := [0,0,0];
+  pv    := [0,0,0];
   angle := [0,0,0.1];
   displayAngle := [0,0,0];
   mode  := "Run";
@@ -84,7 +87,7 @@ class Bat(n,p1)
                [1,0.1,0.1],-1 * displayAngle];
     end;
   case "Rest"
-      p' = [0,0,0]; // Set speed to 0 in “Rest” mode
+      pv = [0,0,0]; // Set speed to 0 in “Rest” mode
       _3D = ["Box",p+[-0.05,0,0],[0.3,0.3,0.3],
                [1,1,0.1],-1 * displayAngle];
   end
@@ -128,8 +131,9 @@ class Player(n) // Based on WiffWaff's speed-control player
   t   := 0;
   t'  := 1;
   reStart := false;
+  i := [0,0,0]; i' := [0,0,0];
  end
- 
+  
  startPoint = [1.6*(-1)^n,0,0.2];
  if mode ~= "Wait" && mode ~= "Prepare" && mode ~= "Hit"
    mode := "Panic!";
@@ -155,6 +159,23 @@ class Player(n) // Based on WiffWaff's speed-control player
     mode := "Wait";
    end;
   case "Prepare"             // Prepare to hit the ball
+//   if n == 2
+//   v2  = [-(dot(ballp, [1,0,0] ) + 0.65 + 0.5 ), -dot( ballp, [0,1,0]
+//), 5 - dot(ballp,[0,0,1])];
+//   v21 = (v2 - ballv) / (-2) ;
+//   n1   = norm(v21);
+//   batAngle = v21 / n1;
+//   z = (n1- dot(batAngle, [1,0,0])*4) / dot(batAngle, [0,0,1]);
+//   v = ballv - [4,0,z];
+//  else
+//   v2  = [(-dot(ballp, [1,0,0] ) + 0.65 + 0.5 ), -dot( ballp, [0,1,0]
+//), 5 - dot(ballp,[0,0,1])];
+//   v21 = (v2 - ballv) / (-2) ;
+//   n1   =  norm(v21);
+//   batAngle = v21 / n1;
+//   z = (n1- dot(batAngle, [1,0,0])*4) / dot(batAngle, [0,0,1]);
+//   v = ballv - [4,0,z];
+//  end;
    if bounced == true && dot(batp, [0,0,1]) > 0.1                                      
    // Once ball bounces, move towards it
      v = (ballp-batp).*[0,30,0] + (ballp-batp).*[0,0,30] +
@@ -172,25 +193,18 @@ class Player(n) // Based on WiffWaff's speed-control player
    end;
  case "Hit"           // Decide how you want hit the ball,
   if n == 2
-   v2  := [-(dot(ballp, [1,0,0] ) + 0.65 + 0.5 ), -dot( ballp, [0,1,0]
-), 5 - dot(ballp,[0,0,1])];
-   v21 := (v2 - ballv) / (-2) ;
-   n1   :=  norm(v21);
-   batAngle := v21 / n1;
-   z := (n1- dot(batAngle, [1,0,0])*4) / dot(batAngle, [0,0,1]);
-   v := ballv - [4,0,z];
+  v := ballv - [4,0,((norm(([-(dot(ballp, [1,0,0] ) + 0.65 + 0.5 ), -dot( ballp, [0,1,0]), 5 - dot(ballp,[0,0,1])] - ballv) / (-2))) - dot(( (([-(dot(ballp, [1,0,0] ) + 0.65 + 0.5 ), -dot( ballp, [0,1,0]), 5 - dot(ballp,[0,0,1])] - ballv) / (-2)) / (norm(([-(dot(ballp, [1,0,0] ) + 0.65 + 0.5 ), -dot( ballp, [0,1,0]), 5 - dot(ballp,[0,0,1])] - ballv) / (-2)))), [1,0,0])*4) / dot(( (([-(dot(ballp, [1,0,0] ) + 0.65 + 0.5 ), -dot( ballp, [0,1,0]), 5 - dot(ballp,[0,0,1])] - ballv) / (-2)) / (norm(([-(dot(ballp, [1,0,0] ) + 0.65 + 0.5 ), -dot( ballp, [0,1,0]), 5 - dot(ballp,[0,0,1])] - ballv) / (-2)))), [0,0,1])];
+   batAngle := (([-(dot(ballp, [1,0,0] ) + 0.65 + 0.5 ), -dot( ballp, [0,1,0]), 5 - dot(ballp,[0,0,1])] - ballv) / (-2)) / (norm(([-(dot(ballp, [1,0,0] ) + 0.65 + 0.5 ), -dot( ballp, [0,1,0]), 5 - dot(ballp,[0,0,1])] - ballv) / (-2)));
+
   else
-   v2  := [(-dot(ballp, [1,0,0] ) + 0.65 + 0.5 ), -dot( ballp, [0,1,0]
-), 5 - dot(ballp,[0,0,1])];
-   v21 := (v2 - ballv) / (-2) ;
-   n1   :=  norm(v21);
-   batAngle := v21 / n1;
-   z := (n1- dot(batAngle, [1,0,0])*4) / dot(batAngle, [0,0,1]);
-   v := ballv - [4,0,z];
+   v := ballv - [4,0,((norm(([(-dot(ballp, [1,0,0] ) + 0.65 + 0.5 ), -dot( ballp, [0,1,0]), 5 - dot(ballp,[0,0,1])] - ballv) / (-2))) - dot(( (([(-dot(ballp, [1,0,0] ) + 0.65 + 0.5 ), -dot( ballp, [0,1,0]), 5 - dot(ballp,[0,0,1])] - ballv) / (-2)) / (norm(([(-dot(ballp, [1,0,0] ) + 0.65 + 0.5 ), -dot( ballp, [0,1,0]), 5 - dot(ballp,[0,0,1])] - ballv) / (-2)))), [1,0,0])*4) / dot(( (([(-dot(ballp, [1,0,0] ) + 0.65 + 0.5 ), -dot( ballp, [0,1,0]), 5 - dot(ballp,[0,0,1])] - ballv) / (-2)) / (norm(([(-dot(ballp, [1,0,0] ) + 0.65 + 0.5 ), -dot( ballp, [0,1,0]), 5 - dot(ballp,[0,0,1])] - ballv) / (-2)))), [0,0,1])];
+   batAngle := (([(-dot(ballp, [1,0,0] ) + 0.65 + 0.5 ), -dot( ballp, [0,1,0]), 5 - dot(ballp,[0,0,1])] - ballv) / (-2)) / (norm(([(-dot(ballp, [1,0,0] ) + 0.65 + 0.5 ), -dot( ballp, [0,1,0]), 5 - dot(ballp,[0,0,1])] - ballv) / (-2)));
   end;
+ // v := v;
+ // batAngle := batAngle;
   serve  := false;
   hit    := true;
-  mode   := "Wait";
+  mode   = "Wait";
   reStart := false;
   desiredBatP := startPoint;
   if n == 1
@@ -203,7 +217,8 @@ class Player(n) // Based on WiffWaff's speed-control player
 // Compute the desired position based on the computed "control" speed
  desiredBatP' = v;
 // Basic controller to actuate acceleration
- aTemp = 13*(desiredBatP'-estimatedBatV)+ 50*(desiredBatP-batp);
+ i' = desiredBatP;
+ aTemp = 13*(desiredBatP'-estimatedBatV)+ 50*(desiredBatP-batp) + 10*i;
  if n == 2
    if reStart == true
      a  = [0,1,0.4] .* aTemp;
@@ -313,8 +328,8 @@ end
 class Referee()  // This class will monitors the whole process of the game.
  private
   mode:="Initialize";
-  x := 0;x' := 0;
-  z := 0;z' := 0;
+  x := 0;xv := 0;
+  z := 0;zv := 0;
   y := 0;
   t := 0;t' := 1;
   player1Score := 0;
@@ -337,7 +352,7 @@ class Referee()  // This class will monitors the whole process of the game.
   mode := "Panic!";
  end;
   t'=1;
-  if z<0.05 && z'<0 && status == "Normal"  // Check if anyone fouls
+  if z<0.05 && zv<0 && status == "Normal"  // Check if anyone fouls
    if (abs(y)>0.78||abs(x)>1.53) && status == "Normal"
     reason     := "BallOutOfBoundary";
     if bounced == false
@@ -380,14 +395,6 @@ class Referee()  // This class will monitors the whole process of the game.
     bounceTime := t;
    end;
  end;
-
-
-
-
-
-
-
-
  if bounced == "YesIn1" && x>0 && status == "Normal"
   bounced := false
  end;
@@ -397,7 +404,7 @@ class Referee()  // This class will monitors the whole process of the game.
   // Time to check if the ball touches the net
  if abs(x)<0.025 && t>0.1 && checked == false && status == "Normal"   
   if z<0.25
-    if x'>0
+    if xv>0
      mode   := "Player1Lost";
     else
      mode   := "Player2Lost"
@@ -478,9 +485,9 @@ class Game ( )
   end;
   t'=1;
   referee.x  = dot(ball.p,[1,0,0]);
-  referee.x' = dot(ball.p',[1,0,0]);
+  referee.xv = dot(ball.p',[1,0,0]);
   referee.z  = dot(ball.p,[0,0,1]);
-  referee.z' = dot(ball.p',[0,0,1]);
+  referee.zv = dot(ball.p',[0,0,1]);
   referee.y  = dot(ball.p,[0,1,0]);
   referee.serveNumber = serveNumber;
   player1Score  = referee.player1Score;
@@ -492,16 +499,16 @@ class Game ( )
   player2.ballv     = ballob.v;
   if bat1.mode ~= "Rest"
 //   batActuator1.p' = player1.v;
-   if (player1.mode=="Hit")
-     batActuator1.p' := player1.v
-   end;
+//   if (player1.mode=="Hit")
+//     batActuator1.p' := player1.v
+//   end;
    batActuator1.p'' = player1.a;
   end;
   if bat2.mode ~= "Rest"
 //   batActuator2.p' = player2.v;
-   if (player2.mode=="Hit")
-     batActuator2.p' := player2.v
-   end;
+//   if (player2.mode=="Hit")
+//     batActuator2.p' := player2.v
+//   end;
   batActuator2.p'' = player2.a;
   end;
   player1.batp  = bat1.p;
@@ -516,13 +523,13 @@ class Game ( )
   bat2.angle = batActuator2.angle;
   if batActuator1.energy > maxEnergy
      bat1.mode := "Rest";
- bat1.p'   := [0,0,0];
+ bat1.pv   := [0,0,0];
  batActuator1.p' = [0,0,0]; // Exception
 // batActuator1.p'' = [0,0,0];
   end;
   if batActuator2.energy > maxEnergy
      bat2.mode := "Rest";
- bat2.p'   := [0,0,0];
+ bat2.pv   := [0,0,0];
  batActuator2.p' = [0,0,0]; // Exception
 // batActuator2.p'' = [0,0,0];
   end; 
@@ -563,9 +570,10 @@ class Game ( )
    player2.mode := "Wait";
   case "Player2Serve" // Player 2 is serving
    player1.serve = false;
-   player2.serve =  true;
-   if player2.hit == true && norm(bat2.p - ball.p) < 0.15 && bat2.mode ~= "Rest"
-    mode := "Impact"
+   player2.serve = true;
+   if player2.hit == true && norm(bat2.p - ball.p) < 0.15
+    ball.p'    := ball.p' -dot(2.*(ball.p'- player2.v),player2.batAngle)*player2.batAngle;
+    mode       := "ChangeSide";
    end;
    if referee.restart == 1
     mode := "Freeze";
@@ -574,53 +582,13 @@ class Game ( )
  case "Player1Serve" // Player 1 is serving
   player2.serve = false;
   player1.serve = true;
-  if player1.hit == true && norm(bat1.p - ball.p) < 0.15 && bat1.mode ~= "Rest"
-   mode := "Impact"
-  end;
-  if referee.restart == 1
-   mode := "Freeze";
-   t    := 0;
-  end;
- case "Impact" // When one player hits the ball
-  ballActuator.v1 := ball.p';
-  if serveNumber == 2 // Give player2's data to bat actuator
-   batActuator2.p' := player2.v;
-//   batActuator2.p'' := player2.a;
-   bat2.p'         := batActuator2.p';
-   ballActuator.v3     := bat2.p';
-   bat2.angle      := player2.batAngle;
-   ballActuator.angle  := bat2.angle;
-   ballActuator.action := 1; // Tell ball actuator to act
-   referee.lastHit := 2;
-   mode := "Act";
-    if referee.restart == 1
-      mode := "Freeze";
-      t := 0;
-    end;
-  end;
-  if serveNumber == 1 // Give player1's data to actuator
-   batActuator1.p' := player1.v;
-   bat1.p'         := batActuator1.p';
-   ballActuator.v3     := bat1.p';
-   bat1.angle      := player1.batAngle;
-   ballActuator.angle  := bat1.angle;
-   ballActuator.action := 1; // Tell ball Actuator to act
-   referee.lastHit := 1;
-   mode := "Act";
-   if referee.restart == 1
-    mode := "Freeze";
-    t    := 0;
-   end;
-  end
- case "Act" // Wait till actuator finish
-  if referee.restart == 1
-   mode := "Freeze";
-   t    := 0;
-  end;
-  if ballActuator.done == true
-   ball.p'       := ballActuator.v2;
-   ballActuator.mode := "Initialize";
+  if player1.hit == true && norm(bat1.p - ball.p) < 0.15
+   ball.p'    := ball.p' -dot(2.*(ball.p'-player1.v),player1.batAngle)*player1.batAngle;
    mode          := "ChangeSide";
+  end;
+  if referee.restart == 1
+   mode := "Freeze";
+   t    := 0;
   end;
  case "ChangeSide" // Change the serve number
   if referee.restart == 1
