@@ -133,12 +133,17 @@ class Extract(val prog: Prog, private val debugMode: Boolean = false)
 
   def cleanUp() : Unit = {
     pruneDeadModes(modes); dumpPhase("PRUNE DEAD MODES") 
+
     pruneResetConds(modes); dumpPhase("PRUNE RESET CONDS")
-    
+
+    killDeadResets(modes); dumpPhase("KILL DEAD RESETS")
+
     // do this early so the initial mode is not a special case
     cleanUpInitMode(); dumpPhase("CLEAN UP INIT")
 
     markTransModes(modes); dumpPhase("MARK TRANS MODES")
+
+    eliminateTrueOnlyModes(); dumpPhase("ELIMINATE TRUE ONLY")
 
     mergeDupModes(modes); dumpPhase("MERGE DUP MODES")
     eliminateTrueOnlyModes(); dumpPhase("ELIMINATE TRUE ONLY")
@@ -146,9 +151,6 @@ class Extract(val prog: Prog, private val debugMode: Boolean = false)
     cleanUpTransModes(modes); dumpPhase("CLEAN UP TRANS MODE")
     eliminateTrueOnlyModes(); dumpPhase("ELIMINATE TRUE ONLY")
     
-    killDeadResets(modes); dumpPhase("KILL DEAD RESETS")
-    eliminateTrueOnlyModes(); dumpPhase("ELIMINATE TRUE ONLY")
-
     cleanUpAssigns(modes); dumpPhase("CLEAN UP ASSIGNS")
     
     killDeadVars(init, modes); dumpPhase("KILL DEAD VARS")
@@ -441,11 +443,23 @@ object Extract {
   // back into this mode is dead (i.e. conds == false) than it follows
   // that there is no way to end up in this mode, thus the mode is
   // effectively trans.
-  def markTransModes(modes: Seq[Mode]) {
+  def markTransModesPreCleanup(modes: Seq[Mode]) {
     modes.filter{!_.trans}.foreach{m =>
       val rs = m.resets.filter{r => r.mode.orNull == m.label}
       assert(rs.size == 1)
       if (rs.head.conds == Cond.False) {
+        m.actions = Nil
+        m.trans = true
+      }
+    }
+  }
+  // More robust version that can be run before or after dead resets
+  // are eliminated
+  def markTransModes(modes: Seq[Mode]) {
+    modes.filter{!_.trans}.foreach{m =>
+      val rs = m.resets.filter{r => r.mode.orNull == m.label}
+      assert(rs.size <= 1)
+      if (rs.isEmpty || rs.head.conds == Cond.False) {
         m.actions = Nil
         m.trans = true
       }
