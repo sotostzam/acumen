@@ -19,6 +19,8 @@ class Console extends ListView[ConsoleMessage] {
   val initColor = selectionBackground
   renderer = ListView.Renderer.wrap[ConsoleMessage](new ConsoleCellRenderer)
   
+  val consoleFlasher = new SwingUtil.Flasher()
+  
   class ConsoleCellRenderer extends ListCellRenderer {
     protected val defaultRenderer = new DefaultListCellRenderer
   
@@ -28,9 +30,10 @@ class Console extends ListView[ConsoleMessage] {
       val messageIsOld = index >= oldEntries
       val message = value match {
         case NormalMessage(m) => m
-        case ErrorMessage(m) => 
+        case ErrorMessage(m) =>
           "<html>"+
-          (if (messageIsOld) "ERROR:" else "<font color=red>ERROR:</font>") +
+          (if (messageIsOld) "ERROR:"
+          else "<font color=red>ERROR:</font>") +
           "<pre>"+ 
           (m.replaceAll("<","&lt;")
             .replaceAll(">","&gt;")
@@ -67,10 +70,12 @@ class Console extends ListView[ConsoleMessage] {
   def logError(message:String) = {
     logMessage(ErrorMessage(message))
     done = true
+    SwingUtil.flashFunction(
+      App.ui.consolePage.background_=, Color.WHITE, Color.RED, consoleFlasher)
   }
   
   private def logMessage(m: ConsoleMessage) {
-	oldEntries += 1
+	  oldEntries += 1
     listData = m +: listData
   }
   
