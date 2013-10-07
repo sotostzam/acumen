@@ -33,11 +33,7 @@ class Console extends ListView[ConsoleMessage] {
         case ErrorMessage(m) =>
           "<html>"+
           (if (messageIsOld) "ERROR:"
-          else { // Error is new, highlight it in the console
-            SwingUtil.flashFunction(
-              App.ui.consolePage.background_=, Color.WHITE, Color.RED, consoleFlasher)
-            "<font color=red>ERROR:</font>"
-          }) +
+          else "<font color=red>ERROR:</font>") +
           "<pre>"+ 
           (m.replaceAll("<","&lt;")
             .replaceAll(">","&gt;")
@@ -74,10 +70,12 @@ class Console extends ListView[ConsoleMessage] {
   def logError(message:String) = {
     logMessage(ErrorMessage(message))
     done = true
+    SwingUtil.flashFunction(
+      App.ui.consolePage.background_=, Color.WHITE, Color.RED, consoleFlasher)
   }
   
   private def logMessage(m: ConsoleMessage) {
-	oldEntries += 1
+	  oldEntries += 1
     listData = m +: listData
   }
   
