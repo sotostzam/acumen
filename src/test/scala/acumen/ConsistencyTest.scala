@@ -6,9 +6,6 @@ import scala.collection.immutable.SortedMap
 
 object ConsistencyTest extends Properties("parallel.ConsistencyTest") {
 
-  sealed abstract class Moo(x: Int)
-  class Boo(x: Int, y: Boolean) extends Moo(x)
-
   import util.System._
 
   property("reference-parallel-consistency") = consistencyTest(interpreters.reference.Interpreter)
@@ -16,20 +13,31 @@ object ConsistencyTest extends Properties("parallel.ConsistencyTest") {
   property("parallel-parallel-consistency (determinism)") = consistencyTest(interpreters.imperative.ParallelInterpreter(2))
   
   def consistencyTest(base: CStoreInterpreter) = {
-    def notEqual(left: CStore, right: CStore): Boolean = {
-      val leftKeys = left.keySet
-      val rightKeys = right.keySet
-      val commonKeys = leftKeys intersect rightKeys
-      val onlyLeftKeys = leftKeys -- commonKeys
-      val onlyRightKeys = rightKeys -- commonKeys
-      if (onlyLeftKeys.nonEmpty || onlyRightKeys.nonEmpty) {
-        println(onlyLeftKeys.toList.sort(_ <= _) + "\n!=\n" + onlyRightKeys.toList.sort(_ <= _))
-        true
-      }
-      else left.keys.exists(id => {
-        val l = left(id)
-        val r = right(id)
-        if (l != r) { println(id + "" + left(id)); true } else false
+    def failWithError(msg: String): Boolean = { System.err.println(msg); false }
+    def equal(expected: CStore, observed: CStore): Boolean = {
+      val observedKeys = observed.keySet
+      val expectedKeys = expected.keySet
+      val commonKeys = observedKeys intersect expectedKeys
+      val onlyObservedKeys = observedKeys -- commonKeys
+      val onlyExpectedKeys = expectedKeys -- commonKeys
+      if (onlyObservedKeys.nonEmpty || onlyExpectedKeys.nonEmpty)
+        failWithError("Incompatible key sets: " + onlyObservedKeys.toList.sort(_ <= _) + "\n!=\n" + onlyExpectedKeys.toList.sort(_ <= _))
+      else observed.keys.exists(id => {
+        val obsObj = observed(id)
+        val expObj = expected(id)
+        if (obsObj.size != expObj.size)
+          failWithError("CObjects correspoinding ton CId " + id + " differ in length.")
+        else {
+          val allsame = (expObj zip obsObj).forall {
+            case ((expName, expValue), (obsName, obsValue)) =>
+              if (expName != obsName)
+                failWithError("Expected " + id + "." + obsName.x + " to have name " + expName + " but was " + obsName)
+              else if (obsValue != obsValue)
+                failWithError("Expected " + id + "." + expName.x + " to have value " + expValue + " but was " + obsValue)
+              else true
+          }
+          allsame
+        }
       })
     }
     // These interpreters are compared by the test.
@@ -40,7 +48,7 @@ object ConsistencyTest extends Properties("parallel.ConsistencyTest") {
     val par = interpreters.imperative.ParallelInterpreter(2)
     val models = readFiles("src/test/resources/acumen/interpreters/parallel/models/", FILE_SUFFIX_MODEL)
     if (models.isEmpty) {
-      println("no models loaded!")
+      System.err.println("No models loaded!")
       false
     }
     else models.forall {
@@ -49,13 +57,16 @@ object ConsistencyTest extends Properties("parallel.ConsistencyTest") {
         val des = Desugarer.run(ast)
         val expected = (base.run(des): CStoreRes).ctrace.last
         val computed = par.run(des).ctrace.last
-        if (notEqual(computed, expected)) {
-          println("expected: " + expected)
-          println("computed: " + computed)
-          println(name + ".acm INCONSISTENT")
+        if (!equal(expected, computed)) {
+          System.err.println("expected: " + expected)
+          System.err.println("computed: " + computed)
+          System.err.println(name + ".acm INCONSISTENT")
           false
         }
-        else true
+        else {
+          print("+")
+          true
+        }
     }
   }
 
