@@ -154,6 +154,7 @@ object Main {
     val res = args match {
       case ("" | "reference") :: Nil => reference.standard.Interpreter
       case "original" :: Nil => reference.original.Interpreter
+      case "experimental" :: Nil => reference.experimental.Interpreter
       case "parallel" :: tail => selectParallellInterpreter(tail)
       case "imperative" :: Nil => imperative.ImperativeInterpreter
       case "enclosure" :: tail => selectEnclosureInterpreter(tail)
@@ -163,7 +164,7 @@ object Main {
       throw UnrecognizedInterpreterString(args.mkString("-"))
       res
   }
-  def interpreterHelpString = "reference|newreference|imperative|parallel[-<num threads>]|enclosure[-pwl|-evt]"
+  def interpreterHelpString = "reference|original|experimental|parallel[-<num threads>]|enclosure[-pwl|-evt]"
   // parallel-sharing should not be documented but recognized for testing
 
   def selectParallellInterpreter(args: List[String], 
