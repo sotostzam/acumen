@@ -10,9 +10,9 @@ object AcumenProject extends Build {
     .settings( testOptions in Test := Seq(Tests.Filter(testFilter)) )
     .settings( testOptions in FullTest := Seq(Tests.Filter(fullTestFilter)) )
   
-  def slowTest(name:String) = name == "acumen.RandomTests"
+  def slowTest(name:String) = Set("acumen.RandomTests").contains(name)
   def testFilter(name:String) = !slowTest(name)
-  def fullTestFilter(name:String) = true
+  def fullTestFilter(name:String) = !Set("acumen.RandomTests").contains(name)
   
   lazy val FullTest = config("full") extend(Test)
 
