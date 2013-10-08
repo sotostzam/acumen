@@ -1,7 +1,7 @@
 package acumen
 package render
 
-import interpreters.reference.Interpreter._
+import interpreters.reference.standard.Interpreter._
 
 import util.Names._
 import util.Filters._

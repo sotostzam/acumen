@@ -39,7 +39,8 @@ import swing.{Action, BorderPanel, BoxPanel, ButtonGroup, CheckMenuItem,
 			  TabbedPane, Table}
 import swing.event._
 import scala.Boolean
-import acumen.interpreters.{reference,newreference,enclosure,imperative}
+import acumen.interpreters.{enclosure,imperative}
+import acumen.interpreters.reference.{original,standard}
 import acumen.interpreters.enclosure.ivp.PicardSolver
 import acumen.interpreters.enclosure.ivp.LohnerSolver
 import acumen.interpreters.enclosure.event.pwl.PWLEventEncloser

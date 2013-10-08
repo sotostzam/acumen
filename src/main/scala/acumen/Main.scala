@@ -152,8 +152,8 @@ object Main {
     val args = args0.flatMap(_.split('-')).toList
     import interpreters._
     val res = args match {
-      case ("" | "reference") :: Nil => reference.Interpreter
-      case "newreference" :: Nil => newreference.Interpreter
+      case ("" | "reference") :: Nil => reference.standard.Interpreter
+      case "original" :: Nil => reference.original.Interpreter
       case "parallel" :: tail => selectParallellInterpreter(tail)
       case "imperative" :: Nil => imperative.ImperativeInterpreter
       case "enclosure" :: tail => selectEnclosureInterpreter(tail)
@@ -371,7 +371,7 @@ object Main {
       } else {
         somethingUpdated = true
         try {
-          Examples.writeExampleResult(loc, dn, f, interpreters.reference.Interpreter)
+          Examples.writeExampleResult(loc, dn, f, interpreters.reference.standard.Interpreter)
         } catch {
           case e => 
             println("ERROR when processing " + f + ":")

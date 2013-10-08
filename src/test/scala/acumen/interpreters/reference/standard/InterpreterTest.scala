@@ -1,6 +1,7 @@
 package acumen
 package interpreters
-package newreference
+package reference
+package standard
 
 import Errors._
 import util.Filters._
@@ -12,19 +13,17 @@ import org.scalatest.matchers.ShouldMatchers
 import org.scalatest.FunSuite
 import java.io.File
 import util.Transform
-import interpreters.reference.Interpreter
-
 
 class InterpreterTest extends InterpreterTestBase with ShouldMatchers {
 
-  override def suiteName = "New Reference InterpreterTest"
+  override def suiteName = "Standard Reference InterpreterTest"
 
-  def interpreter = interpreters.newreference.Interpreter
+  def interpreter = interpreters.reference.standard.Interpreter
 
   def run(in: InputStreamReader) : Unit = {
     val ast = Parser.run(Parser.prog, in)
     val tr = Transform.transform(ast)
-    for (_ <- (interpreters.reference.Interpreter run tr).ctrace) ()
+    for (_ <- (interpreter run tr).ctrace) ()
   }
 
   testExamples({f => f == "examples/0_Demos/02_Passive_walking.acm" || 
@@ -126,7 +125,9 @@ class InterpreterTest extends InterpreterTestBase with ShouldMatchers {
              timeStep = 0.001, 
              endTime = 2.0, 
              resultType = @Discrete,
-             nextChild = 0 }
+             nextChild = 0,
+             expects = 0, 
+             observes = 0 }
 
       #0.2 { className = Ball,
              parent = #0,
@@ -168,7 +169,9 @@ class InterpreterTest extends InterpreterTestBase with ShouldMatchers {
              timeStep = 0.001, 
              endTime = 2.0, 
              resultType = @Discrete,
-             nextChild = 0 }
+             nextChild = 0,
+             expects = 0, 
+             observes = 0 }
 
       #0.3 { className = Ball,
              parent = #0,

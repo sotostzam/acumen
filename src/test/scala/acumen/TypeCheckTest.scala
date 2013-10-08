@@ -11,7 +11,7 @@ import org.scalatest.matchers.ShouldMatchers
 import org.scalatest.FunSuite
 import java.io.File
 import util.Transform
-import interpreters.reference.Interpreter
+import interpreters.reference.standard.Interpreter
 
 // FIXME: Fixup test so it works again
 //        Test should run the type checker on all the examples

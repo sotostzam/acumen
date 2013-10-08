@@ -11,7 +11,8 @@
 
 package acumen
 package interpreters
-package newreference
+package reference
+package standard
 
 import Eval._
 
@@ -31,7 +32,7 @@ import Errors._
 
 object Interpreter extends acumen.CStoreInterpreter {
 
-  override def id = Array("newreference")
+  override def id = Array("reference")
 
   type Store = CStore
   type Env = Map[Name, CValue]
