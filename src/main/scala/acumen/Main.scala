@@ -27,6 +27,7 @@ object Main {
   var need_quartz = false
   var threeDState: ThreeDState.Value = null
   var disableNewPlot = true
+  var disableNewSemantics = true
   var autoPlay = false
   var openFile: File = null
   var interpreter : Interpreter = null
@@ -50,6 +51,7 @@ object Main {
     "--model <file>          model file to open",
     "--3d|--lazy-3d|--no-3d  controls the default state for the 3d tab",
     "--newplot               enable experimental plotter",
+    "--new-semantics         enable experimental semantics in ui",
     "--play                  automatically run the model",
     "--disable-completion    disable code completion in the source code editor",
     "--dont-fork             disable auto-forking of a new JVM when required")
@@ -114,6 +116,8 @@ object Main {
         disableNewPlot = false; parseArgs(tail)
       case ("--disable-newplot" | "--no-newplot") :: tail => 
         disableNewPlot = true; parseArgs(tail)
+      case ("--new-semantics") :: tail => 
+        disableNewSemantics = false; parseArgs(tail)
       case "--play" :: tail =>
         autoPlay = true; parseArgs(tail)
       case "--enable-completion" :: tail =>
