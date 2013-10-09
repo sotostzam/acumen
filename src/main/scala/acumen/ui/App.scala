@@ -468,7 +468,7 @@ class App extends SimpleSwingApplication {
 
     object semantics {
       val refStandard = new RadioMenuItem("") {
-        selected = true
+        selected = false
         enableWhenStopped(this)
         action = floatingPointStandardAction
       }
@@ -476,7 +476,7 @@ class App extends SimpleSwingApplication {
         selected = false
         enableWhenStopped(this)
         action = floatingPointOriginalAction
-      }
+     }
       val refExperimental = new RadioMenuItem("") {
         selected = false
         enableWhenStopped(this)
@@ -504,9 +504,7 @@ class App extends SimpleSwingApplication {
         selected = false // Main.useEnclosures &&
           //enclosure.Interpreter.strategy.eventEncloser.getClass == classOf[TreeEventEncloser]
       }
-      val semanticsBGItems = 
-        List(refStandard) ++ (if (Main.enableAllSemantics) List(refOriginal, refExperimental, impr, par) else Nil) ++ List(pwl, et)
-      val bg = new ButtonGroup(semanticsBGItems:_*)
+      val bg = new ButtonGroup(refStandard, refOriginal, refExperimental, impr, par, pwl, et)
       val ls = new CheckMenuItem("") {
         action = contractionAction
         enabledWhenStopped += (this, () => interpreter.interpreter.getClass == enclosure.Interpreter.getClass)
