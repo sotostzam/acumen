@@ -505,7 +505,7 @@ class App extends SimpleSwingApplication {
           //enclosure.Interpreter.strategy.eventEncloser.getClass == classOf[TreeEventEncloser]
       }
       val semanticsBGItems = 
-        List(refStandard) ++ (if (!Main.disableNewSemantics) List(refOriginal, refExperimental, impr, par) else Nil) ++ List(pwl, et)
+        List(refStandard) ++ (if (Main.enableAllSemantics) List(refOriginal, refExperimental, impr, par) else Nil) ++ List(pwl, et)
       val bg = new ButtonGroup(semanticsBGItems:_*)
       val ls = new CheckMenuItem("") {
         action = contractionAction
@@ -524,9 +524,10 @@ class App extends SimpleSwingApplication {
     contents += new Menu("Semantics") {
       import semantics._
       mnemonic = Key.S
-      val semanticsMenuItems = 
-        List(refStandard) ++ (if (!Main.disableNewSemantics) List(refOriginal, refExperimental, new Separator, impr, par) else Nil) ++ List(new Separator, pwl, et)
-      contents ++= Seq(semanticsMenuItems:_*)
+      contents += refStandard
+      if (Main.enableAllSemantics)
+        contents ++= Seq(refOriginal, refExperimental, new Separator, impr, par)
+      contents ++= Seq(new Separator, pwl, et, new Separator, ls)
     }
    
     contents += new Menu("Help") {
