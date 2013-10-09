@@ -152,6 +152,8 @@ object Main {
     openFile
   }
 
+  // Select an interpreter based on the provided string and return it.
+  // An empty string selects the default interpreter.
   def selectInterpreter(args0: String*) : Interpreter = {
     val args = args0.flatMap(_.split('-')).toList
     import interpreters._
