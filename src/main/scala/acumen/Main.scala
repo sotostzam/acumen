@@ -374,17 +374,17 @@ object Main {
       val loc = Examples.expectLoc
       val resFile = Examples.resultFile(loc, dn, f)
       if (resFile.exists) {
-        println("skipping " + f + "")
+        println("file " + resFile + " exists, skipping")
       } else {
         somethingUpdated = true
         try {
           Examples.writeExampleResult(loc, dn, f, interpreters.reference.standard.Interpreter)
         } catch {
           case e => 
-            println("ERROR when processing " + f + ":")
+            println("ERROR while creating " + resFile + ":")
             println("  " + e)
         }
-        println("PROCESSED " + f)
+        println("CREATED " + resFile)
       }
     }
     if (somethingUpdated) {
