@@ -127,6 +127,8 @@ class ParallelInterpreterTest extends InterpreterTestBase {
     //assert(res)
   }
 
-  testExamples({f => f == "examples/A_Ping_Pong/2013_hh_4T.acm"})
+  testExamples({f => f == "examples/0_Demos/02_Passive_walking.acm" || 
+                f.startsWith("examples/A_Ping_Pong/")})
+
   testShouldRun
 }

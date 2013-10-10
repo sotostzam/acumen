@@ -44,8 +44,13 @@ object Canonical {
 
   def deref(a:CId, st:CStore) : CObject = st(a)
 
-  def getObjectField(id:CId, f:Name, st:CStore) =
-    deref(id,st)(f)
+  def getObjectField(id:CId, f:Name, st:CStore) = {
+    val obj = deref(id,st)
+    if (obj contains f)
+      obj(f)
+    else
+      throw VariableNotDeclared(f)
+  }
 
   // getClass is already defined in Any
 

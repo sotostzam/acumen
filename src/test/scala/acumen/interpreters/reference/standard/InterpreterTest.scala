@@ -1,36 +1,35 @@
 package acumen
 package interpreters
-package newreference
-
-import java.io.File
-import java.io.InputStreamReader
-import scala.math._
-import org.scalatest.matchers.ShouldMatchers
-import org.scalatest.FunSuite
+package reference
+package standard
 
 import Errors._
 import util.Filters._
 import util.Names._
 import util.Canonical._
+import scala.math._
+import java.io.InputStreamReader
+import org.scalatest.matchers.ShouldMatchers
+import org.scalatest.FunSuite
+import java.io.File
 import util.Transform
-import acumen.testutil.TestUtil.{
-  assertEqualTrace
-}
 
 class InterpreterTest extends InterpreterTestBase with ShouldMatchers {
 
-  override def suiteName = "New Reference InterpreterTest"
+  override def suiteName = "Standard Reference InterpreterTest"
 
-  def interpreter = interpreters.newreference.Interpreter
+  def interpreter = interpreters.reference.standard.Interpreter
 
   def run(in: InputStreamReader) : Unit = {
     val ast = Parser.run(Parser.prog, in)
     val tr = Transform.transform(ast)
-    for (_ <- (interpreters.reference.Interpreter run tr).ctrace) ()
+    for (_ <- (interpreter run tr).ctrace) ()
   }
 
-  testExamples({f => f == "examples/0_Demos/02_Passive_walking.acm" || 
-                f.startsWith("examples/A_Ping_Pong/")})
+  testExamples({f => f == "examples/0_Demos/02_Passive_walking.acm" ||
+                f == "examples/A_Ping_Pong/2012_hh_3T.acm" ||
+                f == "examples/A_Ping_Pong/2013_hh_1T.acm" ||
+                f == "examples/A_Ping_Pong/2013_hh_4T.acm"})
   testShouldRun
   
   def getError(file:String) : Option[AcumenError] = {
@@ -128,7 +127,9 @@ class InterpreterTest extends InterpreterTestBase with ShouldMatchers {
              timeStep = 0.001, 
              endTime = 2.0, 
              resultType = @Discrete,
-             nextChild = 0 }
+             nextChild = 0,
+             expects = 0, 
+             observes = 0 }
 
       #0.2 { className = Ball,
              parent = #0,
@@ -170,7 +171,9 @@ class InterpreterTest extends InterpreterTestBase with ShouldMatchers {
              timeStep = 0.001, 
              endTime = 2.0, 
              resultType = @Discrete,
-             nextChild = 0 }
+             nextChild = 0,
+             expects = 0, 
+             observes = 0 }
 
       #0.3 { className = Ball,
              parent = #0,
@@ -194,15 +197,5 @@ class InterpreterTest extends InterpreterTestBase with ShouldMatchers {
     assert(matches(xs, expectedx))
     assert(matches(ys, expectedy))
   }
-  
-  test("continuous assignments are independent") {
-    val head = "class Main(simulator)\n  private x := 0; t := 0; t' := 1 end "
-    val cond = "if t < simulator.timeStep x = 1 else x = -1 end;"
-    val time = "t' = 1;"
-    val tail = "end"
-    val timeFirst = Parser.run(Parser.prog, head ++ time ++ cond ++ tail)
-    val condFirst = Parser.run(Parser.prog, head ++ cond ++ time ++ tail)
-    assertEqualTrace(timeFirst, condFirst, interpreter)
-  }
-  
+
 }

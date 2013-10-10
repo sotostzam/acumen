@@ -10,7 +10,6 @@ import java.awt.event.ActionListener
 import java.io.File
 import java.io.FileReader
 import java.io.FileWriter
-
 import scala.Array.canBuildFrom
 import scala.collection.mutable.ArrayBuffer
 import scala.collection.mutable.Buffer
@@ -18,7 +17,6 @@ import scala.swing.FileChooser
 import scala.swing.Label
 import scala.swing.Panel
 import scala.xml.XML
-
 import org.fife.ui.autocomplete.AutoCompletion
 import org.fife.ui.autocomplete.BasicCompletion
 import org.fife.ui.autocomplete.DefaultCompletionProvider
@@ -30,7 +28,6 @@ import org.fife.ui.rsyntaxtextarea.TokenTypes
 import org.fife.ui.rsyntaxtextarea.templates.StaticCodeTemplate
 import org.fife.ui.rtextarea.SearchContext
 import org.fife.ui.rtextarea.SearchEngine
-
 import acumen.Main
 import acumen.interpreters.enclosure.Parameters
 import acumen.ui.App
@@ -49,12 +46,15 @@ import javax.swing.event.DocumentEvent
 import javax.swing.event.DocumentListener
 import javax.swing.event.TreeSelectionEvent
 import javax.swing.event.TreeSelectionListener
+import java.util.concurrent.atomic.AtomicBoolean
 
 class CodeArea extends Panel with TreeSelectionListener {
 
   val textArea = createSyntaxTextArea
   val searchField = new JTextField(30)
   val findReplaceToolBar = createFindReplaceToolbar
+  
+  val searchFieldFlasher = new SwingUtil.Flasher()
   
   val DEFAULT_FONT_SIZE = 12
   val DEFAULT_FONT_NAME = Font.MONOSPACED
@@ -352,7 +352,8 @@ class CodeArea extends Panel with TreeSelectionListener {
           searchContext setWholeWord false
           val found = SearchEngine.find(textArea, searchContext)
           if (!found)
-            JOptionPane.showMessageDialog(textArea, "Text \"" + searchText + "\" not found")
+            SwingUtil.flashFunction(
+              searchField.setBackground, Color.WHITE, new Color(255,128,128), searchFieldFlasher)
         }
       }
     }

@@ -27,6 +27,7 @@ object Main {
   var need_quartz = false
   var threeDState: ThreeDState.Value = null
   var disableNewPlot = true
+  var enableAllSemantics = true
   var autoPlay = false
   var openFile: File = null
   var interpreter : Interpreter = null
@@ -59,7 +60,8 @@ object Main {
     "--full-help",
     "-p|--passes <%s>".format(availPasses.filter{!_.alwaysUsed}.map{_.id}.mkString(",")),
     "                        comma seperated list of extra passes to run",
-    "--templates             enables template expansion in the source code editor"
+    "--templates             enables template expansion in the source code editor",
+    "--prune-semantics       hide experimental semantics in the U.I."
   )
   def commandHelp = Array(
     "ui [<file>]             starts the U.I."
@@ -115,6 +117,8 @@ object Main {
         disableNewPlot = false; parseArgs(tail)
       case ("--disable-newplot" | "--no-newplot") :: tail => 
         disableNewPlot = true; parseArgs(tail)
+      case ("--prune-semantics") :: tail => 
+        enableAllSemantics = false; parseArgs(tail)
       case "--play" :: tail =>
         autoPlay = true; parseArgs(tail)
       case "--enable-completion" :: tail =>
@@ -149,12 +153,15 @@ object Main {
     openFile
   }
 
+  // Select an interpreter based on the provided string and return it.
+  // An empty string selects the default interpreter.
   def selectInterpreter(args0: String*) : Interpreter = {
     val args = args0.flatMap(_.split('-')).toList
     import interpreters._
     val res = args match {
-      case ("" | "reference") :: Nil => reference.Interpreter
-      case "newreference" :: Nil => newreference.Interpreter
+      case ("" | "reference") :: Nil => reference.standard.Interpreter
+      case "original" :: Nil => reference.original.Interpreter
+      case "experimental" :: Nil => reference.experimental.Interpreter
       case "parallel" :: tail => selectParallellInterpreter(tail)
       case "imperative" :: Nil => imperative.ImperativeInterpreter
       case "enclosure" :: tail => selectEnclosureInterpreter(tail)
@@ -164,7 +171,7 @@ object Main {
       throw UnrecognizedInterpreterString(args.mkString("-"))
       res
   }
-  def interpreterHelpString = "reference|newreference|imperative|parallel[-<num threads>]|enclosure[-pwl|-evt]"
+  def interpreterHelpString = "reference|original|experimental|parallel[-<num threads>]|enclosure[-pwl|-evt]"
   // parallel-sharing should not be documented but recognized for testing
 
   def selectParallellInterpreter(args: List[String], 
@@ -404,17 +411,17 @@ object Main {
       val loc = Examples.expectLoc
       val resFile = Examples.resultFile(loc, dn, f)
       if (resFile.exists) {
-        println("skipping " + f + "")
+        println("file " + resFile + " exists, skipping")
       } else {
         somethingUpdated = true
         try {
-          Examples.writeExampleResult(loc, dn, f, interpreters.reference.Interpreter)
+          Examples.writeExampleResult(loc, dn, f, interpreters.reference.standard.Interpreter)
         } catch {
           case e => 
-            println("ERROR when processing " + f + ":")
+            println("ERROR while creating " + resFile + ":")
             println("  " + e)
         }
-        println("PROCESSED " + f)
+        println("CREATED " + resFile)
       }
     }
     if (somethingUpdated) {

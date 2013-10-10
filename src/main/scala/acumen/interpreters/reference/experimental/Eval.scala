@@ -1,6 +1,7 @@
 package acumen
 package interpreters
-package newreference
+package reference
+package experimental
 
 import Interpreter._
 import acumen.Errors._

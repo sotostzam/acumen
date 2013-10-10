@@ -32,8 +32,8 @@ object TransformationTestUtil {
   def preservesContinuousReferenceSemanticsOf(transform: Prog => Prog, p: Prog, modelName: Option[String]) =
     preservesSemanticsOf(transform, p, modelName, "continuous non-rigorous", { (desugared, transformed) =>
       val contNames = getContinuousVariables(p)
-      // set up the newreference interpreter
-      val i = interpreters.newreference.Interpreter
+      // set up the experimental interpreter
+      val i = interpreters.reference.experimental.Interpreter
       // run desugared program before transformation
       val dtrace = i.run(desugared)
       dtrace.ctrace.last // force evaluation
