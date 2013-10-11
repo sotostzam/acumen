@@ -271,6 +271,13 @@ object Common {
           vs.foldLeft(VLit(GDouble(0)): Val)(helper)
         case TypeOf(cn) =>
           VClassName(cn)
+        case ExprLet(bs,e) =>
+          val eWithBindingsApplied =
+            bs.foldLeft(env){
+              case(r, (bName, bExpr)) =>
+                r + (bName -> eval(env, bExpr))
+            }
+          eval(eWithBindingsApplied, e)
       }
     }
     eval(env, e)
