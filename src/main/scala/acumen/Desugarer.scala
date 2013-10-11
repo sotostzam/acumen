@@ -36,7 +36,7 @@ object Desugarer {
       case Nil => (List(), Nil)
       case Init(x, rhs) :: is1 =>
         val drhs = rhs match {
-          case NewRhs(cn, es) => NewRhs(cn, es map (desugar(p, fs, env, _)))
+          case NewRhs(e, es) => NewRhs(desugar(p, fs, env, e), es map (desugar(p, fs, env, _)))
           case ExprRhs(e) => ExprRhs(desugar(p, fs, env, e))
         }
         val (xs, dis1) = desugar(p, fs, env, is1)
@@ -67,7 +67,7 @@ object Desugarer {
     e match {
       case Lit(gv) => Lit(gv)
       case Var(x) =>
-        if (env contains x) Var(x)
+        if (env.contains(x) || (p.defs map (_.name)).contains(ClassName(x.x))) Var(x)
         else if (fs contains x) Dot(Var(self), x)
         else throw VariableNotDeclared(x)
       case Op(f, es) => Op(f, es map des)
@@ -105,10 +105,8 @@ object Desugarer {
     val des = desugar(p, fs, env, _: Expr)
     e match {
       case Assign(lhs, rhs) => List(Assign(des(lhs), des(rhs)))
-      case Create(lhs, cn, args) =>
-        if (!(p.defs map (_.name)).contains(cn))
-          throw ClassNotDefined(cn)
-        List(Create(lhs map des, cn, args map des))
+      case Create(lhs, c, args) =>
+        List(Create(lhs map des, desugar(p, fs, env, c), args map des))
       case Elim(e) => List(Elim(des(e)))
       case Move(o, p) => List(Move(des(o), des(p)))
     }

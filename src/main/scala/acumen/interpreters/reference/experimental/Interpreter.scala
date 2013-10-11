@@ -130,8 +130,10 @@ object Interpreter extends acumen.CStoreInterpreter {
     for { fid <- freshCId(prt)
           _ <- setObjectM(fid, pub)
           vs <- mapM[InitRhs, CValue]( 
-                  { case NewRhs(cn,es) =>
-                      for { ves <- asks(st => es map (
+                  { case NewRhs(e,es) =>
+                      for { ve <- asks(evalExpr(e, p, Map(self -> VObjId(Some(fid))), _)) 
+                            val cn = ve match {case VClassName(cn) => cn; case _ => throw NotAClassName(ve)}
+                            ves <- asks(st => es map (
                             evalExpr(_, p, Map(self -> VObjId(Some(fid))), st)))
 			    nsd <- getNewSeed(fid)
 			    oid <- mkObj(cn, p, Some(fid), nsd, ves)
@@ -169,7 +171,7 @@ object Interpreter extends acumen.CStoreInterpreter {
 	    e match {
   	    case Lit(i)         => VLit(i)
         case ExprVector(l)  => VVector (l map (eval(env,_)))
-        case Var(n)         => env(n)
+        case Var(n)         => env.get(n).getOrElse(VClassName(ClassName(n.x)))
         case Dot(o,Name("children",0)) =>
           /* In order to avoid redundancy en potential inconsistencies, 
              each object has a pointer to its parent instead of having 
@@ -272,8 +274,10 @@ object Interpreter extends acumen.CStoreInterpreter {
          fully qualified at this language level */
       case Assign(_,_) => 
         throw BadLhs()
-      case Create(lhs, c, es) => 
-        for { ves <- asks(st => es map (evalExpr(_, p, env, st)))
+      case Create(lhs, e, es) =>
+        for { ve <- asks(evalExpr(e, p, env, _)) 
+              val c = ve match {case VClassName(c) => c; case _ => throw NotAClassName(ve)}
+              ves <- asks(st => es map (evalExpr(_, p, env, st)))
 						  val self = selfCId(env)
 						  sd <- getNewSeed(self)
               fa  <- mkObj(c, p, Some(self), sd, ves)

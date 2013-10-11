@@ -236,7 +236,7 @@ object Interpreter {
     cd.priv.foreach { case Init (name, rhs) => 
       body.print("this->" + to_c_name(name) + " = ")
       rhs match {
-        case NewRhs(c, fields) => body.print(compileCreate(c, fields, cd._types, p, magic))
+        case NewRhs(Var(n), fields) => body.print(compileCreate(ClassName(n.x), fields, cd._types, p, magic))
         case ExprRhs(e) => body.print(compileExpr(e, p, cd._types))
       }
       body.print(";").newline
@@ -325,8 +325,9 @@ object Interpreter {
           case sz => 
             cr.print(mkCallVectorAssignIfChanged(sz, lhs, rhs, p, env) + ";").newline
         }
-      case Create(lhs, c, es) =>
-        val createExpr = compileCreate(c, es, env, p, magic)
+      case Create(lhs, Var(n), es) =>
+        val cn = ClassName(n.x)
+        val createExpr = compileCreate(cn, es, env, p, magic)
         cr.print(createExpr + ";").newline
         cr.print("somethingChanged = 1;").newline
         //lhs match {

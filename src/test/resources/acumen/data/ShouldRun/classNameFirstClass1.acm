@@ -1,0 +1,30 @@
+class Main(simulator)
+  private
+    mode := "init";
+    game := Game;
+    players := [PlayerA, PlayerB, PlayerC]
+  end
+  switch mode
+    case "init"
+      for p1 = players
+        for p2 = players
+          if p1 ~= p2
+            create game(p1, p2)
+          end
+        end
+      end;
+      mode := "persist"
+    case "persist"
+  end
+end
+
+class PlayerA(x,y,z) end
+class PlayerB(x,y,z) end
+class PlayerC(x,y,z) end
+
+class Game(p1C,p2C) 
+private
+  p1 := create p1C(1,2,3);
+  p2 := create p2C(1,2,3)
+end
+end

@@ -68,7 +68,8 @@ abstract class InterpreterTestBase extends FunSuite with ShouldMatchers {
 
   def testShouldRun = {
     var toTest = List("shouldRun1.acm", "shouldRun2.acm", "shouldRun3.acm",
-                      "shouldRun4.acm", "shouldRun5.acm", "shouldRun6.acm")
+                      "shouldRun4.acm", "shouldRun5.acm", "shouldRun6.acm",
+                      "classNameFirstClass1.acm")
     for (fn <- toTest) {
       test(fn) {run("data/ShouldRun/" + fn) should be ()}
     }

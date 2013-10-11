@@ -161,7 +161,7 @@ object Parser extends MyStdTokenParsers {
   def init = name ~! ":=" ~! initrhs ^^ { case x ~ _ ~ rhs => Init(x, rhs) }
 
   def initrhs =
-    ("create" ~! className ~! args(expr) ^^ { case _ ~ cn ~ es => NewRhs(cn, es) }
+    ("create" ~! className ~! args(expr) ^^ { case _ ~ cn ~ es => NewRhs(Var(Name(cn.x,0)), es) }
       | expr ^^ ExprRhs)
 
   def actions = repsep(action, ";") <~ opt(";")
@@ -211,7 +211,7 @@ object Parser extends MyStdTokenParsers {
 
   def newObject(lhs: Option[Expr]) =
     "create" ~! className ~! args(expr) ^^
-      { case _ ~ cn ~ args => Create(lhs, cn, args) }
+      { case _ ~ cn ~ args => Create(lhs, Var(Name(cn.x,0)), args) }
 
   def elim = "terminate" ~> expr ^^ Elim
 

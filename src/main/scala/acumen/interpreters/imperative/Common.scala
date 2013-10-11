@@ -230,7 +230,7 @@ object Common {
       e match {
         case Lit(i)        => VLit(i)
         case ExprVector(l) => VVector(l map (eval(env, _)))
-        case Var(n)        => env(n)
+        case Var(n)        => env.get(n).getOrElse(VClassName(ClassName(n.x)))
         case Dot(v, Name("children", 0)) =>
           val VObjId(Some(id)) = eval(env, v)
           //id synchronized { VList((id.children map VObjId[ObjId]).toList) }
@@ -302,7 +302,11 @@ object Common {
     }
 
     val vs = ctrs map {
-      case NewRhs(cn, es) =>
+      case NewRhs(e, es) =>
+        val cn = evalExpr(e, p, Map(self -> VObjId(Some(res)))) match {
+          case VClassName(cn) => cn
+          case v => throw NotAClassName(v)
+        }
         val ves = es map (evalExpr(_, p, Map(self -> VObjId(Some(res)))))
         val nsd = getNewSeed(res)
         VObjId(Some(mkObj(cn, p, Some(res), nsd, ves, magic)))
@@ -327,7 +331,11 @@ object Common {
         setField(id, x, vt)
       case Assign(_, _) =>
         throw BadLhs()
-      case Create(lhs, c, es) =>
+      case Create(lhs, e, es) =>
+        val c = evalExpr(e, p, env) match {
+          case VClassName(cn) => cn
+          case v => throw NotAClassName(v)
+        }
         val ves = es map (evalExpr(_, p, env))
         val self = selfObjId(env)
         val sd = getNewSeed(self)
