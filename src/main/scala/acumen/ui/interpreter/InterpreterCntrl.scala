@@ -27,7 +27,7 @@ abstract class InterpreterActor(val progText : String, val consumer : Actor) ext
   def parse() = {
     val ast = Parser.run(Parser.prog, progText)
     val dif = SD.run(ast)
-    val des = Desugarer.run(dif)
+    val des = Desugarer().run(dif)
     val des2 = if (Main.extractHA)
                  new Extract(des).res
                else

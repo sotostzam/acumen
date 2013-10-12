@@ -21,7 +21,7 @@ import interpreters.reference.standard.Interpreter
 
 //   def run(in: InputStreamReader) : Unit = {
 //     val ast = Parser.run(Parser.prog, in)
-//     val desugared = Desugarer.run(ast)
+//     val desugared = Desugarer().run(ast)
 //     val res = new TypeCheck(desugared).run()
 //     // FIXME: There should be a better way to indicate that the test failed
 //     if (res >= TypeCheck.EL_ERROR) throw new Exception("Type Check Failed")

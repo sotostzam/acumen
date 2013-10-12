@@ -32,7 +32,7 @@ object ConsistencyTest extends Properties("parallel.ConsistencyTest") {
     else models.forall {
       case (name, model) =>
         val ast = Parser.run(Parser.prog, model)
-        val des = Desugarer.run(ast)
+        val des = Desugarer().run(ast)
         val expected = (base.run(des): CStoreRes).ctrace.last
         val computed = par.run(des).ctrace.last
         if (notEqual(computed, expected)) {

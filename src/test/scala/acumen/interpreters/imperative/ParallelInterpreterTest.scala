@@ -119,7 +119,7 @@ class ParallelInterpreterTest extends InterpreterTestBase {
     //val RI = interpreters.reference.Interpreter
     val PIO = ParallelInterpreter
     val ast = Parser.run(Parser.prog, in)
-    val des = Desugarer.run(ast)
+    val des = Desugarer().run(ast)
     for (_ <- (PIO.instance.run(des).ctrace)) ()
     //val trace1 = RI.run(des).ctrace
     //val trace2 = PIO.instance.run(des).ctrace

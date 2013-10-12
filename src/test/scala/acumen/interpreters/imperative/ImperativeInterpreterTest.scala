@@ -17,7 +17,7 @@ class ImperativeInterpreterTest extends ParallelInterpreterTest {
 
   override def run(in: InputStreamReader) = {    
     val ast = Parser.run(Parser.prog, in)
-    val des = Desugarer.run(ast)
+    val des = Desugarer().run(ast)
     for (_ <- (ImperativeInterpreter.run(des).ctrace)) ()
   }
 }

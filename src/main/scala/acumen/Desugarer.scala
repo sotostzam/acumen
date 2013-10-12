@@ -3,8 +3,19 @@ package acumen
 import Errors._
 import util.Names._
 
-object Desugarer {
+sealed abstract class ODETransformMode
+case object Local extends ODETransformMode
+case object TopLevel extends ODETransformMode
 
+/**
+ * @param odeTransformMode Configures the way in which higher-order continuous 
+ *        assignments are expanded into systems of first-order continuous 
+ *        assignments. When true, this is done where the highest-order 
+ *        continuous assignment occurs. When false, it is done once for all 
+ *        variables, at the top level of each class.
+ */
+case class Desugarer(odeTransformMode: ODETransformMode = TopLevel) {
+  
   val self = name("self")
   val parent = name("parent")
   val children = name("children")
@@ -27,8 +38,15 @@ object Desugarer {
     c match {
       case ClassDef(cn, fs, is, b) =>
         val (privs, dis) = desugar(p, fs, List(self), is)
-        val db = desugar(p, fs ++ privs ++ List(classf, parent, children), List(self), b)
-        ClassDef(cn, fs, dis, db)
+        val topLevelODESystem = odeTransformMode match {
+          case Local => Nil
+          case TopLevel => highestOrderNames(fs ++ privs).map(Dot(Var(self), _))
+                                                         .flatMap(firstOrderSystem)
+                                                         .map(Continuously)
+        }
+        val db = desugar(p, fs ++ privs ++ List(classf, parent, children), List(self), b) ++ topLevelODESystem
+        val cd = ClassDef(cn, fs, dis, db)
+        cd
     }
 
   def desugar(p: Prog, fs: List[Name], env: List[Name], is: List[Init]): (List[Name], List[Init]) = {
@@ -92,10 +110,11 @@ object Desugarer {
         val dlhs = des(lhs)
         val drhs = des(rhs)
         dlhs match {
-          case Dot(o, Name(f, n)) =>
-            EquationT(dlhs, drhs) :: (
-              for (k <- n until (0, -1))
-                yield EquationI(Dot(o, Name(f, k - 1)), Dot(o, Name(f, k)))).toList
+          case dot: Dot =>
+            EquationT(dlhs, drhs) :: 
+              (odeTransformMode match { 
+                case Local => firstOrderSystem(dot)
+                case TopLevel => Nil })
           case _ => throw BadPreLhs()
         }
       case EquationI(lhs, rhs) => List(EquationI(des(lhs), des(rhs)))
@@ -118,6 +137,15 @@ object Desugarer {
     e match {
       case Clause(lhs, inv, rhs) => Clause(lhs, inv, desugar(p, fs, env, rhs))
     }
+  
+  def firstOrderSystem(dot: Dot): List[ContinuousAction] = dot match {
+    case Dot(o, Name(f, n)) => 
+      (for (k <- n until (0, -1))
+        yield EquationI(Dot(o, Name(f, k - 1)), Dot(o, Name(f, k)))).toList
+  }
+  
+  def highestOrderNames(ns: List[Name]): List[Name] =
+    ns.groupBy(_.x).mapValues(_.maxBy(_.primes)).values.toList
 
   def run(t: Prog): Prog = desugar(t)
 }

@@ -106,7 +106,7 @@ class InterpreterTest extends InterpreterTestBase with ShouldMatchers {
     }
 
   def parse(p:String, st:String) = 
-    (Desugarer.run(Parser.run(Parser.prog, p)), 
+    (Desugarer().run(Parser.run(Parser.prog, p)), 
      Parser.run(Parser.store, st))
 
   ignore("Gravity1d") {
