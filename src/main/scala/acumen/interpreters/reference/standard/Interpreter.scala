@@ -86,6 +86,9 @@ object Interpreter extends acumen.CStoreInterpreter {
     
   /* assign the value v to a field n in object o */
   def assign(o: CId, n: Name, v:CValue) : Eval[Unit] = logAssign(o, n, v)
+  
+  /* continuously assign the value v to a field n in object o */
+  def equation(o: CId, n: Name, v:CValue) : Eval[Unit] = logEquation(o, n, v)
 
   /* log an id as being dead */
   def kill(a:CId) : Eval[Unit] = logCId(a)
@@ -314,7 +317,7 @@ object Interpreter extends acumen.CStoreInterpreter {
       case EquationT(Dot(e,x),t) =>
         for { a <- asks(evalExpr(e, p, env, _)) map extractId
               vt <- asks(evalExpr(t, p, env, _))
-        } setObjectFieldM(a, x, vt)
+        } setObjectFieldM(a, x, vt) >> equation(a, x, vt) // update state and log to check for duplicates 
       case EquationI(Dot(e,x),t) =>
         for { dt <- asks(getTimeStep)
               a <- asks(evalExpr(e, p, env, _)) map extractId
@@ -331,7 +334,7 @@ object Interpreter extends acumen.CStoreInterpreter {
               throw BadLhs()
           })
       case _ =>
-        throw ShouldNeverHappen() // FIXME: enforce that with refinment types
+        throw ShouldNeverHappen() // FIXME: enforce that with refinement types
     }
   
   def evalStep(p:Prog)(id:CId) : Eval[Unit] =
@@ -357,7 +360,7 @@ object Interpreter extends acumen.CStoreInterpreter {
     val sprog = Simplifier.run(cprog)
     val mprog = Prog(magicClass :: sprog.defs)
     val (sd1,sd2) = Random.split(Random.mkGen(0))
-    val (id,_,_,_,st1) = 
+    val (id,_,_,_,_,st1) = 
       mkObj(cmain, mprog, None, sd1, List(VObjId(Some(CId(0)))), 1)(initStoreRef)
     val st2 = changeParent(CId(0), id, st1)
     val st3 = changeSeed(CId(0), sd2, st2)
@@ -377,17 +380,13 @@ object Interpreter extends acumen.CStoreInterpreter {
   def step(p:Prog, st:Store) : Option[Store] =
     if (getTime(st) > getEndTime(st)) {checkObserves(p, st); None}
     else Some(
-      { val (_,ids,rps,ass,st1) = iterate(evalStep(p), mainId(st))(st)
+      { val (_,ids,rps,ass,eqs,st1) = iterate(evalStep(p), mainId(st))(st)
         getResultType(st) match {
           case Discrete | Continuous => 
             if (st == st1 && ids.isEmpty && rps.isEmpty && ass.isEmpty) 
               setResultType(FixedPoint, st1)
             else {
-              val duplAss = ass.groupBy(a => (a._1,a._2)).filter{ case (_, l) => l.size > 1 }.keys.toList
-              if (duplAss.size != 0) {
-                val n = duplAss(0)._2
-            	sys.error("Repeated assignment to variable (" + n.x + "'" * n.primes + ") is not allowed.")
-              }
+              checkDuplicateAssingments(ass, "discrete")
               def assHelper(a: (CId,Name,CValue)) = setObjectFieldM(a._1, a._2, a._3)
               val stA = mapM_(assHelper, ass.toList) ~> st1
               def repHelper(pair:(CId, CId)) = changeParentM(pair._1, pair._2) 
@@ -396,9 +395,20 @@ object Interpreter extends acumen.CStoreInterpreter {
               setResultType(Discrete, st3)
             }
           case FixedPoint =>
+            checkDuplicateAssingments(eqs, "continuous")
             val st2 = setResultType(Continuous, st1)
             setTime(getTime(st1) + getTimeStep(st1), st2)
         }
       }
     )
+    
+  /** Checks for a duplicate assignment (of a specific kind) scheduled in assignments. */
+  def checkDuplicateAssingments(assignments: Set[(CId, Name, CValue)], kind: String): Unit = {
+    val duplicates = assignments.groupBy(a => (a._1,a._2)).filter{ case (_, l) => l.size > 1 }.keys.toList
+    if (duplicates.size != 0) {
+      val n = duplicates(0)._2
+      sys.error("Repeated " + kind + " assignment to variable (" + n.x + "'" * n.primes + ") is not allowed.")
+    }
+  }
+
 }
