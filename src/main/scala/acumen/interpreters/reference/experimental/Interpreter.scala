@@ -14,7 +14,9 @@ package interpreters
 package reference
 package experimental
 
-import Eval._
+import standard.Eval
+import standard.Eval._
+import standard.Interpreter.checkDuplicateAssingments
 
 import Common._
 import util.Names._
@@ -336,7 +338,7 @@ object Interpreter extends acumen.CStoreInterpreter {
               throw BadLhs()
           })
       case _ =>
-        throw ShouldNeverHappen() // FIXME: enforce that with refinment types
+        throw ShouldNeverHappen() // FIXME: enforce that with refinement types
     }
   
   def evalStep(p:Prog)(id:CId) : Eval[Unit] =
@@ -406,14 +408,5 @@ object Interpreter extends acumen.CStoreInterpreter {
   
   /** Applies an assignment to the monad. */
   def applyAssingment(a: (CId,Name,CValue)) = setObjectFieldM(a._1, a._2, a._3)
-
-  /** Checks for a duplicate assignment (of a specific kind) scheduled in assignments. */
-  def checkDuplicateAssingments(assignments: Set[(CId, Name, CValue)], kind: String): Unit = {
-    val duplicates = assignments.groupBy(a => (a._1,a._2)).filter{ case (_, l) => l.size > 1 }.keys.toList
-    if (duplicates.size != 0) {
-      val n = duplicates(0)._2
-      sys.error("Repeated " + kind + " assignment to variable (" + n.x + "'" * n.primes + ") is not allowed.")
-    }
-  }
     
 }
