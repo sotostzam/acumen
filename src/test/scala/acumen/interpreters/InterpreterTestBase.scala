@@ -35,7 +35,7 @@ abstract class InterpreterTestBase extends FunSuite with ShouldMatchers {
 
   def testExamples(skip: String => Boolean = {_ => false}) = {
     // Note: 
-    //  - To add result file for newly created examples use: sbt "run . examples"
+    //  - To add result file for newly created examples use: sbt "run record-reference-outputs"
     //  - To update existing result file remove the file and then use the above command
     Examples.cstoreExamplesAction{(dn, f) =>
       //info(f.toString)
