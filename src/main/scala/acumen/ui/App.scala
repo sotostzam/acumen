@@ -133,8 +133,8 @@ class App extends SimpleSwingApplication {
   private val plotStyleDotsAction             = new Action(  "Dots")        { mnemonic =            VK_D; def apply = plotView.setPlotStyle(plot.Dots()) }
   private val plotStyleBothAction             = new Action(  "Both")        { mnemonic =            VK_B; def apply = plotView.setPlotStyle(plot.Both()) }
   private val floatingPointStandardAction     = mkActionMask("Functional",                          VK_F, VK_R,       shortcutMask | SHIFT_MASK, setInterpreter("reference"))
-  private val floatingPointOriginalAction     = mkActionMask("Functional Original",                 VK_O, NONE,       shortcutMask | SHIFT_MASK, setInterpreter("original"))
   private val floatingPointExperimentalAction = mkActionMask("Functional Par. Cont.",               VK_E, NONE,       shortcutMask | SHIFT_MASK, setInterpreter("experimental"))
+  private val floatingPointOriginalAction     = mkActionMask("Functional 2012",                     VK_O, NONE,       shortcutMask | SHIFT_MASK, setInterpreter("original"))
   private val floatingPointImperativeAction   = mkActionMask("Imperative",                          VK_I, VK_I,       shortcutMask | SHIFT_MASK, setInterpreter("imperative")) 
   private val floatingPointParallelAction     = mkActionMask("Parallel",                            VK_P, VK_P,       shortcutMask | SHIFT_MASK, promptForNumberOfThreads)
   private val pwlHybridSolverAction           = mkActionMask("Enclosure PWL",                       VK_L, VK_L,       shortcutMask | SHIFT_MASK, setInterpreter("enclosure-pwl")) 
@@ -504,7 +504,7 @@ class App extends SimpleSwingApplication {
         selected = false // Main.useEnclosures &&
           //enclosure.Interpreter.strategy.eventEncloser.getClass == classOf[TreeEventEncloser]
       }
-      val bg = new ButtonGroup(refStandard, refOriginal, refExperimental, impr, par, pwl, et)
+      val bg = new ButtonGroup(refStandard, refExperimental, refOriginal, impr, par, pwl, et)
       val ls = new CheckMenuItem("") {
         action = contractionAction
         enabledWhenStopped += (this, () => interpreter.interpreter.getClass == enclosure.Interpreter.getClass)
@@ -524,7 +524,7 @@ class App extends SimpleSwingApplication {
       mnemonic = Key.S
       contents += refStandard
       if (Main.enableAllSemantics)
-        contents ++= Seq(refOriginal, refExperimental, new Separator, impr, par)
+        contents ++= Seq(refExperimental, refOriginal, new Separator, impr, par)
       contents ++= Seq(new Separator, pwl, et, new Separator, ls)
     }
    
