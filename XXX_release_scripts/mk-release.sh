@@ -2,7 +2,13 @@
 
 set -e
 
-REL=13.05.10
+if [ "$#" -ne 1 ]; then
+  echo "usage: ./mk-release.sh YY.MM.DD"
+  echo "  for example ./mk-release.sh 13.10.14"
+  exit 1
+fi
+
+REL="$1"
 DIR_PREFIX=20`echo $REL | tr . _`
 REL_DIR=${DIR_PREFIX}_Acumen
 
@@ -37,14 +43,15 @@ touch READY_FOR_CENSOR
 git add -u
 git commit --amend -C HEAD
 
-#sbt compile
-
 # Fix version strings
 echo Fixing version string.
 perl -i.bak -pe "s/version := .+/version := \"$REL\"/" build.sbt
 perl -i.bak -pe "s/VERSION/$REL/g" README socket/README
 git add -u
 git commit -m "Update version string."
+
+# Test to make sure everything is still okay
+sbt compile test
 
 # tag
 git tag rel-$REL
@@ -58,7 +65,7 @@ test ! -e $REL_DIR || error "$REL_DIR exists"
 cp -a acumen-rel-working ${DIR_PREFIX}_Acumen
 cd $REL_DIR
 sbt proguard
-cp target/scala-2.9.2/acumen-$REL.jar ..
+cp target/scala-*/acumen-$REL.jar ..
 git clean -xfd
 rm -rf .git
 mv ../acumen-$REL.jar .
@@ -70,4 +77,6 @@ zip -9r $REL_DIR.zip $REL_DIR
 echo "Done."
 echo "Make sure everything is in order and upload $REL_DIR.zip"
 echo "and do a:"
-echo "  (cd acumen-rel-working; git push rel master release)"
+echo "  (cd acumen-rel-working"
+echo "   git push rel master release rel-$REL rel-$REL-pre"
+echo "   git push origin master rel-$REL-pre)"
