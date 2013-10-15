@@ -132,11 +132,11 @@ class App extends SimpleSwingApplication {
   private val plotStyleLinesAction            = new Action(  "Lines")       { mnemonic =            VK_L; def apply = plotView.setPlotStyle(plot.Lines()) }
   private val plotStyleDotsAction             = new Action(  "Dots")        { mnemonic =            VK_D; def apply = plotView.setPlotStyle(plot.Dots()) }
   private val plotStyleBothAction             = new Action(  "Both")        { mnemonic =            VK_B; def apply = plotView.setPlotStyle(plot.Both()) }
-  private val floatingPointStandardAction     = mkActionMask("Functional",                          VK_F, VK_R,       shortcutMask | SHIFT_MASK, setInterpreter("reference"))
-  private val floatingPointExperimentalAction = mkActionMask("Functional Par. Cont.",               VK_E, NONE,       shortcutMask | SHIFT_MASK, setInterpreter("experimental"))
-  private val floatingPointOriginalAction     = mkActionMask("Functional 2012",                     VK_O, NONE,       shortcutMask | SHIFT_MASK, setInterpreter("original"))
-  private val floatingPointImperativeAction   = mkActionMask("Imperative",                          VK_I, VK_I,       shortcutMask | SHIFT_MASK, setInterpreter("imperative")) 
-  private val floatingPointParallelAction     = mkActionMask("Parallel",                            VK_P, VK_P,       shortcutMask | SHIFT_MASK, promptForNumberOfThreads)
+  private val floatingPointStandardAction     = mkActionMask("Traditional",                         VK_F, VK_R,       shortcutMask | SHIFT_MASK, setInterpreter("reference"))
+  private val floatingPointExperimentalAction = mkActionMask("Traditional Par. Cont.",              VK_E, NONE,       shortcutMask | SHIFT_MASK, setInterpreter("experimental"))
+  private val floatingPointOriginalAction     = mkActionMask("Traditional 2012",                    VK_O, NONE,       shortcutMask | SHIFT_MASK, setInterpreter("original"))
+  private val floatingPointImperativeAction   = mkActionMask("Traditional Imperative",              VK_I, VK_I,       shortcutMask | SHIFT_MASK, setInterpreter("imperative")) 
+  private val floatingPointParallelAction     = mkActionMask("Traditional Parallel",                VK_P, VK_P,       shortcutMask | SHIFT_MASK, promptForNumberOfThreads)
   private val pwlHybridSolverAction           = mkActionMask("Enclosure PWL",                       VK_L, VK_L,       shortcutMask | SHIFT_MASK, setInterpreter("enclosure-pwl")) 
   private val eventTreeHybridSolverAction     = mkActionMask("Enclosure EVT",                       VK_T, VK_T,       shortcutMask | SHIFT_MASK, setInterpreter("enclosure-evt"))
   private val contractionAction               = mkActionMask("Contraction",                         VK_C, VK_C,       shortcutMask | SHIFT_MASK, enclosure.Interpreter.toggleContraction)
