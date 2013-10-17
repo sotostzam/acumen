@@ -137,7 +137,7 @@ class App extends SimpleSwingApplication {
   private val pwlHybridSolverAction         = mkActionMask("Enclosure PWL",                   VK_L, VK_L,       shortcutMask | SHIFT_MASK, setInterpreter("enclosure-pwl")) 
   private val eventTreeHybridSolverAction   = mkActionMask("Enclosure EVT",                   VK_T, VK_T,       shortcutMask | SHIFT_MASK, setInterpreter("enclosure-evt"))
   private val contractionAction             = mkActionMask("Contraction",                     VK_C, VK_C,       shortcutMask | SHIFT_MASK, enclosure.Interpreter.toggleContraction)
-  private val manualAction                  = mkAction(    "User Guide and Reference Manual", VK_M, VK_F1,      manual)
+  private val manualAction                  = mkAction(    "Manual", VK_M, VK_F1,      manual)
   private val aboutAction                   = new Action(  "About")       { mnemonic =        VK_A; def apply = about }
   
   /* Shows a dialog asking the user how many threads to use in the parallel interpreter. */
@@ -554,7 +554,11 @@ class App extends SimpleSwingApplication {
     Dialog.showMessage(body, "Acumen " + version, "About")
   }
   
-  def manual = ManualBrowser.peer.setVisible(true)
+  def manual = {
+    val desktop = Desktop.getDesktop
+    try { desktop.browse(classOf[ManualBrowser].getResource("manual.html").toURI)}
+    catch { case e => {ManualBrowser.peer.setVisible(true);()}}
+  }
 
   /* ----- events handling ---- */
 
