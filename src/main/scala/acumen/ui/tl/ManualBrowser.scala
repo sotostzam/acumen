@@ -10,6 +10,7 @@ import javax.swing.text.html.HTMLDocument
 import java.net.URL
 
 /** Window to display the Acumen manual, invoked from the Help menu. */
+class  ManualBrowser
 object ManualBrowser extends Frame {
 
   title = "User Guide and Reference Manual"
