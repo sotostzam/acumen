@@ -271,7 +271,8 @@ class TypeCheck(val prog: Prog) {
     cd.priv.foreach{case init@Init(name, rhs) => 
       resetContext("  in " + Pretty.pprint[Init](init))
       rhs match {
-        case NewRhs(cn, fields) => 
+        case NewRhs(Var(n), fields) => 
+          val cn = ClassName(n.x)
           typeCheckCreate(cn, fields, cd)
           setFieldType(env, name, ClassType(NamedClass(cn)))
         case ExprRhs(e) => 
@@ -311,8 +312,8 @@ class TypeCheck(val prog: Prog) {
             typeCheckExpr(lhs, env)
             typeCheckExpr(rhs, env)
             unifyTypeWithLvalue(lhs, rhs._type)
-          case Create(lhs, name, args) =>
-            val typ = typeCheckCreate(name, args, parent)
+          case Create(lhs, Var(name), args) =>
+            val typ = typeCheckCreate(ClassName(name.x), args, parent)
             lhs match {
               case Some(e) => 
                 typeCheckExpr(e, env)

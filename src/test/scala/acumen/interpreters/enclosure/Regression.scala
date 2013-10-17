@@ -3,6 +3,8 @@ package acumen.interpreters.enclosure
 import org.scalacheck.Properties
 import scala.util.parsing.input.StreamReader
 import acumen.interpreters.enclosure.ivp.PicardSolver
+import acumen.ODETransformMode
+import acumen.TopLevel
 
 object Regression extends Properties("Regression") {
 
@@ -24,7 +26,7 @@ object Regression extends Properties("Regression") {
         case (name, model) =>
           try {
             val ast = Parser.run(Parser.prog, model)
-            val des = Desugarer.run(ast)
+            val des = Desugarer(odeTransformMode = Local).run(ast)
             val enclosures = Interpreter.run(des).res
             results.get(name) match {
               case None =>

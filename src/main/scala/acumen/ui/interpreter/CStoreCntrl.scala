@@ -17,6 +17,18 @@ class CStoreCntrl(val interpreter: CStoreInterpreter) extends InterpreterCntrl {
     var defaultBufferSize = 200
     var bufferSize = 1 // start off with one step
 
+    override def parse() = 
+      if (interpreter.id contains "original") {
+        val ast = Parser.run(Parser.prog, progText)
+        val dif = SD.run(ast)
+        // transform ODEs the old-fashioned way in the original interpreter
+        val des = Desugarer(odeTransformMode = Local).run(dif)
+        prog = if (Main.extractHA)
+                 new Extract(des).res
+               else
+                 des 
+      } else super.parse
+    
     def sendChunk {
       val toSend = if (buffer.isEmpty) null else CStoreTraceData(buffer)
       consumer ! Chunk(toSend)

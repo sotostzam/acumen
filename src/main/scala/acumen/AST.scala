@@ -49,7 +49,7 @@ package acumen {
 
   sealed abstract class InitRhs
   /* Example: create Ball(x) */
-  case class NewRhs(c: ClassName, fields: List[Expr]) extends InitRhs
+  case class NewRhs(c: Expr, fields: List[Expr]) extends InitRhs
   /* Example: 1+2 */
   case class ExprRhs(e: Expr) extends InitRhs
 
@@ -84,7 +84,7 @@ package acumen {
   case class Assign(lhs: Expr, rhs: Expr) extends DiscreteAction
   /* Example: x := create Ball(1) */
   case class Create(x: Option[Expr], // Some(x) means "x = create ..." 
-    name: ClassName,
+    name: Expr,
     args: List[Expr]) extends DiscreteAction
   /* Example: terminate x */
   case class Elim(e: Expr) extends DiscreteAction
@@ -104,7 +104,7 @@ package acumen {
   case class Lit(gv: GroundValue) extends Expr
   /* Example: x'' */
   case class Var(name: Name) extends Expr
-  /* Example: 2+3 */
+  /* Example Main */
   case class Op(f: Name, es: List[Expr]) extends Expr
   /* Example: self.x */
   case class Dot(obj: Expr, field: Name) extends Expr
@@ -114,10 +114,11 @@ package acumen {
   case class Sum(e: Expr, i: Name, col: Expr, cond: Expr) extends Expr
   /* Example: type(Ball) */
   case class TypeOf(cn: ClassName) extends Expr
-  /* Example: [a:b] deprecated, now a--b and m+/-r*/
+  /* Example: [a:b] deprecated, now [a..b] and m+/-r*/
   case class ExprInterval(lo: Expr, hi: Expr) extends Expr
   case class ExprIntervalM(mid: Expr, pm: Expr) extends Expr
-
+  /* Example: let x=1+2;y=2+3 in x+y end */
+  case class ExprLet(bindings:List[(Name,Expr)], e2:Expr) extends Expr
   /* ground values (common to expressions and values) */
 
   sealed abstract class GroundValue

@@ -12,6 +12,10 @@ class Pretty {
 
   var filterStore = false
 
+  // Enabling this will use format instead of toString.  It's not
+  // enabled by default as the toString version is, well "prettier".
+  var predictableDoubles = false
+
   var withType = false
   var exprWithType = false
 
@@ -151,8 +155,8 @@ class Pretty {
       case IfThenElse(c,t,e) => new DocNest(2,
                                   "if " :: pretty(c) :/: 
                                   DocGroup(pretty(t))) :/: 
-                                  DocGroup(DocNest(2, "else" :/: pretty(e))) :/: 
-                                  "end"
+                                  (if (e.nonEmpty) DocGroup(DocNest(2, "else" :/: pretty(e))) :/: "end"
+                                   else DocText("end"))
       case Switch(s,cls) => new DocNest(2,"switch " :: pretty(s) :/:
                                           pretty(cls)) :/: "end"
       case ForEach(i,e,b) => new DocNest(2,
@@ -181,7 +185,7 @@ class Pretty {
   
   implicit def prettyExpr : PrettyAble[Expr] =
     PrettyAble { e => 
-      parens(e match {
+      (e match {
         case Lit(i)           => pretty(i)
         case Var(n)           => pretty(n)
         case Dot(v,f)         => pretty(v) :: "." :: pretty(f)
@@ -190,6 +194,8 @@ class Pretty {
         case Sum(e,i,c,t)     => "sum " :: pretty(e) :: " for " :: pretty(i) :: 
                                  " in " :: pretty(c) :: " if " :: pretty(t)
         case TypeOf(cn)       => "type" :: parens(pretty(cn))
+        case ExprInterval(lo,hi) => brackets(pretty(lo) :: " .. " :: pretty(hi))
+        case ExprIntervalM(m,r)  => parens(pretty(m) :: "+/-" :: pretty(r))
       }) :: (if (exprWithType && e._type != null) ":" + e._type.toString else "")
     }
   
@@ -213,7 +219,7 @@ class Pretty {
   implicit def prettyGroundValue : PrettyAble[GroundValue] =
     PrettyAble {
       case GInt(i)    => i.toString
-      case GDouble(x) => "%f".format(x)
+      case GDouble(x) => if (predictableDoubles) "%f".format(x) else x.toString
       case GBool(b)   => b.toString
       case GStr(s)    => dquotes(s)
       case _          => "??"

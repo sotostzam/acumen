@@ -11,7 +11,6 @@ object Examples {
   def cstoreExamplesAction(action: (String, File) => Unit) : Unit = {
     def filter = new java.io.FilenameFilter {
       def accept(d: File, fn: String) = {
-        d.getName == "A_Ping_Pong" || // test all ping pong games 
         (fn.substring(0,3)        != "XXX" &&
          d.getName.substring(0,3) != "XXX" && // Ignore internal directories
          d.getName                != "01_Enclosures" && //FIXME Support enclosure sim. params in CStore interpreters 

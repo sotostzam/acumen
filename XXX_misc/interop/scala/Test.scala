@@ -52,7 +52,7 @@ object Test {
 
     val in  = new InputStreamReader(System.in)
   	val ast = Parser.run(Parser.prog, in)
-    val desugared = Desugarer.run(ast)
+    val desugared = Desugarer().run(ast)
     val (prog, st) = Interpreter.init(desugared)
 
     // main loop definition

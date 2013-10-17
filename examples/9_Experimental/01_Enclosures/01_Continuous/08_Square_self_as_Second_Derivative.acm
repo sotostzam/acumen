@@ -14,7 +14,7 @@ class Main(simulator)
     case ""
       x'' = -x * x/6
   end;
-  simulator.endTime := 9.0;
+  simulator.endTime := 8.0;
   simulator.minSolverStep := 0.1
 end
 

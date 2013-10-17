@@ -87,7 +87,7 @@ object Parser extends MyStdTokenParsers {
     List("for", "end", "if", "else", "create", "move", "in",
       "terminate", "class", "sum", "true", "false",
       "private", "switch", "case", "Continuous", "Discrete", "none", "type", "claim",
-      "pi")
+      "pi","let")
 
   /* token conversion */
 
@@ -161,7 +161,7 @@ object Parser extends MyStdTokenParsers {
   def init = name ~! ":=" ~! initrhs ^^ { case x ~ _ ~ rhs => Init(x, rhs) }
 
   def initrhs =
-    ("create" ~! className ~! args(expr) ^^ { case _ ~ cn ~ es => NewRhs(cn, es) }
+    ("create" ~! className ~! args(expr) ^^ { case _ ~ cn ~ es => NewRhs(Var(Name(cn.x,0)), es) }
       | expr ^^ ExprRhs)
 
   def actions = repsep(action, ";") <~ opt(";")
@@ -211,16 +211,25 @@ object Parser extends MyStdTokenParsers {
 
   def newObject(lhs: Option[Expr]) =
     "create" ~! className ~! args(expr) ^^
-      { case _ ~ cn ~ args => Create(lhs, cn, args) }
+      { case _ ~ cn ~ args => Create(lhs, Var(Name(cn.x,0)), args) }
 
   def elim = "terminate" ~> expr ^^ Elim
 
   def move =
     "move" ~! expr ~! expr ^^ { case _ ~ o ~ p => Move(o, p) }
 
-  def expr: Parser[Expr] =
-    level13 * ("||" ^^^ { (x: Expr, y: Expr) => mkOp("||", x, y) })
+  def binding = name ~! "=" ~! expr ^^ { case x ~ _ ~ e => (x, e) }
 
+  def bindings = repsep(binding, ";") <~ opt(";")
+
+  def let:Parser[Expr] =
+      "let" ~! bindings ~! "in" ~! expr ~!"end" ^^
+                  { case _ ~ bs ~ _~ e ~ _ => ExprLet(bs, e) }
+
+  def levelTop:Parser[Expr] =
+      level13 * ("||" ^^^ { (x: Expr, y: Expr) => mkOp("||", x, y) })
+
+  def expr: Parser[Expr] = levelTop | let
   def level13: Parser[Expr] =
     level12 * ("&&" ^^^ { (x: Expr, y: Expr) => mkOp("&&", x, y) })
 

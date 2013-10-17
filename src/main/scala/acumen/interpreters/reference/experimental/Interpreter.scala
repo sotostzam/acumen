@@ -12,8 +12,11 @@
 package acumen
 package interpreters
 package reference
+package experimental
 
-import Eval._
+import standard.Eval
+import standard.Eval._
+import standard.Interpreter.checkDuplicateAssingments
 
 import Common._
 import util.Names._
@@ -31,8 +34,8 @@ import Errors._
 
 object Interpreter extends acumen.CStoreInterpreter {
 
-  override def id = Array("reference")
-  
+  override def id = Array("experimental")
+
   type Store = CStore
   type Env = Map[Name, CValue]
 
@@ -82,7 +85,13 @@ object Interpreter extends acumen.CStoreInterpreter {
    * whose ids are "cs", to address p */
   def reparent(cs:List[CId], p:CId) : Eval[Unit] =
     mapM_ (logReparent(_:CId,p), cs)
+    
+  /* discretely assign the value v to a field n in object o */
+  def assign(o: CId, n: Name, v:CValue) : Eval[Unit] = logAssign(o, n, v)
 
+  /* continuously assign the value v to a field n in object o */
+  def equation(o: CId, n: Name, v:CValue) : Eval[Unit] = logEquation(o, n, v)
+  
   /* log an id as being dead */
   def kill(a:CId) : Eval[Unit] = logCId(a)
   
@@ -123,8 +132,10 @@ object Interpreter extends acumen.CStoreInterpreter {
     for { fid <- freshCId(prt)
           _ <- setObjectM(fid, pub)
           vs <- mapM[InitRhs, CValue]( 
-                  { case NewRhs(cn,es) =>
-                      for { ves <- asks(st => es map (
+                  { case NewRhs(e,es) =>
+                      for { ve <- asks(evalExpr(e, p, Map(self -> VObjId(Some(fid))), _)) 
+                            val cn = ve match {case VClassName(cn) => cn; case _ => throw NotAClassName(ve)}
+                            ves <- asks(st => es map (
                             evalExpr(_, p, Map(self -> VObjId(Some(fid))), st)))
 			    nsd <- getNewSeed(fid)
 			    oid <- mkObj(cn, p, Some(fid), nsd, ves)
@@ -162,7 +173,7 @@ object Interpreter extends acumen.CStoreInterpreter {
 	    e match {
   	    case Lit(i)         => VLit(i)
         case ExprVector(l)  => VVector (l map (eval(env,_)))
-        case Var(n)         => env(n)
+        case Var(n)         => env.get(n).getOrElse(VClassName(ClassName(n.x)))
         case Dot(o,Name("children",0)) =>
           /* In order to avoid redundancy en potential inconsistencies, 
              each object has a pointer to its parent instead of having 
@@ -211,12 +222,19 @@ object Interpreter extends acumen.CStoreInterpreter {
           vs.foldLeft(VLit(GDouble(0)):CValue)(helper)
         case TypeOf(cn) =>
           VClassName(cn)
+        case ExprLet(bs,e) =>
+          val eWithBindingsApplied =
+            bs.foldLeft(env){
+              case(r, (bName, bExpr)) =>
+                r + (bName -> eval(env, bExpr))
+            }
+            eval(eWithBindingsApplied, e)
       }
     }
     eval(env,e)
   }
 
-  def evalActions(as:List[Action], env:Env, p:Prog) : Eval[Unit] = 
+  def evalActions(as:List[Action], env:Env, p:Prog) : Eval[Unit] =
     mapM_((a:Action) => evalAction(a, env, p), as)
   
   def evalAction(a:Action, env:Env, p:Prog) : Eval[Unit] = {
@@ -254,17 +272,21 @@ object Interpreter extends acumen.CStoreInterpreter {
  
   def evalDiscreteAction(a:DiscreteAction, env:Env, p:Prog) : Eval[Unit] =
     a match {
-      case Assign(Dot(e,x),t) =>
+      case Assign(d@Dot(e,x),t) => 
+        /* Schedule the discrete assignment if it changes x, otherwise do nothing */
         for { id <- asks(evalExpr(e, p, env, _)) map extractId
-              vt <- asks(evalExpr(t, p, env, _))
-              _  <- asks(checkAccessOk(id, env, _))
-        } setObjectFieldM(id, x, vt)
+        	  vt <- asks(evalExpr(t, p, env, _))
+        	  _  <- asks(checkAccessOk(id, env, _))
+        	  vx <- asks(evalExpr(d, p, env, _)) 
+        } if (vt != vx) assign(id, x, vt) else pass
       /* Basically, following says that variable names must be 
          fully qualified at this language level */
       case Assign(_,_) => 
         throw BadLhs()
-      case Create(lhs, c, es) => 
-        for { ves <- asks(st => es map (evalExpr(_, p, env, st)))
+      case Create(lhs, e, es) =>
+        for { ve <- asks(evalExpr(e, p, env, _)) 
+              val c = ve match {case VClassName(c) => c; case _ => throw NotAClassName(ve)}
+              ves <- asks(st => es map (evalExpr(_, p, env, st)))
 						  val self = selfCId(env)
 						  sd <- getNewSeed(self)
               fa  <- mkObj(c, p, Some(self), sd, ves)
@@ -295,15 +317,17 @@ object Interpreter extends acumen.CStoreInterpreter {
   def evalContinuousAction(a:ContinuousAction, env:Env, p:Prog) : Eval[Unit] = 
     a match {
       case EquationT(Dot(e,x),t) =>
+        /* Schedule a continuous assignment of vt to x */
         for { a <- asks(evalExpr(e, p, env, _)) map extractId
               vt <- asks(evalExpr(t, p, env, _))
-        } setObjectFieldM(a, x, vt)
+        } equation(a, x, vt)
       case EquationI(Dot(e,x),t) =>
+        /* Schedule a continuous assignment of the Euler approximation of x (at time+dt) to x */
         for { dt <- asks(getTimeStep)
               a <- asks(evalExpr(e, p, env, _)) map extractId
               vt <- asks(evalExpr(t, p, env, _))
               lhs <- asks(getObjectField(a, x, _))
-        } setObjectFieldM(a, x, lhs match {
+        } equation(a, x, lhs match {
             case VLit(d) => 
 	      VLit(GDouble(extractDouble(d) + extractDouble(vt) * dt))
             case VVector(u) => 
@@ -314,7 +338,7 @@ object Interpreter extends acumen.CStoreInterpreter {
               throw BadLhs()
           })
       case _ =>
-        throw ShouldNeverHappen() // FIXME: enforce that with refinment types
+        throw ShouldNeverHappen() // FIXME: enforce that with refinement types
     }
   
   def evalStep(p:Prog)(id:CId) : Eval[Unit] =
@@ -340,7 +364,7 @@ object Interpreter extends acumen.CStoreInterpreter {
     val sprog = Simplifier.run(cprog)
     val mprog = Prog(magicClass :: sprog.defs)
     val (sd1,sd2) = Random.split(Random.mkGen(0))
-    val (id,_,_,st1) = 
+    val (id,_,_,_,_,st1) = 
       mkObj(cmain, mprog, None, sd1, List(VObjId(Some(CId(0)))), 1)(initStoreRef)
     val st2 = changeParent(CId(0), id, st1)
     val st3 = changeSeed(CId(0), sd2, st2)
@@ -358,24 +382,31 @@ object Interpreter extends acumen.CStoreInterpreter {
   }
 
   def step(p:Prog, st:Store) : Option[Store] =
-    if (getTime(st) > getEndTime(st)) {checkObserves(p, st); None}
+    if (getTime(st) > getEndTime(st)) None
     else Some(
-      { val (_,ids,rps,st1) = iterate(evalStep(p), mainId(st))(st)
+      { val (_,ids,rps,ass,eqs,st1) = iterate(evalStep(p), mainId(st))(st)
         getResultType(st) match {
-          case Discrete | Continuous => 
-            if (st == st1 && ids.isEmpty && rps.isEmpty) 
-              setResultType(FixedPoint, st1)
+          case Discrete | Continuous =>
+            if (st == st1 && ids.isEmpty && rps.isEmpty && ass.isEmpty) 
+              setResultType(FixedPoint, st1) // Reached discrete fixpoint
             else {
-              def helper(pair:(CId, CId)) = changeParentM(pair._1, pair._2) 
-              val st2 = mapM_(helper, rps.toList) ~> st1
-              val st3 = st2 -- ids
+              checkDuplicateAssingments(ass, "discrete")
+              val stA = mapM_(applyAssingment, ass.toList) ~> st1
+              def applyReparenting(pair:(CId, CId)) = changeParentM(pair._1, pair._2) 
+              val stR = mapM_(applyReparenting, rps.toList) ~> stA
+              val st3 = stR -- ids
               setResultType(Discrete, st3)
             }
-          case FixedPoint =>
-            val st2 = setResultType(Continuous, st1)
+          case FixedPoint => // Now perform continuous assignments
+            checkDuplicateAssingments(eqs, "continuous")
+            val stA = mapM_(applyAssingment, eqs.toList) ~> st1
+            val st2 = setResultType(Continuous, stA)
             setTime(getTime(st1) + getTimeStep(st1), st2)
         }
       }
     )
-
+  
+  /** Applies an assignment to the monad. */
+  def applyAssingment(a: (CId,Name,CValue)) = setObjectFieldM(a._1, a._2, a._3)
+    
 }

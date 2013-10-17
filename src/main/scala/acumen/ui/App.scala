@@ -39,7 +39,8 @@ import swing.{Action, BorderPanel, BoxPanel, ButtonGroup, CheckMenuItem,
 			  TabbedPane, Table}
 import swing.event._
 import scala.Boolean
-import acumen.interpreters.{reference,newreference,enclosure,imperative}
+import acumen.interpreters.{enclosure,imperative}
+import acumen.interpreters.reference.{original,standard}
 import acumen.interpreters.enclosure.ivp.PicardSolver
 import acumen.interpreters.enclosure.ivp.LohnerSolver
 import acumen.interpreters.enclosure.event.pwl.PWLEventEncloser
@@ -108,37 +109,40 @@ class App extends SimpleSwingApplication {
   
   private val NONE = VK_UNDEFINED
   /* Reusable actions */
-  private val playAction                    = mkAction(    "Run",                             VK_R, VK_G,       upperButtons.bPlay.doClick)
-  private val pauseAction                   = mkAction(    "Pause",                           VK_R, VK_G,       upperButtons.bPlay.doClick)
-  private val stepAction                    = mkAction(    "Step",                            VK_T, VK_B,       upperButtons.bStep.doClick)
-  private val stopAction                    = mkAction(    "Stop",                            VK_S, VK_T,       upperButtons.bStop.doClick)
-  private val newAction                     = mkAction(    "New",                             VK_N, VK_N,       codeArea.newFile)
-  private val openAction                    = mkAction(    "Open",                            VK_O, VK_O,       codeArea.openFile(codeArea.currentDir))
-  private val saveAction                    = mkAction(    "Save",                            VK_S, VK_S,       codeArea.saveFile())
-  private val saveAsAction                  = mkActionMask("Save As",                         VK_A, VK_S,       shortcutMask | SHIFT_MASK, codeArea.saveFileAs())
-  private val recoverAction                 = mkAction(    "Recover",                         VK_R, VK_R,       codeArea.openFile(Files.autoSavedDir))
-  private val exportTableAction             = new Action(  "Export Table"){ mnemonic =         VK_E; def apply = exportTable}
-  private val exitAction                    = mkAction(    "Exit",                            VK_E, VK_Q,       exit)
-  private val cutAction                     = mkAction(    "Cut",                             VK_T, VK_X,       codeArea.textArea.cut)
-  private val copyAction                    = mkAction(    "Copy",                            VK_C, VK_C,       codeArea.textArea.copyAsRtf)
-  private val pasteAction                   = mkAction(    "Paste",                           VK_P, VK_V,       codeArea.textArea.paste)
-  private val selectAllAction               = mkAction(    "Select All",                      VK_A, VK_A,       codeArea.textArea.selectAll)
-  private val increaseFontSizeAction        = mkAction(    "Enlarge Font",                    VK_I, VK_PLUS,    codeArea increaseFontSize)
-  private val decreaseFontSizeAction        = mkAction(    "Reduce Font",                     VK_D, VK_MINUS,   codeArea decreaseFontSize)
-  private val resetFontSizeAction           = mkAction(    "Reset Font",                      VK_R, VK_0,       codeArea resetFontSize)
-  private val showLineNumbersAction         = mkAction(    "Line Numbers",                    VK_L, VK_L,       toggleLineNumbers)
-  private val plotStyleLinesAction          = new Action(  "Lines")       { mnemonic =        VK_L; def apply = plotView.setPlotStyle(plot.Lines()) }
-  private val plotStyleDotsAction           = new Action(  "Dots")        { mnemonic =        VK_D; def apply = plotView.setPlotStyle(plot.Dots()) }
-  private val plotStyleBothAction           = new Action(  "Both")        { mnemonic =        VK_B; def apply = plotView.setPlotStyle(plot.Both()) }
-  private val floatingPointNewAction        = mkActionMask("Traditional Functional 2",        VK_2, NONE,       shortcutMask | SHIFT_MASK, setInterpreter("newreference"))
-  private val floatingPointAction           = mkActionMask("Traditional Functional",          VK_F, VK_R,       shortcutMask | SHIFT_MASK, setInterpreter("reference"))
-  private val floatingPointImperativeAction = mkActionMask("Traditional Imperative",          VK_I, VK_I,       shortcutMask | SHIFT_MASK, setInterpreter("imperative")) 
-  private val floatingPointParallelAction   = mkActionMask("Traditional Parallel",            VK_P, VK_P,       shortcutMask | SHIFT_MASK, promptForNumberOfThreads)
-  private val pwlHybridSolverAction         = mkActionMask("Enclosure PWL",                   VK_L, VK_L,       shortcutMask | SHIFT_MASK, setInterpreter("enclosure-pwl")) 
-  private val eventTreeHybridSolverAction   = mkActionMask("Enclosure EVT",                   VK_T, VK_T,       shortcutMask | SHIFT_MASK, setInterpreter("enclosure-evt"))
-  private val contractionAction             = mkActionMask("Contraction",                     VK_C, VK_C,       shortcutMask | SHIFT_MASK, enclosure.Interpreter.toggleContraction)
-  private val manualAction                  = mkAction(    "Manual", VK_M, VK_F1,      manual)
-  private val aboutAction                   = new Action(  "About")       { mnemonic =        VK_A; def apply = about }
+
+  private val playAction                      = mkAction(    "Run",                                 VK_R, VK_G,       upperButtons.bPlay.doClick)
+  private val pauseAction                     = mkAction(    "Pause",                               VK_R, VK_G,       upperButtons.bPlay.doClick)
+  private val stepAction                      = mkAction(    "Step",                                VK_T, VK_B,       upperButtons.bStep.doClick)
+  private val stopAction                      = mkAction(    "Stop",                                VK_S, VK_T,       upperButtons.bStop.doClick)
+  private val newAction                       = mkAction(    "New",                                 VK_N, VK_N,       codeArea.newFile)
+  private val openAction                      = mkAction(    "Open",                                VK_O, VK_O,       codeArea.openFile(codeArea.currentDir))
+  private val saveAction                      = mkAction(    "Save",                                VK_S, VK_S,       codeArea.saveFile())
+  private val saveAsAction                    = mkActionMask("Save As",                             VK_A, VK_S,       shortcutMask | SHIFT_MASK, codeArea.saveFileAs())
+  private val recoverAction                   = mkAction(    "Recover",                             VK_R, VK_R,       codeArea.openFile(Files.autoSavedDir))
+  private val exportTableAction               = new Action(  "Export Table"){ mnemonic =            VK_E; def apply = exportTable}
+  private val exitAction                      = mkAction(    "Exit",                                VK_E, VK_Q,       exit)
+  private val cutAction                       = mkAction(    "Cut",                                 VK_T, VK_X,       codeArea.textArea.cut)
+  private val copyAction                      = mkAction(    "Copy",                                VK_C, VK_C,       codeArea.textArea.copyAsRtf)
+  private val pasteAction                     = mkAction(    "Paste",                               VK_P, VK_V,       codeArea.textArea.paste)
+  private val selectAllAction                 = mkAction(    "Select All",                          VK_A, VK_A,       codeArea.textArea.selectAll)
+  private val findReplaceAction               = mkAction(    "Find",                                VK_F, VK_F,       toggleFindReplaceToolbar)
+  private val increaseFontSizeAction          = mkAction(    "Enlarge Font",                        VK_I, VK_PLUS,    codeArea increaseFontSize)
+  private val decreaseFontSizeAction          = mkAction(    "Reduce Font",                         VK_D, VK_MINUS,   codeArea decreaseFontSize)
+  private val resetFontSizeAction             = mkAction(    "Reset Font",                          VK_R, VK_0,       codeArea resetFontSize)
+  private val showLineNumbersAction           = mkAction(    "Line Numbers",                        VK_L, VK_L,       toggleLineNumbers)
+  private val plotStyleLinesAction            = new Action(  "Lines")       { mnemonic =            VK_L; def apply = plotView.setPlotStyle(plot.Lines()) }
+  private val plotStyleDotsAction             = new Action(  "Dots")        { mnemonic =            VK_D; def apply = plotView.setPlotStyle(plot.Dots()) }
+  private val plotStyleBothAction             = new Action(  "Both")        { mnemonic =            VK_B; def apply = plotView.setPlotStyle(plot.Both()) }
+  private val floatingPointStandardAction     = mkActionMask("Traditional",                         VK_F, VK_R,       shortcutMask | SHIFT_MASK, setInterpreter("reference"))
+  private val floatingPointExperimentalAction = mkActionMask("Traditional Par. Cont.",              VK_E, NONE,       shortcutMask | SHIFT_MASK, setInterpreter("experimental"))
+  private val floatingPointOriginalAction     = mkActionMask("Traditional 2012",                    VK_O, NONE,       shortcutMask | SHIFT_MASK, setInterpreter("original"))
+  private val floatingPointImperativeAction   = mkActionMask("Traditional Imperative",              VK_I, VK_I,       shortcutMask | SHIFT_MASK, setInterpreter("imperative")) 
+  private val floatingPointParallelAction     = mkActionMask("Traditional Parallel",                VK_P, VK_P,       shortcutMask | SHIFT_MASK, promptForNumberOfThreads)
+  private val pwlHybridSolverAction           = mkActionMask("Enclosure PWL",                       VK_L, VK_L,       shortcutMask | SHIFT_MASK, setInterpreter("enclosure-pwl")) 
+  private val eventTreeHybridSolverAction     = mkActionMask("Enclosure EVT",                       VK_T, VK_T,       shortcutMask | SHIFT_MASK, setInterpreter("enclosure-evt"))
+  private val contractionAction               = mkActionMask("Contraction",                         VK_C, VK_C,       shortcutMask | SHIFT_MASK, enclosure.Interpreter.toggleContraction)
+  private val manualAction                    = mkAction(    "Reference Manual",     VK_M, VK_F1,      manual)
+  private val aboutAction                     = new Action(  "About")       { mnemonic =            VK_A; def apply = about }
   
   /* Shows a dialog asking the user how many threads to use in the parallel interpreter. */
   private def promptForNumberOfThreads = {
@@ -172,18 +176,28 @@ class App extends SimpleSwingApplication {
   val codeArea = new CodeArea
   val codeAreaScrollPane = new RTextScrollPane(codeArea.textArea, false)
   codeAreaScrollPane.setVerticalScrollBarPolicy(javax.swing.ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED)
-
+  
   def toggleLineNumbers = codeAreaScrollPane.setLineNumbersEnabled(!codeAreaScrollPane.getLineNumbersEnabled)
+  def toggleFindReplaceToolbar = {
+    codeArea.findReplaceToolBar.setVisible(!codeArea.findReplaceToolBar.isVisible)
+    if (codeArea.findReplaceToolBar.isVisible) codeArea.searchField.requestFocus 
+    else codeArea.textArea.requestFocus
+  }
+  
+  val codePanel = new BorderPanel {
+    add(Component.wrap(codeAreaScrollPane), BorderPanel.Position.Center)
+    add(Component.wrap(codeArea.findReplaceToolBar), BorderPanel.Position.South)
+  }
 
   val statusZone = new StatusZone
   val upperBottomPane = new BoxPanel(Orientation.Horizontal) {
     contents += upperButtons
     contents += statusZone
   }
-
+  
   val upperPane = new BorderPanel {
     add(codeArea.filenameLabel, BorderPanel.Position.North)
-    add(Component.wrap(codeAreaScrollPane), BorderPanel.Position.Center)
+    add(codePanel, BorderPanel.Position.Center)  
     add(upperBottomPane, BorderPanel.Position.South)
   }
 
@@ -192,6 +206,10 @@ class App extends SimpleSwingApplication {
   val fileBrowser = new FileBrowser(Files.currentDir, codeArea)
   fileBrowser.fileTree.peer.addTreeSelectionListener(codeArea)
   codeArea.addPathChangeListener(fileBrowser.fileTree)
+  
+  val consolePage = new TabbedPane.Page("Console", new BorderPanel {
+    add(new ScrollPane(console), BorderPanel.Position.Center)
+  })
   
   val lowerPane = new BorderPanel {
     // Synch button
@@ -212,12 +230,10 @@ class App extends SimpleSwingApplication {
     synchButton.setFocusable(false)
     synchButton.setBorderPainted(false)
     toolbar.add(synchButton)
-
+    
     // Console / File Browser 
     val tabs = new TabbedPane {
-      pages += new TabbedPane.Page("Console", new BorderPanel {
-        add(new ScrollPane(console), BorderPanel.Position.Center)
-      })
+      pages += consolePage
       pages += new TabbedPane.Page("File Browser", fileBrowser)
       preferredSize = new Dimension(DEFAULT_HEIGHT / 4, preferredSize.width)
     }
@@ -393,25 +409,29 @@ class App extends SimpleSwingApplication {
       contents += new MenuItem(pasteAction)
       contents += new Separator
       contents += new MenuItem(selectAllAction)
+      contents += new CheckMenuItem("Find") {
+        mnemonic = Key.F
+        action = findReplaceAction
+      }
     }
 
     contents += new Menu("View") {
       mnemonic = Key.V
-      contents += new MenuItem(increaseFontSizeAction) 
+      contents += new MenuItem(increaseFontSizeAction)
       contents += new MenuItem(decreaseFontSizeAction)
       contents += new MenuItem(resetFontSizeAction)
       contents += new Menu("Font") {
-	    mnemonic = Key.F
-	    val fontNames = codeArea.supportedFonts.map { fontName =>
-	      new RadioMenuItem(fontName) {
-		    selected = codeArea.textArea.getFont.getName == fontName
-		    action = Action(fontName) { codeArea setFontName fontName }
-		  } 
-	    }
-	    contents ++= fontNames
-	    new ButtonGroup(fontNames:_*)
-	  }
-      contents += new CheckMenuItem("Show line numbers") { 
+        mnemonic = Key.F
+        val fontNames = codeArea.supportedFonts.map { fontName =>
+          new RadioMenuItem(fontName) {
+            selected = codeArea.textArea.getFont.getName == fontName
+            action = Action(fontName) { codeArea setFontName fontName }
+          }
+        }
+        contents ++= fontNames
+        new ButtonGroup(fontNames: _*)
+      }
+      contents += new CheckMenuItem("Show line numbers") {
         mnemonic = Key.L
         action = showLineNumbersAction
       }
@@ -448,15 +468,20 @@ class App extends SimpleSwingApplication {
     }
 
     object semantics {
-      val newRef = new RadioMenuItem("") {
+      val refStandard = new RadioMenuItem("") {
         selected = false
         enableWhenStopped(this)
-        action = floatingPointNewAction
+        action = floatingPointStandardAction
       }
-      val ref = new RadioMenuItem("") {
+      val refOriginal = new RadioMenuItem("") {
         selected = false
         enableWhenStopped(this)
-        action = floatingPointAction
+        action = floatingPointOriginalAction
+     }
+      val refExperimental = new RadioMenuItem("") {
+        selected = false
+        enableWhenStopped(this)
+        action = floatingPointExperimentalAction
       }
       val impr = new RadioMenuItem("") {
         selected = false
@@ -480,7 +505,7 @@ class App extends SimpleSwingApplication {
         selected = false // Main.useEnclosures &&
           //enclosure.Interpreter.strategy.eventEncloser.getClass == classOf[TreeEventEncloser]
       }
-      val bg = new ButtonGroup(ref, newRef, impr, par, pwl, et)
+      val bg = new ButtonGroup(refStandard, refExperimental, refOriginal, impr, par, pwl, et)
       val ls = new CheckMenuItem("") {
         action = contractionAction
         enabledWhenStopped += (this, () => interpreter.interpreter.getClass == enclosure.Interpreter.getClass)
@@ -498,7 +523,10 @@ class App extends SimpleSwingApplication {
     contents += new Menu("Semantics") {
       import semantics._
       mnemonic = Key.S
-      contents ++= Seq(ref, newRef, impr, par, new Separator, pwl, et, new Separator, ls)
+      contents += refStandard
+      if (Main.enableAllSemantics)
+        contents ++= Seq(refExperimental, refOriginal, new Separator, impr, par)
+      contents ++= Seq(new Separator, pwl, et, new Separator, ls)
     }
    
     contents += new Menu("Help") {
@@ -570,8 +598,9 @@ class App extends SimpleSwingApplication {
   }
   interpreter = InterpreterCntrl.cntrlForInterpreter(Main.interpreter);
   interpreter.interpreter.id.toList match {
-    case "reference" :: _=> bar.semantics.ref.selected = true
-    case "newreference" :: _ => bar.semantics.newRef.selected = true
+    case "reference" :: _ => bar.semantics.refStandard.selected = true
+    case "original" :: _=> bar.semantics.refOriginal.selected = true
+    case "experimental" :: _=> bar.semantics.refExperimental.selected = true
     case "imperative" :: _ => bar.semantics.impr.selected = true
     case "parallel" :: _ => bar.semantics.par.selected = true
     case "enclosure" :: tail if tail.contains("pwl") => bar.semantics.pwl.selected = true
@@ -715,7 +744,11 @@ class App extends SimpleSwingApplication {
               case VK_0      => codeArea resetFontSize ; true
               case _         => false 
             }
-        else false 
+        else e.getKeyCode match {
+          case VK_ESCAPE if codeArea.findReplaceToolBar.isVisible => 
+            toggleFindReplaceToolbar; true
+          case _ => false
+        }
     })
 
   /* ----- initialisation ----- */

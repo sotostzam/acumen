@@ -119,7 +119,7 @@ class ParallelInterpreterTest extends InterpreterTestBase {
     //val RI = interpreters.reference.Interpreter
     val PIO = ParallelInterpreter
     val ast = Parser.run(Parser.prog, in)
-    val des = Desugarer.run(ast)
+    val des = Desugarer().run(ast)
     for (_ <- (PIO.instance.run(des).ctrace)) ()
     //val trace1 = RI.run(des).ctrace
     //val trace2 = PIO.instance.run(des).ctrace
@@ -127,6 +127,8 @@ class ParallelInterpreterTest extends InterpreterTestBase {
     //assert(res)
   }
 
-  testExamples({f => f == "examples/A_Ping_Pong/2013_hh_4T.acm"})
+  testExamples({f => f == "examples/0_Demos/02_Passive_walking.acm" || 
+                f.startsWith("examples/A_Ping_Pong/")})
+
   testShouldRun
 }

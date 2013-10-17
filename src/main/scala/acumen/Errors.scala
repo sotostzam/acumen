@@ -23,6 +23,10 @@ object Errors {
     override def getMessage =
       pprint(v) + " is not an object."
   }
+  case class NotAClassName(v:Value[_]) extends AcumenError {
+    override def getMessage =
+      pprint(v) + " is not an class name."
+  }
   case class GroundConversionError(gv:GroundValue, into:String) extends AcumenError {
     override def getMessage = 
       "Cannot convert " + pprint(gv) + " into a " + into + "."
