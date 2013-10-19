@@ -331,7 +331,7 @@ class App extends SimpleSwingApplication {
     pages += new TabbedPane.Page("Table", traceTab)
     val TABLE_IDX = pages.last.index
 
-    pages += new TabbedPane.Page("3D", threeDtab)
+    pages += new TabbedPane.Page("_3D", threeDtab)
     val THREED_IDX = pages.last.index
 
     selection.reactions += {
