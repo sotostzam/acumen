@@ -130,8 +130,6 @@ package acumen {
   case class GBool(b: Boolean) extends GroundValue
   /* Example: "foo" */
   case class GStr(s: String) extends GroundValue
-  /* Constants */
-  case object GConstPi extends GroundValue
 
   /* ==== values ==== */
 
@@ -323,4 +321,6 @@ package object acumen {
   type GValue = Value[_]
   type GObject = collection.Iterable[(Name, GValue)]
   type GStore = collection.Iterable[(CId, GObject)]
+
+  val CONST_PI = GDouble(math.Pi)
 }

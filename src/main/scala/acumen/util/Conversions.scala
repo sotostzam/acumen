@@ -10,7 +10,6 @@ object Conversions {
     v match {
       case GInt(i)    => i.toDouble
       case GDouble(x) => x
-      case GConstPi   => math.Pi 
       case _ => throw GroundConversionError(v, "double")
     }
   

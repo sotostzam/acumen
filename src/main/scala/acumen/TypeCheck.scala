@@ -501,7 +501,6 @@ class TypeCheck(val prog: Prog) {
     case GDouble(_) => NumericType
     case GBool(_) => BoolType
     case GStr(_) => StrType
-    case GConstPi => NumericType
   }
 
 
