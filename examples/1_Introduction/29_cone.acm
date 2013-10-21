@@ -1,0 +1,21 @@
+
+// Cone plays radar (spherical coordinates)
+
+...
+
+class Main(simulator)
+private
+ _3D := 
+ [["Cone",   
+  [0,0,0],   // Center point
+  [0.4,1.0], // Size in [radius, height] for
+  [1,0,1],   // Color
+  [pi/2,0,0]]   // Orientation
+  ]
+end
+end
+
+// Exercises
+// 1) Draw the head of a snowman with a conical nose.
+//    You can substitute this exercise for drawing
+//    a head figure wearing a any type of conical hat.

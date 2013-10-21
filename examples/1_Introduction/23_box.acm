@@ -1,0 +1,21 @@
+
+// A box goes wild
+
+class Main(simulator)
+private
+  t  := 0; // Local time
+  t' := 1; // Is as fast as global time
+ _3D := []
+end
+ _3D = 
+ [["Box",
+  [0,0,0],        // Center point
+  [0.2,t/2,3-t/4],// Size in [x,y,z] form
+  [1,0,0],
+  [0,0,0]]];
+end
+
+// Exercises
+// 1) Does the box rotate during the animation?
+// 2) Display the area of the surface that changes
+//    size during the animation
