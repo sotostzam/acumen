@@ -87,7 +87,8 @@ case class Desugarer(odeTransformMode: ODETransformMode = TopLevel) {
       case Var(x) =>
         if (env.contains(x) || (p.defs map (_.name)).contains(ClassName(x.x))) Var(x)
         else if (fs contains x) Dot(Var(self), x)
-        else throw VariableNotDeclared(x)
+        else if (Constants.predefined.contains(x.x)) Constants.predefined(x.x)
+      else throw VariableNotDeclared(x)
       case Op(f, es) => Op(f, es map des)
       case Dot(o, f) => Dot(des(o), f)
       case ExprVector(es) => ExprVector(es map des)
