@@ -87,7 +87,7 @@ object Parser extends MyStdTokenParsers {
     List("for", "end", "if", "else", "create", "move", "in",
       "terminate", "class", "sum", "true", "false",
       "private", "switch", "case", "Continuous", "Discrete", "none", "type", "claim",
-      "pi","let")
+      "let")
 
   /* token conversion */
 
@@ -298,7 +298,6 @@ object Parser extends MyStdTokenParsers {
   def atom: Parser[Expr] =
     ("sum" ~! expr ~! "for" ~! name ~! "in" ~! expr ~! "if" ~! expr ^^ { case _ ~ e ~ _ ~ i ~ _ ~ c ~ _ ~ t => Sum(e, i, c, t) }
       | interval
-      | constant
       | "type" ~! parens(className) ^^ { case _ ~ cn => TypeOf(cn) }
       | name >> { n => args(expr) ^^ { es => Op(n, es) } | success(Var(n)) }
       | brackets(repsep(expr, ",")) ^^ ExprVector
@@ -309,9 +308,6 @@ object Parser extends MyStdTokenParsers {
 //    nlit ~ ".." ~ nlit ^^ { case lo ~ ".." ~ hi => ExprInterval(lo,hi) }
       "[" ~> nlit ~ ".." ~ nlit <~ "]" ^^ { case lo ~ ".." ~ hi => ExprInterval(lo,hi) }
 
-  def constant =
-    "pi" ^^^ Lit(Constants.PI)
-      
   def lit = (gint | gfloat | gstr) ^^ Lit
 
   def name: Parser[Name] =
