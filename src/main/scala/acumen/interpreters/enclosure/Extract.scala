@@ -317,7 +317,7 @@ trait Extract {
 
   def acumenExprToExpression(e: Expr)(implicit rnd: Rounding): Expression = e match {
     case Lit(GInt(d))         => Constant(d)
-    case Lit(CONST_PI)        => Constant(Interval.pi)
+    case Lit(Constants.PI)    => Constant(Interval.pi)
     case Lit(GDouble(d))      => Constant(d)
     case ExprInterval(lo, hi) => Constant(foldConstant(lo).value /\ foldConstant(hi).value)
     case ExprIntervalM(mid0, pm0) =>

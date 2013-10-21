@@ -310,7 +310,7 @@ object Parser extends MyStdTokenParsers {
       "[" ~> nlit ~ ".." ~ nlit <~ "]" ^^ { case lo ~ ".." ~ hi => ExprInterval(lo,hi) }
 
   def constant =
-    "pi" ^^^ Lit(CONST_PI)
+    "pi" ^^^ Lit(Constants.PI)
       
   def lit = (gint | gfloat | gstr) ^^ Lit
 

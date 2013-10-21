@@ -322,5 +322,4 @@ package object acumen {
   type GObject = collection.Iterable[(Name, GValue)]
   type GStore = collection.Iterable[(CId, GObject)]
 
-  val CONST_PI = GDouble(math.Pi)
 }
