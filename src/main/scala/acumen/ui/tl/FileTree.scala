@@ -202,15 +202,15 @@ class FileTree(initialPath: File) extends Component with ChangeListener {
    */
   override def stateChanged(e: ChangeEvent) {
     // Check what was selected through File > Open
-    e.getSource.asInstanceOf[CodeArea].currentFile match { 
+    silently(e.getSource.asInstanceOf[CodeArea].currentFile match { 
       case Some(file) =>
         if (Main.synchEditorWithBrowser)
           focus(file)
-        if (file.isDirectory) peer.getSelectionModel.clearSelection
+        if (file.isDirectory) peer.clearSelection
         refresh
       case None =>
-        silently(peer.clearSelection)
-    }
+        peer.clearSelection
+    })
   }
 
   /**
