@@ -196,17 +196,34 @@ class FileTree(initialPath: File) extends Component with ChangeListener {
     else None
   }
 
-  /* 
+  /** 
    * If the user opened or saved the current file to a new name, check if the 
    * path needs to be adjusted. 
    */
   override def stateChanged(e: ChangeEvent) {
-	// Check what was selected through File > Open
-    e.getSource.asInstanceOf[CodeArea].currentFile.foreach { file =>
-      if (Main.synchEditorWithBrowser) focus(file)
-      if (file.isDirectory) peer.clearSelection
+    // Check what was selected through File > Open
+    e.getSource.asInstanceOf[CodeArea].currentFile match { 
+      case Some(file) =>
+        if (Main.synchEditorWithBrowser)
+          focus(file)
+        if (file.isDirectory) peer.getSelectionModel.clearSelection
+        refresh
+      case None =>
+        silently(peer.clearSelection)
     }
-    refresh
+  }
+
+  /**
+   * Perform a without firing any TreeSelectionEvents.
+   * This is useful e.g. when opening a new file, and the clearing of the FileTree's  
+   * path should not fire any additional events.
+   **/
+  def silently[T](a: => T): T = {
+    val tsls = peer.getTreeSelectionListeners()
+    tsls.foreach(peer.removeTreeSelectionListener)
+    val res = a
+    tsls.foreach(peer.addTreeSelectionListener)
+    res
   }
 
 }

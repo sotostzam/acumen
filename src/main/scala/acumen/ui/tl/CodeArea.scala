@@ -156,6 +156,7 @@ class CodeArea extends Panel with TreeSelectionListener {
         case Some(f) => f.getName
         case None    => "[Untitled]"
       }
+    notifyPathChangeListeners
   }
 
   def setEdited = {
@@ -179,7 +180,8 @@ class CodeArea extends Panel with TreeSelectionListener {
       textArea.setText("")
       setCurrentFile(None)
       editedSinceLastSave = false
-      textArea.discardAllEdits()
+      textArea.discardAllEdits
+      textArea.requestFocus
     }
   }
 
@@ -254,10 +256,15 @@ class CodeArea extends Panel with TreeSelectionListener {
    */
   def saveFileAs(updateCurrentFile: Boolean = true): Unit = withErrorReporting {
     val fc = new FileChooser(currentDir)
+    currentFile match {
+        case Some(f) => fc.selectedFile = f
+        case _ =>
+      }
     if (fc.showSaveDialog(App.ui.body) == FileChooser.Result.Approve) {
       val f = fc.selectedFile
       if (!f.exists || confirmSave(App.ui.body.peer, f))
         writeText(f, updateCurrentFile)
+      setCurrentFile(Some(f))
     }
   }
 
