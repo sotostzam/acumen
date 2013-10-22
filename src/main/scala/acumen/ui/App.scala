@@ -736,11 +736,17 @@ class App extends SimpleSwingApplication {
   }
   
   /** Everything that needs to be done to start a simulation. */
-  def runSimulation() { 
+  def runSimulation() {
     controller.threeDData.reset
     threeDtab.reset
     codeArea.autoSave
     controller ! Play
+  }
+
+  /** Everything that needs to compute one simulation step. */
+  def stepSimulation() {
+    codeArea.autoSave
+    controller ! Step
   }
   
   // Add application-wide keyboard shortcuts
