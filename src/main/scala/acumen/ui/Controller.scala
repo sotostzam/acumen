@@ -21,6 +21,7 @@ case class Progress(percent: Int) extends AppEvent
 case class ProgressMsg(msg:String) extends AppEvent
 case class Progress3d(percent: Int) extends AppEvent
 
+// (actor) messages from the UI
 sealed abstract class AppActions
 case class Init(t:String, i:InterpreterCntrl) extends AppActions
 case object Play extends AppActions
