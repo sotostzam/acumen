@@ -31,7 +31,7 @@ class ControlButtons extends FlowPanel {
 
   val play = new Action("play") {
     icon = Icons.play
-    def apply = {App.ui.controller.threeDData.reset; App.ui.threeDtab.reset; App.ui.codeArea.autoSave; App.ui.controller ! Play}
+    def apply = App.ui.runSimulation() //FIXME Unify way in which buttons react to input --adam
     toolTip = "Run Simulation"
   }
   val step = new Action("step") {

@@ -221,9 +221,9 @@ class ThreeDData extends Publisher {
              else
                 l(0) match {
                   /* If it's only one object, _3D will start with a string or an int, 
-								*		example:  _3D = ["Sphere",...,...,..] 
-								*	    		  	_3D = [2,...,...,..];  
-								*/
+								   *		example:  _3D = ["Sphere",...,...,..] 
+							     *	    		  	_3D = [2,...,...,..];  
+							     */
                   case VLit(_) => addTo3DStore(id, _3DData, List(value), 1)
                   /**
                    * If it contains multiple objects, _3D will start with a vector,
@@ -241,4 +241,7 @@ class ThreeDData extends Publisher {
     }
     frameNumber += 1
   }
+  /* Check if model source contains any _3D variable declarations. */  
+  def modelContains3D() = _3DData.nonEmpty
+    
 }

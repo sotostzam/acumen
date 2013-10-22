@@ -70,6 +70,7 @@ class CodeArea extends Panel with TreeSelectionListener {
   var currentFile: Option[File] = None
   var editedSinceLastSave: Boolean = false
   var editedSinceLastAutoSave: Boolean = false
+  var editedSinceLastRun: Boolean = false
 
   val filenameLabel = new Label("[Untitled]")
   
@@ -163,6 +164,7 @@ class CodeArea extends Panel with TreeSelectionListener {
     if (!editedSinceLastSave) filenameLabel.text += " (unsaved)"
     editedSinceLastSave = true
     editedSinceLastAutoSave = true
+    editedSinceLastRun = true
   }
 
   def listenDocument = {

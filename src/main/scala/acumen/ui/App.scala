@@ -119,8 +119,8 @@ class App extends SimpleSwingApplication {
   private val saveAction                      = mkAction(    "Save",                                VK_S, VK_S,       codeArea.saveFile())
   private val saveAsAction                    = mkActionMask("Save As",                             VK_A, VK_S,       shortcutMask | SHIFT_MASK, codeArea.saveFileAs())
   private val recoverAction                   = mkAction(    "Recover",                             VK_R, VK_R,       codeArea.openFile(Files.autoSavedDir))
-  private val exportTableAction               = new Action(  "Export Table"){ mnemonic =            VK_E; def apply = exportTable}
-  private val exitAction                      = mkAction(    "Exit",                                VK_E, VK_Q,       exit)
+  private val exportTableAction               = new Action(  "Export Table"){ mnemonic =            VK_E; def apply = exportTable()}
+  private val exitAction                      = mkAction(    "Exit",                                VK_E, VK_Q,       exit())
   private val cutAction                       = mkAction(    "Cut",                                 VK_T, VK_X,       codeArea.textArea.cut)
   private val copyAction                      = mkAction(    "Copy",                                VK_C, VK_C,       codeArea.textArea.copyAsRtf)
   private val pasteAction                     = mkAction(    "Paste",                               VK_P, VK_V,       codeArea.textArea.paste)
@@ -342,6 +342,9 @@ class App extends SimpleSwingApplication {
 
     var shouldEnable3D = false
 
+    def selectPlotView() = peer.setSelectedIndex(PLOT_IDX)
+    def selectThreeDView() = peer.setSelectedIndex(THREED_IDX)
+    
     def possibleEnable3D = {
       if (selection.index == THREED_IDX && shouldEnable3D)
         pages(THREED_IDX).content = start3D
@@ -549,7 +552,7 @@ class App extends SimpleSwingApplication {
     
   }
 
-  def exit {
+  def exit() {
     //timer3d.destroy=true
     //receiver.destroy=true
     //threeDView.exit
@@ -577,12 +580,12 @@ class App extends SimpleSwingApplication {
 
   /* ------ simple dialogs ----- */
 
-  def about = {
+  def about() = {
     val version = acumen.util.System.version
     Dialog.showMessage(body, "Acumen " + version, "About")
   }
   
-  def manual = {
+  def manual() = {
     val desktop = Desktop.getDesktop
     try { desktop.browse(classOf[ManualBrowser].getResource("manual.html").toURI)}
     catch { case e => {ManualBrowser.peer.setVisible(true);()}}
@@ -650,9 +653,15 @@ class App extends SimpleSwingApplication {
   // enable 3d if required
   reactions += {
     case Stopped =>
-      if (Main.threeDState == ThreeDState.LAZY &&
-        !controller.threeDData._3DData.isEmpty)
-        views.shouldEnable3D = true
+      if (controller.threeDData.modelContains3D) {
+        if (Main.threeDState == ThreeDState.LAZY)
+          views.shouldEnable3D = true
+        codeArea.editedSinceLastRun = false
+        threeDtab.play
+        views.selectThreeDView
+      }
+      else
+        views.selectPlotView
       views.possibleEnable3D
   }
 
@@ -688,7 +697,9 @@ class App extends SimpleSwingApplication {
     JOptionPane.showConfirmDialog(c, message,
       "Really?", JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION
   }
-  def exportTable = {
+  
+  /** Exports simulation data (corresponding to the table view) to a file. */
+  def exportTable() = {
     val fc = new FileChooser()
     val returnVal = fc.showSaveDialog(App.ui.body)
     if (returnVal == FileChooser.Result.Approve) {
@@ -705,23 +716,31 @@ class App extends SimpleSwingApplication {
         val out = new FileWriter(fc.selectedFile)
         var i = 0
         while (i < model.getColumnCount()) {
-	  out.write(model.getColumnName(i) + "\t");
+          out.write(model.getColumnName(i) + "\t");
           i += 1
-	}
-	out.write("\n");
+        }
+        out.write("\n");
         i = 0
-	while (i< model.getRowCount) {
+        while (i < model.getRowCount) {
           var j = 0;
-	  while (j < model.getColumnCount) {
-	    out.write(model.getValueAt(i,j).toString()+"\t");
+          while (j < model.getColumnCount) {
+            out.write(model.getValueAt(i, j).toString() + "\t");
             j += 1;
-	  }
-	  out.write("\n");
+          }
+          out.write("\n");
           i += 1;
-	}
-	out.close();
+        }
+        out.close();
       }
     }
+  }
+  
+  /** Everything that needs to be done to start a simulation. */
+  def runSimulation() { 
+    controller.threeDData.reset
+    threeDtab.reset
+    codeArea.autoSave
+    controller ! Play
   }
   
   // Add application-wide keyboard shortcuts

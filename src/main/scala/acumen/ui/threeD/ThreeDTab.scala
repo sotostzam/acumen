@@ -10,6 +10,7 @@ import scala.swing._
 abstract class AbstractThreeDTab extends BorderPanel {
   def receiver: Publisher
   def reset: Unit
+  def play: Unit
   def setProgress(p: Int): Unit
 }
 
@@ -76,57 +77,7 @@ class ThreeDTab(val appModel: Controller) extends AbstractThreeDTab {
 
   val threedplay = new Action("play") {
     icon = Icons.play
-    def apply = {
-      threedpause.toolTip = "pause"
-      threedpause.icon = Icons.pause
-      endTime = appModel.threeDData.endTime
-      if (played) {
-        receiver.stop;
-        timer3d.destroy = true;
-        statusZone3d.setSpeed(playSpeed.toString)
-        if (check.selected == true)
-          threeDView.axisOn
-      }
-      // First time press "3D play" button, 
-      // copy the data from list to buffer to speed up
-      if (!played) {
-        _3DDataBuffer.clear
-        lastFrame = 0;
-        statusZone3d.setSpeed("1.0")
-        for ((id, map) <- appModel.threeDData._3DData) {
-          var temp = Map[Int, Buffer[List[_]]]()
-          for ((objectNumber, l) <- map) {
-            temp += (objectNumber -> l.reverse.toBuffer)
-            temp(objectNumber).last(5) match {
-              // The animation's length
-              case n: Int => if (n > lastFrame) { lastFrame = n }
-              case _ => {val n = temp(objectNumber).last(6).asInstanceOf[Int];
-	                     if ( n > lastFrame) { lastFrame = n }}
-            }
-          }
-          _3DDataBuffer += id -> temp
-        }
-        _3DView = appModel.threeDData._3DView.reverse
-        appModel.threeDData.reset;
-      }
-      threeDView.branches.clear
-      threeDView.trans.clear
-      threeDView.customView = (_3DView.size > 0)
-      if(_3DView.size != 0)
-        threeDView.reset
-  
-      _receiver = new _3DDisplay(threeDView, statusZone3d, _3DDataBuffer, lastFrame,
-    		                     appModel.threeDData.endTime,_3DView)
-      timer3d = new ScalaTimer(receiver, appModel.threeDData.endTime, playSpeed)
-      receiver.start()
-      timer3d.start()
-      listenTo(receiver)
-      receiver.listenTo(statusZone3d.bar.mouse.moves)
-      receiver.listenTo(timer3d)
-      timer3d.listenTo(statusZone3d.bar.mouse.clicks)
-      timer3d.listenTo(statusZone3d.bar.mouse.moves)
-      played = true;
-    }
+    def apply = play()
     toolTip = "play"
   }
 
@@ -191,6 +142,63 @@ class ThreeDTab(val appModel: Controller) extends AbstractThreeDTab {
     threeDView.reset
   }
 
+  def play() = 
+    if (App.ui.codeArea.editedSinceLastRun)
+      App.ui.runSimulation
+    else {
+      threedpause.toolTip = "pause"
+      threedpause.icon = Icons.pause
+      endTime = appModel.threeDData.endTime
+      if (played) {
+        receiver.stop;
+        timer3d.destroy = true;
+        statusZone3d.setSpeed(playSpeed.toString)
+        if (check.selected == true)
+          threeDView.axisOn
+      }
+      // First time press "3D play" button, 
+      // copy the data from list to buffer to speed up
+      if (!played) {
+        _3DDataBuffer.clear
+        lastFrame = 0;
+        statusZone3d.setSpeed("1.0")
+        for ((id, map) <- appModel.threeDData._3DData) {
+          var temp = Map[Int, Buffer[List[_]]]()
+          for ((objectNumber, l) <- map) {
+            temp += (objectNumber -> l.reverse.toBuffer)
+            temp(objectNumber).last(5) match {
+              // The animation's length
+              case n: Int => if (n > lastFrame) { lastFrame = n }
+              case _ => {
+                val n = temp(objectNumber).last(6).asInstanceOf[Int];
+                if (n > lastFrame) { lastFrame = n }
+              }
+            }
+          }
+          _3DDataBuffer += id -> temp
+        }
+        _3DView = appModel.threeDData._3DView.reverse
+        appModel.threeDData.reset;
+      }
+      threeDView.branches.clear
+      threeDView.trans.clear
+      threeDView.customView = (_3DView.size > 0)
+      if (_3DView.size != 0)
+        threeDView.reset
+  
+      _receiver = new _3DDisplay(threeDView, statusZone3d, _3DDataBuffer, lastFrame,
+        appModel.threeDData.endTime, _3DView)
+      timer3d = new ScalaTimer(receiver, appModel.threeDData.endTime, playSpeed)
+      receiver.start()
+      timer3d.start()
+      listenTo(receiver)
+      receiver.listenTo(statusZone3d.bar.mouse.moves)
+      receiver.listenTo(timer3d)
+      timer3d.listenTo(statusZone3d.bar.mouse.clicks)
+      timer3d.listenTo(statusZone3d.bar.mouse.moves)
+      played = true;
+    }
+
   def setProgress(p:Int) = {
     statusZone3d.setProgress(p);
     statusZone3d.setTime((p.toFloat/100)*endTime.toFloat)
@@ -207,7 +215,8 @@ class ThreeDTab(val appModel: Controller) extends AbstractThreeDTab {
 
 class DisabledThreeDTab(msg: String) extends AbstractThreeDTab {
   def receiver = null
-  def reset = {}
+  def reset = {} 
+  def play = {} 
   def setProgress(p:Int) = {}
   val msgBox = new TextArea("\n" + msg)
   msgBox.editable = false
