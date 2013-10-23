@@ -11,6 +11,7 @@ abstract class AbstractThreeDTab extends BorderPanel {
   def receiver: Publisher
   def reset: Unit
   def play: Unit
+  def pause: Unit
   def setProgress(p: Int): Unit
 }
 
@@ -42,21 +43,7 @@ class ThreeDTab(val appModel: Controller) extends AbstractThreeDTab {
   val threedpause = new Action("pause") {
     icon = Icons.pause
     toolTip = "pause"
-    def apply = {
-      if (toolTip == "pause") {
-        // un-pause
-        timer3d.pause = false
-        receiver.pause = true
-        icon = Icons.play
-        toolTip = "resume"
-      } else {
-        // pause
-        timer3d.pause = true
-        receiver.pause = false
-        icon = Icons.pause
-        toolTip = "pause"
-      }
-    }
+    def apply = pause()
   }
   val stop3d = new Action("stop") {
     threeDView.canvas.stopRenderer
@@ -142,7 +129,22 @@ class ThreeDTab(val appModel: Controller) extends AbstractThreeDTab {
     threeDView.reset
   }
 
-  def play() = 
+  def pause(): Unit =
+    if (threedpause.toolTip == "pause") {
+      // un-pause
+      timer3d.pause = false
+      receiver.pause = true
+      threedpause.icon = Icons.play
+      threedpause.toolTip = "resume"
+    } else {
+      // pause
+      timer3d.pause = true
+      receiver.pause = false
+      threedpause.icon = Icons.pause
+      threedpause.toolTip = "pause"
+    }
+
+  def play(): Unit = 
     if (App.ui.codeArea.editedSinceLastRun)
       App.ui.runSimulation
     else {
@@ -217,6 +219,7 @@ class DisabledThreeDTab(msg: String) extends AbstractThreeDTab {
   def receiver = null
   def reset = {} 
   def play = {} 
+  def pause = {} 
   def setProgress(p:Int) = {}
   val msgBox = new TextArea("\n" + msg)
   msgBox.editable = false

@@ -310,10 +310,13 @@ class _3DDisplay(app: ThreeDView, slider: Slider3d,
       if (destroy)
         exit
       react {
-        case "go" => {    
-	  renderCurrentFrame
-          if (currentFrame == totalFrames) // Animation is over
+        case "go" => {
+          renderCurrentFrame
+          if (currentFrame == totalFrames){ // Animation is over
             emitProgress(100)
+            destroy = true
+            pause = true
+          }
           if (totalFrames > 0)
             emitProgress((currentFrame * 100 / totalFrames).toInt)
           if (currentFrame < totalFrames)
