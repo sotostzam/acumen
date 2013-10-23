@@ -296,7 +296,7 @@ object Parser extends MyStdTokenParsers {
     }
 
   def atom: Parser[Expr] =
-      ( sum
+    ( sum
       | interval
       | "type" ~! parens(className) ^^ { case _ ~ cn => TypeOf(cn) }
       | name >> { n => args(expr) ^^ { es => Op(n, es) } | success(Var(n)) }
