@@ -1,0 +1,65 @@
+CHANGES FROM ACUMEN 2012:
+
+Various UI improvments. - kevin, adam, walid
+  - added search - adam
+  - other small ones
+Constants for color and pi - kevin
+New reference manual - walid
+Various semantic changes:
+  default: 
+    disallow duplicate discrete assigsments - adam
+    Delay discrete assignments to end of discrete step in ref. interp. - adam
+    disallow duplicate continous assessments - adam
+    De-sugar ODEs at top level. - adam
+  expermental interpreter:
+    all of default + cont. assignments independent - braked model
+
+  ==>old semancs still availabe under ???
+Lanaguage enchancments:
+  let operator - yingfu
+  class names first class citizens - kevin
+  floor and ceiling functionly to vectors - kevin
+  fix order of arguments atan2
+
+(Command line improvements)
+(One entry point)
+Memory improvements
+  - implement basic filtering
+  - Change nextStepType to the more direct resultType.
+
+Fix so that using "_3D :=[]" doesn't brake plotting. 
+
+Export Table
+
+Enclosure interpreter:
+  Support sin and cos
+  Support all and not in enclosure interpreter -- note bug
+
+Make it possible to run enclosure models with other semantics
+
+Performace improvements for impartive interpreter
+Upgrade to scale 2.9.3
+Better tests
+
+(expermental compiler)
+
+Streamlined keyboard shortcuts.
+
+Socket interface - Viktor
+
+Various improvments to enclosure interpreter... - Jan and Adam
+
+Example improvements
+
+Fork acumen so it has enough memory and JVM is started with the right parameters
+
+Testing improvements
+
+  - Merge in lonar branch -- Jan Duracz *** FIXME: REMOVE AND REPLACE WITH A PROPER ENTRY
+  - 3D View: Allow user to create transparent object  --  Yingfu Zeng
+  - Add keyboard shortcuts to most actions -- Adam Duracz
+  - New file browser for IDE (ACUMEN-135) -- Adam Duracz
+  - 3D View: Be able to manipulate camera angle from within the model -- Yingfu Zeng
+  - Update to SBT 0.12.3 -- Kevin Atkinson
+  - Various bug fixes (ACUMEN-65) -- Misc. Authors
+
