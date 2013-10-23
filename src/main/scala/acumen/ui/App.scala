@@ -342,6 +342,7 @@ class App extends SimpleSwingApplication {
 
     var shouldEnable3D = false
 
+    def threeDViewSelected = peer.getSelectedIndex == THREED_IDX
     def selectPlotView() = peer.setSelectedIndex(PLOT_IDX)
     def selectThreeDView() = peer.setSelectedIndex(THREED_IDX)
     
@@ -654,15 +655,17 @@ class App extends SimpleSwingApplication {
   reactions += {
     case Stopped =>
       if (controller.threeDData.modelContains3D) {
-        if (Main.threeDState == ThreeDState.LAZY)
-          views.shouldEnable3D = true
         codeArea.editedSinceLastRun = false
-        threeDtab.play
-        views.selectThreeDView
-      }
-      else
+        if (Main.threeDState == ThreeDState.LAZY) {
+          views.shouldEnable3D = true
+          views.possibleEnable3D
+        } else if (Main.threeDState == ThreeDState.ENABLE) {
+          views.selectThreeDView
+          threeDtab.play
+        }
+      } else if (views.threeDViewSelected) {
         views.selectPlotView
-      views.possibleEnable3D
+      }
   }
 
   // FIXME: Move me into a seperate TraceTable class
