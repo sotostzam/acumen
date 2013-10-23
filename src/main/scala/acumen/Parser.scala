@@ -296,7 +296,7 @@ object Parser extends MyStdTokenParsers {
     }
 
   def atom: Parser[Expr] =
-    ("sum" ~! expr ~! "for" ~! name ~! "in" ~! expr ~! "if" ~! expr ^^ { case _ ~ e ~ _ ~ i ~ _ ~ c ~ _ ~ t => Sum(e, i, c, t) }
+      ( sum
       | interval
       | "type" ~! parens(className) ^^ { case _ ~ cn => TypeOf(cn) }
       | name >> { n => args(expr) ^^ { es => Op(n, es) } | success(Var(n)) }
@@ -304,6 +304,14 @@ object Parser extends MyStdTokenParsers {
       | gvalue ^^ Lit
       | parens(expr))
 
+  def sum: Parser[Expr] =
+    "sum" ~! expr ~! "for" ~! name ~! "in" ~! expr ~! opt("if" ~! expr) ^^
+      { case _ ~ e ~ _ ~ i ~ _ ~ c ~ t =>
+          Sum(e, i, c, t match {
+            case None        => Lit(GBool(true)) // No "if" is same as "if true"
+            case Some(_ ~ f) => f
+          })} 
+      
   def interval: Parser[Expr] =
 //    nlit ~ ".." ~ nlit ^^ { case lo ~ ".." ~ hi => ExprInterval(lo,hi) }
       "[" ~> nlit ~ ".." ~ nlit <~ "]" ^^ { case lo ~ ".." ~ hi => ExprInterval(lo,hi) }
