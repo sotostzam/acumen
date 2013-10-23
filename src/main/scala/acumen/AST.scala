@@ -131,6 +131,11 @@ package acumen {
   /* Example: "foo" */
   case class GStr(s: String) extends GroundValue
 
+  // NOTE: Constants.PI (a GDouble(math.Pi)) is meant as a special
+  //   value and is tested for reference equality in
+  //   interpreters.enclosure.Extract.  This needs to be taken into
+  //   account if GDouble's are ever hash consed.
+
   /* ==== values ==== */
 
   sealed abstract class ResultType
