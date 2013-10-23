@@ -102,6 +102,8 @@ class App extends SimpleSwingApplication {
   val controller = new Controller
   var lastNumberOfThreads = 2
 
+  @volatile var modelFinished : Boolean = false
+
   //**************************************
   //**************************************
 
@@ -659,7 +661,7 @@ class App extends SimpleSwingApplication {
         if (Main.threeDState == ThreeDState.LAZY) {
           views.shouldEnable3D = true
           views.possibleEnable3D
-        } else if (Main.threeDState == ThreeDState.ENABLE) {
+        } else if (Main.threeDState == ThreeDState.ENABLE && modelFinished) {
           views.selectThreeDView
           threeDtab.play
         }

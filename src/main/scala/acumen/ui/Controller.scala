@@ -79,6 +79,7 @@ class Controller extends DaemonActor {
         //
         case Init(progText, interpreter) => 
           //println("INIT")
+          App.ui.modelFinished = false
           model = interpreter.newInterpreterModel
           producer = interpreter.init(progText, this)
           link(producer)
@@ -130,11 +131,13 @@ class Controller extends DaemonActor {
           if (d != null) flush(d)
           setState(newState)
         case IC.Chunk(d) => // ignore chunks from supposedly dead producers
+        case IC.Done =>
+          App.ui.modelFinished = true
+          setState(Stopped)
         case Exit(_,ue:UncaughtException) =>
           actor ! Error(ue.cause)
           setState(Stopped)
-        case msg@(IC.Done | Exit(_,_)) => 
-          //println("Done|Exit: " + msg)
+        case Exit(_,_) => 
           setState(Stopped)
         
         //
