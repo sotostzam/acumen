@@ -11,7 +11,7 @@ end
  [["Box",
   [0,0,0],        // Center point
   [0.2,t/2,3-t/4],// Size in [x,y,z] form
-  [1,0,0],
+  red,
   [0,0,0]]];
 end
 

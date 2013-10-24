@@ -6,25 +6,25 @@ private
  _3D := 
  [
   ["Cylinder",[0,0,0],    // First red line
-              [0.02,5],[1,0,0],[0,0,pi/5]],
+              [0.02,5],red,[0,0,pi/5]],
   ["Cylinder",[0,0,0],    // Second red line
-              [0.02,5],[1,0,0],[0,0,-1*pi/5]],
+              [0.02,5],red,[0,0,-1*pi/5]],
   ["Text",[1.5,2,0],0.2,  // Label for second red line
-          [1,0,0],[0,0,0],"Main line"],
+          red,[0,0,0],"Main line"],
   ["Text",[0.1,1,0],0.2,  // Label for second red line
-          [1,0,0],[0,0,0],"pi/5"],
+          red,[0,0,0],"pi/5"],
   ["Cylinder",[0,0,0],    // y-axis
-              [0.01,5],[1,1,0],[0,0,0]],
+              [0.01,5],yellow,[0,0,0]],
   ["Cylinder",[0,0,0],    // x-axis
-              [0.01,5],[1,1,0],[0,0,pi/2]],
-  ["Cylinder",[0,0,0], // Green is 5*cos(pi/5)
-              [0.02,5*cos(pi/5)],[0,1,0],[0,0,0]],
+              [0.01,5],yellow,[0,0,pi/2]],
+  ["Cylinder",[0,0,0],    // Green is 5*cos(pi/5)
+              [0.02,5*cos(pi/5)],green,[0,0,0]],
   ["Text",[0,2.1,0],0.2,  // Label for cos(pi/5)
-          [0,1,0],[0,0,0],"cos(pi/5)"],
-  ["Cylinder",[0,0,0], // Blue is 5*sin(pi/5)
-              [0.02,5*sin(pi/5)],[0,0,1],[0,0,pi/2]],
+          green,[0,0,0],"cos(pi/5)"],
+  ["Cylinder",[0,0,0],    // Blue is 5*sin(pi/5)
+              [0.02,5*sin(pi/5)],blue,[0,0,pi/2]],
   ["Text",[1.7,0,0],0.2,  // Label for sin(pi/5)
-          [0,0,1],[0,0,0],"sin(pi/5)"]
+          blue,[0,0,0],"sin(pi/5)"]
   ];
 end
 end

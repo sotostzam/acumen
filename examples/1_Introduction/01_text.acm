@@ -11,7 +11,7 @@ private
  [["Text",     // Type of _3D object
    [-2.2,0,0], // Starting point in [x,y,z] form
    0.75,       // Font size
-   [1,1,0],    // Color in red-green-blue (RGB) intensity
+   yellow,    // Color in red-green-blue (RGB) intensity
    [pi/2,0,0], // Orientation (pi/2 around x-axis)
    "Hello Acumen!"]]; // Text you wish to display
 end

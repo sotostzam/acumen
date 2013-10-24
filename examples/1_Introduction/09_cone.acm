@@ -5,10 +5,10 @@ class Main(simulator)
 private
  _3D := 
  [["Cone",   
-  [0,0,0],   // Center point
-  [0.4,1.0], // Size in [radius, height] for
-  [1,0,1],   // Color
-  [pi/2,0,0]]   // Orientation
+  [0,0,0],    // Center point
+  [0.4,1.0],  // Size in [radius, height] for
+  magenta,    // Color
+  [pi/2,0,0]] // Orientation
   ]
 end
 end

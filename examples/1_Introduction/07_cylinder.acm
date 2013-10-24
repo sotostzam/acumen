@@ -7,7 +7,7 @@ private
  [["Cylinder",// Type of _3D object
   [0,0,0],    // Center point
   [0.1,4],    // Size in [radius,length] form
-  [1,1,0],    // Color
+  yellow,     // Color
   [0,0,0]]];  // Orientation
 end
 end
