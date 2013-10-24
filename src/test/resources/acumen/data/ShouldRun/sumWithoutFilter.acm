@@ -1,0 +1,5 @@
+// Example to test sum statement without filter.
+class Main(_)
+  private n := 0 end
+	n = sum 1 for i in 1:3 // no filter ~ if true
+end 
