@@ -193,6 +193,16 @@ object Common {
     }
   }
 
+  /* eval Index(e, i) */
+  def evalIndexOp[A](e: Value[A], i: Value[A]) : Value[A] = {
+    e match {
+      case VVector(l) => i match {
+        case VLit(GInt(idx)) => 
+          l(idx) // FIXME: Check that array idx in in bound
+        case _ => throw ConversionError(i, "int") }
+      case _ => throw ConversionError(e, "vector") }
+  }
+
   val magicClassTxt =
     """class Simulator(time, timeStep, outputRows, continuousSkip, endTime, resultType, lastCreatedId, expects, observes) end"""
   val initStoreTxt =

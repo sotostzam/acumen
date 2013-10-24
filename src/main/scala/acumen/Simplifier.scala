@@ -51,6 +51,7 @@ object Simplifier {
       case Lit(gv) => e
       case Var(x) => e
       case Op(f, es) => Op(f, es map des)
+      case Index(f, i) => Index(des(f), des(i))
       case Dot(o, f) => Dot(des(o), f)
       case ExprVector(es) => ExprVector(es map des)
       case Sum(e, i, col, cond) =>

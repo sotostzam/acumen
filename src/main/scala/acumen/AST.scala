@@ -106,6 +106,8 @@ package acumen {
   case class Var(name: Name) extends Expr
   /* Example Main */
   case class Op(f: Name, es: List[Expr]) extends Expr
+  /* Example x[10] */
+  case class Index(e: Expr, idx: Expr) extends Expr
   /* Example: self.x */
   case class Dot(obj: Expr, field: Name) extends Expr
   /* Example: [1,3,4] */

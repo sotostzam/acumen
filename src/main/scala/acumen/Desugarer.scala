@@ -90,6 +90,7 @@ case class Desugarer(odeTransformMode: ODETransformMode = TopLevel) {
         else if (Constants.predefined.contains(x.x)) Constants.predefined(x.x)
       else throw VariableNotDeclared(x)
       case Op(f, es) => Op(f, es map des)
+      case Index(e,i) => Index(des(e),des(i))
       case Dot(o, f) => Dot(des(o), f)
       case ExprVector(es) => ExprVector(es map des)
       case Sum(e, i, col, cond) =>

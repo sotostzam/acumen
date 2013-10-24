@@ -8,7 +8,7 @@ import acumen.Errors._
 import acumen.Pretty._
 import acumen.util.Conversions._
 import acumen.util.Random
-import acumen.interpreters.Common.{ classDef, evalOp }
+import acumen.interpreters.Common.{ classDef, evalOp, evalIndexOp }
 import acumen.util.Canonical.{
   childrenOf, 
   classf,
@@ -231,6 +231,7 @@ object Common {
         case Lit(i)        => VLit(i)
         case ExprVector(l) => VVector(l map (eval(env, _)))
         case Var(n)        => env.get(n).getOrElse(VClassName(ClassName(n.x)))
+        case Index(e,i)    => evalIndexOp(eval(env, e), eval(env, i))
         case Dot(v, Name("children", 0)) =>
           val VObjId(Some(id)) = eval(env, v)
           //id synchronized { VList((id.children map VObjId[ObjId]).toList) }
