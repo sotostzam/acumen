@@ -89,7 +89,11 @@ case class Desugarer(odeTransformMode: ODETransformMode = TopLevel) {
         else if (fs contains x) Dot(Var(self), x)
         else if (Constants.predefined.contains(x.x)) Constants.predefined(x.x)
       else throw VariableNotDeclared(x)
-      case Op(f, es) => Op(f, es map des)
+      case Op(f, es) =>
+        def mkIndexOf(n0: Expr) = es.foldLeft(n0)((n,e) => Index(n, des(e)))
+        if (env.contains(f)) mkIndexOf(Var(f))
+        else if (fs contains f) mkIndexOf(Dot(Var(self), f))
+        else Op(f, es map des)
       case Index(e,i) => Index(des(e),des(i))
       case Dot(o, f) => Dot(des(o), f)
       case ExprVector(es) => ExprVector(es map des)

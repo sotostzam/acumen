@@ -286,11 +286,8 @@ object Parser extends MyStdTokenParsers {
     level3 * ("+/-" ^^^ { (mid:Expr, pm:Expr) => ExprIntervalM(mid,pm) })
 
   def level3: Parser[Expr] =
-    ("-" ~! index ^^ { case _ ~ e => smartMinus(e) }
-      | index)
-
-  def index: Parser[Expr] =
-    (access ~ brackets(expr).* ) ^^ {case e0 ~ l => l.foldLeft(e0)((e,i) => Index(e,i))}
+    ("-" ~! access ^^ { case _ ~ e => smartMinus(e) }
+      | access)
 
   def access: Parser[Expr] = 
     atom >> { e =>
