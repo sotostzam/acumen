@@ -6,11 +6,11 @@ class Road(p,l)
 end
 
 /*
-* p denotes position
-* d denotes direction
-* s denotes size
-* name denotes obj file name
-*/
+ * p denotes position
+ * d denotes direction
+ * s denotes size
+ * name denotes obj file name
+ */
 class Vehicle(p,d,s,name)
  private
   _3D :=[];

@@ -1,9 +1,9 @@
 
 // Welcome to Acumen!
 //
-// To see the effect of this simulation, first plress
+// To see the effect of this simulation, first press
 // "play" this text.  Then, to see the 3D visulaization
-// click on "3D" on the dispaly panne (to the right) 
+// click on "3D" on the dispaly pane (to the right) 
 // and press "play there".
 
 class Main (simulator)
