@@ -96,7 +96,7 @@ class Extract(val prog: Prog, private val debugMode: Boolean = false)
   // Resets by populating "modes".  When done IfTree (i.e. body) will
   // no longer have any actions.
   //
-
+ 
   // The simplest most straightforward way.  
   def convertSimple() : Unit = {
     modes = extractModes(body.contOnly); dumpPhase("EXTRACT MODES")
@@ -135,7 +135,6 @@ class Extract(val prog: Prog, private val debugMode: Boolean = false)
     pruneDeadModes(modes); dumpPhase("PRUNE DEAD MODES") 
 
     pruneResetConds(modes); dumpPhase("PRUNE RESET CONDS")
-
     killDeadResets(modes); dumpPhase("KILL DEAD RESETS")
 
     // do this early so the initial mode is not a special case
@@ -473,9 +472,11 @@ object Extract {
   // does does affect any of the resets).
   def cleanUpTransModes(modes: Seq[Mode]) {
     modes.filter{_.trans}.foreach{m =>
-      var candidates = modes.filter{m2 => !m2.trans && m.preConds == m2.preConds}
+      //var candidates = modes.filter{m2 => !m2.trans && m.preConds == m2.preConds}
+      var candidates = modes.filter{m2 => !m2.trans && m.resets == m2.resets}
       if (candidates.size != 1) {
-        candidates = modes.filter{m2 => m.preConds == m2.preConds}
+        //candidates = modes.filter{m2 => m.preConds == m2.preConds}
+        candidates = modes.filter{m2 => m.resets == m2.resets}
         if (!candidates.isEmpty && candidates.head.label != m.label)
           candidates = List(candidates.head)
         else
