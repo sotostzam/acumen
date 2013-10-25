@@ -231,7 +231,7 @@ object Common {
         case Lit(i)        => VLit(i)
         case ExprVector(l) => VVector(l map (eval(env, _)))
         case Var(n)        => env.get(n).getOrElse(VClassName(ClassName(n.x)))
-        case Index(e,i)    => evalIndexOp(eval(env, e), eval(env, i))
+        case Index(v,i)    => evalIndexOp(eval(env, v), eval(env, i))
         case Dot(v, Name("children", 0)) =>
           val VObjId(Some(id)) = eval(env, v)
           //id synchronized { VList((id.children map VObjId[ObjId]).toList) }

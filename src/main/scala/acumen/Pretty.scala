@@ -188,6 +188,7 @@ class Pretty {
       (e match {
         case Lit(i)           => pretty(i)
         case Var(n)           => pretty(n)
+        case Index(e,i)       => pretty(e) :: parens(pretty(i))
         case Dot(v,f)         => pretty(v) :: "." :: pretty(f)
         case Op(f,es)         => prettyOp(f,es)
         case ExprVector(l)    => brackets(sepBy(comma :: " ", l map pretty[Expr]))

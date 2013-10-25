@@ -79,6 +79,15 @@ object Errors {
         pprint(cn) + "."
     }
   }
+  case class IndexOutOfBounds(i: Int) extends AcumenError {
+    override def getMessage = "Index " + i + " is out of bounds."
+  }
+  case class CantIndex() extends AcumenError {
+    override def getMessage = "Can only index into vectors."
+  }
+  case class ExpectedInteger(v: Value[_]) extends AcumenError {
+    override def getMessage = "Expected integer but got " + pprint(v) + "."
+  }
   case class VariableNotDeclared(x:Name) extends AcumenError {
     override def getMessage =
       "Variable " + pprint(x) + " is not declared."

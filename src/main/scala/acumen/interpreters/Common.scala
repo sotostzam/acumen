@@ -197,10 +197,13 @@ object Common {
   def evalIndexOp[A](e: Value[A], i: Value[A]) : Value[A] = {
     e match {
       case VVector(l) => i match {
-        case VLit(GInt(idx)) => 
-          l(idx) // FIXME: Check that array idx in in bound
-        case _ => throw ConversionError(i, "int") }
-      case _ => throw ConversionError(e, "vector") }
+        case VLit(GInt(idx)) => try {
+          l(idx)
+        } catch {
+          case _:IndexOutOfBoundsException => throw IndexOutOfBounds(idx)
+        }
+        case _ => throw ExpectedInteger(i) }
+      case _ => throw CantIndex() }
   }
 
   val magicClassTxt =

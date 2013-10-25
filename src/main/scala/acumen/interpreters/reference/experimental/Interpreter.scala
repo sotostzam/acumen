@@ -174,7 +174,7 @@ object Interpreter extends acumen.CStoreInterpreter {
   	    case Lit(i)         => VLit(i)
         case ExprVector(l)  => VVector (l map (eval(env,_)))
         case Var(n)         => env.get(n).getOrElse(VClassName(ClassName(n.x)))
-        case Index(e,i)     => evalIndexOp(eval(env, e), eval(env, i))
+        case Index(v,i)     => evalIndexOp(eval(env, v), eval(env, i))
         case Dot(o,Name("children",0)) =>
           /* In order to avoid redundancy en potential inconsistencies, 
              each object has a pointer to its parent instead of having 
