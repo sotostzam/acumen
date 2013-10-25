@@ -89,11 +89,11 @@ object ExtractPasses {
     }
   }
 
-  def enhanceModePreCond(resets: Seq[Reset], modes: ListBuffer[Mode], env: Env) {
+  def enhanceModePreCond(resets: Seq[Reset], modes: ListBuffer[Mode], modeVars: Seq[Name]) {
     assert({val modes = resets.map{_.mode}; !modes.contains(None) && modes.distinct.size == modes.size})
     resets.foreach{r =>
       val postConds = Util.postConds(r.conds, r.actions)
-      val modePreConds = discrConds(postConds,env.modeVars)
+      val modePreConds = discrConds(postConds,modeVars)
       val modeLabel = r.mode.get
       val mode = modes.find{_.label == modeLabel}.get
       mode.preConds ++= modePreConds

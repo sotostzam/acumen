@@ -48,8 +48,6 @@ object Extract {
       label.foreach{l => actions.prepend(Assign(MODE_VAR, Lit(GStr(l))))}
     }
   }
-
-  case class Env(modeVars: Seq[Name] = Nil)
 }
 
 class Extract(val prog: Prog, private val debugMode: Boolean = false) 
@@ -73,6 +71,7 @@ class Extract(val prog: Prog, private val debugMode: Boolean = false)
   val simulatorName = origDef.fields(0)
   var simulatorAssigns = body.extractSimulatorAssigns(simulatorName)
   var modes = ListBuffer.empty[Mode]
+  var resets = List.empty[Reset]
   var initMode = "D0"
 
   //
@@ -139,60 +138,56 @@ class Extract(val prog: Prog, private val debugMode: Boolean = false)
  
   // The simplest most straightforward way.  
   def convertSimple() : Unit = {
-    modes = extractModes(body.contOnly); dumpPhase("EXTRACT MODES")
-    val resets = extractResets(body.discrOnly); dumpPhase("EXTRACT RESETS")
-    sanity(body); body = null; dumpPhase("SANITY")
-
-    modes.prepend(Mode("D0", trans=true)); dumpPhase("INIT MODE")
-
-    addResets(resets, modes); dumpPhase("ADD RESETS")
+    extractModes()
+    extractResets()
+    sanity()
+    addInit()
+    addResets()
   }
 
   def convertWithPreConds() : Unit = {
-    modes = extractModes(body.contOnly); dumpPhase("EXTRACT MODES")
-    val resets = extractResets(body.discrOnly); dumpPhase("EXTRACT RESETS")
-    sanity(body); body = null; dumpPhase("SANITY")
+    extractModes()
+    extractResets()
+    sanity()
 
-    val env = Env(modeVars = getModeVars(resets, modes))
+    enhanceModePreCond()
+    addInitWPreCond()
 
-    enhanceModePreCond(resets, modes, env); dumpPhase("ENHANCE MODE PRECONDS")
-    modes.prepend(Mode("D0", trans=true, preConds = discrConds(initPostCond(init.toList),env.modeVars))); dumpPhase("INIT MODE")
-
-    addResets(resets, modes); dumpPhase("ADD RESETS")
+    addResets()
   }
 
   // The minimal amout of clean up to be able eliminate unneeded state
   // variables and hense allow the model to run with the enclosure
   // interpreter
   def cleanUpSimple() : Unit = {
-    pruneDeadModes(modes); dumpPhase("PRUNE DEAD MODES") 
-    pruneResetConds(modes); dumpPhase("PRUNE RESET CONDS")
+    pruneDeadModes()
+    pruneResetConds()
 
-    killDeadVars(init, modes); dumpPhase("KILL DEAD VARS")
+    killDeadVars()
   }
 
   def cleanUp() : Unit = {
-    pruneDeadModes(modes); dumpPhase("PRUNE DEAD MODES") 
+    pruneDeadModes()
 
-    pruneResetConds(modes); dumpPhase("PRUNE RESET CONDS")
-    killDeadResets(modes); dumpPhase("KILL DEAD RESETS")
+    pruneResetConds()
+    killDeadResets()
 
     // do this early so the initial mode is not a special case
-    cleanUpInitMode(this); dumpPhase("CLEAN UP INIT")
+    cleanUpInitMode()
 
-    markTransModes(modes); dumpPhase("MARK TRANS MODES")
+    markTransModes()
 
-    eliminateTrueOnlyModes(this); dumpPhase("ELIMINATE TRUE ONLY")
+    eliminateTrueOnlyModes()
 
-    mergeDupModes(modes); dumpPhase("MERGE DUP MODES")
-    eliminateTrueOnlyModes(this); dumpPhase("ELIMINATE TRUE ONLY")
+    mergeDupModes()
+    eliminateTrueOnlyModes()
 
-    cleanUpTransModes(modes); dumpPhase("CLEAN UP TRANS MODE")
-    eliminateTrueOnlyModes(this); dumpPhase("ELIMINATE TRUE ONLY")
+    cleanUpTransModes()
+    eliminateTrueOnlyModes()
     
-    cleanUpAssigns(modes); dumpPhase("CLEAN UP ASSIGNS")
+    cleanUpAssigns()
     
-    killDeadVars(init, modes); dumpPhase("KILL DEAD VARS")
+    killDeadVars()
   }
 
   var counter = 0;
@@ -225,5 +220,45 @@ class Extract(val prog: Prog, private val debugMode: Boolean = false)
   def initPart = 
     Init(MODE,ExprRhs(Lit(GStr(initMode)))) :: init.toList.map{case (v,e) =>  Init(v,ExprRhs(e))}
 
+
+  //
+  // Passes
+  //
+
+  def ep = ExtractPasses
+
+  def extractModes() {modes = ep.extractModes(body.contOnly); dumpPhase("EXTRACT MODES")}
+  def extractResets() {resets = ep.extractResets(body.discrOnly); dumpPhase("EXTRACT RESETS")}
+  def sanity() {ep.sanity(body); body = null; dumpPhase("SANITY")}
+
+  def enhanceModePreCond() {
+    ep.enhanceModePreCond(resets, modes, getModeVars(resets, modes)); 
+    dumpPhase("ENHANCE MODE PRECONDS")
+  }
+  
+  def addInit() {modes.prepend(Mode("D0", trans=true)); dumpPhase("INIT MODE")}
+  def addInitWPreCond() {modes.prepend(Mode("D0", trans=true, preConds = discrConds(initPostCond(init.toList),getModeVars(resets, modes)))); dumpPhase("INIT MODE")}
+
+  def addResets() {ep.addResets(resets, modes); resets = Nil; dumpPhase("ADD RESETS")}
+
+  def pruneDeadModes() {ep.pruneDeadModes(modes); dumpPhase("PRUNE DEAD MODES")}
+
+  def pruneResetConds() {ep.pruneResetConds(modes); dumpPhase("PRUNE RESET CONDS")}
+  def killDeadResets() {ep.killDeadResets(modes); dumpPhase("KILL DEAD RESETS")}
+
+    // do this early so the initial mode is not a special case
+  def cleanUpInitMode() {ep.cleanUpInitMode(this); dumpPhase("CLEAN UP INIT")}
+
+  def markTransModes() {ep.markTransModes(modes); dumpPhase("MARK TRANS MODES")}
+
+  def eliminateTrueOnlyModes() {ep.eliminateTrueOnlyModes(this); dumpPhase("ELIMINATE TRUE ONLY")}
+
+  def mergeDupModes() {ep.mergeDupModes(modes); dumpPhase("MERGE DUP MODES")}
+
+  def cleanUpTransModes() {ep.cleanUpTransModes(modes); dumpPhase("CLEAN UP TRANS MODE")}
+  
+  def cleanUpAssigns() {ep.cleanUpAssigns(modes); dumpPhase("CLEAN UP ASSIGNS")}
+  
+  def killDeadVars() {ep.killDeadVars(init, modes); dumpPhase("KILL DEAD VARS")}
 }
 
