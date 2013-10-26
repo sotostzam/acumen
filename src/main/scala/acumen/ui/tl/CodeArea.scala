@@ -196,6 +196,8 @@ class CodeArea extends Panel with TreeSelectionListener {
     textArea setCaretPosition 0
   }
 
+  def refresh() = currentFile foreach (f => preventWorkLoss(loadFile(f)))
+  
   def openFile(path: File): Unit = withErrorReporting {
     preventWorkLoss {
       val fc = new FileChooser(path)

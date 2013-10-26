@@ -112,39 +112,40 @@ class App extends SimpleSwingApplication {
   private val NONE = VK_UNDEFINED
   /* Reusable actions */
 
-  private val playAction                      = mkAction(    "Run",                                 VK_R, VK_G,       upperButtons.bPlay.doClick)
-  private val pauseAction                     = mkAction(    "Pause",                               VK_R, VK_G,       upperButtons.bPlay.doClick)
-  private val stepAction                      = mkAction(    "Step",                                VK_T, VK_B,       upperButtons.bStep.doClick)
-  private val stopAction                      = mkAction(    "Stop",                                VK_S, VK_T,       upperButtons.bStop.doClick)
-  private val newAction                       = mkAction(    "New",                                 VK_N, VK_N,       codeArea.newFile)
-  private val openAction                      = mkAction(    "Open",                                VK_O, VK_O,       codeArea.openFile(codeArea.currentDir))
-  private val saveAction                      = mkAction(    "Save",                                VK_S, VK_S,       codeArea.saveFile())
-  private val saveAsAction                    = mkActionMask("Save As",                             VK_A, VK_S,       shortcutMask | SHIFT_MASK, codeArea.saveFileAs())
-  private val recoverAction                   = mkAction(    "Recover",                             VK_R, VK_R,       codeArea.openFile(Files.autoSavedDir))
-  private val exportTableAction               = new Action(  "Export Table"){ mnemonic =            VK_E; def apply = exportTable()}
-  private val exitAction                      = mkAction(    "Exit",                                VK_E, VK_Q,       exit())
-  private val cutAction                       = mkAction(    "Cut",                                 VK_T, VK_X,       codeArea.textArea.cut)
-  private val copyAction                      = mkAction(    "Copy",                                VK_C, VK_C,       codeArea.textArea.copyAsRtf)
-  private val pasteAction                     = mkAction(    "Paste",                               VK_P, VK_V,       codeArea.textArea.paste)
-  private val selectAllAction                 = mkAction(    "Select All",                          VK_A, VK_A,       codeArea.textArea.selectAll)
-  private val findReplaceAction               = mkAction(    "Find",                                VK_F, VK_F,       toggleFindReplaceToolbar)
-  private val increaseFontSizeAction          = mkAction(    "Enlarge Font",                        VK_I, VK_PLUS,    codeArea increaseFontSize)
-  private val decreaseFontSizeAction          = mkAction(    "Reduce Font",                         VK_D, VK_MINUS,   codeArea decreaseFontSize)
-  private val resetFontSizeAction             = mkAction(    "Reset Font",                          VK_R, VK_0,       codeArea resetFontSize)
-  private val showLineNumbersAction           = mkAction(    "Line Numbers",                        VK_L, VK_L,       toggleLineNumbers)
-  private val plotStyleLinesAction            = new Action(  "Lines")       { mnemonic =            VK_L; def apply = plotView.setPlotStyle(plot.Lines()) }
-  private val plotStyleDotsAction             = new Action(  "Dots")        { mnemonic =            VK_D; def apply = plotView.setPlotStyle(plot.Dots()) }
-  private val plotStyleBothAction             = new Action(  "Both")        { mnemonic =            VK_B; def apply = plotView.setPlotStyle(plot.Both()) }
-  private val floatingPointStandardAction     = mkActionMask("Traditional",                         VK_F, VK_R,       shortcutMask | SHIFT_MASK, setInterpreter("reference"))
-  private val floatingPointExperimentalAction = mkActionMask("Traditional Par. Cont.",              VK_E, NONE,       shortcutMask | SHIFT_MASK, setInterpreter("experimental"))
-  private val floatingPointOriginalAction     = mkActionMask("Traditional 2012",                    VK_O, NONE,       shortcutMask | SHIFT_MASK, setInterpreter("original"))
-  private val floatingPointImperativeAction   = mkActionMask("Traditional Imperative",              VK_I, VK_I,       shortcutMask | SHIFT_MASK, setInterpreter("imperative")) 
-  private val floatingPointParallelAction     = mkActionMask("Traditional Parallel",                VK_P, VK_P,       shortcutMask | SHIFT_MASK, promptForNumberOfThreads)
-  private val pwlHybridSolverAction           = mkActionMask("Enclosure PWL",                       VK_L, VK_L,       shortcutMask | SHIFT_MASK, setInterpreter("enclosure-pwl")) 
-  private val eventTreeHybridSolverAction     = mkActionMask("Enclosure EVT",                       VK_T, VK_T,       shortcutMask | SHIFT_MASK, setInterpreter("enclosure-evt"))
-  private val contractionAction               = mkActionMask("Contraction",                         VK_C, VK_C,       shortcutMask | SHIFT_MASK, enclosure.Interpreter.toggleContraction)
-  private val manualAction                    = mkAction(    "Reference Manual",     VK_M, VK_F1,      manual)
-  private val aboutAction                     = new Action(  "About")       { mnemonic =            VK_A; def apply = about }
+  private val playAction                      = mkAction(    "Run",                                 VK_R,  VK_G,       upperButtons.bPlay.doClick)
+  private val pauseAction                     = mkAction(    "Pause",                               VK_R,  VK_G,       upperButtons.bPlay.doClick)
+  private val stepAction                      = mkAction(    "Step",                                VK_T,  VK_B,       upperButtons.bStep.doClick)
+  private val stopAction                      = mkAction(    "Stop",                                VK_S,  VK_T,       upperButtons.bStop.doClick)
+  private val newAction                       = mkAction(    "New",                                 VK_N,  VK_N,       codeArea.newFile)
+  private val openAction                      = mkAction(    "Open",                                VK_O,  VK_O,       codeArea.openFile(codeArea.currentDir))
+  private val saveAction                      = mkAction(    "Save",                                VK_S,  VK_S,       codeArea.saveFile())
+  private val saveAsAction                    = mkActionMask("Save As",                             VK_A,  VK_S,       shortcutMask | SHIFT_MASK, codeArea.saveFileAs())
+  private val refreshAction                   = mkAction(    "Refresh",                             VK_F5, VK_F,       { codeArea.refresh ; fileBrowser.refresh })
+  private val recoverAction                   = mkAction(    "Recover",                             VK_R,  VK_R,       codeArea.openFile(Files.autoSavedDir))
+  private val exportTableAction               = new Action(  "Export Table"){ mnemonic =            VK_E;  def apply = exportTable()}
+  private val exitAction                      = mkAction(    "Exit",                                VK_E,  VK_Q,       exit())
+  private val cutAction                       = mkAction(    "Cut",                                 VK_T,  VK_X,       codeArea.textArea.cut)
+  private val copyAction                      = mkAction(    "Copy",                                VK_C,  VK_C,       codeArea.textArea.copyAsRtf)
+  private val pasteAction                     = mkAction(    "Paste",                               VK_P,  VK_V,       codeArea.textArea.paste)
+  private val selectAllAction                 = mkAction(    "Select All",                          VK_A,  VK_A,       codeArea.textArea.selectAll)
+  private val findReplaceAction               = mkAction(    "Find",                                VK_F,  VK_F,       toggleFindReplaceToolbar)
+  private val increaseFontSizeAction          = mkAction(    "Enlarge Font",                        VK_I,  VK_PLUS,    codeArea increaseFontSize)
+  private val decreaseFontSizeAction          = mkAction(    "Reduce Font",                         VK_D,  VK_MINUS,   codeArea decreaseFontSize)
+  private val resetFontSizeAction             = mkAction(    "Reset Font",                          VK_R,  VK_0,       codeArea resetFontSize)
+  private val showLineNumbersAction           = mkAction(    "Line Numbers",                        VK_L,  VK_L,       toggleLineNumbers)
+  private val plotStyleLinesAction            = new Action(  "Lines")       { mnemonic =            VK_L;  def apply = plotView.setPlotStyle(plot.Lines()) }
+  private val plotStyleDotsAction             = new Action(  "Dots")        { mnemonic =            VK_D;  def apply = plotView.setPlotStyle(plot.Dots()) }
+  private val plotStyleBothAction             = new Action(  "Both")        { mnemonic =            VK_B;  def apply = plotView.setPlotStyle(plot.Both()) }
+  private val floatingPointStandardAction     = mkActionMask("Traditional",                         VK_F,  VK_R,       shortcutMask | SHIFT_MASK, setInterpreter("reference"))
+  private val floatingPointExperimentalAction = mkActionMask("Traditional Par. Cont.",              VK_E,  NONE,       shortcutMask | SHIFT_MASK, setInterpreter("experimental"))
+  private val floatingPointOriginalAction     = mkActionMask("Traditional 2012",                    VK_O,  NONE,       shortcutMask | SHIFT_MASK, setInterpreter("original"))
+  private val floatingPointImperativeAction   = mkActionMask("Traditional Imperative",              VK_I,  VK_I,       shortcutMask | SHIFT_MASK, setInterpreter("imperative")) 
+  private val floatingPointParallelAction     = mkActionMask("Traditional Parallel",                VK_P,  VK_P,       shortcutMask | SHIFT_MASK, promptForNumberOfThreads)
+  private val pwlHybridSolverAction           = mkActionMask("Enclosure PWL",                       VK_L,  VK_L,       shortcutMask | SHIFT_MASK, setInterpreter("enclosure-pwl")) 
+  private val eventTreeHybridSolverAction     = mkActionMask("Enclosure EVT",                       VK_T,  VK_T,       shortcutMask | SHIFT_MASK, setInterpreter("enclosure-evt"))
+  private val contractionAction               = mkActionMask("Contraction",                         VK_C,  VK_C,       shortcutMask | SHIFT_MASK, enclosure.Interpreter.toggleContraction)
+  private val manualAction                    = mkAction(    "Reference Manual",                    VK_M,  VK_F1,      manual)
+  private val aboutAction                     = new Action(  "About")       { mnemonic =            VK_A;  def apply = about }
   
   /* Shows a dialog asking the user how many threads to use in the parallel interpreter. */
   private def promptForNumberOfThreads = {
@@ -397,15 +398,19 @@ class App extends SimpleSwingApplication {
   private val stopMenuItem = new MenuItem(stopAction)
  
   val bar = new MenuBar {
+    
+    class EnabledWhenStoppedMenuItem(a: Action) extends MenuItem(a) { enableWhenStopped(this) }
+
     contents += new Menu("File") {
       mnemonic = Key.F
-      contents += new MenuItem(newAction)     { enableWhenStopped(this) }
-      contents += new MenuItem(openAction)    { enableWhenStopped(this) }
-      contents += new MenuItem(saveAction)
-      contents += new MenuItem(saveAsAction)  
-      contents += new MenuItem(exportTableAction) { enableWhenStopped(this) }
-      contents += new MenuItem(recoverAction) { enableWhenStopped(this) }
-      contents += new MenuItem(exitAction)
+      contents += new EnabledWhenStoppedMenuItem(newAction)
+      contents += new EnabledWhenStoppedMenuItem(openAction)
+      contents += new MenuItem                  (saveAction)
+      contents += new MenuItem                  (saveAsAction)  
+      contents += new EnabledWhenStoppedMenuItem(exportTableAction)
+      contents += new EnabledWhenStoppedMenuItem(recoverAction)
+      contents += new EnabledWhenStoppedMenuItem(refreshAction)
+      contents += new MenuItem                  (exitAction)
     }
     
     contents += new Menu("Edit") {
@@ -758,9 +763,9 @@ class App extends SimpleSwingApplication {
 
   KeyboardFocusManager.getCurrentKeyboardFocusManager.addKeyEventDispatcher(new KeyEventDispatcher {
       def dispatchKeyEvent(e: KeyEvent): Boolean =
-        if ((e.getModifiers == Toolkit.getDefaultToolkit.getMenuShortcutKeyMask ||
-             e.getModifiers == java.awt.event.InputEvent.CTRL_MASK) &&
-             e.getID        == java.awt.event.KeyEvent.KEY_PRESSED)
+        e.getID == java.awt.event.KeyEvent.KEY_PRESSED &&
+        (if (e.getModifiers == Toolkit.getDefaultToolkit.getMenuShortcutKeyMask ||
+            e.getModifiers == java.awt.event.InputEvent.CTRL_MASK)
             e.getKeyCode match {
               case VK_R      => upperButtons.bPlay.doClick ; true
               case VK_T      => upperButtons.bStop.doClick ; true
@@ -777,9 +782,10 @@ class App extends SimpleSwingApplication {
         else e.getKeyCode match {
           case VK_ESCAPE if codeArea.findReplaceToolBar.isVisible => 
             toggleFindReplaceToolbar; true
+          case VK_F5 => refreshAction.apply ; true
           case _ => false
-        }
-    })
+        })
+   })
 
   /* ----- initialisation ----- */
 

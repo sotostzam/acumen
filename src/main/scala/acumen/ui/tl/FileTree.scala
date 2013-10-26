@@ -42,8 +42,12 @@ class FileBrowser(initialPath: File, editor: CodeArea) extends BorderPanel {
       }
     }
   })
-
+  
   add(new ScrollPane(fileTree), BorderPanel.Position.Center)
+  
+  /** Reload the contents of the tree view */
+  def refresh() = fileTree.refresh()
+
 }
 
 /**
