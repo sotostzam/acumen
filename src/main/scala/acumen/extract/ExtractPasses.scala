@@ -134,7 +134,7 @@ object ExtractPasses {
         val preConds = Cond.and(m.preConds,r.conds)
         r.actions = r.actions.filter{case a@Assign(lhs,rhs) => !((getName(lhs), rhs) match {
           case (Some(name), Lit(value)) => 
-            preConds.exists(_ == Cond.Eq(name,value))
+            preConds.exists(_ == Cond.MemberOf(name,Set(value)))
           case _ => false
         })}
       }
@@ -310,7 +310,7 @@ object ExtractPasses {
 
   def getModeVars(resets: Seq[Reset], modes: Seq[Mode]) : Seq[Name] = { 
     val contVars = modes.flatMap{m => m.actions.flatMap{a => extractLHSDeps(a)}}.toSet
-    resets.flatMap{_.conds.collect{case Cond.Eq(n,_) if !contVars.contains(n) => n}}.distinct
+    resets.flatMap{_.conds.collect{case Cond.MemberOf(n,_) if !contVars.contains(n) => n}}.distinct
   }
 
 }

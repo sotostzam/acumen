@@ -55,7 +55,7 @@ object Util {
   //
   
   def initPostCond(init: List[(Name,Expr)]) : Cond = init.toList.flatMap {
-    case (name, Lit(value)) => List(Cond.Eq(name, value))
+    case (name, Lit(value)) => List(Cond.eq(name, value))
     case _ => Nil
   }
 
@@ -66,7 +66,7 @@ object Util {
       case a @ Assign(lhs, rhs) => (getName(lhs), rhs) match {
         case (Some(name), Lit(value)) =>
           invalidate(List(name))
-          res += Cond.Eq(name, value)
+          res += Cond.eq(name, value)
         case (Some(name), expr) =>
           invalidate(extractDeps(expr))
         case _ => 

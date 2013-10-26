@@ -40,12 +40,15 @@ object Cond {
     def deps = Nil
     def eval(have: Cond) = this
   }
-  case class Eq(name: Name, value: GroundValue) extends Cond {
-    def toExpr = Op(Name("==", 0), List(Dot(Var(Name("self", 0)), name), Lit(value)))
+  case class MemberOf(name: Name, values: Set[GroundValue]) extends Cond {
+    // true if name is a member of values
+    def toExpr = values.
+      map{v => Op(Name("==", 0), List(Dot(Var(Name("self", 0)), name), Lit(v)))}.
+      reduceLeft{ (a, b) => Op(Name("||", 0), List(a, b)) }
     def deps = Seq(name)
-    def eval(have: Cond) = have.toSet.collectFirst{case Eq(n, v) if n == name => v} match {
-      case Some(v) => if (v == value) True else False
-      case None => if (have.toSet.contains(not(this))) False else this
+    def eval(have: Cond) = have.toSet.collectFirst{case MemberOf(n, v) if n == name => v} match {
+      case Some(v) => if ((v diff values).isEmpty) True else False
+      case _ => if (have.toSet.contains(not(this))) False else this
     }
   }
   case class Not(cond: Cond) extends Cond {
@@ -88,17 +91,19 @@ object Cond {
     case _ => Other(Op(Name("==", 0), List(x, (y))), extractDeps(x) ++ extractDeps(y))
   }
   def eq(x: Expr, y: GroundValue): Cond = (getName(x), y) match {
-    case (Some(name), _) => Eq(name, y)
+    case (Some(name), _) => MemberOf(name, Set(y))
     case _ => Other(Op(Name("==", 0), List(x, Lit(y))), extractDeps(x))
   }
+  def eq(n: Name, y: GroundValue): Cond = MemberOf(n, Set(y))
   def not(cond: Cond): Cond = cond match {
     case Not(cond) => cond
     case _ => Not(cond)
   }
   def not(x: Expr): Cond = not(Cond(x))
-  def and(x: Cond, y: Cond) = fromSet(Set(x,y))
+  def and(x: Cond, y: Cond) = combine(x, y.toSet)
   def fromSeq(conds: Seq[Cond]) = reduce(conds)
   def fromSet(conds: Set[Cond]) = reduce(conds)
+
 
   //
   // Private helper methods
@@ -108,25 +113,25 @@ object Cond {
     case 1 => conds.head
     case _ => And(conds)
   }
-  private def reduceSimple(conds: Iterable[Cond]) : Cond = {
-    var res = Set.empty[Cond]
-    conds.foreach{
-      case True => /* do nothing */
-      case False => return False
-      case And(els) => res ++= els
-      case cond => res += cond
+  private def reduce(conds: Iterable[Cond]) = combine(True, conds)
+  private def combine(done: Cond, toadd: Iterable[Cond]) : Cond = {
+    if (toadd.isEmpty) done
+    else (done, toadd.head) match {
+      case (True, cond)    => combine(cond, toadd.tail)
+      case (cond, True)    => combine(cond, toadd.tail)
+      case (False, _)      => False
+      case (_, False)      => False
+      case (_, And(conds)) => combine(done, conds ++ toadd.tail)
+      case (_, cond) if done.toSet.contains(not(cond)) => False
+      case (_, MemberOf(name,values)) => done.toSet.collectFirst{case e@MemberOf(n, _) if n == name => e} match {
+        case Some(e@MemberOf(_,vls)) => values intersect vls match {
+          case res if res.isEmpty => False
+          case res => combine(fromSetSimple((done.toSet - e) + MemberOf(name,res)), toadd.tail)
+        }
+        case None => combine(fromSetSimple(done.toSet + toadd.head) , toadd.tail)}
+      case (_, _) => combine(fromSetSimple(done.toSet + toadd.head), toadd.tail)
     }
-    fromSetSimple(res)
   }
-  private def reduce(conds: Iterable[Cond]) : Cond = {
-    var res = Set.empty[Cond]
-    conds.foreach{ _.eval(fromSetSimple(res)) match {
-      case True => /* do nothing */
-      case False => return False
-      case And(els) => res ++= els
-      case cond => res += cond
-    }}
-    fromSetSimple(res)
-  }
+  
 }
 
