@@ -170,7 +170,6 @@ class Extract(val prog: Prog, private val debugMode: Boolean = false)
     pruneDeadModes()
 
     pruneResetConds()
-    killDeadResets()
 
     // do this early so the initial mode is not a special case
     cleanUpInitMode()
@@ -244,7 +243,6 @@ class Extract(val prog: Prog, private val debugMode: Boolean = false)
   def pruneDeadModes() {ep.pruneDeadModes(modes); dumpPhase("PRUNE DEAD MODES")}
 
   def pruneResetConds() {ep.pruneResetConds(modes); dumpPhase("PRUNE RESET CONDS")}
-  def killDeadResets() {ep.killDeadResets(modes); dumpPhase("KILL DEAD RESETS")}
 
     // do this early so the initial mode is not a special case
   def cleanUpInitMode() {ep.cleanUpInitMode(this); dumpPhase("CLEAN UP INIT")}

@@ -113,14 +113,7 @@ object ExtractPasses {
   // Remove redundant conds from the resets based on the modes precond
   def pruneResetConds(modes: Seq[Mode]) : Unit = {
     modes.foreach{m => 
-      m.resets.foreach{r => 
-        r.conds = r.conds.eval(m.preConds)
-      }
-    }
-  }
-
-  def killDeadResets(modes: Seq[Mode]) : Unit = {
-    modes.foreach{m => 
+      m.resets.foreach{r => r.conds = r.conds.eval(m.preConds)}
       m.resets = m.resets.filter{_.conds != Cond.False}
     }
   }
