@@ -13,8 +13,10 @@ object Files {
   private val _saved = _home + File.separator + "autoSaved"
   private def _now = _saved + File.separator + timeTag + ".acm"
 
+  val examplesDir = new File("examples").getAbsoluteFile()
+
   val currentDir = {
-    val md = new File("examples")
+    val md = examplesDir
     if (md.exists()) md
     else new File(".")
   }

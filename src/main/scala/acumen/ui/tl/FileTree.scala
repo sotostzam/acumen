@@ -82,7 +82,7 @@ class FileTree(initialPath: File) extends Component with ChangeListener {
             if (leftPressed &&
               (f == tree.getModel.getRoot || // Directory is empty (no visible node is selected)
                 (!peer.isExpanded(peer.getSelectionPath) && // A top-level node is selected
-                  f.getParentFile.getCanonicalFile == tree.getModel.getRoot.asInstanceOf[File].getCanonicalFile)))
+                  f.getParentFile.getCanonicalFile == rootFile.getCanonicalFile)))
               goUp
             else if (e.getKeyCode == KeyEvent.VK_RIGHT && peer.isExpanded(peer.getSelectionPath))
               goInto
@@ -92,6 +92,9 @@ class FileTree(initialPath: File) extends Component with ChangeListener {
     }
     tree
   }
+  
+  /** The root File of the tree model. */
+  def rootFile: File = peer.getModel.getRoot.asInstanceOf[File]
 
   /**
    * Focus the file tree on a path.
@@ -101,7 +104,7 @@ class FileTree(initialPath: File) extends Component with ChangeListener {
    * corresponding to the node will be expanded instead.
    */
   def focus(path: File) {
-    val didExpand = expandDescendant(peer.getModel.getRoot.asInstanceOf[File], path)
+    val didExpand = expandDescendant(rootFile, path)
     if (!didExpand) reset(path) 
   }
 
@@ -134,11 +137,11 @@ class FileTree(initialPath: File) extends Component with ChangeListener {
   def reset(path: File) {
     // save expanded/selected nodes
     val expanded = ArrayBuffer[TreePath]()
-    val expDescendants = peer.getExpandedDescendants(new TreePath(peer.getModel.getRoot))
+    val expDescendants = peer.getExpandedDescendants(new TreePath(rootFile))
     if (expDescendants != null)
       while (expDescendants.hasMoreElements) {
         val nextPath = expDescendants.nextElement.asInstanceOf[TreePath]
-        if (nextPath.getLastPathComponent != peer.getModel.getRoot)
+        if (nextPath.getLastPathComponent != rootFile)
           expanded += nextPath
       }
     val selected = peer.getSelectionModel.getSelectionPaths
@@ -177,11 +180,11 @@ class FileTree(initialPath: File) extends Component with ChangeListener {
   }
 
   /** Reload the contents of the model's folder into the tree view */
-  def refresh(): Unit = focus(peer.getModel.getRoot.asInstanceOf[File])
+  def refresh(): Unit = focus(rootFile)
 
   /** Focus the browser on the parent folder */
   def goUp(): Unit = {
-    val oldRoot = peer.getModel.getRoot.asInstanceOf[File]
+    val oldRoot = rootFile
     val parent = oldRoot.getAbsoluteFile.getParentFile
     if (parent != null) {
       reset(parent)

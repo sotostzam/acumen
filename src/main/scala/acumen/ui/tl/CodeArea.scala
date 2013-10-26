@@ -47,6 +47,9 @@ import javax.swing.event.DocumentListener
 import javax.swing.event.TreeSelectionEvent
 import javax.swing.event.TreeSelectionListener
 import java.util.concurrent.atomic.AtomicBoolean
+import javax.swing.text.Utilities
+import java.awt.geom.Rectangle2D
+import java.awt.Rectangle
 
 class CodeArea extends Panel with TreeSelectionListener {
 
@@ -197,6 +200,15 @@ class CodeArea extends Panel with TreeSelectionListener {
   }
 
   def refresh() = currentFile foreach (f => preventWorkLoss(loadFile(f)))
+  
+  /** Set the caret position and center the editor on the corresponding line. */
+  def focusOnCaretPosition(caretPosition: Int) {
+    textArea.setCaretPosition(caretPosition)
+    val visibleLines = (textArea.getVisibleRect.getHeight / textArea.getLineHeight).toInt
+    val visibleStart = math.max(0, textArea.getCaretLineNumber - visibleLines / 2) * textArea.getLineHeight
+    val visibleEnd = math.min(textArea.getCaretLineNumber + visibleLines / 2, textArea.getLineCount - 1) * textArea.getLineHeight
+    textArea scrollRectToVisible new Rectangle(0, visibleStart, 0, visibleEnd - visibleStart)
+  }
   
   def openFile(path: File): Unit = withErrorReporting {
     preventWorkLoss {

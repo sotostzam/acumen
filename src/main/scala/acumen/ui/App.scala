@@ -120,7 +120,7 @@ class App extends SimpleSwingApplication {
   private val openAction                      = mkAction(    "Open",                                VK_O,  VK_O,       codeArea.openFile(codeArea.currentDir))
   private val saveAction                      = mkAction(    "Save",                                VK_S,  VK_S,       codeArea.saveFile())
   private val saveAsAction                    = mkActionMask("Save As",                             VK_A,  VK_S,       shortcutMask | SHIFT_MASK, codeArea.saveFileAs())
-  private val refreshAction                   = mkAction(    "Refresh",                             VK_F5, VK_F,       { codeArea.refresh ; fileBrowser.refresh })
+  private val refreshAction                   = mkActionMask("Refresh",                             VK_E,  VK_F5,      NONE, { codeArea.refresh ; fileBrowser.refresh })
   private val recoverAction                   = mkAction(    "Recover",                             VK_R,  VK_R,       codeArea.openFile(Files.autoSavedDir))
   private val exportTableAction               = new Action(  "Export Table"){ mnemonic =            VK_E;  def apply = exportTable()}
   private val exitAction                      = mkAction(    "Exit",                                VK_E,  VK_Q,       exit())
@@ -129,6 +129,7 @@ class App extends SimpleSwingApplication {
   private val pasteAction                     = mkAction(    "Paste",                               VK_P,  VK_V,       codeArea.textArea.paste)
   private val selectAllAction                 = mkAction(    "Select All",                          VK_A,  VK_A,       codeArea.textArea.selectAll)
   private val findReplaceAction               = mkAction(    "Find",                                VK_F,  VK_F,       toggleFindReplaceToolbar)
+  private val jumpDialogAction                = mkAction(    "Jump To",                             VK_J,  VK_J,       toggleJumpDialog)
   private val increaseFontSizeAction          = mkAction(    "Enlarge Font",                        VK_I,  VK_PLUS,    codeArea increaseFontSize)
   private val decreaseFontSizeAction          = mkAction(    "Reduce Font",                         VK_D,  VK_MINUS,   codeArea decreaseFontSize)
   private val resetFontSizeAction             = mkAction(    "Reset Font",                          VK_R,  VK_0,       codeArea resetFontSize)
@@ -181,6 +182,7 @@ class App extends SimpleSwingApplication {
   codeAreaScrollPane.setVerticalScrollBarPolicy(javax.swing.ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED)
   
   def toggleLineNumbers = codeAreaScrollPane.setLineNumbersEnabled(!codeAreaScrollPane.getLineNumbersEnabled)
+  def toggleJumpDialog = JumpDialog.toggle()
   def toggleFindReplaceToolbar = {
     codeArea.findReplaceToolBar.setVisible(!codeArea.findReplaceToolBar.isVisible)
     if (codeArea.findReplaceToolBar.isVisible) codeArea.searchField.requestFocus 
@@ -209,10 +211,17 @@ class App extends SimpleSwingApplication {
   val fileBrowser = new FileBrowser(Files.currentDir, codeArea)
   fileBrowser.fileTree.peer.addTreeSelectionListener(codeArea)
   codeArea.addPathChangeListener(fileBrowser.fileTree)
-  
+
+  // Console / File Browser 
   val consolePage = new TabbedPane.Page("Console", new BorderPanel {
     add(new ScrollPane(console), BorderPanel.Position.Center)
   })
+  val fileBrowserPage = new TabbedPane.Page("File Browser", fileBrowser)
+  val tabs = new TabbedPane {
+    pages += consolePage
+    pages += fileBrowserPage
+    preferredSize = new Dimension(DEFAULT_HEIGHT / 4, preferredSize.width)
+  }
   
   val lowerPane = new BorderPanel {
     // Synch button
@@ -234,13 +243,6 @@ class App extends SimpleSwingApplication {
     synchButton.setBorderPainted(false)
     toolbar.add(synchButton)
     
-    // Console / File Browser 
-    val tabs = new TabbedPane {
-      pages += consolePage
-      pages += new TabbedPane.Page("File Browser", fileBrowser)
-      preferredSize = new Dimension(DEFAULT_HEIGHT / 4, preferredSize.width)
-    }
-
     add(Component.wrap(toolbar), BorderPanel.Position.North)
     add(tabs, BorderPanel.Position.Center)
   }
@@ -407,9 +409,9 @@ class App extends SimpleSwingApplication {
       contents += new EnabledWhenStoppedMenuItem(openAction)
       contents += new MenuItem                  (saveAction)
       contents += new MenuItem                  (saveAsAction)  
+      contents += new EnabledWhenStoppedMenuItem(refreshAction)
       contents += new EnabledWhenStoppedMenuItem(exportTableAction)
       contents += new EnabledWhenStoppedMenuItem(recoverAction)
-      contents += new EnabledWhenStoppedMenuItem(refreshAction)
       contents += new MenuItem                  (exitAction)
     }
     
@@ -423,6 +425,10 @@ class App extends SimpleSwingApplication {
       contents += new CheckMenuItem("Find") {
         mnemonic = Key.F
         action = findReplaceAction
+      }
+      contents += new CheckMenuItem("Jump To") {
+        mnemonic = Key.J
+        action = jumpDialogAction
       }
     }
 
@@ -773,6 +779,7 @@ class App extends SimpleSwingApplication {
               case VK_S      => codeArea.saveFile() ; true
               case VK_O      => codeArea.openFile(codeArea.currentDir) ; true
               case VK_L      => toggleLineNumbers ; true
+              case VK_J      => toggleJumpDialog ; true
               case VK_PLUS | 
               	   VK_EQUALS => codeArea increaseFontSize ; true
               case VK_MINUS  => codeArea decreaseFontSize ; true
@@ -782,6 +789,10 @@ class App extends SimpleSwingApplication {
         else e.getKeyCode match {
           case VK_ESCAPE if codeArea.findReplaceToolBar.isVisible => 
             toggleFindReplaceToolbar; true
+          case VK_ESCAPE if JumpDialog.visible => // Aborted jump
+            toggleJumpDialog
+            JumpDialog.restoreWorkspace()
+            true
           case VK_F5 => refreshAction.apply ; true
           case _ => false
         })
