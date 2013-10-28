@@ -54,11 +54,6 @@ object Util {
   // Post Condition analysis
   //
   
-  def initPostCond(init: List[(Name,Expr)]) : Cond = init.toList.flatMap {
-    case (name, Lit(value)) => List(Cond.eq(name, value))
-    case _ => Nil
-  }
-
   def postConds(cond: Cond, actions: Seq[Assign]) : Cond = 
   {
     var res = ArrayBuffer(cond.toSeq: _*)

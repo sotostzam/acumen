@@ -26,8 +26,7 @@ object Extract {
                   var trans: Boolean = false) 
   {
     def cont = !trans
-    def dump = (
-                "mode " + label + (if (trans) " # trans \n" else "\n") +
+    def dump = ("mode " + label + (if (trans) " # trans \n" else "\n") +
                 "  precond " + pprintOneLine(pretty(preConds.toExpr)) + "\n" +
                 "  claim " + pprintOneLine(pretty(claims.toExpr)) + "\n" +
                 "  " + pprint(nest(2,pretty(resets.map{_.toAST:Action} ++ actions.map{Continuously(_):Action}))) + "\nend\n")
@@ -66,13 +65,13 @@ class Extract(val prog: Prog, private val debugMode: Boolean = false)
       throw OtherUnsupported("Could not find Main class.")
     prog.defs(0)
   }
-  var init = MutMap(origDef.priv.collect{case Init(v,ExprRhs(e)) => (v,e); case init => throw UnhandledSyntax(init)}:_*)
+  var init = origDef.priv.collect{case Init(v,ExprRhs(e)) => (v,e); case init => throw UnhandledSyntax(init)}
   var body : IfTree.Node = IfTree.create(origDef.body)
   val simulatorName = origDef.fields(0)
   var simulatorAssigns = body.extractSimulatorAssigns(simulatorName)
   var modes = ListBuffer.empty[Mode]
   var resets = List.empty[Reset]
-  var initMode = "D0"
+  var initMode = "Init"
 
   //
   // Entry point
@@ -146,14 +145,9 @@ class Extract(val prog: Prog, private val debugMode: Boolean = false)
   }
 
   def convertWithPreConds() : Unit = {
-    extractModes()
-    extractResets()
-    sanity()
-
+    convertSimple()
+    resets ++= modes.head.resets // FIXME: Eliminate need for this hack
     enhanceModePreCond()
-    addInitWPreCond()
-
-    addResets()
   }
 
   // The minimal amout of clean up to be able eliminate unneeded state
@@ -170,9 +164,6 @@ class Extract(val prog: Prog, private val debugMode: Boolean = false)
     pruneDeadModes()
 
     pruneResetConds()
-
-    // do this early so the initial mode is not a special case
-    cleanUpInitMode()
 
     markTransModes()
 
@@ -203,15 +194,20 @@ class Extract(val prog: Prog, private val debugMode: Boolean = false)
   def toAST = {
     // Converts the modes into a big switch and return a new prog
     // The CONVERT TO SWITCH and FIX UP steps
+    val initMode = modes.head
+    assert(initMode.label == "Init")
+    val (simAssigns, otherAssigns) = getSimulatorAssigns(simulatorName, initMode.resets.head.actions)
+    val initP = otherAssigns.toList.map{case Assign(Dot(Var(Name("self",0)), f), e) => Init(f,ExprRhs(e))}
+
     val theSwitch = Switch(MODE_VAR,
-                           modes.map{m => Clause(GStr(m.label),
-                                                 m.claims.toExpr,
-                                                 m.resets.map(_.toAST) ++
-                                                 m.actions.map(Continuously(_)).toList)}.toList)
+                           modes.tail.map{m => Clause(GStr(m.label),
+                                                      m.claims.toExpr,
+                                                      m.resets.map(_.toAST) ++
+                                                      m.actions.map(Continuously(_)).toList)}.toList)
     val newMain = ClassDef(origDef.name,
                            origDef.fields,
-                           initPart, 
-                           List(theSwitch) ++ simulatorAssigns.map{Discretely(_)})
+                           initP, 
+                           List(theSwitch) ++ simAssigns.map{Discretely(_)})
 
     new Prog(List(newMain))
   }
@@ -235,21 +231,27 @@ class Extract(val prog: Prog, private val debugMode: Boolean = false)
     dumpPhase("ENHANCE MODE PRECONDS")
   }
   
-  def addInit() {modes.prepend(Mode("D0", trans=true)); dumpPhase("INIT MODE")}
-  def addInitWPreCond() {modes.prepend(Mode("D0", trans=true, preConds = discrConds(initPostCond(init.toList),getModeVars(resets, modes)))); dumpPhase("INIT MODE")}
+  def addInit() {
+    val initAsAssign = init.toSeq.map{case (k,v) => Assign(Dot(Var(Name("self", 0)), k),v)}
+    val initActions = ListBuffer.empty ++ initAsAssign ++ simulatorAssigns :+ Assign(MODE_VAR, Lit(GStr("D0")))
+    modes.prepend(Mode("D0", trans=true))
+    modes.prepend(Mode("Init", trans=true,
+                       preConds = Cond.eq(MODE, GStr("Init")),
+                       resets = List(Reset(Cond.True,initActions))))
+    init = Nil
+    simulatorAssigns = Nil
+    dumpPhase("INIT MODE")
+  }
 
-  def addResets() {ep.addResets(resets, modes); resets = Nil; dumpPhase("ADD RESETS")}
+  def addResets() {ep.addResets(resets, modes); dumpPhase("ADD RESETS")}
 
   def pruneDeadModes() {ep.pruneDeadModes(modes); dumpPhase("PRUNE DEAD MODES")}
 
   def pruneResetConds() {ep.pruneResetConds(modes); dumpPhase("PRUNE RESET CONDS")}
 
-    // do this early so the initial mode is not a special case
-  def cleanUpInitMode() {ep.cleanUpInitMode(this); dumpPhase("CLEAN UP INIT")}
-
   def markTransModes() {ep.markTransModes(modes); dumpPhase("MARK TRANS MODES")}
 
-  def eliminateTrueOnlyModes() {ep.eliminateTrueOnlyModes(this); dumpPhase("ELIMINATE TRUE ONLY")}
+  def eliminateTrueOnlyModes() {ep.eliminateTrueOnlyModes(modes); dumpPhase("ELIMINATE TRUE ONLY")}
 
   def mergeDupModes() {ep.mergeDupModes(modes); dumpPhase("MERGE DUP MODES")}
 
@@ -257,6 +259,10 @@ class Extract(val prog: Prog, private val debugMode: Boolean = false)
   
   def cleanUpAssigns() {ep.cleanUpAssigns(modes); dumpPhase("CLEAN UP ASSIGNS")}
   
-  def killDeadVars() {ep.killDeadVars(init, modes); dumpPhase("KILL DEAD VARS")}
+  def killDeadVars() {ep.killDeadVars(getModeVars(resets, modes), modes); dumpPhase("KILL DEAD VARS")}
+
+  def extractInitialConds() {
+    
+  }
 }
 

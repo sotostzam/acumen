@@ -101,7 +101,7 @@ object ExtractPasses {
   }
 
   def addResets(resets: List[Reset], modes: Seq[Mode]) {
-    modes.foreach { m =>
+    modes.filter{ _.label != "Init"}.foreach { m => // FIXME: Eliminate this special space
       m.resets = resets.map{_.copy()}
     }
   }
@@ -137,8 +137,8 @@ object ExtractPasses {
     }
   }
 
-  def killDeadVars(init: MutMap[Name,Expr], modes: Seq[Mode]) = {
-    val kill = getDeadVars(init.keys, modes)
+  def killDeadVars(allVars: Iterable[Name], modes: Seq[Mode]) = {
+    val kill = getDeadVars(allVars, modes)
 
     modes.foreach{m =>
       m.resets.foreach{r => 
@@ -150,7 +150,6 @@ object ExtractPasses {
       m.resets = m.resets.filter(_.actions.nonEmpty)
     }
 
-    init--= kill
   }
 
   def getDeadVars(allVars: Iterable[Name], modes: Seq[Mode]) = {
@@ -230,19 +229,10 @@ object ExtractPasses {
   def placeHolderReset(label: String) = 
       List(Reset(Cond.True, ListBuffer(Assign(MODE_VAR, Lit(GStr(label))))))
 
-  // Wrapper around Extract.eliminateTrueOnlyModes to handle the
-  // initialization case
-  def eliminateTrueOnlyModes(e: Extract) {
-    e.modes.prepend(Mode("Init", preConds = Cond.False, resets = placeHolderReset(e.initMode)))
-    eliminateTrueOnlyModes(e.modes)
-    assert(e.modes.head.label == "Init")
-    e.initMode = e.modes.head.resets.head.mode.get
-    e.modes = e.modes.tail
-  }
   // Attemt to eliminate modes with a 
   def eliminateTrueOnlyModes(modes: ListBuffer[Mode]) = {
     val toRemove = ListBuffer.empty[Mode]
-    modes.filter{m => m.trans && m.resets.length == 1 && m.resets.head.conds == Cond.True}.foreach{m =>
+    modes.filter{m => m.label != "Init" && m.trans && m.resets.length == 1 && m.resets.head.conds == Cond.True}.foreach{m =>
       val actions = m.resets.head.actions
       val rs = getResetsWithMode(m.label, modes)
       val canFold = rs.forall{r => canFoldActions(r.actions, actions)}
@@ -273,30 +263,6 @@ object ExtractPasses {
         first += action
     }
 
-  // Attempt to remove the init mode
-  def cleanUpInitMode(e: Extract) : Unit = {
-    val mode = e.modes.find{_.label == e.initMode}.get
-    mode.resets.find{_.conds == Cond.True} match {
-      case None => /* nothing */
-      case Some(r) => 
-        val (sim, non) = getSimulatorAssigns(e.simulatorName, r.actions)
-        e.simulatorAssigns ++= sim
-        val whatsLeft = non.flatMap{ a => a match {
-          case Assign(n,Lit(v)) => getName(n) match {
-            case Some(n) => if (n != MODE) e.init(n) = Lit(v); None
-            case None => Some(a)
-          }
-          case _ => Some(a)
-        }}
-        if (whatsLeft.isEmpty) {
-          e.modes -= mode
-          e.initMode = r.mode.get
-        } else {
-          r.actions = whatsLeft
-        }
-    }
-  }
-  
   //
   // Additional utility
   // 
