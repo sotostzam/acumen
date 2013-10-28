@@ -584,8 +584,8 @@ class App extends SimpleSwingApplication {
   /* ------ simple dialogs ----- */
 
   def about() = {
-    val version = acumen.util.System.version
-    Dialog.showMessage(body, "Acumen " + version, "About")
+    AboutDialog setLocationRelativeTo body
+    AboutDialog visible = true
   }
   
   def manual() = {
