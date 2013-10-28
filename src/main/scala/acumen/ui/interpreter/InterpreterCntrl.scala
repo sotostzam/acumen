@@ -52,7 +52,7 @@ object InterpreterCntrl {
   // messages the Actor may send to the consumer
 
   case class Chunk(css: TraceData) // data computer so far
-  case object Done // finished computation, no more data
+  case class Done(msgs: Seq[String]) // finished computation, no more data
 
   def cntrlForInterpreter(intr: Interpreter) : InterpreterCntrl = {
     intr match {
@@ -73,4 +73,4 @@ abstract class InterpreterCntrl {
 
   // Creates a new actor to perform the computation.
   def init(prog: String, consumer:Actor) : InterpreterActor
-}
+} 

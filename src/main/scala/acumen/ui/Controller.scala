@@ -131,9 +131,10 @@ class Controller extends DaemonActor {
           if (d != null) flush(d)
           setState(newState)
         case IC.Chunk(d) => // ignore chunks from supposedly dead producers
-        case IC.Done =>
+        case IC.Done(msgs) =>
           App.ui.modelFinished = true
           setState(Stopped)
+          msgs.foreach{msg => actor ! ProgressMsg(msg)}
         case Exit(_,ue:UncaughtException) =>
           actor ! Error(ue.cause)
           setState(Stopped)

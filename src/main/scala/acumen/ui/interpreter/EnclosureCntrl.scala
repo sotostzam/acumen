@@ -87,8 +87,8 @@ class EnclosureCntrl(val interpreter: RecursiveInterpreter) extends InterpreterC
     def produce : Unit = {
       val s = System.currentTimeMillis
       interpreter.runInterpreter(prog, callbacks)
-      consumer ! Done
-      println("Time to run simulation: %f".format((System.currentTimeMillis - s)/1000.0))
+      consumer ! Done(List("Time to run simulation: %.3fs".format((System.currentTimeMillis - s)/1000.0)))
+      //println("Time to run simulation: %f".format((System.currentTimeMillis - s)/1000.0))
     }
   }
 }
