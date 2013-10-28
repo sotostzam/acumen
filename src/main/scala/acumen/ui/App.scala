@@ -136,14 +136,14 @@ class App extends SimpleSwingApplication {
   private val plotStyleDotsAction             = new Action(  "Dots")        { mnemonic =            VK_D; def apply = plotView.setPlotStyle(plot.Dots()) }
   private val plotStyleBothAction             = new Action(  "Both")        { mnemonic =            VK_B; def apply = plotView.setPlotStyle(plot.Both()) }
   private val floatingPointStandardAction     = mkActionMask("Traditional",                         VK_F, VK_R,       shortcutMask | SHIFT_MASK, setInterpreter("reference"))
-  private val floatingPointExperimentalAction = mkActionMask("Traditional Par. Cont.",              VK_E, NONE,       shortcutMask | SHIFT_MASK, setInterpreter("experimental"))
+  private val floatingPointExperimentalAction = mkActionMask("Traditional (Exp).",                  VK_E, NONE,       shortcutMask | SHIFT_MASK, setInterpreter("experimental"))
   private val floatingPointOriginalAction     = mkActionMask("Traditional 2012",                    VK_O, NONE,       shortcutMask | SHIFT_MASK, setInterpreter("original"))
-  private val floatingPointImperativeAction   = mkActionMask("Traditional Imperative",              VK_I, VK_I,       shortcutMask | SHIFT_MASK, setInterpreter("imperative")) 
-  private val floatingPointParallelAction     = mkActionMask("Traditional Parallel",                VK_P, VK_P,       shortcutMask | SHIFT_MASK, promptForNumberOfThreads)
-  private val pwlHybridSolverAction           = mkActionMask("Enclosure PWL",                       VK_L, VK_L,       shortcutMask | SHIFT_MASK, setInterpreter("enclosure-pwl")) 
-  private val eventTreeHybridSolverAction     = mkActionMask("Enclosure EVT",                       VK_T, VK_T,       shortcutMask | SHIFT_MASK, setInterpreter("enclosure-evt"))
+  private val floatingPointImperativeAction   = mkActionMask("Traditional 2012 (Opt)",              VK_I, VK_I,       shortcutMask | SHIFT_MASK, setInterpreter("imperative")) 
+  private val floatingPointParallelAction     = mkActionMask("Traditional 2012 (Par)",              VK_P, VK_P,       shortcutMask | SHIFT_MASK, promptForNumberOfThreads)
+  private val pwlHybridSolverAction           = mkActionMask("Enclosure (PWL)",                     VK_L, VK_L,       shortcutMask | SHIFT_MASK, setInterpreter("enclosure-pwl")) 
+  private val eventTreeHybridSolverAction     = mkActionMask("Enclosure (EVT)",                     VK_T, VK_T,       shortcutMask | SHIFT_MASK, setInterpreter("enclosure-evt"))
   private val contractionAction               = mkActionMask("Contraction",                         VK_C, VK_C,       shortcutMask | SHIFT_MASK, enclosure.Interpreter.toggleContraction)
-  private val manualAction                    = mkAction(    "Reference Manual",     VK_M, VK_F1,      manual)
+  private val manualAction                    = mkAction(    "Reference Manual",                    VK_M, VK_F1,      manual)
   private val aboutAction                     = new Action(  "About")       { mnemonic =            VK_A; def apply = about }
   
   /* Shows a dialog asking the user how many threads to use in the parallel interpreter. */
@@ -531,7 +531,7 @@ class App extends SimpleSwingApplication {
       mnemonic = Key.S
       contents += refStandard
       if (Main.enableAllSemantics)
-        contents ++= Seq(refExperimental, refOriginal, new Separator, impr, par)
+        contents ++= Seq(new Separator, refExperimental, new Separator, refOriginal, impr, par)
       contents ++= Seq(new Separator, pwl, et, new Separator, ls)
     }
    
