@@ -86,14 +86,11 @@ object TransformationTestUtil {
     } finally if (!same) {
       System.err.println("\n Transform is not (" + semanticsType + ") semantics preserving.\n\n")
       modelName.foreach(mn => System.err.println("\nFailing model: " + mn + "\n"))
-      System.err.println("\nraw: \n")
-      System.err.println(pprint(p))
-      System.err.println("\ndesugared: \n")
-      System.err.println(pprint(desugared))
-      if (transformed != null) {
-        System.err.println("\n\ntransformed: \n")
-        System.err.println(pprint(transformed))
-      }
+      System.err.println(
+        "\nraw: \n"       + pprint(p) +
+        "\ndesugared: \n" + pprint(desugared))
+      printErrUnless(transformed != null,
+        "\n\ntransformed: \n" + pprint(transformed))
     }
   }
   
@@ -103,6 +100,12 @@ object TransformationTestUtil {
     baos.toString
   }
 
+  /** Print message to stderr if cond is false. Returns cond. */
+  def printErrUnless(cond: Boolean, message: String) = {
+    if (!cond) System.err.println(message)
+    cond
+  }
+  
   /** Filters away any irrelevant variables from the input CStoreRes. */
   def onlyContinuousState(csr: CStoreRes, contNames: Map[ClassName, Set[Name]]): CStoreRes =
     CStoreRes(for { st <- csr.ctrace } yield onlyContinuousState(st, contNames))

@@ -15,6 +15,7 @@ import acumen.util.System.readFiles
 import testutil.ProgGenerator
 import acumen.testutil.TransformationTestUtil.preservesContinuousReferenceSemanticsOf
 import acumen.testutil.TransformationTestUtil.preservesContinuousEnclosureSemanticsOf
+import acumen.testutil.TransformationTestUtil.printErrUnless
 
 object ExtractTest extends Properties("Extract") {
 
@@ -37,9 +38,8 @@ object ExtractTest extends Properties("Extract") {
   import progGenerator.arbProg
     
   /**
-   * The transformation from Acumen to a hybrid automaton core language 
-   * introduces (necessarily?) 
-   * additional mode variables and the transformation is thus not strictly semantics preserving. 
+   * The transformation from Acumen to a hybrid automaton core language introduces (necessarily?) 
+   * a new mode variable and the transformation is thus not strictly semantics preserving. 
    * However, the transformation should preserve the semantics with respect to the value of 
    * continuous variables, which this property checks.
    */
@@ -51,7 +51,30 @@ object ExtractTest extends Properties("Extract") {
 
   property("reference semantics preserving on continous state (random models)") =
     forAll { (p: Prog) => preservesContinuousReferenceSemanticsOf(new extract.Extract(_).res, p, None) }
-    
+  
+  /**
+   * User mode variables are mode variables used in switches in the source model.
+   * The Extract algorithm must eliminate all occurrences of these in the output model.
+   */
+  property("extract eliminates user mode variables") =
+    forAll { (p: Prog) =>
+      def userModeVariables(a: Action): Set[Name] = a match {
+        case Switch(Var(n), cs) =>
+          (for { c <- cs; a <- c.rhs; v <- userModeVariables(a) } yield v).toSet + n
+        case IfThenElse(_,t,e) =>
+          (t.flatMap(userModeVariables) ++ e.flatMap(userModeVariables)).toSet 
+        case _ => Set.empty
+      }
+      val umvs = p.defs.flatMap(_.body flatMap userModeVariables)
+      val extractedModel = new extract.Extract(p).res
+      val varsInExtractedModel = extractedModel.defs.flatMap(c => c.priv.map(_.x.x))
+      printErrUnless(!umvs.exists(varsInExtractedModel contains _),
+        "\n\ntransformed: \n" + (Pretty pprint extractedModel))
+    }
+  
+  /** First desugar p and then return the result of applying transform. */
+  def desugarAndTransform(p: Prog, transform: Prog => Prog) = transform(Desugarer run p)
+  
   /** Load models compatible with the transformation from the examples directory. */
   //FIXME Update to include multi-object models
   def existingModels(): Iterable[(String, Prog)] =
