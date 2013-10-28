@@ -30,11 +30,12 @@ object Extract {
                 "  precond " + pprintOneLine(pretty(preConds.toExpr)) + "\n" +
                 "  claim " + pprintOneLine(pretty(claims.toExpr)) + "\n" +
                 "  " + pprint(nest(2,pretty(resets.map{_.toAST:Action} ++ actions.map{Continuously(_):Action}))) + "\nend\n")
+    def markDead() {claims = Nil; actions = Nil; resets = Nil; preConds = Cond.False; trans = false}
   }
   // ^^ note: "preConds" are the conditions that must always hold when
   // in this mode, both after a discr. and cont. step.  Thus it must
   // not contain any cont. var changed in this mode.
- 
+
   case class Reset(var conds: Cond,
                    var actions: ListBuffer[Assign] = ListBuffer.empty) 
   {
@@ -147,6 +148,10 @@ class Extract(val prog: Prog, private val debugMode: Boolean = false)
   def convertWithPreConds() : Unit = {
     convertSimple()
     resets ++= modes.head.resets // FIXME: Eliminate need for this hack
+    // maybe: at some point collect all possible user-mode varaibles and
+    // possible values for those variables as they will be needed
+    // later
+
     enhanceModePreCond()
   }
 
@@ -167,18 +172,27 @@ class Extract(val prog: Prog, private val debugMode: Boolean = false)
 
     markTransModes()
 
-    eliminateTrueOnlyModes()
-
     mergeDupModes()
+    cleanUpTransModes()
+    resolveModes()
+
     eliminateTrueOnlyModes()
 
-    cleanUpTransModes()
-    eliminateTrueOnlyModes()
+    pruneDeadModes()
     
     cleanUpAssigns()
     
     killDeadVars()
   }
+
+  // splitModes = if user-mode variables can't be eliminated, split
+  // the mode by adding all possible values of user-mode variables 
+
+  // resolve if a given mode can't be resolved split that mode as
+  // nessary and repeat the split/merge step basically when there are
+  // multiple candidates eval each caniate precond, if it doesn't
+  // become True or False the leftover predicates are a basis for
+  // additional precond for split
 
   var counter = 0;
   def dumpPhase(name: String) = {
@@ -256,6 +270,11 @@ class Extract(val prog: Prog, private val debugMode: Boolean = false)
   def mergeDupModes() {ep.mergeDupModes(modes); dumpPhase("MERGE DUP MODES")}
 
   def cleanUpTransModes() {ep.cleanUpTransModes(modes); dumpPhase("CLEAN UP TRANS MODE")}
+
+  def resolveModes() {ep.resolveModes(modes); dumpPhase("RESOLVE MODED")}
+  // ^^ find mode with true precond based on reset post, if more than
+  // one error out for now, the next step will be to split mode to be
+  // able to enhance precond
   
   def cleanUpAssigns() {ep.cleanUpAssigns(modes); dumpPhase("CLEAN UP ASSIGNS")}
   

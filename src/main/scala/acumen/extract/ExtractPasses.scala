@@ -111,6 +111,7 @@ object ExtractPasses {
   }
 
   // Remove redundant conds from the resets based on the modes precond
+  // Then remove the reset if its guard is false.
   def pruneResetConds(modes: Seq[Mode]) : Unit = {
     modes.foreach{m => 
       m.resets.foreach{r => r.conds = r.conds.eval(m.preConds)}
@@ -123,14 +124,16 @@ object ExtractPasses {
   // resets, if the reset than has no actions other than to go back
   // into the same mode, kill it.
     modes.foreach{m => 
-      m.resets.foreach{r=>
-        val preConds = Cond.and(m.preConds,r.conds)
-        r.actions = r.actions.filter{case a@Assign(lhs,rhs) => !((getName(lhs), rhs) match {
-          case (Some(name), Lit(value)) => 
-            preConds.exists(_ == Cond.MemberOf(name,Set(value)))
-          case _ => false
-        })}
-      }
+      // FIXME: Broken, needs to take into account mode variable when reenabled
+      //   also not sure if its really needed
+      //m.resets.foreach{r=>
+      //  val preConds = Cond.and(m.preConds,r.conds)
+      //  r.actions = r.actions.filter{case a@Assign(lhs,rhs) => !((getName(lhs), rhs) match {
+      //    case (Some(name), Lit(value)) => 
+      //      preConds.exists(_ == Cond.MemberOf(name,Set(value)))
+      //    case _ => false
+      //  })}
+      //}
       m.resets = m.resets.filter{r => 
         !(r.actions.length == 1 && r.mode == Some(m.label))
       }
@@ -162,41 +165,24 @@ object ExtractPasses {
     allVars.filter{case Name(x,_) => !allDeps.exists{case Name(y,_) => x == y}}
   }
 
-  def mergeDupModes(modes: Seq[Mode]) {
-    val dups = modes.groupBy{m => (m.preConds, m.claims, m.actions, m.trans)}.filter{case (_, v) => v.length > 1}
+
+  def mergeDupModes(modes: ListBuffer[Mode]) {
+    // Untested propriety, if the resets were reapplied after merging
+    // the resets after filing will be identical, even if some
+    // preconds were eliminated during the merge
+    val dups = modes.groupBy{m => (m.claims, m.resets, m.actions, m.trans)}.filter{case (_, v) => v.length > 1}
     dups.values.foreach{ms =>
       val target :: toKill = ms.sortWith{(a,b) => a.label < b.label}.toList
-      toKill.foreach{m =>
-        m.resets = placeHolderReset(target.label)
-        m.actions = Nil
-        m.trans = true
-      }
+      target.preConds = mergePreConds(target.preConds :: toKill.map{_.preConds})
+      toKill.foreach{_.markDead()}
     }
   }
 
-  // This pass needs to be run before dead resets are eliminated There
-  // should be a single reset that trans into each mode and at least
-  // one reset should fire (possible more).  If the reset that goes
-  // back into this mode is dead (i.e. conds == false) than it follows
-  // that there is no way to end up in this mode, thus the mode is
-  // effectively trans.
-  def markTransModesPreCleanup(modes: Seq[Mode]) {
-    modes.filter{!_.trans}.foreach{m =>
-      val rs = m.resets.filter{r => r.mode.orNull == m.label}
-      assert(rs.size == 1)
-      if (rs.head.conds == Cond.False) {
-        m.actions = Nil
-        m.trans = true
-      }
-    }
-  }
-  // More robust version that can be run before or after dead resets
-  // are eliminated
   def markTransModes(modes: Seq[Mode]) {
     modes.filter{!_.trans}.foreach{m =>
       val rs = m.resets.filter{r => r.mode.orNull == m.label}
       assert(rs.size <= 1)
-      if (rs.isEmpty || rs.head.conds == Cond.False) {
+      if (rs.isEmpty) {
         m.actions = Nil
         m.trans = true
       }
@@ -209,11 +195,13 @@ object ExtractPasses {
   // have the same preconds sans the special $mode variable (which
   // does does affect any of the resets).
   def cleanUpTransModes(modes: Seq[Mode]) {
+    // Untested properity: see mergeDupModes
     modes.filter{_.trans}.foreach{m =>
-      //var candidates = modes.filter{m2 => !m2.trans && m.preConds == m2.preConds}
       var candidates = modes.filter{m2 => !m2.trans && m.resets == m2.resets}
+      // Possible fixme: Is this check really necessary, does it
+      // really mater what mode we merge into if there are multiple
+      // candidates, can't we just chose one randomly
       if (candidates.size != 1) {
-        //candidates = modes.filter{m2 => m.preConds == m2.preConds}
         candidates = modes.filter{m2 => m.resets == m2.resets}
         if (!candidates.isEmpty && candidates.head.label != m.label)
           candidates = List(candidates.head)
@@ -222,14 +210,16 @@ object ExtractPasses {
       }
       if (candidates.size == 1) {
         val target = candidates.head
-        m.resets = placeHolderReset(target.label)
+        target.preConds = mergePreConds(m.preConds :: target.preConds :: Nil)
+        m.markDead()
       } 
     }
   }
   def placeHolderReset(label: String) = 
       List(Reset(Cond.True, ListBuffer(Assign(MODE_VAR, Lit(GStr(label))))))
 
-  // Attemt to eliminate modes with a 
+  // FIXME: Is this wrapper still needed, is it doing the correct thing?
+  // Attemt to eliminate modes with only a single reset with a true guard
   def eliminateTrueOnlyModes(modes: ListBuffer[Mode]) = {
     val toRemove = ListBuffer.empty[Mode]
     modes.filter{m => m.label != "Init" && m.trans && m.resets.length == 1 && m.resets.head.conds == Cond.True}.foreach{m =>
@@ -263,13 +253,47 @@ object ExtractPasses {
         first += action
     }
 
+  def resolveModes(modes: ListBuffer[Mode]) : Unit = {
+    modes.foreach{m => m.resets.foreach {r =>
+      val postConds = Util.postConds(Cond.and(m.preConds,r.conds), r.actions)
+      val candidates = modes.map{m => (m, m.preConds.eval(postConds))}.filter{case (_,res) => res != Cond.False}
+      if (candidates.length == 1) {
+        val (target, res) = candidates.head
+        assert(res == Cond.True)
+        r.mode = Some(target.label)
+      } else { 
+        // none of 
+        /* FIXME: Split! */
+      }
+    }}
+  }
+
+
   //
   // Additional utility
   // 
 
   def getModeVars(resets: Seq[Reset], modes: Seq[Mode]) : Seq[Name] = { 
     val contVars = modes.flatMap{m => m.actions.flatMap{a => extractLHSDeps(a)}}.toSet
-    resets.flatMap{_.conds.collect{case Cond.MemberOf(n,_) if !contVars.contains(n) => n}}.distinct
+    MODE +: resets.flatMap{_.conds.collect{case Cond.MemberOf(n,_) if !contVars.contains(n) => n}}.distinct
+  }
+
+  def mergePreConds(preConds: List[Cond]) : Cond = {
+    if (preConds.isEmpty) Cond.True
+    else if (preConds.length == 1) preConds.head
+    else {
+      val first = preConds.head
+      val second = preConds.tail.head
+      val rest = preConds.tail.tail
+      val combinedModes = getModesPC(first) ++ getModesPC(second)
+      val combined = Cond.and(Cond.MemberOf(MODE, combinedModes), first.toSet intersect second.toSet)
+      mergePreConds(combined :: rest)
+    }
+  }
+  def getModesPC(preConds: Cond) : Set[GroundValue] = {
+    val res = preConds.collect{case Cond.MemberOf(MODE, vals) => vals}
+    assert(res.size == 1)
+    res.head
   }
 
 }
