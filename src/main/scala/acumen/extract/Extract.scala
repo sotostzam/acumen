@@ -147,11 +147,9 @@ class Extract(val prog: Prog, private val debugMode: Boolean = false)
 
   def convertWithPreConds() : Unit = {
     convertSimple()
-    resets ++= modes.head.resets // FIXME: Eliminate need for this hack
     // maybe: at some point collect all possible user-mode varaibles and
     // possible values for those variables as they will be needed
     // later
-
     enhanceModePreCond()
   }
 
@@ -248,10 +246,13 @@ class Extract(val prog: Prog, private val debugMode: Boolean = false)
   def addInit() {
     val initAsAssign = init.toSeq.map{case (k,v) => Assign(Dot(Var(Name("self", 0)), k),v)}
     val initActions = ListBuffer.empty ++ initAsAssign ++ simulatorAssigns :+ Assign(MODE_VAR, Lit(GStr("D0")))
+    val eqInit = Cond.eq(MODE,GStr("Init"))
+    val notEqInit = Cond.not(eqInit)
+    resets.foreach {r => r.conds = Cond.and(notEqInit, r.conds)}
+    resets = Reset(eqInit,initActions) :: resets
     modes.prepend(Mode("D0", trans=true))
     modes.prepend(Mode("Init", trans=true,
-                       preConds = Cond.eq(MODE, GStr("Init")),
-                       resets = List(Reset(Cond.True,initActions))))
+                       preConds = Cond.eq(MODE, GStr("Init"))))
     init = Nil
     simulatorAssigns = Nil
     dumpPhase("INIT MODE")

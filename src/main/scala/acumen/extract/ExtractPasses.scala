@@ -93,7 +93,7 @@ object ExtractPasses {
   }
 
   def addResets(resets: List[Reset], modes: Seq[Mode]) {
-    modes.filter{ _.label != "Init"}.foreach { m => // FIXME: Eliminate this special space
+    modes.foreach { m =>
       m.resets = resets.map{_.copy()}
     }
   }
