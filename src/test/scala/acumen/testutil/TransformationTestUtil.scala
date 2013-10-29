@@ -3,7 +3,6 @@ package testutil
 
 import java.io.ByteArrayOutputStream
 import java.io.PrintStream
-
 import acumen.Action
 import acumen.CStoreRes
 import acumen.ClassName
@@ -174,6 +173,19 @@ object TransformationTestUtil {
       System.err.println(description + " mismatch. Expected: " + expected + ", observed: " + observed)
       false
     }
+    
+  /** 
+   * Returns the number of modes in prog.
+   * The prog must be in hybrid automaton form (i.e. single class containing a single switch statement, among other things).  
+   */
+  def countModes(prog: Prog): Int = {
+    // Check that prog is on hybrid automaton form
+    new interpreters.enclosure.Checker{}.checkValidAutomatonEmbedding(prog.defs(0))
+    prog.defs(0).body.map(_ match {
+      case Switch(_,cs) => cs.map(_.lhs).toSet.size // Collapse clauses with identical lhs
+      case _ => 0
+    }).sum
+  }
   
 }
 

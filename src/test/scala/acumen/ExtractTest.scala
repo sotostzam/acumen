@@ -10,12 +10,13 @@ import org.scalacheck.Prop.forAll
 import org.scalacheck.Prop.propBoolean
 import org.scalacheck.Properties
 
+import acumen.testutil.TransformationTestUtil.countModes
+import acumen.testutil.TransformationTestUtil.preservesContinuousEnclosureSemanticsOf
+import acumen.testutil.TransformationTestUtil.preservesContinuousReferenceSemanticsOf
+import acumen.testutil.TransformationTestUtil.printErrUnless
 import acumen.util.System.FILE_SUFFIX_MODEL
 import acumen.util.System.readFiles
 import testutil.ProgGenerator
-import acumen.testutil.TransformationTestUtil.preservesContinuousReferenceSemanticsOf
-import acumen.testutil.TransformationTestUtil.preservesContinuousEnclosureSemanticsOf
-import acumen.testutil.TransformationTestUtil.printErrUnless
 
 trait ExtractTest {
 
@@ -102,7 +103,18 @@ object ExtractBaseTest extends Properties("Extract") with ExtractTest {
       printErrUnless(!umvs.exists(varsInExtractedModel contains _),
         "\n\ntransformed: \n" + (Pretty pprint extractedModel))
     }
-    
+
+  property("extract does not increase the number of modes on hybrid automaton models") =
+    enclosureModels.forall { case (name, prog) =>
+      val p = Desugarer.desugar(prog)
+      val extractedModel = new extract.Extract(p).res
+      val originalModes = countModes(p)
+      val extractedModes = countModes(extractedModel)
+      printErrUnless(extractedModes == originalModes,
+        "Number of modes in transformed model " + name + " (" + extractedModes + ") exceeds number of modes in original model (" + originalModes + ")!" +
+        "\n\ntransformed: \n" + (Pretty pprint extractedModel))
+    }
+
 }
 
 /** Properties of Extract checked by simulating existing hybrid automaton models using the enclosure interpreter. */
