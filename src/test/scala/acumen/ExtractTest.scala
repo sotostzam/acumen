@@ -61,8 +61,12 @@ trait ExtractTest {
     
 }
 
-/** Properties of Extract checked using the (experimental) reference interpreter. */
-object ExtractReferenceTest extends Properties("Extract (Reference Semantics)") with ExtractTest {
+/**
+ * Basic properties of Extract.
+ * 
+ * Those which involve simulation are checked using the experimental reference interpreter.
+ */
+object ExtractBaseTest extends Properties("Extract") with ExtractTest {
     
   import progGenerator.arbProg
   
@@ -101,7 +105,7 @@ object ExtractReferenceTest extends Properties("Extract (Reference Semantics)") 
     
 }
 
-/** Properties of Extract checked using the enclosure reference interpreter. */
+/** Properties of Extract checked by simulating existing hybrid automaton models using the enclosure interpreter. */
 object ExtractEnclosureTest extends Properties("Extract (Enclosure Semantics)") with ExtractTest {
     
   import progGenerator.arbProg
