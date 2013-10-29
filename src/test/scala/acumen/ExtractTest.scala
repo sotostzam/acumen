@@ -17,7 +17,7 @@ import acumen.testutil.TransformationTestUtil.preservesContinuousReferenceSemant
 import acumen.testutil.TransformationTestUtil.preservesContinuousEnclosureSemanticsOf
 import acumen.testutil.TransformationTestUtil.printErrUnless
 
-object ExtractTest extends Properties("Extract") {
+trait ExtractTest {
 
   val MODEL_PATH_TEST         = List("examples/XXX_internal/one-class",
                                      "examples/XXX_internal/esaes",
@@ -34,44 +34,7 @@ object ExtractTest extends Properties("Extract") {
                      , minContinuousVarsPerClass   = 2
                      , maxContinuousVarsPerClass   = 4
                      )
-  
-  import progGenerator.arbProg
-    
-  /**
-   * The transformation from Acumen to a hybrid automaton core language introduces (necessarily?) 
-   * a new mode variable and the transformation is thus not strictly semantics preserving. 
-   * However, the transformation should preserve the semantics with respect to the value of 
-   * continuous variables, which this property checks.
-   */
-  property("reference semantics preserving on continuous state (example models)") =
-    existingModels.map{ case (name, prog) => preservesContinuousReferenceSemanticsOf(new extract.Extract(_).res, prog, Some(name)) }.foldRight(true)(_&&_) // Make sure that all models are run
-    
-  property("enclosure semantics preserving on continuous state (enclosure example models)") =
-    enclosureModels.map{ case (name, prog) => preservesContinuousEnclosureSemanticsOf(new extract.Extract(_).res, prog, Some(name)) }.foldRight(true)(_&&_) // Make sure that all models are run
 
-  property("reference semantics preserving on continous state (random models)") =
-    forAll { (p: Prog) => preservesContinuousReferenceSemanticsOf(new extract.Extract(_).res, p, None) }
-  
-  /**
-   * User mode variables are mode variables used in switches in the source model.
-   * The Extract algorithm must eliminate all occurrences of these in the output model.
-   */
-  property("extract eliminates user mode variables") =
-    forAll { (p: Prog) =>
-      def userModeVariables(a: Action): Set[Name] = a match {
-        case Switch(Var(n), cs) =>
-          (for { c <- cs; a <- c.rhs; v <- userModeVariables(a) } yield v).toSet + n
-        case IfThenElse(_,t,e) =>
-          (t.flatMap(userModeVariables) ++ e.flatMap(userModeVariables)).toSet 
-        case _ => Set.empty
-      }
-      val umvs = p.defs.flatMap(_.body flatMap userModeVariables)
-      val extractedModel = new extract.Extract(p).res
-      val varsInExtractedModel = extractedModel.defs.flatMap(c => c.priv.map(_.x.x))
-      printErrUnless(!umvs.exists(varsInExtractedModel contains _),
-        "\n\ntransformed: \n" + (Pretty pprint extractedModel))
-    }
-  
   /** First desugar p and then return the result of applying transform. */
   def desugarAndTransform(p: Prog, transform: Prog => Prog) = transform(Desugarer run p)
   
@@ -96,4 +59,55 @@ object ExtractTest extends Properties("Extract") {
   def parseProg(p: (ModelName, ProgText)): (ModelName, Prog)  = 
     p match { case (namePrefix, prog) => (namePrefix, Parser.run(Parser.prog, prog)) }
     
-} 
+}
+
+/** Properties of Extract checked using the (experimental) reference interpreter. */
+object ExtractReferenceTest extends Properties("Extract (Reference Semantics)") with ExtractTest {
+    
+  import progGenerator.arbProg
+  
+  /**
+   * The transformation from Acumen to a hybrid automaton core language introduces (necessarily?)
+   * a new mode variable and the transformation is thus not strictly semantics preserving.
+   * However, the transformation should preserve the semantics with respect to the value of
+   * continuous variables, which this property checks.
+   */
+  property("reference semantics preserving on continuous state (example models)") =
+    existingModels.map { case (name, prog) => preservesContinuousReferenceSemanticsOf(new extract.Extract(_).res, prog, Some(name)) }.foldRight(true)(_ && _) // Make sure that all models are run
+    
+
+  property("reference semantics preserving on continous state (random models)") =
+    forAll { (p: Prog) => preservesContinuousReferenceSemanticsOf(new extract.Extract(_).res, p, None) }
+  
+  /**
+   * User mode variables are mode variables used in switches in the source model.
+   * The Extract algorithm must eliminate all occurrences of these in the output model.
+   */
+  property("extract eliminates user mode variables") =
+    forAll { (p: Prog) =>
+      def userModeVariables(a: Action): Set[Name] = a match {
+        case Switch(Var(n), cs) =>
+          (for { c <- cs; a <- c.rhs; v <- userModeVariables(a) } yield v).toSet + n
+        case IfThenElse(_,t,e) =>
+          (t.flatMap(userModeVariables) ++ e.flatMap(userModeVariables)).toSet 
+        case _ => Set.empty
+      }
+      val umvs = p.defs.flatMap(_.body flatMap userModeVariables)
+      val extractedModel = new extract.Extract(p).res
+      val varsInExtractedModel = extractedModel.defs.flatMap(c => c.priv.map(_.x.x))
+      printErrUnless(!umvs.exists(varsInExtractedModel contains _),
+        "\n\ntransformed: \n" + (Pretty pprint extractedModel))
+    }
+    
+}
+
+/** Properties of Extract checked using the enclosure reference interpreter. */
+object ExtractEnclosureTest extends Properties("Extract (Enclosure Semantics)") with ExtractTest {
+    
+  import progGenerator.arbProg
+         
+  property("enclosure semantics preserving on continuous state (enclosure example models)") =
+    enclosureModels.map{ case (name, prog) => preservesContinuousEnclosureSemanticsOf(new extract.Extract(_).res, prog, Some(name)) }.foldRight(true)(_&&_) // Make sure that all models are run
+  
+}
+

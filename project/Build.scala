@@ -17,7 +17,7 @@ object AcumenProject extends Build {
 
   // slow: Tests that may take awhile
   lazy val SlowTest = config("slow") extend(Test)
-  val slowTests = Set("acumen.ExtractTest")
+  val slowTests = Set("acumen.ExtractEnclosureTest")
   def slowTestFilter(name: String) = slowTests.contains(name)
 
   // broken: Currently broken tests that should eventually be fixed
