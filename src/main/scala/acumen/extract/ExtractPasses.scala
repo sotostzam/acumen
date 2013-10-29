@@ -166,7 +166,7 @@ object ExtractPasses {
   }
 
 
-  def mergeDupModes(modes: ListBuffer[Mode]) {
+  def mergeDupModes(modes: Seq[Mode]) {
     // Untested propriety, if the resets were reapplied after merging
     // the resets after filing will be identical, even if some
     // preconds were eliminated during the merge
@@ -220,18 +220,16 @@ object ExtractPasses {
 
   // FIXME: Is this wrapper still needed, is it doing the correct thing?
   // Attemt to eliminate modes with only a single reset with a true guard
-  def eliminateTrueOnlyModes(modes: ListBuffer[Mode]) = {
-    val toRemove = ListBuffer.empty[Mode]
+  def eliminateTrueOnlyModes(modes: Seq[Mode]) = {
     modes.filter{m => m.label != "Init" && m.trans && m.resets.length == 1 && m.resets.head.conds == Cond.True}.foreach{m =>
       val actions = m.resets.head.actions
       val rs = getResetsWithMode(m.label, modes)
       val canFold = rs.forall{r => canFoldActions(r.actions, actions)}
       if (canFold) {
         rs.foreach{r => foldActions(r.actions, actions)}
-        toRemove += m
+        m.markDead
       }
     }
-    modes --= toRemove
   }
   def getResetsWithMode(mode: String, modes: Seq[Mode]) : Seq[Reset] = 
     modes.flatMap{m => m.resets.filter{r => r.mode.orNull == mode}}
