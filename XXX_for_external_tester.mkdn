@@ -1,0 +1,26 @@
+# Quick manual test procedure for Acumen releases
+
+1. Start Acumen by double-clicking the jar file
+  (if you need were not provided one see [Compiling Acumen From Git](Building Acumen directly from the Development Repository) for details on
+   how to get started with git and sbt so that you can create one using `sbt proguard`)
+2. Open the iccps_mass_pendulum.acm model:
+    1. Click File > Open.
+    2. Browse to 2_Physical > iccps_mass_pendulum.acm and click Open.
+4. Ensure that the Traditional semantics is selected:
+    1. Click Semantics > Traditional
+6. Run the simulation:
+    1. Click the play button ( > ) below the code editor.
+8. Under the Plot tab on the right-hand side of the screen, ensure that the plot looks right:
+    1. It should display 8 plots, all but one displaying various kinds of wave shapes.
+10. Open the 2012_hh_1M.acm model.
+    1. Click File > Open.
+    2. When asked if you want to continue without saving your changes click Yes.
+    3. Browse back to the examples directory by selecting it in the drop down at the top of the Open dialog (currently it should show 2_Physical).
+    4. Browse to A_Ping_Pong > 2012_hh_1M.acm and click Open.
+11. Uncheck the Draw checkbox at the bottom-left of the Plot tab.
+12. Run the simulation:
+    1. Click the play button ( > ) below the code editor.
+14. When the simulation is finished, select the 3D tab (by clicking its button on the top-right of the screen).
+15. Click the fast forward button ( >> ) below the 3D view until the Speed indicator on the bottom right of the screen says "Speed:4.0x".
+15. Click the play button ( > ) below the 3D view.
+16. Ensure that the animation runs smoothly and plays through to the end.
