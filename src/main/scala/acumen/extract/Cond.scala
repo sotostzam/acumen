@@ -5,7 +5,7 @@ import scala.collection.mutable.ListBuffer
 
 sealed abstract class Cond { 
   def toExpr: Expr
-  def deps : Seq[Name]
+  def deps : Set[Name]
   // eval assumes have is not False
   def eval(have: Cond) : Cond
   def toSet : Set[Cond] = Set(this)
@@ -31,13 +31,13 @@ object Cond {
   // 
   case object True extends Cond {
     def toExpr = Lit(GBool(true))
-    def deps = Nil
+    def deps = Set.empty
     def eval(have: Cond) = this
     override def toSet = Set.empty[Cond]
   }
   case object False extends Cond {
     def toExpr = Lit(GBool(false))
-    def deps = Nil
+    def deps = Set.empty
     def eval(have: Cond) = this
   }
   case class MemberOf(name: Name, values: Set[GroundValue]) extends Cond {
@@ -45,7 +45,7 @@ object Cond {
     def toExpr = values.
       map{v => Op(Name("==", 0), List(Dot(Var(Name("self", 0)), name), Lit(v)))}.
       reduceLeft{ (a, b) => Op(Name("||", 0), List(a, b)) }
-    def deps = Seq(name)
+    def deps = Set(name)
     def eval(have: Cond) = have.toSet.collectFirst{case MemberOf(n, v) if n == name => v} match {
       case Some(v) => if ((v diff values).isEmpty) True else False
       case _ => if (have.toSet.contains(not(this))) False else this
@@ -63,11 +63,11 @@ object Cond {
   case class And(conds: Set[Cond]) extends Cond {
     assert(conds.size > 1)
     def toExpr = conds.tail.foldLeft(conds.head.toExpr) { (a, b) => Op(Name("&&", 0), List(a, b.toExpr)) }
-    def deps = conds.flatMap{_.deps}.toSeq
+    def deps = conds.flatMap{_.deps}
     def eval(have: Cond) = reduce(conds.map{_.eval(have)})
     override def toSet = conds
   }
-  case class Other(expr: Expr, deps: Seq[Name]) extends Cond {
+  case class Other(expr: Expr, deps: Set[Name]) extends Cond {
     def toExpr = expr
     def eval(have: Cond) = 
       if (have.toSet.contains(this)) True
@@ -132,6 +132,6 @@ object Cond {
       case (_, _) => combine(fromSetSimple(done.toSet + toadd.head), toadd.tail)
     }
   }
-  
+ 
 }
 

@@ -70,8 +70,9 @@ class Extract(val prog: Prog, private val debugMode: Boolean = false)
   var body : IfTree.Node = IfTree.create(origDef.body)
   val simulatorName = origDef.fields(0)
   var simulatorAssigns = body.extractSimulatorAssigns(simulatorName)
-  var modes = ListBuffer.empty[Mode]
-  var resets = List.empty[Reset]
+  var modes : ListBuffer[Mode] = ListBuffer.empty
+  var resets : List[Reset] = null
+  var modeVars : Map[Name,Set[GroundValue]] = null
   var initMode = "Init"
 
   //
@@ -147,9 +148,7 @@ class Extract(val prog: Prog, private val debugMode: Boolean = false)
 
   def convertWithPreConds() : Unit = {
     convertSimple()
-    // maybe: at some point collect all possible user-mode varaibles and
-    // possible values for those variables as they will be needed
-    // later
+    modeVars = getModeVars(resets, modes)
     enhanceModePreCond()
   }
 
@@ -239,7 +238,7 @@ class Extract(val prog: Prog, private val debugMode: Boolean = false)
   def sanity() {ep.sanity(body); body = null; dumpPhase("SANITY")}
 
   def enhanceModePreCond() {
-    ep.enhanceModePreCond(resets, modes, getModeVars(resets, modes)); 
+    ep.enhanceModePreCond(resets, modes, modeVars.keySet); 
     dumpPhase("ENHANCE MODE PRECONDS")
   }
   
@@ -279,7 +278,7 @@ class Extract(val prog: Prog, private val debugMode: Boolean = false)
   
   def cleanUpAssigns() {ep.cleanUpAssigns(modes); dumpPhase("CLEAN UP ASSIGNS")}
   
-  def killDeadVars() {ep.killDeadVars(getModeVars(resets, modes), modes); dumpPhase("KILL DEAD VARS")}
+  def killDeadVars() {ep.killDeadVars(modeVars.keys, modes); dumpPhase("KILL DEAD VARS")}
 
   def extractInitialConds() {
     

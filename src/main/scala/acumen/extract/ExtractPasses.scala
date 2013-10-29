@@ -1,7 +1,10 @@
 package acumen
 package extract
 
-import scala.collection.mutable.{ArrayBuffer,ListBuffer,Map=>MutMap}
+import scala.collection.immutable.{Set}
+import scala.collection.mutable.{ArrayBuffer,ListBuffer,
+                                 Map=>MutMap,Set=>MutSet,MultiMap=>MutMultiMap,
+                                 HashSet,HashMap}
 import scala.text.Document.nest
 
 import Util._
@@ -81,7 +84,7 @@ object ExtractPasses {
     }
   }
 
-  def enhanceModePreCond(resets: Seq[Reset], modes: ListBuffer[Mode], modeVars: Seq[Name]) {
+  def enhanceModePreCond(resets: Seq[Reset], modes: ListBuffer[Mode], modeVars: Set[Name]) {
     assert({val modes = resets.map{_.mode}; !modes.contains(None) && modes.distinct.size == modes.size})
     resets.foreach{r =>
       val postConds = Util.postConds(r.conds, r.actions)
@@ -156,7 +159,6 @@ object ExtractPasses {
     val allDeps = (contDeps ++ discrDeps).distinct :+ MODE // $mode is special and needs to be kept
     allVars.filter{case Name(x,_) => !allDeps.exists{case Name(y,_) => x == y}}
   }
-
 
   def mergeDupModes(modes: Seq[Mode]) {
     // Untested propriety, if the resets were reapplied after merging
@@ -263,9 +265,34 @@ object ExtractPasses {
   // Additional utility
   // 
 
-  def getModeVars(resets: Seq[Reset], modes: Seq[Mode]) : Seq[Name] = { 
-    val contVars = modes.flatMap{m => m.actions.flatMap{a => extractLHSDeps(a)}}.toSet
-    MODE +: resets.flatMap{_.conds.collect{case Cond.MemberOf(n,_) if !contVars.contains(n) => n}}.distinct
+  def getModeVars(resets: Seq[Reset], modes: Seq[Mode]) : Map[Name,Set[GroundValue]] = { 
+    // A mode var is a variable that is only assigned to literal
+    // values in discrete assignments (and consequently never assigned
+    // to continously) and one that is only tested for equality.
+    // Possible values for a mode variable are simply the values that
+    // its gets assigned.
+    val res = new HashMap[Name, MutSet[GroundValue]] with MutMultiMap[Name, GroundValue]
+    val kill = new HashSet[Name]
+    resets.foreach{_.actions.foreach{
+      case Assign(Dot(Var(Name("self",0)), f), e) => e match {
+        case Lit(v) => res.addBinding(f, v)
+        case _      => kill += f
+      }
+      case _ => /* do nothing, something other than local assignment */
+    }}
+    modes.foreach{_.actions.foreach{a => 
+      kill ++= extractLHSDeps(a)
+    }}
+    def traverse(cond: Cond) : Unit = cond match {
+      case Cond.True | Cond.False => /* no deps */
+      case Cond.MemberOf(_,_) => /* do nothing */
+      case Cond.And(conds) => conds.foreach{traverse(_)}
+      case Cond.Not(cond) => traverse(cond)
+      case Cond.Other(_, deps) => kill ++= cond.deps
+    }
+    resets.foreach{r => traverse(r.conds)}
+    res --= kill
+    Map(res.toSeq.map{case (k, v) => (k, Set(v.toSeq : _*))} :+ (MODE,Set.empty[GroundValue]) : _*)
   }
 
   def mergePreConds(preConds: List[Cond]) : Cond = {
