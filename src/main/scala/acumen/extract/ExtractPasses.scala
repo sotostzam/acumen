@@ -81,14 +81,6 @@ object ExtractPasses {
     }
   }
 
-  // If we are not already in a mode after a reset go into the special
-  // catch all mode
-  def ensureModeCatchAll(resets: Seq[Reset], catchAllMode: String) : Unit = {
-    resets.filter(_.mode.isEmpty).foreach { r => 
-      r.mode = Some(catchAllMode)
-    }
-  }
-
   def enhanceModePreCond(resets: Seq[Reset], modes: ListBuffer[Mode], modeVars: Seq[Name]) {
     assert({val modes = resets.map{_.mode}; !modes.contains(None) && modes.distinct.size == modes.size})
     resets.foreach{r =>
