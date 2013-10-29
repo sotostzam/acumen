@@ -1,10 +1,46 @@
 
-ACUMEN 2013 PREVIEW RELEASE, RELEASE NOTES
-------------------------------------------
+ACUMEN NOVEMBER 2013 RELEASE NOTES
+----------------------------------
 
-To be filed in, right now the text is in:
+Major Changes since the Acumen 2012 preview release (Dec 2012):
 
-https://docs.google.com/document/d/1k_b3kerK1-syiL2W78TxhUPqiL_LDtNbXAD_7puq_iQ/edit?usp=sharing
+ - Improved default (“Traditional”) Semantics
+   - Repeated assignments to the same variable no longer allowed, and
+     now cause simulation fails with an error
+   - All discrete assignments are performed simultaneously
+   - Derivatives are interpreted in a more direct manner than before
+   NOTE: As these semantics changes reject or alter the behavior of
+     some old models the original semantics found in Acumen 2012 is 
+     also available under under Semantics as "Traditional 2012".
+ - A new and integrated user reference manual is found under Help
+ - User interface enhancements
+ 	- Most notably:  File browser, code search, and code completion
+ - Improvements to memory utilization
+ - Language enhancements
+     - A "let" operator has been added to expressions
+     - Class names can now be used as values
+     - Vector indexing is now supported
+ - Enhanced enclosure semantics
+     - Transcendental functions ("sin" and "cos")
+     - Extended predicate language
+     - Improved event localization algorithm
+     - New event handling algorithm
+ - Various other minor enhancements and fixes
+
+Major known issues with this release
+
+  - The current implementation of _3D is unstable on Linux.
+
+Major changes since Acumen 2010:
+
+ - _3D support based on Yingfu Zeng's Masters thesis
+ - Enclosure semantics with support for Zeno systems
+ - A more responsive user interface
+ - Some improvements to syntax
+   - Continuous assignment used to be [=] and is now just =
+   - Discrete assignment used to be = and is now :=
+ - Syntax highlighting
+
 
 PREREQUISITES
 -------------
