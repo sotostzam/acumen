@@ -126,7 +126,7 @@ object Common {
   def unaryListOp[A](op:String, u:List[Value[_]]) : Value[A] = {
     lazy val du = extractDoubles(u)
     op match {
-      //case "length" => VLit(GInt(u.length))
+      case "length" => VLit(GInt(u.length))
       case _ => throw InvalidListOp(op)
     }
   }
@@ -134,7 +134,7 @@ object Common {
   def unaryVectorOp[A](op:String, u:List[Value[_]]) : Value[A] = {
     lazy val du = extractDoubles(u)
     op match {
-      //case "length" => VLit(GInt(u.length))
+      case "length" => VLit(GInt(u.length))
       case "norm" => VLit(GDouble(math.sqrt((du map (d => d*d)).sum)))
       case "floor" => VVector(du map {d => VLit(GDouble(floor(d)))})
       case "ceil" => VVector(du map {d => VLit(GDouble(ceil(d)))})
