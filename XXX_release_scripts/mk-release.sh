@@ -75,8 +75,12 @@ zip -9r $REL_DIR.zip $REL_DIR
 
 # and done!
 echo "Done."
-echo "Make sure everything is in order and upload $REL_DIR.zip"
-echo "and do a:"
-echo "  (cd acumen-rel-working"
-echo "   git push rel master release rel-$REL rel-$REL-pre"
-echo "   git push origin master rel-$REL-pre)"
+cat > final_instructions <<EOF
+Make sure everything is in order and upload $REL_DIR.zip
+and do a:
+  (cd acumen-rel-working
+   git push rel master release rel-$REL rel-$REL-pre
+   git push origin master rel-$REL-pre)
+EOF
+echo "cat final_instructions"
+cat final_instructions
