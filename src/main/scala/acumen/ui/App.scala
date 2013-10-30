@@ -299,10 +299,10 @@ class App extends SimpleSwingApplication {
   } else if (Main.threeDState == ThreeDState.LAZY) {
     new threeD.DisabledThreeDTab("3D visualization will be enabled when needed.")
   } else {
-    start3D
+    start3D()
   }
 
-  def start3D = try {
+  def start3D() = try {
     val res = new threeD.ThreeDTab(controller)
     Main.threeDState = ThreeDState.ENABLE
     res
@@ -348,10 +348,11 @@ class App extends SimpleSwingApplication {
     def selectPlotView() = peer.setSelectedIndex(PLOT_IDX)
     def selectThreeDView() = peer.setSelectedIndex(THREED_IDX)
     
-    def possibleEnable3D = {
-      if (selection.index == THREED_IDX && shouldEnable3D)
-        pages(THREED_IDX).content = start3D
-    }
+    def possibleEnable3D =
+      if (selection.index == THREED_IDX && shouldEnable3D) {
+        App.ui.threeDtab = start3D()
+        pages(THREED_IDX).content = App.ui.threeDtab
+      }
   }
 
   /* main component */
