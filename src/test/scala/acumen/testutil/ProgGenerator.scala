@@ -52,7 +52,7 @@ class ProgGenerator
   , val maxSimulationTime           : Double = 10.0
   , val maxClassHierarchyDepth      : Int    = 1
   , val maxClassHierarchyLayerWidth : Int    = 2
-  , val minContinuousVarsPerClass   : Int    = 2
+  , val minContinuousVarsPerClass   : Int    = 1
   , val maxContinuousVarsPerClass   : Int    = 4
   ) {
 
@@ -273,7 +273,7 @@ class ProgGenerator
    */
   def genModes(banned: Set[Name]): Gen[Set[(Active,Name,List[GroundValue])]] =
     for {
-      modeNames    <- genBoundedSetOfNonMembers(0, 2, banned, for { n <- arbitrary[Name] } yield Name(n.x, 0))
+      modeNames    <- genBoundedSetOfNonMembers(1, 4, banned, for { n <- arbitrary[Name] } yield Name(n.x, 0))
       modesPerName <- listOfN(modeNames.size, choose[Int](2, 5))
       modes        =  (modeNames zip modesPerName.map(n => (0 to n).toList.map(GInt): List[GroundValue])).
                       map { case (m, n) => (false, m, n) }
@@ -316,13 +316,12 @@ class ProgGenerator
         equations                <- genLinearODESystem(equationLHSs).map(_.map(Continuously): Set[Action])
         (discrAs, updDiscrNames) <- genDiscreteActions(isTopLevel, discrNames, modes, parentTypes)
         nbrConditionalStmts      <- chooseNum[Int](0, maxConditionalsPerScope) 
-        nbrSwitchStmts           <- chooseNum[Int](0, Math.min( maxConditionalsPerScope - nbrConditionalStmts 
-                                                              , if (Math.min(laterC.size, laterR.size) > nesting + 1) 1 else 0 // Avoid nesting explosion
-                                                              ))
+        nbrSwitchStmts           <- chooseNum[Int](0, maxConditionalsPerScope - nbrConditionalStmts)
         conditionals             <- listOfNIf(laterC.nonEmpty, nbrConditionalStmts, 
                                       genIfThenElse(updContNames, updDiscrNames, modes, updRefNames, parentTypes, env, time, nesting))
         switches                 <- listOfNIf(laterC.nonEmpty && modes.nonEmpty, nbrSwitchStmts,
                                       genSwitch(updContNames, updDiscrNames, modes, updRefNames, parentTypes, env, time, nesting))
+      
       } yield equations union conditionals.toSet union switches.toSet union discrAs
     }
   

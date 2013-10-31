@@ -41,11 +41,19 @@ object System {
         val n = f getName
         val in = new FileInputStream(path + File.separator + n)
         val s = scala.io.Source.fromInputStream(in).getLines().mkString("\n")
-        in close
+        in close()
         val prefix = n.substring(0, n.lastIndexOf(extensionFilter))
         (prefix, s)
       }
     }.toMap
+  }
+
+  /** Reads the file on path into a String. */
+  def readFile(path: String): String = {
+    val in = new FileInputStream(path)
+    val s = scala.io.Source.fromInputStream(in).getLines().mkString("\n")
+    in.close()
+    s
   }
   
 }

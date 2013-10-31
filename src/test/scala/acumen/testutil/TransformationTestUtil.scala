@@ -186,6 +186,20 @@ object TransformationTestUtil {
       case _ => 0
     }).sum
   }
+
+  /** Returns the list of variables used to switch between case clauses in prog. */
+  def userModeVariables(prog: Prog): List[Name] = {
+    def userModeVariables(a: Action): Set[Name] = a match {
+      case Switch(Var(n), cs) =>
+        (for { c <- cs; a <- c.rhs; v <- userModeVariables(a) } yield v).toSet + n
+      case Switch(Dot(_, n), cs) =>
+        (for { c <- cs; a <- c.rhs; v <- userModeVariables(a) } yield v).toSet + n
+      case IfThenElse(_, t, e) =>
+        (t.flatMap(userModeVariables) ++ e.flatMap(userModeVariables)).toSet
+      case _ => Set.empty
+    }
+    prog.defs.flatMap(_.body flatMap userModeVariables)
+  }
   
 }
 
