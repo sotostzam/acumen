@@ -314,14 +314,13 @@ class ProgGenerator
         updRefNames              =  nowR.map(_.asUsed).toSet union laterR.toSet union usedRefs
         equationLHSs             =  highestDerivatives(nowC ++ nowR).toSet
         equations                <- genLinearODESystem(equationLHSs).map(_.map(Continuously): Set[Action])
-        (discrAs, updDiscrNames) <- genDiscreteActions(isTopLevel, discrNames, modes, parentTypes)
+        (discrAs, updDiscrNames) <- genDiscreteActions(isTopLevel, discrNames, modes, parentTypes, time)
         nbrConditionalStmts      <- chooseNum[Int](0, maxConditionalsPerScope) 
         nbrSwitchStmts           <- chooseNum[Int](0, maxConditionalsPerScope - nbrConditionalStmts)
         conditionals             <- listOfNIf(laterC.nonEmpty, nbrConditionalStmts, 
                                       genIfThenElse(updContNames, updDiscrNames, modes, updRefNames, parentTypes, env, time, nesting))
         switches                 <- listOfNIf(laterC.nonEmpty && modes.nonEmpty, nbrSwitchStmts,
                                       genSwitch(updContNames, updDiscrNames, modes, updRefNames, parentTypes, env, time, nesting))
-      
       } yield equations union conditionals.toSet union switches.toSet union discrAs
     }
   
@@ -336,13 +335,14 @@ class ProgGenerator
     , discrVarNames: Set[ConsumableDot]
     , modes: Set[(Active,Name,List[GroundValue])]
     , parentTypes: Map[Name, TypeLike]
+    , time: (Name, Interval)
     ): Gen[(Set[Action], Set[ConsumableDot])] = {
    val freeVarNames = discrVarNames.filter(_.isFree)
    if (isTopLevel || freeVarNames.isEmpty) (Set[Action](), discrVarNames) 
    else for {
       nbrDiscrAssgsToUse  <- chooseNum[Int](1, freeVarNames.size) // How many to use in this scope
       (now,later)         =  freeVarNames.toList.splitAt(nbrDiscrAssgsToUse)
-      discreteAssignments <- genDiscreteAssignments(now.toSet, modes)
+      discreteAssignments <- genDiscreteAssignments(isTopLevel, now.toSet, modes, time)
       updatedNames        =  now.map(_.asUsed).toSet union later.toSet
     } yield (discreteAssignments, updatedNames)
   }
@@ -390,20 +390,24 @@ class ProgGenerator
       assertion            =  Lit(GBool(true)) // TODO Generate mode invariants
     } yield Switch(name, vs.zip(clauses).map{ case (v, as) => Clause(v, assertion, as.toList) })
   
-  def genDiscreteAssignments(varNames: Set[ConsumableDot], modes: Set[(Active,Name,List[GroundValue])]): Gen[Set[Action]] =
+  def genDiscreteAssignments
+    ( isTopLevel: Boolean
+    , varNames: Set[ConsumableDot]
+    , modes: Set[(Active,Name,List[GroundValue])]
+    , time: (Name,Interval)
+    ): Gen[Set[Action]] =
     for {
       lhss           <- resize(varNames.size / 4, someOf(varNames))
       rhss           <- listOfN(lhss.size, genSmallDouble).map(_.map(d => Lit(GDouble(d)))) //TODO More interesting, state-based resets
       activeModeVars =  modes.toList.filter { case (active, _, _) => active }
-      modeResets     <- if (activeModeVars.isEmpty) value(Set[Action]()) 
-                        else for {
+      modeResets     <-  for {
                           (_, m, vs)  <- oneOf(activeModeVars)
                           mAfterReset <- oneOf(vs)
-                        } yield Set[Action](Discretely(Assign(Var(m), Lit(mAfterReset))))
+                          cond        <- genPredicate(varNames.map(_.dot), time)
+                        } yield Set[Action](IfThenElse(cond, List(Discretely(Assign(Var(m), Lit(mAfterReset)))), Nil))
     } yield {
-      val nonModeResets: Set[Action] = ((lhss zip rhss) map { case (cd, e) => Discretely(Assign(cd.dot, e)) }).toSet
-      if (activeModeVars.nonEmpty) nonModeResets union modeResets 
-      else nonModeResets
+      val nonModeResets = ((lhss zip rhss) map { case (cd, e) => Discretely(Assign(cd.dot, e)) }).toSet[Action]
+      nonModeResets union modeResets 
     }
   
   /**
@@ -420,7 +424,7 @@ class ProgGenerator
       objectRhss   <- if (objectNames.isEmpty) value(Nil) else listOfN(objectNames.size, genConstructorCall(env))
       objectInits  =  (objectNames zip objectRhss).map { case (l, r) => Init(l, r) }
       // Generate initial conditions for mode variables 
-      modeInits    =  modes.map{ case (_active, n, vs) => Init(n, ExprRhs(Lit(vs(0)))) }
+      modeInits    =  modes.map{ case (_active, n, vs) => Init(n, ExprRhs(Lit(scala.util.Random.shuffle(vs).head))) }
       // Generate initial conditions for continuous variables
       contNames    =  continuousNames.filter(_.isFree)
       contRhss     <- listOfN(contNames.size, genSmallDouble)
