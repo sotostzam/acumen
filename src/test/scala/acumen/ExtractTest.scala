@@ -2,14 +2,11 @@ package acumen
 
 import java.io.File
 import java.io.FilenameFilter
-
 import scala.Array.canBuildFrom
 import scala.Array.fallbackCanBuildFrom
-
 import org.scalacheck.Prop.forAll
 import org.scalacheck.Prop.propBoolean
 import org.scalacheck.Properties
-
 import acumen.testutil.TransformationTestUtil.countModes
 import acumen.testutil.TransformationTestUtil.preservesContinuousEnclosureSemanticsOf
 import acumen.testutil.TransformationTestUtil.preservesContinuousReferenceSemanticsOf
@@ -17,6 +14,7 @@ import acumen.testutil.TransformationTestUtil.printErrUnless
 import acumen.util.System.FILE_SUFFIX_MODEL
 import acumen.util.System.readFiles
 import testutil.ProgGenerator
+import acumen.testutil.TransformationTestUtil.userModeVariables
 
 trait ExtractTest {
 
@@ -31,7 +29,7 @@ trait ExtractTest {
     new ProgGenerator( maxConditionalsPerScope     = 2
                      , maxSimulationTime           = 10.0
                      , maxClassHierarchyDepth      = 0
-                     , maxClassHierarchyLayerWidth = 2
+                     , maxClassHierarchyLayerWidth = 1
                      , minContinuousVarsPerClass   = 2
                      , maxContinuousVarsPerClass   = 4
                      )
@@ -80,7 +78,6 @@ object ExtractBaseTest extends Properties("Extract") with ExtractTest {
   property("reference semantics preserving on continuous state (example models)") =
     existingModels.map { case (name, prog) => preservesContinuousReferenceSemanticsOf(new extract.Extract(_).res, prog, Some(name)) }.foldRight(true)(_ && _) // Make sure that all models are run
     
-
   property("reference semantics preserving on continous state (random models)") =
     forAll { (p: Prog) => preservesContinuousReferenceSemanticsOf(new extract.Extract(_).res, p, None) }
   
@@ -90,14 +87,7 @@ object ExtractBaseTest extends Properties("Extract") with ExtractTest {
    */
   property("extract eliminates user mode variables") =
     forAll { (p: Prog) =>
-      def userModeVariables(a: Action): Set[Name] = a match {
-        case Switch(Var(n), cs) =>
-          (for { c <- cs; a <- c.rhs; v <- userModeVariables(a) } yield v).toSet + n
-        case IfThenElse(_,t,e) =>
-          (t.flatMap(userModeVariables) ++ e.flatMap(userModeVariables)).toSet 
-        case _ => Set.empty
-      }
-      val umvs = p.defs.flatMap(_.body flatMap userModeVariables)
+      val umvs = userModeVariables(p)
       val extractedModel = new extract.Extract(p).res
       val varsInExtractedModel = extractedModel.defs.flatMap(c => c.priv.map(_.x.x))
       printErrUnless(!umvs.exists(varsInExtractedModel contains _),
