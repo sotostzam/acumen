@@ -41,47 +41,31 @@ object ExtractPasses {
   // Extract the mode and remove continuous assignments from the tree
   // In also adds the necessary "magic" so that we are guaranteed to
   // always know what mode to go into after a reset
-  def extractModes(root: IfTree.ContView) : ListBuffer[Mode] = {
+  // Extract resets and (optionally) remove the discrete assignments
+  // from the if tree
+  // Check that no actions are left in the if tree.  If there is
+  // something left it means we have syntax we can not support
+  def extractAll(root: IfTree.Node) : (ListBuffer[Mode],ListBuffer[Reset]) = {
     val modes = new ListBuffer[Mode]
+    val resets = new ListBuffer[Reset]
     var idx = 1 
-    def doit(parentActions: List[ContinuousAction], body: IfTree.ContView) : Unit = {
-      val actions = parentActions ++ body.actions
-      body.actions.clear()
+    def doit(parentContActions: List[ContinuousAction], 
+             parentDiscrAssigns: List[Assign], 
+             body: IfTree.Node) : Unit = {
+      val contActions  = parentContActions  ++ body.contActions
+      val discrAssigns = parentDiscrAssigns ++ body.discrAssigns
+      if (body.otherActions.nonEmpty) throw UnhandledSyntax(body.otherActions.head)
       if (body.children.nonEmpty) {
-        body.children.foreach{doit(actions, _)}
+        body.children.foreach{doit(contActions, discrAssigns, _)}
       } else {
         val label = "C" + idx
-        modes += Mode(label, claims = body.claims, actions = actions)
-        body.node.discrAssigns += Assign(MODE_VAR, Lit(GStr(label)))
+        modes += Mode(label, claims = body.claims, actions = contActions)
+        resets += Reset(body.conds, ListBuffer(Assign(MODE_VAR, Lit(GStr(label))) :: discrAssigns :_*))
         idx += 1
       }
     }
-    doit(Nil, root)
-    modes
-  }
-  // Extract resets and (optionally) remove the discrete assignments
-  // from the if tree
-  def extractResets(root: IfTree.DiscrView, clearExtracted: Boolean = true) : List[Reset] = {
-    val resets = new ListBuffer[Reset]
-    def doit(parentActions: List[Assign], body: IfTree.DiscrView) : Unit = {
-      val actions = parentActions ++ body.actions
-      if (clearExtracted)
-        body.actions.clear()
-      if (body.children.nonEmpty) {
-        body.children.foreach{doit(actions, _)}
-      } else {
-        resets += Reset(body.conds, ListBuffer(actions:_*))
-      }
-    }
-    doit(Nil, root)
-    resets.toList
-  }
-  // Check that no actions are left in the if tree.  If there is
-  // something left it means we have syntax we can not support
-  def sanity(root: IfTree.Node) : Unit = {
-    root.foreach{node => 
-      if (node.actions.nonEmpty) throw UnhandledSyntax(node.actions.head)
-    }
+    doit(Nil, Nil, root)
+    (modes, resets)
   }
 
   def enhanceModePreCond(resets: Seq[Reset], modes: ListBuffer[Mode], modeVars: Set[Name]) {

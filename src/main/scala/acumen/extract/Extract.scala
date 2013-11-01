@@ -139,9 +139,9 @@ class Extract(val prog: Prog, private val debugMode: Boolean = false)
  
   // The simplest most straightforward way.  
   def convertSimple() : Unit = {
-    extractModes()
-    extractResets()
-    sanity()
+    val (m,r) = extractAll(body); dumpPhase("EXTRACT")
+    modes = m;
+    resets = r.toList;
     addInit()
     addResets()
   }
@@ -232,10 +232,6 @@ class Extract(val prog: Prog, private val debugMode: Boolean = false)
   //
 
   def ep = ExtractPasses
-
-  def extractModes() {modes = ep.extractModes(body.contOnly); dumpPhase("EXTRACT MODES")}
-  def extractResets() {resets = ep.extractResets(body.discrOnly); dumpPhase("EXTRACT RESETS")}
-  def sanity() {ep.sanity(body); body = null; dumpPhase("SANITY")}
 
   def enhanceModePreCond() {
     ep.enhanceModePreCond(resets, modes, modeVars.keySet); 
