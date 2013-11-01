@@ -139,6 +139,7 @@ class Extract(val prog: Prog, private val debugMode: Boolean = false)
  
   // The simplest most straightforward way.  
   def convertSimple() : Unit = {
+    modeVars = getModeVars(body)
     val (m,r) = extractAll(body); dumpPhase("EXTRACT")
     modes = m;
     resets = r.toList;
@@ -148,7 +149,6 @@ class Extract(val prog: Prog, private val debugMode: Boolean = false)
 
   def convertWithPreConds() : Unit = {
     convertSimple()
-    modeVars = getModeVars(resets, modes)
     enhanceModePreCond()
   }
 

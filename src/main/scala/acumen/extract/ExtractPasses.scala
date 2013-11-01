@@ -249,7 +249,7 @@ object ExtractPasses {
   // Additional utility
   // 
 
-  def getModeVars(resets: Seq[Reset], modes: Seq[Mode]) : Map[Name,Set[GroundValue]] = { 
+  def getModeVars(root: IfTree.Node) : Map[Name,Set[GroundValue]] = { 
     // A mode var is a variable that is only assigned to literal
     // values in discrete assignments (and consequently never assigned
     // to continously) and one that is only tested for equality.
@@ -257,14 +257,14 @@ object ExtractPasses {
     // its gets assigned.
     val res = new HashMap[Name, MutSet[GroundValue]] with MutMultiMap[Name, GroundValue]
     val kill = new HashSet[Name]
-    resets.foreach{_.actions.foreach{
+    root.foreach{_.node.discrAssigns.foreach{
       case Assign(Dot(Var(Name("self",0)), f), e) => e match {
         case Lit(v) => res.addBinding(f, v)
         case _      => kill += f
       }
       case _ => /* do nothing, something other than local assignment */
     }}
-    modes.foreach{_.actions.foreach{a => 
+    root.foreach{_.node.contActions.foreach{a => 
       kill ++= extractLHSDeps(a)
     }}
     def traverse(cond: Cond) : Unit = cond match {
@@ -274,7 +274,7 @@ object ExtractPasses {
       case Cond.Not(cond) => traverse(cond)
       case Cond.Other(_, deps) => kill ++= cond.deps
     }
-    resets.foreach{r => traverse(r.conds)}
+    root.foreach{n => traverse(n.localConds)}
     res --= kill
     Map(res.toSeq.map{case (k, v) => (k, Set(v.toSeq : _*))} :+ (MODE,Set.empty[GroundValue]) : _*)
   }
