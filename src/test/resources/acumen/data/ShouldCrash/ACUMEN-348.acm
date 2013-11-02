@@ -1,0 +1,32 @@
+class Main(simulator)
+  private
+    x := 10; x' := 10;
+    time := 0; time' := 1;
+    heating := "on"; 
+    period  := "day" 
+  end
+  // clock
+  time' = 1;
+  if time > 12
+    period := "day"
+  end;
+  if time > 24
+    period := "night";
+    time := 0;
+  end;
+  // heater continuous
+  if period == "day" && heating == "on"
+    x' = 10
+  else
+    x' = -5-x
+  end;
+  // heater discrete
+  if x < 19 && period == "day"
+    heating := "on"
+  end;
+  if x > 23
+    heating := "off"
+  end;
+  simulator.endTime := 48
+end
+
