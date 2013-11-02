@@ -97,9 +97,8 @@ class Extract(val prog: Prog, private val debugMode: Boolean = false)
     }
     counter = 100; dumpPhase("PRE CONVERT")
     convertLevel match {
-      case 1 => convertSimple()
-      case 2 => convertWithPreConds()
-      case _ => throw Errors.ShouldNeverHappen()
+      case _ => convert()
+      //case _ => throw Errors.ShouldNeverHappen()
     }
     counter = 200; dumpPhase("PRE CLEANUP")
     cleanupLevel match {
@@ -138,18 +137,13 @@ class Extract(val prog: Prog, private val debugMode: Boolean = false)
   //
  
   // The simplest most straightforward way.  
-  def convertSimple() : Unit = {
+  def convert() : Unit = {
     modeVars = getModeVars(body)
-    val (m,r) = extractAll(body); dumpPhase("EXTRACT")
+    val (m,r) = extractAll(body, modeVars.keySet); dumpPhase("EXTRACT")
     modes = m;
     resets = r.toList;
     addInit()
     addResets()
-  }
-
-  def convertWithPreConds() : Unit = {
-    convertSimple()
-    enhanceModePreCond()
   }
 
   // The minimal amout of clean up to be able eliminate unneeded state
@@ -233,11 +227,6 @@ class Extract(val prog: Prog, private val debugMode: Boolean = false)
 
   def ep = ExtractPasses
 
-  def enhanceModePreCond() {
-    ep.enhanceModePreCond(resets, modes, modeVars.keySet); 
-    dumpPhase("ENHANCE MODE PRECONDS")
-  }
-  
   def addInit() {
     val initAsAssign = init.toSeq.map{case (k,v) => Assign(Dot(Var(Name("self", 0)), k),v)}
     val initActions = ListBuffer.empty ++ initAsAssign ++ simulatorAssigns :+ Assign(MODE_VAR, Lit(GStr("D0")))
@@ -245,7 +234,8 @@ class Extract(val prog: Prog, private val debugMode: Boolean = false)
     val notEqInit = Cond.not(eqInit)
     resets.foreach {r => r.conds = Cond.and(notEqInit, r.conds)}
     resets = Reset(eqInit,initActions) :: resets
-    modes.prepend(Mode("D0", trans=true))
+    modes.prepend(Mode("D0", trans=true,
+                       preConds = discrConds(Util.postConds(eqInit, initActions),modeVars.keySet)))
     modes.prepend(Mode("Init", trans=true,
                        preConds = Cond.eq(MODE, GStr("Init"))))
     init = Nil

@@ -45,7 +45,7 @@ object ExtractPasses {
   // from the if tree
   // Check that no actions are left in the if tree.  If there is
   // something left it means we have syntax we can not support
-  def extractAll(root: IfTree.Node) : (ListBuffer[Mode],ListBuffer[Reset]) = {
+  def extractAll(root: IfTree.Node, modeVars: Set[Name]) : (ListBuffer[Mode],ListBuffer[Reset]) = {
     val modes = new ListBuffer[Mode]
     val resets = new ListBuffer[Reset]
     var idx = 1 
@@ -59,24 +59,20 @@ object ExtractPasses {
         body.children.foreach{doit(contActions, discrAssigns, _)}
       } else {
         val label = "C" + idx
-        modes += Mode(label, claims = body.claims, actions = contActions)
-        resets += Reset(body.conds, ListBuffer(Assign(MODE_VAR, Lit(GStr(label))) :: discrAssigns :_*))
         idx += 1
+
+        val assigns = Assign(MODE_VAR, Lit(GStr(label))) :: discrAssigns
+
+        val conds = body.conds
+        val postConds = Util.postConds(conds, assigns)
+        val modePreConds = discrConds(postConds,modeVars)
+
+        modes += Mode(label, claims = body.claims, actions = contActions, preConds = modePreConds)
+        resets += Reset(body.conds, ListBuffer(assigns :_*))
       }
     }
     doit(Nil, Nil, root)
     (modes, resets)
-  }
-
-  def enhanceModePreCond(resets: Seq[Reset], modes: ListBuffer[Mode], modeVars: Set[Name]) {
-    assert({val modes = resets.map{_.mode}; !modes.contains(None) && modes.distinct.size == modes.size})
-    resets.foreach{r =>
-      val postConds = Util.postConds(r.conds, r.actions)
-      val modePreConds = discrConds(postConds,modeVars)
-      val modeLabel = r.mode.get
-      val mode = modes.find{_.label == modeLabel}.get
-      mode.preConds ++= modePreConds
-    }
   }
 
   def addResets(resets: List[Reset], modes: Seq[Mode]) {
