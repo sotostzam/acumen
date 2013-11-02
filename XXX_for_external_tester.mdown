@@ -1,5 +1,8 @@
 # Quick manual test procedure for Acumen releases
 
+First make sure Java3D is installed by following the PREREQUISITES
+instructions in the README.
+
 1. Start Acumen by double-clicking the jar file you were provided
 2. Open the iccps_mass_pendulum.acm model:
     1. Click File > Open.
@@ -24,3 +27,6 @@
     the screen says "Speed:4.0x".
 11. Click the play button ( > ) below the 3D view.
 12. Ensure that the animation runs smoothly and plays through to the end.
+
+Please send your report to both Kevin Atkinson (kevinatk@rice.edu) and
+Walid Taha (taha@rice.edu).
