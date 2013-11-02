@@ -92,7 +92,8 @@ object Util {
   //
 
   def discrConds(conds: Cond, discrVars: Set[Name]) : Cond =
-    conds.filter{c => c.deps.diff(discrVars).isEmpty}
+    //conds.filter{c => c.deps.diff(discrVars).isEmpty}
+    Cond.fromSet(conds.collect{case c@Cond.MemberOf(v, _) if discrVars.contains(v) => c; case c@Cond.False => c;})
 
   def getSimulatorAssigns[SeqT <: SeqLike[Assign,SeqT]](simulatorName: Name, actions: SeqT) : (SeqT,SeqT) =
     actions.partition {

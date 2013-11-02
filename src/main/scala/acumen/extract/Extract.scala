@@ -27,8 +27,8 @@ object Extract {
   {
     def cont = !trans
     def dump = ("mode " + label + (if (trans) " # trans \n" else "\n") +
-                "  precond " + pprintOneLine(pretty(preConds.toExpr)) + "\n" +
-                "  claim " + pprintOneLine(pretty(claims.toExpr)) + "\n" +
+                "  precond " + preConds + "\n" +
+                "  claim " + claims + "\n" +
                 "  " + pprint(nest(2,pretty(resets.map{_.toAST:Action} ++ actions.map{Continuously(_):Action}))) + "\nend\n")
     def markDead() {claims = Nil; actions = Nil; resets = Nil; preConds = Cond.False; trans = false}
   }
@@ -158,33 +158,36 @@ class Extract(val prog: Prog, private val debugMode: Boolean = false)
 
   def cleanUp() : Unit = {
     pruneDeadModes()
-
     pruneResetConds()
 
     markTransModes()
 
+    splitModes()
+
+    resolveModes()
+
+    // now the loop
+    eliminateTrueOnlyModes()
     mergeDupModes()
     cleanUpTransModes()
     resolveModes()
 
-    eliminateTrueOnlyModes()
+    // eliminateTrueOnlyModes()
+    // mergeDupModes()
+    // cleanUpTransModes()
+    // resolveModes()
 
-    pruneDeadModes()
-    
+    // eliminateTrueOnlyModes()
+    // mergeDupModes()
+    // cleanUpTransModes()
+    // resolveModes()
+    // done, fixme: this should be a fixed point loop
+
     cleanUpAssigns()
     
     killDeadVars()
   }
-
-  // splitModes = if user-mode variables can't be eliminated, split
-  // the mode by adding all possible values of user-mode variables 
-
-  // resolve if a given mode can't be resolved split that mode as
-  // nessary and repeat the split/merge step basically when there are
-  // multiple candidates eval each caniate precond, if it doesn't
-  // become True or False the leftover predicates are a basis for
-  // additional precond for split
-
+  
   var counter = 0;
   def dumpPhase(name: String) = {
     if (debugMode)
@@ -253,11 +256,13 @@ class Extract(val prog: Prog, private val debugMode: Boolean = false)
 
   def eliminateTrueOnlyModes() {ep.eliminateTrueOnlyModes(modes); dumpPhase("ELIMINATE TRUE ONLY")}
 
+  def splitModes() = {ep.splitModes(modes,modeVars); dumpPhase("SPLIT MODES");}
+
   def mergeDupModes() {ep.mergeDupModes(modes); dumpPhase("MERGE DUP MODES")}
 
   def cleanUpTransModes() {ep.cleanUpTransModes(modes); dumpPhase("CLEAN UP TRANS MODE")}
 
-  def resolveModes() {ep.resolveModes(modes); dumpPhase("RESOLVE MODED")}
+  def resolveModes() {ep.resolveModes(modes); dumpPhase("RESOLVE MODES")}
   // ^^ find mode with true precond based on reset post, if more than
   // one error out for now, the next step will be to split mode to be
   // able to enhance precond

@@ -81,6 +81,56 @@ object ExtractPasses {
     (modes, resets)
   }
 
+  // splitModes = if user-mode variables can't be eliminated, split
+  // the mode by adding all possible values of user-mode variables 
+
+  // resolve if a given mode can't be resolved split that mode as
+  // nessary and repeat the split/merge step basically when there are
+  // multiple candidates eval each caniate precond, if it doesn't
+  // become True or False the leftover predicates are a basis for
+  // additional precond for split
+  def splitModes(modes: ListBuffer[Mode], modeVars: Map[Name,Set[GroundValue]]) {
+    val newModes = new ListBuffer[Mode];
+    modes.foreach{m =>
+      val leftover = m.resets.flatMap{r => r.conds.deps.filter{d => modeVars.contains(d)}}.toSet
+      val extraConds = leftover.map{d => modeVars(d).map{v => Cond.eq(d, v)}}
+      val theList = cross(extraConds)
+      splitMode(theList, m, newModes)
+    }
+    pruneResetConds(newModes)
+    modes ++= newModes
+    pruneDeadModes(modes)
+  }
+
+  def cross(todo: Set[Set[Cond]], done: Cond = Cond.True) : List[Cond] = {
+    if (todo.isEmpty) {if (done == Cond.True) Nil
+                       else List(done)}
+    else todo.head.toList.flatMap{cond => cross(todo.tail, Cond.and(done, cond))}
+  }
+
+  def splitMode(addConds: Seq[Cond], mode: Mode, res: ListBuffer[Mode]) : Unit = {
+    //println("split mode: " + mode.label + " " + addConds)
+    if (addConds.isEmpty) return
+    var keep = false
+    var idx = 1;
+    val (memberOf,rest) = mode.preConds.partition{case Cond.MemberOf(MODE,_) => true; case _ => false}
+    assert(memberOf.size == 1)
+    val Cond.MemberOf(_,vls) = memberOf.head
+    addConds.foreach{cond =>
+      val newPreCond = Cond.and(rest,cond)
+      if (newPreCond != rest) {
+        val newLabel = mode.label + "." + idx
+        idx += 1
+        res += mode.copy(label = newLabel, preConds = Cond.and(Cond.MemberOf(MODE, vls + GStr(newLabel)), newPreCond), resets = mode.resets.map{_.copy()})
+      } else {
+        keep = true;
+      }
+    }
+    val newLabel = mode.label + ".0"
+    if (keep) res += mode.copy(label = newLabel, preConds = Cond.and(Cond.MemberOf(MODE, vls + GStr(newLabel)), rest), resets = mode.resets.map{_.copy()})
+    mode.markDead()
+  }
+
   def addResets(resets: List[Reset], modes: Seq[Mode]) {
     modes.foreach { m =>
       m.resets = resets.map{_.copy()}
@@ -146,16 +196,19 @@ object ExtractPasses {
     allVars.filter{case Name(x,_) => !allDeps.exists{case Name(y,_) => x == y}}
   }
 
-  def mergeDupModes(modes: Seq[Mode]) {
+  // precond: no dead modes
+  def mergeDupModes(modes: ListBuffer[Mode]) {
     // Untested propriety, if the resets were reapplied after merging
     // the resets after filing will be identical, even if some
     // preconds were eliminated during the merge
     val dups = modes.groupBy{m => (m.claims, m.resets, m.actions, m.trans)}.filter{case (_, v) => v.length > 1}
     dups.values.foreach{ms =>
+      //println("MERGING: " + ms.map{_.label})
       val target :: toKill = ms.sortWith{(a,b) => a.label < b.label}.toList
       target.preConds = mergePreConds(target.preConds :: toKill.map{_.preConds})
       toKill.foreach{_.markDead()}
     }
+    pruneDeadModes(modes)
   }
 
   def markTransModes(modes: Seq[Mode]) {
@@ -174,42 +227,45 @@ object ExtractPasses {
   // Such a mode will (by the way the mode/resets is constructed) will
   // have the same preconds sans the special $mode variable (which
   // does does affect any of the resets).
-  def cleanUpTransModes(modes: Seq[Mode]) {
+  def cleanUpTransModes(modes: ListBuffer[Mode]) {
     // Untested properity: see mergeDupModes
     modes.filter{_.trans}.foreach{m =>
       var candidates = modes.filter{m2 => !m2.trans && m.resets == m2.resets}
-      // Possible fixme: Is this check really necessary, does it
-      // really mater what mode we merge into if there are multiple
-      // candidates, can't we just chose one randomly
-      if (candidates.size != 1) {
-        candidates = modes.filter{m2 => m.resets == m2.resets}
-        if (!candidates.isEmpty && candidates.head.label != m.label)
-          candidates = List(candidates.head)
-        else
-          candidates = Nil
+      if (candidates.size > 1) {
+        // See if there is a mode with no (cont) actions, its
+        // slightly more correct to merge into this mode than one
+        // with actions, although it really doesn't affect the result
+        val filtered = candidates.filter{m2 => m2.actions.isEmpty}
+        if (filtered.nonEmpty)
+          candidates = filtered
       }
-      if (candidates.size == 1) {
-        val target = candidates.head
-        target.preConds = mergePreConds(m.preConds :: target.preConds :: Nil)
+      // If there is more than one merging into any one of them is correct
+      // so "merge" into them all and sort it out later in resolveModes()
+      if (candidates.nonEmpty) {
+        candidates.foreach{target => 
+          target.preConds = mergePreConds(m.preConds :: target.preConds :: Nil)
+        }
         m.markDead()
-      } 
+      }
     }
+    pruneDeadModes(modes)
   }
   def placeHolderReset(label: String) = 
-      List(Reset(Cond.True, ListBuffer(Assign(MODE_VAR, Lit(GStr(label))))))
+    List(Reset(Cond.True, ListBuffer(Assign(MODE_VAR, Lit(GStr(label))))))
 
   // FIXME: Is this wrapper still needed, is it doing the correct thing?
   // Attemt to eliminate modes with only a single reset with a true guard
-  def eliminateTrueOnlyModes(modes: Seq[Mode]) = {
+  def eliminateTrueOnlyModes(modes: ListBuffer[Mode]) = {
     modes.filter{m => m.label != "Init" && m.trans && m.resets.length == 1 && m.resets.head.conds == Cond.True}.foreach{m =>
       val actions = m.resets.head.actions
       val rs = getResetsWithMode(m.label, modes)
       val canFold = rs.forall{r => canFoldActions(r.actions, actions)}
       if (canFold) {
         rs.foreach{r => foldActions(r.actions, actions)}
-        m.markDead
+        m.markDead()
       }
     }
+    pruneDeadModes(modes)
   }
   def getResetsWithMode(mode: String, modes: Seq[Mode]) : Seq[Reset] = 
     modes.flatMap{m => m.resets.filter{r => r.mode.orNull == mode}}
@@ -232,17 +288,45 @@ object ExtractPasses {
     }
 
   def resolveModes(modes: ListBuffer[Mode]) : Unit = {
+    if (modes.isEmpty) return
+    val toSplit = new HashMap[String,(Mode, HashSet[Cond])];
+    val newModes = new ListBuffer[Mode];
     modes.foreach{m => m.resets.filter{_.mode != Some("ERROR")}.foreach {r =>
-      val postConds = Util.postConds(Cond.and(m.preConds,r.conds), r.actions)
-      val candidates = modes.map{m => (m, m.preConds.eval(postConds))}.filter{case (_,res) => res == Cond.True}
-      if (candidates.length == 1) {
-        val (target, res) = candidates.head
-        r.mode = Some(target.label)
-      } else { 
-        // none of 
-        /* FIXME: Split! */
+      try {
+        val postConds = Util.postConds(Cond.and(m.preConds,r.conds), r.actions)
+        val evaled = modes.map{m => (m, m.preConds.eval(postConds))}
+        var candidates = evaled.filter{case (_,res) => res == Cond.True}
+        if (candidates.length > 1) {
+          // Sort the list so the "best" candidates is first.  In truth
+          // it doesn't mater, but this way we at least get determinist
+          // behavior
+          import scala.math.Ordering.Implicits._
+          def sortKey(m: Mode) = (m.preConds.toSeq.length, m.label)
+          candidates = candidates.sortWith{(a,b) => sortKey(a._1) < sortKey(b._1)}
+        }
+        if (candidates.nonEmpty) {
+          val (target, res) = candidates.head
+          assert(res == Cond.True)
+          r.mode = Some(target.label)
+        } else {
+          //println("can't resolve! " + m.label + " -- " + r.mode)
+          val neededConds = evaled.collect{case (_,res) if res != Cond.False => res}
+          toSplit.getOrElseUpdate(m.label, (m, new HashSet[Cond]))._2 ++= neededConds
+        }
+      } catch {
+        case Util.DuplicateAssignments => r.mode = Some("ERROR " + r.mode.get)
       }
     }}
+    toSplit.foreach{case (l,(m,neededConds)) =>         
+      splitMode(neededConds.toSeq, m, newModes)
+    }
+    if (newModes.nonEmpty) {
+      //println("resolve new modes: " + newModes.map{_.label})
+      pruneResetConds(newModes)
+      modes ++= newModes
+      pruneDeadModes(modes)
+      resolveModes(modes)
+    }
   }
 
   //
@@ -293,6 +377,7 @@ object ExtractPasses {
   }
   def getModesPC(preConds: Cond) : Set[GroundValue] = {
     val res = preConds.collect{case Cond.MemberOf(MODE, vals) => vals}
+    //println("res == " + res)
     assert(res.size == 1)
     res.head
   }

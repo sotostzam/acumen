@@ -50,6 +50,7 @@ object Cond {
       case Some(v) => if ((v diff values).isEmpty) True else False
       case _ => if (have.toSet.contains(not(this))) False else this
     }
+    //override def toString = "MemberOf(" + Pretty.pprint[Name](name) + ", " + values.map{v => Pretty.pprint[GroundValue](v)}.mkString(" ") + ")"
   }
   case class Not(cond: Cond) extends Cond {
     def toExpr = Op(Name("not", 0), List(cond.toExpr))
@@ -66,6 +67,7 @@ object Cond {
     def deps = conds.flatMap{_.deps}
     def eval(have: Cond) = reduce(conds.map{_.eval(have)})
     override def toSet = conds
+    //override def toString = "And(" + conds.mkString(" ") + ")"
   }
   case class Other(expr: Expr, deps: Set[Name]) extends Cond {
     def toExpr = expr
@@ -73,6 +75,7 @@ object Cond {
       if (have.toSet.contains(this)) True
       else if (have.toSet.contains(not(this))) False
       else this
+    //override def toString = "Other(" + Pretty.pprint[Expr](expr) + ")"
   }
 
   //
