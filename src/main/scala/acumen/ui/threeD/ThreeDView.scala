@@ -446,8 +446,8 @@ class _3DDisplay(app: ThreeDView, slider: Slider3d,
   }
 
   def sizeChange(lastSize:List[Double],currentSize:List[Double],epli:Double):Boolean = {
-    val lastNorm = lastSize.foldLeft(0.0)((r,x) => r+x*x)
-    val norm = currentSize.foldLeft(0.0)((r,x) => r+x*x)
+    val lastNorm = lastSize.foldLeft(0.0)((r,x) => r+x)
+    val norm = currentSize.foldLeft(0.0)((r,x) => r+x)
     (Math.abs(lastNorm-norm))>epli
   }
   /**
@@ -466,14 +466,14 @@ class _3DDisplay(app: ThreeDView, slider: Slider3d,
           deleteObj(id)
           app.add(addObj(id, buffer, currentFrame))
           view.repaint()
+          val key = id
+          lastLook -= key // Update last look
+          if (frame.size == 6)
+            lastLook += key -> List(bufferSize(frame), bufferColor(frame), bufferType(frame))
+          else
+            lastLook += key -> List(bufferSize(frame), bufferColor(frame), bufferType(frame), bufferString(frame))
       }
     }
-    val key = id
-    lastLook -= key // Update last look
-    if (frame.size == 6)
-     lastLook += key -> List(bufferSize(frame), bufferColor(frame), bufferType(frame))
-    else
-     lastLook += key -> List(bufferSize(frame), bufferColor(frame), bufferType(frame), bufferString(frame))
   }
 
   // Update the slider value
