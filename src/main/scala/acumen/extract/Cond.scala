@@ -84,6 +84,7 @@ object Cond {
     case Op(Name("==", 0), List(x, Lit(value))) => eq(x, value)
     case Op(Name("~=", 0), List(x, Lit(value))) => not(eq(x, value))
     case Op(Name("not", 0), List(x)) => not(Cond(x))
+    case Op(Name("&&", 0), List(x, y)) => and(Cond(x), Cond(y))
     case _ => Other(e, extractDeps(e))
   }
   def eq(x: Expr, y: Expr): Cond = (x, y) match {
