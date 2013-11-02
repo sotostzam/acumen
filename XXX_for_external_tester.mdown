@@ -29,4 +29,4 @@ instructions in the README.
 12. Ensure that the animation runs smoothly and plays through to the end.
 
 Please send your report to both Kevin Atkinson (kevinatk@rice.edu) and
-Walid Taha (taha@rice.edu).
+Walid Taha (Walid.Taha@hh.se).
