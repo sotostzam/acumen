@@ -61,14 +61,20 @@ object ExtractPasses {
         val label = "C" + idx
         idx += 1
 
-        val assigns = Assign(MODE_VAR, Lit(GStr(label))) :: discrAssigns
+        try {
+          val assigns = Assign(MODE_VAR, Lit(GStr(label))) :: discrAssigns
 
-        val conds = body.conds
-        val postConds = Util.postConds(conds, assigns)
-        val modePreConds = discrConds(postConds,modeVars)
-
-        modes += Mode(label, claims = body.claims, actions = contActions, preConds = modePreConds)
-        resets += Reset(body.conds, ListBuffer(assigns :_*))
+          val conds = body.conds
+          val postConds = Util.postConds(conds, assigns)
+          val modePreConds = discrConds(postConds,modeVars)
+          
+          modes += Mode(label, claims = body.claims, actions = contActions, preConds = modePreConds)
+          resets += Reset(body.conds, ListBuffer(assigns :_*))
+        } catch {
+          case DuplicateAssignments =>
+            resets += Reset(body.conds, 
+                            ListBuffer(Assign(MODE_VAR, Lit(GStr("ERROR")))))
+        }
       }
     }
     doit(Nil, Nil, root)
@@ -226,12 +232,11 @@ object ExtractPasses {
     }
 
   def resolveModes(modes: ListBuffer[Mode]) : Unit = {
-    modes.foreach{m => m.resets.foreach {r =>
+    modes.foreach{m => m.resets.filter{_.mode != Some("ERROR")}.foreach {r =>
       val postConds = Util.postConds(Cond.and(m.preConds,r.conds), r.actions)
-      val candidates = modes.map{m => (m, m.preConds.eval(postConds))}.filter{case (_,res) => res != Cond.False}
+      val candidates = modes.map{m => (m, m.preConds.eval(postConds))}.filter{case (_,res) => res == Cond.True}
       if (candidates.length == 1) {
         val (target, res) = candidates.head
-        assert(res == Cond.True)
         r.mode = Some(target.label)
       } else { 
         // none of 
@@ -239,7 +244,6 @@ object ExtractPasses {
       }
     }}
   }
-
 
   //
   // Additional utility

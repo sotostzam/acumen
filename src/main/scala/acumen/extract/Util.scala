@@ -2,7 +2,7 @@ package acumen
 package extract
 
 import scala.collection.SeqLike
-import scala.collection.mutable.ArrayBuffer
+import scala.collection.mutable.{ArrayBuffer,HashMap}
 import CondImplicits._
 
 object Util {
@@ -54,18 +54,27 @@ object Util {
   // Post Condition analysis
   //
   
+  case object DuplicateAssignments extends Exception
   def postConds(cond: Cond, actions: Seq[Assign]) : Cond = 
   {
     var res = ArrayBuffer(cond.toSeq: _*)
+    var prevAssigns = new HashMap[Name,GroundValue]()
     actions.foreach {
       case a @ Assign(lhs, rhs) => (getName(lhs), rhs) match {
         case (Some(name), Lit(value)) =>
+          checkAssign(name,value)
           invalidate(Set(name))
           res += Cond.eq(name, value)
         case (Some(name), expr) =>
           invalidate(extractDeps(expr))
         case _ => 
           throw UnhandledSyntax(a:DiscreteAction, "Can't determine PostCond.")
+      }
+    }
+    def checkAssign(n: Name, v: GroundValue) {
+      prevAssigns.get(n) match {
+        case Some(v0) if v0 != v => throw DuplicateAssignments
+        case _                   => prevAssigns.update(n,v)
       }
     }
     def invalidate(deps: Set[Name]) = res.indices.foreach { i =>
