@@ -274,12 +274,12 @@ object Interpreter extends acumen.CStoreInterpreter {
   def evalDiscreteAction(a:DiscreteAction, env:Env, p:Prog) : Eval[Unit] =
     a match {
       case Assign(d@Dot(e,x),t) => 
-        /* Schedule the discrete assignment if it changes x, otherwise do nothing */
+        /* Schedule the discrete assignment */
         for { id <- asks(evalExpr(e, p, env, _)) map extractId
         	  vt <- asks(evalExpr(t, p, env, _))
         	  _  <- asks(checkAccessOk(id, env, _))
         	  vx <- asks(evalExpr(d, p, env, _)) 
-        } if (vt != vx) assign(id, x, vt) else pass
+        } assign(id, x, vt)
       /* Basically, following says that variable names must be 
          fully qualified at this language level */
       case Assign(_,_) => 
@@ -388,18 +388,19 @@ object Interpreter extends acumen.CStoreInterpreter {
       { val (_,ids,rps,ass,eqs,st1) = iterate(evalStep(p), mainId(st))(st)
         getResultType(st) match {
           case Discrete | Continuous =>
-            if (st == st1 && ids.isEmpty && rps.isEmpty && ass.isEmpty) 
+            checkDuplicateAssingments(ass, DuplicateDiscreteAssingment)
+            val nonIdentityAss = ass.filterNot{ a => a._3 == getObjectField(a._1, a._2, st1) }
+            if (st == st1 && ids.isEmpty && rps.isEmpty && nonIdentityAss.isEmpty) 
               setResultType(FixedPoint, st1) // Reached discrete fixpoint
             else {
-              checkDuplicateAssingments(ass, "discrete")
-              val stA = mapM_(applyAssingment, ass.toList) ~> st1
+              val stA = mapM_(applyAssingment, nonIdentityAss.toList) ~> st1
               def applyReparenting(pair:(CId, CId)) = changeParentM(pair._1, pair._2) 
               val stR = mapM_(applyReparenting, rps.toList) ~> stA
               val st3 = stR -- ids
               setResultType(Discrete, st3)
             }
           case FixedPoint => // Now perform continuous assignments
-            checkDuplicateAssingments(eqs, "continuous")
+            checkDuplicateAssingments(eqs, DuplicateContinuousAssingment)
             val stA = mapM_(applyAssingment, eqs.toList) ~> st1
             val st2 = setResultType(Continuous, stA)
             setTime(getTime(st1) + getTimeStep(st1), st2)

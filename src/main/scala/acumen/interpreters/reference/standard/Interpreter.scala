@@ -272,12 +272,11 @@ object Interpreter extends acumen.CStoreInterpreter {
   def evalDiscreteAction(a:DiscreteAction, env:Env, p:Prog) : Eval[Unit] =
     a match {
       case Assign(d@Dot(e,x),t) => 
-        /* Schedule the assignment if it changes x, otherwise do nothing */
+        /* Schedule the assignment */
         for { id <- asks(evalExpr(e, p, env, _)) map extractId
-        	  vt <- asks(evalExpr(t, p, env, _))
-        	  _  <- asks(checkAccessOk(id, env, _))
-        	  vx <- asks(evalExpr(d, p, env, _)) 
-        } if (vt != vx) assign(id, x, vt) else pass
+              vt <- asks(evalExpr(t, p, env, _))
+              _  <- asks(checkAccessOk(id, env, _))
+        } assign(id, x, vt)
       /* Basically, following says that variable names must be 
          fully qualified at this language level */
       case Assign(_,_) => 
@@ -383,20 +382,21 @@ object Interpreter extends acumen.CStoreInterpreter {
     else Some(
       { val (_,ids,rps,ass,eqs,st1) = iterate(evalStep(p), mainId(st))(st)
         getResultType(st) match {
-          case Discrete | Continuous => 
-            if (st == st1 && ids.isEmpty && rps.isEmpty && ass.isEmpty) 
+          case Discrete | Continuous =>
+            checkDuplicateAssingments(ass, DuplicateDiscreteAssingment)
+            val nonIdentityAss = ass.filterNot{ a => a._3 == getObjectField(a._1, a._2, st1) }
+            if (st == st1 && ids.isEmpty && rps.isEmpty && nonIdentityAss.isEmpty && eqs.isEmpty) 
               setResultType(FixedPoint, st1)
             else {
-              checkDuplicateAssingments(ass, "discrete")
               def assHelper(a: (CId,Name,CValue)) = setObjectFieldM(a._1, a._2, a._3)
-              val stA = mapM_(assHelper, ass.toList) ~> st1
+              val stA = mapM_(assHelper, nonIdentityAss.toList) ~> st1
               def repHelper(pair:(CId, CId)) = changeParentM(pair._1, pair._2) 
               val stR = mapM_(repHelper, rps.toList) ~> stA
               val st3 = stR -- ids
               setResultType(Discrete, st3)
             }
           case FixedPoint =>
-            checkDuplicateAssingments(eqs, "continuous")
+            checkDuplicateAssingments(eqs, DuplicateContinuousAssingment)
             val st2 = setResultType(Continuous, st1)
             setTime(getTime(st1) + getTimeStep(st1), st2)
         }
@@ -404,12 +404,10 @@ object Interpreter extends acumen.CStoreInterpreter {
     )
     
   /** Checks for a duplicate assignment (of a specific kind) scheduled in assignments. */
-  def checkDuplicateAssingments(assignments: Set[(CId, Name, CValue)], kind: String): Unit = {
+  def checkDuplicateAssingments(assignments: Set[(CId, Name, CValue)], error: Name => DuplicateAssingment): Unit = {
     val duplicates = assignments.groupBy(a => (a._1,a._2)).filter{ case (_, l) => l.size > 1 }.keys.toList
-    if (duplicates.size != 0) {
-      val n = duplicates(0)._2
-      sys.error("Repeated " + kind + " assignment to variable (" + n.x + "'" * n.primes + ") is not allowed.")
-    }
+    if (duplicates.size != 0)
+      throw error(duplicates(0)._2)
   }
 
 }

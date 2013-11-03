@@ -85,6 +85,10 @@ class InterpreterTest extends InterpreterTestBase with ShouldMatchers {
     val err = ClassDefinedTwice(ClassName("A"))
     getError("data/ShouldCrash/Error11.acm") should be (Some(err))
   }
+  test("ACUMEN-348") {
+    val err = DuplicateDiscreteAssingment(Name("period",0))
+    getError("data/ShouldCrash/ACUMEN-348.acm") should be (Some(err))
+  }
 
   /* tests that match theoretical values against the interpreter's values */
   type VarHistory = Stream[Tuple2[Double,Double]] 
