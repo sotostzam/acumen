@@ -50,14 +50,15 @@ perl -i.bak -pe "s/VERSION/$REL/g" README socket/README
 git add -u
 git commit -m "Update version string."
 
+# update version file
+echo Writing version file.
+echo "20$REL" > src/main/resources/acumen/version
+
 # Test to make sure everything is still okay
 sbt compile test
 
 # tag
 git tag rel-$REL
-
-# clean up
-git clean -xfd
 
 # make release build
 cd ..
@@ -66,8 +67,9 @@ cp -a acumen-rel-working ${DIR_PREFIX}_Acumen
 cd $REL_DIR
 sbt proguard
 cp target/scala-*/acumen-$REL.jar ..
-git clean -xfd
+git clean -xfd -e src/main/resources/acumen/version
 rm -rf .git
+rm .gitignore
 mv ../acumen-$REL.jar .
 test ! -e $REL_DIR.zip || error "$REL_DIR.zip exists"
 cd ..
