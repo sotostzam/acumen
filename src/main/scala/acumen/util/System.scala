@@ -9,9 +9,9 @@ object System {
   private val osName = java.lang.System.getProperty("os.name").toLowerCase()
   
   val version = {
-    val md = getClass.getClassLoader.getResource("acumen/version")
+    val md = getClass.getClassLoader.getResourceAsStream("acumen/version")
     if (md == null) "unknown version"
-    else { io.Source.fromFile(md.getFile).mkString }
+    else { scala.io.Source.fromInputStream(md).mkString }
   }
   
   sealed abstract class OS
