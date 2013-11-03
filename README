@@ -1,4 +1,3 @@
-
 ACUMEN NOVEMBER 2013 RELEASE NOTES
 ----------------------------------
 
@@ -48,7 +47,8 @@ PREREQUISITES
 -------------
 
 Users of recent version of Mac OS X should already have all necessary
-dependencies installed.
+dependencies installed. If you have problems with _3D functionality 
+try using Java version 6.
 
 If you are using fairly modern Linux distribution installing
 openjdk-6, libjava3d, that comes with your distribution will likely
