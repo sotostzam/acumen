@@ -353,7 +353,7 @@ object ExtractPasses {
     }}
     def traverse(cond: Cond) : Unit = cond match {
       case Cond.True | Cond.False => /* no deps */
-      case Cond.MemberOf(_,_) => /* do nothing */
+      case Cond.MemberOf(f,vls) => vls.foreach{v => res.addBinding(f,v)}
       case Cond.And(conds) => conds.foreach{traverse(_)}
       case Cond.Not(cond) => traverse(cond)
       case Cond.Other(_, deps) => kill ++= cond.deps
