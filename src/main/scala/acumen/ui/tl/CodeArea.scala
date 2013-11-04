@@ -28,6 +28,9 @@ import org.fife.ui.rsyntaxtextarea.TokenTypes
 import org.fife.ui.rsyntaxtextarea.templates.StaticCodeTemplate
 import org.fife.ui.rtextarea.SearchContext
 import org.fife.ui.rtextarea.SearchEngine
+import org.fife.ui.rsyntaxtextarea.TokenTypes.{
+  COMMENT_DOCUMENTATION, COMMENT_EOL, COMMENT_KEYWORD, COMMENT_MARKUP, COMMENT_MULTILINE
+}
 import acumen.Main
 import acumen.interpreters.enclosure.Parameters
 import acumen.ui.App
@@ -88,8 +91,10 @@ class CodeArea extends Panel with TreeSelectionListener {
     TokenMakerFactory.getDefaultInstance.asInstanceOf[AbstractTokenMakerFactory].
       putMapping("AcumenTokenMaker", classOf[acumen.ui.tl.AcumenTokenMaker].getName)
     sta.setSyntaxEditingStyle("AcumenTokenMaker")
-    val commentStyle = sta.getSyntaxScheme.getStyle(TokenTypes.COMMENT_EOL)
-    commentStyle.font = commentStyle.font.deriveFont(Font.PLAIN)
+    for { // Make all comment fonts plain (not italic)
+      commentType <- List(COMMENT_DOCUMENTATION, COMMENT_EOL, COMMENT_KEYWORD, COMMENT_MARKUP, COMMENT_MULTILINE)
+      commentStyle = sta.getSyntaxScheme getStyle commentType
+    } { commentStyle.font = commentStyle.font deriveFont Font.PLAIN }
     sta.setHighlightCurrentLine(false)
     sta.setTabSize(2)
     sta.setTabsEmulated(true) // Use soft tabs
