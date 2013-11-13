@@ -46,6 +46,7 @@ import acumen.interpreters.enclosure.ivp.LohnerSolver
 import acumen.interpreters.enclosure.event.pwl.PWLEventEncloser
 import acumen.interpreters.enclosure.event.pwl.PWLEventEncloser
 import acumen.interpreters.enclosure.event.tree.TreeEventEncloser
+import javax.swing.JLayeredPane
 
 // class Acumen = Everything that use to be GraphicalMain.  Graphical
 // Main can't be an object it will cause Swing components to be
@@ -357,9 +358,26 @@ class App extends SimpleSwingApplication {
     }
   }
 
+  /* views with jump dialog overlay */
+  val viewOverlay: JLayeredPane = new JLayeredPane {
+    add(views.peer, JLayeredPane.DEFAULT_LAYER)
+    add(JumpDialog.peer, JLayeredPane.POPUP_LAYER)
+    override def doLayout() {
+      views.peer setBounds getBounds
+      val jpw = JumpDialog.preferredSize.getWidth.toInt
+      JumpDialog.peer setBounds
+        ( viewOverlay.getWidth.toInt / 2 - jpw / 2, 0 
+        , jpw, JumpDialog.preferredSize.getHeight.toInt
+        )
+    }
+  }
+  val rightPane = new BorderPanel {
+    add(Component wrap viewOverlay, BorderPanel.Position.Center)
+  }
+  
   /* main component */
   val body =
-    new SplitPane(Orientation.Vertical, leftPane, views) {
+    new SplitPane(Orientation.Vertical, leftPane, rightPane) {
       oneTouchExpandable = true
       resizeWeight = 0.2
     }

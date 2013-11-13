@@ -29,14 +29,13 @@ import acumen.ui.SwingUtil
 import javax.swing.BorderFactory
 import javax.swing.DefaultListModel
 import acumen.ui.Files
+import scala.swing.Container
 
 /**
  * Used for quickly opening files and jumping to
  * definitions in the currently open model.
  */
-object JumpDialog extends Frame {
-
-  this.title = "Jump To"
+object JumpDialog extends BorderPanel {
 
   // State used to restore the caret position, current file and file browser root after an aborted jump
   private var previousCaretPosition = 0 
@@ -58,9 +57,9 @@ object JumpDialog extends Frame {
   
   /** Restore the current model, caret position, and file browser root. */
   def restoreWorkspace() {
-      App.ui.codeArea.textArea.setCaretPosition(previousCaretPosition)
-      App.ui.codeArea.currentFile = previousModel
-      App.ui.fileBrowser.fileTree.focus(previousTreeRoot) 
+    App.ui.codeArea.textArea.setCaretPosition(previousCaretPosition)
+    App.ui.codeArea.currentFile = previousModel
+    App.ui.fileBrowser.fileTree.focus(previousTreeRoot) 
   }
 
   /**
@@ -72,8 +71,8 @@ object JumpDialog extends Frame {
       App.ui.codeArea.textArea setHighlightCurrentLine false
     else {
       saveWorkspace()
-      peer.setLocationRelativeTo(App.ui.views.peer)
       searchAndHighlight(searchField text)
+      App.ui.viewOverlay.doLayout
       searchField requestFocus
     }
     visible = !visible
@@ -199,8 +198,8 @@ object JumpDialog extends Frame {
 
   /** Searches for term and highlights the result in the corresponding component. */
   def searchAndHighlight(term: String) = searchResultsModel.synchronized {
+    App.ui.codeArea.textArea setHighlightCurrentLine false
     searchResultsModel.removeAllElements()
-    App.ui.codeArea.textArea.setHighlightCurrentLine(false)
     val results = search(term toLowerCase)
     if (results nonEmpty) {
       results.foreach(searchResultsModel.addElement)
@@ -209,18 +208,17 @@ object JumpDialog extends Frame {
         searchResults selectIndices 0
       }
     }
-    pack()
+    if (size.width < preferredSize.width && preferredSize.width <= App.ui.rightPane.size.width)
+      App.ui.viewOverlay.doLayout
   }
 
-  contents = new BorderPanel {
-    val sp = new ScrollPane(searchResults) {
-      horizontalScrollBarPolicy = ScrollPane.BarPolicy.Never
-      verticalScrollBarPolicy = ScrollPane.BarPolicy.AsNeeded
-    }
-    add(searchField, BorderPanel.Position.North)
-    add(sp, BorderPanel.Position.Center)
+  val sp = new ScrollPane(searchResults) {
+    horizontalScrollBarPolicy = ScrollPane.BarPolicy.Never
+    verticalScrollBarPolicy = ScrollPane.BarPolicy.AsNeeded
   }
+  add(searchField, BorderPanel.Position.North)
+  add(sp, BorderPanel.Position.Center)
   
-  pack() 
-
+  visible = false
+  
 }
