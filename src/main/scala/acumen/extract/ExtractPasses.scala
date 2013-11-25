@@ -291,6 +291,8 @@ object ExtractPasses {
     if (modes.isEmpty) return
     val toSplit = new HashMap[String,(Mode, HashSet[Cond])];
     val newModes = new ListBuffer[Mode];
+    val live = new HashSet[String];
+    live.add("Init")
     modes.foreach{m => m.resets.filter{_.mode != Some("ERROR")}.foreach {r =>
       try {
         val postConds = Util.postConds(Cond.and(m.preConds,r.conds), r.actions)
@@ -306,6 +308,8 @@ object ExtractPasses {
         }
         if (candidates.nonEmpty) {
           val (target, res) = candidates.head
+          if (m.label != target.label)
+            live.add(target.label)
           assert(res == Cond.True)
           r.mode = Some(target.label)
         } else {
@@ -326,6 +330,9 @@ object ExtractPasses {
       modes ++= newModes
       pruneDeadModes(modes)
       resolveModes(modes)
+    } else {
+      // Remove unreachable modes
+      modes --= modes.filter{l => !live.contains(l.label)}
     }
   }
 
