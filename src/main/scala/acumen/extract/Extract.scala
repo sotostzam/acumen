@@ -183,9 +183,9 @@ class Extract(val prog: Prog, private val debugMode: Boolean = false)
     // resolveModes()
     // done, fixme: this should be a fixed point loop
 
-    cleanUpAssigns()
-    
     killDeadVars()
+
+    cleanUpAssigns()
   }
   
   var counter = 0;
