@@ -1,3 +1,5 @@
 
-Do we really need to have all of the stuff that we see in Eval?
+Do we really need to have all of the stuff that we see in Eval?  I
+find the notation used in this file quite unclear (in comparison to
+the traditional notation used to describe monads).
 
