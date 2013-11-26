@@ -1,0 +1,32 @@
+
+Typical interpreter structure
+
+- ast    - acumen.AST *
+- env    - standard.interpreter.Env *
+           original.interpreter.Env
+- store  - acumen.interpreters.imperative.Object (mutable)
+           acumen.reference.original.interpreter.CStore (immutable)
+- errors - acumen.Errors *
+- eval   -
+
+s ::= x'=e | x:=e | if (e) s else s end | let x=e in s end
+
+Syntactic sugar:
+  - switch -> if
+  - D'=e -> y'=e, D=y, and replace D' everwhere with y'
+    - Formally, D' is x'(n+1), and with notation D is just x'(n) 
+  - x':=e -> y:=e, x'=y, and replace x' everywhere with y.
+  - D':=e -> y:=e, D'=y, and replace D' everywhere with y.
+
+Semantics
+  - All discrete assignments should be done in paralell
+    - Repeat until a fixed point is reached.
+    - This should set higher derivatives to undefined
+    - Any duplicates are an error
+  - All integations should be done in parallel
+    - Any duplicates are an error
+    - Here we should (semantically) check there are no undefined
+      variables.
+  - Ad hoc choice:  All discrete, then all parallel.
+  - Lets are always done afresh on any iterations
+    - This should preserve the exact substitution property
