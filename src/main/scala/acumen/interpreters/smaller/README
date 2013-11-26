@@ -9,14 +9,22 @@ Typical interpreter structure
 - errors - acumen.Errors *
 - eval   -
 
-s ::= x'=e | x:=e | if (e) s else s end | let x=e in s end
-
-Syntactic sugar:
-  - switch -> if
+o ::= self | n
+x ::= o.n
+e ::= constants, vectors, summations, ...
+s ::= x'=e | x:=e | if e s else s end | let x=e in s end
+    | create C(e*) | move ... | terminate ...
+    | for ...
+    | report error "..." // new construct
+d ::= class C(x*) private s* end s* end
+     
+Syntactic sugar (taken care of by a preprocessor):
+  - switch -> if + error
+  - D ::= x | D'
   - D'=e -> y'=e, D=y, and replace D' everwhere with y'
     - Formally, D' is x'(n+1), and with notation D is just x'(n) 
-  - x':=e -> y:=e, x'=y, and replace x' everywhere with y.
   - D':=e -> y:=e, D'=y, and replace D' everywhere with y.
+  - // anything else that came up from the recent paper?
 
 Semantics
   - All discrete assignments should be done in paralell
