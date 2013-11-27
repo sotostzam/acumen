@@ -121,13 +121,17 @@ object ExtractPasses {
       if (newPreCond != rest) {
         val newLabel = mode.label + "." + idx
         idx += 1
-        res += mode.copy(label = newLabel, preConds = Cond.and(Cond.MemberOf(MODE, vls + GStr(newLabel)), newPreCond), resets = mode.resets.map{_.copy()})
+        res += mode.copy(label = newLabel, 
+                         preConds = Cond.and(Cond.MemberOf(MODE, vls + GStr(newLabel)), newPreCond), 
+                         resets = mode.resets.map{_.copy()})
       } else {
         keep = true;
       }
     }
     val newLabel = mode.label + ".0"
-    if (keep) res += mode.copy(label = newLabel, preConds = Cond.and(Cond.MemberOf(MODE, vls + GStr(newLabel)), rest), resets = mode.resets.map{_.copy()})
+    if (keep) res += mode.copy(label = newLabel, 
+                               preConds = Cond.and(Cond.MemberOf(MODE, vls + GStr(newLabel)), rest), 
+                               resets = mode.resets.map{_.copy()})
     mode.markDead()
   }
 
@@ -253,7 +257,6 @@ object ExtractPasses {
   def placeHolderReset(label: String) = 
     List(Reset(Cond.True, ListBuffer(Assign(MODE_VAR, Lit(GStr(label))))))
 
-  // FIXME: Is this wrapper still needed, is it doing the correct thing?
   // Attemt to eliminate modes with only a single reset with a true guard
   def eliminateTrueOnlyModes(modes: ListBuffer[Mode]) = {
     modes.filter{m => m.label != "Init" && m.trans && m.resets.length == 1 && m.resets.head.conds == Cond.True}.foreach{m =>
@@ -368,6 +371,7 @@ object ExtractPasses {
     root.foreach{n => traverse(n.localConds)}
     res --= kill
     Map(res.toSeq.map{case (k, v) => (k, Set(v.toSeq : _*))} :+ (MODE,Set.empty[GroundValue]) : _*)
+    //Map((MODE,Set.empty[GroundValue]))
   }
 
   def mergePreConds(preConds: List[Cond]) : Cond = {

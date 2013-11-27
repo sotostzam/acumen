@@ -73,7 +73,6 @@ class Extract(val prog: Prog, private val debugMode: Boolean = false)
   var modes : ListBuffer[Mode] = ListBuffer.empty
   var resets : List[Reset] = null
   var modeVars : Map[Name,Set[GroundValue]] = null
-  var initMode = "Init"
 
   //
   // Entry point
@@ -221,7 +220,7 @@ class Extract(val prog: Prog, private val debugMode: Boolean = false)
   }
 
   def initPart = 
-    Init(MODE,ExprRhs(Lit(GStr(initMode)))) :: init.toList.map{case (v,e) =>  Init(v,ExprRhs(e))}
+    Init(MODE,ExprRhs(Lit(GStr("Init")))) :: init.toList.map{case (v,e) =>  Init(v,ExprRhs(e))}
 
 
   //
@@ -264,8 +263,7 @@ class Extract(val prog: Prog, private val debugMode: Boolean = false)
 
   def resolveModes() {ep.resolveModes(modes); dumpPhase("RESOLVE MODES")}
   // ^^ find mode with true precond based on reset post, if more than
-  // one error out for now, the next step will be to split mode to be
-  // able to enhance precond
+  // one error split mode to be able to enhance precond
   
   def cleanUpAssigns() {ep.cleanUpAssigns(modes); dumpPhase("CLEAN UP ASSIGNS")}
   
