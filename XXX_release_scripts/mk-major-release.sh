@@ -1,17 +1,26 @@
+## 
+## ATTENTION: This is the original release script, before modifications
+## to create snapshot releases.  It may need updating before the next
+## major release.  It may be better to modify mk-release.sh to also
+## create non-snapshot releases.
+## 
+
 #!/bin/sh
 
 set -e
 
+if [ "$#" -ne 1 ]; then
+  echo "usage: ./mk-release.sh YY.MM.DD"
+  echo "  for example ./mk-release.sh 13.10.14"
+  exit 1
+fi
 
-SBT=${SBT:-`which sbt`}
-COMMIT=${GIT_COMMIT:-HEAD}
-
-REL="`date +%y.%m.%d`"
+REL="$1"
 DIR_PREFIX=20`echo $REL | tr . _`
 REL_DIR=${DIR_PREFIX}_Acumen
 
-DEV_URL=https://bitbucket.org/effective/acumen-dev.git
-REL_URL=https://bitbucket.org/effective/acumen.git
+DEV_URL=git@bitbucket.org:effective/acumen-dev.git
+REL_URL=git@bitbucket.org:effective/acumen.git
 
 error () {
   echo "Error: $1" 1>&2
@@ -21,16 +30,9 @@ error () {
 # prep clone
 git clone $DEV_URL acumen-rel-working
 cd acumen-rel-working 
-git checkout $COMMIT
 git remote add rel $REL_URL
 git fetch rel
 git tag rel-$REL-pre
-
-# add git version to release strings
-REV=`git rev-parse --verify HEAD | cut -b1-8`
-REL=$REL.$REV
-DIR_PREFIX=20`echo $REL | tr . _`
-REL_DIR=${DIR_PREFIX}_Acumen
 
 # perform merge using equivalent of "-s theirs"
 # http://stackoverflow.com/questions/173919/git-merge-s-ours-what-about-their
@@ -60,9 +62,7 @@ echo Writing version file.
 echo "20$REL" > src/main/resources/acumen/version
 
 # Test to make sure everything is still okay
-# Use the quick test so it doesn't take forever and also so that something
-# will be created even if some of the "full" propriety based tests fail.
-$SBT compile quick:test
+sbt compile test
 
 # tag
 git tag rel-$REL
@@ -72,7 +72,7 @@ cd ..
 test ! -e $REL_DIR || error "$REL_DIR exists"
 cp -a acumen-rel-working ${DIR_PREFIX}_Acumen
 cd $REL_DIR
-$SBT proguard
+sbt proguard
 cp target/scala-*/acumen-$REL.jar ..
 git clean -xfd -e src/main/resources/acumen/version
 rm -rf .git
@@ -83,18 +83,13 @@ cd ..
 zip -9r $REL_DIR.zip $REL_DIR
 
 # and done!
-
-echo "Created $REL_DIR.zip"
-##
-## These instructions only apply for a major (non-snapshot release).
-## Kept around as this script may get fixed to create those too.
-##
-# cat > final_instructions <<EOF
-# Make sure everything is in order and upload $REL_DIR.zip
-# and do a:
-#   (cd acumen-rel-working
-#    git push rel master release rel-$REL rel-$REL-pre
-#    git push origin master rel-$REL-pre)
-# EOF
-# echo "cat final_instructions"
-# cat final_instructions
+echo "Done."
+cat > final_instructions <<EOF
+Make sure everything is in order and upload $REL_DIR.zip
+and do a:
+  (cd acumen-rel-working
+   git push rel master release rel-$REL rel-$REL-pre
+   git push origin master rel-$REL-pre)
+EOF
+echo "cat final_instructions"
+cat final_instructions
