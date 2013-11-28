@@ -20,6 +20,8 @@ import acumen.Switch
 import acumen.VClassName
 import acumen.Var
 import acumen.interpreters.enclosure.affine.UnivariateAffineEnclosure
+import acumen.interpreters.enclosure.affine.UnivariateAffineScalarEnclosure
+import acumen.interpreters.enclosure.Interval
 
 /** Utilities for testing Prog-to-Prog transformations. */
 object TransformationTestUtil {
@@ -155,17 +157,17 @@ object TransformationTestUtil {
   def equalOnComponents( left: UnivariateAffineEnclosure
                        , right: UnivariateAffineEnclosure
                        , characteristicFunction: VarName => Boolean) =
-    areEqual("Enclosure domains", left.domain, right.domain) &&
+    areAlmostEqual("Enclosure domains", left.domain, right.domain) &&
       areEqual("Enclosure component sizes ", left.components.size, right.components.size) && {
         val leftCompSubset = left.components.filterKeys(characteristicFunction)
         val rightCompSubset = right.components.filterKeys(characteristicFunction)
         leftCompSubset.forall {
           case (varName, enclosure) => 
-            areEqual("Enclosure component " + varName, enclosure.toString, rightCompSubset.getOrElse(varName, "None").toString)
+            areAlmostEqual("Enclosure component " + varName, enclosure, rightCompSubset(varName))
         }
       }
-    
-  /** Returns true of expected == observed, otherwise prints an error message and returns false. */
+  
+  /** Returns true if expected == observed, otherwise prints an error message and returns false. */
   def areEqual[T](description: String, expected: T, observed: T) = 
     if (expected == observed)
       true
@@ -173,7 +175,26 @@ object TransformationTestUtil {
       System.err.println(description + " mismatch. Expected: " + expected + ", observed: " + observed)
       false
     }
-    
+
+  /** Returns true if expected almostEqual observed component-wise, otherwise prints an error message and returns false. */
+  def areAlmostEqual[T](description: String, expected: UnivariateAffineScalarEnclosure, observed: UnivariateAffineScalarEnclosure) = 
+    if (expected almostEqualTo observed)
+      true
+    else { 
+      System.err.println(description + " mismatch. Expected: " + expected + ", observed: " + observed)
+      false
+    }
+
+  /** Returns true if expected almostEqual observed component-wise, otherwise prints an error message and returns false. */
+  def areAlmostEqual[T](description: String, expected: Interval, observed: Interval) = 
+      if (expected almostEqualTo observed)
+        true
+        else { 
+          System.err.println(description + " mismatch. Expected: " + expected + ", observed: " + observed)
+          false
+        }
+  
+  
   /** 
    * Returns the number of modes in prog.
    * The prog must be in hybrid automaton form (i.e. single class containing a single switch statement, among other things).  
