@@ -12,7 +12,7 @@ Typical interpreter structure
 o ::= self | n
 x ::= o.n
 e ::= constants, vectors, summations, ...
-s ::= x'=e | x:=e | if e s else s end | let x=e in s end
+s ::= x'=e | x:=e | if e s else s end
     | create C(e*) | move ... | terminate ...
     | for ...
     | report error "..." // new construct
@@ -20,6 +20,7 @@ d ::= class C(x*) private s* end s* end
      
 Syntactic sugar (taken care of by a preprocessor):
   - switch -> if + error
+  - let x=e in s end -> s, and replace x everywhere with e
   - D ::= x | D'
   - D'=e -> y'=e, D=y, and replace D' everwhere with y'
     - Formally, D' is x'(n+1), and with notation D is just x'(n) 
