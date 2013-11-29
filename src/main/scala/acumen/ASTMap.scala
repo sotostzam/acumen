@@ -35,6 +35,8 @@ class ASTMap {
       Continuously(mapContinuousAction(a))
     case Discretely(a) =>
       Discretely(mapDiscreteAction(a))
+    case Claim(p) =>
+      Claim(mapExpr(p))
   }
 
   def mapActions(as: List[Action]) : List[Action] = as.map{mapAction(_)}
