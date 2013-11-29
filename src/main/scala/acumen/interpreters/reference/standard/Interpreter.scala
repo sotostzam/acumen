@@ -90,6 +90,9 @@ object Interpreter extends acumen.CStoreInterpreter {
   /* continuously assign the value v to a field n in object o */
   def equation(o: CId, n: Name, v:CValue) : Eval[Unit] = logEquation(o, n, v)
 
+  /* assign solution v of an ODE to a field n in object o */
+  def ode(o: CId, n: Name, v:CValue) : Eval[Unit] = logODE(o, n, v)
+  
   /* log an id as being dead */
   def kill(a:CId) : Eval[Unit] = logCId(a)
   
@@ -260,12 +263,12 @@ object Interpreter extends acumen.CStoreInterpreter {
         }
       case Discretely(da) =>
         for (ty <- asks(getResultType))
-          if (ty == FixedPoint) pass
+          if (ty == FixedPoint || ty == Continuous) pass
           else evalDiscreteAction(da, env, p)
       case Continuously(ca) =>
         for (ty <- asks(getResultType))
-          if (ty != FixedPoint) pass
-          else evalContinuousAction(ca, env, p) 
+          if (ty == Discrete || ty == Integration) pass
+          else evalContinuousAction(ca, ty, env, p) 
     }
   }
  
@@ -312,27 +315,31 @@ object Interpreter extends acumen.CStoreInterpreter {
         throw BadMove()
     }
 
-  def evalContinuousAction(a:ContinuousAction, env:Env, p:Prog) : Eval[Unit] = 
-    a match {
-      case EquationT(Dot(e,x),t) =>
-        for { a <- asks(evalExpr(e, p, env, _)) map extractId
+  def evalContinuousAction(a:ContinuousAction, t:ResultType, env:Env, p:Prog) : Eval[Unit] = 
+    (t, a) match {
+      case (FixedPoint, EquationT(Dot(e,x),t)) =>
+        for { id <- asks(evalExpr(e, p, env, _)) map extractId
               vt <- asks(evalExpr(t, p, env, _))
-        } setObjectFieldM(a, x, vt) >> equation(a, x, vt) // update state and log to check for duplicates 
-      case EquationI(Dot(e,x),t) =>
+        } setObjectFieldM(id, x, vt) //>> equation(a, x, vt) // update state and log to check for duplicates 
+      case (Continuous, EquationI(Dot(e,x),t)) =>
         for { dt <- asks(getTimeStep)
-              a <- asks(evalExpr(e, p, env, _)) map extractId
+              id <- asks(evalExpr(e, p, env, _)) map extractId
               vt <- asks(evalExpr(t, p, env, _))
-              lhs <- asks(getObjectField(a, x, _))
-        } setObjectFieldM(a, x, lhs match {
-            case VLit(d) => 
-	      VLit(GDouble(extractDouble(d) + extractDouble(vt) * dt))
-            case VVector(u) => 
+              lhs <- asks(getObjectField(id, x, _))
+        } {
+          val euler = lhs match {
+            case VLit(d) =>
+              VLit(GDouble(extractDouble(d) + extractDouble(vt) * dt))
+            case VVector(u) =>
               val us = extractDoubles(u)
               val ts = extractDoubles(vt)
-              VVector((us,ts).zipped map ((a,b) => VLit(GDouble(a + b * dt))))
+              VVector((us, ts).zipped map ((a, b) => VLit(GDouble(a + b * dt))))
             case _ =>
               throw BadLhs()
-          })
+          }
+          setObjectFieldM(id, x, euler)// >> ode(a, x, euler)
+        }
+      case (_, EquationT(_,_) | EquationI(_,_)) => pass
       case _ =>
         throw ShouldNeverHappen() // FIXME: enforce that with refinement types
     }
@@ -360,7 +367,7 @@ object Interpreter extends acumen.CStoreInterpreter {
     val sprog = Simplifier.run(cprog)
     val mprog = Prog(magicClass :: sprog.defs)
     val (sd1,sd2) = Random.split(Random.mkGen(0))
-    val (id,_,_,_,_,st1) = 
+    val (id,_,_,_,_,_,st1) = 
       mkObj(cmain, mprog, None, sd1, List(VObjId(Some(CId(0)))), 1)(initStoreRef)
     val st2 = changeParent(CId(0), id, st1)
     val st3 = changeSeed(CId(0), sd2, st2)
@@ -377,28 +384,32 @@ object Interpreter extends acumen.CStoreInterpreter {
     }
   }
 
+  def assHelper(a: (CId,Name,CValue)) = setObjectFieldM(a._1, a._2, a._3)
+  
   def step(p:Prog, st:Store) : Option[Store] =
     if (getTime(st) > getEndTime(st)) {checkObserves(p, st); None}
     else Some(
-      { val (_,ids,rps,ass,eqs,st1) = iterate(evalStep(p), mainId(st))(st)
+      { val (_,ids,rps,ass,eqs,odes,st1) = iterate(evalStep(p), mainId(st))(st)
         getResultType(st) match {
-          case Discrete | Continuous =>
+          case Discrete | Integration => // Either conclude fixpoint is reached or do discrete step
             checkDuplicateAssingments(ass, DuplicateDiscreteAssingment)
             val nonIdentityAss = ass.filterNot{ a => a._3 == getObjectField(a._1, a._2, st1) }
-            if (st == st1 && ids.isEmpty && rps.isEmpty && nonIdentityAss.isEmpty && eqs.isEmpty) 
+            if (st == st1 && ids.isEmpty && rps.isEmpty && nonIdentityAss.isEmpty) 
               setResultType(FixedPoint, st1)
             else {
-              def assHelper(a: (CId,Name,CValue)) = setObjectFieldM(a._1, a._2, a._3)
               val stA = mapM_(assHelper, nonIdentityAss.toList) ~> st1
               def repHelper(pair:(CId, CId)) = changeParentM(pair._1, pair._2) 
               val stR = mapM_(repHelper, rps.toList) ~> stA
               val st3 = stR -- ids
               setResultType(Discrete, st3)
             }
-          case FixedPoint =>
+          case FixedPoint => // Do continuous step
             checkDuplicateAssingments(eqs, DuplicateContinuousAssingment)
-            val st2 = setResultType(Continuous, st1)
-            setTime(getTime(st1) + getTimeStep(st1), st2)
+            setResultType(Continuous, st1)
+          case Continuous => // Do integration step
+            checkDuplicateAssingments(odes, DuplicateIntegrationAssingment)
+            val st2 = setResultType(Integration, st1)
+            setTime(getTime(st2) + getTimeStep(st2), st2)
         }
       }
     )

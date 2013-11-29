@@ -116,6 +116,9 @@ object Errors {
   case class DuplicateContinuousAssingment(x:Name) extends DuplicateAssingment(x) {
     override def getMessage = super.getMessage("continuous")
   }
+  case class DuplicateIntegrationAssingment(x:Name) extends DuplicateAssingment(x) {
+    override def getMessage = super.getMessage("integration")
+  }
   case class BadLhs() extends AcumenError {
     override def getMessage = 
       "The left hand-side of an assignment must be of the form 'e.x'."
