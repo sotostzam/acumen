@@ -35,7 +35,7 @@ REL_DIR=${DIR_PREFIX}_Acumen
 # perform merge using equivalent of "-s theirs"
 # http://stackoverflow.com/questions/173919/git-merge-s-ours-what-about-their
 git checkout release
-git merge -s ours master
+git merge --no-edit -s ours master
 git branch tmp
 git reset --hard master
 git reset --soft tmp

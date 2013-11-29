@@ -1,0 +1,22 @@
+To create a snapshot release:
+
+  cd XXX_release_scripts/
+  ./mk-release.sh
+
+This will create a zip file
+
+  YYYY_MM_DD_COMMITID_Acumen.zip
+
+The script uses two environmental variables if they are set:
+  SBT: command to run sbt
+  GIT_COMMIT: commit id to create the release from
+
+Here is how the script is run on the build server:
+
+  cd XXX_release_scripts
+  ./mk-release-clean.sh
+  PATH=/usr/lib/jvm/java-6-openjdk-amd64/bin:$PATH SBT="java -jar /home/adam/bin/sbt-launch-0.12.2.jar -Dsbt.log.noformat=true" ./mk-release.sh
+
+The script mk-release-clean.sh will remove any old releases still in
+the current directory and GIT_COMMIT is provided by the Jenkins build
+server.
