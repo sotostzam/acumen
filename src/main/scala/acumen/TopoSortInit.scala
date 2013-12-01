@@ -2,6 +2,10 @@ package acumen
 
 import ASTUtil.exprSubParts
 
+// FIXME: Need to do some error checking.  In particular if a variable
+//   is defined in both the objects contractor (i.e. field) and the
+//   priv section than the topo. sort could change the behavior
+
 object TopoSortInit {
   case class CircularDep extends Errors.AcumenError {
     override def getMessage = 

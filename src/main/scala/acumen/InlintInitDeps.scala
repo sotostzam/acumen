@@ -1,5 +1,6 @@
 package acumen
 
+import scala.collection.mutable.ListBuffer
 import ASTUtil.exprSubParts
 
 object InlineInitDeps {
@@ -8,19 +9,22 @@ object InlineInitDeps {
   }
 
   def procPriv(priv: List[Init]) : List[Init] = {
-    priv.map{init => 
-      new ASTMap {
+    val processed = new ListBuffer[Init]
+    priv.foreach{init => 
+      val res = new ASTMap {
         override def mapExpr(e: Expr) = e match {
           case Var(name) => lookup(name)
-          case Dot(Var(Name("self", 0)), name) => lookup(name)
           case e => super.mapExpr(e)
         }
         def lookup(name: Name) : Expr = {
-          priv.find{_.x == name} match {
+          processed.find{_.x == name} match {
             case Some(Init(_,ExprRhs(e))) => e
-            case _ => null
+            case _ => Var(name)
           }
         }
-      }.mapInit(init)}
+      }.mapInit(init)
+      processed += res
+    }
+    processed.toList
   }
 }
