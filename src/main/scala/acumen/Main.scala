@@ -210,6 +210,7 @@ object Main {
     Pass("desugar", "Desugarer", {p => p}, alwaysUsed = true),
     Pass("extract-ha", "H.A. Extraction", new extract.Extract(_,debugExtract).res),
     Pass("killnot", "Kill Nots", KillNot.mapProg(_)),
+    Pass("elimconst", "Eliminate Constants (Single objects only)", ElimConst.proc(_)),
     Pass("flatten", "Object Flattening (Simple Version)", FlattenSimple.run(_)),
     //Pass("flattenfull", "Object Flattening (Full Version)", extract.Flatten.run(_)),
     Pass("inline", "Inline Priv Deps.", InlineInitDeps.proc(_)),
