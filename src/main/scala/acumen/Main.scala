@@ -207,14 +207,14 @@ object Main {
 
   case class Pass(id: String, desc: String, trans: Prog => Prog, alwaysUsed: Boolean = false)
   val availPasses = Array(
-    Pass("desugar", "Desugarer", {p => p}, alwaysUsed = true),
+    // Order matters!  The order is the order the passes are applied.
+    Pass("toposort", "Topo. Sort. Priv Section", TopoSortInit.proc(_)),
+    Pass("inline", "Inline Priv Deps.", InlineInitDeps.proc(_)),
+    Pass("desugar", "Desugarer", Desugarer.run(_), alwaysUsed = true),
+    Pass("flatten", "Object Flattening (Simple Version)", FlattenSimple.run(_)),
+    Pass("elimconst", "Eliminate Constants (Single objects only)", ElimConst.proc(_)),
     Pass("extract-ha", "H.A. Extraction", new extract.Extract(_,debugExtract).res),
     Pass("killnot", "Kill Nots", KillNot.mapProg(_)),
-    Pass("elimconst", "Eliminate Constants (Single objects only)", ElimConst.proc(_)),
-    Pass("flatten", "Object Flattening (Simple Version)", FlattenSimple.run(_)),
-    //Pass("flattenfull", "Object Flattening (Full Version)", extract.Flatten.run(_)),
-    Pass("inline", "Inline Priv Deps.", InlineInitDeps.proc(_)),
-    Pass("toposort", "Topo. Sort. Priv Section", TopoSortInit.proc(_)),
     Pass("typecheck", "Type Checker", {prog => 
                                          val (typechecked, res) = new TypeCheck(prog).run()
                                          println("\nTYPE CHECK RESULT: " + TypeCheck.errorLevelStr(res) + "\n")
@@ -223,17 +223,36 @@ object Main {
   val passLookup : Map[String,Pass] = {
     val m = availPasses.map{v => ((v.id,v))}.toMap; m + (("extract", m("extract-ha")))
   }
-  
-  // expects desuguared
-  def applyExtraPasses(desugared: Prog, args0: String*) : Prog = {
-    var args1 = if (args0.isEmpty) List(extraPasses) else args0
-    val args = args1.flatMap(_.split(',')).toList
-    var res = desugared
+
+  // applyPasses: Takes in a prog and a list of passes to apply;
+  //  Each pass may be specified as a seperate argument, as a 
+  //  string in which each passes is seperated by a comma, or
+  //  any combination of the two
+  // The special pass "nodefaults" suppress the default passes from
+  //   being applied.
+  // The passes will be applied in a fixed order determined by the order
+  //  in which they appear in availPasses (i.e. the order in which
+  //  they are specified in args is irrelevant)
+  def applyPasses(p: Prog, args0: String*) : Prog = {
+    val args1 = if (args0.isEmpty) List(extraPasses) else args0
+    val args = args1.flatMap(_.split(',')).toSet
+    val passes = Array.fill[Option[Prog => Prog]](availPasses.size)(None)
+    var usedefaults = true
     args.foreach{arg => passLookup.get(arg) match {
-      case Some(pass) => res = pass.trans(res)
+      case Some(pass) => passes.update(availPasses.indexOf(pass), Some(pass.trans))
       case None if arg == "" => /* do nothing */
+      case None if arg == "nodefaults" => usedefaults = false
       case None => throw UnrecognizedTransformation(arg)
     }}
+    if (usedefaults)
+      availPasses.indices.foreach{i =>
+        if (availPasses(i).alwaysUsed) passes.update(i, Some(availPasses(i).trans))
+      }
+    var res = p
+    passes.foreach{
+      case Some(trans) => res = trans(res); 
+      case None =>
+    }
     res
   }
   def validatePassesStr(args0: String*) : Unit = {
@@ -307,7 +326,7 @@ object Main {
       lazy val in = new InputStreamReader(new FileInputStream(args(1)))
       lazy val ast = Parser.run(Parser.prog, in)
       lazy val desugared = Desugarer.run(ast)
-      lazy val final_out = applyExtraPasses(desugared)
+      lazy val final_out = applyPasses(ast)
       lazy val trace = i.run(final_out)
       lazy val ctrace = as_ctrace(trace)
       /* Perform user-selected action. */
@@ -389,7 +408,7 @@ object Main {
         case "trace" =>
           trace.print
         case what => try {
-            val transformed = applyExtraPasses(desugared, what)
+            val transformed = applyPasses(ast, what)
             Pretty.withType = true
             println(pprint(transformed))
         } catch {
