@@ -154,6 +154,25 @@ object ExtractPasses {
     }
   }
 
+  // Const subst.
+  def constSubst(modes: Seq[Mode]): Unit = {
+    modes.foreach{m => 
+      val subst = new ASTMap {
+        val repl = m.preConds.collect{case Cond.MemberOf(name, values) if values.size == 1 => (name, values.head)}.toMap
+        override def mapExpr(e: Expr) : Expr = {
+          getName(e) match {
+            case Some(n) => repl.get(n) match {
+              case Some(v) => Lit(v)
+              case None => e
+            }
+            case None => super.mapExpr(e)
+          }
+        }
+      }
+      m.actions = m.actions.map{a => subst.mapContinuousAction(a)}
+    }
+  }
+
   def cleanUpAssigns(modes: Seq[Mode]) : Unit = {
   // for each mode, kill all unnecessary discr. assignemnts in the
   // resets, if the reset than has no actions other than to go back
@@ -330,6 +349,7 @@ object ExtractPasses {
     if (newModes.nonEmpty) {
       //println("resolve new modes: " + newModes.map{_.label})
       pruneResetConds(newModes)
+      constSubst(newModes)
       modes ++= newModes
       pruneDeadModes(modes)
       resolveModes(modes)
@@ -343,7 +363,7 @@ object ExtractPasses {
   // Additional utility
   // 
 
-  def getModeVars(root: IfTree.Node) : Map[Name,Set[GroundValue]] = { 
+  def getModeVars(init: List[(acumen.Name, acumen.Expr)], root: IfTree.Node) : Map[Name,Set[GroundValue]] = { 
     // A mode var is a variable that is only assigned to literal
     // values in discrete assignments (and consequently never assigned
     // to continously) and one that is only tested for equality.
@@ -351,6 +371,9 @@ object ExtractPasses {
     // its gets assigned.
     val res = new HashMap[Name, MutSet[GroundValue]] with MutMultiMap[Name, GroundValue]
     val kill = new HashSet[Name]
+    init.foreach{case (n, e) => e match {
+                   case Lit(v) => res.addBinding(n, v)
+                   case _ =>}}
     root.foreach{_.node.discrAssigns.foreach{
       case Assign(Dot(Var(Name("self",0)), f), e) => e match {
         case Lit(v) => res.addBinding(f, v)
@@ -361,14 +384,14 @@ object ExtractPasses {
     root.foreach{_.node.contActions.foreach{a => 
       kill ++= extractLHSDeps(a)
     }}
-    def traverse(cond: Cond) : Unit = cond match {
-      case Cond.True | Cond.False => /* no deps */
-      case Cond.MemberOf(f,vls) => vls.foreach{v => res.addBinding(f,v)}
-      case Cond.And(conds) => conds.foreach{traverse(_)}
-      case Cond.Not(cond) => traverse(cond)
-      case Cond.Other(_, deps) => kill ++= cond.deps
-    }
-    root.foreach{n => traverse(n.localConds)}
+    // def traverse(cond: Cond) : Unit = cond match {
+    //   case Cond.True | Cond.False => /* no deps */
+    //   case Cond.MemberOf(f,vls) => vls.foreach{v => res.addBinding(f,v)}
+    //   case Cond.And(conds) => conds.foreach{traverse(_)}
+    //   case Cond.Not(cond) => traverse(cond)
+    //   case Cond.Other(_, deps) => kill ++= cond.deps
+    // }
+    // root.foreach{n => traverse(n.localConds)}
     res --= kill
     Map(res.toSeq.map{case (k, v) => (k, Set(v.toSeq : _*))} :+ (MODE,Set.empty[GroundValue]) : _*)
     //Map((MODE,Set.empty[GroundValue]))

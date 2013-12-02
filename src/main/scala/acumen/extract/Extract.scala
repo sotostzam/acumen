@@ -137,7 +137,7 @@ class Extract(val prog: Prog, private val debugMode: Boolean = false)
  
   // The simplest most straightforward way.  
   def convert() : Unit = {
-    modeVars = getModeVars(body)
+    modeVars = getModeVars(init, body)
     val (m,r) = extractAll(body, modeVars.keySet); dumpPhase("EXTRACT")
     modes = m;
     resets = r.toList;
@@ -158,6 +158,7 @@ class Extract(val prog: Prog, private val debugMode: Boolean = false)
   def cleanUp() : Unit = {
     pruneDeadModes()
     pruneResetConds()
+    constSubst()
 
     markTransModes()
 
@@ -250,6 +251,8 @@ class Extract(val prog: Prog, private val debugMode: Boolean = false)
   def pruneDeadModes() {ep.pruneDeadModes(modes); dumpPhase("PRUNE DEAD MODES")}
 
   def pruneResetConds() {ep.pruneResetConds(modes); dumpPhase("PRUNE RESET CONDS")}
+
+  def constSubst() {ep.constSubst(modes); dumpPhase("PRUNE RESET CONDS")}
 
   def markTransModes() {ep.markTransModes(modes); dumpPhase("MARK TRANS MODES")}
 
