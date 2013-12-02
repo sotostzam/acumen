@@ -90,9 +90,6 @@ object Interpreter extends acumen.CStoreInterpreter {
   /* continuously assign the value v to a field n in object o */
   def equation(o: CId, n: Name, v:CValue) : Eval[Unit] = logEquation(o, n, v)
 
-  /* assign solution v of an ODE to a field n in object o */
-  def ode(o: CId, n: Name, v:CValue) : Eval[Unit] = logODE(o, n, v)
-  
   /* log an id as being dead */
   def kill(a:CId) : Eval[Unit] = logCId(a)
   
@@ -320,7 +317,7 @@ object Interpreter extends acumen.CStoreInterpreter {
       case (FixedPoint, EquationT(Dot(e,x),t)) =>
         for { id <- asks(evalExpr(e, p, env, _)) map extractId
               vt <- asks(evalExpr(t, p, env, _))
-        } setObjectFieldM(id, x, vt) //>> equation(a, x, vt) // update state and log to check for duplicates 
+        } setObjectFieldM(id, x, vt) >> equation(id, x, vt) // update state and log to check for duplicates 
       case (Continuous, EquationI(Dot(e,x),t)) =>
         for { dt <- asks(getTimeStep)
               id <- asks(evalExpr(e, p, env, _)) map extractId
@@ -337,7 +334,7 @@ object Interpreter extends acumen.CStoreInterpreter {
             case _ =>
               throw BadLhs()
           }
-          setObjectFieldM(id, x, euler)// >> ode(a, x, euler)
+          setObjectFieldM(id, x, euler) >> equation(id, x, euler)
         }
       case (_, EquationT(_,_) | EquationI(_,_)) => pass
       case _ =>
@@ -367,7 +364,7 @@ object Interpreter extends acumen.CStoreInterpreter {
     val sprog = Simplifier.run(cprog)
     val mprog = Prog(magicClass :: sprog.defs)
     val (sd1,sd2) = Random.split(Random.mkGen(0))
-    val (id,_,_,_,_,_,st1) = 
+    val (id,_,_,_,_,st1) = 
       mkObj(cmain, mprog, None, sd1, List(VObjId(Some(CId(0)))), 1)(initStoreRef)
     val st2 = changeParent(CId(0), id, st1)
     val st3 = changeSeed(CId(0), sd2, st2)
@@ -389,7 +386,7 @@ object Interpreter extends acumen.CStoreInterpreter {
   def step(p:Prog, st:Store) : Option[Store] =
     if (getTime(st) > getEndTime(st)) {checkObserves(p, st); None}
     else Some(
-      { val (_,ids,rps,ass,eqs,odes,st1) = iterate(evalStep(p), mainId(st))(st)
+      { val (_,ids,rps,ass,eqs,st1) = iterate(evalStep(p), mainId(st))(st)
         getResultType(st) match {
           case Discrete | Integration => // Either conclude fixpoint is reached or do discrete step
             checkDuplicateAssingments(ass, DuplicateDiscreteAssingment)
@@ -407,7 +404,7 @@ object Interpreter extends acumen.CStoreInterpreter {
             checkDuplicateAssingments(eqs, DuplicateContinuousAssingment)
             setResultType(Continuous, st1)
           case Continuous => // Do integration step
-            checkDuplicateAssingments(odes, DuplicateIntegrationAssingment)
+            checkDuplicateAssingments(eqs, DuplicateIntegrationAssingment)
             val st2 = setResultType(Integration, st1)
             setTime(getTime(st2) + getTimeStep(st2), st2)
         }

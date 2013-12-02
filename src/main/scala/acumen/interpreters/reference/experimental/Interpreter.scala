@@ -14,8 +14,7 @@ package interpreters
 package reference
 package experimental
 
-import standard.Eval
-import standard.Eval._
+import Eval._
 import standard.Interpreter.checkDuplicateAssingments
 
 import Common._
