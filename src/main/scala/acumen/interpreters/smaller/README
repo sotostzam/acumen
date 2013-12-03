@@ -7,7 +7,7 @@ Typical interpreter structure
 - store  - acumen.interpreters.imperative.Object (mutable)
            acumen.reference.original.interpreter.CStore (immutable)
 - errors - acumen.Errors *
-- eval   -
+- eval   - 
 
 o ::= self | n
 x ::= o.n
@@ -22,20 +22,25 @@ Syntactic sugar (taken care of by a preprocessor):
   - switch -> if + error
   - let x=e in s end -> s, and replace x everywhere with e
   - D ::= x | D'
-  - D'=e -> y'=e, D=y, and replace D' everwhere with y'
+  - Reducing higher derivatives to lower ones (cont. eq):
+    D'=e -> y'=e, D=y, and replace D' everwhere with y'
     - Formally, D' is x'(n+1), and with notation D is just x'(n) 
-  - D':=e -> y:=e, D'=y, and replace D' everywhere with y.
+  - Reducing higher derivatives to lower ones (cont. eq):
+    D':=e -> y:=e, D'=y, and replace D' everywhere with y.
   - // anything else that came up from the recent paper?
 
-Semantics
+Semantics (What we would like to have)
   - All discrete assignments should be done in paralell
     - Repeat until a fixed point is reached.
-    - This should set higher derivatives to undefined
+    - This should set higher derivatives to undefined [BUT NOT YET!]
     - Any duplicates are an error
-  - All integations should be done in parallel
+  - All integations should be done in parallel [BUT NOT YET!]
     - Any duplicates are an error
     - Here we should (semantically) check there are no undefined
       variables.
+  - "Purely continuous assignments" -> when should they be done?
+    Adam tried out an implementation where they are all done before
+    integrations.
   - Ad hoc choice:  All discrete, then all parallel.
   - Lets are always done afresh on any iterations
     - This should preserve the exact substitution property
