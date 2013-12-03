@@ -58,7 +58,7 @@ object Main {
     "--dont-fork             disable auto-forking of a new JVM when required")
   def experimentalOptsHelp = Array(
     "--full-help",
-    "-p|--passes <%s>".format(availPasses.filter{!_.alwaysUsed}.map{_.id}.mkString(",")),
+    "-p|--passes <%s>".format(availPasses.map{_.id}.mkString(",")),
     "                        comma seperated list of extra passes to run",
     "--templates             enables template expansion in the source code editor",
     "--prune-semantics       hide experimental semantics in the U.I."
@@ -205,54 +205,51 @@ object Main {
     }
   }
 
-  case class Pass(id: String, desc: String, trans: Prog => Prog, alwaysUsed: Boolean = false)
+  case class Pass(id: String, desc: String, trans: Prog => Prog, category: String, var idx: Int = -1)
+  def mkPass(id: String, desc: String, trans: Prog => Prog, category: String = null)
+    = Pass(id, desc, trans, if (category == null) id else category)
   val availPasses = Array(
     // Order matters!  The order is the order the passes are applied.
-    Pass("toposort", "Topo. Sort. Priv Section", TopoSortInit.proc(_)),
-    Pass("inline", "Inline Priv Deps.", InlineInitDeps.proc(_)),
-    Pass("desugar", "Desugarer", Desugarer.run(_), alwaysUsed = true),
-    Pass("flatten", "Object Flattening (Simple Version)", FlattenSimple.run(_)),
-    Pass("elimconst", "Eliminate Constants (Single objects only)", ElimConst.proc(_)),
-    Pass("extract-ha", "H.A. Extraction", new extract.Extract(_,debugExtract).res),
-    Pass("killnot", "Kill Nots", KillNot.mapProg(_)),
-    Pass("typecheck", "Type Checker", {prog => 
+    // And each passes is grouped into mutually excursive categories
+    // in which only one pass from that category is applied.
+    mkPass("toposort", "Topo. Sort. Priv Section", TopoSortInit.proc(_)),
+    mkPass("inline", "Inline Priv Deps.", InlineInitDeps.proc(_)),
+    mkPass("desugar", "Desugarer", Desugarer.run(_)),
+    mkPass("flatten", "Object Flattening (Simple Version)", FlattenSimple.run(_)),
+    mkPass("elimconst", "Eliminate Constants (Single objects only)", ElimConst.proc(_)),
+    mkPass("extract-ha", "H.A. Extraction", new extract.Extract(_,debugExtract).res),
+    mkPass("killnot", "Kill Nots", KillNot.mapProg(_)),
+    mkPass("typecheck", "Type Checker", {prog => 
                                          val (typechecked, res) = new TypeCheck(prog).run()
                                          println("\nTYPE CHECK RESULT: " + TypeCheck.errorLevelStr(res) + "\n")
                                          typechecked})
   )
+  val defaults = List("desugar")
+  availPasses.indices.foreach{i => availPasses(i).idx = i}
   val passLookup : Map[String,Pass] = {
     val m = availPasses.map{v => ((v.id,v))}.toMap; m + (("extract", m("extract-ha")))
   }
 
-  // applyPasses: Takes in a prog and a list of passes to apply;
-  //  Each pass may be specified as a seperate argument, as a 
-  //  string in which each passes is seperated by a comma, or
-  //  any combination of the two
+  // applyPasses: Takes in a prog and a list of passes to apply.
   // The special pass "nodefaults" suppress the default passes from
-  //   being applied.
+  //   being applied; this can only be specified as part of 
+  //   "required".
   // The passes will be applied in a fixed order determined by the order
   //  in which they appear in availPasses (i.e. the order in which
   //  they are specified in args is irrelevant)
-  def applyPasses(p: Prog, args0: String*) : Prog = {
-    val args1 = if (args0.isEmpty) List(extraPasses) else args0
-    val args = args1.flatMap(_.split(',')).toSet
-    val passes = Array.fill[Option[Prog => Prog]](availPasses.size)(None)
-    var usedefaults = true
-    args.foreach{arg => passLookup.get(arg) match {
-      case Some(pass) => passes.update(availPasses.indexOf(pass), Some(pass.trans))
-      case None if arg == "" => /* do nothing */
-      case None if arg == "nodefaults" => usedefaults = false
-      case None => throw UnrecognizedTransformation(arg)
-    }}
-    if (usedefaults)
-      availPasses.indices.foreach{i =>
-        if (availPasses(i).alwaysUsed) passes.update(i, Some(availPasses(i).trans))
-      }
+  def splitPassesString(str: String) : Seq[String] = if (str == "") Nil else str.split(',')
+  def applyPasses(p: Prog, required: Seq[String] = Seq.empty) : Prog = {
+    val (nodefaults, rest) = required.partition(_ == "nodefaults")
+    val passList : Seq[String] = ((if (nodefaults.isEmpty) defaults else Nil) 
+                                  ++ splitPassesString(extraPasses) 
+                                  ++ rest)
+    println(passList)
+    val passes = passList.map{s => passLookup.get(s) match {
+      case Some(pass) => pass; case None => throw UnrecognizedTransformation(s)
+    }}.groupBy{_.category}.map{_._2.last}. // only take the last pass specified for each category
+       toSeq.sortWith{(a,b) => a.idx < b.idx} // sort by the orignal order in availPasses
     var res = p
-    passes.foreach{
-      case Some(trans) => res = trans(res); 
-      case None =>
-    }
+    passes.foreach{pass => res = pass.trans(res)}
     res
   }
   def validatePassesStr(args0: String*) : Unit = {
@@ -408,7 +405,7 @@ object Main {
         case "trace" =>
           trace.print
         case what => try {
-            val transformed = applyPasses(ast, what)
+            val transformed = applyPasses(ast, splitPassesString(what))
             Pretty.withType = true
             println(pprint(transformed))
         } catch {
