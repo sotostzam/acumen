@@ -370,19 +370,22 @@ object ExtractPasses {
     // Possible values for a mode variable are simply the values that
     // its gets assigned.
     val res = new HashMap[Name, MutSet[GroundValue]] with MutMultiMap[Name, GroundValue]
-    val kill = new HashSet[Name]
+    // Kill variables based on unprimed name.  If we have "x' = ..."
+    // then "x" can not be a mode variable as it is implicitly
+    // involved in the lhs of a diff. equation.
+    val kill = new HashSet[String]
     init.foreach{case (n, e) => e match {
                    case Lit(v) => res.addBinding(n, v)
                    case _ =>}}
     root.foreach{_.node.discrAssigns.foreach{
-      case Assign(Dot(Var(Name("self",0)), f), e) => e match {
-        case Lit(v) => res.addBinding(f, v)
-        case _      => kill += f
+      case Assign(lhs, rhs) => (getName(lhs), rhs) match {
+          case (Some(f), Lit(v)) if !f.x.contains(".") => res.addBinding(f, v)
+          case (Some(f), _)                            => kill += f.x
+          case _ => /* do nothing, something other than local assignment */
       }
-      case _ => /* do nothing, something other than local assignment */
     }}
     root.foreach{_.node.contActions.foreach{a => 
-      kill ++= extractLHSDeps(a)
+      kill ++= extractLHSDeps(a) map {_.x}
     }}
     // def traverse(cond: Cond) : Unit = cond match {
     //   case Cond.True | Cond.False => /* no deps */
@@ -392,7 +395,7 @@ object ExtractPasses {
     //   case Cond.Other(_, deps) => kill ++= cond.deps
     // }
     // root.foreach{n => traverse(n.localConds)}
-    res --= kill
+    res.retain{(k,_) => !kill.contains(k.x)}
     Map(res.toSeq.map{case (k, v) => (k, Set(v.toSeq : _*))} :+ (MODE,Set.empty[GroundValue]) : _*)
     //Map((MODE,Set.empty[GroundValue]))
   }

@@ -214,11 +214,11 @@ object Main {
     // in which only one pass from that category is applied.
     mkPass("toposort", "Topo. Sort. Priv Section", TopoSortInit.proc(_)),
     mkPass("inline", "Inline Priv Deps.", InlineInitDeps.proc(_)),
-    mkPass("desugar", "Desugarer", Desugarer.run(_)),
     mkPass("flatten", "Object Flattening (Simple Version)", FlattenSimple.run(_)),
     mkPass("elimconst", "Eliminate Constants (Single objects only)", ElimConst.proc(_)),
     mkPass("extract-ha", "H.A. Extraction", new extract.Extract(_,debugExtract).res),
     mkPass("killnot", "Kill Nots", KillNot.mapProg(_)),
+    mkPass("desugar", "Desugarer", Desugarer.run(_)),
     mkPass("typecheck", "Type Checker", {prog => 
                                          val (typechecked, res) = new TypeCheck(prog).run()
                                          println("\nTYPE CHECK RESULT: " + TypeCheck.errorLevelStr(res) + "\n")

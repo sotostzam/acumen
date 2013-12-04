@@ -76,8 +76,8 @@ object TransformationTestUtil {
     val desugared = Desugarer.run(p)
     var transformed : Prog = null
     try {
-      transformed = transform(desugared)
-      same = comparator(desugared, transformed)
+      transformed = transform(p)
+      same = comparator(desugared, Desugarer().run(transformed))
       print (if (same) "+" else "-") 
       same
     } catch {
@@ -88,9 +88,9 @@ object TransformationTestUtil {
       System.err.println("\n Transform is not (" + semanticsType + ") semantics preserving.\n\n")
       modelName.foreach(mn => System.err.println("\nFailing model: " + mn + "\n"))
       System.err.println(
-        "\nraw: \n"       + pprint(p) +
-        "\ndesugared: \n" + pprint(desugared))
-      printErrUnless(transformed != null,
+        "\nraw: \n"       + pprint(p) /*+
+        "\ndesugared: \n" + pprint(desugared)*/)
+      printErrUnless(transformed == null,
         "\n\ntransformed: \n" + pprint(transformed))
     }
   }
