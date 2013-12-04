@@ -31,7 +31,7 @@ object TransformationTestUtil {
    * of d is the same as that obtained by first applying transform to d and then simulating.
    */
   def preservesContinuousReferenceSemanticsOf(transform: Prog => Prog, p: Prog, modelName: Option[String]) =
-    preservesSemanticsOf(transform, p, modelName, "continuous non-rigorous", { (desugared, transformed) =>
+    preservesSemanticsOf(TopLevel, transform, p, modelName, "continuous non-rigorous", { (desugared, transformed) =>
       val contNames = getContinuousVariables(p)
       // set up the experimental interpreter
       val i = interpreters.reference.experimental.Interpreter
@@ -55,7 +55,7 @@ object TransformationTestUtil {
    * FIXME: Currently only works on models containing a single class (Main).
    */
   def preservesContinuousEnclosureSemanticsOf(transform: Prog => Prog, p: Prog, modelName: Option[String]) =
-    preservesSemanticsOf(transform, p, modelName, "enclosure", { (desugared, transformed) =>
+    preservesSemanticsOf(Local, transform, p, modelName, "enclosure", { (desugared, transformed) =>
       val originalEnclosures = acumen.interpreters.enclosure.Interpreter.run(desugared).res
       val transformedEnclosures = acumen.interpreters.enclosure.Interpreter.run(transformed).res
       areEqual("Enclosure counts", originalEnclosures.length, transformedEnclosures.length) && {
@@ -71,13 +71,14 @@ object TransformationTestUtil {
    * Given a Prog p, computes its desugared version d. Using comparator, checks that the enclosure simulation trace
    * of d is the same as that obtained by first applying transform to d and then simulating.
    */
-  def preservesSemanticsOf(transform: Prog => Prog, p: Prog, modelName: Option[String], semanticsType: String, comparator: (Prog,Prog) => Boolean) = {
+  def preservesSemanticsOf(odeTransformMode: ODETransformMode, transform: Prog => Prog, 
+                           p: Prog, modelName: Option[String], semanticsType: String, comparator: (Prog,Prog) => Boolean) = {
     var same = false
-    val desugared = Desugarer().run(p)
+    val desugared = Desugarer(odeTransformMode).run(p)
     var transformed : Prog = null
     try {
       transformed = transform(p)
-      same = comparator(desugared, Desugarer().run(transformed))
+      same = comparator(desugared, Desugarer(odeTransformMode).run(transformed))
       print (if (same) "+" else "-") 
       same
     } catch {
