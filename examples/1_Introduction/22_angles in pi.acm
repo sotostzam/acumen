@@ -1,0 +1,31 @@
+
+// Angles going back and forth (if-statements and resets)
+
+class Main(simulator)
+private
+ angle  := 0;    // Initial angle
+ angle' := pi/5; // Angle increase rate of 1/10 Hz
+ _3D := [];
+end
+ _3D = 
+ [["Text",[-2.0,0,0],0.5,red,[angle,0,0],
+  angle/pi * 10],
+  ["Text",[-1.5  ,0,0],0.5,green,[angle,0,0],
+  "/10 * pi radians"]];
+
+  if (angle>pi/2) // Start going back when you get to pi/2
+    angle' := -1.0 * pi/5
+  end;
+ 
+  if (angle<0)    // Go forward again when you get to 0
+    angle' := pi/5
+  end
+  
+end
+
+// Exercises
+// 1) What value does the red number have when it flickers
+//    briefly at before it starts going back down again?
+// 2) Modify the if statements to keep speed unchanged
+//    when angle reaches pi/2, and just reset the angle
+//    (not angle') to zero.

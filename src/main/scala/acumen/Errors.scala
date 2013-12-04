@@ -23,6 +23,10 @@ object Errors {
     override def getMessage =
       pprint(v) + " is not an object."
   }
+  case class NotAClassName(v:Value[_]) extends AcumenError {
+    override def getMessage =
+      pprint(v) + " is not an class name."
+  }
   case class GroundConversionError(gv:GroundValue, into:String) extends AcumenError {
     override def getMessage = 
       "Cannot convert " + pprint(gv) + " into a " + into + "."
@@ -75,6 +79,15 @@ object Errors {
         pprint(cn) + "."
     }
   }
+  case class IndexOutOfBounds(i: Int) extends AcumenError {
+    override def getMessage = "Index " + i + " is out of bounds."
+  }
+  case class CantIndex() extends AcumenError {
+    override def getMessage = "Can only index into vectors."
+  }
+  case class ExpectedInteger(v: Value[_]) extends AcumenError {
+    override def getMessage = "Expected integer but got " + pprint(v) + "."
+  }
   case class VariableNotDeclared(x:Name) extends AcumenError {
     override def getMessage =
       "Variable " + pprint(x) + " is not declared."
@@ -92,6 +105,16 @@ object Errors {
   case class NoMatch(gv:GroundValue) extends AcumenError {
     override def getMessage = 
       "No case matching " + pprint(gv) + "."
+  }
+  sealed abstract class DuplicateAssingment(x:Name) extends AcumenError {
+    def getMessage(kind: String) = 
+      "Repeated " + kind + " assignment to variable (" + x.x + "'" * x.primes + ") is not allowed."
+  }
+  case class DuplicateDiscreteAssingment(x:Name) extends DuplicateAssingment(x) {
+    override def getMessage = super.getMessage("discrete")
+  }
+  case class DuplicateContinuousAssingment(x:Name) extends DuplicateAssingment(x) {
+    override def getMessage = super.getMessage("continuous")
   }
   case class BadLhs() extends AcumenError {
     override def getMessage = 

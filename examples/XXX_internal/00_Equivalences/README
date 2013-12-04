@@ -1,0 +1,5 @@
+This is a directory to collect examples that represent equivalences
+that we would like to hold in Acumen.  Ideally, we would like such
+equivalences to produce the exact same result.  If that turns out to
+be the case, then there needs to be a very clear and compelling
+explanation for such a descrepancy.

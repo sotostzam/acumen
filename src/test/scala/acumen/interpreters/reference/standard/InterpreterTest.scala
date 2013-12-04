@@ -26,10 +26,7 @@ class InterpreterTest extends InterpreterTestBase with ShouldMatchers {
     for (_ <- (interpreter run tr).ctrace) ()
   }
 
-  testExamples({f => f == "examples/0_Demos/02_Passive_walking.acm" ||
-                f == "examples/A_Ping_Pong/2012_hh_3T.acm" ||
-                f == "examples/A_Ping_Pong/2013_hh_1T.acm" ||
-                f == "examples/A_Ping_Pong/2013_hh_4T.acm"})
+  testExamples({f => f == "examples/0_Demos/02_Passive_walking.acm"})
   testShouldRun
   
   def getError(file:String) : Option[AcumenError] = {
@@ -81,6 +78,10 @@ class InterpreterTest extends InterpreterTestBase with ShouldMatchers {
     val err = ClassDefinedTwice(ClassName("A"))
     getError("data/ShouldCrash/Error11.acm") should be (Some(err))
   }
+  test("ACUMEN-348") {
+    val err = DuplicateDiscreteAssingment(Name("period",0))
+    getError("data/ShouldCrash/ACUMEN-348.acm") should be (Some(err))
+  }
 
   /* tests that match theoretical values against the interpreter's values */
   type VarHistory = Stream[Tuple2[Double,Double]] 
@@ -102,7 +103,7 @@ class InterpreterTest extends InterpreterTestBase with ShouldMatchers {
     }
 
   def parse(p:String, st:String) = 
-    (Desugarer.run(Parser.run(Parser.prog, p)), 
+    (Desugarer().run(Parser.run(Parser.prog, p)), 
      Parser.run(Parser.store, st))
 
   test("Gravity1d") {

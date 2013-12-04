@@ -28,6 +28,9 @@ import org.fife.ui.rsyntaxtextarea.TokenTypes
 import org.fife.ui.rsyntaxtextarea.templates.StaticCodeTemplate
 import org.fife.ui.rtextarea.SearchContext
 import org.fife.ui.rtextarea.SearchEngine
+import org.fife.ui.rsyntaxtextarea.TokenTypes.{
+  COMMENT_DOCUMENTATION, COMMENT_EOL, COMMENT_KEYWORD, COMMENT_MARKUP, COMMENT_MULTILINE
+}
 import acumen.Main
 import acumen.interpreters.enclosure.Parameters
 import acumen.ui.App
@@ -70,6 +73,7 @@ class CodeArea extends Panel with TreeSelectionListener {
   var currentFile: Option[File] = None
   var editedSinceLastSave: Boolean = false
   var editedSinceLastAutoSave: Boolean = false
+  var editedSinceLastRun: Boolean = false
 
   val filenameLabel = new Label("[Untitled]")
   
@@ -87,8 +91,10 @@ class CodeArea extends Panel with TreeSelectionListener {
     TokenMakerFactory.getDefaultInstance.asInstanceOf[AbstractTokenMakerFactory].
       putMapping("AcumenTokenMaker", classOf[acumen.ui.tl.AcumenTokenMaker].getName)
     sta.setSyntaxEditingStyle("AcumenTokenMaker")
-    val commentStyle = sta.getSyntaxScheme.getStyle(TokenTypes.COMMENT_EOL)
-    commentStyle.font = commentStyle.font.deriveFont(Font.PLAIN)
+    for { // Make all comment fonts plain (not italic)
+      commentType <- List(COMMENT_DOCUMENTATION, COMMENT_EOL, COMMENT_KEYWORD, COMMENT_MARKUP, COMMENT_MULTILINE)
+      commentStyle = sta.getSyntaxScheme getStyle commentType
+    } { commentStyle.font = commentStyle.font deriveFont Font.PLAIN }
     sta.setHighlightCurrentLine(false)
     sta.setTabSize(2)
     sta.setTabsEmulated(true) // Use soft tabs
@@ -156,12 +162,14 @@ class CodeArea extends Panel with TreeSelectionListener {
         case Some(f) => f.getName
         case None    => "[Untitled]"
       }
+    notifyPathChangeListeners
   }
 
   def setEdited = {
     if (!editedSinceLastSave) filenameLabel.text += " (unsaved)"
     editedSinceLastSave = true
     editedSinceLastAutoSave = true
+    editedSinceLastRun = true
   }
 
   def listenDocument = {
@@ -179,7 +187,8 @@ class CodeArea extends Panel with TreeSelectionListener {
       textArea.setText("")
       setCurrentFile(None)
       editedSinceLastSave = false
-      textArea.discardAllEdits()
+      textArea.discardAllEdits
+      textArea.requestFocus
     }
   }
 
@@ -254,10 +263,15 @@ class CodeArea extends Panel with TreeSelectionListener {
    */
   def saveFileAs(updateCurrentFile: Boolean = true): Unit = withErrorReporting {
     val fc = new FileChooser(currentDir)
+    currentFile match {
+        case Some(f) => fc.selectedFile = f
+        case _ =>
+      }
     if (fc.showSaveDialog(App.ui.body) == FileChooser.Result.Approve) {
       val f = fc.selectedFile
       if (!f.exists || confirmSave(App.ui.body.peer, f))
         writeText(f, updateCurrentFile)
+      setCurrentFile(Some(f))
     }
   }
 

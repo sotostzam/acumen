@@ -151,7 +151,7 @@ class ProgGenerator
   def simulatesOK(p: Prog): Boolean =
     try {
       var discreteStepsInARow = 0
-      val CStoreRes(r) = interpreters.reference.experimental.Interpreter.run(Desugarer.desugar(p))
+      val CStoreRes(r) = interpreters.reference.experimental.Interpreter.run(Desugarer().desugar(p))
       for (cstore <- r) {
         if (Canonical.getResultType(cstore) == Discrete) discreteStepsInARow += 1
         else discreteStepsInARow = 0
@@ -222,8 +222,8 @@ class ProgGenerator
   def constructTypeMap(privs: List[Init], contNames: Set[Name], contNamesParent: Set[Name]): Map[Name, TypeLike] =
     privs.map(_ match { case Init(name, rhs) =>
       (name -> (rhs match {
-        case NewRhs(cn, _) =>
-          ClassType(NamedClass(cn))
+        case NewRhs(Var(n), _) =>
+          ClassType(NamedClass(ClassName(n.x)))
         case ExprRhs(_) => // mode variables are integers, others floating point numbers
           if (contNamesParent contains name) NumericType 
           else if (contNames contains name) DynamicType //FIXME Gross hack! See explanation in findFreeChildPrivs
@@ -436,7 +436,7 @@ class ProgGenerator
     for {
       cn <- oneOf(env)
       fieldValues <- listOfN(cn.fields.size, genSmallDouble)
-    } yield NewRhs(cn.name, fieldValues.map(v => Lit(GDouble(v))))
+    } yield NewRhs(Var(Name(cn.name.x,0)), fieldValues.map(v => Lit(GDouble(v))))
   
   /**
    * Generate set of distinct variable Names that is complete, in the sense that if the set 

@@ -12,7 +12,7 @@ object Sandbox extends App with acumen.interpreters.enclosure.Extract { // with 
 
   //  val prog = Parser.run(Parser.prog, Models("bouncing_ball_convergent"))
   //  val prog = Parser.run(Parser.prog, Models.fullers_phenomenon)
-  //  val des = Desugarer.run(prog)
+  //  val des = Desugarer().run(prog)
   //  val main = classDef(ClassName("Main"), des)
   //
   //  val ps = parameters(main)

@@ -31,12 +31,12 @@ class ControlButtons extends FlowPanel {
 
   val play = new Action("play") {
     icon = Icons.play
-    def apply = {App.ui.controller.threeDData.reset; App.ui.threeDtab.reset; App.ui.codeArea.autoSave; App.ui.controller ! Play}
+    def apply = App.ui.runSimulation()
     toolTip = "Run Simulation"
   }
   val step = new Action("step") {
     icon = Icons.step
-    def apply = { App.ui.codeArea.autoSave; App.ui.controller ! Step }
+    def apply = App.ui.stepSimulation()
     toolTip = "Compute one simulation step"
   }
   val pause = new Action("pause") {
@@ -47,7 +47,7 @@ class ControlButtons extends FlowPanel {
   }
   val stop = new Action("stop") {
     icon = Icons.stop
-    def apply = { App.ui.controller ! Stop; }
+    def apply = App.ui.controller ! Stop
     toolTip = "Stop simulation (cannot resume)"
   }
 

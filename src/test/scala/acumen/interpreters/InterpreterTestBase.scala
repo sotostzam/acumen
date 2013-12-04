@@ -35,7 +35,7 @@ abstract class InterpreterTestBase extends FunSuite with ShouldMatchers {
 
   def testExamples(skip: String => Boolean = {_ => false}) = {
     // Note: 
-    //  - To add result file for newly created examples use: sbt "run . examples"
+    //  - To add result file for newly created examples use: sbt "run record-reference-outputs"
     //  - To update existing result file remove the file and then use the above command
     Examples.cstoreExamplesAction{(dn, f) =>
       //info(f.toString)
@@ -68,7 +68,9 @@ abstract class InterpreterTestBase extends FunSuite with ShouldMatchers {
 
   def testShouldRun = {
     var toTest = List("shouldRun1.acm", "shouldRun2.acm", "shouldRun3.acm",
-                      "shouldRun4.acm", "shouldRun5.acm", "shouldRun6.acm")
+                      "shouldRun4.acm", "shouldRun5.acm", "shouldRun6.acm",
+                      "classNameFirstClass1.acm", "let1.acm", "sumWithoutFilter.acm",
+                      "vectorIdx.acm")
     for (fn <- toTest) {
       test(fn) {run("data/ShouldRun/" + fn) should be ()}
     }

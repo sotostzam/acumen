@@ -19,7 +19,7 @@ class Test {
   public static void  main(String[] args) {
     InputStreamReader in = new InputStreamReader(System.in);
   	Prog ast       = Parser.run(Parser.prog(), in);
-    Prog desugared = Desugarer.run(ast);
+    Prog desugared = Desugarer().run(ast);
     Tuple2<Prog, Map<CId,Map<Name,Value<CId>>>> progAndState = Interpreter.init(desugared);
     Prog p = progAndState._1();
     Map<CId,Map<Name,Value<CId>>> state = progAndState._2();

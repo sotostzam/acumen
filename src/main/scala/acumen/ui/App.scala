@@ -102,6 +102,8 @@ class App extends SimpleSwingApplication {
   val controller = new Controller
   var lastNumberOfThreads = 2
 
+  @volatile var modelFinished : Boolean = false
+
   //**************************************
   //**************************************
 
@@ -109,6 +111,7 @@ class App extends SimpleSwingApplication {
   
   private val NONE = VK_UNDEFINED
   /* Reusable actions */
+
   private val playAction                      = mkAction(    "Run",                                 VK_R, VK_G,       upperButtons.bPlay.doClick)
   private val pauseAction                     = mkAction(    "Pause",                               VK_R, VK_G,       upperButtons.bPlay.doClick)
   private val stepAction                      = mkAction(    "Step",                                VK_T, VK_B,       upperButtons.bStep.doClick)
@@ -118,8 +121,8 @@ class App extends SimpleSwingApplication {
   private val saveAction                      = mkAction(    "Save",                                VK_S, VK_S,       codeArea.saveFile())
   private val saveAsAction                    = mkActionMask("Save As",                             VK_A, VK_S,       shortcutMask | SHIFT_MASK, codeArea.saveFileAs())
   private val recoverAction                   = mkAction(    "Recover",                             VK_R, VK_R,       codeArea.openFile(Files.autoSavedDir))
-  private val exportTableAction               = new Action(  "Export Table"){ mnemonic =            VK_E; def apply = exportTable}
-  private val exitAction                      = mkAction(    "Exit",                                VK_E, VK_Q,       exit)
+  private val exportTableAction               = new Action(  "Export Table"){ mnemonic =            VK_E; def apply = exportTable()}
+  private val exitAction                      = mkAction(    "Exit",                                VK_E, VK_Q,       exit())
   private val cutAction                       = mkAction(    "Cut",                                 VK_T, VK_X,       codeArea.textArea.cut)
   private val copyAction                      = mkAction(    "Copy",                                VK_C, VK_C,       codeArea.textArea.copyAsRtf)
   private val pasteAction                     = mkAction(    "Paste",                               VK_P, VK_V,       codeArea.textArea.paste)
@@ -132,15 +135,15 @@ class App extends SimpleSwingApplication {
   private val plotStyleLinesAction            = new Action(  "Lines")       { mnemonic =            VK_L; def apply = plotView.setPlotStyle(plot.Lines()) }
   private val plotStyleDotsAction             = new Action(  "Dots")        { mnemonic =            VK_D; def apply = plotView.setPlotStyle(plot.Dots()) }
   private val plotStyleBothAction             = new Action(  "Both")        { mnemonic =            VK_B; def apply = plotView.setPlotStyle(plot.Both()) }
-  private val floatingPointStandardAction     = mkActionMask("Functional",                          VK_F, VK_R,       shortcutMask | SHIFT_MASK, setInterpreter("reference"))
-  private val floatingPointOriginalAction     = mkActionMask("Functional Original",                 VK_O, NONE,       shortcutMask | SHIFT_MASK, setInterpreter("original"))
-  private val floatingPointExperimentalAction = mkActionMask("Functional Par. Cont.",               VK_E, NONE,       shortcutMask | SHIFT_MASK, setInterpreter("experimental"))
-  private val floatingPointImperativeAction   = mkActionMask("Imperative",                          VK_I, VK_I,       shortcutMask | SHIFT_MASK, setInterpreter("imperative")) 
-  private val floatingPointParallelAction     = mkActionMask("Parallel",                            VK_P, VK_P,       shortcutMask | SHIFT_MASK, promptForNumberOfThreads)
-  private val pwlHybridSolverAction           = mkActionMask("Enclosure PWL",                       VK_L, VK_L,       shortcutMask | SHIFT_MASK, setInterpreter("enclosure-pwl")) 
-  private val eventTreeHybridSolverAction     = mkActionMask("Enclosure EVT",                       VK_T, VK_T,       shortcutMask | SHIFT_MASK, setInterpreter("enclosure-evt"))
+  private val floatingPointStandardAction     = mkActionMask("Traditional",                         VK_F, VK_R,       shortcutMask | SHIFT_MASK, setInterpreter("reference"))
+  private val floatingPointExperimentalAction = mkActionMask("Traditional (Exp).",                  VK_E, NONE,       shortcutMask | SHIFT_MASK, setInterpreter("experimental"))
+  private val floatingPointOriginalAction     = mkActionMask("Traditional 2012",                    VK_O, NONE,       shortcutMask | SHIFT_MASK, setInterpreter("original"))
+  private val floatingPointImperativeAction   = mkActionMask("Traditional 2012 (Opt)",              VK_I, VK_I,       shortcutMask | SHIFT_MASK, setInterpreter("imperative")) 
+  private val floatingPointParallelAction     = mkActionMask("Traditional 2012 (Par)",              VK_P, VK_P,       shortcutMask | SHIFT_MASK, promptForNumberOfThreads)
+  private val pwlHybridSolverAction           = mkActionMask("Enclosure (PWL)",                     VK_L, VK_L,       shortcutMask | SHIFT_MASK, setInterpreter("enclosure-pwl")) 
+  private val eventTreeHybridSolverAction     = mkActionMask("Enclosure (EVT)",                     VK_T, VK_T,       shortcutMask | SHIFT_MASK, setInterpreter("enclosure-evt"))
   private val contractionAction               = mkActionMask("Contraction",                         VK_C, VK_C,       shortcutMask | SHIFT_MASK, enclosure.Interpreter.toggleContraction)
-  private val manualAction                    = mkAction(    "User Guide and Reference Manual",     VK_M, VK_F1,      manual)
+  private val manualAction                    = mkAction(    "Reference Manual",                    VK_M, VK_F1,      manual)
   private val aboutAction                     = new Action(  "About")       { mnemonic =            VK_A; def apply = about }
   
   /* Shows a dialog asking the user how many threads to use in the parallel interpreter. */
@@ -296,10 +299,10 @@ class App extends SimpleSwingApplication {
   } else if (Main.threeDState == ThreeDState.LAZY) {
     new threeD.DisabledThreeDTab("3D visualization will be enabled when needed.")
   } else {
-    start3D
+    start3D()
   }
 
-  def start3D = try {
+  def start3D() = try {
     val res = new threeD.ThreeDTab(controller)
     Main.threeDState = ThreeDState.ENABLE
     res
@@ -330,7 +333,7 @@ class App extends SimpleSwingApplication {
     pages += new TabbedPane.Page("Table", traceTab)
     val TABLE_IDX = pages.last.index
 
-    pages += new TabbedPane.Page("3D", threeDtab)
+    pages += new TabbedPane.Page("_3D", threeDtab)
     val THREED_IDX = pages.last.index
 
     selection.reactions += {
@@ -341,10 +344,15 @@ class App extends SimpleSwingApplication {
 
     var shouldEnable3D = false
 
-    def possibleEnable3D = {
-      if (selection.index == THREED_IDX && shouldEnable3D)
-        pages(THREED_IDX).content = start3D
-    }
+    def threeDViewSelected = peer.getSelectedIndex == THREED_IDX
+    def selectPlotView() = peer.setSelectedIndex(PLOT_IDX)
+    def selectThreeDView() = peer.setSelectedIndex(THREED_IDX)
+    
+    def possibleEnable3D =
+      if (selection.index == THREED_IDX && shouldEnable3D) {
+        App.ui.threeDtab = start3D()
+        pages(THREED_IDX).content = App.ui.threeDtab
+      }
   }
 
   /* main component */
@@ -504,7 +512,7 @@ class App extends SimpleSwingApplication {
         selected = false // Main.useEnclosures &&
           //enclosure.Interpreter.strategy.eventEncloser.getClass == classOf[TreeEventEncloser]
       }
-      val bg = new ButtonGroup(refStandard, refOriginal, refExperimental, impr, par, pwl, et)
+      val bg = new ButtonGroup(refStandard, refExperimental, refOriginal, impr, par, pwl, et)
       val ls = new CheckMenuItem("") {
         action = contractionAction
         enabledWhenStopped += (this, () => interpreter.interpreter.getClass == enclosure.Interpreter.getClass)
@@ -524,7 +532,7 @@ class App extends SimpleSwingApplication {
       mnemonic = Key.S
       contents += refStandard
       if (Main.enableAllSemantics)
-        contents ++= Seq(refOriginal, refExperimental, new Separator, impr, par)
+        contents ++= Seq(new Separator, refExperimental, new Separator, refOriginal, impr, par)
       contents ++= Seq(new Separator, pwl, et, new Separator, ls)
     }
    
@@ -548,7 +556,7 @@ class App extends SimpleSwingApplication {
     
   }
 
-  def exit {
+  def exit() {
     //timer3d.destroy=true
     //receiver.destroy=true
     //threeDView.exit
@@ -576,12 +584,16 @@ class App extends SimpleSwingApplication {
 
   /* ------ simple dialogs ----- */
 
-  def about = {
-    val version = acumen.util.System.version
-    Dialog.showMessage(body, "Acumen " + version, "About")
+  def about() = {
+    AboutDialog setLocationRelativeTo body
+    AboutDialog visible = true
   }
   
-  def manual = ManualBrowser.peer.setVisible(true)
+  def manual() = {
+    val desktop = Desktop.getDesktop
+    try { desktop.browse(classOf[ManualBrowser].getResource("manual.html").toURI)}
+    catch { case e => {ManualBrowser.peer.setVisible(true);()}}
+  }
 
   /* ----- events handling ---- */
 
@@ -645,10 +657,18 @@ class App extends SimpleSwingApplication {
   // enable 3d if required
   reactions += {
     case Stopped =>
-      if (Main.threeDState == ThreeDState.LAZY &&
-        !controller.threeDData._3DData.isEmpty)
-        views.shouldEnable3D = true
-      views.possibleEnable3D
+      if (controller.threeDData.modelContains3D) {
+        codeArea.editedSinceLastRun = false
+        if (Main.threeDState == ThreeDState.LAZY) {
+          views.shouldEnable3D = true
+          views.possibleEnable3D
+        } else if (Main.threeDState == ThreeDState.ENABLE && modelFinished) {
+          views.selectThreeDView
+          threeDtab.play
+        }
+      } else if (views.threeDViewSelected) {
+        views.selectPlotView
+      }
   }
 
   // FIXME: Move me into a seperate TraceTable class
@@ -683,7 +703,9 @@ class App extends SimpleSwingApplication {
     JOptionPane.showConfirmDialog(c, message,
       "Really?", JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION
   }
-  def exportTable = {
+  
+  /** Exports simulation data (corresponding to the table view) to a file. */
+  def exportTable() = {
     val fc = new FileChooser()
     val returnVal = fc.showSaveDialog(App.ui.body)
     if (returnVal == FileChooser.Result.Approve) {
@@ -700,23 +722,37 @@ class App extends SimpleSwingApplication {
         val out = new FileWriter(fc.selectedFile)
         var i = 0
         while (i < model.getColumnCount()) {
-	  out.write(model.getColumnName(i) + "\t");
+          out.write(model.getColumnName(i) + "\t");
           i += 1
-	}
-	out.write("\n");
+        }
+        out.write("\n");
         i = 0
-	while (i< model.getRowCount) {
+        while (i < model.getRowCount) {
           var j = 0;
-	  while (j < model.getColumnCount) {
-	    out.write(model.getValueAt(i,j).toString()+"\t");
+          while (j < model.getColumnCount) {
+            out.write(model.getValueAt(i, j).toString() + "\t");
             j += 1;
-	  }
-	  out.write("\n");
+          }
+          out.write("\n");
           i += 1;
-	}
-	out.close();
+        }
+        out.close();
       }
     }
+  }
+  
+  /** Everything that needs to be done to start a simulation. */
+  def runSimulation() {
+    controller.threeDData.reset
+    threeDtab.reset
+    codeArea.autoSave
+    controller ! Play
+  }
+
+  /** Everything that needs to compute one simulation step. */
+  def stepSimulation() {
+    codeArea.autoSave
+    controller ! Step
   }
   
   // Add application-wide keyboard shortcuts

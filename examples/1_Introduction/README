@@ -1,0 +1,11 @@
+
+The purpose of the 01-10 sequence of examples is to illustrate basic
+3D visualization and trigonometric concepts.
+
+The purpose of the 11-19 sequence of examples is to help us get
+comfortable with differential equations.  The series starts with x'=1
+and goes to x''=-sin(x).  It stimulates a discussion about how
+differential equations model interesting behavior and how they can be
+solved.  Trivial differential equations can be solved by direct
+integration.  Linear equations have elegant special form solutions.
+Non-linear equations get a bit more tricky!

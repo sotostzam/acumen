@@ -76,15 +76,15 @@ class EnclosureCntrl(val interpreter: RecursiveInterpreter) extends InterpreterC
     override def parse() = {
       val ast = Parser.run(Parser.prog, progText)
       //val dif = SD.run(ast)
-      val des = Main.applyPasses(ast)
+      val des = Main.applyPasses(ast,List("desugar-local"))
       prog = des
     }
 
     def produce : Unit = {
       val s = System.currentTimeMillis
       interpreter.runInterpreter(prog, callbacks)
-      consumer ! Done
-      println("Time to run simulation: %f".format((System.currentTimeMillis - s)/1000.0))
+      consumer ! Done(List("Time to run simulation: %.3fs".format((System.currentTimeMillis - s)/1000.0)))
+      //println("Time to run simulation: %f".format((System.currentTimeMillis - s)/1000.0))
     }
   }
 }

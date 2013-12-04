@@ -3,8 +3,19 @@ package acumen
 import Errors._
 import util.Names._
 
-object Desugarer {
+sealed abstract class ODETransformMode
+case object Local extends ODETransformMode
+case object TopLevel extends ODETransformMode
 
+/**
+ * @param odeTransformMode Configures the way in which higher-order continuous 
+ *        assignments are expanded into systems of first-order continuous 
+ *        assignments. When true, this is done where the highest-order 
+ *        continuous assignment occurs. When false, it is done once for all 
+ *        variables, at the top level of each class.
+ */
+case class Desugarer(odeTransformMode: ODETransformMode = TopLevel) {
+  
   val self = name("self")
   val parent = name("parent")
   val children = name("children")
@@ -27,8 +38,15 @@ object Desugarer {
     c match {
       case ClassDef(cn, fs, is, b) =>
         val (privs, dis) = desugar(p, fs, List(self), is)
-        val db = desugar(p, fs ++ privs ++ List(classf, parent, children), List(self), b)
-        ClassDef(cn, fs, dis, db)
+        val topLevelODESystem = odeTransformMode match {
+          case Local => Nil
+          case TopLevel => highestOrderNames(fs ++ privs).map(Dot(Var(self), _))
+                                                         .flatMap(firstOrderSystem)
+                                                         .map(Continuously)
+        }
+        val db = desugar(p, fs ++ privs ++ List(classf, parent, children), List(self), b) ++ topLevelODESystem
+        val cd = ClassDef(cn, fs, dis, db)
+        cd
     }
 
   def desugar(p: Prog, fs: List[Name], env: List[Name], is: List[Init]): (List[Name], List[Init]) = {
@@ -36,7 +54,7 @@ object Desugarer {
       case Nil => (List(), Nil)
       case Init(x, rhs) :: is1 =>
         val drhs = rhs match {
-          case NewRhs(cn, es) => NewRhs(cn, es map (desugar(p, fs, env, _)))
+          case NewRhs(e, es) => NewRhs(desugar(p, fs, env, e), es map (desugar(p, fs, env, _)))
           case ExprRhs(e) => ExprRhs(desugar(p, fs, env, e))
         }
         val (xs, dis1) = desugar(p, fs, env, is1)
@@ -68,14 +86,22 @@ object Desugarer {
     e match {
       case Lit(gv) => Lit(gv)
       case Var(x) =>
-        if (env contains x) Var(x)
+        if (env.contains(x) || (p.defs map (_.name)).contains(ClassName(x.x))) Var(x)
         else if (fs contains x) Dot(Var(self), x)
-        else throw VariableNotDeclared(x)
-      case Op(f, es) => Op(f, es map des)
+        else if (Constants.predefined.contains(x.x)) Constants.predefined(x.x)
+      else throw VariableNotDeclared(x)
+      case Op(f, es) =>
+        def mkIndexOf(n0: Expr) = es.foldLeft(n0)((n,e) => Index(n, des(e)))
+        if (env.contains(f)) mkIndexOf(Var(f))
+        else if (fs contains f) mkIndexOf(Dot(Var(self), f))
+        else Op(f, es map des)
+      case Index(e,i) => Index(des(e),des(i))
       case Dot(o, f) => Dot(des(o), f)
       case ExprVector(es) => ExprVector(es map des)
       case Sum(e, i, col, cond) =>
         Sum(desugar(p, fs, i :: env, e), i, des(col), desugar(p, fs, i :: env, cond))
+      case ExprLet(bs,e2) => ExprLet(bs map (b =>(b._1,desugar(p,fs,env,b._2))),
+                                     desugar(p,fs,bs.foldLeft(env)((r,b) =>  b._1::r) ,e2))
       case TypeOf(cn) =>
         if ((p.defs map (_.name)) contains cn) TypeOf(cn)
         else throw ClassNotDefined(cn)
@@ -91,10 +117,11 @@ object Desugarer {
         val dlhs = des(lhs)
         val drhs = des(rhs)
         dlhs match {
-          case Dot(o, Name(f, n)) =>
-            EquationT(dlhs, drhs) :: (
-              for (k <- n until (0, -1))
-                yield EquationI(Dot(o, Name(f, k - 1)), Dot(o, Name(f, k)))).toList
+          case dot: Dot =>
+            EquationT(dlhs, drhs) :: 
+              (odeTransformMode match { 
+                case Local => firstOrderSystem(dot)
+                case TopLevel => Nil })
           case _ => throw BadPreLhs()
         }
       case EquationI(lhs, rhs) => List(EquationI(des(lhs), des(rhs)))
@@ -106,10 +133,8 @@ object Desugarer {
     val des = desugar(p, fs, env, _: Expr)
     e match {
       case Assign(lhs, rhs) => List(Assign(des(lhs), des(rhs)))
-      case Create(lhs, cn, args) =>
-        if (!(p.defs map (_.name)).contains(cn))
-          throw ClassNotDefined(cn)
-        List(Create(lhs map des, cn, args map des))
+      case Create(lhs, c, args) =>
+        List(Create(lhs map des, desugar(p, fs, env, c), args map des))
       case Elim(e) => List(Elim(des(e)))
       case Move(o, p) => List(Move(des(o), des(p)))
     }
@@ -119,6 +144,15 @@ object Desugarer {
     e match {
       case Clause(lhs, inv, rhs) => Clause(lhs, inv, desugar(p, fs, env, rhs))
     }
+  
+  def firstOrderSystem(dot: Dot): List[ContinuousAction] = dot match {
+    case Dot(o, Name(f, n)) => 
+      (for (k <- n until (0, -1))
+        yield EquationI(Dot(o, Name(f, k - 1)), Dot(o, Name(f, k)))).toList
+  }
+  
+  def highestOrderNames(ns: List[Name]): List[Name] =
+    ns.groupBy(_.x).mapValues(_.maxBy(_.primes)).values.toList
 
   def run(t: Prog): Prog = desugar(t)
 }

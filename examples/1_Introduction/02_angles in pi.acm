@@ -1,0 +1,19 @@
+
+// Angles
+
+class Main(simulator)
+private
+ _3D := 
+ [["Text",[-2.5,0,0],0.5,red,    [0,0,0],     "0"],
+  ["Text",[-2.0,0,0],0.5,green,  [pi/8,0,0],  "Pi/8"],
+  ["Text",[-1.0,0,0],0.5,blue,   [pi/2,0,0],  "Pi/2"],
+  ["Text",[ 0.0,0,0],0.5,yellow, [pi,0,0],    "Pi"],
+  ["Text",[ 0.5,0,0],0.5,cyan,   [2*pi,0,0],"2*Pi"],
+  ["Text",[ 1.5,0,0],0.5,magenta,[2.5*pi,0,0],"2.5*Pi"]];
+end
+end
+
+// Exercises
+// 1) Click and move the _3D panel to change viewpoint
+// 2) Change the text to show "A", "B", "C", ...
+// 3) Change the 2.5*pi angle and text to 3*pi

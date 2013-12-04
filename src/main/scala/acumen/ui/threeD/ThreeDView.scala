@@ -171,14 +171,14 @@ class ThreeDView() extends BorderPanel {
     lightA.setInfluencingBounds(sphere)
     // Directional light
     val lightD1 = new DirectionalLight()
-    lightD1.setDirection(-4.076f, -1.005f, -5.904f)
+    lightD1.setDirection (-4.076f, -1.005f, -5.904f)
     lightD1.setColor(new Color3f(1f, 1f, 1f))
     lightD1.setInfluencingBounds(sphere)
     Root.addChild(lightD1)
     val lightD3 = new DirectionalLight()
-    lightD1.setDirection(-4.076f, 1.005f, -5.904f)
-    lightD1.setColor(new Color3f(1f, 1f, 1f))
-    lightD1.setInfluencingBounds(sphere)
+    lightD3.setDirection(4.076f, 1.005f, -5.904f)
+    lightD3.setColor(new Color3f(1f, 1f, 1f))
+    lightD3.setInfluencingBounds(sphere)
     Root.addChild(lightD3)
     val lightD2 = new DirectionalLight()
     lightD2.setDirection(1, 1, -1)
@@ -310,10 +310,13 @@ class _3DDisplay(app: ThreeDView, slider: Slider3d,
       if (destroy)
         exit
       react {
-        case "go" => {    
-	  renderCurrentFrame
-          if (currentFrame == totalFrames) // Animation is over
+        case "go" => {
+          renderCurrentFrame
+          if (currentFrame == totalFrames){ // Animation is over
             emitProgress(100)
+            destroy = true
+            pause = true
+          }
           if (totalFrames > 0)
             emitProgress((currentFrame * 100 / totalFrames).toInt)
           if (currentFrame < totalFrames)
@@ -442,6 +445,11 @@ class _3DDisplay(app: ThreeDView, slider: Slider3d,
       trans(id).setTransform(transform)
   }
 
+  def sizeChange(lastSize:List[Double],currentSize:List[Double],epli:Double):Boolean = {
+    val lastNorm = lastSize.foldLeft(0.0)((r,x) => r+x)
+    val norm = currentSize.foldLeft(0.0)((r,x) => r+x)
+    (Math.abs(lastNorm-norm))>epli
+  }
   /**
    * Check if the object's look has changed(size, color, type)
    * If so, delete it and create a new one
@@ -449,21 +457,23 @@ class _3DDisplay(app: ThreeDView, slider: Slider3d,
   def checkLook(id: List[_], lastLook: Map[List[_], List[_]],
                 buffer: scala.collection.mutable.Buffer[List[_]], 
                 currentFrame: Int, frame: List[_]) {
+   val epli = 0.01;
     if (lastLook.contains(id)) {
-      if (lastLook(id)(0) != bufferSize(frame) ||
-        lastLook(id)(1) != bufferColor(frame) ||
+      if(sizeChange(lastLook(id)(0).asInstanceOf[List[Double]],bufferSize(frame),epli) ||
+         sizeChange(lastLook(id)(1).asInstanceOf[List[Double]],bufferColor(frame),0.1) ||
         lastLook(id)(2) != bufferType(frame) ||
         ((frame.size == 7) && (lastLook(id)(3) != bufferString(frame)))) {
-        deleteObj(id)
-        app.add(addObj(id, buffer, currentFrame))
+          deleteObj(id)
+          app.add(addObj(id, buffer, currentFrame))
+          view.repaint()
+          val key = id
+          lastLook -= key // Update last look
+          if (frame.size == 6)
+            lastLook += key -> List(bufferSize(frame), bufferColor(frame), bufferType(frame))
+          else
+            lastLook += key -> List(bufferSize(frame), bufferColor(frame), bufferType(frame), bufferString(frame))
       }
     }
-    val key = id
-    lastLook -= key // Update last look
-    if (frame.size == 6)
-     lastLook += key -> List(bufferSize(frame), bufferColor(frame), bufferType(frame))
-    else
-     lastLook += key -> List(bufferSize(frame), bufferColor(frame), bufferType(frame), bufferString(frame))
   }
 
   // Update the slider value

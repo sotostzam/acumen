@@ -218,7 +218,8 @@ object Main {
     mkPass("elimconst", "Eliminate Constants (Single objects only)", ElimConst.proc(_)),
     mkPass("extract-ha", "H.A. Extraction", new extract.Extract(_,debugExtract).res),
     mkPass("killnot", "Kill Nots", KillNot.mapProg(_)),
-    mkPass("desugar", "Desugarer", Desugarer.run(_)),
+    mkPass("desugar", "Desugarer", Desugarer(odeTransformMode=TopLevel).run(_), category="desugar"),
+    mkPass("desugar-local", "Desugarer (Local)", Desugarer(odeTransformMode=Local).run(_), category="desugar"),
     mkPass("typecheck", "Type Checker", {prog => 
                                          val (typechecked, res) = new TypeCheck(prog).run()
                                          println("\nTYPE CHECK RESULT: " + TypeCheck.errorLevelStr(res) + "\n")
@@ -322,7 +323,7 @@ object Main {
       /* Read the Acumen source, parse, pre-process and interpret it. */
       lazy val in = new InputStreamReader(new FileInputStream(args(1)))
       lazy val ast = Parser.run(Parser.prog, in)
-      lazy val desugared = Desugarer.run(ast)
+      lazy val desugared = Desugarer().run(ast)
       lazy val final_out = applyPasses(ast)
       lazy val trace = i.run(final_out)
       lazy val ctrace = as_ctrace(trace)

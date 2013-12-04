@@ -68,6 +68,14 @@
     <function>cosh</function>
     <function>tanh</function>
     <function>signum</function>
+    <function>red</function>
+    <function>green</function>
+    <function>blue</function>
+    <function>white</function>
+    <function>black</function>
+    <function>yellow</function>
+    <function>cyan</function>
+    <function>magenta</function>
   </functions>
   <numbers>
     <hexLiteral>0x{HexDigit}+</hexLiteral>

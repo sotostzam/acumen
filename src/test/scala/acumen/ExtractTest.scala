@@ -35,7 +35,7 @@ trait ExtractTest {
                      )
 
   /** First desugar p and then return the result of applying transform. */
-  def desugarAndTransform(p: Prog, transform: Prog => Prog) = transform(Desugarer run p)
+  def desugarAndTransform(p: Prog, transform: Prog => Prog) = transform(Desugarer() run p)
   
   /** Load models compatible with the transformation from the examples directory. */
   //FIXME Update to include multi-object models
@@ -94,16 +94,16 @@ object ExtractBaseTest extends Properties("Extract") with ExtractTest {
         "\n\ntransformed: \n" + (Pretty pprint extractedModel))
     }
 
-  property("extract does not increase the number of modes on hybrid automaton models") =
-    enclosureModels.forall { case (name, prog) =>
-      val p = Desugarer.desugar(prog)
-      val extractedModel = new extract.Extract(p).res
-      val originalModes = countModes(p)
-      val extractedModes = countModes(extractedModel)
-      printErrUnless(extractedModes == originalModes,
-        "Number of modes in transformed model " + name + " (" + extractedModes + ") exceeds number of modes in original model (" + originalModes + ")!" +
-        "\n\ntransformed: \n" + (Pretty pprint extractedModel))
-    }
+  // property("extract does not increase the number of modes on hybrid automaton models") =
+  //   enclosureModels.forall { case (name, prog) =>
+  //     val p = Desugarer().desugar(prog)
+  //     val extractedModel = new extract.Extract(p).res
+  //     val originalModes = countModes(p)
+  //     val extractedModes = countModes(extractedModel)
+  //     printErrUnless(extractedModes == originalModes,
+  //       "Number of modes in transformed model " + name + " (" + extractedModes + ") exceeds number of modes in original model (" + originalModes + ")!" +
+  //       "\n\ntransformed: \n" + (Pretty pprint extractedModel))
+  //   }
 
 }
 

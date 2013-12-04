@@ -39,11 +39,11 @@ object FlattenSimple {
 
   def flattenTopLevel(toProc: Seq[Init], priv: ListBuffer[Init], body: ListBuffer[Action], env: Prog) : Unit = {
     toProc.foreach{case Init(name, rhs) => rhs match {
-      case NewRhs(cn, args) => 
-        val o = flatten(name.x + "$", classDef(cn,env), args, env)
+      case NewRhs(Var(n), args) => 
+        val o = flatten(name.x + "$", classDef(ClassName(n.x),env), args, env)
         priv ++= o.priv
         body ++= o.body
-      case _ => 
+      case ExprRhs(_) => 
         priv += Init(name,rhs)
     }}
   }
@@ -57,8 +57,8 @@ object FlattenSimple {
     val bodyExtra = ListBuffer.empty[Action]
     priv ++= obj.fields.indices.map{i => Init(fixup.addPrefix(obj.fields(i)),ExprRhs(args(i)))}
     obj.priv.foreach{case Init(name, rhs) => rhs match {
-      case NewRhs(cn, args) => 
-        val o = flatten(prefix + name.x + "$", classDef(cn,env), args.map{fixup.mapExpr(_)}, env)
+      case NewRhs(Var(n), args) => 
+        val o = flatten(prefix + name.x + "$", classDef(ClassName(n.x),env), args.map{fixup.mapExpr(_)}, env)
         priv ++= o.priv
         bodyExtra ++= o.body
       case ExprRhs(expr) => 

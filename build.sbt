@@ -32,6 +32,9 @@ libraryDependencies ++= Seq(
    "org.jfree" % "jcommon" % "1.0.17"
 )
 
+// Add resources in project root directory to class path
+unmanagedResources in Compile ++= Seq("AUTHORS").map(new File(_))
+
 // FIXME: Is this necessary
 retrieveManaged := true
 

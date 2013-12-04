@@ -14,7 +14,9 @@ package interpreters
 package reference
 package experimental
 
-import Eval._
+import standard.Eval
+import standard.Eval._
+import standard.Interpreter.checkDuplicateAssingments
 
 import Common._
 import util.Names._
@@ -130,8 +132,10 @@ object Interpreter extends acumen.CStoreInterpreter {
     for { fid <- freshCId(prt)
           _ <- setObjectM(fid, pub)
           vs <- mapM[InitRhs, CValue]( 
-                  { case NewRhs(cn,es) =>
-                      for { ves <- asks(st => es map (
+                  { case NewRhs(e,es) =>
+                      for { ve <- asks(evalExpr(e, p, Map(self -> VObjId(Some(fid))), _)) 
+                            val cn = ve match {case VClassName(cn) => cn; case _ => throw NotAClassName(ve)}
+                            ves <- asks(st => es map (
                             evalExpr(_, p, Map(self -> VObjId(Some(fid))), st)))
 			    nsd <- getNewSeed(fid)
 			    oid <- mkObj(cn, p, Some(fid), nsd, ves)
@@ -169,7 +173,8 @@ object Interpreter extends acumen.CStoreInterpreter {
 	    e match {
   	    case Lit(i)         => VLit(i)
         case ExprVector(l)  => VVector (l map (eval(env,_)))
-        case Var(n)         => env(n)
+        case Var(n)         => env.get(n).getOrElse(VClassName(ClassName(n.x)))
+        case Index(v,i)     => evalIndexOp(eval(env, v), eval(env, i))
         case Dot(o,Name("children",0)) =>
           /* In order to avoid redundancy en potential inconsistencies, 
              each object has a pointer to its parent instead of having 
@@ -218,6 +223,13 @@ object Interpreter extends acumen.CStoreInterpreter {
           vs.foldLeft(VLit(GDouble(0)):CValue)(helper)
         case TypeOf(cn) =>
           VClassName(cn)
+        case ExprLet(bs,e) =>
+          val eWithBindingsApplied =
+            bs.foldLeft(env){
+              case(r, (bName, bExpr)) =>
+                r + (bName -> eval(env, bExpr))
+            }
+            eval(eWithBindingsApplied, e)
       }
     }
     eval(env,e)
@@ -264,18 +276,20 @@ object Interpreter extends acumen.CStoreInterpreter {
   def evalDiscreteAction(a:DiscreteAction, env:Env, p:Prog) : Eval[Unit] =
     a match {
       case Assign(d@Dot(e,x),t) => 
-        /* Schedule the discrete assignment if it changes x, otherwise do nothing */
+        /* Schedule the discrete assignment */
         for { id <- asks(evalExpr(e, p, env, _)) map extractId
         	  vt <- asks(evalExpr(t, p, env, _))
         	  _  <- asks(checkAccessOk(id, env, _))
         	  vx <- asks(evalExpr(d, p, env, _)) 
-        } if (vt != vx) assign(id, x, vt) else pass
+        } assign(id, x, vt)
       /* Basically, following says that variable names must be 
          fully qualified at this language level */
       case Assign(_,_) => 
         throw BadLhs()
-      case Create(lhs, c, es) => 
-        for { ves <- asks(st => es map (evalExpr(_, p, env, st)))
+      case Create(lhs, e, es) =>
+        for { ve <- asks(evalExpr(e, p, env, _)) 
+              val c = ve match {case VClassName(c) => c; case _ => throw NotAClassName(ve)}
+              ves <- asks(st => es map (evalExpr(_, p, env, st)))
 						  val self = selfCId(env)
 						  sd <- getNewSeed(self)
               fa  <- mkObj(c, p, Some(self), sd, ves)
@@ -327,7 +341,7 @@ object Interpreter extends acumen.CStoreInterpreter {
               throw BadLhs()
           })
       case _ =>
-        throw ShouldNeverHappen() // FIXME: enforce that with refinment types
+        throw ShouldNeverHappen() // FIXME: enforce that with refinement types
     }
   
   def evalStep(p:Prog)(id:CId) : Eval[Unit] =
@@ -376,18 +390,19 @@ object Interpreter extends acumen.CStoreInterpreter {
       { val (_,ids,rps,ass,eqs,st1) = iterate(evalStep(p), mainId(st))(st)
         getResultType(st) match {
           case Discrete | Continuous =>
-            if (st == st1 && ids.isEmpty && rps.isEmpty && ass.isEmpty) 
+            checkDuplicateAssingments(ass, DuplicateDiscreteAssingment)
+            val nonIdentityAss = ass.filterNot{ a => a._3 == getObjectField(a._1, a._2, st1) }
+            if (st == st1 && ids.isEmpty && rps.isEmpty && nonIdentityAss.isEmpty) 
               setResultType(FixedPoint, st1) // Reached discrete fixpoint
             else {
-              checkDuplicateAssingments(ass, "discrete")
-              val stA = mapM_(applyAssingment, ass.toList) ~> st1
+              val stA = mapM_(applyAssingment, nonIdentityAss.toList) ~> st1
               def applyReparenting(pair:(CId, CId)) = changeParentM(pair._1, pair._2) 
               val stR = mapM_(applyReparenting, rps.toList) ~> stA
               val st3 = stR -- ids
               setResultType(Discrete, st3)
             }
           case FixedPoint => // Now perform continuous assignments
-            checkDuplicateAssingments(eqs, "continuous")
+            checkDuplicateAssingments(eqs, DuplicateContinuousAssingment)
             val stA = mapM_(applyAssingment, eqs.toList) ~> st1
             val st2 = setResultType(Continuous, stA)
             setTime(getTime(st1) + getTimeStep(st1), st2)
@@ -397,14 +412,5 @@ object Interpreter extends acumen.CStoreInterpreter {
   
   /** Applies an assignment to the monad. */
   def applyAssingment(a: (CId,Name,CValue)) = setObjectFieldM(a._1, a._2, a._3)
-
-  /** Checks for a duplicate assignment (of a specific kind) scheduled in assignments. */
-  def checkDuplicateAssingments(assignments: Set[(CId, Name, CValue)], kind: String): Unit = {
-    val duplicates = assignments.groupBy(a => (a._1,a._2)).filter{ case (_, l) => l.size > 1 }.keys.toList
-    if (duplicates.size != 0) {
-      val n = duplicates(0)._2
-      sys.error("Repeated " + kind + " assignment to variable (" + n.x + "'" * n.primes + ") is not allowed.")
-    }
-  }
     
 }

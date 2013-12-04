@@ -73,7 +73,7 @@ object TransformationTestUtil {
    */
   def preservesSemanticsOf(transform: Prog => Prog, p: Prog, modelName: Option[String], semanticsType: String, comparator: (Prog,Prog) => Boolean) = {
     var same = false
-    val desugared = Desugarer.run(p)
+    val desugared = Desugarer().run(p)
     var transformed : Prog = null
     try {
       transformed = transform(p)

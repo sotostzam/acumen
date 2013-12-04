@@ -126,7 +126,7 @@ object Common {
   def unaryListOp[A](op:String, u:List[Value[_]]) : Value[A] = {
     lazy val du = extractDoubles(u)
     op match {
-      //case "length" => VLit(GInt(u.length))
+      case "length" => VLit(GInt(u.length))
       case _ => throw InvalidListOp(op)
     }
   }
@@ -134,7 +134,7 @@ object Common {
   def unaryVectorOp[A](op:String, u:List[Value[_]]) : Value[A] = {
     lazy val du = extractDoubles(u)
     op match {
-      //case "length" => VLit(GInt(u.length))
+      case "length" => VLit(GInt(u.length))
       case "norm" => VLit(GDouble(math.sqrt((du map (d => d*d)).sum)))
       case "floor" => VVector(du map {d => VLit(GDouble(floor(d)))})
       case "ceil" => VVector(du map {d => VLit(GDouble(ceil(d)))})
@@ -191,6 +191,19 @@ object Common {
        case _ =>
          throw UnknownOperator(op)    
     }
+  }
+
+  /* eval Index(e, i) */
+  def evalIndexOp[A](e: Value[A], i: Value[A]) : Value[A] = {
+    e match {
+      case VVector(l) => i match {
+        case VLit(GInt(idx)) => try {
+          l(idx)
+        } catch {
+          case _:IndexOutOfBoundsException => throw IndexOutOfBounds(idx)
+        }
+        case _ => throw ExpectedInteger(i) }
+      case _ => throw CantIndex() }
   }
 
   val magicClassTxt =

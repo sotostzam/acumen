@@ -1,35 +1,54 @@
+ACUMEN NOVEMBER 2013 RELEASE NOTES
+----------------------------------
 
-ACUMEN 2012 PREVIEW RELEASE, RELEASE NOTES
-------------------------------------------
+Major Changes since the Acumen 2012 preview release (Dec 2012):
 
-This is a preview release of new features to come in 2013.  
-New features since the last major Acumen release include:
+ - Improved default ("Traditional") Semantics
+   - Repeated assignments to the same variable no longer allowed, and
+     now cause simulation fails with an error
+   - All discrete assignments are performed simultaneously
+   - Derivatives are interpreted in a more direct manner than before
+   NOTE: As these semantics changes reject or alter the behavior of
+     some old models the original semantics found in Acumen 2012 is 
+     also available under under Semantics as "Traditional 2012".
+ - A new and integrated user reference manual is found under Help
+ - User interface enhancements
+ 	- Most notably:  File browser, code search, and code completion
+ - Improvements to memory utilization
+ - Language enhancements
+     - A "let" operator has been added to expressions
+     - Class names can now be used as values
+     - Vector indexing is now supported
+ - Enhanced enclosure semantics
+     - Transcendental functions ("sin" and "cos")
+     - Extended predicate language
+     - Improved event localization algorithm
+     - New event handling algorithm
+ - Various other minor enhancements and fixes
 
- - 3D support based on Yingfu Zeng's Masters thesis
- - Enlcosure semantics with support for Zeno systems
+Known issues with this release:
+
+  - Some _3D visualizations flicker when size or color change
+    dynamically.
+  - The current implementation of _3D is unstable on Linux.
+
+Major changes since Acumen 2010:
+
+ - _3D support based on Yingfu Zeng's Masters thesis
+ - Enclosure semantics with support for Zeno systems
  - A more responsive user interface
- - Some improvements to syntax (such as = and := )
+ - Some improvements to syntax
+   - Continuous assignment used to be [=] and is now just =
+   - Discrete assignment used to be = and is now :=
  - Syntax highlighting
 
-This is only a preview release, as there are a few known 
-issues which we plan to fix in early 2013.
-
-Some known issues:
-
-  - Acumen 3D has known problems on Linux platforms
-  - The system may need to be shut down externally
-
-For users of Acumen 2010 please note the following important syntax
-change:
-
-  - [=] is now =  and
-  - =   is now :=
 
 PREREQUISITES
 -------------
 
 Users of recent version of Mac OS X should already have all necessary
-dependencies installed.
+dependencies installed. If you have problems with _3D functionality 
+try using Java version 6.
 
 If you are using fairly modern Linux distribution installing
 openjdk-6, libjava3d, that comes with your distribution will likely
@@ -64,11 +83,6 @@ To run it from the command line something like:
 
   java -jar acumen-VERSION.jar
 
-If running on Mac OS X, performance may suffer when using Acumen3D
-unless the Java is started with UseQuartz enabled:
-
-  java -Dapple.awt.graphics.UseQuartz=true -jar acumen-VERSION.jar
-
 SUPPORT
 -------
 
@@ -88,8 +102,10 @@ acumen started than also:
   5) The code you where trying to execute.
 
 We also welcome your feedback on ways to make Acumen better, please
-send and bug reports are just general suggestions to the same address
-(help@acumen-language.org).
+send and bug reports are just general suggestions using the form found
+at:
+
+  http://www.acumen-language.org/p/report-bug.html
 
 COMPILING
 ---------
@@ -111,5 +127,4 @@ To create a jar file use:
 
 which will create a jar file in target/scala-2.9.2/acumen-VERSION.jar
 
-To do more read up on how how to use sbt at
-https://github.com/harrah/xsbt/wiki.
+To do more read up on how how to use sbt at http://www.scala-sbt.org/

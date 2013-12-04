@@ -316,9 +316,11 @@ trait Extract {
   }
 
   def acumenExprToExpression(e: Expr)(implicit rnd: Rounding): Expression = e match {
+    case Lit(v) if v.eq(Constants.PI) // Test for reference equality
+                                      // not structural equality
+                              => Constant(Interval.pi)
     case Lit(GInt(d))         => Constant(d)
     case Lit(GDouble(d))      => Constant(d)
-    case Lit(GConstPi)        => Constant(Interval.pi)
     case ExprInterval(lo, hi) => Constant(foldConstant(lo).value /\ foldConstant(hi).value)
     case ExprIntervalM(mid0, pm0) =>
       val mid = foldConstant(mid0).value

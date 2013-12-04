@@ -289,7 +289,7 @@ object Generators  {
         for (oe <- arbitrary[Option[Expr]];
              c <- arbitrary[ClassName];
              as <- listOf(resize(s/4, arbitrary[Expr])))
-          yield Create(oe, c, as))
+          yield Create(oe, Var(Name(c.x,0)), as))
     )
 
 

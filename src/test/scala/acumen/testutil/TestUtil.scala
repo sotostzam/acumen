@@ -25,8 +25,8 @@ object TestUtil {
 
   /** Checks that running p1 and p2 using i produces identical traces. */
   def assertEqualTrace(p1: Prog, p2: Prog, i: CStoreInterpreter) = {
-    val d1 = Desugarer.run(p1)
-    val d2 = Desugarer.run(p2)
+    val d1 = Desugarer().run(p1)
+    val d2 = Desugarer().run(p2)
     val t1 = i.run(d1).ctrace
     val t2 = i.run(d2).ctrace
     (t1 zip t2) foreach {

@@ -21,6 +21,7 @@ case class Progress(percent: Int) extends AppEvent
 case class ProgressMsg(msg:String) extends AppEvent
 case class Progress3d(percent: Int) extends AppEvent
 
+// (actor) messages from the UI
 sealed abstract class AppActions
 case class Init(t:String, i:InterpreterCntrl) extends AppActions
 case object Play extends AppActions
@@ -78,6 +79,7 @@ class Controller extends DaemonActor {
         //
         case Init(progText, interpreter) => 
           //println("INIT")
+          App.ui.modelFinished = false
           model = interpreter.newInterpreterModel
           producer = interpreter.init(progText, this)
           link(producer)
@@ -129,11 +131,14 @@ class Controller extends DaemonActor {
           if (d != null) flush(d)
           setState(newState)
         case IC.Chunk(d) => // ignore chunks from supposedly dead producers
+        case IC.Done(msgs) =>
+          App.ui.modelFinished = true
+          setState(Stopped)
+          msgs.foreach{msg => actor ! ProgressMsg(msg)}
         case Exit(_,ue:UncaughtException) =>
           actor ! Error(ue.cause)
           setState(Stopped)
-        case msg@(IC.Done | Exit(_,_)) => 
-          //println("Done|Exit: " + msg)
+        case Exit(_,_) => 
           setState(Stopped)
         
         //
