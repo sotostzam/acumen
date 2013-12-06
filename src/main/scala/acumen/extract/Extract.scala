@@ -168,22 +168,17 @@ class Extract(val prog: Prog, private val debugMode: Boolean = false)
 
     resolveModes()
 
-    // now the loop
-    eliminateTrueOnlyModes()
-    mergeDupModes()
-    cleanUpTransModes()
-    resolveModes()
+    var again = true;
+    var loopCounter = 0;
+    while (again && loopCounter < 5) {
+      loopCounter += 1;
+      eliminateTrueOnlyModes()
+      mergeDupModes()
+      cleanUpTransModes()
+      again = resolveModes()
+    }
 
-    eliminateTrueOnlyModes()
-    mergeDupModes()
-    cleanUpTransModes()
-    resolveModes()
-
-    // eliminateTrueOnlyModes()
-    // mergeDupModes()
-    // cleanUpTransModes()
-    // resolveModes()
-    // done, fixme: this should be a fixed point loop
+    counter = 290
 
     killDeadVars()
 
@@ -268,7 +263,7 @@ class Extract(val prog: Prog, private val debugMode: Boolean = false)
 
   def cleanUpTransModes() {ep.cleanUpTransModes(modes); dumpPhase("CLEAN UP TRANS MODE")}
 
-  def resolveModes() {ep.resolveModes(modes); dumpPhase("RESOLVE MODES")}
+  def resolveModes() = {val again = ep.resolveModes(modes); dumpPhase("RESOLVE MODES"); again}
   // ^^ find mode with true precond based on reset post, if more than
   // one error split mode to be able to enhance precond
   

@@ -324,8 +324,9 @@ object ExtractPasses {
         first += action
     }
 
-  def resolveModes(modes: ListBuffer[Mode]) : Unit = {
-    if (modes.isEmpty) return
+  // return true if it needed to split modes
+  def resolveModes(modes: ListBuffer[Mode]) : Boolean = {
+    if (modes.isEmpty) return false
     val toSplit = new HashMap[String,(Mode, HashSet[Cond])];
     val newModes = new ListBuffer[Mode];
     val live = new HashSet[String];
@@ -368,9 +369,11 @@ object ExtractPasses {
       modes ++= newModes
       pruneDeadModes(modes)
       resolveModes(modes)
+      return true
     } else {
       // Remove unreachable modes
       modes --= modes.filter{l => !live.contains(l.label)}
+      return false
     }
   }
 
