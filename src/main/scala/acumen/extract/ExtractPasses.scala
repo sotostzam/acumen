@@ -173,6 +173,21 @@ object ExtractPasses {
     }
   }
 
+  def constSubstSplit(modes: ListBuffer[Mode], modeVars: Map[Name,Set[GroundValue]]): Unit = {
+    constSubst(modes)
+    val newModes = new ListBuffer[Mode];
+    modes.foreach{m =>
+      val deps : Set[Name] = m.actions.flatMap{a => extractRHSDeps(a)}.toSet
+      val leftover = deps.intersect(modeVars.keys.toSet)
+      val extraConds = leftover.map{d => modeVars(d).map{v => Cond.eq(d, v)}}
+      val theList = cross(extraConds)
+      splitMode(theList, m, newModes)
+    }
+    constSubst(newModes)
+    modes ++= newModes
+    pruneDeadModes(modes)
+  }
+
   def cleanUpAssigns(modes: Seq[Mode]) : Unit = {
   // for each mode, kill all unnecessary discr. assignemnts in the
   // resets, if the reset than has no actions other than to go back

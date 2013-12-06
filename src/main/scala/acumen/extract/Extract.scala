@@ -158,9 +158,11 @@ class Extract(val prog: Prog, private val debugMode: Boolean = false)
   def cleanUp() : Unit = {
     pruneDeadModes()
     pruneResetConds()
-    constSubst()
-
+    //constSubst()
+    
     markTransModes()
+
+    constSubstSplit()
 
     splitModes()
 
@@ -252,13 +254,15 @@ class Extract(val prog: Prog, private val debugMode: Boolean = false)
 
   def pruneResetConds() {ep.pruneResetConds(modes); dumpPhase("PRUNE RESET CONDS")}
 
-  def constSubst() {ep.constSubst(modes); dumpPhase("PRUNE RESET CONDS")}
+  def constSubst() {ep.constSubst(modes); dumpPhase("CONST SUBST")}
 
   def markTransModes() {ep.markTransModes(modes); dumpPhase("MARK TRANS MODES")}
 
   def eliminateTrueOnlyModes() {ep.eliminateTrueOnlyModes(modes); dumpPhase("ELIMINATE TRUE ONLY")}
 
   def splitModes() = {ep.splitModes(modes,modeVars); dumpPhase("SPLIT MODES");}
+
+  def constSubstSplit() = {ep.constSubstSplit(modes,modeVars); dumpPhase("CONST SUBST SPLIT");}
 
   def mergeDupModes() {ep.mergeDupModes(modes); dumpPhase("MERGE DUP MODES")}
 
