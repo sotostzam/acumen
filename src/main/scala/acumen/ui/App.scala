@@ -143,6 +143,7 @@ class App extends SimpleSwingApplication {
   private val pwlHybridSolverAction           = mkActionMask("Enclosure (PWL)",                     VK_L, VK_L,       shortcutMask | SHIFT_MASK, setInterpreter("enclosure-pwl")) 
   private val eventTreeHybridSolverAction     = mkActionMask("Enclosure (EVT)",                     VK_T, VK_T,       shortcutMask | SHIFT_MASK, setInterpreter("enclosure-evt"))
   private val contractionAction               = mkActionMask("Contraction",                         VK_C, VK_C,       shortcutMask | SHIFT_MASK, enclosure.Interpreter.toggleContraction)
+  private val normalizationAction              = mkAction(    "Normalization",                       NONE, NONE,       toggleNormalization())
   private val manualAction                    = mkAction(    "Reference Manual",                    VK_M, VK_F1,      manual)
   private val aboutAction                     = new Action(  "About")       { mnemonic =            VK_A; def apply = about }
   
@@ -525,15 +526,19 @@ class App extends SimpleSwingApplication {
             enabled = interpreter.interpreter.getClass == enclosure.Interpreter.getClass
         }
       }
+      val lc = new CheckMenuItem("") {
+        action = normalizationAction
+        selected = Main.extraPasses.contains("normalization")
+      }
     }
-    
+
     contents += new Menu("Semantics") {
       import semantics._
       mnemonic = Key.S
       contents += refStandard
       if (Main.enableAllSemantics)
         contents ++= Seq(new Separator, refExperimental, new Separator, refOriginal, impr, par)
-      contents ++= Seq(new Separator, pwl, et, new Separator, ls)
+      contents ++= Seq(new Separator, pwl, et, new Separator, ls, lc)
     }
    
     contents += new Menu("Help") {
@@ -541,6 +546,14 @@ class App extends SimpleSwingApplication {
       contents += new MenuItem(manualAction)
       contents += new MenuItem(aboutAction) 
     }
+  }
+
+  def toggleNormalization() = {
+    import Main.extraPasses
+    if (extraPasses.contains("normalization")) 
+      extraPasses = extraPasses.filter(_ != "normalization")
+    else
+      extraPasses = extraPasses :+ "normalization"
   }
 
   /* gluing everything together */

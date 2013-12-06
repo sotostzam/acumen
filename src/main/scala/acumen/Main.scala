@@ -35,7 +35,7 @@ object Main {
   var useTemplates = false
   var dontFork = false
   var synchEditorWithBrowser = true // Synchronize code editor with file browser
-  var extraPasses = ""
+  var extraPasses = Seq.empty[String]
   var displayHelp = "none"
 
   var debugExtract = false
@@ -46,6 +46,7 @@ object Main {
   //  the preferred version should be showed.  Lots also have
   //  enable|disable|no version but only one that changes the default
   //  behavior should be displayed
+  lazy val pa : Seq[String] = passAliases.collect{case PassAlias(from,_,Some(_)) => from}
   def optsHelp = Array(
     "--help                  this help message",
     "-i|--semantics "+ Main.interpreterHelpString,
@@ -58,7 +59,7 @@ object Main {
     "--dont-fork             disable auto-forking of a new JVM when required")
   def experimentalOptsHelp = Array(
     "--full-help",
-    "-p|--passes <%s>".format(availPasses.map{_.id}.mkString(",")),
+    "-p|--passes <%s>".format((availPasses.map{_.id} ++ pa).mkString(",")),
     "                        comma seperated list of extra passes to run",
     "--templates             enables template expansion in the source code editor",
     "--prune-semantics       hide experimental semantics in the U.I."
@@ -72,7 +73,9 @@ object Main {
     "trace <file>            run model and print trace output",
     "time <file>             time time it takes to run model",
     "") ++
-    availPasses.map{p => "%-23s run the %s pass and print model".format(p.id,p.desc)} ++ Array("",
+    availPasses.map{p => "%-23s run the %s pass and print model".format(p.id,p.desc)} ++ 
+    passAliases.collect{case PassAlias(from,_,Some(desc)) => 
+                        "%-23s run the %s passes and print model".format(from,desc)} ++ Array("",
     "compile <file>          compile model to C++",
     "",
     "bench <file> <start> <stop> [<warmup> [<repeat>]]",
@@ -130,7 +133,7 @@ object Main {
       case "--dont-fork" :: tail =>
         dontFork = true; parseArgs(tail)
       case ("--passes"|"-p") :: p :: tail =>
-        validatePassesStr(p); extraPasses = p; parseArgs(tail)
+        validatePassesStr(p); extraPasses = splitPassesString(p); parseArgs(tail)
       case opt ::  tail if opt.startsWith("-") =>
         System.err.println("Unrecognized Option: " + opt)
         usage()
@@ -226,9 +229,16 @@ object Main {
                                          typechecked})
   )
   val defaults = List("desugar")
+  case class PassAlias(from: String, to: Seq[String], desc: Option[String]) 
+  // ^ If desc is none the alias won't show up in help screens
+  val passAliases = Seq(
+    PassAlias("extract", Seq("extract-ha"), None),
+    PassAlias("normalization", Seq("toposort", "inlinepriv", "elimconst", "extract-ha", "killnot"),
+              Some("Normalize the program into a H.A.")))
   availPasses.indices.foreach{i => availPasses(i).idx = i}
-  val passLookup : Map[String,Pass] = {
-    val m = availPasses.map{v => ((v.id,v))}.toMap; m + (("extract", m("extract-ha")))
+  val passLookup : Map[String,Seq[Pass]] = {
+    val m = availPasses.map{v => (v.id,Seq(v))}.toMap
+    m ++ passAliases.map{v => (v.from, v.to.flatMap{m(_)})}
   }
 
   // applyPasses: Takes in a prog and a list of passes to apply.
@@ -242,13 +252,13 @@ object Main {
   def applyPasses(p: Prog, required: Seq[String] = Seq.empty) : Prog = {
     val (nodefaults, rest) = required.partition(_ == "nodefaults")
     val passList : Seq[String] = ((if (nodefaults.isEmpty) defaults else Nil) 
-                                  ++ splitPassesString(extraPasses) 
+                                  ++ extraPasses
                                   ++ rest)
-    println(passList)
-    val passes = passList.map{s => passLookup.get(s) match {
+    val passes = passList.flatMap{s => passLookup.get(s) match {
       case Some(pass) => pass; case None => throw UnrecognizedTransformation(s)
     }}.groupBy{_.category}.map{_._2.last}. // only take the last pass specified for each category
        toSeq.sortWith{(a,b) => a.idx < b.idx} // sort by the orignal order in availPasses
+    println("Passes: " + passes.map{_.id}.mkString(" "))
     var res = p
     passes.foreach{pass => res = pass.trans(res)}
     res
