@@ -1,6 +1,6 @@
 package acumen
 package interpreters
-package imperative
+package simple
 
 import scala.collection.immutable.HashMap
 
