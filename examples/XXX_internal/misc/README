@@ -1,0 +1,4 @@
+This directory is for misc. examples that have no other place to go.
+
+Examples in this directory will be tested as part of the standard
+regression test.

@@ -9,12 +9,23 @@ import util.Names._
 object Examples {
 
   def cstoreExamplesAction(action: (String, File) => Unit) : Unit = {
-    def filter = new java.io.FilenameFilter {
-      def accept(d: File, fn: String) = {
-        (fn.substring(0,3)        != "XXX" &&
-         d.getName.substring(0,3) != "XXX" && // Ignore internal directories
-         d.getName                != "01_Enclosures" && //FIXME Support enclosure sim. params in CStore interpreters 
-         d.getName                != "02_Robust_Simulation") //FIXME Support enclosure sim. params in CStore interpreters 
+    def filter = new java.io.FileFilter {
+      def accept(f: File) = {
+        if (f.isDirectory()) true // Accept all directories so that we
+                                  // can filter based on the full path
+        else if (f.getName.startsWith("XXX")) false // Ignore files that start with XXX
+        else if (f.getName == "02_Passive_walking.acm") false // This file needs to be fixed to use the new semantics
+        else {
+          val path = f.getPath()
+          def withDir(dirs: String*) = 
+            path.contains(File.separator + dirs.mkString(File.separator) + File.separator)
+          if      (withDir("XXX_internal","misc")) true // Test examples in misc directory even though it is in XXX_internal
+          else if (withDir("XXX_internal","0_Demos")) true // Test examples in misc directory even though it is in XXX_internal
+          else if (path.contains(File.separator + "XXX")) false // Ignore internal directories
+          else if (withDir("01_Enclosures")) false //FIXME Support enclosure sim. params in CStore interpreters 
+          else if (withDir("02_Robust_Simulation")) false //FIXME Support enclosure sim. params in CStore interpreters 
+          else true
+        }
       }
     }
     def helper(d: File, relPath: List[String]) : Unit = 
