@@ -108,13 +108,16 @@ object Errors {
   }
   sealed abstract class DuplicateAssingment(x:Name) extends AcumenError {
     def getMessage(kind: String) = 
-      "Repeated " + kind + " assignment to variable (" + x.x + "'" * x.primes + ") is not allowed."
+      "Repeated" + kind + "assignment to variable (" + x.x + "'" * x.primes + ") is not allowed."
+  }
+  case class DuplicateAssingmentUnspecified(x:Name) extends DuplicateAssingment(x) {
+    override def getMessage = super.getMessage(" ")
   }
   case class DuplicateDiscreteAssingment(x:Name) extends DuplicateAssingment(x) {
-    override def getMessage = super.getMessage("discrete")
+    override def getMessage = super.getMessage(" discrete ")
   }
   case class DuplicateContinuousAssingment(x:Name) extends DuplicateAssingment(x) {
-    override def getMessage = super.getMessage("continuous")
+    override def getMessage = super.getMessage(" continuous ")
   }
   case class BadLhs() extends AcumenError {
     override def getMessage = 

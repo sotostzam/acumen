@@ -2,12 +2,21 @@ package acumen
 package interpreters
 package newimperative
 
+import Errors._
+import util.Filters._
+import util.Names._
+import util.Canonical._
+import scala.math._
+import java.io.InputStreamReader
+import org.scalatest.matchers.ShouldMatchers
+import org.scalatest.FunSuite
+import java.io.File
+import util.Transform
+
 import Pretty._
 
 import org.scalatest.matchers.ShouldMatchers
 import org.scalatest.Suite
-
-import Common._
 
 import java.io.FileInputStream
 import java.io.InputStreamReader
@@ -125,4 +134,59 @@ class ImperativeInterpreterTest extends InterpreterTestBase {
   testExamples()
   testShouldRun
 
+  def getError(file:String) : Option[AcumenError] = {
+    try { run(file) ; None }
+    catch { case e:AcumenError => Some(e) }
+  }
+
+  test("Error1") {
+    val err = ClassNotDefined(cmain)
+    getError("data/ShouldCrash/Error1.acm") should be (Some(err))
+  }
+  test("Error2") {
+    val err = VariableNotDeclared(name("y"))
+    getError("data/ShouldCrash/Error2.acm") should be (Some(err))
+  }
+  test("Error3") {
+    val err = VariableNotDeclared(name("x"))
+    getError("data/ShouldCrash/Error3.acm") should be (Some(err))
+  }
+  test("Error4") {
+    val err = UnknownOperator("f")
+    getError("data/ShouldCrash/Error4.acm") should be (Some(err))
+  }
+  // test("Error5") {
+  //   val err = NotAnObject(VLit(GInt(1)))
+  //   getError("data/ShouldCrash/Error5.acm") should be (Some(err))
+  // }
+  // test("Error6") {
+  //   val err = NotAnObject(VLit(GInt(1)))
+  //   getError("data/ShouldCrash/Error6.acm") should be (Some(err))
+  // }
+  // test("Error7") {
+  //   val err = AccessDenied(CId(), CId(1), Nil)
+  //   getError("data/ShouldCrash/Error7.acm") should be (Some(err))
+  // }
+  // ignore("Error8 ") {
+  //   val err = AccessDenied(CId(0,0,1), CId(1), List(CId(1,1),CId(0,1)))
+  //   getError("data/ShouldCrash/Error8.acm") should be (Some(err))
+  // }
+  // test("Error9") {
+  //   val err = NotAChildOf(CId(0,0,1), CId(0,1))
+  //   getError("data/ShouldCrash/Error9.acm") should be (Some(err))
+  // }
+  test("Error10 ") {
+    val err = ClassNotDefined(ClassName("B"))
+    getError("data/ShouldCrash/Error10.acm") should be (Some(err))
+  }
+  test("Error11 ") {
+    val err = ClassDefinedTwice(ClassName("A"))
+    getError("data/ShouldCrash/Error11.acm") should be (Some(err))
+  }
+  test("ACUMEN-348") {
+    val err = DuplicateAssingmentUnspecified(Name("period",0))
+    getError("data/ShouldCrash/ACUMEN-348.acm") should be (Some(err))
+  }
+
 }
+

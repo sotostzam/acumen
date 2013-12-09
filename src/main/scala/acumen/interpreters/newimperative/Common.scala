@@ -37,9 +37,21 @@ object Common {
   type MMap[A, B] = scala.collection.mutable.Map[A, B]
   val MMap = scala.collection.mutable.Map
 
+  class ValVal(v: Val = VObjId(None)) {
+    var prevVal : Val = VObjId(None)
+    var curVal : Val = v
+    var lastUpdated : Int = -1
+  }
+
+  class PhaseParms {
+    var curIter : Int = 0;
+    var delayUpdate = false;
+  }
+
   case class Object(
       val id: CId,
-      var fields: MMap[Name, Val],
+      var fields: MMap[Name, ValVal],
+      var phaseParms: PhaseParms,
       var parent: Option[Object],
       var ccounter: Int,
       var seed: (Int, Int),
@@ -48,11 +60,18 @@ object Common {
     override def hashCode = System.identityHashCode(this)
     override def toString = {
       val cn =
-        if (fields contains classf) pprint(fields(classf))
+        if (fields contains classf) pprint(fields(classf).curVal)
         else "?"
       cn + "@" + hashCode
     }
     override def equals(o: Any) = { eq(o.asInstanceOf[AnyRef]) }
+    val fieldsCur = new Iterable[(Name, GValue)] {
+      def iterator = new Iterator[(Name, GValue)] {
+        val orig = fields.iterator
+        override def hasNext = orig.hasNext
+        override def next() = {val v = orig.next; (v._1, v._2.curVal)}
+      }
+    }
   }
 
   val emptyStore: CStore = Map.empty
@@ -74,7 +93,7 @@ object Common {
         case Some(p) => Some(p.id)
       })
       val fields = Map.empty ++ o.fields
-      (fields mapValues (convertValue(_))) +
+      (fields mapValues {v => convertValue(v.curVal)}) +
         ((parent, p), (nextChild, VLit(GInt(o.ccounter))), (seed1, VLit(GInt(o.seed._1))), (seed2, VLit(GInt(o.seed._2))))
     }
     def convertStore(st: Store): CStore = {
@@ -123,13 +142,13 @@ object Common {
       }
     def convertId(id: CId): Unit = {
       if (!treated(id)) {
-        val res = Object(id, null, null, 0, null, null)
+        val res = Object(id, null, null, null, 0, null, null)
         addresses += ((id, res))
         val o = st(id)
         for (r <- referenced(o)) convertId(r)
         val cs = childrenOf(id, st)
         for (c <- cs) convertId(c)
-        res.fields = MMap.empty ++ ((o - parent) mapValues convertVal)
+        res.fields = MMap.empty ++ ((o - parent) mapValues {v => new ValVal(convertVal(v))})
         res.parent = parentOf(o) map (addresses(_))
         res.children = Vector.empty ++ (cs map (addresses(_)))
         res.seed = seedOf(o)
@@ -138,6 +157,8 @@ object Common {
       }
     }
     for (id <- st.keys) convertId(id)
+    val phaseParms = new PhaseParms
+    addresses.foreach{case (_,obj) => obj.phaseParms = phaseParms}
     addresses(root)
   }
 
@@ -170,13 +191,26 @@ object Common {
     }
 
   /* objects fields setters and getters */
-  def getField(o: Object, f: Name) = o.fields(f)
+  def getField(o: Object, f: Name) = {
+    val v = o.fields(f)
+    if (o.phaseParms.delayUpdate && v.lastUpdated == o.phaseParms.curIter) v.prevVal
+    else v.curVal
+  }
 
   /* SIDE EFFECT */
-  def setField(o: Object, f: Name, v: Val): Changeset =
+  def setField(o: Object, f: Name, newVal: Val): Changeset =
     if (o.fields contains f) {
-      if (o.fields(f) == v) noChange
-      else { o.fields(f) = v; logModified }
+      val oldVal = getField(o, f)
+      val v = o.fields(f)
+      //println(f + " oldVal:" + oldVal + "  prevVal: " + v.prevVal + "  curVal: " + v.curVal + "  newVal: " + newVal + "  lastUpdated: " + v.lastUpdated + "  curIter: " + o.phaseParms.curIter + "  delayUpdate: " + o.phaseParms.delayUpdate)
+      if (v.lastUpdated == o.phaseParms.curIter) {
+        if (o.phaseParms.delayUpdate && v.curVal != newVal) throw DuplicateAssingmentUnspecified(f)
+        v.curVal = newVal
+      } else {
+        v.prevVal = v.curVal; v.curVal = newVal; v.lastUpdated = o.phaseParms.curIter
+      }
+      if (oldVal == newVal) noChange
+      else logModified
     }
     else throw VariableNotDeclared(f)
 
@@ -213,6 +247,7 @@ object Common {
       case None     => ()
     }
     o.parent = Some(p)
+    o.phaseParms = p.phaseParms
     p.children = p.children :+ o
   }
 
@@ -288,8 +323,8 @@ object Common {
   def mkObj(c: ClassName, p: Prog, prt: Option[ObjId], sd: (Int, Int),
             v: List[Val], magic: Object, childrenCounter: Int = 0): Object = {
     val cd = classDef(c, p)
-    val base = MMap((classf, VClassName(c)))
-    val pub = base ++ (cd.fields zip v)
+    val base = MMap((classf, new ValVal(VClassName(c))))
+    val pub = base ++ (cd.fields zip v.map{new ValVal(_)})
 
     /* change [Init(x1,rhs1), ..., Init(xn,rhsn)]
        into   ([x1, ..., xn], [rhs1, ..., rhsn] */
@@ -302,11 +337,11 @@ object Common {
 
     val res = prt match {
       case None =>
-        Object(CId.nil, pub, prt, childrenCounter, sd, Vector.empty)
+        Object(CId.nil, pub, new PhaseParms, prt, childrenCounter, sd, Vector.empty)
       case Some(p) =>
         val counter = p.ccounter
         p.ccounter += 1
-        Object(counter :: p.id, pub, prt, childrenCounter, sd, Vector.empty)
+        Object(counter :: p.id, pub, p.phaseParms, prt, childrenCounter, sd, Vector.empty)
     }
 
     val vs = ctrs map {
@@ -321,7 +356,7 @@ object Common {
       case ExprRhs(e) =>
         evalExpr(e, p, Map(self -> VObjId(Some(res))))
     }
-    val priv = privVars zip vs
+    val priv = privVars zip vs.map{new ValVal(_)}
     res.fields = pub ++ priv
     prt match {
       case Some(resp) =>

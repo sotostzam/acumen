@@ -59,6 +59,11 @@ class ImperativeInterpreter extends CStoreInterpreter {
     if (getTime(magic) > getEndTime(magic)) {
       null
     } else {
+      magic.phaseParms.curIter += 1
+      if (getResultType(magic) != FixedPoint)
+        magic.phaseParms.delayUpdate = true
+      else
+        magic.phaseParms.delayUpdate = false
       val chtset = traverse(evalStep(p, magic), st)
       val rt = getResultType(magic) match {
         case Discrete | Continuous =>
@@ -122,7 +127,7 @@ class ImperativeInterpreter extends CStoreInterpreter {
     // Note: Conversion to a CStore just to add the data is certainly
     // not the most efficient way to go about things, but for now it
     // will do. --kevina
-    adder.addData(st.id, st.fields)
+    adder.addData(st.id, st.fieldsCur)
     st.children.foreach { child => addData(child, adder) }
   }
 
