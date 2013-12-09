@@ -163,6 +163,7 @@ object Main {
       case "experimental" :: Nil => reference.experimental.Interpreter
       case "parallel" :: tail => selectParallellInterpreter(tail)
       case "imperative" :: Nil => imperative.ImperativeInterpreter
+      case "newimperative" :: Nil => newimperative.ImperativeInterpreter
       case "enclosure" :: tail => selectEnclosureInterpreter(tail)
       case _ => null
     }

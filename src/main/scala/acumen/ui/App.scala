@@ -135,11 +135,12 @@ class App extends SimpleSwingApplication {
   private val plotStyleLinesAction            = new Action(  "Lines")       { mnemonic =            VK_L; def apply = plotView.setPlotStyle(plot.Lines()) }
   private val plotStyleDotsAction             = new Action(  "Dots")        { mnemonic =            VK_D; def apply = plotView.setPlotStyle(plot.Dots()) }
   private val plotStyleBothAction             = new Action(  "Both")        { mnemonic =            VK_B; def apply = plotView.setPlotStyle(plot.Both()) }
-  private val floatingPointStandardAction     = mkActionMask("Traditional",                         VK_F, VK_R,       shortcutMask | SHIFT_MASK, setInterpreter("reference"))
+  private val floatingPointStandardAction     = mkActionMask("Traditional",                         VK_T, VK_R,       shortcutMask | SHIFT_MASK, setInterpreter("reference"))
+  private val floatingPointStandardOptAction  = mkActionMask("Traditional (Opt)",                   VK_O, NONE,       shortcutMask | SHIFT_MASK, setInterpreter("newimperative"))
   private val floatingPointExperimentalAction = mkActionMask("Traditional (Exp).",                  VK_E, NONE,       shortcutMask | SHIFT_MASK, setInterpreter("experimental"))
-  private val floatingPointOriginalAction     = mkActionMask("Traditional 2012",                    VK_O, NONE,       shortcutMask | SHIFT_MASK, setInterpreter("original"))
-  private val floatingPointImperativeAction   = mkActionMask("Traditional 2012 (Opt)",              VK_I, VK_I,       shortcutMask | SHIFT_MASK, setInterpreter("imperative")) 
-  private val floatingPointParallelAction     = mkActionMask("Traditional 2012 (Par)",              VK_P, VK_P,       shortcutMask | SHIFT_MASK, promptForNumberOfThreads)
+  private val floatingPointOriginalAction     = mkActionMask("Traditional 2012",                    VK_2, NONE,       shortcutMask | SHIFT_MASK, setInterpreter("original"))
+  private val floatingPointImperativeAction   = mkActionMask("Traditional 2012 (Opt)",              NONE, VK_I,       shortcutMask | SHIFT_MASK, setInterpreter("imperative")) 
+  private val floatingPointParallelAction     = mkActionMask("Traditional 2012 (Par)",              NONE, VK_P,       shortcutMask | SHIFT_MASK, promptForNumberOfThreads)
   private val pwlHybridSolverAction           = mkActionMask("Enclosure (PWL)",                     VK_L, VK_L,       shortcutMask | SHIFT_MASK, setInterpreter("enclosure-pwl")) 
   private val eventTreeHybridSolverAction     = mkActionMask("Enclosure (EVT)",                     VK_T, VK_T,       shortcutMask | SHIFT_MASK, setInterpreter("enclosure-evt"))
   private val contractionAction               = mkActionMask("Contraction",                         VK_C, VK_C,       shortcutMask | SHIFT_MASK, enclosure.Interpreter.toggleContraction)
@@ -480,6 +481,11 @@ class App extends SimpleSwingApplication {
         enableWhenStopped(this)
         action = floatingPointStandardAction
       }
+      val refStandardOpt = new RadioMenuItem("") {
+        selected = false
+        enableWhenStopped(this)
+        action = floatingPointStandardOptAction
+      }
       val refOriginal = new RadioMenuItem("") {
         selected = false
         enableWhenStopped(this)
@@ -512,7 +518,7 @@ class App extends SimpleSwingApplication {
         selected = false // Main.useEnclosures &&
           //enclosure.Interpreter.strategy.eventEncloser.getClass == classOf[TreeEventEncloser]
       }
-      val bg = new ButtonGroup(refStandard, refExperimental, refOriginal, impr, par, pwl, et)
+      val bg = new ButtonGroup(refStandard, refStandardOpt, refExperimental, refOriginal, impr, par, pwl, et)
       val ls = new CheckMenuItem("") {
         action = contractionAction
         enabledWhenStopped += (this, () => interpreter.interpreter.getClass == enclosure.Interpreter.getClass)
@@ -532,7 +538,7 @@ class App extends SimpleSwingApplication {
       mnemonic = Key.S
       contents += refStandard
       if (Main.enableAllSemantics)
-        contents ++= Seq(new Separator, refExperimental, new Separator, refOriginal, impr, par)
+        contents ++= Seq(refStandardOpt, new Separator, refExperimental, new Separator, refOriginal, impr, par)
       contents ++= Seq(new Separator, pwl, et, new Separator, ls)
     }
    
