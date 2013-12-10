@@ -28,8 +28,9 @@ import acumen.util.Canonical.{
 }
 import scala.annotation.tailrec
 
-class ImperativeInterpreter extends CStoreInterpreter {
-
+class ImperativeInterpreter(val parDiscr: Boolean = true, 
+                            val parCont: Boolean = false,
+                            val contWithDiscr: Boolean = false) extends CStoreInterpreter {
   override def id = Array("imperative")
 
   import Common._
@@ -59,11 +60,23 @@ class ImperativeInterpreter extends CStoreInterpreter {
     if (getTime(magic) > getEndTime(magic)) {
       null
     } else {
-      magic.phaseParms.curIter += 1
-      if (getResultType(magic) != FixedPoint)
-        magic.phaseParms.delayUpdate = true
-      else
-        magic.phaseParms.delayUpdate = false
+      val pp = magic.phaseParms
+      pp.curIter += 1
+      if (getResultType(magic) != FixedPoint) {
+        if (parDiscr) pp.delayUpdate = true
+        else          pp.delayUpdate = false
+        pp.doDiscrete = true
+        if (contWithDiscr) pp.doEquationT = true
+        else               pp.doEquationT = false
+        pp.doEquationI = false
+      } else {
+        if (parCont) pp.delayUpdate = true
+        else         pp.delayUpdate = false
+        pp.doDiscrete = false
+        if (contWithDiscr) pp.doEquationT = false
+        else               pp.doEquationT = true
+        pp.doEquationI = true
+      }
       val chtset = traverse(evalStep(p, magic), st)
       val rt = getResultType(magic) match {
         case Discrete | Continuous =>
@@ -137,6 +150,5 @@ class ImperativeInterpreter extends CStoreInterpreter {
 
 }
 
-// The ImperativeInterpreter is stateless hence it is okay to have a
-// single global instance
-object ImperativeInterpreter extends ImperativeInterpreter
+object ImperativeInterpreter extends ImperativeInterpreter(true,false,false)
+

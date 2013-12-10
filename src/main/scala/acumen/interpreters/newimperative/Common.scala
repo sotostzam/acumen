@@ -46,6 +46,9 @@ object Common {
   class PhaseParms {
     var curIter : Int = 0;
     var delayUpdate = false;
+    var doDiscrete = false;
+    var doEquationT = false;
+    var doEquationI = false;
   }
 
   case class Object(
@@ -402,13 +405,14 @@ object Common {
         throw BadMove()
     }
 
-  def evalContinuousAction(a: ContinuousAction, env: Env, p: Prog, magic: Object) =
+  def evalContinuousAction(a: ContinuousAction, env: Env, p: Prog, magic: Object): Changeset =
     a match {
-      case EquationT(Dot(e, x), t) =>
+      case EquationT(Dot(e, x), t) => if (magic.phaseParms.doEquationT) {
         val VObjId(Some(a)) = evalExpr(e, p, env)
         val vt = evalExpr(t, p, env)
         setField(a, x, vt)
-      case EquationI(Dot(e, x), t) =>
+      } else noChange
+      case EquationI(Dot(e, x), t) => if (magic.phaseParms.doEquationI) {
         val dt = getTimeStep(magic)
         val VObjId(Some(id)) = evalExpr(e, p, env)
         val vt = evalExpr(t, p, env)
@@ -423,6 +427,7 @@ object Common {
           case _ =>
             throw BadLhs()
         })
+      } else noChange
       case _ =>
         throw ShouldNeverHappen() // FIXME: fix that with refinement types
     }
@@ -439,8 +444,9 @@ object Common {
     res
   }
 
-  def evalActions(as: List[Action], env: Env, p: Prog, magic: Object): Changeset =
+  def evalActions(as: List[Action], env: Env, p: Prog, magic: Object): Changeset = {
     combine(as, evalAction(_: Action, env, p, magic))
+  }
 
   def evalAction(a: Action, env: Env, p: Prog, magic: Object): Changeset = {
     a match {
@@ -463,21 +469,18 @@ object Common {
           case None    => throw NoMatch(gv)
         }
       case Discretely(da) =>
-        val ty = getResultType(magic)
-        if (ty != FixedPoint)
+        if (magic.phaseParms.doDiscrete)
           evalDiscreteAction(da, env, p, magic)
         else noChange
       case Continuously(ca) =>
-        val ty = getResultType(magic)
-        if (ty == FixedPoint)
-          evalContinuousAction(ca, env, p, magic)
-        noChange
+        evalContinuousAction(ca, env, p, magic)
     }
   }
 
   def evalStep(p: Prog, magic: Object)(o: Object): Changeset = {
     val as = classDef(getClassOf(o), p).body
     val env = HashMap((self, VObjId(Some(o))))
+    assert(o.phaseParms eq magic.phaseParms)
     evalActions(as, env, p, magic)
   }
 
