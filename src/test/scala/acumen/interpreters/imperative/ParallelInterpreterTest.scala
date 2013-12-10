@@ -127,6 +127,6 @@ class ParallelInterpreterTest extends InterpreterTestBase {
     //assert(res)
   }
 
-  testExamples()
+  testExamples({f => f.startsWith("examples/XXX_internal/test/ping-pong")})
   testShouldRun
 }
