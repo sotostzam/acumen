@@ -41,13 +41,9 @@ class ImperativeInterpreter(val parDiscr: Boolean = true,
 
   def init(prog: Prog): (Prog, Store) = {
     val magic = fromCStore(initStoreImpr, CId(0))
-    /* WARNING: the following line works because there is no children access check
-       if one of the instructions of the provate section tries to access magic,
-       and there was a check, this would crash (which we don't want) */
     val (sd1, sd2) = Random.split(Random.mkGen(0))
-    val mainObj = mkObj(cmain, prog, None, sd1, List(VObjId(Some(magic))), magic, 1)
+    val mainObj = mkObj(cmain, prog, IsMain, sd1, List(VObjId(Some(magic))), magic, 1)
     magic.seed = sd2
-    changeParent(magic, mainObj)
     val cprog = CleanParameters.run(prog, CStoreInterpreterType)
     val sprog = Simplifier.run(cprog)
     val mprog = Prog(magicClass :: sprog.defs)

@@ -186,6 +186,11 @@ object Common {
   def logReparent(o: ObjId, p: ObjId) = SomeChange(Set.empty, Set((o, p)))
   def logModified = SomeChange(Set.empty, Set.empty)
 
+  def asObjId(v: Val) = v match {
+    case VObjId(Some(id)) => id
+    case _ => throw NotAnObject(v)
+  }
+
   /* get self reference in an env */
   def selfObjId(e: Env): ObjId =
     e(self) match {
@@ -271,12 +276,14 @@ object Common {
         case Var(n)        => env.get(n).getOrElse(VClassName(ClassName(n.x)))
         case Index(v,i)    => evalIndexOp(eval(env, v), eval(env, i))
         case Dot(v, Name("children", 0)) =>
-          val VObjId(Some(id)) = eval(env, v)
+          val id = asObjId(eval(env, v))
+          checkAccessOk(id, env)
           //id synchronized { VList((id.children map VObjId[ObjId]).toList) }
           VList((id.children map (c => VObjId(Some(c)))).toList)
         /* e.f */
         case Dot(e, f) =>
-          val VObjId(Some(id)) = eval(env, e)
+          val id = asObjId(eval(env, e))
+          checkAccessOk(id, env)
           getField(id, f)
         /* x && y */
         case Op(Name("&&", 0), x :: y :: Nil) =>
@@ -322,9 +329,12 @@ object Common {
     eval(env, e)
   }
 
+  sealed abstract class ParentParm
+  case object IsMain extends ParentParm
+  case class ParentIs(id: ObjId) extends ParentParm
   /* create an env from a class spec and init values */
-  def mkObj(c: ClassName, p: Prog, prt: Option[ObjId], sd: (Int, Int),
-            v: List[Val], magic: Object, childrenCounter: Int = 0): Object = {
+  def mkObj(c: ClassName, p: Prog, prt: ParentParm, 
+            sd: (Int, Int), v: List[Val], magic: Object, childrenCounter: Int = 0): Object = {
     val cd = classDef(c, p)
     val base = MMap((classf, new ValVal(VClassName(c))))
     val pub = base ++ (cd.fields zip v.map{new ValVal(_)})
@@ -339,12 +349,12 @@ object Common {
     }
 
     val res = prt match {
-      case None =>
-        Object(CId.nil, pub, new PhaseParms, prt, childrenCounter, sd, Vector.empty)
-      case Some(p) =>
+      case IsMain =>
+        Object(CId.nil, pub, magic.phaseParms, None, childrenCounter, sd, Vector(magic))
+      case ParentIs(p) =>
         val counter = p.ccounter
         p.ccounter += 1
-        Object(counter :: p.id, pub, p.phaseParms, prt, childrenCounter, sd, Vector.empty)
+        Object(counter :: p.id, pub, p.phaseParms, Some(p), childrenCounter, sd, Vector.empty)
     }
 
     val vs = ctrs map {
@@ -355,16 +365,16 @@ object Common {
         }
         val ves = es map (evalExpr(_, p, Map(self -> VObjId(Some(res)))))
         val nsd = getNewSeed(res)
-        VObjId(Some(mkObj(cn, p, Some(res), nsd, ves, magic)))
+        VObjId(Some(mkObj(cn, p, ParentIs(res), nsd, ves, magic)))
       case ExprRhs(e) =>
         evalExpr(e, p, Map(self -> VObjId(Some(res))))
     }
     val priv = privVars zip vs.map{new ValVal(_)}
     res.fields = pub ++ priv
     prt match {
-      case Some(resp) =>
+      case ParentIs(resp) =>
         resp.children = resp.children :+ res
-      case None => ()
+      case IsMain => ()
     }
     res
   }
@@ -372,7 +382,8 @@ object Common {
   def evalDiscreteAction(a: DiscreteAction, env: Env, p: Prog, magic: Object): Changeset =
     a match {
       case Assign(Dot(e, x), t) =>
-        val VObjId(Some(id)) = evalExpr(e, p, env)
+        val id = asObjId(evalExpr(e, p, env))
+        checkAccessOk(id, env)
         val vt = evalExpr(t, p, env)
         setField(id, x, vt)
       case Assign(_, _) =>
@@ -385,21 +396,26 @@ object Common {
         val ves = es map (evalExpr(_, p, env))
         val self = selfObjId(env)
         val sd = getNewSeed(self)
-        val fa = mkObj(c, p, Some(self), sd, ves, magic)
+        val fa = mkObj(c, p, ParentIs(self), sd, ves, magic)
         lhs match {
           case None => logModified
           case Some(Dot(e, x)) =>
-            val VObjId(Some(id)) = evalExpr(e, p, env)
+            val id = asObjId(evalExpr(e, p, env))
+            checkAccessOk(id, env)
             logModified || setField(id, x, VObjId(Some(fa)))
           case Some(_) => throw BadLhs()
         }
       case Elim(e) =>
-        val VObjId(Some(id)) = evalExpr(e, p, env)
+        val id = asObjId(evalExpr(e, p, env))
+        checkAccessOk(id, env)
         logDead(id)
       case Move(Dot(o1, x), o2) =>
-        val VObjId(Some(o1Id)) = evalExpr(o1, p, env)
-        val VObjId(Some(xId)) = getField(o1Id, x)
-        val VObjId(Some(o2Id)) = evalExpr(o2, p, env)
+        val o1Id = asObjId(evalExpr(o1, p, env))
+        checkAccessOk(o1Id, env)
+        val xId = asObjId(getField(o1Id, x))
+        checkIsChildOf(xId, o1Id)
+        val o2Id = asObjId(evalExpr(o2, p, env))
+        checkAccessOk(o2Id, env)
         logReparent(xId, o2Id)
       case Move(_, _) =>
         throw BadMove()
@@ -414,7 +430,7 @@ object Common {
       } else noChange
       case EquationI(Dot(e, x), t) => if (magic.phaseParms.doEquationI) {
         val dt = getTimeStep(magic)
-        val VObjId(Some(id)) = evalExpr(e, p, env)
+        val id = asObjId(evalExpr(e, p, env))
         val vt = evalExpr(t, p, env)
         val lhs = getField(id, x)
         setField(id, x, lhs match {
@@ -488,6 +504,18 @@ object Common {
     val r = f(root)
     val cs = root.children
     if (cs.isEmpty) r else r || combine(cs, traverseSimple(f, _: ObjId))
+  }
+
+  /* runtime checks, should be disabled once we have type safety */
+
+  def checkAccessOk(id:ObjId, env:Env) : Unit = {
+    val sel = selfObjId(env)
+    if (sel != id && ! (sel.children contains id)) 
+      throw AccessDenied(id,sel,sel.children.toList)
+  }
+
+  def checkIsChildOf(child:ObjId, parent:ObjId) : Unit = {
+    if (! (parent.children contains child)) throw NotAChildOf(child,parent)
   }
   
 }
