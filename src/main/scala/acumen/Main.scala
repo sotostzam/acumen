@@ -56,6 +56,7 @@ object Main {
     "--dont-fork             disable auto-forking of a new JVM when required")
   def experimentalOptsHelp = Array(
     "--full-help",
+    "-i|semantics " + Main.fullInterpreterHelpString.mkString("\n               "),
     "--templates             enables template expansion in the source code editor.",
     "--prune-semantics       hide experimental semantics in the U.I.",
     "--extract-ha"
@@ -163,7 +164,7 @@ object Main {
       case "experimental" :: Nil => reference.experimental.Interpreter
       case "parallel" :: tail => selectParallellInterpreter(tail)
       case "imperative" :: Nil => imperative.ImperativeInterpreter
-      case "newimperative" :: Nil => newimperative.ImperativeInterpreter
+      case "newimperative" :: tail => selectImperativeInterpreter(tail)
       case "enclosure" :: tail => selectEnclosureInterpreter(tail)
       case _ => null
     }
@@ -173,6 +174,7 @@ object Main {
   }
   def interpreterHelpString = "reference|original|experimental|parallel[-<num threads>]|enclosure[-pwl|-evt]"
   // parallel-sharing should not be documented but recognized for testing
+  def fullInterpreterHelpString = List(interpreterHelpString,"|newimperative[-parDiscr|-seqDiscr][-parCont|-seqCont][-contWithDiscr|contWithCont]")
 
   def selectParallellInterpreter(args: List[String], 
                                  numThreads: Int = -1, 
@@ -188,6 +190,22 @@ object Main {
         case (-1, "sharing") => sharing
         case (_, "sharing") => sharing(numThreads)
       }
+      case _ => null
+    }
+  }
+
+  def selectImperativeInterpreter(args: List[String],
+                                  parDiscr: Boolean = true, 
+                                  parCont: Boolean = false,
+                                  contWithDiscr: Boolean = false) : Interpreter = {
+    args match {
+      case "parDiscr" :: tail => selectImperativeInterpreter(tail, true, parCont, contWithDiscr)
+      case "seqDiscr" :: tail => selectImperativeInterpreter(tail, false, parCont, contWithDiscr)
+      case "parCont" :: tail => selectImperativeInterpreter(tail, parDiscr, true, contWithDiscr)
+      case "seqCont" :: tail => selectImperativeInterpreter(tail, parDiscr, false, contWithDiscr)
+      case "contWithDiscr" :: tail => selectImperativeInterpreter(tail, parDiscr, parCont, true)
+      case "contWithCont" :: tail => selectImperativeInterpreter(tail, parDiscr, parCont, false)
+      case Nil => new interpreters.newimperative.ImperativeInterpreter(parDiscr,parCont,contWithDiscr)
       case _ => null
     }
   }

@@ -31,9 +31,12 @@ import scala.annotation.tailrec
 class ImperativeInterpreter(val parDiscr: Boolean = true, 
                             val parCont: Boolean = false,
                             val contWithDiscr: Boolean = false) extends CStoreInterpreter {
-  override def id = Array("imperative")
+  override def id = Array("newimperative", 
+                          if (parDiscr) "parDiscr" else "seqDiscr",
+                          if (parCont) "parCont" else "seqDiscr",
+                          if (contWithDiscr) "contWithDiscr" else "contWithCont")
 
-  import Common._
+  import Common._ 
 
   type Store = Common.Store
   def repr (s:Store) : CStore = Common.repr(s)

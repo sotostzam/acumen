@@ -612,6 +612,7 @@ class App extends SimpleSwingApplication {
   interpreter = InterpreterCntrl.cntrlForInterpreter(Main.interpreter);
   interpreter.interpreter.id.toList match {
     case "reference" :: _ => bar.semantics.refStandard.selected = true
+    case "newimperative" :: _ => bar.semantics.refStandardOpt.selected = true
     case "original" :: _=> bar.semantics.refOriginal.selected = true
     case "experimental" :: _=> bar.semantics.refExperimental.selected = true
     case "imperative" :: _ => bar.semantics.impr.selected = true
