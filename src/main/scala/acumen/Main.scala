@@ -138,6 +138,7 @@ object Main {
       case "--dont-fork" :: tail =>
         dontFork = true; parseArgs(tail)
       case ("--passes"|"-p") :: p :: tail =>
+        commandLineParms = true
         validatePassesStr(p); extraPasses = splitPassesString(p); parseArgs(tail)
       case opt ::  tail if opt.startsWith("-") =>
         System.err.println("Unrecognized Option: " + opt)

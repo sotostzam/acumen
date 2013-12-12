@@ -637,6 +637,8 @@ class App extends SimpleSwingApplication {
 
   def dumpParms() = {
     if (Main.commandLineParms) {
+      console.log("Passes: " + Main.extraPasses.mkString(","))
+      console.newLine
       console.log("Interpreter: " + interpreter.interpreter.id.mkString("-"))
       console.newLine
     }
