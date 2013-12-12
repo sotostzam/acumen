@@ -37,6 +37,9 @@ object Main {
   var synchEditorWithBrowser = true // Synchronize code editor with file browser
   var extractHA = false
   var displayHelp = "none"
+  var commandLineParms = false 
+  // ^^ true when certain command line paramatics are specified, will
+  //    enable console message so that its clear what options are in effect
 
   var positionalArgs = new ArrayBuffer[String]
 
@@ -102,6 +105,7 @@ object Main {
       case ("--help-bench-enclosures") :: tail =>
         displayHelp = "bench-enclosures"; parseArgs(tail)
       case ("--semantics"|"--interpreter"|"-i") :: i :: tail =>
+        commandLineParms = true
         interpreter = selectInterpreter(i); parseArgs(tail)
       case ("--model") :: f :: tail =>
         openFile = checkFile(f); parseArgs(tail)

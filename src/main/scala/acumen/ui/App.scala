@@ -608,6 +608,7 @@ class App extends SimpleSwingApplication {
   def setInterpreter(args: String*) = {
     val intr = Main.selectInterpreter(args:_*)
     interpreter = InterpreterCntrl.cntrlForInterpreter(intr);
+    dumpParms()
   }
   interpreter = InterpreterCntrl.cntrlForInterpreter(Main.interpreter);
   interpreter.interpreter.id.toList match {
@@ -619,6 +620,13 @@ class App extends SimpleSwingApplication {
     case "parallel" :: _ => bar.semantics.par.selected = true
     case "enclosure" :: tail if tail.contains("pwl") => bar.semantics.pwl.selected = true
     case "enclosure" :: tail if tail.contains("evt") => bar.semantics.et.selected = true
+  }
+
+  def dumpParms() = {
+    if (Main.commandLineParms) {
+      console.log("Interpreter: " + interpreter.interpreter.id.mkString("-"))
+      console.newLine
+    }
   }
 
   controller.start()
@@ -654,6 +662,7 @@ class App extends SimpleSwingApplication {
           console.newLine
         case Starting =>
           console.fadeOldMessages()
+          dumpParms()
           console.log("Starting...")
         case Resuming if state != Starting =>
           console.log("Resuming...")
