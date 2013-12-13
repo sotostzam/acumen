@@ -364,7 +364,7 @@ class BatActuator(n,p1,tablerow,tablecolum,maxE)
                  cast = cos(alpha)*sin(theta);
                  cact = cos(alpha)*cos(theta);
              in
-             [sast*r'' - sast*r*theta'^2 + sact*r*alpha'' + 2*cast*alpha'*r' + 2*sact*r'*theta' -     sast*r*alpha'^2 + cast*r*alpha''+2*cact*r*alpha'*theta',
+             [sast*r'' - sast*r*theta'^2 + sact*r*theta'' + 2*cast*alpha'*r' + 2*sact*r'*theta' -     sast*r*alpha'^2 + cast*r*alpha''+2*cact*r*alpha'*theta',
               sact*r'' - sast*r*theta'' + 2*cact*alpha'*r' - 2*sast*r'*theta' - sact*r*alpha'^2 + cact*r*alpha'' - sact*r*theta'^2 - 2*cast*r*alpha'*theta',
               cos(alpha)*r'' - 2*sin(alpha)*alpha'*r' - cos(alpha)*r*alpha'^2 - sin(alpha)*r*alpha''
              ]end;
