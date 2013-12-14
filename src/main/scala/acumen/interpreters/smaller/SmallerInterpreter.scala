@@ -1,6 +1,6 @@
 package acumen
 package interpreters
-package simple
+package smaller
 
 import scala.collection.immutable.HashMap
 
@@ -16,9 +16,9 @@ import acumen.util.Canonical.{
 
 import scala.annotation.tailrec
 
-class ImperativeInterpreter extends CStoreInterpreter {
+class SmallerInterpreter extends CStoreInterpreter {
 
-  override def id = Array("imperative")
+  override def id = Array("smaller")
 
   import Common._
 
@@ -127,4 +127,4 @@ class ImperativeInterpreter extends CStoreInterpreter {
 
 // The ImperativeInterpreter is stateless hence it is okay to have a
 // single global instance
-object ImperativeInterpreter extends ImperativeInterpreter
+object SmallerInterpreter extends SmallerInterpreter

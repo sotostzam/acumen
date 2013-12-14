@@ -174,12 +174,13 @@ object Main {
       case "parallel" :: tail => selectParallellInterpreter(tail)
       case "imperative" :: Nil => imperative.ImperativeInterpreter
       case "newimperative" :: tail => selectImperativeInterpreter(tail)
+      case "smaller" :: Nil => smaller.SmallerInterpreter
       case "enclosure" :: tail => selectEnclosureInterpreter(tail)
       case _ => null
     }
     if (res == null) 
       throw UnrecognizedInterpreterString(args.mkString("-"))
-      res
+    res
   }
   def interpreterHelpString = "reference|original|experimental|parallel[-<num threads>]|enclosure[-pwl|-evt]"
   // parallel-sharing should not be documented but recognized for testing

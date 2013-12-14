@@ -141,6 +141,7 @@ class App extends SimpleSwingApplication {
   private val floatingPointOriginalAction     = mkActionMask("Traditional 2012",                    VK_2, NONE,       shortcutMask | SHIFT_MASK, setInterpreter("original"))
   private val floatingPointImperativeAction   = mkActionMask("Traditional 2012 (Opt)",              NONE, VK_I,       shortcutMask | SHIFT_MASK, setInterpreter("imperative")) 
   private val floatingPointParallelAction     = mkActionMask("Traditional 2012 (Par)",              NONE, VK_P,       shortcutMask | SHIFT_MASK, promptForNumberOfThreads)
+  private val floatingPointSmallerAction      = mkActionMask("Smaller [Experimental]",              NONE, NONE,       shortcutMask | SHIFT_MASK, setInterpreter("smaller")) 
   private val pwlHybridSolverAction           = mkActionMask("Enclosure (PWL)",                     VK_L, VK_L,       shortcutMask | SHIFT_MASK, setInterpreter("enclosure-pwl")) 
   private val eventTreeHybridSolverAction     = mkActionMask("Enclosure (EVT)",                     VK_T, VK_T,       shortcutMask | SHIFT_MASK, setInterpreter("enclosure-evt"))
   private val contractionAction               = mkActionMask("Contraction",                         VK_C, VK_C,       shortcutMask | SHIFT_MASK, enclosure.Interpreter.toggleContraction)
@@ -507,6 +508,11 @@ class App extends SimpleSwingApplication {
         enableWhenStopped(this)
         action = floatingPointParallelAction
       }
+      val smaller = new RadioMenuItem("") {
+        selected = false
+        enableWhenStopped(this)
+        action = floatingPointSmallerAction
+      }
       val pwl = new RadioMenuItem("") {
         action = pwlHybridSolverAction
         enableWhenStopped(this)
@@ -519,7 +525,7 @@ class App extends SimpleSwingApplication {
         selected = false // Main.useEnclosures &&
           //enclosure.Interpreter.strategy.eventEncloser.getClass == classOf[TreeEventEncloser]
       }
-      val bg = new ButtonGroup(refStandard, refStandardOpt, refExperimental, refOriginal, impr, par, pwl, et)
+      val bg = new ButtonGroup(refStandard, refStandardOpt, refExperimental, refOriginal, impr, par, smaller, pwl, et)
       val ls = new CheckMenuItem("") {
         action = contractionAction
         enabledWhenStopped += (this, () => interpreter.interpreter.getClass == enclosure.Interpreter.getClass)
@@ -543,7 +549,7 @@ class App extends SimpleSwingApplication {
       mnemonic = Key.S
       contents += refStandard
       if (Main.enableAllSemantics)
-        contents ++= Seq(refStandardOpt, new Separator, refExperimental, new Separator, refOriginal, impr, par)
+        contents ++= Seq(refStandardOpt, new Separator, refExperimental, new Separator, refOriginal, impr, par, new Separator, smaller)
       contents ++= Seq(new Separator, pwl, et, new Separator, ls)
       if (Main.enableAllSemantics)
         contents ++= Seq(new Separator, lc)
@@ -633,6 +639,7 @@ class App extends SimpleSwingApplication {
     case "experimental" :: _=> bar.semantics.refExperimental.selected = true
     case "imperative" :: _ => bar.semantics.impr.selected = true
     case "parallel" :: _ => bar.semantics.par.selected = true
+    case "smaller" :: _ => bar.semantics.smaller.selected = true
     case "enclosure" :: tail if tail.contains("pwl") => bar.semantics.pwl.selected = true
     case "enclosure" :: tail if tail.contains("evt") => bar.semantics.et.selected = true
   }
