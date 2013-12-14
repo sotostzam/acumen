@@ -1,6 +1,11 @@
 package acumen
+package passes
 
 import ASTUtil.exprSubParts
+
+/* Pass to topologically sort the private section.  Used as part of
+ * the "normalization" passes, but currently not enabled by
+ * default. */
 
 // FIXME: Need to do some error checking.  In particular if a variable
 //   is defined in both the objects contractor (i.e. field) and the

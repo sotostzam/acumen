@@ -1,5 +1,11 @@
 package acumen
+package passes
+
 import Errors.ShouldNeverHappen
+
+/* Pass to remove all not using De Morgan's law.  Used after
+ * "extract-ha" to enhance the subst of models the enclosure
+ * interpreter can handle. */
 
 object KillNot extends ASTMap {
 

@@ -1,7 +1,12 @@
 package acumen
+package passes
 
 import acumen.extract.Util.getName
 import scala.collection.mutable.{HashSet => MutSet}
+
+/* Pass to eliminate constants when possible.  Currently only works in
+ * single objects models.  Used before the "extract-ha" pass to
+ * enhance the extraction. */
 
 object ElimConst {
 

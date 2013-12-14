@@ -1,9 +1,12 @@
 package acumen
+package passes
 
 import acumen.Pretty._
 import acumen.interpreters.Common.classDef
 
 import scala.collection.mutable.ListBuffer
+
+// *** EXPERIMENTAL CODE ***
 
 // Flatten takes an model with multiple objects and attempts to
 // flatten them into a single Main object.

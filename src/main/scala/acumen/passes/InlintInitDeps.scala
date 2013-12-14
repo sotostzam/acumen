@@ -1,7 +1,11 @@
 package acumen
+package passes
 
 import scala.collection.mutable.ListBuffer
 import ASTUtil.exprSubParts
+
+/* Pass to inline dependencies in the private section.  Used as part
+ * of the "normalization" passes, but currently not enabled by default. */
 
 object InlineInitDeps {
   def proc(p: Prog) : Prog = {

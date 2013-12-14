@@ -239,12 +239,12 @@ object Main {
     // Order matters!  The order is the order the passes are applied.
     // And each passes is grouped into mutually excursive categories
     // in which only one pass from that category is applied.
-    mkPass("toposort", "Topo. Sort. Priv Section", TopoSortInit.proc(_)),
-    mkPass("inlinepriv", "Inline Priv Deps.", InlineInitDeps.proc(_)),
-    mkPass("flatten", "Object Flattening (Simple Version)", FlattenSimple.run(_)),
-    mkPass("elimconst", "Eliminate Constants (Single objects only)", ElimConst.proc(_)),
+    mkPass("toposort", "Topo. Sort. Priv Section", passes.TopoSortInit.proc(_)),
+    mkPass("inlinepriv", "Inline Priv Deps.", passes.InlineInitDeps.proc(_)),
+    mkPass("flatten", "Object Flattening (Simple Version)", passes.FlattenSimple.run(_)),
+    mkPass("elimconst", "Eliminate Constants (Single objects only)", passes.ElimConst.proc(_)),
     mkPass("extract-ha", "H.A. Extraction", new extract.Extract(_,debugExtract).res),
-    mkPass("killnot", "Kill Nots", KillNot.mapProg(_)),
+    mkPass("killnot", "Kill Nots", passes.KillNot.mapProg(_)),
     mkPass("desugar", "Desugarer", Desugarer(odeTransformMode=TopLevel).run(_), category="desugar"),
     mkPass("desugar-local", "Desugarer (Local)", Desugarer(odeTransformMode=Local).run(_), category="desugar"),
     mkPass("typecheck", "Type Checker", {prog => 

@@ -1,5 +1,6 @@
 package acumen
 
+import passes.{FlattenSimple,InlineInitDeps}
 import org.scalacheck._
 import Gen._
 import Shrink._
