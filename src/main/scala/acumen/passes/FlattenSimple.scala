@@ -73,7 +73,7 @@ object FlattenSimple {
     FlattenedClassDef(priv.toList, body)
   }
 
-  class Fixup(prefix: String) extends ASTMap {
+  class Fixup(prefix: String) extends util.ASTMap {
     override def mapExpr(e0: Expr) = super.mapExpr(e0) match {
       case     Dot(self@Var(Name("self",0)), name) => 
         Dot(self, addPrefix(name))

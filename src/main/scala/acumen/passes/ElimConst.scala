@@ -22,7 +22,7 @@ object ElimConst {
     var candidates = cd.priv.collect{case Init(name, ExprRhs(v)) if extract.Util.extractDeps(v).isEmpty => (name, v)}.toMap
     var kill = new MutSet[String]
     def killIt(n: Name) {kill += n.x}
-    new Visitor {
+    new util.Visitor {
       override def visitContinuousAction(a: ContinuousAction) : Unit = a match {
         case Equation(lhs, rhs) => {getName(lhs).foreach{n => killIt(n)}}
         case EquationI(lhs, rhs) => {getName(lhs).foreach{n => killIt(n)}}
@@ -34,7 +34,7 @@ object ElimConst {
     }.visitClassDef(cd)
     var consts : Map[Name,Expr] = candidates.filter{case (Name(n,_),_) => !kill.contains(n)}
     val init = cd.priv.filter{case Init(n, _) if (consts.contains(n)) => false; case _ => true}
-    val body = new ASTMap {
+    val body = new util.ASTMap {
       override def mapExpr(e: Expr) : Expr = {
         getName(e) match {
           case Some(n) => consts.get(n) match {

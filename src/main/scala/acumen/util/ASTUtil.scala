@@ -1,4 +1,5 @@
 package acumen
+package util
 
 object ASTUtil {
 

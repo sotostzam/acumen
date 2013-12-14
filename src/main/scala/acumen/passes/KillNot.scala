@@ -7,7 +7,7 @@ import Errors.ShouldNeverHappen
  * "extract-ha" to enhance the subst of models the enclosure
  * interpreter can handle. */
 
-object KillNot extends ASTMap {
+object KillNot extends util.ASTMap {
 
   def negate(e: Expr) : Expr = e match {
     case Op(Name(op,_), es) => op match {

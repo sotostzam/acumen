@@ -1,4 +1,5 @@
 package acumen
+package util
 
 // ASTMap performs a map over the AST to transform it into a new AST
 // with a similar structure, also makes a semi-deep copy so that every

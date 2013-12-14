@@ -157,7 +157,7 @@ object ExtractPasses {
   // Const subst.
   def constSubst(modes: Seq[Mode]): Unit = {
     modes.foreach{m => 
-      val subst = new ASTMap {
+      val subst = new util.ASTMap {
         val repl = m.preConds.collect{case Cond.MemberOf(name, values) if values.size == 1 => (name, values.head)}.toMap
         override def mapExpr(e: Expr) : Expr = {
           getName(e) match {

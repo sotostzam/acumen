@@ -2,7 +2,7 @@ package acumen
 package passes
 
 import scala.collection.mutable.ListBuffer
-import ASTUtil.exprSubParts
+import util.ASTUtil.exprSubParts
 
 /* Pass to inline dependencies in the private section.  Used as part
  * of the "normalization" passes, but currently not enabled by default. */
@@ -15,7 +15,7 @@ object InlineInitDeps {
   def procPriv(priv: List[Init]) : List[Init] = {
     val processed = new ListBuffer[Init]
     priv.foreach{init => 
-      val res = new ASTMap {
+      val res = new util.ASTMap {
         override def mapExpr(e: Expr) = e match {
           case Var(name) => lookup(name)
           case e => super.mapExpr(e)

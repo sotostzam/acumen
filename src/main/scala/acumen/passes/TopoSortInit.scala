@@ -1,7 +1,7 @@
 package acumen
 package passes
 
-import ASTUtil.exprSubParts
+import util.ASTUtil.exprSubParts
 
 /* Pass to topologically sort the private section.  Used as part of
  * the "normalization" passes, but currently not enabled by

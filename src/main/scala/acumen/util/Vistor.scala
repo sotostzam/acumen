@@ -1,4 +1,5 @@
 package acumen
+package util
 
 // Vistor performs a traveal over the AST using the typical vistor
 // pattern.  
@@ -39,8 +40,6 @@ class Visitor {
 
   def visitActions(as: List[Action]) : Unit = as.foreach{visitAction(_)}
   
-  // Must make a copy of Expr even if there is nothing to do as 
-  // Expr has state information associated with it
   def visitExpr(e: Expr) : Unit = e match {
     case Lit(v) => /* nothing to do */
     case Var(v) => /* nothing to do */

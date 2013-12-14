@@ -194,7 +194,7 @@ class TypeCheck(prog0: Prog) {
   //
 
   // Make a copy of the AST and reset the types for each class
-  val prog = new ASTMap {
+  val prog = new util.ASTMap {
     override def mapClassDef(c0: ClassDef) = {
       val c = super.mapClassDef(c0) // make a copy
       c._types = mutable.Map.empty[Name, TypeLike]
