@@ -544,7 +544,9 @@ class App extends SimpleSwingApplication {
       contents += refStandard
       if (Main.enableAllSemantics)
         contents ++= Seq(refStandardOpt, new Separator, refExperimental, new Separator, refOriginal, impr, par)
-      contents ++= Seq(new Separator, pwl, et, new Separator, ls, lc)
+      contents ++= Seq(new Separator, pwl, et, new Separator, ls)
+      if (Main.enableAllSemantics)
+        contents ++= Seq(new Separator, lc)
     }
    
     contents += new Menu("Help") {
