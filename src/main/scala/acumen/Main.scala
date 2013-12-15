@@ -243,7 +243,7 @@ object Main {
     mkPass("inlinepriv", "Inline Priv Deps.", passes.InlineInitDeps.proc(_)),
     mkPass("flatten", "Object Flattening (Simple Version)", passes.FlattenSimple.run(_)),
     mkPass("elimconst", "Eliminate Constants (Single objects only)", passes.ElimConst.proc(_)),
-    mkPass("extract-ha", "H.A. Extraction", new extract.Extract(_,debugExtract).res),
+    mkPass("extract-ha", "H.A. Extraction", new passes.ExtractHA(_,debugExtract).res),
     mkPass("killnot", "Kill Nots", passes.KillNot.mapProg(_)),
     mkPass("desugar", "Desugarer", Desugarer(odeTransformMode=TopLevel).run(_), category="desugar"),
     mkPass("desugar-local", "Desugarer (Local)", Desugarer(odeTransformMode=Local).run(_), category="desugar"),

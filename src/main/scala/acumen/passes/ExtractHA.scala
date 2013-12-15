@@ -3,17 +3,18 @@
 // Mostly follows algo.txt; however, the data structures used here are
 // slightly different and the order the steps is not exactly the same.
 package acumen
-package extract
+package passes
 
 import scala.collection.mutable.{ArrayBuffer,ListBuffer,Map=>MutMap}
 import scala.text._
 import scala.text.Document.nest
 
+import extract_ha._
 import Util._
 import CondImplicits._
 import Pretty._
 
-object Extract {
+object ExtractHA {
   // Constant
   val MODE = Name("$mode", 0)
   val MODE_VAR = Dot(Var(Name("self", 0)), MODE)
@@ -50,9 +51,9 @@ object Extract {
   }
 }
 
-class Extract(val prog: Prog, private val debugMode: Boolean = false) 
+class ExtractHA(val prog: Prog, private val debugMode: Boolean = false) 
 {
-  import Extract._
+  import ExtractHA._
   import ExtractPasses._
 
   //

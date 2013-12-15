@@ -1,7 +1,7 @@
 package acumen
 package passes
 
-import acumen.extract.Util.getName
+import acumen.passes.extract_ha.Util.getName
 import scala.collection.mutable.{HashSet => MutSet}
 
 /* Pass to eliminate constants when possible.  Currently only works in
@@ -12,14 +12,14 @@ object ElimConst {
 
   def proc(p: Prog) : Prog = {
     if (p.defs.size > 1) 
-      throw acumen.extract.OtherUnsupported("Multiple objects not supported.")
+      throw extract_ha.OtherUnsupported("Multiple objects not supported.")
     if (p.defs(0).name != ClassName("Main"))
-      throw acumen.extract.OtherUnsupported("Could not find Main class.")
+      throw extract_ha.OtherUnsupported("Could not find Main class.")
     Prog(List(elimConst(p.defs(0))))
   }
 
   private def elimConst(cd: ClassDef) : ClassDef = {
-    var candidates = cd.priv.collect{case Init(name, ExprRhs(v)) if extract.Util.extractDeps(v).isEmpty => (name, v)}.toMap
+    var candidates = cd.priv.collect{case Init(name, ExprRhs(v)) if extract_ha.Util.extractDeps(v).isEmpty => (name, v)}.toMap
     var kill = new MutSet[String]
     def killIt(n: Name) {kill += n.x}
     new util.Visitor {

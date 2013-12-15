@@ -15,6 +15,7 @@ import acumen.util.System.FILE_SUFFIX_MODEL
 import acumen.util.System.readFiles
 import testutil.ProgGenerator
 import acumen.testutil.TransformationTestUtil.userModeVariables
+import acumen.passes.ExtractHA
 
 trait ExtractTest {
 
@@ -65,7 +66,7 @@ trait ExtractTest {
  * 
  * Those which involve simulation are checked using the experimental reference interpreter.
  */
-object ExtractBaseTest extends Properties("Extract") with ExtractTest {
+object ExtractBaseTest extends Properties("ExtractHA") with ExtractTest {
     
   import progGenerator.arbProg
   
@@ -76,10 +77,10 @@ object ExtractBaseTest extends Properties("Extract") with ExtractTest {
    * continuous variables, which this property checks.
    */
   property("reference semantics preserving on continuous state (example models)") =
-    existingModels.map { case (name, prog) => preservesContinuousReferenceSemanticsOf(new extract.Extract(_).res, prog, Some(name)) }.foldRight(true)(_ && _) // Make sure that all models are run
+    existingModels.map { case (name, prog) => preservesContinuousReferenceSemanticsOf(new ExtractHA(_).res, prog, Some(name)) }.foldRight(true)(_ && _) // Make sure that all models are run
     
   property("reference semantics preserving on continous state (random models)") =
-    forAll { (p: Prog) => preservesContinuousReferenceSemanticsOf(new extract.Extract(_).res, p, None) }
+    forAll { (p: Prog) => preservesContinuousReferenceSemanticsOf(new ExtractHA(_).res, p, None) }
   
   /**
    * User mode variables are mode variables used in switches in the source model.
@@ -88,7 +89,7 @@ object ExtractBaseTest extends Properties("Extract") with ExtractTest {
   property("extract eliminates user mode variables") =
     forAll { (p: Prog) =>
       val umvs = userModeVariables(p)
-      val extractedModel = new extract.Extract(p).res
+      val extractedModel = new ExtractHA(p).res
       val varsInExtractedModel = extractedModel.defs.flatMap(c => c.priv.map(_.x.x))
       printErrUnless(!umvs.exists(varsInExtractedModel contains _),
         "\n\ntransformed: \n" + (Pretty pprint extractedModel))
@@ -108,12 +109,13 @@ object ExtractBaseTest extends Properties("Extract") with ExtractTest {
 }
 
 /** Properties of Extract checked by simulating existing hybrid automaton models using the enclosure interpreter. */
-object ExtractEnclosureTest extends Properties("Extract (Enclosure Semantics)") with ExtractTest {
+object ExtractEnclosureTest extends Properties("ExtractHA (Enclosure Semantics)") with ExtractTest {
     
   import progGenerator.arbProg
          
   property("enclosure semantics preserving on continuous state (enclosure example models)") =
-    enclosureModels.map{ case (name, prog) => preservesContinuousEnclosureSemanticsOf(new extract.Extract(_).res, prog, Some(name)) }.foldRight(true)(_&&_) // Make sure that all models are run
+    enclosureModels.map{ case (name, prog) => preservesContinuousEnclosureSemanticsOf(new ExtractHA(_).res, prog, Some(name)) }.foldRight(true)(_&&_) // Make sure that all models are run
   
 }
+
 

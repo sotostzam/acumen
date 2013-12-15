@@ -1,5 +1,6 @@
 package acumen
-package extract
+package passes
+package extract_ha
 
 import Pretty._
 

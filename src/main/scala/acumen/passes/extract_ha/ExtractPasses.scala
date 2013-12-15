@@ -1,5 +1,6 @@
 package acumen
-package extract
+package passes
+package extract_ha
 
 import scala.collection.immutable.{Set}
 import scala.collection.mutable.{ArrayBuffer,ListBuffer,
@@ -12,7 +13,7 @@ import CondImplicits._
 import Pretty._
 
 object ExtractPasses {
-  import Extract._
+  import ExtractHA._
 
   def rejectParallelIfs(body: IfTree[_], msg: String = "Parallel conditionals unsupported.") {
     if (body.children.map{_.megId}.distinct.length > 1)
