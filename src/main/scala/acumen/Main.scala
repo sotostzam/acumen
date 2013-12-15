@@ -257,7 +257,7 @@ object Main {
   // ^ If desc is none the alias won't show up in help screens
   val passAliases = Seq(
     PassAlias("extract", Seq("extract-ha"), None),
-    PassAlias("normalization", Seq("toposort", "inlinepriv", "elimconst", "extract-ha", "killnot"),
+    PassAlias("normalize", Seq("toposort", "inlinepriv", "elimconst", "extract-ha", "killnot"),
               Some("Normalize the program into a H.A.")))
   availPasses.indices.foreach{i => availPasses(i).idx = i}
   val passLookup : Map[String,Seq[Pass]] = {

@@ -144,7 +144,7 @@ class App extends SimpleSwingApplication {
   private val pwlHybridSolverAction           = mkActionMask("Enclosure (PWL)",                     VK_L, VK_L,       shortcutMask | SHIFT_MASK, setInterpreter("enclosure-pwl")) 
   private val eventTreeHybridSolverAction     = mkActionMask("Enclosure (EVT)",                     VK_T, VK_T,       shortcutMask | SHIFT_MASK, setInterpreter("enclosure-evt"))
   private val contractionAction               = mkActionMask("Contraction",                         VK_C, VK_C,       shortcutMask | SHIFT_MASK, enclosure.Interpreter.toggleContraction)
-  private val normalizationAction              = mkAction(    "Normalization",                       NONE, NONE,       toggleNormalization())
+  private val normalizeAction                = mkAction(    "Normalize (to H.A.)",                       NONE, NONE,       toggleNormalization())
   private val manualAction                    = mkAction(    "Reference Manual",                    VK_M, VK_F1,      manual)
   private val aboutAction                     = new Action(  "About")       { mnemonic =            VK_A; def apply = about }
   
@@ -533,8 +533,8 @@ class App extends SimpleSwingApplication {
         }
       }
       val lc = new CheckMenuItem("") {
-        action = normalizationAction
-        selected = Main.extraPasses.contains("normalization")
+        action = normalizeAction
+        selected = Main.extraPasses.contains("normalize")
       }
     }
 
@@ -558,10 +558,10 @@ class App extends SimpleSwingApplication {
 
   def toggleNormalization() = {
     import Main.extraPasses
-    if (extraPasses.contains("normalization")) 
-      extraPasses = extraPasses.filter(_ != "normalization")
+    if (extraPasses.contains("normalize")) 
+      extraPasses = extraPasses.filter(_ != "normalize")
     else
-      extraPasses = extraPasses :+ "normalization"
+      extraPasses = extraPasses :+ "normalize"
   }
 
   /* gluing everything together */
