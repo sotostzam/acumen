@@ -22,11 +22,8 @@ class CStoreCntrl(val interpreter: CStoreInterpreter) extends InterpreterCntrl {
         val ast = Parser.run(Parser.prog, progText)
         val dif = SD.run(ast)
         // transform ODEs the old-fashioned way in the original interpreter
-        val des = Desugarer(odeTransformMode = Local).run(dif)
-        prog = if (Main.extractHA)
-                 new Extract(des).res
-               else
-                 des 
+        val des = Main.applyPasses(dif, Seq("desugar-local"))
+        prog = des
       } else super.parse
     
     def sendChunk {

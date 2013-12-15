@@ -42,6 +42,7 @@ object Simplifier {
       case ForEach(x, e, b) => ForEach(x, dese(e), (simplify(b)))
       case Continuously(ca) => Continuously(desca(ca))
       case Discretely(da) => Discretely(desda(da))
+      case Claim(c) => Claim(dese(c))
     }
   }
 

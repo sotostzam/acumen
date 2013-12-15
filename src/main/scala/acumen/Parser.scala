@@ -167,7 +167,7 @@ object Parser extends MyStdTokenParsers {
   def actions = repsep(action, ";") <~ opt(";")
 
   def action: Parser[Action] =
-    switchCase | ifThenElse | forEach | discretelyOrContinuously
+    switchCase | ifThenElse | forEach | discretelyOrContinuously | claim
 
   def switchCase =
     "switch" ~! expr ~! clauses ~! "end" ^^
@@ -176,12 +176,14 @@ object Parser extends MyStdTokenParsers {
   def clauses = rep(clause)
 
   def clause =
-    "case" ~ gvalue ~ assertion ~! actions ^^
+    "case" ~ gvalue ~ claimExpr ~! actions ^^
       { case _ ~ lhs ~ invariant ~ rhs => Clause(lhs, invariant, rhs) } |
       "case" ~! gvalue ~! actions ^^
       { case _ ~ lhs ~ rhs => Clause(lhs, Lit(GBool(true)), rhs) }
 
-  def assertion = "claim" ~! expr ^^ { case "claim" ~ expr => expr }
+  def claimExpr = "claim" ~! expr ^^ { case "claim" ~ expr => expr }
+
+  def claim = claimExpr ^^ { case predicate => Claim(predicate) }
 
   def ifThenElse =
     ("if" ~! expr ~! actions) >> {

@@ -65,6 +65,18 @@ case class CStoreRes(ctrace: Stream[CStore]) extends InterpreterRes {
     dumpStep(last)
   }
 
+  def dumpContinuous(out: java.io.PrintStream) = {
+    val pp = new Pretty
+    pp.filterStore = true
+    def dumpStep(st: CStore) = {
+      out.println(pp.pprint(pp.prettyStore(st)))
+    }
+    loop { (st, n) => 
+      if (n == Continuous)
+        dumpStep(st)
+    }
+  }
+
   // Note: currently unused, here in case it is useful
   def dumpRandomSample(out: java.io.PrintStream) = {
     val pp = new Pretty

@@ -1,0 +1,141 @@
+The goal of this algorithm is to extract a H.A. from a single object
+model with with arbitrary nested ifs and switches.  
+
+THIS TEXT IS INCOMPLETE AND OUT OF DATE BUT STILL USEFUL for getting
+the basic idea.
+
+Requirements:
+
+In addition to a restricted syntax this algo. also assumes the new
+semantics and no sequential conditional actions (ifs or switches)
+
+Notes:
+
+  discr = discrete
+  cont  = continuous
+
+(abbreviations markers are not used, eventually they should just be
+expanded once the algo. is close to something that should be in a
+paper)
+
+EXTRACT SIMULATOR PARMS)
+
+Remove any assignments to simulator parameters at the top level and
+note them.
+
+SPLIT)
+
+  Split the AST into discrete and continuous phases.  Insert NoOps
+  when necessary.
+
+TRANSFORM)
+
+  For the cont phase:
+
+  a) switches become if with a special if to handle the case when non
+     of the cases match
+
+  b) unguarded assignments (both continuous and discrete) iteratively
+     get moved into deeper nested ifs, if necessary introduce else
+     clauses
+     FIXME: What does unguarded mean -- kevina
+
+  for example
+  
+       a := 10
+       if (...)
+         b := 10
+       end
+       c := 30
+
+    becomes
+
+       if (...)
+         a := 10
+         b := 20
+         c := 30
+       else
+         a := 10
+         c := 30
+
+  c) if there are still any ';' seperating anything but assignments
+     FAIL
+
+  d) else clauses become nots ie:
+
+       if (A) ...
+       else
+
+     becomes
+
+       if (A) ...
+       if (!A) ...
+
+  e) Flatten nested ifs by combining predicates.
+
+      if (A)
+        if (B)
+        if (!B) 
+      if (!A)
+        if (C)
+
+     becomes
+
+       if (A && B)
+       if (A && !B)
+       if (!A && C)
+
+CONVERT TO MODES)
+
+  Give each cont if a label ("C1", "C2", "C3" etc.) and perform the
+  following conversion:
+
+  Convert:
+
+  if (A && B) 
+    x' = ...
+    y' = ...
+  end
+
+to
+
+  if ($mode == "C1")
+    x' = ...
+    y' = ...
+  end
+
+  if (A && B)
+    $mode = "C1"
+  end
+
+  Each continuous if is now the bases for a mode.
+
+  The new descrite ifs should be considered part of the discr phase
+  for the rest of this algo.
+
+TRANSFORM DISCR)
+
+  Perform the same steps in the TRANSFORM step but for the discr phase.
+
+  Each discr if is now a reset/event
+
+ADD RESETS AND SPECIAL MODES)
+  
+  For all the discr ifs that do not contain a discrete assignment to
+  $mode, add the following discrete assignment: '$mode := "D0"'.
+  
+  Copy all discr if into a body of a new 'if $mode == "D0"' block and
+  also into the body of all cont ifs.
+
+  Add a private variable declaration '$mode := "D0"'.
+
+  Each if is now the basis for a mode and we now have a Hybrid
+  Automaton.
+
+CONVERT TO SWITCH)
+
+Convert the modes into a switch
+
+FIX UP)
+
+Put back any assignments to simulator paramaters on the top level

@@ -76,12 +76,8 @@ class EnclosureCntrl(val interpreter: RecursiveInterpreter) extends InterpreterC
     override def parse() = {
       val ast = Parser.run(Parser.prog, progText)
       //val dif = SD.run(ast)
-      val des = Desugarer(odeTransformMode = Local).run(ast)
-      val des2 = if (Main.extractHA)
-                   new Extract(des).res
-                 else
-                   des
-      prog = des2
+      val des = Main.applyPasses(ast,List("desugar-local"))
+      prog = des
     }
 
     def produce : Unit = {

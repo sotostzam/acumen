@@ -32,7 +32,7 @@ object System {
   
   /** 
    * Reads each file in the folder at path that ends with extensionFilter into a String.
-   * Returns an Iterable of pairs, with the first String equal to the file's contents
+   * Returns an Iterable of pairs, with the first String equal to the filename prefix
    * and the second equal to the text contents of the string (read as UTF-8).
    **/
   def readFiles(path: String, extensionFilter: String): Map[String, String] = {
@@ -41,11 +41,19 @@ object System {
         val n = f getName
         val in = new FileInputStream(path + File.separator + n)
         val s = scala.io.Source.fromInputStream(in).getLines().mkString("\n")
-        in close
+        in close()
         val prefix = n.substring(0, n.lastIndexOf(extensionFilter))
         (prefix, s)
       }
     }.toMap
+  }
+
+  /** Reads the file on path into a String. */
+  def readFile(path: String): String = {
+    val in = new FileInputStream(path)
+    val s = scala.io.Source.fromInputStream(in).getLines().mkString("\n")
+    in.close()
+    s
   }
   
 }

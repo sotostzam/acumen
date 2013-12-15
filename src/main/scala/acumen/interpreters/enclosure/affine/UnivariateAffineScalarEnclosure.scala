@@ -249,6 +249,11 @@ case class UnivariateAffineScalarEnclosure private[enclosure] (
     val hiRight: Double = hi(right).hiDouble
     Enclosure(loLeft, hiLeft, loRight, hiRight)
   }
+  
+  def almostEqualTo(that: UnivariateAffineScalarEnclosure) =
+    (this.domain almostEqualTo that.domain) &&
+    (this.coefficient almostEqualTo that.coefficient) &&
+    (this.constant almostEqualTo that.constant)
 
 }
 

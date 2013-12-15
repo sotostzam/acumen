@@ -47,6 +47,13 @@ class Pretty {
     w.toString()
   }
 
+  def pprintOneLine(d:Document) : String = {
+    val w = new java.io.StringWriter()
+    d.format(Int.MaxValue,w)
+    w.close()
+    w.toString()
+  }
+
 
   // should be in the standard lib instead of their overloaded methods
   implicit def convert(s:String) : Document = DocText(s)
@@ -164,6 +171,7 @@ class Pretty {
                                " = " :: pretty(e) :/: pretty(b)) :/: "end"
       case Continuously(ca) => pretty(ca)
       case Discretely(da) => pretty(da)
+      case Claim(e) => "claim " :: pretty(e)
     }
   
   implicit def prettyContinuousAction : PrettyAble[ContinuousAction] =

@@ -1,0 +1,15 @@
+
+// If-Based Bouncing Ball example
+// with claim
+// based on .../esaes/01_If_Based_Bouncing_Ball.acm
+
+class Main(simulator)
+  private
+    x := 5; x' := 0; x'' := 0;
+  end
+  claim x >= 0;
+  if x <= 0 && x' <= 0
+    x' := -0.5 * x'
+  end;
+  x'' = -10
+end

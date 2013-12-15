@@ -3,7 +3,7 @@ import Pretty._
 
 object Errors {
 
-  sealed abstract class AcumenError extends RuntimeException
+  abstract class AcumenError extends RuntimeException
   case class ParseError(message:String) extends AcumenError {
     override def getMessage = message
   }
@@ -151,6 +151,11 @@ object Errors {
   case class UnrecognizedInterpreterString(theString: String) extends AcumenError {
     override def getMessage = 
       "Unrecognized interpreter string: " + theString
+  }
+
+  case class UnrecognizedTransformation(theString: String) extends AcumenError {
+    override def getMessage = 
+      "Unrecognized pass/transformation: " + theString
   }
 
   /* special errors */

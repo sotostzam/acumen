@@ -35,11 +35,13 @@ object Main {
   var useTemplates = false
   var dontFork = false
   var synchEditorWithBrowser = true // Synchronize code editor with file browser
-  var extractHA = false
+  var extraPasses = Seq.empty[String]
   var displayHelp = "none"
   var commandLineParms = false 
   // ^^ true when certain command line paramatics are specified, will
   //    enable console message so that its clear what options are in effect
+
+  var debugExtract = false
 
   var positionalArgs = new ArrayBuffer[String]
 
@@ -47,6 +49,7 @@ object Main {
   //  the preferred version should be showed.  Lots also have
   //  enable|disable|no version but only one that changes the default
   //  behavior should be displayed
+  lazy val pa : Seq[String] = passAliases.collect{case PassAlias(from,_,Some(_)) => from}
   def optsHelp = Array(
     "--help                  this help message",
     "-i|--semantics "+ Main.interpreterHelpString,
@@ -60,23 +63,24 @@ object Main {
   def experimentalOptsHelp = Array(
     "--full-help",
     "-i|semantics " + Main.fullInterpreterHelpString.mkString("\n               "),
-    "--templates             enables template expansion in the source code editor.",
-    "--prune-semantics       hide experimental semantics in the U.I.",
-    "--extract-ha"
+    "-p|--passes <%s>".format((availPasses.map{_.id} ++ pa).mkString(",")),
+    "                        comma seperated list of extra passes to run",
+    "--templates             enables template expansion in the source code editor",
+    "--prune-semantics       hide experimental semantics in the U.I."
   )
   def commandHelp = Array(
     "ui [<file>]             starts the U.I."
   )
   def experimentalCommandHelp = Array(
     "pretty <file>           pretty print model",
-    "desugar <file>          pretty print desuguared model",
     "last <file>             run model and print final result",
     "trace <file>            run model and print trace output",
     "time <file>             time time it takes to run model",
-    "",
-    "extract <file>          extract H.A. and print result",
+    "") ++
+    availPasses.map{p => "%-23s run the %s pass and print model".format(p.id,p.desc)} ++ 
+    passAliases.collect{case PassAlias(from,_,Some(desc)) => 
+                        "%-23s run the %s passes and print model".format(from,desc)} ++ Array("",
     "compile <file>          compile model to C++",
-    "typecheck <file>        run type checker",
     "",
     "bench <file> <start> <stop> [<warmup> [<repeat>]]",
     "                        parallel benchmark",
@@ -133,8 +137,9 @@ object Main {
         useTemplates = true; parseArgs(tail)
       case "--dont-fork" :: tail =>
         dontFork = true; parseArgs(tail)
-      case "--extract-ha" :: tail =>
-        extractHA = true; parseArgs(tail)
+      case ("--passes"|"-p") :: p :: tail =>
+        commandLineParms = true
+        validatePassesStr(p); extraPasses = splitPassesString(p); parseArgs(tail)
       case opt ::  tail if opt.startsWith("-") =>
         System.err.println("Unrecognized Option: " + opt)
         usage()
@@ -227,6 +232,70 @@ object Main {
     }
   }
 
+  case class Pass(id: String, desc: String, trans: Prog => Prog, category: String, var idx: Int = -1)
+  def mkPass(id: String, desc: String, trans: Prog => Prog, category: String = null)
+    = Pass(id, desc, trans, if (category == null) id else category)
+  val availPasses = Array(
+    // Order matters!  The order is the order the passes are applied.
+    // And each passes is grouped into mutually excursive categories
+    // in which only one pass from that category is applied.
+    mkPass("toposort", "Topo. Sort. Priv Section", passes.TopoSortInit.proc(_)),
+    mkPass("inlinepriv", "Inline Priv Deps.", passes.InlineInitDeps.proc(_)),
+    mkPass("flatten", "Object Flattening (Simple Version)", passes.FlattenSimple.run(_)),
+    mkPass("elimconst", "Eliminate Constants (Single objects only)", passes.ElimConst.proc(_)),
+    mkPass("extract-ha", "H.A. Extraction", new passes.ExtractHA(_,debugExtract).res),
+    mkPass("killnot", "Kill Nots", passes.KillNot.mapProg(_)),
+    mkPass("desugar", "Desugarer", Desugarer(odeTransformMode=TopLevel).run(_), category="desugar"),
+    mkPass("desugar-local", "Desugarer (Local)", Desugarer(odeTransformMode=Local).run(_), category="desugar"),
+    mkPass("typecheck", "Type Checker", {prog => 
+                                         val (typechecked, res) = new TypeCheck(prog).run()
+                                         println("\nTYPE CHECK RESULT: " + TypeCheck.errorLevelStr(res) + "\n")
+                                         typechecked})
+  )
+  val defaults = List("desugar")
+  case class PassAlias(from: String, to: Seq[String], desc: Option[String]) 
+  // ^ If desc is none the alias won't show up in help screens
+  val passAliases = Seq(
+    PassAlias("extract", Seq("extract-ha"), None),
+    PassAlias("normalize", Seq("toposort", "inlinepriv", "elimconst", "extract-ha", "killnot"),
+              Some("Normalize the program into a H.A.")))
+  availPasses.indices.foreach{i => availPasses(i).idx = i}
+  val passLookup : Map[String,Seq[Pass]] = {
+    val m = availPasses.map{v => (v.id,Seq(v))}.toMap
+    m ++ passAliases.map{v => (v.from, v.to.flatMap{m(_)})}
+  }
+
+  // applyPasses: Takes in a prog and a list of passes to apply.
+  // The special pass "nodefaults" suppress the default passes from
+  //   being applied; this can only be specified as part of 
+  //   "required".
+  // The passes will be applied in a fixed order determined by the order
+  //  in which they appear in availPasses (i.e. the order in which
+  //  they are specified in args is irrelevant)
+  def splitPassesString(str: String) : Seq[String] = if (str == "") Nil else str.split(',')
+  def applyPasses(p: Prog, required: Seq[String] = Seq.empty) : Prog = {
+    val (nodefaults, rest) = required.partition(_ == "nodefaults")
+    val passList : Seq[String] = ((if (nodefaults.isEmpty) defaults else Nil) 
+                                  ++ extraPasses
+                                  ++ rest)
+    val passes = passList.flatMap{s => passLookup.get(s) match {
+      case Some(pass) => pass; case None => throw UnrecognizedTransformation(s)
+    }}.groupBy{_.category}.map{_._2.last}. // only take the last pass specified for each category
+       toSeq.sortWith{(a,b) => a.idx < b.idx} // sort by the orignal order in availPasses
+    println("Passes: " + passes.map{_.id}.mkString(" "))
+    var res = p
+    passes.foreach{pass => res = pass.trans(res)}
+    res
+  }
+  def validatePassesStr(args0: String*) : Unit = {
+    val args = args0.flatMap(_.split(',')).toList
+    args.foreach{arg => passLookup.get(arg) match {
+      case Some(pass) => /* do nothing */
+      case None if arg == "" => /* do nothing */
+      case None => throw UnrecognizedTransformation(arg)
+    }}
+  }
+
   def main(args: Array[String]) : Unit = {
     parseArgs(args.toList)
     if (interpreter == null)
@@ -289,7 +358,7 @@ object Main {
       lazy val in = new InputStreamReader(new FileInputStream(args(1)))
       lazy val ast = Parser.run(Parser.prog, in)
       lazy val desugared = Desugarer().run(ast)
-      lazy val final_out = desugared // final output after all passes
+      lazy val final_out = applyPasses(ast)
       lazy val trace = i.run(final_out)
       lazy val ctrace = as_ctrace(trace)
       /* Perform user-selected action. */
@@ -299,15 +368,6 @@ object Main {
           val res = typeChecker.run()
           interpreters.compiler.Interpreter.compile(desugared, typeChecker)
         case "pretty" => println(pprint(ast))
-        case "desugar" => println(pprint(desugared))
-        case "extract" =>
-          val extr = new Extract(desugared)
-          println(pprint(extr.res))
-        case "typecheck" => 
-          val res = new TypeCheck(desugared).run()
-          println("\nTYPE CHECK RESULT: " + TypeCheck.errorLevelStr(res) + "\n")
-          Pretty.withType = true
-          println(pprint(desugared))
         case "3d" => toPython3D(toSummary3D(ctrace))
         case "2d" => toPython2D(toSummary2D(ctrace))
         case "java2d" => new MainFrame(new Java3D(addThirdDimension(ctrace)), 256, 256);
@@ -379,9 +439,15 @@ object Main {
           BenchEnclosures.run(i, final_out, args, 2)
         case "trace" =>
           trace.print
-        case what =>
-          System.err.println("Unrecognized Command: " + what)
-          usage()
+        case what => try {
+            val transformed = applyPasses(ast, splitPassesString(what))
+            Pretty.withType = true
+            println(pprint(transformed))
+        } catch {
+          case _:UnrecognizedTransformation => 
+            System.err.println("Unrecognized Command: " + what)
+            usage()
+        }
       }
     } catch {
       case e: AcumenError =>
