@@ -1,6 +1,9 @@
 The goal of this algorithm is to extract a H.A. from a single object
 model with with arbitrary nested ifs and switches.  
 
+THIS TEXT IS INCOMPLETE AND OUT OF DATE BUT STILL USEFUL for getting
+the basic idea.
+
 Requirements:
 
 In addition to a restricted syntax this algo. also assumes the new
