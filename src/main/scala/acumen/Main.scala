@@ -282,7 +282,6 @@ object Main {
       case Some(pass) => pass; case None => throw UnrecognizedTransformation(s)
     }}.groupBy{_.category}.map{_._2.last}. // only take the last pass specified for each category
        toSeq.sortWith{(a,b) => a.idx < b.idx} // sort by the orignal order in availPasses
-    println("Passes: " + passes.map{_.id}.mkString(" "))
     var res = p
     passes.foreach{pass => res = pass.trans(res)}
     res
