@@ -1,3 +1,10 @@
+NOTES:
+
+The test is in:
+  src/test/scala/acumen/interpreters/smaller/SmallerInterpreterTest.scala
+
+To run just this test from within sbt use:
+> test-only acumen.interpreters.smaller.SmallerInterpreterTest
 
 Typical interpreter structure
 
