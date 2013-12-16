@@ -56,21 +56,10 @@ case class HybridSystem(
   //           changing x(i) does not change fields(e)(x)
   // FIXME does not detect algebraic loops!!!
   def dependentVariables(f: Field)(name: VarName): Set[VarName] =
-    dependentVariables0(f)(variables(f.components(name)))
+    dependentVariables0(f)(f.components(name).variables)
   def dependentVariables0(f: Field)(seen: Set[VarName]): Set[VarName] = {
-    val deps = seen union seen.flatMap(name => variables(f.components(name)))
+    val deps = seen union seen.flatMap(name => f.components(name).variables)
     if (seen == deps) seen else dependentVariables0(f)(deps)
-  }
-
-  // helper function for dependentVariables
-  // the set of indices of variables in e
-  private def variables(e: Expression): Set[VarName] = e match {
-    case Constant(_)    => Set()
-    case Variable(name) => Set(name)
-    case Negate(arg)    => variables(arg)
-    case Plus(l, r)     => variables(l) ++ variables(r)
-    case Multiply(l, r) => variables(l) ++ variables(r)
-    case Divide(l, r)   => variables(l) ++ variables(r)
   }
 
 }

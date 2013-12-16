@@ -225,6 +225,8 @@ sealed abstract class Expression {
 
   def taylorCoefficient(multiIndex: SortedMap[VarName, Int]) = null
 
+  def variables: Set[VarName]
+
 }
 object Expression {
 
@@ -240,6 +242,7 @@ object Expression {
 
 case class Constant(value: Interval) extends Expression {
   override def toString = value.toString
+  def variables: Set[VarName] = Set()
 }
 object Constant {
   def apply(value: Double)(implicit r: Rounding): Constant = Constant(Interval(value))
@@ -248,46 +251,57 @@ object Constant {
 
 case class Variable(name: String) extends Expression {
   override def toString = name
+  def variables: Set[VarName] = Set(name)
 }
 
 case class Abs(expression: Expression) extends Expression {
   override def toString = "abs(" + expression + ")"
+  def variables: Set[VarName] = expression.variables
 }
 
 case class Sqrt(expression: Expression) extends Expression {
   override def toString = "sqrt(" + expression + ")"
+  def variables: Set[VarName] = expression.variables
 }
 
 case class Exp(expression: Expression) extends Expression {
   override def toString = "exp(" + expression + ")"
+  def variables: Set[VarName] = expression.variables
 }
 
 case class Log(expression: Expression) extends Expression {
   override def toString = "exp(" + expression + ")"
+  def variables: Set[VarName] = expression.variables
 }
 
 case class Sin(expression: Expression) extends Expression {
   override def toString = "sin(" + expression + ")"
+  def variables: Set[VarName] = expression.variables
 }
 
 case class Cos(expression: Expression) extends Expression {
   override def toString = "cos(" + expression + ")"
+  def variables: Set[VarName] = expression.variables
 }
 
 case class Negate(expression: Expression) extends Expression {
   override def toString = "-" + expression
+  def variables: Set[VarName] = expression.variables
 }
 
 case class Plus(left: Expression, right: Expression) extends Expression {
   override def toString = "(" + left + " + " + right + ")"
+  def variables: Set[VarName] = left.variables ++ right.variables
 }
 
 case class Multiply(left: Expression, right: Expression) extends Expression {
   override def toString = "(" + left + " * " + right + ")"
+  def variables: Set[VarName] = left.variables ++ right.variables
 }
 
 case class Divide(left: Expression, right: Expression) extends Expression {
   override def toString = "(" + left + " / " + right + ")"
+  def variables: Set[VarName] = left.variables ++ right.variables
 }
 
 object ExpressionApp extends App {

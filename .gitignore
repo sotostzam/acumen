@@ -29,3 +29,5 @@ bin/
 benchmark-res/
 model*
 a.out
+???-*.out
+

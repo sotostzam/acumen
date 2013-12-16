@@ -77,6 +77,7 @@ case class Desugarer(odeTransformMode: ODETransformMode = TopLevel) {
       case ForEach(x, e, b) => List(ForEach(x, dese(e), (desugar(p, fs, x :: env, b))))
       case Continuously(ca) => desca(ca) map Continuously
       case Discretely(da) => desda(da) map Discretely
+      case Claim(e) => List(Claim(dese(e)))
     }
   }
 

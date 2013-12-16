@@ -3,7 +3,7 @@ import Pretty._
 
 object Errors {
 
-  sealed abstract class AcumenError extends RuntimeException
+  abstract class AcumenError extends RuntimeException
   case class ParseError(message:String) extends AcumenError {
     override def getMessage = message
   }
@@ -108,13 +108,16 @@ object Errors {
   }
   sealed abstract class DuplicateAssingment(x:Name) extends AcumenError {
     def getMessage(kind: String) = 
-      "Repeated " + kind + " assignment to variable (" + x.x + "'" * x.primes + ") is not allowed."
+      "Repeated" + kind + "assignment to variable (" + x.x + "'" * x.primes + ") is not allowed."
+  }
+  case class DuplicateAssingmentUnspecified(x:Name) extends DuplicateAssingment(x) {
+    override def getMessage = super.getMessage(" ")
   }
   case class DuplicateDiscreteAssingment(x:Name) extends DuplicateAssingment(x) {
-    override def getMessage = super.getMessage("discrete")
+    override def getMessage = super.getMessage(" discrete ")
   }
   case class DuplicateContinuousAssingment(x:Name) extends DuplicateAssingment(x) {
-    override def getMessage = super.getMessage("continuous")
+    override def getMessage = super.getMessage(" continuous ")
   }
   case class BadLhs() extends AcumenError {
     override def getMessage = 
@@ -148,6 +151,11 @@ object Errors {
   case class UnrecognizedInterpreterString(theString: String) extends AcumenError {
     override def getMessage = 
       "Unrecognized interpreter string: " + theString
+  }
+
+  case class UnrecognizedTransformation(theString: String) extends AcumenError {
+    override def getMessage = 
+      "Unrecognized pass/transformation: " + theString
   }
 
   /* special errors */
