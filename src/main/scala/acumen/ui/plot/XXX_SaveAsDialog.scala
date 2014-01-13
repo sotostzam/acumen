@@ -26,8 +26,6 @@ class SaveAsDailog (parent: Component, chart: JFreeChart) extends Dialog(null) {
   private var currentWidth = 640
   private var currentHeight = 480
 
-  val widthSpin = new JSpinner() { setValue(currentWidth) }
-  val heightSpin = new JSpinner() { setValue(currentHeight) }
   val inputField = new TextField(fresh.getCanonicalPath, 20)
   val openButton = Button("Browse") {
     val fc = new FileChooser(currentDir) {
@@ -39,26 +37,11 @@ class SaveAsDailog (parent: Component, chart: JFreeChart) extends Dialog(null) {
       inputField.text = file.getAbsolutePath
     }
   }
-  val upperPane = new GridPanel(2, 2) {
-    border = javax.swing.BorderFactory.createEmptyBorder(5, 5, 5, 5)
-    vGap = 5
-    peer.add(new JLabel("Width"))
-    peer.add(widthSpin)
-    peer.add(new JLabel("Height"))
-    peer.add(heightSpin)
-  }
-  val lowerPane =
-    new FlowPanel(FlowPanel.Alignment.Leading)(inputField, openButton)
-  val options = new BoxPanel(Orientation.Vertical) {
-    contents += (upperPane, lowerPane)
-  }
+  val options = new FlowPanel(FlowPanel.Alignment.Leading)(inputField, openButton)
   val cancel = Button("Cancel")(dispose)
   val save = Button("Save") {
     val f = new File(inputField.text)
     currentDir = f.getParentFile
-    currentHeight = heightSpin.getValue.asInstanceOf[Int]
-    currentWidth = widthSpin.getValue.asInstanceOf[Int]
-    //plotPanel.render(f, currentWidth, currentHeight)
     ToPDF.JFreeChartToPDF(chart, currentWidth, currentHeight, inputField.text)
     dispose
   }

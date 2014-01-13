@@ -19,7 +19,10 @@ libraryDependencies ++= Seq (
   "javax" % "j3d-core-utils" % "1.5.2",
   "javax" % "vecmath" % "1.5.2",
   "com.fifesoft" % "rsyntaxtextarea" % "2.0.2",
-  "com.fifesoft" % "autocomplete" % "2.0.2"
+  "com.fifesoft" % "autocomplete" % "2.0.2",
+  "org.apache.xmlgraphics" % "batik-dom" % "1.7",
+  "org.apache.xmlgraphics" % "batik-svggen" % "1.7",
+  "org.apache.xmlgraphics" % "batik-transcoder" % "1.7"
 )
 
 resolvers ++= Seq(
