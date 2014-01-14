@@ -15,7 +15,6 @@ package reference
 package experimental
 
 import Eval._
-import standard.Interpreter.checkDuplicateAssingments
 
 import Common._
 import util.Names._
@@ -91,8 +90,8 @@ object Interpreter extends acumen.CStoreInterpreter {
   /* continuously assign the value v to a field n in object o */
   def equation(o: CId, n: Name, v:CValue) : Eval[Unit] = logEquation(o, n, v)
   
-  /* assign solution v of an ODE to a field n in object o */
-  def ode(o: CId, n: Name, v:CValue) : Eval[Unit] = logODE(o, n, v)
+  /* log an ODE-IVP with LHS n, RHS r, and intiial conditions in e. solution will be assigned to o.n */
+  def ode(o: CId, n: Name, r: Expr, e: Env) : Eval[Unit] = logODE(o, n, r, e)
   
   /* log an id as being dead */
   def kill(a:CId) : Eval[Unit] = logCId(a)
@@ -319,27 +318,16 @@ object Interpreter extends acumen.CStoreInterpreter {
 
   def evalContinuousAction(a:ContinuousAction, t:ResultType, env:Env, p:Prog) : Eval[Unit] = 
     (t, a) match {
-      case (FixedPoint, EquationT(Dot(e,x),t)) =>
+      case (FixedPoint, EquationT(Dot(e,x),rhs)) =>
         /* Schedule a continuous assignment of vt to x */
         for { id <- asks(evalExpr(e, p, env, _)) map extractId
-              vt <- asks(evalExpr(t, p, env, _))
+              vt <- asks(evalExpr(rhs, p, env, _))
         } equation(id, x, vt)
-      case (Continuous, EquationI(Dot(e,x),t)) =>
+      case (Continuous, EquationI(Dot(e,x),rhs)) =>
         /* Schedule a continuous assignment of the Euler approximation of x (at time+dt) to x */
         for { dt <- asks(getTimeStep)
               id <- asks(evalExpr(e, p, env, _)) map extractId
-              vt <- asks(evalExpr(t, p, env, _))
-              lhs <- asks(getObjectField(id, x, _))
-        } ode(id, x, lhs match {
-            case VLit(d) => 
-	      VLit(GDouble(extractDouble(d) + extractDouble(vt) * dt))
-            case VVector(u) => 
-              val us = extractDoubles(u)
-              val ts = extractDoubles(vt)
-              VVector((us,ts).zipped map ((a,b) => VLit(GDouble(a + b * dt))))
-            case _ =>
-              throw BadLhs()
-          })
+        } ode(id, x, rhs, env)
       case (_, EquationT(_,_) | EquationI(_,_)) => pass
       case _ =>
         throw ShouldNeverHappen() // FIXME: enforce that with refinement types
@@ -393,7 +381,7 @@ object Interpreter extends acumen.CStoreInterpreter {
       { val (_,ids,rps,ass,eqs,odes,st1) = iterate(evalStep(p), mainId(st))(st)
         getResultType(st) match {
           case Discrete | Integration => // Either conclude fixpoint is reached or do discrete step
-            checkDuplicateAssingments(ass, DuplicateDiscreteAssingment)
+            checkDuplicateAssingments(ass.map { case (o, n, v) => (o, n) }, DuplicateDiscreteAssingment)
             val nonIdentityAss = ass.filterNot{ a => a._3 == getObjectField(a._1, a._2, st1) }
             if (st == st1 && ids.isEmpty && rps.isEmpty && nonIdentityAss.isEmpty) 
               setResultType(FixedPoint, st1)
@@ -405,17 +393,52 @@ object Interpreter extends acumen.CStoreInterpreter {
               setResultType(Discrete, st3)
             }
           case FixedPoint => // Do continuous step
-            checkDuplicateAssingments(eqs, DuplicateContinuousAssingment)
+            checkDuplicateAssingments(eqs.map { case (o, n, v) => (o, n) }, DuplicateContinuousAssingment)
             val stE = mapM_(assHelper, eqs.toList) ~> st1
             setResultType(Continuous, stE)
           case Continuous => // Do integration step
-            checkDuplicateAssingments(odes, DuplicateIntegrationAssingment)
-            val stODE = mapM_(assHelper, odes.toList) ~> st1
+            checkDuplicateAssingments(odes.map { case (o, n, r, e) => (o, n) }, DuplicateIntegrationAssingment)
+            val solutions = solveIVP(odes, p, st1)
+            val stODE = mapM_(assHelper, solutions.toList) ~> st1
             val st2 = setResultType(Integration, stODE)
             setTime(getTime(st2) + getTimeStep(st2), st2)
         }
       }
     )
+
+  /**
+   * Solve ODE-IVP defined by odes parameter tuple, which consists of:
+   *  - CId:  The object in which the ODE was encountered.
+   *  - Name: The LHS of the ODE.
+   *  - Expr: The RHS of the ODE.
+   *  - Env:  Initial conditions of the IVP.
+   * The time segment is derived from time step in store st. 
+   */
+  def solveIVP(odes: Set[(CId, Name, Expr, Env)], p: Prog, st: Store): Set[(CId, Name, CValue)] =
+    odes.map {
+      case (o, n, r, e) =>
+        val dt = getTimeStep(st)
+        val vt = evalExpr(r, p, e, st)
+        val lhs = getObjectField(o, n, st)
+        val v = lhs match {
+          case VLit(d) =>
+            VLit(GDouble(extractDouble(d) + extractDouble(vt) * dt))
+          case VVector(u) =>
+            val us = extractDoubles(u)
+            val ts = extractDoubles(vt)
+            VVector((us, ts).zipped map ((a, b) => VLit(GDouble(a + b * dt))))
+          case _ =>
+            throw BadLhs()
+        }
+        (o, n, v)
+    }
+    
+  /** Checks for a duplicate assignment (of a specific kind) scheduled in assignments. */
+  def checkDuplicateAssingments(assignments: Set[(CId, Name)], error: Name => DuplicateAssingment): Unit = {
+    val duplicates = assignments.groupBy(a => (a._1,a._2)).filter{ case (_, l) => l.size > 1 }.keys.toList
+    if (duplicates.size != 0)
+      throw error(duplicates(0)._2)
+  }
   
   /** Applies an assignment to the monad. */
   def applyAssingment(a: (CId,Name,CValue)) = setObjectFieldM(a._1, a._2, a._3)

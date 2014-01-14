@@ -18,7 +18,7 @@ sealed trait Eval[+A] {
      Set[(CId,CId)] /* reparentings (writer part) */,
      Set[(CId,Name,CValue)], /* discrete assignments */
      Set[(CId,Name,CValue)], /* continuous assignments (equations) */
-     Set[(CId,Name,CValue)], /* ode assignments (differential equations) */
+     Set[(CId,Name,Expr,Env)], /* ode assignments (differential equations) */
      Store /* current store (state part) */)
 
   def map[B](f: A => B) : Eval[B] = mkEval (
@@ -51,7 +51,7 @@ sealed trait Eval[+A] {
 
 object Eval {
 
-  def mkEval[A](f: Store => (A, Set[CId], Set[(CId,CId)], Set[(CId,Name,CValue)], Set[(CId,Name,CValue)], Set[(CId,Name,CValue)], Store)) : Eval[A] = 
+  def mkEval[A](f: Store => (A, Set[CId], Set[(CId,CId)], Set[(CId,Name,CValue)], Set[(CId,Name,CValue)], Set[(CId,Name,Expr,Env)], Store)) : Eval[A] = 
 	new Eval[A] { def apply(s:Store) = f(s) }
  
   /* used to inject write operations of 'util.Canonical' into the monad */
@@ -77,8 +77,8 @@ object Eval {
   def logEquation(o: CId, n: Name, v:CValue) : Eval[Unit] =
     mkEval(s => ((), Set.empty, Set.empty, Set.empty, Set((o,n,v)), Set.empty, s))
 
-  def logODE(o: CId, n: Name, v:CValue) : Eval[Unit] =
-    mkEval(s => ((), Set.empty, Set.empty, Set.empty, Set.empty, Set((o,n,v)), s))
+  def logODE(o: CId, n: Name, r: Expr, e: Env) : Eval[Unit] =
+    mkEval(s => ((), Set.empty, Set.empty, Set.empty, Set.empty, Set((o,n,r,e)), s))
     
   /* Apply f to the store and wrap it in an Eval */
   def asks[A](f : Store => A) : Eval[A] = 
