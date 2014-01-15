@@ -341,7 +341,7 @@ class PlotPanel(pub:Publisher) extends Panel
       val factor = math.pow(1.5,i)
       zoomAround(cx,cy,factor)
     */
-    case ComponentResized(_) if (enabled) =>
+    case UIElementResized(_) if (enabled) =>
       plotter ! Repaint
   }
 
