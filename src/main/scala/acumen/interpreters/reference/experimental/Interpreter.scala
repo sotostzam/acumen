@@ -189,7 +189,10 @@ object Interpreter extends acumen.CStoreInterpreter {
         case Dot(e,f) =>
           val id = extractId(eval(env, e))
           checkAccessOk(id, env, st)
-          getObjectField(id, f, st)
+          if (id == selfCId(env))
+            env.get(f).getOrElse(getObjectField(id, f, st))
+          else
+            getObjectField(id, f, st)
         /* FIXME:
            Could && and || be expressed in term of ifthenelse ? 
            => we would need ifthenelse to be an expression  */
@@ -414,7 +417,23 @@ object Interpreter extends acumen.CStoreInterpreter {
    *  - Env:  Initial conditions of the IVP.
    * The time segment is derived from time step in store st. 
    */
-  def solveIVP(odes: Set[(CId, Name, Expr, Env)], p: Prog, st: Store): Set[(CId, Name, CValue)] =
+  def solveIVP(odes: Set[(CId, Name, Expr, Env)], p: Prog, st: Store): Set[(CId, Name, CValue)] = {
+    def msg(meth: String) = "Invalid integration method \"" + meth + "\". Please select one of [\"EulerCromer\", \"EulerForward\"]" 
+    getInSimulator(Name("method", 0), st) match {
+      case VLit(GStr("EulerForward")) => solveIVPForwardEuler(odes, p, st)
+      case VLit(GStr("EulerCromer")) => solveIVPEulerCromer(odes, p, st)
+      case VLit(GStr(m)) => throw new Error(msg(m))
+      case VClassName(ClassName(c)) => throw new Error(msg(c))
+      case m => throw new Error(msg(m.toString))
+    }
+  }
+
+  /**
+   * Forward Euler integration.
+   * 
+   * Simple first-order approximation of the solution.
+   */
+  def solveIVPForwardEuler(odes: Set[(CId, Name, Expr, Env)], p: Prog, st: Store): Set[(CId, Name, CValue)] =
     odes.map {
       case (o, n, r, e) =>
         val dt = getTimeStep(st)
@@ -432,6 +451,42 @@ object Interpreter extends acumen.CStoreInterpreter {
         }
         (o, n, v)
     }
+
+  /**
+   * Euler-Cromer integration. 
+   * 
+   * A solver that produces stable solutions for some systems where 
+   * Forward Euler solutions become unstable. This is accomplished by 
+   * using the next value of the higher derivative when computing the 
+   * next Euler estimate (instead of using the previous value, as is 
+   * the case with Forward Euler).  
+   * 
+   * NOTE: Some equational properties of Acumen programs may not hold 
+   *       when using this integration method.
+   */
+  def solveIVPEulerCromer(odes: Set[(CId, Name, Expr, Env)], p: Prog, st: Store): Set[(CId, Name, CValue)] = {
+    // Ensure that derivatives are being integrated in the correct order
+    val sortedODEs = odes.toList.groupBy{ case (o, n, r, e) => (o, n.x) }
+                                .mapValues(_.sortBy{ case (_, n, _, _) => n.primes }).values.flatten
+    sortedODEs.foldRight(Map.empty[(CId, Name), CValue]) {
+      case ((o, n, r, e), updatedEnvs) =>
+        val updatedEnv = e ++ (for (((obj, name), v) <- updatedEnvs if obj == o) yield (name -> v))
+        val dt = getTimeStep(st)
+        val vt = evalExpr(r, p, updatedEnv, st)
+        val lhs = getObjectField(o, n, st)
+        val v = lhs match {
+          case VLit(d) =>
+            VLit(GDouble(extractDouble(d) + extractDouble(vt) * dt))
+          case VVector(u) =>
+            val us = extractDoubles(u)
+            val ts = extractDoubles(vt)
+            VVector((us, ts).zipped map ((a, b) => VLit(GDouble(a + b * dt))))
+          case _ =>
+            throw BadLhs()
+        }
+        updatedEnvs + ((o, n) -> v)
+    }.map { case ((o, n), v) => (o, n, v) }.toSet
+  }
     
   /** Checks for a duplicate assignment (of a specific kind) scheduled in assignments. */
   def checkDuplicateAssingments(assignments: Set[(CId, Name)], error: Name => DuplicateAssingment): Unit = {
