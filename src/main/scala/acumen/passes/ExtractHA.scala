@@ -115,7 +115,7 @@ class ExtractHA(val prog: Prog, private val debugMode: Boolean = false)
     val out : java.io.PrintStream = if (fileName == null) System.out else new java.io.PrintStream(new java.io.File(fileName + ".out"))
     out.println("*** " + label + " ***\n")
     out.println(pprint(DocGroup(DocNest(2, 
-          "private" :/: breakWith(";", initPart map pretty[Init])) :/: "end")) + "\n")
+          "private" :/: breakWith(DocText(";"), initPart map pretty[Init])) :/: DocText("end"))) + "\n")
     //if (simulatorAssigns.nonEmpty)
     //  println(pprint(DocGroup(DocNest(2, breakWith(";", simulatorAssigns.map{a => pretty[Action](Discretely(a))}.toList) + "\n"))))
     if (simulatorAssigns.nonEmpty)

@@ -4,7 +4,7 @@ import scala.util.parsing.input.StreamReader
 import scala.util.parsing.combinator.lexical.StdLexical
 import scala.util.parsing.combinator.syntactical.StdTokenParsers
 import scala.util.parsing.input.CharArrayReader.EofCh
-import scala.util.parsing.syntax.StdTokens
+import scala.util.parsing.combinator.token.StdTokens
 import scala.collection.immutable.HashMap
 
 import Errors._

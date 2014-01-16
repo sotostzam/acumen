@@ -297,7 +297,7 @@ class LocalizingStrategy(override var eventEncloser: EventEncloser) extends Stra
   }
 
   private def domain(lfe: LFE): Interval =
-    lfe match { case (noe, mae, _) => val es = noe ++ mae; es.first.domain /\ es.last.domain }
+    lfe match { case (noe, mae, _) => val es = noe ++ mae; es.head.domain /\ es.last.domain }
 
   private def concatenateLFEs(lfe1: LFE, lfe2: LFE): LFE =
     (lfe1, lfe2) match {
@@ -334,7 +334,7 @@ class LocalizingStrategy(override var eventEncloser: EventEncloser) extends Stra
   // assumes that the domains of consecutive elements are connected
   private def domain(es: Seq[UnivariateAffineEnclosure]) = {
     require(es.nonEmpty)
-    es.first.domain /\ es.last.domain
+    es.head.domain /\ es.last.domain
   }
 
 }

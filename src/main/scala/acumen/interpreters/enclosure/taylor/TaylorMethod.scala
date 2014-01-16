@@ -49,9 +49,9 @@ trait TaylorMethod {
   def taylorTable(f: Field, d: Int, b: Box, h: Interval)(implicit rnd: Rounding) = {
     val table = new scala.collection.mutable.HashMap[Expression, scala.collection.mutable.ArrayBuffer[Interval]]
     val variables = f.components.keys.map(Variable(_))
-    for (variable <- variables) table += variable -> (new scala.collection.mutable.ArrayBuffer() + b(variable.name))
+    for (variable <- variables) table += variable -> (new scala.collection.mutable.ArrayBuffer() += b(variable.name))
     val expressions = codeList(f.components.values.toList: _*)
-    for (e <- expressions) table += e -> (new scala.collection.mutable.ArrayBuffer() + (e match {
+    for (e <- expressions) table += e -> (new scala.collection.mutable.ArrayBuffer() += (e match {
       case Constant(v) => v
       case _           => e(b)
     }))
@@ -62,7 +62,7 @@ trait TaylorMethod {
         res
       }
       table(e) = e match {
-        case Constant(v) => table(e) + Interval(0)
+        case Constant(v) => table(e) += Interval(0)
         case Variable(n) => table(e)
         case Negate(e)   => table(e).map(-(_))
         case Sqrt(e)     => sys.error("undefined")
@@ -75,7 +75,7 @@ trait TaylorMethod {
           val ls = table(l)
           val rs = table(r)
           var res = new scala.collection.mutable.ArrayBuffer[Interval]()
-          for (k <- 0 until ls.length) res + multiply(ls, rs, k)
+          for (k <- 0 until ls.length) res += multiply(ls, rs, k)
           res
         case _ => sys.error("operator " + e.getClass + " not supported!")
       }
@@ -83,7 +83,7 @@ trait TaylorMethod {
     for (_ <- 0 until d) {
       for (variable <- variables) {
         val component = table(f.components(variable.name))
-        table(variable) + (component.last * h / component.size)
+        table(variable) += (component.last * h / component.size)
       }
       expressions.map(updateTable)
     }

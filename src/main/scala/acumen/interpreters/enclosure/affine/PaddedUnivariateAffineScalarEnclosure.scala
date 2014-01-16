@@ -131,7 +131,7 @@ case class PaddedUnivariateAffineScalarEnclosure private[enclosure] (
         normalizedDomain,
         this(lo) /\ that(lo),
         Interval(0),
-        newPadding)
+        newPadding(_))
     else {
       val thisLo = this.low
       val thatLo = that.low
@@ -149,7 +149,7 @@ case class PaddedUnivariateAffineScalarEnclosure private[enclosure] (
         normalizedDomain,
         minAtLo /\ maxAtLo,
         coeffMin /\ coeffMax,
-        newPadding)
+        newPadding(_))
     }
   }
 
