@@ -15,11 +15,13 @@ import acumen.interpreters.enclosure.Box
  * Implementation notes: see the implementation notes for
  * AffineEnclosure.
  */
-case class UnivariateAffineEnclosure private[affine] (
-    domain: Interval,
-    private[affine]normalizedDomain: Interval,
-    //  private[enclosure]
-    components: Map[VarName, UnivariateAffineScalarEnclosure])(implicit rnd: Rounding) {
+abstract class UnivariateAffineEnclosure private[affine](implicit rnd: Rounding) {
+
+  def domain: Interval
+  private[affine] def normalizedDomain: Interval
+  // private[enclosure] 
+  def components: Map[VarName, UnivariateAffineScalarEnclosure]
+
   assert(normalizedDomain.low equalTo 0, "The low end-point of the normalizedDomain should be zero!")
 
   def rounding = rnd
@@ -91,7 +93,23 @@ case class UnivariateAffineEnclosure private[affine] (
   }
 
 }
+
+case class UnivariateAffineEnclosureImpl private[affine] (
+    domain: Interval,
+    private[affine]normalizedDomain: Interval,
+    //  private[enclosure]
+    components: Map[VarName, UnivariateAffineScalarEnclosure])(implicit rnd: Rounding) 
+     extends UnivariateAffineEnclosure
+{
+  override def productPrefix = "UnivariateAffineEnclosure"
+}
+
 object UnivariateAffineEnclosure {
+
+  def apply(domain: Interval,
+            normalizedDomain: Interval,
+            components: Map[VarName, UnivariateAffineScalarEnclosure])(implicit rnd: Rounding): UnivariateAffineEnclosure = 
+    UnivariateAffineEnclosureImpl(domain,normalizedDomain,components)
 
   /** Convenience method, normalizes the domain. */
   //  private[enclosure] 

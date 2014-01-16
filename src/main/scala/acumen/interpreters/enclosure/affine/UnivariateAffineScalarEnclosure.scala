@@ -13,14 +13,13 @@ import acumen.interpreters.enclosure.Parameters
  * Implementation notes: see the implementation notes for
  * AffineScalarEnclosure.
  */
-case class UnivariateAffineScalarEnclosure private[enclosure] (
-    //  private[enclosure]
-    domain: Interval,
-    private[enclosure]normalizedDomain: Interval,
-    private[enclosure]constant: Interval,
-    private[enclosure]coefficient: Interval)(implicit rnd: Rounding) {
-  assert(normalizedDomain.low equalTo 0,
-    "The low end-point of the normalizedDomain should be zero!")
+
+abstract class UnivariateAffineScalarEnclosure private[enclosure] (implicit rnd: Rounding) {
+  //  private[enclosure]
+  def domain: Interval
+  private[enclosure] def normalizedDomain: Interval
+  private[enclosure] def constant: Interval
+  private[enclosure] def coefficient: Interval
 
   def rounding = rnd
 
@@ -256,9 +255,25 @@ case class UnivariateAffineScalarEnclosure private[enclosure] (
     (this.constant almostEqualTo that.constant)
 
 }
+case class UnivariateAffineScalarEnclosureImpl private[enclosure] (
+    //  private[enclosure]
+    domain: Interval,
+    private[enclosure]normalizedDomain: Interval,
+    private[enclosure]constant: Interval,
+    private[enclosure]coefficient: Interval)(implicit rnd: Rounding) 
+  extends UnivariateAffineScalarEnclosure
+{
+  assert(normalizedDomain.low equalTo 0,
+    "The low end-point of the normalizedDomain should be zero!")
+
+  override def productPrefix = "UnivariateAffineScalarEnclosure"
+}
 
 // TODO improve how the plotting is done
 object UnivariateAffineScalarEnclosure {
+  def apply(domain: Interval, normalizedDomain: Interval,
+            constant: Interval, coefficient: Interval)(implicit rnd: Rounding) : UnivariateAffineScalarEnclosure = 
+    UnivariateAffineScalarEnclosureImpl(domain, normalizedDomain, constant, coefficient)
 
   /** Convenience method, normalizes the domain. */
   //  private[enclosure] 

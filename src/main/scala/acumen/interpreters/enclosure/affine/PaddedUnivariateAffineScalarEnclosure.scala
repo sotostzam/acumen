@@ -15,11 +15,11 @@ import acumen.interpreters.enclosure.Interval
 case class PaddedUnivariateAffineScalarEnclosure private[enclosure] (
   //  private[enclosure]
   override val domain: Interval,
-  override private[enclosure] val normalizedDomain: Interval,
-  override private[enclosure] val constant: Interval,
-  override private[enclosure] val coefficient: Interval,
+  override val normalizedDomain: Interval,
+  override val constant: Interval,
+  override val coefficient: Interval,
   padding: Interval => Interval)(implicit rnd: Rounding)
-    extends UnivariateAffineScalarEnclosure(domain, normalizedDomain, constant, coefficient) {
+    extends UnivariateAffineScalarEnclosure {
   assert(normalizedDomain.low equalTo 0,
     "The low end-point of the normalizedDomain should be zero!")
 
