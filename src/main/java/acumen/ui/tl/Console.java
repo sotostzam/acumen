@@ -12,30 +12,30 @@ import acumen.ui.App;
 import acumen.ui.SwingUtil;
 import acumen.ui.SwingUtil.Flasher;
 
-public class Console extends JList<ConsoleMessage> {
+public class Console extends JList {
 
   private int oldEntries = 0;
   private boolean done = false;
 
   Flasher consoleFlasher = new Flasher();
   Color initColor = getSelectionBackground();
-  private DefaultListModel<ConsoleMessage> model = new DefaultListModel<ConsoleMessage>();
+  private DefaultListModel model = new DefaultListModel();
 
   public Console() {
     setModel(model);
   }
 
   @Override
-  public ListCellRenderer<ConsoleMessage> getCellRenderer() {
+  public ListCellRenderer getCellRenderer() {
     return new ConsoleCellRenderer();
   }
 
-  class ConsoleCellRenderer implements ListCellRenderer<ConsoleMessage> {
+  class ConsoleCellRenderer implements ListCellRenderer {
     DefaultListCellRenderer defaultLCR = new DefaultListCellRenderer();
 
     @Override
     public Component getListCellRendererComponent(
-        JList<? extends ConsoleMessage> list, ConsoleMessage value, int index,
+        JList list, Object value, int index,
         boolean isSelected, boolean cellHasFocus) {
       boolean messageIsOld = index >= oldEntries;
       String m = ((ConsoleMessage) value).message;
@@ -59,10 +59,12 @@ public class Console extends JList<ConsoleMessage> {
     if (done) {
       logMessage(new NormalMessage(message));
       done = false;
-    } else if (model.isEmpty())
+    } else if (model.isEmpty()) {
       model.addElement(new NormalMessage(message));
-    else
-      model.get(0).message = model.get(0).message + message;
+    } else {
+      ConsoleMessage m = (ConsoleMessage)model.get(0);
+      m.message = m.message + message;
+    }
   }
 
   public void logError(String message) {
