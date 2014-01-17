@@ -210,10 +210,11 @@ class App extends SimpleSwingApplication {
   val fileBrowser = new FileBrowser(Files.currentDir, codeArea)
   fileBrowser.fileTree.peer.addTreeSelectionListener(codeArea)
   codeArea.addPathChangeListener(fileBrowser.fileTree)
-  
+
   val consolePage = new TabbedPane.Page("Console", new BorderPanel {
-    add(new ScrollPane(console), BorderPanel.Position.Center)
+    add(new ScrollPane(Component.wrap(console)), BorderPanel.Position.Center)
   })
+  val consolePageBackground = consolePage.background_=_
   
   val lowerPane = new BorderPanel {
     // Synch button
