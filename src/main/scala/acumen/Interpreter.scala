@@ -113,6 +113,11 @@ case class CStoreRes(ctrace: Stream[CStore]) extends InterpreterRes {
   }
 }
 
+/** 
+ * Controls which rows are preserved by FilterDataAdder.
+ * NOTE: A row here refers to the result of a call to Interpreter.step(),
+ *       and corresponds to a row in the trace table.  
+ */
 object OutputRows extends Enumeration {
   val All, WhenChanged, FinalWhenChanged, ContinuousOnly, Last = Value
 }
@@ -128,31 +133,54 @@ class CStoreOpts {
   //var outputMisc = true // anything not covered by the above
 }
 
+/** 
+ * DataAdders can use this to tell CStoreInterpreter.multiStep() 
+ * whether or not to add the data. IfLast refer to the very last
+ * step of the simulation.
+ */
 object ShouldAddData extends Enumeration {
   val Yes, IfLast, No = Value
 }
 
+/**
+ * Collects simulation results as they are being produced (by an interpreter).
+ * 
+ * Every value passed to the adder corresponds to a specific object 
+ * (identified by its CId).  
+ * 
+ * The normal usage of DataAdder with multiStep is an alternative to
+ * single stepping where data is returned via addData rather than the
+ * conversion to a CStore after every step.  However, DataAdder can
+ * also be used just to filter rows and still use the CStore for the
+ * rows returned, see FilterRowsDataAdder for an example on how to use
+ * this
+ */
 abstract class DataAdder {
-  var done = false;
-  // ^^ Check this to see if the simulation is done
+  /** Check this to see if the simulation is done. */
+  var done = false
+  /** 
+   * Registers that a step has been performed by an interpreter with ResultType "t".
+   * The return value is an instruction on what to do with the data produced by the 
+   * interpreter during the step.  
+   * A naive implementation is allowed to ignore the return value ShouldAddData.No, 
+   * and add the data anyway.
+   */
   def newStep(t: ResultType) : ShouldAddData.Value
-  // ^^ Return true if data should be added false otherwise.  It is okay to
-  //    add data when it returns false, just pointless.
+  /** 
+   * Call this when the simulation has ended and no more data should be added.
+   */
   def noMoreData() : Unit = {done = true}
-  // ^^ Call this when the simulation has ended and no more data
-  //    should be added
-  def addData(objId: CId, values: GObject)
+  /** 
+   * Updates the data collected for the object corresponding to "objId"
+   * in this adder with "values".
+   */
+  def addData(objId: CId, values: GObject) : Unit
+  /**
+   * Call this when there is more data to add for now (in this call to multiStep).
+   * Return true if the current step is the last step data should be added to for now.
+   */
   def continue : Boolean 
-  // ^^ Call this when there is no more data to add for this step.
-  // ^^ Return true if the current step is the last step data should
-  //    be added to for now.
 }
-// The normal usage of DataAdder with multiStep is an alternative to
-// single stepping where data is returned via addData rather than the
-// conversion to a CStore after every step.  However, DataAdder can
-// also be used just to filter rows and still use the CStore for the
-// rows returned, see FilterRowsDataAdder for an example on how to use
-// this
 
 class StopAtFixedPoint extends DataAdder {
   var curStepType : ResultType = Discrete
@@ -161,7 +189,7 @@ class StopAtFixedPoint extends DataAdder {
   def continue = curStepType != FixedPoint
 }
 
-//                   <Last> @Continuous @Discrete <FP. Changed> @FixedPoin
+//                   <Last> @Continuous @Discrete <FP. Changed> @FixedPoint
 // All                 1         1 2        1          1             1 
 // WhenChanged         y          2         3          n             n
 // FinalWhenChanged    y          2         n          4             n
@@ -257,15 +285,27 @@ class DumpSample(out: java.io.PrintStream) extends DataAdder {
   def continue = true
 }
 
+/** Interface common to all interpreters whose results can be converted to/from CStores. */
 trait CStoreInterpreter extends Interpreter {
   type Store
-  def repr (s:Store) : CStore
 
   override def newInterpreterModel = new CStoreModel(new CStoreOpts)
 
+  def repr (s:Store) : CStore
   def fromCStore (cs:CStore, root:CId) : Store
+
+  /** Based on prog, creates the initial store that will be used to start the simulation. */
   def init(prog:Prog) : (Prog, Store)
+  /**
+   * Moves the simulation one step forward, returns None at the end of the simulation.
+   * NOTE: Performing a step does not necessarily imply that time moves forward.
+   * NOTE: The store "st" may be mutated in place or copied, depending on the interpreter.
+   */
   def step(p:Prog, st:Store) : Option[Store]
+  /** 
+   * Performs multiple steps. Driven by "adder"  
+   * NOTE: May be overridden for better performance.
+   */
   def multiStep(p: Prog, st0: Store, adder: DataAdder) : Store = {
     var st = st0
     var cstore = repr(st0)
@@ -273,8 +313,8 @@ trait CStoreInterpreter extends Interpreter {
     // ^^ set to IfLast on purpose to make things work
     while (true) {
       step(p, st) match {
-        case Some(res) =>
-          cstore = repr(res)
+        case Some(res) => // If the simulation is not over
+          cstore = repr(res) 
           shouldAddData = adder.newStep(getResultType(cstore))
           if (shouldAddData == ShouldAddData.Yes)
             cstore.foreach{case (id,obj) => adder.addData(id, obj)}
