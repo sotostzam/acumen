@@ -140,11 +140,23 @@ object OutputRows extends Enumeration {
 /* ************************************************************************ */
 //
 
-/**
- * Collects simulation results as they are being produced (by an interpreter).
+/*
+ * An interface used by CStoreInterpreter#multiStep to output simulation
+ * results.
  * 
- * Every value passed to the adder corresponds to a specific object 
- * (identified by its CId).  
+ * The protocol is as follows:
+ * 
+ * After each step multiStep calls DataAdder#newStep with the current
+ * ResultType for that step if there is data or DataAdder#noMoreData
+ * if the simultation has
+ * ended.  Assuming the simulation has not ended, than the result of
+ * newStep determine if data should be added for this step,  if so
+ * than DataAdder#addData is called for each object in the store.
+ * After the data is optionally added
+ * DataAdder#continue is called to determine if multiStep should
+ * perform another step or return.  The result of multiStep is the
+ * store of the last step.  If the simulation has ended the result
+ * is the store for the final step and DataAdder#done is set to true.
  * 
  * The normal usage of DataAdder with multiStep is an alternative to
  * single stepping where data is returned via addData rather than the
@@ -154,27 +166,29 @@ object OutputRows extends Enumeration {
  * this
  */
 abstract class DataAdder {
-  /** Check this to see if the simulation is done. */
+  /** After multiStep returns, this value can be checked to see if the
+   * simulation is done. */
   var done = false
   /** 
-   * Registers that a step has been performed by an interpreter with ResultType "t".
-   * The return value is an instruction on what to do with the data produced by the 
-   * interpreter during the step.  A naive implementation is allowed to ignore the
-   * return value and add the data anyway.
+   * Called to register that a step has been performed by an interpreter with
+   * ResultType "t".
+   * The return value indicates if the data should then be added using addData.
+   * A naive implementation is allowed to ignore the return value and call
+   * addData every time.
    */
   def newStep(t: ResultType) : ShouldAddData.Value
   /** 
-   * Call this when the simulation has ended and no more data should be added.
+   * Called when the simulation has ended and no more data should be added.
    */
   def noMoreData() : Unit = {done = true}
   /** 
-   * Updates the data collected for the object corresponding to "objId"
+   * Called to update the data collected for the object corresponding to "objId"
    * in this adder with "values".
    */
   def addData(objId: CId, values: GObject) : Unit
   /**
-   * Call this when there is more data to add for now (in this call to multiStep).
-   * Return true if the current step is the last step data should be added to for now.
+   * Called after each step.  If false than multiStep should not continue and
+   * return the current Store.
    */
   def continue : Boolean 
 }
