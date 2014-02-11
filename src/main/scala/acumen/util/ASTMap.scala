@@ -45,10 +45,10 @@ class ASTMap {
   // Must make a copy of Expr even if there is nothing to do as 
   // Expr has state information associated with it
   def mapExpr(e: Expr) : Expr = e match {
-    case Lit(v) => Lit(v)
-    case Var(v) => Var(v)
+    case e@Lit(v) => Lit(v).setPos(e.pos)
+    case e@Var(v) => Var(v).setPos(e.pos)
     case Op(name, es) => Op(name, es.map{mapExpr(_)})
-    case Dot(a,b) => Dot(mapExpr(a),b)
+    case e@Dot(a,b) => Dot(mapExpr(a),b).setPos(e.pos)
     case ExprVector(l) => ExprVector(l.map{mapExpr(_)})
     case Sum(s, i, col, cond) => Sum(mapExpr(s), i, mapExpr(col), mapExpr(cond))
     case TypeOf(v) => TypeOf(v)

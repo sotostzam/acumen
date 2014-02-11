@@ -1,74 +1,85 @@
 package acumen
 import Pretty._
+import scala.util.parsing.input.{Position,Positional,NoPosition}
 
 object Errors {
 
   abstract class AcumenError extends RuntimeException
+
+  abstract class PositionalAcumenError extends AcumenError with Positional {
+    override def getMessage = 
+      if (pos == NoPosition)
+        mesg
+      else
+        pos.toString + ": " + mesg + "\n" + pos.longString
+    def mesg : String
+  }
+
   case class ParseError(message:String) extends AcumenError {
     override def getMessage = message
   }
-  case class ClassDefinedTwice(cn:ClassName) extends AcumenError {
-    override def getMessage = 
+  case class ClassDefinedTwice(cn:ClassName) extends PositionalAcumenError {
+    override def mesg = 
       "Class " + pprint(cn) + " is defined twice."
   }
-  case class NoInstanceFound(cn:ClassName) extends AcumenError {
-    override def getMessage = 
+  case class NoInstanceFound(cn:ClassName) extends PositionalAcumenError {
+    override def mesg = 
       "Found no instance of class " + pprint(cn) + "."
   }
-  case class ClassNotDefined(cn:ClassName) extends AcumenError {
-    override def getMessage = 
+  case class ClassNotDefined(cn:ClassName) extends PositionalAcumenError {
+    override def mesg = 
       "Class "+pprint(cn)+" is not defined."
   }
-  case class NotAnObject(v:Value[_]) extends AcumenError {
-    override def getMessage =
+  case class NotAnObject(v:Value[_]) extends PositionalAcumenError {
+    override def mesg =
       pprint(v) + " is not an object."
   }
-  case class NotAClassName(v:Value[_]) extends AcumenError {
-    override def getMessage =
+  case class NotAClassName(v:Value[_]) extends PositionalAcumenError {
+    override def mesg =
       pprint(v) + " is not an class name."
   }
-  case class GroundConversionError(gv:GroundValue, into:String) extends AcumenError {
-    override def getMessage = 
+  case class GroundConversionError(gv:GroundValue, into:String) extends PositionalAcumenError {
+    override def mesg = 
       "Cannot convert " + pprint(gv) + " into a " + into + "."
   }
-  case class ConversionError(v:Value[_], into:String) extends AcumenError {
-    override def getMessage = 
+  case class ConversionError(v:Value[_], into:String) extends PositionalAcumenError {
+    override def mesg = 
       "Cannot convert " + pprint(v) + " into a " + into + "."
   }
-  case class NotACollection(v:Value[_]) extends AcumenError {
-    override def getMessage = 
+  case class NotACollection(v:Value[_]) extends PositionalAcumenError {
+    override def mesg = 
       pprint(v) + " is not a vector or a list."
   }
-  case class UnknownOperator(op:String) extends AcumenError {
-    override def getMessage = 
+  case class UnknownOperator(op:String) extends PositionalAcumenError {
+    override def mesg = 
       "Unknown operator " + op + "."
   }
-  case class CrossProductError() extends AcumenError {
-    override def getMessage = 
+  case class CrossProductError() extends PositionalAcumenError {
+    override def mesg = 
       "Cross product only defined over vectors of size 3."
   }
-  case class InvalidVectorVectorOp(op:String) extends AcumenError {
-    override def getMessage = 
+  case class InvalidVectorVectorOp(op:String) extends PositionalAcumenError {
+    override def mesg = 
       op + " is not a valid vector-vector operation."
   }
-  case class InvalidVectorOp(op:String) extends AcumenError {
-    override def getMessage = 
+  case class InvalidVectorOp(op:String) extends PositionalAcumenError {
+    override def mesg = 
       op + " is not a valid operation over vectors."
   }
-  case class InvalidListOp(op:String) extends AcumenError {
-    override def getMessage = 
+  case class InvalidListOp(op:String) extends PositionalAcumenError {
+    override def mesg = 
       op + " is not a valid operation over lists."
   }
-  case class InvalidScalarVectorOp(op:String) extends AcumenError {
-    override def getMessage = 
+  case class InvalidScalarVectorOp(op:String) extends PositionalAcumenError {
+    override def mesg = 
       op + " is not a valid scalar-vector operation."
   }
-  case class InvalidVectorScalarOp(op:String) extends AcumenError {
-    override def getMessage = 
+  case class InvalidVectorScalarOp(op:String) extends PositionalAcumenError {
+    override def mesg = 
       op + " is not a valid vector-scalar operation."
   }
-  case class ConstructorArity(cd:ClassDef,got:Int) extends AcumenError {
-    override def getMessage = {
+  case class ConstructorArity(cd:ClassDef,got:Int) extends PositionalAcumenError {
+    override def mesg = {
       val cn = cd.name
       val expected = cd.fields.length
       val prefix = 
@@ -79,56 +90,65 @@ object Errors {
         pprint(cn) + "."
     }
   }
-  case class IndexOutOfBounds(i: Int) extends AcumenError {
-    override def getMessage = "Index " + i + " is out of bounds."
+  case class IndexOutOfBounds(i: Int) extends PositionalAcumenError {
+    override def mesg = "Index " + i + " is out of bounds."
   }
-  case class CantIndex() extends AcumenError {
-    override def getMessage = "Can only index into vectors."
+  case class CantIndex() extends PositionalAcumenError {
+    override def mesg = "Can only index into vectors."
   }
-  case class ExpectedInteger(v: Value[_]) extends AcumenError {
-    override def getMessage = "Expected integer but got " + pprint(v) + "."
+  case class ExpectedInteger(v: Value[_]) extends PositionalAcumenError {
+    override def mesg = "Expected integer but got " + pprint(v) + "."
   }
-  case class VariableNotDeclared(x:Name) extends AcumenError {
-    override def getMessage =
+  case class VariableNotDeclared(x:Name) extends PositionalAcumenError {
+    override def mesg =
       "Variable " + pprint(x) + " is not declared."
   }
-  case class AccessDenied[A](id:A,self:A,children:List[A]) extends AcumenError {
-    override def getMessage = 
+  case class AccessDenied[A](id:A,self:A,children:List[A]) extends PositionalAcumenError {
+    override def mesg = 
       "Object #"+id+" is not self (i.e. #"+self+") nor a child of self" + 
          (if (children.length > 0) " (i.e. "+ children.map("#"+_).mkString(", ")+")"
           else "") + "."
   }
-  case class NotAChildOf[A](id:A, obj:A) extends AcumenError {
-    override def getMessage = 
+  case class NotAChildOf[A](id:A, obj:A) extends PositionalAcumenError {
+    override def mesg = 
       "Object #"+id+" is not a child of #"+obj+"."
   }
-  case class NoMatch(gv:GroundValue) extends AcumenError {
-    override def getMessage = 
+  case class NoMatch(gv:GroundValue) extends PositionalAcumenError {
+    override def mesg = 
       "No case matching " + pprint(gv) + "."
   }
-  sealed abstract class DuplicateAssingment(x:Name) extends AcumenError {
-    def getMessage(kind: String) = 
+  sealed abstract class DuplicateAssingment(x:Name) extends PositionalAcumenError {
+    var otherPos : Position = NoPosition
+    def setOtherPos(o: Position) : this.type = {
+      if (pos == NoPosition) pos = o
+      else otherPos = o
+      return this
+    }
+    def mesg(kind: String) = 
       "Repeated" + kind + "assignment to variable (" + x.x + "'" * x.primes + ") is not allowed."
+    override def getMessage = super.getMessage + (
+      if (otherPos == NoPosition) "" 
+      else "\n" + otherPos.toString + ": other location\n" + otherPos.longString)
   }
   case class DuplicateAssingmentUnspecified(x:Name) extends DuplicateAssingment(x) {
-    override def getMessage = super.getMessage(" ")
+    override def mesg = super.mesg(" ")
   }
   case class DuplicateDiscreteAssingment(x:Name) extends DuplicateAssingment(x) {
-    override def getMessage = super.getMessage(" discrete ")
+    override def mesg = super.mesg(" discrete ")
   }
   case class DuplicateContinuousAssingment(x:Name) extends DuplicateAssingment(x) {
-    override def getMessage = super.getMessage(" continuous ")
+    override def mesg = super.mesg(" continuous ")
   }
-  case class BadLhs() extends AcumenError {
-    override def getMessage = 
+  case class BadLhs() extends PositionalAcumenError {
+    override def mesg = 
       "The left hand-side of an assignment must be of the form 'e.x'."
   }
-  case class BadPreLhs() extends AcumenError {
-    override def getMessage = 
+  case class BadPreLhs() extends PositionalAcumenError {
+    override def mesg = 
       "The left hand-side of an equation must be a field."
   }
-  case class BadMove() extends AcumenError {
-    override def getMessage = 
+  case class BadMove() extends PositionalAcumenError {
+    override def mesg = 
       "Move statements must have the form 'move o1.x o2'."
   }
 

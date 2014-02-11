@@ -114,8 +114,8 @@ object Parser extends MyStdTokenParsers {
 
   def smartMinus(e: Expr): Expr = {
     e match {
-      case Lit(GDouble(x)) => Lit(GDouble(-x))
-      case Lit(GInt(x)) => Lit(GInt(-x))
+      case e@Lit(GDouble(x)) => Lit(GDouble(-x)).setPos(e.pos)
+      case e@Lit(GInt(x)) => Lit(GInt(-x)).setPos(e.pos)
       case other => mkOp("-", other)
     }
   }
@@ -225,11 +225,11 @@ object Parser extends MyStdTokenParsers {
   def bindings = repsep(binding, ";") <~ opt(";")
 
   def let:Parser[Expr] =
-      "let" ~! bindings ~! "in" ~! expr ~!"end" ^^
-                  { case _ ~ bs ~ _~ e ~ _ => ExprLet(bs, e) }
+      positioned("let" ~! bindings ~! "in" ~! expr ~!"end" ^^
+                  { case _ ~ bs ~ _~ e ~ _ => ExprLet(bs, e) })
 
   def levelTop:Parser[Expr] =
-      level13 * ("||" ^^^ { (x: Expr, y: Expr) => mkOp("||", x, y) })
+      positioned(level13 * ("||" ^^^ { (x: Expr, y: Expr) => mkOp("||", x, y) }))
 
   def expr: Parser[Expr] = levelTop | let
   def level13: Parser[Expr] =
@@ -293,12 +293,12 @@ object Parser extends MyStdTokenParsers {
 
   def access: Parser[Expr] = 
     atom >> { e =>
-      ("." ~ name ^^ { case _ ~ x => Dot(e, x) }
+      (positioned("." ~ name ^^ { case _ ~ x => Dot(e, x) })
         | success(e))
     }
 
   def atom: Parser[Expr] =
-    ( sum
+    positioned( sum
       | interval
       | "type" ~! parens(className) ^^ { case _ ~ cn => TypeOf(cn) }
       | name >> { n => args(expr) ^^ { es => Op(n, es) } | success(Var(n)) }
@@ -318,7 +318,7 @@ object Parser extends MyStdTokenParsers {
 //    nlit ~ ".." ~ nlit ^^ { case lo ~ ".." ~ hi => ExprInterval(lo,hi) }
       "[" ~> nlit ~ ".." ~ nlit <~ "]" ^^ { case lo ~ ".." ~ hi => ExprInterval(lo,hi) }
 
-  def lit = (gint | gfloat | gstr) ^^ Lit
+  def lit = positioned((gint | gfloat | gstr) ^^ Lit)
 
   def name: Parser[Name] =
     ident ~! rep("'") ^^ { case id ~ ps => Name(id, ps.size) }

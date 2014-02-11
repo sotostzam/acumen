@@ -48,7 +48,7 @@ object Simplifier {
 
   def simplify(e: Expr): Expr = {
     val des = simplify(_: Expr)
-    e match {
+    (e match {
       case Lit(gv) => e
       case Var(x) => e
       case Op(f, es) => Op(f, es map des)
@@ -62,7 +62,7 @@ object Simplifier {
       case TypeOf(cn) => e
       case ExprInterval(lo, hi) => Op(Name("/",0),List(Op(Name("+",0), List(lo, hi)), Lit(GDouble(2.0))))
       case ExprIntervalM(mid, _) => mid
-    }
+    }).setPos(e.pos)
   }
 
   def simplify(e: ContinuousAction): ContinuousAction = {

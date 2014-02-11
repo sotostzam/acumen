@@ -7,6 +7,7 @@ import util.Collections._
 import scala.util.parsing.json._
 import com.sun.corba.se.impl.corba.CORBAObjectImpl
 import acumen.Errors.{FromJSONError, ShouldNeverHappen}
+import scala.util.parsing.input.{Positional,Position,NoPosition}
 
 class Pretty {
 
@@ -18,6 +19,8 @@ class Pretty {
 
   var withType = false
   var exprWithType = false
+
+  var withLineInfo = false
 
   // A "typeclass" for types that can be pretty-printed
   trait PrettyAble[A] {
@@ -205,7 +208,7 @@ class Pretty {
         case TypeOf(cn)       => "type" :: parens(pretty(cn))
         case ExprInterval(lo,hi) => brackets(pretty(lo) :: " .. " :: pretty(hi))
         case ExprIntervalM(m,r)  => parens(pretty(m) :: "+/-" :: pretty(r))
-      }) :: (if (exprWithType && e._type != null) ":" + e._type.toString else "")
+      }) :: (if (exprWithType && e._type != null    ) ":" + e._type.toString else "") :: (if (withLineInfo && e.pos != NoPosition) "@" + e.pos.toString   else "")
     }
   
   def prettyOp(f:Name,es:List[Expr]) =
