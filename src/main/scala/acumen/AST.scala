@@ -110,9 +110,11 @@ package acumen {
   case class Lit(gv: GroundValue) extends Expr 
   /* Example: x'' */
   case class Var(name: Name) extends Expr
-  /* Example Main */
+  /* Example x(10) or sin(x) or obj.x(10) */
+  case class Call(f: Expr, es: List[Expr]) extends Expr
+  /* Example sin(x) */
   case class Op(f: Name, es: List[Expr]) extends Expr
-  /* Example x[10] */
+  /* Example x(10) */
   case class Index(e: Expr, idx: Expr) extends Expr
   /* Example: self.x */
   // The position should point to the field as there is no other way
