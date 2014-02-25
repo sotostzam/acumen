@@ -1,0 +1,11 @@
+class Main (simulator)
+ private foo := create Foo(); x:= 0;
+ end
+  x = foo.x(1)
+end
+
+class Foo()
+  private
+  x:= [1,2,3]
+  end
+end

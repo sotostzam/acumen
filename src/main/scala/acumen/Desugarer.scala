@@ -96,7 +96,7 @@ case class Desugarer(odeTransformMode: ODETransformMode = TopLevel) {
           case Var(n) => if (env.contains(n)) mkIndexOf(f)
                          else if (fs contains n) mkIndexOf(Dot(Var(self), n))
                          else Op(n, es map des)
-          case e => mkIndexOf(e)
+          case e => mkIndexOf(des(e))
         }
       case Op(f,es) => Op(f, es map des)
       case Index(e,i) => Index(des(e),des(i))
