@@ -14,8 +14,7 @@ private
    cyan,     // Color in red-green-blue (RGB) intensity
    [0,0,0]], // Orientation (pi/2 around x-axis)
   ["Sphere",[0,0,1],0.35,magenta,[0,0,0]], // Another sphere
-  ["Sphere",[0,1,0],0.25,red,[0,0,0]]      // And another one
- ]
+  ["Sphere",[0,1,0],0.25,red,[0,0,0]]]  // And another one
 end
 end
 

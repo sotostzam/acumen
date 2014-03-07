@@ -3,9 +3,9 @@
 
 class Main(simulator)
 private
- size :=0.05; // Initial size
- size':=1/15; // Rate of increase of size with time
- _3D := []    // This is just the initial value
+ size := 0.5;  // Initial size
+ size':= 1/2;  // Rate of increase of size with time
+ _3D := []     // This is just the initial value
 end
  _3D =  
    [["Text",

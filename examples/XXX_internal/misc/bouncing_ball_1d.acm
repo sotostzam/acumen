@@ -1,37 +1,16 @@
 
-// Example:  Bouncing Ball (1D)
-// Illustrates:
-//    - classes, and class parameters
-//    - switch statements, conditional statements
-//    - boolean expressions
-//    - continuous variables and derivatives
-//    - discrete assignment
-//    - continous assignment
+class Main(simulator)
+private
+x:=10; x':=0; x'':=0;
 
-class Ball(mode, x,x',x'')
-  switch mode
-    case "Fly"
-      if x < 0 && x' < 0
-        mode := "Bounce"
-      else
-        x'' = -9.8
-      end
-    case "Bounce"
-      x' := -x';
-      mode := "Fly"
+end
+
+if (x>=0)
+  x'' = -9.8
+else
+  if (x'<=0)
+    x' := -0.5 * x'
   end
 end
 
-class Main(simulator)
-  private
-    mode := "Init"
-  end
-  switch mode
-    case "Init"
-      simulator.timeStep := 0.01;
-      simulator.endTime := 5.0;
-      create Ball("Fly", 1,0,0);
-      mode := "Persist"
-    case "Persist"
-  end
 end
