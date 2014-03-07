@@ -136,9 +136,15 @@ class ImperativeInterpreterTest extends InterpreterTestBase {
   testExamples()
   testShouldRun
 
-  def getError(file:String) : Option[AcumenError] = {
+  def getError(file:String) : Option[PositionalAcumenError] = {
     try { run(file) ; None }
-    catch { case e:AcumenError => Some(e) }
+    catch { case e:PositionalAcumenError => Some(e) }
+  }
+
+  def testForError(file:String, err: PositionalAcumenError, pos: String) = {
+    val res = getError(file) 
+    res should be (Some(err))
+    res.get.pos.toString should equal (pos)
   }
 
   test("Error1") {
@@ -146,45 +152,42 @@ class ImperativeInterpreterTest extends InterpreterTestBase {
     getError("data/ShouldCrash/Error1.acm") should be (Some(err))
   }
   test("Error2") {
-    val err = VariableNotDeclared(name("y"))
-    getError("data/ShouldCrash/Error2.acm") should be (Some(err))
+    testForError("data/ShouldCrash/Error2.acm", VariableNotDeclared(name("y")), "3.12")
   }
   test("Error3") {
-    val err = VariableNotDeclared(name("x"))
-    getError("data/ShouldCrash/Error3.acm") should be (Some(err))
+    testForError("data/ShouldCrash/Error3.acm", VariableNotDeclared(name("x")), "2.27")
   }
   test("Error4") {
-    val err = UnknownOperator("f")
-    getError("data/ShouldCrash/Error4.acm") should be (Some(err))
+    testForError("data/ShouldCrash/Error4.acm", UnknownOperator("f"), "3.45")
   }
   test("Error5") {
-    val err = NotAnObject(VLit(GInt(1)))
-    getError("data/ShouldCrash/Error5.acm") should be (Some(err))
+    testForError("data/ShouldCrash/Error5.acm", NotAnObject(VLit(GInt(1))), "3.24")
   }
   test("Error6") {
-    val err = NotAnObject(VLit(GInt(1)))
-    getError("data/ShouldCrash/Error6.acm") should be (Some(err))
+    testForError("data/ShouldCrash/Error6.acm", NotAnObject(VLit(GInt(1))), "2.38")
   }
   test("Error7") {
-    evaluating {run("data/ShouldCrash/Error7.acm")} should produce [AccessDenied[ObjId]]
+    val err = evaluating {run("data/ShouldCrash/Error7.acm")} should produce [AccessDenied[ObjId]]
+    err.pos.toString should be ("8.3")
   }
   test("Error8 ") {
-    evaluating {run("data/ShouldCrash/Error8.acm")} should produce [AccessDenied[ObjId]]
+    val err = evaluating {run("data/ShouldCrash/Error8.acm")} should produce [AccessDenied[ObjId]]
+    err.pos.toString should be ("27.15")
   }
   test("Error9") {
-    evaluating {run("data/ShouldCrash/Error9.acm")} should produce [NotAChildOf[ObjId]]
+    val err = evaluating {run("data/ShouldCrash/Error9.acm")} should produce [NotAChildOf[ObjId]]
+    err.pos.toString should be ("33.12")
   }
   test("Error10 ") {
-    val err = ClassNotDefined(ClassName("B"))
-    getError("data/ShouldCrash/Error10.acm") should be (Some(err))
+    testForError("data/ShouldCrash/Error10.acm", ClassNotDefined(ClassName("B")), "15.25")
   }
   test("Error11 ") {
     val err = ClassDefinedTwice(ClassName("A"))
     getError("data/ShouldCrash/Error11.acm") should be (Some(err))
+    // No line number
   }
   test("ACUMEN-348") {
-    val err = DuplicateAssingmentUnspecified(Name("period",0))
-    getError("data/ShouldCrash/ACUMEN-348.acm") should be (Some(err))
+    testForError("data/ShouldCrash/ACUMEN-348.acm", DuplicateAssingmentUnspecified(Name("period",0)), "14.5")
   }
 
 }

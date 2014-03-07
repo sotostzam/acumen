@@ -21,7 +21,7 @@ case class Desugarer(odeTransformMode: ODETransformMode = TopLevel) {
   val children = name("children")
   val classf = name("className")
 
-  // maybe that check should be moved to a Checker module
+   // maybe that check should be moved to a Checker module
   def check(p: Prog) = {
     val classes = p.defs map (_.name)
     def helper(m: Map[ClassName, Int], cn: ClassName) = m + ((cn, 1 + m.getOrElse(cn, 0)))
@@ -77,18 +77,19 @@ case class Desugarer(odeTransformMode: ODETransformMode = TopLevel) {
       case ForEach(x, e, b) => List(ForEach(x, dese(e), (desugar(p, fs, x :: env, b))))
       case Continuously(ca) => desca(ca) map Continuously
       case Discretely(da) => desda(da) map Discretely
+      case Claim(e) => List(Claim(dese(e)))
     }
   }
 
   def desugar(p: Prog, fs: List[Name], env: List[Name], e: Expr): Expr = {
     val des = desugar(p, fs, env, _: Expr)
-    e match {
+    (e match {
       case Lit(gv) => Lit(gv)
       case Var(x) =>
         if (env.contains(x) || (p.defs map (_.name)).contains(ClassName(x.x))) Var(x)
         else if (fs contains x) Dot(Var(self), x)
         else if (Constants.predefined.contains(x.x)) Constants.predefined(x.x)
-      else throw VariableNotDeclared(x)
+      else throw VariableNotDeclared(x).setPos(e.pos)
       case Op(f, es) =>
         def mkIndexOf(n0: Expr) = es.foldLeft(n0)((n,e) => Index(n, des(e)))
         if (env.contains(f)) mkIndexOf(Var(f))
@@ -103,10 +104,10 @@ case class Desugarer(odeTransformMode: ODETransformMode = TopLevel) {
                                      desugar(p,fs,bs.foldLeft(env)((r,b) =>  b._1::r) ,e2))
       case TypeOf(cn) =>
         if ((p.defs map (_.name)) contains cn) TypeOf(cn)
-        else throw ClassNotDefined(cn)
+        else throw ClassNotDefined(cn).setPos(e.pos)
       case i @ ExprInterval(_, _) => i
       case i @ ExprIntervalM(_, _) => i
-    }
+    }).setPos(e.pos)
   }
 
   def desugar(p: Prog, fs: List[Name], env: List[Name], e: ContinuousAction): List[ContinuousAction] = {
@@ -145,9 +146,9 @@ case class Desugarer(odeTransformMode: ODETransformMode = TopLevel) {
     }
   
   def firstOrderSystem(dot: Dot): List[ContinuousAction] = dot match {
-    case Dot(o, Name(f, n)) => 
+    case e@Dot(o, Name(f, n)) => 
       (for (k <- n until (0, -1))
-        yield EquationI(Dot(o, Name(f, k - 1)), Dot(o, Name(f, k)))).toList
+        yield EquationI(Dot(o, Name(f, k - 1)).setPos(e.pos), Dot(o, Name(f, k)).setPos(e.pos))).toList
   }
   
   def highestOrderNames(ns: List[Name]): List[Name] =

@@ -144,6 +144,7 @@ class App extends SimpleSwingApplication {
   private val pwlHybridSolverAction           = mkActionMask("Enclosure (PWL)",                     VK_L, VK_L,       shortcutMask | SHIFT_MASK, setInterpreter("enclosure-pwl")) 
   private val eventTreeHybridSolverAction     = mkActionMask("Enclosure (EVT)",                     VK_T, VK_T,       shortcutMask | SHIFT_MASK, setInterpreter("enclosure-evt"))
   private val contractionAction               = mkActionMask("Contraction",                         VK_C, VK_C,       shortcutMask | SHIFT_MASK, enclosure.Interpreter.toggleContraction)
+  private val normalizeAction                = mkAction(    "Normalize (to H.A.)",                       NONE, NONE,       toggleNormalization())
   private val manualAction                    = mkAction(    "Reference Manual",                    VK_M, VK_F1,      manual)
   private val aboutAction                     = new Action(  "About")       { mnemonic =            VK_A; def apply = about }
   
@@ -531,8 +532,12 @@ class App extends SimpleSwingApplication {
             enabled = interpreter.interpreter.getClass == enclosure.Interpreter.getClass
         }
       }
+      val lc = new CheckMenuItem("") {
+        action = normalizeAction
+        selected = Main.extraPasses.contains("normalize")
+      }
     }
-    
+
     contents += new Menu("Semantics") {
       import semantics._
       mnemonic = Key.S
@@ -540,6 +545,8 @@ class App extends SimpleSwingApplication {
       if (Main.enableAllSemantics)
         contents ++= Seq(refStandardOpt, new Separator, refExperimental, new Separator, refOriginal, impr, par)
       contents ++= Seq(new Separator, pwl, et, new Separator, ls)
+      if (Main.enableAllSemantics)
+        contents ++= Seq(new Separator, lc)
     }
    
     contents += new Menu("Help") {
@@ -547,6 +554,14 @@ class App extends SimpleSwingApplication {
       contents += new MenuItem(manualAction)
       contents += new MenuItem(aboutAction) 
     }
+  }
+
+  def toggleNormalization() = {
+    import Main.extraPasses
+    if (extraPasses.contains("normalize")) 
+      extraPasses = extraPasses.filter(_ != "normalize")
+    else
+      extraPasses = extraPasses :+ "normalize"
   }
 
   /* gluing everything together */
@@ -624,6 +639,8 @@ class App extends SimpleSwingApplication {
 
   def dumpParms() = {
     if (Main.commandLineParms) {
+      console.log("Passes: " + Main.extraPasses.mkString(","))
+      console.newLine
       console.log("Interpreter: " + interpreter.interpreter.id.mkString("-"))
       console.newLine
     }

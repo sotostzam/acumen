@@ -63,8 +63,8 @@ trait Extract {
         val (hybridSystem, uncertainInitialState) = body.filter(!_.isInstanceOf[Discretely]) match {
           case List(stateMachine) => stateMachine match {
             case Switch(Dot(Var(Name(self, 0)), Name(modeVariable, 0)), clauses: List[Clause]) =>
-              (getHybridSystem(modeVariable, stateVariables - modeVariable, clauses),
-                getInitialState(modeVariable, stateVariables - modeVariable, priv))
+              (getHybridSystem(modeVariable, stateVariables.filterNot{_ == modeVariable}, clauses),
+                getInitialState(modeVariable, stateVariables.filterNot{_ == modeVariable}, priv))
             case Switch(e, _) => sys.error("Switching on " + e + " not allowed!")
             case _            => sys.error("Handling of state machines expressed using control constructs other than switch not implemented!")
           }

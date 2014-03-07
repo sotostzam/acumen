@@ -42,12 +42,13 @@ object Simplifier {
       case ForEach(x, e, b) => ForEach(x, dese(e), (simplify(b)))
       case Continuously(ca) => Continuously(desca(ca))
       case Discretely(da) => Discretely(desda(da))
+      case Claim(c) => Claim(dese(c))
     }
   }
 
   def simplify(e: Expr): Expr = {
     val des = simplify(_: Expr)
-    e match {
+    (e match {
       case Lit(gv) => e
       case Var(x) => e
       case Op(f, es) => Op(f, es map des)
@@ -61,7 +62,7 @@ object Simplifier {
       case TypeOf(cn) => e
       case ExprInterval(lo, hi) => Op(Name("/",0),List(Op(Name("+",0), List(lo, hi)), Lit(GDouble(2.0))))
       case ExprIntervalM(mid, _) => mid
-    }
+    }).setPos(e.pos)
   }
 
   def simplify(e: ContinuousAction): ContinuousAction = {

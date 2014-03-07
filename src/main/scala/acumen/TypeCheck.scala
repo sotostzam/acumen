@@ -26,7 +26,7 @@ object TypeCheck {
 
 }
 
-class TypeCheck(val prog: Prog) {
+class TypeCheck(prog0: Prog) {
 
   import TypeCheck._
 
@@ -192,15 +192,21 @@ class TypeCheck(val prog: Prog) {
   //*********************************************************
   // Initialization
   //
-  
-  prog.defs.foreach{c => 
-    c._types = mutable.Map.empty[Name, TypeLike]
-    val env = new ClassEnv(c._types)
-    classEnvs.update(c.name, env)
-    addSpecialFields(ClassType(NamedClass(c.name)), env)
-    c.fields.foreach { n => updateFieldType(env, n, UnknownType) }
-    c.priv.foreach { case Init(n, _) => updateFieldType(env, n, UnknownType) }
-  }
+
+  // Make a copy of the AST and reset the types for each class
+  val prog = new util.ASTMap {
+    override def mapClassDef(c0: ClassDef) = {
+      val c = super.mapClassDef(c0) // make a copy
+      c._types = mutable.Map.empty[Name, TypeLike]
+      val env = new ClassEnv(c._types)
+      classEnvs.update(c.name, env)
+      addSpecialFields(ClassType(NamedClass(c.name)), env)
+      c.fields.foreach { n => updateFieldType(env, n, UnknownType) }
+      c.priv.foreach { case Init(n, _) => updateFieldType(env, n, UnknownType) }
+      c
+    }
+  }.mapProg(prog0)
+
   getClassDef(ClassName("Main")).orNull._types.update(Name("simulator",0), ClassType(NamedClass(ClassName("Simulator"))))
 
 
@@ -208,7 +214,7 @@ class TypeCheck(val prog: Prog) {
   // Entry point
   //
 
-  def run() : Int = {
+  def run() : (Prog, Int) = {
     silent = false
     var count = 0
     do {
@@ -231,7 +237,7 @@ class TypeCheck(val prog: Prog) {
     silent = false
     println("*** FINAL PASS ***")
     typeCheckIter()
-    return errorLevel
+    (prog, errorLevel)
   }
 
   def typeCheckIter() {

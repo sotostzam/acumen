@@ -1,0 +1,49 @@
+// Day/Night Heater Hybrid Night example
+//
+// Auhor: Adam Duracz
+
+class Main(simulator)
+  private
+    x := 10; x' := 10;
+    time := 0; time' := 1;
+    heating := "on"; 
+    period  := "day" 
+  end
+  time' = 1;
+  switch period
+    case "day" // Hybrid behaviour during the day
+      if time > 12
+        period := "night"
+      end;
+      switch heating
+        case "on"
+          if x > 23
+            heating := "off"
+          end;
+          x' = 10
+        case "off"
+          if x < 19
+            heating := "on"
+          end;
+          x' = -5-x
+      end
+    case "night"
+      if time > 24
+        time := 0;
+        period := "day" 
+      end;
+      switch heating // Hybrid behaviour also at night
+        case "on"
+          if x > 19
+            heating := "off"
+          end;
+          x' = 10
+        case "off"
+          if x < 15
+            heating := "on"
+          end;
+          x' = -5-x
+      end
+  end;
+  simulator.endTime := 48
+end
