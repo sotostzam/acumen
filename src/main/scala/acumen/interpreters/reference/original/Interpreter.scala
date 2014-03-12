@@ -260,6 +260,8 @@ object Interpreter extends acumen.CStoreInterpreter {
         for (ty <- asks(getResultType))
           if (ty != FixedPoint) pass
           else evalContinuousAction(ca, env, p) 
+      case Claim(_) =>
+        pass
     }
   }
  

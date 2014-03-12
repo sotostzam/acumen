@@ -4,6 +4,7 @@
 import scala.math._
 import scala.collection.mutable.HashMap
 import scala.collection.mutable.{Map => MutMap}
+import scala.util.parsing.input.{Positional}
 
 package acumen {
 
@@ -64,6 +65,8 @@ package acumen {
   case class Continuously(a: ContinuousAction) extends Action
   /* Does not explicitely appear in the syntax */
   case class Discretely(a: DiscreteAction) extends Action
+  /* Example: claim x == 0 && x' <= 0 */
+  case class Claim(predicate: Expr) extends Action
 
   /* Example: case 1 x = 3; y = 4 */
   case class Clause(lhs: GroundValue, assertion: Expr, rhs: List[Action])
@@ -96,12 +99,15 @@ package acumen {
     def get(name: Name) : Option[TypeLike]
   }
 
-  sealed abstract class Expr {
+  // The position associated with the Expr should point to a
+  // significant element of the expression, not necessary the
+  // beginning of the expr. See notes for specific types.
+  sealed abstract class Expr extends Positional {
     var _lvalue : Option[(TypeEnv, Name)] = None
     var _type : TypeLike = null
   }
   /* Example: 42 (or "a", or 4.2 ...) */
-  case class Lit(gv: GroundValue) extends Expr
+  case class Lit(gv: GroundValue) extends Expr 
   /* Example: x'' */
   case class Var(name: Name) extends Expr
   /* Example Main */
@@ -109,6 +115,8 @@ package acumen {
   /* Example x[10] */
   case class Index(e: Expr, idx: Expr) extends Expr
   /* Example: self.x */
+  // The position should point to the field as there is no other way
+  // to get that position.
   case class Dot(obj: Expr, field: Name) extends Expr
   /* Example: [1,3,4] */
   case class ExprVector(l: List[Expr]) extends Expr

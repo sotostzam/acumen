@@ -18,10 +18,10 @@ import acumen.interpreters.enclosure.Box
  */
 case class PaddedUnivariateAffineEnclosure private[affine] (
   override val domain: Interval,
-  private[affine] override val normalizedDomain: Interval,
+  override val normalizedDomain: Interval,
   override val components: Map[VarName, PaddedUnivariateAffineScalarEnclosure],
   padding: Interval => Interval)(implicit rnd: Rounding)
-    extends UnivariateAffineEnclosure(domain, normalizedDomain, components) {
+    extends UnivariateAffineEnclosure {
 
   override def rounding = rnd
 

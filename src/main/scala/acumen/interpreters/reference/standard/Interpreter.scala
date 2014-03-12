@@ -266,6 +266,8 @@ object Interpreter extends acumen.CStoreInterpreter {
         for (ty <- asks(getResultType))
           if (ty == Discrete || ty == Integration) pass
           else evalContinuousAction(ca, ty, env, p) 
+      case Claim(_) =>
+        pass
     }
   }
  

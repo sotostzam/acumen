@@ -25,7 +25,7 @@ import swing.event._
 
 object GraphicalMain extends SimpleSwingApplication {
   // Swing debugging
-  javax.swing.RepaintManager.setCurrentManager(new debug.CheckThreadViolationRepaintManager)
+  //javax.swing.RepaintManager.setCurrentManager(new debug.CheckThreadViolationRepaintManager)
   debug.EventDispatchThreadHangMonitor.initMonitoring()
 
   val osname = System.getProperty("os.name").toLowerCase

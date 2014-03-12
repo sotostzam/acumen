@@ -1,12 +1,14 @@
+
+// Please run with "Traditional 2012" Semantics
+
 // Model   :  2012_hh_1T.acm, First Tournament (3D Ping Pong)
 // Acumen  :  http://www.acumen-language.org/2013/01/a-preview-of-acumen13.html
 // Author  :  Yingfu Zeng, Walid Taha, and others (see below)
 // Date    :  2012/02/11
 // Revision:  2013/02/06 New syntax for assignments (= and :=)
 // Ideas   :  Bat has no mass.  Focus is on: Impact,  
-//             problem decomposition, and systems modeling
+//            problem decomposition, and systems modeling
 // License:   BSD, GPL(V2), or other by agreement with Walid Taha
-
 
 class Ball ()
  private
@@ -1939,7 +1941,7 @@ end
 class Game ()
  private
   player1 := create Terminator (1); // First Player;
-  player2 := create Transporter(2); // Second Player;
+  player2 := create Terminator (2); // Second Player;
   ball    := create Ball ();
   ballob  := create BallObserver();
   actuator:= create BallActuator();

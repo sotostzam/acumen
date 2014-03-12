@@ -94,7 +94,7 @@ trait PicardSolver extends IVPSolver {
    * in the solution with its corresponding A_i.
    */
   private def convertToSolutionOnlyOfTime(approx: AffineEnclosure, timeName: VarName, T: Interval)(implicit rnd: Rounding) = {
-    val onNornaizedDomain = approx.collapse((approx.domain.keys.toList - timeName): _*)
+    val onNornaizedDomain = approx.collapse((approx.domain.keys.toList.filterNot{_ == timeName}): _*)
     AffineEnclosure(
       onNornaizedDomain.domain.mapValues(_ => T), // assuming only variable is timeName
       onNornaizedDomain.components.mapValues {

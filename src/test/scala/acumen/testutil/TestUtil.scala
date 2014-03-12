@@ -14,7 +14,7 @@ object TestUtil {
     val onlyLeftKeys = leftKeys -- commonKeys
     val onlyRightKeys = rightKeys -- commonKeys
     if (onlyLeftKeys.nonEmpty || onlyRightKeys.nonEmpty) {
-      println(onlyLeftKeys.toList.sort(_ <= _) + "\n!=\n" + onlyRightKeys.toList.sort(_ <= _))
+      println(onlyLeftKeys.toList.sortWith(_ <= _) + "\n!=\n" + onlyRightKeys.toList.sortWith(_ <= _))
       true
     } else left.keys.exists(id => {
       val l = left(id)

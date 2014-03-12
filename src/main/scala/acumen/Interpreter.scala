@@ -5,105 +5,116 @@ import util.Canonical._
 import ui.interpreter._
 import Pretty._
 
-abstract class InterpreterRes {
-  def print : Unit;
-  def printLast : Unit;
-}
-
 trait Interpreter {
   def newInterpreterModel : InterpreterModel
   def run(p:Prog) : InterpreterRes
   def id : Array[String] // id, as would be passed in the command line
 }
 
-case class CStoreRes(ctrace: Stream[CStore]) extends InterpreterRes {
-  def print = {
-    var i = 0
-    for (st <- ctrace) {
-      println(pprint(prettyStore(st)))
-      println("-" * 30 + i)
-      i += 1
+abstract class InterpreterRes {
+  def print : Unit;
+  def printLast : Unit;
+}
+
+/** Interface common to all interpreters whose results can be converted to/from CStores. */
+trait CStoreInterpreter extends Interpreter {
+  type Store
+
+  override def newInterpreterModel = new CStoreModel(new CStoreOpts)
+
+  def repr (s:Store) : CStore
+  def fromCStore (cs:CStore, root:CId) : Store
+
+  /** Based on prog, creates the initial store that will be used to start the simulation. */
+  def init(prog:Prog) : (Prog, Store)
+  /**
+   * Moves the simulation one step forward.  Returns None at the end of the simulation.
+   * NOTE: Performing a step does not necessarily imply that time moves forward.
+   * NOTE: The store "st" may be mutated in place or copied, depending on the interpreter.
+   */
+  def step(p:Prog, st:Store) : Option[Store]
+  /** 
+   * Performs multiple steps. Driven by "adder"  
+   * NOTE: May be overridden for better performance.
+   */
+  def multiStep(p: Prog, st0: Store, adder: DataAdder) : Store = {
+    var st = st0
+    var cstore = repr(st0)
+    var shouldAddData = ShouldAddData.IfLast 
+    // ^^ set to IfLast on purpose to make things work
+    while (true) {
+      step(p, st) match {
+        case Some(res) => // If the simulation is not over
+          cstore = repr(res) 
+          shouldAddData = adder.newStep(getResultType(cstore))
+          if (shouldAddData == ShouldAddData.Yes)
+            cstore.foreach{case (id,obj) => adder.addData(id, obj)}
+          if (!adder.continue)
+            return res
+          st = res
+        case None => // If the simulation is over
+          if (shouldAddData == ShouldAddData.IfLast)
+            cstore.foreach{case (id,obj) => adder.addData(id, obj)}
+          adder.noMoreData()
+          return st
+      }
     }
-  }
-  
-  def loop(action: (CStore, ResultType) => Unit) : Unit = {
-    var prevStepType : ResultType = Discrete
-    var nextContinuous = true
-    for (st <- ctrace) {
-      val VResultType(curStepType) = st.get(CId(0)).orNull.get(Name("resultType",0)).orNull
-      val resultType = 
-        if (prevStepType == Discrete && curStepType == FixedPoint)
-          Some(FixedPoint)
-        else if (curStepType == Continuous)
-          Some(Continuous)
-        else
-          None
-      resultType.foreach{ n => action(st, n) }
-      prevStepType = curStepType
-    };
+    st
   }
 
-  def dumpSample(out: java.io.PrintStream) = {
-    val pp = new Pretty
-    pp.filterStore = true
-    var stepNum = -1
-    var discrStepNum = -1
-    var last : CStore = null
-    def dumpStep(st: CStore) = {
-      out.println(pp.pprint(pp.prettyStore(st)))
-      out.println("-" * 30 + stepNum)
-    }
-    loop { (st, n) => 
-      stepNum += 1
-      if (n == FixedPoint) {
-        discrStepNum += 1
-        if (discrStepNum < 4)
-          dumpStep(st)
-      }
-      last = st
-    }
-    dumpStep(last)
+  type History = Stream[Store]
+  // Note: Even though a stream is a lazy list, it is used here more
+  // like a traditional I/O stream; traversing more than once is only
+  // supported if Store is an immutable data structure (as in the
+  // reference interpreter).
+
+  def fromCStore(st:CStore) : Store =
+    fromCStore(st, mainId(st))
+
+  def expose_externally(store:Store) : Store = {
+    store
   }
 
-  // Note: currently unused, here in case it is useful
-  def dumpRandomSample(out: java.io.PrintStream) = {
-    val pp = new Pretty
-    pp.filterStore = true
-    var i = 0
-    var j = 0
-    loop { (st, n) => 
-      if (n == Continuous) i += 1
-      if (n == FixedPoint) j += 1
-    }
-    // best to use prime numbers
-    var c_every = if (i <= 11) 1 else i / 11;
-    var d_every = if (j <= 7) 1 else j / 7;
-    var last = j;
-    i = 0
-    j = 0
-    loop { (st, n) =>
-      var skip = false
-      if (n == Continuous) {
-        skip = i % c_every != 0
-        i += 1
-      } else if (n ==  FixedPoint) {
-        skip = j % d_every != 0
-        j += 1
-      }
-      if (!skip) {
-        out.println(pp.pprint(pp.prettyStore(st)))
-        out.println("-" * 30 + n)
-      }
-    }
+  /* main loop */
+  def loop(p:Prog, st:Store) : History = {
+    st #:: (step(p, st) match {
+        case None      => empty
+        case Some(st1) => 
+		      val st2 = expose_externally(st1)
+		      loop(p, st2)
+      })
   }
-  def printLast = {
-    println(pprint(prettyStore(ctrace.last)))
+
+  /* all-in-one main-loop */
+  def run(p:Prog) = {
+    val (p1,st) = init(p)
+    val trace = loop (p1, st)
+    CStoreRes(trace map repr)
+  }
+
+
+  /* multistep versions of loop and run */
+
+  def loop(p:Prog, st:Store, adder: DataAdder) : History = {
+    st #:: {if (adder.done) empty
+            else loop(p, multiStep(p, st, adder), adder)}
+  }
+
+  def run(p: Prog, adder: DataAdder) : History = {
+   val (p1,st) = init(p)
+   loop(p1, st, adder)
   }
 }
 
-object OutputRows extends Enumeration {
-  val All, WhenChanged, FinalWhenChanged, ContinuousOnly, Last = Value
+abstract class InterpreterCallbacks
+
+trait RecursiveInterpreter extends Interpreter {
+  def runInterpreter(prog:Prog, cb0: InterpreterCallbacks) : InterpreterRes
 }
+
+//
+/* ************************************************************************ */
+//
 
 class CStoreOpts {
   var outputRows = OutputRows.WhenChanged
@@ -116,31 +127,84 @@ class CStoreOpts {
   //var outputMisc = true // anything not covered by the above
 }
 
+/** 
+ * Controls which rows are preserved when FilterDataAdder is used.
+ * NOTE: A row here refers to the result of a call to Interpreter.step(),
+ *       and corresponds to a row in the trace table.  
+ */
+object OutputRows extends Enumeration {
+  val All, WhenChanged, FinalWhenChanged, ContinuousOnly, Last = Value
+}
+
+//
+/* ************************************************************************ */
+//
+
+/*
+ * An interface used by CStoreInterpreter#multiStep to output simulation
+ * results.
+ * 
+ * The protocol is as follows:
+ * 
+ * After each step multiStep calls DataAdder#newStep with the current
+ * ResultType for that step if there is data or DataAdder#noMoreData
+ * if the simultation has
+ * ended.  Assuming the simulation has not ended, than the result of
+ * newStep determine if data should be added for this step,  if so
+ * than DataAdder#addData is called for each object in the store.
+ * After the data is optionally added
+ * DataAdder#continue is called to determine if multiStep should
+ * perform another step or return.  The result of multiStep is the
+ * store of the last step.  If the simulation has ended the result
+ * is the store for the final step and DataAdder#done is set to true.
+ * 
+ * The normal usage of DataAdder with multiStep is an alternative to
+ * single stepping where data is returned via addData rather than the
+ * conversion to a CStore after every step.  However, DataAdder can
+ * also be used just to filter rows and still use the CStore for the
+ * rows returned, see FilterRowsDataAdder for an example on how to use
+ * this
+ */
+abstract class DataAdder {
+  /** After multiStep returns, this value can be checked to see if the
+   * simulation is done. */
+  var done = false
+  /** 
+   * Called to register that a step has been performed by an interpreter with
+   * ResultType "t".
+   * The return value indicates if the data should then be added using addData.
+   * A naive implementation is allowed to ignore the return value and call
+   * addData every time.
+   */
+  def newStep(t: ResultType) : ShouldAddData.Value
+  /** 
+   * Called when the simulation has ended and no more data should be added.
+   */
+  def noMoreData() : Unit = {done = true}
+  /** 
+   * Called to update the data collected for the object corresponding to "objId"
+   * in this adder with "values".
+   */
+  def addData(objId: CId, values: GObject) : Unit
+  /**
+   * Called after each step.  If false than multiStep should not continue and
+   * return the current Store.
+   */
+  def continue : Boolean 
+}
+
+/** 
+ * Returned by DataAdder.newStep(...) and used to tell CStoreInterpreter.multiStep() 
+ * whether or not to add the data. IfLast refers to the very last step of the
+ * simulation.
+ */
 object ShouldAddData extends Enumeration {
   val Yes, IfLast, No = Value
 }
 
-abstract class DataAdder {
-  var done = false;
-  // ^^ Check this to see if the simulation is done
-  def newStep(t: ResultType) : ShouldAddData.Value
-  // ^^ Return true if data should be added false otherwise.  It is okay to
-  //    add data when it returns false, just pointless.
-  def noMoreData() : Unit = {done = true}
-  // ^^ Call this when the simulation has ended and no more data
-  //    should be added
-  def addData(objId: CId, values: GObject)
-  def continue : Boolean 
-  // ^^ Call this when there is no more data to add for this step.
-  // ^^ Return true if the current step is the last step data should
-  //    be added to for now.
-}
-// The normal usage of DataAdder with multiStep is an alternative to
-// single stepping where data is returned via addData rather than the
-// conversion to a CStore after every step.  However, DataAdder can
-// also be used just to filter rows and still use the CStore for the
-// rows returned, see FilterRowsDataAdder for an example on how to use
-// this
+//
+/* ************************************************************************ */
+//
 
 class StopAtFixedPoint extends DataAdder {
   var curStepType : ResultType = Discrete
@@ -149,12 +213,6 @@ class StopAtFixedPoint extends DataAdder {
   def continue = curStepType != FixedPoint
 }
 
-//                   <Last> @Continuous @Discrete <FP. Changed> @FixedPoin
-// All                 1         1 2        1          1             1 
-// WhenChanged         y          2         3          n             n
-// FinalWhenChanged    y          2         n          4             n
-// ContinuousOnly      y          2         n          n             n 
-// Last                y          n         n          n             n 
 abstract class FilterDataAdder(var opts: CStoreOpts) extends DataAdder {
   var prevStepType : ResultType = Discrete
   var curStepType : ResultType = Discrete
@@ -168,6 +226,12 @@ abstract class FilterDataAdder(var opts: CStoreOpts) extends DataAdder {
                  || (curStepType == Continuous && what != Last)  // 2
                  || (curStepType ==  Discrete && what == WhenChanged) // 3
                  || (prevStepType == Discrete && curStepType == FixedPoint && what == FinalWhenChanged)) // 4
+    //                   <Last> @Continuous @Discrete <FP. Changed> @FixedPoint
+    // All                 1         1 2        1          1             1 
+    // WhenChanged         y          2         3          n             n
+    // FinalWhenChanged    y          2         n          4             n
+    // ContinuousOnly      y          2         n          n             n 
+    // Last                y          n         n          n             n 
     prevStepType = curStepType
     if (curStepType == Continuous) {
       if (contCountdown == 0) {
@@ -245,86 +309,104 @@ class DumpSample(out: java.io.PrintStream) extends DataAdder {
   def continue = true
 }
 
-trait CStoreInterpreter extends Interpreter {
-  type Store
-  def repr (s:Store) : CStore
+//
+/* ************************************************************************ */
+//
 
-  override def newInterpreterModel = new CStoreModel(new CStoreOpts)
+case class CStoreRes(ctrace: Stream[CStore]) extends InterpreterRes {
+  def print = {
+    var i = 0
+    for (st <- ctrace) {
+      println(pprint(prettyStore(st)))
+      println("-" * 30 + i)
+      i += 1
+    }
+  }
+  
+  def loop(action: (CStore, ResultType) => Unit) : Unit = {
+    var prevStepType : ResultType = Discrete
+    var nextContinuous = true
+    for (st <- ctrace) {
+      val VResultType(curStepType) = st.get(CId(0)).orNull.get(Name("resultType",0)).orNull
+      val resultType = 
+        if (prevStepType == Discrete && curStepType == FixedPoint)
+          Some(FixedPoint)
+        else if (curStepType == Continuous)
+          Some(Continuous)
+        else
+          None
+      resultType.foreach{ n => action(st, n) }
+      prevStepType = curStepType
+    };
+  }
 
-  def fromCStore (cs:CStore, root:CId) : Store
-  def init(prog:Prog) : (Prog, Store)
-  def step(p:Prog, st:Store) : Option[Store]
-  def multiStep(p: Prog, st0: Store, adder: DataAdder) : Store = {
-    var st = st0
-    var cstore = repr(st0)
-    var shouldAddData = ShouldAddData.IfLast 
-    // ^^ set to IfLast on purpose to make things work
-    while (true) {
-      step(p, st) match {
-        case Some(res) =>
-          cstore = repr(res)
-          shouldAddData = adder.newStep(getResultType(cstore))
-          if (shouldAddData == ShouldAddData.Yes)
-            cstore.foreach{case (id,obj) => adder.addData(id, obj)}
-          if (!adder.continue)
-            return res
-          st = res
-        case None =>
-          if (shouldAddData == ShouldAddData.IfLast)
-            cstore.foreach{case (id,obj) => adder.addData(id, obj)}
-          adder.noMoreData()
-          return st
+  def dumpSample(out: java.io.PrintStream) = {
+    val pp = new Pretty
+    pp.filterStore = true
+    var stepNum = -1
+    var discrStepNum = -1
+    var last : CStore = null
+    def dumpStep(st: CStore) = {
+      out.println(pp.pprint(pp.prettyStore(st)))
+      out.println("-" * 30 + stepNum)
+    }
+    loop { (st, n) => 
+      stepNum += 1
+      if (n == FixedPoint) {
+        discrStepNum += 1
+        if (discrStepNum < 4)
+          dumpStep(st)
+      }
+      last = st
+    }
+    dumpStep(last)
+  }
+
+  def dumpContinuous(out: java.io.PrintStream) = {
+    val pp = new Pretty
+    pp.filterStore = true
+    def dumpStep(st: CStore) = {
+      out.println(pp.pprint(pp.prettyStore(st)))
+    }
+    loop { (st, n) => 
+      if (n == Continuous)
+        dumpStep(st)
+    }
+  }
+
+  // Note: currently unused, here in case it is useful
+  def dumpRandomSample(out: java.io.PrintStream) = {
+    val pp = new Pretty
+    pp.filterStore = true
+    var i = 0
+    var j = 0
+    loop { (st, n) => 
+      if (n == Continuous) i += 1
+      if (n == FixedPoint) j += 1
+    }
+    // best to use prime numbers
+    var c_every = if (i <= 11) 1 else i / 11;
+    var d_every = if (j <= 7) 1 else j / 7;
+    var last = j;
+    i = 0
+    j = 0
+    loop { (st, n) =>
+      var skip = false
+      if (n == Continuous) {
+        skip = i % c_every != 0
+        i += 1
+      } else if (n ==  FixedPoint) {
+        skip = j % d_every != 0
+        j += 1
+      }
+      if (!skip) {
+        out.println(pp.pprint(pp.prettyStore(st)))
+        out.println("-" * 30 + n)
       }
     }
-    st
   }
-
-  type History = Stream[Store]
-  // Note: Even though a stream is a lazy list, it is used here more
-  // like a traditional I/O stream; traversing more than once is only
-  // supported if Store is an immutable data structure (as in the
-  // reference interpreter).
-
-  def fromCStore(st:CStore) : Store =
-    fromCStore(st, mainId(st))
-
-  def expose_externally(store:Store) : Store = {
-    store
-  }
-
-  /* main loop */
-  def loop(p:Prog, st:Store) : History = {
-    st #:: (step(p, st) match {
-        case None      => empty
-        case Some(st1) => 
-		      val st2 = expose_externally(st1)
-		      loop(p, st2)
-      })
-  }
-
-  /* all-in-one main-loop */
-  def run(p:Prog) = {
-    val (p1,st) = init(p)
-    val trace = loop (p1, st)
-    CStoreRes(trace map repr)
-  }
-
-
-  /* multistep versions of loop and run */
-
-  def loop(p:Prog, st:Store, adder: DataAdder) : History = {
-    st #:: {if (adder.done) empty
-            else loop(p, multiStep(p, st, adder), adder)}
-  }
-
-  def run(p: Prog, adder: DataAdder) : History = {
-   val (p1,st) = init(p)
-   loop(p1, st, adder)
+  def printLast = {
+    println(pprint(prettyStore(ctrace.last)))
   }
 }
 
-abstract class InterpreterCallbacks
-
-trait RecursiveInterpreter extends Interpreter {
-  def runInterpreter(prog:Prog, cb0: InterpreterCallbacks) : InterpreterRes
-}

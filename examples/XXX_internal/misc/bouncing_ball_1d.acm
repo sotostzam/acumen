@@ -1,0 +1,16 @@
+
+class Main(simulator)
+private
+x:=10; x':=0; x'':=0;
+
+end
+
+if (x>=0)
+  x'' = -9.8
+else
+  if (x'<=0)
+    x' := -0.5 * x'
+  end
+end
+
+end

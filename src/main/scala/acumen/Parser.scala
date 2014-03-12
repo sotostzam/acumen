@@ -4,7 +4,7 @@ import scala.util.parsing.input.StreamReader
 import scala.util.parsing.combinator.lexical.StdLexical
 import scala.util.parsing.combinator.syntactical.StdTokenParsers
 import scala.util.parsing.input.CharArrayReader.EofCh
-import scala.util.parsing.syntax.StdTokens
+import scala.util.parsing.combinator.token.StdTokens
 import scala.collection.immutable.HashMap
 
 import Errors._
@@ -114,8 +114,8 @@ object Parser extends MyStdTokenParsers {
 
   def smartMinus(e: Expr): Expr = {
     e match {
-      case Lit(GDouble(x)) => Lit(GDouble(-x))
-      case Lit(GInt(x)) => Lit(GInt(-x))
+      case e@Lit(GDouble(x)) => Lit(GDouble(-x)).setPos(e.pos)
+      case e@Lit(GInt(x)) => Lit(GInt(-x)).setPos(e.pos)
       case other => mkOp("-", other)
     }
   }
@@ -167,7 +167,7 @@ object Parser extends MyStdTokenParsers {
   def actions = repsep(action, ";") <~ opt(";")
 
   def action: Parser[Action] =
-    switchCase | ifThenElse | forEach | discretelyOrContinuously
+    switchCase | ifThenElse | forEach | discretelyOrContinuously | claim
 
   def switchCase =
     "switch" ~! expr ~! clauses ~! "end" ^^
@@ -176,12 +176,14 @@ object Parser extends MyStdTokenParsers {
   def clauses = rep(clause)
 
   def clause =
-    "case" ~ gvalue ~ assertion ~! actions ^^
+    "case" ~ gvalue ~ claimExpr ~! actions ^^
       { case _ ~ lhs ~ invariant ~ rhs => Clause(lhs, invariant, rhs) } |
       "case" ~! gvalue ~! actions ^^
       { case _ ~ lhs ~ rhs => Clause(lhs, Lit(GBool(true)), rhs) }
 
-  def assertion = "claim" ~! expr ^^ { case "claim" ~ expr => expr }
+  def claimExpr = "claim" ~! expr ^^ { case "claim" ~ expr => expr }
+
+  def claim = claimExpr ^^ { case predicate => Claim(predicate) }
 
   def ifThenElse =
     ("if" ~! expr ~! actions) >> {
@@ -223,11 +225,11 @@ object Parser extends MyStdTokenParsers {
   def bindings = repsep(binding, ";") <~ opt(";")
 
   def let:Parser[Expr] =
-      "let" ~! bindings ~! "in" ~! expr ~!"end" ^^
-                  { case _ ~ bs ~ _~ e ~ _ => ExprLet(bs, e) }
+      positioned("let" ~! bindings ~! "in" ~! expr ~!"end" ^^
+                  { case _ ~ bs ~ _~ e ~ _ => ExprLet(bs, e) })
 
   def levelTop:Parser[Expr] =
-      level13 * ("||" ^^^ { (x: Expr, y: Expr) => mkOp("||", x, y) })
+      positioned(level13 * ("||" ^^^ { (x: Expr, y: Expr) => mkOp("||", x, y) }))
 
   def expr: Parser[Expr] = levelTop | let
   def level13: Parser[Expr] =
@@ -291,12 +293,12 @@ object Parser extends MyStdTokenParsers {
 
   def access: Parser[Expr] = 
     atom >> { e =>
-      ("." ~ name ^^ { case _ ~ x => Dot(e, x) }
+      (positioned("." ~ name ^^ { case _ ~ x => Dot(e, x) })
         | success(e))
     }
 
   def atom: Parser[Expr] =
-    ( sum
+    positioned( sum
       | interval
       | "type" ~! parens(className) ^^ { case _ ~ cn => TypeOf(cn) }
       | name >> { n => args(expr) ^^ { es => Op(n, es) } | success(Var(n)) }
@@ -316,7 +318,7 @@ object Parser extends MyStdTokenParsers {
 //    nlit ~ ".." ~ nlit ^^ { case lo ~ ".." ~ hi => ExprInterval(lo,hi) }
       "[" ~> nlit ~ ".." ~ nlit <~ "]" ^^ { case lo ~ ".." ~ hi => ExprInterval(lo,hi) }
 
-  def lit = (gint | gfloat | gstr) ^^ Lit
+  def lit = positioned((gint | gfloat | gstr) ^^ Lit)
 
   def name: Parser[Name] =
     ident ~! rep("'") ^^ { case id ~ ps => Name(id, ps.size) }
