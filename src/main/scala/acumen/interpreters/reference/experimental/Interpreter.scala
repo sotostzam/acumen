@@ -423,7 +423,7 @@ object Interpreter extends acumen.CStoreInterpreter {
   def solveIVP(odes: Set[(CId, Name, Expr, Env)], p: Prog, st: Store): Set[(CId, Name, CValue)] = {
     def msg(meth: String) = "Invalid integration method \"" + meth + "\". Please select one of [\"EulerCromer\", \"EulerForward\"]" 
     getInSimulator(Name("method", 0), st) match {
-      case VLit(GStr("EulerForward")) => solveIVPForwardEuler(odes, p, st)
+      case VLit(GStr("EulerForward")) => solveIVPSingleStep(odes, p, st, (x, f, h) => x + f * h)
       case VLit(GStr("EulerCromer")) => solveIVPEulerCromer(odes, p, st)
       case VLit(GStr(m)) => throw new Error(msg(m))
       case VClassName(ClassName(c)) => throw new Error(msg(c))
@@ -432,23 +432,30 @@ object Interpreter extends acumen.CStoreInterpreter {
   }
 
   /**
-   * Forward Euler integration.
-   * 
-   * Simple first-order approximation of the solution.
+   * Parametric single step integrator. 
+   * The actual integrator is the step function, which takes a triple (x,f,h) where:
+   *  - x is the previous estimate of the solution
+   *  - f is the previous estimate of the field (the RHS of the ODE)
+   *  - h is the time step
    */
-  def solveIVPForwardEuler(odes: Set[(CId, Name, Expr, Env)], p: Prog, st: Store): Set[(CId, Name, CValue)] =
+  def solveIVPSingleStep
+    ( odes: Set[(CId, Name, Expr, Env)]
+    , p: Prog
+    , st: Store
+    , step: (Double, Double, Double) => Double
+    ): Set[(CId, Name, CValue)] =
     odes.map {
-      case (o, n, r, e) =>
-        val dt = getTimeStep(st)
-        val vt = evalExpr(r, p, e, st)
+      case (o, n, rhs, env) =>
+        val h = getTimeStep(st)
+        val gf = evalExpr(rhs, p, env, st)
         val lhs = getObjectField(o, n, st)
         val v = lhs match {
-          case VLit(d) =>
-            VLit(GDouble(extractDouble(d) + extractDouble(vt) * dt))
-          case VVector(u) =>
-            val us = extractDoubles(u)
-            val ts = extractDoubles(vt)
-            VVector((us, ts).zipped map ((a, b) => VLit(GDouble(a + b * dt))))
+          case VLit(gx) =>
+            VLit(GDouble(step(extractDouble(gx), extractDouble(gf), h)))
+          case VVector(gxs) =>
+            val xs = extractDoubles(gxs)
+            val fs = extractDoubles(gf)
+            VVector((xs, fs).zipped map ((x, f) => VLit(GDouble(step(x, f, h)))))
           case _ =>
             throw BadLhs()
         }
