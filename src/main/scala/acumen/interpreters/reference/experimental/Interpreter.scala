@@ -323,7 +323,7 @@ object Interpreter extends acumen.CStoreInterpreter {
 
   def evalContinuousAction(a:ContinuousAction, t:ResultType, env:Env, p:Prog) : Eval[Unit] = 
     (t, a) match {
-      case (FixedPoint, EquationT(Dot(e,x),rhs)) =>
+      case (FixedPoint | Continuous, EquationT(Dot(e,x),rhs)) => // Continuous is for checkContinuousDynamicsAlwaysDefined
         /* Schedule a continuous assignment of vt to x */
         for { id <- asks(evalExpr(e, p, env, _)) map extractId
               vt <- asks(evalExpr(rhs, p, env, _))
@@ -403,6 +403,7 @@ object Interpreter extends acumen.CStoreInterpreter {
             setResultType(Continuous, stE)
           case Continuous => // Do integration step
             checkDuplicateAssingments(odes.map { case (o, n, r, e) => (o, n) }, DuplicateIntegrationAssingment)
+            checkContinuousDynamicsAlwaysDefined(odes, eqs, st)
             val solutions = solveIVP(odes, p, st1)
             val stODE = mapM_(assHelper, solutions.toList) ~> st1
             val st2 = setResultType(Integration, stODE)
@@ -496,6 +497,19 @@ object Interpreter extends acumen.CStoreInterpreter {
     if (duplicates.size != 0)
       throw error(duplicates(0)._2)
   }
+  
+  /** 
+   * Ensure that for each ODE declared in the private section, there is a ODE specified in the code at each time step.
+   * This is done by checking that for each CId-Name pair in odes, there is a corresponding CId-Name pair in eqs.
+   */
+  def checkContinuousDynamicsAlwaysDefined(odes: Set[(CId, Name, Expr, Env)], eqs: Set[(CId, Name, CValue)], st: Store): Unit =
+    odes foreach { case (o, n, _, _) => 
+      val b = eqs exists { case (eo,en,_) => o.id == eo.id && n.x == en.x }
+      if (!b) sys.error(
+        "No equation was specified for (#" + o.cid.toString + " : " + Pretty.pprint(getObjectField(o, classf, st)) + ")." + 
+        Pretty.pprint(n) + " at time " + getTime(st) + ".") 
+      b
+    }
   
   /** Applies an assignment to the monad. */
   def applyAssingment(a: (CId,Name,CValue)) = setObjectFieldM(a._1, a._2, a._3)
