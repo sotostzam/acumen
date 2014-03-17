@@ -404,8 +404,7 @@ object Interpreter extends acumen.CStoreInterpreter {
           case Continuous => // Do integration step
             checkDuplicateAssingments(odes.map { case (o, n, r, e) => (o, n) }, DuplicateIntegrationAssingment)
             checkContinuousDynamicsAlwaysDefined(odes, eqs, st)
-            val solutions = solveIVP(odes, p, st1)
-            val stODE = mapM_(assHelper, solutions.toList) ~> st1
+            val stODE = solveIVP(odes, p, st1)
             val st2 = setResultType(Integration, stODE)
             setTime(getTime(st2) + getTimeStep(st2), st2)
         }
@@ -420,47 +419,70 @@ object Interpreter extends acumen.CStoreInterpreter {
    *  - Env:  Initial conditions of the IVP.
    * The time segment is derived from time step in store st. 
    */
-  def solveIVP(odes: Set[(CId, Name, Expr, Env)], p: Prog, st: Store): Set[(CId, Name, CValue)] = {
-    def msg(meth: String) = "Invalid integration method \"" + meth + "\". Please select one of [\"EulerCromer\", \"EulerForward\"]" 
+  def solveIVP(odes: Set[(CId, Name, Expr, Env)], p: Prog, st: Store): Store = {
+    def msg(meth: String) = "Invalid integration method \"" + meth + """. Please select one of ["EulerCromer", "EulerForward", "RungeKutta"]"""
+    val h = getTimeStep(st)
+    implicit val field = Field(odes, p)
     getInSimulator(Name("method", 0), st) match {
-      case VLit(GStr("EulerForward")) => solveIVPSingleStep(odes, p, st, (x, f, h) => x + f * h)
+      case VLit(GStr("EulerForward")) => solveIVPForwardEuler(st, h)
+      case VLit(GStr("RungeKutta")) => solveIVPRungeKutta(st, h)
       case VLit(GStr("EulerCromer")) => solveIVPEulerCromer(odes, p, st)
       case VLit(GStr(m)) => throw new Error(msg(m))
       case VClassName(ClassName(c)) => throw new Error(msg(c))
       case m => throw new Error(msg(m.toString))
     }
   }
-
+  
+  /** Representation of a set of ODEs. */
+  case class Field(odes: Set[(CId, Name, Expr, Env)], p: Prog) {
+    /** Evaluate the field (the RHS of each equation in ODEs) in s. */
+    def apply(s: Store): Store =
+      mapM_(assHelper, odes.toList.map { 
+        case (o, n, rhs, env) => (o, n, evalExpr(rhs, p, env, s)) 
+      }) ~> s
+    /** 
+     * Returns the set of variables affected by the field.
+     * These are the LHSs of each ODE and the corresponding unprimed variables.
+     * NOTE: Assumes that the de-sugarer has reduced all higher-order ODEs.  
+     */
+    def variables: List[(CId, Name)] = 
+      odes.toList.flatMap(e => Set((e._1, e._2), (e._1, Name(e._2.x, 0))))
+  }
+  
   /**
-   * Parametric single step integrator. 
-   * The actual integrator is the step function, which takes a triple (x,f,h) where:
-   *  - x is the previous estimate of the solution
-   *  - f is the previous estimate of the field (the RHS of the ODE)
-   *  - h is the time step
+   * Embedded DSL for expressing integrators.
+   * NOTE: Operators affect only field.variables. 
    */
-  def solveIVPSingleStep
-    ( odes: Set[(CId, Name, Expr, Env)]
-    , p: Prog
-    , st: Store
-    , step: (Double, Double, Double) => Double
-    ): Set[(CId, Name, CValue)] =
-    odes.map {
-      case (o, n, rhs, env) =>
-        val h = getTimeStep(st)
-        val gf = evalExpr(rhs, p, env, st)
-        val lhs = getObjectField(o, n, st)
-        val v = lhs match {
-          case VLit(gx) =>
-            VLit(GDouble(step(extractDouble(gx), extractDouble(gf), h)))
-          case VVector(gxs) =>
-            val xs = extractDoubles(gxs)
-            val fs = extractDoubles(gf)
-            VVector((xs, fs).zipped map ((x, f) => VLit(GDouble(step(x, f, h)))))
-          case _ =>
-            throw BadLhs()
-        }
-        (o, n, v)
-    }
+  case class RichStore(s: Store) {
+    def +++(that: Store)(implicit field: Field): Store = op("+", that)
+    def ***(that: Store)(implicit field: Field): Store = op("*", that)
+    def ***(that: Double)(implicit field: Field): Store = op("*", that)
+    /** Combine this (s) and that Store using operator. */
+    def op(operator: String, that: Store)(implicit field: Field): Store =
+      mapM_(assHelper, field.variables.map {
+        case (o, n) => (o, n, evalOp(operator, List(getObjectField(o, n, s), getObjectField(o, n, that))))
+      }) ~> s
+    def op(operator: String, that: Double)(implicit field: Field): Store =
+      mapM_(assHelper, field.variables.map {
+        case (o, n) => (o, n, evalOp(operator, List(getObjectField(o, n, s), VLit(GDouble(that)))))
+      }) ~> s
+    def op(operator: String, that: (CId, Name) => Value[_])(implicit field: Field): Store =
+      mapM_(assHelper, field.variables.map {
+        case (o, n) => (o, n, evalOp(operator, List(getObjectField(o, n, s), that(o,n))))
+      }) ~> s
+  }
+  implicit def liftStore(s: Store): RichStore = RichStore(s)
+  
+  def solveIVPForwardEuler(xs: Store, h: Double)(implicit f: Field): Store =
+    xs +++ f(xs) *** h
+
+  def solveIVPRungeKutta(xs: Store, h: Double)(implicit f: Field): Store = {
+    val k1 = f(xs) 
+    val k2 = f(xs +++ k1 *** (h/2)) 
+    val k3 = f(xs +++ k2 *** (h/2))
+    val k4 = f(xs +++ k3 *** h)
+    xs +++ (k1 +++ k2 *** 2 +++ k3 *** 2 +++ k4) *** (h/6)
+  }
 
   /**
    * Euler-Cromer integration. 
@@ -474,11 +496,11 @@ object Interpreter extends acumen.CStoreInterpreter {
    * NOTE: Some equational properties of Acumen programs may not hold 
    *       when using this integration method.
    */
-  def solveIVPEulerCromer(odes: Set[(CId, Name, Expr, Env)], p: Prog, st: Store): Set[(CId, Name, CValue)] = {
+  def solveIVPEulerCromer(odes: Set[(CId, Name, Expr, Env)], p: Prog, st: Store): Store = {
     // Ensure that derivatives are being integrated in the correct order
     val sortedODEs = odes.toList.groupBy{ case (o, n, r, e) => (o, n.x) }
                                 .mapValues(_.sortBy{ case (_, n, _, _) => n.primes }).values.flatten
-    sortedODEs.foldRight(Map.empty[(CId, Name), CValue]) {
+    val solutions = sortedODEs.foldRight(Map.empty[(CId, Name), CValue]) {
       case ((o, n, r, e), updatedEnvs) =>
         val updatedEnv = e ++ (for (((obj, name), v) <- updatedEnvs if obj == o) yield (name -> v))
         val dt = getTimeStep(st)
@@ -496,6 +518,7 @@ object Interpreter extends acumen.CStoreInterpreter {
         }
         updatedEnvs + ((o, n) -> v)
     }.map { case ((o, n), v) => (o, n, v) }.toSet
+    mapM_(assHelper, solutions.toList) ~> st
   }
     
   /** Checks for a duplicate assignment (of a specific kind) scheduled in assignments. */
