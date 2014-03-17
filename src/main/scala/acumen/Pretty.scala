@@ -277,12 +277,13 @@ class Pretty {
     }
     breaks(it.toList)
   }
-  
-  implicit def prettyStepType : PrettyAble[ResultType] =
+
+  implicit def prettyStepType: PrettyAble[ResultType] =
     PrettyAble {
-      case Discrete   => "@Discrete"
-      case FixedPoint => "@FixedPoint"
-      case Continuous => "@Continuous"
+      case Discrete    => "@Discrete"
+      case FixedPoint  => "@FixedPoint"
+      case Continuous  => "@Continuous"
+      case Integration => "@Integration"
     }
 }
 
