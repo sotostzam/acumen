@@ -134,15 +134,15 @@ object Interpreter extends acumen.CStoreInterpreter {
           _ <- setObjectM(fid, pub)
           vs <- mapM[InitRhs, CValue]( 
                   { case NewRhs(e,es) =>
-                      for { ve <- asks(evalExpr(e, p, Map(self -> VObjId(Some(fid))), _)) 
+                      for { ve <- asks(evalExpr(e, Map(self -> VObjId(Some(fid))), _)) 
                             val cn = ve match {case VClassName(cn) => cn; case _ => throw NotAClassName(ve)}
                             ves <- asks(st => es map (
-                            evalExpr(_, p, Map(self -> VObjId(Some(fid))), st)))
+                            evalExpr(_, Map(self -> VObjId(Some(fid))), st)))
 			    nsd <- getNewSeed(fid)
 			    oid <- mkObj(cn, p, Some(fid), nsd, ves)
                       } yield VObjId(Some(oid))
                     case ExprRhs(e) =>
-                      asks(evalExpr(e, p, Map(self -> VObjId(Some(fid))), _))
+                      asks(evalExpr(e, Map(self -> VObjId(Some(fid))), _))
                   },
                   ctrs)
           val priv = privVars zip vs 
@@ -169,7 +169,7 @@ object Interpreter extends acumen.CStoreInterpreter {
 
   /* evaluate e in the scope of env 
    * for definitions p with current store st */
-  def evalExpr(e:Expr, p:Prog, env:Env, st:Store) : CValue = {
+  def evalExpr(e:Expr, env:Env, st:Store) : CValue = {
     def eval(env:Env, e:Expr) : CValue = {
 	    e match {
   	    case Lit(i)         => VLit(i)
@@ -245,11 +245,11 @@ object Interpreter extends acumen.CStoreInterpreter {
   def evalAction(a:Action, env:Env, p:Prog) : Eval[Unit] = {
     a match {
       case IfThenElse(c,a1,a2) =>
-        for (VLit(GBool(b)) <- asks(evalExpr(c, p, env, _)))
+        for (VLit(GBool(b)) <- asks(evalExpr(c, env, _)))
           if (b) evalActions(a1, env, p)
           else   evalActions(a2, env, p)
       case ForEach(i,l,b) => 
-        for (seq <- asks(evalExpr(l, p, env, _))) {
+        for (seq <- asks(evalExpr(l, env, _))) {
           val vs = seq match { 
             case VList(vs) => vs 
             case VVector(vs) => vs 
@@ -258,7 +258,7 @@ object Interpreter extends acumen.CStoreInterpreter {
           mapM_((v:CValue) => evalActions(b, env+((i,v)), p), vs)
         }
       case Switch(s,cls) =>
-        for (VLit(gv) <- asks(evalExpr(s, p, env, _))) {
+        for (VLit(gv) <- asks(evalExpr(s, env, _))) {
           (cls find (_.lhs == gv)) match {
             case Some(c) => evalActions(c.rhs, env, p)
             case None    => throw NoMatch(gv)
@@ -281,40 +281,40 @@ object Interpreter extends acumen.CStoreInterpreter {
     a match {
       case Assign(d@Dot(e,x),t) => 
         /* Schedule the discrete assignment */
-        for { id <- asks(evalExpr(e, p, env, _)) map extractId
-        	  vt <- asks(evalExpr(t, p, env, _))
+        for { id <- asks(evalExpr(e, env, _)) map extractId
+        	  vt <- asks(evalExpr(t, env, _))
         	  _  <- asks(checkAccessOk(id, env, _))
-        	  vx <- asks(evalExpr(d, p, env, _)) 
+        	  vx <- asks(evalExpr(d, env, _)) 
         } assign(id, x, vt)
       /* Basically, following says that variable names must be 
          fully qualified at this language level */
       case Assign(_,_) => 
         throw BadLhs()
       case Create(lhs, e, es) =>
-        for { ve <- asks(evalExpr(e, p, env, _)) 
+        for { ve <- asks(evalExpr(e, env, _)) 
               val c = ve match {case VClassName(c) => c; case _ => throw NotAClassName(ve)}
-              ves <- asks(st => es map (evalExpr(_, p, env, st)))
+              ves <- asks(st => es map (evalExpr(_, env, st)))
 						  val self = selfCId(env)
 						  sd <- getNewSeed(self)
               fa  <- mkObj(c, p, Some(self), sd, ves)
         } lhs match { 
           case None => pass
           case Some(Dot(e,x)) => 
-            for { id <- asks(evalExpr(e, p, env, _)) map extractId
+            for { id <- asks(evalExpr(e, env, _)) map extractId
                   _ <- asks(checkAccessOk(id, env, _))
             } setObjectFieldM(id, x, VObjId(Some(fa))) 
           case Some(_) => throw BadLhs()
         }
       case Elim(e) =>
-        for { id <- asks(evalExpr(e, p, env, _)) map extractId
+        for { id <- asks(evalExpr(e, env, _)) map extractId
               _ <- asks(checkAccessOk(id, env, _))
         } vanish(id)
       case Move(Dot(o1,x), o2) => 
-        for { o1Id <- asks(evalExpr(o1, p, env, _)) map extractId
+        for { o1Id <- asks(evalExpr(o1, env, _)) map extractId
               _ <- asks(checkAccessOk(o1Id, env, _))
               xId  <- asks(getObjectField(o1Id, x, _)) map extractId
               _ <- asks(checkIsChildOf(xId, o1Id, _))
-              o2Id <- asks(evalExpr(o2, p, env, _)) map extractId
+              o2Id <- asks(evalExpr(o2, env, _)) map extractId
               _ <- asks(checkAccessOk(o2Id, env, _))
         } reparent(List(xId), o2Id)
       case Move(_,_) =>
@@ -325,13 +325,13 @@ object Interpreter extends acumen.CStoreInterpreter {
     (t, a) match {
       case (FixedPoint | Continuous, EquationT(Dot(e,x),rhs)) => // Continuous is for checkContinuousDynamicsAlwaysDefined
         /* Schedule a continuous assignment of vt to x */
-        for { id <- asks(evalExpr(e, p, env, _)) map extractId
-              vt <- asks(evalExpr(rhs, p, env, _))
+        for { id <- asks(evalExpr(e, env, _)) map extractId
+              vt <- asks(evalExpr(rhs, env, _))
         } equation(id, x, vt)
       case (Continuous, EquationI(Dot(e,x),rhs)) =>
         /* Schedule a continuous assignment of the Euler approximation of x (at time+dt) to x */
         for { dt <- asks(getTimeStep)
-              id <- asks(evalExpr(e, p, env, _)) map extractId
+              id <- asks(evalExpr(e, env, _)) map extractId
         } ode(id, x, rhs, env)
       case (_, EquationT(_,_) | EquationI(_,_)) => pass
       case _ =>
@@ -438,7 +438,7 @@ object Interpreter extends acumen.CStoreInterpreter {
     /** Evaluate the field (the RHS of each equation in ODEs) in s. */
     def apply(s: Store): Store =
       mapM_(assHelper, odes.toList.map { 
-        case (o, n, rhs, env) => (o, n, evalExpr(rhs, p, env, s)) 
+        case (o, n, rhs, env) => (o, n, evalExpr(rhs, env, s)) 
       }) ~> s
     /** 
      * Returns the set of variables affected by the field.
@@ -504,7 +504,7 @@ object Interpreter extends acumen.CStoreInterpreter {
       case ((o, n, r, e), updatedEnvs) =>
         val updatedEnv = e ++ (for (((obj, name), v) <- updatedEnvs if obj == o) yield (name -> v))
         val dt = getTimeStep(st)
-        val vt = evalExpr(r, p, updatedEnv, st)
+        val vt = evalExpr(r, updatedEnv, st)
         val lhs = getObjectField(o, n, st)
         val v = lhs match {
           case VLit(d) =>
