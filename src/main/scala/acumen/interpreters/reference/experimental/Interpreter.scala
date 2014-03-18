@@ -448,30 +448,21 @@ object Interpreter extends acumen.CStoreInterpreter {
     def variables: List[(CId, Name)] = 
       odes.toList.flatMap(e => Set((e._1, e._2), (e._1, Name(e._2.x, 0))))
   }
-  
+
   /**
    * Embedded DSL for expressing integrators.
-   * NOTE: Operators affect only field.variables. 
+   * NOTE: Operators affect only field.variables.
    */
-  case class RichStore(s: Store) {
-    def +++(that: Store)(implicit field: Field): Store = op("+", that)
-    def ***(that: Store)(implicit field: Field): Store = op("*", that)
-    def ***(that: Double)(implicit field: Field): Store = op("*", that)
+  case class RichStore(s: Store)(implicit field: Field) {
+    def +++(that: Store): Store = op("+", getObjectField(_, _, that))
+    def ***(that: Double): Store = op("*", (_, _) => VLit(GDouble(that)))
     /** Combine this (s) and that Store using operator. */
-    def op(operator: String, that: Store)(implicit field: Field): Store =
+    def op(operator: String, that: (CId, Name) => Value[_]): Store =
       mapM_(assHelper, field.variables.map {
-        case (o, n) => (o, n, evalOp(operator, List(getObjectField(o, n, s), getObjectField(o, n, that))))
-      }) ~> s
-    def op(operator: String, that: Double)(implicit field: Field): Store =
-      mapM_(assHelper, field.variables.map {
-        case (o, n) => (o, n, evalOp(operator, List(getObjectField(o, n, s), VLit(GDouble(that)))))
-      }) ~> s
-    def op(operator: String, that: (CId, Name) => Value[_])(implicit field: Field): Store =
-      mapM_(assHelper, field.variables.map {
-        case (o, n) => (o, n, evalOp(operator, List(getObjectField(o, n, s), that(o,n))))
+        case (o, n) => (o, n, evalOp(operator, List(getObjectField(o, n, s), that(o, n))))
       }) ~> s
   }
-  implicit def liftStore(s: Store): RichStore = RichStore(s)
+  implicit def liftStore(s: Store)(implicit field: Field): RichStore = RichStore(s)
   
   def solveIVPForwardEuler(xs: Store, h: Double)(implicit f: Field): Store =
     xs +++ f(xs) *** h
