@@ -386,7 +386,7 @@ object Interpreter extends acumen.CStoreInterpreter {
       { val (_,ids,rps,ass,eqs,odes,st1) = iterate(evalStep(p), mainId(st))(st)
         getResultType(st) match {
           case Discrete | Integration => // Either conclude fixpoint is reached or do discrete step
-            checkDuplicateAssingments(ass.map { case (o, n, v) => (o, n) }, DuplicateDiscreteAssingment)
+            checkDuplicateAssingments(ass.toList.map{ case (o, n, v) => (o, n) }, DuplicateDiscreteAssingment)
             val nonIdentityAss = ass.filterNot{ a => a._3 == getObjectField(a._1, a._2, st1) }
             if (st == st1 && ids.isEmpty && rps.isEmpty && nonIdentityAss.isEmpty) 
               setResultType(FixedPoint, st1)
@@ -398,11 +398,11 @@ object Interpreter extends acumen.CStoreInterpreter {
               setResultType(Discrete, st3)
             }
           case FixedPoint => // Do continuous step
-            checkDuplicateAssingments(eqs.map { case (o, n, v) => (o, n) }, DuplicateContinuousAssingment)
+            checkDuplicateAssingments(eqs.toList.map{ case (o, n, v) => (o, n) }, DuplicateContinuousAssingment)
             val stE = mapM_(assHelper, eqs.toList) ~> st1
             setResultType(Continuous, stE)
           case Continuous => // Do integration step
-            checkDuplicateAssingments(odes.map { case (o, n, r, e) => (o, n) }, DuplicateIntegrationAssingment)
+            checkDuplicateAssingments(odes.toList.map{ case (o, n, r, e) => (o, n) }, DuplicateIntegrationAssingment)
             checkContinuousDynamicsAlwaysDefined(odes, eqs, st)
             val stODE = solveIVP(odes, p, st1)
             val st2 = setResultType(Integration, stODE)
@@ -522,7 +522,7 @@ object Interpreter extends acumen.CStoreInterpreter {
   }
     
   /** Checks for a duplicate assignment (of a specific kind) scheduled in assignments. */
-  def checkDuplicateAssingments(assignments: Set[(CId, Name)], error: Name => DuplicateAssingment): Unit = {
+  def checkDuplicateAssingments(assignments: List[(CId, Name)], error: Name => DuplicateAssingment): Unit = {
     val duplicates = assignments.groupBy(a => (a._1,a._2)).filter{ case (_, l) => l.size > 1 }.keys.toList
     if (duplicates.size != 0)
       throw error(duplicates(0)._2)
