@@ -1,0 +1,50 @@
+class RLcircuit(R,L)
+  private i=0; i'=0; v=0; e=0; end
+  i'[=](v - e - R*i)/L;
+end
+
+class ElectricMotor(Jeq,kE,kT,TL)
+  private i=0; wm=0; wm'=0; e=0; end
+  wm'[=](kT*i - TL)/Jeq;
+  e[=]wm*kE;
+end
+
+class PIcontroller(kP,kI,kPWM)
+  private h=0; int_h=0; int_h'=0; i=0; int_i=0; int_i'=0; v=0; end
+  int_i'[=]i;
+  int_h'[=]h;
+  v[=]kPWM*(kP*(h-i)+kI*(int_h-int_i));
+end
+
+class Main(simulator)
+  private
+    motor = create ElectricMotor(0.0002,0.1,0.1,0);
+    circuit = create RLcircuit(4,2);
+    controller = create PIcontroller(50,100,6);
+    mode = 1; t=0; t'=1;
+  end
+  
+  t'[=]1;
+  controller.i[=]circuit.i;
+  circuit.v[=]controller.v;
+  circuit.e[=]motor.e;
+  motor.i[=]circuit.i;
+
+  simulator.timeStep[=]0.001;
+  simulator.endTime[=]1;
+
+  switch mode
+    case 1
+    controller.h[=]0;
+    if t>=0.1 mode=2; end
+
+    case 2
+    controller.h[=]10;
+    if t>=0.2 mode=3; end
+
+    case 3
+    controller.h[=]0;
+  end
+
+end
+
