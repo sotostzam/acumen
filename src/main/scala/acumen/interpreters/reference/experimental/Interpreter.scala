@@ -322,6 +322,8 @@ object Interpreter extends acumen.CStoreInterpreter {
     a match {
       case EquationT(d@Dot(e,x),rhs) =>
         for { id <- asks(evalExpr(e, env, _)) map extractId } equation(id, d, rhs, env)
+      case _:EquationI =>
+        pass
       case _ =>
         throw ShouldNeverHappen() // FIXME: enforce that with refinement types
     }

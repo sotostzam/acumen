@@ -8,9 +8,6 @@ import testutil.TestUtil.notEqual
 
 object ConsistencyTest extends Properties("parallel.ConsistencyTest") {
 
-  sealed abstract class Moo(x: Int)
-  class Boo(x: Int, y: Boolean) extends Moo(x)
-
   import util.System._
 
   property("reference-parallel-consistency") = consistencyTest(interpreters.reference.standard.Interpreter)
