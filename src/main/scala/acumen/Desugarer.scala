@@ -4,14 +4,15 @@ import Errors._
 import util.Names._
 
 sealed abstract class ODETransformMode
+case object Off extends ODETransformMode
 case object Local extends ODETransformMode
 case object TopLevel extends ODETransformMode
 
 /**
  * @param odeTransformMode Configures the way in which higher-order continuous 
  *        assignments are expanded into systems of first-order continuous 
- *        assignments. When true, this is done where the highest-order 
- *        continuous assignment occurs. When false, it is done once for all 
+ *        assignments. When Local, this is done where the highest-order 
+ *        continuous assignment occurs. When TopLevel, it is done once for all 
  *        variables, at the top level of each class.
  */
 case class Desugarer(odeTransformMode: ODETransformMode = TopLevel) {
@@ -39,7 +40,7 @@ case class Desugarer(odeTransformMode: ODETransformMode = TopLevel) {
       case ClassDef(cn, fs, is, b) =>
         val (privs, dis) = desugar(p, fs, List(self), is)
         val topLevelODESystem = odeTransformMode match {
-          case Local => Nil
+          case Off | Local => Nil
           case TopLevel => highestOrderNames(fs ++ privs).map(Dot(Var(self), _))
                                                          .flatMap(firstOrderSystem)
                                                          .map(Continuously)
@@ -121,7 +122,7 @@ case class Desugarer(odeTransformMode: ODETransformMode = TopLevel) {
             EquationT(dlhs, drhs) :: 
               (odeTransformMode match { 
                 case Local => firstOrderSystem(dot)
-                case TopLevel => Nil })
+                case Off | TopLevel => Nil })
           case _ => throw BadPreLhs()
         }
       case EquationI(lhs, rhs) => List(EquationI(des(lhs), des(rhs)))

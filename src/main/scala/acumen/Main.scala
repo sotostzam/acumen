@@ -247,6 +247,7 @@ object Main {
     mkPass("killnot", "Kill Nots", passes.KillNot.mapProg(_)),
     mkPass("desugar", "Desugarer", Desugarer(odeTransformMode=TopLevel).run(_), category="desugar"),
     mkPass("desugar-local", "Desugarer (Local)", Desugarer(odeTransformMode=Local).run(_), category="desugar"),
+    mkPass("desugar-off", "Desugarer (Off)", Desugarer(odeTransformMode=Off).run(_), category="desugar"),
     mkPass("typecheck", "Type Checker", {prog => 
                                          val (typechecked, res) = new TypeCheck(prog).run()
                                          println("\nTYPE CHECK RESULT: " + TypeCheck.errorLevelStr(res) + "\n")

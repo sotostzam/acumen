@@ -85,13 +85,10 @@ object Interpreter extends acumen.CStoreInterpreter {
     mapM_ (logReparent(_:CId,p), cs)
     
   /* discretely assign the value v to a field n in object o */
-  def assign(o: CId, n: Name, v:CValue) : Eval[Unit] = logAssign(o, n, v)
+  def assign(o: CId, d: Dot, v:CValue) : Eval[Unit] = logAssign(o, d, v)
 
   /* continuously assign the value v to a field n in object o */
-  def equation(o: CId, n: Name, v:CValue) : Eval[Unit] = logEquation(o, n, v)
-  
-  /* log an ODE-IVP with LHS n, RHS r, and intiial conditions in e. solution will be assigned to o.n */
-  def ode(o: CId, n: Name, r: Expr, e: Env) : Eval[Unit] = logODE(o, n, r, e)
+  def equation(o: CId, d: Dot, r: Expr, e: Env) : Eval[Unit] = logEquation(o, d, r, e)
   
   /* log an id as being dead */
   def kill(a:CId) : Eval[Unit] = logCId(a)
@@ -271,7 +268,7 @@ object Interpreter extends acumen.CStoreInterpreter {
       case Continuously(ca) =>
         for (ty <- asks(getResultType))
           if (ty == Discrete || ty == Integration) pass
-          else evalContinuousAction(ca, ty, env, p) 
+          else evalContinuousAction(ca, env, p) 
       case Claim(_) =>
         pass
     }
@@ -285,7 +282,7 @@ object Interpreter extends acumen.CStoreInterpreter {
         	  vt <- asks(evalExpr(t, env, _))
         	  _  <- asks(checkAccessOk(id, env, _))
         	  vx <- asks(evalExpr(d, env, _)) 
-        } assign(id, x, vt)
+        } assign(id, d, vt)
       /* Basically, following says that variable names must be 
          fully qualified at this language level */
       case Assign(_,_) => 
@@ -321,19 +318,10 @@ object Interpreter extends acumen.CStoreInterpreter {
         throw BadMove()
     }
 
-  def evalContinuousAction(a:ContinuousAction, t:ResultType, env:Env, p:Prog) : Eval[Unit] = 
-    (t, a) match {
-      case (FixedPoint | Continuous, EquationT(Dot(e,x),rhs)) => // Continuous is for checkContinuousDynamicsAlwaysDefined
-        /* Schedule a continuous assignment of vt to x */
-        for { id <- asks(evalExpr(e, env, _)) map extractId
-              vt <- asks(evalExpr(rhs, env, _))
-        } equation(id, x, vt)
-      case (Continuous, EquationI(Dot(e,x),rhs)) =>
-        /* Schedule a continuous assignment of the Euler approximation of x (at time+dt) to x */
-        for { dt <- asks(getTimeStep)
-              id <- asks(evalExpr(e, env, _)) map extractId
-        } ode(id, x, rhs, env)
-      case (_, EquationT(_,_) | EquationI(_,_)) => pass
+  def evalContinuousAction(a:ContinuousAction, env:Env, p:Prog) : Eval[Unit] = 
+    a match {
+      case EquationT(d@Dot(e,x),rhs) =>
+        for { id <- asks(evalExpr(e, env, _)) map extractId } equation(id, d, rhs, env)
       case _ =>
         throw ShouldNeverHappen() // FIXME: enforce that with refinement types
     }
@@ -361,7 +349,7 @@ object Interpreter extends acumen.CStoreInterpreter {
     val sprog = Simplifier.run(cprog)
     val mprog = Prog(magicClass :: sprog.defs)
     val (sd1,sd2) = Random.split(Random.mkGen(0))
-    val (id,_,_,_,_,_,st1) = 
+    val (id,_,_,_,_,st1) = 
       mkObj(cmain, mprog, None, sd1, List(VObjId(Some(CId(0)))), 1)(initStoreRef)
     val st2 = changeParent(CId(0), id, st1)
     val st3 = changeSeed(CId(0), sd2, st2)
@@ -378,32 +366,35 @@ object Interpreter extends acumen.CStoreInterpreter {
     }
   }
 
-  def assHelper(a: (CId,Name,CValue)) = setObjectFieldM(a._1, a._2, a._3)
+  /** Updates the values of variables in xs (identified by CId and Dot.field) to the corresponding CValue. */
+  def applyAssignments(xs: List[(CId, Dot, CValue)]): Eval[Unit] = 
+    mapM_((a: (CId, Dot, CValue)) => setObjectFieldM(a._1, a._2.field, a._3), xs)
   
   def step(p:Prog, st:Store) : Option[Store] =
     if (getTime(st) > getEndTime(st)) {checkObserves(p, st); None}
     else Some(
-      { val (_,ids,rps,ass,eqs,odes,st1) = iterate(evalStep(p), mainId(st))(st)
+      { val (_,ids,rps,ass,eqs,st1) = iterate(evalStep(p), mainId(st))(st)
         getResultType(st) match {
           case Discrete | Integration => // Either conclude fixpoint is reached or do discrete step
-            checkDuplicateAssingments(ass.toList.map{ case (o, n, v) => (o, n) }, DuplicateDiscreteAssingment)
-            val nonIdentityAss = ass.filterNot{ a => a._3 == getObjectField(a._1, a._2, st1) }
+            checkDuplicateAssingments(ass.toList.map{ case (o, d, v) => (o, d) }, d => DuplicateDiscreteAssingment(d.field))
+            val nonIdentityAss = ass.filterNot{ a => a._3 == getObjectField(a._1, a._2.field, st1) }
             if (st == st1 && ids.isEmpty && rps.isEmpty && nonIdentityAss.isEmpty) 
               setResultType(FixedPoint, st1)
             else {
-              val stA = mapM_(assHelper, nonIdentityAss.toList) ~> st1
+              val stA = applyAssignments(nonIdentityAss.toList) ~> st1
               def repHelper(pair:(CId, CId)) = changeParentM(pair._1, pair._2) 
               val stR = mapM_(repHelper, rps.toList) ~> stA
               val st3 = stR -- ids
               setResultType(Discrete, st3)
             }
           case FixedPoint => // Do continuous step
-            checkDuplicateAssingments(eqs.toList.map{ case (o, n, v) => (o, n) }, DuplicateContinuousAssingment)
-            val stE = mapM_(assHelper, eqs.toList) ~> st1
+            checkDuplicateAssingments(eqs.toList.map{ case (o, n, _, _) => (o, n) }, d => DuplicateContinuousAssingment(d.field))
+            val stE = applyAssignments(eqs.toList.map { case (o, n, rhs, env) => (o, n, evalExpr(rhs, env, st1)) }) ~> st1
             setResultType(Continuous, stE)
           case Continuous => // Do integration step
-            checkDuplicateAssingments(odes.toList.map{ case (o, n, r, e) => (o, n) }, DuplicateIntegrationAssingment)
-            checkContinuousDynamicsAlwaysDefined(odes, eqs, st)
+            val odes = extractAndExpandODEs(eqs)
+            checkDuplicateAssingments(odes.toList.map { case (o, n, r, e) => (o, n) }, d => DuplicateIntegrationAssingment(d.field) )
+            checkContinuousDynamicsAlwaysDefined(odes, eqs, st1)
             val stODE = solveIVP(odes, p, st1)
             val st2 = setResultType(Integration, stODE)
             setTime(getTime(st2) + getTimeStep(st2), st2)
@@ -411,60 +402,43 @@ object Interpreter extends acumen.CStoreInterpreter {
       }
     )
 
+  /** 
+   * Extract ODEs (equations with primed variable LHSs) and convert each higher-order 
+   * ODE to a system of first-order ODEs.
+   */
+  def extractAndExpandODEs(eqs: Set[(CId, Dot, Expr, Env)]): Set[(CId, Dot, Expr, Env)] =
+    eqs.flatMap {
+      case (_, Dot(_, Name(_, 0)), _, _) => Set()
+      case (o, Dot(obj, Name(n, p)), rhs, env) =>
+        (o, Dot(obj, Name(n, p - 1)), rhs, env) +:
+          (for (k <- 0 until p - 1)
+            yield (o, Dot(obj, Name(n, k)), Dot(obj, Name(n, k + 1)), env))
+    }
+
   /**
    * Solve ODE-IVP defined by odes parameter tuple, which consists of:
    *  - CId:  The object in which the ODE was encountered.
-   *  - Name: The LHS of the ODE.
+   *  - Dot:  The LHS of the ODE.
    *  - Expr: The RHS of the ODE.
    *  - Env:  Initial conditions of the IVP.
    * The time segment is derived from time step in store st. 
    */
-  def solveIVP(odes: Set[(CId, Name, Expr, Env)], p: Prog, st: Store): Store = {
-    def msg(meth: String) = "Invalid integration method \"" + meth + """. Please select one of ["EulerCromer", "EulerForward", "RungeKutta"]"""
+  def solveIVP(odes: Set[(CId, Dot, Expr, Env)], p: Prog, st: Store): Store = {
+    def msg(meth: String) = "Invalid integration method \"" + meth + 
+      """. Please select one of ["EulerCromer", "EulerForward", "RungeKutta"]"""
     val h = getTimeStep(st)
     implicit val field = Field(odes, p)
     getInSimulator(Name("method", 0), st) match {
-      case VLit(GStr("EulerForward")) => solveIVPForwardEuler(st, h)
-      case VLit(GStr("RungeKutta")) => solveIVPRungeKutta(st, h)
-      case VLit(GStr("EulerCromer")) => solveIVPEulerCromer(odes, p, st)
-      case VLit(GStr(m)) => throw new Error(msg(m))
-      case VClassName(ClassName(c)) => throw new Error(msg(c))
-      case m => throw new Error(msg(m.toString))
+      case VLit(GStr("EulerForward")) => solveIVPEulerForward(st, h)
+      case VLit(GStr("RungeKutta"))   => solveIVPRungeKutta(st, h)
+      case VLit(GStr("EulerCromer"))  => solveIVPEulerCromer(st, h)
+      case VLit(GStr(m))              => throw new Error(msg(m))
+      case VClassName(ClassName(c))   => throw new Error(msg(c))
+      case m                          => throw new Error(msg(m.toString))
     }
   }
   
-  /** Representation of a set of ODEs. */
-  case class Field(odes: Set[(CId, Name, Expr, Env)], p: Prog) {
-    /** Evaluate the field (the RHS of each equation in ODEs) in s. */
-    def apply(s: Store): Store =
-      mapM_(assHelper, odes.toList.map { 
-        case (o, n, rhs, env) => (o, n, evalExpr(rhs, env, s)) 
-      }) ~> s
-    /** 
-     * Returns the set of variables affected by the field.
-     * These are the LHSs of each ODE and the corresponding unprimed variables.
-     * NOTE: Assumes that the de-sugarer has reduced all higher-order ODEs.  
-     */
-    def variables: List[(CId, Name)] = 
-      odes.toList.flatMap(e => Set((e._1, e._2), (e._1, Name(e._2.x, 0))))
-  }
-
-  /**
-   * Embedded DSL for expressing integrators.
-   * NOTE: Operators affect only field.variables.
-   */
-  case class RichStore(s: Store)(implicit field: Field) {
-    def +++(that: Store): Store = op("+", getObjectField(_, _, that))
-    def ***(that: Double): Store = op("*", (_, _) => VLit(GDouble(that)))
-    /** Combine this (s) and that Store using operator. */
-    def op(operator: String, that: (CId, Name) => Value[_]): Store =
-      mapM_(assHelper, field.variables.map {
-        case (o, n) => (o, n, evalOp(operator, List(getObjectField(o, n, s), that(o, n))))
-      }) ~> s
-  }
-  implicit def liftStore(s: Store)(implicit field: Field): RichStore = RichStore(s)
-  
-  def solveIVPForwardEuler(xs: Store, h: Double)(implicit f: Field): Store =
+  def solveIVPEulerForward(xs: Store, h: Double)(implicit f: Field): Store =
     xs +++ f(xs) *** h
 
   def solveIVPRungeKutta(xs: Store, h: Double)(implicit f: Field): Store = {
@@ -474,7 +448,38 @@ object Interpreter extends acumen.CStoreInterpreter {
     val k4 = f(xs +++ k3 *** h)
     xs +++ (k1 +++ k2 *** 2 +++ k3 *** 2 +++ k4) *** (h/6)
   }
+  
+  /** Representation of a set of ODEs. */
+  case class Field(odes: Set[(CId, Dot, Expr, Env)], p: Prog) {
+    /** Evaluate the field (the RHS of each equation in ODEs) in s. */
+    def apply(s: Store): Store =
+      applyAssignments(odes.toList.map { 
+        case (o, n, rhs, env) => (o, n, evalExpr(rhs, env, s)) 
+      }) ~> s
+    /** 
+     * Returns the set of variables affected by the field.
+     * These are the LHSs of each ODE and the corresponding unprimed variables.
+     * NOTE: Assumes that the de-sugarer has reduced all higher-order ODEs.  
+     */
+    def variables: List[(CId, Dot)] =
+      odes.toList.flatMap { case (o, d, _, _) => Set((o, d), (o, Dot(d.obj, Name(d.field.x, 0)))) }
+  }
 
+  /**
+   * Embedded DSL for expressing integrators.
+   * NOTE: Operators affect only field.variables.
+   */
+  case class RichStore(s: Store)(implicit field: Field) {
+    def +++(that: Store): Store = op("+", (cid, dot) => getObjectField(cid, dot.field, that))
+    def ***(that: Double): Store = op("*", (_, _) => VLit(GDouble(that)))
+    /** Combine this (s) and that Store using operator. */
+    def op(operator: String, that: (CId, Dot) => Value[_]): Store =
+      applyAssignments(field.variables.map {
+        case (o, n) => (o, n, evalOp(operator, List(getObjectField(o, n.field, s), that(o, n))))
+      }) ~> s
+  }
+  implicit def liftStore(s: Store)(implicit field: Field): RichStore = RichStore(s)
+  
   /**
    * Euler-Cromer integration. 
    * 
@@ -487,33 +492,33 @@ object Interpreter extends acumen.CStoreInterpreter {
    * NOTE: Some equational properties of Acumen programs may not hold 
    *       when using this integration method.
    */
-  def solveIVPEulerCromer(odes: Set[(CId, Name, Expr, Env)], p: Prog, st: Store): Store = {
+  def solveIVPEulerCromer(st: Store, h: Double)(implicit f: Field): Store = {
     // Ensure that derivatives are being integrated in the correct order
-    val sortedODEs = odes.toList.groupBy{ case (o, n, r, e) => (o, n.x) }
-                                .mapValues(_.sortBy{ case (_, n, _, _) => n.primes }).values.flatten
-    val solutions = sortedODEs.foldRight(Map.empty[(CId, Name), CValue]) {
-      case ((o, n, r, e), updatedEnvs) =>
-        val updatedEnv = e ++ (for (((obj, name), v) <- updatedEnvs if obj == o) yield (name -> v))
-        val dt = getTimeStep(st)
+    val sortedODEs = f.odes.toList
+      .groupBy{ case (o, Dot(_, n), r, e) => (o, n.x) }
+      .mapValues(_.sortBy { case (_, Dot(_, n), _, _) => n.primes }).values.flatten
+    val solutions = sortedODEs.foldRight(Map.empty[(CId, Dot), CValue]) {
+      case ((o, d@Dot(_, n), r, e), updatedEnvs) =>
+        val updatedEnv = e ++ (for (((obj, dot), v) <- updatedEnvs if obj == o) yield (dot.field -> v))
         val vt = evalExpr(r, updatedEnv, st)
         val lhs = getObjectField(o, n, st)
         val v = lhs match {
           case VLit(d) =>
-            VLit(GDouble(extractDouble(d) + extractDouble(vt) * dt))
+            VLit(GDouble(extractDouble(d) + extractDouble(vt) * h))
           case VVector(u) =>
             val us = extractDoubles(u)
             val ts = extractDoubles(vt)
-            VVector((us, ts).zipped map ((a, b) => VLit(GDouble(a + b * dt))))
+            VVector((us, ts).zipped map ((a, b) => VLit(GDouble(a + b * h))))
           case _ =>
             throw BadLhs()
         }
-        updatedEnvs + ((o, n) -> v)
-    }.map { case ((o, n), v) => (o, n, v) }.toSet
-    mapM_(assHelper, solutions.toList) ~> st
+        updatedEnvs + ((o, d) -> v)
+    }.map { case ((o, d), v) => (o, d, v) }.toSet
+    applyAssignments(solutions.toList) ~> st
   }
     
-  /** Checks for a duplicate assignment (of a specific kind) scheduled in assignments. */
-  def checkDuplicateAssingments(assignments: List[(CId, Name)], error: Name => DuplicateAssingment): Unit = {
+  /** Check for a duplicate assignment (of a specific kind) scheduled in assignments. */
+  def checkDuplicateAssingments(assignments: List[(CId, Dot)], error: Dot => DuplicateAssingment): Unit = {
     val duplicates = assignments.groupBy(a => (a._1,a._2)).filter{ case (_, l) => l.size > 1 }.keys.toList
     if (duplicates.size != 0)
       throw error(duplicates(0)._2)
@@ -523,16 +528,13 @@ object Interpreter extends acumen.CStoreInterpreter {
    * Ensure that for each ODE declared in the private section, there is a ODE specified in the code at each time step.
    * This is done by checking that for each CId-Name pair in odes, there is a corresponding CId-Name pair in eqs.
    */
-  def checkContinuousDynamicsAlwaysDefined(odes: Set[(CId, Name, Expr, Env)], eqs: Set[(CId, Name, CValue)], st: Store): Unit =
-    odes foreach { case (o, n, _, _) => 
-      val b = eqs exists { case (eo,en,_) => o.id == eo.id && n.x == en.x }
-      if (!b) sys.error(
+  def checkContinuousDynamicsAlwaysDefined(odes: Set[(CId, Dot, Expr, Env)], eqs: Set[(CId, Dot, Expr, Env)], st: Store): Unit =
+    odes foreach { case (o, d, _, _) => 
+      val b = eqs exists { case (eo,ed,_,_) => o.id == eo.id && d.field.x == ed.field.x }
+      if (!b) sys error(
         "No equation was specified for (#" + o.cid.toString + " : " + Pretty.pprint(getObjectField(o, classf, st)) + ")." + 
-        Pretty.pprint(n) + " at time " + getTime(st) + ".") 
+        Pretty.pprint(d.field) + " at time " + getTime(st) + ".") 
       b
     }
   
-  /** Applies an assignment to the monad. */
-  def applyAssingment(a: (CId,Name,CValue)) = setObjectFieldM(a._1, a._2, a._3)
-    
 }
