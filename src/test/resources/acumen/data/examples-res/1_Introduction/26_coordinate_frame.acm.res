@@ -1,5 +1,5 @@
 #0 {
-  _3D = 0,
+  _3D = [],
   className = Main,
   simulator = #0.0,
   t = 0,
