@@ -7,6 +7,7 @@ private
  t' := 1/2;
  _3D := []
 end
+ t' = 1/2;
  _3D =
  [
   ["Cylinder",[0,0,0],    // First red line

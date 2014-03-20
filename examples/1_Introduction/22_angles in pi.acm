@@ -7,6 +7,7 @@ private
  angle' := pi/5; // Angle increase rate of 1/10 Hz
  _3D := [];
 end
+ angle' = pi/5;
  _3D = 
  [["Text",[-2.0,0,0],0.5,red,[angle,0,0],
   angle/pi * 10],
