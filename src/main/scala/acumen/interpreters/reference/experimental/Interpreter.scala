@@ -396,7 +396,7 @@ object Interpreter extends acumen.CStoreInterpreter {
           case Continuous => // Do integration step
             val odes = extractAndExpandODEs(eqs)
             checkDuplicateAssingments(odes.toList.map { case (o, n, r, e) => (o, n) }, d => DuplicateIntegrationAssingment(d.field) )
-            checkContinuousDynamicsAlwaysDefined(odes, eqs, st1)
+            checkContinuousDynamicsAlwaysDefined(p, odes, st1)
             val stODE = solveIVP(odes, p, st1)
             val st2 = setResultType(Integration, stODE)
             setTime(getTime(st2) + getTimeStep(st2), st2)
@@ -525,18 +525,22 @@ object Interpreter extends acumen.CStoreInterpreter {
     if (duplicates.size != 0)
       throw error(duplicates(0)._2)
   }
-  
-  /** 
-   * Ensure that for each ODE declared in the private section, there is a ODE specified in the code at each time step.
-   * This is done by checking that for each CId-Name pair in odes, there is a corresponding CId-Name pair in eqs.
+
+  /**
+   * Ensure that for each variable that has an ODE declared in the private section, there is 
+   * an equation in scope at the current time step. This is done by checking that for each 
+   * primed field name in each object in st, there is a corresponding CId-Name pair in odes.
    */
-  def checkContinuousDynamicsAlwaysDefined(odes: Set[(CId, Dot, Expr, Env)], eqs: Set[(CId, Dot, Expr, Env)], st: Store): Unit =
-    odes foreach { case (o, d, _, _) => 
-      val b = eqs exists { case (eo,ed,_,_) => o.id == eo.id && d.field.x == ed.field.x }
-      if (!b) sys error(
-        "No equation was specified for (#" + o.cid.toString + " : " + Pretty.pprint(getObjectField(o, classf, st)) + ")." + 
-        Pretty.pprint(d.field) + " at time " + getTime(st) + ".") 
-      b
+  def checkContinuousDynamicsAlwaysDefined(prog: Prog, odes: Set[(CId, Dot, Expr, Env)], st: Store): Unit = {
+    val declaredODENames = prog.defs.map(d => (d.name, (d.fields ++ d.priv.map(_.x)).filter(_.primes > 0))).toMap
+    st.foreach { case (o, _) =>
+      if (o != magicId(st))
+        declaredODENames.get(getCls(o, st)).map(_.foreach { n =>
+          if (!odes.exists { case (eo, d, _, _) => eo.id == o.id && d.field.x == n.x })
+            sys error ("No equation was specified for (#" + o.cid.toString + " : " +
+              Pretty.pprint(getObjectField(o, classf, st)) + ")." + n.x + " at time " + getTime(st) + ".")
+        })
     }
+  }
   
 }
