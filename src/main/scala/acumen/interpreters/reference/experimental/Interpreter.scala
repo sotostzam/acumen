@@ -537,8 +537,7 @@ object Interpreter extends acumen.CStoreInterpreter {
       if (o != magicId(st))
         declaredODENames.get(getCls(o, st)).map(_.foreach { n =>
           if (!odes.exists { case (eo, d, _, _) => eo.id == o.id && d.field.x == n.x })
-            sys error ("No equation was specified for (#" + o.cid.toString + " : " +
-              Pretty.pprint(getObjectField(o, classf, st)) + ")." + n.x + " at time " + getTime(st) + ".")
+            throw ContinousDynamicsUndefined(o, n, Pretty.pprint(getObjectField(o, classf, st)), getTime(st))
         })
     }
   }
