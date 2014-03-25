@@ -154,7 +154,7 @@ object Errors {
     override def mesg = 
       "Move statements must have the form 'move o1.x o2'."
   }
-  case class ContinousDynamicsUndefined(o: CId, n: Name, className: String, time: Double) extends AcumenError {
+  case class ContinuousDynamicsUndefined(o: CId, n: Name, className: String, time: Double) extends AcumenError {
     override def getMessage = 
       "No equation was specified for (#" + o.cid.toString + " : " + className + ")." + n.x + " at time " + time + "."
   }
