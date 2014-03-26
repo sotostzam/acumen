@@ -88,7 +88,7 @@ object Interpreter extends acumen.CStoreInterpreter {
   def assign(o: CId, d: Dot, v:CValue) : Eval[Unit] = logAssign(o, d, v)
 
   /* continuously assign the value v to a field n in object o */
-  def equation(o: CId, d: Dot, r: Expr, e: Env) : Eval[Unit] = logEquation(o, d, r, e)
+  def equation(o: CId, d: Dot, v:CValue) : Eval[Unit] = logEquation(o, d, v)
 
   /* continuously assign the value v to a field n in object o */
   def ode(o: CId, d: Dot, r: Expr, e: Env) : Eval[Unit] = logODE(o, d, r, e)
@@ -324,7 +324,10 @@ object Interpreter extends acumen.CStoreInterpreter {
   def evalContinuousAction(a:ContinuousAction, env:Env, p:Prog) : Eval[Unit] = 
     a match {
       case EquationT(d@Dot(e,_),rhs) =>
-        for { id <- asks(evalExpr(e, env, _)) map extractId } equation(id, d, rhs, env)
+        for { 
+          id <- asks(evalExpr(e, env, _)) map extractId 
+          v <- asks(evalExpr(rhs, env, _))
+        } equation(id, d, v)
       case EquationI(d@Dot(e,_),rhs) =>
         for { id <- asks(evalExpr(e, env, _)) map extractId } ode(id, d, rhs, env)
       case _ =>
@@ -393,8 +396,8 @@ object Interpreter extends acumen.CStoreInterpreter {
               setResultType(Discrete, st3)
             }
           case FixedPoint => // Do continuous step
-            checkDuplicateAssingments(eqs.toList.map{ case (o, n, _, _) => (o, n) }, d => DuplicateContinuousAssingment(d.field))
-            val stE = applyAssignments(eqs.toList.map { case (o, n, rhs, env) => (o, n, evalExpr(rhs, env, st1)) }) ~> st1
+            checkDuplicateAssingments(eqs.toList.map{ case (o, n, _) => (o, n) }, d => DuplicateContinuousAssingment(d.field))
+            val stE = applyAssignments(eqs.toList) ~> st1
             setResultType(Continuous, stE)
           case Continuous => // Do integration step
             checkDuplicateAssingments(odes.toList.map { case (o, n, _, _) => (o, n) }, d => DuplicateIntegrationAssingment(d.field) )
