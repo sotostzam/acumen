@@ -4,16 +4,18 @@ import Errors._
 import util.Names._
 
 sealed abstract class ODETransformMode
-case object Off extends ODETransformMode
 case object Local extends ODETransformMode
+case object LocalInline extends ODETransformMode
 case object TopLevel extends ODETransformMode
 
 /**
  * @param odeTransformMode Configures the way in which higher-order continuous 
  *        assignments are expanded into systems of first-order continuous 
  *        assignments. When Local, this is done where the highest-order 
- *        continuous assignment occurs. When TopLevel, it is done once for all 
- *        variables, at the top level of each class.
+ *        continuous assignment occurs. When LocalInline, it is done locally 
+ *        and the RHS of the ODE is in-lined into the RHS of the emitted EquationI. 
+ *        When TopLevel, it is done once for all variables, at the top level of 
+ *        each class.
  */
 case class Desugarer(odeTransformMode: ODETransformMode = TopLevel) {
   
@@ -40,7 +42,7 @@ case class Desugarer(odeTransformMode: ODETransformMode = TopLevel) {
       case ClassDef(cn, fs, is, b) =>
         val (privs, dis) = desugar(p, fs, List(self), is)
         val topLevelODESystem = odeTransformMode match {
-          case Off | Local => Nil
+          case Local | LocalInline => Nil
           case TopLevel => highestOrderNames(fs ++ privs).map(Dot(Var(self), _))
                                                          .flatMap(firstOrderSystem)
                                                          .map(Continuously)
@@ -122,7 +124,8 @@ case class Desugarer(odeTransformMode: ODETransformMode = TopLevel) {
             EquationT(dlhs, drhs) :: 
               (odeTransformMode match { 
                 case Local => firstOrderSystem(dot)
-                case Off | TopLevel => Nil })
+                case LocalInline => firstOrderSystemInline(dot, des(rhs))
+                case TopLevel => Nil })
           case _ => throw BadPreLhs()
         }
       case EquationI(lhs, rhs) => List(EquationI(des(lhs), des(rhs)))
@@ -150,6 +153,14 @@ case class Desugarer(odeTransformMode: ODETransformMode = TopLevel) {
     case e@Dot(o, Name(f, n)) => 
       (for (k <- n until (0, -1))
         yield EquationI(Dot(o, Name(f, k - 1)).setPos(e.pos), Dot(o, Name(f, k)).setPos(e.pos))).toList
+  }
+
+  def firstOrderSystemInline(dot: Dot, rhs: Expr): List[ContinuousAction] = dot match {
+    case e @ Dot(o, Name(f, n)) =>
+      if (n == 0) Nil
+      else EquationI(Dot(o, Name(f, n-1)), rhs setPos e.pos) +:
+        (for (k <- 0 until n-1)
+          yield EquationI(Dot(o, Name(f, k)) setPos e.pos, Dot(o, Name(f, k + 1)) setPos e.pos)).toList
   }
   
   def highestOrderNames(ns: List[Name]): List[Name] =

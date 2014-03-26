@@ -27,8 +27,8 @@ class CStoreCntrl(val interpreter: CStoreInterpreter) extends InterpreterCntrl {
       } else if (interpreter.id contains "experimental") {
         val ast = Parser.run(Parser.prog, progText)
         val dif = SD.run(ast)
-        // do not transform ODEs in the experimental interpreter
-        val des = Main.applyPasses(dif, Seq("desugar-off"))
+        // transform ODEs the old-fashioned way (but with in-lining) in the experimental interpreter
+        val des = Main.applyPasses(dif, Seq("desugar-local-inline"))
         prog = des
       } else super.parse
     

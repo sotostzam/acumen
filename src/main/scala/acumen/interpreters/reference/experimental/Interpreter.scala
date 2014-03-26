@@ -89,6 +89,9 @@ object Interpreter extends acumen.CStoreInterpreter {
 
   /* continuously assign the value v to a field n in object o */
   def equation(o: CId, d: Dot, r: Expr, e: Env) : Eval[Unit] = logEquation(o, d, r, e)
+
+  /* continuously assign the value v to a field n in object o */
+  def ode(o: CId, d: Dot, r: Expr, e: Env) : Eval[Unit] = logODE(o, d, r, e)
   
   /* log an id as being dead */
   def kill(a:CId) : Eval[Unit] = logCId(a)
@@ -320,10 +323,10 @@ object Interpreter extends acumen.CStoreInterpreter {
 
   def evalContinuousAction(a:ContinuousAction, env:Env, p:Prog) : Eval[Unit] = 
     a match {
-      case EquationT(d@Dot(e,x),rhs) =>
+      case EquationT(d@Dot(e,_),rhs) =>
         for { id <- asks(evalExpr(e, env, _)) map extractId } equation(id, d, rhs, env)
-      case _:EquationI =>
-        pass
+      case EquationI(d@Dot(e,_),rhs) =>
+        for { id <- asks(evalExpr(e, env, _)) map extractId } ode(id, d, rhs, env)
       case _ =>
         throw ShouldNeverHappen() // FIXME: enforce that with refinement types
     }
@@ -351,7 +354,7 @@ object Interpreter extends acumen.CStoreInterpreter {
     val sprog = Simplifier.run(cprog)
     val mprog = Prog(magicClass :: sprog.defs)
     val (sd1,sd2) = Random.split(Random.mkGen(0))
-    val (id,_,_,_,_,st1) = 
+    val (id,_,_,_,_,_,st1) = 
       mkObj(cmain, mprog, None, sd1, List(VObjId(Some(CId(0)))), 1)(initStoreRef)
     val st2 = changeParent(CId(0), id, st1)
     val st3 = changeSeed(CId(0), sd2, st2)
@@ -375,7 +378,7 @@ object Interpreter extends acumen.CStoreInterpreter {
   def step(p:Prog, st:Store) : Option[Store] =
     if (getTime(st) > getEndTime(st)) {checkObserves(p, st); None}
     else Some(
-      { val (_,ids,rps,ass,eqs,st1) = iterate(evalStep(p), mainId(st))(st)
+      { val (_,ids,rps,ass,eqs,odes,st1) = iterate(evalStep(p), mainId(st))(st)
         getResultType(st) match {
           case Discrete | Integration => // Either conclude fixpoint is reached or do discrete step
             checkDuplicateAssingments(ass.toList.map{ case (o, d, v) => (o, d) }, d => DuplicateDiscreteAssingment(d.field))
@@ -394,8 +397,7 @@ object Interpreter extends acumen.CStoreInterpreter {
             val stE = applyAssignments(eqs.toList.map { case (o, n, rhs, env) => (o, n, evalExpr(rhs, env, st1)) }) ~> st1
             setResultType(Continuous, stE)
           case Continuous => // Do integration step
-            val odes = extractAndExpandODEs(eqs)
-            checkDuplicateAssingments(odes.toList.map { case (o, n, r, e) => (o, n) }, d => DuplicateIntegrationAssingment(d.field) )
+            checkDuplicateAssingments(odes.toList.map { case (o, n, _, _) => (o, n) }, d => DuplicateIntegrationAssingment(d.field) )
             checkContinuousDynamicsAlwaysDefined(p, odes, st1)
             val stODE = solveIVP(odes, p, st1)
             val st2 = setResultType(Integration, stODE)
@@ -403,19 +405,6 @@ object Interpreter extends acumen.CStoreInterpreter {
         }
       }
     )
-
-  /** 
-   * Extract ODEs (equations with primed variable LHSs) and convert each higher-order 
-   * ODE to a system of first-order ODEs.
-   */
-  def extractAndExpandODEs(eqs: Set[(CId, Dot, Expr, Env)]): Set[(CId, Dot, Expr, Env)] =
-    eqs.flatMap {
-      case (_, Dot(_, Name(_, 0)), _, _) => Set()
-      case (o, Dot(obj, Name(n, p)), rhs, env) =>
-        (o, Dot(obj, Name(n, p - 1)), rhs, env) +:
-          (for (k <- 0 until p - 1)
-            yield (o, Dot(obj, Name(n, k)), Dot(obj, Name(n, k + 1)), env))
-    }
 
   /**
    * Solve ODE-IVP defined by odes parameter tuple, which consists of:
