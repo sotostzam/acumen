@@ -135,16 +135,16 @@ class App extends SimpleSwingApplication {
   private val plotStyleLinesAction            = new Action(  "Lines")       { mnemonic =            VK_L; def apply = plotView.setPlotStyle(plot.Lines()) }
   private val plotStyleDotsAction             = new Action(  "Dots")        { mnemonic =            VK_D; def apply = plotView.setPlotStyle(plot.Dots()) }
   private val plotStyleBothAction             = new Action(  "Both")        { mnemonic =            VK_B; def apply = plotView.setPlotStyle(plot.Both()) }
-  private val floatingPointStandardAction     = mkActionMask("Traditional",                         VK_T, VK_R,       shortcutMask | SHIFT_MASK, setInterpreter("reference"))
-  private val floatingPointStandardOptAction  = mkActionMask("Traditional (Opt)",                   VK_O, NONE,       shortcutMask | SHIFT_MASK, setInterpreter("newimperative"))
-  private val floatingPointExperimentalAction = mkActionMask("Traditional (Exp).",                  VK_E, NONE,       shortcutMask | SHIFT_MASK, setInterpreter("experimental"))
-  private val floatingPointOriginalAction     = mkActionMask("Traditional 2012",                    VK_2, NONE,       shortcutMask | SHIFT_MASK, setInterpreter("original"))
-  private val floatingPointImperativeAction   = mkActionMask("Traditional 2012 (Opt)",              NONE, VK_I,       shortcutMask | SHIFT_MASK, setInterpreter("imperative")) 
-  private val floatingPointParallelAction     = mkActionMask("Traditional 2012 (Par)",              NONE, VK_P,       shortcutMask | SHIFT_MASK, promptForNumberOfThreads)
+  private val reference2014Action             = mkActionMask("Reference",                           VK_R, VK_R,       shortcutMask | SHIFT_MASK, setInterpreter("reference"))
+  private val reference2013Action             = mkActionMask("2013 Reference",                      VK_R, NONE,       shortcutMask | SHIFT_MASK, setInterpreter("reference2013"))
+  private val reference2012Action             = mkActionMask("2012 Reference",                      VK_R, NONE,       shortcutMask | SHIFT_MASK, setInterpreter("reference2012"))
+  private val optimized2013Action             = mkActionMask("2013 Optimized",                      VK_O, NONE,       shortcutMask | SHIFT_MASK, setInterpreter("newimperative"))
+  private val optimized2012Action             = mkActionMask("2012 Optimized",                      VK_O, NONE,       shortcutMask | SHIFT_MASK, setInterpreter("optimized2012")) 
+  private val parallel2012Action              = mkActionMask("2012 Parallel",                       VK_P, NONE,       shortcutMask | SHIFT_MASK, promptForNumberOfThreads)
   private val pwlHybridSolverAction           = mkActionMask("Enclosure (PWL)",                     VK_L, VK_L,       shortcutMask | SHIFT_MASK, setInterpreter("enclosure-pwl")) 
   private val eventTreeHybridSolverAction     = mkActionMask("Enclosure (EVT)",                     VK_T, VK_T,       shortcutMask | SHIFT_MASK, setInterpreter("enclosure-evt"))
   private val contractionAction               = mkActionMask("Contraction",                         VK_C, VK_C,       shortcutMask | SHIFT_MASK, enclosure.Interpreter.toggleContraction)
-  private val normalizeAction                = mkAction(    "Normalize (to H.A.)",                       NONE, NONE,       toggleNormalization())
+  private val normalizeAction                 = mkAction(    "Normalize (to H.A.)",                 VK_N, NONE,       toggleNormalization())
   private val manualAction                    = mkAction(    "Reference Manual",                    VK_M, VK_F1,      manual)
   private val aboutAction                     = new Action(  "About")       { mnemonic =            VK_A; def apply = about }
   
@@ -164,7 +164,7 @@ class App extends SimpleSwingApplication {
         console.log("Number of threads set to " + userNumberOfThreads + ".\n")
         userNumberOfThreads
       }
-      setInterpreter("parallel", lastNumberOfThreads.toString)
+      setInterpreter("parallel2012", lastNumberOfThreads.toString)
     } catch {
       case _ =>
         console.logError("Bad number of threads.")
@@ -477,49 +477,49 @@ class App extends SimpleSwingApplication {
     }
 
     object semantics {
-      val refStandard = new RadioMenuItem("") {
+      val ref2014 = new RadioMenuItem("") {
         selected = false
-        enableWhenStopped(this)
-        action = floatingPointStandardAction
+            enableWhenStopped(this)
+        action = reference2014Action
       }
-      val refStandardOpt = new RadioMenuItem("") {
+      val ref2013 = new RadioMenuItem("") {
         selected = false
         enableWhenStopped(this)
-        action = floatingPointStandardOptAction
+        action = reference2013Action
       }
-      val refOriginal = new RadioMenuItem("") {
+      val opt2013 = new RadioMenuItem("") {
         selected = false
         enableWhenStopped(this)
-        action = floatingPointOriginalAction
-     }
-      val refExperimental = new RadioMenuItem("") {
-        selected = false
-        enableWhenStopped(this)
-        action = floatingPointExperimentalAction
+        action = optimized2013Action
       }
-      val impr = new RadioMenuItem("") {
+      val ref2012 = new RadioMenuItem("") {
         selected = false
         enableWhenStopped(this)
-        action = floatingPointImperativeAction
+        action = reference2012Action
       }
-      val par = new RadioMenuItem("") {
+      val opt2012 = new RadioMenuItem("") {
         selected = false
         enableWhenStopped(this)
-        action = floatingPointParallelAction
+        action = optimized2012Action
       }
-      val pwl = new RadioMenuItem("") {
+      val par2012 = new RadioMenuItem("") {
+        selected = false
+        enableWhenStopped(this)
+        action = parallel2012Action
+      }
+      val encPWL = new RadioMenuItem("") {
         action = pwlHybridSolverAction
         enableWhenStopped(this)
         selected = false // Main.useEnclosures && 
           //enclosure.Interpreter.strategy.eventEncloser.getClass == classOf[PWLEventEncloser] 
       }
-      val et = new RadioMenuItem("") {
+      val encEVT = new RadioMenuItem("") {
         action = eventTreeHybridSolverAction
         enableWhenStopped(this) 
         selected = false // Main.useEnclosures &&
           //enclosure.Interpreter.strategy.eventEncloser.getClass == classOf[TreeEventEncloser]
       }
-      val bg = new ButtonGroup(refStandard, refStandardOpt, refExperimental, refOriginal, impr, par, pwl, et)
+      val bg = new ButtonGroup(ref2013, opt2013, ref2014, ref2012, opt2012, par2012, encPWL, encEVT)
       val ls = new CheckMenuItem("") {
         action = contractionAction
         enabledWhenStopped += (this, () => interpreter.interpreter.getClass == enclosure.Interpreter.getClass)
@@ -541,12 +541,23 @@ class App extends SimpleSwingApplication {
     contents += new Menu("Semantics") {
       import semantics._
       mnemonic = Key.S
-      contents += refStandard
-      if (Main.enableAllSemantics)
-        contents ++= Seq(refStandardOpt, new Separator, refExperimental, new Separator, refOriginal, impr, par)
-      contents ++= Seq(new Separator, pwl, et, new Separator, ls)
-      if (Main.enableAllSemantics)
+      contents += new Menu("Traditional") {
+        mnemonic = Key.T
+        contents += ref2014
+        if (Main.enableAllSemantics)
+          contents ++= Seq(opt2013)
+      }
+      contents += new Menu("Enclosure") {
+        mnemonic = Key.E
+        contents ++= Seq(encPWL, encEVT, new Separator, ls)
+      }
+      if (Main.enableAllSemantics) {
+        contents += new Menu("Deprecated") {
+          mnemonic = Key.D
+          contents ++= Seq(ref2013, opt2013, new Separator, ref2012, opt2012, par2012)
+        }
         contents ++= Seq(new Separator, lc)
+      }
     }
    
     contents += new Menu("Help") {
@@ -617,7 +628,7 @@ class App extends SimpleSwingApplication {
   }
 
   /* ----- events handling ---- */
-
+  
   var state: State = Stopped
   var interpreter: InterpreterCntrl = null;
   def setInterpreter(args: String*) = {
@@ -627,14 +638,14 @@ class App extends SimpleSwingApplication {
   }
   interpreter = InterpreterCntrl.cntrlForInterpreter(Main.interpreter);
   interpreter.interpreter.id.toList match {
-    case "reference" :: _ => bar.semantics.refStandard.selected = true
-    case "newimperative" :: _ => bar.semantics.refStandardOpt.selected = true
-    case "original" :: _=> bar.semantics.refOriginal.selected = true
-    case "experimental" :: _=> bar.semantics.refExperimental.selected = true
-    case "imperative" :: _ => bar.semantics.impr.selected = true
-    case "parallel" :: _ => bar.semantics.par.selected = true
-    case "enclosure" :: tail if tail.contains("pwl") => bar.semantics.pwl.selected = true
-    case "enclosure" :: tail if tail.contains("evt") => bar.semantics.et.selected = true
+    case "reference2013" :: _ => bar.semantics.ref2013.selected = true
+    case "newimperative" :: _ => bar.semantics.opt2013.selected = true
+    case "reference2012" :: _=> bar.semantics.ref2012.selected = true
+    case "reference" :: _=> bar.semantics.ref2014.selected = true
+    case "optimized2012" :: _ => bar.semantics.opt2012.selected = true
+    case "parallel2012" :: _ => bar.semantics.par2012.selected = true
+    case "enclosure" :: tail if tail.contains("pwl") => bar.semantics.encPWL.selected = true
+    case "enclosure" :: tail if tail.contains("evt") => bar.semantics.encEVT.selected = true
   }
 
   def dumpParms() = {

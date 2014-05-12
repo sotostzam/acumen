@@ -168,11 +168,11 @@ object Main {
     val args = args0.flatMap(_.split('-')).toList
     import interpreters._
     val res = args match {
-      case ("" | "reference") :: Nil => reference.standard.Interpreter
-      case "original" :: Nil => reference.original.Interpreter
-      case "experimental" :: Nil => reference.experimental.Interpreter
-      case "parallel" :: tail => selectParallellInterpreter(tail)
-      case "imperative" :: Nil => imperative.ImperativeInterpreter
+      case "reference2013" :: Nil => reference.standard.Interpreter
+      case "reference2012" :: Nil => reference.original.Interpreter
+      case ("" | "reference") :: Nil => reference.experimental.Interpreter
+      case "parallel2012" :: tail => selectParallellInterpreter(tail)
+      case "optimized2012" :: Nil => imperative.ImperativeInterpreter
       case "newimperative" :: tail => selectImperativeInterpreter(tail)
       case "enclosure" :: tail => selectEnclosureInterpreter(tail)
       case _ => null

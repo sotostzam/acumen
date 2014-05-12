@@ -49,9 +49,9 @@ class ParallelInterpreter(private var scheduler: Scheduler) extends ImperativeIn
 object ParallelInterpreter {
   import Common._
 
-  var id = Array("parallel")
+  var id = Array("parallel2012")
   def updateId(args: String*) = 
-    id = Array("parallel") ++ args
+    id = Array("parallel2012") ++ args
   
   private val cores = Runtime.getRuntime.availableProcessors
   

@@ -30,7 +30,7 @@ import scala.annotation.tailrec
 
 class ImperativeInterpreter extends CStoreInterpreter {
 
-  override def id = Array("imperative")
+  override def id = Array("optimized2012")
 
   import Common._
 

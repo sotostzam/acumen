@@ -32,7 +32,7 @@ import Errors._
 
 object Interpreter extends acumen.CStoreInterpreter {
 
-  override def id = Array("original")
+  override def id = Array("reference2012")
   
   type Store = CStore
   type Env = Map[Name, CValue]
