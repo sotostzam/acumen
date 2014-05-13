@@ -24,7 +24,7 @@ class CStoreCntrl(val interpreter: CStoreInterpreter) extends InterpreterCntrl {
         // transform ODEs the old-fashioned way in the original interpreter
         val des = Main.applyPasses(dif, Seq("desugar-local"))
         prog = des
-      } else if (interpreter.id contains "reference") {
+      } else if (interpreter.id contains "reference2014") {
         val ast = Parser.run(Parser.prog, progText)
         val dif = SD.run(ast)
         // transform ODEs the old-fashioned way (but with in-lining) in the experimental interpreter

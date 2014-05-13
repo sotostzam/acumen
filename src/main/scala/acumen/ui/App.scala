@@ -135,14 +135,14 @@ class App extends SimpleSwingApplication {
   private val plotStyleLinesAction            = new Action(  "Lines")       { mnemonic =            VK_L; def apply = plotView.setPlotStyle(plot.Lines()) }
   private val plotStyleDotsAction             = new Action(  "Dots")        { mnemonic =            VK_D; def apply = plotView.setPlotStyle(plot.Dots()) }
   private val plotStyleBothAction             = new Action(  "Both")        { mnemonic =            VK_B; def apply = plotView.setPlotStyle(plot.Both()) }
-  private val reference2014Action             = mkActionMask("Reference",                           VK_R, VK_R,       shortcutMask | SHIFT_MASK, setInterpreter("reference"))
+  private val reference2014Action             = mkActionMask("2014 Reference",                      VK_R, VK_R,       shortcutMask | SHIFT_MASK, setInterpreter("reference2014"))
   private val reference2013Action             = mkActionMask("2013 Reference",                      VK_R, NONE,       shortcutMask | SHIFT_MASK, setInterpreter("reference2013"))
   private val reference2012Action             = mkActionMask("2012 Reference",                      VK_R, NONE,       shortcutMask | SHIFT_MASK, setInterpreter("reference2012"))
   private val optimized2013Action             = mkActionMask("2013 Optimized",                      VK_O, NONE,       shortcutMask | SHIFT_MASK, setInterpreter("newimperative"))
   private val optimized2012Action             = mkActionMask("2012 Optimized",                      VK_O, NONE,       shortcutMask | SHIFT_MASK, setInterpreter("optimized2012")) 
   private val parallel2012Action              = mkActionMask("2012 Parallel",                       VK_P, NONE,       shortcutMask | SHIFT_MASK, promptForNumberOfThreads)
-  private val pwlHybridSolverAction           = mkActionMask("Enclosure (PWL)",                     VK_L, VK_L,       shortcutMask | SHIFT_MASK, setInterpreter("enclosure-pwl")) 
-  private val eventTreeHybridSolverAction     = mkActionMask("Enclosure (EVT)",                     VK_T, VK_T,       shortcutMask | SHIFT_MASK, setInterpreter("enclosure-evt"))
+  private val pwlHybridSolverAction           = mkActionMask("2014 PWL",                            VK_L, VK_L,       shortcutMask | SHIFT_MASK, setInterpreter("enclosure-pwl")) 
+  private val eventTreeHybridSolverAction     = mkActionMask("2014 EVT",                            VK_T, VK_T,       shortcutMask | SHIFT_MASK, setInterpreter("enclosure-evt"))
   private val contractionAction               = mkActionMask("Contraction",                         VK_C, VK_C,       shortcutMask | SHIFT_MASK, enclosure.Interpreter.toggleContraction)
   private val normalizeAction                 = mkAction(    "Normalize (to H.A.)",                 VK_N, NONE,       toggleNormalization())
   private val manualAction                    = mkAction(    "Reference Manual",                    VK_M, VK_F1,      manual)
@@ -641,7 +641,7 @@ class App extends SimpleSwingApplication {
     case "reference2013" :: _ => bar.semantics.ref2013.selected = true
     case "newimperative" :: _ => bar.semantics.opt2013.selected = true
     case "reference2012" :: _=> bar.semantics.ref2012.selected = true
-    case "reference" :: _=> bar.semantics.ref2014.selected = true
+    case "reference2014" :: _=> bar.semantics.ref2014.selected = true
     case "optimized2012" :: _ => bar.semantics.opt2012.selected = true
     case "parallel2012" :: _ => bar.semantics.par2012.selected = true
     case "enclosure" :: tail if tail.contains("pwl") => bar.semantics.encPWL.selected = true
