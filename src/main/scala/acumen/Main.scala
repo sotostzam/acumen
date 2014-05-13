@@ -364,8 +364,8 @@ object Main {
       args(0) match {
         case "compile" => 
           val typeChecker = new TypeCheck(desugared)
-          val res = typeChecker.run()
-          interpreters.compiler.Interpreter.compile(desugared, typeChecker)
+          val (typechecked, res) = typeChecker.run()
+          interpreters.compiler.Interpreter.compile(typechecked, typeChecker)
         case "pretty" => println(pprint(ast))
         case "3d" => toPython3D(toSummary3D(ctrace))
         case "2d" => toPython2D(toSummary2D(ctrace))
