@@ -107,3 +107,13 @@ is as follows:
   git status                  ## Just a sanity check
 
 ---------------------------------------------------------------------
+
+FETCH
+
+Downloads everything from the server, including all branches. It also lists
+the new branches that appears since the last fetch. Very good for working
+remotely.
+
+Note: At least intuitively, PULL = (FETCH; MERGE)
+
+---------------------------------------------------------------------
