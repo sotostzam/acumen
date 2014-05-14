@@ -384,7 +384,7 @@ object Interpreter extends acumen.CStoreInterpreter {
       { val (_,ids,rps,ass,eqs,odes,st1) = iterate(evalStep(p), mainId(st))(st)
         getResultType(st) match {
           case Discrete | Integration => // Either conclude fixpoint is reached or do discrete step
-            checkDuplicateAssingments(ass.toList.map{ case (o, d, v) => (o, d) }, d => DuplicateDiscreteAssingment(d.field))
+            checkDuplicateAssingments(ass.toList.map{ case (o, d, _) => (o, d) }, d => DuplicateDiscreteAssingment(d.field))
             val nonIdentityAss = ass.filterNot{ a => a._3 == getObjectField(a._1, a._2.field, st1) }
             if (st == st1 && ids.isEmpty && rps.isEmpty && nonIdentityAss.isEmpty) 
               setResultType(FixedPoint, st1)
@@ -396,12 +396,12 @@ object Interpreter extends acumen.CStoreInterpreter {
               setResultType(Discrete, st3)
             }
           case FixedPoint => // Do continuous step
-            checkDuplicateAssingments(eqs.toList.map{ case (o, n, _) => (o, n) }, d => DuplicateContinuousAssingment(d.field))
+            checkDuplicateAssingments(eqs.toList.map{ case (o, d, _) => (o, d) }, d => DuplicateContinuousAssingment(d.field))
             val stE = applyAssignments(eqs.toList) ~> st1
             setResultType(Continuous, stE)
           case Continuous => // Do integration step
-            checkDuplicateAssingments(odes.toList.map { case (o, n, _, _) => (o, n) }, d => DuplicateIntegrationAssingment(d.field) )
-            checkContinuousDynamicsAlwaysDefined(p, odes, st1)
+            checkDuplicateAssingments(eqs.toList.map{ case (o, d, _) => (o, d) }, d => DuplicateContinuousAssingment(d.field))
+            checkContinuousDynamicsAlwaysDefined(p, eqs, st1)
             val stODE = solveIVP(odes, p, st1)
             val st2 = setResultType(Integration, stODE)
             setTime(getTime(st2) + getTimeStep(st2), st2)
@@ -523,12 +523,12 @@ object Interpreter extends acumen.CStoreInterpreter {
    * an equation in scope at the current time step. This is done by checking that for each 
    * primed field name in each object in st, there is a corresponding CId-Name pair in odes.
    */
-  def checkContinuousDynamicsAlwaysDefined(prog: Prog, odes: Set[(CId, Dot, Expr, Env)], st: Store): Unit = {
+  def checkContinuousDynamicsAlwaysDefined(prog: Prog, eqs: Set[(CId, Dot, CValue)], st: Store): Unit = {
     val declaredODENames = prog.defs.map(d => (d.name, (d.fields ++ d.priv.map(_.x)).filter(_.primes > 0))).toMap
     st.foreach { case (o, _) =>
       if (o != magicId(st))
         declaredODENames.get(getCls(o, st)).map(_.foreach { n =>
-          if (!odes.exists { case (eo, d, _, _) => eo.id == o.id && d.field.x == n.x })
+          if (!eqs.exists { case (eo, d, _) => eo.id == o.id && d.field.x == n.x })
             throw ContinuousDynamicsUndefined(o, n, Pretty.pprint(getObjectField(o, classf, st)), getTime(st))
         })
     }
