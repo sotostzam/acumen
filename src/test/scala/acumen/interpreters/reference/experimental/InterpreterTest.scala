@@ -20,7 +20,7 @@ import acumen.testutil.TestUtil.{
 
 class InterpreterTest extends InterpreterTestBase with ShouldMatchers {
 
-  override def suiteName = "Parallel Cont. Reference InterpreterTest"
+  override def suiteName = "Experimental InterpreterTest"
 
   def interpreter = interpreters.reference.experimental.Interpreter
 
@@ -30,10 +30,19 @@ class InterpreterTest extends InterpreterTestBase with ShouldMatchers {
     for (_ <- (interpreter run tr).ctrace) ()
   }
 
-  // This semantics changes the result of nearly every model, 
-  // so there is no point in running the regression test.
-  //testExamples({f => f == "examples/0_Demos/02_Passive_walking.acm" || 
-  //              f.startsWith("examples/A_Ping_Pong/")})
+  testExamples(Examples2014, 
+               {f => // The following models need closer investigation
+                     // to make sure they still have the correct output.
+                     // Once this is done the reference outputs in
+                     // src/test/resources/acumen/data/examples-2014-res
+                     // should be updated.
+                     f.endsWith("/iccps_mass_pendulum.acm") ||
+                     f.endsWith("/iccps_pendulum.acm") ||
+                     f.endsWith("/Quantization - Linear.acm") ||
+                     f.endsWith("/01_Converting_Accelerations.acm") ||
+                     f.startsWith("examples/XXX_internal/0_Demos") || 
+                     // The ping-pong models need to be fixed.
+                     f.startsWith("examples/XXX_internal/test/ping-pong")})
   testShouldRun
   
   def getError(file:String) : Option[AcumenError] = {

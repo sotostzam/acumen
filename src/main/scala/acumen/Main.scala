@@ -479,6 +479,7 @@ object Main {
       }
     }
     doit(Examples2013,interpreters.reference.standard.Interpreter)
+    doit(Examples2014,interpreters.reference.experimental.Interpreter)
     if (somethingUpdated) {
       println("Results updated.  Be sure to git add & commit the updated files as appropriate.")
     }

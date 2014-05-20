@@ -9,42 +9,42 @@
 }
 ------------------------------0
 #0 { className = Main, mode = "Persist", simulator = #0.0 }
-#0.0 { className = Simulator, time = 0.450000 }
+#0.0 { className = Simulator, time = 0.460000 }
 #0.1 {
   className = Ball,
   mode = "Fly",
-  x = -0.014300,
-  x' = 4.410000,
+  x = -0.036840,
+  x' = 4.508000,
   x'' = -9.800000
 }
-------------------------------46
+------------------------------47
 #0 { className = Main, mode = "Persist", simulator = #0.0 }
-#0.0 { className = Simulator, time = 1.340000 }
+#0.0 { className = Simulator, time = 1.380000 }
 #0.1 {
   className = Ball,
   mode = "Fly",
-  x = -0.014300,
-  x' = 4.312000,
+  x = -0.036840,
+  x' = 4.508000,
   x'' = -9.800000
 }
-------------------------------136
+------------------------------140
 #0 { className = Main, mode = "Persist", simulator = #0.0 }
-#0.0 { className = Simulator, time = 2.210000 }
+#0.0 { className = Simulator, time = 2.300000 }
 #0.1 {
   className = Ball,
   mode = "Fly",
-  x = -0.014300,
-  x' = 4.214000,
+  x = -0.036840,
+  x' = 4.508000,
   x'' = -9.800000
 }
-------------------------------224
+------------------------------233
 #0 { className = Main, mode = "Persist", simulator = #0.0 }
 #0.0 { className = Simulator, time = 5.010000 }
 #0.1 {
   className = Ball,
   mode = "Fly",
-  x = 0.714820,
-  x' = 0.882000,
+  x = 0.176310,
+  x' = -4.018000,
   x'' = -9.800000
 }
-------------------------------507
+------------------------------506
