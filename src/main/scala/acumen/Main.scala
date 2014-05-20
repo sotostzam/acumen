@@ -459,23 +459,26 @@ object Main {
 
   def examples = {
     var somethingUpdated = false
-    Examples.cstoreExamplesAction{(dn, f) =>
-      val loc = Examples.expectLoc
-      val resFile = Examples.resultFile(loc, dn, f)
-      if (resFile.exists) {
-        println("file " + resFile + " exists, skipping")
-      } else {
-        somethingUpdated = true
-        try {
-          Examples.writeExampleResult(loc, dn, f, interpreters.reference.standard.Interpreter)
-        } catch {
-          case e => 
-            println("ERROR while creating " + resFile + ":")
-            println("  " + e)
+    def doit(ex: Examples, intr: CStoreInterpreter) = {
+      ex.cstoreExamplesAction{(dn, f) =>
+        val loc = ex.expectLoc
+        val resFile = ex.resultFile(loc, dn, f)
+        if (resFile.exists) {
+          println("file " + resFile + " exists, skipping")
+        } else {
+          somethingUpdated = true
+          try {
+            ex.writeExampleResult(loc, dn, f, intr)
+          } catch {
+            case e => 
+              println("ERROR while creating " + resFile + ":")
+              println("  " + e)
+          }
+          println("CREATED " + resFile)
         }
-        println("CREATED " + resFile)
       }
     }
+    doit(Examples2013,interpreters.reference.standard.Interpreter)
     if (somethingUpdated) {
       println("Results updated.  Be sure to git add & commit the updated files as appropriate.")
     }

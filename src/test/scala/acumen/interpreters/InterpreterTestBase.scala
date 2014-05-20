@@ -33,27 +33,27 @@ abstract class InterpreterTestBase extends FunSuite with ShouldMatchers {
     i run tr
   }
 
-  def testExamples(skip: String => Boolean = {_ => false}) = {
+  def testExamples(ex: Examples, skip: String => Boolean = {_ => false}) = {
     // Note: 
     //  - To add result file for newly created examples use: sbt "run record-reference-outputs"
     //  - To update existing result file remove the file and then use the above command
-    Examples.cstoreExamplesAction{(dn, f) =>
+    ex.cstoreExamplesAction{(dn, f) =>
       //info(f.toString)
       val testName = "example " + f
-      val resFile = Examples.resultFile(Examples.expectLoc, dn, f)
+      val resFile = ex.resultFile(ex.expectLoc, dn, f)
       if (skip(f.toString)) {
         ignore(testName) {}
       } else if (resFile.exists)
         test(testName) { 
-          Examples.writeExampleResult(Examples.gotLoc, dn, f, interpreter)
+          ex.writeExampleResult(ex.gotLoc, dn, f, interpreter)
           class Result(loc: String) {
-            val file = Examples.resultFile(loc, dn, f)
+            val file = ex.resultFile(loc, dn, f)
             val reader = new BufferedReader(new InputStreamReader(new FileInputStream(file)))
             var curLine : String = null
             def adv = curLine = reader.readLine
           }
-          val expect = new Result(Examples.expectLoc)
-          val got = new Result(Examples.gotLoc)
+          val expect = new Result(ex.expectLoc)
+          val got = new Result(ex.gotLoc)
           do {
             expect.adv; got.adv
             if (expect.curLine != got.curLine)

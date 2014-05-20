@@ -6,7 +6,7 @@ import util.Canonical._
 import util.Filters._
 import util.Names._
 
-object Examples {
+abstract class Examples {
 
   def cstoreExamplesAction(action: (String, File) => Unit) : Unit = {
     def filter = new java.io.FileFilter {
@@ -39,7 +39,7 @@ object Examples {
   }
 
   // FIXME: Get these locations from scala/java/sbt some how...
-  val expectLoc = "src/test/resources/acumen/data/examples-res" 
+  val expectLoc : String
   val gotLoc = "target/tmp/examples-res"
 
   def resultFile(loc: String, dn: String, f: File) =
@@ -62,4 +62,12 @@ object Examples {
       in.close
     }
   }
+}
+
+object Examples2013 extends Examples {
+  override val expectLoc = "src/test/resources/acumen/data/examples-2013-res"
+}
+
+object Examples2014 extends Examples {
+  override val expectLoc = "src/test/resources/acumen/data/examples-2014-res"
 }

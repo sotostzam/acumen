@@ -26,7 +26,7 @@ class InterpreterTest extends InterpreterTestBase with ShouldMatchers {
     for (_ <- (interpreter run tr).ctrace) ()
   }
 
-  testExamples()
+  testExamples(Examples2013)
   testShouldRun
   
   def getError(file:String) : Option[AcumenError] = {

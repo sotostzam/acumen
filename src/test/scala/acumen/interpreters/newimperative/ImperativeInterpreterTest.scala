@@ -133,7 +133,7 @@ class ImperativeInterpreterTest extends InterpreterTestBase {
     else t1.isEmpty && t2.isEmpty
   }
 
-  testExamples()
+  testExamples(Examples2013)
   testShouldRun
 
   def getError(file:String) : Option[PositionalAcumenError] = {
