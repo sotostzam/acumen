@@ -139,9 +139,6 @@ object Errors {
   case class DuplicateContinuousAssingment(x:Name) extends DuplicateAssingment(x) {
     override def mesg = super.mesg(" continuous ")
   }
-  case class DuplicateIntegrationAssingment(x:Name) extends DuplicateAssingment(x) {
-    override def mesg = super.mesg("integration")
-  }
   case class BadLhs() extends PositionalAcumenError {
     override def mesg = 
       "The left hand-side of an assignment must be of the form 'e.x'."

@@ -266,11 +266,11 @@ object Interpreter extends acumen.CStoreInterpreter {
         }
       case Discretely(da) =>
         for (ty <- asks(getResultType))
-          if (ty == FixedPoint || ty == Continuous) pass
+          if (ty == FixedPoint) pass
           else evalDiscreteAction(da, env, p)
       case Continuously(ca) =>
         for (ty <- asks(getResultType))
-          if (ty == Discrete || ty == Integration) pass
+          if (ty != FixedPoint) pass
           else evalContinuousAction(ca, env, p) 
       case Claim(_) =>
         pass
@@ -383,7 +383,7 @@ object Interpreter extends acumen.CStoreInterpreter {
     else Some(
       { val (_,ids,rps,ass,eqs,odes,st1) = iterate(evalStep(p), mainId(st))(st)
         getResultType(st) match {
-          case Discrete | Integration => // Either conclude fixpoint is reached or do discrete step
+          case Discrete | Continuous => // Either conclude fixpoint is reached or do discrete step
             checkDuplicateAssingments(ass.toList.map{ case (o, d, _) => (o, d) }, d => DuplicateDiscreteAssingment(d.field))
             val nonIdentityAss = ass.filterNot{ a => a._3 == getObjectField(a._1, a._2.field, st1) }
             if (st == st1 && ids.isEmpty && rps.isEmpty && nonIdentityAss.isEmpty) 
@@ -397,13 +397,10 @@ object Interpreter extends acumen.CStoreInterpreter {
             }
           case FixedPoint => // Do continuous step
             checkDuplicateAssingments(eqs.toList.map{ case (o, d, _) => (o, d) }, d => DuplicateContinuousAssingment(d.field))
-            val stE = applyAssignments(eqs.toList) ~> st1
-            setResultType(Continuous, stE)
-          case Continuous => // Do integration step
-            checkDuplicateAssingments(eqs.toList.map{ case (o, d, _) => (o, d) }, d => DuplicateContinuousAssingment(d.field))
             checkContinuousDynamicsAlwaysDefined(p, eqs, st1)
             val stODE = solveIVP(odes, p, st1)
-            val st2 = setResultType(Integration, stODE)
+            val stE = applyAssignments(eqs.toList) ~> stODE
+            val st2 = setResultType(Continuous, stE)
             setTime(getTime(st2) + getTimeStep(st2), st2)
         }
       }
