@@ -1,6 +1,6 @@
 package acumen
 package interpreters
-package imperative
+package imperative2012
 
 import Pretty._
 
@@ -14,7 +14,7 @@ import java.io.InputStreamReader
 
 class ParallelInterpreterTest extends InterpreterTestBase {
 
-  override def interpreter : CStoreInterpreter = interpreters.imperative.ParallelInterpreter.instance
+  override def interpreter : CStoreInterpreter = ParallelInterpreter.instance
 
   test("StoreConversions1") {
     import ParallelInterpreter._

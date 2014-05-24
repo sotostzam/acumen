@@ -1,9 +1,8 @@
 package acumen
 package interpreters
-package newimperative
+package imperative2012
 
 import scala.collection.immutable.HashMap
-import scala.util.parsing.input.{Positional,Position,NoPosition}
 
 import acumen.Errors._
 import acumen.Pretty._
@@ -38,25 +37,9 @@ object Common {
   type MMap[A, B] = scala.collection.mutable.Map[A, B]
   val MMap = scala.collection.mutable.Map
 
-  class ValVal(v: Val = VObjId(None)) {
-    var lastSetPos : Position = NoPosition
-    var prevVal : Val = VObjId(None)
-    var curVal : Val = v
-    var lastUpdated : Int = -1
-  }
-
-  class PhaseParms {
-    var curIter : Int = 0;
-    var delayUpdate = false;
-    var doDiscrete = false;
-    var doEquationT = false;
-    var doEquationI = false;
-  }
-
   case class Object(
       val id: CId,
-      var fields: MMap[Name, ValVal],
-      var phaseParms: PhaseParms,
+      var fields: MMap[Name, Val],
       var parent: Option[Object],
       var ccounter: Int,
       var seed: (Int, Int),
@@ -65,18 +48,11 @@ object Common {
     override def hashCode = System.identityHashCode(this)
     override def toString = {
       val cn =
-        if (fields contains classf) pprint(fields(classf).curVal)
+        if (fields contains classf) pprint(fields(classf))
         else "?"
       cn + "@" + hashCode
     }
     override def equals(o: Any) = { eq(o.asInstanceOf[AnyRef]) }
-    val fieldsCur = new Iterable[(Name, GValue)] {
-      def iterator = new Iterator[(Name, GValue)] {
-        val orig = fields.iterator
-        override def hasNext = orig.hasNext
-        override def next() = {val v = orig.next; (v._1, v._2.curVal)}
-      }
-    }
   }
 
   val emptyStore: CStore = Map.empty
@@ -98,7 +74,7 @@ object Common {
         case Some(p) => Some(p.id)
       })
       val fields = Map.empty ++ o.fields
-      (fields mapValues {v => convertValue(v.curVal)}) +
+      (fields mapValues (convertValue(_))) +
         ((parent, p), (nextChild, VLit(GInt(o.ccounter))), (seed1, VLit(GInt(o.seed._1))), (seed2, VLit(GInt(o.seed._2))))
     }
     def convertStore(st: Store): CStore = {
@@ -147,13 +123,13 @@ object Common {
       }
     def convertId(id: CId): Unit = {
       if (!treated(id)) {
-        val res = Object(id, null, null, null, 0, null, null)
+        val res = Object(id, null, null, 0, null, null)
         addresses += ((id, res))
         val o = st(id)
         for (r <- referenced(o)) convertId(r)
         val cs = childrenOf(id, st)
         for (c <- cs) convertId(c)
-        res.fields = MMap.empty ++ ((o - parent) mapValues {v => new ValVal(convertVal(v))})
+        res.fields = MMap.empty ++ ((o - parent) mapValues convertVal)
         res.parent = parentOf(o) map (addresses(_))
         res.children = Vector.empty ++ (cs map (addresses(_)))
         res.seed = seedOf(o)
@@ -162,8 +138,6 @@ object Common {
       }
     }
     for (id <- st.keys) convertId(id)
-    val phaseParms = new PhaseParms
-    addresses.foreach{case (_,obj) => obj.phaseParms = phaseParms}
     addresses(root)
   }
 
@@ -188,15 +162,6 @@ object Common {
   def logReparent(o: ObjId, p: ObjId) = SomeChange(Set.empty, Set((o, p)))
   def logModified = SomeChange(Set.empty, Set.empty)
 
-  def asObjId(v: Val) = v match {
-    case VObjId(Some(id)) => id
-    case _ => throw NotAnObject(v)
-  }
-  def evalToObjId(e: Expr, p: Prog, env: Env) = evalExpr(e,p,env) match {
-    case VObjId(Some(id)) => checkAccessOk(id, env, e); id
-    case v => throw NotAnObject(v).setPos(e.pos)
-  }
-
   /* get self reference in an env */
   def selfObjId(e: Env): ObjId =
     e(self) match {
@@ -205,30 +170,15 @@ object Common {
     }
 
   /* objects fields setters and getters */
-  def getField(o: Object, f: Name) = {
-    val v = o.fields(f)
-    if (o.phaseParms.delayUpdate && v.lastUpdated == o.phaseParms.curIter) v.prevVal
-    else v.curVal
-  }
+  def getField(o: Object, f: Name) = o.fields(f)
 
   /* SIDE EFFECT */
-  def setField(o: Object, f: Name, newVal: Val, pos: Position = NoPosition): Changeset =
+  def setField(o: Object, f: Name, v: Val): Changeset =
     if (o.fields contains f) {
-      val oldVal = getField(o, f)
-      val v = o.fields(f)
-      //println(f + " oldVal:" + oldVal + "  prevVal: " + v.prevVal + "  curVal: " + v.curVal + "  newVal: " + newVal + "  lastUpdated: " + v.lastUpdated + "  curIter: " + o.phaseParms.curIter + "  delayUpdate: " + o.phaseParms.delayUpdate)
-      if (v.lastUpdated == o.phaseParms.curIter) {
-        if (o.phaseParms.delayUpdate && v.curVal != newVal) throw DuplicateAssingmentUnspecified(f).setPos(pos).setOtherPos(v.lastSetPos)
-        v.curVal = newVal
-      } else {
-        v.prevVal = v.curVal; v.curVal = newVal; v.lastUpdated = o.phaseParms.curIter
-      }
-      v.lastSetPos = pos;
-      if (oldVal == newVal) noChange
-      else logModified
+      if (o.fields(f) == v) noChange
+      else { o.fields(f) = v; logModified }
     }
-    else throw VariableNotDeclared(f).setPos(pos)
-  
+    else throw VariableNotDeclared(f)
 
   /* get the class associated to an object */
   def getClassOf(o: Object): ClassName = {
@@ -263,7 +213,6 @@ object Common {
       case None     => ()
     }
     o.parent = Some(p)
-    o.phaseParms = p.phaseParms
     p.children = p.children :+ o
   }
 
@@ -277,19 +226,19 @@ object Common {
   /* evaluate e in the scope of env 
    * for definitions p with current store st */
   def evalExpr(e: Expr, p: Prog, env: Env): Val = {
-    def eval(env: Env, e: Expr): Val = try {
+    def eval(env: Env, e: Expr): Val = {
       e match {
         case Lit(i)        => VLit(i)
         case ExprVector(l) => VVector(l map (eval(env, _)))
         case Var(n)        => env.get(n).getOrElse(VClassName(ClassName(n.x)))
         case Index(v,i)    => evalIndexOp(eval(env, v), eval(env, i))
         case Dot(v, Name("children", 0)) =>
-          val id = evalToObjId(v,p,env)
+          val VObjId(Some(id)) = eval(env, v)
           //id synchronized { VList((id.children map VObjId[ObjId]).toList) }
           VList((id.children map (c => VObjId(Some(c)))).toList)
         /* e.f */
         case Dot(e, f) =>
-          val id = evalToObjId(e,p,env)
+          val VObjId(Some(id)) = eval(env, e)
           getField(id, f)
         /* x && y */
         case Op(Name("&&", 0), x :: y :: Nil) =>
@@ -331,21 +280,16 @@ object Common {
             }
           eval(eWithBindingsApplied, e)
       }
-    } catch {
-      case err: PositionalAcumenError => err.setPos(e.pos); throw err
     }
     eval(env, e)
   }
 
-  sealed abstract class ParentParm
-  case object IsMain extends ParentParm
-  case class ParentIs(id: ObjId) extends ParentParm
   /* create an env from a class spec and init values */
-  def mkObj(c: ClassName, p: Prog, prt: ParentParm, 
-            sd: (Int, Int), v: List[Val], magic: Object, childrenCounter: Int = 0): Object = {
+  def mkObj(c: ClassName, p: Prog, prt: Option[ObjId], sd: (Int, Int),
+            v: List[Val], magic: Object, childrenCounter: Int = 0): Object = {
     val cd = classDef(c, p)
-    val base = MMap((classf, new ValVal(VClassName(c))))
-    val pub = base ++ (cd.fields zip v.map{new ValVal(_)})
+    val base = MMap((classf, VClassName(c)))
+    val pub = base ++ (cd.fields zip v)
 
     /* change [Init(x1,rhs1), ..., Init(xn,rhsn)]
        into   ([x1, ..., xn], [rhs1, ..., rhsn] */
@@ -357,83 +301,81 @@ object Common {
     }
 
     val res = prt match {
-      case IsMain =>
-        Object(CId.nil, pub, magic.phaseParms, None, childrenCounter, sd, Vector(magic))
-      case ParentIs(p) =>
+      case None =>
+        Object(CId.nil, pub, prt, childrenCounter, sd, Vector.empty)
+      case Some(p) =>
         val counter = p.ccounter
         p.ccounter += 1
-        Object(counter :: p.id, pub, p.phaseParms, Some(p), childrenCounter, sd, Vector.empty)
+        Object(counter :: p.id, pub, prt, childrenCounter, sd, Vector.empty)
     }
 
     val vs = ctrs map {
       case NewRhs(e, es) =>
         val cn = evalExpr(e, p, Map(self -> VObjId(Some(res)))) match {
           case VClassName(cn) => cn
-          case v => throw NotAClassName(v).setPos(e.pos)
+          case v => throw NotAClassName(v)
         }
         val ves = es map (evalExpr(_, p, Map(self -> VObjId(Some(res)))))
         val nsd = getNewSeed(res)
-        VObjId(Some(mkObj(cn, p, ParentIs(res), nsd, ves, magic)))
+        VObjId(Some(mkObj(cn, p, Some(res), nsd, ves, magic)))
       case ExprRhs(e) =>
         evalExpr(e, p, Map(self -> VObjId(Some(res))))
     }
-    val priv = privVars zip vs.map{new ValVal(_)}
+    val priv = privVars zip vs
     res.fields = pub ++ priv
     prt match {
-      case ParentIs(resp) =>
+      case Some(resp) =>
         resp.children = resp.children :+ res
-      case IsMain => ()
+      case None => ()
     }
     res
   }
 
   def evalDiscreteAction(a: DiscreteAction, env: Env, p: Prog, magic: Object): Changeset =
     a match {
-      case Assign(d@Dot(e, x), t) =>
-        val id = evalToObjId(e, p, env)
+      case Assign(Dot(e, x), t) =>
+        val VObjId(Some(id)) = evalExpr(e, p, env)
         val vt = evalExpr(t, p, env)
-        setField(id, x, vt, d.pos)
-      case Assign(lhs, _) =>
-        throw BadLhs().setPos(lhs.pos)
+        setField(id, x, vt)
+      case Assign(_, _) =>
+        throw BadLhs()
       case Create(lhs, e, es) =>
         val c = evalExpr(e, p, env) match {
           case VClassName(cn) => cn
-          case v => throw NotAClassName(v).setPos(e.pos)
+          case v => throw NotAClassName(v)
         }
         val ves = es map (evalExpr(_, p, env))
         val self = selfObjId(env)
         val sd = getNewSeed(self)
-        val fa = mkObj(c, p, ParentIs(self), sd, ves, magic)
+        val fa = mkObj(c, p, Some(self), sd, ves, magic)
         lhs match {
           case None => logModified
-          case Some(d@Dot(e, x)) =>
-            val id = evalToObjId(e, p, env)
-            logModified || setField(id, x, VObjId(Some(fa)), d.pos)
-          case Some(e) => throw BadLhs().setPos(e.pos)
+          case Some(Dot(e, x)) =>
+            val VObjId(Some(id)) = evalExpr(e, p, env)
+            logModified || setField(id, x, VObjId(Some(fa)))
+          case Some(_) => throw BadLhs()
         }
       case Elim(e) =>
-        val id = evalToObjId(e, p, env)
+        val VObjId(Some(id)) = evalExpr(e, p, env)
         logDead(id)
       case Move(Dot(o1, x), o2) =>
-        val o1Id = evalToObjId(o1, p, env)
-        val xId = asObjId(getField(o1Id, x))
-        checkIsChildOf(xId, o1Id, o1)
-        val o2Id = evalToObjId(o2, p, env)
+        val VObjId(Some(o1Id)) = evalExpr(o1, p, env)
+        val VObjId(Some(xId)) = getField(o1Id, x)
+        val VObjId(Some(o2Id)) = evalExpr(o2, p, env)
         logReparent(xId, o2Id)
-      case Move(obj, _) =>
-        throw BadMove().setPos(obj.pos)
+      case Move(_, _) =>
+        throw BadMove()
     }
 
-  def evalContinuousAction(a: ContinuousAction, env: Env, p: Prog, magic: Object): Changeset =
+  def evalContinuousAction(a: ContinuousAction, env: Env, p: Prog, magic: Object) =
     a match {
-      case EquationT(d@Dot(e, x), t) => if (magic.phaseParms.doEquationT) {
+      case EquationT(Dot(e, x), t) =>
         val VObjId(Some(a)) = evalExpr(e, p, env)
         val vt = evalExpr(t, p, env)
-        setField(a, x, vt, d.pos)
-      } else noChange
-      case EquationI(d@Dot(e, x), t) => if (magic.phaseParms.doEquationI) {
+        setField(a, x, vt)
+      case EquationI(Dot(e, x), t) =>
         val dt = getTimeStep(magic)
-        val id = evalToObjId(e, p, env)
+        val VObjId(Some(id)) = evalExpr(e, p, env)
         val vt = evalExpr(t, p, env)
         val lhs = getField(id, x)
         setField(id, x, lhs match {
@@ -445,8 +387,7 @@ object Common {
             VVector((us, ts).zipped map ((a, b) => VLit(GDouble(a + b * dt))))
           case _ =>
             throw BadLhs()
-        },d.pos)
-      } else noChange
+        })
       case _ =>
         throw ShouldNeverHappen() // FIXME: fix that with refinement types
     }
@@ -463,9 +404,8 @@ object Common {
     res
   }
 
-  def evalActions(as: List[Action], env: Env, p: Prog, magic: Object): Changeset = {
+  def evalActions(as: List[Action], env: Env, p: Prog, magic: Object): Changeset =
     combine(as, evalAction(_: Action, env, p, magic))
-  }
 
   def evalAction(a: Action, env: Env, p: Prog, magic: Object): Changeset = {
     a match {
@@ -478,28 +418,31 @@ object Common {
         val vs = seq match {
           case VList(vs)   => vs
           case VVector(vs) => vs
-          case _           => throw NotACollection(seq).setPos(l.pos)
+          case _           => throw NotACollection(seq)
         }
         combine(vs, ((v: Val) => evalActions(b, env + ((i, v)), p, magic)))
       case Switch(s, cls) =>
         val VLit(gv) = evalExpr(s, p, env)
         (cls find (_.lhs == gv)) match {
           case Some(c) => evalActions(c.rhs, env, p, magic)
-          case None    => throw NoMatch(gv).setPos(s.pos)
+          case None    => throw NoMatch(gv)
         }
       case Discretely(da) =>
-        if (magic.phaseParms.doDiscrete)
+        val ty = getResultType(magic)
+        if (ty != FixedPoint)
           evalDiscreteAction(da, env, p, magic)
         else noChange
       case Continuously(ca) =>
-        evalContinuousAction(ca, env, p, magic)
+        val ty = getResultType(magic)
+        if (ty == FixedPoint)
+          evalContinuousAction(ca, env, p, magic)
+        noChange
     }
   }
 
   def evalStep(p: Prog, magic: Object)(o: Object): Changeset = {
     val as = classDef(getClassOf(o), p).body
     val env = HashMap((self, VObjId(Some(o))))
-    assert(o.phaseParms eq magic.phaseParms)
     evalActions(as, env, p, magic)
   }
 
@@ -507,18 +450,6 @@ object Common {
     val r = f(root)
     val cs = root.children
     if (cs.isEmpty) r else r || combine(cs, traverseSimple(f, _: ObjId))
-  }
-
-  /* runtime checks, should be disabled once we have type safety */
-
-  def checkAccessOk(id:ObjId, env:Env, context: Expr) : Unit = {
-    val sel = selfObjId(env)
-    if (sel != id && ! (sel.children contains id)) 
-      throw AccessDenied(id,sel,sel.children.toList).setPos(context.pos)
-  }
-
-  def checkIsChildOf(child:ObjId, parent:ObjId, context: Expr) : Unit = {
-    if (! (parent.children contains child)) throw NotAChildOf(child,parent).setPos(context.pos)
   }
   
 }

@@ -172,8 +172,8 @@ object Main {
       case "reference2012" :: Nil => reference.original.Interpreter
       case ("" | "reference2014") :: Nil => reference.experimental.Interpreter
       case "parallel2012" :: tail => selectParallellInterpreter(tail)
-      case "optimized2012" :: Nil => imperative.ImperativeInterpreter
-      case "newimperative" :: tail => selectImperativeInterpreter(tail)
+      case ("optimized2012"|"imperative2012") :: Nil => imperative2012.ImperativeInterpreter
+      case ("optimized2013"|"optimized") :: tail => selectOptimizedInterpreter(tail)
       case "enclosure" :: tail => selectEnclosureInterpreter(tail)
       case _ => null
     }
@@ -181,15 +181,15 @@ object Main {
       throw UnrecognizedInterpreterString(args.mkString("-"))
       res
   }
-  def interpreterHelpString = "reference|original|experimental|parallel[-<num threads>]|enclosure[-pwl|-evt]"
+  def interpreterHelpString = "reference|original|experimental|parallel2012[-<num threads>]|enclosure[-pwl|-evt]"
   // parallel-sharing should not be documented but recognized for testing
-  def fullInterpreterHelpString = List(interpreterHelpString,"|newimperative[-parDiscr|-seqDiscr][-parCont|-seqCont][-contWithDiscr|contWithCont]")
+  def fullInterpreterHelpString = List(interpreterHelpString,"|optimized[-parDiscr|-seqDiscr][-parCont|-seqCont][-contWithDiscr|contWithCont]")
 
   def selectParallellInterpreter(args: List[String], 
                                  numThreads: Int = -1, 
                                  scheduler: String = "static") : Interpreter =
   {
-    import interpreters.imperative.ParallelInterpreter._
+    import interpreters.imperative2012.ParallelInterpreter._
     args match {
       case ("static"|"sharing") :: tail => selectParallellInterpreter(tail, numThreads, args(0))
       case head :: tail if head.matches("\\d+") => selectParallellInterpreter(tail, Integer.parseInt(head), scheduler)
@@ -203,18 +203,18 @@ object Main {
     }
   }
 
-  def selectImperativeInterpreter(args: List[String],
+  def selectOptimizedInterpreter(args: List[String],
                                   parDiscr: Boolean = true, 
                                   parCont: Boolean = false,
                                   contWithDiscr: Boolean = false) : Interpreter = {
     args match {
-      case "parDiscr" :: tail => selectImperativeInterpreter(tail, true, parCont, contWithDiscr)
-      case "seqDiscr" :: tail => selectImperativeInterpreter(tail, false, parCont, contWithDiscr)
-      case "parCont" :: tail => selectImperativeInterpreter(tail, parDiscr, true, contWithDiscr)
-      case "seqCont" :: tail => selectImperativeInterpreter(tail, parDiscr, false, contWithDiscr)
-      case "contWithDiscr" :: tail => selectImperativeInterpreter(tail, parDiscr, parCont, true)
-      case "contWithCont" :: tail => selectImperativeInterpreter(tail, parDiscr, parCont, false)
-      case Nil => new interpreters.newimperative.ImperativeInterpreter(parDiscr,parCont,contWithDiscr)
+      case "parDiscr" :: tail => selectOptimizedInterpreter(tail, true, parCont, contWithDiscr)
+      case "seqDiscr" :: tail => selectOptimizedInterpreter(tail, false, parCont, contWithDiscr)
+      case "parCont" :: tail => selectOptimizedInterpreter(tail, parDiscr, true, contWithDiscr)
+      case "seqCont" :: tail => selectOptimizedInterpreter(tail, parDiscr, false, contWithDiscr)
+      case "contWithDiscr" :: tail => selectOptimizedInterpreter(tail, parDiscr, parCont, true)
+      case "contWithCont" :: tail => selectOptimizedInterpreter(tail, parDiscr, parCont, false)
+      case Nil => new interpreters.optimized.Interpreter(parDiscr,parCont,contWithDiscr)
       case _ => null
     }
   }
@@ -403,7 +403,7 @@ object Main {
           val repeat : Int = if (args.size > offset + 3) Integer.parseInt(args(offset+3)) else 10
           val forced = final_out
           for (nbThreads <- start to stop) {
-        	interpreters.imperative.ParallelInterpreter(nbThreads)
+        	interpreters.imperative2012.ParallelInterpreter(nbThreads)
             print(nbThreads + " threads: ")
             as_ctrace(i.run(forced)).last
             for (_ <- 0 until warmup) { print("w"); as_ctrace(i.run(forced)).last }
@@ -422,7 +422,7 @@ object Main {
           val forced = final_out
           var data = Map[Int,Double]()
           for (nbThreads <- start to stop) {
-            interpreters.imperative.ParallelInterpreter(nbThreads)
+            interpreters.imperative2012.ParallelInterpreter(nbThreads)
             as_ctrace(i.run(forced)).last
             for (_ <- 0 until warmup) { as_ctrace(i.run(forced)).last }
             val startTime = System.currentTimeMillis()

@@ -1,10 +1,10 @@
-package acumen.interpreters.imperative
+package acumen.interpreters.imperative2012
 
 import scala.math._
 import scala.concurrent.SyncVar
 import acumen.util.Canonical.{ classf, cmagic }
 import acumen.interpreters.Common._
-import acumen.interpreters.imperative.Common._
+import acumen.interpreters.imperative2012.Common._
 
 import scala.annotation.tailrec
 

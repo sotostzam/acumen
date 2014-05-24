@@ -39,7 +39,7 @@ import swing.{Action, BorderPanel, BoxPanel, ButtonGroup, CheckMenuItem,
 			  TabbedPane, Table}
 import swing.event._
 import scala.Boolean
-import acumen.interpreters.{enclosure,imperative}
+import acumen.interpreters.{enclosure,imperative2012}
 import acumen.interpreters.reference.{original,standard}
 import acumen.interpreters.enclosure.ivp.PicardSolver
 import acumen.interpreters.enclosure.ivp.LohnerSolver
@@ -138,8 +138,8 @@ class App extends SimpleSwingApplication {
   private val reference2014Action             = mkActionMask("2014 Reference",                      VK_R, VK_R,       shortcutMask | SHIFT_MASK, setInterpreter("reference2014"))
   private val reference2013Action             = mkActionMask("2013 Reference",                      VK_R, NONE,       shortcutMask | SHIFT_MASK, setInterpreter("reference2013"))
   private val reference2012Action             = mkActionMask("2012 Reference",                      VK_R, NONE,       shortcutMask | SHIFT_MASK, setInterpreter("reference2012"))
-  private val optimized2013Action             = mkActionMask("2013 Optimized",                      VK_O, NONE,       shortcutMask | SHIFT_MASK, setInterpreter("newimperative"))
-  private val optimized2012Action             = mkActionMask("2012 Optimized",                      VK_O, NONE,       shortcutMask | SHIFT_MASK, setInterpreter("optimized2012")) 
+  private val optimized2013Action             = mkActionMask("2013 Optimized",                      VK_O, NONE,       shortcutMask | SHIFT_MASK, setInterpreter("optimized"))
+  private val optimized2012Action             = mkActionMask("2012 Optimized",                      VK_O, NONE,       shortcutMask | SHIFT_MASK, setInterpreter("imperative2012")) 
   private val parallel2012Action              = mkActionMask("2012 Parallel",                       VK_P, NONE,       shortcutMask | SHIFT_MASK, promptForNumberOfThreads)
   private val pwlHybridSolverAction           = mkActionMask("2014 PWL",                            VK_L, VK_L,       shortcutMask | SHIFT_MASK, setInterpreter("enclosure-pwl")) 
   private val eventTreeHybridSolverAction     = mkActionMask("2014 EVT",                            VK_T, VK_T,       shortcutMask | SHIFT_MASK, setInterpreter("enclosure-evt"))
@@ -638,12 +638,12 @@ class App extends SimpleSwingApplication {
   }
   interpreter = InterpreterCntrl.cntrlForInterpreter(Main.interpreter);
   interpreter.interpreter.id.toList match {
-    case "reference2013" :: _ => bar.semantics.ref2013.selected = true
-    case "newimperative" :: _ => bar.semantics.opt2013.selected = true
-    case "reference2012" :: _=> bar.semantics.ref2012.selected = true
-    case "reference2014" :: _=> bar.semantics.ref2014.selected = true
-    case "optimized2012" :: _ => bar.semantics.opt2012.selected = true
-    case "parallel2012" :: _ => bar.semantics.par2012.selected = true
+    case "reference2013"  :: _ => bar.semantics.ref2013.selected = true
+    case "optimized"      :: _ => bar.semantics.opt2013.selected = true
+    case "reference2012"  :: _ => bar.semantics.ref2012.selected = true
+    case "reference2014"  :: _ => bar.semantics.ref2014.selected = true
+    case "imperative2012" :: _ => bar.semantics.opt2012.selected = true
+    case "parallel2012"   :: _ => bar.semantics.par2012.selected = true
     case "enclosure" :: tail if tail.contains("pwl") => bar.semantics.encPWL.selected = true
     case "enclosure" :: tail if tail.contains("evt") => bar.semantics.encEVT.selected = true
   }

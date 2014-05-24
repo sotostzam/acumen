@@ -1,6 +1,6 @@
 package acumen
 package interpreters
-package imperative
+package imperative2012
 
 import scala.concurrent.SyncVar
 import Errors._

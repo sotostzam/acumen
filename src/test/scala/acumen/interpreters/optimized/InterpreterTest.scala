@@ -1,6 +1,6 @@
 package acumen
 package interpreters
-package newimperative
+package optimized
 
 import Errors._
 import util.Filters._
@@ -23,19 +23,19 @@ import java.io.InputStreamReader
 
 import Common.ObjId
 
-class ImperativeInterpreterTest extends InterpreterTestBase {
-  override def interpreter : CStoreInterpreter = ImperativeInterpreter
+class InterpreterTest extends InterpreterTestBase {
+  override def interpreter : CStoreInterpreter = Interpreter
 
-  override def suiteName = "New ImperativeInterpreterTest"
+  override def suiteName = "Optimized InterpreterTest"
 
   override def run(in: InputStreamReader) = {    
     val ast = Parser.run(Parser.prog, in)
     val des = Desugarer().run(ast)
-    for (_ <- (ImperativeInterpreter.run(des).ctrace)) ()
+    for (_ <- (Interpreter.run(des).ctrace)) ()
   }
 
   test("StoreConversions1") {
-    import ImperativeInterpreter._
+    import Interpreter._
     val txt = """
       #0 { className = Main, parent = none, 
 					 nextChild = 0, seed1 = 0, seed2 = 1 }
@@ -46,7 +46,7 @@ class ImperativeInterpreterTest extends InterpreterTestBase {
   }
   
   test("StoreConversions2") {
-    import ImperativeInterpreter._
+    import Interpreter._
     val txt = """
       #0   { className = Main, parent = none, 
 						 nextChild = 3, seed1 = 0, seed2 = 1 }
@@ -61,7 +61,7 @@ class ImperativeInterpreterTest extends InterpreterTestBase {
   }
 
   test("StoreConversions3") {
-    import ImperativeInterpreter._
+    import Interpreter._
     val txt = """
 #0.1 {
   parent = #0.2,

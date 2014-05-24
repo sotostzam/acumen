@@ -1,6 +1,6 @@
 package acumen
 package interpreters
-package newimperative
+package imperative2012
 
 import scala.collection.immutable.HashMap
 
@@ -28,15 +28,11 @@ import acumen.util.Canonical.{
 }
 import scala.annotation.tailrec
 
-class ImperativeInterpreter(val parDiscr: Boolean = true, 
-                            val parCont: Boolean = false,
-                            val contWithDiscr: Boolean = false) extends CStoreInterpreter {
-  override def id = Array("newimperative", 
-                          if (parDiscr) "parDiscr" else "seqDiscr",
-                          if (parCont) "parCont" else "seqDiscr",
-                          if (contWithDiscr) "contWithDiscr" else "contWithCont")
+class ImperativeInterpreter extends CStoreInterpreter {
 
-  import Common._ 
+  override def id = Array("imperative2012")
+
+  import Common._
 
   type Store = Common.Store
   def repr (s:Store) : CStore = Common.repr(s)
@@ -44,9 +40,13 @@ class ImperativeInterpreter(val parDiscr: Boolean = true,
 
   def init(prog: Prog): (Prog, Store) = {
     val magic = fromCStore(initStoreImpr, CId(0))
+    /* WARNING: the following line works because there is no children access check
+       if one of the instructions of the provate section tries to access magic,
+       and there was a check, this would crash (which we don't want) */
     val (sd1, sd2) = Random.split(Random.mkGen(0))
-    val mainObj = mkObj(cmain, prog, IsMain, sd1, List(VObjId(Some(magic))), magic, 1)
+    val mainObj = mkObj(cmain, prog, None, sd1, List(VObjId(Some(magic))), magic, 1)
     magic.seed = sd2
+    changeParent(magic, mainObj)
     val cprog = CleanParameters.run(prog, CStoreInterpreterType)
     val sprog = Simplifier.run(cprog)
     val mprog = Prog(magicClass :: sprog.defs)
@@ -59,23 +59,6 @@ class ImperativeInterpreter(val parDiscr: Boolean = true,
     if (getTime(magic) > getEndTime(magic)) {
       null
     } else {
-      val pp = magic.phaseParms
-      pp.curIter += 1
-      if (getResultType(magic) != FixedPoint) {
-        if (parDiscr) pp.delayUpdate = true
-        else          pp.delayUpdate = false
-        pp.doDiscrete = true
-        if (contWithDiscr) pp.doEquationT = true
-        else               pp.doEquationT = false
-        pp.doEquationI = false
-      } else {
-        if (parCont) pp.delayUpdate = true
-        else         pp.delayUpdate = false
-        pp.doDiscrete = false
-        if (contWithDiscr) pp.doEquationT = false
-        else               pp.doEquationT = true
-        pp.doEquationI = true
-      }
       val chtset = traverse(evalStep(p, magic), st)
       val rt = getResultType(magic) match {
         case Discrete | Continuous =>
@@ -139,7 +122,7 @@ class ImperativeInterpreter(val parDiscr: Boolean = true,
     // Note: Conversion to a CStore just to add the data is certainly
     // not the most efficient way to go about things, but for now it
     // will do. --kevina
-    adder.addData(st.id, st.fieldsCur)
+    adder.addData(st.id, st.fields)
     st.children.foreach { child => addData(child, adder) }
   }
 
@@ -149,5 +132,6 @@ class ImperativeInterpreter(val parDiscr: Boolean = true,
 
 }
 
-object ImperativeInterpreter extends ImperativeInterpreter(true,false,false)
-
+// The ImperativeInterpreter is stateless hence it is okay to have a
+// single global instance
+object ImperativeInterpreter extends ImperativeInterpreter
