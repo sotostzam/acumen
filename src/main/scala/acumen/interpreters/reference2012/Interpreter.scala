@@ -11,8 +11,7 @@
 
 package acumen
 package interpreters
-package reference
-package standard
+package reference2012
 
 import Eval._
 
@@ -32,8 +31,8 @@ import Errors._
 
 object Interpreter extends acumen.CStoreInterpreter {
 
-  override def id = Array("reference2013")
-
+  override def id = Array("reference2012")
+  
   type Store = CStore
   type Env = Map[Name, CValue]
 
@@ -83,12 +82,6 @@ object Interpreter extends acumen.CStoreInterpreter {
    * whose ids are "cs", to address p */
   def reparent(cs:List[CId], p:CId) : Eval[Unit] =
     mapM_ (logReparent(_:CId,p), cs)
-    
-  /* assign the value v to a field n in object o */
-  def assign(o: CId, n: Name, v:CValue) : Eval[Unit] = logAssign(o, n, v)
-  
-  /* continuously assign the value v to a field n in object o */
-  def equation(o: CId, n: Name, v:CValue) : Eval[Unit] = logEquation(o, n, v)
 
   /* log an id as being dead */
   def kill(a:CId) : Eval[Unit] = logCId(a)
@@ -227,13 +220,13 @@ object Interpreter extends acumen.CStoreInterpreter {
               case(r, (bName, bExpr)) =>
                 r + (bName -> eval(env, bExpr))
             }
-          eval(eWithBindingsApplied, e)
+            eval(eWithBindingsApplied, e)
       }
     }
     eval(env,e)
   }
 
-  def evalActions(as:List[Action], env:Env, p:Prog) : Eval[Unit] =
+  def evalActions(as:List[Action], env:Env, p:Prog) : Eval[Unit] = 
     mapM_((a:Action) => evalAction(a, env, p), as)
   
   def evalAction(a:Action, env:Env, p:Prog) : Eval[Unit] = {
@@ -273,12 +266,11 @@ object Interpreter extends acumen.CStoreInterpreter {
  
   def evalDiscreteAction(a:DiscreteAction, env:Env, p:Prog) : Eval[Unit] =
     a match {
-      case Assign(d@Dot(e,x),t) => 
-        /* Schedule the assignment */
+      case Assign(Dot(e,x),t) =>
         for { id <- asks(evalExpr(e, p, env, _)) map extractId
               vt <- asks(evalExpr(t, p, env, _))
               _  <- asks(checkAccessOk(id, env, _))
-        } assign(id, x, vt)
+        } setObjectFieldM(id, x, vt)
       /* Basically, following says that variable names must be 
          fully qualified at this language level */
       case Assign(_,_) => 
@@ -319,7 +311,7 @@ object Interpreter extends acumen.CStoreInterpreter {
       case EquationT(Dot(e,x),t) =>
         for { a <- asks(evalExpr(e, p, env, _)) map extractId
               vt <- asks(evalExpr(t, p, env, _))
-        } setObjectFieldM(a, x, vt) >> equation(a, x, vt) // update state and log to check for duplicates 
+        } setObjectFieldM(a, x, vt)
       case EquationI(Dot(e,x),t) =>
         for { dt <- asks(getTimeStep)
               a <- asks(evalExpr(e, p, env, _)) map extractId
@@ -336,7 +328,7 @@ object Interpreter extends acumen.CStoreInterpreter {
               throw BadLhs()
           })
       case _ =>
-        throw ShouldNeverHappen() // FIXME: enforce that with refinement types
+        throw ShouldNeverHappen() // FIXME: enforce that with refinment types
     }
   
   def evalStep(p:Prog)(id:CId) : Eval[Unit] =
@@ -362,7 +354,7 @@ object Interpreter extends acumen.CStoreInterpreter {
     val sprog = Simplifier.run(cprog)
     val mprog = Prog(magicClass :: sprog.defs)
     val (sd1,sd2) = Random.split(Random.mkGen(0))
-    val (id,_,_,_,_,st1) = 
+    val (id,_,_,st1) = 
       mkObj(cmain, mprog, None, sd1, List(VObjId(Some(CId(0)))), 1)(initStoreRef)
     val st2 = changeParent(CId(0), id, st1)
     val st3 = changeSeed(CId(0), sd2, st2)
@@ -382,34 +374,22 @@ object Interpreter extends acumen.CStoreInterpreter {
   def step(p:Prog, st:Store) : Option[Store] =
     if (getTime(st) > getEndTime(st)) {checkObserves(p, st); None}
     else Some(
-      { val (_,ids,rps,ass,eqs,st1) = iterate(evalStep(p), mainId(st))(st)
+      { val (_,ids,rps,st1) = iterate(evalStep(p), mainId(st))(st)
         getResultType(st) match {
-          case Discrete | Continuous =>
-            checkDuplicateAssingments(ass, DuplicateDiscreteAssingment)
-            val nonIdentityAss = ass.filterNot{ a => a._3 == getObjectField(a._1, a._2, st1) }
-            if (st == st1 && ids.isEmpty && rps.isEmpty && nonIdentityAss.isEmpty && eqs.isEmpty) 
+          case Discrete | Continuous => 
+            if (st == st1 && ids.isEmpty && rps.isEmpty) 
               setResultType(FixedPoint, st1)
             else {
-              def assHelper(a: (CId,Name,CValue)) = setObjectFieldM(a._1, a._2, a._3)
-              val stA = mapM_(assHelper, nonIdentityAss.toList) ~> st1
-              def repHelper(pair:(CId, CId)) = changeParentM(pair._1, pair._2) 
-              val stR = mapM_(repHelper, rps.toList) ~> stA
-              val st3 = stR -- ids
+              def helper(pair:(CId, CId)) = changeParentM(pair._1, pair._2) 
+              val st2 = mapM_(helper, rps.toList) ~> st1
+              val st3 = st2 -- ids
               setResultType(Discrete, st3)
             }
           case FixedPoint =>
-            checkDuplicateAssingments(eqs, DuplicateContinuousAssingment)
             val st2 = setResultType(Continuous, st1)
             setTime(getTime(st1) + getTimeStep(st1), st2)
         }
       }
     )
-    
-  /** Checks for a duplicate assignment (of a specific kind) scheduled in assignments. */
-  def checkDuplicateAssingments(assignments: Set[(CId, Name, CValue)], error: Name => DuplicateAssingment): Unit = {
-    val duplicates = assignments.groupBy(a => (a._1,a._2)).filter{ case (_, l) => l.size > 1 }.keys.toList
-    if (duplicates.size != 0)
-      throw error(duplicates(0)._2)
-  }
 
 }

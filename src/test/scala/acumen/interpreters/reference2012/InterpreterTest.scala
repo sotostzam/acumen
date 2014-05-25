@@ -1,7 +1,6 @@
 package acumen
 package interpreters
-package reference
-package original
+package reference2012
 
 import Errors._
 import util.Filters._
@@ -18,7 +17,7 @@ class InterpreterTest extends InterpreterTestBase with ShouldMatchers {
 
   override def suiteName = "Reference 2012 InterpreterTest"
 
-  def interpreter = interpreters.reference.original.Interpreter
+  def interpreter = interpreters.reference2012.Interpreter
 
   def run(in: InputStreamReader) : Unit = {
     val ast = Parser.run(Parser.prog, in)

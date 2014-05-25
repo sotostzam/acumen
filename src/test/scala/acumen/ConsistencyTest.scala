@@ -10,7 +10,7 @@ object ConsistencyTest extends Properties("parallel.ConsistencyTest") {
 
   import util.System._
 
-  property("reference-parallel-consistency") = consistencyTest(interpreters.reference.standard.Interpreter)
+  property("reference-parallel-consistency") = consistencyTest(interpreters.reference2013.Interpreter)
   
   property("parallel-parallel-consistency (determinism)") = consistencyTest(interpreters.imperative2012.ParallelInterpreter(2))
   

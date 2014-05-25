@@ -168,9 +168,9 @@ object Main {
     val args = args0.flatMap(_.split('-')).toList
     import interpreters._
     val res = args match {
-      case "reference2013" :: Nil => reference.standard.Interpreter
-      case "reference2012" :: Nil => reference.original.Interpreter
-      case ("" | "reference2014") :: Nil => reference.experimental.Interpreter
+      case "reference2013" :: Nil => reference2013.Interpreter
+      case "reference2012" :: Nil => reference2012.Interpreter
+      case ("" | "reference2014") :: Nil => reference2014.Interpreter
       case "parallel2012" :: tail => selectParallellInterpreter(tail)
       case ("optimized2012"|"imperative2012") :: Nil => imperative2012.ImperativeInterpreter
       case ("optimized2013"|"optimized") :: tail => selectOptimizedInterpreter(tail)
@@ -478,8 +478,8 @@ object Main {
         }
       }
     }
-    doit(Examples2013,interpreters.reference.standard.Interpreter)
-    doit(Examples2014,interpreters.reference.experimental.Interpreter)
+    doit(Examples2013,interpreters.reference2013.Interpreter)
+    doit(Examples2014,interpreters.reference2014.Interpreter)
     if (somethingUpdated) {
       println("Results updated.  Be sure to git add & commit the updated files as appropriate.")
     }

@@ -1,7 +1,6 @@
 package acumen
 package interpreters
-package reference
-package standard
+package reference2012
 
 import Interpreter._
 import acumen.Errors._
@@ -16,21 +15,19 @@ sealed trait Eval[+A] {
     (A /* result */, 
      Set[CId] /* dead (writer part) */, 
      Set[(CId,CId)] /* reparentings (writer part) */,
-     Set[(CId,Name,CValue)], /* discrete assignments */
-     Set[(CId,Name,CValue)], /* continuous assignments (equations) */
      Store /* current store (state part) */)
 
   def map[B](f: A => B) : Eval[B] = mkEval (
-    apply(_) match { case (a, ids, rps, ass, eqs, st) => (f(a), ids, rps, ass, eqs, st) }
+    apply(_) match { case (a, ids, rps, st) => (f(a), ids, rps, st) }
   )
 
   def foreach[B](f: A => Eval[B]) : Eval[B] = flatMap(f)
 
   def flatMap[B](f: A => Eval[B]) : Eval[B] = mkEval (
     apply(_) match { 
-      case (a, ids, rps, ass, eqs, st) => 
-        val (a1, ids1, rps1, ass1, eqs1, st1) = f(a)(st)
-        (a1, ids ++ ids1, rps ++ rps1, ass ++ ass1, eqs ++ eqs1, st1)
+      case (a, ids, rps, st) => 
+        val (a1, ids1, rps1, st1) = f(a)(st)
+        (a1, ids ++ ids1, rps ++ rps1, st1)
     }
   )
   
@@ -38,45 +35,38 @@ sealed trait Eval[+A] {
   def >>=[B](f: A => Eval[B]) : Eval[B] = flatMap(f)
   
   def filter(p: A => Boolean) : Eval[A] = mkEval (
-    apply(_) match { case t@(a, _, _, _, _, _) =>
+    apply(_) match { case t@(a, _, _, _) =>
       if (p(a)) t else throw ShouldNeverHappen() 
     } 
   )
 
   def !  (s: Store) : A = apply(s)._1
-  def ~> (s:Store) : Store = apply(s)._6
+  def ~> (s:Store) : Store = apply(s)._4
 
 }
 
 object Eval {
 
-  def mkEval[A](f: Store => (A, Set[CId], Set[(CId,CId)], Set[(CId,Name,CValue)], Set[(CId,Name,CValue)], Store)) : Eval[A] = 
+  def mkEval[A](f: Store => (A, Set[CId], Set[(CId,CId)], Store)) : Eval[A] = 
 	new Eval[A] { def apply(s:Store) = f(s) }
  
   /* used to inject write operations of 'util.Canonical' into the monad */
   def promote(f: Store => Store) : Eval[Unit] =
-    mkEval (s => ((), Set.empty, Set.empty, Set.empty, Set.empty, f(s)))
+    mkEval (s => ((), Set.empty, Set.empty, f(s)))
 
-  def pure[A](x:A) : Eval[A] = mkEval(s => (x, Set.empty, Set.empty, Set.empty, Set.empty, s))
+  def pure[A](x:A) : Eval[A] = mkEval(s => (x, Set.empty, Set.empty, s))
   def pass = pure(())
   
-  def getStore : Eval[Store] = mkEval(s => (s, Set.empty, Set.empty, Set.empty, Set.empty, s))
+  def getStore : Eval[Store] = mkEval(s => (s, Set.empty, Set.empty, s))
   def modifyStore(f:Store => Store) : Eval[Unit] = 
-    mkEval(s => ((), Set.empty, Set.empty, Set.empty, Set.empty, f(s)))
+    mkEval(s => ((), Set.empty, Set.empty, f(s)))
 
   def logCId(id:CId) : Eval[Unit] = 
-    mkEval (s => ((), Set(id), Set.empty, Set.empty, Set.empty, s))
+    mkEval (s => ((), Set(id), Set.empty, s))
 
   def logReparent(o:CId, parent:CId) : Eval[Unit] =
-    mkEval(s => ((), Set.empty, Set((o,parent)), Set.empty, Set.empty, s))
-    
-  def logAssign(o: CId, n: Name, v:CValue) : Eval[Unit] =
-    mkEval(s => ((), Set.empty, Set.empty, Set((o,n,v)), Set.empty, s))
-
-  def logEquation(o: CId, n: Name, v:CValue) : Eval[Unit] =
-    mkEval(s => ((), Set.empty, Set.empty, Set.empty, Set((o,n,v)), s))
-
-  /* Apply f to the store and wrap it in an Eval */
+    mkEval(s => ((), Set.empty, Set((o,parent)), s))
+  
   def asks[A](f : Store => A) : Eval[A] = 
     getStore >>= ((s:Store) => pure(f(s)))
   
@@ -94,5 +84,11 @@ object Eval {
     sequence(xs map f)
   def mapM_[A,B](f:A => Eval[B], xs:List[A]) : Eval[Unit] = 
     sequence_(xs map f)
+
+  def foldLeftM[A,B](a:A, f:(A,B) => Eval[A], l:List[B]) : Eval[A] =
+    l match {
+      case Nil     => pure(a)
+      case (x::xs) => f(a,x) >>= (a1 => foldLeftM(a1,f,xs))
+    }
 
 } 

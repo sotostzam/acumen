@@ -1,28 +1,23 @@
 package acumen
 package interpreters
-package reference
-package experimental
-
-import java.io.File
-import java.io.InputStreamReader
-import scala.math._
-import org.scalatest.matchers.ShouldMatchers
-import org.scalatest.FunSuite
+package reference2013
 
 import Errors._
 import util.Filters._
 import util.Names._
 import util.Canonical._
+import scala.math._
+import java.io.InputStreamReader
+import org.scalatest.matchers.ShouldMatchers
+import org.scalatest.FunSuite
+import java.io.File
 import util.Transform
-import acumen.testutil.TestUtil.{
-  assertEqualTrace
-}
 
 class InterpreterTest extends InterpreterTestBase with ShouldMatchers {
 
-  override def suiteName = "Reference 2014 InterpreterTest"
+  override def suiteName = "Reference 2013 InterpreterTest"
 
-  def interpreter = interpreters.reference.experimental.Interpreter
+  def interpreter = interpreters.reference2013.Interpreter
 
   def run(in: InputStreamReader) : Unit = {
     val ast = Parser.run(Parser.prog, in)
@@ -30,19 +25,7 @@ class InterpreterTest extends InterpreterTestBase with ShouldMatchers {
     for (_ <- (interpreter run tr).ctrace) ()
   }
 
-  testExamples(Examples2014, 
-               {f => // The following models need closer investigation
-                     // to make sure they still have the correct output.
-                     // Once this is done the reference outputs in
-                     // src/test/resources/acumen/data/examples-2014-res
-                     // should be updated.
-                     f.endsWith("/iccps_mass_pendulum.acm") ||
-                     f.endsWith("/iccps_pendulum.acm") ||
-                     f.endsWith("/Quantization - Linear.acm") ||
-                     f.endsWith("/01_Converting_Accelerations.acm") ||
-                     f.startsWith("examples/XXX_internal/0_Demos") || 
-                     // The ping-pong models need to be fixed.
-                     f.startsWith("examples/XXX_internal/test/ping-pong")})
+  testExamples(Examples2013)
   testShouldRun
   
   def getError(file:String) : Option[AcumenError] = {
@@ -122,7 +105,7 @@ class InterpreterTest extends InterpreterTestBase with ShouldMatchers {
     (Desugarer().run(Parser.run(Parser.prog, p)), 
      Parser.run(Parser.store, st))
 
-  ignore("Gravity1d") {
+  test("Gravity1d") {
     val progTxt =
       """
       class Simulator(time, timeStep, endTime, stepType) end
@@ -144,7 +127,9 @@ class InterpreterTest extends InterpreterTestBase with ShouldMatchers {
              timeStep = 0.001, 
              endTime = 2.0, 
              resultType = @Discrete,
-             nextChild = 0 }
+             nextChild = 0,
+             expects = 0, 
+             observes = 0 }
 
       #0.2 { className = Ball,
              parent = #0,
@@ -163,7 +148,7 @@ class InterpreterTest extends InterpreterTestBase with ShouldMatchers {
     assert(matches(xs, expected))
   }
 
-  ignore("Gravity2d") {
+  test("Gravity2d") {
     val progTxt =
       """
       class Simulator(time, timeStep, endTime, stepType) end
@@ -186,7 +171,9 @@ class InterpreterTest extends InterpreterTestBase with ShouldMatchers {
              timeStep = 0.001, 
              endTime = 2.0, 
              resultType = @Discrete,
-             nextChild = 0 }
+             nextChild = 0,
+             expects = 0, 
+             observes = 0 }
 
       #0.3 { className = Ball,
              parent = #0,
@@ -210,15 +197,5 @@ class InterpreterTest extends InterpreterTestBase with ShouldMatchers {
     assert(matches(xs, expectedx))
     assert(matches(ys, expectedy))
   }
-  
-  test("continuous assignments are independent") {
-    val head = "class Main(simulator)\n  private x := 0; t := 0; t' := 1 end "
-    val cond = "if t < simulator.timeStep x = 1 else x = -1 end;"
-    val time = "t' = 1;"
-    val tail = "end"
-    val timeFirst = Parser.run(Parser.prog, head ++ time ++ cond ++ tail)
-    val condFirst = Parser.run(Parser.prog, head ++ cond ++ time ++ tail)
-    assertEqualTrace(timeFirst, condFirst, interpreter)
-  }
-  
+
 }

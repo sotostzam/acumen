@@ -176,7 +176,7 @@ class ProgGenerator
   def simulationThrowsError(p: Prog): (Option[AcumenError]) =
     try {
       var discreteStepsInARow = 0
-      val CStoreRes(r) = interpreters.reference.experimental.Interpreter.run(Desugarer().desugar(p))
+      val CStoreRes(r) = interpreters.reference2014.Interpreter.run(Desugarer().desugar(p))
       for (cstore <- r) {
         if (Canonical.getResultType(cstore) == Discrete) discreteStepsInARow += 1
         else discreteStepsInARow = 0
