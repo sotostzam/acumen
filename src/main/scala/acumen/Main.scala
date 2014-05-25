@@ -181,7 +181,7 @@ object Main {
       throw UnrecognizedInterpreterString(args.mkString("-"))
       res
   }
-  def interpreterHelpString = "reference|original|experimental|parallel2012[-<num threads>]|enclosure[-pwl|-evt]"
+  def interpreterHelpString = "reference(2012|2013|2014)|parallel2012[-<num threads>]|enclosure[-pwl|-evt]"
   // parallel-sharing should not be documented but recognized for testing
   def fullInterpreterHelpString = List(interpreterHelpString,"|optimized[-parDiscr|-seqDiscr][-parCont|-seqCont][-contWithDiscr|contWithCont]")
 

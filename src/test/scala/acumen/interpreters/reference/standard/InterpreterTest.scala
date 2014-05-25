@@ -16,7 +16,7 @@ import util.Transform
 
 class InterpreterTest extends InterpreterTestBase with ShouldMatchers {
 
-  override def suiteName = "Standard Reference InterpreterTest"
+  override def suiteName = "Reference 2013 InterpreterTest"
 
   def interpreter = interpreters.reference.standard.Interpreter
 

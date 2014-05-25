@@ -20,7 +20,7 @@ import acumen.testutil.TestUtil.{
 
 class InterpreterTest extends InterpreterTestBase with ShouldMatchers {
 
-  override def suiteName = "Experimental InterpreterTest"
+  override def suiteName = "Reference 2014 InterpreterTest"
 
   def interpreter = interpreters.reference.experimental.Interpreter
 
