@@ -1,0 +1,32 @@
+
+class Main (simulator) 
+private  
+ x   := 10  ; 
+ x'  := -1 ;     
+ y   := 5  ; 
+ y'  := 0  ;   
+ y'' := -1 ;
+ _3D := [] ; 
+end
+
+x' = -1;
+
+y''= -1;
+if (y<0)&&(y'<0) y' := -0.5*y' end;
+
+_3D =[["Text",  [-2.5,0,-2  ],0.75,         blue,[pi/2,0,0],"x'=-1"],
+      ["Text",  [-2.5,0,-3  ],0.75,         blue,[pi/2,0,0],"x''=0"],
+      ["Box",   [-1,0,-1  ],[0.5,0.5,0.1],blue,[0,0,0]],
+      ["Sphere",[-1,0, x/5],0.25,         blue,[0,0,0]],
+      ["Text",  [ 1,0,-2  ],0.75,         red, [pi/2,0,0], y'*10],
+      ["Text",  [ 0,0,-2  ],0.75,         red, [pi/2,0,0],"y'=    /10"], 
+      ["Text",  [ 0,0,-3  ],0.75,         red, [pi/2,0,0],"y''=-1"],
+      ["Box",   [ 1,0,-1  ],[0.5,0.5,0.1],red, [0,0,0]],
+      ["Sphere",[ 1,0, y/5],0.25,         red, [0,0,0]]
+      ];
+end
+
+/* Exercise:
+ *  1) Make the red one bounce on the red platform
+ *  2) Make the blue ball follow the red ball speed and height
+ */
