@@ -13,29 +13,29 @@
 #0.1 {
   className = Pendulum,
   f = 0,
-  theta = 0.023032,
-  theta' = -0.143328,
-  theta'' = -0.055411
+  theta = 0.030355,
+  theta' = -0.142707,
+  theta'' = -0.078346
 }
 ------------------------------9
 #0 { className = Main, mode = "Persist", simulator = #0.0 }
-#0.0 { className = Simulator, time = 1.200000 }
+#0.0 { className = Simulator, time = 1.300000 }
 #0.1 {
   className = Pendulum,
   f = 1,
-  theta = -0.036869,
-  theta' = -0.143681,
-  theta'' = 0.073496
+  theta = -0.043249,
+  theta' = -0.131399,
+  theta'' = 0.096274
 }
-------------------------------14
+------------------------------15
 #0 { className = Main, mode = "Persist", simulator = #0.0 }
 #0.0 { className = Simulator, time = 1.800000 }
 #0.1 {
   className = Pendulum,
   f = -1,
-  theta = -0.072351,
-  theta' = 0.013323,
-  theta'' = 0.306968
+  theta = -0.076122,
+  theta' = 0.008947,
+  theta'' = 0.312686
 }
 ------------------------------21
 #0 { className = Main, mode = "Persist", simulator = #0.0 }
@@ -43,8 +43,8 @@
 #0.1 {
   className = Pendulum,
   f = 0,
-  theta = 0.001136,
-  theta' = 0.057039,
-  theta'' = 0.014920
+  theta = 0.018367,
+  theta' = 0.045763,
+  theta'' = -0.044153
 }
-------------------------------1121
+------------------------------1056

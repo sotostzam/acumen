@@ -28,8 +28,6 @@ class InterpreterTest extends InterpreterTestBase with ShouldMatchers {
                      // Once this is done the reference outputs in
                      // src/test/resources/acumen/data/examples-2014-res
                      // should be updated.
-                     f.endsWith("/iccps_mass_pendulum.acm") ||
-                     f.endsWith("/iccps_pendulum.acm") ||
                      f.endsWith("/Quantization - Linear.acm") ||
                      f.endsWith("/01_Converting_Accelerations.acm") ||
                      f.startsWith("examples/XXX_internal/0_Demos") || 
