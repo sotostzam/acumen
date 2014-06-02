@@ -638,6 +638,8 @@ class App extends SimpleSwingApplication {
     dumpParms()
   }
   interpreter = InterpreterCntrl.cntrlForSemantics(Main.semantics);
+  // FIXME: Consider directly comparing against the SemanticsImpl
+  //        constants here.
   interpreter.interpreter.id.toList match {
     case "reference2013"  :: _ => bar.semantics.ref2013.selected = true
     case "optimized"      :: _ => bar.semantics.opt2013.selected = true
