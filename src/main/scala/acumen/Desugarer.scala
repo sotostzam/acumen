@@ -17,7 +17,7 @@ case object TopLevel extends ODETransformMode
  *        When TopLevel, it is done once for all variables, at the top level of 
  *        each class.
  */
-case class Desugarer(odeTransformMode: ODETransformMode = TopLevel) {
+case class Desugarer(odeTransformMode: ODETransformMode) {
   
   val self = name("self")
   val parent = name("parent")

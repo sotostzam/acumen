@@ -45,15 +45,16 @@ abstract class Examples {
   def resultFile(loc: String, dn: String, f: File) =
     new File(new File(loc, dn), f.getName+".res")
 
-  def writeExampleResult(loc: String, dn: String, f: File, intr: CStoreInterpreter) : Unit = {
+  def writeExampleResult(loc: String, dn: String, f: File, semantics: SemanticsImpl.CStore) : Unit = {
     val d2 =new File(loc,dn)
     d2.mkdirs()
     val f2 = new File(d2, f.getName+".res")
     val out = new PrintStream(f2)
     val in = new InputStreamReader(new FileInputStream(f))
     try {
-      val ast = Parser.run(Parser.prog, in)
-      val tr = util.Transform.transform(ast)
+      val ast = semantics.parse(in)
+      val tr = semantics.applyPasses(ast, Nil)
+      val intr = semantics.interpreter()
       intr.run(tr, new DumpSample(out)).last
     } catch {
       case e => out.close; f2.delete; throw e
@@ -62,6 +63,10 @@ abstract class Examples {
       in.close
     }
   }
+}
+
+object Examples2012 extends Examples {
+  override val expectLoc = "src/test/resources/acumen/data/examples-2012-res"
 }
 
 object Examples2013 extends Examples {

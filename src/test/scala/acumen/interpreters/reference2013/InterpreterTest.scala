@@ -11,19 +11,12 @@ import java.io.InputStreamReader
 import org.scalatest.matchers.ShouldMatchers
 import org.scalatest.FunSuite
 import java.io.File
-import util.Transform
 
 class InterpreterTest extends InterpreterTestBase with ShouldMatchers {
 
   override def suiteName = "Reference 2013 InterpreterTest"
 
-  def interpreter = interpreters.reference2013.Interpreter
-
-  def run(in: InputStreamReader) : Unit = {
-    val ast = Parser.run(Parser.prog, in)
-    val tr = Transform.transform(ast)
-    for (_ <- (interpreter run tr).ctrace) ()
-  }
+  def semantics = SemanticsImpl.Ref2013
 
   testExamples(Examples2013)
   testShouldRun
@@ -102,7 +95,7 @@ class InterpreterTest extends InterpreterTestBase with ShouldMatchers {
     }
 
   def parse(p:String, st:String) = 
-    (Desugarer().run(Parser.run(Parser.prog, p)), 
+    (semantics.applyRequiredPasses(Parser.run(Parser.prog, p)), 
      Parser.run(Parser.store, st))
 
   test("Gravity1d") {
@@ -141,7 +134,7 @@ class InterpreterTest extends InterpreterTestBase with ShouldMatchers {
 
     val (prog, store) = parse(progTxt, storeTxt)
 
-    val h = Interpreter.loop(prog, store)
+    val h = semantics.interpreter.loop(prog, store)
     val xs = oneVar(CId(2), "x", onlyAfterContinuous(h))
 
     def expected(t:Double) = - (9.8 / 2.0) * t * t 
@@ -188,7 +181,7 @@ class InterpreterTest extends InterpreterTestBase with ShouldMatchers {
 
     val (prog, store) = parse(progTxt, storeTxt)
 
-    val h = onlyAfterContinuous(Interpreter.loop(prog, store))
+    val h = onlyAfterContinuous(semantics.interpreter.loop(prog, store))
     val xs = oneVar(CId(3), "x", h)
     val ys = oneVar(CId(3), "y", h)
 

@@ -14,7 +14,7 @@ import java.io.InputStreamReader
 
 class ParallelInterpreterTest extends InterpreterTestBase {
 
-  override def interpreter : CStoreInterpreter = ParallelInterpreter.instance
+  override def semantics : SemanticsImpl.CStore = SemanticsImpl.Parallel2012()
 
   test("StoreConversions1") {
     import ParallelInterpreter._
@@ -115,18 +115,6 @@ class ParallelInterpreterTest extends InterpreterTestBase {
     else t1.isEmpty && t2.isEmpty
   }
 
-  def run(in: InputStreamReader) = {
-    //val RI = interpreters.reference.Interpreter
-    val PIO = ParallelInterpreter
-    val ast = Parser.run(Parser.prog, in)
-    val des = Desugarer().run(ast)
-    for (_ <- (PIO.instance.run(des).ctrace)) ()
-    //val trace1 = RI.run(des).ctrace
-    //val trace2 = PIO.instance.run(des).ctrace
-    //val res = eqstreams(trace1, trace2) 
-    //assert(res)
-  }
-
-  testExamples(Examples2013, {f => f.startsWith("examples/XXX_internal/test/ping-pong")})
+  testExamples(Examples2012, {f => f.startsWith("examples/XXX_internal/test/ping-pong")})
   testShouldRun
 }

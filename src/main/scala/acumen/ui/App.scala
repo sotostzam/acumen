@@ -1,3 +1,4 @@
+
 package acumen
 package ui
 
@@ -46,6 +47,7 @@ import acumen.interpreters.enclosure.ivp.LohnerSolver
 import acumen.interpreters.enclosure.event.pwl.PWLEventEncloser
 import acumen.interpreters.enclosure.event.pwl.PWLEventEncloser
 import acumen.interpreters.enclosure.event.tree.TreeEventEncloser
+import acumen.{SemanticsImpl => S}
 
 // class Acumen = Everything that use to be GraphicalMain.  Graphical
 // Main can't be an object it will cause Swing components to be
@@ -135,14 +137,14 @@ class App extends SimpleSwingApplication {
   private val plotStyleLinesAction            = new Action(  "Lines")       { mnemonic =            VK_L; def apply = plotView.setPlotStyle(plot.Lines()) }
   private val plotStyleDotsAction             = new Action(  "Dots")        { mnemonic =            VK_D; def apply = plotView.setPlotStyle(plot.Dots()) }
   private val plotStyleBothAction             = new Action(  "Both")        { mnemonic =            VK_B; def apply = plotView.setPlotStyle(plot.Both()) }
-  private val reference2014Action             = mkActionMask("2014 Reference",                      VK_R, VK_R,       shortcutMask | SHIFT_MASK, setInterpreter("reference2014"))
-  private val reference2013Action             = mkActionMask("2013 Reference",                      VK_R, NONE,       shortcutMask | SHIFT_MASK, setInterpreter("reference2013"))
-  private val reference2012Action             = mkActionMask("2012 Reference",                      VK_R, NONE,       shortcutMask | SHIFT_MASK, setInterpreter("reference2012"))
-  private val optimized2013Action             = mkActionMask("2013 Optimized",                      VK_O, NONE,       shortcutMask | SHIFT_MASK, setInterpreter("optimized"))
-  private val optimized2012Action             = mkActionMask("2012 Optimized",                      VK_O, NONE,       shortcutMask | SHIFT_MASK, setInterpreter("imperative2012")) 
+  private val reference2014Action             = mkActionMask("2014 Reference",                      VK_R, VK_R,       shortcutMask | SHIFT_MASK, setSemantics(S.Ref2014))
+  private val reference2013Action             = mkActionMask("2013 Reference",                      VK_R, NONE,       shortcutMask | SHIFT_MASK, setSemantics(S.Ref2013))
+  private val reference2012Action             = mkActionMask("2012 Reference",                      VK_R, NONE,       shortcutMask | SHIFT_MASK, setSemantics(S.Ref2012))
+  private val optimized2013Action             = mkActionMask("2013 Optimized",                      VK_O, NONE,       shortcutMask | SHIFT_MASK, setSemantics(S.Opt2013))
+  private val optimized2012Action             = mkActionMask("2012 Optimized",                      VK_O, NONE,       shortcutMask | SHIFT_MASK, setSemantics(S.Opt2012)) 
   private val parallel2012Action              = mkActionMask("2012 Parallel",                       VK_P, NONE,       shortcutMask | SHIFT_MASK, promptForNumberOfThreads)
-  private val pwlHybridSolverAction           = mkActionMask("2014 PWL",                            VK_L, VK_L,       shortcutMask | SHIFT_MASK, setInterpreter("enclosure-pwl")) 
-  private val eventTreeHybridSolverAction     = mkActionMask("2014 EVT",                            VK_T, VK_T,       shortcutMask | SHIFT_MASK, setInterpreter("enclosure-evt"))
+  private val pwlHybridSolverAction           = mkActionMask("2014 PWL",                            VK_L, VK_L,       shortcutMask | SHIFT_MASK, setSemantics(S.EnclosurePWL)) 
+  private val eventTreeHybridSolverAction     = mkActionMask("2014 EVT",                            VK_T, VK_T,       shortcutMask | SHIFT_MASK, setSemantics(S.EnclosureEVT))
   private val contractionAction               = mkActionMask("Contraction",                         VK_C, VK_C,       shortcutMask | SHIFT_MASK, enclosure.Interpreter.toggleContraction)
   private val normalizeAction                 = mkAction(    "Normalize (to H.A.)",                 VK_N, NONE,       toggleNormalization())
   private val manualAction                    = mkAction(    "Reference Manual",                    VK_M, VK_F1,      manual)
@@ -164,7 +166,7 @@ class App extends SimpleSwingApplication {
         console.log("Number of threads set to " + userNumberOfThreads + ".\n")
         userNumberOfThreads
       }
-      setInterpreter("parallel2012", lastNumberOfThreads.toString)
+      setSemantics(S.Parallel2012(lastNumberOfThreads))
     } catch {
       case _ =>
         console.logError("Bad number of threads.")
@@ -631,12 +633,11 @@ class App extends SimpleSwingApplication {
   
   var state: State = Stopped
   var interpreter: InterpreterCntrl = null;
-  def setInterpreter(args: String*) = {
-    val intr = Main.selectInterpreter(args:_*)
-    interpreter = InterpreterCntrl.cntrlForInterpreter(intr);
+  def setSemantics(si: SemanticsImpl[_]) = {
+    interpreter = InterpreterCntrl.cntrlForSemantics(si);
     dumpParms()
   }
-  interpreter = InterpreterCntrl.cntrlForInterpreter(Main.interpreter);
+  interpreter = InterpreterCntrl.cntrlForSemantics(Main.semantics);
   interpreter.interpreter.id.toList match {
     case "reference2013"  :: _ => bar.semantics.ref2013.selected = true
     case "optimized"      :: _ => bar.semantics.opt2013.selected = true

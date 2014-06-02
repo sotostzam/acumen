@@ -10,7 +10,6 @@ import java.io.InputStreamReader
 import org.scalatest.matchers.ShouldMatchers
 import org.scalatest.FunSuite
 import java.io.File
-import util.Transform
 import interpreters.reference2013.Interpreter
 
 // FIXME: Fixup test so it works again

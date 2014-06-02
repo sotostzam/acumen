@@ -11,7 +11,6 @@ import java.io.InputStreamReader
 import org.scalatest.matchers.ShouldMatchers
 import org.scalatest.FunSuite
 import java.io.File
-import util.Transform
 
 import Pretty._
 
@@ -24,15 +23,9 @@ import java.io.InputStreamReader
 import Common.ObjId
 
 class InterpreterTest extends InterpreterTestBase {
-  override def interpreter : CStoreInterpreter = Interpreter
+  override def semantics = SemanticsImpl.Optimized()
 
   override def suiteName = "Optimized InterpreterTest"
-
-  override def run(in: InputStreamReader) = {    
-    val ast = Parser.run(Parser.prog, in)
-    val des = Desugarer().run(ast)
-    for (_ <- (Interpreter.run(des).ctrace)) ()
-  }
 
   test("StoreConversions1") {
     import Interpreter._

@@ -8,7 +8,7 @@ import acumen.interpreters.enclosure.EnclosureInterpreterCallbacks
 import acumen.interpreters.enclosure.affine.UnivariateAffineEnclosure
 import InterpreterCntrl._
 
-class EnclosureCntrl(val interpreter: RecursiveInterpreter) extends InterpreterCntrl {
+class EnclosureCntrl(val semantics: SemanticsImpl[_], val interpreter: RecursiveInterpreter) extends InterpreterCntrl {
 
   def newInterpreterModel = interpreter.newInterpreterModel
 
@@ -74,9 +74,8 @@ class EnclosureCntrl(val interpreter: RecursiveInterpreter) extends InterpreterC
     }
 
     override def parse() = {
-      val ast = Parser.run(Parser.prog, progText)
-      //val dif = SD.run(ast)
-      val des = Main.applyPasses(ast,List("desugar-local"))
+      val ast = semantics.parse(progText)
+      val des = semantics.applyPasses(ast,Main.extraPasses)
       prog = des
     }
 

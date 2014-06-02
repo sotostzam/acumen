@@ -12,7 +12,6 @@ import Errors._
 import util.Filters._
 import util.Names._
 import util.Canonical._
-import util.Transform
 import acumen.testutil.TestUtil.{
   assertEqualTrace
 }
@@ -21,13 +20,7 @@ class InterpreterTest extends InterpreterTestBase with ShouldMatchers {
 
   override def suiteName = "Reference 2014 InterpreterTest"
 
-  def interpreter = interpreters.reference2014.Interpreter
-
-  def run(in: InputStreamReader) : Unit = {
-    val ast = Parser.run(Parser.prog, in)
-    val tr = Transform.transform(ast)
-    for (_ <- (interpreter run tr).ctrace) ()
-  }
+  def semantics = SemanticsImpl.Ref2014
 
   testExamples(Examples2014, 
                {f => // The following models need closer investigation
@@ -118,7 +111,7 @@ class InterpreterTest extends InterpreterTestBase with ShouldMatchers {
     }
 
   def parse(p:String, st:String) = 
-    (Desugarer().run(Parser.run(Parser.prog, p)), 
+    (semantics.applyRequiredPasses(Parser.run(Parser.prog, p)), 
      Parser.run(Parser.store, st))
 
   ignore("Gravity1d") {
@@ -155,7 +148,7 @@ class InterpreterTest extends InterpreterTestBase with ShouldMatchers {
 
     val (prog, store) = parse(progTxt, storeTxt)
 
-    val h = Interpreter.loop(prog, store)
+    val h = semantics.interpreter.loop(prog, store)
     val xs = oneVar(CId(2), "x", onlyAfterContinuous(h))
 
     def expected(t:Double) = - (9.8 / 2.0) * t * t 
@@ -200,7 +193,7 @@ class InterpreterTest extends InterpreterTestBase with ShouldMatchers {
 
     val (prog, store) = parse(progTxt, storeTxt)
 
-    val h = onlyAfterContinuous(Interpreter.loop(prog, store))
+    val h = onlyAfterContinuous(semantics.interpreter.loop(prog, store))
     val xs = oneVar(CId(3), "x", h)
     val ys = oneVar(CId(3), "y", h)
 
@@ -217,7 +210,7 @@ class InterpreterTest extends InterpreterTestBase with ShouldMatchers {
     val tail = "end"
     val timeFirst = Parser.run(Parser.prog, head ++ time ++ cond ++ tail)
     val condFirst = Parser.run(Parser.prog, head ++ cond ++ time ++ tail)
-    assertEqualTrace(timeFirst, condFirst, interpreter)
+    assertEqualTrace(timeFirst, condFirst, semantics)
   }
   
 }

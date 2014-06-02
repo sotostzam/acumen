@@ -10,12 +10,16 @@ import java.io.{FileInputStream, InputStreamReader, BufferedReader}
 import org.scalatest.matchers.ShouldMatchers
 import org.scalatest.FunSuite
 import java.io.File
-import util.Transform
 
 abstract class InterpreterTestBase extends FunSuite with ShouldMatchers {
-  def interpreter : CStoreInterpreter
+  def semantics : SemanticsImpl.CStore
 
-  def run(in: InputStreamReader) : Unit
+  def run(in: InputStreamReader) = {    
+    val ast = semantics.parse(in)
+    val des = semantics.applyRequiredPasses(ast)
+    val i = semantics.interpreter()
+    for (_ <- (i.run(des).ctrace)) ()
+  }
 
   def run(filename:String) : Unit = {
     val in  = 
@@ -27,9 +31,10 @@ abstract class InterpreterTestBase extends FunSuite with ShouldMatchers {
     run(new InputStreamReader(new FileInputStream(f)))
   }
 
-  def runWithInterpreter(in: InputStreamReader, i: Interpreter) = {
-    val ast = Parser.run(Parser.prog, in)
-    val tr = Transform.transform(ast)
+  def runWithInterpreter(in: InputStreamReader, si: SemanticsImpl.CStore) = {
+    val ast = si.parse(in)
+    val tr = si.applyPasses(ast, Nil)
+    val i = si.interpreter()
     i run tr
   }
 
@@ -45,7 +50,8 @@ abstract class InterpreterTestBase extends FunSuite with ShouldMatchers {
         ignore(testName) {}
       } else if (resFile.exists)
         test(testName) { 
-          ex.writeExampleResult(ex.gotLoc, dn, f, interpreter)
+          val gotLoc = ex.gotLoc + "/" + semantics.id.mkString("-")
+          ex.writeExampleResult(gotLoc, dn, f, semantics)
           class Result(loc: String) {
             val file = ex.resultFile(loc, dn, f)
             val reader = new BufferedReader(new InputStreamReader(new FileInputStream(file)))
@@ -53,7 +59,7 @@ abstract class InterpreterTestBase extends FunSuite with ShouldMatchers {
             def adv = curLine = reader.readLine
           }
           val expect = new Result(ex.expectLoc)
-          val got = new Result(ex.gotLoc)
+          val got = new Result(gotLoc)
           do {
             expect.adv; got.adv
             if (expect.curLine != got.curLine)
