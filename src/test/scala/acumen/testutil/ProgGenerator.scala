@@ -25,6 +25,9 @@ import acumen.interpreters.enclosure.Interval
 import acumen.interpreters.enclosure.TestingContext.{
   rnd
 }
+import Errors.{
+  AcumenError, ContinuousDynamicsUndefined
+}
 
 /**
  * Generator of interesting acumen Prog instances (models).
@@ -122,9 +125,31 @@ class ProgGenerator
                  h <- genClassHierarchy(firstLayer, depth)
                } yield h
       m <- genMain(env)
-      p <- if (simulatesOK(m)) value(m) else genProg
+      p <- ensureGoodProg(m)
     } yield p
   }
+
+  /**
+   * If p throws errors upon simulation, try to repair it:
+   *  - If a ContinuousDynamicsUndefined error for variable n is 
+   *    encountered, insert a continuous assignment to the version
+   *    of n in p that has most primes and call ensureGoodProg with
+   *    the resulting updated program.
+   * If no repair method is known, generate a new Prog.
+   */
+  private def ensureGoodProg(p: Prog): Gen[Prog] =
+    simulationThrowsError(p) match {
+      case None => value(p)
+      case Some(err@ContinuousDynamicsUndefined(_, n, cn, _)) =>
+        ensureGoodProg(Prog(p.defs.map {
+          case cd @ ClassDef(cn1, fs, ps, body) if cn1.x == cn =>
+            val nWithMostPrimes = (fs ++ ps.map(_.x)).filter(_.x == n.x).sortBy(_.primes).last
+            val nc = Continuously(EquationT(Var(nWithMostPrimes), Lit(GDouble(0))))
+            new ClassDef(cn1, fs, ps, nc :: body) { _types = cd._types }
+          case cd => cd
+        }))
+      case _ => genProg
+    }
   
   /** Generates a hierarchy of ClassDefs which are related through constructor calls and object references. */
   def genClassHierarchy(children: List[ClassDef], depth: Int): Gen[List[ClassDef]] =
@@ -148,18 +173,19 @@ class ProgGenerator
    * is detected in the interpreter, or if a possible infinite loop is detected (more than 1000 
    * consecutive discrete steps).
    */
-  def simulatesOK(p: Prog): Boolean =
+  def simulationThrowsError(p: Prog): (Option[AcumenError]) =
     try {
       var discreteStepsInARow = 0
-      val CStoreRes(r) = interpreters.reference.experimental.Interpreter.run(Desugarer().desugar(p))
+      val si = SemanticsImpl.Ref2014
+      val CStoreRes(r) = si.interpreter.run(si.applyRequiredPasses(p))
       for (cstore <- r) {
         if (Canonical.getResultType(cstore) == Discrete) discreteStepsInARow += 1
         else discreteStepsInARow = 0
         if (discreteStepsInARow > 1000)
           throw new RuntimeException("Model exceeded maximum number of discrete steps in fixpoint iteration. Possible infinite loop.")
       }
-      true
-    } catch { case e => println(e); false }
+      None
+    } catch { case e: AcumenError => Some(e) }
   
   /**
    * Generate a class definition.

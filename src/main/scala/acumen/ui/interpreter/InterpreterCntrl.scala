@@ -22,14 +22,9 @@ abstract class InterpreterActor(val progText : String, val consumer : Actor) ext
     produce()
   }
 
-  // optionally override this to change how the program is parsed
-
-  def parse() = {
-    val ast = Parser.run(Parser.prog, progText)
-    val dif = SD.run(ast)
-    val des = Main.applyPasses(dif)
-    prog = des
-  }
+  // Override this to parse and perform any necessary prepossessing
+  // tasks.
+  def parse() : Unit
 
   // Override this to produce results. When starting send back the
   // first bit of data (equivalent to one step) and then wait for
@@ -50,10 +45,11 @@ object InterpreterCntrl {
   case class Chunk(css: TraceData) // data computer so far
   case class Done(msgs: Seq[String]) // finished computation, no more data
 
-  def cntrlForInterpreter(intr: Interpreter) : InterpreterCntrl = {
+  def cntrlForSemantics(si: SemanticsImpl[_]) : InterpreterCntrl = {
+    val intr = si.interpreter()
     intr match {
-      case intr:CStoreInterpreter => new CStoreCntrl(intr)
-      case intr:RecursiveInterpreter => new EnclosureCntrl(intr) 
+      case intr:CStoreInterpreter => new CStoreCntrl(si, intr)
+      case intr:RecursiveInterpreter => new EnclosureCntrl(si, intr) 
         // fixme^: might need to be more precise
       case _ => null; // Should never happen
     }

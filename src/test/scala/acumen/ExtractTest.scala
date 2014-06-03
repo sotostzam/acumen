@@ -36,7 +36,7 @@ trait ExtractTest {
                      )
 
   /** First desugar p and then return the result of applying transform. */
-  def desugarAndTransform(p: Prog, transform: Prog => Prog) = transform(Desugarer() run p)
+  //def desugarAndTransform(p: Prog, transform: Prog => Prog) = transform(Desugarer() run p)
   
   /** Load models compatible with the transformation from the examples directory. */
   //FIXME Update to include multi-object models

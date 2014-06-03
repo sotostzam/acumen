@@ -12,8 +12,9 @@ class Main(simulator)
 private
   t  := 0;
   t' := 1;
-  _3D := 0;
+  _3D := [];
 end
+ t' = 1;
  _3D = 
  [
   ["Box", [ 1,0, 0],[2   ,0.02,0.02],[1,0,0],[0,0,0]], // x-axis line

@@ -6,6 +6,7 @@ private
  t:=0; t':=3;
  _3D := []
 end
+ t' = 3;
  _3D =
  [["Cone",   
   [0,0,0],   // Center point

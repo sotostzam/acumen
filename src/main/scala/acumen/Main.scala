@@ -7,6 +7,7 @@ import util.Filters._
 import render.ToPython._
 import render.Java3D
 import Pretty._
+import PassManager._
 
 import com.sun.j3d.utils.applet.MainFrame
 
@@ -30,7 +31,7 @@ object Main {
   var enableAllSemantics = true
   var autoPlay = false
   var openFile: File = null
-  var interpreter : Interpreter = null
+  var semantics : SemanticsImpl[Interpreter] = null
   var useCompletion = true
   var useTemplates = false
   var dontFork = false
@@ -110,7 +111,7 @@ object Main {
         displayHelp = "bench-enclosures"; parseArgs(tail)
       case ("--semantics"|"--interpreter"|"-i") :: i :: tail =>
         commandLineParms = true
-        interpreter = selectInterpreter(i); parseArgs(tail)
+        semantics = SemanticsImpl(i); parseArgs(tail)
       case ("--model") :: f :: tail =>
         openFile = checkFile(f); parseArgs(tail)
       case ("--enable-3d" | "--3d") :: tail => 
@@ -162,143 +163,14 @@ object Main {
     openFile
   }
 
-  // Select an interpreter based on the provided string and return it.
-  // An empty string selects the default interpreter.
-  def selectInterpreter(args0: String*) : Interpreter = {
-    val args = args0.flatMap(_.split('-')).toList
-    import interpreters._
-    val res = args match {
-      case ("" | "reference") :: Nil => reference.standard.Interpreter
-      case "original" :: Nil => reference.original.Interpreter
-      case "experimental" :: Nil => reference.experimental.Interpreter
-      case "parallel" :: tail => selectParallellInterpreter(tail)
-      case "imperative" :: Nil => imperative.ImperativeInterpreter
-      case "newimperative" :: tail => selectImperativeInterpreter(tail)
-      case "enclosure" :: tail => selectEnclosureInterpreter(tail)
-      case _ => null
-    }
-    if (res == null) 
-      throw UnrecognizedInterpreterString(args.mkString("-"))
-      res
-  }
-  def interpreterHelpString = "reference|original|experimental|parallel[-<num threads>]|enclosure[-pwl|-evt]"
+  def interpreterHelpString = "reference(2012|2013|2014)|parallel2012[-<num threads>]|enclosure[-pwl|-evt]"
   // parallel-sharing should not be documented but recognized for testing
-  def fullInterpreterHelpString = List(interpreterHelpString,"|newimperative[-parDiscr|-seqDiscr][-parCont|-seqCont][-contWithDiscr|contWithCont]")
-
-  def selectParallellInterpreter(args: List[String], 
-                                 numThreads: Int = -1, 
-                                 scheduler: String = "static") : Interpreter =
-  {
-    import interpreters.imperative.ParallelInterpreter._
-    args match {
-      case ("static"|"sharing") :: tail => selectParallellInterpreter(tail, numThreads, args(0))
-      case head :: tail if head.matches("\\d+") => selectParallellInterpreter(tail, Integer.parseInt(head), scheduler)
-      case Nil => (numThreads, scheduler) match {
-        case (-1, "static") => static
-        case (_, "static") => static(numThreads)
-        case (-1, "sharing") => sharing
-        case (_, "sharing") => sharing(numThreads)
-      }
-      case _ => null
-    }
-  }
-
-  def selectImperativeInterpreter(args: List[String],
-                                  parDiscr: Boolean = true, 
-                                  parCont: Boolean = false,
-                                  contWithDiscr: Boolean = false) : Interpreter = {
-    args match {
-      case "parDiscr" :: tail => selectImperativeInterpreter(tail, true, parCont, contWithDiscr)
-      case "seqDiscr" :: tail => selectImperativeInterpreter(tail, false, parCont, contWithDiscr)
-      case "parCont" :: tail => selectImperativeInterpreter(tail, parDiscr, true, contWithDiscr)
-      case "seqCont" :: tail => selectImperativeInterpreter(tail, parDiscr, false, contWithDiscr)
-      case "contWithDiscr" :: tail => selectImperativeInterpreter(tail, parDiscr, parCont, true)
-      case "contWithCont" :: tail => selectImperativeInterpreter(tail, parDiscr, parCont, false)
-      case Nil => new interpreters.newimperative.ImperativeInterpreter(parDiscr,parCont,contWithDiscr)
-      case _ => null
-    }
-  }
-
-  def selectEnclosureInterpreter(args: List[String], 
-                                 eventHandler: String = "pwl") : Interpreter = {
-    import interpreters.enclosure.Interpreter._
-    args match {
-      case ("pwl"|"evt") :: tail => selectEnclosureInterpreter(tail, args(0))
-      case Nil => eventHandler match {
-        case "pwl" => asPWL
-        case "evt" => asEVT
-      }
-      case _ => null
-    }
-  }
-
-  case class Pass(id: String, desc: String, trans: Prog => Prog, category: String, var idx: Int = -1)
-  def mkPass(id: String, desc: String, trans: Prog => Prog, category: String = null)
-    = Pass(id, desc, trans, if (category == null) id else category)
-  val availPasses = Array(
-    // Order matters!  The order is the order the passes are applied.
-    // And each passes is grouped into mutually excursive categories
-    // in which only one pass from that category is applied.
-    mkPass("toposort", "Topo. Sort. Priv Section", passes.TopoSortInit.proc(_)),
-    mkPass("inlinepriv", "Inline Priv Deps.", passes.InlineInitDeps.proc(_)),
-    mkPass("flatten", "Object Flattening (Simple Version)", passes.FlattenSimple.run(_)),
-    mkPass("elimconst", "Eliminate Constants (Single objects only)", passes.ElimConst.proc(_)),
-    mkPass("extract-ha", "H.A. Extraction", new passes.ExtractHA(_,debugExtract).res),
-    mkPass("killnot", "Kill Nots", passes.KillNot.mapProg(_)),
-    mkPass("desugar", "Desugarer", Desugarer(odeTransformMode=TopLevel).run(_), category="desugar"),
-    mkPass("desugar-local", "Desugarer (Local)", Desugarer(odeTransformMode=Local).run(_), category="desugar"),
-    mkPass("typecheck", "Type Checker", {prog => 
-                                         val (typechecked, res) = new TypeCheck(prog).run()
-                                         println("\nTYPE CHECK RESULT: " + TypeCheck.errorLevelStr(res) + "\n")
-                                         typechecked})
-  )
-  val defaults = List("desugar")
-  case class PassAlias(from: String, to: Seq[String], desc: Option[String]) 
-  // ^ If desc is none the alias won't show up in help screens
-  val passAliases = Seq(
-    PassAlias("extract", Seq("extract-ha"), None),
-    PassAlias("normalize", Seq("toposort", "inlinepriv", "elimconst", "extract-ha", "killnot"),
-              Some("Normalize the program into a H.A.")))
-  availPasses.indices.foreach{i => availPasses(i).idx = i}
-  val passLookup : Map[String,Seq[Pass]] = {
-    val m = availPasses.map{v => (v.id,Seq(v))}.toMap
-    m ++ passAliases.map{v => (v.from, v.to.flatMap{m(_)})}
-  }
-
-  // applyPasses: Takes in a prog and a list of passes to apply.
-  // The special pass "nodefaults" suppress the default passes from
-  //   being applied; this can only be specified as part of 
-  //   "required".
-  // The passes will be applied in a fixed order determined by the order
-  //  in which they appear in availPasses (i.e. the order in which
-  //  they are specified in args is irrelevant)
-  def splitPassesString(str: String) : Seq[String] = if (str == "") Nil else str.split(',')
-  def applyPasses(p: Prog, required: Seq[String] = Seq.empty) : Prog = {
-    val (nodefaults, rest) = required.partition(_ == "nodefaults")
-    val passList : Seq[String] = ((if (nodefaults.isEmpty) defaults else Nil) 
-                                  ++ extraPasses
-                                  ++ rest)
-    val passes = passList.flatMap{s => passLookup.get(s) match {
-      case Some(pass) => pass; case None => throw UnrecognizedTransformation(s)
-    }}.groupBy{_.category}.map{_._2.last}. // only take the last pass specified for each category
-       toSeq.sortWith{(a,b) => a.idx < b.idx} // sort by the orignal order in availPasses
-    var res = p
-    passes.foreach{pass => res = pass.trans(res)}
-    res
-  }
-  def validatePassesStr(args0: String*) : Unit = {
-    val args = args0.flatMap(_.split(',')).toList
-    args.foreach{arg => passLookup.get(arg) match {
-      case Some(pass) => /* do nothing */
-      case None if arg == "" => /* do nothing */
-      case None => throw UnrecognizedTransformation(arg)
-    }}
-  }
+  def fullInterpreterHelpString = List(interpreterHelpString,"|optimized[-parDiscr|-seqDiscr][-parCont|-seqCont][-contWithDiscr|contWithCont]")
 
   def main(args: Array[String]) : Unit = {
     parseArgs(args.toList)
-    if (interpreter == null)
-      interpreter = selectInterpreter("")
+    if (semantics == null)
+      semantics = SemanticsImpl("")
     if (displayHelp == "normal") {
       println("Options: ");
       optsHelp.foreach{line => println("  " + line)}
@@ -351,21 +223,21 @@ object Main {
 
   def origMain(args: Array[String]) : Unit = {
     try {
-      val i = interpreter
+      val i = semantics.interpreter()
 
       /* Read the Acumen source, parse, pre-process and interpret it. */
       lazy val in = new InputStreamReader(new FileInputStream(args(1)))
       lazy val ast = Parser.run(Parser.prog, in)
-      lazy val desugared = Desugarer().run(ast)
-      lazy val final_out = applyPasses(ast)
+      lazy val final_out = semantics.applyPasses(ast, extraPasses)
       lazy val trace = i.run(final_out)
       lazy val ctrace = as_ctrace(trace)
       /* Perform user-selected action. */
       args(0) match {
         case "compile" => 
-          val typeChecker = new TypeCheck(desugared)
-          val (typechecked, res) = typeChecker.run()
-          interpreters.compiler.Interpreter.compile(typechecked, typeChecker)
+          // FIXME: Fix to Work with new SemanticsImpl
+          //val typeChecker = new TypeCheck(desugared)
+          //val (typechecked, res) = typeChecker.run()
+          //interpreters.compiler.Interpreter.compile(typechecked, typeChecker)
         case "pretty" => println(pprint(ast))
         case "3d" => toPython3D(toSummary3D(ctrace))
         case "2d" => toPython2D(toSummary2D(ctrace))
@@ -402,7 +274,7 @@ object Main {
           val repeat : Int = if (args.size > offset + 3) Integer.parseInt(args(offset+3)) else 10
           val forced = final_out
           for (nbThreads <- start to stop) {
-        	interpreters.imperative.ParallelInterpreter(nbThreads)
+        	interpreters.imperative2012.ParallelInterpreter(nbThreads)
             print(nbThreads + " threads: ")
             as_ctrace(i.run(forced)).last
             for (_ <- 0 until warmup) { print("w"); as_ctrace(i.run(forced)).last }
@@ -421,7 +293,7 @@ object Main {
           val forced = final_out
           var data = Map[Int,Double]()
           for (nbThreads <- start to stop) {
-            interpreters.imperative.ParallelInterpreter(nbThreads)
+            interpreters.imperative2012.ParallelInterpreter(nbThreads)
             as_ctrace(i.run(forced)).last
             for (_ <- 0 until warmup) { as_ctrace(i.run(forced)).last }
             val startTime = System.currentTimeMillis()
@@ -439,7 +311,7 @@ object Main {
         case "trace" =>
           trace.print
         case what => try {
-            val transformed = applyPasses(ast, splitPassesString(what))
+            val transformed = applyPasses(ast, splitPassesString(what), Nil, extraPasses)
             Pretty.withType = true
             println(pprint(transformed))
         } catch {
@@ -458,23 +330,28 @@ object Main {
 
   def examples = {
     var somethingUpdated = false
-    Examples.cstoreExamplesAction{(dn, f) =>
-      val loc = Examples.expectLoc
-      val resFile = Examples.resultFile(loc, dn, f)
-      if (resFile.exists) {
-        println("file " + resFile + " exists, skipping")
-      } else {
-        somethingUpdated = true
-        try {
-          Examples.writeExampleResult(loc, dn, f, interpreters.reference.standard.Interpreter)
-        } catch {
-          case e => 
-            println("ERROR while creating " + resFile + ":")
-            println("  " + e)
+    def doit(ex: Examples, intr: SemanticsImpl.CStore) = {
+      ex.cstoreExamplesAction{(dn, f) =>
+        val loc = ex.expectLoc
+        val resFile = ex.resultFile(loc, dn, f)
+        if (resFile.exists) {
+          println("file " + resFile + " exists, skipping")
+        } else {
+          somethingUpdated = true
+          try {
+            ex.writeExampleResult(loc, dn, f, intr)
+          } catch {
+            case e => 
+              println("ERROR while creating " + resFile + ":")
+              println("  " + e)
+          }
+          println("CREATED " + resFile)
         }
-        println("CREATED " + resFile)
       }
     }
+    doit(Examples2012,SemanticsImpl.Ref2012)
+    doit(Examples2013,SemanticsImpl.Ref2013)
+    doit(Examples2014,SemanticsImpl.Ref2014)
     if (somethingUpdated) {
       println("Results updated.  Be sure to git add & commit the updated files as appropriate.")
     }

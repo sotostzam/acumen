@@ -34,7 +34,7 @@ object TransformationTestUtil {
     preservesSemanticsOf(TopLevel, transform, p, modelName, "continuous non-rigorous", { (desugared, transformed) =>
       val contNames = getContinuousVariables(p)
       // set up the experimental interpreter
-      val i = interpreters.reference.experimental.Interpreter
+      val i = interpreters.reference2014.Interpreter
       // run desugared program before transformation
       val dtrace = i.run(desugared)
       dtrace.ctrace.last // force evaluation
