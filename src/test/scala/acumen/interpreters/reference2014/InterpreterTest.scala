@@ -68,7 +68,7 @@ class InterpreterTest extends InterpreterTestBase with ShouldMatchers {
     val err = AccessDenied(CId(), CId(1), Nil)
     getError("data/ShouldCrash/Error7.acm") should be (Some(err))
   }
-  ignore("Error8 ") {
+  ignore("Error8") {
     val err = AccessDenied(CId(0,0,1), CId(1), List(CId(1,1),CId(0,1)))
     getError("data/ShouldCrash/Error8.acm") should be (Some(err))
   }
@@ -76,11 +76,11 @@ class InterpreterTest extends InterpreterTestBase with ShouldMatchers {
     val err = NotAChildOf(CId(0,0,1), CId(0,1))
     getError("data/ShouldCrash/Error9.acm") should be (Some(err))
   }
-  test("Error10 ") {
+  test("Error10") {
     val err = ClassNotDefined(ClassName("B"))
     getError("data/ShouldCrash/Error10.acm") should be (Some(err))
   }
-  test("Error11 ") {
+  test("Error11") {
     val err = ClassDefinedTwice(ClassName("A"))
     getError("data/ShouldCrash/Error11.acm") should be (Some(err))
   }
