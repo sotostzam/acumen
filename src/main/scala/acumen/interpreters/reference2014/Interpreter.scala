@@ -386,7 +386,7 @@ object Interpreter extends acumen.CStoreInterpreter {
       { val (_,ids,rps,ass,eqs,odes,st1) = iterate(evalStep(p), mainId(st))(st)
         getResultType(st) match {
           case Discrete | Continuous => // Either conclude fixpoint is reached or do discrete step
-            checkDuplicateAssingments(ass.toList.map{ case (o, d, _) => (o, d) }, d => DuplicateDiscreteAssingment(d.field))
+            checkDuplicateAssingments(ass.toList.map{ case (o, d, _) => (o, d) }, x => DuplicateDiscreteAssingment(x))
             val nonIdentityAss = ass.filterNot{ a => a._3 == getObjectField(a._1, a._2.field, st1) }
             if (st == st1 && ids.isEmpty && rps.isEmpty && nonIdentityAss.isEmpty) 
               setResultType(FixedPoint, st1)
@@ -398,7 +398,7 @@ object Interpreter extends acumen.CStoreInterpreter {
               setResultType(Discrete, st3)
             }
           case FixedPoint => // Do continuous step
-            checkDuplicateAssingments(eqs.toList.map{ case (o, d, _) => (o, d) }, d => DuplicateContinuousAssingment(d.field))
+            checkDuplicateAssingments(eqs.toList.map{ case (o, d, _) => (o, d) }, x => DuplicateContinuousAssingment(x))
             checkContinuousDynamicsAlwaysDefined(p, eqs, st1)
             val stODE = solveIVP(odes, p, st1)
             val stE = applyAssignments(eqs.toList) ~> stODE
@@ -511,10 +511,14 @@ object Interpreter extends acumen.CStoreInterpreter {
   }
     
   /** Check for a duplicate assignment (of a specific kind) scheduled in assignments. */
-  def checkDuplicateAssingments(assignments: List[(CId, Dot)], error: Dot => DuplicateAssingment): Unit = {
-    val duplicates = assignments.groupBy(a => (a._1,a._2)).filter{ case (_, l) => l.size > 1 }.keys.toList
-    if (duplicates.size != 0)
-      throw error(duplicates(0)._2)
+  def checkDuplicateAssingments(assignments: List[(CId, Dot)], error: Name => DuplicateAssingment): Unit = {
+    val duplicates = assignments.groupBy(a => (a._1,a._2)).filter{ case (_, l) => l.size > 1 }.toList
+    if (duplicates.size != 0) {
+      val first = duplicates(0)
+      val x = first._1._2.field
+      val poss = first._2.map{case (_,dot) => dot.pos}.sortWith{(a, b) => b < a}
+      throw error(first._1._2.field).setPos(poss(0)).setOtherPos(poss(1))
+    }
   }
 
   /**
