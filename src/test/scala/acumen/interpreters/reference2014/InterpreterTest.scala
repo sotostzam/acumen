@@ -68,7 +68,7 @@ class InterpreterTest extends InterpreterTestBase with ShouldMatchers {
     val err = AccessDenied(CId(), CId(1), Nil)
     getError("data/ShouldCrash/Error7.acm") should be (Some(err))
   }
-  ignore("Error8") {
+  test("Error8") {
     val err = AccessDenied(CId(0,0,1), CId(1), List(CId(1,1),CId(0,1)))
     getError("data/ShouldCrash/Error8.acm") should be (Some(err))
   }
