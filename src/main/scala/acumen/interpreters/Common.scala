@@ -233,4 +233,27 @@ object Common {
     }
   }
 
+  //
+  // ODEs
+  // 
+
+  def solveIVPEulerForward[S <% RichStore[S], O](xs: S, h: Double)(implicit f: Field[S]): S =
+    xs +++ f(xs) *** h
+
+  def solveIVPRungeKutta[S <% RichStore[S], O](xs: S, h: Double)(implicit f: Field[S]): S = {
+    val k1 = f(xs)
+    val k2 = f(xs +++ k1 *** (h/2)) 
+    val k3 = f(xs +++ k2 *** (h/2))
+    val k4 = f(xs +++ k3 *** h)
+    xs +++ (k1 +++ k2 *** 2 +++ k3 *** 2 +++ k4) *** (h/6)
+  }
+
+  abstract class Field[S /* store */] {
+    def apply(s: S): S;
+  }
+  abstract class RichStore[S /* store */] {
+    def +++(that: S): S;
+    def ***(that: Double): S;
+  }
+
 }
