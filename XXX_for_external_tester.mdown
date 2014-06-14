@@ -1,23 +1,22 @@
 # Quick manual test procedure for Acumen releases
 
-First make sure Java3D is installed by following the PREREQUISITES
-instructions in the README.
+First make sure Java3D is installed by following the instructions in
+the README, and in particular, in the PREREQUISITES section.
 
 1. Start Acumen by double-clicking the jar file you were provided
-2. Open the iccps_mass_pendulum.acm model:
+2. Open the below test model:
     1. Click File > Open.
     2. Browse to 1_Introduction > "19_Sine_self_as_Second_Derivative.acm" and click Open.
 3. Ensure that the Traditional semantics is selected:
-    1. Click Semantics > Traditional
+    1. Click Semantics > Traditional -> 2014 Reference
 4. Run the simulation:
     1. Click the play button ( > ) below the code editor.
 5. Under the Plot tab on the right-hand side of the screen, ensure that the plot looks right:
-    1. It should display 3 plots, all but one displaying various kinds of wave shapes.
+    1. It should display 3 plots, all displaying various kinds of wave shapes.
 6. Open the 22_angles in pi.acm model.
     1. Click File > Open.
-    2. When asked if you want to continue without saving your changes click Yes.
-    3. Select "22_angles in pi.acm" and click Open.
-7. Uncheck the Draw checkbox at the bottom-left of the Plot tab.
+    2. Select "22_angles in pi.acm" and click Open.
+7. Uncheck the Plot checkbox at the bottom-left of the Plot tab.
 8. Run the simulation:
     1. Click the play button ( > ) below the code editor.
 9. The _3D tab should display and you should see an animation after the model 
