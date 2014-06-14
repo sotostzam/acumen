@@ -212,14 +212,14 @@ object Common {
     """#0.0 { className = Simulator, parent = %s, time = 0.0, timeStep = 0.01, 
               outputRows = "WhenChanged", continuousSkip = 0,
               endTime = 10.0, resultType = @Discrete, nextChild = 0,
-	      expects = 0, observes = 0, seed1 = 0, seed2 = 0 }"""
+	      expects = 0, observes = 0, method = "RungeKutta", seed1 = 0, seed2 = 0 }"""
 
   lazy val magicClass = Parser.run(Parser.classDef, magicClassTxt)
   lazy val initStoreRef = Parser.run(Parser.store, initStoreTxt.format("#0"))
   lazy val initStoreImpr = Parser.run(Parser.store, initStoreTxt.format("none"))
                                   
   // register valid simulator parameters
-  val simulatorFields = List("time", "timeStep", "outputRows", "continuousSkip", "endTime", "resultType", "lastCreatedId", "expects", "observes")
+  val simulatorFields = List("time", "timeStep", "outputRows", "continuousSkip", "endTime", "resultType", "lastCreatedId", "expects", "observes", "method")
 
   val specialFields = List("nextChild","parent","className","seed1","seed2")
 

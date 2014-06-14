@@ -27,11 +27,11 @@ object AcumenProject extends Build {
 
   // broken: Currently broken tests that should eventually be fixed
   lazy val BrokenTest = config("broken") extend(Test)
-  val brokenTests = Set("acumen.RandomTests","acumen.testutil.ProgGeneratorTest")
+  val brokenTests = Set("acumen.RandomTests","acumen.testutil.ProgGeneratorTest","acumen.ConsistencyTest")
   def brokenTestFilter(name: String) = brokenTests.contains(name)
 
   // experimental: Failing tests that relate to experimental code
-  lazy val ExperimentalTest = config("experimental") extend(Test)
+  lazy val ExperimentalTest = config("reference2014") extend(Test)
   val experimentalTests = Set("acumen.FlattenSimpleTest")
   def experimentalTestFilter(name: String) = experimentalTests.contains(name)
 

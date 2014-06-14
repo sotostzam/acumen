@@ -6,7 +6,7 @@ import Errors._
 import util.Filters._
 import util.Names._
 import util.Canonical._
-import interpreters.reference.standard.Interpreter
+import interpreters.reference2013.Interpreter
 import ui.Controller
 import ui.tl.Console
 import scala.math._

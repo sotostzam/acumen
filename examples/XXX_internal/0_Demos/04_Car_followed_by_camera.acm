@@ -36,6 +36,7 @@ class Main(simulator)
      car2 := create Vehicle([2, 20, 0],-1,2, "car.obj");
      _3DView := [];
   end
+     t' = 0.5;
      _3DView := [[2,x+4,1], [0,0,pi]];
      simulator.endTime = 10;
      car.p = [2,x,0];

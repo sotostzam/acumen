@@ -3,8 +3,9 @@
 
 class Main(simulator)
 private
- x:=0; x':=1 // Short for dx/dt = 1
+ x:=0; x':=1
 end
+ x' = 1 // Short for dx/dt = 1
 end
 
 // Note:  Solvable by integration (fundamental 

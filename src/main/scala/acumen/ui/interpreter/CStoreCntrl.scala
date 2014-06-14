@@ -7,7 +7,7 @@ import collection.mutable.ListBuffer
 import scala.actors._
 import InterpreterCntrl._
 
-class CStoreCntrl(val interpreter: CStoreInterpreter) extends InterpreterCntrl {
+class CStoreCntrl(val semantics: SemanticsImpl[_], val interpreter: CStoreInterpreter) extends InterpreterCntrl {
 
   def newInterpreterModel = interpreter.newInterpreterModel
 
@@ -17,14 +17,11 @@ class CStoreCntrl(val interpreter: CStoreInterpreter) extends InterpreterCntrl {
     var defaultBufferSize = 200
     var bufferSize = 1 // start off with one step
 
-    override def parse() = 
-      if (interpreter.id contains "original") {
-        val ast = Parser.run(Parser.prog, progText)
-        val dif = SD.run(ast)
-        // transform ODEs the old-fashioned way in the original interpreter
-        val des = Main.applyPasses(dif, Seq("desugar-local"))
-        prog = des
-      } else super.parse
+    def parse() = {
+      val ast = semantics.parse(progText)
+      val des = semantics.applyPasses(ast, Main.extraPasses)
+      prog = des
+    }
     
     def sendChunk {
       val toSend = if (buffer.isEmpty) null else CStoreTraceData(buffer)
