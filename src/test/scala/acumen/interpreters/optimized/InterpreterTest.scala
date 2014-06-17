@@ -163,7 +163,7 @@ class InterpreterTest extends InterpreterTestBase {
     val err = evaluating {run("data/ShouldCrash/Error7.acm")} should produce [AccessDenied[ObjId]]
     err.pos.toString should be ("8.3")
   }
-  test("Error8 ") {
+  test("Error8") {
     val err = evaluating {run("data/ShouldCrash/Error8.acm")} should produce [AccessDenied[ObjId]]
     err.pos.toString should be ("27.15")
   }
@@ -171,10 +171,10 @@ class InterpreterTest extends InterpreterTestBase {
     val err = evaluating {run("data/ShouldCrash/Error9.acm")} should produce [NotAChildOf[ObjId]]
     err.pos.toString should be ("33.12")
   }
-  test("Error10 ") {
+  test("Error10") {
     testForError("data/ShouldCrash/Error10.acm", ClassNotDefined(ClassName("B")), "15.25")
   }
-  test("Error11 ") {
+  test("Error11") {
     val err = ClassDefinedTwice(ClassName("A"))
     getError("data/ShouldCrash/Error11.acm") should be (Some(err))
     // No line number

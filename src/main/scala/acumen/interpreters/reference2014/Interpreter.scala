@@ -151,25 +151,31 @@ object Interpreter extends acumen.CStoreInterpreter {
     } yield fid
   }
 
+  /* utility function */
+
+  def evalToObjId(e: Expr, env: Env, st:Store) = evalExpr(e, env, st) match {
+    case VObjId(Some(id)) => checkAccessOk(id, env, st, e); id
+    case v => throw NotAnObject(v).setPos(e.pos)
+  }
 
   /* runtime checks, should be disabled once we have type safety */
 
-  def checkAccessOk(id:CId, env:Env, st:Store) : Unit = {
+  def checkAccessOk(id:CId, env:Env, st:Store, context: Expr) : Unit = {
     val sel = selfCId(env)
     lazy val cs = childrenOf(sel, st)
     if (sel != id && ! (cs contains id))
-      throw AccessDenied(id,sel,cs)
+      throw AccessDenied(id,sel,cs).setPos(context.pos)
   }
 
-  def checkIsChildOf(child:CId, parent:CId, st:Store) : Unit = {
+  def checkIsChildOf(child:CId, parent:CId, st:Store, context: Expr) : Unit = {
     val cs = childrenOf(parent, st)
-    if (! (cs contains child)) throw NotAChildOf(child,parent)
+    if (! (cs contains child)) throw NotAChildOf(child,parent).setPos(context.pos)
   }
 
   /* evaluate e in the scope of env 
    * for definitions p with current store st */
   def evalExpr(e:Expr, env:Env, st:Store) : CValue = {
-    def eval(env:Env, e:Expr) : CValue = {
+    def eval(env:Env, e:Expr) : CValue = try {
 	    e match {
   	    case Lit(i)         => VLit(i)
         case ExprVector(l)  => VVector (l map (eval(env,_)))
@@ -182,12 +188,12 @@ object Interpreter extends acumen.CStoreInterpreter {
              list has to be computed on the fly when requested. 
              An efficient implementation wouldn't do that. */
           val id = extractId(eval(env,o))
-          checkAccessOk(id, env, st)
+          checkAccessOk(id, env, st, o)
           VList(childrenOf(id,st) map (c => VObjId(Some(c))))
         /* e.f */
         case Dot(e,f) =>
           val id = extractId(eval(env, e))
-          checkAccessOk(id, env, st)
+          checkAccessOk(id, env, st, e)
           if (id == selfCId(env))
             env.get(f).getOrElse(getObjectField(id, f, st))
           else
@@ -234,6 +240,8 @@ object Interpreter extends acumen.CStoreInterpreter {
             }
             eval(eWithBindingsApplied, e)
       }
+    } catch {
+      case err: PositionalAcumenError => err.setPos(e.pos); throw err
     }
     eval(env,e)
   }
@@ -280,9 +288,8 @@ object Interpreter extends acumen.CStoreInterpreter {
     a match {
       case Assign(d@Dot(e,x),t) => 
         /* Schedule the discrete assignment */
-        for { id <- asks(evalExpr(e, env, _)) map extractId
+        for { id <- asks(evalToObjId(e, env, _))
         	  vt <- asks(evalExpr(t, env, _))
-        	  _  <- asks(checkAccessOk(id, env, _))
         	  vx <- asks(evalExpr(d, env, _)) 
         } assign(id, d, vt)
       /* Basically, following says that variable names must be 
@@ -299,22 +306,18 @@ object Interpreter extends acumen.CStoreInterpreter {
         } lhs match { 
           case None => pass
           case Some(Dot(e,x)) => 
-            for { id <- asks(evalExpr(e, env, _)) map extractId
-                  _ <- asks(checkAccessOk(id, env, _))
-            } setObjectFieldM(id, x, VObjId(Some(fa))) 
+            for (id <- asks(evalToObjId(e, env, _)))
+              setObjectFieldM(id, x, VObjId(Some(fa))) 
           case Some(_) => throw BadLhs()
         }
       case Elim(e) =>
-        for { id <- asks(evalExpr(e, env, _)) map extractId
-              _ <- asks(checkAccessOk(id, env, _))
-        } vanish(id)
+        for (id <- asks(evalToObjId(e, env, _)))
+          vanish(id)
       case Move(Dot(o1,x), o2) => 
-        for { o1Id <- asks(evalExpr(o1, env, _)) map extractId
-              _ <- asks(checkAccessOk(o1Id, env, _))
+        for { o1Id <- asks(evalToObjId(o1, env, _))
               xId  <- asks(getObjectField(o1Id, x, _)) map extractId
-              _ <- asks(checkIsChildOf(xId, o1Id, _))
-              o2Id <- asks(evalExpr(o2, env, _)) map extractId
-              _ <- asks(checkAccessOk(o2Id, env, _))
+              _ <- asks(checkIsChildOf(xId, o1Id, _, o1))
+              o2Id <- asks(evalToObjId(o2, env, _))
         } reparent(List(xId), o2Id)
       case Move(_,_) =>
         throw BadMove()
@@ -383,7 +386,7 @@ object Interpreter extends acumen.CStoreInterpreter {
       { val (_,ids,rps,ass,eqs,odes,st1) = iterate(evalStep(p), mainId(st))(st)
         getResultType(st) match {
           case Discrete | Continuous => // Either conclude fixpoint is reached or do discrete step
-            checkDuplicateAssingments(ass.toList.map{ case (o, d, _) => (o, d) }, d => DuplicateDiscreteAssingment(d.field))
+            checkDuplicateAssingments(ass.toList.map{ case (o, d, _) => (o, d) }, x => DuplicateDiscreteAssingment(x))
             val nonIdentityAss = ass.filterNot{ a => a._3 == getObjectField(a._1, a._2.field, st1) }
             if (st == st1 && ids.isEmpty && rps.isEmpty && nonIdentityAss.isEmpty) 
               setResultType(FixedPoint, st1)
@@ -395,7 +398,7 @@ object Interpreter extends acumen.CStoreInterpreter {
               setResultType(Discrete, st3)
             }
           case FixedPoint => // Do continuous step
-            checkDuplicateAssingments(eqs.toList.map{ case (o, d, _) => (o, d) }, d => DuplicateContinuousAssingment(d.field))
+            checkDuplicateAssingments(eqs.toList.map{ case (o, d, _) => (o, d) }, x => DuplicateContinuousAssingment(x))
             checkContinuousDynamicsAlwaysDefined(p, eqs, st1)
             val stODE = solveIVP(odes, p, st1)
             val stE = applyAssignments(eqs.toList) ~> stODE
@@ -508,10 +511,14 @@ object Interpreter extends acumen.CStoreInterpreter {
   }
     
   /** Check for a duplicate assignment (of a specific kind) scheduled in assignments. */
-  def checkDuplicateAssingments(assignments: List[(CId, Dot)], error: Dot => DuplicateAssingment): Unit = {
-    val duplicates = assignments.groupBy(a => (a._1,a._2)).filter{ case (_, l) => l.size > 1 }.keys.toList
-    if (duplicates.size != 0)
-      throw error(duplicates(0)._2)
+  def checkDuplicateAssingments(assignments: List[(CId, Dot)], error: Name => DuplicateAssingment): Unit = {
+    val duplicates = assignments.groupBy(a => (a._1,a._2)).filter{ case (_, l) => l.size > 1 }.toList
+    if (duplicates.size != 0) {
+      val first = duplicates(0)
+      val x = first._1._2.field
+      val poss = first._2.map{case (_,dot) => dot.pos}.sortWith{(a, b) => b < a}
+      throw error(first._1._2.field).setPos(poss(0)).setOtherPos(poss(1))
+    }
   }
 
   /**
