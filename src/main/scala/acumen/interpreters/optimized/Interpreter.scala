@@ -125,6 +125,8 @@ class Interpreter(val parDiscr: Boolean = true,
         pp.odes.clear()
         
         traverse(evalStep(p, magic), st)
+
+        checkPrimedUpdated(st, magic)
         
         val sz = pp.odes.size
         val initVal = new Array[Val](sz)

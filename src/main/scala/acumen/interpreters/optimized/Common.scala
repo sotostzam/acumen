@@ -584,5 +584,15 @@ object Common {
   }
   
   implicit def liftStore(s: IndexedSeq[Val])(implicit field: FieldImpl): RichStoreImpl = RichStoreImpl(s)
+
+  def checkPrimedUpdated(o: ObjId, magic: ObjId) : Unit = {
+    val pp = o.phaseParms
+    o.fields.foreach{case (n,v) => 
+      if (n.primes > 0 && v.lastUpdated != pp.curIter) {
+        println("?? " + o + " " + n + "  " + v.lastSetPos + " != " + pp.curIter)
+        throw ContinuousDynamicsUndefined(o.id, n, Pretty.pprint(getField(o, classf)), getTime(magic));}
+      }
+    o.children.foreach{child => checkPrimedUpdated(child, magic)}
+  }
   
 }
