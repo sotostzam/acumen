@@ -585,14 +585,18 @@ object Common {
   
   implicit def liftStore(s: IndexedSeq[Val])(implicit field: FieldImpl): RichStoreImpl = RichStoreImpl(s)
 
-  def checkPrimedUpdated(o: ObjId, magic: ObjId) : Unit = {
+  /**
+   * Ensure that for each variable that has an ODE declared in the private section, there is 
+   * an equation in scope at the current time step. This is done by checking that for each 
+   * field name with a single prime the corresponding unprimed variable is updated.
+   */
+  def checkContinuousDynamicsAlwaysDefined(o: ObjId, magic: ObjId) : Unit = {
     val pp = o.phaseParms
     o.fields.foreach{case (n,v) => 
-      if (n.primes > 0 && v.lastUpdated != pp.curIter) {
-        println("?? " + o + " " + n + "  " + v.lastSetPos + " != " + pp.curIter)
-        throw ContinuousDynamicsUndefined(o.id, n, Pretty.pprint(getField(o, classf)), getTime(magic));}
+      if (n.primes == 1 && o.fields(Name(n.x, 0)).lastUpdated != pp.curIter)
+          throw ContinuousDynamicsUndefined(o.id, n, Pretty.pprint(getField(o, classf)), getTime(magic));
       }
-    o.children.foreach{child => checkPrimedUpdated(child, magic)}
+    o.children.foreach{child => checkContinuousDynamicsAlwaysDefined(child, magic)}
   }
   
 }
