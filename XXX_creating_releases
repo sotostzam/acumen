@@ -1,0 +1,24 @@
+Every time someone pushes to master the build server creates a
+snapshot or test release.  You can download the latest release by
+going to:
+
+  https://194.47.22.8:8081/job/acumen-dev_-_master_-_release/
+
+and downloading the zip under "Last Successful Artifacts".
+
+Snapshot releases contain 8 digit hex code that correspond to the
+corresponding Git commit.
+
+Public releases are generally kept at
+https://bitbucket.org/effective/acumen-dev/downloads.  If you are
+logged in and have the correct privileges you should see a link to
+upload new files and delete existing ones.
+
+Before sending this to testers the instructions in
+XXX_for_external_tester.mdown should be followed to sanity check the
+release and make sure they instructions are still accurate.
+
+---
+
+The script used by the build server can be found under
+XXX_release_scripts/.
