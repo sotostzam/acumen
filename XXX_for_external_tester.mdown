@@ -1,4 +1,4 @@
-# Quick manual test procedure for Acumen releases
+# External test procedure
 
 First make sure Java3D is installed by following the instructions in
 the README, and in particular, in the PREREQUISITES section.
@@ -28,4 +28,4 @@ the README, and in particular, in the PREREQUISITES section.
 12. Ensure that the animation runs smoothly and plays through to the end.
 
 Please send your report to both Kevin Atkinson (kevinatk@rice.edu) and
-Walid Taha (Walid.Taha@hh.se).
+Walid Taha (maroneal@gmail.com).
