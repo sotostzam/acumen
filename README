@@ -43,36 +43,43 @@ Major changes since Acumen 2010:
  - Syntax highlighting
 
 
-PREREQUISITES
--------------
+INSTALLING JAVA 3D
+------------------
 
-Users of recent version of Mac OS X should already have all necessary
-dependencies installed. If you have problems with _3D functionality 
-try using Java version 6.
+On Windows you will need to install Java 3D so that you can use the
+3D visualization features of Acumen. The instructions below explain
+how to get and install Java 3D.
 
-If you are using fairly modern Linux distribution installing
-openjdk-6, libjava3d, that comes with your distribution will likely
-work fine.
+Users of recent version of Mac OS X should already have Java 3D 
+installed. However, Java 3D only works with Java version 6. 
+If you have newer versions installed, things get quite tricky
+and you may need to run Acumen from the command line.
+Instructions for re-directing Java to an earlier version can be
+found here:
+  http://stackoverflow.com/questions/13594864/how-to-revert-to-java-1-6-on-mac-os-x-10-7-5
 
-If you are using Windows than follow instructions to get the necessary
-requirements to run Acumem with 3D support.
+If you are using fairly modern GNU/Linux distribution installing
+openjdk-6, libjava3d, that comes with your distribution will probably
+work. However, we have limited experience with running Acumen
+on GNU/Linux. 
 
-If you are not running Windows 7, or running a windows 7-32 bits
+For a Windows 7 or 8 (64-bit) machine: 
 
-  1. Download and install jre-7u7-windows-i586.exe from here
-  http://www.oracle.com/technetwork/java/javase/downloads/jre7u7-downloads-1836441.html
-  2. Download and install java3d-1_5_1-windows-i586.exe from here
-  http://www.oracle.com/technetwork/java/javasebusiness/downloads/java-archive-downloads-java-client-419417.html#java3d-1.5.1-oth-JPR
-
-If you are running a 64-bit windows 7, you need to uninstall your Java
-32 bit first (if applicable) then
-
+  0. If you have a 32 bit version of Java installed, you need to uninstall that first. 
   1. Download jre-7u7-windows-x64.exe from here
   http://www.oracle.com/technetwork/java/javase/downloads/jre7u7-downloads-1836441.html
   2. Download and install java3d-1_5_1-windows-amd64.exe from here
   http://www.oracle.com/technetwork/java/javasebusiness/downloads/java-archive-downloads-java-client-419417.html#java3d-1.5.1-oth-JPR
   3. Follow the instructions about copying the files here
   http://www.christoph-lauer.de/Homepage/Blog/Eintrage/2012/5/23_Note__how_to_install_Java3D_on_a_64bit_Windows_7_machine.html
+
+For a Windows 7 (32 bit) machine:
+
+  1. Download and install jre-7u7-windows-i586.exe from here
+  http://www.oracle.com/technetwork/java/javase/downloads/jre7u7-downloads-1836441.html
+  2. Download and install java3d-1_5_1-windows-i586.exe from here
+  http://www.oracle.com/technetwork/java/javasebusiness/downloads/java-archive-downloads-java-client-419417.html#java3d-1.5.1-oth-JPR
+
 
 RUNNING
 -------
