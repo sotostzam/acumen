@@ -227,7 +227,7 @@ object Main {
 
       /* Read the Acumen source, parse, pre-process and interpret it. */
       lazy val in = new InputStreamReader(new FileInputStream(args(1)))
-      lazy val ast = Parser.run(Parser.prog, in)
+      lazy val ast = semantics.parse(in)
       lazy val final_out = semantics.applyPasses(ast, extraPasses)
       lazy val trace = i.run(final_out)
       lazy val ctrace = as_ctrace(trace)
