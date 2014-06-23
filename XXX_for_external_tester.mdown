@@ -1,31 +1,25 @@
 # External test procedure
 
-First make sure Java3D is installed by following the instructions in
-the README, and in particular, in the PREREQUISITES section.
-
-1. Start Acumen by double-clicking the jar file you were provided
-2. Open the below test model:
+0. Download an unzip the Acumen distribution.
+1. Start Acumen by double-clicking the jar file in the extracted folder.
+2. Part 1 of test
     1. Click File > Open.
     2. Browse to 1_Introduction > "19_Sine_self_as_Second_Derivative.acm" and click Open.
-3. Ensure that the Traditional semantics is selected:
-    1. Click Semantics > Traditional -> 2014 Reference
-4. Run the simulation:
-    1. Click the play button ( > ) below the code editor.
-5. Under the Plot tab on the right-hand side of the screen, ensure that the plot looks right:
-    1. It should display 3 plots, all displaying various kinds of wave shapes.
-6. Open the 22_angles in pi.acm model.
-    1. Click File > Open.
+	3. Ensure that the Traditional semantics is selected by going to the menu and selecting
+	   Semantics > Traditional -> 2014 Reference
+	4. Run the simulation by clicking the play button ( > ) below the code editor.
+	5. Check that the plot looks right. There should be three plots, all displaying 
+	   various kids of wave forms.
+3. Part 2 of test
+	1. Click File > Open.
     2. Select "22_angles in pi.acm" and click Open.
-7. Uncheck the Plot checkbox at the bottom-left of the Plot tab.
-8. Run the simulation:
-    1. Click the play button ( > ) below the code editor.
-9. The _3D tab should display and you should see an animation after the model 
-    is done simulating
-10. After the animation is done. click the fast forward button ( >> )
-    below the 3D view until the Speed indicator on the bottom right of
-    the screen says "Speed:4.0x".
-11. Click the play button ( > ) below the 3D view.
-12. Ensure that the animation runs smoothly and plays through to the end.
+	3. Run the simulation by clicking the play button ( > ) below the code editor.
+	4. Wait until the simulation is done (indicated by the progress bar under the editor).
+	5. Check that the _3D tab displays an animation.
+    6. Wait until the animation is done.
+    7. Check that fast replay works. This can be done by clicking the fast forward 
+       button ( >> ) below the _3D view until the speed indicator says "Speed:4.0x"
+       and then clicking the play button ( > ) below the _3D view.
 
 Please send your report to both Kevin Atkinson (kevinatk@rice.edu) and
 Walid Taha (maroneal@gmail.com).
