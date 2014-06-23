@@ -398,7 +398,8 @@ object Interpreter extends acumen.CStoreInterpreter {
               setResultType(Discrete, st3)
             }
           case FixedPoint => // Do continuous step
-            checkDuplicateAssingments(eqs.toList.map{ case (o, d, _) => (o, d) }, x => DuplicateContinuousAssingment(x))
+            checkDuplicateAssingments(eqs.toList.map{case (o,d,_) => (o,d)} ++ odes.toList.map{case (o,d,_,_) => (o,d)},
+                                      x => DuplicateContinuousAssingment(x))
             checkContinuousDynamicsAlwaysDefined(p, eqs, st1)
             val stODE = solveIVP(odes, p, st1)
             val stE = applyAssignments(eqs.toList) ~> stODE
