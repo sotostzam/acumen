@@ -6,19 +6,20 @@ import collection.immutable.Queue
 import collection.mutable.ListBuffer
 import scala.actors._
 import InterpreterCntrl._
+import java.io.File
 
 class CStoreCntrl(val semantics: SemanticsImpl[_], val interpreter: CStoreInterpreter) extends InterpreterCntrl {
 
   def newInterpreterModel = interpreter.newInterpreterModel
 
-  def init(progText: String, consumer:Actor) = new InterpreterActor(progText, consumer) {
+  def init(progText: String, currentDir: File, consumer:Actor) = new InterpreterActor(progText, consumer) {
 
     var buffer = Queue.empty[GStore]
     var defaultBufferSize = 200
     var bufferSize = 1 // start off with one step
 
     def parse() = {
-      val ast = semantics.parse(progText)
+      val ast = semantics.parse(progText, currentDir, None)
       val des = semantics.applyPasses(ast, Main.extraPasses)
       prog = des
     }

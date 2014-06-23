@@ -2,6 +2,7 @@ package acumen
 
 import Errors._
 import interpreters._
+import java.io.{File,InputStreamReader,FileInputStream}
 
 case class Semantics(id: Option[String], 
                      // id is None if the semantics being implement
@@ -23,8 +24,22 @@ abstract class SemanticsImpl[+I <: Interpreter]
   val id : Seq[String] 
   val semantics: Semantics
   def interpreter() : I
-  def parse(s: java.io.Reader) : Prog = Parser.run(Parser.prog, s)
+  def parse(s: java.io.Reader) : Prog = Parser.run(Parser.prog, s, None)
   def parse(s: String) : Prog = Parser.run(Parser.prog, s)
+
+  // Parse a program with includes
+  // "dir" is the directory 
+  def parse(s: java.io.Reader, dir: File, fn: Option[String]) : Prog = Prog(parseHelper(s,dir,fn))
+  def parse(s: String, dir: File, fn: Option[String]) : Prog = parse(new java.io.StringReader(s),dir,fn)
+  private def parseHelper(s: java.io.Reader, dir: File, fn: Option[String]) : List[ClassDef] = {
+    val file = fn map {f => new File(dir, f)}
+    val (incl, defs) = Parser.run(Parser.fullProg, s, file)
+    incl.flatMap{fn => 
+      val in = new InputStreamReader(new FileInputStream(new File(dir,fn)))
+      parseHelper(in, dir, Some(fn))
+    } ++ defs
+  }
+
   def applyPasses(p: Prog, extraPasses: Seq[String]) : Prog =
     PassManager.applyPasses(p, semantics.requiredPasses, semantics.defaultPasses, extraPasses)
   // withArgs returns when given an invalid argument, calling function

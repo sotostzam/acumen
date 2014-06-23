@@ -1,11 +1,15 @@
 package acumen
 
-import scala.util.parsing.input.StreamReader
+import scala.util.parsing.input.{Reader,StreamReader}
 import scala.util.parsing.combinator.lexical.StdLexical
 import scala.util.parsing.combinator.syntactical.StdTokenParsers
 import scala.util.parsing.input.CharArrayReader.EofCh
 import scala.util.parsing.combinator.token.StdTokens
 import scala.collection.immutable.HashMap
+import scala.util.parsing.input.Position
+import java.io.File
+import java.io.BufferedReader
+import scala.collection.immutable.PagedSeq
 
 import Errors._
 
@@ -75,6 +79,63 @@ class MyStdTokenParsers extends StdTokenParsers {
 
 }
 
+/* Position class enhanced the filename of the source file */
+abstract class EnhancedPosition extends Position {
+  def file: Option[File]
+  override def toString: String = file match {
+    case Some(file) => file.toString + ": " + super.toString
+    case None => super.toString
+  }
+}
+
+/* Reimplemented StreamReader so that we can add a filename to the source location.
+ * Reimplemented, because StreamReader is sealed and can not be extended.
+ * Orignal copyright of copyrighted code: Scala API, (c) 2006-2013, LAMP/EPFL,
+ * http://scala-lang.org/ */
+object MyReader {
+  def apply(in: java.io.Reader, f: Option[File]): MyReader = {
+    new MyReader(PagedSeq.fromReader(in), 0, 1, f)
+  }
+}
+sealed class MyReader(seq: PagedSeq[Char], override val offset: Int, lnum: Int, f: Option[File]) extends Reader[Char]
+{
+  import MyReader._
+  def file = f
+
+  override lazy val source: java.lang.CharSequence = seq
+
+  override def atEnd = !seq.isDefinedAt(offset)
+
+  override def first = if (seq.isDefinedAt(offset)) seq(offset) else EofCh
+
+  override def rest: MyReader =
+    if (offset == seq.length) this
+    else if (seq(offset) == '\n')
+      new MyReader(seq.slice(offset + 1), 0, lnum + 1, file)
+    else new MyReader(seq, offset + 1, lnum, file)
+
+  private def nextEol = {
+    var i = offset
+    while (i < seq.length && seq(i) != '\n' && seq(i) != EofCh) i += 1
+    i
+  }
+
+  override def drop(n: Int): MyReader = {
+    val eolPos = nextEol
+    if (eolPos < offset + n && eolPos < seq.length)
+      new MyReader(seq.slice(eolPos + 1), 0, lnum + 1, file).drop(offset + n - (eolPos + 1))
+    else
+      new MyReader(seq, offset + n, lnum, file)
+  }
+
+  override def pos: EnhancedPosition = new EnhancedPosition {
+    override def line = lnum
+    override def column = offset + 1
+    override def lineContents = seq.slice(0, nextEol).toString
+    override def file = f
+  }
+}
+
 object Parser extends MyStdTokenParsers {
 
   lexical.delimiters ++=
@@ -85,7 +146,7 @@ object Parser extends MyStdTokenParsers {
 
   lexical.reserved ++=
     List("for", "end", "if", "else", "create", "move", "in",
-      "terminate", "class", "sum", "true", "false",
+      "terminate", "include", "class", "sum", "true", "false",
       "private", "switch", "case", "Continuous", "Discrete", "none", "type", "claim",
       "let")
 
@@ -97,11 +158,11 @@ object Parser extends MyStdTokenParsers {
 
   /* main parser method */
 
-  def run[A](p: Parser[A], s: String): A =
-    run(p, new java.io.StringReader(s))
+  def run[A](p: Parser[A], s: String, f: Option[File] = None): A =
+    run(p, new java.io.StringReader(s), f)
 
-  def run[A](p: Parser[A], s: java.io.Reader): A = {
-    val res = phrase(p)(new lexical.Scanner(StreamReader(s)))
+  def run[A](p: Parser[A], s: java.io.Reader, f: Option[File]): A = {
+    val res = phrase(p)(new lexical.Scanner(MyReader(s, f)))
     if (!res.successful) 
       throw ParseError(res.toString)
     else res.get
@@ -150,6 +211,10 @@ object Parser extends MyStdTokenParsers {
   /* the actual parser */
 
   def prog = rep(classDef) ^^ Prog
+  
+  def fullProg = rep(include) ~! rep(classDef) ^^ { case incl ~ defs => (incl, defs) }
+
+  def include = "include" ~! stringLit ~! ";" ^^ { case _ ~ str ~ _ => str }
 
   def classDef = "class" ~! className ~! args(name) ~! inits ~! actions ~! "end" ^^
     { case _ ~ c ~ fs ~ is ~ b ~ _ => ClassDef(c, fs, is, b) }

@@ -9,6 +9,7 @@ import scala.swing._
 import scala.swing.event._
 import util.Canonical._
 import util.Conversions._
+import java.io.File
 
 import interpreter._
 import interpreter.{InterpreterCntrl => IC}
@@ -23,7 +24,7 @@ case class Progress3d(percent: Int) extends AppEvent
 
 // (actor) messages from the UI
 sealed abstract class AppActions
-case class Init(t:String, i:InterpreterCntrl) extends AppActions
+case class Init(t:String, cdir: File, i:InterpreterCntrl) extends AppActions
 case object Play extends AppActions
 case object Stop extends AppActions
 case object Pause extends AppActions
@@ -77,11 +78,11 @@ class Controller extends DaemonActor {
         //
         // messages from UI
         //
-        case Init(progText, interpreter) => 
+        case Init(progText, currentDir, interpreter) => 
           //println("INIT")
           App.ui.modelFinished = false
           model = interpreter.newInterpreterModel
-          producer = interpreter.init(progText, this)
+          producer = interpreter.init(progText, currentDir, this)
           link(producer)
           producer.start()
           setState(Starting)
