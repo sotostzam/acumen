@@ -140,6 +140,7 @@ class App extends SimpleSwingApplication {
   private val reference2014Action             = mkActionMask("2014 Reference",                      VK_R, VK_R,       shortcutMask | SHIFT_MASK, setSemantics(S.Ref2014))
   private val reference2013Action             = mkActionMask("2013 Reference",                      VK_R, NONE,       shortcutMask | SHIFT_MASK, setSemantics(S.Ref2013))
   private val reference2012Action             = mkActionMask("2012 Reference",                      VK_R, NONE,       shortcutMask | SHIFT_MASK, setSemantics(S.Ref2012))
+  private val optimized2014Action             = mkActionMask("2014 Optimized",                      VK_O, NONE,       shortcutMask | SHIFT_MASK, setSemantics(S.Opt2014))
   private val optimized2013Action             = mkActionMask("2013 Optimized",                      VK_O, NONE,       shortcutMask | SHIFT_MASK, setSemantics(S.Opt2013))
   private val optimized2012Action             = mkActionMask("2012 Optimized",                      VK_O, NONE,       shortcutMask | SHIFT_MASK, setSemantics(S.Opt2012)) 
   private val parallel2012Action              = mkActionMask("2012 Parallel",                       VK_P, NONE,       shortcutMask | SHIFT_MASK, promptForNumberOfThreads)
@@ -484,6 +485,11 @@ class App extends SimpleSwingApplication {
             enableWhenStopped(this)
         action = reference2014Action
       }
+      val opt2014 = new RadioMenuItem("") {
+        selected = false
+        enableWhenStopped(this)
+        action = optimized2014Action
+      }
       val ref2013 = new RadioMenuItem("") {
         selected = false
         enableWhenStopped(this)
@@ -521,7 +527,7 @@ class App extends SimpleSwingApplication {
         selected = false // Main.useEnclosures &&
           //enclosure.Interpreter.strategy.eventEncloser.getClass == classOf[TreeEventEncloser]
       }
-      val bg = new ButtonGroup(ref2013, opt2013, ref2014, ref2012, opt2012, par2012, encPWL, encEVT)
+      val bg = new ButtonGroup(ref2013, opt2013, ref2014, opt2014, ref2012, opt2012, par2012, encPWL, encEVT)
       val ls = new CheckMenuItem("") {
         action = contractionAction
         enabledWhenStopped += (this, () => interpreter.interpreter.getClass == enclosure.Interpreter.getClass)
@@ -546,8 +552,7 @@ class App extends SimpleSwingApplication {
       contents += new Menu("Traditional") {
         mnemonic = Key.T
         contents += ref2014
-        if (Main.enableAllSemantics)
-          contents ++= Seq(opt2013)
+        contents += opt2014
       }
       contents += new Menu("Enclosure") {
         mnemonic = Key.E

@@ -22,10 +22,8 @@ import java.io.InputStreamReader
 
 import Common.ObjId
 
-class InterpreterTest extends InterpreterTestBase {
-  override def semantics = SemanticsImpl.Optimized()
-
-  override def suiteName = "Optimized InterpreterTest"
+abstract class InterpreterTest extends InterpreterTestBase {
+  def testExamples(): Unit
 
   test("StoreConversions1") {
     import Interpreter._
@@ -126,7 +124,7 @@ class InterpreterTest extends InterpreterTestBase {
     else t1.isEmpty && t2.isEmpty
   }
 
-  testExamples(Examples2013)
+  testExamples
   testShouldRun
 
   def getError(file:String) : Option[PositionalAcumenError] = {
