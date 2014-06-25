@@ -31,7 +31,7 @@ object TransformationTestUtil {
    * of d is the same as that obtained by first applying transform to d and then simulating.
    */
   def preservesContinuousReferenceSemanticsOf(transform: Prog => Prog, p: Prog, modelName: Option[String]) =
-    preservesSemanticsOf(TopLevel, transform, p, modelName, "continuous non-rigorous", { (desugared, transformed) =>
+    preservesSemanticsOf(LocalInline, transform, p, modelName, "continuous non-rigorous", { (desugared, transformed) =>
       val contNames = getContinuousVariables(p)
       // set up the experimental interpreter
       val i = interpreters.reference2014.Interpreter
