@@ -3,13 +3,15 @@ package interpreters
 package optimized
 
 import scala.collection.immutable.HashMap
+import scala.collection.immutable.Map
+import scala.collection.mutable.ArrayBuffer
 import scala.util.parsing.input.{Positional,Position,NoPosition}
 
 import acumen.Errors._
 import acumen.Pretty._
 import acumen.util.Conversions._
 import acumen.util.Random
-import acumen.interpreters.Common.{ classDef, evalOp, evalIndexOp }
+import acumen.interpreters.Common._
 import acumen.util.Canonical.{
   childrenOf, 
   classf,
@@ -33,7 +35,11 @@ object Common {
   type Store = Object
   type ObjId = Object
   type Val = Value[ObjId]
-  type Env = Map[Name, Val]
+  case class Env(env: Map[Name, Val], forOde: Option[IndexedSeq[Val]] = None) {
+    def apply(n: Name) = env.apply(n)
+    def get(n: Name) = env.get(n)
+    def +(v:(Name,Val)) = Env(env + v, forOde)
+  }
   
   type MMap[A, B] = scala.collection.mutable.Map[A, B]
   val MMap = scala.collection.mutable.Map
@@ -42,6 +48,7 @@ object Common {
     var lastSetPos : Position = NoPosition
     var prevVal : Val = VObjId(None)
     var curVal : Val = v
+    var lookupIdx : Int = -1
     var lastUpdated : Int = -1
   }
 
@@ -51,7 +58,11 @@ object Common {
     var doDiscrete = false;
     var doEquationT = false;
     var doEquationI = false;
+    var gatherEquationI = false;
+    var odes = new ArrayBuffer[Equation];
   }
+
+  case class Equation(id: ObjId, field: Name, rhs: Expr, env: Map[Name, Val]);
 
   case class Object(
       val id: CId,
@@ -208,27 +219,53 @@ object Common {
   def getField(o: Object, f: Name) = {
     val v = o.fields(f)
     if (o.phaseParms.delayUpdate && v.lastUpdated == o.phaseParms.curIter) v.prevVal
+    else {assert(v.lookupIdx == -1); v.curVal}
+  }
+
+  def getField(o: Object, f: Name, env: Env) = {
+    val v = o.fields(f)
+    if (v.lookupIdx != -1) env.forOde match {
+      case Some(l) => l(v.lookupIdx)
+      case None => v.prevVal
+    }
+    else if (o.phaseParms.delayUpdate && v.lastUpdated == o.phaseParms.curIter) v.prevVal
     else v.curVal
   }
 
   /* SIDE EFFECT */
-  def setField(o: Object, f: Name, newVal: Val, pos: Position = NoPosition): Changeset =
+  def setField(o: Object, f: Name, newVal: Val, idx: Int, pos: Position): Changeset =
     if (o.fields contains f) {
       val oldVal = getField(o, f)
       val v = o.fields(f)
-      //println(f + " oldVal:" + oldVal + "  prevVal: " + v.prevVal + "  curVal: " + v.curVal + "  newVal: " + newVal + "  lastUpdated: " + v.lastUpdated + "  curIter: " + o.phaseParms.curIter + "  delayUpdate: " + o.phaseParms.delayUpdate)
       if (v.lastUpdated == o.phaseParms.curIter) {
         if (o.phaseParms.delayUpdate && v.curVal != newVal) throw DuplicateAssingmentUnspecified(f).setPos(pos).setOtherPos(v.lastSetPos)
         v.curVal = newVal
       } else {
         v.prevVal = v.curVal; v.curVal = newVal; v.lastUpdated = o.phaseParms.curIter
       }
+      v.lookupIdx = idx
       v.lastSetPos = pos;
       if (oldVal == newVal) noChange
       else logModified
-    }
+    } 
     else throw VariableNotDeclared(f).setPos(pos)
-  
+
+  def setField(o: Object, f: Name, newVal: Val, pos: Position = NoPosition): Changeset =
+    setField(o, f, newVal, -1, pos)
+ 
+  def setFieldIdx(o: Object, f: Name, idx: Int, pos: Position = NoPosition) =
+    setField(o, 
+             f, 
+             null, // if lookupIdx is set curVal should not be used
+                   // so set to null to enforce this rule
+             idx, 
+             pos)
+
+  def setFieldSimple(o: Object, f: Name, newVal: Val) {
+    val v = o.fields(f)
+    v.curVal = newVal
+    v.lookupIdx = -1
+  }
 
   /* get the class associated to an object */
   def getClassOf(o: Object): ClassName = {
@@ -290,7 +327,7 @@ object Common {
         /* e.f */
         case Dot(e, f) =>
           val id = evalToObjId(e,p,env)
-          getField(id, f)
+          getField(id, f, env)
         /* x && y */
         case Op(Name("&&", 0), x :: y :: Nil) =>
           val VLit(GBool(vx)) = eval(env, x)
@@ -367,15 +404,15 @@ object Common {
 
     val vs = ctrs map {
       case NewRhs(e, es) =>
-        val cn = evalExpr(e, p, Map(self -> VObjId(Some(res)))) match {
+        val cn = evalExpr(e, p, Env(Map(self -> VObjId(Some(res))))) match {
           case VClassName(cn) => cn
           case v => throw NotAClassName(v).setPos(e.pos)
         }
-        val ves = es map (evalExpr(_, p, Map(self -> VObjId(Some(res)))))
+        val ves = es map (evalExpr(_, p, Env(Map(self -> VObjId(Some(res))))))
         val nsd = getNewSeed(res)
         VObjId(Some(mkObj(cn, p, ParentIs(res), nsd, ves, magic)))
       case ExprRhs(e) =>
-        evalExpr(e, p, Map(self -> VObjId(Some(res))))
+        evalExpr(e, p, Env(Map(self -> VObjId(Some(res)))))
     }
     val priv = privVars zip vs.map{new ValVal(_)}
     res.fields = pub ++ priv
@@ -446,6 +483,12 @@ object Common {
           case _ =>
             throw BadLhs()
         },d.pos)
+      } else if (magic.phaseParms.gatherEquationI) {
+        val id = evalToObjId(e, p, env)
+        val idx = magic.phaseParms.odes.length
+        setFieldIdx(id, x, idx, d.pos)
+        magic.phaseParms.odes.append(Equation(id,x,t,env.env))
+        logModified
       } else noChange
       case _ =>
         throw ShouldNeverHappen() // FIXME: fix that with refinement types
@@ -500,7 +543,7 @@ object Common {
     val as = classDef(getClassOf(o), p).body
     val env = HashMap((self, VObjId(Some(o))))
     assert(o.phaseParms eq magic.phaseParms)
-    evalActions(as, env, p, magic)
+    evalActions(as, Env(env), p, magic)
   }
 
   def traverseSimple(f: ObjId => Changeset, root: ObjId): Changeset = {
@@ -520,5 +563,26 @@ object Common {
   def checkIsChildOf(child:ObjId, parent:ObjId, context: Expr) : Unit = {
     if (! (parent.children contains child)) throw NotAChildOf(child,parent).setPos(context.pos)
   }
+
+  /* IVP */
+
+  case class FieldImpl(odes: ArrayBuffer[Equation], p: Prog) extends Field[IndexedSeq[Val]] {
+    override def apply(s: IndexedSeq[Val]) =  {
+      //System.out.println("Apply...")
+      //System.out.println("ODS: " + odes)
+      val res = odes.map{e => evalExpr(e.rhs, p, Env(e.env,Some(s)))}
+      //System.out.println("in:  " + s)
+      //System.out.println("res: " + res)
+      //System.out.flush()
+      res
+    }
+  }
+  
+  case class RichStoreImpl(s: IndexedSeq[Val]) extends RichStore[IndexedSeq[Val]] {
+    override def +++(that: IndexedSeq[Val]) = (this.s,that).zipped.map{(a,b) => evalOp("+", List(a,b))}
+    override def ***(that: Double) = this.s.map{a => evalOp("*", List(a,VLit(GDouble(that))))}
+  }
+  
+  implicit def liftStore(s: IndexedSeq[Val])(implicit field: FieldImpl): RichStoreImpl = RichStoreImpl(s)
   
 }

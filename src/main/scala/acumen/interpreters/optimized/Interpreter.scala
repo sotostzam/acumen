@@ -8,7 +8,7 @@ import acumen.Errors._
 import acumen.Pretty._
 import acumen.util.Conversions._
 import acumen.util.Random
-import acumen.interpreters.Common.{ classDef, evalOp, initStoreImpr, magicClass }
+import acumen.interpreters.Common._
 import acumen.util.Canonical.{
   childrenOf, 
   classf,
@@ -28,12 +28,21 @@ import acumen.util.Canonical.{
 }
 import scala.annotation.tailrec
 
+abstract class ContMode;
+object ContMode {
+  case object Seq extends ContMode
+  case object Par extends ContMode
+  case object IVP extends ContMode
+}
+
 class Interpreter(val parDiscr: Boolean = true, 
-                  val parCont: Boolean = false,
+                  val contMode: ContMode = ContMode.Seq,
                   val contWithDiscr: Boolean = false) extends CStoreInterpreter {
   override def id = Array("optimized", 
                           if (parDiscr) "parDiscr" else "seqDiscr",
-                          if (parCont) "parCont" else "seqDiscr",
+                          contMode match {case ContMode.Seq => "seqCont"; 
+                                          case ContMode.Par => "parCont"; 
+                                          case ContMode.IVP => "IVP";},
                           if (contWithDiscr) "contWithDiscr" else "contWithCont")
 
   import Common._ 
@@ -56,50 +65,92 @@ class Interpreter(val parDiscr: Boolean = true,
   def localStep(p: Prog, st: Store): ResultType = {
     val magic = getSimulator(st)
     stepInit
+  
+    val pp = magic.phaseParms
+    pp.curIter += 1
+  
     if (getTime(magic) > getEndTime(magic)) {
+
       null
+
     } else {
-      val pp = magic.phaseParms
-      pp.curIter += 1
-      if (getResultType(magic) != FixedPoint) {
+
+      pp.gatherEquationI = false
+      val rt = if (getResultType(magic) != FixedPoint) { // Discrete Step
+
         if (parDiscr) pp.delayUpdate = true
         else          pp.delayUpdate = false
         pp.doDiscrete = true
         if (contWithDiscr) pp.doEquationT = true
         else               pp.doEquationT = false
         pp.doEquationI = false
-      } else {
-        if (parCont) pp.delayUpdate = true
-        else         pp.delayUpdate = false
+
+        traverse(evalStep(p, magic), st) match {
+          case SomeChange(dead, rps) =>
+            for ((o, p) <- rps)
+            changeParent(o, p)
+            for (o <- dead) {
+              o.parent match {
+                case None => ()
+                case Some(op) =>
+                  for (oc <- o.children) changeParent(oc, op)
+                  op.children = op.children diff Seq(o)
+              }
+            }
+            Discrete
+          case NoChange() =>
+            FixedPoint
+          }
+
+      } else if (contMode != ContMode.IVP) { // Continuous step 
+
+        if (contMode == ContMode.Par) pp.delayUpdate = true
+        else                          pp.delayUpdate = false
         pp.doDiscrete = false
         if (contWithDiscr) pp.doEquationT = false
         else               pp.doEquationT = true
         pp.doEquationI = true
+
+        traverse(evalStep(p, magic), st)
+
+        Continuous
+
+      } else { // Continuous step, IVP mode
+
+        pp.delayUpdate = true
+        pp.doDiscrete = false
+        pp.doEquationT = true
+        pp.doEquationI = false
+        pp.gatherEquationI = true
+        pp.odes.clear()
+        
+        traverse(evalStep(p, magic), st)
+        
+        val sz = pp.odes.size
+        val initVal = new Array[Val](sz)
+        var idx = 0
+        while (idx < sz) {
+          val eqt = pp.odes(idx)
+          initVal(idx) = eqt.id.fields(eqt.field).prevVal
+          idx += 1
+        }
+
+        implicit val field = FieldImpl(pp.odes, p)
+        val res = solveIVPRungeKutta(initVal : IndexedSeq[Val], getTimeStep(magic))
+        idx = 0
+        while (idx < sz) {
+          val eqt = pp.odes(idx)
+          setFieldSimple(eqt.id, eqt.field, res(idx))
+          idx += 1
+        }
+
+        Continuous
       }
-      val chtset = traverse(evalStep(p, magic), st)
-      val rt = getResultType(magic) match {
-        case Discrete | Continuous =>
-          chtset match {
-            case SomeChange(dead, rps) =>
-              for ((o, p) <- rps)
-                changeParent(o, p)
-              for (o <- dead) {
-                o.parent match {
-                  case None => ()
-                  case Some(op) =>
-                    for (oc <- o.children) changeParent(oc, op)
-                    op.children = op.children diff Seq(o)
-                }
-              }
-              Discrete
-            case NoChange() =>
-              FixedPoint
-          }
-        case FixedPoint =>
-          setTime(magic, getTime(magic) + getTimeStep(magic))
-          Continuous
-      }
+
+      if (rt == Continuous)
+        setTime(magic, getTime(magic) + getTimeStep(magic))
       setResultType(magic, rt)
+
       rt
     }
   }
@@ -149,5 +200,5 @@ class Interpreter(val parDiscr: Boolean = true,
 
 }
 
-object Interpreter extends Interpreter(true,false,false)
+object Interpreter extends Interpreter(true,ContMode.Seq,false)
 
