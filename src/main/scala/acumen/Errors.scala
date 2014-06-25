@@ -22,6 +22,16 @@ object Errors {
     override def mesg = 
       "Class " + pprint(cn) + " is defined twice."
   }
+  case class ClassIncludedTwice(cn:ClassName, pos1: List[Position], pos2: List[Position]) extends PositionalAcumenError {
+    override def mesg = 
+      "Class " + pprint(cn) + " included twice."
+    override def getMessage = 
+        super.getMessage + "\n" + locationTrace("First location", pos1) + locationTrace("Second location", pos2)
+    def locationTrace(descr: String, pos: List[Position]) : String = {
+      pos.head.toString + ": " + descr + "\n" +
+      pos.tail.map{p => p.toString + ": included from\n"}.mkString("")
+    }
+  }
   case class NoInstanceFound(cn:ClassName) extends PositionalAcumenError {
     override def mesg = 
       "Found no instance of class " + pprint(cn) + "."
