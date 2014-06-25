@@ -4,6 +4,7 @@ package interpreter
 
 import scala.actors._
 import scala.util.control.ControlThrowable
+import java.io.File
 
 abstract class InterpreterActor(val progText : String, val consumer : Actor) extends Actor {
 
@@ -64,5 +65,5 @@ abstract class InterpreterCntrl {
   def interpreter: Interpreter
 
   // Creates a new actor to perform the computation.
-  def init(prog: String, consumer:Actor) : InterpreterActor
+  def init(prog: String, currentDir: File, consumer:Actor) : InterpreterActor
 } 
