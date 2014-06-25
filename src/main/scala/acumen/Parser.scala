@@ -36,7 +36,6 @@ class MyLexical extends StdLexical {
     case Some(s) => s
     case None => default
   }
-
   private def ident = (letter | '_') ~ rep(letter | digit | '_') ^^ {
     case first ~ rest => processIdent(first :: rest mkString "")
   }
@@ -142,11 +141,11 @@ object Parser extends MyStdTokenParsers {
     List("(", ")", "{", "}", "[", "]", ";", "=", ":=", "=[i]", "=[t]", "'", ",",
       ".", "+", "-", "*", "/", "^", ".+", ".-", ".*", "./", ".^",
       ":", "<", ">", "<=", ">=", "==", "~=", "||",
-      "&&", "<<", ">>", "&", "|", "%", "@", "..", "+/-", "#")
+      "&&", "<<", ">>", "&", "|", "%", "@", "..", "+/-", "#include")
 
   lexical.reserved ++=
     List("for", "end", "if", "else", "create", "move", "in",
-      "terminate", "include", "class", "sum", "true", "false",
+      "terminate", "class", "sum", "true", "false",
       "private", "switch", "case", "Continuous", "Discrete", "none", "type", "claim",
       "let")
 
@@ -214,7 +213,7 @@ object Parser extends MyStdTokenParsers {
   
   def fullProg = rep(include) ~! rep(classDef) ^^ { case incl ~ defs => (incl, defs) }
 
-  def include = positioned("#" ~! "include" ~! stringLit ^^ { case _ ~ str => Include(str) })
+  def include = positioned("#include" ~! stringLit ^^ { case _ ~ str => Include(str) })
 
   def classDef = positioned("class" ~! className ~! args(name) ~! inits ~! actions ~! "end" ^^
     { case _ ~ c ~ fs ~ is ~ b ~ _ => ClassDef(c, fs, is, b) })
