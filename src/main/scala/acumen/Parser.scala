@@ -142,7 +142,7 @@ object Parser extends MyStdTokenParsers {
     List("(", ")", "{", "}", "[", "]", ";", "=", ":=", "=[i]", "=[t]", "'", ",",
       ".", "+", "-", "*", "/", "^", ".+", ".-", ".*", "./", ".^",
       ":", "<", ">", "<=", ">=", "==", "~=", "||",
-      "&&", "<<", ">>", "&", "|", "%", "@", "..", "+/-")
+      "&&", "<<", ">>", "&", "|", "%", "@", "..", "+/-", "#")
 
   lexical.reserved ++=
     List("for", "end", "if", "else", "create", "move", "in",
@@ -214,7 +214,7 @@ object Parser extends MyStdTokenParsers {
   
   def fullProg = rep(include) ~! rep(classDef) ^^ { case incl ~ defs => (incl, defs) }
 
-  def include = "include" ~! stringLit ~! ";" ^^ { case _ ~ str ~ _ => str }
+  def include = "#" ~! "include" ~! stringLit ^^ { case _ ~ str => str }
 
   def classDef = "class" ~! className ~! args(name) ~! inits ~! actions ~! "end" ^^
     { case _ ~ c ~ fs ~ is ~ b ~ _ => ClassDef(c, fs, is, b) }
