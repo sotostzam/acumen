@@ -64,7 +64,6 @@ class Interpreter(val parDiscr: Boolean = true,
 
   def localStep(p: Prog, st: Store): ResultType = {
     val magic = getSimulator(st)
-    stepInit
   
     val pp = magic.phaseParms
     pp.curIter += 1
@@ -171,7 +170,6 @@ class Interpreter(val parDiscr: Boolean = true,
     // ^^ set to IfLast on purpose to make things work
     @tailrec def step0() : Unit = {
       val res = localStep(p, st)
-      stepInit
       if (res == null) {
         if (shouldAddData == ShouldAddData.IfLast)
           addData(st, adder)
@@ -195,11 +193,6 @@ class Interpreter(val parDiscr: Boolean = true,
     adder.addData(st.id, st.fieldsCur)
     st.children.foreach { child => addData(child, adder) }
   }
-
-  def stepInit : Unit = {}
-  def traverse(f: ObjId => Changeset, root: ObjId): Changeset =
-    traverseSimple(f, root)
-
 }
 
 object Interpreter extends Interpreter(true,ContMode.Seq,false)
