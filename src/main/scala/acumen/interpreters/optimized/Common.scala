@@ -536,6 +536,8 @@ object Common {
         else noChange
       case Continuously(ca) =>
         evalContinuousAction(ca, env, p, magic)
+      case Claim(_) =>
+        noChange        
     }
   }
 
