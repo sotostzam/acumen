@@ -417,18 +417,15 @@ object Interpreter extends acumen.CStoreInterpreter {
    * The time segment is derived from time step in store st. 
    */
   def solveIVP(odes: Set[(CId, Dot, Expr, Env)], p: Prog, st: Store): Store = {
-    def msg(meth: String) = "Invalid integration method \"" + meth + 
-      """. Please select one of ["EulerCromer", "EulerForward", "RungeKutta"]"""
-    val h = getTimeStep(st)
     implicit val field = FieldImpl(odes, p)
-    getInSimulator(Name("method", 0), st) match {
-      case VLit(GStr("EulerForward")) => solveIVPEulerForward(st, h)
-      case VLit(GStr("RungeKutta"))   => solveIVPRungeKutta(st, h)
-      case VLit(GStr("EulerCromer"))  => solveIVPEulerCromer(st, h)
-      case VLit(GStr(m))              => throw new Error(msg(m))
-      case VClassName(ClassName(c))   => throw new Error(msg(c))
-      case m                          => throw new Error(msg(m.toString))
-    }
+    new Solver(getInSimulator(Name("method", 0),st), xs = st, h = getTimeStep(st)){
+      // add the EulerCromer solver
+      override def knownSolvers = super.knownSolvers :+ "EulerCromer"
+      override def solveIfKnown(name: String) = super.solveIfKnown(name) orElse (name match {
+        case "EulerCromer" => Some(solveIVPEulerCromer(xs, h))
+        case _             => None  
+      })
+    }.solve
   }
   
   /** Representation of a set of ODEs. */
