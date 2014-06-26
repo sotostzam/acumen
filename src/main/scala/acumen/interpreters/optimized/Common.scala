@@ -546,10 +546,10 @@ object Common {
     evalActions(as, Env(env), p, magic)
   }
 
-  def traverseSimple(f: ObjId => Changeset, root: ObjId): Changeset = {
+  def traverse(f: ObjId => Changeset, root: ObjId): Changeset = {
     val r = f(root)
     val cs = root.children
-    if (cs.isEmpty) r else r || combine(cs, traverseSimple(f, _: ObjId))
+    if (cs.isEmpty) r else r || combine(cs, traverse(f, _: ObjId))
   }
 
   /* runtime checks, should be disabled once we have type safety */
@@ -568,12 +568,7 @@ object Common {
 
   case class FieldImpl(odes: ArrayBuffer[Equation], p: Prog) extends Field[IndexedSeq[Val]] {
     override def apply(s: IndexedSeq[Val]) =  {
-      //System.out.println("Apply...")
-      //System.out.println("ODS: " + odes)
       val res = odes.map{e => evalExpr(e.rhs, p, Env(e.env,Some(s)))}
-      //System.out.println("in:  " + s)
-      //System.out.println("res: " + res)
-      //System.out.flush()
       res
     }
   }
