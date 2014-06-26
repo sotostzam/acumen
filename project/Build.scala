@@ -31,7 +31,7 @@ object AcumenProject extends Build {
   def brokenTestFilter(name: String) = brokenTests.contains(name)
 
   // experimental: Failing tests that relate to experimental code
-  lazy val ExperimentalTest = config("reference2014") extend(Test)
+  lazy val ExperimentalTest = config("experimental") extend(Test)
   val experimentalTests = Set("acumen.FlattenSimpleTest")
   def experimentalTestFilter(name: String) = experimentalTests.contains(name)
 
