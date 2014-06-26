@@ -236,11 +236,30 @@ object Common {
   //
   // ODEs
   // 
+  
+  class Solver[S <% RichStore[S]](solverName: Value[_], val xs: S, val h: Double)(implicit f: Field[S]) {
+    private def msg(meth: String) = "Invalid integration method \"" + meth +
+        "\". Please select one of: " + knownSolvers.mkString(", ");
+    final def solve: S = {
+      solverName match {
+        case VLit(GStr(s))              => solveIfKnown(s) getOrElse (throw new Error(msg(s)))
+        case VLit(GStr(m))              => throw new Error(msg(m))
+        case VClassName(ClassName(c))   => throw new Error(msg(c))
+        case m                          => throw new Error(msg(m.toString))
+      }
+    }
+    def knownSolvers = List("EulerForward", "RungeKutta");
+    def solveIfKnown(name: String) : Option[S] = name match {
+      case "EulerForward" => Some(solveIVPEulerForward(xs, h))
+      case "RungeKutta"   => Some(solveIVPRungeKutta(xs, h))
+      case _              => None
+    }
+  }
 
-  def solveIVPEulerForward[S <% RichStore[S], O](xs: S, h: Double)(implicit f: Field[S]): S =
+  def solveIVPEulerForward[S <% RichStore[S]](xs: S, h: Double)(implicit f: Field[S]): S =
     xs +++ f(xs) *** h
 
-  def solveIVPRungeKutta[S <% RichStore[S], O](xs: S, h: Double)(implicit f: Field[S]): S = {
+  def solveIVPRungeKutta[S <% RichStore[S]](xs: S, h: Double)(implicit f: Field[S]): S = {
     val k1 = f(xs)
     val k2 = f(xs +++ k1 *** (h/2)) 
     val k3 = f(xs +++ k2 *** (h/2))

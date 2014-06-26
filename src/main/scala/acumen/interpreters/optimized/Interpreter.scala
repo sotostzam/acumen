@@ -137,7 +137,7 @@ class Interpreter(val parDiscr: Boolean = true,
         }
 
         implicit val field = FieldImpl(pp.odes, p)
-        val res = solveIVPRungeKutta(initVal : IndexedSeq[Val], getTimeStep(magic))
+        val res = new Solver(getField(magic, Name("method", 0)), initVal : IndexedSeq[Val], getTimeStep(magic)).solve
         idx = 0
         while (idx < sz) {
           val eqt = pp.odes(idx)
