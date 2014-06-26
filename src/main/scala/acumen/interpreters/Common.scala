@@ -248,9 +248,13 @@ object Common {
     xs +++ (k1 +++ k2 *** 2 +++ k3 *** 2 +++ k4) *** (h/6)
   }
 
+  /** Representation of a set of ODEs. */
   abstract class Field[S /* store */] {
+    /** Evaluate the field (the RHS of each equation in ODEs) in s. */
     def apply(s: S): S;
   }
+
+  /** Embedded DSL for expressing integrators. */
   abstract class RichStore[S /* store */] {
     def +++(that: S): S;
     def ***(that: Double): S;
