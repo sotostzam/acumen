@@ -117,7 +117,8 @@ object Errors {
     override def mesg = 
       "No case matching " + pprint(gv) + "."
   }
-  sealed abstract class DuplicateAssingment(x:Name) extends PositionalAcumenError {
+  sealed abstract class DuplicateAssingment extends PositionalAcumenError {
+    val x: Name
     var otherPos : Position = NoPosition
     def setOtherPos(o: Position) : this.type = {
       if (pos == NoPosition) pos = o
@@ -130,13 +131,13 @@ object Errors {
       if (otherPos == NoPosition) "" 
       else "\n" + otherPos.toString + ": other location\n" + otherPos.longString)
   }
-  case class DuplicateAssingmentUnspecified(x:Name) extends DuplicateAssingment(x) {
+  case class DuplicateAssingmentUnspecified(x:Name) extends DuplicateAssingment {
     override def mesg = super.mesg(" ")
   }
-  case class DuplicateDiscreteAssingment(x:Name) extends DuplicateAssingment(x) {
+  case class DuplicateDiscreteAssingment(x:Name) extends DuplicateAssingment {
     override def mesg = super.mesg(" discrete ")
   }
-  case class DuplicateContinuousAssingment(x:Name) extends DuplicateAssingment(x) {
+  case class DuplicateContinuousAssingment(x:Name) extends DuplicateAssingment {
     override def mesg = super.mesg(" continuous ")
   }
   case class BadLhs() extends PositionalAcumenError {
