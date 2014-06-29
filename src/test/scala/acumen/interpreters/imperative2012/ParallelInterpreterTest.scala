@@ -12,9 +12,13 @@ import Common._
 import java.io.FileInputStream
 import java.io.InputStreamReader
 
-class ParallelInterpreterTest extends InterpreterTestBase {
+import org.scalatest.matchers.ShouldMatchers
+import org.scalatest.FunSuite
 
-  override def semantics : SemanticsImpl.CStore = SemanticsImpl.Parallel2012()
+
+class ParallelInterpreterTest extends FunSuite with ShouldMatchers {
+  override def suiteName = "Imperative/Parallel 2012 Unit Tests"
+  def semantics : SemanticsImpl.CStore = SemanticsImpl.Parallel2012()
 
   test("StoreConversions1") {
     import ParallelInterpreter._
@@ -92,29 +96,4 @@ class ParallelInterpreterTest extends InterpreterTestBase {
     val st = fromCStore(cst,CId(2))
     cst should be (repr(st))
   }
-
-  def eqstreams(s1:Seq[CStore], s2:Seq[CStore]) : Boolean= {
-    var t1 = s1
-    var t2 = s2 
-    var break = false
-    while (t1.nonEmpty && t2.nonEmpty && !break) {
-      val h1 = t1.head
-      val h2 = t2.head
-      t1 = t1.tail
-      t2 = t2.tail
-      if (h1 != h2) {
-        println("*" * 30)
-        println(pprint(prettyStore(h1)))
-        println("!=" * 10)
-        println(pprint(prettyStore(h2)))
-        println("*" * 30)
-        break = true
-      }
-    }
-    if (break) false
-    else t1.isEmpty && t2.isEmpty
-  }
-
-  testExamples(Examples2012, {f => f.startsWith("examples/XXX_internal/test/ping-pong")})
-  testShouldRun
 }
