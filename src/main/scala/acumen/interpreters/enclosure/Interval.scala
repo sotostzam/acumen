@@ -2,6 +2,7 @@ package acumen.interpreters.enclosure
 
 import java.math.BigDecimal
 import java.math.MathContext
+import scala.annotation.unchecked
 
 import Interval._
 
@@ -105,16 +106,30 @@ case class Interval(
 
   /** Interval of possible square roots elements in this interval. */
   def sqrt = {
+    // If oscillating around fixpoint (flipping between two values), pick the 
+    // correct lower or upper end-point of the safe (outer) approximation. 
+    def safeApproximation(dir: java.math.MathContext)(x: Real, y: Real) =
+      (dir.getRoundingMode(): @unchecked) match {
+        case java.math.RoundingMode.CEILING => x max y
+        case java.math.RoundingMode.FLOOR   => x min y
+      }
     def sqrt(dir: java.math.MathContext)(x: Real) = {
       val half = new Real(0.5, dir)
       val xinit = x.round(dir)
-      var res = xinit
-      var tmp = xinit.subtract(xinit, dir) // == 0
-      while (res != tmp) {
-        tmp = res
-        res = half.multiply(res.add(xinit.divide(res, dir), dir), dir)
+      val zero = xinit.subtract(xinit, dir) // a zero of the right precision
+      if (xinit != zero) { // guard against / by zero in newtonIterate
+        def newtonIterate(est: Real) = half.multiply(est.add(xinit.divide(est, dir), dir), dir)
+        var tmp2 = xinit
+        var tmp1 = newtonIterate(tmp2)
+        var res = newtonIterate(tmp1)
+        while (res != safeApproximation(dir)(tmp1, tmp2)) {
+          tmp2 = tmp1
+          tmp1 = res
+          res = newtonIterate(res)
+        }
+        res
       }
-      res
+      else zero
     }
     if (this lessThan Interval(0)) sys.error("sqrt is undefined on " + this)
     else Interval(sqrt(dn)(max(lo, lo.subtract(lo))), sqrt(up)(hi))
