@@ -49,8 +49,6 @@ object CleanParameters {
             Clause(lhs, asrt, filterActions(rhs))}))
         case ForEach(it, col, body) =>
           Some(ForEach(it, col, filterActions(body)))
-        case Continuously(_) =>
-          Some(action)
         case Discretely(Assign(lhs, rhs)) =>
           lhs match {
             case Dot(Var(Name("self",0)),sn) if sn == simulatorName =>
@@ -64,9 +62,8 @@ object CleanParameters {
             case _ => 
               Some(action)
           }
-        case Discretely(_) =>
+        case Continuously(_) | Discretely(_) | Claim(_) | Hypothesis(_,_) =>
           Some(action)
-        case Claim(e) => Some(action)
       }
     }
 

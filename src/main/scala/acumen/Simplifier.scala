@@ -43,6 +43,7 @@ object Simplifier {
       case Continuously(ca) => Continuously(desca(ca))
       case Discretely(da) => Discretely(desda(da))
       case Claim(c) => Claim(dese(c))
+      case Hypothesis(s, c) => Hypothesis(s, dese(c))
     }
   }
 

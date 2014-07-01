@@ -281,6 +281,10 @@ object Interpreter extends acumen.CStoreInterpreter {
           else evalContinuousAction(ca, env, p) 
       case Claim(_) =>
         pass
+      case Hypothesis(s, e) =>
+        for (VLit(GBool(b)) <- asks(evalExpr(e, env, _)))
+          if (b) pass
+          else sys.error("Hypothesis \"" + s.getOrElse(Pretty pprint e) + "\" falsified.")
     }
   }
  

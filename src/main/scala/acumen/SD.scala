@@ -55,6 +55,7 @@ object SD {
       case _ => discreteAction
     })
     case Claim(cond) => Claim(runExpr(cond)) 
+    case Hypothesis(s, cond) => Hypothesis(s, runExpr(cond)) 
   }
 
   /**
