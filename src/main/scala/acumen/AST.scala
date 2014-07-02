@@ -43,7 +43,12 @@ package acumen {
   case class Prog(defs: List[ClassDef])
   /* Example:  Ball (x,x,x'' ) { ... } */
   case class ClassDef(name: ClassName, fields: List[Name],
-    priv: List[Init], body: List[Action]) {var _types : MutMap[Name, TypeLike] = null;}
+    priv: List[Init], body: List[Action]) 
+    extends Positional
+    {var _types : MutMap[Name, TypeLike] = null;}
+
+  /* Example: #include "ball.acm" */
+  case class Include(fn: String) extends Positional
 
   /* Example: x = rhs (inside a private ... end section) */
   case class Init(x: Name, rhs: InitRhs)

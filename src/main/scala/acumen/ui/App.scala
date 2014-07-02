@@ -85,7 +85,7 @@ class App extends SimpleSwingApplication {
 
           case EXIT => exit
 
-          case SendInit => controller ! Init(codeArea.textArea.getText, interpreter)
+          case SendInit => controller ! Init(codeArea.textArea.getText, codeArea.currentDir, interpreter)
 
           case msg: Event =>
             //println("Publishing This Msg: " + msg)
@@ -296,7 +296,7 @@ class App extends SimpleSwingApplication {
     console.log("Acumen3D disabled.")
     console.newLine
     if (Main.need_quartz) {
-      new threeD.DisabledThreeDTab("3D visualization disabled due to performace problems on Mac OS X. \n\nTo enable restart Java with -Dapple.awt.graphics.UseQuartz=true or use --3d to force 3D to be enabled.")
+      new threeD.DisabledThreeDTab("3D visualization disabled due to performance problems on Mac OS X. \n\nTo enable restart Java with -Dapple.awt.graphics.UseQuartz=true or use --3d to force 3D to be enabled.")
     } else {
       new threeD.DisabledThreeDTab("3D visualization disabled on the command line.")
     }
@@ -318,10 +318,8 @@ class App extends SimpleSwingApplication {
       console.log("Disabling 3D Tab.")
       console.newLine
       Main.threeDState = ThreeDState.ERROR
-      val errors = new StringWriter()
-      e.printStackTrace(new PrintWriter(errors))
-      new threeD.DisabledThreeDTab("Acumen 3D disabled.\nError loading Java3D: " + e +
-        "\n\nFull backtrace:\n" + errors)
+      new threeD.DisabledThreeDTab("Unable to load Java 3D. This functionality will not be available until this is fixed.\n" +
+        "Please consult the section on Installing Java 3D in the README file that comes with this download.")
   }
 
   val views = new TabbedPane {

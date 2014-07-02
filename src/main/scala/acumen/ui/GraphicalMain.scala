@@ -116,6 +116,7 @@ object GraphicalMain extends SimpleSwingApplication {
   }
 
   override def main(args: Array[String]) {
+    fixupThreeDState
     if (Main.positionalArgs.size() > 1)
       Main.openFile = Main.checkFile(Main.positionalArgs(1))
     maybeFork(args)
@@ -123,7 +124,6 @@ object GraphicalMain extends SimpleSwingApplication {
   }
 
   def top = {
-    fixupThreeDState
     try {
       App.init
     } catch {

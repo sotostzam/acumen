@@ -150,17 +150,17 @@ case class Desugarer(odeTransformMode: ODETransformMode) {
     }
   
   def firstOrderSystem(dot: Dot): List[ContinuousAction] = dot match {
-    case e@Dot(o, Name(f, n)) => 
+    case Dot(o, Name(f, n)) => 
       (for (k <- n until (0, -1))
-        yield EquationI(Dot(o, Name(f, k - 1)).setPos(e.pos), Dot(o, Name(f, k)).setPos(e.pos))).toList
+        yield EquationI(Dot(o, Name(f, k - 1)).setPos(dot.pos), Dot(o, Name(f, k)))).toList
   }
 
   def firstOrderSystemInline(dot: Dot, rhs: Expr): List[ContinuousAction] = dot match {
-    case e @ Dot(o, Name(f, n)) =>
+    case Dot(o, Name(f, n)) =>
       if (n == 0) Nil
-      else EquationI(Dot(o, Name(f, n-1)), rhs setPos e.pos) +:
+      else EquationI(Dot(o, Name(f, n-1)) setPos dot.pos, rhs) +:
         (for (k <- 0 until n-1)
-          yield EquationI(Dot(o, Name(f, k)) setPos e.pos, Dot(o, Name(f, k + 1)) setPos e.pos)).toList
+          yield EquationI(Dot(o, Name(f, k)) setPos dot.pos, Dot(o, Name(f, k + 1)))).toList
   }
   
   def highestOrderNames(ns: List[Name]): List[Name] =

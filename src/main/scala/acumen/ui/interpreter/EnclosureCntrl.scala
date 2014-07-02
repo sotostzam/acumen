@@ -7,12 +7,13 @@ import scala.actors._
 import acumen.interpreters.enclosure.EnclosureInterpreterCallbacks
 import acumen.interpreters.enclosure.affine.UnivariateAffineEnclosure
 import InterpreterCntrl._
+import java.io.File
 
 class EnclosureCntrl(val semantics: SemanticsImpl[_], val interpreter: RecursiveInterpreter) extends InterpreterCntrl {
 
   def newInterpreterModel = interpreter.newInterpreterModel
 
-  def init(progText: String, consumer:Actor) = new InterpreterActor(progText, consumer) {
+  def init(progText: String, currentDir: File, consumer:Actor) = new InterpreterActor(progText, consumer) {
 
     val callbacks = new EnclosureInterpreterCallbacks {
       // Bouncing Ball Example:
@@ -74,7 +75,7 @@ class EnclosureCntrl(val semantics: SemanticsImpl[_], val interpreter: Recursive
     }
 
     override def parse() = {
-      val ast = semantics.parse(progText)
+      val ast = semantics.parse(progText,currentDir,None)
       val des = semantics.applyPasses(ast,Main.extraPasses)
       prog = des
     }

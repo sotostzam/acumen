@@ -3,6 +3,9 @@ package acumen
 import Errors._
 import interpreters._
 import interpreters.optimized.ContMode
+import java.io.{File,InputStreamReader,FileInputStream}
+import scala.util.parsing.input.{Position}
+import scala.collection.mutable.{HashMap => MutHashMap}
 
 case class Semantics(id: Option[String], 
                      // id is None if the semantics being implement
@@ -24,8 +27,32 @@ abstract class SemanticsImpl[+I <: Interpreter]
   val id : Seq[String] 
   val semantics: Semantics
   def interpreter() : I
-  def parse(s: java.io.Reader) : Prog = Parser.run(Parser.prog, s)
+  def parse(s: java.io.Reader) : Prog = Parser.run(Parser.prog, s, None)
   def parse(s: String) : Prog = Parser.run(Parser.prog, s)
+
+  // Parse a program with includes
+  // "dir" is the directory 
+  def parse(s: java.io.Reader, dir: File, fn: Option[String]) : Prog = Prog(parseHelper(s,dir,fn,Nil,MutHashMap.empty))
+  def parse(s: String, dir: File, fn: Option[String]) : Prog = parse(new java.io.StringReader(s),dir,fn)
+  private def parseHelper(s: java.io.Reader, dir: File, fn: Option[String], includedFrom: List[Position],
+                          seen: MutHashMap[ClassName, List[Position]]) : List[ClassDef] = {
+    val file = fn map {f => new File(dir, f)}
+    val (incl, defs) = Parser.run(Parser.fullProg, s, file)
+    defs.foreach{case defn@ClassDef(cn,_,_,_) => 
+      if (seen.contains(cn)) {
+        val err = ClassIncludedTwice(cn, defn.pos :: includedFrom, seen(cn))
+        if (includedFrom.nonEmpty) err.setPos(includedFrom.head)
+        throw err
+      } else {
+        seen.put(cn, defn.pos :: includedFrom)
+      }
+    }
+    incl.flatMap{case incl@Include(fn) => 
+      val in = new InputStreamReader(new FileInputStream(new File(dir,fn)))
+      parseHelper(in, dir, Some(fn), incl.pos :: includedFrom, seen)
+    } ++ defs
+  }
+
   def applyPasses(p: Prog, extraPasses: Seq[String]) : Prog =
     PassManager.applyPasses(p, semantics.requiredPasses, semantics.defaultPasses, extraPasses)
   // withArgs returns when given an invalid argument, calling function
