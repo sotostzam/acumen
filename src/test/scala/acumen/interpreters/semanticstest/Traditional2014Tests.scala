@@ -15,9 +15,9 @@ trait Traditional2014Tests extends SemanticsTestBase with BasicErrorTests {
     // should be updated.
     f.endsWith("/Quantization - Linear.acm") ||
     f.endsWith("/01_Converting_Accelerations.acm") ||
-    f.startsWith("examples/XXX_internal/0_Demos") || 
+    f.startsWith("examples/XXX_internal/0_Demos/") || 
     // The ping-pong models need to be fixed.
-    f.startsWith("examples/XXX_internal/test/ping-pong")
+    f.startsWith("examples/XXX_internal/test/ping-pong/")
   }
 
   test("continuous assignments are independent") {
