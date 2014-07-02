@@ -341,12 +341,12 @@ object Main {
           somethingUpdated = true
           try {
             ex.writeExampleResult(loc, dn, f, intr)
+            println("CREATED " + resFile)
           } catch {
             case e => 
               println("ERROR while creating " + resFile + ":")
               println("  " + e)
           }
-          println("CREATED " + resFile)
         }
       }
     }

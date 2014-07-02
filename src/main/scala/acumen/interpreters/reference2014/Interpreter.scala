@@ -418,35 +418,21 @@ object Interpreter extends acumen.CStoreInterpreter {
    * The time segment is derived from time step in store st. 
    */
   def solveIVP(odes: Set[(CId, Dot, Expr, Env)], p: Prog, st: Store): Store = {
-    def msg(meth: String) = "Invalid integration method \"" + meth + 
-      """. Please select one of ["EulerCromer", "EulerForward", "RungeKutta"]"""
-    val h = getTimeStep(st)
-    implicit val field = Field(odes, p)
-    getInSimulator(Name("method", 0), st) match {
-      case VLit(GStr("EulerForward")) => solveIVPEulerForward(st, h)
-      case VLit(GStr("RungeKutta"))   => solveIVPRungeKutta(st, h)
-      case VLit(GStr("EulerCromer"))  => solveIVPEulerCromer(st, h)
-      case VLit(GStr(m))              => throw new Error(msg(m))
-      case VClassName(ClassName(c))   => throw new Error(msg(c))
-      case m                          => throw new Error(msg(m.toString))
-    }
-  }
-  
-  def solveIVPEulerForward(xs: Store, h: Double)(implicit f: Field): Store =
-    xs +++ f(xs) *** h
-
-  def solveIVPRungeKutta(xs: Store, h: Double)(implicit f: Field): Store = {
-    val k1 = f(xs) 
-    val k2 = f(xs +++ k1 *** (h/2)) 
-    val k3 = f(xs +++ k2 *** (h/2))
-    val k4 = f(xs +++ k3 *** h)
-    xs +++ (k1 +++ k2 *** 2 +++ k3 *** 2 +++ k4) *** (h/6)
+    implicit val field = FieldImpl(odes, p)
+    new Solver(getInSimulator(Name("method", 0),st), xs = st, h = getTimeStep(st)){
+      // add the EulerCromer solver
+      override def knownSolvers = super.knownSolvers :+ "EulerCromer"
+      override def solveIfKnown(name: String) = super.solveIfKnown(name) orElse (name match {
+        case "EulerCromer" => Some(solveIVPEulerCromer(xs, h))
+        case _             => None  
+      })
+    }.solve
   }
   
   /** Representation of a set of ODEs. */
-  case class Field(odes: Set[(CId, Dot, Expr, Env)], p: Prog) {
+  case class FieldImpl(odes: Set[(CId, Dot, Expr, Env)], p: Prog) extends Field[Store] {
     /** Evaluate the field (the RHS of each equation in ODEs) in s. */
-    def apply(s: Store): Store =
+    override def apply(s: Store): Store =
       applyAssignments(odes.toList.map { 
         case (o, n, rhs, env) => (o, n, evalExpr(rhs, env, s)) 
       }) ~> s
@@ -463,16 +449,16 @@ object Interpreter extends acumen.CStoreInterpreter {
    * Embedded DSL for expressing integrators.
    * NOTE: Operators affect only field.variables.
    */
-  case class RichStore(s: Store)(implicit field: Field) {
-    def +++(that: Store): Store = op("+", (cid, dot) => getObjectField(cid, dot.field, that))
-    def ***(that: Double): Store = op("*", (_, _) => VLit(GDouble(that)))
+  case class RichStoreImpl(s: Store)(implicit field: FieldImpl) extends RichStore[Store] {
+    override def +++(that: Store): Store = op("+", (cid, dot) => getObjectField(cid, dot.field, that))
+    override def ***(that: Double): Store = op("*", (_, _) => VLit(GDouble(that)))
     /** Combine this (s) and that Store using operator. */
     def op(operator: String, that: (CId, Dot) => Value[_]): Store =
       applyAssignments(field.variables.map {
         case (o, n) => (o, n, evalOp(operator, List(getObjectField(o, n.field, s), that(o, n))))
       }) ~> s
   }
-  implicit def liftStore(s: Store)(implicit field: Field): RichStore = RichStore(s)
+  implicit def liftStore(s: Store)(implicit field: FieldImpl): RichStoreImpl = RichStoreImpl(s)
   
   /**
    * Euler-Cromer integration. 
@@ -486,7 +472,7 @@ object Interpreter extends acumen.CStoreInterpreter {
    * NOTE: Some equational properties of Acumen programs may not hold 
    *       when using this integration method.
    */
-  def solveIVPEulerCromer(st: Store, h: Double)(implicit f: Field): Store = {
+  def solveIVPEulerCromer(st: Store, h: Double)(implicit f: FieldImpl): Store = {
     // Ensure that derivatives are being integrated in the correct order
     val sortedODEs = f.odes.toList
       .groupBy{ case (o, Dot(_, n), r, e) => (o, n.x) }

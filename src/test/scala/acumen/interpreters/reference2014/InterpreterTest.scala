@@ -16,83 +16,15 @@ import acumen.testutil.TestUtil.{
   assertEqualTrace
 }
 
-class InterpreterTest extends InterpreterTestBase with ShouldMatchers {
+class InterpreterTest extends FunSuite with ShouldMatchers {
 
-  override def suiteName = "Reference 2014 InterpreterTest"
+  override def suiteName = "Reference 2014 Unit Tests"
 
   def semantics = SemanticsImpl.Ref2014
 
-  testExamples(Examples2014, 
-               {f => // The following models need closer investigation
-                     // to make sure they still have the correct output.
-                     // Once this is done the reference outputs in
-                     // src/test/resources/acumen/data/examples-2014-res
-                     // should be updated.
-                     f.endsWith("/Quantization - Linear.acm") ||
-                     f.endsWith("/01_Converting_Accelerations.acm") ||
-                     f.startsWith("examples/XXX_internal/0_Demos") || 
-                     // The ping-pong models need to be fixed.
-                     f.startsWith("examples/XXX_internal/test/ping-pong")})
-  testShouldRun
-  
-  def getError(file:String) : Option[PositionalAcumenError] = {
-    try { run(file) ; None }
-    catch { case e:PositionalAcumenError => Some(e) }
-  }
-
-  def testForError(file:String, err: PositionalAcumenError, pos: String) = {
-    val res = getError(file) 
-    res should be (Some(err))
-    res.get.pos.toString should equal (pos)
-  }
-
-  test("Error1") {
-    val err = ClassNotDefined(cmain)
-    getError("data/ShouldCrash/Error1.acm") should be (Some(err))
-  }
-  test("Error2") {
-    testForError("data/ShouldCrash/Error2.acm", VariableNotDeclared(name("y")), "3.12")
-  }
-  test("Error3") {
-    testForError("data/ShouldCrash/Error3.acm", VariableNotDeclared(name("x")), "2.27")
-  }
-  test("Error4") {
-    testForError("data/ShouldCrash/Error4.acm", UnknownOperator("f"), "3.45")
-  }
-  test("Error5") {
-    testForError("data/ShouldCrash/Error5.acm", NotAnObject(VLit(GInt(1))), "3.24")
-  }
-  test("Error6") {
-    testForError("data/ShouldCrash/Error6.acm", NotAnObject(VLit(GInt(1))), "2.38")
-  }
-  test("Error7") {
-    val err = evaluating {run("data/ShouldCrash/Error7.acm")} should produce [AccessDenied[CId]]
-    err.pos.toString should be ("8.3")
-  }
-  test("Error8") {
-    val err = evaluating {run("data/ShouldCrash/Error8.acm")} should produce [AccessDenied[CId]]
-    err.pos.toString should be ("27.15")
-  }
-  test("Error9") {
-    val err = evaluating {run("data/ShouldCrash/Error9.acm")} should produce [NotAChildOf[CId]]
-    err.pos.toString should be ("33.12")
-  }
-  test("Error10") {
-    testForError("data/ShouldCrash/Error10.acm", ClassNotDefined(ClassName("B")), "15.25")
-  }
-  test("Error11") {
-    val err = ClassDefinedTwice(ClassName("A"))
-    getError("data/ShouldCrash/Error11.acm") should be (Some(err))
-    // No line number
-  }
-  test("ACUMEN-348") {
-    testForError("data/ShouldCrash/ACUMEN-348.acm", DuplicateDiscreteAssingment(Name("period",0)), "14.5")
-  }
-
-
   /* tests that match theoretical values against the interpreter's values */
   type VarHistory = Stream[Tuple2[Double,Double]] 
-
+  
   def oneVar(id:CId, x:String, h: Interpreter.History) : VarHistory = 
     h map (st => 
       (getTime(st), getObjectField(id, Name(x, 0), st)) match {
@@ -200,16 +132,6 @@ class InterpreterTest extends InterpreterTestBase with ShouldMatchers {
     def expectedx(t:Double) = t
     assert(matches(xs, expectedx))
     assert(matches(ys, expectedy))
-  }
-  
-  test("continuous assignments are independent") {
-    val head = "class Main(simulator)\n  private x := 0; t := 0; t' := 1 end "
-    val cond = "if t < simulator.timeStep x = 1 else x = -1 end;"
-    val time = "t' = 1;"
-    val tail = "end"
-    val timeFirst = Parser.run(Parser.prog, head ++ time ++ cond ++ tail)
-    val condFirst = Parser.run(Parser.prog, head ++ cond ++ time ++ tail)
-    assertEqualTrace(timeFirst, condFirst, semantics)
   }
   
 }
