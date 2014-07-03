@@ -38,6 +38,8 @@ class ASTMap {
       Discretely(mapDiscreteAction(a))
     case Claim(p) =>
       Claim(mapExpr(p))
+    case Hypothesis(s, p) =>
+      Hypothesis(s, mapExpr(p))
   }
 
   def mapActions(as: List[Action]) : List[Action] = as.map{mapAction(_)}
