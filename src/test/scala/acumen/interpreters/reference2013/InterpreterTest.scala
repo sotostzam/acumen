@@ -12,72 +12,15 @@ import org.scalatest.matchers.ShouldMatchers
 import org.scalatest.FunSuite
 import java.io.File
 
-class InterpreterTest extends InterpreterTestBase with ShouldMatchers {
+class InterpreterTest extends FunSuite with ShouldMatchers {
 
-  override def suiteName = "Reference 2013 InterpreterTest"
+  override def suiteName = "Reference 2013 Unit Tests"
 
-  def semantics = SemanticsImpl.Ref2013
-
-  testExamples(Examples2013)
-  testShouldRun
-  
-  def getError(file:String) : Option[AcumenError] = {
-    try { run(file) ; None }
-    catch { case e:AcumenError => Some(e) }
-  }
-
-  test("Error1") {
-    val err = ClassNotDefined(cmain)
-    getError("data/ShouldCrash/Error1.acm") should be (Some(err))
-  }
-  test("Error2") {
-    val err = VariableNotDeclared(name("y"))
-    getError("data/ShouldCrash/Error2.acm") should be (Some(err))
-  }
-  test("Error3") {
-    val err = VariableNotDeclared(name("x"))
-    getError("data/ShouldCrash/Error3.acm") should be (Some(err))
-  }
-  test("Error4") {
-    val err = UnknownOperator("f")
-    getError("data/ShouldCrash/Error4.acm") should be (Some(err))
-  }
-  test("Error5") {
-    val err = NotAnObject(VLit(GInt(1)))
-    getError("data/ShouldCrash/Error5.acm") should be (Some(err))
-  }
-  test("Error6") {
-    val err = NotAnObject(VLit(GInt(1)))
-    getError("data/ShouldCrash/Error6.acm") should be (Some(err))
-  }
-  test("Error7") {
-    val err = AccessDenied(CId(), CId(1), Nil)
-    getError("data/ShouldCrash/Error7.acm") should be (Some(err))
-  }
-  test("Error8") {
-    val err = AccessDenied(CId(0,0,1), CId(1), List(CId(1,1),CId(0,1)))
-    getError("data/ShouldCrash/Error8.acm") should be (Some(err))
-  }
-  test("Error9") {
-    val err = NotAChildOf(CId(0,0,1), CId(0,1))
-    getError("data/ShouldCrash/Error9.acm") should be (Some(err))
-  }
-  test("Error10") {
-    val err = ClassNotDefined(ClassName("B"))
-    getError("data/ShouldCrash/Error10.acm") should be (Some(err))
-  }
-  test("Error11") {
-    val err = ClassDefinedTwice(ClassName("A"))
-    getError("data/ShouldCrash/Error11.acm") should be (Some(err))
-  }
-  test("ACUMEN-348") {
-    val err = DuplicateDiscreteAssingment(Name("period",0))
-    getError("data/ShouldCrash/ACUMEN-348.acm") should be (Some(err))
-  }
+  def semantics = SemanticsImpl.Ref2012
 
   /* tests that match theoretical values against the interpreter's values */
   type VarHistory = Stream[Tuple2[Double,Double]] 
-
+  
   def oneVar(id:CId, x:String, h: Interpreter.History) : VarHistory = 
     h map (st => 
       (getTime(st), getObjectField(id, Name(x, 0), st)) match {

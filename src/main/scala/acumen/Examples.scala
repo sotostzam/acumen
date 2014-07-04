@@ -52,7 +52,7 @@ abstract class Examples {
     val out = new PrintStream(f2)
     val in = new InputStreamReader(new FileInputStream(f))
     try {
-      val ast = semantics.parse(in)
+      val ast = semantics.parse(in, f.getParentFile(), Some(f.getName()))
       val tr = semantics.applyPasses(ast, Nil)
       val intr = semantics.interpreter()
       intr.run(tr, new DumpSample(out)).last

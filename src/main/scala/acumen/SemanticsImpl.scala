@@ -2,6 +2,7 @@ package acumen
 
 import Errors._
 import interpreters._
+import interpreters.optimized.ContMode
 import java.io.{File,InputStreamReader,FileInputStream}
 import scala.util.parsing.input.{Position}
 import scala.collection.mutable.{HashMap => MutHashMap}
@@ -97,19 +98,23 @@ object SemanticsImpl {
       case _ => null
     }
   }
-  case class Optimized(parDiscr: Boolean = true, parCont: Boolean = false , contWithDiscr: Boolean = false) extends CStore {
-    val i = new optimized.Interpreter(parDiscr,parCont,contWithDiscr)
-    val semantics = if (parDiscr == true && parCont == false && contWithDiscr == false) S2013
+  case class Optimized(parDiscr: Boolean = true, contMode: ContMode = ContMode.Seq, 
+                       contWithDiscr: Boolean = false) extends CStore 
+  {
+    val i = new optimized.Interpreter(parDiscr,contMode,contWithDiscr)
+    val semantics = if (parDiscr == true && contMode == ContMode.Seq && contWithDiscr == false) S2013
+                    else if (parDiscr == true && contMode == ContMode.IVP && contWithDiscr == false) S2014
                     else S2013.copy(id = None)
     val id : Seq[String] = i.id
     def interpreter() = i
     override def withArgs(args: List[String]) : Optimized = args match {
-      case "parDiscr" :: tail => Optimized(true, parCont, contWithDiscr).withArgs(tail)
-      case "seqDiscr" :: tail => Optimized(false, parCont, contWithDiscr).withArgs(tail)
-      case "parCont" :: tail => Optimized(parDiscr, true, contWithDiscr).withArgs(tail)
-      case "seqCont" :: tail => Optimized(parDiscr, false, contWithDiscr).withArgs(tail)
-      case "contWithDiscr" :: tail => Optimized(parDiscr, parCont, true).withArgs(tail)
-      case "contWithCont" :: tail => Optimized(parDiscr, parCont, false).withArgs(tail)
+      case "parDiscr" :: tail => Optimized(true, contMode, contWithDiscr).withArgs(tail)
+      case "seqDiscr" :: tail => Optimized(false, contMode, contWithDiscr).withArgs(tail)
+      case "parCont" :: tail => Optimized(parDiscr, ContMode.Par, contWithDiscr).withArgs(tail)
+      case "seqCont" :: tail => Optimized(parDiscr, ContMode.Seq, contWithDiscr).withArgs(tail)
+      case "IVP" :: tail => Optimized(parDiscr, ContMode.IVP, contWithDiscr).withArgs(tail)
+      case "contWithDiscr" :: tail => Optimized(parDiscr, contMode, true).withArgs(tail)
+      case "contWithCont" :: tail => Optimized(parDiscr, contMode, false).withArgs(tail)
       case Nil => this
       case _ => null
     }
@@ -135,6 +140,7 @@ object SemanticsImpl {
   lazy val Ref = Ref2014
   lazy val Opt2012 = Imperative2012
   lazy val Opt2013 = Optimized()
+  lazy val Opt2014 = Optimized(contMode = ContMode.IVP)
   lazy val EnclosurePWL = apply("enclosure-pwl")
   lazy val EnclosureEVT = apply("enclosure-evt")
 
@@ -148,6 +154,7 @@ object SemanticsImpl {
       case "imperative2012" :: Nil => Imperative2012
       case "optimized2012" :: Nil => Opt2012
       case "optimized2013" :: Nil => Opt2013
+      case "optimized2014" :: Nil => Opt2014
       case "optimized" :: tail => Optimized().withArgs(tail)
       case "enclosure" :: tail => Enclosure().withArgs(tail)
       case _ => null

@@ -1,17 +1,12 @@
-package acumen
-package interpreters
+package acumen.interpreters.semanticstest
 
-import Errors._
-import util.Filters._
-import util.Names._
-import util.Canonical._
-import scala.math._
-import java.io.{FileInputStream, InputStreamReader, BufferedReader}
-import org.scalatest.matchers.ShouldMatchers
+import java.io.{BufferedReader,File,FileInputStream,InputStreamReader}
 import org.scalatest.FunSuite
-import java.io.File
+import org.scalatest.matchers.ShouldMatchers
 
-abstract class InterpreterTestBase extends FunSuite with ShouldMatchers {
+import acumen._
+
+abstract class SemanticsTestBase extends FunSuite with ShouldMatchers {
   def semantics : SemanticsImpl.CStore
 
   def run(in: InputStreamReader) = {    
@@ -23,7 +18,7 @@ abstract class InterpreterTestBase extends FunSuite with ShouldMatchers {
 
   def run(filename:String) : Unit = {
     val in  = 
-      new InputStreamReader(this.getClass.getResourceAsStream("/acumen/"+filename))
+      new InputStreamReader(SemanticsTestBase.this.getClass.getResourceAsStream("/acumen/"+filename))
     run(in)
   }
     
@@ -38,10 +33,14 @@ abstract class InterpreterTestBase extends FunSuite with ShouldMatchers {
     i run tr
   }
 
-  def testExamples(ex: Examples, skip: String => Boolean = {_ => false}) = {
+  def examples : Examples
+  def examplesSkip (path: String) = false
+  final def testExamples = {
     // Note: 
     //  - To add result file for newly created examples use: sbt "run record-reference-outputs"
     //  - To update existing result file remove the file and then use the above command
+    val ex = examples
+    val skip = examplesSkip(_)
     ex.cstoreExamplesAction{(dn, f) =>
       //info(f.toString)
       val testName = "example " + f
@@ -71,15 +70,22 @@ abstract class InterpreterTestBase extends FunSuite with ShouldMatchers {
       }
     }
   }
-
-  def testShouldRun = {
-    var toTest = List("shouldRun1.acm", "shouldRun2.acm", "shouldRun3.acm",
-                      "shouldRun4.acm", "shouldRun5.acm", "shouldRun6.acm",
-                      "classNameFirstClass1.acm", "let1.acm", "sumWithoutFilter.acm",
-                      "vectorIdx.acm")
-    for (fn <- toTest) {
+  
+  def shouldRun = List("shouldRun1.acm", "shouldRun2.acm", "shouldRun3.acm",
+                       "shouldRun4.acm", "shouldRun5.acm", "shouldRun6.acm",
+                       "classNameFirstClass1.acm", "let1.acm", "sumWithoutFilter.acm",
+                       "vectorIdx.acm")
+  final def testShouldRun = {
+    for (fn <- shouldRun) {
       test(fn) {run("data/ShouldRun/" + fn) should be ()}
     }
   }
+
+  def testShouldFail;
+
+  testShouldRun
+  testShouldFail
+  testExamples
+
 }
 

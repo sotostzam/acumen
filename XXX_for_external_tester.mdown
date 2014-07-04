@@ -1,6 +1,6 @@
 # External test procedure
 
-0. Download an unzip the Acumen distribution.
+0. Download and unzip the particular Acumen distribution provided to you.
 1. Start Acumen by double-clicking the jar file in the extracted folder.
 2. Part 1 of test
     1. Click File > Open.
