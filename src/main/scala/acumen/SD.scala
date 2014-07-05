@@ -83,7 +83,7 @@ object SD {
           case List(f, Var(n)) => dif(f)(n)
         }
         // Example: 1 + dif(x^2)
-        case _ => Op(opName, args map runExpr)
+        case _ => Op(opName, args map runExpr).setPos(e.pos)
       }
       case _ => e
     }
