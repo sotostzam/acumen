@@ -36,4 +36,8 @@ trait Traditional2014Tests extends SemanticsTestBase with BasicErrorTests {
     err.pos.toString should be ("14.5")
   }
 
+  test("hypothesis") {
+    testForError("data/ShouldCrash/hypothesis.acm", HypothesisFalsified("False"), "2.22")
+  }
+
 }
