@@ -41,6 +41,6 @@ class Main(simulator)
     create Example3(a1,b1,a2,b2);
     mode := ""
   end;
-  simulator.endTime = 1;
-  simulator.timeStep = 0.001
+  simulator.endTime := 1;
+  simulator.timeStep := 0.001
 end
