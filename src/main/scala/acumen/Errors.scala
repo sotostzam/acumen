@@ -166,6 +166,10 @@ object Errors {
     override def getMessage = 
       "No equation was specified for (#" + o.cid.toString + " : " + className + ")." + n.x + " at time " + time + "."
   }
+  case class HypothesisFalsified(s: String) extends PositionalAcumenError {
+    override def mesg = 
+      "Hypothesis \"" + s + "\" falsified."
+  }
 
   /* UI errors */
 

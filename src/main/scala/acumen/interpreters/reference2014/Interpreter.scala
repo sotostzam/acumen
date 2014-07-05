@@ -284,7 +284,7 @@ object Interpreter extends acumen.CStoreInterpreter {
       case Hypothesis(s, e) =>
         for (VLit(GBool(b)) <- asks(evalExpr(e, env, _)))
           if (b) pass
-          else sys.error("Hypothesis \"" + s.getOrElse(Pretty pprint e) + "\" falsified.")
+          else throw HypothesisFalsified(s.getOrElse(Pretty pprint e)).setPos(e.pos)
     }
   }
  
