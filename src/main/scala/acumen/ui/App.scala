@@ -643,17 +643,17 @@ class App extends SimpleSwingApplication {
     console.newLine
   }
   interpreter = InterpreterCntrl(Main.defaultSemantics);
-  // FIXME: Consider directly comparing against the SemanticsImpl
-  //        constants here.
-  interpreter.interpreter.id.toList match {
-    case "reference2013"  :: _ => bar.semantics.ref2013.selected = true
-    case "optimized"      :: _ => bar.semantics.opt2013.selected = true
-    case "reference2012"  :: _ => bar.semantics.ref2012.selected = true
-    case "reference2014"  :: _ => bar.semantics.ref2014.selected = true
-    case "imperative2012" :: _ => bar.semantics.opt2012.selected = true
-    case "parallel2012"   :: _ => bar.semantics.par2012.selected = true
-    case "enclosure" :: tail if tail.contains("pwl") => bar.semantics.encPWL.selected = true
-    case "enclosure" :: tail if tail.contains("evt") => bar.semantics.encEVT.selected = true
+  interpreter.semantics match {
+    case S.Ref2012 => bar.semantics.ref2013.selected = true
+    case S.Opt2013 => bar.semantics.opt2013.selected = true
+    case S.Ref2013 => bar.semantics.ref2012.selected = true
+    case S.Ref2014 => bar.semantics.ref2014.selected = true
+    case S.Opt2014 => bar.semantics.opt2014.selected = true
+    case S.Opt2012 => bar.semantics.opt2012.selected = true
+    case _:S.Parallel2012  => bar.semantics.par2012.selected = true
+    case S.EnclosurePWL => bar.semantics.encPWL.selected = true
+    case S.EnclosureEVT => bar.semantics.encEVT.selected = true
+    case _ => /* Other semantics not sccable from the menu selected */
   }
 
   def dumpParms() = {
