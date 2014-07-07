@@ -85,7 +85,8 @@ class App extends SimpleSwingApplication {
 
           case EXIT => exit
 
-          case SendInit => controller ! Init(codeArea.textArea.getText, codeArea.currentDir, interpreter)
+          case SendInit => interpreter = InterpreterCntrl(Main.defaultSemantics,Some(codeArea.textArea.getText))
+                           controller ! Init(codeArea.textArea.getText, codeArea.currentDir, interpreter)
 
           case msg: Event =>
             //println("Publishing This Msg: " + msg)
@@ -635,12 +636,13 @@ class App extends SimpleSwingApplication {
   /* ----- events handling ---- */
   
   var state: State = Stopped
-  var interpreter: InterpreterCntrl = null;
-  def setSemantics(si: SemanticsImpl[_]) = {
-    interpreter = InterpreterCntrl.cntrlForSemantics(si);
-    dumpParms()
+  var interpreter: InterpreterCntrl = null
+  def setSemantics(si: SemanticsImpl[Interpreter]) = {
+    Main.defaultSemantics = si;
+    console.log("Selected the \"" + si.descr + "\" semantics.")
+    console.newLine
   }
-  interpreter = InterpreterCntrl.cntrlForSemantics(Main.semantics);
+  interpreter = InterpreterCntrl(Main.defaultSemantics);
   // FIXME: Consider directly comparing against the SemanticsImpl
   //        constants here.
   interpreter.interpreter.id.toList match {
@@ -655,10 +657,10 @@ class App extends SimpleSwingApplication {
   }
 
   def dumpParms() = {
+    console.log("Using the \"" + interpreter.semantics.descr + "\" semantics.")
+    console.newLine
     if (Main.commandLineParms) {
       console.log("Passes: " + Main.extraPasses.mkString(","))
-      console.newLine
-      console.log("Interpreter: " + interpreter.interpreter.id.mkString("-"))
       console.newLine
     }
   }

@@ -25,6 +25,7 @@ object Semantics {
 abstract class SemanticsImpl[+I <: Interpreter]
 {
   val id : Seq[String] 
+  def descr : String = id.mkString("-")
   val semantics: Semantics
   def interpreter() : I
   def parse(s: java.io.Reader) : Prog = Parser.run(Parser.prog, s, None)
@@ -105,7 +106,11 @@ object SemanticsImpl {
     val semantics = if (parDiscr == true && contMode == ContMode.Seq && contWithDiscr == false) S2013
                     else if (parDiscr == true && contMode == ContMode.IVP && contWithDiscr == false) S2014
                     else S2013.copy(id = None)
-    val id : Seq[String] = i.id
+    val id : Seq[String] = semantics match {
+      case S2013 => Seq("optimized2013")
+      case S2014 => Seq("optimized2014")
+      case _     => i.id
+    }
     def interpreter() = i
     override def withArgs(args: List[String]) : Optimized = args match {
       case "parDiscr" :: tail => Optimized(true, contMode, contWithDiscr).withArgs(tail)
@@ -162,6 +167,9 @@ object SemanticsImpl {
     if (res == null) 
       throw UnrecognizedInterpreterString(args.mkString("-"))
     res
+  }
+  def apply(spec: SemanticsSpec) : SemanticsImpl[Interpreter] = {
+    apply(spec.s)
   }
 
 }

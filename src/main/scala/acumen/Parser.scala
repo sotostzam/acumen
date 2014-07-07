@@ -141,7 +141,7 @@ object Parser extends MyStdTokenParsers {
     List("(", ")", "{", "}", "[", "]", ";", "=", ":=", "=[i]", "=[t]", "'", ",",
       ".", "+", "-", "*", "/", "^", ".+", ".-", ".*", "./", ".^",
       ":", "<", ">", "<=", ">=", "==", "~=", "||",
-      "&&", "<<", ">>", "&", "|", "%", "@", "..", "+/-", "#include")
+      "&&", "<<", ">>", "&", "|", "%", "@", "..", "+/-", "#include", "#semantics")
 
   lexical.reserved ++=
     List("for", "end", "if", "else", "create", "move", "in",
@@ -210,8 +210,12 @@ object Parser extends MyStdTokenParsers {
   /* the actual parser */
 
   def prog = rep(classDef) ^^ Prog
+
+  def getSemantics = opt(semantics) <~ rep(acceptIf( _ => true)(_ => ""))
   
-  def fullProg = rep(include) ~! rep(classDef) ^^ { case incl ~ defs => (incl, defs) }
+  def fullProg = opt(semantics) ~> rep(include) ~! rep(classDef) ^^ { case incl ~ defs => (incl, defs) }
+
+  def semantics = positioned("#semantics" ~! stringLit ^^ { case _ ~ str => SemanticsSpec(str) })
 
   def include = positioned("#include" ~! stringLit ^^ { case _ ~ str => Include(str) })
 

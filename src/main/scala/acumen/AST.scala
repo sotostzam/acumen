@@ -47,6 +47,9 @@ package acumen {
     extends Positional
     {var _types : MutMap[Name, TypeLike] = null;}
 
+  /* Example: #semantics "reference2014" */
+  case class SemanticsSpec(s: String) extends Positional
+
   /* Example: #include "ball.acm" */
   case class Include(fn: String) extends Positional
 

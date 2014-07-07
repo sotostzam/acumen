@@ -31,7 +31,7 @@ object Main {
   var enableAllSemantics = true
   var autoPlay = false
   var openFile: File = null
-  var semantics : SemanticsImpl[Interpreter] = null
+  var defaultSemantics : SemanticsImpl[Interpreter] = null
   var useCompletion = true
   var useTemplates = false
   var dontFork = false
@@ -111,7 +111,7 @@ object Main {
         displayHelp = "bench-enclosures"; parseArgs(tail)
       case ("--semantics"|"--interpreter"|"-i") :: i :: tail =>
         commandLineParms = true
-        semantics = SemanticsImpl(i); parseArgs(tail)
+        defaultSemantics = SemanticsImpl(i); parseArgs(tail)
       case ("--model") :: f :: tail =>
         openFile = checkFile(f); parseArgs(tail)
       case ("--enable-3d" | "--3d") :: tail => 
@@ -169,8 +169,8 @@ object Main {
 
   def main(args: Array[String]) : Unit = {
     parseArgs(args.toList)
-    if (semantics == null)
-      semantics = SemanticsImpl("")
+    if (defaultSemantics == null)
+      defaultSemantics = SemanticsImpl("")
     if (displayHelp == "normal") {
       println("Options: ");
       optsHelp.foreach{line => println("  " + line)}
@@ -223,11 +223,15 @@ object Main {
 
   def origMain(args: Array[String]) : Unit = {
     try {
-      val i = semantics.interpreter()
 
       /* Read the Acumen source, parse, pre-process and interpret it. */
       lazy val file = new File(args(1)).getAbsoluteFile
       lazy val in = new InputStreamReader(new FileInputStream(file))
+      lazy val semantics = Parser.run(Parser.getSemantics, in, Some(file)) match {
+        case Some(s) => SemanticsImpl(s)
+        case None => defaultSemantics
+      }
+      lazy val i = semantics.interpreter()
       lazy val ast = semantics.parse(in, file.getParentFile(), Some(file.getName()))
       lazy val final_out = semantics.applyPasses(ast, extraPasses)
       lazy val trace = i.run(final_out)
