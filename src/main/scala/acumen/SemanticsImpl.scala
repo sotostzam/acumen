@@ -21,8 +21,13 @@ object Semantics {
   val S2014 = Semantics(Some("2014"), Seq("desugar-local-inline"), Seq("SD"));
 }
 
+abstract class SemanticsSel
+{
+  def withArgs(args: List[String]) : SemanticsImpl[Interpreter]
+  def argsHelpString : String
+}
 
-abstract class SemanticsImpl[+I <: Interpreter]
+abstract class SemanticsImpl[+I <: Interpreter] extends SemanticsSel
 {
   val id : Seq[String] 
   final def descr : String = SemanticsImpl.lookup(this) match {
@@ -63,7 +68,8 @@ abstract class SemanticsImpl[+I <: Interpreter]
   // is expected to throw an error
   def applyRequiredPasses(p: Prog) : Prog = 
     PassManager.applyPasses(p, semantics.requiredPasses, Nil, Nil)
-  def withArgs(args: List[String]) = args match {case Nil => this; case _ => null}
+  override def withArgs(args: List[String]) = args match {case Nil => this; case _ => null}
+  override def argsHelpString : String = ""
 }
 
 object SemanticsImpl {
@@ -102,9 +108,11 @@ object SemanticsImpl {
       case Nil => this
       case _ => null
     }
+    override def argsHelpString = "[-<num threads>]"
+    // "static|sharing" options is considered experimental and should not be documented
   }
   case class Optimized(parDiscr: Boolean = true, contMode: ContMode = ContMode.Seq, 
-                       contWithDiscr: Boolean = false) extends CStore 
+                       contWithDiscr: Boolean = false) extends CStore
   {
     val i = new optimized.Interpreter(parDiscr,contMode,contWithDiscr)
     val semantics = if (parDiscr == true && contMode == ContMode.Seq && contWithDiscr == false) S2013
@@ -127,6 +135,13 @@ object SemanticsImpl {
       case Nil => this
       case _ => null
     }
+  }
+  // Use this as a base for selecting the generic optimized semantics
+  // that not trying to match a particular semantics
+  object Optimized extends SemanticsSel {
+    override def argsHelpString = 
+        "[-parDiscr|-seqDiscr][-parCont|-seqCont|-IVP][-contWithDiscr|contWithCont]"
+    override def withArgs(args: List[String]) = Optimized().withArgs(args)
   }
   case class Enclosure(i: RecursiveInterpreter = enclosure.Interpreter.asPWL) extends SemanticsImpl[RecursiveInterpreter] {
     val semantics = Semantics(None, Seq("desugar-local"), Nil)
@@ -153,29 +168,32 @@ object SemanticsImpl {
   lazy val EnclosurePWL = Enclosure(enclosure.Interpreter.asPWL)
   lazy val EnclosureEVT = Enclosure(enclosure.Interpreter.asEVT)
 
-  case class Sel(si: SI, 
+  case class Sel(si: SemanticsSel, 
                  // First id is the display name
                  // Second id is internal name
                  // Everything else are aliases
+                 hidden: Boolean,
                  ids: String*) {def display = ids(0); def internal = ids(1)}
+  def sel(si: SemanticsSel, ids: String*) = Sel(si,false,ids:_*)
+  def exp(si: SemanticsSel, ids: String*) = Sel(si,true,ids:_*)
   val selections = 
-    List(Sel(Ref2014, "2014 Reference", "reference2014", "reference", ""),
-         Sel(Ref2013, "2013 Reference", "reference2013"),
-         Sel(Ref2012, "2012 Reference", "reference2012"),
-         Sel(Opt2014, "2014 Optimized", "optimized2014"),
-         Sel(Opt2013, "2013 Optimized", "optimized2013"),
-         Sel(Opt2012, "2012 Optimized", "optimized2012", "imperative2012"),
-         Sel(EnclosurePWL, "2013 PWL", "enclosure-pwl"),
-         Sel(EnclosureEVT, "2013 EVT", "enclosure-evt"),
-         Sel(Optimized(), "Optimized", "optimized"),
-         Sel(Parallel2012(), "2012 Parallel", "parallel2012"))
+    List(sel(Ref2014, "2014 Reference", "reference2014", "reference", ""),
+         sel(Opt2014, "2014 Optimized", "optimized2014"),
+         sel(Ref2013, "2013 Reference", "reference2013"),
+         sel(Opt2013, "2013 Optimized", "optimized2013"),
+         sel(Ref2012, "2012 Reference", "reference2012"),
+         sel(Opt2012, "2012 Optimized", "optimized2012", "imperative2012"),
+         sel(Parallel2012(), "2012 Parallel", "parallel2012"),
+         sel(EnclosurePWL, "2013 PWL", "enclosure-pwl"),
+         sel(EnclosureEVT, "2013 EVT", "enclosure-evt"),
+         exp(Optimized, "Optimized", "optimized"))
 
-  def lookup(si: SI) : Option[Sel] = 
-    selections.find{case Sel(si0, _*) => si == si0}
+  def lookup(si: SemanticsSel) : Option[Sel] = 
+    selections.find{case Sel(si0, _, _*) => si == si0}
 
   def apply(toFind: String) : SI = {
-    val candidates : Seq[(SI, String)] = selections.flatMap {
-      case Sel(si, ids@_*) => ids.collect {
+    val candidates : Seq[(SemanticsSel, String)] = selections.flatMap {
+      case Sel(si, _, ids@_*) => ids.collect {
         case id if toFind.startsWith(id) => (si, id)}}
     if (candidates.isEmpty) throw UnrecognizedSemanticsString(toFind)
     val (si, id) = candidates.maxBy{case (_, id) => id.length}
@@ -186,6 +204,13 @@ object SemanticsImpl {
     val res = si.withArgs(args)
     if (res == null) throw UnrecognizedSemanticsString(toFind)
     return res
+  }
+
+  def helpText(full: Boolean) : String = {
+    val sels = if (full) selections else selections.filter{case Sel(_,hidden,_*) => !hidden}
+    sels.map{case Sel(si, _, display, id, alias@_*) => 
+                     "  %-23s %s\n".format(id + si.argsHelpString,
+                                           (display::alias.toList).map{"\"" + _ + "\""}.mkString(" "))}.mkString("")
   }
 
   // def apply(args0: String*) : SI = {

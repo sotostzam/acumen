@@ -53,8 +53,10 @@ object Main {
   lazy val pa : Seq[String] = passAliases.collect{case PassAlias(from,_,Some(_)) => from}
   def optsHelp = Array(
     "--help                  this help message",
-    "-i|--semantics "+ Main.interpreterHelpString,
-    "                        select interpreter to use",
+    "-i|--semantics <semantics string>",
+    "                        select semantics to use",
+    "-p|--passes <pass1>[,<pass2>[,...]]",
+    "                        comma seperated list of extra passes to run",
     "--model <file>          model file to open",
     "--3d|--lazy-3d|--no-3d  controls the default state for the 3d tab",
     "--newplot               enable experimental plotter",
@@ -63,9 +65,6 @@ object Main {
     "--dont-fork             disable auto-forking of a new JVM when required")
   def experimentalOptsHelp = Array(
     "--full-help",
-    "-i|semantics " + Main.fullInterpreterHelpString.mkString("\n               "),
-    "-p|--passes <%s>".format((availPasses.map{_.id} ++ pa).mkString(",")),
-    "                        comma seperated list of extra passes to run",
     "--templates             enables template expansion in the source code editor",
     "--prune-semantics       hide experimental semantics in the U.I."
   )
@@ -77,10 +76,9 @@ object Main {
     "last <file>             run model and print final result",
     "trace <file>            run model and print trace output",
     "time <file>             time time it takes to run model",
-    "") ++
-    availPasses.map{p => "%-23s run the %s pass and print model".format(p.id,p.desc)} ++ 
-    passAliases.collect{case PassAlias(from,_,Some(desc)) => 
-                        "%-23s run the %s passes and print model".format(from,desc)} ++ Array("",
+    "",
+    "<pass1>[,<pass2>[,...]] run the specified passes and print model",
+    "",
     "compile <file>          compile model to C++",
     "",
     "bench <file> <start> <stop> [<warmup> [<repeat>]]",
@@ -163,17 +161,30 @@ object Main {
     openFile
   }
 
-  def interpreterHelpString = "reference(2012|2013|2014)|parallel2012[-<num threads>]|enclosure[-pwl|-evt]"
-  // parallel-sharing should not be documented but recognized for testing
-  def fullInterpreterHelpString = List(interpreterHelpString,"|optimized[-parDiscr|-seqDiscr][-parCont|-seqCont][-contWithDiscr|contWithCont]")
+  def extraInfo(full: Boolean) : Unit = {
+    println("");
+    println("Valid Semantic Strings: ");
+    println(SemanticsImpl.helpText(full))
+    println("Valid Passes: ");
+    println(passAliases.collect{case PassAlias(from,_,Some(desc)) => "  %-23s %s".format(from,desc)}.mkString("\n"))
+    if (full)
+      println(availPasses.map{p => "  %-23s %s".format(p.id,p.desc)}.mkString("\n"))
+    println("")
+  }
+  
 
   def main(args: Array[String]) : Unit = {
     parseArgs(args.toList)
     if (defaultSemantics == null)
       defaultSemantics = SemanticsImpl("")
     if (displayHelp == "normal") {
+      println("Usage: acumen [options] [command]")
+      println("");
       println("Options: ");
       optsHelp.foreach{line => println("  " + line)}
+      extraInfo(false)
+      println("Commands: ");
+      commandHelp.foreach{line => println("  " + line)} 
     } else if (displayHelp == "full") {
       println("Usage: acumen [options] [command]")
       println("");
@@ -182,7 +193,7 @@ object Main {
       println("");
       println("Experimental options:")
       experimentalOptsHelp.foreach{line => println("  " + line)}
-      println("");
+      extraInfo(true)
       println("Commands: ");
       commandHelp.foreach{line => println("  " + line)} 
       println("");
