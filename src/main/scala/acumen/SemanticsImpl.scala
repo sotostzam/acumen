@@ -25,7 +25,10 @@ object Semantics {
 abstract class SemanticsImpl[+I <: Interpreter]
 {
   val id : Seq[String] 
-  def descr : String = id.mkString("-")
+  final def descr : String = SemanticsImpl.lookup(this) match {
+    case Some(s) => s.display
+    case None    => id.mkString("-")
+  }
   val semantics: Semantics
   def interpreter() : I
   def parse(s: java.io.Reader) : Prog = Parser.run(Parser.prog, s, None)
@@ -66,6 +69,7 @@ abstract class SemanticsImpl[+I <: Interpreter]
 object SemanticsImpl {
   import Semantics._
 
+  type SI = SemanticsImpl[Interpreter]
   type CStore = SemanticsImpl[CStoreInterpreter]
 
   case class Reference(val semantics: Semantics) extends CStore {
@@ -124,14 +128,14 @@ object SemanticsImpl {
       case _ => null
     }
   }
-  case class Enclosure(i: RecursiveInterpreter = interpreters.enclosure.Interpreter.asPWL) extends SemanticsImpl[RecursiveInterpreter] {
+  case class Enclosure(i: RecursiveInterpreter = enclosure.Interpreter.asPWL) extends SemanticsImpl[RecursiveInterpreter] {
     val semantics = Semantics(None, Seq("desugar-local"), Nil)
     val id : Seq[String] = i.id
     val desc = i.id
     def interpreter() = i
     override def withArgs(args: List[String]) : Enclosure = args match {
-      case "pwl" :: tail => Enclosure(interpreters.enclosure.Interpreter.asPWL).withArgs(tail)
-      case "evt" :: tail => Enclosure(interpreters.enclosure.Interpreter.asEVT).withArgs(tail)
+      case "pwl" :: tail => Enclosure(enclosure.Interpreter.asPWL).withArgs(tail)
+      case "evt" :: tail => Enclosure(enclosure.Interpreter.asEVT).withArgs(tail)
       case Nil => this
       case _ => null
     }
@@ -146,30 +150,70 @@ object SemanticsImpl {
   lazy val Opt2012 = Imperative2012
   lazy val Opt2013 = Optimized()
   lazy val Opt2014 = Optimized(contMode = ContMode.IVP)
-  lazy val EnclosurePWL = apply("enclosure-pwl")
-  lazy val EnclosureEVT = apply("enclosure-evt")
+  lazy val EnclosurePWL = Enclosure(enclosure.Interpreter.asPWL)
+  lazy val EnclosureEVT = Enclosure(enclosure.Interpreter.asEVT)
 
-  def apply(args0: String*) : SemanticsImpl[Interpreter] = {
-    val args = args0.flatMap(_.split('-')).toList
-    val res = args match {
-      case "reference2012" :: Nil => Ref2012
-      case "reference2013" :: Nil => Ref2013
-      case ("" | "reference" | "reference2014") :: Nil => Ref2014
-      case "parallel2012" :: tail => Parallel2012().withArgs(tail)
-      case "imperative2012" :: Nil => Imperative2012
-      case "optimized2012" :: Nil => Opt2012
-      case "optimized2013" :: Nil => Opt2013
-      case "optimized2014" :: Nil => Opt2014
-      case "optimized" :: tail => Optimized().withArgs(tail)
-      case "enclosure" :: tail => Enclosure().withArgs(tail)
-      case _ => null
-    }
-    if (res == null) 
-      throw UnrecognizedInterpreterString(args.mkString("-"))
-    res
+  case class Sel(si: SI, 
+                 // First id is the display name
+                 // Second id is internal name
+                 // Everything else are aliases
+                 ids: String*) {def display = ids(0); def internal = ids(1)}
+  val selections = 
+    List(Sel(Ref2014, "2014 Reference", "reference2014", "reference", ""),
+         Sel(Ref2013, "2013 Reference", "reference2013"),
+         Sel(Ref2012, "2012 Reference", "reference2012"),
+         Sel(Opt2014, "2014 Optimized", "optimized2014"),
+         Sel(Opt2013, "2013 Optimized", "optimized2013"),
+         Sel(Opt2012, "2012 Optimized", "optimized2012", "imperative2012"),
+         Sel(EnclosurePWL, "2013 PWL", "enclosure-pwl"),
+         Sel(EnclosureEVT, "2013 EVT", "enclosure-evt"),
+         Sel(Optimized(), "Optimized", "optimized"),
+         Sel(Parallel2012(), "2012 Parallel", "parallel2012"))
+
+  def lookup(si: SI) : Option[Sel] = 
+    selections.find{case Sel(si0, _*) => si == si0}
+
+  def apply(toFind: String) : SI = {
+    val candidates : Seq[(SI, String)] = selections.flatMap {
+      case Sel(si, ids@_*) => ids.collect {
+        case id if toFind.startsWith(id) => (si, id)}}
+    if (candidates.isEmpty) throw UnrecognizedSemanticsString(toFind)
+    val (si, id) = candidates.maxBy{case (_, id) => id.length}
+    val rest = toFind.substring(id.length)
+    if (rest.isEmpty) return si.withArgs(Nil)
+    if (rest(0) != '-') throw UnrecognizedSemanticsString(toFind)
+    val args = rest.substring(1).split('-').toList
+    val res = si.withArgs(args)
+    if (res == null) throw UnrecognizedSemanticsString(toFind)
+    return res
   }
-  def apply(spec: SemanticsSpec) : SemanticsImpl[Interpreter] = {
-    apply(spec.s)
+
+  // def apply(args0: String*) : SI = {
+  //   val args = args0.flatMap(_.split('-')).toList
+  //   val res = args match {
+  //     case "reference2012" :: Nil => Ref2012
+  //     case "reference2013" :: Nil => Ref2013
+  //     case ("" | "reference" | "reference2014") :: Nil => Ref2014
+  //     case "parallel2012" :: tail => Parallel2012().withArgs(tail)
+  //     case "imperative2012" :: Nil => Imperative2012
+  //     case "optimized2012" :: Nil => Opt2012
+  //     case "optimized2013" :: Nil => Opt2013
+  //     case "optimized2014" :: Nil => Opt2014
+  //     case "optimized" :: tail => Optimized().withArgs(tail)
+  //     case "enclosure" :: tail => Enclosure().withArgs(tail)
+  //     case _ => null
+  //   }
+  //   if (res == null) 
+  //     throw UnrecognizedInterpreterString(args.mkString("-"))
+  //   res
+  // }
+
+  def apply(spec: SemanticsSpec) : SI = {
+    try {
+      apply(spec.s)
+    } catch {
+      case e:PositionalAcumenError => e.setPos(spec.pos); throw e
+    }
   }
 
 }

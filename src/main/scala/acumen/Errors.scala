@@ -183,9 +183,9 @@ object Errors {
 
   /* Command-line errors */
 
-  case class UnrecognizedInterpreterString(theString: String) extends AcumenError {
-    override def getMessage = 
-      "Unrecognized interpreter string: " + theString
+  case class UnrecognizedSemanticsString(theString: String) extends PositionalAcumenError {
+    override def mesg = 
+      "Unrecognized semantics string: " + theString
   }
 
   case class UnrecognizedTransformation(theString: String) extends AcumenError {
