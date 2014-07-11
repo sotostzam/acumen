@@ -38,12 +38,6 @@ object ContMode {
 class Interpreter(val parDiscr: Boolean = true, 
                   val contMode: ContMode = ContMode.Seq,
                   val contWithDiscr: Boolean = false) extends CStoreInterpreter {
-  override def id = Array("optimized", 
-                          if (parDiscr) "parDiscr" else "seqDiscr",
-                          contMode match {case ContMode.Seq => "seqCont"; 
-                                          case ContMode.Par => "parCont"; 
-                                          case ContMode.IVP => "IVP";},
-                          if (contWithDiscr) "contWithDiscr" else "contWithCont")
 
   import Common._ 
 

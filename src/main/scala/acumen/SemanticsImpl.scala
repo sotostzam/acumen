@@ -29,11 +29,11 @@ abstract class SemanticsSel
 
 abstract class SemanticsImpl[+I <: Interpreter] extends SemanticsSel
 {
-  val id : Seq[String] 
   final def descr : String = SemanticsImpl.lookup(this) match {
     case Some(s) => s.display
     case None    => id.mkString("-")
   }
+  def id = Seq(toString()) // override this to use something better
   val semantics: Semantics
   def interpreter() : I
   def parse(s: java.io.Reader) : Prog = Parser.run(Parser.prog, s, None)
@@ -84,18 +84,16 @@ object SemanticsImpl {
       case S2013 => reference2013.Interpreter
       case S2014 => reference2014.Interpreter
     }
-    val id : Seq[String] = i.id
     def interpreter() = i
   }
   object Imperative2012 extends CStore {
     val i = imperative2012.ImperativeInterpreter
     val semantics = S2012
-    val id : Seq[String] = i.id
     def interpreter() = i
   }
   case class Parallel2012(numThreads: Int = -1, scheduler: String = "static") extends CStore {
     val semantics = S2012
-    val id = Seq("parallel2012")
+
     def interpreter() = (numThreads, scheduler) match {
       case (-1, "static") => imperative2012.ParallelInterpreter.static
       case (_, "static") => imperative2012.ParallelInterpreter.static(numThreads)
@@ -118,23 +116,24 @@ object SemanticsImpl {
     val semantics = if (parDiscr == true && contMode == ContMode.Seq && contWithDiscr == false) S2013
                     else if (parDiscr == true && contMode == ContMode.IVP && contWithDiscr == false) S2014
                     else S2013.copy(id = None)
-    val id : Seq[String] = semantics match {
-      case S2013 => Seq("optimized2013")
-      case S2014 => Seq("optimized2014")
-      case _     => i.id
-    }
     def interpreter() = i
     override def withArgs(args: List[String]) : Optimized = args match {
       case "parDiscr" :: tail => Optimized(true, contMode, contWithDiscr).withArgs(tail)
       case "seqDiscr" :: tail => Optimized(false, contMode, contWithDiscr).withArgs(tail)
       case "parCont" :: tail => Optimized(parDiscr, ContMode.Par, contWithDiscr).withArgs(tail)
       case "seqCont" :: tail => Optimized(parDiscr, ContMode.Seq, contWithDiscr).withArgs(tail)
-      case "IVP" :: tail => Optimized(parDiscr, ContMode.IVP, contWithDiscr).withArgs(tail)
+      case "IVP" :: tail => println("Yep"); Optimized(parDiscr, ContMode.IVP, contWithDiscr).withArgs(tail)
       case "contWithDiscr" :: tail => Optimized(parDiscr, contMode, true).withArgs(tail)
       case "contWithCont" :: tail => Optimized(parDiscr, contMode, false).withArgs(tail)
       case Nil => this
       case _ => null
     }
+    override def id = Array("optimized", 
+                            if (parDiscr) "parDiscr" else "seqDiscr",
+                            contMode match {case ContMode.Seq => "seqCont"; 
+                                            case ContMode.Par => "parCont"; 
+                                            case ContMode.IVP => "IVP";},
+                            if (contWithDiscr) "contWithDiscr" else "contWithCont")
   }
   // Use this as a base for selecting the generic optimized semantics
   // that not trying to match a particular semantics
@@ -145,8 +144,6 @@ object SemanticsImpl {
   }
   case class Enclosure(i: RecursiveInterpreter = enclosure.Interpreter.asPWL) extends SemanticsImpl[RecursiveInterpreter] {
     val semantics = Semantics(None, Seq("desugar-local"), Nil)
-    val id : Seq[String] = i.id
-    val desc = i.id
     def interpreter() = i
     override def withArgs(args: List[String]) : Enclosure = args match {
       case "pwl" :: tail => Enclosure(enclosure.Interpreter.asPWL).withArgs(tail)
@@ -212,26 +209,6 @@ object SemanticsImpl {
                      "  %-23s %s\n".format(id + si.argsHelpString,
                                            (display::alias.toList).map{"\"" + _ + "\""}.mkString(" "))}.mkString("")
   }
-
-  // def apply(args0: String*) : SI = {
-  //   val args = args0.flatMap(_.split('-')).toList
-  //   val res = args match {
-  //     case "reference2012" :: Nil => Ref2012
-  //     case "reference2013" :: Nil => Ref2013
-  //     case ("" | "reference" | "reference2014") :: Nil => Ref2014
-  //     case "parallel2012" :: tail => Parallel2012().withArgs(tail)
-  //     case "imperative2012" :: Nil => Imperative2012
-  //     case "optimized2012" :: Nil => Opt2012
-  //     case "optimized2013" :: Nil => Opt2013
-  //     case "optimized2014" :: Nil => Opt2014
-  //     case "optimized" :: tail => Optimized().withArgs(tail)
-  //     case "enclosure" :: tail => Enclosure().withArgs(tail)
-  //     case _ => null
-  //   }
-  //   if (res == null) 
-  //     throw UnrecognizedInterpreterString(args.mkString("-"))
-  //   res
-  // }
 
   def apply(spec: SemanticsSpec) : SI = {
     try {

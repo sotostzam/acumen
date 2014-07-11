@@ -8,7 +8,6 @@ import Pretty._
 trait Interpreter {
   def newInterpreterModel : InterpreterModel
   def run(p:Prog) : InterpreterRes
-  def id : Array[String] // id, as would be passed in the command line
 }
 
 abstract class InterpreterRes {

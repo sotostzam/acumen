@@ -38,8 +38,6 @@ class Interpreter
     with Checker
     with Extract {
 
-  override def id = Interpreter.id_
-
   def newInterpreterModel = new EnclosureModel
 
   val defaultInterpreterCallbacks = new EnclosureInterpreterCallbacks {
@@ -85,10 +83,6 @@ class Interpreter
 /** Singleton interpreter. All concrete IVP solvers are declared here */
 object Interpreter extends Interpreter {
 
-  var id_ = Array("enclosure")
-  def updateId(args: String*) = 
-  id_ = Array("enclosure") ++ args
-
   // IVP solvers
   private val picard = new PicardSolver {}
   private val vero = new VeroSolver {}
@@ -104,9 +98,9 @@ object Interpreter extends Interpreter {
   def asLohner() = { strategy.eventEncloser.ivpSolver = lohner; this }
 
   /** Sets the event handler to PWL */
-  def asPWL() = { updateId("pwl"); strategy.eventEncloser = new PWLEventEncloser(strategy.eventEncloser.ivpSolver); this }
+  def asPWL() = { strategy.eventEncloser = new PWLEventEncloser(strategy.eventEncloser.ivpSolver); this }
   /** Sets the event handler to EVT */
-  def asEVT() = { updateId("evt"); strategy.eventEncloser = new TreeEventEncloser(strategy.eventEncloser.ivpSolver); this }
+  def asEVT() = { strategy.eventEncloser = new TreeEventEncloser(strategy.eventEncloser.ivpSolver); this }
 
   /** Sets the strategy LocalizingStrategy */
   def asLocalizing() = { strategy = new LocalizingStrategy(strategy.eventEncloser); this }
