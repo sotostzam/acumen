@@ -1,0 +1,73 @@
+
+#semantics "2014 Reference"
+
+class BB() // Basic bouncing ball
+private
+  x:=5; x':=0; x'':=0;
+end
+  if (x<=0) && (x'<0)
+    x' := - 0.5 * x'
+  else
+    x''=-9.8
+  end;
+end
+
+class BB_drag() // Bouncing ball with (air) drag
+private
+  x:=5; x':=0; x'':=0;
+end
+  if (x<=0) && (x'<0)
+    x' := - 0.5 * x'
+  else
+    x''=-9.8 - 0.1*x'*abs(x')
+  end;
+end
+
+class BB_grav() // Bouncing ball with Newtonian (1/r^2) gravity
+private
+  x:=5; x':=0; x'':=0;
+end
+  if (x<=0) && (x'<0)
+    x' := - 0.5 * x'
+  else
+    x''= -5000 /(20+x)^2
+  end;
+end
+
+class BB_drag_grav() // Bouncing ball with gravity and drag   
+private
+  x:=5; x':=0; x'':=0;
+end
+  if (x<=0) && (x'<0)
+    x' := - 0.5 * x'
+  else
+    x''= -5000 /(20+x)^2 - 0.1*x'*abs(x')
+  end;
+end
+
+class BB_dg_2D() // Bouncing ball with gravity and drag in 2D   
+private
+  p:=[30,0]; p':=[0,10]; p'':=[-8,-2.5];
+  r:=30; u:=[1,0]; sn:=0; st:=[0,10];
+  _3D := [["Cylinder",[0,0,0],[2.0,0.01],yellow,[0,0,pi/2]],
+          ["Sphere",[0,0,0],0.35,magenta,[0,0,0]]];
+end
+_3D = [["Cylinder",[0,0,0],[2.0,0.01],yellow,[0,0,pi/2]],
+       ["Sphere",[0,p(0)/10,p(1)/10],0.05,magenta,[0,0,0]]];
+  r  = norm(p);         // Distance from origin
+  u  = (1/r)*p;         // Unit from origin
+  sn = dot(p', u);      // Speed normal to surface
+  st = p' - (sn*u);     // Speed along surface
+  
+  if (r<=20) && (dot(p', u)<0)
+    p' := p' - (1.8*dot(p', u)*u);
+  else
+    p''= - 0.01*norm(p')*p' - (5000 /(r)^2)*u
+  end;
+end
+
+class Main (simulator)
+private
+  a := create BB_dg_2D ();
+end
+end
