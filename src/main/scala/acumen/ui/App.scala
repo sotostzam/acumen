@@ -150,6 +150,7 @@ class App extends SimpleSwingApplication {
   private val parallel2012Action              = mkActionMask("2012 Parallel",                       VK_P, NONE,       shortcutMask | SHIFT_MASK, promptForNumberOfThreads)
   private val pwlHybridSolverAction           = mkActionMask("2013 PWL",                            VK_L, VK_L,       shortcutMask | SHIFT_MASK, setSemantics(S.EnclosurePWL)) 
   private val eventTreeHybridSolverAction     = mkActionMask("2013 EVT",                            VK_T, VK_T,       shortcutMask | SHIFT_MASK, setSemantics(S.EnclosureEVT))
+  private val enclosure2014Action             = mkActionMask("2014 Enclosure",                      VK_4, VK_D,       shortcutMask | SHIFT_MASK, setSemantics(S.Enclosure2014))
   private val contractionAction               = mkActionMask("Contraction",                         VK_C, VK_C,       shortcutMask | SHIFT_MASK, enclosure.Interpreter.toggleContraction)
   private val normalizeAction                 = mkAction(    "Normalize (to H.A.)",                 VK_N, NONE,       toggleNormalization())
   private val manualAction                    = mkAction(    "Reference Manual",                    VK_M, VK_F1,      manual)
@@ -529,7 +530,12 @@ class App extends SimpleSwingApplication {
         selected = false // Main.useEnclosures &&
           //enclosure.Interpreter.strategy.eventEncloser.getClass == classOf[TreeEventEncloser]
       }
-      val bg = new ButtonGroup(ref2013, opt2013, ref2014, opt2014, ref2012, opt2012, par2012, encPWL, encEVT)
+      val enc2014 = new RadioMenuItem("") {
+        action = enclosure2014Action
+        enableWhenStopped(this) 
+        selected = false
+      }
+      val bg = new ButtonGroup(ref2013, opt2013, ref2014, opt2014, ref2012, opt2012, par2012, encPWL, encEVT, enc2014)
       val ls = new CheckMenuItem("") {
         action = contractionAction
         enabledWhenStopped += (this, () => interpreter.interpreter.getClass == enclosure.Interpreter.getClass)
@@ -558,7 +564,7 @@ class App extends SimpleSwingApplication {
       }
       contents += new Menu("Enclosure") {
         mnemonic = Key.E
-        contents ++= Seq(encPWL, encEVT, new Separator, ls)
+        contents ++= Seq(encPWL, encEVT, enc2014, new Separator, ls)
       }
       if (Main.enableAllSemantics) {
         contents += new Menu("Deprecated") {

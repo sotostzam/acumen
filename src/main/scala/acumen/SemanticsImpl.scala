@@ -19,6 +19,7 @@ object Semantics {
   val S2012 = Semantics(Some("2012"), Seq("desugar-local"), Seq("SD"));
   val S2013 = Semantics(Some("2013"), Seq("desugar-toplevel"), Seq("SD"));
   val S2014 = Semantics(Some("2014"), Seq("desugar-local-inline"), Seq("SD"));
+  val E2014 = Semantics(Some("enclosure2014"), Seq("desugar-local-inline"), Seq("SD"));
 }
 
 abstract class SemanticsSel
@@ -83,6 +84,7 @@ object SemanticsImpl {
       case S2012 => reference2012.Interpreter
       case S2013 => reference2013.Interpreter
       case S2014 => reference2014.Interpreter
+      case direct => enclosure2014.Interpreter
     }
     def interpreter() = i
   }
@@ -164,6 +166,7 @@ object SemanticsImpl {
   lazy val Opt2014 = Optimized(contMode = ContMode.IVP)
   lazy val EnclosurePWL = Enclosure(enclosure.Interpreter.asPWL)
   lazy val EnclosureEVT = Enclosure(enclosure.Interpreter.asEVT)
+  lazy val Enclosure2014 = Reference(E2014)
 
   case class Sel(si: SemanticsSel, 
                  // First id is the display name
@@ -183,6 +186,7 @@ object SemanticsImpl {
          sel(Parallel2012(), "2012 Parallel", "parallel2012"),
          sel(EnclosurePWL, "2013 PWL", "enclosure-pwl"),
          sel(EnclosureEVT, "2013 EVT", "enclosure-evt"),
+         sel(Enclosure2014, "2014 Enclosure", "enclosure2014"),
          exp(Optimized, "Optimized", "optimized"))
 
   def lookup(si: SemanticsSel) : Option[Sel] = 
