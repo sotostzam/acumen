@@ -75,7 +75,7 @@ class InterpreterTest extends FunSuite with ShouldMatchers {
              nextChild = 0 }
       """
 
-    val (prog, store) = parse(progTxt, storeTxt)
+    val (prog, store: interpreters.reference2012.Interpreter.Store) = parse(progTxt, storeTxt)
 
     val h = semantics.interpreter.loop(prog, store)
     val xs = oneVar(CId(2), "x", onlyAfterContinuous(h))

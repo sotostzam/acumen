@@ -148,9 +148,9 @@ class App extends SimpleSwingApplication {
   private val optimized2013Action             = mkActionMask("2013 Optimized",                      VK_O, NONE,       shortcutMask | SHIFT_MASK, setSemantics(S.Opt2013))
   private val optimized2012Action             = mkActionMask("2012 Optimized",                      VK_O, NONE,       shortcutMask | SHIFT_MASK, setSemantics(S.Opt2012)) 
   private val parallel2012Action              = mkActionMask("2012 Parallel",                       VK_P, NONE,       shortcutMask | SHIFT_MASK, promptForNumberOfThreads)
-  private val pwlHybridSolverAction           = mkActionMask("2013 PWL",                            VK_L, VK_L,       shortcutMask | SHIFT_MASK, setSemantics(S.EnclosurePWL)) 
-  private val eventTreeHybridSolverAction     = mkActionMask("2013 EVT",                            VK_T, VK_T,       shortcutMask | SHIFT_MASK, setSemantics(S.EnclosureEVT))
-  private val enclosure2014Action             = mkActionMask("2014 Enclosure",                      VK_4, VK_D,       shortcutMask | SHIFT_MASK, setSemantics(S.Enclosure2014))
+  private val pwlHybridSolverAction           = mkActionMask("2013 PWL",                            VK_L, VK_L,       shortcutMask | SHIFT_MASK, setSemantics(S.EncPWL)) 
+  private val eventTreeHybridSolverAction     = mkActionMask("2013 EVT",                            VK_T, VK_T,       shortcutMask | SHIFT_MASK, setSemantics(S.EncEVT))
+  private val enclosure2014Action             = mkActionMask("2014 Enclosure",                      VK_4, VK_D,       shortcutMask | SHIFT_MASK, setSemantics(S.Enc2014))
   private val contractionAction               = mkActionMask("Contraction",                         VK_C, VK_C,       shortcutMask | SHIFT_MASK, enclosure.Interpreter.toggleContraction)
   private val normalizeAction                 = mkAction(    "Normalize (to H.A.)",                 VK_N, NONE,       toggleNormalization())
   private val manualAction                    = mkAction(    "Reference Manual",                    VK_M, VK_F1,      manual)
@@ -660,8 +660,9 @@ class App extends SimpleSwingApplication {
     case S.Opt2014 => bar.semantics.opt2014.selected = true
     case S.Opt2012 => bar.semantics.opt2012.selected = true
     case _:S.Parallel2012  => bar.semantics.par2012.selected = true
-    case S.EnclosurePWL => bar.semantics.encPWL.selected = true
-    case S.EnclosureEVT => bar.semantics.encEVT.selected = true
+    case S.EncPWL  => bar.semantics.encPWL.selected = true
+    case S.EncEVT  => bar.semantics.encEVT.selected = true
+    case S.Enc2014 => bar.semantics.enc2014.selected = true
     case _ => /* Other semantics not sccable from the menu selected */
   }
 

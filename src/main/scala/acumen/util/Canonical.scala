@@ -11,6 +11,7 @@ object Canonical {
   val self         = name("self")
   val parent       = name("parent")
   val classf       = name("className")
+  val magicf       = name("simulator")
   val time         = name("time")
   val timeStep     = name("timeStep")
   val resultType   = name("resultType")

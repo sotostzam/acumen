@@ -152,7 +152,10 @@ object Errors {
   }
   case class BadLhs() extends PositionalAcumenError {
     override def mesg = 
-      "The left hand-side of an assignment must be of the form 'e.x'."
+      "The left-hand side of an assignment must be of the form 'e.x'."
+  }
+  case class BadRhs(message: String) extends PositionalAcumenError {
+    override def mesg = "Invalid assignment: " + message
   }
   case class BadPreLhs() extends PositionalAcumenError {
     override def mesg = 

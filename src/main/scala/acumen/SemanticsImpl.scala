@@ -16,10 +16,10 @@ case class Semantics(id: Option[String],
                      defaultPasses: Seq[String]) 
 
 object Semantics {
-  val S2012 = Semantics(Some("2012"), Seq("desugar-local"), Seq("SD"));
-  val S2013 = Semantics(Some("2013"), Seq("desugar-toplevel"), Seq("SD"));
-  val S2014 = Semantics(Some("2014"), Seq("desugar-local-inline"), Seq("SD"));
-  val E2014 = Semantics(Some("enclosure2014"), Seq("desugar-local-inline"), Seq("SD"));
+  val S2012 = Semantics(Some("2012"), Seq("desugar-local"), Seq("SD"))
+  val S2013 = Semantics(Some("2013"), Seq("desugar-toplevel"), Seq("SD"))
+  val S2014 = Semantics(Some("2014"), Seq("desugar-local-inline"), Seq("SD"))
+  val E2014 = Semantics(Some("enclosure2014"), Seq("desugar-local-inline"), Seq("SD"))
 }
 
 abstract class SemanticsSel
@@ -84,8 +84,12 @@ object SemanticsImpl {
       case S2012 => reference2012.Interpreter
       case S2013 => reference2013.Interpreter
       case S2014 => reference2014.Interpreter
-      case direct => enclosure2014.Interpreter
     }
+    def interpreter() = i
+  }
+  object Enclosure2014 extends CStore {
+    val i = enclosure2014.Interpreter
+    val semantics = E2014
     def interpreter() = i
   }
   object Imperative2012 extends CStore {
@@ -164,9 +168,9 @@ object SemanticsImpl {
   lazy val Opt2012 = Imperative2012
   lazy val Opt2013 = Optimized()
   lazy val Opt2014 = Optimized(contMode = ContMode.IVP)
-  lazy val EnclosurePWL = Enclosure(enclosure.Interpreter.asPWL)
-  lazy val EnclosureEVT = Enclosure(enclosure.Interpreter.asEVT)
-  lazy val Enclosure2014 = Reference(E2014)
+  lazy val EncPWL = Enclosure(enclosure.Interpreter.asPWL)
+  lazy val EncEVT = Enclosure(enclosure.Interpreter.asEVT)
+  lazy val Enc2014 = Enclosure2014
 
   case class Sel(si: SemanticsSel, 
                  // First id is the display name
@@ -184,9 +188,9 @@ object SemanticsImpl {
          sel(Ref2012, "2012 Reference", "reference2012"),
          sel(Opt2012, "2012 Optimized", "optimized2012", "imperative2012"),
          sel(Parallel2012(), "2012 Parallel", "parallel2012"),
-         sel(EnclosurePWL, "2013 PWL", "enclosure-pwl"),
-         sel(EnclosureEVT, "2013 EVT", "enclosure-evt"),
-         sel(Enclosure2014, "2014 Enclosure", "enclosure2014"),
+         sel(EncPWL, "2013 PWL", "enclosure-pwl"),
+         sel(EncEVT, "2013 EVT", "enclosure-evt"),
+         sel(Enc2014, "2014 Enclosure", "enclosure2014"),
          exp(Optimized, "Optimized", "optimized"))
 
   def lookup(si: SemanticsSel) : Option[Sel] = 

@@ -5,6 +5,7 @@ import scala.math._
 import scala.collection.mutable.HashMap
 import scala.collection.mutable.{Map => MutMap}
 import scala.util.parsing.input.{Positional}
+import acumen.interpreters.enclosure.Interval
 
 package acumen {
 
@@ -144,11 +145,31 @@ package acumen {
   case class GInt(i: Int) extends GroundValue
   /* Example: 4.2e1 */
   case class GDouble(d: Double) extends GroundValue
+  /* Example: [3.1 .. 3.2] */
+  case class GInterval(i: Interval) extends GroundValue
   /* Example: true */
   case class GBool(b: Boolean) extends GroundValue
+  /* Example: CertainTrue, CertainFalse, Uncertain */
+  sealed class GUncertainBool(v: Set[Boolean]) extends GroundValue
+  object CertainTrue extends GUncertainBool(Set(true))
+  object CertainFalse extends GUncertainBool(Set(false))
+  object Uncertain extends GUncertainBool(Set(true,false))
   /* Example: "foo" */
   case class GStr(s: String) extends GroundValue
-
+  /* Representation of an uncertain, time varying value */
+  trait GEnclosure[V] extends GroundValue {
+    def apply(t: Interval): V
+    def range: V
+    def start: V
+    def end: V
+    def isThin: Boolean
+    def show: String
+  }
+  /* Internal, rigorous representation of a real function */
+  abstract class GRealEnclosure extends GEnclosure[Interval]
+  /* Internal, rigorous representation of a discrete function */
+  abstract class GDiscreteEnclosure[T] extends GEnclosure[Set[T]]
+   
   // NOTE: Constants.PI (a GDouble(math.Pi)) is meant as a special
   //   value and is tested for reference equality in
   //   interpreters.enclosure.Extract.  This needs to be taken into

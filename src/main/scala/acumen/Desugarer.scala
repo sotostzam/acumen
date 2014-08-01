@@ -146,7 +146,7 @@ case class Desugarer(odeTransformMode: ODETransformMode) {
 
   def desugar(p: Prog, fs: List[Name], env: List[Name], e: Clause): Clause =
     e match {
-      case Clause(lhs, inv, rhs) => Clause(lhs, inv, desugar(p, fs, env, rhs))
+      case Clause(lhs, inv, rhs) => Clause(lhs, desugar(p, fs, env, inv), desugar(p, fs, env, rhs))
     }
   
   def firstOrderSystem(dot: Dot): List[ContinuousAction] = dot match {

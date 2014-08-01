@@ -67,7 +67,7 @@ class DoubleResult(coll: ResultCollector[Double]) extends Result[Double](coll)
   def getAsDouble(i: Int) = apply(i)
   def asDoubles = this
 }
-class GenericResult(coll: ResultCollector[GValue]) extends Result[GValue](coll) {
+class GenericResult(val coll: ResultCollector[GValue]) extends Result[GValue](coll) {
   def getAsString(i: Int) = pprint(apply(i))
   def getAsDouble(i: Int) = extractDoubleNoThrow(apply(i))
   def asDoubles = view.map{extractDoubleNoThrow(_)}
@@ -104,8 +104,8 @@ case class DataModel(columnNames: im.IndexedSeq[String], rowCount: Int,
 
   override def getTimes() = times
 
-  override def getPlottables(parms: PlotParms) : im.Iterable[PlotDoubles] = {
-    val res = new ListBuffer[PlotDoubles]
+  override def getPlottables(parms: PlotParms) : im.Iterable[Plottable] = {
+    val res = new ListBuffer[Plottable]
     for ((a,idx) <- stores zipWithIndex) {
       (a,a.key.fieldName.x) match {
         case (a0:DoubleResult, fn) if !threeDField(fn) &&
@@ -113,6 +113,23 @@ case class DataModel(columnNames: im.IndexedSeq[String], rowCount: Int,
                                       (parms.plotNextChild || fn != "nextChild") && 
                                       (parms.plotSeeds || (fn != "seed1" && fn != "seed2")) =>
           res += new PlotDoubles(a.isSimulator, a.key.fieldName, a.startFrame, idx, a0)
+        case (a0: GenericResult, fn) => a0.coll match {
+          case collGV: ResultCollector[GValue] =>
+            if (collGV nonEmpty)
+              collGV(0) match {
+                case VLit(_: GInterval | _: GRealEnclosure) =>
+                  val collE: scala.collection.immutable.IndexedSeq[Enclosure] = (collGV.map {
+                    case VLit(GInterval(i)) =>
+                      Enclosure(i.loDouble, i.hiDouble, i.loDouble, i.hiDouble)
+                    case VLit(ge: GRealEnclosure) =>
+                      val i = ge.range
+                      Enclosure(i.loDouble, i.hiDouble, i.loDouble, i.hiDouble)
+                  }).toIndexedSeq
+                  res += new PlotEnclosure(a.isSimulator, a.key.fieldName, a.startFrame, idx, collE)
+                case _ => ()
+              }
+          case _ => ()
+        }
         case _ => ()
       }
     }
