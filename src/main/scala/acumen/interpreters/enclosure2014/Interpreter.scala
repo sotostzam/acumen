@@ -662,9 +662,9 @@ object Interpreter extends CStoreInterpreter {
   
   lazy val initStore = Parser.run(Parser.store, initStoreTxt.format("#0"))
   val initStoreTxt = // FIXME Remove unrelated CStoreInterpreter parameters
-  """#0.0 { className = Simulator, parent = %s, time = 0.0, timeStep = 0.01, 
+  """#0.0 { className = Simulator, parent = %s, time = 0.0, timeStep = 0.015625, 
             outputRows = "All", continuousSkip = 0,
-            endTime = 3.5, resultType = @Discrete, nextChild = 0,
+            endTime = 10.0, resultType = @Discrete, nextChild = 0,
       expects = 0, observes = 0, method = "RungeKutta", seed1 = 0, seed2 = 0 }"""
 
   /** Updates the values of variables in xs (identified by CId and Dot.field) to the corresponding CValue. */
@@ -688,33 +688,38 @@ object Interpreter extends CStoreInterpreter {
     case _ => Nil
   }
     
-  def step(p: Prog, st: Store): Option[Store] =
-    if (getTime(st.enclosure) >= getEndTime(st.enclosure))
+  def step(p: Prog, st: Store): Option[Store] = {
+    val st1 = updateSimulator(p, st)
+    if (getTime(st1.enclosure) >= getEndTime(st1.enclosure))
       None
     else
-      Some(getResultType(st.enclosure) match {
+      Some(getResultType(st1.enclosure) match {
         case Continuous =>
-          setResultType(Discrete, st)
+          setResultType(Discrete, st1)
         case Discrete =>
-          val st1 = updateSimulator(p, st)
           setResultType(FixedPoint, st1)
         case FixedPoint => // Do continuous step
-          val tNow = getTime(st.enclosure)
-          val tNext = tNow + getTimeStep(st.enclosure)
+          val tNow = getTime(st1.enclosure)
+          val tNext = tNow + getTimeStep(st1.enclosure)
           val T = Interval(tNow, tNext)
-          val validEnclosureOverT = hybridEncloser(T, p, st)
-          val st1 = setResultType(Continuous, validEnclosureOverT)
-          setTime(tNext, st1)
+          val validEnclosureOverT = hybridEncloser(T, p, st1)
+          val st2 = setResultType(Continuous, validEnclosureOverT)
+          val res = setTime(tNext, st2)
+          println("endTime in res " + getEndTime(res.enclosure))
+          res
       })
+  }
 
   /** Traverse the AST (p) and collect statements that are active given st. */
   def active(st: Enclosure, p: Prog): Set[Changeset] =
     iterate(evalStep(p, st, _), mainId(st), st)
-    
+ 
+  // FIXME This only updates the values in st.enclosure, leaving the simulator objects in st.branches out-dated
+  /** Update simulator parameters in st.enclosure with values from the code in p. */
   def updateSimulator(p: Prog, st: Store): Store = {
     val paramMap = p.defs.find(_.name == cmain).get.body.flatMap {
-      case Discretely(Assign(Dot(Dot(Var(Name(self, 0)), Name(simulator, 0)), Name(param, 0)), Lit(rhs @ (GInt(_) | GDouble(_) | GInterval(_))))) => 
-        List((Name(param,0), VLit(rhs)))
+      case Discretely(Assign(Dot(Dot(Var(Name(self, 0)), Name(simulator, 0)), param), Lit(rhs @ (GInt(_) | GDouble(_) | GInterval(_))))) => 
+        List((param, VLit(rhs)))
       case _ => Nil
     }.toMap
     paramMap.foldLeft(st){ case (stTmp, (p,v)) => setInSimulator(p, v, stTmp) }
