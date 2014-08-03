@@ -17,6 +17,9 @@ class CStoreCntrl(val semantics: SemanticsImpl[_], val interpreter: CStoreInterp
     var buffer = Queue.empty[GStore]
     var defaultBufferSize = 200
     var bufferSize = 1 // start off with one step
+    
+    var timeOfLastFlush = 0L // milliseconds since epoch, ensures that plot is updated often enough
+    val minPlotUpdateInterval = 100 // wait at most this many milliseconds before updating plot
 
     def parse() = {
       val ast = semantics.parse(progText, currentDir, None)
@@ -37,6 +40,7 @@ class CStoreCntrl(val semantics: SemanticsImpl[_], val interpreter: CStoreInterp
 
     def flush {
       sendChunk
+      timeOfLastFlush = System.currentTimeMillis
       react (emergencyActions orElse {
         case GoOn => bufferSize = defaultBufferSize
         case Step => bufferSize = 1
@@ -89,7 +93,7 @@ class CStoreCntrl(val semantics: SemanticsImpl[_], val interpreter: CStoreInterp
         reactWithin(0) (emergencyActions orElse {
           case TIMEOUT => 
             store = I.multiStep(p, store, adder)
-            if (buffer.size >= bufferSize) flush
+            if (buffer.size >= bufferSize || (System.currentTimeMillis - timeOfLastFlush) > minPlotUpdateInterval) flush
         })
       } andThen {
         sendChunk

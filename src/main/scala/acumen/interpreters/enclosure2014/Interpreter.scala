@@ -664,7 +664,7 @@ object Interpreter extends CStoreInterpreter {
   val initStoreTxt = // FIXME Remove unrelated CStoreInterpreter parameters
   """#0.0 { className = Simulator, parent = %s, time = 0.0, timeStep = 0.01, 
             outputRows = "All", continuousSkip = 0,
-            endTime = 2.5, resultType = @Discrete, nextChild = 0,
+            endTime = 3.5, resultType = @Discrete, nextChild = 0,
       expects = 0, observes = 0, method = "RungeKutta", seed1 = 0, seed2 = 0 }"""
 
   /** Updates the values of variables in xs (identified by CId and Dot.field) to the corresponding CValue. */
