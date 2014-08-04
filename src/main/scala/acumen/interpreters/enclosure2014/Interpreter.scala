@@ -712,17 +712,13 @@ object Interpreter extends CStoreInterpreter {
   /** Traverse the AST (p) and collect statements that are active given st. */
   def active(st: Enclosure, p: Prog): Set[Changeset] = {
     val a = iterate(evalStep(p, st, _), mainId(st), st)
-    // Check that each variable has an ODE defined for it
-    a.foreach{ case Changeset(_,_,odes,_) => 
-               checkContinuousDynamicsAlwaysDefined(p, odes.map{ case DelayedAction(_,o,d,_,v) => (o,d,v) }, st) }
-    // Check for duplicate ODEs
-    a.foreach{ case Changeset(_,_,odes,_) => 
-               checkDuplicateAssingments(odes.toList.map{ case DelayedAction(_,o,d,_,_) => (o,d) },
-                                         DuplicateContinuousAssingment) }
-    // Check for duplicate assignments
-    a.foreach{ case Changeset(_,ass,_,_) => 
-               checkDuplicateAssingments(ass.toList.map{ case DelayedAction(_,o,d,_,_) => (o,d) },
-                                         DuplicateDiscreteAssingment) }
+    a.foreach{ changeset =>
+      val odeIds = changeset.odes.toList.map{ case DelayedAction(_,o,d,_,v) => (o,d) }
+      val assIds = changeset.ass.toList.map{ case DelayedAction(_,o,d,_,_) => (o,d) }
+      checkContinuousDynamicsAlwaysDefined(p, odeIds, st)
+      checkDuplicateAssingments(odeIds, DuplicateContinuousAssingment)
+      checkDuplicateAssingments(assIds, DuplicateDiscreteAssingment)
+    }
     a
   }
  
@@ -1021,12 +1017,12 @@ object Interpreter extends CStoreInterpreter {
    * an equation in scope at the current time step. This is done by checking that for each 
    * primed field name in each object in st, there is a corresponding CId-Name pair in odes.
    */
-  def checkContinuousDynamicsAlwaysDefined(prog: Prog, odes: Set[(CId, Dot, CValue)], st: Enclosure): Unit = {
+  def checkContinuousDynamicsAlwaysDefined(prog: Prog, odes: List[(CId, Dot)], st: Enclosure): Unit = {
     val declaredODENames = prog.defs.map(d => (d.name, (d.fields ++ d.priv.map(_.x)).filter(_.primes > 0))).toMap
     st.foreach { case (o, _) =>
       if (o != magicId(st))
         declaredODENames.get(getCls(o, st)).map(_.foreach { n =>
-          if (!odes.exists { case (eo, d, _) => eo.id == o.id && d.field.x == n.x })
+          if (!odes.exists { case (eo, d) => eo.id == o.id && d.field.x == n.x })
             throw ContinuousDynamicsUndefined(o, n, Pretty.pprint(getObjectField(o, classf, st)), getTime(st))
         })
     }
