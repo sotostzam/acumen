@@ -21,10 +21,7 @@ import scala.collection.immutable.{
 import Common._
 import Errors._
 import Pretty.pprint
-import acumen.interpreters.enclosure.{
-  Interval, Parameters, Rounding
-}
-import acumen.util.Conversions.{
+import util.Conversions.{
   extractDouble, extractDoubles, extractInterval, extractIntervals
 }
 import util.Canonical
@@ -32,9 +29,11 @@ import util.Canonical._
 import util.Conversions._
 import util.Names._
 import util.Random
-import acumen.interpreters.enclosure.Contract
-import acumen.interpreters.enclosure.Types.VarName
-import acumen.interpreters.enclosure.Box
+import enclosure.{
+  Abs, Box, Constant, Contract, Cos, Divide, Expression, Field, 
+  Interval, Negate, Parameters, Rounding, Sin, Sqrt
+}
+import enclosure.Types.VarName
 
 object Interpreter extends CStoreInterpreter {
   
@@ -51,8 +50,6 @@ object Interpreter extends CStoreInterpreter {
   val bannedFieldNames = List(self, parent, classf, nextChild, seed1, seed2, magicf)
 
   /* types */
-  
-  type Env = Map[Name, CValue]
 
   sealed abstract trait InitialConditionTime
   case object StartTime extends InitialConditionTime
@@ -295,13 +292,6 @@ object Interpreter extends CStoreInterpreter {
       (n :: p, st1)
   }
   
-  /* get self reference in an env */
-  def selfCId(e:Env) : CId =
-    e(self) match {
-      case VObjId(Some(a)) => a
-      case _ => throw ShouldNeverHappen()
-    }
-
   /* splits self's seed into (s1,s2), assigns s1 to self and returns s2 */
   def getNewSeed(self:CId, st: Enclosure) : ((Int,Int), Enclosure) = {
     val (s1,s2) = Random.split(getSeed(self,st))
@@ -367,20 +357,6 @@ object Interpreter extends CStoreInterpreter {
   def evalToObjId(e: Expr, env: Env, st:Enclosure) = evalExpr(e, env, st) match {
     case VObjId(Some(id)) => checkAccessOk(id, env, st, e); id
     case v => throw NotAnObject(v).setPos(e.pos)
-  }
-
-  /* runtime checks, should be disabled once we have type safety */
-
-  def checkAccessOk(id:CId, env:Env, st:Enclosure, context: Expr) : Unit = {
-    val sel = selfCId(env)
-    lazy val cs = childrenOf(sel, st)
-    if (sel != id && ! (cs contains id))
-      throw AccessDenied(id,sel,cs).setPos(context.pos)
-  }
-
-  def checkIsChildOf(child:CId, parent:CId, st:Enclosure, context: Expr) : Unit = {
-    val cs = childrenOf(parent, st)
-    if (! (cs contains child)) throw NotAChildOf(child,parent).setPos(context.pos)
   }
 
   /* evaluate e in the scope of env 
@@ -582,7 +558,7 @@ object Interpreter extends CStoreInterpreter {
           (inScope, claim match {
             case Lit(GBool(true)) => stmts
             case _ =>
-              combine(stmts :: logClaim(inScope == CertainTrue, getSelfCId(env), claim) :: Nil)
+              combine(stmts :: logClaim(inScope == CertainTrue, selfCId(env), claim) :: Nil)
           })
         }
         val (in, uncertain) = modes.foldLeft((Set.empty[Changeset], Set.empty[Changeset])) {
@@ -598,7 +574,7 @@ object Interpreter extends CStoreInterpreter {
       case Continuously(ca) =>
         evalContinuousAction(certain, ca, env, p, st) 
       case Claim(c) =>
-        logClaim(certain, getSelfCId(env), c)
+        logClaim(certain, selfCId(env), c)
     }
   }
  
@@ -799,17 +775,6 @@ object Interpreter extends CStoreInterpreter {
     }
     enclose(st.branches, Nil, Nil, Nil, Nil, 0)
   }
-
-  /** Check for a duplicate assignment (of a specific kind) scheduled in assignments. */
-  def checkDuplicateAssingments(assignments: List[(CId, Dot)], error: Name => DuplicateAssingment): Unit = {
-    val duplicates = assignments.groupBy(a => (a._1,a._2)).filter{ case (_, l) => l.size > 1 }.toList
-    if (duplicates.size != 0) {
-      val first = duplicates(0)
-      val x = first._1._2.field
-      val poss = first._2.map{case (_,dot) => dot.pos}.sortWith{(a, b) => b < a}
-      throw error(first._1._2.field).setPos(poss(0)).setOtherPos(poss(1))
-    }
-  }
   
   /**
    * Returns true if there is only a single change set is active over the current time segment, this 
@@ -971,8 +936,6 @@ object Interpreter extends CStoreInterpreter {
       case _ => true
     })
   
-  import acumen.interpreters.enclosure._
-  
   def getFieldFromActions(as: List[(CId,Action)], st: Enclosure, p: Prog)(implicit rnd: Rounding): Field = {
     val highestDerivatives = as.flatMap {
       case (cid, Continuously(EquationT(Dot(_, n), rhs))) => List(((cid,n), rhs))
@@ -1011,32 +974,12 @@ object Interpreter extends CStoreInterpreter {
     case Op(Name("*", 0), List(l, r)) => acumenExprToExpression(l,selfCId,st,p) * acumenExprToExpression(r,selfCId,st,p)
     case _                            => sys.error("Handling of expression " + e + " not implemented!")
   }
-    
-  /**
-   * Ensure that for each variable that has an ODE declared in the private section, there is 
-   * an equation in scope at the current time step. This is done by checking that for each 
-   * primed field name in each object in st, there is a corresponding CId-Name pair in odes.
-   */
-  def checkContinuousDynamicsAlwaysDefined(prog: Prog, odes: List[(CId, Dot)], st: Enclosure): Unit = {
-    val declaredODENames = prog.defs.map(d => (d.name, (d.fields ++ d.priv.map(_.x)).filter(_.primes > 0))).toMap
-    st.foreach { case (o, _) =>
-      if (o != magicId(st))
-        declaredODENames.get(getCls(o, st)).map(_.foreach { n =>
-          if (!odes.exists { case (eo, d) => eo.id == o.id && d.field.x == n.x })
-            throw ContinuousDynamicsUndefined(o, n, Pretty.pprint(getObjectField(o, classf, st)), getTime(st))
-        })
-    }
-  }
   
   /* magic fields setters */
 
-  def getSelfCId(env: Env): CId = (env(self): @unchecked) match { case VObjId(Some(o)) => o }
-  
-  def setInSimulator(f:Name, v:CValue, s:Store): Store = {
-    val id = magicId(s.enclosure)
-    EnclosureAndBranches(setObjectField(id, f, v, s.enclosure), s.branches)
-  }
-  def setTime(d:Double, s:Store)       = setInSimulator(time, VLit(GDouble(d)), s)
+  def setInSimulator(f:Name, v:CValue, s:Store): Store =
+    EnclosureAndBranches(setObjectField(magicId(s.enclosure), f, v, s.enclosure), s.branches)
+  def setTime(d:Double, s:Store) = setInSimulator(time, VLit(GDouble(d)), s)
   def setResultType(t:ResultType, s:Store) = setInSimulator(resultType, VResultType(t), s)
 
   /* utilities */
