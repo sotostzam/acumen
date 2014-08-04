@@ -704,8 +704,9 @@ object Interpreter extends CStoreInterpreter {
           val T = Interval(tNow, tNext)
           val validEnclosureOverT = hybridEncloser(T, p, st1)
           val st2 = setResultType(Continuous, validEnclosureOverT)
-          val res = setTime(tNext, st2)
-          res
+          val st3 = setTime(tNext, st2)
+          val st4 = updateSimulator(p, st3)
+          st4
       })
   }
 
