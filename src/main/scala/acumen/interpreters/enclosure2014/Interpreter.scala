@@ -312,7 +312,7 @@ object Interpreter extends CStoreInterpreter {
   /* transfer parenthood of a list of objects,
    * whose ids are "cs", to address p */
   def reparent(certain: Boolean, cs:List[CId], p:CId) : Set[Changeset] =
-    cs.toSet flatMap (logReparent(certain, _:CId,p)) // FIXME toSet, flatMap
+    cs.toSet flatMap (logReparent(certain, _:CId,p)) // FIXME flatMap
     
   /* create an env from a class spec and init values */
   def mkObj(c:ClassName, p:Prog, prt:Option[CId], seed:(Int,Int),
@@ -705,7 +705,6 @@ object Interpreter extends CStoreInterpreter {
           val validEnclosureOverT = hybridEncloser(T, p, st1)
           val st2 = setResultType(Continuous, validEnclosureOverT)
           val res = setTime(tNext, st2)
-          println("endTime in res " + getEndTime(res.enclosure))
           res
       })
   }
@@ -830,10 +829,10 @@ object Interpreter extends CStoreInterpreter {
   /** Returns true if the discrete assignments in cs are empty or have no effect on s. */
   def isFlow(cs: Changeset) = cs.ass.isEmpty
   
-  /** Returns true if l and r contains identical sets of equations and claims. */
+  /** Returns true if l and r contains identical sets of ODEs and claims. */
   def sameMode(l: Changeset, r: Changeset): Boolean = sameODEs(l,r) && sameClaims(l,r)
   
-  /** Returns true if l and r contain the same assignments, equations and claims. */
+  /** Returns true if l and r contain the same assignments, ODEs and claims. */
   def sameChange(l: Changeset, r: Changeset): Boolean =
     sameAssignments(l, r) && sameMode(l, r)
 
@@ -841,7 +840,7 @@ object Interpreter extends CStoreInterpreter {
   def sameAssignments(l: Changeset, r: Changeset): Boolean =
     l.ass.map(da => (da.selfCId, da.a)) == r.ass.map(da => (da.selfCId, da.a))
     
-  /** Returns true if l and r contains identical sets of equations. */
+  /** Returns true if l and r contains identical sets of ODEs. */
   def sameODEs(l: Changeset, r: Changeset): Boolean =
     l.odes.map(da => (da.selfCId, da.a)) == r.odes.map(da => (da.selfCId, da.a))
 
@@ -950,6 +949,7 @@ object Interpreter extends CStoreInterpreter {
    */
   def checkValidAssignments(as: Seq[Action]): Boolean =
     //TODO Add checking of discrete assignments 
+    //TODO Update this to check for valid ODEs
     as.forall(_ match {
       case Continuously(EquationT(d@Dot(_,Name(_,n)), rhs: Expr)) if n > 0 => 
         if (rhs.toString contains d.toString)
