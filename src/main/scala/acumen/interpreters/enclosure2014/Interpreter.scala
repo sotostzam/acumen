@@ -705,17 +705,21 @@ object Interpreter extends CStoreInterpreter {
           val validEnclosureOverT = hybridEncloser(T, p, st1)
           val st2 = setResultType(Continuous, validEnclosureOverT)
           val st3 = setTime(tNext, st2)
-          val st4 = updateSimulator(p, st3)
-          st4
+          updateSimulator(p, st3)
       })
   }
 
   /** Traverse the AST (p) and collect statements that are active given st. */
   def active(st: Enclosure, p: Prog): Set[Changeset] = {
     val a = iterate(evalStep(p, st, _), mainId(st), st)
+    // Check that each variable has an ODE defined for it
+    a.foreach{ case Changeset(_,_,odes,_) => 
+               checkContinuousDynamicsAlwaysDefined(p, odes.map{ case DelayedAction(_,o,d,_,v) => (o,d,v) }, st) }
+    // Check for duplicate ODEs
     a.foreach{ case Changeset(_,_,odes,_) => 
                checkDuplicateAssingments(odes.toList.map{ case DelayedAction(_,o,d,_,_) => (o,d) },
                                          DuplicateContinuousAssingment) }
+    // Check for duplicate assignments
     a.foreach{ case Changeset(_,ass,_,_) => 
                checkDuplicateAssingments(ass.toList.map{ case DelayedAction(_,o,d,_,_) => (o,d) },
                                          DuplicateDiscreteAssingment) }
