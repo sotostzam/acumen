@@ -710,8 +710,16 @@ object Interpreter extends CStoreInterpreter {
   }
 
   /** Traverse the AST (p) and collect statements that are active given st. */
-  def active(st: Enclosure, p: Prog): Set[Changeset] =
-    iterate(evalStep(p, st, _), mainId(st), st)
+  def active(st: Enclosure, p: Prog): Set[Changeset] = {
+    val a = iterate(evalStep(p, st, _), mainId(st), st)
+    a.foreach{ case Changeset(_,_,odes,_) => 
+               checkDuplicateAssingments(odes.toList.map{ case DelayedAction(_,o,d,_,_) => (o,d) },
+                                         DuplicateContinuousAssingment) }
+    a.foreach{ case Changeset(_,ass,_,_) => 
+               checkDuplicateAssingments(ass.toList.map{ case DelayedAction(_,o,d,_,_) => (o,d) },
+                                         DuplicateDiscreteAssingment) }
+    a
+  }
  
   // FIXME This only updates the values in st.enclosure, leaving the simulator objects in st.branches out-dated
   /** Update simulator parameters in st.enclosure with values from the code in p. */
