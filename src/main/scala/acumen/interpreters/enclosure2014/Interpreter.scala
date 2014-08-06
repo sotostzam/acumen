@@ -750,7 +750,7 @@ object Interpreter extends CStoreInterpreter {
         case ((tmpW, tmpR, tmpU), q) =>
           if (!isFlow(q))
             ((w(q.ass), Some(q), t) :: tmpW, tmpR, tmpU)
-          else if ((t == UnknownTime && qw.isDefined && qw.get == q) || T.isThin)
+          else if ((t == UnknownTime && qw.isDefined && sameChange(qw.get,q)) || T.isThin)
             (tmpW, tmpR, tmpU)
           else {
             val s = continuousEncloser(q.odes, q.claims, T, prog, w)
