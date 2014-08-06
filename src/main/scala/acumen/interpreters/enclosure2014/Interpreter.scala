@@ -99,10 +99,10 @@ object Interpreter extends CStoreInterpreter {
     def contains(that: Enclosure): Boolean = // TODO Update for dynamic objects
       that.forall{ case (cid,_) => e contains cid } &&
       e.forall{ case (cid,co) => 
-        val tco = that.get(cid)
         if (classOf(co) == cmagic)
           true // FIXME Sanity check this
         else {
+          val tco = that get cid
           tco.isDefined && co.forall{ case (n,v) =>
             if (bannedFieldNames contains n) true
             else (v, tco.get.get(n)) match {
@@ -139,8 +139,7 @@ object Interpreter extends CStoreInterpreter {
     /** Returns a copy of this where f has been applied to all enclosure fields. */
     def map(f: GEnclosure[_] => GEnclosure[_]) =
       e.mapValues(_.mapValues{
-        case VLit(ce:Real) => VLit(f(ce))
-        case VLit(ce:GStrEnclosure) => VLit(f(ce))
+        case VLit(ce: GEnclosure[_]) => VLit(f(ce))
         case field => field
       })
     /** Use f to reduce this enclosure to a value of type A. */
@@ -822,14 +821,41 @@ object Interpreter extends CStoreInterpreter {
   def sameClaims(l: Changeset, r: Changeset): Boolean =
     l.claims.map(da => (da.selfCId, da.c)) == r.claims.map(da => (da.selfCId, da.c))
 
-  val contract = new Contract{}
-
   /**
    * Contract st based on all claims.
    * NOTE: Returns Left if the support of any of the claims has an empty intersection with st,
    *       or if some other exception is thrown by contract.
    */
-  def contract(st: Enclosure, claims: Iterable[DelayedClaim], prog: Prog): Either[String, Enclosure] =
+  def contract(st: Enclosure, claims: Iterable[DelayedClaim], prog: Prog): Either[String, Enclosure] = {
+    val contractInstance = new Contract{}
+    /**
+     * Given a predicate p and store st, removes that part of st for which p does not hold.
+     * NOTE: The range of st is first computed, as contraction currently only works on intervals.  
+     */
+    def contract(st: Enclosure, p: Expr, prog: Prog, selfCId: CId): Option[Enclosure] = {
+      val box = envBox(p, selfCId, st, prog)
+      val varNameToFieldId = varNameToFieldIdMap(st)
+      p match {
+        case Lit(CertainTrue | Uncertain) => Some(st)
+        case Lit(CertainFalse) => None
+        case Op(Name("&&",0), List(l,r)) => 
+          (contract(st,l,prog,selfCId), contract(st,r,prog,selfCId)) match {
+            case (Some(pil),Some(pir)) => pil intersect pir
+            case _ => None
+          }
+        case Op(Name(op,0), List(l,r)) =>
+          val le = acumenExprToExpression(l,selfCId,st,prog)
+          val re = acumenExprToExpression(r,selfCId,st,prog)
+          val smallerBox = op match {
+            case "<=" | "<" => contractInstance.contractLeq(le,re)(box)
+            case ">=" | ">" => contractInstance.contractLeq(re,le)(box)
+            case "==" => contractInstance.contractEq(le,re)(box)
+            case "~=" => contractInstance.contractNeq(le,re)(box)
+          } 
+          val smallerBoxMap = smallerBox.map{ case (k, v) => (varNameToFieldId(k), VLit(Real(v))) }
+          Some(st update smallerBoxMap)
+      }
+    }
     claims.foldLeft(Right(st): Either[String, Enclosure]) {
       case (res, DelayedClaim(_, selfCId, claim)) => res match {
         case Right(r) => 
@@ -839,34 +865,6 @@ object Interpreter extends CStoreInterpreter {
           } catch { case e: Throwable => Left("Error while applying claim " + Pretty.pprint(claim) + ": " + e.getMessage) }
         case _ => res
       }
-    }
-  
-  /**
-   * Given a predicate p and store st, removes that part of st for which p does not hold.
-   * NOTE: The range of st is first computed, as contraction currently only works on intervals.  
-   */
-  def contract(st: Enclosure, p: Expr, prog: Prog, selfCId: CId): Option[Enclosure] = {
-    val box = envBox(p, selfCId, st, prog)
-    val varNameToFieldId = varNameToFieldIdMap(st)
-    p match {
-      case Lit(CertainTrue | Uncertain) => Some(st)
-      case Lit(CertainFalse) => None
-      case Op(Name("&&",0), List(l,r)) => 
-        (contract(st,l,prog,selfCId), contract(st,r,prog,selfCId)) match {
-          case (Some(pil),Some(pir)) => pil intersect pir
-          case _ => None
-        }
-      case Op(Name(op,0), List(l,r)) =>
-        val le = acumenExprToExpression(l,selfCId,st,prog)
-        val re = acumenExprToExpression(r,selfCId,st,prog)
-        val smallerBox = op match {
-          case "<=" | "<" => contract.contractLeq(le,re)(box)
-          case ">=" | ">" => contract.contractLeq(re,le)(box)
-          case "==" => contract.contractEq(le,re)(box)
-          case "~=" => contract.contractNeq(le,re)(box)
-        } 
-        val smallerBoxMap = smallerBox.map{ case (k, v) => (varNameToFieldId(k), VLit(Real(v))) }
-        Some(st update smallerBoxMap)
     }
   }
   
