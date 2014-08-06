@@ -88,7 +88,8 @@ object Interpreter extends CStoreInterpreter {
       } catch { case e: Throwable => None } // FIXME Use Either to propagate error information 
     }
     /** Returns a copy of e with das applied to it. */
-    def apply(das: Set[DelayedAction]): Enclosure = update(das.map(d => (d.selfCId,d.d.field) -> d.v).toMap)
+    def apply(das: Set[DelayedAction]): Enclosure = 
+      update(das.map(d => (d.selfCId, d.d.field) -> evalExpr(d.e, d.env, this.e)).toMap)
     /** Update e with respect to u. */
     def update(u: Map[(CId, Name), CValue]) =
       for { (cid, co) <- e }
@@ -167,6 +168,8 @@ object Interpreter extends CStoreInterpreter {
         case Changeset(reps1, ass1, odes1, claims1) =>
           Changeset(reps ++ reps1, ass ++ ass1, odes ++ odes1, claims ++ claims1)
       }
+    override def toString =
+      (reps, ass.map(d => Pretty.pprint(d.a)), ass.map(d => Pretty.pprint(d.a)), odes.map(d => Pretty.pprint(d.a)), claims.map(d => Pretty.pprint(d.c))).toString
   }
   object Changeset {
     def combine[A](ls: Set[Changeset], rs: Set[Changeset]): Set[Changeset] =
@@ -180,7 +183,7 @@ object Interpreter extends CStoreInterpreter {
       combine(xs map f)
   }
   val NoChange = Changeset(Set.empty, Set.empty, Set.empty, Set.empty) 
-  case class DelayedAction(certain: Boolean, selfCId: CId, d: Dot, a: Action, v: CValue)
+  case class DelayedAction(certain: Boolean, selfCId: CId, d: Dot, a: Action, e: Expr, env: Env)
   case class DelayedClaim(certain: Boolean, selfCId: CId, c: Expr)
 
   import Changeset._
@@ -273,11 +276,11 @@ object Interpreter extends CStoreInterpreter {
   def logReparent(certain: Boolean, o:CId, parent:CId) : Set[Changeset] =
     Set(Changeset(Set((o,parent)), Set.empty, Set.empty, Set.empty))
     
-  def logAssign(certain: Boolean, o: CId, d: Dot, a: Action, v:CValue) : Set[Changeset] =
-    Set(Changeset(Set.empty, Set(DelayedAction(certain,o,d,a,v)), Set.empty, Set.empty))
+  def logAssign(certain: Boolean, o: CId, d: Dot, a: Action, e: Expr, env: Env) : Set[Changeset] =
+    Set(Changeset(Set.empty, Set(DelayedAction(certain,o,d,a,e,env)), Set.empty, Set.empty))
 
-  def logODE(certain: Boolean, o: CId, d: Dot, a: Action, v:CValue) : Set[Changeset] =
-    Set(Changeset(Set.empty, Set.empty, Set(DelayedAction(certain,o,d,a,v)), Set.empty))
+  def logODE(certain: Boolean, o: CId, d: Dot, a: Action, e: Expr, env: Env) : Set[Changeset] =
+    Set(Changeset(Set.empty, Set.empty, Set(DelayedAction(certain,o,d,a,e,env)), Set.empty))
 
   def logClaim(certain: Boolean, o: CId, c: Expr) : Set[Changeset] =
     Set(Changeset(Set.empty, Set.empty, Set.empty, Set(DelayedClaim(certain,o,c))))
@@ -581,11 +584,10 @@ object Interpreter extends CStoreInterpreter {
     a match {
       case Assign(Dot(o @ Dot(Var(self),Name(simulator,0)), n), e) =>
         Set.empty // TODO Ensure that this does not cause trouble down the road 
-      case Assign(d@Dot(e,x),t) => 
+      case Assign(d@Dot(o,x),rhs) => 
         /* Schedule the discrete assignment */
-        val id = evalToObjId(e, env, st)
-        val vt = evalExpr(t, env, st)
-        logAssign(certain, id, d, Discretely(a), vt)
+        val id = evalToObjId(o, env, st)
+        logAssign(certain, id, d, Discretely(a), rhs, env)
       /* Basically, following says that variable names must be 
          fully qualified at this language level */
       case Assign(_,_) => 
@@ -598,8 +600,7 @@ object Interpreter extends CStoreInterpreter {
         Set() // TODO Add some level of support for equations
       case EquationI(d@Dot(e,_),rhs) =>
         val id = extractId(evalExpr(e, env, st))
-        val v = evalExpr(rhs, env, st)
-        logODE(certain, id, d, Continuously(a), v) // FIXME No need to evaluate rhs
+        logODE(certain, id, d, Continuously(a), e, env)
       case _ =>
         throw ShouldNeverHappen() // FIXME: enforce that with refinement types
     }
@@ -688,8 +689,8 @@ object Interpreter extends CStoreInterpreter {
   def active(st: Enclosure, p: Prog): Set[Changeset] = {
     val a = iterate(evalStep(p, st, _), mainId(st), st)
     a.foreach{ changeset =>
-      val odeIds = changeset.odes.toList.map{ case DelayedAction(_,o,d,_,v) => (o,d) }
-      val assIds = changeset.ass.toList.map{ case DelayedAction(_,o,d,_,_) => (o,d) }
+      val odeIds = changeset.odes.toList.map(da => (da.selfCId, da.d))
+      val assIds = changeset.ass.toList.map(da => (da.selfCId, da.d))
       checkContinuousDynamicsAlwaysDefined(p, odeIds, st)
       checkDuplicateAssingments(odeIds, DuplicateContinuousAssingment)
       checkDuplicateAssingments(assIds, DuplicateDiscreteAssingment)
@@ -750,7 +751,7 @@ object Interpreter extends CStoreInterpreter {
         case ((tmpW, tmpR, tmpU), q) =>
           if (!isFlow(q))
             ((w(q.ass), Some(q), t) :: tmpW, tmpR, tmpU)
-          else if ((t == UnknownTime && qw.isDefined && sameChange(qw.get,q)) || T.isThin)
+          else if ((t == UnknownTime && qw.isDefined && qw.get == q) || T.isThin)
             (tmpW, tmpR, tmpU)
           else {
             val s = continuousEncloser(q.odes, q.claims, T, prog, w)
@@ -790,7 +791,7 @@ object Interpreter extends CStoreInterpreter {
    *  2) The change sets active at the end-point of the current time segment do not contain q or the  
    *     claim in q violates the enclosure at the end-point of the current time segment. */
   def certainEvent(q: Changeset, hr: Set[Changeset], hu: Set[Changeset], up: Either[String,Enclosure]): Boolean = {
-    val qIsElementOfHu = hu exists (sameChange(_, q)) 
+    val qIsElementOfHu = hu exists (_ == q) 
     (hr.size > 1 || q.ass.nonEmpty) && // Some event is possible 
       (!qIsElementOfHu || up.isLeft) // Some possible event is certain 
   }
@@ -801,17 +802,6 @@ object Interpreter extends CStoreInterpreter {
   
   /** Returns true if the discrete assignments in cs are empty or have no effect on s. */
   def isFlow(cs: Changeset) = cs.ass.isEmpty
-
-  /** Returns true if l and r contain the same assignments, ODEs and claims. */
-  def sameChange(l: Changeset, r: Changeset): Boolean = {
-    def sameAssignments(l: Changeset, r: Changeset) =
-      l.ass.map(da => (da.selfCId, da.a)) == r.ass.map(da => (da.selfCId, da.a))
-    def sameODEs(l: Changeset, r: Changeset) =
-      l.odes.map(da => (da.selfCId, da.a)) == r.odes.map(da => (da.selfCId, da.a))
-    def sameClaims(l: Changeset, r: Changeset) =
-      l.claims.map(da => (da.selfCId, da.c)) == r.claims.map(da => (da.selfCId, da.c))
-    sameAssignments(l, r) && sameODEs(l, r) && sameClaims(l, r)
-  } 
 
   /**
    * Contract st based on all claims.
@@ -890,7 +880,7 @@ object Interpreter extends CStoreInterpreter {
       case Right(r) => r
     }
     val varNameToFieldId = varNameToFieldIdMap(ic)
-    val F = getFieldFromActions(odes.flatMap { case DelayedAction(_, selfCId, _, a, _) => List((selfCId, a)) }.toList, ic, p)
+    val F = getFieldFromActions(odes.flatMap(da => List((da.selfCId, da.a))).toList, ic, p)
     val stateVariables = varNameToFieldId.keys.toList
     val A = new Box(stateVariables.flatMap{ v => 
       val (o,n) = varNameToFieldId(v)
