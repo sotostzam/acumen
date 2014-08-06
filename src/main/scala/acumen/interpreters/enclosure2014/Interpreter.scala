@@ -801,25 +801,17 @@ object Interpreter extends CStoreInterpreter {
   
   /** Returns true if the discrete assignments in cs are empty or have no effect on s. */
   def isFlow(cs: Changeset) = cs.ass.isEmpty
-  
-  /** Returns true if l and r contains identical sets of ODEs and claims. */
-  def sameMode(l: Changeset, r: Changeset): Boolean = sameODEs(l,r) && sameClaims(l,r)
-  
+
   /** Returns true if l and r contain the same assignments, ODEs and claims. */
-  def sameChange(l: Changeset, r: Changeset): Boolean =
-    sameAssignments(l, r) && sameMode(l, r)
-
-  /** Returns true if l and r contains identical sets of assignments. */
-  def sameAssignments(l: Changeset, r: Changeset): Boolean =
-    l.ass.map(da => (da.selfCId, da.a)) == r.ass.map(da => (da.selfCId, da.a))
-    
-  /** Returns true if l and r contains identical sets of ODEs. */
-  def sameODEs(l: Changeset, r: Changeset): Boolean =
-    l.odes.map(da => (da.selfCId, da.a)) == r.odes.map(da => (da.selfCId, da.a))
-
-  /** Returns true if l and r contains identical sets of claims. */
-  def sameClaims(l: Changeset, r: Changeset): Boolean =
-    l.claims.map(da => (da.selfCId, da.c)) == r.claims.map(da => (da.selfCId, da.c))
+  def sameChange(l: Changeset, r: Changeset): Boolean = {
+    def sameAssignments(l: Changeset, r: Changeset) =
+      l.ass.map(da => (da.selfCId, da.a)) == r.ass.map(da => (da.selfCId, da.a))
+    def sameODEs(l: Changeset, r: Changeset) =
+      l.odes.map(da => (da.selfCId, da.a)) == r.odes.map(da => (da.selfCId, da.a))
+    def sameClaims(l: Changeset, r: Changeset) =
+      l.claims.map(da => (da.selfCId, da.c)) == r.claims.map(da => (da.selfCId, da.c))
+    sameAssignments(l, r) && sameODEs(l, r) && sameClaims(l, r)
+  } 
 
   /**
    * Contract st based on all claims.
