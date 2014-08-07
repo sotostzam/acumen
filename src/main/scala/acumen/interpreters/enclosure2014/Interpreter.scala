@@ -735,10 +735,10 @@ object Interpreter extends CStoreInterpreter {
           enclose(waiting, pwlR, pwlU, pwlP, pwlPs, iterations + 1)
         else {
           val (newP, newPs) = if (t == StartTime) (w :: pwlP, pwlPs) else (pwlP, w :: pwlPs)
-          val a = active(w, prog)
-          if (q.isDefined && q.get == a.head && a.size == 1 && isFlow(q.get) && t == UnknownTime)
+          val hw = active(w, prog)
+          if (q.isDefined && isFlow(q.get) && Set(q.get) == hw && t == UnknownTime)
             sys error "Model error!" // Repeated flow, t == UnknownTime means w was created in this time step
-          val (newW, newR, newU) = encloseHw(waiting, pwlR, pwlU, (w, q, t), a)
+          val (newW, newR, newU) = encloseHw(waiting, pwlR, pwlU, (w, q, t), hw)
           enclose(newW, newR, newU, newP, newPs, iterations + 1)
         }
       }
