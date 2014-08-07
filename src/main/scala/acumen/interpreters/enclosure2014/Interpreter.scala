@@ -1,14 +1,3 @@
-/* QUESTION: What if we want to have a termination condition rather than
-             a termination time?  */
-
-/* We need to document very clearly and very carefully why ifthenelse is a
-   statement, and if there are any benefits that are lost by doing that. */
-
-/* FIXME:  We'd like to keep the names of operators like 
-   "sum" around, but we'd like their semantics be defined simply by using the
-   environment to look up a semantic constant that does everything interest at
-   the level of values.  */
-
 package acumen
 package interpreters
 package enclosure2014
@@ -38,6 +27,24 @@ import enclosure.{
 }
 import enclosure.Types.VarName
 
+/**
+ * Reference implementation of direct enclosure semantics.
+ * The CStore type is used for two purposes:
+ * 
+ *  1) To represent an enclosure of all variables in the model, valid over 
+ *     [s.time, s.time + s.timeStep], where s is the single simulator object
+ *     of the CStore.
+ *  2) To represent initial conditions, valid at the start of a time interval.
+ *     In this case, all variables v of the CStore, that are of enclosure type 
+ *     (v is an instance of GEnclosure[]) have v.start = v.range = v.end.  
+ *   
+ * The Store type EnclosureAndBranches consists of:
+ * 
+ *  1) A single enclosure (this is what is actually plotted in the user interface) 
+ *     and for storing simulator variables (e.g. time, timeStep).
+ *  2) A List[InitialCondition], which represents the initial conditions of all 
+ *     branches of the computation. 
+ */
 object Interpreter extends CStoreInterpreter {
   
   type Store = EnclosureAndBranches
@@ -168,12 +175,12 @@ object Interpreter extends CStoreInterpreter {
   }
   implicit def liftEnclosure(st: CStore): EnclosureOps = EnclosureOps(st)
   
-  /* return type of computation */
+  /** Return type of AST traversal (evalActions) */
   case class Changeset
-    ( reps:   Set[(CId,CId)]     /* reparentings */
-    , ass:    Set[DelayedAction] /* discrete assignments */
-    , odes:   Set[DelayedAction] /* ode assignments / differential equations */
-    , claims: Set[DelayedClaim]  /* claims / constraints */
+    ( reps:   Set[(CId,CId)]     // reparentings
+    , ass:    Set[DelayedAction] // discrete assignments
+    , odes:   Set[DelayedAction] // ode assignments / differential equations
+    , claims: Set[DelayedClaim]  // claims / constraints
     ) {
     def ||(that: Changeset) =
       that match {
@@ -251,7 +258,7 @@ object Interpreter extends CStoreInterpreter {
   case class GIntEnclosure(override val start: Set[Int], override val enclosure: Set[Int], override val end: Set[Int]) 
     extends GConstantDiscreteEncosure[Int](start, enclosure, end)
     
-  /* set-up */
+  /* Set-up */
   
   /**
    * Lift all numeric values to ConstantEnclosures (excluding the Simulator object) 
@@ -300,7 +307,7 @@ object Interpreter extends CStoreInterpreter {
   def logClaim(certain: Boolean, o: CId, c: Expr) : Set[Changeset] =
     Set(Changeset(Set.empty, Set.empty, Set.empty, Set(DelayedClaim(certain,o,c))))
 
-  /* get a fresh object id for a child of parent */
+  /** Get a fresh object id for a child of parent */
   def freshCId(parent:Option[CId], st: Enclosure) : (CId, Enclosure) = parent match {
     case None => (CId.nil, st)
     case Some(p) =>
@@ -309,19 +316,18 @@ object Interpreter extends CStoreInterpreter {
       (n :: p, st1)
   }
   
-  /* splits self's seed into (s1,s2), assigns s1 to self and returns s2 */
+  /** Splits self's seed into (s1,s2), assigns s1 to self and returns s2 */
   def getNewSeed(self:CId, st: Enclosure) : ((Int,Int), Enclosure) = {
     val (s1,s2) = Random.split(getSeed(self,st))
 	  val st1 = changeSeed(self, s1, st)
     (s2, st1)
   }
   
-  /* transfer parenthood of a list of objects,
-   * whose ids are "cs", to address p */
+  /** Transfer parenthood of a list of objects, whose ids are "cs", to address p */
   def reparent(certain: Boolean, cs:List[CId], p:CId) : Set[Changeset] =
     cs.toSet flatMap (logReparent(certain, _:CId,p))
     
-  /* create an env from a class spec and init values */
+  /** Create an env from a class spec and init values */
   def mkObj(c:ClassName, p:Prog, prt:Option[CId], seed:(Int,Int),
             paramvs:List[CValue], st: Enclosure, childrenCounter:Int = 0) : (CId, Enclosure) = {
     val cd = classDef(c,p)
@@ -369,12 +375,7 @@ object Interpreter extends CStoreInterpreter {
     (fid, st4)
   }
 
-  /* utility function */
-
-  def evalToObjId(e: Expr, env: Env, st:Enclosure) = evalExpr(e, env, st) match {
-    case VObjId(Some(id)) => checkAccessOk(id, env, st, e); id
-    case v => throw NotAnObject(v).setPos(e.pos)
-  }
+  /* Utility function */
 
   /* evaluate e in the scope of env 
    * for definitions p with current store st */
@@ -601,7 +602,10 @@ object Interpreter extends CStoreInterpreter {
         Set.empty // TODO Ensure that this does not cause trouble down the road 
       case Assign(d@Dot(o,x),rhs) => 
         /* Schedule the discrete assignment */
-        val id = evalToObjId(o, env, st)
+        val id = evalExpr(o, env, st) match {
+          case VObjId(Some(id)) => checkAccessOk(id, env, st, o); id
+          case v => throw NotAnObject(v).setPos(o.pos)
+        }
         logAssign(certain, id, d, Discretely(a), rhs, env)
       /* Basically, following says that variable names must be 
          fully qualified at this language level */
@@ -742,8 +746,7 @@ object Interpreter extends CStoreInterpreter {
       ): Store =
       if (pwlW isEmpty) {
         def mergeBranches(ics: List[InitialCondition]): List[InitialCondition] =
-//          ics.groupBy(ic => (ic._2, ic._3)).map { case ((m, t), ic) => (ic.map(_._1).reduce(_ /\ _), m, t) }.toList
-          ics
+          ics.groupBy(ic => (ic._2, ic._3)).map { case ((m, t), ic) => (ic.map(_._1).reduce(_ /\ _), m, t) }.toList
         EnclosureAndBranches((pwlR union pwlP union pwlPs).reduce(_ /\ _), mergeBranches(pwlU))        
       }
       else if (iterations / st.branches.size > maxHybridEncloserIterationsPerBranch)
