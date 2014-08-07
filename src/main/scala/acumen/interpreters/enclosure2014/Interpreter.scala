@@ -46,7 +46,7 @@ object Interpreter extends CStoreInterpreter {
   // FIXME Thread this through as it is done in enclosure.Interpreter
   implicit val rnd = Rounding(Parameters.default)
   // FIXME Get parameter value from model
-  val maxHybridEncloserIterations = 1000
+  val maxHybridEncloserIterationsPerBranch = 1000
   val bannedFieldNames = List(self, parent, classf, nextChild, seed1, seed2, magicf)
 
   /* types */
@@ -54,8 +54,13 @@ object Interpreter extends CStoreInterpreter {
   sealed abstract trait InitialConditionTime
   case object StartTime extends InitialConditionTime
   case object UnknownTime extends InitialConditionTime
-  type InitialCondition = (Enclosure, Option[Changeset], InitialConditionTime)
+  type InitialCondition = (Enclosure, Option[Evolution], InitialConditionTime)
   case class EnclosureAndBranches(val enclosure: Enclosure, branches: List[InitialCondition])
+  
+  case class Evolution(changes: List[Changeset]) {
+    def head: Changeset = changes.head
+  }
+  val Epsilon = Evolution(Nil)
   
   type Enclosure = CStore
   case class EnclosureOps(e: Enclosure) {
@@ -168,6 +173,10 @@ object Interpreter extends CStoreInterpreter {
         case Changeset(reps1, ass1, odes1, claims1) =>
           Changeset(reps ++ reps1, ass ++ ass1, odes ++ odes1, claims ++ claims1)
       }
+    def <~(e: Evolution): Evolution = 
+      Evolution(if (e.changes.isEmpty || !isFlow(this) || this != e.changes.head) this :: e.changes else e.changes)
+    def <~(oe: Option[Evolution]): Evolution =
+      this <~ (oe getOrElse Epsilon)
     override def toString =
       (reps, ass.map(d => Pretty.pprint(d.a)), ass.map(d => Pretty.pprint(d.a)), odes.map(d => Pretty.pprint(d.a)), claims.map(d => Pretty.pprint(d.c))).toString
   }
@@ -725,10 +734,13 @@ object Interpreter extends CStoreInterpreter {
       , pwlPs: List[Enclosure] // Passed states at uncertain time in T
       , iterations: Int // Remaining iterations
       ): Store =
-      if (pwlW isEmpty)
-        EnclosureAndBranches((pwlR union pwlP union pwlPs).reduce(_ /\ _), pwlU)
-      else if (iterations > maxHybridEncloserIterations)
-        sys.error(s"Enclosure computation over $T did not terminate in $maxHybridEncloserIterations iterations.")
+      if (pwlW isEmpty) {
+        def mergeBranches(ics: List[InitialCondition]): List[InitialCondition] =
+          ics.groupBy(ic => (ic._2, ic._3)).map { case ((m, t), ic) => (ic.map(_._1).reduce(_ /\ _), m, t) }.toList
+        EnclosureAndBranches((pwlR union pwlP union pwlPs).reduce(_ /\ _), mergeBranches(pwlU))        
+      }
+      else if (iterations / st.branches.size > maxHybridEncloserIterationsPerBranch)
+        sys.error(s"Enclosure computation over $T did not terminate in ${iterations - 1} iterations.")
       else {
         val (w, q, t) :: waiting = pwlW
         if (isPassed(w, t, pwlP, pwlPs))
@@ -736,7 +748,7 @@ object Interpreter extends CStoreInterpreter {
         else {
           val (newP, newPs) = if (t == StartTime) (w :: pwlP, pwlPs) else (pwlP, w :: pwlPs)
           val hw = active(w, prog)
-          if (q.isDefined && isFlow(q.get) && Set(q.get) == hw && t == UnknownTime)
+          if (q.isDefined && isFlow(q.get.head) && Set(q.get.head) == hw && t == UnknownTime)
             sys error "Model error!" // Repeated flow, t == UnknownTime means w was created in this time step
           val (newW, newR, newU) = encloseHw(waiting, pwlR, pwlU, (w, q, t), hw)
           enclose(newW, newR, newU, newP, newPs, iterations + 1)
@@ -750,28 +762,28 @@ object Interpreter extends CStoreInterpreter {
       hw.foldLeft((pwlW, pwlR, pwlU)) {
         case ((tmpW, tmpR, tmpU), q) =>
           if (!isFlow(q))
-            ((w(q.ass), Some(q), t) :: tmpW, tmpR, tmpU)
-          else if ((t == UnknownTime && qw.isDefined && qw.get == q) || T.isThin)
+            ((w(q.ass), Some(q <~ qw), t) :: tmpW, tmpR, tmpU)
+          else if ((t == UnknownTime && qw.isDefined && qw.get.head == q) || T.isThin)
             (tmpW, tmpR, tmpU)
           else {
             val s = continuousEncloser(q.odes, q.claims, T, prog, w)
             val r = s.range
             val rp = contract(r, q.claims, prog).right.get
-            val (newW, newU) = handleEvent(q, r, rp, if (t == StartTime) s.endTimeEnclosure else r)
+            val (newW, newU) = handleEvent(q <~ qw, r, rp, if (t == StartTime) s.endTimeEnclosure else r)
             (newW ::: tmpW, rp :: tmpR, newU ::: tmpU)
           }
       }
     }
-    def handleEvent(q: Changeset, r: Enclosure, rp: Enclosure, u: Enclosure) = {
+    def handleEvent(q: Evolution, r: Enclosure, rp: Enclosure, u: Enclosure) = {
       val hr = active(r, prog)
       val hu = active(u, prog) 
-      val up = contract(u, q.claims, prog)
-      if (noEvent(q, hr, hu, up)) // no event
+      val up = contract(u, q.head.claims, prog)
+      if (noEvent(q.head, hr, hu, up)) // no event
         (Nil, (u, Some(q), StartTime) :: Nil)
-      else if (certainEvent(q, hr, hu, up)) // certain event
+      else if (certainEvent(q.head, hr, hu, up)) // certain event
         ((rp, Some(q), UnknownTime) :: Nil, Nil)
       else // possible event
-        ((rp, Some(q), UnknownTime) :: Nil, (contract(u, q.claims, prog).right.get, Some(q), StartTime) :: Nil)
+        ((rp, Some(q), UnknownTime) :: Nil, (contract(u, q.head.claims, prog).right.get, Some(q), StartTime) :: Nil)
     }
     enclose(st.branches, Nil, Nil, Nil, Nil, 0)
   }
