@@ -19,16 +19,19 @@ import scala.collection.immutable.{
   HashMap, MapProxy
 }
 import Common._
-import Errors._
-import Pretty.pprint
-import util.Conversions.{
-  extractDouble, extractDoubles, extractInterval, extractIntervals
+import Errors.{
+  BadLhs, BadRhs, ConstructorArity, DuplicateContinuousAssingment, 
+  DuplicateDiscreteAssingment, NotAClassName, NotAnObject, 
+  PositionalAcumenError, ShouldNeverHappen, UnknownOperator
 }
-import util.Canonical
+import Pretty.pprint
+import util.{
+  Canonical, Random
+}
 import util.Canonical._
-import util.Conversions._
-import util.Names._
-import util.Random
+import util.Conversions.{
+  extractDouble, extractDoubles, extractId, extractInterval, extractIntervals
+}
 import enclosure.{
   Abs, Box, Constant, Contract, Cos, Divide, Expression, Field, 
   Interval, Negate, Parameters, Rounding, Sin, Sqrt
@@ -43,11 +46,10 @@ object Interpreter extends CStoreInterpreter {
   
   /* initial values */
 
-  // FIXME Thread this through as it is done in enclosure.Interpreter
-  implicit val rnd = Rounding(Parameters.default)
   // FIXME Get parameter value from model
   val maxHybridEncloserIterationsPerBranch = 1000
   val bannedFieldNames = List(self, parent, classf, nextChild, seed1, seed2, magicf)
+  implicit val rnd = Rounding(Parameters.default)
 
   /* types */
 
@@ -57,8 +59,12 @@ object Interpreter extends CStoreInterpreter {
   type InitialCondition = (Enclosure, Option[Evolution], InitialConditionTime)
   case class EnclosureAndBranches(val enclosure: Enclosure, branches: List[InitialCondition])
   
+  /** Represents a sequence of Changesets without consecutive repeated flows. */
   case class Evolution(changes: List[Changeset]) {
     def head: Changeset = changes.head
+    /** Extend this evolution by cs, unless cs is a flow and equal to changes.head. */
+    def evolve(cs: Changeset): Evolution = 
+      Evolution(if (changes.nonEmpty && isFlow(cs) && cs == changes.head) changes else cs :: changes)
   }
   val Epsilon = Evolution(Nil)
   
@@ -135,11 +141,13 @@ object Interpreter extends CStoreInterpreter {
     /** Field-wise projection. Replaces each enclosure with a new one corresponding to its end-time interval. */
     def endTimeEnclosure(): Enclosure = map{ 
       case ce: Real => Real(ce.end) 
+      case ui: GIntEnclosure => GIntEnclosure(ui.end, ui.end, ui.end) 
       case us: GStrEnclosure => GStrEnclosure(us.end, us.end, us.end) 
     }
     /** Field-wise range. */
     def range(): Enclosure = map{ 
       case ce: Real => Real(ce.enclosure) 
+      case ui: GIntEnclosure => GIntEnclosure(ui.range, ui.range, ui.range) 
       case us: GStrEnclosure => GStrEnclosure(us.range, us.range, us.range) 
     }
     /** Returns a copy of this where f has been applied to all enclosure fields. */
@@ -173,10 +181,8 @@ object Interpreter extends CStoreInterpreter {
         case Changeset(reps1, ass1, odes1, claims1) =>
           Changeset(reps ++ reps1, ass ++ ass1, odes ++ odes1, claims ++ claims1)
       }
-    def <~(e: Evolution): Evolution = 
-      Evolution(if (e.changes.isEmpty || !isFlow(this) || this != e.changes.head) this :: e.changes else e.changes)
-    def <~(oe: Option[Evolution]): Evolution =
-      this <~ (oe getOrElse Epsilon)
+    def <~ (oe: Option[Evolution]): Evolution =
+      (oe getOrElse Epsilon) evolve this
     override def toString =
       (reps, ass.map(d => Pretty.pprint(d.a)), ass.map(d => Pretty.pprint(d.a)), odes.map(d => Pretty.pprint(d.a)), claims.map(d => Pretty.pprint(d.c))).toString
   }
@@ -313,7 +319,7 @@ object Interpreter extends CStoreInterpreter {
   /* transfer parenthood of a list of objects,
    * whose ids are "cs", to address p */
   def reparent(certain: Boolean, cs:List[CId], p:CId) : Set[Changeset] =
-    cs.toSet flatMap (logReparent(certain, _:CId,p)) // FIXME flatMap
+    cs.toSet flatMap (logReparent(certain, _:CId,p))
     
   /* create an env from a class spec and init values */
   def mkObj(c:ClassName, p:Prog, prt:Option[CId], seed:(Int,Int),
@@ -736,7 +742,8 @@ object Interpreter extends CStoreInterpreter {
       ): Store =
       if (pwlW isEmpty) {
         def mergeBranches(ics: List[InitialCondition]): List[InitialCondition] =
-          ics.groupBy(ic => (ic._2, ic._3)).map { case ((m, t), ic) => (ic.map(_._1).reduce(_ /\ _), m, t) }.toList
+//          ics.groupBy(ic => (ic._2, ic._3)).map { case ((m, t), ic) => (ic.map(_._1).reduce(_ /\ _), m, t) }.toList
+          ics
         EnclosureAndBranches((pwlR union pwlP union pwlPs).reduce(_ /\ _), mergeBranches(pwlU))        
       }
       else if (iterations / st.branches.size > maxHybridEncloserIterationsPerBranch)
