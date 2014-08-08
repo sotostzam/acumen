@@ -100,6 +100,7 @@ object Canonical {
 
   /* magic fields getters and setters */
 
+  def getInSimulator(s:String, st:CStore): CValue = getInSimulator(Name(s,0), st)
   def getInSimulator(f:Name, st:CStore) = getObjectField(magicId(st), f, st)
   def setInSimulator(f:Name, v:CValue, s:CStore) = {
     val id = magicId(s)

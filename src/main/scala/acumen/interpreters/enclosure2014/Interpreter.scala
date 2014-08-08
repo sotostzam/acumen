@@ -55,8 +55,6 @@ object Interpreter extends CStoreInterpreter {
   /* initial values */
 
   // FIXME Get parameter value from model
-  val maxHybridEncloserIterationsPerBranch = 1000
-  val maxBranches = 100
   val bannedFieldNames = List(self, parent, classf, nextChild, seed1, seed2, magicf)
   implicit val rnd = Rounding(Parameters.default)
 
@@ -661,11 +659,11 @@ object Interpreter extends CStoreInterpreter {
   }
   
   lazy val initStore = Parser.run(Parser.store, initStoreTxt.format("#0"))
-  val initStoreTxt = // FIXME Remove unrelated CStoreInterpreter parameters
-  """#0.0 { className = Simulator, parent = %s, time = 0.0, timeStep = 0.015625, 
-            outputRows = "All", continuousSkip = 0,
-            endTime = 10.0, resultType = @Discrete, nextChild = 0,
-      expects = 0, observes = 0, method = "RungeKutta", seed1 = 0, seed2 = 0 }"""
+  val initStoreTxt = 
+  """#0.0 { className = Simulator, parent = %s, nextChild = 0, seed1 = 0, seed2 = 0, 
+            time = 0.0, endTime = 10.0, timeStep = 0.015625,
+            outputRows = "All", continuousSkip = 0, resultType = @Discrete, 
+            maxIterationsPerBranch = 1000, maxBranches = 100 }"""
 
   /** Updates the values of variables in xs (identified by CId and Dot.field) to the corresponding CValue. */
   def applyAssignments(xs: List[(CId, Dot, CValue)], st: Enclosure): Enclosure =
@@ -740,9 +738,12 @@ object Interpreter extends CStoreInterpreter {
    * continuous assignments that are in scope has changed.
    */
   def hybridEncloser(T: Interval, prog: Prog, st: EnclosureAndBranches): Store = {
+    val VLit(GInt(maxBranches)): CValue = getInSimulator("maxBranches", st.enclosure)
+    val VLit(GInt(maxIterationsPerBranch)): CValue = getInSimulator("maxIterationsPerBranch", st.enclosure)
     require(st.branches.nonEmpty, "hybridEncloser called with zero branches")
     require(st.branches.size < maxBranches, s"Number of branches (${st.branches.size}) exceeds maximum ($maxBranches).")
-    println(st.branches.size)
+    def mergeBranches(ics: List[InitialCondition]): List[InitialCondition] =
+      ics.groupBy(ic => (ic._2, ic._3)).map { case ((m, t), ic) => (ic.map(_._1).reduce(_ /\ _), m, t) }.toList
     @tailrec def enclose
       ( pwlW:  List[InitialCondition] // Waiting ICs, the statements that yielded them and time where they should be used
       , pwlR:  List[Enclosure] // Enclosure (valid over all of T)
@@ -752,12 +753,10 @@ object Interpreter extends CStoreInterpreter {
       , iterations: Int // Remaining iterations
       ): Store =
       if (pwlW isEmpty) {
-        def mergeBranches(ics: List[InitialCondition]): List[InitialCondition] =
-          ics.groupBy(ic => (ic._2, ic._3)).map { case ((m, t), ic) => (ic.map(_._1).reduce(_ /\ _), m, t) }.toList
         EnclosureAndBranches((pwlR union pwlP union pwlPs).reduce(_ /\ _), mergeBranches(pwlU))        
       }
-      else if (iterations / st.branches.size > maxHybridEncloserIterationsPerBranch)
-        sys.error(s"Enclosure computation over $T did not terminate in ${st.branches.size * maxHybridEncloserIterationsPerBranch} iterations.")
+      else if (iterations / st.branches.size > maxIterationsPerBranch)
+        sys.error(s"Enclosure computation over $T did not terminate in ${st.branches.size * maxIterationsPerBranch} iterations.")
       else {
         val (w, q, t) :: waiting = pwlW
         if (isPassed(w, t, pwlP, pwlPs))
@@ -796,17 +795,17 @@ object Interpreter extends CStoreInterpreter {
           }
       }
     }
-    def handleEvent(q: Changeset, past: Option[Evolution], r: Enclosure, rp: Enclosure, u: Enclosure) = {
+    def handleEvent(q: Changeset, past: Option[Evolution], r: Enclosure, rp: Enclosure, u: Enclosure): (List[InitialCondition], List[InitialCondition]) = {
       val hr = active(r, prog)
       val hu = active(u, prog) 
       val up = contract(u, q.claims, prog)
-      val e = q <~ past
+      val e = Some(q <~ past)
       if (noEvent(q, hr, hu, up)) // no event
-        (Nil, (u, Some(e), StartTime) :: Nil)
+        (Nil, (u, e, StartTime) :: Nil)
       else if (certainEvent(q, hr, hu, up)) // certain event
-        ((rp, Some(e), UnknownTime) :: Nil, Nil)
+        ((rp, e, UnknownTime) :: Nil, Nil)
       else // possible event
-        ((rp, Some(e), UnknownTime) :: Nil, (contract(u, q.claims, prog).right.get, Some(e), StartTime) :: Nil)
+        ((rp, e, UnknownTime) :: Nil, (contract(u, q.claims, prog).right.get, e, StartTime) :: Nil)
     }
     enclose(st.branches, Nil, Nil, Nil, Nil, 0)
   }
