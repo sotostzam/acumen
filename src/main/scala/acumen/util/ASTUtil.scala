@@ -19,5 +19,8 @@ object ASTUtil {
     case NewRhs(_, fields) => fields
     case ExprRhs(e) => List(e)
   }
+  
+  def op(o: String, ps: Expr*): Expr = Op(Name(o,0), ps.toList)
+  
 }
 

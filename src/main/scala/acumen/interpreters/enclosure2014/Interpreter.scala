@@ -7,6 +7,7 @@ import scala.Stream._
 import scala.collection.immutable.{
   HashMap, MapProxy
 }
+import util.ASTUtil.op
 import Common._
 import Errors.{
   BadLhs, BadRhs, ConstructorArity, DuplicateContinuousAssingment, 
@@ -36,7 +37,7 @@ import enclosure.Types.VarName
  *     of the CStore.
  *  2) To represent initial conditions, valid at the start of a time interval.
  *     In this case, all variables v of the CStore, that are of enclosure type 
- *     (v is an instance of GEnclosure[]) have v.start = v.range = v.end.  
+ *     (v is an instance of GEnclosure) have v.start = v.range = v.end.  
  *   
  * The Store type EnclosureAndBranches consists of:
  * 
@@ -116,24 +117,26 @@ object Interpreter extends CStoreInterpreter {
         for { (n, v) <- co }
         yield (n, u getOrElse ((cid, n), v)))
     /** Field-wise containment. */
-    def contains(that: Enclosure): Boolean = // TODO Update for dynamic objects
-      that.forall{ case (cid,_) => e contains cid } &&
-      e.forall{ case (cid,co) => 
-        if (classOf(co) == cmagic)
-          true // FIXME Sanity check this
-        else {
-          val tco = that get cid
-          tco.isDefined && co.forall{ case (n,v) =>
+    def contains(that: Enclosure): Boolean = { // TODO Update for dynamic objects
+      def containsCObject(lo: CObject, ro: CObject): Boolean =
+        lo.forall {
+          case (n, v) =>
             if (bannedFieldNames contains n) true
-            else (v, tco.get.get(n)) match {
-              case (VLit(l: Real), Some(VLit(r: Real)))                   => l contains r
-              case (VLit(l: GStrEnclosure), Some(VLit(r: GStrEnclosure))) => l contains r
-              case (VLit(l: GIntEnclosure), Some(VLit(r: GIntEnclosure))) => l contains r
-              case (           VLit(GStr(_)) | VResultType(_) | VClassName(_)
-                   , tv @ Some(VLit(GStr(_)) | VResultType(_) | VClassName(_))) => v == tv
-              case (_, None)     => false
-              case (_, Some(tv)) => sys.error(s"Contains not applicable to $n: $v, $tv in " + cid)
-          }}}}
+            else {
+              val rv = ro.get(n)
+              rv.isDefined && ((v, rv.get) match {
+                case (VLit(l: Real), VLit(r: Real)) => l contains r
+                case (VLit(l: GStrEnclosure), VLit(r: GStrEnclosure)) => l contains r
+                case (VLit(l: GIntEnclosure), VLit(r: GIntEnclosure)) => l contains r
+                case (VLit(GStr(_)) | VResultType(_) | VClassName(_), tv @ (VLit(GStr(_)) | VResultType(_) | VClassName(_))) => v == tv
+                case (VObjId(Some(o1)), VObjId(Some(o2))) => containsCObject(e(o1), that(o2))
+                case (_, tv) => sys.error(s"Contains not applicable to $n: $v, $tv in " + lo(self))
+              })}}
+        e.forall { case (cid, co) => 
+          if (classOf(co) == cmagic) true // FIXME Sanity check this
+          else containsCObject(co, that(cid)) 
+        }
+      }
     /** Take the intersection of this and that Object. */
     def intersect(that: Enclosure): Option[Enclosure] = merge(that, (l: GroundValue, r: GroundValue) => (l,r) match {
       case (le: Real, re: Real) => le intersect re 
@@ -181,7 +184,7 @@ object Interpreter extends CStoreInterpreter {
     ( reps:   Set[(CId,CId)]     // reparentings
     , ass:    Set[DelayedAction] // discrete assignments
     , odes:   Set[DelayedAction] // ode assignments / differential equations
-    , claims: Set[DelayedClaim]  // claims / constraints
+    , claims: Set[DelayedConstraint]  // claims / constraints
     ) {
     def ||(that: Changeset) =
       that match {
@@ -206,8 +209,8 @@ object Interpreter extends CStoreInterpreter {
       combine(xs map f)
   }
   val NoChange = Changeset(Set.empty, Set.empty, Set.empty, Set.empty) 
-  case class DelayedAction(certain: Boolean, selfCId: CId, d: Dot, a: Action, e: Expr, env: Env)
-  case class DelayedClaim(certain: Boolean, selfCId: CId, c: Expr)
+  case class DelayedAction(certain: Boolean, path: Expr, selfCId: CId, d: Dot, a: Action, e: Expr, env: Env)
+  case class DelayedConstraint(certain: Boolean, selfCId: CId, c: Expr)
 
   import Changeset._
 
@@ -299,14 +302,14 @@ object Interpreter extends CStoreInterpreter {
   def logReparent(certain: Boolean, o:CId, parent:CId) : Set[Changeset] =
     Set(Changeset(Set((o,parent)), Set.empty, Set.empty, Set.empty))
     
-  def logAssign(certain: Boolean, o: CId, d: Dot, a: Action, e: Expr, env: Env) : Set[Changeset] =
-    Set(Changeset(Set.empty, Set(DelayedAction(certain,o,d,a,e,env)), Set.empty, Set.empty))
+  def logAssign(certain: Boolean, path: Expr, o: CId, d: Dot, a: Action, e: Expr, env: Env) : Set[Changeset] =
+    Set(Changeset(Set.empty, Set(DelayedAction(certain,path,o,d,a,e,env)), Set.empty, Set.empty))
 
-  def logODE(certain: Boolean, o: CId, d: Dot, a: Action, e: Expr, env: Env) : Set[Changeset] =
-    Set(Changeset(Set.empty, Set.empty, Set(DelayedAction(certain,o,d,a,e,env)), Set.empty))
+  def logODE(certain: Boolean, path: Expr, o: CId, d: Dot, a: Action, e: Expr, env: Env) : Set[Changeset] =
+    Set(Changeset(Set.empty, Set.empty, Set(DelayedAction(certain,path,o,d,a,e,env)), Set.empty))
 
   def logClaim(certain: Boolean, o: CId, c: Expr) : Set[Changeset] =
-    Set(Changeset(Set.empty, Set.empty, Set.empty, Set(DelayedClaim(certain,o,c))))
+    Set(Changeset(Set.empty, Set.empty, Set.empty, Set(DelayedConstraint(certain,o,c))))
 
   /** Get a fresh object id for a child of parent */
   def freshCId(parent:Option[CId], st: Enclosure) : (CId, Enclosure) = parent match {
@@ -550,30 +553,32 @@ object Interpreter extends CStoreInterpreter {
     }
   }
 
-  def evalActions(certain:Boolean, as:List[Action], env:Env, p:Prog, st: Enclosure) : Set[Changeset] =
+  def evalActions(certain:Boolean, path: Expr, as:List[Action], env:Env, p:Prog, st: Enclosure) : Set[Changeset] =
     if (as isEmpty) Set(NoChange) 
-    else combine(as, evalAction(certain, _: Action, env, p, st))
+    else combine(as, evalAction(certain, path, _: Action, env, p, st))
 
-  def evalAction(certain:Boolean, a:Action, env:Env, p:Prog, st: Enclosure) : Set[Changeset] = {
+  def evalAction(certain:Boolean, path: Expr, a:Action, env:Env, p:Prog, st: Enclosure) : Set[Changeset] =
     a match {
       case IfThenElse(c,a1,a2) =>
+        val cAndPath = op("&&", c, path)
+        val notCAndPath = op("&&", op("not", c), path)
         val VLit(b) = evalExpr(c, env, st)
           b match {
           case CertainTrue => 
-            evalActions(certain, a1, env, p, st)
+            evalActions(certain, cAndPath, a1, env, p, st)
           case CertainFalse => 
-            evalActions(certain, a2, env, p, st)
+            evalActions(certain, notCAndPath, a2, env, p, st)
           case Uncertain =>
-            evalActions(false, a1, env, p, st) union evalActions(false, a2, env, p, st) 
+            evalActions(false, cAndPath, a1, env, p, st) union evalActions(false, notCAndPath, a2, env, p, st) 
           case _ => sys.error("Non-boolean expression in if statement: " + Pretty.pprint(c))
         }
       case Switch(mode, cs) =>
         val modes = cs map { case Clause(lhs,claim,rhs) =>
-          val (inScope, stmts) = (evalExpr(Op(Name("==",0), List(mode, Lit(lhs))), env, st): @unchecked) match {
-            case VLit(Uncertain)    => (Uncertain,    evalActions(false, rhs, env, p, st))
-            case VLit(CertainTrue)  => (CertainTrue,  evalActions(certain, rhs, env, p, st))
-            case VLit(CertainFalse) => (CertainFalse, Set[Changeset](NoChange))
-          }
+            val (inScope, stmts) = (evalExpr(op("==", mode, Lit(lhs)), env, st): @unchecked) match {
+              case VLit(Uncertain)    => (Uncertain, evalActions(false, path, rhs, env, p, st)) // FIXME Add op("==", mode, Lit(lhs)) to path
+              case VLit(CertainTrue)  => (CertainTrue, evalActions(certain, path, rhs, env, p, st)) // FIXME Add op("!=", mode, Lit(lhs)) to path
+              case VLit(CertainFalse) => (CertainFalse, Set(NoChange))
+            }
           (inScope, claim match {
             case Lit(GBool(true)) => stmts
             case _ =>
@@ -589,15 +594,14 @@ object Interpreter extends CStoreInterpreter {
         }
         combine(in, uncertain)
       case Discretely(da) =>
-        evalDiscreteAction(certain, da, env, p, st)
+        evalDiscreteAction(certain, path, da, env, p, st)
       case Continuously(ca) =>
-        evalContinuousAction(certain, ca, env, p, st) 
+        evalContinuousAction(certain, path, ca, env, p, st) 
       case Claim(c) =>
         logClaim(certain, selfCId(env), c)
     }
-  }
  
-  def evalDiscreteAction(certain:Boolean, a:DiscreteAction, env:Env, p:Prog, st: Enclosure) : Set[Changeset] =
+  def evalDiscreteAction(certain:Boolean, path: Expr, a:DiscreteAction, env:Env, p:Prog, st: Enclosure) : Set[Changeset] =
     a match {
       case Assign(Dot(o @ Dot(Var(self),Name(simulator,0)), n), e) =>
         Set.empty // TODO Ensure that this does not cause trouble down the road 
@@ -607,20 +611,20 @@ object Interpreter extends CStoreInterpreter {
           case VObjId(Some(id)) => checkAccessOk(id, env, st, o); id
           case v => throw NotAnObject(v).setPos(o.pos)
         }
-        logAssign(certain, id, d, Discretely(a), rhs, env)
+        logAssign(certain, path, id, d, Discretely(a), rhs, env)
       /* Basically, following says that variable names must be 
          fully qualified at this language level */
       case Assign(_,_) => 
         throw BadLhs()
     }
 
-  def evalContinuousAction(certain:Boolean, a:ContinuousAction, env:Env, p:Prog, st: Enclosure) : Set[Changeset] = 
+  def evalContinuousAction(certain:Boolean, path: Expr, a:ContinuousAction, env:Env, p:Prog, st: Enclosure) : Set[Changeset] = 
     a match {
       case EquationT(d@Dot(e,_),rhs) =>
         Set() // TODO Add some level of support for equations
       case EquationI(d@Dot(e,_),rhs) =>
         val id = extractId(evalExpr(e, env, st))
-        logODE(certain, id, d, Continuously(a), e, env)
+        logODE(certain, path , id, d, Continuously(a), e, env)
       case _ =>
         throw ShouldNeverHappen() // FIXME: enforce that with refinement types
     }
@@ -629,7 +633,7 @@ object Interpreter extends CStoreInterpreter {
     val cl = getCls(rootId, st)
     val as = classDef(cl, p).body
     val env = HashMap((self, VObjId(Some(rootId))))
-    evalActions(true, as, env, p, st)
+    evalActions(true, Lit(CertainTrue), as, env, p, st)
   }
 
   /* Outer loop: iterates f from the root to the leaves of the
@@ -738,6 +742,7 @@ object Interpreter extends CStoreInterpreter {
   def hybridEncloser(T: Interval, prog: Prog, st: EnclosureAndBranches): Store = {
     require(st.branches.nonEmpty, "hybridEncloser called with zero branches")
     require(st.branches.size < maxBranches, s"Number of branches (${st.branches.size}) exceeds maximum ($maxBranches).")
+    println(st.branches.size)
     @tailrec def enclose
       ( pwlW:  List[InitialCondition] // Waiting ICs, the statements that yielded them and time where they should be used
       , pwlR:  List[Enclosure] // Enclosure (valid over all of T)
@@ -773,8 +778,13 @@ object Interpreter extends CStoreInterpreter {
       val (w, qw, t) = wqt
       hw.foldLeft((pwlW, pwlR, pwlU)) {
         case ((tmpW, tmpR, tmpU), q) =>
-          if (!isFlow(q))
-            ((w(q.ass), Some(q <~ qw), t) :: tmpW, tmpR, tmpU)
+          if (!isFlow(q)) {
+            val wIntersectedWithGuard = contract(w, q.ass.map(da => DelayedConstraint(da.certain,da.selfCId,da.path)), prog) match {
+              case Right(r) => r
+              case Left(s) => sys.error("Empty intersection while contracting with guard. " + s)  
+            }
+            ((wIntersectedWithGuard(q.ass), Some(q <~ qw), t) :: tmpW, tmpR, tmpU)
+          }
           else if ((t == UnknownTime && qw.isDefined && qw.get.head == q) || T.isThin)
             (tmpW, tmpR, tmpU)
           else {
@@ -833,7 +843,7 @@ object Interpreter extends CStoreInterpreter {
    * NOTE: Returns Left if the support of any of the claims has an empty intersection with st,
    *       or if some other exception is thrown by contract.
    */
-  def contract(st: Enclosure, claims: Iterable[DelayedClaim], prog: Prog): Either[String, Enclosure] = {
+  def contract(st: Enclosure, claims: Iterable[DelayedConstraint], prog: Prog): Either[String, Enclosure] = {
     val contractInstance = new Contract{}
     /**
      * Given a predicate p and store st, removes that part of st for which p does not hold.
@@ -864,7 +874,7 @@ object Interpreter extends CStoreInterpreter {
       }
     }
     claims.foldLeft(Right(st): Either[String, Enclosure]) {
-      case (res, DelayedClaim(_, selfCId, claim)) => res match {
+      case (res, DelayedConstraint(_, selfCId, claim)) => res match {
         case Right(r) => 
           try {
             contract(r, claim, prog, selfCId) map 
@@ -895,7 +905,7 @@ object Interpreter extends CStoreInterpreter {
    */
   def continuousEncloser
     ( odes: Set[DelayedAction] // Set of delayed ContinuousAction
-    , claims: Set[DelayedClaim]
+    , claims: Set[DelayedConstraint]
     , T: Interval
     , p: Prog
     , st: Enclosure
