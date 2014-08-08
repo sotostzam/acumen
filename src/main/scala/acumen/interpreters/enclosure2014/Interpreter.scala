@@ -55,6 +55,7 @@ object Interpreter extends CStoreInterpreter {
 
   // FIXME Get parameter value from model
   val maxHybridEncloserIterationsPerBranch = 1000
+  val maxBranches = 100
   val bannedFieldNames = List(self, parent, classf, nextChild, seed1, seed2, magicf)
   implicit val rnd = Rounding(Parameters.default)
 
@@ -736,6 +737,7 @@ object Interpreter extends CStoreInterpreter {
    */
   def hybridEncloser(T: Interval, prog: Prog, st: EnclosureAndBranches): Store = {
     require(st.branches.nonEmpty, "hybridEncloser called with zero branches")
+    require(st.branches.size < maxBranches, s"Number of branches (${st.branches.size}) exceeds maximum ($maxBranches).")
     @tailrec def enclose
       ( pwlW:  List[InitialCondition] // Waiting ICs, the statements that yielded them and time where they should be used
       , pwlR:  List[Enclosure] // Enclosure (valid over all of T)
@@ -750,7 +752,7 @@ object Interpreter extends CStoreInterpreter {
         EnclosureAndBranches((pwlR union pwlP union pwlPs).reduce(_ /\ _), mergeBranches(pwlU))        
       }
       else if (iterations / st.branches.size > maxHybridEncloserIterationsPerBranch)
-        sys.error(s"Enclosure computation over $T did not terminate in ${iterations - 1} iterations.")
+        sys.error(s"Enclosure computation over $T did not terminate in ${st.branches.size * maxHybridEncloserIterationsPerBranch} iterations.")
       else {
         val (w, q, t) :: waiting = pwlW
         if (isPassed(w, t, pwlP, pwlPs))
@@ -779,21 +781,22 @@ object Interpreter extends CStoreInterpreter {
             val s = continuousEncloser(q.odes, q.claims, T, prog, w)
             val r = s.range
             val rp = contract(r, q.claims, prog).right.get
-            val (newW, newU) = handleEvent(q <~ qw, r, rp, if (t == StartTime) s.endTimeEnclosure else r)
+            val (newW, newU) = handleEvent(q, qw, r, rp, if (t == StartTime) s.endTimeEnclosure else r)
             (newW ::: tmpW, rp :: tmpR, newU ::: tmpU)
           }
       }
     }
-    def handleEvent(q: Evolution, r: Enclosure, rp: Enclosure, u: Enclosure) = {
+    def handleEvent(q: Changeset, past: Option[Evolution], r: Enclosure, rp: Enclosure, u: Enclosure) = {
       val hr = active(r, prog)
       val hu = active(u, prog) 
-      val up = contract(u, q.head.claims, prog)
-      if (noEvent(q.head, hr, hu, up)) // no event
-        (Nil, (u, Some(q), StartTime) :: Nil)
-      else if (certainEvent(q.head, hr, hu, up)) // certain event
-        ((rp, Some(q), UnknownTime) :: Nil, Nil)
+      val up = contract(u, q.claims, prog)
+      val e = q <~ past
+      if (noEvent(q, hr, hu, up)) // no event
+        (Nil, (u, Some(e), StartTime) :: Nil)
+      else if (certainEvent(q, hr, hu, up)) // certain event
+        ((rp, Some(e), UnknownTime) :: Nil, Nil)
       else // possible event
-        ((rp, Some(q), UnknownTime) :: Nil, (contract(u, q.head.claims, prog).right.get, Some(q), StartTime) :: Nil)
+        ((rp, Some(e), UnknownTime) :: Nil, (contract(u, q.claims, prog).right.get, Some(e), StartTime) :: Nil)
     }
     enclose(st.branches, Nil, Nil, Nil, Nil, 0)
   }
