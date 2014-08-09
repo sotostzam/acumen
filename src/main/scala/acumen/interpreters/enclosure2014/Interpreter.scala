@@ -206,8 +206,8 @@ object Interpreter extends CStoreInterpreter {
       combine(xs map f)
   }
   val NoChange = Changeset(Set.empty, Set.empty, Set.empty, Set.empty) 
-  case class DelayedAction(certain: Boolean, path: Expr, selfCId: CId, d: Dot, a: Action, e: Expr, env: Env)
-  case class DelayedConstraint(certain: Boolean, selfCId: CId, c: Expr)
+  case class DelayedAction(path: Expr, selfCId: CId, d: Dot, a: Action, e: Expr, env: Env)
+  case class DelayedConstraint(selfCId: CId, c: Expr)
 
   import Changeset._
 
@@ -296,17 +296,17 @@ object Interpreter extends CStoreInterpreter {
       }
     }.mapProg(p)
   
-  def logReparent(certain: Boolean, o:CId, parent:CId) : Set[Changeset] =
+  def logReparent(o:CId, parent:CId) : Set[Changeset] =
     Set(Changeset(Set((o,parent)), Set.empty, Set.empty, Set.empty))
     
-  def logAssign(certain: Boolean, path: Expr, o: CId, d: Dot, a: Action, e: Expr, env: Env) : Set[Changeset] =
-    Set(Changeset(Set.empty, Set(DelayedAction(certain,path,o,d,a,e,env)), Set.empty, Set.empty))
+  def logAssign(path: Expr, o: CId, d: Dot, a: Action, e: Expr, env: Env) : Set[Changeset] =
+    Set(Changeset(Set.empty, Set(DelayedAction(path,o,d,a,e,env)), Set.empty, Set.empty))
 
-  def logODE(certain: Boolean, path: Expr, o: CId, d: Dot, a: Action, e: Expr, env: Env) : Set[Changeset] =
-    Set(Changeset(Set.empty, Set.empty, Set(DelayedAction(certain,path,o,d,a,e,env)), Set.empty))
+  def logODE(path: Expr, o: CId, d: Dot, a: Action, e: Expr, env: Env) : Set[Changeset] =
+    Set(Changeset(Set.empty, Set.empty, Set(DelayedAction(path,o,d,a,e,env)), Set.empty))
 
-  def logClaim(certain: Boolean, o: CId, c: Expr) : Set[Changeset] =
-    Set(Changeset(Set.empty, Set.empty, Set.empty, Set(DelayedConstraint(certain,o,c))))
+  def logClaim(o: CId, c: Expr) : Set[Changeset] =
+    Set(Changeset(Set.empty, Set.empty, Set.empty, Set(DelayedConstraint(o,c))))
 
   /** Get a fresh object id for a child of parent */
   def freshCId(parent:Option[CId], st: Enclosure) : (CId, Enclosure) = parent match {
@@ -326,7 +326,7 @@ object Interpreter extends CStoreInterpreter {
   
   /** Transfer parenthood of a list of objects, whose ids are "cs", to address p */
   def reparent(certain: Boolean, cs:List[CId], p:CId) : Set[Changeset] =
-    cs.toSet flatMap (logReparent(certain, _:CId,p))
+    cs.toSet flatMap (logReparent( _:CId,p))
     
   /** Create an env from a class spec and init values */
   def mkObj(c:ClassName, p:Prog, prt:Option[CId], seed:(Int,Int),
@@ -579,11 +579,11 @@ object Interpreter extends CStoreInterpreter {
           (inScope, claim match {
             case Lit(GBool(true)) => stmts
             case _ =>
-              combine(stmts :: logClaim(inScope == CertainTrue, selfCId(env), claim) :: Nil)
+              combine(stmts :: logClaim(selfCId(env), claim) :: Nil)
           })
         }
         val (in, uncertain) = modes.foldLeft((Set.empty[Changeset], Set.empty[Changeset])) {
-          case (iu @ (i, u), (gub, scs)) => gub match {
+          case (iu @ (i, u), (gub, scs)) => (gub: @unchecked) match {
             case CertainTrue  => (combine(i, scs), u)
             case Uncertain    => (i, u union scs)
             case CertainFalse => iu
@@ -595,7 +595,7 @@ object Interpreter extends CStoreInterpreter {
       case Continuously(ca) =>
         evalContinuousAction(certain, path, ca, env, p, st) 
       case Claim(c) =>
-        logClaim(certain, selfCId(env), c)
+        logClaim(selfCId(env), c)
     }
  
   def evalDiscreteAction(certain:Boolean, path: Expr, a:DiscreteAction, env:Env, p:Prog, st: Enclosure) : Set[Changeset] =
@@ -608,7 +608,7 @@ object Interpreter extends CStoreInterpreter {
           case VObjId(Some(id)) => checkAccessOk(id, env, st, o); id
           case v => throw NotAnObject(v).setPos(o.pos)
         }
-        logAssign(certain, path, id, d, Discretely(a), rhs, env)
+        logAssign(path, id, d, Discretely(a), rhs, env)
       /* Basically, following says that variable names must be 
          fully qualified at this language level */
       case Assign(_,_) => 
@@ -622,7 +622,7 @@ object Interpreter extends CStoreInterpreter {
         else Set()
       case EquationI(d@Dot(e,_),rhs) =>
         val id = extractId(evalExpr(e, env, st))
-        logODE(certain, path , id, d, Continuously(a), e, env)
+        logODE(path , id, d, Continuously(a), e, env)
       case _ =>
         throw ShouldNeverHappen() // FIXME: enforce that with refinement types
     }
@@ -778,7 +778,7 @@ object Interpreter extends CStoreInterpreter {
       hw.foldLeft((pwlW, pwlR, pwlU)) {
         case ((tmpW, tmpR, tmpU), q) =>
           if (!isFlow(q)) {
-            val wIntersectedWithGuard = contract(w, q.ass.map(da => DelayedConstraint(da.certain,da.selfCId,da.path)), prog) match {
+            val wIntersectedWithGuard = contract(w, q.ass.map(da => DelayedConstraint(da.selfCId,da.path)), prog) match {
               case Right(r) => r
               case Left(s) => sys.error("Empty intersection while contracting with guard. " + s)  
             }
@@ -873,12 +873,12 @@ object Interpreter extends CStoreInterpreter {
       }
     }
     claims.foldLeft(Right(st): Either[String, Enclosure]) {
-      case (res, DelayedConstraint(_, selfCId, claim)) => res match {
+      case (res, claim) => res match {
         case Right(r) => 
           try {
-            contract(r, claim, prog, selfCId) map 
-              (Right(_)) getOrElse Left("Empty enclosure after applying claim " + Pretty.pprint(claim))
-          } catch { case e: Throwable => Left("Error while applying claim " + Pretty.pprint(claim) + ": " + e.getMessage) }
+            contract(r, claim.c, prog, claim.selfCId) map 
+              (Right(_)) getOrElse Left("Empty enclosure after applying claim " + Pretty.pprint(claim.c))
+          } catch { case e: Throwable => Left("Error while applying claim " + Pretty.pprint(claim.c) + ": " + e.getMessage) }
         case _ => res
       }
     }
