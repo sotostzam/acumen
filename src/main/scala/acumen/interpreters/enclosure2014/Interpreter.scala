@@ -50,7 +50,7 @@ object Interpreter extends CStoreInterpreter {
   
   type Store = EnclosureAndBranches
   def repr(st:Store) = st.enclosure
-  def fromCStore(st: CStore, root: CId): Store = EnclosureAndBranches(st, (st, None, StartTime) :: Nil) 
+  def fromCStore(st: CStore, root: CId): Store = EnclosureAndBranches(st, (st, Epsilon, StartTime) :: Nil) 
   
   /* initial values */
 
@@ -63,14 +63,15 @@ object Interpreter extends CStoreInterpreter {
   sealed abstract trait InitialConditionTime
   case object StartTime extends InitialConditionTime
   case object UnknownTime extends InitialConditionTime
-  type InitialCondition = (Enclosure, Option[Evolution], InitialConditionTime)
+  type InitialCondition = (Enclosure, Evolution, InitialConditionTime)
   case class EnclosureAndBranches(val enclosure: Enclosure, branches: List[InitialCondition])
   
   /** Represents a sequence of Changesets without consecutive repeated flows. */
   case class Evolution(changes: List[Changeset]) {
     def head: Changeset = changes.head
+    def nonEmpty: Boolean = changes.nonEmpty
     /** Extend this evolution by cs, unless cs is a flow and equal to changes.head. */
-    def evolve(cs: Changeset): Evolution = 
+    def ::(cs: Changeset): Evolution = 
       Evolution(if (changes.nonEmpty && isFlow(cs) && cs == changes.head) changes else cs :: changes)
   }
   val Epsilon = Evolution(Nil)
@@ -190,8 +191,6 @@ object Interpreter extends CStoreInterpreter {
         case Changeset(reps1, ass1, odes1, claims1) =>
           Changeset(reps ++ reps1, ass ++ ass1, odes ++ odes1, claims ++ claims1)
       }
-    def <~ (oe: Option[Evolution]): Evolution =
-      (oe getOrElse Epsilon) evolve this
     override def toString =
       (reps, ass.map(d => Pretty.pprint(d.a)), ass.map(d => Pretty.pprint(d.a)), odes.map(d => Pretty.pprint(d.a)), claims.map(d => Pretty.pprint(d.c))).toString
   }
@@ -765,7 +764,7 @@ object Interpreter extends CStoreInterpreter {
         else {
           val (newP, newPs) = if (t == StartTime) (w :: pwlP, pwlPs) else (pwlP, w :: pwlPs)
           val hw = active(w, prog)
-          if (q.isDefined && isFlow(q.get.head) && Set(q.get.head) == hw && t == UnknownTime)
+          if (q.nonEmpty && isFlow(q.head) && Set(q.head) == hw && t == UnknownTime)
             sys error "Model error!" // Repeated flow, t == UnknownTime means w was created in this time step
           val (newW, newR, newU) = encloseHw(waiting, pwlR, pwlU, (w, q, t), hw)
           enclose(newW, newR, newU, newP, newPs, iterations + 1)
@@ -783,9 +782,9 @@ object Interpreter extends CStoreInterpreter {
               case Right(r) => r
               case Left(s) => sys.error("Empty intersection while contracting with guard. " + s)  
             }
-            ((wIntersectedWithGuard(q.ass), Some(q <~ qw), t) :: tmpW, tmpR, tmpU)
+            ((wIntersectedWithGuard(q.ass), q :: qw, t) :: tmpW, tmpR, tmpU)
           }
-          else if ((t == UnknownTime && qw.isDefined && qw.get.head == q) || T.isThin)
+          else if ((t == UnknownTime && qw.nonEmpty && qw.head == q) || T.isThin)
             (tmpW, tmpR, tmpU)
           else {
             val s = continuousEncloser(q.odes, q.claims, T, prog, w)
@@ -796,11 +795,11 @@ object Interpreter extends CStoreInterpreter {
           }
       }
     }
-    def handleEvent(q: Changeset, past: Option[Evolution], r: Enclosure, rp: Enclosure, u: Enclosure): (List[InitialCondition], List[InitialCondition]) = {
+    def handleEvent(q: Changeset, past: Evolution, r: Enclosure, rp: Enclosure, u: Enclosure): (List[InitialCondition], List[InitialCondition]) = {
       val hr = active(r, prog)
       val hu = active(u, prog) 
       val up = contract(u, q.claims, prog)
-      val e = Some(q <~ past)
+      val e = q :: past
       if (noEvent(q, hr, hu, up)) // no event
         (Nil, (u, e, StartTime) :: Nil)
       else if (certainEvent(q, hr, hu, up)) // certain event
