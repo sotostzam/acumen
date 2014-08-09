@@ -108,7 +108,7 @@ object Interpreter extends CStoreInterpreter {
     }
     /** Returns a copy of e with das applied to it. */
     def apply(das: Set[DelayedAction]): Enclosure = 
-      update(das.map(d => (d.selfCId, d.d.field) -> evalExpr(d.e, d.env, this.e)).toMap)
+      update(das.map(d => (d.selfCId, d.lhs.field) -> evalExpr(d.rhs, d.env, this.e)).toMap)
     /** Update e with respect to u. */
     def update(u: Map[(CId, Name), CValue]) =
       for { (cid, co) <- e }
@@ -206,7 +206,16 @@ object Interpreter extends CStoreInterpreter {
       combine(xs map f)
   }
   val NoChange = Changeset(Set.empty, Set.empty, Set.empty, Set.empty) 
-  case class DelayedAction(path: Expr, selfCId: CId, d: Dot, a: Action, e: Expr, env: Env)
+  case class DelayedAction(path: Expr, selfCId: CId, a: Action, env: Env) {
+    def lhs: Dot = (a: @unchecked) match {
+      case Discretely(Assign(dot: Dot, _))      => dot
+      case Continuously(EquationI(dot: Dot, _)) => dot
+    }
+    def rhs: Expr = (a: @unchecked) match {
+      case Discretely(x: Assign)      => x.rhs
+      case Continuously(x: EquationI) => x.rhs
+    }
+  }
   case class DelayedConstraint(selfCId: CId, c: Expr)
 
   import Changeset._
@@ -300,10 +309,10 @@ object Interpreter extends CStoreInterpreter {
     Set(Changeset(Set((o,parent)), Set.empty, Set.empty, Set.empty))
     
   def logAssign(path: Expr, o: CId, d: Dot, a: Action, e: Expr, env: Env) : Set[Changeset] =
-    Set(Changeset(Set.empty, Set(DelayedAction(path,o,d,a,e,env)), Set.empty, Set.empty))
+    Set(Changeset(Set.empty, Set(DelayedAction(path,o,a,env)), Set.empty, Set.empty))
 
   def logODE(path: Expr, o: CId, d: Dot, a: Action, e: Expr, env: Env) : Set[Changeset] =
-    Set(Changeset(Set.empty, Set.empty, Set(DelayedAction(path,o,d,a,e,env)), Set.empty))
+    Set(Changeset(Set.empty, Set.empty, Set(DelayedAction(path,o,a,env)), Set.empty))
 
   def logClaim(o: CId, c: Expr) : Set[Changeset] =
     Set(Changeset(Set.empty, Set.empty, Set.empty, Set(DelayedConstraint(o,c))))
@@ -711,8 +720,8 @@ object Interpreter extends CStoreInterpreter {
   def active(st: Enclosure, p: Prog): Set[Changeset] = {
     val a = iterate(evalStep(p, st, _), mainId(st), st)
     a.foreach{ changeset =>
-      val odeIds = changeset.odes.toList.map(da => (da.selfCId, da.d))
-      val assIds = changeset.ass.toList.map(da => (da.selfCId, da.d))
+      val odeIds = changeset.odes.toList.map(da => (da.selfCId, da.lhs))
+      val assIds = changeset.ass.toList.map(da => (da.selfCId, da.lhs))
       checkContinuousDynamicsAlwaysDefined(p, odeIds, st)
       checkDuplicateAssingments(odeIds, DuplicateContinuousAssingment)
       checkDuplicateAssingments(assIds, DuplicateDiscreteAssingment)
