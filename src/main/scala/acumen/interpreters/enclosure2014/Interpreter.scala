@@ -696,7 +696,7 @@ object Interpreter extends CStoreInterpreter {
           setResultType(Discrete, st1)
         case Discrete =>
           setResultType(FixedPoint, st1)
-        case FixedPoint => // Do continuous step
+        case FixedPoint => // Do hybrid step
           val tNow = getTime(st1.enclosure)
           val tNext = tNow + getTimeStep(st1.enclosure)
           val T = Interval(tNow, tNext)
@@ -731,13 +731,13 @@ object Interpreter extends CStoreInterpreter {
     paramMap.foldLeft(st){ case (stTmp, (p,v)) => setInSimulator(p, v, stTmp) }
   }
     
-  /**
-   * Computes an enclosure for p over T with st as initial condition.
-   * Called when it is possible that an event happened, i.e. when 
-   * either a discrete assignment is in scope, or when the set of 
-   * continuous assignments that are in scope has changed.
+  /** 
+   * Given a set of initial conditions (st.branches), computes a valid 
+   * enclosure (.enclosure part of the result) for prog over T, as well
+   * as a new set of initial conditions (.branches part of the result) 
+   * for the next time interval.
    */
-  def hybridEncloser(T: Interval, prog: Prog, st: EnclosureAndBranches): Store = {
+  def hybridEncloser(T: Interval, prog: Prog, st: EnclosureAndBranches): EnclosureAndBranches = {
     val VLit(GInt(maxBranches)): CValue = getInSimulator("maxBranches", st.enclosure)
     val VLit(GInt(maxIterationsPerBranch)): CValue = getInSimulator("maxIterationsPerBranch", st.enclosure)
     require(st.branches.nonEmpty, "hybridEncloser called with zero branches")
