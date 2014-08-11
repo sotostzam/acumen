@@ -364,8 +364,8 @@ class CodeArea extends Panel with TreeSelectionListener {
           searchContext setRegularExpression regexCB.isSelected
           searchContext setSearchForward forward
           searchContext setWholeWord false
-          val found = SearchEngine.find(textArea, searchContext)
-          if (!found)
+          val searchResult = SearchEngine.find(textArea, searchContext)
+          if (searchResult wasFound)
             SwingUtil.flashFunction(
               searchField.setBackground, Color.WHITE, new Color(255,128,128), searchFieldFlasher)
         }

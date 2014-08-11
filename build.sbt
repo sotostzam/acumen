@@ -19,8 +19,8 @@ libraryDependencies ++= Seq (
   "javax" % "j3d-core" % "1.5.2",
   "javax" % "j3d-core-utils" % "1.5.2",
   "javax" % "vecmath" % "1.5.2",
-  "com.fifesoft" % "rsyntaxtextarea" % "2.0.2",
-  "com.fifesoft" % "autocomplete" % "2.0.2"
+  "com.fifesoft" % "rsyntaxtextarea" % "2.5.3",
+  "com.fifesoft" % "autocomplete" % "2.5.0"
 )
 
 resolvers ++= Seq(
