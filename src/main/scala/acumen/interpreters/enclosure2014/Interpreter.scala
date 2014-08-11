@@ -72,7 +72,7 @@ object Interpreter extends CStoreInterpreter {
     def nonEmpty: Boolean = changes.nonEmpty
     /** Extend this evolution by cs, unless cs is a flow and equal to changes.head. */
     def ::(cs: Changeset): Evolution = 
-      Evolution(if (changes.nonEmpty && isFlow(cs) && cs == changes.head) changes else cs :: changes)
+      if (changes.nonEmpty && isFlow(cs) && cs == changes.head) this else Evolution(cs :: changes)
   }
   val Epsilon = Evolution(Nil)
   
