@@ -52,13 +52,13 @@ object Interpreter extends CStoreInterpreter {
   def repr(st:Store) = st.enclosure
   def fromCStore(st: CStore, root: CId): Store = EnclosureAndBranches(st, (st, Epsilon, StartTime) :: Nil) 
   
-  /* initial values */
+  /* Initial values */
 
   // FIXME Get parameter value from model
   val bannedFieldNames = List(self, parent, classf, nextChild, seed1, seed2, magicf)
   implicit val rnd = Rounding(Parameters.default)
 
-  /* types */
+  /* Types */
 
   sealed abstract trait InitialConditionTime
   case object StartTime extends InitialConditionTime
@@ -136,8 +136,8 @@ object Interpreter extends CStoreInterpreter {
           else containsCObject(co, that(cid)) 
         }
       }
-    /** Take the intersection of this and that Object. */
-    def intersect(that: Enclosure): Option[Enclosure] = merge(that, (l: GroundValue, r: GroundValue) => (l,r) match {
+    /** Take the intersection of e and that Object. */
+    def intersect(that: Enclosure): Option[Enclosure] = merge(that, (l: GroundValue, r: GroundValue) => ((l,r): @unchecked) match {
       case (le: Real, re: Real) => le intersect re 
       case (ls: GStrEnclosure, rs: GStrEnclosure) => (ls.start intersect rs.start, ls.enclosure intersect rs.enclosure, ls.end intersect rs.end) match {
         case (start, enclosure, end) if start.nonEmpty && enclosure.nonEmpty && end.nonEmpty => Some(GStrEnclosure(start,enclosure,end))
@@ -204,6 +204,14 @@ object Interpreter extends CStoreInterpreter {
       xs.foldLeft(Set.empty[Changeset])(combine(_,_))
     def combine[A](xs: Traversable[A], f: A => Set[Changeset]): Set[Changeset] =
       combine(xs map f)
+    def logReparent(o:CId, parent:CId) : Set[Changeset] =
+      Set(Changeset(Set((o,parent)), Set.empty, Set.empty, Set.empty))
+    def logAssign(path: Expr, o: CId, d: Dot, a: Action, e: Expr, env: Env) : Set[Changeset] =
+      Set(Changeset(Set.empty, Set(DelayedAction(path,o,a,env)), Set.empty, Set.empty))
+    def logODE(path: Expr, o: CId, d: Dot, a: Action, e: Expr, env: Env) : Set[Changeset] =
+      Set(Changeset(Set.empty, Set.empty, Set(DelayedAction(path,o,a,env)), Set.empty))
+    def logClaim(o: CId, c: Expr) : Set[Changeset] =
+      Set(Changeset(Set.empty, Set.empty, Set.empty, Set(DelayedConstraint(o,c))))
   }
   val NoChange = Changeset(Set.empty, Set.empty, Set.empty, Set.empty) 
   case class DelayedAction(path: Expr, selfCId: CId, a: Action, env: Env) {
@@ -304,21 +312,34 @@ object Interpreter extends CStoreInterpreter {
         case _ => super.mapClause(c)
       }
     }.mapProg(p)
-  
-  def logReparent(o:CId, parent:CId) : Set[Changeset] =
-    Set(Changeset(Set((o,parent)), Set.empty, Set.empty, Set.empty))
     
-  def logAssign(path: Expr, o: CId, d: Dot, a: Action, e: Expr, env: Env) : Set[Changeset] =
-    Set(Changeset(Set.empty, Set(DelayedAction(path,o,a,env)), Set.empty, Set.empty))
-
-  def logODE(path: Expr, o: CId, d: Dot, a: Action, e: Expr, env: Env) : Set[Changeset] =
-    Set(Changeset(Set.empty, Set.empty, Set(DelayedAction(path,o,a,env)), Set.empty))
-
-  def logClaim(o: CId, c: Expr) : Set[Changeset] =
-    Set(Changeset(Set.empty, Set.empty, Set.empty, Set(DelayedConstraint(o,c))))
-
+  /* Store manipulation */
+  
+  // FIXME This only updates the values in st.enclosure, leaving the simulator objects in st.branches out-dated.
+  /** 
+   * Update simulator object of s.enclosure.
+   * NOTE: Simulators objects of st.branches are not affected.
+   */
+  def setInSimulator(f:Name, v:CValue, s:Store): Store =
+    EnclosureAndBranches(setObjectField(magicId(s.enclosure), f, v, s.enclosure), s.branches)
+    
+  /** Update simulator parameters in st.enclosure with values from the code in p. */
+  def updateSimulator(p: Prog, st: Store): Store = {
+    val paramMap = p.defs.find(_.name == cmain).get.body.flatMap {
+      case Discretely( Assign(Dot(Dot(Var(Name(self, 0)), Name(simulator, 0)), param)
+                     , Lit(rhs @ (GInt(_) | GDouble(_) | GInterval(_))))) => 
+        List((param, VLit(rhs)))
+      case _ => Nil
+    }.toMap
+    paramMap.foldLeft(st){ case (stTmp, (p,v)) => setInSimulator(p, v, stTmp) }
+  }
+  
+  def setTime(d:Double, s:Store) = setInSimulator(time, VLit(GDouble(d)), s)
+  
+  def setResultType(t:ResultType, s:Store) = setInSimulator(resultType, VResultType(t), s)
+    
   /** Get a fresh object id for a child of parent */
-  def freshCId(parent:Option[CId], st: Enclosure) : (CId, Enclosure) = parent match {
+  def freshCId(parent:Option[CId], st: CStore) : (CId, CStore) = parent match {
     case None => (CId.nil, st)
     case Some(p) =>
       val VLit(GInt(n)) = getObjectField(p, nextChild, st)
@@ -385,10 +406,9 @@ object Interpreter extends CStoreInterpreter {
     (fid, st4)
   }
 
-  /* Utility function */
+  /* Interpreter */
 
-  /* evaluate e in the scope of env 
-   * for definitions p with current store st */
+  /** Evaluate e in the scope of env for definitions p with current store st */
   def evalExpr(e:Expr, env:Env, st:Enclosure) : CValue = {
     def eval(env:Env, e:Expr) : CValue = try {
 	    e match {
@@ -451,8 +471,7 @@ object Interpreter extends CStoreInterpreter {
     eval(env,e)
   }
   
-  /* purely functional operator evaluation 
-   * at the values level */
+  /** Purely functional operator evaluation at the values level */
   def evalOp[A](op:String, xs:List[Value[_]]) : Value[A] = {
     (op,xs) match {
        case (_, VLit(x)::Nil) =>
@@ -464,8 +483,7 @@ object Interpreter extends CStoreInterpreter {
     }
   }
   
-  /* purely functional unary operator evaluation 
-   * at the ground values level */
+  /** Purely functional unary operator evaluation at the ground values level */
   def unaryGroundOp(f:String, vx:GroundValue) = {
     import acumen.interpreters.enclosure.Transcendentals.{
       sin
@@ -484,8 +502,7 @@ object Interpreter extends CStoreInterpreter {
     }
   }
   
-  /* purely functional binary operator evaluation 
-   * at the ground values level */
+  /** Purely functional binary operator evaluation at the ground values level */
   def binGroundOp(f:String, vl:GroundValue, vr:GroundValue): GroundValue = {
     lazy val ivl = extractInterval(vl)
     lazy val ivr = extractInterval(vr)
@@ -503,7 +520,7 @@ object Interpreter extends CStoreInterpreter {
       case "*" => l * r
       case "/" => l / r
     }
-    /* Based on implementations from acumen.interpreters.enclosure.Relation */
+    // Based on implementations from acumen.interpreters.enclosure.Relation
     def implemBool(f:String, l:GroundValue, r:GroundValue): GUncertainBool = f match {
       case "<" =>
         if ((extractInterval(l) lessThan extractInterval(r)) || // l < r holds over entire time step
@@ -605,6 +622,8 @@ object Interpreter extends CStoreInterpreter {
         evalContinuousAction(certain, path, ca, env, p, st) 
       case Claim(c) =>
         logClaim(selfCId(env), c)
+      case ForEach(n, col, body) =>
+        sys.error("For-each statements are not supported in the Enclosure 2014 semantics.") //TODO Add support for for-each statements
     }
  
   def evalDiscreteAction(certain:Boolean, path: Expr, a:DiscreteAction, env:Env, p:Prog, st: Enclosure) : Set[Changeset] =
@@ -643,15 +662,16 @@ object Interpreter extends CStoreInterpreter {
     evalActions(true, Lit(CertainTrue), as, env, p, st)
   }
 
-  /* Outer loop: iterates f from the root to the leaves of the
-     tree formed by the parent-children relation. The relation
-     may be updated live */ //FIXME Update comment
+  /**
+   * Outer loop. Iterates f from the root to the leaves of the tree formed 
+   * by the parent-children relation.
+   */
   def iterate(f: CId => Set[Changeset], root: CId, st: Enclosure): Set[Changeset] = {
     val r = f(root)
     val cs = childrenOf(root, st)
     if (cs.isEmpty) r else combine(r, combine(cs, iterate(f, _:CId, st)))
   }
-
+  
   /* Main simulation loop */  
 
   def init(prog:Prog) : (Prog, Store) = {
@@ -689,12 +709,6 @@ object Interpreter extends CStoreInterpreter {
       }.map{ case (n,v) => (fieldIdToName(cid,n), (cid, n)) } 
     }
   
-  def dots(e: Expr): List[Dot] = e match {
-    case d@Dot(_,_) => d :: Nil
-    case Op(_,es) => es flatMap dots
-    case _ => Nil
-  }
-    
   def step(p: Prog, st: Store): Option[Store] = {
     val st1 = updateSimulator(p, st)
     if (getTime(st1.enclosure) >= getEndTime(st1.enclosure))
@@ -727,17 +741,6 @@ object Interpreter extends CStoreInterpreter {
       checkDuplicateAssingments(assIds, DuplicateDiscreteAssingment)
     }
     a
-  }
- 
-  // FIXME This only updates the values in st.enclosure, leaving the simulator objects in st.branches out-dated
-  /** Update simulator parameters in st.enclosure with values from the code in p. */
-  def updateSimulator(p: Prog, st: Store): Store = {
-    val paramMap = p.defs.find(_.name == cmain).get.body.flatMap {
-      case Discretely(Assign(Dot(Dot(Var(Name(self, 0)), Name(simulator, 0)), param), Lit(rhs @ (GInt(_) | GDouble(_) | GInterval(_))))) => 
-        List((param, VLit(rhs)))
-      case _ => Nil
-    }.toMap
-    paramMap.foldLeft(st){ case (stTmp, (p,v)) => setInSimulator(p, v, stTmp) }
   }
     
   /** 
@@ -894,11 +897,17 @@ object Interpreter extends CStoreInterpreter {
   }
   
   /** Box containing the values of all variables (Dots) that occur in it. */
-  def envBox(e: Expr, selfCId: CId, st: Enclosure, prog: Prog): Box =
+  def envBox(e: Expr, selfCId: CId, st: Enclosure, prog: Prog): Box = {
+    def dots(e: Expr): List[Dot] = e match {
+      case d@Dot(_,_) => d :: Nil
+      case Op(_,es) => es flatMap dots
+      case _ => Nil
+    }    
     new Box(dots(e).map{ case d@Dot(obj,n) =>
       val VObjId(Some(objId)) = evalExpr(obj, prog, selfCId, st) 
       (fieldIdToName(objId.cid,n), extractInterval(evalExpr(d, prog, selfCId, st)))
     }.toMap)
+  }
 
   /** Evaluate expression in object with CId selfCId. Note: Can assumes that selfCId is not a simulator object. */
   def evalExpr(e: Expr, p: Prog, selfCId: CId, st: Enclosure): CValue =
@@ -998,14 +1007,7 @@ object Interpreter extends CStoreInterpreter {
     case _                            => sys.error("Handling of expression " + e + " not implemented!")
   }
   
-  /* magic fields setters */
-
-  def setInSimulator(f:Name, v:CValue, s:Store): Store =
-    EnclosureAndBranches(setObjectField(magicId(s.enclosure), f, v, s.enclosure), s.branches)
-  def setTime(d:Double, s:Store) = setInSimulator(time, VLit(GDouble(d)), s)
-  def setResultType(t:ResultType, s:Store) = setInSimulator(resultType, VResultType(t), s)
-
-  /* utilities */
+  /* Utilities */
   
   def fieldIdToName(o: CId, n: Name): String = s"$n@$o"
   
