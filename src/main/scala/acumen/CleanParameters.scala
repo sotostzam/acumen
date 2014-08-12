@@ -29,28 +29,16 @@ object CleanParameters {
       acumen.CleanParameters.parms.registerParm(parm, acumen.EnclosureInterpreterType)
   }
 
-
   case object AssignToSimulator extends Throwable
 
   def filterMain(cd: ClassDef, intr: InterpreterType) : ClassDef = {
     // FIXME: make sure cd.name == "Main"
     val simulatorName = cd.fields(0)
 
-    def filterActions(actions: List[Action]) : List[Action] = {
-      actions.flatMap(filterAction(_))
-    }
-  
-    def filterAction(action: Action) : Option[Action] = {
-      action match {
-        case IfThenElse(cond, t, e) =>
-          Some(IfThenElse(cond, filterActions(t), filterActions(e)))
-        case Switch(subject, clauses) =>
-          Some(Switch(subject, clauses.map {case Clause(lhs, asrt, rhs) => 
-            Clause(lhs, asrt, filterActions(rhs))}))
-        case ForEach(it, col, body) =>
-          Some(ForEach(it, col, filterActions(body)))
-        case Continuously(_) =>
-          Some(action)
+    val filter = new util.ASTMap {
+      override def mapActions(actions: List[Action]) : List[Action] = actions.flatMap(filterAction(_))
+
+      def filterAction(action: Action) : Option[Action] = action match {
         case Discretely(Assign(lhs, rhs)) =>
           lhs match {
             case Dot(Var(Name("self",0)),sn) if sn == simulatorName =>
@@ -64,14 +52,13 @@ object CleanParameters {
             case _ => 
               Some(action)
           }
-        case Discretely(_) =>
-          Some(action)
-        case Claim(e) => Some(action)
+        case _ =>
+          Some(mapAction(action))
       }
     }
 
     try {
-      ClassDef(cd.name, cd.fields, cd.priv, filterActions(cd.body))
+      filter.mapClassDef(cd)
     } catch {
       case AssignToSimulator => 
         // FIXME: Warning to console

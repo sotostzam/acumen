@@ -81,6 +81,7 @@ case class Desugarer(odeTransformMode: ODETransformMode) {
       case Continuously(ca) => desca(ca) map Continuously
       case Discretely(da) => desda(da) map Discretely
       case Claim(e) => List(Claim(dese(e)))
+      case Hypothesis(s, e) => List(Hypothesis(s, dese(e)))
     }
   }
 
