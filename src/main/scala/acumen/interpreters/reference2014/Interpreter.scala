@@ -385,7 +385,7 @@ object Interpreter extends acumen.CStoreInterpreter {
     mapM_((a: (CId, Dot, CValue)) => setObjectFieldM(a._1, a._2.field, a._3), xs)
   
   def step(p:Prog, st:Store) : Option[Store] =
-    if (getTime(st) > getEndTime(st)) {checkObserves(p, st); None}
+    if (getTime(st) > getEndTime(st)) None
     else Some(
       { val (_,ids,rps,ass,eqs,odes,st1) = iterate(evalStep(p), mainId(st))(st)
         getResultType(st) match {
