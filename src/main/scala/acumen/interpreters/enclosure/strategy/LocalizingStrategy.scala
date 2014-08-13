@@ -20,7 +20,7 @@ import acumen.interpreters.enclosure.event.EventEncloser
  * The method encloseHybrid in this class corresponds to the method with the same name 
  * in the PWL specification. 
  */
-class LocalizingStrategy(override var eventEncloser: EventEncloser) extends Strategy {
+case class LocalizingStrategy(override val eventEncloser: EventEncloser) extends Strategy {
 
   override def enclosePiecewise(ps: Parameters, h: HybridSystem, t: Interval, s: StateEnclosure, cb: EnclosureInterpreterCallbacks)(implicit rnd: Rounding): Seq[UnivariateAffineEnclosure] =
     encloseHybrid(ps, h, t, s, cb)

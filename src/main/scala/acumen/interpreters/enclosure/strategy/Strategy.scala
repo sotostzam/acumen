@@ -11,7 +11,7 @@ import acumen.interpreters.enclosure.event.EventEncloser
 
 trait Strategy {
 
-  var eventEncloser: EventEncloser
+  val eventEncloser: EventEncloser
 
   /**
    * Sub-divides the simulation time interval `t` according to a given strategy

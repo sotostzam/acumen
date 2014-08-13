@@ -88,7 +88,7 @@ object Interpreter extends Interpreter {
   private val vero = new VeroSolver {}
   private val lohner = new LohnerSolver {}
 
-  var strategy = new LocalizingStrategy(new PWLEventEncloser(new PicardSolver {}))
+  var strategy = LocalizingStrategy(new PWLEventEncloser(new PicardSolver {}))
 
   /** Sets the IVP solver to PicardSolver */
   def asPicard() = { strategy.eventEncloser.ivpSolver = picard; this }
@@ -98,9 +98,9 @@ object Interpreter extends Interpreter {
   def asLohner() = { strategy.eventEncloser.ivpSolver = lohner; this }
 
   /** Sets the event handler to PWL */
-  def asPWL() = { strategy.eventEncloser = new PWLEventEncloser(strategy.eventEncloser.ivpSolver); this }
+  def asPWL() = { strategy = LocalizingStrategy(new PWLEventEncloser(strategy.eventEncloser.ivpSolver)); this }
   /** Sets the event handler to EVT */
-  def asEVT() = { strategy.eventEncloser = new TreeEventEncloser(strategy.eventEncloser.ivpSolver); this }
+  def asEVT() = { strategy = LocalizingStrategy(new TreeEventEncloser(strategy.eventEncloser.ivpSolver)); this }
 
   /** Sets the strategy LocalizingStrategy */
   def asLocalizing() = { strategy = new LocalizingStrategy(strategy.eventEncloser); this }
