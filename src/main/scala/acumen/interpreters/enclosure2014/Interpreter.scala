@@ -11,7 +11,7 @@ import util.ASTUtil.op
 import Common._
 import Errors.{
   BadLhs, BadRhs, ConstructorArity, DuplicateContinuousAssingment, 
-  DuplicateDiscreteAssingment, NotAClassName, NotAnObject, 
+  DuplicateDiscreteAssingment, HypothesisFalsified, NotAClassName, NotAnObject, 
   PositionalAcumenError, ShouldNeverHappen, UnknownOperator
 }
 import Pretty.pprint
@@ -622,6 +622,9 @@ object Interpreter extends CStoreInterpreter {
         evalContinuousAction(certain, path, ca, env, p, st) 
       case Claim(c) =>
         logClaim(selfCId(env), c)
+      case Hypothesis(s, e) =>
+        if (VLit(CertainTrue) == evalExpr(e, env, st)) Set(NoChange)
+        else throw HypothesisFalsified(s.getOrElse(Pretty pprint e)).setPos(e.pos)
       case ForEach(n, col, body) =>
         sys.error("For-each statements are not supported in the Enclosure 2014 semantics.") //TODO Add support for for-each statements
     }
