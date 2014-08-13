@@ -91,11 +91,11 @@ object Interpreter extends Interpreter {
   var strategy = LocalizingStrategy(new PWLEventEncloser(new PicardSolver {}))
 
   /** Sets the IVP solver to PicardSolver */
-  def asPicard() = { strategy.eventEncloser.ivpSolver = picard; this }
+  def asPicard() = { strategy = strategy.withSolver(picard); this }
   /** Sets the IVP solver to VeroSolver */
-  def asVero() = { strategy.eventEncloser.ivpSolver = vero; this }
+  def asVero() = { strategy = strategy.withSolver(vero); this }
   /** Sets the IVP solver to LohnerSolver */
-  def asLohner() = { strategy.eventEncloser.ivpSolver = lohner; this }
+  def asLohner() = { strategy = strategy.withSolver(lohner); this }
 
   /** Sets the event handler to PWL */
   def asPWL() = { strategy = LocalizingStrategy(new PWLEventEncloser(strategy.eventEncloser.ivpSolver)); this }
@@ -110,8 +110,7 @@ object Interpreter extends Interpreter {
 
   /** Toggles between PicardSolver and LohnerSolver IVP solvers */
   def toggleContraction(): Unit = {
-    strategy.eventEncloser.ivpSolver =
-      if (strategy.eventEncloser.ivpSolver == lohner) picard else lohner
+    strategy = strategy.withSolver(if (strategy.eventEncloser.ivpSolver == lohner) picard else lohner)
   }
 
 }
