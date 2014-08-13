@@ -145,7 +145,7 @@ object Parser extends MyStdTokenParsers {
 
   lexical.reserved ++=
     List("for", "end", "if", "else", "create", "move", "in", "terminate", "class", 
-         "sum", "true", "false", "private", "switch", "case", "type", "claim", "let", 
+         "sum", "true", "false", "private", "switch", "case", "type", "claim", "hypothesis", "let", 
          "Continuous", "Discrete", "FixedPoint", "none")
 
   /* token conversion */
@@ -234,7 +234,7 @@ object Parser extends MyStdTokenParsers {
   def actions = repsep(action, ";") <~ opt(";")
 
   def action: Parser[Action] =
-    switchCase | ifThenElse | forEach | discretelyOrContinuously | claim
+    switchCase | ifThenElse | forEach | discretelyOrContinuously | claim | hypothesis
 
   def switchCase =
     "switch" ~! expr ~! clauses ~! "end" ^^
@@ -252,6 +252,9 @@ object Parser extends MyStdTokenParsers {
 
   def claim = claimExpr ^^ { case predicate => Claim(predicate) }
 
+  def hypothesis = "hypothesis" ~! opt(stringLit) ~ expr ^^ 
+    { case "hypothesis" ~ statement ~ predicate => Hypothesis(statement, predicate) }
+  
   def ifThenElse =
     ("if" ~! expr ~! actions) >> {
       case _ ~ c ~ t =>

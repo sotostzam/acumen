@@ -63,9 +63,7 @@ class InterpreterTest extends FunSuite with ShouldMatchers {
              timeStep = 0.001, 
              endTime = 2.0, 
              resultType = @Discrete,
-             nextChild = 0,
-             expects = 0, 
-             observes = 0 }
+             nextChild = 0 }
 
       #0.2 { className = Ball,
              parent = #0,
@@ -107,9 +105,7 @@ class InterpreterTest extends FunSuite with ShouldMatchers {
              timeStep = 0.001, 
              endTime = 2.0, 
              resultType = @Discrete,
-             nextChild = 0,
-             expects = 0, 
-             observes = 0 }
+             nextChild = 0 }
 
       #0.3 { className = Ball,
              parent = #0,

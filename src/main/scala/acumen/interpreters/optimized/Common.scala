@@ -537,7 +537,11 @@ object Common {
       case Continuously(ca) =>
         evalContinuousAction(ca, env, p, magic)
       case Claim(_) =>
-        noChange        
+        noChange
+      case Hypothesis(s, e) =>
+        val VLit(GBool(b)) = evalExpr(e, p, env)
+        if (b) noChange
+        else throw HypothesisFalsified(s.getOrElse(Pretty pprint e)).setPos(e.pos)
     }
   }
 
