@@ -66,6 +66,7 @@ class App extends SimpleSwingApplication {
   private val cores = Runtime.getRuntime.availableProcessors
   
   // Create a special actor to listen to events from other threads
+  // runs on the EDT
 
   case object EXIT
   val actor = new Actor with Publisher {
@@ -88,6 +89,11 @@ class App extends SimpleSwingApplication {
           case SendInit => 
             withErrorReporting {
               interpreter = InterpreterCntrl(Main.defaultSemantics,Some(codeArea.textArea.getText))
+              if (Main.defaultSemantics != interpreter.semantics) {
+                warnSemanticsChange(Main.defaultSemantics, interpreter.semantics)
+                Main.defaultSemantics = interpreter.semantics
+                selectMenuItemFromSemantics()
+              }
               controller ! Init(codeArea.textArea.getText, codeArea.currentDir, interpreter)
             }
 
@@ -621,6 +627,19 @@ class App extends SimpleSwingApplication {
     e.printStackTrace()
   }
 
+  // returns true to continue and false to cancel
+  def warnSemanticsChange(oldS: SemanticsImpl[_], newS: SemanticsImpl[_]) {
+    val res = Dialog.showConfirmation(
+      message = "Changing semantics from \"" + oldS.descr + "\" to \"" + newS.descr + "\".",
+      title = "Changing semantics ...",
+      optionType = Dialog.Options.OkCancel,
+      messageType = Dialog.Message.Info)
+    //console.logError("Changing semantics from " + oldS.descr + " to " + newS.descr + ".")
+    if (res != Dialog.Result.Ok) throw new Errors.AcumenError {
+      override def getMessage = "Simulation Canceled."
+    }
+  }
+
   //def redraw = traceView.redraw
 
   /* ------ simple dialogs ----- */
@@ -645,19 +664,24 @@ class App extends SimpleSwingApplication {
     console.log("Selected the \"" + si.descr + "\" semantics.")
     console.newLine
   }
+
   interpreter = InterpreterCntrl(Main.defaultSemantics);
-  interpreter.semantics match {
-    case S.Ref2012 => bar.semantics.ref2013.selected = true
-    case S.Opt2013 => bar.semantics.opt2013.selected = true
-    case S.Ref2013 => bar.semantics.ref2012.selected = true
-    case S.Ref2014 => bar.semantics.ref2014.selected = true
-    case S.Opt2014 => bar.semantics.opt2014.selected = true
-    case S.Opt2012 => bar.semantics.opt2012.selected = true
-    case _:S.Parallel2012  => bar.semantics.par2012.selected = true
-    case S.EnclosurePWL => bar.semantics.encPWL.selected = true
-    case S.EnclosureEVT => bar.semantics.encEVT.selected = true
-    case _ => /* Other semantics not sccable from the menu selected */
+  def selectMenuItemFromSemantics() {
+    Main.defaultSemantics match {
+      case S.Ref2012 => bar.semantics.ref2013.selected = true
+      case S.Opt2013 => bar.semantics.opt2013.selected = true
+      case S.Ref2013 => bar.semantics.ref2012.selected = true
+      case S.Ref2014 => bar.semantics.ref2014.selected = true
+      case S.Opt2014 => bar.semantics.opt2014.selected = true
+      case S.Opt2012 => bar.semantics.opt2012.selected = true
+      case _:S.Parallel2012  => bar.semantics.par2012.selected = true
+      case S.EnclosurePWL => bar.semantics.encPWL.selected = true
+      case S.EnclosureEVT => bar.semantics.encEVT.selected = true
+      case _ => /* Other semantics not selectable from the menu selected */
+    }
   }
+  selectMenuItemFromSemantics()
+
 
   def dumpParms() = {
     console.log("Using the \"" + interpreter.semantics.descr + "\" semantics.")
