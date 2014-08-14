@@ -148,8 +148,8 @@ object SemanticsImpl {
   case class Enclosure(eventHandler: EventHandler, contraction: Boolean = false) extends SemanticsImpl[RecursiveInterpreter] {
     val semantics = Semantics(None, Seq("desugar-local"), Nil)
     def interpreter() = (eventHandler match {
-      case PWL => enclosure.Interpreter.asPWL
-      case EVT => enclosure.Interpreter.asEVT
+      case PWL => enclosure.Interpreter.PWL
+      case EVT => enclosure.Interpreter.EVT
     }).withContraction(contraction)
   }
 

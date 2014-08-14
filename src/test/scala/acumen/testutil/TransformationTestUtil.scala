@@ -56,8 +56,8 @@ object TransformationTestUtil {
    */
   def preservesContinuousEnclosureSemanticsOf(transform: Prog => Prog, p: Prog, modelName: Option[String]) =
     preservesSemanticsOf(Local, transform, p, modelName, "enclosure", { (desugared, transformed) =>
-      val originalEnclosures = acumen.interpreters.enclosure.Interpreter.run(desugared).res
-      val transformedEnclosures = acumen.interpreters.enclosure.Interpreter.run(transformed).res
+      val originalEnclosures = acumen.interpreters.enclosure.Interpreter.PWL.run(desugared).res
+      val transformedEnclosures = acumen.interpreters.enclosure.Interpreter.PWL.run(transformed).res
       areEqual("Enclosure counts", originalEnclosures.length, transformedEnclosures.length) && {
         val contNames = getContinuousVariables(p)
         originalEnclosures.zip(transformedEnclosures).forall {

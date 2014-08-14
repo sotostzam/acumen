@@ -82,22 +82,17 @@ case class Interpreter(strategy: Strategy)
   //
   //
 
-  // IVP solvers
-  private val picard = new PicardSolver {}
-  private val vero = new VeroSolver {}
-  private val lohner = new LohnerSolver {}
-
   /** Sets the IVP solver to PicardSolver */
-  def asPicard() = { Interpreter(strategy.withSolver(picard)) }
+  def asPicard() = { Interpreter(strategy.withSolver(Interpreter.picard)) }
   /** Sets the IVP solver to VeroSolver */
-  def asVero() = { Interpreter(strategy.withSolver(vero)) }
+  def asVero() = { Interpreter(strategy.withSolver(Interpreter.vero)) }
   /** Sets the IVP solver to LohnerSolver */
-  def asLohner() = { Interpreter(strategy.withSolver(lohner)) }
+  def asLohner() = { Interpreter(strategy.withSolver(Interpreter.lohner)) }
 
   /** Sets the event handler to PWL */
-  def asPWL() = { Interpreter(LocalizingStrategy(PWLEventEncloser(strategy.eventEncloser.ivpSolver))) }
+  //def asPWL() = { Interpreter(LocalizingStrategy(PWLEventEncloser(strategy.eventEncloser.ivpSolver))) }
   /** Sets the event handler to EVT */
-  def asEVT() = { Interpreter(LocalizingStrategy(TreeEventEncloser(strategy.eventEncloser.ivpSolver))) }
+  //def asEVT() = { Interpreter(LocalizingStrategy(TreeEventEncloser(strategy.eventEncloser.ivpSolver))) }
 
   /** Sets the strategy LocalizingStrategy */
   def asLocalizing() = { Interpreter(LocalizingStrategy(strategy.eventEncloser)) }
@@ -109,5 +104,13 @@ case class Interpreter(strategy: Strategy)
   def withContraction(yes: Boolean) = if (yes) asLohner() else asPicard()
 }
 
-/** Singleton interpreter. All concrete IVP solvers are declared here */
-object Interpreter extends Interpreter(LocalizingStrategy(PWLEventEncloser(new PicardSolver {}))) {}
+object Interpreter {
+  // IVP solvers
+  val picard = new PicardSolver {}
+  val vero = new VeroSolver {}
+  val lohner = new LohnerSolver {}
+
+  val PWL = Interpreter(LocalizingStrategy(PWLEventEncloser(picard)))
+  val EVT = Interpreter(LocalizingStrategy(TreeEventEncloser(picard)))
+}
+

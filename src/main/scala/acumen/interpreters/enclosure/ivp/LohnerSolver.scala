@@ -30,7 +30,6 @@ trait LohnerSolver extends PicardSolver {
     n: Int, // maximum number of iterations before inclusion of iterates
     degree: Int // number of pieces to split each initial condition interval
     )(implicit rnd: Rounding): (PaddedUnivariateAffineEnclosure, Box) = {
-
     val enclosure = super.solveIVP(F, T, A.midpoint, delta, m, n, degree)
     val (midpointEnclosure, midpointEndTimeBox) = enclosure
     val logNormBound = F.jacobianLogMaxNorm(A).high

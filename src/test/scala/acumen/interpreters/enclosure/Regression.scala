@@ -27,7 +27,7 @@ object Regression extends Properties("Regression") {
           try {
             val ast = Parser.run(Parser.prog, model)
             val des = Desugarer(odeTransformMode = Local).run(ast)
-            val enclosures = Interpreter.run(des).res
+            val enclosures = Interpreter.PWL.run(des).res
             results.get(name) match {
               case None =>
                 println(name + ".result is missing for comparison with result:\n" + enclosures)
