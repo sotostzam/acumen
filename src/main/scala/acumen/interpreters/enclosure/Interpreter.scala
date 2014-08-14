@@ -63,14 +63,14 @@ case class Interpreter(strategy: Strategy)
     // checking that main class embeds a hybrid automaton
     checkValidAutomatonEmbedding(main)
 
-    val ps0 = parameters(main)
+    val ps0 = parameters(main,this)
     val ps = adjustParms(ps0)
     implicit val rnd = Rounding(ps)
     val (hs, uss) = extract(main)
 
     cb.endTime = ps.endTime
 
-    EnclosureRes(Interpreter.strategy.enclosePiecewise(
+    EnclosureRes(strategy.enclosePiecewise(
       ps,
       hs,
       ps.simulationTime,

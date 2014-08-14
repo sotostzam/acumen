@@ -15,7 +15,8 @@ case class Parameters(
     maxTimeStep: Double, // maximum time step size
     minComputationImprovement: Double, // minimum improvement of enclosure
     splittingDegree: Int, // number of pieces to split each initial condition variable
-    maxIterations: Int // maximum number of PWL reachable states computation iterations
+    maxIterations: Int, // maximum number of PWL reachable states computation iterations
+    interpreter: Option[Interpreter] // interpreter to use for cosineTable
     ) {
   implicit val rnd = Rounding(this)
   val simulationTime = Interval(startTime, endTime)
@@ -37,7 +38,8 @@ object Parameters {
     defaults("maxTimeStep"),
     defaults("minComputationImprovement"),
     defaults("splittingDegree").toInt,
-    defaults("maxIterations").toInt)
+    defaults("maxIterations").toInt,
+    None)
 
   // FIXME coercing each integer to a double and back is not ideal...
   val defaults = Map[String, Double](

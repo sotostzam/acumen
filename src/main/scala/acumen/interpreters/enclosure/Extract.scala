@@ -85,7 +85,7 @@ trait Extract {
    *
    * The order of assignments does not matter.
    */
-  def parameters(classDef: ClassDef): Parameters =
+  def parameters(classDef: ClassDef, i: Interpreter): Parameters =
     classDef match {
       case ClassDef(
         name: ClassName,
@@ -132,7 +132,8 @@ trait Extract {
           params("maxTimeStep"),
           params("minComputationImprovement"),
           params("splittingDegree").toInt,
-          params("maxIterations").toInt)
+          params("maxIterations").toInt,
+          Some(i))
       }
     }
 
