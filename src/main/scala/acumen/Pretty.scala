@@ -236,6 +236,7 @@ class Pretty {
       case GDouble(x)        => if (predictableDoubles) "%f".format(x) else x.toString
       case GBool(b)          => b.toString
       case GStr(s)           => dquotes(s)
+      case GInterval(i)      => i.toString
       case ge: GEnclosure[_] => ge.show
       case _                 => "??"
     }

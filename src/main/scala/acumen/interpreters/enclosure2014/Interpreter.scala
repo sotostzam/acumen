@@ -624,7 +624,12 @@ object Interpreter extends CStoreInterpreter {
         logClaim(selfCId(env), c)
       case Hypothesis(s, e) =>
         if (VLit(CertainTrue) == evalExpr(e, env, st)) Set(NoChange)
-        else throw HypothesisFalsified(s.getOrElse(Pretty pprint e)).setPos(e.pos)
+        else {
+          val counterEx = dots(e).map(d => (d, evalExpr(d, env, st) match{
+            case VLit(e:GRealEnclosure) => VLit(GInterval(extractInterval(e)))
+          })).toMap
+          throw HypothesisFalsified(s.getOrElse(Pretty pprint e), Some((getTime(st), counterEx))).setPos(e.pos)
+        }
       case ForEach(n, col, body) =>
         sys.error("For-each statements are not supported in the Enclosure 2014 semantics.") //TODO Add support for for-each statements
     }
@@ -901,16 +906,18 @@ object Interpreter extends CStoreInterpreter {
   
   /** Box containing the values of all variables (Dots) that occur in it. */
   def envBox(e: Expr, selfCId: CId, st: Enclosure, prog: Prog): Box = {
-    def dots(e: Expr): List[Dot] = e match {
-      case d@Dot(_,_) => d :: Nil
-      case Op(_,es) => es flatMap dots
-      case _ => Nil
-    }    
     new Box(dots(e).map{ case d@Dot(obj,n) =>
       val VObjId(Some(objId)) = evalExpr(obj, prog, selfCId, st) 
       (fieldIdToName(objId.cid,n), extractInterval(evalExpr(d, prog, selfCId, st)))
     }.toMap)
   }
+
+  /** Returns all variables that occur in e. */
+  def dots(e: Expr): List[Dot] = e match {
+    case d @ Dot(_, _) => d :: Nil
+    case Op(_, es)     => es flatMap dots
+    case _             => Nil
+  }    
 
   /** Evaluate expression in object with CId selfCId. Note: Can assumes that selfCId is not a simulator object. */
   def evalExpr(e: Expr, p: Prog, selfCId: CId, st: Enclosure): CValue =
