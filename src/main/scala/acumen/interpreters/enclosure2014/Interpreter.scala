@@ -7,7 +7,9 @@ import scala.Stream._
 import scala.collection.immutable.{
   HashMap, MapProxy
 }
-import util.ASTUtil.op
+import util.ASTUtil.{
+  dots, op
+}
 import Common._
 import Errors.{
   BadLhs, BadRhs, ConstructorArity, DuplicateContinuousAssingment, 
@@ -911,13 +913,6 @@ object Interpreter extends CStoreInterpreter {
       (fieldIdToName(objId.cid,n), extractInterval(evalExpr(d, prog, selfCId, st)))
     }.toMap)
   }
-
-  /** Returns all variables that occur in e. */
-  def dots(e: Expr): List[Dot] = e match {
-    case d @ Dot(_, _) => d :: Nil
-    case Op(_, es)     => es flatMap dots
-    case _             => Nil
-  }    
 
   /** Evaluate expression in object with CId selfCId. Note: Can assumes that selfCId is not a simulator object. */
   def evalExpr(e: Expr, p: Prog, selfCId: CId, st: Enclosure): CValue =

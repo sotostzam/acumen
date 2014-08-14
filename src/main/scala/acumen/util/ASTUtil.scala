@@ -22,5 +22,12 @@ object ASTUtil {
   
   def op(o: String, ps: Expr*): Expr = Op(Name(o,0), ps.toList)
   
+  /** Returns all variables that occur in e. */
+  def dots(e: Expr): List[Dot] = e match {
+    case d @ Dot(_, _) => d :: Nil
+    case Op(_, es)     => es flatMap dots
+    case _             => Nil
+  } 
+  
 }
 
