@@ -142,15 +142,15 @@ object SemanticsImpl {
         "[-parDiscr|-seqDiscr][-parCont|-seqCont|-IVP][-contWithDiscr|contWithCont]"
     override def withArgs(args: List[String]) = Optimized().withArgs(args)
   }
-  case class Enclosure(i: RecursiveInterpreter = enclosure.Interpreter.asPWL) extends SemanticsImpl[RecursiveInterpreter] {
+  sealed abstract class EventHandler
+  case object PWL extends EventHandler
+  case object EVT extends EventHandler
+  case class Enclosure(eventHandler: EventHandler, contraction: Boolean = false) extends SemanticsImpl[RecursiveInterpreter] {
     val semantics = Semantics(None, Seq("desugar-local"), Nil)
-    def interpreter() = i
-    override def withArgs(args: List[String]) : Enclosure = args match {
-      case "pwl" :: tail => Enclosure(enclosure.Interpreter.asPWL).withArgs(tail)
-      case "evt" :: tail => Enclosure(enclosure.Interpreter.asEVT).withArgs(tail)
-      case Nil => this
-      case _ => null
-    }
+    def interpreter() = (eventHandler match {
+      case PWL => enclosure.Interpreter.asPWL
+      case EVT => enclosure.Interpreter.asEVT
+    }).withContraction(contraction)
   }
 
   // constants, for common choices, safe to compare against for
@@ -162,8 +162,6 @@ object SemanticsImpl {
   lazy val Opt2012 = Imperative2012
   lazy val Opt2013 = Optimized()
   lazy val Opt2014 = Optimized(contMode = ContMode.IVP)
-  lazy val EnclosurePWL = Enclosure(enclosure.Interpreter.asPWL)
-  lazy val EnclosureEVT = Enclosure(enclosure.Interpreter.asEVT)
 
   case class Sel(si: SemanticsSel, 
                  // First id is the display name
@@ -181,8 +179,10 @@ object SemanticsImpl {
          sel(Ref2012, "2012 Reference", "reference2012"),
          sel(Opt2012, "2012 Optimized", "optimized2012", "imperative2012"),
          sel(Parallel2012(), "2012 Parallel", "parallel2012"),
-         sel(EnclosurePWL, "2013 PWL", "enclosure-pwl"),
-         sel(EnclosureEVT, "2013 EVT", "enclosure-evt"),
+         sel(Enclosure(PWL), "2013 PWL", "enclosure-pwl"),
+         sel(Enclosure(EVT), "2013 EVT", "enclosure-evt"),
+         sel(Enclosure(PWL,true), "2013 PWL (Contraction)", "enclosure-pwl-contraction"),
+         sel(Enclosure(EVT,true), "2013 EVT (Contraction)", "enclosure-evt-contraction"),
          exp(Optimized, "Optimized", "optimized"))
 
   def lookup(si: SemanticsSel) : Option[Sel] = 
