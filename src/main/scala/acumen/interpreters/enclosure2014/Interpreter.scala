@@ -182,16 +182,17 @@ object Interpreter extends CStoreInterpreter {
   
   /** Return type of AST traversal (evalActions) */
   case class Changeset
-    ( reps:   Set[(CId,CId)]     // reparentings
-    , ass:    Set[DelayedAction] // discrete assignments
-    , odes:   Set[DelayedAction] // ode assignments / differential equations
-    , claims: Set[DelayedConstraint]  // claims / constraints
+    ( reps:   Set[(CId,CId)]         = Set.empty // reparentings
+    , ass:    Set[DelayedAction]     = Set.empty // discrete assignments
+    , odes:   Set[DelayedAction]     = Set.empty // ode assignments / differential equations
+    , claims: Set[DelayedConstraint] = Set.empty // claims / constraints
+    , hyps:   Set[DelayedHypothesis] = Set.empty // hypotheses
     ) {
     def ||(that: Changeset) =
       that match {
-        case NoChange => this
-        case Changeset(reps1, ass1, odes1, claims1) =>
-          Changeset(reps ++ reps1, ass ++ ass1, odes ++ odes1, claims ++ claims1)
+        case Changeset.empty => this
+        case Changeset(reps1, ass1, odes1, claims1, hyps1) =>
+          Changeset(reps ++ reps1, ass ++ ass1, odes ++ odes1, claims ++ claims1, hyps ++ hyps1)
       }
     override def toString =
       (reps, ass.map(d => Pretty.pprint(d.a)), ass.map(d => Pretty.pprint(d.a)), odes.map(d => Pretty.pprint(d.a)), claims.map(d => Pretty.pprint(d.c))).toString
@@ -200,22 +201,24 @@ object Interpreter extends CStoreInterpreter {
     def combine[A](ls: Set[Changeset], rs: Set[Changeset]): Set[Changeset] =
       if (ls isEmpty) rs
       else if (rs isEmpty) ls
-      // FIXME Handle NoChange case correctly
+      // FIXME Handle Changeset.empty case correctly
       else for (l <- ls; r <- rs) yield l || r
     def combine[A](xs: Traversable[Set[Changeset]]): Set[Changeset] =
       xs.foldLeft(Set.empty[Changeset])(combine(_,_))
     def combine[A](xs: Traversable[A], f: A => Set[Changeset]): Set[Changeset] =
       combine(xs map f)
-    def logReparent(o:CId, parent:CId) : Set[Changeset] =
-      Set(Changeset(Set((o,parent)), Set.empty, Set.empty, Set.empty))
-    def logAssign(path: Expr, o: CId, d: Dot, a: Action, e: Expr, env: Env) : Set[Changeset] =
-      Set(Changeset(Set.empty, Set(DelayedAction(path,o,a,env)), Set.empty, Set.empty))
-    def logODE(path: Expr, o: CId, d: Dot, a: Action, e: Expr, env: Env) : Set[Changeset] =
-      Set(Changeset(Set.empty, Set.empty, Set(DelayedAction(path,o,a,env)), Set.empty))
+    def logReparent(o:CId, parent:CId): Set[Changeset] =
+      Set(Changeset(reps = Set((o,parent))))
+    def logAssign(path: Expr, o: CId, d: Dot, a: Action, e: Expr, env: Env): Set[Changeset] =
+      Set(Changeset(ass = Set(DelayedAction(path,o,a,env))))
+    def logODE(path: Expr, o: CId, d: Dot, a: Action, e: Expr, env: Env): Set[Changeset] =
+      Set(Changeset(odes = Set(DelayedAction(path,o,a,env))))
     def logClaim(o: CId, c: Expr) : Set[Changeset] =
-      Set(Changeset(Set.empty, Set.empty, Set.empty, Set(DelayedConstraint(o,c))))
+      Set(Changeset(claims = Set(DelayedConstraint(o,c))))
+    def logHypothesis(o: CId, s: Option[String], h: Expr, env: Env): Set[Changeset] =
+      Set(Changeset(hyps = Set(DelayedHypothesis(o,s,h,env))))
+    val empty = Changeset()
   }
-  val NoChange = Changeset(Set.empty, Set.empty, Set.empty, Set.empty) 
   case class DelayedAction(path: Expr, selfCId: CId, a: Action, env: Env) {
     def lhs: Dot = (a: @unchecked) match {
       case Discretely(Assign(dot: Dot, _))      => dot
@@ -227,6 +230,7 @@ object Interpreter extends CStoreInterpreter {
     }
   }
   case class DelayedConstraint(selfCId: CId, c: Expr)
+  case class DelayedHypothesis(selfCId: CId, s: Option[String], h: Expr, env: Env)
 
   import Changeset._
 
@@ -579,7 +583,7 @@ object Interpreter extends CStoreInterpreter {
   }
 
   def evalActions(certain:Boolean, path: Expr, as:List[Action], env:Env, p:Prog, st: Enclosure) : Set[Changeset] =
-    if (as isEmpty) Set(NoChange) 
+    if (as isEmpty) Set(Changeset.empty) 
     else combine(as, evalAction(certain, path, _: Action, env, p, st))
 
   def evalAction(certain:Boolean, path: Expr, a:Action, env:Env, p:Prog, st: Enclosure) : Set[Changeset] =
@@ -602,7 +606,7 @@ object Interpreter extends CStoreInterpreter {
             val (inScope, stmts) = (evalExpr(op("==", mode, Lit(lhs)), env, st): @unchecked) match {
               case VLit(Uncertain)    => (Uncertain, evalActions(false, path, rhs, env, p, st)) // FIXME Add op("==", mode, Lit(lhs)) to path
               case VLit(CertainTrue)  => (CertainTrue, evalActions(certain, path, rhs, env, p, st)) // FIXME Add op("!=", mode, Lit(lhs)) to path
-              case VLit(CertainFalse) => (CertainFalse, Set(NoChange))
+              case VLit(CertainFalse) => (CertainFalse, Set(Changeset.empty))
             }
           (inScope, claim match {
             case Lit(GBool(true)) => stmts
@@ -625,15 +629,12 @@ object Interpreter extends CStoreInterpreter {
       case Claim(c) =>
         logClaim(selfCId(env), c)
       case Hypothesis(s, e) =>
-        if (VLit(CertainTrue) == evalExpr(e, env, st)) Set(NoChange)
-        else {
-          val counterEx = dots(e).map(d => (d, evalExpr(d, env, st) match{
-            case VLit(e:GRealEnclosure) => VLit(GInterval(extractInterval(e)))
-          })).toMap
-          throw HypothesisFalsified(s.getOrElse(Pretty pprint e), Some((getTime(st), counterEx))).setPos(e.pos)
-        }
-      case ForEach(n, col, body) =>
-        sys.error("For-each statements are not supported in the Enclosure 2014 semantics.") //TODO Add support for for-each statements
+        if (path == Lit(CertainTrue)) // top level action
+          logHypothesis(selfCId(env), s, e, env)
+        else 
+          throw new PositionalAcumenError{ val mesg = "Hypothesis statements are only allowed on the top level." }.setPos(e.pos)
+      case ForEach(n, col, body) => //TODO Add support for for-each statements
+        throw new PositionalAcumenError{ val mesg = "For-each statements are not supported in the Enclosure 2014 semantics." }.setPos(col.pos)
     }
  
   def evalDiscreteAction(certain:Boolean, path: Expr, a:DiscreteAction, env:Env, p:Prog, st: Enclosure) : Set[Changeset] =
@@ -749,10 +750,20 @@ object Interpreter extends CStoreInterpreter {
       checkContinuousDynamicsAlwaysDefined(p, odeIds, st)
       checkDuplicateAssingments(odeIds, DuplicateContinuousAssingment)
       checkDuplicateAssingments(assIds, DuplicateDiscreteAssingment)
+      checkHypotheses(changeset.hyps, st)
     }
     a
   }
-    
+
+  def checkHypotheses(hs: Set[DelayedHypothesis], st: Enclosure): Unit =
+    for (DelayedHypothesis(o,s,h,env) <- hs)
+     if (VLit(CertainTrue) != evalExpr(h, env, st)) {
+        val counterEx = dots(h).map(d => (d, evalExpr(d, env, st) match{
+          case VLit(e:GRealEnclosure) => VLit(GInterval(extractInterval(e)))
+        })).toMap
+        throw HypothesisFalsified(s.getOrElse(Pretty pprint h), Some((getTime(st), counterEx))).setPos(h.pos)
+      }
+  
   /** 
    * Given a set of initial conditions (st.branches), computes a valid 
    * enclosure (.enclosure part of the result) for prog over T, as well
