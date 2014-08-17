@@ -8,7 +8,9 @@ import acumen.interpreters.enclosure.ivp.IVPSolver
 import acumen.interpreters.enclosure.HybridSystem
 import acumen.interpreters.enclosure.event.EventEncloser
 
-class TreeEventEncloser(override var ivpSolver: IVPSolver) extends EventEncloser {
+case class TreeEventEncloser(override val ivpSolver: IVPSolver) extends EventEncloser {
+
+  def withSolver(s: IVPSolver) = TreeEventEncloser(s)
 
   case class SolveVtEException(message: String) extends Exception
 

@@ -33,7 +33,7 @@ case class EnclosureRes(res: Seq[UnivariateAffineEnclosure]) extends Interpreter
 /**
  * Proxy for the enclosure-based solver.
  */
-class Interpreter
+case class Interpreter(strategy: Strategy)
     extends acumen.RecursiveInterpreter
     with Checker
     with Extract {
@@ -63,14 +63,14 @@ class Interpreter
     // checking that main class embeds a hybrid automaton
     checkValidAutomatonEmbedding(main)
 
-    val ps0 = parameters(main)
+    val ps0 = parameters(main,this)
     val ps = adjustParms(ps0)
     implicit val rnd = Rounding(ps)
     val (hs, uss) = extract(main)
 
     cb.endTime = ps.endTime
 
-    EnclosureRes(Interpreter.strategy.enclosePiecewise(
+    EnclosureRes(strategy.enclosePiecewise(
       ps,
       hs,
       ps.simulationTime,
@@ -78,40 +78,39 @@ class Interpreter
       cb))
   }
 
-}
-
-/** Singleton interpreter. All concrete IVP solvers are declared here */
-object Interpreter extends Interpreter {
-
-  // IVP solvers
-  private val picard = new PicardSolver {}
-  private val vero = new VeroSolver {}
-  private val lohner = new LohnerSolver {}
-
-  var strategy = new LocalizingStrategy(new PWLEventEncloser(new PicardSolver {}))
+  //
+  //
+  //
 
   /** Sets the IVP solver to PicardSolver */
-  def asPicard() = { strategy.eventEncloser.ivpSolver = picard; this }
+  def asPicard() = { Interpreter(strategy.withSolver(Interpreter.picard)) }
   /** Sets the IVP solver to VeroSolver */
-  def asVero() = { strategy.eventEncloser.ivpSolver = vero; this }
+  def asVero() = { Interpreter(strategy.withSolver(Interpreter.vero)) }
   /** Sets the IVP solver to LohnerSolver */
-  def asLohner() = { strategy.eventEncloser.ivpSolver = lohner; this }
+  def asLohner() = { Interpreter(strategy.withSolver(Interpreter.lohner)) }
 
   /** Sets the event handler to PWL */
-  def asPWL() = { strategy.eventEncloser = new PWLEventEncloser(strategy.eventEncloser.ivpSolver); this }
+  //def asPWL() = { Interpreter(LocalizingStrategy(PWLEventEncloser(strategy.eventEncloser.ivpSolver))) }
   /** Sets the event handler to EVT */
-  def asEVT() = { strategy.eventEncloser = new TreeEventEncloser(strategy.eventEncloser.ivpSolver); this }
+  //def asEVT() = { Interpreter(LocalizingStrategy(TreeEventEncloser(strategy.eventEncloser.ivpSolver))) }
 
   /** Sets the strategy LocalizingStrategy */
-  def asLocalizing() = { strategy = new LocalizingStrategy(strategy.eventEncloser); this }
+  def asLocalizing() = { Interpreter(LocalizingStrategy(strategy.eventEncloser)) }
   /** Sets the strategy to the non-localizing SimpleRecursiveStrategy */
   //FIXME Jan: Replace with non-localizing strategy
-  def asNonLocalizing() = { strategy = new LocalizingStrategy(strategy.eventEncloser); this }
+  def asNonLocalizing() = { Interpreter(LocalizingStrategy(strategy.eventEncloser)) }
 
-  /** Toggles between PicardSolver and LohnerSolver IVP solvers */
-  def toggleContraction(): Unit = {
-    strategy.eventEncloser.ivpSolver =
-      if (strategy.eventEncloser.ivpSolver == lohner) picard else lohner
-  }
-
+  /** Sets contraction **/
+  def withContraction(yes: Boolean) = if (yes) asLohner() else asPicard()
 }
+
+object Interpreter {
+  // IVP solvers
+  val picard = new PicardSolver {}
+  val vero = new VeroSolver {}
+  val lohner = new LohnerSolver {}
+
+  val PWL = Interpreter(LocalizingStrategy(PWLEventEncloser(picard)))
+  val EVT = Interpreter(LocalizingStrategy(TreeEventEncloser(picard)))
+}
+

@@ -8,10 +8,12 @@ import acumen.interpreters.enclosure.Rounding
 import acumen.interpreters.enclosure.StateEnclosure
 import acumen.interpreters.enclosure.affine.UnivariateAffineEnclosure
 import acumen.interpreters.enclosure.event.EventEncloser
+import acumen.interpreters.enclosure.ivp.IVPSolver
 
 trait Strategy {
 
-  var eventEncloser: EventEncloser
+  val eventEncloser: EventEncloser
+  def withSolver(s: IVPSolver) : Strategy
 
   /**
    * Sub-divides the simulation time interval `t` according to a given strategy

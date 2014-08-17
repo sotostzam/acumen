@@ -154,9 +154,9 @@ class App extends SimpleSwingApplication {
   private val optimized2013Action             = mkActionMask("2013 Optimized",                      VK_O, NONE,       shortcutMask | SHIFT_MASK, setSemantics(S.Opt2013))
   private val optimized2012Action             = mkActionMask("2012 Optimized",                      VK_O, NONE,       shortcutMask | SHIFT_MASK, setSemantics(S.Opt2012)) 
   private val parallel2012Action              = mkActionMask("2012 Parallel",                       VK_P, NONE,       shortcutMask | SHIFT_MASK, promptForNumberOfThreads)
-  private val pwlHybridSolverAction           = mkActionMask("2013 PWL",                            VK_L, VK_L,       shortcutMask | SHIFT_MASK, setSemantics(S.EnclosurePWL)) 
-  private val eventTreeHybridSolverAction     = mkActionMask("2013 EVT",                            VK_T, VK_T,       shortcutMask | SHIFT_MASK, setSemantics(S.EnclosureEVT))
-  private val contractionAction               = mkActionMask("Contraction",                         VK_C, VK_C,       shortcutMask | SHIFT_MASK, enclosure.Interpreter.toggleContraction)
+  private val pwlHybridSolverAction           = mkActionMask("2013 PWL",                            VK_L, VK_L,       shortcutMask | SHIFT_MASK, setSemantics(S.Enclosure(S.PWL,contraction))) 
+  private val eventTreeHybridSolverAction     = mkActionMask("2013 EVT",                            VK_T, VK_T,       shortcutMask | SHIFT_MASK, setSemantics(S.Enclosure(S.EVT,contraction)))
+  private val contractionAction               = mkActionMask("Contraction",                         VK_C, VK_C,       shortcutMask | SHIFT_MASK, toggleContraction())
   private val normalizeAction                 = mkAction(    "Normalize (to H.A.)",                 VK_N, NONE,       toggleNormalization())
   private val manualAction                    = mkAction(    "Reference Manual",                    VK_M, VK_F1,      manual)
   private val aboutAction                     = new Action(  "About")       { mnemonic =            VK_A; def apply = about }
@@ -184,6 +184,15 @@ class App extends SimpleSwingApplication {
         go
     }
     go
+  }
+  
+  var contraction = false;
+  private def toggleContraction() = {
+    contraction = !contraction;
+    Main.defaultSemantics match {
+      case S.Enclosure(eh, _) => 
+        setSemantics(S.Enclosure(eh, contraction))
+    }
   }
   
   /* 1. left pane */
@@ -537,15 +546,16 @@ class App extends SimpleSwingApplication {
       }
       val bg = new ButtonGroup(ref2013, opt2013, ref2014, opt2014, ref2012, opt2012, par2012, encPWL, encEVT)
       val ls = new CheckMenuItem("") {
+        def shouldBeEnabled = Main.defaultSemantics match {case _:S.Enclosure => true; case _ => false;}
         action = contractionAction
-        enabledWhenStopped += (this, () => interpreter.interpreter.getClass == enclosure.Interpreter.getClass)
+        enabledWhenStopped += (this, () => shouldBeEnabled)
         enabled = false //Main.useEnclosures
-        selected = enclosure.Interpreter.strategy.eventEncloser.ivpSolver.getClass == classOf[LohnerSolver]
+        selected = contraction
         /* Enable/disable Contraction menu item depending on the chosen semantics */
         for (b <- bg.buttons) listenTo(b) 
         reactions += {
           case e: ButtonClicked =>
-            enabled = interpreter.interpreter.getClass == enclosure.Interpreter.getClass
+            enabled = shouldBeEnabled
         }
       }
       val lc = new CheckMenuItem("") {
@@ -675,8 +685,8 @@ class App extends SimpleSwingApplication {
       case S.Opt2014 => bar.semantics.opt2014.selected = true
       case S.Opt2012 => bar.semantics.opt2012.selected = true
       case _:S.Parallel2012  => bar.semantics.par2012.selected = true
-      case S.EnclosurePWL => bar.semantics.encPWL.selected = true
-      case S.EnclosureEVT => bar.semantics.encEVT.selected = true
+      case S.Enclosure(S.PWL,_) => bar.semantics.encPWL.selected = true
+      case S.Enclosure(S.EVT,_) => bar.semantics.encEVT.selected = true
       case _ => /* Other semantics not selectable from the menu selected */
     }
   }
