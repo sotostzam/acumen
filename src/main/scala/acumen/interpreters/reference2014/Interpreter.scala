@@ -361,7 +361,7 @@ object Interpreter extends acumen.CStoreInterpreter {
     val sprog = Simplifier.run(cprog)
     val mprog = Prog(magicClass :: sprog.defs)
     val (sd1,sd2) = Random.split(Random.mkGen(0))
-    val (id,_,_,_,_,_,st1) = 
+    val (id,_,st1) = 
       mkObj(cmain, mprog, None, sd1, List(VObjId(Some(CId(0)))), 1)(initStoreRef)
     val st2 = changeParent(CId(0), id, st1)
     val st3 = changeSeed(CId(0), sd2, st2)
@@ -385,15 +385,15 @@ object Interpreter extends acumen.CStoreInterpreter {
   def step(p:Prog, st:Store) : Option[Store] =
     if (getTime(st) > getEndTime(st)) None
     else Some(
-      { val (_,ids,rps,ass,eqs,odes,st1) = iterate(evalStep(p), mainId(st))(st)
+      { val (_, Changeset(ids, rps, das, eqs, odes), st1) = iterate(evalStep(p), mainId(st))(st)
         getResultType(st) match {
           case Discrete | Continuous => // Either conclude fixpoint is reached or do discrete step
-            checkDuplicateAssingments(ass.toList.map{ case (o, d, _) => (o, d) }, x => DuplicateDiscreteAssingment(x))
-            val nonIdentityAss = ass.filterNot{ a => a._3 == getObjectField(a._1, a._2.field, st1) }
-            if (st == st1 && ids.isEmpty && rps.isEmpty && nonIdentityAss.isEmpty) 
+            checkDuplicateAssingments(das.toList.map{ case (o, d, _) => (o, d) }, x => DuplicateDiscreteAssingment(x))
+            val nonIdentityDas = das.filterNot{ a => a._3 == getObjectField(a._1, a._2.field, st1) }
+            if (st == st1 && ids.isEmpty && rps.isEmpty && nonIdentityDas.isEmpty) 
               setResultType(FixedPoint, st1)
             else {
-              val stA = applyAssignments(nonIdentityAss.toList) ~> st1
+              val stA = applyAssignments(nonIdentityDas.toList) ~> st1
               def repHelper(pair:(CId, CId)) = changeParentM(pair._1, pair._2) 
               val stR = mapM_(repHelper, rps.toList) ~> stA
               val st3 = stR -- ids
