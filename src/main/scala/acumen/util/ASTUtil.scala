@@ -1,6 +1,8 @@
 package acumen
 package util
 
+import Errors.PositionalAcumenError
+
 object ASTUtil {
 
   def exprSubParts(e: Expr) : List[Expr] = e match {
@@ -19,5 +21,19 @@ object ASTUtil {
     case NewRhs(_, fields) => fields
     case ExprRhs(e) => List(e)
   }
+  
+  /** Allow hypotheses only at top level of classes. */
+  def checkNestedHypotheses(prog: Prog): Unit = {
+    def disallowHypotheses(a: Action, atTopLevel: Boolean): Unit = a match {
+      case IfThenElse(_,t,e) => for (s <- t ::: e) disallowHypotheses(s, false) 
+      case ForEach(_,_,b) => for (s <- b) disallowHypotheses(s, false)
+      case Switch(_,cs) => for (c <- cs; s <- c.rhs) disallowHypotheses(s, false)
+      case Hypothesis(s,p) if !atTopLevel => 
+        throw new PositionalAcumenError{ def mesg = "Hypothesis statements are only allowed at the top level of classes." }.setPos(p.pos)
+      case _ =>
+    }
+    for (cd <- prog.defs; a <- cd.body) disallowHypotheses(a, true)
+  }
+  
 }
 

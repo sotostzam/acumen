@@ -16,6 +16,7 @@ package reference2014
 import Eval._
 
 import Common._
+import util.ASTUtil.checkNestedHypotheses 
 import util.Names._
 import util.Canonical
 import util.Canonical._
@@ -357,6 +358,7 @@ object Interpreter extends acumen.CStoreInterpreter {
   /* Main simulation loop */  
 
   def init(prog:Prog) : (Prog, Store) = {
+    checkNestedHypotheses(prog)
     val cprog = CleanParameters.run(prog, CStoreInterpreterType)
     val sprog = Simplifier.run(cprog)
     val mprog = Prog(magicClass :: sprog.defs)
