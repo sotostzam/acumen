@@ -44,6 +44,7 @@ class Console extends ListView[ConsoleMessage] {
       val renderer = (defaultRenderer.getListCellRendererComponent(list,message,index,false,false)).asInstanceOf[JLabel]
       //renderer.setBorder(LineBorder.createGrayLineBorder)
       if (messageIsOld) renderer.setForeground(Color.LIGHT_GRAY)
+      if (isSelected) renderer.setBackground(new Color(240,240,240))
       renderer
     }
   }
@@ -78,6 +79,24 @@ class Console extends ListView[ConsoleMessage] {
 	  oldEntries += 1
     listData = m +: listData
   }
+
+  def copySelection() {
+    val selection = new java.awt.datatransfer.StringSelection(this.peer.getSelectedValues.map{
+        case NormalMessage(m)     => m
+        case ErrorMessage(m)      => m
+      }.mkString("\n")
+       .replaceAll("<br/>", "\n").replaceAll("&nbsp;", " ") // Convert HTML whitespace to pure text
+       .replaceAll("\\<.*?\\>", "")) // Clean remaining tags
+    val toolkit = java.awt.Toolkit.getDefaultToolkit
+    toolkit.getSystemClipboard.setContents(selection, selection)
+    if (toolkit.getSystemSelection != null) // X11
+      toolkit.getSystemSelection.setContents(selection, selection)
+    this.peer.clearSelection // so that text can again be copied from editor 
+  }
+  
+  this.peer.getActionMap.put("copy", new javax.swing.AbstractAction{
+    def actionPerformed(e: java.awt.event.ActionEvent) { copySelection() }
+  })
   
 }
 object Console {

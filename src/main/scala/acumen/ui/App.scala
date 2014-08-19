@@ -136,7 +136,7 @@ class App extends SimpleSwingApplication {
   private val exportTableAction               = new Action(  "Export Table"){ mnemonic =            VK_E; def apply = exportTable()}
   private val exitAction                      = mkAction(    "Exit",                                VK_E, VK_Q,       exit())
   private val cutAction                       = mkAction(    "Cut",                                 VK_T, VK_X,       codeArea.textArea.cut)
-  private val copyAction                      = mkAction(    "Copy",                                VK_C, VK_C,       codeArea.textArea.copyAsRtf)
+  private val copyAction                      = mkAction(    "Copy",                                VK_C, VK_C,       if (ui.console.peer.getSelectedIndex != -1) ui.console.copySelection else codeArea.textArea.copyAsRtf)
   private val pasteAction                     = mkAction(    "Paste",                               VK_P, VK_V,       codeArea.textArea.paste)
   private val selectAllAction                 = mkAction(    "Select All",                          VK_A, VK_A,       codeArea.textArea.selectAll)
   private val findReplaceAction               = mkAction(    "Find",                                VK_F, VK_F,       toggleFindReplaceToolbar)
