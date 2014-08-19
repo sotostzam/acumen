@@ -180,7 +180,7 @@ class App extends SimpleSwingApplication {
       setSemantics(S.Parallel2012(lastNumberOfThreads))
     } catch {
       case _ =>
-        console.logError("Bad number of threads.")
+        console.logError(new Exception("Bad number of threads."))
         go
     }
     go
@@ -627,12 +627,11 @@ class App extends SimpleSwingApplication {
 
   def withErrorReporting(action: => Unit): Unit = {
     try action
-    catch { case e => reportError(e) }
+    catch { case e: Exception => reportError(e) }
   }
 
   def reportError(e: Throwable) {
-    val em = e.getMessage
-    console.logError(if (em != null) em else e.toString)
+    console.logError(e)
     System.err.println("Note: Redirected this exception to console log:")
     e.printStackTrace()
   }
