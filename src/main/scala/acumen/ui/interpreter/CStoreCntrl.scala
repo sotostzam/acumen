@@ -47,8 +47,8 @@ class CStoreCntrl(val semantics: SemanticsImpl[Interpreter], val interpreter: CS
     def produce : Unit = {
       val startTime = System.currentTimeMillis
       val I = interpreter
-      val (p, store0) = I.init(prog)
-      var store = I.multiStep(p, store0, new StopAtFixedPoint)
+      val (p, store0, md0) = I.init(prog)
+      var (store, md) = I.multiStep(p, store0, md0, new StopAtFixedPoint)
       val cstore = I.repr(store)
       var opts = new CStoreOpts
       acumen.util.Canonical.getInSimulator(Name("outputRows",0), cstore) match {
@@ -88,7 +88,9 @@ class CStoreCntrl(val semantics: SemanticsImpl[Interpreter], val interpreter: CS
       loopWhile(!adder.done) {
         reactWithin(0) (emergencyActions orElse {
           case TIMEOUT => 
-            store = I.multiStep(p, store, adder)
+            val (store1, md1) = I.multiStep(p, store, md, adder)
+            store = store1
+            md = md1
             if (buffer.size >= bufferSize) flush
         })
       } andThen {
