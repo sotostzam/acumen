@@ -36,20 +36,11 @@ import acumen.interpreters.enclosure.Parameters
 import acumen.ui.App
 import acumen.ui.Files
 import acumen.util.System.FILE_SUFFIX_MODEL
-import javax.swing.JButton
-import javax.swing.JCheckBox
-import javax.swing.JLabel
-import javax.swing.JOptionPane
-import javax.swing.JTextField
-import javax.swing.JToolBar
-import javax.swing.KeyStroke
-import javax.swing.event.ChangeEvent
-import javax.swing.event.ChangeListener
-import javax.swing.event.DocumentEvent
-import javax.swing.event.DocumentListener
-import javax.swing.event.TreeSelectionEvent
-import javax.swing.event.TreeSelectionListener
+import javax.swing._
+import javax.swing.event._
 import java.util.concurrent.atomic.AtomicBoolean
+import javax.swing.text.BadLocationException
+import java.awt.Point
 
 class CodeArea extends Panel with TreeSelectionListener {
 
@@ -78,6 +69,12 @@ class CodeArea extends Panel with TreeSelectionListener {
   val filenameLabel = new Label("[Untitled]")
   
   private val pathChangeListeners: Buffer[ChangeListener] = new ArrayBuffer
+  
+  textArea.getDocument.addDocumentListener(new DocumentListener{
+    def changedUpdate(e: DocumentEvent) { textArea.removeAllLineHighlights }
+    def insertUpdate(e: DocumentEvent) {}
+    def removeUpdate(e: DocumentEvent) {}
+  })
 
   /**
    * Create RSyntaxTextArea component. It provides features such as syntax highlighting and indentation.
@@ -382,6 +379,19 @@ class CodeArea extends Panel with TreeSelectionListener {
     toolBar setVisible false
     toolBar setFloatable false
     toolBar
+  }
+  
+  /** Center textArea viewport on current caret position. */
+  def centerLineInScrollPane() {
+    try {
+      val container = SwingUtilities.getAncestorOfClass(classOf[JViewport], textArea)
+      val r = textArea.modelToView(textArea.getCaretPosition)
+      val viewport = container.asInstanceOf[JViewport]
+      val extentHeight = viewport.getExtentSize.height
+      val viewHeight = viewport.getViewSize.height
+      val y = Math.min(Math.max(0, r.y - (extentHeight / 2)), viewHeight - extentHeight)
+      viewport.setViewPosition(new Point(0, y))
+    } catch { case ble: BadLocationException => }
   }
   
   /* Font management */
