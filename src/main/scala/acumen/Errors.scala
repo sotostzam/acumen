@@ -11,7 +11,7 @@ object Errors {
       if (pos == NoPosition)
         mesg
       else
-        pos.toString + ": " + mesg + "\n" + pos.longString
+        s"[${pos.toString}]: $mesg\n${pos.longString}"
     def mesg : String
   }
 
@@ -29,7 +29,7 @@ object Errors {
         super.getMessage + "\n" + locationTrace("First location", pos1) + locationTrace("Second location", pos2)
     def locationTrace(descr: String, pos: List[Position]) : String = {
       pos.head.toString + ": " + descr + "\n" +
-      pos.tail.map{p => p.toString + ": included from\n"}.mkString("")
+      pos.tail.map{p => s"[${p.toString}]: included from\n"}.mkString("")
     }
   }
   case class NoInstanceFound(cn:ClassName) extends PositionalAcumenError {
@@ -139,7 +139,7 @@ object Errors {
       "Repeated" + kind + "assignment to variable (" + x.x + "'" * x.primes + ") is not allowed."
     override def getMessage = super.getMessage + (
       if (otherPos == NoPosition) "" 
-      else "\n" + otherPos.toString + ": other location\n" + otherPos.longString)
+      else s"\n[${otherPos.toString}]: other location\n${otherPos.longString}")
   }
   case class DuplicateAssingmentUnspecified(x:Name) extends DuplicateAssingment {
     override def mesg = super.mesg(" ")

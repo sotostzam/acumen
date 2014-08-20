@@ -29,6 +29,7 @@ import enclosure.{
   Interval, Negate, Parameters, Rounding, Sin, Sqrt
 }
 import enclosure.Types.VarName
+import acumen.interpreters.enclosure.Transcendentals
 
 /**
  * Reference implementation of direct enclosure semantics.
@@ -57,8 +58,10 @@ object Interpreter extends CStoreInterpreter {
   /* Initial values */
 
   // FIXME Get parameter value from model
-  val bannedFieldNames = List(self, parent, classf, nextChild, seed1, seed2, magicf)
-  implicit val rnd = Rounding(Parameters.default)
+  private val bannedFieldNames = List(self, parent, classf, nextChild, seed1, seed2, magicf)
+  private implicit val rnd = Rounding(Parameters.default)
+  private val contractInstance = new Contract{}
+  private val transcendentals = new Transcendentals(Parameters.default)
 
   /* Types */
 
@@ -491,13 +494,10 @@ object Interpreter extends CStoreInterpreter {
   
   /** Purely functional unary operator evaluation at the ground values level */
   def unaryGroundOp(f:String, vx:GroundValue) = {
-    import acumen.interpreters.enclosure.Transcendentals.{
-      sin
-    }
     def implem(f: String, x: Interval) = f match {
       case "-"   => -x
-      case "sin" => sin(x)
-      case "cos" => sin(x)
+      case "sin" => transcendentals.sin(x)
+      case "cos" => transcendentals.sin(x)
       case _     => throw UnknownOperator(f)
     }
     (f, vx) match {
@@ -685,7 +685,7 @@ object Interpreter extends CStoreInterpreter {
   
   /* Main simulation loop */  
 
-  def init(prog:Prog) : (Prog, Store) = {
+  def init(prog: Prog) : (Prog, Store, Metadata) = {
     checkValidAssignments(prog.defs.flatMap(_ body))
     val cprog = CleanParameters.run(prog, CStoreInterpreterType)
     val enclosureProg = liftToUncertain(cprog)
@@ -695,7 +695,7 @@ object Interpreter extends CStoreInterpreter {
       mkObj(cmain, mprog, None, sd1, List(VObjId(Some(CId(0)))), initStore, 1)
     val st2 = changeParent(CId(0), id, st1)
     val st3 = changeSeed(CId(0), sd2, st2)
-    (mprog, fromCStore(st3))
+    (mprog, fromCStore(st3), Metadata.empty)
   }
   
   lazy val initStore = Parser.run(Parser.store, initStoreTxt.format("#0"))
@@ -720,12 +720,13 @@ object Interpreter extends CStoreInterpreter {
       }.map{ case (n,v) => (fieldIdToName(cid,n), (cid, n)) } 
     }
   
-  def step(p: Prog, st: Store): Option[Store] = {
+  def step(p: Prog, st: Store, md: Metadata): Option[(Store, Metadata)] = {
     val st1 = updateSimulator(p, st)
     if (getTime(st1.enclosure) >= getEndTime(st1.enclosure))
       None
-    else
-      Some(getResultType(st1.enclosure) match {
+    else {
+      val md1 = md // FIXME Update metadata
+      Some((getResultType(st1.enclosure) match {
         case Continuous =>
           setResultType(Discrete, st1)
         case Discrete =>
@@ -738,7 +739,8 @@ object Interpreter extends CStoreInterpreter {
           val st2 = setResultType(Continuous, validEnclosureOverT)
           val st3 = setTime(tNext, st2)
           updateSimulator(p, st3)
-      })
+      }, md1)) 
+    }
   }
 
   /** Traverse the AST (p) and collect statements that are active given st. */
@@ -876,7 +878,6 @@ object Interpreter extends CStoreInterpreter {
    *       or if some other exception is thrown by contract.
    */
   def contract(st: Enclosure, claims: Iterable[DelayedConstraint], prog: Prog): Either[String, Enclosure] = {
-    val contractInstance = new Contract{}
     /**
      * Given a predicate p and store st, removes that part of st for which p does not hold.
      * NOTE: The range of st is first computed, as contraction currently only works on intervals.  

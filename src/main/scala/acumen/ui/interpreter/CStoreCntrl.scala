@@ -8,7 +8,7 @@ import scala.actors._
 import InterpreterCntrl._
 import java.io.File
 
-class CStoreCntrl(val semantics: SemanticsImpl[_], val interpreter: CStoreInterpreter) extends InterpreterCntrl {
+class CStoreCntrl(val semantics: SemanticsImpl[Interpreter], val interpreter: CStoreInterpreter) extends InterpreterCntrl {
 
   def newInterpreterModel = interpreter.newInterpreterModel
 
@@ -51,8 +51,8 @@ class CStoreCntrl(val semantics: SemanticsImpl[_], val interpreter: CStoreInterp
     def produce : Unit = {
       val startTime = System.currentTimeMillis
       val I = interpreter
-      val (p, store0) = I.init(prog)
-      var store = I.multiStep(p, store0, new StopAtFixedPoint)
+      val (p, store0, md0) = I.init(prog)
+      var (store, md) = I.multiStep(p, store0, md0, new StopAtFixedPoint)
       val cstore = I.repr(store)
       var opts = new CStoreOpts
       acumen.util.Canonical.getInSimulator(Name("outputRows",0), cstore) match {
@@ -92,7 +92,9 @@ class CStoreCntrl(val semantics: SemanticsImpl[_], val interpreter: CStoreInterp
       loopWhile(!adder.done) {
         reactWithin(0) (emergencyActions orElse {
           case TIMEOUT => 
-            store = I.multiStep(p, store, adder)
+            val (store1, md1) = I.multiStep(p, store, md, adder)
+            store = store1
+            md = md1
             if (buffer.size >= bufferSize || (System.currentTimeMillis - timeOfLastFlush) > minPlotUpdateInterval) flush
         })
       } andThen {

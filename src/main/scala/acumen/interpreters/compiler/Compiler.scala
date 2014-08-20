@@ -159,7 +159,7 @@ class Interpreter extends acumen.CStoreInterpreter {
   def fromCStore(st: CStore, root: CId) = null
   def repr(st: Store) = null
 
-  def step(p: Prog, st: Store) = null
+  def step(p: Prog, st: Store, md: Metadata) = null
 }
 
 object Interpreter {

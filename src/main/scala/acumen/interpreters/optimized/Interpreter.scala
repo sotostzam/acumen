@@ -45,7 +45,7 @@ class Interpreter(val parDiscr: Boolean = true,
   def repr (s:Store) : CStore = Common.repr(s)
   def fromCStore (cs:CStore, root:CId) : Store = Common.fromCStore(cs, root)
 
-  def init(prog: Prog): (Prog, Store) = {
+  def init(prog: Prog): (Prog, Store, Metadata) = {
     val magic = fromCStore(initStoreImpr, CId(0))
     val (sd1, sd2) = Random.split(Random.mkGen(0))
     val mainObj = mkObj(cmain, prog, IsMain, sd1, List(VObjId(Some(magic))), magic, 1)
@@ -53,7 +53,7 @@ class Interpreter(val parDiscr: Boolean = true,
     val cprog = CleanParameters.run(prog, CStoreInterpreterType)
     val sprog = Simplifier.run(cprog)
     val mprog = Prog(magicClass :: sprog.defs)
-    (mprog , mainObj)
+    (mprog , mainObj, Metadata.empty)
   }
 
   def localStep(p: Prog, st: Store): ResultType = {
@@ -150,15 +150,15 @@ class Interpreter(val parDiscr: Boolean = true,
     }
   }
 
-  def step(p: Prog, st: Store): Option[Store] = {
+  def step(p: Prog, st: Store, md: Metadata): Option[(Store,Metadata)] = {
     val res = localStep(p, st)
     if (res == null) None
-    else Some(st)
+    else Some((st,md)) //FIXME add support for metadata
   }
 
   // always returns the last known step, the adder callback is used to
   // determine when teh simulation is done
-  override def multiStep(p: Prog, st: Store, adder: DataAdder): Store = {
+  override def multiStep(p: Prog, st: Store, md: Metadata, adder: DataAdder): (Store, Metadata) = {
     val magic = getSimulator(st)
     var shouldAddData = ShouldAddData.IfLast
     // ^^ set to IfLast on purpose to make things work
@@ -177,7 +177,7 @@ class Interpreter(val parDiscr: Boolean = true,
       }
     }
     step0()
-    st
+    (st, md) // FIXME Add support for metadata
   }
 
   def addData(st: Store, adder: DataAdder) : Unit = {

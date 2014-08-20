@@ -66,6 +66,7 @@ class App extends SimpleSwingApplication {
   private val cores = Runtime.getRuntime.availableProcessors
   
   // Create a special actor to listen to events from other threads
+  // runs on the EDT
 
   case object EXIT
   val actor = new Actor with Publisher {
@@ -88,6 +89,11 @@ class App extends SimpleSwingApplication {
           case SendInit => 
             withErrorReporting {
               interpreter = InterpreterCntrl(Main.defaultSemantics,Some(codeArea.textArea.getText))
+              if (Main.defaultSemantics != interpreter.semantics) {
+                warnSemanticsChange(Main.defaultSemantics, interpreter.semantics)
+                Main.defaultSemantics = interpreter.semantics
+                selectMenuItemFromSemantics()
+              }
               controller ! Init(codeArea.textArea.getText, codeArea.currentDir, interpreter)
             }
 
@@ -130,7 +136,7 @@ class App extends SimpleSwingApplication {
   private val exportTableAction               = new Action(  "Export Table"){ mnemonic =            VK_E; def apply = exportTable()}
   private val exitAction                      = mkAction(    "Exit",                                VK_E, VK_Q,       exit())
   private val cutAction                       = mkAction(    "Cut",                                 VK_T, VK_X,       codeArea.textArea.cut)
-  private val copyAction                      = mkAction(    "Copy",                                VK_C, VK_C,       codeArea.textArea.copyAsRtf)
+  private val copyAction                      = mkAction(    "Copy",                                VK_C, VK_C,       if (ui.console.peer.getSelectedIndex != -1) ui.console.copySelection else codeArea.textArea.copyAsRtf)
   private val pasteAction                     = mkAction(    "Paste",                               VK_P, VK_V,       codeArea.textArea.paste)
   private val selectAllAction                 = mkAction(    "Select All",                          VK_A, VK_A,       codeArea.textArea.selectAll)
   private val findReplaceAction               = mkAction(    "Find",                                VK_F, VK_F,       toggleFindReplaceToolbar)
@@ -148,10 +154,10 @@ class App extends SimpleSwingApplication {
   private val optimized2013Action             = mkActionMask("2013 Optimized",                      VK_O, NONE,       shortcutMask | SHIFT_MASK, setSemantics(S.Opt2013))
   private val optimized2012Action             = mkActionMask("2012 Optimized",                      VK_O, NONE,       shortcutMask | SHIFT_MASK, setSemantics(S.Opt2012)) 
   private val parallel2012Action              = mkActionMask("2012 Parallel",                       VK_P, NONE,       shortcutMask | SHIFT_MASK, promptForNumberOfThreads)
-  private val pwlHybridSolverAction           = mkActionMask("2013 PWL",                            VK_L, VK_L,       shortcutMask | SHIFT_MASK, setSemantics(S.EncPWL)) 
-  private val eventTreeHybridSolverAction     = mkActionMask("2013 EVT",                            VK_T, VK_T,       shortcutMask | SHIFT_MASK, setSemantics(S.EncEVT))
+  private val pwlHybridSolverAction           = mkActionMask("2013 PWL",                            VK_L, VK_L,       shortcutMask | SHIFT_MASK, setSemantics(S.Enclosure(S.PWL,contraction))) 
+  private val eventTreeHybridSolverAction     = mkActionMask("2013 EVT",                            VK_T, VK_T,       shortcutMask | SHIFT_MASK, setSemantics(S.Enclosure(S.EVT,contraction)))
   private val enclosure2014Action             = mkActionMask("2014 Enclosure",                      VK_4, VK_D,       shortcutMask | SHIFT_MASK, setSemantics(S.Enc2014))
-  private val contractionAction               = mkActionMask("Contraction",                         VK_C, VK_C,       shortcutMask | SHIFT_MASK, enclosure.Interpreter.toggleContraction)
+  private val contractionAction               = mkActionMask("Contraction",                         VK_C, VK_C,       shortcutMask | SHIFT_MASK, toggleContraction())
   private val normalizeAction                 = mkAction(    "Normalize (to H.A.)",                 VK_N, NONE,       toggleNormalization())
   private val manualAction                    = mkAction(    "Reference Manual",                    VK_M, VK_F1,      manual)
   private val aboutAction                     = new Action(  "About")       { mnemonic =            VK_A; def apply = about }
@@ -175,10 +181,19 @@ class App extends SimpleSwingApplication {
       setSemantics(S.Parallel2012(lastNumberOfThreads))
     } catch {
       case _ =>
-        console.logError("Bad number of threads.")
+        console.logError(new Exception("Bad number of threads."))
         go
     }
     go
+  }
+  
+  var contraction = false;
+  private def toggleContraction() = {
+    contraction = !contraction;
+    Main.defaultSemantics match {
+      case S.Enclosure(eh, _) => 
+        setSemantics(S.Enclosure(eh, contraction))
+    }
   }
   
   /* 1. left pane */
@@ -537,15 +552,16 @@ class App extends SimpleSwingApplication {
       }
       val bg = new ButtonGroup(ref2013, opt2013, ref2014, opt2014, ref2012, opt2012, par2012, encPWL, encEVT, enc2014)
       val ls = new CheckMenuItem("") {
+        def shouldBeEnabled = Main.defaultSemantics match {case _:S.Enclosure => true; case _ => false;}
         action = contractionAction
-        enabledWhenStopped += (this, () => interpreter.interpreter.getClass == enclosure.Interpreter.getClass)
+        enabledWhenStopped += (this, () => shouldBeEnabled)
         enabled = false //Main.useEnclosures
-        selected = enclosure.Interpreter.strategy.eventEncloser.ivpSolver.getClass == classOf[LohnerSolver]
+        selected = contraction
         /* Enable/disable Contraction menu item depending on the chosen semantics */
         for (b <- bg.buttons) listenTo(b) 
         reactions += {
           case e: ButtonClicked =>
-            enabled = interpreter.interpreter.getClass == enclosure.Interpreter.getClass
+            enabled = shouldBeEnabled
         }
       }
       val lc = new CheckMenuItem("") {
@@ -617,14 +633,26 @@ class App extends SimpleSwingApplication {
 
   def withErrorReporting(action: => Unit): Unit = {
     try action
-    catch { case e => reportError(e) }
+    catch { case e: Exception => reportError(e) }
   }
 
   def reportError(e: Throwable) {
-    val em = e.getMessage
-    console.logError(if (em != null) em else e.toString)
+    console.logError(e)
     System.err.println("Note: Redirected this exception to console log:")
     e.printStackTrace()
+  }
+
+  // returns true to continue and false to cancel
+  def warnSemanticsChange(oldS: SemanticsImpl[_], newS: SemanticsImpl[_]) {
+    val res = Dialog.showConfirmation(
+      message = "Changing semantics from \"" + oldS.descr + "\" to \"" + newS.descr + "\".",
+      title = "Changing semantics ...",
+      optionType = Dialog.Options.OkCancel,
+      messageType = Dialog.Message.Info)
+    //console.logError("Changing semantics from " + oldS.descr + " to " + newS.descr + ".")
+    if (res != Dialog.Result.Ok) throw new Errors.AcumenError {
+      override def getMessage = "Simulation Canceled."
+    }
   }
 
   //def redraw = traceView.redraw
@@ -651,20 +679,24 @@ class App extends SimpleSwingApplication {
     console.log("Selected the \"" + si.descr + "\" semantics.")
     console.newLine
   }
+
   interpreter = InterpreterCntrl(Main.defaultSemantics);
-  interpreter.semantics match {
-    case S.Ref2012 => bar.semantics.ref2013.selected = true
-    case S.Opt2013 => bar.semantics.opt2013.selected = true
-    case S.Ref2013 => bar.semantics.ref2012.selected = true
-    case S.Ref2014 => bar.semantics.ref2014.selected = true
-    case S.Opt2014 => bar.semantics.opt2014.selected = true
-    case S.Opt2012 => bar.semantics.opt2012.selected = true
-    case _:S.Parallel2012  => bar.semantics.par2012.selected = true
-    case S.EncPWL  => bar.semantics.encPWL.selected = true
-    case S.EncEVT  => bar.semantics.encEVT.selected = true
-    case S.Enc2014 => bar.semantics.enc2014.selected = true
-    case _ => /* Other semantics not sccable from the menu selected */
+  def selectMenuItemFromSemantics() {
+    Main.defaultSemantics match {
+      case S.Ref2012 => bar.semantics.ref2013.selected = true
+      case S.Opt2013 => bar.semantics.opt2013.selected = true
+      case S.Ref2013 => bar.semantics.ref2012.selected = true
+      case S.Ref2014 => bar.semantics.ref2014.selected = true
+      case S.Opt2014 => bar.semantics.opt2014.selected = true
+      case S.Opt2012 => bar.semantics.opt2012.selected = true
+      case _:S.Parallel2012  => bar.semantics.par2012.selected = true
+      case S.Enclosure(S.PWL,_) => bar.semantics.encPWL.selected = true
+      case S.Enclosure(S.EVT,_) => bar.semantics.encEVT.selected = true
+      case S.Enc2014 => bar.semantics.enc2014.selected = true
+      case _ => /* Other semantics not selectable from the menu selected */
+    }
   }
+  selectMenuItemFromSemantics()
 
   def dumpParms() = {
     console.log("Using the \"" + interpreter.semantics.descr + "\" semantics.")

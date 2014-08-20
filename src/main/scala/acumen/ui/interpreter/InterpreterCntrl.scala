@@ -69,7 +69,7 @@ abstract class InterpreterCntrl {
   // computation
   def newInterpreterModel : InterpreterModel
 
-  def semantics: SemanticsImpl[_]
+  def semantics: SemanticsImpl[Interpreter]
   def interpreter : Interpreter
 
   // Creates a new actor to perform the computation.

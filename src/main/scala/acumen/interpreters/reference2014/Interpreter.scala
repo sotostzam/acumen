@@ -14,20 +14,20 @@ package interpreters
 package reference2014
 
 import Eval._
-
 import Common._
+import util.ASTUtil.checkNestedHypotheses
 import util.Names._
 import util.Canonical
 import util.Canonical._
 import util.Conversions._
 import util.Random
-
 import scala.collection.immutable.HashMap
 import scala.collection.immutable.HashSet
 import scala.collection.immutable.Queue
 import scala.math._
 import Stream._
 import Errors._
+import acumen.ui.tl.Console
 
 object Interpreter extends acumen.CStoreInterpreter {
 
@@ -266,9 +266,7 @@ object Interpreter extends acumen.CStoreInterpreter {
       case Claim(_) =>
         pass
       case Hypothesis(s, e) =>
-        for (VLit(GBool(b)) <- asks(evalExpr(e, env, _)))
-          if (b) pass
-          else throw HypothesisFalsified(s.getOrElse(Pretty pprint e)).setPos(e.pos)
+        logHypothesis(selfCId(env), s, e, env)
     }
   }
  
@@ -342,44 +340,47 @@ object Interpreter extends acumen.CStoreInterpreter {
 
   /* Main simulation loop */  
 
-  def init(prog:Prog) : (Prog, Store) = {
+  def init(prog:Prog) : (Prog, Store, Metadata) = {
+    checkNestedHypotheses(prog)
     val cprog = CleanParameters.run(prog, CStoreInterpreterType)
     val sprog = Simplifier.run(cprog)
     val mprog = Prog(magicClass :: sprog.defs)
     val (sd1,sd2) = Random.split(Random.mkGen(0))
-    val (id,_,_,_,_,_,st1) = 
+    val (id,_,st1) = 
       mkObj(cmain, mprog, None, sd1, List(VObjId(Some(CId(0)))), 1)(initStoreRef)
     val st2 = changeParent(CId(0), id, st1)
     val st3 = changeSeed(CId(0), sd2, st2)
-    (mprog, st3)
+    (mprog, st3, Metadata.empty)
   }
 
-  override def expose_externally(store: Store) : Store = {
+  override def exposeExternally(store: Store, md: Metadata): (Store, Metadata) =
     if (Main.serverMode) {
       val json1 = JSon.toJSON(store).toString
       val store2 = JSon.fromJSON(Main.send_recv(json1))
-      store2
-    } else {
-      store
+      (store2, md) // FIXME add support for metadata
     }
-  }
+    else (store, md)
 
   /** Updates the values of variables in xs (identified by CId and Dot.field) to the corresponding CValue. */
   def applyAssignments(xs: List[(CId, Dot, CValue)]): Eval[Unit] = 
     mapM_((a: (CId, Dot, CValue)) => setObjectFieldM(a._1, a._2.field, a._3), xs)
   
-  def step(p:Prog, st:Store) : Option[Store] =
-    if (getTime(st) > getEndTime(st)) None
+  def step(p:Prog, st:Store, md: Metadata) : Option[(Store, Metadata)] =
+    if (getTime(st) >= getEndTime(st)){
+      Console.logHypothesisReport(md)
+      None
+    } 
     else Some(
-      { val (_,ids,rps,ass,eqs,odes,st1) = iterate(evalStep(p), mainId(st))(st)
-        getResultType(st) match {
+      { val (_, Changeset(ids, rps, das, eqs, odes, hyps), st1) = iterate(evalStep(p), mainId(st))(st)
+        val md1 = testHypotheses(hyps, md, st)
+        (getResultType(st) match {
           case Discrete | Continuous => // Either conclude fixpoint is reached or do discrete step
-            checkDuplicateAssingments(ass.toList.map{ case (o, d, _) => (o, d) }, x => DuplicateDiscreteAssingment(x))
-            val nonIdentityAss = ass.filterNot{ a => a._3 == getObjectField(a._1, a._2.field, st1) }
-            if (st == st1 && ids.isEmpty && rps.isEmpty && nonIdentityAss.isEmpty) 
+            checkDuplicateAssingments(das.toList.map{ case (o, d, _) => (o, d) }, x => DuplicateDiscreteAssingment(x))
+            val nonIdentityDas = das.filterNot{ a => a._3 == getObjectField(a._1, a._2.field, st1) }
+            if (st == st1 && ids.isEmpty && rps.isEmpty && nonIdentityDas.isEmpty) 
               setResultType(FixedPoint, st1)
             else {
-              val stA = applyAssignments(nonIdentityAss.toList) ~> st1
+              val stA = applyAssignments(nonIdentityDas.toList) ~> st1
               def repHelper(pair:(CId, CId)) = changeParentM(pair._1, pair._2) 
               val stR = mapM_(repHelper, rps.toList) ~> stA
               val st3 = stR -- ids
@@ -394,9 +395,22 @@ object Interpreter extends acumen.CStoreInterpreter {
             val stE = applyAssignments(eqs.toList) ~> stODE
             val st2 = setResultType(Continuous, stE)
             setTime(getTime(st2) + getTimeStep(st2), st2)
-        }
+        }, md1)
       }
     )
+
+  /** Summarize result of evaluating the hypotheses of all objects. */
+  def testHypotheses(hyps: Set[(CId, Option[String], Expr, Env)], old: Metadata, st: Store): Metadata =
+    Metadata(hyps.map {
+      case (o, hn, h, env) => // FIXME Add counterexample
+        val cn = getCls(o, st)
+        (o, cn, hn) -> (old.hyp.get((o, cn, hn)) match {
+          case Some(sd @ Some(d)) => sd
+          case _ =>
+            val VLit(GBool(hr)) = evalExpr(h, env, st)
+            if (hr) None else Some(getTime(st))
+        })
+    }.toMap)
 
   /**
    * Solve ODE-IVP defined by odes parameter tuple, which consists of:

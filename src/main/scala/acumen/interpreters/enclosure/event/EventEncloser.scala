@@ -10,7 +10,8 @@ import acumen.interpreters.enclosure.affine.UnivariateAffineEnclosure
 
 trait EventEncloser {
 
-  var ivpSolver: IVPSolver // IVP solver
+  val ivpSolver: IVPSolver // IVP solver
+  def withSolver(s: IVPSolver) : EventEncloser
 
   /**
    * Computes two StateEnclosures for the system `h`.

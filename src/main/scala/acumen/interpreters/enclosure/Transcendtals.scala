@@ -68,13 +68,15 @@ case class Transcendentals(ps: Parameters) {
   private val cosineInitialConditionStateEnclosure =
     new StateEnclosure(Map(mode -> Some(initialCondition)));
 
-  private lazy val cosineTable: PiecewiseEnclosure =
-    Interpreter.strategy.enclosePiecewise(
+  private lazy val cosineTable: PiecewiseEnclosure = {
+    val i = ps.interpreter.get
+    i.strategy.enclosePiecewise(
       ps,
       cosineHybridSystem,
       cosineDomain,
       cosineInitialConditionStateEnclosure,
-      Interpreter.defaultInterpreterCallbacks)
+      i.defaultInterpreterCallbacks)
+  }
 
   /**
    * Computes the interval cosine function by solving
@@ -146,11 +148,5 @@ case class Transcendentals(ps: Parameters) {
     }
 
   }
-
-}
-object Transcendentals extends Transcendentals(Parameters.default) with Application {
-
-  println("sin(pi/4) = " + sin(pi / 4))
-  println("cos(pi/4) = " + cos(pi / 4))
 
 }

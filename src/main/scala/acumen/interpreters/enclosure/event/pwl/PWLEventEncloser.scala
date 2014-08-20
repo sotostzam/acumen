@@ -20,7 +20,9 @@ import acumen.interpreters.enclosure.event.EventEncloser
  * 
  * Mix in this trait in place of SolveVtE to get PWL rather than EventTree based event handling.
  */
-class PWLEventEncloser(override var ivpSolver: IVPSolver) extends EventEncloser {
+case class PWLEventEncloser(override val ivpSolver: IVPSolver) extends EventEncloser {
+
+  def withSolver(s: IVPSolver) = PWLEventEncloser(s)
 
   // main function
 
