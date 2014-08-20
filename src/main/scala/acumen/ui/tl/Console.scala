@@ -103,7 +103,13 @@ class Console extends ListView[ConsoleMessage] {
   
   def scrollToError() {
     this.peer.getSelectedValues.head match {
-      case PositionalErrorMessage(m, p) =>
+        // Any Position from an acumen error message should either be
+        // an EnhancedPosition or NoPosition.  If it is an
+        // EnhancedPosition than we should only scroll to the error if
+        // the message corresponds to the file in the buffer, i.e.,
+        // p.file.isEmpty.  If it is NoPosition, there is no positional
+        // information and hence nothing to scroll to.
+      case PositionalErrorMessage(m, p:EnhancedPosition) if p.file.isEmpty =>
         val ta = ui.App.ui.codeArea.textArea
         ta.setCaretPosition(ta.getDocument.getDefaultRootElement.getElement(p.line - 1).getStartOffset + p.column - 1)
         ui.App.ui.codeArea.centerLineInScrollPane
