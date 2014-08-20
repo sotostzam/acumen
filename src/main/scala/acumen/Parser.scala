@@ -162,6 +162,10 @@ object Parser extends MyStdTokenParsers {
 
   def run[A](p: Parser[A], s: java.io.Reader, f: Option[File]): A = {
     val res = phrase(p)(new lexical.Scanner(MyReader(s, f)))
+    res match {
+      case _ if res.successful => res.get
+      case f:NoSuccess => throw ParseError(f.msg).setPos(f.next.pos)
+    }
     if (!res.successful) 
       throw ParseError(res.toString)
     else res.get

@@ -15,8 +15,8 @@ object Errors {
     def mesg : String
   }
 
-  case class ParseError(message:String) extends AcumenError {
-    override def getMessage = message
+  case class ParseError(message:String) extends PositionalAcumenError {
+    override def mesg = message
   }
   case class ClassDefinedTwice(cn:ClassName) extends PositionalAcumenError {
     override def mesg = 
