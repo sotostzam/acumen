@@ -15,7 +15,8 @@ package reference2014
 
 import Eval._
 import Common._
-import util.ASTUtil.checkNestedHypotheses
+import ui.tl.Console
+import util.ASTUtil.{ checkNestedHypotheses, dots }
 import util.Names._
 import util.Canonical
 import util.Canonical._
@@ -27,7 +28,6 @@ import scala.collection.immutable.Queue
 import scala.math._
 import Stream._
 import Errors._
-import acumen.ui.tl.Console
 
 object Interpreter extends acumen.CStoreInterpreter {
 
@@ -350,7 +350,7 @@ object Interpreter extends acumen.CStoreInterpreter {
       mkObj(cmain, mprog, None, sd1, List(VObjId(Some(CId(0)))), 1)(initStoreRef)
     val st2 = changeParent(CId(0), id, st1)
     val st3 = changeSeed(CId(0), sd2, st2)
-    (mprog, st3, Metadata.empty)
+    (mprog, st3, NoMetadata)
   }
 
   override def exposeExternally(store: Store, md: Metadata): (Store, Metadata) =
@@ -367,7 +367,7 @@ object Interpreter extends acumen.CStoreInterpreter {
   
   def step(p:Prog, st:Store, md: Metadata) : Option[(Store, Metadata)] =
     if (getTime(st) >= getEndTime(st)){
-      Console.logHypothesisReport(md)
+      Console.logHypothesisReport(md, 0, getEndTime(st))
       None
     } 
     else Some(
@@ -401,16 +401,13 @@ object Interpreter extends acumen.CStoreInterpreter {
 
   /** Summarize result of evaluating the hypotheses of all objects. */
   def testHypotheses(hyps: Set[(CId, Option[String], Expr, Env)], old: Metadata, st: Store): Metadata =
-    Metadata(hyps.map {
-      case (o, hn, h, env) => // FIXME Add counterexample
+    old combine SomeMetadata(hyps.map {
+      case (o, hn, h, env) =>
         val cn = getCls(o, st)
-        (o, cn, hn) -> (old.hyp.get((o, cn, hn)) match {
-          case Some(sd @ Some(d)) => sd
-          case _ =>
-            val VLit(GBool(hr)) = evalExpr(h, env, st)
-            if (hr) None else Some(getTime(st))
-        })
-    }.toMap)
+        lazy val counterEx = dots(h).toSet[Dot].map(d => d -> evalExpr(d, env, st))
+        val VLit(GBool(b)) = evalExpr(h, env, st)
+        (o, cn, hn) -> (if (b) CertainSuccess else CertainFailure(getTime(st), counterEx))
+    }.toMap, (getTime(st), getTime(st) + getTimeStep(st)))
 
   /**
    * Solve ODE-IVP defined by odes parameter tuple, which consists of:

@@ -17,13 +17,43 @@ abstract class InterpreterRes {
 }
 
 /** Used to store data about the simulation state. */
-case class Metadata
-  ( hyp: Map[ (CId, ClassName, Option[String]) /* object, class, hypothesis name */
-            , Option[Double]]                  /* earliest falsification time */
-  )
-object Metadata {
-  val empty = Metadata(Map.empty)
+abstract class Metadata { def combine(that: Metadata): Metadata = that }
+case object NoMetadata extends Metadata
+case class SomeMetadata 
+  ( hyp: Map[ (CId, ClassName, Option[String]), HypothesisOutcome ] /* (object, class, name) -> outcome */
+  , timeDomain: (Double, Double)
+  ) extends Metadata {
+  override def combine(that: Metadata): Metadata = {
+    that match {
+      case NoMetadata => this
+      case SomeMetadata(th,tt) =>
+        require( this.timeDomain._2 >= tt._1 || tt._2 >= this.timeDomain._1 
+               , "Can not combine SomeMetadata with non-overlapping time domains.")
+        SomeMetadata(
+          (this.hyp.keySet union th.keySet).map(k => k -> {
+            (this.hyp.get(k), th.get(k)) match {
+              case (Some(l), None)                                      => l
+              case (None, Some(r))                                      => r
+              case (Some(CertainSuccess), Some(CertainSuccess))         => CertainSuccess
+              case (Some(CertainSuccess), Some(f: Failure))             => f
+              case (Some(f: Failure), Some(CertainSuccess))             => f
+              case (Some(l: CertainFailure), Some(r: UncertainFailure)) => l
+              case (Some(l: UncertainFailure), Some(r: CertainFailure)) => r
+              case (Some(l: CertainFailure), Some(r: CertainFailure)) =>
+                if (l.earliestTime < r.earliestTime) l else r
+              case (Some(l: UncertainFailure), Some(r: UncertainFailure)) =>
+                if (l.earliestTime < r.earliestTime) l else r
+          }}).toMap, 
+          (Math.min(this.timeDomain._1, tt._1), Math.max(this.timeDomain._2, tt._2)))
+    } 
+  }
 }
+abstract class HypothesisOutcome
+case object CertainSuccess extends HypothesisOutcome
+// FIXME earliestTime should be an interval in the enclosure interpreter
+abstract class Failure (earliestTime: Double, counterExample: Set[(Dot,CValue)]) extends HypothesisOutcome
+case class CertainFailure(earliestTime: Double, counterExample: Set[(Dot,CValue)]) extends Failure(earliestTime, counterExample)  
+case class UncertainFailure(earliestTime: Double, counterExample: Set[(Dot,CValue)]) extends Failure(earliestTime, counterExample)
 
 /** Interface common to all interpreters whose results can be converted to/from CStores. */
 trait CStoreInterpreter extends Interpreter {

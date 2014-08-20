@@ -107,10 +107,10 @@ object Canonical {
     setObjectField(id, f, v, s)
   }
 
-  def getTime(st:CStore)     = extractDouble(getInSimulator(time, st))
-  def getTimeStep(st:CStore) = extractDouble(getInSimulator(timeStep, st))
-  def getEndTime(st:CStore)  = extractDouble(getInSimulator(endTime, st))
-  def getResultType(st:CStore)  =  { val VResultType(t) = getInSimulator(resultType, st); t }
+  def getTime(st:CStore)       = extractDouble(getInSimulator(time, st))
+  def getTimeStep(st:CStore)   = extractDouble(getInSimulator(timeStep, st))
+  def getEndTime(st:CStore)    = extractDouble(getInSimulator(endTime, st))
+  def getResultType(st:CStore) = { val VResultType(t) = getInSimulator(resultType, st); t }
 
   def setTime(d:Double, s:CStore)       = setInSimulator(time, VLit(GDouble(d)), s)
   def setResultType(t:ResultType, s:CStore) = setInSimulator(resultType, VResultType(t), s)

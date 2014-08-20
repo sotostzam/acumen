@@ -47,7 +47,7 @@ class ImperativeInterpreter extends CStoreInterpreter {
     val cprog = CleanParameters.run(prog, CStoreInterpreterType)
     val sprog = Simplifier.run(cprog)
     val mprog = Prog(magicClass :: sprog.defs)
-    (mprog , mainObj, Metadata.empty)
+    (mprog , mainObj, NoMetadata)
   }
 
   def localStep(p: Prog, st: Store): ResultType = {
@@ -87,7 +87,7 @@ class ImperativeInterpreter extends CStoreInterpreter {
   def step(p: Prog, st: Store, md: Metadata): Option[(Store, Metadata)] = {
     val res = localStep(p, st)
     if (res == null) None
-    else Some((st, Metadata.empty))
+    else Some((st, NoMetadata))
   }
 
   // always returns the last known step, the adder callback is used to

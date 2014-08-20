@@ -53,7 +53,7 @@ class Interpreter(val parDiscr: Boolean = true,
     val cprog = CleanParameters.run(prog, CStoreInterpreterType)
     val sprog = Simplifier.run(cprog)
     val mprog = Prog(magicClass :: sprog.defs)
-    (mprog , mainObj, Metadata.empty)
+    (mprog , mainObj, NoMetadata)
   }
 
   def localStep(p: Prog, st: Store): ResultType = {

@@ -8,7 +8,7 @@ import scala.collection.immutable.{
   HashMap, MapProxy
 }
 import util.ASTUtil.{
-  dots, op
+  dots, checkNestedHypotheses, op
 }
 import Common._
 import Errors.{
@@ -17,6 +17,7 @@ import Errors.{
   PositionalAcumenError, ShouldNeverHappen, UnknownOperator
 }
 import Pretty.pprint
+import ui.tl.Console
 import util.{
   Canonical, Random
 }
@@ -324,13 +325,14 @@ object Interpreter extends CStoreInterpreter {
     
   /* Store manipulation */
   
-  // FIXME This only updates the values in st.enclosure, leaving the simulator objects in st.branches out-dated.
   /** 
    * Update simulator object of s.enclosure.
    * NOTE: Simulators objects of st.branches are not affected.
    */
-  def setInSimulator(f:Name, v:CValue, s:Store): Store =
-    EnclosureAndBranches(setObjectField(magicId(s.enclosure), f, v, s.enclosure), s.branches)
+  def setInSimulator(f:Name, v:CValue, s:Store): Store = {
+    def helper(e: Enclosure) = setObjectField(magicId(e), f, v, e)
+    EnclosureAndBranches(helper(s.enclosure), s.branches.map { case (e, ev, t) => (helper(e), ev, t) })
+  }
     
   /** Update simulator parameters in st.enclosure with values from the code in p. */
   def updateSimulator(p: Prog, st: Store): Store = {
@@ -687,6 +689,7 @@ object Interpreter extends CStoreInterpreter {
 
   def init(prog: Prog) : (Prog, Store, Metadata) = {
     checkValidAssignments(prog.defs.flatMap(_ body))
+    checkNestedHypotheses(prog)
     val cprog = CleanParameters.run(prog, CStoreInterpreterType)
     val enclosureProg = liftToUncertain(cprog)
     val mprog = Prog(magicClass :: enclosureProg.defs)
@@ -695,7 +698,7 @@ object Interpreter extends CStoreInterpreter {
       mkObj(cmain, mprog, None, sd1, List(VObjId(Some(CId(0)))), initStore, 1)
     val st2 = changeParent(CId(0), id, st1)
     val st3 = changeSeed(CId(0), sd2, st2)
-    (mprog, fromCStore(st3), Metadata.empty)
+    (mprog, fromCStore(st3), NoMetadata)
   }
   
   lazy val initStore = Parser.run(Parser.store, initStoreTxt.format("#0"))
@@ -722,24 +725,26 @@ object Interpreter extends CStoreInterpreter {
   
   def step(p: Prog, st: Store, md: Metadata): Option[(Store, Metadata)] = {
     val st1 = updateSimulator(p, st)
-    if (getTime(st1.enclosure) >= getEndTime(st1.enclosure))
+    if (getTime(st1.enclosure) >= getEndTime(st1.enclosure)) {
+      Console.logHypothesisReport(md, 0, getEndTime(st1.enclosure))
       None
+    }
     else {
-      val md1 = md // FIXME Update metadata
-      Some((getResultType(st1.enclosure) match {
+      Some(getResultType(st1.enclosure) match {
         case Continuous =>
-          setResultType(Discrete, st1)
+          (setResultType(Discrete, st1), md)
         case Discrete =>
-          setResultType(FixedPoint, st1)
+          (setResultType(FixedPoint, st1), md)
         case FixedPoint => // Do hybrid step
           val tNow = getTime(st1.enclosure)
           val tNext = tNow + getTimeStep(st1.enclosure)
           val T = Interval(tNow, tNext)
-          val validEnclosureOverT = hybridEncloser(T, p, st1)
-          val st2 = setResultType(Continuous, validEnclosureOverT)
-          val st3 = setTime(tNext, st2)
-          updateSimulator(p, st3)
-      }, md1)) 
+          val st2 = hybridEncloser(T, p, st1) // valid enclosure over T
+          val md1 = testHypotheses(st2.enclosure, p, md)
+          val st3 = setResultType(Continuous, st2)
+          val st4 = setTime(tNext, st3)
+          (st4, md1)
+      }) 
     }
   }
 
@@ -752,19 +757,24 @@ object Interpreter extends CStoreInterpreter {
       checkContinuousDynamicsAlwaysDefined(p, odeIds, st)
       checkDuplicateAssingments(odeIds, DuplicateContinuousAssingment)
       checkDuplicateAssingments(assIds, DuplicateDiscreteAssingment)
-      checkHypotheses(changeset.hyps, st)
     }
     a
   }
-
-  def checkHypotheses(hs: Set[DelayedHypothesis], st: Enclosure): Unit =
-    for (DelayedHypothesis(o,s,h,env) <- hs)
-     if (VLit(CertainTrue) != evalExpr(h, env, st)) {
-        val counterEx = dots(h).map(d => (d, evalExpr(d, env, st) match{
-          case VLit(e:GRealEnclosure) => VLit(GInterval(extractInterval(e)))
-        })).toMap
-        throw HypothesisFalsified(s.getOrElse(Pretty pprint h), Some((getTime(st), counterEx))).setPos(h.pos)
-      }
+  
+  /** Summarize result of evaluating the hypotheses of all objects. */
+  def testHypotheses(st: Enclosure, p: Prog, old: Metadata): Metadata = {
+    def testHypothesesOneChangeset(hs: Set[DelayedHypothesis]) = SomeMetadata(
+      (for (DelayedHypothesis(o, s, h, env) <- hs) yield {
+        lazy val counterEx = dots(h).toSet[Dot].map(d => d -> evalExpr(d, env, st))
+        (o, getCls(o,st), s) -> (evalExpr(h, env, st) match {
+          case VLit(CertainTrue)  => CertainSuccess
+          case VLit(Uncertain)    => UncertainFailure(getTime(st), counterEx)
+          case VLit(CertainFalse) => CertainFailure(getTime(st), counterEx)
+        })
+      }).toMap, (getTime(st), getTime(st) + getTimeStep(st)))
+    old combine active(st, p).map(c => testHypothesesOneChangeset(c.hyps))
+                             .reduce[Metadata](_ combine _)
+  }
   
   /** 
    * Given a set of initial conditions (st.branches), computes a valid 
