@@ -16,44 +16,70 @@ abstract class InterpreterRes {
   def printLast : Unit;
 }
 
-/** Used to store data about the simulation state. */
-abstract class Metadata { def combine(that: Metadata): Metadata = that }
-case object NoMetadata extends Metadata
+/** Used to store information about the Store. */
+abstract class Metadata { def combine(that: Metadata): Metadata }
+case object NoMetadata extends Metadata {
+  def combine(that: Metadata): Metadata = that
+}
 case class SomeMetadata 
   ( hyp: Map[ (CId, ClassName, Option[String]), HypothesisOutcome ] /* (object, class, name) -> outcome */
   , timeDomain: (Double, Double)
+  , rigorous: Boolean /* Does this describe output of a rigorous interpreter? */
   ) extends Metadata {
-  override def combine(that: Metadata): Metadata = {
+  def combine(that: Metadata): Metadata = {
     that match {
       case NoMetadata => this
-      case SomeMetadata(th,tt) =>
+      case SomeMetadata(th,tt,r) =>
         require( this.timeDomain._2 >= tt._1 || tt._2 >= this.timeDomain._1 
                , "Can not combine SomeMetadata with non-overlapping time domains.")
         SomeMetadata(
           (this.hyp.keySet union th.keySet).map(k => k -> {
             (this.hyp.get(k), th.get(k)) match {
-              case (Some(l), None)                                      => l
-              case (None, Some(r))                                      => r
-              case (Some(CertainSuccess), Some(CertainSuccess))         => CertainSuccess
-              case (Some(CertainSuccess), Some(f: Failure))             => f
-              case (Some(f: Failure), Some(CertainSuccess))             => f
-              case (Some(l: CertainFailure), Some(r: UncertainFailure)) => l
-              case (Some(l: UncertainFailure), Some(r: CertainFailure)) => r
-              case (Some(l: CertainFailure), Some(r: CertainFailure)) =>
-                if (l.earliestTime < r.earliestTime) l else r
-              case (Some(l: UncertainFailure), Some(r: UncertainFailure)) =>
-                if (l.earliestTime < r.earliestTime) l else r
-          }}).toMap, 
-          (Math.min(this.timeDomain._1, tt._1), Math.max(this.timeDomain._2, tt._2)))
+              case (Some(o), None)    => o
+              case (None, Some(o))    => o
+              case (Some(l), Some(r)) => l pick r
+          }}).toMap
+        , (Math.min(this.timeDomain._1, tt._1), Math.max(this.timeDomain._2, tt._2))
+        , r && rigorous)
     } 
   }
 }
-abstract class HypothesisOutcome
-case object CertainSuccess extends HypothesisOutcome
-// FIXME earliestTime should be an interval in the enclosure interpreter
-abstract class Failure (earliestTime: Double, counterExample: Set[(Dot,CValue)]) extends HypothesisOutcome
-case class CertainFailure(earliestTime: Double, counterExample: Set[(Dot,CValue)]) extends Failure(earliestTime, counterExample)  
-case class UncertainFailure(earliestTime: Double, counterExample: Set[(Dot,CValue)]) extends Failure(earliestTime, counterExample)
+/** The result of evaluating a hypothesis.*/
+trait HypothesisOutcome {
+  /**
+   * Returns either this or that outcome, depending on which is more significant. 
+   * A failure is more significant than a success, and an earlier failure more
+   * significant than a later one.
+   */
+  def pick(that: HypothesisOutcome): HypothesisOutcome
+}
+abstract class Success extends HypothesisOutcome { def pick(that: HypothesisOutcome) = that }
+abstract class Failure(counterExample: Set[(Dot,CValue)]) extends HypothesisOutcome
+/** Result of non-rigorous hypothesis evaluation (reference interpreter). */
+case object TestSuccess extends Success
+case class TestFailure(earliestTime: Double, counterExample: Set[(Dot,CValue)]) extends Failure(counterExample: Set[(Dot,CValue)]) {
+  def pick(that: HypothesisOutcome) = that match {
+    case TestSuccess    => this
+    case f: TestFailure => if (this.earliestTime <= f.earliestTime) this else that
+  }
+}
+/** Result of rigorous hypothesis evaluation (enclosure interpreter). */
+case object CertainSuccess extends Success
+abstract class RigorousFailure(earliestTime: (Double,Double), counterExample: Set[(Dot,CValue)]) extends Failure(counterExample: Set[(Dot,CValue)]) 
+case class CertainFailure(earliestTime: (Double,Double), counterExample: Set[(Dot,CValue)]) extends RigorousFailure(earliestTime, counterExample) {
+  def pick(that: HypothesisOutcome) = that match {
+    case CertainSuccess      => this
+    case _: UncertainFailure => this
+    case f: CertainFailure   => if (this.earliestTime._1 <= f.earliestTime._1) this else that
+  } 
+}  
+case class UncertainFailure(earliestTime: (Double,Double), counterExample: Set[(Dot,CValue)]) extends RigorousFailure(earliestTime, counterExample) {
+  def pick(that: HypothesisOutcome): HypothesisOutcome = that match {
+    case CertainSuccess      => this
+    case f: UncertainFailure => if (this.earliestTime._1 <= f.earliestTime._1) this else that
+    case f: CertainFailure   => f
+  } 
+}
 
 /** Interface common to all interpreters whose results can be converted to/from CStores. */
 trait CStoreInterpreter extends Interpreter {

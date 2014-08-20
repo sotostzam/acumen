@@ -285,7 +285,7 @@ object Interpreter extends CStoreInterpreter {
   }
   case class GIntEnclosure(override val start: Set[Int], override val enclosure: Set[Int], override val end: Set[Int]) 
     extends GConstantDiscreteEncosure[Int](start, enclosure, end)
-    
+  
   /* Set-up */
   
   /**
@@ -740,7 +740,7 @@ object Interpreter extends CStoreInterpreter {
           val tNext = tNow + getTimeStep(st1.enclosure)
           val T = Interval(tNow, tNext)
           val st2 = hybridEncloser(T, p, st1) // valid enclosure over T
-          val md1 = testHypotheses(st2.enclosure, p, md)
+          val md1 = testHypotheses(st2.enclosure, (tNow, tNext), p, md)
           val st3 = setResultType(Continuous, st2)
           val st4 = setTime(tNext, st3)
           (st4, md1)
@@ -762,16 +762,16 @@ object Interpreter extends CStoreInterpreter {
   }
   
   /** Summarize result of evaluating the hypotheses of all objects. */
-  def testHypotheses(st: Enclosure, p: Prog, old: Metadata): Metadata = {
+  def testHypotheses(st: Enclosure, timeDomain: (Double,Double), p: Prog, old: Metadata): Metadata = {
     def testHypothesesOneChangeset(hs: Set[DelayedHypothesis]) = SomeMetadata(
       (for (DelayedHypothesis(o, s, h, env) <- hs) yield {
         lazy val counterEx = dots(h).toSet[Dot].map(d => d -> evalExpr(d, env, st))
         (o, getCls(o,st), s) -> (evalExpr(h, env, st) match {
           case VLit(CertainTrue)  => CertainSuccess
-          case VLit(Uncertain)    => UncertainFailure(getTime(st), counterEx)
-          case VLit(CertainFalse) => CertainFailure(getTime(st), counterEx)
+          case VLit(Uncertain)    => UncertainFailure(timeDomain, counterEx)
+          case VLit(CertainFalse) => CertainFailure(timeDomain, counterEx)
         })
-      }).toMap, (getTime(st), getTime(st) + getTimeStep(st)))
+      }).toMap, (getTime(st), getTime(st) + getTimeStep(st)), true)
     old combine active(st, p).map(c => testHypothesesOneChangeset(c.hyps))
                              .reduce[Metadata](_ combine _)
   }

@@ -406,8 +406,8 @@ object Interpreter extends acumen.CStoreInterpreter {
         val cn = getCls(o, st)
         lazy val counterEx = dots(h).toSet[Dot].map(d => d -> evalExpr(d, env, st))
         val VLit(GBool(b)) = evalExpr(h, env, st)
-        (o, cn, hn) -> (if (b) CertainSuccess else CertainFailure(getTime(st), counterEx))
-    }.toMap, (getTime(st), getTime(st) + getTimeStep(st)))
+        (o, cn, hn) -> (if (b) TestSuccess else TestFailure(getTime(st), counterEx))
+    }.toMap, (getTime(st), getTime(st) + getTimeStep(st)), false)
 
   /**
    * Solve ODE-IVP defined by odes parameter tuple, which consists of:
