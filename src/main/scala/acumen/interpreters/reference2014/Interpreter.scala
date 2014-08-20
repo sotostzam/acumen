@@ -14,21 +14,20 @@ package interpreters
 package reference2014
 
 import Eval._
-
 import Common._
-import util.ASTUtil.checkNestedHypotheses 
+import util.ASTUtil.checkNestedHypotheses
 import util.Names._
 import util.Canonical
 import util.Canonical._
 import util.Conversions._
 import util.Random
-
 import scala.collection.immutable.HashMap
 import scala.collection.immutable.HashSet
 import scala.collection.immutable.Queue
 import scala.math._
 import Stream._
 import Errors._
+import acumen.ui.tl.Console
 
 object Interpreter extends acumen.CStoreInterpreter {
 
@@ -382,7 +381,7 @@ object Interpreter extends acumen.CStoreInterpreter {
   
   def step(p:Prog, st:Store, md: Metadata) : Option[(Store, Metadata)] =
     if (getTime(st) >= getEndTime(st)){
-      ui.App.ui.console.logHypothesisReport(md)
+      Console.logHypothesisReport(md)
       None
     } 
     else Some(

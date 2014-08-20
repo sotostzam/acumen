@@ -171,5 +171,10 @@ object Console {
   case class HypothesisReport(md: Metadata) extends ConsoleMessage
   case class ErrorMessage(message: String) extends ConsoleMessage
   case class PositionalErrorMessage(message: String, pos: Position) extends ConsoleMessage
-
+  
+  def logHypothesisReport(md: Metadata): Unit =
+    if (ui.App.ui == null) 
+      () // TODO Acumen running headless, log to command line
+    else 
+      ui.App.ui.console.logHypothesisReport(md)
 }
