@@ -13,7 +13,7 @@ import java.awt.event.{ MouseAdapter, MouseEvent }
 import javax.swing.border.LineBorder
 import Console._
 import Errors.{ ParseError, PositionalAcumenError }
-import scala.util.parsing.input.{ Position, NoPosition }
+import scala.util.parsing.input.Position
 
 class Console extends ListView[ConsoleMessage] {
 
@@ -142,7 +142,7 @@ class Console extends ListView[ConsoleMessage] {
   
   def scrollToError() {
     this.peer.getSelectedValues.head match {
-      case PositionalErrorMessage(m, p) if p != NoPosition =>
+      case PositionalErrorMessage(m, p) =>
         val ta = ui.App.ui.codeArea.textArea
         ta.setCaretPosition(ta.getDocument.getDefaultRootElement.getElement(p.line - 1).getStartOffset + p.column - 1)
         ui.App.ui.codeArea.centerLineInScrollPane
