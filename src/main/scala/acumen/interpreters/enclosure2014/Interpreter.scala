@@ -244,7 +244,7 @@ object Interpreter extends CStoreInterpreter {
     override def apply(t: Interval): Interval = enclosure
     override def range: Interval = enclosure 
     override def isThin: Boolean = start.isThin && enclosure.isThin && end.isThin
-    override def show: String = s"C$enclosure"
+    override def show: String = enclosure.toString
     def contains(that: GConstantRealEnclosure): Boolean =
       (start contains that.start) && (enclosure contains that.enclosure) && (end contains that.end)
     def /\ (that: GConstantRealEnclosure): GConstantRealEnclosure =

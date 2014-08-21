@@ -359,7 +359,7 @@ case class Interval(
    * @return a string representation of the interval in the usual
    * notation for closed intervals.
    */
-  override def toString = "[" + lo + "," + hi + "]"
+  override def toString = "[" + lo + ".." + hi + "]"
 
   // TODO improve description
   /** UNSAFE only to be used for plotting */
