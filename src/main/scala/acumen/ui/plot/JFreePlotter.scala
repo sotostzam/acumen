@@ -87,6 +87,7 @@ abstract class JFreePlotter {
           combinedPlot.add(p,1)
         chartPanel.restoreAutoBounds()
         resetChart(combinedPlot)
+        attachChart
       }
     })
     popupMenu.addSeparator
@@ -118,6 +119,7 @@ abstract class JFreePlotter {
       resetChart(newPlot)
       chart.addLegend(createLegend(mergedPlot))
     }
+    attachChart
   }
   
   /** Add a legend, making sure there are no duplicate legend items. */
