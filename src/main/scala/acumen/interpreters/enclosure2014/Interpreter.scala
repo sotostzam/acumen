@@ -691,7 +691,8 @@ object Interpreter extends CStoreInterpreter {
     checkValidAssignments(prog.defs.flatMap(_ body))
     checkNestedHypotheses(prog)
     val cprog = CleanParameters.run(prog, CStoreInterpreterType)
-    val enclosureProg = liftToUncertain(cprog)
+    val cprog1 = makeCompatible(cprog)
+    val enclosureProg = liftToUncertain(cprog1)
     val mprog = Prog(magicClass :: enclosureProg.defs)
     val (sd1,sd2) = Random.split(Random.mkGen(0))
     val (id,st1) = 
@@ -699,6 +700,23 @@ object Interpreter extends CStoreInterpreter {
     val st2 = changeParent(CId(0), id, st1)
     val st3 = changeSeed(CId(0), sd2, st2)
     (mprog, fromCStore(st3), NoMetadata)
+  }
+  
+  /** Remove unsupported declarations and statements from the AST. */
+  def makeCompatible(p: Prog): Prog = {
+    def action(a: Action): List[Action] = a match {
+      case Continuously(EquationT(Dot(_, `_3D`), _)) => Nil
+      case IfThenElse(c, t, e) => IfThenElse(c, t flatMap action, e flatMap action) :: Nil
+      case Switch(s, cs) => Switch(s, cs map { case Clause(l, a, r) => Clause(l, a, r flatMap action) }) :: Nil
+      case ForEach(i, c, b) => ForEach(i, c, b flatMap action) :: Nil
+      case _ => a :: Nil
+    }
+    def priv(i: Init): List[Init] = i match {
+      case Init(`_3D`, _) => Nil
+      case _ => i :: Nil
+    }
+    Prog(p.defs.map(d => d.copy( priv = d.priv.flatMap(priv)
+                               , body = d.body.flatMap(action))))
   }
   
   lazy val initStore = Parser.run(Parser.store, initStoreTxt.format("#0"))
