@@ -85,8 +85,8 @@ abstract class JFreePlotter {
         combinedPlot = newCombinedPlot
         for (p <- subPlotsList)
           combinedPlot.add(p,1)
-        resetChart(combinedPlot)
         chartPanel.restoreAutoBounds()
+        resetChart(combinedPlot)
       }
     })
     popupMenu.addSeparator

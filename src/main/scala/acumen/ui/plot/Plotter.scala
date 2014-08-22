@@ -101,7 +101,8 @@ class Plotter(tableI: TableInput, plotI: PlotInput, jPlotI: JPlotInput)
   }
 
   def refresh {
-    App.ui.controller.model.flush
+    if (App.ui.controller.model != null)
+      App.ui.controller.model.flush
     if (tableI.enabled) {
       val tm = tableI.model()
       App ! TraceModelReady(tm)
