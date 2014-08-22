@@ -781,14 +781,16 @@ object Interpreter extends CStoreInterpreter {
   
   /** Summarize result of evaluating the hypotheses of all objects. */
   def testHypotheses(st: Enclosure, timeDomain: (Double,Double), p: Prog, old: Metadata): Metadata = {
-    def testHypothesesOneChangeset(hs: Set[DelayedHypothesis]) = SomeMetadata(
-      (for (DelayedHypothesis(o, s, h, env) <- hs) yield {
-        lazy val counterEx = dots(h).toSet[Dot].map(d => d -> evalExpr(d, env, st))
-        (o, getCls(o,st), s) -> (evalExpr(h, env, st) match {
-          case VLit(CertainTrue)  => CertainSuccess
-          case VLit(Uncertain)    => UncertainFailure(timeDomain, counterEx)
-          case VLit(CertainFalse) => CertainFailure(timeDomain, counterEx)
-        })
+    def testHypothesesOneChangeset(hs: Set[DelayedHypothesis]) =
+      if (hs isEmpty) NoMetadata
+      else SomeMetadata(
+        (for (DelayedHypothesis(o, s, h, env) <- hs) yield {
+          lazy val counterEx = dots(h).toSet[Dot].map(d => d -> evalExpr(d, env, st))
+          (o, getCls(o,st), s) -> (evalExpr(h, env, st) match {
+            case VLit(CertainTrue)  => CertainSuccess
+            case VLit(Uncertain)    => UncertainFailure(timeDomain, counterEx)
+            case VLit(CertainFalse) => CertainFailure(timeDomain, counterEx)
+          })
       }).toMap, (getTime(st), getTime(st) + getTimeStep(st)), true)
     old combine active(st, p).map(c => testHypothesesOneChangeset(c.hyps))
                              .reduce[Metadata](_ combine _)
