@@ -507,15 +507,14 @@ object Interpreter extends CStoreInterpreter {
   def unaryGroundOp(f:String, vx:GroundValue) = {
     def implem(f: String, x: Interval) = f match {
       case "-"   => -x
+      case "abs" => x.abs
       case "sin" => rnd.transcendentals.sin(x)
       case "cos" => rnd.transcendentals.cos(x)
       case _     => throw UnknownOperator(f)
     }
     (f, vx) match {
-      case ("not", Uncertain)    => Uncertain
-      case ("abs", GInterval(i)) => Real(i.abs)
-      case ("-",   GInterval(i)) => Real(-i)
-      case _                     => Real(implem(f, extractInterval(vx)))
+      case ("not", Uncertain) => Uncertain
+      case _                  => Real(implem(f, extractInterval(vx)))
     }
   }
   
