@@ -1,3 +1,5 @@
+
+#semantics "2012 Reference"
 // 2013 Class key feedback:
 //   - Need documentation for models, and interface between
 //     the player and the models.

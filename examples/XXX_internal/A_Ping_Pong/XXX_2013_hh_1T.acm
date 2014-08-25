@@ -1,5 +1,5 @@
 
-// Please run with "Traditional 2012" Semantics
+#semantics "2012 Reference"
 
 // Model   :  2012_hh_1T.acm, First Tournament (3D Ping Pong)
 // Acumen  :  http://www.acumen-language.org/2013/01/a-preview-of-acumen13.html

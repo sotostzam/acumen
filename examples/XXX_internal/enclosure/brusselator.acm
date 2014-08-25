@@ -1,3 +1,5 @@
+#semantics "2013 EVT"
+
 class Main(simulator)
 private 
   mode := "";

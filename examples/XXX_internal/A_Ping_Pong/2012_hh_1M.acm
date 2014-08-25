@@ -6,6 +6,7 @@
 //             problem decomposition, and systems modeling
 // License:   BSD, GPL(V2), or other by agreement with Walid Taha
 
+#semantics "2012 Reference"
 
 class Ball ()
  private

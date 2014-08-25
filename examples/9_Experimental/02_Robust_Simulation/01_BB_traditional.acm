@@ -6,6 +6,8 @@
 //
 // Note:  Run this with Semantics -> Purely Functional
 
+#semantics "2014 Reference"
+
 class Main(simulator)
   private 
     mode := "Fly"; 
