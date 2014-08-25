@@ -536,8 +536,8 @@ object Interpreter extends CStoreInterpreter {
       case "-"   => l - r
       case "*"   => if (l equalTo r) l.square else l * r
       case "/"   => l / r
-      case "min" => Interval(l.lo min r.lo, l.hi min r.hi)
-      case "max" => Interval(l.lo max r.lo, l.hi max r.hi)
+      case "min" => Interval.min(l,r)
+      case "max" => Interval.max(l,r)
     }
     // Based on implementations from acumen.interpreters.enclosure.Relation
     def implemBool(f:String, l:GroundValue, r:GroundValue): GUncertainBool = f match {
