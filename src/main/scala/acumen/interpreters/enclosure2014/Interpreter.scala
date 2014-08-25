@@ -534,7 +534,7 @@ object Interpreter extends CStoreInterpreter {
     def implemInterval(f:String, l:Interval, r:Interval) = f match {
       case "+"   => l + r
       case "-"   => l - r
-      case "*"   => l * r
+      case "*"   => if (l equalTo r) l.square else l * r
       case "/"   => l / r
       case "min" => Interval(l.lo min r.lo, l.hi min r.hi)
       case "max" => Interval(l.lo max r.lo, l.hi max r.hi)
