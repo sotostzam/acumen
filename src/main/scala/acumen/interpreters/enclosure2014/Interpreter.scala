@@ -852,11 +852,12 @@ object Interpreter extends CStoreInterpreter {
       hw.foldLeft((pwlW, pwlR, pwlU)) {
         case ((tmpW, tmpR, tmpU), q) =>
           if (!isFlow(q)) {
-            val wIntersectedWithGuard = contract(w, q.ass.map(da => DelayedConstraint(da.selfCId,da.path)), prog) match {
-              case Right(r) => r
-              case Left(s) => sys.error("Empty intersection while contracting with guard. " + s)  
-            }
-            ((wIntersectedWithGuard(q.ass), q :: qw, t) :: tmpW, tmpR, tmpU)
+            val wi = 
+              if (intersectWithGuardBeforeReset)
+                contract(w, q.ass.map(da => DelayedConstraint(da.selfCId, da.path)), prog)
+                  .fold(sys error "Empty intersection while contracting with guard. " + _, i => i)
+              else w
+            ((wi(q.ass), q :: qw, t) :: tmpW, tmpR, tmpU)
           }
           else if ((t == UnknownTime && qw.nonEmpty && qw.head == q) || T.isThin)
             (tmpW, tmpR, tmpU)
