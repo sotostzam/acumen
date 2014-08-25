@@ -231,9 +231,20 @@ object Common {
   lazy val magicClass = Parser.run(Parser.classDef, magicClassTxt)
   lazy val initStoreRef = Parser.run(Parser.store, initStoreTxt.format("#0"))
   lazy val initStoreImpr = Parser.run(Parser.store, initStoreTxt.format("none"))
+  
+  // Register simulator parameters that should appear as completions in the code editor 
+  // for any interpreter. Additional parameters are taken from Interpreter.parameters. 
+  val visibleSimulatorFields = List("time", "timeStep", "endTime")
+
+  def visibleParametersMap(initStore: CStore): Map[String,CValue] = {
+    val initialMagic = initStore(magicId(initStore))
+    visibleSimulatorFields.map(p => (p, initialMagic(name(p)))).toMap
+  }
+  val visibleParametersRef = visibleParametersMap(initStoreRef)
+  val visibleParametersImpr = visibleParametersMap(initStoreImpr)
                                   
-  // register valid simulator parameters
-  val simulatorFields = List("time", "timeStep", "outputRows", "continuousSkip", "endTime", "resultType", "lastCreatedId", "method")
+  // Register valid simulator parameters
+  val simulatorFields = visibleSimulatorFields ::: List("outputRows", "continuousSkip", "resultType", "lastCreatedId", "method")
 
   val specialFields = List("nextChild","parent","className","seed1","seed2")
 

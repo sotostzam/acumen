@@ -54,13 +54,22 @@ object Interpreter extends CStoreInterpreter {
   
   type Store = EnclosureAndBranches
   def repr(st:Store) = st.enclosure
-  def fromCStore(st: CStore, root: CId): Store = EnclosureAndBranches(st, (st, Epsilon, StartTime) :: Nil) 
-  
-  /* Initial values */
+  def fromCStore(st: CStore, root: CId): Store = EnclosureAndBranches(st, (st, Epsilon, StartTime) :: Nil)
+  override def visibleParameters: Map[String, CValue] = 
+    Map(paramTime, paramEndTime, paramTimeStep, 
+        paramMaxBranches, paramMaxIterationsPerBranch, paramIntersectWithGuardBeforeReset) 
 
-  // FIXME Get parameter value from model
-  private val bannedFieldNames = List(self, parent, classf, nextChild, seed1, seed2, magicf)
+  /* Constants */
+  
+  private val paramTime                          = "time"                          -> VLit(GDouble(0.0))
+  private val paramEndTime                       = "endTime"                       -> VLit(GDouble(10.0))
+  private val paramTimeStep                      = "timeStep"                      -> VLit(GDouble( 0.015625))
+  private val paramMaxBranches                   = "maxBranches"                   -> VLit(GInt(100))                  
+  private val paramMaxIterationsPerBranch        = "maxIterationsPerBranch"        -> VLit(GInt(1000))    
+  private val paramIntersectWithGuardBeforeReset = "intersectWithGuardBeforeReset" -> VLit(GBool(true))
+  
   private implicit val rnd = Rounding(Parameters.default)
+  private val bannedFieldNames = List(self, parent, classf, nextChild, seed1, seed2, magicf)
   private val contractInstance = new Contract{}
   private val transcendentals = new Transcendentals(Parameters.default)
 
@@ -338,7 +347,7 @@ object Interpreter extends CStoreInterpreter {
   def updateSimulator(p: Prog, st: Store): Store = {
     val paramMap = p.defs.find(_.name == cmain).get.body.flatMap {
       case Discretely( Assign(Dot(Dot(Var(Name(self, 0)), Name(simulator, 0)), param)
-                     , Lit(rhs @ (GInt(_) | GDouble(_) | GInterval(_))))) => 
+                     , Lit(rhs @ (GBool(_) | GDouble(_) | GInt(_) | GInterval(_))))) => 
         List((param, VLit(rhs)))
       case _ => Nil
     }.toMap
@@ -720,11 +729,10 @@ object Interpreter extends CStoreInterpreter {
   }
   
   lazy val initStore = Parser.run(Parser.store, initStoreTxt.format("#0"))
-  val initStoreTxt = 
-  """#0.0 { className = Simulator, parent = %s, nextChild = 0, seed1 = 0, seed2 = 0, 
-            time = 0.0, endTime = 10.0, timeStep = 0.015625,
-            outputRows = "All", continuousSkip = 0, resultType = @Discrete, 
-            maxIterationsPerBranch = 1000, maxBranches = 100 }"""
+  val initStoreTxt: String = 
+    s"""#0.0 { className = Simulator, parent = %s, nextChild = 0, seed1 = 0, seed2 = 0, 
+               outputRows = "All", continuousSkip = 0, resultType = @Discrete, 
+               ${visibleParameters.map(p => p._1 + "=" + Pretty.pprint(p._2)).mkString(",")} }"""
 
   /** Updates the values of variables in xs (identified by CId and Dot.field) to the corresponding CValue. */
   def applyAssignments(xs: List[(CId, Dot, CValue)], st: Enclosure): Enclosure =
@@ -803,8 +811,9 @@ object Interpreter extends CStoreInterpreter {
    * for the next time interval.
    */
   def hybridEncloser(T: Interval, prog: Prog, st: EnclosureAndBranches): EnclosureAndBranches = {
-    val VLit(GInt(maxBranches)): CValue = getInSimulator("maxBranches", st.enclosure)
-    val VLit(GInt(maxIterationsPerBranch)): CValue = getInSimulator("maxIterationsPerBranch", st.enclosure)
+    val VLit(GInt(maxBranches))                    = getInSimulator(paramMaxBranches._1,                   st.enclosure)
+    val VLit(GInt(maxIterationsPerBranch))         = getInSimulator(paramMaxIterationsPerBranch._1,        st.enclosure)
+    val VLit(GBool(intersectWithGuardBeforeReset)) = getInSimulator(paramIntersectWithGuardBeforeReset._1, st.enclosure)
     require(st.branches.nonEmpty, "hybridEncloser called with zero branches")
     require(st.branches.size < maxBranches, s"Number of branches (${st.branches.size}) exceeds maximum ($maxBranches).")
     def mergeBranches(ics: List[InitialCondition]): List[InitialCondition] =

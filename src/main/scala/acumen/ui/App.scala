@@ -65,6 +65,15 @@ class App extends SimpleSwingApplication {
 
   private val cores = Runtime.getRuntime.availableProcessors
   
+  var interpreter: InterpreterCntrl = InterpreterCntrl(Main.defaultSemantics)
+  
+  def setSemantics(si: SemanticsImpl[Interpreter]) = {
+    Main.defaultSemantics = si
+    ui.codeArea.updateCompletionProvider(si.interpreter)
+    console.log("Selected the \"" + si.descr + "\" semantics.")
+    console.newLine
+  }
+  
   // Create a special actor to listen to events from other threads
   // runs on the EDT
 
@@ -91,7 +100,7 @@ class App extends SimpleSwingApplication {
               interpreter = InterpreterCntrl(Main.defaultSemantics,Some(codeArea.textArea.getText))
               if (Main.defaultSemantics != interpreter.semantics) {
                 warnSemanticsChange(Main.defaultSemantics, interpreter.semantics)
-                Main.defaultSemantics = interpreter.semantics
+                setSemantics(interpreter.semantics)
                 selectMenuItemFromSemantics()
               }
               controller ! Init(codeArea.textArea.getText, codeArea.currentDir, interpreter)
@@ -673,14 +682,7 @@ class App extends SimpleSwingApplication {
   /* ----- events handling ---- */
   
   var state: State = Stopped
-  var interpreter: InterpreterCntrl = null
-  def setSemantics(si: SemanticsImpl[Interpreter]) = {
-    Main.defaultSemantics = si;
-    console.log("Selected the \"" + si.descr + "\" semantics.")
-    console.newLine
-  }
 
-  interpreter = InterpreterCntrl(Main.defaultSemantics);
   def selectMenuItemFromSemantics() {
     Main.defaultSemantics match {
       case S.Ref2012 => bar.semantics.ref2013.selected = true

@@ -36,6 +36,7 @@ object Interpreter extends acumen.CStoreInterpreter {
 
   def repr(st:Store) = st
   def fromCStore(st:CStore, root:CId) = st
+  override def visibleParameters = visibleParametersRef + ("method" -> VLit(GStr(methodRungeKutta)))
 
   /* initial values */
   val emptyStore : Store = HashMap.empty

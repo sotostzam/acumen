@@ -95,20 +95,24 @@ class CodeArea extends Panel with TreeSelectionListener {
     sta.setHighlightCurrentLine(false)
     sta.setTabSize(2)
     sta.setTabsEmulated(true) // Use soft tabs
-    if (Main.useCompletion) {
-      val completionProvider = createCompletionProvider(sta)
-      val autoCompletion = new AutoCompletion(completionProvider)
-      autoCompletion setTriggerKey KeyStroke.getKeyStroke("TAB")
-      autoCompletion install sta
-    }
+    updateCompletionProvider(sta, Main.defaultSemantics.interpreter)
     if (Main.useTemplates) {
       RSyntaxTextArea setTemplatesEnabled true
       createCodeTemplateManager
     }
     sta
   }
+  
+  def updateCompletionProvider(i: Interpreter): Unit = if (textArea != null) updateCompletionProvider(textArea, i)
+  
+  private def updateCompletionProvider(ta: RSyntaxTextArea, i: Interpreter) = if (Main.useCompletion) {
+    val completionProvider = createCompletionProvider(ta, i)
+    val autoCompletion = new AutoCompletion(completionProvider)
+    autoCompletion setTriggerKey KeyStroke.getKeyStroke("TAB")
+    autoCompletion install ta
+  }
 
-  def createCompletionProvider(textArea: RSyntaxTextArea) = {
+  def createCompletionProvider(textArea: RSyntaxTextArea, i: Interpreter) = {
     val cp = new DefaultCompletionProvider {
       // Make it possible to complete strings ending with .
       override def isValidChar(ch: Char) = super.isValidChar(ch) || ch=='.';
@@ -124,8 +128,7 @@ class CodeArea extends Panel with TreeSelectionListener {
     }
     cp.addCompletion(new BasicCompletion(cp, "Main"))
     cp.addCompletion(new BasicCompletion(cp, "simulator"))
-    for (paramName <- Parameters.defaults.map(_._1))
-      cp.addCompletion(new BasicCompletion(cp, "simulator." + paramName))
+    for (p <- i.visibleParameters.keys) cp.addCompletion(new BasicCompletion(cp, "simulator." + p))
     cp
   }
 

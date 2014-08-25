@@ -34,6 +34,7 @@ class ImperativeInterpreter extends CStoreInterpreter {
   type Store = Common.Store
   def repr (s:Store) : CStore = Common.repr(s)
   def fromCStore (cs:CStore, root:CId) : Store = Common.fromCStore(cs, root)
+  override def visibleParameters = interpreters.Common.visibleParametersImpr
 
   def init(prog: Prog): (Prog, Store, Metadata) = {
     val magic = fromCStore(initStoreImpr, CId(0))
