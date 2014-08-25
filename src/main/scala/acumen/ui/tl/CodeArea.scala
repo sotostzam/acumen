@@ -7,7 +7,7 @@ import java.awt.Font
 import java.awt.GraphicsEnvironment
 import java.awt.event.ActionEvent
 import java.awt.event.ActionListener
-import java.awt.event.KeyEvent.{ VK_CLOSE_BRACKET, VK_OPEN_BRACKET }
+import java.awt.event.KeyEvent.{ VK_C, VK_CLOSE_BRACKET, VK_OPEN_BRACKET }
 import java.io.{
   File, FileReader, FileWriter
 }
@@ -421,6 +421,11 @@ class CodeArea extends Panel with TreeSelectionListener {
   textArea.getInputMap.put(KeyStroke.getKeyStroke(VK_CLOSE_BRACKET, util.System.shortcutMask), "increaseIndentAction")
   textArea.getActionMap.put("increaseIndentAction", new RSyntaxTextAreaEditorKit.InsertTabAction())
   textArea.getActionMap.put("decreaseIndentAction", new RSyntaxTextAreaEditorKit.DecreaseIndentAction())
+  
+  /* Copy code as RTF (syntax highlighted) */
+  
+  textArea.getInputMap.put(KeyStroke.getKeyStroke(VK_C, util.System.shortcutMask), "copyAsRTFAction")
+  textArea.getActionMap.put("copyAsRTFAction", new RSyntaxTextAreaEditorKit.CopyAsRtfAction())
   
   /* Let the FileTree browser listen for path changes, due to file open/save actions. 
    * Open and Save As may change the path. 
