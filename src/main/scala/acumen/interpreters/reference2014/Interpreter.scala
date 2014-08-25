@@ -402,13 +402,13 @@ object Interpreter extends acumen.CStoreInterpreter {
 
   /** Summarize result of evaluating the hypotheses of all objects. */
   def testHypotheses(hyps: Set[(CId, Option[String], Expr, Env)], old: Metadata, st: Store): Metadata =
-    old combine SomeMetadata(hyps.map {
+    old combine (if (hyps isEmpty) NoMetadata else SomeMetadata(hyps.map {
       case (o, hn, h, env) =>
         val cn = getCls(o, st)
         lazy val counterEx = dots(h).toSet[Dot].map(d => d -> evalExpr(d, env, st))
         val VLit(GBool(b)) = evalExpr(h, env, st)
         (o, cn, hn) -> (if (b) TestSuccess else TestFailure(getTime(st), counterEx))
-    }.toMap, (getTime(st), getTime(st) + getTimeStep(st)), false)
+    }.toMap, (getTime(st), getTime(st) + getTimeStep(st)), false))
 
   /**
    * Solve ODE-IVP defined by odes parameter tuple, which consists of:
