@@ -1,0 +1,3 @@
+class Main(simulator)
+  hypothesis "False" 0 > 1
+end

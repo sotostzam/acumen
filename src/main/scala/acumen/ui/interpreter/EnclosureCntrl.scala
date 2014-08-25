@@ -9,7 +9,7 @@ import acumen.interpreters.enclosure.affine.UnivariateAffineEnclosure
 import InterpreterCntrl._
 import java.io.File
 
-class EnclosureCntrl(val semantics: SemanticsImpl[_], val interpreter: RecursiveInterpreter) extends InterpreterCntrl {
+class EnclosureCntrl(val semantics: SemanticsImpl[Interpreter], val interpreter: RecursiveInterpreter) extends InterpreterCntrl {
 
   def newInterpreterModel = interpreter.newInterpreterModel
 

@@ -175,6 +175,8 @@ class Pretty {
       case Continuously(ca) => pretty(ca)
       case Discretely(da) => pretty(da)
       case Claim(e) => "claim " :: pretty(e)
+      case Hypothesis(Some(s),e) => "hypothesis " :: dquotes(s) :: " " :: pretty(e)
+      case Hypothesis(None,e) => "hypothesis " :: pretty(e)
     }
   
   implicit def prettyContinuousAction : PrettyAble[ContinuousAction] =

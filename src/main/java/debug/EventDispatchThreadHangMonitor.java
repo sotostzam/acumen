@@ -219,6 +219,7 @@ public final class EventDispatchThreadHangMonitor extends EventQueue {
         }
     }
 
+    @SuppressWarnings("unused")
     private void debug(String which) {
         if (false) {
             for (int i = dispatches.size(); i >= 0; --i) {

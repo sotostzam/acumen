@@ -8,7 +8,7 @@ import scala.actors._
 import InterpreterCntrl._
 import java.io.File
 
-class CStoreCntrl(val semantics: SemanticsImpl[_], val interpreter: CStoreInterpreter) extends InterpreterCntrl {
+class CStoreCntrl(val semantics: SemanticsImpl[Interpreter], val interpreter: CStoreInterpreter) extends InterpreterCntrl {
 
   def newInterpreterModel = interpreter.newInterpreterModel
 

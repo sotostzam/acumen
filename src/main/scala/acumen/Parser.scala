@@ -146,7 +146,7 @@ object Parser extends MyStdTokenParsers {
   lexical.reserved ++=
     List("for", "end", "if", "else", "create", "move", "in",
       "terminate", "class", "sum", "true", "false",
-      "private", "switch", "case", "Continuous", "Discrete", "none", "type", "claim",
+      "private", "switch", "case", "Continuous", "Discrete", "none", "type", "claim", "hypothesis",
       "let")
 
   /* token conversion */
@@ -162,6 +162,10 @@ object Parser extends MyStdTokenParsers {
 
   def run[A](p: Parser[A], s: java.io.Reader, f: Option[File]): A = {
     val res = phrase(p)(new lexical.Scanner(MyReader(s, f)))
+    res match {
+      case _ if res.successful => res.get
+      case f:NoSuccess => throw ParseError(f.msg).setPos(f.next.pos)
+    }
     if (!res.successful) 
       throw ParseError(res.toString)
     else res.get
@@ -235,7 +239,7 @@ object Parser extends MyStdTokenParsers {
   def actions = repsep(action, ";") <~ opt(";")
 
   def action: Parser[Action] =
-    switchCase | ifThenElse | forEach | discretelyOrContinuously | claim
+    switchCase | ifThenElse | forEach | discretelyOrContinuously | claim | hypothesis
 
   def switchCase =
     "switch" ~! expr ~! clauses ~! "end" ^^
@@ -253,6 +257,9 @@ object Parser extends MyStdTokenParsers {
 
   def claim = claimExpr ^^ { case predicate => Claim(predicate) }
 
+  def hypothesis = "hypothesis" ~! opt(stringLit) ~ expr ^^ 
+    { case "hypothesis" ~ statement ~ predicate => Hypothesis(statement, predicate) }
+  
   def ifThenElse =
     ("if" ~! expr ~! actions) >> {
       case _ ~ c ~ t =>

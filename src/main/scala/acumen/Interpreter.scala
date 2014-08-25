@@ -247,7 +247,7 @@ abstract class FilterDataAdder(var opts: CStoreOpts) extends DataAdder {
   def mkFilter(e:GObject) : ((Name, GValue)) => Boolean = {
     val VClassName(ClassName(name)) = e.find{_._1 == Name("className",0)}.get._2
     if (name == "Simulator" && !opts.outputSimulatorState)
-      { case (x,v) => x.x == "className" || x.x == "time" || x.x == "endTime" || x.x == "resultType" || x.x == "expects" || x.x == "observes" }
+      { case (x,v) => x.x == "className" || x.x == "time" || x.x == "endTime" || x.x == "resultType"}
     else if (!opts.outputInternalState)
       { case (x,_) => x.x == "className" || interpreters.Common.specialFields.indexOf(x.x) == -1 }
     else

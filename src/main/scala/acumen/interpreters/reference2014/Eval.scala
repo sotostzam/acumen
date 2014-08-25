@@ -4,33 +4,43 @@ package reference2014
 
 import Interpreter._
 import acumen.Errors._
-import scala.collection.immutable.Set
 
-/* a custom state+writer monad, inpired by the state monad of scalaz */
+/** Used to represent the statements that are active at a given point during the simulation. */
+case class Changeset
+  ( dead: Set[CId]                       = Set.empty /* dead */
+  , reps: Set[(CId,CId)]                 = Set.empty /* reparentings */
+  , das:  Set[(CId,Dot,CValue)]          = Set.empty /* discrete assignments */
+  , eqs:  Set[(CId,Dot,CValue)]          = Set.empty /* continuous assignments / equations */
+  , odes: Set[(CId,Dot,Expr,Env)]        = Set.empty /* ode assignments / differential equations */
+  ) {
+  def ++(that: Changeset) =
+    Changeset(dead ++ that.dead, reps ++ that.reps, das ++ that.das, eqs ++ that.eqs, odes ++ that.odes)
+}
+object Changeset {
+  val empty = Changeset()
+}
 
+/** A custom state+writer monad, inpired by the state monad of scalaz. */
 sealed trait Eval[+A] {
   import Eval._
 
   def apply(s: Store) : 
-    (A /* result */, 
-     Set[CId] /* dead (writer part) */, 
-     Set[(CId,CId)] /* reparentings (writer part) */,
-     Set[(CId,Dot,CValue)], /* discrete assignments */
-     Set[(CId,Dot,CValue)], /* continuous assignments (equations) */
-     Set[(CId,Dot,Expr,Env)], /* ode assignments (differential equations) */
-     Store /* current store (state part) */)
+    ( A         /* result */ 
+    , Changeset /* (writer part) */
+    , Store     /* current store (state part) */
+    )
 
   def map[B](f: A => B) : Eval[B] = mkEval (
-    apply(_) match { case (a, ids, rps, ass, eqs, odes, st) => (f(a), ids, rps, ass, eqs, odes, st) }
+    apply(_) match { case (a, cs, st) => (f(a), cs, st) }
   )
 
   def foreach[B](f: A => Eval[B]) : Eval[B] = flatMap(f)
 
   def flatMap[B](f: A => Eval[B]) : Eval[B] = mkEval (
     apply(_) match { 
-      case (a, ids, rps, ass, eqs, odes, st) => 
-        val (a1, ids1, rps1, ass1, eqs1, odes1, st1) = f(a)(st)
-        (a1, ids ++ ids1, rps ++ rps1, ass ++ ass1, eqs ++ eqs1, odes ++ odes1, st1)
+      case (a, cs, st) => 
+        val (a1, cs1, st1) = f(a)(st)
+        (a1, cs ++ cs1, st1)
     }
   )
   
@@ -38,48 +48,48 @@ sealed trait Eval[+A] {
   def >>=[B](f: A => Eval[B]) : Eval[B] = flatMap(f)
   
   def filter(p: A => Boolean) : Eval[A] = mkEval (
-    apply(_) match { case t@(a, _, _, _, _, _, _) =>
+    apply(_) match { case t@(a, _, _) =>
       if (p(a)) t else throw ShouldNeverHappen() 
     } 
   )
 
   def !  (s: Store) : A = apply(s)._1
-  def ~> (s:Store) : Store = apply(s)._7
+  def ~> (s:Store) : Store = apply(s)._3
 
 }
 
 object Eval {
 
-  def mkEval[A](f: Store => (A, Set[CId], Set[(CId,CId)], Set[(CId,Dot,CValue)], Set[(CId,Dot,CValue)], Set[(CId,Dot,Expr,Env)], Store)) : Eval[A] = 
-	new Eval[A] { def apply(s:Store) = f(s) }
+  def mkEval[A](f: Store => (A, Changeset, Store)) : Eval[A] = 
+	  new Eval[A] { def apply(s:Store) = f(s) }
  
-  /* used to inject write operations of 'util.Canonical' into the monad */
+  /** Used to inject write operations of 'util.Canonical' into the monad. */
   def promote(f: Store => Store) : Eval[Unit] =
-    mkEval (s => ((), Set.empty, Set.empty, Set.empty, Set.empty, Set.empty, f(s)))
+    mkEval (s => ((), Changeset.empty, f(s)))
 
-  def pure[A](x:A) : Eval[A] = mkEval(s => (x, Set.empty, Set.empty, Set.empty, Set.empty, Set.empty, s))
+  def pure[A](x:A) : Eval[A] = mkEval(s => (x, Changeset.empty, s))
   def pass = pure(())
   
-  def getStore : Eval[Store] = mkEval(s => (s, Set.empty, Set.empty, Set.empty, Set.empty, Set.empty, s))
+  def getStore : Eval[Store] = mkEval(s => (s, Changeset.empty, s))
   def modifyStore(f:Store => Store) : Eval[Unit] = 
-    mkEval(s => ((), Set.empty, Set.empty, Set.empty, Set.empty, Set.empty, f(s)))
+    mkEval(s => ((), Changeset.empty, f(s)))
 
   def logCId(id:CId) : Eval[Unit] = 
-    mkEval (s => ((), Set(id), Set.empty, Set.empty, Set.empty, Set.empty, s))
+    mkEval(s => ((), Changeset(dead = Set(id)), s))
 
   def logReparent(o:CId, parent:CId) : Eval[Unit] =
-    mkEval(s => ((), Set.empty, Set((o,parent)), Set.empty, Set.empty, Set.empty, s))
+    mkEval(s => ((), Changeset(reps = Set((o,parent))), s))
     
   def logAssign(o: CId, d: Dot, v:CValue) : Eval[Unit] =
-    mkEval(s => ((), Set.empty, Set.empty, Set((o,d,v)), Set.empty, Set.empty, s))
+    mkEval(s => ((), Changeset(das = Set((o,d,v))), s))
 
   def logEquation(o: CId, d: Dot, v:CValue) : Eval[Unit] =
-    mkEval(s => ((), Set.empty, Set.empty, Set.empty, Set((o,d,v)), Set.empty, s))
+    mkEval(s => ((), Changeset(eqs = Set((o,d,v))), s))
 
   def logODE(o: CId, d: Dot, r: Expr, e: Env) : Eval[Unit] =
-    mkEval(s => ((), Set.empty, Set.empty, Set.empty, Set.empty, Set((o,d,r,e)), s))
+    mkEval(s => ((), Changeset(odes = Set((o,d,r,e))), s))
 
-  /* Apply f to the store and wrap it in an Eval */
+  /** Apply f to the store and wrap it in an Eval */
   def asks[A](f : Store => A) : Eval[A] = 
     getStore >>= ((s:Store) => pure(f(s)))
   

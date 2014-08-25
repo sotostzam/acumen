@@ -36,6 +36,8 @@ class Visitor {
       visitDiscreteAction(a)
     case Claim(p) =>
       visitExpr(p)
+    case Hypothesis(_, predicate) =>
+      visitExpr(predicate)
   }
 
   def visitActions(as: List[Action]) : Unit = as.foreach{visitAction(_)}
