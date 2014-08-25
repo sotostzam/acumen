@@ -68,10 +68,10 @@ object Interpreter extends CStoreInterpreter {
   private val paramMaxIterationsPerBranch        = "maxIterationsPerBranch"        -> VLit(GInt(1000))    
   private val paramIntersectWithGuardBeforeReset = "intersectWithGuardBeforeReset" -> VLit(GBool(true))
   
-  private implicit val rnd = Rounding(Parameters.default)
+  private val legacyParameters = Parameters.default.copy(interpreter = Some(enclosure.Interpreter.EVT))
+  private implicit val rnd = Rounding(legacyParameters)
   private val bannedFieldNames = List(self, parent, classf, nextChild, seed1, seed2, magicf)
   private val contractInstance = new Contract{}
-  private val transcendentals = new Transcendentals(Parameters.default)
 
   /* Types */
 
@@ -507,8 +507,8 @@ object Interpreter extends CStoreInterpreter {
   def unaryGroundOp(f:String, vx:GroundValue) = {
     def implem(f: String, x: Interval) = f match {
       case "-"   => -x
-      case "sin" => transcendentals.sin(x)
-      case "cos" => transcendentals.sin(x)
+      case "sin" => rnd.transcendentals.sin(x)
+      case "cos" => rnd.transcendentals.cos(x)
       case _     => throw UnknownOperator(f)
     }
     (f, vx) match {
