@@ -421,10 +421,10 @@ object Interpreter extends acumen.CStoreInterpreter {
     implicit val field = FieldImpl(odes, p)
     new Solver(getInSimulator(Name("method", 0),st), xs = st, h = getTimeStep(st)){
       // add the EulerCromer solver
-      override def knownSolvers = super.knownSolvers :+ "EulerCromer"
+      override def knownSolvers = super.knownSolvers :+ methodEulerCromer
       override def solveIfKnown(name: String) = super.solveIfKnown(name) orElse (name match {
-        case "EulerCromer" => Some(solveIVPEulerCromer(xs, h))
-        case _             => None  
+        case `methodEulerCromer` => Some(solveIVPEulerCromer(xs, h))
+        case _                   => None  
       })
     }.solve
   }
