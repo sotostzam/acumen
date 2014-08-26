@@ -19,7 +19,6 @@ object Semantics {
   val S2012 = Semantics(Some("2012"), Seq("desugar-local"), Seq("SD"))
   val S2013 = Semantics(Some("2013"), Seq("desugar-toplevel"), Seq("SD"))
   val S2014 = Semantics(Some("2014"), Seq("desugar-local-inline"), Seq("SD"))
-  val E2014 = Semantics(Some("enclosure2014"), Seq("desugar-local-inline"), Seq("SD"))
 }
 
 abstract class SemanticsSel
@@ -89,7 +88,7 @@ object SemanticsImpl {
   }
   object Enclosure2014 extends CStore {
     val i = enclosure2014.Interpreter
-    val semantics = E2014
+    val semantics = Semantics(None, Seq("desugar-local-inline"), Seq("SD"))
     def interpreter() = i
   }
   object Imperative2012 extends CStore {
