@@ -13,7 +13,7 @@ import java.awt.event.{ MouseAdapter, MouseEvent }
 import javax.swing.border.LineBorder
 import Console._
 import Errors.{ ParseError, PositionalAcumenError }
-import scala.util.parsing.input.Position
+import scala.util.parsing.input.{Position,NoPosition}
 
 class Console extends ListView[ConsoleMessage] {
 
@@ -33,8 +33,7 @@ class Console extends ListView[ConsoleMessage] {
       val messageIsOld = index >= oldEntries
       val message = value match {
         case NormalMessage(m)             => m
-        case ErrorMessage(m)              => formatErrorMessage(m, None, messageIsOld)
-        case PositionalErrorMessage(m, p) => formatErrorMessage(m, Some(p), messageIsOld)
+        case ErrorMessage(m, p)           => formatErrorMessage(m, p, messageIsOld)
         case HypothesisReport(md, st, et) => summarizeHypothesisOutcomes(md, messageIsOld)
       }
       val renderer = (defaultRenderer.getListCellRendererComponent(list,message,index,false,false)).asInstanceOf[JLabel]
@@ -44,7 +43,7 @@ class Console extends ListView[ConsoleMessage] {
     }
   }
 
-  def formatErrorMessage(m: String, pos: Option[Position], messageIsOld: Boolean): String =
+  def formatErrorMessage(m: String, pos: Position, messageIsOld: Boolean): String =
     "<html>" + color("red", messageIsOld, "ERROR:") + "<pre>" + 
       m.replaceAll("<","&lt;")
        .replaceAll(">","&gt;")
@@ -103,7 +102,7 @@ class Console extends ListView[ConsoleMessage] {
       if (listData.isEmpty) listData = Seq(NormalMessage(message))
       else listData = (listData.head match {
         case NormalMessage(m) => NormalMessage(m+message) 
-        case ErrorMessage(m) => ErrorMessage(m+message) 
+        case ErrorMessage(m,_) => ErrorMessage(m+message,NoPosition) 
         case HypothesisReport(md,st,et) => HypothesisReport(md,st,et)  //FIXME 
       }) +: listData.tail
     }
@@ -115,8 +114,8 @@ class Console extends ListView[ConsoleMessage] {
 
   def logError(e: Throwable) = {
     logMessage(e match {
-      case pe: PositionalAcumenError => PositionalErrorMessage(pe.getMessage, pe.pos)
-      case _                         => ErrorMessage(e.getMessage)
+      case pe: PositionalAcumenError => ErrorMessage(pe.getMessage, pe.pos)
+      case _                         => ErrorMessage(e.getMessage, NoPosition)
     })
     done = true
     SwingUtil.flashFunction(
@@ -136,7 +135,7 @@ class Console extends ListView[ConsoleMessage] {
   def copySelection() {
     val selection = new java.awt.datatransfer.StringSelection(this.peer.getSelectedValues.map{
       case NormalMessage(m)             => m
-      case ErrorMessage(m)              => m
+      case ErrorMessage(m,_)            => m
       case HypothesisReport(md, st, et) => summarizeHypothesisOutcomes(md, true)
       }.mkString("\n")
        .replaceAll("<br/>", "\n").replaceAll("&nbsp;", " ") // Convert HTML whitespace to pure text
@@ -156,7 +155,7 @@ class Console extends ListView[ConsoleMessage] {
         // the message corresponds to the file in the buffer, i.e.,
         // p.file.isEmpty.  If it is NoPosition, there is no positional
         // information and hence nothing to scroll to.
-      case PositionalErrorMessage(m, p:EnhancedPosition) if p.file.isEmpty =>
+      case ErrorMessage(m, p:EnhancedPosition) if p.file.isEmpty =>
         val ta = ui.App.ui.codeArea.textArea
         ta.setCaretPosition(ta.getDocument.getDefaultRootElement.getElement(p.line - 1).getStartOffset + p.column - 1)
         ui.App.ui.codeArea.centerLineInScrollPane
@@ -184,8 +183,7 @@ object Console {
   sealed abstract class ConsoleMessage
   case class NormalMessage(message: String) extends ConsoleMessage
   case class HypothesisReport(md: SomeMetadata, startTime: Double, endTime: Double) extends ConsoleMessage
-  case class ErrorMessage(message: String) extends ConsoleMessage
-  case class PositionalErrorMessage(message: String, pos: Position) extends ConsoleMessage
+  case class ErrorMessage(message: String, pos: Position = NoPosition) extends ConsoleMessage
   
   def logHypothesisReport(md: Metadata, startTime: Double, endTime: Double): Unit =
     if (ui.App.ui == null) 
