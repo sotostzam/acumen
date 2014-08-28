@@ -376,11 +376,11 @@ object Interpreter extends acumen.CStoreInterpreter {
     }
   }
 
-  def step(p:Prog, st:Store, md: Metadata) : Option[(Store, Metadata)] =
-    if (getTime(st) > getEndTime(st)) None
-    else Some(
+  def step(p:Prog, st:Store, md: Metadata) : StepRes =
+    if (getTime(st) > getEndTime(st)) Done(md, getEndTime(st))
+    else 
       { val (_,ids,rps,ass,eqs,st1) = iterate(evalStep(p), mainId(st))(st)
-        (getResultType(st) match {
+        Data(getResultType(st) match {
           case Discrete | Continuous =>
             checkDuplicateAssingments(ass, DuplicateDiscreteAssingment)
             val nonIdentityAss = ass.filterNot{ a => a._3 == getObjectField(a._1, a._2, st1) }
@@ -400,7 +400,7 @@ object Interpreter extends acumen.CStoreInterpreter {
             setTime(getTime(st1) + getTimeStep(st1), st2)
         }, md)
       }
-    )
+
     
   /** Checks for a duplicate assignment (of a specific kind) scheduled in assignments. */
   def checkDuplicateAssingments(assignments: Set[(CId, Name, CValue)], error: Name => DuplicateAssingment): Unit = {

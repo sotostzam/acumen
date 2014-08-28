@@ -84,15 +84,15 @@ class ImperativeInterpreter extends CStoreInterpreter {
     }
   }
 
-  def step(p: Prog, st: Store, md: Metadata): Option[(Store, Metadata)] = {
+  def step(p: Prog, st: Store, md: Metadata): StepRes = {
     val res = localStep(p, st)
-    if (res == null) None
-    else Some((st, NoMetadata))
+    if (res == null) Done(NoMetadata, Double.NaN)
+    else Data(st, NoMetadata)
   }
 
   // always returns the last known step, the adder callback is used to
   // determine when teh simulation is done
-  override def multiStep(p: Prog, st: Store, md: Metadata, adder: DataAdder): (Store, Metadata) = {
+  override def multiStep(p: Prog, st: Store, md: Metadata, adder: DataAdder): (Store, Metadata, Double) = {
     val magic = getSimulator(st)
     var shouldAddData = ShouldAddData.IfLast
     // ^^ set to IfLast on purpose to make things work
@@ -112,7 +112,7 @@ class ImperativeInterpreter extends CStoreInterpreter {
       }
     }
     step0()
-    (st, md)
+    (st, NoMetadata, Double.NaN)
   }
 
   def addData(st: Store, adder: DataAdder) : Unit = {

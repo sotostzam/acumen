@@ -741,18 +741,17 @@ object Interpreter extends CStoreInterpreter {
       }.map{ case (n,v) => (fieldIdToName(cid,n), (cid, n)) } 
     }
   
-  def step(p: Prog, st: Store, md: Metadata): Option[(Store, Metadata)] = {
+  def step(p: Prog, st: Store, md: Metadata): StepRes = {
     val st1 = updateSimulator(p, st)
     if (getTime(st1.enclosure) >= getEndTime(st1.enclosure)) {
-      Console.logHypothesisReport(md, 0, getEndTime(st1.enclosure))
-      None
+      Done(md, getEndTime(st1.enclosure))
     }
     else {
-      Some(getResultType(st1.enclosure) match {
+      getResultType(st1.enclosure) match {
         case Continuous =>
-          (setResultType(Discrete, st1), md)
+          Data(setResultType(Discrete, st1), md)
         case Discrete =>
-          (setResultType(FixedPoint, st1), md)
+          Data(setResultType(FixedPoint, st1), md)
         case FixedPoint => // Do hybrid step
           val tNow = getTime(st1.enclosure)
           val tNext = tNow + getTimeStep(st1.enclosure)
@@ -761,8 +760,8 @@ object Interpreter extends CStoreInterpreter {
           val md1 = testHypotheses(st2.enclosure, (tNow, tNext), p, md)
           val st3 = setResultType(Continuous, st2)
           val st4 = setTime(tNext, st3)
-          (st4, md1)
-      }) 
+          Data(st4, md1)
+      }
     }
   }
 

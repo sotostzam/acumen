@@ -82,6 +82,8 @@ class App extends SimpleSwingApplication {
           case Progress(p) => statusZone.setProgress(p)
           case ProgressMsg(m) =>
             console.log(m); console.newLine
+          case HypothesisReport(md, startTime, endTime) =>
+            console.logHypothesisReport(md, startTime, endTime)
           case Progress3d(p) => threeDtab.setProgress(p)
 
           case EXIT => exit

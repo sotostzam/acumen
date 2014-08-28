@@ -150,17 +150,18 @@ class Interpreter(val parDiscr: Boolean = true,
     }
   }
 
-  def step(p: Prog, st: Store, md: Metadata): Option[(Store,Metadata)] = {
+  def step(p: Prog, st: Store, md: Metadata): StepRes = {
     val res = localStep(p, st)
-    if (res == null) None
-    else Some((st,md)) //FIXME add support for metadata
+    if (res == null) Done(md, getEndTime(getSimulator(st)))
+    else Data(st,md) //FIXME add support for metadata
   }
 
   // always returns the last known step, the adder callback is used to
   // determine when teh simulation is done
-  override def multiStep(p: Prog, st: Store, md: Metadata, adder: DataAdder): (Store, Metadata) = {
+  override def multiStep(p: Prog, st: Store, md: Metadata, adder: DataAdder): (Store, Metadata, Double) = {
     val magic = getSimulator(st)
     var shouldAddData = ShouldAddData.IfLast
+    var endTime = Double.NaN
     // ^^ set to IfLast on purpose to make things work
     @tailrec def step0() : Unit = {
       val res = localStep(p, st)
@@ -168,6 +169,7 @@ class Interpreter(val parDiscr: Boolean = true,
         if (shouldAddData == ShouldAddData.IfLast)
           addData(st, adder)
         adder.noMoreData()
+        endTime = getEndTime(getSimulator(st))
       } else {
         shouldAddData = adder.newStep(res)
         if (shouldAddData == ShouldAddData.Yes)
@@ -177,7 +179,7 @@ class Interpreter(val parDiscr: Boolean = true,
       }
     }
     step0()
-    (st, md) // FIXME Add support for metadata
+    (st, md, endTime) // FIXME Add support for metadata
   }
 
   def addData(st: Store, adder: DataAdder) : Unit = {

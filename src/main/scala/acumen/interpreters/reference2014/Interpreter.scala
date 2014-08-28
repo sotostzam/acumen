@@ -365,15 +365,14 @@ object Interpreter extends acumen.CStoreInterpreter {
   def applyAssignments(xs: List[(CId, Dot, CValue)]): Eval[Unit] = 
     mapM_((a: (CId, Dot, CValue)) => setObjectFieldM(a._1, a._2.field, a._3), xs)
   
-  def step(p:Prog, st:Store, md: Metadata) : Option[(Store, Metadata)] =
+  def step(p:Prog, st:Store, md: Metadata) : StepRes =
     if (getTime(st) >= getEndTime(st)){
-      Console.logHypothesisReport(md, 0, getEndTime(st))
-      None
+      Done(md, getEndTime(st))
     } 
-    else Some(
+    else 
       { val (_, Changeset(ids, rps, das, eqs, odes, hyps), st1) = iterate(evalStep(p), mainId(st))(st)
         val md1 = testHypotheses(hyps, md, st)
-        (getResultType(st) match {
+        val res = getResultType(st) match {
           case Discrete | Continuous => // Either conclude fixpoint is reached or do discrete step
             checkDuplicateAssingments(das.toList.map{ case (o, d, _) => (o, d) }, x => DuplicateDiscreteAssingment(x))
             val nonIdentityDas = das.filterNot{ a => a._3 == getObjectField(a._1, a._2.field, st1) }
@@ -395,9 +394,9 @@ object Interpreter extends acumen.CStoreInterpreter {
             val stE = applyAssignments(eqs.toList) ~> stODE
             val st2 = setResultType(Continuous, stE)
             setTime(getTime(st2) + getTimeStep(st2), st2)
-        }, md1)
+        }
+        Data(res,md1)
       }
-    )
 
   /** Summarize result of evaluating the hypotheses of all objects. */
   def testHypotheses(hyps: Set[(CId, Option[String], Expr, Env)], old: Metadata, st: Store): Metadata =

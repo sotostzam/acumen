@@ -369,11 +369,11 @@ object Interpreter extends acumen.CStoreInterpreter {
     }
   }
 
-  def step(p:Prog, st:Store, md: Metadata) : Option[(Store, Metadata)] =
-    if (getTime(st) > getEndTime(st)) None
-    else Some(
+  def step(p:Prog, st:Store, md: Metadata) : StepRes =
+    if (getTime(st) > getEndTime(st)) Done(md, getEndTime(st))
+    else 
       { val (_,ids,rps,st1) = iterate(evalStep(p), mainId(st))(st)
-        (getResultType(st) match {
+        Data(getResultType(st) match {
           case Discrete | Continuous => 
             if (st == st1 && ids.isEmpty && rps.isEmpty) 
               setResultType(FixedPoint, st1)
@@ -388,6 +388,4 @@ object Interpreter extends acumen.CStoreInterpreter {
             setTime(getTime(st1) + getTimeStep(st1), st2)
         }, md)
       }
-    )
-
 }

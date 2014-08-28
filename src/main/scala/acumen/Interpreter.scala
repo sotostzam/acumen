@@ -92,17 +92,21 @@ trait CStoreInterpreter extends Interpreter {
 
   /** Based on prog, creates the initial store that will be used to start the simulation. */
   def init(prog:Prog) : (Prog, Store, Metadata)
+
+  sealed abstract class StepRes
+  case class Data(st: Store, md: Metadata) extends StepRes
+  case class Done(md: Metadata, endTime: Double) extends StepRes
   /**
-   * Moves the simulation one step forward.  Returns None at the end of the simulation.
+   * Moves the simulation one step forward.  Returns Done at the end of the simulation.
    * NOTE: Performing a step does not necessarily imply that time moves forward.
    * NOTE: The store "st" may be mutated in place or copied, depending on the interpreter.
    */
-  def step(p:Prog, st:Store, md: Metadata) : Option[(Store, Metadata)]
+  def step(p:Prog, st:Store, md: Metadata) : StepRes
   /** 
    * Performs multiple steps. Driven by "adder"  
    * NOTE: May be overridden for better performance.
    */
-  def multiStep(p: Prog, st0: Store, md0: Metadata, adder: DataAdder) : (Store, Metadata) = {
+  def multiStep(p: Prog, st0: Store, md0: Metadata, adder: DataAdder) : (Store, Metadata, Double) = {
     var st = st0
     var md = md0
     var cstore = repr(st0)
@@ -110,23 +114,23 @@ trait CStoreInterpreter extends Interpreter {
     // ^^ set to IfLast on purpose to make things work
     while (true) {
       step(p, st, md) match {
-        case Some((resSt,resMd)) => // If the simulation is not over
+        case Data(resSt,resMd) => // If the simulation is not over
           cstore = repr(resSt) 
           shouldAddData = adder.newStep(getResultType(cstore))
           if (shouldAddData == ShouldAddData.Yes)
             cstore.foreach{case (id,obj) => adder.addData(id, obj)}
           if (!adder.continue)
-            return (resSt,resMd)
+            return (resSt,resMd,Double.NaN)
           st = resSt
           md = resMd
-        case None => // If the simulation is over
+        case Done(resMd,endTime) => // If the simulation is over
           if (shouldAddData == ShouldAddData.IfLast)
             cstore.foreach{case (id,obj) => adder.addData(id, obj)}
           adder.noMoreData()
-          return (st,md)
+          return (st,resMd,endTime)
       }
     }
-    (st,md)
+    (st,md,Double.NaN)
   }
 
   type History = Stream[Store]
@@ -144,8 +148,8 @@ trait CStoreInterpreter extends Interpreter {
   /* main loop */
   def loop(p:Prog, st:Store, md:Metadata) : History = {
     st #:: (step(p, st, md) match {
-        case None      => empty
-        case Some((st1, md1)) => 
+        case Done(_,_)      => empty
+        case Data(st1, md1) => 
 		      val (st2, md2) = exposeExternally(st1, md1)
 		      loop(p, st2, md2)
       })
@@ -164,7 +168,7 @@ trait CStoreInterpreter extends Interpreter {
   def loop(p:Prog, st:Store, md: Metadata, adder: DataAdder) : History = {
     st #:: { if (adder.done) empty
              else {
-               val (st1, md1) = multiStep(p, st, md, adder)
+               val (st1, md1, _) = multiStep(p, st, md, adder)
                loop(p, st1, md1, adder)}
              }}
 
