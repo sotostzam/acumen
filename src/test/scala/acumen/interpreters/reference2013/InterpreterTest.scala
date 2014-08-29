@@ -75,7 +75,7 @@ class InterpreterTest extends FunSuite with ShouldMatchers {
 
     val (prog, store) = parse(progTxt, storeTxt)
 
-    val h = semantics.interpreter.loop(prog, store)
+    val h = semantics.interpreter.loop(prog, store, NoMetadata)
     val xs = oneVar(CId(2), "x", onlyAfterContinuous(h))
 
     def expected(t:Double) = - (9.8 / 2.0) * t * t 
@@ -120,7 +120,7 @@ class InterpreterTest extends FunSuite with ShouldMatchers {
 
     val (prog, store) = parse(progTxt, storeTxt)
 
-    val h = onlyAfterContinuous(semantics.interpreter.loop(prog, store))
+    val h = onlyAfterContinuous(semantics.interpreter.loop(prog, store, NoMetadata))
     val xs = oneVar(CId(3), "x", h)
     val ys = oneVar(CId(3), "y", h)
 

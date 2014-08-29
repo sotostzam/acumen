@@ -142,5 +142,13 @@ object IntervalUnitTest extends Properties("Interval.UnitTest") {
       Interval(4) / Interval(-1) == Interval(-4) &&
       Interval(-3, 3) / Interval(-3) == Interval(-1, 1)
   }
+  
+  property("ACUMEN-408 - Interval.sqrt does not terminate for input 4.000000004") = {
+    Interval(1.9999, 2.0001) contains Interval(new java.math.BigDecimal("4.000000004")).sqrt 
+  }
+
+  property("sqrt of 0") = {
+    Interval(0).sqrt == Interval(0) 
+  }
 
 }

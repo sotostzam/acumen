@@ -20,6 +20,7 @@ sealed abstract class AppEvent
 case class Error(e: Throwable) extends AppEvent
 case class Progress(percent: Int) extends AppEvent
 case class ProgressMsg(msg:String) extends AppEvent
+case class HypothesisReport(md: Metadata, startTime: Double, endTime: Double) extends AppEvent
 case class Progress3d(percent: Int) extends AppEvent
 
 // (actor) messages from the UI
@@ -132,10 +133,11 @@ class Controller extends DaemonActor {
           if (d != null) flush(d)
           setState(newState)
         case IC.Chunk(d) => // ignore chunks from supposedly dead producers
-        case IC.Done(msgs) =>
+        case IC.Done(msgs, md, endTime) =>
           App.ui.modelFinished = true
           setState(Stopped)
           msgs.foreach{msg => actor ! ProgressMsg(msg)}
+          actor ! HypothesisReport(md, 0, endTime)
         case Exit(_,ue:UncaughtException) =>
           actor ! Error(ue.cause)
           setState(Stopped)

@@ -354,7 +354,7 @@ object Interpreter extends acumen.CStoreInterpreter {
 
   /* Main simulation loop */  
 
-  def init(prog:Prog) : (Prog, Store) = {
+  def init(prog:Prog) : (Prog, Store, Metadata) = {
     val cprog = CleanParameters.run(prog, CStoreInterpreterType)
     val sprog = Simplifier.run(cprog)
     val mprog = Prog(magicClass :: sprog.defs)
@@ -363,24 +363,24 @@ object Interpreter extends acumen.CStoreInterpreter {
       mkObj(cmain, mprog, None, sd1, List(VObjId(Some(CId(0)))), 1)(initStoreRef)
     val st2 = changeParent(CId(0), id, st1)
     val st3 = changeSeed(CId(0), sd2, st2)
-    (mprog, st3)
+    (mprog, st3, NoMetadata)
   }
 
-  override def expose_externally(store: Store) : Store = {
+  override def exposeExternally(store: Store, md: Metadata): (Store, Metadata) = {
     if (Main.serverMode) {
       val json1 = JSon.toJSON(store).toString
       val store2 = JSon.fromJSON(Main.send_recv(json1))
-      store2
+      (store2, md) //FIXME add support for metadata
     } else {
-      store
+      (store, md)
     }
   }
 
-  def step(p:Prog, st:Store) : Option[Store] =
-    if (getTime(st) > getEndTime(st)) None
-    else Some(
+  def step(p:Prog, st:Store, md: Metadata) : StepRes =
+    if (getTime(st) > getEndTime(st)) Done(md, getEndTime(st))
+    else 
       { val (_,ids,rps,ass,eqs,st1) = iterate(evalStep(p), mainId(st))(st)
-        getResultType(st) match {
+        Data(getResultType(st) match {
           case Discrete | Continuous =>
             checkDuplicateAssingments(ass, DuplicateDiscreteAssingment)
             val nonIdentityAss = ass.filterNot{ a => a._3 == getObjectField(a._1, a._2, st1) }
@@ -398,9 +398,9 @@ object Interpreter extends acumen.CStoreInterpreter {
             checkDuplicateAssingments(eqs, DuplicateContinuousAssingment)
             val st2 = setResultType(Continuous, st1)
             setTime(getTime(st1) + getTimeStep(st1), st2)
-        }
+        }, md)
       }
-    )
+
     
   /** Checks for a duplicate assignment (of a specific kind) scheduled in assignments. */
   def checkDuplicateAssingments(assignments: Set[(CId, Name, CValue)], error: Name => DuplicateAssingment): Unit = {

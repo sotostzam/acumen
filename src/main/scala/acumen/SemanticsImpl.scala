@@ -16,9 +16,9 @@ case class Semantics(id: Option[String],
                      defaultPasses: Seq[String]) 
 
 object Semantics {
-  val S2012 = Semantics(Some("2012"), Seq("desugar-local"), Seq("SD"));
-  val S2013 = Semantics(Some("2013"), Seq("desugar-toplevel"), Seq("SD"));
-  val S2014 = Semantics(Some("2014"), Seq("desugar-local-inline"), Seq("SD"));
+  val S2012 = Semantics(Some("2012"), Seq("desugar-local"), Seq("SD"))
+  val S2013 = Semantics(Some("2013"), Seq("desugar-toplevel"), Seq("SD"))
+  val S2014 = Semantics(Some("2014"), Seq("desugar-local-inline"), Seq("SD"))
 }
 
 abstract class SemanticsSel
@@ -84,6 +84,11 @@ object SemanticsImpl {
       case S2013 => reference2013.Interpreter
       case S2014 => reference2014.Interpreter
     }
+    def interpreter() = i
+  }
+  object Enclosure2014 extends CStore {
+    val i = enclosure2014.Interpreter
+    val semantics = Semantics(None, Seq("desugar-local-inline"), Seq("SD"))
     def interpreter() = i
   }
   object Imperative2012 extends CStore {
@@ -162,6 +167,7 @@ object SemanticsImpl {
   lazy val Opt2012 = Imperative2012
   lazy val Opt2013 = Optimized()
   lazy val Opt2014 = Optimized(contMode = ContMode.IVP)
+  lazy val Enc2014 = Enclosure2014
 
   case class Sel(si: SemanticsSel, 
                  // First id is the display name
@@ -183,6 +189,7 @@ object SemanticsImpl {
          sel(Enclosure(EVT), "2013 EVT", "enclosure-evt"),
          sel(Enclosure(PWL,true), "2013 PWL (Contraction)", "enclosure-pwl-contraction"),
          sel(Enclosure(EVT,true), "2013 EVT (Contraction)", "enclosure-evt-contraction"),
+         sel(Enc2014, "2014 Enclosure", "enclosure2014"),
          exp(Optimized, "Optimized", "optimized"))
 
   def lookup(si: SemanticsSel) : Option[Sel] = 

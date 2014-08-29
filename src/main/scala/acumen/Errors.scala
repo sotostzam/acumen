@@ -152,7 +152,10 @@ object Errors {
   }
   case class BadLhs() extends PositionalAcumenError {
     override def mesg = 
-      "The left hand-side of an assignment must be of the form 'e.x'."
+      "The left-hand side of an assignment must be of the form 'e.x'."
+  }
+  case class BadRhs(message: String) extends PositionalAcumenError {
+    override def mesg = "Invalid assignment: " + message
   }
   case class BadPreLhs() extends PositionalAcumenError {
     override def mesg = 
@@ -166,9 +169,13 @@ object Errors {
     override def getMessage = 
       "No equation was specified for (#" + o.cid.toString + " : " + className + ")." + n.x + " at time " + time + "."
   }
-  case class HypothesisFalsified(s: String) extends PositionalAcumenError {
+  case class HypothesisFalsified(s: String, counterExample: Option[(Double, Map[Dot, CValue])] = None) extends PositionalAcumenError {
     override def mesg = 
-      "Hypothesis \"" + s + "\" falsified."
+      "Hypothesis \"" + s + "\" falsified." + (counterExample match {
+        case None => ""
+        case Some((time,m)) => 
+          s"\nAt time $time: " + m.map{case (d,v) => 
+            Pretty.pprint(d.obj) + "." + Pretty.pprint(d.field) + " = " + Pretty.pprint(v)}.mkString(", ")}) + "."
   }
 
   /* UI errors */

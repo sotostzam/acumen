@@ -17,6 +17,9 @@ class CStoreCntrl(val semantics: SemanticsImpl[Interpreter], val interpreter: CS
     var buffer = Queue.empty[GStore]
     var defaultBufferSize = 200
     var bufferSize = 1 // start off with one step
+    
+    var timeOfLastFlush = 0L // milliseconds since epoch, ensures that plot is updated often enough
+    val minPlotUpdateInterval = 100 // wait at most this many milliseconds before updating plot
 
     def parse() = {
       val ast = semantics.parse(progText, currentDir, None)
@@ -37,6 +40,7 @@ class CStoreCntrl(val semantics: SemanticsImpl[Interpreter], val interpreter: CS
 
     def flush {
       sendChunk
+      timeOfLastFlush = System.currentTimeMillis
       react (emergencyActions orElse {
         case GoOn => bufferSize = defaultBufferSize
         case Step => bufferSize = 1
@@ -47,8 +51,8 @@ class CStoreCntrl(val semantics: SemanticsImpl[Interpreter], val interpreter: CS
     def produce : Unit = {
       val startTime = System.currentTimeMillis
       val I = interpreter
-      val (p, store0) = I.init(prog)
-      var store = I.multiStep(p, store0, new StopAtFixedPoint)
+      val (p, store0, md0) = I.init(prog)
+      var (store, md, endTime) = I.multiStep(p, store0, md0, new StopAtFixedPoint)
       val cstore = I.repr(store)
       var opts = new CStoreOpts
       acumen.util.Canonical.getInSimulator(Name("outputRows",0), cstore) match {
@@ -88,12 +92,15 @@ class CStoreCntrl(val semantics: SemanticsImpl[Interpreter], val interpreter: CS
       loopWhile(!adder.done) {
         reactWithin(0) (emergencyActions orElse {
           case TIMEOUT => 
-            store = I.multiStep(p, store, adder)
-            if (buffer.size >= bufferSize) flush
+            val (store1, md1, endTime1) = I.multiStep(p, store, md, adder)
+            store = store1
+            md = md1
+            endTime = endTime1
+            if (buffer.size >= bufferSize || (System.currentTimeMillis - timeOfLastFlush) > minPlotUpdateInterval) flush
         })
       } andThen {
         sendChunk
-        consumer ! Done(List("Time to run simulation: %.3fs".format((System.currentTimeMillis - startTime) / 1000.0)))
+        consumer ! Done(List("Time to run simulation: %.3fs".format((System.currentTimeMillis - startTime) / 1000.0)), md, endTime)
         //System.err.println("Total simulation time: " + ((System.currentTimeMillis - startTime) / 1000.0) + "s")
       }
     }

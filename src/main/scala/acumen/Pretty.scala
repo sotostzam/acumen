@@ -232,11 +232,13 @@ class Pretty {
   /* pretty printing for ground values */
   implicit def prettyGroundValue : PrettyAble[GroundValue] =
     PrettyAble {
-      case GInt(i)    => i.toString
-      case GDouble(x) => if (predictableDoubles) "%f".format(x) else x.toString
-      case GBool(b)   => b.toString
-      case GStr(s)    => dquotes(s)
-      case _          => "??"
+      case GInt(i)           => i.toString
+      case GDouble(x)        => if (predictableDoubles) "%f".format(x) else x.toString
+      case GBool(b)          => b.toString
+      case GStr(s)           => dquotes(s)
+      case GInterval(i)      => i.toString
+      case ge: GEnclosure[_] => ge.show
+      case _                 => "??"
     }
   
   /* pretty printing of interpreter's internals */

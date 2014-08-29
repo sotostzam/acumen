@@ -22,7 +22,7 @@ class Main(simulator)
             r == x'*x' + 20*x   // E = (1/2)mv^2 + mgh
       if x == 0 && x' <= 0
         x' := -0.5*x';
-        r  := 0.25*r;           // E := (0.5)^2 * E
+        r  := [0.0..0.25]*r;           // E := (0.5)^2 * E
         mode := "Fly";
       end;
       x'' = -10;

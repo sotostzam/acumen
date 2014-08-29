@@ -11,6 +11,7 @@ object Canonical {
   val self         = name("self")
   val parent       = name("parent")
   val classf       = name("className")
+  val magicf       = name("simulator")
   val time         = name("time")
   val timeStep     = name("timeStep")
   val resultType   = name("resultType")
@@ -18,6 +19,7 @@ object Canonical {
   val nextChild    = name("nextChild")
   val seed1        = name("seed1")
   val seed2        = name("seed2")
+  val _3D          = name("_3D")
   val cmain        = ClassName("Main")
   val cmagic       = ClassName("Simulator")
 
@@ -99,16 +101,17 @@ object Canonical {
 
   /* magic fields getters and setters */
 
+  def getInSimulator(s:String, st:CStore): CValue = getInSimulator(Name(s,0), st)
   def getInSimulator(f:Name, st:CStore) = getObjectField(magicId(st), f, st)
   def setInSimulator(f:Name, v:CValue, s:CStore) = {
     val id = magicId(s)
     setObjectField(id, f, v, s)
   }
 
-  def getTime(st:CStore)     = extractDouble(getInSimulator(time, st))
-  def getTimeStep(st:CStore) = extractDouble(getInSimulator(timeStep, st))
-  def getEndTime(st:CStore)  = extractDouble(getInSimulator(endTime, st))
-  def getResultType(st:CStore)  =  { val VResultType(t) = getInSimulator(resultType, st); t }
+  def getTime(st:CStore)       = extractDouble(getInSimulator(time, st))
+  def getTimeStep(st:CStore)   = extractDouble(getInSimulator(timeStep, st))
+  def getEndTime(st:CStore)    = extractDouble(getInSimulator(endTime, st))
+  def getResultType(st:CStore) = { val VResultType(t) = getInSimulator(resultType, st); t }
 
   def setTime(d:Double, s:CStore)       = setInSimulator(time, VLit(GDouble(d)), s)
   def setResultType(t:ResultType, s:CStore) = setInSimulator(resultType, VResultType(t), s)

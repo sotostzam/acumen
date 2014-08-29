@@ -150,9 +150,3 @@ case class Transcendentals(ps: Parameters) {
   }
 
 }
-// object Transcendentals extends Transcendentals(Parameters.default) with Application {
-
-//   println("sin(pi/4) = " + sin(pi / 4))
-//   println("cos(pi/4) = " + cos(pi / 4))
-
-// }

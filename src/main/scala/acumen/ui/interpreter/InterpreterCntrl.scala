@@ -44,7 +44,7 @@ object InterpreterCntrl {
   // messages the Actor may send to the consumer
 
   case class Chunk(css: TraceData) // data computer so far
-  case class Done(msgs: Seq[String]) // finished computation, no more data
+  case class Done(msgs: Seq[String], md: Metadata, endTime: Double) // finished computation, no more data
 
   // Get an appropriate InterpreterCntrl for the semantics
   // if prog is given, scan the prog for #semantics and if

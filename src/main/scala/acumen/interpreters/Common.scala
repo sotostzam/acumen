@@ -5,6 +5,7 @@ import util.Names._
 import util.Conversions._
 import scala.math._
 import Errors._
+import util.Canonical._
 
 //
 // Common stuff to CStore Interpreters
@@ -12,6 +13,15 @@ import Errors._
 
 object Common {
  
+  type Env = Map[Name, CValue]
+  
+  /* get self reference in an env */
+  def selfCId(e:Env) : CId =
+    e(self) match {
+      case VObjId(Some(a)) => a
+      case _ => throw ShouldNeverHappen()
+    }
+  
   /* get the definition associated with a classname in p */
   def classDef(c:ClassName, p:Prog) : ClassDef =
     p.defs.find(_.name == c) match {
@@ -225,6 +235,49 @@ object Common {
 
   def threeDField(name: String) = 
     name == "_3D" || name == "_3DView"
+  
+  /* error checking */
+  
+  /**
+   * Ensure that for each variable that has an ODE declared in the private section, there is 
+   * an equation in scope at the current time step. This is done by checking that for each 
+   * primed field name in each object in st, there is a corresponding CId-Name pair in odes.
+   */
+  def checkContinuousDynamicsAlwaysDefined(prog: Prog, odes: List[(CId, Dot)], st: CStore): Unit = {
+    val declaredODENames = prog.defs.map(d => (d.name, (d.fields ++ d.priv.map(_.x)).filter(_.primes > 0))).toMap
+    st.foreach { case (o, _) =>
+      if (o != magicId(st))
+        declaredODENames.get(getCls(o, st)).map(_.foreach { n =>
+          if (!odes.exists { case (eo, d) => eo.id == o.id && d.field.x == n.x })
+            throw ContinuousDynamicsUndefined(o, n, Pretty.pprint(getObjectField(o, classf, st)), getTime(st))
+        })
+    }
+  }
+
+  /** Check for a duplicate assignment (of a specific kind) scheduled in assignments. */
+  def checkDuplicateAssingments(assignments: List[(CId, Dot)], error: Name => DuplicateAssingment): Unit = {
+    val duplicates = assignments.groupBy(a => (a._1,a._2)).filter{ case (_, l) => l.size > 1 }.toList
+    if (duplicates.size != 0) {
+      val first = duplicates(0)
+      val x = first._1._2.field
+      val poss = first._2.map{case (_,dot) => dot.pos}.sortWith{(a, b) => b < a}
+      throw error(first._1._2.field).setPos(poss(0)).setOtherPos(poss(1))
+    }
+  }
+  
+  /* runtime checks, should be disabled once we have type safety */
+
+  def checkAccessOk(id:CId, env:Env, st:CStore, context: Expr) : Unit = {
+    val sel = selfCId(env)
+    lazy val cs = childrenOf(sel, st)
+    if (sel != id && ! (cs contains id))
+      throw AccessDenied(id,sel,cs).setPos(context.pos)
+  }
+
+  def checkIsChildOf(child:CId, parent:CId, st:CStore, context: Expr) : Unit = {
+    val cs = childrenOf(parent, st)
+    if (! (cs contains child)) throw NotAChildOf(child,parent).setPos(context.pos)
+  }
 
   //
   // ODEs
@@ -271,5 +324,5 @@ object Common {
     def +++(that: S): S;
     def ***(that: Double): S;
   }
-
+  
 }

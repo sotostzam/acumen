@@ -144,10 +144,9 @@ object Parser extends MyStdTokenParsers {
       "&&", "<<", ">>", "&", "|", "%", "@", "..", "+/-", "#include", "#semantics")
 
   lexical.reserved ++=
-    List("for", "end", "if", "else", "create", "move", "in",
-      "terminate", "class", "sum", "true", "false",
-      "private", "switch", "case", "Continuous", "Discrete", "none", "type", "claim", "hypothesis",
-      "let")
+    List("for", "end", "if", "else", "create", "move", "in", "terminate", "class", 
+         "sum", "true", "false", "private", "switch", "case", "type", "claim", "hypothesis", "let", 
+         "Continuous", "Discrete", "FixedPoint", "none")
 
   /* token conversion */
 

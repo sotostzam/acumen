@@ -5,6 +5,7 @@ import util.Canonical._
 import ui.interpreter._
 import Pretty._
 
+/** Interface common to all interpreters. */
 trait Interpreter {
   def newInterpreterModel : InterpreterModel
   def run(p:Prog) : InterpreterRes
@@ -13,6 +14,71 @@ trait Interpreter {
 abstract class InterpreterRes {
   def print : Unit;
   def printLast : Unit;
+}
+
+/** Used to store information about the Store. */
+abstract class Metadata { def combine(that: Metadata): Metadata }
+case object NoMetadata extends Metadata {
+  def combine(that: Metadata): Metadata = that
+}
+case class SomeMetadata 
+  ( hyp: Map[ (CId, ClassName, Option[String]), HypothesisOutcome ] /* (object, class, name) -> outcome */
+  , timeDomain: (Double, Double)
+  , rigorous: Boolean /* Does this describe output of a rigorous interpreter? */
+  ) extends Metadata {
+  def combine(that: Metadata): Metadata = {
+    that match {
+      case NoMetadata => this
+      case SomeMetadata(th,tt,r) =>
+        require( this.timeDomain._2 >= tt._1 || tt._2 >= this.timeDomain._1 
+               , "Can not combine SomeMetadata with non-overlapping time domains.")
+        SomeMetadata(
+          (this.hyp.keySet union th.keySet).map(k => k -> {
+            (this.hyp.get(k), th.get(k)) match {
+              case (Some(o), None)    => o
+              case (None, Some(o))    => o
+              case (Some(l), Some(r)) => l pick r
+          }}).toMap
+        , (Math.min(this.timeDomain._1, tt._1), Math.max(this.timeDomain._2, tt._2))
+        , r && rigorous)
+    } 
+  }
+}
+/** The result of evaluating a hypothesis.*/
+trait HypothesisOutcome {
+  /**
+   * Returns either this or that outcome, depending on which is more significant. 
+   * A failure is more significant than a success, and an earlier failure more
+   * significant than a later one.
+   */
+  def pick(that: HypothesisOutcome): HypothesisOutcome
+}
+abstract class Success extends HypothesisOutcome { def pick(that: HypothesisOutcome) = that }
+abstract class Failure(counterExample: Set[(Dot,CValue)]) extends HypothesisOutcome
+/** Result of non-rigorous hypothesis evaluation (reference interpreter). */
+case object TestSuccess extends Success
+case class TestFailure(earliestTime: Double, counterExample: Set[(Dot,CValue)]) extends Failure(counterExample: Set[(Dot,CValue)]) {
+  def pick(that: HypothesisOutcome) = that match {
+    case TestSuccess    => this
+    case f: TestFailure => if (this.earliestTime <= f.earliestTime) this else that
+  }
+}
+/** Result of rigorous hypothesis evaluation (enclosure interpreter). */
+case object CertainSuccess extends Success
+abstract class RigorousFailure(earliestTime: (Double,Double), counterExample: Set[(Dot,CValue)]) extends Failure(counterExample: Set[(Dot,CValue)]) 
+case class CertainFailure(earliestTime: (Double,Double), counterExample: Set[(Dot,CValue)]) extends RigorousFailure(earliestTime, counterExample) {
+  def pick(that: HypothesisOutcome) = that match {
+    case CertainSuccess      => this
+    case _: UncertainFailure => this
+    case f: CertainFailure   => if (this.earliestTime._1 <= f.earliestTime._1) this else that
+  } 
+}  
+case class UncertainFailure(earliestTime: (Double,Double), counterExample: Set[(Dot,CValue)]) extends RigorousFailure(earliestTime, counterExample) {
+  def pick(that: HypothesisOutcome): HypothesisOutcome = that match {
+    case CertainSuccess      => this
+    case f: UncertainFailure => if (this.earliestTime._1 <= f.earliestTime._1) this else that
+    case f: CertainFailure   => f
+  } 
 }
 
 /** Interface common to all interpreters whose results can be converted to/from CStores. */
@@ -25,40 +91,46 @@ trait CStoreInterpreter extends Interpreter {
   def fromCStore (cs:CStore, root:CId) : Store
 
   /** Based on prog, creates the initial store that will be used to start the simulation. */
-  def init(prog:Prog) : (Prog, Store)
+  def init(prog:Prog) : (Prog, Store, Metadata)
+
+  sealed abstract class StepRes
+  case class Data(st: Store, md: Metadata) extends StepRes
+  case class Done(md: Metadata, endTime: Double) extends StepRes
   /**
-   * Moves the simulation one step forward.  Returns None at the end of the simulation.
+   * Moves the simulation one step forward.  Returns Done at the end of the simulation.
    * NOTE: Performing a step does not necessarily imply that time moves forward.
    * NOTE: The store "st" may be mutated in place or copied, depending on the interpreter.
    */
-  def step(p:Prog, st:Store) : Option[Store]
+  def step(p:Prog, st:Store, md: Metadata) : StepRes
   /** 
    * Performs multiple steps. Driven by "adder"  
    * NOTE: May be overridden for better performance.
    */
-  def multiStep(p: Prog, st0: Store, adder: DataAdder) : Store = {
+  def multiStep(p: Prog, st0: Store, md0: Metadata, adder: DataAdder) : (Store, Metadata, Double) = {
     var st = st0
+    var md = md0
     var cstore = repr(st0)
     var shouldAddData = ShouldAddData.IfLast 
     // ^^ set to IfLast on purpose to make things work
     while (true) {
-      step(p, st) match {
-        case Some(res) => // If the simulation is not over
-          cstore = repr(res) 
+      step(p, st, md) match {
+        case Data(resSt,resMd) => // If the simulation is not over
+          cstore = repr(resSt) 
           shouldAddData = adder.newStep(getResultType(cstore))
           if (shouldAddData == ShouldAddData.Yes)
             cstore.foreach{case (id,obj) => adder.addData(id, obj)}
           if (!adder.continue)
-            return res
-          st = res
-        case None => // If the simulation is over
+            return (resSt,resMd,Double.NaN)
+          st = resSt
+          md = resMd
+        case Done(resMd,endTime) => // If the simulation is over
           if (shouldAddData == ShouldAddData.IfLast)
             cstore.foreach{case (id,obj) => adder.addData(id, obj)}
           adder.noMoreData()
-          return st
+          return (st,resMd,endTime)
       }
     }
-    st
+    (st,md,Double.NaN)
   }
 
   type History = Stream[Store]
@@ -70,38 +142,39 @@ trait CStoreInterpreter extends Interpreter {
   def fromCStore(st:CStore) : Store =
     fromCStore(st, mainId(st))
 
-  def expose_externally(store:Store) : Store = {
-    store
-  }
+  def exposeExternally(store:Store, md:Metadata) : (Store, Metadata) =
+    (store, md)
 
   /* main loop */
-  def loop(p:Prog, st:Store) : History = {
-    st #:: (step(p, st) match {
-        case None      => empty
-        case Some(st1) => 
-		      val st2 = expose_externally(st1)
-		      loop(p, st2)
+  def loop(p:Prog, st:Store, md:Metadata) : History = {
+    st #:: (step(p, st, md) match {
+        case Done(_,_)      => empty
+        case Data(st1, md1) => 
+		      val (st2, md2) = exposeExternally(st1, md1)
+		      loop(p, st2, md2)
       })
   }
 
   /* all-in-one main-loop */
   def run(p:Prog) = {
-    val (p1,st) = init(p)
-    val trace = loop (p1, st)
+    val (p1,st,md) = init(p)
+    val trace = loop(p1, st, md)
     CStoreRes(trace map repr)
   }
 
 
   /* multistep versions of loop and run */
 
-  def loop(p:Prog, st:Store, adder: DataAdder) : History = {
-    st #:: {if (adder.done) empty
-            else loop(p, multiStep(p, st, adder), adder)}
-  }
+  def loop(p:Prog, st:Store, md: Metadata, adder: DataAdder) : History = {
+    st #:: { if (adder.done) empty
+             else {
+               val (st1, md1, _) = multiStep(p, st, md, adder)
+               loop(p, st1, md1, adder)}
+             }}
 
   def run(p: Prog, adder: DataAdder) : History = {
-   val (p1,st) = init(p)
-   loop(p1, st, adder)
+   val (p1,st,md) = init(p)
+   loop(p1, st, md, adder)
   }
 }
 

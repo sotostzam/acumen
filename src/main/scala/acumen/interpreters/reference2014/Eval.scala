@@ -7,14 +7,15 @@ import acumen.Errors._
 
 /** Used to represent the statements that are active at a given point during the simulation. */
 case class Changeset
-  ( dead: Set[CId]                       = Set.empty /* dead */
-  , reps: Set[(CId,CId)]                 = Set.empty /* reparentings */
-  , das:  Set[(CId,Dot,CValue)]          = Set.empty /* discrete assignments */
-  , eqs:  Set[(CId,Dot,CValue)]          = Set.empty /* continuous assignments / equations */
-  , odes: Set[(CId,Dot,Expr,Env)]        = Set.empty /* ode assignments / differential equations */
+  ( dead: Set[CId]                           = Set.empty /* dead */
+  , reps: Set[(CId,CId)]                     = Set.empty /* reparentings */
+  , das:  Set[(CId,Dot,CValue)]              = Set.empty /* discrete assignments */
+  , eqs:  Set[(CId,Dot,CValue)]              = Set.empty /* continuous assignments / equations */
+  , odes: Set[(CId,Dot,Expr,Env)]            = Set.empty /* ode assignments / differential equations */
+  , hyps: Set[(CId,Option[String],Expr,Env)] = Set.empty /* hypotheses */
   ) {
   def ++(that: Changeset) =
-    Changeset(dead ++ that.dead, reps ++ that.reps, das ++ that.das, eqs ++ that.eqs, odes ++ that.odes)
+    Changeset(dead ++ that.dead, reps ++ that.reps, das ++ that.das, eqs ++ that.eqs, odes ++ that.odes, hyps ++ that.hyps)
 }
 object Changeset {
   val empty = Changeset()
@@ -88,6 +89,9 @@ object Eval {
 
   def logODE(o: CId, d: Dot, r: Expr, e: Env) : Eval[Unit] =
     mkEval(s => ((), Changeset(odes = Set((o,d,r,e))), s))
+
+  def logHypothesis(o: CId, n: Option[String], h: Expr, e: Env) : Eval[Unit] =
+    mkEval(s => ((), Changeset(hyps = Set((o,n,h,e))), s))
 
   /** Apply f to the store and wrap it in an Eval */
   def asks[A](f : Store => A) : Eval[A] = 

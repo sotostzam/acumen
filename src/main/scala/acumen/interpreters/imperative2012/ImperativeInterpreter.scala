@@ -35,7 +35,7 @@ class ImperativeInterpreter extends CStoreInterpreter {
   def repr (s:Store) : CStore = Common.repr(s)
   def fromCStore (cs:CStore, root:CId) : Store = Common.fromCStore(cs, root)
 
-  def init(prog: Prog): (Prog, Store) = {
+  def init(prog: Prog): (Prog, Store, Metadata) = {
     val magic = fromCStore(initStoreImpr, CId(0))
     /* WARNING: the following line works because there is no children access check
        if one of the instructions of the provate section tries to access magic,
@@ -47,7 +47,7 @@ class ImperativeInterpreter extends CStoreInterpreter {
     val cprog = CleanParameters.run(prog, CStoreInterpreterType)
     val sprog = Simplifier.run(cprog)
     val mprog = Prog(magicClass :: sprog.defs)
-    (mprog , mainObj)
+    (mprog , mainObj, NoMetadata)
   }
 
   def localStep(p: Prog, st: Store): ResultType = {
@@ -84,15 +84,15 @@ class ImperativeInterpreter extends CStoreInterpreter {
     }
   }
 
-  def step(p: Prog, st: Store): Option[Store] = {
+  def step(p: Prog, st: Store, md: Metadata): StepRes = {
     val res = localStep(p, st)
-    if (res == null) None
-    else Some(st)
+    if (res == null) Done(NoMetadata, Double.NaN)
+    else Data(st, NoMetadata)
   }
 
   // always returns the last known step, the adder callback is used to
   // determine when teh simulation is done
-  override def multiStep(p: Prog, st: Store, adder: DataAdder): Store = {
+  override def multiStep(p: Prog, st: Store, md: Metadata, adder: DataAdder): (Store, Metadata, Double) = {
     val magic = getSimulator(st)
     var shouldAddData = ShouldAddData.IfLast
     // ^^ set to IfLast on purpose to make things work
@@ -112,7 +112,7 @@ class ImperativeInterpreter extends CStoreInterpreter {
       }
     }
     step0()
-    st
+    (st, NoMetadata, Double.NaN)
   }
 
   def addData(st: Store, adder: DataAdder) : Unit = {

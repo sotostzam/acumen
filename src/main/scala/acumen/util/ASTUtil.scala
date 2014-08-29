@@ -22,6 +22,15 @@ object ASTUtil {
     case ExprRhs(e) => List(e)
   }
   
+  def op(o: String, ps: Expr*): Expr = Op(Name(o,0), ps.toList)
+  
+  /** Returns all variables that occur in e. */
+  def dots(e: Expr): List[Dot] = e match {
+    case d @ Dot(_, _) => d :: Nil
+    case Op(_, es)     => es flatMap dots
+    case _             => Nil
+  }
+
   /** Allow hypotheses only at top level of classes. */
   def checkNestedHypotheses(prog: Prog): Unit = {
     def disallowHypotheses(a: Action, atTopLevel: Boolean): Unit = a match {
@@ -34,6 +43,6 @@ object ASTUtil {
     }
     for (cd <- prog.defs; a <- cd.body) disallowHypotheses(a, true)
   }
-  
+
 }
 

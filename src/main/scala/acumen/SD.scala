@@ -64,8 +64,7 @@ object SD {
    * contained in the actions of the case statement and 2) the expression which is
    * used to decide that this specific case should be taken.
    */
-  private def runClause(c: Clause): Clause = Clause(c.lhs,  Lit(GBool(true)), 
-                                                    c.rhs map runAction)
+  private def runClause(c: Clause): Clause = Clause(c.lhs, runExpr(c.assertion), c.rhs map runAction)
 
   /**
    * Apply symbolic differentiation (dif) to an expression.
@@ -78,7 +77,7 @@ object SD {
       /* Unary function */
       case Op(opName, args) => opName.x match {
         case "dif" => args match {
-          // f is the funciton that we are diffing, 
+          // f is the function that we are diffing, 
           // n is the variable w.r.t which we are diffing 
           case List(f, Var(n)) => dif(f)(n)
         }
