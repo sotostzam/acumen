@@ -56,5 +56,11 @@ object System {
     s
   }
   
+  /** Depending on the operating system, returns the appropriate mask key. */
+  def shortcutMask() = util.System.detectOperatingSystem match {
+    case util.System.Windows | util.System.Unix | util.System.Other => java.awt.event.InputEvent.CTRL_MASK
+    case util.System.Mac => java.awt.event.InputEvent.META_MASK
+  }
+  
 }
 

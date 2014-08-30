@@ -7,27 +7,29 @@ import java.awt.Font
 import java.awt.GraphicsEnvironment
 import java.awt.event.ActionEvent
 import java.awt.event.ActionListener
-import java.io.File
-import java.io.FileReader
-import java.io.FileWriter
+import java.awt.event.KeyEvent.{ VK_C, VK_CLOSE_BRACKET, VK_OPEN_BRACKET }
+import java.io.{
+  File, FileReader, FileWriter
+}
 import scala.Array.canBuildFrom
-import scala.collection.mutable.ArrayBuffer
-import scala.collection.mutable.Buffer
-import scala.swing.FileChooser
-import scala.swing.Label
-import scala.swing.Panel
+import scala.collection.mutable.{
+  ArrayBuffer, Buffer
+}
+import scala.swing.{
+  FileChooser, Label, Panel
+}
 import scala.xml.XML
-import org.fife.ui.autocomplete.AutoCompletion
-import org.fife.ui.autocomplete.BasicCompletion
-import org.fife.ui.autocomplete.DefaultCompletionProvider
-import org.fife.ui.rsyntaxtextarea.AbstractTokenMakerFactory
-import org.fife.ui.rsyntaxtextarea.RSyntaxTextArea
-import org.fife.ui.rsyntaxtextarea.SyntaxConstants
-import org.fife.ui.rsyntaxtextarea.TokenMakerFactory
-import org.fife.ui.rsyntaxtextarea.TokenTypes
+import org.fife.ui.autocomplete.{
+  AutoCompletion, BasicCompletion, DefaultCompletionProvider
+}
+import org.fife.ui.rsyntaxtextarea.{
+  AbstractTokenMakerFactory, RSyntaxTextArea, RSyntaxTextAreaEditorKit,
+  SyntaxConstants, TokenMakerFactory, TokenTypes
+}
 import org.fife.ui.rsyntaxtextarea.templates.StaticCodeTemplate
-import org.fife.ui.rtextarea.SearchContext
-import org.fife.ui.rtextarea.SearchEngine
+import org.fife.ui.rtextarea.{
+  SearchContext, SearchEngine
+}
 import org.fife.ui.rsyntaxtextarea.TokenTypes.{
   COMMENT_DOCUMENTATION, COMMENT_EOL, COMMENT_KEYWORD, COMMENT_MARKUP, COMMENT_MULTILINE
 }
@@ -41,6 +43,7 @@ import javax.swing.event._
 import java.util.concurrent.atomic.AtomicBoolean
 import javax.swing.text.BadLocationException
 import java.awt.Point
+import java.awt.event.InputEvent
 
 class CodeArea extends Panel with TreeSelectionListener {
 
@@ -95,20 +98,24 @@ class CodeArea extends Panel with TreeSelectionListener {
     sta.setHighlightCurrentLine(false)
     sta.setTabSize(2)
     sta.setTabsEmulated(true) // Use soft tabs
-    if (Main.useCompletion) {
-      val completionProvider = createCompletionProvider(sta)
-      val autoCompletion = new AutoCompletion(completionProvider)
-      autoCompletion setTriggerKey KeyStroke.getKeyStroke("TAB")
-      autoCompletion install sta
-    }
+    updateCompletionProvider(sta, Main.defaultSemantics.interpreter)
     if (Main.useTemplates) {
       RSyntaxTextArea setTemplatesEnabled true
       createCodeTemplateManager
     }
     sta
   }
+  
+  def updateCompletionProvider(i: Interpreter): Unit = if (textArea != null) updateCompletionProvider(textArea, i)
+  
+  private def updateCompletionProvider(ta: RSyntaxTextArea, i: Interpreter) = if (Main.useCompletion) {
+    val completionProvider = createCompletionProvider(ta, i)
+    val autoCompletion = new AutoCompletion(completionProvider)
+    autoCompletion setTriggerKey KeyStroke.getKeyStroke("TAB")
+    autoCompletion install ta
+  }
 
-  def createCompletionProvider(textArea: RSyntaxTextArea) = {
+  def createCompletionProvider(textArea: RSyntaxTextArea, i: Interpreter) = {
     val cp = new DefaultCompletionProvider {
       // Make it possible to complete strings ending with .
       override def isValidChar(ch: Char) = super.isValidChar(ch) || ch=='.';
@@ -124,8 +131,7 @@ class CodeArea extends Panel with TreeSelectionListener {
     }
     cp.addCompletion(new BasicCompletion(cp, "Main"))
     cp.addCompletion(new BasicCompletion(cp, "simulator"))
-    for (paramName <- Parameters.defaults.map(_._1))
-      cp.addCompletion(new BasicCompletion(cp, "simulator." + paramName))
+    for (p <- i.visibleParameters.keys) cp.addCompletion(new BasicCompletion(cp, "simulator." + p))
     cp
   }
 
@@ -398,19 +404,29 @@ class CodeArea extends Panel with TreeSelectionListener {
 
   def setFontName(n: String) =
     textArea.setFont(new Font(n, textArea.getFont getStyle, textArea.getFont getSize))
-
   val supportedFonts =
     DEFAULT_FONT_NAME +: GraphicsEnvironment.getLocalGraphicsEnvironment.getAvailableFontFamilyNames.filter(KNOWN_FONTS contains _.toLowerCase)
-
   private def setFontSize(size: Int) =
     textArea.setFont(new Font(textArea.getFont getName, textArea.getFont getStyle, size))
-
   def increaseFontSize = setFontSize(textArea.getFont.getSize + 2)
-
   def decreaseFontSize = if (textArea.getFont.getSize > 3) setFontSize(textArea.getFont.getSize - 2)
-
   def resetFontSize = setFontSize(DEFAULT_FONT_SIZE)
 
+  /* Indentation */
+  
+  def increaseIndent() = textArea.getActionMap.get("increaseIndentAction").actionPerformed(null)
+  def decreaseIndent() = textArea.getActionMap.get("decreaseIndentAction").actionPerformed(null)
+
+  textArea.getInputMap.put(KeyStroke.getKeyStroke(VK_OPEN_BRACKET, util.System.shortcutMask), "decreaseIndentAction")
+  textArea.getInputMap.put(KeyStroke.getKeyStroke(VK_CLOSE_BRACKET, util.System.shortcutMask), "increaseIndentAction")
+  textArea.getActionMap.put("increaseIndentAction", new RSyntaxTextAreaEditorKit.InsertTabAction())
+  textArea.getActionMap.put("decreaseIndentAction", new RSyntaxTextAreaEditorKit.DecreaseIndentAction())
+  
+  /* Copy code as RTF (syntax highlighted) */
+  
+  textArea.getInputMap.put(KeyStroke.getKeyStroke(VK_C, util.System.shortcutMask), "copyAsRTFAction")
+  textArea.getActionMap.put("copyAsRTFAction", new RSyntaxTextAreaEditorKit.CopyAsRtfAction())
+  
   /* Let the FileTree browser listen for path changes, due to file open/save actions. 
    * Open and Save As may change the path. 
    */

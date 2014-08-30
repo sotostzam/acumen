@@ -36,6 +36,7 @@ object Interpreter extends acumen.CStoreInterpreter {
 
   def repr(st:Store) = st
   def fromCStore(st:CStore, root:CId) = st
+  override def visibleParameters = visibleParametersRef + ("method" -> VLit(GStr(methodRungeKutta)))
 
   /* initial values */
   val emptyStore : Store = HashMap.empty
@@ -400,13 +401,13 @@ object Interpreter extends acumen.CStoreInterpreter {
 
   /** Summarize result of evaluating the hypotheses of all objects. */
   def testHypotheses(hyps: Set[(CId, Option[String], Expr, Env)], old: Metadata, st: Store): Metadata =
-    old combine SomeMetadata(hyps.map {
+    old combine (if (hyps isEmpty) NoMetadata else SomeMetadata(hyps.map {
       case (o, hn, h, env) =>
         val cn = getCls(o, st)
         lazy val counterEx = dots(h).toSet[Dot].map(d => d -> evalExpr(d, env, st))
         val VLit(GBool(b)) = evalExpr(h, env, st)
         (o, cn, hn) -> (if (b) TestSuccess else TestFailure(getTime(st), counterEx))
-    }.toMap, (getTime(st), getTime(st) + getTimeStep(st)), false)
+    }.toMap, (getTime(st), getTime(st) + getTimeStep(st)), false))
 
   /**
    * Solve ODE-IVP defined by odes parameter tuple, which consists of:
@@ -420,10 +421,10 @@ object Interpreter extends acumen.CStoreInterpreter {
     implicit val field = FieldImpl(odes, p)
     new Solver(getInSimulator(Name("method", 0),st), xs = st, h = getTimeStep(st)){
       // add the EulerCromer solver
-      override def knownSolvers = super.knownSolvers :+ "EulerCromer"
+      override def knownSolvers = super.knownSolvers :+ methodEulerCromer
       override def solveIfKnown(name: String) = super.solveIfKnown(name) orElse (name match {
-        case "EulerCromer" => Some(solveIVPEulerCromer(xs, h))
-        case _             => None  
+        case `methodEulerCromer` => Some(solveIVPEulerCromer(xs, h))
+        case _                   => None  
       })
     }.solve
   }

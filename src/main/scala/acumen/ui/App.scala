@@ -4,6 +4,7 @@ package ui
 
 import tl._
 import interpreter._
+import util.System.shortcutMask
 import java.lang.Thread
 import scala.actors._
 import collection.JavaConversions._
@@ -20,6 +21,9 @@ import java.awt.RenderingHints
 import java.awt.Toolkit
 import java.awt.event.KeyEvent
 import java.awt.event.KeyEvent._
+import java.awt.event.KeyEvent.{
+  VK_CLOSE_BRACKET => VK_RBRACKET, VK_OPEN_BRACKET => VK_LBRACKET 
+}
 import java.awt.event.InputEvent._
 import java.io._
 import javax.swing.AbstractAction
@@ -49,10 +53,10 @@ import acumen.interpreters.enclosure.event.pwl.PWLEventEncloser
 import acumen.interpreters.enclosure.event.tree.TreeEventEncloser
 import acumen.{SemanticsImpl => S}
 
-// class Acumen = Everything that use to be GraphicalMain.  Graphical
+// class Acumen = Everything that used to be GraphicalMain. Graphical
 // Main can't be an object it will cause Swing components to be
 // initialized outside of the Event Dispatcher Thread (EDT).  Thus 
-// we make it a seperate class and have GraphicalMain top() method
+// we make it a separate class and have GraphicalMain top() method
 // initialize it
 
 class App extends SimpleSwingApplication {
@@ -64,6 +68,15 @@ class App extends SimpleSwingApplication {
   val DEFAULT_WIDTH = 1024
 
   private val cores = Runtime.getRuntime.availableProcessors
+  
+  var interpreter: InterpreterCntrl = InterpreterCntrl(Main.defaultSemantics)
+  
+  def setSemantics(si: SemanticsImpl[Interpreter]) = {
+    Main.defaultSemantics = si
+    ui.codeArea.updateCompletionProvider(si.interpreter)
+    console.log("Selected the \"" + si.descr + "\" semantics.")
+    console.newLine
+  }
   
   // Create a special actor to listen to events from other threads
   // runs on the EDT
@@ -93,7 +106,7 @@ class App extends SimpleSwingApplication {
               interpreter = InterpreterCntrl(Main.defaultSemantics,Some(codeArea.textArea.getText))
               if (Main.defaultSemantics != interpreter.semantics) {
                 warnSemanticsChange(Main.defaultSemantics, interpreter.semantics)
-                Main.defaultSemantics = interpreter.semantics
+                setSemantics(interpreter.semantics)
                 selectMenuItemFromSemantics()
               }
               controller ! Init(codeArea.textArea.getText, codeArea.currentDir, interpreter)
@@ -145,6 +158,8 @@ class App extends SimpleSwingApplication {
   private val increaseFontSizeAction          = mkAction(    "Enlarge Font",                        VK_I, VK_PLUS,    codeArea increaseFontSize)
   private val decreaseFontSizeAction          = mkAction(    "Reduce Font",                         VK_D, VK_MINUS,   codeArea decreaseFontSize)
   private val resetFontSizeAction             = mkAction(    "Reset Font",                          VK_R, VK_0,       codeArea resetFontSize)
+  private val increaseIndentAction            = mkAction(    "Increase Indentation",                VK_N, VK_RBRACKET,codeArea increaseIndent) // Key binding set in CodeArea
+  private val decreaseIndentAction            = mkAction(    "Decrease Indentation",                VK_E, VK_LBRACKET,codeArea decreaseIndent) // Key binding set in CodeArea
   private val showLineNumbersAction           = mkAction(    "Line Numbers",                        VK_L, VK_L,       toggleLineNumbers)
   private val plotStyleLinesAction            = new Action(  "Lines")       { mnemonic =            VK_L; def apply = plotView.setPlotStyle(plot.Lines()) }
   private val plotStyleDotsAction             = new Action(  "Dots")        { mnemonic =            VK_D; def apply = plotView.setPlotStyle(plot.Dots()) }
@@ -400,12 +415,6 @@ class App extends SimpleSwingApplication {
   private def mkAction(name: String, m: Int, a: Int, act: => Unit) =
     mkActionMask(name, m, a, shortcutMask, act)
 
-  /** Depending on the operating system, returns the appropriate mask key. */
-  private def shortcutMask() = util.System.detectOperatingSystem match {
-    case util.System.Windows | util.System.Unix | util.System.Other => CTRL_MASK
-    case util.System.Mac => java.awt.event.InputEvent.META_MASK
-  }
-  
   /** 
    * Used to construct actions for MenuItems. Both m and a should be some VK from KeyEvent. 
    * m:     Mnemonic, used to select item from menu.
@@ -439,6 +448,9 @@ class App extends SimpleSwingApplication {
       contents += new MenuItem(cutAction) 
       contents += new MenuItem(copyAction)
       contents += new MenuItem(pasteAction)
+      contents += new Separator
+      contents += new MenuItem(increaseIndentAction)
+      contents += new MenuItem(decreaseIndentAction)
       contents += new Separator
       contents += new MenuItem(selectAllAction)
       contents += new CheckMenuItem("Find") {
@@ -675,14 +687,7 @@ class App extends SimpleSwingApplication {
   /* ----- events handling ---- */
   
   var state: State = Stopped
-  var interpreter: InterpreterCntrl = null
-  def setSemantics(si: SemanticsImpl[Interpreter]) = {
-    Main.defaultSemantics = si;
-    console.log("Selected the \"" + si.descr + "\" semantics.")
-    console.newLine
-  }
 
-  interpreter = InterpreterCntrl(Main.defaultSemantics);
   def selectMenuItemFromSemantics() {
     Main.defaultSemantics match {
       case S.Ref2012 => bar.semantics.ref2013.selected = true

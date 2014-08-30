@@ -9,6 +9,8 @@ import Pretty._
 trait Interpreter {
   def newInterpreterModel : InterpreterModel
   def run(p:Prog) : InterpreterRes
+  /** Map of parameters -> default values, visible to the user, e.g. in code area completions. */
+  def visibleParameters(): Map[String,CValue]
 }
 
 abstract class InterpreterRes {

@@ -66,10 +66,10 @@ class Console extends ListView[ConsoleMessage] {
         val sid = s"(#${id.cid.toString}:${cn.x})".padTo(mLenCId + mLenCN + 2, "&nbsp;").mkString
         val shn = hn.map("'" + _ + "'").getOrElse("").padTo(mLenHN + 2, "&nbsp;").mkString
         def fail(prefix: String, t: String, e: Set[(Dot,CValue)]) = 
-          s"$prefix $t, where " + e.map { case (d, v) => 
+          s"$prefix $t" + (if (e isEmpty) "" else ", where " + e.map { case (d, v) => 
             val lhs = Pretty pprint (if (d.obj == Var(util.Canonical.self)) Var(d.field) else (d:Expr)) 
             s"$lhs = ${Pretty pprint v}"
-          }.mkString(", ")
+          }.mkString(", "))
         val (s, u, f, symbol, sho) = ho match {
           case TestSuccess            => (1, 0, 0,                "+",       "Tested")
           case TestFailure(t, e)      => (0, 0, 1, colorFailure  ("-"), fail("Tested false at", t.toString, e))

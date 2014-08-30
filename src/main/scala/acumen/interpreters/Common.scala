@@ -15,6 +15,10 @@ object Common {
  
   type Env = Map[Name, CValue]
   
+  val methodEulerCromer  = "EulerCromer"
+  val methodEulerForward = "EulerForward"
+  val methodRungeKutta   = "RungeKutta"
+  
   /* get self reference in an env */
   def selfCId(e:Env) : CId =
     e(self) match {
@@ -219,17 +223,28 @@ object Common {
   val magicClassTxt =
     """class Simulator(time, timeStep, outputRows, continuousSkip, endTime, resultType, lastCreatedId) end"""
   val initStoreTxt =
-    """#0.0 { className = Simulator, parent = %s, time = 0.0, timeStep = 0.01, 
-              outputRows = "WhenChanged", continuousSkip = 0,
-              endTime = 10.0, resultType = @Discrete, nextChild = 0,
-	      method = "RungeKutta", seed1 = 0, seed2 = 0 }"""
+    s"""#0.0 { className = Simulator, parent = %s, time = 0.0, timeStep = 0.01, 
+               outputRows = "WhenChanged", continuousSkip = 0,
+               endTime = 10.0, resultType = @Discrete, nextChild = 0,
+	             method = "$methodRungeKutta", seed1 = 0, seed2 = 0 }"""
 
   lazy val magicClass = Parser.run(Parser.classDef, magicClassTxt)
   lazy val initStoreRef = Parser.run(Parser.store, initStoreTxt.format("#0"))
   lazy val initStoreImpr = Parser.run(Parser.store, initStoreTxt.format("none"))
+  
+  // Register simulator parameters that should appear as completions in the code editor 
+  // for any interpreter. Additional parameters are taken from Interpreter.parameters. 
+  val visibleSimulatorFields = List("time", "timeStep", "endTime")
+
+  def visibleParametersMap(initStore: CStore): Map[String,CValue] = {
+    val initialMagic = initStore(magicId(initStore))
+    visibleSimulatorFields.map(p => (p, initialMagic(name(p)))).toMap
+  }
+  val visibleParametersRef = visibleParametersMap(initStoreRef)
+  val visibleParametersImpr = visibleParametersMap(initStoreImpr)
                                   
-  // register valid simulator parameters
-  val simulatorFields = List("time", "timeStep", "outputRows", "continuousSkip", "endTime", "resultType", "lastCreatedId", "method")
+  // Register valid simulator parameters
+  val simulatorFields = visibleSimulatorFields ::: List("outputRows", "continuousSkip", "resultType", "lastCreatedId", "method")
 
   val specialFields = List("nextChild","parent","className","seed1","seed2")
 
@@ -285,20 +300,19 @@ object Common {
   
   class Solver[S <% RichStore[S]](solverName: Value[_], val xs: S, val h: Double)(implicit f: Field[S]) {
     private def msg(meth: String) = "Invalid integration method \"" + meth +
-        "\". Please select one of: " + knownSolvers.mkString(", ");
+        "\". Please select one of: " + knownSolvers.mkString(", ")
     final def solve: S = {
       solverName match {
         case VLit(GStr(s))              => solveIfKnown(s) getOrElse (throw new Error(msg(s)))
-        case VLit(GStr(m))              => throw new Error(msg(m))
         case VClassName(ClassName(c))   => throw new Error(msg(c))
         case m                          => throw new Error(msg(m.toString))
       }
     }
-    def knownSolvers = List("EulerForward", "RungeKutta");
+    def knownSolvers = List(methodEulerForward, methodRungeKutta)
     def solveIfKnown(name: String) : Option[S] = name match {
-      case "EulerForward" => Some(solveIVPEulerForward(xs, h))
-      case "RungeKutta"   => Some(solveIVPRungeKutta(xs, h))
-      case _              => None
+      case `methodEulerForward` => Some(solveIVPEulerForward(xs, h))
+      case `methodRungeKutta`   => Some(solveIVPRungeKutta(xs, h))
+      case _                    => None
     }
   }
 

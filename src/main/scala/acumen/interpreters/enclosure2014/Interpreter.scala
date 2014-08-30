@@ -54,15 +54,24 @@ object Interpreter extends CStoreInterpreter {
   
   type Store = EnclosureAndBranches
   def repr(st:Store) = st.enclosure
-  def fromCStore(st: CStore, root: CId): Store = EnclosureAndBranches(st, (st, Epsilon, StartTime) :: Nil) 
-  
-  /* Initial values */
+  def fromCStore(st: CStore, root: CId): Store = EnclosureAndBranches(st, (st, Epsilon, StartTime) :: Nil)
+  override def visibleParameters: Map[String, CValue] = 
+    Map(ParamTime, ParamEndTime, ParamTimeStep, 
+        ParamMaxBranches, ParamMaxIterationsPerBranch, ParamIntersectWithGuardBeforeReset) 
 
-  // FIXME Get parameter value from model
+  /* Constants */
+  
+  private val ParamTime                          = "time"                          -> VLit(GDouble(0.0))
+  private val ParamEndTime                       = "endTime"                       -> VLit(GDouble(10.0))
+  private val ParamTimeStep                      = "timeStep"                      -> VLit(GDouble( 0.015625))
+  private val ParamMaxBranches                   = "maxBranches"                   -> VLit(GInt(100))                  
+  private val ParamMaxIterationsPerBranch        = "maxIterationsPerBranch"        -> VLit(GInt(1000))    
+  private val ParamIntersectWithGuardBeforeReset = "intersectWithGuardBeforeReset" -> VLit(GBool(true))
+  
+  private val legacyParameters = Parameters.default.copy(interpreter = Some(enclosure.Interpreter.EVT))
+  private implicit val rnd = Rounding(legacyParameters)
   private val bannedFieldNames = List(self, parent, classf, nextChild, seed1, seed2, magicf)
-  private implicit val rnd = Rounding(Parameters.default)
   private val contractInstance = new Contract{}
-  private val transcendentals = new Transcendentals(Parameters.default)
 
   /* Types */
 
@@ -338,7 +347,7 @@ object Interpreter extends CStoreInterpreter {
   def updateSimulator(p: Prog, st: Store): Store = {
     val paramMap = p.defs.find(_.name == cmain).get.body.flatMap {
       case Discretely( Assign(Dot(Dot(Var(Name(self, 0)), Name(simulator, 0)), param)
-                     , Lit(rhs @ (GInt(_) | GDouble(_) | GInterval(_))))) => 
+                     , Lit(rhs @ (GBool(_) | GDouble(_) | GInt(_) | GInterval(_))))) => 
         List((param, VLit(rhs)))
       case _ => Nil
     }.toMap
@@ -497,16 +506,16 @@ object Interpreter extends CStoreInterpreter {
   /** Purely functional unary operator evaluation at the ground values level */
   def unaryGroundOp(f:String, vx:GroundValue) = {
     def implem(f: String, x: Interval) = f match {
-      case "-"   => -x
-      case "sin" => transcendentals.sin(x)
-      case "cos" => transcendentals.sin(x)
-      case _     => throw UnknownOperator(f)
+      case "-"    => -x
+      case "abs"  => x.abs
+      case "sqrt" => x.sqrt
+      case "sin"  => rnd.transcendentals.sin(x)
+      case "cos"  => rnd.transcendentals.cos(x)
+      case _      => throw UnknownOperator(f)
     }
     (f, vx) match {
-      case ("not", Uncertain)    => Uncertain
-      case ("abs", GInterval(i)) => Real(i.abs)
-      case ("-",   GInterval(i)) => Real(-i)
-      case _                     => Real(implem(f, extractInterval(vx)))
+      case ("not", Uncertain) => Uncertain
+      case _                  => Real(implem(f, extractInterval(vx)))
     }
   }
   
@@ -523,10 +532,12 @@ object Interpreter extends CStoreInterpreter {
       case _ => (ivr,ivr)
     }
     def implemInterval(f:String, l:Interval, r:Interval) = f match {
-      case "+" => l + r
-      case "-" => l - r
-      case "*" => l * r
-      case "/" => l / r
+      case "+"   => l + r
+      case "-"   => l - r
+      case "*"   => if (l equalTo r) l.square else l * r
+      case "/"   => l / r
+      case "min" => Interval.min(l,r)
+      case "max" => Interval.max(l,r)
     }
     // Based on implementations from acumen.interpreters.enclosure.Relation
     def implemBool(f:String, l:GroundValue, r:GroundValue): GUncertainBool = f match {
@@ -720,11 +731,10 @@ object Interpreter extends CStoreInterpreter {
   }
   
   lazy val initStore = Parser.run(Parser.store, initStoreTxt.format("#0"))
-  val initStoreTxt = 
-  """#0.0 { className = Simulator, parent = %s, nextChild = 0, seed1 = 0, seed2 = 0, 
-            time = 0.0, endTime = 10.0, timeStep = 0.015625,
-            outputRows = "All", continuousSkip = 0, resultType = @Discrete, 
-            maxIterationsPerBranch = 1000, maxBranches = 100 }"""
+  val initStoreTxt: String = 
+    s"""#0.0 { className = Simulator, parent = %s, nextChild = 0, seed1 = 0, seed2 = 0, 
+               outputRows = "All", continuousSkip = 0, resultType = @Discrete, 
+               ${visibleParameters.map(p => p._1 + "=" + Pretty.pprint(p._2)).mkString(",")} }"""
 
   /** Updates the values of variables in xs (identified by CId and Dot.field) to the corresponding CValue. */
   def applyAssignments(xs: List[(CId, Dot, CValue)], st: Enclosure): Enclosure =
@@ -802,8 +812,9 @@ object Interpreter extends CStoreInterpreter {
    * for the next time interval.
    */
   def hybridEncloser(T: Interval, prog: Prog, st: EnclosureAndBranches): EnclosureAndBranches = {
-    val VLit(GInt(maxBranches)): CValue = getInSimulator("maxBranches", st.enclosure)
-    val VLit(GInt(maxIterationsPerBranch)): CValue = getInSimulator("maxIterationsPerBranch", st.enclosure)
+    val VLit(GInt(maxBranches))                    = getInSimulator(ParamMaxBranches._1,                   st.enclosure)
+    val VLit(GInt(maxIterationsPerBranch))         = getInSimulator(ParamMaxIterationsPerBranch._1,        st.enclosure)
+    val VLit(GBool(intersectWithGuardBeforeReset)) = getInSimulator(ParamIntersectWithGuardBeforeReset._1, st.enclosure)
     require(st.branches.nonEmpty, "hybridEncloser called with zero branches")
     require(st.branches.size < maxBranches, s"Number of branches (${st.branches.size}) exceeds maximum ($maxBranches).")
     def mergeBranches(ics: List[InitialCondition]): List[InitialCondition] =
@@ -842,11 +853,12 @@ object Interpreter extends CStoreInterpreter {
       hw.foldLeft((pwlW, pwlR, pwlU)) {
         case ((tmpW, tmpR, tmpU), q) =>
           if (!isFlow(q)) {
-            val wIntersectedWithGuard = contract(w, q.ass.map(da => DelayedConstraint(da.selfCId,da.path)), prog) match {
-              case Right(r) => r
-              case Left(s) => sys.error("Empty intersection while contracting with guard. " + s)  
-            }
-            ((wIntersectedWithGuard(q.ass), q :: qw, t) :: tmpW, tmpR, tmpU)
+            val wi = 
+              if (intersectWithGuardBeforeReset)
+                contract(w, q.ass.map(da => DelayedConstraint(da.selfCId, da.path)), prog)
+                  .fold(sys error "Empty intersection while contracting with guard. " + _, i => i)
+              else w
+            ((wi(q.ass), q :: qw, t) :: tmpW, tmpR, tmpU)
           }
           else if ((t == UnknownTime && qw.nonEmpty && qw.head == q) || T.isThin)
             (tmpW, tmpR, tmpU)
