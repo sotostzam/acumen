@@ -56,17 +56,17 @@ object Interpreter extends CStoreInterpreter {
   def repr(st:Store) = st.enclosure
   def fromCStore(st: CStore, root: CId): Store = EnclosureAndBranches(st, (st, Epsilon, StartTime) :: Nil)
   override def visibleParameters: Map[String, CValue] = 
-    Map(paramTime, paramEndTime, paramTimeStep, 
-        paramMaxBranches, paramMaxIterationsPerBranch, paramIntersectWithGuardBeforeReset) 
+    Map(ParamTime, ParamEndTime, ParamTimeStep, 
+        ParamMaxBranches, ParamMaxIterationsPerBranch, ParamIntersectWithGuardBeforeReset) 
 
   /* Constants */
   
-  private val paramTime                          = "time"                          -> VLit(GDouble(0.0))
-  private val paramEndTime                       = "endTime"                       -> VLit(GDouble(10.0))
-  private val paramTimeStep                      = "timeStep"                      -> VLit(GDouble( 0.015625))
-  private val paramMaxBranches                   = "maxBranches"                   -> VLit(GInt(100))                  
-  private val paramMaxIterationsPerBranch        = "maxIterationsPerBranch"        -> VLit(GInt(1000))    
-  private val paramIntersectWithGuardBeforeReset = "intersectWithGuardBeforeReset" -> VLit(GBool(true))
+  private val ParamTime                          = "time"                          -> VLit(GDouble(0.0))
+  private val ParamEndTime                       = "endTime"                       -> VLit(GDouble(10.0))
+  private val ParamTimeStep                      = "timeStep"                      -> VLit(GDouble( 0.015625))
+  private val ParamMaxBranches                   = "maxBranches"                   -> VLit(GInt(100))                  
+  private val ParamMaxIterationsPerBranch        = "maxIterationsPerBranch"        -> VLit(GInt(1000))    
+  private val ParamIntersectWithGuardBeforeReset = "intersectWithGuardBeforeReset" -> VLit(GBool(true))
   
   private val legacyParameters = Parameters.default.copy(interpreter = Some(enclosure.Interpreter.EVT))
   private implicit val rnd = Rounding(legacyParameters)
@@ -813,9 +813,9 @@ object Interpreter extends CStoreInterpreter {
    * for the next time interval.
    */
   def hybridEncloser(T: Interval, prog: Prog, st: EnclosureAndBranches): EnclosureAndBranches = {
-    val VLit(GInt(maxBranches))                    = getInSimulator(paramMaxBranches._1,                   st.enclosure)
-    val VLit(GInt(maxIterationsPerBranch))         = getInSimulator(paramMaxIterationsPerBranch._1,        st.enclosure)
-    val VLit(GBool(intersectWithGuardBeforeReset)) = getInSimulator(paramIntersectWithGuardBeforeReset._1, st.enclosure)
+    val VLit(GInt(maxBranches))                    = getInSimulator(ParamMaxBranches._1,                   st.enclosure)
+    val VLit(GInt(maxIterationsPerBranch))         = getInSimulator(ParamMaxIterationsPerBranch._1,        st.enclosure)
+    val VLit(GBool(intersectWithGuardBeforeReset)) = getInSimulator(ParamIntersectWithGuardBeforeReset._1, st.enclosure)
     require(st.branches.nonEmpty, "hybridEncloser called with zero branches")
     require(st.branches.size < maxBranches, s"Number of branches (${st.branches.size}) exceeds maximum ($maxBranches).")
     def mergeBranches(ics: List[InitialCondition]): List[InitialCondition] =
