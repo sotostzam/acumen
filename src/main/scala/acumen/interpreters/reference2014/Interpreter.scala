@@ -36,7 +36,7 @@ object Interpreter extends acumen.CStoreInterpreter {
 
   def repr(st:Store) = st
   def fromCStore(st:CStore, root:CId) = st
-  override def visibleParameters = visibleParametersRef + ("method" -> VLit(GStr(methodRungeKutta)))
+  override def visibleParameters = visibleParametersRef + ("method" -> VLit(GStr(RungeKutta)))
 
   /* initial values */
   val emptyStore : Store = HashMap.empty
@@ -421,10 +421,10 @@ object Interpreter extends acumen.CStoreInterpreter {
     implicit val field = FieldImpl(odes, p)
     new Solver(getInSimulator(Name("method", 0),st), xs = st, h = getTimeStep(st)){
       // add the EulerCromer solver
-      override def knownSolvers = super.knownSolvers :+ methodEulerCromer
+      override def knownSolvers = super.knownSolvers :+ EulerCromer
       override def solveIfKnown(name: String) = super.solveIfKnown(name) orElse (name match {
-        case `methodEulerCromer` => Some(solveIVPEulerCromer(xs, h))
-        case _                   => None  
+        case EulerCromer => Some(solveIVPEulerCromer(xs, h))
+        case _           => None
       })
     }.solve
   }

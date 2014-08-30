@@ -15,9 +15,9 @@ object Common {
  
   type Env = Map[Name, CValue]
   
-  val methodEulerCromer  = "EulerCromer"
-  val methodEulerForward = "EulerForward"
-  val methodRungeKutta   = "RungeKutta"
+  val EulerCromer  = "EulerCromer"
+  val EulerForward = "EulerForward"
+  val RungeKutta   = "RungeKutta"
   
   /* get self reference in an env */
   def selfCId(e:Env) : CId =
@@ -226,7 +226,7 @@ object Common {
     s"""#0.0 { className = Simulator, parent = %s, time = 0.0, timeStep = 0.01, 
                outputRows = "WhenChanged", continuousSkip = 0,
                endTime = 10.0, resultType = @Discrete, nextChild = 0,
-	             method = "$methodRungeKutta", seed1 = 0, seed2 = 0 }"""
+	             method = "$RungeKutta", seed1 = 0, seed2 = 0 }"""
 
   lazy val magicClass = Parser.run(Parser.classDef, magicClassTxt)
   lazy val initStoreRef = Parser.run(Parser.store, initStoreTxt.format("#0"))
@@ -308,11 +308,11 @@ object Common {
         case m                          => throw new Error(msg(m.toString))
       }
     }
-    def knownSolvers = List(methodEulerForward, methodRungeKutta)
+    def knownSolvers = List(EulerForward, RungeKutta)
     def solveIfKnown(name: String) : Option[S] = name match {
-      case `methodEulerForward` => Some(solveIVPEulerForward(xs, h))
-      case `methodRungeKutta`   => Some(solveIVPRungeKutta(xs, h))
-      case _                    => None
+      case EulerForward => Some(solveIVPEulerForward(xs, h))
+      case RungeKutta   => Some(solveIVPRungeKutta(xs, h))
+      case _            => None
     }
   }
 
