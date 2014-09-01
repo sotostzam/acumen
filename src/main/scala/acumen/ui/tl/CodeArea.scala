@@ -73,12 +73,6 @@ class CodeArea extends Panel with TreeSelectionListener {
   
   private val pathChangeListeners: Buffer[ChangeListener] = new ArrayBuffer
   
-  textArea.getDocument.addDocumentListener(new DocumentListener{
-    def changedUpdate(e: DocumentEvent) { textArea.removeAllLineHighlights }
-    def insertUpdate(e: DocumentEvent) {}
-    def removeUpdate(e: DocumentEvent) {}
-  })
-
   /**
    * Create RSyntaxTextArea component. It provides features such as syntax highlighting and indentation.
    * The highlighting is based on a syntax specification AcumenTokenMakerMaker.xml which has been compiled
@@ -178,7 +172,7 @@ class CodeArea extends Panel with TreeSelectionListener {
   def listenDocument = {
     textArea.getDocument.addDocumentListener(
       new DocumentListener {
-        def changedUpdate(e: DocumentEvent) {}
+        def changedUpdate(e: DocumentEvent) { textArea.removeAllLineHighlights }
         def insertUpdate(e: DocumentEvent) { setEdited }
         def removeUpdate(e: DocumentEvent) { setEdited }
       })
