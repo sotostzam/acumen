@@ -36,7 +36,9 @@ import javax.swing.text._
 import javax.swing.KeyStroke
 import javax.swing.event.DocumentListener
 import javax.swing.event.DocumentEvent
-import org.fife.ui.rtextarea.RTextScrollPane
+import org.fife.ui.rtextarea.{
+  RTextArea, RTextScrollPane
+}
 import swing.{Action, BorderPanel, BoxPanel, ButtonGroup, CheckMenuItem, 
 			  Component, Dialog, Dimension, FileChooser, FlowPanel, Label, 
 			  Menu, MainFrame, MenuBar, MenuItem, Orientation, Publisher, RadioMenuItem, 
@@ -445,6 +447,17 @@ class App extends SimpleSwingApplication {
     
     contents += new Menu("Edit") {
       mnemonic = Key.E
+      contents += new MenuItem(new Action("Undo"){
+        override lazy val peer = RTextArea getAction RTextArea.UNDO_ACTION
+        peer.setAccelerator(KeyStroke.getKeyStroke(VK_Z, shortcutMask))
+        def apply = codeArea.textArea.undoLastAction
+      })
+      contents += new MenuItem(new Action("Redo"){
+        override lazy val peer = RTextArea getAction RTextArea.REDO_ACTION
+        peer.setAccelerator(KeyStroke.getKeyStroke(VK_Z, shortcutMask | SHIFT_MASK))
+        def apply = codeArea.textArea.redoLastAction
+      }) 
+      contents += new Separator
       contents += new MenuItem(cutAction) 
       contents += new MenuItem(copyAction)
       contents += new MenuItem(pasteAction)
@@ -514,7 +527,7 @@ class App extends SimpleSwingApplication {
     object semantics {
       val ref2014 = new RadioMenuItem("") {
         selected = false
-            enableWhenStopped(this)
+        enableWhenStopped(this)
         action = reference2014Action
       }
       val opt2014 = new RadioMenuItem("") {
