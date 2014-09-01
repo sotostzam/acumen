@@ -17,13 +17,10 @@ import scala.util.parsing.input.{Position,NoPosition}
 
 class Console extends ListView[ConsoleMessage] {
 
+  import Console._
+  renderer = ListView.Renderer.wrap[ConsoleMessage](new ConsoleCellRenderer)
   private var oldEntries = 0
   var done = false
-  val initColor = selectionBackground
-  val selectedColor = new Color(240,240,240)
-  renderer = ListView.Renderer.wrap[ConsoleMessage](new ConsoleCellRenderer)
-  
-  val consoleFlasher = new SwingUtil.Flasher()
   
   class ConsoleCellRenderer extends ListCellRenderer {
     protected val defaultRenderer = new DefaultListCellRenderer
@@ -37,8 +34,8 @@ class Console extends ListView[ConsoleMessage] {
         case HypothesisReport(md, st, et) => summarizeHypothesisOutcomes(md, messageIsOld)
       }
       val renderer = (defaultRenderer.getListCellRendererComponent(list,message,index,false,false)).asInstanceOf[JLabel]
-      if (messageIsOld) renderer.setForeground(Color.LIGHT_GRAY)
-      if (isSelected) renderer.setBackground(selectedColor)
+      if (messageIsOld) renderer setForeground Color.LIGHT_GRAY
+      if (isSelected) renderer setBackground MessageColorSelected
       renderer
     }
   }
@@ -93,7 +90,7 @@ class Console extends ListView[ConsoleMessage] {
   }
 
   def log(message:String) = {
-    selectionBackground = initColor
+    selectionBackground = MessageColorInit
     if (done) {
       logMessage(NormalMessage(message))
       done = false
@@ -118,8 +115,7 @@ class Console extends ListView[ConsoleMessage] {
       case _                         => ErrorMessage(e.getMessage, NoPosition)
     })
     done = true
-    SwingUtil.flashFunction(
-      App.ui.consolePage.background_=, Color.WHITE, Color.RED, consoleFlasher)
+    App.ui.lowerPane.tabs.peer.setSelectedComponent(App.ui.consolePage.self.peer)
    }
   
   def logHypothesisReport(md: Metadata, startTime: Double, endTime: Double) = md match {
@@ -180,6 +176,9 @@ class Console extends ListView[ConsoleMessage] {
 }
 object Console {
 
+  val MessageColorInit = new Color(9,80,208)
+  val MessageColorSelected = new Color(240,240,240)
+  
   sealed abstract class ConsoleMessage
   case class NormalMessage(message: String) extends ConsoleMessage
   case class HypothesisReport(md: SomeMetadata, startTime: Double, endTime: Double) extends ConsoleMessage
