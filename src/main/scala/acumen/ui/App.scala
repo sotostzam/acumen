@@ -76,8 +76,7 @@ class App extends SimpleSwingApplication {
   def setSemantics(si: SemanticsImpl[Interpreter]) = {
     Main.defaultSemantics = si
     ui.codeArea.updateCompletionProvider(si.interpreter)
-    console.log("Selected the \"" + si.descr + "\" semantics.")
-    console.newLine
+    Logger.log("Selected the \"" + si.descr + "\" semantics.")
   }
   
   // Create a special actor to listen to events from other threads
@@ -93,13 +92,9 @@ class App extends SimpleSwingApplication {
       Supervisor.watch(this, "Main UI", { restart })
       loop {
         react {
-          case Error(e) => reportError(e)
           case Progress(p) => statusZone.setProgress(p)
-          case ProgressMsg(m) =>
-            console.log(m); console.newLine
-          case HypothesisReport(md, startTime, endTime) =>
-            console.logHypothesisReport(md, startTime, endTime)
           case Progress3d(p) => threeDtab.setProgress(p)
+          case ConsoleMsg(instr) => console.append(instr)
 
           case EXIT => exit
 
@@ -191,16 +186,16 @@ class App extends SimpleSwingApplication {
       def n: String = diag.getOrElse(n)
       val userNumberOfThreads = Integer.parseInt(n)
       lastNumberOfThreads = if (userNumberOfThreads > cores) {
-        console.log("Number of threads set to " + cores + ", the number of cores available to Acumen.\n")
+        Logger.log("Number of threads set to " + cores + ", the number of cores available to Acumen")
         cores
       } else {
-        console.log("Number of threads set to " + userNumberOfThreads + ".\n")
+        Logger.log("Number of threads set to " + userNumberOfThreads)
         userNumberOfThreads
       }
       setSemantics(S.Parallel2012(lastNumberOfThreads))
     } catch {
       case _ =>
-        console.logError(new Exception("Bad number of threads."))
+        Logger.error("Bad number of threads.")
         go
     }
     go
@@ -332,8 +327,7 @@ class App extends SimpleSwingApplication {
 
   val traceTab = new ScrollPane(traceTable)
   var threeDtab = if (Main.threeDState == ThreeDState.DISABLE) {
-    console.log("Acumen3D disabled.")
-    console.newLine
+    Logger.log("Acumen3D disabled.")
     if (Main.need_quartz) {
       new threeD.DisabledThreeDTab("3D visualization disabled due to performance problems on Mac OS X. \n\nTo enable restart Java with -Dapple.awt.graphics.UseQuartz=true or use --3d to force 3D to be enabled.")
     } else {
@@ -352,10 +346,8 @@ class App extends SimpleSwingApplication {
     res
   } catch {
     case e =>
-      console.log("Error loading Java3D: " + e)
-      console.newLine
-      console.log("Disabling 3D Tab.")
-      console.newLine
+      Logger.log("Error loading Java3D: " + e)
+      Logger.log("Disabling 3D Tab.")
       Main.threeDState = ThreeDState.ERROR
       new threeD.DisabledThreeDTab("Unable to load Java 3D. This functionality will not be available until this is fixed.\n" +
         "Please consult the section on Installing Java 3D in the README file that comes with this download.")
@@ -664,7 +656,7 @@ class App extends SimpleSwingApplication {
   }
 
   def reportError(e: Throwable) {
-    console.logError(e)
+    Logger.error(e)
     System.err.println("Note: Redirected this exception to console log:")
     e.printStackTrace()
   }
@@ -719,11 +711,9 @@ class App extends SimpleSwingApplication {
   selectMenuItemFromSemantics()
 
   def dumpParms() = {
-    console.log("Using the \"" + interpreter.semantics.descr + "\" semantics.")
-    console.newLine
+    Logger.log("Using the \"" + interpreter.semantics.descr + "\" semantics.")
     if (Main.commandLineParms) {
-      console.log("Passes: " + Main.extraPasses.mkString(","))
-      console.newLine
+      Logger.log("Passes: " + Main.extraPasses.mkString(","))
     }
   }
 
@@ -753,17 +743,14 @@ class App extends SimpleSwingApplication {
       //println("GM: New State: " + st)
       st match {
         case Stopped =>
-          console.log("Stopped.")
-          console.newLine
+          Logger.status(true, "Stopped.", false)
         case Paused =>
-          console.log("Paused. ")
-          console.newLine
+          Logger.status(true, "Paused.", false)
         case Starting =>
-          console.fadeOldMessages()
-          dumpParms()
-          console.log("Starting...")
+          Logger.separator()
+          Logger.status(false, "Starting", true)
         case Resuming if state != Starting =>
-          console.log("Resuming...")
+          Logger.status(false, "Resuming", true)
         case _ =>
       }
       state = st
@@ -900,9 +887,11 @@ class App extends SimpleSwingApplication {
 
   actor.start
   codeArea.listenDocument
-  console.log("<html>Welcome to Acumen.<br/>" +
-    "Please see LICENSE file for licensing details.</html>")
-  console.newLine
+  console.append(Logger.Message(Logger.INFO, "<html>Welcome to Acumen.<br/>" +
+                                "Please see LICENSE file for licensing details.<html>"))
+  Logger.attach(new Logger.Appender { def apply(instr: Logger.Instruction) {
+    actor ! ConsoleMsg(instr)
+  }})
   actor.publish(Stopped)
   actor.publish(ViewChanged(views.selection.index))
 

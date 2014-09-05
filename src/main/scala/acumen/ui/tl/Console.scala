@@ -11,35 +11,32 @@ import javax.swing.JLabel
 import java.awt.Component
 import java.awt.event.{ MouseAdapter, MouseEvent }
 import javax.swing.border.LineBorder
-import Console._
 import Errors.{ ParseError, PositionalAcumenError }
 import scala.util.parsing.input.{Position,NoPosition}
+import Logger._
 
-class Console extends ListView[ConsoleMessage] {
+class Console extends ListView[(Msg, Boolean /*messageIsOld*/)] {
 
   import Console._
-  renderer = ListView.Renderer.wrap[ConsoleMessage](new ConsoleCellRenderer)
-  private var oldEntries = 0
-  var done = false
-  
-  class ConsoleCellRenderer extends ListCellRenderer {
+
+  renderer = ListView.Renderer.wrap[(Msg,Boolean)](new ListCellRenderer {
     protected val defaultRenderer = new DefaultListCellRenderer
-    override def getListCellRendererComponent(
-      list: JList, value: Any, index: Int, 
-      isSelected: Boolean, cellHasFocus: Boolean): Component = { 
-      val messageIsOld = index >= oldEntries
-      val message = value match {
-        case NormalMessage(m)             => m
-        case ErrorMessage(m, p)           => formatErrorMessage(m, p, messageIsOld)
-        case HypothesisReport(md, st, et) => summarizeHypothesisOutcomes(md, messageIsOld)
+    override def getListCellRendererComponent(list: JList, v: Any, index: Int, 
+                                              isSelected: Boolean, cellHasFocus: Boolean): Component = { 
+      val value = v.asInstanceOf[(Msg,Boolean)]
+      val messageIsOld = value._2
+      val message = value._1 match {
+        case Message(ERROR, m, p, _)        => formatErrorMessage(m, p, messageIsOld)
+        case Message(_,     m, _, _)        => m
+        case HypothesisReport(md, st, et)   => summarizeHypothesisOutcomes(md, messageIsOld)
       }
       val renderer = (defaultRenderer.getListCellRendererComponent(list,message,index,false,false)).asInstanceOf[JLabel]
       if (messageIsOld) renderer setForeground Color.LIGHT_GRAY
       if (isSelected) renderer setBackground MessageColorSelected
       renderer
     }
-  }
-
+  })
+  
   def formatErrorMessage(m: String, pos: Position, messageIsOld: Boolean): String =
     "<html>" + color("red", messageIsOld, "ERROR:") + "<pre>" + 
       m.replaceAll("<","&lt;")
@@ -89,50 +86,26 @@ class Console extends ListView[ConsoleMessage] {
     s"<html>$header<br/>$summary<br/><font face=monospace>$report</font></html>"
   }
 
-  def log(message:String) = {
-    selectionBackground = MessageColorInit
-    if (done) {
-      logMessage(NormalMessage(message))
-      done = false
+  def append(instr: Instruction) = instr match {
+    case StatusUpdate(before, msg, after) => listData.headOption match {
+      case Some((Message(STATUS, oldMsg, _, _),_)) if before =>
+        listData = (Message(STATUS, oldMsg + msg + (if (after) "..." else "")), false) +: listData.tail
+      case _ =>
+        listData = (Message(STATUS, msg + (if (after) "..." else "")), false) +: listData
     }
-    else {
-      if (listData.isEmpty) listData = Seq(NormalMessage(message))
-      else listData = (listData.head match {
-        case NormalMessage(m) => NormalMessage(m+message) 
-        case ErrorMessage(m,_) => ErrorMessage(m+message,NoPosition) 
-        case HypothesisReport(md,st,et) => HypothesisReport(md,st,et)  //FIXME 
-      }) +: listData.tail
-    }
-  }
-
-  def newLine = { done = true }
-  
-  def fadeOldMessages() = { oldEntries = 0 }
-
-  def logError(e: Throwable) = {
-    logMessage(e match {
-      case pe: PositionalAcumenError => ErrorMessage(pe.getMessage, pe.pos)
-      case _                         => ErrorMessage(e.getMessage, NoPosition)
-    })
-    done = true
-    App.ui.lowerPane.tabs.peer.setSelectedComponent(App.ui.consolePage.self.peer)
-   }
-  
-  def logHypothesisReport(md: Metadata, startTime: Double, endTime: Double) = md match {
-    case NoMetadata =>
-    case smd: SomeMetadata => logMessage(HypothesisReport(smd, startTime, endTime)) 
-  }
-  
-  private def logMessage(m: ConsoleMessage) {
-	  oldEntries += 1
-    listData = m +: listData
+    case Separator => 
+      listData.map { case (msg,_) => (msg,true) }
+    case m@Message(ERROR,_,_,_) =>
+      listData = (m, false) +: listData
+      App.ui.lowerPane.tabs.peer.setSelectedComponent(App.ui.consolePage.self.peer)
+    case m:Msg =>
+      listData = (m, false) +: listData
   }
 
   def copySelection() {
     val selection = new java.awt.datatransfer.StringSelection(this.peer.getSelectedValues.map{
-      case NormalMessage(m)             => m
-      case ErrorMessage(m,_)            => m
-      case HypothesisReport(md, st, et) => summarizeHypothesisOutcomes(md, true)
+      case (Message(_,msg,_,_),_)           => msg
+      case (HypothesisReport(md, st, et),_) => summarizeHypothesisOutcomes(md, true)
       }.mkString("\n")
        .replaceAll("<br/>", "\n").replaceAll("&nbsp;", " ") // Convert HTML whitespace to pure text
        .replaceAll("\\<.*?\\>", "")) // Clean remaining tags
@@ -151,7 +124,7 @@ class Console extends ListView[ConsoleMessage] {
         // the message corresponds to the file in the buffer, i.e.,
         // p.file.isEmpty.  If it is NoPosition, there is no positional
         // information and hence nothing to scroll to.
-      case ErrorMessage(m, p:EnhancedPosition) if p.file.isEmpty =>
+      case (Message(_, m, p:EnhancedPosition, _),_) if p.file.isEmpty =>
         val ta = ui.App.ui.codeArea.textArea
         ta.setCaretPosition(ta.getDocument.getDefaultRootElement.getElement(p.line - 1).getStartOffset + p.column - 1)
         ui.App.ui.codeArea.centerLineInScrollPane
@@ -174,19 +147,10 @@ class Console extends ListView[ConsoleMessage] {
     if (messageIsOld) s else s"<font color=$c>$s</font>"
   
 }
+
 object Console {
 
   val MessageColorInit = new Color(9,80,208)
   val MessageColorSelected = new Color(240,240,240)
-  
-  sealed abstract class ConsoleMessage
-  case class NormalMessage(message: String) extends ConsoleMessage
-  case class HypothesisReport(md: SomeMetadata, startTime: Double, endTime: Double) extends ConsoleMessage
-  case class ErrorMessage(message: String, pos: Position = NoPosition) extends ConsoleMessage
-  
-  def logHypothesisReport(md: Metadata, startTime: Double, endTime: Double): Unit =
-    if (ui.App.ui == null) 
-      () // TODO Acumen running headless, log to command line
-    else 
-      ui.App.ui.console.logHypothesisReport(md, startTime, endTime)
+
 }

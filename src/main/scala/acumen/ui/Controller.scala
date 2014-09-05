@@ -17,10 +17,8 @@ import interpreter.{InterpreterCntrl => IC}
 case object SendInit
 
 sealed abstract class AppEvent
-case class Error(e: Throwable) extends AppEvent
 case class Progress(percent: Int) extends AppEvent
-case class ProgressMsg(msg:String) extends AppEvent
-case class HypothesisReport(md: Metadata, startTime: Double, endTime: Double) extends AppEvent
+case class ConsoleMsg(instr: Logger.Instruction) extends AppEvent
 case class Progress3d(percent: Int) extends AppEvent
 
 // (actor) messages from the UI
@@ -136,10 +134,10 @@ class Controller extends DaemonActor {
         case IC.Done(msgs, md, endTime) =>
           App.ui.modelFinished = true
           setState(Stopped)
-          msgs.foreach{msg => actor ! ProgressMsg(msg)}
-          actor ! HypothesisReport(md, 0, endTime)
+          msgs.foreach{msg => Logger.log(msg)}
+          Logger.hypothesisReport(md, 0, endTime)
         case Exit(_,ue:UncaughtException) =>
-          actor ! Error(ue.cause)
+          Logger.error(ue.cause)
           setState(Stopped)
         case Exit(_,_) => 
           setState(Stopped)
