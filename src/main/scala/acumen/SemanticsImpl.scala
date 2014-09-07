@@ -86,8 +86,8 @@ object SemanticsImpl {
     }
     def interpreter() = i
   }
-  object Enclosure2014 extends CStore {
-    val i = enclosure2014.Interpreter
+  case class Enclosure2014(contraction: Boolean) extends CStore {
+    val i = enclosure2014.Interpreter(contraction)
     val semantics = Semantics(None, Seq("desugar-local-inline"), Seq("SD"))
     def interpreter() = i
   }
@@ -167,7 +167,6 @@ object SemanticsImpl {
   lazy val Opt2012 = Imperative2012
   lazy val Opt2013 = Optimized()
   lazy val Opt2014 = Optimized(contMode = ContMode.IVP)
-  lazy val Enc2014 = Enclosure2014
 
   case class Sel(si: SemanticsSel, 
                  // First id is the display name
@@ -189,7 +188,8 @@ object SemanticsImpl {
          sel(Enclosure(EVT), "2013 EVT", "enclosure-evt"),
          sel(Enclosure(PWL,true), "2013 PWL (Contraction)", "enclosure-pwl-contraction"),
          sel(Enclosure(EVT,true), "2013 EVT (Contraction)", "enclosure-evt-contraction"),
-         sel(Enc2014, "2014 Enclosure", "enclosure2014"),
+         sel(Enclosure2014(false), "2014 Enclosure", "enclosure2014"),
+         sel(Enclosure2014(true), "2014 Enclosure (Contraction)", "enclosure2014-contraction"),
          exp(Optimized, "Optimized", "optimized"))
 
   def lookup(si: SemanticsSel) : Option[Sel] = 
