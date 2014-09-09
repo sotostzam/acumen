@@ -4,6 +4,7 @@ import Types.Mode
 import acumen.interpreters.enclosure.affine.UnivariateAffineEnclosure
 import acumen.interpreters.enclosure.affine.AffineScalarEnclosure
 import acumen.interpreters.enclosure.affine.AffineEnclosure
+import acumen.Logger
 
 case class Transcendentals(ps: Parameters) {
 
@@ -69,13 +70,16 @@ case class Transcendentals(ps: Parameters) {
     new StateEnclosure(Map(mode -> Some(initialCondition)));
 
   private lazy val cosineTable: PiecewiseEnclosure = {
+    Logger.status(false, "Pre-computing trigonometric function table", true)
     val i = ps.interpreter.get
-    i.strategy.enclosePiecewise(
+    val table = i.strategy.enclosePiecewise(
       ps,
       cosineHybridSystem,
       cosineDomain,
       cosineInitialConditionStateEnclosure,
       i.defaultInterpreterCallbacks)
+    Logger.status(true, "done.", false)
+    table
   }
 
   /**
