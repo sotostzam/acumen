@@ -115,9 +115,12 @@ class Plotter(tableI: TableInput, plotI: PlotInput, jPlotI: JPlotInput)
   var pd : PlotData = null
 
   def replot = if (plotI.enabled) {
+    //val startTime = System.currentTimeMillis( )
     pm = plotI.model()
     pd = new PlotData(plotI.parms,pm,plotI.disableThreshold)
     repaint()
+    //val endTime = System.currentTimeMillis( )
+    //println("Plot time: " + (endTime-startTime) + "ms" + "  " + (endTime-startTime+0.0)/pd.time.size)
   } 
 
   def updateJPlot = if (jPlotI.enabled && jPlotI.obj.plotter != null) { // FIXME: null check should't be required
