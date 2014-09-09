@@ -136,7 +136,6 @@ class EnclosurePath() extends PlotEntity {
     var prev = new PolyPoints(null, polys(0).a, null, null)
     try {
       for (polyPoints <- polys) {
-        throw FallBackToSlow
         if (prev == polyPoints) {/* skip */}
         else if (prev.b.getX != polyPoints.a.getX) throw FallBackToSlow
         else {
