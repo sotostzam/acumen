@@ -31,6 +31,9 @@ import enclosure.{
 }
 import enclosure.Types.VarName
 import acumen.interpreters.enclosure.Transcendentals
+import acumen.interpreters.enclosure.ivp.{
+  LohnerSolver, PicardSolver
+}
 
 /**
  * Reference implementation of direct enclosure semantics.
@@ -49,8 +52,10 @@ import acumen.interpreters.enclosure.Transcendentals
  *     and for storing simulator variables (e.g. time, timeStep).
  *  2) A List[InitialCondition], which represents the initial conditions of all 
  *     branches of the computation. 
+ *     
+ * @param Use Lohner-based ODE solver instead of a pure Picard solver
  */
-object Interpreter extends CStoreInterpreter {
+case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
   
   type Store = EnclosureAndBranches
   def repr(st:Store) = st.enclosure
@@ -230,7 +235,7 @@ object Interpreter extends CStoreInterpreter {
       Set(Changeset(claims = Set(DelayedConstraint(o,c))))
     def logHypothesis(o: CId, s: Option[String], h: Expr, env: Env): Set[Changeset] =
       Set(Changeset(hyps = Set(DelayedHypothesis(o,s,h,env))))
-    val empty = Changeset()
+    lazy val empty = new Changeset()
   }
   case class DelayedAction(path: Expr, selfCId: CId, a: Action, env: Env) {
     def lhs: Dot = (a: @unchecked) match {
@@ -248,7 +253,7 @@ object Interpreter extends CStoreInterpreter {
   import Changeset._
 
   case class GConstantRealEnclosure(start: Interval, enclosure: Interval, end: Interval) extends GRealEnclosure {
-    require((enclosure contains start) && (enclosure contains end), 
+    require(enclosure contains end, // Enclosure may not contain start (initial condition), when the Lohner IVP solver is used 
       s"Enclosure must be valid over entire domain. Invalid enclosure: GConstantGConstantRealEnclosureEnclosure($start,$enclosure,$end)")
     override def apply(t: Interval): Interval = enclosure
     override def range: Interval = enclosure 
@@ -971,7 +976,7 @@ object Interpreter extends CStoreInterpreter {
   def evalExpr(e: Expr, p: Prog, selfCId: CId, st: Enclosure): CValue =
     evalExpr(e,Map(Name("self", 0) -> VObjId(Some(selfCId))), st)
 
-  val solver = new acumen.interpreters.enclosure.ivp.PicardSolver {}
+  val solver = if (contraction) new LohnerSolver {} else new PicardSolver {}
   val extract = new acumen.interpreters.enclosure.Extract{}
 
   /**
