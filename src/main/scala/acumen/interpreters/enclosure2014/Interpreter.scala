@@ -962,6 +962,8 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
           } 
           val smallerBoxMap = smallerBox.map{ case (k, v) => (varNameToFieldId(k), VLit(Real(v))) }
           Some(st update smallerBoxMap)
+        case _ => 
+          Some(st) // Do not contract
       }
     }
     claims.foldLeft(Right(st): Either[String, Enclosure]) {
