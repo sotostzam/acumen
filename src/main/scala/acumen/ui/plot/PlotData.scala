@@ -157,6 +157,7 @@ class EnclosurePath() extends PlotEntity {
       upper.tail.foreach { p => polyPath.lineTo(p.getX, p.getY) }
       lower.reverse.foreach { p => polyPath.lineTo(p.getX, p.getY) }
       polyPath.closePath()
+      g.draw(polyPath)
       area = new Area(polyPath)
     } catch { 
       case FallBackToSlow =>
@@ -177,8 +178,8 @@ class EnclosurePath() extends PlotEntity {
           if (toDraw.a == toDraw.d && toDraw.b == toDraw.c)
             g.draw(new Line2D.Double(toDraw.a.getX(),toDraw.a.getY(),toDraw.b.getX(),toDraw.b.getY()))
         }
+        g.draw(area)
     }
-    g.draw(area)
     val prevComposite = g.getComposite()
     g.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.10f))
     g.fill(area)
