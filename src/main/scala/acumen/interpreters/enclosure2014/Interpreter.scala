@@ -304,7 +304,8 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
   case class GStrEnclosure(override val start: Set[String], override val enclosure: Set[String], override val end: Set[String]) 
     extends GConstantDiscreteEncosure[String](start, enclosure, end)
   object GStrEnclosure {
-    def apply(s: String): GStrEnclosure = GStrEnclosure(Set(s), Set(s), Set(s))
+    def apply(ss: Set[String]): GStrEnclosure = GStrEnclosure(ss, ss, ss)
+    def apply(s: String): GStrEnclosure = GStrEnclosure(Set(s))
   }
   case class GIntEnclosure(override val start: Set[Int], override val enclosure: Set[Int], override val end: Set[Int]) 
     extends GConstantDiscreteEncosure[Int](start, enclosure, end)
