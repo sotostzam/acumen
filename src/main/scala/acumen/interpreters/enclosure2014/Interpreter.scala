@@ -202,6 +202,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
   case class Changeset
     ( reps:   Set[(CId,CId)]         = Set.empty // reparentings
     , ass:    Set[DelayedAction]     = Set.empty // discrete assignments
+    , eqs:    Set[DelayedAction]     = Set.empty // continuous assignments / algebraic equations
     , odes:   Set[DelayedAction]     = Set.empty // ode assignments / differential equations
     , claims: Set[DelayedConstraint] = Set.empty // claims / constraints
     , hyps:   Set[DelayedHypothesis] = Set.empty // hypotheses
@@ -209,8 +210,8 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
     def ||(that: Changeset) =
       that match {
         case Changeset.empty => this
-        case Changeset(reps1, ass1, odes1, claims1, hyps1) =>
-          Changeset(reps ++ reps1, ass ++ ass1, odes ++ odes1, claims ++ claims1, hyps ++ hyps1)
+        case Changeset(reps1, ass1, eqs1, odes1, claims1, hyps1) =>
+          Changeset(reps ++ reps1, ass ++ ass1, eqs ++ eqs1, odes ++ odes1, claims ++ claims1, hyps ++ hyps1)
       }
     override def toString =
       (reps, ass.map(d => Pretty.pprint(d.a)), ass.map(d => Pretty.pprint(d.a)), odes.map(d => Pretty.pprint(d.a)), claims.map(d => Pretty.pprint(d.c))).toString
@@ -229,6 +230,8 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
       Set(Changeset(reps = Set((o,parent))))
     def logAssign(path: Expr, o: CId, d: Dot, a: Action, e: Expr, env: Env): Set[Changeset] =
       Set(Changeset(ass = Set(DelayedAction(path,o,a,env))))
+    def logEquation(path: Expr, o: CId, d: Dot, a: Action, e: Expr, env: Env): Set[Changeset] =
+      Set(Changeset(eqs = Set(DelayedAction(path,o,a,env))))
     def logODE(path: Expr, o: CId, d: Dot, a: Action, e: Expr, env: Env): Set[Changeset] =
       Set(Changeset(odes = Set(DelayedAction(path,o,a,env))))
     def logClaim(o: CId, c: Expr) : Set[Changeset] =
@@ -676,10 +679,13 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
     a match {
       case EquationT(d@Dot(e,Name(_,primes)),rhs) =>
         if (primes == 0) sys.error("Continuous assignments to unprimed variables is not supported.") // TODO Add some level of support for equations
-        else Set()
+        else { // This EquationT is a Equation that defines an ODE
+          val id = extractId(evalExpr(e, env, st))
+          logEquation(path, id, d, Continuously(a), e, env)
+        }
       case EquationI(d@Dot(e,_),rhs) =>
         val id = extractId(evalExpr(e, env, st))
-        logODE(path , id, d, Continuously(a), e, env)
+        logODE(path, id, d, Continuously(a), e, env)
       case _ =>
         throw ShouldNeverHappen() // FIXME: enforce that with refinement types
     }
@@ -868,7 +874,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
           else if ((t == UnknownTime && qw.nonEmpty && qw.head == q) || T.isThin)
             (tmpW, tmpR, tmpU)
           else {
-            val s = continuousEncloser(q.odes, q.claims, T, prog, w)
+            val s = continuousEncloser(q.odes, q.eqs, q.claims, T, prog, w)
             val r = s.range
             val rp = contract(r, q.claims, prog).right.get
             val (newW, newU) = handleEvent(q, qw, r, rp, if (t == StartTime) s.endTimeEnclosure else r)
@@ -985,6 +991,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
    */
   def continuousEncloser
     ( odes: Set[DelayedAction] // Set of delayed ContinuousAction
+    , eqs: Set[DelayedAction]
     , claims: Set[DelayedConstraint]
     , T: Interval
     , p: Prog
@@ -1009,7 +1016,18 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
     val solutionMap = solutions._1.apply(T).map{
       case (k, v) => (varNameToFieldId(k), VLit(Real(A(k), v, solutions._2(k))))
     }
-    ic update solutionMap
+    val odeSolutions = ic update solutionMap
+    val highestDerivativeMap = eqs.map{
+      case DelayedAction(_, cid, Continuously(EquationT(Dot(_, n), rhs)), env) =>
+        (cid, n) -> evalExpr(rhs, p, cid, odeSolutions)
+    }.toMap
+    odeSolutions update highestDerivativeMap
+  }
+  
+  def getFieldFromActions(as: List[(CId,Action)], st: Enclosure, p: Prog)(implicit rnd: Rounding): Field = {
+    Field(as.map { case (cid, Continuously(EquationI(Dot(_, n), rhs))) =>
+      (fieldIdToName(cid, n), acumenExprToExpression(rhs, cid, st, p))
+    }.toMap)
   }
 
   /**
@@ -1030,20 +1048,6 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
       case Switch(_, cs) => cs.forall(c => checkValidAssignments(c.rhs))
       case _ => true
     })
-  
-  def getFieldFromActions(as: List[(CId,Action)], st: Enclosure, p: Prog)(implicit rnd: Rounding): Field = {
-    val highestDerivatives = as.flatMap {
-      case (cid, Continuously(EquationT(Dot(_, n), rhs))) => List(((cid,n), rhs))
-      case _ => List()
-    }.filter { case ((cid,n), _) => n.primes != 0 }.toMap
-    Field(as.map {
-      case (cid, Continuously(EquationI(Dot(_, n), rhs))) =>
-        val rhsExpr = highestDerivatives.getOrElse((cid, Name(n.x, n.primes + 1)), rhs) // Inline RHS of highest derivative 
-        (fieldIdToName(cid, n), acumenExprToExpression(rhsExpr, cid, st, p))
-      case (cid, Continuously(EquationT(Dot(_, n), _))) =>
-        (fieldIdToName(cid, n), Constant(0))
-    }.toMap)
-  }
   
   def acumenExprToExpression(e: Expr, selfCId: CId, st: Enclosure, p: Prog)(implicit rnd: Rounding): Expression = e match {
     case Lit(v) if v.eq(Constants.PI) => Constant(Interval.pi) // Test for reference equality not structural equality
