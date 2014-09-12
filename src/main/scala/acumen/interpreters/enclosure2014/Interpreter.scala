@@ -168,8 +168,14 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
         case _ => sys.error(s"Empty intersection between $ls and $rs") // FIXME Use Either to propagate error information 
       }
     })
+    /** Field-wise projection. Replaces each enclosure with a new one corresponding to its start-time interval. */
+    def start(): Enclosure = map{ 
+      case ce: Real => Real(ce.start) 
+      case ui: GIntEnclosure => GIntEnclosure(ui.start, ui.start, ui.start) 
+      case us: GStrEnclosure => GStrEnclosure(us.start, us.start, us.start) 
+    }
     /** Field-wise projection. Replaces each enclosure with a new one corresponding to its end-time interval. */
-    def endTimeEnclosure(): Enclosure = map{ 
+    def end(): Enclosure = map{ 
       case ce: Real => Real(ce.end) 
       case ui: GIntEnclosure => GIntEnclosure(ui.end, ui.end, ui.end) 
       case us: GStrEnclosure => GStrEnclosure(us.end, us.end, us.end) 
@@ -877,7 +883,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
             val s = continuousEncloser(q.odes, q.eqs, q.claims, T, prog, w)
             val r = s.range
             val rp = contract(r, q.claims, prog).right.get
-            val (newW, newU) = handleEvent(q, qw, r, rp, if (t == StartTime) s.endTimeEnclosure else r)
+            val (newW, newU) = handleEvent(q, qw, r, rp, if (t == StartTime) s.end else r)
             (newW ::: tmpW, rp :: tmpR, newU ::: tmpU)
           }
       }
@@ -978,10 +984,19 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
     }.toMap)
   }
 
-  /** Evaluate expression in object with CId selfCId. Note: Can assumes that selfCId is not a simulator object. */
+  /** Evaluate expression in object with CId selfCId. Note: Can assume that selfCId is not a simulator object. */
   def evalExpr(e: Expr, p: Prog, selfCId: CId, st: Enclosure): CValue =
     evalExpr(e,Map(Name("self", 0) -> VObjId(Some(selfCId))), st)
 
+  /**
+   * Evaluate e in object with CId selfCId. Evaluates e separately for the whole domain and start/end-times.
+   * Note: Can assume that selfCId is not a simulator object.
+   */
+  def evalExprOverParts(e: Expr, p: Prog, selfCId: CId, st: Enclosure): CValue = {
+    def eval(part: Enclosure) = extractInterval(evalExpr(e, p, selfCId, part))
+    VLit(Real(eval(st.start), eval(st.range), eval(st.end)))
+  }
+         
   val solver = if (contraction) new LohnerSolver {} else new PicardSolver {}
   val extract = new acumen.interpreters.enclosure.Extract{}
 
@@ -997,7 +1012,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
     , p: Prog
     , st: Enclosure
     )(implicit rnd: Rounding): Enclosure = {
-    val ic = contract(st.endTimeEnclosure, claims, p) match {
+    val ic = contract(st.end, claims, p) match {
       case Left(_) => sys.error("Initial condition violates claims {" + claims.map(c => Pretty.pprint(c.c)).mkString(", ") + "}.")
       case Right(r) => r
     }
@@ -1019,7 +1034,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
     val odeSolutions = ic update solutionMap
     val highestDerivativeMap = eqs.map{
       case DelayedAction(_, cid, Continuously(EquationT(Dot(_, n), rhs)), env) =>
-        (cid, n) -> evalExpr(rhs, p, cid, odeSolutions)
+        (cid, n) -> evalExprOverParts(rhs, p, cid, odeSolutions)
     }.toMap
     odeSolutions update highestDerivativeMap
   }
