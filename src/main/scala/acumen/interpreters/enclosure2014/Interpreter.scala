@@ -325,8 +325,8 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
         case Lit(GInt(i))           => Lit(Real(i))
         case Lit(GDouble(d))        => Lit(Real(d))
         case Lit(GInterval(i))      => Lit(Real(i))
-        case ExprInterval(Lit(lo@(GDouble(_)|GInt(_)))  // FIXME Add support for arbitrary expression end-points
-                         ,Lit(hi@(GDouble(_)|GInt(_))))    
+        case ExprInterval( Lit(lo@(GDouble(_)|GInt(_)))  // FIXME Add support for arbitrary expression end-points
+                         , Lit(hi@(GDouble(_)|GInt(_))))    
                                     => Lit(Real(Interval(extractDouble(lo), extractDouble(hi))))
         case ExprInterval(lo,hi)    => sys.error("Only constant interval end-points are currently supported. Offending expression: " + Pretty.pprint(e))
         case ExprIntervalM(lo,hi)   => sys.error("Centered interval syntax is currently not supported. Offending expression: " + Pretty.pprint(e))
@@ -509,9 +509,9 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
   /** Purely functional operator evaluation at the values level */
   def evalOp[A](op:String, xs:List[Value[_]]) : Value[A] = {
     (op,xs) match {
-       case (_, VLit(x)::Nil) =>
+       case (_, VLit(x:GEnclosure[A])::Nil) =>
          VLit(unaryGroundOp(op,x))
-       case (_,VLit(x)::VLit(y)::Nil) =>  
+       case (_,VLit(x:GEnclosure[A])::VLit(y:GEnclosure[A])::Nil) =>  
          VLit(binGroundOp(op,x,y))
        case _ =>
          throw UnknownOperator(op)    
@@ -519,7 +519,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
   }
   
   /** Purely functional unary operator evaluation at the ground values level */
-  def unaryGroundOp(f:String, vx:GroundValue) = {
+  def unaryGroundOp[V](f:String, vx:GroundValue) = {
     def implem(f: String, x: Interval) = f match {
       case "-"    => -x
       case "abs"  => x.abs
@@ -529,23 +529,13 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
       case _      => throw UnknownOperator(f)
     }
     (f, vx) match {
-      case ("not", Uncertain) => Uncertain
-      case _                  => Real(implem(f, extractInterval(vx)))
+      case ("not", Uncertain | CertainTrue | CertainFalse) => Uncertain
+      case (_, e: GRealEnclosure) => Real(implem(f, e.start), implem(f, e.range), implem(f, e.end))
     }
   }
   
   /** Purely functional binary operator evaluation at the ground values level */
-  def binGroundOp(f:String, vl:GroundValue, vr:GroundValue): GroundValue = {
-    lazy val ivl = extractInterval(vl)
-    lazy val ivr = extractInterval(vr)
-    lazy val (startL: Interval, endL: Interval) = vl match {
-      case ce: Real => (ce.start, ce.end)
-      case _ => (ivl,ivl)
-    }
-    lazy val (startR: Interval, endR: Interval) = vr match {
-      case ce: Real => (ce.start, ce.end)
-      case _ => (ivr,ivr)
-    }
+  def binGroundOp[V](f:String, vl:GEnclosure[V], vr:GEnclosure[V]): GroundValue = {
     def implemInterval(f:String, l:Interval, r:Interval) = f match {
       case "+"   => l + r
       case "-"   => l - r
@@ -555,58 +545,64 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
       case "max" => Interval.max(l,r)
     }
     // Based on implementations from acumen.interpreters.enclosure.Relation
-    def implemBool(f:String, l:GroundValue, r:GroundValue): GUncertainBool = f match {
-      case "<" =>
-        if ((extractInterval(l) lessThan extractInterval(r)) || // l < r holds over entire time step
-            // l < r holds for some time in this step due to intermediate value theorem
-            (((startL lessThan startR) && (endR lessThan endL)) ||
-             ((startR lessThan startL) && (endL lessThan endR))))
-          CertainTrue
-        else if (extractInterval(r) lessThanOrEqualTo extractInterval(l))
-          CertainFalse
-        else Uncertain
-      case ">" =>
-        implemBool("<",r,l)
-      case "<=" =>
-        if ((extractInterval(l) lessThanOrEqualTo extractInterval(r)) || // l <= r holds over entire time step
-            // l <= r holds for some time in this step due to intermediate value theorem
-            (((startL lessThanOrEqualTo startR) && (endR lessThanOrEqualTo endL)) ||
-             ((startR lessThanOrEqualTo startL) && (endL lessThanOrEqualTo endR))))
-          CertainTrue
-        else if (extractInterval(r) lessThan extractInterval(l))
-          CertainFalse
-        else Uncertain
-      case ">=" => 
-        implemBool("<=",r,l)
-      case "==" =>
-        val left = extractInterval(l)
-        val right = extractInterval(r)
-        if (left == right && left.isThin) CertainTrue
-        else if (left disjointFrom right) CertainFalse
-        else Uncertain
-      case "~=" =>
-        val left = extractInterval(l)
-        val right = extractInterval(r)
-        if (left == right && left.isThin) CertainFalse
-        else if (left disjointFrom right) CertainTrue
-        else Uncertain
-    }
-    f match {
-      case "=="|"~="|">="|"<="|"<"|">" => (f, vl,vr) match {
-        case ("==",sl: GStr,sr:GStr) => if(sl == sr) CertainTrue else CertainFalse
-        case ("~=",sl: GStr,sr:GStr) => if(sl != sr) CertainTrue else CertainFalse
-        // TODO Check if access to start-time values changes the definitions of == and ~=
-        case ("==", GStrEnclosure(sls, sl,sle), GStrEnclosure(srs, sr, sre)) => 
-          if (sls == srs && sl == sr && sle == sre) CertainTrue 
-          else if ((sl intersect sr).nonEmpty) Uncertain
-          else CertainFalse
-        case ("~=", GStrEnclosure(sls, sl,sle), GStrEnclosure(srs, sr, sre)) =>
-          if (sls == srs && sl == sr && sle == sre) CertainFalse 
-          else if ((sl intersect sr).isEmpty) CertainTrue
-          else Uncertain
-        case _ => implemBool(f,vl,vr)
+    def implemBool(f:String, l:Interval, r:Interval): GUncertainBool = {
+      lazy val (startL: Interval, endL: Interval) = vl match {
+        case ce: Real => (ce.start, ce.end)
+        case _ => (l,l)
       }
-      case "+"|"-"|"*"|"/" => Real(implemInterval(f,ivl,ivr)) // FIXME Improve these w.r.t. end-time interval
+      lazy val (startR: Interval, endR: Interval) = vr match {
+        case ce: Real => (ce.start, ce.end)
+        case _ => (r,r)
+      }
+      f match {
+        case "<" =>
+          if ((l lessThan r) || // l < r holds over entire time step
+              // l < r holds for some time in this step due to intermediate value theorem
+              (((startL lessThan startR) && (endR lessThan endL)) ||
+               ((startR lessThan startL) && (endL lessThan endR))))
+            CertainTrue
+          else if (r lessThanOrEqualTo l)
+            CertainFalse
+          else Uncertain
+        case ">" =>
+          implemBool("<",r,l)
+        case "<=" =>
+          if ((l lessThanOrEqualTo r) || // l <= r holds over entire time step
+              // l <= r holds for some time in this step due to intermediate value theorem
+              (((startL lessThanOrEqualTo startR) && (endR lessThanOrEqualTo endL)) ||
+               ((startR lessThanOrEqualTo startL) && (endL lessThanOrEqualTo endR))))
+            CertainTrue
+          else if (r lessThan l)
+            CertainFalse
+          else Uncertain
+        case ">=" => 
+          implemBool("<=",r,l)
+        case "==" =>
+          if (l == r && l.isThin) CertainTrue
+          else if (l disjointFrom r) CertainFalse
+          else Uncertain
+        case "~=" =>
+          if (l == r && l.isThin) CertainFalse
+          else if (l disjointFrom r) CertainTrue
+          else Uncertain
+      }
+    }
+    (f, vl, vr) match {
+      case ("==", sl: GStr, sr: GStr) => if (sl == sr) CertainTrue else CertainFalse
+      case ("~=", sl: GStr, sr: GStr) => if (sl != sr) CertainTrue else CertainFalse
+      // TODO Check if access to start-time values changes the definitions of == and ~=
+      case ("==", GStrEnclosure(sls, sl, sle), GStrEnclosure(srs, sr, sre)) =>
+        if (sls == srs && sl == sr && sle == sre) CertainTrue
+        else if ((sl intersect sr).nonEmpty) Uncertain
+        else CertainFalse
+      case ("~=", GStrEnclosure(sls, sl, sle), GStrEnclosure(srs, sr, sre)) =>
+        if (sls == srs && sl == sr && sle == sre) CertainFalse
+        else if ((sl intersect sr).isEmpty) CertainTrue
+        else Uncertain
+      case ("==" | "~=" | ">=" | "<=" | "<" | ">", _, _) =>
+        implemBool(f, extractInterval(vl), extractInterval(vr))
+      case ("+" | "-" | "*" | "/", el: GRealEnclosure, er: GRealEnclosure) => 
+        Real(implemInterval(f, el.start, er.start), implemInterval(f, el.range, er.range), implemInterval(f, el.end, er.end))
     }
   }
 
@@ -991,15 +987,6 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
   def evalExpr(e: Expr, p: Prog, selfCId: CId, st: Enclosure): CValue =
     evalExpr(e,Map(Name("self", 0) -> VObjId(Some(selfCId))), st)
 
-  /**
-   * Evaluate e in object with CId selfCId. Evaluates e separately for the whole domain and start/end-times.
-   * Note: Can assume that selfCId is not a simulator object.
-   */
-  def evalExprOverParts(e: Expr, p: Prog, selfCId: CId, st: Enclosure): CValue = {
-    def eval(part: Enclosure) = extractInterval(evalExpr(e, p, selfCId, part))
-    VLit(Real(eval(st.start), eval(st.range), eval(st.end)))
-  }
-         
   val solver = if (contraction) new LohnerSolver {} else new PicardSolver {}
   val extract = new acumen.interpreters.enclosure.Extract{}
 
@@ -1037,7 +1024,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
     val odeSolutions = ic update solutionMap
     val highestDerivativeMap = eqs.map{
       case DelayedAction(_, cid, Continuously(EquationT(Dot(_, n), rhs)), env) =>
-        (cid, n) -> evalExprOverParts(rhs, p, cid, odeSolutions)
+        (cid, n) -> evalExpr(rhs, p, cid, odeSolutions)
     }.toMap
     odeSolutions update highestDerivativeMap
   }
