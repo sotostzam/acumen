@@ -680,8 +680,8 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
 
   def evalContinuousAction(certain:Boolean, path: Expr, a:ContinuousAction, env:Env, p:Prog, st: Enclosure) : Set[Changeset] = 
     a match {
-      case EquationT(d@Dot(e,Name(_,primes)),rhs) =>
-        if (primes == 0) sys.error("Continuous assignments to unprimed variables is not supported.") // TODO Add some level of support for equations
+      case EquationT(d@Dot(e,Name(_,primes)),rhs) => // TODO Add some level of support for equations
+        if (primes == 0) throw new PositionalAcumenError{ def mesg = "Continuous assignments to unprimed variables are not supported." }.setPos(d.pos) 
         else { // This EquationT is a Equation that defines an ODE
           val id = extractId(evalExpr(e, env, st))
           logEquation(path, id, d, Continuously(a), e, env)
