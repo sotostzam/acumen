@@ -94,7 +94,7 @@ class Console extends ListView[(Msg, Boolean /*messageIsOld*/)] {
         listData = (Message(STATUS, msg + (if (after) "..." else "")), false) +: listData
     }
     case Separator => 
-      listData.map { case (msg,_) => (msg,true) }
+      listData = listData.map { case (msg,_) => (msg,true) }
     case m@Message(ERROR,_,_,_) =>
       listData = (m, false) +: listData
       App.ui.lowerPane.tabs.peer.setSelectedComponent(App.ui.consolePage.self.peer)
