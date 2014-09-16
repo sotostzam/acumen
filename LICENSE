@@ -1,34 +1,14 @@
-
-Copyright 2010
-Walid Taha of Halmstad University and Rice University
-Email:  maroneal@gmail.com
-All Rights Reserved
-
 Acumen Scala (or Acumen S or Acumen) is software developed by Walid
 Taha and collaborators (see file AUTHORS in the software release).
 
-For this distribution of this particular version of this software, you
-have the choice of using the software under three different licenses:
+Copyright (©) 2010-2014, Rice University
 
-  1) LICENSE-Basic,
-  2) LICENSE-GPLv3, which constains version 3 of the GNU General
-     Public License, or
-  3) at your option, any later version of the GPL as published by the
-     Free Software Foundation.
+Copyright (©) 2010-2014, Acumen Individual Contributors (AIC)
 
-The terms of these licenses can be found in files with these names in
-the top directory of the distribution.  If you cannot find these
-files, please contact Walid Taha at the email above.
+Please see the the file LICENSE-Rice and LICENSE-AIC for details.
 
-Walid Taha reserves the right to license the software under other
-agreements, and may do so without contacting other developers (See the
-file README-developers in the software).
+The models in the _3D directory are under there own license.  See the
+README and license files for in that directory for details.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
-NONINFRINGEMENT. IN NO EVENT SHALL THE CONTRIBUTORS OR COPYRIGHT
-HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
-IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR
-IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS WITH THE
-SOFTWARE.
+Some of the examples may be under there own LICENSE.  Please contact
+Walid Taha at maroneal@gmail.com for additional details if required.
