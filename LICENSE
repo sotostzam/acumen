@@ -5,10 +5,11 @@ Copyright (©) 2010-2014, Rice University
 
 Copyright (©) 2010-2014, Acumen Individual Contributors (AIC)
 
-Please see the the file LICENSE-Rice and LICENSE-AIC for details.
+Please see the file LICENSE-Rice and LICENSE-AIC for details.
 
-The models in the _3D directory are under there own license.  See the
-README and license files for in that directory for details.
+The models in the _3D directory are under their own license.  See the
+README and license files for that directory for details.
 
-Some of the examples may be under there own LICENSE.  Please contact
-Walid Taha at maroneal@gmail.com for additional details if required.
+Some of the examples may be under their own license.  Please contact
+the authors names in the example or Walid Taha at maroneal@gmail.com
+for for licensing information.
