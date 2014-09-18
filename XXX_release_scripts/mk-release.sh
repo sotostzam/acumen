@@ -4,7 +4,7 @@ set -e
 
 
 SBT=${SBT:-`which sbt`}
-COMMIT=${GIT_COMMIT:-HEAD}
+COMMIT=${GIT_COMMIT:-master}
 
 REL="`date +%y.%m.%d`"
 DIR_PREFIX=20`echo $REL | tr . _`
@@ -35,9 +35,9 @@ REL_DIR=${DIR_PREFIX}_Acumen
 # perform merge using equivalent of "-s theirs"
 # http://stackoverflow.com/questions/173919/git-merge-s-ours-what-about-their
 git checkout release
-git merge --no-edit -s ours master
+git merge --no-edit -s ours $COMMIT
 git branch tmp
-git reset --hard master
+git reset --hard $COMMIT
 git reset --soft tmp
 git commit --amend -C HEAD
 
