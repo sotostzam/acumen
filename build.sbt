@@ -34,7 +34,7 @@ libraryDependencies ++= Seq(
 )
 
 // Add resources in project root directory to class path
-unmanagedResources in Compile ++= Seq("AUTHORS").map(new File(_))
+unmanagedResources in Compile ++= Seq("AUTHORS","LICENSE","LICENSE-Rice","LICENSE-AIC").map(new File(_))
 
 // FIXME: Is this necessary
 retrieveManaged := true
