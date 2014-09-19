@@ -654,13 +654,7 @@ class App extends SimpleSwingApplication {
 
   def withErrorReporting(action: => Unit): Unit = {
     try action
-    catch { case e: Exception => reportError(e) }
-  }
-
-  def reportError(e: Throwable) {
-    Logger.error(e)
-    System.err.println("Note: Redirected this exception to console log:")
-    e.printStackTrace()
+    catch { case e: Exception => Logger.error(e) }
   }
 
   // returns true to continue and false to cancel
@@ -890,8 +884,9 @@ class App extends SimpleSwingApplication {
 
   actor.start
   codeArea.listenDocument
-  console.append(Logger.Message(Logger.INFO, "<html>Welcome to Acumen.<br/>" +
-                                "Please see LICENSE file for licensing details.<html>"))
+  console.append(Logger.Message(Logger.INFO, 
+                                Logger.TextMsg("<html>Welcome to Acumen.<br/>" +
+                                               "Please see LICENSE file for licensing details.<html>")))
   Logger.attach(new Logger.Appender { def apply(instr: Logger.Instruction) {
     actor ! ConsoleMsg(instr)
   }})

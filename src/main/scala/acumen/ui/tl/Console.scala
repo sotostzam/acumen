@@ -26,9 +26,9 @@ class Console extends ListView[(Msg, Boolean /*messageIsOld*/)] {
       val value = v.asInstanceOf[(Msg,Boolean)]
       val messageIsOld = value._2
       val message = value._1 match {
-        case Message(ERROR, m, p, _)        => formatErrorMessage(m, p, messageIsOld)
-        case Message(_,     m, _, _)        => m
-        case HypothesisReport(md, st, et)   => summarizeHypothesisOutcomes(md, messageIsOld)
+        case Message(ERROR, m, p)         => formatErrorMessage(m.msg, p, messageIsOld)
+        case Message(_,     m, _)         => m.msg
+        case HypothesisReport(md, st, et) => summarizeHypothesisOutcomes(md, messageIsOld)
       }
       val renderer = (defaultRenderer.getListCellRendererComponent(list,message,index,false,false)).asInstanceOf[JLabel]
       if (messageIsOld) renderer setForeground Color.LIGHT_GRAY
@@ -88,23 +88,26 @@ class Console extends ListView[(Msg, Boolean /*messageIsOld*/)] {
 
   def append(instr: Instruction) = instr match {
     case StatusUpdate(before, msg, after) => listData.headOption match {
-      case Some((Message(STATUS, oldMsg, _, _),_)) if before =>
-        listData = (Message(STATUS, oldMsg + msg + (if (after) "..." else "")), false) +: listData.tail
+      case Some((Message(STATUS, oldMsg, _),_)) if before =>
+        listData = (Message(STATUS, TextMsg(oldMsg + msg + (if (after) "..." else ""))), false) +: listData.tail
       case _ =>
-        listData = (Message(STATUS, msg + (if (after) "..." else "")), false) +: listData
+        listData = (Message(STATUS, TextMsg(msg + (if (after) "..." else ""))), false) +: listData
     }
     case Separator => 
       listData = listData.map { case (msg,_) => (msg,true) }
-    case m@Message(ERROR,_,_,_) =>
-      listData = (m, false) +: listData
-      App.ui.lowerPane.tabs.peer.setSelectedComponent(App.ui.consolePage.self.peer)
     case m:Msg =>
       listData = (m, false) +: listData
+      m match {case Message(_, ExceptionMsg(e), _) =>
+                 System.err.println("This exception reported to console:")
+                 e.printStackTrace()
+               case _ => /* noop */}
+      if (m.level == ERROR) 
+        App.ui.lowerPane.tabs.peer.setSelectedComponent(App.ui.consolePage.self.peer)
   }
 
   def copySelection() {
     val selection = new java.awt.datatransfer.StringSelection(this.peer.getSelectedValues.map{
-      case (Message(_,msg,_,_),_)           => msg
+      case (Message(_,msg,_),_)           => msg
       case (HypothesisReport(md, st, et),_) => summarizeHypothesisOutcomes(md, true)
       }.mkString("\n")
        .replaceAll("<br/>", "\n").replaceAll("&nbsp;", " ") // Convert HTML whitespace to pure text
@@ -124,7 +127,7 @@ class Console extends ListView[(Msg, Boolean /*messageIsOld*/)] {
         // the message corresponds to the file in the buffer, i.e.,
         // p.file.isEmpty.  If it is NoPosition, there is no positional
         // information and hence nothing to scroll to.
-      case (Message(_, m, p:EnhancedPosition, _),_) if p.file.isEmpty =>
+      case (Message(_, m, p:EnhancedPosition),_) if p.file.isEmpty =>
         val ta = ui.App.ui.codeArea.textArea
         ta.setCaretPosition(ta.getDocument.getDefaultRootElement.getElement(p.line - 1).getStartOffset + p.column - 1)
         ui.App.ui.codeArea.centerLineInScrollPane

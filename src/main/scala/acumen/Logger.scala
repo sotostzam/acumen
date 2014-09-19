@@ -29,12 +29,12 @@ class Logger {
 
   /** Convenience method: Send a error message from a Throwable object */
   def error(e: Throwable) : Unit = e match {
-    case pe: PositionalAcumenError => error(pe.getMessage, pe.pos)
-    case _                         => error(e.getMessage)
+    case pe: PositionalAcumenError => append(Message(ERROR, ExceptionMsg(e), pe.pos))
+    case _                         => append(Message(ERROR, ExceptionMsg(e), NoPosition))
   }
   /** Convenience method: Send a error message */
   def error(msg: String, pos: Position = NoPosition) = 
-    append(Message(ERROR, msg, pos))
+    append(Message(ERROR, TextMsg(msg), pos))
 
   /** Convenience method: Send a status update */
   def status(dotsBefore: Boolean, msg: String, dotsAfter: Boolean) =
@@ -42,7 +42,7 @@ class Logger {
 
   /** Convenience method: Send a informative message. */
   def log(msg: String) =
-    append(Message(INFO, msg))
+    append(Message(INFO, TextMsg(msg)))
 
   /** Convenience method: Send a hypothesis report if there is SomeMetedata. */
   def hypothesisReport(md: Metadata, startTime: Double, endTime: Double) = md match {
@@ -76,11 +76,15 @@ object Logger extends Logger {
    * this means dimming old messages. */
   case object Separator extends Instruction
   /** Some sort of complete message. */
-  sealed abstract class Msg extends Instruction
+  sealed abstract class Msg extends Instruction {val level:Level}
   /** A normal message. */
-  case class Message(level: Level, message: String, pos: Position = NoPosition, backTrace: Option[Throwable] = None) extends Msg
-  /* A HypothesisReport */
-  case class HypothesisReport(md: SomeMetadata, startTime: Double, endTime: Double) extends Msg
+  case class Message(level: Level, message: MsgContent, pos: Position = NoPosition) extends Msg
+  /** A normal message as an exception (i.e., with Backtrace information) */
+  case class HypothesisReport(md: SomeMetadata, startTime: Double, endTime: Double) extends Msg {val level = INFO}
+
+  sealed abstract class MsgContent {val msg: String; override def toString = msg;}
+  case class TextMsg(msg: String) extends MsgContent 
+  case class ExceptionMsg(exception: Throwable) extends MsgContent {override val msg = exception.getMessage();}
   
   abstract class Appender {
     def apply(instr: Instruction)
