@@ -8,7 +8,7 @@ import scala.collection.immutable.{
   HashMap, MapProxy
 }
 import util.ASTUtil.{
-  dots, checkNestedHypotheses, op
+  dots, checkNestedHypotheses, op, substitute
 }
 import Common._
 import Errors.{
@@ -249,10 +249,12 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
   case class DelayedAction(path: Expr, selfCId: CId, a: Action, env: Env) {
     def lhs: Dot = (a: @unchecked) match {
       case Discretely(Assign(dot: Dot, _))      => dot
+      case Continuously(EquationT(dot: Dot, _)) => dot
       case Continuously(EquationI(dot: Dot, _)) => dot
     }
     def rhs: Expr = (a: @unchecked) match {
       case Discretely(x: Assign)      => x.rhs
+      case Continuously(x: EquationT) => x.rhs
       case Continuously(x: EquationI) => x.rhs
     }
   }
@@ -681,11 +683,11 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
   def evalContinuousAction(certain:Boolean, path: Expr, a:ContinuousAction, env:Env, p:Prog, st: Enclosure) : Set[Changeset] = 
     a match {
       case EquationT(d@Dot(e,Name(_,primes)),rhs) => // TODO Add some level of support for equations
-        if (primes == 0) throw new PositionalAcumenError{ def mesg = "Continuous assignments to unprimed variables are not supported." }.setPos(d.pos) 
-        else { // This EquationT is a Equation that defines an ODE
+//        if (primes == 0) throw new PositionalAcumenError{ def mesg = "Continuous assignments to unprimed variables are not supported." }.setPos(d.pos) 
+//        else { // This EquationT is a Equation that defines an ODE
           val id = extractId(evalExpr(e, env, st))
           logEquation(path, id, d, Continuously(a), e, env)
-        }
+//        }
       case EquationI(d@Dot(e,_),rhs) =>
         val id = extractId(evalExpr(e, env, st))
         logODE(path, id, d, Continuously(a), e, env)
@@ -713,7 +715,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
   /* Main simulation loop */  
 
   def init(prog: Prog) : (Prog, Store, Metadata) = {
-    checkValidAssignments(prog.defs.flatMap(_ body))
+    prog.defs.foreach(d => checkValidAssignments(d.body))
     checkNestedHypotheses(prog)
     val cprog = CleanParameters.run(prog, CStoreInterpreterType)
     val cprog1 = makeCompatible(cprog)
@@ -983,7 +985,10 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
     }.toMap)
   }
 
-  /** Evaluate expression in object with CId selfCId. Note: Can assume that selfCId is not a simulator object. */
+  /**
+   * Evaluate expression in object with CId selfCId. 
+   * NOTE: Can assume that selfCId is not a simulator object. 
+   */
   def evalExpr(e: Expr, p: Prog, selfCId: CId, st: Enclosure): CValue =
     evalExpr(e,Map(Name("self", 0) -> VObjId(Some(selfCId))), st)
 
@@ -991,8 +996,15 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
   val extract = new acumen.interpreters.enclosure.Extract{}
 
   /**
-   * Solve the equations as a simultaneous system.
-   * NOTE: Currently, only a system of EquationI is supported.
+   * Compute an enclosure for the system of equations corresponding to
+   * odes and eqs put together.
+   * 
+   * NOTE: In the process, eqs are in-lined into odes in order to obtain
+   *       an explicit system of ODEs. Values for the LHS of eqs are then
+   *       obtained by evaluating the RHS in the ODE solutions over T.
+   *       This approach to supporting mixed differential and algebraic
+   *       equations implies that algebraic loops in the combined system
+   *       are not allowed.
    */
   def continuousEncloser
     ( odes: Set[DelayedAction] // Set of delayed ContinuousAction
@@ -1007,7 +1019,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
       case Right(r) => r
     }
     val varNameToFieldId = varNameToFieldIdMap(ic)
-    val F = getFieldFromActions(odes.flatMap(da => List((da.selfCId, da.a))).toList, ic, p)
+    val F = getFieldFromActions(inline(eqs, odes), ic, p) // in-line eqs to obtain explicit ODEs
     val stateVariables = varNameToFieldId.keys.toList
     val A = new Box(stateVariables.flatMap{ v => 
       val (o,n) = varNameToFieldId(v)
@@ -1017,22 +1029,70 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
         case e => sys.error((o,n) + " ~ " + e.toString)
       }
     }.toMap)
-    val solutions = solver.solveIVP(F, T, A, delta = 0, m = 0, n = 200, degree = 1)
+    val solutions = solver.solveIVP(F, T, A, delta = 0, m = 0, n = 200, degree = 1) // FIXME Expose as simulator parameters
     val solutionMap = solutions._1.apply(T).map{
       case (k, v) => (varNameToFieldId(k), VLit(Real(A(k), v, solutions._2(k))))
     }
     val odeSolutions = ic update solutionMap
-    val highestDerivativeMap = eqs.map{
+    val equationsMap = inline(eqs, eqs).map { // LHSs of EquationsTs, including highest derivatives of ODEs
       case DelayedAction(_, cid, Continuously(EquationT(Dot(_, n), rhs)), env) =>
         (cid, n) -> evalExpr(rhs, p, cid, odeSolutions)
     }.toMap
-    odeSolutions update highestDerivativeMap
+    odeSolutions update equationsMap
   }
-  
-  def getFieldFromActions(as: List[(CId,Action)], st: Enclosure, p: Prog)(implicit rnd: Rounding): Field = {
-    Field(as.map { case (cid, Continuously(EquationI(Dot(_, n), rhs))) =>
+
+  /** Convert odes into a Field compatible with acumen.interpreters.enclosure.ivp.IVPSolver. */
+  def getFieldFromActions(odes: Set[DelayedAction], st: Enclosure, p: Prog)(implicit rnd: Rounding): Field =
+    Field(odes.map { case DelayedAction(_, cid, Continuously(EquationI(Dot(_, n), rhs)), _) =>
       (fieldIdToName(cid, n), acumenExprToExpression(rhs, cid, st, p))
     }.toMap)
+  
+  /**
+   * In-line the variables defined by the equations in as into the equations in bs. 
+   * This means that, in the RHS of each element of b, all references to variables that are 
+   * defined by an equation in a.
+   * 
+   * NOTE: This implies a restriction on the programs that are accepted: 
+   *       If the program contains an algebraic loop, an exception will be thrown.
+   * */
+  def inline(as: Set[DelayedAction], bs: Set[DelayedAction]): Set[DelayedAction] = {
+    val dotToDA = as.map(da => (da.lhs, da.selfCId) -> da).toMap
+    // FIXME Does not handle variables assigned/referred to from two different objects
+    def inline(hosts: Map[DelayedAction,List[DelayedAction]]): Set[DelayedAction] = {
+      val next = hosts.map {
+        case (host, inlined) =>
+          dots(host.rhs).foldLeft((host, inlined)) {
+          case (prev@(hostPrev, ildPrev), d) =>
+              dotToDA.get((d, host.selfCId)) match {
+              case None => prev // No equation is active for d
+              case Some(inlineMe) => 
+                if (inlineMe.lhs.obj == hostPrev.lhs.obj && inlineMe.lhs.field.x == hostPrev.lhs.field.x)
+                  (hostPrev -> inlined) // Do not in-line derivative equations
+                else {
+                  val daNext = hostPrev.copy(a = (hostPrev.a match {
+                    case Continuously(e: EquationI) =>
+                      Continuously(e.copy(rhs = substitute(inlineMe.lhs, inlineMe.rhs, e.rhs)))
+                    case Continuously(e: EquationT) =>
+                      Continuously(e.copy(rhs = substitute(inlineMe.lhs, inlineMe.rhs, e.rhs)))
+                  }))
+                  (daNext -> (inlineMe :: inlined))
+                }
+            }
+        }
+      }
+      val reachedFixpoint = next.forall{ case (da, inlined) =>
+        val dupes = inlined.groupBy(identity).collect{ case(x,ds) if ds.length > 1 => x }.toList
+        lazy val loop = inlined.reverse.dropWhile(!dupes.contains(_))
+        if (dupes isEmpty)
+          hosts.get(da) == Some(inlined)
+        else throw new PositionalAcumenError { 
+          def mesg = "Algebraic loop detected: " + 
+            loop.map(a => pprint (a.lhs: Expr)).mkString(" -> ") }.setPos(loop.head.lhs.pos)
+      }
+      if (reachedFixpoint) next.keySet
+      else inline(next)
+    }
+    inline(bs.map(_ -> Nil).toMap)
   }
 
   /**
