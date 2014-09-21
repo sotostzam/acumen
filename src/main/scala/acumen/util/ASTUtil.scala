@@ -26,9 +26,15 @@ object ASTUtil {
   
   /** Returns all variables that occur in e. */
   def dots(e: Expr): List[Dot] = e match {
-    case d @ Dot(_, _) => d :: Nil
-    case Op(_, es)     => es flatMap dots
-    case _             => Nil
+    case d: Dot                 => d :: Nil
+    case Op(_, es)              => es flatMap dots
+    case Index(a, idx)          => dots(a) ::: dots(idx)
+    case ExprVector(l)          => l flatMap dots
+    case Sum(s, i, col, cond)   => dots(s) ::: dots(col) ::: dots(cond)
+    case ExprInterval(lo, hi)   => dots(lo) ::: dots(hi)
+    case ExprIntervalM(mid, pm) => dots(mid) ::: dots(pm)
+    case ExprLet(bindings, e2)  => bindings.flatMap(b => dots(b._2)) ::: dots(e2)
+    case _                      => Nil
   }
 
   /** Allow hypotheses only at top level of classes. */
