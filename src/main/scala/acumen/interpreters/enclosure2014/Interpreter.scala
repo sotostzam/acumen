@@ -1039,13 +1039,17 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
    * Reject invalid models. The following rules are checked:
    *  - RHS of a continuous assignment to a primed variable must not contain the LHS.
    */
-  def checkValidAssignments(as: Seq[Action]): Boolean =
+  def checkValidAssignments(as: Seq[Action]): Boolean = {
     //TODO Add checking of discrete assignments 
-    //TODO Update this to check for valid ODEs
+    val highestDerivatives = as.flatMap{
+      case Continuously(EquationT(d@Dot(_,Name(_,n)), _)) if n > 0 => List(d)
+      case _ => Nil
+    }.groupBy(a => (a.obj, a.field.x)).values.map(_.sortBy(_.field.primes).head).toList
     as.forall(_ match {
-      case Continuously(EquationT(d@Dot(_,Name(_,n)), rhs: Expr)) if n > 0 => 
-        if (rhs.toString contains d.toString)
-          throw new BadRhs(pprint(rhs) + " contains " + pprint(d:Expr))
+      case Continuously(EquationT(_, rhs: Expr)) =>
+        val badDots = dots(rhs) intersect highestDerivatives
+        if (badDots nonEmpty)
+          throw new BadRhs("The use of ODE LHSs in the RHS of an equation is not supported: " + pprint(badDots.head: Expr)).setPos(rhs.pos)
         else
           true
       case Continuously(EquationI(_, _)) => true
@@ -1053,6 +1057,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
       case Switch(_, cs) => cs.forall(c => checkValidAssignments(c.rhs))
       case _ => true
     })
+  }
   
   def acumenExprToExpression(e: Expr, selfCId: CId, st: Enclosure, p: Prog)(implicit rnd: Rounding): Expression = e match {
     case Lit(v) if v.eq(Constants.PI) => Constant(Interval.pi) // Test for reference equality not structural equality
