@@ -833,6 +833,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
     val VLit(GBool(intersectWithGuardBeforeReset)) = getInSimulator(ParamIntersectWithGuardBeforeReset._1, st.enclosure)
     require(st.branches.nonEmpty, "hybridEncloser called with zero branches")
     require(st.branches.size < maxBranches, s"Number of branches (${st.branches.size}) exceeds maximum ($maxBranches).")
+    Logger.debug(s"hybridEncloser called on $T with ${st.branches.size} branches")
     def mergeBranches(ics: List[InitialCondition]): List[InitialCondition] =
       ics.groupBy(ic => (ic._2, ic._3)).map { case ((m, t), ic) => (ic.map(_._1).reduce(_ /\ _), m, t) }.toList
     @tailrec def enclose
