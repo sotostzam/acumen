@@ -66,7 +66,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
 
   /* Constants */
   
-  private val ParamTime                          = "time"                          -> VLit(GDouble(0.0))
+  private val ParamTime                          = "time"                          -> VLit(GDouble( 0.0))
   private val ParamEndTime                       = "endTime"                       -> VLit(GDouble(10.0))
   private val ParamTimeStep                      = "timeStep"                      -> VLit(GDouble( 0.015625))
   private val ParamMaxBranches                   = "maxBranches"                   -> VLit(GInt(100))                  
@@ -220,7 +220,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
           Changeset(reps ++ reps1, ass ++ ass1, eqs ++ eqs1, odes ++ odes1, claims ++ claims1, hyps ++ hyps1)
       }
     override def toString =
-      (reps, ass.map(d => Pretty.pprint(d.a)), ass.map(d => Pretty.pprint(d.a)), odes.map(d => Pretty.pprint(d.a)), claims.map(d => Pretty.pprint(d.c))).toString
+      (reps, ass.map(d => pprint(d.a)), ass.map(d => pprint(d.a)), odes.map(d => pprint(d.a)), claims.map(d => pprint(d.c))).toString
   }
   object Changeset {
     def combine[A](ls: Set[Changeset], rs: Set[Changeset]): Set[Changeset] =
@@ -328,8 +328,8 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
         case ExprInterval( Lit(lo@(GDouble(_)|GInt(_)))  // FIXME Add support for arbitrary expression end-points
                          , Lit(hi@(GDouble(_)|GInt(_))))    
                                     => Lit(Real(Interval(extractDouble(lo), extractDouble(hi))))
-        case ExprInterval(lo,hi)    => sys.error("Only constant interval end-points are currently supported. Offending expression: " + Pretty.pprint(e))
-        case ExprIntervalM(lo,hi)   => sys.error("Centered interval syntax is currently not supported. Offending expression: " + Pretty.pprint(e))
+        case ExprInterval(lo,hi)    => sys.error("Only constant interval end-points are currently supported. Offending expression: " + pprint(e))
+        case ExprIntervalM(lo,hi)   => sys.error("Centered interval syntax is currently not supported. Offending expression: " + pprint(e))
         case Lit(GStr(s))           => Lit(GStrEnclosure(s))
         case _                      => super.mapExpr(e)
       }
@@ -623,7 +623,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
             evalActions(certain, notCAndPath, a2, env, p, st)
           case Uncertain =>
             evalActions(false, cAndPath, a1, env, p, st) union evalActions(false, notCAndPath, a2, env, p, st) 
-          case _ => sys.error("Non-boolean expression in if statement: " + Pretty.pprint(c))
+          case _ => sys.error("Non-boolean expression in if statement: " + pprint(c))
         }
       case Switch(mode, cs) =>
         val modes = cs map { case Clause(lhs,claim,rhs) =>
@@ -748,7 +748,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
   val initStoreTxt: String = 
     s"""#0.0 { className = Simulator, parent = %s, nextChild = 0, seed1 = 0, seed2 = 0, 
                outputRows = "All", continuousSkip = 0, resultType = @Discrete, 
-               ${visibleParameters.map(p => p._1 + "=" + Pretty.pprint(p._2)).mkString(",")} }"""
+               ${visibleParameters.map(p => p._1 + "=" + pprint(p._2)).mkString(",")} }"""
 
   /** Updates the values of variables in xs (identified by CId and Dot.field) to the corresponding CValue. */
   def applyAssignments(xs: List[(CId, Dot, CValue)], st: Enclosure): Enclosure =
@@ -968,8 +968,8 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
         case Right(r) => 
           try {
             contract(r, claim.c, prog, claim.selfCId) map 
-              (Right(_)) getOrElse Left("Empty enclosure after applying claim " + Pretty.pprint(claim.c))
-          } catch { case e: Throwable => Left("Error while applying claim " + Pretty.pprint(claim.c) + ": " + e.getMessage) }
+              (Right(_)) getOrElse Left("Empty enclosure after applying claim " + pprint(claim.c))
+          } catch { case e: Throwable => Left("Error while applying claim " + pprint(claim.c) + ": " + e.getMessage) }
         case _ => res
       }
     }
@@ -1003,7 +1003,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
     , st: Enclosure
     )(implicit rnd: Rounding): Enclosure = {
     val ic = contract(st.end, claims, p) match {
-      case Left(_) => sys.error("Initial condition violates claims {" + claims.map(c => Pretty.pprint(c.c)).mkString(", ") + "}.")
+      case Left(_) => sys.error("Initial condition violates claims {" + claims.map(c => pprint(c.c)).mkString(", ") + "}.")
       case Right(r) => r
     }
     val varNameToFieldId = varNameToFieldIdMap(ic)
