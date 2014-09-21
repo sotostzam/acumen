@@ -43,6 +43,7 @@ object Main {
   //    enable console message so that its clear what options are in effect
 
   var debugExtract = false
+  var printLogLevel: Option[Logger.Level] = None
 
   var positionalArgs = new ArrayBuffer[String]
 
@@ -66,7 +67,8 @@ object Main {
   def experimentalOptsHelp = Array(
     "--full-help",
     "--templates             enables template expansion in the source code editor",
-    "--prune-semantics       hide experimental semantics in the U.I."
+    "--prune-semantics       hide experimental semantics in the U.I.",
+   s"-l|--log <level>        print logs to command line (level is one of: ${Logger.levels.mkString(",")})."
   )
   def commandHelp = Array(
     "ui [<file>]             starts the U.I."
@@ -139,6 +141,18 @@ object Main {
       case ("--passes"|"-p") :: p :: tail =>
         commandLineParms = true
         validatePassesStr(p); extraPasses = splitPassesString(p); parseArgs(tail)
+      case ("--log"|"-l") :: level :: tail =>
+        level match {
+          case "TRACE" => printLogLevel = Some(Logger.TRACE)
+          case "DEBUG" => printLogLevel = Some(Logger.DEBUG)
+          case "INFO"  => printLogLevel = Some(Logger.INFO)
+          case "WARN"  => printLogLevel = Some(Logger.WARN)
+          case "ERROR" => printLogLevel = Some(Logger.ERROR)
+          case _ =>
+            System.err.println(s"Unrecognized log level: $level")
+            usage()
+        }
+        parseArgs(tail)
       case opt ::  tail if opt.startsWith("-") =>
         System.err.println("Unrecognized Option: " + opt)
         usage()
