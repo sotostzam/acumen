@@ -39,7 +39,7 @@ class Main(simulator)
      // Collision Detection
      if(x1>x2) state:="Collision" end;
      // De-ctivating Pre-braking
-     if (x1+pbd1<x2) state:="Approach" end;
+//     if (x1+pbd1<x2) state:="Approach" end;
      // Activating Full Breaking
      if(x1+fbd1>x2) state:="Brake" end;
    case"Brake" print=3;
@@ -50,10 +50,12 @@ class Main(simulator)
      // De-Activating Pre-braking
      if(x1+pbd1<x2) state:="Approach" end;
      // De-activating Full Breaking
-     if (x1+fbd1<x2) state:="Pre-Brake" end;
+//     if (x1+fbd1<x2) state:="Pre-Brake" end;
    case"Collision" print=4;
      x1':=(m1*x1' + m2*x2' + m2*c*(x2'-x1'))/(m1 + m2);
      x2':=(m1*x1' + m2*x2' + m1*c*(x1'-x2'))/ (m1 + m2);
+     x1'' = 0;
+     x2'' = 0;
      collision_delta_v1 := x1' - (m1*x1' + m2*x2' + m2*c*(x2'-x1'))/(m1 + m2);
      collision_delta_v2 := x2' - (m1*x1' + m2*x2' + m1*c*(x1'-x2'))/ (m1 + m2);
      state := "Post-Collision"
