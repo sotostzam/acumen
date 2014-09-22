@@ -39,9 +39,9 @@ class Main(simulator)
      // Collision Detection
      if(x1>x2) state:="Collision" end;
      // De-ctivating Pre-braking
-     if (x1+pbd1<x2) state:="Approach" end;
+//     if (x1+pbd1<x2) state:="Approach" end;
      // Activating Full Breaking
-//     if(x1+fbd1>x2) state:="Brake" end;
+     if(x1+fbd1>x2) state:="Brake" end;
    case "Brake" print=3;
      if(x1'>0) x1''=fba1 else x1'=0 end;
      x2''=0;
