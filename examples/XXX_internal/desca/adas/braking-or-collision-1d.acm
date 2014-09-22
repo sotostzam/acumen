@@ -1,5 +1,5 @@
 // Braking or Collision - collision case
-// Walid Taha and Henrik Eriksson
+// Authors: Walid Taha and Henrik Eriksson
 // 2014/09/12
 
 class Main(simulator)
@@ -38,7 +38,7 @@ class Main(simulator)
      x2''=0;
      // Collision Detection
      if(x1>x2) state:="Collision" end;
-     // De-ctivating Pre-braking
+     // De-activating Pre-braking
 //     if (x1+pbd1<x2) state:="Approach" end;
      // Activating Full Breaking
      if(x1+fbd1>x2) state:="Brake" end;
