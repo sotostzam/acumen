@@ -126,6 +126,9 @@ case class DataModel(columnNames: im.IndexedSeq[String], rowCount: Int,
                       Enclosure(i.loDouble, i.hiDouble, i.loDouble, i.hiDouble)
                   }).toIndexedSeq
                   res += new PlotEnclosure(a.isSimulator, a.key.fieldName, a.startFrame, idx, collE)
+                case VLit(_: GStr | _: GDiscreteEnclosure[String])  => 
+                  res += new PlotDiscrete(a.isSimulator, a.key.fieldName, a.startFrame, idx, a0)
+                
                 case _ => ()
               }
           case _ => ()

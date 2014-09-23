@@ -8,8 +8,9 @@ import java.awt.{AlphaComposite, BasicStroke, Color, RenderingHints}
 import java.awt.geom.{AffineTransform, Area}
 import java.awt.geom.{Line2D, Path2D, Point2D, Rectangle2D}
 import java.awt.image.BufferedImage
+import scala.collection.immutable.SortedSet
 import scala.collection.JavaConversions._
-import scala.collection.mutable.ArrayBuffer
+import scala.collection.mutable.{ArrayBuffer,ArrayBuilder,Map=>MutMap}
 import scala.swing._
 import util.Canonical._
 import util.Conversions._
@@ -67,12 +68,10 @@ class MyPath2D() extends PlotEntity {
     }
   }
   def drawDots(g:Graphics2D, tr:AffineTransform) = {
-    if (path.size >= 2) {
-      for (i <- 0 until path.size) {
-        val p = new Point2D.Double()
-        tr.transform(path(i), p)
-        g.fillRect(p.getX.toInt, p.getY.toInt, 2, 2)
-      }
+    for (i <- 0 until path.size) {
+      val p = new Point2D.Double()
+      tr.transform(path(i), p)
+      g.fillRect(p.getX.toInt, p.getY.toInt, 2, 2)
     }
   }
   def transform(tr:AffineTransform) = {
@@ -85,6 +84,85 @@ class MyPath2D() extends PlotEntity {
     val maxY = math.max(y1, y2)
     p1 = new Point2D.Double(minX, minY)
     p2 = new Point2D.Double(maxX, maxY)
+  }
+}
+
+class DiscretePathBuilder {
+  case class Line(xs: Array[Double], y: String)
+  
+  private var lines = new ArrayBuffer[Line]
+  private var curLines = MutMap.empty[String,ArrayBuilder[Double]]
+  def add(x:Double, ys: Set[String]) = {
+    ys.foreach {y =>
+      curLines.get(y) match {
+        case Some(line) => line += x
+        case None       => curLines += ((y, (ArrayBuilder.make[Double]) += x))
+        }
+    }
+    curLines.keys.foreach { y =>
+      if (!ys.contains(y)) {
+          lines += Line(curLines(y).result(), y)
+        curLines -= y
+      }
+    }
+  }  
+  def result(sortWith: Option[(String,String) => Boolean] = None) : DiscretePath = {
+    curLines.foreach { case (y,line) =>
+      lines += Line(line.result(), y)
+    }
+    curLines.clear()
+    val yMap = MutMap.empty[String,Double]
+    var counter = 0
+    lines.foreach{case Line(xs, y) => 
+                    if (!yMap.contains(y)) {yMap += ((y, counter)); counter += 1}}
+    sortWith match {
+      case Some(f) => yMap.keys.toList.sortWith(f).zipWithIndex.foreach{case (key, i) => yMap(key) = i}
+      case None => /* nothing to do */
+    }
+    new DiscretePath(lines.map{case Line(xs, y) => xs.map{x => new Point2D.Double(x,yMap(y))}})
+  }
+}
+
+class DiscretePath(val lines: Seq[Array[Point2D.Double]]) extends PlotEntity {
+  var x1 = Double.MaxValue // min
+  var x2 = Double.MinValue // max
+  var y1 = Double.MaxValue // min
+  var y2 = Double.MinValue // max
+  collectBounds()
+  def collectBounds() {
+    lines.foreach{line => line.foreach{p => 
+      x1 = x1.min(p.getX)
+      x2 = x2.max(p.getX)
+      y1 = y1.min(p.getY)
+      y2 = y2.max(p.getY)
+    }}
+  }
+  def draw(g:Graphics2D, tr:AffineTransform) = {
+    lines.foreach{line =>
+      val p0 = new Point2D.Double()
+      val p1 = new Point2D.Double()
+      tr.transform(line.minBy{p => p.getX}, p0)
+      tr.transform(line.maxBy{p => p.getX}, p1)
+      g.draw(new Line2D.Double(p0, p1))
+    }
+  }
+  def drawDots(g:Graphics2D, tr:AffineTransform) = {
+    lines.foreach{line =>
+      line.foreach{p0 =>
+        val p = new Point2D.Double()
+        tr.transform(p0, p)
+        g.fillRect(p.getX.toInt, p.getY.toInt, 2, 2)
+      }
+    }
+  }
+  def transform(tr:AffineTransform) {
+    val p = new Point2D.Double()
+    lines.foreach{line =>
+      line.foreach{p =>
+        tr.transform(p, p)
+      }
+    }
+    collectBounds()
   }
 }
 
@@ -241,6 +319,20 @@ class PlotData(parms: PlotParms = null, tb:PlotModel = null, val disableThreshol
 
           polys += line
         }
+        case p:PlotDiscrete => {
+
+          val lines = new DiscretePathBuilder
+                    
+          for (f <- 0 until p.values.size;
+               val frame = s + f) {
+            p.values(f) match {
+              case VLit(GStr(str)) => lines.add(time(frame),Set(str))
+              case VLit(e:GDiscreteEnclosure[String]) => lines.add(time(frame),e.range)
+            }
+          }
+
+          polys += lines.result(Some((a,b) => a < b))
+       }
         case p:PlotEnclosure => {
           val path = new EnclosurePath
           var prevTime = time(s)
