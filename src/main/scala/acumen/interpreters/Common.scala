@@ -32,6 +32,13 @@ object Common {
       case Some(cl) => cl
       case None => throw ClassNotDefined(c)
     }
+  
+  /** Convert a relative, qualified name (Dot) d in a given environment env
+   *  to an absolute qualified name in a given object (identified by CId). */
+  def globalReference(d: Dot, env: Env, st: CStore): (CId, Name) = d match {
+    case Dot(Var(on), n)          => (extractId(env(on)), n)
+    case Dot(Dot(Var(pn), on), n) => (extractId(st(extractId(env(pn)))(on)), n)
+  }
  
   /** Purely functional unary operator evaluation at the ground values level. */
   def unaryGroundOp(f:String, vx:GroundValue) = {

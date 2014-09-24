@@ -12,7 +12,7 @@ import util.ASTUtil.{
 }
 import Common._
 import Errors.{
-  BadLhs, BadRhs, ConstructorArity, DuplicateContinuousAssingment, 
+  BadLhs, BadRhs, ConstructorArity, ContinuousDynamicsUndefined, DuplicateContinuousAssingment, 
   DuplicateDiscreteAssingment, HypothesisFalsified, NotAClassName, NotAnObject, 
   PositionalAcumenError, ShouldNeverHappen, UnknownOperator
 }
@@ -794,14 +794,32 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
   /** Traverse the AST (p) and collect statements that are active given st. */
   def active(st: Enclosure, p: Prog): Set[Changeset] = {
     val a = iterate(evalStep(p, st, _), mainId(st), st)
-    a.foreach{ changeset =>
-      val odeIds = changeset.odes.toList.map(da => (da.selfCId, da.lhs))
-      val assIds = changeset.ass.toList.map(da => (da.selfCId, da.lhs))
-      checkContinuousDynamicsAlwaysDefined(p, odeIds, st)
+    a.foreach{ cs =>
+      val odeIds = cs.odes.toList.map(da => (da.selfCId, da.lhs))
+      val assIds = cs.ass.toList.map(da => (da.selfCId, da.lhs))
+      checkContinuousDynamicsAlwaysDefined(p, cs.eqs, cs.odes, st)
       checkDuplicateAssingments(odeIds, DuplicateContinuousAssingment)
       checkDuplicateAssingments(assIds, DuplicateDiscreteAssingment)
     }
     a
+  }
+  
+  /**
+   * Ensure that for each variable that has an ODE declared in the private section, there is 
+   * an equation in scope at the current time step. This is done by checking that for each 
+   * primed field name in each object in st, there is a corresponding CId-Name pair in eqs or odes.
+   */
+  def checkContinuousDynamicsAlwaysDefined(prog: Prog, eqs: Set[DelayedAction], odes: Set[DelayedAction], st: Enclosure): Unit = {
+    val odeNamesActive = odes.map{ da => val (id, n) = globalReference(da.lhs, da.env, st); (id, n.x) }
+    val eqnNamesActive = eqs.map { da => val (id, n) = globalReference(da.lhs, da.env, st); (id, n.x) }
+    val odeNamesDeclared = prog.defs.map(d => (d.name, (d.fields ++ d.priv.map(_.x)).filter(_.primes > 0))).toMap
+    st.foreach { case (o, _) =>
+      if (o != magicId(st))
+        odeNamesDeclared.get(getCls(o, st)).map(_.foreach { n =>
+          if (!(odeNamesActive union eqnNamesActive).exists { case (ao,an) => ao == o && an == n.x })
+            throw ContinuousDynamicsUndefined(o, n, Pretty.pprint(getObjectField(o, classf, st)), getTime(st))
+      })
+    }
   }
   
   /** Summarize result of evaluating the hypotheses of all objects. */
