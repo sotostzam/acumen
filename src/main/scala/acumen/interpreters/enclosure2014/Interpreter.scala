@@ -795,32 +795,33 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
   def active(st: Enclosure, p: Prog): Set[Changeset] = {
     val a = iterate(evalStep(p, st, _), mainId(st), st)
     a.foreach{ cs =>
-      val odeIds = cs.odes.toList.map(da => (da.selfCId, da.lhs))
+      val contIds = (cs.eqs.toList ++ cs.odes.toList).map(da => (da.selfCId, da.lhs))
       val assIds = cs.ass.toList.map(da => (da.selfCId, da.lhs))
-      checkContinuousDynamicsAlwaysDefined(p, cs.eqs, cs.odes, st)
-      checkDuplicateAssingments(odeIds, DuplicateContinuousAssingment)
+      checkFlowDefined(p, cs, st)
+      checkDuplicateAssingments(contIds, DuplicateContinuousAssingment)
       checkDuplicateAssingments(assIds, DuplicateDiscreteAssingment)
     }
     a
   }
   
   /**
-   * Ensure that for each variable that has an ODE declared in the private section, there is 
-   * an equation in scope at the current time step. This is done by checking that for each 
+   * If cs is a flow, ensure that for each variable that has an ODE declared in the private section, 
+   * there is an equation in scope at the current time step. This is done by checking that for each 
    * primed field name in each object in st, there is a corresponding CId-Name pair in eqs or odes.
    */
-  def checkContinuousDynamicsAlwaysDefined(prog: Prog, eqs: Set[DelayedAction], odes: Set[DelayedAction], st: Enclosure): Unit = {
-    val odeNamesActive = odes.map{ da => val (id, n) = globalReference(da.lhs, da.env, st); (id, n.x) }
-    val eqnNamesActive = eqs.map { da => val (id, n) = globalReference(da.lhs, da.env, st); (id, n.x) }
-    val odeNamesDeclared = prog.defs.map(d => (d.name, (d.fields ++ d.priv.map(_.x)).filter(_.primes > 0))).toMap
-    st.foreach { case (o, _) =>
-      if (o != magicId(st))
-        odeNamesDeclared.get(getCls(o, st)).map(_.foreach { n =>
-          if (!(odeNamesActive union eqnNamesActive).exists { case (ao,an) => ao == o && an == n.x })
-            throw ContinuousDynamicsUndefined(o, n, Pretty.pprint(getObjectField(o, classf, st)), getTime(st))
-      })
+  def checkFlowDefined(prog: Prog, cs: Changeset, st: Enclosure): Unit =
+    if (isFlow(cs)) {
+      val contNamesActive = (cs.eqs union cs.odes).map { da => val (id, n) = globalReference(da.lhs, da.env, st); (id, n.x) }
+      val odeNamesDeclared = prog.defs.map(d => (d.name, (d.fields ++ d.priv.map(_.x)).filter(_.primes > 0))).toMap
+      st.foreach {
+        case (o, _) =>
+          if (o != magicId(st))
+            odeNamesDeclared.get(getCls(o, st)).map(_.foreach { n =>
+              if (!contNamesActive.exists { case (ao, an) => ao == o && an == n.x })
+                throw ContinuousDynamicsUndefined(o, n, Pretty.pprint(getObjectField(o, classf, st)), getTime(st))
+            })
+      }
     }
-  }
   
   /** Summarize result of evaluating the hypotheses of all objects. */
   def testHypotheses(st: Enclosure, timeDomain: (Double,Double), p: Prog, old: Metadata): Metadata = {
@@ -888,6 +889,8 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
       hw.foldLeft((pwlW, pwlR, pwlU)) {
         case ((tmpW, tmpR, tmpU), q) =>
           if (!isFlow(q)) {
+//            println(q)
+            Logger.trace(s"Not a flow")
             val wi = 
               if (intersectWithGuardBeforeReset)
                 contract(w, q.ass.map(da => DelayedConstraint(da.selfCId, da.path)), prog)
@@ -911,12 +914,16 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
       val hu = active(u, prog) 
       val up = contract(u, q.claims, prog)
       val e = q :: past
-      if (noEvent(q, hr, hu, up)) // no event
+      if (noEvent(q, hr, hu, up)) { // no event
+        Logger.trace(s"No event")
         (Nil, (u, e, StartTime) :: Nil)
-      else if (certainEvent(q, hr, hu, up)) // certain event
+      } else if (certainEvent(q, hr, hu, up)) { // certain event
+        Logger.trace(s"Certain event")
         ((rp, e, UnknownTime) :: Nil, Nil)
-      else // possible event
+      } else { // possible event
+        Logger.trace(s"Possible event")
         ((rp, e, UnknownTime) :: Nil, (contract(u, q.claims, prog).right.get, e, StartTime) :: Nil)
+      }
     }
     enclose(st.branches, Nil, Nil, Nil, Nil, 0)
   }

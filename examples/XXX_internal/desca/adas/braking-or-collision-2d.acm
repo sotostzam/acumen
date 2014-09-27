@@ -6,7 +6,7 @@ class Main(simulator)
 private
   t:=-2; t':=1;
   m1 := 1; x1:=0; x1':=0; x1'':=0; y1:=-10; y1':=1; y1'':=0;
-  m2 := 2; x2:=3; x2':=0; y2:=0; y2' := 0;
+  m2 := 2; x2:=3; x2':=0; y2:=0; y2' := 0; y1'' := 0; y2'':=0;
   state := "Approach-1";
   radius := 2;
   sensor_radius :=0.5;
@@ -15,9 +15,10 @@ private
   c := 0.5;
   collision_delta_v1 :=0 ;
   collision_delta_v2 :=0 ;
+  distance:= sqrt(((0-3)*(0-3))+((-10-0)*(-10-0)));
   _3D:=[]
 end
-  _3D =[["Sphere",   // Type of _3D object
+  _3D=[["Sphere",   // Type of _3D object
         [x2,y2,0],   // Center point in [x,y,z] form
         0.05,        // Radius
         red,         // Color
@@ -39,6 +40,7 @@ end
         [pi/2,0,0],  // Orientation (pi/2 around x-axis)
         state]];     // Text you wish to display
   t'=1;
+  distance = sqrt(((x1-x2)*(x1-x2))+((y1-y2)*(y1-y2)));
   switch state
     case "Approach-1"
       x1' = 0; y1' = 3;
@@ -54,14 +56,14 @@ end
       x1' = 0; y1' = 3;
       x2 = 0;
       y2 = radius*(1+t);
-      if (sqrt((x1-x2)^2+(y1-y2)^2)<sensor_radius) 
+      if (distance<sensor_radius) 
         state:="Brake" end;
     case "Brake"
       x1' = 0;
       if (y1'>0) y1''= braking_acceleration else y1'=0 end;
       x2 = 0;
       y2 = radius*(1+t);
-      if (sqrt((x1-x2)^2+(y1-y2)^2)<collision_radius) 
+      if (distance<collision_radius) 
         state:="Collision" end;
     case "Collision"
       y1':=(m1*y1' + m2*y2' + m2*c*(y2'-y1'))/(m1 + m2);
@@ -69,8 +71,10 @@ end
       collision_delta_v1 := y1' - (m1*y1' + m2*y2' + m2*c*(y2'-y1'))/(m1 + m2);
       collision_delta_v2 := y2' - (m1*y1' + m2*y2' + m1*c*(y1'-y2'))/ (m1 + m2);
       state:="Post-Collision";
-      x1':=0; 
-      x2':=0;
+      x1'=0; 
+      x2'=0;
+      y1'' = 0;
+      y2'' = 0;
     case "Post-Collision" 
       x1''=0; y1''=0;
       x2'=0; y2'=0;
