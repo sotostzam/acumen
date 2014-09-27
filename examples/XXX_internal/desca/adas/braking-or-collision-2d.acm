@@ -5,8 +5,8 @@
 class Main(simulator)
 private
   t:=-2; t':=1;
-  m1 := 1; x1:=0; x1':=0; x1'':=0; y1:=-10; y1':=1; y1'':=0;
-  m2 := 2; x2:=3; x2':=0; y2:=0; y2' := 0; y1'' := 0; y2'':=0;
+  m1:=1; x1:=0; x1':=0; x1'':=0; y1:=-10; y1':=3; y1'':=0;
+  m2:=2; x2:=6; x2':=0; y2:=0; y2':=0;
   state := "Approach-1";
   radius := 2;
   sensor_radius :=0.5;
@@ -15,68 +15,66 @@ private
   c := 0.5;
   collision_delta_v1 :=0 ;
   collision_delta_v2 :=0 ;
-  distance:= sqrt(((0-3)*(0-3))+((-10-0)*(-10-0)));
+  distance := sqrt(((0-3)*(0-6))+((-10-0)*(-10-0)));
+  print := 1;
   _3D:=[]
 end
-  _3D=[["Sphere",   // Type of _3D object
-        [x2,y2,0],   // Center point in [x,y,z] form
-        0.05,        // Radius
-        red,         // Color
-        [0,0,0]],    // Orientation,
-        ["Sphere",   // Type of _3D object
-        [x1,y1,0],   // Center point in [x,y,z] form
-        0.05,        // Radius
-        blue,        // Color
-        [0,0,0]],    // Orientation]
-        ["Cylinder", // Type of _3D object
-        [x1,y1,0],   // Center point
-        [sensor_radius,0.01], // Size in [radius,length] form
-        yellow,      // Color
-        [pi/2,0,0]], // Orientation
-        ["Text",     // Type of _3D object
-        [-2.2,0,-1], // Starting point in [x,y,z] form
-        0.75,        // Font size
-        yellow,      // Color in red-green-blue (RGB) intensity
-        [pi/2,0,0],  // Orientation (pi/2 around x-axis)
-        state]];     // Text you wish to display
-  t'=1;
+  _3D = [["Sphere",   // Type of _3D object
+         [x2,y2,0],   // Center point in [x,y,z] form
+         0.05,        // Radius
+         red,         // Color
+         [0,0,0]],    // Orientation,
+         ["Sphere",   // Type of _3D object
+         [x1,y1,0],   // Center point in [x,y,z] form
+         0.05,        // Radius
+         blue,        // Color
+         [0,0,0]],    // Orientation]
+         ["Cylinder", // Type of _3D object
+         [x1,y1,0],   // Center point
+         [sensor_radius,0.01], // Size in [radius,length] form
+         yellow,      // Color
+         [pi/2,0,0]], // Orientation
+         ["Text",     // Type of _3D object
+         [-2.2,0,-1], // Starting point in [x,y,z] form
+         0.75,        // Font size
+         yellow,      // Color in red-green-blue (RGB) intensity
+         [pi/2,0,0],  // Orientation (pi/2 around x-axis)
+         state]];     // Text you wish to display
+  t' = 1;
   distance = sqrt(((x1-x2)*(x1-x2))+((y1-y2)*(y1-y2)));
   switch state
-    case "Approach-1"
+    case "Approach-1" print = 1;
       x1' = 0; y1' = 3;
       x2 = radius*(1-t);
       y2 = 0;
-      if t>0 state:="Approach-2" end;
-    case "Approach-2"
+      if (t>0) state := "Approach-2" end;
+    case "Approach-2"  print = 2;
       x1' = 0; y1' = 3;
       x2 = radius*(1-sin(t));
       y2 = radius*(1-cos(t));
-      if y2>radius state:="Approach-3";t:=0 end;
-    case "Approach-3"
+      if (y2>radius) state:="Approach-3"; t:=0 end;
+    case "Approach-3" print = 3;
       x1' = 0; y1' = 3;
-      x2 = 0;
-      y2 = radius*(1+t);
-      if (distance<sensor_radius) 
+      x2= 0;
+      y2=radius*(1+t);
+      if (distance<=sensor_radius) 
         state:="Brake" end;
-    case "Brake"
+    case "Brake" print = 4;
       x1' = 0;
-      if (y1'>0) y1''= braking_acceleration else y1'=0 end;
+      if (y1'>0) y1'' = braking_acceleration else y1' = 0 end;
       x2 = 0;
       y2 = radius*(1+t);
-      if (distance<collision_radius) 
-        state:="Collision" end;
-    case "Collision"
+      if (distance<collision_radius) state := "Collision" end;
+    case "Collision" print = 5;
       y1':=(m1*y1' + m2*y2' + m2*c*(y2'-y1'))/(m1 + m2);
       y2':=(m1*y1' + m2*y2' + m1*c*(y1'-y2'))/(m1 + m2);
       collision_delta_v1 := y1' - (m1*y1' + m2*y2' + m2*c*(y2'-y1'))/(m1 + m2);
-      collision_delta_v2 := y2' - (m1*y1' + m2*y2' + m1*c*(y1'-y2'))/ (m1 + m2);
+      collision_delta_v2 := y2' - (m1*y1' + m2*y2' + m1*c*(y1'-y2'))/(m1 + m2);
       state:="Post-Collision";
       x1'=0; 
       x2'=0;
-      y1'' = 0;
-      y2'' = 0;
-    case "Post-Collision" 
+    case "Post-Collision" print = 6;
       x1''=0; y1''=0;
       x2'=0; y2'=0;
-  end
+  end;
 end
