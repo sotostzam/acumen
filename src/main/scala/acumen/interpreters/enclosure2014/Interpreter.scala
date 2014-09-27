@@ -869,6 +869,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
       else if (iterations / st.branches.size > maxIterationsPerBranch)
         sys.error(s"Enclosure computation over $T did not terminate in ${st.branches.size * maxIterationsPerBranch} iterations.")
       else {
+        Logger.trace(s"enclose called with ${pwlW.size} waiting initial conditions (iteration $iterations).")
         val (w, q, t) :: waiting = pwlW
         if (isPassed(w, t, pwlP, pwlPs))
           enclose(waiting, pwlR, pwlU, pwlP, pwlPs, iterations + 1)
@@ -889,7 +890,6 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
       hw.foldLeft((pwlW, pwlR, pwlU)) {
         case ((tmpW, tmpR, tmpU), q) =>
           if (!isFlow(q)) {
-//            println(q)
             Logger.trace(s"Not a flow")
             val wi = 
               if (intersectWithGuardBeforeReset)
