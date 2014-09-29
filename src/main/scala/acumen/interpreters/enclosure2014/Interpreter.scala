@@ -915,13 +915,13 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
       val up = contract(u, q.claims, prog)
       val e = q :: past
       if (noEvent(q, hr, hu, up)) { // no event
-        Logger.trace(s"No event")
+        Logger.trace("handleEvent (No event)")
         (Nil, (u, e, StartTime) :: Nil)
       } else if (certainEvent(q, hr, hu, up)) { // certain event
-        Logger.trace(s"Certain event")
+        Logger.trace("handleEvent (Certain event)")
         ((rp, e, UnknownTime) :: Nil, Nil)
       } else { // possible event
-        Logger.trace(s"Possible event")
+        Logger.trace("handleEvent (Possible event)")
         ((rp, e, UnknownTime) :: Nil, (contract(u, q.claims, prog).right.get, e, StartTime) :: Nil)
       }
     }
