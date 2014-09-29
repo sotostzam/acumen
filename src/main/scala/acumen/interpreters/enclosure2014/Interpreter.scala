@@ -852,7 +852,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
     val VLit(GBool(intersectWithGuardBeforeReset)) = getInSimulator(ParamIntersectWithGuardBeforeReset._1, st.enclosure)
     require(st.branches.nonEmpty, "hybridEncloser called with zero branches")
     require(st.branches.size < maxBranches, s"Number of branches (${st.branches.size}) exceeds maximum ($maxBranches).")
-    Logger.debug(s"hybridEncloser called on $T with ${st.branches.size} branches")
+    Logger.debug(s"hybridEncloser (over $T, ${st.branches.size} branches)")
     def mergeBranches(ics: List[InitialCondition]): List[InitialCondition] =
       ics.groupBy(ic => (ic._2, ic._3)).map { case ((m, t), ic) => (ic.map(_._1).reduce(_ /\ _), m, t) }.toList
     @tailrec def enclose
@@ -869,7 +869,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
       else if (iterations / st.branches.size > maxIterationsPerBranch)
         sys.error(s"Enclosure computation over $T did not terminate in ${st.branches.size * maxIterationsPerBranch} iterations.")
       else {
-        Logger.trace(s"enclose called with ${pwlW.size} waiting initial conditions (iteration $iterations).")
+        Logger.trace(s"enclose (${pwlW.size} waiting initial conditions, iteration $iterations)")
         val (w, q, t) :: waiting = pwlW
         if (isPassed(w, t, pwlP, pwlPs))
           enclose(waiting, pwlR, pwlU, pwlP, pwlPs, iterations + 1)
@@ -890,7 +890,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
       hw.foldLeft((pwlW, pwlR, pwlU)) {
         case ((tmpW, tmpR, tmpU), q) =>
           if (!isFlow(q)) {
-            Logger.trace(s"Not a flow")
+            Logger.trace(s"encloseHw (Not a flow)")
             val wi = 
               if (intersectWithGuardBeforeReset)
                 contract(w, q.ass.map(da => DelayedConstraint(da.selfCId, da.path)), prog)
@@ -921,7 +921,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
         Logger.trace("handleEvent (Certain event)")
         ((rp, e, UnknownTime) :: Nil, Nil)
       } else { // possible event
-        Logger.trace("handleEvent (Possible event)")
+        Logger.trace(s"handleEvent (Possible event, |hr| = ${hr.size}, q.ass = {${q.ass.map(Pretty pprint _.a).mkString(", ")}})")
         ((rp, e, UnknownTime) :: Nil, (contract(u, q.claims, prog).right.get, e, StartTime) :: Nil)
       }
     }
