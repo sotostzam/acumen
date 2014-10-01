@@ -143,6 +143,7 @@ package acumen {
   /* ground values (common to expressions and values) */
 
   sealed abstract class GroundValue
+  case object GUndefined extends GroundValue
   /* Example: 42 */
   case class GInt(i: Int) extends GroundValue
   /* Example: 4.2e1 */

@@ -91,9 +91,8 @@ case class Desugarer(odeTransformMode: ODETransformMode) {
       case Lit(gv) => Lit(gv)
       case Var(x) =>
         if (env.contains(x) || (p.defs map (_.name)).contains(ClassName(x.x))) Var(x)
-        else if (fs contains x) Dot(Var(self), x)
         else if (Constants.predefined.contains(x.x)) Constants.predefined(x.x)
-      else throw VariableNotDeclared(x).setPos(e.pos)
+        else Dot(Var(self), x)
       case Op(f, es) =>
         def mkIndexOf(n0: Expr) = es.foldLeft(n0)((n,e) => Index(n, des(e)))
         if (env.contains(f)) mkIndexOf(Var(f))

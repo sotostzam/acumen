@@ -212,10 +212,37 @@ class CStoreModel(ops: CStoreOpts) extends InterpreterModel {
           add(idx, Some(i), ui)
         }
       case _ =>
-        val idx = indexes(ResultKey(id,x,None))
+        val idx = indexes.getOrElseUpdate( ResultKey(id, x, None) 
+                                         , initResultObj(v, id, x, None, false) )
         add(idx, None, v)
     }
   }
+
+  /**
+   * Initialize a result object and register it in stores, indexes and ids.
+   * Returns the id after adding it to ids. 
+   */
+  private def initResultObj(v: Value[_], id: CId, x: Name, vectorIdx: Option[Int], isSimulator: Boolean): Int = {
+    def newResultObj(vectorIdx: Option[Int], v: GValue) = {
+      val key = ResultKey(id, x, vectorIdx)
+      v match {
+        case VLit(GDouble(_) | GInt(_)) =>
+          val ar = new DoubleResultCollector(ResultKey(id, x, vectorIdx), isSimulator, frame)
+          ar += extractDoubleNoThrow(v)
+          ar
+        case _ =>
+          val ar = new GenericResultCollector(ResultKey(id, x, vectorIdx), isSimulator, frame)
+          ar += v
+          ar
+      }
+    }
+    val ar = newResultObj(vectorIdx, v)
+    stores += ar
+    val ridx = stores.size-1
+    indexes += ((ar.key, ridx))
+    ids += id 
+    ridx
+  } 
 
   private def addDataHelper(sts:TraceData) = {
     def compIds(ido1:(CId,_), ido2:(CId,_)) = ido1._1 < ido2._1
@@ -232,32 +259,12 @@ class CStoreModel(ops: CStoreOpts) extends InterpreterModel {
             timeKey = ResultKey(id, Name("time", 0), None)
           classes += ((id, className))
           for ((x,v) <- o.toList sortWith(compFields)) {
-            def newResultObj (vectorIdx: Option[Int], v: GValue) = {
-              val key = ResultKey(id,x,vectorIdx)
-              v match {
-                case VLit(GDouble(_)|GInt(_)) => 
-                  val ar = new DoubleResultCollector(ResultKey(id,x,vectorIdx),isSimulator,frame)
-                  ar += extractDoubleNoThrow(v)
-                  ar 
-                case _ =>
-                  val ar = new GenericResultCollector(ResultKey(id,x,vectorIdx),isSimulator,frame)
-                  ar += v
-                  ar
-              }
-            }
             if (keep3D || !threeDField(x.x)) v match {
               case VVector(u) =>
-                for ((ui,i) <- u zipWithIndex) {
-                  var ar = newResultObj(Some(i), ui)
-                  stores += ar
-                  indexes += ((ar.key, stores.size-1))
-                  ids += id
-                }
+                for ((ui,i) <- u zipWithIndex)
+                  initResultObj(ui, id, x, Some(i), isSimulator)
               case _ =>
-                var ar = newResultObj(None, v)
-                stores += ar
-                indexes += ((ar.key, stores.size-1))
-                ids += id
+                initResultObj(v, id, x, None, isSimulator)
             } 
           }
         }

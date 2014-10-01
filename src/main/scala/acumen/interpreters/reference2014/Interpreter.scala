@@ -82,13 +82,13 @@ object Interpreter extends acumen.CStoreInterpreter {
   def reparent(cs:List[CId], p:CId) : Eval[Unit] =
     mapM_ (logReparent(_:CId,p), cs)
     
-  /* discretely assign the value v to a field n in object o */
-  def assign(o: CId, d: Dot, v:CValue) : Eval[Unit] = logAssign(o, d, v)
+  /* discretely assign the value  obtained by evaluating r in e to a field n in object o */
+  def assign(o: CId, d: Dot, r: Expr, e: Env) : Eval[Unit] = logAssign(o, d, r, e)
 
-  /* continuously assign the value v to a field n in object o */
-  def equation(o: CId, d: Dot, v:CValue) : Eval[Unit] = logEquation(o, d, v)
+  /* continuously assign the value obtained by evaluating r in e to a field n in object o */
+  def equation(o: CId, d: Dot, r: Expr, e: Env) : Eval[Unit] = logEquation(o, d, r, e)
 
-  /* continuously assign the value v to a field n in object o */
+  /* declare an ode with LHS o.d, RHS r, to be evaluated in e. */
   def ode(o: CId, d: Dot, r: Expr, e: Env) : Eval[Unit] = logODE(o, d, r, e)
   
   /* log an id as being dead */
@@ -275,10 +275,7 @@ object Interpreter extends acumen.CStoreInterpreter {
     a match {
       case Assign(d@Dot(e,x),t) => 
         /* Schedule the discrete assignment */
-        for { id <- asks(evalToObjId(e, env, _))
-        	  vt <- asks(evalExpr(t, env, _))
-        	  vx <- asks(evalExpr(d, env, _)) 
-        } assign(id, d, vt)
+        for { id <- asks(evalToObjId(e, env, _)) } assign(id, d, t, env)
       /* Basically, following says that variable names must be 
          fully qualified at this language level */
       case Assign(_,_) => 
@@ -313,10 +310,7 @@ object Interpreter extends acumen.CStoreInterpreter {
   def evalContinuousAction(a:ContinuousAction, env:Env, p:Prog) : Eval[Unit] = 
     a match {
       case EquationT(d@Dot(e,_),rhs) =>
-        for { 
-          id <- asks(evalExpr(e, env, _)) map extractId 
-          v <- asks(evalExpr(rhs, env, _))
-        } equation(id, d, v)
+        for { id <- asks(evalExpr(e, env, _)) map extractId } equation(id, d, rhs, env)
       case EquationI(d@Dot(e,_),rhs) =>
         for { id <- asks(evalExpr(e, env, _)) map extractId } ode(id, d, rhs, env)
       case _ =>
@@ -362,10 +356,16 @@ object Interpreter extends acumen.CStoreInterpreter {
     }
     else (store, md)
 
-  /** Updates the values of variables in xs (identified by CId and Dot.field) to the corresponding CValue. */
-  def applyAssignments(xs: List[(CId, Dot, CValue)]): Eval[Unit] = 
-    mapM_((a: (CId, Dot, CValue)) => setObjectFieldM(a._1, a._2.field, a._3), xs)
-  
+  /** Updates the values of variables in as (identified by CId and Dot.field) to the
+   *  CValue obtained by evaluating the corresponding Expr in st (using env). */
+  def applyDelayedAssignments(as: Set[(CId, Dot, Expr, Env)], st: Store): Eval[Unit] =
+    applyAssignments(as.map { case (o, d, e, env) => (o, d, evalExpr(e, env, st)) }.toList)
+
+  /** Updates the values of variables in vs (identified by CId and Dot.field) to the 
+   *  corresponding CValue. */
+  def applyAssignments(vs: List[(CId, Dot, CValue)]): Eval[Unit] =
+    mapM_((a: (CId, Dot, CValue)) => setObjectFieldM(a._1, a._2.field, a._3), vs)
+         
   def step(p:Prog, st:Store, md: Metadata) : StepRes =
     if (getTime(st) >= getEndTime(st)){
       Done(md, getEndTime(st))
@@ -375,29 +375,41 @@ object Interpreter extends acumen.CStoreInterpreter {
         val md1 = testHypotheses(hyps, md, st)
         val res = getResultType(st) match {
           case Discrete | Continuous => // Either conclude fixpoint is reached or do discrete step
-            checkDuplicateAssingments(das.toList.map{ case (o, d, _) => (o, d) }, x => DuplicateDiscreteAssingment(x))
-            val nonIdentityDas = das.filterNot{ a => a._3 == getObjectField(a._1, a._2.field, st1) }
+            checkDuplicateAssingments(das.toList.map(a => (a._1, a._2)), DuplicateDiscreteAssingment)
+          val nonIdentityDas = das.filterNot { a => evalExpr(a._3, a._4, st1) == getObjectField(a._1, a._2.field, st1) }
             if (st == st1 && ids.isEmpty && rps.isEmpty && nonIdentityDas.isEmpty) 
               setResultType(FixedPoint, st1)
             else {
-              val stA = applyAssignments(nonIdentityDas.toList) ~> st1
+              val stA = applyDelayedAssignments(nonIdentityDas, st1) ~> st1
               def repHelper(pair:(CId, CId)) = changeParentM(pair._1, pair._2) 
               val stR = mapM_(repHelper, rps.toList) ~> stA
               val st3 = stR -- ids
               setResultType(Discrete, st3)
             }
           case FixedPoint => // Do continuous step
-            val odesIds = odes.toList.map { case (o, d, _, _) => (o, d) }
-            val eqsIds = eqs.toList.map { case (o, d, _) => (o, d) }
+            val odesIds = odes.toList.map(a => (a._1, a._2))
+            val eqsIds = eqs.toList.map(a => (a._1, a._2))
             checkDuplicateAssingments(eqsIds ++ odesIds, DuplicateContinuousAssingment)
             checkContinuousDynamicsAlwaysDefined(p, eqsIds, st1)
             val stODE = solveIVP(odes, p, st1)
-            val stE = applyAssignments(eqs.toList) ~> stODE
-            val st2 = setResultType(Continuous, stE)
+            val stE = applyDelayedAssignments(eqs, stODE) ~> stODE
+            val stU = undefineHigherDerivatives(eqs, stE) 
+            val st2 = setResultType(Continuous, stU)
             setTime(getTime(st2) + getTimeStep(st2), st2)
         }
         Data(res,md1)
       }
+
+  /** When a variable is defined by an equation in eqs, set all its higher derivatives in st to GUndefined. */
+  def undefineHigherDerivatives(eqs: Set[(CId, Dot, Expr, Env)], st: Store): Store = {
+    // The globally qualified base names of variables defined by equations in eqs
+    val defined = eqs.map { case (cid, d, _, env) => globalReference(d, env, st) }
+    st.map { case (cid, co) => (cid, co.map { case (n, v) =>
+      (n, if (defined.exists { case (cid1, n1) => cid1 == cid && n1.x == n.x && n1.primes < n.primes })
+        VLit(GUndefined)
+      else v)
+    })}
+  }
 
   /** Summarize result of evaluating the hypotheses of all objects. */
   def testHypotheses(hyps: Set[(CId, Option[String], Expr, Env)], old: Metadata, st: Store): Metadata =

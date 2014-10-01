@@ -1,0 +1,31 @@
+// Breaking Ball Example
+
+class Ball(mode, x, x')
+  switch mode
+    case "Fly"
+      if x < 0 && x' < 0
+        create Ball("Bounce", x, x');
+        create Ball("Bounce", x, x');
+        terminate self
+      else
+        x'' = -9.8
+      end
+    case "Bounce"
+      x' := -x';
+      mode := "Fly"
+  end
+end
+
+class Main(simulator)
+  private
+    mode := "Init"
+  end
+  switch mode
+    case "Init"
+      simulator.endTime := 4;
+      simulator.timeStep := 0.0001;
+      create Ball("Fly", 5, 0);
+      mode := "Persist"
+    case "Persist"
+  end
+end
