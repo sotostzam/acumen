@@ -376,7 +376,8 @@ object Interpreter extends acumen.CStoreInterpreter {
         val res = getResultType(st) match {
           case Discrete | Continuous => // Either conclude fixpoint is reached or do discrete step
             checkDuplicateAssingments(das.toList.map(a => (a._1, a._2)), DuplicateDiscreteAssingment)
-          val nonIdentityDas = das.filterNot { a => evalExpr(a._3, a._4, st1) == getObjectField(a._1, a._2.field, st1) }
+            val nonIdentityDas = das.filterNot { a =>
+              deref(a._1,st1).contains(a._2.field) && evalExpr(a._3, a._4, st1) == getObjectField(a._1, a._2.field, st1) }
             if (st == st1 && ids.isEmpty && rps.isEmpty && nonIdentityDas.isEmpty) 
               setResultType(FixedPoint, st1)
             else {
