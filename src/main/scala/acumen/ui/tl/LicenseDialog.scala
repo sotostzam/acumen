@@ -35,10 +35,14 @@ object LicenseDialog extends Frame {
       editable = false
       border = padding
       text = // Load file from project root
-        (scala.io.Source.fromInputStream(LicenseDialog.getClass.getResourceAsStream("/" + "LICENSE")).getLines().mkString("\n") ++ 
+        ("The license for Acumen is stated in the following three files:\n\n\n" ++
+         "LICENSE\n\n" ++
+         scala.io.Source.fromInputStream(LicenseDialog.getClass.getResourceAsStream("/" + "LICENSE")).getLines().mkString("\n") ++ 
          "\n\n\n" ++
+         "LICENSE-Rice\n\n" ++
          scala.io.Source.fromInputStream(LicenseDialog.getClass.getResourceAsStream("/" + "LICENSE-Rice")).getLines().mkString("\n") ++
          "\n\n\n" ++
+         "LICENSE-AIC\n\n" ++
          scala.io.Source.fromInputStream(LicenseDialog.getClass.getResourceAsStream("/" + "LICENSE-AIC")).getLines().mkString("\n"))
       font = new Font("Monospaced", Font.PLAIN, 12)
       lineWrap = false

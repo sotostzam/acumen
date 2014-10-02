@@ -839,7 +839,7 @@ class App extends SimpleSwingApplication {
   actor.start
   codeArea.listenDocument
   console.log("<html>Welcome to Acumen.<br/>" +
-    "Please see LICENSE file for licensing details.</html>")
+    "Please see Help/License for licensing details.</html>")
   console.newLine
   actor.publish(Stopped)
   actor.publish(ViewChanged(views.selection.index))
