@@ -1,0 +1,109 @@
+// Two dimensional case
+// Authors: Walid Taha, Henrik Eriksson, and Adam Duraz
+// 2014/09/30
+
+class Main(simulator)
+private
+  t:=-2; t':=1;
+  m1:=20000; x1:=0; x1':=0; x1'':=0; y1:=-100; y1':=12; y1'':=0;
+  pba1  := -3;    //Pre-brake deceleration, 3 m/s2
+  ttcpb := 1;     //Pre-brake ttc threshold, 1 s
+  fba1  := -6;    //Full-brake deceleration, 6 m/s2
+  ttcfb := 0.5;   //Full-brake ttc threshold, 0.5 s
+  m2:=1500; x2:=6; x2':=0; y2:=0; y2':=0; y2'':=0;
+  state := "Approach-1";
+  radius := 2;
+  dr :=50;
+  //collision_radius :=0.1;
+  //braking_acceleration:=-5;
+  c := 0.5;
+  collision_delta_v1 :=0 ;
+  collision_delta_v2 :=0 ;
+  ttc      := 100;        //Initial time-to-Collision, 100 s 
+  pcb      := -100;       //Post-collision braking, m/s2
+  vdiff    := 12;
+  epsilon  := 0.01;
+  distance := sqrt(((0-3)*(0-6))+((-100-0)*(-100-0)));
+  print := 1;
+  _3D:=[]
+end
+  _3D = [["Sphere",   // Type of _3D object
+         [x2,y2,0],   // Center point in [x,y,z] form
+         0.05,        // Radius
+         red,         // Color
+         [0,0,0]],    // Orientation,
+         ["Sphere",   // Type of _3D object
+         [x1,y1,0],   // Center point in [x,y,z] form
+         0.05,        // Radius
+         blue,        // Color
+         [0,0,0]],    // Orientation]
+         ["Cylinder", // Type of _3D object
+         [x1,y1,0],   // Center point
+         [dr,0.01], // Size in [radius,length] form
+         yellow,      // Color
+         [pi/2,0,0]], // Orientation
+         ["Text",     // Type of _3D object
+         [2.2,4,1], // Starting point in [x,y,z] form
+         0.75,        // Font size
+         black,      // Color in red-green-blue (RGB) intensity
+         [pi/2,0,0],  // Orientation (pi/2 around x-axis)
+         state]];     // Text you wish to display
+  t' = 1;
+  distance = sqrt(((x1-x2)*(x1-x2))+((y1-y2)*(y1-y2)));
+  vdiff    = abs(y1'-y2');
+  switch state
+    case "Approach-1" print = 1;
+      x1' = 0; y1' = 12;
+      x2 = radius*(1-t);
+      y2 = 0;
+      if (t>0) state := "Approach-2" end;
+    case "Approach-2"  print = 2;
+      x1' = 0; y1' = 12;
+      x2 = radius*(1-sin(t));
+      y2 = radius*(1-cos(t));
+      if (y2>radius) state:="Approach-3"; t:=0 end;
+    case "Approach-3" print = 3;
+      x1' = 0; y1' = 12;
+      x2= 0;
+      y2=radius*(1+t);
+      if (y1+dr>y2) state:="Sense" end;
+    case "Sense" print=4;
+      x1'=0;
+      x2'=0;
+      y1''=0; 
+      y2'=3;
+      if abs(y1'-y2') > epsilon ttc=(y2-y1)/(y1'-y2') else ttc = 100 end;
+      // Activating Pre-braking
+      if (ttc<ttcpb) state:="Pre-Brake" end;
+    case "Pre-Brake" print=5;
+      x1'=0;
+      x2'=0;
+      if (y1'>0) y1''=pba1 else y1'=0 end; 
+      y2''=0;
+      if abs(y1'-y2') > epsilon ttc=(y2-y1)/(y1'-y2') else ttc = 100 end;
+      // Activating Full Braking
+      if (ttc<ttcfb) state:="Brake" end;
+    case "Brake" print=6;
+      x1'=0;
+      x2'=0;
+      if (y1'>0) y1''=fba1 else y1'=0 end; 
+      y2''=0;
+      // Collision Detection
+      if (y1>y2) state:="Collision" end;
+      if abs(y1'-y2') > epsilon ttc=(y2-y1)/(y1'-y2') else ttc = 100 end;
+    case "Collision" print = 7;
+      y1':=(m1*y1' + m2*y2' + m2*c*(y2'-y1'))/(m1 + m2);
+      y2':=(m1*y1' + m2*y2' + m1*c*(y1'-y2'))/(m1 + m2);
+      collision_delta_v1 := y1' - (m1*y1' + m2*y2' + m2*c*(y2'-y1'))/(m1 + m2);
+      collision_delta_v2 := y2' - (m1*y1' + m2*y2' + m1*c*(y1'-y2'))/(m1 + m2);
+      state:="Post-Collision";
+      x1'=0; 
+      x2'=0;
+    case "Post-Collision" print = 8;
+      x1''=0;
+      if (y1'>0) y1'' = pcb else y1' = 0 end;
+      x2'=0; y2'=0;
+  end;
+  simulator.endTime := 15;
+  simulator.timeStep := 0.05
+end
