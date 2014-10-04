@@ -299,7 +299,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
     def startTimeValue = start
     def endTimeValue = end
     def isThin = start.size == 1 && enclosure.size == 1 && end.size == 1
-    def show = s"{${start.mkString(",")}}/{${enclosure.mkString(",")}}/{${end.mkString(",")}}"
+    def show = s"{${enclosure mkString ","}}"
     def contains(that: GConstantDiscreteEncosure[T]): Boolean =
       (that.start subsetOf this.start) && (that.enclosure subsetOf this.enclosure) && (that.end subsetOf this.end)
   }
