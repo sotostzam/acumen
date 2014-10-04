@@ -11,7 +11,7 @@ private
   fba1  := -6;    //Full-brake deceleration, 6 m/s2
   ttcfb := 0.5;   //Full-brake ttc threshold, 0.5 s
   m2:=1500; x2:=6; x2':=0; y2:=0; y2':=0; y2'':=0;
-  state := "Approach-1";
+  state := "1-Approach";
   radius := 2;
   dr :=50;
   //collision_radius :=0.1;
@@ -23,7 +23,6 @@ private
   vdiff    := 12;
   epsilon  := 0.01;
   distance := sqrt(((0-3)*(0-6))+((-100-0)*(-100-0)));
-  print := 1;
   _3D:=[]
 end
   _3D = [["Sphere",   // Type of _3D object
@@ -51,51 +50,51 @@ end
   distance = sqrt(((x1-x2)*(x1-x2))+((y1-y2)*(y1-y2)));
   vdiff    = abs(y1'-y2');
   switch state
-    case "Approach-1" print = 1;
+    case "1-Approach"
       x1' = 0; y1' = 12;
       x2 = radius*(1-t);
       y2 = 0;
-      if (t>0) state := "Approach-2" end;
-    case "Approach-2"  print = 2;
+      if (t>0) state := "2-Approach" end;
+    case "2-Approach"
       x1' = 0; y1' = 12;
       x2 = radius*(1-sin(t));
       y2 = radius*(1-cos(t));
-      if (y2>radius) state:="Approach-3"; t:=0 end;
-    case "Approach-3" print = 3;
+      if (y2>radius) state:="3-Approach"; t:=0 end;
+    case "3-Approach"
       x1' = 0; y1' = 12;
       x2= 0;
       y2=radius*(1+t);
-      if (y1+dr>y2) state:="Sense" end;
-    case "Sense" print=4;
+      if (y1+dr>y2) state:="4-Sense" end;
+    case "4-Sense"
       x1'=0;
       x2'=0;
       y1''=0; 
       y2'=3;
       // Activating Pre-braking
-      if (abs(y1'-y2') > epsilon && (y2-y1)<ttcpb*(y1'-y2')) state:="Pre-Brake" end;
-    case "Pre-Brake" print=5;
+      if (abs(y1'-y2') > epsilon && (y2-y1)<ttcpb*(y1'-y2')) state:="5-Pre-Brake" end;
+    case "5-Pre-Brake"
       x1'=0;
       x2'=0;
       if (y1'>0) y1''=pba1 else y1'=0 end; 
       y2''=0;
       // Activating Full Braking
-      if (abs(y1'-y2') > epsilon && (y2-y1)<ttcfb*(y1'-y2')) state:="Brake" end;
-    case "Brake" print=6;
+      if (abs(y1'-y2') > epsilon && (y2-y1)<ttcfb*(y1'-y2')) state:="6-Brake" end;
+    case "6-Brake"
       x1'=0;
       x2'=0;
       if (y1'>0) y1''=fba1 else y1'=0 end; 
       y2''=0;
       // Collision Detection
-      if (y1>y2) state:="Collision" end;
-    case "Collision" print = 7;
+      if (y1>y2) state:="7-Collision" end;
+    case "7-Collision"
       y1':=(m1*y1' + m2*y2' + m2*c*(y2'-y1'))/(m1 + m2);
       y2':=(m1*y1' + m2*y2' + m1*c*(y1'-y2'))/(m1 + m2);
       collision_delta_v1 := y1' - (m1*y1' + m2*y2' + m2*c*(y2'-y1'))/(m1 + m2);
       collision_delta_v2 := y2' - (m1*y1' + m2*y2' + m1*c*(y1'-y2'))/(m1 + m2);
-      state:="Post-Collision";
+      state:="8-Post-Collision";
       x1'=0; 
       x2'=0;
-    case "Post-Collision" print = 8;
+    case "8-Post-Collision"
       x1''=0;
       if (y1'>0) y1'' = pcb else y1' = 0 end;
       x2'=0; y2'=0;
