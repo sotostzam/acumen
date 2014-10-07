@@ -7,6 +7,7 @@ import scala.collection.mutable.{ArrayBuffer, HashMap, HashSet, ListBuffer}
 import scala.collection.{immutable => im}
 
 import Errors._
+import acumen.interpreters.Common
 import Pretty._
 import util.Canonical._
 import util.Conversions._
@@ -41,7 +42,16 @@ class Snapshot[T](coll: Collector[T]) extends im.IndexedSeq[T]  {
   def apply(index: Int) = array(index)
 }
 
-case class ResultKey(objId: CId, fieldName: Name, vectorIdx: Option[Int])
+case class ResultKey(objId: CId, fieldName: Name, vectorIdx: Option[(Int,Option[Int])]){
+  override def toString = {
+    val prefix = vectorIdx match{
+      case Some((n,Some(m))) => "(" + n.toString + "," + m.toString + ")"
+      case Some((n,None)) => "(" + n.toString  + ")"
+      case None => ""
+    }
+    fieldName.x +  prefix
+  }
+}
 
 abstract class ResultCollector[T : ClassManifest](val key: ResultKey, val isSimulator: Boolean, val startFrame: Int) extends Collector[T] {
   def snapshot : Result[T]
@@ -126,9 +136,7 @@ case class DataModel(columnNames: im.IndexedSeq[String], rowCount: Int,
                       Enclosure(i.loDouble, i.hiDouble, i.loDouble, i.hiDouble)
                   }).toIndexedSeq
                   res += new PlotEnclosure(a.isSimulator, a.key.fieldName, a.startFrame, idx, collE)
-                case VLit(_: GStr | _: GDiscreteEnclosure[String])  => 
-                  res += new PlotDiscrete(a.isSimulator, a.key.fieldName, a.startFrame, idx, a0)
-                
+                case VVector(n) => //collGV.map(x => println(x.toString+"  " +a.key.toString))
                 case _ => ()
               }
           case _ => ()
@@ -193,24 +201,40 @@ class CStoreModel(ops: CStoreOpts) extends InterpreterModel {
     try {
       val ResultKey(id,x,i) = stores(col).key
       "(#" + id + " : " + classes(id).x + ")." + x.x + "'" * x.primes + 
-      (i match { case Some(k) => "["+k+"]" case None => "" }) 
+      (i match { 
+        case Some(k) => k._2 match{
+          case Some(j) => "("+k._1+ "," + j +")" 
+          case None => "("+k._1+")"
+        }
+        case None => "" }) 
     } catch { case _ => "" }
   }
  
   //def ids = stores map { case (id,_,_,_,_) => id }
   private def addVal(id:CId, x:Name, v:GValue) = {
-    def add(idx: Int, vectorIdx: Option[Int], v: GValue) = 
+    def add(idx: Int, vectorIdx: Option[(Int,Option[Int])], v: GValue) = 
       (stores(idx), v) match {
         case (sts:DoubleResultCollector, _) =>  sts += extractDoubleNoThrow(v)
         case (sts:GenericResultCollector, _) => sts += v
       }
+    if(x.x.split("__")(0) == "pattern")
+      ()
+    else
     (x.x, v) match {
       case ("_3D"|"_3DView", _) => ()
       case (_,VVector(u)) =>
         for ((ui,i) <- u zipWithIndex) {
-          val idx = indexes(ResultKey(id,x,Some(i)))
-          add(idx, Some(i), ui)
-        }
+          ui match{
+	          case VVector(columns) => 
+	            for((uii,ii) <- columns zipWithIndex){
+	              val idx = indexes(ResultKey(id,x,Some(i,Some(ii))))
+                  add(idx, Some(i,Some(ii)), uii)
+	            }
+	          case _ => 
+	            val idx = indexes(ResultKey(id,x,Some(i,None)))
+	            add(idx, Some(i,None), ui)         
+	          }                 
+         }
       case _ =>
         val idx = indexes(ResultKey(id,x,None))
         add(idx, None, v)
@@ -232,7 +256,7 @@ class CStoreModel(ops: CStoreOpts) extends InterpreterModel {
             timeKey = ResultKey(id, Name("time", 0), None)
           classes += ((id, className))
           for ((x,v) <- o.toList sortWith(compFields)) {
-            def newResultObj (vectorIdx: Option[Int], v: GValue) = {
+            def newResultObj (vectorIdx: Option[(Int, Option[Int])], v: GValue) = {
               val key = ResultKey(id,x,vectorIdx)
               v match {
                 case VLit(GDouble(_)|GInt(_)) => 
@@ -245,13 +269,24 @@ class CStoreModel(ops: CStoreOpts) extends InterpreterModel {
                   ar
               }
             }
-            if (keep3D || !threeDField(x.x)) v match {
+            if ( !threeDField(x.x) && x.x.split("__")(0) != "pattern" ) v match {
               case VVector(u) =>
                 for ((ui,i) <- u zipWithIndex) {
-                  var ar = newResultObj(Some(i), ui)
-                  stores += ar
-                  indexes += ((ar.key, stores.size-1))
-                  ids += id
+                  ui match{
+                    case VVector(columns) => 
+                      for((uii,ii) <- columns zipWithIndex){
+                        var ar = newResultObj(Some(i,Some(ii)), uii)
+                        stores += ar
+                        indexes += ((ar.key, stores.size-1))
+                        ids += id
+                      }
+                    case _ => 
+                      var ar = newResultObj(Some(i,None), ui)
+                      stores += ar
+                      indexes += ((ar.key, stores.size-1))
+                      ids += id                 
+                  }
+                  
                 }
               case _ =>
                 var ar = newResultObj(None, v)

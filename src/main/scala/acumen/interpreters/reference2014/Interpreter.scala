@@ -453,7 +453,7 @@ object Interpreter extends acumen.CStoreInterpreter {
     override def +++(that: Store): Store = op("+", (cid, dot) => getObjectField(cid, dot.field, that))
     override def ***(that: Double): Store = op("*", (_, _) => VLit(GDouble(that)))
     /** Combine this (s) and that Store using operator. */
-    def op(operator: String, that: (CId, Dot) => Value[_]): Store =
+    def op(operator: String, that: (CId, Dot) => Value[CId]): Store =
       applyAssignments(field.variables.map {
         case (o, n) => (o, n, evalOp(operator, List(getObjectField(o, n.field, s), that(o, n))))
       }) ~> s

@@ -68,6 +68,38 @@ object Conversions {
       case VLit(gv) => extractInterval(gv)
       case _        => throw ConversionError(v, "interval")
   }
+  // Check that every row has the same length
+  def isMatrix(m:List[Value[_]]):Boolean ={
+    try{
+    	val rowLength = m(0) match{
+    	case VVector(vs) => vs.length
+    	case _ => error("Row 0 is not a vector")
+    	}
+    	m.forall(x => x match{
+    	case VVector(vs) => vs.length == rowLength
+    	case _ => false
+    	})}
+    catch{
+      case _:Throwable => false
+    }
+  }
+  def transMatrixArray(m:List[Value[_]]):Array[Array[Double]] = {
+    if(isMatrix(m)){
+      m.map(x => x match{
+        case VVector(vs) => extractDoubles(vs).toArray
+        case _ => error(m.toString + " is not a matrix")
+      }).toArray
+      
+    }
+    else
+     Array(m.map(x => extractDouble(x)).toArray)
+  }
+  
+  def transArrayMatrix(a:Array[Array[Double]]):List[Value[_]] = {
+    val ls = a.map(x => x.toList).toList
+    ls.map(x => VVector(x.map(y => VLit(GDouble(y)))))
+		  
+  }
 
   def extractIntervals(vs:List[Value[_]])(implicit rnd: Rounding) : List[Interval] =
     vs map extractInterval

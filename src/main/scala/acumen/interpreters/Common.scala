@@ -6,7 +6,6 @@ import util.Conversions._
 import scala.math._
 import Errors._
 import util.Canonical._
-
 //
 // Common stuff to CStore Interpreters
 //
@@ -115,7 +114,107 @@ object Common {
       case _  => GDouble(implem2(f, extractDouble(vx), extractDouble(vy)))
     }
   }
-
+  def matrixMultiply[A](u:List[Value[_]], v:List[Value[_]]): Value[A] = {
+    val au = transMatrixArray(u)
+    val av = transMatrixArray(v)
+    val aun = au.length;    val avn = av.length;
+    val aum = au(0).length; val avm = av(0).length;
+    if(aum != avn)
+      error("Matrice's size aren't suitable for multiplication")
+    
+    val result = for (row <- au)
+	   yield for(col <- av.transpose)
+        yield row zip col map Function.tupled(_*_) reduceLeft (_+_)
+    
+    val ls = result.map(x => x.toList).toList
+    if(ls.length > 1)
+      VVector(ls.map(x => VVector(x.map(y => VLit(GDouble(y))))))
+    else
+      VVector(ls(0).map(x => VLit(GDouble(x))))
+  }
+  
+  def matrixPlusMinus[A](op:String,u:List[Value[_]], v:List[Value[_]]): Value[A] = {
+    val au:Array[Array[Double]] = transMatrixArray(u)
+    val av = transMatrixArray(v)
+    val aun = au.length;    val avn = av.length;
+    val aum = au(0).length; val avm = av(0).length;
+    if(aum != avm || aun != avn )
+      error("Matrice's size aren't suitable for plus or minus operation")   
+    val result = 
+      for ((row,col) <- au zip av)
+        yield op match{
+        case "+" =>  row zip col map Function.tupled(_+_) 
+        case "-" =>  row zip col map Function.tupled(_-_) 
+      }    
+   val ls = result.map(x => x.toList).toList
+    if(ls.length > 1)
+      VVector(ls.map(x => VVector(x.map(y => VLit(GDouble(y))))))
+    else
+      VVector(ls(0).map(x => VLit(GDouble(x))))
+  }
+  def matrixScaleOp[A](op:String, u:List[Value[_]], gv:Double): Value[A] = {
+     val au = transMatrixArray(u)
+     val result = 
+     	for(row <- au)
+     		yield op match{
+     		  	case "+" => row map(_+gv)
+     			case "*" => row map(_*gv)
+		        case "/" => row map(_*gv)
+		        case ".^" => row map(pow(_,gv))
+		        case _ => throw UnknownOperator(op)
+     			}
+    val ls = result.map(x => x.toList).toList
+    VVector(ls.map(x => VVector(x.map(y => VLit(GDouble(y))))))  
+  }
+  def isVector[A](u:List[Value[_]]):Boolean = {
+    u.forall(x => x match{
+      case VLit(_) => true
+      case _ => false
+    })
+  }
+  def transpose[A](u:List[Value[A]]):Value[A] = {
+    if(isVector(u)){
+      VVector(u.map(x => VVector(List(x))))
+    }
+    else{
+      val matrix:Array[Array[Double]] = transMatrixArray(u)
+      val ls = matrix.transpose.map(x => x.toList).toList
+      VVector(ls.map(x => VVector(x.map(y => VLit(GDouble(y))))))
+    }
+  }
+  def determinant(u:List[Value[_]]):Double = {
+    val matrix = transMatrixArray(u)
+    if(matrix.length != matrix(0).length)
+      error("Can't perform derminant operation because the size of matrix")
+    var sum:Double = 0 
+    var s:Double = 1
+    if(matrix.length==1){  //bottom case of recursion. size 1 matrix determinant is itself.
+      matrix(0)(0)
+    }
+    else{
+      for(i <- 0 to matrix.length-1){ //finds determinant using row-by-row expansion
+      var smaller:Array[Array[Double]]= Array.ofDim(matrix.length-1,matrix.length-1) //creates smaller matrix- values not in same row, column
+      for(a <- 1 to matrix.length-1){
+        for(b <- 0 to matrix.length-1){
+          if(b<i){
+            smaller(a-1)(b)=matrix(a)(b)
+          }
+          else if(b>i){
+            smaller(a-1)(b-1)=matrix(a)(b)
+          }
+        }
+      }
+      if(i%2==0){ //sign changes based on i
+        s = 1
+      }
+      else{
+        s = -1
+      }
+      sum = sum + s*matrix(0)(i)*(determinant(transArrayMatrix(smaller))) //recursive step: determinant of larger determined by smaller.
+    }
+    sum //returns determinant value. once stack is finished, returns final determinant.
+  }
+  }   
   def binVectorOp[A](op:String, u:List[Value[_]], v:List[Value[_]]) : Value[A] = {
     lazy val du = extractDoubles(u)
     lazy val dv = extractDoubles(v)
@@ -123,9 +222,22 @@ object Common {
       case ".*"  => VVector((du,dv).zipped map ((d1,d2) => VLit(GDouble(d1*d2))))
       case "./"  => VVector((du,dv).zipped map ((d1,d2) => VLit(GDouble(d1/d2))))
       case ".^"  => VVector((du,dv).zipped map ((d1,d2) => VLit(GDouble(pow(d1,d2)))))
-      case "+"   => VVector((du,dv).zipped map ((d1,d2) => VLit(GDouble(d1+d2))))
-      case "-"   => VVector((du,dv).zipped map ((d1,d2) => VLit(GDouble(d1-d2))))
+      case "+"   => 
+        if(isMatrix(u) || isMatrix(v))
+          matrixPlusMinus("+", u, v)
+        else        
+        VVector((du,dv).zipped map ((d1,d2) => VLit(GDouble(d1+d2))))
+      case "-"   => 
+         if(isMatrix(u) && isMatrix(v))
+          matrixPlusMinus("-", u, v)
+        else        
+        VVector((du,dv).zipped map ((d1,d2) => VLit(GDouble(d1-d2))))
       case "dot" => VLit(GDouble(((du,dv).zipped map (_*_)).sum))
+      case "*"   => 
+        if(isMatrix(u) || isMatrix(v))
+          matrixMultiply(u,v)
+        else
+        VLit(GDouble(((du,dv).zipped map (_*_)).sum))
       case "cross" =>
         (du, dv) match {
           case (u1::u2::u3::Nil, v1::v2::v3::Nil) => 
@@ -145,13 +257,15 @@ object Common {
     }
   }
 
-  def unaryVectorOp[A](op:String, u:List[Value[_]]) : Value[A] = {
+  def unaryVectorOp[A](op:String, u:List[Value[A]]) : Value[A] = {
     lazy val du = extractDoubles(u)
     op match {
       case "length" => VLit(GInt(u.length))
       case "norm" => VLit(GDouble(math.sqrt((du map (d => d*d)).sum)))
       case "floor" => VVector(du map {d => VLit(GDouble(floor(d)))})
       case "ceil" => VVector(du map {d => VLit(GDouble(ceil(d)))})
+      case "det" => VLit(GDouble(determinant(u)))
+      case "trans" => transpose(u)
       case _ => throw InvalidVectorOp(op)
     }
   }
@@ -167,20 +281,23 @@ object Common {
   def binVectorScalarOp[A](op:String, u:List[Value[_]], x:GroundValue) : Value[A] = {
     lazy val dx = extractDouble(x)
     lazy val du = extractDoubles(u)
-    op match {
-      case "+" => VVector(du map (d => VLit(GDouble(d+dx))))
-      case "*" => VVector(du map (d => VLit(GDouble(d*dx))))
-      case "/" => VVector(du map (d => VLit(GDouble(d/dx))))
-      case ".^" => VVector(du map (d => VLit(GDouble(pow(d,dx)))))
-      case _ => throw InvalidVectorScalarOp(op)
-    }
+    if(isMatrix(u))
+      matrixScaleOp(op, u, dx)
+    else  
+    	op match {
+    		case "+" => VVector(du map (d => VLit(GDouble(d+dx))))
+    		case "*" => VVector(du map (d => VLit(GDouble(d*dx))))
+    		case "/" => VVector(du map (d => VLit(GDouble(d/dx))))
+    		case ".^" => VVector(du map (d => VLit(GDouble(pow(d,dx)))))
+    		case _ => throw InvalidVectorScalarOp(op)
+    	}
   }
 
   def sequenceOp[A](s:Int, d:Int, e:Int) : Value[A] =
     VVector((s until(e+1,d)).toList map (x => VLit(GInt(x))))
   /* purely functional operator evaluation 
    * at the values level */
-  def evalOp[A](op:String, xs:List[Value[_]]) : Value[A] = {
+  def evalOp[A](op:String, xs:List[Value[A]]) : Value[A] = {
     (op,xs) match {
        case ("==", x::y::Nil) => 
          VLit(GBool(x == y))
@@ -217,16 +334,13 @@ object Common {
           case _:IndexOutOfBoundsException => throw IndexOutOfBounds(idx)
         }
         case _ => throw ExpectedInteger(i) }
-      case _ => throw CantIndex() }
+      case _ => println(e); println(i);throw CantIndex() }
   }
 
   val magicClassTxt =
-    """class Simulator(time, timeStep, outputRows, continuousSkip, endTime, resultType, lastCreatedId) end"""
+    """model Simulator(time, timeStep, outputRows, continuousSkip, endTime, resultType, lastCreatedId)="""
   val initStoreTxt =
-    s"""#0.0 { className = Simulator, parent = %s, time = 0.0, timeStep = 0.01, 
-               outputRows = "WhenChanged", continuousSkip = 0,
-               endTime = 10.0, resultType = @Discrete, nextChild = 0,
-	             method = "$RungeKutta", seed1 = 0, seed2 = 0 }"""
+    s"""#0.0 { className = Simulator, parent = %s, time = 0.0, timeStep = 0.01, outputRows = "WhenChanged", continuousSkip = 0,endTime = 10.0, resultType = @Discrete, nextChild = 0,method = "$RungeKutta", seed1 = 0, seed2 = 0 }"""
 
   lazy val magicClass = Parser.run(Parser.classDef, magicClassTxt)
   lazy val initStoreRef = Parser.run(Parser.store, initStoreTxt.format("#0"))
@@ -250,7 +364,9 @@ object Common {
 
   def threeDField(name: String) = 
     name == "_3D" || name == "_3DView"
-  
+      
+  def patternVariable(name:String) = 
+    name.split("__")(0) == "Pattern"
   /* error checking */
   
   /**
