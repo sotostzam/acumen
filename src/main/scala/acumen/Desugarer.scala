@@ -47,7 +47,9 @@ case class Desugarer(odeTransformMode: ODETransformMode) {
   }
 
   def desugar(p: Prog): Prog = {
-    check(p); Prog(p.defs map (desugar(p, _)))
+    check(p); 
+    println(pprint(p))
+    Prog(p.defs map (desugar(p, _)))
   }
 
   def desugar(p: Prog, c: ClassDef): ClassDef ={

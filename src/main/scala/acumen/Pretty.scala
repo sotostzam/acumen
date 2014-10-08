@@ -193,7 +193,7 @@ class Pretty {
 
   implicit def prettyDiscreteAction : PrettyAble[DiscreteAction] =
     PrettyAble {
-      case Assign(lhs,rhs) => pretty(lhs) :: "+ = " :: pretty(rhs)
+      case Assign(lhs,rhs) => pretty(lhs) :: "+ == " :: pretty(rhs)
       case Create(lhs,c,as) =>
         (lhs match { case Some(e) => pretty(e) :: " = " case None => DocNil }) ::
         "create " :: pretty(c) :: args(as map pretty[Expr]) 

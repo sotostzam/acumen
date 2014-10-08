@@ -279,11 +279,18 @@ object Parser extends MyStdTokenParsers {
     case IfThenElse(e,t,s) =>IfThenElse(e,t,List(elseHelper(els,s(0).asInstanceOf[IfThenElse])))
   }
   def ifThenElse =
+    "if" ~! BExpr ~! "then" ~ actions ~rep(elseif) ~ "else"  ^^ 
+    	{case _~ c ~_ ~t ~ elseifs ~ _  => elseifs match{
+    	  case Nil => IfThenElse(c,t,List())
+    	  case ss => IfThenElse(c,t, List(elseHelper(List(),elseifHelper(ss))))
+    	  }   	
+    	} |
     "if" ~! BExpr ~! "then" ~ actions ~rep(elseif) ~ "else" ~ actions ^^ 
     	{case _~ c ~_ ~t ~ elseifs ~ _ ~e => elseifs match{
     	  case Nil => IfThenElse(c,t,e)
     	  case ss => IfThenElse(c,t, List(elseHelper(e,elseifHelper(ss))))
-    	}}
+    	  }   	
+    	}
           
   def forEach =
     "for" ~! name ~! "=" ~! expr ~! "{" ~! actions ~! "}" ^^
@@ -334,17 +341,17 @@ object Parser extends MyStdTokenParsers {
   
   // Separate boolean expression with other expression
   def BExpr : Parser[Expr] = 
-      parens(BExpr)| 
-      (expr * ("<" ^^^ { (x: Expr, y: Expr) => mkOp("<", x, y) }
+      parens(BExpr)|
+      (BCompare * ("&&" ^^^ { (x: Expr, y: Expr) => mkOp("&&", x, y) }
+                | "||" ^^^ { (x: Expr, y: Expr) => mkOp("||", x, y) })) |
+       gbool ^^ {x => Lit(x)}
+  def BCompare : Parser[Expr] = 
+     (expr * ("<" ^^^ { (x: Expr, y: Expr) => mkOp("<", x, y) }
       | ">" ^^^ { (x: Expr, y: Expr) => mkOp(">", x, y) }
       | "<=" ^^^ { (x: Expr, y: Expr) => mkOp("<=", x, y) }
       | ">=" ^^^ { (x: Expr, y: Expr) => mkOp(">=", x, y) }
       |	"==" ^^^ { (x: Expr, y: Expr) => mkOp("==", x, y) }
-      | "~=" ^^^ { (x: Expr, y: Expr) => mkOp("~=", x, y) })) |
-      (BExpr * ("&&" ^^^ { (x: Expr, y: Expr) => mkOp("&&", x, y) }
-                | "||" ^^^ { (x: Expr, y: Expr) => mkOp("|", x, y) })) |
-       gbool ^^ {x => Lit(x)}
-
+      | "~=" ^^^ { (x: Expr, y: Expr) => mkOp("~=", x, y) })) 
   
 
   def level7: Parser[Expr] =
