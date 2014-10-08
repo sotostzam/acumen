@@ -69,6 +69,8 @@ class Pretty {
   
   def semi = DocText(";")
   
+  def amper = DocText("&")
+  
   def parens(d:Document) = "(" :: d :: ")"
   
   def brackets(d:Document) = "[" :: d :: "]"
@@ -123,17 +125,17 @@ class Pretty {
       if (withType && d._types != null)
         _types = Some(d._types)
       DocNest(2, 
-        "class " :: pretty(d.name) :: 
-        args(d.fields map prettyNameWithType) :/:
+        "model " :: pretty(d.name) ::
+        args(d.fields map prettyNameWithType) :: " = " :/:
         DocGroup(DocNest(2, 
-          "private" :/: breakWith(";", d.priv map pretty[Init])) :/: "end") :/:
-        pretty(d.body)) :/: "end"
+          "initially" :/: breakWith(" &", d.priv map pretty[Init])) :/: "always") :/:
+        pretty(d.body)) 
     }
 
   implicit def prettyInit : PrettyAble[Init] =
     PrettyAble { 
       case Init(x,rhs) =>
-        prettyNameWithType(x)  :: ":= " :: (
+        prettyNameWithType(x)  :: " = " :: (
           rhs match {
             case NewRhs(cn,es) => "create " :: pretty(cn) :: args(es map pretty[Expr])
             case ExprRhs(e) => pretty(e)
@@ -149,26 +151,28 @@ class Pretty {
   }
 
   implicit def prettyActions : PrettyAble[List[Action]] =
-    PrettyAble { as => breakWith(semi, as map pretty[Action]) }
+    PrettyAble { as => breakWith(amper, as map pretty[Action]) }
  
   implicit def prettyClauses : PrettyAble[List[Clause]] =
     PrettyAble { cls => breaks(cls map pretty[Clause]) }
 
   implicit def prettyClause : PrettyAble[Clause] =
     PrettyAble {
-      case Clause(lhs,assertion:Expr,rhs) => 
-        DocNest(2, "case " :: pretty(lhs) :: " claim " :: pretty(assertion) :/: pretty(rhs)) 
+      case Clause(lhs,assertion:Expr,rhs) => assertion match{
+        case Lit(GBool(true)) => DocNest(2,  pretty(lhs) :: "->" :/: pretty(rhs)) 
+        case _ => DocNest(2,  pretty(lhs) :: "->" :: " claim " :: pretty(assertion) :/: pretty(rhs)) 
+      }      
     }
 
   implicit def prettyAction : PrettyAble[Action] =
     PrettyAble { 
       case IfThenElse(c,t,e) => new DocNest(2,
-                                  "if " :: pretty(c) :/: 
+                                  "if " :: pretty(c) :: " then " :/: 
                                   DocGroup(pretty(t))) :/: 
-                                  (if (e.nonEmpty) DocGroup(DocNest(2, "else" :/: pretty(e))) :/: "end"
-                                   else DocText("end"))
-      case Switch(s,cls) => new DocNest(2,"switch " :: pretty(s) :/:
-                                          pretty(cls)) :/: "end"
+                                  (if (e.nonEmpty) DocGroup(DocNest(2, "else" :/: pretty(e))) :/: ""
+                                   else DocText(""))
+      case Switch(s,cls) => new DocNest(2,"match " :: pretty(s) :: " with" :: "[":/:
+                                          pretty(cls) :/: "]") 
       case ForEach(i,e,b) => new DocNest(2,
                                "for " :: pretty(i) :: 
                                " = " :: pretty(e) :/: pretty(b)) :/: "end"
@@ -181,21 +185,30 @@ class Pretty {
   
   implicit def prettyContinuousAction : PrettyAble[ContinuousAction] =
     PrettyAble {
-      case Equation(lhs,rhs)  => pretty(lhs) :: " = " :: pretty(rhs) 
+      case Assignment(lhs,rhs)  => pretty(lhs) :: " = " :: pretty(rhs)
+      case Equation(lhs,rhs)  => pretty(lhs) :: " == " :: pretty(rhs) 
       case EquationI(lhs,rhs) => pretty(lhs) :: " =[i] " :: pretty(rhs) 
       case EquationT(lhs,rhs) => pretty(lhs) :: " =[t] " :: pretty(rhs) 
     }
 
   implicit def prettyDiscreteAction : PrettyAble[DiscreteAction] =
     PrettyAble {
-      case Assign(lhs,rhs) => pretty(lhs) :: " := " :: pretty(rhs)
+      case Assign(lhs,rhs) => pretty(lhs) :: "+ = " :: pretty(rhs)
       case Create(lhs,c,as) =>
-        (lhs match { case Some(e) => pretty(e) :: " := " case None => DocNil }) ::
+        (lhs match { case Some(e) => pretty(e) :: " = " case None => DocNil }) ::
         "create " :: pretty(c) :: args(as map pretty[Expr]) 
       case Elim(e) => "terminate" :: pretty(e)
       case Move(o,p) => "move" :: " " :: pretty(o) :: " " :: pretty(p)
     }
-  
+  implicit def prettyPattern : PrettyAble[Pattern] = 
+    PrettyAble{ e => 
+      (e match{
+        case Pattern(l) => l match{
+          case n :: Nil => pretty(n)
+          case _ =>  parens(sepBy(comma :: " ", l map pretty[Expr]))
+        }
+      })    
+  }
   implicit def prettyExpr : PrettyAble[Expr] =
     PrettyAble { e => 
       (e match {
@@ -204,12 +217,16 @@ class Pretty {
         case Index(e,i)       => pretty(e) :: parens(pretty(i))
         case Dot(v,f)         => pretty(v) :: "." :: pretty(f)
         case Op(f,es)         => prettyOp(f,es)
-        case ExprVector(l)    => brackets(sepBy(comma :: " ", l map pretty[Expr]))
+        case ExprVector(l)    => parens(sepBy(comma :: " ", l map pretty[Expr]))
         case Sum(e,i,c,t)     => "sum " :: pretty(e) :: " for " :: pretty(i) :: 
                                  " in " :: pretty(c) :: " if " :: pretty(t)
         case TypeOf(cn)       => "type" :: parens(pretty(cn))
         case ExprInterval(lo,hi) => brackets(pretty(lo) :: " .. " :: pretty(hi))
         case ExprIntervalM(m,r)  => parens(pretty(m) :: "+/-" :: pretty(r))
+        case Pattern(l) => l match{
+          case n :: Nil => pretty(n)
+          case _ =>  parens(sepBy(comma :: " ", l map pretty[Expr]))
+        }
       }) :: (if (exprWithType && e._type != null    ) ":" + e._type.toString else "") :: (if (withLineInfo && e.pos != NoPosition) "@" + e.pos.toString   else "")
     }
   
@@ -247,7 +264,7 @@ class Pretty {
     PrettyAble {
       case VLit(i)         => pretty(i)
       case VList(l)        => sepBy("::", l map pretty[Value[A]]) :: "::nil"
-      case VVector(l)      => brackets(sepBy(comma :: " ", l map pretty[Value[A]]))
+      case VVector(l)      => parens(sepBy(comma :: " ", l map pretty[Value[A]]))
       case VObjId(Some(a)) => "#" :: a.cid.toString
       case VObjId(None)    => "#none"
       case VClassName(n)   => pretty(n)
