@@ -10,6 +10,15 @@ This will create a zip file
 The script uses two environmental variables if they are set:
   SBT: command to run sbt
   GIT_COMMIT: commit id to create the release from
+  VERSION: Alternative version string
+
+If the commit id is not part of the version string than a git tag
+should be created.
+
+For example the special "BSD" release was created using:
+  VERSION=14.10.07 GIT_COMMIT=bsd-release ./mk-release.sh
+and then 
+  git tag rel-14.10.07-BSD
 
 Here is how the script is run on the build server:
 
