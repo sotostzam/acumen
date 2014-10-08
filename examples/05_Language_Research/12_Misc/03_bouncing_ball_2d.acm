@@ -1,0 +1,45 @@
+/* 
+   Works with semantic 2014
+   Works with semantic 2013
+   Works with semantic 2012
+*/
+
+// Example:  Bouncing Ball (2D)
+
+class Ball(mode, x,x',x'', y,y',y'', m)
+  switch mode
+    case "Init"
+      mode := "Fly"
+    case "Fly"
+      if x < 0 && x' < 0 || x > 5 && x' > 0
+        mode := "BounceX"
+      else
+        if y < 0 && y' < 0 || y > 5 && y' > 0
+          mode := "BounceY"
+        else
+          y'' = -9.8;
+          x'' = 0
+        end
+      end
+    case "BounceX"
+      x' := -x';
+      mode := "Fly"
+    case "BounceY"
+      y' := -y';
+      mode := "Fly"
+  end
+end
+
+class Main(simulator)
+  private
+    mode := "Init"
+  end
+  switch mode
+    case "Init"
+      simulator.timeStep := 0.003;
+      simulator.endTime := 10.0;
+      create Ball("Init", 5,10,0, 5,0,0, 1.0);
+      mode := "Persist"
+    case "Persist"
+  end
+end

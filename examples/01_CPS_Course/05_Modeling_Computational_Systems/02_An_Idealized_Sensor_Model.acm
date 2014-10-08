@@ -1,0 +1,15 @@
+/*
+ * The code below can capture essentially the same behavior as the example 5.1. 
+ * It can be seen as representing an idealized sensor 
+ * that can read the exact position of the mass.  
+ */
+ 
+class Main (simulator)
+  private x:=1; x':=0; x'':=0; sensor := 0 end
+  sensor = x;
+  x'' = -10*sensor
+end
+
+/* Exercise: 
+ * There is one difference between the sensor signal and the x signal in the last model.  
+ * Can you spot it? */

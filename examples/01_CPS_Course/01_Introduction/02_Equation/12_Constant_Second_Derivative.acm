@@ -1,0 +1,16 @@
+/* 
+   Works with semantic 2014
+   Works with semantic 2013
+   Works with semantic 2012
+*/
+
+// Constant Second Derivatives Example
+
+class Main(simulator)
+private
+ x:=-10; x':=0; x'':=1
+end
+ x'' = 1
+end
+
+// Note:  Polynomials are closed under integration

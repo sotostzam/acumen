@@ -1,0 +1,26 @@
+/* 
+   Works with semantic 2014
+   Works with semantic 2013
+   Works with semantic 2012
+*/
+
+// Cone plays radar (spherical coordinates)
+
+class Main(simulator)
+private
+ t:=0; t':=3;
+ _3D := []
+end
+ t' = 3;
+ _3D =
+ [["Cone",   
+  [0,0,0],   // Center point
+  [0.4,1.0], // Size in [radius, height] for
+  [1,0,1],   // Color
+  [0,0,t]]   // Orientation
+  ]
+end
+
+// Exercises
+// 1) What happens when you rotate the cone around
+//    the two other different axis?

@@ -1,0 +1,18 @@
+// Hypothesis statement use example
+//
+// Author: Adam Duracz
+
+/* 
+   Works with semantic 2014
+   Has error with semantic 2013
+   Has error with semantic 2012
+*/
+
+#semantics "2014 Reference"
+
+class Main(simulator)
+  private x := 1; x' := 0; x'' := -1 end
+  x'' = -x;
+  hypothesis "The sine function is bounded" 
+             -1.0 <= x && x <= 1.0;
+end

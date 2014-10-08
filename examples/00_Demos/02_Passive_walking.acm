@@ -1,0 +1,84 @@
+/* 
+   Has error with semantic 2014
+   Has bug with semantic 2013
+   Works with semantic 2012
+*/
+
+// Passive Walking Example
+// By Anita Santanna and Ryan Sinnet
+
+#semantics "2012 Reference"
+
+class Main(simulator)
+  private
+  q1:=0; q2:=0; q1':=-0.5; q2':=2; q1'':=0; q2'':=0; //theta1 and theta2 angles
+  L:=1; M:=10; m:=5; /* pi:=3.1416; */ g:=9.81; //model constants
+  s:=0.06; //slope of the surface
+  pm1x:=0; pm1z:=0; pM2x:=0; pM2z:=0; pm3x:=0; pm3z:=0;
+  p2z:=0; p2x:=0; //position of stance foot
+  sfx:=0; sfz:=0; //position variable for animation
+  h:=0; h':=0; //guards
+
+  _3D:=[];
+  end
+
+  // Dynamics equations
+  //theta 1: angle between vertical and stance foot
+  q1''=(2*(2*q1'*q2'*L*m*sin(q2) + q2'^2*L*m*sin(q2) 
+       + q1'^2*L*m*(sin(q2) - sin(2*q2)) 
+       + g*(-2*(m + M)*sin(q1) + m*sin(q1 
+       + 2*q2))))/(L*(-3*m - 4*M + 2*m*cos(2*q2)));
+
+  //theta 2: angle between legs
+  q2''= (-2*(-2*q1'^2*L*(-3*m - 2*M + 2*m*cos(q2))*sin(q2) 
+       + 2*q1'*q2'*L*m*(sin(q2) - sin(2*q2)) 
+       + q2'^2*L*m*(sin(q2) - sin(2*q2)) 
+       +   g*(-2*(m + M)*sin(q1) 
+       + (3*m + 2*M)*sin(q1 - q2) - 2*m*sin(q1 + q2) 
+       - 2*M*sin(q1 + q2) + m*sin(q1 + 2*q2))))/(L*(-3*m - 4*M + 2*m*cos(2*q2)));
+
+  //ADDITIONAL EQUATIONS FOR ANIMATION
+  //position of link 1 - middle of stance leg
+  pm1x= -(L*sin(q1))/2;
+  pm1z= (L*cos(q1))/2;
+
+  //position of link 2 - hip joint
+  pM2x=-L*sin(q1);
+  pM2z=L*cos(q1);
+
+  //position of link 3 - middle of swing leg
+  pm3x=(L*(-2*sin(q1) + sin(q1 + q2)))/2 ;
+  pm3z=L*cos(q1) - (L*cos(q1 + q2))/2 ;
+
+  //reference position of stance foot - just for animation
+  p2x=L*(-sin(q1) + sin(q1 + q2));
+  p2z=L*(cos(q1) - cos(q1 + q2));
+ 
+   _3D=[["Sphere",[sfx+pm1x-2,0,sfz+pm1z],0.01*m,[1,0,0],[0,0,0]],
+	["Sphere",[sfx+pM2x-2,0,sfz+pM2z],0.01*M,[1,0,0],[0,0,0]],
+     	["Sphere",[sfx+pm3x-2,0,sfz+pm3z],0.01*m,[0,1,0],[0,0,0]],
+     	["Cylinder",[sfx+pm1x-2,0,sfz+pm1z],[0.01,L],[0,0,1],[3.1416/2,q1,0]],
+     	["Cylinder",[sfx+pm3x-2,0,sfz+pm3z],[0.01,L],[0,0,1],[3.1416/2,q1+q2,0]],
+     	["Box",[0-2,0,0],[20,0.01,2],[0.5,0.5,0],[3.1416/2,-s,0]]];
+
+  //GUARD
+  h=2*L*(1/cos(s))*sin(q2/2)*sin(q1 + q2/2 + s);
+  h'=2*(q1' + q2'/2)*L*cos(q1 + q2/2 + s)*(1/cos(s))*sin(q2/2)
+     + q2'*L*cos(q2/2)*(1/cos(s))*sin(q1 + q2/2 + s);
+
+  if h <= 0  &&  h' < 0 && q2>0.05
+
+  //RESET MAP
+  //reset for dynamics equation
+  q1:=q1+q2;
+  q2:=-q2;
+  q1':=(q2'*m + q1'*(m - 2*(m + 2*M)*cos(q2)))/(-3*m - 4*M + 2*m*cos(2*q2));
+  q2':=(q2'*m*(-1 + 2*cos(q2)) 
+        + 8*q1'*(m + M)*(1 + 2*cos(q2))*sin(q2/2)^2)/(-3*m - 4*M + 2*m*cos(2*q2));
+    
+    //just for animation
+    sfx:=sfx+p2x;
+    sfz:=sfz+p2z;
+
+  end
+end

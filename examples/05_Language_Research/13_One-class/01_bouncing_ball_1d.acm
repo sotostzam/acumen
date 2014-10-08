@@ -1,0 +1,33 @@
+/* 
+   Works with semantic 2014
+   Works with semantic 2013
+   Works with semantic 2012
+*/
+
+// Example:  Bouncing Ball (1D)
+// Illustrates:
+//    - classes, and class parameters
+//    - switch statements, conditional statements
+//    - boolean expressions
+//    - continuous variables and derivatives
+//    - discrete assignment
+//    - continous assignment
+
+class Main(simulator)
+  private
+    mode := "Fly"; x := 1; x' := 0; x'' := 0
+  end
+  simulator.timeStep := 0.01;
+  simulator.endTime := 5.0;
+  switch mode
+    case "Fly"
+      if x < 0 && x' < 0
+        mode := "Bounce"
+      else
+        x'' = -9.8
+      end
+    case "Bounce"
+      x' := -x';
+      mode := "Fly"
+  end
+end

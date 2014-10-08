@@ -1,0 +1,65 @@
+/* 
+   Works with semantic 2014
+   Works with semantic 2013
+   Works with semantic 2012
+*/
+
+class plane (x,y,z)
+private
+ _3D :=  [];
+end
+ _3D = ["Box", [x,y,z],
+        [12,1.5,0.03],[0.1,0.1,1.0],
+        [0,pi/4,pi/2]];
+end
+
+   // making a support for the incline
+class support (x, y, z)
+private
+ _3D := [];
+end
+ _3D = ["Box", [x,y,z],
+        [4,1.5,0.03],  // size of plane/box
+        [0.1,0.1,1.0], // color of plane/box
+        [0, 0, pi/2]]; // rotational angles
+end
+
+   // the cylinder class with squares as rotational markers 
+class fancy_cyl (x,y,z,a,D)
+private
+ _3D :=  [];
+end
+ _3D = [["Cylinder", [x,y,z]+D,
+         [0.2,2],[0.2,1.0,0.2],
+         [-1*pi/2,-1*pi/2,0]],
+        ["Box", [x+1,y,z]+D,
+         [0.02,0.5/1.4,0.5/1.4],[0.9,0.1,0.1],
+         [a,0,0]],
+        ["Box", [x-1,y,z]+D,
+         [0.02,0.5/1.4,0.5/1.4],[0.9,0.1,0.1],
+         [a,0,0]]];
+end
+
+class Main(simulator)
+private 
+         // a:= create cyl(1,1,1);
+        // declaring/calling? the graphical objects
+ b:= create plane(0,-1.5,-1.5);
+ d:= create support(0,2,0); 
+ c:= create fancy_cyl(0,2.2,2.5,0,0);
+         // d:= create ball(1,0,0);
+
+      // declaring the constants
+ t :=0; t':=0; // time starts at zero and does not accellerate
+ p :=0; p':=0; 
+ a := 0; a':=0;
+end
+         // we are totally lacking the no-slip condition
+t'  = 0.25; // what does this mean? time derivative of time?
+a'  = t; // what do his guy do? a is the rotation angle
+     // a' should give the angular speed, which is increasing
+p'  = t/1.4; // displacement, linear speed, function of time
+c.a = a; // rotational speed
+c.D = [0,-p,-p] // the displacement from the original positoin
+
+end

@@ -1,0 +1,18 @@
+/* 
+   Works with semantic 2014
+   Works with semantic 2013
+   Works with semantic 2012
+*/
+
+// Linear Second Derivative Example
+
+class Main(simulator)
+private
+ x:=1; x':=0; x'':=0
+end
+ x'' = -x'/2-x/2
+end
+
+// Note:  Mixing derivatives helps stabilize oscillation
+// Note:  Solutions to linear systems are a sum of 
+//          complex exponentials

@@ -1,0 +1,49 @@
+/* 
+   Works with semantic 2014
+   Works with semantic 2013
+   Works with semantic 2012
+*/
+
+// Two tanks with explicit sum variable
+
+class Main(simulator) 
+  private 
+    x1 := 1; x1' := 2;  
+    x2 := 1; x2' := -3;
+    x12 := 2; x12' := -1; 
+    mode := "Fill1" 
+  end
+  switch mode
+    case "Fill1" 
+      claim x1  >= 0 && 
+            x2  >= 0 && 
+            x12 >= 0 && 
+            x12 == x1 + x2 
+      if x2 == 0 mode := "Fill2" end; 
+      x1'  = 2; 
+      x2'  = -3;
+      x12' = -1;
+    case "Fill2" 
+      claim x1 >= 0 && 
+            x2 >= 0 && 
+            x12 >= 0 && 
+            x12 == x1 + x2 
+      if x1 == 0 mode := "Fill1" end; 
+      x1'  = -2; 
+      x2'  = 1;
+      x12' = -1; 
+  end;
+  // common paramters
+  // common paramters
+  simulator.startTime := 0;
+  simulator.endTime := 2.5;
+//  simulator.minComputationImprovement := 0.001; // needed to get thin pre Zeno
+  // event-tree paramters
+  simulator.minTimeStep := 0.00001;
+  simulator.maxTimeStep := 0.01; // needed to get thin post Zeno
+  // pwl paramters
+  simulator.minSolverStep := 0.02;
+  simulator.minLocalizationStep := 0.001;
+end
+
+// Note: sometimes leads to inconsistent model message with event-tree

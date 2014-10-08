@@ -1,0 +1,30 @@
+/* 
+   Has bug with semantic 2014
+   Works with semantic 2013
+   Works with semantic 2012
+*/
+
+#semantics "2013 Reference"
+
+class Main(simulator)
+  private
+    theta:=0.1; theta':=0; theta'':=0; f := 0;
+  end
+  simulator.timeStep := 0.1;
+  simulator.endTime := 100.0;
+  if abs(theta) < 3.1416/100
+    f := 0
+  else
+    if theta' > 0
+      f := -1
+    else
+      f := 1
+    end
+  end;
+
+  /* the following is
+      theta'' = (f*l*cos(theta) - m*g*l*sin(theta)) / (m * l^2)
+     where l = 3, m = 5 and g = 9.8 have been inlined
+  */
+  theta'' = (f*3*cos(theta) - 5*9.8*3*sin(theta)) / (5 * 3^2)
+end

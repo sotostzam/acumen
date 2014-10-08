@@ -1,0 +1,21 @@
+/* 
+   Works with semantic 2014
+   Works with semantic 2013
+   Works with semantic 2012
+*/
+
+// Displaying a cylinder
+
+class Main(simulator)
+private
+ _3D := 
+ [["Cylinder",// Type of _3D object
+  [0,0,0],    // Center point
+  [0.1,4],    // Size in [radius,length] form
+  yellow,     // Color
+  [0,0,0]]];  // Orientation
+end
+end
+
+// Exercises
+// 1) Add two green disks to make a dumbbell

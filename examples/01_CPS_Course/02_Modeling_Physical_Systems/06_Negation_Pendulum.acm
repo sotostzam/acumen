@@ -1,0 +1,9 @@
+// Negation pendulum example
+// Author: Merve
+
+class Main (simulator)
+private
+x:=0; x':=0; t:=0;
+end
+x' = 1; t = -cos(x);
+end
