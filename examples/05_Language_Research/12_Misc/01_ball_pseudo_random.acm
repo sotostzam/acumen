@@ -1,0 +1,89 @@
+/* 
+   Has bug with semantic 2014
+   Has bug with semantic 2013
+   Works with semantic 2012
+*/
+
+#semantics "2012 Reference"
+
+// Bouncing Ball with Pseudo-Random impacts
+// By Paul Brauner, modified by Walid Taha
+//
+// Illustrates a) mailbox communication, and
+// b) pseudo random number generators
+
+class RandomBall(mode, time)
+  private
+    mbox := 0; // 0="" and 1="Next"
+    b  := create Ball("Fly", 1, 1,0,0,0);
+    rg := create RandomGenerator(time,0)
+  end
+  rg.time = time;
+  b.k     = rg.rndUnit;
+
+  // A mailbox connection semantics between the two
+  
+  if (mbox == b.mbox) && not (mbox == rg.mbox)
+    mbox   := rg.mbox;
+    b.mbox := rg.mbox end;
+  if not (mbox == b.mbox) && (mbox == rg.mbox)
+    mbox    := b.mbox;
+    rg.mbox := b.mbox end;    
+  if  not ((mbox == b.mbox) ||  (mbox == rg.mbox))
+    rg.mbox := mbox;
+    b.mbox  := mbox 
+  end;    
+end
+
+class Ball(mode, k, x,x',x'',mbox)
+  private last_k := 0  end
+  switch mode
+    case "Fly"
+      if x < 0 && x' < 0
+        mode := "Bounce";
+        mbox := 1;
+      else
+        x'' = -9.8
+      end
+    case "Bounce"
+      last_k := (0.75 + abs(k)/2);
+      x' := - last_k * x';
+      mode := "Fly"
+  end
+end
+
+class RandomGenerator(time,mbox)
+  private
+    mZ := 1;
+    mW := 2;
+    rndUnit := 0;
+    unsigned := 0;
+    lastWrite := time
+  end
+  if (mbox == 1) // time > lastWrite
+    mZ := 36969 * (mZ & 65535) + (mZ >> 16);
+    mW := 18000 * (mW & 65535) + (mW >> 16);
+    unsigned := (mZ << 16) + (mW & 65535);
+    rndUnit := (unsigned + 1) * 2.328306435454494e-10;
+    lastWrite := time;
+    mbox := 0;
+  else
+  end
+end
+
+class Main(simulator)
+  private
+    mode := "Init"
+  end
+  switch mode
+    case "Init"
+      simulator.timeStep := 0.001;
+      simulator.endTime  := 10;
+      create RandomBall("Init", simulator.time);
+      self.mode := "Persist"
+    case "Persist"
+      for o = self.children
+        o.time = simulator.time
+      end
+  end
+end

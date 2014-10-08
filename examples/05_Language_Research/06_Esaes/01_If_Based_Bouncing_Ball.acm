@@ -1,0 +1,17 @@
+/* 
+   Works with semantic 2014
+   Works with semantic 2013
+   Works with semantic 2012
+*/
+
+// If-Based Bouncing Ball example
+
+class Main(simulator)
+  private
+    x := 5; x' := 0; x'' := 0;
+  end
+  if x <= 0 && x' <= 0
+    x' := -0.5 * x'
+  end;
+  x'' = -10
+end

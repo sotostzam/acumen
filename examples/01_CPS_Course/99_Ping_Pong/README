@@ -1,0 +1,12 @@
+
+This is a directory for keeping the latest models of the Acumen ping
+pong game, along with its documentation.  We should develop the
+documentation in the form of a paper about the model, and an
+explanation of how the model is intended to be used.
+
+Note: In the tournament, it seemed that there were some games that
+caused other objects to have multiple assignments.  That's actually
+the kind of thing that we would like to *verify* cannot happen, or at
+least make subject to extensive testing and try to weed out through an
+agile process.  In some cases, one of the players bats just disappered
+(like Pawanism vs. Falafel).

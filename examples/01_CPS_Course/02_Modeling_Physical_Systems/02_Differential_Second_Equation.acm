@@ -1,0 +1,9 @@
+// Differential second  equation example
+// Author: Merve
+
+class Main (simulator)
+private
+x:=0; x':=0; t:=1;
+end
+x' =- 3*t -5;
+end

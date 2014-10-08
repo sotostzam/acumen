@@ -1,0 +1,63 @@
+/* 
+   Works with semantic 2014
+   Works with semantic 2013
+   Works with semantic 2012
+*/
+
+class Ball(mode, p, p', p'', m)
+  private
+    ux := [1,0,0];
+    uy := [0,1,0];
+    uz := [0,0,1];
+    plane := [1,1,0];
+  end
+  switch mode
+    case "Fly"
+      if dot(uz,p) < 0  && dot(uz,p') < 0
+        if abs(dot(uz,p')) > 1
+          create Ball("Bounce",p,
+                      [norm(p' .* plane) * cos(atan2(dot(uy,p'), dot(ux,p')) + 3.14/8),
+                       norm(p' .* plane) * sin(atan2(dot(uy,p'), dot(ux,p')) + 3.14/8),
+                       dot(uz,p')],
+                      [0,0,0],
+                      m/2);
+          create Ball("Bounce",p,
+                      [norm(p' .* plane) * cos(atan2(dot(uy,p'), dot(ux,p')) - 3.14/8),
+                       norm(p' .* plane) * cos(atan2(dot(uy,p'), dot(ux,p')) - 3.14/8),
+                       dot(uz,p')],
+                      [0,0,0],
+                      m/2);
+          terminate self
+        else
+          mode := "Slide"
+        end
+      else
+        p'' = [0,0,-9.8]
+      end
+    case "Bounce"
+      p' := p' .* [0.8, 0.8, -0.8];
+      mode := "Fly"
+    case "Slide"
+      if norm(p') > 0.01
+        p'' = p' .* [-1,-1,1]
+      else
+        mode := "Persist"
+      end
+    case "Persist"
+  end
+end
+
+class Main(simulator)
+  private
+    mode := "Init"
+  end
+  switch mode
+    case "Init"
+      simulator.timeStep := 0.01;
+      simulator.endTime := 3.5;
+      create Ball("Fly", [0,0,1], [1,-1,0], [0,0,0], 2);
+      mode := "Persist"
+    case "Persist"
+  end
+end
+

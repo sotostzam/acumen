@@ -1,0 +1,22 @@
+// Author: Merve
+
+class ball (x0)
+ private x:=x0; x':=0; x'':=0 end
+
+ if (x>0)
+  x'' = -9.8 // - 0.1 * x'*abs(x')  // Drag, commented out
+ else
+  if (x'<0) // Another state split to enable damping during bounce
+    x'' = -9.8 - 100 * x + 10
+  else
+    x'' = -9.8 - 100 * x - 10
+  end
+ end
+
+end
+
+class Main (simulator)
+ private ball1 := create ball(10);
+         ball2 := create ball(20)
+ end
+end

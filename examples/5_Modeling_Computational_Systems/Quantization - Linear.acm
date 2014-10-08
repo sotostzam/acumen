@@ -1,9 +1,0 @@
-
-// Basic, Linear Quantization
-
-class Main (simulator)
- private x:=1; x':=0; x'':=0; c:=1
- end
- x'' = -x;
- c   = floor (10*x)/10;
-end

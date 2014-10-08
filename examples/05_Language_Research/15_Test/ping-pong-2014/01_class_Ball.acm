@@ -1,0 +1,48 @@
+/**
+* A three-dimentional bouncing ball model, with air resistance.
+**/
+
+
+class Ball (tablerow,tablecolum)
+  private
+    mode   := "Fly";           // always start by some player
+    k_z    := [1,1,-0.99];       // Coefficient of restitution
+    k2     := 1/6;               // Coefficient of the air resistance
+    p      := [0,0,0.5];         // Position of the ball
+    p'     := [0,0,0];
+    p''     := [0,0,0];
+    shiftD := [10,5,0];          // shift distance of the ball      
+    _3D    := [];
+  end
+ 
+ // If mode is not valid then make mode "Panic!"
+  if mode ~= "Fly" && mode ~= "Bounce" && mode ~= "Freeze"
+     mode := "Panic!";
+  end;
+ // Behavior of ball in different modes
+  switch mode
+    case "Fly"
+      if (p(2)) < 0 && (p'(2))< 0
+        mode := "Bounce";
+      else // Acceleration is air resistance and gravity
+        p'' = -k2 * norm(p') * p' + [0,0,-9.8];
+      end;
+    case "Bounce"
+      p'   :=  p' .* k_z; // Bounce losing k_z energy
+      mode := "Fly";
+    case "Freeze"       // The ball becomes red and freezes for a bit
+      p' := [0,0,0];
+      p'' = [0,0,0];
+    case "Panic!"
+  end;
+  if (mode == "Freeze")
+    _3D = ["Sphere",p+[tablerow,tablecolum,0].*shiftD,0.03,[1,0,0],[0,0,0]];
+  else
+    _3D = ["Sphere",p+[tablerow,tablecolum,0].*shiftD,0.03,[1,1,1],[0,0,0]];
+  end;
+end
+
+/**
+* Actorator for moving the bat, which also keeps track of the energy spent.
+**/
+

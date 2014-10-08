@@ -1,0 +1,56 @@
+/* 
+   Works with semantic 2014
+   Works with semantic 2013
+   Works with semantic 2012
+*/
+
+class Ball(mode, p, p', p'', m)
+  private
+    ux := [1,0,0];
+    uy := [0,1,0];
+    uz := [0,0,1]
+  end
+  switch mode
+    case "Fly"
+      if    dot(uz,p) < -0.5 && dot(uz,p') < 0 
+         || dot(uz,p) > 0.5  && dot(uz,p') > 0
+        mode := "BounceZ"
+      else
+        if    dot(ux,p) < -0.5 && dot(ux,p') < 0 
+           || dot(ux,p) > 0.5  && dot(ux,p') > 0
+          mode := "BounceX"
+        else
+          if    dot(uy,p) < -0.5 && dot(uy,p') < 0
+             || dot(uy,p) > 0.5  && dot(uy,p') > 0
+            mode := "BounceY"
+          else
+            p'' = [0, 0, -9.8]
+          end
+        end
+      end
+    case "BounceX"
+      p' := [-dot(ux,p'), dot(uy,p'), dot(uz,p')];
+      mode := "Fly"
+    case "BounceY"
+      p' := [dot(ux,p'), -dot(uy,p'), dot(uz,p')];
+      mode := "Fly"
+    case "BounceZ"
+      p' := [dot(ux,p'), dot(uy,p'), -dot(uz,p')];
+      mode := "Fly"
+  end
+end
+
+class Main(simulator)
+  private
+    mode := "Init"
+  end
+  switch mode
+    case "Init"
+      simulator.timeStep := 0.003;
+      simulator.endTime := 2.0;
+      create Ball("Fly", [0.6,0.6,0.9], [17,23,12], 
+                         [0,0,0], 1.0);
+      mode := "Persist"
+    case "Persist"
+  end
+end

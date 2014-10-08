@@ -1,0 +1,45 @@
+/* 
+   Works with semantic 2014
+   Works with semantic 2013
+   Works with semantic 2012
+*/
+
+// Coordinate system for _3D (right hand)
+//
+// This model illustrates the coordinate system
+// used when displaying a point [x,y,z].
+//
+// Use GUI controls to expand the width of this
+// panel horizontally so you can see full ines.
+
+class Main(simulator)
+private
+  t  := 0;
+  t' := 1;
+  _3D := [];
+end
+ t' = 1;
+ _3D = 
+ [
+  ["Box", [ 1,0, 0],[2   ,0.02,0.02],[1,0,0],[0,0,0]], // x-axis line
+  ["Box", [ 0,1, 0],[0.02,2   ,0.02],[0,1,0],[0,0,0]], // y-axis line
+  ["Box", [ 0,0, 1],[0.02,0.02,2  ],[0,0,1],[0,0,0]],  // z-axis line
+  ["Text",[ 2   ,0  ,-0.1],0.5,[1,0,0],[pi/2,0,0],"x"],// x-axis lable
+  ["Text",[-0.15,2.2, 0  ],0.5,[0,1,0],[pi/2,0,0],"y"],// y-axis lable
+  ["Text",[-0.15,0,2.1   ],0.5,[0,0,1],[pi/2,0,0],"z"],// z-axis lable
+  ["Box", 
+   [t/5-1,t*sin(2*pi*t)/10,t*cos(2*pi*t)/10],
+   [0.1,0.1,0.1],
+   [1,1,0],
+   [0,0,0]]
+ ];
+end
+
+// Excercises
+// 1) If we drew the path that the yellow cube is following,
+//    what 3D gemotric shape would we see?
+// 2) Change the position formula for the location of the
+//    yellow box so that it follows the surface of
+//    an invisible cylinder instead.  That it, it should
+//    keep a constant distance from the x-axis during the
+//    animation.
