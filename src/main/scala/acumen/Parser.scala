@@ -242,7 +242,7 @@ object Parser extends MyStdTokenParsers {
     ("create" ~! className ~! args(expr) ^^ { case _ ~ cn ~ es => NewRhs(Var(Name(cn.x,0)), es) }
       | expr ^^ ExprRhs)
 
-  def actions = repsep(action, "&") <~ opt("&") 
+  def actions = repsep(action, opt("&")) <~ opt("&")
 
   def action: Parser[Action] =
     switchCase | ifThenElse | forEach | discretelyOrContinuously | claim | hypothesis
@@ -278,14 +278,8 @@ object Parser extends MyStdTokenParsers {
     case IfThenElse(e,t,Nil) => IfThenElse(e,t,els)
     case IfThenElse(e,t,s) =>IfThenElse(e,t,List(elseHelper(els,s(0).asInstanceOf[IfThenElse])))
   }
-  def ifThenElse =
-    "if" ~! BExpr ~! "then" ~ actions ~rep(elseif) ~ "else"  ^^ 
-    	{case _~ c ~_ ~t ~ elseifs ~ _  => elseifs match{
-    	  case Nil => IfThenElse(c,t,List())
-    	  case ss => IfThenElse(c,t, List(elseHelper(List(),elseifHelper(ss))))
-    	  }   	
-    	} |
-    "if" ~! BExpr ~! "then" ~ actions ~rep(elseif) ~ "else" ~ actions ^^ 
+  def ifThenElse = 
+    "if" ~! BExpr ~! "then" ~ actions ~rep(elseif) ~ "else" ~ actions<~ opt("&") ^^ 
     	{case _~ c ~_ ~t ~ elseifs ~ _ ~e => elseifs match{
     	  case Nil => IfThenElse(c,t,e)
     	  case ss => IfThenElse(c,t, List(elseHelper(e,elseifHelper(ss))))
@@ -345,6 +339,7 @@ object Parser extends MyStdTokenParsers {
       (BCompare * ("&&" ^^^ { (x: Expr, y: Expr) => mkOp("&&", x, y) }
                 | "||" ^^^ { (x: Expr, y: Expr) => mkOp("||", x, y) })) |
        gbool ^^ {x => Lit(x)}
+  
   def BCompare : Parser[Expr] = 
      (expr * ("<" ^^^ { (x: Expr, y: Expr) => mkOp("<", x, y) }
       | ">" ^^^ { (x: Expr, y: Expr) => mkOp(">", x, y) }
