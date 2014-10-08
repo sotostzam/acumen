@@ -175,6 +175,7 @@ class App extends SimpleSwingApplication {
   private val normalizeAction                 = mkAction(    "Normalize (to H.A.)",                 VK_N, NONE,       toggleNormalization())
   private val manualAction                    = mkAction(    "Reference Manual",                    VK_M, VK_F1,      manual)
   private val aboutAction                     = new Action(  "About")       { mnemonic =            VK_A; def apply = about }
+  private val licenseAction                   = new Action(  "License")     { mnemonic =            VK_L; def apply = license }
   
   /* Shows a dialog asking the user how many threads to use in the parallel interpreter. */
   private def promptForNumberOfThreads = {
@@ -616,6 +617,7 @@ class App extends SimpleSwingApplication {
       mnemonic = Key.H
       contents += new MenuItem(manualAction)
       contents += new MenuItem(aboutAction) 
+      contents += new MenuItem(licenseAction) 
     }
   }
 
@@ -677,6 +679,11 @@ class App extends SimpleSwingApplication {
   def about() = {
     AboutDialog setLocationRelativeTo body
     AboutDialog visible = true
+  }
+  
+  def license() = {
+    LicenseDialog setLocationRelativeTo body
+    LicenseDialog visible = true
   }
   
   def manual() = {
@@ -886,7 +893,7 @@ class App extends SimpleSwingApplication {
   codeArea.listenDocument
   console.append(Logger.Message(Logger.INFO, 
                                 Logger.TextMsg("<html>Welcome to Acumen.<br/>" +
-                                               "Please see LICENSE file for licensing details.<html>")))
+                                               "Please see Help/License file for licensing details.<html>")))
   Logger.attach(new Logger.Appender { def apply(instr: Logger.Instruction) {
     actor ! ConsoleMsg(instr)
   }})
