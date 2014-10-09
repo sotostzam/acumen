@@ -334,11 +334,12 @@ object Parser extends MyStdTokenParsers {
   def expr: Parser[Expr] = levelTop | let
   
   // Separate boolean expression with other expression
-  def BExpr : Parser[Expr] = 
-      parens(BExpr)|
+  def BExpr : Parser[Expr] =   
+      BCompare |
       (BCompare * ("&&" ^^^ { (x: Expr, y: Expr) => mkOp("&&", x, y) }
                 | "||" ^^^ { (x: Expr, y: Expr) => mkOp("||", x, y) })) |
-       gbool ^^ {x => Lit(x)}
+       gbool ^^ {x => Lit(x)} |
+       parens(BExpr)
   
   def BCompare : Parser[Expr] = 
      (expr * ("<" ^^^ { (x: Expr, y: Expr) => mkOp("<", x, y) }
