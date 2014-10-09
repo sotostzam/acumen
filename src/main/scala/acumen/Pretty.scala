@@ -75,6 +75,8 @@ class Pretty {
   
   def brackets(d:Document) = "[" :: d :: "]"
   
+  def braces(d:Document) = "{" :: d :: "}"
+  
   def dquotes(d:Document) = "\"" :: d :: "\""
   
   def sepBy(sep:Document, ds:List[Document]) : Document =
@@ -154,13 +156,13 @@ class Pretty {
     PrettyAble { as => breakWith(amper, as map pretty[Action]) }
  
   implicit def prettyClauses : PrettyAble[List[Clause]] =
-    PrettyAble { cls => breaks(cls map pretty[Clause]) }
+    PrettyAble { cls => breakWith("|", cls map pretty[Clause]) }
 
   implicit def prettyClause : PrettyAble[Clause] =
     PrettyAble {
       case Clause(lhs,assertion:Expr,rhs) => assertion match{
-        case Lit(GBool(true)) => DocNest(2,  pretty(lhs) :: "->" :/: pretty(rhs)) 
-        case _ => DocNest(2,  pretty(lhs) :: "->" :: " claim " :: pretty(assertion) :/: pretty(rhs)) 
+        //case Lit(GBool(true)) => DocNest(2,  pretty(lhs) :: "->" :/: pretty(rhs)) 
+        case _ => DocNest(2,  pretty(lhs) :: "->" :: " claim " :: pretty(assertion) :: "&" :/: pretty(rhs)) 
       }      
     }
 
@@ -169,13 +171,13 @@ class Pretty {
       case IfThenElse(c,t,e) => new DocNest(2,
                                   "if " :: pretty(c) :: " then " :/: 
                                   DocGroup(pretty(t))) :/: 
-                                  (if (e.nonEmpty) DocGroup(DocNest(2, "else" :/: pretty(e))) :/: ""
-                                   else DocText(""))
+                                  DocGroup(DocNest(2, "else" :/: braces(pretty(e))))
+                                   
       case Switch(s,cls) => new DocNest(2,"match " :: pretty(s) :: " with" :: "[":/:
                                           pretty(cls) :/: "]") 
       case ForEach(i,e,b) => new DocNest(2,
                                "for " :: pretty(i) :: 
-                               " = " :: pretty(e) :/: pretty(b)) :/: "end"
+                               " = " :: pretty(e) :/: braces(pretty(b))) 
       case Continuously(ca) => pretty(ca)
       case Discretely(da) => pretty(da)
       case Claim(e) => "claim " :: pretty(e)
@@ -195,7 +197,7 @@ class Pretty {
     PrettyAble {
       case Assign(lhs,rhs) => pretty(lhs) :: "+ == " :: pretty(rhs)
       case Create(lhs,c,as) =>
-        (lhs match { case Some(e) => pretty(e) :: " = " case None => DocNil }) ::
+        (lhs match { case Some(e) => pretty(e) :: "+ == " case None => DocNil }) ::
         "create " :: pretty(c) :: args(as map pretty[Expr]) 
       case Elim(e) => "terminate" :: pretty(e)
       case Move(o,p) => "move" :: " " :: pretty(o) :: " " :: pretty(p)
