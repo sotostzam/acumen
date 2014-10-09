@@ -335,11 +335,12 @@ object Parser extends MyStdTokenParsers {
   
   // Separate boolean expression with other expression
   def BExpr : Parser[Expr] =   
-      BCompare |
       (BCompare * ("&&" ^^^ { (x: Expr, y: Expr) => mkOp("&&", x, y) }
                 | "||" ^^^ { (x: Expr, y: Expr) => mkOp("||", x, y) })) |
-       gbool ^^ {x => Lit(x)} |
+       BCompare |
+       gbool ^^ {x => Lit(x)}|
        parens(BExpr)
+       
   
   def BCompare : Parser[Expr] = 
      (expr * ("<" ^^^ { (x: Expr, y: Expr) => mkOp("<", x, y) }
@@ -347,7 +348,9 @@ object Parser extends MyStdTokenParsers {
       | "<=" ^^^ { (x: Expr, y: Expr) => mkOp("<=", x, y) }
       | ">=" ^^^ { (x: Expr, y: Expr) => mkOp(">=", x, y) }
       |	"==" ^^^ { (x: Expr, y: Expr) => mkOp("==", x, y) }
-      | "~=" ^^^ { (x: Expr, y: Expr) => mkOp("~=", x, y) })) 
+      | "~=" ^^^ { (x: Expr, y: Expr) => mkOp("~=", x, y) }))|
+      parens(BCompare)
+
   
 
   def level7: Parser[Expr] =
