@@ -287,8 +287,8 @@ object Parser extends MyStdTokenParsers {
     	}
           
   def forEach =
-    "for" ~! name ~! "=" ~! expr ~! "{" ~! actions ~! "}" ^^
-      { case _ ~ i ~ _ ~ e ~ _ ~ b ~ _ => ForEach(i, e, b) }
+    "for" ~! name ~! "=" ~! expr  ~! actions  ^^
+      { case _ ~ i ~ _ ~ e ~ b  => ForEach(i, e, b) }
   
    def pattern : Parser[Pattern] = name ^^ {case x => Pattern(List(Var(x)))} |
 		                          parens(repsep(pattern,",")) ^^ {case ls => Pattern(ls.map(x => x.ps match{
