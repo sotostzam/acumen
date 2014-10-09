@@ -290,11 +290,13 @@ object Parser extends MyStdTokenParsers {
     "for" ~! name ~! "=" ~! expr  ~! braces(actions)  ^^
       { case _ ~ i ~ _ ~ e ~ b  => ForEach(i, e, b) }
   
-   def pattern : Parser[Pattern] = name ^^ {case x => Pattern(List(Var(x)))} |
+   def pattern : Parser[Pattern] =  name ~ "." ~ name ^^ {case e ~ _ ~ n => Pattern(List(Dot(Var(e),n)))}| 
+		   							name ^^ {case x => Pattern(List(Var(x)))} |
 		                          parens(repsep(pattern,",")) ^^ {case ls => Pattern(ls.map(x => x.ps match{
 		                            case s::Nil => x.ps
-		                            case ss => List(Pattern(ss))}).flatten)}
-   def patternMatch : Parser[Continuously] = pattern ~ "=" ~ expr ^^{case p ~ _ ~ e => Continuously(Assignment(p,e))}
+		                            case ss => List(Pattern(ss))}).flatten)} 
+  println(run(patternMatch, "a.x = 5"))	                           
+  def patternMatch : Parser[Continuously] = pattern ~ "=" ~ expr ^^{case p ~ _ ~ e => Continuously(Assignment(p,e))}
 
   def discretelyOrContinuously =
     (newObject(None) ^^ Discretely | elim ^^ Discretely | patternMatch
