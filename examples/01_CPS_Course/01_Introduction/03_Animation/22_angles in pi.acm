@@ -18,11 +18,11 @@ always
 
  if (angle>pi/2) // Start going back when you get to pi/2
  then rate+ == -pi/5
- else &
+ else {}&
  
  if (angle<0)    // Go forward again when you get to 0
  then rate+ == pi/5
- else &
+ else {}&
   
  
 

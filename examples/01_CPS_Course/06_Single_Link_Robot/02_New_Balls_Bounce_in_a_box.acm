@@ -1,6 +1,6 @@
 /*
  * Balls bounce in a box 
- * Author: Wang Rui
+ * Author: Rui Wang
  */
 
 model Main(simulator) = 
@@ -46,4 +46,4 @@ always
   if(x>0.95)  then x' + == -0.1*x' & x + == 0.95 else {}&
   if(y>0.95)  then y' + == -0.1*y' & y + == 0.95 else {}&
   if(x<-0.95) then x' + == -0.1*x' &  x + == -0.95 else {}&
-  if(y<-0.95) then y' + == -0.1*y' &  y + == -0.95 else {]
+  if(y<-0.95) then y' + == -0.1*y' &  y + == -0.95 else {}

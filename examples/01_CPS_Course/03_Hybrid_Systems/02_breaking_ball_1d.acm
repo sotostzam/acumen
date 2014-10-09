@@ -7,8 +7,8 @@ always
                 create Ball("Bounce", x, x', x'') &
                 terminate self
            else
-             x'' = -9.8
-  "Bounce" -> x' + == -x' &
+             {x'' = -9.8}
+  | "Bounce" -> x' + == -x' &
               mode + == "Fly"
   ]
 
@@ -22,6 +22,6 @@ model Main(simulator) =
             simulator.endTime + == 10.0 &
             create Ball("Fly", 100,0,0) &
             mode + == "Persist"
-  "Persist" ->
+  | "Persist" ->
   ]
  

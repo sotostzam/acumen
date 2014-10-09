@@ -15,8 +15,8 @@ always
        elseif (sensor-0.3>x) 
        then sensor+ ==sensor-0.3 
        else
-         bucket + == 0
-  else &
+       {bucket + == 0}
+  else {} &
 x'' = -10*sensor
  
 

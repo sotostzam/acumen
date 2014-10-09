@@ -1,5 +1,6 @@
 /*
  * An example of the independence pattern
+ * Author: Rui Wang
  */
 model Main(Simulator) = 
 initially
@@ -81,7 +82,7 @@ always
         if(b.y>1.5) then 
           cnt+ ==cnt+1 & 
           nextchoice+ ==1 &
-          mode+ =="B" &
+          mode+ =="B"
         else {}
   | "B" -> b.x' = 0 &
            b.y' = -1 &
@@ -110,7 +111,7 @@ always
          b.z' = 0 &
          _3D=((Text center=(-1.25,2.5,2) size=0.5 color=green rotation=(pi/2,0,0) content="Turns:"),
               (Text center=(1.25,2.5,2) size=0.5 color=green rotation=(pi/2,0,0) content=cnt)) &
-        if(b.x<-1.5) then cnt+ ==cnt+1
+        if(b.x<-1.5) then cnt+ ==cnt+1 &
           if(cnt == 3) then nextchoice+ ==1 & mode+ =="B"
           else {nextchoice+ ==0}
         else {}
@@ -140,5 +141,6 @@ always
   "move" -> _3D = (Box center=(x,y,z) size=(6,0.1,0.1) color=color rotation=(0,0,zangle)) &
             if(y>1.5||y<-1.5||x>1.5||x<-1.5) then 
             x+ ==xt &y+ ==yt &z + == zt & x'+ ==0 &y'+ ==0 &z'+ ==0 &mode+ =="move" 
+            else {}
   ]
  

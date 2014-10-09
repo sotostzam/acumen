@@ -41,7 +41,7 @@ always
   elseif (6<t&&t<6.02) 
   then strike+ == -400
   else
-  { strike+ == 0} &
+  {strike+ == 0} &
 
 
    M + == mc + mp &

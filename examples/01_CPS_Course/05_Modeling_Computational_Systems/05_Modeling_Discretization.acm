@@ -8,7 +8,7 @@ always
   bucket' = 1 &
   if (bucket>0.05)
   then bucket + == 0 & sensor + == x
-  else &
+  else {}&
   x'' = -10*sensor
  
 

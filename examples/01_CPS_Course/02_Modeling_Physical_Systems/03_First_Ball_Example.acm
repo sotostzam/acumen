@@ -1,12 +1,12 @@
 // Author: Merve
 
 model ball (x0) = 
-initially x = x0 & x' = 0 & x'' = 0 always
-
+initially x = x0 & x' = 0 & x'' = 0 
+always
  if (x>0)
   then x'' = -9.8
  else
-  x'' = -9.8 - 100 * x
+  {x'' = -9.8 - 100 * x}
 
 
 model Main (simulator)= 
