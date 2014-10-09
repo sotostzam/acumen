@@ -6,7 +6,7 @@ always
   if (x<=0 && x'<0)
     then  x'+ == - 0.5 * x'
   else
-    x''=-9.8
+    {x''=-9.8}
 
 model BB_drag()= // Bouncing ball with (air) drag
 initially
@@ -15,7 +15,7 @@ always
   if (x<=0 && x'<0)
     then  x'+ == - 0.5 * x'
   else
-    x''=-9.8 - 0.1*x'*abs(x')
+    {x''=-9.8 - 0.1*x'*abs(x')}
 
 
 model BB_grav()=  // Bouncing ball with Newtonian (1/r^2) gravity
@@ -25,7 +25,7 @@ always
   if (x<=0 && x'<0)
     then x' + == - 0.5 * x'
   else
-    x''= -5000 /(20+x)^2
+    {x''= -5000 /(20+x)^2}
 
 
 model BB_drag_grav()=  // Bouncing ball with gravity and drag   
@@ -35,7 +35,7 @@ always
   if (x<=0 && x'<0)
    then  x' +== - 0.5 * x'
   else
-    x''= -5000 /(20+x)^2 - 0.1*x'*abs(x')
+   { x''= -5000 /(20+x)^2 - 0.1*x'*abs(x')}
 
 model BB_dg_2D()=  // Bouncing ball with gravity and drag in 2D   
 initially
@@ -54,7 +54,7 @@ always
   if (r<=20 && dot(p', u)<0)
     then  p'+ == p' - (1.8*dot(p', u)*u) &
   else
-    p''= - 0.01*norm(p')*p' - (5000 /(r)^2)*u
+    {p''= - 0.01*norm(p')*p' - (5000 /(r)^2)*u}
 
 model Main (simulator)= 
 initially

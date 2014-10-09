@@ -1,155 +1,144 @@
 /*
  * An example of the independence pattern
  */
-class Main(Simulator)
-
-private
-ip:= create ipattern();
-_3D := [["Box",[0,0,0],[6,0.01,6],blue,[pi/2,0,0]],
-        ["Box",[0,0,0],[6,0.1,0.1],black,[0,0,0]],
-        ["Box",[0,0,0],[6,0.1,0.1],black,[0,0,pi/2]],
-        ["Text",[-1.25,0.25,-0.15],1.5,black,[0,0,0],"-"],
-        ["Text",[-0.75,0.25,-0.15],1.5,black,[0,0,0],"-"],
-        ["Text",[0.25,0.25,-0.15],1.5,black,[0,0,0],"-"],
-        ["Text",[0.75,0.25,-0.1],1,black,[0,0,0],"+"],
-        ["Text",[0.75,-1.25,-0.1],1,black,[0,0,0],"+"],
-        ["Text",[0.25,-1.25,-0.1],1,black,[0,0,0],"+"],
-        ["Text",[-0.75,-1.25,-0.15],1.5,black,[0,0,0],"-"],
-        ["Text",[-1.25,-1.25,-0.1],1,black,[0,0,0],"+"],
-        ["Text",[-1.25,2,0],1,black,[pi/2,0,0],"A"],
-        ["Text",[0.5,2,0],1,black,[pi/2,0,0],"B"],
-        ["Text",[-2,0.5,0],1,black,[pi/2,0,pi/2],"A"],
-        ["Text",[-2,-1.25,0],1,black,[pi/2,0,pi/2],"B"],
-        ["Text",[-2,-1.25,1],0.5,red,[pi/2,0,pi/2],"Player 1"],
-        ["Text",[-1.25,2,1],0.5,green,[pi/2,0,0],"player 2"]]
-end
-
-end
+model Main(Simulator) = 
+initially
+  ip = create ipattern() &
+  _3D = ((Box center=(0,0,0) size=(6,0.01,6) color=blue rotation=(pi/2,0,0)),
+         (Box center=(0,0,0) size=(6,0.1,0.1) color=black rotation=(0,0,0)),
+         (Box center=(0,0,0) size=(6,0.1,0.1) color=black rotation=(0,0,pi/2)),
+         (Text center=(-1.25,0.25,-0.15) size=1.5 color=black rotation=(0,0,0) content="-"),
+         (Text center=(-0.75,0.25,-0.15) size=1.5 color=black rotation=(0,0,0) content="-"),
+         (Text center=(0.25,0.25,-0.15) size=1.5 color=black rotation=(0,0,0) content="-"),
+         (Text center=(0.75,0.25,-0.1) size=1 color=black rotation=(0,0,0) content="+"),
+         (Text center=(0.75,-1.25,-0.1) size=1 color=black rotation=(0,0,0) content="+"),
+         (Text center=(0.25,-1.25,-0.1) size=1 color=black rotation=(0,0,0) content="+"),
+         (Text center=(-0.75,-1.25,-0.15) size=1.5 color=black rotation=(0,0,0) content="-"),
+         (Text center=(-1.25,-1.25,-0.1) size=1 color=black rotation=(0,0,0) content="+"),
+         (Text center=(-1.25,2,0) size=1 color=black rotation=(pi/2,0,0) content="A"),
+         (Text center=(0.5,2,0) size=1 color=black rotation=(pi/2,0,0) content="B"),
+         (Text center=(-2,0.5,0) size=1 color=black rotation=(pi/2,0,pi/2) content="A"),
+         (Text center=(-2,-1.25,0) size=1 color=black rotation=(pi/2,0,pi/2) content="B"),
+         (Text center=(-2,-1.25,1) size=0.5 color=red rotation=(pi/2,0,pi/2) content="Player 1"),
+         (Text center=(-1.25,2,1) size=0.5 color=green rotation=(pi/2,0,0) content="player 2"))
+always
 
 //Score
-class ipattern()
-private
-scoreA:=0; // if choose A, get 0 score
-scoreB:=2; // if choose B, get 2 score
-scorep1:=0;
-scorep2:=0;
-p1:= create player1();
-p2:= create player2();
-_3D:=[];
-end
-_3D=[["Text",[-2.5,-1.25,3],0.5,red,[pi/2,0,pi/2],"Score:"],
- ["Text",[-2.5,1.25,3],0.5,red,[pi/2,0,pi/2],scorep1],
- ["Text",[-1.25,2.5,3],0.5,green,[pi/2,0,0],"Score:"],
- ["Text",[1.25,2.5,3],0.5,green,[pi/2,0,0],scorep2]];
-if(p1.nextchoice==1)&&(p2.nextchoice==1) 
- p1.nextchoice:=0;
- p2.nextchoice:=0;
- scorep1:=scorep1+scoreB;
- scorep2:=scorep2+scoreB;
- end;
-if(p1.nextchoice==0)&&(p2.nextchoice==1) 
- p1.nextchoice:=0;
- p2.nextchoice:=0;
- scorep1:=scorep1+scoreA;
- scorep2:=scorep2+scoreB;
-end;
-if(p1.nextchoice==1)&&(p2.nextchoice==0) 
- p1.nextchoice:=0;
- p2.nextchoice:=0;
- scorep1:=scorep1+scoreB;
- scorep2:=scorep2+scoreA;
-end;
-if(p1.nextchoice==0)&&(p2.nextchoice==0) 
- p1.nextchoice:=0;
- p2.nextchoice:=0;
- scorep1:=scorep1+scoreA;
- scorep2:=scorep2+scoreA;
-end;
-end
+model ipattern() = 
+initially
+  scoreA = 0 & // if choose A  get 0 score
+  scoreB = 2 & // if choose B  get 2 score
+  scorep1 = 0 &
+  scorep2 = 0 &
+  p1 =  create player1() &
+  p2 =  create player2() &
+  _3D = () &
+always
+  _3D=((Text center=(-2.5,-1.25,3) size=0.5 color=red rotation=(pi/2,0,pi/2) content="Score:"),
+       (Text center=(-2.5,1.25,3) size=0.5 color=red rotation=(pi/2,0,pi/2) content=scorep1),
+       (Text center=(-1.25,2.5,3) size=0.5 color=green rotation=(pi/2,0,0) content="Score:"),
+       (Text center=(1.25,2.5,3) size=0.5 color=green rotation=(pi/2,0,0) content=scorep2)) &
+  if ((p1.nextchoice==1)&&(p2.nextchoice==1)) then
+    p1.nextchoice+ ==0 &
+    p2.nextchoice+ ==0 &
+    scorep1+ ==scorep1+scoreB &
+    scorep2+ ==scorep2+scoreB &
+  else {} &
+  if ((p1.nextchoice==0)&&(p2.nextchoice==1)) then
+    p1.nextchoice+ ==0 &
+    p2.nextchoice+ ==0 &
+    scorep1+ ==scorep1+scoreA &
+    scorep2+ ==scorep2+scoreB &
+  else {} &
+  if ((p1.nextchoice==1)&&(p2.nextchoice==0)) then
+    p1.nextchoice+ ==0 &
+    p2.nextchoice+ ==0 &
+    scorep1+ ==scorep1+scoreB &
+    scorep2+ ==scorep2+scoreA &
+  else {} &
+  if ((p1.nextchoice==0)&&(p2.nextchoice==0)) then
+    p1.nextchoice+ ==0 &
+    p2.nextchoice+ ==0 &
+    scorep1+ ==scorep1+scoreA &
+    scorep2+ ==scorep2+scoreA & 
+  else {} 
 
 //Play one
-class player1()
-private
-cnt:=1;
-b := create bar(0,0,1,0,red);
-_3D:=[];
-nextchoice:=1; //nextchoice, 0 means A; 1 means B;
-mode:="B"
-end
-switch mode
-case "A"
-b.x' = 0;
-b.y' = 1;
-b.z' = 0;
-_3D = [["Text",[-2.5,-1.25,2],0.5,red,[pi/2,0,pi/2],"Turns:"],
-       ["Text",[-2.5,1.25,2],0.5,red,[pi/2,0,pi/2],cnt]];
-if(b.y>1.5) cnt:=cnt+1; 
- nextchoice:=1;
- mode:="B";
-end
-case "B"
-b.x' = 0;
-b.y' = -1;
-b.z' = 0;
-_3D = [["Text",[-2.5,-1.25,2],0.5,red,[pi/2,0,pi/2],"Turns:"],
-       ["Text",[-2.5,1.25,2],0.5,red,[pi/2,0,pi/2],cnt]];
-if(b.y<-1.5) cnt:=cnt+1; 
- nextchoice:=0;
- mode:="A";
-end
-end
-end
+model player1() = 
+initially
+  cnt = 1 &
+  b = create bar(0,0,1,0,red) &
+  _3D = () &
+  nextchoice = 1 & //nextchoice 0 means A 1 means B
+  mode = "B"
+always
+  match mode with [
+  "A" -> b.x' = 0 &
+         b.y' = 1 &
+         b.z' = 0 &
+         _3D = ((Text center=(-2.5,-1.25,2) size=0.5 color=red rotation=(pi/2,0,pi/2) content="Turns:"),
+                (Text center=(-2.5,1.25,2) size=0.5 color=red rotation=(pi/2,0,pi/2) content=cnt)) &
+        if(b.y>1.5) then 
+          cnt+ ==cnt+1 & 
+          nextchoice+ ==1 &
+          mode+ =="B" &
+        else {}
+  | "B" -> b.x' = 0 &
+           b.y' = -1 &
+           b.z' = 0 &
+           _3D = ((Text center=(-2.5,-1.25,2) size=0.5 color=red rotation=(pi/2,0,pi/2) content="Turns:"),
+                  (Text center=(-2.5,1.25,2) size=0.5 color=red rotation=(pi/2,0,pi/2) content=cnt)) &
+          if(b.y<-1.5) then 
+            cnt+ ==cnt+1 & 
+            nextchoice+ ==0 &
+            mode+ =="A"
+          else {}
+  ]
 
 
 //Player two
-class player2()
-private
-cnt:=1;
-b := create bar(0,0,1,pi/2,green);
-_3D:=[];
-nextchoice:=0; //nextchoice, 0 means A; 1 means B;
-mode:="A"
-end
-switch mode
-case "A"
-b.x' = -1;
-b.y' = 0;
-b.z' = 0;
-_3D=[["Text",[-1.25,2.5,2],0.5,green,[pi/2,0,0],"Turns:"],
-     ["Text",[1.25,2.5,2],0.5,green,[pi/2,0,0],cnt]];
-if(b.x<-1.5) cnt:=cnt+1; 
- if(cnt == 3) nextchoice:=1; mode:="B";
- else nextchoice:=0;
- end;
-end
-case "B"
-b.x' = 1;
-b.y' = 0;
-b.z' = 0;
-_3D=[["Text",[-1.25,2.5,2],0.5,green,[pi/2,0,0],"Turns:"],
-     ["Text",[1.25,2.5,2],0.5,green,[pi/2,0,0],cnt]];
-if(b.x>1.5) cnt:=cnt+1; 
- if(cnt == 6) nextchoice:=0; mode:="A";
- else nextchoice:=1;
- end;
-end
-end
-end
+model player2() = initially
+  cnt = 1 &
+  b = create bar(0,0,1,pi/2,green) &
+  _3D = () &
+  nextchoice = 0 & //nextchoice 0 means A 1 means B
+  mode = "A"
+always
+  match mode with [
+  "A" -> b.x' = -1 &
+         b.y' = 0 &
+         b.z' = 0 &
+         _3D=((Text center=(-1.25,2.5,2) size=0.5 color=green rotation=(pi/2,0,0) content="Turns:"),
+              (Text center=(1.25,2.5,2) size=0.5 color=green rotation=(pi/2,0,0) content=cnt)) &
+        if(b.x<-1.5) then cnt+ ==cnt+1
+          if(cnt == 3) then nextchoice+ ==1 & mode+ =="B"
+          else {nextchoice+ ==0}
+        else {}
+  | "B" -> b.x' = 1 &
+           b.y' = 0 &
+           b.z' = 0 &
+          _3D=((Text center=(-1.25,2.5,2) size=0.5 color=green rotation=(pi/2,0,0) content="Turns:"),
+               (Text center=(1.25,2.5,2) size=0.5 color=green rotation=(pi/2,0,0) content=cnt)) &
+          if(b.x>1.5) then cnt+ ==cnt+1 & 
+            if(cnt == 6) then nextchoice+ ==0 & mode+ =="A"
+            else {nextchoice+ ==1} 
+            else {}
+  ]
 
 
 //Bar
-class bar(x,y,z,zangle,color)
-private
-xt:=x;yt:=y;zt:= z;
-x':= 0;
-y':= 0;
-z':= 0;
-_3D:=[];
-mode:="move"
-end
-switch mode
-case "move"
-_3D = ["Box",[x,y,z],[6,0.1,0.1],color,[0,0,zangle]];
-if(y>1.5||y<-1.5||x>1.5||x<-1.5) x:=xt;y:=yt;z := zt; x':=0;y':=0;z':=0;mode:="move" end;
-end
-end
+model bar(x,y,z,zangle,color) = 
+initially
+  xt = x &yt = y &zt =  z &
+  x' =  0 &
+  y' =  0 &
+  z' =  0 &
+  _3D = () &
+  mode = "move"
+always
+  match mode with [
+  "move" -> _3D = (Box center=(x,y,z) size=(6,0.1,0.1) color=color rotation=(0,0,zangle)) &
+            if(y>1.5||y<-1.5||x>1.5||x<-1.5) then 
+            x+ ==xt &y+ ==yt &z + == zt & x'+ ==0 &y'+ ==0 &z'+ ==0 &mode+ =="move" 
+  ]
+ 
