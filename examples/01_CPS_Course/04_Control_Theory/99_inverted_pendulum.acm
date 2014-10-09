@@ -36,12 +36,12 @@ initially
 always
   
   t'  = 1 &
-  if (3<t&&t<3.02)  
+  if (3<t && t<3.02)  
   then strike+ ==400 
   elseif (6<t&&t<6.02) 
   then strike+ == -400
   else
-   strike+ == 0 &
+  { strike+ == 0} &
 
 
    M + == mc + mp &
@@ -80,7 +80,7 @@ always
   
 model Main(simulator) = 
   initially
-    palwaysulum2 + == create P() &
+    palwaysulum2 = create P() &
   always
     simulator.timeStep + == 0.01 &
     simulator.endTime + == 20

@@ -11,7 +11,7 @@ always
   then sensor+ ==sensor+0.3 
   elseif (sensor-0.3>x) 
   then sensor+ ==sensor-0.3
-  else &
+  else {}&
 x'' = -10*sensor
  
 
