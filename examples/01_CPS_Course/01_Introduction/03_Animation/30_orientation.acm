@@ -1,35 +1,30 @@
-/* 
-   Works with semantic 2014
-   Works with semantic 2013
-   Works with semantic 2012
-*/
 
 // Orientation
 
-class Main(simulator)
-private
-  t:=0; t':=1;
-  _3D := []
-end
- t' = 1;
- _3D := 
- [["Box", [ 0,0, 0],[5   ,0.02,0.02],[1,0,0],[0,0,0]],
-  ["Box", [ 0,0, 0],[0.02,4   ,0.02],[0,1,0],[0,0,0]],
-  ["Box", [ 0,0, 0],[0.02,0.02,4   ],[0,0,1],[0,0,0]],
-  ["Text",[ 2.5 ,0  ,-0.1],0.5,[1,0,0],[pi/2,0,0],"x"],
-  ["Text",[-0.15,2.2, 0  ],0.5,[0,1,0],[pi/2,0,0],"y"],
-  ["Text",[-0.15,0,2.1   ],0.5,[0,0,1],[pi/2,0,0],"z"],
-  ["Text",[-2,0,0],1,[1,0,0],[0,0,0],"X"],
-  ["Text",[-2,0,0],1,[0,1,0],[pi/4,0,0],"2"],
-  ["Text",[-2,0,0],1,[0,0,1],[pi/2+t,0,0],"3"],
-  ["Text",[ 0,0,0],1,[1,0,0],[pi/2,0,0],"Y"],
-  ["Text",[ 0,0,0],1,[0,1,0],[pi/2,pi/4,0],"2"],
-  ["Text",[ 0,0,0],1,[0,0,1],[pi/2,pi/2+t,0],"3"],
-  ["Text",[ 2,0,0],1,[1,0,0],[pi/2,pi/2,0],"Z"],
-  ["Text",[ 2,0,0],1,[0,1,0],[pi/2,pi/2,pi/4],"2"],
-  ["Text",[ 2,0,0],1,[0,0,1],[pi/2,pi/2,pi/2+t],"3"]
-  ];
-end
+model Main(simulator) = 
+initially
+  t = 0 & t' = 1 &
+  _3D  =  ()
+always
+ t' = 1 &
+ _3D + == 
+ ((Box center= ( 0,0, 0) size=(5   ,0.02,0.02) color=(1,0,0) rotation=(0,0,0)),
+  (Box center= ( 0,0, 0) size=(0.02,4   ,0.02) color=(0,1,0) rotation=(0,0,0)),
+  (Box center= ( 0,0, 0) size=(0.02,0.02,4   ) color=(0,0,1) rotation=(0,0,0)),
+  (Text center=( 2.5 ,0  ,-0.1) size=0.5 color=(1,0,0) rotation=(pi/2,0,0) content="x"),
+  (Text center=(-0.15,2.2, 0  ) size=0.5 color=(0,1,0) rotation=(pi/2,0,0) content="y"),
+  (Text center=(-0.15,0,2.1   ) size=0.5 color=(0,0,1) rotation=(pi/2,0,0) content="z"),
+  (Text center=(-2,0,0) size=1 color=(1,0,0) rotation=(0,0,0) content="X"),
+  (Text center=(-2,0,0) size=1 color=(0,1,0) rotation=(pi/4,0,0) content="2"),
+  (Text center=(-2,0,0) size=1 color=(0,0,1) rotation=(pi/2+t,0,0) content="3"),
+  (Text center=( 0,0,0) size=1 color=(1,0,0) rotation=(pi/2,0,0) content="Y"),
+  (Text center=( 0,0,0) size=1 color=(0,1,0) rotation=(pi/2,pi/4,0) content="2"),
+  (Text center=( 0,0,0) size=1 color=(0,0,1) rotation=(pi/2,pi/2+t,0) content="3"),
+  (Text center=( 2,0,0) size=1 color=(1,0,0) rotation=(pi/2,pi/2,0) content="Z"),
+  (Text center=( 2,0,0) size=1 color=(0,1,0) rotation=(pi/2,pi/2,pi/4) content="2"),
+  (Text center=( 2,0,0) size=1 color=(0,0,1) rotation=(pi/2,pi/2,pi/2+t) content="3")
+  ) 
+ 
 
 // Exercises
 // 1) Make the "2"s rotate the other way

@@ -1,9 +1,3 @@
-/* 
-   Works with semantic 2014
-   Works with semantic 2013
-   Works with semantic 2012
-*/
-
 // Red Green Blue (RGB) color illustration
 //
 // This model gives some examples of color
@@ -12,21 +6,19 @@
 // then click on the "3D" display selector to the right
 // and click Play on that pane
 
-class Main(simulator)
-private
- _3D := 
- [["Text",[-2,0,-1],0.5,[1,0,0],[pi/2,0,0],"[1,0,0]"],
-  ["Text",[-2,0, 0],0.5,[0,1,0],[pi/2,0,0],"[0,1,0]"],
-  ["Text",[-2,0, 1],0.5,[0,0,1],[pi/2,0,0],"[0,0,1]"],
-  ["Text",[ 0,0,-1],0.5,[1,1,0],[pi/2,0,0],"[1,1,0]"],
-  ["Text",[ 0,0, 0],0.5,[0,1,1],[pi/2,0,0],"[0,1,1]"],
-  ["Text",[ 0,0, 1],0.5,[1,0,1],[pi/2,0,0],"[1,0,1]"]];
-end
-end
+model Main(simulator) = 
+  initially
+    _3D=((Text center=(-2,0,-1) size=0.5 color=(1,0,0) rotation=(pi/2,0,0) content="(1,0,0)"),
+         (Text center=(-2,0, 0) size=0.5 color=(0,1,0) rotation=(pi/2,0,0) content="(0,1,0)"),
+         (Text center=(-2,0, 1) size=0.5 color=(0,0,1) rotation=(pi/2,0,0) content="(0,0,1)"),
+         (Text center=( 0,0,-1) size=0.5 color=(1,1,0) rotation=(pi/2,0,0) content="(1,1,0)"),
+         (Text center=( 0,0, 0) size=0.5 color=(0,1,1) rotation=(pi/2,0,0) content="(0,1,1)"),
+         (Text center=( 0,0, 1) size=0.5 color=(1,0,1) rotation=(pi/2,0,0) content="(1,0,1)")) 
+  always
 
 // Exercises
-// 1) What color does [0,0,0] produce?
-// 2) What color does [1,1,1] produce?
+// 1) What color does (0,0,0) produce?
+// 2) What color does (1,1,1) produce?
 // 3) Change one of the lines above to
 //     determine the intensitities for another
 //     recognizable color such as brown, orange, 

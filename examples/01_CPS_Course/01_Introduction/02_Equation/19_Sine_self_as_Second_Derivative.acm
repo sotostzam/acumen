@@ -1,17 +1,12 @@
-/* 
-   Works with semantic 2014
-   Works with semantic 2013
-   Works with semantic 2012
-*/
 
 // Sine of Self as Second Derivative Example
 
-class Main(simulator)
-private
- x:=3.1; x':=0; x'':=0
-end
+model Main(simulator) = 
+initially
+ x = 3.1 &  x' = 0 &  x'' = 0
+always
  x'' = -10*sin(x)
-end
+ 
 
 // Note:  "More" non-linear than previous example
 // Note:  We can still use Picard method to approximate

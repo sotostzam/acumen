@@ -1,17 +1,12 @@
-/* 
-   Works with semantic 2014
-   Works with semantic 2013
-   Works with semantic 2012
-*/
 
 // Constant First Derivative Example
 
-class Main(simulator)
-private
- x:=0; x':=1
-end
+model Main(simulator) = 
+initially
+ x = 0 &  x' = 1
+always
  x' = 1 // Short for dx/dt = 1
-end
+
 
 // Note:  Solvable by integration (fundamental 
 //        theorem of calculus)
@@ -20,7 +15,7 @@ end
 //        including 
 //          - a Main class,
 //          - the "simulator" parameter,
-//          - a private section, 
+//          - a initially section, 
 //          - dense time variables (like x),
 //          - derivatives (like x'), and 
 //          - continuous assignment (=)
