@@ -160,13 +160,13 @@ case class Desugarer(odeTransformMode: ODETransformMode) {
                 case Local => firstOrderSystem(dot)
                 case LocalInline => firstOrderSystemInline(dot,drhs)
                 case TopLevel => Nil })
+          case _ => throw BadPreLhs()
         }
     }
     
     def patternMatch(pattern:Pattern, e:Expr, newNames:List[Name]):(List[ContinuousAction], List[(Var,Pattern)]) = {
       pattern.ps match{
-        case Var(x) :: Nil => (mkEquationT(Var(x), des(fs:::newNames,e),newNames), List())
-        case Dot(e1,n) :: Nil => (mkEquationT(Dot(e1,n), des(fs:::newNames,e),newNames), List())
+        case head :: Nil => (mkEquationT(head, des(fs:::newNames,e),newNames), List())
         case ls =>
           val newVar:Var = gensym(ls)
           val lsResult = ls.map(x => x match{

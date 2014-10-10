@@ -262,7 +262,7 @@ object Generators  {
 	/* End of new generators */
 
   implicit def arbIDoubleLit : Arbitrary[GDouble] = 
-    Arbitrary (arbitrary[Double].map(GDouble))
+    Arbitrary (genSmallDouble.map(GDouble))
  
   implicit def arbVar : Arbitrary[Var] =
     Arbitrary (arbitrary[Name].map(Var))

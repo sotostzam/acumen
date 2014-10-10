@@ -140,12 +140,12 @@ object Parser extends MyStdTokenParsers {
   lexical.delimiters ++=
     List("(", ")", "{", "}", "[", "]", ";", "=", ":=", "=[i]", "=[t]", "'", ","," ",
       ".", "+", "-", "*", "/", "^", ".+", ".-", ".*", "./", ".^",
-      ":", "<", ">", "<=", ">=", "==", "~=", "||","->",
+      ":", "<", ">", "<=", ">=", "~=", "||","->","==",
       "&&", "<<", ">>", "&", "|", "%", "@", "..", "+/-", "#include", "#semantics")
 
   lexical.reserved ++=
     List("for", "end", "if", "else","elseif", "create", "move", "in", "terminate", "model","then","initially","always",
-         "sum", "true", "false", "init", "match","with", "case", "type", "claim", "hypothesis", "let", 
+         "sum", "true", "false", "init", "match","with", "case", "type", "claim", "hypothesis", "let",
          "Continuous", "Discrete", "FixedPoint", "none","cross",
          "Sphere", "Box", "Cylinder", "Cone", "Text", "Obj")
 
@@ -291,17 +291,18 @@ object Parser extends MyStdTokenParsers {
     "for" ~! name ~! "=" ~! expr  ~! braces(actions)  ^^
       { case _ ~ i ~ _ ~ e ~ b  => ForEach(i, e, b) }
   
-   def pattern : Parser[Pattern] =  name ~ "." ~ name ^^ {case e ~ _ ~ n => Pattern(List(Dot(Var(e),n)))}| 
+   def pattern : Parser[Pattern] =  name ~ "." ~ name ^^ {case e ~ _ ~ n => Pattern(List(Dot(Var(e),n)))}|
+		                            name ~ args(expr) ^^{case n ~ es => Pattern(List(Op(n,es)))}|
 		   							name ^^ {case x => Pattern(List(Var(x)))} |
 		                          parens(repsep(pattern,",")) ^^ {case ls => Pattern(ls.map(x => x.ps match{
 		                            case s::Nil => x.ps
 		                            case ss => List(Pattern(ss))}).flatten)} 
-  println(run(patternMatch, "a.x = 5"))	                           
+  //println(run(action, " b' == b''' "))	                           
   def patternMatch : Parser[Continuously] = pattern ~ "=" ~ expr ^^{case p ~ _ ~ e => Continuously(Assignment(p,e))}
 
   def discretelyOrContinuously =
-    (newObject(None) ^^ Discretely | elim ^^ Discretely | patternMatch
-      | move ^^ Discretely | assignOrEquation)
+    (newObject(None) ^^ Discretely | elim ^^ Discretely 
+      | move ^^ Discretely | assignOrEquation | patternMatch)
 
   def assignOrEquation =
     expr >> { e =>
@@ -407,7 +408,7 @@ object Parser extends MyStdTokenParsers {
       |"type" ~! parens(className) ^^ { case _ ~ cn => TypeOf(cn) }
       | name >> { n => args(expr) ^^ { es => Op(n, es) } | success(Var(n)) }
       | gvalue ^^ Lit
-       | parens(expr)
+      | parens(expr)
       | parens(repsep(expr, ",")) ^^ ExprVector        
       | threeDObject )
 
