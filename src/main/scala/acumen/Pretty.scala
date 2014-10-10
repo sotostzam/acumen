@@ -156,6 +156,9 @@ class Pretty {
   implicit def prettyClauses : PrettyAble[List[Clause]] =
     PrettyAble { cls => breaks(cls map pretty[Clause]) }
 
+  implicit def prettyBindings : PrettyAble[List[(Name, Expr)]] =
+    PrettyAble {bs => breakWith("& ", bs.map(x => DocNest(2,pretty(x._1) :: " = " :: pretty(x._2))))}
+  
   implicit def prettyClause : PrettyAble[Clause] =
     PrettyAble {
       case Clause(lhs,assertion:Expr,rhs) => assertion match{
@@ -218,6 +221,9 @@ class Pretty {
         case Dot(v,f)         => pretty(v) :: "." :: pretty(f)
         case Op(f,es)         => prettyOp(f,es)
         case ExprVector(l)    => parens(sepBy(comma :: " ", l map pretty[Expr]))
+        case ExprLet(bindings,e) => new DocNest(2,
+                                  "let " :/: pretty(bindings)) :/: 
+                                  new DocNest(2,"in " :: pretty(e))
         case Sum(e,i,c,t)     => "sum " :: pretty(e) :: " for " :: pretty(i) :: 
                                  " in " :: pretty(c) :: " if " :: pretty(t)
         case TypeOf(cn)       => "type" :: parens(pretty(cn))

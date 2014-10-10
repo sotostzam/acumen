@@ -322,11 +322,11 @@ object Parser extends MyStdTokenParsers {
 
   def binding = name ~! "=" ~! expr ^^ { case x ~ _ ~ e => (x, e) }
 
-  def bindings = repsep(binding, ";") <~ opt(";")
+  def bindings = repsep(binding, "&") <~ opt("&")
 
   def let:Parser[Expr] =
-      positioned("let" ~! "{" ~! bindings ~! "in" ~! expr ~! "}" ^^
-                  { case _ ~ _~bs ~ _~ e ~ _ => ExprLet(bs, e) })
+      positioned("let" ~! bindings ~! "in" ~! expr  ^^
+                  { case _ ~bs ~ _~ e => ExprLet(bs, e) })
 
   def levelTop:Parser[Expr] =
       positioned(level7)
