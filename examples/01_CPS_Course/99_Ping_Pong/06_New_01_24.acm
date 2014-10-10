@@ -269,8 +269,7 @@ always
       p'   + ==  p' .* k_z & // Bounce losing k_z energy
       mode + == "Fly" &
   | "Freeze" ->  // The ball becomes red and freezes for a bit
-      p'  = (0,0,0) & 
-      p'' = (0,0,0) &
+      p'  = (0,0,0)
   | "Panic!" ->
   ] &     
   
@@ -633,12 +632,12 @@ initially
 always
   _3D = ((Text center=(-3.5,6.5,-4)+(tablerow,tablecolum,0).*shiftD size=1 color=(0.9,0,0) rotation=(1.7,0,0) content=player1.name),
          (Text center=(1.5,6.5,-4)+(tablerow,tablecolum,0).*shiftD size=1 color=(0.1,0.1,0.1) rotation=(1.7,0,0) content=player2.name),
-         (Text center=(-1.8,6.5,-5)+(tablerow,tablecolum,0).*shiftD size=1 color=(0.6,0,0) roatation=(1.7,0,0) content=player1Score),
-         (Text center=(3.5,6.5,-5)+(tablerow,tablecolum,0).*shiftD size=1 color=(0.1,0.1,0.1) roatation=(1.7,0,0) content=player2Score),
-         (Text center=(-1.8,6.5,-6)+(tablerow,tablecolum,0).*shiftD size=1 color=(0.6,0,0) roatation=(1.7,0,0) content=finalScore1),
-         (Text center=(3.5,6.5,-6)+(tablerow,tablecolum,0).*shiftD size=1 color=(0.1,0.1,0.1) roatation=(1.7,0,0) content=finalScore2),
-         (Text center=(-1.8,6.5,1.5)+(tablerow,tablecolum,0).*shiftD size=1 color=(0.6,0,0) roatation=(1.7,0,0) content=r1),
-         (Text center=(3.5,6.5,1.5)+(tablerow,tablecolum,0).*shiftD size=1 color=(0.1,0.1,0.1) roatation=(1.7,0,0) content=r2)) &
+         (Text center=(-1.8,6.5,-5)+(tablerow,tablecolum,0).*shiftD size=1 color=(0.6,0,0) rotation=(1.7,0,0) content=player1Score),
+         (Text center=(3.5,6.5,-5)+(tablerow,tablecolum,0).*shiftD size=1 color=(0.1,0.1,0.1) rotation=(1.7,0,0) content=player2Score),
+         (Text center=(-1.8,6.5,-6)+(tablerow,tablecolum,0).*shiftD size=1 color=(0.6,0,0) rotation=(1.7,0,0) content=finalScore1),
+         (Text center=(3.5,6.5,-6)+(tablerow,tablecolum,0).*shiftD size=1 color=(0.1,0.1,0.1) rotation=(1.7,0,0) content=finalScore2),
+         (Text center=(-1.8,6.5,1.5)+(tablerow,tablecolum,0).*shiftD size=1 color=(0.6,0,0) rotation=(1.7,0,0) content=r1),
+         (Text center=(3.5,6.5,1.5)+(tablerow,tablecolum,0).*shiftD size=1 color=(0.1,0.1,0.1) rotation=(1.7,0,0) content=r2)) &
   //add two modes for alternating start the game
   if (mode ~= "Restart1"      && mode ~= "Player1Serve"  && mode ~= "Player2Serve" 
    && mode ~= "Impact"        && mode ~= "Freeze"       && mode ~= "ChangeSide"   
@@ -657,7 +656,6 @@ always
     mode + == "Endgame" 
   else {} &
   gameMonitor.p  = ball.p &
-  gameMonitor.p' = ball.p' &
   gameMonitor.serveNumber = serveNumber &
   player1Score   = gameMonitor.player1Score &
   player2Score   = gameMonitor.player2Score &
