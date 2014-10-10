@@ -146,7 +146,8 @@ object Parser extends MyStdTokenParsers {
   lexical.reserved ++=
     List("for", "end", "if", "else","elseif", "create", "move", "in", "terminate", "model","then","initially","always",
          "sum", "true", "false", "init", "match","with", "case", "type", "claim", "hypothesis", "let", 
-         "Continuous", "Discrete", "FixedPoint", "none","cross")
+         "Continuous", "Discrete", "FixedPoint", "none","cross",
+         "Sphere", "Box", "Cylinder", "Cone", "Text", "Obj")
 
   /* token conversion */
 
@@ -403,12 +404,14 @@ object Parser extends MyStdTokenParsers {
   def atom: Parser[Expr] =
     positioned( sum
       | interval
+      | threeDObject
       |"type" ~! parens(className) ^^ { case _ ~ cn => TypeOf(cn) }
       | name >> { n => args(expr) ^^ { es => Op(n, es) } | success(Var(n)) }
       | gvalue ^^ Lit
-      | parens(expr)
       | parens(repsep(expr, ",")) ^^ ExprVector
-      | threeDObject)
+      
+      | parens(expr))
+
 
   def sum: Parser[Expr] =
     "sum" ~! expr ~! "for" ~! name ~! "in" ~! expr ~! opt("if" ~! expr) ^^
@@ -448,8 +451,9 @@ object Parser extends MyStdTokenParsers {
   val defaultRotation = ExprVector(List(Lit(GInt(0)),Lit(GInt(0)),Lit(GInt(0))))
   
   def threeDPara: Parser[(String, Expr)] = ident ~ "=" ~ expr ^^ {case n ~_~ e => (n,e)}  
-  def threeDObject:Parser[ExprVector] = parens(ident ~ rep(threeDPara)) ^^ {case n ~ ls => threeDParasProcess(n,ls)}
-
+  def threeDObject:Parser[ExprVector] = parens(threeDType ~ rep(threeDPara)) ^^ {case n ~ ls =>threeDParasProcess(n,ls)}
+  def threeDType = "Sphere" | "Box" | "Cylinder" | "Cone" | "Text" | "Obj"
+                    
   /* Process the 3d object information and adding default values*/
   def threeDParasProcess(objectName:String, paras:List[(String, Expr)]):ExprVector = {
     val center = paras.find(_._1 == "center") match{
