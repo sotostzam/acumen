@@ -1,0 +1,13 @@
+// More angles
+
+model Main (simulator) = 
+  initially
+	_3D = ((Box center=(0,0,0) size=(0.1,1,3) color=red     rotation=(0,0,0)),
+  		   (Box center=(0,0,0) size=(0.1,1,3) color=green   rotation=(0,pi/8,0)),
+  		   (Box center=(0,0,0) size=(0.1,1,3) color=blue    rotation=(0,pi/4,0)),
+         (Box center=(0,0,0) size=(0.1,1,3) color=magenta rotation=(0,pi/2,0)))
+  always
+
+// Exercises
+// 1) Add 3 boxes that correspond to the 1/8 pi
+//    angles

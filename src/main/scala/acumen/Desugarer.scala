@@ -15,6 +15,7 @@ object GenSym{
     def getNames(ns:List[Expr]):String = {
       ns.map(x => x match{
         case Var(name) => name.x
+        case Dot(e,n) => n.x
         case Pattern(ls) => getNames(ls) 
       }).mkString("")
     }
@@ -48,7 +49,7 @@ case class Desugarer(odeTransformMode: ODETransformMode) {
 
   def desugar(p: Prog): Prog = {
     check(p); 
-    println(pprint(p))
+    println(pprint(Prog(p.defs map (desugar(p, _)))))
     Prog(p.defs map (desugar(p, _)))
   }
 
@@ -165,6 +166,7 @@ case class Desugarer(odeTransformMode: ODETransformMode) {
     def patternMatch(pattern:Pattern, e:Expr, newNames:List[Name]):(List[ContinuousAction], List[(Var,Pattern)]) = {
       pattern.ps match{
         case Var(x) :: Nil => (mkEquationT(Var(x), des(fs:::newNames,e),newNames), List())
+        case Dot(e1,n) :: Nil => (mkEquationT(Dot(e1,n), des(fs:::newNames,e),newNames), List())
         case ls =>
           val newVar:Var = gensym(ls)
           val lsResult = ls.map(x => x match{

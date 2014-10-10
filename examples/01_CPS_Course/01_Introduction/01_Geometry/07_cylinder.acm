@@ -1,21 +1,15 @@
-/* 
-   Works with semantic 2014
-   Works with semantic 2013
-   Works with semantic 2012
-*/
-
 // Displaying a cylinder
 
-class Main(simulator)
-private
- _3D := 
- [["Cylinder",// Type of _3D object
-  [0,0,0],    // Center point
-  [0.1,4],    // Size in [radius,length] form
-  yellow,     // Color
-  [0,0,0]]];  // Orientation
-end
-end
+model Main(simulator) = 
+  initially
+    _3D = (Cylinder            // Type of 3D object
+           center = (0,0,0)    // Center point
+           radius = 0.1        // radius
+           length = 4          // length
+           color = yellow      // Color
+           rotation = (0,0,0)) // Orientation
+  always
+
 
 // Exercises
 // 1) Add two green disks to make a dumbbell

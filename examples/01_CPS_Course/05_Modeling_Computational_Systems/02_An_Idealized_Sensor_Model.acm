@@ -4,11 +4,11 @@
  * that can read the exact position of the mass.  
  */
  
-class Main (simulator)
-  private x:=1; x':=0; x'':=0; sensor := 0 end
-  sensor = x;
+model Main (simulator)
+  = initially x = 1 & x' = 0 & x'' = 0 & sensor  =  0 always
+  sensor = x &
   x'' = -10*sensor
-end
+ 
 
 /* Exercise: 
  * There is one difference between the sensor signal and the x signal in the last model.  

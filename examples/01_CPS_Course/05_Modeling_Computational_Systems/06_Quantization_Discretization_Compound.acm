@@ -5,25 +5,27 @@
  * at the same time.
  */
  
-class Main (simulator)
-  private x:=1; x':=0; x'':=0; sensor := 0; bucket := 0; bucket' := 1; end
-  bucket' = 1;
+model Main (simulator)  = 
+initially x = 1 & x' = 0 & x'' = 0 & sensor  =  0 & bucket  =  0 & bucket'  =  1
+always
+  bucket' = 1 &
   if (bucket>0.05)
-    if ((sensor+0.3)<x) sensor:=sensor+0.3 else
-       if ((sensor-0.3)>x) sensor:=sensor-0.3 else
-         bucket := 0
-       end;
-    end;
-  end;
+  then if (sensor+0.3<x) 
+       then sensor+ ==sensor+0.3 
+       elseif (sensor-0.3>x) 
+       then sensor+ ==sensor-0.3 
+       else
+       {bucket + == 0}
+  else {} &
 x'' = -10*sensor
-end
+ 
 
 /* Exercise:
  * Modify the above controller to dampen the system 
  * by taking into account the speed of the mass 
- * in addition to its position. You can use the variable x’ 
- * on the right hand-side of the equation for x’’ initially.  
- * However, keep in mind that x’ cannot “magically” appear inside a digital computer.  
+ * in addition to its position. You can use the variable xÔøΩ 
+ * on the right hand-side of the equation for x initially.  
+ * However, keep in mind that x cannot magically appear inside a digital computer.  
  * To address this problem, your final model should include a method 
  * for computing an estimate of speed based only on the value of the variable sensor.
  */

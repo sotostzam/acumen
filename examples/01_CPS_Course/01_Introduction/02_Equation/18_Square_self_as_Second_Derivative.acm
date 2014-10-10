@@ -1,17 +1,12 @@
-/* 
-   Works with semantic 2014
-   Works with semantic 2013
-   Works with semantic 2012
-*/
 
 // Square of Self as Second Derivative Example
 
-class Main(simulator)
-private
- x:=0; x':=1; x'':=2
-end
+model Main(simulator) = 
+initially
+ x = 0 &  x' = 1 &  x'' = 2
+always
  x'' = -x*x/6
-end
+ 
 
 // Note:  Non-linear equation
 // Note:  Solution is not a sum of complex exponentials

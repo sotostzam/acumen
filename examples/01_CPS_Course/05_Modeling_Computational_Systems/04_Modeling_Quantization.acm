@@ -4,19 +4,21 @@
  * represented in a quantized manner.  
  */
  
-class Main (simulator)
-  private x:=1; x':=0; x'':=0; sensor := 0 end
-  if ((sensor+0.3)<x) sensor:=sensor+0.3 else
-    if ((sensor-0.3)>x) sensor:=sensor-0.3
-    end;
-  end;
+model Main (simulator)=
+initially x = 1 & x' = 0 & x'' = 0 & sensor  =  0 
+always
+  if (sensor+0.3<x) 
+  then sensor+ ==sensor+0.3 
+  elseif (sensor-0.3>x) 
+  then sensor+ ==sensor-0.3
+  else {}&
 x'' = -10*sensor
-end
+ 
 
 /* Exercise: 
  * Modify the code to determine  the shortest time 
  * between two different changes of value to the variable sensor. 
- * Hint: ItÕs OK to introduce your own timer into the model to compute this.
+ * Hint: Itï¿½s OK to introduce your own timer into the m odel to compute this.
  * Also, you only need to compute the shortest time for the transitions 
  * that actually occur within the duration of the simulation.
  */

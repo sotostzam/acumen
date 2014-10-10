@@ -1,25 +1,20 @@
-/* 
-   Works with semantic 2014
-   Works with semantic 2013
-   Works with semantic 2012
-*/
 
 // A box goes wild
 
-class Main(simulator)
-private
-  t  := 0; // Local time
-  t' := 1; // Is as fast as global time
- _3D := []
-end
- t' = 1;
+model Main(simulator) = 
+initially
+  t   =  0 & // Local time
+  t'  =  1 & // Is as fast as global time
+ _3D  =  ()
+always
+ t' = 1 &
  _3D = 
- [["Box",
-  [0,0,0],        // Center point
-  [0.2,t/2,3-t/4],// Size in [x,y,z] form
-  red,
-  [0,0,0]]];
-end
+ ((Box 
+   center=(0,0,0)       // Center point
+   size=(0.2,t/2,3-t/4) // Size        
+   color=red 
+   rotation=(0,0,0)))
+ 
 
 // Exercises
 // 1) Does the box rotate during the animation?

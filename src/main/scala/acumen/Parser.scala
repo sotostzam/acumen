@@ -242,7 +242,7 @@ object Parser extends MyStdTokenParsers {
     ("create" ~! className ~! args(expr) ^^ { case _ ~ cn ~ es => NewRhs(Var(Name(cn.x,0)), es) }
       | expr ^^ ExprRhs)
 
-  def actions = repsep(action, opt("&")) <~ opt("&")
+  def actions = repsep(action, "&") <~ opt("&")
 
   def action: Parser[Action] =
     switchCase | ifThenElse | forEach | discretelyOrContinuously | claim | hypothesis
@@ -251,11 +251,11 @@ object Parser extends MyStdTokenParsers {
     "match" ~ expr ~ "with" ~"[" ~! clauses ~! "]" ^^
       { case _ ~ s ~ _ ~_~ cls  ~ _ => Switch(s, cls) }
 
-  def clauses = rep(clause)
+  def clauses = repsep(clause,"|")
 
   def clause =
-     gvalue ~ "->" ~ claimExpr ~! actions ^^
-      { case  lhs ~_~ invariant ~ rhs => Clause(lhs, invariant, rhs) } |
+     gvalue ~ "->" ~ claimExpr ~! "&" ~ actions ^^
+      { case  lhs ~_~ invariant ~ _~ rhs => Clause(lhs, invariant, rhs) } |
      gvalue ~! "->" ~ actions ^^
       { case lhs ~ "->" ~ rhs => Clause(lhs, Lit(GBool(true)), rhs) }
 
@@ -279,7 +279,7 @@ object Parser extends MyStdTokenParsers {
     case IfThenElse(e,t,s) =>IfThenElse(e,t,List(elseHelper(els,s(0).asInstanceOf[IfThenElse])))
   }
   def ifThenElse = 
-    "if" ~! BExpr ~! "then" ~ actions ~rep(elseif) ~ "else" ~ actions<~ opt("&") ^^ 
+    "if" ~! BExpr ~! "then" ~ actions ~rep(elseif) ~ "else" ~ braces(actions) ^^ 
     	{case _~ c ~_ ~t ~ elseifs ~ _ ~e => elseifs match{
     	  case Nil => IfThenElse(c,t,e)
     	  case ss => IfThenElse(c,t, List(elseHelper(e,elseifHelper(ss))))
@@ -287,14 +287,16 @@ object Parser extends MyStdTokenParsers {
     	}
           
   def forEach =
-    "for" ~! name ~! "=" ~! expr  ~! actions  ^^
+    "for" ~! name ~! "=" ~! expr  ~! braces(actions)  ^^
       { case _ ~ i ~ _ ~ e ~ b  => ForEach(i, e, b) }
   
-   def pattern : Parser[Pattern] = name ^^ {case x => Pattern(List(Var(x)))} |
+   def pattern : Parser[Pattern] =  name ~ "." ~ name ^^ {case e ~ _ ~ n => Pattern(List(Dot(Var(e),n)))}| 
+		   							name ^^ {case x => Pattern(List(Var(x)))} |
 		                          parens(repsep(pattern,",")) ^^ {case ls => Pattern(ls.map(x => x.ps match{
 		                            case s::Nil => x.ps
-		                            case ss => List(Pattern(ss))}).flatten)}
-   def patternMatch : Parser[Continuously] = pattern ~ "=" ~ expr ^^{case p ~ _ ~ e => Continuously(Assignment(p,e))}
+		                            case ss => List(Pattern(ss))}).flatten)} 
+  println(run(patternMatch, "a.x = 5"))	                           
+  def patternMatch : Parser[Continuously] = pattern ~ "=" ~ expr ^^{case p ~ _ ~ e => Continuously(Assignment(p,e))}
 
   def discretelyOrContinuously =
     (newObject(None) ^^ Discretely | elim ^^ Discretely | patternMatch
@@ -318,7 +320,7 @@ object Parser extends MyStdTokenParsers {
   def elim = "terminate" ~> expr ^^ Elim
 
   def move =
-    "move" ~! expr ~! expr ^^ { case _ ~ o ~ p => Move(o, p) }
+    "move" ~ access ~ expr ^^ { case _ ~ o ~ p => Move(o, p) }
 
   def binding = name ~! "=" ~! expr ^^ { case x ~ _ ~ e => (x, e) }
 
@@ -334,11 +336,13 @@ object Parser extends MyStdTokenParsers {
   def expr: Parser[Expr] = levelTop | let
   
   // Separate boolean expression with other expression
-  def BExpr : Parser[Expr] = 
-      parens(BExpr)|
+  def BExpr : Parser[Expr] =   
       (BCompare * ("&&" ^^^ { (x: Expr, y: Expr) => mkOp("&&", x, y) }
                 | "||" ^^^ { (x: Expr, y: Expr) => mkOp("||", x, y) })) |
-       gbool ^^ {x => Lit(x)}
+       BCompare |
+       gbool ^^ {x => Lit(x)}|
+       parens(BExpr)
+       
   
   def BCompare : Parser[Expr] = 
      (expr * ("<" ^^^ { (x: Expr, y: Expr) => mkOp("<", x, y) }
@@ -346,7 +350,9 @@ object Parser extends MyStdTokenParsers {
       | "<=" ^^^ { (x: Expr, y: Expr) => mkOp("<=", x, y) }
       | ">=" ^^^ { (x: Expr, y: Expr) => mkOp(">=", x, y) }
       |	"==" ^^^ { (x: Expr, y: Expr) => mkOp("==", x, y) }
-      | "~=" ^^^ { (x: Expr, y: Expr) => mkOp("~=", x, y) })) 
+      | "~=" ^^^ { (x: Expr, y: Expr) => mkOp("~=", x, y) }))|
+      parens(BCompare)
+
   
 
   def level7: Parser[Expr] =
@@ -397,12 +403,12 @@ object Parser extends MyStdTokenParsers {
   def atom: Parser[Expr] =
     positioned( sum
       | interval
-      | threeDObject
       |"type" ~! parens(className) ^^ { case _ ~ cn => TypeOf(cn) }
       | name >> { n => args(expr) ^^ { es => Op(n, es) } | success(Var(n)) }
       | gvalue ^^ Lit
       | parens(expr)
-      | parens(repsep(expr, ",")) ^^ ExprVector)
+      | parens(repsep(expr, ",")) ^^ ExprVector
+      | threeDObject)
 
   def sum: Parser[Expr] =
     "sum" ~! expr ~! "for" ~! name ~! "in" ~! expr ~! opt("if" ~! expr) ^^

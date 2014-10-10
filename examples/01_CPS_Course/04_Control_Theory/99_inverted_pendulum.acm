@@ -1,60 +1,51 @@
-/* 
-   Works with semantic 2014
-   Works with semantic 2013
-   Works with semantic 2012
-*/
-
-class P()
+model P()= 
 
 // Model by Morteza: Simplified model in which the motor dynamics is not considered
 // June 20, 2014
-
- private
-  Km := 0.00767;  //  Motor Torque Constant
-  Kg := 3.7;      //  Gear-box Ratio 
-  R := 2.6;       //  Motor Armature Resistance  
-  r := 0.00635;   //  Motor Pinion Radius
-  mc := 0.455;    //  Cart Mass
-  mp := 0.210;    //  Pendulum Mass
-  I := 0.00651;   //  Rotational Inertia
-  l := 0.305;     //  Half-Length of Pendulum
-  g := 9.8;
+initially
+  Km  =  0.00767 &  //  Motor Torque Constant
+  Kg  =  3.7 &      //  Gear-box Ratio 
+  R  =  2.6 &       //  Motor Armature Resistance  
+  r  =  0.00635 &   //  Motor Pinion Radius
+  mc  =  0.455 &    //  Cart Mass
+  mp  =  0.210 &    //  Pendulum Mass
+  I  =  0.00651 &   //  Rotational Inertia
+  l  =  0.305 &     //  Half-Length of Pendulum
+  g  =  9.8 &
 
   // some temporary variables:
-  M := 0; 
-  L := 0;
+  M  =  0 & 
+  L  =  0 &
 
   // state variables:
-  p := [-1+0.5*sin(0.2*3.14),0,0.15+0.5*cos(0.2*3.14)];
-  x := 0; x':=0; x'':=0;
-  theta := 0.4; theta':=0; theta'':=0;
+  p  =  (-1+0.5*sin(0.2*3.14),0,0.15+0.5*cos(0.2*3.14)) &
+  x  =  0 & x' = 0 & x'' = 0 &
+  theta  =  0.4 & theta' = 0 & theta'' = 0 &
 
   // control input  
-  V := 0;  V1 := 0;  V2 := 0;  z := 0; // voltage of the motor cart
-  F_x := 0; // force generate by the voltage
-  strike := 0;
+  V  =  0 &  V1  =  0 &  V2  =  0 &  z  =  0 & // voltage of the motor cart
+  F_x  =  0 & // force generate by the voltage
+  strike  =  0 &
   
-  Pi:= 3.1415926;
-  t:=0;
-  t':=0;
+  Pi =  3.1415926 &
+  t = 0 &
+  t' = 0 &
 
-  x_natural_response := 0;  // a temporary variable
-  _3D := []  
-  end
+  x_natural_response  =  0 &  // a temporary variable
+  _3D  =  ()  
+always
   
-  t'  = 1;
-  if 3<t&&t<3.02  
-   strike:=400;
-  else 
-  if 6<t&&t<6.02 
-   strike:= -400
+  t'  = 1 &
+  if (3<t && t<3.02)  
+  then strike+ ==400 
+  elseif (6<t&&t<6.02) 
+  then strike+ == -400
   else
-   strike:= 0
-  end
-  end;
+  {strike+ == 0} &
 
-   M := mc + mp;
-   L := (I + mp*l*l) / (mp*l);
+
+   M + == mc + mp &
+   L + == (I + mp*l*l) / (mp*l) &
 
 // The following simple controller can be derived in three steps.
 // First use theta and theta' to solve the problem of getting theta
@@ -65,33 +56,32 @@ class P()
 // Another thing that is tricky here is to figure out the correct sign
 // for each of the coefficients.
 
-  V1 = 8*theta + 0.5*theta';
-  V2 = 0.02*p(0)+0.1*x';
+  V1 = 8*theta + 0.5*theta' &
+  V2 = 0.02*p(0)+0.1*x' &
 
-  V = V1 + V2;
+  V = V1 + V2 &
     
-  F_x = V; // force (control input)
+  F_x = V & // force (control input)
   //+ strike
-  x'' = (F_x - (mp*l*g)*cos(theta)*sin(theta)/L + mp*l*sin(theta)*theta'*theta') / (M-(mp*l*cos(theta)*cos(theta))/L);
-  theta'' = (g*sin(theta)-mp*l*(theta'*theta')*cos(theta)*sin(theta)/M - (cos(theta)/M)*(V) ) / (L - (mp*l*cos(theta)*cos(theta))/M);
-  p   = [x+0.5*sin(theta), 0, 0.15+0.5*cos(theta)];
-  _3D = [["Box",
-          [x, 0, 0],
-          [0.3, 0.3, 0.3],
-          red,
-          [0, 0, 0]],
-         ["Cylinder",
-          p - [0, 0, 0],
-          [0.01, 1],
-          green,
-          [3.14/2, -theta, 0]]]  
-  end
+  x'' = (F_x - (mp*l*g)*cos(theta)*sin(theta)/L + mp*l*sin(theta)*theta'*theta') / (M-(mp*l*cos(theta)*cos(theta))/L) &
+  theta'' = (g*sin(theta)-mp*l*(theta'*theta')*cos(theta)*sin(theta)/M - (cos(theta)/M)*(V) ) / (L - (mp*l*cos(theta)*cos(theta))/M) &
+  p   = (x+0.5*sin(theta), 0, 0.15+0.5*cos(theta)) &
+  _3D = ((Box center=
+          (x, 0, 0) size=
+          (0.3, 0.3, 0.3) color=
+          red rotation=
+          (0, 0, 0)),
+         (Cylinder center=
+          p - (0, 0, 0) radius=
+           0.01 length= 1  color=
+          green rotation=
+          (3.14/2, -theta, 0)))  
   
   
-class Main(simulator)
-  private
-   pendulum2 := create P();
-  end
-  simulator.timeStep := 0.01;
-  simulator.endTime := 20;
- end
+model Main(simulator) = 
+  initially
+    palwaysulum2 = create P() &
+  always
+    simulator.timeStep + == 0.01 &
+    simulator.endTime + == 20
+  

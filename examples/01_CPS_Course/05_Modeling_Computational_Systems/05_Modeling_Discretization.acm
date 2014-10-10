@@ -2,14 +2,15 @@
  * Modeling Discretization
  */
  
-class Main (simulator)
-  private x:=1; x':=0; x'':=0; sensor := 0; bucket := 0; bucket' := 1;  end
-  bucket' = 1;
+model Main (simulator) = 
+initially x = 1 & x' = 0 & x'' = 0 & sensor  =  0 & bucket  =  0 & bucket'  =  1 &  
+always
+  bucket' = 1 &
   if (bucket>0.05)
-   bucket := 0; sensor := x
-  end;
+  then bucket + == 0 & sensor + == x
+  else {}&
   x'' = -10*sensor
-end
+ 
 
 /* Exercise:  
  * Modify this model to determine 

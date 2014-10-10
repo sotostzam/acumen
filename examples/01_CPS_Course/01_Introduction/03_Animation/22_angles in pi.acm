@@ -1,35 +1,30 @@
-/* 
-   Works with semantic 2014
-   Works with semantic 2013
-   Works with semantic 2012
-*/
 
 // Angles going back and forth (if-statements and resets)
 
-class Main(simulator)
-private
- angle  := 0;    // Initial angle
- angle' := pi/5; 
- rate   := pi/5; // Angle increase rate of 1/10 Hz
- _3D := [];
-end
+model Main(simulator) = 
+initially
+ angle   =  0 &     // Initial angle
+ angle'  =  pi/5 &  
+ rate    =  pi/5 &  // Angle increase rate of 1/10 Hz
+ _3D  =  ()
+always
 
- angle' = rate;
+ angle' = rate &
  _3D = 
- [["Text",[-2.0,0,0],0.5,red,[angle,0,0],
-  angle/pi * 10],
-  ["Text",[-1.5  ,0,0],0.5,green,[angle,0,0],
-  "/10 * pi radians"]];
+ ((Text center=(-2.0,0,0) size=0.5 color=red rotation=(angle,0,0) content=
+  angle/pi * 10),
+  (Text center=(-1.5  ,0,0) size=0.5 color=green rotation=(angle,0,0) content=
+  "/10 * pi radians")) &
 
  if (angle>pi/2) // Start going back when you get to pi/2
-  rate := -pi/5
- end;
+ then rate+ == -pi/5
+ else {}&
  
  if (angle<0)    // Go forward again when you get to 0
-  rate := pi/5
- end
+ then rate+ == pi/5
+ else {}&
   
-end
+ 
 
 // Exercises
 // 1) What value does the red number have when it flickers

@@ -1,22 +1,15 @@
-/* 
-   Works with semantic 2014
-   Works with semantic 2013
-   Works with semantic 2012
-*/
-
 // Angles
 
-class Main(simulator)
-private
- _3D := 
- [["Text",[-2.5,0,0],0.5,red,    [0,0,0],     "0"],
-  ["Text",[-2.0,0,0],0.5,green,  [pi/8,0,0],  "Pi/8"],
-  ["Text",[-1.0,0,0],0.5,blue,   [pi/2,0,0],  "Pi/2"],
-  ["Text",[ 0.0,0,0],0.5,yellow, [pi,0,0],    "Pi"],
-  ["Text",[ 0.5,0,0],0.5,cyan,   [2*pi,0,0],"2*Pi"],
-  ["Text",[ 1.5,0,0],0.5,magenta,[2.5*pi,0,0],"2.5*Pi"]];
-end
-end
+model Main(simulator) = 
+  initially
+    _3D = ((Text center=(-2.5,0,0) size=0.5 color=red     rotation=(0,0,0)      content="0"),
+           (Text center=(-2.0,0,0) size=0.5 color=green   rotation=(pi/8,0,0)   content="Pi/8"),
+           (Text center=(-1.0,0,0) size=0.5 color=blue    rotation=(pi/2,0,0)   content="Pi/2"),
+           (Text center=( 0.0,0,0) size=0.5 color=yellow  rotation=(pi,0,0)     content="Pi"),
+           (Text center=( 0.5,0,0) size=0.5 color=cyan    rotation=(2*pi,0,0)   content="2*Pi"),
+           (Text center=( 1.5,0,0) size=0.5 color=magenta rotation=(2.5*pi,0,0) content="2.5*Pi")) 
+
+  always
 
 // Exercises
 // 1) Click and move the _3D panel to change viewpoint

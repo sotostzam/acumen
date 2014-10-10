@@ -1,41 +1,33 @@
-/* 
-   Works with semantic 2014
-   Works with semantic 2013
-   Works with semantic 2012
-*/
-
 // Coordinate system for _3D (right hand)
 //
 // This model illustrates the coordinate system
-// used when displaying a point [x,y,z].
+// used when displaying a point (x,y,z).
 //
 // Use GUI controls to expand the width of this
 // panel horizontally so you can see full ines.
 
-class Main(simulator)
-private
- _3D := 
- [
-  ["Box", [ 1,0, 0],[2   ,0.02,0.02],[1,0,0],[0,0,0]], // x-axis line
-  ["Box", [ 0,1, 0],[0.02,2   ,0.02],[0,1,0],[0,0,0]], // y-axis line
-  ["Box", [ 0,0, 1],[0.02,0.02,2  ],[0,0,1],[0,0,0]],  // z-axis line
-  ["Text",[ 2   ,0  ,-0.1],0.5,[1,0,0],[pi/2,0,0],"x"],// x-axis lable
-  ["Text",[-0.15,2.2, 0  ],0.5,[0,1,0],[pi/2,0,0],"y"],// y-axis lable
-  ["Text",[-0.15,0,2.1   ],0.5,[0,0,1],[pi/2,0,0],"z"],// z-axis lable
-  ["Box", [0,0,1],[0.1,0.1,0.1],[1,1,0],[0,0,0]],      // Corner boxes
-  ["Box", [0,1,0],[0.1,0.1,0.1],[0,1,1],[0,0,0]],
-  ["Box", [1,0,0],[0.1,0.1,0.1],[1,0,1],[0,0,0]],
-  ["Box", [1,1,0],[0.1,0.1,0.1],[1,0,0],[0,0,0]],
-  ["Box", [0,1,1],[0.1,0.1,0.1],[0,1,0],[0,0,0]],
-  ["Box", [1,0,1],[0.1,0.1,0.1],[0,0,1],[0,0,0]],
-  ["Text",[0.1,0,1.1],0.2,[1,1,0],[pi/2,0,0],"[0,0,1]"],// Point lables
-  ["Text",[0.1,1,0.1],0.2,[0,1,1],[pi/2,0,0],"[0,1,0]"],
-  ["Text",[1.1,0,0.1],0.2,[1,0,1],[pi/2,0,0],"[1,0,0]"],
-  ["Text",[1.1,1,0.1],0.2,[1,0,0],[pi/2,0,0],"[1,1,0]"],
-  ["Text",[0.1,1,1.1],0.2,[0,1,0],[pi/2,0,0],"[0,1,1]"],
-  ["Text",[1.1,0,1.1],0.2,[0,0,1],[pi/2,0,0],"[1,0,1]"]];
-end
-end
+model Main(simulator) = 
+  initially
+    _3D = 
+      ((Box  center=(1,0,0) size=(2,0.02,0.02) color=(1,0,0) rotation=(0,0,0)), // x-axis line
+       (Box  center=(0,1,0) size=(0.02,2,0.02) color=(0,1,0) rotation=(0,0,0)), // y-axis line
+       (Box  center=(0,0,1) size=(0.02,0.02,2) color=(0,0,1) rotation=(0,0,0)),  // z-axis line  
+       (Box  center=(0,0,1) size=(0.1,0.1,0.1) color=(1,1,0) rotation=(0,0,0)),      // Corner boxes
+  	   (Box  center=(0,1,0) size=(0.1,0.1,0.1) color=(0,1,1) rotation=(0,0,0)),
+  	   (Box  center=(1,0,0) size=(0.1,0.1,0.1) color=(1,0,1) rotation=(0,0,0)),
+  	   (Box  center=(1,1,0) size=(0.1,0.1,0.1) color=(1,0,0) rotation=(0,0,0)),
+  	   (Box  center=(0,1,1) size=(0.1,0.1,0.1) color=(0,1,0) rotation=(0,0,0)),
+  	   (Box  center=(1,0,1) size=(0.1,0.1,0.1) color=(0,0,1) rotation=(0,0,0)),
+  	   (Text center=(2,0,-0.1)    size=0.5 color=(1,0,0) rotation=(pi/2,0,0) content="x"),// x-axis lable
+       (Text center=(-0.15,2.2,0) size=0.5 color=(0,1,0) rotation=(pi/2,0,0) content="y"),// y-axis lable
+       (Text center=(-0.15,0,2.1) size=0.5 color=(0,0,1) rotation=(pi/2,0,0) content="z"),// z-axis lable
+  	   (Text center=(0.1,0,1.1)   size=0.2 color=(1,1,0) rotation=(pi/2,0,0) content="(0,0,1)"),// Point lables
+  	   (Text center=(0.1,1,0.1)   size=0.2 color=(0,1,1) rotation=(pi/2,0,0) content="(0,1,0)"),
+  	   (Text center=(1.1,0,0.1)   size=0.2 color=(1,0,1) rotation=(pi/2,0,0) content="(1,0,0)"),
+  	   (Text center=(1.1,1,0.1)   size=0.2 color=(1,0,0) rotation=(pi/2,0,0) content="(1,1,0)"),
+  	   (Text center=(0.1,1,1.1)   size=0.2 color=(0,1,0) rotation=(pi/2,0,0) content="(0,1,1)"),
+  	   (Text center=(1.1,0,1.1)   size=0.2 color=(0,0,1) rotation=(pi/2,0,0) content="(1,0,1)"))
+  always
 
 // Excercises
 // 1) Add boxes and lable for the missing two "cube corners"

@@ -1,35 +1,27 @@
-/* 
-   Works with semantic 2014
-   Works with semantic 2013
-   Works with semantic 2012
-*/
+model Ball(mode, x,x',x'') =
+initially 
+always 
+  match mode with[
+  "Fly" -> if (x < 0 && x' < 0)
+           then create Ball("Bounce", x, x', x'') &
+                create Ball("Bounce", x, x', x'') &
+                terminate self
+           else
+             {x'' = -9.8}
+  | "Bounce" -> x' + == -x' &
+              mode + == "Fly"
+  ]
 
-class Ball(mode, x,x',x'')
-  switch mode
-    case "Fly"
-      if x < 0 && x' < 0
-        create Ball("Bounce", x, x', x'');
-        create Ball("Bounce", x, x', x'');
-        terminate self
-      else
-        x'' = -9.8
-      end
-    case "Bounce"
-      x' := -x';
-      mode := "Fly"
-  end
-end
-
-class Main(simulator)
-  private
-    mode := "Init"
-  end
-  switch mode
-    case "Init"
-      simulator.timeStep := 0.003;
-      simulator.endTime := 10.0;
-      create Ball("Fly", 100,0,0);
-      mode := "Persist"
-    case "Persist"
-  end
-end
+model Main(simulator) = 
+  initially
+    mode  =  "Init"
+  always
+  
+  match mode with [
+  "Init" -> simulator.timeStep + == 0.003 &
+            simulator.endTime + == 10.0 &
+            create Ball("Fly", 100,0,0) &
+            mode + == "Persist"
+  | "Persist" ->
+  ]
+ 
