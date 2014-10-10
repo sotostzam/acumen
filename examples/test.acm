@@ -1,6 +1,7 @@
 model Main(simulator) = 
 initially
-  a = 1 & b = 1 & c = 1 & d = 1
+  a = 1 & b = 1 & c = 1 & d = 1 &
+  e = (1,2,3)
 always
   if (a > b) then
     a+ == 2
@@ -11,5 +12,5 @@ always
   if (d == 2 && 
       (a > b)) then 
     c+ == 3
-  else {}
+  else { e(0)+ == 1 }
   

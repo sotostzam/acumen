@@ -18,7 +18,7 @@
    Has bug with semantic 2012
 */
 
-#semantics "2014 Reference"
+//#semantics "2014 Reference"
 
 model Player(n,maxA) = 
 initially
@@ -208,7 +208,7 @@ always
 * Draws a cyliner between point p and q
 **/
 
-model Cylinder (D,tablerow,tablecolum) = 
+model cylinder (D,tablerow,tablecolum) = 
 initially 
   p    = (0,0,0) & 
   q    = (0,0,0) &
@@ -298,10 +298,10 @@ initially
     mode  =  "Sample" &
     v     =  (0,0,0) & 
     // Visualize energy spent
-    eb   =  create Cylinder((0,0,0),tablerow,tablecolum) &
+    eb   =  create cylinder((0,0,0),tablerow,tablecolum) &
     offset  =  0 &
-    link1  =  create Cylinder((0,0,0),tablerow,tablecolum) &
-    link2  =  create Cylinder((0,0,0),tablerow,tablecolum) &
+    link1  =  create cylinder((0,0,0),tablerow,tablecolum) &
+    link2  =  create cylinder((0,0,0),tablerow,tablecolum) &
     L1     =  0.4 &  // Length of link1 is fixed
     baseP  =  (2.4*(-1)^n,0,0.3) &
     unit   =  (0,0,0) & // Unit vector from baseP to P
@@ -631,14 +631,14 @@ initially
     zc2  =  0 &
     zc3  =  0 &
 always
-  _3D = ((Text center=(-3.5,6.5,-4)+(tablerow size=tablecolum color=0).*shiftD rotation=1,(0.9,0 content=0),(1.7,0,0),player1.name),
-         (Text center=(1.5,6.5,-4)+(tablerow size=tablecolum color=0).*shiftD rotation=1,(0.1,0.1 content=0.1),(1.7,0,0),player2.name),
-         (Text center=(-1.8,6.5,-5)+(tablerow size=tablecolum color=0).*shiftD rotation=1,(0.6,0 content=0),(1.7,0,0),player1Score),
-         (Text center=(3.5,6.5,-5)+(tablerow size=tablecolum color=0).*shiftD rotation=1,(0.1,0.1 content=0.1),(1.7,0,0),player2Score),
-         (Text center=(-1.8,6.5,-6)+(tablerow size=tablecolum color=0).*shiftD rotation=1,(0.6,0 content=0),(1.7,0,0),finalScore1),
-         (Text center=(3.5,6.5,-6)+(tablerow size=tablecolum color=0).*shiftD rotation=1,(0.1,0.1 content=0.1),(1.7,0,0),finalScore2),
-         (Text center=(-1.8,6.5,1.5)+(tablerow size=tablecolum color=0).*shiftD rotation=1,(0.6,0 content=0),(1.7,0,0),r1),
-         (Text center=(3.5,6.5,1.5)+(tablerow size=tablecolum color=0).*shiftD rotation=1,(0.1,0.1 content=0.1),(1.7,0,0),r2)) &
+  _3D = ((Text center=(-3.5,6.5,-4)+(tablerow,tablecolum,0).*shiftD size=1 color=(0.9,0,0) rotation=(1.7,0,0) content=player1.name),
+         (Text center=(1.5,6.5,-4)+(tablerow,tablecolum,0).*shiftD size=1 color=(0.1,0.1,0.1) rotation=(1.7,0,0) content=player2.name),
+         (Text center=(-1.8,6.5,-5)+(tablerow,tablecolum,0).*shiftD size=1 color=(0.6,0,0) roatation=(1.7,0,0) content=player1Score),
+         (Text center=(3.5,6.5,-5)+(tablerow,tablecolum,0).*shiftD size=1 color=(0.1,0.1,0.1) roatation=(1.7,0,0) content=player2Score),
+         (Text center=(-1.8,6.5,-6)+(tablerow,tablecolum,0).*shiftD size=1 color=(0.6,0,0) roatation=(1.7,0,0) content=finalScore1),
+         (Text center=(3.5,6.5,-6)+(tablerow,tablecolum,0).*shiftD size=1 color=(0.1,0.1,0.1) roatation=(1.7,0,0) content=finalScore2),
+         (Text center=(-1.8,6.5,1.5)+(tablerow,tablecolum,0).*shiftD size=1 color=(0.6,0,0) roatation=(1.7,0,0) content=r1),
+         (Text center=(3.5,6.5,1.5)+(tablerow,tablecolum,0).*shiftD size=1 color=(0.1,0.1,0.1) roatation=(1.7,0,0) content=r2)) &
   //add two modes for alternating start the game
   if (mode ~= "Restart1"      && mode ~= "Player1Serve"  && mode ~= "Player2Serve" 
    && mode ~= "Impact"        && mode ~= "Freeze"       && mode ~= "ChangeSide"   
@@ -850,7 +850,7 @@ always
         else {} &
         if (gameMonitor.acknowledged == 1) then
             gameMonitor.restart + == 0 &
-        ekse {}
+        else {}
       }
   | "ChangeSide" -> // Change the serve number
       if (gameMonitor.restart == 1 && gameTime <= gameLength) then
@@ -924,8 +924,8 @@ always
       //simulator.method + == "EulerForward" &
       mode + == "CreateGame"
   | "CreateGame"  ->
-      for { i = 0:(length(players)-1)
-        for { j = (i+1):(length(players)-1)
+      for  i = 0:(length(players)-1) {
+        for  j = (i+1):(length(players)-1) {
           create Game(players(i), players(j), i, j-1,simulator.endTime)
         }
       } &
