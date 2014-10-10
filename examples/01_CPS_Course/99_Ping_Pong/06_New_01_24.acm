@@ -89,7 +89,7 @@ always
   // pH is the hightest from my start ball(easy to calculate from y and zp)   
   pH + ==  (1.5 * (-1)^n, y, let t = abs(zp/(-9.8 +  k_a*(zp)^2)) &
                               a = -9.8 +  k_a*(zp)^2 in 
-                    zp*t + 0.5 * (a)*t^2 end) &
+                    zp*t + 0.5 * (a)*t^2) &
   match mode with [
   "Wait" -> // Waiting for your serve, moving the bat to start point
       v'  = ((1.6*(-1)^n,0,0.2) - p_bat) * 10 + 5 * ((0,0,0)- v) &
@@ -107,12 +107,12 @@ always
         t + == 0 &  
         d_ballBat + == norm(p_bat - pH) &
         u + == (pH + (0.07*(-1)^n,0,-0.1) - p_bat)/norm(pH + (0.07*(-1)^n,0,-0.1) - p_bat) &
-        ta + == let d_ballBat = norm(p_bat - pH) in sqrt(2* (d_ballBat / 2) / maxA) end &
-        mode + == "Startball" &
+        ta + == let d_ballBat = norm(p_bat - pH) in sqrt(2* (d_ballBat / 2) / maxA) &
+        mode + == "Startball"
       else {}
   | "Startball" -> // Start the ball as I wanted
-      _3D + == ((Sphere center=p1_predicted,0.02,(200 size=0 color=0) rotation=(0,0,0)),
-                (Sphere center=pH,0.02,(0 size=100 color=200) rotation=(0,0,0))) &
+      _3D + == ((Sphere center=p1_predicted size=0.02 color=(200,0,0) rotation=(0,0,0)),
+                (Sphere center=pH size=0.02 color=(0,100,200) rotation=(0,0,0))) &
         
       // Path planning, first half distance fully accelerate the other 
       // half fully decelerate
@@ -180,8 +180,8 @@ always
           d_ballBat + == norm(p2_predicted + (0.2*(-1)^n,0,0) - p_bat) &
         else {} &
       
-        _3D + == ((Sphere center=p1_predicted,0.02,(200 size=0 color=0) rotation=(0,0,0)),
-                 (Sphere center=p2_predicted,0.02,(0 size=100 color=200) rotation=(0,0,0))) &  
+        _3D + == ((Sphere center=p1_predicted size = 0.02 color=(200,0,0) rotation=(0,0,0)),
+                  (Sphere center=p2_predicted size = 0.02 color=(0,100,200) rotation=(0,0,0))) &  
       else {} &
     
       // Path planning, first move to p2, then wait to hit the ball
@@ -261,8 +261,8 @@ always
   match mode with [
   "Fly" -> 
       if ((p(2)) < 0 && (p'(2))< 0) then
-        mode + == "Bounce"{
-      else // Acceleration is air resistance and gravity
+        mode + == "Bounce"
+      else {// Acceleration is air resistance and gravity
         p'' = -k2 * norm(p') * p' + (0,0,-9.8) &
       }
   | "Bounce" ->
@@ -365,18 +365,18 @@ always
       if (n == 2) then
         displayAngle = ((angle(2))*(pi/2),0,
                        (angle(1))*(pi/2))+(0,0,pi/2) &
-        _3D = (Cylinder center=p+(0.05,0,0)+(tablerow radius=tablecolum length=0 .*shiftD color= 0.15,0.05),
-                (0.1 rotation=0.1,0.1),displayAngle)
+        _3D = (Cylinder center=p+(0.05,0,0)+(tablerow,tablecolum,0).*shiftD radius=0.15 length=0.05  
+                color=(0.1,0.1,0.1) rotation=displayAngle)
       else {
         displayAngle = ((-angle(2))*(pi/2),0,
                        (angle(1))*(pi/2))+(0,0,pi/2) &
-        _3D = (Cylinder center=p+(-0.05,0,0)+(tablerow radius=tablecolum length=0 .*shiftD color= 0.15,0.05),
-                (1 rotation=0.1,0.1),displayAngle)
+        _3D = (Cylinder center=p+(-0.05,0,0)+(tablerow,tablecolum,0).*shiftD radius=0.15 length=0.05
+                color=(1,0.1,0.1)  rotation=displayAngle)
       }
   | "Rest" ->
       pv + == (0,0,0) & // Set speed to 0 in ???Rest??? mode
-      _3D = (Box center=p+(-0.05,0,0)+(tablerow size=tablecolum,0).*shiftD,(0.3 color=0.3 rotation=0.3),
-             (1,1,0.1),-1 * displayAngle)
+      _3D = (Box center=p+(-0.05,0,0)+(tablerow,tablecolum,0).*shiftD  size=(0.3,0.3,0.3)
+             color=(1,1,0.1) rotation=-1 * displayAngle)
   ]
 
 model Table(offset,shiftD) =   // The table (a static 3D object) 
@@ -460,7 +460,7 @@ always
   if (mode ~= "Initialize" && mode ~= "Player1Lost" && mode ~= "Player2Lost"
     && mode ~= "SendMessage1" && status ~= "Normal" && reason ~= "Nothing"
     && status ~= "Report" && reason ~= "BallOutOfBoundary" && mode ~= "SendMessage2"
-    && reason ~= "BallBouncedTwice" && reason ~= "BallTouchNet" && reason ~= "BallNotOverNet"
+    && reason ~= "BallBouncedTwice" && reason ~= "BallTouchNet" && reason ~= "BallNotOverNet")
     then 
     mode + == "Panic!"
   else {} &
@@ -555,8 +555,8 @@ always
       else {}
     // Update the score and notify the Game model
   | "Player1Lost" ->
-      player2Score := 1+player2Score &
-      mode := "SalwaysMessage1" &
+      player2Score + == 1+player2Score &
+      mode+ == "SalwaysMessage1" &
   | "Player2Lost" ->
       player1Score + == 1+player1Score &
       mode + == "SendMessage2" &
@@ -564,26 +564,26 @@ always
   | "SalwaysMessage1" ->
       t + == 0 & // Wait until the Game model gets the restart signal
       if (acknowledged == 1) then
-        mode := "Initialize" &
-        acknowledged := 0 &
-        restart      := 0 &
-        status       := "Normal" &
-        checked      := false &
-        bounced      := false
+        mode+ == "Initialize" &
+        acknowledged+ == 0 &
+        restart     + == 0 &
+        status      + == "Normal" &
+        checked     + == false &
+        bounced     + == false
       else {
-        restart      := 1 &
+        restart     + == 1
       }
   | "SendMessage2" ->
       t + == 0 & // Wait until the Game model gets the restart signal
       if (acknowledged  == 1) then
-        mode := "Initialize" &
-        acknowledged := 0 &
-        restart      := 0 &
-        status       := "Normal" &
-        checked      := false &
-        bounced      := false
+        mode + == "Initialize" &
+        acknowledged + == 0 &
+        restart      + == 0 &
+        status       + == "Normal" &
+        checked      + == false &
+        bounced      + == false
       else {
-        restart      := 1 &
+        restart      + == 1
       }
   | "Panic!" ->
   ]
