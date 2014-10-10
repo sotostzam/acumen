@@ -404,13 +404,12 @@ object Parser extends MyStdTokenParsers {
   def atom: Parser[Expr] =
     positioned( sum
       | interval
-      | threeDObject
       |"type" ~! parens(className) ^^ { case _ ~ cn => TypeOf(cn) }
       | name >> { n => args(expr) ^^ { es => Op(n, es) } | success(Var(n)) }
       | gvalue ^^ Lit
-      | parens(repsep(expr, ",")) ^^ ExprVector
-      
-      | parens(expr))
+       | parens(expr)
+      | parens(repsep(expr, ",")) ^^ ExprVector        
+      | threeDObject )
 
 
   def sum: Parser[Expr] =
