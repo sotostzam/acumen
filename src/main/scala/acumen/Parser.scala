@@ -263,11 +263,11 @@ object Parser extends MyStdTokenParsers {
 
   def claim = claimExpr ^^ { case predicate => Claim(predicate) }
 
-  def hypothesis = "hypothesis" ~! opt(stringLit) ~ BExpr ^^ 
+  def hypothesis = "hypothesis" ~! opt(stringLit) ~ expr ^^ 
     { case "hypothesis" ~ statement ~ predicate => Hypothesis(statement, predicate) }
   
   // Make the else branch mandatory
-  def elseif = "elseif" ~ BExpr ~ "then" ~ actions ^^ {case _ ~ b ~_ ~ ac => (b,ac)}
+  def elseif = "elseif" ~ expr ~ "then" ~ actions ^^ {case _ ~ b ~_ ~ ac => (b,ac)}
   
   private def elseifHelper(eis:List[(Expr, List[Action])]):IfThenElse = eis match{
     case ei :: Nil => IfThenElse(ei._1, ei._2, List())
@@ -279,7 +279,7 @@ object Parser extends MyStdTokenParsers {
     case IfThenElse(e,t,s) =>IfThenElse(e,t,List(elseHelper(els,s(0).asInstanceOf[IfThenElse])))
   }
   def ifThenElse = 
-    "if" ~! BExpr ~! "then" ~ actions ~rep(elseif) ~ "else" ~ braces(actions) ^^ 
+    "if" ~! expr ~! "then" ~ actions ~rep(elseif) ~ "else" ~ braces(actions) ^^ 
     	{case _~ c ~_ ~t ~ elseifs ~ _ ~e => elseifs match{
     	  case Nil => IfThenElse(c,t,e)
     	  case ss => IfThenElse(c,t, List(elseHelper(e,elseifHelper(ss))))
@@ -331,28 +331,28 @@ object Parser extends MyStdTokenParsers {
                   { case _ ~bs ~ _~ e => ExprLet(bs, e) })
 
   def levelTop:Parser[Expr] =
-      positioned(level7)
+      positioned(level12)
 
   def expr: Parser[Expr] = levelTop | let
-  
-  // Separate boolean expression with other expression
-  def BExpr : Parser[Expr] =   
-      (BCompare * ("&&" ^^^ { (x: Expr, y: Expr) => mkOp("&&", x, y) }
-                | "||" ^^^ { (x: Expr, y: Expr) => mkOp("||", x, y) })) |
-       BCompare |
-       gbool ^^ {x => Lit(x)}|
-       parens(BExpr)
        
-  
-  def BCompare : Parser[Expr] = 
-     (expr * ("<" ^^^ { (x: Expr, y: Expr) => mkOp("<", x, y) }
+
+  def level12: Parser[Expr] =
+    level10 * ("||" ^^^ { (x: Expr, y: Expr) => mkOp("||", x, y) })
+
+  // no level 11 : ^ is used for exponentiation
+
+  def level10: Parser[Expr] =
+    level9 * ("&&" ^^^ { (x: Expr, y: Expr) => mkOp("&&", x, y) })
+
+  def level9: Parser[Expr] =
+    level8 * ("==" ^^^ { (x: Expr, y: Expr) => mkOp("==", x, y) }
+      | "~=" ^^^ { (x: Expr, y: Expr) => mkOp("~=", x, y) })
+
+  def level8: Parser[Expr] =
+    level7 * ("<" ^^^ { (x: Expr, y: Expr) => mkOp("<", x, y) }
       | ">" ^^^ { (x: Expr, y: Expr) => mkOp(">", x, y) }
       | "<=" ^^^ { (x: Expr, y: Expr) => mkOp("<=", x, y) }
-      | ">=" ^^^ { (x: Expr, y: Expr) => mkOp(">=", x, y) }
-      |	"==" ^^^ { (x: Expr, y: Expr) => mkOp("==", x, y) }
-      | "~=" ^^^ { (x: Expr, y: Expr) => mkOp("~=", x, y) }))|
-      parens(BCompare)
-
+      | ">=" ^^^ { (x: Expr, y: Expr) => mkOp(">=", x, y) })
   
 
   def level7: Parser[Expr] =
