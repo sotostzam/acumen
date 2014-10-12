@@ -320,6 +320,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
    */
   def liftToUncertain(p: Prog): Prog =
     new util.ASTMap {
+      val magicDot = Dot(Var(self),magicf)
       override def mapClassDef(c: ClassDef): ClassDef =
         if (c.name == cmagic) c else super.mapClassDef(c)
       override def mapExpr(e: Expr): Expr = e match {
@@ -336,11 +337,11 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
         case _                      => super.mapExpr(e)
       }
       override def mapDiscreteAction(a: DiscreteAction) : DiscreteAction = a match {
-        case Assign(lhs @ Dot(Dot(Var(Name(self,0)),Name(simulator,0)), _), rhs) => Assign(mapExpr(lhs), super.mapExpr(rhs))
+        case Assign(lhs @ Dot(`magicDot`, _), rhs) => Assign(mapExpr(lhs), super.mapExpr(rhs))
         case _ => super.mapDiscreteAction(a)
       }
       override def mapContinuousAction(a: ContinuousAction) : ContinuousAction = a match {
-        case EquationT(lhs @ Dot(Dot(Var(Name(self,0)),Name(simulator,0)), _), rhs) => sys.error("Only discrete assingments to simulator parameters are supported. Offending statement: " + pprint(a))
+        case EquationT(lhs @ Dot(`magicDot`, _), rhs) => sys.error("Only discrete assingments to simulator parameters are supported. Offending statement: " + pprint(a))
         case _ => super.mapContinuousAction(a)
       }
       override def mapClause(c: Clause) : Clause = c match {
