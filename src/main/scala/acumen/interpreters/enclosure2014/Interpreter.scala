@@ -792,16 +792,14 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
   }
 
   /** Traverse the AST (p) and collect statements that are active given st. */
-  def active(st: Enclosure, p: Prog): Set[Changeset] = {
-    val a = iterate(evalStep(p, st, _), mainId(st), st)
-    a.foreach{ cs =>
-      val contIds = (cs.eqs.toList ++ cs.odes.toList).map(da => (da.selfCId, da.lhs))
-      val assIds = cs.ass.toList.map(da => (da.selfCId, da.lhs))
-      checkFlowDefined(p, cs, st)
-      checkDuplicateAssingments(contIds, DuplicateContinuousAssingment)
-      checkDuplicateAssingments(assIds, DuplicateDiscreteAssingment)
-    }
-    a
+  def active(st: Enclosure, p: Prog): Set[Changeset] = iterate(evalStep(p, st, _), mainId(st), st)
+
+  /** Ensure that c does not contain duplicate assignments. */
+  def checkValidChange(c: Set[Changeset]): Unit = c.foreach{ cs =>
+    val contIds = (cs.eqs.toList ++ cs.odes.toList).map(da => (da.selfCId, da.lhs))
+    val assIds = cs.ass.toList.map(da => (da.selfCId, da.lhs))
+    checkDuplicateAssingments(contIds, DuplicateContinuousAssingment)
+    checkDuplicateAssingments(assIds, DuplicateDiscreteAssingment)
   }
   
   /**
@@ -876,6 +874,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
         else {
           val (newP, newPs) = if (t == StartTime) (w :: pwlP, pwlPs) else (pwlP, w :: pwlPs)
           val hw = active(w, prog)
+          checkValidChange(hw)
           if (q.nonEmpty && isFlow(q.head) && Set(q.head) == hw && t == UnknownTime)
             sys error "Model error!" // Repeated flow, t == UnknownTime means w was created in this time step
           val (newW, newR, newU) = encloseHw(waiting, pwlR, pwlU, (w, q, t), hw)
