@@ -340,7 +340,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
         case _ => super.mapDiscreteAction(a)
       }
       override def mapContinuousAction(a: ContinuousAction) : ContinuousAction = a match {
-        case EquationT(lhs @ Dot(Dot(Var(Name(self,0)),Name(simulator,0)), _), rhs) => sys.error("Only discrete assingments to simulator parameters are supported. Offending statement: " + a)
+        case EquationT(lhs @ Dot(Dot(Var(Name(self,0)),Name(simulator,0)), _), rhs) => sys.error("Only discrete assingments to simulator parameters are supported. Offending statement: " + pprint(a))
         case _ => super.mapContinuousAction(a)
       }
       override def mapClause(c: Clause) : Clause = c match {
