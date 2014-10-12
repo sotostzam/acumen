@@ -900,6 +900,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
           else if ((t == UnknownTime && qw.nonEmpty && qw.head == q) || T.isThin)
             (tmpW, tmpR, tmpU)
           else {
+            checkFlowDefined(prog, q, w)
             val s = continuousEncloser(q.odes, q.eqs, q.claims, T, prog, w)
             val r = s.range
             val rp = contract(r, q.claims, prog).right.get
