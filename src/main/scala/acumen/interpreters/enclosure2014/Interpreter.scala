@@ -967,8 +967,10 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
      * NOTE: The range of st is first computed, as contraction currently only works on intervals.  
      */
     def contract(st: Enclosure, p: Expr, prog: Prog, selfCId: CId): Option[Enclosure] = {
-      val box = envBox(p, selfCId, st, prog)
+      lazy val box = envBox(p, selfCId, st, prog)
       val varNameToFieldId = varNameToFieldIdMap(st)
+      val noUpdate = Map[(CId,Name), CValue]()
+      def toAssoc(b: Box) = b.map{ case (k, v) => (varNameToFieldId(k), VLit(Real(v))) }
       p match {
         case Lit(CertainTrue | Uncertain) => Some(st)
         case Lit(CertainFalse) => None
@@ -978,16 +980,39 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
             case _ => None
           }
         case Op(Name(op,0), List(l,r)) =>
-          val le = acumenExprToExpression(l,selfCId,st,prog)
-          val re = acumenExprToExpression(r,selfCId,st,prog)
-          val smallerBox = op match {
-            case "<=" | "<" => contractInstance.contractLeq(le,re)(box)
-            case ">=" | ">" => contractInstance.contractLeq(re,le)(box)
-            case "==" => contractInstance.contractEq(le,re)(box)
-            case "~=" => contractInstance.contractNeq(le,re)(box)
+          val lv = evalExpr(l, prog, selfCId, st)
+          val rv = evalExpr(r, prog, selfCId, st)
+          lazy val le = acumenExprToExpression(l,selfCId,st,prog)
+          lazy val re = acumenExprToExpression(r,selfCId,st,prog)
+          val smallerBox = (op,lv,rv) match {
+            // Based on acumen.interpreters.enclosure.Contract.contractEq 
+            case ("==", VLit(_: GStrEnclosure), VLit(_: GStrEnclosure)) =>
+              Map((l, r, lv, rv) match {
+                case (Dot(obj, ln), _, VLit(lvs: GStrEnclosure), VLit(rvs: GStrEnclosure)) =>
+                  val VObjId(Some(objId)) = evalExpr(obj, prog, selfCId, st)
+                  (objId.cid, ln) -> VLit(GStrEnclosure(lvs.range intersect rvs.range))
+                case (_, Dot(obj, rn), VLit(lvs: GStrEnclosure), VLit(rvs: GStrEnclosure)) =>
+                  val VObjId(Some(objId)) = evalExpr(obj, prog, selfCId, st)
+                  (objId.cid, rn) -> VLit(GStrEnclosure(lvs.range intersect rvs.range))
+                case _ => sys.error(s"Can not apply '$op' to operands (${Pretty pprint l}, ${Pretty pprint r})")
+              })
+            // Based on acumen.interpreters.enclosure.Contract.contractNeq
+            case ("~=", VLit(_: GStrEnclosure), VLit(_: GStrEnclosure)) =>
+              (lv, rv) match {
+                case (VLit(lvs: GStrEnclosure), VLit(rvs: GStrEnclosure)) =>
+                  val ranl = lvs.range
+                  val ranr = rvs.range
+                  if (!(ranl.size == 1) || !(ranr.size == 1) || !(ranl == ranr)) noUpdate
+                  else sys.error("contracted to empty box") // only when both lhs and rhs are thin can equality be established
+                case _ => sys.error(s"Operator $op does not support operands (${Pretty pprint l}, ${Pretty pprint r})")
+              }
+            case ("==", _, _)       => toAssoc(contractInstance.contractEq(le, re)(box))
+            case ("~=", _, _)       => toAssoc(contractInstance.contractNeq(le, re)(box))
+            case ("<=" | "<", _, _) => toAssoc(contractInstance.contractLeq(le, re)(box))
+            case (">=" | ">", _, _) => toAssoc(contractInstance.contractLeq(re, le)(box))
+
           } 
-          val smallerBoxMap = smallerBox.map{ case (k, v) => (varNameToFieldId(k), VLit(Real(v))) }
-          Some(st update smallerBoxMap)
+          Some(st update smallerBox)
         case _ => 
           Some(st) // Do not contract
       }
@@ -1006,9 +1031,12 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
   
   /** Box containing the values of all variables (Dots) that occur in it. */
   def envBox(e: Expr, selfCId: CId, st: Enclosure, prog: Prog): Box = {
-    new Box(dots(e).map{ case d@Dot(obj,n) =>
+    new Box(dots(e).flatMap{ case d@Dot(obj,n) =>
       val VObjId(Some(objId)) = evalExpr(obj, prog, selfCId, st) 
-      (fieldIdToName(objId.cid,n), extractInterval(evalExpr(d, prog, selfCId, st)))
+      evalExpr(d, prog, selfCId, st) match {
+        case VLit(r: Real) => (fieldIdToName(objId.cid,n), r.range) :: Nil
+        case VLit(r: GStrEnclosure) => Nil
+      }
     }.toMap)
   }
 
