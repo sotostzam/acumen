@@ -145,7 +145,7 @@ object Parser extends MyStdTokenParsers {
 
   lexical.reserved ++=
     List("for", "end", "if", "else","elseif", "create", "move", "in", "terminate", "model","then","initially","always",
-         "sum", "true", "false", "init", "match","with", "case", "type", "claim", "hypothesis", "let",
+         "sum", "true", "false", "init", "match","with", "case", "type", "claim", "hypothesis", "let","endif",
          "Continuous", "Discrete", "FixedPoint", "none","cross",
          "Sphere", "Box", "Cylinder", "Cone", "Text", "Obj")
 
@@ -243,7 +243,7 @@ object Parser extends MyStdTokenParsers {
     ("create" ~! className ~! args(expr) ^^ { case _ ~ cn ~ es => NewRhs(Var(Name(cn.x,0)), es) }
       | expr ^^ ExprRhs)
 
-  def actions = repsep(action, "&") <~ opt("&")
+  def actions = repsep(action, "&") 
 
   def action: Parser[Action] =
     switchCase | ifThenElse | forEach | discretelyOrContinuously | claim | hypothesis
@@ -279,16 +279,20 @@ object Parser extends MyStdTokenParsers {
     case IfThenElse(e,t,Nil) => IfThenElse(e,t,els)
     case IfThenElse(e,t,s) =>IfThenElse(e,t,List(elseHelper(els,s(0).asInstanceOf[IfThenElse])))
   }
+  
+  def actionsBranch: Parser[List[Action]] = "else" ~> parens(actions)|
+                                            "endif" ^^^ List() 
+		                                                   
   def ifThenElse = 
-    "if" ~! expr ~! "then" ~ actions ~rep(elseif) ~ "else" ~ braces(actions) ^^ 
-    	{case _~ c ~_ ~t ~ elseifs ~ _ ~e => elseifs match{
+    "if" ~! expr ~! "then" ~ actions ~rep(elseif) ~  actionsBranch ^^ 
+    	{case _~ c ~_ ~t ~ elseifs ~ e => elseifs match{
     	  case Nil => IfThenElse(c,t,e)
     	  case ss => IfThenElse(c,t, List(elseHelper(e,elseifHelper(ss))))
     	  }   	
     	}
           
   def forEach =
-    "for" ~! name ~! "=" ~! expr  ~! braces(actions)  ^^
+    "for" ~! name ~! "=" ~! expr  ~ parens(actions)  ^^
       { case _ ~ i ~ _ ~ e ~ b  => ForEach(i, e, b) }
   
    def pattern : Parser[Pattern] =  name ~ "." ~ name ^^ {case e ~ _ ~ n => Pattern(List(Dot(Var(e),n)))}|
@@ -305,7 +309,8 @@ object Parser extends MyStdTokenParsers {
       | move ^^ Discretely | assignOrEquation | patternMatch)
 
   def assignOrEquation =
-    expr >> { e =>
+    // Make sure lhs won't be an expr like a == b, which has the same syntax as equation
+    access >> { e =>
       (	"==" ~> expr ^^ (e1 => Continuously(Equation(e, e1)))
         |"+" ~> "==" ~> assignrhs(e) ^^ Discretely     
         | "=[i]" ~> expr ^^ (e1 => Continuously(EquationI(e, e1)))
@@ -451,7 +456,7 @@ object Parser extends MyStdTokenParsers {
   val defaultRotation = ExprVector(List(Lit(GInt(0)),Lit(GInt(0)),Lit(GInt(0))))
   
   def threeDPara: Parser[(String, Expr)] = ident ~ "=" ~ expr ^^ {case n ~_~ e => (n,e)}  
-  def threeDObject:Parser[ExprVector] = parens(threeDType ~ rep(threeDPara)) ^^ {case n ~ ls =>threeDParasProcess(n,ls)}
+  def threeDObject:Parser[ExprVector] = threeDType ~ rep(threeDPara) ^^ {case n ~ ls =>threeDParasProcess(n,ls)}
   def threeDType = "Sphere" | "Box" | "Cylinder" | "Cone" | "Text" | "Obj"
                     
   /* Process the 3d object information and adding default values*/

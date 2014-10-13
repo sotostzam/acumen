@@ -91,7 +91,7 @@ object Generators  {
     }
 
   implicit def arbAction : Arbitrary[Action] = 
-    Arbitrary ( arbitrary[IfThenElse] | arbitrary[ForEach] | arbitrary[Switch]
+    Arbitrary ( arbitrary[IfThenElse] | /*arbitrary[ForEach]|*/ arbitrary[Switch]
               | arbitrary[Discretely] | arbitrary[Continuously] )
 
   implicit def shrinkAction : Shrink[Action] =
@@ -262,7 +262,7 @@ object Generators  {
 	/* End of new generators */
 
   implicit def arbIDoubleLit : Arbitrary[GDouble] = 
-    Arbitrary (genSmallDouble.map(GDouble))
+    Arbitrary (arbitrary[Double] map GDouble)
  
   implicit def arbVar : Arbitrary[Var] =
     Arbitrary (arbitrary[Name].map(Var))

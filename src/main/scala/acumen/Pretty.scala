@@ -168,19 +168,24 @@ class Pretty {
         case _ => DocNest(2,  pretty(lhs) :: "->" :: " claim " :: pretty(assertion) :: "&" :/: pretty(rhs)) 
       }      
     }
-
+  def actionBranchHelper(e:List[Action]):Document = {
+     if(e.length == 0)
+        DocGroup("endif")
+     else
+        DocGroup(DocNest(2, "else" :/: parens(pretty(e))))
+    
+  }
   implicit def prettyAction : PrettyAble[Action] =
     PrettyAble { 
       case IfThenElse(c,t,e) => new DocNest(2,
                                   "if " :: pretty(c) :: " then " :/: 
-                                  DocGroup(pretty(t))) :/: 
-                                  DocGroup(DocNest(2, "else" :/: braces(pretty(e))))
-                                   
+                                  DocGroup(pretty(t))) :/: actionBranchHelper(e)
+                                                                   
       case Switch(s,cls) => new DocNest(2,"match " :: pretty(s) :: " with" :: "[":/:
                                           pretty(cls) :/: "]") 
       case ForEach(i,e,b) => new DocNest(2,
                                "for " :: pretty(i) :: 
-                               " = " :: pretty(e) :/: braces(pretty(b))) 
+                               " = " :: pretty(e) :/: parens(pretty(b))) 
       case Continuously(ca) => pretty(ca)
       case Discretely(da) => pretty(da)
       case Claim(e) => "claim " :: pretty(e)

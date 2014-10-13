@@ -334,8 +334,9 @@ object Common {
         } catch {
           case _:IndexOutOfBoundsException => throw IndexOutOfBounds(idx)
         }
+        case VVector(idxs) => VVector(idxs.map(x => evalIndexOp(e,x))) 
         case _ => throw ExpectedInteger(i) }
-      case _ => println(e); println(i);throw CantIndex() }
+      case _ => throw CantIndex() }
   }
 
   val magicClassTxt =
