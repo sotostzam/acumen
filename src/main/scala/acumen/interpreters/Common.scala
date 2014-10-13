@@ -319,6 +319,7 @@ object Common {
          binScalarVectorOp(op,x,u)
        case (_, VVector(u)::VLit(x)::Nil) =>
          binVectorScalarOp(op,u,x)
+       case ("trans", ls) => unaryVectorOp("trans",ls)
        case _ =>
          throw UnknownOperator(op)    
     }
