@@ -16,7 +16,7 @@ object Supervisor extends DaemonActor {
         link(a)
       case Exit(a,ue:UncaughtException) =>
         val (name,restart) = watching.getOrElse(sender, ("An Unknown",null))
-        println("*** " + name + " actor Died Unexpected!")
+        println("*** " + name + " actor Died Unexpectedly!")
         ue.cause.printStackTrace()
         unlink(a)
         if (restart != null) {
