@@ -155,6 +155,8 @@ package acumen {
   case class GInterval(i: Interval) extends GroundValue
   /* Example: true */
   case class GBool(b: Boolean) extends GroundValue
+  /* Example: ("fall", (1,2,3))*/
+  case class GPattern(p : List[GroundValue]) extends GroundValue
   /* Example: CertainTrue, CertainFalse, Uncertain */
   sealed class GUncertainBool(v: Set[Boolean]) extends GroundValue
   object CertainTrue extends GUncertainBool(Set(true))

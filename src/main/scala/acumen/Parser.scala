@@ -203,7 +203,7 @@ object Parser extends MyStdTokenParsers {
 
   /* ground values parsers */
 
-  def gvalue = gint | gfloat | gstr | gbool
+  def gvalue = gint | gfloat | gstr | gbool | gpattern
 
   def gint = opt("-") ~ numericLit ^^ {
     case m ~ x =>
@@ -217,6 +217,7 @@ object Parser extends MyStdTokenParsers {
   }
   def gstr = stringLit ^^ GStr
   def gbool = "true" ^^^ GBool(true) | "false" ^^^ GBool(false)
+  def gpattern: Parser[GPattern] = parens(repsep(gvalue, ",")) ^^{case ls => GPattern(ls)}
 
   /* the actual parser */
 
@@ -224,17 +225,20 @@ object Parser extends MyStdTokenParsers {
 
   def getSemantics = opt(semantics) <~ rep(acceptIf( _ => true)(_ => ""))
   
-  def fullProg = opt(semantics) ~> rep(include) ~! rep(classDef) ^^ { case incl ~ defs => (incl, defs) }
+  def fullProg = opt(semantics) ~> rep(include) ~ rep(classDef) ^^ { case incl ~ defs => (incl, defs) }
 
   def semantics = positioned("#semantics" ~! stringLit ^^ { case _ ~ str => SemanticsSpec(str) })
 
   def include = positioned("#include" ~! stringLit ^^ { case _ ~ str => Include(str) })
 
-  def classDef = positioned("model" ~! className ~! args(name) ~! "="  ~! inits ~! actions  ^^
-    { case  _ ~ c ~ fs ~ _ ~ is ~ b   => ClassDef(c, fs, is, b) })
+  def classInit = "model" ~ className ~ args(name) ~ "="  ~ inits 
+  def classDef = positioned(
+      classInit ~ "always" ~ actions  ^^ { case  _ ~ c ~ fs ~ _ ~ is ~_ ~ b   => ClassDef(c, fs, is, b) } |
+      classInit ~opt("always")^^ {case  _ ~ c ~ fs ~ _ ~ is~_    => ClassDef(c, fs, is, List()) }
+     )
 
   def inits: Parser[List[Init]] =
-    ("initially" ~> repsep(init, "&") <~ opt("&") <~ "always"
+    ("initially" ~> repsep(init, "&") 
       | success(Nil))
 
   def init = name ~! "=" ~! initrhs ^^ { case x ~ _ ~ rhs => Init(x, rhs) }
@@ -292,7 +296,7 @@ object Parser extends MyStdTokenParsers {
     	}
           
   def forEach =
-    "for" ~! name ~! "=" ~! expr  ~ parens(actions)  ^^
+    "for" ~ name ~ "=" ~ expr ~ parens(rep1sep(action,"&"))  ^^
       { case _ ~ i ~ _ ~ e ~ b  => ForEach(i, e, b) }
   
    def pattern : Parser[Pattern] =  name ~ "." ~ name ^^ {case e ~ _ ~ n => Pattern(List(Dot(Var(e),n)))}|

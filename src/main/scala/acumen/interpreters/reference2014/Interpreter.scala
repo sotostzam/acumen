@@ -249,13 +249,25 @@ object Interpreter extends acumen.CStoreInterpreter {
           }
           mapM_((v:CValue) => evalActions(b, env+((i,v)), p), vs)
         }
-      case Switch(s,cls) =>
-        for (VLit(gv) <- asks(evalExpr(s, env, _))) {
-          (cls find (_.lhs == gv)) match {
-            case Some(c) => evalActions(c.rhs, env, p)
-            case None    => throw NoMatch(gv)
+      case Switch(s,cls) => s match{
+        case ExprVector(_) => 
+          for (VVector(ls) <- asks(evalExpr(s, env, _))) {
+            val gp = GPattern(ls.asInstanceOf[List[VLit]].map(x => x.gv))
+            (cls find (_.lhs == gp)) match {
+              case Some(c) => evalActions(c.rhs, env, p)
+              case None    => throw NoMatch(gp)
+            }
           }
-        }
+        case _ =>
+          for (VLit(gv) <- asks(evalExpr(s, env, _))) {
+            (cls find (_.lhs == gv)) match {
+              case Some(c) => evalActions(c.rhs, env, p)
+              case None    => throw NoMatch(gv)
+            }
+          }
+      }
+        
+        
       case Discretely(da) =>
         for (ty <- asks(getResultType))
           if (ty == FixedPoint) pass
