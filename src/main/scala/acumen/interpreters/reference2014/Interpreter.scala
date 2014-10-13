@@ -257,13 +257,9 @@ object Interpreter extends acumen.CStoreInterpreter {
           }
         }
       case Discretely(da) =>
-        for (ty <- asks(getResultType))
-          if (ty == FixedPoint) pass
-          else evalDiscreteAction(da, env, p)
+        evalDiscreteAction(da, env, p)
       case Continuously(ca) =>
-        for (ty <- asks(getResultType))
-          if (ty != FixedPoint) pass
-          else evalContinuousAction(ca, env, p) 
+        evalContinuousAction(ca, env, p) 
       case Claim(_) =>
         pass
       case Hypothesis(s, e) =>
@@ -367,9 +363,8 @@ object Interpreter extends acumen.CStoreInterpreter {
     mapM_((a: (CId, Dot, CValue)) => setObjectFieldM(a._1, a._2.field, a._3), vs)
          
   def step(p:Prog, st:Store, md: Metadata) : StepRes =
-    if (getTime(st) >= getEndTime(st)){
+    if (getTime(st) >= getEndTime(st) && getResultType(st) == FixedPoint)
       Done(md, getEndTime(st))
-    } 
     else 
       { val (_, Changeset(ids, rps, das, eqs, odes, hyps), st1) = iterate(evalStep(p), mainId(st))(st)
         val md1 = testHypotheses(hyps, md, st)
@@ -378,8 +373,8 @@ object Interpreter extends acumen.CStoreInterpreter {
             checkDuplicateAssingments(das.toList.map(a => (a._1, a._2)), DuplicateDiscreteAssingment)
             val nonIdentityDas = das.filterNot { a =>
               deref(a._1,st1).contains(a._2.field) && evalExpr(a._3, a._4, st1) == getObjectField(a._1, a._2.field, st1) }
-            if (st == st1 && ids.isEmpty && rps.isEmpty && nonIdentityDas.isEmpty) 
-              setResultType(FixedPoint, st1)
+            if (st == st1 && ids.isEmpty && rps.isEmpty && nonIdentityDas.isEmpty)
+              setResultType(FixedPoint, applyDelayedAssignmentsRep(eqs, st1, eqs.size))
             else {
               val stA = applyDelayedAssignments(nonIdentityDas, st1) ~> st1
               def repHelper(pair:(CId, CId)) = changeParentM(pair._1, pair._2) 
@@ -393,13 +388,18 @@ object Interpreter extends acumen.CStoreInterpreter {
             checkDuplicateAssingments(eqsIds ++ odesIds, DuplicateContinuousAssingment)
             checkContinuousDynamicsAlwaysDefined(p, eqsIds, st1)
             val stODE = solveIVP(odes, p, st1)
-            val stE = applyDelayedAssignments(eqs, stODE) ~> stODE
-            val stU = undefineHigherDerivatives(eqs, stE) 
+            val stE2 = applyDelayedAssignmentsRep(eqs, stODE, eqs.size)
+            val stU = undefineHigherDerivatives(eqs, stE2) 
             val st2 = setResultType(Continuous, stU)
             setTime(getTime(st2) + getTimeStep(st2), st2)
         }
         Data(res,md1)
       }
+  
+  /** Repeatedly apply assignments to st, using the updated store as input to the next iteration. */
+  def applyDelayedAssignmentsRep(as: Set[(CId, Dot, Expr, Env)], st: Store, times: Int): Store =
+    if (times <= 0) st
+    else applyDelayedAssignmentsRep(as, applyDelayedAssignments(as, st) ~> st, times - 1)
 
   /** When a variable is defined by an equation in eqs, set all its higher derivatives in st to GUndefined. */
   def undefineHigherDerivatives(eqs: Set[(CId, Dot, Expr, Env)], st: Store): Store = {
