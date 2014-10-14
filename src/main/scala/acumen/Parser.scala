@@ -144,9 +144,9 @@ object Parser extends MyStdTokenParsers {
       "&&", "<<", ">>", "&", "|", "%", "@", "..", "+/-", "#include", "#semantics")
 
   lexical.reserved ++=
-    List("for", "end", "if", "else","elseif", "create", "move", "in", "terminate", "model","then","initially","always",
-         "sum", "true", "false", "init", "match","with", "case", "type", "claim", "hypothesis", "let","endif",
-         "Continuous", "Discrete", "FixedPoint", "none","cross",
+    List("foreach", "end", "if", "else","elseif", "create", "move", "in", "terminate", "model","then","initially","always",
+         "sum", "true", "false", "init", "match","with", "case", "type", "claim", "hypothesis", "let","noelse",
+         "Continuous", "Discrete", "FixedPoint", "none","cross","do",
          "Sphere", "Box", "Cylinder", "Cone", "Text", "Obj")
 
   /* token conversion */
@@ -284,8 +284,8 @@ object Parser extends MyStdTokenParsers {
     case IfThenElse(e,t,s) =>IfThenElse(e,t,List(elseHelper(els,s(0).asInstanceOf[IfThenElse])))
   }
   
-  def actionsBranch: Parser[List[Action]] = "else" ~> parens(actions)|
-                                            "endif" ^^^ List() 
+  def actionsBranch: Parser[List[Action]] = "else" ~> action ^^{x => List(x)}  | "else" ~> parens(actions)|
+                                            "noelse" ^^^ List() 
 		                                                   
   def ifThenElse = 
     "if" ~! expr ~! "then" ~ actions ~rep(elseif) ~  actionsBranch ^^ 
@@ -294,10 +294,11 @@ object Parser extends MyStdTokenParsers {
     	  case ss => IfThenElse(c,t, List(elseHelper(e,elseifHelper(ss))))
     	  }   	
     	}
-          
+  
+  def forhelp = action ^^ {x => List(x)} | parens(actions)
   def forEach =
-    "for" ~ name ~ "=" ~ expr ~ parens(rep1sep(action,"&"))  ^^
-      { case _ ~ i ~ _ ~ e ~ b  => ForEach(i, e, b) }
+    "foreach" ~ name ~ "in" ~ expr ~"do"~ forhelp  ^^
+      { case _ ~ i ~ _ ~ e ~_~ b  => ForEach(i, e, b) }
   
    def pattern : Parser[Pattern] =  name ~ "." ~ name ^^ {case e ~ _ ~ n => Pattern(List(Dot(Var(e),n)))}|
 		                            name ~ args(expr) ^^{case n ~ es => Pattern(List(Op(n,es)))}|
