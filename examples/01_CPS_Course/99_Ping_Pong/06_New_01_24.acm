@@ -788,7 +788,7 @@ always
       else (
         zc1 = (ball.p - bat2.p) dot bat2.angle &
         zc2 = (ball.p'- bat2.pv) dot bat2.angle &
-        zc3 = norm((ball.p - bat2.p) - (ball.p - bat2.p) dot bat2.angle)*bat2.angle &
+        zc3 = norm((ball.p - bat2.p) - ((ball.p - bat2.p) dot bat2.angle)*bat2.angle) &       
         if ((ball.p - bat2.p) dot bat2.angle) < 0 &&
            ((ball.p'- bat2.pv) dot bat2.angle) < 0 &&
              zc3 < batRadius &&
