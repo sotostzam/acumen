@@ -21,7 +21,8 @@ initially
          Text center=(-2,0.5,0) size=1 color=black rotation=(pi/2,0,pi/2) content="A",
          Text center=(-2,-1.25,0) size=1 color=black rotation=(pi/2,0,pi/2) content="B",
          Text center=(-2,-1.25,1) size=0.5 color=red rotation=(pi/2,0,pi/2) content="Player 1",
-         Text center=(-1.25,2,1) size=0.5 color=green rotation=(pi/2,0,0) content="player 2")
+         Text center=(-1.25,2,1) size=0.5 color=green rotation=(pi/2,0,0) content="player 2")&
+  _3DView = ((5,-10,3),(-pi/10,0,pi/7))
 
 //Score
 model ipattern() = 
