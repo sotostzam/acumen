@@ -268,6 +268,7 @@ class Pretty {
       case GStr(s)           => dquotes(s)
       case GInterval(i)      => i.toString
       case ge: GEnclosure[_] => ge.show
+      case GPattern(ls)      => parens(sepBy(comma, ls map pretty[GroundValue]))
       case _                 => "??"
     }
   

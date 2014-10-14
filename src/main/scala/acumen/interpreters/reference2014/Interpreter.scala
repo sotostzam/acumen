@@ -235,6 +235,11 @@ object Interpreter extends acumen.CStoreInterpreter {
     mapM_((a:Action) => evalAction(a, env, p), as)
   
   def evalAction(a:Action, env:Env, p:Prog) : Eval[Unit] = {
+    def VListToPattern(ls:List[Value[_]]):GPattern = 
+            GPattern(ls.map(x => x match{
+              case VLit(n) => n
+              case VVector(nls) => VListToPattern(nls)            
+            }))
     a match {
       case IfThenElse(c,a1,a2) =>
         for (VLit(GBool(b)) <- asks(evalExpr(c, env, _)))
@@ -249,10 +254,11 @@ object Interpreter extends acumen.CStoreInterpreter {
           }
           mapM_((v:CValue) => evalActions(b, env+((i,v)), p), vs)
         }
-      case Switch(s,cls) => s match{
-        case ExprVector(_) => 
+      case Switch(s,cls) => s match{     
+        case ExprVector(_) =>           
           for (VVector(ls) <- asks(evalExpr(s, env, _))) {
-            val gp = GPattern(ls.asInstanceOf[List[VLit]].map(x => x.gv))
+            ls map println
+            val gp = VListToPattern(ls)
             (cls find (_.lhs == gp)) match {
               case Some(c) => evalActions(c.rhs, env, p)
               case None    => throw NoMatch(gp)
