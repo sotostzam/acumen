@@ -91,7 +91,7 @@ object Generators  {
     }
 
   implicit def arbAction : Arbitrary[Action] = 
-    Arbitrary ( arbitrary[IfThenElse] | /*arbitrary[ForEach]|*/ arbitrary[Switch]
+    Arbitrary ( arbitrary[IfThenElse] | arbitrary[ForEach]| arbitrary[Switch]
               | arbitrary[Discretely] | arbitrary[Continuously] )
 
   implicit def shrinkAction : Shrink[Action] =

@@ -257,7 +257,6 @@ object Interpreter extends acumen.CStoreInterpreter {
       case Switch(s,cls) => s match{     
         case ExprVector(_) =>           
           for (VVector(ls) <- asks(evalExpr(s, env, _))) {
-            ls map println
             val gp = VListToPattern(ls)
             (cls find (_.lhs == gp)) match {
               case Some(c) => evalActions(c.rhs, env, p)

@@ -146,7 +146,7 @@ object Parser extends MyStdTokenParsers {
   lexical.reserved ++=
     List("foreach", "end", "if", "else","elseif", "create", "move", "in", "terminate", "model","then","initially","always",
          "sum", "true", "false", "init", "match","with", "case", "type", "claim", "hypothesis", "let","noelse",
-         "Continuous", "Discrete", "FixedPoint", "none","cross","do",
+         "Continuous", "Discrete", "FixedPoint", "none","cross","do","dot",
          "Sphere", "Box", "Cylinder", "Cone", "Text", "Obj")
 
   /* token conversion */
@@ -390,6 +390,7 @@ object Parser extends MyStdTokenParsers {
   def level5: Parser[Expr] =
     level4 * ("*" ^^^ { (x: Expr, y: Expr) => mkOp("*", x, y) }
       | "cross" ^^^ { (x: Expr, y: Expr) => mkOp("cross", x, y) }
+      | "dot" ^^^ { (x: Expr, y: Expr) => mkOp("dot", x, y) }
       | "/" ^^^ { (x: Expr, y: Expr) => mkOp("/", x, y) }
       | ".*" ^^^ { (x: Expr, y: Expr) => mkOp(".*", x, y) }
       | "./" ^^^ { (x: Expr, y: Expr) => mkOp("./", x, y) }
@@ -417,9 +418,9 @@ object Parser extends MyStdTokenParsers {
       | interval
       |"type" ~! parens(className) ^^ { case _ ~ cn => TypeOf(cn) }
       | name >> { n => args(expr) ^^ { es => Op(n, es) } | success(Var(n)) }
-      | gvalue ^^ Lit
       | parens(expr)
-      | parens(repsep(expr, ",")) ^^ ExprVector        
+      | parens(repsep(expr, ",")) ^^ ExprVector 
+      | gvalue ^^ Lit
       | threeDObject )
 
 

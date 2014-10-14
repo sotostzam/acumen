@@ -171,6 +171,8 @@ class Pretty {
   def actionBranchHelper(e:List[Action]):Document = {
      if(e.length == 0)
         DocGroup("noelse")
+     else if(e.length == 1)
+        DocGroup("else" :/: pretty(e(0)))
      else
         DocGroup(DocNest(2, "else" :/: parens(pretty(e))))
     
@@ -184,7 +186,7 @@ class Pretty {
       case Switch(s,cls) => new DocNest(2,"match " :: pretty(s) :: " with" :: "[":/:
                                           pretty(cls) :/: "]") 
       case ForEach(i,e,b) => new DocNest(2,
-                               "for " :: pretty(i) :: 
+                               "foreach " :: pretty(i) :: 
                                " in " :: pretty(e) :: " do " :/: parens(pretty(b))) 
       case Continuously(ca) => pretty(ca)
       case Discretely(da) => pretty(da)

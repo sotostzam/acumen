@@ -15,7 +15,7 @@ object RandomTests extends Properties("Random") {
     forAll { (x:Prog) =>
       val px = pprint(x)     
       try { 
-        (Parser.run(Parser.prog, px) == x) :| ("pretty:\n" + px + "\n" + x + "\n" + Parser.run(Parser.prog, px).toString )
+        (Parser.run(Parser.prog, px) == x) :| ("pretty:\n" + px )
       } catch {
         case e => false :| ("res:\n" + e +"\npretty:\n" + px)
       }
