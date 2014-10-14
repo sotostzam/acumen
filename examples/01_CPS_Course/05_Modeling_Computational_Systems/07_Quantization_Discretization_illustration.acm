@@ -8,25 +8,25 @@ model Main (simulator) =
 initially 
   x = 1 & x' = 0 & x'' = 0 &
   sensor  =  0 &
-  bucket  =  0 & bucket' =  1 &
+  bucket  =  0 & bucket' =  1
 always
 
 /* Idealized -> critically stable
-sensor = x &
+  sensor = x &
 */
 
 /* Quantized/rounded -> 3.6 gain in ten seconds
-if ((sensor+0.3)<x) then sensor+ ==sensor+0.3 
-elseif ((sensor-0.3)>x) then sensor+ ==sensor-0.3 
-else {}
+  if (sensor+0.3)<x then sensor+ ==sensor+0.3 
+  elseif (sensor-0.3)>x then sensor+ ==sensor-0.3 
+  noelse
 */
 
 /* Discretized/Sampled -> 3.4 gain in ten seconds
-bucket' = 1 &
-if (bucket>0.05)
-then bucket + == 0 &
-     sensor + == x
-else {}
+  bucket' = 1 &
+  if bucket>0.05 then
+    bucket + == 0 &
+    sensor + == x
+  noelse
 */
 
 /* Discretized + Quantized = "double trouble" -> 6.6 gain in ten seconds
@@ -36,7 +36,6 @@ if (bucket>0.05)
    elseif ((sensor-0.3)>x) then sensor+ ==sensor-0.3 
    else {bucket = 0}
 */
-bucket'= 1 &
-x'' = -10*sensor &
-
+  bucket'= 1 &
+  x'' = -10*sensor
  

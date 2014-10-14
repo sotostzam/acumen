@@ -1,0 +1,145 @@
+/*
+ * An example of the independence pattern
+ * Author: Rui Wang
+ */
+model Main(Simulator) = 
+initially
+  ip = create ipattern() &
+  _3D = (Box center=(0,0,0) size=(6,0.01,6) color=blue rotation=(pi/2,0,0),
+         Box center=(0,0,0) size=(6,0.1,0.1) color=black rotation=(0,0,0),
+         Box center=(0,0,0) size=(6,0.1,0.1) color=black rotation=(0,0,pi/2),
+         Text center=(-1.25,0.25,-0.15) size=1.5 color=black rotation=(0,0,0) content="-",
+         Text center=(-0.75,0.25,-0.15) size=1.5 color=black rotation=(0,0,0) content="-",
+         Text center=(0.25,0.25,-0.15) size=1.5 color=black rotation=(0,0,0) content="-",
+         Text center=(0.75,0.25,-0.1) size=1 color=black rotation=(0,0,0) content="+",
+         Text center=(0.75,-1.25,-0.1) size=1 color=black rotation=(0,0,0) content="+",
+         Text center=(0.25,-1.25,-0.1) size=1 color=black rotation=(0,0,0) content="+",
+         Text center=(-0.75,-1.25,-0.15) size=1.5 color=black rotation=(0,0,0) content="-",
+         Text center=(-1.25,-1.25,-0.1) size=1 color=black rotation=(0,0,0) content="+",
+         Text center=(-1.25,2,0) size=1 color=black rotation=(pi/2,0,0) content="A",
+         Text center=(0.5,2,0) size=1 color=black rotation=(pi/2,0,0) content="B",
+         Text center=(-2,0.5,0) size=1 color=black rotation=(pi/2,0,pi/2) content="A",
+         Text center=(-2,-1.25,0) size=1 color=black rotation=(pi/2,0,pi/2) content="B",
+         Text center=(-2,-1.25,1) size=0.5 color=red rotation=(pi/2,0,pi/2) content="Player 1",
+         Text center=(-1.25,2,1) size=0.5 color=green rotation=(pi/2,0,0) content="player 2")
+
+//Score
+model ipattern() = 
+initially
+  scoreA = 0 & // if choose A  get 0 score
+  scoreB = 2 & // if choose B  get 2 score
+  scorep1 = 0 &
+  scorep2 = 0 &
+  p1 =  create player1() &
+  p2 =  create player2() &
+  _3D = ()
+always
+  _3D=((Text center=(-2.5,-1.25,3) size=0.5 color=red rotation=(pi/2,0,pi/2) content="Score:"),
+       (Text center=(-2.5,1.25,3) size=0.5 color=red rotation=(pi/2,0,pi/2) content=scorep1),
+       (Text center=(-1.25,2.5,3) size=0.5 color=green rotation=(pi/2,0,0) content="Score:"),
+       (Text center=(1.25,2.5,3) size=0.5 color=green rotation=(pi/2,0,0) content=scorep2)) &
+  if (p1.nextchoice==1)&&(p2.nextchoice==1) then
+    p1.nextchoice+ ==0 &
+    p2.nextchoice+ ==0 &
+    scorep1+ ==scorep1+scoreB &
+    scorep2+ ==scorep2+scoreB
+  noelse &
+  if (p1.nextchoice==0)&&(p2.nextchoice==1) then
+    p1.nextchoice+ ==0 &
+    p2.nextchoice+ ==0 &
+    scorep1+ ==scorep1+scoreA &
+    scorep2+ ==scorep2+scoreB
+  noelse &
+  if (p1.nextchoice==1)&&(p2.nextchoice==0) then
+    p1.nextchoice+ ==0 &
+    p2.nextchoice+ ==0 &
+    scorep1+ ==scorep1+scoreB &
+    scorep2+ ==scorep2+scoreA
+  noelse &
+  if (p1.nextchoice==0)&&(p2.nextchoice==0) then
+    p1.nextchoice+ ==0 &
+    p2.nextchoice+ ==0 &
+    scorep1+ ==scorep1+scoreA &
+    scorep2+ ==scorep2+scoreA
+  noelse
+
+//Play one
+model player1() = 
+initially
+  cnt = 1 &
+  b = create bar(0,0,1,0,red) &
+  _3D = () &
+  nextchoice = 1 & //nextchoice 0 means A 1 means B
+  mode = "B"
+always
+  match mode with [
+  "A" -> b.x' = 0 &
+         b.y' = 1 &
+         b.z' = 0 &
+         _3D = (Text center=(-2.5,-1.25,2) size=0.5 color=red rotation=(pi/2,0,pi/2) content="Turns:",
+                Text center=(-2.5,1.25,2) size=0.5 color=red rotation=(pi/2,0,pi/2) content=cnt) &
+        if b.y>1.5 then 
+          cnt+ ==cnt+1 & 
+          nextchoice+ ==1 &
+          mode+ =="B"
+        noelse
+  | "B" -> b.x' = 0 &
+           b.y' = -1 &
+           b.z' = 0 &
+           _3D = (Text center=(-2.5,-1.25,2) size=0.5 color=red rotation=(pi/2,0,pi/2) content="Turns:",
+                  Text center=(-2.5,1.25,2) size=0.5 color=red rotation=(pi/2,0,pi/2) content=cnt) &
+          if b.y<-1.5 then 
+            cnt+ ==cnt+1 & 
+            nextchoice+ ==0 &
+            mode+ =="A"
+          noelse
+  ]
+
+
+//Player two
+model player2() = initially
+  cnt = 1 &
+  b = create bar(0,0,1,pi/2,green) &
+  _3D = () &
+  nextchoice = 0 & //nextchoice 0 means A 1 means B
+  mode = "A"
+always
+  match mode with [
+  "A" -> b.x' = -1 &
+         b.y' = 0 &
+         b.z' = 0 &
+         _3D=(Text center=(-1.25,2.5,2) size=0.5 color=green rotation=(pi/2,0,0) content="Turns:",
+              Text center=(1.25,2.5,2) size=0.5 color=green rotation=(pi/2,0,0) content=cnt) &
+        if b.x<-1.5 then cnt+ ==cnt+1 &
+          if cnt == 3 then nextchoice+ ==1 & mode+ =="B"
+          else nextchoice+ ==0
+        noelse
+  | "B" -> b.x' = 1 &
+           b.y' = 0 &
+           b.z' = 0 &
+          _3D=(Text center=(-1.25,2.5,2) size=0.5 color=green rotation=(pi/2,0,0) content="Turns:",
+               Text center=(1.25,2.5,2) size=0.5 color=green rotation=(pi/2,0,0) content=cnt) &
+          if b.x>1.5 then cnt+ ==cnt+1 & 
+            if cnt == 6 then nextchoice+ ==0 & mode+ =="A"
+            else nextchoice+ ==1
+         noelse
+  ]
+
+
+//Bar
+model bar(x,y,z,zangle,color) = 
+initially
+  xt = x &yt = y &zt =  z &
+  x' =  0 &
+  y' =  0 &
+  z' =  0 &
+  _3D = () &
+  mode = "move"
+always
+  match mode with [
+  "move" -> _3D = (Box center=(x,y,z) size=(6,0.1,0.1) color=color rotation=(0,0,zangle)) &
+            if(y>1.5||y<-1.5||x>1.5||x<-1.5) then 
+              x+ ==xt &y+ ==yt &z + == zt & x'+ ==0 &y'+ ==0 &z'+ ==0 &mode+ =="move" 
+            noelse
+  ]
+ 

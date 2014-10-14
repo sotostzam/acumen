@@ -3,7 +3,7 @@
 
 model Main (simulator)= 
 initially
-x = 0 & x' = 0 & t = 0 &
+  x = 0 & x' = 0 & t = 0
 always
-x' = 1 & t = -cos(x)
+  x' = 1 & t = -cos(x)
  

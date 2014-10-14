@@ -1,0 +1,16 @@
+
+// Self as First Derivative Example
+
+model Main(simulator) = 
+initially
+  x = 1 &  x' = 0
+always
+  x' = x
+
+
+// Note:  Self-reference is OK
+// Note:  Solution is a fixed point for derivative
+//          operator
+// Note:  Solution is (natural) exponential function
+//          ("Exponential growth")
+

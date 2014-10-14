@@ -34,18 +34,16 @@ initially
   x_natural_response  =  0 &  // a temporary variable
   _3D  =  ()  
 always
-  
   t'  = 1 &
-  if (3<t && t<3.02)  
-  then strike+ ==400 
-  elseif (6<t&&t<6.02) 
-  then strike+ == -400
+  if 3<t && t<3.02 then
+    strike+ ==400 
+  elseif 6<t&&t<6.02 then
+    strike+ == -400
   else
-  {strike+ == 0} &
-
-
-   M + == mc + mp &
-   L + == (I + mp*l*l) / (mp*l) &
+    strike+ == 0 &
+    
+  M + == mc + mp &
+  L + == (I + mp*l*l) / (mp*l) &
 
 // The following simple controller can be derived in three steps.
 // First use theta and theta' to solve the problem of getting theta
@@ -66,22 +64,13 @@ always
   x'' = (F_x - (mp*l*g)*cos(theta)*sin(theta)/L + mp*l*sin(theta)*theta'*theta') / (M-(mp*l*cos(theta)*cos(theta))/L) &
   theta'' = (g*sin(theta)-mp*l*(theta'*theta')*cos(theta)*sin(theta)/M - (cos(theta)/M)*(V) ) / (L - (mp*l*cos(theta)*cos(theta))/M) &
   p   = (x+0.5*sin(theta), 0, 0.15+0.5*cos(theta)) &
-  _3D = ((Box center=
-          (x, 0, 0) size=
-          (0.3, 0.3, 0.3) color=
-          red rotation=
-          (0, 0, 0)),
-         (Cylinder center=
-          p - (0, 0, 0) radius=
-           0.01 length= 1  color=
-          green rotation=
-          (3.14/2, -theta, 0)))  
-  
+  _3D = (Box center=(x, 0, 0) size=(0.3, 0.3, 0.3) color=red rotation=(0, 0, 0),
+         Cylinder center=p-(0, 0, 0) radius=0.01 length= 1  color=green rotation=(3.14/2, -theta, 0))
   
 model Main(simulator) = 
-  initially
-    palwaysulum2 = create P() &
-  always
-    simulator.timeStep + == 0.01 &
-    simulator.endTime + == 20
+initially
+  palwaysulum2 = create P()
+always
+  simulator.timeStep + == 0.01 &
+  simulator.endTime + == 20
   

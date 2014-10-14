@@ -1,0 +1,16 @@
+
+// Square of Self as Second Derivative Example
+
+model Main(simulator) = 
+initially
+  x = 0 &  x' = 1 &  x'' = 2
+always
+  x'' = -x*x/6
+ 
+
+// Note:  Non-linear equation
+// Note:  Solution is not a sum of complex exponentials
+// Note:  We can still use the Picard method to
+//          construct approximate solutions to non-linear
+//          equations
+// Note:  Singularity!

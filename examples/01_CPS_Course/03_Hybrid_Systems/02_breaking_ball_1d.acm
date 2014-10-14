@@ -1,13 +1,13 @@
 model Ball(mode, x,x',x'') =
-initially 
+initially
 always 
   match mode with[
-  "Fly" -> if (x < 0 && x' < 0)
-           then create Ball("Bounce", x, x', x'') &
-                create Ball("Bounce", x, x', x'') &
-                terminate self
+  "Fly" -> if x < 0 && x' < 0 then
+             create Ball("Bounce", x, x', x'') &
+             create Ball("Bounce", x, x', x'') &
+             terminate self
            else
-             {x'' = -9.8}
+             x'' = -9.8
   | "Bounce" -> x' + == -x' &
               mode + == "Fly"
   ]

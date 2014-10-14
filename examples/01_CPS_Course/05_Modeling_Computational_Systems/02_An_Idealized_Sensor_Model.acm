@@ -4,8 +4,10 @@
  * that can read the exact position of the mass.  
  */
  
-model Main (simulator)
-  = initially x = 1 & x' = 0 & x'' = 0 & sensor  =  0 always
+model Main (simulator)= 
+initially 
+  x = 1 & x' = 0 & x'' = 0 & sensor  =  0 
+always
   sensor = x &
   x'' = -10*sensor
  

@@ -1,0 +1,12 @@
+
+// Negation as Second Derivative Example
+
+model Main(simulator) = 
+initially
+  x = 1 &  x' = 0
+always
+  x' = -x
+
+
+// Note:  Solution is exponential function with 
+//          negative exponent ("Exponential Decay")
