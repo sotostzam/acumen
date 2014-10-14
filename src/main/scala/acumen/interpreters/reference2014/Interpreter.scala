@@ -356,11 +356,17 @@ object Interpreter extends acumen.CStoreInterpreter {
    *  CValue obtained by evaluating the corresponding Expr in st (using env). */
   def applyDelayedAssignments(as: Set[(CId, Dot, Expr, Env)], st: Store): Eval[Unit] =
     applyAssignments(as.map { case (o, d, e, env) => (o, d, evalExpr(e, env, st)) }.toList)
+  
+  /** Repeatedly apply assignments to st, using the updated store as input to the next iteration. */
+  def applyDelayedAssignmentsRep(as: Set[(CId, Dot, Expr, Env)], st: Store, times: Int): Store =
+    if (times <= 0) st
+    else applyDelayedAssignmentsRep(as, applyDelayedAssignments(as, st) ~> st, times - 1)
 
   /** Updates the values of variables in vs (identified by CId and Dot.field) to the 
    *  corresponding CValue. */
   def applyAssignments(vs: List[(CId, Dot, CValue)]): Eval[Unit] =
     mapM_((a: (CId, Dot, CValue)) => setObjectFieldM(a._1, a._2.field, a._3), vs)
+
          
   def step(p:Prog, st:Store, md: Metadata) : StepRes =
     if (getTime(st) >= getEndTime(st) && getResultType(st) == FixedPoint)
@@ -387,7 +393,7 @@ object Interpreter extends acumen.CStoreInterpreter {
             val eqsIds = eqs.toList.map(a => (a._1, a._2))
             checkDuplicateAssingments(eqsIds ++ odesIds, DuplicateContinuousAssingment)
             checkContinuousDynamicsAlwaysDefined(p, eqsIds, st1)
-            val stODE = solveIVP(odes, p, st1)
+            val stODE = solveIVP(odes, eqs, p, st1)
             val stE2 = applyDelayedAssignmentsRep(eqs, stODE, eqs.size)
             val stU = undefineHigherDerivatives(eqs, stE2) 
             val st2 = setResultType(Continuous, stU)
@@ -395,11 +401,6 @@ object Interpreter extends acumen.CStoreInterpreter {
         }
         Data(res,md1)
       }
-  
-  /** Repeatedly apply assignments to st, using the updated store as input to the next iteration. */
-  def applyDelayedAssignmentsRep(as: Set[(CId, Dot, Expr, Env)], st: Store, times: Int): Store =
-    if (times <= 0) st
-    else applyDelayedAssignmentsRep(as, applyDelayedAssignments(as, st) ~> st, times - 1)
 
   /** When a variable is defined by an equation in eqs, set all its higher derivatives in st to GUndefined. */
   def undefineHigherDerivatives(eqs: Set[(CId, Dot, Expr, Env)], st: Store): Store = {
@@ -430,8 +431,8 @@ object Interpreter extends acumen.CStoreInterpreter {
    *  - Env:  Initial conditions of the IVP.
    * The time segment is derived from time step in store st. 
    */
-  def solveIVP(odes: Set[(CId, Dot, Expr, Env)], p: Prog, st: Store): Store = {
-    implicit val field = FieldImpl(odes, p)
+  def solveIVP(odes: Set[(CId, Dot, Expr, Env)], eqs: Set[(CId, Dot, Expr, Env)], p: Prog, st: Store): Store = {
+    implicit val field = FieldImpl(odes, eqs, p)
     new Solver(getInSimulator(Name("method", 0),st), xs = st, h = getTimeStep(st)){
       // add the EulerCromer solver
       override def knownSolvers = super.knownSolvers :+ EulerCromer
@@ -443,12 +444,13 @@ object Interpreter extends acumen.CStoreInterpreter {
   }
   
   /** Representation of a set of ODEs. */
-  case class FieldImpl(odes: Set[(CId, Dot, Expr, Env)], p: Prog) extends Field[Store] {
+  case class FieldImpl(odes: Set[(CId, Dot, Expr, Env)], eqs: Set[(CId, Dot, Expr, Env)], p: Prog) extends Field[Store] {
     /** Evaluate the field (the RHS of each equation in ODEs) in s. */
-    override def apply(s: Store): Store =
-      applyAssignments(odes.toList.map { 
-        case (o, n, rhs, env) => (o, n, evalExpr(rhs, env, s)) 
-      }) ~> s
+    override def apply(s: Store): Store = {
+      // Ensure consistency w.r.t. eqs before applying the field
+      val st1 = applyDelayedAssignmentsRep(eqs, s, eqs.size)
+      applyDelayedAssignments(odes, st1) ~> st1
+    }
     /** 
      * Returns the set of variables affected by the field.
      * These are the LHSs of each ODE and the corresponding unprimed variables.
