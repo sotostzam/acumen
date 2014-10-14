@@ -461,44 +461,48 @@ always
     if (abs(p(1))>0.78||abs(p(0))>1.53) && status == "Normal" then
       reason     + == "BallOutOfBoundary" &
       if bounced == false then
-        match (lastHit) with [
-          (1) -> mode + == "Player1Lost"
-        | (2) -> mode + == "Player2Lost"
-        ]
+        if lastHit == 1 then
+          mode + == "Player1Lost" 
+        elseif (lastHit == 2) then
+          mode + == "Player2Lost" 
+        noelse
       else (
-        match (bounced) with [
-          ("YesIn2") -> mode + == "Player2Lost" // The ball has bounced in player2's court,
-        | ("YesIn1") -> mode + == "Player1Lost" // and out of boundary now, so player2 lose.
+        match bounced with [ // The ball has bounced in player2's court,
+          "YesIn2" -> mode + == "Player2Lost" // and out of boundary now, so player2 lose.
+        | "YesIn1" -> mode + == "Player1Lost"
+        | false    -> 
         ]
       ) &
-      status + == "Report"
+      status + == "Report" 
     noelse &
     // Fail to serve the ball back
     if (abs(p(1))<=0.78 && abs(p(0))<=1.53) && bounced ~= false 
        && status=="Normal" && abs(p(0))>0.025 then
-      match (bounced, lastHit, p(0) < 0, p(0) > 0) with [
-        ("YesIn1", 1, true, false) -> 
-          mode       + == "Player1Lost" &
-          reason     + == "BallNotOverNet" &
-          bounced    + == true
-      | ("YesIn2", 2, false, true) ->
-          mode       + == "Player2Lost" &
-          reason     + == "BallNotOverNet" &
-          bounced    + == true
-      ]
+      if bounced == "YesIn1" && lastHit == 1 && p(0) < 0 then
+        mode       + == "Player1Lost" &
+        reason     + == "BallNotOverNet" &
+        bounced    + == true
+      noelse &
+      if bounced == "YesIn2" && lastHit == 2 && p(0) > 0 then
+        mode       + == "Player2Lost" &
+        reason     + == "BallNotOverNet" &
+        bounced    + == true
+      noelse 
     noelse &
     if (abs(p(1))<=0.78 && abs(p(0))<=1.53) && bounced ~= false
       && t>(bounceTime+0.1) && status=="Normal" then
-      match (bounced, p(0) > 0, p(0) < 0, lastHit) with [
-        ("YesIn2", true, false, 1) -> // The ball has bounced twice in player2's court
-          mode   + == "Player2Lost" &
-          reason + == "BallBouncedTwice" &
-          bounceTime + == t
-      | ("YesIn1", false, true, 2) -> // The ball has bounced twice in player1's court
-          mode   + == "Player1Lost" &
-          reason + == "BallBouncedTwice" &
-          bounceTime + == t
-      ]
+      // The ball has bounced twice in player2's court
+      if bounced == "YesIn2" && p(0) > 0 && lastHit == 1 then
+        mode   + == "Player2Lost" &
+        reason + == "BallBouncedTwice" &
+        bounceTime + == t
+      noelse &
+      // The ball has bounced twice in player1's court
+      if bounced == "YesIn1" && p(0) < 0 && lastHit == 2 then
+        mode   + == "Player1Lost" &
+        reason + == "BallBouncedTwice" &
+        bounceTime + == t
+      noelse
     noelse &
     if p(0)<0 && p(0)>-1.53 && bounced == false && status == "Normal" then
       bounced    + == "YesIn1" &
@@ -506,22 +510,22 @@ always
     noelse &
     if p(0)>=0 && p(0)<1.53 && bounced == false && status == "Normal" then
       bounced    + == "YesIn2" &
-      bounceTime + == t
+      bounceTime + == t 
     noelse
   noelse &
-  match (bounced, p(0)>0, status) with [
-    ("YesIn1", true, "Normal") -> bounced + == false
-  | ("YesIn2", false, "Normal") -> bounced + == false
-  ] &
+  if bounced == "YesIn1" && p(0)>0 && status == "Normal" then
+    bounced + == false
+  noelse &
+  if bounced == "YesIn2" && p(0)<=0 && status == "Normal" then
+    bounced + == false
+  noelse &
   // Time to check if the ball touches the net
   if abs(p(0))<0.025 && t>0.1 && checked == false && status == "Normal" then
     if p(2)<0.25 then
-      if p'(0)>0 then
-        mode   + == "Player1Lost"
-      else
-        mode   + == "Player2Lost" &
+      if p'(0)>0 then mode   + == "Player1Lost" 
+      else mode   + == "Player2Lost"&
       reason  + == "BallTouchNet" &
-      checked + == true
+      checked + == true 
     noelse
   noelse &
   match mode with [
