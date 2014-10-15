@@ -25,6 +25,12 @@ libraryDependencies ++= Seq (
   "com.fifesoft" % "autocomplete" % "2.5.0"
 )
 
+resolvers += "acumen" at "https://bitbucket.org/effective/acumen_maven-repo/raw/master/repository/"
+
+libraryDependencies ++= Seq (
+  "com.rapid_i" % "jpct" % "1.28"
+)
+
 resolvers ++= Seq(
    "snapshots" at "http://oss.sonatype.org/content/repositories/snapshots",
    "releases"  at "http://oss.sonatype.org/content/repositories/releases"
