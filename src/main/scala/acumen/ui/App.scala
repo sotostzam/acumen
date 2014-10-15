@@ -350,13 +350,6 @@ class App extends SimpleSwingApplication {
     val res = new jPCTEditorTab(controller)
     Main.threeDState = ThreeDState.ENABLE
     res
-  } catch {
-    case e =>
-      Logger.log("Error loading Java3D: " + e)
-      Logger.log("Disabling 3D Tab.")
-      Main.threeDState = ThreeDState.ERROR
-      new DisabledEditorTab("Unable to load Java 3D. This functionality will not be available until this is fixed.\n" +
-        "Please consult the section on Installing Java 3D in the README file that comes with this download.")
   }
 
   val views = new TabbedPane {

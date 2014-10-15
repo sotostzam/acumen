@@ -5,7 +5,6 @@ import java.io._
 import Errors._
 import util.Filters._
 import render.ToPython._
-import render.Java3D
 import Pretty._
 import PassManager._
 
@@ -92,7 +91,7 @@ object Main {
     "listen <file> <portnum>",
     "",
     "examples                record reference outputs for test suite"
-    //"2d|3d|java2d|java3d" // have no clue what these do! -- kevina
+    //"2d|3d" // have no clue what these do! -- kevina
     //"fromJson",
   )
 
@@ -260,8 +259,6 @@ object Main {
         case "pretty" => println(pprint(ast))
         case "3d" => toPython3D(toSummary3D(ctrace))
         case "2d" => toPython2D(toSummary2D(ctrace))
-        case "java2d" => new MainFrame(new Java3D(addThirdDimension(ctrace)), 256, 256);
-        case "java3d" => new MainFrame(new Java3D(ctrace), 256, 256);
         case "json" => for (st <- ctrace) println(JSon.toJSON(st))
         case "fromJson" =>
           val st = ctrace(0)

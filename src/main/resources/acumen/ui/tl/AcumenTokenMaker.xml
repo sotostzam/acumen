@@ -17,27 +17,44 @@
     <keyword>Continuous</keyword>
     <keyword>Discrete</keyword>
     <keyword>claim</keyword>
+    <keyword>always</keyword>
     <keyword>case</keyword>
     <keyword>class</keyword>
     <keyword>create</keyword>
+    <keyword>do</keyword>
     <keyword>else</keyword>
+    <keyword>elseif</keyword>
     <keyword>end</keyword>
     <keyword>false</keyword>
     <keyword>for</keyword>
+    <keyword>foreach</keyword>
     <keyword>hypothesis</keyword>
     <keyword>if</keyword>
     <keyword>in</keyword>
+    <keyword>initially</keyword>
+    <keyword>match</keyword>
+    <keyword>model</keyword>
     <keyword>move</keyword>
+    <keyword>noelse</keyword>
     <keyword>none</keyword>
     <keyword>private</keyword>
     <keyword>sum</keyword>
     <keyword>switch</keyword>
     <keyword>terminate</keyword>
+    <keyword>then</keyword>
     <keyword>true</keyword>
     <keyword>type</keyword>
+    <keyword>with</keyword>
   </keywords>
   <keywords2/>
-  <dataTypes/>
+  <dataTypes>
+    <dataType>Box</dataType>
+    <dataType>Cone</dataType>
+    <dataType>Cylinder</dataType>
+    <dataType>Obj</dataType>
+    <dataType>Sphere</dataType>
+    <dataType>Text</dataType>
+  </dataTypes>
   <functions>
     <function>abs</function>
     <function>asin</function>
@@ -94,6 +111,7 @@
     <operator>+</operator>
     <operator>+/-</operator>
     <operator>-</operator>
+    <operator>-&gt;</operator>
     <operator>.*</operator>
     <operator>.+</operator>
     <operator>.-</operator>
