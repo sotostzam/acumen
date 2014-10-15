@@ -300,46 +300,6 @@ class jPCT_ThreeDView extends JPanel {
     box
   }
 
-  def draw3Dline(pointA: SimpleVector, pointB: SimpleVector, width: Float, textureName: String): Object3D = {
-    val line = new Object3D(8)
-    val offset = width / 10.0f
-    line.addTriangle (new SimpleVector(pointA.x, pointA.y - offset, pointA.z), 0, 0,
-                      new SimpleVector(pointA.x, pointA.y + offset, pointA.z), 0, 1,
-                      new SimpleVector(pointB.x, pointB.y + offset, pointB.z), 1, 1,
-                      TextureManager.getInstance.getTextureID(textureName))
-    line.addTriangle (new SimpleVector(pointB.x, pointB.y + offset, pointB.z), 0, 0,
-                      new SimpleVector(pointB.x, pointB.y - offset, pointB.z), 0, 1,
-                      new SimpleVector(pointA.x, pointA.y - offset, pointA.z), 1, 1,
-                      TextureManager.getInstance.getTextureID(textureName))
-    line.addTriangle (new SimpleVector(pointB.x, pointB.y - offset, pointB.z), 0, 0,
-                      new SimpleVector(pointB.x, pointB.y + offset, pointB.z), 0, 1,
-                      new SimpleVector(pointA.x, pointA.y + offset, pointA.z), 1, 1,
-                      TextureManager.getInstance.getTextureID(textureName))
-    line.addTriangle (new SimpleVector(pointA.x, pointA.y + offset, pointA.z), 0, 0,
-                      new SimpleVector(pointA.x, pointA.y - offset, pointA.z), 0, 1,
-                      new SimpleVector(pointB.x, pointB.y - offset, pointB.z), 1, 1,
-                      TextureManager.getInstance.getTextureID(textureName))
-    line.addTriangle (new SimpleVector(pointA.x, pointA.y, pointA.z + offset), 0, 0,
-                      new SimpleVector(pointA.x, pointA.y, pointA.z - offset), 0, 1,
-                      new SimpleVector(pointB.x, pointB.y, pointB.z - offset), 1, 1,
-                      TextureManager.getInstance.getTextureID(textureName))
-    line.addTriangle (new SimpleVector(pointB.x, pointB.y, pointB.z - offset), 0, 0,
-                      new SimpleVector(pointB.x, pointB.y, pointB.z + offset), 0, 1,
-                      new SimpleVector(pointA.x, pointA.y, pointA.z + offset), 1, 1,
-                      TextureManager.getInstance.getTextureID(textureName))
-    line.addTriangle (new SimpleVector(pointB.x, pointB.y, pointB.z + offset), 0, 0,
-                      new SimpleVector(pointB.x, pointB.y, pointB.z - offset), 0, 1,
-                      new SimpleVector(pointA.x, pointA.y, pointA.z - offset), 1, 1,
-                      TextureManager.getInstance.getTextureID(textureName))
-    line.addTriangle (new SimpleVector(pointA.x, pointA.y, pointA.z - offset), 0, 0,
-                      new SimpleVector(pointA.x, pointA.y, pointA.z + offset), 0, 1,
-                      new SimpleVector(pointB.x, pointB.y, pointB.z + offset), 1, 1,
-                      TextureManager.getInstance.getTextureID(textureName))
-    line.setLighting(Object3D.LIGHTING_NO_LIGHTS)
-    line.setAdditionalColor(Color.WHITE)
-    return line
-  }
-
   /** uses a vertex controller to rescale  **/
 
   def setBoxSize (scaleLength: Float, scaleWidth: Float, scaleHeight: Float, planeMesh: Mesh) = {
@@ -796,7 +756,6 @@ class _3DDisplayJPCT(app: jPCT_ThreeDView, slider: Slider3d,
 
 // Transparent box
 class setGlass(color: Color, objectA: Object3D, transparancy: Int) {
-  //objectA.setSpecularLighting(true)
   objectA.setTransparencyMode(Object3D.TRANSPARENCY_MODE_DEFAULT) //TRANSPARENCY_MODE_DEFAULT
   objectA.setTransparency(transparancy) // the transparency level. 0 is the highest possible transparency
   objectA.setAdditionalColor(color) // the color of the object3D
