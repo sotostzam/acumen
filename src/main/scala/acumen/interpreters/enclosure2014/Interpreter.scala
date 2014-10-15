@@ -1074,7 +1074,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
       case Right(r) => r
     }
     val varNameToFieldId = varNameToFieldIdMap(ic)
-    val F = getFieldFromActions(inline(eqs, odes), ic, p) // in-line eqs to obtain explicit ODEs
+    val F = getFieldFromActions(inline(eqs, odes, st), ic, p) // in-line eqs to obtain explicit ODEs
     val stateVariables = varNameToFieldId.keys.toList
     val A = new Box(stateVariables.flatMap{ v => 
       val (o,n) = varNameToFieldId(v)
@@ -1089,7 +1089,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
       case (k, v) => (varNameToFieldId(k), VLit(Real(A(k), v, solutions._2(k))))
     }
     val odeSolutions = ic update solutionMap
-    val equationsMap = inline(eqs, eqs).map { // LHSs of EquationsTs, including highest derivatives of ODEs
+    val equationsMap = inline(eqs, eqs, st).map { // LHSs of EquationsTs, including highest derivatives of ODEs
       case DelayedAction(_, cid, Continuously(EquationT(Dot(_, n), rhs)), env) =>
         (cid, n) -> evalExpr(rhs, p, cid, odeSolutions)
     }.toMap
@@ -1110,15 +1110,14 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
    * NOTE: This implies a restriction on the programs that are accepted: 
    *       If the program contains an algebraic loop, an exception will be thrown.
    * */
-  def inline(as: Set[DelayedAction], bs: Set[DelayedAction]): Set[DelayedAction] = {
-    val dotToDA = as.map(da => (da.lhs, da.selfCId) -> da).toMap
-    // FIXME Does not handle variables assigned/referred to from two different objects
+  def inline(as: Set[DelayedAction], bs: Set[DelayedAction], st: CStore): Set[DelayedAction] = {
+    val globalRefToDA = as.map(da => globalReference(da.lhs, da.env, st) -> da).toMap
     def inline(hosts: Map[DelayedAction,List[DelayedAction]]): Set[DelayedAction] = {
       val next = hosts.map {
         case (host, inlined) =>
           dots(host.rhs).foldLeft((host, inlined)) {
           case (prev@(hostPrev, ildPrev), d) =>
-              dotToDA.get((d, host.selfCId)) match {
+              globalRefToDA.get(globalReference(d, host.env, st)) match {
               case None => prev // No equation is active for d
               case Some(inlineMe) => 
                 if (inlineMe.lhs.obj == hostPrev.lhs.obj && inlineMe.lhs.field.x == hostPrev.lhs.field.x)
