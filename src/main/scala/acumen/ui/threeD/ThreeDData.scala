@@ -22,8 +22,9 @@ class ThreeDData extends Publisher {
   var frameNumber = 0
   /* Used for determine 3D-visualization play speed */
   var endTime = 0.0;
-  /* Default settings to transform Acumen AST to generic data can be used later for Java3D
-       Example : GStr("Sphere") => "Sphere" 	                                            */
+  /* Default settings to transform Acumen AST to generic data can be 
+   * used later for constructing a primitive
+       Example : GStr("Sphere") => "Sphere" */
   var _3DType = "Sphere"
   var _3DPosition = Array[Double](0.0, 0.0, 0.0)
   var _3DSize = Array[Double]();

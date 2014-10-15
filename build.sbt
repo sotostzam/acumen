@@ -16,9 +16,6 @@ libraryDependencies ++= Seq(
 resolvers += "tuxfamily" at "http://download.tuxfamily.org/arakhne/maven/"
 
 libraryDependencies ++= Seq (
-  "javax" % "j3d-core" % "1.5.2",
-  "javax" % "j3d-core-utils" % "1.5.2",
-  "javax" % "vecmath" % "1.5.2",
   "com.fifesoft" % "rsyntaxtextarea" % "2.5.3",
   "com.fifesoft" % "autocomplete" % "2.5.0"
 )
