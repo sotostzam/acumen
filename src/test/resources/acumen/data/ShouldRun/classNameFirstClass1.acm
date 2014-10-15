@@ -4,23 +4,23 @@ model Main(simulator) =
     game  =  Game &
     players  =  (PlayerA, PlayerB, PlayerC)
   always
-  switch mode
-    case "init"
-      for p1 = players
-        for p2 = players
-          if p1 ~= p2
+  match mode with[
+    "init" ->
+      foreach p1 in players do
+        foreach p2 in players do
+          if p1 ~= p2 then
             create game(p1, p2)
-          end
-        end
-      end &
+          noelse
+        
+        &
       mode + == "persist"
-    case "persist"
-  end
-end
+    |"persist" ->
+  ]
 
-model PlayerA(x,y,z) always
-model PlayerB(x,y,z) always
-model PlayerC(x,y,z) always
+
+model PlayerA(x,y,z) = initially
+model PlayerB(x,y,z) = initially
+model PlayerC(x,y,z) = initially
 
 model Game(p1C,p2C) 
 = initially

@@ -1,6 +1,6 @@
 /* test object creation in the initially section of main */
 
-model A(x) always
+model A(x) = initially
 
 model Main(sim)
   = initially 

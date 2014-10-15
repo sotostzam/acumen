@@ -1,4 +1,4 @@
-model A() always
+model A() = initially
 
 model Main(simulator) = 
   initially
@@ -8,14 +8,14 @@ model Main(simulator) =
   always
   simulator.timeStep + == 1 &
   simulator.endTime + == 1 &
-  switch mode
-    case "Init"
-      if x.modelName == type(A)
-        y := 1
+  match mode with[
+    "Init" ->
+      if x.className == type(A) then
+        y + == 1
       else
-        y := 2
-      always &
+        y + == 2
+       &
       mode + == "Idle"
-    case "Idle"
-  end
+    |"Idle" ->
+   ]
  

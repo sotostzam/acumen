@@ -2,15 +2,14 @@ model Main(simu)
   = initially
     mode  =  "Init"
   always
-  switch mode
-    case "Init"
+  match mode with[
+    "Init" ->
       simu.timeStep + == 1 &
-      simu.alwaysTime + == 1 &
+      simu.endTime + == 1 &
       create Test("Init") &
       mode + == "Idle"
-    case "Idle"
-  end
-end
+    |"Idle" ->
+  ]
 
 model Test(mode)
   = initially 
@@ -18,14 +17,14 @@ model Test(mode)
     c2  =  create A()
   always
 
-  switch mode
-    case "Init"
+  match mode with[
+    "Init" ->
       mode + == "Reparent"
-    case "Reparent"
+    |"Reparent" ->
       move c1.x c2 &
       mode + == "Done"
-    case "Done"
-  always
+    |"Done" ->
+  ]
  
 
 model A()
@@ -34,4 +33,4 @@ model A()
   always
  
 
-model B() always
+model B() = initially

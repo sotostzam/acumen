@@ -1,4 +1,4 @@
-model A() always
+model A() = initially
 
 model Main(sim)
   = initially
@@ -6,10 +6,10 @@ model Main(sim)
     c1  =  create A() &
     c2  =  create A()
   always
-  switch mode
-    case "M1"
+  match mode with[
+    "M1" ->
       move c1 c2 &
       mode + == "M2"
-    case "M2"
-  end
+    |"M2" ->
+  ]
  
