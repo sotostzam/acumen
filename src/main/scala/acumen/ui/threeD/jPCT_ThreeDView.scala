@@ -515,9 +515,11 @@ class _3DDisplayJPCT(app: jPCT_ThreeDView, slider: Slider3d,
           // the type has been changed, we need to delete the old object and create a one
           if (lastTempType != tempType) {
             // change the object in
+            view.removeObject(objID)
             objects(id) = app.drawBox(abs(tempSize(0)), abs(tempSize(1)), abs(tempSize(2)))
             transObject = objects(id)
             objID = objects(id).getID // renew the object ID
+            view.addObject(transObject)
             transObject.setShadingMode(Object3D.SHADING_FAKED_FLAT)
           } else { // just need change the size
             if (lastTempSize != tempSize) {
@@ -538,9 +540,11 @@ class _3DDisplayJPCT(app: jPCT_ThreeDView, slider: Slider3d,
           // the type has been changed, we need to delete the old object and create a one
           if (lastTempType != tempType) {
             // change the object in
+            view.removeObject(objID)
             objects(id) = Primitives.getCylinder(50, abs((tempSize(0)).toFloat), abs((tempSize(1) / (2 * tempSize(0))).toFloat))
             transObject = objects(id)
             objID = objects(id).getID // renew the object ID
+            view.addObject(transObject)
             rotateCylCone(transObject)
             transObject.setShadingMode(Object3D.SHADING_FAKED_FLAT)
           } else { // just need change the size
@@ -561,9 +565,11 @@ class _3DDisplayJPCT(app: jPCT_ThreeDView, slider: Slider3d,
           // the type has been changed, we need to delete the old object and create a one
           if (lastTempType != tempType) {
             // change the object in
+            view.removeObject(objID)
             objects(id) = Primitives.getCone(50, abs((tempSize(0)).toFloat), abs((tempSize(1) / (tempSize(0) * 2)).toFloat))
             transObject = objects(id)
             objID = objects(id).getID // renew the object ID
+            view.addObject(transObject)
             rotateCylCone(transObject)
           } else { // just need change the size
             if (lastTempSize != tempSize) {
@@ -583,9 +589,11 @@ class _3DDisplayJPCT(app: jPCT_ThreeDView, slider: Slider3d,
           // the type has been changed, we need to delete the old object and create a one
           if (lastTempType != tempType) {
             // change the object in
+            view.removeObject(objID)
             objects(id) = Primitives.getSphere(10, abs((tempSize(0)).toFloat))
             transObject = objects(id)
             objID = objects(id).getID // renew the object ID
+            view.addObject(transObject)
           } else { // just need change the size
             if (lastTempSize != tempSize) {
               val radiusFactor = tempSize(0) / lastTempSize(0)
