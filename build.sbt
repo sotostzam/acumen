@@ -6,8 +6,6 @@ scalaVersion := "2.10.4"
 
 theMainClass := "acumen.Main"
 
-unmanagedBase <<= baseDirectory { base => base / "jpct_lib" }
-
 libraryDependencies ++= Seq(
   "org.scala-lang" % "scala-swing" % "2.10.4",
   "org.scala-lang" % "scala-actors" % "2.10.4",
