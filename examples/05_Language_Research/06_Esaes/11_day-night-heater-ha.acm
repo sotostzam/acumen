@@ -1,0 +1,48 @@
+/* 
+   Works with semantic 2014
+   Works with semantic 2013
+   Works with semantic 2012
+*/
+
+// Day/Night Heater example
+//
+// Auhor: Adam Duracz
+
+class Main(simulator)
+  private
+    x := 10; x' := 10;
+    time := 0; time' := 1;
+    heating := "on"; 
+    period  := "day" 
+  end
+  time' = 1;
+  switch period
+    case "day" // Hybrid behaviour during the day
+      if time > 12
+        period := "night"
+      end;
+      switch heating
+        case "on"
+          if x > 23
+            heating := "off"
+          end;
+          x' = 10
+        case "off"
+          if x < 19
+            heating := "on"
+          end;
+          x' = -5-x
+      end
+    case "night"
+      if time > 24
+        time := 0;
+        period := "day" 
+      end;
+      x' = -5-x // Continuous behaviour at night
+  end;
+  simulator.endTime := 48
+end
+
+// Note: Model is a hierarchical hybird automata, expressed as 
+//       nested switch statements, to switch between hybrid 
+//       behaviours during the day and night "periods".

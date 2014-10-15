@@ -1,0 +1,10 @@
+
+// Basic, Linear Quantization
+
+model Main (simulator)= 
+initially 
+  x = 1 & x' = 0 & x'' = 0 & c = 1
+always
+  c   = floor (10*x)/10 &
+  x'' = -x 
+ 

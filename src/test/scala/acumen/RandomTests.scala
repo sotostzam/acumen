@@ -8,18 +8,20 @@ import acumen._
 
 object RandomTests extends Properties("Random") {
 
+
+
   property("parse-pretty consistency") = {
 	import acumen.testutil.Generators.arbProg
-    forAll { (x:Prog) => 
-      val px = pprint(x)
+    forAll { (x:Prog) =>
+      val px = pprint(x)     
       try { 
-        (Parser.run(Parser.prog, px) == x) :| ("pretty:\n" + px)
+        (Parser.run(Parser.prog, px) == x) :| ("pretty:\n" + px )
       } catch {
         case e => false :| ("res:\n" + e +"\npretty:\n" + px)
       }
     }
   }
-
+  
   property("parse-json consistency") =
     forAll { (c:CStore) =>
       val json = JSon.toJSON(c).toString
@@ -31,3 +33,5 @@ object RandomTests extends Properties("Random") {
     }
 
 }
+
+

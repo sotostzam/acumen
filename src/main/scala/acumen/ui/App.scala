@@ -526,42 +526,50 @@ class App extends SimpleSwingApplication {
         action = reference2014Action
       }
       val opt2014 = new RadioMenuItem("") {
+        visible = Main.enableOldSemantics
         selected = false
         enableWhenStopped(this)
         action = optimized2014Action
       }
       val ref2013 = new RadioMenuItem("") {
+        visible = Main.enableOldSemantics
         selected = false
         enableWhenStopped(this)
         action = reference2013Action
       }
       val opt2013 = new RadioMenuItem("") {
+        visible = Main.enableOldSemantics
         selected = false
         enableWhenStopped(this)
         action = optimized2013Action
       }
       val ref2012 = new RadioMenuItem("") {
+        visible = Main.enableOldSemantics
         selected = false
         enableWhenStopped(this)
         action = reference2012Action
       }
       val opt2012 = new RadioMenuItem("") {
+        visible = Main.enableOldSemantics
         selected = false
         enableWhenStopped(this)
         action = optimized2012Action
       }
       val par2012 = new RadioMenuItem("") {
+        visible = Main.enableOldSemantics
         selected = false
         enableWhenStopped(this)
         action = parallel2012Action
       }
       val encPWL = new RadioMenuItem("") {
+        visible = Main.enableOldSemantics
         action = pwlHybridSolverAction
         enableWhenStopped(this)
         selected = false // Main.useEnclosures && 
           //enclosure.Interpreter.strategy.eventEncloser.getClass == classOf[PWLEventEncloser] 
       }
       val encEVT = new RadioMenuItem("") {
+        visible = Main.enableOldSemantics
         action = eventTreeHybridSolverAction
         enableWhenStopped(this) 
         selected = false // Main.useEnclosures &&
@@ -606,6 +614,7 @@ class App extends SimpleSwingApplication {
       }
       if (Main.enableAllSemantics) {
         contents += new Menu("Deprecated") {
+          visible = Main.enableOldSemantics
           mnemonic = Key.D
           contents ++= Seq(ref2013, opt2013, new Separator, ref2012, opt2012, par2012)
         }

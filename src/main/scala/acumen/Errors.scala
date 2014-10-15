@@ -194,6 +194,11 @@ object Errors {
 
   /* Command-line errors */
 
+  case class DisabledSemantics(theString: String) extends PositionalAcumenError {
+    override def mesg = 
+      "Semantics disabled in this release: " + theString
+  }
+
   case class UnrecognizedSemanticsString(theString: String) extends PositionalAcumenError {
     override def mesg = 
       "Unrecognized semantics string: " + theString

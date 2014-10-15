@@ -1,0 +1,11 @@
+/** Run the code below to produce the oscillatory behavior. 
+ *  This is an idealized, continuous system 
+ *  that also happens to be critically stable, 
+ *  as the system continues to oscillate indefinitely **/
+
+model Main (simulator)  =
+initially 
+  x = 1 & x' = 0 & x'' = 0  
+always
+  x'' = -10*x
+ 

@@ -46,6 +46,7 @@ object SD {
         EquationT(
           runExpr(lhs),
           runExpr(rhs))
+      case other => other
     })
     case Discretely(discreteAction) => Discretely(discreteAction match {
       case Assign(lhs: Expr, rhs: Expr) =>

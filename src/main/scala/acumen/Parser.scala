@@ -1,7 +1,7 @@
 package acumen
 
 import scala.util.parsing.input.{Reader,StreamReader}
-import scala.util.parsing.combinator.lexical.StdLexical
+import scala.util.parsing.combinator.lexical.{Scanners,StdLexical}
 import scala.util.parsing.combinator.syntactical.StdTokenParsers
 import scala.util.parsing.input.CharArrayReader.EofCh
 import scala.util.parsing.combinator.token.StdTokens
@@ -43,6 +43,7 @@ class MyLexical extends StdLexical {
     case '\"' ~ chars ~ '\"' => StringLit(chars mkString "")
   }
   private def eof = EofCh ^^^ EOF
+ 
   private def unclosedString = '\"' ~> failure("unclosed string literal")
   private def intlit = rep1(digit) ^^ (_ mkString "")
   private def numlit: Parser[Token] =
@@ -75,7 +76,7 @@ class MyStdTokenParsers extends StdTokenParsers {
 
   def cidLit: Parser[String] =
     elem("canonical id", _.isInstanceOf[lexical.CIdLit]) ^^ (_.chars)
-
+ 
 }
 
 /* Position class enhanced the filename of the source file */
@@ -136,17 +137,17 @@ sealed class MyReader(seq: PagedSeq[Char], override val offset: Int, lnum: Int, 
 }
 
 object Parser extends MyStdTokenParsers {
-
   lexical.delimiters ++=
-    List("(", ")", "{", "}", "[", "]", ";", "=", ":=", "=[i]", "=[t]", "'", ",",
+    List("(", ")", "{", "}", "[", "]", ";", "=", ":=", "=[i]", "=[t]", "'", ","," ",
       ".", "+", "-", "*", "/", "^", ".+", ".-", ".*", "./", ".^",
-      ":", "<", ">", "<=", ">=", "==", "~=", "||",
+      ":", "<", ">", "<=", ">=", "~=", "||","->","==",
       "&&", "<<", ">>", "&", "|", "%", "@", "..", "+/-", "#include", "#semantics")
 
   lexical.reserved ++=
-    List("for", "end", "if", "else", "create", "move", "in", "terminate", "class", 
-         "sum", "true", "false", "private", "switch", "case", "type", "claim", "hypothesis", "let", 
-         "Continuous", "Discrete", "FixedPoint", "none")
+    List("foreach", "end", "if", "else","elseif", "create", "move", "in", "terminate", "model","then","initially","always",
+         "sum", "true", "false", "init", "match","with", "case", "type", "claim", "hypothesis", "let","noelse",
+         "Continuous", "Discrete", "FixedPoint", "none","cross","do","dot",
+         "Sphere", "Box", "Cylinder", "Cone", "Text", "Obj")
 
   /* token conversion */
 
@@ -155,10 +156,10 @@ object Parser extends MyStdTokenParsers {
   }
 
   /* main parser method */
-
   def run[A](p: Parser[A], s: String, f: Option[File] = None): A =
     run(p, new java.io.StringReader(s), f)
 
+   
   def run[A](p: Parser[A], s: java.io.Reader, f: Option[File]): A = {
     val res = phrase(p)(new lexical.Scanner(MyReader(s, f)))
     res match {
@@ -169,7 +170,6 @@ object Parser extends MyStdTokenParsers {
       throw ParseError(res.toString)
     else res.get
   }
-
   /* constructor functions */
 
   def mkOp(o: String, xs: Expr*) =
@@ -188,6 +188,14 @@ object Parser extends MyStdTokenParsers {
   def parens[A](p: => Parser[A]): Parser[A] = "(" ~> p <~ ")"
 
   def braces[A](p: => Parser[A]): Parser[A] = "{" ~> p <~ "}"
+  
+  def optBraces[A](p: => Parser[A]):Parser[A] = 
+    opt("{") >> { x => x match{
+      case Some(_) => p <~ "}"
+      case None => p
+    }}
+    	
+    
 
   def brackets[A](p: => Parser[A]): Parser[A] = "[" ~> p <~ "]"
 
@@ -195,7 +203,7 @@ object Parser extends MyStdTokenParsers {
 
   /* ground values parsers */
 
-  def gvalue = gint | gfloat | gstr | gbool
+  def gvalue = gint | gfloat | gstr | gbool | gpattern
 
   def gint = opt("-") ~ numericLit ^^ {
     case m ~ x =>
@@ -209,6 +217,7 @@ object Parser extends MyStdTokenParsers {
   }
   def gstr = stringLit ^^ GStr
   def gbool = "true" ^^^ GBool(true) | "false" ^^^ GBool(false)
+  def gpattern: Parser[GPattern] = parens(repsep(gvalue, ",")) ^^{case ls => GPattern(ls)}
 
   /* the actual parser */
 
@@ -216,41 +225,44 @@ object Parser extends MyStdTokenParsers {
 
   def getSemantics = opt(semantics) <~ rep(acceptIf( _ => true)(_ => ""))
   
-  def fullProg = opt(semantics) ~> rep(include) ~! rep(classDef) ^^ { case incl ~ defs => (incl, defs) }
+  def fullProg = opt(semantics) ~> rep(include) ~ rep(classDef) ^^ { case incl ~ defs => (incl, defs) }
 
   def semantics = positioned("#semantics" ~! stringLit ^^ { case _ ~ str => SemanticsSpec(str) })
 
   def include = positioned("#include" ~! stringLit ^^ { case _ ~ str => Include(str) })
 
-  def classDef = positioned("class" ~! className ~! args(name) ~! inits ~! actions ~! "end" ^^
-    { case _ ~ c ~ fs ~ is ~ b ~ _ => ClassDef(c, fs, is, b) })
+  def classInit = "model" ~ className ~ args(name) ~ "="  ~ inits 
+  def classDef = positioned(
+      classInit ~ "always" ~ actions  ^^ { case  _ ~ c ~ fs ~ _ ~ is ~_ ~ b   => ClassDef(c, fs, is, b) } |
+      classInit ~opt("always")^^ {case  _ ~ c ~ fs ~ _ ~ is~_    => ClassDef(c, fs, is, List()) }
+     )
 
   def inits: Parser[List[Init]] =
-    ("private" ~> repsep(init, ";") <~ (opt(";") ~ "end")
+    ("initially" ~> repsep(init, "&") 
       | success(Nil))
 
-  def init = name ~! ":=" ~! initrhs ^^ { case x ~ _ ~ rhs => Init(x, rhs) }
+  def init = name ~! "=" ~! initrhs ^^ { case x ~ _ ~ rhs => Init(x, rhs) }
 
   def initrhs =
     ("create" ~! className ~! args(expr) ^^ { case _ ~ cn ~ es => NewRhs(Var(Name(cn.x,0)), es) }
       | expr ^^ ExprRhs)
 
-  def actions = repsep(action, ";") <~ opt(";")
+  def actions = repsep(action, "&") 
 
   def action: Parser[Action] =
     switchCase | ifThenElse | forEach | discretelyOrContinuously | claim | hypothesis
 
   def switchCase =
-    "switch" ~! expr ~! clauses ~! "end" ^^
-      { case _ ~ s ~ cls ~ _ => Switch(s, cls) }
+    "match" ~ expr ~ "with" ~"[" ~! clauses ~! "]" ^^
+      { case _ ~ s ~ _ ~_~ cls  ~ _ => Switch(s, cls) }
 
-  def clauses = rep(clause)
+  def clauses = repsep(clause,"|")
 
   def clause =
-    "case" ~ gvalue ~ claimExpr ~! actions ^^
-      { case _ ~ lhs ~ invariant ~ rhs => Clause(lhs, invariant, rhs) } |
-      "case" ~! gvalue ~! actions ^^
-      { case _ ~ lhs ~ rhs => Clause(lhs, Lit(GBool(true)), rhs) }
+     gvalue ~ "->" ~ claimExpr ~! "&" ~ actions ^^
+      { case  lhs ~_~ invariant ~ _~ rhs => Clause(lhs, invariant, rhs) } |
+     gvalue ~! "->" ~ actions ^^
+      { case lhs ~ "->" ~ rhs => Clause(lhs, Lit(GBool(true)), rhs) }
 
   def claimExpr = "claim" ~! expr ^^ { case "claim" ~ expr => expr }
 
@@ -259,25 +271,53 @@ object Parser extends MyStdTokenParsers {
   def hypothesis = "hypothesis" ~! opt(stringLit) ~ expr ^^ 
     { case "hypothesis" ~ statement ~ predicate => Hypothesis(statement, predicate) }
   
-  def ifThenElse =
-    ("if" ~! expr ~! actions) >> {
-      case _ ~ c ~ t =>
-        ("else" ~! actions ~! "end" ^^ { case _ ~ e ~ _ => IfThenElse(c, t, e) }
-          | "end" ^^^ IfThenElse(c, t, List()))
-    }
-
+  // Make the else branch mandatory
+  def elseif = "elseif" ~ expr ~ "then" ~ actions ^^ {case _ ~ b ~_ ~ ac => (b,ac)}
+  
+  private def elseifHelper(eis:List[(Expr, List[Action])]):IfThenElse = eis match{
+    case ei :: Nil => IfThenElse(ei._1, ei._2, List())
+    case ei :: tail => IfThenElse(ei._1, ei._2, List(elseifHelper(tail))) 
+  }
+  
+  private def elseHelper(els:List[Action], ite:IfThenElse):IfThenElse = ite match{
+    case IfThenElse(e,t,Nil) => IfThenElse(e,t,els)
+    case IfThenElse(e,t,s) =>IfThenElse(e,t,List(elseHelper(els,s(0).asInstanceOf[IfThenElse])))
+  }
+  
+  def actionsBranch: Parser[List[Action]] = "else" ~> action ^^{x => List(x)}  | "else" ~> parens(actions)|
+                                            "noelse" ^^^ List() 
+		                                                   
+  def ifThenElse = 
+    "if" ~! expr ~! "then" ~ actions ~rep(elseif) ~  actionsBranch ^^ 
+    	{case _~ c ~_ ~t ~ elseifs ~ e => elseifs match{
+    	  case Nil => IfThenElse(c,t,e)
+    	  case ss => IfThenElse(c,t, List(elseHelper(e,elseifHelper(ss))))
+    	  }   	
+    	}
+  
+  def forhelp = action ^^ {x => List(x)} | parens(actions)
   def forEach =
-    "for" ~! name ~! "=" ~! expr ~! actions ~! "end" ^^
-      { case _ ~ i ~ _ ~ e ~ b ~ _ => ForEach(i, e, b) }
+    "foreach" ~ name ~ "in" ~ expr ~"do"~ forhelp  ^^
+      { case _ ~ i ~ _ ~ e ~_~ b  => ForEach(i, e, b) }
+  
+   def pattern : Parser[Pattern] =  name ~ "." ~ name ^^ {case e ~ _ ~ n => Pattern(List(Dot(Var(e),n)))}|
+		                            name ~ args(expr) ^^{case n ~ es => Pattern(List(Op(n,es)))}|
+		   							name ^^ {case x => Pattern(List(Var(x)))} |
+		                          parens(repsep(pattern,",")) ^^ {case ls => Pattern(ls.map(x => x.ps match{
+		                            case s::Nil => x.ps
+		                            case ss => List(Pattern(ss))}).flatten)} 
+  //println(run(action, " b' == b''' "))	                           
+  def patternMatch : Parser[Continuously] = pattern ~ "=" ~ expr ^^{case p ~ _ ~ e => Continuously(Assignment(p,e))}
 
   def discretelyOrContinuously =
-    (newObject(None) ^^ Discretely | elim ^^ Discretely
-      | move ^^ Discretely | assignOrEquation)
+    (newObject(None) ^^ Discretely | elim ^^ Discretely 
+      | move ^^ Discretely | assignOrEquation | patternMatch)
 
   def assignOrEquation =
-    expr >> { e =>
-      (":=" ~> assignrhs(e) ^^ Discretely
-        | "=" ~> expr ^^ (e1 => Continuously(Equation(e, e1)))
+    // Make sure lhs won't be an expr like a == b, which has the same syntax as equation
+    access >> { e =>
+      (	"==" ~> expr ^^ (e1 => Continuously(Equation(e, e1)))
+        |"+" ~> "==" ~> assignrhs(e) ^^ Discretely     
         | "=[i]" ~> expr ^^ (e1 => Continuously(EquationI(e, e1)))
         | "=[t]" ~> expr ^^ (e1 => Continuously(EquationT(e, e1))))
     }
@@ -292,30 +332,29 @@ object Parser extends MyStdTokenParsers {
   def elim = "terminate" ~> expr ^^ Elim
 
   def move =
-    "move" ~! expr ~! expr ^^ { case _ ~ o ~ p => Move(o, p) }
+    "move" ~ access ~ expr ^^ { case _ ~ o ~ p => Move(o, p) }
 
   def binding = name ~! "=" ~! expr ^^ { case x ~ _ ~ e => (x, e) }
 
-  def bindings = repsep(binding, ";") <~ opt(";")
+  def bindings = repsep(binding, "&") <~ opt("&")
 
   def let:Parser[Expr] =
-      positioned("let" ~! bindings ~! "in" ~! expr ~!"end" ^^
-                  { case _ ~ bs ~ _~ e ~ _ => ExprLet(bs, e) })
+      positioned("let" ~! bindings ~! "in" ~! expr  ^^
+                  { case _ ~bs ~ _~ e => ExprLet(bs, e) })
 
   def levelTop:Parser[Expr] =
-      positioned(level13 * ("||" ^^^ { (x: Expr, y: Expr) => mkOp("||", x, y) }))
+      positioned(level12)
 
   def expr: Parser[Expr] = levelTop | let
-  def level13: Parser[Expr] =
-    level12 * ("&&" ^^^ { (x: Expr, y: Expr) => mkOp("&&", x, y) })
+       
 
   def level12: Parser[Expr] =
-    level10 * ("|" ^^^ { (x: Expr, y: Expr) => mkOp("|", x, y) })
+    level10 * ("||" ^^^ { (x: Expr, y: Expr) => mkOp("||", x, y) })
 
   // no level 11 : ^ is used for exponentiation
 
   def level10: Parser[Expr] =
-    level9 * ("&" ^^^ { (x: Expr, y: Expr) => mkOp("&", x, y) })
+    level9 * ("&&" ^^^ { (x: Expr, y: Expr) => mkOp("&&", x, y) })
 
   def level9: Parser[Expr] =
     level8 * ("==" ^^^ { (x: Expr, y: Expr) => mkOp("==", x, y) }
@@ -326,6 +365,7 @@ object Parser extends MyStdTokenParsers {
       | ">" ^^^ { (x: Expr, y: Expr) => mkOp(">", x, y) }
       | "<=" ^^^ { (x: Expr, y: Expr) => mkOp("<=", x, y) }
       | ">=" ^^^ { (x: Expr, y: Expr) => mkOp(">=", x, y) })
+  
 
   def level7: Parser[Expr] =
     levelColon * ("<<" ^^^ { (x: Expr, y: Expr) => mkOp("<<", x, y) }
@@ -349,6 +389,8 @@ object Parser extends MyStdTokenParsers {
 
   def level5: Parser[Expr] =
     level4 * ("*" ^^^ { (x: Expr, y: Expr) => mkOp("*", x, y) }
+      | "cross" ^^^ { (x: Expr, y: Expr) => mkOp("cross", x, y) }
+      | "dot" ^^^ { (x: Expr, y: Expr) => mkOp("dot", x, y) }
       | "/" ^^^ { (x: Expr, y: Expr) => mkOp("/", x, y) }
       | ".*" ^^^ { (x: Expr, y: Expr) => mkOp(".*", x, y) }
       | "./" ^^^ { (x: Expr, y: Expr) => mkOp("./", x, y) }
@@ -374,11 +416,13 @@ object Parser extends MyStdTokenParsers {
   def atom: Parser[Expr] =
     positioned( sum
       | interval
-      | "type" ~! parens(className) ^^ { case _ ~ cn => TypeOf(cn) }
+      |"type" ~! parens(className) ^^ { case _ ~ cn => TypeOf(cn) }
       | name >> { n => args(expr) ^^ { es => Op(n, es) } | success(Var(n)) }
-      | brackets(repsep(expr, ",")) ^^ ExprVector
+      | parens(expr)
+      | parens(repsep(expr, ",")) ^^ ExprVector 
       | gvalue ^^ Lit
-      | parens(expr))
+      | threeDObject )
+
 
   def sum: Parser[Expr] =
     "sum" ~! expr ~! "for" ~! name ~! "in" ~! expr ~! opt("if" ~! expr) ^^
@@ -387,7 +431,8 @@ object Parser extends MyStdTokenParsers {
             case None        => Lit(GBool(true)) // No "if" is same as "if true"
             case Some(_ ~ f) => f
           })} 
-      
+     
+ 
   def interval: Parser[Expr] =
 //    nlit ~ ".." ~ nlit ^^ { case lo ~ ".." ~ hi => ExprInterval(lo,hi) }
       "[" ~> nlit ~ ".." ~ nlit <~ "]" ^^ { case lo ~ ".." ~ hi => ExprInterval(lo,hi) }
@@ -406,7 +451,68 @@ object Parser extends MyStdTokenParsers {
     case GDouble(d) => d
     case _ => sys.error("could not convert " + gv + "to GDouble")
   }
+  /* 3d configurations parser */
+  val defaultCenter = ExprVector(List(Lit(GInt(0)),Lit(GInt(0)),Lit(GInt(0))))
+  val defaultScale = Lit(GDouble(0.2))
+  val defaultSize = ExprVector(List(Lit(GInt(1)),Lit(GInt(1)),Lit(GInt(1))))
+  val defaultLength = Lit(GInt(1))
+  val defaultRadius = Lit(GDouble(0.1))
+  val defaultContent = Lit(GStr(" "))
+  val defaultColor = ExprVector(List(Lit(GInt(1)),Lit(GInt(1)),Lit(GInt(1))))
+  val defaultRotation = ExprVector(List(Lit(GInt(0)),Lit(GInt(0)),Lit(GInt(0))))
+  
+  def threeDPara: Parser[(String, Expr)] = ident ~ "=" ~ expr ^^ {case n ~_~ e => (n,e)}  
+  def threeDObject:Parser[ExprVector] = threeDType ~ rep(threeDPara) ^^ {case n ~ ls =>threeDParasProcess(n,ls)}
+  def threeDType = "Sphere" | "Box" | "Cylinder" | "Cone" | "Text" | "Obj"
+                    
+  /* Process the 3d object information and adding default values*/
+  def threeDParasProcess(objectName:String, paras:List[(String, Expr)]):ExprVector = {
+    val center = paras.find(_._1 == "center") match{
+      case Some(x) => x._2
+      case None => defaultCenter
+    }
+    val color = paras.find(_._1 == "color") match{
+      case Some(x) => x._2
+      case None => defaultColor
+    }
+    val rotation = paras.find(_._1 == "rotation") match{
+      case Some(x) => x._2
+      case None => defaultRotation
+    }
+    val scale = paras.find(_._1 == "size") match{
+      case Some(x) => x._2
+      case None => defaultScale
+    }
+    val size = paras.find(_._1 == "size") match{
+      case Some(x) => x._2
+      case None => defaultSize
+    }
 
+    val radius = paras.find(_._1 == "radius") match{
+      case Some(x) => x._2
+      case None => defaultRadius
+    }
+    
+    val length = paras.find(_._1 == "length") match{
+      case Some(x) => x._2
+      case None => defaultCenter
+    }
+
+    val content = paras.find(_._1 == "content") match{
+      case Some(x) => x._2
+      case None => defaultContent
+    } 
+    val rl = ExprVector(List(radius,length))
+    objectName match{
+      case "Cylinder" => ExprVector(List(Lit(GStr("Cylinder")),center,rl,color,rotation))
+      case "Cone" => ExprVector(List(Lit(GStr("Cone")),center,rl,color,rotation))
+      case "Box" => ExprVector(List(Lit(GStr("Box")),center,size,color,rotation))
+      case "Sphere" => ExprVector(List(Lit(GStr("Sphere")),center,scale,color,rotation))
+      case "Text" => ExprVector(List(Lit(GStr("Text")),center,scale,color,rotation,content))
+      case _ => error("Unsupported 3D object " + objectName)
+    }
+
+  }
   /* interpreter configurations parser */
 
   def store: Parser[CStore] =
@@ -429,5 +535,5 @@ object Parser extends MyStdTokenParsers {
   def vClassName = className ^^ VClassName
   def vStepType = "@" ~! ("Continuous" ^^^ Continuous | "FixedPoint" ^^^ FixedPoint | "Discrete" ^^^ Discrete) ^^
     { case _ ~ st => VResultType(st) }
-
+  
 }

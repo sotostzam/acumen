@@ -235,6 +235,11 @@ object Interpreter extends acumen.CStoreInterpreter {
     mapM_((a:Action) => evalAction(a, env, p), as)
   
   def evalAction(a:Action, env:Env, p:Prog) : Eval[Unit] = {
+    def VListToPattern(ls:List[Value[_]]):GPattern = 
+            GPattern(ls.map(x => x match{
+              case VLit(n) => n
+              case VVector(nls) => VListToPattern(nls)            
+            }))
     a match {
       case IfThenElse(c,a1,a2) =>
         for (VLit(GBool(b)) <- asks(evalExpr(c, env, _)))
@@ -249,13 +254,25 @@ object Interpreter extends acumen.CStoreInterpreter {
           }
           mapM_((v:CValue) => evalActions(b, env+((i,v)), p), vs)
         }
-      case Switch(s,cls) =>
-        for (VLit(gv) <- asks(evalExpr(s, env, _))) {
-          (cls find (_.lhs == gv)) match {
-            case Some(c) => evalActions(c.rhs, env, p)
-            case None    => throw NoMatch(gv)
+      case Switch(s,cls) => s match{     
+        case ExprVector(_) =>           
+          for (VVector(ls) <- asks(evalExpr(s, env, _))) {
+            val gp = VListToPattern(ls)
+            (cls find (_.lhs == gp)) match {
+              case Some(c) => evalActions(c.rhs, env, p)
+              case None    => throw NoMatch(gp)
+            }
           }
-        }
+        case _ =>
+          for (VLit(gv) <- asks(evalExpr(s, env, _))) {
+            (cls find (_.lhs == gv)) match {
+              case Some(c) => evalActions(c.rhs, env, p)
+              case None    => throw NoMatch(gv)
+            }
+          }
+      }
+        
+        
       case Discretely(da) =>
         for (ty <- asks(getResultType))
           if (ty == FixedPoint) pass
@@ -453,7 +470,7 @@ object Interpreter extends acumen.CStoreInterpreter {
     override def +++(that: Store): Store = op("+", (cid, dot) => getObjectField(cid, dot.field, that))
     override def ***(that: Double): Store = op("*", (_, _) => VLit(GDouble(that)))
     /** Combine this (s) and that Store using operator. */
-    def op(operator: String, that: (CId, Dot) => Value[_]): Store =
+    def op(operator: String, that: (CId, Dot) => Value[CId]): Store =
       applyAssignments(field.variables.map {
         case (o, n) => (o, n, evalOp(operator, List(getObjectField(o, n.field, s), that(o, n))))
       }) ~> s

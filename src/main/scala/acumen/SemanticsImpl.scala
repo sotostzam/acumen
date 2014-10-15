@@ -25,6 +25,8 @@ abstract class SemanticsSel
 {
   def withArgs(args: List[String]) : SemanticsImpl[Interpreter]
   def argsHelpString : String
+  val isOldSemantics = true // override and set to false if the
+                          // semantics should be enabled
 }
 
 abstract class SemanticsImpl[+I <: Interpreter] extends SemanticsSel
@@ -84,9 +86,11 @@ object SemanticsImpl {
       case S2013 => reference2013.Interpreter
       case S2014 => reference2014.Interpreter
     }
+    override val isOldSemantics = semantics != S2014
     def interpreter() = i
   }
   case class Enclosure2014(contraction: Boolean) extends CStore {
+    override val isOldSemantics  = false
     val i = enclosure2014.Interpreter(contraction)
     val semantics = Semantics(None, Seq("desugar-local-inline"), Seq("SD"))
     def interpreter() = i
@@ -201,6 +205,8 @@ object SemanticsImpl {
         case id if toFind.startsWith(id) => (si, id)}}
     if (candidates.isEmpty) throw UnrecognizedSemanticsString(toFind)
     val (si, id) = candidates.maxBy{case (_, id) => id.length}
+    if (si.isOldSemantics & !Main.enableOldSemantics)
+      throw DisabledSemantics(toFind)
     val rest = toFind.substring(id.length)
     if (rest.isEmpty) return si.withArgs(Nil)
     if (rest(0) != '-') throw UnrecognizedSemanticsString(toFind)

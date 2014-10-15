@@ -1,0 +1,45 @@
+/* 
+   Works with semantic 2014
+   Works with semantic 2013
+   Works with semantic 2012
+*/
+
+// Day/Night Heater, If Based Mixed Assignment example
+//
+// Auhor: Adam Duracz
+
+class Main(simulator)
+  private
+    x := 10; x' := 10;
+    time := 0; time' := 1;
+    heating := "on"; 
+    period  := "day" 
+  end
+  // clock
+  time' = 1;
+  if time > 12 && not(time > 24)
+    period := "night"
+  end;
+  if time > 24
+    time := 0;
+    period := "day" 
+  end;
+  // heater
+  if period == "day" && heating == "on"
+    if x > 23
+      heating := "off"
+    end;
+    x' = 10
+  else
+    if x < 19 && period == "day"
+      heating := "on"
+    end;
+    x' = -5-x
+  end;
+  simulator.endTime := 48
+end
+
+// Note: In this example, continuous and discrete assingments 
+//       have been intermixed, making it possible to re-use
+//       the guards of their enclosing if statement, yielding 
+//       a more compact model.

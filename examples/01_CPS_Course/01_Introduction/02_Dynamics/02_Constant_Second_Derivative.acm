@@ -1,0 +1,11 @@
+
+// Constant Second Derivatives Example
+
+model Main(simulator) = 
+initially
+  x = -10 &  x' = 0 &  x'' = 1
+always
+  x'' = 1
+
+
+// Note:  Polynomials are closed under integration

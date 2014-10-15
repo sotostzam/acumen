@@ -1,0 +1,33 @@
+
+// Trigonomeric functions, animated
+
+model Main(simulator) = 
+initially
+  t   =  0 &
+  t'  =  1/2 &
+  _3D  =  ()
+always
+  t' = 1/2 &
+  _3D =
+  (Cylinder center=(0,0,0) radius=0.02    // First red line
+            length=5  color=(1,0,0) rotation=(0,0,2*pi*t/10),
+   Cylinder center=(0,0,0) radius=0.02    // Second red line
+            length=5  color=(1,0,0) rotation=(0,0,-1*2*pi*t/10),
+   Text center=(sin(2*pi*t/10),cos(2*pi*t/10),0) size=0.2   // Label for second red line
+        color=(1,0,0) rotation=(0,0,0) content="angle",
+   Cylinder center=(0,0,0) radius=0.01    // y-axis
+            length=5  color=(1,1,0) rotation=(0,0,0),
+   Cylinder center=(0,0,0) radius=0.01    // x-axis
+            length=5  color=(1,1,0) rotation=(0,0,pi/2),
+   Cylinder center=(0,0,0) radius=0.02    // Green is 5*cos 2*pi*t/10
+            length=5*cos(2*pi*t/10)  color=(0,1,0) rotation=(0,0,0),
+   Text center=(0,2.1,0) size=0.2 color=(0,1,0)  // Label for cos 2*pi*t/10
+        rotation=(0,0,0) content="cos(angle)",
+   Cylinder center=(0,0,0) radius=0.02    // Blue is 5*sin 2*pi*t/10
+            length=5*sin(2*pi*t/10)  color=(0,0,1) rotation=(0,0,pi/2),
+   Text center=(1.7,0,0) size=0.2         // Label for sin pi/5
+        color=(0,0,1) rotation=(0,0,0) content="sin(angle)") 
+
+// Exercises
+// 1) Add a thing yellow rectangle that has the two
+//    red lines as its diagonals.

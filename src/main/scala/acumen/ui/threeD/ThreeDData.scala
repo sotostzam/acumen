@@ -71,15 +71,18 @@ class ThreeDData extends Publisher {
   }
   /* _3D Position,color,angle should all be a vector with 3 numbers */
   def extractVector(value: Value[_], index: String) {
-    var temp = Array[Double](0.0, 0.0, 0.0)
-    value match {
-      case VVector(vs) => {
-        if (checkVectorContent(vs))
-          temp = extractDoubles(vs).toArray
-        else throw _3DVectorError(value, index);
-      }
-      case _ => throw _3DVectorError(value, index);
-    }
+    def helper(value: Value[_]):Array[Double] = { 
+      value match {
+        case VLit(GPattern(ls)) => helper(VVector(ls map VLit))
+        case VVector(vs) => {
+          if (checkVectorContent(vs))
+            extractDoubles(vs).toArray
+          else throw _3DVectorError(value, index);
+         }
+        case _ => throw _3DVectorError(value, index);
+       }
+     }
+    val temp = helper(value)  
     index match {
       case "position" => _3DPosition = temp
       case "color" => _3DColor = temp
@@ -114,6 +117,7 @@ class ThreeDData extends Publisher {
   /* _3D size should be either a vector or an number */
   def extractSize(value: Value[_]) {
     value match {
+      case VLit(GPattern(ls)) => extractSize(VVector(ls map VLit))
       case VVector(vs) => {
         if (isVectorOfNumbers(vs)) _3DSize = extractDoubles(vs).toArray;
         else { _3DSize = Array[Double](); throw _3DSizeError(value) }

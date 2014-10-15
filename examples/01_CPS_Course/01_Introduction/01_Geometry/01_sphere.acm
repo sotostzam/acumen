@@ -1,0 +1,19 @@
+// Displaying Three Spheres
+
+// To run this example, click on the Play button below, 
+// then click on the "3D" display selector to the right
+// and click Play on that pane.  See exercises below.
+
+model Main(simulator) = 
+initially
+  _3D = (Sphere               // Type of _3D object
+           center=(0,0,0)     // Starting point in [x,y,z] form
+           size=0.55          // Radius
+           color=cyan         // Color in red-green-blue (RGB) intensity
+           rotation=(0,0,0), // Orientation (pi/2 around x-axis)
+         Sphere center=(0,0,1) size=0.35 color=magenta rotation=(0,0,0), // Another sphere
+         Sphere center=(0,1,0) size=0.25 color=red     rotation=(0,0,0)) // And another one
+
+// Exercises
+// 1) Where's the red sphere? :-)
+// 2) Add a yellow sphere with radius 0.25 at [1,0,0]

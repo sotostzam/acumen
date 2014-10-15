@@ -1,0 +1,9 @@
+// Differential second  equation example
+// Author: Merve
+
+model Main (simulator) = 
+initially
+  x = 0 & x' = 0 & t = 1
+always
+  x' =- 3*t -5
+ 

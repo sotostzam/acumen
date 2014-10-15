@@ -92,6 +92,8 @@ package acumen {
   case class EquationI(lhs: Expr, rhs: Expr) extends ContinuousAction
   /* Example:  x'' =[t] -g (simple assignment in the continuous phase) */
   case class EquationT(lhs: Expr, rhs: Expr) extends ContinuousAction
+  
+  case class Assignment(p:Pattern, rhs:Expr) extends ContinuousAction
 
   sealed abstract class DiscreteAction
   /* Example: x := 3 */
@@ -104,6 +106,8 @@ package acumen {
   case class Elim(e: Expr) extends DiscreteAction
   /* Example: move x o */
   case class Move(obj: Expr, newParent: Expr) extends DiscreteAction
+  
+  
   
   abstract class TypeEnv {
     def update(name: Name, typ: TypeLike) : Unit
@@ -140,8 +144,8 @@ package acumen {
   case class ExprIntervalM(mid: Expr, pm: Expr) extends Expr
   /* Example: let x=1+2;y=2+3 in x+y end */
   case class ExprLet(bindings:List[(Name,Expr)], e2:Expr) extends Expr
+  case class Pattern(ps:List[Expr]) extends Expr
   /* ground values (common to expressions and values) */
-
   sealed abstract class GroundValue
   /* Example: 42 */
   case class GInt(i: Int) extends GroundValue
@@ -151,6 +155,8 @@ package acumen {
   case class GInterval(i: Interval) extends GroundValue
   /* Example: true */
   case class GBool(b: Boolean) extends GroundValue
+  /* Example: ("fall", (1,2,3))*/
+  case class GPattern(p : List[GroundValue]) extends GroundValue
   /* Example: CertainTrue, CertainFalse, Uncertain */
   sealed class GUncertainBool(v: Set[Boolean]) extends GroundValue
   object CertainTrue extends GUncertainBool(Set(true))

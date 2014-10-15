@@ -1,0 +1,279 @@
+/* 
+   Has error with semantic 2014
+   Has error with semantic 2013
+   Has error with semantic 2012
+*/
+
+// Three-phase and single phase electrical circuits
+//
+// Author:  Anita Sant'Anna, 2013
+//
+// This example illustrates how to model:
+//  - a three-phase voltage source representing the grid;
+//  - three-phase R-L loads in Why and Delta configurations;
+//  - single phase R-L loads; and
+//  - how to connect several loads to create a circuit which is protected 
+//    by a circuit breaker limiting the current in the circuit
+//
+// In order to illustrate the operation of a circuit breaker, 
+// this example simulates a fault in phase 1 of load1.
+//
+// Run this example, view plots, experiment with creating new circuits
+// 
+// The three phases of the power grid are modeled as follows:
+// 
+//   v1 = V*sqrt(2)*cos(2*pi*f*t);
+//   v2 = V*sqrt(2)*cos(2*pi*f*t - pi*120/180);
+//   v3 = V*sqrt(2)*cos(2*pi*f*t - pi*240/180);
+//
+//   where:
+//     v1: voltage of phase 1
+//     v2: voltage of phase 2
+//     v3: voltage of phase 3
+//     V: rms value of the voltage 
+//     f: frequency in Hz
+//
+// Note that indexes 1,2,3 will always refer to the respective phases
+// small case letters indicate a time series and CAPITAL CASE letters
+// indicate rms values. 
+//
+// Single phase loads are modeled by the differential equation:
+//
+//   i' = (v - R*i)/L   -> in case of R-L load
+//   or
+//   i = v/R            -> in case of R load
+//     
+//   where:
+//     i: current drawn by the load
+//     v: phase voltage
+//     R: equivalent resistance of the load
+//     L: equivalent inductance of the load  
+//
+// Three-phase loads in Why configuration is modeled as follows:
+//
+//   i1' = (v1 - R1*i1)/L1  | 
+//   i2' = (v2 - R2*i2)/L2  |-> in case of RL load
+//   i3' = (v3 - R3*i3)/L3  |
+//   or
+//   i1 = v1/R1             |
+//   i2 = v2/R2             |-> in case of R load
+//   i3 = v3/R3             |
+//
+// Three-phase loads in Delta configuration are modeled as:
+// 
+//   i12' = (v1 - v2 - R12*i12)/L12  |
+//   i23' = (v2 - v3 - R23*i23)/L23  |
+//   i31' = (v3 - v1 - R31*i31)/L31  |
+//   i1 = i31 - i12                  |-> in case of RL load
+//   i2 = i12 - i23                  |
+//   i3 = i23 - i31                  |
+//   or
+//   i12 = (v1 - v2)/R12             |
+//   i23 = (v2 - v3)/R23             |
+//   i31 = (v3 - v1)/R31             |
+//   i1 = i31 - i12                  |-> in case of R load
+//   i2 = i12 - i23                  |
+//   i3 = i23 - i31                  |
+//
+//  The circuit breaker works by disrupting the circuit if the
+//  phase current surpasses the limit current of the breaker.
+//
+//
+// three-phase source representing the grid
+class ThreePhaseSourceIdeal(V, f)
+  private t:=0; t':=1; v1:=0; v2:=0; v3:=0; end
+  t' = 1;
+  v1 = V*sqrt(2)*cos(2*pi*f*t);
+  v2 = V*sqrt(2)*cos(2*pi*f*t - pi*120/180);
+  v3 = V*sqrt(2)*cos(2*pi*f*t - pi*240/180);
+end
+
+// single-phase RL load
+class SinglePhase_RL_Load(R, L)
+  private 
+    i:=0; i':=0; I:=0;
+    v:=0; V:=0; f:=0; 
+    P:=0; Q:=0; PF:=0;
+  end
+  // in case of RL load
+  if L>0  i' = (v - R*i)/L; 
+    // in case of purely resistive load
+    else i = v/R; end;
+  // RMS value of current
+  I = V/R;
+  // active power
+  P = (V^2/R)/100; //KW
+  // in case of RL load, reactive power
+  if L>0  Q = (V^2/2*pi*f*L)/100; end; //Kvar
+  // power factor
+  PF = P/sqrt(P^2 + Q^2);
+end
+
+// three-phase RL load in Y configuration
+class  ThreePhase_RL_Load_WyeConnection(R1, L1, R2, L2, R3, L3)
+  private 
+    i1:=0; i2:=0; i3:=0; iN:=0;
+    i1':=0; i2':=0; i3':=0;
+    I1:=0; I2:=0; I3:=0; 
+    v1:=0; v2:=0; v3:=0; 
+    V:=0; f:=0;
+    P:=0; Q:=0; Q1:=0; Q2:=0; Q3:=0; PF:=0;
+  end
+  // in case of RL load
+  if L1>0 i1' = (v1 - R1*i1)/L1; 
+    // in case of purely resistive load
+    else i1 = v1/R1; end;
+  // in case of RL load
+  if L2>0 i2' = (v2 - R2*i2)/L2; 
+    // in case of purely resistive load
+    else i2 = v2/R2; end;
+  // in case of RL load
+  if L3>0 i3' = (v3 - R3*i3)/L3; 
+    // in case of purely resistive load
+    else i3 = v3/R3; end;
+  //RMS values of phase currents
+  I1 = V/sqrt(2*pi*f*L1^2 + R1^2);
+  I2 = V/sqrt(2*pi*f*L2^2 + R2^2);
+  I3 = V/sqrt(2*pi*f*L3^2 + R3^2);
+  // neutral current
+  iN = i1+i2+i3;
+  // active power
+  P = (V^2/R1 + V^2/R2 + V^2/R3)/100; //KW 
+  // in case of RL load, reactive power
+  if L1>0 Q1 = V^2/2*pi*f*L1; end;
+  if L2>0 Q2 = V^2/2*pi*f*L2; end;
+  if L3>0 Q3 = V^2/2*pi*f*L3; end;
+  Q = (Q1 + Q2 + Q3)/100; //Kvar
+  // power factor
+  PF = P/sqrt(P^2 + Q^2);
+end
+
+// three-phase RL load in delta configuration
+class  ThreePhase_RL_Load_DeltaConnection(R12, L12, R23, L23, R31, L31)
+  private 
+    i12:=0; i23:=0; i31:=0; 
+    I12:=0; I23:=0; I31:=0; 
+    i12':=0; i23':=0; i31':=0;
+    i1:=0; i2:=0; i3:=0;
+    I1:=0; I2:=0; I3:=0; 
+    v1:=0; v2:=0; v3:=0; 
+    V:=0; f:=0;
+    P:=0; Q:=0; Q1:=0; Q2:=0; Q3:=0; PF:=0;
+    rmsI1 := create CalculateRMS();
+    rmsI2 := create CalculateRMS();
+    rmsI3 := create CalculateRMS();
+  end
+  // in case of RL load 
+  if L12>0 i12' = (v1 - v2 - R12*i12)/L12; 
+    // in case of purely R load
+    else i12 = (v1 - v2)/R12; end;
+  // in case of RL load
+  if L23>0 i23' = (v2 - v3 - R23*i23)/L23; 
+    // in case of purely R load
+    else i23 = (v2 - v3)/R23; end;
+  // in case of RL load
+  if L31>0 i31' = (v3 - v1 - R31*i31)/L31; 
+    // in case of purely R load
+    else i31 = (v3 - v1)/R31; end;
+  // RMS values of phase-to-phase currents
+  I12 =  (sqrt(3)*V)/sqrt(R12^2+(2*pi*f*L12)^2);
+  I23 =  (sqrt(3)*V)/sqrt(R23^2+(2*pi*f*L23)^2);
+  I31 =  (sqrt(3)*V)/sqrt(R31^2+(2*pi*f*L31)^2);
+  // phase currents
+  i1 = i31 - i12;
+  i2 = i12 - i23;
+  i3 = i23 - i31;
+  // RMS values of phase currents
+  rmsI1.time_series = i1;
+  rmsI2.time_series = i2;
+  rmsI3.time_series = i3;
+  I1 = rmsI3.rms;
+  I2 = rmsI2.rms;
+  I3 = rmsI3.rms;
+  // active power
+  P = ((sqrt(3)*V)^2/R12 + (sqrt(3)*V)^2/R23 + (sqrt(3)*V)^2/R31)/100; //KW 
+  // in case of RL load, reactive power
+  if L12>0 Q1 = (sqrt(3)*V)^2/2*pi*f*L12; end;
+  if L23>0 Q2 = (sqrt(3)*V)^2/2*pi*f*L23; end;
+  if L31>0 Q3 = (sqrt(3)*V)^2/2*pi*f*L31; end;
+  Q = (Q1 + Q2 + Q3)/100; //Kvar
+  // power factor
+  PF = P/sqrt(P^2 + Q^2);
+end
+
+// circuit and breaker
+class ThreePhaseCircuitAndBreaker(Ibreak1, Ibreak2, Ibreak3)
+  private  
+    load1 := create ThreePhase_RL_Load_WyeConnection(100, 0.01, 100, 0.01, 100, 0.01);
+    load2 := create ThreePhase_RL_Load_WyeConnection(50, 0.01, 50, 0.01, 50, 0.01);
+    v1:=0; v2:=0; v3:=0; V:=0; f:=0;
+    I1:=0; I2:=0; I3:=0; IN:=0;
+    Pcircuit:=0; Qcircuit:=0; 
+    mode:="normal"; t:=0; t':=1;
+  end
+  t' = 1;
+  // fault in load1 at t=0.1
+  if t > 0.1 load1.R1 = 5; end;
+
+  // total phase currents for this circuit
+  I1 = load1.I1 + load2.I1;
+  I2 = load1.I2 + load2.I2;
+  I3 = load1.I3 + load2.I3;
+  // total active power for this circuit
+  Pcircuit = load1.P + load2.P;
+  // total reactive power for this circuit
+  Qcircuit = load1.Q + load2.Q;
+
+  switch mode
+    // normal opperation - breaker is closed
+    case "normal"
+    load1.v1 = v1;
+    load1.v2 = v2;
+    load1.v3 = v3;
+    load1.V = V;
+    load1.f = f;
+    load2.v1 = v1;
+    load2.v2 = v2;
+    load2.v3 = v3;
+    load2.V = V;
+    load2.f = f;
+    if I1 >= Ibreak1 || I2 >= Ibreak2 || I3 >= Ibreak3  mode = "break"; end;
+
+    // breaker is triggered and opens the circuit
+    case "break"
+    load1.v1 = 0;
+    load1.v2 = 0;
+    load1.v3 = 0;
+    load1.V = 0;
+    load1.f = 0;
+    load2.v1 = 0;
+    load2.v2 = 0;
+    load2.v3 = 0;
+    load2.V = 0;
+    load2.f = 0;
+  end
+end
+
+class Main(simulator)
+  private 
+    // created source - the grid
+    source := create ThreePhaseSourceIdeal(230, 50);
+    // creates one circuit - limit current 10 A
+    circuit1 := create ThreePhaseCircuitAndBreaker(10, 10, 10);
+    Ptotal:=0; Qtotal:=0; PF:=0;
+  end
+  // connects the circuit to the grid
+  circuit1.v1 = source.v1;
+  circuit1.v2 = source.v2;
+  circuit1.v3 = source.v3;
+  circuit1.V = source.V;
+  circuit1.f = source.f;
+  // total power for the house (only 1 circuit in this case)
+  Ptotal = circuit1.Pcircuit;
+  Qtotal = circuit1.Qcircuit;
+  // power factor for the house
+  PF = Ptotal/sqrt(Ptotal^2+Qtotal^2); 
+  // simulator parameters
+  simulator.endTime = 0.5;
+  simulator.timeStep = 0.0001;
+end

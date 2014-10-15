@@ -1,0 +1,33 @@
+
+model Ball(mode, x,x',x'', y,y',y'', m) = 
+initially
+always
+  match mode with [
+  "Fly" -> if y < 0  && y' < 0 then
+             if m > 0.2 then
+               create Ball("Bounce", x, x'+0.2, 0, y, y', 0, m/2) &
+               create Ball("Bounce", x, x'-0.2, 0, y, y', 0, m/2) &
+               terminate self
+             else
+               mode+ == "Bounce"
+           else (
+              y'' = -9.8 &
+              x'' = 0)
+  | "Bounce" -> y + == 0 &
+                x' + ==  0.8 * x' &
+                y' + == -0.8 * y' &
+                mode + == "Fly"
+  ]
+
+model Main(simulator) = 
+  initially
+    mode  =  "Init"
+  always
+  match mode with [
+  "Init" -> simulator.timeStep + == 0.005 &
+            simulator.endTime  + == 3 &
+            create Ball("Fly", 0,0,0, 1.5,0,1.0, 2.0) &
+            mode + == "Persist"
+  | "Persist" ->      
+  ]
+ 

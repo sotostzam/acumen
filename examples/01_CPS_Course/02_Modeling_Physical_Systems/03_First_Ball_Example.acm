@@ -1,0 +1,17 @@
+// Author: Merve
+
+model ball (x0) = 
+initially 
+  x = x0 & x' = 0 & x'' = 0 
+always
+ if x > 0 then 
+   x'' = -9.8
+ else
+  x'' = -9.8 - 100 * x
+
+model Main (simulator)= 
+initially 
+  ball1  =  create ball(10) &
+  ball2  =  create ball(20)
+
+ 
