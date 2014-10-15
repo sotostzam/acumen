@@ -1,2 +1,2 @@
 // not an object id
-class Main(simulator) move simulator 1 end
+model Main(simulator) =  initially always move simulator 1

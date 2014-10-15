@@ -1,3 +1,3 @@
 // unknown op
 
-class Main(simulator) simulator.timeStep := f(1,2) end
+model Main(simulator) =  initially always simulator.timeStep = f(1,2) 

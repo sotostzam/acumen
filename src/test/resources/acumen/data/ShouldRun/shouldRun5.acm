@@ -1,21 +1,21 @@
-class A() end
+model A() = initially
 
-class Main(simulator)
-  private
-    x := create A();
-    mode := "Init";
-    y := 0
-  end
-  simulator.timeStep := 1;
-  simulator.endTime := 1;
-  switch mode
-    case "Init"
-      if x.className == type(A)
-        y := 1
+model Main(simulator) = 
+  initially
+    x  =  create A() &
+    mode  =  "Init" &
+    y  =  0
+  always
+  simulator.timeStep + == 1 &
+  simulator.endTime + == 1 &
+  match mode with[
+    "Init" ->
+      if x.className == type(A) then
+        y + == 1
       else
-        y := 2
-      end;
-      mode := "Idle"
-    case "Idle"
-  end
-end
+        y + == 2
+       &
+      mode + == "Idle"
+    |"Idle" ->
+   ]
+ 
