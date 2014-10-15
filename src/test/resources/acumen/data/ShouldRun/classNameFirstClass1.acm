@@ -1,9 +1,9 @@
-class Main(simulator)
-  private
-    mode := "init";
-    game := Game;
-    players := [PlayerA, PlayerB, PlayerC]
-  end
+model Main(simulator) = 
+  initially
+    mode  =  "init" &
+    game  =  Game &
+    players  =  (PlayerA, PlayerB, PlayerC)
+  always
   switch mode
     case "init"
       for p1 = players
@@ -12,19 +12,19 @@ class Main(simulator)
             create game(p1, p2)
           end
         end
-      end;
-      mode := "persist"
+      end &
+      mode + == "persist"
     case "persist"
   end
 end
 
-class PlayerA(x,y,z) end
-class PlayerB(x,y,z) end
-class PlayerC(x,y,z) end
+model PlayerA(x,y,z) always
+model PlayerB(x,y,z) always
+model PlayerC(x,y,z) always
 
-class Game(p1C,p2C) 
-private
-  p1 := create p1C(1,2,3);
-  p2 := create p2C(1,2,3)
-end
-end
+model Game(p1C,p2C) 
+= initially
+  p1  =  create p1C(1,2,3) &
+  p2  =  create p2C(1,2,3)
+always
+ 

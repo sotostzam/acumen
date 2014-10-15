@@ -1,3 +1,4 @@
-class Main(simulator)
+model Main(simulator) = 
+ initially 
+ always
   hypothesis "False" 0 > 1
-end

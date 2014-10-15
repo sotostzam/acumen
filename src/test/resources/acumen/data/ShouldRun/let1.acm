@@ -1,8 +1,8 @@
-class Main(simulator)
-  private z := 0; end
-  z = let x = 1; in 
-    let y = x +1; in 
+model Main(simulator) = 
+  initially z  =  0 & always
+  z = let x = 1 & in 
+    let y = x +1 & in 
       let w = y +1 in w + 1 end
     end
   end
-end
+ 

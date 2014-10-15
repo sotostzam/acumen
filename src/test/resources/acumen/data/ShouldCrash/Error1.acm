@@ -1,2 +1,2 @@
-// no Main class
-class A() end
+// no Main model
+model A() always

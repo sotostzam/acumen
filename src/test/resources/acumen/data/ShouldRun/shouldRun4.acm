@@ -1,15 +1,15 @@
-class A() end
+model A() always
 
-class Main(sim)
-  private
-    mode := "M1";
-    c1 := create A();
-    c2 := create A()
-  end
+model Main(sim)
+  = initially
+    mode  =  "M1" &
+    c1  =  create A() &
+    c2  =  create A()
+  always
   switch mode
     case "M1"
-      move c1 c2;
-      mode := "M2"
+      move c1 c2 &
+      mode + == "M2"
     case "M2"
   end
-end
+ 
