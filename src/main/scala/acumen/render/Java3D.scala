@@ -333,25 +333,3 @@ class Java3D(h:History) extends Applet {
     objRoot
   }
 }
-
-
-/*
-class Trace(id:Int, tr:(Int,Seq[Double],Seq[Double],Seq[Double])) extends Shape3D {
-  
-  val myColor = ColorUtil.getColor(id)
-  setGeometry(createGeometry)
-  
-  private def createGeometry : Geometry = {
-    val (_,xs,ys,zs) = tr
-    val line = new LineStripArray(
-      xs.length, 
-      GeometryArray.COORDINATES | GeometryArray.COLOR_3, 
-      Array(xs.length))
-    for (i <- 0 until xs.length) {
-      line.setCoordinate(i, new Point3d(xs(i)/5f, ys(i)/5f, zs(i)/5f))
-      line.setColor(i,myColor)
-    }
-    line
-  }
-}
-*/

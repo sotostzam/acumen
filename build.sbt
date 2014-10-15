@@ -6,6 +6,8 @@ scalaVersion := "2.10.4"
 
 theMainClass := "acumen.Main"
 
+unmanagedBase <<= baseDirectory { base => base / "jpct_lib" }
+
 libraryDependencies ++= Seq(
   "org.scala-lang" % "scala-swing" % "2.10.4",
   "org.scala-lang" % "scala-actors" % "2.10.4",
@@ -66,6 +68,7 @@ proguardDefaultArgs += "-dontshrink"
 // make sure all target specific Java 3d dependencies are included
 proguardOptions += "-keep class javax.media.j3d.**"
 
+
 // temporary hack to get proguard working with enclosure code
 proguardOptions ++= Seq("-keep class org.jfree.resources.**",
                         "-keep class org.jfree.chart.resources.**",
@@ -89,8 +92,8 @@ artifactPath in (Compile, packageBin) <<= (crossTarget, moduleName, version) {
 }
 
 // modify proguard jar file name
-minJarPath <<= (crossTarget, moduleName, version) {
-  (path, name, ver) => path / (name + "-" + ver + ".jar")
+ minJarPath <<= (crossTarget, moduleName, version) {
+   (path, name, ver) => path / (name + "-" + ver + ".jar")
 }
 
 //

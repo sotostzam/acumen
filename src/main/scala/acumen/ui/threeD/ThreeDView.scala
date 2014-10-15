@@ -2,32 +2,23 @@ package acumen
 package ui
 package threeD
 
-import Errors._
-import com.sun.j3d.utils.universe._
-import com.sun.j3d.utils.geometry._
-import com.sun.j3d.utils.behaviors.mouse._
-import com.sun.j3d.loaders.objectfile.ObjectFile;
-import com.sun.j3d.loaders._;
-
-import java.io._
-import javax.media.j3d._
-import javax.media.j3d.Group
-import javax.media.j3d.ColoringAttributes
-import javax.media.j3d.BranchGroup
-import javax.vecmath.{ AxisAngle4d, Color3f, Point3d, Vector3d, Point3f, Vector3f }
-import java.lang.Thread
-import javax.media.j3d.Font3D
-import javax.media.j3d.FontExtrusion
 import java.awt.Font
+import java.io._
 
-import scala.collection.mutable.Map
-import scala.collection.mutable.Buffer
 import scala.actors._
-import scala.swing.BorderPanel
+import scala.collection.mutable.Map
 import scala.math._
-import scala.swing.Publisher
-import swing.event._
-import swing._
+import scala.swing.{BorderPanel, Publisher}
+import scala.swing.event._
+
+import acumen.Errors._
+import com.sun.j3d.loaders._
+import com.sun.j3d.loaders.objectfile.ObjectFile
+import com.sun.j3d.utils.behaviors.mouse._
+import com.sun.j3d.utils.geometry._
+import com.sun.j3d.utils.universe._
+import javax.media.j3d._
+import javax.vecmath.{Color3f, Point3d, Point3f, Vector3d, Vector3f}
 
 /* 3D visualization panel */
 class ThreeDView() extends BorderPanel {
@@ -87,9 +78,9 @@ class ThreeDView() extends BorderPanel {
     u.cleanup()
     u = new SimpleUniverse(jCanvas)
     val sphere = new BoundingSphere(new Point3d(0, 0, 0), 1000)
-    var sceneRoot = createSceneGraph()
+    val sceneRoot = createSceneGraph()
     sceneRoot.setCapability(BranchGroup.ALLOW_DETACH)
-    /* Transorm group for mouse rotation */
+    /* Transform group for mouse rotation */
     val objRotate = new TransformGroup(new Transform3D())
     objRotate.setCapability(TransformGroup.ALLOW_TRANSFORM_WRITE)
     objRotate.setCapability(TransformGroup.ALLOW_TRANSFORM_READ)
@@ -103,7 +94,7 @@ class ThreeDView() extends BorderPanel {
     val myMouseZoom = new MouseZoom(objZoom)
     myMouseZoom.setSchedulingBounds(sphere)
 
-    var sceneRoot1 = new BranchGroup()
+    val sceneRoot1 = new BranchGroup()
     val transRoot = new TransformGroup(defaultView());
     scene.detach
     scene = new BranchGroup()
@@ -129,39 +120,10 @@ class ThreeDView() extends BorderPanel {
     u.addBranchGraph(sceneRoot1);
     //u.getViewer.getView.setMinimumFrameCycleTime(1) // Fatest rendering
   }
-  
-  def transformView(p:Array[Double], ori:Array[Double]){
-    var t3d = new Transform3D()
-    val scale = 0.35
-    //t3d.rotX(-Pi * 0.5)   
-    val transAngleX = new Transform3D()
-    val transAngleY = new Transform3D()
-    val transAngleZ = new Transform3D()
-    
-    // The difference between Acumen cooridinates
-    // and Java3D cooridinates
-    transAngleY.rotY(ori(2))
-    transAngleX.rotX(ori(0))
-    transAngleZ.rotZ(ori(1))
-    t3d.mul(transAngleY)
-    t3d.mul(transAngleX)
-    t3d.mul(transAngleZ)
-    /* Since we first rotate the scene world around x-axis of pi/2,
-     * viewing platform still in Java3D's default coordinates.
-     * x' = x; y' = z; z'= -y'
-     */
-    t3d.setTranslation(new Vector3d(p(0)*scale,p(2)*scale,-p(1)*scale));
-    val tg = u.getViewer( ).getViewingPlatform( ).getViewPlatformTransform( );
-    
-    tg.setTransform( t3d );   
-    var trV = new Transform3D();
-  }
-
-   
 
   // Create the scene
   def createSceneGraph(): BranchGroup = {
-    var Root = new BranchGroup();
+    val Root = new BranchGroup()
     val sphere = new BoundingSphere(new Point3d(0, 0, 0), 1000)
     // Background color  
     val b = new javax.media.j3d.Background(0.8f, 0.8f, 0.8f)
@@ -185,7 +147,7 @@ class ThreeDView() extends BorderPanel {
     lightD2.setColor(new Color3f(0.2f, 0.2f, 0.2f))
     lightD2.setInfluencingBounds(sphere)
     Root.addChild(lightD2)
-    var tr1 = new Transform3D()
+    val tr1 = new Transform3D()
     val objOrig = new TransformGroup(tr1)
     objOrig.setCapability(TransformGroup.ALLOW_TRANSFORM_WRITE);
     objOrig.setCapability(TransformGroup.ALLOW_TRANSFORM_READ);
@@ -238,20 +200,21 @@ class ScalaTimer(receiver: _3DDisplay, endTime: Double,
 
   initSpeed = sleepTime
   sleepTime /= playSpeed
-  extraTime = ((sleepTime - sleepTime.toLong) * 1000000).toInt // To nano sec 
+  extraTime = ((sleepTime - sleepTime.toLong) * 1000000).toInt
+
+  // To nano sec
   def act() {
     loopWhile(!destroy) {
       if (destroy)
         exit()
       if (pause)
-        /* Tell the receiver to show the next frame */
+      /* Tell the receiver to show the next frame */
         receiver ! "go"
       /* Millisecond and Nanosecond */
       Thread.sleep(sleepTime.toLong, extraTime.toInt)
     }
   }
 }
-
 /* 3D renderer */
 class _3DDisplay(app: ThreeDView, slider: Slider3d,
                  _3DDateBuffer: Map[CId, Map[Int, scala.collection.mutable.Buffer[List[_]]]],
@@ -298,7 +261,7 @@ class _3DDisplay(app: ThreeDView, slider: Slider3d,
       }
     }
    if(currentFrame<_3DView.size){
-    app.transformView(_3DView(currentFrame)._1, _3DView(currentFrame)._2);	        	   
+    //app.transformView(_3DView(currentFrame)._1, _3DView(currentFrame)._2);
     view.stopView()
     view.renderOnce() 
    }
@@ -318,7 +281,7 @@ class _3DDisplay(app: ThreeDView, slider: Slider3d,
             pause = true
           }
           if (totalFrames > 0)
-            emitProgress((currentFrame * 100 / totalFrames).toInt)
+            emitProgress((currentFrame * 100 / totalFrames))
           if (currentFrame < totalFrames)
             currentFrame += 1
         }
@@ -330,7 +293,7 @@ class _3DDisplay(app: ThreeDView, slider: Slider3d,
   reactions += {
     case e: MouseDragged => {
       currentFrame = (slider.bar.value) * totalFrames / 100
-      emitProgress(slider.bar.value.toInt)
+      emitProgress(slider.bar.value)
       //publish(Playing3d())
       if (currentFrame < 2)
         currentFrame = startFrameNumber;
@@ -403,7 +366,7 @@ class _3DDisplay(app: ThreeDView, slider: Slider3d,
    */
   def addToBranches(branches: Map[List[_], BranchGroup],
                     trans: Map[List[_], TransformGroup], key: List[_]) {
-    var tr = new Transform3D()
+    val tr = new Transform3D()
     val id = key
     trans += (id -> new TransformGroup(tr))
     branches += (id -> new BranchGroup())
@@ -427,11 +390,11 @@ class _3DDisplay(app: ThreeDView, slider: Slider3d,
       /* The angle of the object at that frame */
       tempAngle = bufferAngle(buffer(index))
     }
-    var transform = new Transform3D()
-    var transAngle = new Transform3D()
-    var transAngleX = new Transform3D()
-    var transAngleY = new Transform3D()
-    var transAngleZ = new Transform3D()
+    val transform = new Transform3D()
+    val transAngle = new Transform3D()
+    val transAngleX = new Transform3D()
+    val transAngleY = new Transform3D()
+    val transAngleZ = new Transform3D()
     transAngleX.rotZ(tempAngle(2))
     transAngleY.rotY(-tempAngle(1))
     transAngleZ.rotX(tempAngle(0))
@@ -457,7 +420,7 @@ class _3DDisplay(app: ThreeDView, slider: Slider3d,
   def checkLook(id: List[_], lastLook: Map[List[_], List[_]],
                 buffer: scala.collection.mutable.Buffer[List[_]], 
                 currentFrame: Int, frame: List[_]) {
-   val epli = 0.01;
+   val epli = 0.01
     if (lastLook.contains(id)) {
       if(sizeChange(lastLook(id)(0).asInstanceOf[List[Double]],bufferSize(frame),epli) ||
          sizeChange(lastLook(id)(1).asInstanceOf[List[Double]],bufferColor(frame),0.1) ||
@@ -480,31 +443,31 @@ class _3DDisplay(app: ThreeDView, slider: Slider3d,
   private def emitProgress(p: Int) = App.actor ! Progress3d(p)
   // Fix this code 
   var f3d = new Font3D(new Font("", Font.PLAIN, 1),
-    new FontExtrusion());
-  var text3d = new Text3D(f3d);
-  text3d.setString("a");
+    new FontExtrusion())
+  var text3d = new Text3D(f3d)
+  text3d.setString("a")
   // 
   def addText(tg: TransformGroup, text: String, size: Double, color: List[Double]) {
     // Font for text
     // Initialize the size of the font to 1, then scale it 
     // according to the size parameter	
     f3d = new Font3D(new Font("", Font.PLAIN, 1),
-      new FontExtrusion());
-    text3d = new Text3D(f3d);
-    text3d.setString(text);
-    val color3d = new Color3f(color(0).toFloat, color(1).toFloat, color(2).toFloat);
-    var a = new Appearance();
-    var m = new Material(color3d, color3d, color3d, color3d, 80.0f);
-    m.setLightingEnable(true);
-    a.setMaterial(m);
-    var sh = new Shape3D();
-    sh.setGeometry(text3d);
-    sh.setAppearance(a);
+      new FontExtrusion())
+    text3d = new Text3D(f3d)
+    text3d.setString(text)
+    val color3d = new Color3f(color(0).toFloat, color(1).toFloat, color(2).toFloat)
+    var a = new Appearance()
+    var m = new Material(color3d, color3d, color3d, color3d, 80.0f)
+    m.setLightingEnable(true)
+    a.setMaterial(m)
+    var sh = new Shape3D()
+    sh.setGeometry(text3d)
+    sh.setAppearance(a)
     // Scale the 3D text
-    var tgScale = new Transform3D();
-    tgScale.setScale(size);
-    var tg1 = new TransformGroup();
-    tg1.setTransform(tgScale);
+    var tgScale = new Transform3D()
+    tgScale.setScale(size)
+    var tg1 = new TransformGroup()
+    tg1.setTransform(tgScale)
     tg1 addChild sh
     tg addChild tg1
     //tg addChild sh
@@ -525,32 +488,24 @@ class _3DDisplay(app: ThreeDView, slider: Slider3d,
   // Load .obj fil
   def loadObj(path:String, ap: Appearance, size:Double): TransformGroup ={
 	 var scene:Scene = null;
-	 var shape = new Shape3D();
-
 	 //read in the geometry information from the data file
-	 val objFileloader = new ObjectFile( ObjectFile.RESIZE );
-	 //objFileloader.setBasePath(path.split('.')(0))
-     ///objFileloader.setBasePath("/Users/yingfuzeng/Desktop/shoe/Maps")
+	 val objFileloader = new ObjectFile( ObjectFile.RESIZE )
+
 	 try
 	 {
-	  scene = objFileloader.load(_3DBasePath + File.separator +path);
+	  scene = objFileloader.load(_3DBasePath + File.separator +path)
 	 }
 	 catch {
 	   case e:Exception => {scene = null;throw e}
 	 }
 
 	 //retrieve the Shape3D objects from the scene
-	 val branchGroup = scene.getSceneGroup();
+	 val branchGroup = scene.getSceneGroup()
 	
-	 //Store every part of the object 
-	 val children = branchGroup.getAllChildren()
-     // while(children.hasMoreElements()){
-     // 	   shape = children.nextElement().asInstanceOf[Shape3D]
-     //        shape.setAppearance(ap)
-     //       }
-     var TG = new TransformGroup()
+	 //Store every part of the object
+     val TG = new TransformGroup()
      TG.addChild(branchGroup)
-     var transform = new Transform3D()
+     val transform = new Transform3D()
      transform.setScale(size)
      TG.setTransform(transform)
      TG
@@ -570,7 +525,7 @@ class _3DDisplay(app: ThreeDView, slider: Slider3d,
     val index = (currentFrame - bufferFrame(buffer.head)).toInt
     var opaque = false
     if (index >= 0 && index < buffer.size) {
-      val list = buffer(index);
+      val list = buffer(index)
       color = bufferColor(list) // Get the color and size of the object
       size = bufferSize(list)
       name = bufferType(list)
