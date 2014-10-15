@@ -66,10 +66,6 @@ proguardDefaultArgs := Seq("-dontwarn", "-dontobfuscate")
 // don't shrink as proguard gets it wrong in some cases
 proguardDefaultArgs += "-dontshrink"
 
-// make sure all target specific Java 3d dependencies are included
-proguardOptions += "-keep class javax.media.j3d.**"
-
-
 // temporary hack to get proguard working with enclosure code
 proguardOptions ++= Seq("-keep class org.jfree.resources.**",
                         "-keep class org.jfree.chart.resources.**",
