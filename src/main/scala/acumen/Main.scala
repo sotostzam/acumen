@@ -42,6 +42,9 @@ object Main {
   // ^^ true when certain command line paramatics are specified, will
   //    enable console message so that its clear what options are in effect
 
+  // temporary hack
+  var enableOldSemantics = false
+
   var debugExtract = false
 
   var positionalArgs = new ArrayBuffer[String]
