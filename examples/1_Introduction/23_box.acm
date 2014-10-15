@@ -4,16 +4,16 @@
 class Main(simulator)
 private
   t  := 0; // Local time
-  t' := 1; // Is as fast as global time
+  //t' := 1; // Is as fast as global time
  _3D := []
 end
- t' = 1;
+ //t' = 1;
  _3D = 
- [["Box",
-  [0,0,0],        // Center point
-  [0.2,t/2,3-t/4],// Size in [x,y,z] form
+ ["Box",
+  [0,0,0],// Center point
+  [0.2,t/2,3-t/4],  // Size in [x,y,z] form
   red,
-  [0,0,0]]];
+  [0,0,0]];
 end
 
 // Exercises

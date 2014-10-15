@@ -105,9 +105,9 @@ class ThreeDData extends Publisher {
   
  def extractText(value: Value[_]) {
     value match {
-      case VLit(GStr(s)) => _3DText = s;
-      case VLit(GInt(i)) => _3DText = i.toString;
-      case VLit(GDouble(i)) => _3DText = i.toInt.toString;
+      case VLit(GStr(s)) => _3DText = s
+      case VLit(GInt(i)) => _3DText = i.toString
+      case VLit(GDouble(i)) => _3DText = i.toInt.toString
       case _ => throw _3DNameError(value)
     }
   }
@@ -115,7 +115,7 @@ class ThreeDData extends Publisher {
   def extractSize(value: Value[_]) {
     value match {
       case VVector(vs) => {
-        if (isVectorOfNumbers(vs)) _3DSize = extractDoubles(vs).toArray;
+        if (isVectorOfNumbers(vs)) _3DSize = extractDoubles(vs).toArray
         else { _3DSize = Array[Double](); throw _3DSizeError(value) }
       }
       case VLit(GInt(x)) => _3DSize = Array(x.toDouble)
@@ -139,7 +139,7 @@ class ThreeDData extends Publisher {
       init3DClassStore(id, _3DData, objectCount);
 
     for (i: Int <- 0 to objectCount - 1) {
-      var vector = value(i);
+      val vector = value(i)
       vector match {
         case VVector(l) => {
           if (l.size != 5 && l.size != 6)
@@ -151,26 +151,26 @@ class ThreeDData extends Publisher {
             extractVector(l(3), "color")
             extractVector(l(4), "angle")
             if (_3DType == "Text")
-			  extractText(l(5))
-			else if (_3DType == "OBJ")
-			  extractPath(l(5))
-			else if(l.size == 6)
-			  extractTexture(l(5))
+			        extractText(l(5))
+			      else if (_3DType == "OBJ")
+			        extractPath(l(5))
+			      else if(l.size == 6)
+			        extractTexture(l(5))
           }
         }
         case _ => throw ShouldNeverHappen()
       }
       if (_3DType == "Text")
-	    _3DData(id)(i) = List(_3DType, _3DPosition,
+	      _3DData(id)(i) = List(_3DType, _3DPosition,
           _3DSize, _3DColor, _3DAngle, _3DText,frameNumber) :: _3DData(id)(i)
-	  else if (_3DType == "OBJ")
-	    _3DData(id)(i) = List(_3DType, _3DPosition,
+	    else if (_3DType == "OBJ")
+	      _3DData(id)(i) = List(_3DType, _3DPosition,
           _3DSize, _3DColor, _3DAngle, _3DPath, frameNumber) :: _3DData(id)(i)
       else if(_3DTexture == "transparent")
         _3DData(id)(i) = List(_3DType, _3DPosition,
           _3DSize, _3DColor, _3DAngle, _3DTexture, frameNumber) :: _3DData(id)(i)
       else
-       _3DData(id)(i) = List(_3DType, _3DPosition,
+        _3DData(id)(i) = List(_3DType, _3DPosition,
           _3DSize, _3DColor, _3DAngle, frameNumber) :: _3DData(id)(i)
        
       _3DTexture = ""   
@@ -227,7 +227,7 @@ class ThreeDData extends Publisher {
                   case VLit(_) => addTo3DStore(id, _3DData, List(value), 1)
                   /**
                    * If it contains multiple objects, _3D will start with a vector,
-                   * 		example : _3D = [["Sphere",[],[]...]
+                   * 		example : _3D = [["Sphere",[],[]...],
                    *                    ["Sphere",[],[]...]..]
                    */
                   case VVector(some) => addTo3DStore(id, _3DData, l, l.size)

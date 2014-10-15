@@ -54,6 +54,7 @@ import acumen.interpreters.enclosure.event.pwl.PWLEventEncloser
 import acumen.interpreters.enclosure.event.pwl.PWLEventEncloser
 import acumen.interpreters.enclosure.event.tree.TreeEventEncloser
 import acumen.{SemanticsImpl => S}
+import acumen.ui.threeD._
 
 // class Acumen = Everything that used to be GraphicalMain. Graphical
 // Main can't be an object it will cause Swing components to be
@@ -331,23 +332,25 @@ class App extends SimpleSwingApplication {
   }
 
   val traceTab = new ScrollPane(traceTable)
+  //var threeDtab = new jPCTEditorTab(controller)
+
   var threeDtab = if (Main.threeDState == ThreeDState.DISABLE) {
     console.log("Acumen3D disabled.")
     console.newLine
     if (Main.need_quartz) {
-      new threeD.DisabledThreeDTab("3D visualization disabled due to performance problems on Mac OS X. \n\nTo enable restart Java with -Dapple.awt.graphics.UseQuartz=true or use --3d to force 3D to be enabled.")
+      new DisabledEditorTab("3D visualization disabled due to performance problems on Mac OS X. \n\nTo enable restart Java with -Dapple.awt.graphics.UseQuartz=true or use --3d to force 3D to be enabled.")
     } else {
-      new threeD.DisabledThreeDTab("3D visualization disabled on the command line.")
+      new DisabledEditorTab("3D visualization disabled on the command line.")
     }
     //null
   } else if (Main.threeDState == ThreeDState.LAZY) {
-    new threeD.DisabledThreeDTab("3D visualization will be enabled when needed.")
+    new DisabledEditorTab("3D visualization will be enabled when needed.")
   } else {
     start3D()
   }
 
   def start3D() = try {
-    val res = new threeD.ThreeDTab(controller)
+    val res = new jPCTEditorTab(controller)
     Main.threeDState = ThreeDState.ENABLE
     res
   } catch {
@@ -357,7 +360,7 @@ class App extends SimpleSwingApplication {
       console.log("Disabling 3D Tab.")
       console.newLine
       Main.threeDState = ThreeDState.ERROR
-      new threeD.DisabledThreeDTab("Unable to load Java 3D. This functionality will not be available until this is fixed.\n" +
+      new DisabledEditorTab("Unable to load Java 3D. This functionality will not be available until this is fixed.\n" +
         "Please consult the section on Installing Java 3D in the README file that comes with this download.")
   }
 
@@ -378,6 +381,11 @@ class App extends SimpleSwingApplication {
     pages += new TabbedPane.Page("_3D", threeDtab)
     val THREED_IDX = pages.last.index
 
+    // For testing
+//    val jPCTEditorTab = new testEditor
+//    pages += new TabbedPane.Page("jPCT Editor", jPCTEditorTab)
+//    val VISEDIT_IDX = pages.last.index
+
     selection.reactions += {
       case SelectionChanged(_) =>
         possibleEnable3D
@@ -392,7 +400,7 @@ class App extends SimpleSwingApplication {
     
     def possibleEnable3D =
       if (selection.index == THREED_IDX && shouldEnable3D) {
-        App.ui.threeDtab = start3D()
+        App.ui.threeDtab = threeDtab
         pages(THREED_IDX).content = App.ui.threeDtab
       }
   }

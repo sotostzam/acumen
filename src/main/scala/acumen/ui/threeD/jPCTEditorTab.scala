@@ -1,13 +1,18 @@
-package acumen
-package ui
-package threeD
+package acumen.ui.threeD
+import java.awt.BorderLayout
+import javax.swing.JPanel
 
-import scala.actors._
-import scala.collection.JavaConversions._
-import scala.collection.mutable.{ Buffer, Map }
+import acumen.CId
+import acumen.ui.{App, Controller, Icons}
+
+import scala.collection.mutable.{Buffer, Map}
 import scala.swing._
 
-abstract class AbstractThreeDTab extends BorderPanel {
+/**
+ * Created by xufei on 9/18/14.
+ */
+
+abstract class AbstractEditorTab extends BorderPanel{
   def receiver: Publisher
   def reset: Unit
   def play: Unit
@@ -15,10 +20,20 @@ abstract class AbstractThreeDTab extends BorderPanel {
   def setProgress(p: Int): Unit
 }
 
-class ThreeDTab(val appModel: Controller) extends AbstractThreeDTab {
+class jPCTEditorTab (val appModel: Controller) extends AbstractEditorTab{
+  val canvasPanel = new JPanel
+  val threeDView = new jPCT_ThreeDView
 
-  var threeDView = new ThreeDView()
-  var playSpeed = 1.0;
+  def createCanvas() = {
+    if (check.selected == true)
+      threeDView.axisOn()
+    threeDView.init()
+    canvasPanel.setLayout(new BorderLayout())
+    canvasPanel.add(threeDView, BorderLayout.CENTER)
+    peer.add(canvasPanel, BorderLayout.CENTER)
+    peer.setVisible(true)
+  }
+  var playSpeed = 1.0
   val faster = new Action("faster") {
     icon = Icons.faster
     def apply = {
@@ -27,7 +42,7 @@ class ThreeDTab(val appModel: Controller) extends AbstractThreeDTab {
       timer3d.sleepTime = timer3d.initSpeed / playSpeed
       // Recalculate sleep time
       timer3d.extraTime = ((timer3d.sleepTime - timer3d.sleepTime.toLong) * 1000000).toInt
-      statusZone3d.setSpeed(playSpeed.toString) // Show the speed 
+      statusZone3d.setSpeed(playSpeed.toString) // Show the speed
     }
   }
   val slower = new Action("slower") {
@@ -35,7 +50,7 @@ class ThreeDTab(val appModel: Controller) extends AbstractThreeDTab {
     def apply = {
       playSpeed = playSpeed / 2
       timer3d.sleepTime = (1 / playSpeed) * timer3d.initSpeed
-      // Recalculate sleep time	
+      // Recalculate sleep time
       timer3d.extraTime = ((timer3d.sleepTime - timer3d.sleepTime.toLong) * 1000000).toInt
       statusZone3d.setSpeed(playSpeed.toString) // show the speed
     }
@@ -46,21 +61,19 @@ class ThreeDTab(val appModel: Controller) extends AbstractThreeDTab {
     def apply = pause()
   }
   val stop3d = new Action("stop") {
-    threeDView.canvas.stopRenderer
-    threeDView.canvas.startRenderer
     icon = Icons.stop
     def apply = {
       threedpause.toolTip = "pause"
       threedpause.icon = Icons.pause
       receiver.destroy = true
       timer3d.destroy = true
-      threeDView.reset
       check.selected = true
+      threeDView.reset
     }
     toolTip = "Stop visualizing"
   }
   /* ----3D-Visulization---- */
-  var played = false;
+  var played = false
 
   val threedplay = new Action("play") {
     icon = Icons.play
@@ -109,23 +122,19 @@ class ThreeDTab(val appModel: Controller) extends AbstractThreeDTab {
     contents += statusZone3d
   }
 
-  var _receiver = new _3DDisplay(threeDView, statusZone3d,
+  var _receiver = new _3DDisplayJPCT(threeDView, statusZone3d,
     _3DDataBuffer, lastFrame, appModel.threeDData.endTime,appModel.threeDData._3DView.reverse)
 
-  var timer3d = new ScalaTimer(receiver, appModel.threeDData.endTime, playSpeed)
+  var timer3d = new jPCT_ScalaTimer(receiver, appModel.threeDData.endTime, playSpeed)
 
-  //
-  //
-  //
-
-  def receiver: _3DDisplay = _receiver
+  def receiver: _3DDisplayJPCT = _receiver
 
   def reset = {
-    receiver.stop; 
-    played = false;
-    receiver.destroy=true;
-    check.selected = true;	
-    timer3d.destroy=true;
+    receiver.stop
+    played = false
+    receiver.destroy = true
+    check.selected = true
+    timer3d.destroy = true
     threeDView.reset
   }
 
@@ -144,7 +153,7 @@ class ThreeDTab(val appModel: Controller) extends AbstractThreeDTab {
       threedpause.toolTip = "pause"
     }
 
-  def play(): Unit = 
+  def play(): Unit =
     if (App.ui.codeArea.editedSinceLastRun)
       App.ui.runSimulation
     else {
@@ -152,16 +161,22 @@ class ThreeDTab(val appModel: Controller) extends AbstractThreeDTab {
       threedpause.icon = Icons.pause
       endTime = appModel.threeDData.endTime
       if (played) {
-        receiver.stop;
-        timer3d.destroy = true;
+        receiver.stop
+        timer3d.destroy = true
         statusZone3d.setSpeed(playSpeed.toString)
+        threeDView.world.removeAllObjects()
+        threeDView.axisArray(0) = null
         if (check.selected == true)
           threeDView.axisOn
       }
-      // First time press "3D play" button, 
+      // First time press "3D play" button,
       // copy the data from list to buffer to speed up
       if (!played) {
         _3DDataBuffer.clear
+        threeDView.world.removeAllObjects()
+        threeDView.axisArray(0) = null
+        if (check.selected == true)
+          threeDView.axisOn
         lastFrame = 0
         statusZone3d.setSpeed("1.0")
         for ((id, map) <- appModel.threeDData._3DData) {
@@ -180,17 +195,18 @@ class ThreeDTab(val appModel: Controller) extends AbstractThreeDTab {
           _3DDataBuffer += id -> temp
         }
         _3DView = appModel.threeDData._3DView.reverse
-        appModel.threeDData.reset;
+        appModel.threeDData.reset
       }
-      threeDView.branches.clear
-      threeDView.trans.clear
-      threeDView.customView = (_3DView.size > 0)
-      if (_3DView.size != 0)
+      threeDView.objects.clear()
+      if (_3DView.size != 0) {
+        check.selected = true
         threeDView.reset
-  
-      _receiver = new _3DDisplay(threeDView, statusZone3d, _3DDataBuffer, lastFrame,
+      }
+
+
+      _receiver = new _3DDisplayJPCT(threeDView, statusZone3d, _3DDataBuffer, lastFrame,
         appModel.threeDData.endTime, _3DView)
-      timer3d = new ScalaTimer(receiver, appModel.threeDData.endTime, playSpeed)
+      timer3d = new jPCT_ScalaTimer(receiver, appModel.threeDData.endTime, playSpeed)
       receiver.start()
       timer3d.start()
       listenTo(receiver)
@@ -198,7 +214,7 @@ class ThreeDTab(val appModel: Controller) extends AbstractThreeDTab {
       receiver.listenTo(timer3d)
       timer3d.listenTo(statusZone3d.bar.mouse.clicks)
       timer3d.listenTo(statusZone3d.bar.mouse.moves)
-      played = true;
+      played = true
     }
 
   def setProgress(p:Int) = {
@@ -206,20 +222,17 @@ class ThreeDTab(val appModel: Controller) extends AbstractThreeDTab {
     statusZone3d.setTime((p.toFloat/100)*endTime.toFloat)
   }
 
-  //
   // Final Init
-  //
-
-  add(threeDView.init(),BorderPanel.Position.Center)
-  add(threeDBottomPane, BorderPanel.Position.South)  
+  createCanvas()
+  add(threeDBottomPane, BorderPanel.Position.South)
 
 }
 
-class DisabledThreeDTab(msg: String) extends AbstractThreeDTab {
+class DisabledEditorTab(msg: String) extends AbstractEditorTab {
   def receiver = null
-  def reset = {} 
-  def play = {} 
-  def pause = {} 
+  def reset = {}
+  def play = {}
+  def pause = {}
   def setProgress(p:Int) = {}
   val msgBox = new TextArea("\n" + msg)
   msgBox.editable = false
@@ -227,4 +240,5 @@ class DisabledThreeDTab(msg: String) extends AbstractThreeDTab {
   msgBox.peer.setWrapStyleWord(true)
   add(msgBox,BorderPanel.Position.Center)
 }
+
 

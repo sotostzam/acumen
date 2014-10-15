@@ -1,0 +1,3 @@
+[submodule "jpct_lib"]
+	path = jpct_lib
+	url = https://bitbucket.org/effective/jpct_lib.git

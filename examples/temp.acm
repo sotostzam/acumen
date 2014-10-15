@@ -1,0 +1,7 @@
+class Main(simulator)
+private
+ _3D := 
+ [["Box",[0,0,2],[1,1,0.5],yellow,[0,0,0]],
+  ["Cylinder",[0,0,1],[1,1],red,[0,0,0]]] 
+end
+end
