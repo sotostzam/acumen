@@ -229,8 +229,8 @@ class jPCT_ThreeDView extends JPanel {
 //    ).map(l => world.addLight(new SimpleVector(l._1, l._2, l._3), 10, 10, 10))
 //    world.addLight(new SimpleVector(0, -100, 100), 14, 14, 14)
 //    world.addLight(new SimpleVector(0, -100, -100), 14, 14, 14)
-    world.addLight(new SimpleVector(15.076f, -7.904f, 0f), 20, 20, 20)
-    world.addLight(new SimpleVector(-15.076f, -7.904f, 0f), 20, 20, 20)
+    world.addLight(new SimpleVector(15.076f, -7.904f, 0f), 18, 18, 18)
+    world.addLight(new SimpleVector(-15.076f, -7.904f, 0f), 18, 18, 18)
     world.addLight(new SimpleVector(0,-5f,0), 2, 2, 2)
   }
 
@@ -621,7 +621,17 @@ class _3DDisplayJPCT(app: jPCT_ThreeDView, slider: Slider3d,
     transVector = tempTransVector.calcSub(transObject.getTransformedCenter)
     transObject.translate(transVector)
     // reset the color for the object
-    transObject.setAdditionalColor((tempColor(0)*255).toInt, (tempColor(1)*255).toInt, (tempColor(2)*255).toInt)
+    val colorToSet = Array(1.0, 1.0, 1.0)
+    colorToSet(0) = tempColor(0) * 255
+    colorToSet(1) = tempColor(1) * 255
+    colorToSet(2) = tempColor(2) * 255
+    if (colorToSet(0) > 255)
+      colorToSet(0) = 255
+    if (colorToSet(1) > 255)
+      colorToSet(1) = 255
+    if (colorToSet(2) > 255)
+      colorToSet(2) = 255
+    transObject.setAdditionalColor(new Color(colorToSet(0).toInt, colorToSet(1).toInt, colorToSet(2).toInt))
   }
 
   def renderCurrentFrame() = {
@@ -734,8 +744,17 @@ class _3DDisplayJPCT(app: jPCT_ThreeDView, slider: Slider3d,
       case _ => throw ShouldNeverHappen()
     }
 
-    val colorToSet = new Color((color(0)*255).toInt, (color(1)*255).toInt, (color(2)*255).toInt)
-    newObject.setAdditionalColor(colorToSet)
+    val colorToSet = Array(1.0, 1.0, 1.0)
+    colorToSet(0) = color(0) * 255
+    colorToSet(1) = color(1) * 255
+    colorToSet(2) = color(2) * 255
+    if (colorToSet(0) > 255)
+      colorToSet(0) = 255
+    if (colorToSet(1) > 255)
+      colorToSet(1) = 255
+    if (colorToSet(2) > 255)
+      colorToSet(2) = 255
+    newObject.setAdditionalColor(new Color(colorToSet(0).toInt, colorToSet(1).toInt, colorToSet(2).toInt))
 
     if (name == "Cylinder" || name == "Cone")
       rotateCylCone(newObject)
@@ -755,9 +774,11 @@ class _3DDisplayJPCT(app: jPCT_ThreeDView, slider: Slider3d,
     newObject.translate(transVector)
 
     //newObject.setSpecularLighting(true)
-    app.objects -= c
-    app.objects += c.toList -> newObject
-    view.addObject(newObject)
+    if (name != "Text") {
+      app.objects -= c
+      app.objects += c.toList -> newObject
+      view.addObject(newObject)
+    }
   }
 
   // Update the slider value
