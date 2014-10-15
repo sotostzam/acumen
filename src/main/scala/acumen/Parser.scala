@@ -147,7 +147,7 @@ object Parser extends MyStdTokenParsers {
     List("foreach", "end", "if", "else","elseif", "create", "move", "in", "terminate", "model","then","initially","always",
          "sum", "true", "false", "init", "match","with", "case", "type", "claim", "hypothesis", "let","noelse",
          "Continuous", "Discrete", "FixedPoint", "none","cross","do","dot",
-         "Sphere", "Box", "Cylinder", "Cone", "Text", "Obj")
+         "Sphere", "Box", "Cylinder", "Cone", "Text", "Obj", "center","size","length","radius","rotation","color")
 
   /* token conversion */
 
@@ -495,7 +495,7 @@ object Parser extends MyStdTokenParsers {
     
     val length = paras.find(_._1 == "length") match{
       case Some(x) => x._2
-      case None => defaultCenter
+      case None => defaultLength
     }
 
     val content = paras.find(_._1 == "content") match{
