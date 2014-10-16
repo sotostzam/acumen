@@ -12,14 +12,6 @@
  * maxA is the maximum accerlaration the actuator can handle.
  * */
 
-/* 
-   Works with semantic 2014
-   Has bug with semantic 2013
-   Has bug with semantic 2012
-*/
-
-//#semantics "2014 Reference"
-
 model Player(n,maxA) = 
 initially
   name       =  "Player" &
@@ -212,24 +204,24 @@ initially
   p    = (0,0,0) & 
   q    = (0,0,0) &
   _3D  =  () &
-  radius  =  0.05 &
-  length  =  0.01 & alpha = 0 & theta =  pi/2 &
+  r  =  0.05 &
+  l  =  0.01 & alpha = 0 & theta =  pi/2 &
   x       =  0 &    y     = 0 & z     = 0 &
   flag    =  0 &
-  color   =  (1,1,1) &
+  col   =  (1,1,1) &
   shiftD  =  (10,5,0)           // shift distance of the ball
 always
-  _3D = (Cylinder center=(p+q)/2+D+(tablerow,tablecolum,0).*shiftD radius= radius 
-                  length=length color=color rotation=(alpha,0,-theta)) &
+  _3D = (Cylinder center=(p+q)/2+D+(tablerow,tablecolum,0).*shiftD radius=r 
+                  length=l color=col rotation=(alpha,0,-theta)) &
   x = (p(0)-q(0)) &
   y = (p(1)-q(1)) &
   z = (p(2)-q(2)) &
 
-  length = norm(p-q) &
-  if length > 0 then alpha = asin(z/length)
+  l = norm(p-q) &
+  if l > 0 then alpha = asin(z/l)
   else alpha = 0 &
-  if y>0 then theta = asin(x/(length*cos(alpha)+0.0001))
-  else theta = -asin(x/(length*cos(alpha)+0.0001))+pi
+  if y>0 then theta = asin(x/(l*cos(alpha)+0.0001))
+  else theta = -asin(x/(l*cos(alpha)+0.0001))+pi
 
 /**
 * A three-dimentional bouncing ball model, with air resistance.
@@ -323,16 +315,16 @@ always
   unit = (p - baseP)/norm(p - baseP) &
   link1.q = baseP &
   link1.p = baseP + L1 * unit &
-  link1.radius = 0.1 &
+  link1.r = 0.1 &
   link2.q = link1.p &
   link2.p = p +  ((-1)^n * 0.05,0,0) &
-  link2.radius = 0.03 &
+  link2.r = 0.03 &
   // Energy bar visualization
   offset = (energy/maxE)*1.5 &
   eb.p = ((-1)^n * 1.5, -0.8, -0.05) &
   eb.q = ((-1)^n * 1.5 + (-1)^(n+1) * offset, -0.8, -0.05) &
-  eb.radius = 0.02 &
-  eb.color = (0.2,1,0.2)
+  eb.r = 0.02 &
+  eb.col = (0.2,1,0.2)
 
 /**
 * For visualizing the bat
