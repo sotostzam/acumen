@@ -22,7 +22,6 @@ object Main {
   // What should be in Main
   //
 
-  var need_quartz = false
   var threeDState: ThreeDState.Value = null
   var disableNewPlot = true
   var enableAllSemantics = true
@@ -117,7 +116,6 @@ object Main {
       case ("--lazy-3d") :: tail => 
         threeDState = ThreeDState.LAZY; parseArgs(tail)
       case ("--disable-3d" | "--no-3d") :: tail => 
-        need_quartz = false
         threeDState = ThreeDState.DISABLE; 
         parseArgs(tail)
       case ("--enable-newplot" | "--newplot") :: tail => 
