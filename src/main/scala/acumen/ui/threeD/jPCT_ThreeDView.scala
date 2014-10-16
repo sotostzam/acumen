@@ -229,8 +229,8 @@ class jPCT_ThreeDView extends JPanel {
 //    ).map(l => world.addLight(new SimpleVector(l._1, l._2, l._3), 10, 10, 10))
 //    world.addLight(new SimpleVector(0, -100, 100), 14, 14, 14)
 //    world.addLight(new SimpleVector(0, -100, -100), 14, 14, 14)
-    world.addLight(new SimpleVector(15.076f, -7.904f, 0f), 20, 20, 20)
-    world.addLight(new SimpleVector(-15.076f, -7.904f, 0f), 20, 20, 20)
+    world.addLight(new SimpleVector(15.076f, -7.904f, 0f), 18, 18, 18)
+    world.addLight(new SimpleVector(-15.076f, -7.904f, 0f), 18, 18, 18)
     world.addLight(new SimpleVector(0,-5f,0), 2, 2, 2)
   }
 
@@ -298,46 +298,6 @@ class jPCT_ThreeDView extends JPanel {
     box.addTriangle(upperRightBack,1,0, lowerRightFront, 0,1, lowerRightBack,1,1)
 
     box
-  }
-
-  def draw3Dline(pointA: SimpleVector, pointB: SimpleVector, width: Float, textureName: String): Object3D = {
-    val line = new Object3D(8)
-    val offset = width / 10.0f
-    line.addTriangle (new SimpleVector(pointA.x, pointA.y - offset, pointA.z), 0, 0,
-                      new SimpleVector(pointA.x, pointA.y + offset, pointA.z), 0, 1,
-                      new SimpleVector(pointB.x, pointB.y + offset, pointB.z), 1, 1,
-                      TextureManager.getInstance.getTextureID(textureName))
-    line.addTriangle (new SimpleVector(pointB.x, pointB.y + offset, pointB.z), 0, 0,
-                      new SimpleVector(pointB.x, pointB.y - offset, pointB.z), 0, 1,
-                      new SimpleVector(pointA.x, pointA.y - offset, pointA.z), 1, 1,
-                      TextureManager.getInstance.getTextureID(textureName))
-    line.addTriangle (new SimpleVector(pointB.x, pointB.y - offset, pointB.z), 0, 0,
-                      new SimpleVector(pointB.x, pointB.y + offset, pointB.z), 0, 1,
-                      new SimpleVector(pointA.x, pointA.y + offset, pointA.z), 1, 1,
-                      TextureManager.getInstance.getTextureID(textureName))
-    line.addTriangle (new SimpleVector(pointA.x, pointA.y + offset, pointA.z), 0, 0,
-                      new SimpleVector(pointA.x, pointA.y - offset, pointA.z), 0, 1,
-                      new SimpleVector(pointB.x, pointB.y - offset, pointB.z), 1, 1,
-                      TextureManager.getInstance.getTextureID(textureName))
-    line.addTriangle (new SimpleVector(pointA.x, pointA.y, pointA.z + offset), 0, 0,
-                      new SimpleVector(pointA.x, pointA.y, pointA.z - offset), 0, 1,
-                      new SimpleVector(pointB.x, pointB.y, pointB.z - offset), 1, 1,
-                      TextureManager.getInstance.getTextureID(textureName))
-    line.addTriangle (new SimpleVector(pointB.x, pointB.y, pointB.z - offset), 0, 0,
-                      new SimpleVector(pointB.x, pointB.y, pointB.z + offset), 0, 1,
-                      new SimpleVector(pointA.x, pointA.y, pointA.z + offset), 1, 1,
-                      TextureManager.getInstance.getTextureID(textureName))
-    line.addTriangle (new SimpleVector(pointB.x, pointB.y, pointB.z + offset), 0, 0,
-                      new SimpleVector(pointB.x, pointB.y, pointB.z - offset), 0, 1,
-                      new SimpleVector(pointA.x, pointA.y, pointA.z - offset), 1, 1,
-                      TextureManager.getInstance.getTextureID(textureName))
-    line.addTriangle (new SimpleVector(pointA.x, pointA.y, pointA.z - offset), 0, 0,
-                      new SimpleVector(pointA.x, pointA.y, pointA.z + offset), 0, 1,
-                      new SimpleVector(pointB.x, pointB.y, pointB.z + offset), 1, 1,
-                      TextureManager.getInstance.getTextureID(textureName))
-    line.setLighting(Object3D.LIGHTING_NO_LIGHTS)
-    line.setAdditionalColor(Color.WHITE)
-    return line
   }
 
   /** uses a vertex controller to rescale  **/
@@ -487,6 +447,11 @@ class _3DDisplayJPCT(app: jPCT_ThreeDView, slider: Slider3d,
     var tempType = " "
     var objID = 1
     var transVector = new SimpleVector(0.0, 0.0, 0.0)
+    val tranObjectRotMatrixX = new Matrix()
+    val tranObjectRotMatrixY = new Matrix()
+    val tranObjectRotMatrixZ = new Matrix()
+    val tranObjectRotTempMat = new Matrix()
+    val tranObjectRotMatrix  = new Matrix()
     /* Find the corresponding index of the object */
     val index = (currentFrame - bufferFrame(buffer.head))
     if (index >= 0 && index < buffer.size) {
@@ -515,16 +480,52 @@ class _3DDisplayJPCT(app: jPCT_ThreeDView, slider: Slider3d,
           // the type has been changed, we need to delete the old object and create a one
           if (lastTempType != tempType) {
             // change the object in
-            objects(id) = app.drawBox(abs(tempSize(0)), abs(tempSize(1)), abs(tempSize(2)))
+            view.removeObject(objID)
+            var sizeToSetX = 0.0
+            var sizeToSetY = 0.0
+            var sizeToSetZ = 0.0
+            // Since some object need to scale, we never allow the initial size become 0
+            if (tempSize(1) == 0){
+              sizeToSetX = 0.001
+            } else {
+              sizeToSetX = tempSize(1)
+            }
+            if (tempSize(0) == 0){
+              sizeToSetY = 0.001
+            } else {
+              sizeToSetY = tempSize(0)
+            }
+            if (tempSize(2) == 0){
+              sizeToSetZ = 0.001
+            } else {
+              sizeToSetZ = tempSize(2)
+            }
+            objects(id) = app.drawBox(abs(sizeToSetY), abs(sizeToSetX), abs(sizeToSetZ))
             transObject = objects(id)
             objID = objects(id).getID // renew the object ID
+            view.addObject(transObject)
             transObject.setShadingMode(Object3D.SHADING_FAKED_FLAT)
           } else { // just need change the size
             if (lastTempSize != tempSize) {
+              var widthFactor = 0.0
+              var lengthFactor = 0.0
+              var heightFactor = 0.0
+              if (lastTempSize(0) == 0) {
+                widthFactor = tempSize(0) / 0.001
+              } else {
+                widthFactor = tempSize(0) / lastTempSize(0)
+              }
+              if (lastTempSize(1) == 0) {
+                lengthFactor = tempSize(1) / 0.001
+              } else {
+                lengthFactor = tempSize(1) / lastTempSize(1)
+              }
+              if (lastTempSize(2) == 0) {
+                heightFactor = tempSize(2) / 0.001
+              } else {
+                heightFactor = tempSize(2) / lastTempSize(2)
+              }
               val boxMesh = transObject.getMesh
-              val lengthFactor = tempSize(0) / lastTempSize(0)
-              val widthFactor = tempSize(1) / lastTempSize(1)
-              val heightFactor = tempSize(2) / lastTempSize(2)
               app.setBoxSize(lengthFactor.toFloat, widthFactor.toFloat, heightFactor.toFloat, boxMesh)
             }
           }
@@ -538,16 +539,39 @@ class _3DDisplayJPCT(app: jPCT_ThreeDView, slider: Slider3d,
           // the type has been changed, we need to delete the old object and create a one
           if (lastTempType != tempType) {
             // change the object in
-            objects(id) = Primitives.getCylinder(50, abs((tempSize(0)).toFloat), abs((tempSize(1) / (2 * tempSize(0))).toFloat))
+            view.removeObject(objID)
+            var sizeToSetR = 0.0
+            var sizeToSetS = 0.0
+            if (tempSize(0) == 0){
+              sizeToSetR = 0.001
+            } else {
+              sizeToSetR = tempSize(0)
+            }
+            if (tempSize(1) == 0){
+              sizeToSetS = 0.001
+            } else {
+              sizeToSetS = tempSize(1)
+            }
+            objects(id) = Primitives.getCylinder(20, abs(sizeToSetR.toFloat), abs((sizeToSetS / (2 * sizeToSetR))).toFloat)
             transObject = objects(id)
             objID = objects(id).getID // renew the object ID
-            rotateCylCone(transObject)
+            view.addObject(transObject)
             transObject.setShadingMode(Object3D.SHADING_FAKED_FLAT)
           } else { // just need change the size
             if (lastTempSize != tempSize) {
+              var radiusFactor = 0.0
+              var heightFactor = 0.0
+              if (lastTempSize(0) == 0) {
+                radiusFactor = tempSize(0) / 0.001
+              } else {
+                radiusFactor = tempSize(0) / lastTempSize(0)
+              }
+              if (lastTempSize(1) == 0) {
+                heightFactor = tempSize(1) / 0.001
+              } else {
+                heightFactor = tempSize(1) / lastTempSize(1)
+              }
               val boxMesh = transObject.getMesh
-              val radiusFactor = tempSize(0) / lastTempSize(0)
-              val heightFactor = tempSize(1) / lastTempSize(1)
               app.setCylConeSize(radiusFactor.toFloat, heightFactor.toFloat, boxMesh)
             }
           }
@@ -561,15 +585,38 @@ class _3DDisplayJPCT(app: jPCT_ThreeDView, slider: Slider3d,
           // the type has been changed, we need to delete the old object and create a one
           if (lastTempType != tempType) {
             // change the object in
-            objects(id) = Primitives.getCone(50, abs((tempSize(0)).toFloat), abs((tempSize(1) / (tempSize(0) * 2)).toFloat))
+            view.removeObject(objID)
+            var sizeToSetR = 0.0
+            var sizeToSetS = 0.0
+            if (tempSize(0) == 0){
+              sizeToSetR = 0.001
+            } else {
+              sizeToSetR = tempSize(0)
+            }
+            if (tempSize(1) == 0){
+              sizeToSetS = 0.001
+            } else {
+              sizeToSetS = tempSize(1)
+            }
+            objects(id) = Primitives.getCone(20, abs(sizeToSetR.toFloat), abs((sizeToSetS / (sizeToSetR * 2))).toFloat)
             transObject = objects(id)
             objID = objects(id).getID // renew the object ID
-            rotateCylCone(transObject)
+            view.addObject(transObject)
           } else { // just need change the size
             if (lastTempSize != tempSize) {
+              var radiusFactor = 0.0
+              var heightFactor = 0.0
+              if (lastTempSize(0) == 0) {
+                radiusFactor = tempSize(0) / 0.001
+              } else {
+                radiusFactor = tempSize(0) / lastTempSize(0)
+              }
+              if (lastTempSize(1) == 0) {
+                heightFactor = tempSize(1) / 0.001
+              } else {
+                heightFactor = tempSize(1) / lastTempSize(1)
+              }
               val boxMesh = transObject.getMesh
-              val radiusFactor = tempSize(0) / lastTempSize(0)
-              val heightFactor = tempSize(1) / lastTempSize(1)
               app.setCylConeSize(radiusFactor.toFloat, heightFactor.toFloat, boxMesh)
             }
           }
@@ -583,12 +630,28 @@ class _3DDisplayJPCT(app: jPCT_ThreeDView, slider: Slider3d,
           // the type has been changed, we need to delete the old object and create a one
           if (lastTempType != tempType) {
             // change the object in
-            objects(id) = Primitives.getSphere(10, abs((tempSize(0)).toFloat))
+            view.removeObject(objID)
+            var sizeToSetR = 0.0
+            if (tempSize(0) == 0){
+              sizeToSetR = 0.001
+            } else {
+              sizeToSetR = tempSize(0)
+            }
+            objects(id) = Primitives.getSphere(10, abs(sizeToSetR.toFloat))
             transObject = objects(id)
             objID = objects(id).getID // renew the object ID
+            view.addObject(transObject)
           } else { // just need change the size
             if (lastTempSize != tempSize) {
-              val radiusFactor = tempSize(0) / lastTempSize(0)
+              var radiusFactor = 0.0
+              // we never allow the object size become 0
+              if (lastTempSize(0) == 0) {
+                radiusFactor = tempSize(0) / 0.001
+              } else {
+                radiusFactor = tempSize(0) / lastTempSize(0)
+              }
+              if (radiusFactor == 0)
+                radiusFactor = 0.001
               transObject.scale(radiusFactor.toFloat)
             }
           }
@@ -599,29 +662,44 @@ class _3DDisplayJPCT(app: jPCT_ThreeDView, slider: Slider3d,
       case _ => throw ShouldNeverHappen()
     }
     // rotate the object
-    if (index >= 1) {
-      val lastTempAngle = bufferAngle(buffer(index - 1))
-      if (tempAngle(0) != lastTempAngle(0)) {
-        transObject.rotateX((tempAngle(0) - lastTempAngle(0)).toFloat)
-      }
-      if (tempAngle(1) != lastTempAngle(1)) {
-        transObject.rotateZ((tempAngle(1) - lastTempAngle(1)).toFloat)
-      }
-      if (tempAngle(2) != lastTempAngle(2)) {
-        transObject.rotateY((lastTempAngle(2) - tempAngle(2)).toFloat)
-      }
+    if (tempType == "Cylinder" || tempType == "Cone") {
+      tranObjectRotMatrix.rotateX((-Math.PI/2).toFloat)
+      tranObjectRotMatrixZ.rotateZ(-tempAngle(1).toFloat)
+      tranObjectRotMatrixY.rotateY(-tempAngle(2).toFloat)
+      tranObjectRotMatrixX.rotateX(tempAngle(0).toFloat)
+      tranObjectRotTempMat.matMul(tranObjectRotMatrixX)
+      tranObjectRotTempMat.matMul(tranObjectRotMatrixZ)
+      tranObjectRotTempMat.matMul(tranObjectRotMatrixY)
+      tranObjectRotMatrix.matMul(tranObjectRotTempMat)
+      transObject.setRotationMatrix(tranObjectRotMatrix)
     } else {
-      transObject.rotateZ(tempAngle(1).toFloat)
-      transObject.rotateY(-tempAngle(2).toFloat)
-      transObject.rotateX(tempAngle(0).toFloat)
+      tranObjectRotMatrixZ.rotateZ(-tempAngle(1).toFloat)
+      tranObjectRotMatrixY.rotateY(-tempAngle(2).toFloat)
+      tranObjectRotMatrixX.rotateX(tempAngle(0).toFloat)
+      tranObjectRotTempMat.matMul(tranObjectRotMatrixX)
+      tranObjectRotTempMat.matMul(tranObjectRotMatrixZ)
+      tranObjectRotTempMat.matMul(tranObjectRotMatrixY)
+      tranObjectRotMatrix.matMul(tranObjectRotTempMat)
+      transObject.setRotationMatrix(tranObjectRotMatrix)
     }
+    //}
 
     // calculate the transVector for the object
     val tempTransVector = new SimpleVector(-tempPosition(0), -tempPosition(2), -tempPosition(1))
     transVector = tempTransVector.calcSub(transObject.getTransformedCenter)
     transObject.translate(transVector)
     // reset the color for the object
-    transObject.setAdditionalColor((tempColor(0)*255).toInt, (tempColor(1)*255).toInt, (tempColor(2)*255).toInt)
+    val colorToSet = Array(1.0, 1.0, 1.0)
+    colorToSet(0) = tempColor(0) * 255
+    colorToSet(1) = tempColor(1) * 255
+    colorToSet(2) = tempColor(2) * 255
+    if (colorToSet(0) > 255)
+      colorToSet(0) = 255
+    if (colorToSet(1) > 255)
+      colorToSet(1) = 255
+    if (colorToSet(2) > 255)
+      colorToSet(2) = 255
+    transObject.setAdditionalColor(new Color(colorToSet(0).toInt, colorToSet(1).toInt, colorToSet(2).toInt))
   }
 
   def renderCurrentFrame() = {
@@ -723,10 +801,67 @@ class _3DDisplayJPCT(app: jPCT_ThreeDView, slider: Slider3d,
     var newObject = new Object3D(1)
 
     name match {
-      case "Box" => newObject = app.drawBox(abs(size(1)), abs(size(0)),abs(size(2)))
-      case "Cylinder" => newObject = Primitives.getCylinder(50, abs((size(0)).toFloat), abs((size(1) / (size(0) * 2)).toFloat))
-      case "Cone" => newObject = Primitives.getCone(50, abs((size(0)).toFloat), abs((size(1) / (size(0) * 2)).toFloat))
-      case "Sphere" => newObject = Primitives.getSphere(20, abs((size(0)).toFloat))
+      case "Box" => {
+        var sizeToSetX = 0.0
+        var sizeToSetY = 0.0
+        var sizeToSetZ = 0.0
+        // Since some object need to scale, we never allow the initial size become 0
+        if (size(1) == 0){
+          sizeToSetX = 0.001
+        } else {
+          sizeToSetX = size(1)
+        }
+        if (size(0) == 0){
+          sizeToSetY = 0.001
+        } else {
+          sizeToSetY = size(0)
+        }
+        if (size(2) == 0){
+          sizeToSetZ = 0.001
+        } else {
+          sizeToSetZ = size(2)
+        }
+        newObject = app.drawBox(abs(sizeToSetX), abs(sizeToSetY),abs(sizeToSetZ))
+      }
+      case "Cylinder" => {
+        var sizeToSetR = 0.0
+        var sizeToSetS = 0.0
+        if (size(0) == 0){
+          sizeToSetR = 0.001
+        } else {
+          sizeToSetR = size(0)
+        }
+        if (size(1) == 0){
+          sizeToSetS = 0.001
+        } else {
+          sizeToSetS = size(1)
+        }
+        newObject = Primitives.getCylinder(20, abs(sizeToSetR.toFloat), abs((sizeToSetS / (sizeToSetR * 2))).toFloat)
+      }
+      case "Cone" => {
+        var sizeToSetR = 0.0
+        var sizeToSetS = 0.0
+        if (size(0) == 0){
+          sizeToSetR = 0.001
+        } else {
+          sizeToSetR = size(0)
+        }
+        if (size(1) == 0){
+          sizeToSetS = 0.001
+        } else {
+          sizeToSetS = size(1)
+        }
+        newObject = Primitives.getCone(20, abs(sizeToSetR.toFloat), abs((sizeToSetS / (sizeToSetR * 2))).toFloat)
+      }
+      case "Sphere" => {
+        var sizeToSetR = 0.0
+        if (size(0) == 0){
+          sizeToSetR = 0.001
+        } else {
+          sizeToSetR = size(0)
+        }
+        newObject = Primitives.getSphere(20, abs(sizeToSetR.toFloat))
+      }
       case "Text" => //addText(text, size(0), color, position, app.buffer)
       case "OBJ" =>
         //for (a <- loadObj(path, size(0)))
@@ -734,19 +869,48 @@ class _3DDisplayJPCT(app: jPCT_ThreeDView, slider: Slider3d,
       case _ => throw ShouldNeverHappen()
     }
 
-    val colorToSet = new Color((color(0)*255).toInt, (color(1)*255).toInt, (color(2)*255).toInt)
-    newObject.setAdditionalColor(colorToSet)
-
-    if (name == "Cylinder" || name == "Cone")
-      rotateCylCone(newObject)
+    val colorToSet = Array(1.0, 1.0, 1.0)
+    colorToSet(0) = color(0) * 255
+    colorToSet(1) = color(1) * 255
+    colorToSet(2) = color(2) * 255
+    if (colorToSet(0) > 255)
+      colorToSet(0) = 255
+    if (colorToSet(1) > 255)
+      colorToSet(1) = 255
+    if (colorToSet(2) > 255)
+      colorToSet(2) = 255
+    newObject.setAdditionalColor(new Color(colorToSet(0).toInt, colorToSet(1).toInt, colorToSet(2).toInt))
 
     if (name == "Box" || name == "Cylinder")
       newObject.setShadingMode(Object3D.SHADING_FAKED_FLAT)
 
     // Once we added the object, we should also move the object to the position at that time
-    newObject.rotateZ(angle(1).toFloat)
-    newObject.rotateY(-angle(2).toFloat)
-    newObject.rotateX(angle(0).toFloat)
+    val tranObjectRotMatrixX = new Matrix()
+    val tranObjectRotMatrixY = new Matrix()
+    val tranObjectRotMatrixZ = new Matrix()
+    val tranObjectRotTempMat = new Matrix()
+    val tranObjectRotMatrix  = new Matrix()
+    if (name == "Cylinder" || name == "Cone") {
+      tranObjectRotMatrix.rotateX((-Math.PI/2).toFloat)
+      tranObjectRotMatrixZ.rotateZ(-angle(1).toFloat)
+      tranObjectRotMatrixY.rotateY(-angle(2).toFloat)
+      tranObjectRotMatrixX.rotateX(angle(0).toFloat)
+      tranObjectRotTempMat.matMul(tranObjectRotMatrixX)
+      tranObjectRotTempMat.matMul(tranObjectRotMatrixZ)
+      tranObjectRotTempMat.matMul(tranObjectRotMatrixY)
+      tranObjectRotMatrix.matMul(tranObjectRotTempMat)
+      newObject.setRotationMatrix(tranObjectRotMatrix)
+    } else {
+      tranObjectRotMatrixZ.rotateZ(-angle(1).toFloat)
+      tranObjectRotMatrixY.rotateY(-angle(2).toFloat)
+      tranObjectRotMatrixX.rotateX(angle(0).toFloat)
+      tranObjectRotTempMat.matMul(tranObjectRotMatrixX)
+      tranObjectRotTempMat.matMul(tranObjectRotMatrixZ)
+      tranObjectRotTempMat.matMul(tranObjectRotMatrixY)
+      tranObjectRotMatrix.matMul(tranObjectRotTempMat)
+      newObject.setRotationMatrix(tranObjectRotMatrix)
+    }
+
 
     // calculate the transVector for the object
     val tempTransVector = new SimpleVector(-position(0), -position(2), -position(1))
@@ -755,9 +919,11 @@ class _3DDisplayJPCT(app: jPCT_ThreeDView, slider: Slider3d,
     newObject.translate(transVector)
 
     //newObject.setSpecularLighting(true)
-    app.objects -= c
-    app.objects += c.toList -> newObject
-    view.addObject(newObject)
+    if (name != "Text") {
+      app.objects -= c
+      app.objects += c.toList -> newObject
+      view.addObject(newObject)
+    }
   }
 
   // Update the slider value
@@ -767,7 +933,6 @@ class _3DDisplayJPCT(app: jPCT_ThreeDView, slider: Slider3d,
 
 // Transparent box
 class setGlass(color: Color, objectA: Object3D, transparancy: Int) {
-  //objectA.setSpecularLighting(true)
   objectA.setTransparencyMode(Object3D.TRANSPARENCY_MODE_DEFAULT) //TRANSPARENCY_MODE_DEFAULT
   objectA.setTransparency(transparancy) // the transparency level. 0 is the highest possible transparency
   objectA.setAdditionalColor(color) // the color of the object3D
@@ -786,10 +951,17 @@ class ResizerBox (xFactor: Float, yFactor: Float, zFactor: Float) extends Generi
     val s = getSourceMesh()
     val d = getDestinationMesh()
 
+    if (XFactor == 0)
+      XFactor = 0.001f
+    if (YFactor == 0)
+      YFactor = 0.001f
+    if (ZFactor == 0)
+      ZFactor = 0.001f
+
     for (i <- 0 until s.length) {
       d(i).x = s(i).x * XFactor
-      d(i).y = s(i).y * YFactor
       d(i).z = s(i).z * ZFactor
+      d(i).y = s(i).y * YFactor
     }
   }
 }
@@ -803,10 +975,15 @@ class ResizerCylCone (radiusFactor: Float, heightFactor: Float) extends GenericV
     val s = getSourceMesh()
     val d = getDestinationMesh()
 
+    if (RadiusFactor == 0)
+      RadiusFactor = 0.001f
+    if (HeightFactor == 0)
+      HeightFactor = 0.001f
+
     for (i <- 0 until s.length) {
-      d(i).x = s(i).x * RadiusFactor
-      d(i).z = s(i).z * RadiusFactor
-      d(i).y = s(i).y * HeightFactor
+        d(i).x = s(i).x * RadiusFactor
+        d(i).z = s(i).z * RadiusFactor
+        d(i).y = s(i).y * HeightFactor
     }
   }
 }
