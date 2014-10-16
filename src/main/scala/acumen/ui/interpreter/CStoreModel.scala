@@ -145,7 +145,7 @@ class CStoreModel(ops: CStoreOpts) extends InterpreterModel {
   private var stores = new ArrayBuffer[ResultCollector[_]]
   private var classes = new HashMap[CId,ClassName]
   private var indexes = new HashMap[ResultKey,Int]
-  case class ObjInfo(startFrame: Int, var arraySize: Int)
+  class ObjInfo(val startFrame: Int, var arraySize: Int) {val fields = new ArrayBuffer[Int]}
   private var objInfo = new HashMap[CId,ObjInfo] 
   private var frame = 0
   private var timeKey : ResultKey = null
@@ -200,7 +200,6 @@ class CStoreModel(ops: CStoreOpts) extends InterpreterModel {
  
   //def ids = stores map { case (id,_,_,_,_) => id }
   private def addVal(key: ResultKey, v:GValue) = {
-    //val key = ResultKey(id, x, None)
     (key.fieldName.x, v) match {
       case ("_3D"|"_3DView", _) => ()
       case _ =>
@@ -222,17 +221,14 @@ class CStoreModel(ops: CStoreOpts) extends InterpreterModel {
     val oi = objInfo(key.objId)
     val ar = v match {
       case VLit(GDouble(_) | GInt(_)) =>
-        val ar = new DoubleResultCollector(key, isSimulator, oi.startFrame, oi.arraySize)
-        ar += extractDoubleNoThrow(v)
-        ar
+        new DoubleResultCollector(key, isSimulator, oi.startFrame, oi.arraySize)
       case _ =>
-        val ar = new GenericResultCollector(key, isSimulator, oi.startFrame, oi.arraySize)
-        ar += v
-        ar
+        new GenericResultCollector(key, isSimulator, oi.startFrame, oi.arraySize)
     }
     stores += ar
     val ridx = stores.size-1
     indexes += ((ar.key, ridx))
+    oi.fields += ridx
     ridx
   } 
 
@@ -244,12 +240,13 @@ class CStoreModel(ops: CStoreOpts) extends InterpreterModel {
       for ((id,o) <- st.asInstanceOf[GStore].toList sortWith(compIds)) {
 
         if (!objInfo.contains(id)) {
-          objInfo += ((id, ObjInfo(frame, 0)))
+          objInfo += ((id, new ObjInfo(frame, 0)))
           val className = classOf(o)
           if (className == cmagic)
             timeKey = ResultKey(id, Name("time", 0), None)
           classes += ((id, className))
         }
+        val oi = objInfo(id)
 
         // iterate over values in object, if a field does not exist addValue will create it
         for ((x,v) <- o.toList sortWith(compFields)) {
@@ -261,11 +258,20 @@ class CStoreModel(ops: CStoreOpts) extends InterpreterModel {
               addVal(ResultKey(id, x, None), v)
           } 
         }
+        // increment the arraySize counter
+        oi.arraySize += 1
+
         // interate over all vectors for object, if a field was not updated
         // add a dummy value
-        
-        // finally increment the arraySize counter
-        objInfo(id).arraySize += 1
+        for (idx <- oi.fields) {
+          if (stores(idx).size < oi.arraySize) {
+            stores(idx) match {
+              case sts:DoubleResultCollector  => sts += Double.NaN
+              case sts:GenericResultCollector => sts += null
+            }
+          }
+          assert(stores(idx).size == oi.arraySize)
+        }
       }
       frame += 1
     }
