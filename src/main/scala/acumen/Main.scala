@@ -8,8 +8,6 @@ import render.ToPython._
 import Pretty._
 import PassManager._
 
-import com.sun.j3d.utils.applet.MainFrame
-
 import java.net.{Socket, InetAddress, ServerSocket}
 
 import scala.collection.mutable.ArrayBuffer
