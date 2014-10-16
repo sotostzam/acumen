@@ -891,12 +891,27 @@ class App extends SimpleSwingApplication {
 
   actor.start
   codeArea.listenDocument
+  // Acumen console logger. Ignores TRACE and DEBUG log levels.
+  Logger.attach(new Logger.Appender { def apply(instr: Logger.Instruction) {
+    instr match {
+      case Logger.Message(Logger.TRACE | Logger.DEBUG,_,_) =>
+        // Ignore Logger.TRACE and Logger.DEBUG messages
+      case _ => actor ! ConsoleMsg(instr) 
+    }
+  }})
+  // Command line logger. Accepts messages with log levels lower than minLevel 
+  // but ignores HypothesisReports.
+  Main.printLogLevel.map(minLevel =>
+    Logger.attach(new Logger.Appender{
+      def apply(i: Logger.Instruction) = i match {
+        case Logger.Message(l, m, _) if l.orderNum >= minLevel.orderNum =>
+          println(s"$l: ${m.msg}")
+        case _ => // Ignore messages with lower Level and HypothesisReports
+      }
+    }))
   console.append(Logger.Message(Logger.INFO, 
                                 Logger.TextMsg("<html>Welcome to Acumen.<br/>" +
                                                "Please see Help/License file for licensing details.<html>")))
-  Logger.attach(new Logger.Appender { def apply(instr: Logger.Instruction) {
-    actor ! ConsoleMsg(instr)
-  }})
   actor.publish(Stopped)
   actor.publish(ViewChanged(views.selection.index))
 

@@ -19,14 +19,14 @@ object Common {
   val EulerForward = "EulerForward"
   val RungeKutta   = "RungeKutta"
   
-  /* get self reference in an env */
+  /** Get self reference in an env. */
   def selfCId(e:Env) : CId =
     e(self) match {
       case VObjId(Some(a)) => a
       case _ => throw ShouldNeverHappen()
     }
   
-  /* get the definition associated with a classname in p */
+  /** Get the definition associated with a classname in p. */
   def classDef(c:ClassName, p:Prog) : ClassDef =
     p.defs.find(_.name == c) match {
       case Some(cl) => cl
@@ -40,8 +40,7 @@ object Common {
     case Dot(Dot(Var(pn), on), n) => (extractId(st(extractId(env(pn)))(on)), n)
   }
  
-  /* purely functional unary operator evaluation 
-   * at the ground values level */
+  /** Purely functional unary operator evaluation at the ground values level. */
   def unaryGroundOp(f:String, vx:GroundValue) = {
     def implem(f:String, x:Double) = f match {
         case "sin" => sin(x)

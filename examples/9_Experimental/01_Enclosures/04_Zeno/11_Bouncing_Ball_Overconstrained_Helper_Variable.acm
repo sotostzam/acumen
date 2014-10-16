@@ -6,7 +6,7 @@
 
 class Main(simulator)
   private 
-    x := 5; x' := 0; x'' := 0;  
+    x := 5; x' := 0; x'' := -10;  
     r := 50; r' := 0; // Helper variable added!
     mode := "Fly"
   end
