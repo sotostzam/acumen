@@ -7,26 +7,26 @@ model Main(simulator) =
   always
   // clock
   time' = 1 &
-  if time > 12
+  if time > 12 then
     period + == "day"
-  end &
-  if time > 24
+  noelse&
+  if time > 24 then
     period + == "night" &
-    time + == 0 &
-  end &
-  // heater continuous
-  if period == "day" && heating == "on"
+    time + == 0 
+  noelse &
+  // heater continuous�
+  if period == "day" && heating == "on" then
     x' = 10
   else
     x' = -5-x
-  end &
+   &
   // heater discrete
-  if x < 19 && period == "day"
+  if x < 19 && period == "day" then
     heating + == "on"
-  end &
-  if x > 23
+  noelse &
+  if x > 23 then
     heating + == "off"
-  end &
+  noelse&
   simulator.endTime + == 48
  
 
