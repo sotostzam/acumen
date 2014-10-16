@@ -1,2 +1,2 @@
 // no Main model
-model A() always
+model A() = initially

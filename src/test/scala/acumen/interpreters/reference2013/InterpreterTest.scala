@@ -44,12 +44,15 @@ class InterpreterTest extends FunSuite with ShouldMatchers {
   test("Gravity1d") {
     val progTxt =
       """
-      class Simulator(time, timeStep, endTime, stepType) end
-      class Ball(x, x', x'') 
+      model Simulator(time, timeStep, endTime, stepType) = initially
+      model Ball(x, x', x'') = 
+      initially 
+      always
         self.x'' = -9.8
-      end
-      class Main(mode, simulation) end
+      
+      model Main(mode, simulation) = initially
       """
+
 
     val storeTxt = 
       """
@@ -85,12 +88,14 @@ class InterpreterTest extends FunSuite with ShouldMatchers {
   test("Gravity2d") {
     val progTxt =
       """
-      class Simulator(time, timeStep, endTime, stepType) end
-      class Ball(x, x', x'', y,y',y'') 
-        self.y'' = -9.8;
+      model Simulator(time, timeStep, endTime, stepType) = initially 
+      model Ball(x, x', x'', y,y',y'') = 
+        initially
+        always
+        self.y'' = -9.8&
         self.x'' = 0
-      end
-      class Main(mode, simulation) end
+      
+      model Main(mode, simulation) = initially
       """
 
     val storeTxt = 

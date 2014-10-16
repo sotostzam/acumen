@@ -299,15 +299,17 @@ object Parser extends MyStdTokenParsers {
   def forEach =
     "foreach" ~ name ~ "in" ~ expr ~"do"~ forhelp  ^^
       { case _ ~ i ~ _ ~ e ~_~ b  => ForEach(i, e, b) }
-  
-   def pattern : Parser[Pattern] =  name ~ "." ~ name ^^ {case e ~ _ ~ n => Pattern(List(Dot(Var(e),n)))}|
-		                            name ~ args(expr) ^^{case n ~ es => Pattern(List(Op(n,es)))}|
-		   							name ^^ {case x => Pattern(List(Var(x)))} |
+   
+   // For positionlize pattern matching 
+   def varP : Parser[Var] = name ^^ {x => Var(x)}
+   def dotP : Parser[Dot] = varP ~ "." ~ name ^^ {case e ~ _ ~ n => Dot(e,n)}
+   def pattern : Parser[Pattern] =  positioned(dotP) ^^ {case d => Pattern(List(d))}|		                          
+		   							positioned(varP) ^^ {case x => Pattern(List(x))}|
 		                          parens(repsep(pattern,",")) ^^ {case ls => Pattern(ls.map(x => x.ps match{
 		                            case s::Nil => x.ps
-		                            case ss => List(Pattern(ss))}).flatten)} 
+		                            case ss => List(Pattern(ss))}).flatten)}
   //println(run(action, " b' == b''' "))	                           
-  def patternMatch : Parser[Continuously] = pattern ~ "=" ~ expr ^^{case p ~ _ ~ e => Continuously(Assignment(p,e))}
+  def patternMatch : Parser[Continuously] = positioned(pattern) ~ "=" ~ expr ^^{case p ~ _ ~ e => Continuously(Assignment(p,e))}
 
   def discretelyOrContinuously =
     (newObject(None) ^^ Discretely | elim ^^ Discretely 

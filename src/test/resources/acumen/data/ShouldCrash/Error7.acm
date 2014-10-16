@@ -2,10 +2,11 @@
 
 model Main(simulator) = 
 initially
-  create A(self)
+  a = create A(self)
 always
+ 
 
 model A(main) = 
- initially
-  main.mode = "Foo"
+ initially 
 always
+main.mode + == "Foo"
