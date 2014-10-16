@@ -447,7 +447,6 @@ class _3DDisplayJPCT(app: jPCT_ThreeDView, slider: Slider3d,
     var tempType = " "
     var objID = 1
     var transVector = new SimpleVector(0.0, 0.0, 0.0)
-    var newObjFlag = false
     val tranObjectRotMatrixX = new Matrix()
     val tranObjectRotMatrixY = new Matrix()
     val tranObjectRotMatrixZ = new Matrix()
@@ -505,7 +504,6 @@ class _3DDisplayJPCT(app: jPCT_ThreeDView, slider: Slider3d,
             transObject = objects(id)
             objID = objects(id).getID // renew the object ID
             view.addObject(transObject)
-            newObjFlag = true
             transObject.setShadingMode(Object3D.SHADING_FAKED_FLAT)
           } else { // just need change the size
             if (lastTempSize != tempSize) {
@@ -558,7 +556,6 @@ class _3DDisplayJPCT(app: jPCT_ThreeDView, slider: Slider3d,
             transObject = objects(id)
             objID = objects(id).getID // renew the object ID
             view.addObject(transObject)
-            newObjFlag = true
             transObject.setShadingMode(Object3D.SHADING_FAKED_FLAT)
           } else { // just need change the size
             if (lastTempSize != tempSize) {
@@ -605,7 +602,6 @@ class _3DDisplayJPCT(app: jPCT_ThreeDView, slider: Slider3d,
             transObject = objects(id)
             objID = objects(id).getID // renew the object ID
             view.addObject(transObject)
-            newObjFlag = true
           } else { // just need change the size
             if (lastTempSize != tempSize) {
               var radiusFactor = 0.0
@@ -645,7 +641,6 @@ class _3DDisplayJPCT(app: jPCT_ThreeDView, slider: Slider3d,
             transObject = objects(id)
             objID = objects(id).getID // renew the object ID
             view.addObject(transObject)
-            newObjFlag = true
           } else { // just need change the size
             if (lastTempSize != tempSize) {
               var radiusFactor = 0.0
