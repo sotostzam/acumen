@@ -1,22 +1,18 @@
-/* 
-   Works with semantic 2014
-   Works with semantic 2013
-   Works with semantic 2012
-*/
 
 // A car being followed by the _3D camera
 //
 // Author:  YZ
 
-class Vehicle(p      /* Position */,
+model Vehicle(p      /* Position */,
               d      /* Direction */,
               s      /* Size */,
-              name   /* Name of an OBJ file in _3D */)
- private
-  _3D :=[];
- end
- _3D =["OBJ",p ,1,[0,0,1],[pi/2,0,d*pi/2],name];
-end
+              name   /* Name of an OBJ file in _3D */) =
+initially
+  _3D = ()
+always
+ _3D =("obj" center=p size=1 color=(0,0,1) 
+        rotation=(pi/2,0,d*pi/2) name)
+
 
 class Road(p,l)
  private

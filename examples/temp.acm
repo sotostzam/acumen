@@ -1,11 +1,6 @@
-model Main(Simulator) = 
+model Main (Simulator) = 
 initially
-  _3D = () &
-  t  = 1 &
-  t' = 1
+  _3D = ()
 always
-  t' = 1 &
-  _3D = (Cylinder center=(0,0,0) radius=0.1 length=3
-         color=red rotation=(0,pi/5,pi/4),
-         Box center=(1,1,1) size=(0.2,0.1,1)
-         color=yellow rotation=(pi/3,pi/5,pi/4))
+ _3D =(Obj center=(0,0,0) size=0.03 color=(1,1,1) 
+        rotation=(-pi/3,pi/4,pi/6) content="car.obj")

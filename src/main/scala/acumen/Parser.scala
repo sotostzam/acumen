@@ -509,6 +509,7 @@ object Parser extends MyStdTokenParsers {
       case "Box" => ExprVector(List(Lit(GStr("Box")),center,size,color,rotation))
       case "Sphere" => ExprVector(List(Lit(GStr("Sphere")),center,scale,color,rotation))
       case "Text" => ExprVector(List(Lit(GStr("Text")),center,scale,color,rotation,content))
+      case "Obj" => ExprVector(List(Lit(GStr("OBJ")),center,scale,color,rotation,content))
       case _ => error("Unsupported 3D object " + objectName)
     }
 

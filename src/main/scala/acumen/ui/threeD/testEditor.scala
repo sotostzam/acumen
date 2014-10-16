@@ -15,7 +15,7 @@ import java.awt.event.{ComponentEvent, ComponentAdapter}
 /**
  * Created by xufei on 9/22/14.
  */
-class testEditor extends BorderPanel{
+class testEditor extends BorderPanel {
   val canvasPanel = new JPanel
   val editorPanel = new RenderPanel
 
