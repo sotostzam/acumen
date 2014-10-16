@@ -28,62 +28,72 @@ sealed trait PlotEntity { // FIXME: BetterName
   def transform(tr:AffineTransform);
 }
 
-class MyPath2D() extends PlotEntity {
-  private var p1   : Point2D.Double = null
-  private var p2   : Point2D.Double = null
-  private var path : ArrayBuffer[Point2D.Double] = null
+class ContinuousPath() extends PlotEntity {
+  var x1 = Double.MaxValue // min
+  var x2 = Double.MinValue // max
+  var y1 = 0.0 // min
+  var y2 = 0.0 // max
 
-  def x1 = p1.getX
-  def y1 = p1.getY
-  def x2 = p2.getX
-  def y2 = p2.getY
+  private var paths = new ArrayBuffer[ArrayBuffer[Point2D.Double]]
+  private var curPath : ArrayBuffer[Point2D.Double] = null
 
-  private def update(x:Double, y:Double) = {
-    val minX = math.min(x1, x)
-    val maxX = math.max(x2, x)
-    val minY = math.min(y1, y)
-    val maxY = math.max(y2, y)
-    p1 = new Point2D.Double(minX, minY)
-    p2 = new Point2D.Double(maxX, maxY)
+  private def update(x:Double) = {
+    x1 = math.min(x1, x)
+    x2 = math.max(x2, x)
   }
-  def startAt(x:Double, y:Double) = {
-    p1 = new Point2D.Double(x,0)
-    p2 = new Point2D.Double(x,0)
-    update(x,y)
-    path = ArrayBuffer(new Point2D.Double(x,y))
+  private def update(x:Double, y:Double) = {
+    x1 = math.min(x1, x)
+    x2 = math.max(x2, x)
+    y1 = math.min(y1, y)
+    y2 = math.max(y2, y)
   }
   def goTo(x:Double, y:Double) = {
-    path += new Point2D.Double(x,y)
-    update(x,y)
+    if (y.isNaN) {
+      curPath = null
+      update(x)
+    } else {
+      if (curPath == null) {
+        curPath = ArrayBuffer(new Point2D.Double(x,y))
+        paths += curPath
+      } else {
+        curPath += new Point2D.Double(x,y)
+      }
+      update(x,y)
+    }
   }
   def draw(g:Graphics2D, tr:AffineTransform) = {
-    if (path.size >= 2) {
-      for (i <- 0 until (path.size-1)) {
-        val p0 = new Point2D.Double()
-        val p1 = new Point2D.Double()
-        tr.transform(path(i), p0)
-        tr.transform(path(i+1), p1)
-        g.draw(new Line2D.Double(p0, p1))
+    for (path <- paths) {
+      if (path.size >= 2) {
+        for (i <- 0 until (path.size-1)) {
+          val p0 = new Point2D.Double()
+          val p1 = new Point2D.Double()
+          tr.transform(path(i), p0)
+          tr.transform(path(i+1), p1)
+          g.draw(new Line2D.Double(p0, p1))
+        }
       }
     }
   }
   def drawDots(g:Graphics2D, tr:AffineTransform) = {
-    for (i <- 0 until path.size) {
-      val p = new Point2D.Double()
-      tr.transform(path(i), p)
-      g.fillRect(p.getX.toInt, p.getY.toInt, 2, 2)
+    for (path <- paths) {
+      for (i <- 0 until path.size) {
+        val p = new Point2D.Double()
+        tr.transform(path(i), p)
+        g.fillRect(p.getX.toInt, p.getY.toInt, 2, 2)
+      }
     }
   }
   def transform(tr:AffineTransform) = {
-    for (p <- path) tr.transform(p, p)
+    for (path <- paths)
+      for (p <- path) tr.transform(p, p)
+    val p1 = new Point2D.Double(x1, y1)
+    val p2 = new Point2D.Double(x2, y2)
     tr.transform(p1, p1)
     tr.transform(p2, p2)
-    val minX = math.min(x1, x2)
-    val maxX = math.max(x1, x2)
-    val minY = math.min(y1, y2)
-    val maxY = math.max(y1, y2)
-    p1 = new Point2D.Double(minX, minY)
-    p2 = new Point2D.Double(maxX, maxY)
+    x1 = math.min(p1.x,p2.x)
+    x2 = math.max(p1.x,p2.x)
+    y1 = math.min(p1.y,p2.y)
+    y2 = math.max(p1.y,p2.y)
   }
 }
 
@@ -282,7 +292,7 @@ class EnclosurePath() extends PlotEntity {
 class PlotData(parms: PlotParms = null, tb:PlotModel = null, val disableThreshold: Int = 24) 
 {
   /*private*/ var polys = new ArrayBuffer[PlotEntity]
-  /*private*/ var axes  = new ArrayBuffer[MyPath2D]
+  /*private*/ var axes  = new ArrayBuffer[ContinuousPath]
   var boxes = new ArrayBuffer[Rectangle2D]
   var boundingBox = (0.0, 0.0)
 
@@ -302,15 +312,14 @@ class PlotData(parms: PlotParms = null, tb:PlotModel = null, val disableThreshol
       var s = p.startFrame
       columnIndices += p.column
 
-      val ax = new MyPath2D()
-      ax startAt (time(s), 0)
+      val ax = new ContinuousPath()
+      ax goTo (time(s), 0)
       ax goTo (time(math.min(s+p.values.size, time.size-1)), 0)
       axes += ax
 
       p match {
         case p:PlotDoubles => {
-          val line = new MyPath2D();
-          line startAt (time(s), p.values(0))
+          val line = new ContinuousPath()
 
           for (f <- 0 until p.values.size;
                val frame = s + f) {

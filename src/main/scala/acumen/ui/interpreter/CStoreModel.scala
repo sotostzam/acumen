@@ -19,9 +19,9 @@ case class CStoreTraceData(data: Iterable[GStore])
 }
 
 // Note: This class is a prime candidate for specialization
-class Collector[T : ClassManifest] extends IndexedSeq[T] {
-  private[this] var _data = new Array[T](32)
-  private[this] var _size = 0
+class Collector[T : ClassManifest](initSize: Int, initVal: T) extends IndexedSeq[T] {
+  private[this] var _data = Array.fill(math.max(initSize, 32))(initVal)
+  private[this] var _size = initSize
   def array = _data
   def length = _size
   def apply(index: Int) = _data(index)
@@ -43,13 +43,13 @@ class Snapshot[T](coll: Collector[T]) extends im.IndexedSeq[T]  {
 
 case class ResultKey(objId: CId, fieldName: Name, vectorIdx: Option[Int])
 
-abstract class ResultCollector[T : ClassManifest](val key: ResultKey, val isSimulator: Boolean, val startFrame: Int) extends Collector[T] {
+abstract class ResultCollector[T : ClassManifest](val key: ResultKey, val isSimulator: Boolean, val startFrame: Int, initSize: Int, initVal: T) extends Collector[T](initSize,initVal) {
   def snapshot : Result[T]
 }
-class DoubleResultCollector(key: ResultKey, simulator: Boolean, startFrame: Int) extends ResultCollector[Double](key, simulator, startFrame) {
+class DoubleResultCollector(key: ResultKey, simulator: Boolean, startFrame: Int, initSize: Int) extends ResultCollector[Double](key, simulator, startFrame, initSize, Double.NaN) {
   override def snapshot = new DoubleResult(this)
 }
-class GenericResultCollector(key: ResultKey, simulator: Boolean, startFrame: Int) extends ResultCollector[GValue](key, simulator, startFrame) {
+class GenericResultCollector(key: ResultKey, simulator: Boolean, startFrame: Int, initSize: Int) extends ResultCollector[GValue](key, simulator, startFrame, initSize, null /* FIXME */) {
   override def snapshot = new GenericResult(this)
 }
 
@@ -145,7 +145,8 @@ class CStoreModel(ops: CStoreOpts) extends InterpreterModel {
   private var stores = new ArrayBuffer[ResultCollector[_]]
   private var classes = new HashMap[CId,ClassName]
   private var indexes = new HashMap[ResultKey,Int]
-  private var ids = new HashSet[CId]
+  case class ObjInfo(startFrame: Int, var arraySize: Int)
+  private var objInfo = new HashMap[CId,ObjInfo] 
   private var frame = 0
   private var timeKey : ResultKey = null
 
@@ -198,23 +199,16 @@ class CStoreModel(ops: CStoreOpts) extends InterpreterModel {
   }
  
   //def ids = stores map { case (id,_,_,_,_) => id }
-  private def addVal(id:CId, x:Name, v:GValue) = {
-    def add(idx: Int, vectorIdx: Option[Int], v: GValue) = 
+  private def addVal(key: ResultKey, v:GValue) = {
+    //val key = ResultKey(id, x, None)
+    (key.fieldName.x, v) match {
+      case ("_3D"|"_3DView", _) => ()
+      case _ =>
+        val idx = indexes.getOrElse(key, initResultObj(key, v))
       (stores(idx), v) match {
         case (sts:DoubleResultCollector, _) =>  sts += extractDoubleNoThrow(v)
         case (sts:GenericResultCollector, _) => sts += v
       }
-    (x.x, v) match {
-      case ("_3D"|"_3DView", _) => ()
-      case (_,VVector(u)) =>
-        for ((ui,i) <- u zipWithIndex) {
-          val idx = indexes(ResultKey(id,x,Some(i)))
-          add(idx, Some(i), ui)
-        }
-      case _ =>
-        val idx = indexes.getOrElseUpdate( ResultKey(id, x, None) 
-                                         , initResultObj(v, id, x, None, false) )
-        add(idx, None, v)
     }
   }
 
@@ -222,25 +216,23 @@ class CStoreModel(ops: CStoreOpts) extends InterpreterModel {
    * Initialize a result object and register it in stores, indexes and ids.
    * Returns the id after adding it to ids. 
    */
-  private def initResultObj(v: Value[_], id: CId, x: Name, vectorIdx: Option[Int], isSimulator: Boolean): Int = {
-    def newResultObj(vectorIdx: Option[Int], v: GValue) = {
-      val key = ResultKey(id, x, vectorIdx)
-      v match {
-        case VLit(GDouble(_) | GInt(_)) =>
-          val ar = new DoubleResultCollector(ResultKey(id, x, vectorIdx), isSimulator, frame)
-          ar += extractDoubleNoThrow(v)
-          ar
-        case _ =>
-          val ar = new GenericResultCollector(ResultKey(id, x, vectorIdx), isSimulator, frame)
-          ar += v
-          ar
-      }
+  private def initResultObj(key: ResultKey, v:GValue) = {
+    val className = classes(key.objId)
+    val isSimulator = className == cmagic
+    val oi = objInfo(key.objId)
+    val ar = v match {
+      case VLit(GDouble(_) | GInt(_)) =>
+        val ar = new DoubleResultCollector(key, isSimulator, oi.startFrame, oi.arraySize)
+        ar += extractDoubleNoThrow(v)
+        ar
+      case _ =>
+        val ar = new GenericResultCollector(key, isSimulator, oi.startFrame, oi.arraySize)
+        ar += v
+        ar
     }
-    val ar = newResultObj(vectorIdx, v)
     stores += ar
     val ridx = stores.size-1
     indexes += ((ar.key, ridx))
-    ids += id 
     ridx
   } 
 
@@ -250,24 +242,30 @@ class CStoreModel(ops: CStoreOpts) extends InterpreterModel {
       Ordering[(String,Int)] lt ((p1._1.x, p1._1.primes),(p2._1.x, p2._1.primes))
     for (st <- sts) {
       for ((id,o) <- st.asInstanceOf[GStore].toList sortWith(compIds)) {
-        if (ids contains id) 
-          for ((x,v) <- o.toList) addVal(id,x,v)
-        else {
+
+        if (!objInfo.contains(id)) {
+          objInfo += ((id, ObjInfo(frame, 0)))
           val className = classOf(o)
-          val isSimulator = className == cmagic
-          if (isSimulator)
+          if (className == cmagic)
             timeKey = ResultKey(id, Name("time", 0), None)
           classes += ((id, className))
-          for ((x,v) <- o.toList sortWith(compFields)) {
-            if (keep3D || !threeDField(x.x)) v match {
-              case VVector(u) =>
-                for ((ui,i) <- u zipWithIndex)
-                  initResultObj(ui, id, x, Some(i), isSimulator)
-              case _ =>
-                initResultObj(v, id, x, None, isSimulator)
-            } 
-          }
         }
+
+        // iterate over values in object, if a field does not exist addValue will create it
+        for ((x,v) <- o.toList sortWith(compFields)) {
+          if (keep3D || !threeDField(x.x)) v match {
+            case VVector(u) =>
+              for ((ui,i) <- u zipWithIndex)
+                addVal(ResultKey(id, x, Some(i)), ui)
+            case _ =>
+              addVal(ResultKey(id, x, None), v)
+          } 
+        }
+        // interate over all vectors for object, if a field was not updated
+        // add a dummy value
+        
+        // finally increment the arraySize counter
+        objInfo(id).arraySize += 1
       }
       frame += 1
     }
