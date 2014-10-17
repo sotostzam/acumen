@@ -299,7 +299,27 @@ object Common {
     val cs = childrenOf(parent, st)
     if (! (cs contains child)) throw NotAChildOf(child,parent).setPos(context.pos)
   }
+  
+  //
+  // Result of AST traversal
+  //
 
+  /** Action a, encountered with path condition path, in object selfCId, to be evaluated in env. */
+  case class DelayedAction(path: Expr, selfCId: CId, a: Action, env: Env) {
+    def lhs: Dot = (a: @unchecked) match {
+      case Discretely(Assign(dot: Dot, _))      => dot
+      case Continuously(EquationT(dot: Dot, _)) => dot
+      case Continuously(EquationI(dot: Dot, _)) => dot
+    }
+    def rhs: Expr = (a: @unchecked) match {
+      case Discretely(x: Assign)      => x.rhs
+      case Continuously(x: EquationT) => x.rhs
+      case Continuously(x: EquationI) => x.rhs
+    }
+  }
+  case class DelayedConstraint(selfCId: CId, c: Expr)
+  case class DelayedHypothesis(selfCId: CId, s: Option[String], h: Expr, env: Env)
+  
   //
   // ODEs
   // 

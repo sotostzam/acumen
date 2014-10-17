@@ -82,14 +82,14 @@ object Interpreter extends acumen.CStoreInterpreter {
   def reparent(cs:List[CId], p:CId) : Eval[Unit] =
     mapM_ (logReparent(_:CId,p), cs)
     
-  /* discretely assign the value  obtained by evaluating r in e to a field n in object o */
-  def assign(o: CId, d: Dot, r: Expr, e: Env) : Eval[Unit] = logAssign(o, d, r, e)
+  /* declare a discrete assignment defined by a, in the object o, with environment e. */
+  def assign(path: Expr, o: CId, a: Action, e: Env) : Eval[Unit] = logAssign(path, o, a, e)
 
-  /* continuously assign the value obtained by evaluating r in e to a field n in object o */
-  def equation(o: CId, d: Dot, r: Expr, e: Env) : Eval[Unit] = logEquation(o, d, r, e)
+  /* declare a continuous assignment defined by a, in the object o, with environment e. */
+  def equation(path: Expr, o: CId, a: Action, e: Env) : Eval[Unit] = logEquation(path, o, a, e)
 
-  /* declare an ode with LHS o.d, RHS r, to be evaluated in e. */
-  def ode(o: CId, d: Dot, r: Expr, e: Env) : Eval[Unit] = logODE(o, d, r, e)
+  /* declare a differential equation defined by a, in the object o, with environment e. */
+  def ode(path: Expr, o: CId, a: Action, e: Env) : Eval[Unit] = logODE(path, o, a, e)
   
   /* log an id as being dead */
   def kill(a:CId) : Eval[Unit] = logCId(a)
@@ -231,15 +231,17 @@ object Interpreter extends acumen.CStoreInterpreter {
     eval(env,e)
   }
 
-  def evalActions(as:List[Action], env:Env, p:Prog) : Eval[Unit] =
-    mapM_((a:Action) => evalAction(a, env, p), as)
+  def evalActions(path: Expr, as:List[Action], env:Env, p:Prog) : Eval[Unit] =
+    mapM_((a:Action) => evalAction(path, a, env, p), as)
   
-  def evalAction(a:Action, env:Env, p:Prog) : Eval[Unit] = {
+  def evalAction(path: Expr, a:Action, env:Env, p:Prog) : Eval[Unit] = {
     a match {
       case IfThenElse(c,a1,a2) =>
+        val cAndPath = op("&&", c, path)
+        val notCAndPath = op("&&", op("not", c), path)
         for (VLit(GBool(b)) <- asks(evalExpr(c, env, _)))
-          if (b) evalActions(a1, env, p)
-          else   evalActions(a2, env, p)
+          if (b) evalActions(cAndPath, a1, env, p)
+          else   evalActions(notCAndPath, a2, env, p)
       case ForEach(i,l,b) => 
         for (seq <- asks(evalExpr(l, env, _))) {
           val vs = seq match { 
@@ -247,23 +249,25 @@ object Interpreter extends acumen.CStoreInterpreter {
             case VVector(vs) => vs 
             case _ => throw NotACollection(seq)
           }
-          mapM_((v:CValue) => evalActions(b, env+((i,v)), p), vs)
+          mapM_((v:CValue) => evalActions(path, b, env+((i,v)), p), vs)
         }
       case Switch(s,cls) =>
         for (VLit(gv) <- asks(evalExpr(s, env, _))) {
           (cls find (_.lhs == gv)) match {
-            case Some(c) => evalActions(c.rhs, env, p)
+            case Some(c) =>
+              val inClauseAndPath = op("&&", op("==", s, Lit(c.lhs)), path)
+              evalActions(inClauseAndPath, c.rhs, env, p)
             case None    => throw NoMatch(gv)
           }
         }
       case Discretely(da) =>
         for (ty <- asks(getResultType))
           if (ty == FixedPoint) pass
-          else evalDiscreteAction(da, env, p)
+          else evalDiscreteAction(path, da, env, p)
       case Continuously(ca) =>
         for (ty <- asks(getResultType))
           if (ty != FixedPoint) pass
-          else evalContinuousAction(ca, env, p) 
+          else evalContinuousAction(path, ca, env, p) 
       case Claim(_) =>
         pass
       case Hypothesis(s, e) =>
@@ -271,11 +275,11 @@ object Interpreter extends acumen.CStoreInterpreter {
     }
   }
  
-  def evalDiscreteAction(a:DiscreteAction, env:Env, p:Prog) : Eval[Unit] =
+  def evalDiscreteAction(path: Expr, a:DiscreteAction, env:Env, p:Prog) : Eval[Unit] =
     a match {
       case Assign(d@Dot(e,x),t) => 
         /* Schedule the discrete assignment */
-        for { id <- asks(evalToObjId(e, env, _)) } assign(id, d, t, env)
+        for { id <- asks(evalToObjId(e, env, _)) } assign(path, id, Discretely(a), env)
       /* Basically, following says that variable names must be 
          fully qualified at this language level */
       case Assign(_,_) => 
@@ -307,12 +311,12 @@ object Interpreter extends acumen.CStoreInterpreter {
         throw BadMove()
     }
 
-  def evalContinuousAction(a:ContinuousAction, env:Env, p:Prog) : Eval[Unit] = 
+  def evalContinuousAction(path: Expr, a:ContinuousAction, env:Env, p:Prog) : Eval[Unit] = 
     a match {
       case EquationT(d@Dot(e,_),rhs) =>
-        for { id <- asks(evalExpr(e, env, _)) map extractId } equation(id, d, rhs, env)
+        for { id <- asks(evalExpr(e, env, _)) map extractId } equation(path, id, Continuously(a), env)
       case EquationI(d@Dot(e,_),rhs) =>
-        for { id <- asks(evalExpr(e, env, _)) map extractId } ode(id, d, rhs, env)
+        for { id <- asks(evalExpr(e, env, _)) map extractId } ode(path, id, Continuously(a), env)
       case _ =>
         throw ShouldNeverHappen() // FIXME: enforce that with refinement types
     }
@@ -321,7 +325,7 @@ object Interpreter extends acumen.CStoreInterpreter {
     for (cl <- asks(getCls(id,_))) {
       val as = classDef(cl, p).body
       val env = HashMap((self, VObjId(Some(id))))
-      evalActions(as, env, p)
+      evalActions(Lit(GBool(true)), as, env, p)
     }
 
   /* Outer loop: iterates f from the root to the leaves of the
@@ -358,8 +362,8 @@ object Interpreter extends acumen.CStoreInterpreter {
 
   /** Updates the values of variables in as (identified by CId and Dot.field) to the
    *  CValue obtained by evaluating the corresponding Expr in st (using env). */
-  def applyDelayedAssignments(as: Set[(CId, Dot, Expr, Env)], st: Store): Eval[Unit] =
-    applyAssignments(as.map { case (o, d, e, env) => (o, d, evalExpr(e, env, st)) }.toList)
+  def applyDelayedAssignments(as: Set[DelayedAction], st: Store): Eval[Unit] =
+    applyAssignments(as.map { da => (da.selfCId, da.lhs, evalExpr(da.rhs, da.env, st)) }.toList)
 
   /** Updates the values of variables in vs (identified by CId and Dot.field) to the 
    *  corresponding CValue. */
@@ -375,9 +379,10 @@ object Interpreter extends acumen.CStoreInterpreter {
         val md1 = testHypotheses(hyps, md, st)
         val res = getResultType(st) match {
           case Discrete | Continuous => // Either conclude fixpoint is reached or do discrete step
-            checkDuplicateAssingments(das.toList.map(a => (a._1, a._2)), DuplicateDiscreteAssingment)
+            checkDuplicateAssingments(das.toList.map(a => (a.selfCId, a.lhs)), DuplicateDiscreteAssingment)
             val nonIdentityDas = das.filterNot { a =>
-              deref(a._1,st1).contains(a._2.field) && evalExpr(a._3, a._4, st1) == getObjectField(a._1, a._2.field, st1) }
+              deref(a.selfCId,st1).contains(a.lhs.field) && 
+              evalExpr(a.rhs, a.env, st1) == getObjectField(a.selfCId, a.lhs.field, st1) }
             if (st == st1 && ids.isEmpty && rps.isEmpty && nonIdentityDas.isEmpty) 
               setResultType(FixedPoint, st1)
             else {
@@ -388,8 +393,8 @@ object Interpreter extends acumen.CStoreInterpreter {
               setResultType(Discrete, st3)
             }
           case FixedPoint => // Do continuous step
-            val odesIds = odes.toList.map(a => (a._1, a._2))
-            val eqsIds = eqs.toList.map(a => (a._1, a._2))
+            val odesIds = odes.toList.map(a => (a.selfCId, a.lhs))
+            val eqsIds = eqs.toList.map(a => (a.selfCId, a.lhs))
             checkDuplicateAssingments(eqsIds ++ odesIds, DuplicateContinuousAssingment)
             checkContinuousDynamicsAlwaysDefined(p, eqsIds, st1)
             val stODE = solveIVP(odes, p, st1)
@@ -402,9 +407,9 @@ object Interpreter extends acumen.CStoreInterpreter {
       }
 
   /** When a variable is defined by an equation in eqs, set all its higher derivatives in st to GUndefined. */
-  def undefineHigherDerivatives(eqs: Set[(CId, Dot, Expr, Env)], st: Store): Store = {
+  def undefineHigherDerivatives(eqs: Set[DelayedAction], st: Store): Store = {
     // The globally qualified base names of variables defined by equations in eqs
-    val defined = eqs.map { case (cid, d, _, env) => globalReference(d, env, st) }
+    val defined = eqs.map(eq => globalReference(eq.lhs, eq.env, st))
     st.map { case (cid, co) => (cid, co.map { case (n, v) =>
       (n, if (defined.exists { case (cid1, n1) => cid1 == cid && n1.x == n.x && n1.primes < n.primes })
         VLit(GUndefined)
@@ -413,9 +418,9 @@ object Interpreter extends acumen.CStoreInterpreter {
   }
 
   /** Summarize result of evaluating the hypotheses of all objects. */
-  def testHypotheses(hyps: Set[(CId, Option[String], Expr, Env)], old: Metadata, st: Store): Metadata =
+  def testHypotheses(hyps: Set[DelayedHypothesis], old: Metadata, st: Store): Metadata =
     old combine (if (hyps isEmpty) NoMetadata else SomeMetadata(hyps.map {
-      case (o, hn, h, env) =>
+      case DelayedHypothesis(o, hn, h, env) =>
         val cn = getCls(o, st)
         lazy val counterEx = dots(h).toSet[Dot].map(d => d -> evalExpr(d, env, st))
         val VLit(GBool(b)) = evalExpr(h, env, st)
@@ -430,7 +435,7 @@ object Interpreter extends acumen.CStoreInterpreter {
    *  - Env:  Initial conditions of the IVP.
    * The time segment is derived from time step in store st. 
    */
-  def solveIVP(odes: Set[(CId, Dot, Expr, Env)], p: Prog, st: Store): Store = {
+  def solveIVP(odes: Set[DelayedAction], p: Prog, st: Store): Store = {
     implicit val field = FieldImpl(odes, p)
     new Solver(getInSimulator(Name("method", 0),st), xs = st, h = getTimeStep(st)){
       // add the EulerCromer solver
@@ -443,11 +448,11 @@ object Interpreter extends acumen.CStoreInterpreter {
   }
   
   /** Representation of a set of ODEs. */
-  case class FieldImpl(odes: Set[(CId, Dot, Expr, Env)], p: Prog) extends Field[Store] {
+  case class FieldImpl(odes: Set[DelayedAction], p: Prog) extends Field[Store] {
     /** Evaluate the field (the RHS of each equation in ODEs) in s. */
     override def apply(s: Store): Store =
-      applyAssignments(odes.toList.map { 
-        case (o, n, rhs, env) => (o, n, evalExpr(rhs, env, s)) 
+      applyAssignments(odes.toList.map {  
+        da => (da.selfCId, da.lhs, evalExpr(da.rhs, da.env, s)) 
       }) ~> s
     /** 
      * Returns the set of variables affected by the field.
@@ -455,7 +460,7 @@ object Interpreter extends acumen.CStoreInterpreter {
      * NOTE: Assumes that the de-sugarer has reduced all higher-order ODEs.  
      */
     def variables: List[(CId, Dot)] =
-      odes.toList.flatMap { case (o, d, _, _) => Set((o, d), (o, Dot(d.obj, Name(d.field.x, 0)))) }
+      odes.toList.flatMap { da => Set((da.selfCId, da.lhs), (da.selfCId, Dot(da.lhs.obj, Name(da.lhs.field.x, 0)))) }
   }
 
   /**
@@ -488,13 +493,13 @@ object Interpreter extends acumen.CStoreInterpreter {
   def solveIVPEulerCromer(st: Store, h: Double)(implicit f: FieldImpl): Store = {
     // Ensure that derivatives are being integrated in the correct order
     val sortedODEs = f.odes.toList
-      .groupBy{ case (o, Dot(_, n), r, e) => (o, n.x) }
-      .mapValues(_.sortBy { case (_, Dot(_, n), _, _) => n.primes }).values.flatten
+      .groupBy{ da => (da.selfCId, da.lhs.field.x) }
+      .mapValues(_.sortBy { _.lhs.field.primes }).values.flatten
     val solutions = sortedODEs.foldRight(Map.empty[(CId, Dot), CValue]) {
-      case ((o, d@Dot(_, n), r, e), updatedEnvs) =>
-        val updatedEnv = e ++ (for (((obj, dot), v) <- updatedEnvs if obj == o) yield (dot.field -> v))
-        val vt = evalExpr(r, updatedEnv, st)
-        val lhs = getObjectField(o, n, st)
+      case (da, updatedEnvs) =>
+        val updatedEnv = da.env ++ (for (((obj, dot), v) <- updatedEnvs if obj == da.selfCId) yield (dot.field -> v))
+        val vt = evalExpr(da.rhs, updatedEnv, st)
+        val lhs = getObjectField(da.selfCId, da.lhs.field, st)
         val v = lhs match {
           case VLit(d) =>
             VLit(GDouble(extractDouble(d) + extractDouble(vt) * h))
@@ -505,7 +510,7 @@ object Interpreter extends acumen.CStoreInterpreter {
           case _ =>
             throw BadLhs()
         }
-        updatedEnvs + ((o, d) -> v)
+        updatedEnvs + ((da.selfCId, da.lhs) -> v)
     }.map { case ((o, d), v) => (o, d, v) }.toSet
     applyAssignments(solutions.toList) ~> st
   }

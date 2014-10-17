@@ -2,17 +2,18 @@ package acumen
 package interpreters
 package reference2014
 
+import Common._
 import Interpreter._
 import acumen.Errors._
 
 /** Used to represent the statements that are active at a given point during the simulation. */
 case class Changeset
-  ( dead: Set[CId]                           = Set.empty /* dead */
-  , reps: Set[(CId,CId)]                     = Set.empty /* reparentings */
-  , das:  Set[(CId,Dot,Expr,Env)]            = Set.empty /* discrete assignments */
-  , eqs:  Set[(CId,Dot,Expr,Env)]            = Set.empty /* continuous assignments / equations */
-  , odes: Set[(CId,Dot,Expr,Env)]            = Set.empty /* ode assignments / differential equations */
-  , hyps: Set[(CId,Option[String],Expr,Env)] = Set.empty /* hypotheses */
+  ( dead: Set[CId]               = Set.empty /* dead */
+  , reps: Set[(CId,CId)]         = Set.empty /* reparentings */
+  , das:  Set[DelayedAction]     = Set.empty /* discrete assignments */
+  , eqs:  Set[DelayedAction]     = Set.empty /* continuous assignments / equations */
+  , odes: Set[DelayedAction]     = Set.empty /* ode assignments / differential equations */
+  , hyps: Set[DelayedHypothesis] = Set.empty /* hypotheses */
   ) {
   def ++(that: Changeset) =
     Changeset(dead ++ that.dead, reps ++ that.reps, das ++ that.das, eqs ++ that.eqs, odes ++ that.odes, hyps ++ that.hyps)
@@ -81,17 +82,17 @@ object Eval {
   def logReparent(o:CId, parent:CId) : Eval[Unit] =
     mkEval(s => ((), Changeset(reps = Set((o,parent))), s))
     
-  def logAssign(o: CId, d: Dot, r: Expr, e: Env) : Eval[Unit] =
-    mkEval(s => ((), Changeset(das = Set((o,d,r,e))), s))
+  def logAssign(path: Expr, o: CId, a: Action, e: Env) : Eval[Unit] =
+    mkEval(s => ((), Changeset(das = Set(DelayedAction(path,o,a,e))), s))
 
-  def logEquation(o: CId, d: Dot, r: Expr, e: Env) : Eval[Unit] =
-    mkEval(s => ((), Changeset(eqs = Set((o,d,r,e))), s))
+  def logEquation(path: Expr, o: CId, a: Action, e: Env) : Eval[Unit] =
+    mkEval(s => ((), Changeset(eqs = Set(DelayedAction(path,o,a,e))), s))
 
-  def logODE(o: CId, d: Dot, r: Expr, e: Env) : Eval[Unit] =
-    mkEval(s => ((), Changeset(odes = Set((o,d,r,e))), s))
+  def logODE(path: Expr, o: CId, a: Action, e: Env) : Eval[Unit] =
+    mkEval(s => ((), Changeset(odes = Set(DelayedAction(path,o,a,e))), s))
 
   def logHypothesis(o: CId, n: Option[String], h: Expr, e: Env) : Eval[Unit] =
-    mkEval(s => ((), Changeset(hyps = Set((o,n,h,e))), s))
+    mkEval(s => ((), Changeset(hyps = Set(DelayedHypothesis(o,n,h,e))), s))
 
   /** Apply f to the store and wrap it in an Eval */
   def asks[A](f : Store => A) : Eval[A] = 

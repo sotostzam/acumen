@@ -246,20 +246,6 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
       Set(Changeset(hyps = Set(DelayedHypothesis(o,s,h,env))))
     lazy val empty = new Changeset()
   }
-  case class DelayedAction(path: Expr, selfCId: CId, a: Action, env: Env) {
-    def lhs: Dot = (a: @unchecked) match {
-      case Discretely(Assign(dot: Dot, _))      => dot
-      case Continuously(EquationT(dot: Dot, _)) => dot
-      case Continuously(EquationI(dot: Dot, _)) => dot
-    }
-    def rhs: Expr = (a: @unchecked) match {
-      case Discretely(x: Assign)      => x.rhs
-      case Continuously(x: EquationT) => x.rhs
-      case Continuously(x: EquationI) => x.rhs
-    }
-  }
-  case class DelayedConstraint(selfCId: CId, c: Expr)
-  case class DelayedHypothesis(selfCId: CId, s: Option[String], h: Expr, env: Env)
 
   import Changeset._
 
