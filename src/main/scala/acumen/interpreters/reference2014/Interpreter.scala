@@ -397,8 +397,10 @@ object Interpreter extends acumen.CStoreInterpreter {
             val eqsIds = eqs.toList.map(a => (a.selfCId, a.lhs))
             checkDuplicateAssingments(eqsIds ++ odesIds, DuplicateContinuousAssingment)
             checkContinuousDynamicsAlwaysDefined(p, eqsIds, st1)
-            val stODE = solveIVP(odes, p, st1)
-            val stE = applyDelayedAssignments(eqs, stODE) ~> stODE
+            val explicitEqs = inline(eqs, eqs, st)
+            val explicitODEs = inline(explicitEqs, odes, st)
+            val stODE = solveIVP(explicitODEs, p, st1)
+            val stE = applyDelayedAssignments(explicitEqs, stODE) ~> stODE
             val stU = undefineHigherDerivatives(eqs, stE) 
             val st2 = setResultType(Continuous, stU)
             setTime(getTime(st2) + getTimeStep(st2), st2)

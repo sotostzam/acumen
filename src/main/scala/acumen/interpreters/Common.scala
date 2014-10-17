@@ -1,11 +1,13 @@
 package acumen
 package interpreters
 
-import util.Names._
-import util.Conversions._
 import scala.math._
 import Errors._
+import Pretty.pprint
+import util.ASTUtil.{dots, substitute}
 import util.Canonical._
+import util.Conversions._
+import util.Names._
 
 //
 // Common stuff to CStore Interpreters
@@ -319,6 +321,54 @@ object Common {
   }
   case class DelayedConstraint(selfCId: CId, c: Expr)
   case class DelayedHypothesis(selfCId: CId, s: Option[String], h: Expr, env: Env)
+  
+  /**
+   * In-line the variables defined by the equations in as into the equations in bs. 
+   * This means that, in the RHS of each element of b, all references to variables that are 
+   * defined by an equation in a.
+   * 
+   * NOTE: This implies a restriction on the programs that are accepted: 
+   *       If the program contains an algebraic loop, an exception will be thrown.
+   * */
+  def inline(as: Set[DelayedAction], bs: Set[DelayedAction], st: CStore): Set[DelayedAction] = {
+    val globalRefToDA = as.map(da => globalReference(da.lhs, da.env, st) -> da).toMap
+    def inline(hosts: Map[DelayedAction,List[(CId,Name,DelayedAction)]]): Set[DelayedAction] = {
+      val next = hosts.map {
+        case (host, inlined) =>
+          dots(host.rhs).foldLeft((host, inlined)) {
+          case (prev@(hostPrev, ildPrev), d) =>
+              val globalRef@(o,n) = globalReference(d, host.env, st)
+              globalRefToDA.get(globalRef) match {
+              case None => prev // No equation is active for d
+              case Some(inlineMe) => 
+                if (inlineMe.lhs.obj == hostPrev.lhs.obj && inlineMe.lhs.field.x == hostPrev.lhs.field.x)
+                  (hostPrev -> inlined) // Do not in-line derivative equations
+                else {
+                  val daNext = hostPrev.copy(a = (hostPrev.a match {
+                    case Continuously(e: EquationI) =>
+                      Continuously(e.copy(rhs = substitute(inlineMe.lhs, inlineMe.rhs, e.rhs)))
+                    case Continuously(e: EquationT) =>
+                      Continuously(e.copy(rhs = substitute(inlineMe.lhs, inlineMe.rhs, e.rhs)))
+                  }))
+                  (daNext -> ((o,n,inlineMe) :: inlined))
+                }
+            }
+        }
+      }
+      val reachedFixpoint = next.forall{ case (da, inlined) =>
+        val dupes = inlined.groupBy(identity).collect{ case(x,ds) if ds.length > 1 => x }.toList
+        lazy val loop = inlined.reverse.dropWhile(!dupes.contains(_))
+        if (dupes isEmpty)
+          hosts.get(da) == Some(inlined)
+        else
+          throw new PositionalAcumenError { 
+            def mesg = "Algebraic loop detected: " + 
+                loop.map{ case(o,n,_) => o + pprint(n) }.mkString(" -> ") }.setPos(loop.head._3.lhs.pos) }
+      if (reachedFixpoint) next.keySet
+      else inline(next)
+    }
+    inline(bs.map(_ -> Nil).toMap)
+  }
   
   //
   // ODEs

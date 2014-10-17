@@ -26,6 +26,7 @@ object ASTUtil {
 
   /** Replaces all occurrences of d in h for e. */
   def substitute(d: Dot, e: Expr, h: Expr): Expr = {
+//    println(s"substitute(${Pretty pprint (d:Expr)}: Dot, ${Pretty pprint e}: Expr, ${Pretty pprint h}: Expr)")
     def sub(h: Expr): Expr = substitute(d, e, h)
     h match {
       case Lit(v)                 => h

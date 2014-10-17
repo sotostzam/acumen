@@ -8,7 +8,7 @@ import scala.collection.immutable.{
   HashMap, MapProxy
 }
 import util.ASTUtil.{
-  dots, checkNestedHypotheses, op, substitute
+  dots, checkNestedHypotheses, op
 }
 import Common._
 import Errors.{
@@ -1088,53 +1088,6 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
       (fieldIdToName(cid, n), acumenExprToExpression(rhs, cid, st, p))
     }.toMap)
   
-  /**
-   * In-line the variables defined by the equations in as into the equations in bs. 
-   * This means that, in the RHS of each element of b, all references to variables that are 
-   * defined by an equation in a.
-   * 
-   * NOTE: This implies a restriction on the programs that are accepted: 
-   *       If the program contains an algebraic loop, an exception will be thrown.
-   * */
-  def inline(as: Set[DelayedAction], bs: Set[DelayedAction], st: CStore): Set[DelayedAction] = {
-    val globalRefToDA = as.map(da => globalReference(da.lhs, da.env, st) -> da).toMap
-    def inline(hosts: Map[DelayedAction,List[DelayedAction]]): Set[DelayedAction] = {
-      val next = hosts.map {
-        case (host, inlined) =>
-          dots(host.rhs).foldLeft((host, inlined)) {
-          case (prev@(hostPrev, ildPrev), d) =>
-              globalRefToDA.get(globalReference(d, host.env, st)) match {
-              case None => prev // No equation is active for d
-              case Some(inlineMe) => 
-                if (inlineMe.lhs.obj == hostPrev.lhs.obj && inlineMe.lhs.field.x == hostPrev.lhs.field.x)
-                  (hostPrev -> inlined) // Do not in-line derivative equations
-                else {
-                  val daNext = hostPrev.copy(a = (hostPrev.a match {
-                    case Continuously(e: EquationI) =>
-                      Continuously(e.copy(rhs = substitute(inlineMe.lhs, inlineMe.rhs, e.rhs)))
-                    case Continuously(e: EquationT) =>
-                      Continuously(e.copy(rhs = substitute(inlineMe.lhs, inlineMe.rhs, e.rhs)))
-                  }))
-                  (daNext -> (inlineMe :: inlined))
-                }
-            }
-        }
-      }
-      val reachedFixpoint = next.forall{ case (da, inlined) =>
-        val dupes = inlined.groupBy(identity).collect{ case(x,ds) if ds.length > 1 => x }.toList
-        lazy val loop = inlined.reverse.dropWhile(!dupes.contains(_))
-        if (dupes isEmpty)
-          hosts.get(da) == Some(inlined)
-        else throw new PositionalAcumenError { 
-          def mesg = "Algebraic loop detected: " + 
-            loop.map(a => pprint (a.lhs: Expr)).mkString(" -> ") }.setPos(loop.head.lhs.pos)
-      }
-      if (reachedFixpoint) next.keySet
-      else inline(next)
-    }
-    inline(bs.map(_ -> Nil).toMap)
-  }
-
   /**
    * Reject invalid models. The following rules are checked:
    *  - RHS of a continuous assignment to a primed variable must not contain the LHS.
