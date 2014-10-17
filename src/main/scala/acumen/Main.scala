@@ -13,7 +13,7 @@ import java.net.{Socket, InetAddress, ServerSocket}
 import scala.collection.mutable.ArrayBuffer
 
 object ThreeDState extends Enumeration {
-  val ERROR,DISABLE,LAZY,ENABLE = Value
+  val ERROR,DISABLE,ENABLE = Value
 }
 
 object Main {
@@ -22,7 +22,7 @@ object Main {
   // What should be in Main
   //
 
-  var threeDState: ThreeDState.Value = null
+  var threeDState: ThreeDState.Value = ThreeDState.ENABLE
   var disableNewPlot = true
   var enableAllSemantics = true
   var autoPlay = false
@@ -113,11 +113,8 @@ object Main {
         openFile = checkFile(f); parseArgs(tail)
       case ("--enable-3d" | "--3d") :: tail => 
         threeDState = ThreeDState.ENABLE; parseArgs(tail)
-      case ("--lazy-3d") :: tail => 
-        threeDState = ThreeDState.LAZY; parseArgs(tail)
       case ("--disable-3d" | "--no-3d") :: tail => 
-        threeDState = ThreeDState.DISABLE; 
-        parseArgs(tail)
+        threeDState = ThreeDState.DISABLE; parseArgs(tail)
       case ("--enable-newplot" | "--newplot") :: tail => 
         disableNewPlot = false; parseArgs(tail)
       case ("--disable-newplot" | "--no-newplot") :: tail => 

@@ -28,22 +28,6 @@ object GraphicalMain extends SimpleSwingApplication {
   //javax.swing.RepaintManager.setCurrentManager(new debug.CheckThreadViolationRepaintManager)
   debug.EventDispatchThreadHangMonitor.initMonitoring()
 
-  val osname = System.getProperty("os.name").toLowerCase
-  // ThreeDStates default to lazy as loading it can cause performance
-  // problems on some platforms (mainly Linux).  On Windows load it
-  // eagerly as the 3D code was tested the most on Windows.  On OS X
-  // load it eagerly as loading as loading lazily can cause a crash
-  // if the libraries are not available.
-  def fixupThreeDState = if (Main.threeDState == null) {
-    if (osname.startsWith("windows ")) {
-      Main.threeDState = ThreeDState.ENABLE
-    } else if (osname.contains("os x")) {
-      Main.threeDState = ThreeDState.ENABLE
-    } else {
-      Main.threeDState = ThreeDState.LAZY
-    }
-  }
-
   // Approximation of the amount of heap available when setting heap size to 1G
   val MIN_MAX_MEM = (1024*7/8)*1024*1024
 
@@ -109,7 +93,6 @@ object GraphicalMain extends SimpleSwingApplication {
   }
 
   override def main(args: Array[String]) {
-    fixupThreeDState
     if (Main.positionalArgs.size() > 1)
       Main.openFile = Main.checkFile(Main.positionalArgs(1))
     maybeFork(args)
