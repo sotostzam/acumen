@@ -3,18 +3,17 @@
 //
 // Note:  Run with Semantics -> Enclosure
 
-class Main(simulator)
-  private 
-    x    := 1; 
-    x'   := 0; 
-    mode := ""
-  end
-  switch mode
-    case ""
-      x' = -x
-  end;
-  simulator.endTime := 1.0;
-  simulator.minSolverStep := 0.1
-end
+model Main(simulator) =
+  initially 
+    x    = 1 & 
+    x'   = 0 & 
+    mode = ""
+  always
+  match mode with [
+    "" ->
+      x' == -x
+  ] &
+  simulator.endTime+ == 1.0 &
+  simulator.minSolverStep+ == 0.1
 
 // Note:  No surprises.

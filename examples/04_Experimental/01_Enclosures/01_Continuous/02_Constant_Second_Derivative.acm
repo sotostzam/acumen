@@ -3,20 +3,19 @@
 //
 // Note:  Run with Semantics -> Enclosure
 
-class Main(simulator)
-  private 
-    x    := -10; 
-    x'   := 0; 
-    x''  := 0; 
-    mode := ""
-  end
-  switch mode
-    case ""
-      x'' = 1
-  end;
-  simulator.endTime := 1.5;
-  simulator.minSolverStep := 0.1
-end
+model Main(simulator) =
+  initially 
+    x    = -10 & 
+    x'   =   0 & 
+    x''  =   0 & 
+    mode = ""
+  always
+  match mode with [
+    "" ->
+      x'' == 1
+  ] &
+  simulator.endTime+ == 1.5 &
+  simulator.minSolverStep+ == 0.1
 
 // Note:  The plot thickens :-)
 // Note:  Thickness starts from initial value due to 
