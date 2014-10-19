@@ -334,14 +334,7 @@ class App extends SimpleSwingApplication {
 
   var threeDtab = if (Main.threeDState == ThreeDState.DISABLE) {
     Logger.log("Acumen3D disabled.")
-    if (Main.need_quartz) {
-      new DisabledEditorTab("3D visualization disabled due to performance problems on Mac OS X. \n\nTo enable restart Java with -Dapple.awt.graphics.UseQuartz=true or use --3d to force 3D to be enabled.")
-    } else {
-      new DisabledEditorTab("3D visualization disabled on the command line.")
-    }
-    //null
-  } else if (Main.threeDState == ThreeDState.LAZY) {
-    new DisabledEditorTab("3D visualization will be enabled when needed.")
+    new DisabledEditorTab("3D visualization disabled on the command line.")
   } else {
     start3D()
   }
@@ -774,10 +767,7 @@ class App extends SimpleSwingApplication {
     case Stopped =>
       if (controller.threeDData.modelContains3D) {
         codeArea.editedSinceLastRun = false
-        if (Main.threeDState == ThreeDState.LAZY) {
-          views.shouldEnable3D = true
-          views.possibleEnable3D
-        } else if (Main.threeDState == ThreeDState.ENABLE && modelFinished) {
+        if (Main.threeDState == ThreeDState.ENABLE && modelFinished) {
           views.selectThreeDView
           threeDtab.play
         }
