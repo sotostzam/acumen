@@ -106,13 +106,15 @@ sealed abstract class Expression {
    *
    * Precondition: the box must contain the names of all variables in the
    * expression.
+   * 
+   * NOTE: For sqrt and exp, Interval over-approximations are used.
    */
   def apply(x: AffineEnclosure)(implicit rnd: Rounding): AffineScalarEnclosure = this match {
     case Constant(v)    => AffineScalarEnclosure(x.domain, v)
     case Variable(name) => x(name)
     case Negate(e)      => -e(x)
-    case Sqrt(e)        => sys.error("undefined")
-    case Exp(e)         => sys.error("undefined")
+    case Sqrt(e)        => AffineScalarEnclosure(x.domain, e(x).range.sqrt) // FIXME Interval over-approximation!
+    case Exp(e)         => AffineScalarEnclosure(x.domain, e(x).range.exp) // FIXME Interval over-approximation!
     case Log(e)         => sys.error("undefined")
     case Cos(e)         => rnd.transcendentals.cos(e(x))
     case Sin(e)         => rnd.transcendentals.sin(e(x))
