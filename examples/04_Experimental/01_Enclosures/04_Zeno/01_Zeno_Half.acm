@@ -4,25 +4,24 @@
 // Authors:  Walid Taha and Adam Duracz
 // Note:     Run using Semantics -> Enclosure
 
-class Main(simulator)
-  private
-    d := 1; d' := -1;
-    s := 1/2;
-    mode := ""
-  end
-  switch mode
-    case ""
-      if s == d 
-        s := s/2; 
-        mode := "" 
-      end;
-      d' = -1
-  end;
-  simulator.endTime := 2.0;
-  simulator.minSolverStep := 1.1;
-  simulator.minLocalizationStep := 0.1;
-  simulator.minComputationImprovement := 0
-end
+model Main(simulator) =
+  initially
+    d = 1 & d' = -1 &
+    s = 1/2 &
+    mode = ""
+  always
+  match mode with [
+    "" ->
+      if s == d then
+        s+ == s/2 & 
+        mode+ == "" 
+      noelse &
+      d' == -1
+  ] &
+  simulator.endTime+ == 2.0 &
+  simulator.minSolverStep+ == 1.1 &
+  simulator.minLocalizationStep+ == 0.1 &
+  simulator.minComputationImprovement+ == 0
 
 // Note:  Without an invariant, the solver can not 
 //        tell for certain that the first event 
