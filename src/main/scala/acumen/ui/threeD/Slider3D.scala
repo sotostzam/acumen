@@ -23,15 +23,9 @@ class Slider3D extends BoxPanel(Orientation.Horizontal) {
     contents += labelSpeed
     border = javax.swing.BorderFactory.createEmptyBorder(5, 5, 5, 5)
   }
-  def setProgress(p: Int) = bar.value = p
+  def setProgress3D(p: Int) = bar.value = p
   def setTime(p: Float) = {
-    labelTime.text = "Time: " + {
-      val s = p.toString.split('.')
-      if (s(1).length >= 2)
-        s(0) + "." + s(1).dropRight(s(1).length - 2) // Only show 2 digits after  '.'
-      else
-        s(0) + "." + s(1) + "0"
-    }
+    labelTime.text = f"Time: $p%.2f"
   }
   def setSpeed(p: String) = labelSpeed.text = "Speed:" + p + "x"
   border = javax.swing.BorderFactory.createEmptyBorder(5, 5, 5, 5)
