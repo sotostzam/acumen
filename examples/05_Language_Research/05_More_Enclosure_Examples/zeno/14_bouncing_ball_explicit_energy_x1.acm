@@ -2,26 +2,24 @@
  * Author: Michal Konecny and Jan Duracz
  * Implements the EBB model from the paper.
  */
-class Main(simulator)
-  private 
-    mode := "Fly"; 
-    x1 := 5; x1' := 0; x1'' := 0;  
-    r1 := [0.0..50.0]; r1' := 0;
-  end
-  switch mode
-    case "Fly" 
-    claim x1 >= 0 && 0 <= r1 && r1 <= x1'*x1'/2 + 10*x1
-      if x1 == 0 && x1' <= 0
-        x1' := -0.5*x1';
-        r1  := 0.25*r1;
-        mode := "Fly";
-      end;
-      x1'' = -10;
-      r1'  = 0;
-  end;
-  simulator.startTime := 0;
-  simulator.endTime := 3.5;
-  simulator.minSolverStep := 0.02;
-  simulator.minLocalizationStep := 0.01;
-  simulator.minComputationImprovement := 0.005;
-end
+model Main(simulator) =
+  initially 
+    mode = "Fly" & 
+    x1 = 5 & x1' = 0 & x1'' = 0 &  
+    r1 = [0.0..50.0] & r1' = 0 
+  always
+  match mode with [
+    "Fly" claim x1 >= 0 && 0 <= r1 && r1 <= x1'*x1'/2 + 10*x1 ->    
+      if x1 == 0 && x1' <= 0 then
+        x1'+ == -0.5*x1' &
+        r1+ == 0.25*r1 &
+        mode+ == "Fly" 
+      noelse &
+      x1'' == -10 &
+      r1'  == 0 
+  ] &
+  simulator.startTime+ == 0 &
+  simulator.endTime+ == 3.5 &
+  simulator.minSolverStep+ == 0.02 &
+  simulator.minLocalizationStep+ == 0.01 &
+  simulator.minComputationImprovement+ == 0.005 

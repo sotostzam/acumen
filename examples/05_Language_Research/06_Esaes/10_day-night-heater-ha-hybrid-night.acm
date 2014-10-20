@@ -8,48 +8,47 @@
 //
 // Auhor: Adam Duracz
 
-class Main(simulator)
-  private
-    x := 10; x' := 10;
-    time := 0; time' := 1;
-    heating := "on"; 
-    period  := "day" 
-  end
-  time' = 1;
-  switch period
-    case "day" // Hybrid behaviour during the day
-      if time > 12
-        period := "night"
-      end;
-      switch heating
-        case "on"
-          if x > 23
-            heating := "off"
-          end;
-          x' = 10
-        case "off"
-          if x < 19
-            heating := "on"
-          end;
-          x' = -5-x
-      end
-    case "night"
-      if time > 24
-        time := 0;
-        period := "day" 
-      end;
-      switch heating // Hybrid behaviour also at night
-        case "on"
-          if x > 19
-            heating := "off"
-          end;
-          x' = 10
-        case "off"
-          if x < 15
-            heating := "on"
-          end;
-          x' = -5-x
-      end
-  end;
-  simulator.endTime := 48
-end
+model Main(simulator) =
+  initially
+    x = 10 & x' = 10 &
+    time = 0 & time' = 1 &
+    heating = "on" & 
+    period  = "day" 
+  always
+  time' == 1 &
+  match period with [
+    "day" -> // Hybrid behaviour during the day
+      if time > 12 then
+        period+ == "night"
+      noelse &
+      match heating with [
+        "on" ->
+          if x > 23 then
+            heating+ == "off"
+          noelse&
+          x' == 10
+        |"off" ->
+          if x < 19 then
+            heating+ == "on"
+          noelse &
+          x' == -5-x
+      ]
+    |"night" ->
+      if time > 24 then
+        time+ == 0 &
+        period+ == "day" 
+      noelse &
+      match heating with [// Hybrid behaviour also at night
+        "on" ->
+          if x > 19 then
+            heating+ == "off"
+          noelse &
+          x' == 10
+        |"off" ->
+          if x < 15 then
+            heating+ == "on"
+          noelse &
+          x' == -5-x
+      ]
+  ] &
+  simulator.endTime+ == 48

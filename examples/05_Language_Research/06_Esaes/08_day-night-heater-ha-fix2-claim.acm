@@ -8,44 +8,41 @@
 //
 // Author: Adam Duracz and Kevin Atkinson
 
-class Main(simulator)
-  private
-    x := 10; x' := 10;
-    time := 0; time' := 1;
-    heating := "on"; 
-    period  := "day";
-  end
-  time' = 1;
-  switch heating
-    case "on"
-      x' = 1.5
-    case "off"
-      x' = 0.4*(10-x)
-  end;
-  switch period
-    case "day" // Hybrid behaviour during the day
-      claim 0 <= time && time <= 12
-      if time >= 12
-        period := "night"
-      end;
-      if heating == "on" && x >= 23
-        heating := "off"
-      end;
-      if heating == "off"
-        if x <= 19 heating := "on" end;
+model Main(simulator) =
+  initially
+    x = 10 & x' = 10 &
+    time = 0 & time' = 1 &
+    heating = "on" & 
+    period  = "day" 
+  always
+  time' == 1 &
+  match heating with [
+    "on" ->
+      x' == 1.5
+    |"off" ->
+      x' == 0.4*(10-x)
+  ]&
+  match period with [
+    "day" claim 0 <= time && time <= 12-> // Hybrid behaviour during the day     
+      if time >= 12 then
+        period+ == "night"
+      noelse &
+      if heating == "on" && x >= 23 then
+        heating+ == "off"
+      noelse &
+      if heating == "off" then
+        if x <= 19 then heating+ == "on" noelse &
         claim x >= 19
-      end;
-    case "night"
-      claim 12 <= time && time <= 24
-      heating := "off";
-      if time >= 24
-        time := 0;
-        period := "day" 
-      end;
-  end;
-  simulator.endTime := 48
-end
+      noelse 
+    |"night" claim 12 <= time && time <= 24 ->      
+      heating+ == "off" &
+      if time >= 24 then
+        time+ == 0 &
+        period+ == "day" 
+      noelse 
+   ] &
+  simulator.endTime+ == 48
+
 
 // Note: Model is a hierarchical hybird automata, expressed as 
-//       nested switch statements, to switch between hybrid 
-//       behaviours during the day and night "periods".
+//       nested match statements with [, to match between with [hybrid 

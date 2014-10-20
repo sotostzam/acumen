@@ -259,11 +259,10 @@ object Parser extends MyStdTokenParsers {
   def clauses = repsep(clause,"|")
 
   def clause =
-     gvalue ~ "->" ~ claimExpr ~! "&" ~ actions ^^
-      { case  lhs ~_~ invariant ~ _~ rhs => Clause(lhs, invariant, rhs) } |
-     gvalue ~! "->" ~ actions ^^
-      { case lhs ~ "->" ~ rhs => Clause(lhs, Lit(GBool(true)), rhs) }
-
+      gvalue ~ opt(claimExpr)  ~ "->"  ~ actions ^^
+      { case  lhs ~ clm ~ _ ~ rhs => clm match{
+        case Some(invariant) => Clause(lhs, invariant, rhs)
+        case None => Clause(lhs, Lit(GBool(true)),rhs) }}  
   def claimExpr = "claim" ~! expr ^^ { case "claim" ~ expr => expr }
 
   def claim = claimExpr ^^ { case predicate => Claim(predicate) }

@@ -1,4 +1,4 @@
-/* Bouncing inverted pendulum
+/* Bouncing inverted palwaysulum
  * 
  * Author: Adam Duracz
  * 
@@ -8,24 +8,23 @@
  * Angle between rod and ground is t.                   
  *                                  
  */
-class Main(simulator)
-  private 
-  	mode := "Fall";
-  	t := 1; t' := 0; t'' := -9.8*sin(pi/2-1);
-    x := 0;
-    y := 0;
-    _3D  := ["Sphere",[0,0,0.5],0.03,[1,1,1],[0,0,0]];
-  end
-  switch mode
-    case "Fall"
-      if t <= 0 && t' <= 0
-        t  := -t;
-        t' := -0.9*t';
-        mode := "Fall" 
-      end;
-      t'' = -9.8*sin(pi/2-t);
-      x   = sin(t);
-      y   = cos(t);
-      _3D = ["Sphere", [y, 0, x], 0.03, [1,1,1], [0,0,0] ];
-  end
-end
+model Main(simulator) =
+  initially 
+    mode= "Fall" &
+    t= 1 & t'= 0 & t''= -9.8*sin(pi/2-1) &
+    x= 0 &
+    y= 0 &
+    _3D= ()
+  always
+  match mode with [
+    "Fall" ->
+      if t <= 0 && t' <= 0 then
+        t+ == -t &
+        t'+ == -0.9*t' &
+        mode+ == "Fall" 
+      noelse &
+      t'' == -9.8*sin(pi/2-t) &
+      x   == sin(t) &
+      y   == cos(t) &
+      _3D == (Sphere center = (y, 0, x) size =  0.05) 
+ ]

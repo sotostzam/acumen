@@ -3,12 +3,12 @@ model Main (simulator) =
     mode = "on"& x = 22 & x' = 0 
   always
   match mode with[
-    "on" -> claim x <= 25 &
+    "on" claim x <= 25 -> 
       if x == 25 then
         mode + == "off"
       noelse &
       x' = 100 - x
-    |"off" -> claim x >= 19 &
+    |"off" claim x >= 19 -> 
       if x == 19 then
         mode + == "on"
       noelse &

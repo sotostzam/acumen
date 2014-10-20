@@ -1,23 +1,22 @@
 /* Bouncing ball air
  */
-class Main(simulator)
-  private mode := "Fall"; x := 5; x' := 0; x'' := 0 end
-  switch mode
-    case "Rise" claim x >= 0 && x' >= 0
-      if x' == 0
-        mode := "Fall"
-      end;
-      x'' = -10 - 0.1*x'*x'
-    case "Fall" claim x >= 0 && x' <= 0
-      if x == 0
-        x' := -0.5 * x';
-        mode := "Rise"
-      end;
-      x'' = -10 + 0.1*x'*x'
-  end;
-  simulator.startTime := 0;
-  simulator.endTime := 3.5;
-  simulator.minSolverStep := 0.01;
-  simulator.minLocalizationStep := 0.001;
-  simulator.minComputationImprovement := 0.001;    
-end
+model Main(simulator) =
+  initially mode = "Fall" & x = 5 & x' = 0 & x''= 0 always
+  match mode with [
+    "Rise" claim x >= 0 && x' >= 0 -> 
+      if x' == 0 then
+        mode+ == "Fall"
+      noelse &
+      x'' == -10 - 0.1*x'*x'
+    |"Fall" claim x >= 0 && x' <= 0-> 
+      if x == 0 then
+        x'+ == -0.5 * x' &
+        mode+ == "Rise"
+      noelse &
+      x'' == -10 + 0.1*x'*x'
+  ] &
+  simulator.startTime+ == 0 &
+  simulator.endTime+ == 3.5 &
+  simulator.minSolverStep+ == 0.01 &
+  simulator.minLocalizationStep+ == 0.001 &
+  simulator.minComputationImprovement+ == 0.001     

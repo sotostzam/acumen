@@ -1,14 +1,13 @@
-class Main(simulator)
-private 
-  mode := "";
-  x := 0.5; x' := 0;
-  y := 0; y' := -0.5;
-end
-switch mode
-  case ""
-    x' = y;
-    y' = (1-x*x)*y-x;
-end;
-simulator.endTime := 3;
-simulator.minSolverStep := 0.01;
-end
+model Main(simulator) =
+initially 
+  mode = "" &
+  x = 0.5 & x' = 0 &
+  y = 0 & y' = -0.5 
+always
+match mode with [
+  "" ->
+    x' == y &
+    y' == (1-x*x)*y-x 
+ ]&
+simulator.endTime+ == 3 &
+simulator.minSolverStep+ == 0.01 

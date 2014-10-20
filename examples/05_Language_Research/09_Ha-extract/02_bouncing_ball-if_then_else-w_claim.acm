@@ -8,14 +8,13 @@
 // with claim
 // based on .../esaes/02_If_Then_Else_Based_Bouncing_Ball.acm
 
-class Main(simulator)
-  private
-    x := 5; x' := 0; x'' := 0;
-  end
-  claim x >= 0;
-  if x <= 0 && x' <= 0
-    x' := -0.5 * x'
+model Main(simulator) =
+  initially
+    x = 5 & x' = 0 & x'' = 0 
+  always
+  claim x >= 0 &
+  if x <= 0 && x' <= 0 then
+    x'+ == -0.5 * x'
   else
-    x'' = -10
-  end
-end
+    x'' == -10
+  

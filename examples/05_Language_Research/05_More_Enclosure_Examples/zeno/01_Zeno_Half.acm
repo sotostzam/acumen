@@ -1,23 +1,22 @@
 /* Zeno Half
  * Authors: Walid Taha and Adam Duracz
  */
-class Main(simulator)
-  private
-    d := 1; d' := -1;
-    s := 1/2;
-    mode := ""; 
-  end
-  switch mode
-    case ""
-      if s == d 
-        s := s/2; 
-        mode := "" 
-      end;
-      d' = -1;
-  end;
-  simulator.startTime := 0;
-  simulator.endTime := 1.1;
-  simulator.minSolverStep := 1.1;
-  simulator.minLocalizationStep := 0.1;
-  simulator.minComputationImprovement := 0;
-end
+model Main(simulator) =
+  initially
+    d = 1 & d' = -1 &
+    s = 1/2 &
+    mode = ""  
+  always
+  match mode with [
+    "" ->
+      if s == d then
+        s+ == s/2 & 
+        mode+ == "" 
+      noelse &
+      d' == -1 
+  ] &
+  simulator.startTime+ == 0 &
+  simulator.endTime+ == 1.1 &
+  simulator.minSolverStep+ == 1.1 &
+  simulator.minLocalizationStep+ == 0.1 &
+  simulator.minComputationImprovement+ == 0 

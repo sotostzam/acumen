@@ -8,38 +8,36 @@
 //
 // Auhor: Adam Duracz
 
-class Main(simulator)
-  private
-    x := 10; x' := 10;
-    time := 0; time' := 1;
-    heating := "on"; 
-    period  := "day" 
-  end
+model Main(simulator) =
+  initially
+    x = 10 & x' = 10 &
+    time = 0 & time' = 1 &
+    heating = "on" & 
+    period  = "day" 
+  always
   // clock
-  time' = 1;
-  if time > 12 && not(time > 24)
-    period := "night"
-  end;
-  if time > 24
-    period := "day";
-    time := 0;
-  end;
+  time' == 1 &
+  if time > 12 && not(time > 24) then
+    period+ == "night"
+  noelse &
+  if time > 24 then
+    period+ == "day" &
+    time+ == 0 
+  noelse &
   // heater continuous
-  if period == "day" && heating == "on"
-    x' = 10
+  if period == "day" && heating == "on" then
+    x' == 10
   else
-    x' = -5-x
-  end;
+    x' == -5-x
+ &
   // heater discrete
-  if x < 19 && period == "day"
-    heating := "on"
-  end;
-  if x > 23
-    heating := "off"
-  end;
-  simulator.endTime := 48
-end
+  if x < 19 && period == "day" then
+    heating+ == "on"
+  noelse &
+  if x > 23 then
+    heating+ == "off"
+  noelse &
+  simulator.endTime+ == 48
 
-// Note: In this example, nested switch statements have been
+// Note: In this example, nested match statements with [have been
 //       replaced by if statements on the top level, with separate
-//       ifs for continuous and discrete assignments.

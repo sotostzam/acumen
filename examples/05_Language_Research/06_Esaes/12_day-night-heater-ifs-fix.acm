@@ -11,43 +11,41 @@
 //
 // Auhor: Adam Duracz and Kevin Atkinson
 
-class Main(simulator)
-  private
-    x := 10; x' := 10;
-    time := 0; time' := 1;
-    heating := "on"; 
-    period  := "day" 
-  end
+model Main(simulator) =
+  initially
+    x = 10 & x' = 10 &
+    time = 0 & time' = 1 &
+    heating = "on" & 
+    period  = "day" 
+  always
   // clock
-  time' = 1;
-  if period == "day" && time > 12 
-    period := "night";
-  end;
-  if period == "night" && time > 24
-    period := "day";
-    time := 0;
-  end;
+  time' == 1 &
+  if period == "day" && time > 12 then
+    period+ == "night" 
+  noelse &
+  if period == "night" && time > 24 then
+    period+ == "day" &
+    time+ == 0 
+  noelse &
   // heater continuous
-  if heating == "on"
-    x' = 10
+  if heating == "on" then
+    x' == 10
   else
-    x' = -5-x
-  end;
+    x' == -5-x
+  &
   // heater discrete
-  if period == "day"
-    if heating == "off" && x < 19 
-      heating := "on"
-    end;
-    if heating == "on" && x > 23
-      heating := "off"
-    end
-  end;
-  if period == "night"
-    heating := "off"
-  end;
-  simulator.endTime := 48
-end
+  if period == "day" then
+    if heating == "off" && x < 19 then 
+      heating+ == "on"
+    noelse &
+    if heating == "on" && x > 23  then
+      heating+ == "off"
+    noelse
+  noelse &
+  if period == "night" then
+    heating+ == "off"
+  noelse &
+  simulator.endTime+ == 48
 
-// Note: In this example, nested switch statements have been
+// Note: In this example, nested match statements with [have been
 //       replaced by if statements on the top level, with separate
-//       ifs for continuous and discrete assignments.
