@@ -147,7 +147,7 @@ object Parser extends MyStdTokenParsers {
     List("foreach", "end", "if", "else","elseif", "create", "move", "in", "terminate", "model","then","initially","always",
          "sum", "true", "false", "init", "match","with", "case", "type", "claim", "hypothesis", "let","noelse",
          "Continuous", "Discrete", "FixedPoint", "none","cross","do","dot","for",
-         "Sphere", "Box", "Cylinder", "Cone", "Text", "Obj", "center","size","length","radius","rotation","color","content")
+         "Sphere", "Box", "Cylinder", "Cone", "Text", "Obj")
 
   /* token conversion */
 
@@ -463,10 +463,10 @@ object Parser extends MyStdTokenParsers {
   val defaultColor = ExprVector(List(Lit(GInt(1)),Lit(GInt(1)),Lit(GInt(1))))
   val defaultRotation = ExprVector(List(Lit(GInt(0)),Lit(GInt(0)),Lit(GInt(0))))
   
-  def threeDPara: Parser[(String, Expr)] = threeDPType ~ "=" ~ expr ^^ {case n ~_~ e => (n,e)}  
+  def threeDPara: Parser[(String, Expr)] = ident ~ "=" ~ expr ^^ {case n ~_~ e => (n,e)}  
   def threeDObject:Parser[ExprVector] = threeDType ~ rep(threeDPara) ^^ {case n ~ ls =>threeDParasProcess(n,ls)}
   def threeDType = "Sphere" | "Box" | "Cylinder" | "Cone" | "Text" | "Obj"
-  def threeDPType = "center" | "color" | "length" | "size" | "radius" | "content" | "rotation" 
+  //def threeDPType = "center" | "color" | "length" | "size" | "radius" | "content" | "rotation" | ident
                     
   /* Process the 3d object information and adding default values*/
   def threeDParasProcess(objectName:String, paras:List[(String, Expr)]):ExprVector = {
@@ -512,7 +512,7 @@ object Parser extends MyStdTokenParsers {
       case "Box" => ExprVector(List(Lit(GStr("Box")),center,size,color,rotation))
       case "Sphere" => ExprVector(List(Lit(GStr("Sphere")),center,scale,color,rotation))
       case "Text" => ExprVector(List(Lit(GStr("Text")),center,scale,color,rotation,content))
-      case "OBJ" => ExprVector(List(Lit(GStr("OBJ")),center,scale,color,rotation,content))
+      case "Obj" => ExprVector(List(Lit(GStr("OBJ")),center,scale,color,rotation,content))
       case _ => error("Unsupported 3D object " + objectName)
     }
 
