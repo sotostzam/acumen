@@ -25,6 +25,7 @@ class ThreeDView extends JPanel {
   Config.useRotationPivotFrom3DS = true
   Config.useMultipleThreads = true
   Config.maxNumberOfCores = java.lang.Runtime.getRuntime.availableProcessors()
+  Logger.setLogLevel(Logger.ERROR)
 
   val world = new World()  // create a new world
 
@@ -209,6 +210,7 @@ class ThreeDView extends JPanel {
 
   def initBuffer(bufferWidth: Int, bufferHeight: Int) = {
     buffer = new FrameBuffer(bufferWidth, bufferHeight, FrameBuffer.SAMPLINGMODE_OGSS)
+    buffer.optimizeBufferAccess()
   }
 
   def init() = {
@@ -628,11 +630,10 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
       val transVector = tempTransVector.calcSub(transObject.getTransformedCenter)
       transObject.translate(transVector)
 
-      transObject.build()
-      if (tempType == "Text") {
-        transObject.setRotationPivot(new SimpleVector(0,0,0))
-        transObject.setCenter(new SimpleVector(0,0,0))
-      }
+      if (tempType != "Text")
+        CustomObject3D.partialBuild(transObject, false)
+      else
+        CustomObject3D.partialBuild(transObject, true)
     }
   }
 
@@ -854,10 +855,12 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
       app.objects -= c
       app.objects += c.toList -> newObject
       view.addObject(newObject)
-      newObject.build()
-      if (name == "Text") {
+      if (name != "Text")
+        CustomObject3D.partialBuild(newObject, false)
+      else {
         newObject.setRotationPivot(new SimpleVector(0,0,0))
         newObject.setCenter(new SimpleVector(0,0,0))
+        CustomObject3D.partialBuild(newObject, true)
       }
     }
   }
