@@ -10,10 +10,10 @@ import scala.swing._
 
 abstract class AbstractEditorTab extends BorderPanel{
   def receiver: Publisher
-  def reset: Unit
-  def play: Unit
-  def pause: Unit
-  def setProgress(p: Int): Unit
+  def reset(): Unit
+  def play(): Unit
+  def pause(): Unit
+  def setProgress3D(p: Int): Unit
 }
 
 class ThreeDTab (val appModel: Controller) extends AbstractEditorTab{
@@ -32,7 +32,7 @@ class ThreeDTab (val appModel: Controller) extends AbstractEditorTab{
   var playSpeed = 1.0
   val faster = new Action("faster") {
     icon = Icons.faster
-    def apply = {
+    def apply() = {
       playSpeed = playSpeed * 2
       if (playSpeed > 4) playSpeed = 4 // maximum *4 speed
       timer3d.sleepTime = timer3d.initSpeed / playSpeed
@@ -43,7 +43,7 @@ class ThreeDTab (val appModel: Controller) extends AbstractEditorTab{
   }
   val slower = new Action("slower") {
     icon = Icons.slower
-    def apply = {
+    def apply() = {
       playSpeed = playSpeed / 2
       timer3d.sleepTime = (1 / playSpeed) * timer3d.initSpeed
       // Recalculate sleep time
@@ -54,31 +54,31 @@ class ThreeDTab (val appModel: Controller) extends AbstractEditorTab{
   val threedpause = new Action("pause") {
     icon = Icons.pause
     toolTip = "pause"
-    def apply = pause()
+    def apply() = pause()
   }
   val stop3d = new Action("stop") {
     icon = Icons.stop
-    def apply = {
+    def apply() = {
       threedpause.toolTip = "pause"
       threedpause.icon = Icons.pause
       receiver.destroy = true
       timer3d.destroy = true
       check.selected = true
-      threeDView.reset
+      threeDView.reset()
     }
     toolTip = "Stop visualizing"
   }
-  /* ----3D-Visulization---- */
+  /* ----3D-Visualization---- */
   var played = false
 
   val threedplay = new Action("play") {
     icon = Icons.play
-    def apply = play()
+    def apply() = play()
     toolTip = "play"
   }
 
   // _3DDataBuffer: Where all the state is stored
-  var _3DDataBuffer = Map[CId, Map[Int, scala.collection.mutable.Buffer[List[_]]]]()
+  var _3DDataBuffer = scala.collection.mutable.Map[CId, scala.collection.mutable.Map[Int, scala.collection.mutable.Buffer[List[_]]]]()
   var _3DView = List[Tuple2[Array[Double], Array[Double]]]()
   var lastFrame = 2.0
   var endTime = 10.0
@@ -134,16 +134,16 @@ class ThreeDTab (val appModel: Controller) extends AbstractEditorTab{
 
   def receiver: _3DDisplay = _receiver
 
-  def reset = {
-    receiver.stop
+  def reset() = {
+    receiver.stop()
     played = false
     receiver.destroy = true
     check.selected = true
     timer3d.destroy = true
-    threeDView.reset
+    threeDView.reset()
   }
 
-  def pause(): Unit =
+  def pause(): Unit = {
     if (threedpause.toolTip == "pause") {
       // un-pause
       timer3d.pause = false
@@ -157,47 +157,45 @@ class ThreeDTab (val appModel: Controller) extends AbstractEditorTab{
       threedpause.icon = Icons.pause
       threedpause.toolTip = "pause"
     }
+  }
 
-  def play(): Unit =
+
+  def play(): Unit = {
     if (App.ui.codeArea.editedSinceLastRun)
-      App.ui.runSimulation
+      App.ui.runSimulation()
     else {
       threedpause.toolTip = "pause"
       threedpause.icon = Icons.pause
       endTime = appModel.threeDData.endTime
       if (played) {
-        receiver.stop
+        receiver.stop()
         timer3d.destroy = true
         statusZone3d.setSpeed(playSpeed.toString)
         threeDView.world.removeAllObjects()
         threeDView.axisArray(0) = null
         if (check.selected)
-          threeDView.axisOn
+          threeDView.axisOn()
       }
       // First time press "3D play" button,
       // copy the data from list to buffer to speed up
       if (!played) {
-        _3DDataBuffer.clear
+        _3DDataBuffer.clear()
         threeDView.world.removeAllObjects()
         threeDView.axisArray(0) = null
         if (check.selected)
-          threeDView.axisOn
+          threeDView.axisOn()
         lastFrame = 0
         statusZone3d.setSpeed("1.0")
         for ((id, map) <- appModel.threeDData._3DData) {
-          var temp = Map[Int, Buffer[List[_]]]()
+          var temp = scala.collection.mutable.Map[Int, scala.collection.mutable.Buffer[List[_]]]()
           for ((objectNumber, l) <- map) {
             temp += (objectNumber -> l.reverse.toBuffer)
             temp(objectNumber).last(5) match {
               // The animation's length
-              case n: Int => if (n > lastFrame) {
-                lastFrame = n
-              }
+              case n: Int => if (n > lastFrame) lastFrame = n
               case _ =>
                 val n = temp(objectNumber).last(6).asInstanceOf[Int]
-                if (n > lastFrame) {
-                  lastFrame = n
-                }
+                if (n > lastFrame) lastFrame = n
             }
           }
           _3DDataBuffer += id -> temp
@@ -208,7 +206,7 @@ class ThreeDTab (val appModel: Controller) extends AbstractEditorTab{
       threeDView.objects.clear()
       if (_3DView.size != 0) {
         check.selected = true
-        threeDView.reset
+        threeDView.reset()
       }
 
       _receiver = new _3DDisplay(threeDView, statusZone3d, _3DDataBuffer, lastFrame,
@@ -223,9 +221,10 @@ class ThreeDTab (val appModel: Controller) extends AbstractEditorTab{
       timer3d.listenTo(statusZone3d.bar.mouse.moves)
       played = true
     }
+  }
 
-  def setProgress(p: Int) = {
-    statusZone3d.setProgress(p)
+  def setProgress3D(p: Int) = {
+    statusZone3d.setProgress3D(p)
     statusZone3d.setTime((p.toFloat/100)*endTime.toFloat)
   }
   // Final Init
@@ -235,10 +234,10 @@ class ThreeDTab (val appModel: Controller) extends AbstractEditorTab{
 
 class DisabledEditorTab(msg: String) extends AbstractEditorTab {
   def receiver = null
-  def reset = {}
-  def play = {}
-  def pause = {}
-  def setProgress(p:Int) = {}
+  def reset() = {}
+  def play() = {}
+  def pause() = {}
+  def setProgress3D(p:Int) = {}
   val msgBox = new TextArea("\n" + msg)
   msgBox.editable = false
   msgBox.lineWrap = true

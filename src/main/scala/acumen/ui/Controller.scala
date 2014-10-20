@@ -141,10 +141,6 @@ class Controller extends DaemonActor {
           setState(Stopped)
         case Exit(_,_) => 
           setState(Stopped)
-        
-        //
-        //
-        //
         case msg =>
           println("Unknown Message Received by Controller: " + msg)
       }
@@ -178,7 +174,6 @@ class Controller extends DaemonActor {
             n += 1;
         }
       }
-      
       updateProgress(d)
     }
   }
