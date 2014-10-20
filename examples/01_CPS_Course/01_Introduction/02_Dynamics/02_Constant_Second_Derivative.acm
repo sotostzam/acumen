@@ -3,9 +3,14 @@
 
 model Main(simulator) = 
 initially
-  x = -10 &  x' = 0 &  x'' = 1
+  x = -10 &  x' = 0 &  x'' = 1 & z = create A(-1)
 always
-  x'' = 1
+  x'' = 1 &
+  if (x > 1) then
+    z+ == create A(x) & x+ == 0
+  noelse
+
+model A(x) =
 
 
 // Note:  Polynomials are closed under integration

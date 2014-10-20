@@ -4,21 +4,20 @@
 // Author:  Jan Duracz
 // Note:    Run using Semantics -> Enclosure
 
-class Main(simulator)
-private 
-  mode := "one"; 
-  x    := [0.0..1.0] // Non-constant reset 
-end
-  switch mode
-    case "one"
-      if true
-        mode := "one";
-        x := x/2
-      end
-  end;
-  simulator.endTime := 2.0;
-  simulator.minLocalizationStep := 1.0
-end
+model Main(simulator) =
+initially 
+  mode = "one" & 
+  x    = [0.0..1.0] // Non-constant reset 
+always
+  match mode with [
+    "one" ->
+      if true then
+        mode+ == "one" &
+        x+ == x/2
+      noelse
+  ] &
+  simulator.endTime+ == 2.0 &
+  simulator.minLocalizationStep+ == 1.0
 
 // Note:  This model is an example of a looping 
 //        system with a non-constant reset, where the

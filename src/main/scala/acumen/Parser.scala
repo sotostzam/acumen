@@ -328,8 +328,8 @@ object Parser extends MyStdTokenParsers {
     (expr ^^ (Assign(e, _)) | newObject(Some(e)))
 
   def newObject(lhs: Option[Expr]) =
-    "create" ~! className ~! args(expr) ^^
-      { case _ ~ cn ~ args => Create(lhs, Var(Name(cn.x,0)), args) }
+    positioned("create" ~! className ~! args(expr) ^^
+      { case _ ~ cn ~ args => Create(lhs, Var(Name(cn.x,0)), args) })
 
   def elim = "terminate" ~> expr ^^ Elim
 

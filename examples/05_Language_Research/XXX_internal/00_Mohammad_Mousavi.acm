@@ -1,0 +1,46 @@
+class Main (simulator)
+private
+  system := create System();
+  model  := create System();
+  monitor:= create Monitor();
+end
+  monitor.t_system = system.t;
+  monitor.t_model  = model.t;
+  monitor.c_system = system.cooling;
+  monitor.c_model  = model.cooling;
+  system.goal = monitor.goal;
+  model.goal  = monitor.goal;
+end
+
+class Monitor()
+private
+ t_system :=0;
+ t_model  :=0;
+ c_system :="off";
+ c_model  :="off";
+ OK := 1;
+ goal:=18.7; goal':=0; goal'':=0;
+end
+ goal'' = 10*(18.5-goal);
+ if (t_system == t_model) && (c_system == c_model)
+   OK = 1
+ else
+   OK = 0
+ end
+end
+
+class System ()
+private
+ t:=15; t':=0;
+ cooling := "off";
+ goal:=18.5;
+end
+ if (cooling=="on") 
+   t'=(15-t);
+   if (t<goal-0.5) cooling:="off" end
+ end;
+ if (cooling=="off") 
+  t'=(20-t);
+  if (t>goal+0.5) cooling:="on" end
+ end
+end

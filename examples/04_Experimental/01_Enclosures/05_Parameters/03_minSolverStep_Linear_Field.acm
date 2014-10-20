@@ -2,22 +2,21 @@
 // minSolverStep Linear Field Example
 //
 // Authors:  Jan Duracz
-// Note:     Run using Semantics -> Enclosure
+// Note:     Run using Semantics -> Enclosure -> 2013*
 
-class Main(simulator)
-  private 
-    x :=  0.1; x' := 1;
-    mode := "on" 
-  end
-  switch mode
-    case "on" 
-      x' = -x // Linear field
-  end;
-  simulator.endTime := 1;
-  simulator.minSolverStep := 0.25;
-  simulator.minLocalizationStep := 0.25;
-  simulator.minComputationImprovement := 0
-end
+model Main(simulator) =
+  initially 
+    x = 0.1 & x' = -0.1 &
+    mode = "on" 
+  always
+  match mode with [
+    "on" -> 
+      x' == -x // Linear field
+  ] &
+  simulator.endTime+ == 1 &
+  simulator.minSolverStep+ == 0.25 &
+  simulator.minLocalizationStep+ == 0.25 &
+  simulator.minComputationImprovement+ == 0
 
 // Note:  A large minSolverStep gives a large enclosure 
 //        when fields are linear.

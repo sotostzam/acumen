@@ -201,7 +201,7 @@ always
 
 model cylinder (D,tablerow,tablecolum) = 
 initially 
-  p    = (0,0,0) & 
+  p    = (0,0,0.01) & 
   q    = (0,0,0) &
   _3D  =  () &
   r  =  0.05 &
@@ -211,8 +211,8 @@ initially
   col   =  (1,1,1) &
   shiftD  =  (10,5,0)           // shift distance of the ball
 always
-  _3D = (Cylinder center=(p+q)/2+D+(tablerow,tablecolum,0).*shiftD radius=r 
-                  length=l color=col rotation=(alpha,0,-theta)) &
+  _3D = (Cylinder center=(p+q)/2 radius=r 
+         length=l   color=col rotation=(alpha,0,-theta)) &
   x = (p(0)-q(0)) &
   y = (p(1)-q(1)) &
   z = (p(2)-q(2)) &
@@ -220,8 +220,11 @@ always
   l = norm(p-q) &
   if l > 0 then alpha = asin(z/l)
   else alpha = 0 &
-  if y>0 then theta = asin(x/(l*cos(alpha)+0.0001))
-  else theta = -asin(x/(l*cos(alpha)+0.0001))+pi
+  if y>0 && alpha ~= 0 &&  x/(l*cos(alpha)) > -1 && x/(l*cos(alpha))<1 then 
+    theta = asin(x/(l*cos(alpha)))
+  elseif y<0 && alpha ~= 0 &&  x/(l*cos(alpha)) > -1 && x/(l*cos(alpha))<1 then
+    theta = -asin(x/(l*cos(alpha)))+pi
+  noelse
 
 /**
 * A three-dimentional bouncing ball model, with air resistance.
@@ -607,14 +610,14 @@ initially
   zc2  =  0 &
   zc3  =  0 
 always
-  _3D = (Text center=(-3.5,6.5,-4)+(tablerow,tablecolum,0).*shiftD size=1 color=(0.9,0,0) rotation=(1.7,0,0) content=player1.name,
-         Text center=(1.5,6.5,-4)+(tablerow,tablecolum,0).*shiftD size=1 color=(0.1,0.1,0.1) rotation=(1.7,0,0) content=player2.name,
-         Text center=(-1.8,6.5,-5)+(tablerow,tablecolum,0).*shiftD size=1 color=(0.6,0,0) rotation=(1.7,0,0) content=player1Score,
-         Text center=(3.5,6.5,-5)+(tablerow,tablecolum,0).*shiftD size=1 color=(0.1,0.1,0.1) rotation=(1.7,0,0) content=player2Score,
-         Text center=(-1.8,6.5,-6)+(tablerow,tablecolum,0).*shiftD size=1 color=(0.6,0,0) rotation=(1.7,0,0) content=finalScore1,
-         Text center=(3.5,6.5,-6)+(tablerow,tablecolum,0).*shiftD size=1 color=(0.1,0.1,0.1) rotation=(1.7,0,0) content=finalScore2,
-         Text center=(-1.8,6.5,1.5)+(tablerow,tablecolum,0).*shiftD size=1 color=(0.6,0,0) rotation=(1.7,0,0) content=r1,
-         Text center=(3.5,6.5,1.5)+(tablerow,tablecolum,0).*shiftD size=1 color=(0.1,0.1,0.1) rotation=(1.7,0,0) content=r2) &
+  _3D = (Text center=(-3.5,6.5,-4)+(tablerow,tablecolum,0).*shiftD size=1 color=(0.9,0,0) rotation=(0,0,0) content=player1.name,
+         Text center=(1.5,6.5,-4)+(tablerow,tablecolum,0).*shiftD size=1 color=(0.1,0.1,0.1) rotation=(0,0,0) content=player2.name,
+         Text center=(-1.8,6.5,-5)+(tablerow,tablecolum,0).*shiftD size=1 color=(0.6,0,0) rotation=(0,0,0) content=player1Score,
+         Text center=(3.5,6.5,-5)+(tablerow,tablecolum,0).*shiftD size=1 color=(0.1,0.1,0.1) rotation=(0,0,0) content=player2Score,
+         Text center=(-1.8,6.5,-6)+(tablerow,tablecolum,0).*shiftD size=1 color=(0.6,0,0) rotation=(0,0,0) content=finalScore1,
+         Text center=(3.5,6.5,-6)+(tablerow,tablecolum,0).*shiftD size=1 color=(0.1,0.1,0.1) rotation=(0,0,0) content=finalScore2,
+         Text center=(-1.8,6.5,1.5)+(tablerow,tablecolum,0).*shiftD size=1 color=(0.6,0,0) rotation=(0,0,0) content=r1,
+         Text center=(3.5,6.5,1.5)+(tablerow,tablecolum,0).*shiftD size=1 color=(0.1,0.1,0.1) rotation=(0,0,0) content=r2) &
   //add two modes for alternating start the game
   if mode ~= "Restart1"      && mode ~= "Player1Serve"  && mode ~= "Player2Serve" 
    && mode ~= "Impact"        && mode ~= "Freeze"       && mode ~= "ChangeSide"   

@@ -1,0 +1,70 @@
+class Main(simulator)
+  private
+
+// Main drivers for model
+
+    theta  := 0; theta' := 0;
+    l  := 1; l' := 0;
+
+// Red:  Target (or "plan")
+
+    x_r := 1; y_r := 0;
+
+
+// Green:  Follower (controller, in polar)
+
+    theta_g := 0; theta_g' := 0; theta_g'' := 0;
+    l_g := 1;  l_g' := 0; l_g'' := 0;
+    x_g  := 0; y_g  := 0; // Rendering in Cartesian 
+
+// Controller parameters (we can tweak)
+
+    k_p := 50; k_d := 3;
+
+// Blue: Actuation (in cartesian)
+
+    x_b  := 1; x_b' := 0; x_b'' := 0; 
+    y_b  := 0; y_b' := 0; y_b'' := 0;
+    
+    _3D := [];
+end
+
+// Generate "wobbly circle" motion
+
+    theta' = 1;          // Circle
+    l' = 1*sin(5*theta); // Wobble
+
+// Red:  Target, rendered in Cartesian for _3D
+
+    x_r = l * cos(theta);
+    y_r = l * sin(theta);
+
+// Green:  Tracking by a standard feedback controler
+
+    theta_g'' = k_p * (theta - theta_g) - k_d * theta_g';
+    l_g''     = k_p * (l - l_g) - k_d * l_g';
+
+// Green rendered in Cartesian for _3D
+
+    x_g = l_g * cos(theta_g);
+    y_g = l_g * sin(theta_g);
+
+// Blue:  Transformed acceleration for actuation
+
+    x_b'' = - y_b * theta_g'' - y_b' * theta_g' 
+            - l_g'  * sin(theta_g) * theta_g' 
+            + l_g'' * cos(theta_g);
+             
+    y_b'' =   x_b * theta_g'' + x_b' * theta_g'
+            + l_g'  * cos(theta_g) * theta_g' 
+            + l_g'' * sin(theta_g); 
+
+// Note:  x_b, y_b computed automatically by Acumen
+
+    _3D = [
+      ["Sphere", [x_r, 0, y_r], 0.05, red, [0,0,0]],
+      ["Sphere", [x_g, 0, y_g], 0.05, green, [0,0,0]],
+      ["Sphere", [x_b, 0, y_b], 0.05, blue, [0,0,0]]
+    ];
+
+end

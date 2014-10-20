@@ -4,26 +4,25 @@
 // Authors:  Walid Taha and Adam Duracz
 // Note:     Run using Semantics -> Enclosure
 
-class Main(simulator)
-  private
-    d := 1; d' := -1;
-    s := 1/2;
-    mode := ""
-  end
-  switch mode
-    case "" 
-      claim s <= abs(d)
-      if s == d 
-        s := s/2; 
-        mode := "" 
-      end;
-      d' = -1;
-  end;
-  simulator.endTime := 2.1;
-  simulator.minSolverStep := 1.1;
-  simulator.minLocalizationStep := 0.001; // Decreased!
-  simulator.minComputationImprovement := 0
-end
+model Main(simulator) =
+  initially
+    d = 1 & d' = -1 &
+    s = 1/2 &
+    mode = ""
+  always
+  match mode with [
+    "" -> 
+      claim s <= abs(d) &
+      if s == d then
+        s+ == s/2 & 
+        mode+ == "" 
+      noelse &
+      d' == -1
+  ] &
+  simulator.endTime+ == 2.1 &
+  simulator.minSolverStep+ == 1.1 &
+  simulator.minLocalizationStep+ == 0.001 & // Decreased!
+  simulator.minComputationImprovement+ == 0
 
 // Note:  Decreasing the localisation time step from 
 //        0.1 to 0.001 improves the end-time precision. 

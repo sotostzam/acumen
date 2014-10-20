@@ -8,14 +8,12 @@ import render.ToPython._
 import Pretty._
 import PassManager._
 
-import com.sun.j3d.utils.applet.MainFrame
-
 import java.net.{Socket, InetAddress, ServerSocket}
 
 import scala.collection.mutable.ArrayBuffer
 
 object ThreeDState extends Enumeration {
-  val ERROR,DISABLE,LAZY,ENABLE = Value
+  val ERROR,DISABLE,ENABLE = Value
 }
 
 object Main {
@@ -24,8 +22,7 @@ object Main {
   // What should be in Main
   //
 
-  var need_quartz = false
-  var threeDState: ThreeDState.Value = null
+  var threeDState: ThreeDState.Value = ThreeDState.ENABLE
   var disableNewPlot = true
   var enableAllSemantics = true
   var autoPlay = false
@@ -45,6 +42,7 @@ object Main {
   var enableOldSemantics = false
 
   var debugExtract = false
+  var printLogLevel: Option[Logger.Level] = None
 
   var positionalArgs = new ArrayBuffer[String]
 
@@ -68,7 +66,8 @@ object Main {
   def experimentalOptsHelp = Array(
     "--full-help",
     "--templates             enables template expansion in the source code editor",
-    "--prune-semantics       hide experimental semantics in the U.I."
+    "--prune-semantics       hide experimental semantics in the U.I.",
+   s"-l|--log <level>        print logs to command line (level is one of: ${Logger.levels.mkString(",")})."
   )
   def commandHelp = Array(
     "ui [<file>]             starts the U.I."
@@ -116,12 +115,8 @@ object Main {
         openFile = checkFile(f); parseArgs(tail)
       case ("--enable-3d" | "--3d") :: tail => 
         threeDState = ThreeDState.ENABLE; parseArgs(tail)
-      case ("--lazy-3d") :: tail => 
-        threeDState = ThreeDState.LAZY; parseArgs(tail)
       case ("--disable-3d" | "--no-3d") :: tail => 
-        need_quartz = false
-        threeDState = ThreeDState.DISABLE; 
-        parseArgs(tail)
+        threeDState = ThreeDState.DISABLE; parseArgs(tail)
       case ("--enable-newplot" | "--newplot") :: tail => 
         disableNewPlot = false; parseArgs(tail)
       case ("--disable-newplot" | "--no-newplot") :: tail => 
@@ -141,6 +136,18 @@ object Main {
       case ("--passes"|"-p") :: p :: tail =>
         commandLineParms = true
         validatePassesStr(p); extraPasses = splitPassesString(p); parseArgs(tail)
+      case ("--log"|"-l") :: level :: tail =>
+        level match {
+          case "TRACE" => printLogLevel = Some(Logger.TRACE)
+          case "DEBUG" => printLogLevel = Some(Logger.DEBUG)
+          case "INFO"  => printLogLevel = Some(Logger.INFO)
+          case "WARN"  => printLogLevel = Some(Logger.WARN)
+          case "ERROR" => printLogLevel = Some(Logger.ERROR)
+          case _ =>
+            System.err.println(s"Unrecognized log level: $level")
+            usage()
+        }
+        parseArgs(tail)
       case opt ::  tail if opt.startsWith("-") =>
         System.err.println("Unrecognized Option: " + opt)
         usage()

@@ -1,0 +1,50 @@
+
+// A very basic communication channel
+
+class Channel_RL (Vs,R,L,Id)
+private
+ Id':=0
+end
+Id' = (Vs-Id*R) / L
+end
+
+class Source (f)
+private
+  t:=0; t':=1;
+  Vs:=-5;
+  signal := 0
+end
+  if (t>= 1/f)
+    switch signal
+      case 0
+         signal := 1;
+         Vs := 5;
+         t := 0;
+      case 1
+         signal := 0;
+         Vs := -5;
+         t := 0
+    end
+  end
+end
+
+class Destination ()
+private
+  sensor :=0;
+  meaning:= 0
+end
+  if (sensor > 0.5)
+    meaning = 1 end;
+  if (sensor < -0.5)
+    meaning = 0 end;
+end
+
+class Main(simulator)
+private
+  source     := create Source (2.5);
+  channel    := create Channel_RL (0,1,1,0);
+  destination:=create Destination();
+end
+  channel.Vs = source.Vs;
+  destination.sensor = channel.Id; 
+end

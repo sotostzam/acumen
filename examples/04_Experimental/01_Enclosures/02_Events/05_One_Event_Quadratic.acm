@@ -4,25 +4,23 @@
 // Author:  Adam Duracz
 // Note:    Run using Semantics -> Enclosure
 
-class Main(simulator)
-  private 
-    x := 5; x' := 0; x'' := -10;
-    mode := "m"
-  end
-  switch mode
-    case "m" claim x >= 0
-      if x == 0 && x' <= 0
-        x' := -0.5 * x';
-        mode := "m" 
-      end; 
-      x'' = -10 // Solution is quadratic
-  end;
-  simulator.endTime := 1.1;
-  simulator.minLocalizationStep := 0.001;
-  simulator.minSolverStep := 1.1
-end
+model Main(simulator) =
+  initially 
+    x = 5 & x' = 0 & x'' = -10 &
+    mode = "m"
+  always
+  match mode with [
+    "m" -> claim x >= 0 &
+      if x == 0 && x' <= 0 then
+        x'+ == -0.5 * x' &
+        mode+ == "m" 
+      noelse & 
+      x'' == -10 // Solution is quadratic
+  ] &
+  simulator.endTime+ == 1.1 &
+  simulator.minLocalizationStep+ == 0.001 &
+  simulator.minSolverStep+ == 1.1
 
 // Note:  The quadratic solution is approximated with
 //        a relatively large minSolverStep, leading to 
 //        uncertainty about the event time.
-   

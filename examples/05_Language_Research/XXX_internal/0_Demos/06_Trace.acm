@@ -1,0 +1,69 @@
+
+class Trace(pzero,D)
+private
+ p  := [0,0,0];
+ p0 := pzero;
+ p1 := [0,0,0];
+ t  := 0;
+ t' := 0;
+ mode := "One";
+end
+t' = 1;
+switch mode
+ case "One"
+   if t>0.1
+   if norm(p0-p)>0 
+    create cylinder(p0,p,D)
+   end;
+   mode := "Two"
+   end
+ case "Two"
+   if t>0.15
+   mode := "Three"
+   end
+ case "Three"
+   if t>0.12
+   p0 := p;
+   mode := "One";
+   t := 0;
+   end
+end
+end
+
+class Main(simulator)
+private
+t :=0; t':=0;
+a := create Trace([0,0,0],[0,0,0]);
+end
+
+t' = 2;
+
+a.p = [sqrt(t/4)*sin(t),sqrt(t/4)*cos(t),-t/50];
+
+end
+
+class cylinder (p,q,D)
+ private 
+//  p :=[0,0,0]; q:=[0,0,0];
+  _3D := [];
+  radius := 0.01;
+  length := 0.01; alpha:=0; theta:= pi/2;
+  x:=0;y:=0;z:=0
+ end
+
+ _3D = [["Cylinder",(p+q)/2+D,[radius,length],[0.2,0.2,0.2],
+                      [alpha,0,-theta]]];
+ x = dot(p-q,[1,0,0]);
+ y = dot(p-q,[0,1,0]);
+ z = dot(p-q,[0,0,1]);
+
+  length = norm(p-q);
+  alpha = asin(z/length);
+
+  if (y>0)
+   theta = asin(x/(length*cos(alpha)))
+  else
+   theta = -asin(x/(length*cos(alpha)))
+              +pi
+  end
+end

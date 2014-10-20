@@ -3,17 +3,16 @@
 //
 // Note:  Run using Semantics -> Enclosure
 
-class Main(simulator)
-  private 
-    x    := 0; 
-    x'   := 0; 
-    mode := "" //
-  end
-  switch mode  //
-    case ""    //
-      x' = 1
-  end
-end
+model Main(simulator) =
+  initially 
+    x    = 0 & 
+    x'   = 1 & 
+    mode = ""       //
+  always
+  match mode with [ //
+    "" ->           //
+      x' == 1
+  ]
 
 // Note:  It's fast for linear problems.
 // Note:  It solves this problem in *one* step.
@@ -22,5 +21,4 @@ end
 // Note:  The currently enclosure semantics *requires*
 //        that models have a very specific form, in
 //        particular, they must always have exactly one 
-//        mode, and consist of one big switch statement 
-//        on that mode.
+//        mode, and consist of one big match on that mode.

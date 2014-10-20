@@ -7,25 +7,30 @@ import scala.collection.mutable.ArrayBuffer
 class Logger {
   import Logger._
 
-  private var appender: Option[Appender] = None
-  private var buffer = new ArrayBuffer[Instruction]
+  private val appenders = new ArrayBuffer[Appender]
+  private val buffer = new ArrayBuffer[Instruction]
 
   /** Attach an appender to this logger.  For example when
     * the U.I is active it will likely be the console. */
   def attach(a: Appender) { this.synchronized{
-    appender = Some(a)
+    appenders += a
     buffer.foreach { instr => a(instr); }
     buffer.clear()
   }}
-  /** Detatch the appender, messages will be queued until a reciver is attached */
-  def detach() { this.synchronized{
-    appender = None
+  /** Detatch all appenders, messages will be queued until an appender is attached */
+  def detachAll() { this.synchronized{
+    appenders.clear
+  }}
+  /** Detatch appender a. If no appenders are left, messages will be queued until an appender is attached */
+  def detach(a: Appender) { this.synchronized{
+    appenders -= a
   }}
   /** Append a message or instruction. */
-  def append(instr: Instruction) { this.synchronized {appender match {
-    case Some(a) => a(instr)
-    case None    => buffer += instr
-  }}}
+  def append(instr: Instruction) { this.synchronized {
+    if (appenders isEmpty)
+      buffer += instr
+    else for (a <- appenders) a(instr)
+  }}
 
   /** Convenience method: Send a error message from a Throwable object */
   def error(e: Throwable) : Unit = e match {
@@ -40,9 +45,17 @@ class Logger {
   def status(dotsBefore: Boolean, msg: String, dotsAfter: Boolean) =
     append(StatusUpdate(dotsBefore, msg, dotsAfter))
 
-  /** Convenience method: Send a informative message. */
+  /** Convenience method: Send an informative message. Visible to users. */
   def log(msg: String) =
     append(Message(INFO, TextMsg(msg)))
+    
+  /** Convenience method: Send a medium-level message. Only visible to developers. */
+  def debug(msg: String) =
+    append(Message(DEBUG, TextMsg(msg)))
+    
+  /** Convenience method: Send a low-level message. Only visible to developers. */
+  def trace(msg: String) =
+    append(Message(TRACE, TextMsg(msg)))
 
   /** Convenience method: Send a hypothesis report if there is SomeMetedata. */
   def hypothesisReport(md: Metadata, startTime: Double, endTime: Double) = md match {
@@ -56,12 +69,13 @@ class Logger {
 
 object Logger extends Logger {
   /** Various log levels */
-  sealed abstract class Level(orderNum: Int)
+  sealed abstract class Level(val orderNum: Int)
   case object TRACE  extends Level(0)
   case object DEBUG  extends Level(1)
   case object INFO   extends Level(2)
   case object WARN   extends Level(3)
   case object ERROR  extends Level(4)
+  val levels = List(TRACE, DEBUG, INFO, WARN, ERROR)
 
   /** Internal level to use for status updates. Do not use directly. */
   case object STATUS extends Level(2)
