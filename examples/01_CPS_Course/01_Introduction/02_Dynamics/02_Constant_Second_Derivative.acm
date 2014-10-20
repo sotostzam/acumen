@@ -1,16 +1,9 @@
 
 // Constant Second Derivatives Example
-
-model Main(simulator) = 
-initially
-  x = -10 &  x' = 0 &  x'' = 1 & z = create A(-1)
-always
-  x'' = 1 &
-  if (x > 1) then
-    z+ == create A(x) & x+ == 0
-  noelse
-
-model A(x) =
-
+model Main(simulator) =
+  initially
+   x=-10 & x'= 0 & x''= 1
+  always
+    x'' = 1
 
 // Note:  Polynomials are closed under integration

@@ -3,7 +3,7 @@
 //
 // Author:  YZ
 
-<<<<<<< HEAD
+
 model Vehicle(p      /* Position */,
               d      /* Direction */,
               s      /* Size */,
@@ -11,22 +11,17 @@ model Vehicle(p      /* Position */,
 initially
   _3D = ()
 always
- _3D =("obj" center=p size=1 color=(0,0,1) 
-        rotation=(pi/2,0,d*pi/2) name)
+ _3D =(Obj center=p size=0.02 color=(0,0,1) 
+        rotation=(pi/2,0,d*pi/2) content = name)
 
-=======
-model Vehicle(p,d,s,name)
- = initially
-  _3D  = () 
- always
- _3D  ==("OBJ",p ,1,(0,0,1),(pi/2,0,d*pi/2),name) 
+
 
 model Road(p,l)
  = initially
   _3D  =  ((Box center= p size= (l, 6, 0.05) color=(0.3, 0.3,  0.3) rotation= (0,0,pi/2)),
           (Box center= p+(0,0,0.05) size= (l, 0.1, 0.05) color= (1, 1, 1) rotation= (0,0,pi/2)))
  always
->>>>>>> 095f848698fc95ef1e14adf31c3498a829411bdb
+
 
 
 // _3DView specifies the position and orientation
