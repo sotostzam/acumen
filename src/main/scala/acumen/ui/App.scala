@@ -334,14 +334,7 @@ class App extends SimpleSwingApplication {
 
   var threeDtab = if (Main.threeDState == ThreeDState.DISABLE) {
     Logger.log("Acumen3D disabled.")
-    if (Main.need_quartz) {
-      new DisabledEditorTab("3D visualization disabled due to performance problems on Mac OS X. \n\nTo enable restart Java with -Dapple.awt.graphics.UseQuartz=true or use --3d to force 3D to be enabled.")
-    } else {
-      new DisabledEditorTab("3D visualization disabled on the command line.")
-    }
-    //null
-  } else if (Main.threeDState == ThreeDState.LAZY) {
-    new DisabledEditorTab("3D visualization will be enabled when needed.")
+    new DisabledEditorTab("3D visualization disabled on the command line.")
   } else {
     start3D()
   }
@@ -769,10 +762,7 @@ class App extends SimpleSwingApplication {
     case Stopped =>
       if (controller.threeDData.modelContains3D) {
         codeArea.editedSinceLastRun = false
-        if (Main.threeDState == ThreeDState.LAZY) {
-          views.shouldEnable3D = true
-          views.possibleEnable3D
-        } else if (Main.threeDState == ThreeDState.ENABLE && modelFinished) {
+        if (Main.threeDState == ThreeDState.ENABLE && modelFinished) {
           views.selectThreeDView
           threeDtab.play
         }
@@ -896,12 +886,28 @@ class App extends SimpleSwingApplication {
 
   actor.start
   codeArea.listenDocument
+  // Acumen console logger. Ignores TRACE and DEBUG log levels.
+  Logger.attach(new Logger.Appender { def apply(instr: Logger.Instruction) {
+    instr match {
+      case Logger.Message(Logger.TRACE | Logger.DEBUG,_,_) =>
+        // Ignore Logger.TRACE and Logger.DEBUG messages
+      case _ => actor ! ConsoleMsg(instr) 
+    }
+  }})
+  // Command line logger. Accepts messages with log levels lower than minLevel 
+  // but ignores HypothesisReports.
+  Main.printLogLevel.map(minLevel =>
+    Logger.attach(new Logger.Appender{
+      def apply(i: Logger.Instruction) = i match {
+        case Logger.Message(l, m, _) if l.orderNum >= minLevel.orderNum =>
+          println(s"$l: ${m.msg}")
+        case _ => // Ignore messages with lower Level and HypothesisReports
+      }
+    }))
   console.append(Logger.Message(Logger.INFO, 
                                 Logger.TextMsg("<html>Welcome to Acumen.<br/>" +
                                                "Please see Help/License file for licensing details.<html>")))
-  Logger.attach(new Logger.Appender { def apply(instr: Logger.Instruction) {
-    actor ! ConsoleMsg(instr)
-  }})
+
   actor.publish(Stopped)
   actor.publish(ViewChanged(views.selection.index))
 

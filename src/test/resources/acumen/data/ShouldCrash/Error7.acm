@@ -1,9 +1,12 @@
 // accessing a field not of self or of self's children
 
-class Main(simulator)
-  create A(self)
-end
+model Main(simulator) = 
+initially
+  a = create A(self)
+always
+ 
 
-class A(main)
-  main.mode := "Foo"
-end
+model A(main) = 
+ initially 
+always
+main.mode + == "Foo"

@@ -146,8 +146,8 @@ object Parser extends MyStdTokenParsers {
   lexical.reserved ++=
     List("foreach", "end", "if", "else","elseif", "create", "move", "in", "terminate", "model","then","initially","always",
          "sum", "true", "false", "init", "match","with", "case", "type", "claim", "hypothesis", "let","noelse",
-         "Continuous", "Discrete", "FixedPoint", "none","cross","do","dot",
-         "Sphere", "Box", "Cylinder", "Cone", "Text", "Obj")
+         "Continuous", "Discrete", "FixedPoint", "none","cross","do","dot","for",
+         "Sphere", "Box", "Cylinder", "Cone", "Text", "Obj", "center","size","length","radius","rotation","color","content")
 
   /* token conversion */
 
@@ -299,15 +299,17 @@ object Parser extends MyStdTokenParsers {
   def forEach =
     "foreach" ~ name ~ "in" ~ expr ~"do"~ forhelp  ^^
       { case _ ~ i ~ _ ~ e ~_~ b  => ForEach(i, e, b) }
-  
-   def pattern : Parser[Pattern] =  name ~ "." ~ name ^^ {case e ~ _ ~ n => Pattern(List(Dot(Var(e),n)))}|
-		                            name ~ args(expr) ^^{case n ~ es => Pattern(List(Op(n,es)))}|
-		   							name ^^ {case x => Pattern(List(Var(x)))} |
+   
+   // For positionlize pattern matching 
+   def varP : Parser[Var] = name ^^ {x => Var(x)}
+   def dotP : Parser[Dot] = varP ~ "." ~ name ^^ {case e ~ _ ~ n => Dot(e,n)}
+   def pattern : Parser[Pattern] =  positioned(dotP) ^^ {case d => Pattern(List(d))}|		                          
+		   							positioned(varP) ^^ {case x => Pattern(List(x))}|
 		                          parens(repsep(pattern,",")) ^^ {case ls => Pattern(ls.map(x => x.ps match{
 		                            case s::Nil => x.ps
-		                            case ss => List(Pattern(ss))}).flatten)} 
+		                            case ss => List(Pattern(ss))}).flatten)}
   //println(run(action, " b' == b''' "))	                           
-  def patternMatch : Parser[Continuously] = pattern ~ "=" ~ expr ^^{case p ~ _ ~ e => Continuously(Assignment(p,e))}
+  def patternMatch : Parser[Continuously] = positioned(pattern) ~ "=" ~ expr ^^{case p ~ _ ~ e => Continuously(Assignment(p,e))}
 
   def discretelyOrContinuously =
     (newObject(None) ^^ Discretely | elim ^^ Discretely 
@@ -461,9 +463,10 @@ object Parser extends MyStdTokenParsers {
   val defaultColor = ExprVector(List(Lit(GInt(1)),Lit(GInt(1)),Lit(GInt(1))))
   val defaultRotation = ExprVector(List(Lit(GInt(0)),Lit(GInt(0)),Lit(GInt(0))))
   
-  def threeDPara: Parser[(String, Expr)] = ident ~ "=" ~ expr ^^ {case n ~_~ e => (n,e)}  
+  def threeDPara: Parser[(String, Expr)] = threeDPType ~ "=" ~ expr ^^ {case n ~_~ e => (n,e)}  
   def threeDObject:Parser[ExprVector] = threeDType ~ rep(threeDPara) ^^ {case n ~ ls =>threeDParasProcess(n,ls)}
   def threeDType = "Sphere" | "Box" | "Cylinder" | "Cone" | "Text" | "Obj"
+  def threeDPType = "center" | "color" | "length" | "size" | "radius" | "content" | "rotation" 
                     
   /* Process the 3d object information and adding default values*/
   def threeDParasProcess(objectName:String, paras:List[(String, Expr)]):ExprVector = {
@@ -495,7 +498,7 @@ object Parser extends MyStdTokenParsers {
     
     val length = paras.find(_._1 == "length") match{
       case Some(x) => x._2
-      case None => defaultCenter
+      case None => defaultLength
     }
 
     val content = paras.find(_._1 == "content") match{
@@ -509,6 +512,7 @@ object Parser extends MyStdTokenParsers {
       case "Box" => ExprVector(List(Lit(GStr("Box")),center,size,color,rotation))
       case "Sphere" => ExprVector(List(Lit(GStr("Sphere")),center,scale,color,rotation))
       case "Text" => ExprVector(List(Lit(GStr("Text")),center,scale,color,rotation,content))
+      case "OBJ" => ExprVector(List(Lit(GStr("OBJ")),center,scale,color,rotation,content))
       case _ => error("Unsupported 3D object " + objectName)
     }
 

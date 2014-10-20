@@ -1,29 +1,29 @@
-class Main (simulator)
-private
- x:=2;x' := 0;  x'':=0;
-_3D := [["Sphere", [2,0,0],   0.2*2,          [2,0,2-2], [0,0,0]],
-       ["Box",    [0,0,2],   [0.5,0.5,0.5],  [1,1,1],   [0,0,0]],
-       ["Cone",   [0,2,0],   [0.2*2, 0.5*2], [0,2-2,2], [0,0,0]],
-       ["Sphere", [-2,0,0],  0.2*2,          [2,0,2-2], [0,0,0]],
-       ["Box",    [0,0,-2],  [0.5,0.5,0.5],  [1,1,1],   [0,0,0]],
-       ["Cone",   [0,-2,0],  [0.2*2, 0.5*2], [0,2-2,2], [0,0,0]]]
+model Main (simulator)
+= initially
+ x = 2 & x'  =  0 &  x'' = 0 &
+_3D  =  (Sphere center= (2,0,0) size=   0.2*2 color=          (2,0,2-2) rotation= (0,0,0),
+       Box center=    (0,0,2) size=   (0.5,0.5,0.5) color=  (1,1,1) rotation=   (0,0,0),
+       Cone center=   (0,2,0) radius=    0.2*2 length= 0.5*2  color= (0,2-2,2) rotation= (0,0,0),
+       Sphere center= (-2,0,0) size=  0.2*2 color=          (2,0,2-2) rotation= (0,0,0),
+       Box center=    (0,0,-2) size=  (0.5,0.5,0.5) color=  (1,1,1) rotation=   (0,0,0),
+       Cone center=   (0,-2,0) radius=   0.2*2 length= 0.5*2  color= (0,2-2,2) rotation= (0,0,0))
 
-end
- simulator.timeStep:=0.05;
- x'' = -x;
- if x>0
- _3D = [["Sphere",  [x,0,0],   0.2*x,              [x,0,2-x],[x,x,x]],
-          ["Box",     [0,0,x],  [0.3*x,0.3*x,0.3*x], [2-x,x,0],[x,x,x]],
-          ["Cone",    [0,x,0],  [0.2*x,0.5*x],       [0,2-x,x],[x,x,x]],
-          ["Sphere",  [-x,0,0],  0.2*x,              [x,0,2-x],[x,x,x]],
-          ["Box",     [0,0,-x], [0.3*x,0.3*x,0.3*x], [2-x,x,0],[x,x,x]],
-          ["Cone",    [0,-x,0], [0.2*x,0.5*x],       [0,2-x,x],[x,x,x]]];
+always
+ simulator.timeStep+ ==0.05 &
+ x'' = -x &
+ if x>0 then
+ _3D = (Sphere center=  (x,0,0) size=   0.2*x color=              (x,0,2-x) rotation=(x,x,x),
+          Box center=     (0,0,x) size=  (0.3*x,0.3*x,0.3*x) color= (2-x,x,0) rotation=(x,x,x),
+          Cone center=    (0,x,0) radius=   0.2*x length=0.5*x  color=       (0,2-x,x) rotation=(x,x,x),
+          Sphere center=  (-x,0,0) size=  0.2*x color=              (x,0,2-x) rotation=(x,x,x),
+          Box center=     (0,0,-x) size= (0.3*x,0.3*x,0.3*x) color= (2-x,x,0) rotation=(x,x,x),
+          Cone center=    (0,-x,0) radius=  0.2*x length=0.5*x  color=       (0,2-x,x) rotation=(x,x,x)) 
  else
- _3D = [["Box",      [x,0,0],  [0.2*x,0.2*x,0.2*x], [-x,0,-x],[x,x,x]],
-          ["Cylinder", [0,0,x],  [0.2*x,0.5*x],       [-x,-x,0],[x,x,x]],
-          ["Box",      [0,x,0],  [0.2*x,0.2*x,0.2*x], [0,-x,-x],[x,x,x]],
-          ["Box",      [-x,0,0], [0.2*x,0.2*x,0.2*x], [-x,0,-x],[x,x,x]],
-          ["Cylinder", [0,0,-x], [0.2*x,0.5*x],       [-x,-x,0],[x,x,x]],
-          ["Box",      [0,-x,0], [0.2*x,0.2*x,0.2*x], [0,-x,-x],[x,x,x]]]
- end
-end
+ _3D = (Box center=      (x,0,0) size=  (0.2*x,0.2*x,0.2*x) color= (-x,0,-x) rotation=(x,x,x),
+          Cylinder center= (0,0,x) radius=   0.2*x length=0.5*x  color=       (-x,-x,0) rotation=(x,x,x),
+          Box center=      (0,x,0) size=  (0.2*x,0.2*x,0.2*x) color= (0,-x,-x) rotation=(x,x,x),
+          Box center=      (-x,0,0) size= (0.2*x,0.2*x,0.2*x) color= (-x,0,-x) rotation=(x,x,x),
+          Cylinder center= (0,0,-x) radius=  0.2*x length=0.5*x  color=       (-x,-x,0) rotation=(x,x,x),
+          Box center=      (0,-x,0) size= (0.2*x,0.2*x,0.2*x) color= (0,-x,-x) rotation=(x,x,x))
+ 
+ 

@@ -4,29 +4,28 @@
 // Authors:  Michal Konecny and Jan Duracz
 // Note:     Run using Semantics -> Enclosure
 
-class Main(simulator)
-  private 
-    x := 5; x' := 0; x'' := 0;  
-    r := 50; r' := 0; // Helper variable added!
-    mode := "Fly"
-  end
-  switch mode
-    case "Fly" 
+model Main(simulator) =
+  initially 
+    x = 5 & x' = 0 & x'' = 0 &  
+    r = 50 & r' = 0 & // Helper variable added!
+    mode = "Fly"
+  always
+  match mode with [
+    "Fly" -> 
       claim x >= 0 && 
-            r == x'*x'/2 + 10*x // Constraint added
-      if x == 0 && x' <= 0
-        x' := -0.5*x';
-        r  := [0.0..0.25]*r; // Energy loss
-        mode := "Fly"
-      end;
-      x'' = -10;
-      r'  = 0 // Energy bound constant between events
-  end;
-  simulator.endTime := 3.5;
-  simulator.minSolverStep := 0.01;
-  simulator.minLocalizationStep := 0.01;
-  simulator.minComputationImprovement := 0.001
-end
+            r == x'*x'/2 + 10*x & // Constraint added
+      if x == 0 && x' <= 0 then
+        x'+ == -0.5*x' &
+        r+ == [0.0..0.25]*r & // Energy loss
+        mode+ == "Fly"
+      noelse &
+      x'' == -10 &
+      r'  == 0 // Energy bound constant between events
+  ] &
+  simulator.endTime+ == 3.5 &
+  simulator.minSolverStep+ == 0.01 &
+  simulator.minLocalizationStep+ == 0.01 &
+  simulator.minComputationImprovement+ == 0.001
 
 // Note:  An additional invariant, based on a helper 
 //        variable, makes the post-Zeno enclosure 

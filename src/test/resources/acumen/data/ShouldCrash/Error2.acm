@@ -1,3 +1,3 @@
-// name resolution fails
-class Main(simu) create A(1) end
-class A(x) y := 2 end
+// Name resolution fails
+model Main(simu) = initially  c = create A(1) always 
+model A(x) = initially always y = 2

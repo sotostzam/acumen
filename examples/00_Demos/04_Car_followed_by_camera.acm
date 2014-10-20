@@ -3,6 +3,7 @@
 //
 // Author:  YZ
 
+<<<<<<< HEAD
 model Vehicle(p      /* Position */,
               d      /* Direction */,
               s      /* Size */,
@@ -13,38 +14,45 @@ always
  _3D =("obj" center=p size=1 color=(0,0,1) 
         rotation=(pi/2,0,d*pi/2) name)
 
+=======
+model Vehicle(p,d,s,name)
+ = initially
+  _3D  = () 
+ always
+ _3D  ==("OBJ",p ,1,(0,0,1),(pi/2,0,d*pi/2),name) 
 
-class Road(p,l)
- private
-  _3D := [["Box", p, [l, 6, 0.05], [0.3, 0.3, 0.3], [0,0,pi/2]],
-          ["Box", p+[0,0,0.05], [l, 0.1, 0.05], [1, 1, 1], [0,0,pi/2]]]
- end
-end
+model Road(p,l)
+ = initially
+  _3D  =  ((Box center= p size= (l, 6, 0.05) color=(0.3, 0.3,  0.3) rotation= (0,0,pi/2)),
+          (Box center= p+(0,0,0.05) size= (l, 0.1, 0.05) color= (1, 1, 1) rotation= (0,0,pi/2)))
+ always
+>>>>>>> 095f848698fc95ef1e14adf31c3498a829411bdb
+
 
 // _3DView specifies the position and orientation
 // of the camera.  This example illustrates how to
 // set the camera to move along with the car.
 
-class Main(simulator)
-  private
-     x:=20; x' := -5;
-     x1:= -20; x1' := 5;
-     x2:= -10; x2' := 5;
-     t:=0;  t' := 0.5;
-     road := create Road([0,0,-0.5], 100);
-     car := create Vehicle([2, 20, 0],1,2, "car.obj");
-     car1 := create Vehicle([2, 20, 0],-1,2, "car.obj");
-     car2 := create Vehicle([2, 20, 0],-1,2, "car.obj");
-     _3DView := [];
-  end
-     t' = 0.5;
-     _3DView := [[2,x+4,1], [0,0,pi]];
-     simulator.endTime = 10;
-     car.p = [2,x,0];
-     car1.p = [-2,x1,0];
-     car2.p = [-2,x2,0];
-     x' = -3;
-     x1' = 3;
-     x2' = 3;
-end
+model Main(simulator) = 
+  initially
+     x = 20 & x'  =  -5 &
+     x1 =  -20 & x1'  =  5 &
+     x2 =  -10 & x2'  =  5 &
+     t = 0 &  t'  =  0.5 &
+     road  =  create Road((0,0,-0.5), 100) &
+     car  =  create Vehicle((2, 20, 0),1,2, "car.obj") &
+     car1  =  create Vehicle((2, 20, 0),-1,2, "car.obj") &
+     car2  =  create Vehicle((2, 20, 0),-1,2, "car.obj") &
+     _3DView  =  () 
+  always
+     t' = 0.5 &
+     _3DView + == ((2,x+4,1), (0,0,pi)) &
+     simulator.endTime = 10 &
+     car.p = (2,x,0) &
+     car1.p = (-2,x1,0) &
+     car2.p = (-2,x2,0) &
+     x' = -3 &
+     x1' = 3 &
+     x2' = 3 
+ 
 

@@ -2,42 +2,41 @@
             a child of c1 
 */
 
-class Main(simu)
-  private
-    mode := "Init"
-  end
-  switch mode
-    case "Init"
-      simu.timeStep := 1;
-      simu.endTime := 1;
+model Main(simu)
+  = initially
+    mode  =  "Init"
+  always
+  match mode with[
+    "Init" ->
+      simu.timeStep + == 1 &
+      simu.endTime + == 1 &
 
-      create Test("Init");
-      mode := "Idle"
-    case "Idle"
-  end
-end
+      create Test("Init") &
+      mode + == "Idle"
+    |"Idle" ->
+  
+  ]
 
-class Test(mode)
-  private 
-    c1 := create A();
-    c2 := create A()
-  end
+model Test(mode)
+  = initially 
+    c1  =  create A() &
+    c2  =  create A()
+  always
 
-  switch mode
-    case "Init"
-      mode := "Reparent"
-    case "Reparent"
-      move c1.x c2;
-      mode := "Done"
-    case "Done"
+  match mode with[
+    "Init" ->
+      mode + == "Reparent"
+    |"Reparent" ->
+      move c1.x c2 &
+      mode + == "Done"
+    |"Done" ->
       move c1.x c2
-  end
-end
+   ]
 
-class A()
-  private
-    x := create B()
-  end
-end
+model A()
+  = initially
+    x  =  create B()
+  always
+ 
 
-class B() end
+model B() = initially

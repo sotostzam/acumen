@@ -3,14 +3,18 @@ package ui
 package interpreter
 
 import scala.collection.immutable._
+import java.awt.Color
 
 sealed abstract class Plottable(val simulator: Boolean, 
                                 val fn: Name,  // fixme: rename
                                 val startFrame: Int, // fixme: rename to offset?
-                                val column: Int /* column in trace table */ )
+                                val column: Int, /* column in trace table */
+                                val palette: Palette = Palette() )
 {
   def values : IndexedSeq[Any]
 }
+
+case class Palette(val value: Color = Color.red, val yAxis: Color = Color.blue, val boundingBox: Color = Color.white)
 
 class PlotDoubles(simulator: Boolean, fn: Name, startFrame: Int, column: Int,
                   val v: IndexedSeq[Double]) extends Plottable(simulator,fn,startFrame,column)
@@ -18,7 +22,7 @@ class PlotDoubles(simulator: Boolean, fn: Name, startFrame: Int, column: Int,
   override def values : IndexedSeq[Double] = v;
 }
 class PlotDiscrete(simulator: Boolean, fn: Name, startFrame: Int, column: Int,
-                   val v: IndexedSeq[GValue]) extends Plottable(simulator,fn,startFrame,column)
+                   val v: IndexedSeq[GValue]) extends Plottable(simulator,fn,startFrame,column,Palette(yAxis = Color.white))
 {
   override def values = v;
 }

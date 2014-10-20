@@ -6,40 +6,39 @@
 
 // Example:  Bouncing Ball (2D)
 
-class Ball(mode, x,x',x'', y,y',y'', m)
-  switch mode
-    case "Init"
-      mode := "Fly"
-    case "Fly"
-      if x < 0 && x' < 0 || x > 5 && x' > 0
-        mode := "BounceX"
+model Ball(mode, x,x',x'', y,y',y'', m) =
+  initially
+  always
+  match mode with[
+    "Init" ->
+      mode + == "Fly"
+    |"Fly" ->
+      if x < 0 && x' < 0 || x > 5 && x' > 0 then
+        mode + == "BounceX"
       else
-        if y < 0 && y' < 0 || y > 5 && y' > 0
-          mode := "BounceY"
+        if y < 0 && y' < 0 || y > 5 && y' > 0 then
+          mode + == "BounceY"
         else
-          y'' = -9.8;
-          x'' = 0
-        end
-      end
-    case "BounceX"
-      x' := -x';
-      mode := "Fly"
-    case "BounceY"
-      y' := -y';
-      mode := "Fly"
-  end
-end
+          y'' = -9.8 &
+          x'' = 0         
+    |"BounceX" ->
+      x' + == -x' &
+      mode + == "Fly"
+    |"BounceY" ->
+      y' + == -y' &
+      mode + == "Fly"
+  ]
 
-class Main(simulator)
-  private
-    mode := "Init"
-  end
-  switch mode
-    case "Init"
-      simulator.timeStep := 0.003;
-      simulator.endTime := 10.0;
-      create Ball("Init", 5,10,0, 5,0,0, 1.0);
-      mode := "Persist"
-    case "Persist"
-  end
-end
+model Main(simulator) = 
+  initially
+    mode  =  "Init"
+  always
+  match mode with[
+    "Init" -> 
+      simulator.timeStep + == 0.003 &
+      simulator.endTime + == 10.0 &
+      create Ball("Init", 5,10,0, 5,0,0, 1.0) &
+      mode + == "Persist"
+    |"Persist" ->
+  ]
+ 

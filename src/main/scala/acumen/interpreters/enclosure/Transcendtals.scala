@@ -10,6 +10,8 @@ case class Transcendentals(ps: Parameters) {
 
   implicit val rnd = ps.rnd
   private val pi = Interval.pi
+  
+  val maxCosineIterations = 1000000
 
   /** Lift function on intervals to function on scalar enclosures. */
   private def lift(f: Interval => Interval)(x: AffineScalarEnclosure): AffineScalarEnclosure =
@@ -146,7 +148,11 @@ case class Transcendentals(ps: Parameters) {
     else {
       val absx = x.abs // cosine is an even function 
       var i = 0
-      while (!(Interval(0) /\ pi * 2 contains (absx - (pi * i)))) i += 1
+      while (!(Interval(0) /\ pi * 2 contains (absx - (pi * i)))) {
+        if (i > maxCosineIterations)
+          sys.error(s"Evaluation of trigonometric function over $x did not terminate in $maxCosineIterations iterations.")
+        i += 1
+      }
       val shiftedAbsx = absx - (pi * i)
       cos2pi(shiftedAbsx) * (if (i % 2 == 0) 1 else -1)
     }

@@ -4,23 +4,22 @@
 // Author:  Adam Duracz
 // Note:    Run using Semantics -> Enclosure
 
-class Main(simulator)
-private mode := "one"; x := 1 end
-  switch mode
-    case "one"
-      if true
-        mode := "two";
-        x := 2
-      end
-    case "two" // Another mode
-      if true
-        mode := "one";
-        x := 1
-      end
-  end;
-  simulator.endTime := 2.5;
-  simulator.minLocalizationStep := 0.5
-end
+model Main(simulator) =
+  initially mode = "one" & x = 1 always
+  match mode with [
+    "one" ->
+      if true then
+        mode+ == "two" &
+        x+ == 2
+      noelse
+  | "two" -> // Another mode
+      if true then
+        mode+ == "one" &
+        x+ == 1
+      noelse
+  ] &
+  simulator.endTime+ == 2.5 &
+  simulator.minLocalizationStep+ == 0.5
 
 // Note:  An infinite number of transitions between
 //        different different modes is also supported.

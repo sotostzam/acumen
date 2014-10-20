@@ -4,25 +4,23 @@
 // Author:  Adam Duracz
 // Note:    Run using Semantics -> Enclosure
 
-class Main(simulator)
-  private 
-    x := 1; x' := -1;
-    mode := "q"
-  end
-  switch mode
-    case "q"
-      if x == 0
-        x := 1;
-        mode := "q"
-      end; 
-      x' = -1 
-  end;
-  simulator.endTime := 1.1;
-  simulator.minLocalizationStep := 0.1; // Decreased
-  simulator.minSolverStep := 1.1
-end
+model Main(simulator) =
+  initially 
+    x = 1 & x' = -1 &
+    mode = "q"
+  always
+  match mode with [
+    "q" ->
+      if x == 0 then
+        x+ == 1 &
+        mode+ == "q"
+      noelse & 
+      x' == -1 
+  ] &
+  simulator.endTime+ == 1.1 &
+  simulator.minLocalizationStep+ == 0.1 & // Decreased
+  simulator.minSolverStep+ == 1.1
 
 // Note:  The time at which an event is possible has
-//        been restricted (to after t=0.9375) by 
+//        been restricted (to after t == 0.9375) by 
 //        decreasing theminLocalizationStep parameter. 
-   

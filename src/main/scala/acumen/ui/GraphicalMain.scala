@@ -28,33 +28,12 @@ object GraphicalMain extends SimpleSwingApplication {
   //javax.swing.RepaintManager.setCurrentManager(new debug.CheckThreadViolationRepaintManager)
   debug.EventDispatchThreadHangMonitor.initMonitoring()
 
-  val osname = System.getProperty("os.name").toLowerCase
-  // ThreeDStates default to lazy as loading it can cause performance
-  // problems on some platforms (mainly Linux).  On Windows load it
-  // eagerly as the 3D code was tested the most on Windows.  On OS X
-  // load it eagerly as loading as loading lazily can cause a crash
-  // if the libraries are not available.
-  def fixupThreeDState = if (Main.threeDState == null) {
-    if (osname.startsWith("windows ")) {
-      Main.threeDState = ThreeDState.ENABLE
-    } else if (osname.contains("os x")) {
-      if (!(System.getProperty("apple.awt.graphics.UseQuartz") == "true")) {
-        Main.threeDState = ThreeDState.DISABLE
-        Main.need_quartz = true
-      } else {
-        Main.threeDState = ThreeDState.ENABLE
-      }
-    } else {
-      Main.threeDState = ThreeDState.LAZY
-    }
-  }
-
   // Approximation of the amount of heap available when setting heap size to 1G
   val MIN_MAX_MEM = (1024*7/8)*1024*1024
 
   def maybeFork(args: Array[String]) {
     val maxMem = Runtime.getRuntime().maxMemory()
-    val shouldFork = maxMem < MIN_MAX_MEM || Main.need_quartz
+    val shouldFork = maxMem < MIN_MAX_MEM
     val mayFork = !Main.dontFork
     if (shouldFork && mayFork) {
       val separator = System.getProperty("file.separator");
@@ -65,8 +44,6 @@ object GraphicalMain extends SimpleSwingApplication {
       realArgs.add(path)
       realArgs.addAll(bean.getInputArguments())
       realArgs.add("-Xmx1g")
-      val quartz = if (Main.need_quartz) "-Dapple.awt.graphics.UseQuartz=true" else ""
-      if (Main.need_quartz) realArgs.add(quartz)
       realArgs.add("-cp")
       realArgs.add(classpath)
       realArgs.add("acumen.Main")
@@ -74,7 +51,7 @@ object GraphicalMain extends SimpleSwingApplication {
       realArgs.add("--dont-fork")
       val processBuilder = new ProcessBuilder(realArgs)
       System.err.println("Forking new JVM with: " + processBuilder.command.mkString(" "))
-      System.err.println("  to avoid use --dont-fork or start java with -Xmx1g " + quartz)
+      System.err.println("  to avoid use --dont-fork or start java with -Xmx1g")
       var rv = 255
       try {
         val process = processBuilder.start();
@@ -116,7 +93,6 @@ object GraphicalMain extends SimpleSwingApplication {
   }
 
   override def main(args: Array[String]) {
-    fixupThreeDState
     if (Main.positionalArgs.size() > 1)
       Main.openFile = Main.checkFile(Main.positionalArgs(1))
     maybeFork(args)

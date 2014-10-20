@@ -19,10 +19,10 @@ import acumen.passes.ExtractHA
 
 trait ExtractTest {
 
-  val MODEL_PATH_TEST         = List("examples/XXX_internal/one-class",
-                                     "examples/XXX_internal/esaes",
-                                     "examples/XXX_internal/ha-extract")
-  val MODEL_PATH_ENCLOSURE    = "examples/9_Experimental/01_Enclosures/"
+  val MODEL_PATH_TEST         = List("examples/05_Language_Research/13_One-class",
+                                     "examples/05_Language_Research/06_Esaes",
+                                     "examples/05_Language_Research/09_Ha-extract")
+  val MODEL_PATH_ENCLOSURE    = "examples/04_Experimental/01_Enclosures/"
   val MODEL_PATHS_SKIP        = List("03_Loops")
   val MODELS_SKIP             = List("XXX_09_Sine_self_as_Second_Derivative")
   

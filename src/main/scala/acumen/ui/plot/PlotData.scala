@@ -23,12 +23,13 @@ sealed trait PlotEntity { // FIXME: BetterName
   def y2 : Double
   def width = x2 - x1
   def height = y2 - y1
-  def draw(g:Graphics2D, tr:AffineTransform);
-  def drawDots(g:Graphics2D, tr:AffineTransform);
-  def transform(tr:AffineTransform);
+  def draw(g:Graphics2D, tr:AffineTransform)
+  def drawDots(g:Graphics2D, tr:AffineTransform)
+  def transform(tr:AffineTransform)
+  def palette: Palette
 }
 
-class MyPath2D() extends PlotEntity {
+class MyPath2D(val palette: Palette) extends PlotEntity {
   private var p1   : Point2D.Double = null
   private var p2   : Point2D.Double = null
   private var path : ArrayBuffer[Point2D.Double] = null
@@ -106,7 +107,7 @@ class DiscretePathBuilder {
       }
     }
   }  
-  def result(sortWith: Option[(String,String) => Boolean] = None) : DiscretePath = {
+  def result(sortWith: Option[(String,String) => Boolean] = None, palette: Palette) : DiscretePath = {
     curLines.foreach { case (y,line) =>
       lines += Line(line.result(), y)
     }
@@ -119,11 +120,11 @@ class DiscretePathBuilder {
       case Some(f) => yMap.keys.toList.sortWith(f).zipWithIndex.foreach{case (key, i) => yMap(key) = i}
       case None => /* nothing to do */
     }
-    new DiscretePath(lines.map{case Line(xs, y) => xs.map{x => new Point2D.Double(x,yMap(y))}})
+    new DiscretePath(lines.map{case Line(xs, y) => xs.map{x => new Point2D.Double(x,yMap(y))}}, palette)
   }
 }
 
-class DiscretePath(val lines: Seq[Array[Point2D.Double]]) extends PlotEntity {
+class DiscretePath(val lines: Seq[Array[Point2D.Double]], val palette: Palette) extends PlotEntity {
   var x1 = Double.MaxValue // min
   var x2 = Double.MinValue // max
   var y1 = Double.MaxValue // min
@@ -166,7 +167,7 @@ class DiscretePath(val lines: Seq[Array[Point2D.Double]]) extends PlotEntity {
   }
 }
 
-class EnclosurePath() extends PlotEntity {
+class EnclosurePath(val palette: Palette) extends PlotEntity {
   private var p1  = new Point2D.Double(0,0)
   private var p2  = new Point2D.Double(0,0)
   case class PolyPoints(a:Point2D.Double, b:Point2D.Double,
@@ -302,14 +303,14 @@ class PlotData(parms: PlotParms = null, tb:PlotModel = null, val disableThreshol
       var s = p.startFrame
       columnIndices += p.column
 
-      val ax = new MyPath2D()
+      val ax = new MyPath2D(p.palette)
       ax startAt (time(s), 0)
       ax goTo (time(math.min(s+p.values.size, time.size-1)), 0)
       axes += ax
 
       p match {
         case p:PlotDoubles => {
-          val line = new MyPath2D();
+          val line = new MyPath2D(p.palette)
           line startAt (time(s), p.values(0))
 
           for (f <- 0 until p.values.size;
@@ -331,10 +332,10 @@ class PlotData(parms: PlotParms = null, tb:PlotModel = null, val disableThreshol
             }
           }
 
-          polys += lines.result(Some((a,b) => a < b))
+          polys += lines.result(Some((a,b) => a < b), p.palette)
        }
         case p:PlotEnclosure => {
-          val path = new EnclosurePath
+          val path = new EnclosurePath(p.palette)
           var prevTime = time(s)
           for (f <- 1 until p.values.size;
                val frame = s + f) {
@@ -400,16 +401,16 @@ class PlotImage(pd: PlotData,
     for (((p,a),b) <- pd.polys zip pd.axes zip pd.boxes) {
 
       // fill bounding box
-      bg.setPaint(Color.white)
+      bg.setPaint(p.palette.boundingBox)
       bg.fill(applyTrR(tr, b))
 
       // draw y=0 axis
-      bg.setPaint(Color.blue)
+      bg.setPaint(p.palette.yAxis)
       bg.setStroke(new BasicStroke(1.0f))
       a.draw(bg, tr)
 
       // draw curve
-      bg.setPaint(Color.red)
+      bg.setPaint(p.palette.value)
       bg.setStroke(new BasicStroke(1.0f))
       plotStyle match {
         case Dots() => 

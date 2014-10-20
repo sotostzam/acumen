@@ -1,0 +1,18 @@
+// If-Based Generalized Hybrid Automaton Example
+
+class Main (simulator)
+  private
+    x := [-1 .. 1]; x' := 1; x'' := 1;
+    m := "rise"
+  end
+  if m == "rise"
+    if x > 10 m := "stay" end;
+    x'' = 1
+  end;
+  if m == "stay"
+    x' = 0
+  end;
+end
+
+// Note: The order of the continuous dynamics in the
+//       system's two modes is different.

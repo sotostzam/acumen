@@ -1,3 +1,3 @@
 // not an object id
 
-class Main(simulator) (1).x := 2 end
+model Main(simulator) =  initially always (1).x + == 2 

@@ -4,38 +4,37 @@
 // Authors:  Michal Konecny and Jan Duracz
 // Note:     Run using Semantics -> Enclosure
 
-class Main(simulator) 
-  private 
-    x1 := 1; x1' := 2;  
-    x2 := 1; x2' := -3;
-    x12 := 2; x12' := -1; // Helper variable added!
-    mode := "Fill1" 
-  end
-  switch mode
-    case "Fill1" 
+model Main(simulator)  =
+  initially 
+    x1 = 1 & x1' = 2 &  
+    x2 = 1 & x2' = -3 &
+    x12 = 2 & x12' = -1 & // Helper variable added!
+    mode = "Fill1" 
+  always
+  match mode with [
+    "Fill1" -> 
       claim x1  >= 0 && 
             x2  >= 0 && 
             x12 >= 0 && 
-            x12 == x1 + x2 // Constraint added
-      if x2 == 0 mode := "Fill2" end; 
-      x1'  = 2; 
-      x2'  = -3;
-      x12' = -1;
-    case "Fill2" 
+            x12 == x1 + x2 & // Constraint added
+      if x2 == 0 then mode+ == "Fill2" noelse & 
+      x1'  == 2 & 
+      x2'  == -3 &
+      x12' == -1
+  | "Fill2" -> 
       claim x1 >= 0 && 
             x2 >= 0 && 
             x12 >= 0 && 
-            x12 == x1 + x2 // Constraint added
-      if x1 == 0 mode := "Fill1" end; 
-      x1'  = -2; 
-      x2'  = 1;
-      x12' = -1; // x12' = x1' + x2' 
-  end;
-  simulator.endTime := 2.5;
-  simulator.minSolverStep := 2.5;
-  simulator.minLocalizationStep := 0.00001;
-  simulator.minComputationImprovement := 0;
-end
+            x12 == x1 + x2 & // Constraint added
+      if x1 == 0 then mode+ == "Fill1" noelse & 
+      x1'  == -2 & 
+      x2'  == 1 &
+      x12' == -1 // x12' == x1' + x2' 
+  ] &
+  simulator.endTime+ == 2.5 &
+  simulator.minSolverStep+ == 2.5 &
+  simulator.minLocalizationStep+ == 0.00001 &
+  simulator.minComputationImprovement+ == 0
 
 // Note:  An additional constraint, based on a helper
 //        variable, stabilizes the post-Zeno 

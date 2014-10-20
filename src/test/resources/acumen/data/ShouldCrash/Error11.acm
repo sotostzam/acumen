@@ -1,5 +1,5 @@
-// class A is defined twice
+// model A is defined twice
 
-class A() end
-class Main(s) end
-class A() end
+model A() = initially
+model Main(s) = initially
+model A() = initially
