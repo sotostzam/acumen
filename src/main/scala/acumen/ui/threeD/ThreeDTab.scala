@@ -8,10 +8,6 @@ import acumen.ui.{App, Controller, Icons}
 import scala.collection.mutable.{Buffer, Map}
 import scala.swing._
 
-/**
- * Created by xufei on 9/18/14.
- */
-
 abstract class AbstractEditorTab extends BorderPanel{
   def receiver: Publisher
   def reset: Unit
@@ -20,12 +16,12 @@ abstract class AbstractEditorTab extends BorderPanel{
   def setProgress(p: Int): Unit
 }
 
-class jPCTEditorTab (val appModel: Controller) extends AbstractEditorTab{
+class ThreeDTab (val appModel: Controller) extends AbstractEditorTab{
   val canvasPanel = new JPanel
-  val threeDView = new jPCT_ThreeDView
+  val threeDView = new ThreeDView
 
   def createCanvas() = {
-    if (check.selected == true)
+    if (check.selected)
       threeDView.axisOn()
     threeDView.init()
     canvasPanel.setLayout(new BorderLayout())
@@ -89,45 +85,54 @@ class jPCTEditorTab (val appModel: Controller) extends AbstractEditorTab{
 
   val s = new Dimension(50, 40)
   val b3dplay = new Button(threedplay) {
-    peer.setHideActionText(true); preferredSize = s
+    peer.setHideActionText(true)
+    preferredSize = s
   }
   val b3dpause = new Button(threedpause) {
-    peer.setHideActionText(true); preferredSize = s
+    peer.setHideActionText(true)
+    preferredSize = s
   }
   val b3dstop = new Button(stop3d) {
-    peer.setHideActionText(true); preferredSize = s
+    peer.setHideActionText(true)
+    preferredSize = s
   }
   val b3dfaster = new Button(faster) {
-    peer.setHideActionText(true); preferredSize = s
+    peer.setHideActionText(true)
+    preferredSize = s
   }
   val b3dslower = new Button(slower) {
-    peer.setHideActionText(true); preferredSize = s
+    peer.setHideActionText(true)
+    preferredSize = s
   }
   val check = new CheckBox("") {
     action = Action("Axis") {
-      if (selected) threeDView.axisOn
-      else threeDView.axisOff
+      if (selected) threeDView.axisOn()
+      else threeDView.axisOff()
     }
   }
   check.selected = true
-  def hide(button: Button) { button.peer.setEnabled(false) }
+
+  def hide(button: Button) {
+    button.peer.setEnabled(false)
+  }
+
   val threeDButtons =
     new FlowPanel(FlowPanel.Alignment.Leading)(check, b3dplay,
       b3dpause, b3dstop, b3dslower, b3dfaster)
 
-  val statusZone3d = new Slider3d
+  val statusZone3d = new Slider3D
 
   val threeDBottomPane = new BoxPanel(Orientation.Horizontal) {
     contents += threeDButtons
     contents += statusZone3d
   }
 
-  var _receiver = new _3DDisplayJPCT(threeDView, statusZone3d,
-    _3DDataBuffer, lastFrame, appModel.threeDData.endTime,appModel.threeDData._3DView.reverse)
+  var _receiver = new _3DDisplay(threeDView, statusZone3d,
+    _3DDataBuffer, lastFrame, appModel.threeDData.endTime, appModel.threeDData._3DView.reverse)
 
   var timer3d = new jPCT_ScalaTimer(receiver, appModel.threeDData.endTime, playSpeed)
 
-  def receiver: _3DDisplayJPCT = _receiver
+  def receiver: _3DDisplay = _receiver
 
   def reset = {
     receiver.stop
@@ -166,7 +171,7 @@ class jPCTEditorTab (val appModel: Controller) extends AbstractEditorTab{
         statusZone3d.setSpeed(playSpeed.toString)
         threeDView.world.removeAllObjects()
         threeDView.axisArray(0) = null
-        if (check.selected == true)
+        if (check.selected)
           threeDView.axisOn
       }
       // First time press "3D play" button,
@@ -175,7 +180,7 @@ class jPCTEditorTab (val appModel: Controller) extends AbstractEditorTab{
         _3DDataBuffer.clear
         threeDView.world.removeAllObjects()
         threeDView.axisArray(0) = null
-        if (check.selected == true)
+        if (check.selected)
           threeDView.axisOn
         lastFrame = 0
         statusZone3d.setSpeed("1.0")
@@ -185,17 +190,20 @@ class jPCTEditorTab (val appModel: Controller) extends AbstractEditorTab{
             temp += (objectNumber -> l.reverse.toBuffer)
             temp(objectNumber).last(5) match {
               // The animation's length
-              case n: Int => if (n > lastFrame) { lastFrame = n }
-              case _ => {
-                val n = temp(objectNumber).last(6).asInstanceOf[Int];
-                if (n > lastFrame) { lastFrame = n }
+              case n: Int => if (n > lastFrame) {
+                lastFrame = n
               }
+              case _ =>
+                val n = temp(objectNumber).last(6).asInstanceOf[Int]
+                if (n > lastFrame) {
+                  lastFrame = n
+                }
             }
           }
           _3DDataBuffer += id -> temp
         }
         _3DView = appModel.threeDData._3DView.reverse
-        appModel.threeDData.reset
+        appModel.threeDData.reset()
       }
       threeDView.objects.clear()
       if (_3DView.size != 0) {
@@ -203,8 +211,7 @@ class jPCTEditorTab (val appModel: Controller) extends AbstractEditorTab{
         threeDView.reset
       }
 
-
-      _receiver = new _3DDisplayJPCT(threeDView, statusZone3d, _3DDataBuffer, lastFrame,
+      _receiver = new _3DDisplay(threeDView, statusZone3d, _3DDataBuffer, lastFrame,
         appModel.threeDData.endTime, _3DView)
       timer3d = new jPCT_ScalaTimer(receiver, appModel.threeDData.endTime, playSpeed)
       receiver.start()
@@ -217,15 +224,13 @@ class jPCTEditorTab (val appModel: Controller) extends AbstractEditorTab{
       played = true
     }
 
-  def setProgress(p:Int) = {
-    statusZone3d.setProgress(p);
+  def setProgress(p: Int) = {
+    statusZone3d.setProgress(p)
     statusZone3d.setTime((p.toFloat/100)*endTime.toFloat)
   }
-
   // Final Init
   createCanvas()
   add(threeDBottomPane, BorderPanel.Position.South)
-
 }
 
 class DisabledEditorTab(msg: String) extends AbstractEditorTab {

@@ -3,19 +3,21 @@ package ui
 package threeD
 
 import swing._
-import swing.event._
 
-class Slider3d extends BoxPanel(Orientation.Horizontal) {
+class Slider3D extends BoxPanel(Orientation.Horizontal) {
   val bar = new Slider {
-    value = 0;
-    min = 0; max = 100;
-    minimumSize = new Dimension(100, 0);
+    value = 0
+    min = 0
+    max = 100
+    minimumSize = new Dimension(100, 0)
     preferredSize = new Dimension(300, 0)
   }
   var labelTime = new Label {
     text = "Time: "
   }
-  val labelSpeed = new Label { text = "Speed: 1.0x" }
+  val labelSpeed = new Label {
+    text = "Speed: 1.0x"
+  }
   val labels = new BoxPanel(Orientation.Vertical) {
     contents += labelTime
     contents += labelSpeed
@@ -24,7 +26,7 @@ class Slider3d extends BoxPanel(Orientation.Horizontal) {
   def setProgress(p: Int) = bar.value = p
   def setTime(p: Float) = {
     labelTime.text = "Time: " + {
-      var s = p.toString.split('.')
+      val s = p.toString.split('.')
       if (s(1).length >= 2)
         s(0) + "." + s(1).dropRight(s(1).length - 2) // Only show 2 digits after  '.'
       else

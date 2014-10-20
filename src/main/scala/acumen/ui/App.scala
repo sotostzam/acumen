@@ -340,7 +340,7 @@ class App extends SimpleSwingApplication {
   }
 
   def start3D() = try {
-    val res = new jPCTEditorTab(controller)
+    val res = new ThreeDTab(controller)
     Main.threeDState = ThreeDState.ENABLE
     res
   }
@@ -361,11 +361,6 @@ class App extends SimpleSwingApplication {
 
     pages += new TabbedPane.Page("_3D", threeDtab)
     val THREED_IDX = pages.last.index
-
-    // For testing
-//    val jPCTEditorTab = new testEditor
-//    pages += new TabbedPane.Page("jPCT Editor", jPCTEditorTab)
-//    val VISEDIT_IDX = pages.last.index
 
     selection.reactions += {
       case SelectionChanged(_) =>
