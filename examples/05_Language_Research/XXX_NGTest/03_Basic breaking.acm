@@ -1,0 +1,28 @@
+// Basic breaking
+// Walid Taha and Henrik Eriksson
+// 2014/09/12
+
+class Main(simulator)
+private
+  // Car 1 parameters
+  m1 := 1; x1 :=0; x1' := 10; x1'' := 0;
+  pbd1 := 4;
+  pba1 := -1;
+  // Car 2 parameters
+  m2 := 1; x2 :=5; x2' := 3; x2'' :=0;
+
+  // Joint parameters
+  c  := 0.5; // Coeff. of restitution
+  state := "Approach"
+end
+
+switch state
+ case "Approach"
+   x1''=0;
+   x2''=0;
+   if (x1+pbd1>x2) state:="Pre-Brake" end;
+ case "Pre-Brake"
+   x1'' = pba1;
+   x2'' = 0;
+end
+end

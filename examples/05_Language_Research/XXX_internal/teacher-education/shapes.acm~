@@ -1,0 +1,34 @@
+
+class cylinder (x,y,z)
+private
+ _3D := [];
+end
+ _3D = ["Cylinder", [x,y,z],
+       [0.02,v],c,
+       [-1*pi/2,0,0]];
+end
+
+
+
+
+
+
+clear
+
+
+
+
+clear
+
+
+
+
+
+
+
+
+
+
+
+
+

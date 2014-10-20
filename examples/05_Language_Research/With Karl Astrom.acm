@@ -1,0 +1,27 @@
+
+// Sine of Self as Second Derivative Example
+
+class Main(simulator)
+private
+ x:=3.1; x':=0; x'':=0
+end
+ if (x>0)
+   x'' = -10*sin(x)
+ else
+   x  := pi;
+   x' := -1;
+ end
+ // If you have matrices, you can do the Rikata equation
+ //  R' = A*R + R*A^T - R^2
+ //
+ // For enclosures, look at the Philipov semantics
+ //
+ // Send Karl a pointer to this
+ // He suggested sending a paper called "Modelica Light" 
+ //  to the Modelica conference this year
+ // He would like us to present some examples of discrete
+ //  and continuous system hooked up together
+ // He also thought that our tool could be of interest
+ //  to math departments for teachig differential
+ //  equations
+end
