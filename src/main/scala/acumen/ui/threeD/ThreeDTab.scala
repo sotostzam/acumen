@@ -130,7 +130,7 @@ class ThreeDTab (val appModel: Controller) extends AbstractEditorTab{
   var _receiver = new _3DDisplay(threeDView, statusZone3d,
     _3DDataBuffer, lastFrame, appModel.threeDData.endTime, appModel.threeDData._3DView.reverse)
 
-  var timer3d = new jPCT_ScalaTimer(receiver, appModel.threeDData.endTime, playSpeed)
+  var timer3d = new ScalaTimer(receiver, appModel.threeDData.endTime, playSpeed)
 
   def receiver: _3DDisplay = _receiver
 
@@ -213,7 +213,7 @@ class ThreeDTab (val appModel: Controller) extends AbstractEditorTab{
 
       _receiver = new _3DDisplay(threeDView, statusZone3d, _3DDataBuffer, lastFrame,
         appModel.threeDData.endTime, _3DView)
-      timer3d = new jPCT_ScalaTimer(receiver, appModel.threeDData.endTime, playSpeed)
+      timer3d = new ScalaTimer(receiver, appModel.threeDData.endTime, playSpeed)
       receiver.start()
       timer3d.start()
       listenTo(receiver)
