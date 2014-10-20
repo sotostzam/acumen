@@ -11,7 +11,6 @@ import acumen.ui.{App, Files, Progress3d}
 import com.threed.jpct._
 
 import scala.actors._
-import scala.collection.mutable.Map
 import scala.math._
 import scala.swing.Publisher
 
@@ -23,10 +22,9 @@ class ThreeDView extends JPanel {
   var initialized = false
 
   Config.maxPolysVisible = 100000
-
   Config.useRotationPivotFrom3DS = true
-
   Config.useMultipleThreads = true
+  Config.maxNumberOfCores = java.lang.Runtime.getRuntime.availableProcessors()
 
   val world = new World()  // create a new world
 
@@ -216,7 +214,8 @@ class ThreeDView extends JPanel {
   def init() = {
     // add the main box
     val mainbox = drawBox(1, 1, 1)
-    new setGlass(new Color(75, 75, 75), mainbox, 0)
+    mainbox.setShadingMode(Object3D.SHADING_FAKED_FLAT)
+    new setGlass(new Color(180, 180, 180), mainbox, 0)
     world.addObject(mainbox)
     lookAt(mainbox) // camera faces towards the object
     initialized = true
@@ -333,7 +332,7 @@ class ThreeDView extends JPanel {
 
 /* Timer for 3D-visualization, sends message to 3D renderer to coordinate animation */
 class ScalaTimer(receiver: _3DDisplay, endTime: Double,
-                      playSpeed: Double) extends Publisher with Actor {
+                 playSpeed: Double) extends Publisher with Actor {
   var pause = true
   var destroy = false
   var sleepTime = 0.0
@@ -504,19 +503,9 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
             transObject.setShadingMode(Object3D.SHADING_FAKED_FLAT)
           } else if (lastTempSize != tempSize && checkResizeable(tempSize) && checkResizeable(lastTempSize)) {
             // just need change the size
-            val (widthFactor, lengthFactor, heightFactor) =
-              (if (lastTempSize(0) == 0 && tempSize(0) == 0) 1
-               else if (lastTempSize(0) == 0 && tempSize(0) != 0) abs(tempSize(0) / 0.001)
-               else if (lastTempSize(0) != 0 && tempSize(0) == 0) abs(0.001 / lastTempSize(0))
-               else abs(tempSize(0) / lastTempSize(0)),
-               if (lastTempSize(1) == 0 && tempSize(1) == 0) 1
-               else if (lastTempSize(1) == 0 && tempSize(1) != 0) abs(tempSize(1) / 0.001)
-               else if (lastTempSize(1) != 0 && tempSize(1) == 0) abs(0.001 / lastTempSize(1))
-               else abs(tempSize(1) / lastTempSize(1)),
-               if (lastTempSize(2) == 0 && tempSize(2) == 0) 1
-               else if (lastTempSize(2) == 0 && tempSize(2) != 0) abs(tempSize(2) / 0.001)
-               else if (lastTempSize(2) != 0 && tempSize(2) == 0) abs(0.001 / lastTempSize(2))
-               else abs(tempSize(2) / lastTempSize(2)))
+            val (widthFactor, lengthFactor, heightFactor) = (checkResizeFactor(lastTempSize(0), tempSize(0)),
+                                                             checkResizeFactor(lastTempSize(1), tempSize(1)),
+                                                             checkResizeFactor(lastTempSize(2), tempSize(2)))
             val boxMesh = transObject.getMesh
             app.setBoxSize(lengthFactor.toFloat, widthFactor.toFloat, heightFactor.toFloat, boxMesh)
           }
@@ -536,15 +525,8 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
             transObject.setShadingMode(Object3D.SHADING_FAKED_FLAT)
           } else if (lastTempSize != tempSize && checkResizeable(tempSize) && checkResizeable(lastTempSize)) {
             // just need change the size
-            val (radiusFactor, heightFactor) =
-              (if (lastTempSize(0) == 0 && tempSize(0) == 0) 1
-               else if (lastTempSize(0) == 0 && tempSize(0) != 0) abs(tempSize(0) / 0.001)
-               else if (lastTempSize(0) != 0 && tempSize(0) == 0) abs(0.001 / lastTempSize(0))
-               else abs(tempSize(0) / lastTempSize(0)),
-               if (lastTempSize(1) == 0 && tempSize(1) == 0) 1
-               else if (lastTempSize(1) == 0 && tempSize(1) != 0) abs(tempSize(1) / 0.001)
-               else if (lastTempSize(1) != 0 && tempSize(1) == 0) abs(0.001 / lastTempSize(1))
-               else abs(tempSize(1) / lastTempSize(1)))
+            val (radiusFactor, heightFactor) = (checkResizeFactor(lastTempSize(0), tempSize(0)),
+                                                checkResizeFactor(lastTempSize(1), tempSize(1)))
             val boxMesh = transObject.getMesh
             app.setCylConeSize(radiusFactor.toFloat, heightFactor.toFloat, boxMesh)
           }
@@ -563,15 +545,8 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
             view.addObject(transObject)
           } else if (lastTempSize != tempSize && checkResizeable(tempSize) && checkResizeable(lastTempSize)) {
             // just need change the size
-            val (radiusFactor, heightFactor) =
-              (if (lastTempSize(0) == 0 && tempSize(0) == 0) 1
-               else if (lastTempSize(0) == 0 && tempSize(0) != 0) abs(tempSize(0) / 0.001)
-               else if (lastTempSize(0) != 0 && tempSize(0) == 0) abs(0.001 / lastTempSize(0))
-               else abs(tempSize(0) / lastTempSize(0)),
-               if (lastTempSize(1) == 0 && tempSize(1) == 0) 1
-               else if (lastTempSize(1) == 0 && tempSize(1) != 0) abs(tempSize(1) / 0.001)
-               else if (lastTempSize(1) != 0 && tempSize(1) == 0) abs(0.001 / lastTempSize(1))
-               else abs(tempSize(1) / lastTempSize(1)))
+            val (radiusFactor, heightFactor) = (checkResizeFactor(lastTempSize(0), tempSize(0)),
+                                                checkResizeFactor(lastTempSize(1), tempSize(1)))
             val boxMesh = transObject.getMesh
             app.setCylConeSize(radiusFactor.toFloat, heightFactor.toFloat, boxMesh)
           }
@@ -589,11 +564,7 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
             view.addObject(transObject)
           } else if (lastTempSize != tempSize && checkResizeable(tempSize) && checkResizeable(lastTempSize)) {
             // just need change the size
-            val radiusFactor =
-              if (lastTempSize(0) == 0 && tempSize(0) != 0) abs(tempSize(0) / 0.001)
-              else if (lastTempSize(0) == 0 && tempSize(0) == 0) 1
-              else if (lastTempSize(0) != 0 && tempSize(0) == 0) abs(0.001 / lastTempSize(0))
-              else abs(tempSize(0) / lastTempSize(0))
+            val radiusFactor = checkResizeFactor(lastTempSize(0), tempSize(0))
             transObject.scale(radiusFactor.toFloat)
           }
         case "Text" =>
@@ -611,11 +582,7 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
             view.addObject(transObject)
           } else if (lastTempSize != tempSize && checkResizeable(tempSize) && checkResizeable(lastTempSize)) {
             // just need change the size
-            val radiusFactor =
-              if (lastTempSize(0) == 0 && tempSize(0) != 0) abs(tempSize(0) / 0.001)
-              else if (lastTempSize(0) == 0 && tempSize(0) == 0) 1
-              else if (lastTempSize(0) != 0 && tempSize(0) == 0) abs(0.001 / lastTempSize(0))
-              else abs(tempSize(0) / lastTempSize(0))
+            val radiusFactor = checkResizeFactor(lastTempSize(0), tempSize(0))
             val boxMesh = transObject.getMesh
             app.setBoxSize(radiusFactor.toFloat, radiusFactor.toFloat, radiusFactor.toFloat, boxMesh)
           }
@@ -634,17 +601,20 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
             view.addObject(transObject)
           } else if (lastTempSize != tempSize && checkResizeable(tempSize) && checkResizeable(lastTempSize)) {
             // just need change the size
-            val radiusFactor =
-              if (lastTempSize(0) == 0 && tempSize(0) != 0) abs(tempSize(0) / 0.001)
-              else if (lastTempSize(0) == 0 && tempSize(0) == 0) 1
-              else if (lastTempSize(0) != 0 && tempSize(0) == 0) abs(0.001 / lastTempSize(0))
-              else abs(tempSize(0) / lastTempSize(0))
+            val radiusFactor = checkResizeFactor(lastTempSize(0), tempSize(0))
             val boxMesh = transObject.getMesh
             app.setBoxSize(radiusFactor.toFloat, radiusFactor.toFloat, radiusFactor.toFloat, boxMesh)
           }
         case _ => throw ShouldNeverHappen()
       }
     }
+
+    def checkResizeFactor(lastSizeToCheck: Double, newsizeToCheck: Double): Double =
+    // if size of object at x step is 0, we set it to 0.001 for calculation
+        if (lastSizeToCheck == 0 && newsizeToCheck != 0) abs(newsizeToCheck / 0.001)
+        else if (lastSizeToCheck == 0 && newsizeToCheck == 0) 1
+        else if (lastSizeToCheck != 0 && newsizeToCheck == 0) abs(0.001 / lastSizeToCheck)
+        else abs(newsizeToCheck / lastSizeToCheck)
 
     if (transObject != null) {
       // reset the color for the object
@@ -685,6 +655,7 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
         }
       }
     }
+    app.repaint()
   }
 
   // Main execution loop
@@ -697,15 +668,15 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
       react {
         case "go" =>
           renderCurrentFrame()
-          app.repaint()
           if (currentFrame == totalFrames) {
             // Animation is over
             emitProgress(100)
             destroy = true
             pause = true
           }
-          if (totalFrames > 0)
+          if (totalFrames > 0){
             emitProgress(currentFrame * 100 / totalFrames)
+          }
           if (currentFrame < totalFrames)
             currentFrame += 1
       }
@@ -724,7 +695,6 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
         currentFrame = totalFrames
       if (pause)
         renderCurrentFrame()
-
   }
 
   /**
