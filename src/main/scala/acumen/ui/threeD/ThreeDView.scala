@@ -332,7 +332,7 @@ class ThreeDView extends JPanel {
 }
 
 /* Timer for 3D-visualization, sends message to 3D renderer to coordinate animation */
-class jPCT_ScalaTimer(receiver: _3DDisplay, endTime: Double,
+class ScalaTimer(receiver: _3DDisplay, endTime: Double,
                       playSpeed: Double) extends Publisher with Actor {
   var pause = true
   var destroy = false
@@ -362,11 +362,11 @@ class jPCT_ScalaTimer(receiver: _3DDisplay, endTime: Double,
 
 /* 3D Render */
 class _3DDisplay(app: ThreeDView, slider: Slider3D,
-                     _3DDateBuffer: Map[CId, Map[Int, scala.collection.mutable.Buffer[List[_]]]],
+                     _3DDateBuffer: scala.collection.mutable.Map[CId, scala.collection.mutable.Map[Int, scala.collection.mutable.Buffer[List[_]]]],
                      lastFrame1: Double, endTime: Double,
                      _3DView: List[(Array[Double], Array[Double])]) extends Publisher with Actor {
   /* Default directory where all the OBJ files are */
-  private val _3DBasePath = Files._3DDir.getAbsolutePath()
+  private val _3DBasePath = Files._3DDir.getAbsolutePath
   var currentFrame = 0 // FrameNumber
   var totalFrames = 2
   var lastFrame = 2.0
@@ -377,7 +377,7 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
   val startFrameNumber = 2
 
   def stop() = {
-    if (!app.objects.isEmpty)
+    if (!app.objects.nonEmpty)
       app.world.removeAllObjects()
   }
 
@@ -457,7 +457,7 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
   /**
    * Moving and rotating the object
    */
-  def transformObject(id: List[_], objects: Map[List[_], Object3D],
+  def transformObject(id: List[_], objects: scala.collection.mutable.Map[List[_], Object3D],
                       buffer: scala.collection.mutable.Buffer[List[_]],
                       currentFrame: Int) {
 
@@ -506,17 +506,17 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
             // just need change the size
             val (widthFactor, lengthFactor, heightFactor) =
               (if (lastTempSize(0) == 0 && tempSize(0) == 0) 1
-              else if (lastTempSize(0) == 0 && tempSize(0) != 0) abs(tempSize(0) / 0.001)
-              else if (lastTempSize(0) != 0 && tempSize(0) == 0) abs(0.001 / lastTempSize(0))
-              else abs(tempSize(0) / lastTempSize(0)),
-                if (lastTempSize(1) == 0 && tempSize(1) == 0) 1
-                else if (lastTempSize(1) == 0 && tempSize(1) != 0) abs(tempSize(1) / 0.001)
-                else if (lastTempSize(1) != 0 && tempSize(1) == 0) abs(0.001 / lastTempSize(1))
-                else abs(tempSize(1) / lastTempSize(1)),
-                if (lastTempSize(2) == 0 && tempSize(2) == 0) 1
-                else if (lastTempSize(2) == 0 && tempSize(2) != 0) abs(tempSize(2) / 0.001)
-                else if (lastTempSize(2) != 0 && tempSize(2) == 0) abs(0.001 / lastTempSize(2))
-                else abs(tempSize(2) / lastTempSize(2)))
+               else if (lastTempSize(0) == 0 && tempSize(0) != 0) abs(tempSize(0) / 0.001)
+               else if (lastTempSize(0) != 0 && tempSize(0) == 0) abs(0.001 / lastTempSize(0))
+               else abs(tempSize(0) / lastTempSize(0)),
+               if (lastTempSize(1) == 0 && tempSize(1) == 0) 1
+               else if (lastTempSize(1) == 0 && tempSize(1) != 0) abs(tempSize(1) / 0.001)
+               else if (lastTempSize(1) != 0 && tempSize(1) == 0) abs(0.001 / lastTempSize(1))
+               else abs(tempSize(1) / lastTempSize(1)),
+               if (lastTempSize(2) == 0 && tempSize(2) == 0) 1
+               else if (lastTempSize(2) == 0 && tempSize(2) != 0) abs(tempSize(2) / 0.001)
+               else if (lastTempSize(2) != 0 && tempSize(2) == 0) abs(0.001 / lastTempSize(2))
+               else abs(tempSize(2) / lastTempSize(2)))
             val boxMesh = transObject.getMesh
             app.setBoxSize(lengthFactor.toFloat, widthFactor.toFloat, heightFactor.toFloat, boxMesh)
           }
@@ -565,13 +565,13 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
             // just need change the size
             val (radiusFactor, heightFactor) =
               (if (lastTempSize(0) == 0 && tempSize(0) == 0) 1
-              else if (lastTempSize(0) == 0 && tempSize(0) != 0) abs(tempSize(0) / 0.001)
-              else if (lastTempSize(0) != 0 && tempSize(0) == 0) abs(0.001 / lastTempSize(0))
-              else abs(tempSize(0) / lastTempSize(0)),
-                if (lastTempSize(1) == 0 && tempSize(1) == 0) 1
-                else if (lastTempSize(1) == 0 && tempSize(1) != 0) abs(tempSize(1) / 0.001)
-                else if (lastTempSize(1) != 0 && tempSize(1) == 0) abs(0.001 / lastTempSize(1))
-                else abs(tempSize(1) / lastTempSize(1)))
+               else if (lastTempSize(0) == 0 && tempSize(0) != 0) abs(tempSize(0) / 0.001)
+               else if (lastTempSize(0) != 0 && tempSize(0) == 0) abs(0.001 / lastTempSize(0))
+               else abs(tempSize(0) / lastTempSize(0)),
+               if (lastTempSize(1) == 0 && tempSize(1) == 0) 1
+               else if (lastTempSize(1) == 0 && tempSize(1) != 0) abs(tempSize(1) / 0.001)
+               else if (lastTempSize(1) != 0 && tempSize(1) == 0) abs(0.001 / lastTempSize(1))
+               else abs(tempSize(1) / lastTempSize(1)))
             val boxMesh = transObject.getMesh
             app.setCylConeSize(radiusFactor.toFloat, heightFactor.toFloat, boxMesh)
           }
@@ -627,7 +627,7 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
           if ((lastTempType != tempType || tempPath != lastTempPath) && !tempPath.isEmpty) {
             // change the object in
             view.removeObject(objID)
-            val sizeToSetR = if (tempSize(0) == 0) 0.001 else tempSize(0)
+            val sizeToSetR = if (tempSize(0) == 0) 0.001 else tempSize(0) / 50
             objects(id) = loadObj(tempPath, sizeToSetR)
             transObject = objects(id)
             objID = objects(id).getID // renew the object ID
@@ -693,10 +693,10 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
   def act() {
     loopWhile(!destroy) {
       if (destroy)
-        exit
+        exit()
       react {
-        case "go" => {
-          renderCurrentFrame
+        case "go" =>
+          renderCurrentFrame()
           app.repaint()
           if (currentFrame == totalFrames) {
             // Animation is over
@@ -708,9 +708,23 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
             emitProgress(currentFrame * 100 / totalFrames)
           if (currentFrame < totalFrames)
             currentFrame += 1
-        }
       }
     }
+  }
+
+  // Reactions to the mouse events
+  reactions += {
+    case e: scala.swing.event.MouseDragged =>
+      currentFrame = slider.bar.value * totalFrames / 100
+      emitProgress(slider.bar.value)
+      //publish(Playing3d())
+      if (currentFrame < 2)
+        currentFrame = startFrameNumber
+      if (currentFrame > totalFrames)
+        currentFrame = totalFrames
+      if (pause)
+        renderCurrentFrame()
+
   }
 
   /**
@@ -846,7 +860,7 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
         else
           null
       case "OBJ" =>
-        val sizeToSetR = if (size(0) == 0) 0.001 else size(0)
+        val sizeToSetR = if (size(0) == 0) 0.001 else size(0) / 50
         if (!path.isEmpty)  // model err, do nothing
           loadObj(path, sizeToSetR)
         else
