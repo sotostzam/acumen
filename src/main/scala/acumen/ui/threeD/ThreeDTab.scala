@@ -8,10 +8,6 @@ import acumen.ui.{App, Controller, Icons}
 import scala.collection.mutable.{Buffer, Map}
 import scala.swing._
 
-/**
- * Created by xufei on 9/18/14.
- */
-
 abstract class AbstractEditorTab extends BorderPanel{
   def receiver: Publisher
   def reset: Unit
@@ -20,9 +16,9 @@ abstract class AbstractEditorTab extends BorderPanel{
   def setProgress(p: Int): Unit
 }
 
-class jPCTEditorTab (val appModel: Controller) extends AbstractEditorTab{
+class ThreeDTab (val appModel: Controller) extends AbstractEditorTab{
   val canvasPanel = new JPanel
-  val threeDView = new jPCT_ThreeDView
+  val threeDView = new ThreeDView
 
   def createCanvas() = {
     if (check.selected)
@@ -131,12 +127,12 @@ class jPCTEditorTab (val appModel: Controller) extends AbstractEditorTab{
     contents += statusZone3d
   }
 
-  var _receiver = new _3DDisplayJPCT(threeDView, statusZone3d,
+  var _receiver = new _3DDisplay(threeDView, statusZone3d,
     _3DDataBuffer, lastFrame, appModel.threeDData.endTime, appModel.threeDData._3DView.reverse)
 
   var timer3d = new jPCT_ScalaTimer(receiver, appModel.threeDData.endTime, playSpeed)
 
-  def receiver: _3DDisplayJPCT = _receiver
+  def receiver: _3DDisplay = _receiver
 
   def reset = {
     receiver.stop
@@ -175,7 +171,7 @@ class jPCTEditorTab (val appModel: Controller) extends AbstractEditorTab{
         statusZone3d.setSpeed(playSpeed.toString)
         threeDView.world.removeAllObjects()
         threeDView.axisArray(0) = null
-        if (check.selected == true)
+        if (check.selected)
           threeDView.axisOn
       }
       // First time press "3D play" button,
@@ -184,7 +180,7 @@ class jPCTEditorTab (val appModel: Controller) extends AbstractEditorTab{
         _3DDataBuffer.clear
         threeDView.world.removeAllObjects()
         threeDView.axisArray(0) = null
-        if (check.selected == true)
+        if (check.selected)
           threeDView.axisOn
         lastFrame = 0
         statusZone3d.setSpeed("1.0")
@@ -215,7 +211,7 @@ class jPCTEditorTab (val appModel: Controller) extends AbstractEditorTab{
         threeDView.reset
       }
 
-      _receiver = new _3DDisplayJPCT(threeDView, statusZone3d, _3DDataBuffer, lastFrame,
+      _receiver = new _3DDisplay(threeDView, statusZone3d, _3DDataBuffer, lastFrame,
         appModel.threeDData.endTime, _3DView)
       timer3d = new jPCT_ScalaTimer(receiver, appModel.threeDData.endTime, playSpeed)
       receiver.start()

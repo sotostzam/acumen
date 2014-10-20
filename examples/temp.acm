@@ -1,6 +1,29 @@
 model Main (Simulator) = 
 initially
-  _3D = ()
+  _3D = () &
+  t = 0 & 
+  t'= 0.5
 always
- _3D =(Obj center=(0,0,0) size=0.03 color=(1,1,1) 
-        rotation=(-pi/3,pi/4,pi/6) content="car.obj")
+  t' = 0.5 &
+  _3D =(Text center=(-0,0,0) size=1 color=(1,0,0) 
+        rotation=(0,0,0) content="ABC"
+//        Text center=(-4,0,-2) size=1 color=(1,1,0) 
+//        rotation=(0,0,0) content="NOPQRSTUVWXYZ",
+//        Text center=(-4,0,2) size=1 color=(1,1,0) 
+//        rotation=(0,0,0) content="Habcdefghijkl",
+//        Text center=(-4,0,4) size=1 color=(1,1,0) 
+//        rotation=(0,0,0) content="mnopqrstuvwxyz",
+//        Text center=(-4,0,-4) size=1 color=(1,1,0) 
+//        rotation=(0,0,0) content="1234567890"
+//        Obj center=(-1,0,0) size=1 color=(1,0,0) 
+//        rotation=(0,0,0) content="sd.obj",
+//        Obj center=(0,0,0) size=1 color=(1,0,0) 
+//        rotation=(0,0,0) content="se.obj",
+//        Obj center=(1,0,0) size=1 color=(1,0,0) 
+//        rotation=(0,0,0) content="sf.obj",
+//        Obj center=(2,0,0) size=1 color=(1,0,0) 
+//        rotation=(0,0,0) content="sg.obj"
+        
+        
+)
+        
