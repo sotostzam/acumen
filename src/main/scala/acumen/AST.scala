@@ -95,7 +95,7 @@ package acumen {
   
   case class Assignment(p:Pattern, rhs:Expr) extends ContinuousAction
 
-  sealed abstract class DiscreteAction
+  sealed abstract class DiscreteAction extends Positional
   /* Example: x := 3 */
   case class Assign(lhs: Expr, rhs: Expr) extends DiscreteAction
   /* Example: x := create Ball(1) */

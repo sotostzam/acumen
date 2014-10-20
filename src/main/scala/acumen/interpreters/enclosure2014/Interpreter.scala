@@ -296,8 +296,6 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
   abstract class GConstantDiscreteEncosure[T](val start: Set[T], val enclosure: Set[T], val end: Set[T]) extends GDiscreteEnclosure[T] {
     def apply(t: Interval) = range
     def range = start union enclosure union end
-    def startTimeValue = start
-    def endTimeValue = end
     def isThin = start.size == 1 && enclosure.size == 1 && end.size == 1
     def show = s"{${enclosure mkString ","}}"
     def contains(that: GConstantDiscreteEncosure[T]): Boolean =
@@ -677,6 +675,10 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
         logAssign(path, id, d, Discretely(a), rhs, env)
       /* Basically, following says that variable names must be 
          fully qualified at this language level */
+      case c: Create =>
+        throw new PositionalAcumenError{
+          def mesg = "The 2014 Enclosure semantics does not support create statements in the always section."
+        }.setPos(c.pos)
       case Assign(_,_) => 
         throw BadLhs()
     }
