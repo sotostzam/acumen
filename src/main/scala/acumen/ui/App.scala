@@ -94,7 +94,6 @@ class App extends SimpleSwingApplication {
       loop {
         react {
           case Progress(p) => statusZone.setProgress(p)
-          case Progress3d(p) => threeDtab.setProgress3D(p)
           case ConsoleMsg(instr) => console.append(instr)
 
           case EXIT => exit

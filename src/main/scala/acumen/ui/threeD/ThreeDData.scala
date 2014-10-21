@@ -2,12 +2,11 @@ package acumen
 package ui
 package threeD
 
-import Errors._
-import scala.collection.JavaConversions._
+import acumen.Errors._
+import acumen.util.Conversions._
+
 import scala.collection.mutable.Map
 import scala.swing._
-import util.Canonical._
-import util.Conversions._
 
 /* Get the 3D-visualization data */
 class ThreeDData extends Publisher {
