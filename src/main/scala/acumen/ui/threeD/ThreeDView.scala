@@ -673,7 +673,7 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
       // acumen objects
       for ((objectNumber, buffer) <- map) {
         // 3d objects within
-        if (firstFrame(buffer) <= currentFrame && lastFrame(buffer) >= currentFrame) {
+        if (firstFrame(buffer) <= currentFrame && totalFrames >= currentFrame) {
           if (!app.objects.contains(List(id, objectNumber))) {
             matchingObject(List(id, objectNumber), buffer, currentFrame)
           } else {
