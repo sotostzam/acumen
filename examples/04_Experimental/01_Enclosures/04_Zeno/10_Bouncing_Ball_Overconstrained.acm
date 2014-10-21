@@ -10,7 +10,7 @@ model Main(simulator) =
     mode = "Fly" 
   always
   match mode with [
-    "Fly" -> claim x >= 0 & // Constraint added
+    "Fly" claim x >= 0 ->   // Constraint added
       if x == 0 && x' <= 0 then
         x'+ == -0.5 * x' &
         mode+ == "Fly"
