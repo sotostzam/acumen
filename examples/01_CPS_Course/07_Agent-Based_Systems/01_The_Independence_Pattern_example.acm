@@ -16,12 +16,12 @@ initially
          Text center=(0.25,-1.25,-0.1) size=1 color=black rotation=(0,0,0) content="+",
          Text center=(-0.75,-1.25,-0.15) size=1.5 color=black rotation=(0,0,0) content="-",
          Text center=(-1.25,-1.25,-0.1) size=1 color=black rotation=(0,0,0) content="+",
-         Text center=(-1.25,2,0) size=1 color=black rotation=(pi/2,0,0) content="A",
-         Text center=(0.5,2,0) size=1 color=black rotation=(pi/2,0,0) content="B",
-         Text center=(-2,0.5,0) size=1 color=black rotation=(pi/2,0,pi/2) content="A",
-         Text center=(-2,-1.25,0) size=1 color=black rotation=(pi/2,0,pi/2) content="B",
-         Text center=(-2,-1.25,1) size=0.5 color=red rotation=(pi/2,0,pi/2) content="Player 1",
-         Text center=(-1.25,2,1) size=0.5 color=green rotation=(pi/2,0,0) content="player 2")&
+         Text center=(-1.25,2,0) size=1 color=black rotation=(0,0,0) content="A",
+         Text center=(0.5,2,0) size=1 color=black rotation=(0,0,0) content="B",
+         Text center=(-2,0.5,0) size=1 color=black rotation=(0,0,pi/2) content="A",
+         Text center=(-2,-1.25,0) size=1 color=black rotation=(0,0,pi/2) content="B",
+         Text center=(-2,-1.25,1) size=0.5 color=red rotation=(0,0,pi/2) content="Player 1",
+         Text center=(-1.25,2,1) size=0.5 color=green rotation=(0,0,0) content="player 2")&
   _3DView = ((5,-10,3),(-pi/10,0,pi/7))
 
 //Score
@@ -35,10 +35,10 @@ initially
   p2 =  create player2() &
   _3D = ()
 always
-  _3D=((Text center=(-2.5,-1.25,3) size=0.5 color=red rotation=(pi/2,0,pi/2) content="Score:"),
-       (Text center=(-2.5,1.25,3) size=0.5 color=red rotation=(pi/2,0,pi/2) content=scorep1),
-       (Text center=(-1.25,2.5,3) size=0.5 color=green rotation=(pi/2,0,0) content="Score:"),
-       (Text center=(1.25,2.5,3) size=0.5 color=green rotation=(pi/2,0,0) content=scorep2)) &
+  _3D=((Text center=(-2.5,-1.25,3) size=0.5 color=red rotation=(0,0,pi/2) content="Score:"),
+       (Text center=(-2.5,1.25,3) size=0.5 color=red rotation=(0,0,pi/2) content=scorep1),
+       (Text center=(-1.25,2.5,3) size=0.5 color=green rotation=(0,0,0) content="Score:"),
+       (Text center=(1.25,2.5,3) size=0.5 color=green rotation=(0,0,0) content=scorep2)) &
   if (p1.nextchoice==1)&&(p2.nextchoice==1) then
     p1.nextchoice+ ==0 &
     p2.nextchoice+ ==0 &
@@ -77,8 +77,8 @@ always
   "A" -> b.x' = 0 &
          b.y' = 1 &
          b.z' = 0 &
-         _3D = (Text center=(-2.5,-1.25,2) size=0.5 color=red rotation=(pi/2,0,pi/2) content="Turns:",
-                Text center=(-2.5,1.25,2) size=0.5 color=red rotation=(pi/2,0,pi/2) content=cnt) &
+         _3D = (Text center=(-2.5,-1.25,2) size=0.5 color=red rotation=(0,0,pi/2) content="Turns:",
+                Text center=(-2.5,1.25,2) size=0.5 color=red rotation=(0,0,pi/2) content=cnt) &
         if b.y>1.5 then 
           cnt+ ==cnt+1 & 
           nextchoice+ ==1 &
@@ -87,8 +87,8 @@ always
   | "B" -> b.x' = 0 &
            b.y' = -1 &
            b.z' = 0 &
-           _3D = (Text center=(-2.5,-1.25,2) size=0.5 color=red rotation=(pi/2,0,pi/2) content="Turns:",
-                  Text center=(-2.5,1.25,2) size=0.5 color=red rotation=(pi/2,0,pi/2) content=cnt) &
+           _3D = (Text center=(-2.5,-1.25,2) size=0.5 color=red rotation=(0,0,pi/2) content="Turns:",
+                  Text center=(-2.5,1.25,2) size=0.5 color=red rotation=(0,0,pi/2) content=cnt) &
           if b.y<-1.5 then 
             cnt+ ==cnt+1 & 
             nextchoice+ ==0 &
@@ -109,8 +109,8 @@ always
   "A" -> b.x' = -1 &
          b.y' = 0 &
          b.z' = 0 &
-         _3D=(Text center=(-1.25,2.5,2) size=0.5 color=green rotation=(pi/2,0,0) content="Turns:",
-              Text center=(1.25,2.5,2) size=0.5 color=green rotation=(pi/2,0,0) content=cnt) &
+         _3D=(Text center=(-1.25,2.5,2) size=0.5 color=green rotation=(0,0,0) content="Turns:",
+              Text center=(1.25,2.5,2) size=0.5 color=green rotation=(0,0,0) content=cnt) &
         if b.x<-1.5 then cnt+ ==cnt+1 &
           if cnt == 3 then nextchoice+ ==1 & mode+ =="B"
           else nextchoice+ ==0
@@ -118,8 +118,8 @@ always
   | "B" -> b.x' = 1 &
            b.y' = 0 &
            b.z' = 0 &
-          _3D=(Text center=(-1.25,2.5,2) size=0.5 color=green rotation=(pi/2,0,0) content="Turns:",
-               Text center=(1.25,2.5,2) size=0.5 color=green rotation=(pi/2,0,0) content=cnt) &
+          _3D=(Text center=(-1.25,2.5,2) size=0.5 color=green rotation=(0,0,0) content="Turns:",
+               Text center=(1.25,2.5,2) size=0.5 color=green rotation=(0,0,0) content=cnt) &
           if b.x>1.5 then cnt+ ==cnt+1 & 
             if cnt == 6 then nextchoice+ ==0 & mode+ =="A"
             else nextchoice+ ==1

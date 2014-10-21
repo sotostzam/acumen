@@ -187,18 +187,21 @@ class ThreeDView extends JPanel {
     if (!axisArray.contains(axises(0))) {
       axisArray(0) = axises(0)
       world.addObjects(axises)
-      axises(0).build()
-      axises(1).build()
-      axises(2).build()
+      for (i <- 0 until 6){
+        CustomObject3D.partialBuild(axises(i), false)
+      }
+      for (i <- 6 until axises.length){
+        CustomObject3D.partialBuild(axises(i), true)
+      }
     }
     this.repaint()
   }
 
   def axisOff() = {
     if (axisArray.contains(axises(0))) {
-      world.removeObject(axises(0))
-      world.removeObject(axises(1))
-      world.removeObject(axises(2))
+      for (i <- 0 until axises.length) {
+        world.removeObject(axises(i))
+      }
       axisArray(0) = null
       this.repaint()
     }
@@ -209,7 +212,6 @@ class ThreeDView extends JPanel {
 
   def initBuffer(bufferWidth: Int, bufferHeight: Int) = {
     buffer = new FrameBuffer(bufferWidth, bufferHeight, FrameBuffer.SAMPLINGMODE_OGSS)
-    buffer.optimizeBufferAccess()
   }
 
   def init() = {
@@ -246,16 +248,16 @@ class ThreeDView extends JPanel {
     // Set the overall brightness of the world:
     world.setAmbientLight(-200, -200, -200)
     // Create main light sources:
-    world.addLight(new SimpleVector(15.076f, -7.904f, 0f), 18, 18, 18)
-    world.addLight(new SimpleVector(-15.076f, -7.904f, 0f), 18, 18, 18)
-    world.addLight(new SimpleVector(0, -5f, 0), 2, 2, 2)
+    world.addLight(new SimpleVector(15.076f, -7.904f, 0f), 12, 12, 12)
+    world.addLight(new SimpleVector(-15.076f, -7.904f, 0f), 12, 12, 12)
+    world.addLight(new SimpleVector(0, -8f, 0), 8, 8, 8)
   }
 
   def defaultView() = {
     cameraPos.set(defaultCamPos)
     camera.setPosition(cameraPos)
     camera.setFOVLimits(0.01f, 3.0f)
-    camera.setFOV(0.55f)
+    camera.setFOV(0.65f)
   }
 
   def reset() = {
@@ -971,18 +973,41 @@ class Resizer(xFactor: Float, yFactor: Float, zFactor: Float) extends GenericVer
 
 //Axis
 class coAxis {
-  val cylinders: Array[Object3D] = new Array[Object3D](3)
-  for (x <- 0 until cylinders.length) {
-    cylinders(x) = Primitives.getCylinder(50, 0.01f, 400f)
-    cylinders(x).build()
+  val cylinders: Array[Object3D] = new Array[Object3D](9)
+  for (x <- 0 until 3) {
+    cylinders(x) = Primitives.getCylinder(12, 0.01f, 120f)
+  }
+  for (x <- 3 until 6) {
+    cylinders(x) = Primitives.getCone(12, 0.1f, 2.5f)
+  }
+  cylinders(8) = Loader.load3DS(getClass.getResourceAsStream("Uppercase_Characters" + File.separator + "X.3ds"), 0.3f)(0)
+  cylinders(7) = Loader.load3DS(getClass.getResourceAsStream("Uppercase_Characters" + File.separator + "Y.3ds"), 0.3f)(0)
+  cylinders(6) = Loader.load3DS(getClass.getResourceAsStream("Uppercase_Characters" + File.separator + "Z.3ds"), 0.3f)(0)
+  for (i <- 6 to 8) {
+    cylinders(i).setRotationPivot(new SimpleVector(0,0,0))
+    cylinders(i).setCenter(new SimpleVector(0,0,0))
   }
   new setGlass(Color.BLUE, cylinders(0), -1)  //Z
+  new setGlass(Color.BLUE, cylinders(3), -1)
+  new setGlass(Color.BLUE, cylinders(6), -1)
   new setGlass(Color.RED, cylinders(1), -1)   //X
+  new setGlass(Color.RED, cylinders(4), -1)
+  new setGlass(Color.RED, cylinders(7), -1)
   new setGlass(Color.GREEN, cylinders(2), -1) //Y
+  new setGlass(Color.GREEN, cylinders(5), -1)
+  new setGlass(Color.GREEN, cylinders(8), -1)
 
-  cylinders(0).translate(0f, -3f, 0f) // if use 30f then use y = -3(-2.5)
+  cylinders(0).translate(0f, -1.2f, 0f)
+  cylinders(3).translate(0f, -2.4f, 0f)
+  cylinders(6).translate(-0.2f, -2.4f, 0f)
   cylinders(1).rotateZ(0.5f * -Pi.toFloat)
-  cylinders(1).translate(-3f, 0f, 0f)
+  cylinders(1).translate(-1.2f, 0f, 0f)
+  cylinders(4).translate(-2.4f, -0.2f, 0f)
+  cylinders(4).rotateZ(0.5f * Pi.toFloat)
+  cylinders(7).translate(-2.4f, -0.2f, 0f)
   cylinders(2).rotateX(-0.5f * Pi.toFloat)
-  cylinders(2).translate(0f, 0f, -3f)
+  cylinders(2).translate(0f, 0f, -1.2f)
+  cylinders(5).translate(0f, -0.2f, -2.4f)
+  cylinders(5).rotateX(-0.5f * Pi.toFloat)
+  cylinders(8).translate(0f, -0.2f, -2.4f)
 }
