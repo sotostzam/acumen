@@ -5,7 +5,6 @@ import javax.swing.JPanel
 import acumen.CId
 import acumen.ui.{App, Controller, Icons}
 
-import scala.collection.mutable.{Buffer, Map}
 import scala.swing._
 
 abstract class AbstractEditorTab extends BorderPanel{
@@ -13,7 +12,6 @@ abstract class AbstractEditorTab extends BorderPanel{
   def reset(): Unit
   def play(): Unit
   def pause(): Unit
-  def setProgress3D(p: Int): Unit
 }
 
 class ThreeDTab (val appModel: Controller) extends AbstractEditorTab{
@@ -164,6 +162,7 @@ class ThreeDTab (val appModel: Controller) extends AbstractEditorTab{
     if (App.ui.codeArea.editedSinceLastRun)
       App.ui.runSimulation()
     else {
+
       threedpause.toolTip = "pause"
       threedpause.icon = Icons.pause
       endTime = appModel.threeDData.endTime
@@ -208,7 +207,6 @@ class ThreeDTab (val appModel: Controller) extends AbstractEditorTab{
         check.selected = true
         threeDView.reset()
       }
-
       _receiver = new _3DDisplay(threeDView, statusZone3d, _3DDataBuffer, lastFrame,
         appModel.threeDData.endTime, _3DView)
       timer3d = new ScalaTimer(receiver, appModel.threeDData.endTime, playSpeed)
@@ -223,10 +221,6 @@ class ThreeDTab (val appModel: Controller) extends AbstractEditorTab{
     }
   }
 
-  def setProgress3D(p: Int) = {
-    statusZone3d.setProgress3D(p)
-    statusZone3d.setTime((p.toFloat/100)*endTime.toFloat)
-  }
   // Final Init
   createCanvas()
   add(threeDBottomPane, BorderPanel.Position.South)
@@ -237,7 +231,6 @@ class DisabledEditorTab(msg: String) extends AbstractEditorTab {
   def reset() = {}
   def play() = {}
   def pause() = {}
-  def setProgress3D(p:Int) = {}
   val msgBox = new TextArea("\n" + msg)
   msgBox.editable = false
   msgBox.lineWrap = true
