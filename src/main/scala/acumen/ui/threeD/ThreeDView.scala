@@ -23,7 +23,7 @@ class ThreeDView extends JPanel {
 
   Config.maxPolysVisible = 100000
   Config.useRotationPivotFrom3DS = true
-  Config.useMultipleThreads = true
+  //Config.useMultipleThreads = true
   Config.maxNumberOfCores = java.lang.Runtime.getRuntime.availableProcessors()
   Logger.setLogLevel(Logger.ERROR)
 
@@ -375,6 +375,7 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
     if (app.objects.nonEmpty) {
       app.world.removeAllObjects()
       app.objects.clear()
+      app.scaleFactors.clear()
     }
   }
 
@@ -484,14 +485,16 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
   }
 
   def calculateResizeFactor (o: Object3D, size: List[Double], scaleFactors: scala.collection.mutable.Map[Object3D, Array[Double]]): Array[Float] = {
-    val (xFactor, yFactor, zFactor) =
-      (if (size(0) == 0) scaleFactors(o)(0) * 0.001 / abs(o.getMesh.getBoundingBox()(1) - o.getMesh.getBoundingBox()(0))
-       else scaleFactors(o)(0) * size(0) / abs(o.getMesh.getBoundingBox()(1) - o.getMesh.getBoundingBox()(0)),
-       if (size(1) == 0) scaleFactors(o)(1) * 0.001 / abs(o.getMesh.getBoundingBox()(3) - o.getMesh.getBoundingBox()(2))
-       else scaleFactors(o)(1) * size(1) / abs(o.getMesh.getBoundingBox()(3) - o.getMesh.getBoundingBox()(2)),
-       if (size(2) == 0) scaleFactors(o)(2) * 0.001 / abs(o.getMesh.getBoundingBox()(5) - o.getMesh.getBoundingBox()(4))
-       else scaleFactors(o)(2) * size(2) / abs(o.getMesh.getBoundingBox()(5) - o.getMesh.getBoundingBox()(4)))
-    Array(xFactor.toFloat, yFactor.toFloat, zFactor.toFloat)
+    if (scaleFactors.contains(o)) {
+      val (xFactor, yFactor, zFactor) =
+        (if (size(0) == 0) scaleFactors(o)(0) * 0.001 / abs(o.getMesh.getBoundingBox()(1) - o.getMesh.getBoundingBox()(0))
+        else scaleFactors(o)(0) * size(0) / abs(o.getMesh.getBoundingBox()(1) - o.getMesh.getBoundingBox()(0)),
+          if (size(1) == 0) scaleFactors(o)(1) * 0.001 / abs(o.getMesh.getBoundingBox()(3) - o.getMesh.getBoundingBox()(2))
+          else scaleFactors(o)(1) * size(1) / abs(o.getMesh.getBoundingBox()(3) - o.getMesh.getBoundingBox()(2)),
+          if (size(2) == 0) scaleFactors(o)(2) * 0.001 / abs(o.getMesh.getBoundingBox()(5) - o.getMesh.getBoundingBox()(4))
+          else scaleFactors(o)(2) * size(2) / abs(o.getMesh.getBoundingBox()(5) - o.getMesh.getBoundingBox()(4)))
+      Array(xFactor.toFloat, yFactor.toFloat, zFactor.toFloat)
+    } else Array(0.001f,0.001f,0.001f)
   }
 
   /**
