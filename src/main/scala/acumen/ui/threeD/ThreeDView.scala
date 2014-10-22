@@ -34,9 +34,9 @@ class ThreeDView extends JPanel {
   var cameraPos = new SimpleVector()
 
   // Add texture for the axis
-  val coAxises = new coAxis
+  val coAxes = new coAxis
 
-  val axises = coAxises.cylinders
+  val axes = coAxes.cylinders
 
   var objects = scala.collection.mutable.Map[List[_], Object3D]()
   var scaleFactors = scala.collection.mutable.Map[Object3D, Array[Double]]()
@@ -184,23 +184,23 @@ class ThreeDView extends JPanel {
   }
 
   def axisOn() = {
-    if (!axisArray.contains(axises(0))) {
-      axisArray(0) = axises(0)
-      world.addObjects(axises)
+    if (!axisArray.contains(axes(0))) {
+      axisArray(0) = axes(0)
+      world.addObjects(axes)
       for (i <- 0 until 6){
-        CustomObject3D.partialBuild(axises(i), false)
+        CustomObject3D.partialBuild(axes(i), false)
       }
-      for (i <- 6 until axises.length){
-        CustomObject3D.partialBuild(axises(i), true)
+      for (i <- 6 until axes.length){
+        CustomObject3D.partialBuild(axes(i), true)
       }
     }
     this.repaint()
   }
 
   def axisOff() = {
-    if (axisArray.contains(axises(0))) {
-      for (i <- 0 until axises.length) {
-        world.removeObject(axises(i))
+    if (axisArray.contains(axes(0))) {
+      for (i <- 0 until axes.length) {
+        world.removeObject(axes(i))
       }
       axisArray(0) = null
       this.repaint()
@@ -634,7 +634,7 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
           if ((lastTempType != tempType || tempPath != lastTempPath) && !tempPath.isEmpty) {
             // change the object in
             view.removeObject(objID)
-            val sizeToSetR = checkSize(tempSize(0) / 50)
+            val sizeToSetR = checkSize(tempSize(0) / 10)
             scaleFactors -= objects(id)
             objects(id) = loadObj(tempPath, sizeToSetR)
             transObject = objects(id)
@@ -642,7 +642,7 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
             objID = objects(id).getID // refresh the object ID
           } else if (checkResizeable(tempSize)) {
             // just need change the size
-            val sizeToSetR = checkSize(tempSize(0) / 50)
+            val sizeToSetR = checkSize(tempSize(0) / 10)
             val factors = calculateResizeFactor(transObject, List(sizeToSetR, sizeToSetR, sizeToSetR), scaleFactors)
             val boxMesh = transObject.getMesh
             app.setReSize(factors(0), factors(1), factors(2), boxMesh)
@@ -689,7 +689,12 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
         }
       }
     }
-    app.repaint()
+    /*if(currentFrame<_3DView.size){
+      app.transformView(_3DView(currentFrame)._1, _3DView(currentFrame)._2);
+      view.stopView()
+      view.renderOnce()
+    }*/
+      app.repaint()
   }
 
   // Main execution loop
@@ -810,7 +815,7 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
     val texturePath = objectFileBase + ".png"
     var MTLPath:String = null
     for (i <- 0 until listOfFiles.length) {
-      if (listOfFiles(i).getPath == texturePath)
+      if (listOfFiles(i).getPath == texturePath && !TextureManager.getInstance().containsTexture(objectFileBase + ".mtl"))
         objectTexture = new Texture(texturePath)
       if (listOfFiles(i).getPath == objectFileBase + ".mtl")
         MTLPath = listOfFiles(i).getPath
@@ -819,6 +824,8 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
     if (objectTexture != null) {
       TextureManager.getInstance().addTexture(MTLPath, objectTexture)
       objFileloader.setTexture(MTLPath)
+    } else {
+      objFileloader.setTexture(objectFileBase + ".mtl")
     }
     objFileloader
   }
@@ -865,7 +872,7 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
         else
           null
       case "OBJ" =>
-        val sizeToSetR = checkSize(size(0) / 50)
+        val sizeToSetR = checkSize(size(0) / 10)
         if (!path.isEmpty)  // model err, do nothing
           loadObj(path, sizeToSetR)
         else
@@ -980,9 +987,9 @@ class coAxis {
   for (x <- 3 until 6) {
     cylinders(x) = Primitives.getCone(12, 0.1f, 2.5f)
   }
-  cylinders(8) = Loader.load3DS(getClass.getResourceAsStream("Uppercase_Characters" + File.separator + "X.3ds"), 0.3f)(0)
-  cylinders(7) = Loader.load3DS(getClass.getResourceAsStream("Uppercase_Characters" + File.separator + "Y.3ds"), 0.3f)(0)
-  cylinders(6) = Loader.load3DS(getClass.getResourceAsStream("Uppercase_Characters" + File.separator + "Z.3ds"), 0.3f)(0)
+  cylinders(8) = Loader.load3DS(getClass.getResourceAsStream("Lowercase_Characters" + File.separator + "x.3ds"), 0.3f)(0)
+  cylinders(7) = Loader.load3DS(getClass.getResourceAsStream("Lowercase_Characters" + File.separator + "y.3ds"), 0.3f)(0)
+  cylinders(6) = Loader.load3DS(getClass.getResourceAsStream("Lowercase_Characters" + File.separator + "z.3ds"), 0.3f)(0)
   for (i <- 6 to 8) {
     cylinders(i).setRotationPivot(new SimpleVector(0,0,0))
     cylinders(i).setCenter(new SimpleVector(0,0,0))
@@ -1002,12 +1009,12 @@ class coAxis {
   cylinders(6).translate(-0.2f, -2.4f, 0f)
   cylinders(1).rotateZ(0.5f * -Pi.toFloat)
   cylinders(1).translate(-1.2f, 0f, 0f)
-  cylinders(4).translate(-2.4f, -0.2f, 0f)
+  cylinders(4).translate(-2.4f, -0.175f, 0f)
   cylinders(4).rotateZ(0.5f * Pi.toFloat)
   cylinders(7).translate(-2.4f, -0.2f, 0f)
   cylinders(2).rotateX(-0.5f * Pi.toFloat)
   cylinders(2).translate(0f, 0f, -1.2f)
-  cylinders(5).translate(0f, -0.2f, -2.4f)
+  cylinders(5).translate(0f, -0.175f, -2.4f)
   cylinders(5).rotateX(-0.5f * Pi.toFloat)
   cylinders(8).translate(0f, -0.2f, -2.4f)
 }
