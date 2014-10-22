@@ -6,7 +6,7 @@ initially
 always
   t' = 0.5 &
   _3D =(Text center=(-0,0,0) size=1 color=(1,0,0) 
-        rotation=(0,0,0) content="ABC"
+        rotation=(t,0,t) content="ABC"
 //        Text center=(-4,0,-2) size=1 color=(1,1,0) 
 //        rotation=(0,0,0) content="NOPQRSTUVWXYZ",
 //        Text center=(-4,0,2) size=1 color=(1,1,0) 
