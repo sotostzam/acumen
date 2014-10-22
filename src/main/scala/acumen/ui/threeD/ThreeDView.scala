@@ -560,7 +560,8 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
               // the type has been changed, we need to delete the old object and create a one
               if (lastTempType != tempType) {
                 // change the object in
-                view.removeObject(objID)
+                if (view.getObject(objID) != null)
+                  view.removeObject(objID)
                 // Since some object need to scale, we never allow the initial size become 0
                 val (sizeToSetX, sizeToSetY, sizeToSetZ) = (checkSize(tempSize(1)),
                   checkSize(tempSize(0)),
@@ -587,7 +588,8 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
               // the type has been changed, we need to delete the old object and create a one
               if (lastTempType != tempType) {
                 // change the object in
-                view.removeObject(objID)
+                if (view.getObject(objID) != null)
+                  view.removeObject(objID)
                 val (sizeToSetR, sizeToSetS) = (checkSize(tempSize(0)), checkSize(tempSize(1)))
                 scaleFactors -= objects(id)
                 objects(id) = Primitives.getCylinder(20, abs(sizeToSetR.toFloat), abs(sizeToSetS / (2 * sizeToSetR)).toFloat)
@@ -608,7 +610,8 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
               // the type has been changed, we need to delete the old object and create a one
               if (lastTempType != tempType) {
                 // change the object in
-                view.removeObject(objID)
+                if (view.getObject(objID) != null)
+                  view.removeObject(objID)
                 val (sizeToSetR, sizeToSetS) = (checkSize(tempSize(0)), checkSize(tempSize(1)))
                 scaleFactors -= objects(id)
                 objects(id) = Primitives.getCone(20, abs(sizeToSetR.toFloat), abs(sizeToSetS / (sizeToSetR * 2)).toFloat)
@@ -628,7 +631,8 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
               // the type has been changed, we need to delete the old object and create a one
               if (lastTempType != tempType) {
                 // change the object in
-                view.removeObject(objID)
+                if (view.getObject(objID) != null)
+                  view.removeObject(objID)
                 val sizeToSetR = checkSize(tempSize(0))
                 scaleFactors -= objects(id)
                 objects(id) = Primitives.getSphere(10, abs(sizeToSetR.toFloat))
@@ -649,7 +653,8 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
               // the type has been changed, we need to delete the old object and create a one
               if ((lastTempType != tempType || lastTempContent != tempContent) && !tempContent.isEmpty) {
                 // change the object in
-                view.removeObject(objID)
+                if (view.getObject(objID) != null)
+                  view.removeObject(objID)
                 val sizeToSetR = checkSize(tempSize(0))
                 scaleFactors -= objects(id)
                 objects(id) = buildText(tempContent, sizeToSetR)
@@ -670,7 +675,8 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
               // the type has been changed, we need to delete the old object and create a one
               if ((lastTempType != tempType || tempPath != lastTempPath) && !tempPath.isEmpty) {
                 // change the object in
-                view.removeObject(objID)
+                if (view.getObject(objID) != null)
+                  view.removeObject(objID)
                 val sizeToSetR = checkSize(tempSize(0) / 10)
                 scaleFactors -= objects(id)
                 objects(id) = loadObj(tempPath, sizeToSetR)
