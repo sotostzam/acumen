@@ -1,9 +1,8 @@
-#0 { className = Main, mode = "Persist", simulator = #0.0 }
-#0.0 { className = Simulator, time = 0.000000 }
-#0.1 {
-  a = 1,
+#0 {
+  a = 0,
   b = 0,
-  className = System,
+  className = Main,
+  simulator = #0.0,
   theta = 0,
   theta' = 0,
   theta'' = 0,
@@ -11,18 +10,19 @@
   x' = 0,
   x'' = 0
 }
+#0.0 { className = Simulator, time = 0.000000 }
 ------------------------------0
-#0 { className = Main, mode = "Persist", simulator = #0.0 }
-#0.0 { className = Simulator, time = 50.010000 }
-#0.1 {
-  a = 0.206912,
-  b = -0.978360,
-  className = System,
-  theta = -1.344160,
-  theta' = 1.858655,
-  theta'' = 7.363836,
-  x = 0.463303,
-  x' = -1.149176,
-  x'' = -1.428891
+#0 {
+  a = 0.189677,
+  b = -0.981847,
+  className = Main,
+  simulator = #0.0,
+  theta = -1.362469,
+  theta' = 1.786257,
+  theta'' = 7.366514,
+  x = 0.464066,
+  x' = -1.135043,
+  x'' = -1.325761
 }
+#0.0 { className = Simulator, time = 50.010000 }
 ------------------------------5001
