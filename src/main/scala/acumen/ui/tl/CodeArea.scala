@@ -115,7 +115,8 @@ class CodeArea extends Panel with TreeSelectionListener {
       override def isValidChar(ch: Char) = super.isValidChar(ch) || ch=='.';
     }
     val style = textArea.getSyntaxEditingStyle
-    val acumenTokenMakerSpec = XML.load(getClass.getClassLoader.getResourceAsStream("acumen/ui/tl/AcumenTokenMaker.xml"))
+    val acumenTokenMakerSpec = XML.load(getClass.getClassLoader.getResourceAsStream(
+      "acumen" + File.separator + "ui" + File.separator + "tl" + File.separator + "AcumenTokenMaker.xml"))
     val censored = List("Continuous", "Discrete", "rint")
     if (acumenTokenMakerSpec != null) { // Try to read keywords and functions from XML
       for (keyword <- acumenTokenMakerSpec \\ "keyword" if (!censored.contains(keyword.text)))
