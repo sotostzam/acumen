@@ -162,7 +162,6 @@ class ThreeDTab (val appModel: Controller) extends AbstractEditorTab{
     if (App.ui.codeArea.editedSinceLastRun)
       App.ui.runSimulation()
     else {
-
       threedpause.toolTip = "pause"
       threedpause.icon = Icons.pause
       endTime = appModel.threeDData.endTime
@@ -179,6 +178,7 @@ class ThreeDTab (val appModel: Controller) extends AbstractEditorTab{
       // copy the data from list to buffer to speed up
       if (!played) {
         _3DDataBuffer.clear()
+        threeDView.objects.clear()
         threeDView.world.removeAllObjects()
         threeDView.axisArray(0) = null
         if (check.selected)
@@ -202,7 +202,6 @@ class ThreeDTab (val appModel: Controller) extends AbstractEditorTab{
         _3DView = appModel.threeDData._3DView.reverse
         appModel.threeDData.reset()
       }
-      threeDView.objects.clear()
       if (_3DView.size != 0) {
         check.selected = true
         threeDView.reset()

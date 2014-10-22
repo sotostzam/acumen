@@ -372,8 +372,10 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
   val startFrameNumber = 2
 
   def stop() = {
-    if (app.objects.nonEmpty)
+    if (app.objects.nonEmpty) {
       app.world.removeAllObjects()
+      app.objects.clear()
+    }
   }
 
   def bufferFrame(list: List[_]): Int = {
@@ -543,12 +545,14 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
             transObject.setShadingMode(Object3D.SHADING_FAKED_FLAT)
           } else if (checkResizeable(tempSize)) {
             // just need change the size
-            val (sizeToSetX, sizeToSetY, sizeToSetZ) = (checkSize(tempSize(1)),
-                                                        checkSize(tempSize(2)),
-                                                        checkSize(tempSize(0)))
-            val factors = calculateResizeFactor(transObject, List(sizeToSetZ, sizeToSetY, sizeToSetX), scaleFactors)
-            val boxMesh = transObject.getMesh
-            app.setReSize(factors(0), factors(1), factors(2), boxMesh)
+            if (objects.contains(id)) {
+              val (sizeToSetX, sizeToSetY, sizeToSetZ) = (checkSize(tempSize(1)),
+                                                          checkSize(tempSize(2)),
+                                                          checkSize(tempSize(0)))
+              val factors = calculateResizeFactor(transObject, List(sizeToSetZ, sizeToSetY, sizeToSetX), scaleFactors)
+              val boxMesh = transObject.getMesh
+              app.setReSize(factors(0), factors(1), factors(2), boxMesh)
+            }
           }
         case "Cylinder" => // we don't need to care about first frame, since all the objects are fresh
           // the type has been changed, we need to delete the old object and create a one
@@ -564,11 +568,12 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
             view.addObject(transObject)
             transObject.setShadingMode(Object3D.SHADING_FAKED_FLAT)
           } else if (checkResizeable(tempSize)) {
-            // just need change the size
-            val (sizeToSetR, sizeToSetS) = (checkSize(tempSize(0)), checkSize(tempSize(1)))
-            val factors = calculateResizeFactor(transObject, List(sizeToSetR, sizeToSetS, sizeToSetR), scaleFactors)
-            val boxMesh = transObject.getMesh
-            app.setReSize(factors(0), factors(1), factors(2), boxMesh)
+            if (objects.contains(id)) {   // just need change the size
+              val (sizeToSetR, sizeToSetS) = (checkSize(tempSize(0)), checkSize(tempSize(1)))
+              val factors = calculateResizeFactor(transObject, List(sizeToSetR, sizeToSetS, sizeToSetR), scaleFactors)
+              val boxMesh = transObject.getMesh
+              app.setReSize(factors(0), factors(1), factors(2), boxMesh)
+            }
           }
         case "Cone" => // we don't need to care about first frame, since all the objects are fresh
           // the type has been changed, we need to delete the old object and create a one
@@ -583,11 +588,12 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
             objID = objects(id).getID // refresh the object ID
             view.addObject(transObject)
           } else if (checkResizeable(tempSize)) {
-            // just need change the size
-            val (sizeToSetR, sizeToSetS) = (checkSize(tempSize(0)), checkSize(tempSize(1)))
-            val factors = calculateResizeFactor(transObject, List(sizeToSetR, sizeToSetS, sizeToSetR), scaleFactors)
-            val boxMesh = transObject.getMesh
-            app.setReSize(factors(0), factors(1), factors(2), boxMesh)
+            if (objects.contains(id)) {   // just need change the size
+              val (sizeToSetR, sizeToSetS) = (checkSize(tempSize(0)), checkSize(tempSize(1)))
+              val factors = calculateResizeFactor(transObject, List(sizeToSetR, sizeToSetS, sizeToSetR), scaleFactors)
+              val boxMesh = transObject.getMesh
+              app.setReSize(factors(0), factors(1), factors(2), boxMesh)
+            }
           }
         case "Sphere" => // we don't need to care about first frame, since all the objects are fresh
           // the type has been changed, we need to delete the old object and create a one
@@ -602,11 +608,12 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
             objID = objects(id).getID // refresh the object ID
             view.addObject(transObject)
           } else if (checkResizeable(tempSize)) {
-            // just need change the size
-            val sizeToSetR = checkSize(tempSize(0))
-            val factors = calculateResizeFactor(transObject, List(sizeToSetR, sizeToSetR, sizeToSetR), scaleFactors)
-            val boxMesh = transObject.getMesh
-            app.setReSize(factors(0), factors(1), factors(2), boxMesh)
+            if (objects.contains(id)) {   // just need change the size
+              val sizeToSetR = checkSize(tempSize(0))
+              val factors = calculateResizeFactor(transObject, List(sizeToSetR, sizeToSetR, sizeToSetR), scaleFactors)
+              val boxMesh = transObject.getMesh
+              app.setReSize(factors(0), factors(1), factors(2), boxMesh)
+            }
           }
         case "Text" =>
           val lastTempContent = bufferString(buffer(index-1))
@@ -622,11 +629,12 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
             objID = objects(id).getID // refresh the object ID
             view.addObject(transObject)
           } else if (checkResizeable(tempSize)) {
-            // just need change the size
-            val sizeToSetR = checkSize(tempSize(0))
-            val factors = calculateResizeFactor(transObject, List(sizeToSetR, sizeToSetR, sizeToSetR), scaleFactors)
-            val boxMesh = transObject.getMesh
-            app.setReSize(factors(0), factors(1), factors(2), boxMesh)
+            if (objects.contains(id)) {   // just need change the size
+              val sizeToSetR = checkSize(tempSize(0))
+              val factors = calculateResizeFactor(transObject, List(sizeToSetR, sizeToSetR, sizeToSetR), scaleFactors)
+              val boxMesh = transObject.getMesh
+              app.setReSize(factors(0), factors(1), factors(2), boxMesh)
+            }
           }
         case "OBJ" =>
           val lastTempPath = bufferString(buffer(index -1))
@@ -641,11 +649,12 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
             setScaleFactors(tempSize, transObject, tempType, scaleFactors)
             objID = objects(id).getID // refresh the object ID
           } else if (checkResizeable(tempSize)) {
-            // just need change the size
-            val sizeToSetR = checkSize(tempSize(0) / 10)
-            val factors = calculateResizeFactor(transObject, List(sizeToSetR, sizeToSetR, sizeToSetR), scaleFactors)
-            val boxMesh = transObject.getMesh
-            app.setReSize(factors(0), factors(1), factors(2), boxMesh)
+            if (objects.contains(id)) {   // just need change the size
+              val sizeToSetR = checkSize(tempSize(0) / 10)
+              val factors = calculateResizeFactor(transObject, List(sizeToSetR, sizeToSetR, sizeToSetR), scaleFactors)
+              val boxMesh = transObject.getMesh
+              app.setReSize(factors(0), factors(1), factors(2), boxMesh)
+            }
           }
         case _ => throw ShouldNeverHappen()
       }
@@ -684,7 +693,6 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
         } else {
           if (app.objects.contains(List(id, objectNumber))) {
             deleteObj(List(id, objectNumber))
-            view.removeObject(app.objects.getOrElse(List(id, objectNumber), null)) // remove the object from the view
           }
         }
       }
