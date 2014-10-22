@@ -9,7 +9,7 @@ model Main(simulator) =
     mode = "Fly" & x = 5 & x' = 0 & x'' = -10 
   always
   match mode with [
-    "Fly" -> claim x >= 0 &
+    "Fly" claim x >= 0 ->  
       if x == 0 && x' <= 0 then
         x'+ == -0.5 * x' &
         mode+ == "Fly"

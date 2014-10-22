@@ -19,7 +19,6 @@ case object SendInit
 sealed abstract class AppEvent
 case class Progress(percent: Int) extends AppEvent
 case class ConsoleMsg(instr: Logger.Instruction) extends AppEvent
-case class Progress3d(percent: Int) extends AppEvent
 
 // (actor) messages from the UI
 sealed abstract class AppActions

@@ -11,8 +11,8 @@ model Main(simulator) =
     mode = ""
   always
   match mode with [
-    "" -> 
-      claim s <= abs(d) & // Invariant added!
+    "" claim s <= abs(d) -> 
+       // Invariant added!
       if s == d then
         s+ == s/2 & 
         mode+ == "" 

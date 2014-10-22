@@ -10,7 +10,7 @@ model Main(simulator) =
     mode = "m"
   always
   match mode with [
-    "m" -> claim x >= 0 & // Invariant added
+    "m" claim x >= 0->   // Invariant added
       if x == 0 then 
         x+ == 1 &
         mode+ == "m" 

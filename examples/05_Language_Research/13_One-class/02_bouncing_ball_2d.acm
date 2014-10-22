@@ -6,39 +6,29 @@
 
 // Example:  Bouncing Ball (2D)
 
-model Ball(mode, x,x',x'', y,y',y'', m) =
+model Main(simulator) =
   initially
+    mode ="Init"& x=5 &  x'=10 & x''=0& y=5& y'=0& y''=0& m=1.0
   always
   match mode with[
-    "Init" ->
-      mode + == "Fly"
+   "Init" ->
+      simulator.timeStep + == 0.003&
+      simulator.endTime + == 10.0&
+      mode + == "Fly" 
     |"Fly" ->
-      if x < 0 && x' < 0 || x > 5 && x' > 0 then
+      if (x < 0 && x' < 0) || (x > 5 && x' > 0) then
         mode + == "BounceX"
       else
-        if y < 0 && y' < 0 || y > 5 && y' > 0 then
+        if (y < 0 && y' < 0) || (y > 5 && y' > 0) then
           mode + == "BounceY"
         else
-          y'' = -9.8 &
-          x'' = 0         
+          y'' == -9.8&
+          x'' == 0
+             
     |"BounceX" ->
-      x' + == -x' &
+      x' + == -x'&
       mode + == "Fly"
     |"BounceY" ->
-      y' + == -y' &
+      y' + == -y'&
       mode + == "Fly"
   ]
-
-model Main(simulator) = 
-  initially
-    mode  =  "Init"
-  always
-  match mode with[
-    "Init" -> 
-      simulator.timeStep + == 0.003 &
-      simulator.endTime + == 10.0 &
-      create Ball("Init", 5,10,0, 5,0,0, 1.0) &
-      mode + == "Persist"
-    |"Persist" ->
-  ]
- 

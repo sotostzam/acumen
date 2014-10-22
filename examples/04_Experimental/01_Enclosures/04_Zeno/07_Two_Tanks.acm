@@ -11,11 +11,11 @@ model Main(simulator)  =
     mode = "Fill1" 
   always
   match mode with [
-    "Fill1" -> claim x1 >= 0 && x2 >= 0 &
+    "Fill1" claim x1 >= 0 && x2 >= 0 -> 
       if x2 == 0 then mode+ == "Fill2" noelse & 
       x1' == 2 & 
       x2' == -3
-  | "Fill2" -> claim x1 >= 0 && x2 >= 0 & 
+  | "Fill2" claim x1 >= 0 && x2 >= 0 -> 
       if x1 == 0 then mode+ == "Fill1" noelse & 
       x1' == -2 & 
       x2' == 1

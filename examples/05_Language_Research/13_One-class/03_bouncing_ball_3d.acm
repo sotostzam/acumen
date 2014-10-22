@@ -1,17 +1,20 @@
-/* 
-   Works with semantic 2014
-   Works with semantic 2013
-   Works with semantic 2012
-*/
-
-model Ball(mode, p, p', p'', m)
-  = initially
-    ux  =  (1,0,0) &
-    uy  =  (0,1,0) &
-    uz  =  (0,0,1)
+model Main(simulator) =
+  initially
+    mode = "Init" &
+    p = (0.6,0.6,0.9) &
+    p' = (17,23,12) &
+    p'' = (0,0,0) &
+    m = 1.0 &
+    ux = (1,0,0) &
+    uy = (0,1,0) &
+    uz = (0,0,1)
   always
   match mode with [
-    "Fly" ->
+    "Init" ->
+      simulator.timeStep+ == 0.00003 &
+      simulator.endTime+ == 2.0 &
+      mode+ == "Fly"
+    |"Fly" ->
       if    (uz dot p) < -0.5 && (uz dot p') < 0 
          || (uz dot p) > 0.5  && (uz dot p') > 0 then
         mode + == "BounceZ"
@@ -24,7 +27,7 @@ model Ball(mode, p, p', p'', m)
              || (uy dot p) > 0.5  && (uy dot p') > 0 then
             mode + == "BounceY"
           else
-            p'' = (0, 0, -9.8)
+            p'' == (0, 0, -9.8)
                 
       
     |"BounceX" ->
@@ -36,21 +39,4 @@ model Ball(mode, p, p', p'', m)
     |"BounceZ"->
       p' + == ((ux dot p'), (uy dot p'), -(uz dot p')) &
       mode + == "Fly"
-  ]  
-
-
-model Main(simulator) = 
-  initially
-    mode  =  "Init"
-  always
-  match mode with[
-    "Init" ->
-      simulator.timeStep + == 0.003 &
-      simulator.endTime + == 2.0 &
-      create Ball("Fly", (0.6,0.6,0.9), (17,23,12), 
-                         (0,0,0), 1.0) &
-      mode + == "Persist"
-    |"Persist" ->
-    ]
-
- 
+ ]

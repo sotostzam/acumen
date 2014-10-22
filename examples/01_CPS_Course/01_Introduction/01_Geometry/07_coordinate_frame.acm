@@ -18,15 +18,15 @@ initially
      Box  center=(1,1,0) size=(0.1,0.1,0.1) color=(1,0,0),
      Box  center=(0,1,1) size=(0.1,0.1,0.1) color=(0,1,0),
      Box  center=(1,0,1) size=(0.1,0.1,0.1) color=(0,0,1),
-	   Text center=(2,0,-0.1)    size=0.5 color=(1,0,0) rotation=(pi/2,0,0) content="x",      // x-axis lable
-     Text center=(-0.15,2.2,0) size=0.5 color=(0,1,0) rotation=(pi/2,0,0) content="y",      // y-axis lable
-     Text center=(-0.15,0,2.1) size=0.5 color=(0,0,1) rotation=(pi/2,0,0) content="z",      // z-axis lable
-	   Text center=(0.1,0,1.1)   size=0.2 color=(1,1,0) rotation=(pi/2,0,0) content="(0,0,1)",// Point lables
-	   Text center=(0.1,1,0.1)   size=0.2 color=(0,1,1) rotation=(pi/2,0,0) content="(0,1,0)",
-     Text center=(1.1,0,0.1)   size=0.2 color=(1,0,1) rotation=(pi/2,0,0) content="(1,0,0)",
-     Text center=(1.1,1,0.1)   size=0.2 color=(1,0,0) rotation=(pi/2,0,0) content="(1,1,0)",
-  	 Text center=(0.1,1,1.1)   size=0.2 color=(0,1,0) rotation=(pi/2,0,0) content="(0,1,1)",
-     Text center=(1.1,0,1.1)   size=0.2 color=(0,0,1) rotation=(pi/2,0,0) content="(1,0,1)")
+	   Text center=(2,0,-0.1)    size=0.5 color=(1,0,0) rotation=(0,0,0) content="x",      // x-axis lable
+     Text center=(-0.15,2.2,0) size=0.5 color=(0,1,0) rotation=(0,0,0) content="y",      // y-axis lable
+     Text center=(-0.15,0,2.1) size=0.5 color=(0,0,1) rotation=(0,0,0) content="z",      // z-axis lable
+	   Text center=(0.1,0,1.1)   size=0.2 color=(1,1,0) rotation=(0,0,0) content="(0,0,1)",// Point lables
+	   Text center=(0.1,1,0.1)   size=0.2 color=(0,1,1) rotation=(0,0,0) content="(0,1,0)",
+     Text center=(1.1,0,0.1)   size=0.2 color=(1,0,1) rotation=(0,0,0) content="(1,0,0)",
+     Text center=(1.1,1,0.1)   size=0.2 color=(1,0,0) rotation=(0,0,0) content="(1,1,0)",
+  	 Text center=(0.1,1,1.1)   size=0.2 color=(0,1,0) rotation=(0,0,0) content="(0,1,1)",
+     Text center=(1.1,0,1.1)   size=0.2 color=(0,0,1) rotation=(0,0,0) content="(1,0,1)")
 
 // Excercises
 // 1) Add boxes and lable for the missing two "cube corners"

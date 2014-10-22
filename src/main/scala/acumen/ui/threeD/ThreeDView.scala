@@ -7,7 +7,7 @@ import javax.swing.JPanel
 
 import acumen.CId
 import acumen.Errors._
-import acumen.ui.{App, Files, Progress3d}
+import acumen.ui.Files
 import com.threed.jpct._
 
 import scala.actors._
@@ -25,6 +25,7 @@ class ThreeDView extends JPanel {
   Config.useRotationPivotFrom3DS = true
   Config.useMultipleThreads = true
   Config.maxNumberOfCores = java.lang.Runtime.getRuntime.availableProcessors()
+  Logger.setLogLevel(Logger.ERROR)
 
   val world = new World()  // create a new world
 
@@ -32,14 +33,13 @@ class ThreeDView extends JPanel {
 
   var cameraPos = new SimpleVector()
 
-  //Config.useMultipleThreads = true
-
   // Add texture for the axis
   val coAxises = new coAxis
 
   val axises = coAxises.cylinders
 
   var objects = scala.collection.mutable.Map[List[_], Object3D]()
+  var scaleFactors = scala.collection.mutable.Map[Object3D, Array[Double]]()
 
   // initialize the Map to define the distance between each letter
   val letterDistance = {
@@ -187,18 +187,21 @@ class ThreeDView extends JPanel {
     if (!axisArray.contains(axises(0))) {
       axisArray(0) = axises(0)
       world.addObjects(axises)
-      axises(0).build()
-      axises(1).build()
-      axises(2).build()
+      for (i <- 0 until 6){
+        CustomObject3D.partialBuild(axises(i), false)
+      }
+      for (i <- 6 until axises.length){
+        CustomObject3D.partialBuild(axises(i), true)
+      }
     }
     this.repaint()
   }
 
   def axisOff() = {
     if (axisArray.contains(axises(0))) {
-      world.removeObject(axises(0))
-      world.removeObject(axises(1))
-      world.removeObject(axises(2))
+      for (i <- 0 until axises.length) {
+        world.removeObject(axises(i))
+      }
       axisArray(0) = null
       this.repaint()
     }
@@ -245,16 +248,16 @@ class ThreeDView extends JPanel {
     // Set the overall brightness of the world:
     world.setAmbientLight(-200, -200, -200)
     // Create main light sources:
-    world.addLight(new SimpleVector(15.076f, -7.904f, 0f), 18, 18, 18)
-    world.addLight(new SimpleVector(-15.076f, -7.904f, 0f), 18, 18, 18)
-    world.addLight(new SimpleVector(0, -5f, 0), 2, 2, 2)
+    world.addLight(new SimpleVector(15.076f, -7.904f, 0f), 12, 12, 12)
+    world.addLight(new SimpleVector(-15.076f, -7.904f, 0f), 12, 12, 12)
+    world.addLight(new SimpleVector(0, -8f, 0), 8, 8, 8)
   }
 
   def defaultView() = {
     cameraPos.set(defaultCamPos)
     camera.setPosition(cameraPos)
     camera.setFOVLimits(0.01f, 3.0f)
-    camera.setFOV(0.55f)
+    camera.setFOV(0.65f)
   }
 
   def reset() = {
@@ -315,15 +318,8 @@ class ThreeDView extends JPanel {
 
   /** uses a vertex controller to rescale  **/
 
-  def setBoxSize(scaleLength: Float, scaleWidth: Float, scaleHeight: Float, planeMesh: Mesh) = {
-    val demoControl = new ResizerBox(scaleWidth,scaleHeight,scaleLength)
-    planeMesh.setVertexController(demoControl, IVertexController.PRESERVE_SOURCE_MESH)
-    planeMesh.applyVertexController()
-    planeMesh.removeVertexController()
-  }
-
-  def setCylConeSize(radiusFactor: Float, heightFactor: Float, planeMesh: Mesh) = {
-    val demoControl = new ResizerCylCone(radiusFactor, heightFactor)
+  def setReSize(scaleX: Float, scaleY: Float,  scaleZ: Float, planeMesh: Mesh) = {
+    val demoControl = new Resizer(scaleX,scaleY,scaleZ)
     planeMesh.setVertexController(demoControl, IVertexController.PRESERVE_SOURCE_MESH)
     planeMesh.applyVertexController()
     planeMesh.removeVertexController()
@@ -376,7 +372,7 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
   val startFrameNumber = 2
 
   def stop() = {
-    if (!app.objects.nonEmpty)
+    if (app.objects.nonEmpty)
       app.world.removeAllObjects()
   }
 
@@ -453,13 +449,56 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
     flag
   }
 
+  def setScaleFactors (size: List[Double], o: Object3D, objectType: String,
+                       scaleFactors: scala.collection.mutable.Map[Object3D, Array[Double]]) = {
+    // Add the object scale factor into a map
+    val factorX =
+      if (size(0) == 0) abs(o.getMesh.getBoundingBox()(1) - o.getMesh.getBoundingBox()(0)) / 0.001
+      else abs(o.getMesh.getBoundingBox()(1) - o.getMesh.getBoundingBox()(0)) / size(0)
+    val factorY =
+      if (objectType == "Box" || objectType == "Cylinder" || objectType == "Cone") {
+        if (size(1) == 0) abs(o.getMesh.getBoundingBox()(3) - o.getMesh.getBoundingBox()(2)) / 0.001
+        else abs(o.getMesh.getBoundingBox()(3) - o.getMesh.getBoundingBox()(2)) / size(1)
+      }
+      else {
+        if (size(0) == 0) abs(o.getMesh.getBoundingBox()(3) - o.getMesh.getBoundingBox()(2)) / 0.001
+        else abs(o.getMesh.getBoundingBox()(3) - o.getMesh.getBoundingBox()(2)) / size(0)
+      }
+    val factorZ =
+      if (objectType == "Box") {
+        if (size(2) == 0) abs(o.getMesh.getBoundingBox()(5) - o.getMesh.getBoundingBox()(4)) / 0.001
+        else abs(o.getMesh.getBoundingBox()(5) - o.getMesh.getBoundingBox()(4)) / size(2)
+      }
+      else {
+        if (size(0) == 0) abs(o.getMesh.getBoundingBox()(5) - o.getMesh.getBoundingBox()(4)) / 0.001
+        else abs(o.getMesh.getBoundingBox()(5) - o.getMesh.getBoundingBox()(4)) / size(0)
+      }
+    scaleFactors += o -> Array(factorX, factorY, factorZ)
+  }
+
+  def checkSize (size: Double): Double = {
+    val newSize = if (size == 0) 0.001 else size
+    newSize
+  }
+
+  def calculateResizeFactor (o: Object3D, size: List[Double], scaleFactors: scala.collection.mutable.Map[Object3D, Array[Double]]): Array[Float] = {
+    val (xFactor, yFactor, zFactor) =
+      (if (size(0) == 0) scaleFactors(o)(0) * 0.001 / abs(o.getMesh.getBoundingBox()(1) - o.getMesh.getBoundingBox()(0))
+       else scaleFactors(o)(0) * size(0) / abs(o.getMesh.getBoundingBox()(1) - o.getMesh.getBoundingBox()(0)),
+       if (size(1) == 0) scaleFactors(o)(1) * 0.001 / abs(o.getMesh.getBoundingBox()(3) - o.getMesh.getBoundingBox()(2))
+       else scaleFactors(o)(1) * size(1) / abs(o.getMesh.getBoundingBox()(3) - o.getMesh.getBoundingBox()(2)),
+       if (size(2) == 0) scaleFactors(o)(2) * 0.001 / abs(o.getMesh.getBoundingBox()(5) - o.getMesh.getBoundingBox()(4))
+       else scaleFactors(o)(2) * size(2) / abs(o.getMesh.getBoundingBox()(5) - o.getMesh.getBoundingBox()(4)))
+    Array(xFactor.toFloat, yFactor.toFloat, zFactor.toFloat)
+  }
+
   /**
    * Moving and rotating the object
    */
   def transformObject(id: List[_], objects: scala.collection.mutable.Map[List[_], Object3D],
+                      scaleFactors: scala.collection.mutable.Map[Object3D, Array[Double]],
                       buffer: scala.collection.mutable.Buffer[List[_]],
                       currentFrame: Int) {
-
     var objID = 1
     var opaque = false
     /* Find the corresponding index of the object */
@@ -484,137 +523,133 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
     // we don't need to care about first frame, since all the objects are fresh
     if (index >= 1) {
       // reset the type and size for the object, matching the type of object first
+      val lastTempType = bufferType(buffer(index - 1))
       tempType match {
         case "Box" =>
-          val lastTempType = bufferType(buffer(index - 1))
-          val lastTempSize = bufferSize(buffer(index - 1))
           // the type has been changed, we need to delete the old object and create a one
           if (lastTempType != tempType) {
             // change the object in
             view.removeObject(objID)
             // Since some object need to scale, we never allow the initial size become 0
-            val sizeToSetX = if (tempSize(1) == 0) 0.001 else tempSize(1)
-            val sizeToSetY = if (tempSize(0) == 0) 0.001 else tempSize(0)
-            val sizeToSetZ = if (tempSize(2) == 0) 0.001 else tempSize(2)
-            objects(id) = app.drawBox(abs(sizeToSetY), abs(sizeToSetX), abs(sizeToSetZ))
+            val (sizeToSetX, sizeToSetY, sizeToSetZ) = (checkSize(tempSize(1)),
+                                                        checkSize(tempSize(0)),
+                                                        checkSize(tempSize(2)))
+            scaleFactors -= objects(id)
+            objects(id) = app.drawBox(abs(sizeToSetX), abs(sizeToSetY), abs(sizeToSetZ))
             transObject = objects(id)
-            objID = objects(id).getID // renew the object ID
+            setScaleFactors(List(sizeToSetY,sizeToSetZ,sizeToSetZ), transObject, tempType, scaleFactors)
+            objID = objects(id).getID // refresh the object ID
             view.addObject(transObject)
             transObject.setShadingMode(Object3D.SHADING_FAKED_FLAT)
-          } else if (lastTempSize != tempSize && checkResizeable(tempSize) && checkResizeable(lastTempSize)) {
+          } else if (checkResizeable(tempSize)) {
             // just need change the size
-            val (widthFactor, lengthFactor, heightFactor) = (checkResizeFactor(lastTempSize(0), tempSize(0)),
-                                                             checkResizeFactor(lastTempSize(1), tempSize(1)),
-                                                             checkResizeFactor(lastTempSize(2), tempSize(2)))
+            val (sizeToSetX, sizeToSetY, sizeToSetZ) = (checkSize(tempSize(1)),
+                                                        checkSize(tempSize(2)),
+                                                        checkSize(tempSize(0)))
+            val factors = calculateResizeFactor(transObject, List(sizeToSetZ, sizeToSetY, sizeToSetX), scaleFactors)
             val boxMesh = transObject.getMesh
-            app.setBoxSize(lengthFactor.toFloat, widthFactor.toFloat, heightFactor.toFloat, boxMesh)
+            app.setReSize(factors(0), factors(1), factors(2), boxMesh)
           }
         case "Cylinder" => // we don't need to care about first frame, since all the objects are fresh
-          val lastTempType = bufferType(buffer(index - 1))
-          val lastTempSize = bufferSize(buffer(index - 1))
           // the type has been changed, we need to delete the old object and create a one
           if (lastTempType != tempType) {
             // change the object in
             view.removeObject(objID)
-            val sizeToSetR = if (tempSize(0) == 0) 0.001 else tempSize(0)
-            val sizeToSetS = if (tempSize(1) == 0) 0.001 else tempSize(1)
+            val (sizeToSetR, sizeToSetS) = (checkSize(tempSize(0)), checkSize(tempSize(1)))
+            scaleFactors -= objects(id)
             objects(id) = Primitives.getCylinder(20, abs(sizeToSetR.toFloat), abs(sizeToSetS / (2 * sizeToSetR)).toFloat)
             transObject = objects(id)
-            objID = objects(id).getID // renew the object ID
+            setScaleFactors(tempSize, transObject, tempType, scaleFactors)
+            objID = objects(id).getID // refresh the object ID
             view.addObject(transObject)
             transObject.setShadingMode(Object3D.SHADING_FAKED_FLAT)
-          } else if (lastTempSize != tempSize && checkResizeable(tempSize) && checkResizeable(lastTempSize)) {
+          } else if (checkResizeable(tempSize)) {
             // just need change the size
-            val (radiusFactor, heightFactor) = (checkResizeFactor(lastTempSize(0), tempSize(0)),
-                                                checkResizeFactor(lastTempSize(1), tempSize(1)))
+            val (sizeToSetR, sizeToSetS) = (checkSize(tempSize(0)), checkSize(tempSize(1)))
+            val factors = calculateResizeFactor(transObject, List(sizeToSetR, sizeToSetS, sizeToSetR), scaleFactors)
             val boxMesh = transObject.getMesh
-            app.setCylConeSize(radiusFactor.toFloat, heightFactor.toFloat, boxMesh)
+            app.setReSize(factors(0), factors(1), factors(2), boxMesh)
           }
         case "Cone" => // we don't need to care about first frame, since all the objects are fresh
-          val lastTempType = bufferType(buffer(index - 1))
-          val lastTempSize = bufferSize(buffer(index - 1))
           // the type has been changed, we need to delete the old object and create a one
           if (lastTempType != tempType) {
             // change the object in
             view.removeObject(objID)
-            val sizeToSetR = if (tempSize(0) == 0) 0.001 else tempSize(0)
-            val sizeToSetS = if (tempSize(1) == 0) 0.001 else tempSize(1)
+            val (sizeToSetR, sizeToSetS) = (checkSize(tempSize(0)), checkSize(tempSize(1)))
+            scaleFactors -= objects(id)
             objects(id) = Primitives.getCone(20, abs(sizeToSetR.toFloat), abs(sizeToSetS / (sizeToSetR * 2)).toFloat)
             transObject = objects(id)
-            objID = objects(id).getID // renew the object ID
+            setScaleFactors(tempSize, transObject, tempType, scaleFactors)
+            objID = objects(id).getID // refresh the object ID
             view.addObject(transObject)
-          } else if (lastTempSize != tempSize && checkResizeable(tempSize) && checkResizeable(lastTempSize)) {
+          } else if (checkResizeable(tempSize)) {
             // just need change the size
-            val (radiusFactor, heightFactor) = (checkResizeFactor(lastTempSize(0), tempSize(0)),
-                                                checkResizeFactor(lastTempSize(1), tempSize(1)))
+            val (sizeToSetR, sizeToSetS) = (checkSize(tempSize(0)), checkSize(tempSize(1)))
+            val factors = calculateResizeFactor(transObject, List(sizeToSetR, sizeToSetS, sizeToSetR), scaleFactors)
             val boxMesh = transObject.getMesh
-            app.setCylConeSize(radiusFactor.toFloat, heightFactor.toFloat, boxMesh)
+            app.setReSize(factors(0), factors(1), factors(2), boxMesh)
           }
         case "Sphere" => // we don't need to care about first frame, since all the objects are fresh
-          val lastTempType = bufferType(buffer(index - 1))
-          val lastTempSize = bufferSize(buffer(index - 1))
           // the type has been changed, we need to delete the old object and create a one
           if (lastTempType != tempType) {
             // change the object in
             view.removeObject(objID)
-            val sizeToSetR = if (tempSize(0) == 0) 0.001 else tempSize(0)
+            val sizeToSetR = checkSize(tempSize(0))
+            scaleFactors -= objects(id)
             objects(id) = Primitives.getSphere(10, abs(sizeToSetR.toFloat))
             transObject = objects(id)
-            objID = objects(id).getID // renew the object ID
+            setScaleFactors(tempSize, transObject, tempType, scaleFactors)
+            objID = objects(id).getID // refresh the object ID
             view.addObject(transObject)
-          } else if (lastTempSize != tempSize && checkResizeable(tempSize) && checkResizeable(lastTempSize)) {
+          } else if (checkResizeable(tempSize)) {
             // just need change the size
-            val radiusFactor = checkResizeFactor(lastTempSize(0), tempSize(0))
-            transObject.scale(radiusFactor.toFloat)
+            val sizeToSetR = checkSize(tempSize(0))
+            val factors = calculateResizeFactor(transObject, List(sizeToSetR, sizeToSetR, sizeToSetR), scaleFactors)
+            val boxMesh = transObject.getMesh
+            app.setReSize(factors(0), factors(1), factors(2), boxMesh)
           }
         case "Text" =>
-          val lastTempType = bufferType(buffer(index - 1))
-          val lastTempSize = bufferSize(buffer(index - 1))
           val lastTempContent = bufferString(buffer(index-1))
           // the type has been changed, we need to delete the old object and create a one
           if ((lastTempType != tempType || lastTempContent != tempContent) && !tempContent.isEmpty) {
             // change the object in
             view.removeObject(objID)
-            val sizeToSetR = if (tempSize(0) == 0) 0.001 else tempSize(0)
+            val sizeToSetR = checkSize(tempSize(0))
+            scaleFactors -= objects(id)
             objects(id) = buildText(tempContent, sizeToSetR)
             transObject = objects(id)
-            objID = objects(id).getID // renew the object ID
+            setScaleFactors(tempSize, transObject, tempType, scaleFactors)
+            objID = objects(id).getID // refresh the object ID
             view.addObject(transObject)
-          } else if (lastTempSize != tempSize && checkResizeable(tempSize) && checkResizeable(lastTempSize)) {
+          } else if (checkResizeable(tempSize)) {
             // just need change the size
-            val radiusFactor = checkResizeFactor(lastTempSize(0), tempSize(0))
+            val sizeToSetR = checkSize(tempSize(0))
+            val factors = calculateResizeFactor(transObject, List(sizeToSetR, sizeToSetR, sizeToSetR), scaleFactors)
             val boxMesh = transObject.getMesh
-            app.setBoxSize(radiusFactor.toFloat, radiusFactor.toFloat, radiusFactor.toFloat, boxMesh)
+            app.setReSize(factors(0), factors(1), factors(2), boxMesh)
           }
         case "OBJ" =>
-          val lastTempType = bufferType(buffer(index - 1))
-          val lastTempSize = bufferSize(buffer(index - 1))
           val lastTempPath = bufferString(buffer(index -1))
           // the type has been changed, we need to delete the old object and create a one
           if ((lastTempType != tempType || tempPath != lastTempPath) && !tempPath.isEmpty) {
             // change the object in
             view.removeObject(objID)
-            val sizeToSetR = if (tempSize(0) == 0) 0.001 else tempSize(0) / 50
+            val sizeToSetR = checkSize(tempSize(0) / 50)
+            scaleFactors -= objects(id)
             objects(id) = loadObj(tempPath, sizeToSetR)
             transObject = objects(id)
-            objID = objects(id).getID // renew the object ID
-            view.addObject(transObject)
-          } else if (lastTempSize != tempSize && checkResizeable(tempSize) && checkResizeable(lastTempSize)) {
+            setScaleFactors(tempSize, transObject, tempType, scaleFactors)
+            objID = objects(id).getID // refresh the object ID
+          } else if (checkResizeable(tempSize)) {
             // just need change the size
-            val radiusFactor = checkResizeFactor(lastTempSize(0), tempSize(0))
+            val sizeToSetR = checkSize(tempSize(0) / 50)
+            val factors = calculateResizeFactor(transObject, List(sizeToSetR, sizeToSetR, sizeToSetR), scaleFactors)
             val boxMesh = transObject.getMesh
-            app.setBoxSize(radiusFactor.toFloat, radiusFactor.toFloat, radiusFactor.toFloat, boxMesh)
+            app.setReSize(factors(0), factors(1), factors(2), boxMesh)
           }
         case _ => throw ShouldNeverHappen()
       }
     }
-
-    def checkResizeFactor(lastSizeToCheck: Double, newsizeToCheck: Double): Double =
-    // if size of object at x step is 0, we set it to 0.001 for calculation
-        if (lastSizeToCheck == 0 && newsizeToCheck != 0) abs(newsizeToCheck / 0.001)
-        else if (lastSizeToCheck == 0 && newsizeToCheck == 0) 1
-        else if (lastSizeToCheck != 0 && newsizeToCheck == 0) abs(0.001 / lastSizeToCheck)
-        else abs(newsizeToCheck / lastSizeToCheck)
 
     if (transObject != null) {
       // reset the color for the object
@@ -628,11 +663,10 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
       val transVector = tempTransVector.calcSub(transObject.getTransformedCenter)
       transObject.translate(transVector)
 
-      transObject.build()
-      if (tempType == "Text") {
-        transObject.setRotationPivot(new SimpleVector(0,0,0))
-        transObject.setCenter(new SimpleVector(0,0,0))
-      }
+      if (tempType != "Text")
+        CustomObject3D.partialBuild(transObject, false)
+      else
+        CustomObject3D.partialBuild(transObject, true)
     }
   }
 
@@ -641,11 +675,11 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
       // acumen objects
       for ((objectNumber, buffer) <- map) {
         // 3d objects within
-        if (firstFrame(buffer) <= currentFrame && lastFrame(buffer) >= currentFrame) {
+        if (firstFrame(buffer) <= currentFrame && totalFrames >= currentFrame) {
           if (!app.objects.contains(List(id, objectNumber))) {
             matchingObject(List(id, objectNumber), buffer, currentFrame)
           } else {
-            transformObject(List(id, objectNumber), app.objects, buffer, currentFrame)
+            transformObject(List(id, objectNumber), app.objects, app.scaleFactors, buffer, currentFrame)
           }
         } else {
           if (app.objects.contains(List(id, objectNumber))) {
@@ -670,12 +704,15 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
           renderCurrentFrame()
           if (currentFrame == totalFrames) {
             // Animation is over
-            emitProgress(100)
+            slider.setProgress3D(100)
+            slider.setTime(endTime.toFloat)
             destroy = true
             pause = true
           }
           if (totalFrames > 0){
-            emitProgress(currentFrame * 100 / totalFrames)
+            val percentage = currentFrame * 100 / totalFrames
+            slider.setProgress3D(percentage)
+            slider.setTime(((percentage / 100f) * endTime).toFloat)
           }
           if (currentFrame < totalFrames)
             currentFrame += 1
@@ -687,8 +724,8 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
   reactions += {
     case e: scala.swing.event.MouseDragged =>
       currentFrame = slider.bar.value * totalFrames / 100
-      emitProgress(slider.bar.value)
-      //publish(Playing3d())
+      slider.setProgress3D(slider.bar.value)
+      slider.setTime(((slider.bar.value / 100f) * endTime).toFloat)
       if (currentFrame < 2)
         currentFrame = startFrameNumber
       if (currentFrame > totalFrames)
@@ -800,7 +837,7 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
     val (text, path) =
       if (index >= 0 && index < buffer.size)
         (if (name == "Text") bufferString(buffer(index)) else " ",
-          if (name == "OBJ") bufferString(buffer(index)) else " ")
+         if (name == "OBJ")  bufferString(buffer(index)) else " ")
       else (" ", " ")
     if ((buffer(index)(5) == "transparent") && (index >= 0 && index < buffer.size))
       opaque = true
@@ -808,29 +845,27 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
     val newObject = name match {
       case "Box" =>
         // Since some object need to scale, we never allow the initial size become 0
-        val sizeToSetX = if (size(1) == 0) 0.001 else size(1)
-        val sizeToSetY = if (size(0) == 0) 0.001 else size(0)
-        val sizeToSetZ = if (size(2) == 0) 0.001 else size(2)
+        val (sizeToSetX, sizeToSetY, sizeToSetZ) = (checkSize(size(1)),
+                                                    checkSize(size(0)),
+                                                    checkSize(size(2)))
         app.drawBox(abs(sizeToSetX), abs(sizeToSetY), abs(sizeToSetZ))
       case "Cylinder" =>
-        val sizeToSetR = if (size(0) == 0) 0.001 else size(0)
-        val sizeToSetS = if (size(1) == 0) 0.001 else size(1)
+        val (sizeToSetR, sizeToSetS) = (checkSize(size(0)), checkSize(size(1)))
         Primitives.getCylinder(20, abs(sizeToSetR).toFloat, abs(sizeToSetS / (sizeToSetR * 2)).toFloat)
       case "Cone" =>
-        val sizeToSetR = if (size(0) == 0) 0.001 else size(0)
-        val sizeToSetS = if (size(1) == 0) 0.001 else size(1)
+        val (sizeToSetR, sizeToSetS) = (checkSize(size(0)), checkSize(size(1)))
         Primitives.getCone(20, abs(sizeToSetR.toFloat), abs(sizeToSetS / (sizeToSetR * 2)).toFloat)
       case "Sphere" =>
-        val sizeToSetR = if (size(0) == 0) 0.001 else size(0)
+        val sizeToSetR = checkSize(size(0))
         Primitives.getSphere(20, abs(sizeToSetR.toFloat))
       case "Text" =>
-        val sizeToSetR = if (size(0) == 0) 0.001 else size(0)
+        val sizeToSetR = checkSize(size(0))
         if (!text.isEmpty)  // model err, do nothing
           buildText(text, sizeToSetR)
         else
           null
       case "OBJ" =>
-        val sizeToSetR = if (size(0) == 0) 0.001 else size(0) / 50
+        val sizeToSetR = checkSize(size(0) / 50)
         if (!path.isEmpty)  // model err, do nothing
           loadObj(path, sizeToSetR)
         else
@@ -851,13 +886,20 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
       val transVector = tempTransVector.calcSub(newObject.getTransformedCenter)
       newObject.translate(transVector)
 
+      // calculate resize factor for object
+      if (name == "Box")
+        setScaleFactors(List(size(0), size(2), size(1)), newObject, name, app.scaleFactors)
+      else
+        setScaleFactors(size, newObject, name, app.scaleFactors)
       app.objects -= c
       app.objects += c.toList -> newObject
       view.addObject(newObject)
-      newObject.build()
-      if (name == "Text") {
+      if (name != "Text")
+        CustomObject3D.partialBuild(newObject, false)
+      else {
         newObject.setRotationPivot(new SimpleVector(0,0,0))
         newObject.setCenter(new SimpleVector(0,0,0))
+        CustomObject3D.partialBuild(newObject, true)
       }
     }
   }
@@ -899,10 +941,6 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
     tranObjectRotMatrix.matMul(tranObjectRotTempMat)
     rotateObject.setRotationMatrix(tranObjectRotMatrix)
   }
-
-  // Update the slider value
-  private def emitProgress(p: Int) = App.actor ! Progress3d(p)
-
 }
 
 // Transparent box
@@ -915,7 +953,7 @@ class setGlass(color: Color, objectA: Object3D, transparancy: Int) {
 
 // vertax controller classes
 
-class ResizerBox(xFactor: Float, yFactor: Float, zFactor: Float) extends GenericVertexController {
+class Resizer(xFactor: Float, yFactor: Float, zFactor: Float) extends GenericVertexController {
 
   val XFactor = xFactor
   val YFactor = yFactor
@@ -933,37 +971,43 @@ class ResizerBox(xFactor: Float, yFactor: Float, zFactor: Float) extends Generic
   }
 }
 
-class ResizerCylCone(radiusFactor: Float, heightFactor: Float) extends GenericVertexController {
-
-  val RadiusFactor = radiusFactor
-  val HeightFactor = heightFactor
-
-  def apply() {
-    val s = getSourceMesh
-    val d = getDestinationMesh
-
-    for (i <- 0 until s.length) {
-      d(i).x = s(i).x * RadiusFactor
-      d(i).z = s(i).z * RadiusFactor
-      d(i).y = s(i).y * HeightFactor
-    }
-  }
-}
-
 //Axis
 class coAxis {
-  val cylinders: Array[Object3D] = new Array[Object3D](3)
-  for (x <- 0 until cylinders.length) {
-    cylinders(x) = Primitives.getCylinder(50, 0.01f, 400f)
-    cylinders(x).build()
+  val cylinders: Array[Object3D] = new Array[Object3D](9)
+  for (x <- 0 until 3) {
+    cylinders(x) = Primitives.getCylinder(12, 0.01f, 120f)
+  }
+  for (x <- 3 until 6) {
+    cylinders(x) = Primitives.getCone(12, 0.1f, 2.5f)
+  }
+  cylinders(8) = Loader.load3DS(getClass.getResourceAsStream("Uppercase_Characters" + File.separator + "X.3ds"), 0.3f)(0)
+  cylinders(7) = Loader.load3DS(getClass.getResourceAsStream("Uppercase_Characters" + File.separator + "Y.3ds"), 0.3f)(0)
+  cylinders(6) = Loader.load3DS(getClass.getResourceAsStream("Uppercase_Characters" + File.separator + "Z.3ds"), 0.3f)(0)
+  for (i <- 6 to 8) {
+    cylinders(i).setRotationPivot(new SimpleVector(0,0,0))
+    cylinders(i).setCenter(new SimpleVector(0,0,0))
   }
   new setGlass(Color.BLUE, cylinders(0), -1)  //Z
+  new setGlass(Color.BLUE, cylinders(3), -1)
+  new setGlass(Color.BLUE, cylinders(6), -1)
   new setGlass(Color.RED, cylinders(1), -1)   //X
+  new setGlass(Color.RED, cylinders(4), -1)
+  new setGlass(Color.RED, cylinders(7), -1)
   new setGlass(Color.GREEN, cylinders(2), -1) //Y
+  new setGlass(Color.GREEN, cylinders(5), -1)
+  new setGlass(Color.GREEN, cylinders(8), -1)
 
-  cylinders(0).translate(0f, -3f, 0f) // if use 30f then use y = -3(-2.5)
+  cylinders(0).translate(0f, -1.2f, 0f)
+  cylinders(3).translate(0f, -2.4f, 0f)
+  cylinders(6).translate(-0.2f, -2.4f, 0f)
   cylinders(1).rotateZ(0.5f * -Pi.toFloat)
-  cylinders(1).translate(-3f, 0f, 0f)
+  cylinders(1).translate(-1.2f, 0f, 0f)
+  cylinders(4).translate(-2.4f, -0.2f, 0f)
+  cylinders(4).rotateZ(0.5f * Pi.toFloat)
+  cylinders(7).translate(-2.4f, -0.2f, 0f)
   cylinders(2).rotateX(-0.5f * Pi.toFloat)
-  cylinders(2).translate(0f, 0f, -3f)
+  cylinders(2).translate(0f, 0f, -1.2f)
+  cylinders(5).translate(0f, -0.2f, -2.4f)
+  cylinders(5).rotateX(-0.5f * Pi.toFloat)
+  cylinders(8).translate(0f, -0.2f, -2.4f)
 }

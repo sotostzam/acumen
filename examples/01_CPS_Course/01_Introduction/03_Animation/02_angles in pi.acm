@@ -10,9 +10,9 @@ initially
 always
   angle' = rate &
   _3D = 
-  (Text center=(-2.0,0,0) size=0.5 color=red rotation=(angle,0,0) content=
+  (Text center=(-2.0,0,0) size=0.5 color=red rotation=(angle-pi/2,0,0) content=
    angle/pi * 10,
-   Text center=(-1.5  ,0,0) size=0.5 color=green rotation=(angle,0,0) content=
+   Text center=(-1.5  ,0,0) size=0.5 color=green rotation=(angle-pi/2,0,0) content=
    "/10 * pi radians") &
 
   if (angle>pi/2) then // Start going back when you get to pi/2
