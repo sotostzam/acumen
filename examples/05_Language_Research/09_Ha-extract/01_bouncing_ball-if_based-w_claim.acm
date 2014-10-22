@@ -10,10 +10,10 @@
 
 model Main(simulator) =
   initially
-    x = 5 & x' = 0 & x'' = 0
+    x = 5, x' = 0, x'' = 0
   always
-  claim x >= 0 &
-  if x <= 0 && x' <= 0 then
+  claim x >= 0,
+  if x <= 0&& x' <= 0 then
     x' + == -0.5 * x'
-  noelse &
+  noelse,
   x'' == -10

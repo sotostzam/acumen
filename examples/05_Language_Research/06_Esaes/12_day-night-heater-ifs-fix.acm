@@ -13,38 +13,38 @@
 
 model Main(simulator) =
   initially
-    x = 10 & x' = 10 &
-    time = 0 & time' = 1 &
-    heating = "on" & 
+    x = 10, x' = 10,
+    time = 0, time' = 1,
+    heating = "on", 
     period  = "day" 
   always
   // clock
-  time' == 1 &
-  if period == "day" && time > 12 then
+  time' == 1,
+  if period == "day"&& time > 12 then
     period+ == "night" 
-  noelse &
-  if period == "night" && time > 24 then
-    period+ == "day" &
+  noelse,
+  if period == "night"&& time > 24 then
+    period+ == "day",
     time+ == 0 
-  noelse &
+  noelse,
   // heater continuous
   if heating == "on" then
     x' == 10
   else
     x' == -5-x
-  &
+ ,
   // heater discrete
   if period == "day" then
-    if heating == "off" && x < 19 then 
+    if heating == "off"&& x < 19 then 
       heating+ == "on"
-    noelse &
-    if heating == "on" && x > 23  then
+    noelse,
+    if heating == "on"&& x > 23  then
       heating+ == "off"
     noelse
-  noelse &
+  noelse,
   if period == "night" then
     heating+ == "off"
-  noelse &
+  noelse,
   simulator.endTime+ == 48
 
 // Note: In this example, nested match statements with [have been

@@ -64,7 +64,7 @@ _3D=[["Text",[-1.5*cos(phi),-1.5*sin(phi),1.65],0.3,[0.1,0.1,0.1],[pi/2,0,phi+0.
 
 end;
 
-if (t>4 && t<8)
+if (t>4&& t<8)
 goal_one=pi/3*sin(pi/2*t);goal_two=0; goal_three=0;
 error_one=goal_one-theta_one;
 error_one'=-theta_one';
@@ -81,7 +81,7 @@ torque_three=kp_three*4*error_three+kd_three*error_three';
 _3D=[["Text",[-1.5*cos(phi),-1.5*sin(phi),1.65],0.3,[0.1,0.1,0.1],[pi/2,0,phi+0.2],"Pronation/Supination"],["Text",[2.4*cos(phi),2.4*sin(phi),-0.175],0.2,[1,0,0],[pi/2,0,phi-0.2],"Kinetic"],["Text",[1.5*cos(phi),1.5*sin(phi),-0.15],0.2,[0,0,1],[pi/2,0,phi-0.2],"Potential"]];
 end;
 
-if (t>8 && t<12)
+if (t>8&& t<12)
 goal_one=0;goal_two=pi/3*sin(pi/2*t); goal_three=0;
 error_one=goal_one-theta_one;
 error_one'=-theta_one';
@@ -98,7 +98,7 @@ torque_three=kp_three*4*error_three+kd_three*error_three';
 _3D=[["Text",[-2*cos(phi),-2*sin(phi),1.65],0.3,[0.1,0.1,0.1],[pi/2,0,phi+0.2],"Flexion/Extension"],["Text",[2.4*cos(phi),2.4*sin(phi),-0.175],0.2,[1,0,0],[pi/2,0,phi-0.2],"Kinetic"],["Text",[1.5*cos(phi),1.5*sin(phi),-0.15],0.2,[0,0,1],[pi/2,0,phi-0.2],"Potential"]];
 end;
 
-if (t>12 && t<16)
+if (t>12&& t<16)
 goal_one=0;goal_two=0; goal_three=pi/3*sin(pi/2*t);
 error_one=goal_one-theta_one;
 error_one'=-theta_one';

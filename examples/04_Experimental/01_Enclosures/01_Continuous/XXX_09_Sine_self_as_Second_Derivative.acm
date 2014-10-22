@@ -6,8 +6,8 @@
 
 model Main(simulator) =
   initially
-    x   = 3.1 & 
-    x'  = 0   & 
+    x   = 3.1, 
+    x'  = 0  , 
     x'' = 0
   always
   x'' == -10*sin(x)

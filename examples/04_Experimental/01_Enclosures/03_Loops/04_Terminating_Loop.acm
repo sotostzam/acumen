@@ -6,17 +6,17 @@
 
 model Main(simulator) =
 initially 
-  mode = "one" & 
+  mode = "one", 
   x    = [0.0..1.0] // Non-constant reset 
 always
   match mode with [
     "one" ->
       if true then
-        mode+ == "one" &
+        mode+ == "one",
         x+ == x/2
       noelse
-  ] &
-  simulator.endTime+ == 2.0 &
+  ],
+  simulator.endTime+ == 2.0,
   simulator.minLocalizationStep+ == 1.0
 
 // Note:  This model is an example of a looping 

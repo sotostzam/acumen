@@ -6,16 +6,16 @@
 
 model Main(simulator) =
   initially 
-    x = 0.1 & x' = -0.1 &
+    x = 0.1, x' = -0.1,
     mode = "on" 
   always
   match mode with [
     "on" -> 
       x' == -x // Linear field
-  ] &
-  simulator.endTime+ == 1 &
-  simulator.minSolverStep+ == 0.25 &
-  simulator.minLocalizationStep+ == 0.25 &
+  ],
+  simulator.endTime+ == 1,
+  simulator.minSolverStep+ == 0.25,
+  simulator.minLocalizationStep+ == 0.25,
   simulator.minComputationImprovement+ == 0
 
 // Note:  A large minSolverStep gives a large enclosure 

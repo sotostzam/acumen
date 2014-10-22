@@ -4,20 +4,20 @@
  */
 model Main(simulator) =
   initially
-    d = 1 & d' = -2 &
-    s = 1/2 &
+    d = 1, d' = -2,
+    s = 1/2,
     mode = ""  
   always
   match mode with [
     "" claim s <= abs(d) -> 
       if d == s then
-        s+ == s/2 & 
+        s+ == s/2, 
         mode+ == "" 
-      noelse &
+      noelse,
       d' == -(d + 1) 
-  ] &
-  simulator.startTime+ == 0 &
-  simulator.endTime+ == 0.8 &
-  simulator.minSolverStep+ == 0.01 &
-  simulator.minLocalizationStep+ == 0.001 &
+  ],
+  simulator.startTime+ == 0,
+  simulator.endTime+ == 0.8,
+  simulator.minSolverStep+ == 0.01,
+  simulator.minLocalizationStep+ == 0.001,
   simulator.minComputationImprovement+ == 0.0001 

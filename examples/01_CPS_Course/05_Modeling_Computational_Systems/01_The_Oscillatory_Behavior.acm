@@ -5,7 +5,7 @@
 
 model Main (simulator)  =
 initially 
-  x = 1 & x' = 0 & x'' = 0  
+  x = 1, x' = 0, x'' = 0  
 always
   x'' = -10*x
  

@@ -91,7 +91,7 @@ class InterpreterTest extends FunSuite with ShouldMatchers {
       model Ball(x, x', x'', y,y',y'') = 
         initially
         always
-        self.y'' = -9.8&
+        self.y'' = -9.8,
         self.x'' = 0
       
       model Main(mode, simulation) = initially

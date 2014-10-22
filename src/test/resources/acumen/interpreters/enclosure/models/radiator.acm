@@ -1,26 +1,26 @@
 model Main (simulator) =
   initially
-    mode = "on"& x = 22 & x' = 0 
+    mode = "on", x = 22 , x' = 0 
   always
   match mode with[
     "on" claim x <= 25 -> 
       if x == 25 then
         mode + == "off"
-      noelse &
+      noelse ,
       x' = 100 - x
     |"off" claim x >= 19 -> 
       if x == 19 then
         mode + == "on"
-      noelse &
+      noelse ,
       x' = - x
-  ] &
-  simulator.bigDecimalDigits + == 10&
-  simulator.startTime + == 0&
-  simulator.endTime + == 2&
-  simulator.initialPicardPadding + == 0&
-  simulator.picardImprovements + == 20&
-  simulator.maxPicardIterations + == 200&
-  simulator.maxEventTreeSize + == 30&
-  simulator.minSolverStep + == 0.01&
-  simulator.minLocalizationStep + == 0.001&
+  ] ,
+  simulator.bigDecimalDigits + == 10,
+  simulator.startTime + == 0,
+  simulator.endTime + == 2,
+  simulator.initialPicardPadding + == 0,
+  simulator.picardImprovements + == 20,
+  simulator.maxPicardIterations + == 200,
+  simulator.maxEventTreeSize + == 30,
+  simulator.minSolverStep + == 0.01,
+  simulator.minLocalizationStep + == 0.001,
   simulator.minComputationImprovement + == 0.0001  

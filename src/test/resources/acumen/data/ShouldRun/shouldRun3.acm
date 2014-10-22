@@ -4,64 +4,64 @@
 */
 
 // Glucose  =  45
-// Insulin  =  5 * 1000000 &
+// Insulin  =  5 * 1000000,
 model GlucoseMinimalModel(mode,time,x,x',g,g',glucose,insulin)
   = initially
-    p1  =  0.03168360775 &
-    p2  =  0.0123362991 &
-    p3  =  4.891692162 / 1000000 &
-    ib  =  0 &//11 &
-    gb  =  92 &
-    h   =  79.03532257 &
-    gamma  =  0.003911687955 &
-    n   =  0.2673230345 &
-    ra  =  create Ra(0, 0, 0) &
+    p1  =  0.03168360775,
+    p2  =  0.0123362991,
+    p3  =  4.891692162 / 1000000,
+    ib  =  0,//11,
+    gb  =  92,
+    h   =  79.03532257,
+    gamma  =  0.003911687955,
+    n   =  0.2673230345,
+    ra  =  create Ra(0, 0, 0),
     ir  =  create IR("Normal",0,0,0,0,0,0,0,0,0)
   always
   match mode with[
     "EAT" ->
-      ra + == create Ra(glucose, time, 0) &
+      ra + == create Ra(glucose, time, 0),
       mode + == "NORMAL"
     |"INJECT" ->
-      ir + == create IR("Inject", insulin,0,0,0,0,0,0,0,0) &
+      ir + == create IR("Inject", insulin,0,0,0,0,0,0,0,0),
       mode + == "NORMAL"
     |"NORMAL" ->
-    ]&
-  x' = -p2 * x + p3 * (ir.y2 - ib) &
-  g' = -x * g + p1 * (gb - g) + ra.value / 80 &
+    ],
+  x' = -p2 * x + p3 * (ir.y2 - ib),
+  g' = -x * g + p1 * (gb - g) + ra.value / 80,
   ra.time + == time
 
 model Ra(load,time,value)
   = initially
-    vmax  =  360 &
-    ta  =  0 &
-    td  =  0 &
+    vmax  =  360,
+    ta  =  0,
+    td  =  0,
     tmax  =  0
   always
   if load == 0 then
     value + == 0
   else 
     if load < 10 then
-      ta + == load * 1000 / vmax &
-      td + == load * 1000 / vmax &
+      ta + == load * 1000 / vmax,
+      td + == load * 1000 / vmax,
       if time <= ta then
         value + == time*(vmax/ta)
       else 
-        if time > ta && time < (ta+td) then
+        if time > ta&& time < (ta+td) then
           value + == vmax - vmax/td*(time-ta)
         else 
           value + == 0
     else(
-      ta + == 30 &
-      td + == 30 &
-      tmax + == (load*1000/180 - vmax/180*(ta+td) ) / (vmax/180) &
+      ta + == 30,
+      td + == 30,
+      tmax + == (load*1000/180 - vmax/180*(ta+td) ) / (vmax/180),
       if time <= ta then
         value + == time*(vmax/ta)
       else 
-        if time > ta && time <= (ta+tmax) then
+        if time > ta&& time <= (ta+tmax) then
           value + == vmax
         else 
-          if time > (ta + tmax) && time < (tmax + ta + td) then
+          if time > (ta + tmax)&& time < (tmax + ta + td) then
             value + == vmax - vmax/td*(time-ta-tmax)
           else
             value + == 0
@@ -70,27 +70,27 @@ model Ra(load,time,value)
 
 model IR(mode,injection,basal,x,x',y,y',z,z',y2)
   = initially
-    k12  =  0.017 &
-    k20  =  0.0029 &
-    k23  =  0.048 &
-    k30  =  0.133 &
-    it  =  1 &
+    k12  =  0.017,
+    k20  =  0.0029,
+    k23  =  0.048,
+    k30  =  0.133,
+    it  =  1,
     v  =  0.08 * 70000
   always
   match mode with [
     "Normal" ->
       injection + == 0
     |"Inject" ->
-      it = it - 1 &
+      it = it - 1,
       if it == 0 then
-        it + == 1 &
+        it + == 1,
         mode + == "Normal"
       noelse
      ]
-      &
-  x' = injection + basal - k12 * x &
-  y' = k12 * x - (k20+k23) * y &
-  z' = k23 * y - k30 * z &
+     ,
+  x' = injection + basal - k12 * x,
+  y' = k12 * x - (k20+k23) * y,
+  z' = k23 * y - k30 * z,
   y2 = z / v
 
 
@@ -98,13 +98,13 @@ model A() = initially
 
 model Main(sim)
   = initially
-    mode  =  "Init" &
+    mode  =  "Init",
     gmm  =  create GlucoseMinimalModel("NORMAL",sim.time,0,0,89,0,0,0)
   always
   match mode with[
     "Init" ->
-      sim.timeStep + == 1 &
-      sim.endTime + == 180 &
+      sim.timeStep + == 1,
+      sim.endTime + == 180,
       mode + == "Persist"
     |"Persist" ->
       gmm.time + == sim.time

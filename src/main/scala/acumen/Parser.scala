@@ -238,7 +238,7 @@ object Parser extends MyStdTokenParsers {
      )
 
   def inits: Parser[List[Init]] =
-    ("initially" ~> repsep(init, "&") 
+    ("initially" ~> repsep(init, ",") 
       | success(Nil))
 
   def init = name ~! "=" ~! initrhs ^^ { case x ~ _ ~ rhs => Init(x, rhs) }
@@ -247,7 +247,7 @@ object Parser extends MyStdTokenParsers {
     ("create" ~! className ~! args(expr) ^^ { case _ ~ cn ~ es => NewRhs(Var(Name(cn.x,0)), es) }
       | expr ^^ ExprRhs)
 
-  def actions = repsep(action, "&") 
+  def actions = repsep(action, ",") 
 
   def action: Parser[Action] =
     switchCase | ifThenElse | forEach | discretelyOrContinuously | claim | hypothesis
@@ -337,7 +337,7 @@ object Parser extends MyStdTokenParsers {
 
   def binding = name ~! "=" ~! expr ^^ { case x ~ _ ~ e => (x, e) }
 
-  def bindings = repsep(binding, "&") <~ opt("&")
+  def bindings = repsep(binding, ",") <~opt(",")
 
   def let:Parser[Expr] =
       positioned("let" ~! bindings ~! "in" ~! expr  ^^

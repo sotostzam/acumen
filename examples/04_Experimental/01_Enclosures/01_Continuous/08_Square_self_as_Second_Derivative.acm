@@ -5,16 +5,16 @@
 
 model Main(simulator) =
   initially
-    x    = 0 & 
-    x'   = 1 & 
-    x''  = 2 & 
+    x    = 0, 
+    x'   = 1, 
+    x''  = 2, 
     mode = ""
   always
   match mode with [
     "" ->
       x'' == -x * x/6
-  ] &
-  simulator.endTime+ == 8.0 &
+  ],
+  simulator.endTime+ == 8.0,
   simulator.minSolverStep+ == 0.1
 
 // Note:  This equation seems to have a singularity

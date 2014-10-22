@@ -8,10 +8,10 @@
 
 model Main(simulator) =
   initially
-    ns = 0 & ns' = -1 & ns'' = 0 & // Negative sine
-    cosine = 1 & cosine' = 0 
+    ns = 0, ns' = -1, ns'' = 0, // Negative sine
+    cosine = 1, cosine' = 0 
   always
-  ns''    == -ns &
+  ns''    == -ns,
   cosine' ==  ns
 
 

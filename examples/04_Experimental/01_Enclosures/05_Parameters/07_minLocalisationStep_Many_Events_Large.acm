@@ -6,24 +6,24 @@
 
 model Main (simulator) =
   initially 
-    x = 1 & x' = -1 &
+    x = 1, x' = -1,
     mode = "decreasing"
   always
   match mode with [
     "decreasing" claim x >= 0 -> 
       if x == 0 then
         mode+ == "increasing"
-      noelse &
+      noelse,
       x' == -1
   | "increasing" claim x <= 1 ->  
       if x == 1 then 
         mode+ == "decreasing"
-      noelse &
+      noelse,
       x' == 1
-  ] &
-  simulator.endTime+ == 15.0 &
-  simulator.minSolverStep+ == 15.0 &
-  simulator.minLocalizationStep+ == 0.05 &
+  ],
+  simulator.endTime+ == 15.0,
+  simulator.minSolverStep+ == 15.0,
+  simulator.minLocalizationStep+ == 0.05,
   simulator.minComputationImprovement+ == 0
 
 // Note:  A large minLocalizationStep gives large 

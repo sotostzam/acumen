@@ -16,7 +16,7 @@ model Pendulum(theta,theta',theta'',  f) =
       f + == -1
     else
       f + == 1
-    &
+   ,
 
   /* the following is
       theta'' = (f*l*cos(theta) - m*g*l*sin(theta)) / (m * l^2)
@@ -31,9 +31,9 @@ model Main(simulator) =
   always
   match mode with[
    "Init" ->
-      simulator.timeStep + == 0.1 &
-      simulator.endTime + == 100.0 &
-      create Pendulum(0.1,0,0, 0) &
+      simulator.timeStep + == 0.1,
+      simulator.endTime + == 100.0,
+      create Pendulum(0.1,0,0, 0),
       mode + == "Persist"
     |"Persist" ->
   ]

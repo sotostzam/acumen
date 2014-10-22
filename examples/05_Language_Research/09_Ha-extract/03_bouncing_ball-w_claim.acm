@@ -17,20 +17,20 @@
 
 model Main(simulator) =
   initially
-    mode = "Fly" & x = 1 & x' = 0 & x'' = 0
+    mode = "Fly", x = 1, x' = 0, x'' = 0
   always
-  simulator.timeStep+ == 0.01 &
-  simulator.endTime+ == 5.0 &
-  claim x >= 0 &
+  simulator.timeStep+ == 0.01,
+  simulator.endTime+ == 5.0,
+  claim x >= 0,
   match mode with [
     "Fly" ->
-      if x <= 0 && x' < 0 then
+      if x <= 0&& x' < 0 then
         mode+ == "Bounce"
       else
         x'' == -9.8
       
     |"Bounce" ->
-      x'+ == -x' &
+      x'+ == -x',
       mode+ == "Fly"
   ]
 

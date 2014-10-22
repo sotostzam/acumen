@@ -6,24 +6,24 @@
 
 model Main(simulator) =
   initially
-    mode= ("C1") &
-    x1'= (2) &
-    x2= (1) &
-    x1= (1) &
+    mode= ("C1"),
+    x1'= (2),
+    x2= (1),
+    x1= (1),
     x2'= (-3)
   always
   match  ((self).mode) with [
     "C1" ->
       if ((((self).x2) <= (0))) then
         ((self).mode)+ == ("D1")
-      noelse &
-      ((self).x1') == (2) &
+      noelse,
+      ((self).x1') == (2),
       ((self).x2') == (-3) 
     |"C2" -> 
       if ((((self).x1) <= (0))) then
         ((self).mode)+ == ("D2")
-      noelse &
-      ((self).x1') == (-2) &
+      noelse,
+      ((self).x1') == (-2),
       ((self).x2') == (1) 
     |"D1" ->
       if ((((self).x1) <= (0))) then
@@ -37,6 +37,6 @@ model Main(simulator) =
       else
         ((self).mode)+ == ("C1")
       
-  ]&
-  (((self).simulator).startTime)+ == (0) &
+  ],
+  (((self).simulator).startTime)+ == (0),
   (((self).simulator).endTime)+ == (2.0)

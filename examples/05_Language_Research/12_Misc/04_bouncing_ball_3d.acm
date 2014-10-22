@@ -6,35 +6,35 @@
 
 model Ball(mode, p, p', p'', m)
   = initially
-    ux  =  (1,0,0) &
-    uy  =  (0,1,0) &
+    ux  =  (1,0,0),
+    uy  =  (0,1,0),
     uz  =  (0,0,1)
   always
   match mode with [
     "Fly" ->
-      if    (uz dot p) < -0.5 && (uz dot p') < 0 
-         || (uz dot p) > 0.5  && (uz dot p') > 0 then
+      if    (uz dot p) < -0.5&& (uz dot p') < 0 
+         || (uz dot p) > 0.5 && (uz dot p') > 0 then
         mode + == "BounceZ"
       else
-        if    (ux dot p) < -0.5 && (ux dot p') < 0 
-           || (ux dot p) > 0.5  && (ux dot p') > 0 then
+        if    (ux dot p) < -0.5&& (ux dot p') < 0 
+           || (ux dot p) > 0.5 && (ux dot p') > 0 then
           mode + == "BounceX"
         else
-          if    (uy dot p) < -0.5 && (uy dot p') < 0
-             || (uy dot p) > 0.5  && (uy dot p') > 0 then
+          if    (uy dot p) < -0.5&& (uy dot p') < 0
+             || (uy dot p) > 0.5 && (uy dot p') > 0 then
             mode + == "BounceY"
           else
             p'' = (0, 0, -9.8)
                 
       
     |"BounceX" ->
-      p' + == (-(ux dot p'), (uy dot p'), (uz dot p')) &
+      p' + == (-(ux dot p'), (uy dot p'), (uz dot p')),
       mode + == "Fly"
     |"BounceY" ->
-      p' + == ((ux dot p'), -(uy dot p'), (uz dot p')) &
+      p' + == ((ux dot p'), -(uy dot p'), (uz dot p')),
       mode + == "Fly"
     |"BounceZ"->
-      p' + == ((ux dot p'), (uy dot p'), -(uz dot p')) &
+      p' + == ((ux dot p'), (uy dot p'), -(uz dot p')),
       mode + == "Fly"
   ]  
 
@@ -45,10 +45,10 @@ model Main(simulator) =
   always
   match mode with[
     "Init" ->
-      simulator.timeStep + == 0.003 &
-      simulator.endTime + == 2.0 &
+      simulator.timeStep + == 0.003,
+      simulator.endTime + == 2.0,
       create Ball("Fly", (0.6,0.6,0.9), (17,23,12), 
-                         (0,0,0), 1.0) &
+                         (0,0,0), 1.0),
       mode + == "Persist"
     |"Persist" ->
     ]

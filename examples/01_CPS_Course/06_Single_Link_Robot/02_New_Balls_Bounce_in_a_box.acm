@@ -5,45 +5,45 @@
 
 model Main(simulator) = 
 initially
-  b1 = create ball(0,0,1,0.05,red) &
-  b2 = create ball(0,0,1,0.05,blue) &
-  b3 = create ball(0,0,1,0.05,green) &
-  b4 = create ball(0,0,1,0.05,cyan) &
+  b1 = create ball(0,0,1,0.05,red),
+  b2 = create ball(0,0,1,0.05,blue),
+  b3 = create ball(0,0,1,0.05,green),
+  b4 = create ball(0,0,1,0.05,cyan),
   _3D = (Box center=(0,1,0) size=(2,-0.01,2) color=red rotation=(0,0,0),
          Box center=(1,0,0) size=(2,-0.01,2) color=green rotation=(0,0,pi/2),
          Box center=(-1,0,0) size=(2,-0.01,2) color=blue rotation=(0,0,pi/2),
          Box center=(0,0,-1) size=(2,-0.01,2) color=yellow rotation=(pi/2,0,0),
          Box center=(0,-1,-0.5) size=(2,-0.01,0.5) color=cyan rotation=(0,0,0))
 always
-  b1.l'' = -0.05 &
-  b1.theta'' = -0.05 &
+  b1.l'' = -0.05,
+  b1.theta'' = -0.05,
 
-  b2.l''= 0.1 &
-  b2.theta''= 0.1 &
+  b2.l''= 0.1,
+  b2.theta''= 0.1,
 
-  b3.l'' = -0.15 &
-  b3.theta'' = -0.15 &
+  b3.l'' = -0.15,
+  b3.theta'' = -0.15,
 
-  b4.l'' = 0.2 &
+  b4.l'' = 0.2,
   b4.theta'' = 0.2
 
 model ball(x,y,z,size,color) = 
 initially
-  theta  =  0 & theta'  =  0 & theta'' = 0 &
-  l  =  1 & l'  =  0 & l''  =  0 &
-  x' =  0 & x'' = 0 &
-  y'  =  0 &y'' = 0 &
-  z'  =  0 & z'' = -9.8 &
+  theta  =  0, theta'  =  0, theta'' = 0,
+  l  =  1, l'  =  0, l''  =  0,
+  x' =  0, x'' = 0,
+  y'  =  0,y'' = 0,
+  z'  =  0, z'' = -9.8,
   _3D  =  ()
 always
-  x'' = -y*theta''-y'*theta'-l'*sin(theta)*theta'+l''*cos(theta) &
-  y''= x*theta''+x'*theta'+l'*cos(theta)*theta' +l''*sin(theta) & 
+  x'' = -y*theta''-y'*theta'-l'*sin(theta)*theta'+l''*cos(theta),
+  y''= x*theta''+x'*theta'+l'*cos(theta)*theta' +l''*sin(theta), 
 
-  z''=-9.8 &
-  _3D = (Sphere center=(x,y,z) size=size color=color rotation=(0,0,0)) &
+  z''=-9.8,
+  _3D = (Sphere center=(x,y,z) size=size color=color rotation=(0,0,0)),
 
-  if z<-0.95 then z' + ==-0.9*z' &z + == -0.95 noelse&
-  if x>0.95  then x' + == -0.1*x' & x + == 0.95 noelse&
-  if y>0.95  then y' + == -0.1*y' & y + == 0.95 noelse&
-  if x<-0.95 then x' + == -0.1*x' &  x + == -0.95 noelse&
-  if y<-0.95 then y' + == -0.1*y' &  y + == -0.95 noelse
+  if z<-0.95 then z' + ==-0.9*z',z + == -0.95 noelse,
+  if x>0.95  then x' + == -0.1*x', x + == 0.95 noelse,
+  if y>0.95  then y' + == -0.1*y', y + == 0.95 noelse,
+  if x<-0.95 then x' + == -0.1*x',  x + == -0.95 noelse,
+  if y<-0.95 then y' + == -0.1*y',  y + == -0.95 noelse

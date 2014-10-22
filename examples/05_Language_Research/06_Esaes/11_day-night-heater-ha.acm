@@ -10,36 +10,36 @@
 
 model Main(simulator) =
   initially
-    x = 10 & x' = 10 &
-    time = 0 & time' = 1 &
-    heating = "on" & 
+    x = 10, x' = 10,
+    time = 0, time' = 1,
+    heating = "on", 
     period  = "day" 
   always
-  time' == 1 &
+  time' == 1,
   match period with [
     "day" -> // Hybrid behaviour during the day
       if time > 12 then
         period+ == "night"
-      noelse &
+      noelse,
       match heating with [
         "on" ->
           if x > 23 then
             heating+ == "off"
-          noelse &
+          noelse,
           x' == 10
       | "off" ->
           if x < 19 then
             heating+ == "on"
-          noelse &
+          noelse,
           x' == -5-x
       ]
   | "night" ->
       if time > 24 then
-        time+ == 0 &
+        time+ == 0,
         period+ == "day" 
-      noelse &
+      noelse,
       x' == -5-x // Continuous behaviour at night
-  ] &
+  ],
   simulator.endTime+ == 48
 
 // Note: Model is a hierarchical hybird automata, expressed as 

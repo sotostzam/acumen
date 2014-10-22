@@ -4,18 +4,18 @@
 //////////////////////////////////////////////////
 model Main(simulator) =
   initially 
-    x = 0 & x' = 1 & x'' = 0 & mode = "on" 
+    x = 0, x' = 1, x'' = 0, mode = "on" 
   always
-  simulator.bigDecimalDigits+ == 10 &
-  simulator.startTime+ == 0 &
-  simulator.endTime+ == 7 &
-  simulator.initialPicardPadding+ == 0 &
-  simulator.picardImprovements+ == 20 &
-  simulator.maxPicardIterations+ == 200 &
-  simulator.maxEventTreeSize+ == 30 &
-  simulator.minSolverStep+ == 0.01 &
-  simulator.minLocalizationStep+ == 0.001 &
-  simulator.minComputationImprovement+ == 0.001 &  
+  simulator.bigDecimalDigits+ == 10,
+  simulator.startTime+ == 0,
+  simulator.endTime+ == 7,
+  simulator.initialPicardPadding+ == 0,
+  simulator.picardImprovements+ == 20,
+  simulator.maxPicardIterations+ == 200,
+  simulator.maxEventTreeSize+ == 30,
+  simulator.minSolverStep+ == 0.01,
+  simulator.minLocalizationStep+ == 0.001,
+  simulator.minComputationImprovement+ == 0.001,  
   match mode with [
     "on" -> 
       x'' == -x 

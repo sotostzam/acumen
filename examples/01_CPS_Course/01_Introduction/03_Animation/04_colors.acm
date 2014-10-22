@@ -3,11 +3,11 @@
 
 model Main(simulator) = 
 initially
-  t   =  0 &
-  t'  =  1 &
+  t   =  0,
+  t'  =  1,
   _3D  =  () 
 always
-  t' = 1 &
+  t' = 1,
   _3D + == 
   (Text center=(-2,0,0) size=0.5 color=(t/10,(1+sin(t))/2,(1+cos(t))/2) 
    rotation=(0,0,0) content="Color my world!",

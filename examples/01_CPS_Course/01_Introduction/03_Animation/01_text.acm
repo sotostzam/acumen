@@ -3,11 +3,11 @@
 
 model Main(simulator) = 
 initially
- size  =  0.5 &   // Initial size
- size' =  1/2 &   // Rate of increase of size with time
+ size  =  0.5,   // Initial size
+ size' =  1/2,   // Rate of increase of size with time
  _3D  =  ()     // This is just the initial value
 always
- size' = 1/2 &
+ size' = 1/2,
  _3D =  
    (Text 
      center=(-2.2,0,0) 
