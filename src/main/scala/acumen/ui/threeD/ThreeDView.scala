@@ -534,16 +534,16 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
     val index = currentFrame - bufferFrame(buffer.head)
     /* Get the 3D information of the object at that frame	*/
     val (tempPosition, tempAngle, tempColor, tempSize, tempType) =
-      if (index >= 0 && index < buffer.size)
+      if (index >= 0 && index < buffer.size + 1)
         (bufferPosition(buffer(index)) , bufferAngle(buffer(index)), bufferColor(buffer(index)),
         bufferSize(buffer(index)), bufferType(buffer(index)))
       else (Array(0.0,0.0,0.0), Array(0.0,0.0,0.0), List(0.0,0.0,0.0), List(0.0), " ")
     val (tempContent, tempPath) =
-    if (index >= 0 && index < buffer.size)
+    if (index >= 0 && index < buffer.size + 1)
       (if (tempType == "Text") bufferString(buffer(index)) else " ",
        if (tempType == "OBJ") bufferString(buffer(index)) else " ")
     else (" ", " ")
-    if ((buffer(index)(5) == "transparent") && (index >= 0 && index < buffer.size))
+    if ((buffer(index)(5) == "transparent") && (index >= 0 && index < buffer.size + 1))
         opaque = true
     // get the object ID
     if (objects.contains(id)) {
@@ -870,16 +870,16 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
     val index = currentFrame - bufferFrame(buffer.head)
     /* Get the 3D information of the object at that frame	*/
     val (position, angle, color, size, name) =
-      if (index >= 0 && index < buffer.size)
+      if (index >= 0 && index < buffer.size + 1)
         (bufferPosition(buffer(index)) , bufferAngle(buffer(index)), bufferColor(buffer(index)),
           bufferSize(buffer(index)), bufferType(buffer(index)))
       else (Array(0.0,0.0,0.0), Array(0.0,0.0,0.0), List(0.0,0.0,0.0), List(0.0), " ")
     val (text, path) =
-      if (index >= 0 && index < buffer.size)
+      if (index >= 0 && index < buffer.size + 1)
         (if (name == "Text") bufferString(buffer(index)) else " ",
          if (name == "OBJ")  bufferString(buffer(index)) else " ")
       else (" ", " ")
-    if ((buffer(index)(5) == "transparent") && (index >= 0 && index < buffer.size))
+    if ((buffer(index)(5) == "transparent") && (index >= 0 && index < buffer.size + 1))
       opaque = true
 
     val newObject = name match {
