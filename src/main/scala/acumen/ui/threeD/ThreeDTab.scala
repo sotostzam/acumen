@@ -56,14 +56,7 @@ class ThreeDTab (val appModel: Controller) extends AbstractEditorTab{
   }
   val stop3d = new Action("stop") {
     icon = Icons.stop
-    def apply() = {
-      threedpause.toolTip = "pause"
-      threedpause.icon = Icons.pause
-      receiver.destroy = true
-      timer3d.destroy = true
-      check.selected = true
-      threeDView.reset()
-    }
+    def apply() = stop()
     toolTip = "Stop visualizing"
   }
   /* ----3D-Visualization---- */
@@ -141,6 +134,15 @@ class ThreeDTab (val appModel: Controller) extends AbstractEditorTab{
     threeDView.reset()
   }
 
+  def stop(): Unit = {
+    threedpause.toolTip = "pause"
+    threedpause.icon = Icons.pause
+    receiver.destroy = true
+    timer3d.destroy = true
+    check.selected = true
+    threeDView.reset()
+  }
+
   def pause(): Unit = {
     if (threedpause.toolTip == "pause") {
       // un-pause
@@ -159,8 +161,10 @@ class ThreeDTab (val appModel: Controller) extends AbstractEditorTab{
 
 
   def play(): Unit = {
-    if (App.ui.codeArea.editedSinceLastRun)
+    if (App.ui.codeArea.editedSinceLastRun) {
+      stop()
       App.ui.runSimulation()
+    }
     else {
       threedpause.toolTip = "pause"
       threedpause.icon = Icons.pause
