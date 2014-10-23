@@ -81,16 +81,16 @@ zip -9r $REL_DIR.zip $REL_DIR
 # and done!
 
 echo "Created $REL_DIR.zip"
-##
-## These instructions only apply for a major (non-snapshot release).
-## Kept around as this script may get fixed to create those too.
-##
-# cat > final_instructions <<EOF
-# Make sure everything is in order and upload $REL_DIR.zip
-# and do a:
-#   (cd acumen-rel-working
-#    git push rel master release rel-$REL rel-$REL-pre
-#    git push origin master rel-$REL-pre)
-# EOF
-# echo "cat final_instructions"
-# cat final_instructions
+
+if [ -n "$VERSION" ]
+then
+  cat > release_instructions <<EOF
+Make sure everything is in order and upload $REL_DIR.zip
+and do a:
+  (cd acumen-rel-working
+   git push rel master release rel-$REL rel-$REL-pre
+   git push origin master rel-$REL-pre)
+EOF
+  echo 'If making a full release please follow the instructions in the'
+  echo '"release_instructions" file.'
+fi

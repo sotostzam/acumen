@@ -1,3 +1,5 @@
+BASIC USAGE:
+
 To create a snapshot release:
 
   cd XXX_release_scripts/
@@ -25,6 +27,23 @@ Here is how the script is run on the build server:
   cd XXX_release_scripts
   ./mk-release-clean.sh
   PATH=/usr/lib/jvm/java-6-openjdk-amd64/bin:$PATH SBT="java -jar /home/adam/bin/sbt-launch-0.12.2.jar -Dsbt.log.noformat=true" ./mk-release.sh
+
+CREATING A FULL RELEASE:
+
+To create a full release the same script can be used but some
+additional manual steps are required.
+
+First create the zip file using:
+
+  VERSION=YY.MM.DD ./mk-release.sh
+
+(substitute YY.MM.DD with the appreciate values)
+
+After that follow the instructions in release_instructions to push to
+the release repository and tag both acemen-dev and the release
+repository.
+
+CLEANUP:
 
 The script mk-release-clean.sh will remove any old releases still in
 the current directory and GIT_COMMIT is provided by the Jenkins build
