@@ -56,14 +56,7 @@ class ThreeDTab (val appModel: Controller) extends AbstractEditorTab{
   }
   val stop3d = new Action("stop") {
     icon = Icons.stop
-    def apply() = {
-      threedpause.toolTip = "pause"
-      threedpause.icon = Icons.pause
-      receiver.destroy = true
-      timer3d.destroy = true
-      check.selected = true
-      threeDView.reset()
-    }
+    def apply() = stop()
     toolTip = "Stop visualizing"
   }
   /* ----3D-Visualization---- */
@@ -141,6 +134,15 @@ class ThreeDTab (val appModel: Controller) extends AbstractEditorTab{
     threeDView.reset()
   }
 
+  def stop(): Unit = {
+    threedpause.toolTip = "pause"
+    threedpause.icon = Icons.pause
+    receiver.destroy = true
+    timer3d.destroy = true
+    check.selected = true
+    threeDView.reset()
+  }
+
   def pause(): Unit = {
     if (threedpause.toolTip == "pause") {
       // un-pause
@@ -159,30 +161,24 @@ class ThreeDTab (val appModel: Controller) extends AbstractEditorTab{
 
 
   def play(): Unit = {
-    if (App.ui.codeArea.editedSinceLastRun)
+    if (App.ui.codeArea.editedSinceLastRun) {
+      stop()
       App.ui.runSimulation()
+    }
     else {
-
       threedpause.toolTip = "pause"
       threedpause.icon = Icons.pause
       endTime = appModel.threeDData.endTime
+      check.selected = false
       if (played) {
         receiver.stop()
         timer3d.destroy = true
         statusZone3d.setSpeed(playSpeed.toString)
-        threeDView.world.removeAllObjects()
-        threeDView.axisArray(0) = null
-        if (check.selected)
-          threeDView.axisOn()
       }
       // First time press "3D play" button,
       // copy the data from list to buffer to speed up
       if (!played) {
         _3DDataBuffer.clear()
-        threeDView.world.removeAllObjects()
-        threeDView.axisArray(0) = null
-        if (check.selected)
-          threeDView.axisOn()
         lastFrame = 0
         statusZone3d.setSpeed("1.0")
         for ((id, map) <- appModel.threeDData._3DData) {
@@ -202,11 +198,16 @@ class ThreeDTab (val appModel: Controller) extends AbstractEditorTab{
         _3DView = appModel.threeDData._3DView.reverse
         appModel.threeDData.reset()
       }
-      threeDView.objects.clear()
       if (_3DView.size != 0) {
         check.selected = true
         threeDView.reset()
       }
+      threeDView.objects.clear()
+      threeDView.world.removeAllObjects()
+      threeDView.scaleFactors.clear()
+      threeDView.axisArray(0) = null
+      if (check.selected)
+        threeDView.axisOn()
       _receiver = new _3DDisplay(threeDView, statusZone3d, _3DDataBuffer, lastFrame,
         appModel.threeDData.endTime, _3DView)
       timer3d = new ScalaTimer(receiver, appModel.threeDData.endTime, playSpeed)

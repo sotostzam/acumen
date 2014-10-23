@@ -21,12 +21,12 @@ trait Traditional2014Tests extends SemanticsTestBase with BasicErrorTests {
   }
 
   test("continuous assignments are independent") {
-    val head = "model Main(simulator)=\n  initially x = 0& t = 0& t' = 1 always "
+    val head = "model Main(simulator)=\n  initially x = 0, t = 0, t' = 1 always "
     val cond = "if t < simulator.timeStep  then x = 1 else x = -1 "
     val time = "t' = 1"
     val tail = ""
-    val timeFirst = Parser.run(Parser.prog, head ++ time ++ "&" ++ cond ++ tail)
-    val condFirst = Parser.run(Parser.prog, head ++ cond ++ "&" ++ time ++ tail)
+    val timeFirst = Parser.run(Parser.prog, head ++ time ++ "," ++ cond ++ tail)
+    val condFirst = Parser.run(Parser.prog, head ++ cond ++ "," ++ time ++ tail)
     assertEqualTrace(timeFirst, condFirst, semantics)
   }
 

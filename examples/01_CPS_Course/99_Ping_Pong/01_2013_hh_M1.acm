@@ -81,7 +81,7 @@ class Player(n,maxA)
            ["Sphere",[0,0,0],0.01,[200,0,0],[0,0,0]]];
   end
   
-  if mode ~= "Wait" && mode ~= "Prepare" && mode ~= "Startball"
+  if mode ~= "Wait"&& mode ~= "Prepare"&& mode ~= "Startball"
      mode := "Panic!";
   end;
   
@@ -99,11 +99,11 @@ class Player(n,maxA)
       p2_predicted  := [0,0,0];
       doneOnce      := false;
       angle_bat'     = 2*([0,0,0] - angle_bat);
-      if myServe == true && starting == false
+      if myServe == true&& starting == false
         mode := "Prepare";
       end;
       // Calculate how to get to goal point(slightly behind and below pH)
-      if myServe == true && starting == true 
+      if myServe == true&& starting == true 
         t := 0;  
         d_ballBat := norm(p_bat - pH);
         u := (pH + [0.07*(-1)^n,0,-0.1] - p_bat)/norm(pH + [0.07*(-1)^n,0,-0.1] - p_bat);
@@ -122,7 +122,7 @@ class Player(n,maxA)
           if(t < ta)
             v' = maxA* u;       
             angle_bat' = (a_desired - angle_bat)/ta; 
-          else if (t>=ta && t<2*ta)
+          else if (t>=ta&& t<2*ta)
             v' = -maxA * u;
             angle_bat = a_desired; 
           else if (norm(p_ball - p_bat)>0.2)
@@ -139,7 +139,7 @@ class Player(n,maxA)
     case "Prepare"    // Prepare to hit the ball and do the predict
       //Do predict, and move pat towards the second predict point
       // Bouncing condition
-      if (p_ball(2)) < 0 && bounced == false
+      if (p_ball(2)) < 0&& bounced == false
         bounced := true;
       end;
       if bounced == true
@@ -168,8 +168,8 @@ class Player(n,maxA)
       end;
 
       // Predict the goal point to prepare hit the ball(only do once per turn)
-      if (t1_predicted < 0.15 && t1_predicted ~= 0) && 
-         ((n==1 && (p_ball(0))<0) || (n==2 && (p_ball(0))>0)) &&
+      if (t1_predicted < 0.15&& t1_predicted ~= 0)&& 
+         ((n==1&& (p_ball(0))<0) || (n==2&& (p_ball(0))>0))&&
          doneOnce == false
       // Calculating second prediction point
       // Linearized air resistance
@@ -198,7 +198,7 @@ class Player(n,maxA)
       angle_bat' = (a_desired - angle_bat)/ta;
       if(t < ta)
         v' = maxA* u;
-      else if (t>=ta && t<2*ta)
+      else if (t>=ta&& t<2*ta)
         v' = -maxA * u;
       else if (norm(p_ball - p_bat)>0.2)
         v' =5*([0,0,0]-v);
@@ -270,13 +270,13 @@ class Ball (tablerow,tablecolum)
   end
  
  // If mode is not valid then make mode "Panic!"
-  if mode ~= "Fly" && mode ~= "Bounce" && mode ~= "Freeze"
+  if mode ~= "Fly"&& mode ~= "Bounce"&& mode ~= "Freeze"
      mode := "Panic!";
   end;
  // Behavior of ball in different modes
   switch mode
     case "Fly"
-      if (p(2)) < 0 && (p'(2))< 0
+      if (p(2)) < 0&& (p'(2))< 0
         mode := "Bounce";
       else // Acceleration is air resistance and gravity
         p'' = -k2 * norm(p') * p' + [0,0,-9.8];
@@ -423,7 +423,7 @@ class BallObserver()
     t' := 1;
   end
   t'=1;
-  if mode ~= "Sample" && mode ~= "Estimate0" && mode ~= "Estimate1"
+  if mode ~= "Sample"&& mode ~= "Estimate0"&& mode ~= "Estimate1"
     mode := "Panic!";
   end;
   switch mode
@@ -470,18 +470,18 @@ class Referee()
     status       := "Normal"
   end
   
-  if mode ~= "Initialize" && mode ~= "Player1Lost" && mode ~= "Player2Lost"
-    && mode ~= "SendMessage1" && status ~= "Normal" && reason ~= "Nothing"
-    && status ~= "Report" && reason ~= "BallOutOfBoundary" && mode ~= "SendMessage2"
-    && reason ~= "BallBouncedTwice" && reason ~= "BallTouchNet" && reason ~= "BallNotOverNet"
+  if mode ~= "Initialize"&& mode ~= "Player1Lost"&& mode ~= "Player2Lost"
+  && mode ~= "SendMessage1"&& status ~= "Normal"&& reason ~= "Nothing"
+  && status ~= "Report"&& reason ~= "BallOutOfBoundary"&& mode ~= "SendMessage2"
+  && reason ~= "BallBouncedTwice"&& reason ~= "BallTouchNet"&& reason ~= "BallNotOverNet"
 
     mode := "Panic!";
   end;
   t'=1;
   // Whenever ball is about to hit the ground, check if anyone fouls(outside, fail to serve)
-  if p(2)<0.05 && p'(2)<0 && status == "Normal"  
+  if p(2)<0.05&& p'(2)<0&& status == "Normal"  
     // Ball fly outside the table case
-    if (abs(p(1))>0.78||abs(p(0))>1.53) && status == "Normal"
+    if (abs(p(1))>0.78||abs(p(0))>1.53)&& status == "Normal"
       reason     := "BallOutOfBoundary";
       if bounced == false
         if lastHit == 1
@@ -501,51 +501,51 @@ class Referee()
       status := "Report";
     end;
     // Fail to serve the ball back
-    if (abs(p(1))<=0.78 && abs(p(0))<=1.53) && bounced ~= false 
-       && status=="Normal" && abs(p(0))>0.025
-      if bounced == "YesIn1" && lastHit == 1 && p(0) < 0
+    if (abs(p(1))<=0.78&& abs(p(0))<=1.53)&& bounced ~= false 
+     && status=="Normal"&& abs(p(0))>0.025
+      if bounced == "YesIn1"&& lastHit == 1&& p(0) < 0
         mode       := "Player1Lost";
         reason     := "BallNotOverNet";
         bounced    := true;
       end;
-      if bounced == "YesIn2" && lastHit == 2 && p(0) > 0
+      if bounced == "YesIn2"&& lastHit == 2&& p(0) > 0
         mode       := "Player2Lost";
         reason     := "BallNotOverNet";
         bounced    := true;
       end;
     end;
-    if(abs(p(1))<=0.78 && abs(p(0))<=1.53) && bounced ~= false
-      && t>(bounceTime+0.1) && status=="Normal"
+    if(abs(p(1))<=0.78&& abs(p(0))<=1.53)&& bounced ~= false
+    && t>(bounceTime+0.1)&& status=="Normal"
     // The ball has bounced twice in player2's court
-      if bounced == "YesIn2" && p(0) > 0 && lastHit == 1
+      if bounced == "YesIn2"&& p(0) > 0&& lastHit == 1
         mode   := "Player2Lost";
         reason := "BallBouncedTwice";
         bounceTime := t;
       end;
     // The ball has bounced twice in player1's court
-      if bounced == "YesIn1" && p(0) < 0 && lastHit == 2
+      if bounced == "YesIn1"&& p(0) < 0&& lastHit == 2
         mode   := "Player1Lost";
         reason := "BallBouncedTwice";
         bounceTime := t;
       end;
     end;
-    if p(0)<0 && p(0)>-1.53 && bounced == false && status == "Normal"
+    if p(0)<0&& p(0)>-1.53&& bounced == false&& status == "Normal"
       bounced    := "YesIn1";
       bounceTime := t;
     end;
-    if p(0)>=0 && p(0)<1.53 && bounced == false && status == "Normal"
+    if p(0)>=0&& p(0)<1.53&& bounced == false&& status == "Normal"
       bounced    := "YesIn2";
       bounceTime := t;
     end;
   end;
-  if bounced == "YesIn1" && p(0)>0 && status == "Normal"
+  if bounced == "YesIn1"&& p(0)>0&& status == "Normal"
     bounced := false
   end;
-  if bounced == "YesIn2" && p(0)<=0 && status == "Normal"
+  if bounced == "YesIn2"&& p(0)<=0&& status == "Normal"
     bounced := false
   end;
   // Time to check if the ball touches the net
-  if abs(p(0))<0.025 && t>0.1 && checked == false && status == "Normal"
+  if abs(p(0))<0.025&& t>0.1&& checked == false&& status == "Normal"
     if p(2)<0.25
       if p'(0)>0
         mode   := "Player1Lost";
@@ -655,11 +655,11 @@ class Game (player1,player2,tablerow, tablecolum,gameLength)
          ["Text",[-1.8,6.5,1.5]+[tablerow,tablecolum,0].*shiftD,1,[0.6,0,0],[1.7,0,0],r1],
          ["Text",[3.5,6.5,1.5]+[tablerow,tablecolum,0].*shiftD,1,[0.1,0.1,0.1],[1.7,0,0],r2]];
   //add two modes for alternating start the game
-  if mode ~= "Restart1"      && mode ~= "Player1Serve"  && mode ~= "Player2Serve" 
-  && mode ~= "Impact"        && mode ~= "Freeze"       && mode ~= "ChangeSide"   
-  && mode ~= "Act"           && mode ~= "Endgame"       && mode ~= "Init"  
-  && mode ~= "Restart2"      && mode ~= "StartBall1"
-  && mode ~= "StartBall2"
+  if mode ~= "Restart1"    && mode ~= "Player1Serve"&& mode ~= "Player2Serve" 
+&& mode ~= "Impact"      && mode ~= "Freeze"     && mode ~= "ChangeSide"   
+&& mode ~= "Act"         && mode ~= "Endgame"     && mode ~= "Init"  
+&& mode ~= "Restart2"    && mode ~= "StartBall1"
+&& mode ~= "StartBall2"
     mode := "Panic!"
   end;
   t'=1;
@@ -681,11 +681,11 @@ class Game (player1,player2,tablerow, tablecolum,gameLength)
   player2.p_ball  = ballob.p;
   player1.v_ball  = ballob.v;
   player2.v_ball  = ballob.v;
-  if bat1.mode ~= "Rest" && gameTime <= gameLength
+  if bat1.mode ~= "Rest"&& gameTime <= gameLength
     batActuator1.p' = player1.v;
     batActuator1.angle = player1.angle_bat;
   end;
-  if bat2.mode ~= "Rest" && gameTime <= gameLength
+  if bat2.mode ~= "Rest"&& gameTime <= gameLength
     batActuator2.p' = player2.v;
     batActuator2.angle = player2.angle_bat;
   end;
@@ -784,10 +784,10 @@ class Game (player1,player2,tablerow, tablecolum,gameLength)
       changeServe               := 1;
       mode                      := "StartBall2";     
     case "StartBall1"
-      if batActuator2.energy > maxEnergy && batActuator1.energy > maxEnergy
+      if batActuator2.energy > maxEnergy&& batActuator1.energy > maxEnergy
         mode := "Endgame";
         t    := 0;
-      else if batActuator1.energy > maxEnergy && batActuator2.energy < maxEnergy
+      else if batActuator1.energy > maxEnergy&& batActuator2.energy < maxEnergy
         mode := "Restart2";
         t    := 0;
       else
@@ -798,10 +798,10 @@ class Game (player1,player2,tablerow, tablecolum,gameLength)
       end;
       end;
     case "StartBall2"
-      if batActuator2.energy > maxEnergy && batActuator1.energy > maxEnergy
+      if batActuator2.energy > maxEnergy&& batActuator1.energy > maxEnergy
         mode := "Endgame";
         t    := 0;
-      else if batActuator2.energy > maxEnergy && batActuator1.energy < maxEnergy
+      else if batActuator2.energy > maxEnergy&& batActuator1.energy < maxEnergy
         mode := "Restart1";
         t    := 0;
       else
@@ -812,7 +812,7 @@ class Game (player1,player2,tablerow, tablecolum,gameLength)
       end;
       end;
     case "Player2Serve" // Player 2 is serving
-      if batActuator2.energy > maxEnergy && batActuator1.energy > maxEnergy
+      if batActuator2.energy > maxEnergy&& batActuator1.energy > maxEnergy
         mode := "Endgame";
         t    := 0;
       else
@@ -821,9 +821,9 @@ class Game (player1,player2,tablerow, tablecolum,gameLength)
         zc1 = dot((ball.p - bat2.p), bat2.angle);
         zc2 = dot((ball.p'- bat2.pv),bat2.angle);
         zc3 = norm((ball.p - bat2.p) - dot((ball.p - bat2.p), bat2.angle)*bat2.angle);
-        if dot((ball.p - bat2.p), bat2.angle) < 0 &&
-           dot((ball.p'- bat2.pv),bat2.angle) < 0 &&
-           zc3 < batRadius &&
+        if dot((ball.p - bat2.p), bat2.angle) < 0&&
+           dot((ball.p'- bat2.pv),bat2.angle) < 0&&
+           zc3 < batRadius&&
            gameMonitor.restart ~= 1
           ball.p'            := ball.p' - dot((1.5)*(ball.p'-batActuator2.p'),batActuator2.angle)*batActuator2.angle;
           player2.myServe    := false;
@@ -832,7 +832,7 @@ class Game (player1,player2,tablerow, tablecolum,gameLength)
           player2.mode       := "Wait";
           gameMonitor.lastHit:= 2;
           mode               := "ChangeSide";
-        else if gameMonitor.restart == 1 && gameTime <= gameLength
+        else if gameMonitor.restart == 1&& gameTime <= gameLength
           mode := "Freeze";
           player1.mode := "Wait";
           player1.myServe := false;
@@ -846,7 +846,7 @@ class Game (player1,player2,tablerow, tablecolum,gameLength)
         end;
       end;
     case "Player1Serve" // Player 1 is serving     
-      if batActuator2.energy > maxEnergy && batActuator1.energy > maxEnergy
+      if batActuator2.energy > maxEnergy&& batActuator1.energy > maxEnergy
         mode := "Endgame";
         t    := 0;
       else
@@ -855,9 +855,9 @@ class Game (player1,player2,tablerow, tablecolum,gameLength)
         zc1 = dot((ball.p - bat1.p), bat1.angle);
         zc2 = dot((ball.p'- bat1.pv),bat1.angle);
         zc3 = norm((ball.p - bat1.p) - dot((ball.p - bat1.p), bat1.angle)*bat1.angle);
-        if dot((ball.p - bat1.p), bat1.angle) < 0 &&
-           dot((ball.p'- bat1.pv),bat1.angle) < 0 &&
-           zc3 < batRadius &&
+        if dot((ball.p - bat1.p), bat1.angle) < 0&&
+           dot((ball.p'- bat1.pv),bat1.angle) < 0&&
+           zc3 < batRadius&&
            gameMonitor.restart ~= 1
           ball.p'            := ball.p' - dot((1.5) * (ball.p' - batActuator1.p'),batActuator1.angle) * batActuator1.angle;
           player1.myServe    := false;
@@ -866,7 +866,7 @@ class Game (player1,player2,tablerow, tablecolum,gameLength)
           r1                 := r1 + 1; 
           gameMonitor.lastHit:= 1;
           mode               := "ChangeSide";
-        else if gameMonitor.restart == 1 && gameTime <= gameLength
+        else if gameMonitor.restart == 1&& gameTime <= gameLength
           mode := "Freeze";
           player1.mode := "Wait";
           player1.myServe := false;
@@ -880,7 +880,7 @@ class Game (player1,player2,tablerow, tablecolum,gameLength)
         end;
       end;
     case "ChangeSide" // Change the serve number
-      if gameMonitor.restart == 1 && gameTime <= gameLength
+      if gameMonitor.restart == 1&& gameTime <= gameLength
         mode := "Freeze";
         player1.mode := "Wait";
         player1.myServe := false;
@@ -888,13 +888,13 @@ class Game (player1,player2,tablerow, tablecolum,gameLength)
         player2.myServe := false;
         t    := 0;
       else
-        if serveNumber == 2 && dot(ball.p,[1,0,0]) >0 && gameMonitor.restart ~= 1
+        if serveNumber == 2&& dot(ball.p,[1,0,0]) >0&& gameMonitor.restart ~= 1
           serveNumber     := 1;
           mode            := "Player1Serve";
           //player1.mode  := "Wait";
           player1.bounced := false;
         end;
-        if serveNumber == 1 && dot(ball.p,[1,0,0]) <= 0 && gameMonitor.restart ~= 1
+        if serveNumber == 1&& dot(ball.p,[1,0,0]) <= 0&& gameMonitor.restart ~= 1
           serveNumber     := 2;
           mode            := "Player2Serve";
           //player2.mode  := "Wait";

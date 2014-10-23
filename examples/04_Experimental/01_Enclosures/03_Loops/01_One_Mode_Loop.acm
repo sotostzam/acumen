@@ -5,14 +5,14 @@
 // Note:    Run using Semantics -> Enclosure
 
 model Main(simulator) =
-  initially mode = "m" & x = 1 always
+  initially mode = "m", x = 1 always
   match mode with [
     "m" ->
       if true then
         mode+ == "m"
       noelse
-  ] &
-  simulator.endTime+ == 2.5 &
+  ],
+  simulator.endTime+ == 2.5,
   simulator.minLocalizationStep+ == 0.5
 
 // Note:  This model exhibits an infinite number of

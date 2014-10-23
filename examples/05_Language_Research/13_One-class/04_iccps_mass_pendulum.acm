@@ -10,12 +10,12 @@
 
 model Main(simulator) =
   initially
-    x=2 & x'=0 &x''=0& theta=0 & theta'=0& theta''=0 & a=0 & b=0
+    x=2, x'=0,x''=0, theta=0, theta'=0, theta''=0, a=0, b=0
   always
   
-  simulator.timeStep + == 0.01&
-  simulator.endTime + == 50.0&
-  a == cos(theta)&
-  b == sin(theta)&
-  theta'' == (4 * a * x - 4 * a * b * theta' - 686/5 * b) / (56/3 - 4 * a^2)&
+  simulator.timeStep + == 0.01,
+  simulator.endTime + == 50.0,
+  a == cos(theta),
+  b == sin(theta),
+  theta'' == (4 * a * x - 4 * a * b * theta' - 686/5 * b) / (56/3 - 4 * a^2),
   x'' == 2/7 * b * theta' ^ 2 - 2/7 * a * theta'' - 2/7 * x

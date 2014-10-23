@@ -2,7 +2,7 @@
 // Constant Second Derivatives Example
 model Main(simulator) =
   initially
-   x=-10 & x'= 0 & x''= 1
+   x=-10, x'= 0, x''= 1
   always
     x'' = 1
 

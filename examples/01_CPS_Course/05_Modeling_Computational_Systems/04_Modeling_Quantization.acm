@@ -6,13 +6,13 @@
  
 model Main (simulator)=
 initially 
-  x = 1 & x' = 0 & x'' = 0 & sensor  =  0 
+  x = 1, x' = 0, x'' = 0, sensor  =  0 
 always
   if sensor+0.3<x then
     sensor+ ==sensor+0.3 
   elseif sensor-0.3>x then
     sensor+ ==sensor-0.3
-  noelse &
+  noelse,
   x'' = -10*sensor
  
 

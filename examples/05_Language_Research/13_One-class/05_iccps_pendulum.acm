@@ -8,10 +8,10 @@
 
 model Main(simulator) = 
   initially
-    theta=0.1& theta'=0& theta''=0& f = 0
+    theta=0.1, theta'=0, theta''=0, f = 0
   always
-  simulator.timeStep + == 0.1& 
-  simulator.endTime + == 100.0& 
+  simulator.timeStep + == 0.1, 
+  simulator.endTime + == 100.0, 
   if abs(theta) < 3.1416/100 then
     f + == 0
   else
@@ -19,7 +19,7 @@ model Main(simulator) =
       f + == -1
     else
       f + == 1
-   &
+  ,
 
   /* the following is
       theta'' = (f*l*cos(theta) - m*g*l*sin(theta)) / (m * l^2)

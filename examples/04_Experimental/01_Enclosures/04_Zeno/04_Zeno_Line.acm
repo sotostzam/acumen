@@ -6,22 +6,22 @@
 
 model Main(simulator) =
   initially
-    d = 1 & d' = 0 &
-    s = 1/2 & s' = 1 &
+    d = 1, d' = 0,
+    s = 1/2, s' = 1,
     mode = ""
   always
   match mode with [
     "" ->
       if d == s then
-        s+ == s/2 & 
+        s+ == s/2, 
         mode+ == "" 
-      noelse &
-      d' == -1 &
+      noelse,
+      d' == -1,
       s' ==  1 // s increases linearly
-  ] &
-  simulator.endTime+ == 1.2 &
-  simulator.minSolverStep+ == 1.2 &
-  simulator.minLocalizationStep+ == 0.1 &
+  ],
+  simulator.endTime+ == 1.2,
+  simulator.minSolverStep+ == 1.2,
+  simulator.minLocalizationStep+ == 0.1,
   simulator.minComputationImprovement+ == 0
 
 // Note:  This system has piecewise linear dynamics.

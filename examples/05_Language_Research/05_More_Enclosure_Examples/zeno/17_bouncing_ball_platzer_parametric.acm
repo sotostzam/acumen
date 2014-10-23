@@ -4,24 +4,24 @@
  */
 model Main(simulator) =
   initially 
-    mode = "" &
-    h = 5 & h' = 0 &
-    v = 0 & v' = -10 &
-    t = 0 & t' = 1 
+    mode = "",
+    h = 5, h' = 0,
+    v = 0, v' = -10,
+    t = 0, t' = 1 
   always
   match mode with [
     "" claim h >= 0 -> 
-      if h == 0 && t > 0 then
-        v+ == -0.5*v & 
-        t+ == 0 &
+      if h == 0&& t > 0 then
+        v+ == -0.5*v, 
+        t+ == 0,
         mode+ == "" 
-      noelse &
-      h' == v &
-      v' == -10 &
+      noelse,
+      h' == v,
+      v' == -10,
       t' == 1 
-  ] &
-  simulator.startTime+ == 0 &
-  simulator.endTime+ == 3.5 &
-  simulator.minSolverStep+ == 0.1 &
-  simulator.minLocalizationStep+ == 0.1 &
+  ],
+  simulator.startTime+ == 0,
+  simulator.endTime+ == 3.5,
+  simulator.minSolverStep+ == 0.1,
+  simulator.minLocalizationStep+ == 0.1,
   simulator.minComputationImprovement+ == 0.01 

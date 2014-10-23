@@ -11,7 +11,7 @@ model Vehicle(p      /* Position */,
 initially
   _3D = ()
 always
- _3D =(Obj center=p size=0.02 color=(0,0,1) 
+ _3D =(Obj center=p size=1 color=(1,1,1) 
         rotation=(pi/2,0,d*pi/2) content = name)
 
 
@@ -30,24 +30,24 @@ model Road(p,l)
 
 model Main(simulator) = 
   initially
-     x = 20 & x'  =  -5 &
-     x1 =  -20 & x1'  =  5 &
-     x2 =  -10 & x2'  =  5 &
-     t = 0 &  t'  =  0.5 &
-     road  =  create Road((0,0,-0.5), 100) &
-     car  =  create Vehicle((2, 20, 0),1,2, "car.obj") &
-     car1  =  create Vehicle((2, 20, 0),-1,2, "car.obj") &
-     car2  =  create Vehicle((2, 20, 0),-1,2, "car.obj") &
+     x = 20, x'  =  -5,
+     x1 =  -20, x1'  =  5,
+     x2 =  -10, x2'  =  5,
+     t = 0,  t'  =  0.5,
+     road  =  create Road((0,0,-0.5), 100),
+     car  =  create Vehicle((2, 20, 0),1,2, "car.obj"),
+     car1  =  create Vehicle((2, 20, 0),-1,2, "car.obj"),
+     car2  =  create Vehicle((2, 20, 0),-1,2, "car.obj"),
      _3DView  =  () 
   always
-     t' = 0.5 &
-     _3DView + == ((2,x+4,1), (0,0,pi)) &
-     simulator.endTime = 10 &
-     car.p = (2,x,0) &
-     car1.p = (-2,x1,0) &
-     car2.p = (-2,x2,0) &
-     x' = -3 &
-     x1' = 3 &
+     t' = 0.5,
+     _3DView + == ((2,x+4,1), (0,0,pi)),
+     simulator.endTime = 10,
+     car.p = (2,x,0),
+     car1.p = (-2,x1,0),
+     car2.p = (-2,x2,0),
+     x' = -3,
+     x1' = 3,
      x2' = 3 
  
 

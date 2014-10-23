@@ -5,20 +5,20 @@
 // Note:    Run using Semantics -> Enclosure
 
 model Main(simulator) =
-  initially mode = "one" & x = 1 always
+  initially mode = "one", x = 1 always
   match mode with [
     "one" ->
       if true then
-        mode+ == "two" &
+        mode+ == "two",
         x+ == 2
       noelse
   | "two" -> // Another mode
       if true then
-        mode+ == "one" &
+        mode+ == "one",
         x+ == 1
       noelse
-  ] &
-  simulator.endTime+ == 2.5 &
+  ],
+  simulator.endTime+ == 2.5,
   simulator.minLocalizationStep+ == 0.5
 
 // Note:  An infinite number of transitions between

@@ -91,7 +91,7 @@ class InterpreterTest extends FunSuite with ShouldMatchers {
       """
       class Simulator(time, timeStep, endTime, stepType) end
       class Ball(x, x', x'', y,y',y'') 
-        self.y'' = -9.8;
+        self.y'' = -9.8,
         self.x'' = 0
       end
       class Main(mode, simulation) end

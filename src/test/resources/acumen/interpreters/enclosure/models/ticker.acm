@@ -1,12 +1,12 @@
 model Main(simulator) = 
-initially mode = "On"& x = 1& x' = -1 always
-  simulator.endTime + == 2.5&
+initially mode = "On", x = 1, x' = -1 always
+  simulator.endTime + == 2.5,
   match mode with[
     "On" claim x >= 0 -> 
       if x == 0 then
-        x + == 1& 
+        x + == 1,
         mode + == "On"
-      noelse & 
+      noelse ,
       x' = -1 
   ]
 

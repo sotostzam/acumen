@@ -3,7 +3,7 @@
 
 model Main (simulator)= 
 initially
-  x = 0 & t = 0 & t' = 0
+  x = 0, t = 0, t' = 0
 always                          
-  t' = 1 & x=2*sin(t/3)
+  t' = 1, x=2*sin(t/3)
  

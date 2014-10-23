@@ -8,8 +8,8 @@
 
 model Main (simulator) = 
  initially
-  x=1 & x'=0 & x''=0 & c=1
+  x=1, x'=0, x''=0, c=1
  always
- x'' == -x &
+ x'' == -x,
  c   == floor (10*x)/10 
 

@@ -3,11 +3,11 @@
 
 model Main(simulator) = 
 initially
-  t   =  0 & // Local time
-  t'  =  1 & // Is as fast as global time
+  t   =  0, // Local time
+  t'  =  1, // Is as fast as global time
  _3D  =  ()
 always
-  t' = 1 &
+  t' = 1,
   _3D = 
   (Box 
      center=(0,0,0)       // Center point

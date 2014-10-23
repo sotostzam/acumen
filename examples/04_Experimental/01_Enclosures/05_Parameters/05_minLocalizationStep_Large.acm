@@ -6,21 +6,21 @@
 
 model Main(simulator) =
   initially
-    d = 1 & d' = -1 &
-    s = 1/2 &
+    d = 1, d' = -1,
+    s = 1/2,
     mode = "" 
   always
   match mode with [
     "" claim s <= abs(d) ->  
       if s == d then
-        s+ == s/2 & 
+        s+ == s/2, 
         mode+ == "" 
-      noelse &
+      noelse,
       d' == -1
-  ] &
-  simulator.endTime+ == 1.1 &
-  simulator.minSolverStep+ == 1.1 &
-  simulator.minLocalizationStep+ == 0.01 &
+  ],
+  simulator.endTime+ == 1.1,
+  simulator.minSolverStep+ == 1.1,
+  simulator.minLocalizationStep+ == 0.01,
   simulator.minComputationImprovement+ == 0
 
 // Note:  Due to a large minLocalizationStep, few resets

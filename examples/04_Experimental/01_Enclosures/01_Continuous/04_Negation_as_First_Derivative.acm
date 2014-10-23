@@ -5,15 +5,15 @@
 
 model Main(simulator) =
   initially 
-    x    =  1 & 
-    x'   = -1 & 
+    x    =  1, 
+    x'   = -1, 
     mode = ""
   always
   match mode with [
     "" ->
       x' == -x
-  ] &
-  simulator.endTime+ == 1.0 &
+  ],
+  simulator.endTime+ == 1.0,
   simulator.minSolverStep+ == 0.1
 
 // Note:  No surprises.

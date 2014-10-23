@@ -2,13 +2,13 @@ model Ball(mode, x,x',x'') =
 initially
 always 
   match mode with[
-  "Fly" -> if x < 0 && x' < 0 then
-             create Ball("Bounce", x, x', x'') &
-             create Ball("Bounce", x, x', x'') &
+  "Fly" -> if x < 0&& x' < 0 then
+             create Ball("Bounce", x, x', x''),
+             create Ball("Bounce", x, x', x''),
              terminate self
            else
              x'' = -9.8
-  | "Bounce" -> x' + == -x' &
+  | "Bounce" -> x' + == -x',
               mode + == "Fly"
   ]
 
@@ -18,9 +18,9 @@ model Main(simulator) =
   always
   
   match mode with [
-  "Init" -> simulator.timeStep + == 0.003 &
-            simulator.endTime + == 10.0 &
-            create Ball("Fly", 100,0,0) &
+  "Init" -> simulator.timeStep + == 0.003,
+            simulator.endTime + == 10.0,
+            create Ball("Fly", 100,0,0),
             mode + == "Persist"
   | "Persist" ->
   ]

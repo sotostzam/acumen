@@ -4,7 +4,7 @@ model A(x) = initially
 
 model Main(sim)
   = initially 
-    x  =  create A(1) &
+    x  =  create A(1),
     y  =  create A(2)
   always
  
