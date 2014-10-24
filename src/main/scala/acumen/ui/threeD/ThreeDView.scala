@@ -29,11 +29,9 @@ class ThreeDView extends JPanel {
 
   val world = new World()  // create a new world
 
-  var camera = new Camera
+  private var camera = new Camera
 
   val characters = new Characters
-
-  var cameraPos = new SimpleVector()
 
   // Add texture for the axis
   val coAxes = new coAxis (characters.characters)
@@ -48,15 +46,15 @@ class ThreeDView extends JPanel {
   val defaultCamPos = new SimpleVector(3, -3, 10)
   var customView = true // enable for allowing the user move the camera by themselves
   var preCustomView = customView    // to enable custom view when we pause
+  private val lookAtPoint = new SimpleVector(0,0,0)   // in jPCT coordinate system
 
   var newMouseX = 1     // mouse position x before dragging
   var newMouseY = 1     // mouse position y before dragging
   var lastMouseX = 1    // mouse position x after dragging
   var lastMouseY = 1    // mouse position y after dragging
   var dragging = false  // flag for checking the mouse action
-  var cameraLastAlpha = 0.0 // used for record the camera rotation
-  var cameraLastTheta = 0.0 // used for record the camera rotation
-  var cameraDirection = -1  // to make sure the camera rotate forward or backward
+  var cameraLeftDirection = -1  // to make sure the camera rotate forward or backward
+  var cameraRightDirection = -1  // to make sure the camera rotate forward or backward
 
   letThereBeLight()  // create light sources for the scene
 
@@ -72,13 +70,6 @@ class ThreeDView extends JPanel {
       if (!dragging) {
         lastMouseX = e.getX
         lastMouseY = e.getY
-        val cameraInitPos = camera.getPosition
-        val radius = if (cameraInitPos.length() == 0) 0.01
-                     else cameraInitPos.length()
-        cameraLastAlpha = if (-cameraInitPos.x != 0) atan2(-cameraInitPos.z, -cameraInitPos.x)
-                           else if (-cameraInitPos.z > 0) Pi/2
-                           else -Pi/2
-        cameraLastTheta = -cameraInitPos.y / radius
       }
       dragging = true
     }
@@ -110,57 +101,63 @@ class ThreeDView extends JPanel {
         // to decrease the burden of calculations
         if (abs(newMouseX - lastMouseX) > 5 || abs(newMouseY - lastMouseY) > 5) {
           // Initialize the camera coordinate
-          val cameraInitPos = camera.getPosition
-          val deltaTheta = cameraDirection * (newMouseY - lastMouseY) * Pi / 500
-          val deltaAlpha = (lastMouseX - newMouseX) * Pi / 750
-          // translate jPCT coordinate to sphere coordinate
-          val initX = -cameraInitPos.x
-          val initY = -cameraInitPos.z
-          val initZ = -cameraInitPos.y
-          val radius = if (cameraInitPos.length() == 0) 0.01
-                       else cameraInitPos.length()
-          // get initial theta and alpha
-          val initialAlpha = if (initX != 0) atan2(initY, initX)
-                             else if (initY > 0) Pi/2
-                             else -Pi/2
-          val initialTheta = acos(initZ / radius)
-          var alpha = initialAlpha + deltaAlpha
-          var theta = initialTheta + deltaTheta
-          alpha = normalizeAngle(alpha)
-          if (initialTheta > 0 && theta < 0) {
-            theta = -theta
-            alpha = alpha + Pi
-            cameraDirection = -1 * cameraDirection
-          } else if (initialTheta < Pi && theta > Pi) {
-            theta = 2 * Pi - theta
-            alpha = alpha + Pi
-            cameraDirection = -1 * cameraDirection
-          }
-          val newX = radius * sin(theta) * cos(alpha)
-          val newY = radius * sin(theta) * sin(alpha)
-          val newZ = radius * cos(theta)
-          moveCamera(-newX, -newZ, -newY)
-          lastMouseX = newMouseX
-          lastMouseY = newMouseY
-          cameraLastAlpha = alpha
-          cameraLastTheta = theta
-          camera.lookAt(new SimpleVector(0, 0, 0))
-          repaint()
+          if (e.getButton == MouseEvent.BUTTON1)    // left button dragging, move camera
+            cameraLeftDirection = moveCamera(cameraLeftDirection, 1, lookAtPoint)
+          else if (e.getButton == MouseEvent.BUTTON3)   // right button dragging, move look at point
+            cameraRightDirection = moveCamera(cameraRightDirection, -1, camera.getPosition)
         }
       }
     }
   })
+
+  // draggingDirection is the direction for left or right button, click is -1 (right) or 1 (left)
+  def moveCamera (draggingDirection: Int, click: Int, sphereCenter: SimpleVector):Int = {
+    var cameraDirection = draggingDirection
+    val cameraInitPos = camera.getPosition
+    val deltaTheta = cameraDirection * (newMouseY - lastMouseY) * Pi / 500
+    val deltaAlpha = (lastMouseX - newMouseX) * Pi / 750
+    // translate jPCT coordinate to sphere coordinate
+    val initX = click * (-cameraInitPos.x + lookAtPoint.x)
+    val initY = click * (-cameraInitPos.z + lookAtPoint.z)
+    val initZ = click * (-cameraInitPos.y + lookAtPoint.y)
+    val radius = if (initX == 0 && initY == 0 && initZ == 0) 0.01
+    else sqrt(initX * initX + initY * initY + initZ * initZ)
+    // get initial theta and alpha
+    val initialAlpha = if (initX != 0) atan2(initY, initX)
+                       else if (initY > 0) Pi / 2
+                       else -Pi / 2
+    val initialTheta = acos(initZ / radius)
+    var alpha = initialAlpha + deltaAlpha
+    var theta = initialTheta + deltaTheta
+    alpha = normalizeAngle(alpha)
+    if (initialTheta > 0 && theta < 0) {
+      theta = -theta
+      alpha = alpha + Pi
+      cameraDirection = -1 * cameraDirection
+    } else if (initialTheta < Pi && theta > Pi) {
+      theta = 2 * Pi - theta
+      alpha = alpha + Pi
+      cameraDirection = -1 * cameraDirection
+    }
+    val newX = radius * sin(theta) * cos(alpha) - sphereCenter.x.toDouble
+    val newY = radius * sin(theta) * sin(alpha) - sphereCenter.z.toDouble
+    val newZ = radius * cos(theta) - sphereCenter.y.toDouble
+    if (click == 1)    // left button dragging
+      camera.setPosition(-newX.toFloat, -newZ.toFloat, -newY.toFloat)
+    else     // right button dragging
+      lookAtPoint.set(-newX.toFloat, -newZ.toFloat, -newY.toFloat)
+    lookAt(null, lookAtPoint)
+    lastMouseX = newMouseX
+    lastMouseY = newMouseY
+    repaint()
+    cameraDirection
+  }
 
   def normalizeAngle (angle: Double): Double = {
     var newAngle = angle
     while (newAngle <= -Pi) newAngle += 2 * Pi
     while (newAngle > Pi) newAngle -= 2 * Pi
     newAngle
-  }
-
-  def moveCamera(dx: Double, dy: Double, dz: Double) = {
-    val newPosition = new SimpleVector(dx, dy, dz)
-    camera.setPosition(newPosition)
   }
 
   def axisOn() = {
@@ -200,8 +197,11 @@ class ThreeDView extends JPanel {
     mainbox.setShadingMode(Object3D.SHADING_FAKED_FLAT)
     new setGlass(new Color(180, 180, 180), mainbox, 0)
     world.addObject(mainbox)
-    lookAt(mainbox) // camera faces towards the object
+    camera = world.getCamera  // grab a handle to the camera
+    defaultView()
+    lookAt(mainbox, null) // camera faces towards the object
     initialized = true
+    lookAtPoint.set(0,0,0)
     world.buildAllObjects()
     this.repaint()
   }
@@ -216,10 +216,11 @@ class ThreeDView extends JPanel {
   }
 
   // point the camera toward the given object
-  def lookAt(obj: Object3D) = {
-    camera = world.getCamera  // grab a handle to the camera
-    defaultView()
-    camera.lookAt(obj.getTransformedCenter)  // look toward the object
+  def lookAt(obj: Object3D, point: SimpleVector) = {
+    if (obj != null)
+      camera.lookAt(obj.getTransformedCenter)  // look toward the object
+    else
+      camera.lookAt(point)
   }
 
   // create some light sources for the scene
@@ -233,8 +234,7 @@ class ThreeDView extends JPanel {
   }
 
   def defaultView() = {
-    cameraPos.set(defaultCamPos)
-    camera.setPosition(cameraPos)
+    camera.setPosition(defaultCamPos)
     camera.setFOVLimits(0.01f, 3.0f)
     camera.setFOV(0.65f)
   }
