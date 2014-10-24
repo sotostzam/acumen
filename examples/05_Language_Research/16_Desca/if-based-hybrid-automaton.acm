@@ -1,18 +1,17 @@
 // If-Based Generalized Hybrid Automaton Example
 
-class Main (simulator)
-  private
-    x := [-1 .. 1]; x' := 1; x'' := 1;
-    m := "rise"
-  end
-  if m == "rise"
-    if x > 10 m := "stay" end;
-    x'' = 1
-  end;
-  if m == "stay"
-    x' = 0
-  end;
-end
+model Main (simulator) =
+  initially
+    x = [-1 .. 1], x' = 1, x'' = 1,
+    m = "rise"
+  always
+  if m == "rise" then
+    if x > 10 then m+ == "stay" noelse,
+    x'' == 1
+  noelse,
+  if m == "stay" then
+    x' == 0
+  noelse
 
 // Note: The order of the continuous dynamics in the
 //       system's two modes is different.
