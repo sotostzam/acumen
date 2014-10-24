@@ -1,0 +1,12 @@
+model Main(simulator) =
+  initially
+    t = [0.0 .. 0.5], t' = 1,
+    mode = "a"
+  always
+  if t > 1 then
+    mode+ == "b",
+    t+ == 0
+  else
+    t' == 1,
+  simulator.endTime+ == 1,
+  simulator.timeStep+ == 0.1
