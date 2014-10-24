@@ -4,7 +4,7 @@ model Main(simulator) =
   initially 
     x = 5, x' = 0, x'' = -10,
     r = 50, r' = 0, // energy
-    bounces = 0 // number of bounces
+    b = 0 // number of bounces
   always
   x'' == -10,
   r' == 0,
