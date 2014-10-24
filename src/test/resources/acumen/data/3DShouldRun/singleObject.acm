@@ -1,8 +1,8 @@
 model Main (simulator)
 = initially
- x  =  0 & x'  =  1 & x''  =  0 &
- _3D  =  (Sphere center= (0,0,0) size= 0.1 color= (0,1,0) rotation=(0,0,0)) &         
+ x  =  0, x'  =  1, x''  =  0,
+ _3D  =  (Sphere center= (0,0,0) size= 0.1 color= (0,1,0) rotation=(0,0,0)),         
 always
- x'' = -x &
- _3D = (Sphere center= (x,0,0) size= 0.1 color= (0,1,0) rotation=(0,0,0)) &
+ x'' = -x,
+ _3D = (Sphere center= (x,0,0) size= 0.1 color= (0,1,0) rotation=(0,0,0)),
  

@@ -4,28 +4,28 @@
 ////////////////////////////////////////////////////////////////
 model Main(simulator) =
   initially 
-    mode = "Fly" & 
-    x1 = 5 & x1' = 0 & x1'' = 0 &  
-    r1 = 100 & r1' = 0 
+    mode = "Fly", 
+    x1 = 5, x1' = 0, x1'' = 0,  
+    r1 = 100, r1' = 0 
   always
-  simulator.bigDecimalDigits+ == 10 &
-  simulator.startTime+ == 0 &
-  simulator.endTime+ == 3.5 &
-  simulator.initialPicardPadding+ == 0 &
-  simulator.picardImprovements+ == 20 &
-  simulator.maxPicardIterations+ == 200 &
-  simulator.maxEventTreeSize+ == 30 &
-  simulator.minSolverStep+ == 0.01 &
-  simulator.minLocalizationStep+ == 0.001 &
-  simulator.minComputationImprovement+ == 0.0001 &
+  simulator.bigDecimalDigits+ == 10,
+  simulator.startTime+ == 0,
+  simulator.endTime+ == 3.5,
+  simulator.initialPicardPadding+ == 0,
+  simulator.picardImprovements+ == 20,
+  simulator.maxPicardIterations+ == 200,
+  simulator.maxEventTreeSize+ == 30,
+  simulator.minSolverStep+ == 0.01,
+  simulator.minLocalizationStep+ == 0.001,
+  simulator.minComputationImprovement+ == 0.0001,
   match mode with [
-    "Fly" claim x1 >= 0 && 0 <= r1 && r1 == x1'*x1' + 20*x1 ->  
-      if x1 == 0 && x1' <= 0 then 
-        x1'+ == -0.5*x1' &
-        r1+ == 0.25*r1 &
+    "Fly" claim x1 >= 0&& 0 <= r1&& r1 == x1'*x1' + 20*x1 ->  
+      if x1 == 0&& x1' <= 0 then 
+        x1'+ == -0.5*x1',
+        r1+ == 0.25*r1,
         mode+ == "Fly" 
-      noelse &
-      x1'' == -10 &
+      noelse,
+      x1'' == -10,
       r1'  == 0 
   ]
 

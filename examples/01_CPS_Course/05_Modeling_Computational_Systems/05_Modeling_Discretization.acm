@@ -4,12 +4,12 @@
  
 model Main (simulator) = 
 initially 
-  x = 1 & x' = 0 & x'' = 0 & sensor  =  0 & bucket  =  0 & bucket'  =  1
+  x = 1, x' = 0, x'' = 0, sensor  =  0, bucket  =  0, bucket'  =  1
 always
-  bucket' = 1 &
+  bucket' = 1,
   if bucket>0.05 then
-    bucket + == 0 & sensor + == x
-  noelse &
+    bucket + == 0, sensor + == x
+  noelse,
   x'' = -10*sensor
  
 

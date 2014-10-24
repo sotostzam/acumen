@@ -4,16 +4,16 @@ model Main(simu)
   always
   match mode with[
     "Init" ->
-      simu.timeStep + == 1 &
-      simu.endTime + == 1 &
-      create Test("Init") &
+      simu.timeStep + == 1,
+      simu.endTime + == 1,
+      create Test("Init"),
       mode + == "Idle"
     |"Idle" ->
   ]
 
 model Test(mode)
   = initially 
-    c1  =  create A() &
+    c1  =  create A(),
     c2  =  create A()
   always
 
@@ -21,7 +21,7 @@ model Test(mode)
     "Init" ->
       mode + == "Reparent"
     |"Reparent" ->
-      move c1.x c2 &
+      move c1.x c2,
       mode + == "Done"
     |"Done" ->
   ]

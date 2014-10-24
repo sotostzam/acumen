@@ -8,10 +8,10 @@
 
 model Main(simulator) =
   initially
-    c = 1 & x = 1/2 & x' = 0 
+    c = 1, x = 1/2, x' = 0 
   always
-  if x <= 0 then c+ ==  1 noelse &
-  if x >= 1 then c+ == -1 noelse &
+  if x <= 0 then c+ ==  1 noelse,
+  if x >= 1 then c+ == -1 noelse,
   x' == c
 
 

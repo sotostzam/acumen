@@ -1,0 +1,40 @@
+#include "class_player.acm"
+#include "class_Cylinder.acm"
+#include "class_BatActuator.acm"
+#include "class_Bat.acm"
+#include "class_Ball.acm"
+#include "class_BallObserver.acm"
+#include "class_Table.acm"
+#include "class_Referee.acm"
+#include "class_Game.acm"
+
+/* 
+   Works with semantic 2014
+   Has bug with semantic 2013
+   Has bug with semantic 2012
+*/
+
+//#semantics "2014 Reference"
+
+model Main(simulator) = 
+initially
+  mode      =  "Initialize",
+  t         =  0,
+  t'        =  1,
+  j         =  0,
+  players   =  (Player,Player)  //Just put all the players here
+always
+  t' = 1,
+  match mode with [
+    "Initialize" ->
+      simulator.endTime  + == 20,
+      simulator.timeStep + == 0.01,
+      mode + == "CreateGame"
+  | "CreateGame"  ->
+      foreach  i in 0:(length(players)-1) do (
+        foreach  j in (i+1):(length(players)-1) do 
+          create Game(players(i), players(j), i, j-1,simulator.endTime)
+      ),
+      mode + == "Persist"
+  | "Persist" ->
+  ]

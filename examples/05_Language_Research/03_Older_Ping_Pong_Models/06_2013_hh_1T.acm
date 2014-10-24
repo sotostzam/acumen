@@ -22,13 +22,13 @@ class Ball ()
  end
  _3D = ["Sphere",p,0.03,[1,1,1],[0,0,0]];
  // If mode is not valid then make mode "Panic!"
- if mode ~= "Fly" && mode ~= "Bounce" && mode ~= "Freeze"
+ if mode ~= "Fly"&& mode ~= "Bounce"&& mode ~= "Freeze"
    mode := "Panic!";
  end;
  // Behavior of ball in different modes
  switch mode
   case "Fly"
-   if dot(p,[0,0,1]) < 0 && dot(p',[0,0,1])< 0
+   if dot(p,[0,0,1]) < 0&& dot(p',[0,0,1])< 0
     mode := "Bounce";
    else // Acceleration is air resistance and gravity
     p'' = -k2 * norm(p') * p' + [0,0,-9.8];
@@ -138,7 +138,7 @@ startPoint := [1.6*(-1)^n,0,0.2];
 t := 0;
 t' := 1;
 end
-if mode ~= "Wait" && mode ~= "Prepare" && mode ~= "Hit"
+if mode ~= "Wait"&& mode ~= "Prepare"&& mode ~= "Hit"
 end;
 t' = 1;                                 // Rate for local timer
 
@@ -168,20 +168,20 @@ case "Prepare"                         // Prepare to hit the ball
 if bounced == true                         // Once ball bounces, move towards it
 v = (ballp-batp).*[0,20,0] + (ballp-batp).*[0,0,25] +                                    
       (ballp+[0.12*(-1)^n,0,0]-batp).*[25,0,0];
-if norm(batp - ballp)<0.15        // && abs(dot(ballp,[1,0,0])) >=
+if norm(batp - ballp)<0.15        //&& abs(dot(ballp,[1,0,0])) >=
 //abs(dot(startPoint,[1,0,0]))
 count := count+1;
 mode := "Hit";
 end;
 end;
 // When the ball has bounced and it is at the highest position
-if count > 0 && dot(ballv,[0,0,1]) < 0.1 && bounced == true
+if count > 0&& dot(ballv,[0,0,1]) < 0.1&& bounced == true
 mode := "Hit";                         // Means this player has decided to hit the ball
 end;
 
 
 // Bouncing condition
-if dot(ballp,[0,0,1]) < 0 && bounced == false
+if dot(ballp,[0,0,1]) < 0&& bounced == false
 bounced := true;
 end;
 
@@ -236,7 +236,7 @@ class Transporter(n)
  g := 9.8;
  coe:=8;
 end
-if mode ~= "Wait" && mode ~= "Prepare" && mode ~= "Hit"
+if mode ~= "Wait"&& mode ~= "Prepare"&& mode ~= "Hit"
   mode := "Panic!";
 end;
 t'  = 1;   // Rate for local timer
@@ -260,18 +260,18 @@ switch mode
   if bounced == true     // Once ball bounces, move towards it
     v = (ballp-batp).*[0,20,0] + (ballp-batp).*[0,0,25] +
           (ballp+[0.12*(-1)^n,0,0]-batp).*[25,0,0];
-    if norm(batp - ballp)<0.15 && abs(dot(ballp,[1,0,0])) >=
+    if norm(batp - ballp)<0.15&& abs(dot(ballp,[1,0,0])) >=
                               abs(dot(startPoint,[1,0,0]))
      count := count+1;
      mode  := "Hit";
     end;
   end;
   // When the ball has bounced and it is at the highest position
-  if count > 0 && dot(ballv,[0,0,1]) < 0.1 && bounced == true
+  if count > 0&& dot(ballv,[0,0,1]) < 0.1&& bounced == true
    mode := "Hit"; // Means this play has decided to hit the ball
   end;
   // Bouncing condition
-  if dot(ballp,[0,0,1]) < 0 && bounced == false
+  if dot(ballp,[0,0,1]) < 0&& bounced == false
    bounced := true;
   end;
   // Go back to waiting when it is no longer your serve
@@ -282,7 +282,7 @@ case "Hit"           // This player’s hitting strategy
   if n == 2
     ballvHcos := dot(ballv,[1,0,0])/norm(ballv)*norm([1,0,0]);
     ballvVcos := dot(ballv,[0,1,0])/norm(ballv)*norm([0,1,0]);
-  if(ballvHcos >= 0.5 && ballvHcos <= 1)
+  if(ballvHcos >= 0.5&& ballvHcos <= 1)
   if(ballvVcos > 0)
     btoE = ballp-[-1.6,-0.8,0];
     ballpEA = acos(dot(btoE,[-1,0,0])/norm(btoE)*norm([-1,0,0]));
@@ -308,7 +308,7 @@ end;
 else
   ballvHcos := dot(ballv,[-1,0,0])/norm(ballv)*norm([-1,0,0]);
   ballvVcos := dot(ballv,[0,1,0])/norm(ballv)*norm([0,1,0]);
- if(ballvHcos >= 0.5 && ballvHcos <= 1)
+ if(ballvHcos >= 0.5&& ballvHcos <= 1)
  if(ballvVcos > 0)
    btoE := ballp-[1.6,0.8,0];
    ballpEA := acos(dot(btoE,[1,0,0])/norm(btoE)*norm([1,0,0]));    
@@ -421,7 +421,7 @@ class Terminator(n)
 
    case "Predict"
      // Bouncing condition
-     if dot(ballp,[0,0,1]) < 0 && bounced == false
+     if dot(ballp,[0,0,1]) < 0&& bounced == false
        bounced := true;
      end;
 
@@ -620,7 +620,7 @@ class Player(n)
   t   := 0;
   t'  := 1;
  end
- if mode ~= "Wait" && mode ~= "Prepare" && mode ~= "Hit"
+ if mode ~= "Wait"&& mode ~= "Prepare"&& mode ~= "Hit"
    mode := "Panic!";
  end;
  t'  = 1;   // Rate for local timer
@@ -644,18 +644,18 @@ class Player(n)
    if bounced == true     // Once ball bounces, move towards it
      v = (ballp-batp).*[0,20,0] + (ballp-batp).*[0,0,25] +
            (ballp+[0.12*(-1)^n,0,0]-batp).*[25,0,0];
-     if norm(batp - ballp)<0.15 && abs(dot(ballp,[1,0,0])) >=
+     if norm(batp - ballp)<0.15&& abs(dot(ballp,[1,0,0])) >=
                                abs(dot(startPoint,[1,0,0]))
       count := count+1;
       mode  := "Hit";
      end;
    end;
    // When the ball has bounced and it is at the highest position
-   if count > 0 && dot(ballv,[0,0,1]) < 0.1 && bounced == true
+   if count > 0&& dot(ballv,[0,0,1]) < 0.1&& bounced == true
     mode := "Hit"; // Means this play has decided to hit the ball
    end;
    // Bouncing condition
-   if dot(ballp,[0,0,1]) < 0 && bounced == false
+   if dot(ballp,[0,0,1]) < 0&& bounced == false
     bounced := true;
    end;
    // Go back to waiting when it is no longer your serve
@@ -669,7 +669,7 @@ class Player(n)
     v        := [-1.38,0.40,1.2];
     batAngle := [0.9471,0.25,-0.2];
    else
-    if t > 4 && t < 5
+    if t > 4&& t < 5
      v        := [-0.88,-0.5,0.2];
      batAngle := [0.9471,0.25,-0.2];
  else
@@ -714,7 +714,7 @@ class Kong(n)
   t   := 0;
   t'  := 1;
  end
- if mode ~= "Wait" && mode ~= "Prepare" && mode ~= "Hit"
+ if mode ~= "Wait"&& mode ~= "Prepare"&& mode ~= "Hit"
    mode := "Panic!";
  end;
  t'  = 1;
@@ -739,17 +739,17 @@ class Kong(n)
                                  // start moving the bat towards the ball
          v = (ballp-batp).*[0,20,0] + (ballp-batp).*[0,0,25] +
                (ballp+[0.12*(-1)^n,0,0]-batp).*[25,0,0];
-         if norm(batp - ballp)<0.15 && abs(dot(ballp,[1,0,0])) >=
+         if norm(batp - ballp)<0.15&& abs(dot(ballp,[1,0,0])) >=
                                    abs(dot(startPoint,[1,0,0]))
           count := count+1;
           mode  := "Hit";
          end;
    end;
    // When the ball has bounced and it is at the highest position
-   if count > 0 && dot(ballv,[0,0,1]) < 0.1 && bounced == true
+   if count > 0&& dot(ballv,[0,0,1]) < 0.1&& bounced == true
         mode := "Hit";         // This player decide to hit.
    end;
-   if dot(ballp,[0,0,1]) < 0 && bounced == false
+   if dot(ballp,[0,0,1]) < 0&& bounced == false
         bounced := true;
    end;
    if(serve ~= true)
@@ -761,7 +761,7 @@ class Kong(n)
         hs := "hitn";end;
  if dot(ballp,[0,1,0]) <= -0.30
  hs := "hitpos";end;
- if (dot(ballp,[0,1,0]) > -0.30) && (dot(ballp,[0,1,0]) < 0.30)
+ if (dot(ballp,[0,1,0]) > -0.30)&& (dot(ballp,[0,1,0]) < 0.30)
  hs := "hitnear";end;
  if (dot(ballp,[0,1,0]) >= 0.30)
             hs := "hitneg";end;
@@ -810,7 +810,7 @@ class Pisces(n)
   t   := 0;
   t'  := 1;
  end
- if mode ~= "Wait" && mode ~= "Prepare" && mode ~= "Hit"
+ if mode ~= "Wait"&& mode ~= "Prepare"&& mode ~= "Hit"
    mode := "Panic!";
  end;
  t'  = 1;
@@ -835,17 +835,17 @@ class Pisces(n)
                              // start moving the bat towards the ball
      v = (ballp-batp).*[0,20,0] + (ballp-batp).*[0,0,25] +
            (ballp+[0.12*(-1)^n,0,0]-batp).*[25,0,0];
-     if norm(batp - ballp)<0.15 && abs(dot(ballp,[1,0,0])) >=
+     if norm(batp - ballp)<0.15&& abs(dot(ballp,[1,0,0])) >=
                                abs(dot(startPoint,[1,0,0]))
       count := count+1;
       mode  := "Hit";
      end;
    end;
    // When the ball has bounced and it is at the highest position
-   if count > 0 && dot(ballv,[0,0,1]) < 0.1 && bounced == true
+   if count > 0&& dot(ballv,[0,0,1]) < 0.1&& bounced == true
     mode := "Hit";     // This player decide to hit.
    end;
-   if dot(ballp,[0,0,1]) < 0 && bounced == false
+   if dot(ballp,[0,0,1]) < 0&& bounced == false
     bounced := true;
    end;
    if(serve ~= true)
@@ -1281,7 +1281,7 @@ class PingPing(n)
   t   := 0;
   t'  := 1;
  end
- if mode ~= "Wait" && mode ~= "Prepare" && mode ~= "Hit"
+ if mode ~= "Wait"&& mode ~= "Prepare"&& mode ~= "Hit"
    mode := "Panic!";
  end;
  t'  = 1;
@@ -1311,17 +1311,17 @@ class PingPing(n)
                              // start moving the bat towards the ball
      v = (ballp-batp).*[0,20,0] + (ballp-batp).*[0,0,25] +
             (ballp+[0.12*(-1)^n,0,0]-batp).*[25,0,0];
-     if norm(batp - ballp)<0.15 && abs(dot(ballp,[1,0,0])) >=
+     if norm(batp - ballp)<0.15&& abs(dot(ballp,[1,0,0])) >=
                                 abs(dot(startPoint,[1,0,0]))
       count := count+1;
       mode  := "Hit";
      end;
    end;
    // When the ball has bounced and it is at the highest position
-   if count > 0 && dot(ballv,[0,0,1]) < 0.1 && bounced == true
+   if count > 0&& dot(ballv,[0,0,1]) < 0.1&& bounced == true
             mode := "Hit";     // This player decide to hit.
    end;
-   if dot(ballp,[0,0,1]) < 0 && bounced == false
+   if dot(ballp,[0,0,1]) < 0&& bounced == false
     bounced := true;
    end;
    if(serve ~= true)
@@ -1329,7 +1329,7 @@ class PingPing(n)
    end;
  case "Hit"           // Decide how you want hit the ball,
    if n == 2
-     if(serve == true && scount == 0)
+     if(serve == true&& scount == 0)
         if(dot(ballp,[0,1,0]) > 0)
           v        := [-1,0.2,1.2];
             batAngle := [dot(ballp,[1,0,0])+1.3,dot(ballp,[0,1,0])+0.7,-0.2]/
@@ -1339,7 +1339,7 @@ class PingPing(n)
             batAngle := [dot(ballp,[1,0,0])+1.3,dot(ballp,[0,1,0])-0.7,-0.2]/
           norm([dot(ballp,[1,0,0])+1.3,dot(ballp,[0,1,0])+0.7,-0.2]);
         end;        
-        if(dot(ballp,[0,1,0]) <= 0.2 && dot(ballp,[0,1,0]) >= -0.2)
+        if(dot(ballp,[0,1,0]) <= 0.2&& dot(ballp,[0,1,0]) >= -0.2)
           v        := [-1,0,1.2];
             batAngle := [0.95,0,-0.2];
         end;
@@ -1413,7 +1413,7 @@ class WiffWaff(n)
  end
  number = n;
  startPoint = [1.6*(-1)^number,0,0.2];
- if mode ~= "Wait" && mode ~= "Prepare" && mode ~= "Hit"
+ if mode ~= "Wait"&& mode ~= "Prepare"&& mode ~= "Hit"
    mode := "Panic!";
  end;
  t'  = 1;
@@ -1438,17 +1438,17 @@ class WiffWaff(n)
                              // start moving the bat towards the ball
      v = (ballp-batp).*[0,20,0] + (ballp-batp).*[0,0,25] +
                    (ballp+[0.12*(-1)^n,0,0]-batp).*[25,0,0];
-     if norm(batp - ballp)<0.15 && abs(dot(ballp,[1,0,0])) >=
+     if norm(batp - ballp)<0.15&& abs(dot(ballp,[1,0,0])) >=
                                       0.8* abs(dot(startPoint,[1,0,0]))
       count := count+1;
       mode  := "Hit";
      end;
    end;
    // When the ball has bounced and it is at the highest position
-   if count > 0 && dot(ballv,[0,0,1]) < 0.1 && bounced == true
+   if count > 0&& dot(ballv,[0,0,1]) < 0.1&& bounced == true
     mode := "Hit";     // This player decide to hit.
    end;
-   if dot(ballp,[0,0,1]) < 0 && bounced == false
+   if dot(ballp,[0,0,1]) < 0&& bounced == false
     bounced := true;
    end;
    if(serve ~= true)
@@ -1500,7 +1500,7 @@ private
   t   := 0;
   t'  := 1;
  end
- if mode ~= "Wait" && mode ~= "Prepare" && mode ~= "Hit"
+ if mode ~= "Wait"&& mode ~= "Prepare"&& mode ~= "Hit"
    mode := "Panic!";
  end;
  t'  = 1;
@@ -1525,17 +1525,17 @@ private
                              // start moving the bat towards the ball
      v = (ballp-batp).*[0,20,0] + (ballp-batp).*[0,0,25] +
             (ballp+[0.12*(-1)^n,0,0]-batp).*[25,0,0];
-     if norm(batp - ballp)<0.15 && abs(dot(ballp,[1,0,0])) >=
+     if norm(batp - ballp)<0.15&& abs(dot(ballp,[1,0,0])) >=
                                 abs(dot(startPoint,[1,0,0]))
       mode  := "Hit";
      end;
    end;
    // When the ball has bounced and it is at the highest position
-   if count > 0 && dot(ballv,[0,0,1]) < 0.1 && dot(ballp,[0,0,1]) >
-0.1 && bounced == true
+   if count > 0&& dot(ballv,[0,0,1]) < 0.1&& dot(ballp,[0,0,1]) >
+0.1&& bounced == true
     mode := "Hit";     // This player decide to hit.
    end;
-   if dot(ballp,[0,0,1]) < 0 && bounced == false
+   if dot(ballp,[0,0,1]) < 0&& bounced == false
     bounced := true;
 count := 1;
    end;
@@ -1581,7 +1581,7 @@ class XPTO(n)
   t   := 0;
   t'  := 1;
  end
- if mode ~= "Wait" && mode ~= "Prepare" && mode ~= "Hit"
+ if mode ~= "Wait"&& mode ~= "Prepare"&& mode ~= "Hit"
    mode := "Panic!";
  end;
  t'  = 1;
@@ -1602,17 +1602,17 @@ class XPTO(n)
                                  // start moving the bat towards the ball
          v = (ballp-batp).*[0,20,0] + (ballp-batp).*[0,0,25] +
                (ballp+[0.12*(-1)^2,0,0]-batp).*[25,0,0];
-         if norm(batp - ballp)<0.15 && abs(dot(ballp,[1,0,0])) >=
+         if norm(batp - ballp)<0.15&& abs(dot(ballp,[1,0,0])) >=
                                    abs(dot(startPoint,[1,0,0]))
           count := count+1;
           mode  := "Hit";
          end;
    end;
    // When the ball has bounced and it is at the highest position
-   if count > 0 && dot(ballv,[0,0,1]) < 0.1 && bounced == true
+   if count > 0&& dot(ballv,[0,0,1]) < 0.1&& bounced == true
         mode := "Hit";         // This player decide to hit.
    end;
-   if dot(ballp,[0,0,1]) < 0 && bounced == false
+   if dot(ballp,[0,0,1]) < 0&& bounced == false
         bounced := true;
    end;
    if(serve ~= true)
@@ -1624,7 +1624,7 @@ class XPTO(n)
            v            := [-1, 0.40, 1.2];
            batAngle := [0.92, 0, -0.1];
          else
-           if t > 4 && t < 5
+           if t > 4&& t < 5
              v            := [-0.88, -0.2, 0.2];
              batAngle := [0.92, 0.05, -0.1];
            else
@@ -1660,7 +1660,7 @@ class Virtue(n)
   t   := 0;
   t'  := 1;
  end
- if mode ~= "Wait" && mode ~= "Prepare" && mode ~= "Hit"
+ if mode ~= "Wait"&& mode ~= "Prepare"&& mode ~= "Hit"
    mode := "Panic!";
  end;
  t'  = 1;
@@ -1685,17 +1685,17 @@ class Virtue(n)
                              // start moving the bat towards the ball
      v = (ballp-batp).*[0,20,0] + (ballp-batp).*[0,0,25] +
            (ballp+[0.12*(-1)^n,0,0]-batp).*[25,0,0];
-     if norm(batp - ballp)<0.15 && abs(dot(ballp,[1,0,0])) >=
+     if norm(batp - ballp)<0.15&& abs(dot(ballp,[1,0,0])) >=
                                abs(dot(startPoint,[1,0,0]))
       count := count+1;
       mode  := "Hit";
      end;
    end;
    // When the ball has bounced and it is at the highest position
-   if count > 0 && dot(ballv,[0,0,1]) > -0.6 && bounced == true  //vvv <0.5 -> >-0.6 hit earlier
+   if count > 0&& dot(ballv,[0,0,1]) > -0.6&& bounced == true  //vvv <0.5 -> >-0.6 hit earlier
     mode := "Hit";     // This player decide to hit.
    end;
-   if dot(ballp,[0,0,1]) < 0 && bounced == false
+   if dot(ballp,[0,0,1]) < 0&& bounced == false
     bounced := true;
    end;
    if(serve ~= true)
@@ -1708,7 +1708,7 @@ class Virtue(n)
     v        := [-0.38,0.40,1.2];   // vvv -1.38 -> -0.38 less acc in x dir
     batAngle := [0.9471,0.25,-0.7]; // vvv -0.2->-0.7 big parable
    else
-    if t > 4 && t < 5
+    if t > 4&& t < 5
      v        := [-0.88,-0.5,0.2];
      batAngle := [0.9471,0.25,-0.2];
     else
@@ -1760,7 +1760,7 @@ class BallActuator()  // Drives ball (and models impacts)
    done  := false;     // When collision is completed
    action := 0;        // Trigger for actuation (set by Parent)
  end
-  if mode ~= "Initialize" && mode ~= "Calculate" && mode ~= "Wait"
+  if mode ~= "Initialize"&& mode ~= "Calculate"&& mode ~= "Wait"
    mode := "Panic!";
   end;
  switch mode
@@ -1794,7 +1794,7 @@ class BallObserver()
   t' := 1;
  end
  t'=1;
- if mode ~= "Sample" && mode ~= "Estimate0" && mode ~= "Estimate1"
+ if mode ~= "Sample"&& mode ~= "Estimate0"&& mode ~= "Estimate1"
   mode := "Panic!";
  end;
  switch mode
@@ -1840,15 +1840,15 @@ class Referee()  // This class will monitors the whole game.
   bounceTime   := 0;
   status       := "Normal"
  end
- if mode ~= "Initialize" && mode ~= "Player1Lost" && mode ~= "Player2Lost"
-    && mode ~= "SendMessage" && status ~= "Normal" && reason ~= "Nothing"
-    && status ~= "Report" && reason ~= "BallOutOfBoundary"
- && reason ~= "BallBouncedTwice" && reason ~= "BallTouchNet"
+ if mode ~= "Initialize"&& mode ~= "Player1Lost"&& mode ~= "Player2Lost"
+  && mode ~= "SendMessage"&& status ~= "Normal"&& reason ~= "Nothing"
+  && status ~= "Report"&& reason ~= "BallOutOfBoundary"
+&& reason ~= "BallBouncedTwice"&& reason ~= "BallTouchNet"
   mode := "Panic!";
  end;
   t'=1;
-  if z<0.05 && z'<0 && status == "Normal"  // Check if anyone fouls
-   if (abs(y)>0.78||abs(x)>1.53) && status == "Normal"
+  if z<0.05&& z'<0&& status == "Normal"  // Check if anyone fouls
+   if (abs(y)>0.78||abs(x)>1.53)&& status == "Normal"
     reason     := "BallOutOfBoundary";
     if bounced == false
      if x>0
@@ -1866,40 +1866,40 @@ class Referee()  // This class will monitors the whole game.
     end;
     status := "Report";
    end;
-   if(abs(y)<0.78 && abs(x)<1.53) && bounced ~= false
-      && t>(bounceTime+0.1) && status=="Normal"
+   if(abs(y)<0.78&& abs(x)<1.53)&& bounced ~= false
+    && t>(bounceTime+0.1)&& status=="Normal"
  // The ball has bounced twice in player2's court
-    if bounced == "YesIn2" && x > 0
+    if bounced == "YesIn2"&& x > 0
      mode   := "Player2Lost";
      reason := "BallBouncedTwice";
   bounceTime := t;
     end;
  // The ball has bounced twice in player1's court
-    if bounced == "YesIn1" && x < 0
+    if bounced == "YesIn1"&& x < 0
      mode   := "Player1Lost";
      reason := "BallBouncedTwice";
   bounceTime := t;
     end;
    end;
-   if x<0 && x>-1.5 && bounced == false && status == "Normal"
+   if x<0&& x>-1.5&& bounced == false&& status == "Normal"
     bounced    := "YesIn1";
     bounceTime := t;
    end;
-   if x>=0 && x<1.5 && bounced == false && status == "Normal"
+   if x>=0&& x<1.5&& bounced == false&& status == "Normal"
     bounced    := "YesIn2";
     bounceTime := t;
    end;
  end;
 
 
- if bounced == "YesIn1" && x>0 && status == "Normal"
+ if bounced == "YesIn1"&& x>0&& status == "Normal"
   bounced := false
  end;
- if bounced == "YesIn2" && x<=0 && status == "Normal"
+ if bounced == "YesIn2"&& x<=0&& status == "Normal"
   bounced := false
  end;
   // Time to check if the ball touches the net
- if abs(x)<0.025 && t>0.1 && checked == false && status == "Normal"
+ if abs(x)<0.025&& t>0.1&& checked == false&& status == "Normal"
   if z<0.25
     if x'>0
      mode   := "Player1Lost";
@@ -1959,9 +1959,9 @@ class Game ()
   t' := 1;
   maxEnergy    := 18;
  end
-  if mode ~= "Restart"      && mode ~= "Player1Serve" && 
-     mode ~= "Player2Serve" && mode ~= "Impact"       && 
-     mode ~= "Freeze"       && mode ~= "ChangeSide"   && 
+  if mode ~= "Restart"    && mode ~= "Player1Serve"&& 
+     mode ~= "Player2Serve"&& mode ~= "Impact"     && 
+     mode ~= "Freeze"     && mode ~= "ChangeSide" && 
      mode ~= "Act"
    mode := "Panic!"
   end;
@@ -2033,7 +2033,7 @@ class Game ()
   case "Player2Serve" // Player 2 is serving
    player1.serve = false;
    player2.serve =  true;
-   if player2.hit == true && norm(bat2.p - ball.p) < 0.15
+   if player2.hit == true&& norm(bat2.p - ball.p) < 0.15
     mode := "Impact"
    end;
    if gameMonitor.restart == 1
@@ -2043,7 +2043,7 @@ class Game ()
  case "Player1Serve" // Player 1 is serving
   player2.serve = false;
   player1.serve = true;
-  if player1.hit == true && norm(bat1.p - ball.p) < 0.15
+  if player1.hit == true&& norm(bat1.p - ball.p) < 0.15
    mode := "Impact"
   end;
   if gameMonitor.restart == 1
@@ -2095,13 +2095,13 @@ class Game ()
    mode := "Freeze";
    t    := 0;
   end;
-  if serveNumber == 2 && dot(ball.p,[1,0,0]) >0 && gameMonitor.restart ~= 1
+  if serveNumber == 2&& dot(ball.p,[1,0,0]) >0&& gameMonitor.restart ~= 1
    serveNumber     := 1;
    mode            := "Player1Serve";
    player1.mode    := "Wait";
    player1.bounced := false;
   end;
-  if serveNumber == 1 && dot(ball.p,[1,0,0]) <= 0 && gameMonitor.restart ~= 1
+  if serveNumber == 1&& dot(ball.p,[1,0,0]) <= 0&& gameMonitor.restart ~= 1
    serveNumber     := 2;
    mode            := "Player2Serve";
    player2.mode    := "Wait";

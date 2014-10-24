@@ -5,16 +5,16 @@
 
 model Main(simulator) =
   initially
-    x    = 1 & 
-    x'   = 0 & 
-    x''  = 0 & 
+    x    = 1, 
+    x'   = 0, 
+    x''  = 0, 
     mode = ""
   always
   match mode with [
     "" ->
       x'' == -x
-  ] &
-  simulator.endTime+ == 2.0 &
+  ],
+  simulator.endTime+ == 2.0,
   simulator.minSolverStep+ == 0.01
 
 // Note:  For the (very basic) continuous solver that

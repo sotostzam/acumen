@@ -1,0 +1,424 @@
+/**
+* Program:   3-D ping pong (bat controlled through acceleration)
+* Author :   Yingfu Zeng, Adam Duracz, Walid Taha
+* Date   :   2012/02/20
+* License:   BSD, GPL(V2), or other by agreement with Walid Taha
+**/
+
+#semantics "2012 Reference"
+
+class Virtue(n) 
+// Based on WiffWaff's speed-control player.Aim for far edge or net. Make opponent move along X. High shot when you go for net.
+     private
+      mode      := "Wait";
+	  name      := "Virtue";
+      bounced   := false;       // Tell whether the ball bounced or not
+      serve := false;           // The Game class will set serve flag to true
+      hit   := false;           // when it's your turn
+      count := 0;
+      ballv := [0,0,0];
+      ballp := [0,0,0];
+      batp  := [1.6,0,0.2];
+      v     := [0,0,0];         // Bat's speed
+      a     := [0,0,0];         // Bat's acceleration (computed by controller)
+      estimatedBatV  := [0,0,0]; // Predicted result of acceleration
+      estimatedBatV' := [0,0,0]; // Equated to computed acceleration signal
+      desiredBatP  := [1.6*(-1)^n,0,0.2];     // Desired bat position (from derive)
+      desiredBatP' := [0,0,0];     // Desired bat speed (from naive)
+      batAngle   := [0,0,0.1];  // Normal vector of the bat's plane
+      batAngle'  := [0,0,0];
+      // Player(1) starts at [-1.6,0,0.2], Player(2) starts at [1.6,0,0.2]
+      startPoint := [1.6*(-1)^n,0,0.2];
+      v2         := [0,0,0];    // The output speed of the ball, which we desired
+      v21        := [0,0,0];
+      z   := 0;
+      n1   := 0;
+      t   := 0;
+      t'  := 1;
+      number := n;
+      delta := 0;
+      delta2 := 0;
+      mult := 0.7;
+      mult2 := 0.7;
+     end
+     number = n;
+     startPoint = [1.6*(-1)^number,0,0.2];
+     if mode ~= "Wait"&& mode ~= "Prepare"&& mode ~= "Hit"
+       mode := "Panic!";
+     end;
+     t'  = 1;
+     switch mode
+      case "Wait"               // While waiting, moving the bat to starting point
+       count      := 0;
+           a = -100000*v;
+       //v = [0,0,0];
+       if n == 1
+         v         = [0,0,0];
+       else
+         v         = [0,0,0];
+       end;
+       batAngle' = [0,0,0]-batAngle;//different angle from opponent
+       hit    := false;
+       if serve == true
+        mode    := "Prepare";
+        bounced := false;
+       else
+        mode := "Wait";
+       end;
+      case "Prepare"             // Prepare to hit the ball
+       if bounced == true        // After the ball has bounced,
+                             // start moving the bat towards the ball
+         v = (ballp-batp).*[0,30,0] + (ballp-batp).*[0,0,25] +
+                   (ballp-batp).*[25,0,0];
+         if norm(batp - ballp)<0.08
+          count := count+1;
+          mode  := "Hit";
+         end;
+       end;
+       // When the ball has bounced and it is at the highest position
+      // if count > 0&& dot(ballv,[0,0,1]) < 0.1&& bounced == true
+       // mode := "Hit";     // This player decide to hit.
+      // end;
+       if dot(ballp,[0,0,1]) < 0&& bounced == false
+        bounced := true;
+       end;
+       if(serve ~= true)
+         mode := "Wait";
+       end;
+     case "Hit"           // Decide how you want hit the ball,
+      if n == 2
+        v2  := [-(dot(ballp, [1,0,0] ) + 0.75 + 0.5 ), -dot( ballp, [0,1,0]
+    ), 5 - dot(ballp,[0,0,1])];
+        v21 := (v2 - ballv) / (-2) ;
+        n1   :=  norm(v21);
+        delta := (1.6-dot(desiredBatP, [1,0, 0]));
+        if(dot(ballp, [1,0,0])<1 || dot(ballp, [1,0,0])>1.8 )
+            batAngle := (v21 / n1)*(1-(delta/12));
+        else
+            batAngle := (v21 / n1)*(1+(delta/10));
+        end;
+        
+        z := (n1- dot(batAngle, [1,0,0])*4) / dot(batAngle, [0,0,1]);
+        v := ballv - [4, 0,z];
+      else
+        v2  := [(-dot(ballp, [1,0,0] ) + 0.75 + 0.5 ), -dot( ballp, [0,1,0]
+    ), 5 - dot(ballp,[0,0,1])];
+        v21 := (v2 - ballv) / (-2) ;
+        n1   :=  norm(v21);
+        delta2 := (1.6+dot(desiredBatP, [1,0,0]));
+        batAngle := (v21 / n1)*(1-(delta2/12));
+        
+        z := (n1- dot(batAngle, [1,0,0])*4) / dot(batAngle, [0,0,1]);
+        mult2 := 0.15;
+        v := ballv - [4,0,z];
+       end;
+      serve  := false;
+      hit    := true;
+          startPoint := batp;
+      mode   := "Wait";
+      desiredBatP := startPoint;
+      if n == 1
+       estimatedBatV := v - [0,0,10];    
+      else
+       estimatedBatV := v ;
+      end;
+     case "Panic!"
+     end;
+    
+         // Compute the desired position based on the computed "control" speed
+         desiredBatP' = v;
+
+         // Basic controller to actuate acceleration
+             a = (13*(desiredBatP'-estimatedBatV)+[0,0,0] + 50*(desiredBatP-batp));
+
+         // Keep track of effect of acceleration to estimate actual bat speed
+         estimatedBatV' = a;
+    end
+
+	
+class Panther(n) // Based on WiffWaff's speed-control player, make his opponents move
+ private
+  name     := "Panther";
+  mode      := "Wait";
+  bounced   := false;       // Tell whether the ball bounced or not
+  serve := false;           // The Game class will set serve flag to true
+  hit   := false;           // when it's your turn
+  count := 0;
+  ballv := [0,0,0];
+  ballp := [0,0,0];
+  batp  := [1.6,0,0.2];
+  v     := [0,0,0];         // Bat's speed
+  a     := [0,0,0];         // Bat's acceleration (computed by controller)
+  estimatedBatV  := [0,0,0]; // Predicted result of acceleration
+  estimatedBatV' := [0,0,0]; // Equated to computed acceleration signal
+  desiredBatP  := [1.6*(-1)^n,0,0.2];     // Desired bat position (from derive)
+  desiredBatP' := [0,0,0];     // Desired bat speed (from naive)
+  batAngle   := [0,0,0.1];  // Normal vector of the bat's plane
+  batAngle'  := [0,0,0];
+  // Player(1) starts at [-1.6,0,0.2], Player(2) starts at [1.6,0,0.2]
+  startPoint := [1.6*(-1)^n,0,0.2];
+  v2         := [0,0,0];    // The output speed of the ball, which we desired
+  v21        := [0,0,0];
+  z   := 0;
+  n1   := 0;
+  t   := 0;
+  t'  := 1;
+  number := n;
+//
+ballvHorCos := 0; //The value of cos which is the angle between ball velocity and horizontal axis(x)
+ballvVerSin := 0; //The value of cos which is the angle between ball velocity and vertical axis(y)
+ballpEdgeAngle := 0; //The angle of the angle between ball velocity and edge
+//4 vertex of table
+balltoEdge := [0,0,0];
+//Estimated value
+estimatedDistance := 0;
+estimatedBallV := [0,0,0];
+estimatedBatV := [0,0,0];
+estimatedHeight := 0.5;
+//Gravity
+g := 9.8;
+//Coefficient
+coeff := 1.1;
+ end
+ number = n;
+ startPoint = [1.6*(-1)^number,0,0.2];
+ if mode ~= "Wait"&& mode ~= "Prepare"&& mode ~= "Hit"
+   mode := "Panic!";
+ end;
+ t'  = 1;
+ switch mode
+  case "Wait"               // While waiting, moving the bat to starting point
+   count      := 0;
+   if n == 1
+     v         = startPoint-batp;
+   else
+     v         = startPoint-batp;
+   end;
+   batAngle' = [0,0,0]-batAngle;
+   hit    := false;
+   if serve == true
+    mode    := "Prepare";
+    bounced := false;
+   else
+    mode := "Wait";
+   end;
+  case "Prepare"             // Prepare to hit the ball
+   if bounced == true        // After the ball has bounced,
+                             // start moving the bat towards the ball
+     v = (ballp-batp).*[0,30,0] + (ballp-batp).*[0,0,25] +
+                   (ballp-batp).*[25,0,0];
+     if norm(batp - ballp)<0.08
+      count := count+1;
+      mode  := "Hit";
+     end;
+   end;
+   // When the ball has bounced and it is at the highest position
+  // if count > 0&& dot(ballv,[0,0,1]) < 0.1&& bounced == true
+   // mode := "Hit";     // This player decide to hit.
+  // end;
+   if dot(ballp,[0,0,1]) < 0&& bounced == false
+    bounced := true;
+   end;
+   if(serve ~= true)
+     mode := "Wait";
+   end;
+ case "Hit"           // Decide how you want hit the ball,
+  if n == 2
+    ballvHorCos := dot(ballv,[(-1)^n,0,0])/norm(ballv)*norm([(-1)^n,0,0]);
+    ballvVerSin := (-dot(ballv,[0,0,1])+dot(ballv,[0,1,0]))/norm(ballv)*norm([0,1,0]);
+    if(ballvHorCos >= 0.7&& ballvHorCos <= 1)
+        if(ballvVerSin > 0)
+            balltoEdge := ballp-[(-1)^(n-1)*1.5,(-1)^(n-1)*0.75,0];
+            ballpEdgeAngle := acos(dot(balltoEdge,[(-1)^(n-1),0,0])/norm(balltoEdge)*norm([(-1)^(n-1),0,0]));
+        else
+            balltoEdge := ballp-[(-1)^(n-1)*1.5,(-1)^n*0.75,0];
+            ballpEdgeAngle := acos(dot(balltoEdge,[(-1)^(n-1),0,0])/norm(balltoEdge)*norm([(-1)^(n-1),0,0]));
+        end;
+    else
+        balltoEdge := ballp-[(-1)^(n-1)*1.5,0,0];
+        ballpEdgeAngle :=  acos(dot(balltoEdge,[(-1)^(n-1),0,0])/norm(balltoEdge)*norm([(-1)^(n-1),0,0]));
+    end;
+
+    if(n == 2)
+        if(dot(batp,[0,1,0])>=0)
+            ballpEdgeAngle := -ballpEdgeAngle;
+        end;
+    else
+        if(dot(batp,[0,1,0])<0)
+            ballpEdgeAngle := -ballpEdgeAngle;
+        end;
+    end;
+
+    estimatedDistance := norm(balltoEdge);
+    estimatedBallV := [sqrt((estimatedDistance^2)*g/2*estimatedHeight)*cos(ballpEdgeAngle),sqrt((estimatedDistance^2)*g/2*estimatedHeight)*sin(ballpEdgeAngle),sqrt(2*g*estimatedHeight)];
+    v2  := estimatedBallV/coeff;
+    v21 := (v2 - ballv) / (-2) ;
+    n1   :=  norm(v21);
+    batAngle := v21 / n1;
+    z := (n1- dot(batAngle, [1,0,0])*4) / dot(batAngle, [0,0,1]);
+    v := ballv - [4,0,z];
+    
+ else
+    v2  := [(-dot(ballp, [1,0,0] ) + 0.75 + 0.5 ), -dot( ballp, [0,1,0]), 5 - dot(ballp,[0,0,1])];
+    v21 := (v2 - ballv) / (-2) ;
+    n1   :=  norm(v21);
+    batAngle := v21 / n1;
+    z := (n1- dot(batAngle, [1,0,0])*4) / dot(batAngle, [0,0,1]);
+    v := ballv - [4,0,z];
+end;
+  serve  := false;
+  hit    := true;
+  mode   := "Wait";
+  desiredBatP := startPoint;
+  if n == 1
+   estimatedBatV := v - [0,0,10];
+  else
+   estimatedBatV := v ;
+  end;
+ case "Panic!"
+ end;
+ 
+    // Compute the desired position based on the computed "control" speed
+     desiredBatP' = v;
+
+     // Basic controller to actuate acceleration
+     a = 13*(desiredBatP'-estimatedBatV)+ 50*(desiredBatP-batp); 
+
+    // Keep track of effect of acceleration to estimate actual bat speed
+     estimatedBatV' = a;
+end
+
+
+
+class ParadoX(n) 
+// Based on WiffWaff's speed-control player,always aim at the opposite edge.
+    private
+	    name := "ParadoX";
+        mode := "Wait";
+        bounced := false; // Tell whether the ball bounced or not
+        serve := false; // The Game class will set serve flag to true
+        hit := false; // when it's your turn
+        count := 0;
+        ballv := [0,0,0];
+        ballp := [0,0,0];
+        batp := [1.6,0,0.2];
+        v := [0,0,0]; // Bat's speed
+        a := [0,0,0]; // Bat's acceleration (computed by controller)
+        estimatedBatV := [0,0,0]; // Predicted result of acceleration
+        estimatedBatV' := [0,0,0]; // Equated to computed acceleration signal
+        desiredBatP := [1.6*(-1)^n,0,0.2]; // Desired bat position (from derive)
+        desiredBatP' := [0,0,0]; // Desired bat speed (from naive)
+        batAngle := [0,0,0.1]; // Normal vector of the bat's plane
+        batAngle' := [0,0,0];
+    // Player(1) starts at [-1.6,0,0.2], Player(2) starts at [1.6,0,0.2]
+        startPoint := [1.6*(-1)^n,0,0.2];
+        v2 := [0,0,0]; // The output speed of the ball, which we desired
+        v21 := [0,0,0];
+        z := 0;
+        n1 := 0;
+        t := 0;
+        t' := 1;
+        D := [1.6*(-1)^n,0,0];
+        Dt := 0;
+        Dflag := false;
+        hitBack := false;
+        number := n;
+    end
+    number = n;
+    startPoint = [1.6*(-1)^number,0,0.2];
+    
+    if mode ~= "Wait"&& mode ~= "Prepare"&& mode ~= "Hit"
+        mode := "Panic!";
+    end;
+    
+    t' = 1;
+    
+    switch mode
+    case "Wait" // While waiting, moving the bat to starting point
+        count := 0;
+        v = startPoint-batp;
+        batAngle' = [0,0,0]-batAngle;
+        hit := false;
+        if serve == true
+            mode := "Prepare";
+            bounced := false;
+            Dflag := true;
+        else
+            mode := "Wait";
+        end;
+    case "Prepare" // Prepare to hit the ball after the ball has bounced, start moving the bat towards the ball
+        if bounced == true
+            if( Dflag )
+                Dflag := false;
+                hitBack := true;
+            end;
+            if( dot(ballv,[0,0,1]) < 0 )&& ( abs(dot(ballp,[1,0,0])) < 1.5 )&& ( dot(ballp,[0,0,1] ) > 0.1 )
+                hitBack := false;
+            end;
+            if( hitBack )
+                v = (ballp-batp).*[0,30,0] + (ballp-batp).*[0,0,25];
+            else
+                v = (ballp-batp).*[0,30,0] + (ballp-batp).*[0,0,25] + (ballp-batp).*[25,0,0];
+            end;
+            if norm(batp - ballp)<0.15
+                count := count+1;
+                mode := "Hit";
+            end;
+        end;
+        // When the ball has bounced and it is at the highest position
+        // if count > 0&& dot(ballv,[0,0,1]) < 0.1&& bounced == true
+        // mode := "Hit"; // This player decide to hit.
+        // end;
+        if dot(ballp,[0,0,1]) < 0&& bounced == false
+            bounced := true;
+        end;
+        if(serve ~= true)
+            mode := "Wait";
+        end;
+    case "Hit" // Decide how you want hit the ball,
+        if n == 2
+            v2 := [-(dot(ballp, [1,0,0] ) + 0.75 + 0.5 ), -dot( ballp, [0,1,0] ), 5 - dot(ballp,[0,0,1])];
+            v21 := (v2 - ballv) / (-2) ;
+            n1 := norm(v21);
+            batAngle := v21 / n1;
+            z := (n1- dot(batAngle, [1,0,0])*4) / dot(batAngle, [0,0,1]);
+            v := ballv - [4,0,z];
+        else
+            v2 := [(-dot(ballp, [1,0,0] ) + 0.75 + 0.5 ), -dot( ballp, [0,1,0] ), 5 - dot(ballp,[0,0,1])];
+            v21 := (v2 - ballv) / (-2) ;
+            n1 := norm(v21);
+            batAngle := v21 / n1;
+            z := (n1- dot(batAngle, [1,0,0])*4) / dot(batAngle, [0,0,1]);
+            v := ballv - [4,0,z];
+        end;
+        if( dot(ballp,[0,1,0]) > 0 )
+            batAngle := batAngle + [0,0.1,0] + dot(ballp,[0,1,0])/15;
+        else
+            batAngle := batAngle + [0,-0.1,0] + dot(ballp,[0,1,0])/15;
+        end;
+        if( n == 1 )
+            batAngle := batAngle + [ -dot(batp,[1,0,0])*0.09/1.6, 0, 0.03 ];
+            else
+            batAngle := batAngle + [ dot(batp,[1,0,0])*0.05/1.6, 0, 0 ];
+        end;
+        serve := false;
+        hit := true;
+        mode := "Wait";
+        desiredBatP := startPoint;
+        if n == 1
+            estimatedBatV := v - [-5,0,12];
+        else
+            estimatedBatV := v ;
+        end;
+    case "Panic!"
+    end;
+    // Compute the desired position based on the computed "control" speed
+    desiredBatP' = v;
+    // Basic controller to actuate acceleration
+    a = 13*(desiredBatP'-estimatedBatV)+ 50*(desiredBatP-batp);
+    // Keep track of effect of acceleration to estimate actual bat speed
+    estimatedBatV' = a;
+end
+
+
+class XPTO(n) 

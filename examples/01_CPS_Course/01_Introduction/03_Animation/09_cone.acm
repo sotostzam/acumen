@@ -3,10 +3,10 @@
 
 model Main(simulator) = 
 initially
-  t = 0 & t' = 3 &
+  t = 0, t' = 3,
   _3D  =  ()
 always
-  t' = 3 &
+  t' = 3,
   _3D =
  (Cone 
     center=(0,0,0) // Center point

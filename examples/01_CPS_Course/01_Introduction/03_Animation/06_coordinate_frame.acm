@@ -9,11 +9,11 @@
 
 model Main(simulator) = 
 initially
-  t   =  0 &
-  t'  =  1 &
+  t   =  0,
+  t'  =  1,
   _3D  =  () 
 always
-  t' = 1 &
+  t' = 1,
   _3D = 
   (Box center= ( 1,0, 0) size=(2   ,0.02,0.02) color=(1,0,0) rotation=(0,0,0), // x-axis line
    Box center= ( 0,1, 0) size=(0.02,2   ,0.02) color=(0,1,0) rotation=(0,0,0), // y-axis line

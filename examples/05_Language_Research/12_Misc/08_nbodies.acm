@@ -9,11 +9,11 @@
 model BallGalaxy(mode)
   switch mode
     case "Init"
-      create Ball ((1,1,1),       (10,0,-10), (0,0,0), (0,0,0), 200) &
-      create Ball ((1.5,1.5,1.5), (-10,0,10), (0,0,0), (0,0,0), 200) &
-      //create Ball ((4,1,1.5),     (0,30,0),   (0,0,0), (0,0,0), 1) &
-      //create Ball ((-5,1,-1.5),   (0,-30,0),  (0,0,0), (0,0,0), 2) &
-      //create Ball ((1,-10,1),     (40,0,0),   (0,0,0), (0,0,0), 3) &
+      create Ball ((1,1,1),       (10,0,-10), (0,0,0), (0,0,0), 200),
+      create Ball ((1.5,1.5,1.5), (-10,0,10), (0,0,0), (0,0,0), 200),
+      //create Ball ((4,1,1.5),     (0,30,0),   (0,0,0), (0,0,0), 1),
+      //create Ball ((-5,1,-1.5),   (0,-30,0),  (0,0,0), (0,0,0), 2),
+      //create Ball ((1,-10,1),     (40,0,0),   (0,0,0), (0,0,0), 3),
       mode := "Constellate"
     case "Constellate"
       for c1 = children
@@ -33,9 +33,9 @@ model Main(simulator) =
   always
   switch mode
     case "Init"
-      simulator.timeStep + == 0.01 &
-      simulator.endTime + == 20 &
-      create BallGalaxy("Init") &
+      simulator.timeStep + == 0.01,
+      simulator.endTime + == 20,
+      create BallGalaxy("Init"),
       mode + == "Persist"
     case "Persist"
   end

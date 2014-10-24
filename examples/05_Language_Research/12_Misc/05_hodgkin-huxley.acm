@@ -8,25 +8,25 @@
 // Radu Grosu + EMG
 
 model Example1()
-  = initially x  =  1 & x'  =  0 always
+  = initially x  =  1, x'  =  0 always
   x' = -x
 
 
 model Example2(x10, x20, a,b)
   = initially 
-    x1  =  x10 & x1'  =  0 & 
-    x2  =  x20 & x2'  =  0 &
+    x1  =  x10, x1'  =  0, 
+    x2  =  x20, x2'  =  0,
     c   =  0
   always
-  x1' = -a * x1 + b * x2 &
-  x2' =  a * x1 - b * x2 &
+  x1' = -a * x1 + b * x2,
+  x2' =  a * x1 - b * x2,
   c   =      x1 +     x2
 
 
 model Example3(a1,b1,a2,b2)
   = initially
-    m  =  create Example2(1,0,a1,b1) &
-    h  =  create Example2(0,1,a2,b2) &
+    m  =  create Example2(1,0,a1,b1),
+    h  =  create Example2(0,1,a2,b2),
     o  =  0
   always
   o = (m.x2 ^3) * h.x2 
@@ -36,17 +36,17 @@ model Example3(a1,b1,a2,b2)
 // Part of the model for a sodium channel
 model Main(simulator) = 
   initially
-    a1    =  -0.6+16.31/(1+exp(-0.05*19.67)) &
-    a2    =  0.07-0.06/(1+exp(0.07*6.73)) &
-    b1    =  10*(-2.57+6.73/(1+exp(-0.07*40.23))) &
-    b2    =  -4.8+145.1/(1+exp(0.07*6.73)) &
-    o     =  0 & // Observation
+    a1    =  -0.6+16.31/(1+exp(-0.05*19.67)),
+    a2    =  0.07-0.06/(1+exp(0.07*6.73)),
+    b1    =  10*(-2.57+6.73/(1+exp(-0.07*40.23))),
+    b2    =  -4.8+145.1/(1+exp(0.07*6.73)),
+    o     =  0, // Observation
     mode  =  "Init" 
   always
   if (mode=="Init") then
-    create Example3(a1,b1,a2,b2) &
+    create Example3(a1,b1,a2,b2),
     mode + == ""
-  noelse &
-  simulator.endTime + == 1 &
+  noelse,
+  simulator.endTime + == 1,
   simulator.timeStep + == 0.001
  

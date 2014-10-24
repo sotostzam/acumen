@@ -1,7 +1,7 @@
 // bug 31
 
 model Main (simulator)
-  = initially x   =  0 & x'  =  1 & x''  =  0 always
+  = initially x   =  0, x'  =  1, x''  =  0 always
   x'' = - 4 * x
  
 

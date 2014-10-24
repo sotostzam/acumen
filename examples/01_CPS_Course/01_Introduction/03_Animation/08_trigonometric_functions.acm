@@ -3,11 +3,11 @@
 
 model Main(simulator) = 
 initially
-  t   =  0 &
-  t'  =  1/2 &
+  t   =  0,
+  t'  =  1/2,
   _3D  =  ()
 always
-  t' = 1/2 &
+  t' = 1/2,
   _3D =
   (Cylinder center=(0,0,0) radius=0.02    // First red line
             length=5  color=(1,0,0) rotation=(0,0,2*pi*t/10),

@@ -25,15 +25,15 @@ model Vehicle(p,d,s,name)
 
 model Main(simulator) = 
   initially
-     x = 20 & x'  =  -2 &
-     t = 0 &  t'  =  0.5 &
-     road  =  create Road((0,0,-0.5), 100) &
-     car  =  create Vehicle((2, 20, 0),1,2, "car.obj") &
+     x = 20, x'  =  -2,
+     t = 0,  t'  =  0.5,
+     road  =  create Road((0,0,-0.5), 100),
+     car  =  create Vehicle((2, 20, 0),1,2, "car.obj"),
      motor  =  create Vehicle((-2,20,0.3),0,1.5, "motor.obj") 
   always
-     simulator.endTime = 10 &
-     car.p = (2,x,0) &
-     motor.p = (-2, 1.5*x, 0.3) &
-     t' = 0.5 &
+     simulator.endTime = 10,
+     car.p = (2,x,0),
+     motor.p = (-2, 1.5*x, 0.3),
+     t' = 0.5,
      x' = -1*t^2 
  

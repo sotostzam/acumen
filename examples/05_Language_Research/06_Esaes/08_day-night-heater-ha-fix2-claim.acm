@@ -10,37 +10,37 @@
 
 model Main(simulator) =
   initially
-    x = 10 & x' = 10 &
-    time = 0 & time' = 1 &
-    heating = "on" & 
+    x = 10, x' = 10,
+    time = 0, time' = 1,
+    heating = "on", 
     period  = "day" 
   always
-  time' == 1 &
+  time' == 1,
   match heating with [
     "on" ->
       x' == 1.5
     |"off" ->
       x' == 0.4*(10-x)
-  ]&
+  ],
   match period with [
-    "day" claim 0 <= time && time <= 12-> // Hybrid behaviour during the day     
+    "day" claim 0 <= time&& time <= 12-> // Hybrid behaviour during the day     
       if time >= 12 then
         period+ == "night"
-      noelse &
-      if heating == "on" && x >= 23 then
+      noelse,
+      if heating == "on"&& x >= 23 then
         heating+ == "off"
-      noelse &
+      noelse,
       if heating == "off" then
-        if x <= 19 then heating+ == "on" noelse &
+        if x <= 19 then heating+ == "on" noelse,
         claim x >= 19
       noelse 
-    |"night" claim 12 <= time && time <= 24 ->      
-      heating+ == "off" &
+    |"night" claim 12 <= time&& time <= 24 ->      
+      heating+ == "off",
       if time >= 24 then
-        time+ == 0 &
+        time+ == 0,
         period+ == "day" 
       noelse 
-   ] &
+   ],
   simulator.endTime+ == 48
 
 

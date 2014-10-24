@@ -2,13 +2,13 @@ model A() = initially
 
 model Main(sim)
   = initially
-    mode  =  "M1" &
-    c1  =  create A() &
+    mode  =  "M1",
+    c1  =  create A(),
     c2  =  create A()
   always
   match mode with[
     "M1" ->
-      move c1 c2 &
+      move c1 c2,
       mode + == "M2"
     |"M2" ->
   ]
