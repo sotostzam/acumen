@@ -19,7 +19,7 @@ initially
   print = 1,
   _3D = ()
 always
-  _3D == (("Sphere",  // Type of _3D object
+  _3D == (("Sphere",   // Type of _3D object
           (x2,y2,0),   // Center point in [x,y,z] form
           0.05,        // Radius
           red,         // Color
