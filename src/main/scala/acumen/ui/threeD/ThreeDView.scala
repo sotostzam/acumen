@@ -46,6 +46,8 @@ class ThreeDView extends JPanel {
   val axisArray = Array(new Object3D(1))
 
   val defaultCamPos = new SimpleVector(3, -3, 10)
+  var customView = true // enable for allowing the user move the camera by themselves
+  var preCustomView = customView    // to enable custom view when we pause
 
   var newMouseX = 1     // mouse position x before dragging
   var newMouseY = 1     // mouse position y before dragging
@@ -96,14 +98,13 @@ class ThreeDView extends JPanel {
       } else {    // zoom in
         zoomin()
       }
-      camera.lookAt(new SimpleVector(0, 0, 0))
       repaint()
     }
   })
 
   addMouseMotionListener(new MouseAdapter {
     override def mouseDragged(e: MouseEvent) = {
-      if (dragging) {
+      if (dragging && customView) {
         newMouseX = e.getX
         newMouseY = e.getY
         // to decrease the burden of calculations
@@ -201,7 +202,6 @@ class ThreeDView extends JPanel {
     world.addObject(mainbox)
     lookAt(mainbox) // camera faces towards the object
     initialized = true
-    axisOn()
     world.buildAllObjects()
     this.repaint()
   }
@@ -255,6 +255,15 @@ class ThreeDView extends JPanel {
     camera.decreaseFOV(0.1f)
   }
 
+  def transformView(position: Array[Double], rotation: Array[Double]) = {
+    val cameraToSet = world.getCamera
+    cameraToSet.setPosition(-position(0).toFloat, -position(2).toFloat, -position(1).toFloat)
+//    cameraToSet.rotateX(rotation(0).toFloat)
+//    cameraToSet.rotateZ(-rotation(2).toFloat)
+//    cameraToSet.rotateY(-rotation(1).toFloat)
+    rotateObject(null, rotation, "Camera", cameraToSet)
+  }
+
   def drawBox(length: Double, width: Double, height: Double): Object3D = {
     val box = new Object3D(12)
 
@@ -303,6 +312,35 @@ class ThreeDView extends JPanel {
     planeMesh.applyVertexController()
     planeMesh.removeVertexController()
   }
+  // rotate object or camera
+  def rotateObject(rotateObject: Object3D, angle: Array[Double], objectType: String, rotateCamera: Camera) = {
+    // Once we added the object, we should also move the object to the position at that time
+    val tranObjectRotMatrixX = new Matrix()
+    val tranObjectRotMatrixY = new Matrix()
+    val tranObjectRotMatrixZ = new Matrix()
+    val tranObjectRotTempMat = new Matrix()
+    val tranObjectRotMatrix = new Matrix()
+    // to make the coordinate as same as Java3D
+    if (objectType == "Cylinder" || objectType == "Cone")
+      tranObjectRotMatrix.rotateX((-Pi / 2).toFloat)
+    else if (objectType == "OBJ") {
+      tranObjectRotMatrix.rotateX((-Pi / 2).toFloat)
+      tranObjectRotMatrix.rotateY(Pi.toFloat)
+    }
+    tranObjectRotMatrixZ.rotateZ(-angle(1).toFloat)
+    tranObjectRotMatrixY.rotateY(-angle(2).toFloat)
+    tranObjectRotMatrixX.rotateX(angle(0).toFloat)
+    tranObjectRotTempMat.matMul(tranObjectRotMatrixX)
+    tranObjectRotTempMat.matMul(tranObjectRotMatrixZ)
+    tranObjectRotTempMat.matMul(tranObjectRotMatrixY)
+    tranObjectRotMatrix.matMul(tranObjectRotTempMat)
+    if (objectType != "Camera")
+      rotateObject.setRotationMatrix(tranObjectRotMatrix)
+    else {
+      rotateCamera.setBack(tranObjectRotMatrix)
+      rotateCamera.matMul(tranObjectRotTempMat)
+    }
+  }
 }
 
 /* Timer for 3D-visualization, sends message to 3D renderer to coordinate animation */
@@ -343,7 +381,7 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
   private val _3DBasePath = Files._3DDir.getAbsolutePath
   var currentFrame = 0 // FrameNumber
   var totalFrames = 2
-  var lastFrame = 2.0
+  var lastFrame = lastFrame1
   var pause = false
   var destroy = false
   lastFrame = lastFrame1
@@ -489,19 +527,19 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
     val index = currentFrame - bufferFrame(buffer.head)
     /* Get the 3D information of the object at that frame	*/
     val (tempPosition, tempAngle, tempColor, tempSize, tempType) =
-      if (index >= 0 && index < buffer.size + 1)
+      if (index >= 0 && index < totalFrames)
         (bufferPosition(buffer(index)) , bufferAngle(buffer(index)), bufferColor(buffer(index)),
         bufferSize(buffer(index)), bufferType(buffer(index)))
       else (Array(0.0,0.0,0.0), Array(0.0,0.0,0.0), List(0.0,0.0,0.0), List(0.0), " ")
     val (tempContent, tempPath) =
-    if (index >= 0 && index < buffer.size + 1)
+    if (index >= 0 && index < totalFrames)
       (if (tempType == "Text") bufferString(buffer(index)) else " ",
        if (tempType == "OBJ") bufferString(buffer(index)) else " ")
     else (" ", " ")
-    if ((buffer(index)(5) == "transparent") && (index >= 0 && index < buffer.size + 1))
+    if ((buffer(index)(5) == "transparent") && (index >= 0 && index < totalFrames))
         opaque = true
     // get the object ID
-    if (objects.contains(id)) {
+    if (objects.contains(id) && tempType != " ") {
       objID = objects(id).getID
       // get the object need to transform
       var transObject = view.getObject(objID)
@@ -656,7 +694,7 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
         setColor(transObject, tempColor)
         // rotate the object
         if (checkResizeable(tempAngle.toList)) {
-          rotateObject(transObject, tempAngle, tempType)
+          app.rotateObject(transObject, tempAngle, tempType, null)
         }
         // calculate the transVector for the object and translate it
         val tempTransVector = new SimpleVector(-tempPosition(0), -tempPosition(2), -tempPosition(1))
@@ -689,11 +727,9 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
         }
       }
     }
-    /*if(currentFrame<_3DView.size){
-      app.transformView(_3DView(currentFrame)._1, _3DView(currentFrame)._2);
-      view.stopView()
-      view.renderOnce()
-    }*/
+    if(currentFrame<_3DView.size){
+      app.transformView(_3DView(currentFrame)._1, _3DView(currentFrame)._2)
+    }
       app.repaint()
   }
 
@@ -707,10 +743,15 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
       react {
         case "go" =>
           renderCurrentFrame()
+          if (slider.firstPlayed) {
+            slider.firstPlayed = false
+            slider.bar.enabled = true
+          }
           if (currentFrame == totalFrames) {
             // Animation is over
             slider.setProgress3D(100)
             slider.setTime(endTime.toFloat)
+            app.customView = true
             destroy = true
             pause = true
           }
@@ -728,15 +769,17 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
   // Reactions to the mouse events
   reactions += {
     case e: scala.swing.event.MouseDragged =>
-      currentFrame = slider.bar.value * totalFrames / 100
-      slider.setProgress3D(slider.bar.value)
-      slider.setTime(((slider.bar.value / 100f) * endTime).toFloat)
-      if (currentFrame < 2)
-        currentFrame = startFrameNumber
-      if (currentFrame > totalFrames)
-        currentFrame = totalFrames
-      if (pause)
-        renderCurrentFrame()
+      if (!slider.firstPlayed) {
+        currentFrame = slider.bar.value * totalFrames / 100
+        slider.setProgress3D(slider.bar.value)
+        slider.setTime(((slider.bar.value / 100f) * endTime).toFloat)
+        if (currentFrame < 2)
+          currentFrame = startFrameNumber
+        if (currentFrame > totalFrames)
+          currentFrame = totalFrames
+        if (pause)
+          renderCurrentFrame()
+      }
   }
 
   /**
@@ -825,16 +868,16 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
     val index = currentFrame - bufferFrame(buffer.head)
     /* Get the 3D information of the object at that frame	*/
     val (position, angle, color, size, name) =
-      if (index >= 0 && index < buffer.size + 1)
+      if (index >= 0 && index < totalFrames)
         (bufferPosition(buffer(index)) , bufferAngle(buffer(index)), bufferColor(buffer(index)),
           bufferSize(buffer(index)), bufferType(buffer(index)))
       else (Array(0.0,0.0,0.0), Array(0.0,0.0,0.0), List(0.0,0.0,0.0), List(0.0), " ")
     val (text, path) =
-      if (index >= 0 && index < buffer.size + 1)
+      if (index >= 0 && index < totalFrames)
         (if (name == "Text") bufferString(buffer(index)) else " ",
          if (name == "OBJ")  bufferString(buffer(index)) else " ")
       else (" ", " ")
-    if ((buffer(index)(5) == "transparent") && (index >= 0 && index < buffer.size + 1))
+    if ((buffer(index)(5) == "transparent") && (index >= 0 && index < totalFrames))
       opaque = true
 
     val newObject = name match {
@@ -874,7 +917,7 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
       if (name == "Box" || name == "Cylinder")
         newObject.setShadingMode(Object3D.SHADING_FAKED_FLAT)
       // rotate the object
-      rotateObject(newObject, angle, name)
+      app.rotateObject(newObject, angle, name, null)
 
       // calculate the transVector for the object and translate object
       val tempTransVector = new SimpleVector(-position(0), -position(2), -position(1))
@@ -912,30 +955,6 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
       colorToSet(2) = 255
     objectToSet.setAdditionalColor(new Color(colorToSet(0).toInt, colorToSet(1).toInt, colorToSet(2).toInt))
   }
-
-  def rotateObject(rotateObject: Object3D, angle: Array[Double], objectType: String) = {
-    // Once we added the object, we should also move the object to the position at that time
-    val tranObjectRotMatrixX = new Matrix()
-    val tranObjectRotMatrixY = new Matrix()
-    val tranObjectRotMatrixZ = new Matrix()
-    val tranObjectRotTempMat = new Matrix()
-    val tranObjectRotMatrix = new Matrix()
-    // to make the coordinate as same as Java3D
-    if (objectType == "Cylinder" || objectType == "Cone")
-      tranObjectRotMatrix.rotateX((-Pi / 2).toFloat)
-    else if (objectType == "OBJ") {
-      tranObjectRotMatrix.rotateX((-Pi / 2).toFloat)
-      tranObjectRotMatrix.rotateY(Pi.toFloat)
-    }
-    tranObjectRotMatrixZ.rotateZ(-angle(1).toFloat)
-    tranObjectRotMatrixY.rotateY(-angle(2).toFloat)
-    tranObjectRotMatrixX.rotateX(angle(0).toFloat)
-    tranObjectRotTempMat.matMul(tranObjectRotMatrixX)
-    tranObjectRotTempMat.matMul(tranObjectRotMatrixZ)
-    tranObjectRotTempMat.matMul(tranObjectRotMatrixY)
-    tranObjectRotMatrix.matMul(tranObjectRotTempMat)
-    rotateObject.setRotationMatrix(tranObjectRotMatrix)
-  }
 }
 
 // Transparent box
@@ -972,7 +991,7 @@ class coAxis(characters: scala.collection.immutable.Map[Char, Object3D]) {
     cylinders(x) = Primitives.getCylinder(12, 0.01f, 120f)
   }
   for (x <- 3 until 6) {
-    cylinders(x) = Primitives.getCone(12, 0.08f, 2f)
+    cylinders(x) = Primitives.getCone(12, 0.05f, 2f)
   }
   cylinders(8) = new Object3D(characters('y'), false)
   cylinders(7) = new Object3D(characters('x'), false)
@@ -993,17 +1012,17 @@ class coAxis(characters: scala.collection.immutable.Map[Char, Object3D]) {
 
   cylinders(0).translate(0f, -1.2f, 0f)
   cylinders(3).translate(0f, -2.4f, 0f)
-  cylinders(6).translate(-0.2f, -2.4f, 0f)
+  cylinders(6).translate(-0.05f, -2.2f, 0f)
   cylinders(1).rotateZ(0.5f * -Pi.toFloat)
   cylinders(1).translate(-1.2f, 0f, 0f)
-  cylinders(4).translate(-2.4f, -0.122f, 0f)
+  cylinders(4).translate(-2.4f, -0.07f, 0f)
   cylinders(4).rotateZ(0.5f * Pi.toFloat)
-  cylinders(7).translate(-2.4f, -0.2f, 0f)
+  cylinders(7).translate(-2.2f, -0.05f, 0f)
   cylinders(2).rotateX(-0.5f * Pi.toFloat)
   cylinders(2).translate(0f, 0f, -1.2f)
-  cylinders(5).translate(0f, -0.122f, -2.4f)
+  cylinders(5).translate(0f, -0.07f, -2.4f)
   cylinders(5).rotateX(-0.5f * Pi.toFloat)
-  cylinders(8).translate(0f, -0.2f, -2.4f)
+  cylinders(8).translate(0f, -0.05f, -2.2f)
 }
 
 class Characters {

@@ -70,7 +70,7 @@ class ThreeDTab (val appModel: Controller) extends AbstractEditorTab{
 
   // _3DDataBuffer: Where all the state is stored
   var _3DDataBuffer = scala.collection.mutable.Map[CId, scala.collection.mutable.Map[Int, scala.collection.mutable.Buffer[List[_]]]]()
-  var _3DView = List[Tuple2[Array[Double], Array[Double]]]()
+  var _3DView = List[(Array[Double], Array[Double])]()
   var lastFrame = 2.0
   var endTime = 10.0
 
@@ -129,9 +129,10 @@ class ThreeDTab (val appModel: Controller) extends AbstractEditorTab{
     receiver.stop()
     played = false
     receiver.destroy = true
-    check.selected = true
     timer3d.destroy = true
     threeDView.reset()
+    if (check.selected)
+      threeDView.axisOn()
   }
 
   def stop(): Unit = {
@@ -139,8 +140,15 @@ class ThreeDTab (val appModel: Controller) extends AbstractEditorTab{
     threedpause.icon = Icons.pause
     receiver.destroy = true
     timer3d.destroy = true
-    check.selected = true
     threeDView.reset()
+    if (!threeDView.customView)
+      threeDView.customView = true
+    if (statusZone3d.firstPlayed) {
+      statusZone3d.bar.enabled = true
+      statusZone3d.firstPlayed = false
+    }
+    if (check.selected)
+      threeDView.axisOn()
   }
 
   def pause(): Unit = {
@@ -150,12 +158,24 @@ class ThreeDTab (val appModel: Controller) extends AbstractEditorTab{
       receiver.pause = true
       threedpause.icon = Icons.play
       threedpause.toolTip = "resume"
+      if (!threeDView.customView && !threeDView.preCustomView)
+        threeDView.customView = true
+      if (statusZone3d.firstPlayed) {
+        statusZone3d.bar.enabled = true
+        statusZone3d.firstPlayed = false
+      }
     } else {
       // pause
       timer3d.pause = true
       receiver.pause = false
       threedpause.icon = Icons.pause
       threedpause.toolTip = "pause"
+      if (threeDView.customView && !threeDView.preCustomView)
+        threeDView.customView = false
+      if (statusZone3d.firstPlayed) {
+        statusZone3d.bar.enabled = true
+        statusZone3d.firstPlayed = false
+      }
     }
   }
 
@@ -169,7 +189,6 @@ class ThreeDTab (val appModel: Controller) extends AbstractEditorTab{
       threedpause.toolTip = "pause"
       threedpause.icon = Icons.pause
       endTime = appModel.threeDData.endTime
-      check.selected = false
       if (played) {
         receiver.stop()
         timer3d.destroy = true
@@ -181,6 +200,8 @@ class ThreeDTab (val appModel: Controller) extends AbstractEditorTab{
         _3DDataBuffer.clear()
         lastFrame = 0
         statusZone3d.setSpeed("1.0")
+        statusZone3d.bar.enabled = false
+        statusZone3d.firstPlayed = true
         for ((id, map) <- appModel.threeDData._3DData) {
           var temp = scala.collection.mutable.Map[Int, scala.collection.mutable.Buffer[List[_]]]()
           for ((objectNumber, l) <- map) {
@@ -199,8 +220,11 @@ class ThreeDTab (val appModel: Controller) extends AbstractEditorTab{
         appModel.threeDData.reset()
       }
       if (_3DView.size != 0) {
-        check.selected = true
+        threeDView.customView = false
+        threeDView.preCustomView = threeDView.customView
         threeDView.reset()
+        if (check.selected)
+          threeDView.axisOn()
       }
       threeDView.objects.clear()
       threeDView.world.removeAllObjects()
@@ -209,7 +233,7 @@ class ThreeDTab (val appModel: Controller) extends AbstractEditorTab{
       if (check.selected)
         threeDView.axisOn()
       _receiver = new _3DDisplay(threeDView, statusZone3d, _3DDataBuffer, lastFrame,
-        appModel.threeDData.endTime, _3DView)
+                                 appModel.threeDData.endTime, _3DView)
       timer3d = new ScalaTimer(receiver, appModel.threeDData.endTime, playSpeed)
       receiver.start()
       timer3d.start()
