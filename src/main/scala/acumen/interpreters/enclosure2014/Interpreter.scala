@@ -420,6 +420,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
       }
       override def mapClause(c: Clause) : Clause = c match {
         case Clause(GStr(lhs), as, rhs) => Clause(GStrEnclosure(lhs), mapExpr(as), mapActions(rhs))
+        case Clause(GInt(lhs), as, rhs) => Clause(Real(lhs), mapExpr(as), mapActions(rhs)) // FIXME Use discrete integer enclosure instead of Real
         case _ => super.mapClause(c)
       }
     }.mapProg(p)
