@@ -12,11 +12,10 @@ import util.ASTUtil.{
 }
 import Common._
 import Errors.{
-  BadLhs, BadRhs, ConstructorArity, ContinuousDynamicsUndefined, 
+  AcumenError, BadLhs, BadRhs, ConstructorArity, ContinuousDynamicsUndefined, 
   DuplicateAssingment, DuplicateContinuousAssingment, DuplicateDiscreteAssingment,  
-  HypothesisFalsified, NotAClassName, NotAnObject, 
-  PositionalAcumenError, ShouldNeverHappen, UnknownOperator
   HypothesisFalsified, NotAClassName, NotAnObject, NoMatch,
+  PositionalAcumenError, ShouldNeverHappen, UnknownOperator, UnsupportedTypeError
 }
 import Pretty.pprint
 import ui.tl.Console
@@ -784,8 +783,10 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
       else co.filter{
         case (n,_) if bannedFieldNames contains n => false
         case (_, VLit(_: GStr) | VLit(_: GStrEnclosure) | _:VObjId[_]) => false
-        case (_, VLit(_:Real)) => true
-        case f => sys.error("Usupported field type for: " + f)
+        case (_, VLit(_: Real)) => true
+        case (n,v) =>
+          val typ = "type " + v.getClass.getSimpleName
+          throw new UnsupportedTypeError(typ, s"(${cid.cid.toString}:${getCls(cid, st).x}).${pprint(n)}", v)
       }.map{ case (n,v) => (fieldIdToName(cid,n), (cid, n)) } 
     }
   
@@ -1045,7 +1046,10 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
           try {
             contract(r, claim.c, prog, claim.env, claim.selfCId) map 
               (Right(_)) getOrElse Left("Empty enclosure after applying claim " + pprint(claim.c))
-          } catch { case e: Throwable => Left("Error while applying claim " + pprint(claim.c) + ": " + e.getMessage) }
+          } catch {
+            case e: AcumenError => throw e
+            case e: Throwable => Left("Error while applying claim " + pprint(claim.c) + ": " + e.getMessage) 
+          }
         case _ => res
       }
     }
