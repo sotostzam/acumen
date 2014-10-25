@@ -70,7 +70,6 @@ class ThreeDTab (val appModel: Controller) extends AbstractEditorTab{
 
   // _3DDataBuffer: Where all the state is stored
   var _3DDataBuffer = scala.collection.mutable.Map[CId, scala.collection.mutable.Map[Int, scala.collection.mutable.Buffer[List[_]]]]()
-  var _3DView = List[(Array[Double], Array[Double])]()
   var lastFrame = 2.0
   var endTime = 10.0
 
@@ -119,7 +118,7 @@ class ThreeDTab (val appModel: Controller) extends AbstractEditorTab{
   }
 
   var _receiver = new _3DDisplay(threeDView, statusZone3d,
-    _3DDataBuffer, lastFrame, appModel.threeDData.endTime, appModel.threeDData._3DView.reverse)
+    _3DDataBuffer, lastFrame, appModel.threeDData.endTime, appModel.threeDData._3DView)
 
   var timer3d = new ScalaTimer(receiver, appModel.threeDData.endTime, playSpeed)
 
@@ -217,10 +216,8 @@ class ThreeDTab (val appModel: Controller) extends AbstractEditorTab{
           }
           _3DDataBuffer += id -> temp
         }
-        _3DView = appModel.threeDData._3DView.reverse
-        appModel.threeDData.reset()
       }
-      if (_3DView.size != 0) {
+      if (appModel.threeDData._3DView.size != 0) {
         threeDView.customView = false
         threeDView.preCustomView = threeDView.customView
       }
@@ -231,7 +228,7 @@ class ThreeDTab (val appModel: Controller) extends AbstractEditorTab{
       if (check.selected)
         threeDView.axisOn()
       _receiver = new _3DDisplay(threeDView, statusZone3d, _3DDataBuffer, lastFrame,
-                                 appModel.threeDData.endTime, _3DView)
+                                 appModel.threeDData.endTime, appModel.threeDData._3DView)
       timer3d = new ScalaTimer(receiver, appModel.threeDData.endTime, playSpeed)
       receiver.start()
       timer3d.start()

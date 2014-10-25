@@ -11,7 +11,7 @@ import scala.swing._
 /* Get the 3D-visualization data */
 class ThreeDData extends Publisher {
   /* Stores all the information for 3D-visualization */
-  type _3DStore = Map[CId, _3DClass];
+  type _3DStore = Map[CId, _3DClass]
   /* Stores 3D-visualization information for a class */
   type _3DClass = Map[Int, List[List[_]]]
   type ViewInfo = (Array[Double], Array[Double])
@@ -31,19 +31,19 @@ class ThreeDData extends Publisher {
   var _3DAngle = Array[Double](0.0, 0.0, 0.0)
   var _3DPath = ""
   var _3DText = ""
-  /* Optinal field to indicate transparent object or not */
+  /* Optional field to indicate transparent object or not */
   var _3DTexture = ""
   /* Camera's position and orientation*/
-  var _3DView = List[ViewInfo]()
+  var _3DView = scala.collection.mutable.ArrayBuffer[ViewInfo]()
 
   def reset() {
-    _3DData.clear
-    _3DView = List[ViewInfo]()
+    _3DData.clear()
+    _3DView.clear()
     frameNumber = 0
   }
 
   def init3DClassStore(id: CId, _3DData: _3DStore, objectCount: Int): Unit = {
-    var temp: _3DClass = Map[Int, List[List[_]]]();
+    var temp: _3DClass = Map[Int, List[List[_]]]()
     for (i <- 0 to objectCount - 1) {
       temp += i -> List[List[_]]()
     }
@@ -209,11 +209,9 @@ class ThreeDData extends Publisher {
       for ((name, value) <- o) {
         if (name.x == "_3DView") {
           value match {
-            case VVector(l) => {
+            case VVector(l) =>
               if (l.size > 0)
-                _3DView = new Tuple2(extractDoubles(l(0)).toArray,
-                  extractDoubles(l(1)).toArray) :: _3DView
-            }
+                _3DView += new Tuple2(extractDoubles(l(0)).toArray, extractDoubles(l(1)).toArray)
             case _ => throw _3DError(value)
           }
 
@@ -223,7 +221,7 @@ class ThreeDData extends Publisher {
   }
 
   /* Add _3D information of every class to _3DStore */
-  def getData(s: GStore) {
+  def getData(s: GStore):Unit = {
     for ((id, o) <- s) {
       lookUpEndTime(id, o)
       lookUpViewInfo(id, o)

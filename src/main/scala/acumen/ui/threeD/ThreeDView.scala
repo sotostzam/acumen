@@ -56,11 +56,6 @@ class ThreeDView extends JPanel {
   var cameraLeftDirection = -1  // to make sure the camera rotate forward or backward
   var cameraRightDirection = -1  // to make sure the camera rotate forward or backward
 
-  val mainbox = drawBox(1, 1, 1)
-  mainbox.setShadingMode(Object3D.SHADING_FAKED_FLAT)
-  new setGlass(new Color(180, 180, 180), mainbox, 0)
-  val mainBoxID = mainbox.getID
-
   val lookAtCenter = Primitives.getSphere(20, 0.1f)
 
   letThereBeLight()  // create light sources for the scene
@@ -208,6 +203,9 @@ class ThreeDView extends JPanel {
 
   def init() = {
     // add the main box
+    val mainbox = drawBox(1, 1, 1)
+    mainbox.setShadingMode(Object3D.SHADING_FAKED_FLAT)
+    new setGlass(new Color(180, 180, 180), mainbox, 0)
     world.addObject(mainbox)
     camera = world.getCamera  // grab a handle to the camera
     defaultView()
@@ -389,9 +387,9 @@ class ScalaTimer(receiver: _3DDisplay, endTime: Double,
 
 /* 3D Render */
 class _3DDisplay(app: ThreeDView, slider: Slider3D,
-                     _3DDateBuffer: scala.collection.mutable.Map[CId, scala.collection.mutable.Map[Int, scala.collection.mutable.Buffer[List[_]]]],
-                     lastFrame1: Double, endTime: Double,
-                     _3DView: List[(Array[Double], Array[Double])]) extends Publisher with Actor {
+                 _3DDataBuffer: scala.collection.mutable.Map[CId, scala.collection.mutable.Map[Int, scala.collection.mutable.Buffer[List[_]]]],
+                 lastFrame1: Double, endTime: Double,
+                 _3DView: scala.collection.mutable.ArrayBuffer[(Array[Double], Array[Double])]) extends Publisher with Actor {
   /* Default directory where all the OBJ files are */
   private val _3DBasePath = Files._3DDir.getAbsolutePath
   var currentFrame = 0 // FrameNumber
@@ -407,6 +405,7 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
     if (app.objects.nonEmpty) {
       app.world.removeAllObjects()
       app.objects.clear()
+      app.axisArray(0) = null
       app.scaleFactors.clear()
     }
   }
@@ -539,7 +538,6 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
                       buffer: scala.collection.mutable.Buffer[List[_]],
                       currentFrame: Int) {
     var objID = 1
-    var opaque = false
     /* Find the corresponding index of the object */
     val index = currentFrame - bufferFrame(buffer.head)
     /* Get the 3D information of the object at that frame	*/
@@ -555,8 +553,6 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
       (if (tempType == "Text") bufferString(buffer(index)) else " ",
        if (tempType == "OBJ") bufferString(buffer(index)) else " ")
     else (" ", " ")
-    if ((buffer(index)(5) == "transparent") && (index >= 0 && index < totalFrames))
-        opaque = true
     // get the object ID
     if (objects.contains(id) && tempType != " ") {
       // get the object need to transform
@@ -728,7 +724,7 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
   }
 
   def renderCurrentFrame() = {
-    for ((id, map) <- _3DDateBuffer) {
+    for ((id, map) <- _3DDataBuffer) {
       // acumen objects
       for ((objectNumber, buffer) <- map) {
         // 3d objects within
@@ -745,7 +741,7 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
         }
       }
     }
-    if(currentFrame<_3DView.size){
+    if(currentFrame < _3DView.size){
       app.transformView(_3DView(currentFrame)._1, _3DView(currentFrame)._2)
     }
       app.repaint()
@@ -795,7 +791,7 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
           currentFrame = startFrameNumber
         if (currentFrame > totalFrames)
           currentFrame = totalFrames
-        //if (pause)
+        if (pause)
           renderCurrentFrame()
       }
   }
@@ -881,9 +877,10 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
 
   def matchingObject(c: List[_], buffer: scala.collection.mutable.Buffer[List[_]],
                      currentFrame: Int) = {
-    var opaque = false
     /* Find the corresponding index of the object */
     val index = currentFrame - bufferFrame(buffer.head)
+    if (totalFrames > buffer.size)
+      totalFrames = buffer.size
     /* Get the 3D information of the object at that frame	*/
     val (position, angle, color, size, name) =
       if (index >= 0 && index < totalFrames)
@@ -895,67 +892,67 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
         (if (name == "Text") bufferString(buffer(index)) else " ",
          if (name == "OBJ")  bufferString(buffer(index)) else " ")
       else (" ", " ")
-    if ((buffer(index)(5) == "transparent") && (index >= 0 && index < totalFrames))
-      opaque = true
 
-    val newObject = name match {
-      case "Box" =>
-        // Since some object need to scale, we never allow the initial size become 0
-        val (sizeToSetX, sizeToSetY, sizeToSetZ) = (checkSize(size(1)),
-                                                    checkSize(size(0)),
-                                                    checkSize(size(2)))
-        app.drawBox(abs(sizeToSetX), abs(sizeToSetY), abs(sizeToSetZ))
-      case "Cylinder" =>
-        val (sizeToSetR, sizeToSetS) = (checkSize(size(0)), checkSize(size(1)))
-        Primitives.getCylinder(20, abs(sizeToSetR).toFloat, abs(sizeToSetS / (sizeToSetR * 2)).toFloat)
-      case "Cone" =>
-        val (sizeToSetR, sizeToSetS) = (checkSize(size(0)), checkSize(size(1)))
-        Primitives.getCone(20, abs(sizeToSetR.toFloat), abs(sizeToSetS / (sizeToSetR * 2)).toFloat)
-      case "Sphere" =>
-        val sizeToSetR = checkSize(size(0))
-        Primitives.getSphere(20, abs(sizeToSetR.toFloat))
-      case "Text" =>
-        val sizeToSetR = checkSize(size(0))
-        if (!text.isEmpty)  // model err, do nothing
-          buildText(text, sizeToSetR)
+    if (name != " ") {
+      val newObject = name match {
+        case "Box" =>
+          // Since some object need to scale, we never allow the initial size become 0
+          val (sizeToSetX, sizeToSetY, sizeToSetZ) = (checkSize(size(1)),
+            checkSize(size(0)),
+            checkSize(size(2)))
+          app.drawBox(abs(sizeToSetX), abs(sizeToSetY), abs(sizeToSetZ))
+        case "Cylinder" =>
+          val (sizeToSetR, sizeToSetS) = (checkSize(size(0)), checkSize(size(1)))
+          Primitives.getCylinder(20, abs(sizeToSetR).toFloat, abs(sizeToSetS / (sizeToSetR * 2)).toFloat)
+        case "Cone" =>
+          val (sizeToSetR, sizeToSetS) = (checkSize(size(0)), checkSize(size(1)))
+          Primitives.getCone(20, abs(sizeToSetR.toFloat), abs(sizeToSetS / (sizeToSetR * 2)).toFloat)
+        case "Sphere" =>
+          val sizeToSetR = checkSize(size(0))
+          Primitives.getSphere(20, abs(sizeToSetR.toFloat))
+        case "Text" =>
+          val sizeToSetR = checkSize(size(0))
+          if (!text.isEmpty)  // model err, do nothing
+            buildText(text, sizeToSetR)
+          else
+            null
+        case "OBJ" =>
+          val sizeToSetR = checkSize(size(0) / 10)
+          if (!path.isEmpty)  // model err, do nothing
+            loadObj(path, sizeToSetR)
+          else
+            null
+        case _ => throw ShouldNeverHappen()
+      }
+
+      if (newObject != null) {
+        // set color to the object
+        setColor(newObject, color)
+        if (name == "Box" || name == "Cylinder")
+          newObject.setShadingMode(Object3D.SHADING_FAKED_FLAT)
+        // rotate the object
+        app.rotateObject(newObject, angle, name, null)
+
+        // calculate the transVector for the object and translate object
+        val tempTransVector = new SimpleVector(-position(0), -position(2), -position(1))
+        val transVector = tempTransVector.calcSub(newObject.getTransformedCenter)
+        newObject.translate(transVector)
+
+        // calculate resize factor for object
+        if (name == "Box")
+          setScaleFactors(List(size(0), size(2), size(1)), newObject, name, app.scaleFactors)
         else
-          null
-      case "OBJ" =>
-        val sizeToSetR = checkSize(size(0) / 10)
-        if (!path.isEmpty)  // model err, do nothing
-          loadObj(path, sizeToSetR)
-        else
-          null
-      case _ => throw ShouldNeverHappen()
-    }
-
-    if (newObject != null) {
-      // set color to the object
-      setColor(newObject, color)
-      if (name == "Box" || name == "Cylinder")
-        newObject.setShadingMode(Object3D.SHADING_FAKED_FLAT)
-      // rotate the object
-      app.rotateObject(newObject, angle, name, null)
-
-      // calculate the transVector for the object and translate object
-      val tempTransVector = new SimpleVector(-position(0), -position(2), -position(1))
-      val transVector = tempTransVector.calcSub(newObject.getTransformedCenter)
-      newObject.translate(transVector)
-
-      // calculate resize factor for object
-      if (name == "Box")
-        setScaleFactors(List(size(0), size(2), size(1)), newObject, name, app.scaleFactors)
-      else
-        setScaleFactors(size, newObject, name, app.scaleFactors)
-      app.objects -= c
-      app.objects += c.toList -> newObject
-      view.addObject(newObject)
-      if (name != "Text")
-        CustomObject3D.partialBuild(newObject, false)
-      else {
-        newObject.setRotationPivot(new SimpleVector(0,0,0))
-        newObject.setCenter(new SimpleVector(0,0,0))
-        CustomObject3D.partialBuild(newObject, true)
+          setScaleFactors(size, newObject, name, app.scaleFactors)
+        app.objects -= c
+        app.objects += c.toList -> newObject
+        view.addObject(newObject)
+        if (name != "Text")
+          CustomObject3D.partialBuild(newObject, false)
+        else {
+          newObject.setRotationPivot(new SimpleVector(0,0,0))
+          newObject.setCenter(new SimpleVector(0,0,0))
+          CustomObject3D.partialBuild(newObject, true)
+        }
       }
     }
   }
