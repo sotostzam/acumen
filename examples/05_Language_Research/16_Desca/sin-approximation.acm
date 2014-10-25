@@ -1,0 +1,17 @@
+// Approximation of Sine Function Example
+// Author: Adam Duracz
+
+model Main(simulator) =
+  initially  
+    t = 0, t' = 1,
+    x = 0, x' = 1, x'' = 0,
+    a = 0, b = 0
+  always
+  t'  == 1,
+  x'' == -x,
+  a   == x,
+  b   == sin(t),
+  hypothesis "approximation of sin" abs(a - b) < 0.05,
+  simulator.endTime+  == pi,
+  simulator.timeStep+ == 0.01
+
