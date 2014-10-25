@@ -35,6 +35,7 @@ import acumen.interpreters.enclosure.Transcendentals
 import acumen.interpreters.enclosure.ivp.{
   LohnerSolver, PicardSolver
 }
+import scala.util.parsing.input.Position
 
 /**
  * Reference implementation of direct enclosure semantics.
@@ -139,23 +140,34 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
     /** Field-wise containment. */
     def contains(that: Enclosure): Boolean = { // TODO Update for dynamic objects
       def containsCObject(lo: CObject, ro: CObject): Boolean =
-        lo.forall {
+        if (classOf(lo) == cmagic && classOf(ro) == cmagic){
+          if (lo(time) == ro(time) && lo(timeStep) == ro(timeStep))
+            true
+          else 
+            throw internalError("Attempt to check containment of enclosures with incompatoble time domains: " +
+              s" [${lo(time)},${extractDouble(lo(time)) + extractDouble(lo(timeStep))}]" +
+              s", [${ro(time)},${extractDouble(ro(time)) + extractDouble(ro(timeStep))}]") 
+        }
+        else lo.forall {
           case (n, v) =>
             if (bannedFieldNames contains n) true
             else {
-              val rv = ro.get(n)
-              rv.isDefined && ((v, rv.get) match {
-                case (VLit(l: Real), VLit(r: Real)) => l contains r
-                case (VLit(l: GStrEnclosure), VLit(r: GStrEnclosure)) => l contains r
-                case (VLit(l: GIntEnclosure), VLit(r: GIntEnclosure)) => l contains r
-                case (VLit(GStr(_)) | VResultType(_) | VClassName(_), tv @ (VLit(GStr(_)) | VResultType(_) | VClassName(_))) => v == tv
-                case (VObjId(Some(o1)), VObjId(Some(o2))) => containsCObject(e(o1), that(o2))
-                case (_, tv) => sys.error(s"Contains not applicable to $n: $v, $tv in " + lo(self))
+              ((v, ro get n) match {
+                case (VLit(l: Real), Some(VLit(r: Real))) => 
+                  l contains r
+                case (VLit(l: GStrEnclosure), Some(VLit(r: GStrEnclosure))) => 
+                  l contains r
+                case (VLit(l: GIntEnclosure), Some(VLit(r: GIntEnclosure))) => 
+                  l contains r
+                case (VLit(_:GStr) | _:VResultType | _:VClassName, tv @ Some(VLit(_:GStr) | _:VResultType | _:VClassName)) => 
+                  v == tv
+                case (VObjId(Some(o1)), Some(VObjId(Some(o2)))) => 
+                  containsCObject(e(o1), that(o2))
+                case (_, Some(tv)) => 
+                  throw internalError(s"Contains not applicable to ${pprint(n)}: ${pprint(v)}, ${pprint(tv)}")
+                
               })}}
-        e.forall { case (cid, co) => 
-          if (classOf(co) == cmagic) true // FIXME Sanity check this
-          else containsCObject(co, that(cid)) 
-        }
+        e.forall { case (cid, co) => containsCObject(co, that(cid)) }
       }
     /** Take the intersection of e and that Object. */
     def intersect(that: Enclosure): Option[Enclosure] = merge(that, (l: GroundValue, r: GroundValue) => ((l,r): @unchecked) match {
@@ -664,9 +676,9 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
         if (path == Lit(CertainTrue)) // top level action
           logHypothesis(selfCId(env), s, e, env)
         else 
-          throw new PositionalAcumenError{ val mesg = "Hypothesis statements are only allowed on the top level." }.setPos(e.pos)
+          throw internalPosError("Hypothesis statements are only allowed on the top level.", e.pos)
       case ForEach(n, col, body) => //TODO Add support for for-each statements
-        throw new PositionalAcumenError{ val mesg = "For-each statements are not supported in the Enclosure 2014 semantics." }.setPos(col.pos)
+        throw internalPosError("For-each statements are not supported in the Enclosure 2014 semantics.", col.pos)
     }
 
   /** 
@@ -694,9 +706,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
       /* Basically, following says that variable names must be 
          fully qualified at this language level */
       case c: Create =>
-        throw new PositionalAcumenError{
-          def mesg = "The 2014 Enclosure semantics does not support create statements in the always section."
-        }.setPos(c.pos)
+        throw internalPosError("The 2014 Enclosure semantics does not support create statements in the always section.", c.pos)
       case Assign(_,_) => 
         throw BadLhs()
     }
@@ -1164,9 +1174,8 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
         lazy val loop = inlined.reverse.dropWhile(!dupes.contains(_))
         if (dupes isEmpty)
           hosts.get(da) == Some(inlined)
-        else throw new PositionalAcumenError { 
-          def mesg = "Algebraic loop detected: " + 
-            loop.map(a => pprint (a.lhs: Expr)).mkString(" -> ") }.setPos(loop.head.lhs.pos)
+        else 
+          throw internalPosError("Algebraic loop detected: " + loop.map(a => pprint (a.lhs: Expr)).mkString(" -> "), loop.head.lhs.pos)
       }
       if (reachedFixpoint) next.keySet
       else inline(next)
@@ -1231,5 +1240,14 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
   /* Utilities */
   
   def fieldIdToName(o: CId, n: Name): String = s"$n@$o"
+  
+  def internalError(s: String): AcumenError = new AcumenError {
+    def mesg = s 
+  }
+
+  def internalPosError(s: String, p: Position): PositionalAcumenError = new PositionalAcumenError {
+    def mesg = s
+  }.setPos(p)
+    
   
 }
