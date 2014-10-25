@@ -141,6 +141,7 @@ class ThreeDTab (val appModel: Controller) extends AbstractEditorTab{
     receiver.destroy = true
     timer3d.destroy = true
     threeDView.reset()
+    statusZone3d.bar.value = 0
     if (!threeDView.customView)
       threeDView.customView = true
     if (statusZone3d.firstPlayed) {
@@ -222,9 +223,6 @@ class ThreeDTab (val appModel: Controller) extends AbstractEditorTab{
       if (_3DView.size != 0) {
         threeDView.customView = false
         threeDView.preCustomView = threeDView.customView
-        threeDView.reset()
-        if (check.selected)
-          threeDView.axisOn()
       }
       threeDView.objects.clear()
       threeDView.world.removeAllObjects()

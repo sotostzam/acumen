@@ -56,6 +56,11 @@ class ThreeDView extends JPanel {
   var cameraLeftDirection = -1  // to make sure the camera rotate forward or backward
   var cameraRightDirection = -1  // to make sure the camera rotate forward or backward
 
+  val mainbox = drawBox(1, 1, 1)
+  mainbox.setShadingMode(Object3D.SHADING_FAKED_FLAT)
+  new setGlass(new Color(180, 180, 180), mainbox, 0)
+  val mainBoxID = mainbox.getID
+
   val lookAtCenter = Primitives.getSphere(20, 0.1f)
 
   letThereBeLight()  // create light sources for the scene
@@ -203,9 +208,6 @@ class ThreeDView extends JPanel {
 
   def init() = {
     // add the main box
-    val mainbox = drawBox(1, 1, 1)
-    mainbox.setShadingMode(Object3D.SHADING_FAKED_FLAT)
-    new setGlass(new Color(180, 180, 180), mainbox, 0)
     world.addObject(mainbox)
     camera = world.getCamera  // grab a handle to the camera
     defaultView()
@@ -250,9 +252,10 @@ class ThreeDView extends JPanel {
   }
 
   def reset() = {
+    objects.clear()
+    scaleFactors.clear()
     world.removeAllObjects()
     axisArray(0) = null
-    world.newCamera()
     defaultView()
     init()
   }
@@ -318,9 +321,11 @@ class ThreeDView extends JPanel {
 
   def setReSize(scaleX: Float, scaleY: Float,  scaleZ: Float, planeMesh: Mesh) = {
     val demoControl = new Resizer(scaleX,scaleY,scaleZ)
-    planeMesh.setVertexController(demoControl, IVertexController.PRESERVE_SOURCE_MESH)
-    planeMesh.applyVertexController()
-    planeMesh.removeVertexController()
+    if (planeMesh != null) {
+      planeMesh.setVertexController(demoControl, IVertexController.PRESERVE_SOURCE_MESH)
+      planeMesh.applyVertexController()
+      planeMesh.removeVertexController()
+    }
   }
   // rotate object or camera
   def rotateObject(rotateObject: Object3D, angle: Array[Double], objectType: String, rotateCamera: Camera) = {
@@ -513,14 +518,16 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
 
   def calculateResizeFactor (o: Object3D, size: List[Double], scaleFactors: scala.collection.mutable.Map[Object3D, Array[Double]]): Array[Float] = {
     if (scaleFactors.contains(o)) {
-      val (xFactor, yFactor, zFactor) =
-        (if (size(0) == 0) scaleFactors(o)(0) * 0.001 / abs(o.getMesh.getBoundingBox()(1) - o.getMesh.getBoundingBox()(0))
-         else scaleFactors(o)(0) * size(0) / abs(o.getMesh.getBoundingBox()(1) - o.getMesh.getBoundingBox()(0)),
-         if (size(1) == 0) scaleFactors(o)(1) * 0.001 / abs(o.getMesh.getBoundingBox()(3) - o.getMesh.getBoundingBox()(2))
-         else scaleFactors(o)(1) * size(1) / abs(o.getMesh.getBoundingBox()(3) - o.getMesh.getBoundingBox()(2)),
-         if (size(2) == 0) scaleFactors(o)(2) * 0.001 / abs(o.getMesh.getBoundingBox()(5) - o.getMesh.getBoundingBox()(4))
-         else scaleFactors(o)(2) * size(2) / abs(o.getMesh.getBoundingBox()(5) - o.getMesh.getBoundingBox()(4)))
-      Array(xFactor.toFloat, yFactor.toFloat, zFactor.toFloat)
+      if (o != null) {
+        val (xFactor, yFactor, zFactor) =
+          (if (size(0) == 0) scaleFactors(o)(0) * 0.001 / abs(o.getMesh.getBoundingBox()(1) - o.getMesh.getBoundingBox()(0))
+          else scaleFactors(o)(0) * size(0) / abs(o.getMesh.getBoundingBox()(1) - o.getMesh.getBoundingBox()(0)),
+            if (size(1) == 0) scaleFactors(o)(1) * 0.001 / abs(o.getMesh.getBoundingBox()(3) - o.getMesh.getBoundingBox()(2))
+            else scaleFactors(o)(1) * size(1) / abs(o.getMesh.getBoundingBox()(3) - o.getMesh.getBoundingBox()(2)),
+            if (size(2) == 0) scaleFactors(o)(2) * 0.001 / abs(o.getMesh.getBoundingBox()(5) - o.getMesh.getBoundingBox()(4))
+            else scaleFactors(o)(2) * size(2) / abs(o.getMesh.getBoundingBox()(5) - o.getMesh.getBoundingBox()(4)))
+        Array(xFactor.toFloat, yFactor.toFloat, zFactor.toFloat)
+      } else Array(0.001f,0.001f,0.001f)
     } else Array(0.001f,0.001f,0.001f)
   }
 
@@ -536,6 +543,8 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
     /* Find the corresponding index of the object */
     val index = currentFrame - bufferFrame(buffer.head)
     /* Get the 3D information of the object at that frame	*/
+    if (totalFrames > buffer.size)
+      totalFrames = buffer.size
     val (tempPosition, tempAngle, tempColor, tempSize, tempType) =
       if (index >= 0 && index < totalFrames)
         (bufferPosition(buffer(index)) , bufferAngle(buffer(index)), bufferColor(buffer(index)),
@@ -786,7 +795,7 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
           currentFrame = startFrameNumber
         if (currentFrame > totalFrames)
           currentFrame = totalFrames
-        if (pause)
+        //if (pause)
           renderCurrentFrame()
       }
   }
