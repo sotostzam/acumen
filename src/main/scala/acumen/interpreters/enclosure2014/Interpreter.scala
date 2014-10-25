@@ -16,6 +16,7 @@ import Errors.{
   DuplicateAssingment, DuplicateContinuousAssingment, DuplicateDiscreteAssingment,  
   HypothesisFalsified, NotAClassName, NotAnObject, 
   PositionalAcumenError, ShouldNeverHappen, UnknownOperator
+  HypothesisFalsified, NotAClassName, NotAnObject, NoMatch,
 }
 import Pretty.pprint
 import ui.tl.Console
@@ -637,18 +638,21 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
               case VLit(CertainTrue)  => (CertainTrue, evalActions(certain, path, rhs, env, p, st)) // FIXME Add op("!=", mode, Lit(lhs)) to path
               case VLit(CertainFalse) => (CertainFalse, Set(Changeset.empty))
             }
-          (inScope, claim match {
-            case Lit(GBool(true)) => stmts
-            case _ =>
-              combine(stmts :: logClaim(selfCId(env), claim, env) :: Nil)
+          (lhs, inScope, claim match {
+            case Lit(CertainTrue) => stmts
+            case _ => combine(stmts :: logClaim(selfCId(env), claim, env) :: Nil)
           })
         }
-        val (in, uncertain) = modes.foldLeft((Set.empty[Changeset], Set.empty[Changeset])) {
-          case (iu @ (i, u), (gub, scs)) => (gub: @unchecked) match {
-            case CertainTrue  => (combine(i, scs), u)
-            case Uncertain    => (i, u union scs)
-            case CertainFalse => iu
+        val (allCertFalse, in, uncertain) = modes.foldLeft((true, Set.empty[Changeset], Set.empty[Changeset])) {
+          case (iu @ (a, i, u), (_, gub, scs)) => (gub: @unchecked) match {
+            case CertainTrue  => (false, combine(i, scs), u)
+            case Uncertain    => (false, i, u union scs)
+            case CertainFalse => (true && a, i, u)
           }
+        }
+        if (allCertFalse) {
+          val VLit(gv) = evalExpr(mode, env, st)
+          throw NoMatch(gv).setPos(mode.pos)
         }
         combine(in, uncertain)
       case Discretely(da) =>
