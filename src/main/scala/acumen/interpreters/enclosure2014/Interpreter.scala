@@ -12,8 +12,9 @@ import util.ASTUtil.{
 }
 import Common._
 import Errors.{
-  BadLhs, BadRhs, ConstructorArity, ContinuousDynamicsUndefined, DuplicateContinuousAssingment, 
-  DuplicateDiscreteAssingment, HypothesisFalsified, NotAClassName, NotAnObject, 
+  BadLhs, BadRhs, ConstructorArity, ContinuousDynamicsUndefined, 
+  DuplicateAssingment, DuplicateContinuousAssingment, DuplicateDiscreteAssingment,  
+  HypothesisFalsified, NotAClassName, NotAnObject, 
   PositionalAcumenError, ShouldNeverHappen, UnknownOperator
 }
 import Pretty.pprint
@@ -237,11 +238,11 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
       combine(xs map f)
     def logReparent(o:CId, parent:CId): Set[Changeset] =
       Set(Changeset(reps = Set((o,parent))))
-    def logAssign(path: Expr, o: CId, d: Dot, a: Action, e: Expr, env: Env): Set[Changeset] =
+    def logAssign(path: Expr, o: CId, a: Action, env: Env): Set[Changeset] =
       Set(Changeset(ass = Set(DelayedAction(path,o,a,env))))
-    def logEquation(path: Expr, o: CId, d: Dot, a: Action, e: Expr, env: Env): Set[Changeset] =
+    def logEquation(path: Expr, o: CId, a: Action, env: Env): Set[Changeset] =
       Set(Changeset(eqs = Set(DelayedAction(path,o,a,env))))
-    def logODE(path: Expr, o: CId, d: Dot, a: Action, e: Expr, env: Env): Set[Changeset] =
+    def logODE(path: Expr, o: CId, a: Action, env: Env): Set[Changeset] =
       Set(Changeset(odes = Set(DelayedAction(path,o,a,env))))
     def logClaim(o: CId, c: Expr, env: Env) : Set[Changeset] =
       Set(Changeset(claims = Set(DelayedConstraint(o,c,env))))
@@ -250,10 +251,10 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
     lazy val empty = new Changeset()
   }
   case class DelayedAction(path: Expr, selfCId: CId, a: Action, env: Env) {
-    def lhs: Dot = (a: @unchecked) match {
-      case Discretely(Assign(dot: Dot, _))      => dot
-      case Continuously(EquationT(dot: Dot, _)) => dot
-      case Continuously(EquationI(dot: Dot, _)) => dot
+    def lhs: ResolvedDot = (a: @unchecked) match {
+      case Discretely(Assign(d: ResolvedDot, _))      => d
+      case Continuously(EquationT(d: ResolvedDot, _)) => d
+      case Continuously(EquationI(d: ResolvedDot, _)) => d
     }
     def rhs: Expr = (a: @unchecked) match {
       case Discretely(x: Assign)      => x.rhs
@@ -265,77 +266,6 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
   }
   case class DelayedConstraint(selfCId: CId, c: Expr, env: Env)
   case class DelayedHypothesis(selfCId: CId, s: Option[String], h: Expr, env: Env)
-
-  /* TODO Preserve the object name somehow, perhaps using an additional, 
-   * optional parameter. */
-  /**
-   * In order to make names unambiguous when in-lining expressions
-   * into one another, convert all expressions in the Changeset's 
-   * components (and their Env:s to match) so that the object part 
-   * of each Dot is a globally unique name (based on selfCId.toString). 
-   */
-  def globalize(cs: Changeset, st: CStore): Changeset = {
-    def updateAction(a: Action, updateExpr: Expr => Expr): Action =
-      a match { // TODO Handle Create
-        case Continuously(EquationI(lhs,rhs)) =>
-          Continuously(EquationI(updateExpr(lhs),updateExpr(rhs)))
-        case Continuously(EquationT(lhs,rhs)) =>
-          Continuously(EquationT(updateExpr(lhs),updateExpr(rhs)))
-        case Discretely(Assign(lhs,rhs)) =>
-          Discretely(Assign(updateExpr(lhs),updateExpr(rhs)))
-        case Hypothesis(s, p) =>
-          Hypothesis(s,updateExpr(p))
-        case Claim(p) =>
-          Claim(updateExpr(p))
-      }
-    def updateDots(ln: Name, gn: Name)(e: Expr): Expr = {
-      dots(e).foldLeft(e) {
-        case (ePrev, d @ Dot(Var(n), fn)) if ln == n =>
-          substitute(d, Dot(Var(gn), fn), ePrev)
-        case (ePrev, d @ Dot(Dot(Var(n),on),fn)) if ln == n =>
-          substitute(d, Dot(Dot(Var(gn),on),fn), ePrev)
-        case (ePrev, _) =>
-          ePrev
-      }
-    }
-    def guid(n: Name, id: CId): Name = 
-      Name(s"${Pretty pprint (Var(n): Expr)}@(#${id.toString} : ${getCls(id,st).x})", 0)
-    def globalizeDelayedAction(da: DelayedAction): DelayedAction =
-      da.env.foldLeft(da) {
-        case (daPrev, b @ (n, objId@VObjId(Some(a)))) => 
-          val gn = guid(n,a)
-          DelayedAction( updateDots(n, gn)(da.path)
-                       , da.selfCId
-                       , updateAction(da.a, updateDots(n, gn))
-                       , da.env - n + (gn -> objId))
-        case (daPrev, _) => daPrev
-      }
-    def globalizeDelayedConstraint(dc: DelayedConstraint): DelayedConstraint =
-      dc.env.foldLeft(dc) {
-        case (daPrev, b @ (n, objId @ VObjId(Some(a)))) =>
-          val gn = guid(n,a)
-          DelayedConstraint( dc.selfCId
-                           , updateDots(n, gn)(dc.c)
-                           , dc.env - n + (gn -> objId))
-        case (daPrev, _) => daPrev
-      }
-    def globalizeDelayedHypothesis(dh: DelayedHypothesis): DelayedHypothesis =
-      dh.env.foldLeft(dh) {
-        case (daPrev, b @ (n, objId @ VObjId(Some(a)))) =>
-          val gn = guid(n,a)
-          DelayedHypothesis( dh.selfCId
-                           , dh.s
-                           , updateDots(n, gn)(dh.h)
-                           , dh.env - n + (gn -> objId))
-        case (daPrev, _) => daPrev
-      }
-    cs.copy( ass    = cs.ass    map globalizeDelayedAction  
-           , eqs    = cs.eqs    map globalizeDelayedAction
-           , odes   = cs.odes   map globalizeDelayedAction
-           , claims = cs.claims map globalizeDelayedConstraint
-           , hyps   = cs.hyps   map globalizeDelayedHypothesis
-           )  
-  }
   
   import Changeset._
 
@@ -531,23 +461,20 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
         case ExprVector(l)  => VVector (l map (eval(env,_)))
         case Var(n)         => env.get(n).getOrElse(VClassName(ClassName(n.x)))
         case Index(v,i)     => evalIndexOp(eval(env, v), eval(env, i))
-        case Dot(o,Name("children",0)) =>
-          /* In order to avoid redundancy en potential inconsistencies, 
+        case Dot(o,f) =>
+          val id = extractId(evalExpr(o,env,st))
+          env.get(f).getOrElse(getObjectField(id, f, st))
+        /* e.f */
+        case ResolvedDot(id, o, f) =>
+          if (f == Name("children",0))
+          /* In order to avoid redundancy and potential inconsistencies, 
              each object has a pointer to its parent instead of having 
              each object maintain a list of its children. This is why the childrens'
              list has to be computed on the fly when requested. 
              An efficient implementation wouldn't do that. */
-          val id = extractId(eval(env,o))
-          checkAccessOk(id, env, st, o)
-          VList(childrenOf(id,st) map (c => VObjId(Some(c))))
-        /* e.f */
-        case Dot(e,f) =>
-          val id = extractId(eval(env, e))
-//          checkAccessOk(id, env, st, e) 
-//          if (id == selfCId(env))
-          env.get(f).getOrElse(getObjectField(id, f, st))
-////          else
-//            getObjectField(id, f, st)
+            VList(childrenOf(id,st) map (c => VObjId(Some(c))))
+          else
+            getObjectField(id, f, st)
         /* FIXME:
            Could && and || be expressed in term of ifthenelse ? 
            => we would need ifthenelse to be an expression  */
@@ -738,18 +665,29 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
       case ForEach(n, col, body) => //TODO Add support for for-each statements
         throw new PositionalAcumenError{ val mesg = "For-each statements are not supported in the Enclosure 2014 semantics." }.setPos(col.pos)
     }
+
+  /** 
+   * Convert Dot d to a ResolvedDot rd by looking up the CId (valid in st) 
+   * corresponding to its obj in env. Substitue rd for d in rhs and return 
+   * rd together with the resulting expression.  
+   * 
+   * Note: Checks that the access implied by d is OK. 
+   */
+  def resolve(d: Dot, rhs: Expr, env: Env, st: CStore): (ResolvedDot, Expr) = {
+    val id = extractId(evalExpr(d.obj, env, st))
+    checkAccessOk(id, env, st, d.obj)
+    val rd = ResolvedDot(id, d.obj, d.field)
+    (rd, substitute(d, rd, rhs))
+  }
  
   def evalDiscreteAction(certain:Boolean, path: Expr, a:DiscreteAction, env:Env, p:Prog, st: Enclosure) : Set[Changeset] =
     a match {
       case Assign(Dot(o @ Dot(Var(self),Name(simulator,0)), n), e) =>
         Set.empty // TODO Ensure that this does not cause trouble down the road 
-      case Assign(d@Dot(o,x),rhs) => 
+      case Assign(e @ Dot(o, _), rhs) =>
         /* Schedule the discrete assignment */
-        val id = evalExpr(o, env, st) match {
-          case VObjId(Some(id)) => checkAccessOk(id, env, st, o); id
-          case v => throw NotAnObject(v).setPos(o.pos)
-        }
-        logAssign(path, id, d, Discretely(a), rhs, env)
+        val (rd, rRhs) = resolve(e, rhs, env, st)
+        logAssign(path, rd.id, Discretely(Assign(rd,rRhs)), env)
       /* Basically, following says that variable names must be 
          fully qualified at this language level */
       case c: Create =>
@@ -762,17 +700,15 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
 
   def evalContinuousAction(certain:Boolean, path: Expr, a:ContinuousAction, env:Env, p:Prog, st: Enclosure) : Set[Changeset] = 
     a match {
-      case EquationT(Dot(e@Dot(o,_),n),rhs) =>
-        val id = extractId(evalExpr(e, env, st))
-        val d = Dot(o,n)
-        val eqn = EquationT(d,rhs)
-        logEquation(path, id, d, Continuously(eqn), e, env)
-      case EquationT(d@Dot(e,_),rhs) =>
-        val id = extractId(evalExpr(e, env, st))
-        logEquation(path, id, d, Continuously(a), e, env)
-      case EquationI(d@Dot(e,_),rhs) =>
-        val id = extractId(evalExpr(e, env, st))
-        logODE(path, id, d, Continuously(a), e, env)
+      case EquationT(Dot(e: Dot, n), rhs) =>
+        val (rd, rRhs) = resolve(e, rhs, env, st)
+        logEquation(path, rd.id, Continuously(EquationT(rd, rRhs)), env)
+      case EquationT(e @ Dot(o, _), rhs) =>
+        val (rd, rRhs) = resolve(e, rhs, env, st)
+        logEquation(path, rd.id, Continuously(EquationT(rd, rRhs)), env)
+      case EquationI(e @ Dot(o, _), rhs) =>
+        val (rd, rRhs) = resolve(e, rhs, env, st)
+        logODE(path, rd.id, Continuously(EquationI(rd, rRhs)), env)
       case _ =>
         throw ShouldNeverHappen() // FIXME: enforce that with refinement types
     }
@@ -875,7 +811,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
 
   /** Traverse the AST (p) and collect statements that are active given st. */
   def active(st: Enclosure, p: Prog): Set[Changeset] = 
-    iterate(evalStep(p, st, _), mainId(st), st) map (globalize(_,st))
+    iterate(evalStep(p, st, _), mainId(st), st)
 
   /** Ensure that c does not contain duplicate assignments. */
   def checkValidChange(c: Set[Changeset]): Unit = c.foreach{ cs =>
@@ -892,7 +828,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
    */
   def checkFlowDefined(prog: Prog, cs: Changeset, st: Enclosure): Unit =
     if (isFlow(cs)) {
-      val contNamesActive = (cs.eqs union cs.odes).map { da => val (id, n) = globalReference(da.lhs, da.env, st); (id, n.x) }
+      val contNamesActive = (cs.eqs union cs.odes).map { da => (da.lhs.id, da.lhs.field.x) }
       val odeNamesDeclared = prog.defs.map(d => (d.name, (d.fields ++ d.priv.map(_.x)).filter(_.primes > 0))).toMap
       st.foreach {
         case (o, _) =>
@@ -1165,7 +1101,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
     }
     val odeSolutions = ic update solutionMap
     val equationsMap = inline(eqs, eqs, st).map { // LHSs of EquationsTs, including highest derivatives of ODEs
-      case DelayedAction(_, cid, Continuously(EquationT(Dot(_, n), rhs)), env) =>
+      case DelayedAction(_, cid, Continuously(EquationT(ResolvedDot(_, _, n), rhs)), env) =>
         (cid, n) -> evalExpr(rhs, env, odeSolutions)
     }.toMap
     odeSolutions update equationsMap
@@ -1173,7 +1109,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
 
   /** Convert odes into a Field compatible with acumen.interpreters.enclosure.ivp.IVPSolver. */
   def getFieldFromActions(odes: Set[DelayedAction], st: Enclosure, p: Prog)(implicit rnd: Rounding): Field =
-    Field(odes.map { case DelayedAction(_, cid, Continuously(EquationI(Dot(_, n), rhs)), env) =>
+    Field(odes.map { case DelayedAction(_, cid, Continuously(EquationI(ResolvedDot(_, _, n), rhs)), env) =>
       (fieldIdToName(cid, n), acumenExprToExpression(rhs, cid, env, st, p))
     }.toMap)
   
@@ -1184,29 +1120,33 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
    * 
    * NOTE: This implies a restriction on the programs that are accepted: 
    *       If the program contains an algebraic loop, an exception will be thrown.
-   * */
+   */
   def inline(as: Set[DelayedAction], bs: Set[DelayedAction], st: CStore): Set[DelayedAction] = {
-    val globalRefToDA = as.map(da => globalReference(da.lhs, da.env, st) -> da).toMap
+    val resolvedDotToDA = as.map(da => da.lhs -> da).toMap
     def inline(hosts: Map[DelayedAction,List[DelayedAction]]): Set[DelayedAction] = {
       val next = hosts.map {
         case (host, inlined) =>
           dots(host.rhs).foldLeft((host, inlined)) {
           case (prev@(hostPrev, ildPrev), d) =>
-              globalRefToDA.get(globalReference(d, host.env, st)) match {
-              case None => prev // No equation is active for d
+              resolvedDotToDA.get(resolveDot(d, host.env, st)) match {
+              case None => prev // No assignment is active for d
               case Some(inlineMe) => 
-                if (inlineMe.lhs.obj == hostPrev.lhs.obj && inlineMe.lhs.field.x == hostPrev.lhs.field.x)
-                  (hostPrev -> inlined) // Do not in-line derivative equations
+                if (inlineMe.lhs.obj          == hostPrev.lhs.obj && 
+                    inlineMe.lhs.field.x      == hostPrev.lhs.field.x &&
+                    inlineMe.lhs.field.primes == hostPrev.lhs.field.primes + 1)
+                  hostPrev -> inlined // Do not in-line derivative equations
                 else {
                   val daNext = hostPrev.copy(
                     a = hostPrev.a match {
                       case Continuously(e: EquationI) =>
-                        Continuously(e.copy(rhs = substitute(inlineMe.lhs, inlineMe.rhs, e.rhs)))
+                        val dot = Dot(inlineMe.lhs.obj,inlineMe.lhs.field)
+                        Continuously(e.copy(rhs = substitute(dot, inlineMe.rhs, e.rhs)))
                       case Continuously(e: EquationT) =>
-                        Continuously(e.copy(rhs = substitute(inlineMe.lhs, inlineMe.rhs, e.rhs)))
+                        val dot = Dot(inlineMe.lhs.obj,inlineMe.lhs.field)
+                        Continuously(e.copy(rhs = substitute(dot, inlineMe.rhs, e.rhs)))
                     }, 
                     env = hostPrev.env ++ inlineMe.env)
-                  (daNext -> (inlineMe :: inlined))
+                  daNext -> (inlineMe :: inlined)
                 }
             }
         }
@@ -1264,6 +1204,8 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
       case Var(n)                       => fieldIdToName(selfCId, n)
       case Dot(objExpr, n) => 
         val VObjId(Some(obj)) = evalExpr(objExpr, env, st) 
+        fieldIdToName(obj, n)
+      case ResolvedDot(obj,_,n) => 
         fieldIdToName(obj, n)
       case Op(Name("-", 0), List(x))    => Negate(convert(x))
       case Op(Name("abs", 0), List(x))  => Abs(convert(x))

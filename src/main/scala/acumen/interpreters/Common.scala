@@ -34,9 +34,9 @@ object Common {
   
   /** Convert a relative, qualified name (Dot) d in a given environment env
    *  to an absolute qualified name in a given object (identified by CId). */
-  def globalReference(d: Dot, env: Env, st: CStore): (CId, Name) = d match {
-    case Dot(Var(on), n)          => (extractId(env(on)), n)
-    case Dot(Dot(Var(pn), on), n) => (extractId(st(extractId(env(pn)))(on)), n)
+  def resolveDot(d: Dot, env: Env, st: CStore): ResolvedDot = d match {
+    case Dot(Var(on), n)          => ResolvedDot(extractId(env(on)), d, n)
+    case Dot(Dot(Var(pn), on), n) => ResolvedDot(extractId(st(extractId(env(pn)))(on)), d, n)
   }
  
   /** Purely functional unary operator evaluation at the ground values level. */
@@ -394,7 +394,7 @@ object Common {
   }
 
   /** Check for a duplicate assignment (of a specific kind) scheduled in assignments. */
-  def checkDuplicateAssingments(assignments: List[(CId, Dot)], error: Name => DuplicateAssingment): Unit = {
+  def checkDuplicateAssingments(assignments: List[(CId, Ref)], error: Name => DuplicateAssingment): Unit = {
     val duplicates = assignments.groupBy(a => (a._1,a._2)).filter{ case (_, l) => l.size > 1 }.toList
     if (duplicates.size != 0) {
       val first = duplicates(0)
