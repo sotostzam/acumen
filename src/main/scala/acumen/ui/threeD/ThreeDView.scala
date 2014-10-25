@@ -551,6 +551,7 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
     // get the object ID
     if (objects.contains(id) && tempType != " ") {
       // get the object need to transform
+      objID = objects(id).getID
       var transObject = view.getObject(objID)
       if (transObject != null) {
         // we don't need to care about first frame, since all the objects are fresh
