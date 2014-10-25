@@ -5,7 +5,7 @@ model Main(simulator) =
     x  = 0, 
     x' = 1
   always
-  if   x  >= 1 
-  then x+ == 0 
-  else x' == 1,
+  if     x  >= 1 
+    then x+ == 0 
+    else x' == 1,
   simulator.endTime+ == 1.5 

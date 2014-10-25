@@ -8,8 +8,7 @@ model Main (simulator) =
   if m == "rise" then
     if x > 10 then m+ == "stay" noelse,
     x'' == 1
-  noelse,
-  if m == "stay" then
+  elseif m == "stay" then
     x' == 0
   noelse
 

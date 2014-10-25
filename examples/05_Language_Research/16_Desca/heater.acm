@@ -8,15 +8,11 @@ model Main(simulator) =
   match mode with 
   [ "on" -> 
       claim x <= 23,
-      if x == 23 then
-        mode+ == "off"
-      noelse,
+      if x == 23 then mode+ == "off" noelse,
       x' == 10
   | "off" -> 
       claim x >= 19,
-      if x == 19 then
-        mode+ == "on"
-      noelse,
+      if x == 19 then mode+ == "on" noelse,
       x' == -5-x
   ],
   simulator.endTime+ == 5

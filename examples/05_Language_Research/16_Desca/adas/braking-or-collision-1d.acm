@@ -6,18 +6,18 @@ model Main(simulator) =
   initially
     // Car 1 parameters
     m1 = 6, x1 = 0, x1' = 11, x1'' =0,
-    pbd1 = 6, // Pre-Brake distance
+    pbd1 = 6,  // Pre-Brake distance
     pba1 = -3, // Pre-Brake acceleration
-    fbd1 = 3, // Full Brake distance
+    fbd1 = 3,  // Full Brake distance
     fba1 = -6, // Pre-Brake acceleration
-    b1 = -3, // Braking deceleration
+    b1 = -3,   // Braking deceleration
     collision_delta_v1 =0,
     // Car 2 parameters
     m2 = 1, x2 =20, x2' = 3, x2'' =0 ,
     collision_delta_v2 =0,
     // Joint parameters
     distance = 0,
-    c  = 0.1, // Coeff. of restitution
+    c  = 0.1,  // Coeff. of restitution
     pcb = -20, // Post-collision breaking
     state = "Approach", // {Approach, Pre-Brake, Brake, Collision, Post-Collision}
     print = 1
