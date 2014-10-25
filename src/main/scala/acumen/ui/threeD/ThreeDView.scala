@@ -56,6 +56,8 @@ class ThreeDView extends JPanel {
   var cameraLeftDirection = -1  // to make sure the camera rotate forward or backward
   var cameraRightDirection = -1  // to make sure the camera rotate forward or backward
 
+  val lookAtCenter = Primitives.getSphere(20, 0.1f)
+
   letThereBeLight()  // create light sources for the scene
 
   addComponentListener(new ComponentAdapter {
@@ -70,11 +72,18 @@ class ThreeDView extends JPanel {
       if (!dragging) {
         lastMouseX = e.getX
         lastMouseY = e.getY
+        new setGlass(Color.RED, lookAtCenter, -1)
+        world.addObject(lookAtCenter)
+        CustomObject3D.partialBuild(lookAtCenter, false)
+        lookAtCenter.translate(lookAtPoint.calcSub(lookAtCenter.getTransformedCenter))
+        repaint()
       }
       dragging = true
     }
     override def mouseReleased(e: MouseEvent) = {
       dragging = false
+      world.removeObject(lookAtCenter)
+      repaint()
     }
   })
 
@@ -149,6 +158,7 @@ class ThreeDView extends JPanel {
     lookAt(null, lookAtPoint)
     lastMouseX = newMouseX
     lastMouseY = newMouseY
+    lookAtCenter.translate(lookAtPoint.calcSub(lookAtCenter.getTransformedCenter))
     repaint()
     cameraDirection
   }
@@ -540,7 +550,6 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
         opaque = true
     // get the object ID
     if (objects.contains(id) && tempType != " ") {
-      objID = objects(id).getID
       // get the object need to transform
       var transObject = view.getObject(objID)
       if (transObject != null) {
@@ -700,7 +709,6 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
         val tempTransVector = new SimpleVector(-tempPosition(0), -tempPosition(2), -tempPosition(1))
         val transVector = tempTransVector.calcSub(transObject.getTransformedCenter)
         transObject.translate(transVector)
-
         if (tempType != "Text")
           CustomObject3D.partialBuild(transObject, false)
         else
