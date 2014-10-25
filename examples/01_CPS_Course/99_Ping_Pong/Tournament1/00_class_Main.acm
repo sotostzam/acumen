@@ -1,12 +1,12 @@
-#include "class_player.acm"
-#include "class_Cylinder.acm"
-#include "class_BatActuator.acm"
-#include "class_Bat.acm"
-#include "class_Ball.acm"
-#include "class_BallObserver.acm"
-#include "class_Table.acm"
-#include "class_Referee.acm"
-#include "class_Game.acm"
+#include "01_class_Ball.acm"
+#include "02_class_BallObserver.acm"
+#include "03_class_Bat.acm"
+#include "04_class_BatActuator.acm"
+#include "05_class_Cylinder.acm"
+#include "06_class_Game.acm"
+#include "07_class_player.acm"
+#include "08_class_Referee.acm"
+#include "09_class_Table.acm"
 
 /* 
    Works with semantic 2014
