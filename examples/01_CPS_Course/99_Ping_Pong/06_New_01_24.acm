@@ -190,7 +190,7 @@ always
           v' = (-40*(p_ball(0)),0,20)
         noelse
       else
-        angle_bat' = 0
+        angle_bat' = (0,0,0)
   | "Panic!" ->
   ]
 
