@@ -101,7 +101,7 @@ class ThreeDView extends JPanel {
         newMouseX = e.getX
         newMouseY = e.getY
         // to decrease the burden of calculations
-        if (abs(newMouseX - lastMouseX) > 5 || abs(newMouseY - lastMouseY) > 5) {
+        if (abs(newMouseX - lastMouseX) > 0.1 || abs(newMouseY - lastMouseY) > 0.1) {
           // Initialize the camera coordinate
           if (e.getButton == MouseEvent.BUTTON1)    // left button dragging, move camera
             cameraLeftDirection = moveCamera(cameraLeftDirection, 1, lookAtPoint)
