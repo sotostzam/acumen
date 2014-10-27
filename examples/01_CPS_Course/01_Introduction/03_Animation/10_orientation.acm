@@ -7,7 +7,7 @@ initially
   _3D  =  ()
 always
   t' = 1,
-  _3D + == 
+  _3D + = 
   (Box center= ( 0,0, 0) size=(5   ,0.02,0.02) color=(1,0,0) rotation=(0,0,0),
    Box center= ( 0,0, 0) size=(0.02,4   ,0.02) color=(0,1,0) rotation=(0,0,0),
    Box center= ( 0,0, 0) size=(0.02,0.02,4   ) color=(0,0,1) rotation=(0,0,0),

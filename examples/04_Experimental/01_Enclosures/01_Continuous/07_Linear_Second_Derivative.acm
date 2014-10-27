@@ -12,8 +12,8 @@ model Main(simulator) =
   always
   match mode with [
     "" ->
-      x'' == -x'/2 - x/2
+      x'' = -x'/2 - x/2
   ],
-  simulator.minSolverStep+ == 0.1
+  simulator.minSolverStep+ = 0.1
 
 // Note:  Proper second order linear equations work, too

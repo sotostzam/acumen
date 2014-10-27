@@ -8,8 +8,8 @@ always
              terminate self
            else
              x'' = -9.8
-  | "Bounce" -> x' + == -x',
-              mode + == "Fly"
+  | "Bounce" -> x' + = -x',
+              mode + = "Fly"
   ]
 
 model Main(simulator) = 
@@ -18,10 +18,10 @@ model Main(simulator) =
   always
   
   match mode with [
-  "Init" -> simulator.timeStep + == 0.003,
-            simulator.endTime + == 10.0,
+  "Init" -> simulator.timeStep + = 0.003,
+            simulator.endTime + = 10.0,
             create Ball("Fly", 100,0,0),
-            mode + == "Persist"
+            mode + = "Persist"
   | "Persist" ->
   ]
  

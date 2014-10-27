@@ -14,15 +14,15 @@ model Main(simulator) =
     "" claim s <= abs(d) -> 
        // Invariant added!
       if s == d then
-        s+ == s/2, 
-        mode+ == "" 
+        s+ = s/2, 
+        mode+ = "" 
       noelse,
-      d' == -1
+      d' = -1
   ],
-  simulator.endTime+ == 2.0,
-  simulator.minSolverStep+ == 1.1,
-  simulator.minLocalizationStep+ == 0.1,
-  simulator.minComputationImprovement+ == 0
+  simulator.endTime+ = 2.0,
+  simulator.minSolverStep+ = 1.1,
+  simulator.minLocalizationStep+ = 0.1,
+  simulator.minComputationImprovement+ = 0
 
 // Note:  Adding an invariant, the solver is able to 
 //        ascertain that the first event occurs.

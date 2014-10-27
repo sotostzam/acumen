@@ -13,7 +13,7 @@ model Vehicle(p,d,s,name) =
 initially
   _3D  = () 
 always
-  _3D + == (Obj center = p size = s color = (1,1,1) rotation = (pi/2,0,d*pi/2) content = name) 
+  _3D + = (Obj center = p size = s color = (1,1,1) rotation = (pi/2,0,d*pi/2) content = name) 
 
 model Main(simulator) = 
 initially

@@ -12,15 +12,15 @@ model Main(simulator) =
   match mode with [
     "On"  claim x >= 0 ->  
       if x == 0 then
-        x+ == 1, 
-        mode+ == "On"
+        x+ = 1, 
+        mode+ = "On"
       noelse, 
-      x' == -1 
+      x' = -1 
   ],
-  simulator.endTime+ == 2.5,
-  simulator.minSolverStep+ == 0.01, // Decreased
-  simulator.minLocalizationStep+ == 0.001,
-  simulator.minComputationImprovement+ == 0
+  simulator.endTime+ = 2.5,
+  simulator.minSolverStep+ = 0.01, // Decreased
+  simulator.minLocalizationStep+ = 0.001,
+  simulator.minComputationImprovement+ = 0
 
 // Note:  When fields are constant a lower minSolverStep
 //        does not improve enclosures.

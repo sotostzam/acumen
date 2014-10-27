@@ -28,22 +28,22 @@ initially
 always
   match mode with [
     "Sample" -> 
-      v + == p',
-      mode + == "Wait"
+      v + = p',
+      mode + = "Wait"
   | "Wait" ->
       timer' = 1,
       if timer >= 0.01 then
-        mode + == "Calculate"
+        mode + = "Calculate"
       noelse
   | "Calculate" ->
-      a + == (p' - v)/timer,
-      timer + == 0,
-      mode + == "Sample"
+      a + = (p' - v)/timer,
+      timer + = 0,
+      mode + = "Sample"
   ],
    
   F = m * norm(a),
   if norm(p') > 5 then // ???Saturate??? speeds over 5
-    p' + == p'/norm(p') * 5 
+    p' + = p'/norm(p') * 5 
   noelse,
   energy' = F * norm(p'), // Simplistic model of power consumed
   // Visualize arm

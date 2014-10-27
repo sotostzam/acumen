@@ -29,7 +29,7 @@ always
                length=0.05 color=(1,0.1,0.1)  rotation=displayAngle)
       )
   | "Rest" ->
-      pv + == (0,0,0), // Set speed to 0 in ???Rest??? mode
+      pv + = (0,0,0), // Set speed to 0 in ???Rest??? mode
       _3D = (Box center=p+(-0.05,0,0)+(tablerow,tablecolum,0).*shiftD size=(0.3,0.3,0.3)
              color=(1,1,0.1) rotation=-1 * displayAngle)
   ]

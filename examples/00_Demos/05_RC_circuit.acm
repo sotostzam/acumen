@@ -39,13 +39,13 @@ always
       circuit1.Vin=5,
       circuit2.Vin=5,
       if t >= 1 then
-        mode + == "discharge" 
+        mode + = "discharge" 
       noelse
   | "discharge" ->
       circuit1.Vin=0,
       circuit2.Vin=0,
       if t>=2 then
-        t+ ==0, 
-        mode + == "charge" 
+        t+ =0, 
+        mode + = "charge" 
       noelse ]
  

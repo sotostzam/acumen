@@ -17,13 +17,13 @@ initially
   _3D = ()
 always
   
-  a'' == 0,
-  b'' == -9.82,
+  a'' = 0,
+  b'' = -9.82,
 
-  if a<0.1 then a'+ == -0.7*a', a+ == 0.1 noelse,
-  if b<0.1 then b'+ == -0.7*b', b+ == 0.1 noelse,
+  if a<0.1 then a'+ = -0.7*a', a+ = 0.1 noelse,
+  if b<0.1 then b'+ = -0.7*b', b+ = 0.1 noelse,
   
-  _3D == (Box
+  _3D = (Box
           center=(0,0,1.5)     // boxens position
           size=(3,-0.01,3)     // boxens dimensioner 
           color=blue           // boxens färg

@@ -72,7 +72,7 @@ private
 end
 switch mode
  case "Run"
-   if n == 2
+   if n = 2
      displayAngle  
      = [0,dot(angle,[0,0,1])*(3.14/2)/norm(angle),
           dot(angle,[0,1,0])*(3.14/2)/norm(angle)]+[0,0,3.14/2];
@@ -181,14 +181,14 @@ end
          desiredBatP = batp; ctrl = true;
          color = [1, 0, 0];
          p1count = 0; p2count = 0; bouncedcnt = 0;
-         if(serve == true) mode = "Prepare" end;
+         if(serve = true) mode = "Prepare" end;
         
         case "Prepare"
-         if(serve == false)  mode := "Wait" end;
+         if(serve = false)  mode := "Wait" end;
          if(dot(ballp,[0,0,1]) <= 0) bounced := true end;
          if(norm(batp - ballp) < 0.15) mode := "Hit" end;
          ctrl = false;
-         if(bouncedcnt == 0&& bounced == true) bouncedcnt = 1; p1count = 0; p2count = 0; end;
+         if(bouncedcnt = 0&& bounced == true) bouncedcnt = 1; p1count = 0; p2count = 0; end;
          color = [0, 1, 0];
 
 
@@ -205,7 +205,7 @@ end
 
          /* filter the prediction (moving average * 10) */
          p1count = p1count + 1;
-         if(p1count == 1)
+         if(p1count = 1)
            p1_1 = p1; p1_2 = p1; p1_3 = p1; p1_4 = p1; p1_5 = p1; p1_6 = p1; p1_7 = p1; p1_8 = p1; p1_9 = p1; p1_10 = p1;
          else
            p1_1 = p1_2; p1_2 = p1_3; p1_3 = p1_4; p1_4 = p1_5; p1_5 = p1_6; p1_6 = p1_7; p1_7 = p1_8; p1_8 = p1_9; p1_9 = p1_10; p1_10 = p1;
@@ -217,7 +217,7 @@ end
          end;
 
 
-         if(bounced == false)
+         if(bounced = false)
            /* predict next-next collision if not yet bounced */
            p2v = [
              dot(ballv,[1,0,0])-airdrag * dot(ballv,[1,0,0]) * abs(dot(ballv,[1,0,0]))*p1t,
@@ -237,7 +237,7 @@ end
 
            /* filter the prediction */
            p2count = p2count + 1;
-           if(p2count == 1)
+           if(p2count = 1)
              p2_1 = p2; p2_2 = p2; p2_3 = p2; p2_4 = p2; p2_5 = p2; p2_6 = p2; p2_7 = p2; p2_8 = p2; p2_9 = p2; p2_10 = p2;
            else
              p2_1 = p2_2; p2_2 = p2_3; p2_3 = p2_4; p2_4 = p2_5; p2_5 = p2_6; p2_6 = p2_7; p2_7 = p2_8; p2_8 = p2_9; p2_9 = p2_10; p2_10 = p2;
@@ -251,7 +251,7 @@ end
 
 
          /* select prediction results */
-         if(bounced == false)
+         if(bounced = false)
            pp1  = p1;  // position 1
            pp2  = p2;  // position 2
            pv2  = dot(ballv,[0,0,1])-(airdrag * dot(ballv,[0,0,1]) * abs(dot(ballv,[0,0,1]))+9.8)*p1t;
@@ -264,7 +264,7 @@ end
 
 
          /* calculate hitting time, position */
-         if((bounced == false&& p1count > 20) || (bounced == true&& p1count > 10))
+         if((bounced = false&& p1count > 20) || (bounced == true&& p1count > 10))
            phit = [
              (dot(pp1,[1,0,0]) + dot(pp2,[1,0,0])) / 2,
              (dot(pp1,[0,1,0]) + dot(pp2,[0,1,0])) / 2,
@@ -322,7 +322,7 @@ end
 
 
  batspeed = (batp - oldbatp); oldbatp  = batp;
- if(ctrl == true)
+ if(ctrl = true)
         /* control the bat via desiredBatP */
         a = 50*(desiredBatP - batp) - 500*batspeed;
  else
@@ -344,7 +344,7 @@ end
 // ----------------------------------------------------------------------
 // Project Terminator: the ball breaking robot
 // Release codename: Fireball
-// ======================================================================
+// =====================================================================
 // Date    : 2013/03/07
 // Authors : Jonas Jonson and Alexey Taktarov
 // ----------------------------------------------------------------------
@@ -466,19 +466,19 @@ switch mode
     a = -50.0 * estimatedBatV;
     t = 0;
     
-    if serve == true
+    if serve = true
       mode := "Predict";
     end;
 
 
   case "Predict"
     // Bouncing condition
-    if dot(ballp,[0,0,1]) < 0&& bounced == false
+    if dot(ballp,[0,0,1]) < 0&& bounced = false
       bounced := true;
     end;
 
 
-    if bounced == true
+    if bounced = true
       p1  = ballp;
       pv1 = ballv;
       t1  = 0;
@@ -616,27 +616,27 @@ if mode ~= "Wait"&& mode ~= "Prepare"&& mode ~= "Hit"
  mode := "Panic!";
 end;
 t'  = 1;
-if batp == [1.6,0,0.2]
+if batp = [1.6,0,0.2]
  reStart := true;
 end;
 switch mode
 case "Wait"               // While waiting, moving the bat to starting point
  count      := 0;
- if n == 1
+ if n = 1
    v         = startPoint-batp;
  else
    v         = startPoint + [0,0.75,0] - batp;
  end;
  batAngle' = [0,0,0]-batAngle;
  hit    := false;
- if serve == true
+ if serve = true
   mode    := "Prepare";
   bounced := false;
  else
   mode := "Wait";
  end;
 case "Prepare"             // Prepare to hit the ball
- if bounced == true&& dot(batp, [0,0,1]) > 0.1                                      
+ if bounced = true&& dot(batp, [0,0,1]) > 0.1                                      
  // Once ball bounces, move towards it
    v = (ballp-batp).*[0,30,0] + (ballp-batp).*[0,0,30] +
                  (ballp-batp).*[30,0,0];
@@ -645,14 +645,14 @@ case "Prepare"             // Prepare to hit the ball
     mode  := "Hit";
    end;
  end;
-if dot(ballp,[0,0,1]) < 0&& bounced == false
+if dot(ballp,[0,0,1]) < 0&& bounced = false
   bounced := true;
  end;
  if(serve ~= true)
    mode := "Wait";
  end;
 case "Hit"           // Decide how you want hit the ball,
-   if n == 2
+   if n = 2
    ballvHcos = dot(ballv,[1,0,0])/norm(ballv)*norm([1,0,0]);
    ballvVcos = dot(ballv,[0,1,0])/norm(ballv)*norm([0,1,0]);
  if(ballvHcos >= 0.5&& ballvHcos <= 1)
@@ -710,7 +710,7 @@ hit    := true;
 mode   := "Wait";
 reStart := false;
 desiredBatP := startPoint;
-if n == 1
+if n = 1
  estimatedBatV := v - [0,0,10];
 else
  estimatedBatV := v ;
@@ -721,14 +721,14 @@ end;
 desiredBatP' = v;
 // Basic controller to actuate acceleration
 aTemp = 13*(desiredBatP'-estimatedBatV)+ 50*(desiredBatP-batp);
-if n == 2
- if reStart == true
+if n = 2
+ if reStart = true
    a  = [0,1,0.4] .* aTemp;
  else
    a  = aTemp;
  end;
 end;
-if n == 1
+if n = 1
   a =  13*(desiredBatP'-estimatedBatV)+ 50*(desiredBatP-batp);
  end;
 // Keep track of effect of acceleration to estimate actual bat speed
@@ -781,27 +781,27 @@ if mode ~= "Wait"&& mode ~= "Prepare"&& mode ~= "Hit"
 //mode := "Panic!";
 end;
 t' = 1;
-if batp == [1.6,0,0.2]
+if batp = [1.6,0,0.2]
 reStart := true;
 end;
 switch mode
 case "Wait" // While waiting, moving the bat to starting point
 count := 0;
-if n == 1
+if n = 1
 v = [0,0,0];
 else
 v = [0,0,0];
 end;
 batAngle' = [0,0,0]-batAngle;
 hit := false;
-if serve == true
+if serve = true
 mode := "Prepare";
 bounced := false;
 else
 mode := "Wait";
 end;
 case "Prepare" // Prepare to hit the ball
-if bounced == true&& dot(batp, [0,0,1]) > 0.1
+if bounced = true&& dot(batp, [0,0,1]) > 0.1
 // Once ball bounces, move towards it
 v = (ballp-batp).*[0,30,0] + (ballp-batp).*[0,0,30] +
 (ballp-batp).*[30,0,0];
@@ -810,14 +810,14 @@ count := count+1;
 mode := "Hit";
 end;
 end;
-if dot(ballp,[0,0,1]) < 0&& bounced == false
+if dot(ballp,[0,0,1]) < 0&& bounced = false
 bounced := true;
 end;
 if(serve ~= true)
 mode := "Wait";
 end;
 case "Hit" // Decide how you want hit the ball,
-if n == 2
+if n = 2
 v2 := [-(dot(ballp, [1,0,0] ) + 0.65 + 0.5 ), -dot( ballp, [0,1,0]),
 5 - dot(ballp,[0,0,1])];
 v21 := (v2 - ballv) / (-2) ;
@@ -839,7 +839,7 @@ hit := true;
 mode := "Wait";
 reStart := false;
 desiredBatP := startPoint;
-if n == 1
+if n = 1
 estimatedBatV := v-[0.95,0,9.4];//[-2,3,3];//v - v;//[0.95,0,9.4];
 else
 estimatedBatV := v;
@@ -850,14 +850,14 @@ end;
 desiredBatP' = v;
 // Basic controller to actuate acceleration
 aTemp = 13*(desiredBatP'-estimatedBatV)+ 50*(desiredBatP-batp);
-if n == 2
-if reStart == true
+if n = 2
+if reStart = true
 a = [0,1,0.4] .* aTemp;
 else
 a = aTemp;
 end;
 end;
-if n == 1
+if n = 1
 a = 13*(desiredBatP'-estimatedBatV)+ 50*(desiredBatP-batp);
 end;
 // Keep track of effect of acceleration to estimate actual bat speed
@@ -902,27 +902,27 @@ if mode ~= "Wait"&& mode ~= "Prepare"&& mode ~= "Hit"
   mode := "Panic!";
 end;
 t'  = 1;
-if batp == [1.6,0,0.2]
+if batp = [1.6,0,0.2]
   reStart := true;
 end;
 switch mode
  case "Wait"               // While waiting, moving the bat to starting point
   count      := 0;
-  if n == 1
+  if n = 1
     v         = startPoint-batp;
   else
     v         = startPoint + [0,0.75,0] - batp;
   end;
   batAngle' = [0,0,0]-batAngle;
   hit    := false;
-  if serve == true
+  if serve = true
    mode    := "Prepare";
    bounced := false;
   else
    mode := "Wait";
   end;
  case "Prepare"             // Prepare to hit the ball
-  if bounced == true&& dot(batp, [0,0,1]) > 0.1                                      
+  if bounced = true&& dot(batp, [0,0,1]) > 0.1                                      
   // Once ball bounces, move towards it
     v = (ballp-batp).*[0,30,0] + (ballp-batp).*[0,0,30] +
                   (ballp-batp).*[30,0,0];
@@ -931,14 +931,14 @@ switch mode
      mode  := "Hit";
     end;
   end;
- if dot(ballp,[0,0,1]) < 0&& bounced == false
+ if dot(ballp,[0,0,1]) < 0&& bounced = false
    bounced := true;
   end;
   if(serve ~= true)
     mode := "Wait";
   end;
 case "Hit"           // Decide how you want hit the ball,
- if n == 2
+ if n = 2
   v2  := [-(dot(ballp, [1,0,0] ) + 0.65 + 0.5 ), -dot( ballp, [0,1,0]
 ), 5 - dot(ballp,[0,0,1])];
   v21 := (v2 - ballv) / (-2) ;
@@ -960,7 +960,7 @@ case "Hit"           // Decide how you want hit the ball,
  mode   := "Wait";
  reStart := false;
  desiredBatP := startPoint;
- if n == 1
+ if n = 1
   estimatedBatV := v - [0,0,10];
  else
   estimatedBatV := v ;
@@ -971,14 +971,14 @@ end;
 desiredBatP' = v;
 // Basic controller to actuate acceleration
 aTemp = 13*(desiredBatP'-estimatedBatV)+ 50*(desiredBatP-batp);
-if n == 2
-  if reStart == true
+if n = 2
+  if reStart = true
     a  = [0,1,0.4] .* aTemp;
   else
     a  = aTemp;
   end;
  end;
-if n == 1
+if n = 1
    a =  13*(desiredBatP'-estimatedBatV)+ 50*(desiredBatP-batp);
   end;
 // Keep track of effect of acceleration to estimate actual bat speed
@@ -1024,13 +1024,13 @@ end;
 switch mode
 case "Initialize"
  done = false;
- if action == 1
+ if action = 1
   mode := "Calculate";
  end;
 case "Calculate" // Compute impact reset equation
 v2     := v1-dot(2.*(v1-v3),angle)*angle;
 action := 0;     // Reset action to 0
-if action == 0
+if action = 0
  mode := "Wait";
 end;
 case "Wait"
@@ -1068,7 +1068,7 @@ switch mode
     mode:= "Estimate0"
    end;
   case "Estimate0"
-if t == 0.01   // Calculate the average speed
+if t = 0.01   // Calculate the average speed
     // Effect of quantization
    ap = [0.005 * floor (200 * dot(p, [1,0,0])),
            0.005 * floor (200 * dot(p, [0,1,0])),
@@ -1113,45 +1113,45 @@ if mode ~= "Initialize"&& mode ~= "Player1Lost"&& mode ~= "Player2Lost"
  mode := "Panic!";
 end;
  t'=1;
- if z<0.05&& z'<0&& status == "Normal"  // Check if anyone fouls
-  if (abs(y)>0.78||abs(x)>1.53)&& status == "Normal"
+ if z<0.05&& z'<0&& status = "Normal"  // Check if anyone fouls
+  if (abs(y)>0.78||abs(x)>1.53)&& status = "Normal"
    reason     := "BallOutOfBoundary";
-   if bounced == false
+   if bounced = false
     if x>0
      mode := "Player1Lost";
     else
      mode := "Player2Lost";
     end;
    else
-    if bounced == "YesIn2"    // The ball has bounced in player2's court,
+    if bounced = "YesIn2"    // The ball has bounced in player2's court,
      mode := "Player2Lost"     // and out of boundary now, so player2 lose.
     end;
-    if bounced == "YesIn1"
+    if bounced = "YesIn1"
      mode := "Player1Lost";
     end;
    end;
    status := "Report";
   end;
   if(abs(y)<0.78&& abs(x)<1.53)&& bounced ~= false  
-   && t>(bounceTime+0.1)&& status=="Normal"
+   && t>(bounceTime+0.1)&& status="Normal"
 // The ball has bounced twice in player2's court  
-   if bounced == "YesIn2"&& x > 0
+   if bounced = "YesIn2"&& x > 0
     mode   := "Player2Lost";
     reason := "BallBouncedTwice";
  bounceTime := t;
    end;
 // The ball has bounced twice in player1's court
-   if bounced == "YesIn1"&& x < 0
+   if bounced = "YesIn1"&& x < 0
     mode   := "Player1Lost";
     reason := "BallBouncedTwice";
  bounceTime := t;
    end;
   end;
-  if x<0&& x>-1.5&& bounced == false&& status == "Normal"
+  if x<0&& x>-1.5&& bounced = false&& status == "Normal"
    bounced    := "YesIn1";
    bounceTime := t;
   end;
-  if x>=0&& x<1.5&& bounced == false&& status == "Normal"
+  if x>=0&& x<1.5&& bounced = false&& status == "Normal"
    bounced    := "YesIn2";
    bounceTime := t;
   end;
@@ -1164,14 +1164,14 @@ end;
 
 
 
-if bounced == "YesIn1"&& x>0&& status == "Normal"
+if bounced = "YesIn1"&& x>0&& status == "Normal"
  bounced := false
 end;
-if bounced == "YesIn2"&& x<=0&& status == "Normal"
+if bounced = "YesIn2"&& x<=0&& status == "Normal"
  bounced := false
 end;
  // Time to check if the ball touches the net
-if abs(x)<0.025&& t>0.1&& checked == false&& status == "Normal"   
+if abs(x)<0.025&& t>0.1&& checked = false&& status == "Normal"   
  if z<0.25
    if x'>0
     mode   := "Player1Lost";
@@ -1193,7 +1193,7 @@ case "Player2Lost"
 case "SendMessage"
  t := 0; // Wait until the Game class gets the restart signal
  restart := 1;
- if acknowledged == 1
+ if acknowledged = 1
    mode := "Initialize";
    acknowledged := 0;
    restart := 0;
@@ -1237,7 +1237,7 @@ private
                  //[0,[1.8,6.5,-0.5],1,[0.1,0.1,0.1],[1.7,0,0]]]
  
 end
-if finish == true
+if finish = true
  for c=self.children
   terminate  c
  end;
@@ -1274,14 +1274,14 @@ end;
  player2.ballv     = ballob.v;
  if bat1.mode ~= "Rest"
 //   batActuator1.p' = player1.v;
-  if (player1.mode=="Hit")
+  if (player1.mode="Hit")
     batActuator1.p' := player1.v
   end;
   batActuator1.p'' = player1.a;
  end;
  if bat2.mode ~= "Rest"
 //   batActuator2.p' = player2.v;
-  if (player2.mode=="Hit")
+  if (player2.mode="Hit")
     batActuator2.p' := player2.v
   end;
  batActuator2.p'' = player2.a;
@@ -1346,26 +1346,26 @@ switch mode
  case "Player2Serve" // Player 2 is serving
   player1.serve = false;
   player2.serve =  true;
-  if player2.hit == true&& norm(bat2.p - ball.p) < 0.15&& bat2.mode ~= "Rest"
+  if player2.hit = true&& norm(bat2.p - ball.p) < 0.15&& bat2.mode ~= "Rest"
    mode := "Impact"
   end;
-  if referee.restart == 1
+  if referee.restart = 1
    mode := "Freeze";
    t    := 0;
   end;
 case "Player1Serve" // Player 1 is serving
  player2.serve = false;
  player1.serve = true;
- if player1.hit == true&& norm(bat1.p - ball.p) < 0.15&& bat1.mode ~= "Rest"
+ if player1.hit = true&& norm(bat1.p - ball.p) < 0.15&& bat1.mode ~= "Rest"
   mode := "Impact"
  end;
- if referee.restart == 1
+ if referee.restart = 1
   mode := "Freeze";
   t    := 0;
  end;
 case "Impact" // When one player hits the ball
  ballActuator.v1 := ball.p';
- if serveNumber == 2 // Give player2's data to bat actuator
+ if serveNumber = 2 // Give player2's data to bat actuator
   batActuator2.p' := player2.v;
 //   batActuator2.p'' := player2.a;
   bat2.p'         := batActuator2.p';
@@ -1375,12 +1375,12 @@ case "Impact" // When one player hits the ball
   ballActuator.action := 1; // Tell ball actuator to act
   referee.lastHit := 2;
   mode := "Act";
-   if referee.restart == 1
+   if referee.restart = 1
      mode := "Freeze";
      t := 0;
    end;
  end;
- if serveNumber == 1 // Give player1's data to actuator
+ if serveNumber = 1 // Give player1's data to actuator
   batActuator1.p' := player1.v;
   bat1.p'         := batActuator1.p';
   ballActuator.v3     := bat1.p';
@@ -1389,33 +1389,33 @@ case "Impact" // When one player hits the ball
   ballActuator.action := 1; // Tell ball Actuator to act
   referee.lastHit := 1;
   mode := "Act";
-  if referee.restart == 1
+  if referee.restart = 1
    mode := "Freeze";
    t    := 0;
   end;
  end
 case "Act" // Wait till actuator finish
- if referee.restart == 1
+ if referee.restart = 1
   mode := "Freeze";
   t    := 0;
  end;
- if ballActuator.done == true
+ if ballActuator.done = true
   ball.p'       := ballActuator.v2;
   ballActuator.mode := "Initialize";
   mode          := "ChangeSide";
  end;
 case "ChangeSide" // Change the serve number
- if referee.restart == 1
+ if referee.restart = 1
   mode := "Freeze";
   t    := 0;
  end;
- if serveNumber == 2&& dot(ball.p,[1,0,0]) >0&& referee.restart ~= 1
+ if serveNumber = 2&& dot(ball.p,[1,0,0]) >0&& referee.restart ~= 1
   serveNumber     := 1;
   mode            := "Player1Serve";
   player1.mode    := "Wait";
   player1.bounced := false;
  end;
- if serveNumber == 1&& dot(ball.p,[1,0,0]) <= 0&& referee.restart ~= 1
+ if serveNumber = 1&& dot(ball.p,[1,0,0]) <= 0&& referee.restart ~= 1
   serveNumber     := 2;
   mode            := "Player2Serve";
   player2.mode    := "Wait";

@@ -33,13 +33,13 @@ initially
 always
   // If mode is not valid then make mode "Panic!"
   if mode ~= "Normal"&& mode ~= "Reset" then
-    mode + == "Panic!" 
+    mode + = "Panic!" 
   noelse ,
   match mode with [
     "Normal" ->
       F      = m * norm(p''),
       if norm(p') > 5 then // ???Saturate??? speeds over 5
-        p' + == p'/norm(p') * 5 
+        p' + = p'/norm(p') * 5 
       noelse,
       energy' = F * norm(p'), // Simplistic model of power consumed
       // Transformation from Spherical coordinate to Cartesian coordinate system
@@ -62,17 +62,17 @@ always
       link2.p = p +  ((-1)^n * 0.05,0,0),
       link2.r = 0.03
   | "Reset" ->
-      p       + == p1 ,
-      p'      + == (0,0,0) ,
-      p''     + == (0,0,0) ,
-      angle   + == (0,0,0) ,
-      r       + == norm((1.6,0.1,0.2)) ,
-      r'      + == 0 ,                     r''     + == 0 ,
-      alpha   + == acos(0.2/norm((1.6,0.1,0.2))) , 
-      alpha'  + == 0 ,                     alpha'' + == 0 ,
-      theta   + == atan(1.6*(-1)^n/0.1) , 
-      theta'  + == 0 ,                     theta'' + == 0 ,
-      mode    + == "Normal" 
+      p       + = p1 ,
+      p'      + = (0,0,0) ,
+      p''     + = (0,0,0) ,
+      angle   + = (0,0,0) ,
+      r       + = norm((1.6,0.1,0.2)) ,
+      r'      + = 0 ,                     r''     + = 0 ,
+      alpha   + = acos(0.2/norm((1.6,0.1,0.2))) , 
+      alpha'  + = 0 ,                     alpha'' + = 0 ,
+      theta   + = atan(1.6*(-1)^n/0.1) , 
+      theta'  + = 0 ,                     theta'' + = 0 ,
+      mode    + = "Normal" 
   | "Panic!" ->],
   
   // Energy bar visualization

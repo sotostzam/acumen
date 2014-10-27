@@ -8,11 +8,11 @@ model Main(simulator) =
   always
   match mode with [
     "q" claim 0 <= x && x <= 1 -> 
-      if     x  == 1 
-        then x+ == 0, mode+ == "q"
-        else x' == 1
+      if     x  = 1 
+        then x+ = 0, mode+ = "q"
+        else x' = 1
   ],
-  simulator.endTime+ == 3.2
+  simulator.endTime+ = 3.2
 
 // Note:  Model of Sawtooth Wave implemented as a 
 //        hybrid automaton.
@@ -20,5 +20,5 @@ model Main(simulator) =
 //        certain when using the 2013 Enclosure 
 //        semantics.
 // Note:  The addition of the claim makes it possible 
-//        to use == instead of >= in the guard on 
+//        to use = instead of >= in the guard on 
 //        line 11.

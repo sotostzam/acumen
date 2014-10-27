@@ -5,26 +5,26 @@ model Main(simulator) =
     heating = "on", 
     period  = "day" 
   always
-  time' == 1,
+  time' = 1,
   claim x <= 23,
   match period with 
   [ "day" -> // Hybrid behaviour during the day
-      if time >= 12 then period+ == "night" noelse,
+      if time >= 12 then period+ = "night" noelse,
       match heating with 
       [ "on" ->
-          if x >= 23 then heating+ == "off" noelse,
-          x' == 10
+          if x >= 23 then heating+ = "off" noelse,
+          x' = 10
       | "off" -> 
-          if x <= 19 then heating+ == "on" noelse,
+          if x <= 19 then heating+ = "on" noelse,
           claim x >= 19,
-          x' == -5-x
+          x' = -5-x
       ]
   | "night" ->
       if     time >= 24 
-        then time+ == 0, 
-             period+ == "day" 
+        then time+ = 0, 
+             period+ = "day" 
         noelse,
-      x' == -5-x // Continuous behaviour at night
+      x' = -5-x // Continuous behaviour at night
   ],
-  simulator.endTime+ == 48,
-  simulator.timeStep+ == 0.0125
+  simulator.endTime+ = 48,
+  simulator.timeStep+ = 0.0125

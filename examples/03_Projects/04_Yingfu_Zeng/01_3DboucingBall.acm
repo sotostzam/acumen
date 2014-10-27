@@ -13,14 +13,14 @@ always
   if mode ~= "Fly" && mode ~= "Bounce" && mode ~= "Freeze" then
     mode  =  "Panic!" 
   noelse ,
-  simulator.endTime + == 3  ,
+  simulator.endTime + = 3  ,
   match mode with [
     "Fly" ->   
       if p dot (0,0,1) < 0 && p' dot (0,0,1) < 0 then
-        mode + == "Bounce" 
+        mode + = "Bounce" 
       else
         p'' = -k2 * norm(p') * p' + (0,0,-9.8) 
   | "Bounce" ->    
-      p'   + ==  p' .* k_z ,    // Bouncing  will lose some energy
-      mode + == "Fly" ] 
+      p'   + =  p' .* k_z ,    // Bouncing  will lose some energy
+      mode + = "Fly" ] 
  

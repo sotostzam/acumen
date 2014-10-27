@@ -6,8 +6,8 @@ initially
 always
 match mode with [
   "" ->
-    x' == y,
-    y' == (1-x*x)*y-x 
+    x' = y,
+    y' = (1-x*x)*y-x 
  ],
-simulator.endTime+ == 3,
-simulator.minSolverStep+ == 0.01 
+simulator.endTime+ = 3,
+simulator.minSolverStep+ = 0.01 

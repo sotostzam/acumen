@@ -15,51 +15,51 @@ switch mode
   // do nothing
   
  case "Subspace"
-  spaceRays + == spaceRays * 0.5,
+  spaceRays + = spaceRays * 0.5,
   if dot (planetCoord, ux) > dot(spaceCenter, ux)
    && dot (planetCoord, uy) > dot (spaceCenter, uy)
    && dot (planetCoord, uz) <= dot (spaceCenter, uz)
-    index + == 1,
-    spaceCenter + == spaceCenter + 0.5 * (spaceRays .* (1, 1, -1))
+    index + = 1,
+    spaceCenter + = spaceCenter + 0.5 * (spaceRays .* (1, 1, -1))
   else 
     if dot (planetCoord, ux) <= dot(spaceCenter, ux)
      && dot (planetCoord, uy) > dot (spaceCenter, uy)
      && dot (planetCoord, uz) <= dot (spaceCenter, uz)
-      index + == 2,
-      spaceCenter + == spaceCenter + 0.5 * (spaceRays .* (-1, 1, -1))
+      index + = 2,
+      spaceCenter + = spaceCenter + 0.5 * (spaceRays .* (-1, 1, -1))
     else 
       if dot (planetCoord, ux) <= dot(spaceCenter, ux)
        && dot (planetCoord, uy) <= dot (spaceCenter, uy)
        && dot (planetCoord, uz) <= dot (spaceCenter, uz)
-        index + == 3,
-        spaceCenter + == spaceCenter + 0.5 * (spaceRays .* (-1, -1, -1))
+        index + = 3,
+        spaceCenter + = spaceCenter + 0.5 * (spaceRays .* (-1, -1, -1))
       else 
         if dot (planetCoord, ux) > dot(spaceCenter, ux)
          && dot (planetCoord, uy) <= dot (spaceCenter, uy)
          && dot (planetCoord, uz) <= dot (spaceCenter, uz)
-          index + == 4,
-          spaceCenter + == spaceCenter + 0.5 * (spaceRays .* (1, -1, -1))          
+          index + = 4,
+          spaceCenter + = spaceCenter + 0.5 * (spaceRays .* (1, -1, -1))          
         else 
           if dot (planetCoord, ux) > dot(spaceCenter, ux)
            && dot (planetCoord, uy) > dot (spaceCenter, uy)
            && dot (planetCoord, uz) > dot (spaceCenter, uz)
-            index + == 5,
-            spaceCenter + == spaceCenter + 0.5 * (spaceRays .* (1, 1, 1))
+            index + = 5,
+            spaceCenter + = spaceCenter + 0.5 * (spaceRays .* (1, 1, 1))
           else 
             if dot (planetCoord, ux) <= dot(spaceCenter, ux)
              && dot (planetCoord, uy) > dot (spaceCenter, uy)
              && dot (planetCoord, uz) > dot (spaceCenter, uz)
-              index + == 6,
-              spaceCenter + == spaceCenter + 0.5 * (spaceRays .* (-1, 1, 1))
+              index + = 6,
+              spaceCenter + = spaceCenter + 0.5 * (spaceRays .* (-1, 1, 1))
             else 
               if dot (planetCoord, ux) <= dot(spaceCenter, ux)
                && dot (planetCoord, uy) <= dot (spaceCenter, uy)
                && dot (planetCoord, uz) > dot (spaceCenter, uz)
-                index + == 7,
-                spaceCenter + == spaceCenter + 0.5 * (spaceRays .* (-1, -1, 1))
+                index + = 7,
+                spaceCenter + = spaceCenter + 0.5 * (spaceRays .* (-1, -1, 1))
               else
-                index + == 8,
-                spaceCenter + == spaceCenter + 0.5 * (spaceRays .* (1, -1, 1))
+                index + = 8,
+                spaceCenter + = spaceCenter + 0.5 * (spaceRays .* (1, -1, 1))
               end
             end
           end
@@ -67,7 +67,7 @@ switch mode
       end
     end
   end,
-  mode + == "Idle"
+  mode + = "Idle"
 end
 end
 
@@ -82,16 +82,16 @@ case "Idle"
 // do nothing
 
 case "Insert"
- if mass == 0
+ if mass = 0
    // it is a new leaf
-   mass + == planetMass,
-   massCenter + == planetCoord
+   mass + = planetMass,
+   massCenter + = planetCoord
  else 
-   if children == ()
+   if children = ()
      // it is a leaf to split
      create Space ("Subspace", 0, spaceCenter, spaceDim, massCenter),
      for c = children
-       if c.modelName == "Space"
+       if c.modelName = "Space"
          create Octree ("Insert", c.index, 0, (0, 0, 0), c.spaceCenter, c.spaceRays, mass, massCenter, 0),    
          terminate (c)
        else
@@ -100,22 +100,22 @@ case "Insert"
      end,
      create Space ("Subspace", 0, spaceCenter, spaceDim, planetCoord),
      for c = children
-       if c.modelName == "Space"
+       if c.modelName = "Space"
          create Octree ("Insert", c.index, 0, (0, 0, 0), c.spaceCenter, c.spaceRays, planetMass, planetCoord, 0),   
          terminate(c)
        else
          theta := theta
        always
      end,
-     massCenter + == (mass * massCenter + planetMass * planetCoord) / (mass + planetMass),
-     mass + == mass + planetMass
+     massCenter + = (mass * massCenter + planetMass * planetCoord) / (mass + planetMass),
+     mass + = mass + planetMass
    else	
      // it is an internal node
      create Space ("Subspace", 0, spaceCenter, spaceDim, planetCoord),
      for c1 = children
-       if c1.modelName == "Space"
+       if c1.modelName = "Space"
          for c = children
-           if c.modelName == "Octree"&& c.index == c1.index 
+           if c.modelName = "Octree"&& c.index == c1.index 
              c.planetCoord := planetCoord,
              c.planetMass := planetMass,
              c.mode := "Insert",
@@ -125,39 +125,39 @@ case "Insert"
            always
          end
        else
-         theta + == theta
+         theta + = theta
        end
      end
    end
  end,
- mode + == "Idle"
+ mode + = "Idle"
  
  case "ComputeForce"
-  if norm (planetCoord, massCenter) == 0
-    force + == 0
+  if norm (planetCoord, massCenter) = 0
+    force + = 0
   else
-    if children == ()
-      force + == mass * (massCenter - planetCoord) / (norm (massCenter - planetCoord) ^ 3)
+    if children = ()
+      force + = mass * (massCenter - planetCoord) / (norm (massCenter - planetCoord) ^ 3)
     else
       // we suppose that all the dimensions are equal
       if dot (spaceDim, (1, 0, 0)) / norm (planetCoord, massCenter) <= theta
-        force + == mass * (massCenter - planetCoord) / (norm (massCenter - planetCoord) ^ 3)
+        force + = mass * (massCenter - planetCoord) / (norm (massCenter - planetCoord) ^ 3)
       else
         for c = children  
-          c.planetMass + == planetMass,
-          c.planetCoord + == planetCoord,
-          c.mode + == "ComputeForce",
-          force + == force + c.force
+          c.planetMass + = planetMass,
+          c.planetCoord + = planetCoord,
+          c.mode + = "ComputeForce",
+          force + = force + c.force
         end
       end  
     end
   end,
-  mode + == "Idle"
+  mode + = "Idle"
 
  case "Reset"
-  force + == 0,
+  force + = 0,
   for c = children
-    c.mode + == "Reset",
+    c.mode + = "Reset",
     terminate (c)
   end
 end
@@ -183,7 +183,7 @@ switch mode
 
   // compute the space dimensions
   for c = children
-    if c.modelName == "Planet"
+    if c.modelName = "Planet"
       for p = c.position
         if p < minPosition
           minPosition := p
@@ -191,26 +191,26 @@ switch mode
           minPosition := minPosition
         always,
         if p > maxPosition
-          maxPosition + == p
+          maxPosition + = p
         else
-          maxPosition + == maxPosition
+          maxPosition + = maxPosition
         end
       end
     else
-      minPosition + == minPosition,
-      maxPosition + == maxPosition
+      minPosition + = minPosition,
+      maxPosition + = maxPosition
     end
   end,
   
   // compute the center and the rays of the space
-  center + == 0.5 * (minPosition + maxPosition) * (1, 1, 1),
-  rays + == 0.5 * (maxPosition - minPosition) * (1, 1, 1),
-  mode + == "Constellate"	
+  center + = 0.5 * (minPosition + maxPosition) * (1, 1, 1),
+  rays + = 0.5 * (maxPosition - minPosition) * (1, 1, 1),
+  mode + = "Constellate"	
   
  case "Constellate"	
   // Octree index is zero then it is the root
    for c = children
-    if c.modelName == "Planet"
+    if c.modelName = "Planet"
       root.planetMass := c.mass,
       root.planetCoord := c.position,
       root.mode := "Insert"
@@ -220,7 +220,7 @@ switch mode
    end,
    // compute force with Octree
    for c = children
-     if c.modelName == "Planet"
+     if c.modelName = "Planet"
        root.planetMass := c.mass,
        root.planetCoord := c.position,
        root.mode := "ComputeForce",
@@ -229,7 +229,7 @@ switch mode
        root := root
      always
    end,
-   root.mode + == "Reset"
+   root.mode + = "Reset"
 end
 end
 
@@ -243,10 +243,10 @@ model Main (simulator)
   always
 switch mode
  case "Init"
-  simulator.timeStep + == 0.01,
-  simulator.endTime + == 10,
+  simulator.timeStep + = 0.01,
+  simulator.endTime + = 10,
   create Galaxy ("Init"),
-  mode + == "Persist"
+  mode + = "Persist"
  case "Persist"
 end
  

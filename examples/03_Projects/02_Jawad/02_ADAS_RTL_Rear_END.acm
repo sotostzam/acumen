@@ -93,7 +93,7 @@ always
   match mode with [
     "spawn" ->
       create Stripe(0, 33) ,
-      mode + == "persist" 
+      mode + = "persist" 
   | "persist" -> ]
 
 model Stripe(xstart, stripesLeft) = 
@@ -105,7 +105,7 @@ always
     "spawn" ->
       if stripesLeft > 0 then
         create Stripe(xstart + 7.5, stripesLeft - 1) ,
-        mode + == "persist" 
+        mode + = "persist" 
       noelse 
   | "persist" -> ],
   _3D = (Box center=(xstart,0,-0.90/2) size=(3,0.15,0.1) color=(255,255,255) rotation=(0,0,0)) // center lane

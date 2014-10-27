@@ -24,11 +24,11 @@ always
   _3D=(Cylinder center=(x01-1,0,0) radius= 0.01 length=1  color=(1,0,0) rotation=(3.1416/2,0,0)) , 
   match mode with [
     "push" ->
-      system2.F+ ==2 ,   
+      system2.F+ =2 ,   
       if t>=1 then
-        mode+ =="free_motion"
+        mode+ ="free_motion"
       noelse
   | "free_motion" ->
-      system2.F+ ==0 ]
+      system2.F+ =0 ]
  
 

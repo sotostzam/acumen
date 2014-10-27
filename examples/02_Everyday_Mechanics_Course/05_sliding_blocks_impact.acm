@@ -10,16 +10,16 @@ initially
   v = 0,                   // Deklarera variabeln v
   _3D = ()
 always
-  x'' == 0,
-  y'' == 0,
-  v == 2*r,           // v bestäms till 2r 
+  x'' = 0,
+  y'' = 0,
+  v = 2*r,           // v bestäms till 2r 
   // Denna if-sats bestämmer när det blå rätblocket 
   // ska vända och vilken hastighet det ska få
   if x > -(r+v)/4 && y' <= x' then
-    x'+ == -(x'+2*y'/3),       
-    y'+ == x'/3
+    x'+ = -(x'+2*y'/3),       
+    y'+ = x'/3
   noelse,        
-  _3D+ == (Box                    // Objektstyp, rätblock
+  _3D+ = (Box                    // Objektstyp, rätblock
            center=(-x/10,0,0)     // Rätblocket ska ha startpunkt i det negativa värdet för
                                   // variablen x och där y- och z-axlarna har värdet noll. 
                                   // Hastigheten som rätblocket är x', som också är samma som y'.

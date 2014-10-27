@@ -73,36 +73,36 @@ initially
 always
   
   if mode ~= "Wait"&& mode ~= "Prepare"&& mode ~= "Startball" then
-    mode + == "Panic!"
+    mode + = "Panic!"
   noelse,
   
   t'  = 1,   // Rate for local timer
   // pH is the hightest from my start ball(easy to calculate from y and zp)   
-  pH + ==  (1.5 * (-1)^n, y, let t = abs(zp/(-9.8 +  k_a*(zp)^2)),
+  pH + =  (1.5 * (-1)^n, y, let t = abs(zp/(-9.8 +  k_a*(zp)^2)),
                               a = -9.8 +  k_a*(zp)^2 in 
                     zp*t + 0.5 * (a)*t^2),
   match mode with [
     "Wait" -> // Waiting for your serve, moving the bat to start point
       v'  = ((1.6*(-1)^n,0,0.2) - p_bat) * 10 + 5 * ((0,0,0)- v),
-      t   + == 0,
-      t1_predicted  + == 0,
-      t2_predicted  + == 0, 
-      p2_predicted  + == (0,0,0),
-      doneOnce      + == false,
+      t   + = 0,
+      t1_predicted  + = 0,
+      t2_predicted  + = 0, 
+      p2_predicted  + = (0,0,0),
+      doneOnce      + = false,
       angle_bat'     = 2*((0,0,0) - angle_bat),
       if myServe == true&& starting == false then
-        mode + == "Prepare"
+        mode + = "Prepare"
       noelse,
       // Calculate how to get to goal point(slightly behind and below pH)
       if myServe == true&& starting == true then
-        t + == 0,  
-        d_ballBat + == norm(p_bat - pH),
-        u + == (pH + (0.07*(-1)^n,0,-0.1) - p_bat)/norm(pH + (0.07*(-1)^n,0,-0.1) - p_bat),
-        ta + == let d_ballBat = norm(p_bat - pH) in sqrt(2* (d_ballBat / 2) / maxA),
-        mode + == "Startball"
+        t + = 0,  
+        d_ballBat + = norm(p_bat - pH),
+        u + = (pH + (0.07*(-1)^n,0,-0.1) - p_bat)/norm(pH + (0.07*(-1)^n,0,-0.1) - p_bat),
+        ta + = let d_ballBat = norm(p_bat - pH) in sqrt(2* (d_ballBat / 2) / maxA),
+        mode + = "Startball"
       noelse
   | "Startball" -> // Start the ball as I wanted
-      _3D + == (Sphere center=p1_predicted size=0.02 color=(200,0,0) rotation=(0,0,0),
+      _3D + = (Sphere center=p1_predicted size=0.02 color=(200,0,0) rotation=(0,0,0),
                 Sphere center=pH size=0.02 color=(0,100,200) rotation=(0,0,0)),
         
       // Path planning, first half distance fully accelerate the other 
@@ -122,7 +122,7 @@ always
       // Do predict, and move pat towards the second predict point
       // Bouncing condition
       if (p_ball(2)) < 0&& bounced == false then
-        bounced + == true
+        bounced + = true
       noelse,
       if bounced == true then
         p1_predicted  = p_ball,
@@ -143,8 +143,8 @@ always
         if t > 0.2*abs(t1_predicted) then
           if (p1_predicted(0))*(-1)^n > 1.55 || (p1_predicted(0))*(-1)^n < 0   
              || abs((p1_predicted(1))) > 0.78 then
-            mode    + == "Wait",
-            myServe + == false
+            mode    + = "Wait",
+            myServe + = false
           noelse
         noelse
       ),
@@ -161,23 +161,23 @@ always
           // Calculating second prediction point
           // Linearized air resistance
       
-          doneOnce + == true,
+          doneOnce + = true,
           // First move back a bit
           // Save 0.05 sec for hit the ball with calculated velocity and angle
-          //t2_predicted + == t2_predicted - 0.05,
-          t  + == 0,
-          ta + == t2_predicted/2,
-          u + == (p2_predicted + (0.2*(-1)^n,0,0)-p_bat)/norm(p2_predicted + (0.2*(-1)^n,0,0) - p_bat),
-          d_ballBat + == norm(p2_predicted + (0.2*(-1)^n,0,0) - p_bat)
+          //t2_predicted + = t2_predicted - 0.05,
+          t  + = 0,
+          ta + = t2_predicted/2,
+          u + = (p2_predicted + (0.2*(-1)^n,0,0)-p_bat)/norm(p2_predicted + (0.2*(-1)^n,0,0) - p_bat),
+          d_ballBat + = norm(p2_predicted + (0.2*(-1)^n,0,0) - p_bat)
         noelse,
       
-        _3D + == ((Sphere center=p1_predicted size = 0.02 color=(200,0,0) rotation=(0,0,0)),
+        _3D + = ((Sphere center=p1_predicted size = 0.02 color=(200,0,0) rotation=(0,0,0)),
                   (Sphere center=p2_predicted size = 0.02 color=(0,100,200) rotation=(0,0,0)))
       noelse,
     
       // Path planning, first move to p2, then wait to hit the ball
       if doneOnce == true then
-        ta + ==  sqrt(2* (d_ballBat / 2) / maxA) ,        
+        ta + =  sqrt(2* (d_ballBat / 2) / maxA) ,        
         angle_bat' = (a_desired - angle_bat)/ta,
         if t < ta then
           v' = maxA* u
@@ -244,18 +244,18 @@ initially
 always
   // If mode is not valid then make mode "Panic!"
   if mode ~= "Fly"&& mode ~= "Bounce"&& mode ~= "Freeze" then
-     mode + == "Panic!"
+     mode + = "Panic!"
   noelse,
   // Behavior of ball in different modes
   match mode with [
     "Fly" -> 
       if (p(2)) < 0&& (p'(2))< 0 then
-        mode + == "Bounce"
+        mode + = "Bounce"
       else // Acceleration is air resistance and gravity
         p'' = -k2 * norm(p') * p' + (0,0,-9.8) 
   | "Bounce" ->
-      p'   + ==  p' .* k_z, // Bounce losing k_z energy
-      mode + == "Fly"
+      p'   + =  p' .* k_z, // Bounce losing k_z energy
+      mode + = "Fly"
   | "Freeze" ->  // The ball becomes red and freezes for a bit
       p'  = (0,0,0)
   | "Panic!" ->
@@ -296,22 +296,22 @@ initially
 always
   match mode with [
     "Sample" -> 
-      v + == p',
-      mode + == "Wait"
+      v + = p',
+      mode + = "Wait"
   | "Wait" ->
       timer' = 1,
       if timer >= 0.01 then
-        mode + == "Calculate"
+        mode + = "Calculate"
       noelse
   | "Calculate" ->
-      a + == (p' - v)/timer,
-      timer + == 0,
-      mode + == "Sample"
+      a + = (p' - v)/timer,
+      timer + = 0,
+      mode + = "Sample"
   ],
    
   F = m * norm(a),
   if norm(p') > 5 then // ???Saturate??? speeds over 5
-    p' + == p'/norm(p') * 5 
+    p' + = p'/norm(p') * 5 
   noelse,
   energy' = F * norm(p'), // Simplistic model of power consumed
   // Visualize arm
@@ -360,7 +360,7 @@ always
                length=0.05 color=(1,0.1,0.1)  rotation=displayAngle)
       )
   | "Rest" ->
-      pv + == (0,0,0), // Set speed to 0 in ???Rest??? mode
+      pv + = (0,0,0), // Set speed to 0 in ???Rest??? mode
       _3D = (Box center=p+(-0.05,0,0)+(tablerow,tablecolum,0).*shiftD size=(0.3,0.3,0.3)
              color=(1,1,0.1) rotation=-1 * displayAngle)
   ]
@@ -399,26 +399,26 @@ initially
 always
   t'=1,
   if mode ~= "Sample"&& mode ~= "Estimate0"&& mode ~= "Estimate1" then
-    mode + == "Panic!"
+    mode + = "Panic!"
   noelse,
   match mode with [
     "Sample" ->
       if t > 0 then
-        pp  + == p,
-        t   + == 0,
-        mode+ == "Estimate0"
+        pp  + = p,
+        t   + = 0,
+        mode+ = "Estimate0"
       noelse
   | "Estimate0" ->
       if t == 0.01 then  // Estimating average speed
-        ap   + == p,
-        mode + == "Estimate1"
+        ap   + = p,
+        mode + = "Estimate1"
       noelse
   | "Estimate1" ->
-      v    + == (ap(0)-pp(0))/0.01*(1,0,0)+
+      v    + = (ap(0)-pp(0))/0.01*(1,0,0)+
               (ap(2)-pp(2))/0.01*(0,0,1)+
               (ap(1)-pp(1))/0.01*(0,1,0),
-      mode + == "Sample",
-      t    + == 0
+      mode + = "Sample",
+      t    + = 0
   | "Panic!" ->
   ]
 
@@ -447,123 +447,123 @@ always
    && mode ~= "SendMessage1"&& status ~= "Normal"&& reason ~= "Nothing"
    && status ~= "Report"&& reason ~= "BallOutOfBoundary"&& mode ~= "SendMessage2"
    && reason ~= "BallBouncedTwice"&& reason ~= "BallTouchNet"&& reason ~= "BallNotOverNet"
-    then mode + == "Panic!"
+    then mode + = "Panic!"
   noelse,
   t'=1,
   // Whenever ball is about to hit the ground, check if anyone fouls(outside, fail to serve)
   if p(2)<0.05&& p'(2)<0&& status == "Normal" then
     // Ball fly outside the table case
     if (abs(p(1))>0.78||abs(p(0))>1.53)&& status == "Normal" then
-      reason     + == "BallOutOfBoundary",
+      reason     + = "BallOutOfBoundary",
       if bounced == false then
         if lastHit == 1 then
-          mode + == "Player1Lost" 
+          mode + = "Player1Lost" 
         elseif (lastHit == 2) then
-          mode + == "Player2Lost" 
+          mode + = "Player2Lost" 
         noelse
       else (
         match bounced with [ // The ball has bounced in player2's court,
-          "YesIn2" -> mode + == "Player2Lost" // and out of boundary now, so player2 lose.
-        | "YesIn1" -> mode + == "Player1Lost"
+          "YesIn2" -> mode + = "Player2Lost" // and out of boundary now, so player2 lose.
+        | "YesIn1" -> mode + = "Player1Lost"
         | false    -> 
         ]
       ),
-      status + == "Report" 
+      status + = "Report" 
     noelse,
     // Fail to serve the ball back
     if (abs(p(1))<=0.78&& abs(p(0))<=1.53)&& bounced ~= false 
       && status=="Normal"&& abs(p(0))>0.025 then
       if bounced == "YesIn1"&& lastHit == 1&& p(0) < 0 then
-        mode       + == "Player1Lost",
-        reason     + == "BallNotOverNet",
-        bounced    + == true
+        mode       + = "Player1Lost",
+        reason     + = "BallNotOverNet",
+        bounced    + = true
       noelse,
       if bounced == "YesIn2"&& lastHit == 2&& p(0) > 0 then
-        mode       + == "Player2Lost",
-        reason     + == "BallNotOverNet",
-        bounced    + == true
+        mode       + = "Player2Lost",
+        reason     + = "BallNotOverNet",
+        bounced    + = true
       noelse 
     noelse,
     if (abs(p(1))<=0.78&& abs(p(0))<=1.53)&& bounced ~= false
      && t>(bounceTime+0.1)&& status=="Normal" then
       // The ball has bounced twice in player2's court
       if bounced == "YesIn2"&& p(0) > 0&& lastHit == 1 then
-        mode   + == "Player2Lost",
-        reason + == "BallBouncedTwice",
-        bounceTime + == t
+        mode   + = "Player2Lost",
+        reason + = "BallBouncedTwice",
+        bounceTime + = t
       noelse,
       // The ball has bounced twice in player1's court
       if bounced == "YesIn1"&& p(0) < 0&& lastHit == 2 then
-        mode   + == "Player1Lost",
-        reason + == "BallBouncedTwice",
-        bounceTime + == t
+        mode   + = "Player1Lost",
+        reason + = "BallBouncedTwice",
+        bounceTime + = t
       noelse
     noelse,
     if p(0)<0&& p(0)>-1.53&& bounced == false&& status == "Normal" then
-      bounced    + == "YesIn1",
-      bounceTime + == t
+      bounced    + = "YesIn1",
+      bounceTime + = t
     noelse,
     if p(0)>=0&& p(0)<1.53&& bounced == false&& status == "Normal" then
-      bounced    + == "YesIn2",
-      bounceTime + == t 
+      bounced    + = "YesIn2",
+      bounceTime + = t 
     noelse
   noelse,
   if bounced == "YesIn1"&& p(0)>0&& status == "Normal" then
-    bounced + == false
+    bounced + = false
   noelse,
   if bounced == "YesIn2"&& p(0)<=0&& status == "Normal" then
-    bounced + == false
+    bounced + = false
   noelse,
   // Time to check if the ball touches the net
   if abs(p(0))<0.025&& t>0.1&& checked == false&& status == "Normal" then
     if p(2)<0.25 then
-      if p'(0)>0 then mode   + == "Player1Lost" 
-      else mode   + == "Player2Lost",
-      reason  + == "BallTouchNet",
-      checked + == true 
+      if p'(0)>0 then mode   + = "Player1Lost" 
+      else mode   + = "Player2Lost",
+      reason  + = "BallTouchNet",
+      checked + = true 
     noelse
   noelse,
   match mode with [
   // Put the intermediate variables to its iniital value
     "Initialize" ->
       if acknowledged == 1 then
-        mode + == "Initialize",
-        acknowledged  + == 0,
-        restart       + == 0,
-        status        + == "Normal",
-        checked       + == false,
-        bounced       + == false
+        mode + = "Initialize",
+        acknowledged  + = 0,
+        restart       + = 0,
+        status        + = "Normal",
+        checked       + = false,
+        bounced       + = false
       noelse
     // Update the score and notify the Game model
   | "Player1Lost" ->
-      player2Score + == 1+player2Score,
-      mode+ == "SalwaysMessage1" 
+      player2Score + = 1+player2Score,
+      mode+ = "SalwaysMessage1" 
   | "Player2Lost" ->
-      player1Score + == 1+player1Score,
-      mode + == "SendMessage2" 
+      player1Score + = 1+player1Score,
+      mode + = "SendMessage2" 
     // Make sure Game model gets the message then go back to initial state
   | "SalwaysMessage1" ->
-      t + == 0, // Wait until the Game model gets the restart signal
+      t + = 0, // Wait until the Game model gets the restart signal
       if acknowledged == 1 then
-        mode+ == "Initialize",
-        acknowledged+ == 0,
-        restart     + == 0,
-        status      + == "Normal",
-        checked     + == false,
-        bounced     + == false
+        mode+ = "Initialize",
+        acknowledged+ = 0,
+        restart     + = 0,
+        status      + = "Normal",
+        checked     + = false,
+        bounced     + = false
       else
-        restart     + == 1
+        restart     + = 1
   | "SendMessage2" ->
-      t + == 0, // Wait until the Game model gets the restart signal
+      t + = 0, // Wait until the Game model gets the restart signal
       if acknowledged  == 1 then
-        mode + == "Initialize",
-        acknowledged + == 0,
-        restart      + == 0,
-        status       + == "Normal",
-        checked      + == false,
-        bounced      + == false
+        mode + = "Initialize",
+        acknowledged + = 0,
+        restart      + = 0,
+        status       + = "Normal",
+        checked      + = false,
+        bounced      + = false
       else
-        restart      + == 1
+        restart      + = 1
   | "Panic!" ->
   ]
 
@@ -624,16 +624,16 @@ always
   && mode ~= "Act"          && mode ~= "Endgame"      && mode ~= "Init"  
   && mode ~= "Restart2"     && mode ~= "StartBall1"
   && mode ~= "StartBall2" then
-    mode + == "Panic!"
+    mode + = "Panic!"
   noelse,
   t'=1,
   gameTime' = 1,
   if gameTime > gameLength then
-    gameTime + == 0,
-    finish   + == true
+    gameTime + = 0,
+    finish   + = true
   noelse,
   if finish == true then
-    mode + == "Endgame" 
+    mode + = "Endgame" 
   noelse,
   gameMonitor.p'  = ball.p',
   gameMonitor.serveNumber = serveNumber,
@@ -661,129 +661,129 @@ always
   bat1.angle = batActuator1.angle,
   bat2.angle = batActuator2.angle,
   if batActuator1.energy > maxEnergy then
-    bat1.mode      + == "Rest",
-    bat1.pv        + == (0,0,0),
+    bat1.mode      + = "Rest",
+    bat1.pv        + = (0,0,0),
     batActuator1.p' = (0,0,0)
   noelse,
   if batActuator2.energy > maxEnergy then
-    bat2.mode      + == "Rest",
-    bat2.pv        + == (0,0,0),
+    bat2.mode      + = "Rest",
+    bat2.pv        + = (0,0,0),
     batActuator2.p' = (0,0,0)
   noelse,
   match mode with [
     "Init" ->
-      batActuator2.p + == (1.6,0,0.2), //Initialize the bat pos
-      batActuator1.p + == (-1.6,0,0.2),
-      ball.mode      + == "Fly",
+      batActuator2.p + = (1.6,0,0.2), //Initialize the bat pos
+      batActuator1.p + = (-1.6,0,0.2),
+      ball.mode      + = "Fly",
       if first_serve == 1 then  // left serve first
-        ball.p              + == (-1.5,player1.y,0), //Initialize the ball pos
-        gameMonitor.p       + == (-1.5,player1.y,0),
-        gameMonitor.lastHit + == 1,
-        changeServe         + == 2,
-        serveNumber         + == 1,
-        mode                + == "StartBall1" 
+        ball.p              + = (-1.5,player1.y,0), //Initialize the ball pos
+        gameMonitor.p       + = (-1.5,player1.y,0),
+        gameMonitor.lastHit + = 1,
+        changeServe         + = 2,
+        serveNumber         + = 1,
+        mode                + = "StartBall1" 
       else (                // right serve first
-        ball.p              + == (1.5,player2.y,0), //Initialize the ball pos
-        gameMonitor.p       + == (1.5,player2.y,0),
-        gameMonitor.lastHit + == 2,
-        changeServe         + == 1,
-        serveNumber         + == 2,
-        mode                + == "StartBall2"
+        ball.p              + = (1.5,player2.y,0), //Initialize the ball pos
+        gameMonitor.p       + = (1.5,player2.y,0),
+        gameMonitor.lastHit + = 2,
+        changeServe         + = 1,
+        serveNumber         + = 2,
+        mode                + = "StartBall2"
       )
   | "Restart1" ->   // Put everything back to the starting point
-      ball.p            + == (-1.5,player1.y,0),
-      gameMonitor.p       + == (-1.5,player1.y,0),
-      ball.mode         + == "Fly",
-      ball.p'           + == (0,0,0),
-      ball.p''          + == (0,0,0),
+      ball.p            + = (-1.5,player1.y,0),
+      gameMonitor.p       + = (-1.5,player1.y,0),
+      ball.mode         + = "Fly",
+      ball.p'           + = (0,0,0),
+      ball.p''          + = (0,0,0),
       
-      player2.bounced   + == false,
-      player2.myServe   + == false,
-      player2.mode      + == "Wait",
-      player2.starting  + == false,
-      player2.p_bat     + == (1.6,0,0.2),
+      player2.bounced   + = false,
+      player2.myServe   + = false,
+      player2.mode      + = "Wait",
+      player2.starting  + = false,
+      player2.p_bat     + = (1.6,0,0.2),
       
-      player1.bounced   + == false,
-      player1.myServe   + == false,
-      player1.mode      + == "Wait",
-      player1.starting  + == false,
-      player1.p_ball    + == (-1.5,player1.y,0),
-      player1.p_bat     + == (-1.6,0,0.2),
+      player1.bounced   + = false,
+      player1.myServe   + = false,
+      player1.mode      + = "Wait",
+      player1.starting  + = false,
+      player1.p_ball    + = (-1.5,player1.y,0),
+      player1.p_bat     + = (-1.6,0,0.2),
       
-      batActuator1.p    + == (-1.6,0,0.2),
-      batActuator2.p    + == (1.6,0,0.2),
-      batActuator1.p'   + == (0,0,0),
-      batActuator2.p'   + == (0,0,0),
+      batActuator1.p    + = (-1.6,0,0.2),
+      batActuator2.p    + = (1.6,0,0.2),
+      batActuator1.p'   + = (0,0,0),
+      batActuator2.p'   + = (0,0,0),
       
-      serveNumber               + == 1,
-      gameMonitor.bounced       + == false,
-      gameMonitor.checked       + == false,
-      gameMonitor.acknowledged  + == 1,
-      gameMonitor.lastHit       + == 1,
-      changeServe               + == 2,
-      mode                      + == "StartBall1"
+      serveNumber               + = 1,
+      gameMonitor.bounced       + = false,
+      gameMonitor.checked       + = false,
+      gameMonitor.acknowledged  + = 1,
+      gameMonitor.lastHit       + = 1,
+      changeServe               + = 2,
+      mode                      + = "StartBall1"
   | "Restart2" ->  // Put everything back to the starting point
-      ball.p            + == (1.5,player2.y,0),
-      gameMonitor.p     + == (1.5,player2.y,0),
-      ball.mode         + == "Fly",
-      ball.p'           + == (0,0,0),
-      ball.p''          + == (0,0,0),
+      ball.p            + = (1.5,player2.y,0),
+      gameMonitor.p     + = (1.5,player2.y,0),
+      ball.mode         + = "Fly",
+      ball.p'           + = (0,0,0),
+      ball.p''          + = (0,0,0),
       
-      player2.bounced   + == false,
-      player2.myServe   + == false,
-      player2.mode      + == "Wait",
-      player2.starting  + == false,
-      player2.p_bat     + == (1.6,0,0.2),
-      player2.p_ball    + == (1.5,player2.y,0),
+      player2.bounced   + = false,
+      player2.myServe   + = false,
+      player2.mode      + = "Wait",
+      player2.starting  + = false,
+      player2.p_bat     + = (1.6,0,0.2),
+      player2.p_ball    + = (1.5,player2.y,0),
       
-      player1.bounced   + == false,
-      player1.myServe   + == false,
-      player1.mode      + == "Wait",
-      player1.starting  + == false,
-      player1.p_bat     + == (-1.6,0,0.2),
+      player1.bounced   + = false,
+      player1.myServe   + = false,
+      player1.mode      + = "Wait",
+      player1.starting  + = false,
+      player1.p_bat     + = (-1.6,0,0.2),
       
-      batActuator1.p'   + == (0,0,0),
-      batActuator1.p    + == (-1.6,0,0.2),    
-      batActuator2.p'   + == (0,0,0),
-      batActuator2.p    + == (1.6,0,0.2),
+      batActuator1.p'   + = (0,0,0),
+      batActuator1.p    + = (-1.6,0,0.2),    
+      batActuator2.p'   + = (0,0,0),
+      batActuator2.p    + = (1.6,0,0.2),
       
-      serveNumber               + == 2,
-      gameMonitor.bounced       + == false,
-      gameMonitor.checked       + == false,
-      gameMonitor.acknowledged  + == 1,
-      gameMonitor.lastHit       + == 2,
-      changeServe               + == 1,
-      mode                      + == "StartBall2"  
+      serveNumber               + = 2,
+      gameMonitor.bounced       + = false,
+      gameMonitor.checked       + = false,
+      gameMonitor.acknowledged  + = 1,
+      gameMonitor.lastHit       + = 2,
+      changeServe               + = 1,
+      mode                      + = "StartBall2"  
   | "StartBall1" ->
       if batActuator2.energy > maxEnergy&& batActuator1.energy > maxEnergy then
-        mode + == "Endgame",
-        t    + == 0 
+        mode + = "Endgame",
+        t    + = 0 
       elseif batActuator1.energy > maxEnergy&& batActuator2.energy < maxEnergy then
-        mode + == "Restart2",
-        t    + == 0
+        mode + = "Restart2",
+        t    + = 0
       else (
-        ball.p'           + == (0,0,player1.zp),
-        player1.myServe   + == true,
-        player1.starting  + == true,
-        mode              + == "Player1Serve"
+        ball.p'           + = (0,0,player1.zp),
+        player1.myServe   + = true,
+        player1.starting  + = true,
+        mode              + = "Player1Serve"
       )
   | "StartBall2" ->
       if batActuator2.energy > maxEnergy&& batActuator1.energy > maxEnergy then
-        mode + == "Endgame",
-        t    + == 0 
+        mode + = "Endgame",
+        t    + = 0 
       elseif batActuator2.energy > maxEnergy&& batActuator1.energy < maxEnergy then
-        mode + == "Restart1",
-        t    + == 0
+        mode + = "Restart1",
+        t    + = 0
       else (
-        ball.p'           + == (0,0,player2.zp),
-        player2.myServe   + == true,
-        player2.starting  + == true,
-        mode              + == "Player2Serve"
+        ball.p'           + = (0,0,player2.zp),
+        player2.myServe   + = true,
+        player2.starting  + = true,
+        mode              + = "Player2Serve"
       )
   | "Player2Serve" ->  // Player 2 is serving
       if batActuator2.energy > maxEnergy&& batActuator1.energy > maxEnergy then
-        mode + == "Endgame",
-        t    + == 0
+        mode + = "Endgame",
+        t    + = 0
       else (
         zc1 = (ball.p - bat2.p) dot bat2.angle,
         zc2 = (ball.p'- bat2.pv) dot bat2.angle,
@@ -792,25 +792,25 @@ always
            ((ball.p'- bat2.pv) dot bat2.angle) < 0&&
              zc3 < batRadius&&
              gameMonitor.restart ~= 1 then
-          ball.p'            + == ball.p' - ((1.5*(ball.p'-batActuator2.p')) dot batActuator2.angle)*batActuator2.angle,
-          player2.starting   + == false,
-          r2                 + == r2+1,
-          player2.myServe    + == false,
-          player2.mode       + == "Wait",
-          gameMonitor.lastHit+ == 2,
-          mode               + == "ChangeSide" 
+          ball.p'            + = ball.p' - ((1.5*(ball.p'-batActuator2.p')) dot batActuator2.angle)*batActuator2.angle,
+          player2.starting   + = false,
+          r2                 + = r2+1,
+          player2.myServe    + = false,
+          player2.mode       + = "Wait",
+          gameMonitor.lastHit+ = 2,
+          mode               + = "ChangeSide" 
         elseif gameMonitor.restart == 1&& gameTime <= gameLength then
-          mode + == "Freeze",
-          t    + == 0
+          mode + = "Freeze",
+          t    + = 0
         noelse,
         if gameMonitor.acknowledged == 1 then
-          gameMonitor.restart + == 0 
+          gameMonitor.restart + = 0 
         noelse
       )
   | "Player1Serve" ->  // Player 1 is serving     
       if batActuator2.energy > maxEnergy&& batActuator1.energy > maxEnergy then
-        mode + == "Endgame",
-        t    + == 0 
+        mode + = "Endgame",
+        t    + = 0 
       else (
         zc1 = (ball.p - bat1.p) dot bat1.angle,
         zc2 = (ball.p'- bat1.pv) dot bat1.angle,
@@ -819,74 +819,74 @@ always
            ((ball.p'- bat1.pv) dot bat1.angle) < 0&&
              zc3 < batRadius&&
              gameMonitor.restart ~= 1 then
-          ball.p'            + == ball.p' - ((1.5 * (ball.p' - batActuator1.p')) dot batActuator1.angle) * batActuator1.angle,
-          player1.myServe    + == false,
-          player1.mode       + == "Wait",    
-          player1.starting   + == false,
-          r1                 + == r1 + 1, 
-          gameMonitor.lastHit+ == 1,
-          mode               + == "ChangeSide" 
+          ball.p'            + = ball.p' - ((1.5 * (ball.p' - batActuator1.p')) dot batActuator1.angle) * batActuator1.angle,
+          player1.myServe    + = false,
+          player1.mode       + = "Wait",    
+          player1.starting   + = false,
+          r1                 + = r1 + 1, 
+          gameMonitor.lastHit+ = 1,
+          mode               + = "ChangeSide" 
         elseif gameMonitor.restart == 1&& gameTime <= gameLength then
-          mode + == "Freeze",
-          t    + == 0
+          mode + = "Freeze",
+          t    + = 0
         noelse,
         if gameMonitor.acknowledged == 1 then
-            gameMonitor.restart + == 0
+            gameMonitor.restart + = 0
         noelse 
       )
   | "ChangeSide" -> // Change the serve number
       if gameMonitor.restart == 1&& gameTime <= gameLength then
-        mode + == "Freeze",
-        t    + == 0 
+        mode + = "Freeze",
+        t    + = 0 
       else (
         if serveNumber == 2&& (ball.p dot (1,0,0)) > 0&& gameMonitor.restart ~= 1 then
-          serveNumber     + == 1,
-          mode            + == "Player1Serve",
-          player1.myServe + == true,
-          player2.myServe + == false,
-          player1.bounced + == false
+          serveNumber     + = 1,
+          mode            + = "Player1Serve",
+          player1.myServe + = true,
+          player2.myServe + = false,
+          player1.bounced + = false
         noelse,
         if serveNumber == 1&& (ball.p dot (1,0,0)) <= 0&& gameMonitor.restart ~= 1 then
-          serveNumber     + == 2,
-          mode            + == "Player2Serve",
-          player1.myServe + == false,
-          player2.myServe + == true,
-          player2.bounced + == false
+          serveNumber     + = 2,
+          mode            + = "Player2Serve",
+          player1.myServe + = false,
+          player2.myServe + = true,
+          player2.bounced + = false
         noelse
       )
   // When someone fouls, showing what's going wrong for 1 second
   | "Freeze" ->
       if t<1 then
-        ball.mode + == "Freeze" 
+        ball.mode + = "Freeze" 
       else (
         if gameTime <= gameLength then
           if changeServe == 1 then
-            mode         + == "Restart1",
-            player1.mode + == "Wait",
-            player1.myServe+ == false, 
-            player2.mode + == "Wait",
-            player2.myServe+ == false
+            mode         + = "Restart1",
+            player1.mode + = "Wait",
+            player1.myServe+ = false, 
+            player2.mode + = "Wait",
+            player2.myServe+ = false
           else (
-            mode         + == "Restart2",
-            player2.mode + == "Wait",
-            player2.myServe+ == false,
-            player1.mode + == "Wait",
-            player1.myServe+ == false
+            mode         + = "Restart2",
+            player2.mode + = "Wait",
+            player2.myServe+ = false,
+            player1.mode + = "Wait",
+            player1.myServe+ = false
           )
         noelse,
-        ball.p'  + == (0,0,0),
-        ball.p'' + == (0,0,0)
+        ball.p'  + = (0,0,0),
+        ball.p'' + = (0,0,0)
       )
   | "Endgame" ->
-      ball.mode        + == "Freeze",
-      bat1.pv          + == (0,0,0),
-      batActuator1.p'  + == (0,0,0),
-      bat2.pv          + == (0,0,0),
-      batActuator2.p'  + == (0,0,0),
+      ball.mode        + = "Freeze",
+      bat1.pv          + = (0,0,0),
+      batActuator1.p'  + = (0,0,0),
+      bat2.pv          + = (0,0,0),
+      batActuator2.p'  + = (0,0,0),
       // Scoring function 
       //(sum(i,r_i_min * r_i_max))*s_max/min for winner/loser
-      finalScore1      + == (r1*r2)*player1Score,
-      finalScore2      + == (r1*r2)*player2Score
+      finalScore1      + = (r1*r2)*player1Score,
+      finalScore2      + = (r1*r2)*player2Score
   | "Panic!" ->
   ]
 
@@ -901,16 +901,16 @@ always
   t' = 1,
   match mode with [
     "Initialize" ->
-      simulator.endTime  + == 20,
-      simulator.timeStep + == 0.01,
-      //simulator.method + == "EulerForward",
-      mode + == "CreateGame"
+      simulator.endTime  + = 20,
+      simulator.timeStep + = 0.01,
+      //simulator.method + = "EulerForward",
+      mode + = "CreateGame"
   | "CreateGame"  ->
       foreach  i in 0:(length(players)-1) do (
         foreach  j in (i+1):(length(players)-1) do 
           create Game(players(i), players(j), i, j-1,simulator.endTime)
       ),
-      mode + == "Persist"
+      mode + = "Persist"
   | "Persist" ->
   ]
  

@@ -19,33 +19,33 @@ model Main(simulator) =
     period  = "day" 
   always
   // clock
-  time' == 1,
+  time' = 1,
   if period == "day"&& time > 12 then
-    period+ == "night" 
+    period+ = "night" 
   noelse,
   if period == "night"&& time > 24 then
-    period+ == "day",
-    time+ == 0 
+    period+ = "day",
+    time+ = 0 
   noelse,
   // heater continuous
   if heating == "on" then
-    x' == 10
+    x' = 10
   else
-    x' == -5-x
+    x' = -5-x
  ,
   // heater discrete
   if period == "day" then
     if heating == "off"&& x < 19 then 
-      heating+ == "on"
+      heating+ = "on"
     noelse,
     if heating == "on"&& x > 23  then
-      heating+ == "off"
+      heating+ = "off"
     noelse
   noelse,
   if period == "night" then
-    heating+ == "off"
+    heating+ = "off"
   noelse,
-  simulator.endTime+ == 48
+  simulator.endTime+ = 48
 
 // Note: In this example, nested match statements with [have been
 //       replaced by if statements on the top level, with separate

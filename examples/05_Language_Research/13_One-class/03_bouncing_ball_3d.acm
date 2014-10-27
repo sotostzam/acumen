@@ -11,32 +11,32 @@ model Main(simulator) =
   always
   match mode with [
     "Init" ->
-      simulator.timeStep+ == 0.00003,
-      simulator.endTime+ == 2.0,
-      mode+ == "Fly"
+      simulator.timeStep+ = 0.00003,
+      simulator.endTime+ = 2.0,
+      mode+ = "Fly"
     |"Fly" ->
       if    (uz dot p) < -0.5&& (uz dot p') < 0 
          || (uz dot p) > 0.5 && (uz dot p') > 0 then
-        mode + == "BounceZ"
+        mode + = "BounceZ"
       else
         if    (ux dot p) < -0.5&& (ux dot p') < 0 
            || (ux dot p) > 0.5 && (ux dot p') > 0 then
-          mode + == "BounceX"
+          mode + = "BounceX"
         else
           if    (uy dot p) < -0.5&& (uy dot p') < 0
              || (uy dot p) > 0.5 && (uy dot p') > 0 then
-            mode + == "BounceY"
+            mode + = "BounceY"
           else
-            p'' == (0, 0, -9.8)
+            p'' = (0, 0, -9.8)
                 
       
     |"BounceX" ->
-      p' + == (-(ux dot p'), (uy dot p'), (uz dot p')),
-      mode + == "Fly"
+      p' + = (-(ux dot p'), (uy dot p'), (uz dot p')),
+      mode + = "Fly"
     |"BounceY" ->
-      p' + == ((ux dot p'), -(uy dot p'), (uz dot p')),
-      mode + == "Fly"
+      p' + = ((ux dot p'), -(uy dot p'), (uz dot p')),
+      mode + = "Fly"
     |"BounceZ"->
-      p' + == ((ux dot p'), (uy dot p'), -(uz dot p')),
-      mode + == "Fly"
+      p' + = ((ux dot p'), (uy dot p'), -(uz dot p')),
+      mode + = "Fly"
  ]

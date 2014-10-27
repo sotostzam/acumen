@@ -15,18 +15,18 @@ initially
 always
  // If mode is not valid then make mode "Panic!"
   if mode ~= "Fly"&& mode ~= "Bounce"&& mode ~= "Freeze" then
-     mode + == "Panic!"
+     mode + = "Panic!"
   noelse,
  // Behavior of ball in different modes
   match mode with [
     "Fly" ->
       if (p(2)) < 0&& (p'(2))< 0 then
-        mode + == "Bounce"
+        mode + = "Bounce"
       else // Acceleration is air resistance and gravity
         p'' = -k2 * norm(p') * p' + (0,0,-9.8)
   | "Bounce" ->
-      p'   + ==  p' .* k_z , // Bounce losing k_z energy
-      mode + == "Fly"
+      p'   + =  p' .* k_z , // Bounce losing k_z energy
+      mode + = "Fly"
   | "Freeze" ->      // The ball becomes red and freezes for a bit
       p'  = (0,0,0)
   | "Panic!" -> ],

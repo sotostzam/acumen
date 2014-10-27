@@ -22,7 +22,7 @@ private
  goal:=18.7; goal':=0; goal'':=0;
 end
  goal'' = 10*(18.5-goal);
- if (t_system == t_model) && (c_system == c_model)
+ if (t_system = t_model) && (c_system == c_model)
    OK = 1
  else
    OK = 0
@@ -35,11 +35,11 @@ private
  cooling := "off";
  goal:=18.5;
 end
- if (cooling=="on") 
+ if (cooling="on") 
    t'=(15-t);
    if (t<goal-0.5) cooling:="off" end
  end;
- if (cooling=="off") 
+ if (cooling="off") 
   t'=(20-t);
   if (t>goal+0.5) cooling:="on" end
  end

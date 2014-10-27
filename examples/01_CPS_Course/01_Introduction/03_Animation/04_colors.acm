@@ -8,7 +8,7 @@ initially
   _3D  =  () 
 always
   t' = 1,
-  _3D + == 
+  _3D + = 
   (Text center=(-2,0,0) size=0.5 color=(t/10,(1+sin(t))/2,(1+cos(t))/2) 
    rotation=(0,0,0) content="Color my world!",
    Box center=(0,0,-1) size= (t/2.5,0.2,0.2) color=(1,0,0) rotation=(0,0,0),

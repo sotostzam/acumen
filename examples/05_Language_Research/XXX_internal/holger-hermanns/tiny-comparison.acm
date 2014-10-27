@@ -14,10 +14,10 @@ end
 // be just
 
 // Modest:
-var x==0; 
+var x=0; 
 
 process Bla(){
-    invariant(der(x) == 1)
+    invariant(der(x) = 1)
 }
 
 Bla();
@@ -33,10 +33,10 @@ x' = x;
 end
 
 // Modest:
-var x==0; 
+var x=0; 
 
 process Bla(){
-    invariant(der(x) == x)
+    invariant(der(x) = x)
 }
 
 Bla();
@@ -54,10 +54,10 @@ end
 end
 
 // Modest:
-var x==0; 
+var x=0; 
 
 process Bla(){
-    invariant(der(x) == x)
+    invariant(der(x) = x)
     when (x>=5) invariant (x<=5) {=  x=0  =};
 }
 

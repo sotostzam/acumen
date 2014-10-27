@@ -9,11 +9,11 @@ initially
   x = 0, y = 0,
   _3D = ()
 always
-  _3D  == (Box center=(x,y,0) size=(0.1,0.1,0.1) color=c rotation=(0,0,0)),
-  x    == p(0),
-  y    == p(1),
-  p'   == s*(cos(phi), sin(phi)),
-  phi' == w
+  _3D  = (Box center=(x,y,0) size=(0.1,0.1,0.1) color=c rotation=(0,0,0)),
+  x    = p(0),
+  y    = p(1),
+  p'   = s*(cos(phi), sin(phi)),
+  phi' = w
 
 model Main(simulator) =
 initially
@@ -25,10 +25,10 @@ initially
   v = (0,0),
   w = (0,0)
 always
-  v == (a.p-b.p),
-  g == atan2(v(1), v(0)) - b.phi,
-  b.w == 10*atan2(sin(g),cos(g)),
-  w == (b.p-c.p),
-  h == atan2(w(1), w(0)) - c.phi,
-  c.w == 10*atan2(sin(h),cos(h))
+  v = (a.p-b.p),
+  g = atan2(v(1), v(0)) - b.phi,
+  b.w = 10*atan2(sin(g),cos(g)),
+  w = (b.p-c.p),
+  h = atan2(w(1), w(0)) - c.phi,
+  c.w = 10*atan2(sin(h),cos(h))
  

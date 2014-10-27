@@ -12,12 +12,12 @@ always
   match mode with [
     "one" ->
       if true then
-        mode+ == "one",
-        x+ == x/2
+        mode+ = "one",
+        x+ = x/2
       noelse
   ],
-  simulator.endTime+ == 2.0,
-  simulator.minLocalizationStep+ == 1.0
+  simulator.endTime+ = 2.0,
+  simulator.minLocalizationStep+ = 1.0
 
 // Note:  This model is an example of a looping 
 //        system with a non-constant reset, where the

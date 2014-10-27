@@ -5,35 +5,35 @@ model Main(simulator) =
     A = 0
   always
   if     t  <= 1 
-    then t' == 1
+    then t' = 1
     else (
       // Composite automata (n states of at most size n)
       match a with
-      [ 0 -> a+ == 1
-      | 1 -> a+ == 0
+      [ 0 -> a+ = 1
+      | 1 -> a+ = 0
       ],
       match b with
-      [ 0 -> b+ == a
-      | 1 -> b+ == 1-a
+      [ 0 -> b+ = a
+      | 1 -> b+ = 1-a
       ],
       match c with       // match n_i with
-      [ 0 -> c+ == b*a   // [ 0 -> n_i+ == n_(i-1)*n_(i-2)*...n_0 
-      | 1 -> c+ == 1-a*b // | 1 -> n_i+ == 1-(n_(i-1)*n_(i-2)*...n_0)
+      [ 0 -> c+ = b*a   // [ 0 -> n_i+ = n_(i-1)*n_(i-2)*...n_0 
+      | 1 -> c+ = 1-a*b // | 1 -> n_i+ = 1-(n_(i-1)*n_(i-2)*...n_0)
       ],                 // ]
       // Flattened automata (2^n)
       match A with    // match N with
-      [ 0  -> A+ == 1 // [ n -> N+ == n+1
-      | 1  -> A+ == 2
-      | 2  -> A+ == 3
-      | 3  -> A+ == 4
-      | 4  -> A+ == 5
-      | 5  -> A+ == 6
-      | 6  -> A+ == 7
-      | 7  -> A+ == 8
-      | 8  -> A+ == 9
-      | 9  -> A+ == 10
-      | 10 -> A+ == 11
+      [ 0  -> A+ = 1 // [ n -> N+ = n+1
+      | 1  -> A+ = 2
+      | 2  -> A+ = 3
+      | 3  -> A+ = 4
+      | 4  -> A+ = 5
+      | 5  -> A+ = 6
+      | 6  -> A+ = 7
+      | 7  -> A+ = 8
+      | 8  -> A+ = 9
+      | 9  -> A+ = 10
+      | 10 -> A+ = 11
       ],
-      t+ == 0
+      t+ = 0
     ),
-  simulator.endTime+ == 10
+  simulator.endTime+ = 10

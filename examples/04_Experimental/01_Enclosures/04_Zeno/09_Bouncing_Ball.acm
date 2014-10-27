@@ -12,16 +12,16 @@ model Main(simulator) =
   match mode with [
     "Fly" ->
       if x == 0&& x' <= 0 then
-        x'+ == -0.5 * x',
-        mode+ == "Fly"
+        x'+ = -0.5 * x',
+        mode+ = "Fly"
       noelse,
-      x'' == -10 // Second derivative
+      x'' = -10 // Second derivative
   ],
-  simulator.startTime+ == 0,
-  simulator.endTime+ == 3.5,
-  simulator.minSolverStep+ == 0.02,
-  simulator.minLocalizationStep+ == 0.01,
-  simulator.minComputationImprovement+ == 0.001
+  simulator.startTime+ = 0,
+  simulator.endTime+ = 3.5,
+  simulator.minSolverStep+ = 0.02,
+  simulator.minLocalizationStep+ = 0.01,
+  simulator.minComputationImprovement+ = 0.001
 
 // Note:  In this model the ODE has a non-linear 
 //        solution.

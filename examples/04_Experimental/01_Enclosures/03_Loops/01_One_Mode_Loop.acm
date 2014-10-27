@@ -9,11 +9,11 @@ model Main(simulator) =
   match mode with [
     "m" ->
       if true then
-        mode+ == "m"
+        mode+ = "m"
       noelse
   ],
-  simulator.endTime+ == 2.5,
-  simulator.minLocalizationStep+ == 0.5
+  simulator.endTime+ = 2.5,
+  simulator.minLocalizationStep+ = 0.5
 
 // Note:  This model exhibits an infinite number of
 //        transitions, from mode "m" to itself, 

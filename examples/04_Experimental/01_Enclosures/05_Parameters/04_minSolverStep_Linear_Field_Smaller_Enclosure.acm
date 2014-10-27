@@ -11,12 +11,12 @@ model Main(simulator) =
   always
   match mode with [
     "on" -> 
-      x' == -x
+      x' = -x
   ],
-  simulator.endTime+ == 1,
-  simulator.minSolverStep+ == 0.1, // Decreased
-  simulator.minLocalizationStep+ == 0.1,
-  simulator.minComputationImprovement+ == 0 
+  simulator.endTime+ = 1,
+  simulator.minSolverStep+ = 0.1, // Decreased
+  simulator.minLocalizationStep+ = 0.1,
+  simulator.minComputationImprovement+ = 0 
 
 // Note:  A smaller minSolverStep gives a smaller 
 //        enclosure when fields are linear.

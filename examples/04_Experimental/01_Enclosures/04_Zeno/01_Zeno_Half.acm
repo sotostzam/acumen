@@ -13,15 +13,15 @@ model Main(simulator) =
   match mode with [
     "" ->
       if s == d then
-        s+ == s/2, 
-        mode+ == "" 
+        s+ = s/2, 
+        mode+ = "" 
       noelse,
-      d' == -1
+      d' = -1
   ],
-  simulator.endTime+ == 2.0,
-  simulator.minSolverStep+ == 1.1,
-  simulator.minLocalizationStep+ == 0.1,
-  simulator.minComputationImprovement+ == 0
+  simulator.endTime+ = 2.0,
+  simulator.minSolverStep+ = 1.1,
+  simulator.minLocalizationStep+ = 0.1,
+  simulator.minComputationImprovement+ = 0
 
 // Note:  Without an invariant, the solver can not 
 //        tell for certain that the first event 

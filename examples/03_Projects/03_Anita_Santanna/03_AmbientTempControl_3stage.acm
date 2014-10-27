@@ -6,30 +6,30 @@ always
 
   Ttm'=(1/Ytm)*(Qhp - (Ttm - Th)/Yeq) ,
   Th'=(1/Yh)*((Ttm - Th)/Yeq + (To -Th)/Kh) ,
-  simulator.endTime + ==20 ,
+  simulator.endTime + =20 ,
   t'=1 ,
 
   match mode with [
     1 ->
       Qhp=0 ,
       if Th - Tg < -2 then
-        mode + == 2 
+        mode + = 2 
       elseif t > 5 then
-        t+ ==0 , To + == To-1 
+        t+ =0 , To + = To-1 
       noelse
   | 2 -> 
       Qhp=60 ,
       if Th - Tg >= -2 && Th - Tg < 0 then
-        mode + == 3 
+        mode + = 3 
       elseif t >= 5 then
-        t+ ==0 , To + == To-1 
+        t+ =0 , To + = To-1 
       noelse
    
   | 3 -> 
       Qhp=30 ,
       if Th - Tg >= 0 then
-        mode + == 1 
+        mode + = 1 
       elseif t >= 5 then
-        t+ ==0 , To + == To-1 
+        t+ =0 , To + = To-1 
       noelse ]
   

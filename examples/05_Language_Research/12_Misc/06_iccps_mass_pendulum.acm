@@ -22,10 +22,10 @@ model Main(simulator) =
   always
   match mode with[
     "Init" ->
-      simulator.timeStep + == 0.01,
-      simulator.endTime + == 50.0,
+      simulator.timeStep + = 0.01,
+      simulator.endTime + = 50.0,
       create System(2,0,0, 0,0,0, 1, 0),
-      mode + == "Persist"
+      mode + = "Persist"
     |"Persist" ->
   ]
  

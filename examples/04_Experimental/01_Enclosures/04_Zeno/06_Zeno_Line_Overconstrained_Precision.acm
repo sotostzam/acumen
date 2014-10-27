@@ -13,16 +13,16 @@ model Main(simulator) =
   match mode with [
     "" claim s <= abs(d) -> 
       if d == s then
-        s+ == s/2, 
-        mode+ == "" 
+        s+ = s/2, 
+        mode+ = "" 
       noelse,
-      d'  == -1,
-      s'  ==  1
+      d'  = -1,
+      s'  =  1
   ],
-  simulator.endTime+ == 1.2,
-  simulator.minSolverStep+ == 1.2,
-  simulator.minLocalizationStep+ == 0.00001, // Decreased
-  simulator.minComputationImprovement+ == 0
+  simulator.endTime+ = 1.2,
+  simulator.minSolverStep+ = 1.2,
+  simulator.minLocalizationStep+ = 0.00001, // Decreased
+  simulator.minComputationImprovement+ = 0
 
 // Note:  By decreasing the time step, the enclosure 
 //        before and after Zeno appears in more detail.

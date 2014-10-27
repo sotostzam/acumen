@@ -80,7 +80,7 @@ initially
 always 
   if state == 0 then
     if x > 20 then
-      state + == 1 
+      state + = 1 
     noelse
   else (
     if state == 1 then
@@ -92,24 +92,24 @@ always
     noelse),
   // state actions
   if state == 0 then
-    T_y + == 0 
+    T_y + = 0 
   else (
     if state == 1 then
-      T_y + == 1.25 
+      T_y + = 1.25 
     else
-      T_y + == 0),
+      T_y + = 0),
   // controller sampling 
   t' = 1 ,
   if t > t_c then
-    t + == 0 ,
+    t + = 0 ,
     //// quick hack for a kind of constant speed
-    //ex + == T_x - x ,
-    ex + == 10.0 ,
+    //ex + = T_x - x ,
+    ex + = 10.0 ,
     //
-    ey + == T_y - y ,
-    eth + == T_th - th ,
-    V + == k_v * sqrt(ex * ex + ey * ey) ,
-    w + == (k_a - k_b) * atan2(ey, ex) + k_a * eth 
+    ey + = T_y - y ,
+    eth + = T_th - th ,
+    V + = k_v * sqrt(ex * ex + ey * ey) ,
+    w + = (k_a - k_b) * atan2(ey, ex) + k_a * eth 
   noelse
 
 //**********************SIMULATOR*******************************************//
@@ -150,7 +150,7 @@ always
   match mode with [
     "spawn" ->
       create Stripe(0, 33) ,
-      mode + == "persist" 
+      mode + = "persist" 
   | "persist" -> ]
 
 model Stripe(xstart, stripesLeft) = 
@@ -162,7 +162,7 @@ always
     "spawn" -> 
       if stripesLeft > 0 then
         create Stripe(xstart + 7.5, stripesLeft - 1) ,
-        mode + == "persist" 
+        mode + = "persist" 
       noelse 
   | "persist" -> ],
   _3D = (Box center=(xstart,0,-0.90/2) size=(3,0.15,0.1) color=(255,255,255) rotation=(0,0,0))  // center lane

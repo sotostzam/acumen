@@ -55,13 +55,13 @@ always
   // controller sampling 
   t' = 1 ,
   if t > t_c then
-    t + == 0 ,
-    //ex + == T_x - x ,
-    ex + == 10.0 ,
-    ey + == T_y - y ,
-    eth + == T_th - th ,
-    V + == k_v * sqrt(ex * ex + ey * ey) ,
-    w + == (k_a - k_b) * atan2(ex, ey) + k_a * eth
+    t + = 0 ,
+    //ex + = T_x - x ,
+    ex + = 10.0 ,
+    ey + = T_y - y ,
+    eth + = T_th - th ,
+    V + = k_v * sqrt(ex * ex + ey * ey) ,
+    w + = (k_a - k_b) * atan2(ex, ey) + k_a * eth
   noelse
   
 //**********************SIMULATOR*******************************************//

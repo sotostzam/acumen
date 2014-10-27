@@ -39,28 +39,28 @@ always
        (Text center=(-1.25,2.5,3) size=0.5 color=green rotation=(0,0,0) content="Score:"),
        (Text center=(1.25,2.5,3) size=0.5 color=green rotation=(0,0,0) content=scorep2)),
   if (p1.nextchoice==1)&&(p2.nextchoice==1) then
-    p1.nextchoice+ ==0,
-    p2.nextchoice+ ==0,
-    scorep1+ ==scorep1+scoreB,
-    scorep2+ ==scorep2+scoreB
+    p1.nextchoice+ =0,
+    p2.nextchoice+ =0,
+    scorep1+ =scorep1+scoreB,
+    scorep2+ =scorep2+scoreB
   noelse,
   if (p1.nextchoice==0)&&(p2.nextchoice==1) then
-    p1.nextchoice+ ==0,
-    p2.nextchoice+ ==0,
-    scorep1+ ==scorep1+scoreA,
-    scorep2+ ==scorep2+scoreB
+    p1.nextchoice+ =0,
+    p2.nextchoice+ =0,
+    scorep1+ =scorep1+scoreA,
+    scorep2+ =scorep2+scoreB
   noelse,
   if (p1.nextchoice==1)&&(p2.nextchoice==0) then
-    p1.nextchoice+ ==0,
-    p2.nextchoice+ ==0,
-    scorep1+ ==scorep1+scoreB,
-    scorep2+ ==scorep2+scoreA
+    p1.nextchoice+ =0,
+    p2.nextchoice+ =0,
+    scorep1+ =scorep1+scoreB,
+    scorep2+ =scorep2+scoreA
   noelse,
   if (p1.nextchoice==0)&&(p2.nextchoice==0) then
-    p1.nextchoice+ ==0,
-    p2.nextchoice+ ==0,
-    scorep1+ ==scorep1+scoreA,
-    scorep2+ ==scorep2+scoreA
+    p1.nextchoice+ =0,
+    p2.nextchoice+ =0,
+    scorep1+ =scorep1+scoreA,
+    scorep2+ =scorep2+scoreA
   noelse
 
 //Play one
@@ -79,9 +79,9 @@ always
          _3D = (Text center=(-2.5,-1.25,2) size=0.5 color=red rotation=(0,0,pi/2) content="Turns:",
                 Text center=(-2.5,1.25,2) size=0.5 color=red rotation=(0,0,pi/2) content=cnt),
         if b.y>1.5 then 
-          cnt+ ==cnt+1, 
-          nextchoice+ ==1,
-          mode+ =="B"
+          cnt+ =cnt+1, 
+          nextchoice+ =1,
+          mode+ ="B"
         noelse
   | "B" -> b.x' = 0,
            b.y' = -1,
@@ -89,9 +89,9 @@ always
            _3D = (Text center=(-2.5,-1.25,2) size=0.5 color=red rotation=(0,0,pi/2) content="Turns:",
                   Text center=(-2.5,1.25,2) size=0.5 color=red rotation=(0,0,pi/2) content=cnt),
           if b.y<-1.5 then 
-            cnt+ ==cnt+1, 
-            nextchoice+ ==0,
-            mode+ =="A"
+            cnt+ =cnt+1, 
+            nextchoice+ =0,
+            mode+ ="A"
           noelse
   ]
 
@@ -110,18 +110,18 @@ always
          b.z' = 0,
          _3D=(Text center=(-1.25,2.5,2) size=0.5 color=green rotation=(0,0,0) content="Turns:",
               Text center=(1.25,2.5,2) size=0.5 color=green rotation=(0,0,0) content=cnt),
-        if b.x<-1.5 then cnt+ ==cnt+1,
-          if cnt == 3 then nextchoice+ ==1, mode+ =="B"
-          else nextchoice+ ==0
+        if b.x<-1.5 then cnt+ =cnt+1,
+          if cnt == 3 then nextchoice+ =1, mode+ ="B"
+          else nextchoice+ =0
         noelse
   | "B" -> b.x' = 1,
            b.y' = 0,
            b.z' = 0,
           _3D=(Text center=(-1.25,2.5,2) size=0.5 color=green rotation=(0,0,0) content="Turns:",
                Text center=(1.25,2.5,2) size=0.5 color=green rotation=(0,0,0) content=cnt),
-          if b.x>1.5 then cnt+ ==cnt+1, 
-            if cnt == 6 then nextchoice+ ==0, mode+ =="A"
-            else nextchoice+ ==1
+          if b.x>1.5 then cnt+ =cnt+1, 
+            if cnt == 6 then nextchoice+ =0, mode+ ="A"
+            else nextchoice+ =1
          noelse
   ]
 
@@ -139,7 +139,7 @@ always
   match mode with [
   "move" -> _3D = (Box center=(x,y,z) size=(6,0.1,0.1) color=color rotation=(0,0,zangle)),
             if(y>1.5||y<-1.5||x>1.5||x<-1.5) then 
-              x+ ==xt,y+ ==yt,z + == zt, x'+ ==0,y'+ ==0,z'+ ==0,mode+ =="move" 
+              x+ =xt,y+ =yt,z + = zt, x'+ =0,y'+ =0,z'+ =0,mode+ ="move" 
             noelse
   ]
  

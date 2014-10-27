@@ -18,7 +18,7 @@ class Main(simulator)
   end
   switch mode
     case "Fly" 
-      if x == 0 && x' <= 0 // Note corrected check
+      if x = 0 && x' <= 0 // Note corrected check
         x' := -0.5*x';
         mode := "Fly";
       end;

@@ -57,9 +57,9 @@ model Example4 ()
     o     =  0, // Observation
     mode  =  "Init"
   always
-  if mode == "Init"
+  if mode = "Init"
      create Example3(a1,b1,a2,b2),
-     mode + == ""
+     mode + = ""
   end
 end
 

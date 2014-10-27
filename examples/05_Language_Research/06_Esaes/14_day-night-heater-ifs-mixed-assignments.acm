@@ -16,27 +16,27 @@ model Main(simulator) =
     period  = "day" 
   always
   // clock
-  time' == 1,
+  time' = 1,
   if time > 12&& time <= 24 then
-    period+ == "night"
+    period+ = "night"
   noelse,
   if time > 24 then
-    time+ == 0,
-    period+ == "day" 
+    time+ = 0,
+    period+ = "day" 
   noelse,
   // heater
   if period == "day"&& heating == "on" then
     if x > 23 then
-      heating+ == "off"
+      heating+ = "off"
     noelse,
-    x' == 10
+    x' = 10
   else(
     if x < 19&& period == "day" then
-      heating+ == "on"
+      heating+ = "on"
     noelse,
-    x' == -5-x
+    x' = -5-x
   ),
-  simulator.endTime+ == 48
+  simulator.endTime+ = 48
 
 // Note: In this example, continuous and discrete assingments 
 //       have been intermixed, making it possible to re-use

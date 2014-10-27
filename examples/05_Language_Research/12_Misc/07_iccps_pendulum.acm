@@ -10,12 +10,12 @@ model Pendulum(theta,theta',theta'',  f) =
   initially
   always
   if abs(theta) < 3.1416/100 then
-    f + == 0
+    f + = 0
   else
     if theta' > 0 then
-      f + == -1
+      f + = -1
     else
-      f + == 1
+      f + = 1
    ,
 
   /* the following is
@@ -31,10 +31,10 @@ model Main(simulator) =
   always
   match mode with[
    "Init" ->
-      simulator.timeStep + == 0.1,
-      simulator.endTime + == 100.0,
+      simulator.timeStep + = 0.1,
+      simulator.endTime + = 100.0,
       create Pendulum(0.1,0,0, 0),
-      mode + == "Persist"
+      mode + = "Persist"
     |"Persist" ->
   ]
  

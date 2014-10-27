@@ -7,10 +7,10 @@ initially
   y'' = 1,
   _3D = ()
 always  
-  x'  == 1,
-  y'' == 1,
+  x'  = 1,
+  y'' = 1,
     
-  _3D ==(Text   center=(-2,0,-2)  size=0.75 color=blue rotation=(0,0,0) content="x'=1",
+  _3D =(Text   center=(-2,0,-2)  size=0.75 color=blue rotation=(0,0,0) content="x'=1",
          Text   center=(-2,0,-3)  size=0.75 color=blue rotation=(0,0,0) content="x''=0",
          Box    center=(-1,0,-1)  size=(0.5,0.5,0.1) color=blue rotation=(0,0,0),
          Sphere center=(-1,0,x/5) size=0.25 color=blue rotation=(0,0,0),

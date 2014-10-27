@@ -32,15 +32,15 @@ always
   circuit.e=motor.e ,
   motor.i=circuit.i ,
 
-  simulator.timeStep+ ==0.001 ,
-  simulator.endTime+ ==1 ,
+  simulator.timeStep+ =0.001 ,
+  simulator.endTime+ =1 ,
 
   match mode with [
     1 ->
       controller.h=0 ,
-      if t>=0.1 then mode+ ==2 noelse
+      if t>=0.1 then mode+ =2 noelse
   | 2 ->
       controller.h=10 ,
-      if t>=0.2 then mode+ ==3 noelse
+      if t>=0.2 then mode+ =3 noelse
   | 3 ->
       controller.h=0 ]

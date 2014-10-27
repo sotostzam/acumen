@@ -14,7 +14,7 @@ model Main(simulator) =
   always
   claim x >= 0,
   if x <= 0&& x' <= 0 then
-    x'+ == -0.5 * x'
+    x'+ = -0.5 * x'
   else
-    x'' == -10
+    x'' = -10
   

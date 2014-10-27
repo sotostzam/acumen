@@ -12,10 +12,10 @@ model Main(simulator) =
   always
   match mode with [
     "" ->
-      x'' == -x * x/6
+      x'' = -x * x/6
   ],
-  simulator.endTime+ == 8.0,
-  simulator.minSolverStep+ == 0.1
+  simulator.endTime+ = 8.0,
+  simulator.minSolverStep+ = 0.1
 
 // Note:  This equation seems to have a singularity
 //        around 10.

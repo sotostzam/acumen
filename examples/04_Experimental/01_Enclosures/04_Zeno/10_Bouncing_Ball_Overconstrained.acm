@@ -12,16 +12,16 @@ model Main(simulator) =
   match mode with [
     "Fly" claim x >= 0 ->   // Constraint added
       if x == 0&& x' <= 0 then
-        x'+ == -0.5 * x',
-        mode+ == "Fly"
+        x'+ = -0.5 * x',
+        mode+ = "Fly"
       noelse,
-      x'' == -10
+      x'' = -10
   ],
-  simulator.startTime+ == 0,
-  simulator.endTime+ == 3.5,
-  simulator.minSolverStep+ == 0.02,
-  simulator.minLocalizationStep+ == 0.001,
-  simulator.minComputationImprovement+ == 0.001
+  simulator.startTime+ = 0,
+  simulator.endTime+ = 3.5,
+  simulator.minSolverStep+ = 0.02,
+  simulator.minLocalizationStep+ = 0.001,
+  simulator.minComputationImprovement+ = 0.001
 
 // Note:  Adding a simple constraint improves the 
 //        enclosure considerably. 

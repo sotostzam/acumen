@@ -12,10 +12,10 @@ always
   int_Tg'=Tg ,
   Qhp = kp*(Tg-Th) + ki*(int_Tg - int_Th) ,
 
-  simulator.endTime + == 30 ,
+  simulator.endTime + = 30 ,
   t'=1 ,
 
   if t > 5 then
-    t+ ==0 , To + == To-1
+    t+ =0 , To + = To-1
   noelse
   

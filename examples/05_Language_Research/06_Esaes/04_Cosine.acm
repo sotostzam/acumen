@@ -11,8 +11,8 @@ model Main(simulator) =
     ns = 0, ns' = -1, ns'' = 0, // Negative sine
     cosine = 1, cosine' = 0 
   always
-  ns''    == -ns,
-  cosine' ==  ns
+  ns''    = -ns,
+  cosine' =  ns
 
 
 // Note: This is an example of a continuously varying

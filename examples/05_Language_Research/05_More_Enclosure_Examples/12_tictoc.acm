@@ -8,25 +8,25 @@ model Main (simulator) =
   initially 
     mode = "decreasing", x = 1, x' = -1 
   always
-  simulator.bigDecimalDigits+ == 10,
-  simulator.startTime+ == 0,
-  simulator.endTime+ == 1.5,
-  simulator.initialPicardPadding+ == 0,
-  simulator.picardImprovements+ == 20,
-  simulator.maxPicardIterations+ == 200,
-  simulator.maxEventTreeSize+ == 30,
-  simulator.minSolverStep+ == 0.01,
-  simulator.minLocalizationStep+ == 0.001,
-  simulator.minComputationImprovement+ == 0.001,  
+  simulator.bigDecimalDigits+ = 10,
+  simulator.startTime+ = 0,
+  simulator.endTime+ = 1.5,
+  simulator.initialPicardPadding+ = 0,
+  simulator.picardImprovements+ = 20,
+  simulator.maxPicardIterations+ = 200,
+  simulator.maxEventTreeSize+ = 30,
+  simulator.minSolverStep+ = 0.01,
+  simulator.minLocalizationStep+ = 0.001,
+  simulator.minComputationImprovement+ = 0.001,  
   match mode with [
     "decreasing" claim x >= 0 -> 
       if x == 0 then
-        mode+ == "increasing"
+        mode+ = "increasing"
       noelse,
-      x' == -1 
+      x' = -1 
     |"increasing" claim x <= 1 -> 
       if x == 1 then
-        mode+ == "decreasing"
+        mode+ = "decreasing"
       noelse,
-      x' == 1 
+      x' = 1 
    ]

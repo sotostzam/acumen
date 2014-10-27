@@ -4,9 +4,9 @@ model Main(simulator) =
   initially
     t = 0, t' = 1, x = 0
   always
-  if t >= x + 1 then x+ == t else t' == 1,
-  simulator.endTime+  == 1.5,
-  simulator.timeStep+ == 0.3
+  if t >= x + 1 then x+ = t else t' = 1,
+  simulator.endTime+  = 1.5,
+  simulator.timeStep+ = 0.3
 
 // Note:  Example of model where the enclosure for 
 //        a variable (t) becomes wider after an

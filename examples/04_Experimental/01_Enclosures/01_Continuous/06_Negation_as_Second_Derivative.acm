@@ -12,10 +12,10 @@ model Main(simulator) =
   always
   match mode with [
     "" ->
-      x'' == -x
+      x'' = -x
   ],
-  simulator.endTime+ == 2.0,
-  simulator.minSolverStep+ == 0.01
+  simulator.endTime+ = 2.0,
+  simulator.minSolverStep+ = 0.01
 
 // Note:  For the (very basic) continuous solver that
 //        this enclosure semantics uses (Picard

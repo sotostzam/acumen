@@ -23,15 +23,15 @@ always
                             m/2),
               terminate self
             else
-              mode + == "Slide"
+              mode + = "Slide"
           else
             p'' = (0,0,-9.8)
-  | "Bounce" -> p' + == p' .* (0.8, 0.8, -0.8),
-                mode + == "Fly"
+  | "Bounce" -> p' + = p' .* (0.8, 0.8, -0.8),
+                mode + = "Fly"
   | "Slide" ->  if (norm(p') > 0.01) then
                   p'' = p' .* (-1,-1,1)
                 else
-                  mode + == "Persist"
+                  mode + = "Persist"
   | "Persist" -> 
   ]
    
@@ -40,9 +40,9 @@ model Main(simulator) =
     mode  =  "Init"
   always
   match mode with [
-  "Init" -> simulator.timeStep + == 0.01,
-            simulator.endTime + == 3.5,
+  "Init" -> simulator.timeStep + = 0.01,
+            simulator.endTime + = 3.5,
             create Ball("Fly", (0,0,1), (1,-1,0), (0,0,0), 2),
-            mode + == "Persist"
+            mode + = "Persist"
   | "Persist" ->
   ]

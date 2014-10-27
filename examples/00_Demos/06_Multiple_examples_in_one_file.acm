@@ -15,7 +15,7 @@ always
   if flag == 1 then
     terminate self
   noelse,
-  _3D + == (Cylinder center=D+(0,0.2,v/2) 
+  _3D + = (Cylinder center=D+(0,0.2,v/2) 
             radius=0.02 length=v  color=c
             rotation=(-1*pi/2,0,0))
 
@@ -67,7 +67,7 @@ initially
   flag  =  0 ,
 always
   if flag == 1 then
-    s.flag + == 1 ,
+    s.flag + = 1 ,
     terminate self
   noelse ,
   p'' = f/m ,
@@ -81,7 +81,7 @@ initially
   flag  =  0 ,
 always
   if flag == 1 then
-    c.flag + == 1 ,
+    c.flag + = 1 ,
     terminate self
   noelse,
   f1  =  k*(p2-p1+l) ,
@@ -98,7 +98,7 @@ initially
   flag  =  0
 always
   if flag == 1
-    m.flag + == 1 ,
+    m.flag + = 1 ,
     terminate self
   noelse ,
   m.f = m.m * -9.8
@@ -111,9 +111,9 @@ initially
   flag  =  0 ,
 always
   if flag == 1 then
-    m1.flag + == 1 ,
-    m2.flag + == 1 ,
-    s.flag + == 1 ,
+    m1.flag + = 1 ,
+    m2.flag + = 1 ,
+    s.flag + = 1 ,
     terminate self
   noelse ,
   s.p1 = m1.p ,
@@ -133,12 +133,12 @@ initially
   flag  =  0 ,
 always
   if flag == 1 then
-    m1.flag + == 1 ,
-    m2.flag + == 1 ,
-    m3.flag + == 1 ,
-    s1.flag + == 1 ,
-    s2.flag + == 1 ,
-    b.flag + == 1 ,
+    m1.flag + = 1 ,
+    m2.flag + = 1 ,
+    m3.flag + = 1 ,
+    s1.flag + = 1 ,
+    s2.flag + = 1 ,
+    b.flag + = 1 ,
     terminate self
   noelse ,
   s1.p1 = m1.p ,
@@ -175,12 +175,12 @@ initially
   flag  =  0 
 always
   if flag == 1 then
-    m1.flag + == 1 ,
-    m2.flag + == 1 ,
-    m3.flag + == 1 ,
-    s1.flag + == 1 ,
-    s2.flag + == 1 ,
-    b.flag + == 1 ,
+    m1.flag + = 1 ,
+    m2.flag + = 1 ,
+    m3.flag + = 1 ,
+    s1.flag + = 1 ,
+    s2.flag + = 1 ,
+    b.flag + = 1 ,
     terminate self
   noelse,
 
@@ -211,12 +211,12 @@ initially
   flag  =  0 ,
 always
   if flag == 1 then
-    m1.flag + == 1 ,
-    m2.flag + == 1 ,
-    m3.flag + == 1 ,
-    s1.flag + == 1 ,
-    s2.flag + == 1 ,
-    b.flag + == 1 ,
+    m1.flag + = 1 ,
+    m2.flag + = 1 ,
+    m3.flag + = 1 ,
+    s1.flag + = 1 ,
+    s2.flag + = 1 ,
+    b.flag + = 1 ,
     terminate self
   noelse,
 
@@ -244,9 +244,9 @@ initially
   flag  =  0 ,
 always
   if flag == 1 then
-    example3.flag + == 1 ,
-    example4.flag + == 1 ,
-    example5.flag + == 1 ,
+    example3.flag + = 1 ,
+    example4.flag + = 1 ,
+    example5.flag + = 1 ,
     terminate self
  noelse
 
@@ -261,7 +261,7 @@ initially
   flag  =  0 
 always
   if flag == 1 then
-    s.flag + == 1 ,
+    s.flag + = 1 ,
     terminate self 
   noelse,
   p'' = f/m ,
@@ -278,7 +278,7 @@ initially
   flag  =  0 ,
 always
   if flag == 1 then
-    s.flag + == 1 ,
+    s.flag + = 1 ,
     terminate self 
   noelse,
   dl  = p2-p1 * (1-l0/norm(p2-p1)) ,
@@ -322,8 +322,8 @@ initially
   flag  =  0
 always
   if flag == 1 then
-    s.flag + == 1 ,
-    c.flag + == 1 ,
+    s.flag + = 1 ,
+    c.flag + = 1 ,
     terminate self
   noelse ,
   p'' = f/m ,
@@ -342,10 +342,10 @@ initially
   flag  =  0 
 always
   if flag == 1 then
-    m1.flag + == 1 ,
-    m2.flag + == 1 ,
-    s1.flag + == 1 ,
-    s2.flag + == 1 ,
+    m1.flag + = 1 ,
+    m2.flag + = 1 ,
+    s1.flag + = 1 ,
+    s2.flag + = 1 ,
     terminate self ,
   noelse ,
   s1.p1 = (0,0,1) ,
@@ -363,7 +363,7 @@ initially
   flag  =  0 
 always
   if flag == 1 then
-    m.flag + == 1 ,
+    m.flag + = 1 ,
     terminate self 
   noelse ,
 
@@ -379,7 +379,7 @@ initially
   flag  =  0 ,
 always
   if flag == 1 then
-    m.flag + == 1 ,
+    m.flag + = 1 ,
     terminate self 
   noelse ,
 
@@ -398,8 +398,8 @@ initially
   flag  =  0 ,
 always
   if flag == 1 then
-    g.flag + == 1 ,
-    r.flag + == 1 ,
+    g.flag + = 1 ,
+    r.flag + = 1 ,
     terminate self 
   noelse ,
 
@@ -418,11 +418,11 @@ initially
   flag  =  0 ,
 always
   if flag == 1 then
-    e1.flag + == 1 ,
-    e2.flag + == 1 ,
-    e3.flag + == 1 ,
-    e4.flag + == 1 ,
-    e5.flag + == 1 ,
+    e1.flag + = 1 ,
+    e2.flag + = 1 ,
+    e3.flag + = 1 ,
+    e4.flag + = 1 ,
+    e5.flag + = 1 ,
     terminate self 
   noelse 
   
@@ -437,8 +437,8 @@ initially
   flag  =  0 
 always
   if flag == 1 then
-    g.flag + == 1 ,
-    r.flag + == 1 ,
+    g.flag + = 1 ,
+    r.flag + = 1 ,
     terminate self 
   noelse ,
 
@@ -456,9 +456,9 @@ initially
   flag  =  0 ,
 always
   if flag == 1 then
-    c.flag + == 1 ,
-    s1.flag + == 1 ,
-    s2.flag + == 1 ,
+    c.flag + = 1 ,
+    s1.flag + = 1 ,
+    s2.flag + = 1 ,
     terminate self 
   noelse ,
   c.p  = p ,  c.q = q ,
@@ -483,7 +483,7 @@ initially
   flag  =  0 ,
 always
   if flag == 1 then
-    c1.flag + == 1 ,
+    c1.flag + = 1 ,
     terminate self 
   noelse ,
   torque = (fp cross l/2*(cos(a)*cos(b),sin(a)*cos(b),sin(a))) -
@@ -513,8 +513,8 @@ initially
   flag  =  0 
 always
   if flag == 1 then
-    g.flag + == 1 ,
-    r.flag + == 1 ,
+    g.flag + = 1 ,
+    r.flag + = 1 ,
     terminate self 
   noelse ,
   t' = 1 ,
@@ -713,21 +713,21 @@ always
   f4.D = visual.rotor4p ,
 
 
-  max + == copter.w1 ,
+  max + = copter.w1 ,
   if max>copter.w2 then
-    max + == copter.w2 
+    max + = copter.w2 
   noelse ,
   if max>copter.w3 then
-    max + == copter.w3 
+    max + = copter.w3 
   noelse ,
   if max>copter.w4 then
-    max + == copter.w4 
+    max + = copter.w4 
   noelse ,
   
   match mode with [
     "Init" ->
-      //simulator.endTime + == 6.0 ,
-      //simulator.timeStep + == 0.001 ,
+      //simulator.endTime + = 6.0 ,
+      //simulator.timeStep + = 0.001 ,
       controller.z = dot(copter.GlobalP, (0,0,1)) ,
       controller.zp = dot(copter.GlobalP', (0,0,1)) ,
       controller.phi = copter.phi ,
@@ -766,126 +766,126 @@ always
   t' = 1 ,
   match mode with [
     "init"
-      mode + == example 
+      mode + = example 
   | 1
-      e + == create example_1((0,0,0)) ,
-      mode + == "1Continue"
+      e + = create example_1((0,0,0)) ,
+      mode + = "1Continue"
   | "1Continue"
       caption = "Falling Ball" ,
       if t > exampleTime then
-        mode + == "terminate"
+        mode + = "terminate"
       noelse 
   | 2
-      e + == create example_2((0,0,0)) ,
-      mode + == "2Continue"
+      e + = create example_2((0,0,0)) ,
+      mode + = "2Continue"
   | "2Continue"
       caption = "2Mass 1Spring" ,
       if t > exampleTime then
-        mode + == "terminate"
+        mode + = "terminate"
       noelse 
   | 3
-      e + == create example_3((0,0,0)) ,
-      mode + == "3Continue"
+      e + = create example_3((0,0,0)) ,
+      mode + = "3Continue"
   | "3Continue"
       caption = "3Mass 2Spring" ,
       if t > exampleTime then
-        mode + == "terminate"
+        mode + = "terminate"
       noelse 
   | 4
-      e + == create example_4((0,0,0)) ,
-      mode + == "4Continue"
+      e + = create example_4((0,0,0)) ,
+      mode + = "4Continue"
   | "4Continue"
       caption = "P Control" ,
       if t > exampleTime then
-        mode + == "terminate"
+        mode + = "terminate"
       noelse 
   | 5
-      e + == create example_5((0,0,0)) ,
-      mode + == "5Continue"
+      e + = create example_5((0,0,0)) ,
+      mode + = "5Continue"
   | "5Continue"
       caption = "PD Control" ,
       if t > exampleTime then
-        mode + == "terminate"
+        mode + = "terminate"
       noelse 
   | 6
-      e + == create example_6((0,0,0)) ,
-      mode + == "6Continue"
+      e + = create example_6((0,0,0)) ,
+      mode + = "6Continue"
   | "6Continue"
       caption = "None P PD" ,
       if t > exampleTime then
-        mode + == "terminate"
+        mode + = "terminate"
       noelse 
   | 7
-      e + == create example_7((0,0,0)) ,
-      mode + == "7Continue"
+      e + = create example_7((0,0,0)) ,
+      mode + = "7Continue"
   | "7Continue"
       caption = "2 Spring-Pendulum" ,
       if t > exampleTime then
-        mode + == "terminate"
+        mode + = "terminate"
       noelse 
   | 8
-      e + == create example_8((0,0,0)) ,
-      mode + == "8Continue"
+      e + = create example_8((0,0,0)) ,
+      mode + = "8Continue"
   | "8Continue"
       caption = "PD for Mass" ,
       if t > exampleTime then
-        mode + == "terminate"
+        mode + = "terminate"
       noelse 
   | 9
-      e + == create example_9((0,0,0)) ,
-      mode + == "9Continue"
+      e + = create example_9((0,0,0)) ,
+      mode + = "9Continue"
   | "9Continue"
       caption = "PID for Mass" ,
       if t > exampleTime then
-        mode + == "terminate"
+        mode + = "terminate"
       noelse 
   | 10
-      e + == create example_10(40,10,10,(0,0,0)) ,
-      mode + == "10Continue"
+      e + = create example_10(40,10,10,(0,0,0)) ,
+      mode + = "10Continue"
   | "10Continue"
       caption = "PID for Mass-Rod" ,
       if t > exampleTime then
-        mode + == "terminate"
+        mode + = "terminate"
       noelse 
   | 11
-      e + == create example_11((0,0,0)) ,
-      mode + == "11Continue"
+      e + = create example_11((0,0,0)) ,
+      mode + = "11Continue"
   | "11Continue"
       caption = "Vary PID parameters" ,
       if t > exampleTime then
-        mode + == "terminate"
+        mode + = "terminate"
       noelse 
   | 12
-      e + == create example_12(25,8,3,(0,0,0)) ,
-      mode + == "12Continue"
+      e + = create example_12(25,8,3,(0,0,0)) ,
+      mode + = "12Continue"
   | "12Continue"
       caption = "PID with disturbance" ,
       if t > exampleTime then
-        mode + == "terminate"
+        mode + = "terminate"
       noelse 
   | 13
-      e + == create example_13(20,2,8,(0,0,0)) ,
-      mode + == "13Continue"
+      e + = create example_13(20,2,8,(0,0,0)) ,
+      mode + = "13Continue"
   | "13Continue"
       caption = "PID for 3D-rod" ,
       if t > exampleTime
-        mode + == "terminate"
+        mode + = "terminate"
       noelse 
   | 14
-      e + == create example_14() ,
-      mode + == "14Continue"
+      e + = create example_14() ,
+      mode + = "14Continue"
   | "14Continue"
       caption = "PID for Quad-Copter" ,
       if t > exampleTime then
-        mode + == "terminate"
+        mode + = "terminate"
       noelse 
   | "terminate"
-      e.flag + == 1 ,
-      mode + == "rest"
+      e.flag + = 1 ,
+      mode + = "rest"
   | "rest"
-      mode + == "init" ,
-      example + == example + 1 ,
-      t + == 0 ],
- simulator.endTime + == 70 
+      mode + = "init" ,
+      example + = example + 1 ,
+      t + = 0 ],
+ simulator.endTime + = 70 
  
 

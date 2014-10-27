@@ -13,15 +13,15 @@ model Main(simulator) =
   match mode with [
     "" claim s <= abs(d) ->  
       if s == d then
-        s+ == s/2, 
-        mode+ == "" 
+        s+ = s/2, 
+        mode+ = "" 
       noelse,
-      d' == -1
+      d' = -1
   ],
-  simulator.endTime+ == 1.1,
-  simulator.minSolverStep+ == 1.1,
-  simulator.minLocalizationStep+ == 0.01,
-  simulator.minComputationImprovement+ == 0
+  simulator.endTime+ = 1.1,
+  simulator.minSolverStep+ = 1.1,
+  simulator.minLocalizationStep+ = 0.01,
+  simulator.minComputationImprovement+ = 0
 
 // Note:  Due to a large minLocalizationStep, few resets
 //        are evaluated, yielding a wide enclosure. 

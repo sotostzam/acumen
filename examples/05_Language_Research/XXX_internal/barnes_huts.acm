@@ -97,8 +97,8 @@ switch mode
       end
     end
   end;
-  nbchildren := sum 1 for i in self.children if i.className == type (OctreeNode);
-  if nbchildren == 0
+  nbchildren := sum 1 for i in self.children if i.className = type (OctreeNode);
+  if nbchildren = 0
     if dot (ux, positionMassCenter) >= dot (ux, centerSpace)
       if dot (uy, positionMassCenter) >= dot (uy, centerSpace)
 	if dot (uz, positionMassCenter) >= dot (uz, centerSpace)
@@ -154,10 +154,10 @@ switch mode
     end;
     create OctreeNode ("Ready", subspaceindex2, newCenterSpace2, widthSpace * 0.5, 
     	   	      massCenter, positionMassCenter, 0, [0, 0, 0], [0, 0, 0]);
-    if subspaceindex2 == subspaceindex
+    if subspaceindex2 = subspaceindex
       // %TODO This part has to be verified to check the correctness !
       for c = self.children
-	if c.className == type (OctreeNode) && c.index == subspaceindex2
+	if c.className = type (OctreeNode) && c.index == subspaceindex2
 	  c.massNewPlanet := massNewPlanet;
 	  c.positionNewPlanet := positionNewPlanet;
 	  c.mode := "Insert";
@@ -172,7 +172,7 @@ switch mode
   else
     for c = self.children
       // %TODO This part has to be verified to check the correctness !
-      if c.className == type (OctreeNode) && c.index == subspaceindex
+      if c.className = type (OctreeNode) && c.index == subspaceindex
 	c.massNewPlanet := massNewPlanet;
 	c.positionNewPlanet := positionNewPlanet;
 	c.mode := "Insert";
@@ -195,13 +195,13 @@ switch mode
 
  // set of operations to compute the gravitationnal force	
  case "ComputeForce"
-  if norm (positionNewPlanet - positionMassCenter) == 0
+  if norm (positionNewPlanet - positionMassCenter) = 0
     force := [0, 0, 0]
   else
     nbchildren := sum 1 
          for i in self.children 
-           if i.className == type (OctreeNode);
-    if nbchildren == 0
+           if i.className = type (OctreeNode);
+    if nbchildren = 0
       force := massCenter * (positionMassCenter - positionNewPlanet) / 
       (norm(positionMassCenter - positionNewPlanet) ^ 3)
     else
@@ -219,7 +219,7 @@ switch mode
  case "ComputeForceWorking"
   if count <= 8
     for c = self.children
-      if c.index == count
+      if c.index = count
 	c.positionNewPlanet := positionNewPlanet;
 	c.massNewPlanet := massNewPlanet;
 	c.mode := "ComputeForce";
@@ -333,13 +333,13 @@ switch mode
     end
   end;
   nbchildren := sum 1 for i in self.children 
-  	     if i.className == type (OctreeNode) && i.index == subspaceindex;
+  	     if i.className = type (OctreeNode) && i.index == subspaceindex;
   if nbchildren <= 0
     create OctreeNode ("Ready", subspaceindex, newCenterSpace, 
     widthSpace * 0.5, massNewPlanet, positionNewPlanet, 0, [0, 0, 0], [0, 0, 0])
   else
     for c = self.children
-      if c.className == type (OctreeNode) && c.index == subspaceindex
+      if c.className = type (OctreeNode) && c.index == subspaceindex
 	c.massNewPlanet := massNewPlanet;
 	c.positionNewPlanet := positionNewPlanet;
 	c.mode := "Insert"
@@ -358,7 +358,7 @@ switch mode
  case "ComputeForceWorking"
   if count <= 8
     for c = self.children
-      if c.index == count
+      if c.index = count
 	c.positionNewPlanet := positionNewPlanet;
 	c.massNewPlanet := massNewPlanet;
 	c.mode := "ComputeForce";
@@ -412,7 +412,7 @@ switch mode
 
   create Planet (3, 2.0,  [0.0, 0.0, 0.0], 
   [-0.93249737, -0.86473146, 0], [0, 0, 0], [0, 0, 0]);
-  numPlanet := sum 1 for i in self.children if i.className == type (Planet)
+  numPlanet := sum 1 for i in self.children if i.className = type (Planet)
     
  // Main steps to simulate the behaviors of planets which are:
  // 1/ remove all the nodes in the octree
@@ -427,7 +427,7 @@ switch mode
     
  case "ConstellateInit"
   for c = self.children
-    if c.className == type(Planet)
+    if c.className = type(Planet)
       // Maximal and minimal coordinate of all the planets
       // in order to characterize the space where the planets are.
       if dot (ux, c.position) >= dot (uy, c.position)
@@ -476,7 +476,7 @@ switch mode
  case "OctreeBuildingWorking"
   if count <= numPlanet
     for c = self.children
-      if c.className == type(Planet) && c.index == count
+      if c.className = type(Planet) && c.index == count
 	root.positionNewPlanet := c.position;
 	root.massNewPlanet := c.mass;	      
 	root.mode := "Insert";
@@ -500,7 +500,7 @@ switch mode
  case "ComputeForceWorking"
   if count <= numPlanet
     for c = self.children
-      if c.className == type (Planet) && c.index == count
+      if c.className = type (Planet) && c.index == count
 	root.positionNewPlanet := c.position;
 	root.massNewPlanet := c.mass;
 	root.mode := "ComputeForce";
@@ -533,7 +533,7 @@ switch mode
  
  case "Persist"
   for c = children
-    if c.className == type (Galaxy)
+    if c.className = type (Galaxy)
       c.mode := "Constellate" 
     else
     end

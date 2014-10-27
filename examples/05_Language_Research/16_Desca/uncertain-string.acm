@@ -6,10 +6,10 @@ model Main(simulator) =
     mode = "a"
   always
   if     t  >  1 
-    then t+ == 0, mode+ == "b"
-    else t' == 1,
-  simulator.endTime+ == 1,
-  simulator.timeStep+ == 0.1
+    then t+ = 0, mode+ = "b"
+    else t' = 1,
+  simulator.endTime+ = 1,
+  simulator.timeStep+ = 0.1
 
 // Note:  Initially, mode is "a". 
 //        After time 0.5, both "a" and "b" are possible.

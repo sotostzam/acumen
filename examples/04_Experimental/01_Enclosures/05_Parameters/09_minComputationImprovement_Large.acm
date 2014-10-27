@@ -11,15 +11,15 @@ model Main(simulator) =
   match mode with [
     "Fly" claim x >= 0 ->  
       if x == 0&& x' <= 0 then
-        x'+ == -0.5 * x',
-        mode+ == "Fly"
+        x'+ = -0.5 * x',
+        mode+ = "Fly"
       noelse,
-      x'' == -10
+      x'' = -10
   ],
-  simulator.endTime+ == 2,
-  simulator.minSolverStep+ == 0.01,
-  simulator.minLocalizationStep+ == 0.001,
-  simulator.minComputationImprovement+ == 0.1
+  simulator.endTime+ = 2,
+  simulator.minSolverStep+ = 0.01,
+  simulator.minLocalizationStep+ = 0.001,
+  simulator.minComputationImprovement+ = 0.1
 
 // Note:  A large minComputationImprovement results in
 //        a large enclosure.

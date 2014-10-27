@@ -11,7 +11,7 @@ model Main(simulator) =
   always
   match mode with [ //
     "" ->           //
-      x' == 1
+      x' = 1
   ]
 
 // Note:  It's fast for linear problems.

@@ -65,36 +65,36 @@ initially
 always
   
   if mode ~= "Wait"&& mode ~= "Prepare"&& mode ~= "Startball" then
-    mode + == "Panic!"
+    mode + = "Panic!"
   noelse,
   
   t'  = 1,   // Rate for local timer
   // pH is the hightest from my start ball(easy to calculate from y and zp)   
-  pH + ==  (1.5 * (-1)^n, y, let t = abs(zp/(-9.8 +  k_a*(zp)^2)),
+  pH + =  (1.5 * (-1)^n, y, let t = abs(zp/(-9.8 +  k_a*(zp)^2)),
                               a = -9.8 +  k_a*(zp)^2 in 
                     zp*t + 0.5 * (a)*t^2),
   match mode with [
     "Wait" -> // Waiting for your serve, moving the bat to start point
       v'  = ((1.6*(-1)^n,0,0.2) - p_bat) * 10 + 5 * ((0,0,0)- v),
-      t   + == 0,
-      t1_predicted  + == 0,
-      t2_predicted  + == 0, 
-      p2_predicted  + == (0,0,0),
-      doneOnce      + == false,
+      t   + = 0,
+      t1_predicted  + = 0,
+      t2_predicted  + = 0, 
+      p2_predicted  + = (0,0,0),
+      doneOnce      + = false,
       angle_bat'     = 2*((0,0,0) - angle_bat),
       if myServe == true && starting == false then
-        mode + == "Prepare"
+        mode + = "Prepare"
       noelse,
       // Calculate how to get to goal point(slightly behind and below pH)
       if myServe == true && starting == true then
-        t + == 0,  
-        d_ballBat + == norm(p_bat - pH),
-        u + == (pH + (0.07*(-1)^n,0,-0.1) - p_bat)/norm(pH + (0.07*(-1)^n,0,-0.1) - p_bat),
-        ta + == let d_ballBat = norm(p_bat - pH) in sqrt(2* (d_ballBat / 2) / maxA),
-        mode + == "Startball"
+        t + = 0,  
+        d_ballBat + = norm(p_bat - pH),
+        u + = (pH + (0.07*(-1)^n,0,-0.1) - p_bat)/norm(pH + (0.07*(-1)^n,0,-0.1) - p_bat),
+        ta + = let d_ballBat = norm(p_bat - pH) in sqrt(2* (d_ballBat / 2) / maxA),
+        mode + = "Startball"
       noelse
   | "Startball" -> // Start the ball as I wanted
-      _3D + == (Sphere center=p1_predicted size=0.02 color=(200,0,0) rotation=(0,0,0),
+      _3D + = (Sphere center=p1_predicted size=0.02 color=(200,0,0) rotation=(0,0,0),
                 Sphere center=pH size=0.02 color=(0,100,200) rotation=(0,0,0)),
         
       // Path planning, first half distance fully accelerate the other 
@@ -114,7 +114,7 @@ always
       // Do predict, and move pat towards the second predict point
       // Bouncing condition
       if (p_ball(2)) < 0 && bounced == false then
-        bounced + == true
+        bounced + = true
       noelse,
       if bounced == true then
         p1_predicted = p_ball,
@@ -135,8 +135,8 @@ always
         if t > 0.2*abs(t1_predicted) then
           if (p1_predicted(0))*(-1)^n > 1.55 || (p1_predicted(0))*(-1)^n < 0
              || abs((p1_predicted(1))) > 0.78 then
-            mode    + == "Wait" ,
-            myServe + == false
+            mode    + = "Wait" ,
+            myServe + = false
           noelse
         noelse
       ),
@@ -154,22 +154,22 @@ always
           // Calculating second prediction point
           // Linearized air resistance
       
-          doneOnce + == true,
+          doneOnce + = true,
           // First move back a bit
           // Save 0.05 sec for hit the ball with calculated velocity and angle
-          t2_predicted + == t2_predicted - 0.05,
-          t  + == 0,
-          ta + == t2_predicted/2,
-          u + == (p2_predicted + (0.2*(-1)^n,0,0)-p_bat)/norm(p2_predicted + (0.2*(-1)^n,0,0) - p_bat) ,
-          d_ballBat + == norm(p2_predicted + (0.2*(-1)^n,0,0) - p_bat)
+          t2_predicted + = t2_predicted - 0.05,
+          t  + = 0,
+          ta + = t2_predicted/2,
+          u + = (p2_predicted + (0.2*(-1)^n,0,0)-p_bat)/norm(p2_predicted + (0.2*(-1)^n,0,0) - p_bat) ,
+          d_ballBat + = norm(p2_predicted + (0.2*(-1)^n,0,0) - p_bat)
         noelse,
-        _3D + == (Sphere center=p1_predicted size=0.02 color=(200,0,0) rotation=(0,0,0),
+        _3D + = (Sphere center=p1_predicted size=0.02 color=(200,0,0) rotation=(0,0,0),
                   Sphere center=p2_predicted size=0.02 color=(0,100,200) rotation=(0,0,0))
       noelse,
       
       // Path planning, first move to p2, then wait to hit the ball
       if doneOnce == true then
-        ta + == sqrt(2* (d_ballBat/2)/maxA) ,
+        ta + = sqrt(2* (d_ballBat/2)/maxA) ,
         angle_bat' = (a_desired - angle_bat)/ta ,
         if t < ta then
           v' = maxA* u

@@ -16,11 +16,11 @@ always
    "/10 * pi radians"),
 
   if (angle>pi/2) then // Start going back when you get to pi/2
-    rate+ == -pi/5
+    rate+ = -pi/5
   noelse,
   
   if (angle<0) then    // Go forward again when you get to 0
-    rate+ == pi/5
+    rate+ = pi/5
   noelse
   
  

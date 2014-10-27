@@ -11,11 +11,11 @@ initially
 
   _3D =()
 always
-  t'' == 0,
-  u'' == 0,
-  if t<1.0 then t'+ ==0.00 noelse, // Blue ball
-  if t<1.0 then u'+ ==5.0 noelse,  // Red ball
-  _3D+ == (Box                     // Type of _3D object
+  t'' = 0,
+  u'' = 0,
+  if t<1.0 then t'+ =0.00 noelse, // Blue ball
+  if t<1.0 then u'+ =5.0 noelse,  // Red ball
+  _3D+ = (Box                     // Type of _3D object
            center=(0,0,-0.05)      // Center point
            size=(0.01,2,4000)      // Size in (x,y,z) form
            color=0.5*white         // Color

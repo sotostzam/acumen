@@ -6,10 +6,10 @@ model Main (simulator) =
     m = "rise"
   always
   if m == "rise" then
-    if x > 10 then m+ == "stay" noelse,
-    x'' == 1
+    if x > 10 then m+ = "stay" noelse,
+    x'' = 1
   elseif m == "stay" then
-    x' == 0
+    x' = 0
   noelse
 
 // Note: The order of the continuous dynamics in the

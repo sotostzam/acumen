@@ -45,8 +45,8 @@ model Main(simulator) =
   always
   if (mode=="Init") then
     create Example3(a1,b1,a2,b2),
-    mode + == ""
+    mode + = ""
   noelse,
-  simulator.endTime + == 1,
-  simulator.timeStep + == 0.001
+  simulator.endTime + = 1,
+  simulator.timeStep + = 0.001
  

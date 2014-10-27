@@ -78,7 +78,7 @@ initially
 always 
   if state == 0 then
     if x > 20 then
-      state + == 1
+      state + = 1
     noelse 
   noelse,
   if state == 1 then
@@ -90,23 +90,23 @@ always
   noelse ,
   // state actions
   if state == 0 then
-    T_y + == 0 
+    T_y + = 0 
   else (
     if state == 1 then
-      T_y + == 2 
+      T_y + = 2 
     else
-      T_y + == 0),
+      T_y + = 0),
   // controller sampling 
   t' = 1 ,
   if t > t_c then
-    t + == 0 ,
+    t + = 0 ,
     //// quick hack for a kind of constant speed
-    //ex + == T_x - x ,
-    ex + == 10.0 ,
-    ey + == T_y - y ,
-    eth + == T_th - th ,
-    V + == k_v * sqrt(ex * ex + ey * ey) ,
-    w + == (k_a - k_b) * atan2(ex, ey) + k_a * eth
+    //ex + = T_x - x ,
+    ex + = 10.0 ,
+    ey + = T_y - y ,
+    eth + = T_th - th ,
+    V + = k_v * sqrt(ex * ex + ey * ey) ,
+    w + = (k_a - k_b) * atan2(ex, ey) + k_a * eth
   noelse
 //**********************SIMULATOR*******************************************//
 model Main(simulator) = 

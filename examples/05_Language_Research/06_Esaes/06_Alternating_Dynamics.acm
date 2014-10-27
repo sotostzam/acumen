@@ -11,14 +11,14 @@ model Main(simulator) =
     a = 0, b = 0, 
     x = -1, x' = 0 
   always
-  x' == a*x + b, // Single differential equation
+  x' = a*x + b, // Single differential equation
   if x > 1 then
-    a+ == -1,
-    b+ ==  0
+    a+ = -1,
+    b+ =  0
   noelse,
   if x < 1/2 then
-    a+ == 0,
-    b+ == 1
+    a+ = 0,
+    b+ = 1
   noelse 
 
 // Note: In this example, a single differential equation

@@ -59,13 +59,13 @@ always
   if (h <= 0 &&  hd < 0 && q2>0.05) then
   //RESET MAP
   //reset for dynamics equation
-  q1+ ==q1+q2,
-  q2+ ==-q2,
-  q1'+ ==(q2'*m + q1'*(m - 2*(m + 2*M)*cos(q2)))/(-3*m - 4*M + 2*m*cos(2*q2)),
-  q2'+ ==(q2'*m*(-1 + 2*cos(q2)) 
+  q1+ =q1+q2,
+  q2+ =-q2,
+  q1'+ =(q2'*m + q1'*(m - 2*(m + 2*M)*cos(q2)))/(-3*m - 4*M + 2*m*cos(2*q2)),
+  q2'+ =(q2'*m*(-1 + 2*cos(q2)) 
       + 8*q1'*(m + M)*(1 + 2*cos(q2))*sin(q2/2)^2)/(-3*m - 4*M + 2*m*cos(2*q2)),
     
   //just for animation
-  sfx+ ==sfx+p2x,
-  sfz+ ==sfz+p2z 
+  sfx+ =sfx+p2x,
+  sfz+ =sfz+p2z 
   noelse

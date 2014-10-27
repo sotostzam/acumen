@@ -10,19 +10,19 @@ model Main(simulator) =
   initially
     theta=0.1, theta'=0, theta''=0, f = 0
   always
-  simulator.timeStep + == 0.1, 
-  simulator.endTime + == 100.0, 
+  simulator.timeStep + = 0.1, 
+  simulator.endTime + = 100.0, 
   if abs(theta) < 3.1416/100 then
-    f + == 0
+    f + = 0
   else
     if theta' > 0 then
-      f + == -1
+      f + = -1
     else
-      f + == 1
+      f + = 1
   ,
 
   /* the following is
       theta'' = (f*l*cos(theta) - m*g*l*sin(theta)) / (m * l^2)
      where l = 3, m = 5 and g = 9.8 have been inlined
   */
-  theta'' == (f*3*cos(theta) - 5*9.8*3*sin(theta)) / (5 * 3^2)
+  theta'' = (f*3*cos(theta) - 5*9.8*3*sin(theta)) / (5 * 3^2)
