@@ -39,6 +39,7 @@ object AcumenProject extends Build {
   lazy val OldSemanticsTest = config("oldSemantics") extend(Test)
   val oldSemanticsTests = Set("acumen.interpreters.imperative2012.Parallel2012SemanticsTest", 
                               "acumen.interpreters.imperative2012.Imperative2012SemanticsTest", 
+                              "acumen.interpreters.optimized.Optimized2013SemanticsTest",
                               "acumen.interpreters.optimized.Optimized2014SemanticsTest")
   def oldSemanticsTestFilter(name: String) = oldSemanticsTests.contains(name)
 
