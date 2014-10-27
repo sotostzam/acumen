@@ -189,9 +189,9 @@ object Parser extends MyStdTokenParsers {
 
   def braces[A](p: => Parser[A]): Parser[A] = "{" ~> p <~ "}"
   
-  def optBraces[A](p: => Parser[A]):Parser[A] = 
-    opt("{") >> { x => x match{
-      case Some(_) => p <~ "}"
+  def optParens[A](p: => Parser[A]):Parser[A] = 
+    opt("(") >> { x => x match{
+      case Some(_) => p <~ ")"
       case None => p
     }}
     	
@@ -317,8 +317,8 @@ object Parser extends MyStdTokenParsers {
   def assignOrEquation =
     // Make sure lhs won't be an expr like a == b, which has the same syntax as equation
     access >> { e =>
-      (	"==" ~> expr ^^ (e1 => Continuously(Equation(e, e1)))
-        |"+" ~> "==" ~> assignrhs(e) ^^ Discretely     
+      (	"=" ~> expr ^^ (e1 => Continuously(Equation(e, e1)))
+        |"+" ~> "=" ~> assignrhs(e) ^^ Discretely     
         | "=[i]" ~> expr ^^ (e1 => Continuously(EquationI(e, e1)))
         | "=[t]" ~> expr ^^ (e1 => Continuously(EquationT(e, e1))))
     }
