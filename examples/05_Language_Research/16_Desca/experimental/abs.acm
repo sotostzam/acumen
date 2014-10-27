@@ -1,0 +1,18 @@
+// Absolute Value Function Example
+
+model Main(s) =
+  initially
+    t = 0, t' = 1,
+    a = 1, b  = 1
+  always
+  t' == 1,
+  a == abs(t-1),
+  if t <= 1 then
+    b == 1 - t
+  else
+    b == t - 1,
+  hypothesis "abs encodes a conditional" a == b,
+  s.timeStep+ == 0.1,
+  s.endTime+ == 2
+
+// Note:  Currently does not terminate over [1..1.015625]

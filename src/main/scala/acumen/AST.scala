@@ -129,10 +129,18 @@ package acumen {
   case class Op(f: Name, es: List[Expr]) extends Expr
   /* Example x[10] */
   case class Index(e: Expr, idx: Expr) extends Expr
+  /* Reference to field f in object obj. */
+  sealed abstract class Ref extends Expr {
+    def obj: Expr
+    /** The position should point to the field as there is no other way
+     to get that position. */
+    def field: Name
+  } 
   /* Example: self.x */
-  // The position should point to the field as there is no other way
-  // to get that position.
-  case class Dot(obj: Expr, field: Name) extends Expr
+  case class Dot(obj: Expr, field: Name) extends Ref
+  /* Example: self@(0.1:Clazz).x 
+   * id with field is a globally unique name (obj has been resolved to id). */
+  case class ResolvedDot(id: CId, obj: Expr, field: Name) extends Ref
   /* Example: [1,3,4] */
   case class ExprVector(l: List[Expr]) extends Expr
   /* Example: sum i*i for i=1:10 if i % 2 == 0 */

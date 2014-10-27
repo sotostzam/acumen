@@ -2,77 +2,76 @@
 // Authors: Henrik Eriksson and Adam Duracz
 // 2014/09/22
 
-class Main(simulator)
-private
-  // Truck parameters
-  m1    := 20000; //Mass, 20000 kg 
-  x1    := 0;     //Inititial position, 0 m  
-  x1'   := 12;    //Initial speed, 12 m/s
-  x1''  := 0;     //Initial acceleration, 0 m/s2 
-  dr    := 50;    //Sensor detection range, 50 m
-  pba1  := -3;    //Pre-brake deceleration, 3 m/s2
-  ttcpb := 1;     //Pre-brake ttc threshold, 1 s
-  fba1  := -6;    //Full-brake deceleration, 6 m/s2
-  ttcfb := 0.5;   //Full-brake ttc threshold, 0.5 s
-  d_v1  := 0;     //Initial collision delta velocity, 0 m/s2
+model Main(simulator) =
+  initially
+    // Truck parameters
+    m1    = 20000, //Mass, 20000 kg 
+    x1    = 0,     //Inititial position, 0 m  
+    x1'   = 12,    //Initial speed, 12 m/s
+    x1''  = 0,     //Initial acceleration, 0 m/s2 
+    dr    = 50,    //Sensor detection range, 50 m
+    pba1  = -3,    //Pre-brake deceleration, 3 m/s2
+    ttcpb = 1,     //Pre-brake ttc threshold, 1 s
+    fba1  = -6,    //Full-brake deceleration, 6 m/s2
+    ttcfb = 0.5,   //Full-brake ttc threshold, 0.5 s
+    d_v1  = 0,     //Initial collision delta velocity, 0 m/s2
+    
+    // Car parameters
+    m2   = 1500,  //Mass, 15000 kg 
+    x2   = 55,    //Inititial position, 55 m
+    x2'  = 3,     //Initial speed, 3 m/s
+    x2'' = 0,     //Initial acceleration, 0 m/s2
+    d_v2 = 0,     //Initial collision delta velocity, 0 m/s2
+    
+    // Joint parameters
+    distance = 0,          //Distance between vehicles, m 
+    ttc      = 100,        //Initial time-to-Collision, 100 s 
+    c        = 0.1,        //Coeff. of restitution
+    pcb      = -100,       //Post-collision braking, m/s2
+    state    = "Approach", //{Approach, Sense, Pre-Brake, Brake, Collision, Post-Collision}
+    print    = 1,
+    vdiff    = 4,
+    epsilon  = 0.05
+  always
   
-  // Car parameters
-  m2   := 1500;  //Mass, 15000 kg 
-  x2   := 55;    //Inititial position, 55 m
-  x2'  := 3;     //Initial speed, 3 m/s
-  x2'' := 0;     //Initial acceleration, 0 m/s2
-  d_v2 := 0;     //Initial collision delta velocity, 0 m/s2
+  distance == x2-x1,
+  vdiff    == abs(x1'-x2'),
   
-  // Joint parameters
-  distance := 0;          //Distance between vehicles, m 
-  ttc      := 100;        //Initial time-to-Collision, 100 s 
-  c        := 0.1;        //Coeff. of restitution
-  pcb      := -100;       //Post-collision braking, m/s2
-  state    := "Approach"; //{Approach, Sense, Pre-Brake, Brake, Collision, Post-Collision}
-  print    := 1;
-  vdiff    := 4;
-  epsilon  := 0.05
-end
-
-distance = x2-x1;
-vdiff    = abs(x1'-x2');
-
-switch state
- case "Approach" print=1;
-   x1''=0; 
-   x2''=0;
-   // Target detection
-   if (x1+dr>x2) state:="Sense" end;
-  case "Sense" print=2;
-   x1''=0; 
-   x2''=0;
-   if abs(x1'-x2') > epsilon ttc=(x2-x1)/(x1'-x2') else ttc = 100 end;
-   // Activating Pre-braking
-   if (ttc<ttcpb) state:="Pre-Brake" end;
- case "Pre-Brake" print=3;
-   if (x1'>0) x1''=pba1 else x1'=0 end; 
-   x2''=0;
-   if abs(x1'-x2') > epsilon ttc=(x2-x1)/(x1'-x2') else ttc = 100 end;
-   // Activating Full Braking
-   if (ttc<ttcfb) state:="Brake" end;
- case "Brake" print=4;
-   if (x1'>0) x1''=fba1 else x1'=0 end; 
-   x2''=0;
-   // Collision Detection
-   if (x1>x2) state:="Collision" end;
-   if abs(x1'-x2') > epsilon ttc=(x2-x1)/(x1'-x2') else ttc = 100 end;
- case "Collision" print=5;
-   x1':=         (m1*x1' + m2*x2' + m2*c*(x2'-x1'))/(m1 + m2);
-   x2':=         (m1*x1' + m2*x2' + m1*c*(x1'-x2'))/(m1 + m2);
-   d_v1 := x1' - (m1*x1' + m2*x2' + m2*c*(x2'-x1'))/(m1 + m2);
-   d_v2 := x2' - (m1*x1' + m2*x2' + m1*c*(x1'-x2'))/(m1 + m2);
-   x1'' = 0;
-   x2'' = 0;
-   state := "Post-Collision"
- case "Post-Collision" print=6;
-     if (x1'>0) x1''=pcb else x1'=0 end;
-     if (x2'>0) x2''=pcb else x2'=0 end;
-end;
-simulator.endTime := 8;
-simulator.timeStep := 0.005
-end
+  match state with 
+  [ "Approach" -> print == 1,
+     x1'' == 0, 
+     x2'' == 0,
+     // Target detection
+     if (x1+dr>x2) then state+ == "Sense" noelse
+  | "Sense" -> print == 2,
+     x1'' == 0, 
+     x2'' == 0,
+     if abs(x1'-x2') > epsilon then ttc = (x2-x1)/(x1'-x2') else ttc == 100,
+     // Activating Pre-braking
+     if (ttc<ttcpb) then state+ == "Pre-Brake" noelse
+  | "Pre-Brake" -> print == 3,
+     if (x1'>0) then x1'' == pba1 else x1' == 0, 
+     x2''=0,
+     if abs(x1'-x2') > epsilon then ttc == (x2-x1)/(x1'-x2') else ttc == 100,
+     // Activating Full Braking
+     if (ttc<ttcfb) then state+ == "Brake" noelse
+  | "Brake" -> print == 4 ,
+     if (x1'>0) then x1'' == fba1 else x1' == 0, 
+     x2''=0,
+     // Collision Detection
+     if (x1>x2) then state+ == "Collision" noelse,
+     if abs(x1'-x2') > epsilon then ttc == (x2-x1)/(x1'-x2') else ttc == 100
+  | "Collision" -> print == 5,
+     x1'+ ==        (m1*x1' + m2*x2' + m2*c*(x2'-x1'))/(m1 + m2),
+     x2'+ ==        (m1*x1' + m2*x2' + m1*c*(x1'-x2'))/(m1 + m2),
+     d_v1+ == x1' - (m1*x1' + m2*x2' + m2*c*(x2'-x1'))/(m1 + m2),
+     d_v2+ == x2' - (m1*x1' + m2*x2' + m1*c*(x1'-x2'))/(m1 + m2),
+     x1'' == 0,
+     x2'' == 0,
+     state+ == "Post-Collision"
+  | "Post-Collision" -> print == 6,
+       if (x1'>0) then x1'' == pcb else x1' == 0,
+       if (x2'>0) then x2'' == pcb else x2' == 0
+  ],
+  simulator.endTime+ == 8,
+  simulator.timeStep+ == 0.005

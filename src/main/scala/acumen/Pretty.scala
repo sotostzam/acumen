@@ -224,18 +224,18 @@ class Pretty {
   implicit def prettyExpr : PrettyAble[Expr] =
     PrettyAble { e => 
       (e match {
-        case Lit(i)           => pretty(i)
-        case Var(n)           => pretty(n)
-        case Index(e,i)       => pretty(e) :: parens(pretty(i))
-        case Dot(v,f)         => pretty(v) :: "." :: pretty(f)
-        case Op(f,es)         => prettyOp(f,es)
-        case ExprVector(l)    => parens(sepBy(comma :: " ", l map pretty[Expr]))
-        case ExprLet(bindings,e) => new DocNest(2,
-                                  "let " :/: pretty(bindings)) :/: 
-                                  new DocNest(2,"in " :: pretty(e))
-        case Sum(e,i,c,t)     => "sum " :: pretty(e) :: " for " :: pretty(i) :: 
-                                 " in " :: pretty(c) :: " if " :: pretty(t)
-        case TypeOf(cn)       => "type" :: parens(pretty(cn))
+        case Lit(i)             => pretty(i)
+        case Var(n)             => pretty(n)
+        case Index(e,i)         => pretty(e) :: parens(pretty(i))
+        case Dot(o,f)           => pretty(o) :: "." :: pretty(f)
+        case ResolvedDot(i,o,f) => parens(pretty(o) :: "~" :: i.cid.toString) :: "." :: pretty(f)
+        case Op(f,es)           => prettyOp(f,es)
+        case ExprVector(l)      => parens(sepBy(comma :: " ", l map pretty[Expr]))
+        case ExprLet(bs,e)      => new DocNest(2,"let " :/: pretty(bs)) :/: 
+                                     new DocNest(2,"in " :: pretty(e))
+        case Sum(e,i,c,t)       => "sum " :: pretty(e) :: " for " :: pretty(i) :: 
+                                     " in " :: pretty(c) :: " if " :: pretty(t)
+        case TypeOf(cn)         => "type" :: parens(pretty(cn))
         case ExprInterval(lo,hi) => brackets(pretty(lo) :: " .. " :: pretty(hi))
         case ExprIntervalM(m,r)  => parens(pretty(m) :: "+/-" :: pretty(r))
         case Pattern(l) => l match{

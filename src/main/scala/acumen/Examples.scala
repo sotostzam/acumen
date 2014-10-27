@@ -18,13 +18,13 @@ abstract class Examples {
         //else if (f.getName == "02_Passive_walking.acm") false // This file needs to be fixed to use the new semantics
         else {
           val path = f.getPath()
-        //  def withDir(dirs: String*) = 
-        //    path.contains(File.separator + dirs.mkString(File.separator) + File.separator)
+          def withDir(dirs: String*) = 
+            path.contains(File.separator + dirs.mkString(File.separator) + File.separator)
         //  if      (withDir("XXX_internal","misc")) true // Test examples in misc directory even though it is in XXX_internal
         //  else if (withDir("XXX_internal","test")) true // Special examples just for testing
         //  else if (withDir("XXX_internal","0_Demos")) true // Old demos
           if (path.contains(File.separator + "XXX")) false // Ignore internal directories
-        //  else if (withDir("01_Enclosures")) false //FIXME Support enclosure sim. params in CStore interpreters 
+          else if (withDir("01_Enclosures") || withDir("05_More_Enclosure_Examples")) false //FIXME Support enclosure sim. params in CStore interpreters 
         //  else if (withDir("02_Robust_Simulation")) false //FIXME Support enclosure sim. params in CStore interpreters 
           else true
         }
