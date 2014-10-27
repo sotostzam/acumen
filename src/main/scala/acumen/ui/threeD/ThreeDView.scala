@@ -17,7 +17,6 @@ import scala.swing.Publisher
 /* 3D visualization panel */
 class ThreeDView extends JPanel {
 
-  private var alive = true
   // Set to true after everything finishes loading:
   private var initialized = false
 
