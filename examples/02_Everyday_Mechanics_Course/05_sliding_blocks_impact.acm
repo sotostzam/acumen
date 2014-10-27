@@ -1,58 +1,52 @@
 /* 
-   Has bug with semantic 2014
+   Works with semantic 2014
    Has bug with semantic 2013
    Works with semantic 2012
 */
 
-// Elastisk stöt mellan två rätblock med samma infallshastighet 
-// men där det ena rätblocket har dubbla massan gentemot den andra.
+// Elastisk stÃ¶t mellan tvÃ¥ rÃ¤tblock med samma infallshastighet 
+// men dÃ¤r det ena rÃ¤tblocket har dubbla massan gentemot den andra.
 
-#semantics "2012 Reference"
+model Main(simulator) =
+  initially
+    x = -3, x' = 1, x'' = 0, // Deklarera variabeln x
+    y = -3, y' = 1, y'' = 0, // Deklarera variabeln y
+    r = 2,                   // Deklarera variabeln r
+    v = 0,                   // Deklarera variabeln v
+    _3D = ()
+  always
 
-class Main(simulator)
-private
-x:=-3; x':=1; x'':=0;  // Defination av variabeln x
-y:=-3; y':=1; y'':=0;  // Defination av variabeln y
-r:=2;                  // Defination av variabeln r
-v:=0;                  // Defination av variabeln v
+  x'' == 0,
+  y'' == 0,
+  v == 2*r,           // v bestÃ¤ms till 2r 
+  // Denna if-sats bestÃ¤mmer nÃ¤r det blÃ¥ rÃ¤tblocket 
+  // ska vÃ¤nda och vilken hastighet det ska fÃ¥
+  if x > -(r+v)/4 && y' <= x' then
+    x'+ == -(x'+2*y'/3),       
+    y'+ == x'/3
+  noelse,
+        
+  _3D+ == (           
+    ("Box",           // Objektstyp, rÃ¤tblock
+      (-x/10,0,0),    // RÃ¤tblocket ska ha startpunkt i det negativa vÃ¤rdet fÃ¶r
+                      // variablen x och dÃ¤r y- och z-axlarna har vÃ¤rdet noll. 
+                      // Hastigheten som rÃ¤tblocket Ã¤r x', som ocksÃ¥ Ã¤r samma som y'.
+      (r/10,0.1,0.1), // RÃ¤tblockets sida i riktning lÃ¤ngs x-axeln Ã¤r r lÃ¥ng, 
+                      // de andra sidorna Ã¤r 1. r Ã¤r alltid hÃ¤lften sÃ¥ lÃ¥ng som v.
+      blue,           // RÃ¤tblocket har fÃ¤rgen blÃ¥
+      (0,0,0)),       // RÃ¤tblockets rotation == 0 i alla led, den roterar inte.
+                      
+    ("Box",           // Objektstyp, rÃ¤tblock
+      (y/10,0,0),     // RÃ¤tblocket ska ha startpunkt i vÃ¤rdet fÃ¶r variablen y och dÃ¤r
+                      // y- och z-axlarna har vÃ¤rdet noll. Hastigheten som rÃ¤tblocket Ã¤r y' == x'
+      (v/10,0.1,0.1), // RÃ¤tblockets sida i riktning lÃ¤ngs x-axeln Ã¤r v lÃ¥ng, de andra 
+                      // sidorna Ã¤r 1. vÃ¤r alltid dubbelt sÃ¥ lÃ¥ng som r. 
+      yellow,         // RÃ¤tblocket har fÃ¤rgen gul.  
+      (0,0,0)),       // RÃ¤tblockets rotation == 0 i alla led, den roterar inte.
 
-_3D := [];
-end
-
-x''=0;
-y''=0;
-
-v=2*r;                 // v bestämms till 2r 
-
-_3D :=
-[["Box",               // Objektstyp, rätblock
-[-x/10,0,0],           // Rätblocket ska ha startpunkt i det negativa värdet för
-                       // variablen x och där y- och z-axlarna har värdet noll. 
-                       // Hastigheten som rätblocket är x', som också är samma som y'.
-[r/10,0.1,0.1],                 // Rätblockets sida i riktning längs x-axeln är r lång, 
-                         // de andra sidorna är 1. r är alltid hälften så lång som v.
-blue,                    // Rätblocket har färgen blå
-[0,0,0]],                // Rätblockets rotation = 0 i alla led, den roterar inte.
-
-["Box",                  // Objektstyp, rätblock
-[y/10,0,0],                 // Rätblocket ska ha startpunkt i värdet för variablen y och där
-                         // y- och z-axlarna har värdet noll. Hastigheten som rätblocket är y'=x'
-[v/10,0.1,0.1],                 // Rätblockets sida i riktning längs x-axeln är v lång, de andra 
-                         // sidorna är 1. vär alltid dubbelt så lång som r. 
-yellow,                  // Rätblocket har färgen gul.  
-[0,0,0]],                // Rätblockets rotation = 0 i alla led, den roterar inte.
-
-["Box",                  // Ritar ut markplanet 
-[0,0,-1],
-[2,2,0.01],
-0.4*green,
-[0,0,0]]];               
-
-
-if (x>-(r+v)/4)&&(y'<=x') // Denna if-satsen bestämmer när det blå rätblocket ska vända och 
-x':=-(x'+2*y'/3);         // vilken hastighet det ska få
-y':=(x'/3); 
-end;
-
-
-end
+    ("Box",           // Ritar ut markplanet 
+      (0,0,-1),
+      (2,2,0.01),
+      0.4*green,
+      (0,0,0))
+  )

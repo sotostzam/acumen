@@ -4,71 +4,63 @@
    Works with semantic 2012
 */
 
-class Main(simulator)
+model Main(simulator) =
+  initially 
+    t   = 20, // Startposition boll blÃ¥
+    t'  = -5, // Hastighet     boll blÃ¥
+    t'' =  0, // Acceleration  boll blÃ¥  
 
-private 
+    u   =  1, // Startposition boll rÃ¶d
+    u'  =  0, // Hastighet     boll rÃ¶d
+    u'' =  0, // Acceleration  boll rÃ¶d
 
-t  := 20;    //Startpostion boll blå
-t' := -5;    // Hastighet boll blå
-t'' := 0;    // Acceleration boll blå  
+    _3D =()
+  always
 
-u := 1;      // Startposition boll röd
-u' := 0;     // Hastighet boll röd
-u'' := 0;    // Acceleration boll röd
+  t'' == 0,
+  u'' == 0,
+  if (t<1.0) then t'+ ==0.00 noelse, // Blue ball
+  if (t<1.0) then u'+ ==5.0 noelse,  // Red ball
 
-_3D :=[]
-end
+  _3D+ == (
+    ("Box",           // Type of _3D object
+      (0,0,-0.05),    // Center point
+      (0.01,2,4000),  // Size in (x,y,z) form
+      0.5*white,      // Color
+      (0,pi/2,0)),    // Orientation
+                    
+    ("Sphere",        // Type of _3D object
+      (u/10,0,0.05),  // Starting point in (x,y,z) form
+      (0.1),          // Radius
+      red,            // Color in red-green-blue (RGB) intensity
+      (0,0,0)),       // Orientation (pi around x-axis)
 
-t''=0;
-u''=0;
+    ("Sphere",        // Type of _3D object
+      (-t/10,0,0.05), // Starting point in (x,y,z) form
+      (0.1),          // Radius
+      blue,           // Color in red-green-blue (RGB) intensity
+      (0,0,0))        // Orientation (pi around x-axis)
+  )  
 
-_3D :=
- 
-  [["Box",     // Type of _3D object
-   [0,0,-0.05],    // Center point
-   [0.01,2,4000],  // Size in [x,y,z] form
-   0.5*white,        // Color
-   [0,pi/2,0]],  // Orientation
-
-   ["Sphere", // Type of _3D object
-   [u/10,0,0.05],  // Starting point in [x,y,z] form
-   [0.1],     // Radius
-   red,     // Color in red-green-blue (RGB) intensity
-   [0,0,0]], // Orientation (pi around x-axis)
-
-   ["Sphere", // Type of _3D object
-   [-t/10,0,0.05],  // Starting point in [x,y,z] form
-   [0.1],     // Radius
-   blue,     // Color in red-green-blue (RGB) intensity
-   [0,0,0]] // Orientation (pi around x-axis)
-
-];   
-   
-if (t<1.0) t':=0.00 end;  /////BLue BOLL
-if (t<1.0) u':=5.0 end;  ////ReD BOLL
-
-
-
-end 
-// Pogrameringen visar hur rörelsemängden och rörelseenergin
-//bevaras vid en elastisk stöt.
-//Rörelsemängden bevaras genom formeln m1 x v1 = m2 x v2. Rörelserna 
-//som är programerade rör sig positivt i x-led utifrån
+// Pogrameringen visar hur rÃ¶relsemÃ¤ngden och rÃ¶relseenergin
+// bevaras vid en elastisk stÃ¶t.
+// RÃ¶relsemÃ¤ngden bevaras genom formeln m1 x v1 == m2 x v2. RÃ¶relserna 
+// som Ã¤r programerade rÃ¶r sig positivt i x-led utifrÃ¥n
 // startposition. Animationen visar hur en kula med massan m 
-//krockar med en kula med massa m med farten 5.Vid den elastiska 
-//krocken bevaras rörelsemängden och energin från innan krocken till efter 
-//krocken. 
-//Rörelsemängden innan krock = rörelsemängd efter krock.
-//Rörelseenergi innan krock = rörelseenergi efter krock. 
-// Spanar vi in i ploten kan vi konstatera att den blå bollen (t) rör
-// sig positivt i x-led i 5 till den träffar den stillaliggande
-// röda bolen (u). Vid den elastiska stöten bevaras rörelsemängden
-// och utifrån m1 x v1 = m2 x v2.
-// Röresleenergin ska även vara bevarad vid en elastiskt stöt och kan
-// kontrolleras via wk = mxv^2 /2.
-// Vi ser att den röda bollen får hastgigheten 5 och vi kan konstatera
-// att det är en fullständig elastisk stöt med att kontrollera med
-//ovanstående formel av rörelseenergi.   
+// krockar med en kula med massa m med farten 5.Vid den elastiska 
+// krocken bevaras rÃ¶relsemÃ¤ngden och energin frÃ¥n innan krocken till efter 
+// krocken. 
+// RÃ¶relsemÃ¤ngden innan krock == rÃ¶relsemÃ¤ngd efter krock.
+// RÃ¶relseenergi innan krock == rÃ¶relseenergi efter krock. 
+// Spanar vi in i ploten kan vi konstatera att den blÃ¥ bollen (t) rÃ¶r
+// sig positivt i x-led i 5 till den trÃ¤ffar den stillaliggande
+// rÃ¶da bolen (u). Vid den elastiska stÃ¶ten bevaras rÃ¶relsemÃ¤ngden
+// och utifrÃ¥n m1 x v1 == m2 x v2.
+// RÃ¶resleenergin ska Ã¤ven vara bevarad vid en elastiskt stÃ¶t och kan
+// kontrolleras via wk == mxv^2 /2.
+// Vi ser att den rÃ¶da bollen fÃ¥r hastgigheten 5 och vi kan konstatera
+// att det Ã¤r en fullstÃ¤ndig elastisk stÃ¶t med att kontrollera med
+// ovanstÃ¥ende formel av rÃ¶relseenergi.   
 
 
 
