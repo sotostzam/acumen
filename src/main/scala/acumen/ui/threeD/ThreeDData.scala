@@ -20,7 +20,7 @@ class ThreeDData extends Publisher {
   var objectCount = 1;
   var frameNumber = 0
   /* Used for determine 3D-visualization play speed */
-  var endTime = 0.0;
+  var endTime = 0.0f
   /* Default settings to transform Acumen AST to generic data can be 
    * used later for constructing a primitive
        Example : GStr("Sphere") => "Sphere" */
@@ -193,31 +193,24 @@ class ThreeDData extends Publisher {
 
   /* Look for endTime in "Main" class */
   def lookUpEndTime(id: CId, o: GObject) {
-    if (id.equals(new CId(List(0)))) {
-      for ((name, value) <- o) {
-        if (name.x == "endTime") {
-          this.endTime = extractDouble(value)
-        }
-      }
-    }
+    if (id.equals(new CId(List(0))))
+      for ((name, value) <- o)
+        if (name.x == "endTime")
+          this.endTime = extractDouble(value).toFloat
   }
 
   /* Look for 3D camera's position and orientation in "Main" class */
   def lookUpViewInfo(id: CId, o: GObject) {
     //  CId(List()) is the main class
-    if (id.equals(new CId(List()))) {
-      for ((name, value) <- o) {
-        if (name.x == "_3DView") {
+    if (id.equals(new CId(List())))
+      for ((name, value) <- o)
+        if (name.x == "_3DView")
           value match {
             case VVector(l) =>
               if (l.size > 0)
                 _3DView += new Tuple2(extractDoubles(l(0)).toArray, extractDoubles(l(1)).toArray)
             case _ => throw _3DError(value)
           }
-
-        }
-      }
-    }
   }
 
   /* Add _3D information of every class to _3DStore */

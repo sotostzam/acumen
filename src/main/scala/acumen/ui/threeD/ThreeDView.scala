@@ -17,9 +17,9 @@ import scala.swing.Publisher
 /* 3D visualization panel */
 class ThreeDView extends JPanel {
 
-  var alive = true
+  private var alive = true
   // Set to true after everything finishes loading:
-  var initialized = false
+  private var initialized = false
 
   Config.maxPolysVisible = 100000
   Config.useRotationPivotFrom3DS = true
@@ -27,34 +27,31 @@ class ThreeDView extends JPanel {
   Config.maxNumberOfCores = java.lang.Runtime.getRuntime.availableProcessors()
   Logger.setLogLevel(Logger.ERROR)
 
-  val world = new World()  // create a new world
-
+  val world = new World  // create a new world
   private var camera = new Camera
 
   val characters = new Characters
 
   // Add texture for the axis
   val coAxes = new coAxis (characters.characters)
-
   val axes = coAxes.cylinders
-
-  var objects = scala.collection.mutable.Map[List[_], Object3D]()
-  var scaleFactors = scala.collection.mutable.Map[Object3D, Array[Double]]()
-
   val axisArray = Array(new Object3D(1))
 
-  val defaultCamPos = new SimpleVector(3, -3, 10)
-  var customView = true // enable for allowing the user move the camera by themselves
-  var preCustomView = customView    // to enable custom view when we pause
-  private val lookAtPoint = new SimpleVector(0,0,0)   // in jPCT coordinate system
+  protected[threeD] var objects = scala.collection.mutable.Map[List[_], Object3D]()
+  protected[threeD] var scaleFactors = scala.collection.mutable.Map[Object3D, Array[Double]]()
 
-  var newMouseX = 1     // mouse position x before dragging
-  var newMouseY = 1     // mouse position y before dragging
-  var lastMouseX = 1    // mouse position x after dragging
-  var lastMouseY = 1    // mouse position y after dragging
-  var dragging = false  // flag for checking the mouse action
-  var cameraLeftDirection = -1  // to make sure the camera rotate forward or backward
-  var cameraRightDirection = -1  // to make sure the camera rotate forward or backward
+  val defaultCamPos = new SimpleVector(3, -3, 10)
+  private val lookAtPoint = new SimpleVector(0,0,0) // in jPCT coordinate system
+  var customView = true // enable for allowing the user move the camera by themselves
+  var preCustomView = customView // to enable custom view when we pause
+
+  private var newMouseX = 1     // mouse position x before dragging
+  private var newMouseY = 1     // mouse position y before dragging
+  private var lastMouseX = 1    // mouse position x after dragging
+  private var lastMouseY = 1    // mouse position y after dragging
+  private var dragging = false  // flag for checking the mouse action
+  private var cameraLeftDirection = -1  // to make sure the camera rotate forward or backward
+  private var cameraRightDirection = -1  // to make sure the camera rotate forward or backward
 
   val lookAtCenter = Primitives.getSphere(20, 0.1f)
 
@@ -89,15 +86,11 @@ class ThreeDView extends JPanel {
 
   addMouseWheelListener(new MouseAdapter {
     override def mouseWheelMoved(e: MouseWheelEvent) = {
-      //Returns the number of notches the mouse wheel was rotated.
+      // Returns the number of notches the mouse wheel was rotated.
       // If the mouse wheel rotated towards the user (down) the value is positive.
       // If the mouse wheel rotated away from the user (up) the value is negative.
       val zoomSpeed = e.getWheelRotation
-      if (zoomSpeed >= 0) {    // zoom out
-        zoomout()
-      } else {    // zoom in
-        zoomin()
-      }
+      if (zoomSpeed >= 0) zoomout() else zoomin()
       repaint()
     }
   })
@@ -119,8 +112,8 @@ class ThreeDView extends JPanel {
     }
   })
 
-  // draggingDirection is the direction for left or right button, click is -1 (right) or 1 (left)
-  def moveCamera (draggingDirection: Int, click: Int, sphereCenter: SimpleVector):Int = {
+  /** draggingDirection is the direction for left or right button, click is -1 (right) or 1 (left) */
+  def moveCamera (draggingDirection: Int, click: Int, sphereCenter: SimpleVector): Int = {
     var cameraDirection = draggingDirection
     val cameraInitPos = camera.getPosition
     val deltaTheta = cameraDirection * (newMouseY - lastMouseY) * Pi / 500
@@ -170,29 +163,22 @@ class ThreeDView extends JPanel {
     newAngle
   }
 
-  def axisOn() = {
+  def axisOn() =
     if (!axisArray.contains(axes(0))) {
       axisArray(0) = axes(0)
       world.addObjects(axes)
-      for (i <- 0 until 6){
-        CustomObject3D.partialBuild(axes(i), false)
-      }
-      for (i <- 6 until axes.length){
-        CustomObject3D.partialBuild(axes(i), true)
-      }
+      for (i <- 0 until axes.length)
+        CustomObject3D.partialBuild(axes(i), i < 6)
+      this.repaint()
     }
-    this.repaint()
-  }
 
-  def axisOff() = {
+  def axisOff() =
     if (axisArray.contains(axes(0))) {
-      for (i <- 0 until axes.length) {
+      for (i <- 0 until axes.length)
         world.removeObject(axes(i))
-      }
       axisArray(0) = null
       this.repaint()
     }
-  }
 
   // create a new buffer to draw on:
   var buffer: FrameBuffer = null
@@ -226,12 +212,11 @@ class ThreeDView extends JPanel {
   }
 
   // point the camera toward the given object
-  def lookAt(obj: Object3D, point: SimpleVector) = {
+  def lookAt(obj: Object3D, point: SimpleVector) =
     if (obj != null)
       camera.lookAt(obj.getTransformedCenter)  // look toward the object
     else
       camera.lookAt(point)
-  }
 
   // create some light sources for the scene
   def letThereBeLight() = {
@@ -258,35 +243,27 @@ class ThreeDView extends JPanel {
     init()
   }
 
-  def zoomin() = {
-    camera.increaseFOV(0.1f)
-  }
-
-  def zoomout() = {
-    camera.decreaseFOV(0.1f)
-  }
+  def zoomin()  = camera.increaseFOV(0.1f)
+  def zoomout() = camera.decreaseFOV(0.1f)
 
   def transformView(position: Array[Double], rotation: Array[Double]) = {
     val cameraToSet = world.getCamera
     cameraToSet.setPosition(-position(0).toFloat, -position(2).toFloat, -position(1).toFloat)
-//    cameraToSet.rotateX(rotation(0).toFloat)
-//    cameraToSet.rotateZ(-rotation(2).toFloat)
-//    cameraToSet.rotateY(-rotation(1).toFloat)
     rotateObject(null, rotation, "Camera", cameraToSet)
   }
 
   def drawBox(length: Double, width: Double, height: Double): Object3D = {
     val box = new Object3D(12)
 
-    val upperLeftFront=new SimpleVector(-width/2, -height/2, -length/2)
-    val upperRightFront=new SimpleVector(width/2, -height/2, -length/2)
-    val lowerLeftFront=new SimpleVector(-width/2, height/2, -length/2)
-    val lowerRightFront=new SimpleVector(width/2, height/2, -length/2)
+    val upperLeftFront  = new SimpleVector(-width/2, -height/2, -length/2)
+    val upperRightFront = new SimpleVector( width/2, -height/2, -length/2)
+    val lowerLeftFront  = new SimpleVector(-width/2,  height/2, -length/2)
+    val lowerRightFront = new SimpleVector( width/2,  height/2, -length/2)
 
-    val upperLeftBack = new SimpleVector(-width/2, -height/2, length/2)
-    val upperRightBack = new SimpleVector(width/2, -height/2, length/2)
-    val lowerLeftBack = new SimpleVector(-width/2, height/2, length/2)
-    val lowerRightBack = new SimpleVector(width/2, height/2, length/2)
+    val upperLeftBack   = new SimpleVector(-width/2, -height/2,  length/2)
+    val upperRightBack  = new SimpleVector( width/2, -height/2,  length/2)
+    val lowerLeftBack   = new SimpleVector(-width/2,  height/2,  length/2)
+    val lowerRightBack  = new SimpleVector( width/2,  height/2,  length/2)
 
     // Front
     box.addTriangle(upperLeftFront,0,0, lowerLeftFront,0,1, upperRightFront,1,0)
@@ -315,16 +292,14 @@ class ThreeDView extends JPanel {
     box
   }
 
-  /** uses a vertex controller to rescale  **/
-
-  def setReSize(scaleX: Float, scaleY: Float,  scaleZ: Float, planeMesh: Mesh) = {
-    val demoControl = new Resizer(scaleX,scaleY,scaleZ)
+  /** Uses a vertex controller to rescale  **/
+  def setReSize(scaleX: Float, scaleY: Float,  scaleZ: Float, planeMesh: Mesh) =
     if (planeMesh != null) {
-      planeMesh.setVertexController(demoControl, IVertexController.PRESERVE_SOURCE_MESH)
+      planeMesh.setVertexController(new Resizer(scaleX,scaleY,scaleZ), IVertexController.PRESERVE_SOURCE_MESH)
       planeMesh.applyVertexController()
       planeMesh.removeVertexController()
     }
-  }
+
   // rotate object or camera
   def rotateObject(rotateObject: Object3D, angle: Array[Double], objectType: String, rotateCamera: Camera) = {
     // Once we added the object, we should also move the object to the position at that time
@@ -332,7 +307,7 @@ class ThreeDView extends JPanel {
     val tranObjectRotMatrixY = new Matrix()
     val tranObjectRotMatrixZ = new Matrix()
     val tranObjectRotTempMat = new Matrix()
-    val tranObjectRotMatrix = new Matrix()
+    val tranObjectRotMatrix  = new Matrix()
     // to make the coordinate as same as Java3D
     if (objectType == "Cylinder" || objectType == "Cone")
       tranObjectRotMatrix.rotateX((-Pi / 2).toFloat)
@@ -388,147 +363,119 @@ class ScalaTimer(receiver: _3DDisplay, endTime: Double,
 /* 3D Render */
 class _3DDisplay(app: ThreeDView, slider: Slider3D,
                  _3DDataBuffer: scala.collection.mutable.Map[CId, scala.collection.mutable.Map[Int, scala.collection.mutable.Buffer[List[_]]]],
-                 lastFrame1: Double, endTime: Double,
+                 lastFrame1: Double, endTime: Float,
                  _3DView: scala.collection.mutable.ArrayBuffer[(Array[Double], Array[Double])]) extends Publisher with Actor {
   /* Default directory where all the OBJ files are */
   private val _3DBasePath = Files._3DDir.getAbsolutePath
-  var currentFrame = 0 // FrameNumber
-  var totalFrames = 2
+  private var currentFrame = 0 // FrameNumber
   var lastFrame = lastFrame1
+  var totalFrames = lastFrame.toInt
   var pause = false
   var destroy = false
-  lastFrame = lastFrame1
-  totalFrames = lastFrame.toInt
   val startFrameNumber = 2
 
-  def stop() = {
+  def stop() =
     if (app.objects.nonEmpty) {
       app.world.removeAllObjects()
       app.objects.clear()
       app.axisArray(0) = null
       app.scaleFactors.clear()
     }
-  }
 
-  def bufferFrame(list: List[_]): Int = {
+  def bufferFrame(list: List[_]): Int =
     list.last match {
       case time: Int => time
       case _ => throw ShouldNeverHappen()
     }
-  }
 
-  def bufferPosition(list: List[_]): Array[Double] = {
+  def bufferPosition(list: List[_]): Array[Double] =
     list(1) match {
       case p: Array[Double] => p
       case _ => throw ShouldNeverHappen()
     }
-  }
 
-  def bufferAngle(list: List[_]): Array[Double] = {
+  def bufferAngle(list: List[_]): Array[Double] =
     list(4) match {
       case p: Array[Double] => p
       case _ => throw ShouldNeverHappen()
     }
-  }
 
-  def bufferType(list: List[_]): String = {
+  def bufferType(list: List[_]): String =
     list(0) match {
       case p: String => p
       case _ => throw ShouldNeverHappen()
     }
-  }
 
-  def bufferColor(list: List[_]): List[Double] = {
+  def bufferColor(list: List[_]): List[Double] =
     list(3) match {
       case p: Array[Double] => p.toList
       case _ => throw ShouldNeverHappen()
     }
-  }
 
-  def bufferSize(list: List[_]): List[Double] = {
+  def bufferSize(list: List[_]): List[Double] =
     list(2) match {
       case p: Array[Double] => p.toList
       case _ => throw ShouldNeverHappen()
     }
-  }
 
-  def bufferString(list: List[_]): String = {
+  def bufferString(list: List[_]): String =
     list(5) match {
       case s: String => s
       case _ => throw ShouldNeverHappen()
     }
-  }
 
   // Return the first frame number of the object
-  def firstFrame(buffer: scala.collection.mutable.Buffer[List[_]]): Int = {
+  def firstFrame(buffer: scala.collection.mutable.Buffer[List[_]]): Int =
     buffer.head.last match {
       case first: Int => first
       case _ => throw ShouldNeverHappen()
     }
-  }
 
-  def lastFrame(buffer: scala.collection.mutable.Buffer[List[_]]): Int = {
+  def lastFrame(buffer: scala.collection.mutable.Buffer[List[_]]): Int =
     buffer.last.last match {
       case last: Int => last
       case _ => throw ShouldNeverHappen()
     }
-  }
 
-  def checkResizeable(newSize: List[Double]): Boolean = {
-    var flag = true
-    for (i <- 0 until newSize.length) {
-      if (newSize(i).isNaN || newSize(i).isInfinite)
-        flag = false
-    }
-    flag
-  }
+  def checkResizeable(newSize: List[Double]): Boolean = 
+    newSize.forall(d => !(d.isNaN || d.isInfinite))
 
-  def setScaleFactors (size: List[Double], o: Object3D, objectType: String,
-                       scaleFactors: scala.collection.mutable.Map[Object3D, Array[Double]]) = {
+  def setScaleFactors(size: List[Double], o: Object3D, objectType: String,
+                      scaleFactors: scala.collection.mutable.Map[Object3D, Array[Double]]) = {
+    def scaleFactor(si: Int, bi1: Int, bi2: Int) =
+      if (size(si) == 0) abs(o.getMesh.getBoundingBox()(bi1) - o.getMesh.getBoundingBox()(bi2)) / 0.001
+      else               abs(o.getMesh.getBoundingBox()(bi1) - o.getMesh.getBoundingBox()(bi2)) / size(si)
     // Add the object scale factor into a map
     val factorX =
-      if (size(0) == 0) abs(o.getMesh.getBoundingBox()(1) - o.getMesh.getBoundingBox()(0)) / 0.001
-      else abs(o.getMesh.getBoundingBox()(1) - o.getMesh.getBoundingBox()(0)) / size(0)
+      scaleFactor(0, 1, 0)
     val factorY =
-      if (objectType == "Box" || objectType == "Cylinder" || objectType == "Cone") {
-        if (size(1) == 0) abs(o.getMesh.getBoundingBox()(3) - o.getMesh.getBoundingBox()(2)) / 0.001
-        else abs(o.getMesh.getBoundingBox()(3) - o.getMesh.getBoundingBox()(2)) / size(1)
-      }
-      else {
-        if (size(0) == 0) abs(o.getMesh.getBoundingBox()(3) - o.getMesh.getBoundingBox()(2)) / 0.001
-        else abs(o.getMesh.getBoundingBox()(3) - o.getMesh.getBoundingBox()(2)) / size(0)
-      }
+      if (Seq("Box", "Cylinder", "Cone") contains objectType)
+        scaleFactor(1, 3, 2)
+      else
+        scaleFactor(0, 3, 2)
     val factorZ =
-      if (objectType == "Box") {
-        if (size(2) == 0) abs(o.getMesh.getBoundingBox()(5) - o.getMesh.getBoundingBox()(4)) / 0.001
-        else abs(o.getMesh.getBoundingBox()(5) - o.getMesh.getBoundingBox()(4)) / size(2)
-      }
-      else {
-        if (size(0) == 0) abs(o.getMesh.getBoundingBox()(5) - o.getMesh.getBoundingBox()(4)) / 0.001
-        else abs(o.getMesh.getBoundingBox()(5) - o.getMesh.getBoundingBox()(4)) / size(0)
-      }
+      if (objectType == "Box")
+        scaleFactor(2, 5, 4)
+      else
+        scaleFactor(0, 5, 4)
     scaleFactors += o -> Array(factorX, factorY, factorZ)
   }
 
-  def checkSize (size: Double): Double = {
-    val newSize = if (size == 0) 0.001 else size
-    newSize
-  }
+  def checkSize (size: Double): Double = if (size == 0) 0.001 else size
 
-  def calculateResizeFactor (o: Object3D, size: List[Double], scaleFactors: scala.collection.mutable.Map[Object3D, Array[Double]]): Array[Float] = {
+  def calculateResizeFactor (o: Object3D, size: List[Double], scaleFactors: scala.collection.mutable.Map[Object3D, Array[Double]]): Array[Float] =
     if (scaleFactors.contains(o)) {
       if (o != null) {
         val (xFactor, yFactor, zFactor) =
-          (if (size(0) == 0) scaleFactors(o)(0) * 0.001 / abs(o.getMesh.getBoundingBox()(1) - o.getMesh.getBoundingBox()(0))
-          else scaleFactors(o)(0) * size(0) / abs(o.getMesh.getBoundingBox()(1) - o.getMesh.getBoundingBox()(0)),
-            if (size(1) == 0) scaleFactors(o)(1) * 0.001 / abs(o.getMesh.getBoundingBox()(3) - o.getMesh.getBoundingBox()(2))
-            else scaleFactors(o)(1) * size(1) / abs(o.getMesh.getBoundingBox()(3) - o.getMesh.getBoundingBox()(2)),
-            if (size(2) == 0) scaleFactors(o)(2) * 0.001 / abs(o.getMesh.getBoundingBox()(5) - o.getMesh.getBoundingBox()(4))
-            else scaleFactors(o)(2) * size(2) / abs(o.getMesh.getBoundingBox()(5) - o.getMesh.getBoundingBox()(4)))
+          (if (size(0) == 0)  scaleFactors(o)(0) * 0.001   / abs(o.getMesh.getBoundingBox()(1) - o.getMesh.getBoundingBox()(0))
+          else                scaleFactors(o)(0) * size(0) / abs(o.getMesh.getBoundingBox()(1) - o.getMesh.getBoundingBox()(0)),
+            if (size(1) == 0) scaleFactors(o)(1) * 0.001   / abs(o.getMesh.getBoundingBox()(3) - o.getMesh.getBoundingBox()(2))
+            else              scaleFactors(o)(1) * size(1) / abs(o.getMesh.getBoundingBox()(3) - o.getMesh.getBoundingBox()(2)),
+            if (size(2) == 0) scaleFactors(o)(2) * 0.001   / abs(o.getMesh.getBoundingBox()(5) - o.getMesh.getBoundingBox()(4))
+            else              scaleFactors(o)(2) * size(2) / abs(o.getMesh.getBoundingBox()(5) - o.getMesh.getBoundingBox()(4)))
         Array(xFactor.toFloat, yFactor.toFloat, zFactor.toFloat)
       } else Array(0.001f,0.001f,0.001f)
     } else Array(0.001f,0.001f,0.001f)
-  }
 
   /**
    * Moving and rotating the object
@@ -708,43 +655,31 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
         // reset the color for the object
         setColor(transObject, tempColor)
         // rotate the object
-        if (checkResizeable(tempAngle.toList)) {
+        if (checkResizeable(tempAngle.toList))
           app.rotateObject(transObject, tempAngle, tempType, null)
-        }
         // calculate the transVector for the object and translate it
         val tempTransVector = new SimpleVector(-tempPosition(0), -tempPosition(2), -tempPosition(1))
         val transVector = tempTransVector.calcSub(transObject.getTransformedCenter)
         transObject.translate(transVector)
-        if (tempType != "Text")
-          CustomObject3D.partialBuild(transObject, false)
-        else
-          CustomObject3D.partialBuild(transObject, true)
+        CustomObject3D.partialBuild(transObject, tempType == "Text")
       }
     }
   }
 
   def renderCurrentFrame() = {
-    for ((id, map) <- _3DDataBuffer) {
-      // acumen objects
-      for ((objectNumber, buffer) <- map) {
-        // 3d objects within
-        if (firstFrame(buffer) <= currentFrame && totalFrames >= currentFrame) {
-          if (!app.objects.contains(List(id, objectNumber))) {
+    for ((id, map) <- _3DDataBuffer) // acumen objects
+      for ((objectNumber, buffer) <- map) // 3d objects within
+        if (firstFrame(buffer) <= currentFrame && totalFrames >= currentFrame)
+          if (!app.objects.contains(List(id, objectNumber)))
             matchingObject(List(id, objectNumber), buffer, currentFrame)
-          } else {
+          else
             transformObject(List(id, objectNumber), app.objects, app.scaleFactors, buffer, currentFrame)
-          }
-        } else {
-          if (app.objects.contains(List(id, objectNumber))) {
+        else
+          if (app.objects.contains(List(id, objectNumber)))
             deleteObj(List(id, objectNumber))
-          }
-        }
-      }
-    }
-    if(currentFrame < _3DView.size){
+    if(currentFrame < _3DView.size)
       app.transformView(_3DView(currentFrame)._1, _3DView(currentFrame)._2)
-    }
-      app.repaint()
+    app.repaint()
   }
 
   // Main execution loop
@@ -769,10 +704,10 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
             destroy = true
             pause = true
           }
-          if (totalFrames > 0){
+          if (totalFrames > 0) {
             val percentage = currentFrame * 100 / totalFrames
             slider.setProgress3D(percentage)
-            slider.setTime(((percentage / 100f) * endTime).toFloat)
+            slider.setTime((percentage / 100f * endTime).toFloat)
           }
           if (currentFrame < totalFrames)
             currentFrame += 1
@@ -884,8 +819,8 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
     /* Get the 3D information of the object at that frame	*/
     val (position, angle, color, size, name) =
       if (index >= 0 && index < totalFrames)
-        (bufferPosition(buffer(index)) , bufferAngle(buffer(index)), bufferColor(buffer(index)),
-          bufferSize(buffer(index)), bufferType(buffer(index)))
+        (bufferPosition(buffer(index)), bufferAngle(buffer(index)), bufferColor(buffer(index)),
+         bufferSize(buffer(index)), bufferType(buffer(index)))
       else (Array(0.0,0.0,0.0), Array(0.0,0.0,0.0), List(0.0,0.0,0.0), List(0.0), " ")
     val (text, path) =
       if (index >= 0 && index < totalFrames)
@@ -957,19 +892,11 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
     }
   }
 
-  def setColor(objectToSet: Object3D, colorList: List[Double]) = {
-    val colorToSet = Array(1.0, 1.0, 1.0)
-    colorToSet(0) = colorList(0) * 255
-    colorToSet(1) = colorList(1) * 255
-    colorToSet(2) = colorList(2) * 255
-    if (colorToSet(0) > 255)
-      colorToSet(0) = 255
-    if (colorToSet(1) > 255)
-      colorToSet(1) = 255
-    if (colorToSet(2) > 255)
-      colorToSet(2) = 255
-    objectToSet.setAdditionalColor(new Color(colorToSet(0).toInt, colorToSet(1).toInt, colorToSet(2).toInt))
-  }
+  def setColor(objectToSet: Object3D, colorList: List[Double]) =
+    objectToSet.setAdditionalColor(new Color( min(255, colorList(0) * 255).toInt
+                                            , min(255, colorList(1) * 255).toInt
+                                            , min(255, colorList(2) * 255).toInt ))
+
 }
 
 // Transparent box
@@ -979,35 +906,27 @@ class setGlass(color: Color, objectA: Object3D, transparancy: Int) {
   objectA.setAdditionalColor(color) // the color of the object3D
 }
 
-// vertax controller classes
+/* Vertex controller classes */
 
-class Resizer(xFactor: Float, yFactor: Float, zFactor: Float) extends GenericVertexController {
-
-  val XFactor = xFactor
-  val YFactor = yFactor
-  val ZFactor = zFactor
-
+case class Resizer(xFactor: Float, yFactor: Float, zFactor: Float) extends GenericVertexController {
   def apply() {
     val s = getSourceMesh
     val d = getDestinationMesh
-
     for (i <- 0 until s.length) {
-      d(i).x = s(i).x * XFactor
-      d(i).z = s(i).z * ZFactor
-      d(i).y = s(i).y * YFactor
+      d(i).x = s(i).x * xFactor
+      d(i).z = s(i).z * zFactor
+      d(i).y = s(i).y * yFactor
     }
   }
 }
 
-//Axis
+// Axis
 class coAxis(characters: scala.collection.immutable.Map[Char, Object3D]) {
   val cylinders: Array[Object3D] = new Array[Object3D](9)
-  for (x <- 0 until 3) {
+  for (x <- 0 until 3)
     cylinders(x) = Primitives.getCylinder(12, 0.01f, 120f)
-  }
-  for (x <- 3 until 6) {
+  for (x <- 3 until 6)
     cylinders(x) = Primitives.getCone(12, 0.05f, 2f)
-  }
   cylinders(8) = new Object3D(characters('y'), false)
   cylinders(7) = new Object3D(characters('x'), false)
   cylinders(6) = new Object3D(characters('z'), false)
@@ -1016,15 +935,11 @@ class coAxis(characters: scala.collection.immutable.Map[Char, Object3D]) {
     cylinders(i).setCenter(new SimpleVector(0,0,0))
     cylinders(i).scale(0.4f)
   }
-  for (i <- 0 until cylinders.length) {
-    if (i % 3 == 0)
-      new setGlass(Color.BLUE, cylinders(i), -1)
-    else if (i % 3 == 1)
-      new setGlass(Color.RED, cylinders(i), -1)
-    else
-      new setGlass(Color.GREEN, cylinders(i), -1)
-  }
-
+  for (i <- 0 until cylinders.length)
+    new setGlass( if      (i % 3 == 0) Color.BLUE 
+                  else if (i % 3 == 1) Color.RED 
+                  else                 Color.GREEN
+                , cylinders(i), -1)
   cylinders(0).translate(0f, -1.2f, 0f)
   cylinders(3).translate(0f, -2.4f, 0f)
   cylinders(6).translate(-0.05f, -2.2f, 0f)
@@ -1045,52 +960,46 @@ class Characters {
   val symbolPath = {
     val symbols = ",./<>?;:\'\"+-*|!@#$%^&()[]{}=".toCharArray
     val paths = Array("comma","dot","div","lessthan","biggerthan","questionMark","semicolon","colon",
-      "quote","doubleQuote","plus","sub","mul","or","exclamation","at","sharp","dollar",
-      "percent","powerMark","and","leftBra","rightBra","leftSBra","rightSBra","leftBraces",
-      "rightBraces","equal")
+                      "quote","doubleQuote","plus","sub","mul","or","exclamation","at","sharp","dollar",
+                      "percent","powerMark","and","leftBra","rightBra","leftSBra","rightSBra","leftBraces",
+                      "rightBraces","equal")
     (symbols zip paths).toMap
   }
   // initialize the Map to define the distance between each letter
   val letterDistance = {
     val characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz1234567890".toCharArray
-    val distance = Array(0.03, 0.12, 0.09, 0.11, 0.12, 0.12, 0.09, 0.13, 0.17, 0.07, // A,B,C,D,E,F,G,H,I,J
-      0.1,  0.1,  0.1,  0.1,  0.1,  0.1,  0.1, 0.08, 0.08, 0.08, // K,L,M,N,O,P,Q,R,S,T
-      0.14, 0.08, 0.08, 0.08, 0.07, 0.08, 0.04,  0.1,  0.1,  0.1, // U,V,W,X,Y,Z,a,b,c,d
-      0.1, 0.07, 0.07,  0.1, 0.13,  0.1,  0.1,  0.1,  0.1,  0.1, // e,f,g,h,i,j,k,l,m,n
-      0.1,  0.1,  0.1,  0.1,  0.1, 0.07, 0.11, 0.08, 0.07, 0.07, // o,p,q,r,s,t,u,v,w,x
-      0.07, 0.08, 0.35,  0.1,  0.1,  0.1,  0.1,  0.1,  0.1,  0.1, // y,z,1,2,3,4,5,6,7,8
-      0.1,  0.1)
+    val distance = Array(
+      0.03, 0.12, 0.09, 0.11, 0.12, 0.12, 0.09, 0.13, 0.17, 0.07, // A,B,C,D,E,F,G,H,I,J
+      0.1,  0.1,  0.1,  0.1,  0.1,  0.1,  0.1,  0.08, 0.08, 0.08, // K,L,M,N,O,P,Q,R,S,T
+      0.14, 0.08, 0.08, 0.08, 0.07, 0.08, 0.04, 0.1,  0.1,  0.1,  // U,V,W,X,Y,Z,a,b,c,d
+      0.1,  0.07, 0.07, 0.1,  0.13, 0.1,  0.1,  0.1,  0.1,  0.1,  // e,f,g,h,i,j,k,l,m,n
+      0.1,  0.1,  0.1,  0.1,  0.1,  0.07, 0.11, 0.08, 0.07, 0.07, // o,p,q,r,s,t,u,v,w,x
+      0.07, 0.08, 0.35, 0.1,  0.1,  0.1,  0.1,  0.1,  0.1,  0.1,  // y,z,1,2,3,4,5,6,7,8
+      0.1,  0.1)                                                  // 9,0 
     (characters zip distance).toMap
   }
 
   // load text .3ds file in
-  def loadLetter(path: Char): Object3D = {
-    val objFileloader =
-      if (path.isUpper)         // read a uppercase character
-        load3DSFile("Uppercase_Characters/", path.toString)
-      else if (path.isLower)    // read a lowercase character
-        load3DSFile("Lowercase_Characters/", path.toString)
-      else if (path.isDigit)    // read a digit
-        load3DSFile("Digit_Characters/", path.toString)
-      else if (symbolPath.contains(path))    // read a digit
-        load3DSFile("Symbol_Characters/", symbolPath(path))
-      else null
-    objFileloader
-  }
+  def loadLetter(path: Char): Object3D =
+    if (path.isUpper)         // read a uppercase character
+      load3DSFile("Uppercase_Characters/", path.toString)
+    else if (path.isLower)    // read a lowercase character
+      load3DSFile("Lowercase_Characters/", path.toString)
+    else if (path.isDigit)    // read a digit
+      load3DSFile("Digit_Characters/", path.toString)
+    else if (symbolPath.contains(path))    // read a digit
+      load3DSFile("Symbol_Characters/", symbolPath(path))
+    else null
 
-  def load3DSFile(folder: String, file: String): Object3D = {
-    val packagePath = "acumen/ui/threeD/"
-    val output = Loader.load3DS(getClass.getClassLoader.getResourceAsStream(packagePath + folder + file + ".3ds"), 1f)(0)
-    output
-  }
+  def load3DSFile(folder: String, file: String): Object3D =
+    Loader.load3DS(getClass.getClassLoader.getResourceAsStream("acumen/ui/threeD/" + folder + file + ".3ds"), 1f)(0)
 
   // initialize the Character Objects Map
   val characters = {
     val charToLoad = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz1234567890,./<>?;:\'\"+-*|!@#$%^&()[]{}=".toCharArray
     val characterObject = new Array[Object3D](90)
-    for (i <- 0 until charToLoad.length){
+    for (i <- 0 until charToLoad.length)
       characterObject(i) = loadLetter(charToLoad(i))
-    }
     (charToLoad zip characterObject).toMap
   }
 }
