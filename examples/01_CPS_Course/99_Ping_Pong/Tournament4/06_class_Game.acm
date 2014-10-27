@@ -293,9 +293,11 @@ always
   | "Endgame" ->
       ball.mode        + == "Freeze",
       bat1.pv          + == (0,0,0),
-      batActuator1.mode + == "Reset",
+      player1.r''      + == 0,
+      batActuator1.r'' + == 0,
       bat2.pv          + == (0,0,0),
-      batActuator2.mode + == "Reset",
+      player2.r''      + == 0,
+      batActuator2.r'' + == 0,
       // Scoring function 
       //(sum(i,r_i_min * r_i_max))*s_max/min for winner/loser
       finalScore1      + == (r1*r2)*player1Score ,
