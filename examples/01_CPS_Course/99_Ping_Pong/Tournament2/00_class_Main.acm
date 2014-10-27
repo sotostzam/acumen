@@ -19,14 +19,14 @@ always
   t' = 1,
   match mode with [
     "Initialize" ->
-      simulator.endTime  + == 20,
+      simulator.endTime  + == 20.05,
       simulator.timeStep + == 0.01,
       //simulator.method + == "EulerForward",
       mode + == "CreateGame"
   | "CreateGame"  ->
       foreach  i in 0:(length(players)-1) do (
         foreach  j in (i+1):(length(players)-1) do 
-          create Game(players(i), players(j), i, j-1,simulator.endTime)
+          create Game(players(i), players(j), i, j-1, 20)
       ),
       mode + == "Persist"
   | "Persist" ->]
