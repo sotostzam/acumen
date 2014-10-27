@@ -1,0 +1,18 @@
+model Table(offset,shiftD) =   // The table (a static 3D object) 
+initially
+  _3D = (Box center=(0,0,-0.05)+offset.*shiftD size=(3,1.5,0.03) color=(0.1,0.1,1.0) rotation=(0,0,0),
+         // TableBases 1~4
+         Box center=(-1.4,0.6,-0.3-0.04)+offset.*shiftD size=(0.05,0.05,0.6) 
+             color=(0.8,0.8,0.8) rotation=(0,0,0),
+         Box center=(-1.4,-0.6,-0.3-0.04)+offset.*shiftD size=(0.05,0.05,0.6) 
+             color=(0.8,0.8,0.8) rotation=(0,0,0),
+         Box center=(1.4,-0.6,-0.3-0.04)+offset.*shiftD size=(0.05,0.05,0.6)  
+             color=(0.8,0.8,0.8) rotation=(0,0,0),
+         Box center=(1.4,0.6,-0.3-0.04)+offset.*shiftD size=(0.05,0.05,0.6) 
+             color=(0.8,0.8,0.8) rotation=(0,0,0),
+         // Net
+         Box center=(0,0,0.125-0.02)+offset.*shiftD size=(0.05,1.5,0.25) 
+             color=(0.2,0.8,0.2) rotation=(0,0,0),
+         // MiddleLine
+         Box center=(0,0,0)+offset.*shiftD size=(3,0.02,0.02-0.02) color=(1,1,1) rotation=(0,0,0))
+

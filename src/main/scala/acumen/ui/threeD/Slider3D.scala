@@ -1,7 +1,6 @@
 package acumen
 package ui
 package threeD
-
 import swing._
 
 class Slider3D extends BoxPanel(Orientation.Horizontal) {
@@ -12,6 +11,7 @@ class Slider3D extends BoxPanel(Orientation.Horizontal) {
     minimumSize = new Dimension(100, 0)
     preferredSize = new Dimension(300, 0)
   }
+  var firstPlayed = false
   var labelTime = new Label {
     text = "Time: "
   }

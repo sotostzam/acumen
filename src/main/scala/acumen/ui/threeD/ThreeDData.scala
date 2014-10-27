@@ -11,39 +11,39 @@ import scala.swing._
 /* Get the 3D-visualization data */
 class ThreeDData extends Publisher {
   /* Stores all the information for 3D-visualization */
-  type _3DStore = Map[CId, _3DClass];
+  type _3DStore = Map[CId, _3DClass]
   /* Stores 3D-visualization information for a class */
   type _3DClass = Map[Int, List[List[_]]]
-  type ViewInfo = Tuple2[Array[Double], Array[Double]]
+  type ViewInfo = (Array[Double], Array[Double])
   var _3DData: _3DStore = Map[CId, _3DClass]()
   /* The number of 3D-objects */
   var objectCount = 1;
   var frameNumber = 0
   /* Used for determine 3D-visualization play speed */
-  var endTime = 0.0;
+  var endTime = 0.0f
   /* Default settings to transform Acumen AST to generic data can be 
    * used later for constructing a primitive
        Example : GStr("Sphere") => "Sphere" */
   var _3DType = "Sphere"
   var _3DPosition = Array[Double](0.0, 0.0, 0.0)
-  var _3DSize = Array[Double]();
+  var _3DSize = Array[Double]()
   var _3DColor = Array[Double](1.0, 1.0, 1.0)
   var _3DAngle = Array[Double](0.0, 0.0, 0.0)
   var _3DPath = ""
   var _3DText = ""
-  /* Optinal field to indicate transparent object or not */
+  /* Optional field to indicate transparent object or not */
   var _3DTexture = ""
   /* Camera's position and orientation*/
-  var _3DView = List[ViewInfo]()
+  var _3DView = scala.collection.mutable.ArrayBuffer[ViewInfo]()
 
   def reset() {
-    _3DData.clear
-    _3DView = List[ViewInfo]()
-    frameNumber = 0;
+    _3DData.clear()
+    _3DView.clear()
+    frameNumber = 0
   }
 
   def init3DClassStore(id: CId, _3DData: _3DStore, objectCount: Int): Unit = {
-    var temp: _3DClass = Map[Int, List[List[_]]]();
+    var temp: _3DClass = Map[Int, List[List[_]]]()
     for (i <- 0 to objectCount - 1) {
       temp += i -> List[List[_]]()
     }
@@ -193,37 +193,28 @@ class ThreeDData extends Publisher {
 
   /* Look for endTime in "Main" class */
   def lookUpEndTime(id: CId, o: GObject) {
-    if (id.equals(new CId(List(0)))) {
-      for ((name, value) <- o) {
-        if (name.x == "endTime") {
-          this.endTime = extractDouble(value)
-        }
-      }
-    }
+    if (id.equals(new CId(List(0))))
+      for ((name, value) <- o)
+        if (name.x == "endTime")
+          this.endTime = extractDouble(value).toFloat
   }
 
   /* Look for 3D camera's position and orientation in "Main" class */
   def lookUpViewInfo(id: CId, o: GObject) {
     //  CId(List()) is the main class
-    if (id.equals(new CId(List()))) {
-      for ((name, value) <- o) {
-        if (name.x == "_3DView") {
+    if (id.equals(new CId(List())))
+      for ((name, value) <- o)
+        if (name.x == "_3DView")
           value match {
-            case VVector(l) => {
+            case VVector(l) =>
               if (l.size > 0)
-                _3DView = new Tuple2(extractDoubles(l(0)).toArray,
-                  extractDoubles(l(1)).toArray) :: _3DView
-            }
+                _3DView += new Tuple2(extractDoubles(l(0)).toArray, extractDoubles(l(1)).toArray)
             case _ => throw _3DError(value)
           }
-
-        }
-      }
-    }
   }
 
   /* Add _3D information of every class to _3DStore */
-  def getData(s: GStore) {
+  def getData(s: GStore):Unit = {
     for ((id, o) <- s) {
       lookUpEndTime(id, o)
       lookUpViewInfo(id, o)
@@ -243,7 +234,7 @@ class ThreeDData extends Publisher {
 
                   /**
                    * If it contains multiple objects, _3D will start with a vector,
-                   * example : _3D = [[" Sphere ", [ ], [ ]...],
+                   * example : _3D = [ [" Sphere ", [ ], [ ]...],
                    * ["Sphere",[],[]...]..]
                    */
                   case VVector(some) => addTo3DStore(id, _3DData, l, l.size)

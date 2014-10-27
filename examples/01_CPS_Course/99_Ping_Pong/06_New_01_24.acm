@@ -7,7 +7,7 @@
 // License:   BSD, GPL(V2), or other by agreement with Walid Taha
 
 /**
- * A ping pong player, 	with number n.
+ * A ping pong player,   with number n.
  * Position and velocity of ball(p_ball,v_ball) are always provided by parent model.
  * maxA is the maximum accerlaration the actuator can handle.
  * */
@@ -190,7 +190,7 @@ always
           v' = (-40*(p_ball(0)),0,20)
         noelse
       else
-        angle_bat' = 0
+        angle_bat' = (0,0,0)
   | "Panic!" ->
   ]
 
@@ -635,7 +635,7 @@ always
   if finish == true then
     mode + == "Endgame" 
   noelse,
-  gameMonitor.p  = ball.p,
+  gameMonitor.p'  = ball.p',
   gameMonitor.serveNumber = serveNumber,
   player1Score   = gameMonitor.player1Score,
   player2Score   = gameMonitor.player2Score,
@@ -677,12 +677,14 @@ always
       ball.mode      + == "Fly",
       if first_serve == 1 then  // left serve first
         ball.p              + == (-1.5,player1.y,0), //Initialize the ball pos
+        gameMonitor.p       + == (-1.5,player1.y,0),
         gameMonitor.lastHit + == 1,
         changeServe         + == 2,
         serveNumber         + == 1,
         mode                + == "StartBall1" 
       else (                // right serve first
         ball.p              + == (1.5,player2.y,0), //Initialize the ball pos
+        gameMonitor.p       + == (1.5,player2.y,0),
         gameMonitor.lastHit + == 2,
         changeServe         + == 1,
         serveNumber         + == 2,
@@ -690,6 +692,7 @@ always
       )
   | "Restart1" ->   // Put everything back to the starting point
       ball.p            + == (-1.5,player1.y,0),
+      gameMonitor.p       + == (-1.5,player1.y,0),
       ball.mode         + == "Fly",
       ball.p'           + == (0,0,0),
       ball.p''          + == (0,0,0),
@@ -721,6 +724,7 @@ always
       mode                      + == "StartBall1"
   | "Restart2" ->  // Put everything back to the starting point
       ball.p            + == (1.5,player2.y,0),
+      gameMonitor.p     + == (1.5,player2.y,0),
       ball.mode         + == "Fly",
       ball.p'           + == (0,0,0),
       ball.p''          + == (0,0,0),

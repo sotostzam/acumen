@@ -1,0 +1,186 @@
+/**
+ * A ping pong player,   with number n.
+ * Position and velocity of ball(p_ball,v_ball) are always provided by parent model.
+ * maxA is the maximum accerlaration the actuator can handle.
+ * */
+
+model Player(n,maxA) = 
+initially
+  name       =  "Player",
+  mode       =  "Wait",   // Initial mode is to Wait
+  bounced    =  false,    // Has the ball bounced?
+  myServe    =  false,    // Your turn to serve?  (set by Parent)
+  starting   =  false,    // Your turn to start the ball? (set by Parent)
+  v_ball     =  (0,0,0),      // Ball velocity (set by Parent)
+  p_ball     =  (0,0,0),      // Ball position (set by Parent)
+  p_bat      =  (1.6*(-1)^n,0,0.2),  // Bat  position (set by Parent)
+  v          =  (0,0,0),      // Bat velocity
+  v'         =  (0,0,0),      // Bat accerleration
+  
+  // The y position and velocity in z axis player can set to start the ball
+  y          =  (-1)^n * 0.5,
+  zp         =  4,
+  pH         =  (0,0,0),  // Heightest point of my start ball
+    
+  angle_bat   =  (0,0,0.001),  // Normal vector of the bat's plane
+  angle_bat'  =  (0,0,0),
+  a_desired   =  (0.9471*(-1)^(n+1),0,0.4),
+  v_desired   =  (1.6*(1)^n,0,1.2),
+       
+  // local timer
+  t     =  0,
+  t'    =  1,
+ 
+  // These coefficients are needed for prediction of ball movement
+  // Coefficient of restitution
+  k_z  =  (1.0, 1.0, -0.99),
+  // Coeffiecent of air resistance
+  k_a  =  -1/6,
+  // Ball acceleration (predicted)
+  a1_predicted   =  (0.0, 0.0, -9.8),
+  a2_predicted   =  (0.0, 0.0, -9.8),
+  // First prediction poit: time, position, speed
+  // When ball hits the table
+  t1_predicted   =  0,
+  p1_predicted   =  (0, 0, 0),
+  v1_predicted   =  (0, 0, 0),
+  // Second prediction point: time, position, speed
+  // The maximum point of the second parabola
+  t2_predicted   =  0,
+  p2_predicted   =  (0, 0, 0),
+  v2_predicted   =  (0, 0, 0),
+
+  doneOnce    =  false,
+  // Time for accelerating
+  ta          =  0,
+  // Time for decelerating
+  td          =  0,
+  // Unit vector of direction
+  u           =  (1,0,0),
+  // Distance between goal point and batp
+  d_ballBat   =  0,
+  // Prediction pointers (for debugging)
+  _3D = (Sphere center=(0,0,0) size=0.01 color=(200,0,0) rotation=(0,0,0),
+         Sphere center=(0,0,0) size=0.01 color=(200,0,0) rotation=(0,0,0))
+always
+  
+  if mode ~= "Wait"&& mode ~= "Prepare"&& mode ~= "Startball" then
+    mode + == "Panic!"
+  noelse,
+  
+  t'  = 1,   // Rate for local timer
+  // pH is the hightest from my start ball(easy to calculate from y and zp)   
+  pH + ==  (1.5 * (-1)^n, y, let t = abs(zp/(-9.8 +  k_a*(zp)^2)),
+                              a = -9.8 +  k_a*(zp)^2 in 
+                    zp*t + 0.5 * (a)*t^2),
+  match mode with [
+    "Wait" -> // Waiting for your serve, moving the bat to start point
+      v'  = ((1.6*(-1)^n,0,0.2) - p_bat) * 10 + 5 * ((0,0,0)- v),
+      t   + == 0,
+      t1_predicted  + == 0,
+      t2_predicted  + == 0, 
+      p2_predicted  + == (0,0,0),
+      doneOnce      + == false,
+      angle_bat'     = 2*((0,0,0) - angle_bat),
+      if myServe == true && starting == false then
+        mode + == "Prepare"
+      noelse,
+      // Calculate how to get to goal point(slightly behind and below pH)
+      if myServe == true && starting == true then
+        t + == 0,  
+        d_ballBat + == norm(p_bat - pH),
+        u + == (pH + (0.07*(-1)^n,0,-0.1) - p_bat)/norm(pH + (0.07*(-1)^n,0,-0.1) - p_bat),
+        ta + == let d_ballBat = norm(p_bat - pH) in sqrt(2* (d_ballBat / 2) / maxA),
+        mode + == "Startball"
+      noelse
+  | "Startball" -> // Start the ball as I wanted
+      _3D + == (Sphere center=p1_predicted size=0.02 color=(200,0,0) rotation=(0,0,0),
+                Sphere center=pH size=0.02 color=(0,100,200) rotation=(0,0,0)),
+        
+      // Path planning, first half distance fully accelerate the other 
+      // half fully decelerate
+      angle_bat' = (a_desired - angle_bat)/(ta * 0.5), 
+      if t < ta then
+        v' = maxA* u        
+      elseif t>=ta && t<2*ta then
+        v' = -maxA * u 
+      elseif norm(p_ball - p_bat)>0.2 then
+        v' = 5*((0,0,0)-v) 
+      // Prepare to hit the ball
+      elseif norm(p_ball - p_bat)<0.2 then
+        v' = (-20 * (p_ball(0)),0,5)
+      noelse
+  | "Prepare" ->   // Prepare to hit the ball and do the predict
+      // Do predict, and move pat towards the second predict point
+      // Bouncing condition
+      if (p_ball(2)) < 0 && bounced == false then
+        bounced + == true
+      noelse,
+      if bounced == true then
+        p1_predicted = p_ball,
+        v1_predicted = v_ball,
+        t1_predicted = 0
+      else (
+        // Calculating first prediction point
+        // Linearized air resistance
+        a1_predicted = (0, 0, -9.8) + k_a * norm(v_ball) * v_ball ,// acceleration of the ball
+        // 1/a in z direction
+        t1_predicted = (1/(a1_predicted(2))) * (-(v_ball(2))      // -v0
+                       - sqrt((v_ball(2))^2 - 2*(a1_predicted(2))*(p_ball(2)))) ,
+        p1_predicted = p_ball + v_ball * t1_predicted + 0.5 * a1_predicted * (t1_predicted^2) ,
+        v1_predicted = (v_ball + a1_predicted * t1_predicted) .* k_z ,
+        // Check if ball is going out of bounds
+        // We can predict this before it actually happens
+        // This actually can decrease power consuption in some cases.
+        if t > 0.2*abs(t1_predicted) then
+          if (p1_predicted(0))*(-1)^n > 1.55 || (p1_predicted(0))*(-1)^n < 0
+             || abs((p1_predicted(1))) > 0.78 then
+            mode    + == "Wait" ,
+            myServe + == false
+          noelse
+        noelse
+      ),
+
+      if doneOnce == false then
+        a2_predicted = (0, 0, -9.8) + k_a * norm(v1_predicted) * v1_predicted,
+        t2_predicted = -(v1_predicted(2)) / (a2_predicted(2)),
+        p2_predicted = p1_predicted + v1_predicted * t2_predicted + 0.5 * a2_predicted * (t2_predicted^2),
+        v2_predicted = p1_predicted + a2_predicted * t2_predicted,
+        v'  = ((1.6*(-1)^n,0,0.2)-p_bat) * 5 + 5 * ((0,0,0)- v),
+        // Predict the goal point to prepare hit the ball(only do once per turn)
+        if (t1_predicted < 0.15&& t1_predicted ~= 0)&& 
+           ((n==1&& (p_ball(0))<0) || (n==2&& (p_ball(0))>0)) then
+        
+          // Calculating second prediction point
+          // Linearized air resistance
+      
+          doneOnce + == true,
+          // First move back a bit
+          // Save 0.05 sec for hit the ball with calculated velocity and angle
+          t2_predicted + == t2_predicted - 0.05,
+          t  + == 0,
+          ta + == t2_predicted/2,
+          u + == (p2_predicted + (0.2*(-1)^n,0,0)-p_bat)/norm(p2_predicted + (0.2*(-1)^n,0,0) - p_bat) ,
+          d_ballBat + == norm(p2_predicted + (0.2*(-1)^n,0,0) - p_bat)
+        noelse,
+        _3D + == (Sphere center=p1_predicted size=0.02 color=(200,0,0) rotation=(0,0,0),
+                  Sphere center=p2_predicted size=0.02 color=(0,100,200) rotation=(0,0,0))
+      noelse,
+      
+      // Path planning, first move to p2, then wait to hit the ball
+      if doneOnce == true then
+        ta + == sqrt(2* (d_ballBat/2)/maxA) ,
+        angle_bat' = (a_desired - angle_bat)/ta ,
+        if t < ta then
+          v' = maxA* u
+        elseif t>=ta && t<2*ta then
+          v' = -maxA * u
+        elseif norm(p_ball - p_bat) > 0.2 then
+          v' =5*((0,0,0)-v)
+        // Prepare to hit the ball
+        elseif norm(p_ball - p_bat) < 0.2 then
+          v' = (-40*(p_ball(0)),(-3),20)
+        noelse
+      else
+        angle_bat' = 0
+  | "Panic!" -> ]
