@@ -4,7 +4,7 @@
 #include "04_class_BatActuator.acm"
 #include "05_class_cylinder.acm"
 #include "06_class_Game.acm"
-#include "07_class_player.acm"
+#include "07_class_Player.acm"
 #include "08_class_Referee.acm"
 #include "09_class_Table.acm"
 
@@ -21,6 +21,7 @@ always
     "Initialize" ->
       simulator.endTime  + == 20,
       simulator.timeStep + == 0.01,
+      //simulator.method + == "EulerForward",
       mode + == "CreateGame"
   | "CreateGame"  ->
       foreach  i in 0:(length(players)-1) do (
@@ -28,5 +29,4 @@ always
           create Game(players(i), players(j), i, j-1,simulator.endTime)
       ),
       mode + == "Persist"
-  | "Persist" ->
-  ]
+  | "Persist" ->]
