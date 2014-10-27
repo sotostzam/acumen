@@ -12,9 +12,10 @@ import util.ASTUtil.{
 }
 import Common._
 import Errors.{
-  BadLhs, BadRhs, ConstructorArity, ContinuousDynamicsUndefined, DuplicateContinuousAssingment, 
-  DuplicateDiscreteAssingment, HypothesisFalsified, NotAClassName, NotAnObject, 
-  PositionalAcumenError, ShouldNeverHappen, UnknownOperator
+  AcumenError, BadLhs, BadRhs, ConstructorArity, ContinuousDynamicsUndefined, 
+  DuplicateAssingment, DuplicateContinuousAssingment, DuplicateDiscreteAssingment,  
+  HypothesisFalsified, NotAClassName, NotAnObject, NoMatch,
+  PositionalAcumenError, ShouldNeverHappen, UnknownOperator, UnsupportedTypeError
 }
 import Pretty.pprint
 import ui.tl.Console
@@ -34,6 +35,7 @@ import acumen.interpreters.enclosure.Transcendentals
 import acumen.interpreters.enclosure.ivp.{
   LohnerSolver, PicardSolver
 }
+import scala.util.parsing.input.Position
 
 /**
  * Reference implementation of direct enclosure semantics.
@@ -138,23 +140,34 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
     /** Field-wise containment. */
     def contains(that: Enclosure): Boolean = { // TODO Update for dynamic objects
       def containsCObject(lo: CObject, ro: CObject): Boolean =
-        lo.forall {
+        if (classOf(lo) == cmagic && classOf(ro) == cmagic){
+          if (lo(time) == ro(time) && lo(timeStep) == ro(timeStep))
+            true
+          else 
+            throw internalError("Attempt to check containment of enclosures with incompatoble time domains: " +
+              s" [${lo(time)},${extractDouble(lo(time)) + extractDouble(lo(timeStep))}]" +
+              s", [${ro(time)},${extractDouble(ro(time)) + extractDouble(ro(timeStep))}]") 
+        }
+        else lo.forall {
           case (n, v) =>
             if (bannedFieldNames contains n) true
             else {
-              val rv = ro.get(n)
-              rv.isDefined && ((v, rv.get) match {
-                case (VLit(l: Real), VLit(r: Real)) => l contains r
-                case (VLit(l: GStrEnclosure), VLit(r: GStrEnclosure)) => l contains r
-                case (VLit(l: GIntEnclosure), VLit(r: GIntEnclosure)) => l contains r
-                case (VLit(GStr(_)) | VResultType(_) | VClassName(_), tv @ (VLit(GStr(_)) | VResultType(_) | VClassName(_))) => v == tv
-                case (VObjId(Some(o1)), VObjId(Some(o2))) => containsCObject(e(o1), that(o2))
-                case (_, tv) => sys.error(s"Contains not applicable to $n: $v, $tv in " + lo(self))
+              ((v, ro get n) match {
+                case (VLit(l: Real), Some(VLit(r: Real))) => 
+                  l contains r
+                case (VLit(l: GStrEnclosure), Some(VLit(r: GStrEnclosure))) => 
+                  l contains r
+                case (VLit(l: GIntEnclosure), Some(VLit(r: GIntEnclosure))) => 
+                  l contains r
+                case (VLit(_:GStr) | _:VResultType | _:VClassName, tv @ Some(VLit(_:GStr) | _:VResultType | _:VClassName)) => 
+                  v == tv
+                case (VObjId(Some(o1)), Some(VObjId(Some(o2)))) => 
+                  containsCObject(e(o1), that(o2))
+                case (_, Some(tv)) => 
+                  throw internalError(s"Contains not applicable to ${pprint(n)}: ${pprint(v)}, ${pprint(tv)}")
+                
               })}}
-        e.forall { case (cid, co) => 
-          if (classOf(co) == cmagic) true // FIXME Sanity check this
-          else containsCObject(co, that(cid)) 
-        }
+        e.forall { case (cid, co) => containsCObject(co, that(cid)) }
       }
     /** Take the intersection of e and that Object. */
     def intersect(that: Enclosure): Option[Enclosure] = merge(that, (l: GroundValue, r: GroundValue) => ((l,r): @unchecked) match {
@@ -220,7 +233,10 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
           Changeset(reps ++ reps1, ass ++ ass1, eqs ++ eqs1, odes ++ odes1, claims ++ claims1, hyps ++ hyps1)
       }
     override def toString =
-      (reps, ass.map(d => pprint(d.a)), ass.map(d => pprint(d.a)), odes.map(d => pprint(d.a)), claims.map(d => pprint(d.c))).toString
+      (reps, ass.map(d => d.selfCId + "." + pprint(d.a))
+           , eqs.map(d => d.selfCId + "." + pprint(d.a))
+           , odes.map(d => d.selfCId + "." + pprint(d.a))
+           , claims.map(d => d.selfCId + "." + pprint(d.c))).toString
   }
   object Changeset {
     def combine[A](ls: Set[Changeset], rs: Set[Changeset]): Set[Changeset] =
@@ -234,33 +250,35 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
       combine(xs map f)
     def logReparent(o:CId, parent:CId): Set[Changeset] =
       Set(Changeset(reps = Set((o,parent))))
-    def logAssign(path: Expr, o: CId, d: Dot, a: Action, e: Expr, env: Env): Set[Changeset] =
+    def logAssign(path: Expr, o: CId, a: Action, env: Env): Set[Changeset] =
       Set(Changeset(ass = Set(DelayedAction(path,o,a,env))))
-    def logEquation(path: Expr, o: CId, d: Dot, a: Action, e: Expr, env: Env): Set[Changeset] =
+    def logEquation(path: Expr, o: CId, a: Action, env: Env): Set[Changeset] =
       Set(Changeset(eqs = Set(DelayedAction(path,o,a,env))))
-    def logODE(path: Expr, o: CId, d: Dot, a: Action, e: Expr, env: Env): Set[Changeset] =
+    def logODE(path: Expr, o: CId, a: Action, env: Env): Set[Changeset] =
       Set(Changeset(odes = Set(DelayedAction(path,o,a,env))))
-    def logClaim(o: CId, c: Expr) : Set[Changeset] =
-      Set(Changeset(claims = Set(DelayedConstraint(o,c))))
+    def logClaim(o: CId, c: Expr, env: Env) : Set[Changeset] =
+      Set(Changeset(claims = Set(DelayedConstraint(o,c,env))))
     def logHypothesis(o: CId, s: Option[String], h: Expr, env: Env): Set[Changeset] =
       Set(Changeset(hyps = Set(DelayedHypothesis(o,s,h,env))))
     lazy val empty = new Changeset()
   }
   case class DelayedAction(path: Expr, selfCId: CId, a: Action, env: Env) {
-    def lhs: Dot = (a: @unchecked) match {
-      case Discretely(Assign(dot: Dot, _))      => dot
-      case Continuously(EquationT(dot: Dot, _)) => dot
-      case Continuously(EquationI(dot: Dot, _)) => dot
+    def lhs: ResolvedDot = (a: @unchecked) match {
+      case Discretely(Assign(d: ResolvedDot, _))      => d
+      case Continuously(EquationT(d: ResolvedDot, _)) => d
+      case Continuously(EquationI(d: ResolvedDot, _)) => d
     }
     def rhs: Expr = (a: @unchecked) match {
       case Discretely(x: Assign)      => x.rhs
       case Continuously(x: EquationT) => x.rhs
       case Continuously(x: EquationI) => x.rhs
     }
+    override def toString() =
+      s"$selfCId.${Pretty pprint (lhs: Expr)} = ${Pretty pprint rhs}"
   }
-  case class DelayedConstraint(selfCId: CId, c: Expr)
+  case class DelayedConstraint(selfCId: CId, c: Expr, env: Env)
   case class DelayedHypothesis(selfCId: CId, s: Option[String], h: Expr, env: Env)
-
+  
   import Changeset._
 
   case class GConstantRealEnclosure(start: Interval, enclosure: Interval, end: Interval) extends GRealEnclosure {
@@ -344,6 +362,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
       }
       override def mapClause(c: Clause) : Clause = c match {
         case Clause(GStr(lhs), as, rhs) => Clause(GStrEnclosure(lhs), mapExpr(as), mapActions(rhs))
+        case Clause(GInt(lhs), as, rhs) => Clause(Real(lhs), mapExpr(as), mapActions(rhs)) // FIXME Use discrete integer enclosure instead of Real
         case _ => super.mapClause(c)
       }
     }.mapProg(p)
@@ -454,21 +473,18 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
         case ExprVector(l)  => VVector (l map (eval(env,_)))
         case Var(n)         => env.get(n).getOrElse(VClassName(ClassName(n.x)))
         case Index(v,i)     => evalIndexOp(eval(env, v), eval(env, i))
-        case Dot(o,Name("children",0)) =>
-          /* In order to avoid redundancy en potential inconsistencies, 
+        case Dot(o,f) =>
+          val id = extractId(evalExpr(o,env,st))
+          env.get(f).getOrElse(getObjectField(id, f, st))
+        /* e.f */
+        case ResolvedDot(id, o, f) =>
+          if (f == Name("children",0))
+          /* In order to avoid redundancy and potential inconsistencies, 
              each object has a pointer to its parent instead of having 
              each object maintain a list of its children. This is why the childrens'
              list has to be computed on the fly when requested. 
              An efficient implementation wouldn't do that. */
-          val id = extractId(eval(env,o))
-          checkAccessOk(id, env, st, o)
-          VList(childrenOf(id,st) map (c => VObjId(Some(c))))
-        /* e.f */
-        case Dot(e,f) =>
-          val id = extractId(eval(env, e))
-          checkAccessOk(id, env, st, e)
-          if (id == selfCId(env))
-            env.get(f).getOrElse(getObjectField(id, f, st))
+            VList(childrenOf(id,st) map (c => VObjId(Some(c))))
           else
             getObjectField(id, f, st)
         /* FIXME:
@@ -633,18 +649,21 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
               case VLit(CertainTrue)  => (CertainTrue, evalActions(certain, path, rhs, env, p, st)) // FIXME Add op("!=", mode, Lit(lhs)) to path
               case VLit(CertainFalse) => (CertainFalse, Set(Changeset.empty))
             }
-          (inScope, claim match {
-            case Lit(GBool(true)) => stmts
-            case _ =>
-              combine(stmts :: logClaim(selfCId(env), claim) :: Nil)
+          (lhs, inScope, claim match {
+            case Lit(CertainTrue) => stmts
+            case _ => combine(stmts :: logClaim(selfCId(env), claim, env) :: Nil)
           })
         }
-        val (in, uncertain) = modes.foldLeft((Set.empty[Changeset], Set.empty[Changeset])) {
-          case (iu @ (i, u), (gub, scs)) => (gub: @unchecked) match {
-            case CertainTrue  => (combine(i, scs), u)
-            case Uncertain    => (i, u union scs)
-            case CertainFalse => iu
+        val (allCertFalse, in, uncertain) = modes.foldLeft((true, Set.empty[Changeset], Set.empty[Changeset])) {
+          case (iu @ (a, i, u), (_, gub, scs)) => (gub: @unchecked) match {
+            case CertainTrue  => (false, combine(i, scs), u)
+            case Uncertain    => (false, i, u union scs)
+            case CertainFalse => (true && a, i, u)
           }
+        }
+        if (allCertFalse) {
+          val VLit(gv) = evalExpr(mode, env, st)
+          throw NoMatch(gv).setPos(mode.pos)
         }
         combine(in, uncertain)
       case Discretely(da) =>
@@ -652,48 +671,57 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
       case Continuously(ca) =>
         evalContinuousAction(certain, path, ca, env, p, st) 
       case Claim(c) =>
-        logClaim(selfCId(env), c)
+        logClaim(selfCId(env), c, env)
       case Hypothesis(s, e) =>
         if (path == Lit(CertainTrue)) // top level action
           logHypothesis(selfCId(env), s, e, env)
         else 
-          throw new PositionalAcumenError{ val mesg = "Hypothesis statements are only allowed on the top level." }.setPos(e.pos)
+          throw internalPosError("Hypothesis statements are only allowed on the top level.", e.pos)
       case ForEach(n, col, body) => //TODO Add support for for-each statements
-        throw new PositionalAcumenError{ val mesg = "For-each statements are not supported in the Enclosure 2014 semantics." }.setPos(col.pos)
+        throw internalPosError("For-each statements are not supported in the Enclosure 2014 semantics.", col.pos)
     }
+
+  /** 
+   * Convert Dot d to a ResolvedDot rd by looking up the CId (valid in st) 
+   * corresponding to its obj in env. Substitue rd for d in rhs and return 
+   * rd together with the resulting expression.  
+   * 
+   * Note: Checks that the access implied by d is OK. 
+   */
+  def resolve(d: Dot, rhs: Expr, env: Env, st: CStore): (ResolvedDot, Expr) = {
+    val id = extractId(evalExpr(d.obj, env, st))
+    checkAccessOk(id, env, st, d.obj)
+    val rd = ResolvedDot(id, d.obj, d.field)
+    (rd, substitute(d, rd, rhs))
+  }
  
   def evalDiscreteAction(certain:Boolean, path: Expr, a:DiscreteAction, env:Env, p:Prog, st: Enclosure) : Set[Changeset] =
     a match {
       case Assign(Dot(o @ Dot(Var(self),Name(simulator,0)), n), e) =>
         Set.empty // TODO Ensure that this does not cause trouble down the road 
-      case Assign(d@Dot(o,x),rhs) => 
+      case Assign(e @ Dot(o, _), rhs) =>
         /* Schedule the discrete assignment */
-        val id = evalExpr(o, env, st) match {
-          case VObjId(Some(id)) => checkAccessOk(id, env, st, o); id
-          case v => throw NotAnObject(v).setPos(o.pos)
-        }
-        logAssign(path, id, d, Discretely(a), rhs, env)
+        val (rd, rRhs) = resolve(e, rhs, env, st)
+        logAssign(path, rd.id, Discretely(Assign(rd,rRhs)), env)
       /* Basically, following says that variable names must be 
          fully qualified at this language level */
       case c: Create =>
-        throw new PositionalAcumenError{
-          def mesg = "The 2014 Enclosure semantics does not support create statements in the always section."
-        }.setPos(c.pos)
+        throw internalPosError("The 2014 Enclosure semantics does not support create statements in the always section.", c.pos)
       case Assign(_,_) => 
         throw BadLhs()
     }
 
   def evalContinuousAction(certain:Boolean, path: Expr, a:ContinuousAction, env:Env, p:Prog, st: Enclosure) : Set[Changeset] = 
     a match {
-      case EquationT(d@Dot(e,Name(_,primes)),rhs) => // TODO Add some level of support for equations
-//        if (primes == 0) throw new PositionalAcumenError{ def mesg = "Continuous assignments to unprimed variables are not supported." }.setPos(d.pos) 
-//        else { // This EquationT is a Equation that defines an ODE
-          val id = extractId(evalExpr(e, env, st))
-          logEquation(path, id, d, Continuously(a), e, env)
-//        }
-      case EquationI(d@Dot(e,_),rhs) =>
-        val id = extractId(evalExpr(e, env, st))
-        logODE(path, id, d, Continuously(a), e, env)
+      case EquationT(Dot(e: Dot, n), rhs) =>
+        val (rd, rRhs) = resolve(e, rhs, env, st)
+        logEquation(path, rd.id, Continuously(EquationT(rd, rRhs)), env)
+      case EquationT(e @ Dot(o, _), rhs) =>
+        val (rd, rRhs) = resolve(e, rhs, env, st)
+        logEquation(path, rd.id, Continuously(EquationT(rd, rRhs)), env)
+      case EquationI(e @ Dot(o, _), rhs) =>
+        val (rd, rRhs) = resolve(e, rhs, env, st)
+        logODE(path, rd.id, Continuously(EquationI(rd, rRhs)), env)
       case _ =>
         throw ShouldNeverHappen() // FIXME: enforce that with refinement types
     }
@@ -765,8 +793,10 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
       else co.filter{
         case (n,_) if bannedFieldNames contains n => false
         case (_, VLit(_: GStr) | VLit(_: GStrEnclosure) | _:VObjId[_]) => false
-        case (_, VLit(_:Real)) => true
-        case f => sys.error("Usupported field type for: " + f)
+        case (_, VLit(_: Real)) => true
+        case (n,v) =>
+          val typ = "type " + v.getClass.getSimpleName
+          throw new UnsupportedTypeError(typ, s"(${cid.cid.toString}:${getCls(cid, st).x}).${pprint(n)}", v)
       }.map{ case (n,v) => (fieldIdToName(cid,n), (cid, n)) } 
     }
   
@@ -795,7 +825,8 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
   }
 
   /** Traverse the AST (p) and collect statements that are active given st. */
-  def active(st: Enclosure, p: Prog): Set[Changeset] = iterate(evalStep(p, st, _), mainId(st), st)
+  def active(st: Enclosure, p: Prog): Set[Changeset] = 
+    iterate(evalStep(p, st, _), mainId(st), st)
 
   /** Ensure that c does not contain duplicate assignments. */
   def checkValidChange(c: Set[Changeset]): Unit = c.foreach{ cs =>
@@ -812,7 +843,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
    */
   def checkFlowDefined(prog: Prog, cs: Changeset, st: Enclosure): Unit =
     if (isFlow(cs)) {
-      val contNamesActive = (cs.eqs union cs.odes).map { da => val (id, n) = globalReference(da.lhs, da.env, st); (id, n.x) }
+      val contNamesActive = (cs.eqs union cs.odes).map { da => (da.lhs.id, da.lhs.field.x) }
       val odeNamesDeclared = prog.defs.map(d => (d.name, (d.fields ++ d.priv.map(_.x)).filter(_.primes > 0))).toMap
       st.foreach {
         case (o, _) =>
@@ -895,7 +926,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
             Logger.trace(s"encloseHw (Not a flow)")
             val wi = 
               if (intersectWithGuardBeforeReset)
-                contract(w, q.ass.map(da => DelayedConstraint(da.selfCId, da.path)), prog)
+                contract(w, q.ass.map(da => DelayedConstraint(da.selfCId, da.path, da.env)), prog)
                   .fold(sys error "Empty intersection while contracting with guard. " + _, i => i)
               else w
             ((wi(q.ass), q :: qw, t) :: tmpW, tmpR, tmpU)
@@ -968,8 +999,8 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
      * Given a predicate p and store st, removes that part of st for which p does not hold.
      * NOTE: The range of st is first computed, as contraction currently only works on intervals.  
      */
-    def contract(st: Enclosure, p: Expr, prog: Prog, selfCId: CId): Option[Enclosure] = {
-      lazy val box = envBox(p, selfCId, st, prog)
+    def contract(st: Enclosure, p: Expr, prog: Prog, env: Env, selfCId: CId): Option[Enclosure] = {
+      lazy val box = envBox(p, env, st)
       val varNameToFieldId = varNameToFieldIdMap(st)
       val noUpdate = Map[(CId,Name), CValue]()
       def toAssoc(b: Box) = b.map{ case (k, v) => (varNameToFieldId(k), VLit(Real(v))) }
@@ -977,24 +1008,24 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
         case Lit(CertainTrue | Uncertain) => Some(st)
         case Lit(CertainFalse) => None
         case Op(Name("&&",0), List(l,r)) => 
-          (contract(st,l,prog,selfCId), contract(st,r,prog,selfCId)) match {
+          (contract(st,l,prog,env,selfCId), contract(st,r,prog,env,selfCId)) match {
             case (Some(pil),Some(pir)) => pil intersect pir
             case _ => None
           }
         case Op(Name(op,0), List(l,r)) =>
-          val lv = evalExpr(l, prog, selfCId, st)
-          val rv = evalExpr(r, prog, selfCId, st)
-          lazy val le = acumenExprToExpression(l,selfCId,st,prog)
-          lazy val re = acumenExprToExpression(r,selfCId,st,prog)
+          val lv = evalExpr(l, env, st)
+          val rv = evalExpr(r, env, st)
+          lazy val le = acumenExprToExpression(l,selfCId,env,st,prog)
+          lazy val re = acumenExprToExpression(r,selfCId,env,st,prog)
           val smallerBox = (op,lv,rv) match {
             // Based on acumen.interpreters.enclosure.Contract.contractEq 
             case ("==", VLit(_: GStrEnclosure), VLit(_: GStrEnclosure)) =>
               Map((l, r, lv, rv) match {
                 case (Dot(obj, ln), _, VLit(lvs: GStrEnclosure), VLit(rvs: GStrEnclosure)) =>
-                  val VObjId(Some(objId)) = evalExpr(obj, prog, selfCId, st)
+                  val VObjId(Some(objId)) = evalExpr(obj, env, st)
                   (objId.cid, ln) -> VLit(GStrEnclosure(lvs.range intersect rvs.range))
                 case (_, Dot(obj, rn), VLit(lvs: GStrEnclosure), VLit(rvs: GStrEnclosure)) =>
-                  val VObjId(Some(objId)) = evalExpr(obj, prog, selfCId, st)
+                  val VObjId(Some(objId)) = evalExpr(obj, env, st)
                   (objId.cid, rn) -> VLit(GStrEnclosure(lvs.range intersect rvs.range))
                 case _ => sys.error(s"Can not apply '$op' to operands (${Pretty pprint l}, ${Pretty pprint r})")
               })
@@ -1023,31 +1054,27 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
       case (res, claim) => res match {
         case Right(r) => 
           try {
-            contract(r, claim.c, prog, claim.selfCId) map 
+            contract(r, claim.c, prog, claim.env, claim.selfCId) map 
               (Right(_)) getOrElse Left("Empty enclosure after applying claim " + pprint(claim.c))
-          } catch { case e: Throwable => Left("Error while applying claim " + pprint(claim.c) + ": " + e.getMessage) }
+          } catch {
+            case e: AcumenError => throw e
+            case e: Throwable => Left("Error while applying claim " + pprint(claim.c) + ": " + e.getMessage) 
+          }
         case _ => res
       }
     }
   }
   
   /** Box containing the values of all variables (Dots) that occur in it. */
-  def envBox(e: Expr, selfCId: CId, st: Enclosure, prog: Prog): Box = {
+  def envBox(e: Expr, env: Env, st: Enclosure): Box = {
     new Box(dots(e).flatMap{ case d@Dot(obj,n) =>
-      val VObjId(Some(objId)) = evalExpr(obj, prog, selfCId, st) 
-      evalExpr(d, prog, selfCId, st) match {
+      val VObjId(Some(objId)) = evalExpr(obj, env, st) 
+      evalExpr(d, env, st) match {
         case VLit(r: Real) => (fieldIdToName(objId.cid,n), r.range) :: Nil
         case VLit(r: GStrEnclosure) => Nil
       }
     }.toMap)
   }
-
-  /**
-   * Evaluate expression in object with CId selfCId. 
-   * NOTE: Can assume that selfCId is not a simulator object. 
-   */
-  def evalExpr(e: Expr, p: Prog, selfCId: CId, st: Enclosure): CValue =
-    evalExpr(e,Map(Name("self", 0) -> VObjId(Some(selfCId))), st)
 
   val solver = if (contraction) new LohnerSolver {} else new PicardSolver {}
   val extract = new acumen.interpreters.enclosure.Extract{}
@@ -1092,16 +1119,16 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
     }
     val odeSolutions = ic update solutionMap
     val equationsMap = inline(eqs, eqs, st).map { // LHSs of EquationsTs, including highest derivatives of ODEs
-      case DelayedAction(_, cid, Continuously(EquationT(Dot(_, n), rhs)), env) =>
-        (cid, n) -> evalExpr(rhs, p, cid, odeSolutions)
+      case DelayedAction(_, cid, Continuously(EquationT(ResolvedDot(_, _, n), rhs)), env) =>
+        (cid, n) -> evalExpr(rhs, env, odeSolutions)
     }.toMap
     odeSolutions update equationsMap
   }
 
   /** Convert odes into a Field compatible with acumen.interpreters.enclosure.ivp.IVPSolver. */
   def getFieldFromActions(odes: Set[DelayedAction], st: Enclosure, p: Prog)(implicit rnd: Rounding): Field =
-    Field(odes.map { case DelayedAction(_, cid, Continuously(EquationI(Dot(_, n), rhs)), _) =>
-      (fieldIdToName(cid, n), acumenExprToExpression(rhs, cid, st, p))
+    Field(odes.map { case DelayedAction(_, cid, Continuously(EquationI(ResolvedDot(_, _, n), rhs)), env) =>
+      (fieldIdToName(cid, n), acumenExprToExpression(rhs, cid, env, st, p))
     }.toMap)
   
   /**
@@ -1111,27 +1138,33 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
    * 
    * NOTE: This implies a restriction on the programs that are accepted: 
    *       If the program contains an algebraic loop, an exception will be thrown.
-   * */
+   */
   def inline(as: Set[DelayedAction], bs: Set[DelayedAction], st: CStore): Set[DelayedAction] = {
-    val globalRefToDA = as.map(da => globalReference(da.lhs, da.env, st) -> da).toMap
+    val resolvedDotToDA = as.map(da => da.lhs -> da).toMap
     def inline(hosts: Map[DelayedAction,List[DelayedAction]]): Set[DelayedAction] = {
       val next = hosts.map {
         case (host, inlined) =>
           dots(host.rhs).foldLeft((host, inlined)) {
           case (prev@(hostPrev, ildPrev), d) =>
-              globalRefToDA.get(globalReference(d, host.env, st)) match {
-              case None => prev // No equation is active for d
+              resolvedDotToDA.get(resolveDot(d, host.env, st)) match {
+              case None => prev // No assignment is active for d
               case Some(inlineMe) => 
-                if (inlineMe.lhs.obj == hostPrev.lhs.obj && inlineMe.lhs.field.x == hostPrev.lhs.field.x)
-                  (hostPrev -> inlined) // Do not in-line derivative equations
+                if (inlineMe.lhs.obj          == hostPrev.lhs.obj && 
+                    inlineMe.lhs.field.x      == hostPrev.lhs.field.x &&
+                    inlineMe.lhs.field.primes == hostPrev.lhs.field.primes + 1)
+                  hostPrev -> inlined // Do not in-line derivative equations
                 else {
-                  val daNext = hostPrev.copy(a = (hostPrev.a match {
-                    case Continuously(e: EquationI) =>
-                      Continuously(e.copy(rhs = substitute(inlineMe.lhs, inlineMe.rhs, e.rhs)))
-                    case Continuously(e: EquationT) =>
-                      Continuously(e.copy(rhs = substitute(inlineMe.lhs, inlineMe.rhs, e.rhs)))
-                  }))
-                  (daNext -> (inlineMe :: inlined))
+                  val daNext = hostPrev.copy(
+                    a = hostPrev.a match {
+                      case Continuously(e: EquationI) =>
+                        val dot = Dot(inlineMe.lhs.obj,inlineMe.lhs.field)
+                        Continuously(e.copy(rhs = substitute(dot, inlineMe.rhs, e.rhs)))
+                      case Continuously(e: EquationT) =>
+                        val dot = Dot(inlineMe.lhs.obj,inlineMe.lhs.field)
+                        Continuously(e.copy(rhs = substitute(dot, inlineMe.rhs, e.rhs)))
+                    }, 
+                    env = hostPrev.env ++ inlineMe.env)
+                  daNext -> (inlineMe :: inlined)
                 }
             }
         }
@@ -1141,9 +1174,8 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
         lazy val loop = inlined.reverse.dropWhile(!dupes.contains(_))
         if (dupes isEmpty)
           hosts.get(da) == Some(inlined)
-        else throw new PositionalAcumenError { 
-          def mesg = "Algebraic loop detected: " + 
-            loop.map(a => pprint (a.lhs: Expr)).mkString(" -> ") }.setPos(loop.head.lhs.pos)
+        else 
+          throw internalPosError("Algebraic loop detected: " + loop.map(a => pprint (a.lhs: Expr)).mkString(" -> "), loop.head.lhs.pos)
       }
       if (reachedFixpoint) next.keySet
       else inline(next)
@@ -1175,33 +1207,47 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
     })
   }
   
-  def acumenExprToExpression(e: Expr, selfCId: CId, st: Enclosure, p: Prog)(implicit rnd: Rounding): Expression = e match {
-    case Lit(v) if v.eq(Constants.PI) => Constant(Interval.pi) // Test for reference equality not structural equality
-    case Lit(GInt(d))                 => Constant(d)
-    case Lit(GDouble(d))              => Constant(d)
-    case Lit(e:Real)                  => Constant(e.enclosure) // FIXME Over-approximation of end-time interval!
-    case ExprInterval(lo, hi)         => Constant(extract.foldConstant(lo).value /\ extract.foldConstant(hi).value)
-    case ExprIntervalM(mid0, pm0)     => val mid = extract.foldConstant(mid0).value
-                                         val pm = extract.foldConstant(pm0).value
-                                         Constant((mid - pm) /\ (mid + pm))
-    case Var(n)                       => fieldIdToName(selfCId, n)
-    case Dot(objExpr, n) => 
-      val VObjId(Some(obj)) = evalExpr(objExpr, p, selfCId, st) 
-      fieldIdToName(obj, n)
-    case Op(Name("-", 0), List(x))    => Negate(acumenExprToExpression(x,selfCId,st,p))
-    case Op(Name("abs", 0), List(x))  => Abs(acumenExprToExpression(x,selfCId,st,p))
-    case Op(Name("cos", 0), List(x))  => Cos(acumenExprToExpression(x,selfCId,st,p))
-    case Op(Name("sin", 0), List(x))  => Sin(acumenExprToExpression(x,selfCId,st,p))
-    case Op(Name("sqrt", 0), List(x)) => Sqrt(acumenExprToExpression(x,selfCId,st,p))
-    case Op(Name("-", 0), List(l, r)) => acumenExprToExpression(l,selfCId,st,p) - acumenExprToExpression(r,selfCId,st,p)
-    case Op(Name("+", 0), List(l, r)) => acumenExprToExpression(l,selfCId,st,p) + acumenExprToExpression(r,selfCId,st,p)
-    case Op(Name("/", 0), List(l, r)) => Divide(acumenExprToExpression(l,selfCId,st,p), acumenExprToExpression(r,selfCId,st,p))
-    case Op(Name("*", 0), List(l, r)) => acumenExprToExpression(l,selfCId,st,p) * acumenExprToExpression(r,selfCId,st,p)
-    case _                            => sys.error("Handling of expression " + e + " not implemented!")
+  def acumenExprToExpression(e: Expr, selfCId: CId, env: Env, st: Enclosure, p: Prog)(implicit rnd: Rounding): Expression = {
+    def convert(x: Expr) = acumenExprToExpression(x, selfCId, env, st, p)
+    e match {
+      case Lit(v) if v.eq(Constants.PI) => Constant(Interval.pi) // Test for reference equality not structural equality
+      case Lit(GInt(d))                 => Constant(d)
+      case Lit(GDouble(d))              => Constant(d)
+      case Lit(e:Real)                  => Constant(e.enclosure) // FIXME Over-approximation of end-time interval!
+      case ExprInterval(lo, hi)         => Constant(extract.foldConstant(lo).value /\ extract.foldConstant(hi).value)
+      case ExprIntervalM(mid0, pm0)     => val mid = extract.foldConstant(mid0).value
+                                           val pm = extract.foldConstant(pm0).value
+                                           Constant((mid - pm) /\ (mid + pm))
+      case Var(n)                       => fieldIdToName(selfCId, n)
+      case Dot(objExpr, n) => 
+        val VObjId(Some(obj)) = evalExpr(objExpr, env, st) 
+        fieldIdToName(obj, n)
+      case ResolvedDot(obj,_,n) => 
+        fieldIdToName(obj, n)
+      case Op(Name("-", 0), List(x))    => Negate(convert(x))
+      case Op(Name("abs", 0), List(x))  => Abs(convert(x))
+      case Op(Name("cos", 0), List(x))  => Cos(convert(x))
+      case Op(Name("sin", 0), List(x))  => Sin(convert(x))
+      case Op(Name("sqrt", 0), List(x)) => Sqrt(convert(x))
+      case Op(Name("-", 0), List(l, r)) => convert(l) - convert(r)
+      case Op(Name("+", 0), List(l, r)) => convert(l) + convert(r)
+      case Op(Name("/", 0), List(l, r)) => Divide(convert(l), convert(r))
+      case Op(Name("*", 0), List(l, r)) => convert(l) * convert(r)
+      case _                            => sys.error("Handling of expression " + e + " not implemented!")
+    }
   }
   
   /* Utilities */
   
   def fieldIdToName(o: CId, n: Name): String = s"$n@$o"
+  
+  def internalError(s: String): AcumenError = new AcumenError {
+    def mesg = s 
+  }
+
+  def internalPosError(s: String, p: Position): PositionalAcumenError = new PositionalAcumenError {
+    def mesg = s
+  }.setPos(p)
+    
   
 }

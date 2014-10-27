@@ -9,13 +9,12 @@
 // same result.  This should not be the
 // case.
 
-class Main(simulator)
-private
- x:=2.0; x':=0; x'':=0;
- y:=2.0; y':=0; z:=0; z':=0
-end
- x'' = -10*sin(x);
- y'  = z;
+model Main(simulator) =
+initially
+ x=2.0, x'=0, x''=0,
+ y=2.0, y'=0, z=0, z'=0
+always
+ x'' = -10*sin(x),
+ y'  = z,
  z'  = -10*sin(y)
-end
 

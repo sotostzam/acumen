@@ -9,11 +9,11 @@ object AcumenProject extends Build {
 
   // full: The main testsuite
   lazy val FullTest = config("full") extend(Test)
-  def fullTestFilter(name: String) = !(brokenTests ++ experimentalTests).contains(name)
+  def fullTestFilter(name: String) = !(brokenTests ++ experimentalTests ++ oldSemanticsTests).contains(name)
 
   // quick: Quick tests that test for essential functionality
   lazy val QuickTest = config("quick") extend(Test)
-  def quickTestFilter(name: String) = !(slowTests ++ brokenTests ++ experimentalTests).contains(name)
+  def quickTestFilter(name: String) = !(slowTests ++ brokenTests ++ experimentalTests ++ oldSemanticsTests).contains(name)
 
   // slow: Tests that may take awhile
   lazy val SlowTest = config("slow") extend(Test)
@@ -34,6 +34,14 @@ object AcumenProject extends Build {
   lazy val ExperimentalTest = config("experimental") extend(Test)
   val experimentalTests = Set("acumen.FlattenSimpleTest")
   def experimentalTestFilter(name: String) = experimentalTests.contains(name)
+
+  // older semantics not currently enabled in this release and with examples failing
+  lazy val OldSemanticsTest = config("oldSemantics") extend(Test)
+  val oldSemanticsTests = Set("acumen.interpreters.imperative2012.Parallel2012SemanticsTest", 
+                              "acumen.interpreters.imperative2012.Imperative2012SemanticsTest", 
+                              "acumen.interpreters.optimized.Optimized2013SemanticsTest",
+                              "acumen.interpreters.optimized.Optimized2014SemanticsTest")
+  def oldSemanticsTestFilter(name: String) = oldSemanticsTests.contains(name)
 
   lazy val root = Project(id = "acumen", base = file("."))
 

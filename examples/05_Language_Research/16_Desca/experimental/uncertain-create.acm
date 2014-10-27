@@ -1,0 +1,21 @@
+// Uncertain Object Creation Example
+
+model Main(simulator) =
+  initially
+    x = 0, x' = 1
+  always
+  if x >= 1 
+  then 
+    create Timer(0),
+    x+ == 0
+  else
+    x' == 1,
+  simulator.endTime+  == 1.5,
+  simulator.timeStep+ == 0.1
+
+model Timer(t) =
+  initially t' = 1 
+  always t' == 1
+
+// Note:  The create statement on line 10 becomes
+//        uncertainly active around time 1.0.

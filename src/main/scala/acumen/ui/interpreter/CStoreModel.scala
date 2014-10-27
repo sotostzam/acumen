@@ -136,7 +136,9 @@ case class DataModel(columnNames: im.IndexedSeq[String], rowCount: Int,
                       Enclosure(i.loDouble, i.hiDouble, i.loDouble, i.hiDouble)
                   }).toIndexedSeq
                   res += new PlotEnclosure(a.isSimulator, a.key.fieldName, a.startFrame, idx, collE)
-                case VVector(n) => //collGV.map(x => println(x.toString+"  " +a.key.toString))
+                case VLit(_: GStr | _: GDiscreteEnclosure[_])  => 
+                  res += new PlotDiscrete(a.isSimulator, a.key.fieldName, a.startFrame, idx, a0)
+                case VVector(n) =>
                 case _ => ()
               }
           case _ => ()

@@ -82,8 +82,11 @@ class Controller extends DaemonActor {
           model = interpreter.newInterpreterModel
           producer = interpreter.init(progText, currentDir, this)
           link(producer)
-          producer.start()
           setState(Starting)
+          Thread.sleep(100) // Hack to give the console time to update
+                            // before starting the interpreter -- kevina
+                            // note: 100ms may be overkill
+          producer.start()
         case Play  =>
           newState = Resuming
           //println("PLAY")
@@ -93,8 +96,9 @@ class Controller extends DaemonActor {
             actor ! SendInit
           } else {
             //println("Producer State: " + producer.getState)
-            producer ! IC.GoOn
             setState(Resuming)
+            Thread.sleep(100) // hack see case Init
+            producer ! IC.GoOn
           }
         case Pause => 
           //println("PAUSE")
@@ -108,8 +112,11 @@ class Controller extends DaemonActor {
           if (producer == null) {
             actor ! SendInit
           } else {
-            producer ! IC.Step
             setState(Resuming)
+            Thread.sleep(10) // hack see case Init, using 10 ms to
+                             // avoid excessive delay when single
+                             // stepping
+            producer ! IC.Step
           }
         case Stop  => 
           //println("STOP")
