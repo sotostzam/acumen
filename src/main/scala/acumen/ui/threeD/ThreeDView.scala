@@ -467,12 +467,12 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
     if (scaleFactors.contains(o)) {
       if (o != null) {
         val (xFactor, yFactor, zFactor) =
-          (if (size(0) == 0)  scaleFactors(o)(0) * 0.001   / abs(o.getMesh.getBoundingBox()(1) - o.getMesh.getBoundingBox()(0))
-          else                scaleFactors(o)(0) * size(0) / abs(o.getMesh.getBoundingBox()(1) - o.getMesh.getBoundingBox()(0)),
-            if (size(1) == 0) scaleFactors(o)(1) * 0.001   / abs(o.getMesh.getBoundingBox()(3) - o.getMesh.getBoundingBox()(2))
-            else              scaleFactors(o)(1) * size(1) / abs(o.getMesh.getBoundingBox()(3) - o.getMesh.getBoundingBox()(2)),
-            if (size(2) == 0) scaleFactors(o)(2) * 0.001   / abs(o.getMesh.getBoundingBox()(5) - o.getMesh.getBoundingBox()(4))
-            else              scaleFactors(o)(2) * size(2) / abs(o.getMesh.getBoundingBox()(5) - o.getMesh.getBoundingBox()(4)))
+          (if (size(0) == 0) scaleFactors(o)(0) * 0.001   / abs(o.getMesh.getBoundingBox()(1) - o.getMesh.getBoundingBox()(0))
+           else              scaleFactors(o)(0) * size(0) / abs(o.getMesh.getBoundingBox()(1) - o.getMesh.getBoundingBox()(0)),
+           if (size(1) == 0) scaleFactors(o)(1) * 0.001   / abs(o.getMesh.getBoundingBox()(3) - o.getMesh.getBoundingBox()(2))
+           else              scaleFactors(o)(1) * size(1) / abs(o.getMesh.getBoundingBox()(3) - o.getMesh.getBoundingBox()(2)),
+           if (size(2) == 0) scaleFactors(o)(2) * 0.001   / abs(o.getMesh.getBoundingBox()(5) - o.getMesh.getBoundingBox()(4))
+           else              scaleFactors(o)(2) * size(2) / abs(o.getMesh.getBoundingBox()(5) - o.getMesh.getBoundingBox()(4)))
         Array(xFactor.toFloat, yFactor.toFloat, zFactor.toFloat)
       } else Array(0.001f,0.001f,0.001f)
     } else Array(0.001f,0.001f,0.001f)
@@ -707,7 +707,7 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
           if (totalFrames > 0) {
             val percentage = currentFrame * 100 / totalFrames
             slider.setProgress3D(percentage)
-            slider.setTime((percentage / 100f * endTime).toFloat)
+            slider.setTime(percentage / 100f * endTime)
           }
           if (currentFrame < totalFrames)
             currentFrame += 1
@@ -721,7 +721,7 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
       if (!slider.firstPlayed) {
         currentFrame = slider.bar.value * totalFrames / 100
         slider.setProgress3D(slider.bar.value)
-        slider.setTime(((slider.bar.value / 100f) * endTime).toFloat)
+        slider.setTime((slider.bar.value / 100f) * endTime)
         if (currentFrame < 2)
           currentFrame = startFrameNumber
         if (currentFrame > totalFrames)
