@@ -1,33 +1,25 @@
-/* 
-   Has error with semantic 2014
-   Works with semantic 2013
-   Works with semantic 2012
-*/
-
 
 #semantics "2013 Reference"
 
-class Main(simulator)
-private 
-  x := [0.0..0.125]; x' := [0.0..45.0]; x'' := 1;
-  b := [-3.0..0.0];
-  d := 1; d' := 0;
-  r := [0.001..0.099]; r' := 0;
-  t := 0; t' := 1;
-  mode := "Normal";
-end
-  switch mode
-    case "Normal" //require r >= d
-      if d <= r
-        mode := "Breaking"
-      end;
-      x'' = 1;
-      d' = -x';
-      t ' = 1;
-    case "Breaking"
-      x' = [0.0..45.0] - b * t;
-      t' = 1;
-  end;
-  simulator.endTime := 5;
-  simulator.minSolverStep := 0.5;
-end
+model Main(simulator) = 
+initially 
+  x  =  (0.0..0.125) , x'  =  (0.0..45.0) , x''  =  1 ,
+  b  =  (-3.0..0.0) ,
+  d  =  1 , d'  =  0 ,
+  r  =  (0.001..0.099) , r'  =  0 ,
+  t  =  0 , t'  =  1 ,
+  mode  =  "Normal" 
+always
+  match mode with [
+    "Normal" -> //require r >= d
+      if d <= r then
+        mode + == "Breaking"
+      noelse ,
+      x'' = 1 ,
+      d' = -x' ,
+      t ' = 1 ,
+  | "Breaking" ->
+      x' = (0.0..45.0) - b * t ,
+      t' = 1 ],
+  simulator.endTime + == 5 ,
+  simulator.minSolverStep + == 0.5 

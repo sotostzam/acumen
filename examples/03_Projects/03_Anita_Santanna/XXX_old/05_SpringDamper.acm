@@ -1,9 +1,3 @@
-/* 
-   Works with semantic 2014
-   Works with semantic 2013
-   Works with semantic 2012
-*/
-
 // Spring, damper and mass system
 //
 // Author:  Anita Sant'Anna, 2012
@@ -26,39 +20,36 @@
 //      m: mass
 
 
-class SpringDamper(c,k,m,x0)
-  private x:=x0; x':=0; x'':=0; F:=0; Fs:=0;
-    _3D:=[["Box",[0,0,0],[0.1*m,0.1*m,0.1*m],[0,0,1],[0,0,0]],
-         ["Cylinder",[x0-0.5,0,0],[0.01,1],[0,1,0],[0,0,3.1416/2]]];
-  end
-  Fs = k*(x0-x) - c*x';
-  x''=(Fs - F)/m;  
-  _3D=[["Box",[x,0,0],[0.1*m,0.1*m,0.1*m],[0,0,1],[0,0,0]],
-         ["Cylinder",[0.5+(x-x0)/2-1,0,0],[0.01,-1-(x-x0)],[0,1,0],[0,0,3.1416/2]]];
-end
+model SpringMass(c,k,m,x0) = 
+initially 
+  x = x0 , x' = 0 , x'' = 0 , F = 0 , Fs = 0 ,
+  _3D = (Box center=(0,0,0) size=(0.1*m,0.1*m,0.1*m) color=(0,0,1) rotation=(0,0,0),
+         Cylinder center=(x0-0.5,0,0) radius= 0.01 length=1  color=(0,1,0) rotation=(0,0,3.1416/2))
+always
+
+  Fs= k*(x0-x) - c*x' ,
+  x''=(Fs - F)/m ,
+
+  _3D=(Box center=(x,0,0) size=(0.1*m,0.1*m,0.1*m) color=(0,0,1) rotation=(0,0,0),
+       Cylinder center=(0.5+(x-x0)/2-1,0,0) radius= 0.01 length=-1-(x-x0)  color=(0,1,0) rotation=(0,0,3.1416/2))
+ 
 
 
-class Main(simulator)
-  private 
-    // create a spring-damper-mass system with c=1, k=10, m=3, and x0=0
-    system := create SpringDamper(1,10,3,0);    
-    mode:="push"; t:=0; t':=1; 
-    _3D:=["Cylinder",[-1,0,0],[0.01,1],[1,0,0],[3.1416/2,0,0]];  
-  end
+model Main(simulator) =
+initially
+  system = create SpringMass(1,10,3,0),    
+  mode = "push",  t=0, t'=1, 
+  _3D=(Cylinder center=(-1,0,0) radius=0.01 length=1 color=(1,0,0) rotation=(3.1416/2,0,0))
+always
+  _3D=(Cylinder center=(-1,0,0) radius=0.01 length=1 color=(1,0,0) rotation=(3.1416/2,0,0)),  
+  t'=1,
 
-  _3D=["Cylinder",[-1,0,0],[0.01,1],[1,0,0],[3.1416/2,0,0]];  
-  t'=1;
-
-  // a force of F=10N is applied to the system for 0.5 seconds
-  switch mode
-    case "push"
-    system.F=10;
-    if t>=0.5
-      mode:="free_motion";
-    end
-
-    case "free_motion"
-    system.F=0;
-  end
-end
+  match mode with [
+    "push" ->
+      system.F=10,
+      if t>=0.5 then
+        mode+ =="free_motion"
+      noelse
+  | "free_motion" ->
+      system.F=0 ]
 

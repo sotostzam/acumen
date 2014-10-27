@@ -1,9 +1,3 @@
-/* 
-   Works with semantic 2014
-   Works with semantic 2013
-   Works with semantic 2012
-*/
-
 // Two spring-damper-mass systems connected in series
 //
 // Author:  Anita Sant'Anna, 2012
@@ -31,45 +25,39 @@
 //      m: mass
 
 
-class SpringDamper(c,k,m,x0)
-  private x:=x0; x':=0; x'':=0; F:=0; Fs:=0; 
-    _3D:=[["Box",[x0,0,0],[0.1*m,0.1*m,0.1*m],[0,0,1],[0,0,0]],
-         ["Cylinder",[x0-0.5,0,0],[0.01,1],[0,1,0],[0,0,3.1416/2]]];
-  end
-  Fs= k*(x0-x) - c*x';
-  x''=(Fs - F)/m;
-   _3D=[["Box",[x,0,0],[0.1*m,0.1*m,0.1*m],[0,0,1],[0,0,0]],
-         ["Cylinder",[0.5+(x-x0)/2-(1-x0),0,0],[0.01,-1-(x-x0)],[0,1,0],[0,0,3.1416/2]]];
-end
+model SpringMass(c,k,m,x0) = 
+initially 
+  x = x0 , x' = 0 , x'' = 0 , F = 0 , Fs = 0 , 
+  _3D = (Box center=(x0,0,0) size=(0.1*m,0.1*m,0.1*m) color=(0,0,1) rotation=(0,0,0),
+         Cylinder center=(x0-0.5,0,0) radius= 0.01 length=1  color=(0,1,0) rotation=(0,0,3.1416/2))
+always
 
-class Main(simulator)
-  private 
-    mode:="push"; t:=0; t':=1; x01:=0; x02:=1;    
-    // create two systems with different masses
-    // note that the initial position of system2 is 1 unit apart from that of system1
-    system1 := create SpringDamper(1,5,3,0);  
-    system2 := create SpringDamper(1,5,1,1);  
-    _3D:=["Cylinder",[-1,0,0],[0.01,1],[1,0,0],[3.1416/2,0,0]];     
-  end
+  Fs=k*(x0-x) - c*x' ,
+  x''=(Fs - F)/m ,
 
-  // connecting the two systems in parallel
-  // position of system2 depends on the position of system1 as described below
-  system2.x0=x02+system1.x-x01;
-  // the force exerted by the spring of system2 is an external force for system1
-  system1.F=system2.Fs;
-  t'=1;
-  _3D=["Cylinder",[x01-1,0,0],[0.01,1],[1,0,0],[3.1416/2,0,0]]; 
+  _3D=(Box center=(x,0,0) size=(0.1*m,0.1*m,0.1*m) color=(0,0,1) rotation=(0,0,0),
+       Cylinder center=(0.5+(x-x0)/2-(1-x0),0,0) radius= 0.01 length=-1-(x-x0)  color=(0,1,0) rotation=(0,0,3.1416/2))
 
-  // a force F=2 is applied to system2 for one second
-  switch mode
-    case "push"
-    system2.F=2;   
-    if t>=1
-      mode:="free_motion";
-    end
+model Main(simulator) = 
+initially 
+  mode = "push" , t = 0 , t' = 1 , x01 = 0 , x02 = 1 ,    
+  system1  =  create SpringMass(1,5,3,0) ,  
+  system2  =  create SpringMass(1,5,1,1) ,  
+  _3D = (Cylinder center=(-1,0,0) radius= 0.01 length=1  color=(1,0,0) rotation=(3.1416/2,0,0))    
+always
+  system2.x0=x02+system1.x-x01 ,
+  system1.F=system2.Fs ,
+  t'=1 ,
+  _3D=(Cylinder center=(x01-1,0,0) radius= 0.01 length=1  color=(1,0,0) rotation=(3.1416/2,0,0)) , 
+  match mode with [
+    "push" ->
+      system2.F+ ==2 ,   
+      if t>=1 then
+        mode+ =="free_motion"
+      noelse
+  | "free_motion" ->
+      system2.F+ ==0 ]
+ 
 
-    case "free_motion"
-    system2.F=0;
-  end
-end
+
 

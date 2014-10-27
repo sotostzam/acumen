@@ -1,9 +1,3 @@
-/* 
-   Works with semantic 2014
-   Has error with semantic 2013
-   Works with semantic 2012
-*/
-
 // Smart residential heating system 
 //
 // Author:  Anita Sant'Anna, 2013
@@ -87,308 +81,266 @@
 //     
 //
 // weather profile for Portland Oregon, hourly averages for January 
-class WeatherPortland()
- private mode := "hour"; T_O := 3; tx  := 1; tx' := 1/3600; i:=1; end
- tx' = 1/3600;
+model WeatherPortland() = 
+initially 
+  mode  =  "hour" , T_O  =  3 , tx   =  1 , tx'  =  1/3600 , i = 1 
+always
+  tx' = 1/3600 ,
 
- switch mode
-   case "hour"
-     if(tx>=1)
-       switch i
-        case  1 T_O = 3;
-        case  2 T_O = 3;
-        case  3 T_O = 3;
-        case  4 T_O = 3;
-        case  5 T_O = 3;
-        case  6 T_O = 3;
-        case  7 T_O = 3;
-        case  8 T_O = 3;
-        case  9 T_O = 3;
-        case 10 T_O = 4;
-        case 11 T_O = 5;
-        case 12 T_O = 5;
-        case 13 T_O = 6;
-        case 14 T_O = 6;
-        case 15 T_O = 6;
-        case 16 T_O = 5;
-        case 17 T_O = 5;
-        case 18 T_O = 4;
-        case 19 T_O = 4;
-        case 20 T_O = 4;
-        case 21 T_O = 4;
-        case 22 T_O = 4;
-        case 23 T_O = 4;
-        case 24 T_O = 3;        
-       end;
-      i := i + 1;
-      tx:=0;
-      if(i>24) mode := "NoMore" end
-     end
-  case "NoMore"
-  end
-end
+  match mode with [
+    "hour" ->     
+      if tx>=1 then
+        match i with [
+          1 -> T_O = 3 
+        | 2 -> T_O = 3 
+        | 3 -> T_O = 3
+        | 4 -> T_O = 3 
+        | 5 -> T_O = 3 
+        | 6 -> T_O = 3 
+        | 7 -> T_O = 3 
+        | 8 -> T_O = 3 
+        | 9 -> T_O = 3 
+        | 10 -> T_O = 4 
+        | 11 -> T_O = 5 
+        | 12 -> T_O = 5 
+        | 13 -> T_O = 6
+        | 14 -> T_O = 6 
+        | 15 -> T_O = 6 
+        | 16 -> T_O = 5 
+        | 17 -> T_O = 5 
+        | 18 -> T_O = 4 
+        | 19 -> T_O = 4 
+        | 20 -> T_O = 4 
+        | 21 -> T_O = 4 
+        | 22 -> T_O = 4 
+        | 23 -> T_O = 4 
+        | 24 -> T_O = 3 ]        
+      noelse,
+      i + == i + 1 ,
+      tx+ ==0 ,
+      if i>24 then mode + == "NoMore" noelse
+  | "NoMore" -> ]
 
 // weather profile for Halmstad, Sweden, hourly averages for January 
-class WeatherHalmstad()
- private mode := "hour"; T_O := 0; tx  := 1; tx' := 1/3600; i:=1; end
- tx' = 1/3600;
- switch mode
-   case "hour"
-     if(tx>=1)
-       switch i
-        case  1 T_O = 0;
-        case  2 T_O = 0;
-        case  3 T_O = 0;
-        case  4 T_O = 0;
-        case  5 T_O = 0;
-        case  6 T_O = 0;
-        case  7 T_O = 0;
-        case  8 T_O = 0;
-        case  9 T_O = 0;
-        case 10 T_O = 0;
-        case 11 T_O = 1;
-        case 12 T_O = 1;
-        case 13 T_O = 1;
-        case 14 T_O = 1;
-        case 15 T_O = 1;
-        case 16 T_O = 1;
-        case 17 T_O = 1;
-        case 18 T_O = 1;
-        case 19 T_O = 0;
-        case 20 T_O = 0;
-        case 21 T_O = 0;
-        case 22 T_O = 0;
-        case 23 T_O = 0;
-        case 24 T_O = 0;        
-       end;
-      i := i + 1;
-      tx:=0;
-      if(i>24) mode := "NoMore" end
-     end
-  case "NoMore"
-  end
-end
+model WeatherHalmstad() = 
+initially 
+  mode  =  "hour" , T_O  =  0 , tx   =  1 , tx'  =  1/3600 , i = 1
+always
+  tx' = 1/3600 ,
+  match mode with [
+    "hour" ->
+      if tx>=1 then
+        match i with [
+          1 -> T_O = 0 
+        | 2 -> T_O = 0 
+        | 3 -> T_O = 0 
+        | 4 -> T_O = 0 
+        | 5 -> T_O = 0 
+        | 6 -> T_O = 0 
+        | 7 -> T_O = 0 
+        | 8 -> T_O = 0 
+        | 9 -> T_O = 0 
+        | 10 -> T_O = 0 
+        | 11 -> T_O = 1 
+        | 12 -> T_O = 1 
+        | 13 -> T_O = 1 
+        | 14 -> T_O = 1 
+        | 15 -> T_O = 1 
+        | 16 -> T_O = 1 
+        | 17 -> T_O = 1 
+        | 18 -> T_O = 1 
+        | 19 -> T_O = 0 
+        | 20 -> T_O = 0 
+        | 21 -> T_O = 0 
+        | 22 -> T_O = 0 
+        | 23 -> T_O = 0 
+        | 24 -> T_O = 0 ]
+      noelse ,
+      i + == i + 1 ,
+      tx+ ==0 ,
+      if i>24 then mode + == "NoMore" noelse
+  | "NoMore" -> ]
 
 // weather profile for Colorado Springs, CO, hourly averages for January 
-class WeatherColoradoSprings()
- private mode := "hour"; T_O := -5; tx  := 1; tx' := 1/3600; i:=1; end
- tx' = 1/3600;
- switch mode
-   case "hour"
-     if(tx>=1)
-       switch i
-        case  1 T_O = -5;
-        case  2 T_O = -5;
-        case  3 T_O = -5;
-        case  4 T_O = -5;
-        case  5 T_O = -5;
-        case  6 T_O = -5;
-        case  7 T_O = -5;
-        case  8 T_O = -4;
-        case  9 T_O = -2;
-        case 10 T_O = 1;
-        case 11 T_O = 2;
-        case 12 T_O = 3;
-        case 13 T_O = 3;
-        case 14 T_O = 4;
-        case 15 T_O = 3;
-        case 16 T_O = 2;
-        case 17 T_O = 0;
-        case 18 T_O = -2;
-        case 19 T_O = -3;
-        case 20 T_O = -3;
-        case 21 T_O = -4;
-        case 22 T_O = -4;
-        case 23 T_O = -5;
-        case 24 T_O = -5        
-       end;
-      i := i + 1;
-      tx:=0;
-      if(i>24) mode := "NoMore" end
-     end
-  case "NoMore"
-  end
-end
+model WeatherColoradoSprings() = 
+initially 
+  mode  =  "hour" , T_O  =  -5 , tx   =  1 , tx'  =  1/3600 , i = 1 
+always
+  tx' = 1/3600 ,
+  match mode with [
+    "hour" ->
+      if tx>=1 then
+        match i with [
+          1 -> T_O = -5 
+        | 2 -> T_O = -5 
+        | 3 -> T_O = -5 
+        | 4 -> T_O = -5 
+        | 5 -> T_O = -5 
+        | 6 -> T_O = -5 
+        | 7 -> T_O = -5 
+        | 8 -> T_O = -4 
+        | 9 -> T_O = -2 
+        | 10 -> T_O = 1 
+        | 11 -> T_O = 2 
+        | 12 -> T_O = 3 
+        | 13 -> T_O = 3 
+        | 14 -> T_O = 4 
+        | 15 -> T_O = 3 
+        | 16 -> T_O = 2 
+        | 17 -> T_O = 0 
+        | 18 -> T_O = -2 
+        | 19 -> T_O = -3 
+        | 20 -> T_O = -3 
+        | 21 -> T_O = -4 
+        | 22 -> T_O = -4 
+        | 23 -> T_O = -5 
+        | 24 -> T_O = -5 ]       
+      noelse ,
+      i + == i + 1 ,
+      tx+ ==0 ,
+      if i>24 then mode + == "NoMore" noelse
+  | "NoMore" -> ]
 
 
-class CostAssessment()
-  private Q_HP_prime:=0; COP:=0; rate:=0; power:=0; cost:=0; mode:="off"; T_O:=0; end
-  switch mode
-    case "off"
-    COP=0;
-    power=power;    // [kW.h]
-    cost=cost;      // [cents]
-    if (Q_HP_prime > 1 && Q_HP_prime < 3) mode:="low"; 
-    else 
-      if (Q_HP_prime > 4 && Q_HP_prime < 5) mode:="medium"; 
-      else
-        if (Q_HP_prime > 6 && Q_HP_prime < 11) mode:="high";  end
-      end
-    end
+model CostAssessment() = 
+initially 
+  Q_HP_prime = 0 , COP = 0 , rate = 0 , power = 0 , cost = 0 , mode = "off" , T_O = 0 
+always
+  match mode with [
+    "off" ->    
+      COP=0 ,
+      power=power ,    // (kW.h)
+      cost=cost ,      // (cents)
+      if Q_HP_prime > 1 && Q_HP_prime < 3 then mode+ =="low"  
+      elseif Q_HP_prime > 4 && Q_HP_prime < 5 then mode+ =="medium"  
+      elseif Q_HP_prime > 6 && Q_HP_prime < 11 then mode+ =="high"  
+      noelse
+  
 
-    case "low"
-    COP=-0.0002592*T_O^2 + 0.0358*T_O + 4.0181;
-    power=power + (Q_HP_prime/COP)*(1/60);          // [kW.h]
-    cost=cost + (rate/100)*(Q_HP_prime/COP)*(1/60); // [dollars]
-    if (Q_HP_prime > 1 && Q_HP_prime < 3) mode:="low"; 
-    else 
-      if (Q_HP_prime > 4 && Q_HP_prime < 5) mode:="medium"; 
-      else
-        if (Q_HP_prime > 6 && Q_HP_prime < 11) mode:="high";  end
-      end
-    end
-
-    case "medium"
-    COP=-0.0002592*T_O^2 + 0.0313*T_O + 3.6381;
-    power=power + (Q_HP_prime/COP)*(1/60);          // [kW.h]
-    cost=cost + (rate/100)*(Q_HP_prime/COP)*(1/60); // [dollars]
-    if (Q_HP_prime > 1) mode:="on"; end
-
-    case "high"
-    COP=-0.0002592*T_O^2 + 0.0268*T_O + 3.2581;
-    power=power + (Q_HP_prime/COP)*(1/60);          // [kW.h]
-    cost=cost + (rate/100)*(Q_HP_prime/COP)*(1/60); // [dollars]
-    if (Q_HP_prime > 1 && Q_HP_prime < 3) mode:="low"; 
-    else 
-      if (Q_HP_prime > 4 && Q_HP_prime < 5) mode:="medium"; 
-      else
-        if (Q_HP_prime > 6 && Q_HP_prime < 11) mode:="high"; end 
-      end
-    end
-
-  end 
-end
+  | "low" ->    
+      COP=-0.0002592*T_O^2 + 0.0358*T_O + 4.0181 ,
+      power=power + (Q_HP_prime/COP)*(1/60) ,          // (kW.h)
+      cost=cost + (rate/100)*(Q_HP_prime/COP)*(1/60) , // (dollars)
+      if Q_HP_prime > 1 && Q_HP_prime < 3 then mode+ =="low" 
+      elseif Q_HP_prime > 4 && Q_HP_prime < 5 then mode+ =="medium"  
+      elseif Q_HP_prime > 6 && Q_HP_prime < 11 then mode+ =="high" 
+      noelse
+  | "medium" ->    
+      COP=-0.0002592*T_O^2 + 0.0313*T_O + 3.6381 ,
+      power=power + (Q_HP_prime/COP)*(1/60) ,          // (kW.h)
+      cost=cost + (rate/100)*(Q_HP_prime/COP)*(1/60) , // (dollars)
+      if Q_HP_prime > 1 then mode+ =="on" noelse
+  | "high" ->    
+      COP=-0.0002592*T_O^2 + 0.0268*T_O + 3.2581 ,
+      power=power + (Q_HP_prime/COP)*(1/60) ,          // (kW.h)
+      cost=cost + (rate/100)*(Q_HP_prime/COP)*(1/60) , // (dollars)
+      if Q_HP_prime > 1 && Q_HP_prime < 3 then mode+ =="low"  
+      elseif Q_HP_prime > 4 && Q_HP_prime < 5 then mode+ =="medium" 
+      elseif Q_HP_prime > 6 && Q_HP_prime < 11 then mode+ =="high"
+      noelse ]
 
 // Time of use rates determine the cost of electricity depending on the hour of the day
-class TimeUseRate()
-  private rate:=4.422; t:=0; t':=1/3600; mode:="off_peak" end
-  t'=1/3600; //time in hours  
-  switch mode
-    case "off_peak"
-    rate = 4.422;
-    if (t > 6 && t < 10) mode:="on_peak"; end
-    
-    case "mid_peak"
-    rate = 7.5;
-    if (t > 17 && t < 20) mode:="on_peak";
-    else
-      if (t > 22) || (t < 6) mode:="off_peak"; end
-    end
-
-    case "on_peak"
-    rate = 13.266;
-    if (t > 10 && t < 17) || (t > 20 && t < 22) 
-      mode:="mid_peak"; 
-    end
-  end
-end
+model TimeUseRate() = 
+initially 
+  rate = 4.422 , t = 0 , t' = 1/3600 , mode = "off_peak" 
+always
+  t'=1/3600 , //time in hours  
+  match mode with [
+    "off_peak" ->    
+      rate = 4.422 ,
+      if t > 6 && t < 10 then mode+ =="on_peak" noelse
+  | "mid_peak" ->    
+      rate = 7.5 ,
+      if t > 17 && t < 20 then mode+ =="on_peak" 
+      elseif t > 22 || t < 6 then mode+ =="off_peak" 
+      noelse
+  | "on_peak" -> 
+      rate = 13.266 ,
+      if (t > 10 && t < 17) || (t > 20 && t < 22) then
+        mode+ =="mid_peak" 
+      noelse ]
 
 
+model HeatPump() = 
+initially 
+  Q_HP_prime = 0 , T_TM = 65 , mode = "off" , rate = 0 , count = 0 
+always
+  count=count+1 ,
+  match mode with [
+    "high" ->    
+      Q_HP_prime = 10.5 ,
+      if (T_TM > 65 && count > 5) || (rate > 13 && count > 5) then
+        mode+ =="off" , count+ ==0 
+      elseif T_TM > 64 && T_TM < 65 then mode+ =="low"  
+      elseif T_TM > 62 && T_TM < 64 then mode+ =="medium" 
+      noelse
+  | "medium" ->   
+      Q_HP_prime = 10.5*0.6 ,
+      if (T_TM > 65 && count > 5) || (rate > 13 && count > 5) then
+        mode+ =="off" , count+ ==0 
+      elseif T_TM > 64 && T_TM < 65 then mode+ =="low" 
+      elseif T_TM < 62 then mode+ =="high" 
+      noelse
+  | "low" ->   
+      Q_HP_prime = 10.5*0.3 ,
+      if (T_TM > 66 && count > 5) || (rate > 13 && count > 5) then
+        mode+ =="off" , count+ ==0
+      elseif T_TM > 62 && T_TM < 64 then mode+ =="medium"   
+      elseif T_TM < 62 then mode+ =="high"
+      noelse 
+  | "off" ->   
+      Q_HP_prime = 0 ,
+      if T_TM > 64 && T_TM < 65 && count>5 && rate < 13 then mode+ =="low"  
+      elseif T_TM > 62 && T_TM < 64 && count>5 && rate < 13 then mode+ =="medium" 
+      elseif T_TM < 62 && count>5 && rate < 13 then mode+ =="high" 
+      noelse ]
 
-class HeatPump()
-  private Q_HP_prime:=0; T_TM:=65; mode:="off"; rate:=0; count:=0; end
-  count=count+1;
-  switch mode
-    case "high"
-    Q_HP_prime = 10.5;
-    if (T_TM > 65 && count > 5) || (rate > 13 && count > 5) 
-      mode:="off"; count:=0; 
-    else
-      if (T_TM > 64 && T_TM < 65) mode:="low"; 
-      else 
-        if (T_TM > 62 && T_TM < 64) mode:="medium"; end
-      end
-    end
+model HeatingSystem(m_H, K_H, C_H, m_TM, C_TM) = 
+initially
+  Y_TM_H = 0 , T_H = 20 , T_H' = 0 , T_TM = 65 , T_TM' = 0 , T_O = 0 , Q_HP_prime = 0 ,
+  mode = "fan_off" 
+always
+  T_H'   = (K_H*(T_O - T_H) - Y_TM_H*(T_H - T_TM)) / (m_H*C_H) ,
+  T_TM'  = (Q_HP_prime - Y_TM_H*(T_TM - T_H)) / (m_TM*C_TM) ,
 
-    case "medium"
-    Q_HP_prime = 10.5*0.6;
-     if (T_TM > 65 && count > 5) || (rate > 13 && count > 5) 
-      mode:="off"; count:=0; 
-    else
-      if (T_TM > 64 && T_TM < 65) mode:="low"; 
-      else 
-        if (T_TM < 62) mode:="high"; end;
-      end
-    end
+  match mode with [
+    "fan_off" ->
+      Y_TM_H=0 ,
+      if T_H > 20 && T_H < 21 then mode+ =="fan_low" 
+      elseif T_H < 20 then mode+ =="fan_high"  
+      noelse
+  | "fan_high" -> 
+      Y_TM_H=0.2605 ,
+      if T_H > 20 && T_H < 21 then mode+ =="fan_low"  
+      elseif T_H >= 21 then mode+ =="fan_off" 
+      noelse
+  | "fan_low" ->   
+      Y_TM_H=0.1303 ,
+      if T_H < 20 then mode+ =="fan_high" 
+      elseif T_H >= 21 then mode+ =="fan_off"
+      noelse ]
+ 
+model Main(simulator) = 
+initially
+  pump    =  create HeatPump() ,
+  system  =  create HeatingSystem(913.218,0.1474,1.0050,624.525,4.136) ,
+  TUR  =  create TimeUseRate() ,   
+  // note you may change the weather profile to Portland or Colorado Springs
+  weather  =  create WeatherHalmstad() ,
+  assessment  =  create CostAssessment() ,
+  t = 0 , t' = 1/3600
+always
 
-    case "low"
-    Q_HP_prime = 10.5*0.3;
-    if (T_TM > 66 && count > 5) || (rate > 13 && count > 5) 
-      mode:="off"; count:=0; 
-    else
-      if (T_TM > 62 && T_TM < 64) mode:="medium";  
-      else
-        if (T_TM < 62) mode:="high"; end 
-      end
-    end
-
-    case "off"
-    Q_HP_prime = 0;
-    if (T_TM > 64 && T_TM < 65 && count>5 && rate < 13) mode:="low"; 
-    else 
-      if (T_TM > 62 && T_TM < 64 && count>5 && rate < 13) mode:="medium";  
-      else
-        if (T_TM < 62 && count>5 && rate < 13) mode:="high"; end 
-      end
-    end
-    
-  end
-end
-
-class HeatingSystem(m_H, K_H, C_H, m_TM, C_TM)
-  private
-    Y_TM_H:=0; T_H:=20; T_H':=0; T_TM:=65; T_TM':=0; T_O:=0; Q_HP_prime:=0;
-    mode:="fan_off";
-  end
-  T_H'   = (K_H*(T_O - T_H) - Y_TM_H*(T_H - T_TM)) / (m_H*C_H);
-  T_TM'  = (Q_HP_prime - Y_TM_H*(T_TM - T_H)) / (m_TM*C_TM);
-
-  switch mode
-    case "fan_off"
-    Y_TM_H=0;
-    if (T_H > 20 && T_H < 21) mode:="fan_low"; 
-    else
-      if(T_H < 20) mode:="fan_high"; end 
-    end
-
-    case "fan_high"
-    Y_TM_H=0.2605;
-    if (T_H > 20 && T_H < 21) mode:="fan_low"; 
-    else 
-      if (T_H >= 21) mode:="fan_off"; end
-    end
-
-    case "fan_low"
-    Y_TM_H=0.1303;
-    if (T_H < 20) mode:="fan_high"; 
-    else
-       if (T_H >= 21) mode:="fan_off"; end
-   end
-
-  end
-end
-
-class Main(simulator)
-  private
-    pump   := create HeatPump();
-    system := create HeatingSystem(913.218,0.1474,1.0050,624.525,4.136);
-    TUR := create TimeUseRate();   
-    // note you may change the weather profile to Portland or Colorado Springs
-    weather := create WeatherHalmstad();
-    assessment := create CostAssessment();
-    t:=0; t':=1/3600;
-  end
-
-  t'=1/3600;
-  // linking variables from different classes
-  system.Q_HP_prime = pump.Q_HP_prime;
-  pump.T_TM = system.T_TM;
-  pump.rate = TUR.rate;
-  system.T_O = weather.T_O;
-  assessment.rate=TUR.rate;
-  assessment.Q_HP_prime=pump.Q_HP_prime;
-  assessment.T_O=weather.T_O;
+  t'=1/3600 ,
+  // linking variables from different modeles
+  system.Q_HP_prime = pump.Q_HP_prime ,
+  pump.T_TM = system.T_TM ,
+  pump.rate = TUR.rate ,
+  system.T_O = weather.T_O ,
+  assessment.rate=TUR.rate ,
+  assessment.Q_HP_prime=pump.Q_HP_prime ,
+  assessment.T_O=weather.T_O ,
   // simulation parameters
-  simulator.endTime =86400;
-  simulator.timeStep=60;
-end
+  simulator.endTime =86400 ,
+  simulator.timeStep=60
+ 

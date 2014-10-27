@@ -1,8 +1,3 @@
-/* 
-   Works with semantic 2014
-   Works with semantic 2013
-   Works with semantic 2012
-*/
 
 // Displaying Three Spheres
 
@@ -11,41 +6,39 @@
 // and click Play on that pane.  See exercises below.
 
 model Main(simulator) =
-  initially
-    a= 10,      // utgångsposition (i x-led)
-    a'= -10,    // hastighet ( utgångshastighet i x-led)
-    a''= 0,     // Accerelation ( i x-led) 
+initially
+  a= 10,      // utgångsposition (i x-led)
+  a'= -10,    // hastighet ( utgångshastighet i x-led)
+  a''= 0,     // Accerelation ( i x-led) 
     
-    b= 3,       // Utgångsposition (i z-led)
-    b'= 0,      // hastighet (utgångshastighet i z-led
-    b''= -9.82, // accerelation i z-led
-    _3D = ()
-  always
+  b= 3,       // Utgångsposition (i z-led)
+  b'= 0,      // hastighet (utgångshastighet i z-led
+  b''= -9.82, // accerelation i z-led
+  _3D = ()
+always
   
   a'' == 0,
   b'' == -9.82,
 
-  if (a<0.1) then a'+ == -0.7*a', a+ == 0.1 noelse,
-  if (b<0.1) then b'+ == -0.7*b', b+ == 0.1 noelse,
+  if a<0.1 then a'+ == -0.7*a', a+ == 0.1 noelse,
+  if b<0.1 then b'+ == -0.7*b', b+ == 0.1 noelse,
   
-  _3D ==  (
-    ("Box",
-      (0,0,1.5),     // boxens position
-      (3,-0.01,3),   // boxens dimensioner 
-      blue,          // boxens färg
-      (0,0,0)),      // boxens orientering
+  _3D == (Box
+          center=(0,0,1.5)     // boxens position
+          size=(3,-0.01,3)     // boxens dimensioner 
+          color=blue           // boxens färg
+          rotation=(0,0,0),    // boxens orientering
 
-    ("Box",
-      (0,-10,0),     // Boxens position
-      (3,-0.01,20),  // boxens dimensioner
-      0.2*white,     // boxens färg
-      (pi/2,0,0)),   // boxens orientering
+          Box
+          center=(0,-10,0)     // Boxens position
+          size=(3,-0.01,20)    // boxens dimensioner
+          color=0.2*white      // boxens färg
+          rotation=(pi/2,0,0), // boxens orientering
 
-    ("Sphere",       // typ av 3D objekt
-      (0, -a/2,b/2), // Start punkt i (x,y,z) form
-      0.1,           // Radie
-      cyan,          // bollens färg
-      (0,0,0))       // orientering (pi/2 runt x-axeln)
-  )
-   
+          Sphere               // typ av 3D objekt
+          center=(0, -a/2,b/2) // Start punkt i (x,y,z) form
+          size=0.1             // Radie
+          color=cyan           // bollens färg
+          rotation=(0,0,0))    // orientering (pi/2 runt x-axeln)
 
+ 

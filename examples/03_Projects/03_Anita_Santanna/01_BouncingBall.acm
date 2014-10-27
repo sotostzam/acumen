@@ -1,28 +1,20 @@
-/* 
-   Works with semantic 2014
-   Works with semantic 2013
-   Works with semantic 2012
-*/
-
-class Main(simulator)
-  private
-    x:=3; x':=0; x'':=-9.8; mode :="free_fall"; 
-    _3D := ["Sphere",[0,0,3],0.2,[1,0,0],[0,0,0]]; 
-  end 
+model Main(simulator) = 
+initially
+  x = 3 , x' = 0 , x'' = -9.8 , mode  = "free_fall" , 
+  _3D  =  (Sphere center=(0,0,3) size=0.2 color=(1,0,0) rotation=(0,0,0)) 
+always 
   
-  switch mode
+  match mode with [
 
-    case "free_fall"
-    x''=-9.8;
-    _3D =["Sphere",[0,0,x],0.2,[1,0,0],[0,0,0]];
+    "free_fall" ->
+      x''=-9.8 ,
+      _3D =(Sphere center=(0,0,x) size=0.2 color=(1,0,0) rotation=(0,0,0)),
+      if x < 0 && x' < 0 then
+        x' + == -0.9*x' ,
+        mode + == "free_fall" 
+      noelse ]
+ 
 
-    if x < 0 && x' < 0
-      x' := -0.9*x';
-      mode := "free_fall";
-    end
-
-  end 
-end
 
 
 

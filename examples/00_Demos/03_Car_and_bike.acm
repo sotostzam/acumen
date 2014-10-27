@@ -1,15 +1,7 @@
-/* 
-   Works with semantic 2014
-   Works with semantic 2013
-   Works with semantic 2012
-*/
-
-model Road(p,l)
- = initially
-  _3D  =  ((Box center= p size= (l, 6, 0.05) color=(0.3, 0.3,  0.3) rotation= (0,0,pi/2)),
-          (Box center= p+(0,0,0.05) size= (l, 0.1, 0.05) color= (1, 1, 1) rotation= (0,0,pi/2)))
- always
-
+model Road(p,l) = 
+initially
+  _3D  =  (Box center= p size= (l, 6, 0.05) color=(0.3, 0.3,  0.3) rotation= (0,0,pi/2),
+           Box center= p+(0,0,0.05) size= (l, 0.1, 0.05) color= (1, 1, 1) rotation= (0,0,pi/2))
 
 /*
  * p denotes position
@@ -17,23 +9,23 @@ model Road(p,l)
  * s denotes size
  * name denotes obj file name
  */
-model Vehicle(p,d,s,name)
- = initially
+model Vehicle(p,d,s,name) = 
+initially
   _3D  = () 
- always
- _3D + ==(Obj center = p size = s color = (1,1,1) rotation = (pi/2,0,d*pi/2) content = name) 
+always
+  _3D + == (Obj center = p size = s color = (1,1,1) rotation = (pi/2,0,d*pi/2) content = name) 
 
 model Main(simulator) = 
-  initially
-     x = 20, x'  =  -2,
-     t = 0,  t'  =  0.5,
-     road  =  create Road((0,0,-0.5), 100),
-     car  =  create Vehicle((2, 20, 0),1,2, "car.obj"),
-     motor  =  create Vehicle((-2,20,0.3),0,1.5, "motor.obj") 
-  always
-     simulator.endTime = 10,
-     car.p = (2,x,0),
-     motor.p = (-2, 1.5*x, 0.3),
-     t' = 0.5,
-     x' = -1*t^2 
+initially
+   x = 20, x'  =  -2,
+   t = 0,  t'  =  0.5,
+   road  =  create Road((0,0,-0.5), 100),
+   car  =  create Vehicle((2, 20, 0),1,2, "car.obj"),
+   motor  =  create Vehicle((-2,20,0.3),0,1.5, "motor.obj") 
+always
+   simulator.endTime = 10,
+   car.p = (2,x,0),
+   motor.p = (-2, 1.5*x, 0.3),
+   t' = 0.5,
+   x' = -1*t^2 
  

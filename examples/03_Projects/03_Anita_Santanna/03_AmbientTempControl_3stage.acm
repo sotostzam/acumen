@@ -1,54 +1,35 @@
-/* 
-   Works with semantic 2014
-   Works with semantic 2013
-   Works with semantic 2012
-*/
+model Main(simulator) = 
+initially
+  Qhp = 0 , To = 6 , Yeq = 1 , Ytm = 2 , Yh = 3 , Kh = 2 , Tg = 60 ,
+  mode = 1 , Ttm = 10 , Ttm' = 0 , Th = 50 , Th' = 0 , t = 0 , t' = 1 
+always
 
-class Main(simulator)
-  private
-    Qhp:=0; To:=6; Yeq:=1; Ytm:=2; Yh:=3; Kh:=2; Tg:=60;
-    mode:=1; Ttm:=10; Ttm':=0; Th:=50; Th':=0; t:=0; t':=1;
-  end
+  Ttm'=(1/Ytm)*(Qhp - (Ttm - Th)/Yeq) ,
+  Th'=(1/Yh)*((Ttm - Th)/Yeq + (To -Th)/Kh) ,
+  simulator.endTime + ==20 ,
+  t'=1 ,
 
-  Ttm'=(1/Ytm)*(Qhp - (Ttm - Th)/Yeq);
-  Th'=(1/Yh)*((Ttm - Th)/Yeq + (To -Th)/Kh);
-  simulator.endTime :=20;
-  t'=1;
-
-  switch mode
- 
-    case 1
-    Qhp=0;
-    if Th - Tg < -2
-      mode := 2;
-    else
-      if t > 5
-        t:=0; To := To-1; 
-      end
-    end
-
-
-    case 2 
-    Qhp=60;
-    if (Th - Tg >= -2) && (Th - Tg < 0)
-      mode := 3;
-    else
-      if t >= 5
-        t:=0; To := To-1; 
-      end
-    end
-
-    case 3 
-    Qhp=30;
-    if Th - Tg >= 0
-      mode := 1;
-    else
-      if t >= 5
-        t:=0; To := To-1; 
-      end
-    end
-
-
-  end
-
-end 
+  match mode with [
+    1 ->
+      Qhp=0 ,
+      if Th - Tg < -2 then
+        mode + == 2 
+      elseif t > 5 then
+        t+ ==0 , To + == To-1 
+      noelse
+  | 2 -> 
+      Qhp=60 ,
+      if Th - Tg >= -2 && Th - Tg < 0 then
+        mode + == 3 
+      elseif t >= 5 then
+        t+ ==0 , To + == To-1 
+      noelse
+   
+  | 3 -> 
+      Qhp=30 ,
+      if Th - Tg >= 0 then
+        mode + == 1 
+      elseif t >= 5 then
+        t+ ==0 , To + == To-1 
+      noelse ]
+  

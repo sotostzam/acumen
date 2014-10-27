@@ -1,36 +1,31 @@
 //Author: Jawad Masood 
 // ID: A2E
 //**********************SIMULATOR*******************************************//
-class Main(simulator)
-  private 
-        v_r := 10;
-        v_l := 10;
-        l := 0.5;
-        x:=0;
-         x':=0;
-         y:=0;
-         y':=0;
-         th':=0;
-         R:=0;
-         w:=0;
-         V:=0;
-         s:=0;
-         th := 0;     
- end
- s = 50-x;
- V= (1/2)*(v_r+v_l);
- w= (v_r-v_l)/l;
- x'= V*cos(th);
- y' = V*sin(th);
- th'= w;
-  if (s<=10&&s>=7)
-        th = -(pi/8);
-          else if(s<=-7&&s>=-10)
-                 th = (pi/8);
-                    else
-                        th = 0;
-                    end
-          end
-end
-
-
+model Main(simulator) = 
+initially 
+  v_r  =  10 ,
+  v_l  =  10 ,
+  l  =  0.5 ,
+  x = 0 ,
+  x' = 0 ,
+  y = 0 ,
+  y' = 0 ,
+  th' = 0 ,
+  R = 0 ,
+  w = 0 ,
+  V = 0 ,
+  s = 0 ,
+  th  =  0 ,     
+always
+  s = 50-x ,
+  V= (1/2)*(v_r+v_l) ,
+  w= (v_r-v_l)/l ,
+  x'= V*cos(th) ,
+  y' = V*sin(th) ,
+  th'= w ,
+  if s<=10 && s>=7 then
+    th = -(pi/8)
+  elseif s<=-7 && s>=-10 then
+    th = (pi/8)
+  else
+    th = 0 

@@ -1,30 +1,57 @@
 //Author: Jawad Masood
 //ID: A3E
 //**********************SIMULATOR*******************************************//
-class Main(simulator)
-  private 
-    x:=0; 
-    x':=5; 
-    x'':= 0; 
-    y:=1; 
-    y':=0; 
-    y'':=0;
-    m1 := 5;
-    m2 := 5;
-    Fx := 10;
-    Fy := 0;
-    r := 5;
-    kP := 3;
-    kD := 6;   
-    s :=0;
- end
- s  = r-x;
- x'' = Fx/m1 ; // Longitudenal Acceleration
- y'' = -Fy/m2 - 10*y' ; //Lateral Acceleration
- if s<=3 
-     Fy = kP*(5-y)+kD*(0.1-y'); 
-        else 
-          Fy = 0; 
-  end;
-simulator.endTime = 6;
-end
+model Main(simulator) = 
+initially 
+  x = 0 , 
+  x' = 5 , 
+  x'' =  0 , 
+  y = 1 , 
+  y' = 0 , 
+  y'' = 0 ,
+  m1  =  5 ,
+  m2  =  5 ,
+  Fx  =  10 ,
+  Fy  =  0 ,
+  r  =  5 ,
+  kP  =  3 ,
+  kD  =  6 ,   
+  s  = 0 ,
+always
+  s  = r-x ,
+  x'' = Fx/m1  , // Longitudenal Acceleration
+  y'' = -Fy/m2 - 10*y'  , //Lateral Acceleration
+  if s<=3  then
+    Fy = kP*(5-y)+kD*(0.1-y') 
+  else 
+    Fy = 0, 
+  simulator.endTime = 6
+ 
+model Main(simulator) = 
+initially 
+  v_r  =  10 ,
+  v_l  =  10 ,
+  l  =  0.5 ,
+  x = 0 ,
+  x' = 0 ,
+  y = 0 ,
+  y' = 0 ,
+  th' = 0 ,
+  R = 0 ,
+  w = 0 ,
+  V = 0 ,
+  s = 0 ,
+  th  =  0 ,     
+always
+  s = 50-x ,
+  V= (1/2)*(v_r+v_l) ,
+  w= (v_r-v_l)/l ,
+  x'= V*cos(th) ,
+  y' = V*sin(th) ,
+  th'= w ,
+  if s<=10&&s>=7 then
+    th = -(pi/8) ,
+  elseif s<=-7 && s>=-10 then
+    th = (pi/8) 
+  else
+    th = 0

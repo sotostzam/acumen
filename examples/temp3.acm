@@ -1,0 +1,36 @@
+model cylinder (D,tablerow,tablecolum) = 
+initially 
+  p    = (0,0,0) , 
+  q    = (0,0,0) ,
+  _3D  =  () ,
+  r  =  0.05 ,
+  l  =  0.01 , alpha = 0 , theta =  pi/2 ,
+  x       =  0 ,    y     = 0 , z     = 0 ,
+  flag    =  0 ,
+  col   =  (1,1,1) ,
+  shiftD  =  (10,5,0)           // shift distance of the ball
+always
+  _3D = (Cylinder center=(p+q)/2 radius=r 
+         length=l   color=green rotation=(alpha,0,-theta)) ,
+  x = (p(0)-q(0)) ,
+  y = (p(1)-q(1)) ,
+  z = (p(2)-q(2)) ,
+
+  l = norm(p-q) ,
+  if l > 0 then alpha = asin(z/l)
+  else alpha = 0 ,
+  if y>0 then theta = asin(x/(l*cos(alpha)))
+  else theta = -asin(x/(l*cos(alpha)))+pi
+
+model Main(Simulator) = 
+initially
+  link1 = create cylinder ((0,0,0), 0, 0) ,
+  link2 = create cylinder ((0,0,0), 0, 0) ,
+  t  = 1 ,
+  t' = 1
+always
+  t' = 1 ,
+  link1.p = (0,0,0) ,
+  link1.q = (0,0,t) ,
+  link2.p = (0,0,0) , 
+  link2.q = (t,0,0)

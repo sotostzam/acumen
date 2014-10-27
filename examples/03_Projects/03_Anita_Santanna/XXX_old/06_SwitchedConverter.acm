@@ -1,9 +1,3 @@
-/* 
-   Has error with semantic 2014
-   Works with semantic 2013
-   Works with semantic 2012
-*/
-
 // Switched converter pole
 //
 // Author:  Anita Sant'Anna, 2012
@@ -30,36 +24,33 @@
 //
 // trigger signal, saw-tooth wave between zero and 10, frequency 1KHz
 
+model TriggerSource() = 
+initially 
+  Vtri = 0 , Vtri' = 1000
+always  
+  if Vtri>=10 then Vtri=0 else Vtri'=1000
 
-#semantics "2013 Reference"
-
-class TriggerSource()
-   private Vtri:=0; Vtri':=1000; end  
-   Vtri'=1000; 
-   if Vtri>=10  Vtri=0; end  
-end
-
-class SwitchedConverter(Vd,Vca)
-   private 
-     Van := 0; 
-     trigger := create TriggerSource(); 
-   end     
-   if trigger.Vtri>=Vca  Van = Vd; 
-     else  Van = 0; end
-end
+model SwitchedConverter(Vd,Vca) = 
+initially 
+  Van  =  0 , 
+  trigger  =  create TriggerSource() 
+always     
+  if trigger.Vtri>=Vca then Van = Vd 
+  else  Van = 0 
 
 // differential equation describing the circuit being powered by the converter
-class EquivalentCircuit(R,L,E)
-   private i:=0; i':=0; 
-      converter := create SwitchedConverter(100,8);
-   end
-   i' = converter.Van/L - E/L - (R/L)*i; 
-end
+model EquivalentCircuit(R,L,E) = 
+initially 
+  i = 0 , i' = 0 , 
+  converter  =  create SwitchedConverter(100,8) 
+always
+   i' = converter.Van/L - E/L - (R/L)*i
 
-class Main(simulator)
-   private circuit := create EquivalentCircuit(0.5,0.012,40); end
-   // simulator parameters
-   simulator.timeStep = 0.0001;        
-   simulator.endTime = 0.1;  
-end
+model Main(simulator) = 
+initially 
+  circuit  =  create EquivalentCircuit(0.5,0.012,40) 
+always
+  // simulator parameters
+  simulator.timeStep = 0.0001 ,        
+  simulator.endTime = 0.1 
 

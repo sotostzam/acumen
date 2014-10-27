@@ -1,46 +1,37 @@
-/* 
-   Works with semantic 2014
-   Works with semantic 2013
-   Works with semantic 2012
-*/
 
 model Main(simulator) =
-  initially 
-    t   = 20, // Startposition boll blå
-    t'  = -5, // Hastighet     boll blå
-    t'' =  0, // Acceleration  boll blå  
+initially 
+  t   = 20, // Startposition boll blue
+  t'  = -5, // Hastighet     boll blue
+  t'' =  0, // Acceleration  boll blue  
 
-    u   =  1, // Startposition boll röd
-    u'  =  0, // Hastighet     boll röd
-    u'' =  0, // Acceleration  boll röd
+  u   =  1, // Startposition boll red
+  u'  =  0, // Hastighet     boll red
+  u'' =  0, // Acceleration  boll red
 
-    _3D =()
-  always
-
+  _3D =()
+always
   t'' == 0,
   u'' == 0,
-  if (t<1.0) then t'+ ==0.00 noelse, // Blue ball
-  if (t<1.0) then u'+ ==5.0 noelse,  // Red ball
-
-  _3D+ == (
-    ("Box",           // Type of _3D object
-      (0,0,-0.05),    // Center point
-      (0.01,2,4000),  // Size in (x,y,z) form
-      0.5*white,      // Color
-      (0,pi/2,0)),    // Orientation
+  if t<1.0 then t'+ ==0.00 noelse, // Blue ball
+  if t<1.0 then u'+ ==5.0 noelse,  // Red ball
+  _3D+ == (Box                     // Type of _3D object
+           center=(0,0,-0.05)      // Center point
+           size=(0.01,2,4000)      // Size in (x,y,z) form
+           color=0.5*white         // Color
+           rotation=(0,pi/2,0),     // Orientation
                     
-    ("Sphere",        // Type of _3D object
-      (u/10,0,0.05),  // Starting point in (x,y,z) form
-      (0.1),          // Radius
-      red,            // Color in red-green-blue (RGB) intensity
-      (0,0,0)),       // Orientation (pi around x-axis)
+           Sphere                  // Type of _3D object
+           center=(u/10,0,0.05)    // Starting point in (x,y,z) form
+           size=(0.1)              // Radius
+           color=red               // Color in red-green-blue (RGB) intensity
+           rotation=(0,0,0),       // Orientation (pi around x-axis)
 
-    ("Sphere",        // Type of _3D object
-      (-t/10,0,0.05), // Starting point in (x,y,z) form
-      (0.1),          // Radius
-      blue,           // Color in red-green-blue (RGB) intensity
-      (0,0,0))        // Orientation (pi around x-axis)
-  )  
+           Sphere                  // Type of _3D object
+           center=(-t/10,0,0.05)   // Starting point in (x,y,z) form
+           size=(0.1)              // Radius
+           color=blue              // Color in red-green-blue (RGB) intensity
+           rotation=(0,0,0))       // Orientation (pi around x-axis) 
 
 // Pogrameringen visar hur rörelsemängden och rörelseenergin
 // bevaras vid en elastisk stöt.
@@ -61,11 +52,4 @@ model Main(simulator) =
 // Vi ser att den röda bollen får hastgigheten 5 och vi kan konstatera
 // att det är en fullständig elastisk stöt med att kontrollera med
 // ovanstående formel av rörelseenergi.   
-
-
-
-
-
-
-
 

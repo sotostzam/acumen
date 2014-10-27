@@ -1,34 +1,26 @@
-/* 
-   Works with semantic 2014
-   Works with semantic 2013
-   Works with semantic 2012
-*/
+model Palwaysulum(m,L,D) = 
+initially 
+  x = 2 , y = 0 , theta = 3.1416/4 , theta' = 0.01 , theta'' = 0 , T = 0 , g = 9.8 ,
+  _3D = (Sphere center=(1,0,0) size=0.01*3 color=(0,0,1) rotation=(0,0,0),
+         Sphere center=(0,0,0) size=0.01*1 color=(0,0,1) rotation=(0,0,0),
+         Cylinder center=(0,0,0) radius= 0.01 length=2  color=(0,1,0) rotation=(0,0,3.1416/2))
+always
 
-class Pendulum(m,L,D)
-  private 
-    x:=2; y:=0; theta:=3.1416/4; theta':=0.01; theta'':=0; T:=0; g:=9.8;
-    _3D:=[["Sphere",[1,0,0],0.01*3,[0,0,1],[0,0,0]],
-        ["Sphere",[0,0,0],0.01*1,[0,0,1],[0,0,0]],
-        ["Cylinder",[0,0,0],[0.01,2],[0,1,0],[0,0,3.1416/2]]];
-  end
-
-  _3D=[["Sphere",[x,0,y]+D,0.01*m,[0,0,1],[0,0,0]],
-         ["Sphere",[0,0,0]+D,0.01*1,[0,0,1],[0,0,0]],
-         ["Cylinder",[x/2,0,y/2]+D,[0.01,L],[0,1,0],[3.1416/2,theta,0]]];
+  _3D = (Sphere center=(x,0,y)+D size=0.01*m color=(0,0,1) rotation=(0,0,0),
+         Sphere center=(0,0,0)+D size=0.01*1 color=(0,0,1) rotation=(0,0,0),
+         Cylinder center=(x/2,0,y/2)+D radius= 0.01 length=L  color=(0,1,0) rotation=(3.1416/2,theta,0)),
     
-  theta''=(T - m*g*L*sin(theta))/(m*L^2);
-  x=L*sin(theta);
-  y=-L*cos(theta);
+  theta''=(T - m*g*L*sin(theta))/(m*L^2) ,
+  x=L*sin(theta) ,
+  y=-L*cos(theta) 
 
-end
 
-class Main(simulator)
-  private 
-    sys1 := create Pendulum(5, 1, [0,0,0]); 
-    //sys2 = create Pendulum(5, 1, [1,0,0]); 
-  end
+model Main(simulator) = 
+initially 
+  sys1  =  create Palwaysulum(5, 1, (0,0,0)) 
+  //sys2 = create Pendulum(5, 1, (1,0,0)) , 
+always
+  sys1.T=20*(-sys1.theta') 
+  //sys2.T(=)0 ,
 
-  sys1.T=20*(-sys1.theta');
-  //sys2.T[=]0;
-
-end
+ 

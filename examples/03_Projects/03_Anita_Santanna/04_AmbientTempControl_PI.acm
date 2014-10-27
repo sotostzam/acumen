@@ -1,27 +1,21 @@
-/* 
-   Works with semantic 2014
-   Works with semantic 2013
-   Works with semantic 2012
-*/
+model Main(simulator) = 
+initially
+  Qhp = 0 , To = 6 , Yeq = 1 , Ytm = 2 , Yh = 3 , Kh = 2 , Tg = 60 ,
+  mode = 1 , Ttm = 10 , Ttm' = 0 , Th = 50 , Th' = 0 , t = 0 , t' = 1 ,
+  int_Tg = 0 , int_Tg' = 0 , int_Th = 0 , int_Th' = 0 , kp = 10 , ki = 1 
+always
 
-class Main(simulator)
-  private
-    Qhp:=0; To:=6; Yeq:=1; Ytm:=2; Yh:=3; Kh:=2; Tg:=60;
-    mode:=1; Ttm:=10; Ttm':=0; Th:=50; Th':=0; t:=0; t':=1;
-    int_Tg:=0; int_Tg':=0; int_Th:=0; int_Th':=0; kp:=10; ki:=1;
-  end
+  Ttm'=(1/Ytm)*(Qhp - (Ttm - Th)/Yeq) ,
+  Th'=(1/Yh)*((Ttm - Th)/Yeq + (To -Th)/Kh) ,
 
-  Ttm'=(1/Ytm)*(Qhp - (Ttm - Th)/Yeq);
-  Th'=(1/Yh)*((Ttm - Th)/Yeq + (To -Th)/Kh);
+  int_Th'=Th ,
+  int_Tg'=Tg ,
+  Qhp = kp*(Tg-Th) + ki*(int_Tg - int_Th) ,
 
-  int_Th'=Th;
-  int_Tg'=Tg;
-  Qhp = kp*(Tg-Th) + ki*(int_Tg - int_Th);
+  simulator.endTime + == 30 ,
+  t'=1 ,
 
-  simulator.endTime := 30;
-  t'=1;
-
-  if t > 5
-    t:=0; To := To-1; 
-  end
-end 
+  if t > 5 then
+    t+ ==0 , To + == To-1
+  noelse
+  

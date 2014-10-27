@@ -1,43 +1,38 @@
-/* 
-   Works with semantic 2014
-   Works with semantic 2013
-   Works with semantic 2012
-*/
 
 // Magnus Egerstedt aircraft collision avoidance 
 // problem
 
 model aircraft (w,c,s) =
-  initially
-    phi = 0, phi' = 0,
-    p = (0,0), p' = (0,0),
-    x = 0, y = 0,
-    _3D = ()
-  always
-    _3D  == ("Box",(x,y,0),(0.1,0.1,0.1),c,(0,0,0)),
-    x    == p(0),
-    y    == p(1),
-    p'   == s*(cos(phi), sin(phi)),
-    phi' == w
+initially
+  phi = 0, phi' = 0,
+  p = (0,0), p' = (0,0),
+  x = 0, y = 0,
+  _3D = ()
+always
+  _3D  == (Box center=(x,y,0) size=(0.1,0.1,0.1) color=c rotation=(0,0,0)),
+  x    == p(0),
+  y    == p(1),
+  p'   == s*(cos(phi), sin(phi)),
+  phi' == w
 
 model controller () =
-  initially 
-    i1 = (0,0), i2 = 0,
-    o = 0, g = 0
-  always
-    g == atan2(i1(1), i1(0)) - i2,
-    o == 10*atan2(sin(g),cos(g))
+initially 
+  i1 = (0,0), i2 = 0,
+  o = 0, g = 0
+always
+  g == atan2(i1(1), i1(0)) - i2,
+  o == 10*atan2(sin(g),cos(g))
 
 model Main(simulator) =
-  initially
-    a  = create aircraft(1,(1,0,0),1), // lead
-    b  = create aircraft(0,(0,1,0),2), // follower
-    c  = create aircraft(0,(0,0,1),2), // follower
-    c1 = create controller(),
-    c2 = create controller()
-  always
-    c1.i1 == (a.p-b.p), c1.i2 == b.phi,
-    b.w   == c1.o,
-    c2.i1 == (b.p-c.p), c2.i2 == c.phi,
-    c.w   == c2.o 
+initially
+  a  = create aircraft(1,(1,0,0),1), // lead
+  b  = create aircraft(0,(0,1,0),2), // follower
+  c  = create aircraft(0,(0,0,1),2), // follower
+  c1 = create controller(),
+  c2 = create controller()
+always
+  c1.i1 == (a.p-b.p), c1.i2 == b.phi,
+  b.w   == c1.o,
+  c2.i1 == (b.p-c.p), c2.i2 == c.phi,
+  c.w   == c2.o 
 

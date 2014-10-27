@@ -1,396 +1,383 @@
-/* 
-   Has error with semantic 2014
-   works with semantic 2013
-   Works with semantic 2012
-*/
-
 // Summer Project modeling Rigid Body Dynamics in Acumen
 // 6/4/2013-7/20/2013
 // RW-S as Gimbal Mode
 
 #semantics "2013 Reference"
 
-class RWS_3DOF_gimbal(m_one, m_two, m_three, I_one, I_two, I_three, L_one, L_two, L_three)
- private 
-  theta_one := 0; theta_two := 0; theta_three := 0;
-  theta_one' := 0; theta_two' := 0; theta_three' := 0; 
-  theta_one'' := 0; theta_two'' := 0; theta_three'' := 0; 
-  g:=9.81;
-  t:= 0; t':= 1; 
-  TotalEnergy := 0; T := 0; V := 0;
-  torque_one := 0.01;torque_two := 0.01; torque_three := 0.01;
-  _3D:=[[],[],[]];
-  phi := atan(-2.13/7);//this is the camera path rotation
-  phi':= 1;
-  goal_one:=0; goal_two:=0; goal_three:=0;
-  error_one:=0;  error_one':=0;
-  error_two:=0;  error_two':=0;
-  error_three:=0;  error_three':=0;
-  kp_one:=0; kp_two:=0; kp_three:=0;
-  kd_one:=0; kd_two:=0; kd_three:=0;
-  kinetic_energy_bar:= create cylinder([0,0,0]);
-  potential_energy_bar:= create cylinder([0,0,0]);
-  torque_one_arrow_one:=create cylinder([0,0,0]);
-  torque_one_arrow_two:=create cylinder([0,0,0]);
-  torque_two_arrow:=create cylinder([0,0,0]);
-  torque_three_arrow:= create cylinder([0,0,0]);
-  gravity_arrow_one:= create cylinder([0,0,0]);
-  gravity_arrow_three:= create cylinder([0,0,0]);
-  V_0:=0;
-  cone_one:=create cone([0,0,0]);
-  cone_two:=create cone([0,0,0]);
-  cone_three:=create cone([0,0,0]);
-  cone_four:=create cone([0,0,0]);
-  cone_five:=create cone([0,0,0]);
-  cone_six:=create cone([0,0,0]);
-end
-t' =1;
+model RWS_3DOF_gimbal(m_one, m_two, m_three, I_one, I_two, I_three, L_one, L_two, L_three) = 
+initially 
+  theta_one  =  0 , theta_two  =  0 , theta_three  =  0 ,
+  theta_one'  =  0 , theta_two'  =  0 , theta_three'  =  0 , 
+  theta_one''  =  0 , theta_two''  =  0 , theta_three''  =  0 , 
+  g = 9.81 ,
+  t =  0 , t' =  1 , 
+  TotalEnergy  =  0 , T  =  0 , V  =  0 ,
+  torque_one  =  0.01 ,torque_two  =  0.01 , torque_three  =  0.01 ,
+  _3D = ((),(),()) ,
+  phi  =  atan(-2.13/7) ,//this is the camera path rotation
+  phi' =  1 ,
+  goal_one = 0 , goal_two = 0 , goal_three = 0 ,
+  error_one = 0 ,  error_one' = 0 ,
+  error_two = 0 ,  error_two' = 0 ,
+  error_three = 0 ,  error_three' = 0 ,
+  kp_one = 0 , kp_two = 0 , kp_three = 0 ,
+  kd_one = 0 , kd_two = 0 , kd_three = 0 ,
+  kinetic_energy_bar =  create cylinder((0,0,0)) ,
+  potential_energy_bar =  create cylinder((0,0,0)) ,
+  torque_one_arrow_one = create cylinder((0,0,0)) ,
+  torque_one_arrow_two = create cylinder((0,0,0)) ,
+  torque_two_arrow = create cylinder((0,0,0)) ,
+  torque_three_arrow =  create cylinder((0,0,0)) ,
+  gravity_arrow_one =  create cylinder((0,0,0)) ,
+  gravity_arrow_three =  create cylinder((0,0,0)) ,
+  V_0 = 0 ,
+  cone_one = create cone((0,0,0)) ,
+  cone_two = create cone((0,0,0)) ,
+  cone_three = create cone((0,0,0)) ,
+  cone_four = create cone((0,0,0)) ,
+  cone_five = create cone((0,0,0)) ,
+  cone_six = create cone((0,0,0))
+always
+  t' =1 ,
 
-//Correct EOM
-theta_one''=(g*L_two*m_one*sin(theta_one)+g*L_three*m_three*(cos(theta_one)*cos(theta_three)*sin(theta_two)+sin(theta_one)*sin(theta_three))+I_three*cos(theta_two)*sin(theta_two)*(theta_one')*(theta_two')-I_three*cos(theta_two)*cos(theta_three)^2*sin(theta_two)*(theta_one')*(theta_two')-I_three*cos(theta_two)*sin(theta_two)*sin(theta_three)^2*(theta_one')*(theta_two')+I_three*sin(theta_two)*sin(theta_three)*(theta_two')*(-cos(theta_two)*sin(theta_three)*(theta_one')+cos(theta_three)*(theta_two'))-I_three*cos(theta_three)*sin(theta_two)*(theta_two')*(cos(theta_two)*cos(theta_three)*(theta_one')+sin(theta_three)*(theta_two'))+I_three*cos(theta_two)*cos(theta_three)^2*(theta_two')*(theta_three')+I_three*cos(theta_two)*sin(theta_three)^2*(theta_two')*(theta_three')-I_three*cos(theta_two)*cos(theta_three)*(-cos(theta_two)*sin(theta_three)*(theta_one')+cos(theta_three)*(theta_two'))*(theta_three')-I_three*cos(theta_two)*sin(theta_three)*(cos(theta_two)*cos(theta_three)*(theta_one')+sin(theta_three)*(theta_two'))*(theta_three')-I_three*cos(theta_two)*(theta_two')*(-sin(theta_two)*(theta_one')+(theta_three'))-I_three*sin(theta_two)*(theta_three'')-torque_one)/(-I_one-I_two-I_three*cos(theta_two)^2*cos(theta_three)^2-I_three*sin(theta_two)^2-I_three*cos(theta_two)^2*sin(theta_three)^2);
-theta_two''=(g*L_three*m_three*cos(theta_two)*cos(theta_three)*sin(theta_one)-I_three*cos(theta_two)*cos(theta_three)^2*(theta_one')*(theta_three')-I_three*cos(theta_two)*sin(theta_three)^2*(theta_one')*(theta_three')-I_three*sin(theta_three)*(-cos(theta_two)*sin(theta_three)*(theta_one')+cos(theta_three)*(theta_two'))*(theta_three')+I_three*cos(theta_three)*(cos(theta_two)*cos(theta_three)*(theta_one')+sin(theta_three)*(theta_two'))*(theta_three')-0.5*I_three*(2*sin(theta_two)*sin(theta_three)*(theta_one')*(-cos(theta_two)*sin(theta_three)*(theta_one')+cos(theta_three)*(theta_two'))-2*cos(theta_three)*sin(theta_two)*(theta_one')*(cos(theta_two)*cos(theta_three)*(theta_one')+sin(theta_three)*(theta_two'))-2*cos(theta_two)*(theta_one')*(-sin(theta_two)*(theta_one')+(theta_three')))-torque_two)/(-I_two-I_three*cos(theta_three)^2-I_three*sin(theta_three)^2);
-theta_three''=-(1/I_three)*(-1*torque_three+g*L_three*m_three*(-cos(theta_one)*cos(theta_three)-sin(theta_one)*sin(theta_two)*sin(theta_three))-I_three*cos(theta_two)*(theta_one')*(theta_two')-0.5*I_three*(2*(-cos(theta_two)*sin(theta_three)*(theta_one')+cos(theta_three)*(theta_two'))*(-cos(theta_two)*cos(theta_three)*(theta_one')-sin(theta_three)*(theta_two'))+2*(-cos(theta_two)*sin(theta_three)*(theta_one')+cos(theta_three)*(theta_two'))*(cos(theta_two)*cos(theta_three)*(theta_one')+sin(theta_three)*(theta_two')))-I_three*sin(theta_two)*(theta_one''));
+  //Correct EOM
+  theta_one''=(g*L_two*m_one*sin(theta_one)+g*L_three*m_three*(cos(theta_one)*cos(theta_three)*sin(theta_two)+sin(theta_one)*sin(theta_three))+I_three*cos(theta_two)*sin(theta_two)*(theta_one')*(theta_two')-I_three*cos(theta_two)*cos(theta_three)^2*sin(theta_two)*(theta_one')*(theta_two')-I_three*cos(theta_two)*sin(theta_two)*sin(theta_three)^2*(theta_one')*(theta_two')+I_three*sin(theta_two)*sin(theta_three)*(theta_two')*(-cos(theta_two)*sin(theta_three)*(theta_one')+cos(theta_three)*(theta_two'))-I_three*cos(theta_three)*sin(theta_two)*(theta_two')*(cos(theta_two)*cos(theta_three)*(theta_one')+sin(theta_three)*(theta_two'))+I_three*cos(theta_two)*cos(theta_three)^2*(theta_two')*(theta_three')+I_three*cos(theta_two)*sin(theta_three)^2*(theta_two')*(theta_three')-I_three*cos(theta_two)*cos(theta_three)*(-cos(theta_two)*sin(theta_three)*(theta_one')+cos(theta_three)*(theta_two'))*(theta_three')-I_three*cos(theta_two)*sin(theta_three)*(cos(theta_two)*cos(theta_three)*(theta_one')+sin(theta_three)*(theta_two'))*(theta_three')-I_three*cos(theta_two)*(theta_two')*(-sin(theta_two)*(theta_one')+(theta_three'))-I_three*sin(theta_two)*(theta_three'')-torque_one)/(-I_one-I_two-I_three*cos(theta_two)^2*cos(theta_three)^2-I_three*sin(theta_two)^2-I_three*cos(theta_two)^2*sin(theta_three)^2) ,
+  theta_two''=(g*L_three*m_three*cos(theta_two)*cos(theta_three)*sin(theta_one)-I_three*cos(theta_two)*cos(theta_three)^2*(theta_one')*(theta_three')-I_three*cos(theta_two)*sin(theta_three)^2*(theta_one')*(theta_three')-I_three*sin(theta_three)*(-cos(theta_two)*sin(theta_three)*(theta_one')+cos(theta_three)*(theta_two'))*(theta_three')+I_three*cos(theta_three)*(cos(theta_two)*cos(theta_three)*(theta_one')+sin(theta_three)*(theta_two'))*(theta_three')-0.5*I_three*(2*sin(theta_two)*sin(theta_three)*(theta_one')*(-cos(theta_two)*sin(theta_three)*(theta_one')+cos(theta_three)*(theta_two'))-2*cos(theta_three)*sin(theta_two)*(theta_one')*(cos(theta_two)*cos(theta_three)*(theta_one')+sin(theta_three)*(theta_two'))-2*cos(theta_two)*(theta_one')*(-sin(theta_two)*(theta_one')+(theta_three')))-torque_two)/(-I_two-I_three*cos(theta_three)^2-I_three*sin(theta_three)^2) ,
+  theta_three''=-(1/I_three)*(-1*torque_three+g*L_three*m_three*(-cos(theta_one)*cos(theta_three)-sin(theta_one)*sin(theta_two)*sin(theta_three))-I_three*cos(theta_two)*(theta_one')*(theta_two')-0.5*I_three*(2*(-cos(theta_two)*sin(theta_three)*(theta_one')+cos(theta_three)*(theta_two'))*(-cos(theta_two)*cos(theta_three)*(theta_one')-sin(theta_three)*(theta_two'))+2*(-cos(theta_two)*sin(theta_three)*(theta_one')+cos(theta_three)*(theta_two'))*(cos(theta_two)*cos(theta_three)*(theta_one')+sin(theta_three)*(theta_two')))-I_three*sin(theta_two)*(theta_one'')) ,
 
-//Energy check
-T=1/2*I_one*theta_one'^2+1/2*I_two*(theta_one'^2+theta_two'^2)+1/2*I_three*((theta_one'*cos(theta_two)*cos(theta_three)+theta_two'*(sin(theta_three)))^2+(theta_three'-theta_one*sin(theta_two))^2+(-1*theta_one'*sin(theta_three)*cos(theta_two)-theta_two'*cos(theta_three)^2));
-V= -m_one*g*L_two*cos(theta_one)+m_three*g*L_three*(cos(theta_three)*sin(theta_two)*sin(theta_one)-sin(theta_three)*cos(theta_one));
-TotalEnergy= T+V;
+  //Energy check
+  T=1/2*I_one*theta_one'^2+1/2*I_two*(theta_one'^2+theta_two'^2)+1/2*I_three*((theta_one'*cos(theta_two)*cos(theta_three)+theta_two'*(sin(theta_three)))^2+(theta_three'-theta_one*sin(theta_two))^2+(-1*theta_one'*sin(theta_three)*cos(theta_two)-theta_two'*cos(theta_three)^2)) ,
+  V= -m_one*g*L_two*cos(theta_one)+m_three*g*L_three*(cos(theta_three)*sin(theta_two)*sin(theta_one)-sin(theta_three)*cos(theta_one)) ,
+  TotalEnergy= T+V ,
 
-//Animation Creation Section
-if (t<4)
-phi'=pi/2;
-theta_one=0; theta_two=0; theta_three=0; 
-_3D=[["Text",[-1.5*cos(phi),-1.5*sin(phi),1.65],0.3,[0.1,0.1,0.1],[pi/2,0,phi+0.2],"Gimbal Model"],["Text",[3.6*cos(phi),3.6*sin(phi),-0.2],0.2,[1,0,0],[pi/2,0,phi+0.2],""],["Text",[2.7*cos(phi),2.7*sin(phi),-0.2],0.2,[0,0,1],[pi/2,0,phi+0.2],""]];
+  //Animation Creation Section
+  if t<4 then
+    phi'=pi/2 ,
+    theta_one=0 , theta_two=0 , theta_three=0 , 
+    _3D=(Text center=(-1.5*cos(phi),-1.5*sin(phi),1.65) size=0.3 color=(0.1,0.1,0.1) rotation=(pi/2,0,phi+0.2) content="Gimbal Model"),(Text center=(3.6*cos(phi),3.6*sin(phi),-0.2) size=0.2 color=(1,0,0) rotation=(pi/2,0,phi+0.2) content=""),(Text center=(2.7*cos(phi),2.7*sin(phi),-0.2) size=0.2 color=(0,0,1) rotation=(pi/2,0,phi+0.2) content="")
+  noelse ,
 
-end;
+  if t>4 && t<8 then
+    goal_one=pi/3*sin(pi/2*t) ,goal_two=0 , goal_three=0 ,
+    error_one=goal_one-theta_one ,
+    error_one'=-theta_one' ,
+    error_two=goal_two-theta_two ,
+    error_two'=-theta_two' ,
+    error_three= goal_three-theta_three ,
+    error_three'=-theta_three' ,
+    kp_one=50 , kd_one=20 ,
+    kp_two=60 , kd_two=10 , 
+    kp_three=60 , kd_three=10 , 
+    torque_one=kp_one*error_one+kd_one*error_one' ,
+    torque_two=kp_two*4*error_two+kd_two*error_two' ,
+    torque_three=kp_three*4*error_three+kd_three*error_three' ,
+    _3D=(Text center=(-1.5*cos(phi),-1.5*sin(phi),1.65) size=0.3 color=(0.1,0.1,0.1) rotation=(pi/2,0,phi+0.2) content="Pronation/Supination"),(Text center=(2.4*cos(phi),2.4*sin(phi),-0.175) size=0.2 color=(1,0,0) rotation=(pi/2,0,phi-0.2) content="Kinetic"),(Text center=(1.5*cos(phi),1.5*sin(phi),-0.15) size=0.2 color=(0,0,1) rotation=(pi/2,0,phi-0.2) content="Potential")
+  noelse ,
 
-if (t>4&& t<8)
-goal_one=pi/3*sin(pi/2*t);goal_two=0; goal_three=0;
-error_one=goal_one-theta_one;
-error_one'=-theta_one';
-error_two=goal_two-theta_two;
-error_two'=-theta_two';
-error_three= goal_three-theta_three;
-error_three'=-theta_three';
-kp_one=50; kd_one=20;
-kp_two=60; kd_two=10; 
-kp_three=60; kd_three=10; 
-torque_one=kp_one*error_one+kd_one*error_one';
-torque_two=kp_two*4*error_two+kd_two*error_two';
-torque_three=kp_three*4*error_three+kd_three*error_three';
-_3D=[["Text",[-1.5*cos(phi),-1.5*sin(phi),1.65],0.3,[0.1,0.1,0.1],[pi/2,0,phi+0.2],"Pronation/Supination"],["Text",[2.4*cos(phi),2.4*sin(phi),-0.175],0.2,[1,0,0],[pi/2,0,phi-0.2],"Kinetic"],["Text",[1.5*cos(phi),1.5*sin(phi),-0.15],0.2,[0,0,1],[pi/2,0,phi-0.2],"Potential"]];
-end;
+  if t>8 && t<12 then
+    goal_one=0 ,goal_two=pi/3*sin(pi/2*t) , goal_three=0 ,
+    error_one=goal_one-theta_one ,
+    error_one'=-theta_one' ,
+    error_two=goal_two-theta_two ,
+    error_two'=-theta_two' ,
+    error_three= goal_three-theta_three ,
+    error_three'=-theta_three' ,
+    kp_one=100 , kd_one=40 ,
+    kp_two=10 , kd_two=8 , 
+    kp_three=60 , kd_three=10 , 
+    torque_one=kp_one*error_one+kd_one*error_one' ,
+    torque_two=kp_two*4*error_two+kd_two*error_two' ,
+    torque_three=kp_three*4*error_three+kd_three*error_three' ,
+    _3D=(Text center=(-2*cos(phi),-2*sin(phi),1.65) size=0.3 color=(0.1,0.1,0.1) rotation=(pi/2,0,phi+0.2) content="Flexion/Extension"),(Text center=(2.4*cos(phi),2.4*sin(phi),-0.175) size=0.2 color=(1,0,0) rotation=(pi/2,0,phi-0.2) content="Kinetic"),(Text center=(1.5*cos(phi),1.5*sin(phi),-0.15) size=0.2 color=(0,0,1) rotation=(pi/2,0,phi-0.2) content="Potential")
+  noelse ,
 
-if (t>8&& t<12)
-goal_one=0;goal_two=pi/3*sin(pi/2*t); goal_three=0;
-error_one=goal_one-theta_one;
-error_one'=-theta_one';
-error_two=goal_two-theta_two;
-error_two'=-theta_two';
-error_three= goal_three-theta_three;
-error_three'=-theta_three';
-kp_one=100; kd_one=40;
-kp_two=10; kd_two=8; 
-kp_three=60; kd_three=10; 
-torque_one=kp_one*error_one+kd_one*error_one';
-torque_two=kp_two*4*error_two+kd_two*error_two';
-torque_three=kp_three*4*error_three+kd_three*error_three';
-_3D=[["Text",[-2*cos(phi),-2*sin(phi),1.65],0.3,[0.1,0.1,0.1],[pi/2,0,phi+0.2],"Flexion/Extension"],["Text",[2.4*cos(phi),2.4*sin(phi),-0.175],0.2,[1,0,0],[pi/2,0,phi-0.2],"Kinetic"],["Text",[1.5*cos(phi),1.5*sin(phi),-0.15],0.2,[0,0,1],[pi/2,0,phi-0.2],"Potential"]];
-end;
+  if t>12 & t<16 then
+    goal_one=0 ,goal_two=0 , goal_three=pi/3*sin(pi/2*t) ,
+    error_one=goal_one-theta_one ,
+    error_one'=-theta_one' ,
+    error_two=goal_two-theta_two ,
+    error_two'=-theta_two' ,
+    error_three= goal_three-theta_three ,
+    error_three'=-theta_three' ,
+    kp_one=50 , kd_one=10 ,
+    kp_two=50 , kd_two=10 , 
+    kp_three=30 , kd_three=10 , 
+    torque_one=kp_one*error_one+kd_one*error_one' ,
+    torque_two=kp_two*4*error_two+kd_two*error_two' ,
+    torque_three=kp_three*4*error_three+kd_three*error_three' ,
+    _3D=(Text center=(-2*cos(phi),-2*sin(phi),1.65) size=0.3 color=(0.1,0.1,0.1) rotation=(pi/2,0,phi+0.2) content="Radio-Ulnar Deviation"),(Text center=(2.4*cos(phi),2.4*sin(phi),-0.175) size=0.2 color=(1,0,0) rotation=(pi/2,0,phi-0.2) content="Kinetic"),(Text center=(1.5*cos(phi),1.5*sin(phi),-0.15) size=0.2 color=(0,0,1) rotation=(pi/2,0,phi-0.2) content="Potential")
+  noelse ,
 
-if (t>12&& t<16)
-goal_one=0;goal_two=0; goal_three=pi/3*sin(pi/2*t);
-error_one=goal_one-theta_one;
-error_one'=-theta_one';
-error_two=goal_two-theta_two;
-error_two'=-theta_two';
-error_three= goal_three-theta_three;
-error_three'=-theta_three';
-kp_one=50; kd_one=10;
-kp_two=50; kd_two=10; 
-kp_three=30; kd_three=10; 
-torque_one=kp_one*error_one+kd_one*error_one';
-torque_two=kp_two*4*error_two+kd_two*error_two';
-torque_three=kp_three*4*error_three+kd_three*error_three';
-_3D=[["Text",[-2*cos(phi),-2*sin(phi),1.65],0.3,[0.1,0.1,0.1],[pi/2,0,phi+0.2],"Radio-Ulnar Deviation"],["Text",[2.4*cos(phi),2.4*sin(phi),-0.175],0.2,[1,0,0],[pi/2,0,phi-0.2],"Kinetic"],["Text",[1.5*cos(phi),1.5*sin(phi),-0.15],0.2,[0,0,1],[pi/2,0,phi-0.2],"Potential"]];
-end;
+  if t>4 then
+    phi'=0 ,
+    // Energy Bar Animation
+    V_0=-m_one*g*L_two-m_three*g*L_three ,
+    kinetic_energy_bar.p=(2.5*cos(phi),2.5*sin(phi),0) ,
+    kinetic_energy_bar.q=(2.5*cos(phi),2.5*sin(phi),abs(T)) ,
+    kinetic_energy_bar.color=(1,0,0) ,
+    potential_energy_bar.p=(2.25*cos(phi),2.25*sin(phi),0) ,
+    potential_energy_bar.q=(2.25*cos(phi),2.25*sin(phi),abs(0.1*(V-V_0))) ,
+    potential_energy_bar.color=(0,0,1) ,
 
-if (t>4)
-phi'=0;
-// Energy Bar Animation
-V_0=-m_one*g*L_two-m_three*g*L_three;
-kinetic_energy_bar.p=[2.5*cos(phi),2.5*sin(phi),0];
-kinetic_energy_bar.q=[2.5*cos(phi),2.5*sin(phi),abs(T)];
-kinetic_energy_bar.color=[1,0,0];
-potential_energy_bar.p=[2.25*cos(phi),2.25*sin(phi),0];
-potential_energy_bar.q=[2.25*cos(phi),2.25*sin(phi),abs(0.1*(V-V_0))];
-potential_energy_bar.color=[0,0,1];
+    // Torque (force) Arrow Animation
+    torque_one_arrow_one.p=(L_one/2,L_two*sin(theta_one),-1*L_two*cos(theta_one))-0.25*torque_one/abs(torque_one)*(0,cos(theta_one),sin(theta_one)) ,
+    torque_one_arrow_one.q=torque_one_arrow_one.p+(0,-torque_one/5*cos(theta_one),-torque_one/5*sin(theta_one)) ,
+    torque_one_arrow_one.color=(0,1,0) ,
 
-// Torque (force) Arrow Animation
-torque_one_arrow_one.p=[L_one/2,L_two*sin(theta_one),-1*L_two*cos(theta_one)]-0.25*torque_one/abs(torque_one)*[0,cos(theta_one),sin(theta_one)];
-torque_one_arrow_one.q=torque_one_arrow_one.p+[0,-torque_one/5*cos(theta_one),-torque_one/5*sin(theta_one)];
-torque_one_arrow_one.color=[0,1,0];
+    torque_one_arrow_two.p=(L_one/2,-1*L_two*sin(theta_one),L_two*cos(theta_one))+0.25*torque_one/abs(torque_one)*(0,cos(theta_one),sin(theta_one)) ,
+    torque_one_arrow_two.q=torque_one_arrow_two.p+(0,torque_one/5*cos(theta_one),torque_one/5*sin(theta_one)) ,
+    torque_one_arrow_two.color=(0,1,0) ,
 
-torque_one_arrow_two.p=[L_one/2,-1*L_two*sin(theta_one),L_two*cos(theta_one)]+0.25*torque_one/abs(torque_one)*[0,cos(theta_one),sin(theta_one)];
-torque_one_arrow_two.q=torque_one_arrow_two.p+[0,torque_one/5*cos(theta_one),torque_one/5*sin(theta_one)];
-torque_one_arrow_two.color=[0,1,0];
+    torque_three_arrow.p=(L_three*cos(theta_two)*cos(theta_three),L_three*(cos(theta_three)*sin(theta_two)*cos(theta_one)+sin(theta_three)*sin(theta_one)), L_three*(cos(theta_three)*sin(theta_two)*sin(theta_one)-sin(theta_three)*cos(theta_one)))+0.25*torque_three/abs(torque_three)*(sin(theta_three)*cos(theta_two),sin(theta_three)*sin(theta_two)*cos(theta_one)-cos(theta_three)*sin(theta_one),cos(theta_three)*cos(theta_one)+sin(theta_three)*sin(theta_two)*sin(theta_one)) , 
+    torque_three_arrow.q=torque_three_arrow.p+torque_three/5*(sin(theta_three)*cos(theta_two),sin(theta_three)*sin(theta_two)*cos(theta_one)-cos(theta_three)*sin(theta_one),cos(theta_three)*cos(theta_one)+sin(theta_three)*sin(theta_two)*sin(theta_one)) ,
+    torque_three_arrow.color=(0,1,0) ,
 
-torque_three_arrow.p=[L_three*cos(theta_two)*cos(theta_three),L_three*(cos(theta_three)*sin(theta_two)*cos(theta_one)+sin(theta_three)*sin(theta_one)), L_three*(cos(theta_three)*sin(theta_two)*sin(theta_one)-sin(theta_three)*cos(theta_one))]+0.25*torque_three/abs(torque_three)*[sin(theta_three)*cos(theta_two),sin(theta_three)*sin(theta_two)*cos(theta_one)-cos(theta_three)*sin(theta_one),cos(theta_three)*cos(theta_one)+sin(theta_three)*sin(theta_two)*sin(theta_one)]; 
-torque_three_arrow.q=torque_three_arrow.p+torque_three/5*[sin(theta_three)*cos(theta_two),sin(theta_three)*sin(theta_two)*cos(theta_one)-cos(theta_three)*sin(theta_one),cos(theta_three)*cos(theta_one)+sin(theta_three)*sin(theta_two)*sin(theta_one)];
-torque_three_arrow.color=[0,1,0];
+    torque_two_arrow.p=(L_three*cos(theta_two)*cos(theta_three),L_three*(cos(theta_three)*sin(theta_two)*cos(theta_one)+sin(theta_three)*sin(theta_one)), L_three*(cos(theta_three)*sin(theta_two)*sin(theta_one)-sin(theta_three)*cos(theta_one)))-0.25*torque_two/abs(torque_two)*(-sin(theta_two),cos(theta_two)*cos(theta_one),cos(theta_two)*sin(theta_one)) , 
+    torque_two_arrow.q=torque_two_arrow.p-torque_two/5*(-sin(theta_two),cos(theta_two)*cos(theta_one),cos(theta_two)*sin(theta_one)) ,
+    torque_two_arrow.color=(0,1,0) ,
 
-torque_two_arrow.p=[L_three*cos(theta_two)*cos(theta_three),L_three*(cos(theta_three)*sin(theta_two)*cos(theta_one)+sin(theta_three)*sin(theta_one)), L_three*(cos(theta_three)*sin(theta_two)*sin(theta_one)-sin(theta_three)*cos(theta_one))]-0.25*torque_two/abs(torque_two)*[-sin(theta_two),cos(theta_two)*cos(theta_one),cos(theta_two)*sin(theta_one)]; 
-torque_two_arrow.q=torque_two_arrow.p-torque_two/5*[-sin(theta_two),cos(theta_two)*cos(theta_one),cos(theta_two)*sin(theta_one)];
-torque_two_arrow.color=[0,1,0];
+    gravity_arrow_one.p=(0, L_two*sin(theta_one),-L_two*cos(theta_one)) ,
+    gravity_arrow_one.q=gravity_arrow_one.p+(0,0,-m_one/2) ,
+    gravity_arrow_one.color=(1,0,0) ,
 
-gravity_arrow_one.p=[0, L_two*sin(theta_one),-L_two*cos(theta_one)];
-gravity_arrow_one.q=gravity_arrow_one.p+[0,0,-m_one/2];
-gravity_arrow_one.color=[1,0,0];
+    gravity_arrow_three.p=(L_three*cos(theta_two)*cos(theta_three),L_three*(cos(theta_three)*sin(theta_two)*cos(theta_one)+sin(theta_three)*sin(theta_one)), L_three*(cos(theta_three)*sin(theta_two)*sin(theta_one)-sin(theta_three)*cos(theta_one))) , 
+    gravity_arrow_three.q=gravity_arrow_three.p+(0,0,-m_three*1.5) ,
+    gravity_arrow_three.color=(1,0,0) ,
 
-gravity_arrow_three.p=[L_three*cos(theta_two)*cos(theta_three),L_three*(cos(theta_three)*sin(theta_two)*cos(theta_one)+sin(theta_three)*sin(theta_one)), L_three*(cos(theta_three)*sin(theta_two)*sin(theta_one)-sin(theta_three)*cos(theta_one))]; 
-gravity_arrow_three.q=gravity_arrow_three.p+[0,0,-m_three*1.5];
-gravity_arrow_three.color=[1,0,0];
+    // Creating cones for arrows
+    cone_one.p=(L_one/2,L_two*sin(theta_one),-1*L_two*cos(theta_one)) ,
+    cone_one.q=cone_one.p+(-0.4)*torque_one/abs(torque_one)*(0,cos(theta_one),sin(theta_one)) ,
+    cone_one.radius=0.2 ,
+    cone_one.color=(0,1,0) ,
 
-// Creating cones for arrows
-cone_one.p=[L_one/2,L_two*sin(theta_one),-1*L_two*cos(theta_one)];
-cone_one.q=cone_one.p+(-0.4)*torque_one/abs(torque_one)*[0,cos(theta_one),sin(theta_one)];
-cone_one.radius=0.2;
-cone_one.color=[0,1,0];
+    cone_two.p=(L_one/2,-1*L_two*sin(theta_one),L_two*cos(theta_one)) ,
+    cone_two.q=cone_two.p+(0.4)*torque_one/abs(torque_one)*(0,cos(theta_one),sin(theta_one)) ,
+    cone_two.radius=0.2 ,
+    cone_two.color=(0,1,0) ,
 
-cone_two.p=[L_one/2,-1*L_two*sin(theta_one),L_two*cos(theta_one)];
-cone_two.q=cone_two.p+(0.4)*torque_one/abs(torque_one)*[0,cos(theta_one),sin(theta_one)];
-cone_two.radius=0.2;
-cone_two.color=[0,1,0];
+    cone_four.p=(L_three*cos(theta_two)*cos(theta_three),L_three*(cos(theta_three)*sin(theta_two)*cos(theta_one)+sin(theta_three)*sin(theta_one)), L_three*(cos(theta_three)*sin(theta_two)*sin(theta_one)-sin(theta_three)*cos(theta_one))) ,
+    cone_four.q=cone_four.p+(0.4)*torque_three/abs(torque_three)*(sin(theta_three)*cos(theta_two),sin(theta_three)*sin(theta_two)*cos(theta_one)-cos(theta_three)*sin(theta_one),cos(theta_three)*cos(theta_one)+sin(theta_three)*sin(theta_two)*sin(theta_one)) ,
+    cone_four.radius=0.2 ,
+    cone_four.color=(0,1,0) ,
 
-cone_four.p=[L_three*cos(theta_two)*cos(theta_three),L_three*(cos(theta_three)*sin(theta_two)*cos(theta_one)+sin(theta_three)*sin(theta_one)), L_three*(cos(theta_three)*sin(theta_two)*sin(theta_one)-sin(theta_three)*cos(theta_one))];
-cone_four.q=cone_four.p+(0.4)*torque_three/abs(torque_three)*[sin(theta_three)*cos(theta_two),sin(theta_three)*sin(theta_two)*cos(theta_one)-cos(theta_three)*sin(theta_one),cos(theta_three)*cos(theta_one)+sin(theta_three)*sin(theta_two)*sin(theta_one)];
-cone_four.radius=0.2;
-cone_four.color=[0,1,0];
+    cone_three.p=(L_three*cos(theta_two)*cos(theta_three),L_three*(cos(theta_three)*sin(theta_two)*cos(theta_one)+sin(theta_three)*sin(theta_one)), L_three*(cos(theta_three)*sin(theta_two)*sin(theta_one)-sin(theta_three)*cos(theta_one))) ,
+    cone_three.q=cone_three.p+(-0.4)*torque_two/abs(torque_two)*(-sin(theta_two),cos(theta_two)*cos(theta_one),cos(theta_two)*sin(theta_one)) ,
+    cone_three.radius=0.2 ,
+    cone_three.color=(0,1,0) ,
+    
+    cone_five.p=gravity_arrow_one.q+(0,0,-0.2) ,
+    cone_five.q=gravity_arrow_one.q+(0,0,0.2) ,
+    cone_five.radius=0.2 ,
+    cone_five.color=(1,0,0) ,
 
-cone_three.p=[L_three*cos(theta_two)*cos(theta_three),L_three*(cos(theta_three)*sin(theta_two)*cos(theta_one)+sin(theta_three)*sin(theta_one)), L_three*(cos(theta_three)*sin(theta_two)*sin(theta_one)-sin(theta_three)*cos(theta_one))];
-cone_three.q=cone_three.p+(-0.4)*torque_two/abs(torque_two)*[-sin(theta_two),cos(theta_two)*cos(theta_one),cos(theta_two)*sin(theta_one)];
-cone_three.radius=0.2;
-cone_three.color=[0,1,0];
+    cone_six.p=gravity_arrow_three.q+(0,0,-0.2) ,
+    cone_six.q=gravity_arrow_three.q+(0,0,0.2) ,
+    cone_six.radius=0.2 ,
+    cone_six.color=(1,0,0)
+  noelse ,
 
-cone_five.p=gravity_arrow_one.q+[0,0,-0.2];
-cone_five.q=gravity_arrow_one.q+[0,0,0.2];
-cone_five.radius=0.2;
-cone_five.color=[1,0,0];
+  if t>16 then
+    goal_one=pi/4*sin(pi/2*t) ,goal_two=pi/4*sin(pi/2*t) , goal_three=pi/4*sin(pi/2*t) ,
+    error_one=goal_one-theta_one ,
+    error_one'=pi/4*cos(pi/2*t)-theta_one' ,
+    error_two=goal_two-theta_two ,
+    error_two'=pi/4*cos(pi/2*t)-theta_two' ,
+    error_three= goal_three-theta_three ,
+    error_three'=pi/4*cos(pi/2*t)-theta_three' ,
+    kp_one=50 , kd_one=10 ,
+    kp_two=50 , kd_two=10 , 
+    kp_three=30 , kd_three=10 , 
+    torque_one=kp_one*error_one+kd_one*error_one' ,
+    torque_two=kp_two*4*error_two+kd_two*error_two' ,
+    torque_three=kp_three*4*error_three+kd_three*error_three' ,
+    _3D=(Text center=(-2*cos(phi),-2*sin(phi),1.65) size=0.3 color=(0.1,0.1,0.1) rotation=(pi/2,0,phi+0.2) content="Complex Motion"),(Text center=(2.4*cos(phi),2.4*sin(phi),-0.175) size=0.2 color=(1,0,0) rotation=(pi/2,0,phi-0.2) content="Kinetic"),(Text center=(1.5*cos(phi),1.5*sin(phi),-0.15) size=0.2 color=(0,0,1) rotation=(pi/2,0,phi-0.2) content="Potential")
+  noelse 
 
-cone_six.p=gravity_arrow_three.q+[0,0,-0.2];
-cone_six.q=gravity_arrow_three.q+[0,0,0.2];
-cone_six.radius=0.2;
-cone_six.color=[1,0,0];
-
-end;
-
-if (t>16)
-goal_one=pi/4*sin(pi/2*t);goal_two=pi/4*sin(pi/2*t); goal_three=pi/4*sin(pi/2*t);
-error_one=goal_one-theta_one;
-error_one'=pi/4*cos(pi/2*t)-theta_one';
-error_two=goal_two-theta_two;
-error_two'=pi/4*cos(pi/2*t)-theta_two';
-error_three= goal_three-theta_three;
-error_three'=pi/4*cos(pi/2*t)-theta_three';
-kp_one=50; kd_one=10;
-kp_two=50; kd_two=10; 
-kp_three=30; kd_three=10; 
-torque_one=kp_one*error_one+kd_one*error_one';
-torque_two=kp_two*4*error_two+kd_two*error_two';
-torque_three=kp_three*4*error_three+kd_three*error_three';
-_3D=[["Text",[-2*cos(phi),-2*sin(phi),1.65],0.3,[0.1,0.1,0.1],[pi/2,0,phi+0.2],"Complex Motion"],["Text",[2.4*cos(phi),2.4*sin(phi),-0.175],0.2,[1,0,0],[pi/2,0,phi-0.2],"Kinetic"],["Text",[1.5*cos(phi),1.5*sin(phi),-0.15],0.2,[0,0,1],[pi/2,0,phi-0.2],"Potential"]];
-end;
-
-
-end
+ 
 
 // For visualization 
-class visualWrist(m_one, m_two, m_three, I_one, I_two, I_three, L_one, L_two, L_three) 
- private
-  l_one := create cylinder([-L_one/2,0,0]);
-  l_two := create cylinder([-L_one/2,0,0]);
-  l_three := create cylinder([-L_one/2,0,0]);
-  l_four := create cylinder([-L_one/2,0,0]);
-  l_five := create cylinder([-L_one/2,0,0]);
-  l_six := create cylinder([-L_one/2,0,0]);
-  l_seven := create cylinder([-L_one/2,0,0]);
-  l_eight := create cylinder([-L_one/2,0,0]);
-  l_nine := create cylinder([-L_one/2,0,0]);
-  l_ten := create cylinder([-L_one/2,0,0]);
-  l_eleven := create cylinder([-L_one/2,0,0]);
-  l_twelve:= create cylinder([-L_one/2,0,0]);
-  l_thirteen:=create cylinder([-L_one/2,0,0]);
-  thumb := create cylinder([-L_one/2,0,0]);
-  finger_one := create cylinder([-L_one/2,0,0]);
-  finger_two := create cylinder([-L_one/2,0,0]);
-  finger_three := create cylinder([-L_one/2,0,0]);
-  finger_four := create cylinder([-L_one/2,0,0]);
-  finger_radius :=0.1;
-  finger_color:=[0.6,0.6,0.1];
-  Mass_one := create sphere(15,[-L_one/2,0,0]);
-  Mass_two := create sphere(15,[-L_one/2,0,0]);
-  Mass_three := create sphere(15,[-L_one/2,0,0]);
-  theta_one := 0; theta_two := 0;
-  theta_three := 0;
- end
+model visualWrist(m_one, m_two, m_three, I_one, I_two, I_three, L_one, L_two, L_three) = 
+initially
+  l_one  =  create cylinder((-L_one/2,0,0)) ,
+  l_two  =  create cylinder((-L_one/2,0,0)) ,
+  l_three  =  create cylinder((-L_one/2,0,0)) ,
+  l_four  =  create cylinder((-L_one/2,0,0)) ,
+  l_five  =  create cylinder((-L_one/2,0,0)) ,
+  l_six  =  create cylinder((-L_one/2,0,0)) ,
+  l_seven  =  create cylinder((-L_one/2,0,0)) ,
+  l_eight  =  create cylinder((-L_one/2,0,0)) ,
+  l_nine  =  create cylinder((-L_one/2,0,0)) ,
+  l_ten  =  create cylinder((-L_one/2,0,0)) ,
+  l_eleven  =  create cylinder((-L_one/2,0,0)) ,
+  l_twelve =  create cylinder((-L_one/2,0,0)) ,
+  l_thirteen = create cylinder((-L_one/2,0,0)) ,
+  thumb  =  create cylinder((-L_one/2,0,0)) ,
+  finger_one  =  create cylinder((-L_one/2,0,0)) ,
+  finger_two  =  create cylinder((-L_one/2,0,0)) ,
+  finger_three  =  create cylinder((-L_one/2,0,0)) ,
+  finger_four  =  create cylinder((-L_one/2,0,0)) ,
+  finger_radius  = 0.1 ,
+  finger_color = (0.6,0.6,0.1) ,
+  Mass_one  =  create sphere(15,(-L_one/2,0,0)) ,
+  Mass_two  =  create sphere(15,(-L_one/2,0,0)) ,
+  Mass_three  =  create sphere(15,(-L_one/2,0,0)) ,
+  theta_one  =  0 , theta_two  =  0 ,
+  theta_three  =  0 ,
+always
   //setting up the positions of each link
-l_one.p= [0,L_two*sin(theta_one),-1*L_two*cos(theta_one)];
-l_one.q= [0,-1*L_two*sin(theta_one),L_two*cos(theta_one)];
+  l_one.p= (0,L_two*sin(theta_one),-1*L_two*cos(theta_one)) ,
+  l_one.q= (0,-1*L_two*sin(theta_one),L_two*cos(theta_one)) ,
 
-l_two.p=l_one.p;
-l_two.q=[L_one,L_two*sin(theta_one),-1*L_two*cos(theta_one)];
+  l_two.p=l_one.p ,
+  l_two.q=(L_one,L_two*sin(theta_one),-1*L_two*cos(theta_one)) ,
 
-l_three.p=l_one.q; 
-l_three.q= [L_one, -1*L_two*sin(theta_one),L_two*cos(theta_one)];
+  l_three.p=l_one.q , 
+  l_three.q= (L_one, -1*L_two*sin(theta_one),L_two*cos(theta_one)) ,
 
-l_four.p= l_three.q; 
-l_four.q= l_two.q;
+  l_four.p= l_three.q , 
+  l_four.q= l_two.q ,
 
-l_five.p= [L_one/2*(1-0.75*cos(theta_two)),-1.5/2*L_two*sin(theta_one)-0.75/2*L_one*sin(theta_two)*cos(theta_one),1.5/2*L_two*cos(theta_one)-0.75*L_one/2*sin(theta_two)*sin(theta_one)];
-l_five.q= [L_one/2*(1-0.75*cos(theta_two)),1.5/2*L_two*sin(theta_one)-0.75/2*L_one*sin(theta_two)*cos(theta_one),-1.5/2*L_two*cos(theta_one)-0.75*L_one/2*sin(theta_two)*sin(theta_one)];
+  l_five.p= (L_one/2*(1-0.75*cos(theta_two)),-1.5/2*L_two*sin(theta_one)-0.75/2*L_one*sin(theta_two)*cos(theta_one),1.5/2*L_two*cos(theta_one)-0.75*L_one/2*sin(theta_two)*sin(theta_one)) ,
+  l_five.q= (L_one/2*(1-0.75*cos(theta_two)),1.5/2*L_two*sin(theta_one)-0.75/2*L_one*sin(theta_two)*cos(theta_one),-1.5/2*L_two*cos(theta_one)-0.75*L_one/2*sin(theta_two)*sin(theta_one)) ,
 
-l_six.p= l_five.p;
-l_six.q= [L_one/2*(1+0.75*cos(theta_two)),-1.5/2*L_two*sin(theta_one)+0.75/2*L_one*sin(theta_two)*cos(theta_one),1.5/2*L_two*cos(theta_one)+0.75*L_one/2*sin(theta_two)*sin(theta_one)];
+  l_six.p= l_five.p ,
+  l_six.q= (L_one/2*(1+0.75*cos(theta_two)),-1.5/2*L_two*sin(theta_one)+0.75/2*L_one*sin(theta_two)*cos(theta_one),1.5/2*L_two*cos(theta_one)+0.75*L_one/2*sin(theta_two)*sin(theta_one)) ,
 
-l_seven.p= l_five.q;
-l_seven.q= [L_one/2*(1+0.75*cos(theta_two)),1.5/2*L_two*sin(theta_one)+0.75/2*L_one*sin(theta_two)*cos(theta_one),-1.5/2*L_two*cos(theta_one)+0.75*L_one/2*sin(theta_two)*sin(theta_one)];
+  l_seven.p= l_five.q ,
+  l_seven.q= (L_one/2*(1+0.75*cos(theta_two)),1.5/2*L_two*sin(theta_one)+0.75/2*L_one*sin(theta_two)*cos(theta_one),-1.5/2*L_two*cos(theta_one)+0.75*L_one/2*sin(theta_two)*sin(theta_one)) ,
 
-l_eight.p=l_six.q;
-l_eight.q=l_seven.q;
+  l_eight.p=l_six.q ,
+  l_eight.q=l_seven.q ,
 
-l_nine.p=[L_one/2, -1*L_two*sin(theta_one),L_two*cos(theta_one)];
-l_nine.q= [L_one/2, 0,0];
+  l_nine.p=(L_one/2, -1*L_two*sin(theta_one),L_two*cos(theta_one)) ,
+  l_nine.q= (L_one/2, 0,0) ,
 
-l_ten.p= [L_one/2, 1*0.75*L_two*sin(theta_one),-1*0.75*L_two*cos(theta_one)];
-l_ten.q= [L_one/2, L_two*sin(theta_one),-1*L_two*cos(theta_one)];
+  l_ten.p= (L_one/2, 1*0.75*L_two*sin(theta_one),-1*0.75*L_two*cos(theta_one)) ,
+  l_ten.q= (L_one/2, L_two*sin(theta_one),-1*L_two*cos(theta_one)) ,
 
-l_eleven.p=[L_one/2, 0,0];
-l_eleven.q=[L_one/2+L_three*cos(theta_two)*cos(theta_three),L_three*(cos(theta_three)*sin(theta_two)*cos(theta_one)+sin(theta_three)*sin(theta_one)), L_three*(cos(theta_three)*sin(theta_two)*sin(theta_one)-sin(theta_three)*cos(theta_one))]; 
+  l_eleven.p=(L_one/2, 0,0) ,
+  l_eleven.q=(L_one/2+L_three*cos(theta_two)*cos(theta_three),L_three*(cos(theta_three)*sin(theta_two)*cos(theta_one)+sin(theta_three)*sin(theta_one)), L_three*(cos(theta_three)*sin(theta_two)*sin(theta_one)-sin(theta_three)*cos(theta_one))) , 
 
-l_twelve.p=[0,0,0];
-l_twelve.q=[-0.5,0,0];
+  l_twelve.p=(0,0,0) ,
+  l_twelve.q=(-0.5,0,0) ,
 
-l_thirteen.p=[L_one,0,0];
-l_thirteen.q=[L_one+0.5,0,0];
+  l_thirteen.p=(L_one,0,0) ,
+  l_thirteen.q=(L_one+0.5,0,0) ,
 
-//setting up the visualization of the hand
-finger_one.p= l_eleven.p+finger_radius*2*[sin(theta_three)*cos(theta_two),sin(theta_three)*sin(theta_two)*cos(theta_one)-cos(theta_three)*sin(theta_one),sin(theta_three)*sin(theta_two)*sin(theta_one)+cos(theta_three)*cos(theta_one)];
-finger_one.q= l_eleven.p+finger_radius*2*[sin(theta_three)*cos(theta_two),sin(theta_three)*sin(theta_two)*cos(theta_one)-cos(theta_three)*sin(theta_one),sin(theta_three)*sin(theta_two)*sin(theta_one)+cos(theta_three)*cos(theta_one)]+0.8*L_three*[cos(theta_three)*cos(theta_two),cos(theta_three)*sin(theta_two)*cos(theta_one)+sin(theta_three)*sin(theta_one),cos(theta_three)*sin(theta_two)*sin(theta_one)-sin(theta_three)*cos(theta_one)];
-finger_one.radius=finger_radius;
-finger_one.color=finger_color;
+  //setting up the visualization of the hand
+  finger_one.p= l_eleven.p+finger_radius*2*(sin(theta_three)*cos(theta_two),sin(theta_three)*sin(theta_two)*cos(theta_one)-cos(theta_three)*sin(theta_one),sin(theta_three)*sin(theta_two)*sin(theta_one)+cos(theta_three)*cos(theta_one)) ,
+  finger_one.q= l_eleven.p+finger_radius*2*(sin(theta_three)*cos(theta_two),sin(theta_three)*sin(theta_two)*cos(theta_one)-cos(theta_three)*sin(theta_one),sin(theta_three)*sin(theta_two)*sin(theta_one)+cos(theta_three)*cos(theta_one))+0.8*L_three*(cos(theta_three)*cos(theta_two),cos(theta_three)*sin(theta_two)*cos(theta_one)+sin(theta_three)*sin(theta_one),cos(theta_three)*sin(theta_two)*sin(theta_one)-sin(theta_three)*cos(theta_one)) ,
+  finger_one.radius=finger_radius ,
+  finger_one.color=finger_color ,
 
-finger_two.p= l_eleven.p;
-finger_two.q= l_eleven.q;
-finger_two.radius=finger_radius;
-finger_two.color=finger_color;
+  finger_two.p= l_eleven.p ,
+  finger_two.q= l_eleven.q ,
+  finger_two.radius=finger_radius ,
+  finger_two.color=finger_color ,
 
-finger_three.p= l_eleven.p-finger_radius*2*[sin(theta_three)*cos(theta_two),sin(theta_three)*sin(theta_two)*cos(theta_one)-cos(theta_three)*sin(theta_one),sin(theta_three)*sin(theta_two)*sin(theta_one)+cos(theta_three)*cos(theta_one)];
-finger_three.q= l_eleven.p-finger_radius*2*[sin(theta_three)*cos(theta_two),sin(theta_three)*sin(theta_two)*cos(theta_one)-cos(theta_three)*sin(theta_one),sin(theta_three)*sin(theta_two)*sin(theta_one)+cos(theta_three)*cos(theta_one)]+0.8*L_three*[cos(theta_three)*cos(theta_two),cos(theta_three)*sin(theta_two)*cos(theta_one)+sin(theta_three)*sin(theta_one),cos(theta_three)*sin(theta_two)*sin(theta_one)-sin(theta_three)*cos(theta_one)];
-finger_three.radius=finger_radius;
-finger_three.color=finger_color;
+  finger_three.p= l_eleven.p-finger_radius*2*(sin(theta_three)*cos(theta_two),sin(theta_three)*sin(theta_two)*cos(theta_one)-cos(theta_three)*sin(theta_one),sin(theta_three)*sin(theta_two)*sin(theta_one)+cos(theta_three)*cos(theta_one)) ,
+  finger_three.q= l_eleven.p-finger_radius*2*(sin(theta_three)*cos(theta_two),sin(theta_three)*sin(theta_two)*cos(theta_one)-cos(theta_three)*sin(theta_one),sin(theta_three)*sin(theta_two)*sin(theta_one)+cos(theta_three)*cos(theta_one))+0.8*L_three*(cos(theta_three)*cos(theta_two),cos(theta_three)*sin(theta_two)*cos(theta_one)+sin(theta_three)*sin(theta_one),cos(theta_three)*sin(theta_two)*sin(theta_one)-sin(theta_three)*cos(theta_one)) ,
+  finger_three.radius=finger_radius ,
+  finger_three.color=finger_color ,
 
-finger_four.p= l_eleven.p-2*finger_radius*2*[sin(theta_three)*cos(theta_two),sin(theta_three)*sin(theta_two)*cos(theta_one)-cos(theta_three)*sin(theta_one),sin(theta_three)*sin(theta_two)*sin(theta_one)+cos(theta_three)*cos(theta_one)];
-finger_four.q= l_eleven.p-2*finger_radius*2*[sin(theta_three)*cos(theta_two),sin(theta_three)*sin(theta_two)*cos(theta_one)-cos(theta_three)*sin(theta_one),sin(theta_three)*sin(theta_two)*sin(theta_one)+cos(theta_three)*cos(theta_one)]+0.7*L_three*[cos(theta_three)*cos(theta_two),cos(theta_three)*sin(theta_two)*cos(theta_one)+sin(theta_three)*sin(theta_one),cos(theta_three)*sin(theta_two)*sin(theta_one)-sin(theta_three)*cos(theta_one)];
-finger_four.radius=finger_radius;
-finger_four.color=finger_color;
+  finger_four.p= l_eleven.p-2*finger_radius*2*(sin(theta_three)*cos(theta_two),sin(theta_three)*sin(theta_two)*cos(theta_one)-cos(theta_three)*sin(theta_one),sin(theta_three)*sin(theta_two)*sin(theta_one)+cos(theta_three)*cos(theta_one)) ,
+  finger_four.q= l_eleven.p-2*finger_radius*2*(sin(theta_three)*cos(theta_two),sin(theta_three)*sin(theta_two)*cos(theta_one)-cos(theta_three)*sin(theta_one),sin(theta_three)*sin(theta_two)*sin(theta_one)+cos(theta_three)*cos(theta_one))+0.7*L_three*(cos(theta_three)*cos(theta_two),cos(theta_three)*sin(theta_two)*cos(theta_one)+sin(theta_three)*sin(theta_one),cos(theta_three)*sin(theta_two)*sin(theta_one)-sin(theta_three)*cos(theta_one)) ,
+  finger_four.radius=finger_radius ,
+  finger_four.color=finger_color ,
 
-thumb.p= l_eleven.p+2*finger_radius*2*[sin(theta_three)*cos(theta_two),sin(theta_three)*sin(theta_two)*cos(theta_one)-cos(theta_three)*sin(theta_one),sin(theta_three)*sin(theta_two)*sin(theta_one)+cos(theta_three)*cos(theta_one)];
-thumb.q= [L_one/2+L_three/2*cos(theta_two)*cos(theta_three),L_three/2*(cos(theta_three)*sin(theta_two)*cos(theta_one)+sin(theta_three)*sin(theta_one)), L_three/2*(cos(theta_three)*sin(theta_two)*sin(theta_one)-sin(theta_three)*cos(theta_one))]+2*finger_radius*2*[sin(theta_three)*cos(theta_two),sin(theta_three)*sin(theta_two)*cos(theta_one)-cos(theta_three)*sin(theta_one),sin(theta_three)*sin(theta_two)*sin(theta_one)+cos(theta_three)*cos(theta_one)];
-thumb.radius=finger_radius;
-thumb.color=finger_color;
+  thumb.p= l_eleven.p+2*finger_radius*2*(sin(theta_three)*cos(theta_two),sin(theta_three)*sin(theta_two)*cos(theta_one)-cos(theta_three)*sin(theta_one),sin(theta_three)*sin(theta_two)*sin(theta_one)+cos(theta_three)*cos(theta_one)) ,
+  thumb.q= (L_one/2+L_three/2*cos(theta_two)*cos(theta_three),L_three/2*(cos(theta_three)*sin(theta_two)*cos(theta_one)+sin(theta_three)*sin(theta_one)), L_three/2*(cos(theta_three)*sin(theta_two)*sin(theta_one)-sin(theta_three)*cos(theta_one)))+2*finger_radius*2*(sin(theta_three)*cos(theta_two),sin(theta_three)*sin(theta_two)*cos(theta_one)-cos(theta_three)*sin(theta_one),sin(theta_three)*sin(theta_two)*sin(theta_one)+cos(theta_three)*cos(theta_one)) ,
+  thumb.radius=finger_radius ,
+  thumb.color=finger_color ,
 
-//setting up positions of each mass
-Mass_one.p=[L_one/2, L_two*sin(theta_one),-L_two*cos(theta_one)];
-Mass_two.p= [L_one/2, 0, 0];
-Mass_three.p=[L_one/2+L_three*cos(theta_two)*cos(theta_three),L_three*(cos(theta_three)*sin(theta_two)*cos(theta_one)+sin(theta_three)*sin(theta_one)), L_three*(cos(theta_three)*sin(theta_two)*sin(theta_one)-sin(theta_three)*cos(theta_one))]; 
-end
+  //setting up positions of each mass
+  Mass_one.p=(L_one/2, L_two*sin(theta_one),-L_two*cos(theta_one)) ,
+  Mass_two.p= (L_one/2, 0, 0) ,
+  Mass_three.p=(L_one/2+L_three*cos(theta_two)*cos(theta_three),L_three*(cos(theta_three)*sin(theta_two)*cos(theta_one)+sin(theta_three)*sin(theta_one)), L_three*(cos(theta_three)*sin(theta_two)*sin(theta_one)-sin(theta_three)*cos(theta_one))) 
+ 
 
-class cylinder (D)
- private 
-  p :=[0.1,0,0]; q:=[0,0,0];
-  _3D := [];
-  radius := 0.05;
-  length := 0.01; alpha:=0; theta:= pi/2;
-  x:=0;y:=0;z:=0;
-  color:=[1,1,1]; 
- end
+model cylinder (D) =
+initially
+  p = (0.1,0,0), q = (0,0,0),
+  _3D = (),
+  r = 0.05,
+  l = 0.01, alpha = 0, theta = pi/2,
+  x = 0,y = 0,z = 0,
+  col = (1,1,1)
+always
+  _3D = (Cylinder center=(p+q)/2+D radius=r length=l color=col 
+         rotation=(alpha,0,-theta)),
+  x = (p-q dot (1,0,0)),
+  y = (p-q dot (0,1,0)),
+  z = (p-q dot (0,0,1)),
 
- _3D = [["Cylinder",(p+q)/2+D,[radius,length],color,
-                      [alpha,0,-theta]]];
- x = dot(p-q,[1,0,0]);
- y = dot(p-q,[0,1,0]);
- z = dot(p-q,[0,0,1]);
+  l = norm(p-q),
+  alpha = asin(z/l),
 
-  length = norm(p-q);
-  alpha = asin(z/length);
-
-  if (y>0)
-   theta = asin(x/(length*cos(alpha)+0.0001))
+  if y>0 then
+   theta = asin(x/(l*cos(alpha)+0.0001))
   else
-   theta = -asin(x/(length*cos(alpha)+0.0001))+pi
-  end
-end
+   theta = -asin(x/(l*cos(alpha)+0.0001))+pi
 
+class cone (D) = 
+initially
+  p = (0.1,0,0), q = (0,0,0),
+  _3D = (),
+  r = 0.05,
+  l = 0.01, alpha = 0, theta = pi/2,
+  x = 0,y = 0,z = 0,
+  col = (1,1,1)
+always
+  _3D = (Cone center=(p+q)/2+D radius=r length=l color=col 
+         rotation=(alpha,0,-theta)),
+  x = dot(p-q,[1,0,0]);
+  y = dot(p-q,[0,1,0]);
+  z = dot(p-q,[0,0,1]);
 
-class cone (D)
- private 
-  p :=[0.1,0,0]; q:=[0,0,0];
-  _3D := [];
-  radius := 0.01;
-  length := 0.01; alpha:=0; theta:= pi/2;
-  x:=0;y:=0;z:=0;
-  color:=[1,1,1]; 
- end
- _3D = [["Cone",(p+q)/2+D,[radius, length],color,
-                      [alpha,0,-theta]]];
- x = dot(p-q,[1,0,0]);
- y = dot(p-q,[0,1,0]);
- z = dot(p-q,[0,0,1]);
+  x = (p-q dot (1,0,0)),
+  y = (p-q dot (0,1,0)),
+  z = (p-q dot (0,0,1)),
 
-  length = norm(p-q);
-  alpha = asin(z/length);
+  l = norm(p-q),
+  alpha = asin(z/l),
 
-  if (y>0)
-   theta = asin(x/(length*cos(alpha)+0.0001))
+  if y>0 then
+   theta = asin(x/(l*cos(alpha)+0.0001))
   else
-   theta = -asin(x/(length*cos(alpha)+0.0001))+pi
-  end
-end
+   theta = -asin(x/(l*cos(alpha)+0.0001))+pi
 
 
-class sphere (m,D)
- private 
-  p :=[0,0,0];
-  _3D := [];  
- end
- _3D = [["Sphere", D+p,
-           0.03*sqrt(m),
-           [m/3,2+sin(m),2-m/2],
-           [1,1,1]]];
-end
+model sphere (m,D) = 
+initially 
+  p  = (0,0,0) ,
+  _3D  =  () ,  
+always
+  _3D = (Sphere center=D+p
+         size=0.03*sqrt(m)
+         color=(m/3,2+sin(m),2-m/2) 
+     rotation=(1,1,1))
 
+model Main(simulator) = 
+initially 
+  link = create RWS_3DOF_gimbal(2, 1, 1, 1, 1, 1, 3, 1.5, 0.75) ,
+  wrist  =  create visualWrist(2, 1, 1, 1, 1, 1, 3, 1.5, 0.75) ,
+  t = 0 ,t' = 1 ,L = 0 , 
+  phi  =  atan(-2.13/7) ,//this is the camera path rotation
+  phi' =  1 ,
+  _3DView = ((-2.13,-7,1.5),(-1*pi/15,0,-1*pi/10)) ,
+always
+  t'=1 ,
+  wrist.theta_one = link.theta_one ,
+  wrist.theta_two = link.theta_two ,
+  wrist.theta_three = link.theta_three ,
+  simulator.endTime = 24 , // default is 10 seconds
+  simulator.timeStep = 0.005 , //default is 0.01 seconds
 
-class Main(simulator)
- private 
-  link:=create RWS_3DOF_gimbal(2, 1, 1, 1, 1, 1, 3, 1.5, 0.75);
-  wrist := create visualWrist(2, 1, 1, 1, 1, 1, 3, 1.5, 0.75);
-  t:=0;t':=1;L:=0; 
-  phi := atan(-2.13/7);//this is the camera path rotation
-  phi':= 1;
-  _3DView:=[[-2.13,-7,1.5],[-1*pi/15,0,-1*pi/10]];
- end
- t'=1;
- wrist.theta_one = link.theta_one;
- wrist.theta_two = link.theta_two;
- wrist.theta_three = link.theta_three;
- simulator.endTime = 24; // default is 10 seconds
- simulator.timeStep = 0.005; //default is 0.01 seconds
-
- if (t<4)
-  phi'=pi/2;
-  L=sqrt(2.13^2+7^2); 
- _3DView=[[L*sin(phi),-L*cos(phi),1.5],[-1*pi/15,0,phi]];
- //else 
- //_3DView=[[-2.13,-7,1.5],[-1*pi/15,0,-1*pi/10]];
- end;
-end
+  if t<4 then
+   phi'=pi/2 ,
+   L=sqrt(2.13^2+7^2) , 
+   _3DView=((L*sin(phi),-L*cos(phi),1.5),(-1*pi/15,0,phi))
+//else 
+ //_3DView=((-2.13,-7,1.5),(-1*pi/15,0,-1*pi/10)) ,
+   noelse
+ 

@@ -1,100 +1,90 @@
-/* 
-   Has bug with semantic 2014
-   Works with semantic 2013
-   Works with semantic 2012
-*/
-
 //Author: Jawad.M & Roland.P
 //ID: A4
 //*****************Vehicle Mechanics************************************************//
 
+model VehicleMechanics(x0,y0,th0,V0,w0) = 
+initially 
+  x = x0 ,
+  x' = 0 ,
+  y = y0 ,
+  y' = 0 ,
+  th' = 0 ,
+  w = w0 ,
+  V = V0 ,
+  th  =  th0
+always
+  x'= V*cos(th) ,
+  y' = V*sin(th) ,
+  th'= w 
 
-#semantics "2013 Reference"
+//*********************Machine Sensor********************************************// 
+model Sensor(x0,y0,th0,s0,s1,s2) = 
+initially
+  x  =  x0 ,
+  y  =  y0 ,
+  th  =  th0 ,
+  sx  =  s0 ,
+  sy  =  s1 ,
+  sth  =  s2
+always  
+  sx  = x , // Ideal sensing model  along X-direction. We can adjust this parameter according to our sensor range
+  sy  = y , // Ideal sensing model along Y-diretcion.
+  sth = th  // Ideal sensing model for angle 
 
-class VehicleMechanics(x0,y0,th0,V0,w0)
-  private 
-         x:=x0;
-         x':=0;
-         y:=y0;
-         y':=0;
-         th':=0;
-         w:=w0;
-         V:=V0;
-         th := th0;       
-  end
-  x'= V*cos(th);
-  y' = V*sin(th);
-  th'= w;
- end
- //*********************Machine Sensor********************************************// 
- class Sensor(x0,y0,th0,s0,s1,s2)
- private
- x := x0;
- y := y0;
- th := th0;
- sx := s0;
- sy := s1;
- sth := s2;
- end  
-sx  = x; // Ideal sensing model  along X-direction. We can adjust this parameter according to our sensor range
-sy  = y; // Ideal sensing model along Y-diretcion.
-sth = th; // Ideal sensing model for angle 
- end
 //*********************ADAS********************************************// 
-class Control(s0,s1,s2,V0,w0)//(Switch control)
- private
-  x := s0;
-  y := s1;
-  th := s2;
-  V := V0; 
-  w := w0;
-  T_x := 30; // Target values X direction
-  T_y := 40;  // Target Value Y direction
-  T_th := pi/4;  //Target Value theta
-  k_v := 3;
-  k_b := -1.5;
-  k_a := 8;
-  ex := 0;
-  ey := 0;
-  eth := 0;
-   t := 0;
-  t' := 0;
-  t_c := 0.01;
- end 
+model Control(s0,s1,s2,V0,w0) = //(Switch control)
+initially
+  x  =  s0 ,
+  y  =  s1 ,
+  th  =  s2 ,
+  V  =  V0 , 
+  w  =  w0 ,
+  T_x  =  30 , // Target values X direction
+  T_y  =  40 ,  // Target Value Y direction
+  T_th  =  pi/4 ,  //Target Value theta
+  k_v  =  3 ,
+  k_b  =  -1.5 ,
+  k_a  =  8 ,
+  ex  =  0 ,
+  ey  =  0 ,
+  eth  =  0 ,
+  t  =  0 ,
+  t'  =  0 ,
+  t_c  =  0.01
+always 
   // controller sampling 
-  t' = 1;
-  if (t > t_c)
-    t := 0;
-    //ex := T_x - x;
-    ex := 10.0;
-    ey := T_y - y;
-    eth := T_th - th;
-    V := k_v * sqrt(ex * ex + ey * ey);
-    w := (k_a - k_b) * atan2(ex, ey) + k_a * eth;
-  end;
-  end  
+  t' = 1 ,
+  if t > t_c then
+    t + == 0 ,
+    //ex + == T_x - x ,
+    ex + == 10.0 ,
+    ey + == T_y - y ,
+    eth + == T_th - th ,
+    V + == k_v * sqrt(ex * ex + ey * ey) ,
+    w + == (k_a - k_b) * atan2(ex, ey) + k_a * eth
+  noelse
+  
 //**********************SIMULATOR*******************************************//
-class Main(simulator)
-  private 
-    mechanics := create VehicleMechanics(0,0,0,0,0);    
-    //subject := create VehicleT([0,0,0],1,2,[0,0,0]);
-    //target := create VehicleS([50,0,0],1,2);
-    //environment := create Road();
-    sens := create Sensor(0,0,0,0,0,0);
-    controller := create Control(0,0,0,0,0);
-   // _3DView := [];     
- end
- sens.x = mechanics.x;
- sens.y = mechanics.y;
- sens.th = mechanics.th;
- controller.x = sens.x;
- controller.y = sens.y;
- controller.th = sens.th;
- mechanics.V = controller.V; 
- mechanics.w = controller.w; 
- mechanics.th = controller.th;
- //subject.p = [mechanics.x,mechanics.y,0];
- //subject.o = [mechanics.th,0,0];
- //_3DView = [[mechanics.x-3,mechanics.y,0.5],[0,0,-1*pi/2]];
- simulator.endTime = 5;
-end
+model Main(simulator) = 
+initially 
+  mechanics  =  create VehicleMechanics(0,0,0,0,0) ,    
+  //subject  =  create VehicleT((0,0,0),1,2,(0,0,0)) ,
+  //target  =  create VehicleS((50,0,0),1,2) ,
+  //environment  =  create Road() ,
+  sens  =  create Sensor(0,0,0,0,0,0) ,
+  controller  =  create Control(0,0,0,0,0)
+  // _3DView  =  () ,     
+always
+  sens.x = mechanics.x ,
+  sens.y = mechanics.y ,
+  sens.th = mechanics.th ,
+  controller.x = sens.x ,
+  controller.y = sens.y ,
+  controller.th = sens.th ,
+  mechanics.V = controller.V , 
+  mechanics.w = controller.w , 
+  mechanics.th = controller.th ,
+  //subject.p = (mechanics.x,mechanics.y,0) ,
+  //subject.o = (mechanics.th,0,0) ,
+  //_3DView = ((mechanics.x-3,mechanics.y,0.5),(0,0,-1*pi/2)) ,
+  simulator.endTime = 5  

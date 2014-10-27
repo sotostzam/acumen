@@ -14,26 +14,24 @@
 //sensor detects the critical distance (< = 3m) between testing vehicle and the reference 
 //vehicle 
 //**********************SIMULATOR*******************************************//
-class Main(simulator)
-  private 
-         x := 0; 
-         x' := 5; 
-         x'' := 0; 
-         F := 0;
-         mode := "push"; 
-          t := 0; 
-         t' := 0;
-         m := 5;   
- end
- x'' = F/m;
- t' = 1;
-   switch mode
-    case "push"
-          F = 20;
-         if t>=1.5
-         mode="brake";
-    end
-    case "brake"
-         F = -10;
-   end
-end
+model Main(simulator) = 
+initially 
+  x  =  0 , 
+  x'  =  5 , 
+  x''  =  0 , 
+  F  =  0 ,
+  mode  =  "push" , 
+  t  =  0 , 
+  t'  =  0 ,
+  m  =  5    
+always
+  x'' = F/m ,
+  t' = 1 ,
+  match mode with [
+    "push" ->
+      F = 20 ,
+      if t>=1.5 then
+        mode="brake" 
+      noelse
+  | "brake" ->
+      F = -10 ]

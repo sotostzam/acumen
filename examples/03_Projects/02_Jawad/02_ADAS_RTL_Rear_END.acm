@@ -1,9 +1,3 @@
-/* 
-   Works with semantic 2014
-   Works with semantic 2013
-   Works with semantic 2012
-*/
-
 //Author: Jawad Masood
 //ID: A2
 //The simulation case describes the testing vehicle 
@@ -27,113 +21,106 @@
 //get the velocity and orientation at the center of the 
 //vehicle. 
 //*****************Vehicle Mechanics************************************************//
-class VehicleMechanics(v_r,v_l,l,x0)//(Planner Kinematics)
-  private 
-         x:=x0;
-         x':=0;
-         y:=0;
-         y':=0;
-         th':=0;
-         R:=0;
-         w:=0;
-         V:=0;
-         s:=0;
-         th := 0;       
-  end
-  V= (1/2)*(v_r+v_l);
-  w= (v_r-v_l)/l;
-  x'= V*cos(th);
-  y' = V*sin(th);
-  th'= w;
- end
+model VehicleMechanics(v_r,v_l,l,x0) = //(Planner Kinematics)
+initially 
+  x = x0 ,
+  x' = 0 ,
+  y = 0 ,
+  y' = 0 ,
+  th' = 0 ,
+  R = 0 ,
+  w = 0 ,
+  V = 0 ,
+  s = 0 ,
+  th  =  0      
+always
+  V= (1/2)*(v_r+v_l) ,
+  w= (v_r-v_l)/l ,
+  x'= V*cos(th) ,
+  y' = V*sin(th) ,
+  th'= w 
  //*********************Machine Sensor********************************************// 
- class Sensor(x0,s0,r)
- private
- x:=x0;
- s:=s0;
- end  
-s = r-x;
- end
+model Sensor(x0,s0,r) = 
+initially
+  x = x0 ,
+  s = s0 
+always  
+  s = r-x 
+
 //*********************ADAS********************************************// 
-class Control(s0,th0)//(Switch control)
- private
- s := s0;
- th := th0;
- end 
-    if (s<=10&&s>=7)
-        th = -(pi/8);
-          else if(s<=-7&&s>=-10)
-                 th = (pi/8);
-                    else
-                        th = 0;
-                    end
-          end
-  end
+model Control(s0,th0) = //(Switch control)
+initially
+  s  =  s0 ,
+  th  =  th0 
+always 
+  if s<=10 && s>=7 then
+    th = -(pi/8) 
+  elseif s<=-7 && s>=-10 then
+    th = (pi/8)
+  else
+    th = 0 
+  
 //**********************SIMULATOR*******************************************//
-class Main(simulator)
-  private 
-    mechanics := create VehicleMechanics(10,10,0.5,0);    
-    subject := create VehicleT([0,0,0],1,2,[0,0,0],"car.obj");
-    target := create VehicleS([50,0,0],1,2,"car.obj");
-    environment := create Road();
-    sens := create Sensor(0,0,50);
-    controller := create Control(0,0);
-    _3DView := [];     
- end
- sens.x = mechanics.x ;
- controller.s = sens.s;
- mechanics.th = controller.th;
- subject.p = [mechanics.x,mechanics.y,0];
- subject.o = [pi/2,0,pi+mechanics.th];
- _3DView = [[mechanics.x-3,mechanics.y,0.5],[0,0,-1*pi/2]];
- simulator.endTime = 25;
-end
+model Main(simulator) = 
+initially 
+  mechanics  =  create VehicleMechanics(10,10,0.5,0) ,    
+  subject  =  create VehicleT((0,0,0),1,2,(0,0,0),"car.obj") ,
+  target  =  create VehicleS((50,0,0),1,2,"car.obj") ,
+  environment  =  create Road() ,
+  sens  =  create Sensor(0,0,50) ,
+  controller  =  create Control(0,0) ,
+  _3DView  =  () 
+always
+  sens.x = mechanics.x  ,
+  controller.s = sens.s ,
+  mechanics.th = controller.th ,
+  subject.p = (mechanics.x,mechanics.y,0) ,
+  subject.o = (pi/2,0,pi+mechanics.th) ,
+  _3DView = ((mechanics.x,mechanics.y-5,0.5),(0,0,-1*pi/2)) ,
+  simulator.endTime = 25 
+
 
 //**********************Environment*******************************************//
-class Road()
-  private
-    mode := "spawn";
-      _3D := [];
-  end
-  _3D = [["Box",[0,0,-0.9144/2],[1000,3.9624,0.1],[0.3,0.3,0.3],[0,0,0]], // Straignt Single Standard Road
-         ["Box",[0,3.9624/2,-0.93/2],[1000,0.15,0.11],[255,255,255],[0,0,0]], // left road side line
-         ["Box",[0,-3.9624/2,-0.93/2],[1000,0.15,0.1],[255,255,255],[0,0,0]], // right road side line
-         ["Box",[0,0,-0.90/2],[3,0.15,0.1],[255,255,255],[0,0,0]]];
-switch mode
-    case "spawn"
-      create Stripe(0, 33);
-      mode := "persist";
-    case "persist" 
-end
-end
+model Road() = 
+initially
+  mode  =  "spawn" ,
+    _3D  =  () 
+always
+  _3D = (Box center=(0,0,-0.9144/2) size=(1000,3.9624,0.1) color=(0.3,0.3,0.3) rotation=(0,0,0), // Straignt Single Standard Road
+         Box center=(0,3.9624/2,-0.93/2) size=(1000,0.15,0.11) color=(255,255,255) rotation=(0,0,0), // left road side line
+         Box center=(0,-3.9624/2,-0.93/2) size=(1000,0.15,0.1) color=(255,255,255) rotation=(0,0,0), // right road side line
+         Box center=(0,0,-0.90/2) size=(3,0.15,0.1) color=(255,255,255) rotation=(0,0,0)), 
+  match mode with [
+    "spawn" ->
+      create Stripe(0, 33) ,
+      mode + == "persist" 
+  | "persist" -> ]
 
-class Stripe(xstart, stripesLeft)
-  private
-    _3D := [["Box",[xstart,0,-0.90/2],[3,0.15,0.1],[255,255,255],[0,0,0]]];
-   mode := "spawn";
-  end
-  switch mode
-    case "spawn"
-      if (stripesLeft > 0)
-        create Stripe(xstart + 7.5, stripesLeft - 1);
-        mode := "persist";
-      end;
-    case "persist"
-  end;
-  _3D = [["Box",[xstart,0,-0.90/2],[3,0.15,0.1],[255,255,255],[0,0,0]]]; // center lane
-end
+model Stripe(xstart, stripesLeft) = 
+initially
+  _3D  =  (Box center=(xstart,0,-0.90/2) size=(3,0.15,0.1) color=(255,255,255) rotation=(0,0,0)) ,
+  mode  =  "spawn" 
+always
+  match mode with [
+    "spawn" ->
+      if stripesLeft > 0 then
+        create Stripe(xstart + 7.5, stripesLeft - 1) ,
+        mode + == "persist" 
+      noelse 
+  | "persist" -> ],
+  _3D = (Box center=(xstart,0,-0.90/2) size=(3,0.15,0.1) color=(255,255,255) rotation=(0,0,0)) // center lane
+
 
 //**************************VISUALIZATION***************************************//
-class VehicleT(p,d,s,o,name)
-  private
-    _3D := [];
-  end      
-  _3D = ["OBJ",p,1,[0,0,1],o,name];
-end
-class VehicleS(p,d,s,name)
-  private
-    _3D := [];
-  end      
-  _3D = ["OBJ",p,1,[0,0,1],[pi/2,0,d*pi],name];
-end
+model VehicleT(p,d,s,o,name) = 
+initially
+  _3D  =  ()
+always      
+  _3D = (Obj center=p size=1 color=(1,1,1) rotation=o content=name)
 
+model VehicleS(p,d,s,name) = 
+initially
+  _3D  =  ()
+always      
+  _3D = (Obj center=p size=1 color=(1,1,1) rotation=(pi/2,0,d*pi) content=name) 
+ 
