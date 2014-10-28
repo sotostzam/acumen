@@ -15,7 +15,7 @@ always
     "Fill1" claim x1  >= 0&& 
             x2  >= 0&& 
             x12 >= 0&& 
-            x12 = x1 + x2 -> 
+            x12 == x1 + x2 -> 
        // Constraint added
       if x2 == 0 then mode+ = "Fill2" noelse, 
       x1'  = 2, 
@@ -24,7 +24,7 @@ always
   | "Fill2" claim x1 >= 0&& 
             x2 >= 0&& 
             x12 >= 0&& 
-            x12 = x1 + x2 -> 
+            x12 == x1 + x2 -> 
         // Constraint added
       if x1 == 0 then mode+ = "Fill1" noelse, 
       x1'  = -2, 

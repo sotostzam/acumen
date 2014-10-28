@@ -12,7 +12,7 @@ initially
 always
   match mode with [
     "Fly" claim x >= 0&& 
-            r = x'*x'/2 + 10*x -> 
+            r == x'*x'/2 + 10*x -> 
        // Constraint added
       if x == 0&& x' <= 0 then
         x'+ = -0.5*x',

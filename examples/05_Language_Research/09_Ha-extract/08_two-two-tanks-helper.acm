@@ -10,7 +10,7 @@ initially
   modeY = "Fill1" 
 always
   match modeX with [
-    "Fill1"claim x1  >= 0&& 
+    "Fill1" claim x1  >= 0&& 
             x2  >= 0&& 
             x12 >= 0&& 
             x12 == x1 + x2 // Constraint added
