@@ -50,7 +50,7 @@ class ThreeDView extends JPanel {
   private var lastMouseY = 1    // mouse position y after dragging
   private var dragging = false  // flag for checking the mouse action
   private var cameraLeftDirection = -1  // to make sure the camera rotate forward or backward
-  private var cameraRightDirection = -1  // to make sure the camera rotate forward or backward
+  private var cameraRightDirection = 1  // to make sure the camera rotate forward or backward
 
   val lookAtCenter = Primitives.getSphere(20, 0.1f)
 
@@ -100,7 +100,7 @@ class ThreeDView extends JPanel {
         newMouseX = e.getX
         newMouseY = e.getY
         // to decrease the burden of calculations
-        if (abs(newMouseX - lastMouseX) > 5 || abs(newMouseY - lastMouseY) > 5) {
+        if (abs(newMouseX - lastMouseX) > 0.1 || abs(newMouseY - lastMouseY) > 0.1) {
           // Initialize the camera coordinate
           if (SwingUtilities isLeftMouseButton e)        // left button dragging, move camera
             cameraLeftDirection = moveCamera(cameraLeftDirection, 1, lookAtPoint)
