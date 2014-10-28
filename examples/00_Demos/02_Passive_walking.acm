@@ -2,13 +2,11 @@
 // Passive Walking Example
 // By Anita Santanna and Ryan Sinnet
 
-//#semantics "2012 Reference"
-
 model Main(simulator) = 
 initially
   q1=0, q2=0, q1'=-0.5, q2'=2, q1''=0, q2''=0, //theta1 and theta2 angles
   L=1, M=10, m=5, /* pi:=3.1416; */ g=9.81, //model constants
-  s=0.06, //slope of the surface
+  s=0.025, //slope of the surface
   pm1x=0, pm1z=0, pM2x=0, pM2z=0, pm3x=0, pm3z=0,
   p2z=0, p2x=0, //position of stance foot
   sfx=0, sfz=0, //position variable for animation
