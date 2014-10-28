@@ -1,15 +1,8 @@
-/* 
-   Has bug with semantic 2014
-   Works with semantic 2013
-   Works with semantic 2012
-*/
-
-//#semantics "2013 Reference"
 
 model Main(simulator) = 
-  initially
-    theta=0.1, theta'=0, theta''=0, f = 0
-  always
+initially
+  theta=0.1, theta'=0, theta''=0, f = 0
+always
   simulator.timeStep + = 0.1, 
   simulator.endTime + = 100.0, 
   if abs(theta) < 3.1416/100 then
@@ -18,8 +11,7 @@ model Main(simulator) =
     if theta' > 0 then
       f + = -1
     else
-      f + = 1
-  ,
+      f + = 1,
 
   /* the following is
       theta'' = (f*l*cos(theta) - m*g*l*sin(theta)) / (m * l^2)

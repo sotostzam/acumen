@@ -9,4 +9,4 @@ always
 model A(main) = 
  initially 
 always
-main.mode + == "Foo"
+main.mode + = "Foo"

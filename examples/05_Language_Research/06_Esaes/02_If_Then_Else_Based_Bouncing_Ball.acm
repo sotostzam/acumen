@@ -1,16 +1,10 @@
-/* 
-   Works with semantic 2014
-   Works with semantic 2013
-   Works with semantic 2012
-*/
-
 // If-Then-Else-Based Bouncing Ball Example
 
 model Main(simulator) =
-  initially
-    x = 5, x' = 0, x'' = 0 
-  always
-  if x <= 0&& x' <= 0 then
+initially
+  x = 5, x' = 0, x'' = 0 
+always
+  if x <= 0 && x' <= 0 then
     x'+ = -0.5 * x'
   else
     x'' = -10

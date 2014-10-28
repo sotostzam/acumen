@@ -1,20 +1,14 @@
-/* 
-   Works with semantic 2014
-   Works with semantic 2013
-   Works with semantic 2012
-*/
-
 // Day/Night Heater example
 //
 // Auhor: Adam Duracz
 
 model Main(simulator) =
-  initially
-    x = 10, x' = 10,
-    time = 0, time' = 1,
-    heating = "on", 
-    period  = "day" 
-  always
+initially
+  x = 10, x' = 10,
+  time = 0, time' = 1,
+  heating = "on", 
+  period  = "day" 
+always
   time' = 1,
   match period with [
     "day" -> // Hybrid behaviour during the day
@@ -38,8 +32,7 @@ model Main(simulator) =
         time+ = 0,
         period+ = "day" 
       noelse,
-      x' = -5-x // Continuous behaviour at night
-  ],
+      x' = -5-x ], // Continuous behaviour at night  
   simulator.endTime+ = 48
 
 // Note: Model is a hierarchical hybird automata, expressed as 

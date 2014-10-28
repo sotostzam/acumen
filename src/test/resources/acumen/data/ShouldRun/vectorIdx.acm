@@ -12,8 +12,8 @@ model Main(simulator) =
   always
   p'' = (1,2,3),
   x = p'(1) + p(2) - p''(0),
-  v + == pp(0),
-  y + == pp(0,1),
-  z + == pp(1,1)
+  v + = pp(0),
+  y + = pp(0,1),
+  z + = pp(1,1)
  
 

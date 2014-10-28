@@ -1,15 +1,10 @@
-/* 
-   Works with semantic 2014
-   Works with semantic 2013
-   Works with semantic 2012
-*/
 
-model Ball(mode, p, p', p'', m)
-  = initially
-    ux  =  (1,0,0),
-    uy  =  (0,1,0),
-    uz  =  (0,0,1)
-  always
+model Ball(mode, p, p', p'', m) = 
+initially
+  ux  =  (1,0,0),
+  uy  =  (0,1,0),
+  uz  =  (0,0,1)
+always
   match mode with [
     "Fly" ->
       if    (uz dot p) < -0.5&& (uz dot p') < 0 
@@ -27,16 +22,15 @@ model Ball(mode, p, p', p'', m)
             p'' = (0, 0, -9.8)
                 
       
-    |"BounceX" ->
+  | "BounceX" ->
       p' + = (-(ux dot p'), (uy dot p'), (uz dot p')),
       mode + = "Fly"
-    |"BounceY" ->
+  | "BounceY" ->
       p' + = ((ux dot p'), -(uy dot p'), (uz dot p')),
       mode + = "Fly"
-    |"BounceZ"->
+  | "BounceZ"->
       p' + = ((ux dot p'), (uy dot p'), -(uz dot p')),
-      mode + = "Fly"
-  ]  
+      mode + = "Fly" ]  
 
 
 model Main(simulator) = 

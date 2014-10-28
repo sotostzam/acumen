@@ -8,16 +8,16 @@ model Main(simulator) =
     mode  =  "Init",
     y  =  0
   always
-  simulator.timeStep + == 1,
-  simulator.endTime + == 1,
+  simulator.timeStep + = 1,
+  simulator.endTime + = 1,
   match mode with [
     "Init" ->
       if x.modelName == type(B) then
-        y+ == 1
+        y+ = 1
       else
-        y+ == 2
+        y+ = 2
      ,
-      mode + == "Idle"
+      mode + = "Idle"
     |"Idle" ->
   ]
  

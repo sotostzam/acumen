@@ -4,15 +4,14 @@
 // Note:  Run with Semantics -> Enclosure
 
 model Main(simulator) =
-  initially 
-    x    =  1, 
-    x'   = -1, 
-    mode = ""
-  always
+initially 
+  x    =  1, 
+  x'   = -1, 
+  mode = ""
+always
   match mode with [
     "" ->
-      x' = -x
-  ],
+      x' = -x],
   simulator.endTime+ = 1.0,
   simulator.minSolverStep+ = 0.1
 

@@ -1,19 +1,13 @@
-/* 
-   Works with semantic 2014
-   Works with semantic 2013
-   Works with semantic 2012
-*/
-
 // If-Based Bouncing Ball example
 // with claim
 // based on .../esaes/01_If_Based_Bouncing_Ball.acm
 
 model Main(simulator) =
-  initially
-    x = 5, x' = 0, x'' = 0
-  always
+initially
+  x = 5, x' = 0, x'' = 0
+always
   claim x >= 0,
-  if x <= 0&& x' <= 0 then
+  if x <= 0 && x' <= 0 then
     x' + = -0.5 * x'
   noelse,
   x'' = -10

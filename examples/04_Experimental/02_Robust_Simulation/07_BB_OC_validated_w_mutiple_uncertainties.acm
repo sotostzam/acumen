@@ -8,29 +8,27 @@
 // Note:  Run this with Semantics -> Enclosure
 // Note:  Introducing uncertainties in model
 
-class Main(simulator)
-  private 
-    mode := "Fly"; 
-    x   := [4.0..4.2];    // Uncertainty in height
-    x'  := [-0.5..0.5];   // Uncertainty in speed
-    x'' := 0;  
-    r   := [80.0..150.0]; // Uncertainty in energy
-    r' := 0;
-  end
-  switch mode
-    case "Fly" 
+model Main(simulator) = 
+initially 
+  mode  =  "Fly" , 
+  x    =  (4.0..4.2) ,    // Uncertainty in height
+  x'   =  (-0.5..0.5) ,   // Uncertainty in speed
+  x''  =  0 ,  
+  r    =  (80.0..150.0) , // Uncertainty in energy
+  r'  =  0 
+always
+  match mode with [
+    "Fly" ->
       claim x >= 0 && 
-             r = x'*x' + 20*x
-      if x = 0 && x' <= 0
-        x' := [-0.55..-0.45]*x'; // Unc. in coef. rest.
-        r  := [0.0..0.3025]*r;
-        mode := "Fly";
-      end;
-      x'' = [-10.1..-9.9]; // Unc. in gravity
-      r'  = [-0.1..0.1];   // Unc. in dissipation
-  end;
-  simulator.endTime := 4.5;
-  simulator.minSolverStep := 0.01;
-  simulator.minLocalizationStep := 0.01;
-  simulator.minComputationImprovement := 0.001;
-end
+             r == x'*x' + 20*x,
+      if x == 0 && x' <= 0
+        x' + = (-0.55..-0.45)*x' , // Unc. in coef. rest.
+        r  + = (0.0..0.3025)*r ,
+        mode + = "Fly" 
+      noelse ,
+      x'' = (-10.1..-9.9) , // Unc. in gravity
+      r'  = (-0.1..0.1) ] ,   // Unc. in dissipation
+  simulator.endTime + = 4.5 ,
+  simulator.minSolverStep + = 0.01 ,
+  simulator.minLocalizationStep + = 0.01 ,
+  simulator.minComputationImprovement + = 0.001

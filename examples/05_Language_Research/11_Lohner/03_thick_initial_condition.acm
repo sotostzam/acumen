@@ -6,20 +6,18 @@
 // Please run this with "Semantics -> Enclosures"
 //  and with "Contraction" checked. 
 
-class Main(simulator)
-  private 
-    x := [-1.0..1.0] ; 
-    x' := 0;
-    mode := ""
-  end
-  switch mode
-    case ""
-      x' = -x;
-end;
-  simulator.endTime := 30;
-  simulator.minSolverStep := 0.1;
-  simulator.minComputationImprovement := 0.1;
-  simulator.minTimeStep := 0.1;
-  simulator.maxTimeStep := 0.2;
-end
+model Main(simulator) = 
+initially 
+  x  =  (-1.0..1.0)  , 
+  x'  =  0 ,
+  mode  =  ""
+always
+  match mode with [
+    "" ->      
+      x' = -x ],
+  simulator.endTime + = 30 ,
+  simulator.minSolverStep + = 0.1 ,
+  simulator.minComputationImprovement + = 0.1 ,
+  simulator.minTimeStep + = 0.1 ,
+  simulator.maxTimeStep + = 0.2
 

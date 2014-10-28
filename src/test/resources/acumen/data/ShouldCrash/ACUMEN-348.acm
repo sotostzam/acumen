@@ -8,11 +8,11 @@ model Main(simulator) =
   // clock
   time' = 1,
   if time > 12 then
-    period + == "day"
+    period + = "day"
   noelse,
   if time > 24 then
-    period + == "night",
-    time + == 0 
+    period + = "night",
+    time + = 0 
   noelse,
   // heater continuous�
   if period == "day"&& heating == "on" then
@@ -22,11 +22,11 @@ model Main(simulator) =
   ,
   // heater discrete
   if x < 19&& period == "day" then
-    heating + == "on"
+    heating + = "on"
   noelse,
   if x > 23 then
-    heating + == "off"
+    heating + = "off"
   noelse,
-  simulator.endTime + == 48
+  simulator.endTime + = 48
  
 

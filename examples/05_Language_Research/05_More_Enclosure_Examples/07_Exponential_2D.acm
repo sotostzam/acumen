@@ -1,9 +1,9 @@
 //////////////////////////////////////////////
 //////////////////////////////////////////////
 model Main(simulator) =
-  initially 
-    mode = "on", x = 1, x' = 1, x'' = 0 
-  always
+initially 
+  mode = "on", x = 1, x' = 1, x'' = 0 
+always
   simulator.bigDecimalDigits+ = 10,
   simulator.startTime+ = 0,
   simulator.endTime+ = 9,
@@ -16,5 +16,4 @@ model Main(simulator) =
   simulator.minComputationImprovement+ = 0.0001, 
   match mode with [
     "on" -> 
-      x'' = -x' 
- ]
+      x'' = -x' ]

@@ -1,54 +1,43 @@
-/* 
-   Has error with semantic 2014
-   Has error with semantic 2013
-   Works with semantic 2012
-*/
-
-#semantics "2012 Reference"
-
-class Pendulum()
- private
-  M := 1;
-  m := 1;
-  l := 1;
-  g := 9.8;
-  p := [-1+0.5*sin(0.2*3.14),0,0.15+0.5*cos(0.2*3.14)];
-  x := -1; x':=0; x'':=0;
-  theta := 0.5; theta':=0; theta'':=0;
-  F := 0;
-  strike := 0;
-  Pi := 3.1415926;
-	pball := [0,0,0];
-  t  := 0;
-  t' := 0;
- _3D := [["Box",[-1,0,0],[0.3,0.3,0.3],[1,1,1],[0,0,0]],
-				["Sphere",[-1,0,0],0.1,[1,0,0],[0,0,0]],
-       ["Cylinder",[-1+0.5*sin(0.2),0,0.15+0.5*cos(0.2)],[0.01,1],[0,1,0],[3.1415926/2,0.2,0]]]	
-  end
+model Palwaysulum() = 
+initially
+  M  =  1 ,
+  m  =  1 ,
+  l  =  1 ,
+  g  =  9.8 ,
+  p  =  (-1+0.5*sin(0.2*3.14),0,0.15+0.5*cos(0.2*3.14)) ,
+  x  =  -1 , x' = 0 , x'' = 0 ,
+  theta  =  0.5 , theta' = 0 , theta'' = 0 ,
+  F  =  0 ,
+  strike  =  0 ,
+  Pi  =  3.1415926 ,
+  pball  =  (0,0,0) ,
+  t   =  0 ,
+  t'  =  0 ,
+  _3D = (Box center=(-1,0,0) size=(0.3,0.3,0.3) color=(1,1,1) rotation=(0,0,0),
+         Sphere center=(-1,0,0) size=0.1 color=(1,0,0) rotation=(0,0,0),
+         Cylinder center=(-1+0.5*sin(0.2),0,0.15+0.5*cos(0.2)) radius= 0.01 length=1  color=(0,1,0) rotation=(pi/2,0.2,0))
+always
   
-  t'  = 1;
-  if 3<t&&t<3.02  
-   strike:=800;
-  else 
-   strike:= 0; 
-  end;
-  if 6<t&&t<6.02 
-   strike:= -800;
-  end;
+  t'  = 1 ,
+  if 3<t && t<3.02 then
+    strike+ =800 
+  elseif 6<t && t<6.02 then
+    strike+ = -800
+  else
+    strike+ = 0,
  
-  x'' = (F - m*l*(cos(theta)*theta'' - (theta')^2*sin(theta)))/(M+m);
-  theta''= (x'*sin(theta)*theta' + g*sin(theta) - x''*cos(theta))/l;
-  F   = 64.0348*theta + x + 4.36673*x' +19.7313*theta'+strike;
-  p   = [x+l/2*sin(theta),0,0.15+l/2*cos(theta)];
-	pball = p + [0.5*sin(theta),0,0.5*cos(theta)] ;
-  _3D = [["Box",[x,0,0],[0.4,0.4,0.4],[0.3,0.3,0.3],[0,0,0]],
-					["Sphere",pball,0.1,[1,0,0],[0,0,0]],
-          ["Cylinder",p,[0.01,1],[0,1,0],[Pi/2,-theta,0]]]	
-  end
+  x'' = (F - m*l*(cos(theta)*theta'' - (theta')^2*sin(theta)))/(M+m) ,
+  theta''= (x'*sin(theta)*theta' + g*sin(theta) - x''*cos(theta))/l ,
+  F   = 64.0348*theta + x + 4.36673*x' +19.7313*theta'+strike ,
+  p   = (x+l/2*sin(theta),0,0.15+l/2*cos(theta)) ,
+  pball = p + (0.5*sin(theta),0,0.5*cos(theta))  ,
+  _3D = (Box center=(x,0,0) size=(0.4,0.4,0.4) color=(0.3,0.3,0.3) rotation=(0,0,0),
+         Sphere center=pball size=0.1 color=(1,0,0) rotation=(0,0,0),
+         Cylinder center=p radius=0.01 length=1 color=(0,1,0) rotation=(pi/2,-theta,0)) 
 
-class Main(simulator)
-  private
-   pendulum := create Pendulum();
-  end
-  simulator.endTime :=10;
- end
+model Main(simulator) = 
+initially
+  palwaysulum = create Palwaysulum()
+always
+  simulator.endTime + =10
+  

@@ -1,70 +1,64 @@
-/* 
-   Works with semantic 2014
-   Works with semantic 2013
-   Works with semantic 2012
-*/
-
 // Hudgkin-Huxley Model for neurons
 // Radu Grosu + EMG
 
-model Example1()
-  = initially x  =  1, x'  =  0 always
-  x' = -x,
-end
+model Example1() = 
+initially
+  x  =  1, x'  =  0 
+always
+  x' = -x
 
-model Example2(x10, x20, a,b)
-  = initially 
-    x  =  x10, x'  =  0, 
-    //x1  =  x10, x1'  =  0, 
-    //x2  =  x20, x2'  =  0,
-    //c  =  0,
-  always
-  x' = a * x - b * (1-x),
+model Example2(x10, x20, a,b) = 
+initially 
+  x  =  x10, x'  =  0
+  //x1  =  x10, x1'  =  0, 
+  //x2  =  x20, x2'  =  0,
+  //c  =  0,
+always
+  x' = a * x - b * (1-x)
   // x1' = -a * x1 + b * x2,
   // x2' =  a * x1 - b * x2,
   // c   =      x1 +     x2,
-end
 
-model Example3(a1,b1,a2,b2)
-  = initially
-    m  =  create Example2 (1,0,a1,b1),
-    h  =  create Example2 (0,1,a2,b2),
-    V    =  0, V'  =  0,
-    Ina  =  0,
-    Ik   =  0,
-    Il   =  0,
-    gna  =  1 ,
-    gl   =  1 ,
-    C    =  1 ,
-    o    =  0,
-    Vna  =  0,
-    Vl   =  0,
-  always
+model Example3(a1,b1,a2,b2) = 
+initially
+  m  =  create Example2 (1,0,a1,b1),
+  h  =  create Example2 (0,1,a2,b2),
+  V    =  0, V'  =  0,
+  Ina  =  0,
+  Ik   =  0,
+  Il   =  0,
+  gna  =  1 ,
+  gl   =  1 ,
+  C    =  1 ,
+  o    =  0,
+  Vna  =  0,
+  Vl   =  0
+always
   V'  = Ina + Ik +Il,
   Ina = gna * (m.x^3)*(h.x)*(V-Vna), 
   Il  = gl * (V-Vl),
-  o = ((1-m.x) ^3) * (1-h.x),
-end
+  o = ((1-m.x) ^3) * (1-h.x)
 
 // Pulse generating example, EMG + Radu Grosu
 // Part of the model for a sodium channel
-model Example4 ()
-  = initially
-    a1    =  11.27, 
-    a2    =  0.047, 
-    b1    =  10*3.78,
-    b2    =  50.97,
-    o     =  0, // Observation
-    mode  =  "Init"
-  always
-  if mode = "Init"
+model Example4 () = 
+initially
+  a1    =  11.27, 
+  a2    =  0.047, 
+  b1    =  10*3.78,
+  b2    =  50.97,
+  o     =  0, // Observation
+  mode  =  "Init"
+always
+  if mode == "Init" then
      create Example3(a1,b1,a2,b2),
      mode + = ""
-  end
-end
+  noelse
 
-model Main (simulator)
-  = initially a  =  create Example4 () always
+model Main (simulator) = 
+initially 
+  a  =  create Example4 () 
+always
   simulator.endTime = 0.5,
   simulator.timeStep = 0.001
  

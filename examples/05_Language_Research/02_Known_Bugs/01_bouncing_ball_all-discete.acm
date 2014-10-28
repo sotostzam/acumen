@@ -1,29 +1,17 @@
-/* 
-   Has error with semantic 2014
-   Works bug with semantic 2013
-   Has bug with semantic 2012
-*/
-
-
-#semantics "2013 Reference"
-
-class Main(simulator)
+model Main(simulator) =
 
 // This model should fail after the first reset.
 // Past value of higher derivatives should be
 //  nullified (set to NaN) after a reset.
 
-private
+initially
+  x   = 5,
+  x'  = 0,
+  x'' = -10
+always
 
-   x := 5;
-   x' := 0;
-   x'':= -10
+  if x < 0 then
+    x' = -x'
+  else
+    x'' = -10
 
-end
-
-if x < 0
-  x' := -x';
-  x  := -x
-end
-
-end

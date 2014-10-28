@@ -1,9 +1,3 @@
-/* 
-   Works with semantic 2014
-   Works with semantic 2013
-   Works with semantic 2012
-*/
-
 
 // Currently, x and y do not yield the
 // same result.  This should not be the
@@ -11,10 +5,10 @@
 
 model Main(simulator) =
 initially
- x=2.0, x'=0, x''=0,
- y=2.0, y'=0, z=0, z'=0
+  x=2.0, x'=0, x''=0,
+  y=2.0, y'=0, z=0, z'=0
 always
- x'' = -10*sin(x),
- y'  = z,
- z'  = -10*sin(y)
+  x'' = -10*sin(x),
+  y'  = z,
+  z'  = -10*sin(y)
 

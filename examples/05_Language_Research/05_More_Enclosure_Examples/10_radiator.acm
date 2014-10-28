@@ -3,9 +3,9 @@
 // It implements the furnace system. //
 ///////////////////////////////////////
 model Main (simulator) =
-  initially 
-    mode = "on", x = 22, x' = 0 
-  always
+initially 
+  mode = "on", x = 22, x' = 0 
+always
   simulator.bigDecimalDigits+ = 10,
   simulator.startTime+ = 0,
   simulator.endTime+ = 2,
@@ -26,5 +26,4 @@ model Main (simulator) =
       if x == 19 then
         mode+ = "on"
       noelse,
-      x' = - x 
-  ]
+      x' = - x ]

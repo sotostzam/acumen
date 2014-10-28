@@ -13,7 +13,7 @@ model Main(simulator) =
           noelse
         
        ,
-      mode + == "persist"
+      mode + = "persist"
     |"persist" ->
   ]
 

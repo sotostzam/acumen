@@ -4,7 +4,9 @@
 // control system.                              //
 //////////////////////////////////////////////////
 model Main(simulator) =
-initially x = 1, x' = 0, x''= 0, mode = "on" always
+initially 
+  x = 1, x' = 0, x''= 0, mode = "on" 
+always
   simulator.bigDecimalDigits+ = 10,
   simulator.startTime+ = 0,
   simulator.endTime+ = 9,
@@ -17,5 +19,4 @@ initially x = 1, x' = 0, x''= 0, mode = "on" always
   simulator.minComputationImprovement+ = 0.0001,  
   match mode with [
     "on" -> 
-      x'' = -x'/2 - x 
-  ]
+      x'' = -x'/2 - x  ]

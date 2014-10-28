@@ -1,2 +1,2 @@
 // name resolution error
-model Main(simulator) =  initially always self.x + == 1 
+model Main(simulator) =  initially always self.x + = 1 

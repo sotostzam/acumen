@@ -5,9 +5,9 @@
 // two events.                      //
 //////////////////////////////////////
 model Main (simulator) =
-  initially 
+initially 
     mode = "decreasing", x = 1, x' = -1 
-  always
+always
   simulator.bigDecimalDigits+ = 10,
   simulator.startTime+ = 0,
   simulator.endTime+ = 1.5,
@@ -28,5 +28,4 @@ model Main (simulator) =
       if x == 1 then
         mode+ = "decreasing"
       noelse,
-      x' = 1 
-   ]
+      x' = 1 ]

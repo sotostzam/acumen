@@ -3,18 +3,17 @@
 // It is an example of a continuous system. //
 //////////////////////////////////////////////
 model Main(simulator) =
-  initially 
-    mode = "on", 
-    x   = [-0.1..0.1], x'   = 1,
-    hi =  0.1       , hi' = 1,
-    lo = -0.1       , lo' = 1 
-  always
+initially 
+  mode = "on", 
+  x   = [-0.1..0.1], x'   = 1,
+  hi =  0.1       , hi' = 1,
+  lo = -0.1       , lo' = 1 
+always
   match mode with [
     "on" -> 
       x'   = -x,
       hi' = -hi,
-      lo' = -lo 
-  ],
+      lo' = -lo ],
   simulator.bigDecimalDigits+ = 10,
   simulator.startTime+ = 0,
   simulator.endTime+ = 1,

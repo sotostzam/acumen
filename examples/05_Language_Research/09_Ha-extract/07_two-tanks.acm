@@ -1,9 +1,3 @@
-/* 
-   Works with semantic 2014
-   Works with semantic 2013
-   Works with semantic 2012
-*/
-
 // Two Tanks Example
 // Originally from 01_Enclosures/04_Zeno/07_Two_Tanks.acm
 //
@@ -13,21 +7,20 @@
 // Authors:  Michal Konecny and Jan Duracz
 
 model Main(simulator)  =
-  initially 
-    x1 = 1, x1' = 2,  
-    x2 = 1, x2' = -3,
-    mode = "Fill1" 
-  always
+initially 
+  x1 = 1, x1' = 2,  
+  x2 = 1, x2' = -3,
+  mode = "Fill1" 
+always
   match mode with [
     "Fill1"  claim x1 >= 0&& x2 >= 0 -> 
       if x2 <= 0 then mode+ = "Fill2" noelse, 
       x1' = 2, 
       x2' = -3
-    |"Fill2" claim x1 >= 0&& x2 >= 0  -> 
+  | "Fill2" claim x1 >= 0&& x2 >= 0  -> 
       if x1 <= 0 then mode+ = "Fill1" noelse, 
       x1' = -2, 
-      x2' = 1
-  ],
+      x2' = 1 ],
   simulator.startTime+ = 0,
   simulator.endTime+ = 2.0 
 

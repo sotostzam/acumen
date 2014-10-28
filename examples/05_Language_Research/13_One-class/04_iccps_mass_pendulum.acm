@@ -1,17 +1,11 @@
-/* 
-   Has bug with semantic 2014
-   Works with semantic 2013
-   Works with semantic 2012
-*/
-
 /* example from the iccps paper, figure 7 (f) */
 
 //#semantics "2013 Reference"
 
 model Main(simulator) =
-  initially
-    x=2, x'=0,x''=0, theta=0, theta'=0, theta''=0, a=0, b=0
-  always
+initially
+  x=2, x'=0,x''=0, theta=0, theta'=0, theta''=0, a=0, b=0
+always
   
   simulator.timeStep + = 0.01,
   simulator.endTime + = 50.0,

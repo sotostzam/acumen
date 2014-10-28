@@ -1,21 +1,19 @@
 
 // Lumped parameter heat transfer example
 
-class Main(simulator)
-  private 
-    h    := [-1.0..1.0] ; h' :=  1.0 ;
-    l    := [-1.0..1.0] ; l' := -1.0 ;
-    mode := ""
-  end
-  switch mode
-    case ""
-      h' = -h - l/2;
-      l' = -l - h/2;
-  end;
-  simulator.endTime := 1; // can't get past 2! 
-  simulator.minSolverStep := 0.1;
-  simulator.minComputationImprovement := 0.1;
-  simulator.minTimeStep := 0.1;
-  simulator.maxTimeStep := 0.2;
-end
+model Main(simulator) = 
+initially 
+  h     =  (-1.0..1.0)  , h'  =   1.0  ,
+  l     =  (-1.0..1.0)  , l'  =  -1.0  ,
+  mode  =  ""
+always
+  match mode with [
+    "" ->   
+      h' = -h - l/2 ,
+      l' = -l - h/2 ],
+  simulator.endTime + = 1 , // can't get past 2! 
+  simulator.minSolverStep + = 0.1 ,
+  simulator.minComputationImprovement + = 0.1 ,
+  simulator.minTimeStep + = 0.1 ,
+  simulator.maxTimeStep + = 0.2 
 

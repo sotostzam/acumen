@@ -14,8 +14,7 @@ always
       if true then
         mode+ = "one",
         x+ = x/2
-      noelse
-  ],
+      noelse ],
   simulator.endTime+ = 2.0,
   simulator.minLocalizationStep+ = 1.0
 

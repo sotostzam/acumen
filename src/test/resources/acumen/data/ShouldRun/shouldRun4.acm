@@ -9,7 +9,7 @@ model Main(sim)
   match mode with[
     "M1" ->
       move c1 c2,
-      mode + == "M2"
+      mode + = "M2"
     |"M2" ->
   ]
  

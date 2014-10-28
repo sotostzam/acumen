@@ -1,16 +1,10 @@
-/* 
-   Works with semantic 2014
-   Works with semantic 2013
-   Works with semantic 2012
-*/
-
 // Alternating Dynamics Example
 
 model Main(simulator) =
-  initially
-    a = 0, b = 0, 
-    x = -1, x' = 0 
-  always
+initially
+  a = 0, b = 0, 
+  x = -1, x' = 0 
+always
   x' = a*x + b, // Single differential equation
   if x > 1 then
     a+ = -1,

@@ -35,10 +35,10 @@ model Main(simulator) =
   always
   match mode with[
     "Init" ->
-      simulator.timeStep+ == 0.01,
-      simulator.endTime+  == 12, 
+      simulator.timeStep+ = 0.01,
+      simulator.endTime+  = 12, 
       create Pendulum(0.2),     
-      mode+  == "Persist"
+      mode+  = "Persist"
     |"Persist" ->
   ]
 

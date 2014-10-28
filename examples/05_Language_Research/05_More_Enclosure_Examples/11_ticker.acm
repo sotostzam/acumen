@@ -1,5 +1,7 @@
 model Main(simulator)  =
-initially mode = "On", x = 1, x' = -1 always
+initially 
+  mode = "On", x = 1, x' = -1 
+always
   simulator.endTime+ = 2.5,
   match mode with [
     "On" claim x >= 0 -> 
@@ -7,5 +9,4 @@ initially mode = "On", x = 1, x' = -1 always
         x+ = 1, 
         mode+ = "On"
       noelse, 
-      x' = -1 
-   ]
+      x' = -1 ]

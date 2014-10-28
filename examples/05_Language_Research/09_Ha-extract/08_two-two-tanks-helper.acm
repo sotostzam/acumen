@@ -1,56 +1,49 @@
-/* 
-   Works with semantic 2014
-   Works with semantic 2013
-   Works with semantic 2012
-*/
-
 model Main(simulator)  =
-  initially 
-    x1 = 1, x1' = 2,  
-    x2 = 1, x2' = -3,
-    x12 = 2, x12' = -1, // Helper variable added!
-    modeX = "Fill1",
-    y1 = 1, y1' = 2,  
-    y2 = 1, y2' = -3,
-    y12 = 2, y12' = -1, // Helper variable added!
-    modeY = "Fill1" 
-  always
+initially 
+  x1 = 1, x1' = 2,  
+  x2 = 1, x2' = -3,
+  x12 = 2, x12' = -1, // Helper variable added!
+  modeX = "Fill1",
+  y1 = 1, y1' = 2,  
+  y2 = 1, y2' = -3,
+  y12 = 2, y12' = -1, // Helper variable added!
+  modeY = "Fill1" 
+always
   match modeX with [
     "Fill1"claim x1  >= 0&& 
             x2  >= 0&& 
             x12 >= 0&& 
-            x12 = x1 + x2 // Constraint added
+            x12 == x1 + x2 // Constraint added
             ->     
       if x2 <= 0 then modeX+ = "Fill2" noelse, 
       x1'  = 2, 
       x2'  = -3,
       x12' = -1 
-    | "Fill2" claim x1 >= 0&& 
+  | "Fill2" claim x1 >= 0&& 
             x2 >= 0&& 
             x12 >= 0&& 
-            x12 = x1 + x2 // Constraint added
+            x12 == x1 + x2 // Constraint added
             -> 
       
       if x1 <= 0 then modeX+ = "Fill1" noelse, 
       x1'  = -2, 
       x2'  = 1,
-      x12' = -1 
-  ],
+      x12' = -1 ],
   match modeY with [
     "Fill1" claim y1  >= 0&& 
             y2  >= 0&& 
             y12 >= 0&& 
-            y12 = y1 + y2 // Constraint added
+            y12 == y1 + y2 // Constraint added
             -> 
       
       if y2 <= 0 then modeY+ = "Fill2" noelse, 
       y1'  = 2, 
       y2'  = -3,
       y12' = -1 
-    | "Fill2"  claim y1 >= 0&& 
+  | "Fill2"  claim y1 >= 0&& 
             y2 >= 0&& 
             y12 >= 0&& 
-            y12 = y1 + y2 // Constraint added
+            y12 == y1 + y2 // Constraint added
             -> 
      
       if y1 <= 0 then modeY+ = "Fill1" noelse, 

@@ -4,10 +4,10 @@ model Main(simu)
   always
   match mode with[
     "Init" ->
-      simu.timeStep + == 1,
-      simu.endTime + == 1,
+      simu.timeStep + = 1,
+      simu.endTime + = 1,
       create Test("Init"),
-      mode + == "Idle"
+      mode + = "Idle"
     |"Idle" ->
   ]
 
@@ -19,10 +19,10 @@ model Test(mode)
 
   match mode with[
     "Init" ->
-      mode + == "Reparent"
+      mode + = "Reparent"
     |"Reparent" ->
       move c1.x c2,
-      mode + == "Done"
+      mode + = "Done"
     |"Done" ->
   ]
  

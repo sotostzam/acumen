@@ -1,44 +1,37 @@
-/* 
-   Works with semantic 2014
-   Works with semantic 2013
-   Works with semantic 2012
-*/
 
 // Example:  Bouncing Ball (2D)
 
 model Ball(mode, x,x',x'', y,y',y'', m) =
-  initially
-  always
+initially
+always
   match mode with[
     "Init" ->
       mode + = "Fly"
-    |"Fly" ->
-      if x < 0&& x' < 0 || x > 5&& x' > 0 then
+  | "Fly" ->
+      if x < 0 && x' < 0 || x > 5 && x' > 0 then
         mode + = "BounceX"
       else
-        if y < 0&& y' < 0 || y > 5&& y' > 0 then
+        if y < 0 && y' < 0 || y > 5 && y' > 0 then
           mode + = "BounceY"
         else
           y'' = -9.8,
           x'' = 0         
-    |"BounceX" ->
+  | "BounceX" ->
       x' + = -x',
       mode + = "Fly"
-    |"BounceY" ->
+  | "BounceY" ->
       y' + = -y',
-      mode + = "Fly"
-  ]
+      mode + = "Fly" ]
 
 model Main(simulator) = 
-  initially
-    mode  =  "Init"
-  always
+initially
+  mode  =  "Init"
+always
   match mode with[
     "Init" -> 
       simulator.timeStep + = 0.003,
       simulator.endTime + = 10.0,
       create Ball("Init", 5,10,0, 5,0,0, 1.0),
       mode + = "Persist"
-    |"Persist" ->
-  ]
+  | "Persist" -> ]
  

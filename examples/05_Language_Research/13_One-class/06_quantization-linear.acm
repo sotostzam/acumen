@@ -1,15 +1,9 @@
-/* 
-   Works with semantic 2014
-   Works with semantic 2013
-   Works with semantic 2012
-*/
-
 // Basic, Linear Quantization
 
 model Main (simulator) = 
- initially
+initially
   x=1, x'=0, x''=0, c=1
- always
- x'' = -x,
- c   = floor (10*x)/10 
+always
+  x'' = -x,
+  c   = floor (10*x)/10 
 

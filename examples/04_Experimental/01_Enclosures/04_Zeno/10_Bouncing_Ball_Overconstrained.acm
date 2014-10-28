@@ -5,18 +5,17 @@
 // Note:     Run using Semantics -> Enclosure
 
 model Main(simulator) =
-  initially 
-    x = 5, x' = 0, x'' = 0,
-    mode = "Fly" 
-  always
+initially 
+  x = 5, x' = 0, x'' = 0,
+  mode = "Fly" 
+always
   match mode with [
     "Fly" claim x >= 0 ->   // Constraint added
       if x == 0&& x' <= 0 then
         x'+ = -0.5 * x',
         mode+ = "Fly"
       noelse,
-      x'' = -10
-  ],
+      x'' = -10 ],
   simulator.startTime+ = 0,
   simulator.endTime+ = 3.5,
   simulator.minSolverStep+ = 0.02,

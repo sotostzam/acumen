@@ -5,11 +5,11 @@
 // Note:     Run using Semantics -> Enclosure
 
 model Main(simulator) =
-  initially
-    d = 1, d' = -1,
-    s = 1/2,
-    mode = ""
-  always
+initially
+  d = 1, d' = -1,
+  s = 1/2,
+  mode = ""
+always
   match mode with [
     "" claim s <= abs(d) -> 
        // Invariant added!
@@ -17,8 +17,7 @@ model Main(simulator) =
         s+ = s/2, 
         mode+ = "" 
       noelse,
-      d' = -1
-  ],
+      d' = -1 ],
   simulator.endTime+ = 2.0,
   simulator.minSolverStep+ = 1.1,
   simulator.minLocalizationStep+ = 0.1,

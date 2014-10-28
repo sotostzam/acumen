@@ -1,27 +1,20 @@
-/* 
-   Works with semantic 2014
-   Works with semantic 2013
-   Works with semantic 2012
-*/
-
 // Day/Night Heater example
 //
 // Author: Adam Duracz and Kevin Atkinson
 
 model Main(simulator) =
-  initially
-    x = 10, x' = 10,
-    time = 0, time' = 1,
-    heating = "on", 
-    period  = "day" 
-  always
+initially
+  x = 10, x' = 10,
+  time = 0, time' = 1,
+  heating = "on", 
+  period  = "day" 
+always
   time' = 1,
   match heating with [
     "on" ->
       x' = 10
     |"off" ->
-      x' = -5-x
-  ],
+      x' = -5-x ],
   match period with [
     "day" -> // Hybrid behaviour during the day     
       if time >= 12 then
@@ -38,8 +31,7 @@ model Main(simulator) =
       if time >= 24 then
         time+ = 0,
         period+ = "day" 
-      noelse 
-   ],
+      noelse ],
   simulator.endTime+ = 48
 
 

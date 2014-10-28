@@ -2,39 +2,33 @@
 //
 // Authors: Eugenio Moggi and Adam Duracz
 
-/* 
-   Works with semantic 2014
-   Works with semantic 2013
-   Has bug with semantic 2012
-*/
+model Main(simulator) = 
+initially 
+  l  =  create Lift(0,2) 
+always
+  simulator.endTime + = 5
 
-class Main(simulator)
-  private l := create Lift(0,2) end
-  simulator.endTime := 5;
-end
-
-class Lift(w,a)           // Speed,Acceleration of lift
-  private
-    h  := 0;   h' :=   w; // Position of lift
-    w' := a;              // Acceleration of lift
-    x  := 5;   x' :=   0; // Position of ball
-    v  := 0;   v' := -10; // Speed of ball
-    g  := 10;             // Gravity
-    c  := 0.5;            // Coefficient of restitution
-  end
+model Lift(w,a) =           // Speed,Acceleration of lift
+initially
+  h   =  0 ,   h'  =    w , // Position of lift
+  w'  =  a ,              // Acceleration of lift
+  x   =  5 ,   x'  =    0 , // Position of ball
+  v   =  0 ,   v'  =  -10 , // Speed of ball
+  g   =  10 ,             // Gravity
+  c   =  0.5             // Coefficient of restitution
+always
   // Invariant
-  claim x >= h;
+  claim x >= h ,
   // Flow
-  h' = w; 
-  w' = a;
-  x' = v;
-  if x <= h && v <= w && a > -g
+  h' = w , 
+  w' = a ,
+  x' = v ,
+  if x <= h && v <= w && a > -g then
     v' = a
   else
-    v' = -g
-  end;
+    v' = -g,
   // Jumps
-  if x <= h && v < w
-    v := w - c * (v - w)
-  end 
-end
+  if x <= h && v < w then
+    v + = w - c * (v - w)
+  noelse 
+ 

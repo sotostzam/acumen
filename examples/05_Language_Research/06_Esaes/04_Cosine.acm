@@ -1,16 +1,10 @@
-/* 
-   Works with semantic 2014
-   Works with semantic 2013
-   Works with semantic 2012
-*/
-
 // Cosine Example
 
 model Main(simulator) =
-  initially
-    ns = 0, ns' = -1, ns'' = 0, // Negative sine
-    cosine = 1, cosine' = 0 
-  always
+initially
+  ns = 0, ns' = -1, ns'' = 0, // Negative sine
+  cosine = 1, cosine' = 0 
+always
   ns''    = -ns,
   cosine' =  ns
 

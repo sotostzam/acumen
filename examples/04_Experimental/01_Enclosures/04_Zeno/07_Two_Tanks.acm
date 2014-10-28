@@ -5,11 +5,11 @@
 // Note:     Run using Semantics -> Enclosure
 
 model Main(simulator)  =
-  initially 
-    x1 = 1, x1' = 2,  
-    x2 = 1, x2' = -3,
-    mode = "Fill1" 
-  always
+initially 
+  x1 = 1, x1' = 2,  
+  x2 = 1, x2' = -3,
+  mode = "Fill1" 
+always
   match mode with [
     "Fill1" claim x1 >= 0&& x2 >= 0 -> 
       if x2 == 0 then mode+ = "Fill2" noelse, 
@@ -18,8 +18,7 @@ model Main(simulator)  =
   | "Fill2" claim x1 >= 0&& x2 >= 0 -> 
       if x1 == 0 then mode+ = "Fill1" noelse, 
       x1' = -2, 
-      x2' = 1
-  ],
+      x2' = 1 ],
   simulator.startTime+ = 0,
   simulator.endTime+ = 2.5,
   simulator.minSolverStep+ = 2.5,

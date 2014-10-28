@@ -3,9 +3,9 @@
 // It is an example of a continuous system.     //
 //////////////////////////////////////////////////
 model Main(simulator) =
-  initially 
-    x = 0, x' = 1, x'' = 0, mode = "on" 
-  always
+initially 
+  x = 0, x' = 1, x'' = 0, mode = "on" 
+always
   simulator.bigDecimalDigits+ = 10,
   simulator.startTime+ = 0,
   simulator.endTime+ = 7,
@@ -18,5 +18,4 @@ model Main(simulator) =
   simulator.minComputationImprovement+ = 0.001,  
   match mode with [
     "on" -> 
-      x'' = -x 
- ]
+      x'' = -x ]

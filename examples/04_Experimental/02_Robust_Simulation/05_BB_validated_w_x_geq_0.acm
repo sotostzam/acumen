@@ -8,24 +8,23 @@
 // Note:  Using constraints to cut out impossible
 //        trajectories
 
-class Main(simulator)
-  private 
-    mode := "Fly"; 
-    x   := 5;    
-    x'  := 0; 
-    x'' := 0;  
-  end
-  switch mode
-    case "Fly" 
-      claim x >= 0 // Ball never pierces floor
-      if x = 0 && x' <= 0
-        x' := -0.5*x';
-        mode := "Fly";
-      end;
-      x'' = -10;
-  end;
-  simulator.endTime := 4.5;
-  simulator.minSolverStep := 0.01;
-  simulator.minLocalizationStep := 0.01;
-  simulator.minComputationImprovement := 0.001;
-end
+model Main(simulator) = 
+initially 
+  mode  =  "Fly" , 
+  x    =  5 ,    
+  x'   =  0 , 
+  x''  =  0 
+always
+  match mode with [
+    "Fly" ->
+      claim x >= 0, // Ball never pierces floor
+      if x == 0 && x' <= 0 then
+        x' + = -0.5*x' ,
+        mode + = "Fly" 
+      noelse ,
+      x'' = -10 ],
+  simulator.endTime + = 4.5 ,
+  simulator.minSolverStep + = 0.01 ,
+  simulator.minLocalizationStep + = 0.01 ,
+  simulator.minComputationImprovement + = 0.001
+ 

@@ -8,10 +8,9 @@ model Main(simulator) =
   always
   match mode with [
     "q" claim 0 <= x && x <= 1 -> 
-      if     x  = 1 
-        then x+ = 0, mode+ = "q"
-        else x' = 1
-  ],
+      if x == 1 then 
+	    x+ = 0, mode+ = "q"
+      else x' = 1 ],
   simulator.endTime+ = 3.2
 
 // Note:  Model of Sawtooth Wave implemented as a 

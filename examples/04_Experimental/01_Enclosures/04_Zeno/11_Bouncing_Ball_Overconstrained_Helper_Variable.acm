@@ -5,11 +5,11 @@
 // Note:     Run using Semantics -> Enclosure
 
 model Main(simulator) =
-  initially 
-    x = 5, x' = 0, x'' = 0,  
-    r = 50, r' = 0, // Helper variable added!
-    mode = "Fly"
-  always
+initially 
+  x = 5, x' = 0, x'' = 0,  
+  r = 50, r' = 0, // Helper variable added!
+  mode = "Fly"
+always
   match mode with [
     "Fly" claim x >= 0&& 
             r = x'*x'/2 + 10*x -> 
@@ -20,8 +20,7 @@ model Main(simulator) =
         mode+ = "Fly"
       noelse,
       x'' = -10,
-      r'  = 0 // Energy bound constant between events
-  ],
+      r'  = 0 ],  // Energy bound constant between events  
   simulator.endTime+ = 3.5,
   simulator.minSolverStep+ = 0.01,
   simulator.minLocalizationStep+ = 0.01,

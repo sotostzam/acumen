@@ -5,7 +5,9 @@
 // Note:    Run using Semantics -> Enclosure
 
 model Main(simulator) =
-  initially mode = "one", x = 1 always
+initially 
+  mode = "one", x = 1 
+always
   match mode with [
     "one" ->
       if true then
@@ -16,8 +18,7 @@ model Main(simulator) =
       if true then
         mode+ = "one",
         x+ = 1
-      noelse
-  ],
+      noelse ],
   simulator.endTime+ = 2.5,
   simulator.minLocalizationStep+ = 0.5
 

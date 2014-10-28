@@ -1,8 +1,3 @@
-/* 
-   Works with semantic 2014
-   Works with semantic 2013
-   Works with semantic 2012
-*/
 
 // Example:  Bouncing Ball (1D)
 // Illustrates:
@@ -14,9 +9,9 @@
 //    - continous assignment
 
 model Main(simulator) =
-  initially
-    mode = "Fly", x = 1, x' = 0, x''= 0
-  always
+initially
+  mode = "Fly", x = 1, x' = 0, x''= 0
+always
   simulator.timeStep + = 0.01,
   simulator.endTime+ = 5.0,
   match mode with[
@@ -26,7 +21,6 @@ model Main(simulator) =
       else
         x'' = -9.8
       
-    |"Bounce" ->
+  | "Bounce" ->
       x' + = -x',
-      mode + = "Fly"
-  ]
+      mode + = "Fly" ]

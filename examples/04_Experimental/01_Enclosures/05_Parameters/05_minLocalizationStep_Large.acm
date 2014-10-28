@@ -5,19 +5,18 @@
 // Note:     Run using Semantics -> Enclosure -> 2013*
 
 model Main(simulator) =
-  initially
-    d = 1, d' = -1,
-    s = 1/2,
-    mode = "" 
-  always
+initially
+  d = 1, d' = -1,
+  s = 1/2,
+  mode = "" 
+always
   match mode with [
     "" claim s <= abs(d) ->  
       if s == d then
         s+ = s/2, 
         mode+ = "" 
       noelse,
-      d' = -1
-  ],
+      d' = -1 ],
   simulator.endTime+ = 1.1,
   simulator.minSolverStep+ = 1.1,
   simulator.minLocalizationStep+ = 0.01,

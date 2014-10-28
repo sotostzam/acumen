@@ -5,14 +5,15 @@
 // Note:    Run using Semantics -> Enclosure
 
 model Main(simulator) =
-  initially mode = "one", x = 1 always
+initially 
+  mode = "one", x = 1 
+always
   match mode with [
     "one" ->
       if true then
         mode+ = "one",
         x+ = x/2 // Non-constant reset
-      noelse
-  ]
+      noelse ]
 
 // Note:  In this example, the looping system has 
 //        a non-constant reset, which prevents the 

@@ -1,31 +1,24 @@
-/* 
-   Works with semantic 2014
-   Works with semantic 2013
-   Works with semantic 2012
-*/
-
 // Bouncing ball 
 
-class Main(simulator)
-  private 
-    x := 1; x' := -1;
-    mode := "xIsPositive" 
-  end
-  switch mode
-    case "xIsPositive" 
-      if x <= 0 
-        mode := "xIsNonpositive"
-      end;
-      x' = -1;
-    case "xIsNonpositive"
-      if x > 0 
-        mode := "xIsPositive"
-      end;
-      x' = 1;
-  end;
+model Main(simulator) = 
+initially 
+  x  =  1 , x'  =  -1 ,
+  mode  =  "xIsPositive" 
+always
+  match mode with [
+    "xIsPositive" ->
+      if x <= 0  then
+        mode + = "xIsNonpositive"
+      noelse ,
+      x' = -1
+  | "xIsNonpositive" ->      
+      if x > 0  then
+        mode + = "xIsPositive"
+      noelse ,
+      x' = 1 ],
   // common paramters
-  simulator.startTime := 0;
-  simulator.endTime := 3.5;
-  simulator.minSolverStep := 1;
-  simulator.minLocalizationStep := 0.1;
-end
+  simulator.startTime + = 0 ,
+  simulator.endTime + = 3.5 ,
+  simulator.minSolverStep + = 1 ,
+  simulator.minLocalizationStep + = 0.1
+ 

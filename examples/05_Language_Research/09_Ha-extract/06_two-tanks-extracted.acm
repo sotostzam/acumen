@@ -1,17 +1,11 @@
-/* 
-   Works with semantic 2014
-   Works with semantic 2013
-   Works with semantic 2012
-*/
-
 model Main(simulator) =
-  initially
-    mode= ("C1"),
-    x1'= (2),
-    x2= (1),
-    x1= (1),
-    x2'= (-3)
-  always
+initially
+  mode= ("C1"),
+  x1'= (2),
+  x2= (1),
+  x1= (1),
+  x2'= (-3)
+always
   match  ((self).mode) with [
     "C1" ->
       if ((((self).x2) <= (0))) then
@@ -19,26 +13,25 @@ model Main(simulator) =
       noelse,
       ((self).x1') = (2),
       ((self).x2') = (-3) 
-    |"C2" ->
+  | "C2" ->
       if ((((self).x1) <= (0))) then
         ((self).mode)+ = ("D2")
       noelse,
       ((self).x1') = (-2),
       ((self).x2') = (1) 
-    |"D1" -> 
+  | "D1" -> 
       if ((((self).x1) <= (0))) then
         ((self).mode)+ = ("D2")
       noelse,
       if not ((((self).x1) <= (0))) then
         ((self).mode)+ = ("C2")
      noelse
-    | "D2" -> 
+  | "D2" -> 
       if ((((self).x2) <= (0))) then
         ((self).mode)+ = ("D1")
       noelse,
       if not ((((self).x2) <= (0))) then
         ((self).mode)+ = ("C1")
-      noelse
-  ],
+      noelse ],
   (((self).simulator).startTime)+ = (0),
   (((self).simulator).endTime)+ = (2.0)
