@@ -329,6 +329,7 @@ class PlotData(parms: PlotParms = null, tb:PlotModel = null, val disableThreshol
             p.values(f) match {
               case VLit(GStr(str)) => lines.add(time(frame),Set(str))
               case VLit(e:GDiscreteEnclosure[String]) => lines.add(time(frame),e.range)
+              case VLit(GInt(i)) => lines.add(time(frame),Set(i.toString))
             }
           }
 
