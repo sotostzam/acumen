@@ -1,9 +1,8 @@
-
-class cylinder (x,y,z)
-private
- _3D := [];
-end
- _3D = ["Cylinder", [x,y,z],
-       [0.02,v],c,
-       [-1*pi/2,0,0]];
-end
+model cylinder (x,y,z) = 
+initially
+  _3D  =  () ,
+always
+  _3D = (Cylinder center= (x,y,z) radius=
+         0.02 length=v  color=c rotation=
+        (-1*pi/2,0,0)) ,
+ 

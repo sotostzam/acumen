@@ -3,12 +3,11 @@
 // Example 1
 // Gul:  Try to write this in Quartex
 /*
-class Main (simulator)
-private x:=0; x':=0 end
-
-x' = 1;
-
-end
+model Main (simulator) = 
+initially 
+  x=0, x'=0
+always
+  x' = 1
 
 // In Modest and timed automata, the program would
 // be just
@@ -25,12 +24,12 @@ Bla();
 
 /*
 // Example 2
-class Main (simulator)
-private x:=1; x':=0 end
+model Main (simulator) =
+initially 
+  x=1, x'=0 
+always
+  x' = x
 
-x' = x;
-
-end
 
 // Modest:
 var x=0; 
@@ -43,23 +42,25 @@ Bla();
 */
 
 // Example 3
-class Main (simulator)
-private x:=1; x':=0 end
+model Main (simulator) = 
+initially 
+  x = 1 , x' = 0 
+always
 
-x' = 1;
-if (x>=5) // The Acumen numerical "hack" for x=5
- x:=0
-end
+  x' = 1 ,
+  if x>=5 then // The Acumen numerical "hack" for x=5
+    x+ =0
+  noelse
 
-end
+ 
 
-// Modest:
-var x=0; 
+  // Modest:
+//  var x=0 , 
+//
+//  process Bla(){
+//    invariant(der(x) = x)
+//    when (x>=5) invariant (x<=5) {=  x=0  =} ,
+//  }
 
-process Bla(){
-    invariant(der(x) = x)
-    when (x>=5) invariant (x<=5) {=  x=0  =};
-}
-
-Bla();
+//Bla() ,
 

@@ -1,10 +1,10 @@
 // Heater Example
 
 model Main(simulator) =
-  initially
-    x = 10, x' = 10,
-    mode = "on"
-  always
+initially
+  x = 10, x' = 10,
+  mode = "on"
+always
   match mode with 
   [ "on" -> 
       claim x <= 23,

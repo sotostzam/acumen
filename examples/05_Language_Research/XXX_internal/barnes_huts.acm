@@ -5,9 +5,11 @@
 // - a speed (the derivative of the position)
 // - an acceleration (the derivative of the speed)
 // - a gravitationnal force applied on it
-class Planet (index, mass, position, position', position'', force)
-position'' = force
-end
+model Planet (index, mass, position, position', position'', force) =
+initially
+always  
+  position'' = force
+
 
 // This class represents nodes in the octree
 // An octree node is represented by:
@@ -20,226 +22,185 @@ end
 // - a massNewPlanet and a positionNewPlanet which are important elements 
 //   to build the octree and to compute the gravitationnal force
 // - a force which the result of the computation of the gravitationnal force
-class OctreeNode (mode, index, centerSpace, widthSpace, massCenter, 
-      		 positionMassCenter, massNewPlanet, positionNewPlanet, force)
-private
-ux := [1, 0, 0];
-uy := [0, 1, 0];
-uz := [0, 0, 1];
+model OctreeNode (mode, index, centerSpace, widthSpace, massCenter, 
+           positionMassCenter, massNewPlanet, positionNewPlanet, force) =
+initially
+  ux  =  (1, 0, 0) ,
+  uy  =  (0, 1, 0) ,
+  uz  =  (0, 0, 1) ,
 
-nbchildren := 0;
-count := 1;
-subspaceindex := 0;
-newCenterSpace := [0, 0, 0];
-subspaceindex2 := 0;
-newCenterSpace2 := [0, 0, 0];
+  nbchildren  =  0 ,
+  count  =  1 ,
+  subspaceindex  =  0 ,
+  newCenterSpace  =  (0, 0, 0) ,
+  subspaceindex2  =  0 ,
+  newCenterSpace2  =  (0, 0, 0) ,
 
-// the constant of the approximation in the computation 
-// of the gravitationnal force
-theta := 0.7
-end
-switch mode
- // default mode
- case "Ready"
-
- // set of operations to add a new planet in the octree.
- case "Insert"  
-  if dot (ux, positionNewPlanet) >= dot (ux, centerSpace)
-    if dot (uy, positionNewPlanet) >= dot (uy, centerSpace)
-      if dot (uz, positionNewPlanet) >= dot (uz, centerSpace)
-	subspaceindex := 1;
-	newCenterSpace := [dot(ux, centerSpace) + widthSpace * 0.25, 
-		       dot (uy, centerSpace) + widthSpace * 0.25, 
-		       dot (uz, centerSpace) + widthSpace * 0.25]        
-      else
-	subspaceindex := 2;
-	newCenterSpace := [dot(ux, centerSpace) + widthSpace * 0.25, 
-		       dot (uy, centerSpace) + widthSpace * 0.25, 
-		       dot (uz, centerSpace) - widthSpace * 0.25]
-      end
-    else
-      if dot (uz, positionNewPlanet) >= dot (uz, centerSpace)
-	subspaceindex := 3;
-	newCenterSpace := [dot(ux, centerSpace) + widthSpace * 0.25, 
-		       dot (uy, centerSpace) - widthSpace * 0.25, 
-		       dot (uz, centerSpace) + widthSpace * 0.25]
-      else
-	subspaceindex := 4;
-	newCenterSpace := [dot(ux, centerSpace) + widthSpace * 0.25, 
-		       dot (uy, centerSpace) - widthSpace * 0.25, 
-		       dot (uz, centerSpace) - widthSpace * 0.25]
-      end
-    end
-  else
-    if dot (uy, positionNewPlanet) >= dot (uy, centerSpace)
-      if dot (uz, positionNewPlanet) >= dot (uz, centerSpace)
-	subspaceindex := 5;
-	newCenterSpace := [dot(ux, centerSpace) - widthSpace * 0.25, 
-		       dot (uy, centerSpace) + widthSpace * 0.25, 
-		       dot (uz, centerSpace) + widthSpace * 0.25]
-      else
-	subspaceindex := 6;
-	newCenterSpace := [dot(ux, centerSpace) - widthSpace * 0.25, 
-		       dot (uy, centerSpace) + widthSpace * 0.25, 
-		       dot (uz, centerSpace) - widthSpace * 0.25]
-      end
-    else
-      if dot (uz, positionNewPlanet) >= dot (uz, centerSpace)
-	subspaceindex := 7;
-	newCenterSpace := [dot(ux, centerSpace) - widthSpace * 0.25, 
-		       dot (uy, centerSpace) - widthSpace * 0.25, 
-		       dot (uz, centerSpace) + widthSpace * 0.25]
-      else
-	subspaceindex := 8;
-	newCenterSpace := [dot(ux, centerSpace) - widthSpace * 0.25, 
-		       dot (uy, centerSpace) - widthSpace * 0.25, 
-		       dot (uz, centerSpace) - widthSpace * 0.25]
-      end
-    end
-  end;
-  nbchildren := sum 1 for i in self.children if i.className = type (OctreeNode);
-  if nbchildren = 0
-    if dot (ux, positionMassCenter) >= dot (ux, centerSpace)
-      if dot (uy, positionMassCenter) >= dot (uy, centerSpace)
-	if dot (uz, positionMassCenter) >= dot (uz, centerSpace)
-	  subspaceindex2 := 1;
-	  newCenterSpace2 := [dot(ux, centerSpace) + widthSpace * 0.25, 
-	  		  dot (uy, centerSpace) + widthSpace * 0.25, 
-			  dot (uz, centerSpace) + widthSpace * 0.25]
-	else
-	  subspaceindex2 := 2;
-	  newCenterSpace2 := [dot(ux, centerSpace) + widthSpace * 0.25, 
-	  		  dot (uy, centerSpace) + widthSpace * 0.25, 
-			  dot (uz, centerSpace) - widthSpace * 0.25]
-	end
-      else
-	if dot (uz, positionMassCenter) >= dot (uz, centerSpace)
-	  subspaceindex2 := 3;
-	  newCenterSpace2 := [dot(ux, centerSpace) + widthSpace * 0.25, 
-	  		  dot (uy, centerSpace) - widthSpace * 0.25,   
-			  dot (uz, centerSpace) + widthSpace * 0.25]
-	else
-	  subspaceindex2 := 4;
-	  newCenterSpace2 := [dot(ux, centerSpace) + widthSpace * 0.25, 
-	  		  dot (uy, centerSpace) - widthSpace * 0.25, 
-			  dot (uz, centerSpace) - widthSpace * 0.25]
-	end
-      end
-    else
-      if dot (uy, positionMassCenter) >= dot (uy, centerSpace)
-	if dot (uz, positionMassCenter) >= dot (uz, centerSpace)
-	  subspaceindex2 := 5;
-	  newCenterSpace2 := [dot(ux, centerSpace) - widthSpace * 0.25, 
-	  		  dot (uy, centerSpace) + widthSpace * 0.25, 
-			  dot (uz, centerSpace) + widthSpace * 0.25]
-	else
-	  subspaceindex2 := 6;
-	  newCenterSpace2 := [dot(ux, centerSpace) - widthSpace * 0.25, 
-	  		  dot (uy, centerSpace) + widthSpace * 0.25, 
-			  dot (uz, centerSpace) - widthSpace * 0.25]
-	end
-      else
-	if dot (uz, positionMassCenter) >= dot (uz, centerSpace)
-	  subspaceindex2 := 7;
-	  newCenterSpace2 := [dot(ux, centerSpace) - widthSpace * 0.25, 
-	  		  dot (uy, centerSpace) - widthSpace * 0.25, 
-			  dot (uz, centerSpace) + widthSpace * 0.25]
-	else
-	  subspaceindex2 := 8;
-	  newCenterSpace2 := [dot(ux, centerSpace) - widthSpace * 0.25, 
-	  		  dot (uy, centerSpace) - widthSpace * 0.25, 
-			  dot (uz, centerSpace) - widthSpace * 0.25]
-	end
-      end
-    end;
-    create OctreeNode ("Ready", subspaceindex2, newCenterSpace2, widthSpace * 0.5, 
-    	   	      massCenter, positionMassCenter, 0, [0, 0, 0], [0, 0, 0]);
-    if subspaceindex2 = subspaceindex
-      // %TODO This part has to be verified to check the correctness !
-      for c = self.children
-	if c.className = type (OctreeNode) && c.index == subspaceindex2
-	  c.massNewPlanet := massNewPlanet;
-	  c.positionNewPlanet := positionNewPlanet;
-	  c.mode := "Insert";
-	else
-	end
-      end
-    else
-      create OctreeNode ("Ready", subspaceindex, newCenterSpace, widthSpace * 0.5, 
-      	     		massNewPlanet, positionNewPlanet, 0, [0, 0, 0], [0, 0, 0]);
-    end;
-    mode := "Ready"
-  else
-    for c = self.children
-      // %TODO This part has to be verified to check the correctness !
-      if c.className = type (OctreeNode) && c.index == subspaceindex
-	c.massNewPlanet := massNewPlanet;
-	c.positionNewPlanet := positionNewPlanet;
-	c.mode := "Insert";
-      else
-      end
-    end;
-    mode := "Ready"
-  end;
-  // compute the coordinates of the mass approximatoing the planets in the 
-  // area represented by this node
-  positionMassCenter := sum i 
-    for i in [positionNewPlanet * massNewPlanet / (massNewPlanet + massCenter),
-              massCenter * positionMassCenter / (massNewPlanet + massCenter)] 
-      if true;    
-  massCenter := sum i 
-     for i in [massCenter, massNewPlanet] 
-       if true;
-  mode := "ComputeForce"
+  // the constant of the approximation in the computation 
+  // of the gravitationnal force
+  theta  =  0.7
+always
+  match mode with [
+  // default mode
+    "Ready" ->
+  // set of operations to add a new planet in the octree.
+  | "Insert" -> 
+      if ux dot positionNewPlanet >= ux dot centerSpace then
+        if uy dot positionNewPlanet >= uy dot centerSpace then
+          if uz dot positionNewPlanet >= uz dot centerSpace then
+            subspaceindex + = 1 ,
+            newCenterSpace + = (ux dot centerSpace + widthSpace * 0.25, 
+                                uy dot centerSpace + widthSpace * 0.25, 
+                                uz dot centerSpace + widthSpace * 0.25)        
+          else (
+            subspaceindex + = 2 ,
+            newCenterSpace + = (ux dot centerSpace + widthSpace * 0.25, 
+                                uy dot centerSpace + widthSpace * 0.25, 
+                                uz dot centerSpace - widthSpace * 0.25))
+        elseif uz dot positionNewPlanet >= uz dot centerSpace then
+          subspaceindex + = 3 ,
+          newCenterSpace + = (ux dot centerSpace + widthSpace * 0.25, 
+                              uy dot centerSpace - widthSpace * 0.25, 
+                              uz dot centerSpace + widthSpace * 0.25)
+        else (
+          subspaceindex + = 4 ,
+          newCenterSpace + = (ux dot centerSpace + widthSpace * 0.25, 
+                              uy dot centerSpace - widthSpace * 0.25, 
+                              uz dot centerSpace - widthSpace * 0.25))
+      elseif uy dot positionNewPlanet >= uy dot centerSpace then
+        if uz dot positionNewPlanet >=  uz dot centerSpace then
+          subspaceindex + = 5 ,
+          newCenterSpace + = (ux dot centerSpace - widthSpace * 0.25, 
+                              uy dot centerSpace + widthSpace * 0.25, 
+                              uz dot centerSpace + widthSpace * 0.25)
+        else (
+          subspaceindex + = 6 ,
+          newCenterSpace + = (ux dot centerSpace - widthSpace * 0.25, 
+                              uy dot centerSpace + widthSpace * 0.25, 
+                              uz dot centerSpace - widthSpace * 0.25))
+      elseif uz dot positionNewPlanet >= uz dot centerSpace then
+        subspaceindex + = 7 ,
+        newCenterSpace + = (ux dot centerSpace - widthSpace * 0.25, 
+                            uy dot centerSpace - widthSpace * 0.25, 
+                            uz dot centerSpace + widthSpace * 0.25)
+      else (
+        subspaceindex + = 8 ,
+        newCenterSpace + = (ux dot centerSpace - widthSpace * 0.25, 
+                            uy dot centerSpace - widthSpace * 0.25, 
+                            uz dot centerSpace - widthSpace * 0.25)),
+      nbchildren + = sum 1 for i in self.children if i.modelName == type (OctreeNode) ,
+      if nbchildren == 0 then
+        if ux dot positionMassCenter >= ux dot centerSpace then
+          if uy dot positionMassCenter >= uy dot centerSpace then
+            if uz dot positionMassCenter >= uz dot centerSpace then
+              subspaceindex2 + = 1 ,
+              newCenterSpace2 + = (ux dot centerSpace + widthSpace * 0.25, 
+                                   uy dot centerSpace + widthSpace * 0.25, 
+                                   uz dot centerSpace + widthSpace * 0.25)
+            else (
+              subspaceindex2 + = 2 ,
+              newCenterSpace2 + = (ux dot centerSpace + widthSpace * 0.25, 
+                                   uy dot centerSpace + widthSpace * 0.25, 
+                                   uz dot centerSpace - widthSpace * 0.25))
+          elseif uz dot positionMassCenter >= uz dot centerSpace then
+            subspaceindex2 + = 3 ,
+            newCenterSpace2 + = (ux dot centerSpace + widthSpace * 0.25, 
+                                 uy dot centerSpace - widthSpace * 0.25,   
+                                 uz dot centerSpace + widthSpace * 0.25)
+          else (
+            subspaceindex2 + = 4 ,
+            newCenterSpace2 + = (ux dot centerSpace + widthSpace * 0.25, 
+                                 uy dot centerSpace - widthSpace * 0.25, 
+                                 uz dot centerSpace - widthSpace * 0.25))
+        elseif uy dot positionMassCenter >= uy dot centerSpace then
+          if uz dot positionMassCenter >= uz dot centerSpace then
+            subspaceindex2 + = 5 ,
+            newCenterSpace2 + = (ux dot centerSpace - widthSpace * 0.25, 
+                                 uy dot centerSpace + widthSpace * 0.25, 
+                                 uz dot centerSpace + widthSpace * 0.25)
+          else (
+            subspaceindex2 + = 6 ,
+            newCenterSpace2 + = (ux dot centerSpace - widthSpace * 0.25, 
+                                 uy dot centerSpace + widthSpace * 0.25, 
+                                 uz dot centerSpace - widthSpace * 0.25))
+        elseif uz dot positionMassCenter >= uz dot centerSpace then
+          subspaceindex2 + = 7 ,
+          newCenterSpace2 + = (ux dot centerSpace - widthSpace * 0.25, 
+                               uy dot centerSpace - widthSpace * 0.25, 
+                               uz dot centerSpace + widthSpace * 0.25)
+        else (
+          subspaceindex2 + = 8 ,
+          newCenterSpace2 + = (ux dot centerSpace - widthSpace * 0.25, 
+                               uy dot centerSpace - widthSpace * 0.25, 
+                               uz dot centerSpace - widthSpace * 0.25)),
+        create OctreeNode ("Ready", subspaceindex2, newCenterSpace2, widthSpace * 0.5, 
+                           massCenter, positionMassCenter, 0, (0, 0, 0), (0, 0, 0)) ,
+        if subspaceindex2 == subspaceindex then
+          // %TODO This part has to be verified to check the correctness !
+          foreach c in self.children do (
+            if c.modelName == type (OctreeNode) && c.index == subspaceindex2 then
+              c.massNewPlanet + = massNewPlanet ,
+              c.positionNewPlanet + = positionNewPlanet ,
+              c.mode + = "Insert"
+            noelse)
+        else (
+          create OctreeNode ("Ready", subspaceindex, newCenterSpace, widthSpace * 0.5, 
+                massNewPlanet, positionNewPlanet, 0, (0, 0, 0), (0, 0, 0))),
+        mode + = "Ready"
+      else (
+        foreach c in self.children do (
+          // %TODO This part has to be verified to check the correctness !
+          if c.modelName == type (OctreeNode) && c.index == subspaceindex then
+            c.massNewPlanet + = massNewPlanet ,
+            c.positionNewPlanet + = positionNewPlanet ,
+            c.mode + = "Insert"
+          noelse ) ,
+        mode + = "Ready" ),
+     
+      // compute the coordinates of the mass approximatoing the planets in the 
+      // area represented by this node
+      positionMassCenter + = sum i 
+      for i in (positionNewPlanet * massNewPlanet / (massNewPlanet + massCenter),
+              massCenter * positionMassCenter / (massNewPlanet + massCenter)) 
+      if true ,    
+        massCenter + = sum i 
+      for i in (massCenter, massNewPlanet) if true ,
+        mode + = "ComputeForce"
+    // set of operations to compute the gravitationnal force 
+  | "ComputeForce" ->  
+      if norm (positionNewPlanet - positionMassCenter) == 0 then
+        force + = (0, 0, 0)
+      else (
+        nbchildren + = sum 1  for i in self.children if i.modelName == type (OctreeNode) ,
+        if nbchildren == 0 then
+          force + = massCenter * (positionMassCenter - positionNewPlanet) / 
+                    (norm(positionMassCenter - positionNewPlanet) ^ 3)
+        elseif (norm (positionNewPlanet - positionMassCenter) / widthSpace) <= theta then
+          force+ = massCenter * (positionMassCenter - positionNewPlanet) / 
+                   (norm(positionMassCenter - positionNewPlanet) ^ 3)
+        else (
+          force + = (0, 0, 0) ,
+          count + = 1 ,
+          mode + = "ComputeForceWorking" ))
   
-
- // set of operations to compute the gravitationnal force	
- case "ComputeForce"
-  if norm (positionNewPlanet - positionMassCenter) = 0
-    force := [0, 0, 0]
-  else
-    nbchildren := sum 1 
-         for i in self.children 
-           if i.className = type (OctreeNode);
-    if nbchildren = 0
-      force := massCenter * (positionMassCenter - positionNewPlanet) / 
-      (norm(positionMassCenter - positionNewPlanet) ^ 3)
-    else
-      if (norm (positionNewPlanet - positionMassCenter) / widthSpace) <= theta
-	force := massCenter * (positionMassCenter - positionNewPlanet) / 
-        (norm(positionMassCenter - positionNewPlanet) ^ 3)
+  | "ComputeForceWorking" ->  
+      if count <= 8 then
+        foreach c in self.children do (
+          if c.index == count then
+            c.positionNewPlanet + = positionNewPlanet ,
+            c.massNewPlanet + = massNewPlanet ,
+            c.mode + = "ComputeForce" ,
+            force + = sum i for i in (force, c.force) if true
+          noelse),
+        mode + = "ComputeForceNext"
       else
-	force := [0, 0, 0];
-	count := 1;
-	mode := "ComputeForceWorking"  
-      end
-    end
- end
+        mode + = "Ready"
   
- case "ComputeForceWorking"
-  if count <= 8
-    for c = self.children
-      if c.index = count
-	c.positionNewPlanet := positionNewPlanet;
-	c.massNewPlanet := massNewPlanet;
-	c.mode := "ComputeForce";
-	force := sum i for i in [force, c.force] if true
-      else
-      end
-    end;
-    mode := "ComputeForceNext"
-  else
-    mode := "Ready"
-  end
-  
- case "ComputeForceNext"
-  count := count + 1;
-  mode := "ComputeForceWorking"
-  
-end
-end
+  | "ComputeForceNext" ->  
+      count + = count + 1 ,
+      mode + = "ComputeForceWorking" ]
 
-// This class represents the root of the octree.
+// This model represents the root of the octree.
 // An octree is represented by:
 // - a mode (used more like methods)
 // - a centerSpace and a widthSpace which characterize 
@@ -249,295 +210,250 @@ end
 // - a massNewPlanet and a positionNewPlanet which are important elements 
 //   to build the octree and to compute the gravitationnal force
 // - a force which the result of the computation of the gravitationnal force
-class Octree (mode, centerSpace, widthSpace, 
-      	     massNewPlanet, positionNewPlanet, force)
-private
-ux := [1, 0, 0];
-uy := [0, 1, 0];
-uz := [0, 0, 1];
+model Octree (mode, centerSpace, widthSpace, 
+             massNewPlanet, positionNewPlanet, force) =
+initially
+  ux  =  (1, 0, 0) ,
+  uy  =  (0, 1, 0) ,
+  uz  =  (0, 0, 1) ,
 
-nbchildren := 0;
-subspaceindex := 0;
-newCenterSpace := [0, 0, 0];
+  nbchildren  =  0 ,
+  subspaceindex  =  0 ,
+  newCenterSpace  =  (0, 0, 0) ,
 
-count := 1
-end
-switch mode
- // default mode
- case "Ready"
+  count  =  1
+always
+  match mode with [
+  // default mode
+    "Ready" ->
+    // To remove all the elements in the octree.
+    // Used at each step of the simulation.
+  | "Reset" ->  
+      centerSpace + = (0, 0, 0) ,
+      widthSpace + = 0 ,
+      nbchildren + = 0 ,
+      count + = 1 ,
+      foreach c in self.children do
+        terminate c    
+   // Set of operations to add a new planet in the octree.
+  | "Insert" ->  
+      if ux dot positionNewPlanet >=  ux dot centerSpace then
+        if uy dot positionNewPlanet >= uy dot centerSpace then
+          if uz dot positionNewPlanet >= uz dot centerSpace then
+            subspaceindex + = 1 ,
+            newCenterSpace + = (ux dot centerSpace + widthSpace * 0.25, 
+                                uy dot centerSpace + widthSpace * 0.25, 
+                                uz dot centerSpace + widthSpace * 0.25)
+          else (
+            subspaceindex + = 2 ,
+            newCenterSpace + = (ux dot centerSpace + widthSpace * 0.25, 
+                                uy dot centerSpace + widthSpace * 0.25, 
+                                uz dot centerSpace - widthSpace * 0.25))
+        elseif uz dot positionNewPlanet >= uz dot centerSpace then
+          subspaceindex + = 3 ,
+          newCenterSpace + = (ux dot centerSpace + widthSpace * 0.25, 
+                              uy dot centerSpace - widthSpace * 0.25, 
+                              uz dot centerSpace + widthSpace * 0.25)
+        else (
+          subspaceindex + = 4 ,
+          newCenterSpace + = (ux dot centerSpace + widthSpace * 0.25, 
+                              uy dot centerSpace - widthSpace * 0.25, 
+                              uz dot centerSpace - widthSpace * 0.25))         
+      elseif uy dot positionNewPlanet >= uy dot centerSpace then
+        if uz dot positionNewPlanet >= uz dot centerSpace then
+          subspaceindex + = 5 ,
+          newCenterSpace + = (ux dot centerSpace - widthSpace * 0.25, 
+                              uy dot centerSpace + widthSpace * 0.25, 
+                              uz dot centerSpace + widthSpace * 0.25)
+        else (
+          subspaceindex + = 6 ,
+          newCenterSpace + = (ux dot centerSpace - widthSpace * 0.25, 
+                              uy dot centerSpace + widthSpace * 0.25, 
+                              uz dot centerSpace - widthSpace * 0.25))
+      elseif uz dot positionNewPlanet >= uz dot centerSpace then
+        subspaceindex + = 7 ,
+        newCenterSpace + = (ux dot centerSpace - widthSpace * 0.25, 
+                            uy dot centerSpace - widthSpace * 0.25, 
+                            uz dot centerSpace + widthSpace * 0.25)
+      else (
+        subspaceindex + = 8 ,
+        newCenterSpace + = (ux dot centerSpace - widthSpace * 0.25, 
+                            uy dot centerSpace - widthSpace * 0.25, 
+                            uz dot centerSpace - widthSpace * 0.25)),
+      nbchildren + = sum 1 for i in self.children if i.modelName == type (OctreeNode) && i.index == subspaceindex ,
+      if nbchildren <= 0 then
+        create OctreeNode ("Ready", subspaceindex, newCenterSpace, 
+               widthSpace * 0.5, massNewPlanet, positionNewPlanet, 0, (0, 0, 0), (0, 0, 0))
+      else (
+        foreach c in self.children do (
+          if c.modelName == type (OctreeNode) && c.index == subspaceindex then
+            c.massNewPlanet+ = massNewPlanet ,
+            c.positionNewPlanet+ = positionNewPlanet ,
+            c.mode+ = "Insert"
+          noelse )),
+      mode + = "Ready"
 
- // To remove all the elements in the octree.
- // Used at each step of the simulation.
- case "Reset"
-  centerSpace := [0, 0, 0];
-  widthSpace := 0;
-  nbchildren := 0;
-  count := 1;
-  for c = self.children 
-    terminate c
-  end
-    
- // Set of operations to add a new planet in the octree.
- case "Insert"
-  if dot (ux, positionNewPlanet) >= dot (ux, centerSpace)
-    if dot (uy, positionNewPlanet) >= dot (uy, centerSpace)
-      if dot (uz, positionNewPlanet) >= dot (uz, centerSpace)
-	subspaceindex := 1;
-	newCenterSpace := [dot(ux, centerSpace) + widthSpace * 0.25, 
-		       dot (uy, centerSpace) + widthSpace * 0.25, 
-		       dot (uz, centerSpace) + widthSpace * 0.25]
-      else
-	subspaceindex := 2;
-	newCenterSpace := [dot(ux, centerSpace) + widthSpace * 0.25, 
-		       dot (uy, centerSpace) + widthSpace * 0.25, 
-		       dot (uz, centerSpace) - widthSpace * 0.25]
-      end
-    else
-      if dot (uz, positionNewPlanet) >= dot (uz, centerSpace)
-	subspaceindex := 3;
-	newCenterSpace := [dot(ux, centerSpace) + widthSpace * 0.25, 
-		       dot (uy, centerSpace) - widthSpace * 0.25, 
-		       dot (uz, centerSpace) + widthSpace * 0.25]
-      else
-	subspaceindex := 4;
-	newCenterSpace := [dot(ux, centerSpace) + widthSpace * 0.25, 
-		       dot (uy, centerSpace) - widthSpace * 0.25, 
-		       dot (uz, centerSpace) - widthSpace * 0.25]
-      end
-    end
-  else
-    if dot (uy, positionNewPlanet) >= dot (uy, centerSpace)
-      if dot (uz, positionNewPlanet) >= dot (uz, centerSpace)
-	subspaceindex := 5;
-	newCenterSpace := [dot(ux, centerSpace) - widthSpace * 0.25, 
-		       dot (uy, centerSpace) + widthSpace * 0.25, 
-		       dot (uz, centerSpace) + widthSpace * 0.25]
-      else
-	subspaceindex := 6;
-	newCenterSpace := [dot(ux, centerSpace) - widthSpace * 0.25, 
-		       dot (uy, centerSpace) + widthSpace * 0.25, 
-		       dot (uz, centerSpace) - widthSpace * 0.25]
-      end
-    else
-      if dot (uz, positionNewPlanet) >= dot (uz, centerSpace)
-	subspaceindex := 7;
-	newCenterSpace := [dot(ux, centerSpace) - widthSpace * 0.25, 
-		       dot (uy, centerSpace) - widthSpace * 0.25, 
-		       dot (uz, centerSpace) + widthSpace * 0.25]
-      else
-	subspaceindex := 8;
-	newCenterSpace := [dot(ux, centerSpace) - widthSpace * 0.25, 
-		       dot (uy, centerSpace) - widthSpace * 0.25, 
-		       dot (uz, centerSpace) - widthSpace * 0.25]
-      end
-    end
-  end;
-  nbchildren := sum 1 for i in self.children 
-  	     if i.className = type (OctreeNode) && i.index == subspaceindex;
-  if nbchildren <= 0
-    create OctreeNode ("Ready", subspaceindex, newCenterSpace, 
-    widthSpace * 0.5, massNewPlanet, positionNewPlanet, 0, [0, 0, 0], [0, 0, 0])
-  else
-    for c = self.children
-      if c.className = type (OctreeNode) && c.index == subspaceindex
-	c.massNewPlanet := massNewPlanet;
-	c.positionNewPlanet := positionNewPlanet;
-	c.mode := "Insert"
-      else
-      end
-    end
-  end;
-  mode := "Ready"
-
- // Set of operations to compute the gravitationnal force
- case "ComputeForce"
-  force := [0, 0, 0];
-  count := 1;
-  mode := "ComputeForceWorking"
+    // Set of operations to compute the gravitationnal force
+  | "ComputeForce" ->  
+      force + = (0, 0, 0) ,
+      count + = 1 ,
+      mode + = "ComputeForceWorking"
    
- case "ComputeForceWorking"
-  if count <= 8
-    for c = self.children
-      if c.index = count
-	c.positionNewPlanet := positionNewPlanet;
-	c.massNewPlanet := massNewPlanet;
-	c.mode := "ComputeForce";
-	force := sum i for i in [force, c.force] if true
+  | "ComputeForceWorking" ->  
+      if count <= 8 then
+        foreach c in self.children do (
+          if c.index == count then
+            c.positionNewPlanet + = positionNewPlanet ,
+            c.massNewPlanet + = massNewPlanet ,
+            c.mode + = "ComputeForce" ,
+            force + = sum i for i in (force, c.force) if true
+          noelse ),
+        mode + = "ComputeForceNext"
       else
-      end
-    end;
-    mode := "ComputeForceNext"
-  else
-    mode := "Ready"
-  end
+        mode + = "Ready"
   
- case "ComputeForceNext"
-  count := count + 1;
-  mode := "ComputeForceWorking"
-   
-end
-end
+  | "ComputeForceNext" ->  
+      count + = count + 1 ,
+      mode + = "ComputeForceWorking" ]
 
 
-// This class represents the galaxy with planets
-class Galaxy (mode)
-private
-ux := [1, 0, 0]; 
-uy := [0, 1, 0]; 
-uz := [0, 0, 1]; 
+// This model represents the galaxy with planets
+model Galaxy (mode) =
+initially
+  ux  =  (1, 0, 0) , 
+  uy  =  (0, 1, 0) , 
+  uz  =  (0, 0, 1) , 
 
-numPlanet := 0;
-count := 0;
+  numPlanet  =  0 ,
+  count  =  0 , 
 
-maxCoordinate := 0;
-minCoordinate := 0;
+  maxCoordinate  =  0 ,
+  minCoordinate  =  0 ,
 
-max1 := 0;
-max2 := 0;
-max3 := 0;
-min1 := 0;
-min2 := 0;
-min3 := 0;
-
-root := create Octree ("Ready", [0, 0, 0], 0,  0, [0, 0, 0], [0, 0, 0])
-end
-switch mode
- case "Init"
-  // a simple 3 bodies problem
-  create Planet (1, 3.0, [-0.9700436, 0.24308753, 0.0], 
-  [0.466203685, 0.43236573, 0], [0, 0, 0], [0, 0, 0]);
-
-  create Planet (2, 1.0, [0.9700436, -0.24308753, 0.0], 
-  [0.466203685, 0.43236573, 0], [0, 0, 0], [0, 0, 0]);
-
-  create Planet (3, 2.0,  [0.0, 0.0, 0.0], 
-  [-0.93249737, -0.86473146, 0], [0, 0, 0], [0, 0, 0]);
-  numPlanet := sum 1 for i in self.children if i.className = type (Planet)
-    
- // Main steps to simulate the behaviors of planets which are:
- // 1/ remove all the nodes in the octree
- // 2/ compute the center and the width of the space where the planets are
- // 3/ build the octree
- // 4/ compute the gravitationnal force for each planets
- case "Constellate"
-  root.mode := "Reset";
-  mode := "ConstellateInit";
-  mode := "OctreeBuilding";
-  mode := "ComputeForce" 
-    
- case "ConstellateInit"
-  for c = self.children
-    if c.className = type(Planet)
-      // Maximal and minimal coordinate of all the planets
-      // in order to characterize the space where the planets are.
-      if dot (ux, c.position) >= dot (uy, c.position)
-	max1 := dot (ux, c.position);
-	min1 := dot (uy, c.position);
-      else
-	max1 := dot (uy, c.position);
-	min1 := dot (ux, c.position);
-      end;
-      if dot (uy, c.position) >= dot (uz, c.position)
-	max2 := dot (uy, c.position);
-	min2 := dot (uz, c.position)
-      else
-	max2 := dot (uz, c.position);
-	min2 := dot (uz, c.position)
-      end;
-      if max1 >= max2
-	max3 := max1
-      else
-	max3 := max2
-      end;
-      if min1 <= min2
-	min3 := min1
-      else
-	min3 := min2
-      end;
-      if maxCoordinate <= max3
-	maxCoordinate := max3
-      else
-      end;
-      if minCoordinate >= min3
-	minCoordinate := min3
-      else
-      end;      
-    else
-    end		
-  end
-
-  // Construction of the octree based on the current positions of the planets  
- case "OctreeBuilding"
-  root.centerSpace := [0.5 * (minCoordinate + maxCoordinate), 0.5 * (minCoordinate + maxCoordinate), 0.5 * (minCoordinate + maxCoordinate)];
-  root.widthSpace := maxCoordinate - minCoordinate;
-  count := 1;
-  mode := "OctreeBuildingWorking"
-  
- case "OctreeBuildingWorking"
-  if count <= numPlanet
-    for c = self.children
-      if c.className = type(Planet) && c.index == count
-	root.positionNewPlanet := c.position;
-	root.massNewPlanet := c.mass;	      
-	root.mode := "Insert";
-	mode := "OctreeBuildingNext"
-      else
-      end
-    end
-  else
-  end
-
- case "OctreeBuildingNext"
-  count := count + 1;
-  mode := "OctreeBuildingWorking"
-
-  // Computation of the gravitationnal force based on the octree    
- case "ComputeForce"  
-  root.force := [0, 0, 0];
-  count := 1;
-  mode := "ComputeForceWorking"
-
- case "ComputeForceWorking"
-  if count <= numPlanet
-    for c = self.children
-      if c.className = type (Planet) && c.index == count
-	root.positionNewPlanet := c.position;
-	root.massNewPlanet := c.mass;
-	root.mode := "ComputeForce";
-	c.force := root.force;
-	mode := "ComputeForceNext"
-      else
-      end
-    end
-  else
-  end
-  
- case "ComputeForceNext"
-  count := count + 1;
-  mode := "ComputeForceWorking"
-  
-end	
-end
-
-// Main class 
-class Main (simulation)
-private
-mode := "Init"
-end
-switch mode
- case "Init"
-  simulation.timeStep := 0.001;
-  simulation.endTime := 10;
-  create Galaxy ("Init");
-  mode := "Persist"
+  max1  =  0 ,
+  max2  =  0 ,
+  max3  =  0 ,
+  min1  =  0 ,
+  min2  =  0 ,
+  min3  =  0 ,
  
- case "Persist"
-  for c = children
-    if c.className = type (Galaxy)
-      c.mode := "Constellate" 
-    else
-    end
-  end
+  root  =  create Octree ("Ready", (0, 0, 0), 0,  0, (0, 0, 0), (0, 0, 0))
+always
+  match mode with [
+    "Init" ->  
+    // a simple 3 bodies problem
+      create Planet (1, 3.0, (-0.9700436, 0.24308753, 0.0), 
+                    (0.466203685, 0.43236573, 0), (0, 0, 0), (0, 0, 0)) ,
+
+      create Planet (2, 1.0, (0.9700436, -0.24308753, 0.0), 
+                    (0.466203685, 0.43236573, 0), (0, 0, 0), (0, 0, 0)) ,
+
+      create Planet (3, 2.0,  (0.0, 0.0, 0.0), 
+                    (-0.93249737, -0.86473146, 0), (0, 0, 0), (0, 0, 0)) ,
+      numPlanet + = sum 1 for i in self.children if i.modelName == type (Planet)
+    
+     // Main steps to simulate the behaviors of planets which are:
+     // 1/ remove all the nodes in the octree
+     // 2/ compute the center and the width of the space where the planets are
+     // 3/ build the octree
+     // 4/ compute the gravitationnal force for each planets
+  | "Constellate" ->  
+      root.mode + = "Reset" ,
+      mode + = "ConstellateInit" ,
+      mode + = "OctreeBuilding" ,
+      mode + = "ComputeForce" 
+    
+  | "ConstellateInit" ->  
+      foreach c in self.children do (
+        if c.modelName == type(Planet) then
+          // Maximal and minimal coordinate of all the planets
+          // in order to characterize the space where the planets are.
+          if ux dot c.position >= uy dot c.position then
+            max1 + = ux dot c.position ,
+            min1 + = uy dot c.position 
+          else (
+            max1 + = uy dot c.position ,
+            min1 + = ux dot c.position),
+          if uy dot c.position >= uz dot c.position then
+            max2 + = uy dot c.position ,
+            min2 + = uz dot c.position
+          else (
+            max2 + = uz dot c.position ,
+            min2 + = uz dot c.position),
+          if max1 >= max2 then
+            max3 + = max1
+          else
+            max3 + = max2,
+          if min1 <= min2 then
+            min3 + = min1
+          else
+            min3 + = min2,
+          if maxCoordinate <= max3 then
+            maxCoordinate + = max3
+          noelse,
+          if minCoordinate >= min3 then
+            minCoordinate + = min3
+          noelse
+        noelse )
+
+   // Construction of the octree based on the current positions of the planets  
+  | "OctreeBuilding" ->  
+      root.centerSpace + = (0.5 * (minCoordinate + maxCoordinate), 0.5 * (minCoordinate + maxCoordinate), 0.5 * (minCoordinate + maxCoordinate)) ,
+      root.widthSpace + = maxCoordinate - minCoordinate ,
+      count + = 1 ,
+      mode + = "OctreeBuildingWorking"
   
-end
-end
+  | "OctreeBuildingWorking" ->  
+      if count <= numPlanet then
+        foreach c in self.children do (
+          if c.modelName == type(Planet) && c.index == count then
+            root.positionNewPlanet+ = c.position ,
+            root.massNewPlanet+ = c.mass ,        
+            root.mode+ = "Insert" ,
+            mode+ = "OctreeBuildingNext"
+          noelse )
+      noelse
+  | "OctreeBuildingNext" ->  
+      count + = count + 1 ,
+      mode + = "OctreeBuildingWorking"
+
+      // Computation of the gravitationnal force based on the octree    
+  | "ComputeForce" -> 
+      root.force + = (0, 0, 0) ,
+      count + = 1 ,
+      mode + = "ComputeForceWorking"
+
+  | "ComputeForceWorking" ->  
+      if count <= numPlanet then
+        foreach c in self.children do (
+          if c.modelName == type (Planet) && c.index == count then
+            root.positionNewPlanet + = c.position ,
+            root.massNewPlanet + = c.mass ,
+            root.mode + = "ComputeForce" ,
+            c.force + = root.force ,
+            mode + = "ComputeForceNext"
+          noelse )
+      noelse
+  
+  | "ComputeForceNext" ->  
+      count + = count + 1 ,
+      mode + = "ComputeForceWorking" ]
+
+// Main model 
+model Main (simulation) =
+initially
+  mode  =  "Init"
+always
+  match mode with [
+    "Init" -> 
+      simulation.timeStep + = 0.001 ,
+      simulation.endTime + = 10 ,
+      create Galaxy ("Init") ,
+      mode + = "Persist"
+ 
+  | "Persist" ->  
+      foreach c in children do (
+        if c.modelName == type (Galaxy) then
+          c.mode+ = "Constellate" 
+        noelse ) ]
+ 

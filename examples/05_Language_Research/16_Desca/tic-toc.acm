@@ -1,9 +1,9 @@
 // Tic Toc Example
 
 model Main(simulator) =
-  initially 
-    x  = 0, x' = 1, c  = 1
-  always
+initially 
+  x  = 0, x' = 1, c  = 1
+always
   claim 0 <= x && x <= 1,
   if x == 1 && c > 0 then
     c+ = -1

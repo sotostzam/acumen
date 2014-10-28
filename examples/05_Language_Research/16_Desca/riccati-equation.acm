@@ -2,10 +2,10 @@
 // Author: Adam Duracz
 
 model Main(simulator) =
-  initially 
-    q0 = 0.1, q1 = 0.1, q2 = 0.1,
-    y = 0.1, y' = 0.1 + 0.1*0.1 + 0.1*0.1*0.1
-  always
+initially 
+  q0 = 0.1, q1 = 0.1, q2 = 0.1,
+  y = 0.1, y' = 0.1 + 0.1*0.1 + 0.1*0.1*0.1
+always
   y' = q0 + q1*y + q2*y*y
 
 // Note:  http://en.wikipedia.org/wiki/Riccati_equation

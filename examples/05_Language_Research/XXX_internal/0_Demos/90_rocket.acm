@@ -1,22 +1,22 @@
 
 // Constant Second Derivatives Example
 
-class Main(simulator)
-private
- z:=0;z':=0;z'':=0;
- x:=0.75;x':=0;x'':=0;
- theta :=pi/2;   
- theta':= 0;
- _3D := []    //
-end
- z''= 0.1*sin(theta) ;
- x''= 0.1*cos(theta) ;
- theta' = 2*norm([x',z'])*(pi - theta);
- _3D = [["Cone",
-        [x,0,z],
-        [0.2,0.9],
-        red/2,
-        [pi/2,theta-pi/2,0]]]
-end
+model Main(simulator) = 
+initially
+  z = 0 ,z' = 0 ,z'' = 0 ,
+  x = 0.75 ,x' = 0 ,x'' = 0 ,
+  theta  = pi/2 ,   
+  theta' =  0 ,
+  _3D  =  ()    //
+always
+  z''= 0.1*sin(theta)  ,
+  x''= 0.1*cos(theta)  ,
+  theta' = 2*norm((x',z'))*(pi - theta) ,
+  _3D = (Cone center=
+        (x,0,z) radius=
+         0.2 length=0.9  color=
+         red/2 rotation=
+         (pi/2,theta-pi/2,0))
+ 
 
 // Note:  Polynomials are closed under integration

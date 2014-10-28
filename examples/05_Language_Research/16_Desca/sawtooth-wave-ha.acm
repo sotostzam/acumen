@@ -1,11 +1,11 @@
 // Sawtooth Wave Hybrid Automaton Example
 
 model Main(simulator) =
-  initially
-    x  = 0,
-    x' = 1,
-    mode = "q"
-  always
+initially
+  x  = 0,
+  x' = 1,
+  mode = "q"
+always
   match mode with [
     "q" claim 0 <= x && x <= 1 -> 
       if x == 1 then 

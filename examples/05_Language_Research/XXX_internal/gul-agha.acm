@@ -43,27 +43,28 @@ end
 // A simple game:  Asynchronous heckers Queens (2 on 5) 
 // Walid should finish this! :-)
 
-class Player ()
-private output := 0; input :=0; 
-        time := 0; time' := 1;
-        q1:=[0,0]; q2:=[0,0];
-end
-end
+model Player () = 
+initially 
+  output  =  0 , input  = 0 , 
+  time  =  0 , time'  =  1 ,
+  q1 = (0,0) , q2 = (0,0) 
+always
+  time' = 1
 
-class Board ()
-private q1:=[1,1]; q2:=[2,3];
-        sender := 0;
-        msg    :=0;
-        winner:=0;
-end
-end
+model Board () = 
+initially 
+  q1 = (1,1) , q2 = (2,3) ,
+  salwayser  = 0 ,
+  msg     =0 ,
+  winner =0 
 
-class Main (simulator)
-private
- p1 := create Player ();
- p2 := create Player ();
- b  := create Board ();
-end
- p1.q1 = b.q1; p1.q2 = b.q2; // You can add observers
- p2.q1 = b.q1; p2.q2 = b.q2; //
-end
+model Main (simulator) = 
+initially
+  p1  =  create Player () ,
+  p2  =  create Player () ,
+  b   =  create Board ()
+always
+  p1.q1 = b.q1 , p1.q2 = b.q2 , // You can add observers
+  p2.q1 = b.q1 , p2.q2 = b.q2  //
+ 
+

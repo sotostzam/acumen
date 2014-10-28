@@ -2,11 +2,11 @@
 // Author: Adam Duracz
 
 model Main(simulator) =
-  initially  
-    t = 0, t' = 1,
-    x = 0, x' = 1, x'' = 0,
-    a = 0, b = 0
-  always
+initially  
+  t = 0, t' = 1,
+  x = 0, x' = 1, x'' = 0,
+  a = 0, b = 0
+always
   t'  = 1,
   x'' = -x,
   a   = x,

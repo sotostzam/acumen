@@ -5,12 +5,10 @@
 
 // 1.1. The _3D variable for display
 
-#semantics "2012 Reference"
-
 model display_bar (v,c,D) = 
 initially
   _3D  = (),  
-  flag = 0,
+  flag = 0
 always
   if flag == 1 then
     terminate self
@@ -23,7 +21,7 @@ model sphere (m,D) =
 initially 
   p  = (0,0,0) ,
   _3D  =  () ,   // Please replace all _3D  =  initializations by ()
-  flag  =  0 ,
+  flag  =  0 
 always
   if flag == 1 then
     terminate self
@@ -38,16 +36,16 @@ initially
   r  =  0.01 ,
   l  =  0.01 , alpha = 0 , theta =  pi/2 ,
   x = 0 ,y = 0 ,z = 0 ,
-  flag  =  0 ,
+  flag  =  0 
 always
   if flag == 1 then
    terminate self
   noelse,
   _3D = (Cylinder center=(p+q)/2+D radius=r length=l color=(1,1,1) 
          rotation=(alpha,0,-theta)) ,
-  x = dot(p-q,(1,0,0)) ,
-  y = dot(p-q,(0,1,0)) ,
-  z = dot(p-q,(0,0,1)) ,
+  x = (p-q) dot (1,0,0) ,
+  y = (p-q) dot (0,1,0) ,
+  z = (p-q) dot (0,0,1) ,
 
   l = norm(p-q) ,
   alpha = asin(z/l) ,
@@ -64,7 +62,7 @@ model mass_1d (m,p0,D) =
 initially 
   p = p0 , p' = 0 , p'' = 0 , f = 0 , e_k = 0 ,
   s = create sphere (m,D) ,
-  flag  =  0 ,
+  flag  =  0 
 always
   if flag == 1 then
     s.flag + = 1 ,
@@ -78,7 +76,7 @@ model spring_1d (k,l,D) =
 initially 
   p1 = 0 , p2 = 0 , f1 = 0 , f2 = 0 , e_p = 0 ,
   c  =  create cylinder (D) ,
-  flag  =  0 ,
+  flag  =  0 
 always
   if flag == 1 then
     c.flag + = 1 ,
@@ -97,7 +95,7 @@ initially
   m = create mass_1d (10,3,D) ,
   flag  =  0
 always
-  if flag == 1
+  if flag == 1 then
     m.flag + = 1 ,
     terminate self
   noelse ,
@@ -108,7 +106,7 @@ initially
   m1  =  create mass_1d (15, 1,D) ,
   m2  =  create mass_1d ( 5,-1,D) ,
   s   =  create spring_1d (5,1.25,D) ,
-  flag  =  0 ,
+  flag  =  0 
 always
   if flag == 1 then
     m1.flag + = 1 ,
@@ -130,7 +128,7 @@ initially
   s1  =  create spring_1d (5,1.75,D) ,
   s2  =  create spring_1d (5,0.5,D) ,
   b   =  create display_bar (0,(0.1,3,0.1),D) ,
-  flag  =  0 ,
+  flag  =  0 
 always
   if flag == 1 then
     m1.flag + = 1 ,
@@ -208,7 +206,7 @@ initially
   s2  =  create spring_1d (5,0.5,D) ,
   c   =  create controller_pd1 (1,1) ,
   b   =  create display_bar (0,(0.1,3,0.1),D) ,
-  flag  =  0 ,
+  flag  =  0
 always
   if flag == 1 then
     m1.flag + = 1 ,
@@ -241,7 +239,7 @@ initially
   example3  =  create example_3 (D+(-0.5,0,0)) ,
   example4  =  create example_4 (D+(   0,0,0)) ,
   example5  =  create example_5 (D+( 0.5,0,0)) ,
-  flag  =  0 ,
+  flag  =  0 
 always
   if flag == 1 then
     example3.flag + = 1 ,
@@ -265,7 +263,7 @@ always
     terminate self 
   noelse,
   p'' = f/m ,
-  e_k = 0.5 * m * (dot(p',p')) ^2 ,
+  e_k = 0.5 * m * (p' dot p') ^2 ,
   s.p = p 
 
 // 5.2 3D Spring
@@ -275,7 +273,7 @@ initially
   p1 = (0,0,0) , p2 = (0,0,0) , f1 = (0,0,0) , f2 = (0,0,0) ,
   dl  =  (0,0,0) , e_p = 0 ,
   s  =  create cylinder(D) ,
-  flag  =  0 ,
+  flag  =  0
 always
   if flag == 1 then
     s.flag + = 1 ,
@@ -284,7 +282,7 @@ always
   dl  = p2-p1 * (1-l0/norm(p2-p1)) ,
   f1  =  k*dl ,
   f2  = -k*dl ,
-  e_p = 0.5 * k * dot(dl,dl) ,
+  e_p = 0.5 * k * (dl dot dl) ,
   s.p = p1 , s.q = p2
 
 
@@ -346,7 +344,7 @@ always
     m2.flag + = 1 ,
     s1.flag + = 1 ,
     s2.flag + = 1 ,
-    terminate self ,
+    terminate self
   noelse ,
   s1.p1 = (0,0,1) ,
   s1.p2 = m1.p ,
@@ -376,7 +374,7 @@ model example_9 (D) = // Controller PID for Mass (CPDM)
 initially 
   m  =  create mass (1,(1,1,1),D) ,
   c  =  create controller_pid (15,10,3) ,
-  flag  =  0 ,
+  flag  =  0
 always
   if flag == 1 then
     m.flag + = 1 ,
@@ -395,7 +393,7 @@ initially
   r  =  create mass_on_leash (4,(-0.3,0.3,0.9),D) ,
   c  =  create controller_pid (k_p,k_i,k_d) ,
   d  =  create disturbance (1) ,
-  flag  =  0 ,
+  flag  =  0
 always
   if flag == 1 then
     g.flag + = 1 ,
@@ -415,7 +413,7 @@ initially
   e3  =  create example_10 (25,8,3, D+( 0,0,0)) ,
   e4  =  create example_10 ( 5,8,6, D+(-0.5, 0,0)) ,
   e5  =  create example_10 ( 5,0,2, D+(-1, 0,0)) ,
-  flag  =  0 ,
+  flag  =  0
 always
   if flag == 1 then
     e1.flag + = 1 ,
@@ -453,7 +451,7 @@ initially
   c   =  create cylinder (D) ,
   s1  =  create sphere (mp,D) ,
   s2  =  create sphere (mq,D) ,
-  flag  =  0 ,
+  flag  =  0 
 always
   if flag == 1 then
     c.flag + = 1 ,
@@ -462,7 +460,7 @@ always
     terminate self 
   noelse ,
   c.p  = p ,  c.q = q ,
-  s1.p = p , s2.p = q ,
+  s1.p = p , s2.p = q
 
 // 7. Basic rigid body dynamics and control
 model rod (m,l,c0,a0,b0,D) = 
@@ -480,14 +478,14 @@ initially
   q  =  (0,0,0) ,
   vp  =  (0,0,0) ,
   vq  =  (0,0,0) ,
-  flag  =  0 ,
+  flag  =  0 
 always
   if flag == 1 then
     c1.flag + = 1 ,
     terminate self 
   noelse ,
-  torque = (fp cross l/2*(cos(a)*cos(b),sin(a)*cos(b),sin(a))) -
-           (fq cross l/2*(cos(a)*cos(b),sin(a)*cos(b),sin(a))) ,
+  torque = (fp cross (l/2*(cos(a)*cos(b),sin(a)*cos(b),sin(a)))) -
+           (fq cross (l/2*(cos(a)*cos(b),sin(a)*cos(b),sin(a)))) ,
   
   c'' = (fp + fq)/m - g * (0,0,1) ,
   a'' = (torque dot (0,1,0))/(m*l^2) - l/2* b'^2 * cos(a)*sin(a) ,
@@ -497,11 +495,11 @@ always
   q = c + (cos(a)*cos(b),cos(a)*sin(b),sin(a))*l/2 ,
 
 
-  vq =  c'+ cross(l/2 * (0,a',b'),(cos(a)*cos(b),sin(a)*cos(b),sin(a))) ,
-  vp =  c' - cross(l/2 * (0,a',b'),(cos(a)*cos(b),sin(a)*cos(b),sin(a))) ,
+  vq =  c'+ (l/2 * (0,a',b') cross (cos(a)*cos(b),sin(a)*cos(b),sin(a))) ,
+  vp =  c' - (l/2 * (0,a',b') cross (cos(a)*cos(b),sin(a)*cos(b),sin(a))) ,
 
   c1.p = p ,
-  c1.q = q ,
+  c1.q = q 
 
 model example_13 (k_p,k_i,k_d,D) = 
 initially 
@@ -527,7 +525,7 @@ always
   cq.v   = r.q ,
   cq.s   = r.vq ,
   r.fq = cq.f ,
-  r.fp  = cp.f  ,
+  r.fp  = cp.f 
 
 // Acumen model of a QuadCopter system
 model Display_bar1 (v,c,D) = 
@@ -535,7 +533,7 @@ initially
   roll = 0 ,
   pitch = 0 ,
   // Arrow
-  _3D = ((Cylinder center=D 
+  _3D = (Cylinder center=D 
          radius=0.02 length=v color=c 
          rotation=(-3.14159265359/2,0,0),
          Cone  center=D 
@@ -585,7 +583,7 @@ initially
   p  =  0 , q  =  0 , r  =  0 ,  // Local angular velocity
   p'  =  0 , q'  =  0 , r'  =  0 , 
   time  =  0 , time'  =  1 ,
-  hoverW  =  620 ,  // Stable rotor velocity 
+  hoverW  =  620   // Stable rotor velocity 
   
 always
   time' = 1 ,
@@ -639,7 +637,7 @@ initially
   b  =  1.140*10^(-7) ,
   T  =  0 ,
   torqueP  =  0 , torqueT  =  0 , torquePsi  =  0 ,
-  w1  =  0 , w2  =  0 , w3  =  0 , w4  =  0 , // Output control signal
+  w1  =  0 , w2  =  0 , w3  =  0 , w4  =  0  // Output control signal
 always
   errorZ = zd - z ,
   errorPhi = phid - phi ,
@@ -712,24 +710,21 @@ always
   f4.v = (copter.w4-max)*30/max ,
   f4.D = visual.rotor4p ,
 
-
-  max + = copter.w1 ,
   if max>copter.w2 then
     max + = copter.w2 
-  noelse ,
-  if max>copter.w3 then
-    max + = copter.w3 
-  noelse ,
-  if max>copter.w4 then
+  elseif max>copter.w3 then
+    max + = copter.w3
+  elseif max>copter.w4 then
     max + = copter.w4 
-  noelse ,
+  else 
+    max + = copter.w1,
   
   match mode with [
     "Init" ->
       //simulator.endTime + = 6.0 ,
       //simulator.timeStep + = 0.001 ,
-      controller.z = dot(copter.GlobalP, (0,0,1)) ,
-      controller.zp = dot(copter.GlobalP', (0,0,1)) ,
+      controller.z = (copter.GlobalP dot (0,0,1)) ,
+      controller.zp = (copter.GlobalP' dot (0,0,1)) ,
       controller.phi = copter.phi ,
       controller.theta = copter.theta ,
       controller.psi = copter.psi ,
@@ -746,7 +741,7 @@ always
       visual.p = copter.GlobalP ,
       visual.roll = copter.phi ,
       visual.pitch = copter.theta ,
-      visual.yaw = copter.psi ,
+      visual.yaw = copter.psi 
       
   | "Persist" -> ]
 
@@ -761,131 +756,131 @@ initially
   caption  =  "" ,
   _3D  =  ()
 always
-  _3D = (Text center=(-1.5,0.2,-2) size=0.5 color=(1.6,1.6,0.5) rotation=(pi/2-0.3,0,-0.3) content=example,
-         Text center=(-0.5,0,-2) size=0.3 color=(1.6,1.6,0.1) rotation=(pi/2-0.3,0,-0.3) content=caption) ,
+  _3D = (Text center=(-1.5,0.2,-2) size=0.5 color=(1.6,1.6,0.5) rotation=(0-0.3,0,-0.3) content=example,
+         Text center=(-0.5,0,-2) size=0.3 color=(1.6,1.6,0.1) rotation=(0-0.3,0,-0.3) content=caption) ,
   t' = 1 ,
   match mode with [
-    "init"
+    "init" ->
       mode + = example 
-  | 1
+  | 1 ->
       e + = create example_1((0,0,0)) ,
       mode + = "1Continue"
-  | "1Continue"
+  | "1Continue" ->
       caption = "Falling Ball" ,
       if t > exampleTime then
         mode + = "terminate"
       noelse 
-  | 2
+  | 2 ->
       e + = create example_2((0,0,0)) ,
       mode + = "2Continue"
-  | "2Continue"
+  | "2Continue" ->
       caption = "2Mass 1Spring" ,
       if t > exampleTime then
         mode + = "terminate"
       noelse 
-  | 3
+  | 3 -> 
       e + = create example_3((0,0,0)) ,
       mode + = "3Continue"
-  | "3Continue"
+  | "3Continue" ->
       caption = "3Mass 2Spring" ,
       if t > exampleTime then
         mode + = "terminate"
       noelse 
-  | 4
+  | 4 ->
       e + = create example_4((0,0,0)) ,
       mode + = "4Continue"
-  | "4Continue"
+  | "4Continue" ->
       caption = "P Control" ,
       if t > exampleTime then
         mode + = "terminate"
       noelse 
-  | 5
+  | 5 ->
       e + = create example_5((0,0,0)) ,
       mode + = "5Continue"
-  | "5Continue"
+  | "5Continue" ->
       caption = "PD Control" ,
       if t > exampleTime then
         mode + = "terminate"
       noelse 
-  | 6
+  | 6 ->
       e + = create example_6((0,0,0)) ,
       mode + = "6Continue"
-  | "6Continue"
+  | "6Continue" ->
       caption = "None P PD" ,
       if t > exampleTime then
         mode + = "terminate"
       noelse 
-  | 7
+  | 7 ->
       e + = create example_7((0,0,0)) ,
       mode + = "7Continue"
-  | "7Continue"
+  | "7Continue" ->
       caption = "2 Spring-Pendulum" ,
       if t > exampleTime then
         mode + = "terminate"
       noelse 
-  | 8
+  | 8 ->
       e + = create example_8((0,0,0)) ,
       mode + = "8Continue"
-  | "8Continue"
+  | "8Continue" ->
       caption = "PD for Mass" ,
       if t > exampleTime then
         mode + = "terminate"
       noelse 
-  | 9
+  | 9 ->
       e + = create example_9((0,0,0)) ,
       mode + = "9Continue"
-  | "9Continue"
+  | "9Continue" ->
       caption = "PID for Mass" ,
       if t > exampleTime then
         mode + = "terminate"
       noelse 
-  | 10
+  | 10 ->
       e + = create example_10(40,10,10,(0,0,0)) ,
       mode + = "10Continue"
-  | "10Continue"
+  | "10Continue" ->
       caption = "PID for Mass-Rod" ,
       if t > exampleTime then
         mode + = "terminate"
       noelse 
-  | 11
+  | 11 ->
       e + = create example_11((0,0,0)) ,
       mode + = "11Continue"
-  | "11Continue"
+  | "11Continue" ->
       caption = "Vary PID parameters" ,
       if t > exampleTime then
         mode + = "terminate"
       noelse 
-  | 12
+  | 12 ->
       e + = create example_12(25,8,3,(0,0,0)) ,
       mode + = "12Continue"
-  | "12Continue"
+  | "12Continue" ->
       caption = "PID with disturbance" ,
       if t > exampleTime then
         mode + = "terminate"
       noelse 
-  | 13
+  | 13 ->
       e + = create example_13(20,2,8,(0,0,0)) ,
       mode + = "13Continue"
-  | "13Continue"
+  | "13Continue" ->
       caption = "PID for 3D-rod" ,
-      if t > exampleTime
+      if t > exampleTime then
         mode + = "terminate"
       noelse 
-  | 14
+  | 14 ->
       e + = create example_14() ,
       mode + = "14Continue"
-  | "14Continue"
+  | "14Continue" ->
       caption = "PID for Quad-Copter" ,
       if t > exampleTime then
         mode + = "terminate"
       noelse 
-  | "terminate"
+  | "terminate" ->
       e.flag + = 1 ,
       mode + = "rest"
-  | "rest"
+  | "rest" ->
       mode + = "init" ,
       example + = example + 1 ,
       t + = 0 ],
- simulator.endTime + = 70 
+ simulator.endTime + = 60  
  
 
