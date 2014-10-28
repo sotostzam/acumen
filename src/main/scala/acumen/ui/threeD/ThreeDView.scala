@@ -3,7 +3,7 @@ package acumen.ui.threeD
 import java.awt.event._
 import java.awt.{Color, Component, Graphics}
 import java.io._
-import javax.swing.JPanel
+import javax.swing.{SwingUtilities, JPanel}
 
 import acumen.CId
 import acumen.Errors._
@@ -102,9 +102,9 @@ class ThreeDView extends JPanel {
         // to decrease the burden of calculations
         if (abs(newMouseX - lastMouseX) > 5 || abs(newMouseY - lastMouseY) > 5) {
           // Initialize the camera coordinate
-          if (e.getButton == MouseEvent.BUTTON1)    // left button dragging, move camera
+          if (SwingUtilities isLeftMouseButton e)        // left button dragging, move camera
             cameraLeftDirection = moveCamera(cameraLeftDirection, 1, lookAtPoint)
-          else if (e.getButton == MouseEvent.BUTTON3)   // right button dragging, move look at point
+          else if (SwingUtilities isRightMouseButton e)   // right button dragging, move look at point
             cameraRightDirection = moveCamera(cameraRightDirection, -1, camera.getPosition)
         }
       }
