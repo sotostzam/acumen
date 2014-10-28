@@ -892,9 +892,9 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
   }
 
   def setColor(objectToSet: Object3D, colorList: List[Double]) =
-    objectToSet.setAdditionalColor(new Color( min(255, colorList(0) * 255).toInt
-                                            , min(255, colorList(1) * 255).toInt
-                                            , min(255, colorList(2) * 255).toInt ))
+    objectToSet.setAdditionalColor(new Color( max(0, min(255, colorList(0) * 255)).toInt
+                                            , max(0, min(255, colorList(1) * 255)).toInt
+                                            , max(0, min(255, colorList(2) * 255)).toInt ))
 
 }
 
