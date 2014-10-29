@@ -180,7 +180,7 @@ class ThreeDView extends JPanel {
     }
 
   // create a new buffer to draw on:
-  var buffer: FrameBuffer = null
+  private var buffer: FrameBuffer = null
 
   def initBuffer(bufferWidth: Int, bufferHeight: Int) = {
     buffer = new FrameBuffer(bufferWidth, bufferHeight, FrameBuffer.SAMPLINGMODE_OGSS)
@@ -367,6 +367,7 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
   /* Default directory where all the OBJ files are */
   private val _3DBasePath = Files._3DDir.getAbsolutePath
   private var currentFrame = 0 // FrameNumber
+  private val offsetFrame = 2
   var lastFrame = lastFrame1
   var totalFrames = lastFrame.toInt
   var pause = false
@@ -487,18 +488,16 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
     /* Find the corresponding index of the object */
     val index = currentFrame - bufferFrame(buffer.head)
     /* Get the 3D information of the object at that frame	*/
-    if (totalFrames > buffer.size)
-      totalFrames = buffer.size
     val (tempPosition, tempAngle, tempColor, tempSize, tempType) =
-      if (index >= 0 && index < totalFrames)
+      if (index >= 0 && index < buffer.size)
         (bufferPosition(buffer(index)) , bufferAngle(buffer(index)), bufferColor(buffer(index)),
-        bufferSize(buffer(index)), bufferType(buffer(index)))
+          bufferSize(buffer(index)), bufferType(buffer(index)))
       else (Array(0.0,0.0,0.0), Array(0.0,0.0,0.0), List(0.0,0.0,0.0), List(0.0), " ")
     val (tempContent, tempPath) =
-    if (index >= 0 && index < totalFrames)
-      (if (tempType == "Text") bufferString(buffer(index)) else " ",
-       if (tempType == "OBJ") bufferString(buffer(index)) else " ")
-    else (" ", " ")
+      if (index >= 0 && index < buffer.size)
+        (if (tempType == "Text") bufferString(buffer(index)) else " ",
+          if (tempType == "OBJ") bufferString(buffer(index)) else " ")
+      else (" ", " ")
     // get the object ID
     if (objects.contains(id) && tempType != " ") {
       // get the object need to transform
@@ -668,7 +667,7 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
   def renderCurrentFrame() = {
     for ((id, map) <- _3DDataBuffer) // acumen objects
       for ((objectNumber, buffer) <- map) // 3d objects within
-        if (firstFrame(buffer) <= currentFrame && totalFrames >= currentFrame)
+        if (firstFrame(buffer) <= currentFrame && lastFrame(buffer) + offsetFrame >= currentFrame)
           if (!app.objects.contains(List(id, objectNumber)))
             matchingObject(List(id, objectNumber), buffer, currentFrame)
           else
@@ -735,6 +734,7 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
    */
   def deleteObj(c: List[_]) {
     if (app.objects.contains(c)) {
+      view.removeObject(app.objects(c))
       app.objects.remove(c)
     }
   }
@@ -813,18 +813,16 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
                      currentFrame: Int) = {
     /* Find the corresponding index of the object */
     val index = currentFrame - bufferFrame(buffer.head)
-    if (totalFrames > buffer.size)
-      totalFrames = buffer.size
     /* Get the 3D information of the object at that frame	*/
     val (position, angle, color, size, name) =
-      if (index >= 0 && index < totalFrames)
+      if (index >= 0 && index < buffer.size)
         (bufferPosition(buffer(index)), bufferAngle(buffer(index)), bufferColor(buffer(index)),
-         bufferSize(buffer(index)), bufferType(buffer(index)))
+          bufferSize(buffer(index)), bufferType(buffer(index)))
       else (Array(0.0,0.0,0.0), Array(0.0,0.0,0.0), List(0.0,0.0,0.0), List(0.0), " ")
     val (text, path) =
-      if (index >= 0 && index < totalFrames)
+      if (index >= 0 && index < buffer.size)
         (if (name == "Text") bufferString(buffer(index)) else " ",
-         if (name == "OBJ")  bufferString(buffer(index)) else " ")
+          if (name == "OBJ")  bufferString(buffer(index)) else " ")
       else (" ", " ")
 
     if (name != " ") {
