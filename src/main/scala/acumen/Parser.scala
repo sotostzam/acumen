@@ -241,8 +241,8 @@ object Parser extends MyStdTokenParsers {
       | success(Nil))
 
   def init = name ~! "=" ~! initrhs ^^ { case x ~ _ ~ rhs => Init(x, rhs) }|
-             "_3D" ~ "=" ~ parens(repsep(threeDObject, ",")) ^^ {
-             	case _ ~ _ ~ ls => Init(Name("_3D",0), ExprRhs(ExprVector(ls)))}
+             "_3D" ~ "=" ~ threeDRhs ^^ {
+             	case _ ~ _ ~ ls => Init(Name("_3D",0), ExprRhs(ls))}
 
   def initrhs =
     ("create" ~! className ~! args(expr) ^^ { case _ ~ cn ~ es => NewRhs(Var(Name(cn.x,0)), es) }
@@ -325,10 +325,10 @@ object Parser extends MyStdTokenParsers {
     }
     
   def _3DAction = 
-    "_3D" ~ "="  ~ parens(repsep(threeDObject, ",")) ^^ {
-    case _ ~ _ ~ ls => Continuously(Equation(Var(Name("_3D",0)), ExprVector(ls)))}|
-    "_3D" ~ "+"~"="  ~ parens(repsep(threeDObject, ",")) ^^ {
-    case _ ~ _~_ ~ ls => Discretely(Assign(Var(Name("_3D",0)), ExprVector(ls)))
+    "_3D" ~ "="  ~ threeDRhs ^^ {
+    case _ ~ _ ~ ls => Continuously(Equation(Var(Name("_3D",0)), ls))}|
+    "_3D" ~ "+"~"="  ~ threeDRhs ^^ {
+    case _ ~ _~_ ~ ls => Discretely(Assign(Var(Name("_3D",0)), ls))
   }
   def assignrhs(e: Expr) =
     (expr ^^ (Assign(e, _)) | newObject(Some(e)))
@@ -471,6 +471,10 @@ object Parser extends MyStdTokenParsers {
   
   def threeDPara: Parser[(String, Expr)] = ident ~ "=" ~ expr ^^ {case n ~_~ e => (n,e)}  
   def threeDObject:Parser[ExprVector] = optParens(ident ~ rep(threeDPara)) ^^ {case n ~ ls =>threeDParasProcess(n,ls)}
+  def threeDRhs = parens(repsep(threeDObject, ",")) ^^ {case ls => ls match{
+    case List(single) => single
+    case _ => ExprVector(ls)
+  }}
                     
   /* Process the 3d object information and adding default values*/
   def threeDParasProcess(objectName:String, paras:List[(String, Expr)]):ExprVector = {
