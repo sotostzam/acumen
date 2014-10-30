@@ -327,16 +327,12 @@ class ThreeDView extends JPanel {
     else {
       rotateCamera.setBack(tranObjectRotMatrix)
       val newLookAtPoint = new SimpleVector(0.0f,0.0f,0.0f)
-      println(camera.getPosition + "Position")
       val radius = camera.getPosition.length()
       val cameraCorLookAtPoint = new SimpleVector(0.0f, 0.0f, radius)
       // calculate the new look at point
       newLookAtPoint.x = tranObjectRotMatrix.get(0,0) * cameraCorLookAtPoint.x + tranObjectRotMatrix.get(0,1) * cameraCorLookAtPoint.y + tranObjectRotMatrix.get(0,2) * cameraCorLookAtPoint.z + camera.getPosition.x
       newLookAtPoint.y = tranObjectRotMatrix.get(1,0) * cameraCorLookAtPoint.x + tranObjectRotMatrix.get(1,1) * cameraCorLookAtPoint.y + tranObjectRotMatrix.get(1,2) * cameraCorLookAtPoint.z + camera.getPosition.y
       newLookAtPoint.z = tranObjectRotMatrix.get(2,0) * cameraCorLookAtPoint.x + tranObjectRotMatrix.get(2,1) * cameraCorLookAtPoint.y + tranObjectRotMatrix.get(2,2) * cameraCorLookAtPoint.z + camera.getPosition.z
-      println(newLookAtPoint + "    Look At")
-      //newLookAtPoint = newLookAtPoint.calcAdd(camera.getPosition)
-      //println(newLookAtPoint)
       lookAtPoint.set(newLookAtPoint)
     }
   }
