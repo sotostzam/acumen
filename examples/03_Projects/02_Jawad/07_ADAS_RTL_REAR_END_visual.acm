@@ -133,7 +133,7 @@ always
   mechanics.w = controller.w , 
   subject.p = (mechanics.x,mechanics.y,0) ,
   subject.o = (pi/2,0,1*pi+mechanics.th) ,
-  _3DView = ((mechanics.x,mechanics.y-5,0.5),(0,0,-1*pi/2)) ,
+  _3DView = ((mechanics.x-10,mechanics.y,5),(mechanics.x,mechanics.y,0.5)) ,
   simulator.endTime = 5 ,
   simulator.timeStep = 0.001
 

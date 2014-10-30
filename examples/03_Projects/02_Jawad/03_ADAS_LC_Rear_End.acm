@@ -51,7 +51,7 @@ always
   controller.y' = mechanics.y' ,
   mechanics.Fy = controller.Fy ,
   subject.p = (mechanics.x,mechanics.y,0) ,
-  _3DView = ((mechanics.x,mechanics.y-5,0.5),(0,0,-1*pi/2)) ,
+  _3DView = ((mechanics.x-10,mechanics.y,5),(mechanics.x,mechanics.y,0.5)) ,
   simulator.endTime = 6 
 
 //**********************Environment*******************************************//

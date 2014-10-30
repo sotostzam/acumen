@@ -54,7 +54,7 @@ initially
 always
   box.p = (system.x,0,0) ,
   system.F = controller1.F ,
-  _3DView + = ((system.x,-5,0.3),(0,0,-pi/2)) ,
+  _3DView + = ((system.x-10,0,5),(system.x,0,0.3)) ,
   simulator.endTime = 6 
   
 //**************************VISUALIZATION***************************************//
