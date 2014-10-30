@@ -74,7 +74,7 @@ RUNNING
 
 To run Acumen, double click on the provided jar file.
 
-To run it from the command line something like:
+To run it from the command line use something like:
 
   java -jar acumen-VERSION.jar
 
@@ -130,4 +130,5 @@ To create a jar file use:
 
 which will create a jar file in target/scala-2.10/acumen-VERSION.jar
 
-To do more read up on how to use sbt at http://www.scala-sbt.org/. Note that JDK 1.6 is currently required to compile Acumen.
+To do more read up on how to use sbt at http://www.scala-sbt.org/.
+Note that JDK 1.6 is currently required to compile Acumen.
