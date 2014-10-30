@@ -683,11 +683,14 @@ class App extends SimpleSwingApplication {
     LicenseDialog visible = true
   }
   
-  def manual() = {
-    val desktop = Desktop.getDesktop
-    try { desktop.browse(classOf[ManualBrowser].getResource("manual.html").toURI)}
-    catch { case e => {ManualBrowser.peer.setVisible(true);()}}
-  }
+  def manual() =
+    try { Desktop.getDesktop.browse(ManualBrowser.getClass.getResource("manual.html").toURI) }
+    catch { case e =>
+      ManualBrowser setLocationRelativeTo body
+      ManualBrowser.peer setVisible true 
+      ManualBrowser.peer setFocusable true
+      ManualBrowser.peer requestFocus
+    }
 
   /* ----- events handling ---- */
   
