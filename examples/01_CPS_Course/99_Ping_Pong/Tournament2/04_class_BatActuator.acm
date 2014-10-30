@@ -6,7 +6,7 @@ model BatActuator(n,p1,tablerow,tablecolum,maxE) =
 initially
   p        =  p1,
   p'       =  (0,0,0),
-  a        =  (0,0,0),
+  p''        =  (0,0,0),
   angle    =  (0,0,0),
   energy   =  0,
   energy'  =  0,
@@ -22,26 +22,10 @@ initially
   link2  =  create cylinder((0,0,0),tablerow,tablecolum),
   L1     =  0.4,  // Length of link1 is fixed
   baseP  =  (2.4*(-1)^n,0,0.3),
-  unit   =  (0,0,0), // Unit vector from baseP to P
-  timer  =  0,       // timer for BatActuator
-  timer' =  1
+  unit   =  (0,0,0) // Unit vector from baseP to P
 always
-  match mode with [
-    "Sample" -> 
-      v + = p',
-      mode + = "Wait"
-  | "Wait" ->
-      timer' = 1,
-      if timer >= 0.01 then
-        mode + = "Calculate"
-      noelse
-  | "Calculate" ->
-      a + = (p' - v)/timer,
-      timer + = 0,
-      mode + = "Sample"
-  ],
-   
-  F = m * norm(a),
+
+  F = m * norm(p''),
   if norm(p') > 5 then // ???Saturate??? speeds over 5
     p' + = p'/norm(p') * 5 
   noelse,
