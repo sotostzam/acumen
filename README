@@ -1,19 +1,47 @@
-ACUMEN NOVEMBER 2013 RELEASE NOTES
+ACUMEN NOVEMBER 2014 RELEASE NOTES
 ----------------------------------
 
-Major Changes since the Acumen 2012 preview release (Dec 2012):
+Major changes since the Acumen November 2013 release:
 
- - Improved default ("Traditional") Semantics
+ - IMPORTANT:  Older semantics are temporarily disabled
+ - Change of license to BSD
+ - Language enhancements
+   - Lighter and more expressive syntax
+     - More powerful pattern "match" statement replaces "switch"
+   - New "hypothesis" statement for specifying properties of systems,
+     to be checked during simulation
+ - New implementation of _3D functionality
+   - Based on a software renderer that eliminates need to install
+     third-party libraries
+   - Full compatibility on all platforms (Windows, Linux and Mac OS)
+     and Java versions from 6 to 8
+ - Improved plotter
+   - Now supports plotting of string-valued variables
+ - Improved default ("2014 Reference") semantics
+   - Integration using Runge-Kutta-based solver is now default, 
+     yielding better precision for models with complex continuous
+     dynamics
+   - Both continuous and discrete assignments are performed
+     simultaneously
+ - New semantics ("2014 Enclosure")
+   - Supports a larger subset of the Acumen language, including
+     models comprising multiple objects, nesting of if and match
+     statements, and continuous assignments to unprimed variables
+
+Major changes since the Acumen 2012 preview release (Dec 2012):
+
+ - Improved default ("Traditional") semantics
    - Repeated assignments to the same variable no longer allowed, and
      now cause simulation fails with an error
    - All discrete assignments are performed simultaneously
    - Derivatives are interpreted in a more direct manner than before
-   NOTE: As these semantics changes reject or alter the behavior of
-     some old models the original semantics found in Acumen 2012 is 
-     also available under under Semantics as "Traditional 2012".
+     NOTE: As these semantics changes reject or alter the behavior of
+     some old models the original semantics found in Acumen 2012 will 
+     available under under Semantics as "Traditional 2012" in future
+     releases.
  - A new and integrated user reference manual is found under Help
  - User interface enhancements
- 	- Most notably:  File browser, code search, and code completion
+     - Most notably:  File browser, code search, and code completion
  - Improvements to memory utilization
  - Language enhancements
      - A "let" operator has been added to expressions
@@ -26,11 +54,10 @@ Major Changes since the Acumen 2012 preview release (Dec 2012):
      - New event handling algorithm
  - Various other minor enhancements and fixes
 
-Known issues with this release:
-
-  - Some _3D visualizations flicker when size or color change
-    dynamically.
-  - The current implementation of _3D is unstable on Linux.
+ - Known issues with this release:
+     - Some _3D visualizations flicker when size or color change
+       dynamically.
+     - The current implementation of _3D is unstable on Linux.
 
 Major changes since Acumen 2010:
 
@@ -42,53 +69,22 @@ Major changes since Acumen 2010:
    - Discrete assignment used to be = and is now :=
  - Syntax highlighting
 
-
-INSTALLING JAVA 3D
-------------------
-
-On Windows you will need to install Java 3D so that you can use the
-3D visualization features of Acumen. The instructions below explain
-how to get and install Java 3D.
-
-Users of recent version of Mac OS X should already have Java 3D 
-installed. However, Java 3D only works with Java version 6. 
-If you have newer versions installed, things get quite tricky
-and you may need to run Acumen from the command line.
-Instructions for re-directing Java to an earlier version can be
-found here:
-  http://stackoverflow.com/questions/13594864/how-to-revert-to-java-1-6-on-mac-os-x-10-7-5
-
-If you are using fairly modern GNU/Linux distribution installing
-openjdk-6, libjava3d, that comes with your distribution will probably
-work. However, we have limited experience with running Acumen
-on GNU/Linux. 
-
-For a Windows 7 or 8 (64-bit) machine: 
-
-  0. If you have a 32 bit version of Java installed, you need to uninstall that first. 
-  1. Download jre-7u7-windows-x64.exe from here
-  http://www.oracle.com/technetwork/java/javase/downloads/jre7u7-downloads-1836441.html
-  2. Download and install java3d-1_5_1-windows-amd64.exe from here
-  http://www.oracle.com/technetwork/java/javasebusiness/downloads/java-archive-downloads-java-client-419417.html#java3d-1.5.1-oth-JPR
-  3. Follow the instructions about copying the files here
-  http://www.christoph-lauer.de/Homepage/Blog/Eintrage/2012/5/23_Note__how_to_install_Java3D_on_a_64bit_Windows_7_machine.html
-
-For a Windows 7 (32 bit) machine:
-
-  1. Download and install jre-7u7-windows-i586.exe from here
-  http://www.oracle.com/technetwork/java/javase/downloads/jre7u7-downloads-1836441.html
-  2. Download and install java3d-1_5_1-windows-i586.exe from here
-  http://www.oracle.com/technetwork/java/javasebusiness/downloads/java-archive-downloads-java-client-419417.html#java3d-1.5.1-oth-JPR
-
-
 RUNNING
 -------
 
-To run acumen you should be able to run the provided jar file directly.
+To run Acumen, double click on the provided jar file.
 
 To run it from the command line something like:
 
   java -jar acumen-VERSION.jar
+
+There is also a command line interface intended for advanced users. 
+Documentation for this mode can be found by invoking Acumen from the
+command line. Assuming that the name of the Acumen jar file is
+acumen.jar, the command is as follows:
+
+    java -jar acumen.jar --help
+
 
 SUPPORT
 -------
@@ -98,17 +94,17 @@ with the following information:
 
   1) The acumen version you are using (which should be part of the
      name of the jar file).
-  2) The name of the OS that you are using (Windows, Mac OS X, etc),
+  2) The name of the OS that you are using (Windows, Mac OS, etc),
   3) Any specific version information you might have about the OS,
   4) The version of Java that you are using.  To check which version
      of Java you have, please use the website:  http://javatester.org/
 
-If you are having problem with a particular model rather then getting
-acumen started than also:
+If you are having problem with a particular model rather than getting
+acumen started, then also include:
 
   5) The code you where trying to execute.
 
-We also welcome your feedback on ways to make Acumen better, please
+We welcome your feedback on ways to make Acumen better, please
 send and bug reports are just general suggestions using the form found
 at:
 
@@ -119,7 +115,7 @@ COMPILING
 
 To compile from source you need to install SBT.  The easiest thing is
 to download this file:
-  http://repo.typesafe.com/typesafe/ivy-releases/org.scala-sbt/sbt-launch/0.12.0/sbt-launch.jar
+  http://repo.typesafe.com/typesafe/ivy-releases/org.scala-sbt/sbt-launch/0.13.6/sbt-launch.jar
 and save it to ~/bin/sbt-launch.jar.  Then, create a shell script
 called sbt with the following contents
   java -Xmx2g -XX:MaxPermSize=1g -XX:ReservedCodeCacheSize=128m -jar ~/bin/sbt-launch.jar "$@"
@@ -132,6 +128,6 @@ To create a jar file use:
 
   sbt proguard
 
-which will create a jar file in target/scala-2.9.2/acumen-VERSION.jar
+which will create a jar file in target/scala-2.10/acumen-VERSION.jar
 
-To do more read up on how how to use sbt at http://www.scala-sbt.org/
+To do more read up on how to use sbt at http://www.scala-sbt.org/. Note that JDK 1.6 is currently required to compile Acumen.
