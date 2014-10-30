@@ -326,14 +326,17 @@ class ThreeDView extends JPanel {
       rotateObject.setRotationMatrix(tranObjectRotMatrix)
     else {
       rotateCamera.setBack(tranObjectRotMatrix)
-      var newLookAtPoint = new SimpleVector(0.0f,0.0f,0.0f)
+      val newLookAtPoint = new SimpleVector(0.0f,0.0f,0.0f)
+      println(camera.getPosition + "Position")
       val radius = camera.getPosition.length()
-      val cameraCorLookAtPoint = new SimpleVector(0.0f, 0.0f, -radius)
+      val cameraCorLookAtPoint = new SimpleVector(0.0f, 0.0f, radius)
       // calculate the new look at point
-      newLookAtPoint.x = tranObjectRotTempMat.get(0,0) * cameraCorLookAtPoint.x + tranObjectRotTempMat.get(0,1) * cameraCorLookAtPoint.y + tranObjectRotTempMat.get(0,2) * cameraCorLookAtPoint.z + tranObjectRotMatrix.get(0,3)
-      newLookAtPoint.y = tranObjectRotTempMat.get(1,0) * cameraCorLookAtPoint.x + tranObjectRotTempMat.get(1,1) * cameraCorLookAtPoint.y + tranObjectRotTempMat.get(1,2) * cameraCorLookAtPoint.z + tranObjectRotMatrix.get(1,3)
-      newLookAtPoint.z = tranObjectRotTempMat.get(2,0) * cameraCorLookAtPoint.x + tranObjectRotTempMat.get(2,1) * cameraCorLookAtPoint.y + tranObjectRotTempMat.get(2,2) * cameraCorLookAtPoint.z + tranObjectRotMatrix.get(2,3)
-      newLookAtPoint = newLookAtPoint.calcAdd(camera.getPosition)
+      newLookAtPoint.x = tranObjectRotMatrix.get(0,0) * cameraCorLookAtPoint.x + tranObjectRotMatrix.get(0,1) * cameraCorLookAtPoint.y + tranObjectRotMatrix.get(0,2) * cameraCorLookAtPoint.z + camera.getPosition.x
+      newLookAtPoint.y = tranObjectRotMatrix.get(1,0) * cameraCorLookAtPoint.x + tranObjectRotMatrix.get(1,1) * cameraCorLookAtPoint.y + tranObjectRotMatrix.get(1,2) * cameraCorLookAtPoint.z + camera.getPosition.y
+      newLookAtPoint.z = tranObjectRotMatrix.get(2,0) * cameraCorLookAtPoint.x + tranObjectRotMatrix.get(2,1) * cameraCorLookAtPoint.y + tranObjectRotMatrix.get(2,2) * cameraCorLookAtPoint.z + camera.getPosition.z
+      println(newLookAtPoint + "    Look At")
+      //newLookAtPoint = newLookAtPoint.calcAdd(camera.getPosition)
+      //println(newLookAtPoint)
       lookAtPoint.set(newLookAtPoint)
     }
   }
