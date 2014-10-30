@@ -10,7 +10,6 @@ import javax.swing.text.html.HTMLDocument
 import java.net.URL
 
 /** Window to display the Acumen manual, invoked from the Help menu. */
-class  ManualBrowser
 object ManualBrowser extends Frame {
 
   title = "User Guide and Reference Manual"
@@ -23,7 +22,7 @@ object ManualBrowser extends Frame {
   jep.getDocument.asInstanceOf[HTMLDocument].getStyleSheet.addRule("body { font-family: sans-serif; }")
   
   peer.add(new JScrollPane(jep))
-  peer.setSize(300, 400)
+  peer.setSize(630, 400)
   peer.setDefaultCloseOperation(WindowConstants.HIDE_ON_CLOSE)
   
 }

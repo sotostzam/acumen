@@ -22,5 +22,5 @@
        and then clicking the play button ( > ) below the _3D view. Note that you may 
 	   need to make the Acumen window wider in order to see the fast forward button.
 
-Please send your report to both Adam Duracz (adam@duracz.net) and
+Please send your report (OK / not OK for each of the steps above) to both Adam Duracz (adam@duracz.net) and
 Walid Taha (maroneal@gmail.com).
