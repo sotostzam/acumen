@@ -20,11 +20,11 @@ object Errors {
   }
   case class ClassDefinedTwice(cn:ClassName) extends PositionalAcumenError {
     override def mesg = 
-      "Class " + pprint(cn) + " is defined twice."
+      "Model " + pprint(cn) + " is defined twice."
   }
   case class ClassIncludedTwice(cn:ClassName, pos1: List[Position], pos2: List[Position]) extends PositionalAcumenError {
     override def mesg = 
-      "Class " + pprint(cn) + " included twice."
+      "Model " + pprint(cn) + " included twice."
     override def getMessage = 
         super.getMessage + "\n" + locationTrace("First location", pos1) + locationTrace("Second location", pos2)
     def locationTrace(descr: String, pos: List[Position]) : String = {
@@ -38,7 +38,7 @@ object Errors {
   }
   case class ClassNotDefined(cn:ClassName) extends PositionalAcumenError {
     override def mesg = 
-      "Class "+pprint(cn)+" is not defined."
+      "Model "+pprint(cn)+" is not defined."
   }
   case class NotAnObject(v:Value[_]) extends PositionalAcumenError {
     override def mesg =
