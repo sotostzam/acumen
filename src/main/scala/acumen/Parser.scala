@@ -146,8 +146,7 @@ object Parser extends MyStdTokenParsers {
   lexical.reserved ++=
     List("foreach", "end", "if", "else","elseif", "create", "move", "in", "terminate", "model","then","initially","always",
          "sum", "true", "false", "init", "match","with", "case", "type", "claim", "hypothesis", "let","noelse",
-         "Continuous", "Discrete", "FixedPoint", "none","cross","do","dot","for",
-         "Sphere", "Box", "Cylinder", "Cone", "Text", "Obj")
+         "Continuous", "Discrete", "FixedPoint", "none","cross","do","dot","for","_3D")
 
   /* token conversion */
 
@@ -241,7 +240,9 @@ object Parser extends MyStdTokenParsers {
     ("initially" ~> repsep(init, ",") 
       | success(Nil))
 
-  def init = name ~! "=" ~! initrhs ^^ { case x ~ _ ~ rhs => Init(x, rhs) }
+  def init = name ~! "=" ~! initrhs ^^ { case x ~ _ ~ rhs => Init(x, rhs) }|
+             "_3D" ~ "=" ~ parens(repsep(threeDObject, ",")) ^^ {
+             	case _ ~ _ ~ ls => Init(Name("_3D",0), ExprRhs(ExprVector(ls)))}
 
   def initrhs =
     ("create" ~! className ~! args(expr) ^^ { case _ ~ cn ~ es => NewRhs(Var(Name(cn.x,0)), es) }
@@ -312,7 +313,7 @@ object Parser extends MyStdTokenParsers {
 
   def discretelyOrContinuously =
     (newObject(None) ^^ Discretely | elim ^^ Discretely 
-      | move ^^ Discretely | assignOrEquation | patternMatch)
+      | move ^^ Discretely | assignOrEquation | patternMatch | _3DAction)
 
   def assignOrEquation =
     // Make sure lhs won't be an expr like a == b, which has the same syntax as equation
@@ -322,7 +323,13 @@ object Parser extends MyStdTokenParsers {
         | "=[i]" ~> expr ^^ (e1 => Continuously(EquationI(e, e1)))
         | "=[t]" ~> expr ^^ (e1 => Continuously(EquationT(e, e1))))
     }
-
+    
+  def _3DAction = 
+    "_3D" ~ "="  ~ parens(repsep(threeDObject, ",")) ^^ {
+    case _ ~ _ ~ ls => Continuously(Equation(Var(Name("_3D",0)), ExprVector(ls)))}|
+    "_3D" ~ "+"~"="  ~ parens(repsep(threeDObject, ",")) ^^ {
+    case _ ~ _~_ ~ ls => Discretely(Assign(Var(Name("_3D",0)), ExprVector(ls)))
+  }
   def assignrhs(e: Expr) =
     (expr ^^ (Assign(e, _)) | newObject(Some(e)))
 
@@ -418,11 +425,11 @@ object Parser extends MyStdTokenParsers {
     positioned( sum
       | interval
       |"type" ~! parens(className) ^^ { case _ ~ cn => TypeOf(cn) }
-      | name >> { n => args(expr) ^^ { es => Op(n, es) } | success(Var(n)) }
+      | name >> { n => args(expr) ^^ { es => Op(n, es) } | success(Var(n)) }     
       | parens(expr)
-      | parens(repsep(expr, ",")) ^^ ExprVector 
+      | parens(repsep(expr, ",")) ^^ ExprVector
       | gvalue ^^ Lit
-      | threeDObject )
+      )
 
 
   def sum: Parser[Expr] =
@@ -463,9 +470,7 @@ object Parser extends MyStdTokenParsers {
   val defaultRotation = ExprVector(List(Lit(GInt(0)),Lit(GInt(0)),Lit(GInt(0))))
   
   def threeDPara: Parser[(String, Expr)] = ident ~ "=" ~ expr ^^ {case n ~_~ e => (n,e)}  
-  def threeDObject:Parser[ExprVector] = threeDType ~ rep(threeDPara) ^^ {case n ~ ls =>threeDParasProcess(n,ls)}
-  def threeDType = "Sphere" | "Box" | "Cylinder" | "Cone" | "Text" | "Obj"
-  //def threeDPType = "center" | "color" | "length" | "size" | "radius" | "content" | "rotation" | ident
+  def threeDObject:Parser[ExprVector] = optParens(ident ~ rep(threeDPara)) ^^ {case n ~ ls =>threeDParasProcess(n,ls)}
                     
   /* Process the 3d object information and adding default values*/
   def threeDParasProcess(objectName:String, paras:List[(String, Expr)]):ExprVector = {
