@@ -10,15 +10,15 @@ always
   x'  = 1,
   y'' = 1,
     
-  _3D =(Text   center=(-2,0,-2)  size=0.75 color=blue rotation=(0,0,0) content="x'=1",
-         Text   center=(-2,0,-3)  size=0.75 color=blue rotation=(0,0,0) content="x''=0",
-         Box    center=(-1,0,-1)  size=(0.5,0.5,0.1) color=blue rotation=(0,0,0),
-         Sphere center=(-1,0,x/5) size=0.25 color=blue rotation=(0,0,0),
-         Text   center=( 1.2,0,-2)  size=0.75 color=red rotation=(0,0,0) content=y'*10,
-         Text   center=( 0,0,-2)  size=0.75 color=red rotation=(0,0,0) content="y'=   /10", 
-         Text   center=( 0,0,-3)  size=0.75 color=red rotation=(0,0,0) content="y''=1",
-         Box    center=( 1,0,-1)  size=(0.5,0.5,0.1) color=red rotaion=(0,0,0),
-         Sphere center=( 1,0,y/5) size=0.25 color=red rotation=(0,0,0))
+  _3D =(Text   center=(-2,0,-2)  size=0.75 color=blue content="x'=1",
+        Text   center=(-2,0,-3)  size=0.75 color=blue content="x''=0",
+        Box    center=(-1,0,-1)  size=(0.5,0.5,0.1) color=blue ,
+        Sphere center=(-1,0,x/5) size=0.25 color=blue,
+        Text   center=( 1.2,0,-2) size=0.75 color=red content=y'*10,
+        Text   center=( 0,0,-2)  size=0.75 color=red content="y'=   /10", 
+        Text   center=( 0,0,-3)  size=0.75 color=red content="y''=1",
+        Box    center=( 1,0,-1)  size=(0.5,0.5,0.1) color=red ,
+        Sphere center=( 1,0,y/5) size=0.25 color=red )
 
 /* Exercise:
  *  0) Find out how to zoom out one your machine :-) 
