@@ -237,7 +237,7 @@ object Errors {
   
   case class _3DParaError(n:String) extends AcumenError {
     override def getMessage = 
-      n + " is not a vaild _3D parameter"
+      n + " is not a valid _3D parameter"
   }
   case class _3DCylinderSizeError() extends AcumenError {
     override def getMessage = 

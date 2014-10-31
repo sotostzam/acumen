@@ -16,7 +16,7 @@ package acumen {
      hashcode, equality, pretty-printing, pattern matching and construction */
 
   /* Examples:  x, y, etc */
-  class Name(val x: String, val primes: Int) {
+  class Name(val x: String, val primes: Int) extends Positional {
     override def hashCode = System.identityHashCode(this)
     override def equals(that: Any) = this eq (that.asInstanceOf[AnyRef])
     override def toString = "Name(" + x + "," + primes + ")"

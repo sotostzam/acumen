@@ -448,7 +448,7 @@ object Parser extends MyStdTokenParsers {
   def lit = positioned((gint | gfloat | gstr) ^^ Lit)
 
   def name: Parser[Name] =
-    ident ~! rep("'") ^^ { case id ~ ps => Name(id, ps.size) }
+    positioned((ident) ~! rep("'") ^^ { case id ~ ps => Name(id, ps.size) })
 
   def className: Parser[ClassName] = ident ^^ (ClassName(_))
 
@@ -469,49 +469,55 @@ object Parser extends MyStdTokenParsers {
   val defaultColor = ExprVector(List(Lit(GInt(1)),Lit(GInt(1)),Lit(GInt(1))))
   val defaultRotation = ExprVector(List(Lit(GInt(0)),Lit(GInt(0)),Lit(GInt(0))))
   
-  def threeDPara: Parser[(String, Expr)] = ident ~ "=" ~ expr ^^ {case n ~_~ e => 
-    if (n == "center" | n == "length" | n == "radius" | n == "size" | n == "color" |
-        n == "rotation" | n == "content") 
+  def threeDPara: Parser[(Name, Expr)] = name ~ "=" ~ expr ^^ {case n ~_~ e => 
+    if (n.x == "center" | n.x == "length" | n.x == "radius" | n.x == "size" | n.x == "color" |
+        n.x == "rotation" | n.x == "content") 
     	  (n,e)
-    else throw _3DParaError(n)}  
-  def threeDObject:Parser[ExprVector] = optParens(ident ~ rep(threeDPara)) ^^ {case n ~ ls =>threeDParasProcess(n,ls)}
+    else throw _3DParaError(n.x)}  
+  def threeDObject:Parser[ExprVector] = optParens(name ~ rep(threeDPara)) ^^ {case n ~ ls =>threeDParasProcess(n,ls)}
   def threeDRhs = parens(repsep(threeDObject, ",")) ^^ {case ls => ls match{
     case List(single) => single
     case _ => ExprVector(ls)
   }}
   
-  def _3DVectorHelper(n:String,v:Expr):Expr = v match{
+  def _3DVectorHelper(n:Name,v:Expr):Expr = v match{
     case ExprVector(ls) => 
       if (ls.forall(x => x match{
         case _ @ Lit(GStr(_) | GBool(_)) => false
         case _ => true
        }) && ls.length == 3) ExprVector(ls) 
       else
-       error("_3D parameter " + n + "'s value is not a valid vector of 3 numbers: " + Pretty.pprint(v))
+       throw new PositionalAcumenError{
+         def mesg = "_3D parameter " + n + "'s value is not a valid vector of 3 numbers: " + Pretty.pprint(v)
+         }.setPos(n.pos)
     case _ => v 
   } 
   /* Process the 3d object information and adding default values*/
-  def threeDParasProcess(name:String, paras:List[(String, Expr)]):ExprVector = {
-    val center = paras.find(_._1 == "center") match{
-      case Some(x) => _3DVectorHelper("center", x._2)
+  def threeDParasProcess(n:Name, paras:List[(Name, Expr)]):ExprVector = {
+    def error(message:String) = throw new PositionalAcumenError{
+      def mesg = message
+    }.setPos(n.pos)
+    val name = n.x
+    val center = paras.find(_._1.x == "center") match{
+      case Some(x) => _3DVectorHelper(x._1, x._2)
       case None => defaultCenter
     }
-    val color = paras.find(_._1 == "color") match{
-      case Some(x) => _3DVectorHelper("color", x._2)
+    val color = paras.find(_._1.x == "color") match{
+      case Some(x) => _3DVectorHelper(x._1, x._2)
       case None => defaultColor
     }
-    val rotation = paras.find(_._1 == "rotation") match{
-      case Some(x) => _3DVectorHelper("rotation", x._2)
+    val rotation = paras.find(_._1.x == "rotation") match{
+      case Some(x) => _3DVectorHelper(x._1, x._2)
       case None => defaultRotation
     }
 
-    val size = paras.find(_._1 == "size") match{
+    val size = paras.find(_._1.x == "size") match{
       case Some(x) => 
         if(name == "Box" | name == "Text" | name == "Obj" | name == "Sphere"){
           x._2 match{
             case ExprVector(ls) => 
               if(name == "Box") 
-                _3DVectorHelper("size", x._2)
+                _3DVectorHelper(x._1, x._2)
               else
                 error("_3D object " + name + " size parameter can't be " + Pretty.pprint(x._2))
             case _ @ Lit(GBool(_) | GStr(_))  =>           
@@ -523,7 +529,7 @@ object Parser extends MyStdTokenParsers {
       case None => if(name == "Box") defaultSize else defaultScale
     }
 
-    val radius = paras.find(_._1 == "radius") match{
+    val radius = paras.find(_._1.x == "radius") match{
       case Some(x) => 
       	if(name == "Cylinder" | name == "Cone") 
           x._2 match{
@@ -535,7 +541,7 @@ object Parser extends MyStdTokenParsers {
       case None => defaultRadius
     }
     
-    val length = paras.find(_._1 == "length") match{
+    val length = paras.find(_._1.x == "length") match{
       case Some(x) => 
         if(name == "Cylinder" | name == "Cone") 
           x._2 match{
@@ -547,7 +553,7 @@ object Parser extends MyStdTokenParsers {
       case None => defaultLength
     }
 
-    val content = paras.find(_._1 == "content") match{
+    val content = paras.find(_._1.x == "content") match{
       case Some(x) => 
         if(name == "Text" | name == "Obj") 
           x._2 match{
