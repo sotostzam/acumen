@@ -48,7 +48,7 @@ always
           mode+ = "Left"
         noelse
   | "Right" ->
-      _3D = (Box center=(0,0,0) size=(0.1,0.1,0.1) color=(0,1,0) roatation=(0,0,0)),
+      _3D = (Box center=(0,0,0) size=(0.1,0.1,0.1) color=(0,1,0) rotation=(0,0,0)),
       o = 2,  // Can be uncertain
       if d>0.55 then mode+ = "Straight" noelse
   | "Left" ->
