@@ -469,59 +469,104 @@ object Parser extends MyStdTokenParsers {
   val defaultColor = ExprVector(List(Lit(GInt(1)),Lit(GInt(1)),Lit(GInt(1))))
   val defaultRotation = ExprVector(List(Lit(GInt(0)),Lit(GInt(0)),Lit(GInt(0))))
   
-  def threeDPara: Parser[(String, Expr)] = ident ~ "=" ~ expr ^^ {case n ~_~ e => (n,e)}  
+  def threeDPara: Parser[(String, Expr)] = ident ~ "=" ~ expr ^^ {case n ~_~ e => 
+    if (n == "center" | n == "length" | n == "radius" | n == "size" | n == "color" |
+        n == "rotation" | n == "content") 
+    	  (n,e)
+    else throw _3DParaError(n)}  
   def threeDObject:Parser[ExprVector] = optParens(ident ~ rep(threeDPara)) ^^ {case n ~ ls =>threeDParasProcess(n,ls)}
   def threeDRhs = parens(repsep(threeDObject, ",")) ^^ {case ls => ls match{
     case List(single) => single
     case _ => ExprVector(ls)
   }}
-                    
+  
+  def _3DVectorHelper(n:String,v:Expr):Expr = v match{
+    case ExprVector(ls) => 
+      if (ls.forall(x => x match{
+        case _ @ Lit(GStr(_) | GBool(_)) => false
+        case _ => true
+       }) && ls.length == 3) ExprVector(ls) 
+      else
+       error("_3D parameter " + n + "'s value is not a valid vector of 3 numbers: " + Pretty.pprint(v))
+    case _ => v 
+  } 
   /* Process the 3d object information and adding default values*/
-  def threeDParasProcess(objectName:String, paras:List[(String, Expr)]):ExprVector = {
+  def threeDParasProcess(name:String, paras:List[(String, Expr)]):ExprVector = {
     val center = paras.find(_._1 == "center") match{
-      case Some(x) => x._2
+      case Some(x) => _3DVectorHelper("center", x._2)
       case None => defaultCenter
     }
     val color = paras.find(_._1 == "color") match{
-      case Some(x) => x._2
+      case Some(x) => _3DVectorHelper("color", x._2)
       case None => defaultColor
     }
     val rotation = paras.find(_._1 == "rotation") match{
-      case Some(x) => x._2
+      case Some(x) => _3DVectorHelper("rotation", x._2)
       case None => defaultRotation
     }
-    val scale = paras.find(_._1 == "size") match{
-      case Some(x) => x._2
-      case None => defaultScale
-    }
+
     val size = paras.find(_._1 == "size") match{
-      case Some(x) => x._2
-      case None => defaultSize
+      case Some(x) => 
+        if(name == "Box" | name == "Text" | name == "Obj" | name == "Sphere"){
+          x._2 match{
+            case ExprVector(ls) => 
+              if(name == "Box") 
+                _3DVectorHelper("size", x._2)
+              else
+                error("_3D object " + name + " size parameter can't be " + Pretty.pprint(x._2))
+            case _ @ Lit(GBool(_) | GStr(_))  =>           
+                error("_3D object " + name + " size parameter can't be " + Pretty.pprint(x._2))
+            case _ => x._2
+          }
+        }         
+        else error("_3D object " + name + " can't have 'size' parameter")
+      case None => if(name == "Box") defaultSize else defaultScale
     }
 
     val radius = paras.find(_._1 == "radius") match{
-      case Some(x) => x._2
+      case Some(x) => 
+      	if(name == "Cylinder" | name == "Cone") 
+          x._2 match{
+      	   case _ @ Lit(GStr(_) | GBool(_)) => 
+      	     error("_3D object " + name + "'s 'radius' parameter is not a number")
+      	   case _ => x._2
+      	  }
+        else error("_3D object " + name + " can't have 'radius' parameter")
       case None => defaultRadius
     }
     
     val length = paras.find(_._1 == "length") match{
-      case Some(x) => x._2
+      case Some(x) => 
+        if(name == "Cylinder" | name == "Cone") 
+          x._2 match{
+      	   case _ @ Lit(GStr(_) | GBool(_)) => 
+      	     error("_3D object " + name + "'s 'length' parameter is not a number")
+      	   case _ => x._2
+      	  }
+        else error("_3D object " + name + " can't have 'length' parameter")
       case None => defaultLength
     }
 
     val content = paras.find(_._1 == "content") match{
-      case Some(x) => x._2
+      case Some(x) => 
+        if(name == "Text" | name == "Obj") 
+          x._2 match{
+      	   case Lit(GStr(_)) => x._2
+      	   case Lit(_) => error("_3D object " + name + "'s 'content' parameter is not a string")
+      	   case _ => x._2
+      	  }
+        else error("_3D object " + name + " can't have 'content' parameter")
       case None => defaultContent
     } 
     val rl = ExprVector(List(radius,length))
-    objectName match{
+     name match{
       case "Cylinder" => ExprVector(List(Lit(GStr("Cylinder")),center,rl,color,rotation))
       case "Cone" => ExprVector(List(Lit(GStr("Cone")),center,rl,color,rotation))
       case "Box" => ExprVector(List(Lit(GStr("Box")),center,size,color,rotation))
-      case "Sphere" => ExprVector(List(Lit(GStr("Sphere")),center,scale,color,rotation))
-      case "Text" => ExprVector(List(Lit(GStr("Text")),center,scale,color,rotation,content))
-      case "Obj" => ExprVector(List(Lit(GStr("OBJ")),center,scale,color,rotation,content))
-      case _ => error("Unsupported 3D object " + objectName)
+      case "Sphere" => ExprVector(List(Lit(GStr("Sphere")),center,size,color,rotation))
+      case "Text" => ExprVector(List(Lit(GStr("Text")),center,size,color,rotation,content))
+      case "Obj" => ExprVector(List(Lit(GStr("OBJ")),center,size,color,rotation,content))
+      case _ => error("Unsupported 3D object " + name)
     }
 
   }
