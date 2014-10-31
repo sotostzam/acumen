@@ -234,6 +234,11 @@ object Errors {
     override def getMessage = 
       "Sphere's size should be a number"
   }
+  
+  case class _3DParaError(n:String) extends AcumenError {
+    override def getMessage = 
+      n + " is not a vaild _3D parameter"
+  }
   case class _3DCylinderSizeError() extends AcumenError {
     override def getMessage = 
       "Cylinder's size should be a vector with 2 elements"
