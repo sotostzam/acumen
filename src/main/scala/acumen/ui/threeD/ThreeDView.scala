@@ -294,9 +294,13 @@ class ThreeDView extends JPanel {
   /** Uses a vertex controller to rescale  **/
   def setReSize(scaleX: Float, scaleY: Float,  scaleZ: Float, planeMesh: Mesh) =
     if (planeMesh != null) {
-      planeMesh.setVertexController(new Resizer(scaleX,scaleY,scaleZ), IVertexController.PRESERVE_SOURCE_MESH)
-      planeMesh.applyVertexController()
-      planeMesh.removeVertexController()
+      try {
+        planeMesh.setVertexController(new Resizer(scaleX,scaleY,scaleZ), IVertexController.PRESERVE_SOURCE_MESH)
+        planeMesh.applyVertexController()
+        planeMesh.removeVertexController()
+      } catch {
+        case e: java.lang.NullPointerException => // Do nothing in case above is done too early
+      }
     }
 
   // rotate object or camera
@@ -374,6 +378,7 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
   var pause = false
   var destroy = false
   val startFrameNumber = 2
+  private var lastRenderFrame = 0
 
   def stop() =
     if (app.objects.nonEmpty) {
@@ -508,7 +513,8 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
         // we don't need to care about first frame, since all the objects are fresh
         if (index >= 1) {
           // reset the type and size for the object, matching the type of object first
-          val lastTempType = bufferType(buffer(index - 1))
+          val lastTempType = if (lastRenderFrame < buffer.size) bufferType(buffer(lastRenderFrame))
+                             else "DeleteOld"
           tempType match {
             case "Box" =>
               // the type has been changed, we need to delete the old object and create a one
@@ -603,7 +609,8 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
                 }
               }
             case "Text" =>
-              val lastTempContent = bufferString(buffer(index-1))
+              val lastTempContent = if (lastRenderFrame < buffer.size) bufferString(buffer(lastRenderFrame))
+                                    else "deleteOld"
               // the type has been changed, we need to delete the old object and create a one
               if ((lastTempType != tempType || lastTempContent != tempContent) && !tempContent.isEmpty) {
                 // change the object in
@@ -625,7 +632,8 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
                 }
               }
             case "OBJ" =>
-              val lastTempPath = bufferString(buffer(index -1))
+              val lastTempPath = if (lastRenderFrame < buffer.size) bufferString(buffer(lastRenderFrame))
+                                 else "deleteOld"
               // the type has been changed, we need to delete the old object and create a one
               if ((lastTempType != tempType || tempPath != lastTempPath) && !tempPath.isEmpty) {
                 // change the object in
@@ -637,6 +645,7 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
                 transObject = objects(id)
                 setScaleFactors(tempSize, transObject, tempType, scaleFactors)
                 objID = objects(id).getID // refresh the object ID
+                view.addObject(transObject)
               } else if (checkResizeable(tempSize)) {
                 if (objects.contains(id) && transObject != null) {   // just need change the size
                 val sizeToSetR = checkSize(tempSize(0) / 10)
@@ -678,6 +687,7 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
             deleteObj(List(id, objectNumber))
     if(currentFrame < _3DView.size)
       app.transformView(_3DView(currentFrame)._1, _3DView(currentFrame)._2)
+    lastRenderFrame = currentFrame
     app.repaint()
   }
 
@@ -690,7 +700,8 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
         exit()
       react {
         case "go" =>
-          renderCurrentFrame()
+          if (currentFrame < totalFrames)
+            renderCurrentFrame()
           if (slider.firstPlayed) {
             slider.firstPlayed = false
             slider.bar.enabled = true
