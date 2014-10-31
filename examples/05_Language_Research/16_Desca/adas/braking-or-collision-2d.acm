@@ -19,28 +19,27 @@ initially
   print = 1,
   _3D = ()
 always
-  _3D = (Sphere   // Type of _3D object
-         center = (x2,y2,0)   // Center point in [x,y,z] form
-         radius = 0.05        // Radius
-         color = red         // Color
-          ,    // Orientation,
-         Sphere   // Type of _3D object
-         center = (x1,y1,0)   // Center point in [x,y,z] form
-         radius = 0.05        // Radius
-         color = blue        // Color
-         ,    // Orientation]
-          Cylinder // Type of _3D object
-          center = (x1,y1,0)   // Center point
-          radius = sensor_radius length =0.01 // Size in [radius,length] form
-          color = yellow      // Color
-          rotation = (pi/2,0,0)
-          , // Orientation
-          Text     // Type of _3D object
-          center = (-2.2,0,-1) // Starting point in [x,y,z] form
-          size = 0.75        // Font size
-          color = yellow      // Color in red-green-blue (RGB) intensity
-                 // Orientation (pi/2 around x-axis)
-          content = state),     // Text you wish to display
+  _3D = (Sphere                 // Type of _3D object
+         center = (x2,y2,0)     // Center point in [x,y,z] form
+         size = 0.05            // Radius
+         color = red            // Color
+         rotation = (0,0,0) ,   // Orientation,
+         Sphere                 // Type of _3D object
+         center = (x1,y1,0)     // Center point in [x,y,z] form
+         size = 0.05            // Radius
+         color = blue           // Color
+         rotation = (0,0,0),    // Orientation]
+         Cylinder               // Type of _3D object
+         center = (x1,y1,0)     // Center point
+         radius = sensor_radius length =0.01 // Size in [radius,length] form
+         color = yellow         // Color
+         rotation = (pi/2,0,0), // Orientation
+         Text                   // Type of _3D object
+         center = (-2.2,0,-1)   // Starting point in [x,y,z] form
+         size = 0.75            // Font size
+         color = yellow         // Color in red-green-blue (RGB) intensity
+         rotation = (0,0,0)     // Orientation (pi/2 around x-axis)
+         content = state),      // Text you wish to display
   t' = 1,
   distance = sqrt(((x1-x2)*(x1-x2))+((y1-y2)*(y1-y2))),
   match state with [ 
