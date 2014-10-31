@@ -1,11 +1,11 @@
 package acumen.ui.threeD
 import java.awt.BorderLayout
 import javax.swing.JPanel
-
 import acumen.CId
 import acumen.ui.{App, Controller, Icons}
-
 import scala.swing._
+import java.awt.event.MouseAdapter
+import java.awt.event.MouseEvent
 
 abstract class AbstractEditorTab extends BorderPanel{
   def receiver: Publisher
@@ -111,6 +111,16 @@ class ThreeDTab (val appModel: Controller) extends AbstractEditorTab{
       b3dpause, b3dstop, b3dslower, b3dfaster)
 
   val statusZone3d = new Slider3D
+  statusZone3d.bar.peer.addMouseListener(new MouseAdapter{
+    var wasPlayingBeforeMousePressed = threedpause.toolTip == "pause"
+    override def mousePressed(e: MouseEvent) = {
+      wasPlayingBeforeMousePressed = threedpause.toolTip == "pause"
+      pauseOn()
+    }
+    override def mouseReleased(e: MouseEvent) =
+      if (wasPlayingBeforeMousePressed)
+        pauseOff()
+  })
 
   val threeDBottomPane = new BoxPanel(Orientation.Horizontal) {
     contents += threeDButtons
@@ -153,34 +163,37 @@ class ThreeDTab (val appModel: Controller) extends AbstractEditorTab{
       threeDView.axisOn()
   }
 
-  def pause(): Unit = {
-    if (threedpause.toolTip == "pause") {
-      // un-pause
-      timer3d.pause = false
-      receiver.pause = true
-      threedpause.icon = Icons.play
-      threedpause.toolTip = "resume"
-      if (!threeDView.customView && !threeDView.preCustomView)
-        threeDView.customView = true
-      if (statusZone3d.firstPlayed) {
-        statusZone3d.bar.enabled = true
-        statusZone3d.firstPlayed = false
-      }
-    } else {
-      // pause
-      timer3d.pause = true
-      receiver.pause = false
-      threedpause.icon = Icons.pause
-      threedpause.toolTip = "pause"
-      if (threeDView.customView && !threeDView.preCustomView)
-        threeDView.customView = false
-      if (statusZone3d.firstPlayed) {
-        statusZone3d.bar.enabled = true
-        statusZone3d.firstPlayed = false
-      }
+  def pauseOn(): Unit = {
+    timer3d.pause = false
+    receiver.pause = true
+    threedpause.icon = Icons.play
+    threedpause.toolTip = "resume"
+    if (!threeDView.customView && !threeDView.preCustomView)
+      threeDView.customView = true
+    if (statusZone3d.firstPlayed) {
+      statusZone3d.bar.enabled = true
+      statusZone3d.firstPlayed = false
     }
   }
-
+  
+  def pauseOff(): Unit = {
+    timer3d.pause = true
+    receiver.pause = false
+    threedpause.icon = Icons.pause
+    threedpause.toolTip = "pause"
+    if (threeDView.customView && !threeDView.preCustomView)
+      threeDView.customView = false
+    if (statusZone3d.firstPlayed) {
+      statusZone3d.bar.enabled = true
+      statusZone3d.firstPlayed = false
+    }
+  }
+  
+  def pause(): Unit =
+    if (threedpause.toolTip == "pause")
+      pauseOn()
+    else
+      pauseOff()
 
   def play(): Unit = {
     if (App.ui.codeArea.editedSinceLastRun) {
