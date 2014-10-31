@@ -9,6 +9,6 @@ always
   theta'' = -(9.8/l)*sin(theta) ,
   p   = (0.5*l*sin(theta),0,-0.5*l*cos(theta)) ,
   _3D = (Cylinder center=p radius=0.02 length=l color=(0,1,0) rotation=(Pi/2,theta,0),
-         Sphere center=2*p radius=0.1 color=(1,0,0) rotation=(0,0,0)) 
+         Sphere center=2*p size=0.1 color=(1,0,0) rotation=(0,0,0)) 
  
  
