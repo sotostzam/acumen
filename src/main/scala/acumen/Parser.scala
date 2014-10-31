@@ -473,7 +473,9 @@ object Parser extends MyStdTokenParsers {
     if (n.x == "center" | n.x == "length" | n.x == "radius" | n.x == "size" | n.x == "color" |
         n.x == "rotation" | n.x == "content") 
     	  (n,e)
-    else throw _3DParaError(n.x)}  
+    else throw new PositionalAcumenError{
+         def mesg = n.x + " is not a valid _3D parameter" 
+         }.setPos(n.pos) }
   def threeDObject:Parser[ExprVector] = optParens(name ~ rep(threeDPara)) ^^ {case n ~ ls =>threeDParasProcess(n,ls)}
   def threeDRhs = parens(repsep(threeDObject, ",")) ^^ {case ls => ls match{
     case List(single) => single
