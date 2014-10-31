@@ -1,7 +1,7 @@
 model CircuitRC(C,R,POS) = 
 initially 
   Vc = 0 , Vc' = 0 , Vin = 5 ,  
-  _3D = (Cylinder center=POS radiu=0.1 length=0 color=(0,1,0) rotation=(0,0,0)) 
+  _3D = (Cylinder center=POS radius=0.1 length=0 color=(0,1,0) rotation=(0,0,0)) 
 always
   Vc'=(Vin-Vc)/(R*C) ,
   _3D=(Cylinder center=POS radius=0.1 length=Vc/2 color=(0,1,0) rotation=(3.1416/2,0,0))
