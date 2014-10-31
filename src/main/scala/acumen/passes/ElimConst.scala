@@ -14,7 +14,7 @@ object ElimConst {
     if (p.defs.size > 1) 
       throw extract_ha.OtherUnsupported("Multiple objects not supported.")
     if (p.defs(0).name != ClassName("Main"))
-      throw extract_ha.OtherUnsupported("Could not find Main class.")
+      throw extract_ha.OtherUnsupported("Could not find Main model.")
     Prog(List(elimConst(p.defs(0))))
   }
 
