@@ -28,7 +28,7 @@ initially
        mode + = ""  
     noelse,
       
-    if (theta2 <= 0&& theta2' < 0) || (theta2 >= pi/4&& theta2' > 0) then
+    if (theta2 <= 0&& theta2' < 0) then
       theta2 + = -theta2,
       theta2' + = -0.9*theta2',
       mode + = "" 
