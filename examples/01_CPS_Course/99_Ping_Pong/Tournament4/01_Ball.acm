@@ -1,0 +1,37 @@
+/**
+* A three-dimensional bouncing ball model, with air resistance.
+**/
+
+model Ball (tablerow,tablecolum) = 
+initially
+  mode    =  "Fly",             // always start by some player
+  k_z     =  (1,1,-0.99),       // Coefficient of restitution
+  k2      =  1/6,               // Coefficient of the air resistance
+  p       =  (0,0,0.5),         // Position of the ball
+  p'      =  (0,0,0),
+  p''     =  (0,0,0),
+  shiftD  =  (10,5,0),          // shift distance of the ball
+  _3D     =  ()
+always
+  // If mode is not valid then make mode "Panic!"
+  if mode ~= "Fly" && mode ~= "Bounce" && mode ~= "Freeze" then
+    mode + = "Panic!"
+  noelse,
+  // Behavior of ball in different modes
+  match mode with [
+    "Fly" ->
+      if p(2) < 0 && p'(2) < 0 then
+        mode + = "Bounce"
+      else // Acceleration is air resistance and gravity
+        p'' = -k2 * norm(p') * p' + (0,0,-9.8)
+  | "Bounce" ->
+      p'   + =  p' .* k_z, // Bounce losing k_z energy
+      mode + = "Fly"
+  | "Freeze" ->  // The ball becomes red and freezes for a bit
+      p' = (0,0,0)
+  | "Panic!" -> ],
+
+  if mode == "Freeze" then
+    _3D = (Sphere center=p+(tablerow,tablecolum,0).*shiftD size=0.03 color=(1,0,0) rotation=(0,0,0))
+  else
+    _3D = (Sphere center=p+(tablerow,tablecolum,0).*shiftD size=0.03 color=(1,1,1) rotation=(0,0,0))

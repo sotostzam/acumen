@@ -32,3 +32,9 @@ model*
 a.out
 ???-*.out
 
+
+examples/tmp.acm
+examples/temp.acm
+examples/temp3.acm
+examples/temp2.acm
+examples/temp4.acm

@@ -1,0 +1,143 @@
+// This model monitors the whole game.
+model Referee() = 
+initially
+  mode          =  "Initialize",
+  // Position and velocity of the ball
+  p             =  (0,0,0),
+  v             =  (0,0,0),
+  t             =  0 ,
+  t'            =  1,
+  player1Score  =  0,
+  player2Score  =  0,
+  serveNumber   =  2,
+  lastHit       =  0,
+  reason        =  "Nothing",
+  checked       =  false,    // For the net checking
+  bounced       =  false,    
+  restart       =  0,        // Tell the Game to restart
+  acknowledged  =  0,        // Check if the Game model has received
+                              //  the restart signal
+  bounceTime    =  0,
+  status        =  "Normal"
+always
+  if mode ~= "Initialize" && mode ~= "Player1Lost" && mode ~= "Player2Lost"
+  && mode ~= "SendMessage1" && status ~= "Normal" && reason ~= "Nothing"
+  && status ~= "Report"&& reason ~= "BallOutOfBoundary"&& mode ~= "SendMessage2"
+  && reason ~= "BallBouncedTwice"&& reason ~= "BallTouchNet"&& reason ~= "BallNotOverNet" then
+    mode + = "Panic!"
+  noelse,
+  t'=1,
+  // Whenever ball is about to hit the ground, check if anyone fouls(outside, fail to serve)
+  if p(2) < 0.05 && v(2) < 0 && status == "Normal" then
+    // Ball fly outside the table case
+    if (abs(p(1))>0.78 || abs(p(0))>1.53) && status == "Normal" then
+      reason + = "BallOutOfBoundary",
+      if bounced == false then
+        if lastHit == 1 then
+          mode + = "Player1Lost" 
+        elseif lastHit == 2 then
+          mode + = "Player2Lost" 
+        noelse
+      else (
+        match bounced with [ // The ball has bounced in player2's court,
+          "YesIn2" -> mode + = "Player2Lost" // and out of boundary now, so player2 lose.
+        | "YesIn1" -> mode + = "Player1Lost"
+        | false    -> 
+        ]),
+      status + = "Report" 
+    noelse,
+    // Fail to serve the ball back
+    if (abs(p(1)) <= 0.78 && abs(p(0)) <= 1.53) && bounced ~= false
+    && status == "Normal" && abs(p(0)) > 0.025 then
+      if bounced == "YesIn1" && lastHit == 1 && p(0) < 0 then
+        mode       + = "Player1Lost",
+        reason     + = "BallNotOverNet",
+        bounced    + = true
+      noelse,
+      if bounced == "YesIn2" && lastHit == 2 && p(0) > 0 then
+        mode       + = "Player2Lost",
+        reason     + = "BallNotOverNet",
+        bounced    + = true
+      noelse 
+    noelse,
+    if (abs(p(1)) <= 0.78 && abs(p(0)) <= 1.53) && bounced ~= false
+    && t > (bounceTime+0.1) && status == "Normal" then
+      // The ball has bounced twice in player2's court
+      if bounced == "YesIn2" && p(0) > 0 && lastHit == 1 then
+        mode       + = "Player2Lost",
+        reason     + = "BallBouncedTwice",
+        bounceTime + = t
+      noelse,
+      // The ball has bounced twice in player1's court
+      if bounced == "YesIn1" && p(0) < 0 && lastHit == 2 then
+        mode       + = "Player1Lost",
+        reason     + = "BallBouncedTwice",
+        bounceTime + = t
+      noelse
+    noelse,
+    if p(0) < 0 && p(0) > -1.53 && bounced == false && status == "Normal" then
+      bounced    + = "YesIn1",
+      bounceTime + = t
+    noelse,
+    if p(0) >= 0 && p(0) < 1.53 && bounced == false && status == "Normal" then
+      bounced    + = "YesIn2",
+      bounceTime + = t 
+    noelse
+  noelse,
+  if bounced == "YesIn1" && p(0) > 0 && status == "Normal" then
+    bounced + = false
+  noelse,
+  if bounced == "YesIn2" && p(0) <= 0 && status == "Normal" then
+    bounced + = false
+  noelse,
+  // Time to check if the ball touches the net
+  if abs(p(0)) < 0.025 && t > 0.1 && checked == false && status == "Normal" then
+    if p(2) < 0.25 then
+      if v(0) > 0 then mode + = "Player1Lost"
+      else mode + = "Player2Lost",
+      reason  + = "BallTouchNet",
+      checked + = true 
+    noelse
+  noelse,
+  match mode with [
+  // Put the intermediate variables to its iniital value
+    "Initialize" ->
+      if acknowledged == 1 then
+        mode          + = "Initialize",
+        acknowledged  + = 0,
+        restart       + = 0,
+        status        + = "Normal",
+        checked       + = false,
+        bounced       + = false
+      noelse
+    // Update the score and notify the Game model
+  | "Player1Lost" ->
+      player2Score + = 1+player2Score,
+      mode         + = "SalwaysMessage1"
+  | "Player2Lost" ->
+      player1Score + = 1+player1Score,
+      mode         + = "SendMessage2"
+    // Make sure Game model gets the message then go back to initial state
+  | "SalwaysMessage1" ->
+      t + = 0, // Wait until the Game model gets the restart signal
+      if acknowledged == 1 then
+        mode+ = "Initialize",
+        acknowledged + = 0,
+        restart      + = 0,
+        status       + = "Normal",
+        checked      + = false,
+        bounced      + = false
+      else
+        restart      + = 1
+  | "SendMessage2" ->
+      t + = 0, // Wait until the Game model gets the restart signal
+      if acknowledged  == 1 then
+        mode + = "Initialize",
+        acknowledged + = 0,
+        restart      + = 0,
+        status       + = "Normal",
+        checked      + = false,
+        bounced      + = false
+      else
+        restart      + = 1
+  | "Panic!" -> ]

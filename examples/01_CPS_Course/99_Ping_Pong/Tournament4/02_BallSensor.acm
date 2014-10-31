@@ -1,0 +1,39 @@
+/**
+* Observer who estimate ball's velocity based on its positions
+**/
+
+model BallSensor () = 
+initially
+  mode    =  "Sample",
+  input   =  (0,0,0),  // Ball position (set by Parent)
+  outputv =  (0,0,0),  // Ball velocity (estimated here)
+  outputp =  (0,0,0),
+  pp      =  (0,0,0),
+  ap      =  (0,0,0),
+  t       =  0,
+  t'      =  1
+always
+  t'=1,
+  if mode ~= "Sample" && mode ~= "Estimate0" && mode ~= "Estimate1" then
+    mode + = "Panic!"
+  noelse,
+  match mode with [
+    "Sample" ->
+      if t > 0 then
+        pp   + = input,
+        t    + = 0,
+        mode + = "Estimate0"
+      noelse
+  | "Estimate0" ->
+      if t == 0.01 then  // Estimating average speed
+        ap   + = input,
+        mode + = "Estimate1"
+      noelse
+  | "Estimate1" ->
+      outputv    + = (ap(0)-pp(0))/0.01*(1,0,0)+
+                     (ap(2)-pp(2))/0.01*(0,0,1)+
+                     (ap(1)-pp(1))/0.01*(0,1,0),
+      mode + = "Sample",
+      t    + = 0
+  | "Panic!" -> ],
+  outputp = input
