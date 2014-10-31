@@ -700,7 +700,6 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
             slider.setProgress3D(100)
             slider.setTime(endTime.toFloat)
             app.customView = true
-            destroy = true
             pause = true
           }
           if (totalFrames > 0) {
