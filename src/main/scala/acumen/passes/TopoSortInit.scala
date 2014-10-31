@@ -14,7 +14,7 @@ import util.ASTUtil.exprSubParts
 object TopoSortInit {
   case class CircularDep extends Errors.AcumenError {
     override def getMessage = 
-      "Circular dependency detected in private section of some class."
+      "Circular dependency detected in private section of some model."
   }
 
   def proc(p: Prog) : Prog = {

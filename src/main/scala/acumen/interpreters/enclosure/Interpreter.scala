@@ -58,7 +58,7 @@ case class Interpreter(strategy: Strategy)
                      cb0: InterpreterCallbacks,
                      adjustParms: Parameters => Parameters) = {
     val cb = cb0.asInstanceOf[EnclosureInterpreterCallbacks]
-    if (des.defs.size > 1) sys.error("Multiple classes are not currently supported by the enclosure interperter!")
+    if (des.defs.size > 1) sys.error("Multiple models are not currently supported by the enclosure interperter!")
     val cdes = CleanParameters.run(des, EnclosureInterpreterType)
     val main = classDef(ClassName("Main"), cdes)
 

@@ -129,20 +129,23 @@ class CodeArea extends Panel with TreeSelectionListener {
     cp
   }
 
-  def createCodeTemplateManager =
+  def createCodeTemplateManager ={
+    def modelT(modelName: String, parameters: String, inits: String) =
+      s"model $modelName($parameters) =\n  initially\n    $inits\n  always\n    "
+    def mainModel(inits: String) = modelT("Main", "simulator", inits)
     for (
       t <- List(
-        ("class", "class ()\n  private  end\nend"),
-        ("main", "class Main(simulator)\n  private  end\nend"),
-        ("private", "private  end"),
-        ("if", "if \n  \nend;"),
-        ("switch", "switch \n  case \n    \nend;"),
-        ("case", "case\n  "),
-        ("hs", "class Main(simulator)\n  private mode := \"\"; end\n  switch mode\n    case \"\"\n      \n  end\nend"),
-        ("mode", "case \"\"\n  if  mode := \"\" end;\n  "),
-        ("event", "if  mode := \"\" end;\n"),
+        ("model", modelT("","","")),
+        ("main", mainModel("")),
+        ("init", "initially  always"),
+        ("if", "if \n  \nnoelse,"),
+        ("match", "match \n  -> \n    \n,"),
+        ("hs", mainModel("mode = \"\"") + "match mode with\n    [ \"\" -> \n      \n    ],\n"),
+        ("mode", "  \"\" -> \n  if  mode+ = \"\"  noelse,\n  "),
+        ("event", "if  mode+ = \"\"  noelse,\n"),
         ("ps", Parameters.defaults.map{case (p,v) => "simulator.%s := %s".format(p,v)}.mkString(";\n")))
     ) { RSyntaxTextArea.getCodeTemplateManager addTemplate new StaticCodeTemplate(t._1, t._2, null) }
+  }
 
   /* --- file handling ---- */
 

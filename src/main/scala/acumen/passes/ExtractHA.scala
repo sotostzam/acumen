@@ -64,7 +64,7 @@ class ExtractHA(val prog: Prog, private val debugMode: Boolean = false)
     if (prog.defs.size > 1) 
       throw OtherUnsupported("Multiple objects not supported.")
     if (prog.defs(0).name != ClassName("Main"))
-      throw OtherUnsupported("Could not find Main class.")
+      throw OtherUnsupported("Could not find Main model.")
     prog.defs(0)
   }
   var init = origDef.priv.collect{case Init(v,ExprRhs(e)) => (v,e); case init => throw UnhandledSyntax(init)}

@@ -116,7 +116,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
         Some(for ((cid, co) <- e) yield (cid, {
           val tco = that(cid)
           require(co.keySet == tco.keySet, "Can not merge objects with differing name sets.") // TODO Update for dynamic objects
-          require(classOf(co) == classOf(tco), s"Can not merge objects of differing classes (${classOf(co).x}, ${classOf(tco).x}).")
+          require(classOf(co) == classOf(tco), s"Can not merge objects of differing models (${classOf(co).x}, ${classOf(tco).x}).")
           if (classOf(co) == cmagic)
             co // FIXME Sanity check this (that it is OK to merge Enclosures with different simulator objects)
           else

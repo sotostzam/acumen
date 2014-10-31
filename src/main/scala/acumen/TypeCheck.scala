@@ -17,7 +17,7 @@ object TypeCheck {
   val EL_FAIL = 4
   def errorLevelStr(errorLevel: Int) = errorLevel match {
     case EL_NONE => "No problems."
-    case EL_UNUSED => "Unused classes (possible dynamic type in unused classes)."
+    case EL_UNUSED => "Unused models (possible dynamic type in unused models)."
     case EL_DYNAMIC => "Unification failures (dynamic types required)."
     case EL_ERROR => "Type errors."
     case EL_FAIL => "Type checked failed, likely due to an internal error."
@@ -74,10 +74,10 @@ class TypeCheck(prog0: Prog) {
             if (finalize_) DynamicType
             else           UnknownType
           }}
-          //println("Dynamic Class field \"" + name + "\" types:" + typs)
+          //println("Dynamic model field \"" + name + "\" types:" + typs)
           typs.reduce{(x,y) => unifyTypeSpecial(x,y)}
         }
-        //println("Dynamic Class field \"" + name + "\" typ:" + typ)
+        //println("Dynamic model field \"" + name + "\" typ:" + typ)
         Some(typ)
       }
       def update(name: Name, typ: TypeLike) = {
@@ -89,7 +89,7 @@ class TypeCheck(prog0: Prog) {
     }
     def addClass(cn: ClassName) {
       if (!classNames.exists{cn0 => cn == cn0}) {
-        //typeError("invalidated due adding a new class to dynamic class type")
+        //typeError("invalidated due adding a new model to dynamic model type")
         invalidated = true
         classNames += cn
       }
@@ -193,7 +193,7 @@ class TypeCheck(prog0: Prog) {
   // Initialization
   //
 
-  // Make a copy of the AST and reset the types for each class
+  // Make a copy of the AST and reset the types for each model
   val prog = new util.ASTMap {
     override def mapClassDef(c0: ClassDef) = {
       val c = super.mapClassDef(c0) // make a copy
@@ -249,7 +249,7 @@ class TypeCheck(prog0: Prog) {
     }
     cantCheck.foreach { case (_,cd) =>
       if (!silent)
-        println("Warning: class \"" + cd.name.x + "\" never used, forcing type check")
+        println("Warning: model \"" + cd.name.x + "\" never used, forcing type check")
       setErrorLevel(EL_UNUSED)
       //cd.fields.foreach { n => updateFieldType(cd._types, n, ZeroType) }
       mayCheck.enqueue(cd)
@@ -266,8 +266,8 @@ class TypeCheck(prog0: Prog) {
   // Methods for walking the tree and updaing the type
   //
 
-  // Typed check the class at the head of the mayCheck queue
-  // assumes the types of the fileds are known
+  // Typed check the model at the head of the mayCheck queue
+  // assumes the types of the fields are known
   def typeCheckClass() {
     val cd = mayCheck.dequeue
     //println("now checking: " + cd.name.x)
@@ -358,7 +358,7 @@ class TypeCheck(prog0: Prog) {
 
   def typeCheckCreate(cn: ClassName, args: List[Expr], parent: ClassDef) : TypeLike = {
     val env = classEnvs(parent.name)
-    val cd = getClassDef(cn) getOrElse {return typeError(EL_ERROR, "class not found: " + cn.x)}
+    val cd = getClassDef(cn) getOrElse {return typeError(EL_ERROR, "model not found: " + cn.x)}
     args.indices.foreach{i =>
       val field = cd.fields(i)
       val typ   = typeCheckExpr(args(i), env)
@@ -648,7 +648,7 @@ class TypeCheck(prog0: Prog) {
         println(el())
       }
       if (checking != null)
-        println("  in class: " + checking.name.x)
+        println("  in model: " + checking.name.x)
     }
     setErrorLevel(e)
     DynamicType
@@ -665,7 +665,7 @@ class TypeCheck(prog0: Prog) {
     }
   }
 
-  // check for class type, adjust class type if necessary
+  // check for model type, adjust model type if necessary
   // return type of field if possible
   def lookupField(obj: TypeLike, n: Name) : (Env, TypeLike) = {
     obj match {
@@ -686,7 +686,7 @@ class TypeCheck(prog0: Prog) {
          typ._types.get(n) getOrElse DynamicType)
       case DynamicType =>
         (null, DynamicType)
-      case _ => (null, typeError(EL_ERROR, "non class type: " + obj))
+      case _ => (null, typeError(EL_ERROR, "non model type: " + obj))
     }
   }
 
@@ -708,7 +708,7 @@ class TypeCheck(prog0: Prog) {
 
   def finalizeType(typ: TypeLike) : TypeLike = typ match {
     case c:ClassTypeNF      => c.classSubType match {
-      case DynamicClass => c // Nonfinalized dynamic class type currently unimplemented
+      case DynamicClass => c // Nonfinalized dynamic model type currently unimplemented
       case _            => ClassType(c.classSubType)
     }
     case ZeroType|IntTypeNF => IntType

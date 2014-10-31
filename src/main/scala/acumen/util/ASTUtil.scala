@@ -53,14 +53,14 @@ object ASTUtil {
     case _                      => Nil
   }
 
-  /** Allow hypotheses only at top level of classes. */
+  /** Allow hypotheses only at top level of models. */
   def checkNestedHypotheses(prog: Prog): Unit = {
     def disallowHypotheses(a: Action, atTopLevel: Boolean): Unit = a match {
       case IfThenElse(_,t,e) => for (s <- t ::: e) disallowHypotheses(s, false) 
       case ForEach(_,_,b) => for (s <- b) disallowHypotheses(s, false)
       case Switch(_,cs) => for (c <- cs; s <- c.rhs) disallowHypotheses(s, false)
       case Hypothesis(s,p) if !atTopLevel => 
-        throw new PositionalAcumenError{ def mesg = "Hypothesis statements are only allowed at the top level of classes." }.setPos(p.pos)
+        throw new PositionalAcumenError{ def mesg = "Hypothesis statements are only allowed at the top level of models." }.setPos(p.pos)
       case _ =>
     }
     for (cd <- prog.defs; a <- cd.body) disallowHypotheses(a, true)

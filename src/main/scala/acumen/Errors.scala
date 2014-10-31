@@ -34,7 +34,7 @@ object Errors {
   }
   case class NoInstanceFound(cn:ClassName) extends PositionalAcumenError {
     override def mesg = 
-      "Found no instance of class " + pprint(cn) + "."
+      "Found no instance of model " + pprint(cn) + "."
   }
   case class ClassNotDefined(cn:ClassName) extends PositionalAcumenError {
     override def mesg = 
@@ -46,7 +46,7 @@ object Errors {
   }
   case class NotAClassName(v:Value[_]) extends PositionalAcumenError {
     override def mesg =
-      pprint(v) + " is not an class name."
+      pprint(v) + " is not a model name."
   }
   case class GroundConversionError(gv:GroundValue, into:String) extends PositionalAcumenError {
     override def mesg = 
