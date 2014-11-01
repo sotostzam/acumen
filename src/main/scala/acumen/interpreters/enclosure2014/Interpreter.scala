@@ -521,7 +521,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
       case err: PositionalAcumenError => err.setPos(e.pos); throw err
     }
     eval(env,e)
-  }
+  }.setPos(e.pos)
   
   /** Purely functional operator evaluation at the values level */
   def evalOp[A](op:String, xs:List[Value[_]]) : Value[A] = {

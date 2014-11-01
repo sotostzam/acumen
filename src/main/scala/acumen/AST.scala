@@ -206,16 +206,31 @@ package acumen {
      For the reference interpreter, object ids are instances of CId (cf. below).
      For the parallel interpreter, object ids are simply references to scala objects. */
 
-  sealed abstract class Value[+Id]
+  sealed abstract class Value[+Id] extends Positional {
+    /** If this is a ground value or collection of ground values:  
+     *  Some(i), where i is the number of plots needed to display 
+     *  this value. Otherwise None. */
+    def yieldsPlots: Option[Int] = None
+  }
 
   /* Example: 42 (or "a", or 4.2 ...) */
-  case class VLit(gv: GroundValue) extends Value
+  case class VLit(gv: GroundValue) extends Value {
+    override def yieldsPlots = Some(1)
+  }
+  
+  sealed abstract class VCollection[+Id] extends Value[Id] {
+    def l: List[Value[Id]]
+    override def yieldsPlots = l.map(_.yieldsPlots).foldLeft(Some(0): Option[Int]) {
+      case (Some(r), Some(i)) => Some(r + i)
+      case _ => None
+    }
+  }
 
   /* Example: 1::3::4::nil */
-  case class VList[Id](l: List[Value[Id]]) extends Value[Id]
+  case class VList[Id](l: List[Value[Id]]) extends VCollection[Id]
 
   /* Example: [1,3,4] */
-  case class VVector[Id](l: List[Value[Id]]) extends Value[Id]
+  case class VVector[Id](l: List[Value[Id]]) extends VCollection[Id]
 
   /* Example: #0.1.1.2 */
   case class VObjId[Id <: GId](a: Option[Id]) extends Value[Id]

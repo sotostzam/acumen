@@ -20,6 +20,7 @@ object Canonical {
   val seed1        = name("seed1")
   val seed2        = name("seed2")
   val _3D          = name("_3D")
+  val _3DView      = name("_3DView")
   val cmain        = ClassName("Main")
   val cmagic       = ClassName("Simulator")
 
@@ -77,6 +78,12 @@ object Canonical {
 
   def setObjectField(id:CId, f:Name, v:CValue, s:CStore) : CStore = {
     val obj = deref(id,s)
+    if (f != _3D && f != _3DView)
+      obj.get(f) map { oldVal =>
+        if (oldVal.yieldsPlots != v.yieldsPlots)
+          throw new UnsupportedTypeChangeError(f, id, classOf(obj), oldVal, v, 
+            "These values require a different number of plots")
+      }
     setObject(id, setField(obj,f,v), s)
   }
 

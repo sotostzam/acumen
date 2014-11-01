@@ -229,7 +229,7 @@ object Interpreter extends acumen.CStoreInterpreter {
       case err: PositionalAcumenError => err.setPos(e.pos); throw err
     }
     eval(env,e)
-  }
+  }.setPos(e.pos)
 
   def evalActions(as:List[Action], env:Env, p:Prog) : Eval[Unit] =
     mapM_((a:Action) => evalAction(a, env, p), as)
