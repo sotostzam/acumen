@@ -80,7 +80,8 @@ acumen.jar, the command is as follows:
 
     java -jar acumen.jar --help
 
-It is recommended to use Oracle Java 8 to run Acumen.
+For optimal performance, use Oracle Java 8
+(http://www.oracle.com/technetwork/java/javase/downloads/index.html).
 
 SUPPORT
 -------
