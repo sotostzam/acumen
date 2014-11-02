@@ -748,7 +748,7 @@ always
 
 model Main(simulator) = 
 initially
-  e  =  0 ,
+  e  =  self ,
   t  =  0 , t'  =  0 ,
   mode  =  "init" ,
   example  =  1 ,

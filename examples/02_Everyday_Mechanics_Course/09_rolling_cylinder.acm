@@ -36,7 +36,7 @@ initially
   // declaring/calling? the graphical objects
   b = create plane(0,-1.5,-1.5),
   d = create support(0,2,0), 
-  c = create fancy_cyl(0,2.2,2.5,0,0),
+  c = create fancy_cyl(0,2.2,2.5,0,(0,0,0)),
   // d+ = create ball(1,0,0),
   // declaring the constants
   t = 0, t' = 0, // time starts at zero and does not accellerate
