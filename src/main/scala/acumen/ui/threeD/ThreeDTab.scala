@@ -204,6 +204,7 @@ class ThreeDTab (val appModel: Controller) extends AbstractEditorTab{
       threedpause.toolTip = "pause"
       threedpause.icon = Icons.pause
       endTime = appModel.threeDData.endTime
+      threeDView.preCustomView = true
       if (played) {
         receiver.stop()
         timer3d.destroy = true
