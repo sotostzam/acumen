@@ -684,8 +684,15 @@ class App extends SimpleSwingApplication {
   }
   
   def manual() =
-    try { Desktop.getDesktop.browse(ManualBrowser.getClass.getResource("manual.html").toURI) }
-    catch { case e =>
+    try {
+      // When running the Acumen JAR in the directory of a release, where the 
+      // /src/main/resources directory is available, use an external browser
+      val pathOfJar = new File(ManualBrowser.getClass.getProtectionDomain
+        .getCodeSource.getLocation.getPath).getParentFile.getPath
+      val pathOfManualInReleaseDir = 
+        pathOfJar + "/src/main/resources/acumen/ui/tl/manual.html"
+      Desktop.getDesktop.open(new File(pathOfManualInReleaseDir)) 
+    } catch { case e =>
       ManualBrowser setLocationRelativeTo body
       ManualBrowser.peer setVisible true 
       ManualBrowser.peer setFocusable true
