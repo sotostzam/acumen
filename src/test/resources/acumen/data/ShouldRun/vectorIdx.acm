@@ -8,7 +8,7 @@ model Main(simulator) =
     x  =  0,
     y  =  0,
     z  =  0,
-    v  =  0
+    v  =  (0,0,0)
   always
   p'' = (1,2,3),
   x = p'(1) + p(2) - p''(0),
