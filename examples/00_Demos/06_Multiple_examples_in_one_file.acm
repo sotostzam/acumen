@@ -279,7 +279,10 @@ always
     s.flag + = 1 ,
     terminate self 
   noelse,
-  dl  = p2-p1 * (1-l0/norm(p2-p1)) ,
+  if p1 == p2 then
+    dl = p1
+  else
+    dl  = p2-p1 * (1-l0/norm(p2-p1)) ,
   f1  =  k*dl ,
   f2  = -k*dl ,
   e_p = 0.5 * k * (dl dot dl) ,
@@ -333,8 +336,8 @@ always
 // Once changed to 0.001, the system become stable.
 model example_7 (D)  = // Double spring palwaysulum (SP2)
 initially 
-  m1  =  create mass   (1.9,(0,0,-0.5),D) ,
-  m2  =  create mass   (1.1,(0,0.5,-1),D) ,
+  m1  =  create mass   (5,(0,0,-0.5),D) ,
+  m2  =  create mass   (5,(0,0.5,-1),D) ,
   s1  =  create spring (10,0.5,D) ,
   s2  =  create spring (20,0.05,D) ,
   flag  =  0 
@@ -881,6 +884,6 @@ always
       mode + = "init" ,
       example + = example + 1 ,
       t + = 0 ],
- simulator.endTime + = 60  
+ simulator.endTime + = 65
  
 
