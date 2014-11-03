@@ -693,7 +693,7 @@ initially
   // Controller
   controller  =  create PDController(1,0.2,0.2,0.2,0,0,0,0) ,
   flag  =  0 ,
-  max  =  0 
+  max  =  0.00001 
 always
   f2.roll = visual.roll ,
   f4.roll = visual.roll ,
@@ -712,15 +712,18 @@ always
   f3.D = visual.rotor3p ,
   f4.v = (copter.w4-max)*30/max ,
   f4.D = visual.rotor4p ,
-
-  if max>copter.w2 then
-    max + = copter.w2 
-  elseif max>copter.w3 then
-    max + = copter.w3
-  elseif max>copter.w4 then
-    max + = copter.w4 
-  else 
-    max + = copter.w1,
+  
+  if max == 0 then
+    if max>copter.w2 then
+      max + = copter.w2 
+    elseif max>copter.w3 then
+      max + = copter.w3
+    elseif max>copter.w4 then
+      max + = copter.w4 
+    else 
+      max + = copter.w1
+  else
+    max+ = 0.00001,
   
   match mode with [
     "Init" ->
@@ -884,6 +887,6 @@ always
       mode + = "init" ,
       example + = example + 1 ,
       t + = 0 ],
- simulator.endTime + = 65
+ simulator.endTime + = 70
  
 
