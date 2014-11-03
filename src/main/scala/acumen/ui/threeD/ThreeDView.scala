@@ -378,7 +378,7 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
   var pause = false
   var destroy = false
   val startFrameNumber = 2
-  private var lastRenderFrame = 0
+  private var lastRenderFrame = scala.collection.mutable.Map[Object3D, Int]()
 
   def stop() =
     if (app.objects.nonEmpty) {
@@ -386,6 +386,7 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
       app.objects.clear()
       app.axisArray(0) = null
       app.scaleFactors.clear()
+      lastRenderFrame.clear()
     }
 
   def bufferFrame(list: List[_]): Int =
@@ -443,7 +444,7 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
       case _ => throw ShouldNeverHappen()
     }
 
-  def checkResizeable(newSize: List[Double]): Boolean = 
+  def checkResizeable(newSize: List[Double]): Boolean =
     newSize.forall(d => !(d.isNaN || d.isInfinite))
 
   def setScaleFactors(size: List[Double], o: Object3D, objectType: String,
@@ -513,8 +514,9 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
         // we don't need to care about first frame, since all the objects are fresh
         if (index >= 1) {
           // reset the type and size for the object, matching the type of object first
-          val lastTempType = if (lastRenderFrame < buffer.size) bufferType(buffer(lastRenderFrame))
-                             else "DeleteOld"
+          val lastTempType = if (lastRenderFrame.contains(transObject) && lastRenderFrame(transObject) < buffer.size)
+            bufferType(buffer(lastRenderFrame(transObject)))
+          else "DeleteOld"
           tempType match {
             case "Box" =>
               // the type has been changed, we need to delete the old object and create a one
@@ -527,8 +529,11 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
                   checkSize(tempSize(0)),
                   checkSize(tempSize(2)))
                 scaleFactors -= objects(id)
+                if (lastRenderFrame.contains(transObject))
+                  lastRenderFrame -= transObject
                 objects(id) = app.drawBox(abs(sizeToSetX), abs(sizeToSetY), abs(sizeToSetZ))
                 transObject = objects(id)
+                lastRenderFrame += transObject -> (currentFrame - bufferFrame(buffer.head))
                 setScaleFactors(List(sizeToSetY,sizeToSetZ,sizeToSetX), transObject, tempType, scaleFactors)
                 objID = objects(id).getID // refresh the object ID
                 view.addObject(transObject)
@@ -552,8 +557,11 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
                   view.removeObject(objID)
                 val (sizeToSetR, sizeToSetS) = (checkSize(tempSize(0)), checkSize(tempSize(1)))
                 scaleFactors -= objects(id)
+                if (lastRenderFrame.contains(transObject))
+                  lastRenderFrame -= transObject
                 objects(id) = Primitives.getCylinder(20, abs(sizeToSetR.toFloat), abs(sizeToSetS / (2 * sizeToSetR)).toFloat)
                 transObject = objects(id)
+                lastRenderFrame += transObject -> (currentFrame - bufferFrame(buffer.head))
                 setScaleFactors(tempSize, transObject, tempType, scaleFactors)
                 objID = objects(id).getID // refresh the object ID
                 view.addObject(transObject)
@@ -574,8 +582,11 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
                   view.removeObject(objID)
                 val (sizeToSetR, sizeToSetS) = (checkSize(tempSize(0)), checkSize(tempSize(1)))
                 scaleFactors -= objects(id)
+                if (lastRenderFrame.contains(transObject))
+                  lastRenderFrame -= transObject
                 objects(id) = Primitives.getCone(20, abs(sizeToSetR.toFloat), abs(sizeToSetS / (sizeToSetR * 2)).toFloat)
                 transObject = objects(id)
+                lastRenderFrame += transObject -> (currentFrame - bufferFrame(buffer.head))
                 setScaleFactors(tempSize, transObject, tempType, scaleFactors)
                 objID = objects(id).getID // refresh the object ID
                 view.addObject(transObject)
@@ -595,8 +606,11 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
                   view.removeObject(objID)
                 val sizeToSetR = checkSize(tempSize(0))
                 scaleFactors -= objects(id)
+                if (lastRenderFrame.contains(transObject))
+                  lastRenderFrame -= transObject
                 objects(id) = Primitives.getSphere(10, abs(sizeToSetR.toFloat))
                 transObject = objects(id)
+                lastRenderFrame += transObject -> (currentFrame - bufferFrame(buffer.head))
                 setScaleFactors(tempSize, transObject, tempType, scaleFactors)
                 objID = objects(id).getID // refresh the object ID
                 view.addObject(transObject)
@@ -609,17 +623,21 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
                 }
               }
             case "Text" =>
-              val lastTempContent = if (lastRenderFrame < buffer.size) bufferString(buffer(lastRenderFrame))
-                                    else "deleteOld"
+              val lastTempContent = if (lastRenderFrame.contains(transObject) && lastRenderFrame(transObject) < buffer.size)
+                bufferString(buffer(lastRenderFrame(transObject)))
+              else "deleteOld"
               // the type has been changed, we need to delete the old object and create a one
-              if ((lastTempType != tempType || lastTempContent != tempContent) && !tempContent.isEmpty) {
+              if ((lastTempType != tempType || lastTempContent != tempContent) && tempContent != "") {
                 // change the object in
                 if (view.getObject(objID) != null)
                   view.removeObject(objID)
                 val sizeToSetR = checkSize(tempSize(0))
                 scaleFactors -= objects(id)
+                if (lastRenderFrame.contains(transObject))
+                  lastRenderFrame -= transObject
                 objects(id) = buildText(tempContent, sizeToSetR)
                 transObject = objects(id)
+                lastRenderFrame += transObject -> (currentFrame - bufferFrame(buffer.head))
                 setScaleFactors(tempSize, transObject, tempType, scaleFactors)
                 objID = objects(id).getID // refresh the object ID
                 view.addObject(transObject)
@@ -632,17 +650,21 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
                 }
               }
             case "OBJ" =>
-              val lastTempPath = if (lastRenderFrame < buffer.size) bufferString(buffer(lastRenderFrame))
-                                 else "deleteOld"
+              val lastTempPath = if (lastRenderFrame.contains(transObject) && lastRenderFrame(transObject) < buffer.size)
+                bufferString(buffer(lastRenderFrame(transObject)))
+              else "deleteOld"
               // the type has been changed, we need to delete the old object and create a one
-              if ((lastTempType != tempType || tempPath != lastTempPath) && !tempPath.isEmpty) {
+              if ((lastTempType != tempType || tempPath != lastTempPath) && tempContent != "") {
                 // change the object in
                 if (view.getObject(objID) != null)
                   view.removeObject(objID)
                 val sizeToSetR = checkSize(tempSize(0) / 10)
                 scaleFactors -= objects(id)
+                if (lastRenderFrame.contains(transObject))
+                  lastRenderFrame -= transObject
                 objects(id) = loadObj(tempPath, sizeToSetR)
                 transObject = objects(id)
+                lastRenderFrame += transObject -> (currentFrame - bufferFrame(buffer.head))
                 setScaleFactors(tempSize, transObject, tempType, scaleFactors)
                 objID = objects(id).getID // refresh the object ID
                 view.addObject(transObject)
@@ -671,6 +693,8 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
         transObject.translate(transVector)
         CustomObject3D.partialBuild(transObject, tempType == "Text")
       }
+      if (lastRenderFrame.contains(transObject))
+        lastRenderFrame(transObject) = currentFrame - bufferFrame(buffer.head)
     }
   }
 
@@ -687,7 +711,6 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
             deleteObj(List(id, objectNumber))
     if(currentFrame < _3DView.size)
       app.transformView(_3DView(currentFrame)._1, _3DView(currentFrame)._2)
-    lastRenderFrame = currentFrame
     app.repaint()
   }
 
@@ -855,13 +878,13 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
           Primitives.getSphere(20, abs(sizeToSetR.toFloat))
         case "Text" =>
           val sizeToSetR = checkSize(size(0))
-          if (!text.isEmpty)  // model err, do nothing
+          if (text != "")  // model err, do nothing
             buildText(text, sizeToSetR)
           else
             null
         case "OBJ" =>
           val sizeToSetR = checkSize(size(0) / 10)
-          if (!path.isEmpty)  // model err, do nothing
+          if (path != "")  // model err, do nothing
             loadObj(path, sizeToSetR)
           else
             null
@@ -888,6 +911,7 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
           setScaleFactors(size, newObject, name, app.scaleFactors)
         app.objects -= c
         app.objects += c.toList -> newObject
+        lastRenderFrame += newObject -> (currentFrame - bufferFrame(buffer.head))
         view.addObject(newObject)
         if (name != "Text")
           CustomObject3D.partialBuild(newObject, false)
@@ -944,8 +968,8 @@ class coAxis(characters: scala.collection.immutable.Map[Char, Object3D]) {
     cylinders(i).scale(0.4f)
   }
   for (i <- 0 until cylinders.length)
-    new setGlass( if      (i % 3 == 0) Color.BLUE 
-                  else if (i % 3 == 1) Color.RED 
+    new setGlass( if      (i % 3 == 0) Color.BLUE
+                  else if (i % 3 == 1) Color.RED
                   else                 Color.GREEN
                 , cylinders(i), -1)
   cylinders(0).translate(0f, -1.2f, 0f)
