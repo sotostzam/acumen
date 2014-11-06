@@ -161,7 +161,6 @@ class Controller extends DaemonActor {
   def flush(d: TraceData) : Unit = {
     if (d.isEmpty)
       return
-    val seqNum = model.incSeqNum()
     model.addData(d)
     // FIXME: This is still sick
     App.ui.plotView.plotPanel.plotter ! plot.Refresh
@@ -169,15 +168,16 @@ class Controller extends DaemonActor {
     Swing.onEDT {
       // d.isInstanceOf[Iterable[GStore]] will not work due to type
       // erasure, must check the first element for its type
-      if (!d.isEmpty() && d.head.isInstanceOf[GStore]) {
+      if (d.nonEmpty && d.head.isInstanceOf[GStore]) {
         val _3DSampleInterval = 1; // should no longer be needed due
                                    // to ability to reduce rows outputted
         for (cs <- d.asInstanceOf[Iterable[GStore]]) {
           if (n == 0 || n > _3DSampleInterval) {
-            threeDData.getData(cs)
-            n = 1;
+            threeDData.get3DData(cs)
+            // we can implement real time by sending massage here
+            n = 1
           } else
-            n += 1;
+            n += 1
         }
       }
       updateProgress(d)
