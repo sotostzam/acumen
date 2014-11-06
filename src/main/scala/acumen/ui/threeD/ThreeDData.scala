@@ -237,17 +237,15 @@ class ThreeDData extends Publisher {
               if (l.size == 0) {} //
               else
                 l(0) match {
-                  /* If it's only one object, _3D will start with a string or an int,
-								   *		example:  _3D = ["Sphere",...,...,..]
-							     *	    		  	_3D = [2,...,...,..];
+                  /* If only one object, _3D will start with a string or an int,
+								   *  example:  _3D = ("Sphere",...,...,..),
+							     *    		  	_3D = (2,...,...,..)
 							     */
-
-                  /**
-                   * If it contains multiple objects, _3D will start with a vector,
-                   * example : _3D = [ [" Sphere ", [ ], [ ]...],
-                   * ["Sphere",[],[]...]..]
                   case VLit(_) =>
                     addTo3DStore(id, _3DData, List(value), 1, frameNumber)
+                  /*If it contains multiple objects, _3D will start with a vector,
+                   *  example: _3D = (" Sphere ", ( ), ( )...,
+                   *                  "Sphere",(),()...)..)
                    */
                   case VVector(some) =>
                     addTo3DStore(id, _3DData, l, l.size, frameNumber)
