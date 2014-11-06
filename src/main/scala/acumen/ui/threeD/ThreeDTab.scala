@@ -2,6 +2,8 @@ package acumen.ui.threeD
 import java.awt.BorderLayout
 import javax.swing.JPanel
 import acumen.CId
+
+import scala.collection.mutable
 import acumen.ui.{App, Controller, Icons}
 import scala.swing._
 import java.awt.event.MouseAdapter
@@ -12,6 +14,8 @@ abstract class AbstractEditorTab extends BorderPanel{
   def reset(): Unit
   def play(): Unit
   def pause(): Unit
+  def setAnaglyph(flag: Boolean): Unit
+  def setRealTimeRender(flag: Boolean): Unit
 }
 
 class ThreeDTab (val appModel: Controller) extends AbstractEditorTab{
@@ -69,8 +73,8 @@ class ThreeDTab (val appModel: Controller) extends AbstractEditorTab{
   }
 
   // _3DDataBuffer: Where all the state is stored
-  var _3DDataBuffer = scala.collection.mutable.Map[CId, scala.collection.mutable.Map[Int, scala.collection.mutable.Buffer[List[_]]]]()
-  var lastFrame = 2.0
+  private var _3DDataBuffer = mutable.Map[Int,mutable.Map[(CId, Int),List[_]]]()
+  var lastFrame = 0
   var endTime = 10.0
 
   val s = new Dimension(50, 40)
@@ -139,7 +143,6 @@ class ThreeDTab (val appModel: Controller) extends AbstractEditorTab{
     played = false
     receiver.destroy = true
     timer3d.destroy = true
-    threeDView.world.removeAllObjects()
     threeDView.reset()
     if (check.selected)
       threeDView.axisOn()
@@ -150,7 +153,6 @@ class ThreeDTab (val appModel: Controller) extends AbstractEditorTab{
     threedpause.icon = Icons.pause
     receiver.destroy = true
     timer3d.destroy = true
-    threeDView.world.removeAllObjects()
     threeDView.reset()
     statusZone3d.bar.value = 0
     if (!threeDView.customView)
@@ -205,6 +207,7 @@ class ThreeDTab (val appModel: Controller) extends AbstractEditorTab{
       threedpause.icon = Icons.pause
       endTime = appModel.threeDData.endTime
       threeDView.preCustomView = true
+      threeDView.customView = true
       if (played) {
         receiver.stop()
         timer3d.destroy = true
@@ -218,27 +221,27 @@ class ThreeDTab (val appModel: Controller) extends AbstractEditorTab{
         statusZone3d.setSpeed("1.0")
         statusZone3d.bar.enabled = false
         statusZone3d.firstPlayed = true
-        for ((id, map) <- appModel.threeDData._3DData) {
-          var temp = scala.collection.mutable.Map[Int, scala.collection.mutable.Buffer[List[_]]]()
-          for ((objectNumber, l) <- map) {
-            temp += (objectNumber -> l.reverse.toBuffer)
-            temp(objectNumber).last(5) match {
-              // The animation's length
-              case n: Int => if (n > lastFrame) lastFrame = n
-              case _ =>
-                val n = temp(objectNumber).last(6).asInstanceOf[Int]
-                if (n > lastFrame) lastFrame = n
-            }
+        for ((frameNo, map) <- appModel.threeDData._3DData) {
+          val temp = if (map != null) mutable.Map[(CId, Int), List[_]]()
+                     else null
+          if (temp != null) {
+            for ((objectKey, valueList) <- map)
+              temp += objectKey -> valueList
           }
-          _3DDataBuffer += id -> temp
+          _3DDataBuffer += frameNo -> temp
         }
+        /* The frame start from 0, and end up at the last index of buffer */
+        lastFrame = appModel.threeDData._3DData.size - 1
       }
       if (appModel.threeDData._3DView.size != 0) {
         threeDView.customView = false
         threeDView.preCustomView = threeDView.customView
       }
+      threeDView.deleteState = "deleteAllObjects"
+      threeDView.deleteStateMachine()
+      threeDView.repaint()
+      repaint()
       threeDView.objects.clear()
-      threeDView.world.removeAllObjects()
       threeDView.scaleFactors.clear()
       threeDView.axisArray(0) = null
       if (check.selected)
@@ -257,6 +260,14 @@ class ThreeDTab (val appModel: Controller) extends AbstractEditorTab{
     }
   }
 
+  def setAnaglyph(flag: Boolean) = {
+    threeDView.enableAnaglyph = flag
+  }
+
+  def setRealTimeRender(flag: Boolean) = {
+    threeDView.enableRealTime = flag
+  }
+
   // Final Init
   createCanvas()
   add(threeDBottomPane, BorderPanel.Position.South)
@@ -266,6 +277,8 @@ class DisabledEditorTab(msg: String) extends AbstractEditorTab {
   def receiver = null
   def reset() = {}
   def play() = {}
+  def setAnaglyph(flag: Boolean) = {}
+  def setRealTimeRender(flag: Boolean) = {}
   def pause() = {}
   val msgBox = new TextArea("\n" + msg)
   msgBox.editable = false

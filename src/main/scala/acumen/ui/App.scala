@@ -171,6 +171,8 @@ class App extends SimpleSwingApplication {
   private val pwlHybridSolverAction           = mkActionMask("2013 PWL",                            VK_L, VK_L,       shortcutMask | SHIFT_MASK, setSemantics(S.Enclosure(S.PWL,contraction))) 
   private val eventTreeHybridSolverAction     = mkActionMask("2013 EVT",                            VK_T, VK_T,       shortcutMask | SHIFT_MASK, setSemantics(S.Enclosure(S.EVT,contraction)))
   private val enclosure2014Action             = mkActionMask("2014 Enclosure",                      VK_4, VK_D,       shortcutMask | SHIFT_MASK, setSemantics(S.Enclosure2014(contraction)))
+  private val enableAnaglyph                  = mkAction(    "Enable 3D Anaglyph",                  NONE, NONE,       enableAnaglyph3D())
+  private val enableRealTimeRender            = mkAction(    "Enable Real Time Animation",          NONE, NONE,       enableRealTme())
   private val contractionAction               = mkActionMask("Contraction",                         VK_C, VK_C,       shortcutMask | SHIFT_MASK, toggleContraction())
   private val normalizeAction                 = mkAction(    "Normalize (to H.A.)",                 VK_N, NONE,       toggleNormalization())
   private val manualAction                    = mkAction(    "Reference Manual",                    VK_M, VK_F1,      manual)
@@ -415,6 +417,11 @@ class App extends SimpleSwingApplication {
   private val playMenuItem = new MenuItem(playAction) 
   private val stepMenuItem = new MenuItem(stepAction)
   private val stopMenuItem = new MenuItem(stopAction)
+
+  private val enableAnaglyphItem = new RadioMenuItem("Enable 3D Anaglyph") {selected = false; action = enableAnaglyph}
+  private val enableRealTimeItem = new RadioMenuItem("Enable Real Time Animation") {selected = false; action = enableRealTimeRender}
+  private var startAnaglyph = false
+  private var startRealTime = false
  
   val bar = new MenuBar {
     contents += new Menu("File") {
@@ -609,6 +616,12 @@ class App extends SimpleSwingApplication {
         contents ++= Seq(new Separator, lc)
       }
     }
+
+    contents += new Menu("3D Options") {
+      contents += enableAnaglyphItem
+      contents += enableRealTimeItem
+    }
+
    
     contents += new Menu("Help") {
       mnemonic = Key.H
@@ -699,6 +712,22 @@ class App extends SimpleSwingApplication {
       ManualBrowser.peer requestFocus
     }
 
+  def enableAnaglyph3D(): Unit = {
+    if (!startAnaglyph)
+      startAnaglyph = true
+    else
+      startAnaglyph = false
+    threeDtab.setAnaglyph(startAnaglyph)
+  }
+
+  def enableRealTme(): Unit = {
+    if (!startRealTime)
+      startRealTime = true
+    else
+      startRealTime = false
+    threeDtab.setRealTimeRender(startRealTime)
+  }
+
   /* ----- events handling ---- */
   
   var state: State = Stopped
@@ -773,7 +802,7 @@ class App extends SimpleSwingApplication {
         codeArea.editedSinceLastRun = false
         if (Main.threeDState == ThreeDState.ENABLE && modelFinished) {
           views.selectThreeDView
-          threeDtab.play
+          threeDtab.play()
         }
       } else if (views.threeDViewSelected) {
         views.selectPlotView
