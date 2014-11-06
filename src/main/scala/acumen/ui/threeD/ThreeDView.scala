@@ -13,6 +13,7 @@ import com.threed.jpct._
 import scala.actors._
 import scala.math._
 import scala.swing.Publisher
+import scala.collection.mutable
 
 /* 3D visualization panel */
 class ThreeDView extends JPanel {
@@ -35,15 +36,16 @@ class ThreeDView extends JPanel {
   val coAxes = new coAxis (characters.characters)
   val axes = coAxes.cylinders
   val axisArray = Array(new Object3D(1))
-
-  protected[threeD] var objects = scala.collection.mutable.Map[List[_], Object3D]()
-  protected[threeD] var scaleFactors = scala.collection.mutable.Map[Object3D, Array[Double]]()
+  protected[threeD] var objects = mutable.Map[(CId, Int), Object3D]()
+  protected[threeD] var scaleFactors = mutable.Map[Object3D, Array[Double]]()
 
   val defaultCamPos = new SimpleVector(3, -3, 10)
   private val lookAtPoint = new SimpleVector(0,0,0) // in jPCT coordinate system
   var customView = true // enable for allowing the user move the camera by themselves
   var preCustomView = customView // to enable custom view when we pause
-
+  var enableAnaglyph = false     // to enable anaglyph functions
+  var enableRealTime = false     // to enable real time 3D rendering
+  
   private var newMouseX = 1     // mouse position x before dragging
   private var newMouseY = 1     // mouse position y before dragging
   private var lastMouseX = 1    // mouse position x after dragging
@@ -71,7 +73,8 @@ class ThreeDView extends JPanel {
         new setGlass(Color.RED, lookAtCenter, -1)
         world.addObject(lookAtCenter)
         CustomObject3D.partialBuild(lookAtCenter, false)
-        lookAtCenter.translate(lookAtPoint.calcSub(lookAtCenter.getTransformedCenter))
+        lookAtCenter.translate(lookAtPoint.calcSub
+                              (lookAtCenter.getTransformedCenter))
         repaint()
       }
       dragging = true
@@ -100,19 +103,24 @@ class ThreeDView extends JPanel {
         newMouseX = e.getX
         newMouseY = e.getY
         // to decrease the burden of calculations
-        if (abs(newMouseX - lastMouseX) > 0.1 || abs(newMouseY - lastMouseY) > 0.1) {
-          // Initialize the camera coordinate
-          if (SwingUtilities isLeftMouseButton e)        // left button dragging, move camera
+        if (abs(newMouseX - lastMouseX) > 0.1
+         || abs(newMouseY - lastMouseY) > 0.1) {
+          // left button dragging, move camera
+          if (SwingUtilities isLeftMouseButton e)
             cameraLeftDirection = moveCamera(cameraLeftDirection, 1, lookAtPoint)
-          else if (SwingUtilities isRightMouseButton e)   // right button dragging, move look at point
-            cameraRightDirection = moveCamera(cameraRightDirection, -1, camera.getPosition)
+          // right button dragging, move look at point
+          else if (SwingUtilities isRightMouseButton e)
+            cameraRightDirection = moveCamera(cameraRightDirection, -1,
+                                              camera.getPosition)
         }
       }
     }
   })
 
-  /** draggingDirection is the direction for left or right button, click is -1 (right) or 1 (left) */
-  def moveCamera (draggingDirection: Int, click: Int, sphereCenter: SimpleVector): Int = {
+  /* draggingDirection is the direction for left or right button,
+    * click is -1 (right) or 1 (left) */
+  def moveCamera (draggingDirection: Int, click: Int,
+                  sphereCenter: SimpleVector): Int = {
     var cameraDirection = draggingDirection
     val cameraInitPos = camera.getPosition
     val deltaTheta = cameraDirection * (newMouseY - lastMouseY) * Pi / 500
@@ -183,7 +191,8 @@ class ThreeDView extends JPanel {
   private var buffer: FrameBuffer = null
 
   def initBuffer(bufferWidth: Int, bufferHeight: Int) = {
-    buffer = new FrameBuffer(bufferWidth, bufferHeight, FrameBuffer.SAMPLINGMODE_OGSS)
+    buffer = new FrameBuffer(bufferWidth, bufferHeight,
+                             FrameBuffer.SAMPLINGMODE_OGSS)
   }
 
   def init() = {
@@ -247,7 +256,8 @@ class ThreeDView extends JPanel {
 
   def transformView(position: Array[Double], rotation: Array[Double]) = {
     val cameraToSet = world.getCamera
-    cameraToSet.setPosition(-position(0).toFloat, -position(2).toFloat, -position(1).toFloat)
+    cameraToSet.setPosition(-position(0).toFloat, -position(2).toFloat,
+                            -position(1).toFloat)
     rotateObject(null, rotation, "Camera", cameraToSet)
   }
 
@@ -292,15 +302,12 @@ class ThreeDView extends JPanel {
   }
 
   /** Uses a vertex controller to rescale  **/
-  def setReSize(scaleX: Float, scaleY: Float,  scaleZ: Float, planeMesh: Mesh) =
-    if (planeMesh != null) {
-      try {
-        planeMesh.setVertexController(new Resizer(scaleX,scaleY,scaleZ), IVertexController.PRESERVE_SOURCE_MESH)
-        planeMesh.applyVertexController()
-        planeMesh.removeVertexController()
-      } catch {
-        case e: java.lang.NullPointerException => // Do nothing in case above is done too early
-      }
+  def setReSize(scaleX: Float, scaleY: Float,  scaleZ: Float,
+                planeMesh: Mesh) = {
+      planeMesh.setVertexController(new Resizer(scaleX,scaleY,scaleZ),
+                                    IVertexController.PRESERVE_SOURCE_MESH)
+      planeMesh.applyVertexController()
+      planeMesh.removeVertexController()
     }
 
   // rotate object or camera
@@ -366,19 +373,18 @@ class ScalaTimer(receiver: _3DDisplay, endTime: Double,
 
 /* 3D Render */
 class _3DDisplay(app: ThreeDView, slider: Slider3D,
-                 _3DDataBuffer: scala.collection.mutable.Map[CId, scala.collection.mutable.Map[Int, scala.collection.mutable.Buffer[List[_]]]],
-                 lastFrame1: Double, endTime: Float,
-                 _3DView: scala.collection.mutable.ArrayBuffer[(Array[Double], Array[Double])]) extends Publisher with Actor {
+                 _3DDataBuffer: mutable.Map[Int,mutable.Map[(CId,Int),List[_]]],
+                 lastFrame: Double, endTime: Float,
+                 _3DView: mutable.ArrayBuffer[(Array[Double], Array[Double])])
+                 extends Publisher with Actor {
   /* Default directory where all the OBJ files are */
   private val _3DBasePath = Files._3DDir.getAbsolutePath
-  private var currentFrame = 0 // FrameNumber
-  private val offsetFrame = 2
-  var lastFrame = lastFrame1
+  private var currentFrame = 0
   var totalFrames = lastFrame.toInt
   var pause = false
   var destroy = false
-  val startFrameNumber = 2
-  private var lastRenderFrame = scala.collection.mutable.Map[Object3D, Int]()
+  /* used for recording last frame number */
+  private var lastRenderFrame = 0
 
   def stop() =
     if (app.objects.nonEmpty) {
@@ -444,14 +450,16 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
       case _ => throw ShouldNeverHappen()
     }
 
-  def checkResizeable(newSize: List[Double]): Boolean =
+  def checkResizeable(newSize: Array[Double]): Boolean =
     newSize.forall(d => !(d.isNaN || d.isInfinite))
 
-  def setScaleFactors(size: List[Double], o: Object3D, objectType: String,
-                      scaleFactors: scala.collection.mutable.Map[Object3D, Array[Double]]) = {
+  def setScaleFactors(size: Array[Double], o: Object3D, objectType: String,
+                      scaleFactors: mutable.Map[Object3D, Array[Double]]) = {
     def scaleFactor(si: Int, bi1: Int, bi2: Int) =
-      if (size(si) == 0) abs(o.getMesh.getBoundingBox()(bi1) - o.getMesh.getBoundingBox()(bi2)) / 0.001
-      else               abs(o.getMesh.getBoundingBox()(bi1) - o.getMesh.getBoundingBox()(bi2)) / size(si)
+      if (size(si) == 0) abs(o.getMesh.getBoundingBox()(bi1)
+                           - o.getMesh.getBoundingBox()(bi2)) / 0.001
+      else               abs(o.getMesh.getBoundingBox()(bi1)
+                           - o.getMesh.getBoundingBox()(bi2)) / size(si)
     // Add the object scale factor into a map
     val factorX =
       scaleFactor(0, 1, 0)
@@ -468,18 +476,26 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
     scaleFactors += o -> Array(factorX, factorY, factorZ)
   }
 
+  // Because of scale function, we never allow the initial size to be 0
   def checkSize (size: Double): Double = if (size == 0) 0.001 else size
 
-  def calculateResizeFactor (o: Object3D, size: List[Double], scaleFactors: scala.collection.mutable.Map[Object3D, Array[Double]]): Array[Float] =
+  def calculateResizeFactor (o: Object3D, size: Array[Double], scaleFactors:
+                          mutable.Map[Object3D, Array[Double]]): Array[Float] =
     if (scaleFactors.contains(o)) {
       if (o != null) {
         val (xFactor, yFactor, zFactor) =
-          (if (size(0) == 0) scaleFactors(o)(0) * 0.001   / abs(o.getMesh.getBoundingBox()(1) - o.getMesh.getBoundingBox()(0))
-           else              scaleFactors(o)(0) * size(0) / abs(o.getMesh.getBoundingBox()(1) - o.getMesh.getBoundingBox()(0)),
-           if (size(1) == 0) scaleFactors(o)(1) * 0.001   / abs(o.getMesh.getBoundingBox()(3) - o.getMesh.getBoundingBox()(2))
-           else              scaleFactors(o)(1) * size(1) / abs(o.getMesh.getBoundingBox()(3) - o.getMesh.getBoundingBox()(2)),
-           if (size(2) == 0) scaleFactors(o)(2) * 0.001   / abs(o.getMesh.getBoundingBox()(5) - o.getMesh.getBoundingBox()(4))
-           else              scaleFactors(o)(2) * size(2) / abs(o.getMesh.getBoundingBox()(5) - o.getMesh.getBoundingBox()(4)))
+          (if (size(0) == 0) scaleFactors(o)(0) * 0.001
+            / abs(o.getMesh.getBoundingBox()(1) - o.getMesh.getBoundingBox()(0))
+           else              scaleFactors(o)(0) * size(0)
+            / abs(o.getMesh.getBoundingBox()(1) - o.getMesh.getBoundingBox()(0)),
+           if (size(1) == 0) scaleFactors(o)(1) * 0.001
+             / abs(o.getMesh.getBoundingBox()(3) - o.getMesh.getBoundingBox()(2))
+           else              scaleFactors(o)(1) * size(1)
+             / abs(o.getMesh.getBoundingBox()(3) - o.getMesh.getBoundingBox()(2)),
+           if (size(2) == 0) scaleFactors(o)(2) * 0.001
+             / abs(o.getMesh.getBoundingBox()(5) - o.getMesh.getBoundingBox()(4))
+           else              scaleFactors(o)(2) * size(2)
+             / abs(o.getMesh.getBoundingBox()(5) - o.getMesh.getBoundingBox()(4)))
         Array(xFactor.toFloat, yFactor.toFloat, zFactor.toFloat)
       } else Array(0.001f,0.001f,0.001f)
     } else Array(0.001f,0.001f,0.001f)
@@ -828,12 +844,14 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
     val texturePath = objectFileBase + ".png"
     var MTLPath:String = null
     for (i <- 0 until listOfFiles.length) {
-      if (listOfFiles(i).getPath == texturePath && !TextureManager.getInstance().containsTexture(objectFileBase + ".mtl"))
+      if (listOfFiles(i).getPath == texturePath
+        && !TextureManager.getInstance().containsTexture(objectFileBase + ".mtl"))
         objectTexture = new Texture(texturePath)
       if (listOfFiles(i).getPath == objectFileBase + ".mtl")
         MTLPath = listOfFiles(i).getPath
     }
-    val objFileloader = Loader.loadOBJ(_3DBasePath + File.separator + path, MTLPath, size.toFloat)(0)
+    val objFileloader = Loader.loadOBJ(_3DBasePath + File.separator
+                                      + path, MTLPath, size.toFloat)(0)
     if (objectTexture != null) {
       TextureManager.getInstance().addTexture(MTLPath, objectTexture)
       objFileloader.setTexture(MTLPath)
@@ -940,7 +958,8 @@ class setGlass(color: Color, objectA: Object3D, transparancy: Int) {
 
 /* Vertex controller classes */
 
-case class Resizer(xFactor: Float, yFactor: Float, zFactor: Float) extends GenericVertexController {
+case class Resizer(xFactor: Float, yFactor: Float, zFactor: Float)
+                  extends GenericVertexController {
   def apply() {
     val s = getSourceMesh
     val d = getDestinationMesh
@@ -953,7 +972,7 @@ case class Resizer(xFactor: Float, yFactor: Float, zFactor: Float) extends Gener
 }
 
 // Axis
-class coAxis(characters: scala.collection.immutable.Map[Char, Object3D]) {
+class coAxis(characters: Map[Char, Object3D]) {
   val cylinders: Array[Object3D] = new Array[Object3D](9)
   for (x <- 0 until 3)
     cylinders(x) = Primitives.getCylinder(12, 0.01f, 120f)
@@ -972,19 +991,19 @@ class coAxis(characters: scala.collection.immutable.Map[Char, Object3D]) {
                   else if (i % 3 == 1) Color.RED
                   else                 Color.GREEN
                 , cylinders(i), -1)
-  cylinders(0).translate(0f, -1.2f, 0f)
-  cylinders(3).translate(0f, -2.4f, 0f)
-  cylinders(6).translate(-0.05f, -2.2f, 0f)
-  cylinders(1).rotateZ(0.5f * -Pi.toFloat)
+  cylinders(0).translate(0f, -1.2f, 0f)       // z axis cylinder
+  cylinders(3).translate(0f, -2.4f, 0f)       // z axis cone
+  cylinders(6).translate(-0.05f, -2.2f, 0f)   // z text
+  cylinders(1).rotateZ(0.5f * -Pi.toFloat)    // x axis cylinder
   cylinders(1).translate(-1.2f, 0f, 0f)
-  cylinders(4).translate(-2.4f, -0.07f, 0f)
+  cylinders(4).translate(-2.4f, 0f, 0f)   // x axis cone
   cylinders(4).rotateZ(0.5f * Pi.toFloat)
-  cylinders(7).translate(-2.2f, -0.05f, 0f)
-  cylinders(2).rotateX(-0.5f * Pi.toFloat)
+  cylinders(7).translate(-2.2f, -0.05f, 0f)   // x text
+  cylinders(2).rotateX(-0.5f * Pi.toFloat)    // y axis cylinder
   cylinders(2).translate(0f, 0f, -1.2f)
-  cylinders(5).translate(0f, -0.07f, -2.4f)
+  cylinders(5).translate(0f, 0f, -2.4f)   // y axis cone
   cylinders(5).rotateX(-0.5f * Pi.toFloat)
-  cylinders(8).translate(0f, -0.05f, -2.2f)
+  cylinders(8).translate(0f, -0.05f, -2.2f)   // y text
 }
 
 class Characters {
@@ -1035,5 +1054,4 @@ class Characters {
     (charToLoad zip characterObject).toMap
   }
 }
-
 
