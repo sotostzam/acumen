@@ -221,20 +221,17 @@ class ThreeDTab (val appModel: Controller) extends AbstractEditorTab{
         statusZone3d.setSpeed("1.0")
         statusZone3d.bar.enabled = false
         statusZone3d.firstPlayed = true
-        for ((id, map) <- appModel.threeDData._3DData) {
-          var temp = scala.collection.mutable.Map[Int, scala.collection.mutable.Buffer[List[_]]]()
-          for ((objectNumber, l) <- map) {
-            temp += (objectNumber -> l.reverse.toBuffer)
-            temp(objectNumber).last(5) match {
-              // The animation's length
-              case n: Int => if (n > lastFrame) lastFrame = n
-              case _ =>
-                val n = temp(objectNumber).last(6).asInstanceOf[Int]
-                if (n > lastFrame) lastFrame = n
-            }
+        for ((frameNo, map) <- appModel.threeDData._3DData) {
+          val temp = if (map != null) mutable.Map[(CId, Int), List[_]]()
+                     else null
+          if (temp != null) {
+            for ((objectKey, valueList) <- map)
+              temp += objectKey -> valueList
           }
-          _3DDataBuffer += id -> temp
+          _3DDataBuffer += frameNo -> temp
         }
+        /* The frame start from 0, and end up at the last index of buffer */
+        lastFrame = appModel.threeDData._3DData.size - 1
       }
       if (appModel.threeDData._3DView.size != 0) {
         threeDView.customView = false
