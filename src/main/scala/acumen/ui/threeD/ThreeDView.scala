@@ -32,7 +32,7 @@ class ThreeDView extends JPanel {
   val characters = new Characters
 
   // Add texture for the axis
-  val coAxes = new coAxis (characters.characters)
+  val coAxes = new coAxis (characters.allCharacters)
   val axes = coAxes.cylinders
   val axisArray = Array(new Object3D(1))
 
@@ -781,31 +781,32 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
     var distanceToShift = 0.0
     //  copy the characters in to make change
     for (i <- 0 until allChar.length) {
-      if ((allChar(i).isLetterOrDigit || app.characters.symbolPath.contains(allChar(i))) && !firstLetter) {
-        objectsArray += new Object3D(app.characters.characters(allChar(i)), false)
+      if (app.characters.allCharacters.contains(allChar(i)) && !firstLetter) {
+        objectsArray += new Object3D(app.characters.allCharacters(allChar(i)), false)
         // calculate the shift distance from last letter, firstly, we need to get the last letter index
         var j = 1 // the count for blank space
-        while (!allChar(i - j).isLetterOrDigit && !app.characters.symbolPath.contains(allChar(i - j)) && j <= i) {
+        while (!app.characters.allCharacters.contains(allChar(i-j)) && j <= i) {
           j += 1
         }
         // get the width of last letter
-        val tempDistance = objectsArray.apply(i - j).getMesh.getBoundingBox()(1) - objectsArray.apply(i - j).getMesh.getBoundingBox()(0)
-        if (allChar(i-j).isLetterOrDigit)
-          distanceToShift += tempDistance + app.characters.letterDistance(allChar(i-j))
+        val tempDis = abs(objectsArray.apply(i-j).getMesh.getBoundingBox()(1)
+                        - objectsArray.apply(i-j).getMesh.getBoundingBox()(0))
+        if (app.characters.letterDistance.contains(allChar(i-j)))
+          distanceToShift += tempDis + app.characters.letterDistance(allChar(i-j))
         else
-          distanceToShift += tempDistance + 0.2
+          distanceToShift += tempDis + 0.2
         objectsArray.apply(i).translate(-distanceToShift.toFloat, 0, 0)
         objectsArray.apply(i).translateMesh()
         objectsArray.apply(i).setTranslationMatrix(new Matrix())
-      } else if (firstLetter && (allChar(i).isLetterOrDigit || app.characters.symbolPath.contains(allChar(i)))){
-        objectsArray += new Object3D(app.characters.characters(allChar(i)), false)
+      } else if (firstLetter && app.characters.allCharacters.contains(allChar(i))){
+        objectsArray += new Object3D(app.characters.allCharacters(allChar(i)), false)
         firstLetter = false
       } else {
         objectsArray += new Object3D(1)
         firstLetter = false
         if (i != 0) {
           var j = 1     // the count for blank space
-          while (!allChar(i - j).isLetterOrDigit && !app.characters.symbolPath.contains(allChar(i - j)) && j <= i) {
+          while (!app.characters.allCharacters.contains(allChar(i-j)) && j <= i) {
             j += 1
           }
           distanceToShift += 0.2 * j
@@ -1027,7 +1028,7 @@ class Characters {
     Loader.load3DS(getClass.getClassLoader.getResourceAsStream("acumen/ui/threeD/" + folder + file + ".3ds"), 1f)(0)
 
   // initialize the Character Objects Map
-  val characters = {
+  val allCharacters = {
     val charToLoad = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz1234567890,./<>?;:\'\"+-*|!@#$%^&()[]{}=".toCharArray
     val characterObject = new Array[Object3D](90)
     for (i <- 0 until charToLoad.length)
