@@ -395,61 +395,6 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
       lastRenderFrame.clear()
     }
 
-  def bufferFrame(list: List[_]): Int =
-    list.last match {
-      case time: Int => time
-      case _ => throw ShouldNeverHappen()
-    }
-
-  def bufferPosition(list: List[_]): Array[Double] =
-    list(1) match {
-      case p: Array[Double] => p
-      case _ => throw ShouldNeverHappen()
-    }
-
-  def bufferAngle(list: List[_]): Array[Double] =
-    list(4) match {
-      case p: Array[Double] => p
-      case _ => throw ShouldNeverHappen()
-    }
-
-  def bufferType(list: List[_]): String =
-    list(0) match {
-      case p: String => p
-      case _ => throw ShouldNeverHappen()
-    }
-
-  def bufferColor(list: List[_]): List[Double] =
-    list(3) match {
-      case p: Array[Double] => p.toList
-      case _ => throw ShouldNeverHappen()
-    }
-
-  def bufferSize(list: List[_]): List[Double] =
-    list(2) match {
-      case p: Array[Double] => p.toList
-      case _ => throw ShouldNeverHappen()
-    }
-
-  def bufferString(list: List[_]): String =
-    list(5) match {
-      case s: String => s
-      case _ => throw ShouldNeverHappen()
-    }
-
-  // Return the first frame number of the object
-  def firstFrame(buffer: scala.collection.mutable.Buffer[List[_]]): Int =
-    buffer.head.last match {
-      case first: Int => first
-      case _ => throw ShouldNeverHappen()
-    }
-
-  def lastFrame(buffer: scala.collection.mutable.Buffer[List[_]]): Int =
-    buffer.last.last match {
-      case last: Int => last
-      case _ => throw ShouldNeverHappen()
-    }
-
   def checkResizeable(newSize: Array[Double]): Boolean =
     newSize.forall(d => !(d.isNaN || d.isInfinite))
 
@@ -500,238 +445,323 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
       } else Array(0.001f,0.001f,0.001f)
     } else Array(0.001f,0.001f,0.001f)
 
-  /**
-   * Moving and rotating the object
-   */
-  def transformObject(id: List[_], objects: scala.collection.mutable.Map[List[_], Object3D],
-                      scaleFactors: scala.collection.mutable.Map[Object3D, Array[Double]],
-                      buffer: scala.collection.mutable.Buffer[List[_]],
-                      currentFrame: Int) {
-    var objID = 1
-    /* Find the corresponding index of the object */
-    val index = currentFrame - bufferFrame(buffer.head)
-    /* Get the 3D information of the object at that frame	*/
-    val (tempPosition, tempAngle, tempColor, tempSize, tempType) =
-      if (index >= 0 && index < buffer.size)
-        (bufferPosition(buffer(index)) , bufferAngle(buffer(index)), bufferColor(buffer(index)),
-          bufferSize(buffer(index)), bufferType(buffer(index)))
-      else (Array(0.0,0.0,0.0), Array(0.0,0.0,0.0), List(0.0,0.0,0.0), List(0.0), " ")
-    val (tempContent, tempPath) =
-      if (index >= 0 && index < buffer.size)
-        (if (tempType == "Text") bufferString(buffer(index)) else " ",
-          if (tempType == "OBJ") bufferString(buffer(index)) else " ")
-      else (" ", " ")
-    // get the object ID
-    if (objects.contains(id) && tempType != " ") {
-      // get the object need to transform
-      objID = objects(id).getID
-      var transObject = view.getObject(objID)
-      if (transObject != null) {
-        // we don't need to care about first frame, since all the objects are fresh
-        if (index >= 1) {
-          // reset the type and size for the object, matching the type of object first
-          val lastTempType = if (lastRenderFrame.contains(transObject) && lastRenderFrame(transObject) < buffer.size)
-            bufferType(buffer(lastRenderFrame(transObject)))
-          else "DeleteOld"
-          tempType match {
-            case "Box" =>
-              // the type has been changed, we need to delete the old object and create a one
-              if (lastTempType != tempType) {
-                // change the object in
-                if (view.getObject(objID) != null)
-                  view.removeObject(objID)
-                // Since some object need to scale, we never allow the initial size become 0
-                val (sizeToSetX, sizeToSetY, sizeToSetZ) = (checkSize(tempSize(1)),
-                  checkSize(tempSize(0)),
-                  checkSize(tempSize(2)))
-                scaleFactors -= objects(id)
-                if (lastRenderFrame.contains(transObject))
-                  lastRenderFrame -= transObject
-                objects(id) = app.drawBox(abs(sizeToSetX), abs(sizeToSetY), abs(sizeToSetZ))
-                transObject = objects(id)
-                lastRenderFrame += transObject -> (currentFrame - bufferFrame(buffer.head))
-                setScaleFactors(List(sizeToSetY,sizeToSetZ,sizeToSetX), transObject, tempType, scaleFactors)
-                objID = objects(id).getID // refresh the object ID
-                view.addObject(transObject)
-                transObject.setShadingMode(Object3D.SHADING_FAKED_FLAT)
-              } else if (checkResizeable(tempSize)) {
-                // just need change the size
-                if (objects.contains(id) && transObject != null) {
-                  val (sizeToSetX, sizeToSetY, sizeToSetZ) = (checkSize(tempSize(1)),
-                    checkSize(tempSize(2)),
-                    checkSize(tempSize(0)))
-                  val factors = calculateResizeFactor(transObject, List(sizeToSetZ, sizeToSetY, sizeToSetX), scaleFactors)
-                  val boxMesh = transObject.getMesh
-                  app.setReSize(factors(0), factors(1), factors(2), boxMesh)
-                }
-              }
-            case "Cylinder" => // we don't need to care about first frame, since all the objects are fresh
-              // the type has been changed, we need to delete the old object and create a one
-              if (lastTempType != tempType) {
-                // change the object in
-                if (view.getObject(objID) != null)
-                  view.removeObject(objID)
-                val (sizeToSetR, sizeToSetS) = (checkSize(tempSize(0)), checkSize(tempSize(1)))
-                scaleFactors -= objects(id)
-                if (lastRenderFrame.contains(transObject))
-                  lastRenderFrame -= transObject
-                objects(id) = Primitives.getCylinder(20, abs(sizeToSetR.toFloat), abs(sizeToSetS / (2 * sizeToSetR)).toFloat)
-                transObject = objects(id)
-                lastRenderFrame += transObject -> (currentFrame - bufferFrame(buffer.head))
-                setScaleFactors(tempSize, transObject, tempType, scaleFactors)
-                objID = objects(id).getID // refresh the object ID
-                view.addObject(transObject)
-                transObject.setShadingMode(Object3D.SHADING_FAKED_FLAT)
-              } else if (checkResizeable(tempSize)) {
-                if (objects.contains(id) && transObject != null) {   // just need change the size
-                  val (sizeToSetR, sizeToSetS) = (checkSize(tempSize(0)), checkSize(tempSize(1)))
-                  val factors = calculateResizeFactor(transObject, List(sizeToSetR, sizeToSetS, sizeToSetR), scaleFactors)
-                  val boxMesh = transObject.getMesh
-                  app.setReSize(factors(0), factors(1), factors(2), boxMesh)
-                }
-              }
-            case "Cone" => // we don't need to care about first frame, since all the objects are fresh
-              // the type has been changed, we need to delete the old object and create a one
-              if (lastTempType != tempType) {
-                // change the object in
-                if (view.getObject(objID) != null)
-                  view.removeObject(objID)
-                val (sizeToSetR, sizeToSetS) = (checkSize(tempSize(0)), checkSize(tempSize(1)))
-                scaleFactors -= objects(id)
-                if (lastRenderFrame.contains(transObject))
-                  lastRenderFrame -= transObject
-                objects(id) = Primitives.getCone(20, abs(sizeToSetR.toFloat), abs(sizeToSetS / (sizeToSetR * 2)).toFloat)
-                transObject = objects(id)
-                lastRenderFrame += transObject -> (currentFrame - bufferFrame(buffer.head))
-                setScaleFactors(tempSize, transObject, tempType, scaleFactors)
-                objID = objects(id).getID // refresh the object ID
-                view.addObject(transObject)
-              } else if (checkResizeable(tempSize)) {
-                if (objects.contains(id) && transObject != null) {   // just need change the size
-                val (sizeToSetR, sizeToSetS) = (checkSize(tempSize(0)), checkSize(tempSize(1)))
-                  val factors = calculateResizeFactor(transObject, List(sizeToSetR, sizeToSetS, sizeToSetR), scaleFactors)
-                  val boxMesh = transObject.getMesh
-                  app.setReSize(factors(0), factors(1), factors(2), boxMesh)
-                }
-              }
-            case "Sphere" => // we don't need to care about first frame, since all the objects are fresh
-              // the type has been changed, we need to delete the old object and create a one
-              if (lastTempType != tempType) {
-                // change the object in
-                if (view.getObject(objID) != null)
-                  view.removeObject(objID)
-                val sizeToSetR = checkSize(tempSize(0))
-                scaleFactors -= objects(id)
-                if (lastRenderFrame.contains(transObject))
-                  lastRenderFrame -= transObject
-                objects(id) = Primitives.getSphere(10, abs(sizeToSetR.toFloat))
-                transObject = objects(id)
-                lastRenderFrame += transObject -> (currentFrame - bufferFrame(buffer.head))
-                setScaleFactors(tempSize, transObject, tempType, scaleFactors)
-                objID = objects(id).getID // refresh the object ID
-                view.addObject(transObject)
-              } else if (checkResizeable(tempSize)) {
-                if (objects.contains(id) && transObject != null) {   // just need change the size
-                val sizeToSetR = checkSize(tempSize(0))
-                  val factors = calculateResizeFactor(transObject, List(sizeToSetR, sizeToSetR, sizeToSetR), scaleFactors)
-                  val boxMesh = transObject.getMesh
-                  app.setReSize(factors(0), factors(1), factors(2), boxMesh)
-                }
-              }
-            case "Text" =>
-              val lastTempContent = if (lastRenderFrame.contains(transObject) && lastRenderFrame(transObject) < buffer.size)
-                bufferString(buffer(lastRenderFrame(transObject)))
-              else "deleteOld"
-              // the type has been changed, we need to delete the old object and create a one
-              if ((lastTempType != tempType || lastTempContent != tempContent) && tempContent != "") {
-                // change the object in
-                if (view.getObject(objID) != null)
-                  view.removeObject(objID)
-                val sizeToSetR = checkSize(tempSize(0))
-                scaleFactors -= objects(id)
-                if (lastRenderFrame.contains(transObject))
-                  lastRenderFrame -= transObject
-                objects(id) = buildText(tempContent, sizeToSetR)
-                transObject = objects(id)
-                lastRenderFrame += transObject -> (currentFrame - bufferFrame(buffer.head))
-                setScaleFactors(tempSize, transObject, tempType, scaleFactors)
-                objID = objects(id).getID // refresh the object ID
-                view.addObject(transObject)
-              } else if (checkResizeable(tempSize)) {
-                if (objects.contains(id) && transObject != null) {   // just need change the size
-                val sizeToSetR = checkSize(tempSize(0))
-                  val factors = calculateResizeFactor(transObject, List(sizeToSetR, sizeToSetR, sizeToSetR), scaleFactors)
-                  val boxMesh = transObject.getMesh
-                  app.setReSize(factors(0), factors(1), factors(2), boxMesh)
-                }
-              }
-            case "OBJ" =>
-              val lastTempPath = if (lastRenderFrame.contains(transObject) && lastRenderFrame(transObject) < buffer.size)
-                bufferString(buffer(lastRenderFrame(transObject)))
-              else "deleteOld"
-              // the type has been changed, we need to delete the old object and create a one
-              if ((lastTempType != tempType || tempPath != lastTempPath) && tempContent != "") {
-                // change the object in
-                if (view.getObject(objID) != null)
-                  view.removeObject(objID)
-                val sizeToSetR = checkSize(tempSize(0) / 10)
-                scaleFactors -= objects(id)
-                if (lastRenderFrame.contains(transObject))
-                  lastRenderFrame -= transObject
-                objects(id) = loadObj(tempPath, sizeToSetR)
-                transObject = objects(id)
-                lastRenderFrame += transObject -> (currentFrame - bufferFrame(buffer.head))
-                setScaleFactors(tempSize, transObject, tempType, scaleFactors)
-                objID = objects(id).getID // refresh the object ID
-                view.addObject(transObject)
-              } else if (checkResizeable(tempSize)) {
-                if (objects.contains(id) && transObject != null) {   // just need change the size
-                val sizeToSetR = checkSize(tempSize(0) / 10)
-                  val factors = calculateResizeFactor(transObject, List(sizeToSetR, sizeToSetR, sizeToSetR), scaleFactors)
-                  val boxMesh = transObject.getMesh
-                  app.setReSize(factors(0), factors(1), factors(2), boxMesh)
-                }
-              }
-            case _ => throw ShouldNeverHappen()
-          }
-        }
-      }
+  def getLastType(objectKey: (CId, Int)): Any = {
+    val lastName =
+      if (_3DDataBuffer(lastRenderFrame).contains(objectKey)
+       && _3DDataBuffer.contains(lastRenderFrame)) {
+        val valueList: List[_] = _3DDataBuffer(lastRenderFrame)(objectKey)
+        valueList(0)
+      } else false   // can not find the object
+    lastName
+  }
 
-      if (transObject != null) {
-        // reset the color for the object
-        setColor(transObject, tempColor)
-        // rotate the object
-        if (checkResizeable(tempAngle.toList))
-          app.rotateObject(transObject, tempAngle, tempType, null)
-        // calculate the transVector for the object and translate it
-        val tempTransVector = new SimpleVector(-tempPosition(0), -tempPosition(2), -tempPosition(1))
-        val transVector = tempTransVector.calcSub(transObject.getTransformedCenter)
-        transObject.translate(transVector)
-        CustomObject3D.partialBuild(transObject, tempType == "Text")
-      }
-      if (lastRenderFrame.contains(transObject))
-        lastRenderFrame(transObject) = currentFrame - bufferFrame(buffer.head)
+  def getLastContent(objectKey: (CId, Int)): Any = {
+    val lastContent =
+      if (_3DDataBuffer(lastRenderFrame).contains(objectKey)
+       && _3DDataBuffer.contains(lastRenderFrame)) {
+        val valueList: List[_] = _3DDataBuffer(lastRenderFrame)(objectKey)
+        valueList(5)
+      } else false   // can not find the object
+    lastContent
+  }
+
+  def needToResize(objectKey: (CId, Int), currentFrame: Int): Boolean = {
+    if (_3DDataBuffer.contains(lastRenderFrame)) {
+      val valueLastList: List[_] = _3DDataBuffer(lastRenderFrame)(objectKey)
+      val lastSize = valueLastList(2)
+      val valueCurList: List[_] = _3DDataBuffer(currentFrame)(objectKey)
+      val curSize = valueCurList(2)
+      if (lastSize == curSize) false
+      else true
     }
+    else true
   }
 
   def renderCurrentFrame() = {
-    for ((id, map) <- _3DDataBuffer) // acumen objects
-      for ((objectNumber, buffer) <- map) // 3d objects within
-        if (firstFrame(buffer) <= currentFrame && lastFrame(buffer) + offsetFrame >= currentFrame)
-          if (!app.objects.contains(List(id, objectNumber)))
-            matchingObject(List(id, objectNumber), buffer, currentFrame)
-          else
-            transformObject(List(id, objectNumber), app.objects, app.scaleFactors, buffer, currentFrame)
-        else
-          if (app.objects.contains(List(id, objectNumber)))
-            deleteObj(List(id, objectNumber))
-    if(currentFrame < _3DView.size)
-      app.transformView(_3DView(currentFrame)._1, _3DView(currentFrame)._2)
-    app.repaint()
+    app.objectsToDelete.clear()
+    // 3d objects within the current frame
+    if (_3DDataBuffer.contains(currentFrame)
+     && _3DDataBuffer(currentFrame) != null) {
+      for ((objectKey, valueList) <- _3DDataBuffer(currentFrame))
+        if (!app.objects.contains(objectKey))
+          matchingObject(objectKey, valueList, currentFrame)
+        else if (app.objects.contains(objectKey)  // this should not happen
+          && app.world.getObjectByName(app.objects(objectKey).getName) == null) {
+          app.objects -= objectKey
+          matchingObject(objectKey, valueList, currentFrame)
+        } else
+          transformObject(objectKey, valueList, currentFrame)
+
+      // delete the object not in this frame
+      for ((objectKey, o) <- app.objects)
+        if (!_3DDataBuffer(currentFrame).contains(objectKey))
+          deleteObj(objectKey)
+
+      lastRenderFrame = currentFrame
+      if(currentFrame < _3DView.size)
+        app.transformView(_3DView(currentFrame)._1, _3DView(currentFrame)._2)
+      app.addState = "addNewObjects"
+      app.addStateMachine()
+      app.deleteState = "deleteOldObjects"
+      app.deleteStateMachine()
+      app.repaint()
+    }
   }
 
-  // Main execution loop
-  var view = app.world
+  /**
+   * Moving and rotating the object
+   */
+  def transformObject(objectKey: (CId, Int), valueList: List[_],
+                      currentFrame: Int) {
+    var objID = app.objects(objectKey).getID  // get the object ID
+    /* Get the 3D information of the object at that frame	*/
+    val (name: String, position: Array[Double], size: Array[Double],
+    color: Array[Double], angle: Array[Double]) =
+      (valueList(0), valueList(1), valueList(2), valueList(3), valueList(4))
+    val (text: String, path: String) =
+      (if (name == "Text") valueList(5) else " ",
+       if (name == "OBJ")  valueList(5) else " ")
+
+    // get the object need to transform
+    var transObject: Object3D = app.world.getObject(objID)
+
+    val (lastFrameName, needResize: Boolean) =
+      if (getLastType(objectKey) == false) ("New Object", false)
+      else (getLastType(objectKey), needToResize(objectKey,currentFrame))
+    // reset the type and size for the object, matching the type of object first
+    name match {
+      case "Box" =>
+        // the type has been changed, delete the old object and create a new one
+        if (lastFrameName != name) {
+          // change the object in
+          // Since some object need to scale, we never allow the initial size become 0
+          val (sizeToSetX, sizeToSetY, sizeToSetZ) = (checkSize(size(1)),
+                                                      checkSize(size(0)),
+                                                      checkSize(size(2)))
+          app.objectsToDelete += app.world.getObject(objID)
+          app.scaleFactors -= app.objects(objectKey)
+          app.objects(objectKey) = app.drawBox(abs(sizeToSetX), abs(sizeToSetY),
+                                               abs(sizeToSetZ))
+          transObject = app.objects(objectKey)
+          setScaleFactors(Array(sizeToSetY,sizeToSetZ,sizeToSetX), transObject,
+                          name, app.scaleFactors)
+          objID = app.objects(objectKey).getID // refresh the object ID
+          transObject.setShadingMode(Object3D.SHADING_FAKED_FLAT)
+        } else if (checkResizeable(size) && needResize) {
+          // just need to change the size
+          if (app.objects.contains(objectKey) && transObject != null) {
+            val (sizeToSetX, sizeToSetY, sizeToSetZ) = (checkSize(size(1)),
+                                                        checkSize(size(2)),
+                                                        checkSize(size(0)))
+            val factors = calculateResizeFactor(transObject, Array(sizeToSetZ,
+                                      sizeToSetY, sizeToSetX), app.scaleFactors)
+            val boxMesh = transObject.getMesh
+            app.setReSize(factors(0), factors(1), factors(2), boxMesh)
+          }
+        }
+      case "Cylinder" =>
+        // the type has been changed, delete the old object and create a new one
+        if (lastFrameName != name) {
+          // change the object in
+          val (sizeToSetR, sizeToSetS) = (checkSize(size(0)), checkSize(size(1)))
+          app.objectsToDelete += app.world.getObject(objID)
+          app.scaleFactors -= app.objects(objectKey)
+          app.objects(objectKey) = Primitives.getCylinder(20, abs(sizeToSetR.toFloat),
+                                    abs(sizeToSetS / (2 * sizeToSetR)).toFloat)
+          transObject = app.objects(objectKey)
+          setScaleFactors(size, transObject, name, app.scaleFactors)
+          objID = app.objects(objectKey).getID // refresh the object ID
+          transObject.setShadingMode(Object3D.SHADING_FAKED_FLAT)
+        } else if (checkResizeable(size) && needResize) {
+          if (app.objects.contains(objectKey) && transObject != null) {
+            // just need to change the size
+            val (sizeToSetR, sizeToSetS) = (checkSize(size(0)), checkSize(size(1)))
+            val factors = calculateResizeFactor(transObject, Array(sizeToSetR,
+                                      sizeToSetS, sizeToSetR), app.scaleFactors)
+            val boxMesh = transObject.getMesh
+            app.setReSize(factors(0), factors(1), factors(2), boxMesh)
+          }
+        }
+      case "Cone" =>
+        // the type has been changed, delete the old object and create a new one
+        if (lastFrameName != name) {
+          // change the object in
+          val (sizeToSetR, sizeToSetS) = (checkSize(size(0)), checkSize(size(1)))
+          app.objectsToDelete += app.world.getObject(objID)
+          app.scaleFactors -= app.objects(objectKey)
+          app.objects(objectKey) = Primitives.getCone(20, abs(sizeToSetR.toFloat),
+            abs(sizeToSetS / (sizeToSetR * 2)).toFloat)
+          transObject = app.objects(objectKey)
+          setScaleFactors(size, transObject, name, app.scaleFactors)
+          objID = app.objects(objectKey).getID // refresh the object ID
+        } else if (checkResizeable(size) && needResize) {
+          if (app.objects.contains(objectKey) && transObject != null) {
+            // just need to change the size
+            val (sizeToSetR, sizeToSetS) = (checkSize(size(0)), checkSize(size(1)))
+            val factors = calculateResizeFactor(transObject, Array(sizeToSetR,
+                                      sizeToSetS, sizeToSetR), app.scaleFactors)
+            val boxMesh = transObject.getMesh
+            app.setReSize(factors(0), factors(1), factors(2), boxMesh)
+          }
+        }
+      case "Sphere" =>
+        // the type has been changed, delete the old object and create a new one
+        if (lastFrameName != name) {
+          // change the object in
+          val sizeToSetR = checkSize(size(0))
+          app.objectsToDelete += app.world.getObject(objID)
+          app.scaleFactors -= app.objects(objectKey)
+          app.objects(objectKey) = Primitives.getSphere(10, abs(sizeToSetR.toFloat))
+          transObject = app.objects(objectKey)
+          setScaleFactors(size, transObject, name, app.scaleFactors)
+          objID = app.objects(objectKey).getID // refresh the object ID
+        } else if (checkResizeable(size) && needResize) {
+          if (app.objects.contains(objectKey) && transObject != null) {
+            // just need to change the size
+            val sizeToSetR = checkSize(size(0))
+            val factors = calculateResizeFactor(transObject, Array(sizeToSetR,
+                                      sizeToSetR, sizeToSetR), app.scaleFactors)
+            val boxMesh = transObject.getMesh
+            app.setReSize(factors(0), factors(1), factors(2), boxMesh)
+          }
+        }
+      case "Text" =>
+        val lastFrameContent =
+          if (getLastContent(objectKey) == false) "new" + name
+          else getLastContent(objectKey)
+        // the type has been changed, delete the old object and create a new one
+        if ((lastFrameName != name || lastFrameContent != text) && text != "") {
+          // change the object in
+          val sizeToSetR = checkSize(size(0))
+          app.objectsToDelete += app.world.getObject(objID)
+          app.scaleFactors -= app.objects(objectKey)
+          app.objects(objectKey) = buildText(text, sizeToSetR)
+          transObject = app.objects(objectKey)
+          setScaleFactors(size, transObject, name, app.scaleFactors)
+          objID = app.objects(objectKey).getID // refresh the object ID
+        } else if (checkResizeable(size) && needResize) {
+          if (app.objects.contains(objectKey) && transObject != null) {
+            // just need to change the size
+            val sizeToSetR = checkSize(size(0))
+            val factors = calculateResizeFactor(transObject, Array(sizeToSetR,
+                                      sizeToSetR, sizeToSetR), app.scaleFactors)
+            val boxMesh = transObject.getMesh
+            app.setReSize(factors(0), factors(1), factors(2), boxMesh)
+          }
+        }
+      case "OBJ" =>
+        val lastFrameContent =
+          if (getLastContent(objectKey) == false) "new" + name
+          else getLastContent(objectKey)
+        // the type has been changed, we need to delete the old object and create a one
+        if ((lastFrameName != name || lastFrameContent != path) && path != "") {
+          // change the object in
+          val sizeToSetR = checkSize(size(0) / 12)
+          app.objectsToDelete += app.world.getObject(objID)
+          app.scaleFactors -= app.objects(objectKey)
+          app.objects(objectKey) = loadObj(path, sizeToSetR)
+          transObject = app.objects(objectKey)
+          setScaleFactors(size, transObject, name, app.scaleFactors)
+          objID = app.objects(objectKey).getID // refresh the object ID
+        } else if (checkResizeable(size) && needResize) {
+          if (app.objects.contains(objectKey) && transObject != null) {
+            // just need to change the size
+            val sizeToSetR = checkSize(size(0) / 12)
+            val factors = calculateResizeFactor(transObject, Array(sizeToSetR,
+                                      sizeToSetR, sizeToSetR), app.scaleFactors)
+            val boxMesh = transObject.getMesh
+            app.setReSize(factors(0), factors(1), factors(2), boxMesh)
+          }
+        }
+      case _ => throw ShouldNeverHappen()
+    }
+
+    if (transObject != null) {
+      // reset the color for the object
+      setColor(transObject, color)
+      // rotate the object
+      if (checkResizeable(angle))
+        app.rotateObject(transObject, angle, name, null)
+      // calculate the transVector for the object and translate it
+      val tempTransVector = new SimpleVector(-position(0), -position(2),
+                                             -position(1))
+      val transVector = tempTransVector.calcSub(transObject.getTransformedCenter)
+      transObject.translate(transVector)
+      CustomObject3D.partialBuild(transObject, name == "Text")
+    }
+  }
+
+  def matchingObject(c: (CId, Int), valueList: List[_], currentFrame: Int) = {
+    /* Find the corresponding index of the object */
+    /* Get the 3D information of the object at that frame	*/
+    val (name: String, position: Array[Double], size: Array[Double],
+    color: Array[Double], angle: Array[Double]) =
+      (valueList(0), valueList(1), valueList(2), valueList(3), valueList(4))
+    val (text: String, path: String) =
+      (if (name == "Text") valueList(5) else " ",
+        if (name == "OBJ")  valueList(5) else " ")
+
+    val newObject = name match {
+      case "Box" =>
+        val (sizeToSetX, sizeToSetY, sizeToSetZ) = (checkSize(size(1)),
+                                                    checkSize(size(0)),
+                                                    checkSize(size(2)))
+        app.drawBox(abs(sizeToSetX), abs(sizeToSetY), abs(sizeToSetZ))
+      case "Cylinder" =>
+        val (sizeToSetR, sizeToSetS) = (checkSize(size(0)), checkSize(size(1)))
+        Primitives.getCylinder(20, abs(sizeToSetR).toFloat,
+          abs(sizeToSetS / (sizeToSetR * 2)).toFloat)
+      case "Cone" =>
+        val (sizeToSetR, sizeToSetS) = (checkSize(size(0)), checkSize(size(1)))
+        Primitives.getCone(20, abs(sizeToSetR.toFloat),
+          abs(sizeToSetS / (sizeToSetR * 2)).toFloat)
+      case "Sphere" =>
+        val sizeToSetR = checkSize(size(0))
+        Primitives.getSphere(20, abs(sizeToSetR.toFloat))
+      case "Text" =>
+        val sizeToSetR = checkSize(size(0))
+        if (text != "")  // model err, do nothing
+          buildText(text, sizeToSetR)
+        else
+          null
+      case "OBJ" =>
+        val sizeToSetR = checkSize(size(0) / 12)
+        if (path != "")  // model err, do nothing
+          loadObj(path, sizeToSetR)
+        else
+          null
+      case _ => throw ShouldNeverHappen()
+    }
+
+    if (newObject != null) {
+      // set color to the object
+      setColor(newObject, color)
+      if (name == "Box" || name == "Cylinder")
+        newObject.setShadingMode(Object3D.SHADING_FAKED_FLAT)
+      // rotate the object
+      app.rotateObject(newObject, angle, name, null)
+
+      // calculate the transVector for the object and translate object
+      val tempTransVector = new SimpleVector(-position(0), -position(2), -position(1))
+      val transVector = tempTransVector.calcSub(newObject.getTransformedCenter)
+      newObject.translate(transVector)
+
+      // calculate resize factor for object
+      if (name == "Box")
+        setScaleFactors(Array(size(0), size(2), size(1)), newObject, name,
+          app.scaleFactors)
+      else
+        setScaleFactors(size, newObject, name, app.scaleFactors)
+      app.objects += c -> newObject
+      if (name != "Text")
+        CustomObject3D.partialBuild(newObject, false)
+      else {
+        newObject.setRotationPivot(new SimpleVector(0,0,0))
+        newObject.setCenter(new SimpleVector(0,0,0))
+        CustomObject3D.partialBuild(newObject, true)
+      }
+    }
+  }
 
   def act() {
     loopWhile(!destroy) {
@@ -739,7 +769,7 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
         exit()
       react {
         case "go" =>
-          if (currentFrame < totalFrames)
+          if (currentFrame <= totalFrames)
             renderCurrentFrame()
           if (slider.firstPlayed) {
             slider.firstPlayed = false
@@ -757,7 +787,7 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
             slider.setProgress3D(percentage)
             slider.setTime(percentage / 100f * endTime)
           }
-          if (currentFrame < totalFrames)
+          if (currentFrame <= totalFrames)
             currentFrame += 1
       }
     }
@@ -770,10 +800,6 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
         currentFrame = slider.bar.value * totalFrames / 100
         slider.setProgress3D(slider.bar.value)
         slider.setTime((slider.bar.value / 100f) * endTime)
-        if (currentFrame < 2)
-          currentFrame = startFrameNumber
-        if (currentFrame > totalFrames)
-          currentFrame = totalFrames
         if (pause)
           renderCurrentFrame()
       }
@@ -861,91 +887,11 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
     objFileloader
   }
 
-  def matchingObject(c: List[_], buffer: scala.collection.mutable.Buffer[List[_]],
-                     currentFrame: Int) = {
-    /* Find the corresponding index of the object */
-    val index = currentFrame - bufferFrame(buffer.head)
-    /* Get the 3D information of the object at that frame	*/
-    val (position, angle, color, size, name) =
-      if (index >= 0 && index < buffer.size)
-        (bufferPosition(buffer(index)), bufferAngle(buffer(index)), bufferColor(buffer(index)),
-          bufferSize(buffer(index)), bufferType(buffer(index)))
-      else (Array(0.0,0.0,0.0), Array(0.0,0.0,0.0), List(0.0,0.0,0.0), List(0.0), " ")
-    val (text, path) =
-      if (index >= 0 && index < buffer.size)
-        (if (name == "Text") bufferString(buffer(index)) else " ",
-          if (name == "OBJ")  bufferString(buffer(index)) else " ")
-      else (" ", " ")
-
-    if (name != " ") {
-      val newObject = name match {
-        case "Box" =>
-          // Since some object need to scale, we never allow the initial size become 0
-          val (sizeToSetX, sizeToSetY, sizeToSetZ) = (checkSize(size(1)),
-            checkSize(size(0)),
-            checkSize(size(2)))
-          app.drawBox(abs(sizeToSetX), abs(sizeToSetY), abs(sizeToSetZ))
-        case "Cylinder" =>
-          val (sizeToSetR, sizeToSetS) = (checkSize(size(0)), checkSize(size(1)))
-          Primitives.getCylinder(20, abs(sizeToSetR).toFloat, abs(sizeToSetS / (sizeToSetR * 2)).toFloat)
-        case "Cone" =>
-          val (sizeToSetR, sizeToSetS) = (checkSize(size(0)), checkSize(size(1)))
-          Primitives.getCone(20, abs(sizeToSetR.toFloat), abs(sizeToSetS / (sizeToSetR * 2)).toFloat)
-        case "Sphere" =>
-          val sizeToSetR = checkSize(size(0))
-          Primitives.getSphere(20, abs(sizeToSetR.toFloat))
-        case "Text" =>
-          val sizeToSetR = checkSize(size(0))
-          if (text != "")  // model err, do nothing
-            buildText(text, sizeToSetR)
-          else
-            null
-        case "OBJ" =>
-          val sizeToSetR = checkSize(size(0) / 10)
-          if (path != "")  // model err, do nothing
-            loadObj(path, sizeToSetR)
-          else
-            null
-        case _ => throw ShouldNeverHappen()
-      }
-
-      if (newObject != null) {
-        // set color to the object
-        setColor(newObject, color)
-        if (name == "Box" || name == "Cylinder")
-          newObject.setShadingMode(Object3D.SHADING_FAKED_FLAT)
-        // rotate the object
-        app.rotateObject(newObject, angle, name, null)
-
-        // calculate the transVector for the object and translate object
-        val tempTransVector = new SimpleVector(-position(0), -position(2), -position(1))
-        val transVector = tempTransVector.calcSub(newObject.getTransformedCenter)
-        newObject.translate(transVector)
-
-        // calculate resize factor for object
-        if (name == "Box")
-          setScaleFactors(List(size(0), size(2), size(1)), newObject, name, app.scaleFactors)
-        else
-          setScaleFactors(size, newObject, name, app.scaleFactors)
-        app.objects -= c
-        app.objects += c.toList -> newObject
-        lastRenderFrame += newObject -> (currentFrame - bufferFrame(buffer.head))
-        view.addObject(newObject)
-        if (name != "Text")
-          CustomObject3D.partialBuild(newObject, false)
-        else {
-          newObject.setRotationPivot(new SimpleVector(0,0,0))
-          newObject.setCenter(new SimpleVector(0,0,0))
-          CustomObject3D.partialBuild(newObject, true)
-        }
-      }
-    }
-  }
-
-  def setColor(objectToSet: Object3D, colorList: List[Double]) =
-    objectToSet.setAdditionalColor(new Color( max(0, min(255, colorList(0) * 255)).toInt
-                                            , max(0, min(255, colorList(1) * 255)).toInt
-                                            , max(0, min(255, colorList(2) * 255)).toInt ))
+  def setColor(objectToSet: Object3D, colorRGB: Array[Double]) =
+    objectToSet.setAdditionalColor(new Color
+    ( max(0, min(255, colorRGB(0) * 255)).toInt
+    , max(0, min(255, colorRGB(1) * 255)).toInt
+    , max(0, min(255, colorRGB(2) * 255)).toInt ))
 
 }
 
