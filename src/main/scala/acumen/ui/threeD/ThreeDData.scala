@@ -45,14 +45,6 @@ class ThreeDData extends Publisher {
     frameNumber = 0
   }
 
-  def init3DClassStore(id: CId, _3DData: _3DStore, objectCount: Int): Unit = {
-    var temp: _3DClass = Map[Int, List[List[_]]]()
-    for (i <- 0 to objectCount - 1) {
-      temp += i -> List[List[_]]()
-    }
-    _3DData += id -> temp
-  }
-
   def isVectorOfNumbers(l: List[_]): Boolean = {
     var result = true
     for (x <- l)
@@ -149,12 +141,30 @@ class ThreeDData extends Publisher {
     }
   }
 
+  def init3DClassStore(id: CId, _3DData: _3DStore, frameNumber: Int) = {
+
+    val temp: _3DClass = mutable.Map[(CId, Int), List[_]]()
+    _3DData += frameNumber -> temp
+  }
+
+  def addValuesTo3DClass(objectKey: (CId, Int), value: List[_],
+                         _3DData: _3DStore, frameNumber: Int) = {
+
+    if (_3DData(frameNumber).contains(objectKey))
+      _3DData(frameNumber)(objectKey) = value
+    else
+      _3DData(frameNumber) += objectKey -> value
+  }
+
   /* Add new information of each 3D-object to _3DStore */
-  def addTo3DStore(id: CId, _3DData: _3DStore, value: List[Value[_]], objectCount: Int) {
-    if (!_3DData.contains(id))
-      init3DClassStore(id, _3DData, objectCount);
+  def addTo3DStore(id: CId, _3DData: _3DStore, value: List[Value[_]],
+                   objectCount: Int, frameNumber: Int) {
+    if (!_3DData.contains(frameNumber))
+      init3DClassStore(id, _3DData, frameNumber)
 
     for (i <- 0 until objectCount) {
+      /* objectKey is used for specifying the 3D object */
+      val objectKey = (id, i)
       val vector = value(i)
       vector match {
         case VVector(l) =>
@@ -175,18 +185,17 @@ class ThreeDData extends Publisher {
           }
         case _ => throw ShouldNeverHappen()
       }
-      if (_3DType == "Text")
-        _3DData(id)(i) = List(_3DType, _3DPosition,
-          _3DSize, _3DColor, _3DAngle, _3DText, frameNumber) :: _3DData(id)(i)
-      else if (_3DType == "OBJ")
-        _3DData(id)(i) = List(_3DType, _3DPosition,
-          _3DSize, _3DColor, _3DAngle, _3DPath, frameNumber) :: _3DData(id)(i)
-      else if (_3DTexture == "transparent")
-        _3DData(id)(i) = List(_3DType, _3DPosition,
-          _3DSize, _3DColor, _3DAngle, _3DTexture, frameNumber) :: _3DData(id)(i)
-      else
-        _3DData(id)(i) = List(_3DType, _3DPosition,
-          _3DSize, _3DColor, _3DAngle, frameNumber) :: _3DData(id)(i)
+      val valueList =
+        if (_3DType == "Text")
+          List(_3DType, _3DPosition, _3DSize, _3DColor, _3DAngle, _3DText)
+        else if (_3DType == "OBJ")
+          List(_3DType, _3DPosition, _3DSize, _3DColor, _3DAngle, _3DPath)
+        else if (_3DTexture == "transparent")
+          List(_3DType, _3DPosition, _3DSize, _3DColor, _3DAngle, _3DTexture)
+        else
+          List(_3DType, _3DPosition, _3DSize, _3DColor, _3DAngle)
+
+      addValuesTo3DClass(objectKey, valueList, _3DData, frameNumber)
 
       _3DTexture = ""
     }
@@ -232,14 +241,16 @@ class ThreeDData extends Publisher {
 								   *		example:  _3D = ["Sphere",...,...,..]
 							     *	    		  	_3D = [2,...,...,..];
 							     */
-                  case VLit(_) => addTo3DStore(id, _3DData, List(value), 1)
 
                   /**
                    * If it contains multiple objects, _3D will start with a vector,
                    * example : _3D = [ [" Sphere ", [ ], [ ]...],
                    * ["Sphere",[],[]...]..]
+                  case VLit(_) =>
+                    addTo3DStore(id, _3DData, List(value), 1, frameNumber)
                    */
-                  case VVector(some) => addTo3DStore(id, _3DData, l, l.size)
+                  case VVector(some) =>
+                    addTo3DStore(id, _3DData, l, l.size, frameNumber)
                   case _ => throw _3DError(value)
                 }
             case _ => throw _3DError(value)
@@ -247,6 +258,8 @@ class ThreeDData extends Publisher {
         }
       }
     }
+    if (!_3DData.contains(frameNumber))
+      _3DData += frameNumber -> null
     frameNumber += 1
   }
 
