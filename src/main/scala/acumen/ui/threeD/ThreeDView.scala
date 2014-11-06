@@ -36,8 +36,29 @@ class ThreeDView extends JPanel {
   val coAxes = new coAxis (characters.characters)
   val axes = coAxes.cylinders
   val axisArray = Array(new Object3D(1))
+  val mainbox = drawBox(1, 1, 1)
+
   protected[threeD] var objects = mutable.Map[(CId, Int), Object3D]()
   protected[threeD] var scaleFactors = mutable.Map[Object3D, Array[Double]]()
+  // the state machine for deleting objects in delete state machine
+  /* There are five states in total
+  *  which are "standBy" -> do nothing (default)
+  *            "deleteAllObject" -> delete all the objects
+  *            "deleteOldObject" -> delete object not in current frame
+  *            "deleteAxes" -> delete the axes
+  *            "deleteLookAtSphere" -> delete the red sphere at look at point*/
+  protected[threeD] var deleteState = "standBy"
+  // the state machine for deleting objects in add state machine
+  /* There are five states in total
+  *  which are "standBy" -> do nothing (default)
+  *            "addNewObjects" -> add new object in current frame
+  *            "addMainBox" -> add the Main Box
+  *            "addAxes" -> add the axes
+  *            "addLookAtSphere" -> add the red sphere at look at point*/
+  protected[threeD] var addState = "standBy"
+  private var addObjectsDone = true
+  private var deleteObjectsDone = true
+  protected[threeD] var objectsToDelete = mutable.ArrayBuffer[Object3D]()
 
   val defaultCamPos = new SimpleVector(3, -3, 10)
   private val lookAtPoint = new SimpleVector(0,0,0) // in jPCT coordinate system
@@ -71,17 +92,19 @@ class ThreeDView extends JPanel {
         lastMouseX = e.getX
         lastMouseY = e.getY
         new setGlass(Color.RED, lookAtCenter, -1)
-        world.addObject(lookAtCenter)
         CustomObject3D.partialBuild(lookAtCenter, false)
         lookAtCenter.translate(lookAtPoint.calcSub
                               (lookAtCenter.getTransformedCenter))
+        addState = "addLookAtSphere"
+        addStateMachine()
         repaint()
       }
       dragging = true
     }
     override def mouseReleased(e: MouseEvent) = {
       dragging = false
-      world.removeObject(lookAtCenter)
+      deleteState = "deleteLookAtSphere"
+      deleteStateMachine()
       repaint()
     }
   })
@@ -170,22 +193,19 @@ class ThreeDView extends JPanel {
     newAngle
   }
 
-  def axisOn() =
-    if (!axisArray.contains(axes(0))) {
-      axisArray(0) = axes(0)
-      world.addObjects(axes)
-      for (i <- 0 until axes.length)
-        CustomObject3D.partialBuild(axes(i), i < 6)
-      this.repaint()
-    }
+  def axisOn() = {
+    addState = "addAxes"
+    addStateMachine()
+    repaint()
+  }
 
-  def axisOff() =
-    if (axisArray.contains(axes(0))) {
-      for (i <- 0 until axes.length)
-        world.removeObject(axes(i))
-      axisArray(0) = null
-      this.repaint()
-    }
+
+  def axisOff() = {
+    deleteState = "deleteAxes"
+    deleteStateMachine()
+    repaint()
+  }
+
 
   // create a new buffer to draw on:
   private var buffer: FrameBuffer = null
@@ -197,26 +217,86 @@ class ThreeDView extends JPanel {
 
   def init() = {
     // add the main box
-    val mainbox = drawBox(1, 1, 1)
     mainbox.setShadingMode(Object3D.SHADING_FAKED_FLAT)
     new setGlass(new Color(180, 180, 180), mainbox, 0)
-    world.addObject(mainbox)
     camera = world.getCamera  // grab a handle to the camera
     defaultView()
     lookAt(mainbox, null) // camera faces towards the object
     initialized = true
     lookAtPoint.set(0,0,0)
-    world.buildAllObjects()
-    this.repaint()
+    CustomObject3D.partialBuild(mainbox, false)
+    addState = "addMainBox"
+    addStateMachine()
+    repaint()
+  }
+
+  def deleteStateMachine() = {
+    deleteObjectsDone = false
+    // object deleting state machine
+    deleteState match {
+      case "deleteOldObjects" => // only called in renderCurrentFrame()
+        for (oldObject <- objectsToDelete) {
+          if (world.getObjectByName(oldObject.getName) != null)
+            world.removeObject(oldObject)
+        }
+      case "deleteAllObjects" =>
+        world.removeAllObjects()
+      case "deleteAxes" => // only called in axisOff function
+        if (axisArray.contains(axes(0))) {
+          for (i <- 0 until axes.length)
+            world.removeObject(axes(i))
+          axisArray(0) = null
+        }
+      case "deleteLookAtSphere" => // called when camera rotation is finished
+        if (world.getObjectByName(lookAtCenter.getName) != null)
+          world.removeObject(lookAtCenter)
+      case "standBy" => // do nothing, default state
+      case _ => throw ShouldNeverHappen()
+    }
+    deleteState = "standBy"
+    deleteObjectsDone = true
+  }
+
+  def addStateMachine() = {
+    addObjectsDone = false
+    // object deleting state machine
+    addState match {
+      case "addNewObjects" => // only called in renderCurrentFrame()
+        // add all the objects in current frame into the view
+        for ((objectKey, objectToBuild) <- objects) {
+          if (world.getObjectByName(objectToBuild.getName) == null) {
+            world.addObject(objectToBuild)
+          }
+        }
+      case "addMainBox" =>
+        if (world.getObjectByName(mainbox.getName) == null)
+          world.addObject(mainbox)
+      case "addAxes" => // only called in axisOff function
+        if (!axisArray.contains(axes(0))) {
+          axisArray(0) = axes(0)
+          for (i <- 0 until axes.length)
+            CustomObject3D.partialBuild(axes(i), i < 6)
+          world.addObjects(axes)
+        }
+      case "addLookAtSphere" => // called when camera rotation is finished
+        if (world.getObjectByName(lookAtCenter.getName) == null)
+          world.addObject(lookAtCenter)
+      case "standBy" => // do nothing, default state
+      case _ => throw ShouldNeverHappen()
+    }
+    addState = "standBy"
+    addObjectsDone = true
   }
 
   override def paint(g: Graphics) = {
-    buffer.clear(Color.LIGHT_GRAY) // erase the previous frame
-    // render the world onto the buffer:
-    world.renderScene(buffer)
-    world.draw(buffer)
-    buffer.update()
-    buffer.display(g)
+    if (addObjectsDone && deleteObjectsDone) {
+      buffer.clear(Color.LIGHT_GRAY) // erase the previous frame
+      // render the world onto the buffer:
+      world.renderScene(buffer)
+      world.draw(buffer)
+      buffer.update()
+      buffer.display(g)
+    }
   }
 
   // point the camera toward the given object
@@ -243,9 +323,12 @@ class ThreeDView extends JPanel {
   }
 
   def reset() = {
+    deleteState = "deleteAllObjects"
+    deleteStateMachine()
+    repaint()
     objects.clear()
     scaleFactors.clear()
-    world.removeAllObjects()
+    objectsToDelete.clear()
     axisArray(0) = null
     defaultView()
     init()
@@ -388,11 +471,14 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
 
   def stop() =
     if (app.objects.nonEmpty) {
-      app.world.removeAllObjects()
+      app.deleteState = "deleteAllObjects"
+      app.deleteStateMachine()
+      app.repaint()
       app.objects.clear()
       app.axisArray(0) = null
       app.scaleFactors.clear()
-      lastRenderFrame.clear()
+      app.objectsToDelete.clear()
+      lastRenderFrame = 0
     }
 
   def checkResizeable(newSize: Array[Double]): Boolean =
@@ -808,10 +894,11 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
   /**
    * Delete an 3D-object from scene
    */
-  def deleteObj(c: List[_]) {
+  def deleteObj(c: (CId, Int)) {
     if (app.objects.contains(c)) {
-      view.removeObject(app.objects(c))
-      app.objects.remove(c)
+      if (app.world.getObjectByName(app.objects(c).getName) != null)
+        app.objectsToDelete += app.objects(c)
+      app.objects -= c
     }
   }
 

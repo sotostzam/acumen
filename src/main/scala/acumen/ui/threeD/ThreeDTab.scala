@@ -237,8 +237,11 @@ class ThreeDTab (val appModel: Controller) extends AbstractEditorTab{
         threeDView.customView = false
         threeDView.preCustomView = threeDView.customView
       }
+      threeDView.deleteState = "deleteAllObjects"
+      threeDView.deleteStateMachine()
+      threeDView.repaint()
+      repaint()
       threeDView.objects.clear()
-      threeDView.world.removeAllObjects()
       threeDView.scaleFactors.clear()
       threeDView.axisArray(0) = null
       if (check.selected)
