@@ -368,7 +368,8 @@ object Interpreter extends acumen.CStoreInterpreter {
       mkObj(cmain, mprog, None, sd1, List(VObjId(Some(CId(0)))), 1)(initStoreRef)
     val st2 = changeParent(CId(0), id, st1)
     val st3 = changeSeed(CId(0), sd2, st2)
-    (mprog, st3, NoMetadata)
+    val st4 = countVariables(st3)
+    (mprog, st4, NoMetadata)
   }
 
   override def exposeExternally(store: Store, md: Metadata): (Store, Metadata) =
@@ -413,7 +414,7 @@ object Interpreter extends acumen.CStoreInterpreter {
             val st2 = setResultType(Continuous, stE)
             setTime(getTime(st2) + getTimeStep(st2), st2)
         }
-        Data(res,md1)
+        Data(countVariables(res), md1)
       }
 
   /** Summarize result of evaluating the hypotheses of all objects. */

@@ -86,7 +86,11 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
   case object StartTime extends InitialConditionTime
   case object UnknownTime extends InitialConditionTime
   type InitialCondition = (Enclosure, Evolution, InitialConditionTime)
-  case class EnclosureAndBranches(val enclosure: Enclosure, branches: List[InitialCondition])
+  class EnclosureAndBranches(val enclosure: Enclosure, val branches: List[InitialCondition])
+  object EnclosureAndBranches{
+    def apply(e: Enclosure, bs: List[InitialCondition]): EnclosureAndBranches = 
+      new EnclosureAndBranches(countVariables(e), bs) 
+  }
   
   /** Represents a sequence of Changesets without consecutive repeated flows. */
   case class Evolution(changes: List[Changeset]) {
@@ -779,7 +783,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
   
   lazy val initStore = Parser.run(Parser.store, initStoreTxt.format("#0"))
   val initStoreTxt: String = 
-    s"""#0.0 { className = Simulator, parent = %s, nextChild = 0, seed1 = 0, seed2 = 0, 
+    s"""#0.0 { className = Simulator, parent = %s, nextChild = 0, seed1 = 0, seed2 = 0, variableCount = 0, 
                outputRows = "All", continuousSkip = 0, resultType = @Discrete, 
                ${visibleParameters.map(p => p._1 + "=" + pprint(p._2)).mkString(",")} }"""
 
