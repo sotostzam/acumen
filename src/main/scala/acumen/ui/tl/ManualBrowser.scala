@@ -1,6 +1,7 @@
 package acumen.ui.tl
 
-import java.awt.Desktop
+import java.awt.{ Desktop, Toolkit }
+import java.awt.datatransfer.StringSelection
 import java.net.URL
 import javax.swing.JEditorPane
 import javax.swing.JScrollPane
@@ -19,7 +20,15 @@ object ManualBrowser extends Frame {
 
   title = "User Guide and Reference Manual"
   
-  val jep = new JEditorPane
+  val jep = new JEditorPane{
+    override def copy() {
+      // Remove junk character stemming from how &nbsp; is interpreted by JEditorPane 
+      // (not accepted as whitespace by Acumen parser)
+      val cleanedSelection = getSelectedText.map{ c => if (c.intValue == 160) ' ' else c }
+      val cb = Toolkit.getDefaultToolkit.getSystemClipboard
+      cb.setContents(new StringSelection(cleanedSelection), null)
+    }
+  }
   jep.setEditorKit(JEditorPane createEditorKitForContentType "text/html")
   jep.setEditable(false)
   jep.setBorder(new EmptyBorder(5, 5, 5, 0))
