@@ -220,7 +220,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
   /** Return type of AST traversal (evalActions) */
   case class Changeset
     ( reps:   Set[(CId,CId)]         = Set.empty // reparentings
-    , ass:    Set[DelayedAction]     = Set.empty // discrete assignments
+    , dis:    Set[DelayedAction]     = Set.empty // discrete assignments
     , eqs:    Set[DelayedAction]     = Set.empty // continuous assignments / algebraic equations
     , odes:   Set[DelayedAction]     = Set.empty // ode assignments / differential equations
     , claims: Set[DelayedConstraint] = Set.empty // claims / constraints
@@ -230,10 +230,10 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
       that match {
         case Changeset.empty => this
         case Changeset(reps1, ass1, eqs1, odes1, claims1, hyps1) =>
-          Changeset(reps ++ reps1, ass ++ ass1, eqs ++ eqs1, odes ++ odes1, claims ++ claims1, hyps ++ hyps1)
+          Changeset(reps ++ reps1, dis ++ ass1, eqs ++ eqs1, odes ++ odes1, claims ++ claims1, hyps ++ hyps1)
       }
     override def toString =
-      (reps, ass.map(d => d.selfCId + "." + pprint(d.a))
+      (reps, dis.map(d => d.selfCId + "." + pprint(d.a))
            , eqs.map(d => d.selfCId + "." + pprint(d.a))
            , odes.map(d => d.selfCId + "." + pprint(d.a))
            , claims.map(d => d.selfCId + "." + pprint(d.c))).toString
@@ -251,7 +251,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
     def logReparent(o:CId, parent:CId): Set[Changeset] =
       Set(Changeset(reps = Set((o,parent))))
     def logAssign(path: Expr, o: CId, a: Action, env: Env): Set[Changeset] =
-      Set(Changeset(ass = Set(DelayedAction(path,o,a,env))))
+      Set(Changeset(dis = Set(DelayedAction(path,o,a,env))))
     def logEquation(path: Expr, o: CId, a: Action, env: Env): Set[Changeset] =
       Set(Changeset(eqs = Set(DelayedAction(path,o,a,env))))
     def logODE(path: Expr, o: CId, a: Action, env: Env): Set[Changeset] =
@@ -831,7 +831,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
   /** Ensure that c does not contain duplicate assignments. */
   def checkValidChange(c: Set[Changeset]): Unit = c.foreach{ cs =>
     val contIds = (cs.eqs.toList ++ cs.odes.toList).map(da => (da.selfCId, da.lhs))
-    val assIds = cs.ass.toList.map(da => (da.selfCId, da.lhs))
+    val assIds = cs.dis.toList.map(da => (da.selfCId, da.lhs))
     checkDuplicateAssingments(contIds, DuplicateContinuousAssingment)
     checkDuplicateAssingments(assIds, DuplicateDiscreteAssingment)
   }
@@ -925,10 +925,10 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
             Logger.trace(s"encloseHw (Not a flow)")
             val wi = 
               if (intersectWithGuardBeforeReset)
-                contract(w, q.ass.map(da => DelayedConstraint(da.selfCId, da.path, da.env)), prog)
+                contract(w, q.dis.map(da => DelayedConstraint(da.selfCId, da.path, da.env)), prog)
                   .fold(sys error "Empty intersection while contracting with guard. " + _, i => i)
               else w
-            ((wi(q.ass), q :: qw, t) :: tmpW, tmpR, tmpU)
+            ((wi(q.dis), q :: qw, t) :: tmpW, tmpR, tmpU)
           }
           else if ((t == UnknownTime && qw.nonEmpty && qw.head == q) || T.isThin)
             (tmpW, tmpR, tmpU)
@@ -954,7 +954,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
         Logger.trace("handleEvent (Certain event)")
         ((rp, e, UnknownTime) :: Nil, Nil)
       } else { // possible event
-        Logger.trace(s"handleEvent (Possible event, |hr| = ${hr.size}, q.ass = {${q.ass.map(Pretty pprint _.a).mkString(", ")}})")
+        Logger.trace(s"handleEvent (Possible event, |hr| = ${hr.size}, q.ass = {${q.dis.map(Pretty pprint _.a).mkString(", ")}})")
         ((rp, e, UnknownTime) :: Nil, (up.right.get, e, StartTime) :: Nil)
       }
     }
@@ -966,7 +966,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
    * change set contains no discrete assignments and the claim in q is not violated entirely by u.
    */
   def noEvent(q: Changeset, hr: Set[Changeset], up: Either[String,Enclosure]) =
-    hr.size == 1 && q.ass.isEmpty && (up match {
+    hr.size == 1 && q.dis.isEmpty && (up match {
       case Left(s) => sys.error("Inconsistent model. A claim was invalidated without any event taking place. " + s) 
       case Right(_) => true
     })
@@ -977,7 +977,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
    *     claim in q violates the enclosure at the end-point of the current time segment. */
   def certainEvent(q: Changeset, hr: Set[Changeset], hu: Set[Changeset], up: Either[String,Enclosure]): Boolean = {
     val qIsElementOfHu = hu exists (_ == q) 
-    (hr.size > 1 || q.ass.nonEmpty) && // Some event is possible 
+    (hr.size > 1 || q.dis.nonEmpty) && // Some event is possible 
       (!qIsElementOfHu || up.isLeft) // Some possible event is certain 
   }
   
@@ -986,7 +986,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
     (if (t == StartTime) P else P1) exists (_ contains s)
   
   /** Returns true if the discrete assignments in cs are empty or have no effect on s. */
-  def isFlow(cs: Changeset) = cs.ass.isEmpty
+  def isFlow(cs: Changeset) = cs.dis.isEmpty
 
   /**
    * Contract st based on all claims.
