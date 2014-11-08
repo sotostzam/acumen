@@ -947,7 +947,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
       val hu = active(u, prog) 
       val up = contract(u, q.claims, prog)
       val e = q :: past
-      if (noEvent(q, hr, hu, up)) { // no event
+      if (noEvent(q, hr, up)) { // no event
         Logger.trace("handleEvent (No event)")
         (Nil, (u, e, StartTime) :: Nil)
       } else if (certainEvent(q, hr, hu, up)) { // certain event
@@ -965,7 +965,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
    * Returns true if there is only a single change set is active over the current time segment, this 
    * change set contains no discrete assignments and the claim in q is not violated entirely by u.
    */
-  def noEvent(q: Changeset, hr: Set[Changeset], hu: Set[Changeset], up: Either[String,Enclosure]) =
+  def noEvent(q: Changeset, hr: Set[Changeset], up: Either[String,Enclosure]) =
     hr.size == 1 && q.ass.isEmpty && (up match {
       case Left(s) => sys.error("Inconsistent model. A claim was invalidated without any event taking place. " + s) 
       case Right(_) => true
