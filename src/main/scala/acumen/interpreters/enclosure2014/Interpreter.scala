@@ -911,16 +911,15 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
           checkValidChange(hw)
           if (q.nonEmpty && isFlow(q.head) && Set(q.head) == hw && t == UnknownTime)
             sys error "Model error!" // Repeated flow, t == UnknownTime means w was created in this time step
-          val (newW, newR, newU) = encloseHw(waiting, pwlR, pwlU, (w, q, t), hw)
-          enclose(newW, newR, newU, newP, newPs, iterations + 1)
+          val (newW, newR, newU) = encloseHw((w, q, t), hw)
+          enclose(waiting ::: newW, pwlR ::: newR, pwlU ::: newU, newP, newPs, iterations + 1)
         }
       }
     def encloseHw
-      ( pwlW: List[InitialCondition], pwlR: List[Enclosure], pwlU: List[InitialCondition]
-      , wqt: InitialCondition, hw: Set[Changeset]
-      ) : (List[InitialCondition], List[Enclosure], List[InitialCondition]) = {
+      ( wqt: InitialCondition, hw: Set[Changeset]
+      ): (List[InitialCondition], List[Enclosure], List[InitialCondition]) = {
       val (w, qw, t) = wqt
-      hw.foldLeft((pwlW, pwlR, pwlU)) {
+      hw.foldLeft((List.empty[InitialCondition], List.empty[Enclosure], List.empty[InitialCondition])) {
         case ((tmpW, tmpR, tmpU), q) =>
           if (!isFlow(q)) {
             Logger.trace(s"encloseHw (Not a flow)")
