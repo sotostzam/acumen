@@ -955,7 +955,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
         ((rp, e, UnknownTime) :: Nil, Nil)
       } else { // possible event
         Logger.trace(s"handleEvent (Possible event, |hr| = ${hr.size}, q.ass = {${q.ass.map(Pretty pprint _.a).mkString(", ")}})")
-        ((rp, e, UnknownTime) :: Nil, (contract(u, q.claims, prog).right.get, e, StartTime) :: Nil)
+        ((rp, e, UnknownTime) :: Nil, (up.right.get, e, StartTime) :: Nil)
       }
     }
     enclose(st.branches, Nil, Nil, Nil, Nil, 0)
