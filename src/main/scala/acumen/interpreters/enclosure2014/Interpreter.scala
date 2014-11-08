@@ -976,9 +976,8 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
    *  2) The change sets active at the end-point of the current time segment do not contain q or the  
    *     claim in q violates the enclosure at the end-point of the current time segment. */
   def certainEvent(q: Changeset, hr: Set[Changeset], hu: Set[Changeset], up: Either[String,Enclosure]): Boolean = {
-    val qIsElementOfHu = hu exists (_ == q) 
     (hr.size > 1 || q.dis.nonEmpty) && // Some event is possible 
-      (!qIsElementOfHu || up.isLeft) // Some possible event is certain 
+      (!(hu contains q) || up.isLeft) // Some possible event is certain 
   }
   
   /** Returns true if some element of passed contains s */
