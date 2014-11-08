@@ -260,7 +260,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
       Set(Changeset(claims = Set(DelayedConstraint(o,c,env))))
     def logHypothesis(o: CId, s: Option[String], h: Expr, env: Env): Set[Changeset] =
       Set(Changeset(hyps = Set(DelayedHypothesis(o,s,h,env))))
-    lazy val empty = new Changeset()
+    lazy val empty = Changeset()
   }
   case class DelayedAction(path: Expr, selfCId: CId, a: Action, env: Env) {
     def lhs: ResolvedDot = (a: @unchecked) match {
