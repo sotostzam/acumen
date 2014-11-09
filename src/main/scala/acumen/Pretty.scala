@@ -226,7 +226,7 @@ class Pretty {
       (e match {
         case Lit(i)             => pretty(i)
         case Var(n)             => pretty(n)
-        case Index(e,i)         => pretty(e) :: parens(pretty(i))
+        case Index(e,i)         => pretty(e) :: parens(sepBy(comma :: " ", i map pretty[Expr]))
         case Dot(o,f)           => pretty(o) :: "." :: pretty(f)
         case ResolvedDot(i,o,f) => parens(pretty(o) :: "~" :: i.cid.toString) :: "." :: pretty(f)
         case Op(f,es)           => prettyOp(f,es)

@@ -193,7 +193,8 @@ object Parser extends MyStdTokenParsers {
       case Some(_) => p <~ ")"
       case None => p
     }}
-    	
+  def rep2sep[T](p : => Parser[T], q : => Parser[Any]): Parser[List[T]] =
+    p ~ q ~ rep1sep(p,q) ^^ {case x~ _ ~ y => x :: y}  	
     
 
   def brackets[A](p: => Parser[A]): Parser[A] = "[" ~> p <~ "]"
@@ -406,7 +407,7 @@ object Parser extends MyStdTokenParsers {
 
   def level4: Parser[Expr] =
     levelI * ("^" ^^^ { (x: Expr, y: Expr) => mkOp("^", x, y) }
-      | ".^" ^^^ { (x: Expr, y: Expr) => mkOp("^", x, y) })
+      | ".^" ^^^ { (x: Expr, y: Expr) => mkOp(".^", x, y) })
 
   def levelI: Parser[Expr] =
     level3 * ("+/-" ^^^ { (mid:Expr, pm:Expr) => ExprIntervalM(mid,pm) })
@@ -420,14 +421,17 @@ object Parser extends MyStdTokenParsers {
       (positioned("." ~ name ^^ { case _ ~ x => Dot(e, x) })
         | success(e))
     }
-
+  // For column matrix like ((1),(1),(1))
+  def colVector = parens(rep2sep(parens(expr),",")) ^^ 
+    {case ls => ExprVector(ls.map(x => ExprVector(List(x))))}
   def atom: Parser[Expr] =
     positioned( sum
       | interval
       |"type" ~! parens(className) ^^ { case _ ~ cn => TypeOf(cn) }
-      | name >> { n => args(expr) ^^ { es => Op(n, es) } | success(Var(n)) }     
+      | name >> { n => args(expr) ^^ { es => Op(n, es) } | success(Var(n)) }
+      | colVector	
+      | parens(rep2sep(expr, ",")) ^^ ExprVector
       | parens(expr)
-      | parens(repsep(expr, ",")) ^^ ExprVector
       | gvalue ^^ Lit
       )
 

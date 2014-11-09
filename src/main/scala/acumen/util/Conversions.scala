@@ -97,8 +97,7 @@ object Conversions {
   
   def transArrayMatrix(a:Array[Array[Double]]):List[Value[_]] = {
     val ls = a.map(x => x.toList).toList
-    ls.map(x => VVector(x.map(y => VLit(GDouble(y)))))
-		  
+    ls.map(x => VVector(x.map(y => VLit(GDouble(y)))))		  
   }
 
   def extractIntervals(vs:List[Value[_]])(implicit rnd: Rounding) : List[Interval] =

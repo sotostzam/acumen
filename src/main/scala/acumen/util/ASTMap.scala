@@ -51,7 +51,7 @@ class ASTMap {
     case Var(v) => Var(v)
     case Op(name, es) => Op(name, es.map{mapExpr(_)})
     case Dot(a,b) => Dot(mapExpr(a),b)
-    case Index(a,idx) => Index(mapExpr(a),mapExpr(idx))
+    case Index(a,idx) => Index(mapExpr(a),idx map mapExpr)
     case ExprVector(l) => ExprVector(l.map{mapExpr(_)})
     case Sum(s, i, col, cond) => Sum(mapExpr(s), i, mapExpr(col), mapExpr(cond))
     case TypeOf(v) => TypeOf(v)

@@ -472,7 +472,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
           VLit(GConstantRealEnclosure(extractInterval(evalExpr(lo, env, st)) /\ extractInterval(evalExpr(hi, env, st))))
         case ExprVector(l)  => VVector (l map (eval(env,_)))
         case Var(n)         => env.get(n).getOrElse(VClassName(ClassName(n.x)))
-        case Index(v,i)     => evalIndexOp(eval(env, v), eval(env, i))
+        case Index(v,i)     => evalIndexOp(eval(env, v), i.map(x => eval(env, x)))
         case Dot(o,f) =>
           val id = extractId(evalExpr(o,env,st))
           env.get(f).getOrElse(getObjectField(id, f, st))
