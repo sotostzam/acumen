@@ -157,38 +157,24 @@ class ThreeDTab (val appModel: Controller) extends AbstractEditorTab{
     statusZone3d.bar.value = 0
     if (!threeDView.customView)
       threeDView.customView = true
-    if (statusZone3d.firstPlayed) {
-      statusZone3d.bar.enabled = true
-      statusZone3d.firstPlayed = false
-    }
     if (check.selected)
       threeDView.axisOn()
   }
 
   def pauseOn(): Unit = {
     timer3d.pause = false
-    receiver.pause = true
     threedpause.icon = Icons.play
     threedpause.toolTip = "resume"
     if (!threeDView.customView && !threeDView.preCustomView)
       threeDView.customView = true
-    if (statusZone3d.firstPlayed) {
-      statusZone3d.bar.enabled = true
-      statusZone3d.firstPlayed = false
-    }
   }
   
   def pauseOff(): Unit = {
     timer3d.pause = true
-    receiver.pause = false
     threedpause.icon = Icons.pause
     threedpause.toolTip = "pause"
     if (threeDView.customView && !threeDView.preCustomView)
       threeDView.customView = false
-    if (statusZone3d.firstPlayed) {
-      statusZone3d.bar.enabled = true
-      statusZone3d.firstPlayed = false
-    }
   }
   
   def pause(): Unit =
@@ -219,8 +205,6 @@ class ThreeDTab (val appModel: Controller) extends AbstractEditorTab{
         _3DDataBuffer.clear()
         lastFrame = 0
         statusZone3d.setSpeed("1.0")
-        statusZone3d.bar.enabled = false
-        statusZone3d.firstPlayed = true
         for ((frameNo, map) <- appModel.threeDData._3DData) {
           val temp = if (map != null) mutable.Map[(CId, Int), List[_]]()
                      else null

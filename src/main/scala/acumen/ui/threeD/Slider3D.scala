@@ -11,7 +11,6 @@ class Slider3D extends BoxPanel(Orientation.Horizontal) {
     minimumSize = new Dimension(100, 0)
     preferredSize = new Dimension(300, 0)
   }
-  var firstPlayed = false
   var labelTime = new Label {
     text = "Time: "
   }

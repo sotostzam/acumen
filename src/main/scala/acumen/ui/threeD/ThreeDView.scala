@@ -18,9 +18,6 @@ import scala.collection.mutable
 /* 3D visualization panel */
 class ThreeDView extends JPanel {
 
-  // Set to true after everything finishes loading:
-  private var initialized = false
-
   Config.maxPolysVisible = 100000
   Config.useRotationPivotFrom3DS = true
   Config.useMultipleThreads = true
@@ -66,7 +63,7 @@ class ThreeDView extends JPanel {
   var preCustomView = customView // to enable custom view when we pause
   var enableAnaglyph = false     // to enable anaglyph functions
   var enableRealTime = false     // to enable real time 3D rendering
-  
+
   private var newMouseX = 1     // mouse position x before dragging
   private var newMouseY = 1     // mouse position y before dragging
   private var lastMouseX = 1    // mouse position x after dragging
@@ -222,7 +219,6 @@ class ThreeDView extends JPanel {
     camera = world.getCamera  // grab a handle to the camera
     defaultView()
     lookAt(mainbox, null) // camera faces towards the object
-    initialized = true
     lookAtPoint.set(0,0,0)
     CustomObject3D.partialBuild(mainbox, false)
     addState = "addMainBox"
@@ -468,7 +464,6 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
   private val _3DBasePath = Files._3DDir.getAbsolutePath
   private var currentFrame = 0
   var totalFrames = lastFrame
-  var pause = false
   var destroy = false
   /* used for recording last frame number */
   private var lastRenderFrame = 0
@@ -524,13 +519,13 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
            else              scaleFactors(o)(0) * size(0)
             / abs(o.getMesh.getBoundingBox()(1) - o.getMesh.getBoundingBox()(0)),
            if (size(1) == 0) scaleFactors(o)(1) * 0.001
-             / abs(o.getMesh.getBoundingBox()(3) - o.getMesh.getBoundingBox()(2))
+            / abs(o.getMesh.getBoundingBox()(3) - o.getMesh.getBoundingBox()(2))
            else              scaleFactors(o)(1) * size(1)
-             / abs(o.getMesh.getBoundingBox()(3) - o.getMesh.getBoundingBox()(2)),
+            / abs(o.getMesh.getBoundingBox()(3) - o.getMesh.getBoundingBox()(2)),
            if (size(2) == 0) scaleFactors(o)(2) * 0.001
-             / abs(o.getMesh.getBoundingBox()(5) - o.getMesh.getBoundingBox()(4))
+            / abs(o.getMesh.getBoundingBox()(5) - o.getMesh.getBoundingBox()(4))
            else              scaleFactors(o)(2) * size(2)
-             / abs(o.getMesh.getBoundingBox()(5) - o.getMesh.getBoundingBox()(4)))
+            / abs(o.getMesh.getBoundingBox()(5) - o.getMesh.getBoundingBox()(4)))
         Array(xFactor.toFloat, yFactor.toFloat, zFactor.toFloat)
       } else Array(0.001f,0.001f,0.001f)
     } else Array(0.001f,0.001f,0.001f)
@@ -755,7 +750,7 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
         // the type has been changed, we need to delete the old object and create a one
         if ((lastFrameName != name || lastFrameContent != path) && path != "") {
           // change the object in
-          val sizeToSetR = checkSize(size(0) / 12)
+          val sizeToSetR = checkSize(size(0) / 132)
           app.objectsToDelete += app.world.getObject(objID)
           app.scaleFactors -= app.objects(objectKey)
           app.objects(objectKey) = loadObj(path, sizeToSetR)
@@ -765,7 +760,7 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
         } else if (checkResizeable(size) && needResize) {
           if (app.objects.contains(objectKey) && transObject != null) {
             // just need to change the size
-            val sizeToSetR = checkSize(size(0) / 12)
+            val sizeToSetR = checkSize(size(0) / 132)
             val factors = calculateResizeFactor(transObject, Array(sizeToSetR,
                                       sizeToSetR, sizeToSetR), app.scaleFactors)
             val boxMesh = transObject.getMesh
@@ -803,8 +798,8 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
     val newObject = name match {
       case "Box" =>
         val (sizeToSetX, sizeToSetY, sizeToSetZ) = (checkSize(size(1)),
-                                                    checkSize(size(0)),
-                                                    checkSize(size(2)))
+          checkSize(size(0)),
+          checkSize(size(2)))
         app.drawBox(abs(sizeToSetX), abs(sizeToSetY), abs(sizeToSetZ))
       case "Cylinder" =>
         val (sizeToSetR, sizeToSetS) = (checkSize(size(0)), checkSize(size(1)))
@@ -824,7 +819,7 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
         else
           null
       case "OBJ" =>
-        val sizeToSetR = checkSize(size(0) / 12)
+        val sizeToSetR = checkSize(size(0) / 132)
         if (path != "")  // model err, do nothing
           loadObj(path, sizeToSetR)
         else
@@ -895,12 +890,9 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
   // Reactions to the mouse events
   reactions += {
     case e: scala.swing.event.MouseDragged =>
-      if (!slider.firstPlayed) {
+      if (app.addObjectsDone && app.deleteObjectsDone) {
         currentFrame = slider.bar.value * totalFrames / 100
-        slider.setProgress3D(slider.bar.value)
-        slider.setTime((slider.bar.value / 100f) * endTime)
-        if (pause)
-          renderCurrentFrame()
+        receiver ! "pick"
       }
   }
 
