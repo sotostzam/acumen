@@ -151,7 +151,6 @@ class ThreeDTab (val appModel: Controller) extends AbstractEditorTab{
   def stop(): Unit = {
     threedpause.toolTip = "pause"
     threedpause.icon = Icons.pause
-    receiver.destroy = true
     timer3d.destroy = true
     threeDView.reset()
     statusZone3d.bar.value = 0
@@ -221,8 +220,7 @@ class ThreeDTab (val appModel: Controller) extends AbstractEditorTab{
         threeDView.customView = false
         threeDView.preCustomView = threeDView.customView
       }
-      threeDView.deleteState = "deleteAllObjects"
-      threeDView.deleteStateMachine()
+      threeDView.viewStateMachine("deleteAllObjects")
       threeDView.repaint()
       repaint()
       threeDView.objects.clear()
