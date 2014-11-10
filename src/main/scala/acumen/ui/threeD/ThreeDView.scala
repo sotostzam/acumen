@@ -349,19 +349,6 @@ class ThreeDView extends JPanel {
     box
   }
 
-  /** Uses a vertex controller to rescale  **/
-  def setReSize(scaleX: Float, scaleY: Float,  scaleZ: Float,
-                planeMesh: Mesh) = {
-    try {
-      planeMesh.setVertexController(new Resizer(scaleX,scaleY,scaleZ),
-        IVertexController.PRESERVE_SOURCE_MESH)
-      planeMesh.applyVertexController()
-      planeMesh.removeVertexController()
-    } catch {
-      case e: java.lang.NullPointerException =>
-    }
-  }
-
   // rotate object or camera
   def rotateObject(rotateObject: Object3D, angle: Array[Double], objectType: String, rotateCamera: Camera) = {
     // Once we added the object, we should also move the object to the position at that time
@@ -499,6 +486,21 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
       } else Array(0.001f,0.001f,0.001f)
     } else Array(0.001f,0.001f,0.001f)
 
+  /** Uses a vertex controller to rescale  **/
+  def setReSize(scaleX: Float, scaleY: Float, scaleZ: Float,
+                o: Object3D) = {
+    try {
+      val planeMesh = o.getMesh
+      val resizer = new Resizer(scaleX,scaleY,scaleZ)
+      planeMesh.setVertexController(resizer, IVertexController.PRESERVE_SOURCE_MESH)
+      planeMesh.applyVertexController()
+      planeMesh.removeVertexController()
+    } catch {
+      case e: java.lang.NullPointerException =>
+        println("Och!!!")
+    }
+  }
+
   def getLastType(objectKey: (CId, Int), valueList: List[_]): Any = {
     if (_3DDataBuffer.contains(lastRenderFrame)
       && _3DDataBuffer(lastRenderFrame) != null) {
@@ -614,8 +616,7 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
                                                         checkSize(size(0)))
             val factors = calculateResizeFactor(transObject, Array(sizeToSetZ,
                                       sizeToSetY, sizeToSetX), app.scaleFactors)
-            val boxMesh = transObject.getMesh
-            app.setReSize(factors(0), factors(1), factors(2), boxMesh)
+            setReSize(factors(0), factors(1), factors(2), transObject)
           }
         }
       case "Cylinder" =>
@@ -637,8 +638,7 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
             val (sizeToSetR, sizeToSetS) = (checkSize(size(0)), checkSize(size(1)))
             val factors = calculateResizeFactor(transObject, Array(sizeToSetR,
                                       sizeToSetS, sizeToSetR), app.scaleFactors)
-            val boxMesh = transObject.getMesh
-            app.setReSize(factors(0), factors(1), factors(2), boxMesh)
+            setReSize(factors(0), factors(1), factors(2), transObject)
           }
         }
       case "Cone" =>
@@ -659,8 +659,7 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
             val (sizeToSetR, sizeToSetS) = (checkSize(size(0)), checkSize(size(1)))
             val factors = calculateResizeFactor(transObject, Array(sizeToSetR,
                                       sizeToSetS, sizeToSetR), app.scaleFactors)
-            val boxMesh = transObject.getMesh
-            app.setReSize(factors(0), factors(1), factors(2), boxMesh)
+            setReSize(factors(0), factors(1), factors(2), transObject)
           }
         }
       case "Sphere" =>
@@ -680,8 +679,7 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
             val sizeToSetR = checkSize(size(0))
             val factors = calculateResizeFactor(transObject, Array(sizeToSetR,
                                       sizeToSetR, sizeToSetR), app.scaleFactors)
-            val boxMesh = transObject.getMesh
-            app.setReSize(factors(0), factors(1), factors(2), boxMesh)
+            setReSize(factors(0), factors(1), factors(2), transObject)
           }
         }
       case "Text" =>
@@ -704,8 +702,7 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
             val sizeToSetR = checkSize(size(0))
             val factors = calculateResizeFactor(transObject, Array(sizeToSetR,
                                       sizeToSetR, sizeToSetR), app.scaleFactors)
-            val boxMesh = transObject.getMesh
-            app.setReSize(factors(0), factors(1), factors(2), boxMesh)
+            setReSize(factors(0), factors(1), factors(2), transObject)
           }
         }
       case "OBJ" =>
@@ -728,8 +725,7 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
             val sizeToSetR = checkSize(size(0) / 132)
             val factors = calculateResizeFactor(transObject, Array(sizeToSetR,
                                       sizeToSetR, sizeToSetR), app.scaleFactors)
-            val boxMesh = transObject.getMesh
-            app.setReSize(factors(0), factors(1), factors(2), boxMesh)
+            setReSize(factors(0), factors(1), factors(2), transObject)
           }
         }
       case _ => throw ShouldNeverHappen()
@@ -913,8 +909,7 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
       }
     }
     val stringObject = Object3D.mergeAll(objectsArray.toArray)
-    val boxMesh = stringObject.getMesh
-    app.setReSize(size.toFloat, size.toFloat, size.toFloat, boxMesh)
+    setReSize(size.toFloat, size.toFloat, size.toFloat, stringObject)
     stringObject
   }
 
