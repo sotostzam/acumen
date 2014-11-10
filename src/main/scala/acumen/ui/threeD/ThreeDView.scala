@@ -387,11 +387,15 @@ class ThreeDView extends JPanel {
   /** Uses a vertex controller to rescale  **/
   def setReSize(scaleX: Float, scaleY: Float,  scaleZ: Float,
                 planeMesh: Mesh) = {
+    try {
       planeMesh.setVertexController(new Resizer(scaleX,scaleY,scaleZ),
-                                    IVertexController.PRESERVE_SOURCE_MESH)
+        IVertexController.PRESERVE_SOURCE_MESH)
       planeMesh.applyVertexController()
       planeMesh.removeVertexController()
+    } catch {
+      case e: java.lang.NullPointerException =>
     }
+  }
 
   // rotate object or camera
   def rotateObject(rotateObject: Object3D, angle: Array[Double], objectType: String, rotateCamera: Camera) = {
@@ -457,13 +461,13 @@ class ScalaTimer(receiver: _3DDisplay, endTime: Double,
 /* 3D Render */
 class _3DDisplay(app: ThreeDView, slider: Slider3D,
                  _3DDataBuffer: mutable.Map[Int,mutable.Map[(CId,Int),List[_]]],
-                 lastFrame: Double, endTime: Float,
+                 lastFrame: Int, endTime: Float,
                  _3DView: mutable.ArrayBuffer[(Array[Double], Array[Double])])
                  extends Publisher with Actor {
   /* Default directory where all the OBJ files are */
   private val _3DBasePath = Files._3DDir.getAbsolutePath
   private var currentFrame = 0
-  var totalFrames = lastFrame.toInt
+  var totalFrames = lastFrame
   var pause = false
   var destroy = false
   /* used for recording last frame number */
@@ -531,36 +535,36 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
       } else Array(0.001f,0.001f,0.001f)
     } else Array(0.001f,0.001f,0.001f)
 
-  def getLastType(objectKey: (CId, Int)): Any = {
-    val lastName =
-      if (_3DDataBuffer(lastRenderFrame).contains(objectKey)
-       && _3DDataBuffer.contains(lastRenderFrame)) {
-        val valueList: List[_] = _3DDataBuffer(lastRenderFrame)(objectKey)
+  def getLastType(objectKey: (CId, Int), valueList: List[_]): Any = {
+    if (_3DDataBuffer.contains(lastRenderFrame)
+      && _3DDataBuffer(lastRenderFrame) != null) {
+      if (_3DDataBuffer(lastRenderFrame).contains(objectKey)) {
         valueList(0)
-      } else false   // can not find the object
-    lastName
+      } else false // can not find the object
+    } else false
   }
 
-  def getLastContent(objectKey: (CId, Int)): Any = {
-    val lastContent =
-      if (_3DDataBuffer(lastRenderFrame).contains(objectKey)
-       && _3DDataBuffer.contains(lastRenderFrame)) {
-        val valueList: List[_] = _3DDataBuffer(lastRenderFrame)(objectKey)
+  def getLastContent(objectKey: (CId, Int), valueList: List[_]): Any = {
+    if (_3DDataBuffer.contains(lastRenderFrame)
+      && _3DDataBuffer(lastRenderFrame) != null) {
+      if (_3DDataBuffer(lastRenderFrame).contains(objectKey)) {
         valueList(5)
       } else false   // can not find the object
-    lastContent
+    } else false
   }
 
-  def needToResize(objectKey: (CId, Int), currentFrame: Int): Boolean = {
-    if (_3DDataBuffer.contains(lastRenderFrame)) {
-      val valueLastList: List[_] = _3DDataBuffer(lastRenderFrame)(objectKey)
-      val lastSize = valueLastList(2)
-      val valueCurList: List[_] = _3DDataBuffer(currentFrame)(objectKey)
-      val curSize = valueCurList(2)
-      if (lastSize == curSize) false
-      else true
-    }
-    else true
+  def needToResize(objectKey: (CId, Int), currentValList: List[_],
+                   lastValList: List[_]): Boolean = {
+    var resizeResult = false
+    if (_3DDataBuffer.contains(lastRenderFrame)
+      && _3DDataBuffer(lastRenderFrame) != null) {
+      val (lastSize : Array[Double], curSize: Array[Double]) =
+        (lastValList(2), currentValList(2))
+      for (i <- 0 until lastSize.length)
+        if (lastSize(i) != curSize(i))
+          resizeResult = true
+    } else resizeResult = true
+    resizeResult
   }
 
   def renderCurrentFrame() = {
@@ -611,9 +615,18 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
     // get the object need to transform
     var transObject: Object3D = app.world.getObject(objID)
 
-    val (lastFrameName, needResize: Boolean) =
-      if (getLastType(objectKey) == false) ("New Object", false)
-      else (getLastType(objectKey), needToResize(objectKey,currentFrame))
+    val lastValueList: List[_] =
+      if (_3DDataBuffer.contains(lastFrame) && _3DDataBuffer(lastFrame) != null
+        && _3DDataBuffer(lastFrame).contains(objectKey))
+        _3DDataBuffer(lastFrame)(objectKey)
+      else null
+
+    val lastFrameName =
+      if (getLastType(objectKey, lastValueList) == false) "New Object"
+      else getLastType(objectKey, lastValueList)
+
+    val needResize = if (lastFrameName != name) false
+    else needToResize(objectKey, valueList, lastValueList)
     // reset the type and size for the object, matching the type of object first
     name match {
       case "Box" =>
@@ -713,8 +726,8 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
         }
       case "Text" =>
         val lastFrameContent =
-          if (getLastContent(objectKey) == false) "new" + name
-          else getLastContent(objectKey)
+          if (getLastContent(objectKey, lastValueList) == false) "new" + name
+          else getLastContent(objectKey, lastValueList)
         // the type has been changed, delete the old object and create a new one
         if ((lastFrameName != name || lastFrameContent != text) && text != "") {
           // change the object in
@@ -737,8 +750,8 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
         }
       case "OBJ" =>
         val lastFrameContent =
-          if (getLastContent(objectKey) == false) "new" + name
-          else getLastContent(objectKey)
+          if (getLastContent(objectKey, lastValueList) == false) "new" + name
+          else getLastContent(objectKey, lastValueList)
         // the type has been changed, we need to delete the old object and create a one
         if ((lastFrameName != name || lastFrameContent != path) && path != "") {
           // change the object in
