@@ -423,18 +423,19 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
   var destroy = false
   /* used for recording last frame number */
   private var lastRenderFrame = 0
+  private var mouseSleepTime = 10.toLong
+  private var lastSetFrameTime = System.currentTimeMillis()
+  private var setFrameDone = true
 
-  def stop() =
-    if (app.objects.nonEmpty) {
-      app.deleteState = "deleteAllObjects"
-      app.deleteStateMachine()
-      app.repaint()
-      app.objects.clear()
-      app.axisArray(0) = null
-      app.scaleFactors.clear()
-      app.objectsToDelete.clear()
-      lastRenderFrame = 0
-    }
+  def stop() = {
+    app.viewStateMachine("deleteAllObjects")
+    app.objects.clear()
+    app.axisArray(0) = null
+    app.scaleFactors.clear()
+    app.objectsToDelete.clear()
+    lastRenderFrame = 0
+    mouseSleepTime = 10.toLong
+  }
 
   def checkResizeable(newSize: Array[Double]): Boolean =
     newSize.forall(d => !(d.isNaN || d.isInfinite))
@@ -533,7 +534,7 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
     resizeResult
   }
 
-  def renderCurrentFrame() = {
+  def renderCurrentFrame() = this.synchronized {
     app.objectsToDelete.clear()
     // 3d objects within the current frame
     if (_3DDataBuffer.contains(currentFrame)
@@ -546,7 +547,7 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
           app.objects -= objectKey
           matchingObject(objectKey, valueList, currentFrame)
         } else
-          transformObject(objectKey, valueList, currentFrame)
+          transformObject(objectKey, valueList, lastRenderFrame, currentFrame)
 
       // delete the object not in this frame
       for ((objectKey, o) <- app.objects)
@@ -564,7 +565,7 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
    * Moving and rotating the object
    */
   def transformObject(objectKey: (CId, Int), valueList: List[_],
-                      currentFrame: Int) {
+                      lastFrame: Int, currentFrame: Int) {
     var objID = app.objects(objectKey).getID  // get the object ID
     /* Get the 3D information of the object at that frame	*/
     val (name: String, position: Array[Double], size: Array[Double],
@@ -824,37 +825,53 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
         exit()
       react {
         case "go" =>
-          if (currentFrame <= totalFrames)
-            renderCurrentFrame()
-          if (slider.firstPlayed) {
-            slider.firstPlayed = false
-            slider.bar.enabled = true
-          }
           if (currentFrame == totalFrames) {
             // Animation is over
             slider.setProgress3D(100)
             slider.setTime(endTime.toFloat)
             app.customView = true
-            pause = true
           }
           if (totalFrames > 0) {
             val percentage = currentFrame * 100 / totalFrames
             slider.setProgress3D(percentage)
             slider.setTime(percentage / 100f * endTime)
           }
-          if (currentFrame <= totalFrames)
-            currentFrame += 1
+          if (currentFrame <= totalFrames) {
+            renderCurrentFrame()
+            currentFrame = setFrameNumber("go", currentFrame)
+          }
+        case "set frame" =>
+          setFrameDone = false
+          currentFrame = setFrameNumber("set frame", currentFrame)
+          if (totalFrames > 0 && currentFrame <= totalFrames) {
+            val startRenderTime = System.currentTimeMillis()
+            val percentage = currentFrame * 100 / totalFrames
+            slider.setTime(percentage / 100f * endTime)
+            renderCurrentFrame()
+            val renderTime = System.currentTimeMillis() - startRenderTime
+            if (mouseSleepTime < renderTime && renderTime < 100.toLong)
+              mouseSleepTime = renderTime
+            setFrameDone = true
+          }
       }
     }
+  }
+
+  def setFrameNumber (setMode: String, lastFrameNumber: Int): Int = {
+    val newFrameNumber =
+      if (setMode == "go") lastFrameNumber + 1
+      else slider.bar.value * totalFrames / 100
+    newFrameNumber
   }
 
   // Reactions to the mouse events
   reactions += {
     case e: scala.swing.event.MouseDragged =>
-      if (app.addObjectsDone && app.deleteObjectsDone) {
-        currentFrame = slider.bar.value * totalFrames / 100
-        receiver ! "pick"
-      }
+      val curSystemTime = System.currentTimeMillis()
+      if (curSystemTime > lastSetFrameTime + mouseSleepTime
+        && setFrameDone)
+        receiver ! "set frame"
+      lastSetFrameTime = System.currentTimeMillis()
   }
 
   /**
