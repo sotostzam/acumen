@@ -49,6 +49,7 @@ case class Desugarer(odeTransformMode: ODETransformMode) {
 
   def desugar(p: Prog): Prog = {
     check(p)
+    //println(Pretty.pprint(p))
     Prog(p.defs map (desugar(p, _)))
   }
 
@@ -128,11 +129,11 @@ case class Desugarer(odeTransformMode: ODETransformMode) {
         else if (Constants.predefined.contains(x.x)) Constants.predefined(x.x)
         else throw VariableNotDeclared(x).setPos(e.pos)
       case Op(f, es) =>
-        def mkIndexOf(n0: Expr) = es.foldLeft(n0)((n,e) => Index(n, des(e)))
+        def mkIndexOf(n0: Expr) = Index(n0, es map des)
         if (env.contains(f)) mkIndexOf(Var(f))
         else if (fs contains f) mkIndexOf(Dot(Var(self), f))
         else Op(f, es map des)
-      case Index(e,i) => Index(des(e),des(i))
+      case Index(e,i) => Index(des(e), i map des)
       case Dot(o, f) => Dot(des(o), f)
       case ExprVector(es) => ExprVector(es map des)
       case Sum(e, i, col, cond) =>

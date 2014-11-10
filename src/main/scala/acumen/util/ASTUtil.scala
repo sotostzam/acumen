@@ -30,7 +30,7 @@ object ASTUtil {
     if (h == d) e else h match {
       case _: Dot | _: ResolvedDot | _: Lit | _: TypeOf | _: Var => h
       case Op(name, es)           => Op(name, es map sub)
-      case Index(a, idx)          => Index(sub(a), sub(idx))
+      case Index(a, idx)          => Index(sub(a), idx map sub)
       case ExprVector(l)          => ExprVector(l map sub)
       case Sum(s, i, col, cond)   => Sum(sub(s), i, sub(col), sub(cond))
       case ExprInterval(lo, hi)   => ExprInterval(sub(lo), sub(hi))
@@ -44,7 +44,7 @@ object ASTUtil {
   def dots(e: Expr): List[Dot] = e match {
     case d: Dot                 => d :: Nil
     case Op(_, es)              => es flatMap dots
-    case Index(a, idx)          => dots(a) ::: dots(idx)
+    case Index(a, idx)          => dots(a) ::: idx flatMap dots
     case ExprVector(l)          => l flatMap dots
     case Sum(s, i, col, cond)   => dots(s) ::: dots(col) ::: dots(cond)
     case ExprInterval(lo, hi)   => dots(lo) ::: dots(hi)

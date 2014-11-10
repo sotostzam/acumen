@@ -13,6 +13,7 @@ import util.Canonical._
 object Common {
  
   type Env = Map[Name, CValue]
+  type Matrix = Array[Array[Double]]
   
   val EulerCromer  = "EulerCromer"
   val EulerForward = "EulerForward"
@@ -158,19 +159,15 @@ object Common {
     else
       VVector(ls(0).map(x => VLit(GDouble(x))))
   }
-  def matrixScaleOp[A](op:String, u:List[Value[_]], gv:Double): Value[A] = {
-     val au = transMatrixArray(u)
-     val result = 
-     	for(row <- au)
-     		yield op match{
-     		  	case "+" => row map(_+gv)
-     			case "*" => row map(_*gv)
-		        case "/" => row map(_*gv)
-		        case ".^" => row map(pow(_,gv))
-		        case _ => throw UnknownOperator(op)
-     			}
-    val ls = result.map(x => x.toList).toList
-    VVector(ls.map(x => VVector(x.map(y => VLit(GDouble(y))))))  
+  def matrixScaleOp[A](op:String, au:Matrix, gv:Double): Matrix = {     
+    for(row <- au)
+ 		yield op match{
+ 		  	case "+" => row map(_+gv)
+ 			case "*" => row map(_*gv)
+	        case "/" => row map(_/gv)
+	        case ".^" => row map(pow(_,gv))
+	        case _ => throw UnknownOperator(op)
+ 			}
   }
   def isVector[A](u:List[Value[_]]):Boolean = {
     u.forall(x => x match{
@@ -178,18 +175,34 @@ object Common {
       case _ => false
     })
   }
-  def transpose[A](u:List[Value[A]]):Value[A] = {
-    if(isVector(u)){
-      VVector(u.map(x => VVector(List(x))))
-    }
-    else{
-      val matrix:Array[Array[Double]] = transMatrixArray(u)
-      val ls = matrix.transpose.map(x => x.toList).toList
-      VVector(ls.map(x => VVector(x.map(y => VLit(GDouble(y))))))
-    }
+  def transpose[A](matrix:Matrix):Matrix = {
+    matrix.transpose
   }
-  def determinant(u:List[Value[_]]):Double = {
-    val matrix = transMatrixArray(u)
+  def matrixRow(matrix:Matrix):Int = matrix.length
+  def matrixCol(matrix:Matrix):Int = matrix(0).length
+  def changeSign(i:Int):Int = if(i%2 ==0) 1 else -1
+  def printMatrix(matrix:Matrix) = {
+    println("[")
+    matrix.map(x => {print("[") ;x.map(y => print(y + ", ")) ; print("]");println("")})
+    println("]")
+  }
+  
+  // The input parameters for this method are the original matrix and the row and column 
+  // index numbers that need to be deleted from the original matrix to create the sub-matrix
+  def createSubMatrix(matrix:Matrix, excluding_row:Int, excluding_col:Int):Matrix = {
+    val mat:Matrix = Array.ofDim(matrixRow(matrix) -1,matrixCol(matrix) -1)
+    var r = -1
+    for(i <- 0 to matrixRow(matrix) - 1; if i != excluding_row){
+      r = r + 1
+      var c = -1
+      for(j <- 0 to matrixCol(matrix) - 1; if j != excluding_col){
+        c = c + 1
+        mat(r)(c) = matrix(i)(j)
+      }
+    }
+    mat
+  }
+  def determinant(matrix:Array[Array[Double]]):Double = {
     if(matrix.length != matrix(0).length)
       error("Can't perform derminant operation because the size of matrix")
     var sum:Double = 0 
@@ -210,17 +223,24 @@ object Common {
           }
         }
       }
-      if(i%2==0){ //sign changes based on i
-        s = 1
-      }
-      else{
-        s = -1
-      }
-      sum = sum + s*matrix(0)(i)*(determinant(transArrayMatrix(smaller))) //recursive step: determinant of larger determined by smaller.
+      s = changeSign(i)
+      sum = sum + s*matrix(0)(i)*(determinant(smaller)) //recursive step: determinant of larger determined by smaller.
     }
     sum //returns determinant value. once stack is finished, returns final determinant.
+   }
   }
-  }   
+  
+  def cofactor(matrix:Matrix):Matrix = {
+    val mat:Matrix = Array.ofDim(matrixRow(matrix),matrixCol(matrix))
+    for(i <- 0 to matrixRow(matrix)-1)
+      for(j <- 0 to matrixCol(matrix)-1)
+        mat(i)(j) = changeSign(i)*changeSign(j)*determinant(createSubMatrix(matrix, i, j))
+    mat
+  }
+  
+  def inverse(matrix:Matrix):Matrix = {    
+    matrixScaleOp("*", transpose(cofactor(matrix)), 1.0/determinant(matrix))
+  }
   def binVectorOp[A](op:String, u:List[Value[_]], v:List[Value[_]]) : Value[A] = {
     lazy val du = extractDoubles(u)
     lazy val dv = extractDoubles(v)
@@ -270,8 +290,19 @@ object Common {
       case "norm" => VLit(GDouble(math.sqrt((du map (d => d*d)).sum)))
       case "floor" => VVector(du map {d => VLit(GDouble(floor(d)))})
       case "ceil" => VVector(du map {d => VLit(GDouble(ceil(d)))})
-      case "det" => VLit(GDouble(determinant(u)))
-      case "trans" => transpose(u)
+      case "det" => VLit(GDouble(determinant(transMatrixArray(u))))
+      case "inv" => 
+        val ls = inverse(transMatrixArray(u)).map(x => x.toList).toList
+        if(ls.length > 1)
+          VVector(ls.map(x => VVector(x.map(y => VLit(GDouble(y))))))
+        else
+         VVector(ls(0).map(x => VLit(GDouble(x))))
+      case "trans" =>      
+          val ls = transpose(transMatrixArray(u)).map(x => x.toList).toList
+          if(ls.length > 1)        
+        	VVector(ls.map(x => VVector(x.map(y => VLit(GDouble(y))))))          
+          else
+        	VVector(ls(0).map(x => VLit(GDouble(x))))                  
       case _ => throw InvalidVectorOp(op)
     }
   }
@@ -287,8 +318,11 @@ object Common {
   def binVectorScalarOp[A](op:String, u:List[Value[_]], x:GroundValue) : Value[A] = {
     lazy val dx = extractDouble(x)
     lazy val du = extractDoubles(u)
-    if(isMatrix(u))
-      matrixScaleOp(op, u, dx)
+    if(isMatrix(u)){
+      val result = matrixScaleOp(op, transMatrixArray(u), dx)
+      val ls = result.map(x => x.toList).toList
+      VVector(ls.map(x => VVector(x.map(y => VLit(GDouble(y))))))
+    }
     else  
     	op match {
     		case "+" => VVector(du map (d => VLit(GDouble(d+dx))))
@@ -332,16 +366,26 @@ object Common {
   }
 
   /* eval Index(e, i) */
-  def evalIndexOp[A](e: Value[A], i: Value[A]) : Value[A] = {
+  def evalIndexOp[A](e: Value[A], i: List[Value[A]]) : Value[A] = {
     e match {
       case VVector(l) => i match {
-        case VLit(GInt(idx)) => try {
+        case VLit(GInt(idx)) :: Nil => try {
           l(idx)
         } catch {
           case _:IndexOutOfBoundsException => throw IndexOutOfBounds(idx)
         }
-        case VVector(idxs) => VVector(idxs.map(x => evalIndexOp(e,x))) 
-        case _ => throw ExpectedInteger(i) }
+        case VVector(idxs) :: Nil => VVector(idxs.map(x => evalIndexOp(e,List(x))))
+        case VVector(rows) :: VVector(columns) :: Nil => {
+          val topRows = VVector(rows.map(x => evalIndexOp(e,List(x))))
+          topRows match{
+            case VVector(ls) => 
+              VVector(ls.map(x => evalIndexOp(x,List(VVector(columns)))))
+            case _ => throw IndexNoMatch(i)
+          }
+        }
+        case VVector(rows) :: c ::Nil => evalIndexOp(e, VVector(rows) :: VVector(List(c)) :: Nil)
+        case head :: tail => evalIndexOp(evalIndexOp(e,List(head)), tail)
+      }
       case _ => throw CantIndex() }
   }
 
