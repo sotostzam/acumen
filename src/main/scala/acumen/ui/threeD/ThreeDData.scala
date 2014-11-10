@@ -262,5 +262,13 @@ class ThreeDData extends Publisher {
   }
 
   /* Check if model source contains any _3D variable declarations. */
-  def modelContains3D() = _3DData.nonEmpty
+  def modelContains3D():Boolean = {
+    var _3DIsEmpty = false
+    if (_3DData.nonEmpty) {
+      for ((frameNum, objects) <- _3DData)
+        if (objects != null)
+          _3DIsEmpty = true
+    } else _3DIsEmpty = false
+    _3DIsEmpty
+  }
 }

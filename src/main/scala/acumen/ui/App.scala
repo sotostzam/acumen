@@ -798,14 +798,14 @@ class App extends SimpleSwingApplication {
   // enable 3d if required
   reactions += {
     case Stopped =>
-      if (controller.threeDData.modelContains3D) {
+      if (controller.threeDData.modelContains3D()) {
         codeArea.editedSinceLastRun = false
         if (Main.threeDState == ThreeDState.ENABLE && modelFinished) {
-          views.selectThreeDView
+          views.selectThreeDView()
           threeDtab.play()
         }
       } else if (views.threeDViewSelected) {
-        views.selectPlotView
+        views.selectPlotView()
       }
   }
 
