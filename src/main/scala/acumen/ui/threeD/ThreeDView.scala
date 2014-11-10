@@ -209,8 +209,11 @@ class ThreeDView extends JPanel {
   *            "addMainBox" -> add the Main Box
   *            "addAxes" -> add the axes
   *            "addLookAtSphere" -> add the red sphere at look at point*/
+
+  private var modifyViewObjects = false
   def viewStateMachine(worldState: String) = this.synchronized {
     // object deleting state machine
+    modifyViewObjects = true
     worldState match {
       case "renderCurrentObjects" => // only called in renderCurrentFrame()
         if (world.getObjectByName(mainbox.getName) != null)
@@ -252,16 +255,19 @@ class ThreeDView extends JPanel {
       case _ => throw ShouldNeverHappen()
     }
     repaint()
+    modifyViewObjects = false
   }
 
-  override def paint(g: Graphics) = this.synchronized {
+  override def paint(g: Graphics) = {
     world.synchronized {
-      if (buffer != null) {
-        buffer.clear(Color.LIGHT_GRAY) // erase the previous frame
-        // render the world onto the buffer:
-        world.renderScene(buffer)
-        world.draw(buffer)
-        buffer.update()
+      if(!modifyViewObjects) {
+        if (buffer != null) {
+          buffer.clear(Color.LIGHT_GRAY) // erase the previous frame
+          // render the world onto the buffer:
+          world.renderScene(buffer)
+          world.draw(buffer)
+          buffer.update()
+        }
       }
     }
     buffer.display(g)
@@ -535,29 +541,31 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
   }
 
   def renderCurrentFrame() = this.synchronized {
-    app.objectsToDelete.clear()
-    // 3d objects within the current frame
-    if (_3DDataBuffer.contains(currentFrame)
-     && _3DDataBuffer(currentFrame) != null) {
-      for ((objectKey, valueList) <- _3DDataBuffer(currentFrame))
-        if (!app.objects.contains(objectKey))
-          matchingObject(objectKey, valueList, currentFrame)
-        else if (app.objects.contains(objectKey)  // this should not happen
-          && app.world.getObjectByName(app.objects(objectKey).getName) == null) {
-          app.objects -= objectKey
-          matchingObject(objectKey, valueList, currentFrame)
-        } else
-          transformObject(objectKey, valueList, lastRenderFrame, currentFrame)
+    app.objects.synchronized {
+      app.objectsToDelete.clear()
+      // 3d objects within the current frame
+      if (_3DDataBuffer.contains(currentFrame)
+        && _3DDataBuffer(currentFrame) != null) {
+        for ((objectKey, valueList) <- _3DDataBuffer(currentFrame))
+          if (!app.objects.contains(objectKey))
+            matchingObject(objectKey, valueList, currentFrame)
+          else if (app.objects.contains(objectKey)  // this should not happen
+            && app.world.getObjectByName(app.objects(objectKey).getName) == null) {
+            app.objects -= objectKey
+            matchingObject(objectKey, valueList, currentFrame)
+          } else
+            transformObject(objectKey, valueList, lastRenderFrame, currentFrame)
 
-      // delete the object not in this frame
-      for ((objectKey, o) <- app.objects)
-        if (!_3DDataBuffer(currentFrame).contains(objectKey))
-          deleteObj(objectKey)
+        // delete the object not in this frame
+        for ((objectKey, o) <- app.objects)
+          if (!_3DDataBuffer(currentFrame).contains(objectKey))
+            deleteObj(objectKey)
 
-      lastRenderFrame = currentFrame
-      if(currentFrame < _3DView.size)
-        app.transformView(_3DView(currentFrame)._1, _3DView(currentFrame)._2)
-      app.viewStateMachine("renderCurrentObjects")
+        lastRenderFrame = currentFrame
+        if(currentFrame < _3DView.size)
+          app.transformView(_3DView(currentFrame)._1, _3DView(currentFrame)._2)
+        app.viewStateMachine("renderCurrentObjects")
+      }
     }
   }
 
