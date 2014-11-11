@@ -106,6 +106,10 @@ object Errors {
   case class CantIndex() extends PositionalAcumenError {
     override def mesg = "Can only index into vectors."
   }
+   case class IndexNoMatch(v: List[Value[_]]) extends PositionalAcumenError {
+    override def mesg = "Can't do index (" + v.foldLeft("")((r,x) => pprint(x) + ",") + ")."
+  }
+  
   case class ExpectedInteger(v: Value[_]) extends PositionalAcumenError {
     override def mesg = "Expected integer but got " + pprint(v) + "."
   }
