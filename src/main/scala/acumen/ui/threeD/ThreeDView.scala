@@ -210,65 +210,60 @@ class ThreeDView extends JPanel {
   *            "addAxes" -> add the axes
   *            "addLookAtSphere" -> add the red sphere at look at point*/
 
-  private var modifyViewObjects = false
-  def viewStateMachine(worldState: String) = this.synchronized {
-    // object deleting state machine
-    modifyViewObjects = true
-    worldState match {
-      case "renderCurrentObjects" => // only called in renderCurrentFrame()
-        if (world.getObjectByName(mainbox.getName) != null)
-          world.removeObject(mainbox)
-        for (oldObject <- objectsToDelete) {
-          if (world.getObjectByName(oldObject.getName) != null)
-            world.removeObject(oldObject)
-        }
-        // add all the objects in current frame into the view
-        for ((objectKey, objectToBuild) <- objects) {
-          if (world.getObjectByName(objectToBuild.getName) == null) {
-            world.addObject(objectToBuild)
+  def viewStateMachine(worldState: String) = {
+    this.synchronized {
+      // object deleting state machine
+      worldState match {
+        case "renderCurrentObjects" => // only called in renderCurrentFrame()
+          if (world.getObjectByName(mainbox.getName) != null)
+            world.removeObject(mainbox)
+          for (oldObject <- objectsToDelete) {
+            if (world.getObjectByName(oldObject.getName) != null)
+              world.removeObject(oldObject)
           }
-        }
-      case "addMainBox" =>
-        if (world.getObjectByName(mainbox.getName) == null)
-          world.addObject(mainbox)
-      case "addAxes" => // only called in axisOff function
-        if (!axisArray.contains(axes(0))) {
-          axisArray(0) = axes(0)
-          for (i <- 0 until axes.length)
-            CustomObject3D.partialBuild(axes(i), i < 6)
-          world.addObjects(axes)
-        }
-      case "addLookAtSphere" => // called when camera rotation is finished
-        if (world.getObjectByName(lookAtCenter.getName) == null)
-          world.addObject(lookAtCenter)
-      case "deleteAllObjects" =>
-        world.removeAllObjects()
-      case "deleteAxes" => // only called in axisOff function
-        if (axisArray.contains(axes(0))) {
-          for (i <- 0 until axes.length)
-            world.removeObject(axes(i))
-          axisArray(0) = null
-        }
-      case "deleteLookAtSphere" => // called when camera rotation is finished
-        if (world.getObjectByName(lookAtCenter.getName) != null)
-          world.removeObject(lookAtCenter)
-      case _ => throw ShouldNeverHappen()
+          // add all the objects in current frame into the view
+          for ((objectKey, objectToBuild) <- objects) {
+            if (world.getObjectByName(objectToBuild.getName) == null) {
+              world.addObject(objectToBuild)
+            }
+          }
+        case "addMainBox" =>
+          if (world.getObjectByName(mainbox.getName) == null)
+            world.addObject(mainbox)
+        case "addAxes" => // only called in axisOff function
+          if (!axisArray.contains(axes(0))) {
+            axisArray(0) = axes(0)
+            for (i <- 0 until axes.length)
+              CustomObject3D.partialBuild(axes(i), i < 6)
+            world.addObjects(axes)
+          }
+        case "addLookAtSphere" => // called when camera rotation is finished
+          if (world.getObjectByName(lookAtCenter.getName) == null)
+            world.addObject(lookAtCenter)
+        case "deleteAllObjects" =>
+          world.removeAllObjects()
+        case "deleteAxes" => // only called in axisOff function
+          if (axisArray.contains(axes(0))) {
+            for (i <- 0 until axes.length)
+              world.removeObject(axes(i))
+            axisArray(0) = null
+          }
+        case "deleteLookAtSphere" => // called when camera rotation is finished
+          if (world.getObjectByName(lookAtCenter.getName) != null)
+            world.removeObject(lookAtCenter)
+        case _ => throw ShouldNeverHappen()
+      }
     }
     repaint()
-    modifyViewObjects = false
   }
 
   override def paint(g: Graphics) = {
     world.synchronized {
-      if(!modifyViewObjects) {
-        if (buffer != null) {
-          buffer.clear(Color.LIGHT_GRAY) // erase the previous frame
-          // render the world onto the buffer:
-          world.renderScene(buffer)
-          world.draw(buffer)
-          buffer.update()
-        }
-      }
+      buffer.clear(Color.LIGHT_GRAY) // erase the previous frame
+      // render the world onto the buffer:
+      world.renderScene(buffer)
+      world.draw(buffer)
+      buffer.update()
     }
     buffer.display(g)
   }
