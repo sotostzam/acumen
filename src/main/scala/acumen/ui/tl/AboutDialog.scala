@@ -4,7 +4,8 @@ import java.awt.Color
 import java.awt.Dimension
 import java.awt.Font
 import scala.swing.Action
-import scala.swing.BorderPanel
+import scala.swing.{BorderPanel, BoxPanel}
+import scala.swing.{Alignment,Orientation}
 import scala.swing.Button
 import scala.swing.Frame
 import scala.swing.Label
@@ -25,10 +26,20 @@ object AboutDialog extends Frame {
   
   contents = new BorderPanel {
     val padding = new EmptyBorder(10, 10, 10, 10)
-    val version = new Label("Acumen " + acumen.util.System.version) {
-      border = padding
-      background = Color.WHITE
-      opaque = true
+    val version = new BoxPanel(Orientation.Vertical) {
+        contents += new Label("Acumen " + acumen.util.System.version) {
+          background = Color.WHITE
+          opaque = true
+          xLayoutAlignment = 0.5
+        }
+        acumen.util.System.buildId.foreach { s => contents += new Label("Build id " + s) {
+          font = font.deriveFont(java.awt.Font.PLAIN)
+          background = Color.WHITE
+          opaque = true
+          xLayoutAlignment = 0.5
+        }}
+        border = padding
+        background = Color.WHITE
     }
     val authors = new TextArea {
       editable = false
