@@ -288,6 +288,7 @@ object Common {
     op match {
       case "length" => VLit(GInt(u.length))
       case "norm" => VLit(GDouble(math.sqrt((du map (d => d*d)).sum)))
+      case "-" => binScalarVectorOp("*", GInt(-1), u)
       case "floor" => VVector(du map {d => VLit(GDouble(floor(d)))})
       case "ceil" => VVector(du map {d => VLit(GDouble(ceil(d)))})
       case "det" => VLit(GDouble(determinant(transMatrixArray(u))))
