@@ -696,20 +696,21 @@ class App extends SimpleSwingApplication {
     LicenseDialog visible = true
   }
   
+  /** Try to open bundled manual in external browser. On failure, use ManualBrowser. */
   def manual() =
-    try {
-      // When running the Acumen JAR in the directory of a release, where the 
-      // /src/main/resources directory is available, use an external browser
-      val pathOfJar = new File(ManualBrowser.getClass.getProtectionDomain
-        .getCodeSource.getLocation.getPath).getParentFile.getPath
-      val pathOfManualInReleaseDir = 
-        pathOfJar + "/src/main/resources/acumen/ui/tl/manual.html"
-      Desktop.getDesktop.open(new File(pathOfManualInReleaseDir)) 
-    } catch { case e =>
-      ManualBrowser setLocationRelativeTo body
-      ManualBrowser.peer setVisible true 
-      ManualBrowser.peer setFocusable true
-      ManualBrowser.peer requestFocus
+    try { // See if Acumen is running from source (e.g. using sbt)
+      Desktop.getDesktop.open(new File(ManualBrowser.getClass.getResource("manual.html").toURI))
+    } catch { case _ => 
+      try { // See if Acumen is running from JAR, inside release directory
+        val jarPath = new File(ManualBrowser.getClass.getProtectionDomain
+          .getCodeSource.getLocation.getPath).getParentFile.getPath
+        Desktop.getDesktop.open(new File(jarPath + "/src/main/resources/acumen/ui/tl/manual.html"))
+      } catch { case e: Throwable => // Acumen is running from JAR, outside release directory
+        ManualBrowser setLocationRelativeTo body
+        ManualBrowser.peer setVisible true 
+        ManualBrowser.peer setFocusable true
+        ManualBrowser.peer requestFocus
+      }
     }
 
   def enableAnaglyph3D(): Unit = {
