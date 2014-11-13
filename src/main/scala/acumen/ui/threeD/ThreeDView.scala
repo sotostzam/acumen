@@ -210,8 +210,11 @@ class ThreeDView extends JPanel {
   *            "addAxes" -> add the axes
   *            "addLookAtSphere" -> add the red sphere at look at point*/
 
+  protected[threeD] var waitingPaint = false
+
   def viewStateMachine(worldState: String) = {
     world.synchronized {
+      waitingPaint = true
       // object deleting state machine
       worldState match {
         case "renderCurrentObjects" => // only called in renderCurrentFrame()
@@ -257,7 +260,7 @@ class ThreeDView extends JPanel {
     }
   }
 
-  override def paint(g: Graphics) = {
+  override def paint(g: Graphics) = this.synchronized{
     world.synchronized {
       buffer.clear(Color.LIGHT_GRAY) // erase the previous frame
       // render the world onto the buffer:
@@ -265,6 +268,7 @@ class ThreeDView extends JPanel {
       world.draw(buffer)
       buffer.update()
       buffer.display(g)
+      waitingPaint = false
     }
   }
 
@@ -839,7 +843,7 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D, playSpeed: Double,
             slider.setProgress3D(percentage)
             slider.setTime(percentage / 100f * endTime)
           }
-          if (currentFrame <= totalFrames) {
+          if (currentFrame <= totalFrames && !app.waitingPaint) {
             renderCurrentFrame()
             currentFrame = setFrameNumber("go", currentFrame)
           }
@@ -867,8 +871,6 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D, playSpeed: Double,
     else if (setMode == "go" && playSpeed < 1)
       newFrameNumber = lastFrameNumber + 1
     else newFrameNumber = slider.bar.value * totalFrames / 100
-    if (newFrameNumber >= totalFrames + 1 && playSpeed > 1)
-      newFrameNumber = totalFrames
     newFrameNumber
   }
 
