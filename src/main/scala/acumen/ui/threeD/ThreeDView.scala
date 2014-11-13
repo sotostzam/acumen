@@ -858,14 +858,11 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D, playSpeed: Double,
         case "set frame" =>
           setFrameDone = false
           currentFrame = setFrameNumber("set frame", currentFrame)
-          if (totalFrames > 0 && currentFrame <= totalFrames) {
-            val startRenderTime = System.currentTimeMillis()
+          if (totalFrames > 0 && currentFrame <= totalFrames
+            && !app.waitingPaint) {
             val percentage = currentFrame * 100 / totalFrames
             slider.setTime(percentage / 100f * endTime)
             renderCurrentFrame()
-            val renderTime = System.currentTimeMillis() - startRenderTime
-            if (mouseSleepTime < renderTime && renderTime < 100.toLong)
-              mouseSleepTime = renderTime
             setFrameDone = true
           }
       }
@@ -887,9 +884,10 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D, playSpeed: Double,
     case e: scala.swing.event.MouseDragged =>
       val curSystemTime = System.currentTimeMillis()
       if (curSystemTime > lastSetFrameTime + mouseSleepTime
-        && setFrameDone)
+        && setFrameDone) {
         receiver ! "set frame"
-      lastSetFrameTime = System.currentTimeMillis()
+        lastSetFrameTime = System.currentTimeMillis()
+      }
   }
 
   /**
