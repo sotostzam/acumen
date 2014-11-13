@@ -192,6 +192,8 @@ class ThreeDView extends JPanel {
     mainbox.setShadingMode(Object3D.SHADING_FAKED_FLAT)
     new setGlass(new Color(180, 180, 180), mainbox, 0)
     camera = world.getCamera  // grab a handle to the camera
+    cameraLeftDirection = -1
+    cameraRightDirection = 1
     defaultView()
     lookAt(mainbox, null) // camera faces towards the object
     lookAtPoint.set(0,0,0)
@@ -300,8 +302,8 @@ class ThreeDView extends JPanel {
     init()
   }
 
-  def zoomin()  = camera.increaseFOV(0.1f)
-  def zoomout() = camera.decreaseFOV(0.1f)
+  def zoomin()  = camera.increaseFOV(0.02f)
+  def zoomout() = camera.decreaseFOV(0.02f)
 
   def transformView(position: Array[Double], rotation: Array[Double]) = {
     val cameraToSet = world.getCamera
