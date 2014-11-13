@@ -521,7 +521,6 @@ class App extends SimpleSwingApplication {
         action = reference2014Action
       }
       val opt2014 = new RadioMenuItem("") {
-        visible = Main.enableOldSemantics
         selected = false
         enableWhenStopped(this)
         action = optimized2014Action
