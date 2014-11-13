@@ -185,7 +185,6 @@ class ThreeDView extends JPanel {
   def initBuffer(bufferWidth: Int, bufferHeight: Int) = {
     buffer = new FrameBuffer(bufferWidth, bufferHeight,
                              FrameBuffer.SAMPLINGMODE_OGSS)
-    repaint()
   }
 
   def init() = {
@@ -557,7 +556,6 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D, playSpeed: Double,
         for ((objectKey, o) <- app.objects)
           if (!_3DDataBuffer(currentFrame).contains(objectKey))
             deleteObj(objectKey)
-
         lastRenderFrame = currentFrame
         if(currentFrame < _3DView.size)
           app.transformView(_3DView(currentFrame)._1, _3DView(currentFrame)._2)

@@ -25,7 +25,6 @@ class ThreeDTab (val appModel: Controller) extends AbstractEditorTab{
   def createCanvas() = {
     if (check.selected)
       threeDView.axisOn()
-    threeDView.setIgnoreRepaint(true)
     threeDView.init()
     canvasPanel.setLayout(new BorderLayout())
     canvasPanel.add(threeDView, BorderLayout.CENTER)
