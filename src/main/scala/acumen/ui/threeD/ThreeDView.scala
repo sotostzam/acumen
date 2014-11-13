@@ -850,8 +850,9 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D, playSpeed: Double,
             slider.setProgress3D(percentage)
             slider.setTime(percentage / 100f * endTime)
           }
-          if (currentFrame <= totalFrames && !app.waitingPaint) {
-            renderCurrentFrame()
+          if (currentFrame <= totalFrames) {
+            if (!app.waitingPaint)
+              renderCurrentFrame()
             currentFrame = setFrameNumber("go", currentFrame)
           }
         case "set frame" =>
