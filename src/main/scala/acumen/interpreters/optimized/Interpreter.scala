@@ -48,11 +48,11 @@ class Interpreter(val parDiscr: Boolean = true,
 
   def init(prog: Prog): (Prog, Store, Metadata) = {
     val magic = fromCStore(initStoreImpr, CId(0))
-    val (sd1, sd2) = Random.split(Random.mkGen(0))
-    val mainObj = mkObj(cmain, prog, IsMain, sd1, List(VObjId(Some(magic))), magic, 1)
-    magic.seed = sd2
     val cprog = CleanParameters.run(prog, CStoreInterpreterType)
     val sprog = Simplifier.run(cprog)
+    val (sd1, sd2) = Random.split(Random.mkGen(0))
+    val mainObj = mkObj(cmain, sprog, IsMain, sd1, List(VObjId(Some(magic))), magic, 1)
+    magic.seed = sd2
     val mprog = Prog(magicClass :: sprog.defs)
     (mprog , mainObj, NoMetadata)
   }
