@@ -185,6 +185,7 @@ class ThreeDView extends JPanel {
   def initBuffer(bufferWidth: Int, bufferHeight: Int) = {
     buffer = new FrameBuffer(bufferWidth, bufferHeight,
                              FrameBuffer.SAMPLINGMODE_OGSS)
+    repaint()
   }
 
   def init() = {
@@ -211,7 +212,7 @@ class ThreeDView extends JPanel {
   *            "addLookAtSphere" -> add the red sphere at look at point*/
 
   def viewStateMachine(worldState: String) = {
-    this.synchronized {
+    world.synchronized {
       // object deleting state machine
       worldState match {
         case "renderCurrentObjects" => // only called in renderCurrentFrame()
@@ -253,8 +254,8 @@ class ThreeDView extends JPanel {
             world.removeObject(lookAtCenter)
         case _ => throw ShouldNeverHappen()
       }
+      repaint()
     }
-    repaint()
   }
 
   override def paint(g: Graphics) = {
@@ -264,8 +265,8 @@ class ThreeDView extends JPanel {
       world.renderScene(buffer)
       world.draw(buffer)
       buffer.update()
+      buffer.display(g)
     }
-    buffer.display(g)
   }
 
   // point the camera toward the given object
@@ -395,7 +396,8 @@ class ScalaTimer(receiver: _3DDisplay, endTime: Double,
     sleepTime = endTime * 1000 / receiver.totalFrames
 
   initSpeed = sleepTime
-  sleepTime /= playSpeed
+  if (playSpeed < 1)
+    sleepTime /= playSpeed
   extraTime = ((sleepTime - sleepTime.toLong) * 1000000).toInt // To nano sec
 
   def act() {
@@ -412,7 +414,7 @@ class ScalaTimer(receiver: _3DDisplay, endTime: Double,
 }
 
 /* 3D Render */
-class _3DDisplay(app: ThreeDView, slider: Slider3D,
+class _3DDisplay(app: ThreeDView, slider: Slider3D, playSpeed: Double,
                  _3DDataBuffer: mutable.Map[Int,mutable.Map[(CId,Int),List[_]]],
                  lastFrame: Int, endTime: Float,
                  _3DView: mutable.ArrayBuffer[(Array[Double], Array[Double])])
@@ -861,9 +863,14 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D,
   }
 
   def setFrameNumber (setMode: String, lastFrameNumber: Int): Int = {
-    val newFrameNumber =
-      if (setMode == "go") lastFrameNumber + 1
-      else slider.bar.value * totalFrames / 100
+    var newFrameNumber = 0
+    if (setMode == "go" && playSpeed >= 1)
+      newFrameNumber = lastFrameNumber + 1 * playSpeed.toInt
+    else if (setMode == "go" && playSpeed < 1)
+      newFrameNumber = lastFrameNumber + 1
+    else newFrameNumber = slider.bar.value * totalFrames / 100
+    if (newFrameNumber >= totalFrames + 1 && playSpeed > 1)
+      newFrameNumber = totalFrames
     newFrameNumber
   }
 

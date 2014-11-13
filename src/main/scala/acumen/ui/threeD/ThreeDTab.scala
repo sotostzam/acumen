@@ -25,13 +25,14 @@ class ThreeDTab (val appModel: Controller) extends AbstractEditorTab{
   def createCanvas() = {
     if (check.selected)
       threeDView.axisOn()
+    threeDView.setIgnoreRepaint(true)
     threeDView.init()
     canvasPanel.setLayout(new BorderLayout())
     canvasPanel.add(threeDView, BorderLayout.CENTER)
     peer.add(canvasPanel, BorderLayout.CENTER)
     peer.setVisible(true)
   }
-  var playSpeed = 1.0
+  private var playSpeed = 1.0
   val faster = new Action("faster") {
     icon = Icons.faster
     def apply() = {
@@ -131,7 +132,7 @@ class ThreeDTab (val appModel: Controller) extends AbstractEditorTab{
     contents += statusZone3d
   }
 
-  var _receiver = new _3DDisplay(threeDView, statusZone3d,
+  var _receiver = new _3DDisplay(threeDView, statusZone3d, playSpeed,
     _3DDataBuffer, lastFrame, appModel.threeDData.endTime, appModel.threeDData._3DView)
 
   var timer3d = new ScalaTimer(receiver, appModel.threeDData.endTime, playSpeed)
@@ -221,15 +222,14 @@ class ThreeDTab (val appModel: Controller) extends AbstractEditorTab{
         threeDView.preCustomView = threeDView.customView
       }
       threeDView.viewStateMachine("deleteAllObjects")
-      threeDView.repaint()
-      repaint()
       threeDView.objects.clear()
       threeDView.scaleFactors.clear()
       threeDView.axisArray(0) = null
       if (check.selected)
         threeDView.axisOn()
-      _receiver = new _3DDisplay(threeDView, statusZone3d, _3DDataBuffer, lastFrame,
-                                 appModel.threeDData.endTime, appModel.threeDData._3DView)
+      _receiver = new _3DDisplay(threeDView, statusZone3d, playSpeed,
+                          _3DDataBuffer, lastFrame, appModel.threeDData.endTime,
+                          appModel.threeDData._3DView)
       timer3d = new ScalaTimer(receiver, appModel.threeDData.endTime, playSpeed)
       receiver.start()
       timer3d.start()
