@@ -601,7 +601,8 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D, playSpeed: Double,
     name match {
       case "Box" =>
         // the type has been changed, delete the old object and create a new one
-        if (lastFrameName != name) {
+        if (lastFrameName != name && checkResizeable(size)
+          && checkResizeable(angle)) {
           // change the object in
           // Since some object need to scale, we never allow the initial size become 0
           val (sizeToSetX, sizeToSetY, sizeToSetZ) = (checkSize(size(1)),
@@ -629,7 +630,8 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D, playSpeed: Double,
         }
       case "Cylinder" =>
         // the type has been changed, delete the old object and create a new one
-        if (lastFrameName != name) {
+        if (lastFrameName != name && checkResizeable(size)
+          && checkResizeable(angle)) {
           // change the object in
           val (sizeToSetR, sizeToSetS) = (checkSize(size(0)), checkSize(size(1)))
           app.objectsToDelete += app.world.getObject(objID)
@@ -651,7 +653,8 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D, playSpeed: Double,
         }
       case "Cone" =>
         // the type has been changed, delete the old object and create a new one
-        if (lastFrameName != name) {
+        if (lastFrameName != name && checkResizeable(size)
+          && checkResizeable(angle)) {
           // change the object in
           val (sizeToSetR, sizeToSetS) = (checkSize(size(0)), checkSize(size(1)))
           app.objectsToDelete += app.world.getObject(objID)
@@ -672,7 +675,8 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D, playSpeed: Double,
         }
       case "Sphere" =>
         // the type has been changed, delete the old object and create a new one
-        if (lastFrameName != name) {
+        if (lastFrameName != name && checkResizeable(size)
+          && checkResizeable(angle)) {
           // change the object in
           val sizeToSetR = checkSize(size(0))
           app.objectsToDelete += app.world.getObject(objID)
@@ -695,7 +699,8 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D, playSpeed: Double,
           if (getLastContent(objectKey, lastValueList) == false) "new" + name
           else getLastContent(objectKey, lastValueList)
         // the type has been changed, delete the old object and create a new one
-        if ((lastFrameName != name || lastFrameContent != text) && text != "") {
+        if ((lastFrameName != name || lastFrameContent != text) && text != ""
+          && checkResizeable(size) && checkResizeable(angle)) {
           // change the object in
           val sizeToSetR = checkSize(size(0))
           app.objectsToDelete += app.world.getObject(objID)
@@ -718,7 +723,8 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D, playSpeed: Double,
           if (getLastContent(objectKey, lastValueList) == false) "new" + name
           else getLastContent(objectKey, lastValueList)
         // the type has been changed, we need to delete the old object and create a one
-        if ((lastFrameName != name || lastFrameContent != path) && path != "") {
+        if ((lastFrameName != name || lastFrameContent != path) && path != ""
+          && checkResizeable(size) && checkResizeable(angle)) {
           // change the object in
           val sizeToSetR = checkSize(size(0) / 132)
           app.objectsToDelete += app.world.getObject(objID)
@@ -764,37 +770,38 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D, playSpeed: Double,
       (if (name == "Text") valueList(5) else " ",
         if (name == "OBJ")  valueList(5) else " ")
 
-    val newObject = name match {
-      case "Box" =>
-        val (sizeToSetX, sizeToSetY, sizeToSetZ) = (checkSize(size(1)),
-          checkSize(size(0)),
-          checkSize(size(2)))
-        app.drawBox(abs(sizeToSetX), abs(sizeToSetY), abs(sizeToSetZ))
-      case "Cylinder" =>
-        val (sizeToSetR, sizeToSetS) = (checkSize(size(0)), checkSize(size(1)))
-        Primitives.getCylinder(20, abs(sizeToSetR).toFloat,
-          abs(sizeToSetS / (sizeToSetR * 2)).toFloat)
-      case "Cone" =>
-        val (sizeToSetR, sizeToSetS) = (checkSize(size(0)), checkSize(size(1)))
-        Primitives.getCone(20, abs(sizeToSetR.toFloat),
-          abs(sizeToSetS / (sizeToSetR * 2)).toFloat)
-      case "Sphere" =>
-        val sizeToSetR = checkSize(size(0))
-        Primitives.getSphere(20, abs(sizeToSetR.toFloat))
-      case "Text" =>
-        val sizeToSetR = checkSize(size(0))
-        if (text != "")  // model err, do nothing
-          buildText(text, sizeToSetR)
-        else
-          null
-      case "OBJ" =>
-        val sizeToSetR = checkSize(size(0) / 132)
-        if (path != "")  // model err, do nothing
-          loadObj(path, sizeToSetR)
-        else
-          null
-      case _ => throw ShouldNeverHappen()
-    }
+    val newObject =
+      if (checkResizeable(size) && checkResizeable(angle)) name match {
+        case "Box" =>
+          val (sizeToSetX, sizeToSetY, sizeToSetZ) = (checkSize(size(1)),
+                                                      checkSize(size(0)),
+                                                      checkSize(size(2)))
+          app.drawBox(abs(sizeToSetX), abs(sizeToSetY), abs(sizeToSetZ))
+        case "Cylinder" =>
+          val (sizeToSetR, sizeToSetS) = (checkSize(size(0)), checkSize(size(1)))
+          Primitives.getCylinder(20, abs(sizeToSetR).toFloat,
+            abs(sizeToSetS / (sizeToSetR * 2)).toFloat)
+        case "Cone" =>
+          val (sizeToSetR, sizeToSetS) = (checkSize(size(0)), checkSize(size(1)))
+          Primitives.getCone(20, abs(sizeToSetR.toFloat),
+            abs(sizeToSetS / (sizeToSetR * 2)).toFloat)
+        case "Sphere" =>
+          val sizeToSetR = checkSize(size(0))
+          Primitives.getSphere(20, abs(sizeToSetR.toFloat))
+        case "Text" =>
+          val sizeToSetR = checkSize(size(0))
+          if (text != "")  // model err, do nothing
+            buildText(text, sizeToSetR)
+          else
+            null
+        case "OBJ" =>
+          val sizeToSetR = checkSize(size(0) / 132)
+          if (path != "")  // model err, do nothing
+            loadObj(path, sizeToSetR)
+          else
+            null
+        case _ => throw ShouldNeverHappen()
+      } else null
 
     if (newObject != null) {
       // set color to the object
