@@ -1,0 +1,130 @@
+#0 {
+  Kh = 2,
+  Qhp = 0,
+  Tg = 60,
+  Th = 50,
+  Th' = 0,
+  To = 6,
+  Ttm = 10,
+  Ttm' = 0,
+  Yeq = 1,
+  Yh = 3,
+  Ytm = 2,
+  className = Main,
+  int_Tg = 0,
+  int_Tg' = 0,
+  int_Th = 0,
+  int_Th' = 0,
+  ki = 1,
+  kp = 10,
+  mode = 1,
+  simulator = #0.0,
+  t = 0,
+  t' = 1
+}
+#0.0 { className = Simulator, time = 0.000000 }
+------------------------------0
+#0 {
+  Kh = 2,
+  Qhp = 29.845461,
+  Tg = 60,
+  Th = 58.912263,
+  Th' = -2.732348,
+  To = 5,
+  Ttm = 77.268322,
+  Ttm' = 5.643742,
+  Yeq = 1,
+  Yh = 3,
+  Ytm = 2,
+  className = Main,
+  int_Tg = 300.600000,
+  int_Tg' = 60,
+  int_Th = 281.349554,
+  int_Th' = 58.939424,
+  ki = 1,
+  kp = 10,
+  mode = 1,
+  simulator = #0.0,
+  t = 0,
+  t' = 1
+}
+#0.0 { className = Simulator, time = 5.010000 }
+------------------------------502
+#0 {
+  Kh = 2,
+  Qhp = 27.162503,
+  Tg = 60,
+  Th = 59.631628,
+  Th' = -0.325081,
+  To = 4,
+  Ttm = 85.980956,
+  Ttm' = 0.392013,
+  Yeq = 1,
+  Yh = 3,
+  Ytm = 2,
+  className = Main,
+  int_Tg = 601.200000,
+  int_Tg' = 60,
+  int_Th = 577.685188,
+  int_Th' = 59.634864,
+  ki = 1,
+  kp = 10,
+  mode = 1,
+  simulator = #0.0,
+  t = 0,
+  t' = 1
+}
+#0.0 { className = Simulator, time = 10.020000 }
+------------------------------1004
+#0 {
+  Kh = 2,
+  Qhp = 27.819717,
+  Tg = 60,
+  Th = 59.761068,
+  Th' = -0.035573,
+  To = 3,
+  Ttm = 87.535612,
+  Ttm' = 0.019886,
+  Yeq = 1,
+  Yh = 3,
+  Ytm = 2,
+  className = Main,
+  int_Tg = 901.800000,
+  int_Tg' = 60,
+  int_Th = 876.363670,
+  int_Th' = 59.761423,
+  ki = 1,
+  kp = 10,
+  mode = 1,
+  simulator = #0.0,
+  t = 0,
+  t' = 1
+}
+#0.0 { className = Simulator, time = 15.030000 }
+------------------------------1506
+#0 {
+  Kh = 2,
+  Qhp = 29.393325,
+  Tg = 60,
+  Th = 59.903103,
+  Th' = -0.010421,
+  To = 1,
+  Ttm = 89.323403,
+  Ttm' = -0.014513,
+  Yeq = 1,
+  Yh = 3,
+  Ytm = 2,
+  className = Main,
+  int_Tg = 1800.000000,
+  int_Tg' = 60,
+  int_Th = 1771.573640,
+  int_Th' = 59.903207,
+  ki = 1,
+  kp = 10,
+  mode = 1,
+  simulator = #0.0,
+  t = 4.950000,
+  t' = 1
+}
+#0.0 { className = Simulator, time = 30.000000 }
+------------------------------3005
