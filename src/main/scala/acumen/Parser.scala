@@ -466,9 +466,10 @@ object Parser extends MyStdTokenParsers {
   /* 3d configurations parser */
   val defaultCenter = ExprVector(List(Lit(GInt(0)),Lit(GInt(0)),Lit(GInt(0))))
   val defaultScale = Lit(GDouble(0.2))
-  val defaultSize = ExprVector(List(Lit(GInt(1)),Lit(GInt(1)),Lit(GInt(1))))
-  val defaultLength = Lit(GInt(1))
-  val defaultRadius = Lit(GDouble(0.1))
+  val defaultSize = ExprVector(List(Lit(GDouble(0.4)),Lit(GDouble(0.4)),
+                                    Lit(GDouble(0.4))))
+  val defaultLength = Lit(GDouble(0.4))
+  val defaultRadius = Lit(GDouble(0.2))
   val defaultContent = Lit(GStr(" "))
   val defaultColor = ExprVector(List(Lit(GInt(1)),Lit(GInt(1)),Lit(GInt(1))))
   val defaultRotation = ExprVector(List(Lit(GInt(0)),Lit(GInt(0)),Lit(GInt(0))))
