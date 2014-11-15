@@ -11,6 +11,7 @@ object Icons {
   private val stepUrl    = this.getClass.getResource("icons/step.png")
   private val stopUrl    = this.getClass.getResource("icons/stop.png")
   private val pauseUrl   = this.getClass.getResource("icons/pause.png")
+  private val recordUrl  = this.getClass.getResource("icons/record.png")
   /* Plotter */          
   private val homeUrl    = this.getClass.getResource("icons/home.png")
   private val zoomInUrl  = this.getClass.getResource("icons/zoomin.png")
@@ -27,6 +28,7 @@ object Icons {
     else new ImageIcon(u)
   }
 
+  lazy val record  = get(recordUrl)
   lazy val play    = get(playUrl)
   lazy val step    = get(stepUrl)
   lazy val pause   = get(pauseUrl)

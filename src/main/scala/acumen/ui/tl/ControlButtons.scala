@@ -30,7 +30,7 @@ class ControlButtons extends FlowPanel {
   /* ---- definitions ------ */
 
   val play = new Action("play") {
-    icon = Icons.play
+    icon = Icons.record
     def apply = App.ui.runSimulation()
     toolTip = "Run Simulation"
   }
