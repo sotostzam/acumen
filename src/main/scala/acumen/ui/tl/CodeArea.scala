@@ -170,12 +170,13 @@ class CodeArea extends Panel with TreeSelectionListener {
     editedSinceLastSave = true
     editedSinceLastAutoSave = true
     editedSinceLastRun = true
+    textArea.removeAllLineHighlights
   }
 
   def listenDocument = {
     textArea.getDocument.addDocumentListener(
       new DocumentListener {
-        def changedUpdate(e: DocumentEvent) { textArea.removeAllLineHighlights }
+        def changedUpdate(e: DocumentEvent) {}
         def insertUpdate(e: DocumentEvent) { setEdited }
         def removeUpdate(e: DocumentEvent) { setEdited }
       })
