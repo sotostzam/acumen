@@ -2,6 +2,7 @@ package acumen
 
 import Errors._
 import util.Names._
+import acumen.util.Canonical
 
 sealed abstract class InterpreterType
 case object CStoreInterpreterType extends InterpreterType
@@ -32,7 +33,11 @@ object CleanParameters {
   case object AssignToSimulator extends Throwable
 
   def filterMain(cd: ClassDef, intr: InterpreterType) : ClassDef = {
-    // FIXME: make sure cd.name == "Main"
+    require(cd.name == Canonical.cmain, "Applied filterMain to non-main class definition.")
+    if (cd.fields.length != 1)
+      throw new PositionalAcumenError {
+        def mesg = "Main takes exactly one parameter."
+      }.setPos(cd.pos)
     val simulatorName = cd.fields(0)
 
     val filter = new util.ASTMap {
