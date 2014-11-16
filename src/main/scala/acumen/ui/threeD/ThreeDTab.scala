@@ -17,6 +17,8 @@ abstract class AbstractEditorTab extends BorderPanel{
   def setAnaglyph(flag: Boolean): Unit
   def setRealTimeRender(flag: Boolean): Unit
   def setMatchWallClock(flag: Boolean): Unit
+  def disableButtons(): Unit
+  def enableButtons(): Unit
 }
 
 class ThreeDTab (val appModel: Controller) extends AbstractEditorTab{
@@ -120,10 +122,11 @@ class ThreeDTab (val appModel: Controller) extends AbstractEditorTab{
     var wasPlayingBeforeMousePressed = threedpause.toolTip == "pause"
     override def mousePressed(e: MouseEvent) = {
       wasPlayingBeforeMousePressed = threedpause.toolTip == "pause"
-      pauseOn()
+      if (statusZone3d.bar.enabled)
+        pauseOn()
     }
     override def mouseReleased(e: MouseEvent) =
-      if (wasPlayingBeforeMousePressed)
+      if (wasPlayingBeforeMousePressed && statusZone3d.bar.enabled)
         pauseOff()
   })
 
@@ -270,6 +273,20 @@ class ThreeDTab (val appModel: Controller) extends AbstractEditorTab{
     threeDView.matchWallClock = flag
   }
 
+  def disableButtons() = {
+    b3dplay.enabled = false
+    b3dpause.enabled = false
+    b3dstop.enabled = false
+    statusZone3d.bar.enabled = false
+  }
+
+  def enableButtons() = {
+    b3dplay.enabled = true
+    b3dpause.enabled = true
+    b3dstop.enabled = true
+    statusZone3d.bar.enabled = true
+  }
+
   // Final Init
   createCanvas()
   add(threeDBottomPane, BorderPanel.Position.South)
@@ -282,6 +299,8 @@ class DisabledEditorTab(msg: String) extends AbstractEditorTab {
   def setAnaglyph(flag: Boolean) = {}
   def setRealTimeRender(flag: Boolean) = {}
   def setMatchWallClock(flag: Boolean) = {}
+  def disableButtons() = {}
+  def enableButtons() = {}
   def pause() = {}
   val msgBox = new TextArea("\n" + msg)
   msgBox.editable = false

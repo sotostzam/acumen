@@ -154,6 +154,7 @@ class CStoreCntrl(val semantics: SemanticsImpl[Interpreter], val interpreter: CS
         })
       } andThen {
         sendChunk()
+        App.ui.stopSimulation()
         consumer ! Done(List("Time to run simulation: %.3fs".format((System.currentTimeMillis - startTime) / 1000.0)), md, endTime)
         //System.err.println("Total simulation time: " + ((System.currentTimeMillis - startTime) / 1000.0) + "s")
       }

@@ -2,28 +2,7 @@ package acumen
 package ui
 package tl
 
-import java.lang.Thread
-
-import scala.actors._
-import collection.JavaConversions._
-
-import java.awt.event.{InputEvent, KeyEvent}
-import java.awt.Font
-import java.awt.Color
-import java.awt.RenderingHints
-import java.awt.GraphicsEnvironment
-import java.awt.Desktop
-import java.io._
-import javax.swing.JOptionPane
-import javax.swing.SwingUtilities
-import javax.swing.undo._
-import javax.swing.text._
-import javax.swing.KeyStroke
-import javax.swing.event.DocumentListener
-import javax.swing.event.DocumentEvent
-
-import swing._
-import swing.event._
+import scala.swing._
 
 class ControlButtons extends FlowPanel {
 
@@ -31,23 +10,26 @@ class ControlButtons extends FlowPanel {
 
   val play = new Action("play") {
     icon = Icons.record
-    def apply = App.ui.runSimulation()
+    def apply() = App.ui.runSimulation()
     toolTip = "Run Simulation"
   }
   val step = new Action("step") {
     icon = Icons.step
-    def apply = App.ui.stepSimulation()
+    def apply() = App.ui.stepSimulation()
     toolTip = "Compute one simulation step"
   }
   val pause = new Action("pause") {
     icon = Icons.pause
-    def apply = App.ui.controller ! Pause
+    def apply() = App.ui.controller ! Pause
     toolTip = "Pause simulation"
 	
   }
   val stop = new Action("stop") {
     icon = Icons.stop
-    def apply = App.ui.controller ! Stop
+    def apply() = {
+      App.ui.controller ! Stop
+      App.ui.stopSimulation()
+    }
     toolTip = "Stop simulation (cannot resume)"
   }
 

@@ -904,13 +904,38 @@ class App extends SimpleSwingApplication {
     controller.threeDData.reset
     threeDtab.reset
     codeArea.autoSave
+    if (enableAnaglyphItem.enabled)
+      enableAnaglyphItem.enabled = false
+    if (enableRealTimeItem.enabled)
+      enableRealTimeItem.enabled = false
+    if (matchWallClockItem.enabled)
+      matchWallClockItem.enabled = false
+    threeDtab.disableButtons()
     controller ! Play
   }
 
   /** Everything that needs to compute one simulation step. */
   def stepSimulation() {
     codeArea.autoSave
+    if (enableAnaglyphItem.enabled)
+      enableAnaglyphItem.enabled = false
+    if (enableRealTimeItem.enabled)
+      enableRealTimeItem.enabled = false
+    if (matchWallClockItem.enabled)
+      matchWallClockItem.enabled = false
+    threeDtab.disableButtons()
     controller ! Step
+  }
+
+  /** Everything that needs to be done after simulation finished. */
+  def stopSimulation() {
+    if (!enableAnaglyphItem.enabled)
+      enableAnaglyphItem.enabled = true
+    if (!enableRealTimeItem.enabled)
+      enableRealTimeItem.enabled = true
+    if (startRealTime)
+      matchWallClockItem.enabled = true
+    threeDtab.enableButtons()
   }
   
   // Add application-wide keyboard shortcuts
