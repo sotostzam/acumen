@@ -76,7 +76,7 @@ class App extends SimpleSwingApplication {
   
   def setSemantics(si: SemanticsImpl[Interpreter]) = {
     Main.defaultSemantics = si
-    ui.codeArea.updateCompletionProvider(si.interpreter)
+    ui.codeArea.updateCompletionProvider(si.interpreter())
     Logger.log("Selected the \"" + si.descr + "\" semantics.")
   }
   
@@ -173,6 +173,7 @@ class App extends SimpleSwingApplication {
   private val enclosure2014Action             = mkActionMask("2014 Enclosure",                      VK_4, VK_D,       shortcutMask | SHIFT_MASK, setSemantics(S.Enclosure2014(contraction)))
   private val enableAnaglyph                  = mkAction(    "Enable 3D Anaglyph",                  NONE, NONE,       enableAnaglyph3D())
   private val enableRealTimeRender            = mkAction(    "Enable Real Time Animation",          NONE, NONE,       enableRealTme())
+  private val matchWallClock                  = mkAction(    "Match wit Wall Clock",                NONE, NONE,       enableMatchWallClock())
   private val contractionAction               = mkActionMask("Contraction",                         VK_C, VK_C,       shortcutMask | SHIFT_MASK, toggleContraction())
   private val normalizeAction                 = mkAction(    "Normalize (to H.A.)",                 VK_N, NONE,       toggleNormalization())
   private val manualAction                    = mkAction(    "Reference Manual",                    VK_M, VK_F1,      manual)
@@ -331,7 +332,6 @@ class App extends SimpleSwingApplication {
   }
 
   val traceTab = new ScrollPane(traceTable)
-  //var threeDtab = new jPCTEditorTab(controller)
 
   var threeDtab = if (Main.threeDState == ThreeDState.DISABLE) {
     Logger.log("Acumen3D disabled.")
@@ -365,7 +365,7 @@ class App extends SimpleSwingApplication {
 
     selection.reactions += {
       case SelectionChanged(_) =>
-        possibleEnable3D
+        possibleEnable3D()
         actor.publish(ViewChanged(selection.index))
     }
 
@@ -375,7 +375,7 @@ class App extends SimpleSwingApplication {
     def selectPlotView() = peer.setSelectedIndex(PLOT_IDX)
     def selectThreeDView() = peer.setSelectedIndex(THREED_IDX)
     
-    def possibleEnable3D =
+    def possibleEnable3D() =
       if (selection.index == THREED_IDX && shouldEnable3D) {
         App.ui.threeDtab = threeDtab
         pages(THREED_IDX).content = App.ui.threeDtab
@@ -400,7 +400,7 @@ class App extends SimpleSwingApplication {
   
   /** Same as mkActionAccelMask, but with a default accelerator mask (depending on OS). */
   private def mkAction(name: String, m: Int, a: Int, act: => Unit) =
-    mkActionMask(name, m, a, shortcutMask, act)
+    mkActionMask(name, m, a, shortcutMask(), act)
 
   /** 
    * Used to construct actions for MenuItems. Both m and a should be some VK from KeyEvent. 
@@ -411,7 +411,7 @@ class App extends SimpleSwingApplication {
    **/
   private def mkActionMask(name: String, m: Int, a: Int, aMask: Int, act: => Unit) = new Action(name) { 
     mnemonic = m; accelerator = if (a != NONE) Some(KeyStroke.getKeyStroke(a, aMask)) else None
-    def apply = act
+    def apply() = act
   } 
  
   private val playMenuItem = new MenuItem(playAction) 
@@ -420,8 +420,10 @@ class App extends SimpleSwingApplication {
 
   private val enableAnaglyphItem = new RadioMenuItem("Enable 3D Anaglyph") {selected = false; action = enableAnaglyph}
   private val enableRealTimeItem = new RadioMenuItem("Enable Real Time Animation") {selected = false; action = enableRealTimeRender}
+  private val matchWallClockItem = new RadioMenuItem("Match with Wall Clock") {selected = false; action = matchWallClock}
   private var startAnaglyph = false
   private var startRealTime = false
+  private var matchWorldTime = false
  
   val bar = new MenuBar {
     contents += new Menu("File") {
@@ -618,8 +620,9 @@ class App extends SimpleSwingApplication {
     }
 
     contents += new Menu("3D Options") {
-      contents += enableAnaglyphItem
-      contents += enableRealTimeItem
+      contents ++= Seq(enableAnaglyphItem, enableRealTimeItem,
+                       matchWallClockItem)
+      matchWallClockItem.enabled = false
     }
 
    
@@ -722,11 +725,26 @@ class App extends SimpleSwingApplication {
   }
 
   def enableRealTme(): Unit = {
-    if (!startRealTime)
+    if (!startRealTime) {
       startRealTime = true
-    else
+      matchWallClockItem.enabled = true
+    }
+    else {
       startRealTime = false
+      matchWorldTime = false
+      matchWallClockItem.selected = false
+      threeDtab.setMatchWallClock(matchWorldTime)
+      matchWallClockItem.enabled = false
+    }
     threeDtab.setRealTimeRender(startRealTime)
+  }
+
+  def enableMatchWallClock(): Unit = {
+    if (!matchWorldTime)
+      matchWorldTime = true
+    else
+      matchWorldTime = false
+    threeDtab.setMatchWallClock(matchWorldTime)
   }
 
   /* ----- events handling ---- */
@@ -801,7 +819,8 @@ class App extends SimpleSwingApplication {
     case Stopped =>
       if (controller.threeDData.modelContains3D()) {
         codeArea.editedSinceLastRun = false
-        if (Main.threeDState == ThreeDState.ENABLE && modelFinished) {
+        if (Main.threeDState == ThreeDState.ENABLE && modelFinished
+          && !startRealTime) {
           views.selectThreeDView()
           threeDtab.play()
         }
