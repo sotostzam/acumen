@@ -16,6 +16,7 @@ abstract class AbstractEditorTab extends BorderPanel{
   def pause(): Unit
   def setAnaglyph(flag: Boolean): Unit
   def setRealTimeRender(flag: Boolean): Unit
+  def setMatchWallClock(flag: Boolean): Unit
 }
 
 class ThreeDTab (val appModel: Controller) extends AbstractEditorTab{
@@ -31,7 +32,7 @@ class ThreeDTab (val appModel: Controller) extends AbstractEditorTab{
     peer.add(canvasPanel, BorderLayout.CENTER)
     peer.setVisible(true)
   }
-  private var playSpeed = 1.0
+  var playSpeed = 1.0
   val faster = new Action("faster") {
     icon = Icons.faster
     def apply() = {
@@ -241,12 +242,32 @@ class ThreeDTab (val appModel: Controller) extends AbstractEditorTab{
     }
   }
 
+  def playinRealTime() = {
+    endTime = appModel.threeDData.endTime
+    statusZone3d.setSpeed(playSpeed.toString)
+    if (appModel.threeDData._3DView.size == appModel.threeDData._3DData.size) {
+      threeDView.customView = false
+      threeDView.preCustomView = threeDView.customView
+    }
+    lastFrame = appModel.threeDData._3DData.size - 1
+    _receiver = new _3DDisplay(threeDView, statusZone3d, playSpeed,
+      appModel.threeDData._3DData, lastFrame, appModel.threeDData.endTime,
+      appModel.threeDData._3DView)
+    receiver.start()
+    receiver ! "real time render"
+    listenTo(receiver)
+  }
+
   def setAnaglyph(flag: Boolean) = {
     threeDView.enableAnaglyph = flag
   }
 
   def setRealTimeRender(flag: Boolean) = {
     threeDView.enableRealTime = flag
+  }
+
+  def setMatchWallClock(flag: Boolean) = {
+    threeDView.matchWallClock = flag
   }
 
   // Final Init
@@ -260,6 +281,7 @@ class DisabledEditorTab(msg: String) extends AbstractEditorTab {
   def play() = {}
   def setAnaglyph(flag: Boolean) = {}
   def setRealTimeRender(flag: Boolean) = {}
+  def setMatchWallClock(flag: Boolean) = {}
   def pause() = {}
   val msgBox = new TextArea("\n" + msg)
   msgBox.editable = false

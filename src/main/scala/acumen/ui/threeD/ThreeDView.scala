@@ -35,6 +35,8 @@ class ThreeDView extends JPanel {
   val axisArray = Array(new Object3D(1))
   val mainbox = drawBox(1, 1, 1)
 
+  var matchWallClock = false
+
   protected[threeD] var objects = mutable.Map[(CId, Int), Object3D]()
   protected[threeD] var scaleFactors = mutable.Map[Object3D, Array[Double]]()
   protected[threeD] var objectsToDelete = mutable.ArrayBuffer[Object3D]()
@@ -568,6 +570,33 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D, playSpeed: Double,
     }
   }
 
+  def renderFrameInRealTime() = this.synchronized {
+    app.objects.synchronized {
+      app.objectsToDelete.clear()
+      val latestFrame = _3DDataBuffer.size - 1
+      if (_3DDataBuffer(latestFrame) != null) {
+        for ((objectKey, valueList) <- _3DDataBuffer(latestFrame))
+          if (!app.objects.contains(objectKey))
+            matchingObject(objectKey, valueList, latestFrame)
+          else if (app.objects.contains(objectKey)  // this should not happen
+            && app.world.getObjectByName(app.objects(objectKey).getName) == null) {
+            app.objects -= objectKey
+            matchingObject(objectKey, valueList, latestFrame)
+          } else
+            transformObject(objectKey, valueList, lastRenderFrame, latestFrame)
+
+        // delete the object not in this frame
+        for ((objectKey, o) <- app.objects)
+          if (!_3DDataBuffer(latestFrame).contains(objectKey))
+            deleteObj(objectKey)
+        lastRenderFrame = latestFrame
+        if (_3DView.size > 0)
+          app.transformView(_3DView(_3DView.size - 1)._1, _3DView(_3DView.size - 1)._2)
+        app.viewStateMachine("renderCurrentObjects")
+      }
+    }
+  }
+
   /**
    * Moving and rotating the object
    */
@@ -865,6 +894,9 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D, playSpeed: Double,
             renderCurrentFrame()
             setFrameDone = true
           }
+        case "real time render" =>
+          if (!app.waitingPaint)
+            renderFrameInRealTime()
       }
     }
   }

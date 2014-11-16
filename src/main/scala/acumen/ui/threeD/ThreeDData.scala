@@ -38,6 +38,8 @@ class ThreeDData extends Publisher {
   var _3DTexture = ""
   /* Camera's position and orientation*/
   var _3DView = mutable.ArrayBuffer[ViewInfo]()
+  /* Used for synchronize real time 3D-visualisation with real world time */
+  protected[threeD] var timeStep = 0.0
 
   def reset() {
     _3DData.clear()
@@ -258,6 +260,8 @@ class ThreeDData extends Publisher {
     }
     if (!_3DData.contains(frameNumber))
       _3DData += frameNumber -> null
+    if (_3DData(frameNumber) != null && !App.ui.views.threeDViewSelected)
+      App.ui.views.selectThreeDView()
     frameNumber += 1
   }
 
