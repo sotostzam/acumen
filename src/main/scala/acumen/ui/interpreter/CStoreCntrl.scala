@@ -27,19 +27,19 @@ class CStoreCntrl(val semantics: SemanticsImpl[Interpreter], val interpreter: CS
       prog = des
     }
     
-    def sendChunk {
+    def sendChunk() {
       val toSend = if (buffer.isEmpty) null else CStoreTraceData(buffer)
       consumer ! Chunk(toSend)
       buffer = Queue.empty[GStore]
     }
 
     val emergencyActions : PartialFunction[Any,Unit] = {
-      case Stop => { sendChunk; exit }
-      case Flush => flush
+      case Stop => sendChunk(); exit()
+      case Flush => flush()
     }
 
-    def flush {
-      sendChunk
+    def flush() {
+      sendChunk()
       timeOfLastFlush = System.currentTimeMillis
       react (emergencyActions orElse {
         case GoOn => bufferSize = defaultBufferSize
@@ -48,13 +48,19 @@ class CStoreCntrl(val semantics: SemanticsImpl[Interpreter], val interpreter: CS
       })
     }
 
-    def produce : Unit = {
+    def produce(): Unit = {
       val startTime = System.currentTimeMillis
       val I = interpreter
       val (p, store0, md0) = I.init(prog)
       var (store, md, endTime) = I.multiStep(p, store0, md0, new StopAtFixedPoint)
       val cstore = I.repr(store)
-      var opts = new CStoreOpts
+      val opts = new CStoreOpts
+      val threeDTab = App.ui.threeDtab.asInstanceOf[threeD.ThreeDTab]
+      var lastvirtualTime = 0.0
+      var timesteps = 0
+      var slackvalue = 0.0
+      var updateTime = 0.0
+      var missedDeadline = 0.0
       acumen.util.Canonical.getInSimulator(Name("outputRows",0), cstore) match {
         case VLit(GStr("All"))              => opts.outputRows = OutputRows.All
         case VLit(GStr("WhenChanged"))      => opts.outputRows = OutputRows.WhenChanged
@@ -91,19 +97,82 @@ class CStoreCntrl(val semantics: SemanticsImpl[Interpreter], val interpreter: CS
       adder.continue
       loopWhile(!adder.done) {
         reactWithin(0) (emergencyActions orElse {
-          case TIMEOUT => 
+          case TIMEOUT =>
+            val temptime = System.currentTimeMillis
             val (store1, md1, endTime1) = I.multiStep(p, store, md, adder)
             store = store1
             md = md1
             endTime = endTime1
-            if (buffer.size >= bufferSize || (System.currentTimeMillis - timeOfLastFlush) > minPlotUpdateInterval) flush
+
+            if (buffer.size >= bufferSize || (System.currentTimeMillis -
+              timeOfLastFlush) > minPlotUpdateInterval) flush()
+
+            threeDTab.appModel.threeDData.get3DData(I.repr(store))
             threeDTab.appModel.updateProgress(I.repr(store))
+
+            if (threeDTab.threeDView.enableRealTime) {
+              // render the latest frame
+              if (threeDTab.appModel.threeDData._3DData.size > 0) {
+                threeDTab.playinRealTime()
+              }
+              // calculate the real time performance
+              val virtualtime = acumen.util.Canonical.getTime(I.repr(store))
+              val playspeed = threeDTab.playSpeed
+              var averageSlack = 0.0
+              val calculationTime = System.currentTimeMillis - temptime
+
+              if (calculationTime > (virtualtime - lastvirtualTime) * 1000 / playspeed
+                && virtualtime > lastvirtualTime)
+                missedDeadline += 1
+              timesteps += 1
+              val percentagemissDL = missedDeadline / timesteps
+
+              // for synchronizing the simulation with wall clock
+              if (threeDTab.threeDView.matchWallClock){
+                // calculate the averageslack
+                if (virtualtime > lastvirtualTime) {
+                  if ((virtualtime - lastvirtualTime) * 1000 / playspeed < calculationTime)
+//                  slackvalue = (virtualtime - lastvirtualTime) * 1000 / playspeed - calculationTime + slackvalue
+                    slackvalue = 0 + slackvalue
+                  else
+                    slackvalue = ((virtualtime - lastvirtualTime) * 1000 /
+                      playspeed) - (System.currentTimeMillis - temptime) +
+                      slackvalue
+                }
+                averageSlack = slackvalue / (System.currentTimeMillis - startTime)
+                realtimeTimer(virtualtime, playspeed, startTime)
+              } else
+                averageSlack = 0
+              if ((virtualtime - updateTime) * 1000 > 100) { // update every
+                // 100ms
+                println("%.4f".format(percentagemissDL * 100) + "%")
+                println("%.4f".format(averageSlack * 100) + "%")
+                updateTime = virtualtime
+              }
+              lastvirtualTime = virtualtime
+            }
         })
       } andThen {
-        sendChunk
+        sendChunk()
         consumer ! Done(List("Time to run simulation: %.3fs".format((System.currentTimeMillis - startTime) / 1000.0)), md, endTime)
         //System.err.println("Total simulation time: " + ((System.currentTimeMillis - startTime) / 1000.0) + "s")
       }
+    }
+  }
+
+  def realtimeTimer(virtualtime: Double, playSpeed: Double, startTime: Double) = {
+    var sleeptime = 0.0
+    var extratime = 0.0
+    if (System.currentTimeMillis - startTime > virtualtime * 1000 / playSpeed){
+      // do nothing
+      sleeptime = 0.0
+      extratime = 0.0
+    }else {
+      sleeptime = virtualtime * 1000 / playSpeed - (System.currentTimeMillis - startTime)
+      extratime = (sleeptime - sleeptime.toLong) * 1000000 // To nano sec
+      Thread.sleep(sleeptime.toLong, extratime.toInt)
+      //print(sleeptime)
+      //print("\n")
     }
   }
 }
