@@ -1,0 +1,269 @@
+model Light(bc, gh, fe, Cont) =
+  initially
+    loc = "red",
+    a = (1,0,0),
+    b = (1,1,1),
+    c = (1,1,1)
+  always
+    match loc with
+    [ "red" ->
+      a+ = (1,0,0),
+      b+ = (1,1,1),
+      c+ = (1,1,1),
+      if bc then
+        loc+ = "green"
+      else if gh then
+        loc+ = "green"
+      noelse
+    | "orange" ->
+      a+ = (1,1,1),
+      b+ = (1,0.5,0),
+      c+ = (1,1,1),
+      if fe then                 
+        loc+ = "red"
+      noelse
+    | "green" ->
+      a+ = (1,1,1),
+      b+ = (1,1,1),
+      c+ = (0.1,1,0.1),
+      if Cont == "stop" then
+        loc+ = "orange"
+      noelse
+    ]
+
+model Traffic(arrival, departure, Cont) =
+  initially
+    arrive_t = arrival, arrive_t' = 0,
+    depart_t = departure, depart_t' = 0,
+    x = 0,
+    loc = "Red"
+  always
+    arrive_t' = -1,
+    depart_t' = -1,
+    match loc with
+    [ "Red" ->
+      if arrive_t <= 0 then
+        x+ = x + 1,
+        arrive_t+ = arrival
+      else if Cont == "green" then
+        loc+ = "Green",
+        depart_t+ = departure,
+        arrive_t+ = arrival              
+      noelse
+    | "Green" ->
+      if depart_t <= 0 && x > 0 then
+        x+ = x - 1,
+        depart_t+ = departure
+      else if arrive_t <= 0 && x >= 0 then
+        x+ = x + 1,
+        arrive_t+ = arrival
+      else if Cont == "stop" then
+        loc+ = "Red",
+        arrive_t+ = arrival                 
+      noelse
+    ]
+
+model Controller_west(max, Cont_North, arrival, departure, prio) =
+  initially
+    t = 0, t' = 0,
+    loc = "observe",
+    c = false, d = false, e = false, h = false,
+    queue = 0,
+    Light_West = create Light(false, false, false, "observe"),
+    Traffic_West = create Traffic(arrival, departure, "observe"),
+    orange_t = 0, orange_t' = 0, orange_time = 1, 
+    green_t = 0,  green_t' = 0,  green_time = 5,
+    check_t = 0,
+    _3D = ()
+  always
+    t' = 1,
+    orange_t' = -1,
+    green_t'  = -1,
+    Light_West.bc   = c,
+    Light_West.gh   = h,
+    Light_West.fe   = e,
+    Light_West.Cont = loc,
+    Traffic_West.Cont = loc,
+    queue = Traffic_West.x,
+    _3D = ( Cylinder center = (-17,0, 1) radius = 0.45 length = 0.1 color = Light_West.a
+          , Cylinder center = (-17,0, 0) radius = 0.45 length = 0.1 color = Light_West.b
+          , Cylinder center = (-17,0,-1) radius = 0.45 length = 0.1 color = Light_West.c
+
+          , Cylinder center = (-17,0.01,-1.5) radius = 0.65 length = 0.1
+          , Cylinder center = (-17,0.01, 1.5) radius = 0.65 length = 0.1
+            
+          , Box center = (-17,0.01,0) size = (1.3,0.1,3)
+    
+          , Text center = ( -15,0, 1) size = 1 rotation = (0,0,0) content = "queue ="
+          , Text center = ( -15,0, 0) size = 1 rotation = (0,0,0) content = "orange time ="
+          , Text center = ( -15,0,-1) size = 1 rotation = (0,0,0) content = "green time ="
+                        
+          , Text center = ( -8,0,1)  size = 1 rotation = (0,0,0) content = queue
+          , Text center = ( -8,0,0)  size = 1 rotation = (0,0,0) content = orange_t*100
+          , Text center = ( -8,0,-1) size = 1 rotation = (0,0,0) content = green_t*100
+    
+          , Text center = ( -8,0,6) size = 1 rotation = (0,0,0) content = loc
+          , Text center = ( -8,0,4) size = 1 rotation = (0,0,0) content = Traffic_West.loc
+          , Text center = ( -8,0,2) size = 1 rotation = (0,0,0) content = Light_West.loc
+          ),
+    match loc with
+    [ "observe" ->
+      if queue >= max && Cont_North == "green" then
+        d+ = true,
+        e+ = false,
+        loc+ = "request"
+      else if queue >= max && Cont_North == "observe" then
+        check_t+ = t,
+        loc+ = "check"
+      noelse
+    | "check" ->
+      if check_t < t && Cont_North == "observe" then
+        c+ = true,
+        e+ = false,
+        check_t+ = 0,
+        green_t+ = green_time,
+        loc+ = "green"
+      else if check_t < t && Cont_North == "check" && prio == 1 then
+        c+ = true,
+        e+ = false,
+        check_t+ = 0,
+        green_t+ = green_time,
+        loc+ = "green"
+      else if check_t < t && Cont_North == "check" && prio == 0 then
+        check_t+ = 0,
+        loc+ = "observe"
+      noelse
+    | "request" ->
+      if Cont_North == "observe" then
+        h+ = true,
+        d+ = false,
+        green_t+ = green_time,
+        loc+ = "green"
+      noelse
+    | "green" ->
+      if green_t <= 0 && Cont_North == "request" then
+        orange_t+ = orange_time,
+        loc+ = "stop",
+        c+ = false,
+        h+ = false
+      else if queue == 0 && Cont_North ~= "request" then
+        orange_t+ = orange_time,
+        loc+ = "stop",
+        c+ = false,
+        h+ = false
+      noelse
+    | "stop" ->
+      if orange_t <= 0 then
+        e+ = true,
+        loc+ = "observe"
+      noelse
+    ]
+
+model Controller_north(max, Cont_West, arrival, departure, prio) =
+  initially
+    t = 0, t' = 1,
+    loc = "observe",
+    a = false, b = false, f = false, g = false,
+    queue = 0,
+    Light_North = create Light(false, false, false, "observe"),
+    Traffic_North = create Traffic(arrival, departure, "observe"),
+    orange_t = 0, orange_t' = 0, green_time = 5,
+    green_t = 0, green_t' = 0, orange_time = 1,
+    check_t = 0,
+    _3D = ()
+  always
+    t' = 1,
+    orange_t' = -1,
+    green_t'  = -1,
+    Light_North.bc   = b,
+    Light_North.gh   = g,
+    Light_North.fe   = f,
+    Light_North.Cont = loc,
+    Traffic_North.Cont = loc,
+    queue = Traffic_North.x,
+    _3D = ( Cylinder center = (0,0, 1) radius = 0.45 length = 0.1 color = Light_North.a
+          , Cylinder center = (0,0, 0) radius = 0.45 length = 0.1 color = Light_North.b
+          , Cylinder center = (0,0,-1) radius = 0.45 length = 0.1 color = Light_North.c
+
+          , Cylinder center = (0,0.01,-1.5) radius = 0.65 length = 0.1
+          , Cylinder center = (0,0.01, 1.5) radius = 0.65 length = 0.1
+            
+          , Box center = (0,0.01,0) size = (1.3,0.1,3)
+    
+          , Text center = ( 1.5,0, 1) size = 1 rotation = (0,0,0) content = "queue ="
+          , Text center = ( 1.5,0, 0) size = 1 rotation = (0,0,0) content = "orange time ="
+          , Text center = ( 1.5,0,-1) size = 1 rotation = (0,0,0) content = "green time ="
+                        
+          , Text center = ( 8,0,1)  size = 1 rotation = (0,0,0) content = queue
+          , Text center = ( 8,0,0)  size = 1 rotation = (0,0,0) content = orange_t*100
+          , Text center = ( 8,0,-1) size = 1 rotation = (0,0,0) content = green_t*100
+    
+          , Text center = ( 8,0,6) size = 1 rotation = (0,0,0) content = loc
+          , Text center = ( 8,0,4) size = 1 rotation = (0,0,0) content = Traffic_North.loc
+          , Text center = ( 8,0,2) size = 1 rotation = (0,0,0) content = Light_North.loc
+          ),
+  match loc with
+  [ "observe" ->
+    if queue >= max && Cont_West == "green" then
+      a+ = true,
+      f+ = false,
+      loc+ = "request"
+    else if queue >= max && Cont_West == "observe" then
+      check_t+ = t,
+      loc+ = "check"
+    noelse
+  | "check" ->
+    if check_t < t && Cont_West == "observe" then
+      b+ = true,
+      f+ = false,
+      check_t+ = 0,
+      green_t+ = green_time,
+      loc+ = "green"
+    else if check_t < t && Cont_West == "check" && prio == 1 then
+      b+ = true,
+      f+ = false,
+      check_t+ = 0,
+      green_t+ = green_time,
+      loc+ = "green"
+    else if check_t < t && Cont_West == "check" && prio == 0 then
+      check_t+ = 0,
+      loc+ = "observe"
+    noelse
+  | "request" ->
+    if Cont_West == "observe" then
+      g+ = true,
+      a+ = false,
+      green_t+ = green_time,
+      loc+ = "green"
+    noelse
+  | "green" -> 
+    if green_t <= 0 && Cont_West == "request" then
+      orange_t+ = orange_time,
+      loc+ = "stop",
+      b+ = false,
+      g+ = false
+    else if queue == 0 && Cont_West ~= "request" then
+      orange_t+ = orange_time,
+      loc+ = "stop",
+      b+ = false,
+      g+ = false
+    noelse  
+  | "stop" -> 
+    if orange_t <= 0 then
+      f+ = true,
+      loc+ = "observe"
+    noelse
+  ]
+
+model Main(simulator) =
+  initially
+    t = 0, t' = 0,
+    Controller_North = create Controller_north(5,"observe", 4, 1, 1),
+    Controller_West = create Controller_west (5,"observe", 4, 1, 0),
+    _3DView = ()
+  always
+    _3DView = ((-3,-50,0), (-3,0,0)),
+    t' = 1,
+    Controller_North.Cont_West = Controller_West.loc,
+    Controller_West.Cont_North = Controller_North.loc,
+    simulator.endTime = 100
