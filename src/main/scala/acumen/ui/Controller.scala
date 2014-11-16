@@ -56,10 +56,10 @@ class Controller extends DaemonActor {
     }
   }
 
-  private def updateProgress(s: TraceData) = {
-    val time = s.curTime
-    val endTime = s.endTime
-    actor ! Progress((time * 100 / endTime).toInt)
+  protected[ui] def updateProgress(s: GStore) = {
+    val time = getTime(s)
+    val endTime = getEndTime(s)
+    ui.statusZone.setProgress((time * 100 / endTime).toInt)
   }
 
   /* ------ actor logic ------------ */
@@ -173,14 +173,13 @@ class Controller extends DaemonActor {
                                    // to ability to reduce rows outputted
         for (cs <- d.asInstanceOf[Iterable[GStore]]) {
           if (n == 0 || n > _3DSampleInterval) {
-            threeDData.get3DData(cs)
-            // we can implement real time by sending massage here
+            //threeDData.get3DData(cs)
             n = 1
           } else
             n += 1
         }
       }
-      updateProgress(d)
+      //updateProgress(d)
     }
   }
 }
