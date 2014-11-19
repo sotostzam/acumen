@@ -13,6 +13,12 @@ object System {
     if (md == null) "unknown version"
     else { scala.io.Source.fromInputStream(md).mkString }
   }
+
+  val buildId = {
+    val md = getClass.getClassLoader.getResourceAsStream("acumen/build_id")
+    if (md == null) None
+    else Some(scala.io.Source.fromInputStream(md).mkString)
+  }
   
   sealed abstract class OS
   case class Windows extends OS
