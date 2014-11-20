@@ -69,7 +69,6 @@ class Pretty {
   
   def semi = DocText(";")
   
-  def amper = DocText("&")
   
   def parens(d:Document) = "(" :: d :: ")"
   
@@ -130,7 +129,7 @@ class Pretty {
         "model " :: pretty(d.name) ::
         args(d.fields map prettyNameWithType) :: " = " :/:
         DocGroup(DocNest(2, 
-          "initially" :/: breakWith(" &", d.priv map pretty[Init])) :/: "always") :/:
+          "initially" :/: breakWith(" ,", d.priv map pretty[Init])) :/: "always") :/:
         pretty(d.body)) 
     }
 
@@ -153,19 +152,19 @@ class Pretty {
   }
 
   implicit def prettyActions : PrettyAble[List[Action]] =
-    PrettyAble { as => breakWith(amper, as map pretty[Action]) }
+    PrettyAble { as => breakWith(",", as map pretty[Action]) }
  
   implicit def prettyClauses : PrettyAble[List[Clause]] =
     PrettyAble { cls => breakWith("|", cls map pretty[Clause]) }
 
   implicit def prettyBindings : PrettyAble[List[(Name, Expr)]] =
-    PrettyAble {bs => breakWith("& ", bs.map(x => DocNest(2,pretty(x._1) :: " = " :: pretty(x._2))))}
+    PrettyAble {bs => breakWith(", ", bs.map(x => DocNest(2,pretty(x._1) :: " = " :: pretty(x._2))))}
   
   implicit def prettyClause : PrettyAble[Clause] =
     PrettyAble {
       case Clause(lhs,assertion:Expr,rhs) => assertion match{
         //case Lit(GBool(true)) => DocNest(2,  pretty(lhs) :: "->" :/: pretty(rhs)) 
-        case _ => DocNest(2,  pretty(lhs) :: "->" :: " claim " :: pretty(assertion) :: "&" :/: pretty(rhs)) 
+        case _ => DocNest(2,  pretty(lhs) :: "->" :: " claim " :: pretty(assertion) :: "," :/: pretty(rhs)) 
       }      
     }
   def actionBranchHelper(e:List[Action]):Document = {
@@ -198,16 +197,16 @@ class Pretty {
   implicit def prettyContinuousAction : PrettyAble[ContinuousAction] =
     PrettyAble {
       case Assignment(lhs,rhs)  => pretty(lhs) :: " = " :: pretty(rhs)
-      case Equation(lhs,rhs)  => pretty(lhs) :: " == " :: pretty(rhs) 
+      case Equation(lhs,rhs)  => pretty(lhs) :: " = " :: pretty(rhs) 
       case EquationI(lhs,rhs) => pretty(lhs) :: " =[i] " :: pretty(rhs) 
       case EquationT(lhs,rhs) => pretty(lhs) :: " =[t] " :: pretty(rhs) 
     }
 
   implicit def prettyDiscreteAction : PrettyAble[DiscreteAction] =
     PrettyAble {
-      case Assign(lhs,rhs) => pretty(lhs) :: "+ == " :: pretty(rhs)
+      case Assign(lhs,rhs) => pretty(lhs) :: "+ = " :: pretty(rhs)
       case Create(lhs,c,as) =>
-        (lhs match { case Some(e) => pretty(e) :: "+ == " case None => DocNil }) ::
+        (lhs match { case Some(e) => pretty(e) :: "+ = " case None => DocNil }) ::
         "create " :: pretty(c) :: args(as map pretty[Expr]) 
       case Elim(e) => "terminate" :: pretty(e)
       case Move(o,p) => "move" :: " " :: pretty(o) :: " " :: pretty(p)
