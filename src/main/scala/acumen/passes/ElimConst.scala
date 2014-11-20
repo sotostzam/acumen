@@ -24,9 +24,10 @@ object ElimConst {
     def killIt(n: Name) {kill += n.x}
     new util.Visitor {
       override def visitContinuousAction(a: ContinuousAction) : Unit = a match {
-        case Equation(lhs, rhs) => {getName(lhs).foreach{n => killIt(n)}}
+        case Equation(lhs, rhs)  => {getName(lhs).foreach{n => killIt(n)}}
         case EquationI(lhs, rhs) => {getName(lhs).foreach{n => killIt(n)}}
         case EquationT(lhs, rhs) => {getName(lhs).foreach{n => killIt(n)}}
+        case Assignment(Pattern(ps), rhs) => {ps.foreach{e => getName(e).foreach{n => killIt(n)}}}
       }
       override def visitDiscreteAction(a: DiscreteAction) : Unit = a match {
         case Assign(lhs, rhs) => {getName(lhs).foreach{n => killIt(n)}}
