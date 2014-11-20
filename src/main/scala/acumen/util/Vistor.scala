@@ -47,11 +47,16 @@ class Visitor {
     case Var(v) => /* nothing to do */
     case Op(name, es) => es.foreach{visitExpr(_)}
     case Dot(a,b) => visitExpr(a)
+    case ResolvedDot(id, obj, field) => visitExpr(obj)
+    case Index(a,idx) => visitExpr(a); idx.foreach{visitExpr(_)}
     case ExprVector(l) => l.foreach{visitExpr(_)}
     case Sum(s, i, col, cond) => visitExpr(s); visitExpr(col); visitExpr(cond)
     case TypeOf(v) => /* nothing to do */
     case ExprInterval(lo, hi) => visitExpr(lo); visitExpr(hi)
     case ExprIntervalM(mid, pm) => visitExpr(mid); visitExpr(pm)
+    case ExprLet(bindings, e2) => bindings.foreach{case (_,e) => visitExpr(e)}
+                                  visitExpr(e2)
+    case Pattern(ps) => ps.foreach{visitExpr(_)}
     // DO NOT add a default case here, it's important that all
     // possibilities are covered when new syntax is added
   }
@@ -64,6 +69,7 @@ class Visitor {
     case Equation(lhs, rhs) => visitExpr(lhs); visitExpr(rhs)
     case EquationI(lhs, rhs) => visitExpr(lhs); visitExpr(rhs)
     case EquationT(lhs, rhs) => visitExpr(lhs); visitExpr(rhs)
+    case Assignment(Pattern(ps), rhs) => ps.foreach{visitExpr(_)}; visitExpr(rhs)
   }
 
   def visitDiscreteAction(a: DiscreteAction) : Unit = a match {
