@@ -763,14 +763,14 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
   /** Remove unsupported declarations and statements from the AST. */
   def makeCompatible(p: Prog): Prog = {
     def action(a: Action): List[Action] = a match {
-      case Continuously(EquationT(Dot(_, `_3D`), _)) => Nil
+      case Continuously(EquationT(Dot(_, `_3D` | `_3DView`), _)) => Nil
       case IfThenElse(c, t, e) => IfThenElse(c, t flatMap action, e flatMap action) :: Nil
       case Switch(s, cs) => Switch(s, cs map { case Clause(l, a, r) => Clause(l, a, r flatMap action) }) :: Nil
       case ForEach(i, c, b) => ForEach(i, c, b flatMap action) :: Nil
       case _ => a :: Nil
     }
     def priv(i: Init): List[Init] = i match {
-      case Init(`_3D`, _) => Nil
+      case Init(`_3D` | `_3DView`, _) => Nil
       case _ => i :: Nil
     }
     Prog(p.defs.map(d => d.copy( priv = d.priv.flatMap(priv)
