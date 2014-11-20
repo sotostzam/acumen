@@ -8,6 +8,10 @@ trait Traditional2014Tests extends SemanticsTestBase with BasicErrorTests {
 
   override def examples = Examples2014
   override def examplesSkip(f: String) = {
+    false
+    /* This is old code, but is being kept around as examples on how
+       to use examplesSkip:
+    super.examplesSkip(f) ||
     // The following models need closer investigation
     // to make sure they still have the correct output.
     // Once this is done the reference outputs in
@@ -17,7 +21,7 @@ trait Traditional2014Tests extends SemanticsTestBase with BasicErrorTests {
     f.endsWith("/01_Converting_Accelerations.acm") ||
     f.startsWith("examples/XXX_internal/0_Demos/") || 
     // The ping-pong models need to be fixed.
-    f.startsWith("examples/XXX_internal/test/ping-pong/")
+    f.startsWith("examples/XXX_internal/test/ping-pong/") */
   }
 
   test("continuous assignments are independent") {
