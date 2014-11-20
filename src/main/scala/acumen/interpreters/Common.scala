@@ -393,7 +393,7 @@ object Common {
   val magicClassTxt =
     """model Simulator(time, timeStep, outputRows, continuousSkip, endTime, resultType, lastCreatedId)="""
   val initStoreTxt =
-    s"""#0.0 { className = Simulator, parent = %s, time = 0.0, timeStep = 0.01, outputRows = "WhenChanged", continuousSkip = 0,endTime = 10.0, resultType = @Discrete, nextChild = 0,method = "$RungeKutta", seed1 = 0, seed2 = 0 }"""
+    s"""#0.0 { className = Simulator, parent = %s, time = 0.0, timeStep = 0.01, outputRows = "WhenChanged", continuousSkip = 0,endTime = 10.0, resultType = @Discrete, nextChild = 0,method = "$RungeKutta", seed1 = 0, seed2 = 0, variableCount = 0 }"""
 
   lazy val magicClass = Parser.run(Parser.classDef, magicClassTxt)
   lazy val initStoreRef = Parser.run(Parser.store, initStoreTxt.format("#0"))
@@ -411,7 +411,7 @@ object Common {
   val visibleParametersImpr = visibleParametersMap(initStoreImpr)
                                   
   // Register valid simulator parameters
-  val simulatorFields = visibleSimulatorFields ::: List("outputRows", "continuousSkip", "resultType", "lastCreatedId", "method")
+  val simulatorFields = visibleSimulatorFields ::: List("outputRows", "continuousSkip", "resultType", "lastCreatedId", "method", "variableCount")
 
   val specialFields = List("nextChild","parent","className","seed1","seed2")
 
@@ -463,6 +463,23 @@ object Common {
     if (! (cs contains child)) throw NotAChildOf(child,parent).setPos(context.pos)
   }
 
+  /* runtime analyses */
+  
+  /**
+   * Updates the variableCount simulator field in st. This corresponds to 
+   * the number of plots of model variables that will be shown, but not the 
+   * number of columns in the table, as the latter also contains information 
+   * such as class names etc. 
+   */
+  def countVariables(st: CStore): CStore = {
+    def objectVariables(o: CObject): Int = o.map{
+      case (_, VObjId(_)) => 0 
+      case (n,v) => if (specialFields contains n.x) 0 else v.yieldsPlots getOrElse 0
+    }.sum
+    val count = st.map{ case(id, o) => if (id == magicId(st)) 0 else objectVariables(o) }.sum
+    setObjectField(magicId(st), stateVars, VLit(GInt(count)), st)
+  }
+  
   //
   // ODEs
   // 

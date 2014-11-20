@@ -19,6 +19,7 @@ object Canonical {
   val nextChild    = name("nextChild")
   val seed1        = name("seed1")
   val seed2        = name("seed2")
+  val stateVars    = name("variableCount")
   val _3D          = name("_3D")
   val _3DView      = name("_3DView")
   val cmain        = ClassName("Main")

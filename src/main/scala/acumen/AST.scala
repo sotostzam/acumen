@@ -222,6 +222,8 @@ package acumen {
     def l: List[Value[Id]]
     override def yieldsPlots = l.map(_.yieldsPlots).foldLeft(Some(0): Option[Int]) {
       case (Some(r), Some(i)) => Some(r + i)
+      case (None, y) => y
+      case (y, None) => y
       case _ => None
     }
   }
