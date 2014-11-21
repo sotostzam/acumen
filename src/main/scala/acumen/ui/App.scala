@@ -617,10 +617,10 @@ class App extends SimpleSwingApplication {
       }
     }
 
-    contents += new Menu("3D Options") {
-      contents += enableAnaglyphItem
-      contents += enableRealTimeItem
-    }
+//    contents += new Menu("3D Options") {
+//      contents += enableAnaglyphItem
+//      contents += enableRealTimeItem
+//    }
 
    
     contents += new Menu("Help") {
