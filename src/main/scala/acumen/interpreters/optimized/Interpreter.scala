@@ -63,7 +63,7 @@ class Interpreter(val parDiscr: Boolean = true,
     val pp = magic.phaseParms
     pp.curIter += 1
   
-    if (getTime(magic) > getEndTime(magic)) {
+    if (getTime(magic) >= getEndTime(magic)) {
 
       null
 
