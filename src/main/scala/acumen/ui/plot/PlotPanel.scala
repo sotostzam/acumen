@@ -212,7 +212,7 @@ class PlotPanel(pub:Publisher) extends Panel
   var donePlotting = false
 
   def updateEnabled {
-    var newEnabled = readyState && donePlotting
+    val newEnabled = readyState && donePlotting
     if (newEnabled && !enabled) {
       enabled = true
       App.publish(Enabled)
@@ -251,11 +251,11 @@ class PlotPanel(pub:Publisher) extends Panel
       updateEnabled
 
     case MouseMoved(_, p, _) => 
-      if (pd.columnIndices.size > 0) {
+      if (pd.columnIndices.size > 0 && pd != null) {
         // p in the original coordinate system
         val op = unapplyTr(p)
         // quantized time and row in the trace model corresponding to p.x
-        var (qt, row) = findTimeIndex(op.getX)
+        val (qt, row) = findTimeIndex(op.getX)
         // update the vertical line (and dot) x coordinate
         dotX = applyTr(new Point2D.Double(qt, 0)).getX
 
@@ -267,7 +267,7 @@ class PlotPanel(pub:Publisher) extends Panel
           // name of the column
           val name = model.getPlotTitle(column)
           // value of the column as a string
-          var value = model.getValueAt(row, column)
+          val value = model.getValueAt(row, column)
           pub.publish(PointedAtEvent(qt, name, value))
           // update the green dot Y coordinate
           val (scale, shift) = pd.yTransformations(hb)
@@ -321,7 +321,7 @@ class PlotPanel(pub:Publisher) extends Panel
           viewPort.getHeight)
         drag = None
         plotter ! Repaint(viewPort)
-      } else if (e.peer.getButton == 1) {
+      } else if (e.peer.getButton == 1 && selectionRectangle != null) {
         val selected = selectionRectangle.get
         if (math.abs(selected.getWidth * selected.getHeight) > 1) {
           // there is no way to transform a rectangle and get a rectangle
