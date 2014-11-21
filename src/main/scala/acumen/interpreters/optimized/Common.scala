@@ -516,6 +516,11 @@ object Common {
   }
 
   def evalAction(a: Action, env: Env, p: Prog, magic: Object): Changeset = {
+    def vListToPattern(ls: List[Value[_]]): GPattern = 
+      GPattern(ls.map(x => x match {
+        case VLit(n) => n
+        case VVector(nls) => vListToPattern(nls)            
+      }))
     a match {
       case IfThenElse(c, a1, a2) =>
         val VLit(GBool(b)) = evalExpr(c, p, env)
@@ -529,12 +534,21 @@ object Common {
           case _           => throw NotACollection(seq).setPos(l.pos)
         }
         combine(vs, ((v: Val) => evalActions(b, env + ((i, v)), p, magic)))
-      case Switch(s, cls) =>
-        val VLit(gv) = evalExpr(s, p, env)
-        (cls find (_.lhs == gv)) match {
-          case Some(c) => evalActions(c.rhs, env, p, magic)
-          case None    => throw NoMatch(gv).setPos(s.pos)
-        }
+      case Switch(s, cls) => s match {     
+        case ExprVector(_) =>           
+          val VVector(ls) = evalExpr(s, p, env)
+            val gp = vListToPattern(ls)
+            (cls find (_.lhs == gp)) match {
+              case Some(c) => evalActions(c.rhs, env, p, magic)
+              case None    => throw NoMatch(gp)
+            }
+        case _ => 
+          val VLit(gv) = evalExpr(s, p, env)
+          (cls find (_.lhs == gv)) match {
+            case Some(c) => evalActions(c.rhs, env, p, magic)
+            case None    => throw NoMatch(gv).setPos(s.pos)
+          }
+      }
       case Discretely(da) =>
         if (magic.phaseParms.doDiscrete)
           evalDiscreteAction(da, env, p, magic)

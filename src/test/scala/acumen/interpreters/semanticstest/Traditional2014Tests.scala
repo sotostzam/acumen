@@ -30,6 +30,8 @@ trait Traditional2014Tests extends SemanticsTestBase with BasicErrorTests {
     assertEqualTrace(timeFirst, condFirst, semantics)
   }
 
+  override def shouldRun = super.shouldRun ++ List("patternMatch1.acm")
+
   test("ACUMEN-348") {
     val err = evaluating {run("data/ShouldCrash/ACUMEN-348.acm")} should produce [DuplicateAssingment]
     err.x should be (Name("period",0))
