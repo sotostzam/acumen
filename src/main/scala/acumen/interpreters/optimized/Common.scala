@@ -246,7 +246,12 @@ object Common {
       v.lookupIdx = idx
       v.lastSetPos = pos;
       if (oldVal == newVal) noChange
-      else logModified
+      else {
+        if (f.x != "_3D" && f.x != "_3DView" && newVal != null && oldVal.yieldsPlots != newVal.yieldsPlots)
+          throw new UnsupportedTypeChangeError(f, o.id, getClassOf(o), oldVal, newVal, 
+                                               "These values require a different number of plots")
+        logModified
+      }
     } 
     else throw VariableNotDeclared(f).setPos(pos)
 
@@ -372,7 +377,7 @@ object Common {
       case err: PositionalAcumenError => err.setPos(e.pos); throw err
     }
     eval(env, e)
-  }
+  }.setPos(e.pos)
 
   sealed abstract class ParentParm
   case object IsMain extends ParentParm

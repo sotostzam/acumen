@@ -36,4 +36,9 @@ trait Traditional2014Tests extends SemanticsTestBase with BasicErrorTests {
     err.pos.toString should be ("14.5")
   }
 
+  test("ACUMEN-467") {
+    val err = evaluating {run("data/ShouldCrash/ACUMEN-467.acm")} should produce [UnsupportedTypeChangeError]
+    err.pos.toString should be ("9.8")
+  }
+
 }

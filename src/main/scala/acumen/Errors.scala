@@ -173,7 +173,7 @@ object Errors {
     override def mesg =
       s"Unsupported $kind: $id = ${pprint(value)}"
   }
-  case class UnsupportedTypeChangeError(f: Name, id: CId, clazz: ClassName, vOld: CValue, vNew: CValue, reason: String) extends PositionalAcumenError {
+  case class UnsupportedTypeChangeError(f: Name, id: CId, clazz: ClassName, vOld: GValue, vNew: GValue, reason: String) extends PositionalAcumenError {
     override def mesg =
       s"Can not change value of (${id.toString}:${Pretty pprint clazz}).${Pretty pprint f} from ${Pretty pprint vOld} of type ${vOld.getClass.getSimpleName} to ${Pretty pprint vNew} of type ${vNew.getClass.getSimpleName}. $reason."
     pos = vNew.pos
