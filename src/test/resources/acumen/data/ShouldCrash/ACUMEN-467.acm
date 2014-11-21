@@ -1,0 +1,11 @@
+model Main(simulator) =
+  initially
+    x=0,x'=1,
+    _3D = (),
+    c=(), // setting this to the right type, e.g. (0,0,0), makes the model run correctly
+    _3DView = ()
+  always
+    x'=1,
+    c =(sin(x),cos(x),0),
+    _3D = (Box center=c),
+    _3DView = ((10,10,10), c)

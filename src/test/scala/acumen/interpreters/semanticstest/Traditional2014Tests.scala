@@ -34,10 +34,17 @@ trait Traditional2014Tests extends SemanticsTestBase with BasicErrorTests {
     assertEqualTrace(timeFirst, condFirst, semantics)
   }
 
+  override def shouldRun = super.shouldRun ++ List("patternMatch1.acm")
+
   test("ACUMEN-348") {
     val err = evaluating {run("data/ShouldCrash/ACUMEN-348.acm")} should produce [DuplicateAssingment]
     err.x should be (Name("period",0))
     err.pos.toString should be ("14.5")
+  }
+
+  test("ACUMEN-467") {
+    val err = evaluating {run("data/ShouldCrash/ACUMEN-467.acm")} should produce [UnsupportedTypeChangeError]
+    err.pos.toString should be ("9.8")
   }
 
 }

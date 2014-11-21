@@ -45,9 +45,14 @@ abstract class SemanticsTestBase extends FunSuite with ShouldMatchers {
       //info(f.toString)
       val testName = "example " + f
       val resFile = ex.resultFile(ex.expectLoc, dn, f)
+      lazy val hasMain = resFile.exists && {
+        val reader = new BufferedReader(new InputStreamReader(new FileInputStream(resFile)))
+        val firstLine = reader.readLine
+        firstLine != "NO MAIN"
+      }
       if (skip(f.toString)) {
         ignore(testName) {}
-      } else if (resFile.exists)
+      } else if (hasMain)
         test(testName) { 
           val gotLoc = ex.gotLoc + "/" + semantics.id.mkString("-")
           ex.writeExampleResult(gotLoc, dn, f, semantics)
@@ -64,7 +69,7 @@ abstract class SemanticsTestBase extends FunSuite with ShouldMatchers {
             if (expect.curLine != got.curLine)
               fail("regression failure, to see difference run: diff -u " + expect.file + " " + got.file)
           } while (expect.curLine != null && got.curLine != null)
-      } else {
+      } else if (!resFile.exists) {
         info("Can't find result file for " + f + ", skipping.")
         ignore(testName) {}
       }

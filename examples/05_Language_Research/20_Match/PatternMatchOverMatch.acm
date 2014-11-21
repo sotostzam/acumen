@@ -1,0 +1,13 @@
+model Main(simulator) =
+  initially
+    s1 = "A", s2 = "A", x = 0, x' = 1, t = 0, t' = 1
+  always
+    t' = 1,
+    if t > 3 then s1+ = "B" noelse,
+    if t > 7 then s2+ = "B" noelse,
+    match (s1,s2) with [
+      ("A", "A") -> x' = 1|
+      ("B", "A") -> x' = 2|
+      ("B", "B") -> x' = 3
+    ]
+ 

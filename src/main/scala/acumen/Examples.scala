@@ -55,9 +55,13 @@ abstract class Examples {
     val in = new InputStreamReader(new FileInputStream(f))
     try {
       val ast = semantics.parse(in, f.getParentFile(), Some(f.getName()))
-      val tr = semantics.applyPasses(ast, Nil)
-      val intr = semantics.interpreter()
-      intr.run(tr, new DumpSample(out)).last
+      if (ast.defs.exists{_.name == cmain}) {
+        val tr = semantics.applyPasses(ast, Nil)
+        val intr = semantics.interpreter()
+        intr.run(tr, new DumpSample(out)).last
+      } else {
+        out.println("NO MAIN")
+      }
     } catch {
       case e => out.close; f2.delete; throw e
     } finally {
