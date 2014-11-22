@@ -52,12 +52,10 @@ always
     distance = sqrt(((x1-x2)*(x1-x2))+((y1-y2)*(y1-y2))),
     vdiff    = abs(y1'-y2'),
 
-    match (state == "4-Sense", t > 4) with
-     [(false,false) -> _3DView = ((-3,-8,5), (0,0,1))
-     |(true, true)  -> _3DView = ((x1-1,y1 - 7,2), (x1,y1+1,0))
-     |(true, false) -> _3DView = ((x1-1,y1 - 7,2), (x1,y1+1,0))
-     |(false, true) -> _3DView = ((x1-1,y1 - 7,2), (x1,y1+1,0))
-     ],
+    if state == "4-Sense" || t > 4 then
+      _3DView = ((x1-1,y1-7,2), (x1,y1+1,0))
+    else
+      _3DView = ((-3,-8,5), (0.5,3,-1)),
      
     match state with 
     [ "1-Approach" ->
