@@ -220,6 +220,7 @@ class ThreeDData extends Publisher {
               if (l.size > 0)
                 _3DView += new Tuple2(extractDoubles(l(0)).toArray,
                   extractDoubles(l(1)).toArray)
+            case VLit(_) => // initialization is empty
             case _ => throw _3DError(value)
           }
   }
