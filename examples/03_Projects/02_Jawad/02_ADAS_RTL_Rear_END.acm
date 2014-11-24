@@ -77,7 +77,7 @@ always
   subject.p = (mechanics.x,mechanics.y,0) ,
   subject.o = (pi/2,0,pi+mechanics.th) ,
   _3DView = ((mechanics.x-10,mechanics.y,5),(mechanics.x,mechanics.y,0.5)) ,
-  simulator.endTime = 25 
+  simulator.endTime+ = 25 
 
 
 //**********************Environment*******************************************//

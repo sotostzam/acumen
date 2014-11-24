@@ -47,4 +47,9 @@ trait Traditional2014Tests extends SemanticsTestBase with BasicErrorTests {
     err.pos.toString should be ("9.8")
   }
 
+  test("ACUMEN-520") {
+    val err = evaluating {run("data/ShouldCrash/ACUMEN-520.acm")} should produce [ContinuousAssignmentToSimulator]
+    err.pos.toString should be ("3.17")
+  }
+
 }

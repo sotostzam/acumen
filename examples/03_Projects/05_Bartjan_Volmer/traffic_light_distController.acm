@@ -266,4 +266,4 @@ model Main(simulator) =
     t' = 1,
     Controller_North.Cont_West = Controller_West.loc,
     Controller_West.Cont_North = Controller_North.loc,
-    simulator.endTime = 100
+    simulator.endTime+ = 100

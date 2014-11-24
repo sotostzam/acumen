@@ -1,6 +1,6 @@
 package acumen
 import Pretty._
-import scala.util.parsing.input.{Position,Positional,NoPosition}
+import scala.util.parsing.input.{Position,Positional,NoPosition,OffsetPosition}
 
 object Errors {
 
@@ -153,6 +153,11 @@ object Errors {
   }
   case class DuplicateContinuousAssingment(x:Name) extends DuplicateAssingment {
     override def mesg = super.mesg(" continuous ")
+  }
+  case class ContinuousAssignmentToSimulator(rhs: Expr) extends PositionalAcumenError {
+    override def mesg() = 
+      "Only discrete assingments to simulator parameters are allowed."
+    pos = rhs.pos
   }
   case class BadLhs() extends PositionalAcumenError {
     override def mesg = 

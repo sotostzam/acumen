@@ -16,7 +16,7 @@ package reference2014
 import Eval._
 import Common._
 import ui.tl.Console
-import util.ASTUtil.{ checkNestedHypotheses, dots }
+import util.ASTUtil.{ checkContinuousAssignmentToSimulator, checkNestedHypotheses, dots }
 import util.Names._
 import util.Canonical
 import util.Canonical._
@@ -360,6 +360,7 @@ object Interpreter extends acumen.CStoreInterpreter {
 
   def init(prog:Prog) : (Prog, Store, Metadata) = {
     checkNestedHypotheses(prog)
+    checkContinuousAssignmentToSimulator(prog)
     val cprog = CleanParameters.run(prog, CStoreInterpreterType)
     val sprog = Simplifier.run(cprog)
     val mprog = Prog(magicClass :: sprog.defs)

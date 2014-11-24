@@ -87,4 +87,4 @@ always
   //subject.p = (mechanics.x,mechanics.y,0) ,
   //subject.o = (mechanics.th,0,0) ,
   //_3DView = ((mechanics.x-3,mechanics.y,0.5),(0,0,-1*pi/2)) ,
-  simulator.endTime = 5  
+  simulator.endTime+ = 5  

@@ -341,6 +341,6 @@ always
   assessment.Q_HP_prime=pump.Q_HP_prime ,
   assessment.T_O=weather.T_O ,
   // simulation parameters
-  simulator.endTime =86400 ,
-  simulator.timeStep=60
+  simulator.endTime+ =86400 ,
+  simulator.timeStep+ =60
  

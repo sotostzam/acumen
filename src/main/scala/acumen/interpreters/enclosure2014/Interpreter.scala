@@ -8,7 +8,7 @@ import scala.collection.immutable.{
   HashMap, MapProxy
 }
 import util.ASTUtil.{
-  dots, checkNestedHypotheses, op, substitute
+  dots, checkContinuousAssignmentToSimulator, checkNestedHypotheses, op, substitute
 }
 import Common._
 import Errors.{
@@ -359,10 +359,6 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
       override def mapDiscreteAction(a: DiscreteAction) : DiscreteAction = a match {
         case Assign(lhs @ Dot(`magicDot`, _), rhs) => Assign(mapExpr(lhs), super.mapExpr(rhs))
         case _ => super.mapDiscreteAction(a)
-      }
-      override def mapContinuousAction(a: ContinuousAction) : ContinuousAction = a match {
-        case EquationT(lhs @ Dot(`magicDot`, _), rhs) => sys.error("Only discrete assingments to simulator parameters are supported. Offending statement: " + pprint(a))
-        case _ => super.mapContinuousAction(a)
       }
       override def mapClause(c: Clause) : Clause = c match {
         case Clause(GStr(lhs), as, rhs) => Clause(GStrEnclosure(lhs), mapExpr(as), mapActions(rhs))
@@ -752,6 +748,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
   def init(prog: Prog) : (Prog, Store, Metadata) = {
     prog.defs.foreach(d => checkValidAssignments(d.body))
     checkNestedHypotheses(prog)
+    checkContinuousAssignmentToSimulator(prog)
     val cprog = CleanParameters.run(prog, CStoreInterpreterType)
     val cprog1 = makeCompatible(cprog)
     val enclosureProg = liftToUncertain(cprog1)

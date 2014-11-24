@@ -51,6 +51,6 @@ initially
   circuit  =  create EquivalentCircuit(0.5,0.012,40) 
 always
   // simulator parameters
-  simulator.timeStep = 0.0001 ,        
-  simulator.endTime = 0.1 
+  simulator.timeStep+ = 0.0001 ,        
+  simulator.endTime+ = 0.1 
 

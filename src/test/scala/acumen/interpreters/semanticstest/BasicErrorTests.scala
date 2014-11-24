@@ -30,7 +30,7 @@ trait BasicErrorTests extends SemanticsTestBase {
       testForError("data/ShouldCrash/Error3.acm", VariableNotDeclared(name("x")), "2.47")
     }
     test("Error4") {
-      testForError("data/ShouldCrash/Error4.acm", UnknownOperator("f"), "3.64")
+      testForError("data/ShouldCrash/Error4.acm", UnknownOperator("f"), "3.65")
     }
     test("Error5") {
       testForError("data/ShouldCrash/Error5.acm", NotAnObject(VLit(GInt(1))), "3.44")

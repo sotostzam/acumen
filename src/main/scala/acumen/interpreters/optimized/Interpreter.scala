@@ -6,6 +6,7 @@ import scala.collection.immutable.HashMap
 
 import acumen.Errors._
 import acumen.Pretty._
+import util.ASTUtil.checkContinuousAssignmentToSimulator
 import acumen.util.Conversions._
 import acumen.util.Random
 import acumen.interpreters.Common._
@@ -47,6 +48,7 @@ class Interpreter(val parDiscr: Boolean = true,
   override def visibleParameters = visibleParametersImpr
 
   def init(prog: Prog): (Prog, Store, Metadata) = {
+    checkContinuousAssignmentToSimulator(prog)
     val magic = fromCStore(initStoreImpr, CId(0))
     val cprog = CleanParameters.run(prog, CStoreInterpreterType)
     val sprog = Simplifier.run(cprog)
