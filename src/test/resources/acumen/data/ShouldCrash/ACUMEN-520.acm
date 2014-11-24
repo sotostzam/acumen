@@ -1,0 +1,3 @@
+model Main(_) =
+  always
+    _.endTime = 1
