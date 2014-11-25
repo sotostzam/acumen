@@ -314,7 +314,7 @@ object Parser extends MyStdTokenParsers {
 
   def discretelyOrContinuously =
     (newObject(None) ^^ Discretely | elim ^^ Discretely 
-      | move ^^ Discretely | assignOrEquation | patternMatch | _3DAction)
+      | move ^^ Discretely | patternMatch | assignOrEquation | _3DAction)
 
   def assignOrEquation =
     // Make sure lhs won't be an expr like a == b, which has the same syntax as equation

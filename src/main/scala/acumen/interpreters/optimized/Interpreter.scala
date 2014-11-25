@@ -6,6 +6,7 @@ import scala.collection.immutable.HashMap
 
 import acumen.Errors._
 import acumen.Pretty._
+import util.ASTUtil.checkContinuousAssignmentToSimulator
 import acumen.util.Conversions._
 import acumen.util.Random
 import acumen.interpreters.Common._
@@ -47,12 +48,13 @@ class Interpreter(val parDiscr: Boolean = true,
   override def visibleParameters = visibleParametersImpr
 
   def init(prog: Prog): (Prog, Store, Metadata) = {
+    checkContinuousAssignmentToSimulator(prog)
     val magic = fromCStore(initStoreImpr, CId(0))
-    val (sd1, sd2) = Random.split(Random.mkGen(0))
-    val mainObj = mkObj(cmain, prog, IsMain, sd1, List(VObjId(Some(magic))), magic, 1)
-    magic.seed = sd2
     val cprog = CleanParameters.run(prog, CStoreInterpreterType)
     val sprog = Simplifier.run(cprog)
+    val (sd1, sd2) = Random.split(Random.mkGen(0))
+    val mainObj = mkObj(cmain, sprog, IsMain, sd1, List(VObjId(Some(magic))), magic, 1)
+    magic.seed = sd2
     val mprog = Prog(magicClass :: sprog.defs)
     (mprog , mainObj, NoMetadata)
   }
@@ -63,7 +65,7 @@ class Interpreter(val parDiscr: Boolean = true,
     val pp = magic.phaseParms
     pp.curIter += 1
   
-    if (getTime(magic) > getEndTime(magic)) {
+    if (getTime(magic) >= getEndTime(magic)) {
 
       null
 

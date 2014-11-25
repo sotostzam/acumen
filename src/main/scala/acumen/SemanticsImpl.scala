@@ -125,6 +125,7 @@ object SemanticsImpl {
     val semantics = if (parDiscr == true && contMode == ContMode.Seq && contWithDiscr == false) S2013
                     else if (parDiscr == true && contMode == ContMode.IVP && contWithDiscr == false) S2014
                     else S2013.copy(id = None)
+    override val isOldSemantics  = semantics != S2014
     def interpreter() = i
     override def withArgs(args: List[String]) : Optimized = args match {
       case "parDiscr" :: tail => Optimized(true, contMode, contWithDiscr).withArgs(tail)

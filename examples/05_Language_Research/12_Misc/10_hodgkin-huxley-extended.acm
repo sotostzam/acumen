@@ -59,6 +59,6 @@ model Main (simulator) =
 initially 
   a  =  create Example4 () 
 always
-  simulator.endTime = 0.5,
-  simulator.timeStep = 0.001
+  simulator.endTime+ = 0.5,
+  simulator.timeStep+ = 0.001
  

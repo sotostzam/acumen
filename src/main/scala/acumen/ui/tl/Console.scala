@@ -15,7 +15,7 @@ import Errors.{ ParseError, PositionalAcumenError }
 import scala.util.parsing.input.{Position,NoPosition}
 import Logger._
 
-class Console extends ListView[(Msg, Boolean /*messageIsOld*/)] {
+class Console extends ListView[(Msg, Boolean /*messageIsOld*/)] { self =>
 
   import Console._
 
@@ -97,10 +97,15 @@ class Console extends ListView[(Msg, Boolean /*messageIsOld*/)] {
       listData = listData.map { case (msg,_) => (msg,true) }
     case m:Msg =>
       listData = (m, false) +: listData
-      m match {case Message(_, ExceptionMsg(e), _) =>
-                 System.err.println("This exception reported to console:")
-                 e.printStackTrace()
-               case _ => /* noop */}
+      m match {
+        case mesg @ Message(_, ExceptionMsg(e), _) =>
+          scrollToError(mesg)
+          System.err.println("This exception reported to console:")
+          e.printStackTrace()
+        case mesg: Message =>
+          scrollToError(mesg)
+        case _ => /* noop */
+      }
       if (m.level == ERROR) 
         App.ui.lowerPane.tabs.peer.setSelectedComponent(App.ui.consolePage.self.peer)
   }
@@ -119,15 +124,15 @@ class Console extends ListView[(Msg, Boolean /*messageIsOld*/)] {
     this.peer.clearSelection // so that text can again be copied from editor 
   }
   
-  def scrollToError() {
-    this.peer.getSelectedValues.head match {
+  def scrollToError(errorMessage: Message) {
+    errorMessage match {
         // Any Position from an acumen error message should either be
         // an EnhancedPosition or NoPosition.  If it is an
         // EnhancedPosition than we should only scroll to the error if
         // the message corresponds to the file in the buffer, i.e.,
         // p.file.isEmpty.  If it is NoPosition, there is no positional
         // information and hence nothing to scroll to.
-      case (Message(_, m, p:EnhancedPosition),_) if p.file.isEmpty =>
+      case Message(_, m, p:EnhancedPosition) if p.file.isEmpty =>
         val ta = ui.App.ui.codeArea.textArea
         ta.setCaretPosition(ta.getDocument.getDefaultRootElement.getElement(p.line - 1).getStartOffset + p.column - 1)
         ui.App.ui.codeArea.centerLineInScrollPane
@@ -141,7 +146,11 @@ class Console extends ListView[(Msg, Boolean /*messageIsOld*/)] {
     def actionPerformed(e: java.awt.event.ActionEvent) { copySelection() }
   })
   this.peer.addMouseListener(new MouseAdapter {
-    override def mouseClicked(e: MouseEvent) { if (e.getClickCount == 2) scrollToError() }
+    override def mouseClicked(e: MouseEvent) { 
+      if (e.getClickCount == 2) self.peer.getSelectedValues.head match {
+        case (m: Message, _) => scrollToError(m)
+      }
+    }
   }) 
   
   /* Utilities */

@@ -66,5 +66,19 @@ object ASTUtil {
     for (cd <- prog.defs; a <- cd.body) disallowHypotheses(a, true)
   }
 
+  /** Disallow continuous assignments to simulator parameters.
+   *  Note: Only throws an error if the Main class is defined. */
+  def checkContinuousAssignmentToSimulator(prog: Prog): Unit =
+    prog.defs.find(_.name == Canonical.cmain).map { mainClass =>
+      val simulatorName = mainClass fields 0
+      new ASTMap {
+        override def mapContinuousAction(a: ContinuousAction): ContinuousAction = a match {
+          case EquationT(Dot(Dot(Var(Canonical.self), `simulatorName`), _), rhs) =>
+            throw new Errors.ContinuousAssignmentToSimulator(rhs)
+          case _ => super.mapContinuousAction(a)
+        }
+      }.mapProg(prog)
+    }
+
 }
 

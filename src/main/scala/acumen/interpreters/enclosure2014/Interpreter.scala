@@ -8,7 +8,7 @@ import scala.collection.immutable.{
   HashMap, MapProxy
 }
 import util.ASTUtil.{
-  dots, checkNestedHypotheses, op, substitute
+  dots, checkContinuousAssignmentToSimulator, checkNestedHypotheses, op, substitute
 }
 import Common._
 import Errors.{
@@ -86,7 +86,11 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
   case object StartTime extends InitialConditionTime
   case object UnknownTime extends InitialConditionTime
   type InitialCondition = (Enclosure, Evolution, InitialConditionTime)
-  case class EnclosureAndBranches(val enclosure: Enclosure, branches: List[InitialCondition])
+  class EnclosureAndBranches(val enclosure: Enclosure, val branches: List[InitialCondition])
+  object EnclosureAndBranches{
+    def apply(e: Enclosure, bs: List[InitialCondition]): EnclosureAndBranches = 
+      new EnclosureAndBranches(countVariables(e), bs) 
+  }
   
   /** Represents a sequence of Changesets without consecutive repeated flows. */
   case class Evolution(changes: List[Changeset]) {
@@ -355,10 +359,6 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
       override def mapDiscreteAction(a: DiscreteAction) : DiscreteAction = a match {
         case Assign(lhs @ Dot(`magicDot`, _), rhs) => Assign(mapExpr(lhs), super.mapExpr(rhs))
         case _ => super.mapDiscreteAction(a)
-      }
-      override def mapContinuousAction(a: ContinuousAction) : ContinuousAction = a match {
-        case EquationT(lhs @ Dot(`magicDot`, _), rhs) => sys.error("Only discrete assingments to simulator parameters are supported. Offending statement: " + pprint(a))
-        case _ => super.mapContinuousAction(a)
       }
       override def mapClause(c: Clause) : Clause = c match {
         case Clause(GStr(lhs), as, rhs) => Clause(GStrEnclosure(lhs), mapExpr(as), mapActions(rhs))
@@ -748,6 +748,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
   def init(prog: Prog) : (Prog, Store, Metadata) = {
     prog.defs.foreach(d => checkValidAssignments(d.body))
     checkNestedHypotheses(prog)
+    checkContinuousAssignmentToSimulator(prog)
     val cprog = CleanParameters.run(prog, CStoreInterpreterType)
     val cprog1 = makeCompatible(cprog)
     val enclosureProg = liftToUncertain(cprog1)
@@ -763,14 +764,14 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
   /** Remove unsupported declarations and statements from the AST. */
   def makeCompatible(p: Prog): Prog = {
     def action(a: Action): List[Action] = a match {
-      case Continuously(EquationT(Dot(_, `_3D`), _)) => Nil
+      case Continuously(EquationT(Dot(_, `_3D` | `_3DView`), _)) => Nil
       case IfThenElse(c, t, e) => IfThenElse(c, t flatMap action, e flatMap action) :: Nil
       case Switch(s, cs) => Switch(s, cs map { case Clause(l, a, r) => Clause(l, a, r flatMap action) }) :: Nil
       case ForEach(i, c, b) => ForEach(i, c, b flatMap action) :: Nil
       case _ => a :: Nil
     }
     def priv(i: Init): List[Init] = i match {
-      case Init(`_3D`, _) => Nil
+      case Init(`_3D` | `_3DView`, _) => Nil
       case _ => i :: Nil
     }
     Prog(p.defs.map(d => d.copy( priv = d.priv.flatMap(priv)
@@ -779,7 +780,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
   
   lazy val initStore = Parser.run(Parser.store, initStoreTxt.format("#0"))
   val initStoreTxt: String = 
-    s"""#0.0 { className = Simulator, parent = %s, nextChild = 0, seed1 = 0, seed2 = 0, 
+    s"""#0.0 { className = Simulator, parent = %s, nextChild = 0, seed1 = 0, seed2 = 0, variableCount = 0, 
                outputRows = "All", continuousSkip = 0, resultType = @Discrete, 
                ${visibleParameters.map(p => p._1 + "=" + pprint(p._2)).mkString(",")} }"""
 

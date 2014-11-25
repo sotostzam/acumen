@@ -25,7 +25,7 @@ always
     Fy = kP*(5-y)+kD*(0.1-y') 
   else 
     Fy = 0, 
-  simulator.endTime = 6
+  simulator.endTime+ = 6
  
 model Main(simulator) = 
 initially 

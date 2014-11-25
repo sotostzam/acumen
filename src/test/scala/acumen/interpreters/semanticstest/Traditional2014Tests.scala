@@ -8,6 +8,10 @@ trait Traditional2014Tests extends SemanticsTestBase with BasicErrorTests {
 
   override def examples = Examples2014
   override def examplesSkip(f: String) = {
+    false
+    /* This is old code, but is being kept around as examples on how
+       to use examplesSkip:
+    super.examplesSkip(f) ||
     // The following models need closer investigation
     // to make sure they still have the correct output.
     // Once this is done the reference outputs in
@@ -17,7 +21,7 @@ trait Traditional2014Tests extends SemanticsTestBase with BasicErrorTests {
     f.endsWith("/01_Converting_Accelerations.acm") ||
     f.startsWith("examples/XXX_internal/0_Demos/") || 
     // The ping-pong models need to be fixed.
-    f.startsWith("examples/XXX_internal/test/ping-pong/")
+    f.startsWith("examples/XXX_internal/test/ping-pong/") */
   }
 
   test("continuous assignments are independent") {
@@ -30,10 +34,22 @@ trait Traditional2014Tests extends SemanticsTestBase with BasicErrorTests {
     assertEqualTrace(timeFirst, condFirst, semantics)
   }
 
+  override def shouldRun = super.shouldRun ++ List("patternMatch1.acm")
+
   test("ACUMEN-348") {
     val err = evaluating {run("data/ShouldCrash/ACUMEN-348.acm")} should produce [DuplicateAssingment]
     err.x should be (Name("period",0))
     err.pos.toString should be ("14.5")
+  }
+
+  test("ACUMEN-467") {
+    val err = evaluating {run("data/ShouldCrash/ACUMEN-467.acm")} should produce [UnsupportedTypeChangeError]
+    err.pos.toString should be ("9.8")
+  }
+
+  test("ACUMEN-520") {
+    val err = evaluating {run("data/ShouldCrash/ACUMEN-520.acm")} should produce [ContinuousAssignmentToSimulator]
+    err.pos.toString should be ("3.17")
   }
 
 }

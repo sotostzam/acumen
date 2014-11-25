@@ -34,6 +34,7 @@ object Util {
     case ExprVector(lst) => lst.flatMap(extractDeps(_)).toSet
     case ExprInterval(e1, e2) => extractDeps(e1) ++ extractDeps(e2)
     case ExprIntervalM(e1, e2) => extractDeps(e1) ++ extractDeps(e2)
+    case Pattern(ps) => ps.flatMap(extractDeps(_)).toSet
     case _ => getName(x) match {
       case Some(name) => Set(name)
       case None => throw UnhandledSyntax(x, "Can't extract dependencies.")
@@ -44,11 +45,13 @@ object Util {
     case Equation(lhs, rhs) => extractDeps(lhs)
     case EquationI(lhs, rhs) => extractDeps(lhs)
     case EquationT(lhs, rhs) => extractDeps(lhs)
+    case Assignment(lhs, rhs) => extractDeps(lhs)
   }
   def extractRHSDeps(a: ContinuousAction): Set[Name] = a match {
     case Equation(lhs, rhs) => extractDeps(rhs)
     case EquationI(lhs, rhs) => extractDeps(rhs)
     case EquationT(lhs, rhs) => extractDeps(rhs)
+    case Assignment(lhs, rhs) => extractDeps(rhs)
   }
 
   //

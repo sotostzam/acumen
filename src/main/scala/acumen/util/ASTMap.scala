@@ -51,6 +51,7 @@ class ASTMap {
     case Var(v) => Var(v)
     case Op(name, es) => Op(name, es.map{mapExpr(_)})
     case Dot(a,b) => Dot(mapExpr(a),b)
+    case ResolvedDot(id, obj, field) => ResolvedDot(id,mapExpr(obj),field)
     case Index(a,idx) => Index(mapExpr(a),idx map mapExpr)
     case ExprVector(l) => ExprVector(l.map{mapExpr(_)})
     case Sum(s, i, col, cond) => Sum(mapExpr(s), i, mapExpr(col), mapExpr(cond))
@@ -59,6 +60,7 @@ class ASTMap {
     case ExprIntervalM(mid, pm) => ExprIntervalM(mapExpr(mid), mapExpr(pm))
     case ExprLet(bindings, e2) => ExprLet(bindings.map{case (n,e) => (n,mapExpr(e))},
                                           mapExpr(e2))
+    case Pattern(ps) => Pattern(ps.map{mapExpr(_)})
   }).setPos(e.pos)
 
   def mapClause(c: Clause) : Clause = c match {
@@ -69,6 +71,7 @@ class ASTMap {
     case Equation(lhs, rhs) => Equation(mapExpr(lhs), mapExpr(rhs))
     case EquationI(lhs, rhs) => EquationI(mapExpr(lhs), mapExpr(rhs))
     case EquationT(lhs, rhs) => EquationT(mapExpr(lhs), mapExpr(rhs))
+    case Assignment(Pattern(ps), rhs) => Assignment(Pattern(ps.map{mapExpr(_)}), mapExpr(rhs))
   }
 
   def mapDiscreteAction(a: DiscreteAction) : DiscreteAction = a match {

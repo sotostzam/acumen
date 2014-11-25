@@ -83,8 +83,8 @@ always
   circuit.e=motor.e ,
   motor.i=circuit.i ,
   // simulator parameters
-  simulator.timeStep=0.001 ,
-  simulator.endTime=1 ,
+  simulator.timeStep+ =0.001 ,
+  simulator.endTime+ =1 ,
 
   // creating h as a square wave
   // h=10 between 0.1 and 0.2 seconds, h=0 elsewhere

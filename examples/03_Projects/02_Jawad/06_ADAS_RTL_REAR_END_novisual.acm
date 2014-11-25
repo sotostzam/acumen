@@ -123,4 +123,4 @@ always
   controller.th = sens.th ,
   mechanics.V = controller.V , 
   mechanics.w = controller.w , 
-  simulator.endTime = 5 
+  simulator.endTime+ = 5 

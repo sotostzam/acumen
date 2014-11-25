@@ -370,8 +370,8 @@ always
   wrist.theta_one = link.theta_one ,
   wrist.theta_two = link.theta_two ,
   wrist.theta_three = link.theta_three ,
-  simulator.endTime = 24 , // default is 10 seconds
-  simulator.timeStep = 0.005 , //default is 0.01 seconds
+  simulator.endTime+ = 24 , // default is 10 seconds
+  simulator.timeStep+ = 0.005 , //default is 0.01 seconds
 
   if t<4 then
    phi'=pi/2 ,

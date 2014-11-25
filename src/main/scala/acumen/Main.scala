@@ -246,7 +246,7 @@ object Main {
 
       /* Read the Acumen source, parse, pre-process and interpret it. */
       lazy val file = new File(args(1)).getAbsoluteFile
-      lazy val in = new InputStreamReader(new FileInputStream(file))
+      def in = new InputStreamReader(new FileInputStream(file))
       lazy val semantics = Parser.run(Parser.getSemantics, in, Some(file)) match {
         case Some(s) => SemanticsImpl(s)
         case None => defaultSemantics

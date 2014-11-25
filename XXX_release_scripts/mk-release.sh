@@ -5,44 +5,51 @@ set -e
 SBT=${SBT:-`which sbt`}
 COMMIT=${GIT_COMMIT:-master}
 
-# add git version to release strings
-DATE="`date +%y.%m.%d`"
-REV=`git rev-parse --verify HEAD | cut -b1-8`
-REL=${VERSION:-$DATE.$REV}
-DIR_PREFIX=20`echo $REL | tr . _`
-REL_DIR=${DIR_PREFIX}_Acumen
-
-DEV_URL=https://bitbucket.org/effective/acumen-dev.git
-REL_URL=https://bitbucket.org/effective/acumen.git
-
-error () {
-  echo "Error: $1" 1>&2
+usage () {
+  echo "Usage: $0 [YY MM DD]" 
+  echo "If no parameters are provided than a snapshot release will be created."
   exit 1
 }
+
+if [ "$1" = "-h" ]; then
+  usage 0
+fi
+
+if [ $# -eq 3 ]; then 
+  VERSION="$1.$2.$3"
+else if [ $# -ne 0 ]; then
+  usage 1
+fi;fi
+  
+
+DEV_URL=https://bitbucket.org/effective/acumen-dev.git
 
 # prep clone
 git clone $DEV_URL acumen-rel-working
 cd acumen-rel-working 
 git checkout $COMMIT
-git remote add rel $REL_URL
-git fetch rel
-git tag rel-$REL-pre
 
-# perform merge using equivalent of "-s theirs"
-# http://stackoverflow.com/questions/173919/git-merge-s-ours-what-about-their
-git checkout release
-git merge --no-edit -s ours $COMMIT
-git branch tmp
-git reset --hard $COMMIT
-git reset --soft tmp
-git commit --amend -C HEAD
+error () {
+  echo "Error: $1" 1>&2
+  exit 1
+}
+# add git version to release strings
+DATE="`date +%y.%m.%d`"
+HASH=`git rev-parse --verify HEAD | cut -b1-8`
+REL=${VERSION:-$DATE.$HASH}
+REV=$(expr `date +%s` - `date +%s -d "2010-01-01 UTC"`)
+DIR_PREFIX=20`echo $REL | tr . _`
+REL_DIR=${DIR_PREFIX}_Acumen
 
+if [ -n "$VERSION" ] 
+then
+  TAG="rel-$REL.$REV"
+  git tag $TAG
+fi
+
+# censor
 touch READY_FOR_CENSOR
 ../censor.pl
-
-# Update merge commit with censored files
-git add -u
-git commit --amend -C HEAD
 
 # Fix version strings
 echo Fixing version string.
@@ -54,14 +61,12 @@ git commit -m "Update version string."
 # update version file
 echo Writing version file.
 echo "20$REL" > src/main/resources/acumen/version
+echo "$REV-$HASH" > src/main/resources/acumen/build_id
 
 # Test to make sure everything is still okay
 # Use the quick test so it doesn't take forever and also so that something
 # will be created even if some of the "full" propriety based tests fail.
 $SBT compile quick:test
-
-# tag
-git tag rel-$REL
 
 # make release build
 cd ..
@@ -70,9 +75,9 @@ cp -a acumen-rel-working ${DIR_PREFIX}_Acumen
 cd $REL_DIR
 $SBT proguard
 cp target/scala-*/acumen-$REL.jar ..
-git clean -xfd -e src/main/resources/acumen/version
+git clean -xfd -e src/main/resources/acumen/version -e src/main/resources/acumen/build_id
 rm -rf .git
-rm .gitignore
+rm .git*
 mv ../acumen-$REL.jar .
 test ! -e $REL_DIR.zip || error "$REL_DIR.zip exists"
 cd ..
@@ -82,15 +87,15 @@ zip -9r $REL_DIR.zip $REL_DIR
 
 echo "Created $REL_DIR.zip"
 
-if [ -n "$VERSION" ]
-then
+if [ -n "$VERSION" ]; then
   cat > release_instructions <<EOF
-Make sure everything is in order and upload $REL_DIR.zip
-and do a:
-  (cd acumen-rel-working
-   git push rel master release rel-$REL rel-$REL-pre
-   git push origin master rel-$REL-pre)
+Make sure everything is in order and upload $REL_DIR.zip.
+
+Than tag the upstream git repository:
+  cd acumen-rel-working && git push origin master $TAG && cd ..
 EOF
-  echo 'If making a full release please follow the instructions in the'
-  echo '"release_instructions" file.'
+  echo "If making a full release see the instructions in \"release_instructions\""
+  echo "to finalize the process, that is:"
+  echo
+  cat release_instructions
 fi

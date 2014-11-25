@@ -9,7 +9,7 @@ initially
         Cone   center=(0,-2,0) radius=0.2*2 length= 0.5*2  color=(0,2-2,2) rotation=(0,0,0))
 
 always
-  simulator.timeStep =0.05 ,
+  simulator.timeStep+ =0.05 ,
   x'' = -x ,
   if x>0 then
     _3D = (Sphere center=(x,0,0)  size=0.2*x               color=(x,0,2-x) rotation=(x,x,x),

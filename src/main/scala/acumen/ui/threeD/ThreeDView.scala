@@ -194,6 +194,8 @@ class ThreeDView extends JPanel {
     mainbox.setShadingMode(Object3D.SHADING_FAKED_FLAT)
     new setGlass(new Color(180, 180, 180), mainbox, 0)
     camera = world.getCamera  // grab a handle to the camera
+    cameraLeftDirection = -1
+    cameraRightDirection = 1
     defaultView()
     lookAt(mainbox, null) // camera faces towards the object
     lookAtPoint.set(0,0,0)
@@ -306,8 +308,8 @@ class ThreeDView extends JPanel {
     init()
   }
 
-  def zoomin()  = camera.increaseFOV(0.1f)
-  def zoomout() = camera.decreaseFOV(0.1f)
+  def zoomin()  = camera.increaseFOV(0.02f)
+  def zoomout() = camera.decreaseFOV(0.02f)
 
   def transformView(position: Array[Double], rotation: Array[Double]) = {
     val cameraToSet = world.getCamera
@@ -1039,7 +1041,7 @@ case class Resizer(xFactor: Float, yFactor: Float, zFactor: Float)
 class coAxis(characters: Map[Char, Object3D]) {
   val cylinders: Array[Object3D] = new Array[Object3D](9)
   for (x <- 0 until 3)
-    cylinders(x) = Primitives.getCylinder(12, 0.01f, 120f)
+    cylinders(x) = Primitives.getCylinder(12, 0.01f, 50f)
   for (x <- 3 until 6)
     cylinders(x) = Primitives.getCone(12, 0.05f, 2f)
   cylinders(8) = new Object3D(characters('y'), false)
@@ -1055,19 +1057,19 @@ class coAxis(characters: Map[Char, Object3D]) {
                   else if (i % 3 == 1) Color.RED
                   else                 Color.GREEN
                 , cylinders(i), -1)
-  cylinders(0).translate(0f, -1.2f, 0f)       // z axis cylinder
-  cylinders(3).translate(0f, -2.4f, 0f)       // z axis cone
-  cylinders(6).translate(-0.05f, -2.2f, 0f)   // z text
+  cylinders(0).translate(0f, -0.5f, 0f)       // z axis cylinder
+  cylinders(3).translate(0f, -1f, 0f)         // z axis cone
+  cylinders(6).translate(-0.05f, -1f, 0f)     // z text
   cylinders(1).rotateZ(0.5f * -Pi.toFloat)    // x axis cylinder
-  cylinders(1).translate(-1.2f, 0f, 0f)
-  cylinders(4).translate(-2.4f, 0f, 0f)   // x axis cone
+  cylinders(1).translate(-0.5f, 0f, 0f)
+  cylinders(4).translate(-1f, 0f, 0f)         // x axis cone
   cylinders(4).rotateZ(0.5f * Pi.toFloat)
-  cylinders(7).translate(-2.2f, -0.05f, 0f)   // x text
+  cylinders(7).translate(-1f, -0.05f, 0f)     // x text
   cylinders(2).rotateX(-0.5f * Pi.toFloat)    // y axis cylinder
-  cylinders(2).translate(0f, 0f, -1.2f)
-  cylinders(5).translate(0f, 0f, -2.4f)   // y axis cone
+  cylinders(2).translate(0f, 0f, -0.5f)
+  cylinders(5).translate(0f, 0f, -1f)         // y axis cone
   cylinders(5).rotateX(-0.5f * Pi.toFloat)
-  cylinders(8).translate(0f, -0.05f, -2.2f)   // y text
+  cylinders(8).translate(0f, -0.05f, -1f)     // y text
 }
 
 class Characters {
