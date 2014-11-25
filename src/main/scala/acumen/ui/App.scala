@@ -484,6 +484,14 @@ class App extends SimpleSwingApplication {
         mnemonic = Key.L
         action = showLineNumbersAction
       }
+
+      contents += new Separator()
+
+      contents += new Menu("_3D") {
+        contents ++= Seq(enableAnaglyphItem, enableRealTimeItem,
+          matchWallClockItem)
+        matchWallClockItem.enabled = false
+      }
     }
 
     contents += new Menu("Plotting") {
@@ -618,13 +626,6 @@ class App extends SimpleSwingApplication {
       }
     }
 
-    contents += new Menu("3D Options") {
-      contents ++= Seq(enableAnaglyphItem, enableRealTimeItem,
-                       matchWallClockItem)
-      matchWallClockItem.enabled = false
-    }
-
-   
     contents += new Menu("Help") {
       mnemonic = Key.H
       contents += new MenuItem(manualAction)
