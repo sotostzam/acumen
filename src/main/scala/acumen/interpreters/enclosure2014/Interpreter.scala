@@ -831,8 +831,8 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
 
   /** Ensure that c does not contain duplicate assignments. */
   def checkValidChange(c: Set[Changeset]): Unit = c.foreach{ cs =>
-    val contIds = (cs.eqs.toList ++ cs.odes.toList).map(da => (da.selfCId, da.lhs))
-    val assIds = cs.dis.toList.map(da => (da.selfCId, da.lhs))
+    val contIds = (cs.eqs.toList ++ cs.odes.toList).map(_.lhs)
+    val assIds = cs.dis.toList.map(_.lhs)
     checkDuplicateAssingments(contIds, DuplicateContinuousAssingment)
     checkDuplicateAssingments(assIds, DuplicateDiscreteAssingment)
   }

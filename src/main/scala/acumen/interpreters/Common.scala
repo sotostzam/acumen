@@ -427,25 +427,25 @@ object Common {
    * an equation in scope at the current time step. This is done by checking that for each 
    * primed field name in each object in st, there is a corresponding CId-Name pair in odes.
    */
-  def checkContinuousDynamicsAlwaysDefined(prog: Prog, odes: List[(CId, ResolvedDot)], st: CStore): Unit = {
+  def checkContinuousDynamicsAlwaysDefined(prog: Prog, odes: List[ResolvedDot], st: CStore): Unit = {
     val declaredODENames = prog.defs.map(d => (d.name, (d.fields ++ d.priv.map(_.x)).filter(_.primes > 0))).toMap
     st.foreach { case (o, _) =>
       if (o != magicId(st))
         declaredODENames.get(getCls(o, st)).map(_.foreach { n =>
-          if (!odes.exists { case (eo, d) => eo.id == o.id && d.field.x == n.x })
+          if (!odes.exists { case d => d.id == o && d.field.x == n.x })
             throw ContinuousDynamicsUndefined(o, n, Pretty.pprint(getObjectField(o, classf, st)), getTime(st))
         })
     }
   }
 
   /** Check for a duplicate assignment (of a specific kind) scheduled in assignments. */
-  def checkDuplicateAssingments(assignments: List[(CId, ResolvedDot)], error: Name => DuplicateAssingment): Unit = {
-    val duplicates = assignments.groupBy(a => (a._1,a._2)).filter{ case (_, l) => l.size > 1 }.toList
+  def checkDuplicateAssingments(assignments: List[ResolvedDot], error: Name => DuplicateAssingment): Unit = {
+    val duplicates = assignments.groupBy(a => (a.id, a.field)).filter{ case (_, l) => l.size > 1 }.toList
     if (duplicates.size != 0) {
       val first = duplicates(0)
-      val x = first._1._2.field
-      val poss = first._2.map{case (_,dot) => dot.pos}.sortWith{(a, b) => b < a}
-      throw error(first._1._2.field).setPos(poss(0)).setOtherPos(poss(1))
+      val x = first._1._2
+      val poss = first._2.map{_.obj.pos}.sortWith{(a, b) => a < b}
+      throw error(first._1._2).setPos(poss(0)).setOtherPos(poss(1))
     }
   }
   

@@ -394,8 +394,8 @@ object Interpreter extends acumen.CStoreInterpreter {
     else 
       { val (_, Changeset(ids, rps, das, eqs, odes, hyps), st1) = iterate(evalStep(p), mainId(st))(st)
         val md1 = testHypotheses(hyps, md, st)
-        def resolveDots(s: Set[(CId,Dot,Expr,Env)]): List[(CId,ResolvedDot)] =
-          s.toList.map{ case (o, d, _, env) => (o, resolveDot(d, env, st1)) }
+        def resolveDots(s: Set[(CId,Dot,Expr,Env)]): List[ResolvedDot] =
+          s.toList.map{ case (o, d, _, env) => resolveDot(d, env, st1) }
         val res = getResultType(st) match {
           case Discrete | Continuous => // Either conclude fixpoint is reached or do discrete step
             checkDuplicateAssingments(resolveDots(das), DuplicateDiscreteAssingment)
