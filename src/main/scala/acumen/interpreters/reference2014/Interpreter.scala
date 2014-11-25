@@ -82,13 +82,13 @@ object Interpreter extends acumen.CStoreInterpreter {
   def reparent(cs:List[CId], p:CId) : Eval[Unit] =
     mapM_ (logReparent(_:CId,p), cs)
     
-  /* discretely assign the value v to a field n in object o */
-  def assign(o: CId, d: Dot, v:CValue) : Eval[Unit] = logAssign(o, d, v)
+  /* discretely assign the value of r evaluated in e to a field n in object o */
+  def assign(o: CId, d: Dot, r: Expr, e: Env) : Eval[Unit] = logAssign(o, d, r, e)
 
-  /* continuously assign the value v to a field n in object o */
-  def equation(o: CId, d: Dot, v:CValue) : Eval[Unit] = logEquation(o, d, v)
+  /* continuously assign the value of r evaluated in e to a field n in object o */
+  def equation(o: CId, d: Dot, r: Expr, e: Env) : Eval[Unit] = logEquation(o, d, r, e)
 
-  /* continuously assign the value v to a field n in object o */
+  /* continuously assign the value of r evaluated in e to a field n in object o */
   def ode(o: CId, d: Dot, r: Expr, e: Env) : Eval[Unit] = logODE(o, d, r, e)
   
   /* log an id as being dead */
@@ -290,12 +290,9 @@ object Interpreter extends acumen.CStoreInterpreter {
  
   def evalDiscreteAction(a:DiscreteAction, env:Env, p:Prog) : Eval[Unit] =
     a match {
-      case Assign(d@Dot(e,x),t) => 
+      case Assign(d@Dot(e,x),rhs) => 
         /* Schedule the discrete assignment */
-        for { id <- asks(evalToObjId(e, env, _))
-        	  vt <- asks(evalExpr(t, env, _))
-        	  vx <- asks(evalExpr(d, env, _)) 
-        } assign(id, d, vt)
+        for { id <- asks(evalExpr(e, env, _)) map extractId } assign(id, d, rhs, env)
       /* Basically, following says that variable names must be 
          fully qualified at this language level */
       case Assign(_,_) => 
@@ -330,10 +327,7 @@ object Interpreter extends acumen.CStoreInterpreter {
   def evalContinuousAction(a:ContinuousAction, env:Env, p:Prog) : Eval[Unit] = 
     a match {
       case EquationT(d@Dot(e,_),rhs) =>
-        for { 
-          id <- asks(evalExpr(e, env, _)) map extractId 
-          v <- asks(evalExpr(rhs, env, _))
-        } equation(id, d, v)
+        for { id <- asks(evalExpr(e, env, _)) map extractId } equation(id, d, rhs, env)
       case EquationI(d@Dot(e,_),rhs) =>
         for { id <- asks(evalExpr(e, env, _)) map extractId } ode(id, d, rhs, env)
       case _ =>
@@ -384,6 +378,14 @@ object Interpreter extends acumen.CStoreInterpreter {
   /** Updates the values of variables in xs (identified by CId and Dot.field) to the corresponding CValue. */
   def applyAssignments(xs: List[(CId, Dot, CValue)]): Eval[Unit] = 
     mapM_((a: (CId, Dot, CValue)) => setObjectFieldM(a._1, a._2.field, a._3), xs)
+
+  /** Computes the values of variables in xs (identified by CId and Dot.field). */
+  def evaluateAssignments(xs: Set[(CId, Dot, Expr, Env)], st: Store): Set[(CId, Dot, CValue)] = 
+    xs.map((a: (CId, Dot, Expr, Env)) => (a._1, a._2, evalExpr(a._3, a._4, st)))
+    
+  /** Updates the values of variables in xs (identified by CId and Dot.field) to the corresponding CValue. */
+  def applyDelayedAssignments(xs: Set[(CId, Dot, Expr, Env)], st: Store): Eval[Unit] = 
+    applyAssignments(evaluateAssignments(xs,st).toList)
   
   def step(p:Prog, st:Store, md: Metadata) : StepRes =
     if (getTime(st) >= getEndTime(st)){
@@ -394,8 +396,9 @@ object Interpreter extends acumen.CStoreInterpreter {
         val md1 = testHypotheses(hyps, md, st)
         val res = getResultType(st) match {
           case Discrete | Continuous => // Either conclude fixpoint is reached or do discrete step
-            checkDuplicateAssingments(das.toList.map{ case (o, d, _) => (o, d) }, x => DuplicateDiscreteAssingment(x))
-            val nonIdentityDas = das.filterNot{ a => a._3 == getObjectField(a._1, a._2.field, st1) }
+            checkDuplicateAssingments(das.toList.map{ case (o, d, _, _) => (o, d) }, x => DuplicateDiscreteAssingment(x))
+            val dasValues = evaluateAssignments(das, st)
+            val nonIdentityDas = dasValues.filterNot{ a => a._3 == getObjectField(a._1, a._2.field, st1) }
             if (st == st1 && ids.isEmpty && rps.isEmpty && nonIdentityDas.isEmpty) 
               setResultType(FixedPoint, st1)
             else {
@@ -407,11 +410,11 @@ object Interpreter extends acumen.CStoreInterpreter {
             }
           case FixedPoint => // Do continuous step
             val odesIds = odes.toList.map { case (o, d, _, _) => (o, d) }
-            val eqsIds = eqs.toList.map { case (o, d, _) => (o, d) }
+            val eqsIds = eqs.toList.map { case (o, d, _, _) => (o, d) }
             checkDuplicateAssingments(eqsIds ++ odesIds, DuplicateContinuousAssingment)
             checkContinuousDynamicsAlwaysDefined(p, eqsIds, st1)
             val stODE = solveIVP(odes, p, st1)
-            val stE = applyAssignments(eqs.toList) ~> stODE
+            val stE = applyDelayedAssignments(eqs, stODE) ~> stODE
             val st2 = setResultType(Continuous, stE)
             setTime(getTime(st2) + getTimeStep(st2), st2)
         }

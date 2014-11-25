@@ -9,8 +9,8 @@ import acumen.Errors._
 case class Changeset
   ( dead: Set[CId]                           = Set.empty /* dead */
   , reps: Set[(CId,CId)]                     = Set.empty /* reparentings */
-  , das:  Set[(CId,Dot,CValue)]              = Set.empty /* discrete assignments */
-  , eqs:  Set[(CId,Dot,CValue)]              = Set.empty /* continuous assignments / equations */
+  , das:  Set[(CId,Dot,Expr,Env)]            = Set.empty /* discrete assignments */
+  , eqs:  Set[(CId,Dot,Expr,Env)]            = Set.empty /* continuous assignments / equations */
   , odes: Set[(CId,Dot,Expr,Env)]            = Set.empty /* ode assignments / differential equations */
   , hyps: Set[(CId,Option[String],Expr,Env)] = Set.empty /* hypotheses */
   ) {
@@ -81,11 +81,11 @@ object Eval {
   def logReparent(o:CId, parent:CId) : Eval[Unit] =
     mkEval(s => ((), Changeset(reps = Set((o,parent))), s))
     
-  def logAssign(o: CId, d: Dot, v:CValue) : Eval[Unit] =
-    mkEval(s => ((), Changeset(das = Set((o,d,v))), s))
+  def logAssign(o: CId, d: Dot, r: Expr, e: Env) : Eval[Unit] =
+    mkEval(s => ((), Changeset(das = Set((o,d,r,e))), s))
 
-  def logEquation(o: CId, d: Dot, v:CValue) : Eval[Unit] =
-    mkEval(s => ((), Changeset(eqs = Set((o,d,v))), s))
+  def logEquation(o: CId, d: Dot, r: Expr, e: Env) : Eval[Unit] =
+    mkEval(s => ((), Changeset(eqs = Set((o,d,r,e))), s))
 
   def logODE(o: CId, d: Dot, r: Expr, e: Env) : Eval[Unit] =
     mkEval(s => ((), Changeset(odes = Set((o,d,r,e))), s))
