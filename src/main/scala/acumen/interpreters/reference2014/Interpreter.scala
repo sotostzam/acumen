@@ -394,9 +394,11 @@ object Interpreter extends acumen.CStoreInterpreter {
     else 
       { val (_, Changeset(ids, rps, das, eqs, odes, hyps), st1) = iterate(evalStep(p), mainId(st))(st)
         val md1 = testHypotheses(hyps, md, st)
+        def resolveDots(s: Set[(CId,Dot,Expr,Env)]): List[(CId,ResolvedDot)] =
+          s.toList.map{ case (o, d, _, env) => (o, resolveDot(d, env, st1)) }
         val res = getResultType(st) match {
           case Discrete | Continuous => // Either conclude fixpoint is reached or do discrete step
-            checkDuplicateAssingments(das.toList.map{ case (o, d, _, _) => (o, d) }, x => DuplicateDiscreteAssingment(x))
+            checkDuplicateAssingments(resolveDots(das), DuplicateDiscreteAssingment)
             val dasValues = evaluateAssignments(das, st)
             val nonIdentityDas = dasValues.filterNot{ a => a._3 == getObjectField(a._1, a._2.field, st1) }
             if (st == st1 && ids.isEmpty && rps.isEmpty && nonIdentityDas.isEmpty) 
@@ -409,8 +411,8 @@ object Interpreter extends acumen.CStoreInterpreter {
               setResultType(Discrete, st3)
             }
           case FixedPoint => // Do continuous step
-            val odesIds = odes.toList.map { case (o, d, _, _) => (o, d) }
-            val eqsIds = eqs.toList.map { case (o, d, _, _) => (o, d) }
+            val eqsIds = resolveDots(eqs)
+            val odesIds = resolveDots(odes)
             checkDuplicateAssingments(eqsIds ++ odesIds, DuplicateContinuousAssingment)
             checkContinuousDynamicsAlwaysDefined(p, eqsIds, st1)
             val stODE = solveIVP(odes, p, st1)
