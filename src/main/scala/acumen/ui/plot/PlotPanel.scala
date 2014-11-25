@@ -251,7 +251,7 @@ class PlotPanel(pub:Publisher) extends Panel
       updateEnabled
 
     case MouseMoved(_, p, _) => 
-      if (pd.columnIndices.size > 0 && pd != null) {
+      if (pd != null && pd.columnIndices.nonEmpty) {
         // p in the original coordinate system
         val op = unapplyTr(p)
         // quantized time and row in the trace model corresponding to p.x
