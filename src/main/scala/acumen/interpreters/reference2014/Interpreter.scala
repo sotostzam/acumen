@@ -399,7 +399,7 @@ object Interpreter extends acumen.CStoreInterpreter {
         val res = getResultType(st) match {
           case Discrete | Continuous => // Either conclude fixpoint is reached or do discrete step
             checkDuplicateAssingments(resolveDots(das), DuplicateDiscreteAssingment)
-            val dasValues = evaluateAssignments(das, st)
+            val dasValues = evaluateAssignments(das, st1)
             val nonIdentityDas = dasValues.filterNot{ a => a._3 == getObjectField(a._1, a._2.field, st1) }
             if (st == st1 && ids.isEmpty && rps.isEmpty && nonIdentityDas.isEmpty) 
               setResultType(FixedPoint, st1)
@@ -416,7 +416,7 @@ object Interpreter extends acumen.CStoreInterpreter {
             checkDuplicateAssingments(eqsIds ++ odesIds, DuplicateContinuousAssingment)
             checkContinuousDynamicsAlwaysDefined(p, eqsIds, st1)
             val stODE = solveIVP(odes, p, st1)
-            val stE = applyDelayedAssignments(eqs, stODE) ~> stODE
+            val stE = applyDelayedAssignments(eqs, st1) ~> stODE
             val st2 = setResultType(Continuous, stE)
             setTime(getTime(st2) + getTimeStep(st2), st2)
         }
