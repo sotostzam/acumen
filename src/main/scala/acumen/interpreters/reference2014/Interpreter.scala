@@ -292,7 +292,7 @@ object Interpreter extends acumen.CStoreInterpreter {
     a match {
       case Assign(d@Dot(e,x),rhs) => 
         /* Schedule the discrete assignment */
-        for { id <- asks(evalExpr(e, env, _)) map extractId } assign(id, d, rhs, env)
+        for { id <- asks(evalToObjId(e, env, _)) } assign(id, d, rhs, env)
       /* Basically, following says that variable names must be 
          fully qualified at this language level */
       case Assign(_,_) => 
@@ -327,9 +327,9 @@ object Interpreter extends acumen.CStoreInterpreter {
   def evalContinuousAction(a:ContinuousAction, env:Env, p:Prog) : Eval[Unit] = 
     a match {
       case EquationT(d@Dot(e,_),rhs) =>
-        for { id <- asks(evalExpr(e, env, _)) map extractId } equation(id, d, rhs, env)
+        for { id <- asks(evalToObjId(e, env, _)) } equation(id, d, rhs, env)
       case EquationI(d@Dot(e,_),rhs) =>
-        for { id <- asks(evalExpr(e, env, _)) map extractId } ode(id, d, rhs, env)
+        for { id <- asks(evalToObjId(e, env, _)) } ode(id, d, rhs, env)
       case _ =>
         throw ShouldNeverHappen() // FIXME: enforce that with refinement types
     }
