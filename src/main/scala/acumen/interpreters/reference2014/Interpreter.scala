@@ -363,7 +363,7 @@ object Interpreter extends acumen.CStoreInterpreter {
     checkContinuousAssignmentToSimulator(prog)
     val cprog = CleanParameters.run(prog, CStoreInterpreterType)
     val sprog = Simplifier.run(cprog)
-    val mprog = Prog(magicClass :: sprog.defs)
+    val mprog = Prog(magicClass :: deviceClass :: sprog.defs)
     val (sd1,sd2) = Random.split(Random.mkGen(0))
     val (id,_,st1) = 
       mkObj(cmain, mprog, None, sd1, List(VObjId(Some(CId(0)))), 1)(initStoreRef)
