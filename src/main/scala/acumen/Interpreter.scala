@@ -1,5 +1,6 @@
 package acumen
 
+import acumen.interpreters.imperative2012.Common.{Object, MMap, setField, getSimulator}
 import Stream._
 import util.Canonical._
 import ui.interpreter._
@@ -153,6 +154,7 @@ trait CStoreInterpreter extends Interpreter {
         case Done(_,_)      => empty
         case Data(st1, md1) => 
 		      val (st2, md2) = exposeExternally(st1, md1)
+          val tempMagic = getSimulator(st2)
 		      loop(p, st2, md2)
       })
   }
@@ -178,6 +180,122 @@ trait CStoreInterpreter extends Interpreter {
    val (p1,st,md) = init(p)
    loop(p1, st, md, adder)
   }
+
+  def createDeviceObject(parent: Object): Object =
+    Object((parent.ccounter + 1) :: parent.id
+      , MMap.empty ++
+        MMap(Name("ax", 0) -> VLit(GDouble(5.0))
+          ,  Name("ay", 0) -> VLit(GDouble(5.0))
+          ,  Name("az", 0) -> VLit(GDouble(5.0))
+          ,  Name("alpha", 0) -> VLit(GDouble(5.0))
+          ,  Name("beta", 0)  -> VLit(GDouble(5.0))
+          ,  Name("gamma", 0) -> VLit(GDouble(5.0))
+          ,  Name("compassheading", 0) -> VLit(GDouble(5.0))
+          ,  Name("className", 0) -> VClassName(ClassName("Device")))
+      , Some(parent)
+      , 1
+      , (0,0)
+      , Vector.empty
+    )
+
+  def addDeviceToSimulator(magic: Object, device: Object): Unit = {
+    magic.children = Vector(device) ++ magic.children
+    magic.ccounter += 1
+    val devices = magic.fields(Name("device",0))
+    magic.fields(Name("device",0)) = devices match {
+      case VVector(vs) => VVector(vs :+ VObjId(Some(device)))
+      case _ => VVector(List(VObjId(Some(device))))
+    }
+  }
+
+  def addDeviceData(magic: Object) = {
+    val deviceNum = BuildHost.BuildHost.sensors.size() - 1
+    var devicesNow = magic.children.size
+    // inject device objects and make sure the object is only created once
+    if (devicesNow == 0 && deviceNum > 0){
+      val deviceObject = createDeviceObject(magic)
+      // add device object to simulator
+      addDeviceToSimulator(magic, deviceObject)
+    }
+    devicesNow = magic.children.size
+    if (devicesNow < deviceNum){
+      for (i <- 1 to deviceNum - devicesNow){
+        val deviceObject = createDeviceObject(magic)
+        // add device object to simulator
+        addDeviceToSimulator(magic, deviceObject)
+      }
+    }
+    // setField should be done continuous during the process
+    if (devicesNow > 0) {
+      for (i <- 0 to devicesNow - 1) {
+        val sensorValue = getDeviceData(magic.children(i).cid)
+        setField(magic.children(i), Name("ax",0), VLit(GDouble(sensorValue(0).toDouble)))
+        setField(magic.children(i), Name("ay",0), VLit(GDouble(sensorValue(1).toDouble)))
+        setField(magic.children(i), Name("az",0), VLit(GDouble(sensorValue(2).toDouble)))
+        setField(magic.children(i), Name("alpha",0), VLit(GDouble(sensorValue(3).toDouble)))
+        setField(magic.children(i), Name("beta",0), VLit(GDouble(sensorValue(4).toDouble)))
+        setField(magic.children(i), Name("gamma",0), VLit(GDouble(sensorValue(5).toDouble)))
+        setField(magic.children(i), Name("compassheading",0), VLit(GDouble(sensorValue(6).toDouble)))
+      }
+    }
+  }
+
+  // get device data from server
+  def getDeviceData(deviceID: CId): Array[String] = {
+    val deviceNo = deviceID.id.head
+    val deviceData = BuildHost.BuildHost.sensors.get(deviceNo)
+    val dataAverage = deviceData.get(0)
+    val deviceDataSize = deviceData.size()
+    var tempData = deviceData.get(0)
+    var tempx = 0.0
+    var tempy = 0.0
+    var tempz = 0.0
+    var tempalpha = 0.0
+    var tempbeta = 0.0
+    var tempgamma = 0.0
+    var tempcompassheading = 0.0
+    if (deviceDataSize > 1){
+      for (i <- 0 until deviceDataSize){
+        tempData = deviceData.get(i)
+        tempx += tempData(0).toDouble
+        tempy += tempData(1).toDouble
+        tempz += tempData(2).toDouble
+        tempalpha += tempData(3).toDouble
+        tempbeta += tempData(4).toDouble
+        tempgamma += tempData(5).toDouble
+        tempcompassheading += tempData(6).toDouble
+      }
+      tempx /= deviceDataSize
+      tempy /= deviceDataSize
+      tempz /= deviceDataSize
+      tempalpha /= deviceDataSize
+      tempbeta /= deviceDataSize
+      tempgamma /= deviceDataSize
+      tempcompassheading /= deviceDataSize
+      dataAverage(0) = tempx.toString
+      dataAverage(1) = tempy.toString
+      dataAverage(2) = tempz.toString
+      dataAverage(3) = tempalpha.toString
+      dataAverage(4) = tempbeta.toString
+      dataAverage(5) = tempgamma.toString
+      dataAverage(6) = tempcompassheading.toString
+      deviceData.clear()
+      deviceData.add(0, dataAverage)
+      BuildHost.BuildHost.sensors.set(deviceNo, deviceData)
+    }
+    dataAverage
+  }
+
+
+  // add 3D data into a buffer
+  def add3DData (st: Store) = {
+    val threedtab = ui.App.ui.threeDtab.asInstanceOf[ui.threeD.ThreeDTab]
+    threedtab.appModel.threeDData.get3DData(repr(st))
+    //println("Add data to _3DData")
+    threedtab.playinRealTime()
+    //println("Show in real time")
+  }
+
 }
 
 abstract class InterpreterCallbacks
