@@ -2,6 +2,8 @@
 package acumen
 package ui
 
+import java.net.InetAddress
+
 import tl._
 import interpreter._
 import util.System.shortcutMask
@@ -69,6 +71,7 @@ class App extends SimpleSwingApplication {
   
   val DEFAULT_HEIGHT = 768
   val DEFAULT_WIDTH = 1024
+  val IPADDRESS = IPaddress()
 
   private val cores = Runtime.getRuntime.availableProcessors
   
@@ -174,6 +177,9 @@ class App extends SimpleSwingApplication {
   private val enableAnaglyph                  = mkAction(    "Enable 3D Anaglyph",                  NONE, NONE,       enableAnaglyph3D())
   private val enableRealTimeRender            = mkAction(    "Enable Real Time Animation",          NONE, NONE,       enableRealTme())
   private val matchWallClock                  = mkAction(    "Match wit Wall Clock",                NONE, NONE,       enableMatchWallClock())
+  private val startSeverAction                = mkAction(    "Start Server",                        NONE, NONE,       startServer())
+  private val stopServerAction                = mkAction(    "Stop Server",                         NONE, NONE,       stopServer())
+  private val resetDeviceNum                  = mkAction(    "Reset Device",                        NONE, NONE,       resetDevice())
   private val contractionAction               = mkActionMask("Contraction",                         VK_C, VK_C,       shortcutMask | SHIFT_MASK, toggleContraction())
   private val normalizeAction                 = mkAction(    "Normalize (to H.A.)",                 VK_N, NONE,       toggleNormalization())
   private val manualAction                    = mkAction(    "Reference Manual",                    VK_M, VK_F1,      manual)
@@ -421,6 +427,8 @@ class App extends SimpleSwingApplication {
   private val enableAnaglyphItem = new RadioMenuItem("Enable 3D Anaglyph") {selected = false; action = enableAnaglyph}
   private val enableRealTimeItem = new RadioMenuItem("Enable Real Time Animation") {selected = false; action = enableRealTimeRender}
   private val matchWallClockItem = new RadioMenuItem("Match with Wall Clock") {selected = false; action = matchWallClock}
+  private val startserverItem = new RadioMenuItem("Start Server") {selected = false; action = startSeverAction}
+  private val stopserverItem  = new MenuItem("Stop Server")  {action = stopServerAction}
   private var startAnaglyph = false
   private var startRealTime = false
   private var matchWorldTime = false
@@ -626,6 +634,20 @@ class App extends SimpleSwingApplication {
       }
     }
 
+    // Every time when you want to use device data, check start serve Item is selected or not!
+    contents += new Menu("Devices") {
+      contents += startserverItem
+      startserverItem.selected = false
+      contents += stopserverItem
+      stopserverItem.enabled = false
+      contents += new MenuItem("Reset Device")  {action = resetDeviceNum}
+      contents += new Menu("Server Link"){
+        val rb1 = new MenuItem(IPADDRESS + ":8000/index")
+        contents ++= Seq(rb1)
+        new ButtonGroup(rb1)
+      }
+    }
+
     contents += new Menu("Help") {
       mnemonic = Key.H
       contents += new MenuItem(manualAction)
@@ -715,6 +737,39 @@ class App extends SimpleSwingApplication {
         ManualBrowser.peer requestFocus
       }
     }
+
+  def IPaddress():String = {
+    val localHost = InetAddress.getLocalHost
+    val localIPaddress = localHost.getHostAddress
+    localIPaddress
+  }
+
+  def startServer(): Unit = {
+    BuildHost.BuildHost.start()
+    startserverItem.enabled = false
+    stopserverItem.enabled  = true
+  }
+
+  def stopServer(): Unit = {
+    resetDevice()
+    BuildHost.BuildHost.stop()
+    startserverItem.selected = false
+    startserverItem.enabled  = true
+    stopserverItem.enabled   = false
+  }
+
+  def resetDevice(): Unit = {
+    val tempsensor = BuildHost.BuildHost.sensors.get(0)
+    val tempdata = tempsensor.get(0)
+    for (i <- 0 until 5){
+      tempdata(i) = "0"
+    }
+    tempsensor.clear()
+    tempsensor.add(0, tempdata)
+    BuildHost.BuildHost.sensors.clear()
+    BuildHost.BuildHost.sensors.add(0, tempsensor)
+    BuildHost.BuildHost.Device_counter = 0
+  }
 
   def enableAnaglyph3D(): Unit = {
     if (!startAnaglyph)
