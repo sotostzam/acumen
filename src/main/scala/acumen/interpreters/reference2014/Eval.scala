@@ -7,12 +7,12 @@ import acumen.Errors._
 
 /** Used to represent the statements that are active at a given point during the simulation. */
 case class Changeset
-  ( dead: Set[CId]                           = Set.empty /* dead */
-  , reps: Set[(CId,CId)]                     = Set.empty /* reparentings */
-  , das:  Set[(CId,Dot,Expr,Env)]            = Set.empty /* discrete assignments */
-  , eqs:  Set[(CId,Dot,Expr,Env)]            = Set.empty /* continuous assignments / equations */
-  , odes: Set[(CId,Dot,Expr,Env)]            = Set.empty /* ode assignments / differential equations */
-  , hyps: Set[(CId,Option[String],Expr,Env)] = Set.empty /* hypotheses */
+  ( dead: List[CId]                           = Nil /* dead */
+  , reps: List[(CId,CId)]                     = Nil /* reparentings */
+  , das:  List[(CId,Dot,Expr,Env)]            = Nil /* discrete assignments */
+  , eqs:  List[(CId,Dot,Expr,Env)]            = Nil /* continuous assignments / equations */
+  , odes: List[(CId,Dot,Expr,Env)]            = Nil /* ode assignments / differential equations */
+  , hyps: List[(CId,Option[String],Expr,Env)] = Nil /* hypotheses */
   ) {
   def ++(that: Changeset) =
     Changeset(dead ++ that.dead, reps ++ that.reps, das ++ that.das, eqs ++ that.eqs, odes ++ that.odes, hyps ++ that.hyps)
@@ -76,22 +76,22 @@ object Eval {
     mkEval(s => ((), Changeset.empty, f(s)))
 
   def logCId(id:CId) : Eval[Unit] = 
-    mkEval(s => ((), Changeset(dead = Set(id)), s))
+    mkEval(s => ((), Changeset(dead = List(id)), s))
 
   def logReparent(o:CId, parent:CId) : Eval[Unit] =
-    mkEval(s => ((), Changeset(reps = Set((o,parent))), s))
+    mkEval(s => ((), Changeset(reps = List((o,parent))), s))
     
   def logAssign(o: CId, d: Dot, r: Expr, e: Env) : Eval[Unit] =
-    mkEval(s => ((), Changeset(das = Set((o,d,r,e))), s))
+    mkEval(s => ((), Changeset(das = List((o,d,r,e))), s))
 
   def logEquation(o: CId, d: Dot, r: Expr, e: Env) : Eval[Unit] =
-    mkEval(s => ((), Changeset(eqs = Set((o,d,r,e))), s))
+    mkEval(s => ((), Changeset(eqs = List((o,d,r,e))), s))
 
   def logODE(o: CId, d: Dot, r: Expr, e: Env) : Eval[Unit] =
-    mkEval(s => ((), Changeset(odes = Set((o,d,r,e))), s))
+    mkEval(s => ((), Changeset(odes = List((o,d,r,e))), s))
 
   def logHypothesis(o: CId, n: Option[String], h: Expr, e: Env) : Eval[Unit] =
-    mkEval(s => ((), Changeset(hyps = Set((o,n,h,e))), s))
+    mkEval(s => ((), Changeset(hyps = List((o,n,h,e))), s))
 
   /** Apply f to the store and wrap it in an Eval */
   def asks[A](f : Store => A) : Eval[A] = 

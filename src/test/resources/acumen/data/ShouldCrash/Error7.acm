@@ -2,7 +2,7 @@
 
 model Main(simulator) = 
 initially
-  a = create A(self)
+  a = create A(self), mode = "Bar"
 always
  
 

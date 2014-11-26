@@ -306,10 +306,14 @@ always
         ball.p'' + = (0,0,0))
   | "Endgame" ->
       ball.mode        + = "Freeze",
-      bat1.pv          + = (0,0,0),
+      if batActuator1.energy <= maxEnergy then 
+        bat1.pv          + = (0,0,0)
+      noelse,
       batActuator1.p'  + = (0,0,0),
       batActuator1.p'' + = (0,0,0),
-      bat2.pv          + = (0,0,0),
+      if batActuator2.energy <= maxEnergy then 
+        bat2.pv          + = (0,0,0)
+      noelse,
       batActuator2.p'  + = (0,0,0),
       batActuator2.p'' + = (0,0,0),
       // Scoring function 

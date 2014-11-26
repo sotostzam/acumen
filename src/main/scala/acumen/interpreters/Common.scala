@@ -444,7 +444,7 @@ object Common {
     if (duplicates.size != 0) {
       val first = duplicates(0)
       val x = first._1._2
-      val poss = first._2.map{_.obj.pos}.sortWith{(a, b) => a < b}
+      val poss = first._2.map{_.obj.pos}.sortWith{(a, b) => b < a}
       throw error(first._1._2).setPos(poss(0)).setOtherPos(poss(1))
     }
   }

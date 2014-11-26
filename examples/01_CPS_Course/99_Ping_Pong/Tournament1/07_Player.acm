@@ -87,7 +87,6 @@ always
       noelse,
       // Calculate how to get to goal point(slightly behind and below pH)
       if myServe == true && starting == true then
-        t    + = 0,
         d_ballBat + = norm(p_bat - pH),
         u    + = (pH + (0.07*(-1)^n,0,-0.1) - p_bat)/norm(pH + (0.07*(-1)^n,0,-0.1) - p_bat),
         ta   + = let d_ballBat = norm(p_bat - pH) in sqrt(2* (d_ballBat / 2) / maxA),

@@ -100,14 +100,18 @@ always
   if batActuator1.energy > maxEnergy then
     bat1.mode         + = "Rest", 
     bat1.pv           + = (0,0,0),
-    batActuator1.r'   + = 0,
-    batActuator1.p'   + = (0,0,0)
+    if batActuator1.mode ~= "Reset" then
+      batActuator1.r'   + = 0,
+      batActuator1.p'   + = (0,0,0)
+    noelse
   noelse,
   if batActuator2.energy > maxEnergy then
     bat2.mode         + = "Rest",
     bat2.pv           + = (0,0,0),
-    batActuator2.r'   + = 0,
-    batActuator2.p'   + = (0,0,0)
+    if batActuator2.mode ~= "Reset" then
+      batActuator2.r'   + = 0,
+      batActuator2.p'   + = (0,0,0)
+    noelse
   noelse,
   match mode with [
     "Init" ->
@@ -282,9 +286,13 @@ always
   // When someone fouls, showing what's going wrong for 1 second
   | "Freeze" ->
       if t < 1 then
-        ball.mode + = "Freeze", 
-        batActuator1.p' + = (0,0,0),
-        batActuator2.p' + = (0,0,0)
+        ball.mode + = "Freeze",
+        if batActuator1.mode ~= "Reset" && batActuator1.energy <= maxEnergy then
+          batActuator1.p' + = (0,0,0)
+        noelse,
+        if batActuator2.mode ~= "Reset" && batActuator2.energy <= maxEnergy then
+          batActuator2.p' + = (0,0,0)
+        noelse
       else (
         if gameTime <= gameLength then
           if changeServe == 1 then
@@ -296,10 +304,14 @@ always
         ball.p'' + = (0,0,0))
   | "Endgame" ->
       ball.mode        + = "Freeze",
-      bat1.pv          + = (0,0,0),
+      if batActuator1.energy <= maxEnergy then 
+        bat1.pv        + = (0,0,0)
+      noelse,
       player1.r''      + = 0,
       batActuator1.r'' + = 0,
-      bat2.pv          + = (0,0,0),
+      if batActuator2.energy <= maxEnergy then 
+        bat2.pv        + = (0,0,0)
+      noelse,
       player2.r''      + = 0,
       batActuator2.r'' + = 0,
       // Scoring function 
