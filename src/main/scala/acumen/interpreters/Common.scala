@@ -391,11 +391,19 @@ object Common {
   }
 
   val magicClassTxt =
-    """model Simulator(time, timeStep, outputRows, continuousSkip, endTime, resultType, lastCreatedId)="""
+    """model Simulator(time, timeStep, outputRows, continuousSkip, endTime, resultType, lastCreatedId, device)="""
+
+  val deviceClassTxt =
+  // ax, ay, az are respectively to the acceleration of each direction
+  // alpha is the rotation of z-axis, beta is the rotation of x-axis, gamma is the rotation of y-axis
+  // compass heading is the angle between device orientation and north of the earth
+    """class Device(ax, ay, az, alpha, beta, gamma, compassheading) end"""
+
   val initStoreTxt =
     s"""#0.0 { className = Simulator, parent = %s, time = 0.0, timeStep = 0.01, outputRows = "WhenChanged", continuousSkip = 0,endTime = 10.0, resultType = @Discrete, nextChild = 0,method = "$RungeKutta", seed1 = 0, seed2 = 0, variableCount = 0 }"""
 
   lazy val magicClass = Parser.run(Parser.classDef, magicClassTxt)
+  lazy val deviceClass = Parser.run(Parser.classDef, deviceClassTxt)
   lazy val initStoreRef = Parser.run(Parser.store, initStoreTxt.format("#0"))
   lazy val initStoreImpr = Parser.run(Parser.store, initStoreTxt.format("none"))
   
