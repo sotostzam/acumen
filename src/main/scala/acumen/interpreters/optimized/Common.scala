@@ -238,7 +238,7 @@ object Common {
       val oldVal = getField(o, f)
       val v = o.fields(f)
       if (v.lastUpdated == o.phaseParms.curIter) {
-        if (o.phaseParms.delayUpdate && v.curVal != newVal) throw DuplicateAssingmentUnspecified(f).setPos(pos).setOtherPos(v.lastSetPos)
+        if (o.phaseParms.delayUpdate /*&& v.curVal != newVal*/) throw DuplicateAssingmentUnspecified(f).setPos(pos).setOtherPos(v.lastSetPos)
         v.curVal = newVal
       } else {
         v.prevVal = v.curVal; v.curVal = newVal; v.lastUpdated = o.phaseParms.curIter
