@@ -125,9 +125,11 @@ package acumen {
   case class Lit(gv: GroundValue) extends Expr 
   /* Example: x'' */
   case class Var(name: Name) extends Expr
+  /* Example x(10) or sin(x) or obj.x(10) */
+  case class Call(f: Expr, es: List[Expr]) extends Expr
   /* Example Main */
   case class Op(f: Name, es: List[Expr]) extends Expr
-  /* Example x[10] */
+  /* Example x(10) */
   case class Index(e: Expr, idx: List[Expr]) extends Expr
   /* Reference to field f in object obj. */
   sealed abstract class Ref extends Expr {

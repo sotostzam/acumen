@@ -413,8 +413,12 @@ object Parser extends MyStdTokenParsers {
     level3 * ("+/-" ^^^ { (mid:Expr, pm:Expr) => ExprIntervalM(mid,pm) })
 
   def level3: Parser[Expr] =
-    ("-" ~! access ^^ { case _ ~ e => smartMinus(e) }
-      | access)
+    ("-" ~! call ^^ { case _ ~ e => smartMinus(e) }
+      | call)
+
+  def call: Parser[Expr] =
+    access >> { e => args(expr) ^^ { es => println(Call(e,es)); Call(e, es) } | success(e) }
+
 
   def access: Parser[Expr] = 
     atom >> { e =>
@@ -428,7 +432,7 @@ object Parser extends MyStdTokenParsers {
     positioned( sum
       | interval
       |"type" ~! parens(className) ^^ { case _ ~ cn => TypeOf(cn) }
-      | name >> { n => args(expr) ^^ { es => Op(n, es) } | success(Var(n)) }
+      | name ^^ Var
       | colVector	
       | parens(rep2sep(expr, ",")) ^^ ExprVector
       | parens(expr)
