@@ -642,7 +642,10 @@ class App extends SimpleSwingApplication {
       stopserverItem.enabled = false
       contents += new MenuItem("Reset Device")  {action = resetDeviceNum}
       contents += new Menu("Server Link"){
-        val rb1 = new MenuItem(IPADDRESS + ":8000/index")
+        val url = IPADDRESS + ":8000/index"
+        val rb1 = new MenuItem(url){
+          action = new Action(url){ def apply() = Desktop.getDesktop.browse(new java.net.URI("http://" + url)) }
+        }
         contents ++= Seq(rb1)
         new ButtonGroup(rb1)
       }
@@ -761,7 +764,7 @@ class App extends SimpleSwingApplication {
   def resetDevice(): Unit = {
     val tempsensor = BuildHost.BuildHost.sensors.get(0)
     val tempdata = tempsensor.get(0)
-    for (i <- 0 until 5){
+    for (i <- 0 until 7){
       tempdata(i) = "0"
     }
     tempsensor.clear()
