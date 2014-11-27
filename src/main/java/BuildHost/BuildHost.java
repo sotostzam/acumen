@@ -39,6 +39,7 @@ public class BuildHost {
 
     public static void stop() throws Exception {
         server.stop(0);
+        sensors.clear();
     }
 
 
