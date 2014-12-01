@@ -175,7 +175,7 @@ class App extends SimpleSwingApplication {
   private val eventTreeHybridSolverAction     = mkActionMask("2013 EVT",                            VK_T, VK_T,       shortcutMask | SHIFT_MASK, setSemantics(S.Enclosure(S.EVT,contraction)))
   private val enclosure2014Action             = mkActionMask("2014 Enclosure",                      VK_4, VK_D,       shortcutMask | SHIFT_MASK, setSemantics(S.Enclosure2014(contraction)))
   private val enableAnaglyph                  = mkAction(    "Enable 3D Anaglyph",                  NONE, NONE,       enableAnaglyph3D())
-  private val enableRealTimeRender            = mkAction(    "Enable Real Time Animation",          NONE, NONE,       enableRealTme())
+  private val enableRealTimeRender            = mkAction(    "Enable Real Time Animation",          NONE, NONE,       enableRealTime())
   private val matchWallClock                  = mkAction(    "Match wit Wall Clock",                NONE, NONE,       enableMatchWallClock())
   private val startSeverAction                = mkAction(    "Start Server",                        NONE, NONE,       startServer())
   private val stopServerAction                = mkAction(    "Stop Server",                         NONE, NONE,       stopServer())
@@ -496,7 +496,7 @@ class App extends SimpleSwingApplication {
       contents += new Separator()
 
       contents += new Menu("_3D") {
-        contents ++= Seq(enableAnaglyphItem, enableRealTimeItem,
+        contents ++= Seq(enableRealTimeItem,
           matchWallClockItem)
         matchWallClockItem.enabled = false
       }
@@ -749,6 +749,10 @@ class App extends SimpleSwingApplication {
 
   def startServer(): Unit = {
     BuildHost.BuildHost.start()
+    if (!startRealTime) {
+      enableRealTime()
+      enableRealTimeItem.selected = true
+    }
     startserverItem.enabled = false
     stopserverItem.enabled  = true
   }
@@ -782,7 +786,7 @@ class App extends SimpleSwingApplication {
     threeDtab.setAnaglyph(startAnaglyph)
   }
 
-  def enableRealTme(): Unit = {
+  def enableRealTime(): Unit = {
     if (!startRealTime) {
       startRealTime = true
       matchWallClockItem.enabled = true
