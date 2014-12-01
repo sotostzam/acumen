@@ -290,9 +290,10 @@ object Interpreter extends acumen.CStoreInterpreter {
  
   def evalDiscreteAction(a:DiscreteAction, env:Env, p:Prog) : Eval[Unit] =
     a match {
-      case Assign(d@Dot(e,x),rhs) => 
-        /* Schedule the discrete assignment */
-        for { id <- asks(evalToObjId(e, env, _)) } assign(id, d, rhs, env)
+      case Assign(d@Dot(e,n),rhs) => 
+        for { id <- asks(evalToObjId(e, env, _)) 
+              _  <- asks(checkVariableDeclared(id, n, d.pos, _))
+            } assign(id, d, rhs, env)
       /* Basically, following says that variable names must be 
          fully qualified at this language level */
       case Assign(_,_) => 
@@ -326,9 +327,11 @@ object Interpreter extends acumen.CStoreInterpreter {
 
   def evalContinuousAction(a:ContinuousAction, env:Env, p:Prog) : Eval[Unit] = 
     a match {
-      case EquationT(d@Dot(e,_),rhs) =>
-        for { id <- asks(evalToObjId(e, env, _)) } equation(id, d, rhs, env)
-      case EquationI(d@Dot(e,_),rhs) =>
+      case EquationT(d@Dot(e,n),rhs) =>
+        for { id <- asks(evalToObjId(e, env, _)) 
+              _  <- asks(checkVariableDeclared(id, n, d.pos, _))
+            } equation(id, d, rhs, env)
+      case EquationI(d@Dot(e,_),rhs) => // No need to check that lhs is declared, as EquationI:s are generated  
         for { id <- asks(evalToObjId(e, env, _)) } ode(id, d, rhs, env)
       case _ =>
         throw ShouldNeverHappen() // FIXME: enforce that with refinement types

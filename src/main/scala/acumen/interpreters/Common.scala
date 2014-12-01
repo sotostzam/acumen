@@ -6,6 +6,7 @@ import util.Conversions._
 import scala.math._
 import Errors._
 import util.Canonical._
+import scala.util.parsing.input.Position
 //
 // Common stuff to CStore Interpreters
 //
@@ -462,6 +463,10 @@ object Common {
     val cs = childrenOf(parent, st)
     if (! (cs contains child)) throw NotAChildOf(child,parent).setPos(context.pos)
   }
+  
+  def checkVariableDeclared(id: CId, n: Name, position: Position, st: CStore) : Unit =
+    if (!deref(id,st).contains(n))
+      throw new VariableNotDeclared(n).setPos(position)
 
   /* runtime analyses */
   

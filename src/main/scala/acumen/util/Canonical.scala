@@ -50,10 +50,10 @@ object Canonical {
 
   def getObjectField(id:CId, f:Name, st:CStore) = {
     val obj = deref(id,st)
-    if (obj contains f)
-      obj(f)
-    else
-      throw VariableNotDeclared(f)
+    obj.get(f) match {
+      case Some(v) => v
+      case None => throw VariableNotDeclared(f)
+    }
   }
 
   // getClass is already defined in Any
