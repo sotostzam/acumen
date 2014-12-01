@@ -8,7 +8,7 @@ import acumen.Errors._
 import acumen.Pretty._
 import acumen.util.Conversions._
 import acumen.util.Random
-import acumen.interpreters.Common.{ classDef, evalOp, initStoreImpr, magicClass }
+import acumen.interpreters.Common.{ classDef, evalOp, initStoreImpr, magicClass , deviceClass}
 import acumen.util.Canonical.{
   childrenOf, 
   classf,
@@ -47,7 +47,7 @@ class ImperativeInterpreter extends CStoreInterpreter {
     changeParent(magic, mainObj)
     val cprog = CleanParameters.run(prog, CStoreInterpreterType)
     val sprog = Simplifier.run(cprog)
-    val mprog = Prog(magicClass :: sprog.defs)
+    val mprog = Prog(magicClass :: deviceClass :: sprog.defs)
     (mprog , mainObj, NoMetadata)
   }
 
