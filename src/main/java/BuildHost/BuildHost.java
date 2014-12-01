@@ -146,7 +146,7 @@ public class BuildHost {
         }
         // add the sensor data to sensors Arraylist
         public static ArrayList<ArrayList<String[]>> insertSensor (ArrayList<ArrayList<String[]>> sensors, String data[]){
-            int index = Integer.parseInt(data[7]); // device number
+            int index = Integer.parseInt(data[7]) - 1; // device number
             ArrayList<String[]> tempsensor = new ArrayList<String[]>();
             if (index >= sensors.size()){   // detect a new device
                 tempsensor.add(0, new String[]{"0", "0", "0", "0", "0", "0", "0"});
