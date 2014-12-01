@@ -1,8 +1,9 @@
 package acumen
 
-import acumen.interpreters.imperative2012.Common.{Object, MMap, setField, getSimulator}
+import collection.JavaConversions.iterableAsScalaIterable
 import Stream._
 import util.Canonical._
+import util.Names._
 import ui.interpreter._
 import Pretty._
 
@@ -116,9 +117,10 @@ trait CStoreInterpreter extends Interpreter {
     var shouldAddData = ShouldAddData.IfLast 
     // ^^ set to IfLast on purpose to make things work
     while (true) {
-      step(p, st, md) match {
+      val stWithDevices = fromCStore(addDeviceData(repr(st)))
+      step(p, stWithDevices, md) match {
         case Data(resSt,resMd) => // If the simulation is not over
-          cstore = repr(resSt) 
+          cstore = repr(resSt)
           shouldAddData = adder.newStep(getResultType(cstore))
           if (shouldAddData == ShouldAddData.Yes)
             cstore.foreach{case (id,obj) => adder.addData(id, obj)}
@@ -154,7 +156,6 @@ trait CStoreInterpreter extends Interpreter {
         case Done(_,_)      => empty
         case Data(st1, md1) => 
 		      val (st2, md2) = exposeExternally(st1, md1)
-          val tempMagic = getSimulator(st2)
 		      loop(p, st2, md2)
       })
   }
@@ -181,71 +182,34 @@ trait CStoreInterpreter extends Interpreter {
    loop(p1, st, md, adder)
   }
 
-  def createDeviceObject(parent: Object): Object =
-    Object((parent.ccounter + 1) :: parent.id
-      , MMap.empty ++
-        MMap(Name("ax", 0) -> VLit(GDouble(5.0))
-          ,  Name("ay", 0) -> VLit(GDouble(5.0))
-          ,  Name("az", 0) -> VLit(GDouble(5.0))
-          ,  Name("alpha", 0) -> VLit(GDouble(5.0))
-          ,  Name("beta", 0)  -> VLit(GDouble(5.0))
-          ,  Name("gamma", 0) -> VLit(GDouble(5.0))
-          ,  Name("compassheading", 0) -> VLit(GDouble(5.0))
-          ,  Name("className", 0) -> VClassName(ClassName("Device")))
-      , Some(parent)
-      , 1
-      , (0,0)
-      , Vector.empty
-    )
-
-  def addDeviceToSimulator(magic: Object, device: Object): Unit = {
-    magic.children = Vector(device) ++ magic.children
-    magic.ccounter += 1
-    val devices = magic.fields(Name("device",0))
-    magic.fields(Name("device",0)) = devices match {
-      case VVector(vs) => VVector(vs :+ VObjId(Some(device)))
-      case _ => VVector(List(VObjId(Some(device))))
+  /** Create Device objects for each connected device and add them to st. */
+  def addDeviceData(st: CStore): CStore = {
+    val mid = magicId(st)
+    //val simulator = deref(mid, st)
+    val base = Map[Name, CValue](
+      name("className") -> VClassName(ClassName("Device")),
+      name("parent") -> VObjId(None))
+    val paramList = List("ax" -> 1, "ay" -> 2, "az" -> 3, "alpha" -> 4, "beta" -> 5, "gamma" -> 6, "compassheading" -> 7)
+    val (stWithDevices, deviceVector) = BuildHost.BuildHost.sensors.zipWithIndex.foldLeft(st, List[VObjId[CId]]()) {
+      case ((stTmp, ds), (sensorValues, i)) =>
+        val did: CId = i :: mid
+        val paramValues = computeAverageAndUpdateDeviceData(i, sensorValues)
+        val d = (paramList zip paramValues).foldLeft(base) {
+          case (mTmp, ((n, p), v)) =>
+            mTmp + (name(n) -> VLit(GDouble(v.toDouble)))
+        }
+        (changeParent(did, mid, stTmp + (did -> d)), VObjId(Some(did)) :: ds)
     }
-  }
-
-  def addDeviceData(magic: Object) = {
-    val deviceNum = BuildHost.BuildHost.sensors.size() - 1
-    var devicesNow = magic.children.size
-    // inject device objects and make sure the object is only created once
-    if (devicesNow == 0 && deviceNum > 0){
-      val deviceObject = createDeviceObject(magic)
-      // add device object to simulator
-      addDeviceToSimulator(magic, deviceObject)
-    }
-    devicesNow = magic.children.size
-    if (devicesNow < deviceNum){
-      for (i <- 1 to deviceNum - devicesNow){
-        val deviceObject = createDeviceObject(magic)
-        // add device object to simulator
-        addDeviceToSimulator(magic, deviceObject)
-      }
-    }
-    // setField should be done continuous during the process
-    if (devicesNow > 0) {
-      for (i <- 0 to devicesNow - 1) {
-        val sensorValue = getDeviceData(magic.children(i).cid)
-        setField(magic.children(i), Name("ax",0), VLit(GDouble(sensorValue(0).toDouble)))
-        setField(magic.children(i), Name("ay",0), VLit(GDouble(sensorValue(1).toDouble)))
-        setField(magic.children(i), Name("az",0), VLit(GDouble(sensorValue(2).toDouble)))
-        setField(magic.children(i), Name("alpha",0), VLit(GDouble(sensorValue(3).toDouble)))
-        setField(magic.children(i), Name("beta",0), VLit(GDouble(sensorValue(4).toDouble)))
-        setField(magic.children(i), Name("gamma",0), VLit(GDouble(sensorValue(5).toDouble)))
-        setField(magic.children(i), Name("compassheading",0), VLit(GDouble(sensorValue(6).toDouble)))
-      }
-    }
+    val simulator = deref(mid, stWithDevices)
+    // Assign deviceVector as the value of the devices simulator parameter
+    val resCStore = setObject(mid, setField(simulator, devicef, VVector(deviceVector)), stWithDevices)
+    resCStore
   }
 
   // get device data from server
-  def getDeviceData(deviceID: CId): Array[String] = {
-    val deviceNo = deviceID.id.head
-    val deviceData = BuildHost.BuildHost.sensors.get(deviceNo)
+  def computeAverageAndUpdateDeviceData(deviceNo: Int, deviceData: java.util.ArrayList[Array[String]]): Array[String] = {
     val dataAverage = deviceData.get(0)
-    val deviceDataSize = deviceData.size()
+    val deviceDataSize = deviceData.size
     var tempData = deviceData.get(0)
     var tempx = 0.0
     var tempy = 0.0
