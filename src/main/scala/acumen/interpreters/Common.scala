@@ -397,10 +397,10 @@ object Common {
   // ax, ay, az are respectively to the acceleration of each direction
   // alpha is the rotation of z-axis, beta is the rotation of x-axis, gamma is the rotation of y-axis
   // compass heading is the angle between device orientation and north of the earth
-    """class Device(ax, ay, az, alpha, beta, gamma, compassheading) end"""
+    """model Device(ax, ay, az, alpha, beta, gamma, compassheading)="""
 
   val initStoreTxt =
-    s"""#0.0 { className = Simulator, parent = %s, time = 0.0, timeStep = 0.01, outputRows = "WhenChanged", continuousSkip = 0,endTime = 10.0, resultType = @Discrete, nextChild = 0,method = "$RungeKutta", seed1 = 0, seed2 = 0, variableCount = 0 }"""
+    s"""#0.0 { className = Simulator, parent = %s, time = 0.0, timeStep = 0.01, outputRows = "WhenChanged", continuousSkip = 0,endTime = 10.0, resultType = @Discrete, nextChild = 0,method = "$RungeKutta", device = none, seed1 = 0, seed2 = 0, variableCount = 0 }"""
 
   lazy val magicClass = Parser.run(Parser.classDef, magicClassTxt)
   lazy val deviceClass = Parser.run(Parser.classDef, deviceClassTxt)
@@ -409,7 +409,7 @@ object Common {
   
   // Register simulator parameters that should appear as completions in the code editor 
   // for any interpreter. Additional parameters are taken from Interpreter.parameters. 
-  val visibleSimulatorFields = List("time", "timeStep", "endTime")
+  val visibleSimulatorFields = List("time", "timeStep", "endTime", "device")
 
   def visibleParametersMap(initStore: CStore): Map[String,CValue] = {
     val initialMagic = initStore(magicId(initStore))
@@ -462,7 +462,8 @@ object Common {
   def checkAccessOk(id:CId, env:Env, st:CStore, context: Expr) : Unit = {
     val sel = selfCId(env)
     lazy val cs = childrenOf(sel, st)
-    if (sel != id && ! (cs contains id))
+    val mainIsAccesingADevice = sel == mainId(st) && (childrenOf(magicId(st), st) contains id)
+    if ((sel != id && ! (cs contains id)) && !mainIsAccesingADevice)
       throw AccessDenied(id,sel,cs).setPos(context.pos)
   }
 
