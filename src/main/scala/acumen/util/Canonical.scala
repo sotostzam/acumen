@@ -12,6 +12,7 @@ object Canonical {
   val parent       = name("parent")
   val classf       = name("className")
   val magicf       = name("simulator")
+  val devicef      = name("device")
   val time         = name("time")
   val timeStep     = name("timeStep")
   val resultType   = name("resultType")
@@ -24,6 +25,7 @@ object Canonical {
   val _3DView      = name("_3DView")
   val cmain        = ClassName("Main")
   val cmagic       = ClassName("Simulator")
+  val cdevice      = ClassName("Device")
 
   /* object getters */
   def parentOf(o:CObject) : Option[CId] = { val VObjId(id) = o(parent); id }
@@ -33,6 +35,10 @@ object Canonical {
   /* compute children of id */
   def childrenOf(id:CId, st:CStore) : List[CId] =
     st filter { case (_,o) => parentOf(o) == Some(id) } map (_._1) toList
+
+  /* count children of id */
+  def childCount(id: CId, st: CStore): Int =
+    childrenOf(id, st).size
 
   /* get the object id of a singleton object */
   def single(cn:ClassName)(st:CStore) : CId = 
@@ -79,7 +85,7 @@ object Canonical {
 
   def setObjectField(id:CId, f:Name, v:CValue, s:CStore) : CStore = {
     val obj = deref(id,s)
-    if (f != _3D && f != _3DView)
+    if (f != _3D && f != _3DView && f != devicef)
       obj.get(f) map { oldVal =>
         if (oldVal.yieldsPlots != v.yieldsPlots)
           throw new UnsupportedTypeChangeError(f, id, classOf(obj), oldVal, v, 
