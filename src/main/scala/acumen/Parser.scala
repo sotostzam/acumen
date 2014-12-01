@@ -417,7 +417,7 @@ object Parser extends MyStdTokenParsers {
       | call)
 
   def call: Parser[Expr] =
-    access >> { e => args(expr) ^^ { es => println(Call(e,es)); Call(e, es) } | success(e) }
+    access >> { e => args(expr) ^^ { es => /*println(Call(e,es))*/; Call(e, es) } | success(e) }
 
 
   def access: Parser[Expr] = 
