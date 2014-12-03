@@ -53,11 +53,6 @@ class ThreeDTab (val appModel: Controller) extends AbstractEditorTab{
       statusZone3d.setSpeed(playSpeed.toString) // show the speed
     }
   }
-  val threedpause = new Action("pause") {
-    icon = Icons.pause
-    toolTip = "pause"
-    def apply() = pause()
-  }
   val stop3d = new Action("stop") {
     icon = Icons.stop
     def apply() = stop()
@@ -66,10 +61,23 @@ class ThreeDTab (val appModel: Controller) extends AbstractEditorTab{
   /* ----3D-Visualization---- */
   var played = false
 
+  // play/pause button
   val threedplay = new Action("play") {
     icon = Icons.play
-    def apply() = play()
     toolTip = "play"
+    def apply() = {
+      if (toolTip == "play") {
+        play()
+        // after click play, this button become pause
+        toolTip = "pause"
+        icon = Icons.pause
+      } else if (toolTip == "pause") {
+        pause()
+      } else if (toolTip == "resume") {
+        pause()
+      }
+    }
+
   }
 
   // _3DDataBuffer: Where all the state is stored
@@ -79,10 +87,6 @@ class ThreeDTab (val appModel: Controller) extends AbstractEditorTab{
 
   val s = new Dimension(50, 40)
   val b3dplay = new Button(threedplay) {
-    peer.setHideActionText(true)
-    preferredSize = s
-  }
-  val b3dpause = new Button(threedpause) {
     peer.setHideActionText(true)
     preferredSize = s
   }
@@ -110,15 +114,15 @@ class ThreeDTab (val appModel: Controller) extends AbstractEditorTab{
     button.peer.setEnabled(false)
   }
 
-  val threeDButtons =
-    new FlowPanel(FlowPanel.Alignment.Leading)(check, b3dplay,
-      b3dpause, b3dstop, b3dslower, b3dfaster)
+//  val threeDButtons =
+//    new FlowPanel(FlowPanel.Alignment.Leading)(check, b3dplay,
+//      b3dstop, b3dslower, b3dfaster)
 
   val statusZone3d = new Slider3D
   statusZone3d.bar.peer.addMouseListener(new MouseAdapter{
-    var wasPlayingBeforeMousePressed = threedpause.toolTip == "pause"
+    var wasPlayingBeforeMousePressed = threedplay.toolTip == "pause"
     override def mousePressed(e: MouseEvent) = {
-      wasPlayingBeforeMousePressed = threedpause.toolTip == "pause"
+      wasPlayingBeforeMousePressed = threedplay.toolTip == "pause"
       pauseOn()
     }
     override def mouseReleased(e: MouseEvent) =
@@ -127,8 +131,7 @@ class ThreeDTab (val appModel: Controller) extends AbstractEditorTab{
   })
 
   val threeDBottomPane = new BoxPanel(Orientation.Horizontal) {
-    contents += threeDButtons
-    contents += statusZone3d
+    contents ++= Seq(check, b3dplay, b3dstop, b3dslower, b3dfaster, statusZone3d)
   }
 
   var _receiver = new _3DDisplay(threeDView, statusZone3d,
@@ -149,8 +152,8 @@ class ThreeDTab (val appModel: Controller) extends AbstractEditorTab{
   }
 
   def stop(): Unit = {
-    threedpause.toolTip = "pause"
-    threedpause.icon = Icons.pause
+    threedplay.toolTip = "play"
+    threedplay.icon = Icons.play
     timer3d.destroy = true
     threeDView.reset()
     statusZone3d.bar.value = 0
@@ -162,24 +165,24 @@ class ThreeDTab (val appModel: Controller) extends AbstractEditorTab{
 
   def pauseOn(): Unit = {
     timer3d.pause = false
-    threedpause.icon = Icons.play
-    threedpause.toolTip = "resume"
+    threedplay.icon = Icons.play
+    threedplay.toolTip = "resume"
     if (!threeDView.customView && !threeDView.preCustomView)
       threeDView.customView = true
   }
   
   def pauseOff(): Unit = {
     timer3d.pause = true
-    threedpause.icon = Icons.pause
-    threedpause.toolTip = "pause"
+    threedplay.icon = Icons.pause
+    threedplay.toolTip = "pause"
     if (threeDView.customView && !threeDView.preCustomView)
       threeDView.customView = false
   }
-  
+
   def pause(): Unit =
-    if (threedpause.toolTip == "pause")
+    if (threedplay.toolTip == "pause")
       pauseOn()
-    else
+    else if (threedplay.toolTip == "resume")
       pauseOff()
 
   def play(): Unit = {
@@ -188,8 +191,8 @@ class ThreeDTab (val appModel: Controller) extends AbstractEditorTab{
       App.ui.runSimulation()
     }
     else {
-      threedpause.toolTip = "pause"
-      threedpause.icon = Icons.pause
+      threedplay.toolTip = "pause"
+      threedplay.icon = Icons.pause
       endTime = appModel.threeDData.endTime
       threeDView.preCustomView = true
       threeDView.customView = true
