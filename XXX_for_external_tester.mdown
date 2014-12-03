@@ -1,5 +1,8 @@
 # External test procedure
 
+Please send us one email consisting of an "OK" or "Not OK" for each of the following steps.  
+If a step appears to be "Not OK", a brief explanation of the problem you witnessed would be appreciated.  Please send your email to both Adam Duracz (adam@duracz.net) and Walid Taha (maroneal@gmail.com).
+
 0. Download and unzip the particular Acumen distribution provided to you.
 1. Start Acumen by double-clicking the jar file in the extracted folder.
 2. Part 1 of test
@@ -22,5 +25,4 @@
        and then clicking the play button ( > ) below the _3D view. Note that you may 
 	   need to make the Acumen window wider in order to see the fast forward button.
 
-Please send your report (OK / not OK for each of the steps above) to both Adam Duracz (adam@duracz.net) and
-Walid Taha (maroneal@gmail.com).
+Thank you very much for helping us test this release!
