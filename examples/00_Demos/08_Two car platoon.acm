@@ -1,0 +1,207 @@
+
+// By: Walid
+
+model RoundTrack (r1) =
+initially
+ _3D = (Cylinder center = (0,0,-0.07)
+                 radius = r1+0.3
+                 length = 0
+                 color = 0.75*white
+                 rotation = (pi/2,0,0),
+        Cylinder center = (0,0,-0.06)
+                 radius = r1+0.1
+                 length = 0
+                 color = 0.95*white
+                 rotation = (pi/2,0,0),
+        Cylinder center = (0,0,-0.05)
+                 radius = r1-0.1
+                 length = 0
+                 color = 0.75*white
+                 rotation = (pi/2,0,0))
+
+
+model YLine (center,length) =
+initially
+  _3D = (Box center = center - (0,0,0.1)
+             size= (2,length,0.02)
+             color = white)
+
+model XLine (center,length) =
+initially
+  _3D = (Box center = center - (0,0,0.1)
+             size= (2,length,0.02)
+             rotation = (0,0,pi/2)
+             color = white)
+
+model Ground () =
+initially
+  mode = "Start"
+always
+  match mode with
+    ["Start" ->
+      foreach i in -10:10 do
+        (create YLine ((4*i,0,0),80),
+         create XLine ((0,4*i,0),80)),
+      mode+ = "Persist"
+    |"Persist"->]
+
+model TreadMark (position,direction) =
+initially
+ t=0, t'=1,
+ _3D = (Box center = position
+            size = (0.2,1,0.01) 
+            color = 0.8*white
+            rotation = (0,0,-direction))
+always
+ t'=1,
+ if t>0.5 then terminate self noelse
+  
+model Axel (position, direction) =
+initially
+  _3D = ()
+always
+  _3D = (Cylinder center = position
+                  color = red
+                  radius = 0.001
+                  length = 10
+                  rotation = (0,0,pi/2-direction))
+                  
+model Wheel (position,direction) =
+initially 
+ _3D = (), 
+ speed = 0, position' = (0,0,0), 
+ rotation = 0, rotation' = 0,
+ d = 0, d' = 0,
+ axel = create Axel (position, direction)
+always
+ axel.direction = direction, axel.position=position,
+ position' = speed * (sin(direction),cos(direction),0),
+ rotation' = -2*atan2(speed,0.5),
+ _3D = (Cylinder center = position + (0,0,0.5)
+               radius = 0.5
+               length = 0.19
+               rotation = (0,rotation,pi/2-direction)
+               color = white,
+        Box center = position + (0,0,0.5)
+            size = (0.2, 0.05, 0.97)
+            color = black
+            rotation = (rotation,0,-direction),
+        Box center = position + (0,0,0.5)
+            size = (0.2, 0.97, 0.05)
+            color = black
+            rotation = (rotation,0,-direction)),
+ d'=speed
+// if (d>2)
+//   then create TreadMark (position,direction),
+//        d+ = 0
+// noelse
+
+model WheelDemo() =
+initially 
+ wheel = create Wheel((0,0,0),0),
+ t = 0, t' = 1
+always
+ t' = 1,
+ wheel.direction = 2*pi*sin(t/2),
+ wheel.speed = 1+0.25*t
+ 
+model Car(position,direction,length,width,steering) =
+initially
+ speed = 0, direction'=0,
+ a = create Wheel(position,direction), // Front Right
+ b = create Wheel(position,direction), // Front Left
+ c = create Wheel(position,direction), // Back Right
+ d = create Wheel(position,direction), // Back Left
+ lvec = 0.5 * length * (sin(direction),cos(direction),0),
+ wvec = 0.5 * width  * (cos(direction),sin(direction),0),
+ angleR = steering, angleL = steering,
+ mode = "Initialize",
+ rci   = 0, r_fr = 0, r_fl = 0, r_br = 0, r_bl = 0
+always
+
+ rci = tan(steering)/(length),
+ direction' = speed * tan(steering)/length,
+
+ if (abs(rci)>0.001) then
+   r_br = 1/rci - (width/2), 
+   r_bl = 1/rci + (width/2)
+ noelse,
+ if rci>0 then
+   r_fr = sqrt(length*length + r_br*r_br),
+   r_fl = sqrt(length*length + r_bl*r_bl)
+ else
+   (r_fr = -sqrt(length*length + r_br*r_br),
+    r_fl = -sqrt(length*length + r_bl*r_bl)), 
+ match mode with
+   ["Initialize" ->
+      a.position += position + lvec + wvec, b.position += position + lvec - wvec,
+      c.position += position - lvec + wvec, d.position += position - lvec - wvec,
+     mode+ = "Persist"
+  | "Persist" -> ],
+
+// Not sure of all this is all what is needed
+ a.direction = direction + atan2(2*length*tan(steering),
+                                 2*length-width*tan(steering)), 
+ b.direction = direction + atan2(2*length*tan(steering),
+                                 2*length+width*tan(steering)),
+ c.direction = direction, 
+ d.direction = direction,
+// The following is not really precise for the front wheels
+ if (rci>0) then
+   a.speed = direction'*r_fr, 
+   b.speed = direction'*r_fl,
+   c.speed = direction'*r_br, 
+   d.speed = direction'*r_bl
+ else
+   (a.speed = speed, b.speed=speed, c.speed=speed, d.speed=speed),
+ position = 0.25*(a.position+b.position+c.position+d.position)
+
+model CarDemo() =
+initially 
+ // wheelDemo = create WheelDemo()
+ target = (16,0,0), tangle = 0,
+ targetA = (11,0,0),
+ targetB = (11,0,0),
+ carA = create Car ((1,1,0),0,3,2,pi/6),
+ carB = create Car ((2,-10,0),0,3,2,0),
+ dvec = (1,0,0), dangle = 0, 
+ t = 0, t' = 1,position=(0,0,0),
+ _3D = ()
+always
+ t' = 1,
+ target = 16* (sin(t/4),cos(t/4),0),
+ targetA = target-carA.position,
+ tangle = atan2 (targetA(0),targetA(1)),
+ carA.steering = 6*(tangle-carA.direction),
+ carA.speed = 5*sqrt(norm(targetA)),
+ dvec = carA.position - carB.position,
+ dangle = atan2 (targetB(0),targetB(1)),
+// targetB = (1-(3/norm(carA.position-carB.position)+0.01))
+//           *(carA.position-carB.position),
+ targetB = (carA.position - carB.position
+            -5*(sin(carA.direction),cos(carA.direction),0)),
+ carB.steering = 6*(dangle-carB.direction),
+ carB.speed = 3*sqrt(norm(targetB)),
+ position = carA.position,
+ _3D = (Sphere center = target color = red,
+        Sphere center = targetB + carB.position color = blue)
+
+model Main(simulator) =
+initially 
+   roundTrack = create RoundTrack(16),
+   ground     = create Ground (),
+   carDemo = create CarDemo (),
+//     wheelDemo = create WheelDemo ()
+    _3DView = ((4,4,4),(0,0,0)),
+   camera = (0,41,10), camera'=(0,0,0), camera''=(0,0,0),
+   target = (0,0,0), target'=(0,0,0), target''=(0,0,0)
+always
+    simulator.endTime+ = 20,
+    _3DView = (camera, target),
+//  _3DView = (carDemo.position+(0,0,20),carDemo.position),
+//  camera'' = (carDemo.position+(-19,-19,7)-camera) - 2*camera',
+//  target'' = (carDemo.position-target) - target'
+  camera'' = 2*(carDemo.target+(0,25,10) - camera) 
+             - (1,1,2).*camera',
+  target'' = 0.5*(carDemo.target+carDemo.position)
+             -target - target'
