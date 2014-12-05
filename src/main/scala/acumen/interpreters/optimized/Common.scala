@@ -44,7 +44,7 @@ object Common {
   type MMap[A, B] = scala.collection.mutable.Map[A, B]
   val MMap = scala.collection.mutable.Map
 
-  /** The representation of the current value.
+  /** The representation of a value.
    *
    * See the code in setField and getField for the logic in how these values
    * are used. In particular note that all the fields relate to when the value
@@ -57,13 +57,26 @@ object Common {
     var lastSetPos : Position = NoPosition
     /** The previous set value. */
     var prevVal : Val = VObjId(None)
-    /** The last set value.  Do not use if the lookupIdx is set. */
-    var curVal : Val = v
-    /** If not -1 then the curVal is in PhaseParms.odes[lookupIdx]. */
-    var lookupIdx : Int = -1
+    /** The last set value. */
+    var curVal : CurVal = NormalVal(v)
     /** The iteration number (from PhaseParms.curIter) the curVal was last updated on. */
     var lastUpdated : Int = -1 
   }
+
+  /** A representation of the last set value */
+  sealed abstract class CurVal {
+    /* Gets the current value.
+     *
+     * Should only be called when it is known that the value is set to a
+     * NormalVal. */
+    def asVal : Val = throw new RuntimeException("Internal Error");
+  }
+  /** A normal value already evaluated */
+  case class NormalVal(v: Val) extends CurVal {override def asVal = v;}
+  /** A value to be ovulated by the ODE solver */
+  case class OdeLookup(idx: Int) extends CurVal;
+  /** A value to be evaluated when needed. */
+  //case class ToEval(expr: Expr) extends CurVal;
 
   class PhaseParms {
     /** The current iteration number, used by ValVal to determine the
@@ -97,7 +110,7 @@ object Common {
     override def hashCode = System.identityHashCode(this)
     override def toString = {
       val cn =
-        if (fields contains classf) pprint(fields(classf).curVal)
+        if (fields contains classf) pprint(fields(classf).curVal.asVal)
         else "?"
       cn + "@" + hashCode
     }
@@ -106,7 +119,7 @@ object Common {
       def iterator = new Iterator[(Name, GValue)] {
         val orig = fields.iterator
         override def hasNext = orig.hasNext
-        override def next() = {val v = orig.next; (v._1, v._2.curVal)}
+        override def next() = {val v = orig.next; (v._1, v._2.curVal.asVal)}
       }
     }
   }
@@ -130,7 +143,7 @@ object Common {
         case Some(p) => Some(p.id)
       })
       val fields = Map.empty ++ o.fields
-      (fields mapValues {v => convertValue(v.curVal)}) +
+      (fields mapValues {v => convertValue(v.curVal.asVal)}) +
         ((parent, p), (nextChild, VLit(GInt(o.ccounter))), (seed1, VLit(GInt(o.seed._1))), (seed2, VLit(GInt(o.seed._2))))
     }
     def convertStore(st: Store): CStore = {
@@ -240,59 +253,60 @@ object Common {
   def getField(o: Object, f: Name) = {
     val v = o.fields(f)
     if (o.phaseParms.delayUpdate && v.lastUpdated == o.phaseParms.curIter) v.prevVal
-    else {assert(v.lookupIdx == -1); v.curVal}
+    else {v.curVal.asVal}
   }
 
   def getField(o: Object, f: Name, env: Env) = {
     val v = o.fields(f)
-    if (v.lookupIdx != -1) env.forOde match {
-      case Some(l) => l(v.lookupIdx)
-      case None => v.prevVal
+    o.fields(f).curVal match {
+      case NormalVal(cv) => 
+        if (o.phaseParms.delayUpdate && v.lastUpdated == o.phaseParms.curIter) v.prevVal
+        else cv
+      case OdeLookup(idx) => env.forOde match {
+        case Some(l) => l(idx)
+        case None => v.prevVal
+      }
+      //case ToEval(expr) => 
     }
-    else if (o.phaseParms.delayUpdate && v.lastUpdated == o.phaseParms.curIter) v.prevVal
-    else v.curVal
   }
 
   /* SIDE EFFECT */
-  def setField(o: Object, f: Name, newVal: Val, idx: Int, pos: Position): Changeset = {
-    assert(newVal == null || idx == -1) // Only one or the other should be set
+  def setField(o: Object, f: Name, newVal: CurVal, pos: Position): Changeset = {
     if (o.fields contains f) {
       val oldVal = getField(o, f)
       val v = o.fields(f)
       if (v.lastUpdated == o.phaseParms.curIter) {
-        if (o.phaseParms.delayUpdate /*&& v.curVal != newVal*/) throw DuplicateAssingmentUnspecified(f).setPos(pos).setOtherPos(v.lastSetPos)
+        if (o.phaseParms.delayUpdate) throw DuplicateAssingmentUnspecified(f).setPos(pos).setOtherPos(v.lastSetPos)
         v.curVal = newVal
       } else {
-        v.prevVal = v.curVal; v.curVal = newVal; v.lastUpdated = o.phaseParms.curIter
+        v.prevVal = v.curVal.asVal; v.curVal = newVal; v.lastUpdated = o.phaseParms.curIter
       }
-      v.lookupIdx = idx
       v.lastSetPos = pos;
-      if (oldVal == newVal) noChange
-      else {
-        if (f.x != "_3D" && f.x != "_3DView" && newVal != null && oldVal.yieldsPlots != newVal.yieldsPlots)
-          throw new UnsupportedTypeChangeError(f, o.id, getClassOf(o), oldVal, newVal, 
-                                               "These values require a different number of plots")
-        logModified
+      newVal match {
+        case NormalVal(nv) => 
+          if (oldVal == nv) noChange
+          else {
+            if (f.x != "_3D" && f.x != "_3DView" && oldVal.yieldsPlots != nv.yieldsPlots)
+              throw new UnsupportedTypeChangeError(f, o.id, getClassOf(o), oldVal, nv, 
+                                                   "These values require a different number of plots")
+            logModified
+          }
+        case _ => 
+          noChange
       }
     } 
     else throw VariableNotDeclared(f).setPos(pos)
   }
 
   def setField(o: Object, f: Name, newVal: Val, pos: Position = NoPosition): Changeset =
-    setField(o, f, newVal, -1, pos)
+    setField(o, f, NormalVal(newVal), pos)
  
   def setFieldIdx(o: Object, f: Name, idx: Int, pos: Position = NoPosition) =
-    setField(o, 
-             f, 
-             null, // if lookupIdx is set curVal should not be used
-                   // so set to null to enforce this rule
-             idx, 
-             pos)
+    setField(o, f, OdeLookup(idx), pos)
 
   def setFieldSimple(o: Object, f: Name, newVal: Val) {
     val v = o.fields(f)
-    v.curVal = newVal
-    v.lookupIdx = -1
+    v.curVal = NormalVal(newVal)
   }
 
   /* get the class associated to an object */
