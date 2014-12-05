@@ -34,6 +34,7 @@ object ContMode {
   case object Seq extends ContMode
   case object Par extends ContMode
   case object IVP extends ContMode
+  case object NoDelay extends ContMode
 }
 
 class Interpreter(val parDiscr: Boolean = true, 
@@ -98,7 +99,7 @@ class Interpreter(val parDiscr: Boolean = true,
             FixedPoint
           }
 
-      } else if (contMode != ContMode.IVP) { // Continuous step 
+      } else if (contMode == ContMode.Seq || contMode == ContMode.Par) { // Continuous step 
 
         if (contMode == ContMode.Par) pp.delayUpdate = true
         else                          pp.delayUpdate = false
@@ -115,11 +116,11 @@ class Interpreter(val parDiscr: Boolean = true,
 
         pp.delayUpdate = true
         pp.doDiscrete = false
-        pp.doEquationT = true
+        pp.doEquationT = if (contMode == ContMode.NoDelay) false else true;
         pp.doEquationI = false
         pp.gatherEquationI = true
         pp.odes.clear()
-        
+
         traverse(evalStep(p, magic), st)
 
         checkContinuousDynamicsAlwaysDefined(st, magic)
@@ -140,6 +141,18 @@ class Interpreter(val parDiscr: Boolean = true,
           val eqt = pp.odes(idx)
           setFieldSimple(eqt.id, eqt.field, res(idx))
           idx += 1
+        }
+
+        if (contMode == ContMode.NoDelay) {
+          pp.curIter += 1
+          pp.doEquationT = true
+          pp.gatherEquationI = false
+          var i = 0
+          while (traverse(evalStep(p, magic), st) match {case NoChange() => false; case _ => true}) {
+            pp.curIter += 1
+            i += 1
+            if (i > 1000) throw new AcumenError {override def getMessage = "Max Iterations Reached in EquationT fixed point loop."}
+          }
         }
 
         Continuous
