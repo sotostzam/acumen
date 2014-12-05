@@ -557,10 +557,14 @@ object Common {
         evalContinuousAction(ca, env, p, magic)
       case Claim(_) =>
         noChange
-      case Hypothesis(s, e) =>
-        val VLit(GBool(b)) = evalExpr(e, p, env)
-        if (b) noChange
-        else throw HypothesisFalsified(s.getOrElse(Pretty pprint e)).setPos(e.pos)
+      case Hypothesis(s, e) => 
+        if (magic.phaseParms.doDiscrete) {
+          val VLit(GBool(b)) = evalExpr(e, p, env)
+          if (b) noChange
+          else throw HypothesisFalsified(s.getOrElse(Pretty pprint e)).setPos(e.pos)
+        } else {
+          noChange
+        }
     }
   }
 
