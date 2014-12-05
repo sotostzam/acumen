@@ -44,21 +44,42 @@ object Common {
   type MMap[A, B] = scala.collection.mutable.Map[A, B]
   val MMap = scala.collection.mutable.Map
 
+  /** The representation of the current value.
+   *
+   * See the code in setField and getField for the logic in how these values
+   * are used. In particular note that all the fields relate to when the value
+   * is set.  For example, prevVal is the last set value; it is the value of the
+   * previous iteration only if lastUpdated == PhaseParms.curIter, otherwise the
+   * value from the previous iteration is in curVal.
+   */
   class ValVal(v: Val = VObjId(None)) {
+    /** The position the value was last set. */
     var lastSetPos : Position = NoPosition
+    /** The previous set value. */
     var prevVal : Val = VObjId(None)
+    /** The last set value.  Do not use if the lookupIdx is set. */
     var curVal : Val = v
+    /** If not -1 then the curVal is in PhaseParms.odes[lookupIdx]. */
     var lookupIdx : Int = -1
-    var lastUpdated : Int = -1
+    /** The iteration number (from PhaseParms.curIter) the curVal was last updated on. */
+    var lastUpdated : Int = -1 
   }
 
   class PhaseParms {
+    /** The current iteration number, used by ValVal to determine the
+      * current and previous value. */
     var curIter : Int = 0;
+    /** If set than use the value of the previous iteration */
     var delayUpdate = false;
+    /* If set do discrete operations */
     var doDiscrete = false;
+    /* If set evaluate EquationT's */
     var doEquationT = false;
+    /* If set evaluate EquationI's */
     var doEquationI = false;
+    /* If set gather EquationI for the ode solver */
     var gatherEquationI = false;
+    /* Gathered equations for the ode solver */
     var odes = new ArrayBuffer[Equation];
   }
 
@@ -233,7 +254,8 @@ object Common {
   }
 
   /* SIDE EFFECT */
-  def setField(o: Object, f: Name, newVal: Val, idx: Int, pos: Position): Changeset =
+  def setField(o: Object, f: Name, newVal: Val, idx: Int, pos: Position): Changeset = {
+    assert(newVal == null || idx == -1) // Only one or the other should be set
     if (o.fields contains f) {
       val oldVal = getField(o, f)
       val v = o.fields(f)
@@ -254,6 +276,7 @@ object Common {
       }
     } 
     else throw VariableNotDeclared(f).setPos(pos)
+  }
 
   def setField(o: Object, f: Name, newVal: Val, pos: Position = NoPosition): Changeset =
     setField(o, f, newVal, -1, pos)
