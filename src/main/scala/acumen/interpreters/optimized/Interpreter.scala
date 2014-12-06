@@ -72,15 +72,14 @@ class Interpreter(val parDiscr: Boolean = true,
 
     } else {
 
-      pp.gatherEquationI = false
       val rt = if (getResultType(magic) != FixedPoint) { // Discrete Step
 
-        if (parDiscr) pp.delayUpdate = true
-        else          pp.delayUpdate = false
+        if (parDiscr) pp.usePrev = true
+        else          pp.usePrev = false
         pp.doDiscrete = true
-        if (contWithDiscr) pp.doEquationT = true
-        else               pp.doEquationT = false
-        pp.doEquationI = false
+        if (contWithDiscr) pp.doEquationT = Now
+        else               pp.doEquationT = Ignore
+        pp.doEquationI = Ignore
 
         traverse(evalStep(p, magic), st) match {
           case SomeChange(dead, rps) =>
@@ -101,12 +100,12 @@ class Interpreter(val parDiscr: Boolean = true,
 
       } else if (contMode == ContMode.Seq || contMode == ContMode.Par) { // Continuous step 
 
-        if (contMode == ContMode.Par) pp.delayUpdate = true
-        else                          pp.delayUpdate = false
+        if (contMode == ContMode.Par) pp.usePrev = true
+        else                          pp.usePrev = false
         pp.doDiscrete = false
-        if (contWithDiscr) pp.doEquationT = false
-        else               pp.doEquationT = true
-        pp.doEquationI = true
+        if (contWithDiscr) pp.doEquationT = Ignore
+        else               pp.doEquationT = Now
+        pp.doEquationI = Now
 
         traverse(evalStep(p, magic), st)
 
@@ -114,15 +113,16 @@ class Interpreter(val parDiscr: Boolean = true,
 
       } else { // Continuous step, IVP mode
 
-        pp.delayUpdate = true
+        pp.usePrev = true
         pp.doDiscrete = false
-        pp.doEquationT = if (contMode == ContMode.NoDelay) false else true;
-        pp.doEquationI = false
-        pp.gatherEquationI = true
+        pp.doEquationT = if (contMode == ContMode.NoDelay) Gather else Now;
+        pp.doEquationI = Gather
         pp.odes.clear()
+        pp.assigns.clear()
 
         traverse(evalStep(p, magic), st)
 
+        // FIXME: If doEquationT = Gather is this still correct
         checkContinuousDynamicsAlwaysDefined(st, magic)
         
         val sz = pp.odes.size
@@ -139,19 +139,15 @@ class Interpreter(val parDiscr: Boolean = true,
         idx = 0
         while (idx < sz) {
           val eqt = pp.odes(idx)
-          setFieldSimple(eqt.id, eqt.field, res(idx))
+          updateField(eqt.id, eqt.field, res(idx))
           idx += 1
         }
 
         if (contMode == ContMode.NoDelay) {
-          pp.curIter += 1
-          pp.doEquationT = true
-          pp.gatherEquationI = false
-          var i = 0
-          while (traverse(evalStep(p, magic), st) match {case NoChange() => false; case _ => true}) {
-            pp.curIter += 1
-            i += 1
-            if (i > 1000) throw new AcumenError {override def getMessage = "Max Iterations Reached in EquationT fixed point loop."}
+          pp.usePrev = false
+          for (Equation(o,f,_,env) <- pp.assigns) {
+            // call getField for its side effect
+            getField(o,f,p,Env(env,None)) 
           }
         }
 

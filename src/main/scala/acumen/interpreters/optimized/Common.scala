@@ -56,7 +56,7 @@ object Common {
     /** The position the value was last set. */
     var lastSetPos : Position = NoPosition
     /** The previous set value. */
-    var prevVal : Val = VObjId(None)
+   var prevVal : Val = VObjId(None)
     /** The last set value. */
     var curVal : CurVal = NormalVal(v)
     /** The iteration number (from PhaseParms.curIter) the curVal was last updated on. */
@@ -76,24 +76,30 @@ object Common {
   /** A value to be ovulated by the ODE solver */
   case class OdeLookup(idx: Int) extends CurVal;
   /** A value to be evaluated when needed. */
-  //case class ToEval(expr: Expr) extends CurVal;
+  case class ToEval(idx: Int) extends CurVal;
+  case object Evaluating extends CurVal;
+
+  sealed abstract class EvalMode;
+  case object Ignore  extends EvalMode;
+  case object Now     extends EvalMode;
+  case object Gather  extends EvalMode;
 
   class PhaseParms {
     /** The current iteration number, used by ValVal to determine the
       * current and previous value. */
     var curIter : Int = 0;
     /** If set than use the value of the previous iteration */
-    var delayUpdate = false;
-    /* If set do discrete operations */
+    var usePrev = false;
+    /** If set do discrete operations */
     var doDiscrete = false;
-    /* If set evaluate EquationT's */
-    var doEquationT = false;
-    /* If set evaluate EquationI's */
-    var doEquationI = false;
-    /* If set gather EquationI for the ode solver */
-    var gatherEquationI = false;
-    /* Gathered equations for the ode solver */
+    /** If set evaluate EquationT's */
+    var doEquationT : EvalMode = Ignore;
+    /** If set evaluate EquationI's */
+    var doEquationI : EvalMode = Ignore;
+    /** Gathered equations for the ode solver */
     var odes = new ArrayBuffer[Equation];
+    /** Equations to be evaluated after ode solver */
+    var assigns = new ArrayBuffer[Equation];
   }
 
   case class Equation(id: ObjId, field: Name, rhs: Expr, env: Map[Name, Val]);
@@ -249,39 +255,70 @@ object Common {
       case _               => throw ShouldNeverHappen()
     }
 
-  /* objects fields setters and getters */
+  /** Get a value for a field, value must be a NormalaVal */
   def getField(o: Object, f: Name) = {
     val v = o.fields(f)
-    if (o.phaseParms.delayUpdate && v.lastUpdated == o.phaseParms.curIter) v.prevVal
+    if (o.phaseParms.usePrev && v.lastUpdated == o.phaseParms.curIter) v.prevVal
     else {v.curVal.asVal}
   }
 
-  def getField(o: Object, f: Name, env: Env) = {
-    val v = o.fields(f)
-    o.fields(f).curVal match {
+  /** Get a value for a field by any means required.
+   *
+   * SIDE EFFECTS when handling ToEvel
+   *
+   * If the current value is ToEval then the value will be evaluated and
+   * the field updated with the computed value. */
+  def getField(o: Object, f: Name, p: Prog, env: Env) = {
+    //println("getField: " + o + "." + f)
+    val vv = o.fields(f)
+    vv.curVal match {
       case NormalVal(cv) => 
-        if (o.phaseParms.delayUpdate && v.lastUpdated == o.phaseParms.curIter) v.prevVal
+        if (o.phaseParms.usePrev && vv.lastUpdated == o.phaseParms.curIter) vv.prevVal
         else cv
       case OdeLookup(idx) => env.forOde match {
         case Some(l) => l(idx)
-        case None => v.prevVal
+        case None => vv.prevVal
       }
-      //case ToEval(expr) => 
+      case ToEval(idx) => if (o.phaseParms.usePrev) {
+        assert(vv.lastUpdated == o.phaseParms.curIter)
+        vv.prevVal
+      } else {
+        val a = o.phaseParms.assigns(idx);
+        vv.curVal = Evaluating
+        //println("The expr: " + e)
+        val v = evalExpr(a.rhs, p, Env(a.env, None))
+        updateField(o, f, v) 
+        v
+      }
+      case Evaluating =>
+        throw new PositionalAcumenError {
+          def mesg = "Algebraic loop detected."
+        }
     }
   }
 
   /* SIDE EFFECT */
-  def setField(o: Object, f: Name, newVal: CurVal, pos: Position): Changeset = {
+  def setField(o: Object, f: Name, newVal: CurVal, pos0: Position, update: Boolean): Changeset = {
+    //println("setField: " + o + "." + f + " update = " + update)
+    var pos = pos0
     if (o.fields contains f) {
-      val oldVal = getField(o, f)
+      var oldVal : Val = null // will be set later
       val v = o.fields(f)
-      if (v.lastUpdated == o.phaseParms.curIter) {
-        if (o.phaseParms.delayUpdate) throw DuplicateAssingmentUnspecified(f).setPos(pos).setOtherPos(v.lastSetPos)
+      if (update) {
+        oldVal = v.prevVal
+        //println(">update>" + o + "." + f)
         v.curVal = newVal
+        if (pos == NoPosition) pos = v.lastSetPos
       } else {
-        v.prevVal = v.curVal.asVal; v.curVal = newVal; v.lastUpdated = o.phaseParms.curIter
+        oldVal = getField(o, f)
+        if (v.lastUpdated == o.phaseParms.curIter) {
+          if (o.phaseParms.usePrev) throw DuplicateAssingmentUnspecified(f).setPos(pos).setOtherPos(v.lastSetPos)
+          v.curVal = newVal
+        } else {
+          v.prevVal = v.curVal.asVal; v.curVal = newVal; v.lastUpdated = o.phaseParms.curIter
+        }
+        v.lastSetPos = pos
       }
-      v.lastSetPos = pos;
       newVal match {
         case NormalVal(nv) => 
           if (oldVal == nv) noChange
@@ -298,16 +335,14 @@ object Common {
     else throw VariableNotDeclared(f).setPos(pos)
   }
 
-  def setField(o: Object, f: Name, newVal: Val, pos: Position = NoPosition): Changeset =
-    setField(o, f, NormalVal(newVal), pos)
+  def setField(o: Object, f: Name, newVal: CurVal, pos: Position): Changeset =
+    setField(o, f, newVal, pos, false)
  
-  def setFieldIdx(o: Object, f: Name, idx: Int, pos: Position = NoPosition) =
-    setField(o, f, OdeLookup(idx), pos)
-
-  def setFieldSimple(o: Object, f: Name, newVal: Val) {
-    val v = o.fields(f)
-    v.curVal = NormalVal(newVal)
-  }
+  def setField(o: Object, f: Name, newVal: Val, pos: Position = NoPosition): Changeset =
+    setField(o, f, NormalVal(newVal), pos, false)
+ 
+  def updateField(o: Object, f: Name, newVal: Val) =
+    setField(o, f, NormalVal(newVal), NoPosition, true)
 
   /* get the class associated to an object */
   def getClassOf(o: Object): ClassName = {
@@ -369,7 +404,7 @@ object Common {
         /* e.f */
         case Dot(e, f) =>
           val id = evalToObjId(e,p,env)
-          getField(id, f, env)
+          getField(id, f, p, env)
         /* x && y */
         case Op(Name("&&", 0), x :: y :: Nil) =>
           val VLit(GBool(vx)) = eval(env, x)
@@ -505,12 +540,18 @@ object Common {
 
   def evalContinuousAction(a: ContinuousAction, env: Env, p: Prog, magic: Object): Changeset =
     a match {
-      case EquationT(d@Dot(e, x), t) => if (magic.phaseParms.doEquationT) {
+      case EquationT(d@Dot(e, x), t) => if (magic.phaseParms.doEquationT == Now) {
         val VObjId(Some(a)) = evalExpr(e, p, env)
         val vt = evalExpr(t, p, env)
         setField(a, x, vt, d.pos)
+      } else if (magic.phaseParms.doEquationT == Gather) {
+        val id = evalToObjId(e, p, env)
+        val idx = magic.phaseParms.assigns.length
+        setField(id, x, ToEval(idx), d.pos)
+        magic.phaseParms.assigns.append(Equation(id,x,t,env.env))
+        logModified
       } else noChange
-      case EquationI(d@Dot(e, x), t) => if (magic.phaseParms.doEquationI) {
+      case EquationI(d@Dot(e, x), t) => if (magic.phaseParms.doEquationI == Now) {
         val dt = getTimeStep(magic)
         val id = evalToObjId(e, p, env)
         val vt = evalExpr(t, p, env)
@@ -525,10 +566,10 @@ object Common {
           case _ =>
             throw BadLhs()
         },d.pos)
-      } else if (magic.phaseParms.gatherEquationI) {
+      } else if (magic.phaseParms.doEquationI == Gather) {
         val id = evalToObjId(e, p, env)
         val idx = magic.phaseParms.odes.length
-        setFieldIdx(id, x, idx, d.pos)
+        setField(id, x, OdeLookup(idx), d.pos)
         magic.phaseParms.odes.append(Equation(id,x,t,env.env))
         logModified
       } else noChange
