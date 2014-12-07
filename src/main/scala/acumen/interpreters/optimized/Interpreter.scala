@@ -34,6 +34,7 @@ object ContMode {
   case object Seq extends ContMode
   case object Par extends ContMode
   case object IVP extends ContMode
+  case object NoDelay extends ContMode
 }
 
 class Interpreter(val parDiscr: Boolean = true, 
@@ -71,15 +72,14 @@ class Interpreter(val parDiscr: Boolean = true,
 
     } else {
 
-      pp.gatherEquationI = false
       val rt = if (getResultType(magic) != FixedPoint) { // Discrete Step
 
-        if (parDiscr) pp.delayUpdate = true
-        else          pp.delayUpdate = false
+        if (parDiscr) pp.usePrev = true
+        else          pp.usePrev = false
         pp.doDiscrete = true
-        if (contWithDiscr) pp.doEquationT = true
-        else               pp.doEquationT = false
-        pp.doEquationI = false
+        if (contWithDiscr) pp.doEquationT = Now
+        else               pp.doEquationT = Ignore
+        pp.doEquationI = Ignore
 
         traverse(evalStep(p, magic), st) match {
           case SomeChange(dead, rps) =>
@@ -98,14 +98,14 @@ class Interpreter(val parDiscr: Boolean = true,
             FixedPoint
           }
 
-      } else if (contMode != ContMode.IVP) { // Continuous step 
+      } else if (contMode == ContMode.Seq || contMode == ContMode.Par) { // Continuous step 
 
-        if (contMode == ContMode.Par) pp.delayUpdate = true
-        else                          pp.delayUpdate = false
+        if (contMode == ContMode.Par) pp.usePrev = true
+        else                          pp.usePrev = false
         pp.doDiscrete = false
-        if (contWithDiscr) pp.doEquationT = false
-        else               pp.doEquationT = true
-        pp.doEquationI = true
+        if (contWithDiscr) pp.doEquationT = Ignore
+        else               pp.doEquationT = Now
+        pp.doEquationI = Now
 
         traverse(evalStep(p, magic), st)
 
@@ -113,17 +113,19 @@ class Interpreter(val parDiscr: Boolean = true,
 
       } else { // Continuous step, IVP mode
 
-        pp.delayUpdate = true
+        pp.usePrev = true
         pp.doDiscrete = false
-        pp.doEquationT = true
-        pp.doEquationI = false
-        pp.gatherEquationI = true
+        pp.doEquationT = if (contMode == ContMode.NoDelay) Gather else Now;
+        pp.doEquationI = Gather
         pp.odes.clear()
-        
+        pp.assigns.clear()
+
         traverse(evalStep(p, magic), st)
 
+        // FIXME: If doEquationT = Gather is this still correct
         checkContinuousDynamicsAlwaysDefined(st, magic)
         
+        // Compute the initial values the the ode solver
         val sz = pp.odes.size
         val initVal = new Array[Val](sz)
         var idx = 0
@@ -133,13 +135,41 @@ class Interpreter(val parDiscr: Boolean = true,
           idx += 1
         }
 
+        // Run the ode solver
         implicit val field = FieldImpl(pp.odes, p)
-        val res = new Solver(getField(magic, Name("method", 0)), initVal : IndexedSeq[Val], getTimeStep(magic)).solve
+        val res = new Solver(getField(magic, Name("method", 0)), 
+                             OdeEnv(initVal, Array.fill[AssignVal](pp.assigns.length)(Unknown)), 
+                             getTimeStep(magic)).solve
+
+        if (contMode == ContMode.NoDelay) {
+          // Make sure the values of in the continuous assignment
+          // cache is populated.
+          idx = 0
+          while (idx < pp.assigns.size) {
+            val eqt = pp.assigns(idx)
+            val v = getField(eqt.id, eqt.field, p, Env(eqt.env,Some(res)))
+            idx += 1
+          }
+        }
+
+        // Update the fields based on the result from the ode solver
         idx = 0
         while (idx < sz) {
           val eqt = pp.odes(idx)
-          setFieldSimple(eqt.id, eqt.field, res(idx))
+          updateField(eqt.id, eqt.field, res.odeVals(idx))
           idx += 1
+        }
+
+        if (contMode == ContMode.NoDelay) {
+          // Update the fields based on the result stored in the
+          // assignment cache
+          idx = 0
+          while (idx < pp.assigns.size) {
+            val eqt = pp.assigns(idx)
+            val KnownVal(v) = res.assignVals(idx)
+            updateField(eqt.id, eqt.field, v)
+            idx += 1
+          }
         }
 
         Continuous

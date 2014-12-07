@@ -164,6 +164,7 @@ class App extends SimpleSwingApplication {
   private val reference2014Action             = mkActionMask("2014 Reference",                      VK_R, VK_R,       shortcutMask | SHIFT_MASK, setSemantics(S.Ref2014))
   private val reference2013Action             = mkActionMask("2013 Reference",                      VK_R, NONE,       shortcutMask | SHIFT_MASK, setSemantics(S.Ref2013))
   private val reference2012Action             = mkActionMask("2012 Reference",                      VK_R, NONE,       shortcutMask | SHIFT_MASK, setSemantics(S.Ref2012))
+  private val optimized2015Action             = mkActionMask("2015 Optimized",                      VK_O, NONE,       shortcutMask | SHIFT_MASK, setSemantics(S.Opt2015))
   private val optimized2014Action             = mkActionMask("2014 Optimized",                      VK_O, NONE,       shortcutMask | SHIFT_MASK, setSemantics(S.Opt2014))
   private val optimized2013Action             = mkActionMask("2013 Optimized",                      VK_O, NONE,       shortcutMask | SHIFT_MASK, setSemantics(S.Opt2013))
   private val optimized2012Action             = mkActionMask("2012 Optimized",                      VK_O, NONE,       shortcutMask | SHIFT_MASK, setSemantics(S.Opt2012)) 
@@ -520,6 +521,11 @@ class App extends SimpleSwingApplication {
         enableWhenStopped(this)
         action = reference2014Action
       }
+      val opt2015 = new RadioMenuItem("") {
+        selected = false
+        enableWhenStopped(this)
+        action = optimized2015Action
+      }
       val opt2014 = new RadioMenuItem("") {
         selected = false
         enableWhenStopped(this)
@@ -574,7 +580,7 @@ class App extends SimpleSwingApplication {
         enableWhenStopped(this) 
         selected = false
       }
-      val bg = new ButtonGroup(ref2013, opt2013, ref2014, opt2014, ref2012, opt2012, par2012, encPWL, encEVT, enc2014)
+      val bg = new ButtonGroup(ref2013, opt2013, ref2014, opt2014, opt2015, ref2012, opt2012, par2012, encPWL, encEVT, enc2014)
       val ls = new CheckMenuItem("") {
         def shouldBeEnabled = Main.defaultSemantics match { case _:S.Enclosure | _:S.Enclosure2014 => true; case _ => false }
         action = contractionAction
@@ -601,6 +607,7 @@ class App extends SimpleSwingApplication {
         mnemonic = Key.T
         contents += ref2014
         contents += opt2014
+        contents += opt2015
       }
       contents += new Menu("Enclosure") {
         mnemonic = Key.E
@@ -739,6 +746,7 @@ class App extends SimpleSwingApplication {
       case S.Ref2013 => bar.semantics.ref2012.selected = true
       case S.Ref2014 => bar.semantics.ref2014.selected = true
       case S.Opt2014 => bar.semantics.opt2014.selected = true
+      case S.Opt2015 => bar.semantics.opt2015.selected = true
       case S.Opt2012 => bar.semantics.opt2012.selected = true
       case _:S.Parallel2012  => bar.semantics.par2012.selected = true
       case S.Enclosure(S.PWL, c) => contraction = c; bar.semantics.encPWL.selected = true
