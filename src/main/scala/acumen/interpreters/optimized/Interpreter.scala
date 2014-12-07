@@ -125,6 +125,7 @@ class Interpreter(val parDiscr: Boolean = true,
         // FIXME: If doEquationT = Gather is this still correct
         checkContinuousDynamicsAlwaysDefined(st, magic)
         
+        // Compute the initial values the the ode solver
         val sz = pp.odes.size
         val initVal = new Array[Val](sz)
         var idx = 0
@@ -134,20 +135,40 @@ class Interpreter(val parDiscr: Boolean = true,
           idx += 1
         }
 
+        // Run the ode solver
         implicit val field = FieldImpl(pp.odes, p)
-        val res = new Solver(getField(magic, Name("method", 0)), initVal : IndexedSeq[Val], getTimeStep(magic)).solve
+        val res = new Solver(getField(magic, Name("method", 0)), 
+                             OdeEnv(initVal, Array.fill[AssignVal](pp.assigns.length)(Unknown)), 
+                             getTimeStep(magic)).solve
+
+        if (contMode == ContMode.NoDelay) {
+          // Make sure the values of in the continuous assignment
+          // cache is populated.
+          idx = 0
+          while (idx < pp.assigns.size) {
+            val eqt = pp.assigns(idx)
+            val v = getField(eqt.id, eqt.field, p, Env(eqt.env,Some(res)))
+            idx += 1
+          }
+        }
+
+        // Update the fields based on the result from the ode solver
         idx = 0
         while (idx < sz) {
           val eqt = pp.odes(idx)
-          updateField(eqt.id, eqt.field, res(idx))
+          updateField(eqt.id, eqt.field, res.odeVals(idx))
           idx += 1
         }
 
         if (contMode == ContMode.NoDelay) {
-          pp.usePrev = false
-          for (Equation(o,f,_,env) <- pp.assigns) {
-            // call getField for its side effect
-            getField(o,f,p,Env(env,None)) 
+          // Update the fields based on the result stored in the
+          // assignment cache
+          idx = 0
+          while (idx < pp.assigns.size) {
+            val eqt = pp.assigns(idx)
+            val KnownVal(v) = res.assignVals(idx)
+            updateField(eqt.id, eqt.field, v)
+            idx += 1
           }
         }
 

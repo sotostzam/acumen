@@ -35,10 +35,13 @@ object Common {
   type Store = Object
   type ObjId = Object
   type Val = Value[ObjId]
-  case class Env(env: Map[Name, Val], forOde: Option[IndexedSeq[Val]] = None) {
+  case class OdeEnv(odeVals: IndexedSeq[Val], assignVals: Array[AssignVal]) {
+    def emptyAssignVals() = Array.fill[AssignVal](assignVals.length)(Unknown)
+  }
+  case class Env(env: Map[Name, Val], odeEnv: Option[OdeEnv] = None) {
     def apply(n: Name) = env.apply(n)
     def get(n: Name) = env.get(n)
-    def +(v:(Name,Val)) = Env(env + v, forOde)
+    def +(v:(Name,Val)) = Env(env + v, odeEnv)
   }
   
   type MMap[A, B] = scala.collection.mutable.Map[A, B]
@@ -71,13 +74,14 @@ object Common {
      * NormalVal. */
     def asVal : Val = throw new RuntimeException("Internal Error");
   }
-  /** A normal value already evaluated */
   case class NormalVal(v: Val) extends CurVal {override def asVal = v;}
-  /** A value to be ovulated by the ODE solver */
-  case class OdeLookup(idx: Int) extends CurVal;
-  /** A value to be evaluated when needed. */
-  case class ToEval(idx: Int) extends CurVal;
-  case object Evaluating extends CurVal;
+  case class OdeLookup(idx: Int) extends CurVal
+  case class AssignLookup(idx: Int) extends CurVal
+
+  sealed abstract class AssignVal;
+  case class KnownVal(v: Val) extends AssignVal
+  case object Unknown extends AssignVal
+  case object Evaluating extends AssignVal
 
   sealed abstract class EvalMode;
   case object Ignore  extends EvalMode;
@@ -275,25 +279,26 @@ object Common {
       case NormalVal(cv) => 
         if (o.phaseParms.usePrev && vv.lastUpdated == o.phaseParms.curIter) vv.prevVal
         else cv
-      case OdeLookup(idx) => env.forOde match {
-        case Some(l) => l(idx)
+      case OdeLookup(idx) => env.odeEnv match {
+        case Some(odeEnv) => odeEnv.odeVals(idx)
         case None => vv.prevVal
       }
-      case ToEval(idx) => if (o.phaseParms.usePrev) {
-        assert(vv.lastUpdated == o.phaseParms.curIter)
-        vv.prevVal
-      } else {
-        val a = o.phaseParms.assigns(idx);
-        vv.curVal = Evaluating
-        //println("The expr: " + e)
-        val v = evalExpr(a.rhs, p, Env(a.env, None))
-        updateField(o, f, v) 
-        v
-      }
-      case Evaluating =>
-        throw new PositionalAcumenError {
-          def mesg = "Algebraic loop detected."
+      case AssignLookup(idx) => env.odeEnv match {
+        case Some(odeEnv) => odeEnv.assignVals(idx) match {
+          case KnownVal(v) => v
+          case Unknown => 
+            val a = o.phaseParms.assigns(idx)
+            odeEnv.assignVals(idx) = Evaluating
+            val v = evalExpr(a.rhs, p, Env(a.env, env.odeEnv))
+            odeEnv.assignVals(idx) = KnownVal(v)
+            v
+          case Evaluating =>
+            throw new PositionalAcumenError {
+              def mesg = "Algebraic loop detected."
+            }
         }
+        case None => vv.prevVal
+      }
     }
   }
 
@@ -547,7 +552,7 @@ object Common {
       } else if (magic.phaseParms.doEquationT == Gather) {
         val id = evalToObjId(e, p, env)
         val idx = magic.phaseParms.assigns.length
-        setField(id, x, ToEval(idx), d.pos)
+        setField(id, x, AssignLookup(idx), d.pos)
         magic.phaseParms.assigns.append(Equation(id,x,t,env.env))
         logModified
       } else noChange
@@ -673,19 +678,20 @@ object Common {
 
   /* IVP */
 
-  case class FieldImpl(odes: ArrayBuffer[Equation], p: Prog) extends Field[IndexedSeq[Val]] {
-    override def apply(s: IndexedSeq[Val]) =  {
-      val res = odes.map{e => evalExpr(e.rhs, p, Env(e.env,Some(s)))}
-      res
+  case class FieldImpl(odes: ArrayBuffer[Equation], p: Prog) extends Field[OdeEnv] {
+    override def apply(s: OdeEnv) =  {
+      OdeEnv(odes.map{e => evalExpr(e.rhs, p, Env(e.env,Some(s)))}, s.emptyAssignVals)
     }
   }
   
-  case class RichStoreImpl(s: IndexedSeq[Val]) extends RichStore[IndexedSeq[Val]] {
-    override def +++(that: IndexedSeq[Val]) = (this.s,that).zipped.map{(a,b) => evalOp("+", List(a,b))}
-    override def ***(that: Double) = this.s.map{a => evalOp("*", List(a,VLit(GDouble(that))))}
+  case class RichStoreImpl(s: OdeEnv) extends RichStore[OdeEnv] {
+    override def +++(that: OdeEnv) = OdeEnv((this.s.odeVals,that.odeVals).zipped.map{(a,b) => evalOp("+", List(a,b))},
+                                            s.emptyAssignVals)
+    override def ***(that: Double) = OdeEnv(this.s.odeVals.map{a => evalOp("*", List(a,VLit(GDouble(that))))},
+                                            s.emptyAssignVals)
   }
   
-  implicit def liftStore(s: IndexedSeq[Val])(implicit field: FieldImpl): RichStoreImpl = RichStoreImpl(s)
+  implicit def liftStore(s: OdeEnv)(implicit field: FieldImpl): RichStoreImpl = RichStoreImpl(s)
 
   /**
    * Ensure that for each variable that has an ODE declared in the private section, there is 
