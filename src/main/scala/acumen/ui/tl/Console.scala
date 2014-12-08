@@ -59,7 +59,7 @@ class Console extends ListView[(Msg, Boolean /*messageIsOld*/)] { self =>
       case ((resReport, resS, resU, resF), ((id, cn, hn), ho)) =>
         val sid = s"(#${id.cid.toString}:${cn.x})".padTo(mLenCId + mLenCN + 2, "&nbsp;").mkString
         val shn = hn.map("'" + _ + "'").getOrElse("").padTo(mLenHN + 2, "&nbsp;").mkString
-        def fail(prefix: String, t: String, e: Set[(Dot,CValue)]) = 
+        def fail(prefix: String, t: String, e: Set[(Dot,GValue)]) = 
           s"$prefix $t" + (if (e isEmpty) "" else ", where " + e.map { case (d, v) => 
             val lhs = Pretty pprint (if (d.obj == Var(util.Canonical.self)) Var(d.field) else (d:Expr)) 
             s"$lhs = ${Pretty pprint v}"
