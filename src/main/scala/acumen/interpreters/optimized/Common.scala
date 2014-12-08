@@ -29,15 +29,27 @@ import acumen.util.Canonical.{
   time,
   timeStep
 }
+import acumen.util.ASTUtil.dots
 import scala.annotation.tailrec
 
 object Common {
   type Store = Object
   type ObjId = Object
   type Val = Value[ObjId]
-  case class OdeEnv(odeVals: IndexedSeq[Val], assignVals: Array[AssignVal]) {
+
+
+  /** The environment for the ODE solver
+   *  @param odeVals    The store for the ode solver.  The corresponding equations are in PhaseParms#odes.
+   *  @param assignVals Assignment values cache to avoid repeated evaluation
+   */
+  case class OdeEnv(
+    odeVals: IndexedSeq[Val], 
+    assignVals: Array[AssignVal]) 
+  {
+    /** Create an empty assignment cache the same size of the existing one */
     def emptyAssignVals() = Array.fill[AssignVal](assignVals.length)(Unknown)
   }
+
   case class Env(env: Map[Name, Val], odeEnv: Option[OdeEnv] = None) {
     def apply(n: Name) = env.apply(n)
     def get(n: Name) = env.get(n)
@@ -51,18 +63,18 @@ object Common {
    *
    * See the code in setField and getField for the logic in how these values
    * are used. In particular note that all the fields relate to when the value
-   * is set.  For example, prevVal is the last set value; it is the value of the
-   * previous iteration only if lastUpdated == PhaseParms.curIter, otherwise the
+   * is set.  For example, prevVal is the previous set value; it is the value of the
+   * previous iteration only if lastUpdated == PhaseParms#curIter, otherwise the
    * value from the previous iteration is in curVal.
    */
-  class ValVal(v: Val = VObjId(None)) {
+  class ValVal(initVal: Val = VObjId(None)) {
     /** The position the value was last set. */
     var lastSetPos : Position = NoPosition
     /** The previous set value. */
    var prevVal : Val = VObjId(None)
     /** The last set value. */
-    var curVal : CurVal = NormalVal(v)
-    /** The iteration number (from PhaseParms.curIter) the curVal was last updated on. */
+    var curVal : CurVal = NormalVal(initVal)
+    /** The iteration number (from PhaseParms#curIter) the curVal was last updated on. */
     var lastUpdated : Int = -1 
   }
 
@@ -88,6 +100,7 @@ object Common {
   case object Now     extends EvalMode;
   case object Gather  extends EvalMode;
 
+  /** Phase parameters and common state shared by all objects. */
   class PhaseParms {
     /** The current iteration number, used by ValVal to determine the
       * current and previous value. */
@@ -96,14 +109,16 @@ object Common {
     var usePrev = false;
     /** If set do discrete operations */
     var doDiscrete = false;
-    /** If set evaluate EquationT's */
+    /** How to handle EquationT's */
     var doEquationT : EvalMode = Ignore;
-    /** If set evaluate EquationI's */
+    /** How to handle EquationI's */
     var doEquationI : EvalMode = Ignore;
-    /** Gathered equations for the ode solver */
+    /** Gathered equations for the ODE solver */
     var odes = new ArrayBuffer[Equation];
-    /** Equations to be evaluated after ode solver */
+    /** Gathered assignments */
     var assigns = new ArrayBuffer[Equation];
+    /** Metadata */
+    var metaData : Metadata = NoMetadata
   }
 
   case class Equation(id: ObjId, field: Name, rhs: Expr, env: Map[Name, Val]);
@@ -268,7 +283,7 @@ object Common {
 
   /** Get a value for a field by any means required.
    *
-   * SIDE EFFECTS when handling ToEvel
+   * SIDE EFFECTS when handling AssignLookup
    *
    * If the current value is ToEval then the value will be evaluated and
    * the field updated with the computed value. */
@@ -334,7 +349,7 @@ object Common {
             logModified
           }
         case _ => 
-          noChange
+          logModified
       }
     } 
     else throw VariableNotDeclared(f).setPos(pos)
@@ -361,6 +376,10 @@ object Common {
       case Some(o) => o
       case None    => throw NoInstanceFound(cmagic)
     }
+
+  /* */
+  def getMetadata(main: Object) = main.phaseParms.metaData
+  def setMetadata(main: Object, md: Metadata) = main.phaseParms.metaData = md
 
   /* fetch values in magic */
   def getTime(magic: Object) = extractDouble(getField(magic, time))
@@ -643,8 +662,16 @@ object Common {
       case Hypothesis(s, e) => 
         if (magic.phaseParms.doDiscrete) {
           val VLit(GBool(b)) = evalExpr(e, p, env)
-          if (b) noChange
-          else throw HypothesisFalsified(s.getOrElse(Pretty pprint e)).setPos(e.pos)
+          val self = selfObjId(env)
+          val time = getTime(magic)
+          val hypRes = if (b) TestSuccess
+                       else TestFailure(time,
+                                        dots(e).toSet[Dot].map(d => d -> evalExpr(d, p, env)))
+          val md = SomeMetadata(Map(((self.cid, getClassOf(self), s), hypRes)),
+                                (time, time + getTimeStep(magic)),
+                                false)
+          magic.phaseParms.metaData = magic.phaseParms.metaData.combine(md)
+          noChange
         } else {
           noChange
         }
