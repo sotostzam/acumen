@@ -50,6 +50,9 @@ class ThreeDView extends JPanel {
 
   var percentagemissDL = 0.0
   var averageSlack = 0.0
+  private var fps = 0
+  private var lps = 0
+  private var _3DTimeCounter = System.currentTimeMillis()
 
   private var newMouseX = 1     // mouse position x before dragging
   private var newMouseY = 1     // mouse position y before dragging
@@ -274,6 +277,16 @@ class ThreeDView extends JPanel {
       world.renderScene(buffer)
       world.draw(buffer)
       buffer.update()
+      buffer.display(g)
+      // calculate the fps
+      fps += 1
+      if (System.currentTimeMillis() - _3DTimeCounter > 1000) {
+        lps = fps
+        fps = 0
+        _3DTimeCounter = System.currentTimeMillis()
+      }
+      g.drawString("FPS: " + lps.toString, 10, 30)
+      // draw real time render information
       if (enableRealTime) {
         g.drawString("Missed deadlines: %.4f".format(percentagemissDL * 100) + "%", 10, 45)
         g.drawString("Waiting time: %.4f".format(averageSlack * 100) + "%", 10, 60)
