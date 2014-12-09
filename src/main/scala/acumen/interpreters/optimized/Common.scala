@@ -113,6 +113,9 @@ object Common {
     var doEquationT : EvalMode = Ignore;
     /** How to handle EquationI's */
     var doEquationI : EvalMode = Ignore;
+    /** Do a special initial continuous step, set to false after the
+      * special step is done */
+    var specialInitialStep : Boolean = false;
     /** Gathered equations for the ODE solver */
     var odes = new ArrayBuffer[Equation];
     /** Gathered assignments */
