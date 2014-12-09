@@ -1,0 +1,56 @@
+
+// Nice track (circular)
+// Modeling a more realistic, more precise car
+// Figuring out how to do direction control
+// Managing distance between cars
+// Modeling how one car senses the other car
+
+
+// A Round Track with inner radius r1
+
+model RoundTrack (r1) =
+initially
+ _3D = (Cylinder center = (0,0,-0.07)
+                 radius = r1+0.3
+                 length = 0
+                 color = 0.75*white
+                 rotation = (pi/2,0,0),
+        Cylinder center = (0,0,-0.06)
+                 radius = r1+0.1
+                 length = 0
+                 color = 0.95*white
+                 rotation = (pi/2,0,0),
+        Cylinder center = (0,0,-0.05)
+                 radius = r1-0.1
+                 length = 0
+                 color = 0.75*white
+                 rotation = (pi/2,0,0))
+
+model Main (simulator) =
+initially
+  target = (0,0,0), 
+  c1 =  (0,1,0), c1' = (0,0,0), c1'' = (0,0,0),
+  c2 = (-1,1,0), c2' = (0,0,0), c2'' = (0,0,0),
+  t = 0, t' = 1,
+  _3D = (),
+  _3DView = (),
+  track = create RoundTrack(1)
+always
+ t' = 1,
+ target = (sin(t), cos(t), 0),
+ c1'' =  5*(target - c1) - 1*c1',
+ c2'' =  5*(c1 - c2) - 1*c2',
+ _3D = (Cone center = target + (0,0,0.3)
+             length = 0.2
+             rotation = (3*pi/2,0,0),
+        Obj center = c1
+            size = 0.1
+            color = green
+            content = "car.obj"
+            rotation = (pi/2,0,pi-t),
+        Obj center = c2 
+            size = 0.1
+            color = red
+            content = "car.obj"
+            rotation = (pi/2,0,pi-t)),
+ _3DView = ( (4,4,4), c2 )

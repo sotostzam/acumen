@@ -1,0 +1,21 @@
+
+model Main(simulator) =
+initially
+  p   = (0,0,2),
+  p'  = (0,0,5),
+  p'' = (0,0,-10),
+  _3D = ()
+always
+  p '' = (0,0,-10),
+  if p(2)<0 && p'(2)<0
+    then
+// We need to find better formulation of the following
+// operation.  Point-wise vector multiplication does not
+// seem like a "natural" vector/physics operation.
+// Once it's fixed here, it needs to be fixed in the
+// ping pong model as well.
+       p'+ = (1,1, -0.9) .* p'
+  noelse,
+  _3D = (Box center = p 
+             size = (0.4,0.4,0.4) 
+             color = green)
