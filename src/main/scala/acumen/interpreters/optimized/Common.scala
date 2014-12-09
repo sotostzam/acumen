@@ -29,6 +29,7 @@ import acumen.util.Canonical.{
   time,
   timeStep
 }
+import acumen.util.ASTUtil.dots
 import scala.annotation.tailrec
 
 object Common {
@@ -81,6 +82,8 @@ object Common {
     var gatherEquationI = false;
     /* Gathered equations for the ode solver */
     var odes = new ArrayBuffer[Equation];
+    /** Metadata */
+    var metaData : Metadata = NoMetadata
   }
 
   case class Equation(id: ObjId, field: Name, rhs: Expr, env: Map[Name, Val]);
@@ -307,6 +310,10 @@ object Common {
       case Some(o) => o
       case None    => throw NoInstanceFound(cmagic)
     }
+
+  /* */
+  def getMetadata(main: Object) = main.phaseParms.metaData
+  def setMetadata(main: Object, md: Metadata) = main.phaseParms.metaData = md
 
   /* fetch values in magic */
   def getTime(magic: Object) = extractDouble(getField(magic, time))
@@ -582,8 +589,16 @@ object Common {
         noChange
       case Hypothesis(s, e) =>
         val VLit(GBool(b)) = evalExpr(e, p, env)
-        if (b) noChange
-        else throw HypothesisFalsified(s.getOrElse(Pretty pprint e)).setPos(e.pos)
+        val self = selfObjId(env)
+        val time = getTime(magic)
+        val hypRes = if (b) TestSuccess
+                     else TestFailure(time,
+                                      dots(e).toSet[Dot].map(d => d -> evalExpr(d, p, env)))
+        val md = SomeMetadata(Map(((self.cid, getClassOf(self), s), hypRes)),
+                              (time, time + getTimeStep(magic)),
+                              false)
+        magic.phaseParms.metaData = magic.phaseParms.metaData.combine(md)
+        noChange
     }
   }
 
