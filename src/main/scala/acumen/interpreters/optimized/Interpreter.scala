@@ -57,6 +57,8 @@ class Interpreter(val parDiscr: Boolean = true,
     val mainObj = mkObj(cmain, sprog, IsMain, sd1, List(VObjId(Some(magic))), magic, 1)
     magic.seed = sd2
     val mprog = Prog(magicClass :: sprog.defs)
+    if (contMode == ContMode.NoDelay)
+      magic.phaseParms.specialInitialStep = true
     (mprog , mainObj, NoMetadata)
   }
 
@@ -109,6 +111,8 @@ class Interpreter(val parDiscr: Boolean = true,
 
         traverse(evalStep(p, magic), st)
 
+        setTime(magic, getTime(magic) + getTimeStep(magic))
+
         Continuous
 
       } else { // Continuous step, IVP mode
@@ -137,9 +141,9 @@ class Interpreter(val parDiscr: Boolean = true,
 
         // Run the ode solver
         implicit val field = FieldImpl(pp.odes, p)
-        val res = new Solver(getField(magic, Name("method", 0)), 
-                             OdeEnv(initVal, Array.fill[AssignVal](pp.assigns.length)(Unknown)), 
-                             getTimeStep(magic)).solve
+        val initOdeEnv = OdeEnv(initVal, Array.fill[AssignVal](pp.assigns.length)(Unknown))
+        val res = if (pp.specialInitialStep) initOdeEnv
+                  else new Solver(getField(magic, Name("method", 0)), initOdeEnv, getTimeStep(magic)).solve
 
         if (contMode == ContMode.NoDelay) {
           // Make sure the values of in the continuous assignment
@@ -172,11 +176,14 @@ class Interpreter(val parDiscr: Boolean = true,
           }
         }
 
+        if (pp.specialInitialStep)
+          pp.specialInitialStep = false
+        else
+          setTime(magic, getTime(magic) + getTimeStep(magic))
+
         Continuous
       }
 
-      if (rt == Continuous)
-        setTime(magic, getTime(magic) + getTimeStep(magic))
       setResultType(magic, rt)
 
       rt
