@@ -145,8 +145,10 @@ class CStoreCntrl(val semantics: SemanticsImpl[Interpreter], val interpreter: CS
                 averageSlack = 0
               if ((virtualtime - updateTime) * 1000 > 100) { // update every
                 // 100ms
-                Logger.trace("Missed deadlines: %.4f".format(percentagemissDL * 100) + "%")
-                Logger.trace("Waiting time: %.4f".format(averageSlack * 100) + "%")
+                //Logger.trace("Missed deadlines: %.4f".format(percentagemissDL * 100) + "%")
+                //Logger.trace("Waiting time: %.4f".format(averageSlack * 100) + "%")
+                threeDTab.threeDView.percentagemissDL = percentagemissDL
+                threeDTab.threeDView.averageSlack = averageSlack
                 updateTime = virtualtime
               }
               lastvirtualTime = virtualtime
