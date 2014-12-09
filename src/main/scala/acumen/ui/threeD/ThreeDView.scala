@@ -1,11 +1,10 @@
 package acumen.ui.threeD
 
 import java.awt.event._
-import java.awt.{Font, Color, Component, Graphics}
+import java.awt.{Color, Component, Graphics}
 import java.io._
 import javax.swing.{SwingUtilities, JPanel}
 
-import Text2D.GLFont
 import acumen.CId
 import acumen.Errors._
 import acumen.ui.Files
@@ -51,7 +50,6 @@ class ThreeDView extends JPanel {
 
   var percentagemissDL = 0.0
   var averageSlack = 0.0
-  private val glFont = GLFont.getGLFont(new java.awt.Font("Dialog", Font.PLAIN, 12))
 
   private var newMouseX = 1     // mouse position x before dragging
   private var newMouseY = 1     // mouse position y before dragging
@@ -277,12 +275,9 @@ class ThreeDView extends JPanel {
       world.draw(buffer)
       buffer.update()
       if (enableRealTime) {
-        glFont.blitString(buffer, "Missed deadlines: %.4f".format(percentagemissDL * 100) + "%",
-          30, 50, 0, Color.BLACK)
-        glFont.blitString(buffer, "Waiting time: %.4f".format(averageSlack * 100) + "%",
-          30, 70, 0, Color.BLACK)
+        g.drawString("Missed deadlines: %.4f".format(percentagemissDL * 100) + "%", 10, 45)
+        g.drawString("Waiting time: %.4f".format(averageSlack * 100) + "%", 10, 60)
       }
-      buffer.display(g)
       waitingPaint = false
     }
   }
