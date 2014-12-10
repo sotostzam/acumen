@@ -7,12 +7,12 @@ import acumen.Errors._
 
 /** Used to represent the statements that are active at a given point during the simulation. */
 case class Changeset
-  ( dead: List[CId]                           = Nil /* dead */
-  , reps: List[(CId,CId)]                     = Nil /* reparentings */
-  , das:  List[(CId,Dot,Expr,Env)]            = Nil /* discrete assignments */
-  , eqs:  List[(CId,Dot,Expr,Env)]            = Nil /* continuous assignments / equations */
-  , odes: List[(CId,Dot,Expr,Env)]            = Nil /* ode assignments / differential equations */
-  , hyps: List[(CId,Option[String],Expr,Env)] = Nil /* hypotheses */
+  ( dead: List[CId]               = Nil /* dead */
+  , reps: List[(CId,CId)]         = Nil /* reparentings */
+  , das:  List[DelayedAction]     = Nil /* discrete assignments */
+  , eqs:  List[DelayedAction]     = Nil /* continuous assignments / equations */
+  , odes: List[DelayedAction]     = Nil /* ode assignments / differential equations */
+  , hyps: List[DelayedHypothesis] = Nil /* hypotheses */
   ) {
   def ++(that: Changeset) =
     Changeset(dead ++ that.dead, reps ++ that.reps, das ++ that.das, eqs ++ that.eqs, odes ++ that.odes, hyps ++ that.hyps)
@@ -20,6 +20,9 @@ case class Changeset
 object Changeset {
   val empty = Changeset()
 }
+
+case class DelayedAction(o: CId, d: Dot, rhs: Expr, env: Env)
+case class DelayedHypothesis(o: CId, s: Option[String], h: Expr, env: Env)
 
 /** A custom state+writer monad, inpired by the state monad of scalaz. */
 sealed trait Eval[+A] {
@@ -82,16 +85,16 @@ object Eval {
     mkEval(s => ((), Changeset(reps = List((o,parent))), s))
     
   def logAssign(o: CId, d: Dot, r: Expr, e: Env) : Eval[Unit] =
-    mkEval(s => ((), Changeset(das = List((o,d,r,e))), s))
+    mkEval(s => ((), Changeset(das = List(DelayedAction(o,d,r,e))), s))
 
   def logEquation(o: CId, d: Dot, r: Expr, e: Env) : Eval[Unit] =
-    mkEval(s => ((), Changeset(eqs = List((o,d,r,e))), s))
+    mkEval(s => ((), Changeset(eqs = List(DelayedAction(o,d,r,e))), s))
 
   def logODE(o: CId, d: Dot, r: Expr, e: Env) : Eval[Unit] =
-    mkEval(s => ((), Changeset(odes = List((o,d,r,e))), s))
+    mkEval(s => ((), Changeset(odes = List(DelayedAction(o,d,r,e))), s))
 
   def logHypothesis(o: CId, n: Option[String], h: Expr, e: Env) : Eval[Unit] =
-    mkEval(s => ((), Changeset(hyps = List((o,n,h,e))), s))
+    mkEval(s => ((), Changeset(hyps = List(DelayedHypothesis(o,n,h,e))), s))
 
   /** Apply f to the store and wrap it in an Eval */
   def asks[A](f : Store => A) : Eval[A] = 
