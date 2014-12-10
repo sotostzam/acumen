@@ -790,14 +790,16 @@ class App extends SimpleSwingApplication {
     if (!startRealTime) {
       startRealTime = true
       matchWallClockItem.enabled = true
+      matchWorldTime = true
+      matchWallClockItem.selected = true
     }
     else {
       startRealTime = false
       matchWorldTime = false
       matchWallClockItem.selected = false
-      threeDtab.setMatchWallClock(matchWorldTime)
       matchWallClockItem.enabled = false
     }
+    threeDtab.setMatchWallClock(matchWorldTime)
     threeDtab.setRealTimeRender(startRealTime)
   }
 
