@@ -39,7 +39,7 @@ object Common {
 
   /** The environment for the ODE solver
    *  @param odeVals    The store for the ode solver.  The corresponding equations are in PhaseParms#odes.
-   *  @param assignVals Assignment values cache to avoid repeated evaluation
+   *  @param assignVals Assignment value cache to avoid repeated evaluation and cache algebraic loops.
    */
   case class OdeEnv(
     odeVals: IndexedSeq[Val], 
@@ -60,20 +60,18 @@ object Common {
 
   /** The representation of a value.
    *
-   * See the code in setField and getField for the logic in how these values
-   * are used. In particular note that all the fields relate to when the value
-   * is set.  For example, prevVal is the previous set value; it is the value of the
-   * previous iteration only if lastUpdated == PhaseParms#curIter, otherwise the
-   * value from the previous iteration is in curVal.
+   * When lastUpdated == PhaseParms#curIter the value was set in the current
+   * iteration otherwise it has not been set yet.
+   *
    */
   class ValVal(initVal: Val = VObjId(None)) {
-    /** The position the value was last set. */
-    var lastSetPos : Position = NoPosition
     /** The previous set value. */
-   var prevVal : Val = VObjId(None)
+    var prevSetVal : Val = VObjId(None)
     /** The last set value. */
-    var curVal : CurVal = NormalVal(initVal)
-    /** The iteration number (from PhaseParms#curIter) the curVal was last updated on. */
+    var lastSetVal : CurVal = NormalVal(initVal)
+    /** The line and column number the value was last set. */
+    var lastSetPos : Position = NoPosition
+    /** The iteration number (from PhaseParms#curIter) the lastSetVal was last updated on. */
     var lastUpdated : Int = -1 
   }
 
@@ -83,7 +81,7 @@ object Common {
      *
      * Should only be called when it is known that the value is set to a
      * NormalVal. */
-    def asVal : Val = throw new RuntimeException("Internal Error");
+    def asVal : Val = throw ShouldNeverHappen();
   }
   case class NormalVal(v: Val) extends CurVal {override def asVal = v;}
   case class OdeLookup(idx: Int) extends CurVal
@@ -135,7 +133,7 @@ object Common {
     override def hashCode = System.identityHashCode(this)
     override def toString = {
       val cn =
-        if (fields contains classf) pprint(fields(classf).curVal.asVal)
+        if (fields contains classf) pprint(fields(classf).lastSetVal.asVal)
         else "?"
       cn + "@" + hashCode
     }
@@ -144,7 +142,7 @@ object Common {
       def iterator = new Iterator[(Name, GValue)] {
         val orig = fields.iterator
         override def hasNext = orig.hasNext
-        override def next() = {val v = orig.next; (v._1, v._2.curVal.asVal)}
+        override def next() = {val v = orig.next; (v._1, v._2.lastSetVal.asVal)}
       }
     }
   }
@@ -168,7 +166,7 @@ object Common {
         case Some(p) => Some(p.id)
       })
       val fields = Map.empty ++ o.fields
-      (fields mapValues {v => convertValue(v.curVal.asVal)}) +
+      (fields mapValues {v => convertValue(v.lastSetVal.asVal)}) +
         ((parent, p), (nextChild, VLit(GInt(o.ccounter))), (seed1, VLit(GInt(o.seed._1))), (seed2, VLit(GInt(o.seed._2))))
     }
     def convertStore(st: Store): CStore = {
@@ -274,11 +272,18 @@ object Common {
       case _               => throw ShouldNeverHappen()
     }
 
-  /** Get a value for a field, value must be a NormalaVal */
+  /** Get a value for a field, value must be a NormalVal
+   *
+   * Safe to use for discrete variables since they never have a special value. */
   def getField(o: Object, f: Name) = {
-    val v = o.fields(f)
-    if (o.phaseParms.usePrev && v.lastUpdated == o.phaseParms.curIter) v.prevVal
-    else {v.curVal.asVal}
+    val vv = o.fields(f)
+    vv.lastSetVal match {
+      case NormalVal(cv) => 
+        if (o.phaseParms.usePrev && vv.lastUpdated == o.phaseParms.curIter) vv.prevSetVal
+        else cv
+      case _ =>
+        throw ShouldNeverHappen()
+    }
   }
 
   /** Get a value for a field by any means required.
@@ -288,15 +293,14 @@ object Common {
    * If the current value is ToEval then the value will be evaluated and
    * the field updated with the computed value. */
   def getField(o: Object, f: Name, p: Prog, env: Env) = {
-    //println("getField: " + o + "." + f)
     val vv = o.fields(f)
-    vv.curVal match {
+    vv.lastSetVal match {
       case NormalVal(cv) => 
-        if (o.phaseParms.usePrev && vv.lastUpdated == o.phaseParms.curIter) vv.prevVal
+        if (o.phaseParms.usePrev && vv.lastUpdated == o.phaseParms.curIter) vv.prevSetVal
         else cv
       case OdeLookup(idx) => env.odeEnv match {
         case Some(odeEnv) => odeEnv.odeVals(idx)
-        case None => vv.prevVal
+        case None => assert(o.phaseParms.usePrev); vv.prevSetVal
       }
       case AssignLookup(idx) => env.odeEnv match {
         case Some(odeEnv) => odeEnv.assignVals(idx) match {
@@ -312,30 +316,28 @@ object Common {
               def mesg = "Algebraic loop detected."
             }
         }
-        case None => vv.prevVal
+        case None => assert(o.phaseParms.usePrev); vv.prevSetVal
       }
     }
   }
 
   /* SIDE EFFECT */
   def setField(o: Object, f: Name, newVal: CurVal, pos0: Position, update: Boolean): Changeset = {
-    //println("setField: " + o + "." + f + " update = " + update)
     var pos = pos0
     if (o.fields contains f) {
-      var oldVal : Val = null // will be set later
+      if (update) assert(o.phaseParms.usePrev)
       val v = o.fields(f)
+      lazy val oldVal = if (update) v.prevSetVal else getField(o, f)
       if (update) {
-        oldVal = v.prevVal
-        //println(">update>" + o + "." + f)
-        v.curVal = newVal
+        assert(v.lastUpdated == o.phaseParms.curIter)
+        v.lastSetVal = newVal
         if (pos == NoPosition) pos = v.lastSetPos
       } else {
-        oldVal = getField(o, f)
         if (v.lastUpdated == o.phaseParms.curIter) {
           if (o.phaseParms.usePrev) throw DuplicateAssingmentUnspecified(f).setPos(pos).setOtherPos(v.lastSetPos)
-          v.curVal = newVal
+          v.lastSetVal = newVal
         } else {
-          v.prevVal = v.curVal.asVal; v.curVal = newVal; v.lastUpdated = o.phaseParms.curIter
+          v.prevSetVal = v.lastSetVal.asVal; v.lastSetVal = newVal; v.lastUpdated = o.phaseParms.curIter
         }
         v.lastSetPos = pos
       }
@@ -351,7 +353,7 @@ object Common {
         case _ => 
           logModified
       }
-    } 
+    }
     else throw VariableNotDeclared(f).setPos(pos)
   }
 
@@ -389,8 +391,7 @@ object Common {
   /* SIDE EFFECT */
   def setResultType(magic: Object, t: ResultType) = setField(magic, resultType, VResultType(t))
 
-  /* SIDE EFFECT 
-     NOT THREAD SAFE */
+  /* SIDE EFFECT */
   def changeParent(o: Object, p: Object): Unit = {
     o.parent match {
       case Some(op) => op.children = op.children diff Seq(o)
@@ -419,7 +420,6 @@ object Common {
         case Index(v,i)    => evalIndexOp(eval(env, v), i.map(x => eval(env, x)))
         case Dot(v, Name("children", 0)) =>
           val id = evalToObjId(v,p,env)
-          //id synchronized { VList((id.children map VObjId[ObjId]).toList) }
           VList((id.children map (c => VObjId(Some(c)))).toList)
         /* e.f */
         case Dot(e, f) =>
@@ -575,7 +575,7 @@ object Common {
         val dt = getTimeStep(magic)
         val id = evalToObjId(e, p, env)
         val vt = evalExpr(t, p, env)
-        val lhs = getField(id, x)
+        val lhs = getField(id, x, p, env)
         setField(id, x, lhs match {
           case VLit(d) =>
             VLit(GDouble(extractDouble(d) + extractDouble(vt) * dt))

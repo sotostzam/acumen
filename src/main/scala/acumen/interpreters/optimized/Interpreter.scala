@@ -126,7 +126,6 @@ class Interpreter(val parDiscr: Boolean = true,
 
         traverse(evalStep(p, magic), st)
 
-        // FIXME: If doEquationT = Gather is this still correct
         checkContinuousDynamicsAlwaysDefined(st, magic)
         
         // Compute the initial values the the ode solver
@@ -135,7 +134,9 @@ class Interpreter(val parDiscr: Boolean = true,
         var idx = 0
         while (idx < sz) {
           val eqt = pp.odes(idx)
-          initVal(idx) = eqt.id.fields(eqt.field).prevVal
+          val vv = eqt.id.fields(eqt.field)
+          assert(pp.curIter == vv.lastUpdated)
+          initVal(idx) = eqt.id.fields(eqt.field).prevSetVal
           idx += 1
         }
 
