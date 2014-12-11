@@ -30,10 +30,10 @@ class ThreeDView extends JPanel {
   val characters = new Characters
 
   // Add texture for the axis
-  val coAxes = new coAxis (characters.allCharacters)
+  val mainbox = drawBox(1, 1, 1)
+  val coAxes = new coAxis (characters.allCharacters, mainbox)
   val axes = coAxes.cylinders
   val axisArray = Array(new Object3D(1))
-  val mainbox = drawBox(1, 1, 1)
 
   protected[threeD] var objects = mutable.Map[(CId, Int), Object3D]()
   protected[threeD] var scaleFactors = mutable.Map[Object3D, Array[Double]]()
@@ -188,17 +188,12 @@ class ThreeDView extends JPanel {
   }
 
   def init() = {
-    // add the main box
-    mainbox.setShadingMode(Object3D.SHADING_FAKED_FLAT)
-    new setGlass(new Color(180, 180, 180), mainbox, 0)
     camera = world.getCamera  // grab a handle to the camera
     cameraLeftDirection = -1
     cameraRightDirection = 1
     defaultView()
-    lookAt(mainbox, null) // camera faces towards the object
+    lookAt(coAxes.mainbox, null) // camera faces towards the object
     lookAtPoint.set(0,0,0)
-    CustomObject3D.partialBuild(mainbox, false)
-    viewStateMachine("addMainBox")
   }
 
   // the state machine for adding or deleting objects in view state machine
@@ -208,8 +203,7 @@ class ThreeDView extends JPanel {
   *                                      current frame
   *            "deleteAxes" -> delete the axes
   *            "deleteLookAtSphere" -> delete the red sphere at look at point
-  *            "addMainBox" -> add the Main Box
-  *            "addAxes" -> add the axes
+  *            "addAxes" -> add the axes and main box
   *            "addLookAtSphere" -> add the red sphere at look at point*/
 
   def viewStateMachine(worldState: String) = {
@@ -217,8 +211,6 @@ class ThreeDView extends JPanel {
       // object deleting state machine
       worldState match {
         case "renderCurrentObjects" => // only called in renderCurrentFrame()
-          if (world.getObjectByName(mainbox.getName) != null)
-            world.removeObject(mainbox)
           for (oldObject <- objectsToDelete) {
             if (world.getObjectByName(oldObject.getName) != null)
               world.removeObject(oldObject)
@@ -229,14 +221,11 @@ class ThreeDView extends JPanel {
               world.addObject(objectToBuild)
             }
           }
-        case "addMainBox" =>
-          if (world.getObjectByName(mainbox.getName) == null)
-            world.addObject(mainbox)
         case "addAxes" => // only called in axisOff function
           if (!axisArray.contains(axes(0))) {
             axisArray(0) = axes(0)
             for (i <- 0 until axes.length)
-              CustomObject3D.partialBuild(axes(i), i < 6)
+              CustomObject3D.partialBuild(axes(i), i < 7)
             world.addObjects(axes)
           }
         case "addLookAtSphere" => // called when camera rotation is finished
@@ -993,38 +982,44 @@ case class Resizer(xFactor: Float, yFactor: Float, zFactor: Float)
 }
 
 // Axis
-class coAxis(characters: Map[Char, Object3D]) {
-  val cylinders: Array[Object3D] = new Array[Object3D](9)
-  for (x <- 0 until 3)
+class coAxis(characters: Map[Char, Object3D], mainBox: Object3D) {
+  val cylinders: Array[Object3D] = new Array[Object3D](10)
+  val mainbox = mainBox
+  // add the main box
+  mainbox.setShadingMode(Object3D.SHADING_FAKED_FLAT)
+  new setGlass(new Color(200, 200, 200), mainbox, 0)
+  cylinders(0) = mainbox
+  for (x <- 1 until 4)
     cylinders(x) = Primitives.getCylinder(12, 0.01f, 50f)
-  for (x <- 3 until 6)
+  for (x <- 4 until 7)
     cylinders(x) = Primitives.getCone(12, 0.05f, 2f)
-  cylinders(8) = new Object3D(characters('y'), false)
-  cylinders(7) = new Object3D(characters('x'), false)
-  cylinders(6) = new Object3D(characters('z'), false)
-  for (i <- 6 to 8) {
+  cylinders(9) = new Object3D(characters('y'), false)
+  cylinders(8) = new Object3D(characters('x'), false)
+  cylinders(7) = new Object3D(characters('z'), false)
+  for (i <- 7 to 9) {
     cylinders(i).setRotationPivot(new SimpleVector(0,0,0))
     cylinders(i).setCenter(new SimpleVector(0,0,0))
     cylinders(i).scale(0.4f)
   }
-  for (i <- 0 until cylinders.length)
-    new setGlass( if      (i % 3 == 0) Color.BLUE
-                  else if (i % 3 == 1) Color.RED
+
+  for (i <- 1 until cylinders.length)
+    new setGlass( if      (i % 3 == 1) Color.BLUE
+                  else if (i % 3 == 2) Color.RED
                   else                 Color.GREEN
                 , cylinders(i), -1)
-  cylinders(0).translate(0f, -0.5f, 0f)       // z axis cylinder
-  cylinders(3).translate(0f, -1f, 0f)         // z axis cone
-  cylinders(6).translate(-0.05f, -1f, 0f)     // z text
-  cylinders(1).rotateZ(0.5f * -Pi.toFloat)    // x axis cylinder
-  cylinders(1).translate(-0.5f, 0f, 0f)
-  cylinders(4).translate(-1f, 0f, 0f)         // x axis cone
-  cylinders(4).rotateZ(0.5f * Pi.toFloat)
-  cylinders(7).translate(-1f, -0.05f, 0f)     // x text
-  cylinders(2).rotateX(-0.5f * Pi.toFloat)    // y axis cylinder
-  cylinders(2).translate(0f, 0f, -0.5f)
-  cylinders(5).translate(0f, 0f, -1f)         // y axis cone
-  cylinders(5).rotateX(-0.5f * Pi.toFloat)
-  cylinders(8).translate(0f, -0.05f, -1f)     // y text
+  cylinders(1).translate(0f, -0.5f, 0f)       // z axis cylinder
+  cylinders(4).translate(0f, -1f, 0f)         // z axis cone
+  cylinders(7).translate(-0.05f, -1f, 0f)     // z text
+  cylinders(2).rotateZ(0.5f * -Pi.toFloat)    // x axis cylinder
+  cylinders(2).translate(-0.5f, 0f, 0f)
+  cylinders(5).translate(-1f, 0f, 0f)         // x axis cone
+  cylinders(5).rotateZ(0.5f * Pi.toFloat)
+  cylinders(8).translate(-1f, -0.05f, 0f)     // x text
+  cylinders(3).rotateX(-0.5f * Pi.toFloat)    // y axis cylinder
+  cylinders(3).translate(0f, 0f, -0.5f)
+  cylinders(6).translate(0f, 0f, -1f)         // y axis cone
+  cylinders(6).rotateX(-0.5f * Pi.toFloat)
+  cylinders(9).translate(0f, -0.05f, -1f)     // y text
 }
 
 class Characters {
