@@ -788,6 +788,7 @@ class App extends SimpleSwingApplication {
           Logger.status(true, "Paused.", false)
         case Starting =>
           Logger.separator()
+          dumpParms()
           Logger.status(false, "Starting", true)
         case Resuming if state != Starting =>
           Logger.status(false, "Resuming", true)

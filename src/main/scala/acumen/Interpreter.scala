@@ -56,10 +56,10 @@ trait HypothesisOutcome {
   def pick(that: HypothesisOutcome): HypothesisOutcome
 }
 abstract class Success extends HypothesisOutcome { def pick(that: HypothesisOutcome) = that }
-abstract class Failure(counterExample: Set[(Dot,CValue)]) extends HypothesisOutcome
+abstract class Failure(counterExample: Set[(Dot,GValue)]) extends HypothesisOutcome
 /** Result of non-rigorous hypothesis evaluation (reference interpreter). */
 case object TestSuccess extends Success
-case class TestFailure(earliestTime: Double, counterExample: Set[(Dot,CValue)]) extends Failure(counterExample: Set[(Dot,CValue)]) {
+case class TestFailure(earliestTime: Double, counterExample: Set[(Dot,GValue)]) extends Failure(counterExample: Set[(Dot,GValue)]) {
   def pick(that: HypothesisOutcome) = that match {
     case TestSuccess    => this
     case f: TestFailure => if (this.earliestTime <= f.earliestTime) this else that
@@ -67,15 +67,15 @@ case class TestFailure(earliestTime: Double, counterExample: Set[(Dot,CValue)]) 
 }
 /** Result of rigorous hypothesis evaluation (enclosure interpreter). */
 case object CertainSuccess extends Success
-abstract class RigorousFailure(earliestTime: (Double,Double), counterExample: Set[(Dot,CValue)]) extends Failure(counterExample: Set[(Dot,CValue)]) 
-case class CertainFailure(earliestTime: (Double,Double), counterExample: Set[(Dot,CValue)]) extends RigorousFailure(earliestTime, counterExample) {
+abstract class RigorousFailure(earliestTime: (Double,Double), counterExample: Set[(Dot,GValue)]) extends Failure(counterExample: Set[(Dot,GValue)]) 
+case class CertainFailure(earliestTime: (Double,Double), counterExample: Set[(Dot,GValue)]) extends RigorousFailure(earliestTime, counterExample) {
   def pick(that: HypothesisOutcome) = that match {
     case CertainSuccess      => this
     case _: UncertainFailure => this
     case f: CertainFailure   => if (this.earliestTime._1 <= f.earliestTime._1) this else that
   } 
 }  
-case class UncertainFailure(earliestTime: (Double,Double), counterExample: Set[(Dot,CValue)]) extends RigorousFailure(earliestTime, counterExample) {
+case class UncertainFailure(earliestTime: (Double,Double), counterExample: Set[(Dot,GValue)]) extends RigorousFailure(earliestTime, counterExample) {
   def pick(that: HypothesisOutcome): HypothesisOutcome = that match {
     case CertainSuccess      => this
     case f: UncertainFailure => if (this.earliestTime._1 <= f.earliestTime._1) this else that

@@ -862,7 +862,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
       if (hs isEmpty) NoMetadata
       else SomeMetadata(
         (for (DelayedHypothesis(o, s, h, env) <- hs) yield {
-          lazy val counterEx = dots(h).toSet[Dot].map(d => d -> evalExpr(d, env, st))
+          lazy val counterEx = dots(h).toSet[Dot].map(d => d -> (evalExpr(d, env, st) : GValue))
           (o, getCls(o,st), s) -> (evalExpr(h, env, st) match {
             case VLit(CertainTrue)  => CertainSuccess
             case VLit(Uncertain)    => UncertainFailure(timeDomain, counterEx)

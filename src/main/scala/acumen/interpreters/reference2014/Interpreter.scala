@@ -431,7 +431,7 @@ object Interpreter extends acumen.CStoreInterpreter {
     old combine (if (hyps isEmpty) NoMetadata else SomeMetadata(hyps.map {
       case (o, hn, h, env) =>
         val cn = getCls(o, st)
-        lazy val counterEx = dots(h).toSet[Dot].map(d => d -> evalExpr(d, env, st))
+        lazy val counterEx = dots(h).toSet[Dot].map(d => d -> (evalExpr(d, env, st) : GValue))
         val VLit(GBool(b)) = evalExpr(h, env, st)
         (o, cn, hn) -> (if (b) TestSuccess else TestFailure(getTime(st), counterEx))
     }.toMap, (getTime(st), getTime(st) + getTimeStep(st)), false))
