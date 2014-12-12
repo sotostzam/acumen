@@ -1,8 +1,10 @@
 package acumen.ui.threeD
 
 import java.awt.event._
+import java.awt.image.BufferedImage
 import java.awt.{Color, Component, Graphics}
 import java.io._
+import javax.imageio.ImageIO
 import javax.swing.{SwingUtilities, JPanel}
 
 import acumen.CId
@@ -40,6 +42,10 @@ class ThreeDView extends JPanel {
   protected[threeD] var objects = mutable.Map[(CId, Int), Object3D]()
   protected[threeD] var scaleFactors = mutable.Map[Object3D, Array[Double]]()
   protected[threeD] var objectsToDelete = mutable.ArrayBuffer[Object3D]()
+  protected[threeD] var objectsCopy = mutable.Map[(CId, Int), Object3D]()  // for anaglyph
+  val eyeOffSet = 0.15f
+  val inputstream = new File(Files._3DDir.getAbsolutePath + File.separator + "anaglyph.png")
+  val imageOrig = ImageIO.read(inputstream)
 
   val defaultCamPos = new SimpleVector(3, -3, 10)
   private val lookAtPoint = new SimpleVector(0,0,0) // in jPCT coordinate system
@@ -198,7 +204,7 @@ class ThreeDView extends JPanel {
   def init() = {
     // add the main box
     mainbox.setShadingMode(Object3D.SHADING_FAKED_FLAT)
-    new setGlass(new Color(180, 180, 180), mainbox, 0)
+    new setGlass(new Color(75, 75, 75), mainbox, 0)
     camera = world.getCamera  // grab a handle to the camera
     cameraLeftDirection = -1
     cameraRightDirection = 1
@@ -240,6 +246,11 @@ class ThreeDView extends JPanel {
               world.addObject(objectToBuild)
             }
           }
+          // add the anaglyph objects in current frame
+          if (enableAnaglyph)
+            for ((objectKey, objectToBuild) <- objectsCopy)
+              if (world.getObjectByName(objectToBuild.getName) == null)
+                world.addObject(objectToBuild)
         case "addMainBox" =>
           if (world.getObjectByName(mainbox.getName) == null)
             world.addObject(mainbox)
@@ -321,6 +332,7 @@ class ThreeDView extends JPanel {
   def reset() = {
     viewStateMachine("deleteAllObjects")
     objects.clear()
+    objectsCopy.clear()
     scaleFactors.clear()
     objectsToDelete.clear()
     axisArray(0) = null
@@ -335,6 +347,27 @@ class ThreeDView extends JPanel {
     cameraToSet.setPosition(-position(0).toFloat, -position(2).toFloat,
                             -position(1).toFloat)
     rotateObject(null, rotation, "Camera", cameraToSet)
+  }
+
+  /** Isolate Color Channel */
+  def isolateColorChannel(image: BufferedImage, channel: String): BufferedImage = {
+    val result = new BufferedImage(image.getWidth, image.getHeight, image.getType)
+    for (i <- 0 until image.getWidth){
+      for (j <- 0 until image.getHeight) {
+        var newPixel: Int = 0
+        val red = new Color(image.getRGB(i, j)).getRed
+        val green = new Color(image.getRGB(i, j)).getGreen
+        val blue = new Color(image.getRGB(i, j)).getBlue
+        if (channel == "red")
+          newPixel = newPixel | red << 16
+        else if (channel == "green")
+          newPixel = newPixel | green << 8
+        else if (channel == "cyan")
+          newPixel = newPixel | green << 8 | blue
+        result.setRGB(i, j, newPixel)
+      }
+    }
+    result
   }
 
   def drawBox(length: Double, width: Double, height: Double): Object3D = {
@@ -455,10 +488,12 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D, playSpeed: Double,
   private var mouseSleepTime = 10.toLong
   private var lastSetFrameTime = System.currentTimeMillis()
   private var setFrameDone = true
+  initAnaglyph()
 
   def stop() = {
     app.viewStateMachine("deleteAllObjects")
     app.objects.clear()
+    app.objectsCopy.clear()
     app.axisArray(0) = null
     app.scaleFactors.clear()
     app.objectsToDelete.clear()
@@ -633,7 +668,11 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D, playSpeed: Double,
        if (name == "OBJ")  valueList(5) else " ")
 
     // get the object need to transform
-    var transObject: Object3D = app.world.getObject(objID)
+    var transObject: Object3D = app.objects(objectKey)
+    var anaglyphObject: Object3D =
+      if (app.enableAnaglyph) app.objectsCopy(objectKey)
+      else null
+    var newAnaglyphObject = false
 
     val lastValueList: List[_] =
       if (_3DDataBuffer.contains(lastFrame) && _3DDataBuffer(lastFrame) != null
@@ -658,7 +697,7 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D, playSpeed: Double,
           val (sizeToSetX, sizeToSetY, sizeToSetZ) = (checkSize(size(1)),
                                                       checkSize(size(0)),
                                                       checkSize(size(2)))
-          app.objectsToDelete += app.world.getObject(objID)
+          app.objectsToDelete += app.objects(objectKey)
           app.scaleFactors -= app.objects(objectKey)
           app.objects(objectKey) = app.drawBox(abs(sizeToSetX), abs(sizeToSetY),
                                                abs(sizeToSetZ))
@@ -667,6 +706,10 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D, playSpeed: Double,
                           name, app.scaleFactors)
           objID = app.objects(objectKey).getID // refresh the object ID
           transObject.setShadingMode(Object3D.SHADING_FAKED_FLAT)
+          if (anaglyphObject != null) {
+            anaglyphObject = transAnaglyphObject(transObject, objectKey)
+            newAnaglyphObject = true
+          }
         } else if (checkResizeable(size) && needResize) {
           // just need to change the size
           if (app.objects.contains(objectKey) && transObject != null) {
@@ -676,6 +719,8 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D, playSpeed: Double,
             val factors = calculateResizeFactor(transObject, Array(sizeToSetZ,
                                       sizeToSetY, sizeToSetX), app.scaleFactors)
             setReSize(factors(0), factors(1), factors(2), transObject)
+            if (anaglyphObject != null)
+              setReSize(factors(0), factors(1), factors(2), anaglyphObject)
           }
         }
       case "Cylinder" =>
@@ -692,6 +737,10 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D, playSpeed: Double,
           setScaleFactors(size, transObject, name, app.scaleFactors)
           objID = app.objects(objectKey).getID // refresh the object ID
           transObject.setShadingMode(Object3D.SHADING_FAKED_FLAT)
+          if (anaglyphObject != null) {
+            anaglyphObject = transAnaglyphObject(transObject, objectKey)
+            newAnaglyphObject = true
+          }
         } else if (checkResizeable(size) && needResize) {
           if (app.objects.contains(objectKey) && transObject != null) {
             // just need to change the size
@@ -699,6 +748,8 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D, playSpeed: Double,
             val factors = calculateResizeFactor(transObject, Array(sizeToSetR,
                                       sizeToSetS, sizeToSetR), app.scaleFactors)
             setReSize(factors(0), factors(1), factors(2), transObject)
+            if (anaglyphObject != null)
+              setReSize(factors(0), factors(1), factors(2), anaglyphObject)
           }
         }
       case "Cone" =>
@@ -714,6 +765,10 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D, playSpeed: Double,
           transObject = app.objects(objectKey)
           setScaleFactors(size, transObject, name, app.scaleFactors)
           objID = app.objects(objectKey).getID // refresh the object ID
+          if (anaglyphObject != null) {
+            anaglyphObject = transAnaglyphObject(transObject, objectKey)
+            newAnaglyphObject = true
+          }
         } else if (checkResizeable(size) && needResize) {
           if (app.objects.contains(objectKey) && transObject != null) {
             // just need to change the size
@@ -721,6 +776,8 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D, playSpeed: Double,
             val factors = calculateResizeFactor(transObject, Array(sizeToSetR,
                                       sizeToSetS, sizeToSetR), app.scaleFactors)
             setReSize(factors(0), factors(1), factors(2), transObject)
+            if (anaglyphObject != null)
+              setReSize(factors(0), factors(1), factors(2), anaglyphObject)
           }
         }
       case "Sphere" =>
@@ -735,6 +792,10 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D, playSpeed: Double,
           transObject = app.objects(objectKey)
           setScaleFactors(size, transObject, name, app.scaleFactors)
           objID = app.objects(objectKey).getID // refresh the object ID
+          if (anaglyphObject != null) {
+            anaglyphObject = transAnaglyphObject(transObject, objectKey)
+            newAnaglyphObject = true
+          }
         } else if (checkResizeable(size) && needResize) {
           if (app.objects.contains(objectKey) && transObject != null) {
             // just need to change the size
@@ -742,6 +803,8 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D, playSpeed: Double,
             val factors = calculateResizeFactor(transObject, Array(sizeToSetR,
                                       sizeToSetR, sizeToSetR), app.scaleFactors)
             setReSize(factors(0), factors(1), factors(2), transObject)
+            if (anaglyphObject != null)
+              setReSize(factors(0), factors(1), factors(2), anaglyphObject)
           }
         }
       case "Text" =>
@@ -759,6 +822,10 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D, playSpeed: Double,
           transObject = app.objects(objectKey)
           setScaleFactors(size, transObject, name, app.scaleFactors)
           objID = app.objects(objectKey).getID // refresh the object ID
+          if (anaglyphObject != null) {
+            anaglyphObject = transAnaglyphObject(transObject, objectKey)
+            newAnaglyphObject = true
+          }
         } else if (checkResizeable(size) && needResize) {
           if (app.objects.contains(objectKey) && transObject != null) {
             // just need to change the size
@@ -766,6 +833,8 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D, playSpeed: Double,
             val factors = calculateResizeFactor(transObject, Array(sizeToSetR,
                                       sizeToSetR, sizeToSetR), app.scaleFactors)
             setReSize(factors(0), factors(1), factors(2), transObject)
+            if (anaglyphObject != null)
+              setReSize(factors(0), factors(1), factors(2), anaglyphObject)
           }
         }
       case "OBJ" =>
@@ -783,6 +852,10 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D, playSpeed: Double,
           transObject = app.objects(objectKey)
           setScaleFactors(size, transObject, name, app.scaleFactors)
           objID = app.objects(objectKey).getID // refresh the object ID
+          if (anaglyphObject != null) {
+            anaglyphObject = transAnaglyphObject(transObject, objectKey)
+            newAnaglyphObject = true
+          }
         } else if (checkResizeable(size) && needResize) {
           if (app.objects.contains(objectKey) && transObject != null) {
             // just need to change the size
@@ -790,6 +863,8 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D, playSpeed: Double,
             val factors = calculateResizeFactor(transObject, Array(sizeToSetR,
                                       sizeToSetR, sizeToSetR), app.scaleFactors)
             setReSize(factors(0), factors(1), factors(2), transObject)
+            if (anaglyphObject != null)
+              setReSize(factors(0), factors(1), factors(2), anaglyphObject)
           }
         }
       case _ => throw ShouldNeverHappen()
@@ -806,6 +881,26 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D, playSpeed: Double,
                                              -position(1))
       val transVector = tempTransVector.calcSub(transObject.getTransformedCenter)
       transObject.translate(transVector)
+      if (anaglyphObject != null) {
+        transObject.setTransparencyMode(Object3D.TRANSPARENCY_MODE_ADD)
+        transObject.setTransparency(0)
+        anaglyphObject.setTransparencyMode(Object3D.TRANSPARENCY_MODE_ADD)
+        anaglyphObject.setTransparency(0)
+        if (TextureManager.getInstance().containsTexture("ConeRed"))
+          transObject.setTexture("ConeRed")
+        // reset the color for the object
+        setColor(anaglyphObject, color)
+        // rotate the object
+        if (checkResizeable(angle))
+          app.rotateObject(anaglyphObject, angle, name, null)
+        // calculate the transVector for the object and translate it
+        anaglyphObject.translate(transVector)
+        if (newAnaglyphObject)
+          anaglyphObject.translate(app.eyeOffSet, 0, 0)
+        if (TextureManager.getInstance().containsTexture("ConeCyan"))
+          anaglyphObject.setTexture("ConeCyan")
+        CustomObject3D.partialBuild(anaglyphObject, name == "Text")
+      }
       CustomObject3D.partialBuild(transObject, name == "Text")
     }
   }
@@ -872,6 +967,24 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D, playSpeed: Double,
           app.scaleFactors)
       else
         setScaleFactors(size, newObject, name, app.scaleFactors)
+      if (app.enableAnaglyph) {
+        newObject.setTransparencyMode(Object3D.TRANSPARENCY_MODE_ADD)
+        newObject.setTransparency(0)
+        val anaglyphObject = new Object3D(newObject, false)
+        if (TextureManager.getInstance().containsTexture("ConeRed"))
+          newObject.setTexture("ConeRed")
+        if (TextureManager.getInstance().containsTexture("ConeCyan"))
+          anaglyphObject.setTexture("ConeCyan")
+        anaglyphObject.translate(app.eyeOffSet, 0, 0)
+        app.objectsCopy += c -> anaglyphObject
+        if (name != "Text")
+          CustomObject3D.partialBuild(anaglyphObject, false)
+        else {
+          anaglyphObject.setRotationPivot(new SimpleVector(0,0,0))
+          anaglyphObject.setCenter(new SimpleVector(0,0,0))
+          CustomObject3D.partialBuild(anaglyphObject, true)
+        }
+      }
       app.objects += c -> newObject
       if (name != "Text")
         CustomObject3D.partialBuild(newObject, false)
@@ -881,6 +994,31 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D, playSpeed: Double,
         CustomObject3D.partialBuild(newObject, true)
       }
     }
+  }
+
+  // initialize for anaglyph
+  def initAnaglyph() = {
+    val imageRedChannel = app.isolateColorChannel(app.imageOrig, "red")
+    val imageCyanChannel = app.isolateColorChannel(app.imageOrig, "cyan")
+    val imageGreenChannel = app.isolateColorChannel(app.imageOrig, "green")
+
+    val textureManager = TextureManager.getInstance
+    //red texture
+    if (!textureManager.containsTexture("ConeRed"))
+      textureManager.addTexture("ConeRed", new Texture(imageRedChannel))
+    //cyan texture
+    if (!textureManager.containsTexture("ConeCyan"))
+      textureManager.addTexture("ConeCyan", new Texture(imageCyanChannel))
+    if (!textureManager.containsTexture("ConeGreen"))
+    //green texture
+      textureManager.addTexture("ConeGreen", new Texture(imageGreenChannel))
+  }
+
+  def transAnaglyphObject(oriObject: Object3D, obKey: (CId, Int)): Object3D = {
+    app.objectsToDelete += app.objectsCopy(obKey)
+    app.objectsCopy(obKey) = new Object3D(oriObject, false)
+    val anaglyphObject = app.objectsCopy(obKey)
+    anaglyphObject
   }
 
   def act() {
@@ -948,8 +1086,12 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D, playSpeed: Double,
    */
   def deleteObj(c: (CId, Int)) {
     if (app.objects.contains(c)) {
-      if (app.world.getObjectByName(app.objects(c).getName) != null)
+      if (app.world.getObjectByName(app.objects(c).getName) != null) {
         app.objectsToDelete += app.objects(c)
+        if (app.enableAnaglyph)
+          app.objectsToDelete += app.objectsCopy(c)
+      }
+      app.objectsCopy -= c
       app.objects -= c
     }
   }
@@ -1036,7 +1178,7 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D, playSpeed: Double,
 
 // Transparent box
 class setGlass(color: Color, objectA: Object3D, transparancy: Int) {
-  objectA.setTransparencyMode(Object3D.TRANSPARENCY_MODE_DEFAULT) //TRANSPARENCY_MODE_DEFAULT
+  objectA.setTransparencyMode(Object3D.TRANSPARENCY_MODE_ADD) //TRANSPARENCY_MODE_DEFAULT
   objectA.setTransparency(transparancy) // the transparency level. 0 is the highest possible transparency
   objectA.setAdditionalColor(color) // the color of the object3D
 }

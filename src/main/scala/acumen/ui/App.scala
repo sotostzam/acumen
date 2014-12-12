@@ -496,7 +496,7 @@ class App extends SimpleSwingApplication {
       contents += new Separator()
 
       contents += new Menu("_3D") {
-        contents ++= Seq(enableRealTimeItem,
+        contents ++= Seq(enableRealTimeItem, enableAnaglyphItem,
           matchWallClockItem)
         matchWallClockItem.enabled = false
       }
