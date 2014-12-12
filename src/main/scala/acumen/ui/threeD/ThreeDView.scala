@@ -44,8 +44,8 @@ class ThreeDView extends JPanel {
   protected[threeD] var objectsToDelete = mutable.ArrayBuffer[Object3D]()
   protected[threeD] var objectsCopy = mutable.Map[(CId, Int), Object3D]()  // for anaglyph
   val eyeOffSet = 0.15f
-  val inputstream = new File(Files._3DDir.getAbsolutePath + File.separator + "anaglyph.png")
-  val imageOrig = ImageIO.read(inputstream)
+  val anaglyphTexture = getClass.getClassLoader.getResourceAsStream("acumen/ui/threeD/anaglyph.png")
+  val imageOrig = ImageIO.read(anaglyphTexture)//ImageIO.read(anaglyphInputstream)
 
   val defaultCamPos = new SimpleVector(3, -3, 10)
   private val lookAtPoint = new SimpleVector(0,0,0) // in jPCT coordinate system
