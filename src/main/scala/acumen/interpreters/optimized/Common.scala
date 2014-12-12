@@ -131,11 +131,11 @@ object Common {
       var children: Vector[Object]) extends GId {
     override def cid = id
     override def hashCode = System.identityHashCode(this)
+    def className = 
+      if (fields contains classf) pprint(fields(classf).lastSetVal.asVal)
+      else "?"
     override def toString = {
-      val cn =
-        if (fields contains classf) pprint(fields(classf).lastSetVal.asVal)
-        else "?"
-      cn + "@" + hashCode
+      className + "@" + hashCode
     }
     override def equals(o: Any) = { eq(o.asInstanceOf[AnyRef]) }
     val fieldsCur = new Iterable[(Name, GValue)] {
@@ -292,32 +292,34 @@ object Common {
    *
    * If the current value is ToEval then the value will be evaluated and
    * the field updated with the computed value. */
-  def getField(o: Object, f: Name, p: Prog, env: Env) = {
-    val vv = o.fields(f)
-    vv.lastSetVal match {
-      case NormalVal(cv) => 
-        if (o.phaseParms.usePrev && vv.lastUpdated == o.phaseParms.curIter) vv.prevSetVal
-        else cv
-      case OdeLookup(idx) => env.odeEnv match {
-        case Some(odeEnv) => odeEnv.odeVals(idx)
-        case None => assert(o.phaseParms.usePrev); vv.prevSetVal
-      }
-      case AssignLookup(idx) => env.odeEnv match {
-        case Some(odeEnv) => odeEnv.assignVals(idx) match {
-          case KnownVal(v) => v
-          case Unknown => 
-            val a = o.phaseParms.assigns(idx)
-            odeEnv.assignVals(idx) = Evaluating
-            val v = evalExpr(a.rhs, p, Env(a.env, env.odeEnv))
-            odeEnv.assignVals(idx) = KnownVal(v)
-            v
-          case Evaluating =>
-            throw new PositionalAcumenError {
-              def mesg = "Algebraic loop detected."
-            }
+  def getField(o: Object, f: Name, p: Prog, env: Env, pos: Position = NoPosition) = {
+    try {
+      val vv = o.fields(f)
+      vv.lastSetVal match {
+        case NormalVal(cv) => 
+          if (o.phaseParms.usePrev && vv.lastUpdated == o.phaseParms.curIter) vv.prevSetVal
+          else cv
+        case OdeLookup(idx) => env.odeEnv match {
+          case Some(odeEnv) => odeEnv.odeVals(idx)
+          case None => assert(o.phaseParms.usePrev); vv.prevSetVal
         }
-        case None => assert(o.phaseParms.usePrev); vv.prevSetVal
+        case AssignLookup(idx) => env.odeEnv match {
+          case Some(odeEnv) => odeEnv.assignVals(idx) match {
+            case KnownVal(v) => v
+            case Unknown => 
+              val a = o.phaseParms.assigns(idx)
+              odeEnv.assignVals(idx) = Evaluating
+              val v = evalExpr(a.rhs, p, Env(a.env, env.odeEnv))
+              odeEnv.assignVals(idx) = KnownVal(v)
+              v
+          case Evaluating =>
+            throw AlgebraicLoop(ObjField(o.id,o.className,f)).setPos(vv.lastSetPos)
+          }
+          case None => assert(o.phaseParms.usePrev); vv.prevSetVal
+        }
       }
+    } catch {
+      case e:AlgebraicLoop => throw e.addToChain(ObjField(o.id,o.className,f),pos)
     }
   }
 
@@ -422,9 +424,9 @@ object Common {
           val id = evalToObjId(v,p,env)
           VList((id.children map (c => VObjId(Some(c)))).toList)
         /* e.f */
-        case Dot(e, f) =>
-          val id = evalToObjId(e,p,env)
-          getField(id, f, p, env)
+        case Dot(e0, f) =>
+          val id = evalToObjId(e0,p,env)
+          getField(id, f, p, env, e.pos)
         /* x && y */
         case Op(Name("&&", 0), x :: y :: Nil) =>
           val VLit(GBool(vx)) = eval(env, x)

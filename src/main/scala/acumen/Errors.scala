@@ -187,6 +187,26 @@ object Errors {
     override def getMessage = 
       "No equation was specified for (#" + o.cid.toString + " : " + className + ")." + n.x + " at time " + time + "."
   }
+  case class AlgebraicLoop(first : ObjField, haveLoop : Boolean = false, chain : List[(ObjField,Position)] = Nil) 
+       extends PositionalAcumenError 
+  {
+    override def mesg = "Algebraic loop detected while setting " + first
+    override def getMessage = 
+      super.getMessage + "\n" + chain.map{case (f,p) =>
+        val msg = "while retrieving " + f
+        p match {
+           case NoPosition => msg 
+           case _ => p.toString + ": " + msg + "\n" + p.longString
+        }                                  
+      }.mkString("\n")
+
+    def addToChain(f: ObjField, p : Position)  = 
+      (if (haveLoop)           this
+       else if (chain.isEmpty) copy(chain = (f,p)::Nil)
+       else if (f == first)    copy(haveLoop = true)
+       else                    copy(chain = (f,p)::chain)).setPos(pos)
+  }
+
   case class HypothesisFalsified(s: String, counterExample: Option[(Double, Map[Dot, CValue])] = None) extends PositionalAcumenError {
     override def mesg = 
       "Hypothesis \"" + s + "\" falsified." + (counterExample match {
@@ -283,4 +303,10 @@ object Errors {
     override def getMessage =
       "fromJSON failed with input: " + s
   }
+
+  /* utility class */
+  case class ObjField(o: CId, cn: String, f: Name) {
+    override def toString = s"(#$o : $cn)." + pprint(f)
+  }
+
 }
