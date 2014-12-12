@@ -462,9 +462,9 @@ object Common {
   def checkAccessOk(id:CId, env:Env, st:CStore, context: Expr) : Unit = {
     val sel = selfCId(env)
     lazy val cs = childrenOf(sel, st)
-    val mainIsAccesingADevice = sel == mainId(st) && (childrenOf(magicId(st), st) contains id)
-    if ((sel != id && ! (cs contains id)) && !mainIsAccesingADevice)
-      throw AccessDenied(id,sel,cs).setPos(context.pos)
+    //val mainIsAccesingADevice = sel == mainId(st) && (childrenOf(magicId(st), st) contains id)
+    if (sel != id && ! (cs contains id)) {}
+    //  throw AccessDenied(id,sel,cs).setPos(context.pos)
   }
 
   def checkIsChildOf(child:CId, parent:CId, st:CStore, context: Expr) : Unit = {
