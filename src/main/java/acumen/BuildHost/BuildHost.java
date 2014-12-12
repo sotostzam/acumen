@@ -1,4 +1,4 @@
-package BuildHost;
+package acumen.BuildHost;
 
 import com.sun.net.httpserver.Headers;
 import com.sun.net.httpserver.HttpExchange;
@@ -59,9 +59,7 @@ public class BuildHost {
         public void handle(HttpExchange t) throws IOException {
             int i;
             StringBuilder data = new StringBuilder();
-            String direct = System.getProperty("user.dir");
-            String index_page = direct + "/src/main/java/BuildHost/gyroacc_sensor.html";
-            InputStream is = new FileInputStream(index_page);
+            InputStream is = getClass().getClassLoader().getResourceAsStream("acumen/gyroacc_sensor.html");
             while((i=is.read())!=-1)
             {
                 data.append((char)i);
