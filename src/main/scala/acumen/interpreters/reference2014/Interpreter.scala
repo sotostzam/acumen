@@ -33,13 +33,24 @@ object Interpreter extends acumen.CStoreInterpreter {
 
   type Store = CStore
   type Env = Map[Name, CValue]
-  type Bindings = Map[(CId, Name), (Expr,Env)]
-  val NoBindings = Map.empty[(CId, Name), (Expr, Env)]
 
   def repr(st:Store) = st
   def fromCStore(st:CStore, root:CId) = st
   override def visibleParameters = visibleParametersRef + ("method" -> VLit(GStr(RungeKutta)))
 
+  /* Bindings, expressed in models as continuous assignments 
+   * to unprimed variables, are used to look up sub-expressions
+   * during evaluation of continuous assignments. */
+  type Bindings = Map[(CId,Name), Binding] 
+  val NoBindings = Map.empty[(CId,Name), Binding]
+  sealed trait Binding
+  case object UsedBinding extends Binding
+  case class UnusedBinding(e: Expr, env: Env) extends Binding
+  case class CachedUnusedBinding(v: CValue) extends Binding
+  def cacheBindings(b: Bindings, st: Store): Bindings = 
+    b.foldLeft(b){ case (res, (k, UnusedBinding(e, env))) => 
+      res updated (k, CachedUnusedBinding(evalExpr(e, env, st)(res))) }
+  
   /* initial values */
   val emptyStore : Store = HashMap.empty
   val emptyEnv   : Env   = HashMap.empty
@@ -162,33 +173,36 @@ object Interpreter extends acumen.CStoreInterpreter {
   /* evaluate e in the scope of env 
    * for definitions p with current store st */
   def evalExpr(e:Expr, env:Env, st:Store)(implicit bindings: Bindings) : CValue = {
-    def eval(env:Env, e:Expr) : CValue = try {
+    def eval(env:Env, e:Expr)(implicit bindings: Bindings) : CValue = try {
 	    e match {
   	    case Lit(i)         => VLit(i)
         case ExprVector(l)  => VVector (l map (eval(env,_)))
         case Var(n)         => env.get(n).getOrElse(VClassName(ClassName(n.x)))
         case Index(v,i)     => evalIndexOp(eval(env, v), i.map(x => eval(env, x)))
-        case Dot(o,Name("children",0)) =>
-          /* In order to avoid redundancy en potential inconsistencies, 
-             each object has a pointer to its parent instead of having 
-             each object maintain a list of its children. This is why the childrens'
-             list has to be computed on the fly when requested. 
-             An efficient implementation wouldn't do that. */
-          val id = extractId(eval(env,o))
-          checkAccessOk(id, env, st, o)
-          VList(childrenOf(id,st) map (c => VObjId(Some(c))))
         /* e.f */
-        case d @ Dot(e,f) =>
-          val ResolvedDot(id, _, _) = resolveDot(d, env, st)
-          checkAccessOk(id, env, st, e)
-          bindings.get((id, f)) match {
-            case Some((e1, env1)) =>
-              evalExpr(e1, env1, st)
-            case None =>
-              if (id == selfCId(env))
-                env.get(f).getOrElse(getObjectField(id, f, st))
-              else
-                getObjectField(id, f, st)
+        case Dot(o, f) =>
+          val id = evalToObjId(o, env, st)
+          if (f == children)
+            /* In order to avoid redundancy and potential inconsistencies, 
+             each object has a pointer to its parent instead of having 
+             each object maintain a list of its children. This is why the 
+             children list has to be computed on the fly when requested. 
+             An efficient implementation wouldn't do that. */
+            VList(childrenOf(id,st) map (c => VObjId(Some(c))))
+          else {
+            val fid = (id, f)
+            bindings.get(fid) match {
+              case None =>
+                if (id == selfCId(env))
+                  env.get(f).getOrElse(getObjectField(id, f, st))
+                else
+                  getObjectField(id, f, st)
+              case Some(CachedUnusedBinding(v)) => v
+              case Some(UnusedBinding(e1, env1)) =>
+                eval(env1,e1)(bindings updated (fid, UsedBinding))
+              case Some(UsedBinding) =>
+                throw new AlgebraicLoop(ObjField(id, getCls(id,st).x, f))
+            }  
           }
         /* FIXME:
            Could && and || be expressed in term of ifthenelse ? 
@@ -233,6 +247,12 @@ object Interpreter extends acumen.CStoreInterpreter {
             eval(eWithBindingsApplied, e)
       }
     } catch {
+      case err: AlgebraicLoop => throw e match {
+        case d @ Dot(o, f) =>
+          val id = resolveDot(d, env, st).id
+          err.addToChain(ObjField(id, getCls(id, st).x, f), e.pos)
+        case _ => err
+      }
       case err: PositionalAcumenError => err.setPos(e.pos); throw err
     }
     eval(env,e)
@@ -390,12 +410,14 @@ object Interpreter extends acumen.CStoreInterpreter {
     mapM_((a: (CId, Dot, CValue)) => setObjectFieldM(a._1, a._2.field, a._3), xs)
 
   /** Computes the values of variables in xs (identified by CId and Dot.field). */
-  def evaluateAssignments(xs: List[DelayedAction], st: Store)(implicit bindings: Bindings): List[(CId, Dot, CValue)] = 
-    xs.map(a => (a.o, a.d, evalExpr(a.rhs, a.env, st)))
+  def evaluateAssignments(xs: List[DelayedAction], st: Store)(implicit bindings: Bindings): List[(CId, Dot, CValue)] = {
+    val cache = cacheBindings(bindings, st)
+    xs.map(a => (a.o, a.d, evalExpr(a.rhs, a.env, st)(cache)))
+  }
     
   /** Updates the values of variables in xs (identified by CId and Dot.field) to the corresponding CValue. */
-  def applyDelayedAssignments(xs: List[DelayedAction], st: Store)(implicit bindings: Bindings): Eval[Unit] = 
-    applyAssignments(evaluateAssignments(xs, st))
+  def applyDelayedAssignments(xs: List[DelayedAction], st: Store)(implicit bindings: Bindings): Store = 
+    applyAssignments(evaluateAssignments(xs, st)) ~> st
   
   def step(p:Prog, st:Store, md: Metadata) : StepRes =
     if (getTime(st) >= getEndTime(st)){
@@ -403,10 +425,9 @@ object Interpreter extends acumen.CStoreInterpreter {
     } 
     else 
       { val (_, Changeset(ids, rps, das, eqs, odes, hyps), st1) = iterate(evalStep(p)(_)(NoBindings), mainId(st))(st)
-        def mkBindings(as: List[DelayedAction]): Bindings =
-          as.map{ e => val rd = resolveDot(e.d, e.env, st1); (rd.id, rd.field) -> (e.rhs, e.env)}.toMap
-        implicit val bindings = mkBindings(eqs)
-        val md1 = testHypotheses(hyps, md, st)
+        implicit val bindings = eqs.map{ e => val rd = resolveDot(e.d, e.env, st1)
+          (rd.id, rd.field) -> UnusedBinding(e.rhs, e.env)}.toMap
+        val md1 = testHypotheses(hyps, md, st)(cacheBindings(bindings, st))
         def resolveDots(s: List[DelayedAction]): List[ResolvedDot] =
           s.map(da => resolveDot(da.d, da.env, st1))
         val res = getResultType(st) match {
@@ -429,7 +450,7 @@ object Interpreter extends acumen.CStoreInterpreter {
             checkDuplicateAssingments(eqsIds ++ odesIds, DuplicateContinuousAssingment)
             checkContinuousDynamicsAlwaysDefined(p, eqsIds, st1)
             val stODE = solveIVP(odes, p, st1)
-            val stE = applyDelayedAssignments(eqs, stODE) ~> stODE
+            val stE = applyDelayedAssignments(eqs, stODE)
             val st2 = setResultType(Continuous, stE)
             setTime(getTime(st2) + getTimeStep(st2), st2)
         }
@@ -469,10 +490,7 @@ object Interpreter extends acumen.CStoreInterpreter {
   /** Representation of a set of ODEs. */
   case class FieldImpl(odes: List[DelayedAction], p: Prog)(implicit bindings: Bindings) extends Field[Store] {
     /** Evaluate the field (the RHS of each equation in ODEs) in s. */
-    override def apply(s: Store): Store =
-      applyAssignments(odes.map { 
-        case DelayedAction(o, n, rhs, env) => (o, n, evalExpr(rhs, env, s)) 
-      }) ~> s
+    override def apply(s: Store): Store = applyDelayedAssignments(odes, s)
     /** 
      * Returns the set of variables affected by the field.
      * These are the LHSs of each ODE and the corresponding unprimed variables.

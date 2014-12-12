@@ -17,6 +17,7 @@ object Canonical {
   val resultType   = name("resultType")
   val endTime      = name("endTime") 
   val nextChild    = name("nextChild")
+  val children     = name("children")
   val seed1        = name("seed1")
   val seed2        = name("seed2")
   val stateVars    = name("variableCount")

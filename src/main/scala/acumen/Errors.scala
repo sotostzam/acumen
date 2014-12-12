@@ -195,6 +195,10 @@ object Errors {
           s"\nAt time $time: " + m.map{case (d,v) => 
             Pretty.pprint(d.obj) + "." + Pretty.pprint(d.field) + " = " + Pretty.pprint(v)}.mkString(", ")}) + "."
   }
+  /* utility class */
+  case class ObjField(o: CId, cn: String, f: Name) {
+    override def toString = s"(#$o : $cn)." + pprint(f)
+  }
 
   /* UI errors */
 
@@ -283,4 +287,25 @@ object Errors {
     override def getMessage =
       "fromJSON failed with input: " + s
   }
+
+  case class AlgebraicLoop(first: ObjField, haveLoop: Boolean = false, chain: List[(ObjField, Position)] = Nil)
+    extends PositionalAcumenError {
+    override def mesg = "Algebraic loop detected while evaluating " + first
+    override def getMessage =
+      super.getMessage + "\n" + chain.map {
+        case (f, p) =>
+          val msg = "while evaluating " + f
+          p match {
+            case NoPosition => msg
+            case _          => p.toString + ": " + msg + "\n" + p.longString
+          }
+      }.mkString("\n")
+
+    def addToChain(f: ObjField, p: Position) =
+      (if (haveLoop) this
+      else if (chain.isEmpty) copy(chain = (f, p) :: Nil)
+      else if (f == first) copy(haveLoop = true)
+      else copy(chain = (f, p) :: chain)).setPos(p)
+  }
+
 }
