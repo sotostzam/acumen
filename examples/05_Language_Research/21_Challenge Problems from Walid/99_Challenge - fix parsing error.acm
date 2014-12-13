@@ -1,0 +1,14 @@
+
+model Main (simulator) = 
+  initially
+    x=10, x'=0, x''=-10,
+    e=100
+  always
+    x''=-10,
+    if (x<=0)&&(x'<0)
+      then (x'+ = -0.5 * x,
+            e+  = 0.25 * e)
+      noelse,
+    claim (x>=0),
+    claim (e = 0.5 *x*x + -10*x)
+

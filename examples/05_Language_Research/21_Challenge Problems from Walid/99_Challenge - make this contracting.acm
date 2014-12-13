@@ -1,0 +1,9 @@
+model Main (simulator) = 
+  initially
+    x=[-0.1..0.1], x'=1,
+    y=1,y'=-1
+  always
+
+    if (y>0) then y'=-1 else y=0,
+    x' = y-x,
+    simulator.endTime+ = 5.0

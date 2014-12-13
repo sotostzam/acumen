@@ -1,0 +1,6 @@
+model Main (simulator) = 
+  initially
+    x=[-0.1..0.1], x'=1
+  always
+    x' = 1-x,
+    simulator.endTime+ = 5.0

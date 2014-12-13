@@ -6,7 +6,6 @@
 // Please run this with "Semantics -> Enclosures"
 //  and with "Contraction" checked.   
 
-#semantics "enclosure2014-contraction"
 model Main(simulator) = 
 initially 
   x   =  1.0 , 

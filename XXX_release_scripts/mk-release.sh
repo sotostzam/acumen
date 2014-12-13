@@ -55,8 +55,6 @@ touch READY_FOR_CENSOR
 echo Fixing version string.
 perl -i.bak -pe "s/version := .+/version := \"$REL\"/" build.sbt
 perl -i.bak -pe "s/VERSION/$REL/g" README socket/README
-git add -u
-git commit -m "Update version string."
 
 # update version file
 echo Writing version file.
@@ -92,7 +90,7 @@ if [ -n "$VERSION" ]; then
 Make sure everything is in order and upload $REL_DIR.zip.
 
 Than tag the upstream git repository:
-  cd acumen-rel-working && git push origin master $TAG && cd ..
+  cd acumen-rel-working && git push origin $TAG && cd ..
 EOF
   echo "If making a full release see the instructions in \"release_instructions\""
   echo "to finalize the process, that is:"

@@ -1,0 +1,26 @@
+
+// Text with growing size (derivatives)
+
+model Main(simulator) = 
+initially
+ size  =  0.5,   // Initial size
+ size' =  0,   // Rate of increase of size with time
+ size'' = 0.5,
+ _3D  =  ()     // This is just the initial value
+always
+ size'' = 1 - size,
+ _3D =  
+   (Text 
+     center=(-2.2,0,0) 
+     size=size             // Font size now changing over time
+     color=(1+size,1-size,size)       
+     rotation=(0,0,0) 
+     content="Hello Acumen!")
+ 
+
+// Exercises
+// 1) Change the starting point to keep the displayed
+//    text centered around the origin.
+// 2) Without adding any additional variables, have
+//    the text rotate around the x-axis during the
+//    animation
