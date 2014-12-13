@@ -58,7 +58,7 @@ abstract class Examples {
       if (ast.defs.exists{_.name == cmain}) {
         val tr = semantics.applyPasses(ast, Nil)
         val intr = semantics.interpreter()
-        intr.run(tr, new DumpSample(out)).last
+        intr.run(tr, new DumpSample(out))
       } else {
         out.println("NO MAIN")
       }

@@ -36,10 +36,10 @@ object TransformationTestUtil {
       // set up the experimental interpreter
       val i = interpreters.reference2014.Interpreter
       // run desugared program before transformation
-      val dtrace = i.run(desugared)
+      val dtrace = i.lazyRun(desugared)
       dtrace.ctrace.last // force evaluation
       // run desugared program after transformation
-      val etrace = i.run(transformed)
+      val etrace = i.lazyRun(transformed)
       etrace.ctrace.last // force evaluation
       // compare pretty-printed traces
       val (dcs, ecs) = (onlyContinuousState(dtrace, contNames), onlyContinuousState(etrace, contNames))
@@ -110,7 +110,7 @@ object TransformationTestUtil {
   
   /** Filters away any irrelevant variables from the input CStoreRes. */
   def onlyContinuousState(csr: CStoreRes, contNames: Map[ClassName, Set[Name]]): CStoreRes =
-    CStoreRes(for { st <- csr.ctrace } yield onlyContinuousState(st, contNames))
+    CStoreRes(for { st <- csr.ctrace } yield onlyContinuousState(st, contNames), NoMetadata)
   
   /** Filters away any irrelevant variables from a CStore. */
   def onlyContinuousState(cst: CStore, contNames: Map[ClassName, Set[Name]]): CStore =
