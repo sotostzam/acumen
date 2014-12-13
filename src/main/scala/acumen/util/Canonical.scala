@@ -70,10 +70,9 @@ object Canonical {
 
   /* store modification */
 
-  def setField(o:CObject, n:Name, v:CValue) : CObject = {
-    if (o exists { case (m,_) => m.x == n.x }) o.updated(n,v) 
-    else throw VariableNotDeclared(n) 
-  }
+  def setField(o:CObject, n:Name, v:CValue) : CObject = 
+    if (o contains n) o.updated(n,v) 
+    else throw VariableNotDeclared(n)
 
   def setObject(id:CId, o:CObject, s:CStore) : CStore =
     s updated (id, o)
