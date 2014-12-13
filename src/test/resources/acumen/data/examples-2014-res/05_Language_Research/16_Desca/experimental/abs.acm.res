@@ -18,3 +18,7 @@
 }
 #0.0 { className = Simulator, time = 2.000000 }
 ------------------------------20
+NO HYPOTHESES FALSIFIED OVER [0.0..2.0000000000000004]
+1 TRUE, 0 FALSE, 0 INCONCLUSIVE
++ (#0:Main) 'abs encodes a conditional' Tested
+
