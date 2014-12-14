@@ -316,7 +316,9 @@ object Common {
               odeEnv.assignVals(idx) = KnownVal(v)
               v
           case Evaluating =>
-            throw AlgebraicLoop(ObjField(o.id,o.className,f)).setPos(vv.lastSetPos)
+            //throw AlgebraicLoop(ObjField(o.id,o.className,f))
+            throw AlgebraicLoop(ObjField(o.id,o.className,f), 
+                                posIsSetPoint = true).setPos(vv.lastSetPos)
           }
           case None => assert(o.phaseParms.usePrev); vv.prevSetVal
         }
