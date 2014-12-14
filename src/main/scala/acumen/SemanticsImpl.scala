@@ -88,7 +88,7 @@ object SemanticsImpl {
       case S2014 => reference2014.Interpreter
       //case S2015 => reference2015.Interpreter
     }
-    override val isOldSemantics = false;
+    override val isOldSemantics = semantics != S2014;
     def interpreter() = i
   }
   case class Enclosure2014(contraction: Boolean) extends CStore {
@@ -128,7 +128,7 @@ object SemanticsImpl {
                     else if (parDiscr == true && contMode == ContMode.IVP && contWithDiscr == false) S2014
                     else if (parDiscr == true && contMode == ContMode.NoDelay && contWithDiscr == false) S2015
                     else S2014.copy(id = None)
-    override val isOldSemantics = false;
+    override val isOldSemantics = !(semantics == S2014 ||  semantics == S2015)
     def interpreter() = i
     override def withArgs(args: List[String]) : Optimized = args match {
       case "parDiscr" :: tail => Optimized(true, contMode, contWithDiscr).withArgs(tail)
