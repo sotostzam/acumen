@@ -19,6 +19,7 @@ object Semantics {
   val S2012 = Semantics(Some("2012"), Seq("desugar-local"), Seq("SD"))
   val S2013 = Semantics(Some("2013"), Seq("desugar-toplevel"), Seq("SD"))
   val S2014 = Semantics(Some("2014"), Seq("desugar-local-inline"), Seq("SD"))
+  val S2015 = Semantics(Some("2015"), Seq("desugar-local-inline"), Seq("SD"))
 }
 
 abstract class SemanticsSel
@@ -85,8 +86,9 @@ object SemanticsImpl {
       case S2012 => reference2012.Interpreter
       case S2013 => reference2013.Interpreter
       case S2014 => reference2014.Interpreter
+      case S2015 => reference2015.Interpreter
     }
-    override val isOldSemantics = semantics != S2014
+    override val isOldSemantics = !(semantics == S2014 ||  semantics == S2015)
     def interpreter() = i
   }
   case class Enclosure2014(contraction: Boolean) extends CStore {
@@ -168,6 +170,7 @@ object SemanticsImpl {
   lazy val Ref2012 = Reference(S2012)
   lazy val Ref2013 = Reference(S2013)
   lazy val Ref2014 = Reference(S2014)
+  lazy val Ref2015 = Reference(S2015)
   lazy val Ref = Ref2014
   lazy val Opt2012 = Imperative2012
   lazy val Opt2013 = Optimized()
@@ -182,7 +185,8 @@ object SemanticsImpl {
   def sel(si: SemanticsSel, ids: String*) = Sel(si,false,ids:_*)
   def exp(si: SemanticsSel, ids: String*) = Sel(si,true,ids:_*)
   val selections = 
-    List(sel(Ref2014, "2014 Reference", "reference2014", "reference", ""),
+    List(sel(Ref2015, "2015 Reference", "reference2015"),
+         sel(Ref2014, "2014 Reference", "reference2014", "reference", ""),
          sel(Opt2014, "2014 Optimized", "optimized2014"),
          sel(Ref2013, "2013 Reference", "reference2013"),
          sel(Opt2013, "2013 Optimized", "optimized2013"),

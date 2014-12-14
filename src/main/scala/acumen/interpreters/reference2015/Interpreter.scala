@@ -11,7 +11,7 @@
 
 package acumen
 package interpreters
-package reference2014
+package reference2015
 
 import Eval._
 import Common._
@@ -38,6 +38,19 @@ object Interpreter extends acumen.CStoreInterpreter {
   def fromCStore(st:CStore, root:CId) = st
   override def visibleParameters = visibleParametersRef + ("method" -> VLit(GStr(RungeKutta)))
 
+  /* Bindings, expressed in models as continuous assignments 
+   * to unprimed variables, are used to look up sub-expressions
+   * during evaluation of continuous assignments. */
+  type Bindings = Map[(CId,Name), Binding] 
+  val NoBindings = Map.empty[(CId,Name), Binding]
+  sealed trait Binding
+  case object UsedBinding extends Binding
+  case class UnusedBinding(e: Expr, env: Env) extends Binding
+  case class CachedUnusedBinding(v: CValue) extends Binding
+  def cacheBindings(b: Bindings, st: Store): Bindings = 
+    b.foldLeft(b){ case (res, (k, UnusedBinding(e, env))) => 
+      res updated (k, CachedUnusedBinding(evalExpr(e, env, st)(res))) }
+  
   /* initial values */
   val emptyStore : Store = HashMap.empty
   val emptyEnv   : Env   = HashMap.empty
@@ -127,7 +140,7 @@ object Interpreter extends acumen.CStoreInterpreter {
       val (xs,ys) = cd.priv.foldLeft[(List[Name],List[InitRhs])]((Nil,Nil))(helper)
       (xs.reverse, ys.reverse)
     }
-       
+    implicit val bindings = NoBindings
     for { fid <- freshCId(prt)
           _ <- setObjectM(fid, pub)
           vs <- mapM[InitRhs, CValue]( 
@@ -152,37 +165,45 @@ object Interpreter extends acumen.CStoreInterpreter {
 
   /* utility function */
 
-  def evalToObjId(e: Expr, env: Env, st:Store) = evalExpr(e, env, st) match {
+  def evalToObjId(e: Expr, env: Env, st:Store)(implicit bindings: Bindings) = evalExpr(e, env, st) match {
     case VObjId(Some(id)) => checkAccessOk(id, env, st, e); id
     case v => throw NotAnObject(v).setPos(e.pos)
   }
 
   /* evaluate e in the scope of env 
    * for definitions p with current store st */
-  def evalExpr(e:Expr, env:Env, st:Store) : CValue = {
-    def eval(env:Env, e:Expr) : CValue = try {
+  def evalExpr(e:Expr, env:Env, st:Store)(implicit bindings: Bindings) : CValue = {
+    def eval(env:Env, e:Expr)(implicit bindings: Bindings) : CValue = try {
 	    e match {
   	    case Lit(i)         => VLit(i)
         case ExprVector(l)  => VVector (l map (eval(env,_)))
         case Var(n)         => env.get(n).getOrElse(VClassName(ClassName(n.x)))
         case Index(v,i)     => evalIndexOp(eval(env, v), i.map(x => eval(env, x)))
-        case Dot(o,Name("children",0)) =>
-          /* In order to avoid redundancy en potential inconsistencies, 
-             each object has a pointer to its parent instead of having 
-             each object maintain a list of its children. This is why the childrens'
-             list has to be computed on the fly when requested. 
-             An efficient implementation wouldn't do that. */
-          val id = extractId(eval(env,o))
-          checkAccessOk(id, env, st, o)
-          VList(childrenOf(id,st) map (c => VObjId(Some(c))))
         /* e.f */
-        case Dot(e,f) =>
-          val id = extractId(eval(env, e))
-          checkAccessOk(id, env, st, e)
-          if (id == selfCId(env))
-            env.get(f).getOrElse(getObjectField(id, f, st))
-          else
-            getObjectField(id, f, st)
+        case Dot(o, f) =>
+          val id = evalToObjId(o, env, st)
+          if (f == children)
+            /* In order to avoid redundancy and potential inconsistencies, 
+             each object has a pointer to its parent instead of having 
+             each object maintain a list of its children. This is why the 
+             children list has to be computed on the fly when requested. 
+             An efficient implementation wouldn't do that. */
+            VList(childrenOf(id,st) map (c => VObjId(Some(c))))
+          else {
+            val fid = (id, f)
+            bindings.get(fid) match {
+              case None =>
+                if (id == selfCId(env))
+                  env.get(f).getOrElse(getObjectField(id, f, st))
+                else
+                  getObjectField(id, f, st)
+              case Some(CachedUnusedBinding(v)) => v
+              case Some(UnusedBinding(e1, env1)) =>
+                eval(env1,e1)(bindings updated (fid, UsedBinding))
+              case Some(UsedBinding) =>
+                throw new AlgebraicLoop(ObjField(id, getCls(id,st).x, f))
+            }  
+          }
         /* FIXME:
            Could && and || be expressed in term of ifthenelse ? 
            => we would need ifthenelse to be an expression  */
@@ -226,15 +247,21 @@ object Interpreter extends acumen.CStoreInterpreter {
             eval(eWithBindingsApplied, e)
       }
     } catch {
+      case err: AlgebraicLoop => throw e match {
+        case d @ Dot(o, f) =>
+          val id = resolveDot(d, env, st).id
+          err.addToChain(ObjField(id, getCls(id, st).x, f), e.pos)
+        case _ => err
+      }
       case err: PositionalAcumenError => err.setPos(e.pos); throw err
     }
     eval(env,e)
   }.setPos(e.pos)
 
-  def evalActions(as:List[Action], env:Env, p:Prog) : Eval[Unit] =
+  def evalActions(as:List[Action], env:Env, p:Prog)(implicit bindings: Bindings) : Eval[Unit] =
     mapM_((a:Action) => evalAction(a, env, p), as)
   
-  def evalAction(a:Action, env:Env, p:Prog) : Eval[Unit] = {
+  def evalAction(a:Action, env:Env, p:Prog)(implicit bindings: Bindings) : Eval[Unit] = {
     def VListToPattern(ls:List[Value[_]]):GPattern = 
             GPattern(ls.map(x => x match{
               case VLit(n) => n
@@ -288,7 +315,7 @@ object Interpreter extends acumen.CStoreInterpreter {
     }
   }
  
-  def evalDiscreteAction(a:DiscreteAction, env:Env, p:Prog) : Eval[Unit] =
+  def evalDiscreteAction(a:DiscreteAction, env:Env, p:Prog)(implicit bindings: Bindings) : Eval[Unit] =
     a match {
       case Assign(d@Dot(e,n),rhs) => 
         for { id <- asks(evalToObjId(e, env, _)) 
@@ -325,7 +352,7 @@ object Interpreter extends acumen.CStoreInterpreter {
         throw BadMove()
     }
 
-  def evalContinuousAction(a:ContinuousAction, env:Env, p:Prog) : Eval[Unit] = 
+  def evalContinuousAction(a:ContinuousAction, env:Env, p:Prog)(implicit bindings: Bindings) : Eval[Unit] = 
     a match {
       case EquationT(d@Dot(e,n),rhs) =>
         for { id <- asks(evalToObjId(e, env, _)) 
@@ -337,7 +364,7 @@ object Interpreter extends acumen.CStoreInterpreter {
         throw ShouldNeverHappen() // FIXME: enforce that with refinement types
     }
   
-  def evalStep(p:Prog)(id:CId) : Eval[Unit] =
+  def evalStep(p:Prog)(id:CId)(implicit bindings: Bindings) : Eval[Unit] =
     for (cl <- asks(getCls(id,_))) {
       val as = classDef(cl, p).body
       val env = HashMap((self, VObjId(Some(id))))
@@ -383,26 +410,30 @@ object Interpreter extends acumen.CStoreInterpreter {
     mapM_((a: (CId, Dot, CValue)) => setObjectFieldM(a._1, a._2.field, a._3), xs)
 
   /** Computes the values of variables in xs (identified by CId and Dot.field). */
-  def evaluateAssignments(xs: List[(CId, Dot, Expr, Env)], st: Store): List[(CId, Dot, CValue)] = 
-    xs.map((a: (CId, Dot, Expr, Env)) => (a._1, a._2, evalExpr(a._3, a._4, st)))
+  def evaluateAssignments(xs: List[DelayedAction], st: Store)(implicit bindings: Bindings): List[(CId, Dot, CValue)] = {
+    val cache = cacheBindings(bindings, st)
+    xs.map(a => (a.o, a.d, evalExpr(a.rhs, a.env, st)(cache)))
+  }
     
   /** Updates the values of variables in xs (identified by CId and Dot.field) to the corresponding CValue. */
-  def applyDelayedAssignments(xs: List[(CId, Dot, Expr, Env)], st: Store): Eval[Unit] = 
-    applyAssignments(evaluateAssignments(xs,st))
+  def applyDelayedAssignments(xs: List[DelayedAction], st: Store)(implicit bindings: Bindings): Store = 
+    applyAssignments(evaluateAssignments(xs, st)) ~> st
   
   def step(p:Prog, st:Store, md: Metadata) : StepRes =
     if (getTime(st) >= getEndTime(st)){
       Done(md, getEndTime(st))
     } 
     else 
-      { val (_, Changeset(ids, rps, das, eqs, odes, hyps), st1) = iterate(evalStep(p), mainId(st))(st)
-        val md1 = testHypotheses(hyps, md, st)
-        def resolveDots(s: List[(CId,Dot,Expr,Env)]): List[ResolvedDot] =
-          s.map{ case (o, d, _, env) => resolveDot(d, env, st1) }
+      { val (_, Changeset(ids, rps, das, eqs, odes, hyps), st1) = iterate(evalStep(p)(_)(NoBindings), mainId(st))(st)
+        implicit val bindings = eqs.map{ e => val rd = resolveDot(e.d, e.env, st1)
+          (rd.id, rd.field) -> UnusedBinding(e.rhs, e.env)}.toMap
+        val md1 = testHypotheses(hyps, md, st)(cacheBindings(bindings, st))
+        def resolveDots(s: List[DelayedAction]): List[ResolvedDot] =
+          s.map(da => resolveDot(da.d, da.env, st1))
         val res = getResultType(st) match {
           case Discrete | Continuous => // Either conclude fixpoint is reached or do discrete step
             checkDuplicateAssingments(resolveDots(das), DuplicateDiscreteAssingment)
-            val dasValues = evaluateAssignments(das, st1)
+            val dasValues = evaluateAssignments(das, st1)(NoBindings)
             val nonIdentityDas = dasValues.filterNot{ a => a._3 == getObjectField(a._1, a._2.field, st1) }
             if (st == st1 && ids.isEmpty && rps.isEmpty && nonIdentityDas.isEmpty) 
               setResultType(FixedPoint, st1)
@@ -419,17 +450,17 @@ object Interpreter extends acumen.CStoreInterpreter {
             checkDuplicateAssingments(eqsIds ++ odesIds, DuplicateContinuousAssingment)
             checkContinuousDynamicsAlwaysDefined(p, eqsIds, st1)
             val stODE = solveIVP(odes, p, st1)
-            val stE = applyDelayedAssignments(eqs, st1) ~> stODE
+            val stE = applyDelayedAssignments(eqs, stODE)
             val st2 = setResultType(Continuous, stE)
             setTime(getTime(st2) + getTimeStep(st2), st2)
         }
         Data(countVariables(res), md1)
       }
-
+  
   /** Summarize result of evaluating the hypotheses of all objects. */
-  def testHypotheses(hyps: List[(CId, Option[String], Expr, Env)], old: Metadata, st: Store): Metadata =
+  def testHypotheses(hyps: List[DelayedHypothesis], old: Metadata, st: Store)(implicit bindings: Bindings): Metadata =
     old combine (if (hyps isEmpty) NoMetadata else SomeMetadata(hyps.map {
-      case (o, hn, h, env) =>
+      case DelayedHypothesis(o, hn, h, env) =>
         val cn = getCls(o, st)
         lazy val counterEx = dots(h).toSet[Dot].map(d => d -> evalExpr(d, env, st))
         val VLit(GBool(b)) = evalExpr(h, env, st)
@@ -444,7 +475,7 @@ object Interpreter extends acumen.CStoreInterpreter {
    *  - Env:  Initial conditions of the IVP.
    * The time segment is derived from time step in store st. 
    */
-  def solveIVP(odes: List[(CId, Dot, Expr, Env)], p: Prog, st: Store): Store = {
+  def solveIVP(odes: List[DelayedAction], p: Prog, st: Store)(implicit bindings: Bindings): Store = {
     implicit val field = FieldImpl(odes, p)
     new Solver(getInSimulator(Name("method", 0),st), xs = st, h = getTimeStep(st)){
       // add the EulerCromer solver
@@ -457,19 +488,16 @@ object Interpreter extends acumen.CStoreInterpreter {
   }
   
   /** Representation of a set of ODEs. */
-  case class FieldImpl(odes: List[(CId, Dot, Expr, Env)], p: Prog) extends Field[Store] {
+  case class FieldImpl(odes: List[DelayedAction], p: Prog)(implicit bindings: Bindings) extends Field[Store] {
     /** Evaluate the field (the RHS of each equation in ODEs) in s. */
-    override def apply(s: Store): Store =
-      applyAssignments(odes.map { 
-        case (o, n, rhs, env) => (o, n, evalExpr(rhs, env, s)) 
-      }) ~> s
+    override def apply(s: Store): Store = applyDelayedAssignments(odes, s)
     /** 
      * Returns the set of variables affected by the field.
      * These are the LHSs of each ODE and the corresponding unprimed variables.
      * NOTE: Assumes that the de-sugarer has reduced all higher-order ODEs.  
      */
     def variables: List[(CId, Dot)] =
-      odes.flatMap { case (o, d, _, _) => List((o, d), (o, Dot(d.obj, Name(d.field.x, 0)))) }
+      odes.flatMap { da => List((da.o, da.d), (da.o, Dot(da.d.obj, Name(da.d.field.x, 0)))) }
   }
 
   /**
@@ -499,13 +527,13 @@ object Interpreter extends acumen.CStoreInterpreter {
    * NOTE: Some equational properties of Acumen programs may not hold 
    *       when using this integration method.
    */
-  def solveIVPEulerCromer(st: Store, h: Double)(implicit f: FieldImpl): Store = {
+  def solveIVPEulerCromer(st: Store, h: Double)(implicit f: FieldImpl, bindings: Bindings): Store = {
     // Ensure that derivatives are being integrated in the correct order
     val sortedODEs = f.odes
-      .groupBy{ case (o, Dot(_, n), r, e) => (o, n.x) }
-      .mapValues(_.sortBy { case (_, Dot(_, n), _, _) => n.primes }).values.flatten
+      .groupBy{ case DelayedAction(o, Dot(_, n), r, e) => (o, n.x) }
+      .mapValues(_.sortBy { case DelayedAction(_, Dot(_, n), _, _) => n.primes }).values.flatten
     val solutions = sortedODEs.foldRight(Map.empty[(CId, Dot), CValue]) {
-      case ((o, d@Dot(_, n), r, e), updatedEnvs) =>
+      case (DelayedAction(o, d@Dot(_, n), r, e), updatedEnvs) =>
         val updatedEnv = e ++ (for (((obj, dot), v) <- updatedEnvs if obj == o) yield (dot.field -> v))
         val vt = evalExpr(r, updatedEnv, st)
         val lhs = getObjectField(o, n, st)
