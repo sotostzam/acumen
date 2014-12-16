@@ -39,7 +39,8 @@ object ContMode {
 
 class Interpreter(val parDiscr: Boolean = true, 
                   val contMode: ContMode = ContMode.Seq,
-                  val contWithDiscr: Boolean = false) extends CStoreInterpreter {
+                  val contWithDiscr: Boolean = false,
+                  val specialInitContStep : Boolean = false) extends CStoreInterpreter {
 
   import Common._ 
 
@@ -57,7 +58,7 @@ class Interpreter(val parDiscr: Boolean = true,
     val mainObj = mkObj(cmain, sprog, IsMain, sd1, List(VObjId(Some(magic))), magic, 1)
     magic.seed = sd2
     val mprog = Prog(magicClass :: sprog.defs)
-    if (contMode == ContMode.NoDelay)
+    if (specialInitContStep)
       magic.phaseParms.specialInitialStep = true
     (mprog , mainObj, NoMetadata)
   }
@@ -233,5 +234,5 @@ class Interpreter(val parDiscr: Boolean = true,
   }
 }
 
-object Interpreter extends Interpreter(true,ContMode.Seq,false)
+object Interpreter extends Interpreter(true,ContMode.Seq,false,false)
 
