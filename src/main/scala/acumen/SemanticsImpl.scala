@@ -121,9 +121,9 @@ object SemanticsImpl {
     // "static|sharing" options is considered experimental and should not be documented
   }
   case class Optimized(parDiscr: Boolean = true, contMode: ContMode = ContMode.Seq, 
-                       contWithDiscr: Boolean = false) extends CStore
+                       contWithDiscr: Boolean = false, specialInitContStep : Boolean = false) extends CStore
   {
-    val i = new optimized.Interpreter(parDiscr,contMode,contWithDiscr)
+    val i = new optimized.Interpreter(parDiscr,contMode,contWithDiscr,specialInitContStep)
     val semantics = if (parDiscr == true && contMode == ContMode.Seq && contWithDiscr == false) S2013
                     else if (parDiscr == true && contMode == ContMode.IVP && contWithDiscr == false) S2014
                     else if (parDiscr == true && contMode == ContMode.NoDelay && contWithDiscr == false) S2015
@@ -131,14 +131,15 @@ object SemanticsImpl {
     override val isOldSemantics = !(semantics == S2014 ||  semantics == S2015)
     def interpreter() = i
     override def withArgs(args: List[String]) : Optimized = args match {
-      case "parDiscr" :: tail => Optimized(true, contMode, contWithDiscr).withArgs(tail)
-      case "seqDiscr" :: tail => Optimized(false, contMode, contWithDiscr).withArgs(tail)
-      case "parCont" :: tail => Optimized(parDiscr, ContMode.Par, contWithDiscr).withArgs(tail)
-      case "seqCont" :: tail => Optimized(parDiscr, ContMode.Seq, contWithDiscr).withArgs(tail)
-      case "IVP" :: tail => Optimized(parDiscr, ContMode.IVP, contWithDiscr).withArgs(tail)
-      case "NoDelay" :: tail => Optimized(parDiscr, ContMode.NoDelay, contWithDiscr).withArgs(tail)
-      case "contWithDiscr" :: tail => Optimized(parDiscr, contMode, true).withArgs(tail)
-      case "contWithCont" :: tail => Optimized(parDiscr, contMode, false).withArgs(tail)
+      case "parDiscr" :: tail => copy(parDiscr = true).withArgs(tail)
+      case "seqDiscr" :: tail => copy(parDiscr = false).withArgs(tail)
+      case "parCont" :: tail => copy(contMode = ContMode.Par).withArgs(tail)
+      case "seqCont" :: tail => copy(contMode = ContMode.Seq).withArgs(tail)
+      case "IVP" :: tail => copy(contMode = ContMode.IVP).withArgs(tail)
+      case "NoDelay" :: tail => copy(contMode = ContMode.NoDelay).withArgs(tail)
+      case "contWithDiscr" :: tail => copy(contWithDiscr = true).withArgs(tail)
+      case "contWithCont" :: tail => copy(contWithDiscr = false).withArgs(tail)
+      case "specialInitContStep" :: tail => copy(specialInitContStep = true).withArgs(tail)
       case Nil => this
       case _ => null
     }
@@ -148,7 +149,8 @@ object SemanticsImpl {
                                             case ContMode.Par => "parCont"; 
                                             case ContMode.IVP => "IVP";
                                             case ContMode.NoDelay => "NoDelay"},
-                            if (contWithDiscr) "contWithDiscr" else "contWithCont")
+                            if (contWithDiscr) "contWithDiscr" else "contWithCont",
+                            if (specialInitContStep) "specialInitContStep" else "")
   }
   // Use this as a base for selecting the generic optimized semantics
   // that not trying to match a particular semantics
@@ -179,6 +181,7 @@ object SemanticsImpl {
   lazy val Opt2013 = Optimized()
   lazy val Opt2014 = Optimized(contMode = ContMode.IVP)
   lazy val Opt2015 = Optimized(contMode = ContMode.NoDelay)
+  lazy val Opt2015b = Optimized(contMode = ContMode.NoDelay, specialInitContStep = true)
 
   case class Sel(si: SemanticsSel, 
                  // First id is the display name
@@ -191,6 +194,7 @@ object SemanticsImpl {
   val selections = 
     List(sel(Ref2015, "2015 Reference", "reference2015"),
          sel(Opt2015, "2015 Optimized", "optimized2015"),
+         sel(Opt2015b, "2015 Optimized (b)", "optimized2015b"),
          sel(Ref2014, "2014 Reference", "reference2014", "reference", ""),
          sel(Opt2014, "2014 Optimized", "optimized2014"),
          sel(Ref2013, "2013 Reference", "reference2013"),

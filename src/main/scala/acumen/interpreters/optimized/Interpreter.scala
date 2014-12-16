@@ -59,6 +59,8 @@ class Interpreter(val parDiscr: Boolean = true,
     magic.seed = sd2
     val mprog = Prog(magicClass :: sprog.defs)
     if (specialInitContStep)
+      println("Doing specialInitContStep")
+    if (specialInitContStep)
       magic.phaseParms.specialInitialStep = true
     (mprog , mainObj, NoMetadata)
   }
