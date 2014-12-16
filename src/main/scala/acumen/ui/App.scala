@@ -161,6 +161,7 @@ class App extends SimpleSwingApplication {
   private val plotStyleLinesAction            = new Action(  "Lines")       { mnemonic =            VK_L; def apply = plotView.setPlotStyle(plot.Lines()) }
   private val plotStyleDotsAction             = new Action(  "Dots")        { mnemonic =            VK_D; def apply = plotView.setPlotStyle(plot.Dots()) }
   private val plotStyleBothAction             = new Action(  "Both")        { mnemonic =            VK_B; def apply = plotView.setPlotStyle(plot.Both()) }
+  private val reference2015Action             = mkActionMask("2015 Reference",                      VK_R, NONE,       shortcutMask | SHIFT_MASK, setSemantics(S.Ref2015))
   private val reference2014Action             = mkActionMask("2014 Reference",                      VK_R, VK_R,       shortcutMask | SHIFT_MASK, setSemantics(S.Ref2014))
   private val reference2013Action             = mkActionMask("2013 Reference",                      VK_R, NONE,       shortcutMask | SHIFT_MASK, setSemantics(S.Ref2013))
   private val reference2012Action             = mkActionMask("2012 Reference",                      VK_R, NONE,       shortcutMask | SHIFT_MASK, setSemantics(S.Ref2012))
@@ -516,6 +517,11 @@ class App extends SimpleSwingApplication {
     }
 
     object semantics {
+      val ref2015 = new RadioMenuItem("") {
+        selected = false
+        enableWhenStopped(this)
+        action = reference2015Action
+      }
       val ref2014 = new RadioMenuItem("") {
         selected = false
         enableWhenStopped(this)
@@ -580,7 +586,7 @@ class App extends SimpleSwingApplication {
         enableWhenStopped(this) 
         selected = false
       }
-      val bg = new ButtonGroup(ref2013, opt2013, ref2014, opt2014, opt2015, ref2012, opt2012, par2012, encPWL, encEVT, enc2014)
+      val bg = new ButtonGroup(ref2013, opt2013, ref2014, opt2014, ref2015, opt2015, ref2012, opt2012, par2012, encPWL, encEVT, enc2014)
       val ls = new CheckMenuItem("") {
         def shouldBeEnabled = Main.defaultSemantics match { case _:S.Enclosure | _:S.Enclosure2014 => true; case _ => false }
         action = contractionAction
@@ -607,6 +613,7 @@ class App extends SimpleSwingApplication {
         mnemonic = Key.T
         contents += ref2014
         contents += opt2014
+        contents += ref2015
         contents += opt2015
       }
       contents += new Menu("Enclosure") {
@@ -745,6 +752,7 @@ class App extends SimpleSwingApplication {
       case S.Opt2013 => bar.semantics.opt2013.selected = true
       case S.Ref2013 => bar.semantics.ref2012.selected = true
       case S.Ref2014 => bar.semantics.ref2014.selected = true
+      case S.Ref2015 => bar.semantics.ref2015.selected = true
       case S.Opt2014 => bar.semantics.opt2014.selected = true
       case S.Opt2015 => bar.semantics.opt2015.selected = true
       case S.Opt2012 => bar.semantics.opt2012.selected = true
