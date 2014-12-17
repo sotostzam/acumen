@@ -1,0 +1,41 @@
+model Main(simulator) =
+initially
+  a = 0, a' = 1,
+  b = 0, c = 0,
+  n = 0,
+  m = 0
+always
+  // simulator
+  simulator.endTime += 10,
+  simulator.timeStep += 0.125,
+
+  // a = t
+  a' = 1,
+
+  // c = b
+  c = b,
+
+  // if a becomes greater than 1, we reset it to 0
+  // and modify b
+  if a > 1 then
+   a+ = 0,
+   b+ = 1
+  noelse,
+
+  // if b is greater than 0, we increase the counter m
+  // and set b back to 0
+  if b > 0 then
+   b+ = 0,
+   m+ = m + 1
+  noelse,
+
+  // if c is greater than 0, we increase the counter n
+  // and set c back to 0
+  if c > 0 then
+   c+ = 0,
+   n+ = n + 1
+  noelse,
+
+ hypothesis
+  "c = b"
+  c == b

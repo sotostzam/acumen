@@ -1,0 +1,76 @@
+model Main(simulator) =
+initially
+  // a_0 = 2, b_0 = 4, d_0 = 4
+  // keep a * a = b = d
+  a = 2, b = 4, d = 4, 
+ 
+  // all of these assignments will be consistent
+  // with the ones in the 'always' section
+  a' = 2, b' = 8, d' = 8,
+  c = 4, e = 8, f = 8,
+
+  // time
+  t = 0, t' = 1
+always
+  // simulator
+  simulator.endTime += 1,
+  simulator.timeStep += 0.125,
+
+  // time
+  t' = 1,
+
+  // a = a' = a_0 * e^t
+  a' = a,
+
+  // b = c = b_0 * e^2t, b' = 2 * b_0 * e^2t
+  b' = b + c,
+  c = b,
+
+  // d = d_0 * e^2t, e = f = d' = 2 * d_0 * e^2t
+  d' = e,
+  e = f,
+  f = 2 * d,
+
+  // repeating the equations above (except the ones for fs)
+  // - the equations hold after the 'initial' section
+  hypothesis 
+    "a' = a"
+    a' == a,
+ 
+  hypothesis
+    "b' = b + c"
+    b' == b + c,
+ 
+  hypothesis
+    "c = b"
+    c == b,
+
+  hypothesis
+    "d' = e"
+    d' == e,
+
+  hypothesis
+    "e = f"
+    f == e,
+
+  hypothesis
+    "f = 2 * d"
+    f == 2 * d,
+
+  hypothesis
+    "b' = d'"
+    b' == d',
+
+// additional checks that arise from what functions a, b, d are
+
+  // even the numerical solutions for b and d should coincide 
+  hypothesis
+  "b == d"
+   b == d,
+
+  // slight difference might occur due to numerics
+  // - increasing the endtime and/or stepsize will lead to
+  //   violation here due to numerical reasons
+  hypothesis
+  "a * a == b"
+   abs(a * a - b) < 0.01
