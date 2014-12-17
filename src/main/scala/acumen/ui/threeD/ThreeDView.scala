@@ -882,14 +882,16 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D, playSpeed: Double,
       val transVector = tempTransVector.calcSub(transObject.getTransformedCenter)
       transObject.translate(transVector)
       if (anaglyphObject != null) {
+        val colorAverage = (color(0) + color(1) + color(2)) / 3
         transObject.setTransparencyMode(Object3D.TRANSPARENCY_MODE_ADD)
         transObject.setTransparency(0)
+        setColor(transObject, Array(colorAverage, colorAverage, colorAverage))
         anaglyphObject.setTransparencyMode(Object3D.TRANSPARENCY_MODE_ADD)
         anaglyphObject.setTransparency(0)
         if (TextureManager.getInstance().containsTexture("ConeRed"))
           transObject.setTexture("ConeRed")
         // reset the color for the object
-        setColor(anaglyphObject, color)
+        setColor(anaglyphObject, Array(colorAverage, colorAverage, colorAverage))
         // rotate the object
         if (checkResizeable(angle))
           app.rotateObject(anaglyphObject, angle, name, null)
@@ -970,6 +972,8 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D, playSpeed: Double,
       if (app.enableAnaglyph) {
         newObject.setTransparencyMode(Object3D.TRANSPARENCY_MODE_ADD)
         newObject.setTransparency(0)
+        val colorAverage = (color(0) + color(1) + color(2)) / 3
+        setColor(newObject, Array(colorAverage, colorAverage, colorAverage))
         val anaglyphObject = new Object3D(newObject, false)
         if (TextureManager.getInstance().containsTexture("ConeRed"))
           newObject.setTexture("ConeRed")
