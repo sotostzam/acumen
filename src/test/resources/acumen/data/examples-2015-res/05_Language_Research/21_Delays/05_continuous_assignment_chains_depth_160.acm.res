@@ -334,3 +334,7 @@
 }
 #0.0 { className = Simulator, time = 10.010000 }
 ------------------------------1001
+NO HYPOTHESES FALSIFIED OVER [0.0..10.009999999999831]
+1 TRUE, 0 FALSE, 0 INCONCLUSIVE
++ (#0:Main) 'continuous assignments do not cause delays' Tested
+

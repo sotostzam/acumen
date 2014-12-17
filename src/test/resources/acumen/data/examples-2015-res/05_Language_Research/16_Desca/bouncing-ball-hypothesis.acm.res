@@ -58,3 +58,7 @@
 }
 #0.0 { className = Simulator, time = 5.010000 }
 ------------------------------717
+NO HYPOTHESES FALSIFIED OVER [0.0..5.009999999999938]
+1 TRUE, 0 FALSE, 0 INCONCLUSIVE
++ (#0:Main) 'x < 1.3 after the first bounce' Tested
+
