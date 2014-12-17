@@ -82,3 +82,7 @@ object Examples2013 extends Examples {
 object Examples2014 extends Examples {
   override val expectLoc = "src/test/resources/acumen/data/examples-2014-res"
 }
+
+object Examples2015 extends Examples {
+  override val expectLoc = "src/test/resources/acumen/data/examples-2015-res"
+}

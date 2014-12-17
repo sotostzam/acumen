@@ -146,7 +146,8 @@ object SemanticsImpl {
                             if (parDiscr) "parDiscr" else "seqDiscr",
                             contMode match {case ContMode.Seq => "seqCont"; 
                                             case ContMode.Par => "parCont"; 
-                                            case ContMode.IVP => "IVP";},
+                                            case ContMode.IVP => "IVP";
+                                            case ContMode.NoDelay => "NoDelay"},
                             if (contWithDiscr) "contWithDiscr" else "contWithCont")
   }
   // Use this as a base for selecting the generic optimized semantics

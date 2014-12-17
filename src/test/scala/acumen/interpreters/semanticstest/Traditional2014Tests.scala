@@ -6,7 +6,7 @@ import acumen.testutil.TestUtil.assertEqualTrace
 
 trait Traditional2014Tests extends SemanticsTestBase with BasicErrorTests {
 
-  override def examples = Examples2014
+  override def examples : Examples = Examples2014
   override def examplesSkip(f: String) = {
     false
     /* This is old code, but is being kept around as examples on how
