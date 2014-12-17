@@ -170,8 +170,11 @@ trait CStoreInterpreter extends Interpreter {
     var st = st0
     var md = md0
     var cstore = repr(st0)
-    var shouldAddData = ShouldAddData.IfLast 
-    // ^^ set to IfLast on purpose to make things work
+    /* If shouldAddData is set to IfLast then the last store is sent 
+     * to the output. As every store is sent there by calling Data at 
+     * the end of each evaluation cycle (Discrete, FixedPoint, Continuous, 
+     * Integration), we do not need to output this again. */
+    var shouldAddData = ShouldAddData.No 
     while (true) {
       step(p, st, md) match {
         case Data(resSt,resMd) => // If the simulation is not over
@@ -263,7 +266,7 @@ trait RecursiveInterpreter extends Interpreter {
 //
 
 class CStoreOpts {
-  var outputRows = OutputRows.WhenChanged
+  var outputRows = OutputRows.All
   var continuousSkip = 0
   var outputInternalState = false // controls "parent", "nextChild", "seed1", "seed2" but not "className"
   var outputSimulatorState = false // does not control Simulator.time, Simulator.resultType, or Simulator.endTime
@@ -376,10 +379,11 @@ abstract class FilterDataAdder(var opts: CStoreOpts) extends DataAdder {
     curStepType = t
     import OutputRows._
     val what = opts.outputRows
-    outputRow = (what == All // 1
-                 || (curStepType == Continuous && what != Last)  // 2
+    outputRow = (what == All) // 1
+                 /*|| (curStepType == Integration && what != Last)  // 2
                  || (curStepType ==  Discrete && what == WhenChanged) // 3
-                 || (prevStepType == Discrete && curStepType == FixedPoint && what == FinalWhenChanged)) // 4
+                 || (prevStepType == FixedPoint && curStepType == Continuous && what == WhenChanged)
+                 || (prevStepType == Discrete && curStepType == FixedPoint && what == WhenChanged)) // 4*/
     //                   <Last> @Continuous @Discrete <FP. Changed> @FixedPoint
     // All                 1         1 2        1          1             1 
     // WhenChanged         y          2         3          n             n
@@ -387,6 +391,7 @@ abstract class FilterDataAdder(var opts: CStoreOpts) extends DataAdder {
     // ContinuousOnly      y          2         n          n             n 
     // Last                y          n         n          n             n 
     prevStepType = curStepType
+    /* Feri: Old code we don't want 
     if (curStepType == Continuous) {
       if (contCountdown == 0) {
         contCountdown = opts.continuousSkip
@@ -395,6 +400,7 @@ abstract class FilterDataAdder(var opts: CStoreOpts) extends DataAdder {
         contCountdown -= 1
       }
     }
+    */
     if (outputRow)         ShouldAddData.Yes
     else if (what == Last) ShouldAddData.IfLast
     else                   ShouldAddData.No
