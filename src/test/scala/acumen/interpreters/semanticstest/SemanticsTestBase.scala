@@ -13,7 +13,7 @@ abstract class SemanticsTestBase extends FunSuite with ShouldMatchers {
     val ast = semantics.parse(in)
     val des = semantics.applyRequiredPasses(ast)
     val i = semantics.interpreter()
-    for (_ <- (i.run(des).ctrace)) ()
+    for (_ <- (i.lazyRun(des).ctrace)) ()
   }
 
   def run(filename:String) : Unit = {

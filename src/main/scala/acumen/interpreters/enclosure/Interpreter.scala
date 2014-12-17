@@ -28,6 +28,7 @@ trait EnclosureInterpreterCallbacks extends InterpreterCallbacks {
 case class EnclosureRes(res: Seq[UnivariateAffineEnclosure]) extends InterpreterRes {
   def print = println(res)
   def printLast = println(res.last)
+  val metadata = NoMetadata
 }
 
 /**

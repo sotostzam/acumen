@@ -44,47 +44,16 @@ class Console extends ListView[(Msg, Boolean /*messageIsOld*/)] { self =>
        .replaceAll("\n","<br/>") + 
       "</pre></html>"
 
-  private def summarizeHypothesisOutcomes(md: SomeMetadata, messageIsOld: Boolean): String = {
-    def colorSuccess(m: String)   = color("green",  messageIsOld, m)
-    def colorUncertain(m: String) = color("ff9900", messageIsOld, m)
-    def colorFailure(m: String)   = color("red",    messageIsOld, m)
-    val (mLenCId, mLenCN, mLenHN) = md.hyp.foldLeft((0, 0, 0)) {
-      case ((rid, rcn, rhn), ((id,cn,hn), od)) =>
-        val sid = id.cid.toString
-        ( Math.max(rid, sid.length)
-        , Math.max(rcn, cn.x.length)
-        , Math.max(rhn, hn.map(_.length).getOrElse(0)))
-    }
-    val (report, successes, uncertains, failures) = md.hyp.toList.reverse.foldLeft(("", 0, 0, 0)) {
-      case ((resReport, resS, resU, resF), ((id, cn, hn), ho)) =>
-        val sid = s"(#${id.cid.toString}:${cn.x})".padTo(mLenCId + mLenCN + 2, "&nbsp;").mkString
-        val shn = hn.map("'" + _ + "'").getOrElse("").padTo(mLenHN + 2, "&nbsp;").mkString
-        def fail(prefix: String, t: String, e: Set[(Dot,GValue)]) = 
-          s"$prefix $t" + (if (e isEmpty) "" else ", where " + e.map { case (d, v) => 
-            val lhs = Pretty pprint (if (d.obj == Var(util.Canonical.self)) Var(d.field) else (d:Expr)) 
-            s"$lhs = ${Pretty pprint v}"
-          }.mkString(", "))
-        val (s, u, f, symbol, sho) = ho match {
-          case TestSuccess            => (1, 0, 0,                "+",       "Tested")
-          case TestFailure(t, e)      => (0, 0, 1, colorFailure  ("-"), fail("Tested false at", t.toString, e))
-          case CertainSuccess         => (1, 0, 0,                "+",       "Proved")
-          case UncertainFailure(t, e) => (0, 1, 0, colorUncertain("?"), fail("Inconclusive over", s"[${t._1}..${t._2}]", e))
-          case CertainFailure(t, e)   => (0, 0, 1, colorFailure  ("-"), fail("Disproved over", s"[${t._1}..${t._2}]", e))
-        }
-        (s"$symbol $sid $shn $sho<br/>$resReport", resS + s, resU + u, resF + f)
-    }
-    val domain = s" OVER [${md.timeDomain._1}..${md.timeDomain._2}]" 
-    val header = (successes, uncertains, failures) match {
-      case (_, _, f) if f > 0 =>
-        colorFailure ("SOME HYPOTHESES " + (if (md.rigorous) "DISPROVED" else "FALSIFIED") + domain)
-      case (_, u, 0) if u > 0 =>
-        colorUncertain("SOME HYPOTHESES INCONCLUSIVE" + domain)
-      case _  =>
-        colorSuccess((if (md.rigorous) "ALL HYPOTHESES PROVED" else "NO HYPOTHESES FALSIFIED") + domain)
-    }
-    val summary = s"$successes TRUE, $failures FALSE, $uncertains INCONCLUSIVE"
-    s"<html>$header<br/>$summary<br/><font face=monospace>$report</font></html>"
-  }
+  private def summarizeHypothesisOutcomes(md: SomeMetadata, messageIsOld: Boolean): String = 
+    new SummarizeHypothesisOutcomes {
+      override def colorSuccess(m: String)   = color("green",  messageIsOld, m)
+      override def colorUncertain(m: String) = color("ff9900", messageIsOld, m)
+      override def colorFailure(m: String)   = color("red",    messageIsOld, m)
+      override def nbsp = "&nbsp;"
+      override def br = "<br/>";
+      override def formatReport(header: String, summary: String, report: String) =
+        s"<html>$header<br/>$summary<br/><font face=monospace>$report</font></html>"
+    }.makeReport(md);
 
   def append(instr: Instruction) = instr match {
     case StatusUpdate(before, msg, after) => listData.headOption match {
