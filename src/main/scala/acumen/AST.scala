@@ -201,8 +201,6 @@ package acumen {
   case object FixedPoint extends ResultType
   /* (only) example: @Continuous */
   case object Continuous extends ResultType
-  /* (only) example: @Integration */
-  case object Integration extends ResultType
 
   /* A value is parameterized over the representation of object ids.
      For the reference interpreter, object ids are instances of CId (cf. below).

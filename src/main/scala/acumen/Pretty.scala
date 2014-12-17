@@ -319,7 +319,6 @@ class Pretty {
       case Discrete    => "@Discrete"
       case FixedPoint  => "@FixedPoint"
       case Continuous  => "@Continuous"
-      case Integration => "@Integration"
     }
 }
 

@@ -302,20 +302,14 @@ object Interpreter extends acumen.CStoreInterpreter {
       case Discretely(da) =>
         for (ty <- asks(getResultType))
           /* We consider discrete assignments only when the discrete fixed 
-           * point is not reached (ty = Discrete) or we are right after an 
-           * integration (ty = Integration) */
-          if (ty == Discrete || ty == Integration) 
+           * point is not reached (ty = Discrete) or we are right after a 
+           * continuous step (ty = Continuous) */
+          if (ty == Discrete || ty == Continuous) 
             evalDiscreteAction(da, env, p)
           else pass
       /* Decides when a continuous assignment is in scope */
       case Continuously(ca) =>
-        for (ty <- asks(getResultType))
-          /* We consider continuous assignments only when the discrete fixed 
-           * point is reached (ty = FixedPoint) or we are right before an 
-           * integration (ty = Continuous) */
-          if (ty == FixedPoint || ty == Continuous)
-            evalContinuousAction(ca, env, p)
-          else pass 
+        evalContinuousAction(ca, env, p)
       case Claim(_) =>
         pass
       case Hypothesis(s, e) =>
@@ -366,8 +360,11 @@ object Interpreter extends acumen.CStoreInterpreter {
         for { id <- asks(evalToObjId(e, env, _)) 
               _  <- asks(checkVariableDeclared(id, n, d.pos, _))
             } equation(id, d, rhs, env)
-      case EquationI(d@Dot(e,_),rhs) => // No need to check that lhs is declared, as EquationI:s are generated  
-        for { id <- asks(evalToObjId(e, env, _)) } ode(id, d, rhs, env)
+      case EquationI(d@Dot(e,_),rhs) => // No need to check that lhs is declared, as EquationI:s are generated
+        for { id <- asks(evalToObjId(e, env, _))
+              resultType <- asks(getResultType)
+            } if (resultType == FixedPoint) ode(id, d, rhs, env) 
+              else pass
       case _ =>
         throw ShouldNeverHappen() // FIXME: enforce that with refinement types
     }
@@ -428,35 +425,36 @@ object Interpreter extends acumen.CStoreInterpreter {
     applyAssignments(evaluateAssignments(xs, st)) ~> st
 
   /**
-   * Reference interpreter state machine.
+   * Reference interpreter state machine:
+   * 
    * 1. Discrete steps, where discrete assignments are evaluated, 
-   *    are taken until a fixpoint.
-   * 2. A Continuos step is taken, where continuous assignments to 
-   *    unprimed variables are evaluated.
-   * 3. An Integration step is taken, where the ODEs defined by 
+   *    are taken until a FixedPoint.
+   * 2. An Integration step is taken, where the ODEs defined by 
    *    continuous assignments to primed variables are solved. 
-   * Simulation starts with a Discrete step and iterates steps 1-3
-   * until a) the end time is reached and b) a Continuous step has
-   * been taken.  
+   * 
+   * After each sub-step of step 1 and step 2, all equations 
+   * defined by continuous assignments to unprimed variables 
+   * are applied to the store. Simulation starts with step 1 
+   * and then alternates steps 1 and 2 until a) the end time 
+   * is reached and b) step 1 has reached a FixedPoint.
    */
   def step(p:Prog, st:Store, md: Metadata) : StepRes =
     /* We are done when the integration time is over the given end time
        and we have reached the discrete fixed point and thereafter applied all continuous assignments */
-    if (getTime(st) >= getEndTime(st) && getResultType(st) == Continuous)
+    if (getTime(st) >= getEndTime(st) && getResultType(st) == FixedPoint)
       Done(md, getEndTime(st))
     else 
       { val (_, Changeset(ids, rps, das, eqs, odes, hyps), st1) = iterate(evalStep(p)(_)(NoBindings), mainId(st))(st)
         implicit val bindings = eqs.map{ e => val rd = resolveDot(e.d, e.env, st1)
           (rd.id, rd.field) -> UnusedBinding(e.rhs, e.env)}.toMap
-        val md1 = testHypotheses(hyps, md, st)(cacheBindings(bindings, st))
         def resolveDots(s: List[DelayedAction]): List[ResolvedDot] =
           s.map(da => resolveDot(da.d, da.env, st1))
         val resultType = getResultType(st)
         val res = resultType match {
-          case Discrete | Integration => // Do discrete step or conclude discrete fixpoint
+          case Discrete | Continuous => // Do discrete step or conclude discrete fixpoint
             checkDuplicateAssingments(resolveDots(das), DuplicateDiscreteAssingment)
-            /* Evaluate discrete assignments, disregarding bindings defined by continuous assignments */
-            val dasValues = evaluateAssignments(das, st1)(NoBindings)
+            /* Evaluate discrete assignments */
+            val dasValues = evaluateAssignments(das, st1)
             val nonIdentityDas = dasValues.filterNot{ a => a._3 == getObjectField(a._1, a._2.field, st1) }
             /* If the discrete assignments do not modify the store, conclude discrete fixpoint */
             if (st == st1 && ids.isEmpty && rps.isEmpty && nonIdentityDas.isEmpty) 
@@ -467,28 +465,24 @@ object Interpreter extends acumen.CStoreInterpreter {
               /* Apply reparentings to store */
               def repHelper(pair:(CId, CId)) = changeParentM(pair._1, pair._2) 
               val stR = mapM_(repHelper, rps) ~> stA
+              /* Apply terminations to store */
               val st3 = stR -- ids
               setResultType(Discrete, st3)
             }
-          case FixedPoint | Continuous => // Do continuous or integration step
+          case FixedPoint => // Do continuous step
             val eqsIds = resolveDots(eqs)
             val odesIds = resolveDots(odes)
             checkDuplicateAssingments(eqsIds ++ odesIds, DuplicateContinuousAssingment)
             checkContinuousDynamicsAlwaysDefined(p, eqsIds, st1)
-            (resultType: @unchecked) match {
-              case FixedPoint => // Do continuous step 
-                /* After a discrete fixed point, first evaluate continuous assignments */
-                val stCONT = applyDelayedAssignments(eqs, st1)
-                setResultType(Continuous, stCONT)
-              case Continuous => // Do integration step
-                /* After evaluating all continuous assignments, integrate */
-                val stODE = solveIVP(odes, p, st1)
-                val stE = applyDelayedAssignments(eqs, stODE)
-                val stT = setTime(getTime(stE) + getTimeStep(stE), stE)
-                setResultType(Integration, stT)
-            }
+            /* After reaching a discrete fixpoint, integrate */
+            val stODES = solveIVP(odes, p, st1)
+            val stT = setTime(getTime(stODES) + getTimeStep(stODES), stODES)
+            setResultType(Continuous, stT)
         }
-        Data(countVariables(res), md1)
+        /* Ensure that the resulting store is consistent w.r.t. equations */
+        val stEQS = applyDelayedAssignments(eqs, res)
+        val md1 = testHypotheses(hyps, md, stEQS)(NoBindings) // No bindings needed, stE is consistent
+        Data(countVariables(stEQS), md1)
       }
   
   /** Summarize result of evaluating the hypotheses of all objects. */
