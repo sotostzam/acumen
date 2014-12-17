@@ -375,7 +375,7 @@ object Main {
     doit(Examples2012,SemanticsImpl.Ref2012)
     doit(Examples2013,SemanticsImpl.Ref2013)
     doit(Examples2014,SemanticsImpl.Ref2014)
-    //doit(Examples2015,SemanticsImpl.Ref2015)
+    doit(Examples2015,SemanticsImpl.Ref2015)
     if (somethingUpdated) {
       println("Results updated.  Be sure to git add & commit the updated files as appropriate.")
     }
