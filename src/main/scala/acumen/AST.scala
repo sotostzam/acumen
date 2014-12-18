@@ -390,6 +390,23 @@ package object acumen {
  /* canonical (reference) representation of (maybe filtered) store/values 
      'C' is for canonical */
 
+  // Notes on the use of CValue/GValue from commit 87bcf66 (Jul 10 2013)
+  //
+  //   A closely related change is the conversion from using the CStore in
+  //   the u.i. and pretty printer to using the new GStore.  A GStore is
+  //   similar to a CStore with the following two difference: 1) The
+  //   container type is a collection.Iterable instead of immutable.Map and
+  //   2) the value type is a generic Value[_] instead of a Value[CId].
+  //
+  //   With the conversion to using a GStore the results of the imperative
+  //   interpreter, with minimal conversion, can be passed around in most
+  //   places that expected a CStore.  This change, combined with the default
+  //   filtering options, allow the FinalTournamentWithPlayers model to run
+  //   again with the imperative interpreters.  By avoiding the unnecessary
+  //   conversion to a CStore after each step the imperative interpreter now
+  //   runs this model over 4 times faster than the reference interpreter (7s
+  //   vs 30s).
+
   type CValue = Value[CId]
   type CObject = Map[Name, CValue]
   type CStore = Map[CId, CObject]
