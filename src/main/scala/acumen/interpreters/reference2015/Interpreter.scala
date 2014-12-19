@@ -40,7 +40,7 @@ object Interpreter extends acumen.CStoreInterpreter {
 
   /* Bindings, expressed in models as continuous assignments 
    * to unprimed variables, are used to look up sub-expressions
-   * during evaluation of continuous assignments. */
+   * during evaluation. */
   type Bindings = Map[(CId,Name), Binding] 
   val NoBindings = Map.empty[(CId,Name), Binding]
   sealed trait Binding
@@ -48,8 +48,11 @@ object Interpreter extends acumen.CStoreInterpreter {
   case class UnusedBinding(e: Expr, env: Env) extends Binding
   case class CachedUnusedBinding(v: CValue) extends Binding
   def cacheBindings(b: Bindings, st: Store): Bindings = 
-    b.foldLeft(b){ case (res, (k, UnusedBinding(e, env))) => 
-      res updated (k, CachedUnusedBinding(evalExpr(e, env, st)(res))) }
+    b.foldLeft(b){ 
+      case (res, (k, UnusedBinding(e, env))) => 
+        res updated (k, CachedUnusedBinding(evalExpr(e, env, st)(res)))
+      case (res, (_, _: CachedUnusedBinding)) => res
+    }
   
   /* initial values */
   val emptyStore : Store = HashMap.empty
@@ -429,14 +432,16 @@ object Interpreter extends acumen.CStoreInterpreter {
    * 
    * 1. Discrete steps, where discrete assignments are evaluated, 
    *    are taken until a FixedPoint.
-   * 2. An Integration step is taken, where the ODEs defined by 
+   * 2. A Continuous step is taken, where the ODEs defined by 
    *    continuous assignments to primed variables are solved. 
    * 
-   * After each sub-step of step 1 and step 2, all equations 
-   * defined by continuous assignments to unprimed variables 
-   * are applied to the store. Simulation starts with step 1 
-   * and then alternates steps 1 and 2 until a) the end time 
-   * is reached and b) step 1 has reached a FixedPoint.
+   * After each sub-step of step 1 and step 2, all continuous 
+   * assignments (EquationT) are applied to the store with the
+   * exception that, during Discrete steps, discrete assignments 
+   * are given precedence over clashing continuous assignments.
+   * Simulation starts with step 1 and then alternates steps 1 
+   * and 2 until a) the end time is reached and b) step 1 has 
+   * reached a FixedPoint.
    */
   def step(p:Prog, st:Store, md: Metadata) : StepRes =
     /* We are done when the integration time is over the given end time
@@ -453,6 +458,7 @@ object Interpreter extends acumen.CStoreInterpreter {
         val res = resultType match {
           case Discrete | Continuous => // Do discrete step or conclude discrete fixpoint
             checkDuplicateAssingments(resolveDots(das), DuplicateDiscreteAssingment)
+            checkDuplicateAssingments(resolveDots(eqs), DuplicateContinuousAssingment)
             /* Evaluate discrete assignments */
             val dasValues = evaluateAssignments(das, st1)
             val nonIdentityDas = dasValues.filterNot{ a => a._3 == getObjectField(a._1, a._2.field, st1) }
@@ -460,11 +466,17 @@ object Interpreter extends acumen.CStoreInterpreter {
             if (st == st1 && ids.isEmpty && rps.isEmpty && nonIdentityDas.isEmpty) 
               setResultType(FixedPoint, st1)
             else {
-              /* Apply discrete assignment values to store */
-              val stA = applyAssignments(dasValues) ~> st1
+              /* Evaluate continuous assignments that do not clash with discrete assignments */
+              val nonClashingEqs = eqs.filterNot (e => dasValues.exists (d => 
+                d._1 == resolveDot(e.d, e.env, st1).id && d._2.field == e.d.field))
+              val nonClashingEqsValues = evaluateAssignments(nonClashingEqs, st1)(bindings ++
+                /* Give discrete assignments precedence by replacing clashing bindings */
+                dasValues.map { case (id, d, v) => (id, d.field) -> CachedUnusedBinding(v) })
+              /* Apply discrete and non-clashing continuous assignment values to store */
+              val stAE = applyAssignments(nonClashingEqsValues ++ dasValues) ~> st1
               /* Apply reparentings to store */
               def repHelper(pair:(CId, CId)) = changeParentM(pair._1, pair._2) 
-              val stR = mapM_(repHelper, rps) ~> stA
+              val stR = mapM_(repHelper, rps) ~> stAE
               /* Apply terminations to store */
               val st3 = stR -- ids
               setResultType(Discrete, st3)
@@ -477,12 +489,12 @@ object Interpreter extends acumen.CStoreInterpreter {
             /* After reaching a discrete fixpoint, integrate */
             val stODES = solveIVP(odes, p, st1)
             val stT = setTime(getTime(stODES) + getTimeStep(stODES), stODES)
-            setResultType(Continuous, stT)
+            /* Ensure that the resulting store is consistent w.r.t. continuous assignments */
+            val stEQS = applyDelayedAssignments(eqs, stT)
+            setResultType(Continuous, stEQS)
         }
-        /* Ensure that the resulting store is consistent w.r.t. equations */
-        val stEQS = applyDelayedAssignments(eqs, res)
-        val md1 = testHypotheses(hyps, md, stEQS)(NoBindings) // No bindings needed, stE is consistent
-        Data(countVariables(stEQS), md1)
+        val md1 = testHypotheses(hyps, md, res)(NoBindings) // No bindings needed, res is consistent 
+        Data(countVariables(res), md1)
       }
   
   /** Summarize result of evaluating the hypotheses of all objects. */
