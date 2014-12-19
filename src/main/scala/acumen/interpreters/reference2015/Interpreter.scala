@@ -430,8 +430,8 @@ object Interpreter extends acumen.CStoreInterpreter {
   /**
    * Reference interpreter state machine:
    * 
-   * 1. Discrete steps, where discrete assignments are evaluated, 
-   *    are taken until a FixedPoint.
+   * 1. Discrete steps, where discrete assignments and structural
+   *    actions are evaluated, are taken until a FixedPoint.
    * 2. A Continuous step is taken, where the ODEs defined by 
    *    continuous assignments to primed variables are solved. 
    * 
@@ -443,10 +443,11 @@ object Interpreter extends acumen.CStoreInterpreter {
    * and 2 until a) the end time is reached and b) step 1 has 
    * reached a FixedPoint.
    */
-  def step(p:Prog, st:Store, md: Metadata) : StepRes =
-    /* We are done when the integration time is over the given end time
-       and we have reached the discrete fixed point and thereafter applied all continuous assignments */
-    if (getTime(st) >= getEndTime(st) && getResultType(st) == FixedPoint)
+  def step(p:Prog, st:Store, md: Metadata) : StepRes = {
+    val resultType = getResultType(st)
+    /* We are done when the simulation time is over the given end 
+     * time and we have reached a discrete fixed point */
+    if (resultType == FixedPoint && getTime(st) >= getEndTime(st))
       Done(md, getEndTime(st))
     else 
       { val (_, Changeset(ids, rps, das, eqs, odes, hyps), st1) = iterate(evalStep(p)(_)(NoBindings), mainId(st))(st)
@@ -454,7 +455,6 @@ object Interpreter extends acumen.CStoreInterpreter {
           (rd.id, rd.field) -> UnusedBinding(e.rhs, e.env)}.toMap
         def resolveDots(s: List[DelayedAction]): List[ResolvedDot] =
           s.map(da => resolveDot(da.d, da.env, st1))
-        val resultType = getResultType(st)
         val res = resultType match {
           case Discrete | Continuous => // Do discrete step or conclude discrete fixpoint
             checkDuplicateAssingments(resolveDots(das), DuplicateDiscreteAssingment)
@@ -462,8 +462,8 @@ object Interpreter extends acumen.CStoreInterpreter {
             /* Evaluate discrete assignments */
             val dasValues = evaluateAssignments(das, st1)
             val nonIdentityDas = dasValues.filterNot{ a => a._3 == getObjectField(a._1, a._2.field, st1) }
-            /* If the discrete assignments do not modify the store, conclude discrete fixpoint */
-            if (st == st1 && ids.isEmpty && rps.isEmpty && nonIdentityDas.isEmpty) 
+            /* If the discrete and structural actions do not modify the store, conclude discrete fixpoint */
+            if (nonIdentityDas.isEmpty && ids.isEmpty && rps.isEmpty && st == st1) 
               setResultType(FixedPoint, st1)
             else {
               /* Evaluate continuous assignments that do not clash with discrete assignments */
@@ -496,6 +496,7 @@ object Interpreter extends acumen.CStoreInterpreter {
         val md1 = testHypotheses(hyps, md, res)(NoBindings) // No bindings needed, res is consistent 
         Data(countVariables(res), md1)
       }
+    }
   
   /** Summarize result of evaluating the hypotheses of all objects. */
   def testHypotheses(hyps: List[DelayedHypothesis], old: Metadata, st: Store)(implicit bindings: Bindings): Metadata =
