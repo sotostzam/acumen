@@ -3,6 +3,7 @@ package acumen
 import Errors._
 import interpreters._
 import interpreters.optimized.ContMode
+import interpreters.optimized2015.{ContMode=>ContMode2015}
 import java.io.{File,InputStreamReader,FileInputStream}
 import scala.util.parsing.input.{Position}
 import scala.collection.mutable.{HashMap => MutHashMap}
@@ -121,14 +122,13 @@ object SemanticsImpl {
     // "static|sharing" options is considered experimental and should not be documented
   }
   case class Optimized(parDiscr: Boolean = true, contMode: ContMode = ContMode.Seq, 
-                       contWithDiscr: Boolean = false, specialInitContStep : Boolean = false) extends CStore
+                       contWithDiscr: Boolean = false) extends CStore
   {
-    val i = new optimized.Interpreter(parDiscr,contMode,contWithDiscr,specialInitContStep)
+    val i = new optimized.Interpreter(parDiscr,contMode,contWithDiscr)
     val semantics = if (parDiscr == true && contMode == ContMode.Seq && contWithDiscr == false) S2013
                     else if (parDiscr == true && contMode == ContMode.IVP && contWithDiscr == false) S2014
-                    else if (parDiscr == true && contMode == ContMode.NoDelay && contWithDiscr == false) S2015
                     else S2014.copy(id = None)
-    override val isOldSemantics = !(semantics == S2014 ||  semantics == S2015)
+    override val isOldSemantics = semantics != S2014
     def interpreter() = i
     override def withArgs(args: List[String]) : Optimized = args match {
       case "parDiscr" :: tail => copy(parDiscr = true).withArgs(tail)
@@ -136,10 +136,8 @@ object SemanticsImpl {
       case "parCont" :: tail => copy(contMode = ContMode.Par).withArgs(tail)
       case "seqCont" :: tail => copy(contMode = ContMode.Seq).withArgs(tail)
       case "IVP" :: tail => copy(contMode = ContMode.IVP).withArgs(tail)
-      case "NoDelay" :: tail => copy(contMode = ContMode.NoDelay).withArgs(tail)
       case "contWithDiscr" :: tail => copy(contWithDiscr = true).withArgs(tail)
       case "contWithCont" :: tail => copy(contWithDiscr = false).withArgs(tail)
-      case "specialInitContStep" :: tail => copy(specialInitContStep = true).withArgs(tail)
       case Nil => this
       case _ => null
     }
@@ -147,8 +145,38 @@ object SemanticsImpl {
                             if (parDiscr) "parDiscr" else "seqDiscr",
                             contMode match {case ContMode.Seq => "seqCont"; 
                                             case ContMode.Par => "parCont"; 
-                                            case ContMode.IVP => "IVP";
-                                            case ContMode.NoDelay => "NoDelay"},
+                                            case ContMode.IVP => "IVP"},
+                            if (contWithDiscr) "contWithDiscr" else "contWithCont")
+  }
+  case class Optimized2015(parDiscr: Boolean = true, contMode: ContMode2015 = ContMode2015.Seq, 
+                           contWithDiscr: Boolean = false, specialInitContStep : Boolean = false) extends CStore
+  {
+    val i = new optimized2015.Interpreter(parDiscr,contMode,contWithDiscr,specialInitContStep)
+    val semantics = if (parDiscr == true && contMode == ContMode2015.Seq && contWithDiscr == false) S2013
+                    else if (parDiscr == true && contMode == ContMode2015.IVP && contWithDiscr == false) S2014
+                    else if (parDiscr == true && contMode == ContMode2015.NoDelay && contWithDiscr == false) S2015
+                    else S2014.copy(id = None)
+    override val isOldSemantics = !(semantics == S2014 ||  semantics == S2015)
+    def interpreter() = i
+    override def withArgs(args: List[String]) : Optimized2015 = args match {
+      case "parDiscr" :: tail => copy(parDiscr = true).withArgs(tail)
+      case "seqDiscr" :: tail => copy(parDiscr = false).withArgs(tail)
+      case "parCont" :: tail => copy(contMode = ContMode2015.Par).withArgs(tail)
+      case "seqCont" :: tail => copy(contMode = ContMode2015.Seq).withArgs(tail)
+      case "IVP" :: tail => copy(contMode = ContMode2015.IVP).withArgs(tail)
+      case "NoDelay" :: tail => copy(contMode = ContMode2015.NoDelay).withArgs(tail)
+      case "contWithDiscr" :: tail => copy(contWithDiscr = true).withArgs(tail)
+      case "contWithCont" :: tail => copy(contWithDiscr = false).withArgs(tail)
+      case "specialInitContStep" :: tail => copy(specialInitContStep = true).withArgs(tail)
+      case Nil => this
+      case _ => null
+    }
+    override def id = Array("optimized2015", 
+                            if (parDiscr) "parDiscr" else "seqDiscr",
+                            contMode match {case ContMode2015.Seq => "seqCont"; 
+                                            case ContMode2015.Par => "parCont"; 
+                                            case ContMode2015.IVP => "IVP";
+                                            case ContMode2015.NoDelay => "NoDelay"},
                             if (contWithDiscr) "contWithDiscr" else "contWithCont",
                             if (specialInitContStep) "specialInitContStep" else "")
   }
@@ -180,8 +208,8 @@ object SemanticsImpl {
   lazy val Opt2012 = Imperative2012
   lazy val Opt2013 = Optimized()
   lazy val Opt2014 = Optimized(contMode = ContMode.IVP)
-  lazy val Opt2015 = Optimized(contMode = ContMode.NoDelay)
-  lazy val Opt2015b = Optimized(contMode = ContMode.NoDelay, specialInitContStep = true)
+  lazy val Opt2015 = Optimized2015(contMode = ContMode2015.NoDelay)
+  lazy val Opt2015b = Optimized2015(contMode = ContMode2015.NoDelay, specialInitContStep = true)
 
   case class Sel(si: SemanticsSel, 
                  // First id is the display name
