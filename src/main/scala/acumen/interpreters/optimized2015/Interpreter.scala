@@ -29,18 +29,7 @@ import acumen.util.Canonical.{
 }
 import scala.annotation.tailrec
 
-abstract class ContMode;
-object ContMode {
-  case object Seq extends ContMode
-  case object Par extends ContMode
-  case object IVP extends ContMode
-  case object NoDelay extends ContMode
-}
-
-class Interpreter(val parDiscr: Boolean = true, 
-                  val contMode: ContMode = ContMode.Seq,
-                  val contWithDiscr: Boolean = false,
-                  val specialInitContStep : Boolean = false) extends CStoreInterpreter {
+class Interpreter(val specialInitContStep : Boolean = false) extends CStoreInterpreter {
 
   import Common._ 
 
@@ -79,11 +68,9 @@ class Interpreter(val parDiscr: Boolean = true,
 
       val rt = if (getResultType(magic) != FixedPoint) { // Discrete Step
 
-        if (parDiscr) pp.usePrev = true
-        else          pp.usePrev = false
+        pp.usePrev = true
         pp.doDiscrete = true
-        if (contWithDiscr) pp.doEquationT = Now
-        else               pp.doEquationT = Ignore
+        pp.doEquationT = Ignore
         pp.doEquationI = Ignore
 
         traverse(evalStep(p, magic), st) match {
@@ -103,26 +90,11 @@ class Interpreter(val parDiscr: Boolean = true,
             FixedPoint
           }
 
-      } else if (contMode == ContMode.Seq || contMode == ContMode.Par) { // Continuous step 
-
-        if (contMode == ContMode.Par) pp.usePrev = true
-        else                          pp.usePrev = false
-        pp.doDiscrete = false
-        if (contWithDiscr) pp.doEquationT = Ignore
-        else               pp.doEquationT = Now
-        pp.doEquationI = Now
-
-        traverse(evalStep(p, magic), st)
-
-        setTime(magic, getTime(magic) + getTimeStep(magic))
-
-        Continuous
-
-      } else { // Continuous step, IVP mode
+      } else { // Continuous step
 
         pp.usePrev = true
         pp.doDiscrete = false
-        pp.doEquationT = if (contMode == ContMode.NoDelay) Gather else Now;
+        pp.doEquationT = Gather
         pp.doEquationI = Gather
         pp.odes.clear()
         pp.assigns.clear()
@@ -149,15 +121,13 @@ class Interpreter(val parDiscr: Boolean = true,
         val res = if (pp.specialInitialStep) initOdeEnv
                   else new Solver(getField(magic, Name("method", 0)), initOdeEnv, getTimeStep(magic)).solve
 
-        if (contMode == ContMode.NoDelay) {
-          // Make sure the values of in the continuous assignment
-          // cache is populated.
-          idx = 0
-          while (idx < pp.assigns.size) {
-            val eqt = pp.assigns(idx)
-            val v = getField(eqt.id, eqt.field, p, Env(eqt.env,Some(res)))
-            idx += 1
-          }
+        // Make sure the values of in the continuous assignment
+        // cache is populated.
+        idx = 0
+        while (idx < pp.assigns.size) {
+          val eqt = pp.assigns(idx)
+          val v = getField(eqt.id, eqt.field, p, Env(eqt.env,Some(res)))
+          idx += 1
         }
 
         // Update the fields based on the result from the ode solver
@@ -168,16 +138,14 @@ class Interpreter(val parDiscr: Boolean = true,
           idx += 1
         }
 
-        if (contMode == ContMode.NoDelay) {
-          // Update the fields based on the result stored in the
-          // assignment cache
-          idx = 0
-          while (idx < pp.assigns.size) {
-            val eqt = pp.assigns(idx)
-            val KnownVal(v) = res.assignVals(idx)
-            updateField(eqt.id, eqt.field, v)
-            idx += 1
-          }
+        // Update the fields based on the result stored in the
+        // assignment cache
+        idx = 0
+        while (idx < pp.assigns.size) {
+          val eqt = pp.assigns(idx)
+          val KnownVal(v) = res.assignVals(idx)
+          updateField(eqt.id, eqt.field, v)
+          idx += 1
         }
 
         if (pp.specialInitialStep)
@@ -236,5 +204,5 @@ class Interpreter(val parDiscr: Boolean = true,
   }
 }
 
-object Interpreter extends Interpreter(true,ContMode.Seq,false,false)
+object Interpreter extends Interpreter(false)
 

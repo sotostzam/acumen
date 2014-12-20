@@ -304,7 +304,7 @@ object Common {
           else cv
         case OdeLookup(idx) => env.odeEnv match {
           case Some(odeEnv) => odeEnv.odeVals(idx)
-          case None => assert(o.phaseParms.usePrev); vv.prevSetVal
+          case None => vv.prevSetVal
         }
         case AssignLookup(idx) => env.odeEnv match {
           case Some(odeEnv) => odeEnv.assignVals(idx) match {
@@ -320,7 +320,7 @@ object Common {
             throw AlgebraicLoop(ObjField(o.id,o.className,f), 
                                 posIsSetPoint = true).setPos(vv.lastSetPos)
           }
-          case None => assert(o.phaseParms.usePrev); vv.prevSetVal
+          case None => vv.prevSetVal
         }
       }
     } catch {
@@ -332,17 +332,14 @@ object Common {
   def setField(o: Object, f: Name, newVal: CurVal, pos0: Position, update: Boolean): Changeset = {
     var pos = pos0
     if (o.fields contains f) {
-      if (update) assert(o.phaseParms.usePrev)
       val v = o.fields(f)
-      lazy val oldVal = if (update) v.prevSetVal else getField(o, f)
       if (update) {
         assert(v.lastUpdated == o.phaseParms.curIter)
         v.lastSetVal = newVal
         if (pos == NoPosition) pos = v.lastSetPos
       } else {
         if (v.lastUpdated == o.phaseParms.curIter) {
-          if (o.phaseParms.usePrev) throw DuplicateAssingmentUnspecified(f).setPos(pos).setOtherPos(v.lastSetPos)
-          v.lastSetVal = newVal
+          throw DuplicateAssingmentUnspecified(f).setPos(pos).setOtherPos(v.lastSetPos)
         } else {
           v.prevSetVal = v.lastSetVal.asVal; v.lastSetVal = newVal; v.lastUpdated = o.phaseParms.curIter
         }
@@ -350,6 +347,7 @@ object Common {
       }
       newVal match {
         case NormalVal(nv) => 
+          val oldVal = v.prevSetVal
           if (oldVal == nv) noChange
           else {
             if (f.x != "_3D" && f.x != "_3DView" && oldVal.yieldsPlots != nv.yieldsPlots)
