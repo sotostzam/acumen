@@ -59,7 +59,20 @@ class Interpreter(val specialInitContStep : Boolean = false) extends CStoreInter
   
     val pp = magic.phaseParms
     pp.curIter += 1
-  
+
+    def doEquationT(odeEnv: OdeEnv) = try {
+      pp.usePrev = false
+      var idx = 0
+      while (idx < pp.assigns.size) {
+        val eqt = pp.assigns(idx)
+        val v = getField(eqt.id, eqt.field, p, Env(eqt.env,Some(odeEnv)))
+        updateField(eqt.id, eqt.field, v)
+        idx += 1
+      }
+    } finally {
+      pp.usePrev = true
+    }
+
     if (getTime(magic) >= getEndTime(magic)) {
 
       null
@@ -68,10 +81,7 @@ class Interpreter(val specialInitContStep : Boolean = false) extends CStoreInter
 
       val rt = if (getResultType(magic) != FixedPoint) { // Discrete Step
 
-        pp.usePrev = true
-        pp.doDiscrete = true
-        pp.doEquationT = Ignore
-        pp.doEquationI = Ignore
+        pp.reset(true, Ignore, Ignore)
 
         traverse(evalStep(p, magic), st) match {
           case SomeChange(dead, rps) =>
@@ -85,6 +95,7 @@ class Interpreter(val specialInitContStep : Boolean = false) extends CStoreInter
                   op.children = op.children diff Seq(o)
               }
             }
+
             Discrete
           case NoChange() =>
             FixedPoint
@@ -92,12 +103,7 @@ class Interpreter(val specialInitContStep : Boolean = false) extends CStoreInter
 
       } else { // Continuous step
 
-        pp.usePrev = true
-        pp.doDiscrete = false
-        pp.doEquationT = Gather
-        pp.doEquationI = Gather
-        pp.odes.clear()
-        pp.assigns.clear()
+        pp.reset(false, Gather, Gather)
 
         traverse(evalStep(p, magic), st)
 
@@ -121,30 +127,14 @@ class Interpreter(val specialInitContStep : Boolean = false) extends CStoreInter
         val res = if (pp.specialInitialStep) initOdeEnv
                   else new Solver(getField(magic, Name("method", 0)), initOdeEnv, getTimeStep(magic)).solve
 
-        // Make sure the values of in the continuous assignment
-        // cache is populated.
-        idx = 0
-        while (idx < pp.assigns.size) {
-          val eqt = pp.assigns(idx)
-          val v = getField(eqt.id, eqt.field, p, Env(eqt.env,Some(res)))
-          idx += 1
-        }
+        // Evaluate (if necessary) and update values assigned to by EquationT
+        doEquationT(res)
 
         // Update the fields based on the result from the ode solver
         idx = 0
         while (idx < sz) {
           val eqt = pp.odes(idx)
           updateField(eqt.id, eqt.field, res.odeVals(idx))
-          idx += 1
-        }
-
-        // Update the fields based on the result stored in the
-        // assignment cache
-        idx = 0
-        while (idx < pp.assigns.size) {
-          val eqt = pp.assigns(idx)
-          val KnownVal(v) = res.assignVals(idx)
-          updateField(eqt.id, eqt.field, v)
           idx += 1
         }
 

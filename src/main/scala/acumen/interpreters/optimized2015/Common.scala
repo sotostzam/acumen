@@ -104,7 +104,7 @@ object Common {
       * current and previous value. */
     var curIter : Int = 0;
     /** If set than use the value of the previous iteration */
-    var usePrev = false;
+    var usePrev = true;
     /** If set do discrete operations */
     var doDiscrete = false;
     /** How to handle EquationT's */
@@ -120,6 +120,15 @@ object Common {
     var assigns = new ArrayBuffer[Equation];
     /** Metadata */
     var metaData : Metadata = NoMetadata
+    
+    def reset(doD : Boolean, doT: EvalMode, doI: EvalMode) {
+      usePrev = true
+      doDiscrete = doD
+      doEquationT = doT
+      doEquationI = doI
+      odes.clear()
+      assigns.clear()
+    }
   }
 
   case class Equation(id: ObjId, field: Name, rhs: Expr, env: Map[Name, Val]);
