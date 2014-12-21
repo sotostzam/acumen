@@ -157,7 +157,7 @@ class Interpreter(val parDiscr: Boolean = true,
     setMetadata(st, md)
     val res = localStep(p, st)
     if (res == null) Done(md, getEndTime(getSimulator(st)))
-    else Data(st,getMetadata(st)) //FIXME add support for metadata
+    else Data(st,getMetadata(st))
   }
 
   // always returns the last known step, the adder callback is used to
@@ -165,8 +165,8 @@ class Interpreter(val parDiscr: Boolean = true,
   override def multiStep(p: Prog, st: Store, md: Metadata, adder: DataAdder): (Store, Metadata, Double) = {
     setMetadata(st, md)
     var shouldAddData = ShouldAddData.IfLast
-    var endTime = Double.NaN
     // ^^ set to IfLast on purpose to make things work
+    var endTime = Double.NaN
     @tailrec def step0() : Unit = {
       val res = localStep(p, st)
       if (res == null) {
@@ -183,7 +183,7 @@ class Interpreter(val parDiscr: Boolean = true,
       }
     }
     step0()
-    (st, getMetadata(st), endTime) // FIXME Add support for metadata
+    (st, getMetadata(st), endTime)
   }
 
   def addData(st: Store, adder: DataAdder) : Unit = {
