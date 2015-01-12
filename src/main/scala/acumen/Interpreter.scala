@@ -483,7 +483,7 @@ case class CStoreRes(ctrace: Stream[CStore], metadata: Metadata) extends Interpr
     }
   }
   
-  def loop(action: (CStore, ResultType) => Unit) : Unit = {
+  private def loop(action: (CStore, ResultType) => Unit) : Unit = {
     var prevStepType : ResultType = Discrete
     var nextContinuous = true
     for (st <- ctrace) {
