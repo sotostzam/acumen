@@ -307,7 +307,7 @@ object Interpreter extends acumen.CStoreInterpreter {
           /* We consider discrete assignments only when the discrete fixed 
            * point is not reached (ty = Discrete) or we are right after a 
            * continuous step (ty = Continuous) */
-          if (ty == Discrete || ty == Continuous) 
+          if (ty == Initial || ty == Discrete || ty == Continuous) 
             evalDiscreteAction(da, env, p)
           else pass
       /* Decides when a continuous assignment is in scope */
