@@ -76,7 +76,7 @@ class CStoreCntrl(val semantics: SemanticsImpl[Interpreter], val interpreter: CS
       // Add initial store to trace
       I.repr(store0).foreach{case (id,v) => adder.addData(id, v)}
       adder.continue
-      // Read simulator parameters from program (without adding store to trace)
+      // Read simulator parameters from program
       var (store, md, endTime) = I.multiStep(p, store0, md0, adder)
       val cstore = I.repr(store)
       acumen.util.Canonical.getInSimulator(Name("outputRows",0), cstore) match {
