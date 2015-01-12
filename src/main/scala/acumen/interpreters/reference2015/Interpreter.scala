@@ -430,6 +430,8 @@ object Interpreter extends acumen.CStoreInterpreter {
   /**
    * Reference interpreter state machine:
    * 
+   * 0. Initial step, where the contents of the initially section
+   *    are reported.
    * 1. Discrete steps, where discrete assignments and structural
    *    actions are evaluated, are taken until a FixedPoint.
    * 2. A Continuous step is taken, where the ODEs defined by 
@@ -456,7 +458,7 @@ object Interpreter extends acumen.CStoreInterpreter {
         def resolveDots(s: List[DelayedAction]): List[ResolvedDot] =
           s.map(da => resolveDot(da.d, da.env, st1))
         val res = resultType match {
-          case Discrete | Continuous => // Do discrete step or conclude discrete fixpoint
+          case Initial | Discrete | Continuous => // Do discrete step or conclude discrete fixpoint
             checkDuplicateAssingments(resolveDots(das), DuplicateDiscreteAssingment)
             checkDuplicateAssingments(resolveDots(eqs), DuplicateContinuousAssingment)
             /* Evaluate discrete assignments */

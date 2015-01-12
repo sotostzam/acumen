@@ -195,6 +195,8 @@ package acumen {
 
   sealed abstract class ResultType
 
+  /* (only) example: @Initial */
+  case object Initial extends ResultType
   /* (only) example: @Discrete */
   case object Discrete extends ResultType
   /* (only) example @FixedPoint */

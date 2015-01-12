@@ -394,7 +394,7 @@ object Common {
   val magicClassTxt =
     """model Simulator(time, timeStep, outputRows, continuousSkip, endTime, resultType, lastCreatedId)="""
   val initStoreTxt =
-    s"""#0.0 { className = Simulator, parent = %s, time = 0.0, timeStep = 0.01, outputRows = "All", continuousSkip = 0,endTime = 10.0, resultType = @Discrete, nextChild = 0,method = "$RungeKutta", seed1 = 0, seed2 = 0, variableCount = 0 }"""
+    s"""#0.0 { className = Simulator, parent = %s, time = 0.0, timeStep = 0.01, outputRows = "All", continuousSkip = 0,endTime = 10.0, resultType = @Initial, nextChild = 0,method = "$RungeKutta", seed1 = 0, seed2 = 0, variableCount = 0 }"""
 
   lazy val magicClass = Parser.run(Parser.classDef, magicClassTxt)
   lazy val initStoreRef = Parser.run(Parser.store, initStoreTxt.format("#0"))

@@ -52,9 +52,33 @@ class CStoreCntrl(val semantics: SemanticsImpl[Interpreter], val interpreter: CS
       val startTime = System.currentTimeMillis
       val I = interpreter
       val (p, store0, md0) = I.init(prog)
-      var (store, md, endTime) = I.multiStep(p, store0, md0, new StopAtFixedPoint)
-      val cstore = I.repr(store)
       var opts = new CStoreOpts
+      val adder = new FilterDataAdder(opts) {
+        outputRow = true
+        var buffer2 = new ListBuffer[(CId,GObject)]
+        override def noMoreData() = {
+          super.noMoreData()
+          if (buffer2.nonEmpty)
+            buffer = buffer enqueue buffer2
+        }
+        def addData(objId: CId, values: GObject) = {
+          buffer2 += (objId -> values.toList.filter(mkFilter(values)))
+        }
+        def continue = {
+          if (outputRow) {
+            buffer = buffer enqueue buffer2
+            buffer2 = new ListBuffer[(CId,GObject)]
+          }
+          //buffer.size < bufferSize 
+          false
+        }
+      }
+      // Add initial store to trace
+      I.repr(store0).foreach{case (id,v) => adder.addData(id, v)}
+      adder.continue
+      // Read simulator parameters from program (without adding store to trace)
+      var (store, md, endTime) = I.multiStep(p, store0, md0, adder)
+      val cstore = I.repr(store)
       acumen.util.Canonical.getInSimulator(Name("outputRows",0), cstore) match {
         case VLit(GStr("All"))              => opts.outputRows = OutputRows.All
         case VLit(GStr("WhenChanged"))      => opts.outputRows = OutputRows.WhenChanged
@@ -67,28 +91,6 @@ class CStoreCntrl(val semantics: SemanticsImpl[Interpreter], val interpreter: CS
         case VLit(GInt(n)) => opts.continuousSkip = n
         case _             => /* fixme: throw error */
       }
-      val adder = new FilterDataAdder(opts) {
-        var buffer2 = new ListBuffer[(CId,GObject)]
-        override def noMoreData() = {
-          super.noMoreData()
-          if (buffer2.nonEmpty)
-            buffer = buffer enqueue buffer2
-        }
-        def addData(objId: CId, values: GObject) = {
-          buffer2 += ((objId, values.toList.filter(mkFilter(values))))
-        }
-        def continue = {
-          if (outputRow) {
-            buffer = buffer enqueue buffer2
-            buffer2 = new ListBuffer[(CId,GObject)]
-          }
-          //buffer.size < bufferSize 
-          false
-        }
-      }
-      adder.outputRow = true
-      cstore.foreach{case (id,v) => adder.addData(id, v)}
-      adder.continue
       loopWhile(!adder.done) {
         reactWithin(0) (emergencyActions orElse {
           case TIMEOUT => 
