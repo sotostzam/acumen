@@ -463,21 +463,19 @@ object Interpreter extends acumen.CStoreInterpreter {
             checkDuplicateAssingments(resolveDots(eqs), DuplicateContinuousAssingment)
             /* Evaluate discrete assignments */
             val dasValues = evaluateAssignments(das, st1)
-            val nonIdentityDas = dasValues.filterNot{ a => a._3 == getObjectField(a._1, a._2.field, st1) }
-            /* If the discrete and structural actions do not modify the store, conclude discrete fixpoint */
-            if (nonIdentityDas.isEmpty && ids.isEmpty && rps.isEmpty && st == st1) 
-              setResultType(FixedPoint, 
-                if (resultType == Initial)
-                  /* Ensure that the initial store is consistent w.r.t. continuous assignments */
-                  applyDelayedAssignments(eqs, st1) 
-                else st1)
+            /* Evaluate continuous assignments that do not clash with discrete assignments */
+            val nonClashingEqs = eqs.filterNot (e => dasValues.exists { case (id, d, _) =>  
+              id == resolveDot(e.d, e.env, st1).id && d.field == d.field })
+            val nonClashingEqsValues = evaluateAssignments(nonClashingEqs, st1)(bindings ++
+              /* Give discrete assignments precedence by replacing clashing bindings */
+              dasValues.map { case (id, d, v) => (id, d.field) -> CachedUnusedBinding(v) })
+            /* Find (non-ODE) assignments that modify the store */
+            val nonIdentityAs = (dasValues ++ nonClashingEqsValues).filterNot{ case (id, d, v) => 
+              v == getObjectField(id, d.field, st1) }
+            /* If the discrete, structural and non-ODE continuous actions do not modify the store, conclude discrete fixpoint */
+            if (resultType != Initial && nonIdentityAs.isEmpty && ids.isEmpty && rps.isEmpty && st == st1) 
+              setResultType(FixedPoint, st1)
             else {
-              /* Evaluate continuous assignments that do not clash with discrete assignments */
-              val nonClashingEqs = eqs.filterNot (e => dasValues.exists (d => 
-                d._1 == resolveDot(e.d, e.env, st1).id && d._2.field == e.d.field))
-              val nonClashingEqsValues = evaluateAssignments(nonClashingEqs, st1)(bindings ++
-                /* Give discrete assignments precedence by replacing clashing bindings */
-                dasValues.map { case (id, d, v) => (id, d.field) -> CachedUnusedBinding(v) })
               /* Apply discrete and non-clashing continuous assignment values to store */
               val stAE = applyAssignments(nonClashingEqsValues ++ dasValues) ~> st1
               /* Apply reparentings to store */
