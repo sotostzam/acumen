@@ -441,7 +441,7 @@ object Interpreter extends acumen.CStoreInterpreter {
    * assignments (EquationT) are applied to the store with the
    * exception that, during Discrete steps, discrete assignments 
    * are given precedence over clashing continuous assignments.
-   * Simulation starts with step 1 and then alternates steps 1 
+   * Simulation starts with step 0 and then alternates steps 1 
    * and 2 until a) the end time is reached and b) step 1 has 
    * reached a FixedPoint.
    */
