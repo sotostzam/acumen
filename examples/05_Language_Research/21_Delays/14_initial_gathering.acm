@@ -1,0 +1,12 @@
+model Main(simulator) =
+initially
+  a = 0, a' = 1,
+  b = 1, c = 1
+always
+ a' = 1,
+ b = a,
+ if a == b then c = a noelse,
+ // a == b should hold always (it is written at top level
+ // of always section. Thus a == c should hold always,
+ // specifically also at time 0.
+ hypothesis "a is always = c" a == c
