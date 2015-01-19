@@ -80,7 +80,7 @@ class Interpreter(val specialInitContStep : Boolean = false) extends CStoreInter
       traverse(evalStep(p, magic), st)
     }
 
-    if (getTime(magic) >= getEndTime(magic)) {
+    if (getResultType(magic) == FixedPoint && getTime(magic) >= getEndTime(magic)) {
 
       null
 
