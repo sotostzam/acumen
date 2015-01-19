@@ -111,6 +111,11 @@ object Common {
     var doEquationT : EvalMode = Ignore;
     /** How to handle EquationI's */
     var doEquationI : EvalMode = Ignore;
+    /** */
+    var doHypothesis : Boolean = false
+    // don't go inside conditionals when doing Hypotheses as all
+    // Hypotheses are suppose to be at the top level
+    def doConditionals = !doHypothesis
     /** Do a special initial continuous step, set to false after the
       * special step is done */
     var specialInitialStep : Boolean = false;
@@ -126,6 +131,7 @@ object Common {
       doDiscrete = doD
       doEquationT = doT
       doEquationI = doI
+      doHypothesis = false
       odes.clear()
       assigns.clear()
     }
@@ -365,7 +371,7 @@ object Common {
             logModified
           }
         case _ => 
-          logModified
+          noChange
       }
     }
     else throw VariableNotDeclared(f).setPos(pos)
@@ -587,7 +593,7 @@ object Common {
         val idx = magic.phaseParms.assigns.length
         setField(id, x, AssignLookup(idx), d.pos)
         magic.phaseParms.assigns.append(Equation(id,x,t,env.env))
-        logModified
+        noChange
       } else noChange
       case EquationI(d@Dot(e, x), t) => if (magic.phaseParms.doEquationI == Now) {
         val dt = getTimeStep(magic)
@@ -609,7 +615,7 @@ object Common {
         val idx = magic.phaseParms.odes.length
         setField(id, x, OdeLookup(idx), d.pos)
         magic.phaseParms.odes.append(Equation(id,x,t,env.env))
-        logModified
+        noChange
       } else noChange
       case _ =>
         throw ShouldNeverHappen() // FIXME: fix that with refinement types
@@ -651,12 +657,14 @@ object Common {
         case VLit(n) => n
         case VVector(nls) => vListToPattern(nls)            
       }))
+    val pp = magic.phaseParms
     a match {
-      case IfThenElse(c, a1, a2) =>
+      case IfThenElse(c, a1, a2) => if (pp.doConditionals) {
         val VLit(GBool(b)) = evalExpr(c, p, env)
         if (b) evalActions(a1, env, p, magic)
         else evalActions(a2, env, p, magic)
-      case ForEach(i, l, b) =>
+      } else noChange
+      case ForEach(i, l, b) => if (pp.doConditionals) {
         val seq = evalExpr(l, p, env)
         val vs = seq match {
           case VList(vs)   => vs
@@ -664,7 +672,8 @@ object Common {
           case _           => throw NotACollection(seq).setPos(l.pos)
         }
         combine(vs, ((v: Val) => evalActions(b, env + ((i, v)), p, magic)))
-      case Switch(s, cls) => s match {     
+      } else noChange
+      case Switch(s, cls) => if (pp.doConditionals) { s match {     
         case ExprVector(_) =>           
           val VVector(ls) = evalExpr(s, p, env)
             val gp = vListToPattern(ls)
@@ -678,7 +687,7 @@ object Common {
             case Some(c) => evalActions(c.rhs, env, p, magic)
             case None    => throw NoMatch(gv).setPos(s.pos)
           }
-      }
+      }} else noChange
       case Discretely(da) =>
         if (magic.phaseParms.doDiscrete)
           evalDiscreteAction(da, env, p, magic)
@@ -688,7 +697,8 @@ object Common {
       case Claim(_) =>
         noChange
       case Hypothesis(s, e) => 
-        evalHypothesis(s, e, env, p, magic)
+        if (pp.doHypothesis) evalHypothesis(s, e, env, p, magic)
+        else noChange
     }
   }
 

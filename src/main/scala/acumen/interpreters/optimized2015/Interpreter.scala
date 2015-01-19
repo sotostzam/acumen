@@ -73,6 +73,13 @@ class Interpreter(val specialInitContStep : Boolean = false) extends CStoreInter
       pp.usePrev = true
     }
 
+    def checkHypothesis() {
+      pp.reset(false, Ignore, Ignore)
+      pp.usePrev = false
+      pp.doHypothesis = true
+      traverse(evalStep(p, magic), st)
+    }
+
     if (getTime(magic) >= getEndTime(magic)) {
 
       null
@@ -95,6 +102,15 @@ class Interpreter(val specialInitContStep : Boolean = false) extends CStoreInter
                   op.children = op.children diff Seq(o)
               }
             }
+
+            // gather the continuous assignments 
+            pp.curIter += 1
+            pp.reset(false, Gather, Ignore)
+            traverse(evalStep(p, magic), st)
+            // Retrieve updated values for continuous assignments 
+            doEquationT(OdeEnv(IndexedSeq.empty, Array.fill[AssignVal](pp.assigns.length)(Unknown)))
+
+            checkHypothesis()
 
             Discrete
           case NoChange() =>
@@ -137,6 +153,8 @@ class Interpreter(val specialInitContStep : Boolean = false) extends CStoreInter
           updateField(eqt.id, eqt.field, res.odeVals(idx))
           idx += 1
         }
+
+        checkHypothesis()
 
         if (pp.specialInitialStep)
           pp.specialInitialStep = false
