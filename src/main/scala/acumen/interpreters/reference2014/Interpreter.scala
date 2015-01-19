@@ -400,7 +400,7 @@ object Interpreter extends acumen.CStoreInterpreter {
         def resolveDots(s: List[(CId,Dot,Expr,Env)]): List[ResolvedDot] =
           s.map{ case (o, d, _, env) => resolveDot(d, env, st1) }
         val res = getResultType(st) match {
-          case Discrete | Continuous => // Either conclude fixpoint is reached or do discrete step
+          case Initial | Discrete | Continuous => // Either conclude fixpoint is reached or do discrete step
             checkDuplicateAssingments(resolveDots(das), DuplicateDiscreteAssingment)
             val dasValues = evaluateAssignments(das, st1)
             val nonIdentityDas = dasValues.filterNot{ a => a._3 == getObjectField(a._1, a._2.field, st1) }
