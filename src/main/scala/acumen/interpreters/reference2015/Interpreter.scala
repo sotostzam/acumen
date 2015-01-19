@@ -473,7 +473,7 @@ object Interpreter extends acumen.CStoreInterpreter {
             val nonIdentityAs = (dasValues ++ nonClashingEqsValues).filterNot{ case (id, d, v) => 
               v == getObjectField(id, d.field, st1) }
             /* If the discrete, structural and non-ODE continuous actions do not modify the store, conclude discrete fixpoint */
-            if (resultType != Initial && nonIdentityAs.isEmpty && ids.isEmpty && rps.isEmpty && st == st1) 
+            if (nonIdentityAs.isEmpty && ids.isEmpty && rps.isEmpty && st == st1) 
               setResultType(FixedPoint, st1)
             else {
               /* Apply discrete and non-clashing continuous assignment values to store */
