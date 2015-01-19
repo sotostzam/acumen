@@ -119,6 +119,9 @@ object Common {
     /** Do a special initial continuous step, set to false after the
       * special step is done */
     var specialInitialStep : Boolean = false;
+    /** Existence of active discrete assignments or non-clashing
+      * continuous assignments */
+    var FixedPoint : Boolean = false;
     /** Gathered equations for the ODE solver */
     var odes = new ArrayBuffer[Equation];
     /** Gathered assignments */

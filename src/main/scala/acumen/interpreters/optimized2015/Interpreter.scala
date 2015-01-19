@@ -66,7 +66,11 @@ class Interpreter(val specialInitContStep : Boolean = false) extends CStoreInter
       while (idx < pp.assigns.size) {
         val eqt = pp.assigns(idx)
         val v = getField(eqt.id, eqt.field, p, Env(eqt.env,Some(odeEnv)))
-        updateField(eqt.id, eqt.field, v)
+        updateField(eqt.id, eqt.field, v) match {
+          case NoChange() =>
+          case SomeChange(_,_) =>
+            pp.FixedPoint = false
+        }
         idx += 1
       }
     } finally {
@@ -102,21 +106,27 @@ class Interpreter(val specialInitContStep : Boolean = false) extends CStoreInter
                   op.children = op.children diff Seq(o)
               }
             }
+            pp.FixedPoint = false
 
-            // gather the continuous assignments 
-            pp.curIter += 1
-            pp.reset(false, Gather, Ignore)
-            traverse(evalStep(p, magic), st)
-            // Retrieve updated values for continuous assignments 
-            doEquationT(OdeEnv(IndexedSeq.empty, Array.fill[AssignVal](pp.assigns.length)(Unknown)))
-
-            checkHypothesis()
-
-            Discrete
           case NoChange() =>
-            FixedPoint
+            pp.FixedPoint = true
           }
+        
+        // gather the continuous assignments 
+        pp.curIter += 1
+        pp.reset(false, Gather, Ignore)
+        traverse(evalStep(p, magic), st)
+        
+        // Retrieve updated values for continuous assignments 
+        doEquationT(OdeEnv(IndexedSeq.empty, Array.fill[AssignVal](pp.assigns.length)(Unknown)))
 
+        if (pp.FixedPoint) { 
+          FixedPoint
+        } else {
+          checkHypothesis()
+
+          Discrete
+        } 
       } else { // Continuous step
 
         pp.reset(false, Gather, Gather)
