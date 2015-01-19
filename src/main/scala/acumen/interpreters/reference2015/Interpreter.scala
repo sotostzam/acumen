@@ -465,7 +465,7 @@ object Interpreter extends acumen.CStoreInterpreter {
             val dasValues = evaluateAssignments(das, st1)
             /* Evaluate continuous assignments that do not clash with discrete assignments */
             val nonClashingEqs = eqs.filterNot (e => dasValues.exists { case (id, d, _) =>  
-              id == resolveDot(e.d, e.env, st1).id && d.field == d.field })
+              id == resolveDot(e.d, e.env, st1).id && d.field == e.d.field })
             val nonClashingEqsValues = evaluateAssignments(nonClashingEqs, st1)(bindings ++
               /* Give discrete assignments precedence by replacing clashing bindings */
               dasValues.map { case (id, d, v) => (id, d.field) -> CachedUnusedBinding(v) })
