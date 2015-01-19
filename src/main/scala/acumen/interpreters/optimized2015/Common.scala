@@ -116,9 +116,6 @@ object Common {
     // don't go inside conditionals when doing Hypotheses as all
     // Hypotheses are suppose to be at the top level
     def doConditionals = !doHypothesis
-    /** Do a special initial continuous step, set to false after the
-      * special step is done */
-    var specialInitialStep : Boolean = false;
     /** Existence of active discrete assignments or non-clashing
       * continuous assignments */
     var FixedPoint : Boolean = false;

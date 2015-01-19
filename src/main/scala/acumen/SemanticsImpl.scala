@@ -147,19 +147,21 @@ object SemanticsImpl {
                                             case ContMode.IVP => "IVP"},
                             if (contWithDiscr) "contWithDiscr" else "contWithCont")
   }
-  case class Optimized2015(specialInitContStep : Boolean = false) extends CStore
+  case class Optimized2015() extends CStore
   {
-    val i = new optimized2015.Interpreter(specialInitContStep)
+    val i = new optimized2015.Interpreter
     val semantics = S2015
     override val isOldSemantics = false
     def interpreter() = i
     override def withArgs(args: List[String]) : Optimized2015 = args match {
-      case "specialInitContStep" :: tail => copy(specialInitContStep = true).withArgs(tail)
+      /** Template for handling of arguments
+       * case "SomeArgument" :: tail => copy(SomeFlag = true).withArgs(tail)  */
       case Nil => this
       case _ => null
     }
-    override def id = Array("optimized2015", 
-                            if (specialInitContStep) "specialInitContStep" else "")
+    /** Template for handling of arguments
+      * override def id = Array("optimized2015", 
+      *                      if (SomeFlag) "SomeName" else "") */
   }
   // Use this as a base for selecting the generic optimized semantics
   // that not trying to match a particular semantics
@@ -190,7 +192,6 @@ object SemanticsImpl {
   lazy val Opt2013 = Optimized()
   lazy val Opt2014 = Optimized(contMode = ContMode.IVP)
   lazy val Opt2015 = Optimized2015()
-  lazy val Opt2015b = Optimized2015(specialInitContStep = true)
 
   case class Sel(si: SemanticsSel, 
                  // First id is the display name
@@ -203,7 +204,6 @@ object SemanticsImpl {
   val selections = 
     List(sel(Ref2015, "2015 Reference", "reference2015"),
          sel(Opt2015, "2015 Optimized", "optimized2015"),
-         sel(Opt2015b, "2015 Optimized (b)", "optimized2015b"),
          sel(Ref2014, "2014 Reference", "reference2014", "reference", ""),
          sel(Opt2014, "2014 Optimized", "optimized2014"),
          sel(Ref2013, "2013 Reference", "reference2013"),

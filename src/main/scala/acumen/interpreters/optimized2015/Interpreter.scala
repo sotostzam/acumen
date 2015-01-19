@@ -29,7 +29,7 @@ import acumen.util.Canonical.{
 }
 import scala.annotation.tailrec
 
-class Interpreter(val specialInitContStep : Boolean = false) extends CStoreInterpreter {
+class Interpreter extends CStoreInterpreter {
 
   import Common._ 
 
@@ -47,10 +47,6 @@ class Interpreter(val specialInitContStep : Boolean = false) extends CStoreInter
     val mainObj = mkObj(cmain, sprog, IsMain, sd1, List(VObjId(Some(magic))), magic, 1)
     magic.seed = sd2
     val mprog = Prog(magicClass :: sprog.defs)
-    if (specialInitContStep)
-      println("Doing specialInitContStep")
-    if (specialInitContStep)
-      magic.phaseParms.specialInitialStep = true
     (mprog , mainObj, NoMetadata)
   }
 
@@ -150,8 +146,7 @@ class Interpreter(val specialInitContStep : Boolean = false) extends CStoreInter
         // Run the ode solver
         implicit val field = FieldImpl(pp.odes, p)
         val initOdeEnv = OdeEnv(initVal, Array.fill[AssignVal](pp.assigns.length)(Unknown))
-        val res = if (pp.specialInitialStep) initOdeEnv
-                  else new Solver(getField(magic, Name("method", 0)), initOdeEnv, getTimeStep(magic)).solve
+        val res = new Solver(getField(magic, Name("method", 0)), initOdeEnv, getTimeStep(magic)).solve
 
         // Evaluate (if necessary) and update values assigned to by EquationT
         doEquationT(res)
@@ -166,10 +161,7 @@ class Interpreter(val specialInitContStep : Boolean = false) extends CStoreInter
 
         checkHypothesis()
 
-        if (pp.specialInitialStep)
-          pp.specialInitialStep = false
-        else
-          setTime(magic, getTime(magic) + getTimeStep(magic))
+        setTime(magic, getTime(magic) + getTimeStep(magic))
 
         Continuous
       }
@@ -222,5 +214,4 @@ class Interpreter(val specialInitContStep : Boolean = false) extends CStoreInter
   }
 }
 
-object Interpreter extends Interpreter(false)
-
+object Interpreter extends Interpreter()
