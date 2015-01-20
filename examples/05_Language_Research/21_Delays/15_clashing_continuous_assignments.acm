@@ -1,0 +1,22 @@
+model Main(simulator) =
+initially
+  a = 0,
+  b = 0, b' = 1
+always
+ // simulator
+ simulator.timeStep+ = 0.25,
+ 
+ b' = 1,
+ a = b,
+ if a > 2 then 
+   a+ = 1,
+   b+ = 0
+ noelse,
+
+ // When a becomes greater than 2, the equality a == b should be violated 
+ // temporarily, for a Discrete step as a = b is clashing with a+ = 1
+ // (when b = 0). Thereafter, another discrete step should modify 
+ // b to become equal to a (as a > 2 does not hold anymore)
+
+ // Thus the hypothesis should be falsified at 2.25, temporarily.
+ hypothesis "a is always = b" a == b
