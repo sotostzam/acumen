@@ -117,9 +117,6 @@ object Common {
     // don't go inside conditionals when doing Hypotheses as all
     // Hypotheses are suppose to be at the top level
     def doConditionals = !doHypothesis
-    /** Existence of active discrete assignments or non-clashing
-      * continuous assignments */
-    var FixedPoint : Boolean = false;
     /** Gathered equations for the ODE solver */
     var odes = new ArrayBuffer[Equation];
     /** Gathered continuous assignments */

@@ -56,6 +56,10 @@ class Interpreter extends CStoreInterpreter {
     val pp = magic.phaseParms
     pp.curIter += 1
 
+    /** If false then there exist active discrete assignments or non-clashing
+      * continuous assignments */
+    var isFixedPoint : Boolean = true
+    
     def doEquationT(odeEnv: OdeEnv) = try {
       pp.usePrev = false
       var idx = 0
@@ -65,7 +69,7 @@ class Interpreter extends CStoreInterpreter {
         updateField(eqt.id, eqt.field, v) match {
           case NoChange() =>
           case SomeChange(_,_) =>
-            pp.FixedPoint = false
+            isFixedPoint = false
         }
         idx += 1
       }
@@ -102,10 +106,10 @@ class Interpreter extends CStoreInterpreter {
                   op.children = op.children diff Seq(o)
               }
             }
-            pp.FixedPoint = false
+            isFixedPoint = false
 
           case NoChange() =>
-            pp.FixedPoint = true
+            isFixedPoint = true
           }
         
         // gather the continuous assignments 
@@ -116,7 +120,7 @@ class Interpreter extends CStoreInterpreter {
         // Retrieve updated values for non-clashing continuous assignments 
         doEquationT(OdeEnv(IndexedSeq.empty, Array.fill[AssignVal](pp.assigns.length)(Unknown)))
 
-        if (pp.FixedPoint) { 
+        if (isFixedPoint) { 
           FixedPoint
         } else {
           checkHypothesis()
