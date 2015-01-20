@@ -74,7 +74,7 @@ class Interpreter extends CStoreInterpreter {
     }
 
     def checkHypothesis() {
-      pp.reset(false, Ignore, Ignore)
+      pp.reset(Ignore, Ignore, Ignore)
       pp.usePrev = false
       pp.doHypothesis = true
       traverse(evalStep(p, magic), st)
@@ -88,12 +88,12 @@ class Interpreter extends CStoreInterpreter {
 
       val rt = if (getResultType(magic) != FixedPoint) { // Discrete Step
 
-        pp.reset(true, Ignore, Ignore)
+        pp.reset(Now, Ignore, Ignore)
 
         traverse(evalStep(p, magic), st) match {
           case SomeChange(dead, rps) =>
             for ((o, p) <- rps)
-            changeParent(o, p)
+              changeParent(o, p)
             for (o <- dead) {
               o.parent match {
                 case None => ()
@@ -110,10 +110,10 @@ class Interpreter extends CStoreInterpreter {
         
         // gather the continuous assignments 
         pp.curIter += 1
-        pp.reset(false, Gather, Ignore)
+        pp.reset(Preserve, Gather, Ignore)
         traverse(evalStep(p, magic), st)
         
-        // Retrieve updated values for continuous assignments 
+        // Retrieve updated values for non-clashing continuous assignments 
         doEquationT(OdeEnv(IndexedSeq.empty, Array.fill[AssignVal](pp.assigns.length)(Unknown)))
 
         if (pp.FixedPoint) { 
@@ -125,7 +125,7 @@ class Interpreter extends CStoreInterpreter {
         } 
       } else { // Continuous step
 
-        pp.reset(false, Gather, Gather)
+        pp.reset(Ignore, Gather, Gather)
 
         traverse(evalStep(p, magic), st)
 

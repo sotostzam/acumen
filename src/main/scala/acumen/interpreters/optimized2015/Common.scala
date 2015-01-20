@@ -94,9 +94,10 @@ object Common {
   case object Evaluating extends AssignVal
 
   sealed abstract class EvalMode;
-  case object Ignore  extends EvalMode;
-  case object Now     extends EvalMode;
-  case object Gather  extends EvalMode;
+  case object Ignore    extends EvalMode;
+  case object Now       extends EvalMode;
+  case object Gather    extends EvalMode;
+  case object Preserve  extends EvalMode;
 
   /** Phase parameters and common state shared by all objects. */
   class PhaseParms {
@@ -105,8 +106,8 @@ object Common {
     var curIter : Int = 0;
     /** If set than use the value of the previous iteration */
     var usePrev = true;
-    /** If set do discrete operations */
-    var doDiscrete = false;
+    /** How to handle Discrete Assignments */
+    var doDiscrete : EvalMode = Ignore;
     /** How to handle EquationT's */
     var doEquationT : EvalMode = Ignore;
     /** How to handle EquationI's */
@@ -121,12 +122,14 @@ object Common {
     var FixedPoint : Boolean = false;
     /** Gathered equations for the ODE solver */
     var odes = new ArrayBuffer[Equation];
-    /** Gathered assignments */
+    /** Gathered continuous assignments */
     var assigns = new ArrayBuffer[Equation];
+    /** Gathered discrete assignments */
+    var das = new ArrayBuffer[DiscreteAssignment];
     /** Metadata */
     var metaData : Metadata = NoMetadata
     
-    def reset(doD : Boolean, doT: EvalMode, doI: EvalMode) {
+    def reset(doD : EvalMode, doT: EvalMode, doI: EvalMode) {
       usePrev = true
       doDiscrete = doD
       doEquationT = doT
@@ -134,11 +137,15 @@ object Common {
       doHypothesis = false
       odes.clear()
       assigns.clear()
+      if (doD != Preserve)
+        das.clear()
     }
   }
 
   case class Equation(id: ObjId, field: Name, rhs: Expr, env: Map[Name, Val]);
 
+  case class DiscreteAssignment(id: ObjId, field: Name);
+  
   case class Object(
       val id: CId,
       var fields: MMap[Name, ValVal],
@@ -550,6 +557,7 @@ object Common {
       case Assign(d@Dot(e, x), t) =>
         val id = evalToObjId(e, p, env)
         val vt = evalExpr(t, p, env)
+        magic.phaseParms.das.append(DiscreteAssignment(id,x))
         setField(id, x, vt, d.pos)
       case Assign(lhs, _) =>
         throw BadLhs().setPos(lhs.pos)
@@ -566,6 +574,7 @@ object Common {
           case None => logModified
           case Some(d@Dot(e, x)) =>
             val id = evalToObjId(e, p, env)
+            magic.phaseParms.das.append(DiscreteAssignment(id,x))
             logModified || setField(id, x, VObjId(Some(fa)), d.pos)
           case Some(e) => throw BadLhs().setPos(e.pos)
         }
@@ -591,8 +600,17 @@ object Common {
       } else if (magic.phaseParms.doEquationT == Gather) {
         val id = evalToObjId(e, p, env)
         val idx = magic.phaseParms.assigns.length
-        setField(id, x, AssignLookup(idx), d.pos)
-        magic.phaseParms.assigns.append(Equation(id,x,t,env.env))
+        /** This check should be done only if doDiscrete == Preserve,
+         *  However, in other cases the list is empty, so the check is simple.
+         *  
+         *  The list is emptied by pp.reset if doDiscrete == Ignore,
+         *  The list is being populated if doDiscrete == Now, but 
+         *  that never happens together with doEquationT == Gather.
+         */
+        if (!(magic.phaseParms.das contains DiscreteAssignment(id, x))) {
+          setField(id, x, AssignLookup(idx), d.pos)
+          magic.phaseParms.assigns.append(Equation(id,x,t,env.env))
+        }
         noChange
       } else noChange
       case EquationI(d@Dot(e, x), t) => if (magic.phaseParms.doEquationI == Now) {
@@ -689,7 +707,7 @@ object Common {
           }
       }} else noChange
       case Discretely(da) =>
-        if (magic.phaseParms.doDiscrete)
+        if (magic.phaseParms.doDiscrete == Now)
           evalDiscreteAction(da, env, p, magic)
         else noChange
       case Continuously(ca) =>
