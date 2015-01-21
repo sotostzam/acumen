@@ -94,7 +94,20 @@ class Interpreter extends CStoreInterpreter {
 
         pp.reset(Now, Ignore, Ignore)
 
-        traverse(evalStep(p, magic), st) match {
+        /* - Evaluate discrete assignments and gather the effected variables into a list. 
+         * - Collect structural actions. */
+        val reParentings = traverse(evalStep(p, magic), st) 
+        
+        // Gather the continuous assignments 
+        pp.curIter += 1
+        pp.reset(Preserve, Gather, Ignore)
+        traverse(evalStep(p, magic), st)
+        
+        // Retrieve updated values for non-clashing continuous assignments 
+        doEquationT(OdeEnv(IndexedSeq.empty, Array.fill[AssignVal](pp.assigns.length)(Unknown)))
+
+        // Apply the structural actions.
+        reParentings match {
           case SomeChange(dead, rps) =>
             for ((o, p) <- rps)
               changeParent(o, p)
@@ -112,14 +125,7 @@ class Interpreter extends CStoreInterpreter {
             isFixedPoint = true
           }
         
-        // gather the continuous assignments 
-        pp.curIter += 1
-        pp.reset(Preserve, Gather, Ignore)
-        traverse(evalStep(p, magic), st)
-        
-        // Retrieve updated values for non-clashing continuous assignments 
-        doEquationT(OdeEnv(IndexedSeq.empty, Array.fill[AssignVal](pp.assigns.length)(Unknown)))
-
+        // Decide if a FixedPoint is reached
         if (isFixedPoint) { 
           FixedPoint
         } else {
