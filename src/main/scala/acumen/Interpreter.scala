@@ -371,27 +371,29 @@ class StopAtFixedPoint extends DataAdder {
 }
 
 abstract class FilterDataAdder(var opts: CStoreOpts) extends DataAdder {
-  var prevStepType : ResultType = Discrete
-  var curStepType : ResultType = Discrete
+  var prevStepType : ResultType = Initial
+  var curStepType : ResultType = Initial
   var outputRow : Boolean = false
   var contCountdown : Int = 0
+
   def newStep(t: ResultType) = {
     curStepType = t
     import OutputRows._
     val what = opts.outputRows
-    outputRow = (what == All) // 1
-                 /*|| (curStepType == Integration && what != Last)  // 2
-                 || (curStepType ==  Discrete && what == WhenChanged) // 3
-                 || (prevStepType == FixedPoint && curStepType == Continuous && what == WhenChanged)
-                 || (prevStepType == Discrete && curStepType == FixedPoint && what == WhenChanged)) // 4*/
+    outputRow = ((what == All) // 1
+                 || (curStepType == Initial) // 2
+                 || (curStepType == Continuous && what != Last)  // 3
+                 || (curStepType ==  Discrete && what == WhenChanged) // 4
+                 || (prevStepType == Discrete && curStepType == FixedPoint && what == FinalWhenChanged)) // 5
     //                   <Last> @Continuous @Discrete <FP. Changed> @FixedPoint
-    // All                 1         1 2        1          1             1 
+    // All                 1          1         1          1             1 
     // WhenChanged         y          2         3          n             n
     // FinalWhenChanged    y          2         n          4             n
     // ContinuousOnly      y          2         n          n             n 
     // Last                y          n         n          n             n 
     prevStepType = curStepType
-    /* Feri: Old code we don't want 
+ 
+    // Skips reporting opts.continuousSkip number of continuous segments
     if (curStepType == Continuous) {
       if (contCountdown == 0) {
         contCountdown = opts.continuousSkip
@@ -400,7 +402,7 @@ abstract class FilterDataAdder(var opts: CStoreOpts) extends DataAdder {
         contCountdown -= 1
       }
     }
-    */
+
     if (outputRow)         ShouldAddData.Yes
     else if (what == Last) ShouldAddData.IfLast
     else                   ShouldAddData.No
