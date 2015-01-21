@@ -187,13 +187,12 @@ class Interpreter extends CStoreInterpreter {
   // determine when teh simulation is done
   override def multiStep(p: Prog, st: Store, md: Metadata, adder: DataAdder): (Store, Metadata, Double) = {
     setMetadata(st, md)
-    var shouldAddData = ShouldAddData.IfLast
-    // ^^ set to IfLast on purpose to make things work
+    var shouldAddData = ShouldAddData.No
     var endTime = Double.NaN
     @tailrec def step0() : Unit = {
       val res = localStep(p, st)
       if (res == null) {
-        if (shouldAddData == ShouldAddData.IfLast)
+        if (adder.addLast)
           addData(st, adder)
         adder.noMoreData()
         endTime = getEndTime(getSimulator(st))

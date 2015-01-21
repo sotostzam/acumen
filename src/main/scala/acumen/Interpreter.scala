@@ -170,10 +170,11 @@ trait CStoreInterpreter extends Interpreter {
     var st = st0
     var md = md0
     var cstore = repr(st0)
-    /* If shouldAddData is set to IfLast then the last store is sent 
-     * to the output. As every store is sent there by calling Data at 
-     * the end of each evaluation cycle (Discrete, FixedPoint, Continuous, 
-     * Integration), we do not need to output this again. */
+    /* - The Initial store is output on a higher level
+     * - The user set simulator parameters are evaluated 
+     *   in the first Discrete step that is output depending
+     *   on Common/initStoreTxt 
+     * - Thereafter, the DataAdder decides what should be output */
     var shouldAddData = ShouldAddData.No 
     while (true) {
       step(p, st, md) match {
@@ -187,7 +188,7 @@ trait CStoreInterpreter extends Interpreter {
           st = resSt
           md = resMd
         case Done(resMd,endTime) => // If the simulation is over
-          if (shouldAddData == ShouldAddData.IfLast)
+          if (adder.addLast)
             cstore.foreach{case (id,obj) => adder.addData(id, obj)}
           adder.noMoreData()
           return (st,resMd,endTime)
@@ -339,7 +340,11 @@ abstract class DataAdder {
    * Called after each step.  If false than multiStep should not continue and
    * return the current Store.
    */
-  def continue : Boolean 
+  def continue : Boolean
+  /**
+   * Called to check if the last Store should be forcefully output
+   */
+  def addLast : Boolean = false
 }
 
 /** 
@@ -347,7 +352,7 @@ abstract class DataAdder {
  * whether or not to add the data. IfLast refers to the very last step of the
  * simulation.
  */
-object ShouldAddData extends Enumeration {
+object ShouldAddData extends Enumeration { // Legacy, used values are Yes/No -> Boolean
   val Yes, IfLast, No = Value
 }
 
@@ -376,6 +381,11 @@ abstract class FilterDataAdder(var opts: CStoreOpts) extends DataAdder {
   var outputRow : Boolean = false
   var contCountdown : Int = 0
 
+  override def addLast : Boolean = {
+    import OutputRows._
+    opts.outputRows == Last
+  }
+  
   def newStep(t: ResultType) = {
     curStepType = t
     import OutputRows._
@@ -403,8 +413,8 @@ abstract class FilterDataAdder(var opts: CStoreOpts) extends DataAdder {
       }
     }
 
+    // Legacy, used values are Yes/No -> Boolean
     if (outputRow)         ShouldAddData.Yes
-    else if (what == Last) ShouldAddData.IfLast
     else                   ShouldAddData.No
   }
   def mkFilter(e:GObject) : ((Name, GValue)) => Boolean = {
