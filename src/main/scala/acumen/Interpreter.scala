@@ -383,24 +383,31 @@ abstract class FilterDataAdder(var opts: CStoreOpts) extends DataAdder {
 
   override def addLast : Boolean = {
     import OutputRows._
-    opts.outputRows == Last
+    opts.outputRows == Last || opts.outputRows == ContinuousOnly
   }
   
   def newStep(t: ResultType) = {
     curStepType = t
     import OutputRows._
     val what = opts.outputRows
-    outputRow = ((what == All) // 1
-                 || (curStepType == Initial) // 2
-                 || (curStepType == Continuous && what != Last)  // 3
-                 || (curStepType ==  Discrete && what == WhenChanged) // 4
-                 || (prevStepType == Discrete && curStepType == FixedPoint && what == FinalWhenChanged)) // 5
-    //                   <Last> @Continuous @Discrete <FP. Changed> @FixedPoint
-    // All                 1          1         1          1             1 
-    // WhenChanged         y          2         3          n             n
-    // FinalWhenChanged    y          2         n          4             n
-    // ContinuousOnly      y          2         n          n             n 
-    // Last                y          n         n          n             n 
+    outputRow = (   (                                                         what == All)               // 1
+                 || (                            curStepType == Continuous && what != Last)              // 2
+                 || (                            curStepType == Discrete   && what == WhenChanged)       // 3
+                 || (prevStepType == Discrete && curStepType == FixedPoint && what == FinalWhenChanged)) // 4
+    /*                   <Initial> [1st @Discrete] @Discrete @FixedPoint @Continuous <Last '15   '14> <Last Forced>
+     * All                   y            y            y          y           y              y    y       n 
+     * WhenChanged           y            y            y          n           y              n+   y       n
+     * FinalWhenChanged      y            y            n          4           y              4+   2 4     n
+     * ContinuousOnly        y            y            n          n           y              n    2       y
+     * Last                  y            y            n          n           n              n    n       y
+     * 
+     * - The user set simulator parameters are processed in the 1st Discrete step (if there is any).
+     * - The '+' marks under Last '15 signal that even if the (technically) last Store is not output by
+     *   the filtering above, a preceding one, that is identical to it except for the resultType, is.
+     * - This is guaranteed under Last '14 as well if simulator.endTime != 0 
+     * - The last Store is forcefully output during multiStep if the addLast member function returns true
+     */
+
     prevStepType = curStepType
  
     // Skips reporting opts.continuousSkip number of continuous segments
