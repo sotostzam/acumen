@@ -32,6 +32,10 @@ object Errors {
       pos.tail.map{p => p.toString + ": included from\n"}.mkString("")
     }
   }
+  case class ClassOverride(cn:String, libDir: String, curDir: String) extends PositionalAcumenError {
+    override def mesg: String =
+      "Model " + cn + " is defined in " + libDir + " , and overwrite in " + curDir
+  }
   case class NoInstanceFound(cn:ClassName) extends PositionalAcumenError {
     override def mesg = 
       "Found no instance of model " + pprint(cn) + "."

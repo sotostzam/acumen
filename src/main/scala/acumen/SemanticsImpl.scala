@@ -1,6 +1,7 @@
 package acumen
 
 import Errors._
+import acumen.ui.Files
 import interpreters._
 import interpreters.optimized.ContMode
 import java.io.{File,InputStreamReader,FileInputStream}
@@ -47,7 +48,14 @@ abstract class SemanticsImpl[+I <: Interpreter] extends SemanticsSel
   def parse(s: String, dir: File, fn: Option[String]) : Prog = parse(new java.io.StringReader(s),dir,fn)
   private def parseHelper(s: java.io.Reader, dir: File, fn: Option[String], includedFrom: List[Position],
                           seen: MutHashMap[ClassName, List[Position]]) : List[ClassDef] = {
-    val file = fn map {f => new File(dir, f)}
+    val file = {
+      // Firstly, if the file is defined in acumen_lib
+      if (!fn.isEmpty && new File(Files.LibDir, fn.get).exists()) fn map {f => new File(Files.LibDir, f)}
+      // secondly, check if the file is in current dir
+      else if (!fn.isEmpty && new File(dir, fn.get).exists()) fn map (f => new File(dir, f))
+      else None
+    }
+
     val (incl, defs) = Parser.run(Parser.fullProg, s, file)
     defs.foreach{case defn@ClassDef(cn,_,_,_) => 
       if (seen.contains(cn)) {
@@ -58,9 +66,15 @@ abstract class SemanticsImpl[+I <: Interpreter] extends SemanticsSel
         seen.put(cn, defn.pos :: includedFrom)
       }
     }
-    incl.flatMap{case incl@Include(fn) => 
-      val in = new InputStreamReader(new FileInputStream(new File(dir,fn)))
-      parseHelper(in, dir, Some(fn), incl.pos :: includedFrom, seen)
+    incl.flatMap{case incl@Include(fn) =>
+      // firstly, check the file is uniform defined by users or acumen_lib
+      if (new File(Files.LibDir, fn).exists() && new File(dir, fn).exists())
+        throw ClassOverride(fn, Files.LibDir.toString, dir.toString)
+      val inclDir =
+        if (new File(Files.LibDir, fn).exists()) Files.LibDir
+        else dir
+      val in = new InputStreamReader(new FileInputStream(new File(inclDir,fn)))
+      parseHelper(in, inclDir, Some(fn), incl.pos :: includedFrom, seen)
     } ++ defs
   }
 
