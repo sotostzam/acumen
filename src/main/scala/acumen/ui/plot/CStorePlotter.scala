@@ -13,7 +13,7 @@ import org.jfree.ui.ApplicationFrame
 import swing.Swing
 
 import acumen.interpreters.enclosure._
-import acumen.ui.interpreter.{PlotParms, PlotDoubles,PlotModel}
+import acumen.ui.interpreter.{PlotParms, Plottable,PlotDiscrete,PlotDoubles,PlotEnclosure,PlotModel}
 import acumen.util.Canonical._
 import acumen.util.Conversions._
 
@@ -33,7 +33,7 @@ class CStorePlotter extends JFreePlotter {
     val model = d.asInstanceOf[PlotModel]
     try {
       for (toPlot <- model.getPlottables(PlotParms())) {
-        addDataHelper(model, toPlot.asInstanceOf[PlotDoubles])
+        addDataHelper(model, toPlot)
       }
       //combinedPlot.setNotify(true)
       for (ds <- dataSets.values) {
@@ -74,18 +74,23 @@ class CStorePlotter extends JFreePlotter {
   
   var lastFrame = 0
   
-  private def addDataHelper(model: PlotModel, toPlot: PlotDoubles) = {
+  private def addDataHelper(model: PlotModel, toPlot: Plottable) = {
     val times = model.getTimes
     val series = dataSets.getOrElseUpdate(toPlot.column, 
                                           newSubPlot(model.getPlotTitle(toPlot.column), toPlot.column))
-    var i = lastFrame
-    val offset = toPlot.startFrame
-    series.setNotify(false) 
-    while (i - offset < toPlot.values.length) {
-      series.add(times(i),toPlot.values(i-offset),true)
-      i += 1
+    toPlot match {
+      case tP: PlotDiscrete =>
+      case tP: PlotDoubles =>
+        var i = lastFrame
+        val offset = tP.startFrame
+        series.setNotify(false) 
+        while (i - offset < tP.values.length) {
+          series.add(times(i),tP.values(i-offset),true)
+          i += 1
+        }
+        series.setNotify(true)
+      case tP: PlotEnclosure =>
     }
-    series.setNotify(true)
   }
 
   override def resetPlot = {
