@@ -122,19 +122,41 @@ class SummarizeHypothesisOutcomes {
         case ((resReport, resS, resU, resF), ((id, cn, hn), ho)) =>
           val sid = s"(#${id.cid.toString}:${cn.x})".padTo(mLenCId + mLenCN + 2, nbsp).mkString
           val shn = hn.map("'" + _ + "'").getOrElse("").padTo(mLenHN + 2, nbsp).mkString
-          def fail(prefix: String, t: String, e: Set[(Dot,GValue)]) = 
+          def fail(prefix: String, t: Any, e: Set[(Dot,GValue)]) = 
             s"$prefix $t" + (if (e isEmpty) "" else ", where " + e.map { case (d, v) => 
-              val lhs = Pretty pprint (if (d.obj == Var(util.Canonical.self)) Var(d.field) else (d:Expr)) 
-              s"$lhs = ${Pretty pprint v}"
+            val lhs = Pretty pprint (if (d.obj == Var(util.Canonical.self)) Var(d.field) else (d:Expr)) 
+            s"$lhs = ${Pretty pprint v}"
             }.mkString(", "))
-          val (s, u, f, symbol, sho) = ho._3 match { // FIXME 
-            case TestSuccess            => (1, 0, 0,                "+",       "Tested")
-            case TestFailure(t, e)      => (0, 0, 1, colorFailure  ("-"), fail("Tested false at", t.toString, e))
-            case CertainSuccess         => (1, 0, 0,                "+",       "Proved")
-            case UncertainFailure(t, e) => (0, 1, 0, colorUncertain("?"), fail("Inconclusive over", s"[${t._1}..${t._2}]", e))
-            case CertainFailure(t, e)   => (0, 0, 1, colorFailure  ("-"), fail("Disproved over", s"[${t._1}..${t._2}]", e))
+          /* (successes, uncertains, failures, report lines) */
+          val (s, u, f, hoLines) = (ho : @unchecked) match {
+            /* Traditional interpreter outcomes */
+            case (Some(TestSuccess), Some(TestSuccess), TestSuccess) => 
+              (1, 0, 0, List( ("+", "Tested") ))
+            case (Some(TestSuccess), _, TestFailure(t, e)) => 
+              (0, 0, 1, List( (colorFailure("-"), fail("Falsified at", t, e)) ))
+            case (Some(InitialTestFailure(ei)), _, TestFailure(t, e)) => 
+              (0, 0, 1, List( (colorFailure("-"), fail("Falsified at", t, e))
+                            , (colorFailure("-"), fail("Falsified initially", "", ei)) ))
+            case (Some(InitialTestFailure(ei)), Some(TestSuccess), TestSuccess) => 
+              (0, 1, 0, List( ("+", "Tested almost everywhere")
+                            , (colorFailure("-"), fail("Falsified initially", "", ei)) ))
+            case (Some(TestSuccess), Some(TestFailure(t, e)), TestSuccess) => 
+              (0, 1, 0, List( ("+", "Tested almost everywhere")
+                            , (colorFailure("-"), fail("Falsified momentarily at", t, e)) ))
+            case (Some(InitialTestFailure(ei)), Some(TestFailure(t, e)), TestSuccess) =>
+              (0, 1, 0, List( ("+", "Tested almost everywhere")
+                            , (colorFailure("-"), fail("Falsified initially", "", ei))
+                            , (colorFailure("-"), fail("Falsified momentarily at", t, e)) ))
+            /* Rigorous interpreter outcomes */
+            case (None, None, CertainSuccess) => 
+              (1, 0, 0, List( ("+", "Proved") ))
+            case (None, None, UncertainFailure(t, e)) => 
+              (0, 1, 0, List( (colorUncertain("?"), fail("Inconclusive over", s"[${t._1}..${t._2}]", e)) ))
+            case (None, None, CertainFailure(t, e)) => 
+              (0, 0, 1, List( (colorFailure("-"), fail("Disproved over", s"[${t._1}..${t._2}]", e)) ))
           }
-          (s"$symbol $sid $shn $sho$br$resReport", resS + s, resU + u, resF + f)
+          ( hoLines.map{ case (symbol, sho) => s"$symbol $sid $shn $sho" }.mkString(br) + br + resReport
+          , resS + s, resU + u, resF + f)
       }
       val domain = s" OVER [${md.timeDomain._1}..${md.timeDomain._2}]" 
       val header = (successes, uncertains, failures) match {
