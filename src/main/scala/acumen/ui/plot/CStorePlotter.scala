@@ -16,6 +16,7 @@ import acumen.interpreters.enclosure._
 import acumen.ui.interpreter.{PlotParms, Plottable,PlotDiscrete,PlotDoubles,PlotEnclosure,PlotModel}
 import acumen.util.Canonical._
 import acumen.util.Conversions._
+import Errors._
 
 case object TooManySubplots extends Exception
 
@@ -73,24 +74,36 @@ class CStorePlotter extends JFreePlotter {
   }
   
   var lastFrame = 0
-  
+  val stringValues = new HashMap[String, Int]
+
   private def addDataHelper(model: PlotModel, toPlot: Plottable) = {
     val times = model.getTimes
     val series = dataSets.getOrElseUpdate(toPlot.column, 
                                           newSubPlot(model.getPlotTitle(toPlot.column), toPlot.column))
+    
+    val offset = toPlot.startFrame
+    series.setNotify(false)
+
     toPlot match {
       case tP: PlotDiscrete =>
-      case tP: PlotDoubles =>
-        var i = lastFrame
-        val offset = tP.startFrame
-        series.setNotify(false) 
-        while (i - offset < tP.values.length) {
-          series.add(times(i),tP.values(i-offset),true)
-          i += 1
+         for (i <- lastFrame until tP.values.size) {
+          tP.values(i) match {
+            case VLit(GStr(str)) => 
+              series.add(times(offset + i),stringValues.getOrElseUpdate(str, - stringValues.size),true)
+            case VLit(e:GDiscreteEnclosure[String]) => 
+              throw NewPlotEnclosureError()
+            case VLit(GInt(n)) => 
+              series.add(times(offset + i),stringValues.getOrElseUpdate(n.toString, - stringValues.size),true)
+          }
         }
-        series.setNotify(true)
+      case tP: PlotDoubles =>
+        for (i <- lastFrame until tP.values.size)
+          series.add(times(offset + i),tP.values(i),true)
       case tP: PlotEnclosure =>
+        throw NewPlotEnclosureError()
     }
+    
+    series.setNotify(true)
   }
 
   override def resetPlot = {
