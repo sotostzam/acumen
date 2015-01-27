@@ -864,9 +864,10 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
         (for (DelayedHypothesis(o, s, h, env) <- hs) yield {
           lazy val counterEx = dots(h).toSet[Dot].map(d => d -> (evalExpr(d, env, st) : GValue))
           (o, getCls(o,st), s) -> (evalExpr(h, env, st) match {
-            case VLit(CertainTrue)  => CertainSuccess
-            case VLit(Uncertain)    => UncertainFailure(timeDomain, counterEx)
-            case VLit(CertainFalse) => CertainFailure(timeDomain, counterEx)
+            /* Use TestSuccess as default as it is the unit of HypothesisOutcome.pick */
+            case VLit(CertainTrue)  => (None, None, CertainSuccess)
+            case VLit(Uncertain)    => (None, None, UncertainFailure(timeDomain, counterEx))
+            case VLit(CertainFalse) => (None, None, CertainFailure(timeDomain, counterEx))
           })
       }).toMap, (getTime(st), getTime(st) + getTimeStep(st)), true)
     old combine active(st, p).map(c => testHypothesesOneChangeset(c.hyps))

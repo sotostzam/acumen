@@ -28,7 +28,10 @@ case object NoMetadata extends Metadata {
   def combine(that: Metadata): Metadata = that
 }
 case class SomeMetadata 
-  ( hyp: Map[ (CId, ClassName, Option[String]), HypothesisOutcome ] /* (object, class, name) -> outcome */
+  /* hyp associates (object, class, name) with outcomes (initial, discrete, continuous) 
+   * The enclosure interpreter produces None as initial and discrete hypothesis outcomes */  
+  ( hyp: Map[ (CId, ClassName, Option[String]), 
+              (Option[HypothesisOutcome], Option[HypothesisOutcome], HypothesisOutcome) ] 
   , timeDomain: (Double, Double)
   , rigorous: Boolean /* Does this describe output of a rigorous interpreter? */
   ) extends Metadata {
@@ -41,9 +44,11 @@ case class SomeMetadata
         SomeMetadata(
           (this.hyp.keySet union th.keySet).map(k => k -> {
             (this.hyp.get(k), th.get(k)) match {
-              case (Some(o), None)    => o
-              case (None, Some(o))    => o
-              case (Some(l), Some(r)) => l pick r
+              case (Some(o), None) => o
+              case (None, Some(o)) => o
+              case (Some((Some(la), Some(ld), lc))
+                   ,Some((Some(ra), Some(rd), rc))) =>
+                (Some(la pick ra), Some(ld pick rd), lc pick rc)
           }}).toMap
         , (Math.min(this.timeDomain._1, tt._1), Math.max(this.timeDomain._2, tt._2))
         , r && rigorous)
@@ -64,6 +69,11 @@ abstract class Success extends HypothesisOutcome { def pick(that: HypothesisOutc
 abstract class Failure(counterExample: Set[(Dot,GValue)]) extends HypothesisOutcome
 /** Result of non-rigorous hypothesis evaluation (reference interpreter). */
 case object TestSuccess extends Success
+case class InitialTestFailure(counterExample: Set[(Dot,GValue)]) extends Failure(counterExample: Set[(Dot,GValue)]) {
+  def pick(that: HypothesisOutcome) = that match {
+    case TestSuccess => this
+  }
+}
 case class TestFailure(earliestTime: Double, counterExample: Set[(Dot,GValue)]) extends Failure(counterExample: Set[(Dot,GValue)]) {
   def pick(that: HypothesisOutcome) = that match {
     case TestSuccess    => this
@@ -117,7 +127,7 @@ class SummarizeHypothesisOutcomes {
               val lhs = Pretty pprint (if (d.obj == Var(util.Canonical.self)) Var(d.field) else (d:Expr)) 
               s"$lhs = ${Pretty pprint v}"
             }.mkString(", "))
-          val (s, u, f, symbol, sho) = ho match {
+          val (s, u, f, symbol, sho) = ho._3 match { // FIXME 
             case TestSuccess            => (1, 0, 0,                "+",       "Tested")
             case TestFailure(t, e)      => (0, 0, 1, colorFailure  ("-"), fail("Tested false at", t.toString, e))
             case CertainSuccess         => (1, 0, 0,                "+",       "Proved")

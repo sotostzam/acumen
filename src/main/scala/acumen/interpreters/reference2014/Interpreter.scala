@@ -430,10 +430,9 @@ object Interpreter extends acumen.CStoreInterpreter {
   def testHypotheses(hyps: List[(CId, Option[String], Expr, Env)], old: Metadata, st: Store): Metadata =
     old combine (if (hyps isEmpty) NoMetadata else SomeMetadata(hyps.map {
       case (o, hn, h, env) =>
-        val cn = getCls(o, st)
-        lazy val counterEx = dots(h).toSet[Dot].map(d => d -> (evalExpr(d, env, st) : GValue))
-        val VLit(GBool(b)) = evalExpr(h, env, st)
-        (o, cn, hn) -> (if (b) TestSuccess else TestFailure(getTime(st), counterEx))
+        (o, getCls(o, st), hn) -> computeHypothesisOutcomes( 
+          evalExpr(h, env, st), getTime(st), getResultType(st), 
+          dots(h).toSet[Dot].map(d => d -> (evalExpr(d, env, st))))
     }.toMap, (getTime(st), getTime(st) + getTimeStep(st)), false))
 
   /**

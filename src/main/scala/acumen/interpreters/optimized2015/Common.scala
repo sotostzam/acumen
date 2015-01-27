@@ -637,12 +637,11 @@ object Common {
     }
 
   def evalHypothesis(s: Option[String], e: Expr, env: Env, p: Prog, magic: Object) = {
-    val VLit(GBool(b)) = evalExpr(e, p, env)
     val self = selfObjId(env)
     val time = getTime(magic)
-    val hypRes = if (b) TestSuccess
-                 else TestFailure(time,
-                                  dots(e).toSet[Dot].map(d => d -> evalExpr(d, p, env)))
+    val hypRes = computeHypothesisOutcomes(
+      evalExpr(e, p, env), time, getResultType(magic),
+      dots(e).toSet[Dot].map(d => d -> (evalExpr(d, p, env) : GValue)))
     val md = SomeMetadata(Map(((self.cid, getClassOf(self), s), hypRes)),
                           (time, time + getTimeStep(magic)),
                           false)
