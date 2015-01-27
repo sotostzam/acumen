@@ -88,6 +88,11 @@ class MyPath2D(val palette: Palette) extends PlotEntity {
   }
 }
 
+/**
+ *  Collects <add> and sorts <sortValues> the data from
+ *  a discrete plot (X: double, Y: sets of strings)
+ *  and creates <result> a DiscretePath for the Plotter
+ */
 class DiscretePathBuilder {
   case class Line(xs: Array[Double], y: String)
   
