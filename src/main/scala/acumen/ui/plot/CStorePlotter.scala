@@ -77,7 +77,14 @@ class CStorePlotter extends JFreePlotter {
     val sc = new XYSeriesCollection(s)
     p.setDataset(sc)
     if (isDiscrete) {
-      p.setRenderer(discreteRenderer(Color.red))
+      /* Changing to discrete renderer forces 
+       * discrete plot to be scattered points.
+       * It slows down the plotting and causes
+       * Live Plotting Disabled from
+       * JFreePlotTab.scala.
+       */
+      //p.setRenderer(discreteRenderer(Color.red))
+      p.setRenderer(renderer(Color.red))
     } else {
       p.setRenderer(renderer(Color.red))
     }
@@ -105,7 +112,7 @@ class CStorePlotter extends JFreePlotter {
     toPlot match {
       case tP: PlotDiscrete =>
          val lines = new DiscretePathBuilder
-         for (i <- scala.math.max(lastFrame - offset,0) until tP.values.size) {
+         for (i <- 0 until tP.values.size) {
           tP.values(i) match {
             case VLit(GStr(str)) => 
               lines.add(times(offset + i),Set(str))
@@ -115,6 +122,7 @@ class CStorePlotter extends JFreePlotter {
               lines.add(times(offset + i),Set(n.toString))
           }
          val orderedSeries = lines.sortValues(Some((a,b) => a < b))
+         series.clear()
          orderedSeries.foreach{point => series.add(point(0).x, point(0).y, true) }
         }
       case tP: PlotDoubles =>
