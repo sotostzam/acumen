@@ -8,6 +8,7 @@ import scala.collection.mutable.{Buffer,Map,HashMap,HashSet,ArrayBuffer}
 import org.jfree.chart._
 import org.jfree.chart.plot._
 import org.jfree.chart.renderer.xy.XYDifferenceRenderer
+import org.jfree.chart.renderer.xy.XYDotRenderer
 import org.jfree.data.xy._
 import org.jfree.ui.ApplicationFrame
 import swing.Swing
@@ -24,6 +25,14 @@ class CStorePlotter extends JFreePlotter {
 
   def renderer(color: Color) = {
     val ren = new org.jfree.chart.renderer.xy.XYLineAndShapeRenderer(true,false)
+    ren.setPaint(color)
+    ren
+  }
+  
+  def discreteRenderer(color: Color) = {
+    val ren = new org.jfree.chart.renderer.xy.XYDotRenderer()
+    ren.setDotWidth(2)
+    ren.setDotHeight(2)
     ren.setPaint(color)
     ren
   }
@@ -53,7 +62,7 @@ class CStorePlotter extends JFreePlotter {
 
   val dataSets = new HashMap[Int,XYSeries]
 
-  private def newSubPlot(legendLabel: String, idx: Int) = { // FIXME: rename
+  private def newSubPlot(legendLabel: String, idx: Int, isDiscrete: Boolean) = { // FIXME: rename
     if (!App.ui.jPlotI.forsedDisable && subPlotsList.size > 24) {
       println("Too Many Subplots, Disabling!")
       App.ui.jPlotI.enabled = false
@@ -67,26 +76,35 @@ class CStorePlotter extends JFreePlotter {
     val s = new XYSeries(legendLabel,false,true)
     val sc = new XYSeriesCollection(s)
     p.setDataset(sc)
-    p.setRenderer(renderer(Color.red))
+    if (isDiscrete) {
+      p.setRenderer(discreteRenderer(Color.red))
+    } else {
+      p.setRenderer(renderer(Color.red))
+    }
     combinedPlot.add(p, 1)
+    combinedPlot.getDomainAxis setUpperMargin 0
     subPlotsList += p
     s
   }
   
   var lastFrame = 0
-  val stringValues = new HashMap[String, Int]
+
 
   private def addDataHelper(model: PlotModel, toPlot: Plottable) = {
     val times = model.getTimes
     val series = dataSets.getOrElseUpdate(toPlot.column, 
-                                          newSubPlot(model.getPlotTitle(toPlot.column), toPlot.column))
-    
+                                          newSubPlot(model.getPlotTitle(toPlot.column), toPlot.column, 
+                                              toPlot match {
+                                                case tP: PlotDiscrete => true
+                                                case _ => false } 
+                                          ))
+    val stringValues = new HashMap[String, Int]
     val offset = toPlot.startFrame
     series.setNotify(false)
 
     toPlot match {
       case tP: PlotDiscrete =>
-         for (i <- lastFrame until tP.values.size) {
+         for (i <- scala.math.max(lastFrame - offset,0) until tP.values.size) {
           tP.values(i) match {
             case VLit(GStr(str)) => 
               series.add(times(offset + i),stringValues.getOrElseUpdate(str, - stringValues.size),true)
@@ -97,7 +115,7 @@ class CStorePlotter extends JFreePlotter {
           }
         }
       case tP: PlotDoubles =>
-        for (i <- lastFrame until tP.values.size)
+        for (i <- scala.math.max(lastFrame - offset,0) until tP.values.size)
           series.add(times(offset + i),tP.values(i),true)
       case tP: PlotEnclosure =>
         throw NewPlotEnclosureError()
