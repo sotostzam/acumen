@@ -104,15 +104,18 @@ class CStorePlotter extends JFreePlotter {
 
     toPlot match {
       case tP: PlotDiscrete =>
+         val lines = new DiscretePathBuilder
          for (i <- scala.math.max(lastFrame - offset,0) until tP.values.size) {
           tP.values(i) match {
             case VLit(GStr(str)) => 
-              series.add(times(offset + i),stringValues.getOrElseUpdate(str, - stringValues.size),true)
+              lines.add(times(offset + i),Set(str))
             case VLit(e:GDiscreteEnclosure[String]) => 
               throw NewPlotEnclosureError()
             case VLit(GInt(n)) => 
-              series.add(times(offset + i),stringValues.getOrElseUpdate(n.toString, - stringValues.size),true)
+              lines.add(times(offset + i),Set(n.toString))
           }
+         val orderedSeries = lines.sortValues(Some((a,b) => a < b))
+         orderedSeries.foreach{point => series.add(point(0).x, point(0).y, true) }
         }
       case tP: PlotDoubles =>
         for (i <- scala.math.max(lastFrame - offset,0) until tP.values.size)

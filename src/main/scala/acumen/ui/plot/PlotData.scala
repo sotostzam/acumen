@@ -106,8 +106,9 @@ class DiscretePathBuilder {
         curLines -= y
       }
     }
-  }  
-  def result(sortWith: Option[(String,String) => Boolean] = None, palette: Palette) : DiscretePath = {
+  }
+  
+  def sortValues(sortWith: Option[(String,String) => Boolean] = None) : ArrayBuffer[Array[Point2D.Double]] = {
     curLines.foreach { case (y,line) =>
       lines += Line(line.result(), y)
     }
@@ -120,7 +121,11 @@ class DiscretePathBuilder {
       case Some(f) => yMap.keys.toList.sortWith(f).zipWithIndex.foreach{case (key, i) => yMap(key) = i}
       case None => /* nothing to do */
     }
-    new DiscretePath(lines.map{case Line(xs, y) => xs.map{x => new Point2D.Double(x,yMap(y))}}, palette)
+    lines.map{case Line(xs, y) => xs.map{x => new Point2D.Double(x,yMap(y))}}
+  }
+
+  def result(sortWith: Option[(String,String) => Boolean] = None, palette: Palette) : DiscretePath = {
+    new DiscretePath(sortValues(sortWith), palette)
   }
 }
 
