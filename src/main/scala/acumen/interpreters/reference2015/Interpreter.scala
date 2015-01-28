@@ -139,26 +139,25 @@ object Interpreter extends acumen.CStoreInterpreter {
        into   ([x1, ..., xn], [rhs1, ..., rhsn] */
     def helper(p:(List[Name],List[InitRhs]),i:Init) = 
       (p,i) match { case ((xs,rhss), Init(x,rhs)) => (x::xs, rhs::rhss) }
-    val (privVars, ctrs) = {
+    val (privVars, crInits) = {
       val (xs,ys) = cd.priv.foldLeft[(List[Name],List[InitRhs])]((Nil,Nil))(helper)
       (xs.reverse, ys.reverse)
     }
     implicit val bindings = NoBindings
     for { fid <- freshCId(prt)
-          _ <- setObjectM(fid, pub)
-          vs <- mapM[InitRhs, CValue]( 
+          _ <- setObjectM(fid, pub) // add new object to resulting store 
+          vs <- mapM[InitRhs, CValue]( // process create initializers
                   { case NewRhs(e,es) =>
                       for { ve <- asks(evalExpr(e, Map(self -> VObjId(Some(fid))), _)) 
-                            val cn = ve match {case VClassName(cn) => cn; case _ => throw NotAClassName(ve)}
-                            ves <- asks(st => es map (
-                            evalExpr(_, Map(self -> VObjId(Some(fid))), st)))
-			    nsd <- getNewSeed(fid)
-			    oid <- mkObj(cn, p, Some(fid), nsd, ves)
+                            val cn = ve match { case VClassName(cn) => cn; case _ => throw NotAClassName(ve) }
+                            ves <- asks(st => es map (evalExpr(_, Map(self -> VObjId(Some(fid))), st)))
+                  			    nsd <- getNewSeed(fid)
+                  			    oid <- mkObj(cn, p, Some(fid), nsd, ves)
                       } yield VObjId(Some(oid))
                     case ExprRhs(e) =>
                       asks(evalExpr(e, Map(self -> VObjId(Some(fid))), _))
                   },
-                  ctrs)
+                  crInits)
           val priv = privVars zip vs 
           // new object creation may have changed the nextChild counter
           newpub <- asks(deref(fid,_))
