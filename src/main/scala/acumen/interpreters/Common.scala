@@ -536,8 +536,8 @@ object Common {
       /* Use TestSuccess as default as it is the unit of HypothesisOutcome.pick */
       case (VLit(GBool(true)), _)                      => (Some(TestSuccess), Some(TestSuccess), TestSuccess)
       case (VLit(GBool(false)), Initial)               => (Some(InitialTestFailure(counterEx)), Some(TestSuccess), TestSuccess)
-      case (VLit(GBool(false)), Discrete | FixedPoint) => (Some(TestSuccess), Some(TestFailure(time, counterEx)), TestSuccess)
-      case (VLit(GBool(false)), Continuous)            => (Some(TestSuccess), Some(TestSuccess), TestFailure(time, counterEx))
+      case (VLit(GBool(false)), Discrete | Continuous) => (Some(TestSuccess), Some(TestFailure(time, counterEx)), TestSuccess)
+      case (VLit(GBool(false)), FixedPoint)            => (Some(TestSuccess), Some(TestSuccess), TestFailure(time, counterEx))
     }
   
 }
