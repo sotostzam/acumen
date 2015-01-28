@@ -402,9 +402,16 @@ object Interpreter extends acumen.CStoreInterpreter {
     val st2 = changeParent(CId(0), id, st1)
     val st3 = changeSeed(CId(0), sd2, st2)
     val st4 = countVariables(st3)
-    (mprog, st4, NoMetadata)
+    val hyps = st4.toList.flatMap { case (cid, co) =>
+      mprog.defs.find(_.name == getCls(cid, st4)).get.body.flatMap {
+        case Hypothesis(s, e) =>
+          DelayedHypothesis(cid, s, e, Map(self -> VObjId(Some(cid)))) :: Nil
+        case _ => Nil
+    }}
+    val md = testHypotheses(hyps, NoMetadata, st4)(NoBindings)
+    (mprog, st4, md)
   }
-
+  
   override def exposeExternally(store: Store, md: Metadata): (Store, Metadata) =
     if (Main.serverMode) {
       val json1 = JSon.toJSON(store).toString
