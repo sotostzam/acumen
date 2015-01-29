@@ -125,12 +125,12 @@ class Interpreter extends CStoreInterpreter {
             isFixedPoint = true
           }
         
+        checkHypothesis()
+        
         // Decide if a FixedPoint is reached
         if (isFixedPoint) { 
           FixedPoint
         } else {
-          checkHypothesis()
-
           Discrete
         } 
       } else { // Continuous step
