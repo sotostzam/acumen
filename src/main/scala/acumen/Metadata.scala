@@ -1,7 +1,7 @@
 package acumen
 
 case object HypothesisResultFilter extends Enumeration {
-  val Ignore, Comprehensive, CompIgnoreInitial, MostSignificant = Value
+  val Ignore, Comprehensive, IgnoreInitialOnly, MostSignificant = Value
 }
 
 /** Used to store information about the Store. */
@@ -152,7 +152,7 @@ class SummarizeHypothesisOutcomes {
               /* Rigorous interpreter outcomes */
               case _ => ho1 }
 
-            case Some(CompIgnoreInitial) => (None, ho1._2, ho1._3)
+            case Some(IgnoreInitialOnly) => (None, ho1._2, ho1._3)
               
             case _ => ho1
           }

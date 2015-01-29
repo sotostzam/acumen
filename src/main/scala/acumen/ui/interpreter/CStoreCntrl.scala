@@ -95,7 +95,7 @@ class CStoreCntrl(val semantics: SemanticsImpl[Interpreter], val interpreter: CS
       acumen.util.Canonical.getInSimulator(Name("hypothesisReport",0), cstore) match {
         case VLit(GStr("Ignore"))            => md = NoMetadata(Some(HypothesisResultFilter.Ignore)) combine md
         case VLit(GStr("Comprehensive"))     => md = NoMetadata(Some(HypothesisResultFilter.Comprehensive)) combine md
-        case VLit(GStr("CompIgnoreInitial")) => md = NoMetadata(Some(HypothesisResultFilter.CompIgnoreInitial)) combine md
+        case VLit(GStr("IgnoreInitialOnly")) => md = NoMetadata(Some(HypothesisResultFilter.IgnoreInitialOnly)) combine md
         case VLit(GStr("MostSignificant"))   => md = NoMetadata(Some(HypothesisResultFilter.MostSignificant)) combine md
         case _                               => /* fixme: throw error */
       }
