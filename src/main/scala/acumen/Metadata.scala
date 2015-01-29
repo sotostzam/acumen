@@ -7,11 +7,21 @@ case object HypothesisResultFilter extends Enumeration {
 /** Used to store information about the Store. */
 abstract class Metadata {
   def combine(that: Metadata): Metadata
-  /* Creates a comprehensive report of the Metadata*/
-  final def reportAsString = new SummarizeHypothesisOutcomes().makeReport(this, HypothesisResultFilter.Comprehensive)
+  final def reportAsString = new SummarizeHypothesisOutcomes().makeReport(this)
 }
 case object NoMetadata extends Metadata {
   def combine(that: Metadata): Metadata = that
+}
+case class NoMetadata
+  ( f: Option[HypothesisResultFilter.Value] /* Optional filtering parameter */
+  ) extends Metadata {
+  /* As this class contains no data, 
+   * only the filtering should be preserved */
+  def combine(that: Metadata): Metadata = that match {
+    case NoMetadata => this
+    case NoMetadata(ff) => NoMetadata(if (f == None) ff else f)
+    case SomeMetadata(th,tt,rr,ff) => SomeMetadata(th,tt,rr,if (f == None) ff else f)
+  }
 }
 case class SomeMetadata 
   /* hyp associates (object, class, name) with outcomes (initial, discrete, continuous) 
@@ -20,11 +30,14 @@ case class SomeMetadata
               (Option[HypothesisOutcome], Option[HypothesisOutcome], HypothesisOutcome) ] 
   , timeDomain: (Double, Double)
   , rigorous: Boolean /* Does this describe output of a rigorous interpreter? */
+  , f: Option[HypothesisResultFilter.Value] /* Optional filtering parameter */
   ) extends Metadata {
   def combine(that: Metadata): Metadata = {
     that match {
       case NoMetadata => this
-      case SomeMetadata(th,tt,r) =>
+      case NoMetadata(ff) => SomeMetadata(this.hyp, this.timeDomain, this.rigorous, 
+                              if (f == None) ff else f)
+      case SomeMetadata(th,tt,rr,ff) =>
         require( this.timeDomain._2 >= tt._1 || tt._2 >= this.timeDomain._1 
                , "Can not combine SomeMetadata with non-overlapping time domains.")
         SomeMetadata(
@@ -37,7 +50,7 @@ case class SomeMetadata
                 (Some(la pick ra), Some(ld pick rd), lc pick rc)
           }}).toMap
         , (Math.min(this.timeDomain._1, tt._1), Math.max(this.timeDomain._2, tt._2))
-        , r && rigorous)
+        , rr && rigorous, if (f == None) ff else f)
     } 
   }
 }
@@ -94,8 +107,8 @@ class SummarizeHypothesisOutcomes {
   def formatReport(header: String, summary: String, report: String) : String = 
     s"$header\n$summary\n$report\n"
 
-  final def makeReport(md0: Metadata, filter: HypothesisResultFilter.Value) : String = md0 match {
-    case NoMetadata => ""
+  final def makeReport(md0: Metadata) : String = md0 match {
+    case NoMetadata | NoMetadata(_) => ""
     case md:SomeMetadata => 
       val (mLenCId, mLenCN, mLenHN) = md.hyp.foldLeft((0, 0, 0)) {
         case ((rid, rcn, rhn), ((id,cn,hn), od)) =>
@@ -126,40 +139,41 @@ class SummarizeHypothesisOutcomes {
               if (tm > t) (ho._1, None, ho._3) else ho
             case _ => ho
           }            
-            
+          
           /* Filtering the hypothesis outcomes */
-          val ho2 =
-            if (filter == MostSignificant)
-              ho1._3 match {
-                /* Traditional interpreter outcomes */  
-                case TestFailure(_,_) => (None, None, ho1._3)  
-                case TestSuccess => ho1._2 match {
-                  case Some(TestFailure(_,_)) => (None, ho1._2, ho1._3)
-                  case _ => ho1 }
-                /* Rigorous interpreter outcomes */
+          val ho2 = md.f match {
+            
+            case Some(MostSignificant) => ho1._3 match {
+              /* Traditional interpreter outcomes */  
+              case TestFailure(_,_) => (None, None, ho1._3)  
+              case TestSuccess => ho1._2 match {
+                case Some(TestFailure(_,_)) => (None, ho1._2, ho1._3)
                 case _ => ho1 }
-            else ho1
+              /* Rigorous interpreter outcomes */
+              case _ => ho1 }
 
-          /* FIXME: disable this in init() */
-          val ho3 = if (filter == CompIgnoreInitial) (None, ho2._2, ho2._3) else ho2
+            case Some(CompIgnoreInitial) => (None, ho1._2, ho1._3)
+              
+            case _ => ho1
+          }
 
           /* Reports from initial and momentary tests*/
           lazy val subReports =
-            (ho3._2 match { 
+            (ho2._2 match { 
                case Some(TestFailure(tm, em)) => List( (colorFailure("-"), fail("Falsified momentarily at", tm, em)) ) 
                case _ => List()}) ++ 
-            (ho3._1 match { 
+            (ho2._1 match { 
                case Some(InitialTestFailure(ei)) => List( (colorFailure("-"), fail("Falsified initially", "", ei)) ) 
                case _ => List()}) 
           
           /* (successes, uncertains, failures, report lines) */
-          val (s, u, f, hoLines) = (ho3 : @unchecked) match {
+          val (s, u, f, hoLines) = (ho2 : @unchecked) match {
 
             /* Traditional interpreter outcomes */
             case (Some(TestSuccess) | None, Some(TestSuccess) | None, TestSuccess) => 
               (1, 0, 0, List( ("+", "Tested") ))
             case (_, _, TestSuccess) => 
-              (0, 1, 0, (if (filter != MostSignificant) List( ("+", "Tested almost everywhere") ) else List()) ++ subReports ) 
+              (0, 1, 0, (if (md.f != Some(MostSignificant)) List( ("+", "Tested almost everywhere") ) else List()) ++ subReports ) 
             case (_, _, TestFailure(t,e)) =>
               (0, 0, 1, List( (colorFailure("-"), fail("Falsified at", t, e)) ) ++ subReports )
 
@@ -184,6 +198,12 @@ class SummarizeHypothesisOutcomes {
           colorSuccess((if (md.rigorous) "ALL HYPOTHESES PROVED" else "NO HYPOTHESES FALSIFIED") + domain)
       }
       val summary = s"$successes TRUE, $failures FALSE, $uncertains INCONCLUSIVE"
-      formatReport(header, summary, report)
+      
+      /* Filtering results */ 
+      md.f match {
+        case Some(Ignore) => ""
+        case _ => formatReport(header, summary, report)
+      }
+      
   }
 }

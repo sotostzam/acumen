@@ -407,7 +407,7 @@ object Interpreter extends acumen.CStoreInterpreter {
           DelayedHypothesis(cid, s, e, Map(self -> VObjId(Some(cid)))) :: Nil
         case _ => Nil
     }}
-    val md = testHypotheses(hyps, NoMetadata, st4)(NoBindings)
+    val md = testHypotheses(hyps, NoMetadata(Some(HypothesisResultFilter.Comprehensive)), st4)(NoBindings)
     (mprog, st4, md)
   }
   
@@ -515,7 +515,7 @@ object Interpreter extends acumen.CStoreInterpreter {
         (o, getCls(o, st), hn) -> computeHypothesisOutcomes( 
           evalExpr(h, env, st), getTime(st), getResultType(st), 
           dots(h).toSet[Dot].map(d => d -> (evalExpr(d, env, st))))
-    }.toMap, (getTime(st), getTime(st) + getTimeStep(st)), false))
+    }.toMap, (getTime(st), getTime(st) + getTimeStep(st)), false, None))
 
   /**
    * Solve ODE-IVP defined by odes parameter tuple, which consists of:

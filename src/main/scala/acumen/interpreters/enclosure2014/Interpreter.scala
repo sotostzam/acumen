@@ -869,7 +869,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
             case VLit(Uncertain)    => (None, None, UncertainFailure(timeDomain, counterEx))
             case VLit(CertainFalse) => (None, None, CertainFailure(timeDomain, counterEx))
           })
-      }).toMap, (getTime(st), getTime(st) + getTimeStep(st)), true)
+      }).toMap, (getTime(st), getTime(st) + getTimeStep(st)), true, None)
     old combine active(st, p).map(c => testHypothesesOneChangeset(c.hyps))
                              .reduce[Metadata](_ combine _)
   }
