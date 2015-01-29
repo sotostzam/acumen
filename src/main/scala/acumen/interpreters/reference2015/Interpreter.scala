@@ -407,7 +407,7 @@ object Interpreter extends acumen.CStoreInterpreter {
           DelayedHypothesis(cid, s, e, Map(self -> VObjId(Some(cid)))) :: Nil
         case _ => Nil
     }}
-    val md = testHypotheses(hyps, NoMetadata(Some(HypothesisResultFilter.Comprehensive)), st4)(NoBindings)
+    val md = testHypotheses(hyps, NoMetadata, st4)(NoBindings)
     (mprog, st4, md)
   }
   
