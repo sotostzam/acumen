@@ -1,9 +1,14 @@
 package acumen
 
+case object HypothesisResultFilter extends Enumeration {
+  val Ignore, Comprehensive, CompIgnoreInitial, MostSignificant = Value
+}
+
 /** Used to store information about the Store. */
-abstract class Metadata { 
-  def combine(that: Metadata): Metadata 
-  final def reportAsString = new SummarizeHypothesisOutcomes().makeReport(this)
+abstract class Metadata {
+  def combine(that: Metadata): Metadata
+  /* Creates a comprehensive report of the Metadata*/
+  final def reportAsString = new SummarizeHypothesisOutcomes().makeReport(this, HypothesisResultFilter.Comprehensive)
 }
 case object NoMetadata extends Metadata {
   def combine(that: Metadata): Metadata = that
@@ -78,6 +83,8 @@ case class UncertainFailure(earliestTime: (Double,Double), counterExample: Set[(
 }
 class SummarizeHypothesisOutcomes {
 
+  import HypothesisResultFilter._
+  
   // override these methods to customize the formatting in makeReport
   def colorSuccess(m: String) = m
   def colorUncertain(m: String) = m
@@ -87,7 +94,7 @@ class SummarizeHypothesisOutcomes {
   def formatReport(header: String, summary: String, report: String) : String = 
     s"$header\n$summary\n$report\n"
 
-  final def makeReport(md0: Metadata) : String = md0 match {
+  final def makeReport(md0: Metadata, filter: HypothesisResultFilter.Value) : String = md0 match {
     case NoMetadata => ""
     case md:SomeMetadata => 
       val (mLenCId, mLenCN, mLenHN) = md.hyp.foldLeft((0, 0, 0)) {
@@ -99,33 +106,63 @@ class SummarizeHypothesisOutcomes {
       }
       val (report, successes, uncertains, failures) = md.hyp.toList.reverse.foldLeft(("", 0, 0, 0)) {
         case ((resReport, resS, resU, resF), ((id, cn, hn), ho)) =>
+          /* Hypothesis outcome is a triple: ho = (iRes, mRes, aRes)
+           *  Results about tests for initial, momentary falsifications 
+           * and almost always satisfaction */
+          
           val sid = s"(#${id.cid.toString}:${cn.x})".padTo(mLenCId + mLenCN + 2, nbsp).mkString
           val shn = hn.map("'" + _ + "'").getOrElse("").padTo(mLenHN + 2, nbsp).mkString
+          
+          /* Creating failure messages */
           def fail(prefix: String, t: Any, e: Set[(Dot,GValue)]) = 
-            s"$prefix $t" + (if (e isEmpty) "" else ", where " + e.map { case (d, v) => 
+            prefix + (if (t == "") "" else s" $t") + (if (e isEmpty) "" else ", where " + e.map { case (d, v) => 
             val lhs = Pretty pprint (if (d.obj == Var(util.Canonical.self)) Var(d.field) else (d:Expr)) 
             s"$lhs = ${Pretty pprint v}"
-            }.mkString(", "))
+            }.mkString(", "))  
+     
+          /* Removing superflous momentary falsification */
+          val ho1 = (ho._2, ho._3) match {
+            case (Some(TestFailure(tm, _)), TestFailure(t,_)) => 
+              if (tm > t) (ho._1, None, ho._3) else ho
+            case _ => ho
+          }            
+            
+          /* Filtering the hypothesis outcomes */
+          val ho2 =
+            if (filter == MostSignificant)
+              ho1._3 match {
+                /* Traditional interpreter outcomes */  
+                case TestFailure(_,_) => (None, None, ho1._3)  
+                case TestSuccess => ho1._2 match {
+                  case Some(TestFailure(_,_)) => (None, ho1._2, ho1._3)
+                  case _ => ho1 }
+                /* Rigorous interpreter outcomes */
+                case _ => ho1 }
+            else ho1
+
+          /* FIXME: disable this in init() */
+          val ho3 = if (filter == CompIgnoreInitial) (None, ho2._2, ho2._3) else ho2
+
+          /* Reports from initial and momentary tests*/
+          lazy val subReports =
+            (ho3._2 match { 
+               case Some(TestFailure(tm, em)) => List( (colorFailure("-"), fail("Falsified momentarily at", tm, em)) ) 
+               case _ => List()}) ++ 
+            (ho3._1 match { 
+               case Some(InitialTestFailure(ei)) => List( (colorFailure("-"), fail("Falsified initially", "", ei)) ) 
+               case _ => List()}) 
+          
           /* (successes, uncertains, failures, report lines) */
-          val (s, u, f, hoLines) = (ho : @unchecked) match {
+          val (s, u, f, hoLines) = (ho3 : @unchecked) match {
+
             /* Traditional interpreter outcomes */
-            case (Some(TestSuccess), Some(TestSuccess), TestSuccess) => 
+            case (Some(TestSuccess) | None, Some(TestSuccess) | None, TestSuccess) => 
               (1, 0, 0, List( ("+", "Tested") ))
-            case (Some(TestSuccess), _, TestFailure(t, e)) => 
-              (0, 0, 1, List( (colorFailure("-"), fail("Falsified at", t, e)) ))
-            case (Some(InitialTestFailure(ei)), _, TestFailure(t, e)) => 
-              (0, 0, 1, List( (colorFailure("-"), fail("Falsified at", t, e))
-                            , (colorFailure("-"), fail("Falsified initially", "", ei)) ))
-            case (Some(InitialTestFailure(ei)), Some(TestSuccess), TestSuccess) => 
-              (0, 1, 0, List( ("+", "Tested almost everywhere")
-                            , (colorFailure("-"), fail("Falsified initially", "", ei)) ))
-            case (Some(TestSuccess), Some(TestFailure(t, e)), TestSuccess) => 
-              (0, 1, 0, List( ("+", "Tested almost everywhere")
-                            , (colorFailure("-"), fail("Falsified momentarily at", t, e)) ))
-            case (Some(InitialTestFailure(ei)), Some(TestFailure(t, e)), TestSuccess) =>
-              (0, 1, 0, List( ("+", "Tested almost everywhere")
-                            , (colorFailure("-"), fail("Falsified initially", "", ei))
-                            , (colorFailure("-"), fail("Falsified momentarily at", t, e)) ))
+            case (_, _, TestSuccess) => 
+              (0, 1, 0, (if (filter != MostSignificant) List( ("+", "Tested almost everywhere") ) else List()) ++ subReports ) 
+            case (_, _, TestFailure(t,e)) =>
+              (0, 0, 1, List( (colorFailure("-"), fail("Falsified at", t, e)) ) ++ subReports )
+
             /* Rigorous interpreter outcomes */
             case (None, None, CertainSuccess) => 
               (1, 0, 0, List( ("+", "Proved") ))

@@ -53,7 +53,7 @@ class Console extends ListView[(Msg, Boolean /*messageIsOld*/)] { self =>
       override def br = "<br/>";
       override def formatReport(header: String, summary: String, report: String) =
         s"<html>$header<br/>$summary<br/><font face=monospace>$report</font></html>"
-    }.makeReport(md);
+    }.makeReport(md, HypothesisResultFilter.Comprehensive);
 
   def append(instr: Instruction) = instr match {
     case StatusUpdate(before, msg, after) => listData.headOption match {
