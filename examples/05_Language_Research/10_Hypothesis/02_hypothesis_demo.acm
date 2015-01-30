@@ -22,7 +22,6 @@ simulator.hypothesisReport+ = "Comprehensive",
 //simulator.hypothesisReport+ = "MostSignificant",
 //simulator.hypothesisReport+ = "IgnoreInitialOnly",
 //simulator.hypothesisReport+ = "Ignore",
-//simulator.hypothesisReport+ = "All",
 
  // --------------------------- Dynamics ---------------------------
  // dynamics for a

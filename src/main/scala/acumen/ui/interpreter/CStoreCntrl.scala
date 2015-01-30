@@ -97,7 +97,6 @@ class CStoreCntrl(val semantics: SemanticsImpl[Interpreter], val interpreter: CS
         case VLit(GStr("Comprehensive"))     => md = NoMetadata(Some(HypothesisResultFilter.Comprehensive)) combine md
         case VLit(GStr("IgnoreInitialOnly")) => md = NoMetadata(Some(HypothesisResultFilter.IgnoreInitialOnly)) combine md
         case VLit(GStr("MostSignificant"))   => md = NoMetadata(Some(HypothesisResultFilter.MostSignificant)) combine md
-        case VLit(GStr("All"))               => md = NoMetadata(Some(HypothesisResultFilter.All)) combine md
         case _                               => /* fixme: throw error */
       }
       loopWhile(!adder.done) {

@@ -1,7 +1,7 @@
 package acumen
 
 case object HypothesisResultFilter extends Enumeration {
-  val All, Ignore, Comprehensive, IgnoreInitialOnly, MostSignificant = Value
+  val Ignore, Comprehensive, IgnoreInitialOnly, MostSignificant = Value
 }
 
 /** Used to store information about the Store. */
@@ -133,15 +133,10 @@ class SummarizeHypothesisOutcomes {
             s"$lhs = ${Pretty pprint v}"
             }.mkString(", "))  
      
-          
+          /* Removing superflous momentary falsification */
           val ho1 = (ho._2, ho._3) match {
-            
-            case (Some(TestFailure(tm, em)), TestFailure(t, e)) => 
-              if ((tm > t) ||                                 /* Removing superflous momentary falsification */
-                  (md.f != Some(All) && tm == t && em == e))  /* Removing repeated momentary falsification */
-                (ho._1, None, ho._3)
-              else
-                 ho
+            case (Some(TestFailure(tm, _)), TestFailure(t,_)) => 
+              if (tm > t) (ho._1, None, ho._3) else ho
             case _ => ho
           }            
           
