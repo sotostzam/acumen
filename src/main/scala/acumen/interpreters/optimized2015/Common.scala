@@ -112,8 +112,10 @@ object Common {
     var doEquationT : EvalMode = Ignore;
     /** How to handle EquationI's */
     var doEquationI : EvalMode = Ignore;
-    /** */
+    /** Flag for Hypothesis check*/
     var doHypothesis : Boolean = false
+    /** Left endpoint of the timeDomain where hypotheses are checked */
+    var hypTimeDomainLeft : Double = 0
     // don't go inside conditionals when doing Hypotheses as all
     // Hypotheses are suppose to be at the top level
     def doConditionals = !doHypothesis
@@ -643,7 +645,7 @@ object Common {
       evalExpr(e, p, env), time, getResultType(magic),
       dots(e).toSet[Dot].map(d => d -> (evalExpr(d, p, env) : GValue)))
     val md = SomeMetadata(Map(((self.cid, getClassOf(self), s), hypRes)),
-                          (time, time + getTimeStep(magic)),
+                          (magic.phaseParms.hypTimeDomainLeft, time),
                           false, None)
     magic.phaseParms.metaData = magic.phaseParms.metaData.combine(md)
     noChange

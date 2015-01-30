@@ -32,6 +32,7 @@ case class SomeMetadata
   , rigorous: Boolean /* Does this describe output of a rigorous interpreter? */
   , f: Option[HypothesisResultFilter.Value] /* Optional filtering parameter */
   ) extends Metadata {
+  /** Combines two Metadata, giving priority to the first */
   def combine(that: Metadata): Metadata = {
     that match {
       case NoMetadata => this
@@ -42,13 +43,32 @@ case class SomeMetadata
                , "Can not combine SomeMetadata with non-overlapping time domains.")
         SomeMetadata(
           (this.hyp.keySet union th.keySet).map(k => k -> {
-            (this.hyp.get(k), th.get(k)) match {
-              case (Some(o), None) => o
-              case (None, Some(o)) => o
-              case (Some((Some(la), Some(ld), lc))
-                   ,Some((Some(ra), Some(rd), rc))) =>
-                (Some(la pick ra), Some(ld pick rd), lc pick rc)
-          }}).toMap
+             /* (!) The new metadata is not from a Continuous state, 
+              * thus former failure at the very same time is 
+              * not severe but only momentary */
+              if (timeDomain._2 == tt._2)
+               (this.hyp.get(k), th.get(k)) match {
+                  case (Some(o), None) => o._3 match {
+                    case TestFailure(timeDomain._2,e) => (o._1, Some(o._3 pick o._2), TestSuccess) // (!)
+                    case _                =>  o }
+                  case (None, Some(o)) => o
+
+                  case (Some((Some(la), Some(ld), TestFailure(timeDomain._2,e)))
+                       ,Some((Some(ra), Some(rd), rc))) =>
+                          (Some(la pick ra), Some(ld pick TestFailure(timeDomain._2,e) pick rd), rc)  // (!)
+                                                          // ^^ this has priority over the new element rd so it gets picked first
+                  case (Some((Some(la), Some(ld), lc))
+                       ,Some((Some(ra), Some(rd), rc))) =>
+                          (Some(la pick ra), Some(ld pick rd), lc pick rc) }                   
+             else
+               (this.hyp.get(k), th.get(k)) match {
+                  case (Some(o), None) => o
+                  case (None, Some(o)) => o
+                  
+                  case (Some((Some(la), Some(ld), lc))
+                       ,Some((Some(ra), Some(rd), rc))) =>
+                          (Some(la pick ra), Some(ld pick rd), lc pick rc) }
+             }).toMap
         , (Math.min(this.timeDomain._1, tt._1), Math.max(this.timeDomain._2, tt._2))
         , rr && rigorous, if (f == None) ff else f)
     } 
@@ -63,6 +83,10 @@ trait HypothesisOutcome {
    * significant than a later one.
    */
   def pick(that: HypothesisOutcome): HypothesisOutcome
+  def pick(that: Option[HypothesisOutcome]): HypothesisOutcome = that match {
+    case Some(ho) => this pick ho
+    case _ => this
+  }
 }
 abstract class Success extends HypothesisOutcome { def pick(that: HypothesisOutcome) = that }
 abstract class Failure(counterExample: Set[(Dot,GValue)]) extends HypothesisOutcome
@@ -132,42 +156,35 @@ class SummarizeHypothesisOutcomes {
             val lhs = Pretty pprint (if (d.obj == Var(util.Canonical.self)) Var(d.field) else (d:Expr)) 
             s"$lhs = ${Pretty pprint v}"
             }.mkString(", "))  
-     
-          /* Removing superflous momentary falsification */
-          val ho1 = (ho._2, ho._3) match {
-            case (Some(TestFailure(tm, _)), TestFailure(t,_)) => 
-              if (tm > t) (ho._1, None, ho._3) else ho
-            case _ => ho
-          }            
           
           /* Filtering the hypothesis outcomes */
-          val ho2 = md.f match {
+          val ho1 = md.f match {
             
-            case Some(MostSignificant) => ho1._3 match {
+            case Some(MostSignificant) => ho._3 match {
               /* Traditional interpreter outcomes */  
-              case TestFailure(_,_) => (None, None, ho1._3)  
-              case TestSuccess => ho1._2 match {
-                case Some(TestFailure(_,_)) => (None, ho1._2, ho1._3)
-                case _ => ho1 }
+              case TestFailure(_,_) => (None, None, ho._3)  
+              case TestSuccess => ho._2 match {
+                case Some(TestFailure(_,_)) => (None, ho._2, ho._3)
+                case _ => ho }
               /* Rigorous interpreter outcomes */
-              case _ => ho1 }
+              case _ => ho }
 
-            case Some(IgnoreInitialOnly) => (None, ho1._2, ho1._3)
+            case Some(IgnoreInitialOnly) => (None, ho._2, ho._3)
               
-            case _ => ho1
+            case _ => ho
           }
 
           /* Reports from initial and momentary tests*/
           lazy val subReports =
-            (ho2._2 match { 
+            (ho1._2 match { 
                case Some(TestFailure(tm, em)) => List( (colorFailure("-"), fail("Falsified momentarily at", tm, em)) ) 
                case _ => List()}) ++ 
-            (ho2._1 match { 
+            (ho1._1 match { 
                case Some(InitialTestFailure(ei)) => List( (colorFailure("-"), fail("Falsified initially", "", ei)) ) 
                case _ => List()}) 
           
           /* (successes, uncertains, failures, report lines) */
-          val (s, u, f, hoLines) = (ho2 : @unchecked) match {
+          val (s, u, f, hoLines) = (ho1 : @unchecked) match {
 
             /* Traditional interpreter outcomes */
             case (Some(TestSuccess) | None, Some(TestSuccess) | None, TestSuccess) => 

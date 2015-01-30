@@ -407,7 +407,7 @@ object Interpreter extends acumen.CStoreInterpreter {
           DelayedHypothesis(cid, s, e, Map(self -> VObjId(Some(cid)))) :: Nil
         case _ => Nil
     }}
-    val md = testHypotheses(hyps, NoMetadata, st4)(NoBindings)
+    val md = testHypotheses(hyps, NoMetadata, st4, 0)(NoBindings)
     (mprog, st4, md)
   }
   
@@ -503,19 +503,23 @@ object Interpreter extends acumen.CStoreInterpreter {
             val stEQS = applyDelayedAssignments(eqs, stT)
             setResultType(Continuous, stEQS)
         }
-        val md1 = testHypotheses(hyps, md, res)(NoBindings) // No bindings needed, res is consistent 
-        Data(countVariables(res), md1)
+        // Hypotheses check only when the result is not a FixedPoint
+        lazy val md1 = testHypotheses(hyps, md, res, getTime(st))(NoBindings) // No bindings needed, res is consistent 
+        if (getResultType(res) != FixedPoint)
+          Data(countVariables(res), md1)
+        else
+          Data(countVariables(res), md)
       }
     }
   
   /** Summarize result of evaluating the hypotheses of all objects. */
-  def testHypotheses(hyps: List[DelayedHypothesis], old: Metadata, st: Store)(implicit bindings: Bindings): Metadata =
+  def testHypotheses(hyps: List[DelayedHypothesis], old: Metadata, st: Store, timeBefore: Double)(implicit bindings: Bindings): Metadata =
     old combine (if (hyps isEmpty) NoMetadata else SomeMetadata(hyps.map {
       case DelayedHypothesis(o, hn, h, env) =>
         (o, getCls(o, st), hn) -> computeHypothesisOutcomes( 
           evalExpr(h, env, st), getTime(st), getResultType(st), 
           dots(h).toSet[Dot].map(d => d -> (evalExpr(d, env, st))))
-    }.toMap, (getTime(st), getTime(st) + getTimeStep(st)), false, None))
+    }.toMap, (timeBefore, getTime(st)), false, None))
 
   /**
    * Solve ODE-IVP defined by odes parameter tuple, which consists of:

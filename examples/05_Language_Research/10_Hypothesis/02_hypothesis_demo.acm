@@ -1,5 +1,5 @@
 // A model for demonstrating the possible
-// outcomes of hypothesis checks
+// outcomes of hypothesis checks [2015 Semantics]
 model Main(simulator) =
 initially
   a = 0, a' = 1,
@@ -16,6 +16,13 @@ always
  // NOTE: the setting of simulator parameters implies the necessity
  //       of a Discrete step between Initial and the first FixedPoint
  simulator.endTime += 1.1,
+
+// filtering states to be output
+// NOTE: Hypotheses are not checked at FixedPoints, thus
+//       it makes sense to filter them out now with the
+//       WhenChanged option to get a better overview.
+simulator.outputRows+ = "WhenChanged",
+//simulator.outputRows+ = "All",
 
  // filtering hypothesis reports
 simulator.hypothesisReport+ = "Comprehensive",

@@ -129,6 +129,7 @@ class Interpreter extends CStoreInterpreter {
         if (isFixedPoint) { 
           FixedPoint
         } else {
+          pp.hypTimeDomainLeft = getTime(magic)
           checkHypothesis()
 
           Discrete
@@ -169,10 +170,12 @@ class Interpreter extends CStoreInterpreter {
           idx += 1
         }
 
-        checkHypothesis()
-
+        pp.hypTimeDomainLeft = getTime(magic)
         setTime(magic, getTime(magic) + getTimeStep(magic))
-
+        
+        checkHypothesis()
+        
+        
         Continuous
       }
 
