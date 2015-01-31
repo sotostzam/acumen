@@ -8,6 +8,8 @@ import scala.actors._
 import InterpreterCntrl._
 import java.io.File
 
+import interpreters.Common.deviceClass
+
 class CStoreCntrl(val semantics: SemanticsImpl[Interpreter], val interpreter: CStoreInterpreter) extends InterpreterCntrl {
 
   def newInterpreterModel = interpreter.newInterpreterModel
@@ -23,7 +25,8 @@ class CStoreCntrl(val semantics: SemanticsImpl[Interpreter], val interpreter: CS
 
     def parse() = {
       val ast = semantics.parse(progText, currentDir, None)
-      val des = semantics.applyPasses(ast, Main.extraPasses)
+      val astWithPrelude = Prog(deviceClass :: ast.defs)
+      val des = semantics.applyPasses(astWithPrelude, Main.extraPasses)
       prog = des
     }
     

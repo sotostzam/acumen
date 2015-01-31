@@ -141,6 +141,7 @@ case class Desugarer(odeTransformMode: ODETransformMode) {
         if (env.contains(f)) mkIndexOf(Var(f))
         else if (fs contains f) mkIndexOf(Dot(Var(self), f))
         else Op(f, es map des)
+      case Input(s,i) => Input(s,i)
       case Index(e,i) => Index(des(e), i map des)
       case Dot(o, f) => Dot(des(o), f)
       case ExprVector(es) => ExprVector(es map des)

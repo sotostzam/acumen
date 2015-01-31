@@ -287,4 +287,14 @@ object Errors {
     override def getMessage =
       "fromJSON failed with input: " + s
   }
+  /* Device Input Error */
+  case class invalidInput(s: String) extends AcumenError {
+    override def getMessage =
+      s + " is an invalid input from device."
+  }
+  case class invalidDevice(id: Int) extends AcumenError {
+    override def getMessage =
+      id + " is an invalid device ID, please check the devices " +
+           "that connected to Acumen."
+  }
 }

@@ -117,8 +117,7 @@ trait CStoreInterpreter extends Interpreter {
     var shouldAddData = ShouldAddData.IfLast 
     // ^^ set to IfLast on purpose to make things work
     while (true) {
-      val stWithDevices = fromCStore(addDeviceData(repr(st)))
-      step(p, stWithDevices, md) match {
+      step(p, st, md) match {
         case Data(resSt,resMd) => // If the simulation is not over
           cstore = repr(resSt)
           shouldAddData = adder.newStep(getResultType(cstore))
@@ -181,85 +180,6 @@ trait CStoreInterpreter extends Interpreter {
    val (p1,st,md) = init(p)
    loop(p1, st, md, adder)
   }
-
-  /** Create Device objects for each connected device and add them to st. */
-  def addDeviceData(st: CStore): CStore = {
-    val mid = magicId(st)
-    //val simulator = deref(mid, st)
-    val base = Map[Name, CValue](
-      name("className") -> VClassName(ClassName("Device")),
-      name("parent") -> VObjId(None))
-    val paramList = List("ax" -> 1, "ay" -> 2, "az" -> 3, "alpha" -> 4, "beta" -> 5, "gamma" -> 6, "compassheading" -> 7)
-    val (stWithDevices, deviceVector) = BuildHost.BuildHost.sensors.zipWithIndex.foldLeft(st, List[VObjId[CId]]()) {
-      case ((stTmp, ds), (sensorValues, i)) =>
-        val did: CId = i :: mid
-        val paramValues = computeAverageAndUpdateDeviceData(i, sensorValues)
-        val d = (paramList zip paramValues).foldLeft(base) {
-          case (mTmp, ((n, p), v)) =>
-            mTmp + (name(n) -> VLit(GDouble(v.toDouble)))
-        }
-        (changeParent(did, mid, stTmp + (did -> d)), VObjId(Some(did)) :: ds)
-    }
-    val simulator = deref(mid, stWithDevices)
-    // Assign deviceVector as the value of the devices simulator parameter
-    val resCStore = setObject(mid, setField(simulator, devicef, VVector(deviceVector)), stWithDevices)
-    resCStore
-  }
-
-  // get device data from server
-  def computeAverageAndUpdateDeviceData(deviceNo: Int, deviceData: java.util.ArrayList[Array[String]]): Array[String] = {
-    val dataAverage = deviceData.get(0)
-    val deviceDataSize = deviceData.size
-    var tempData = deviceData.get(0)
-    var tempx = 0.0
-    var tempy = 0.0
-    var tempz = 0.0
-    var tempalpha = 0.0
-    var tempbeta = 0.0
-    var tempgamma = 0.0
-    var tempcompassheading = 0.0
-    if (deviceDataSize > 1){
-      for (i <- 0 until deviceDataSize){
-        tempData = deviceData.get(i)
-        tempx += tempData(0).toDouble
-        tempy += tempData(1).toDouble
-        tempz += tempData(2).toDouble
-        tempalpha += tempData(3).toDouble
-        tempbeta += tempData(4).toDouble
-        tempgamma += tempData(5).toDouble
-        tempcompassheading += tempData(6).toDouble
-      }
-      tempx /= deviceDataSize
-      tempy /= deviceDataSize
-      tempz /= deviceDataSize
-      tempalpha /= deviceDataSize
-      tempbeta /= deviceDataSize
-      tempgamma /= deviceDataSize
-      tempcompassheading /= deviceDataSize
-      dataAverage(0) = tempx.toString
-      dataAverage(1) = tempy.toString
-      dataAverage(2) = tempz.toString
-      dataAverage(3) = tempalpha.toString
-      dataAverage(4) = tempbeta.toString
-      dataAverage(5) = tempgamma.toString
-      dataAverage(6) = tempcompassheading.toString
-      deviceData.clear()
-      deviceData.add(0, dataAverage)
-      BuildHost.BuildHost.sensors.set(deviceNo, deviceData)
-    }
-    dataAverage
-  }
-
-
-  // add 3D data into a buffer
-  def add3DData (st: Store) = {
-    val threedtab = ui.App.ui.threeDtab.asInstanceOf[ui.threeD.ThreeDTab]
-    threedtab.appModel.threeDData.get3DData(repr(st))
-    //println("Add data to _3DData")
-    threedtab.playinRealTime()
-    //println("Show in real time")
-  }
-
 }
 
 abstract class InterpreterCallbacks

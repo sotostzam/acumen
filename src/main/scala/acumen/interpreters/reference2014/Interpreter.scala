@@ -165,6 +165,7 @@ object Interpreter extends acumen.CStoreInterpreter {
   	    case Lit(i)         => VLit(i)
         case ExprVector(l)  => VVector (l map (eval(env,_)))
         case Var(n)         => env.get(n).getOrElse(VClassName(ClassName(n.x)))
+        case Input(s,i)     => Devices.getDeviceInput(extractInt(eval(env, s)), i)
         case Index(v,i)     => evalIndexOp(eval(env, v), i.map(x => eval(env, x)))
         case Dot(o,Name("children",0)) =>
           /* In order to avoid redundancy en potential inconsistencies, 
@@ -363,7 +364,7 @@ object Interpreter extends acumen.CStoreInterpreter {
     checkContinuousAssignmentToSimulator(prog)
     val cprog = CleanParameters.run(prog, CStoreInterpreterType)
     val sprog = Simplifier.run(cprog)
-    val mprog = Prog(magicClass :: deviceClass :: sprog.defs)
+    val mprog = Prog(magicClass :: sprog.defs)
     val (sd1,sd2) = Random.split(Random.mkGen(0))
     val (id,_,st1) = 
       mkObj(cmain, mprog, None, sd1, List(VObjId(Some(CId(0)))), 1)(initStoreRef)

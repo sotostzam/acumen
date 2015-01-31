@@ -52,6 +52,7 @@ class ASTMap {
     case Op(name, es) => Op(name, es.map{mapExpr(_)})
     case Dot(a,b) => Dot(mapExpr(a),b)
     case ResolvedDot(id, obj, field) => ResolvedDot(id,mapExpr(obj),field)
+    case Input(s,i) => Input(mapExpr(s),i)
     case Index(a,idx) => Index(mapExpr(a),idx map mapExpr)
     case ExprVector(l) => ExprVector(l.map{mapExpr(_)})
     case Sum(s, i, col, cond) => Sum(mapExpr(s), i, mapExpr(col), mapExpr(cond))

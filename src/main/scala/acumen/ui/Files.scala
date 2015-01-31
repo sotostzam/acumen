@@ -20,7 +20,7 @@ object Files {
   }
 
   val LibDir = {
-    val md = new File("acumen_lib")
+    val md = new File("stdlib")
     if (md.exists()) md
     else new File(".")
   }
