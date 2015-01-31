@@ -18,6 +18,12 @@ object Files {
     if (md.exists()) md
     else new File(".")
   }
+
+  val LibDir = {
+    val md = new File("stdlib")
+    if (md.exists()) md
+    else new File(".")
+  }
  
  /* Question:  How come the absolute pate of the new File is 
                the correct one automatically ? In my case 

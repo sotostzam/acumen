@@ -32,6 +32,10 @@ object Errors {
       pos.tail.map{p => p.toString + ": included from\n"}.mkString("")
     }
   }
+  case class ClassOverride(cn:String, libDir: String, curDir: String) extends PositionalAcumenError {
+    override def mesg: String =
+      "Model " + cn + " is defined in " + libDir + " , and overwrite in " + curDir
+  }
   case class NoInstanceFound(cn:ClassName) extends PositionalAcumenError {
     override def mesg = 
       "Found no instance of model " + pprint(cn) + "."
@@ -282,5 +286,15 @@ object Errors {
   case class FromJSONError(s:String) extends AcumenError {
     override def getMessage =
       "fromJSON failed with input: " + s
+  }
+  /* Device Input Error */
+  case class invalidInput(s: String) extends AcumenError {
+    override def getMessage =
+      s + " is an invalid input from device."
+  }
+  case class invalidDevice(id: Int) extends AcumenError {
+    override def getMessage =
+      id + " is an invalid device ID, please check the devices " +
+           "that connected to Acumen."
   }
 }

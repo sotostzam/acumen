@@ -127,6 +127,9 @@ package acumen {
   case class Var(name: Name) extends Expr
   /* Example x(10) or sin(x) or obj.x(10) */
   case class Call(f: Expr, es: List[Expr]) extends Expr
+  /* Note: There is no syntax for Input (it is not parsable)
+   *       The sourceId Expr must evaluate to an Int */
+  case class Input(sourceId: Expr, inputId: String) extends Expr
   /* Example Main */
   case class Op(f: Name, es: List[Expr]) extends Expr
   /* Example x(10) */

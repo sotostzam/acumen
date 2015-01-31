@@ -391,25 +391,30 @@ object Common {
   }
 
   val magicClassTxt =
-    """model Simulator(time, timeStep, outputRows, continuousSkip, endTime, resultType, lastCreatedId, device)="""
+    """model Simulator(time, timeStep, outputRows, continuousSkip, endTime, resultType, lastCreatedId)="""
 
   val deviceClassTxt =
   // ax, ay, az are respectively to the acceleration of each direction
   // alpha is the rotation of z-axis, beta is the rotation of x-axis, gamma is the rotation of y-axis
   // compass heading is the angle between device orientation and north of the earth
-    """model Device(ax, ay, az, alpha, beta, gamma, compassheading)="""
+    """model Device(id) = initially ax=0, ay=0, az=0, alpha=0, beta=0, gamma=0, compassHeading=0"""
 
   val initStoreTxt =
-    s"""#0.0 { className = Simulator, parent = %s, time = 0.0, timeStep = 0.01, outputRows = "WhenChanged", continuousSkip = 0,endTime = 10.0, resultType = @Discrete, nextChild = 0,method = "$RungeKutta", device = none, seed1 = 0, seed2 = 0, variableCount = 0 }"""
+    s"""#0.0 { className = Simulator, parent = %s, time = 0.0, timeStep = 0.01, outputRows = "WhenChanged", continuousSkip = 0,endTime = 10.0, resultType = @Discrete, nextChild = 0,method = "$RungeKutta", seed1 = 0, seed2 = 0, variableCount = 0 }"""
 
   lazy val magicClass = Parser.run(Parser.classDef, magicClassTxt)
-  lazy val deviceClass = Parser.run(Parser.classDef, deviceClassTxt)
+  lazy val deviceClass = {
+    val d = Parser.run(Parser.classDef, deviceClassTxt)
+    ClassDef(d.name,d.fields,d.priv,d.priv.map{
+      pr => Continuously(EquationT(Var(pr.x), Input(Dot(Var(self), Name("id",0)), pr.x.x)))
+    })
+  }
   lazy val initStoreRef = Parser.run(Parser.store, initStoreTxt.format("#0"))
   lazy val initStoreImpr = Parser.run(Parser.store, initStoreTxt.format("none"))
   
   // Register simulator parameters that should appear as completions in the code editor 
   // for any interpreter. Additional parameters are taken from Interpreter.parameters. 
-  val visibleSimulatorFields = List("time", "timeStep", "endTime", "device")
+  val visibleSimulatorFields = List("time", "timeStep", "endTime")
 
   def visibleParametersMap(initStore: CStore): Map[String,CValue] = {
     val initialMagic = initStore(magicId(initStore))
@@ -462,9 +467,8 @@ object Common {
   def checkAccessOk(id:CId, env:Env, st:CStore, context: Expr) : Unit = {
     val sel = selfCId(env)
     lazy val cs = childrenOf(sel, st)
-    //val mainIsAccesingADevice = sel == mainId(st) && (childrenOf(magicId(st), st) contains id)
-    if (sel != id && ! (cs contains id)) {}
-    //  throw AccessDenied(id,sel,cs).setPos(context.pos)
+    if (sel != id && ! (cs contains id))
+      throw AccessDenied(id,sel,cs).setPos(context.pos)
   }
 
   def checkIsChildOf(child:CId, parent:CId, st:CStore, context: Expr) : Unit = {
