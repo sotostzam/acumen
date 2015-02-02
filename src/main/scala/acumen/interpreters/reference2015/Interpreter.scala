@@ -178,6 +178,7 @@ object Interpreter extends acumen.CStoreInterpreter {
   	    case Lit(i)         => VLit(i)
         case ExprVector(l)  => VVector (l map (eval(env,_)))
         case Var(n)         => env.get(n).getOrElse(VClassName(ClassName(n.x)))
+        case Input(s,i)     => Devices.getDeviceInput(extractInt(eval(env, s)), i)
         case Index(v,i)     => evalIndexOp(eval(env, v), i.map(x => eval(env, x)))
         /* e.f */
         case Dot(o, f) =>
