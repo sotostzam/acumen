@@ -431,7 +431,16 @@ class App extends SimpleSwingApplication {
   private val enableRealTimeItem = new RadioMenuItem("Enable Real Time Animation") {selected = false; action = enableRealTimeRender}
   private val matchWallClockItem = new RadioMenuItem("Match with Wall Clock") {selected = false; action = matchWallClock}
   private val startserverItem = new RadioMenuItem("Start Server") {selected = false; action = startSeverAction}
+  private val resetDeviceItem = new MenuItem("Reset Device")  {action = resetDeviceNum}
   private val stopserverItem  = new MenuItem("Stop Server")  {action = stopServerAction}
+  private val serverLinkItem  = new Menu("Server Link"){
+    val url = IPADDRESS + ":8000/index"
+    val rb1 = new MenuItem(url){
+      action = new Action(url){ def apply() = Desktop.getDesktop.browse(new java.net.URI("http://" + url)) }
+    }
+    contents ++= Seq(rb1)
+    new ButtonGroup(rb1)
+  }
   private var startAnaglyph = false
   private var startRealTime = false
   private var matchWorldTime = false
@@ -665,15 +674,10 @@ class App extends SimpleSwingApplication {
       startserverItem.selected = false
       contents += stopserverItem
       stopserverItem.enabled = false
-      contents += new MenuItem("Reset Device")  {action = resetDeviceNum}
-      contents += new Menu("Server Link"){
-        val url = IPADDRESS + ":8000/index"
-        val rb1 = new MenuItem(url){
-          action = new Action(url){ def apply() = Desktop.getDesktop.browse(new java.net.URI("http://" + url)) }
-        }
-        contents ++= Seq(rb1)
-        new ButtonGroup(rb1)
-      }
+      contents += resetDeviceItem
+      resetDeviceItem.enabled = false
+      contents += serverLinkItem
+      serverLinkItem.enabled = false
     }
 
     contents += new Menu("Help") {
@@ -778,6 +782,10 @@ class App extends SimpleSwingApplication {
       enableRealTime()
       enableRealTimeItem.selected = true
     }
+    if (!resetDeviceItem.enabled)
+      resetDeviceItem.enabled = true
+    if (!serverLinkItem.enabled)
+      serverLinkItem.enabled = true
     startserverItem.enabled = false
     stopserverItem.enabled  = true
   }
@@ -788,6 +796,8 @@ class App extends SimpleSwingApplication {
     startserverItem.selected = false
     startserverItem.enabled  = true
     stopserverItem.enabled   = false
+    resetDeviceItem.enabled = false
+    serverLinkItem.enabled = false
   }
 
   def resetDevice(): Unit = {
