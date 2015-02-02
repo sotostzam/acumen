@@ -435,6 +435,7 @@ object Common {
         case Lit(i)        => VLit(i)
         case ExprVector(l) => VVector(l map (eval(env, _)))
         case Var(n)        => env.get(n).getOrElse(VClassName(ClassName(n.x)))
+        case Input(s,i)    => Devices.getDeviceInput(extractInt(eval(env, s)), i)
         case Index(v,i)    => evalIndexOp(eval(env, v), i.map(x => eval(env, x)))
         case Dot(v, Name("children", 0)) =>
           val id = evalToObjId(v,p,env)

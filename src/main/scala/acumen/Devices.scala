@@ -3,7 +3,7 @@ package acumen
 
 object Devices {
 
-  def getDeviceInput (sourceId: Int, inputId: String): CValue = {
+  def getDeviceInput[A](sourceId: Int, inputId: String): Value[A] = {
     val sourceData = updateDeviceData(sourceId)
     inputId match {
       case "ax" => VLit(GDouble(sourceData(0).toDouble))
