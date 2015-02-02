@@ -129,13 +129,11 @@ class CStoreCntrl(val semantics: SemanticsImpl[Interpreter], val interpreter: CS
                 missedDeadline += 1
               timesteps += 1
               val percentagemissDL = missedDeadline / timesteps
-
               // for synchronizing the simulation with wall clock
               if (threeDTab.threeDView.matchWallClock){
                 // calculate the averageslack
                 if (virtualtime > lastvirtualTime) {
                   if ((virtualtime - lastvirtualTime) * 1000 / playspeed < calculationTime)
-//                  slackvalue = (virtualtime - lastvirtualTime) * 1000 / playspeed - calculationTime + slackvalue
                     slackvalue = 0 + slackvalue
                   else
                     slackvalue = ((virtualtime - lastvirtualTime) * 1000 /
@@ -146,10 +144,8 @@ class CStoreCntrl(val semantics: SemanticsImpl[Interpreter], val interpreter: CS
                 realtimeTimer(virtualtime, playspeed, startTime)
               } else
                 averageSlack = 0
-              if ((virtualtime - updateTime) * 1000 > 100) { // update every
-                // 100ms
-                //Logger.trace("Missed deadlines: %.4f".format(percentagemissDL * 100) + "%")
-                //Logger.trace("Waiting time: %.4f".format(averageSlack * 100) + "%")
+              if ((virtualtime - updateTime) * 1000 > 100) {
+                // update every 100ms
                 threeDTab.threeDView.percentagemissDL = percentagemissDL
                 threeDTab.threeDView.averageSlack = averageSlack
                 updateTime = virtualtime
@@ -161,7 +157,6 @@ class CStoreCntrl(val semantics: SemanticsImpl[Interpreter], val interpreter: CS
         sendChunk()
         App.ui.stopSimulation()
         consumer ! Done(List("Time to run simulation: %.3fs".format((System.currentTimeMillis - startTime) / 1000.0)), md, endTime)
-        //System.err.println("Total simulation time: " + ((System.currentTimeMillis - startTime) / 1000.0) + "s")
       }
     }
   }
@@ -177,8 +172,6 @@ class CStoreCntrl(val semantics: SemanticsImpl[Interpreter], val interpreter: CS
       sleeptime = virtualtime * 1000 / playSpeed - (System.currentTimeMillis - startTime)
       extratime = (sleeptime - sleeptime.toLong) * 1000000 // To nano sec
       Thread.sleep(sleeptime.toLong, extratime.toInt)
-      //print(sleeptime)
-      //print("\n")
     }
   }
 }

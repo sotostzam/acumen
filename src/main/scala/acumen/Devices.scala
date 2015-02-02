@@ -20,9 +20,7 @@ object Devices {
   // get device data from server
   def updateDeviceData(deviceNo: Int): Array[String] = {
     val deviceData =
-      //if (BuildHost.BuildHost.sensors.contains(deviceNo))
         BuildHost.BuildHost.sensors.get(deviceNo)
-      //else throw Errors.invalidDevice(deviceNo)
     val dataAverage = deviceData.get(0)
     val deviceDataSize = deviceData.size
     var tempData = deviceData.get(0)

@@ -118,10 +118,6 @@ class ThreeDTab (val appModel: Controller) extends AbstractEditorTab{
     button.peer.setEnabled(false)
   }
 
-//  val threeDButtons =
-//    new FlowPanel(FlowPanel.Alignment.Leading)(check, b3dplay,
-//      b3dstop, b3dslower, b3dfaster)
-
   val statusZone3d = new Slider3D
   statusZone3d.bar.peer.addMouseListener(new MouseAdapter{
     var wasPlayingBeforeMousePressed = threedplay.toolTip == "pause"

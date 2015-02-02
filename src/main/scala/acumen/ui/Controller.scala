@@ -173,13 +173,11 @@ class Controller extends DaemonActor {
                                    // to ability to reduce rows outputted
         for (cs <- d.asInstanceOf[Iterable[GStore]]) {
           if (n == 0 || n > _3DSampleInterval) {
-            //threeDData.get3DData(cs)
             n = 1
           } else
             n += 1
         }
       }
-      //updateProgress(d)
     }
   }
 }
