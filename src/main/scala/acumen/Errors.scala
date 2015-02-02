@@ -191,6 +191,27 @@ object Errors {
     override def getMessage = 
       "No equation was specified for (#" + o.cid.toString + " : " + className + ")." + n.x + " at time " + time + "."
   }
+  case class AlgebraicLoop(first : ObjField, posIsSetPoint : Boolean = false,
+                           haveLoop : Boolean = false, chain : List[(ObjField,Position)] = Nil) 
+       extends PositionalAcumenError 
+  {
+    override def mesg = "Algebraic loop detected " + (if (posIsSetPoint) "while setting " else "while retrieving ") + first
+    override def getMessage = 
+      super.getMessage + "\n" + chain.map{case (f,p) =>
+        val msg = "while retrieving " + f
+        p match {
+           case NoPosition => msg 
+           case _ => p.toString + ": " + msg + "\n" + p.longString
+        }                                  
+      }.mkString("\n")
+
+    def addToChain(f: ObjField, p : Position)  = 
+       if (haveLoop)           this
+       else if (chain.isEmpty) copy(chain = (f,p)::Nil).setPos(pos).setPos(p)
+       else if (f == first)    copy(haveLoop = true).setPos(pos)
+       else                    copy(chain = (f,p)::chain).setPos(pos)
+  }
+
   case class HypothesisFalsified(s: String, counterExample: Option[(Double, Map[Dot, CValue])] = None) extends PositionalAcumenError {
     override def mesg = 
       "Hypothesis \"" + s + "\" falsified." + (counterExample match {
@@ -287,14 +308,10 @@ object Errors {
     override def getMessage =
       "fromJSON failed with input: " + s
   }
-  /* Device Input Error */
-  case class invalidInput(s: String) extends AcumenError {
-    override def getMessage =
-      s + " is an invalid input from device."
+
+  /* utility class */
+  case class ObjField(o: CId, cn: String, f: Name) {
+    override def toString = s"(#$o : $cn)." + pprint(f)
   }
-  case class invalidDevice(id: Int) extends AcumenError {
-    override def getMessage =
-      id + " is an invalid device ID, please check the devices " +
-           "that connected to Acumen."
-  }
+
 }

@@ -177,7 +177,7 @@ class ProgGenerator
     try {
       var discreteStepsInARow = 0
       val si = SemanticsImpl.Ref2014
-      val CStoreRes(r) = si.interpreter.run(si.applyRequiredPasses(p))
+      val CStoreRes(r,_) = si.interpreter.lazyRun(si.applyRequiredPasses(p))
       for (cstore <- r) {
         if (Canonical.getResultType(cstore) == Discrete) discreteStepsInARow += 1
         else discreteStepsInARow = 0

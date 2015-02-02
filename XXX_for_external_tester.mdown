@@ -1,26 +1,33 @@
 # External test procedure
 
+Please send us one email consisting of an "OK" or "Not OK" for each of the 
+following steps.  If a step appears to be "Not OK", a brief explanation of 
+the problem you witnessed would be appreciated.  Please send your email to 
+both Adam Duracz (adam@duracz.net) and Walid Taha (maroneal@gmail.com).
+
 0. Download and unzip the particular Acumen distribution provided to you.
 1. Start Acumen by double-clicking the jar file in the extracted folder.
 2. Part 1 of test
     1. Click File > Open.
     2. Browse to "examples/01_CPS_Course/01_Introduction/02_Dynamics/09_Sine_self_as_Second_Derivative.acm" and click Open.
-	3. Ensure that the Traditional semantics is selected by going to the menu and selecting
-	   Semantics > Traditional -> 2014 Reference
+	3. Ensure that the Traditional semantics is selected by going to the 
+	   menu and selecting Semantics > Traditional -> 2014 Reference
 	4. Run the simulation by clicking the play button ( > ) below the code editor.
-	5. Check that the plot looks right. There should be three plots, all displaying 
-	   various kids of wave forms.
+	5. Check that the plot looks right. There should be three plots, all 
+	   displaying various kids of wave forms.
 3. Part 2 of test
 	1. Click File > Open.
-    2. Select "examples/01_CPS_Course/01_Introduction/03_Animation/02_angles in pi.acm" and click Open.
+    2. Select "examples/01_CPS_Course/01_Introduction/03_Animation/02_angles in pi.acm" 
+       and click Open.
 	3. Run the simulation by clicking the play button ( > ) below the code editor.
-	4. Wait until the simulation is done (indicated by the progress bar under the editor).
-	5. Check that the _3D tab displays an animation.
+	4. Wait until the simulation is done. You should be able to follow the 
+	   progress of the simulation from the progress bar underneath the editing area.
+	5. Once simulation is done, animation should start automatically.
     6. Wait until the animation is done.
-    7. Check that fast replay works. This can be done by clicking the fast forward 
-       button ( >> ) below the _3D view until the speed indicator says "Speed:4.0x"
-       and then clicking the play button ( > ) below the _3D view. Note that you may 
-	   need to make the Acumen window wider in order to see the fast forward button.
+    7. Test that fast replay works by clicking on the fast forwarding button. 
+       This can be done by clicking the fast forward button ( >> ) below the 
+       _3D view until the speed indicator says "Speed:4.0x" and then clicking 
+       the play button ( > ) below the _3D view. Note that you may need to make 
+       the Acumen window wider in order to see the fast forward button.
 
-Please send your report (OK / not OK for each of the steps above) to both Adam Duracz (adam@duracz.net) and
-Walid Taha (maroneal@gmail.com).
+Thank you very much for helping us test this release!

@@ -1,0 +1,86 @@
+/*
+ * An example of the independence pattern
+ * Author: Rui Wang
+ */
+model Main(Simulator) = 
+initially
+  ip = create ipattern(),
+  _3D = (Box center=(0,0,0) size=(6,0.01,6) color=blue rotation=(pi/2,0,0),
+         Box center=(0,0,0) size=(6,0.1,0.1) color=black rotation=(0,0,0),
+         Box center=(0,0,0) size=(6,0.1,0.1) color=black rotation=(0,0,pi/2),
+         Text center=(-1.25,0.25,-0.15) size=1.5 color=black rotation=(0,0,0) content="-",
+         Text center=(-0.75,0.25,-0.15) size=1.5 color=black rotation=(0,0,0) content="-",
+         Text center=(0.25,0.25,-0.15) size=1.5 color=black rotation=(0,0,0) content="-",
+         Text center=(0.75,0.25,-0.1) size=1 color=black rotation=(0,0,0) content="+",
+         Text center=(0.75,-1.25,-0.1) size=1 color=black rotation=(0,0,0) content="+",
+         Text center=(0.25,-1.25,-0.1) size=1 color=black rotation=(0,0,0) content="+",
+         Text center=(-0.75,-1.25,-0.15) size=1.5 color=black rotation=(0,0,0) content="-",
+         Text center=(-1.25,-1.25,-0.1) size=1 color=black rotation=(0,0,0) content="+",
+         Text center=(-1.25,2,0) size=1 color=black rotation=(0,0,0) content="A",
+         Text center=(0.5,2,0) size=1 color=black rotation=(0,0,0) content="B",
+         Text center=(-2,0.5,0) size=1 color=black rotation=(0,0,pi/2) content="A",
+         Text center=(-2,-1.25,0) size=1 color=black rotation=(0,0,pi/2) content="B",
+         Text center=(-2,-1.25,1) size=0.5 color=red rotation=(0,0,pi/2) content="Player 1",
+         Text center=(-1.25,2,1) size=0.5 color=green rotation=(0,0,0) content="player 2")
+
+//Score
+model ipattern() = 
+initially
+  p1 =  create player1(),
+  p2 =  create player2(),
+  _3D = ()
+always
+  _3D=((Text center=(-2.5,-1.25,3) size=0.5 color=red rotation=(0,0,pi/2) content="Score:"),
+       (Text center=(-2.5,1.25,3) size=0.5 color=red rotation=(0,0,pi/2) content=p1.score),
+       (Text center=(-1.25,2.5,3) size=0.5 color=green rotation=(0,0,0) content="Score:"),
+       (Text center=(1.25,2.5,3) size=0.5 color=green rotation=(0,0,0) content=p2.score))
+  
+//Play one
+model player1() = 
+initially
+  cnt = 1,
+  x  = 0,
+  x' = 0,
+  _3D = (),
+  score = 0
+always
+  if x > 1.5 || x < -1.5 then 
+    if x < -1.5 then
+      score + = score + 2
+    noelse,
+    x + = 0, 
+    x'+ = 0,
+    cnt + = cnt + 1
+  noelse,
+  _3D = (Text center=(-2.5,-1.25,2) size=0.5 color=red rotation=(0,0,pi/2) content="Turns:",
+         Text center=(-2.5,1.25,2)  size=0.5 color=red rotation=(0,0,pi/2) content=cnt,
+         Box center=(0,x,1) size=(6,0.1,0.1) color=red rotation=(0,0,0)),
+  if cnt % 2 == 1 then
+    x' = -1
+  else
+    x' = 1
+    
+//Player two
+model player2() = 
+initially
+  cnt = 1,
+  x  = 0,
+  x' = 0,
+  _3D = (),
+  score = 0
+always
+  if x > 1.5 || x < -1.5 then 
+    if x > 1.5 then
+      score + = score + 2
+    noelse,
+    x + = 0, 
+    x'+ = 0,
+    cnt + = cnt + 1
+  noelse,
+  _3D=(Text center=(-1.25,2.5,2) size=0.5  color=green rotation=(0,0,0) content="Turns:",
+       Text center=(1.25,2.5,2)  size=0.5  color=green rotation=(0,0,0) content=cnt,
+       Box center=(x,0,1) size=(6,0.1,0.1) color=green rotation=(0,0,pi/2)),
+  if cnt % 3 == 0 then
+    x' = 1
+  else
+    x' = -1

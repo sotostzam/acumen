@@ -82,13 +82,13 @@ object Interpreter extends acumen.CStoreInterpreter {
   def reparent(cs:List[CId], p:CId) : Eval[Unit] =
     mapM_ (logReparent(_:CId,p), cs)
     
-  /* discretely assign the value v to a field n in object o */
-  def assign(o: CId, d: Dot, v:CValue) : Eval[Unit] = logAssign(o, d, v)
+  /* discretely assign the value of r evaluated in e to a field n in object o */
+  def assign(o: CId, d: Dot, r: Expr, e: Env) : Eval[Unit] = logAssign(o, d, r, e)
 
-  /* continuously assign the value v to a field n in object o */
-  def equation(o: CId, d: Dot, v:CValue) : Eval[Unit] = logEquation(o, d, v)
+  /* continuously assign the value of r evaluated in e to a field n in object o */
+  def equation(o: CId, d: Dot, r: Expr, e: Env) : Eval[Unit] = logEquation(o, d, r, e)
 
-  /* continuously assign the value v to a field n in object o */
+  /* continuously assign the value of r evaluated in e to a field n in object o */
   def ode(o: CId, d: Dot, r: Expr, e: Env) : Eval[Unit] = logODE(o, d, r, e)
   
   /* log an id as being dead */
@@ -291,12 +291,10 @@ object Interpreter extends acumen.CStoreInterpreter {
  
   def evalDiscreteAction(a:DiscreteAction, env:Env, p:Prog) : Eval[Unit] =
     a match {
-      case Assign(d@Dot(e,x),t) => 
-        /* Schedule the discrete assignment */
-        for { id <- asks(evalToObjId(e, env, _))
-        	  vt <- asks(evalExpr(t, env, _))
-        	  vx <- asks(evalExpr(d, env, _)) 
-        } assign(id, d, vt)
+      case Assign(d@Dot(e,n),rhs) => 
+        for { id <- asks(evalToObjId(e, env, _)) 
+              _  <- asks(checkVariableDeclared(id, n, d.pos, _))
+            } assign(id, d, rhs, env)
       /* Basically, following says that variable names must be 
          fully qualified at this language level */
       case Assign(_,_) => 
@@ -330,13 +328,12 @@ object Interpreter extends acumen.CStoreInterpreter {
 
   def evalContinuousAction(a:ContinuousAction, env:Env, p:Prog) : Eval[Unit] = 
     a match {
-      case EquationT(d@Dot(e,_),rhs) =>
-        for { 
-          id <- asks(evalExpr(e, env, _)) map extractId 
-          v <- asks(evalExpr(rhs, env, _))
-        } equation(id, d, v)
-      case EquationI(d@Dot(e,_),rhs) =>
-        for { id <- asks(evalExpr(e, env, _)) map extractId } ode(id, d, rhs, env)
+      case EquationT(d@Dot(e,n),rhs) =>
+        for { id <- asks(evalToObjId(e, env, _)) 
+              _  <- asks(checkVariableDeclared(id, n, d.pos, _))
+            } equation(id, d, rhs, env)
+      case EquationI(d@Dot(e,_),rhs) => // No need to check that lhs is declared, as EquationI:s are generated  
+        for { id <- asks(evalToObjId(e, env, _)) } ode(id, d, rhs, env)
       case _ =>
         throw ShouldNeverHappen() // FIXME: enforce that with refinement types
     }
@@ -385,6 +382,14 @@ object Interpreter extends acumen.CStoreInterpreter {
   /** Updates the values of variables in xs (identified by CId and Dot.field) to the corresponding CValue. */
   def applyAssignments(xs: List[(CId, Dot, CValue)]): Eval[Unit] = 
     mapM_((a: (CId, Dot, CValue)) => setObjectFieldM(a._1, a._2.field, a._3), xs)
+
+  /** Computes the values of variables in xs (identified by CId and Dot.field). */
+  def evaluateAssignments(xs: List[(CId, Dot, Expr, Env)], st: Store): List[(CId, Dot, CValue)] = 
+    xs.map((a: (CId, Dot, Expr, Env)) => (a._1, a._2, evalExpr(a._3, a._4, st)))
+    
+  /** Updates the values of variables in xs (identified by CId and Dot.field) to the corresponding CValue. */
+  def applyDelayedAssignments(xs: List[(CId, Dot, Expr, Env)], st: Store): Eval[Unit] = 
+    applyAssignments(evaluateAssignments(xs,st))
   
   def step(p:Prog, st:Store, md: Metadata) : StepRes =
     if (getTime(st) >= getEndTime(st)){
@@ -393,26 +398,29 @@ object Interpreter extends acumen.CStoreInterpreter {
     else 
       { val (_, Changeset(ids, rps, das, eqs, odes, hyps), st1) = iterate(evalStep(p), mainId(st))(st)
         val md1 = testHypotheses(hyps, md, st)
+        def resolveDots(s: List[(CId,Dot,Expr,Env)]): List[ResolvedDot] =
+          s.map{ case (o, d, _, env) => resolveDot(d, env, st1) }
         val res = getResultType(st) match {
           case Discrete | Continuous => // Either conclude fixpoint is reached or do discrete step
-            checkDuplicateAssingments(das.toList.map{ case (o, d, _) => (o, d) }, x => DuplicateDiscreteAssingment(x))
-            val nonIdentityDas = das.filterNot{ a => a._3 == getObjectField(a._1, a._2.field, st1) }
+            checkDuplicateAssingments(resolveDots(das), DuplicateDiscreteAssingment)
+            val dasValues = evaluateAssignments(das, st1)
+            val nonIdentityDas = dasValues.filterNot{ a => a._3 == getObjectField(a._1, a._2.field, st1) }
             if (st == st1 && ids.isEmpty && rps.isEmpty && nonIdentityDas.isEmpty) 
               setResultType(FixedPoint, st1)
             else {
-              val stA = applyAssignments(nonIdentityDas.toList) ~> st1
+              val stA = applyAssignments(dasValues) ~> st1
               def repHelper(pair:(CId, CId)) = changeParentM(pair._1, pair._2) 
-              val stR = mapM_(repHelper, rps.toList) ~> stA
+              val stR = mapM_(repHelper, rps) ~> stA
               val st3 = stR -- ids
               setResultType(Discrete, st3)
             }
           case FixedPoint => // Do continuous step
-            val odesIds = odes.toList.map { case (o, d, _, _) => (o, d) }
-            val eqsIds = eqs.toList.map { case (o, d, _) => (o, d) }
+            val eqsIds = resolveDots(eqs)
+            val odesIds = resolveDots(odes)
             checkDuplicateAssingments(eqsIds ++ odesIds, DuplicateContinuousAssingment)
             checkContinuousDynamicsAlwaysDefined(p, eqsIds, st1)
             val stODE = solveIVP(odes, p, st1)
-            val stE = applyAssignments(eqs.toList) ~> stODE
+            val stE = applyDelayedAssignments(eqs, st1) ~> stODE
             val st2 = setResultType(Continuous, stE)
             setTime(getTime(st2) + getTimeStep(st2), st2)
         }
@@ -420,11 +428,11 @@ object Interpreter extends acumen.CStoreInterpreter {
       }
 
   /** Summarize result of evaluating the hypotheses of all objects. */
-  def testHypotheses(hyps: Set[(CId, Option[String], Expr, Env)], old: Metadata, st: Store): Metadata =
+  def testHypotheses(hyps: List[(CId, Option[String], Expr, Env)], old: Metadata, st: Store): Metadata =
     old combine (if (hyps isEmpty) NoMetadata else SomeMetadata(hyps.map {
       case (o, hn, h, env) =>
         val cn = getCls(o, st)
-        lazy val counterEx = dots(h).toSet[Dot].map(d => d -> evalExpr(d, env, st))
+        lazy val counterEx = dots(h).toSet[Dot].map(d => d -> (evalExpr(d, env, st) : GValue))
         val VLit(GBool(b)) = evalExpr(h, env, st)
         (o, cn, hn) -> (if (b) TestSuccess else TestFailure(getTime(st), counterEx))
     }.toMap, (getTime(st), getTime(st) + getTimeStep(st)), false))
@@ -437,7 +445,7 @@ object Interpreter extends acumen.CStoreInterpreter {
    *  - Env:  Initial conditions of the IVP.
    * The time segment is derived from time step in store st. 
    */
-  def solveIVP(odes: Set[(CId, Dot, Expr, Env)], p: Prog, st: Store): Store = {
+  def solveIVP(odes: List[(CId, Dot, Expr, Env)], p: Prog, st: Store): Store = {
     implicit val field = FieldImpl(odes, p)
     new Solver(getInSimulator(Name("method", 0),st), xs = st, h = getTimeStep(st)){
       // add the EulerCromer solver
@@ -450,10 +458,10 @@ object Interpreter extends acumen.CStoreInterpreter {
   }
   
   /** Representation of a set of ODEs. */
-  case class FieldImpl(odes: Set[(CId, Dot, Expr, Env)], p: Prog) extends Field[Store] {
+  case class FieldImpl(odes: List[(CId, Dot, Expr, Env)], p: Prog) extends Field[Store] {
     /** Evaluate the field (the RHS of each equation in ODEs) in s. */
     override def apply(s: Store): Store =
-      applyAssignments(odes.toList.map { 
+      applyAssignments(odes.map { 
         case (o, n, rhs, env) => (o, n, evalExpr(rhs, env, s)) 
       }) ~> s
     /** 
@@ -462,7 +470,7 @@ object Interpreter extends acumen.CStoreInterpreter {
      * NOTE: Assumes that the de-sugarer has reduced all higher-order ODEs.  
      */
     def variables: List[(CId, Dot)] =
-      odes.toList.flatMap { case (o, d, _, _) => Set((o, d), (o, Dot(d.obj, Name(d.field.x, 0)))) }
+      odes.flatMap { case (o, d, _, _) => List((o, d), (o, Dot(d.obj, Name(d.field.x, 0)))) }
   }
 
   /**
@@ -494,7 +502,7 @@ object Interpreter extends acumen.CStoreInterpreter {
    */
   def solveIVPEulerCromer(st: Store, h: Double)(implicit f: FieldImpl): Store = {
     // Ensure that derivatives are being integrated in the correct order
-    val sortedODEs = f.odes.toList
+    val sortedODEs = f.odes
       .groupBy{ case (o, Dot(_, n), r, e) => (o, n.x) }
       .mapValues(_.sortBy { case (_, Dot(_, n), _, _) => n.primes }).values.flatten
     val solutions = sortedODEs.foldRight(Map.empty[(CId, Dot), CValue]) {
@@ -513,8 +521,8 @@ object Interpreter extends acumen.CStoreInterpreter {
             throw BadLhs()
         }
         updatedEnvs + ((o, d) -> v)
-    }.map { case ((o, d), v) => (o, d, v) }.toSet
-    applyAssignments(solutions.toList) ~> st
+    }.map { case ((o, d), v) => (o, d, v) }.toList
+    applyAssignments(solutions) ~> st
   }
   
 }

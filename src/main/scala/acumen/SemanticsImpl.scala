@@ -20,6 +20,7 @@ object Semantics {
   val S2012 = Semantics(Some("2012"), Seq("desugar-local"), Seq("SD"))
   val S2013 = Semantics(Some("2013"), Seq("desugar-toplevel"), Seq("SD"))
   val S2014 = Semantics(Some("2014"), Seq("desugar-local-inline"), Seq("SD"))
+  val S2015 = Semantics(Some("2015"), Seq("desugar-local-inline"), Seq("SD"))
 }
 
 abstract class SemanticsSel
@@ -99,8 +100,9 @@ object SemanticsImpl {
       case S2012 => reference2012.Interpreter
       case S2013 => reference2013.Interpreter
       case S2014 => reference2014.Interpreter
+      case S2015 => reference2015.Interpreter
     }
-    override val isOldSemantics = semantics != S2014
+    override val isOldSemantics = !(semantics == S2014 ||  semantics == S2015)
     def interpreter() = i
   }
   case class Enclosure2014(contraction: Boolean) extends CStore {
@@ -138,17 +140,17 @@ object SemanticsImpl {
     val i = new optimized.Interpreter(parDiscr,contMode,contWithDiscr)
     val semantics = if (parDiscr == true && contMode == ContMode.Seq && contWithDiscr == false) S2013
                     else if (parDiscr == true && contMode == ContMode.IVP && contWithDiscr == false) S2014
-                    else S2013.copy(id = None)
-    override val isOldSemantics  = semantics != S2014
+                    else S2014.copy(id = None)
+    override val isOldSemantics = semantics != S2014
     def interpreter() = i
     override def withArgs(args: List[String]) : Optimized = args match {
-      case "parDiscr" :: tail => Optimized(true, contMode, contWithDiscr).withArgs(tail)
-      case "seqDiscr" :: tail => Optimized(false, contMode, contWithDiscr).withArgs(tail)
-      case "parCont" :: tail => Optimized(parDiscr, ContMode.Par, contWithDiscr).withArgs(tail)
-      case "seqCont" :: tail => Optimized(parDiscr, ContMode.Seq, contWithDiscr).withArgs(tail)
-      case "IVP" :: tail => println("Yep"); Optimized(parDiscr, ContMode.IVP, contWithDiscr).withArgs(tail)
-      case "contWithDiscr" :: tail => Optimized(parDiscr, contMode, true).withArgs(tail)
-      case "contWithCont" :: tail => Optimized(parDiscr, contMode, false).withArgs(tail)
+      case "parDiscr" :: tail => copy(parDiscr = true).withArgs(tail)
+      case "seqDiscr" :: tail => copy(parDiscr = false).withArgs(tail)
+      case "parCont" :: tail => copy(contMode = ContMode.Par).withArgs(tail)
+      case "seqCont" :: tail => copy(contMode = ContMode.Seq).withArgs(tail)
+      case "IVP" :: tail => copy(contMode = ContMode.IVP).withArgs(tail)
+      case "contWithDiscr" :: tail => copy(contWithDiscr = true).withArgs(tail)
+      case "contWithCont" :: tail => copy(contWithDiscr = false).withArgs(tail)
       case Nil => this
       case _ => null
     }
@@ -156,8 +158,22 @@ object SemanticsImpl {
                             if (parDiscr) "parDiscr" else "seqDiscr",
                             contMode match {case ContMode.Seq => "seqCont"; 
                                             case ContMode.Par => "parCont"; 
-                                            case ContMode.IVP => "IVP";},
+                                            case ContMode.IVP => "IVP"},
                             if (contWithDiscr) "contWithDiscr" else "contWithCont")
+  }
+  case class Optimized2015(specialInitContStep : Boolean = false) extends CStore
+  {
+    val i = new optimized2015.Interpreter(specialInitContStep)
+    val semantics = S2015
+    override val isOldSemantics = false
+    def interpreter() = i
+    override def withArgs(args: List[String]) : Optimized2015 = args match {
+      case "specialInitContStep" :: tail => copy(specialInitContStep = true).withArgs(tail)
+      case Nil => this
+      case _ => null
+    }
+    override def id = Array("optimized2015", 
+                            if (specialInitContStep) "specialInitContStep" else "")
   }
   // Use this as a base for selecting the generic optimized semantics
   // that not trying to match a particular semantics
@@ -182,10 +198,13 @@ object SemanticsImpl {
   lazy val Ref2012 = Reference(S2012)
   lazy val Ref2013 = Reference(S2013)
   lazy val Ref2014 = Reference(S2014)
+  lazy val Ref2015 = Reference(S2015)
   lazy val Ref = Ref2014
   lazy val Opt2012 = Imperative2012
   lazy val Opt2013 = Optimized()
   lazy val Opt2014 = Optimized(contMode = ContMode.IVP)
+  lazy val Opt2015 = Optimized2015()
+  lazy val Opt2015b = Optimized2015(specialInitContStep = true)
 
   case class Sel(si: SemanticsSel, 
                  // First id is the display name
@@ -196,7 +215,10 @@ object SemanticsImpl {
   def sel(si: SemanticsSel, ids: String*) = Sel(si,false,ids:_*)
   def exp(si: SemanticsSel, ids: String*) = Sel(si,true,ids:_*)
   val selections = 
-    List(sel(Ref2014, "2014 Reference", "reference2014", "reference", ""),
+    List(sel(Ref2015, "2015 Reference", "reference2015"),
+         sel(Opt2015, "2015 Optimized", "optimized2015"),
+         sel(Opt2015b, "2015 Optimized (b)", "optimized2015b"),
+         sel(Ref2014, "2014 Reference", "reference2014", "reference", ""),
          sel(Opt2014, "2014 Optimized", "optimized2014"),
          sel(Ref2013, "2013 Reference", "reference2013"),
          sel(Opt2013, "2013 Optimized", "optimized2013"),

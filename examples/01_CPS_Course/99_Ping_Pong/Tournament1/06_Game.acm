@@ -302,9 +302,13 @@ always
         ball.p'' + = (0,0,0))
   | "Endgame" ->
       ball.mode        + = "Freeze",
-      bat1.pv          + = (0,0,0),
+      if batActuator1.energy <= maxEnergy then 
+        bat1.pv          + = (0,0,0)
+      noelse,
       batActuator1.p'  + = (0,0,0),
-      bat2.pv          + = (0,0,0),
+      if batActuator2.energy <= maxEnergy then 
+        bat2.pv          + = (0,0,0)
+      noelse,
       batActuator2.p'  + = (0,0,0),
       // Scoring function 
       //(sum(i,r_i_min * r_i_max))*s_max/min for winner/loser

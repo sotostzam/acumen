@@ -1,5 +1,14 @@
-ACUMEN NOVEMBER 2014 RELEASE NOTES
-----------------------------------
+ACUMEN 2014_12_01 RELEASE NOTES
+-------------------------------
+
+Major changes since the 2014_12_01 release:
+
+ - Improved stability of _3D view
+ - Re-enabled optimized traditional semantics
+ - Stricter error checking
+   - All duplicate assignments (of matching kind) are treated as errors
+     In particular, now parent assignments are also checked
+   - Only discrete assignments to simulator parameters are allowed
 
 Major changes since the Acumen November 2013 release:
 

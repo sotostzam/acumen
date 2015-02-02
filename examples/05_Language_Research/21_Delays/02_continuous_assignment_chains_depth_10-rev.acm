@@ -1,0 +1,25 @@
+
+// Currently, x0 and x10 do not yield the
+// same result. This should not be the case.
+
+model Main(simulator) =
+initially
+  x0=0, x0'=1,
+  x1=0, x2=0, x3=0, x4=0, x5=0, x6=0, x7=0, x8=0, x9=0, x10=0
+always
+  x0' = 1,
+  x10=x9,
+  x9=x8, 
+  x8=x7,
+  x7=x6, 
+  x6=x5, 
+  x5=x4, 
+  x4=x3, 
+  x3=x2, 
+  x2=x1, 
+  x1=x0, 
+  hypothesis 
+    "continuous assignments do not cause delays"
+    x10 == x0
+
+

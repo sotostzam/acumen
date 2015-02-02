@@ -58,7 +58,8 @@ abstract class Examples {
       if (ast.defs.exists{_.name == cmain}) {
         val tr = semantics.applyPasses(ast, Nil)
         val intr = semantics.interpreter()
-        intr.run(tr, new DumpSample(out)).last
+        val (res,md) = intr.run(tr, new DumpSample(out))
+        out.print(md.reportAsString)
       } else {
         out.println("NO MAIN")
       }
@@ -81,4 +82,8 @@ object Examples2013 extends Examples {
 
 object Examples2014 extends Examples {
   override val expectLoc = "src/test/resources/acumen/data/examples-2014-res"
+}
+
+object Examples2015 extends Examples {
+  override val expectLoc = "src/test/resources/acumen/data/examples-2015-res"
 }

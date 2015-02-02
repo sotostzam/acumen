@@ -831,8 +831,8 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
 
   /** Ensure that c does not contain duplicate assignments. */
   def checkValidChange(c: Set[Changeset]): Unit = c.foreach{ cs =>
-    val contIds = (cs.eqs.toList ++ cs.odes.toList).map(da => (da.selfCId, da.lhs))
-    val assIds = cs.dis.toList.map(da => (da.selfCId, da.lhs))
+    val contIds = (cs.eqs.toList ++ cs.odes.toList).map(_.lhs)
+    val assIds = cs.dis.toList.map(_.lhs)
     checkDuplicateAssingments(contIds, DuplicateContinuousAssingment)
     checkDuplicateAssingments(assIds, DuplicateDiscreteAssingment)
   }
@@ -862,7 +862,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
       if (hs isEmpty) NoMetadata
       else SomeMetadata(
         (for (DelayedHypothesis(o, s, h, env) <- hs) yield {
-          lazy val counterEx = dots(h).toSet[Dot].map(d => d -> evalExpr(d, env, st))
+          lazy val counterEx = dots(h).toSet[Dot].map(d => d -> (evalExpr(d, env, st) : GValue))
           (o, getCls(o,st), s) -> (evalExpr(h, env, st) match {
             case VLit(CertainTrue)  => CertainSuccess
             case VLit(Uncertain)    => UncertainFailure(timeDomain, counterEx)

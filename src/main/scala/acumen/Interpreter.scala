@@ -18,10 +18,14 @@ trait Interpreter {
 abstract class InterpreterRes {
   def print : Unit;
   def printLast : Unit;
+  def metadata : Metadata;
 }
 
 /** Used to store information about the Store. */
-abstract class Metadata { def combine(that: Metadata): Metadata }
+abstract class Metadata { 
+  def combine(that: Metadata): Metadata 
+  final def reportAsString = new SummarizeHypothesisOutcomes().makeReport(this)
+}
 case object NoMetadata extends Metadata {
   def combine(that: Metadata): Metadata = that
 }
@@ -48,6 +52,7 @@ case class SomeMetadata
     } 
   }
 }
+
 /** The result of evaluating a hypothesis.*/
 trait HypothesisOutcome {
   /**
@@ -58,10 +63,10 @@ trait HypothesisOutcome {
   def pick(that: HypothesisOutcome): HypothesisOutcome
 }
 abstract class Success extends HypothesisOutcome { def pick(that: HypothesisOutcome) = that }
-abstract class Failure(counterExample: Set[(Dot,CValue)]) extends HypothesisOutcome
+abstract class Failure(counterExample: Set[(Dot,GValue)]) extends HypothesisOutcome
 /** Result of non-rigorous hypothesis evaluation (reference interpreter). */
 case object TestSuccess extends Success
-case class TestFailure(earliestTime: Double, counterExample: Set[(Dot,CValue)]) extends Failure(counterExample: Set[(Dot,CValue)]) {
+case class TestFailure(earliestTime: Double, counterExample: Set[(Dot,GValue)]) extends Failure(counterExample: Set[(Dot,GValue)]) {
   def pick(that: HypothesisOutcome) = that match {
     case TestSuccess    => this
     case f: TestFailure => if (this.earliestTime <= f.earliestTime) this else that
@@ -69,21 +74,74 @@ case class TestFailure(earliestTime: Double, counterExample: Set[(Dot,CValue)]) 
 }
 /** Result of rigorous hypothesis evaluation (enclosure interpreter). */
 case object CertainSuccess extends Success
-abstract class RigorousFailure(earliestTime: (Double,Double), counterExample: Set[(Dot,CValue)]) extends Failure(counterExample: Set[(Dot,CValue)]) 
-case class CertainFailure(earliestTime: (Double,Double), counterExample: Set[(Dot,CValue)]) extends RigorousFailure(earliestTime, counterExample) {
+abstract class RigorousFailure(earliestTime: (Double,Double), counterExample: Set[(Dot,GValue)]) extends Failure(counterExample: Set[(Dot,GValue)]) 
+case class CertainFailure(earliestTime: (Double,Double), counterExample: Set[(Dot,GValue)]) extends RigorousFailure(earliestTime, counterExample) {
   def pick(that: HypothesisOutcome) = that match {
     case CertainSuccess      => this
     case _: UncertainFailure => this
     case f: CertainFailure   => if (this.earliestTime._1 <= f.earliestTime._1) this else that
   } 
 }  
-case class UncertainFailure(earliestTime: (Double,Double), counterExample: Set[(Dot,CValue)]) extends RigorousFailure(earliestTime, counterExample) {
+case class UncertainFailure(earliestTime: (Double,Double), counterExample: Set[(Dot,GValue)]) extends RigorousFailure(earliestTime, counterExample) {
   def pick(that: HypothesisOutcome): HypothesisOutcome = that match {
     case CertainSuccess      => this
     case f: UncertainFailure => if (this.earliestTime._1 <= f.earliestTime._1) this else that
     case f: CertainFailure   => f
   } 
 }
+class SummarizeHypothesisOutcomes {
+
+  // override these methods to customize the formatting in makeReport
+  def colorSuccess(m: String) = m
+  def colorUncertain(m: String) = m
+  def colorFailure(m: String) = m
+  def nbsp = " "
+  def br = "\n"
+  def formatReport(header: String, summary: String, report: String) : String = 
+    s"$header\n$summary\n$report\n"
+
+  final def makeReport(md0: Metadata) : String = md0 match {
+    case NoMetadata => ""
+    case md:SomeMetadata => 
+      val (mLenCId, mLenCN, mLenHN) = md.hyp.foldLeft((0, 0, 0)) {
+        case ((rid, rcn, rhn), ((id,cn,hn), od)) =>
+          val sid = id.cid.toString
+          ( Math.max(rid, sid.length)
+          , Math.max(rcn, cn.x.length)
+          , Math.max(rhn, hn.map(_.length).getOrElse(0)))
+      }
+      val (report, successes, uncertains, failures) = md.hyp.toList.reverse.foldLeft(("", 0, 0, 0)) {
+        case ((resReport, resS, resU, resF), ((id, cn, hn), ho)) =>
+          val sid = s"(#${id.cid.toString}:${cn.x})".padTo(mLenCId + mLenCN + 2, nbsp).mkString
+          val shn = hn.map("'" + _ + "'").getOrElse("").padTo(mLenHN + 2, nbsp).mkString
+          def fail(prefix: String, t: String, e: Set[(Dot,GValue)]) = 
+            s"$prefix $t" + (if (e isEmpty) "" else ", where " + e.map { case (d, v) => 
+              val lhs = Pretty pprint (if (d.obj == Var(util.Canonical.self)) Var(d.field) else (d:Expr)) 
+              s"$lhs = ${Pretty pprint v}"
+            }.mkString(", "))
+          val (s, u, f, symbol, sho) = ho match {
+            case TestSuccess            => (1, 0, 0,                "+",       "Tested")
+            case TestFailure(t, e)      => (0, 0, 1, colorFailure  ("-"), fail("Tested false at", t.toString, e))
+            case CertainSuccess         => (1, 0, 0,                "+",       "Proved")
+            case UncertainFailure(t, e) => (0, 1, 0, colorUncertain("?"), fail("Inconclusive over", s"[${t._1}..${t._2}]", e))
+            case CertainFailure(t, e)   => (0, 0, 1, colorFailure  ("-"), fail("Disproved over", s"[${t._1}..${t._2}]", e))
+          }
+          (s"$symbol $sid $shn $sho$br$resReport", resS + s, resU + u, resF + f)
+      }
+      val domain = s" OVER [${md.timeDomain._1}..${md.timeDomain._2}]" 
+      val header = (successes, uncertains, failures) match {
+        case (_, _, f) if f > 0 =>
+          colorFailure ("SOME HYPOTHESES " + (if (md.rigorous) "DISPROVED" else "FALSIFIED") + domain)
+        case (_, u, 0) if u > 0 =>
+          colorUncertain("SOME HYPOTHESES INCONCLUSIVE" + domain)
+        case _  =>
+          colorSuccess((if (md.rigorous) "ALL HYPOTHESES PROVED" else "NO HYPOTHESES FALSIFIED") + domain)
+      }
+      val summary = s"$successes TRUE, $failures FALSE, $uncertains INCONCLUSIVE"
+      formatReport(header, summary, report)
+  }
+}
+
 
 /** Interface common to all interpreters whose results can be converted to/from CStores. */
 trait CStoreInterpreter extends Interpreter {
@@ -150,33 +208,47 @@ trait CStoreInterpreter extends Interpreter {
     (store, md)
 
   /* main loop */
-  def loop(p:Prog, st:Store, md:Metadata) : History = {
+  /* Note: returns a Stream (i.e. lazy list), but does not
+   * support returning MetaData as there isn't an easy
+   * way to do that without forcing evaluation of the
+   * entire list */
+  def lazyLoop(p:Prog, st:Store, md:Metadata = NoMetadata) : History = {
     st #:: (step(p, st, md) match {
         case Done(_,_)      => empty
         case Data(st1, md1) => 
 		      val (st2, md2) = exposeExternally(st1, md1)
-		      loop(p, st2, md2)
+		      lazyLoop(p, st2, md2)
       })
   }
 
   /* all-in-one main-loop */
-  def run(p:Prog) = {
+  def lazyRun(p:Prog) = {
     val (p1,st,md) = init(p)
-    val trace = loop(p1, st, md)
-    CStoreRes(trace map repr)
+    val trace = lazyLoop(p1, st, md)
+    CStoreRes(trace map repr, NoMetadata)
   }
 
+  /* generic non lazy version of run that support returning metadata */
 
-  /* multistep versions of loop and run */
+  def run(p:Prog) : InterpreterRes = {
+    val (trace,md) = run(p, SingleStep);
+    CStoreRes(trace dropRight(1) map repr, md)
+  }
 
-  def loop(p:Prog, st:Store, md: Metadata, adder: DataAdder) : History = {
-    st #:: { if (adder.done) empty
-             else {
-               val (st1, md1, _) = multiStep(p, st, md, adder)
-               loop(p, st1, md1, adder)}
-             }}
+  /* multistep versions of loop and run, not lazy but supports
+   * returning metadata */
 
-  def run(p: Prog, adder: DataAdder) : History = {
+  def loop(p:Prog, st:Store, md: Metadata, adder: DataAdder) : (History, Metadata) = {
+    val (st9,md9) = { 
+      if (adder.done) (empty, md)
+      else {
+        val (st1, md1, _) = multiStep(p, st, md, adder)
+        loop(p, st1, md1, adder)}
+    }
+    (st #:: st9, md9)
+  }
+
+  def run(p: Prog, adder: DataAdder) : (History,Metadata) = {
    val (p1,st,md) = init(p)
    loop(p1, st, md, adder)
   }
@@ -281,6 +353,14 @@ object ShouldAddData extends Enumeration {
 //
 /* ************************************************************************ */
 //
+
+/**
+ * A data adder that only takes a single step each time. */
+case object SingleStep extends DataAdder {
+  def newStep(t: ResultType) : ShouldAddData.Value = ShouldAddData.No
+  def addData(objId: CId, values: GObject) {}
+  def continue = false
+}
 
 class StopAtFixedPoint extends DataAdder {
   var curStepType : ResultType = Discrete
@@ -389,7 +469,7 @@ class DumpSample(out: java.io.PrintStream) extends DataAdder {
 /* ************************************************************************ */
 //
 
-case class CStoreRes(ctrace: Stream[CStore]) extends InterpreterRes {
+case class CStoreRes(ctrace: Stream[CStore], metadata: Metadata) extends InterpreterRes {
   def print = {
     var i = 0
     for (st <- ctrace) {

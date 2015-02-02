@@ -456,7 +456,7 @@ object Parser extends MyStdTokenParsers {
   def lit = positioned((gint | gfloat | gstr) ^^ Lit)
 
   def name: Parser[Name] =
-    positioned((ident) ~! rep("'") ^^ { case id ~ ps => Name(id, ps.size) })
+    (ident) ~! rep("'") ^^ { case id ~ ps => Name(id, ps.size) }
 
   def className: Parser[ClassName] = ident ^^ (ClassName(_))
 
@@ -470,9 +470,10 @@ object Parser extends MyStdTokenParsers {
   /* 3d configurations parser */
   val defaultCenter = ExprVector(List(Lit(GInt(0)),Lit(GInt(0)),Lit(GInt(0))))
   val defaultScale = Lit(GDouble(0.2))
-  val defaultSize = ExprVector(List(Lit(GInt(1)),Lit(GInt(1)),Lit(GInt(1))))
-  val defaultLength = Lit(GInt(1))
-  val defaultRadius = Lit(GDouble(0.1))
+  val defaultSize = ExprVector(List(Lit(GDouble(0.4)),Lit(GDouble(0.4)),
+                                    Lit(GDouble(0.4))))
+  val defaultLength = Lit(GDouble(0.4))
+  val defaultRadius = Lit(GDouble(0.2))
   val defaultContent = Lit(GStr(" "))
   val defaultColor = ExprVector(List(Lit(GInt(1)),Lit(GInt(1)),Lit(GInt(1))))
   val defaultRotation = ExprVector(List(Lit(GInt(0)),Lit(GInt(0)),Lit(GInt(0))))
@@ -483,7 +484,7 @@ object Parser extends MyStdTokenParsers {
     	  (n,e)
     else throw new PositionalAcumenError{
          def mesg = n.x + " is not a valid _3D parameter" 
-         }.setPos(n.pos) }
+         }.setPos(e.pos) }
   def threeDObject:Parser[ExprVector] = optParens(name ~ rep(threeDPara)) ^^ {case n ~ ls =>threeDParasProcess(n,ls)}
   def threeDRhs = parens(repsep(threeDObject, ",")) ^^ {case ls => ls match{
     case List(single) => single
@@ -499,14 +500,11 @@ object Parser extends MyStdTokenParsers {
       else
        throw new PositionalAcumenError{
          def mesg = "_3D parameter " + n + "'s value is not a valid vector of 3 numbers: " + Pretty.pprint(v)
-         }.setPos(n.pos)
+         }.setPos(v.pos)
     case _ => v 
   } 
   /* Process the 3d object information and adding default values*/
   def threeDParasProcess(n:Name, paras:List[(Name, Expr)]):ExprVector = {
-    def error(message:String) = throw new PositionalAcumenError{
-      def mesg = message
-    }.setPos(n.pos)
     val name = n.x
     val center = paras.find(_._1.x == "center") match{
       case Some(x) => _3DVectorHelper(x._1, x._2)
@@ -535,7 +533,9 @@ object Parser extends MyStdTokenParsers {
             case _ => x._2
           }
         }         
-        else error("_3D object " + name + " can't have 'size' parameter")
+        else throw new PositionalAcumenError{
+          def mesg = "_3D object " + name + " can't have 'size' parameter"
+        }.setPos(x._2.pos)
       case None => if(name == "Box") defaultSize else defaultScale
     }
 

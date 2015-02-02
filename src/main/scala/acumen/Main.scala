@@ -238,7 +238,7 @@ object Main {
   }
 
   def as_ctrace(trace: InterpreterRes) = {
-    trace match {case CStoreRes(r) => r; case _ => null}    
+    trace match {case CStoreRes(r,_) => r; case _ => null}    
   }
 
   def origMain(args: Array[String]) : Unit = {
@@ -256,6 +256,7 @@ object Main {
       lazy val final_out = semantics.applyPasses(ast, extraPasses)
       lazy val trace = i.run(final_out)
       lazy val ctrace = as_ctrace(trace)
+      lazy val md = trace.metadata
       /* Perform user-selected action. */
       args(0) match {
         case "compile" => 
@@ -283,6 +284,7 @@ object Main {
           ctrace.size // Force evaluation of the lazy value
         case "last" =>
           trace.printLast
+          print(md.reportAsString)
         case "time" => 
           val forced = final_out
           val startTime = System.currentTimeMillis()
@@ -333,6 +335,7 @@ object Main {
           BenchEnclosures.run(i, final_out, args, 2)
         case "trace" =>
           trace.print
+          print(md.reportAsString)
         case what => try {
             val transformed = applyPasses(ast, splitPassesString(what), Nil, extraPasses)
             Pretty.withType = true
@@ -375,6 +378,7 @@ object Main {
     doit(Examples2012,SemanticsImpl.Ref2012)
     doit(Examples2013,SemanticsImpl.Ref2013)
     doit(Examples2014,SemanticsImpl.Ref2014)
+    doit(Examples2015,SemanticsImpl.Ref2015)
     if (somethingUpdated) {
       println("Results updated.  Be sure to git add & commit the updated files as appropriate.")
     }

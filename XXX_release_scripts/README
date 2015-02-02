@@ -20,9 +20,9 @@ additional manual steps are required.
 
 First create the zip file using:
 
- ./mk-release.sh YY MM DD
+  ./mk-release.sh YY MM DD
 
-(substitute YY MM DD with the appreciate values)
+(substitute YY MM DD with the appropriate values)
 
 After that follow the instructions in release_instructions to
 upload the zip file and tag the upstream repository.
@@ -32,3 +32,17 @@ CLEANUP:
 The script mk-release-clean.sh will remove any old releases still in
 the current directory and GIT_COMMIT is provided by the Jenkins build
 server.
+
+FOR MAC USERS:
+
+If you get a syntax error when executing mk-release.sh, then your 
+system has an incompatible version of "date" installed. To work 
+around this, install GNU core utilities using Homebrew:
+
+  brew install coreutils
+
+Then, use the following command to create the ZIP file:
+
+  PATH="/usr/local/opt/coreutils/libexec/gnubin:$PATH" ./mk-release.sh YY MM DD
+
+(substitute YY MM DD with the appropriate values)

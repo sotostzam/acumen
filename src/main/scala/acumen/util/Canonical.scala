@@ -18,6 +18,7 @@ object Canonical {
   val resultType   = name("resultType")
   val endTime      = name("endTime") 
   val nextChild    = name("nextChild")
+  val children     = name("children")
   val seed1        = name("seed1")
   val seed2        = name("seed2")
   val stateVars    = name("variableCount")
@@ -56,10 +57,10 @@ object Canonical {
 
   def getObjectField(id:CId, f:Name, st:CStore) = {
     val obj = deref(id,st)
-    if (obj contains f)
-      obj(f)
-    else
-      throw VariableNotDeclared(f)
+    obj.get(f) match {
+      case Some(v) => v
+      case None => throw VariableNotDeclared(f)
+    }
   }
 
   // getClass is already defined in Any
@@ -75,10 +76,9 @@ object Canonical {
 
   /* store modification */
 
-  def setField(o:CObject, n:Name, v:CValue) : CObject = {
-    if (o exists { case (m,_) => m.x == n.x }) o.updated(n,v) 
-    else throw VariableNotDeclared(n) 
-  }
+  def setField(o:CObject, n:Name, v:CValue) : CObject = 
+    if (o contains n) o.updated(n,v) 
+    else throw VariableNotDeclared(n)
 
   def setObject(id:CId, o:CObject, s:CStore) : CStore =
     s updated (id, o)

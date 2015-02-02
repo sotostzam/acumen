@@ -8,7 +8,7 @@
 
 model Main(simulator) = 
 initially 
-  x  =  (-1.0..1.0)  , 
+  x  =  [-1.0..1.0]  , 
   x'  =  0 ,
   mode  =  ""
 always

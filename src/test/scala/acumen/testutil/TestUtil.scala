@@ -28,8 +28,8 @@ object TestUtil {
     val d1 = si.applyRequiredPasses(p1)
     val d2 = si.applyRequiredPasses(p2)
     val i = si.interpreter()
-    val t1 = i.run(d1).ctrace
-    val t2 = i.run(d2).ctrace
+    val t1 = i.lazyRun(d1).ctrace
+    val t2 = i.lazyRun(d2).ctrace
     (t1 zip t2) foreach {
       case (v1, v2) =>
         val pp1 = pprint(prettyStore(v1))

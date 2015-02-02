@@ -24,3 +24,7 @@
 }
 #0.0 { className = Simulator, time = 3.150000 }
 ------------------------------315
+NO HYPOTHESES FALSIFIED OVER [0.0..3.149999999999977]
+1 TRUE, 0 FALSE, 0 INCONCLUSIVE
++ (#0:Main) 'approximation of sin' Tested
+

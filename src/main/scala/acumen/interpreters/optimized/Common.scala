@@ -29,6 +29,7 @@ import acumen.util.Canonical.{
   time,
   timeStep
 }
+import acumen.util.ASTUtil.dots
 import scala.annotation.tailrec
 
 object Common {
@@ -44,22 +45,45 @@ object Common {
   type MMap[A, B] = scala.collection.mutable.Map[A, B]
   val MMap = scala.collection.mutable.Map
 
+  /** The representation of a value.
+   *
+   * See the code in setField and getField for the logic in how these values
+   * are used. In particular note that all the fields relate to when the value
+   * is set.  For example, prevVal is the previous set value; it is the value of the
+   * previous iteration only if lastUpdated == PhaseParms#curIter, otherwise the
+   * value from the previous iteration is in curVal.
+   */
   class ValVal(v: Val = VObjId(None)) {
+    /** The position the value was last set. */
     var lastSetPos : Position = NoPosition
+    /** The previous set value. */
     var prevVal : Val = VObjId(None)
+    /** The last set value.  Do not use if the lookupIdx is set. */
     var curVal : Val = v
+    /** If not -1 then the curVal is in PhaseParms.odes[lookupIdx]. */
     var lookupIdx : Int = -1
-    var lastUpdated : Int = -1
+    /** The iteration number (from PhaseParms.curIter) the curVal was last updated on. */
+    var lastUpdated : Int = -1 
   }
 
   class PhaseParms {
+    /** The current iteration number, used by ValVal to determine the
+      * current and previous value. */
     var curIter : Int = 0;
+    /** If set than use the value of the previous iteration */
     var delayUpdate = false;
+    /* If set do discrete operations */
     var doDiscrete = false;
+    /* If set evaluate EquationT's */
     var doEquationT = false;
+    /* If set evaluate EquationI's */
     var doEquationI = false;
+    /* If set gather EquationI for the ode solver */
     var gatherEquationI = false;
+    /* Gathered equations for the ode solver */
     var odes = new ArrayBuffer[Equation];
+    /** Metadata */
+    var metaData : Metadata = NoMetadata
   }
 
   case class Equation(id: ObjId, field: Name, rhs: Expr, env: Map[Name, Val]);
@@ -233,12 +257,13 @@ object Common {
   }
 
   /* SIDE EFFECT */
-  def setField(o: Object, f: Name, newVal: Val, idx: Int, pos: Position): Changeset =
+  def setField(o: Object, f: Name, newVal: Val, idx: Int, pos: Position): Changeset = {
+    assert(newVal == null || idx == -1) // Only one or the other should be set
     if (o.fields contains f) {
       val oldVal = getField(o, f)
       val v = o.fields(f)
       if (v.lastUpdated == o.phaseParms.curIter) {
-        if (o.phaseParms.delayUpdate && v.curVal != newVal) throw DuplicateAssingmentUnspecified(f).setPos(pos).setOtherPos(v.lastSetPos)
+        if (o.phaseParms.delayUpdate /*&& v.curVal != newVal*/) throw DuplicateAssingmentUnspecified(f).setPos(pos).setOtherPos(v.lastSetPos)
         v.curVal = newVal
       } else {
         v.prevVal = v.curVal; v.curVal = newVal; v.lastUpdated = o.phaseParms.curIter
@@ -254,6 +279,7 @@ object Common {
       }
     } 
     else throw VariableNotDeclared(f).setPos(pos)
+  }
 
   def setField(o: Object, f: Name, newVal: Val, pos: Position = NoPosition): Changeset =
     setField(o, f, newVal, -1, pos)
@@ -284,6 +310,10 @@ object Common {
       case Some(o) => o
       case None    => throw NoInstanceFound(cmagic)
     }
+
+  /* */
+  def getMetadata(main: Object) = main.phaseParms.metaData
+  def setMetadata(main: Object, md: Metadata) = main.phaseParms.metaData = md
 
   /* fetch values in magic */
   def getTime(magic: Object) = extractDouble(getField(magic, time))
@@ -559,8 +589,16 @@ object Common {
         noChange
       case Hypothesis(s, e) =>
         val VLit(GBool(b)) = evalExpr(e, p, env)
-        if (b) noChange
-        else throw HypothesisFalsified(s.getOrElse(Pretty pprint e)).setPos(e.pos)
+        val self = selfObjId(env)
+        val time = getTime(magic)
+        val hypRes = if (b) TestSuccess
+                     else TestFailure(time,
+                                      dots(e).toSet[Dot].map(d => d -> evalExpr(d, p, env)))
+        val md = SomeMetadata(Map(((self.cid, getClassOf(self), s), hypRes)),
+                              (time, time + getTimeStep(magic)),
+                              false)
+        magic.phaseParms.metaData = magic.phaseParms.metaData.combine(md)
+        noChange
     }
   }
 

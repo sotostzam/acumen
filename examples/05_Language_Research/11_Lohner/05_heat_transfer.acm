@@ -3,8 +3,8 @@
 
 model Main(simulator) = 
 initially 
-  h     =  (-1.0..1.0)  , h'  =   1.0  ,
-  l     =  (-1.0..1.0)  , l'  =  -1.0  ,
+  h     =  [-1.0..1.0]  , h'  =   1.0  ,
+  l     =  [-1.0..1.0]  , l'  =  -1.0  ,
   mode  =  ""
 always
   match mode with [
