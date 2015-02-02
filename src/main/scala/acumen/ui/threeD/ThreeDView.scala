@@ -202,12 +202,6 @@ class ThreeDView extends JPanel {
   }
 
   def init() = {
-<<<<<<< HEAD
-    // add the main box
-    mainbox.setShadingMode(Object3D.SHADING_FAKED_FLAT)
-    new setGlass(new Color(75, 75, 75), mainbox, 0)
-=======
->>>>>>> master
     camera = world.getCamera  // grab a handle to the camera
     cameraLeftDirection = -1
     cameraRightDirection = 1
@@ -244,17 +238,11 @@ class ThreeDView extends JPanel {
               world.addObject(objectToBuild)
             }
           }
-<<<<<<< HEAD
           // add the anaglyph objects in current frame
           if (enableAnaglyph)
             for ((objectKey, objectToBuild) <- objectsCopy)
               if (world.getObjectByName(objectToBuild.getName) == null)
                 world.addObject(objectToBuild)
-        case "addMainBox" =>
-          if (world.getObjectByName(mainbox.getName) == null)
-            world.addObject(mainbox)
-=======
->>>>>>> master
         case "addAxes" => // only called in axisOff function
           if (!axisArray.contains(axes(0))) {
             axisArray(0) = axes(0)
@@ -1209,7 +1197,7 @@ class coAxis(characters: Map[Char, Object3D], mainBox: Object3D) {
   val mainbox = mainBox
   // add the main box
   mainbox.setShadingMode(Object3D.SHADING_FAKED_FLAT)
-  new setGlass(new Color(200, 200, 200), mainbox, 0)
+  new setGlass(new Color(125, 125, 125), mainbox, 0)
   cylinders(0) = mainbox
   for (x <- 1 until 4)
     cylinders(x) = Primitives.getCylinder(12, 0.01f, 50f)

@@ -498,8 +498,9 @@ class App extends SimpleSwingApplication {
 
       contents += new Separator()
 
+      /* Notes: anaglyph should be enable after the function is correct */
       contents += new Menu("_3D") {
-        contents ++= Seq(enableRealTimeItem, enableAnaglyphItem,
+        contents ++= Seq(enableRealTimeItem,
           matchWallClockItem)
         matchWallClockItem.enabled = false
       }

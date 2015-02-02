@@ -309,6 +309,17 @@ object Errors {
       "fromJSON failed with input: " + s
   }
 
+  /* Device Input Error */
+  case class invalidInput(s: String) extends AcumenError {
+    override def getMessage =
+      s + " is an invalid input from device."
+  }
+  case class invalidDevice(id: Int) extends AcumenError {
+    override def getMessage =
+      id + " is an invalid device ID, please check the devices " +
+        "that connected to Acumen."
+  }
+
   /* utility class */
   case class ObjField(o: CId, cn: String, f: Name) {
     override def toString = s"(#$o : $cn)." + pprint(f)

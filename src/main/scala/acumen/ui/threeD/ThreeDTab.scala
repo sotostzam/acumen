@@ -126,14 +126,8 @@ class ThreeDTab (val appModel: Controller) extends AbstractEditorTab{
   statusZone3d.bar.peer.addMouseListener(new MouseAdapter{
     var wasPlayingBeforeMousePressed = threedplay.toolTip == "pause"
     override def mousePressed(e: MouseEvent) = {
-<<<<<<< HEAD
-      wasPlayingBeforeMousePressed = threedpause.toolTip == "pause"
-      if (statusZone3d.bar.enabled)
-        pauseOn()
-=======
       wasPlayingBeforeMousePressed = threedplay.toolTip == "pause"
       pauseOn()
->>>>>>> master
     }
     override def mouseReleased(e: MouseEvent) =
       if (wasPlayingBeforeMousePressed && statusZone3d.bar.enabled)
@@ -285,14 +279,12 @@ class ThreeDTab (val appModel: Controller) extends AbstractEditorTab{
 
   def disableButtons() = {
     b3dplay.enabled = false
-    b3dpause.enabled = false
     b3dstop.enabled = false
     statusZone3d.bar.enabled = false
   }
 
   def enableButtons() = {
     b3dplay.enabled = true
-    b3dpause.enabled = true
     b3dstop.enabled = true
     statusZone3d.bar.enabled = true
   }
