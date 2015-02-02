@@ -817,7 +817,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
           val tNext = tNow + getTimeStep(st1.enclosure)
           val T = Interval(tNow, tNext)
           val st2 = hybridEncloser(T, p, st1) // valid enclosure over T
-          val md1 = testHypotheses(st2.enclosure, (tNow, tNext), p, md)
+          val md1 = testHypotheses(st2.enclosure, tNow, tNext, p, md)
           val st3 = setResultType(Continuous, st2)
           val st4 = setTime(tNext, st3)
           Data(st4, md1)
@@ -857,7 +857,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
     }
   
   /** Summarize result of evaluating the hypotheses of all objects. */
-  def testHypotheses(st: Enclosure, timeDomain: (Double,Double), p: Prog, old: Metadata): Metadata = {
+  def testHypotheses(st: Enclosure, timeDomainLo: Double, timeDomainHi: Double, p: Prog, old: Metadata): Metadata = {
     def testHypothesesOneChangeset(hs: Set[DelayedHypothesis]) =
       if (hs isEmpty) NoMetadata
       else SomeMetadata(
@@ -866,10 +866,10 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
           (o, getCls(o,st), s) -> (evalExpr(h, env, st) match {
             /* Use TestSuccess as default as it is the unit of HypothesisOutcome.pick */
             case VLit(CertainTrue)  => (None, None, CertainSuccess)
-            case VLit(Uncertain)    => (None, None, UncertainFailure(timeDomain, counterEx))
-            case VLit(CertainFalse) => (None, None, CertainFailure(timeDomain, counterEx))
+            case VLit(Uncertain)    => (None, None, UncertainFailure(timeDomainLo, timeDomainHi, counterEx))
+            case VLit(CertainFalse) => (None, None, CertainFailure(timeDomainLo, timeDomainHi, counterEx))
           })
-      }).toMap, timeDomain, true, None)
+      }).toMap, timeDomainLo, timeDomainHi, true, None)
     old combine active(st, p).map(c => testHypothesesOneChangeset(c.hyps))
                              .reduce[Metadata](_ combine _)
   }

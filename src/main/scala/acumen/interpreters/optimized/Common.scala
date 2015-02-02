@@ -594,7 +594,7 @@ object Common {
           evalExpr(e, p, env), time, getResultType(magic),
           dots(e).toSet[Dot].map(d => d -> (evalExpr(d, p, env) : GValue)))
         val md = SomeMetadata(Map(((self.cid, getClassOf(self), s), hypRes)),
-                              (time, time + getTimeStep(magic)),
+                              time, time + getTimeStep(magic),
                               false, None)
         magic.phaseParms.metaData = magic.phaseParms.metaData.combine(md)
         noChange

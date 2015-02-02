@@ -519,7 +519,7 @@ object Interpreter extends acumen.CStoreInterpreter {
         (o, getCls(o, st), hn) -> computeHypothesisOutcomes( 
           evalExpr(h, env, st), getTime(st), getResultType(st), 
           dots(h).toSet[Dot].map(d => d -> (evalExpr(d, env, st))))
-    }.toMap, (timeBefore, getTime(st)), false, None))
+    }.toMap, timeBefore, getTime(st), false, None))
 
   /**
    * Solve ODE-IVP defined by odes parameter tuple, which consists of:

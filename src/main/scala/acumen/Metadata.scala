@@ -1,76 +1,71 @@
 package acumen
 
 case object HypothesisResultFilter extends Enumeration {
+  type HypothesisResultFilter = Value
   val Ignore, Comprehensive, IgnoreInitialOnly, MostSignificant = Value
 }
+import HypothesisResultFilter._
 
 /** Used to store information about the Store. */
-abstract class Metadata {
+abstract class Metadata(f: Option[HypothesisResultFilter] /* Optional filtering parameter */
+  ) {
   def combine(that: Metadata): Metadata
   final def reportAsString = new SummarizeHypothesisOutcomes().makeReport(this)
 }
-case object NoMetadata extends Metadata {
+case object NoMetadata extends Metadata(None) {
   def combine(that: Metadata): Metadata = that
 }
-case class NoMetadata
-  ( f: Option[HypothesisResultFilter.Value] /* Optional filtering parameter */
-  ) extends Metadata {
+case class NoMetadata(f: Option[HypothesisResultFilter]) extends Metadata(f) {
   /* As this class contains no data, 
    * only the filtering should be preserved */
   def combine(that: Metadata): Metadata = that match {
-    case NoMetadata => this
-    case NoMetadata(ff) => NoMetadata(if (f == None) ff else f)
-    case SomeMetadata(th,tt,rr,ff) => SomeMetadata(th,tt,rr,if (f == None) ff else f)
+    case NoMetadata      => this
+    case n: NoMetadata   => n.copy(f = if (f isDefined) f else n.f)
+    case s: SomeMetadata => s.copy(f = if (f isDefined) f else s.f)
   }
 }
 case class SomeMetadata 
-  /* hyp associates (object, class, name) with outcomes (initial, discrete, continuous) 
+  /* hyp associates (object, class, name) with outcomes (initial, momentary, severe) 
    * The enclosure interpreter produces None as initial and discrete hypothesis outcomes */  
   ( hyp: Map[ (CId, ClassName, Option[String]), 
               (Option[HypothesisOutcome], Option[HypothesisOutcome], HypothesisOutcome) ] 
-  , timeDomain: (Double, Double)
+  , timeDomainLo: Double
+  , timeDomainHi: Double
   , rigorous: Boolean /* Does this describe output of a rigorous interpreter? */
-  , f: Option[HypothesisResultFilter.Value] /* Optional filtering parameter */
-  ) extends Metadata {
+  , f: Option[HypothesisResultFilter] = None
+  ) extends Metadata(f) {
   /** Combines two Metadata, giving priority to the first */
   def combine(that: Metadata): Metadata = {
     that match {
       case NoMetadata => this
-      case NoMetadata(ff) => SomeMetadata(this.hyp, this.timeDomain, this.rigorous, 
-                              if (f == None) ff else f)
-      case SomeMetadata(th,tt,rr,ff) =>
-        require( this.timeDomain._2 >= tt._1 || tt._2 >= this.timeDomain._1 
+      case NoMetadata(ff) => this.copy(f = if (f isDefined) f else ff)
+      case SomeMetadata(th,ttLo,ttHi,rr,ff) =>
+        require( timeDomainLo <= ttLo || ttHi <= timeDomainHi 
                , "Can not combine SomeMetadata with non-overlapping time domains.")
         SomeMetadata(
           (this.hyp.keySet union th.keySet).map(k => k -> {
              /* (!) The new metadata is not from a Continuous state, 
               * thus former failure at the very same time is 
               * not severe but only momentary */
-              if (timeDomain._2 == tt._2)
-               (this.hyp.get(k), th.get(k)) match {
-                  case (Some(o), None) => o._3 match {
-                    case TestFailure(timeDomain._2,e) => (o._1, Some(o._3 pick o._2), TestSuccess) // (!)
-                    case _                =>  o }
-                  case (None, Some(o)) => o
-
-                  case (Some((Some(la), Some(ld), TestFailure(timeDomain._2,e)))
-                       ,Some((Some(ra), Some(rd), rc))) =>
-                          (Some(la pick ra), Some(ld pick TestFailure(timeDomain._2,e) pick rd), rc)  // (!)
-                                                          // ^^ this has priority over the new element rd so it gets picked first
-                  case (Some((Some(la), Some(ld), lc))
-                       ,Some((Some(ra), Some(rd), rc))) =>
-                          (Some(la pick ra), Some(ld pick rd), lc pick rc) }                   
-             else
-               (this.hyp.get(k), th.get(k)) match {
-                  case (Some(o), None) => o
-                  case (None, Some(o)) => o
-                  
-                  case (Some((Some(la), Some(ld), lc))
-                       ,Some((Some(ra), Some(rd), rc))) =>
-                          (Some(la pick ra), Some(ld pick rd), lc pick rc) }
-             }).toMap
-        , (Math.min(this.timeDomain._1, tt._1), Math.max(this.timeDomain._2, tt._2))
-        , rr && rigorous, if (f == None) ff else f)
+            def thisIsMomentary(ho: HypothesisOutcome) = 
+              timeDomainHi == ttHi && ho.isInstanceOf[TestFailure]
+            ((this.hyp get k, th get k): @unchecked) match {
+              case (Some(o @ (i, m, s)), None) =>
+                if (thisIsMomentary(s))
+                  (i, Some(s pick m), TestSuccess) // (!)
+                else
+                  o
+              case (None, Some(o)) => o
+              case (Some((Some(li), Some(lm), ls))
+                   ,Some((Some(ri), Some(rm), rs))) =>
+                if (thisIsMomentary(ls))
+                  (Some(li pick ri), Some(lm pick ls pick rm), rs)  // (!)
+                                               // ^^ this has priority over the new element rm so it gets picked first
+                else
+                  (Some(li pick ri), Some(lm pick rm), ls pick rs)
+          }}).toMap
+        , Math.min(timeDomainHi, ttHi), Math.max(timeDomainHi, ttHi)
+        , rr && rigorous, if (f isDefined) f else ff)
     } 
   }
 }
@@ -103,18 +98,24 @@ case class TestFailure(earliestTime: Double, counterExample: Set[(Dot,GValue)]) 
 }
 /** Result of rigorous hypothesis evaluation (enclosure interpreter). */
 case object CertainSuccess extends Success
-abstract class RigorousFailure(earliestTime: (Double,Double), counterExample: Set[(Dot,GValue)]) extends Failure(counterExample: Set[(Dot,GValue)]) 
-case class CertainFailure(earliestTime: (Double,Double), counterExample: Set[(Dot,GValue)]) extends RigorousFailure(earliestTime, counterExample) {
+abstract class RigorousFailure(
+  earliestTimeLo: Double, earliestTimeHi: Double, 
+  counterExample: Set[(Dot,GValue)]) extends Failure(counterExample: Set[(Dot,GValue)]) 
+case class CertainFailure(
+  earliestTimeLo: Double, earliestTimeHi: Double, 
+  counterExample: Set[(Dot,GValue)]) extends RigorousFailure(earliestTimeLo, earliestTimeHi, counterExample) {
   def pick(that: HypothesisOutcome) = that match {
     case CertainSuccess      => this
     case _: UncertainFailure => this
-    case f: CertainFailure   => if (this.earliestTime._1 <= f.earliestTime._1) this else that
+    case f: CertainFailure   => if (this.earliestTimeLo <= f.earliestTimeLo) this else that
   } 
 }  
-case class UncertainFailure(earliestTime: (Double,Double), counterExample: Set[(Dot,GValue)]) extends RigorousFailure(earliestTime, counterExample) {
+case class UncertainFailure(
+  earliestTimeLo: Double, earliestTimeHi: Double, 
+  counterExample: Set[(Dot,GValue)]) extends RigorousFailure(earliestTimeLo, earliestTimeHi, counterExample) {
   def pick(that: HypothesisOutcome): HypothesisOutcome = that match {
     case CertainSuccess      => this
-    case f: UncertainFailure => if (this.earliestTime._1 <= f.earliestTime._1) this else that
+    case f: UncertainFailure => if (this.earliestTimeLo <= f.earliestTimeLo) this else that
     case f: CertainFailure   => f
   } 
 }
@@ -132,7 +133,7 @@ class SummarizeHypothesisOutcomes {
     s"$header\n$summary\n$report\n"
 
   final def makeReport(md0: Metadata) : String = md0 match {
-    case NoMetadata | NoMetadata(_) => ""
+    case nm:NoMetadata => ""
     case md:SomeMetadata => 
       val (mLenCId, mLenCN, mLenHN) = md.hyp.foldLeft((0, 0, 0)) {
         case ((rid, rcn, rhn), ((id,cn,hn), od)) =>
@@ -197,15 +198,15 @@ class SummarizeHypothesisOutcomes {
             /* Rigorous interpreter outcomes */
             case (None, None, CertainSuccess) => 
               (1, 0, 0, List( ("+", "Proved") ))
-            case (None, None, UncertainFailure(t, e)) => 
-              (0, 1, 0, List( (colorUncertain("?"), fail("Inconclusive over", s"[${t._1}..${t._2}]", e)) ))
-            case (None, None, CertainFailure(t, e)) => 
-              (0, 0, 1, List( (colorFailure("-"), fail("Disproved over", s"[${t._1}..${t._2}]", e)) ))
+            case (None, None, UncertainFailure(tLo, tHi, e)) => 
+              (0, 1, 0, List( (colorUncertain("?"), fail("Inconclusive over", s"[$tLo..$tHi]", e)) ))
+            case (None, None, CertainFailure(tLo, tHi, e)) => 
+              (0, 0, 1, List( (colorFailure("-"), fail("Disproved over", s"[$tLo..$tHi]", e)) ))
           }
           ( hoLines.map{ case (symbol, sho) => s"$symbol $sid $shn $sho" }.mkString(br) + br + resReport
           , resS + s, resU + u, resF + f)
       }
-      val domain = s" OVER [${md.timeDomain._1}..${md.timeDomain._2}]" 
+      val domain = s" OVER [${md.timeDomainLo}..${md.timeDomainHi}]" 
       val header = (successes, uncertains, failures) match {
         case (_, _, f) if f > 0 =>
           colorFailure ("SOME HYPOTHESES " + (if (md.rigorous) "DISPROVED" else "FALSIFIED") + domain)
