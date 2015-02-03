@@ -40,7 +40,7 @@ case class SomeMetadata
       case NoMetadata => this
       case NoMetadata(ff) => this.copy(f = if (f isDefined) f else ff)
       case SomeMetadata(th,ttLo,ttHi,rr,ff) =>
-        require( timeDomainLo <= ttLo || ttHi <= timeDomainHi 
+        require( timeDomainLo <= ttHi && ttLo <= timeDomainHi  
                , "Can not combine SomeMetadata with non-overlapping time domains.")
         SomeMetadata(
           (this.hyp.keySet union th.keySet).map(k => k -> {
