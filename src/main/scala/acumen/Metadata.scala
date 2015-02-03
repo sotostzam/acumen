@@ -133,7 +133,6 @@ class SummarizeHypothesisOutcomes {
     s"$header\n$summary\n$report\n"
 
   final def makeReport(md0: Metadata) : String = md0 match {
-    case nm:NoMetadata => ""
     case md:SomeMetadata => 
       val (mLenCId, mLenCN, mLenHN) = md.hyp.foldLeft((0, 0, 0)) {
         case ((rid, rcn, rhn), ((id,cn,hn), od)) =>
@@ -222,6 +221,6 @@ class SummarizeHypothesisOutcomes {
         case Some(Ignore) => ""
         case _ => formatReport(header, summary, report)
       }
-      
+    case _ => "" // NoMetadata does not contribute to report
   }
 }
