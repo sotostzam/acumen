@@ -26,7 +26,7 @@ case class NoMetadata(f: Option[HypothesisResultFilter]) extends Metadata(f) {
 }
 case class SomeMetadata 
   /* hyp associates (object, class, name) with outcomes (initial, momentary, severe) 
-   * The enclosure interpreter produces None as initial and discrete hypothesis outcomes */  
+   * The enclosure interpreter produces None as initial and momentary hypothesis outcomes */  
   ( hyp: Map[ (CId, ClassName, Option[String]), 
               (Option[HypothesisOutcome], Option[HypothesisOutcome], HypothesisOutcome) ] 
   , timeDomainLo: Double
