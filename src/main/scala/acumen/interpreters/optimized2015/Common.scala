@@ -94,10 +94,11 @@ object Common {
   case object Evaluating extends AssignVal
 
   sealed abstract class EvalMode;
-  case object Ignore    extends EvalMode;
-  case object Now       extends EvalMode;
-  case object Gather    extends EvalMode;
-  case object Preserve  extends EvalMode;
+  case object Ignore     extends EvalMode;
+  case object Now        extends EvalMode;
+  case object Gather     extends EvalMode;
+  case object Preserve   extends EvalMode;
+  case object CreateOnly extends EvalMode;
 
   /** Phase parameters and common state shared by all objects. */
   class PhaseParms {
@@ -123,8 +124,8 @@ object Common {
     var assigns = new ArrayBuffer[(Equation, Position)];
     /** Gathered discrete assignments */
     var das = new ArrayBuffer[Assignment];
-    ///** Gathered VObjIds of newly created objects */
-    //var creates = new ArrayBuffer[Any];
+    //** Gathered VObjIds of newly created objects */
+    var creates = new ArrayBuffer[Any];
     /** Metadata */
     var metaData : Metadata = NoMetadata
     
@@ -135,8 +136,11 @@ object Common {
       doEquationI = doI
       doHypothesis = false
       odes.clear()
-      das.clear()
-      //creates.clear()
+      creates.clear()
+      doD match {
+        case Ignore | Gather => das.clear()
+        case _ =>
+      }
       doT match {
         case Ignore | Gather => assigns.clear()
         case _ =>
@@ -600,47 +604,53 @@ object Common {
           }
         
         // "Gather": Collecting discrete assignments
-        } else if (magic.phaseParms.doEquationD == Gather) {
+        } else if (magic.phaseParms.doEquationD == CreateOnly) {
 
-          /* Operate under the assumption that performing creates 
-           * on-the-fly without modifying any variable in other 
-           * objects will not cause changes to what's in scope.   */
-          val c = evalExpr(e, p, env) match {
-            case VClassName(cn) => cn
-            case v => throw NotAClassName(v).setPos(e.pos)
-          }
-          val ves = es map (evalExpr(_, p, env))
           val self = selfObjId(env)
-          val sd = getNewSeed(self)
-
-          // Create the object
-          val vt = VObjId(Some(mkObj(c, p, ParentIs(self), sd, ves, magic)))
-          // magic.phaseParms.creates.append(vt) // Log the new object
           
-          lhs match {
-            case None => 
-              logModified
-            case Some(d@Dot(e, x)) => 
-              val id = evalToObjId(e, p, env)
+          // The parent is not an object created within the same step
+          if (!(magic.phaseParms.creates.contains(self)))
+          {
+            val c = evalExpr(e, p, env) match {
+              case VClassName(cn) => cn
+              case v => throw NotAClassName(v).setPos(e.pos)
+            }
+            val ves = es map (evalExpr(_, p, env))
+            val sd = getNewSeed(self)
+
+            // Create the object
+            val fa = mkObj(c, p, ParentIs(self), sd, ves, magic)
+
+            // Log the new object
+            magic.phaseParms.creates.append(fa)
+          
+            lhs match {
+              case None => 
+                logModified
+              case Some(d@Dot(e, x)) => 
+                val id = evalToObjId(e, p, env)
               
-              // Log the assignment that makes the object accessible.
-              magic.phaseParms.das.append(Assignment(id,x,vt,d.pos))
+                // Log the assignment that makes the object accessible.
+                magic.phaseParms.das.append(Assignment(id,x,VObjId(Some(fa)),d.pos))
 
-              logModified // The || setField from "Now" would at most add another logModified so can be safely ignored 
+                logModified // The || setField from "Now" would at most add another logModified so can be safely ignored 
 
-            case Some(e) => throw BadLhs().setPos(e.pos)
-          }
+              case Some(e) => throw BadLhs().setPos(e.pos)
+            }
+          } else noChange
         } else noChange
 
-      case Elim(e) =>
+      case Elim(e) => if (magic.phaseParms.doEquationD == Gather) {
         val id = evalToObjId(e, p, env)
         logDead(id)
-      case Move(Dot(o1, x), o2) =>
+       } else noChange
+      case Move(Dot(o1, x), o2) => if (magic.phaseParms.doEquationD == Gather) {
         val o1Id = evalToObjId(o1, p, env)
         val xId = asObjId(getField(o1Id, x))
         checkIsChildOf(xId, o1Id, o1)
         val o2Id = evalToObjId(o2, p, env)
         logReparent(xId, o2Id)
+       } else noChange
       case Move(obj, _) =>
         throw BadMove().setPos(obj.pos)
     }
@@ -769,7 +779,7 @@ object Common {
           }
       }} else noChange
       case Discretely(da) =>
-        if (magic.phaseParms.doEquationD == Gather)
+        if (magic.phaseParms.doEquationD == Gather || magic.phaseParms.doEquationD == CreateOnly)
           evalDiscreteAction(da, env, p, magic)
         else
           noChange

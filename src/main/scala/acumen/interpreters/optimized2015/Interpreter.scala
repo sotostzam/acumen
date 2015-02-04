@@ -135,14 +135,19 @@ class Interpreter extends CStoreInterpreter {
 
       val rt = if (getResultType(magic) != FixedPoint) { // Discrete Step
 
-        // Gather all continuous assignments.
-        pp.reset(Ignore, Gather, Ignore)
-        traverse(evalStep(p, magic), st)
-        
-        // Gather discrete assignments and execute creates.
+        // Gather discrete assignments, creates are ignored
         // Collect structural actions.
         pp.reset(Gather, Preserve, Ignore)
         val reParentings = traverse(evalStep(p, magic), st) 
+
+        // Gather all continuous assignments.
+        pp.reset(Preserve, Gather, Ignore)
+        traverse(evalStep(p, magic), st)
+        
+        // Execute creates.
+        // Append the list of discrete assignments.
+        pp.reset(CreateOnly, Preserve, Ignore)
+        traverse(evalStep(p, magic), st) 
 
         // Retrieve updated values for discrete assignments.
         doEquationD()
@@ -153,7 +158,7 @@ class Interpreter extends CStoreInterpreter {
         // Filter out clashing continuous assignments.
         filterEquationT()
         
-        // Retrieve updated values the non-clashin ones.
+        // Retrieve updated values the non-clashing ones.
         doEquationT(OdeEnv(IndexedSeq.empty, Array.fill[AssignVal](pp.assigns.length)(Unknown)))
 
         // Apply the structural actions: elim, move.
