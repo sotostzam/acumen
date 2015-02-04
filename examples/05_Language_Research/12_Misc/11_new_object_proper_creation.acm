@@ -38,5 +38,5 @@ model myObj3() =
 initially
  z = 1
 always
- z = 0,
+ z = 0.5,
  terminate self
