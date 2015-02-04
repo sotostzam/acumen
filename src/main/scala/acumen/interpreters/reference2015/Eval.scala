@@ -7,7 +7,8 @@ import acumen.Errors._
 
 /** Used to represent the statements that are active at a given point during the simulation. */
 case class Changeset
-  ( dead: List[CId]               = Nil /* dead */
+  ( born: List[CId]               = Nil /* born */
+  , dead: List[CId]               = Nil /* dead */
   , reps: List[(CId,CId)]         = Nil /* reparentings */
   , das:  List[DelayedAction]     = Nil /* discrete assignments */
   , eqs:  List[DelayedAction]     = Nil /* continuous assignments / equations */
@@ -15,7 +16,7 @@ case class Changeset
   , hyps: List[DelayedHypothesis] = Nil /* hypotheses */
   ) {
   def ++(that: Changeset) =
-    Changeset(dead ++ that.dead, reps ++ that.reps, das ++ that.das, eqs ++ that.eqs, odes ++ that.odes, hyps ++ that.hyps)
+    Changeset(born ++ that.born, dead ++ that.dead, reps ++ that.reps, das ++ that.das, eqs ++ that.eqs, odes ++ that.odes, hyps ++ that.hyps)
 }
 object Changeset {
   val empty = Changeset()
@@ -77,8 +78,11 @@ object Eval {
   def getStore : Eval[Store] = mkEval(s => (s, Changeset.empty, s))
   def modifyStore(f:Store => Store) : Eval[Unit] = 
     mkEval(s => ((), Changeset.empty, f(s)))
-
-  def logCId(id:CId) : Eval[Unit] = 
+    
+  def logBorn(id:CId) : Eval[Unit] = 
+    mkEval(s => ((), Changeset(born = List(id)), s))   
+ 
+  def logDead(id:CId) : Eval[Unit] = 
     mkEval(s => ((), Changeset(dead = List(id)), s))
 
   def logReparent(o:CId, parent:CId) : Eval[Unit] =

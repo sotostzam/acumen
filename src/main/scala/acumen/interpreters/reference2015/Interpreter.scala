@@ -107,8 +107,11 @@ object Interpreter extends acumen.CStoreInterpreter {
   /* continuously assign the value of r evaluated in e to a field n in object o */
   def ode(o: CId, d: Dot, r: Expr, e: Env) : Eval[Unit] = logODE(o, d, r, e)
   
+  /* log an id as being new */
+  def birth(a:CId) : Eval[Unit] = logBorn(a)
+  
   /* log an id as being dead */
-  def kill(a:CId) : Eval[Unit] = logCId(a)
+  def kill(a:CId) : Eval[Unit] = logDead(a)
   
   /* transfer the parenthood of (object at a)'s 
    * children to (object at a)'s parent */
@@ -452,7 +455,7 @@ object Interpreter extends acumen.CStoreInterpreter {
     if (resultType == FixedPoint && getTime(st) >= getEndTime(st))
       Done(md, getEndTime(st))
     else 
-      { val (_, Changeset(ids, rps, das, eqs, odes, hyps), st1) = iterate(evalStep(p)(_)(NoBindings), mainId(st))(st)
+      { val (_, Changeset(born, dead, rps, das, eqs, odes, hyps), st1) = iterate(evalStep(p)(_)(NoBindings), mainId(st))(st)
         implicit val bindings = eqs.map{ e => val rd = resolveDot(e.d, e.env, st1)
           (rd.id, rd.field) -> UnusedBinding(e.rhs, e.env)}.toMap
         def resolveDots(s: List[DelayedAction]): List[ResolvedDot] =
@@ -473,7 +476,7 @@ object Interpreter extends acumen.CStoreInterpreter {
             val nonIdentityAs = (dasValues ++ nonClashingEqsValues).filterNot{ case (id, d, v) => 
               v == getObjectField(id, d.field, st1) }
             /* If the discrete, structural and non-ODE continuous actions do not modify the store, conclude discrete fixpoint */
-            if (nonIdentityAs.isEmpty && ids.isEmpty && rps.isEmpty && st == st1) 
+            if (nonIdentityAs.isEmpty && dead.isEmpty && rps.isEmpty && st == st1) 
               setResultType(FixedPoint, st1)
             else {
               /* Apply discrete and non-clashing continuous assignment values to store */
@@ -482,7 +485,7 @@ object Interpreter extends acumen.CStoreInterpreter {
               def repHelper(pair:(CId, CId)) = changeParentM(pair._1, pair._2) 
               val stR = mapM_(repHelper, rps) ~> stAE
               /* Apply terminations to store */
-              val st3 = stR -- ids
+              val st3 = stR -- dead
               setResultType(Discrete, st3)
             }
           case FixedPoint => // Do continuous step
