@@ -107,7 +107,7 @@ object Common {
     /** If set than use the value of the previous iteration */
     var usePrev = true;
     /** How to handle Discrete Assignments */
-    var doDiscrete : EvalMode = Ignore;
+    var doEquationD : EvalMode = Ignore;
     /** How to handle EquationT's */
     var doEquationT : EvalMode = Ignore;
     /** How to handle EquationI's */
@@ -120,29 +120,33 @@ object Common {
     /** Gathered equations for the ODE solver */
     var odes = new ArrayBuffer[Equation];
     /** Gathered continuous assignments */
-    var assigns = new ArrayBuffer[Equation];
+    var assigns = new ArrayBuffer[(Equation, Position)];
     /** Gathered discrete assignments */
-    var das = new ArrayBuffer[DiscreteAssignment];
+    var das = new ArrayBuffer[Assignment];
+    ///** Gathered VObjIds of newly created objects */
+    //var creates = new ArrayBuffer[Any];
     /** Metadata */
     var metaData : Metadata = NoMetadata
     
     def reset(doD : EvalMode, doT: EvalMode, doI: EvalMode) {
       usePrev = true
-      doDiscrete = doD
+      doEquationD = doD
       doEquationT = doT
       doEquationI = doI
       doHypothesis = false
       odes.clear()
-      assigns.clear()
-      if (doD != Preserve)
-        das.clear()
+      das.clear()
+      //creates.clear()
+      doT match {
+        case Ignore | Gather => assigns.clear()
+        case _ =>
+      }
     }
   }
 
+  case class Assignment(id: ObjId, field: Name, v: Val, pos: Position);
   case class Equation(id: ObjId, field: Name, rhs: Expr, env: Map[Name, Val]);
-
-  case class DiscreteAssignment(id: ObjId, field: Name);
-  
+    
   case class Object(
       val id: CId,
       var fields: MMap[Name, ValVal],
@@ -329,7 +333,7 @@ object Common {
           case Some(odeEnv) => odeEnv.assignVals(idx) match {
             case KnownVal(v) => v
             case Unknown => 
-              val a = o.phaseParms.assigns(idx)
+              val (a, _) = o.phaseParms.assigns(idx)
               odeEnv.assignVals(idx) = Evaluating
               val v = evalExpr(a.rhs, p, Env(a.env, env.odeEnv))
               odeEnv.assignVals(idx) = KnownVal(v)
@@ -551,30 +555,83 @@ object Common {
 
   def evalDiscreteAction(a: DiscreteAction, env: Env, p: Prog, magic: Object): Changeset =
     a match {
-      case Assign(d@Dot(e, x), t) =>
-        val id = evalToObjId(e, p, env)
-        val vt = evalExpr(t, p, env)
-        magic.phaseParms.das.append(DiscreteAssignment(id,x))
-        setField(id, x, vt, d.pos)
+      case Assign(d@Dot(e, x), t) => 
+
+        // "Now": Not used, kept for legacy
+        if (magic.phaseParms.doEquationD == Now) { 
+          val id = evalToObjId(e, p, env)
+          val vt = evalExpr(t, p, env)
+          setField(id, x, vt, d.pos)
+
+        // "Gather": Collecting discrete assignments
+        } else if (magic.phaseParms.doEquationD == Gather) {
+          val id = evalToObjId(e, p, env)
+          val vt = evalExpr(t, p, env)
+
+          // Log the assignment
+          magic.phaseParms.das.append(Assignment(id,x,vt,d.pos))
+
+          noChange
+        } else noChange
+
       case Assign(lhs, _) =>
         throw BadLhs().setPos(lhs.pos)
       case Create(lhs, e, es) =>
-        val c = evalExpr(e, p, env) match {
-          case VClassName(cn) => cn
-          case v => throw NotAClassName(v).setPos(e.pos)
-        }
-        val ves = es map (evalExpr(_, p, env))
-        val self = selfObjId(env)
-        val sd = getNewSeed(self)
-        val fa = mkObj(c, p, ParentIs(self), sd, ves, magic)
-        lhs match {
-          case None => logModified
-          case Some(d@Dot(e, x)) =>
-            val id = evalToObjId(e, p, env)
-            magic.phaseParms.das.append(DiscreteAssignment(id,x))
-            logModified || setField(id, x, VObjId(Some(fa)), d.pos)
-          case Some(e) => throw BadLhs().setPos(e.pos)
-        }
+
+        // "Now": Not used, kept for legacy
+        if (magic.phaseParms.doEquationD == Now) {
+
+          val c = evalExpr(e, p, env) match {
+            case VClassName(cn) => cn
+            case v => throw NotAClassName(v).setPos(e.pos)
+          }
+          val ves = es map (evalExpr(_, p, env))
+          val self = selfObjId(env)
+          val sd = getNewSeed(self)
+
+          val fa =  mkObj(c, p, ParentIs(self), sd, ves, magic)
+
+          lhs match {
+            case None => logModified
+            case Some(d@Dot(e, x)) => 
+              val id = evalToObjId(e, p, env)
+              logModified || setField(id, x, VObjId(Some(fa)), d.pos)
+            case Some(e) => throw BadLhs().setPos(e.pos)
+          }
+        
+        // "Gather": Collecting discrete assignments
+        } else if (magic.phaseParms.doEquationD == Gather) {
+
+          /* Operate under the assumption that performing creates 
+           * on-the-fly without modifying any variable in other 
+           * objects will not cause changes to what's in scope.   */
+          val c = evalExpr(e, p, env) match {
+            case VClassName(cn) => cn
+            case v => throw NotAClassName(v).setPos(e.pos)
+          }
+          val ves = es map (evalExpr(_, p, env))
+          val self = selfObjId(env)
+          val sd = getNewSeed(self)
+
+          // Create the object
+          val vt = VObjId(Some(mkObj(c, p, ParentIs(self), sd, ves, magic)))
+          // magic.phaseParms.creates.append(vt) // Log the new object
+          
+          lhs match {
+            case None => 
+              logModified
+            case Some(d@Dot(e, x)) => 
+              val id = evalToObjId(e, p, env)
+              
+              // Log the assignment that makes the object accessible.
+              magic.phaseParms.das.append(Assignment(id,x,vt,d.pos))
+
+              logModified // The || setField from "Now" would at most add another logModified so can be safely ignored 
+
+            case Some(e) => throw BadLhs().setPos(e.pos)
+          }
+        } else noChange
+
       case Elim(e) =>
         val id = evalToObjId(e, p, env)
         logDead(id)
@@ -590,48 +647,56 @@ object Common {
 
   def evalContinuousAction(a: ContinuousAction, env: Env, p: Prog, magic: Object): Changeset =
     a match {
-      case EquationT(d@Dot(e, x), t) => if (magic.phaseParms.doEquationT == Now) {
-        val VObjId(Some(a)) = evalExpr(e, p, env)
-        val vt = evalExpr(t, p, env)
-        setField(a, x, vt, d.pos)
-      } else if (magic.phaseParms.doEquationT == Gather) {
-        val id = evalToObjId(e, p, env)
-        val idx = magic.phaseParms.assigns.length
-        /** This check should be done only if doDiscrete == Preserve,
-         *  However, in other cases the list is empty, so the check is simple.
-         *  
-         *  The list is emptied by pp.reset if doDiscrete == Ignore,
-         *  The list is being populated if doDiscrete == Now, but 
-         *  that never happens together with doEquationT == Gather.
-         */
-        if (!(magic.phaseParms.das contains DiscreteAssignment(id, x))) {
-          setField(id, x, AssignLookup(idx), d.pos)
-          magic.phaseParms.assigns.append(Equation(id,x,t,env.env))
-        }
-        noChange
+      case EquationT(d@Dot(e, x), t) =>
+
+        // "Now": Not used, kept for legacy
+        if (magic.phaseParms.doEquationT == Now) { 
+          val id = evalToObjId(e, p, env)
+          val vt = evalExpr(t, p, env)
+          setField(id, x, vt, d.pos)
+
+        // "Gather": Collecting continuous assignments
+        } else if (magic.phaseParms.doEquationT == Gather) {
+          val id = evalToObjId(e, p, env)
+
+          // Log the assignment
+          magic.phaseParms.assigns.append((Equation(id,x,t,env.env), d.pos))
+
+          noChange
       } else noChange
-      case EquationI(d@Dot(e, x), t) => if (magic.phaseParms.doEquationI == Now) {
-        val dt = getTimeStep(magic)
-        val id = evalToObjId(e, p, env)
-        val vt = evalExpr(t, p, env)
-        val lhs = getField(id, x, p, env)
-        setField(id, x, lhs match {
-          case VLit(d) =>
-            VLit(GDouble(extractDouble(d) + extractDouble(vt) * dt))
-          case VVector(u) =>
-            val us = extractDoubles(u)
-            val ts = extractDoubles(vt)
-            VVector((us, ts).zipped map ((a, b) => VLit(GDouble(a + b * dt))))
-          case _ =>
-            throw BadLhs()
-        },d.pos)
-      } else if (magic.phaseParms.doEquationI == Gather) {
-        val id = evalToObjId(e, p, env)
-        val idx = magic.phaseParms.odes.length
-        setField(id, x, OdeLookup(idx), d.pos)
-        magic.phaseParms.odes.append(Equation(id,x,t,env.env))
-        noChange
-      } else noChange
+      case EquationI(d@Dot(e, x), t) =>
+
+        // "Now": Not used, kept for legacy
+        if (magic.phaseParms.doEquationI == Now) { 
+          val dt = getTimeStep(magic)
+          val id = evalToObjId(e, p, env)
+          val vt = evalExpr(t, p, env)
+          val lhs = getField(id, x, p, env)
+          setField(id, x, lhs match {
+            case VLit(d) =>
+              VLit(GDouble(extractDouble(d) + extractDouble(vt) * dt))
+            case VVector(u) =>
+              val us = extractDoubles(u)
+              val ts = extractDoubles(vt)
+              VVector((us, ts).zipped map ((a, b) => VLit(GDouble(a + b * dt))))
+            case _ =>
+              throw BadLhs()
+          },d.pos)
+
+        // "Gather": Collecting differential equations
+        } else if (magic.phaseParms.doEquationI == Gather) { 
+          val id = evalToObjId(e, p, env)
+          val idx = magic.phaseParms.odes.length
+
+          // Mark the field to be updated by an ode
+          setField(id, x, OdeLookup(idx), d.pos)
+          
+          // Log the ode
+          magic.phaseParms.odes.append(Equation(id,x,t,env.env))
+          
+          noChange
+        } else noChange
+
       case _ =>
         throw ShouldNeverHappen() // FIXME: fix that with refinement types
     }
@@ -704,11 +769,15 @@ object Common {
           }
       }} else noChange
       case Discretely(da) =>
-        if (magic.phaseParms.doDiscrete == Now)
+        if (magic.phaseParms.doEquationD == Gather)
           evalDiscreteAction(da, env, p, magic)
-        else noChange
+        else
+          noChange
       case Continuously(ca) =>
-        evalContinuousAction(ca, env, p, magic)
+        if (magic.phaseParms.doEquationT == Gather)
+          evalContinuousAction(ca, env, p, magic)
+        else
+          noChange
       case Claim(_) =>
         noChange
       case Hypothesis(s, e) => 

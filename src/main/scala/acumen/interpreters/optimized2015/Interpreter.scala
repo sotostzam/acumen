@@ -59,13 +59,56 @@ class Interpreter extends CStoreInterpreter {
     /** If false then there exist active discrete assignments or non-clashing
       * continuous assignments */
     var isFixedPoint : Boolean = true
-    
-    def doEquationT(odeEnv: OdeEnv) = try {
-      pp.usePrev = false
+
+    /** Retrieves the collected discrete assignments */
+    def doEquationD() = try {
+      var idx = 0
+      while (idx < pp.das.size) {
+        val da = pp.das(idx)
+        // Execute the assignment and check for duplicates
+        setField(da.id, da.field, da.v, da.pos) match {
+          case NoChange() =>
+          case SomeChange(_,_) =>
+            isFixedPoint = false
+        }
+        idx += 1
+      }
+    }
+
+    /** Filters the collected continuous assignments */
+    def filterEquationT() = try {
+
       var idx = 0
       while (idx < pp.assigns.size) {
-        val eqt = pp.assigns(idx)
+        val (eqt, pos) = pp.assigns(idx)
+        
+        // The continuous assignment is non-clashing
+        if (( magic.phaseParms.das filter 
+               (d => d match { case Assignment(eqt.id, eqt.field, _, _) => true
+                              case _                                   => false }) ).isEmpty) {
+          // Initialize the field:
+          // mark the value to be updated and check for duplicates
+          setField(eqt.id, eqt.field, AssignLookup(idx), pos)
+          idx += 1
+        
+        // The assignment clashes with some discrete assignment
+        } else {
+          pp.assigns.remove(idx)
+        }
+      }
+    }
+    
+    /** Retrieves the collected continuous assignments */
+    def doEquationT(odeEnv: OdeEnv) = try {
+      
+      var idx = 0
+      pp.usePrev = false
+      
+      while (idx < pp.assigns.size) {
+        val (eqt, _) = pp.assigns(idx)
+        // Algebraic loop is checked
         val v = getField(eqt.id, eqt.field, p, Env(eqt.env,Some(odeEnv)))
+        // Execute the assignment
         updateField(eqt.id, eqt.field, v) match {
           case NoChange() =>
           case SomeChange(_,_) =>
@@ -92,21 +135,28 @@ class Interpreter extends CStoreInterpreter {
 
       val rt = if (getResultType(magic) != FixedPoint) { // Discrete Step
 
-        pp.reset(Now, Ignore, Ignore)
-
-        /* - Evaluate discrete assignments and gather the effected variables into a list. 
-         * - Collect structural actions. */
-        val reParentings = traverse(evalStep(p, magic), st) 
-        
-        // Gather the continuous assignments 
-        pp.curIter += 1
-        pp.reset(Preserve, Gather, Ignore)
+        // Gather all continuous assignments.
+        pp.reset(Ignore, Gather, Ignore)
         traverse(evalStep(p, magic), st)
         
-        // Retrieve updated values for non-clashing continuous assignments 
+        // Gather discrete assignments and execute creates.
+        // Collect structural actions.
+        pp.reset(Gather, Preserve, Ignore)
+        val reParentings = traverse(evalStep(p, magic), st) 
+
+        // Retrieve updated values for discrete assignments.
+        doEquationD()
+        
+        // Mark that we begin processing the continuous assignments.
+        pp.curIter += 1
+
+        // Filter out clashing continuous assignments.
+        filterEquationT()
+        
+        // Retrieve updated values the non-clashin ones.
         doEquationT(OdeEnv(IndexedSeq.empty, Array.fill[AssignVal](pp.assigns.length)(Unknown)))
 
-        // Apply the structural actions.
+        // Apply the structural actions: elim, move.
         reParentings match {
           case SomeChange(dead, rps) =>
             for ((o, p) <- rps)
@@ -120,10 +170,9 @@ class Interpreter extends CStoreInterpreter {
               }
             }
             isFixedPoint = false
-
+        
           case NoChange() =>
-            isFixedPoint = true
-          }
+        }
         
         // Decide if a FixedPoint is reached
         if (isFixedPoint) { 
@@ -135,10 +184,14 @@ class Interpreter extends CStoreInterpreter {
         } 
       } else { // Continuous step
 
+        // Gather continuous assignments and integrations
         pp.reset(Ignore, Gather, Gather)
-
         traverse(evalStep(p, magic), st)
 
+        // After the pp.reset the das list is empty,
+        // thus filtering only initializes the fields
+        filterEquationT()
+        
         checkContinuousDynamicsAlwaysDefined(st, magic)
         
         // Compute the initial values the the ode solver
