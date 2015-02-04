@@ -305,6 +305,11 @@ object Errors {
       "fromJSON failed with input: " + s
   }
 
+  case class NewPlotEnclosureError() extends AcumenError {
+    override def getMessage = 
+      "New Plot does not support enclosures"
+  }
+  
   /* utility class */
   case class ObjField(o: CId, cn: String, f: Name) {
     override def toString = s"(#$o : $cn)." + pprint(f)

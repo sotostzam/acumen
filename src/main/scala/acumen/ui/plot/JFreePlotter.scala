@@ -85,6 +85,7 @@ abstract class JFreePlotter {
         combinedPlot = newCombinedPlot
         for (p <- subPlotsList)
           combinedPlot.add(p,1)
+        combinedPlot.getDomainAxis setUpperMargin 0
         chartPanel.restoreAutoBounds()
         resetChart(combinedPlot)
         attachChart
