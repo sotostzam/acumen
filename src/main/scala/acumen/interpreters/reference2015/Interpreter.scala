@@ -495,7 +495,7 @@ object Interpreter extends acumen.CStoreInterpreter {
               dasValues.map { case (id, d, v) => (id, d.field) -> CachedUnusedBinding(v) })
             /* Find (non-ODE) assignments that modify the store */
             val nonIdentityAs = (dasValues ++ nonClashingEqsValues).filterNot{ case (id, d, v) => 
-              v == getObjectField(id, d.field, st1) }
+              threeDField(d.field.x) || v == getObjectField(id, d.field, st1) }
             /* If the discrete, structural and non-ODE continuous actions do not modify the store, conclude discrete fixpoint */
             if (nonIdentityAs.isEmpty && born.isEmpty && dead.isEmpty && rps.isEmpty && st == st1) 
               setResultType(FixedPoint, st1)
