@@ -135,19 +135,22 @@ class Interpreter extends CStoreInterpreter {
 
       val rt = if (getResultType(magic) != FixedPoint) { // Discrete Step
 
-        // Gather discrete assignments, creates are ignored
-        // Collect structural actions.
+        // Gather discrete assignments, structural actions are ignored
         pp.reset(Gather, Preserve, Ignore)
-        val reParentings = traverse(evalStep(p, magic), st) 
+        traverse(evalStep(p, magic), st) 
 
         // Gather all continuous assignments.
         pp.reset(Preserve, Gather, Ignore)
         traverse(evalStep(p, magic), st)
         
-        // Execute creates.
+        // Execute creates, other structural actions are ignored.
         // Append the list of discrete assignments.
         pp.reset(CreateOnly, Preserve, Ignore)
         traverse(evalStep(p, magic), st) 
+
+        // Collect structural actions.
+        pp.reset(Structural, Preserve, Ignore)
+        val reParentings = traverse(evalStep(p, magic), st) 
 
         // Retrieve updated values for discrete assignments.
         doEquationD()
