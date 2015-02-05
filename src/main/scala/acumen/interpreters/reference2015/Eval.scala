@@ -7,7 +7,7 @@ import acumen.Errors._
 
 /** Used to represent the statements that are active at a given point during the simulation. */
 case class Changeset
-  ( born: List[CId]               = Nil /* born */
+  ( born: List[DelayedCreate]     = Nil /* born */
   , dead: List[CId]               = Nil /* dead */
   , reps: List[(CId,CId)]         = Nil /* reparentings */
   , das:  List[DelayedAction]     = Nil /* discrete assignments */
@@ -22,6 +22,7 @@ object Changeset {
   val empty = Changeset()
 }
 
+case class DelayedCreate(da: Option[(CId, Name)], c: ClassName, parent: CId, sd: (Int, Int), ves: List[CValue])
 case class DelayedAction(o: CId, d: Dot, rhs: Expr, env: Env)
 case class DelayedHypothesis(o: CId, s: Option[String], h: Expr, env: Env)
 
@@ -79,8 +80,8 @@ object Eval {
   def modifyStore(f:Store => Store) : Eval[Unit] = 
     mkEval(s => ((), Changeset.empty, f(s)))
     
-  def logBorn(id:CId) : Eval[Unit] = 
-    mkEval(s => ((), Changeset(born = List(id)), s))   
+  def logBorn(da: Option[(CId, Name)], c: ClassName, parent: CId, sd: (Int, Int), ves: List[CValue]) : Eval[Unit] = 
+    mkEval(s => ((), Changeset(born = List(DelayedCreate(da, c, parent, sd, ves))), s))   
  
   def logDead(id:CId) : Eval[Unit] = 
     mkEval(s => ((), Changeset(dead = List(id)), s))

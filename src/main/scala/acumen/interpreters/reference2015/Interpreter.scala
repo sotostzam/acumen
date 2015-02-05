@@ -99,28 +99,25 @@ object Interpreter extends acumen.CStoreInterpreter {
     mapM_ (logReparent(_:CId,p), cs)
     
   /* discretely assign the value of r evaluated in e to a field n in object o */
-  def assign(o: CId, d: Dot, r: Expr, e: Env) : Eval[Unit] = logAssign(o, d, r, e)
+  def assign(o: CId, d: Dot, r: Expr, e: Env) : Eval[Unit] = 
+    logAssign(o, d, r, e)
 
   /* continuously assign the value of r evaluated in e to a field n in object o */
-  def equation(o: CId, d: Dot, r: Expr, e: Env) : Eval[Unit] = logEquation(o, d, r, e)
+  def equation(o: CId, d: Dot, r: Expr, e: Env) : Eval[Unit] = 
+    logEquation(o, d, r, e)
 
   /* continuously assign the value of r evaluated in e to a field n in object o */
-  def ode(o: CId, d: Dot, r: Expr, e: Env) : Eval[Unit] = logODE(o, d, r, e)
+  def ode(o: CId, d: Dot, r: Expr, e: Env) : Eval[Unit] = 
+    logODE(o, d, r, e)
   
   /* log an id as being new */
-  def birth(a:CId) : Eval[Unit] = logBorn(a)
+  def birth(da: Option[(CId, Name)], c: ClassName, parent: CId, sd: (Int, Int), ves: List[CValue]) : Eval[Unit] = 
+    logBorn(da, c, parent, sd, ves)
   
   /* log an id as being dead */
-  def kill(a:CId) : Eval[Unit] = logDead(a)
-  
-  /* transfer the parenthood of (object at a)'s 
-   * children to (object at a)'s parent */
-  def vanish(a:CId) : Eval[Unit] = { 
-    for { Some(p) <- asks(getParent(a,_))
-          cs <- asks(childrenOf(a,_))
-    } reparent(cs,p) >> kill(a)
-  }
-    
+  def kill(a:CId) : Eval[Unit] = 
+    logDead(a)
+        
   /* create an env from a class spec and init values */
   def mkObj(c:ClassName, p:Prog, prt:Option[CId], sd:(Int,Int),
             v:List[CValue], childrenCounter:Int =0) : Eval[CId] = {
@@ -307,9 +304,8 @@ object Interpreter extends acumen.CStoreInterpreter {
       /* Decides when a discrete assignment is in scope */  
       case Discretely(da) =>
         for (ty <- asks(getResultType))
-          /* We consider discrete assignments only when the discrete fixed 
-           * point is not reached (ty = Discrete) or we are right after a 
-           * continuous step (ty = Continuous) */
+          /* We do not consider discrete and structural actions after 
+           * a fixpoint is reached, i.e. during continuous steps. */
           if (ty == Initial || ty == Discrete || ty == Continuous) 
             evalDiscreteAction(da, env, p)
           else pass
@@ -339,17 +335,17 @@ object Interpreter extends acumen.CStoreInterpreter {
               ves <- asks(st => es map (evalExpr(_, env, st)))
 						  val self = selfCId(env)
 						  sd <- getNewSeed(self)
-              fa  <- mkObj(c, p, Some(self), sd, ves)
         } lhs match { 
-          case None => pass
+          case None =>
+            birth(None, c, self, sd, ves)
           case Some(Dot(e,x)) => 
             for (id <- asks(evalToObjId(e, env, _)))
-              setObjectFieldM(id, x, VObjId(Some(fa))) 
+              birth(Some(id,x), c, self, sd, ves) 
           case Some(_) => throw BadLhs()
         }
       case Elim(e) =>
         for (id <- asks(evalToObjId(e, env, _)))
-          vanish(id)
+          kill(id)
       case Move(Dot(o1,x), o2) => 
         for { o1Id <- asks(evalToObjId(o1, env, _))
               xId  <- asks(getObjectField(o1Id, x, _)) map extractId
@@ -430,6 +426,29 @@ object Interpreter extends acumen.CStoreInterpreter {
   def applyDelayedAssignments(xs: List[DelayedAction], st: Store)(implicit bindings: Bindings): Store = 
     applyAssignments(evaluateAssignments(xs, st)) ~> st
 
+  /** For each r in rps, makes r._1 into a child of r._2.  */
+  def applyReparentings(rps: List[(CId,CId)]): Eval[Unit] =
+    mapM_((pair:(CId, CId)) => changeParentM(pair._1, pair._2), rps)
+    
+  /** Adds new objects to the store and applies any corresponding discrete assignments. */
+  def applyDelayedCreates(dcs: List[DelayedCreate], p: Prog): Eval[Unit] =
+    mapM_({ case DelayedCreate(da, c, parent, sd, ves) =>
+      for (fa <- mkObj(c, p, Some(parent), sd, ves))
+        da match {
+          case None          => pass
+          case Some((id, x)) => setObjectFieldM(id, x, VObjId(Some(fa)))
+        }}: DelayedCreate => Eval[Unit], dcs)
+  
+  /** Remove dead objects and compute list of orphans, i.e. reparentings required 
+   *  to transfer the parenthood of dead objects' children to their parents */
+  def applyTerminations(dead: List[CId], st: Store): (Store, List[(CId,CId)]) = {
+    val (_, cs, st1) = mapM_((a: CId) => 
+      for { Some(p) <- asks(getParent(a,_))
+            cs <- asks(childrenOf(a,_))
+          } reparent(cs,p), dead)(st)
+    (st1 -- dead, cs.reps)
+  }
+
   /**
    * Reference interpreter state machine:
    * 
@@ -455,7 +474,9 @@ object Interpreter extends acumen.CStoreInterpreter {
     if (resultType == FixedPoint && getTime(st) >= getEndTime(st))
       Done(md, getEndTime(st))
     else 
-      { val (_, Changeset(born, dead, rps, das, eqs, odes, hyps), st1) = iterate(evalStep(p)(_)(NoBindings), mainId(st))(st)
+      { val (_, Changeset(born, dead, rps, das, eqs, odes, hyps), _) = iterate(evalStep(p)(_)(NoBindings), mainId(st))(st)
+        /* Create objects and apply any corresponding discrete assignments */
+        val st1 = applyDelayedCreates(born, p) ~> st
         implicit val bindings = eqs.map{ e => val rd = resolveDot(e.d, e.env, st1)
           (rd.id, rd.field) -> UnusedBinding(e.rhs, e.env)}.toMap
         def resolveDots(s: List[DelayedAction]): List[ResolvedDot] =
@@ -476,17 +497,16 @@ object Interpreter extends acumen.CStoreInterpreter {
             val nonIdentityAs = (dasValues ++ nonClashingEqsValues).filterNot{ case (id, d, v) => 
               v == getObjectField(id, d.field, st1) }
             /* If the discrete, structural and non-ODE continuous actions do not modify the store, conclude discrete fixpoint */
-            if (nonIdentityAs.isEmpty && dead.isEmpty && rps.isEmpty && st == st1) 
+            if (nonIdentityAs.isEmpty && born.isEmpty && dead.isEmpty && rps.isEmpty && st == st1) 
               setResultType(FixedPoint, st1)
             else {
-              /* Apply discrete and non-clashing continuous assignment values to store */
-              val stAE = applyAssignments(nonClashingEqsValues ++ dasValues) ~> st1
-              /* Apply reparentings to store */
-              def repHelper(pair:(CId, CId)) = changeParentM(pair._1, pair._2) 
-              val stR = mapM_(repHelper, rps) ~> stAE
-              /* Apply terminations to store */
-              val st3 = stR -- dead
-              setResultType(Discrete, st3)
+              /* Apply discrete and non-clashing continuous assignment values */
+              val st2 = applyAssignments(nonClashingEqsValues ++ dasValues) ~> st1
+              /* Apply terminations to get store without dead objects and list of orphans */
+              val (st3, orphans) = applyTerminations(dead, st2)
+              /* Apply reparentings */
+              val st4 = applyReparentings(rps ++ orphans) ~> st3
+              setResultType(Discrete, st4)
             }
           case FixedPoint => // Do continuous step
             val eqsIds = resolveDots(eqs)
