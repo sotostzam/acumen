@@ -1,26 +1,27 @@
-model BreakingBall(z, z', x, x', s, c) = 
+model BreakingBall(z, z', x, v, s, c) = 
 initially 
-  z''  =  0 ,
-  _3D  =  (Sphere center=(x,0,z)  size= s color= c rotation=(0,0,0))
+  z''  = 0,
+  x'   = v,
+  _3D  = (Sphere center = (x,0,z) size = s color = c)
 always
   z'' = -9.8 ,
-  x'  = x' ,
-  _3D = (Sphere center=(x,0,z)  size= s color= c rotation=(0,0,0)) ,
+  x'  = v ,
+  _3D = (Sphere center = (x,0,z) size = s color = c) ,
   if z < 0 && z' < 0 then
-    create BreakingBall(z,-z',x, -1.1*x',0.9*s,(abs(x) ,  abs(2*x) ,   5*x)) ,
-    create BreakingBall(z,-0.9*z',x, x',0.9*s, (abs(z'), abs(x), s     )) , 
+    create BreakingBall(z,    -z',x,-1.1*v,0.9*s,(abs(x) ,abs(2*x),5*x)) ,
+    create BreakingBall(z,-0.9*z',x,     v,0.9*s,(abs(z'),abs(  x),  s)) , 
     terminate self 
   noelse
 
 model Main(simulator) = 
 initially 
-  mode  =  "Init"  ,n  =  0 
+  mode = "Init", n = 0 
 always
   simulator.endTime + = 5 ,
-  n = sum 1 for i in self.children if true ,
+  n = sum 1 for i in self.children if true,
   match mode with [
     "Init" ->     
-      create BreakingBall(2,0,0,0.3,0.1,(0.2,1.0,0.2)) ,
+      create BreakingBall(2,0,0,0.3,0.1,(0.2,1.0,0.2)),
       mode + = "Persist" 
   | "Persist" -> ]
  
