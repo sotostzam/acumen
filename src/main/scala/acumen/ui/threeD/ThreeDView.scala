@@ -154,7 +154,18 @@ class ThreeDView extends JPanel {
       camera.setPosition(-newX.toFloat, -newZ.toFloat, -newY.toFloat)
     else     // right button dragging
       lookAtPoint.set(-newX.toFloat, -newZ.toFloat, -newY.toFloat)
-    lookAt(null, lookAtPoint)
+    
+    // rotation to lookAtPoint
+    val goalInLocal = camera.transform(lookAtPoint)
+    val goalNormProjYZ = new SimpleVector(0, goalInLocal.y, goalInLocal.z).normalize
+    val angleAroundX = signum(goalNormProjYZ.y) * acos(goalNormProjYZ.z)
+    camera.rotateCameraX(angleAroundX.toFloat)
+
+    val goalInLocal2 = camera.transform(lookAtPoint)
+    val goalNormProjXZ = new SimpleVector(goalInLocal2.x, 0, goalInLocal.z).normalize
+    val angleAroundY = signum(goalNormProjXZ.x) * acos(goalNormProjXZ.z)
+    camera.rotateCameraY(angleAroundY.toFloat) 
+      
     lastMouseX = newMouseX
     lastMouseY = newMouseY
     lookAtCenter.translate(lookAtPoint.calcSub(lookAtCenter.getTransformedCenter))
