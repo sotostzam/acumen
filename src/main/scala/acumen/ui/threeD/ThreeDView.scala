@@ -106,55 +106,74 @@ class ThreeDView extends JPanel {
          || abs(newMouseY - lastMouseY) > 0.1) {
           // left button dragging, move camera
           if (SwingUtilities isLeftMouseButton e)
-            cameraLeftDirection = moveCamera(cameraLeftDirection, 1, lookAtPoint)
+            cameraLeftDirection = moveCamera(cameraLeftDirection, 1)
           // right button dragging, move look at point
           else if (SwingUtilities isRightMouseButton e)
-            cameraRightDirection = moveCamera(cameraRightDirection, -1,
-                                              camera.getPosition)
+            cameraRightDirection = moveCamera(cameraRightDirection, -1)
         }
       }
     }
   })
 
   /* draggingDirection is the direction for left or right button,
-    * click is -1 (right) or 1 (left) */
-  def moveCamera (draggingDirection: Int, click: Int,
-                  sphereCenter: SimpleVector): Int = {
+   * click is -1 (right) or 1 (left) */
+  def moveCamera (draggingDirection: Int, click: Int): Int = {
     var cameraDirection = draggingDirection
-    val cameraInitPos = camera.getPosition
-    val deltaTheta = cameraDirection * (newMouseY - lastMouseY) * Pi / 500
-    val deltaAlpha = (lastMouseX - newMouseX) * Pi / 750
-    // translate jPCT coordinate to sphere coordinate
-    val initX = click * (-cameraInitPos.x + lookAtPoint.x)
-    val initY = click * (-cameraInitPos.z + lookAtPoint.z)
-    val initZ = click * (-cameraInitPos.y + lookAtPoint.y)
-    val radius = if (initX == 0 && initY == 0 && initZ == 0) 0.01
-    else sqrt(initX * initX + initY * initY + initZ * initZ)
-    // get initial theta and alpha
-    val initialAlpha = if (initX != 0) atan2(initY, initX)
-                       else if (initY > 0) Pi / 2
-                       else -Pi / 2
-    val initialTheta = acos(initZ / radius)
-    var alpha = initialAlpha + deltaAlpha
-    var theta = initialTheta + deltaTheta
-    alpha = normalizeAngle(alpha)
-    if (initialTheta > 0 && theta < 0) {
-      theta = -theta
-      alpha = alpha + Pi
-      cameraDirection = -1 * cameraDirection
-    } else if (initialTheta < Pi && theta > Pi) {
-      theta = 2 * Pi - theta
-      alpha = alpha + Pi
-      cameraDirection = -1 * cameraDirection
+    val sphereCenter = if (click == 1) lookAtPoint
+                       else camera.getPosition
+
+    def convert_jPCT_XYZ(v: (Double,Double,Double), mode: String, click: Int) = {
+    // from jPCT to XYZ
+    if (mode == "to")  
+      (click * v._1, click * v._3, click * v._2)
+    // from XYZ to jPCT (mode == "from")
+    else
+      (-v._1, -v._3, -v._2)
     }
-    val newX = radius * sin(theta) * cos(alpha) - sphereCenter.x.toDouble
-    val newY = radius * sin(theta) * sin(alpha) - sphereCenter.z.toDouble
-    val newZ = radius * cos(theta) - sphereCenter.y.toDouble
-    if (click == 1)    // left button dragging
-      camera.setPosition(-newX.toFloat, -newZ.toFloat, -newY.toFloat)
-    else     // right button dragging
-      lookAtPoint.set(-newX.toFloat, -newZ.toFloat, -newY.toFloat)
     
+    // initial XYZ
+    val (initX, initY, initZ) = convert_jPCT_XYZ((lookAtPoint calcSub camera.getPosition).toArray() match { 
+                                case Array(x: Float, y: Float, z: Float) => (x,y,z) }, "to", click)
+
+    // initial spherical coordinates
+    // radius 
+    val radius = sqrt(initX * initX + initY * initY + initZ * initZ)
+    // theta = the angle of the vector with the (x,y) plane
+    val initialTheta = if (radius != 0) acos(initZ / radius)
+    else 0
+    // phi = plane polar angle of the projection on the (x,y) plane
+    val initialPhi = if (initX != 0 || initY != 0) atan2(initY, initX)
+    else 0
+
+    // mouse movement
+    val deltaTheta = cameraDirection * (newMouseY - lastMouseY) * Pi / 500
+    val deltaPhi = (lastMouseX - newMouseX) * Pi / 750
+    
+    // updated spherical coordinates
+    // new radius = old radius (unchanged)
+    // new theta
+    var theta = initialTheta + deltaTheta
+    // new phi
+    var phi   = initialPhi + deltaPhi
+
+    // flip
+    if (signum(sin(initialTheta)) != signum(sin(theta))) {
+      theta = -theta
+      phi = phi + Pi
+      cameraDirection = -1 * cameraDirection  
+    }
+    
+    // updated XYZ coordinates
+    val newX = radius * sin(theta) * cos(phi) - sphereCenter.x.toDouble
+    val newY = radius * sin(theta) * sin(phi) - sphereCenter.z.toDouble
+    val newZ = radius * cos(theta) - sphereCenter.y.toDouble
+
+    // updated jPCT
+    convert_jPCT_XYZ((newX, newY, newZ), "from", click) match { case (x,y,z) => 
+      if (click == 1) camera.setPosition(x.toFloat, y.toFloat, z.toFloat)
+      else lookAtPoint.set(x.toFloat, y.toFloat, z.toFloat)
+    }
+
     // rotation to lookAtPoint
     val goalInLocal = camera.transform(lookAtPoint)
     val goalNormProjYZ = new SimpleVector(0, goalInLocal.y, goalInLocal.z).normalize
@@ -164,20 +183,14 @@ class ThreeDView extends JPanel {
     val goalInLocal2 = camera.transform(lookAtPoint)
     val goalNormProjXZ = new SimpleVector(goalInLocal2.x, 0, goalInLocal.z).normalize
     val angleAroundY = signum(goalNormProjXZ.x) * acos(goalNormProjXZ.z)
-    camera.rotateCameraY(angleAroundY.toFloat) 
-      
+    camera.rotateCameraY(angleAroundY.toFloat)
+    
+    // closing
     lastMouseX = newMouseX
     lastMouseY = newMouseY
     lookAtCenter.translate(lookAtPoint.calcSub(lookAtCenter.getTransformedCenter))
     repaint()
     cameraDirection
-  }
-
-  def normalizeAngle (angle: Double): Double = {
-    var newAngle = angle
-    while (newAngle <= -Pi) newAngle += 2 * Pi
-    while (newAngle > Pi) newAngle -= 2 * Pi
-    newAngle
   }
 
   def axisOn() = {
