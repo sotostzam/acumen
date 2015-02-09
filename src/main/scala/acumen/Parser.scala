@@ -432,7 +432,7 @@ object Parser extends MyStdTokenParsers {
     positioned( sum
       | interval
       |"type" ~! parens(className) ^^ { case _ ~ cn => TypeOf(cn) }
-      | name >> { n => args(expr) ^^ { es => Op(n, es) } | success(Var(n)) }
+      | name ^^ Var
       | colVector	
       | parens(rep2sep(expr, ",")) ^^ ExprVector
       | parens(expr)
