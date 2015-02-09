@@ -129,26 +129,46 @@ class ThreeDView extends JPanel {
       val r     = sqrt(x * x + y * y + z * z)              // radius
       val theta = if (r != 0) acos(z / r) else 0           // theta = the angle of the vector with the (x,y) plane
       val phi   = if (x != 0 || y != 0) atan2(y, x) else 0 // phi = plane polar angle of the projection on the (x,y) plane
-      (r, theta, phi)
-    }
+      (r, theta, phi) }
 
     // (r, theta, phi) -> (x, y, z)
-     def convSPHtoXYZ(v : (Double, Double, Double)) = v match { case (r, theta, phi) =>
-       val x = r * sin(theta) * cos(phi)
-       val y = r * sin(theta) * sin(phi)
-       val z = r * cos(theta)
-       (x, y, z)
-     }
+    def convSPHtoXYZ(v : (Double, Double, Double)) = v match { case (r, theta, phi) =>
+      val x = r * sin(theta) * cos(phi)
+      val y = r * sin(theta) * sin(phi)
+      val z = r * cos(theta)
+      (x, y, z) }
     
-    // orthogonal transformation of XYZ
-    def transform(v: (Double, Double, Double), s : Int = 1) = v match { case (x, y, z) => (s * x, s * z, s * y) }
+    // transformation of XYZ coordinates
+    def transform(positionVector : SimpleVector, newOrigin : SimpleVector, invert : Boolean = false) : SimpleVector = { 
+      // the local coordinates given by the orientation of the camera
+      // the new origin is newOrigin
+      val newX = new SimpleVector(1,0,0)
+      val newY = new SimpleVector(0,0,1)
+      val newZ = new SimpleVector(0,1,0)
+      
+      // the transformation matrix
+      var S = new Matrix()
+      S.setRow(0, newX.x, newX.y, newX.z, 0)
+      S.setRow(1, newY.x, newY.y, newY.z, 0)
+      S.setRow(2, newZ.x, newZ.y, newZ.z, 0) 
 
-    // sphere center
-    val sphereCenter = if (click == 1) lookAtPoint else camera.getPosition
+      invert match {
+        case false => // the transformation
+          var v = newOrigin calcSub positionVector
+          v rotate S
+          v
+        case true  => // the inverse transformation
+          var v = positionVector
+          v rotate (S invert3x3)
+          newOrigin calcSub v 
+      } }
     
-    // initial XYZ: cam -> point vector
-    val (x0, y0, z0) = transform(convSVtoXYZ(lookAtPoint calcSub camera.getPosition), click)
-
+    // initial XYZ of the 1st object in local coordinates centered at the 2nd
+    val (x0, y0, z0) = convSVtoXYZ( if (click == 1)
+                                      transform(camera.getPosition, lookAtPoint)
+                                    else
+                                      transform(lookAtPoint, camera.getPosition) )
+    
     // initial spherical coordinates
     val (r0, theta0, phi0) = convXYZtoSPH((x0, y0, z0))
 
@@ -165,15 +185,15 @@ class ThreeDView extends JPanel {
           theta1 = -theta1
           phi1 = phi1 + Pi
           -1 * initialCameraDirection._1  
-        } else initialCameraDirection._1 , initialCameraDirection._2 )
- 
+        } else initialCameraDirection._1 , 
+        initialCameraDirection._2 )
     
     // updated XYZ coordinates
     val (x1, y1, z1) = convSPHtoXYZ((r1, theta1, phi1))
       
     // updated jPCT
-    if (click == 1) camera      setPosition (sphereCenter calcSub convXYZtoSV(transform((x1, y1, z1))))
-    else            lookAtPoint set         (sphereCenter calcSub convXYZtoSV(transform((x1, y1, z1))))
+    if (click == 1) camera      setPosition transform(convXYZtoSV((x1, y1, z1)), lookAtPoint, true) 
+    else            lookAtPoint set         transform(convXYZtoSV((x1, y1, z1)), camera.getPosition, true) 
     
     // rotation to lookAtPoint
     // around X
@@ -187,7 +207,7 @@ class ThreeDView extends JPanel {
     val angleAroundY   = signum(goalNormProjXZ.x) * acos(goalNormProjXZ.z)
     camera.rotateCameraY(angleAroundY.toFloat)
 
-    // update the look-at-sphere
+    // translate the lookAtSphere so that it is centered at lookAtPoint
     lookAtCenter.translate(lookAtPoint.calcSub(lookAtCenter.getTransformedCenter))
     
     // storing the mouse position
