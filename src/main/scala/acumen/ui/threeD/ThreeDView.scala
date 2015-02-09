@@ -65,8 +65,8 @@ class ThreeDView extends JPanel {
   private var lastMouseX = 1    // mouse position x after dragging
   private var lastMouseY = 1    // mouse position y after dragging
   private var dragging = false  // flag for checking the mouse action
-  private var cameraLeftDirection = -1  // to make sure the camera rotate forward or backward
-  private var cameraRightDirection = 1  // to make sure the camera rotate forward or backward
+  private var cameraLeftDirection = (-1,-1)  // to make sure the camera rotate forward or backward both in X and Y directions
+  private var cameraRightDirection = (1,1) // to make sure the camera rotate forward or backward both in X and Y directions
 
   val lookAtCenter = Primitives.getSphere(20, 0.1f)
 
@@ -120,67 +120,116 @@ class ThreeDView extends JPanel {
          || abs(newMouseY - lastMouseY) > 0.1) {
           // left button dragging, move camera
           if (SwingUtilities isLeftMouseButton e)
-            cameraLeftDirection = moveCamera(cameraLeftDirection, 1, lookAtPoint)
+            cameraLeftDirection = moveCamera(cameraLeftDirection, 1)
           // right button dragging, move look at point
           else if (SwingUtilities isRightMouseButton e)
-            cameraRightDirection = moveCamera(cameraRightDirection, -1,
-                                              camera.getPosition)
+            cameraRightDirection = moveCamera(cameraRightDirection, -1)
         }
       }
     }
   })
 
   /* draggingDirection is the direction for left or right button,
-    * click is -1 (right) or 1 (left) */
-  def moveCamera (draggingDirection: Int, click: Int,
-                  sphereCenter: SimpleVector): Int = {
-    var cameraDirection = draggingDirection
-    val cameraInitPos = camera.getPosition
-    val deltaTheta = cameraDirection * (newMouseY - lastMouseY) * Pi / 500
-    val deltaAlpha = (lastMouseX - newMouseX) * Pi / 750
-    // translate jPCT coordinate to sphere coordinate
-    val initX = click * (-cameraInitPos.x + lookAtPoint.x)
-    val initY = click * (-cameraInitPos.z + lookAtPoint.z)
-    val initZ = click * (-cameraInitPos.y + lookAtPoint.y)
-    val radius = if (initX == 0 && initY == 0 && initZ == 0) 0.01
-    else sqrt(initX * initX + initY * initY + initZ * initZ)
-    // get initial theta and alpha
-    val initialAlpha = if (initX != 0) atan2(initY, initX)
-                       else if (initY > 0) Pi / 2
-                       else -Pi / 2
-    val initialTheta = acos(initZ / radius)
-    var alpha = initialAlpha + deltaAlpha
-    var theta = initialTheta + deltaTheta
-    alpha = normalizeAngle(alpha)
-    if (initialTheta > 0 && theta < 0) {
-      theta = -theta
-      alpha = alpha + Pi
-      cameraDirection = -1 * cameraDirection
-    } else if (initialTheta < Pi && theta > Pi) {
-      theta = 2 * Pi - theta
-      alpha = alpha + Pi
-      cameraDirection = -1 * cameraDirection
-    }
-    val newX = radius * sin(theta) * cos(alpha) - sphereCenter.x.toDouble
-    val newY = radius * sin(theta) * sin(alpha) - sphereCenter.z.toDouble
-    val newZ = radius * cos(theta) - sphereCenter.y.toDouble
-    if (click == 1)    // left button dragging
-      camera.setPosition(-newX.toFloat, -newZ.toFloat, -newY.toFloat)
-    else     // right button dragging
-      lookAtPoint.set(-newX.toFloat, -newZ.toFloat, -newY.toFloat)
-    lookAt(null, lookAtPoint)
+   * click is -1 (right) or 1 (left) */
+  def moveCamera (initialCameraDirection: (Int,Int), click: Int): (Int,Int) = {
+    // conversion between jPCT and XYZ
+    def convSVtoXYZ(v : SimpleVector) = (v.x.toDouble, v.y.toDouble, v.z.toDouble)
+    def convXYZtoSV(v : (Double, Double, Double)) = v match { case (x, y, z) => 
+      new SimpleVector(x.toFloat, y.toFloat, z.toFloat) }
+    
+    // conversion between XYZ and Spherical
+    // (x, y, z) -> (r, theta, phi)
+    def convXYZtoSPH(v : (Double, Double, Double)) = v match { case (x, y, z) =>
+      val r     = sqrt(x * x + y * y + z * z)              // radius
+      val theta = if (r != 0) acos(z / r) else 0           // theta = the angle of the vector with the (x,y) plane
+      val phi   = if (x != 0 || y != 0) atan2(y, x) else 0 // phi = plane polar angle of the projection on the (x,y) plane
+      (r, theta, phi) }
+
+    // (r, theta, phi) -> (x, y, z)
+    def convSPHtoXYZ(v : (Double, Double, Double)) = v match { case (r, theta, phi) =>
+      val x = r * sin(theta) * cos(phi)
+      val y = r * sin(theta) * sin(phi)
+      val z = r * cos(theta)
+      (x, y, z) }
+    
+    // transformation of XYZ coordinates
+    def transform(positionVector : SimpleVector, newOrigin : SimpleVector, invert : Boolean = false) : SimpleVector = { 
+      // the local coordinates given by the orientation of the camera
+      // the new origin is newOrigin
+      val newX = new SimpleVector(1,0,0)
+      val newY = new SimpleVector(0,0,1)
+      val newZ = new SimpleVector(0,1,0)
+      
+      // the transformation matrix
+      var S = new Matrix()
+      S.setRow(0, newX.x, newX.y, newX.z, 0)
+      S.setRow(1, newY.x, newY.y, newY.z, 0)
+      S.setRow(2, newZ.x, newZ.y, newZ.z, 0) 
+
+      invert match {
+        case false => // the transformation
+          var v = newOrigin calcSub positionVector
+          v rotate S
+          v
+        case true  => // the inverse transformation
+          var v = positionVector
+          v rotate (S invert3x3)
+          newOrigin calcSub v 
+      } }
+    
+    // initial XYZ of the 1st object in local coordinates centered at the 2nd
+    val (x0, y0, z0) = convSVtoXYZ( if (click == 1)
+                                      transform(camera.getPosition, lookAtPoint)
+                                    else
+                                      transform(lookAtPoint, camera.getPosition) )
+    
+    // initial spherical coordinates
+    val (r0, theta0, phi0) = convXYZtoSPH((x0, y0, z0))
+
+    // mouse movement
+    val deltaTheta = initialCameraDirection._1 * (newMouseY - lastMouseY) * Pi / 500
+    val deltaPhi   = initialCameraDirection._2 * (newMouseX - lastMouseX) * Pi / 750
+    
+    // updated spherical coordinates
+    var (r1, theta1, phi1) = (r0, theta0 + deltaTheta, phi0 + deltaPhi)
+
+    // camera flip
+    val cameraDirection = 
+      ( if (signum(sin(theta0)) != signum(sin(theta1))) {
+          theta1 = -theta1
+          phi1 = phi1 + Pi
+          -1 * initialCameraDirection._1  
+        } else initialCameraDirection._1 , 
+        initialCameraDirection._2 )
+    
+    // updated XYZ coordinates
+    val (x1, y1, z1) = convSPHtoXYZ((r1, theta1, phi1))
+      
+    // updated jPCT
+    if (click == 1) camera      setPosition transform(convXYZtoSV((x1, y1, z1)), lookAtPoint, true) 
+    else            lookAtPoint set         transform(convXYZtoSV((x1, y1, z1)), camera.getPosition, true) 
+    
+    // rotation to lookAtPoint
+    // around X
+    val goalInLocal    = camera.transform(lookAtPoint)
+    val goalNormProjYZ = new SimpleVector(0, goalInLocal.y, goalInLocal.z).normalize
+    val angleAroundX   = signum(goalNormProjYZ.y) * acos(goalNormProjYZ.z)
+    camera.rotateCameraX(angleAroundX.toFloat)
+    // around Y
+    val goalInLocal2   = camera.transform(lookAtPoint)
+    val goalNormProjXZ = new SimpleVector(goalInLocal2.x, 0, goalInLocal.z).normalize
+    val angleAroundY   = signum(goalNormProjXZ.x) * acos(goalNormProjXZ.z)
+    camera.rotateCameraY(angleAroundY.toFloat)
+
+    // translate the lookAtSphere so that it is centered at lookAtPoint
+    lookAtCenter.translate(lookAtPoint.calcSub(lookAtCenter.getTransformedCenter))
+    
+    // storing the mouse position
     lastMouseX = newMouseX
     lastMouseY = newMouseY
-    lookAtCenter.translate(lookAtPoint.calcSub(lookAtCenter.getTransformedCenter))
+    
     repaint()
     cameraDirection
-  }
-
-  def normalizeAngle (angle: Double): Double = {
-    var newAngle = angle
-    while (newAngle <= -Pi) newAngle += 2 * Pi
-    while (newAngle > Pi) newAngle -= 2 * Pi
-    newAngle
   }
 
   def axisOn() = {
@@ -203,8 +252,8 @@ class ThreeDView extends JPanel {
 
   def init() = {
     camera = world.getCamera  // grab a handle to the camera
-    cameraLeftDirection = -1
-    cameraRightDirection = 1
+    cameraLeftDirection = (-1,-1)
+    cameraRightDirection = (1,1)
     defaultView()
     lookAt(coAxes.mainbox, null) // camera faces towards the object
     lookAtPoint.set(0,0,0)
