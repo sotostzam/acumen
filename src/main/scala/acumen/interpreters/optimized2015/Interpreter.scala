@@ -83,9 +83,9 @@ class Interpreter extends CStoreInterpreter {
         val (eqt, pos) = pp.assigns(idx)
         
         // The continuous assignment is non-clashing
-        if (( magic.phaseParms.das filter 
-               (d => d match { case Assignment(eqt.id, eqt.field, _, _) => true
-                              case _                                   => false }) ).isEmpty) {
+        if (!magic.phaseParms.das.exists {
+          a => a.id == eqt.id && a.field == eqt.field
+        }) {
           // Initialize the field:
           // mark the value to be updated and check for duplicates
           setField(eqt.id, eqt.field, AssignLookup(idx), pos)
