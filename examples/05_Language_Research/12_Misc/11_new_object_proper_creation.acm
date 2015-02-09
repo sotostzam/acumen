@@ -1,0 +1,42 @@
+model Main(simulator) =
+initially
+  t = 0, t' = 1
+always
+  simulator.endTime += 1,
+  t' = 1,
+  
+  // At time 0.5 a new object is created
+  if t > 0.5 then
+   t+ = 0,
+   create myObj()
+  noelse
+
+// The initially section of the object is inconsistent
+// both with discrete and continuous assignments that
+// enter the scope in its always section
+model myObj() =
+initially
+ x = 0, x' = 1
+always
+ if (x == 0) then
+  x+ = 1.5,
+  // It immediately creates a new myObj2 and myObj3
+  create myObj2(),
+  create myObj3()
+ noelse,
+ x' = 2
+
+
+model myObj2() =
+initially
+ y = 1
+always
+ y = 0
+
+// An object that terminates itself immediately
+model myObj3() =
+initially
+ z = 1
+always
+ z = 0.5,
+ terminate self
