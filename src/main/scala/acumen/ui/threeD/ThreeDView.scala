@@ -203,7 +203,7 @@ class ThreeDView extends JPanel {
 
     // update the look-at-sphere
     lookAtCenter.translate(lookAtPoint.calcSub(lookAtCenter.getTransformedCenter))
-    
+
     // storing the mouse position
     lastMouseX = newMouseX
     lastMouseY = newMouseY
@@ -1238,7 +1238,10 @@ class coAxis(characters: Map[Char, Object3D], mainBox: Object3D) {
   for (i <- 7 to 9) {
     cylinders(i).setRotationPivot(new SimpleVector(0,0,0))
     cylinders(i).setCenter(new SimpleVector(0,0,0))
-    cylinders(i).scale(0.4f)
+    cylinders(i).scale(0.6f)
+    cylinders(i).rotateY(Pi.toFloat)
+    cylinders(i).rotateMesh()
+    cylinders(i).setBillboarding(Object3D.BILLBOARDING_ENABLED)
   }
 
   for (i <- 1 until cylinders.length)
