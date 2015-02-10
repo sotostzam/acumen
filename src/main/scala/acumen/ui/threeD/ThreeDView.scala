@@ -67,6 +67,7 @@ class ThreeDView extends JPanel {
   private var dragging = false  // flag for checking the mouse action
   private var cameraLeftDirection = (-1,-1)  // to make sure the camera rotate forward or backward both in X and Y directions
   private var cameraRightDirection = (1,1) // to make sure the camera rotate forward or backward both in X and Y directions
+  private var cameraFlipped = false
 
   val lookAtCenter = Primitives.getSphere(20, 0.1f)
 
@@ -198,6 +199,7 @@ class ThreeDView extends JPanel {
       ( if (signum(sin(theta0)) != signum(sin(theta1))) {
           theta1 = -theta1
           phi1 = phi1 + Pi
+          if (click == 1) cameraFlipped = !cameraFlipped 
           -1 * initialCameraDirection._1  
         } else initialCameraDirection._1 , 
         initialCameraDirection._2 )
@@ -213,7 +215,7 @@ class ThreeDView extends JPanel {
     lookAt(null,lookAtPoint)
     
     // if the camera is flipped we need to adjust
-    if (cameraDirection._1 == 1)
+    if (cameraFlipped)
       camera.rotateCameraZ(Pi.toFloat)
 
     // translate the lookAtSphere so that it is centered at lookAtPoint
@@ -249,6 +251,7 @@ class ThreeDView extends JPanel {
     camera = world.getCamera  // grab a handle to the camera
     cameraLeftDirection = (-1,-1)
     cameraRightDirection = (1,1)
+    cameraFlipped = false
     defaultView()
     lookAt(coAxes.mainbox, null) // camera faces towards the object
     lookAtPoint.set(0,0,0)
