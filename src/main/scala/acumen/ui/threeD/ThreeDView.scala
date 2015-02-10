@@ -209,17 +209,12 @@ class ThreeDView extends JPanel {
     if (click == 1) camera      setPosition transform(convXYZtoSV((x1, y1, z1)), lookAtPoint, true) 
     else            lookAtPoint set         transform(convXYZtoSV((x1, y1, z1)), camera.getPosition, true) 
     
-    // rotation to lookAtPoint
-    // around X
-    val goalInLocal    = camera.transform(lookAtPoint)
-    val goalNormProjYZ = new SimpleVector(0, goalInLocal.y, goalInLocal.z).normalize
-    val angleAroundX   = signum(goalNormProjYZ.y) * acos(goalNormProjYZ.z)
-    camera.rotateCameraX(angleAroundX.toFloat)
-    // around Y
-    val goalInLocal2   = camera.transform(lookAtPoint)
-    val goalNormProjXZ = new SimpleVector(goalInLocal2.x, 0, goalInLocal.z).normalize
-    val angleAroundY   = signum(goalNormProjXZ.x) * acos(goalNormProjXZ.z)
-    camera.rotateCameraY(angleAroundY.toFloat)
+    // look at the lookAtPoint
+    lookAt(null,lookAtPoint)
+    
+    // if the camera is flipped we need to adjust
+    if (cameraDirection._1 == 1)
+      camera.rotateCameraZ(Pi.toFloat)
 
     // translate the lookAtSphere so that it is centered at lookAtPoint
     lookAtCenter.translate(lookAtPoint.calcSub(lookAtCenter.getTransformedCenter))
