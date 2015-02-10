@@ -45,11 +45,13 @@ class Interpreter(val parDiscr: Boolean = true,
   type Store = Common.Store
   def repr (s:Store) : CStore = Common.repr(s)
   def fromCStore (cs:CStore, root:CId) : Store = Common.fromCStore(cs, root)
-  override def visibleParameters = visibleParametersImpr
+  val initStepType = Discrete
+  val timeStep = 0.01
+  override def visibleParameters = visibleParametersImpr(initStepType, timeStep)
 
   def init(prog: Prog): (Prog, Store, Metadata) = {
     checkContinuousAssignmentToSimulator(prog)
-    val magic = fromCStore(initStoreImpr, CId(0))
+    val magic = fromCStore(initStoreImpr(initStepType, timeStep), CId(0))
     val cprog = CleanParameters.run(prog, CStoreInterpreterType)
     val sprog = Simplifier.run(cprog)
     val (sd1, sd2) = Random.split(Random.mkGen(0))

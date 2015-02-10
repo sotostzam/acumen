@@ -393,12 +393,12 @@ object Common {
 
   val magicClassTxt =
     """model Simulator(time, timeStep, outputRows, continuousSkip, endTime, resultType, lastCreatedId)="""
-  val initStoreTxt =
-    s"""#0.0 { className = Simulator, parent = %s, time = 0.0, timeStep = 0.015625, outputRows = "All", hypothesisReport = "Comprehensive", continuousSkip = 0,endTime = 10.0, resultType = @Initial, nextChild = 0,method = "$RungeKutta", seed1 = 0, seed2 = 0, variableCount = 0 }"""
+  def initStoreTxt(initStep: ResultType, timeStep: Double) =
+    s"""#0.0 { className = Simulator, parent = %s, time = 0.0, timeStep = $timeStep, outputRows = "All", hypothesisReport = "Comprehensive", continuousSkip = 0,endTime = 10.0, resultType = @$initStep, nextChild = 0,method = "$RungeKutta", seed1 = 0, seed2 = 0, variableCount = 0 }"""
 
   lazy val magicClass = Parser.run(Parser.classDef, magicClassTxt)
-  lazy val initStoreRef = Parser.run(Parser.store, initStoreTxt.format("#0"))
-  lazy val initStoreImpr = Parser.run(Parser.store, initStoreTxt.format("none"))
+  def initStoreRef(initStep: ResultType, initTimeStep: Double) = Parser.run(Parser.store, initStoreTxt(initStep, initTimeStep).format("#0"))
+  def initStoreImpr(initStep: ResultType, initTimeStep: Double) = Parser.run(Parser.store, initStoreTxt(initStep, initTimeStep).format("none"))
   
   // Register simulator parameters that should appear as completions in the code editor 
   // for any interpreter. Additional parameters are taken from Interpreter.parameters. 
@@ -408,8 +408,8 @@ object Common {
     val initialMagic = initStore(magicId(initStore))
     visibleSimulatorFields.map(p => (p, initialMagic(name(p)))).toMap
   }
-  val visibleParametersRef = visibleParametersMap(initStoreRef)
-  val visibleParametersImpr = visibleParametersMap(initStoreImpr)
+  def visibleParametersRef(initStep: ResultType, initTimeStep: Double) = visibleParametersMap(initStoreRef(initStep, initTimeStep))
+  def visibleParametersImpr(initStep: ResultType, initTimeStep: Double) = visibleParametersMap(initStoreImpr(initStep, initTimeStep))
                                   
   // Register valid simulator parameters
   val simulatorFields = visibleSimulatorFields ::: List("outputRows", "hypothesisReport", "continuousSkip", "resultType", "lastCreatedId", "method", "variableCount")
