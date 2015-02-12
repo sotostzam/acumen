@@ -1,0 +1,58 @@
+// Braking or Collision - collision case
+// Authors: Walid Taha and Henrik Eriksson
+// 2014/09/12
+
+model Main(simulator) =
+initially
+  // Car 1 parameters
+  m1 = 6, x1 = 0, x1' = 11, x1'' =0,
+  pbd1 = 6,  // Pre-Brake distance
+  pba1 = -3, // Pre-Brake acceleration
+  fbd1 = 3,  // Full Brake distance
+  fba1 = -6, // Pre-Brake acceleration
+  b1 = -3,   // Braking deceleration
+  // Car 2 parameters
+  m2 = 1, x2 =20, x2' = 3, x2'' =0 ,
+  // Joint parameters
+  c  = 0.1,  // Coeff. of restitution
+  pcb = -20, // Post-collision breaking
+  state = "Approach" // {Approach, Pre-Brake, Brake, Collision, Post-Collision}
+always
+  simulator.endTime+ = 5,
+  match state with [ 
+    "Approach" -> 
+      x1'' = 0,
+      x2'' = 0,
+      // Collision Detection
+      if x1>x2 then state+ = "Collision" noelse,
+      // Activating Pre-braking
+      if x1+pbd1>x2 then state+ = "Pre-Brake" noelse,
+      // Activating Full Breaking
+      if x1+fbd1>x2 then state+ = "Brake" noelse
+  | "Pre-Brake" -> 
+      if x1'>0 then x1'' = pba1 else x1' = 0,
+      x2'' = 0,
+      // Collision Detection
+      if x1>x2 then state+ = "Collision" noelse,
+      // De-activating Pre-braking
+      if x1+pbd1<x2 then state+ = "Approach" noelse, // "Backward" transition
+      // Activating Full Breaking
+      if x1+fbd1>x2 then state+ = "Brake" noelse
+  | "Brake" -> 
+      if x1'>0 then x1'' = fba1 else x1' = 0,
+      x2'' = 0,
+      // Collision Detection
+      if x1>x2 then state+ = "Collision" noelse,
+      // De-Activating Pre-braking
+      if x1+pbd1<x2 then state+ = "Approach" noelse,
+      // De-activating Full Breaking
+      if x1+fbd1<x2 then state+ = "Pre-Brake" noelse // "Backward" transition
+  | "Collision" -> 
+      x1'+ = (m1*x1' + m2*x2' + m2*c*(x2'-x1'))/(m1 + m2),
+      x2'+ = (m1*x1' + m2*x2' + m1*c*(x1'-x2'))/(m1 + m2),
+      x1'' = 0,
+      x2'' = 0,
+      state+ = "Post-Collision"
+  | "Post-Collision" -> 
+      if x1'>0 then x1'' = pcb else x1' = 0,
+      if x2'>0 then x2'' = pcb else x2' = 0 ]
