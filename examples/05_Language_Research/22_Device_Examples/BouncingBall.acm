@@ -1,0 +1,149 @@
+#include "devices.acm"
+
+model Ball () = 
+initially
+  mode    =  "Fly" ,             // always start by some player
+  k_z     =  (1,1,-0.99) ,       // Coefficient of restitution
+  k2      =  1/6 ,               // Coefficient of the air resistance
+  p       =  (0,0,2) ,           // Position of the ball
+  p'      =  (0,0,0) ,
+  p''     =  (0,0,0) ,     
+  _3D     =  () 
+always
+  // If mode is not valid then make mode "Panic!"
+  if mode ~= "Fly" && mode ~= "Bounce" && mode ~= "Freeze" then
+    mode + = "Panic!" 
+  noelse,
+ // Behavior of ball in different modes
+  match mode with [
+    "Fly" ->      
+      p'' = -k2 * norm(p') * p' + (0,0,-9.8/2) - 1.5*(p(0),p(1),0) 
+  | "Bounce" ->  
+      p'   + =  p' .* k_z , // Bounce losing k_z energy
+      mode + = "Fly" 
+  | "Freeze" ->      // The ball becomes red and freezes for a bit
+      p'  + = (0,0,0) , 
+      p''  = (0,0,0) 
+  | "Panic!" -> ],
+  if (mode == "Freeze") then
+    _3D = (Sphere   center=p size=0.1 color=red rotation=(0,0,0),
+           Cylinder center=(p(0),p(1),0.5) radius= 0.01 length=1 color=red rotation=(pi/2,0,0))
+  else
+    _3D = (Sphere   center=p size=0.1 color=white rotation=(0,0,0),
+           Cylinder center= (p(0),p(1),0.5) radius= 0.01 length=1  color=yellow rotation=(pi/2,0,0))
+           
+model Game () = 
+initially
+  device  =  create iPhone(0) ,
+  ball  =  create Ball() ,
+  mode  =  "normal" ,
+  t    =  0 ,       // use for calculate the freeze time
+  t'   =  0 ,
+  x    =  0 ,
+  y    =  0 ,
+  z    =  0 ,
+  alpha  =  0 ,
+  beta   =  0 ,
+  gamma  =  0 ,
+  tbeta  =  0 ,
+  x''  =  0 ,
+  y''  =  0 ,
+  z''  =  0 ,
+  x'   =  0 ,
+  y'   =  0 ,
+  z'   =  0 ,
+  ax   =  0 ,
+  ay   =  0 ,
+  az   =  0 ,
+  tx   =  0 ,
+  ty   =  0 ,
+  tz   =  0 ,
+  impact_dis  =  0 ,
+  bb_dis      =  0 ,
+  normal_vector  = (0,0,0) ,
+  batradius  =  0.5 ,
+  score      =  0 ,
+  _3D  =  ()
+always
+  t'    = 1 ,
+  alpha = device.alpha ,
+  beta  = device.beta ,
+  gamma = device.gamma ,
+  ax    = device.ax ,
+  ay    = device.ay ,
+  az    = device.az ,
+  // coordinate transformation
+  tx = (ax * (cos(alpha) * cos(gamma) + sin(alpha) * sin(beta) * sin(gamma))
+      + ay * sin(alpha) * cos(beta)
+      + az * (-cos(alpha) * sin(gamma) + sin(alpha) * sin(beta) * cos(gamma))) ,
+  ty = (ax * (-sin(alpha) * cos(gamma) + cos(device.alpha) * sin(beta) * sin(gamma))
+      + ay * cos(alpha) * cos(beta)
+      + az * (sin(alpha) * sin(gamma) + cos(alpha) * sin(beta) * cos(gamma))) ,
+  tz = (ax * (cos(beta) * sin(gamma))
+      + ay * (-sin(beta))
+      + az * cos(beta) * cos(gamma)) ,
+  // PID controller for position
+  x'' = -20 * tx - 10 * x - 2 * x' ,
+  y'' = -20 * ty - 10 * y - 2 * y' ,
+  z'' =  20 * (tz - 10) - 10 * z - 2 * z' ,
+  // For the angle problem, the player should identify it
+  if beta >= 0 && az < 0 then
+    beta = pi - beta
+  elseif beta <= 0 && az < 0 then
+    beta = -pi - beta
+  noelse,
+  tbeta = beta - pi/2 ,
+  // calculate the normal vector of bat
+  normal_vector = ((-cos(alpha) * sin(gamma) + sin(alpha) * sin(beta) * cos(gamma)),
+                  -(sin(alpha) * sin(gamma) + cos(alpha) * sin(beta) * cos(gamma)),
+                   (cos(beta) * cos(gamma))) ,
+  // calculate the distance between bat and ball
+  bb_dis = abs(((ball.p - (x,y,z)) dot normal_vector)/(norm(normal_vector))) ,
+  if bb_dis < 0.2 then
+    impact_dis = sqrt((norm(ball.p - (x,y,z))) * (norm(ball.p - (x,y,z)))
+                 - (bb_dis * bb_dis))
+  else 
+    impact_dis = 1 ,
+  if impact_dis < batradius && ball.p'(2) < 0 then
+    ball.p' + = 1.5 * (x',y',z') - ball.p' ,
+    score + = score + 1
+  noelse ,
+  
+  _3D = (Cylinder center=(x,y,z) radius= 0.5 length=0.2  color=(0.1,0.1,0.1) rotation=(tbeta,-gamma,alpha),
+         Text center=(-1.5,2,-3) size=1 color=(0.9,0,0) rotation=(0,0,0) content="Score",
+         Text center=(1.5,2,-3)  size=1 color=(0.9,0,0) rotation=(0,0,0) content=score) ,
+  
+  match mode with [
+    "normal" ->
+      if ball.p(2) < 0 && ball.p'(2) < 0 then
+        mode + = "freeze" ,
+        t    + = 0
+      noelse 
+  | "freeze" -> 
+      if t < 1 then
+        ball.mode  + = "Freeze" 
+      else
+        mode    + =  "restart" 
+  | "restart" -> 
+      t         + = 0 ,
+      ball.p    + = (0,0,2) ,
+      if ball.mode ~= "Freeze" then
+        ball.p'   + = (0,0,0) 
+      noelse,
+      ball.mode + = "Fly" ,
+      mode      + = "normal" ]
+
+model Main (simulator) = 
+initially 
+  mode    =  "initializedevice"
+always
+  match mode with [
+    "initializedevice" -> 
+      simulator.endTime + = 20 ,
+      simulator.timeStep + = 0.01 ,
+      mode + = "game" 
+  | "game" ->   
+      create Game (),
+      mode += "persist"
+  | "persist" ->     ]
+ 
