@@ -113,7 +113,7 @@ class CStoreCntrl(val semantics: SemanticsImpl[Interpreter], val interpreter: CS
             threeDTab.appModel.threeDData.get3DData(I.repr(store))
             threeDTab.appModel.updateProgress(I.repr(store))
 
-            if (threeDTab.threeDView.enableRealTime) {
+            if (acumen.ui.App.ui.getStartRealTime) {
               // render the latest frame
               if (threeDTab.appModel.threeDData._3DData.size > 0) {
                 threeDTab.playinRealTime()
@@ -130,7 +130,7 @@ class CStoreCntrl(val semantics: SemanticsImpl[Interpreter], val interpreter: CS
               timesteps += 1
               val percentagemissDL = missedDeadline / timesteps
               // for synchronizing the simulation with wall clock
-              if (threeDTab.threeDView.matchWallClock){
+              if (App.ui.getMatchWallClock){
                 // calculate the averageslack
                 if (virtualtime > lastvirtualTime) {
                   if ((virtualtime - lastvirtualTime) * 1000 / playspeed < calculationTime)

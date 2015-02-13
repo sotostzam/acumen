@@ -37,8 +37,6 @@ class ThreeDView extends JPanel {
   val axes = coAxes.cylinders
   val axisArray = Array(new Object3D(1))
 
-  var matchWallClock = false
-
   protected[threeD] var objects = mutable.Map[(CId, Int), Object3D]()
   protected[threeD] var scaleFactors = mutable.Map[Object3D, Array[Double]]()
   protected[threeD] var objectsToDelete = mutable.ArrayBuffer[Object3D]()
@@ -51,8 +49,6 @@ class ThreeDView extends JPanel {
   private val lookAtPoint = new SimpleVector(0,0,0) // in jPCT coordinate system
   var customView = true // enable for allowing the user move the camera by themselves
   var preCustomView = customView // to enable custom view when we pause
-  var enableAnaglyph = false     // to enable anaglyph functions
-  var enableRealTime = false     // to enable real time 3D rendering
 
   var percentagemissDL = 0.0
   var averageSlack = 0.0
@@ -286,7 +282,7 @@ class ThreeDView extends JPanel {
             }
           }
           // add the anaglyph objects in current frame
-          if (enableAnaglyph)
+          if (acumen.ui.App.ui.getStartAnaglyph)
             for ((objectKey, objectToBuild) <- objectsCopy)
               if (world.getObjectByName(objectToBuild.getName) == null)
                 world.addObject(objectToBuild)
@@ -334,7 +330,7 @@ class ThreeDView extends JPanel {
       }
       g.drawString("FPS: " + lps.toString, 10, 30)
       // draw real time render information
-      if (enableRealTime) {
+      if (acumen.ui.App.ui.getStartRealTime) {
         g.drawString("Missed deadlines: %.4f".format(percentagemissDL * 100) + "%", 10, 45)
         g.drawString("Waiting time: %.4f".format(averageSlack * 100) + "%", 10, 60)
       }
@@ -706,7 +702,7 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D, playSpeed: Double,
     // get the object need to transform
     var transObject: Object3D = app.objects(objectKey)
     var anaglyphObject: Object3D =
-      if (app.enableAnaglyph) app.objectsCopy(objectKey)
+      if (acumen.ui.App.ui.getStartAnaglyph) app.objectsCopy(objectKey)
       else null
     var newAnaglyphObject = false
 
@@ -1005,7 +1001,7 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D, playSpeed: Double,
           app.scaleFactors)
       else
         setScaleFactors(size, newObject, name, app.scaleFactors)
-      if (app.enableAnaglyph) {
+      if (acumen.ui.App.ui.getStartAnaglyph) {
         newObject.setTransparencyMode(Object3D.TRANSPARENCY_MODE_ADD)
         newObject.setTransparency(0)
         val colorAverage = (color(0) + color(1) + color(2)) / 3
@@ -1128,7 +1124,7 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D, playSpeed: Double,
     if (app.objects.contains(c)) {
       if (app.world.getObjectByName(app.objects(c).getName) != null) {
         app.objectsToDelete += app.objects(c)
-        if (app.enableAnaglyph)
+        if (acumen.ui.App.ui.getStartAnaglyph)
           app.objectsToDelete += app.objectsCopy(c)
       }
       app.objectsCopy -= c
