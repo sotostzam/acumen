@@ -1,0 +1,108 @@
+#include "devices.acm"
+
+/**
+* Draws a cylinder between point p and q
+**/
+
+model cylinder () = 
+initially 
+  p      =  (0,0,0.01), 
+  q      =  (0,0,0),
+  _3D    =  (),
+  r      =  0.05,
+  l      =  0.01, alpha = 0, theta = pi/2,
+  x      =  0,    y     = 0, z     = 0,
+  flag   =  0
+always
+  _3D = (Cylinder center=(p+q)/2 radius=r 
+         length=l color=white rotation=(alpha,0,-theta)),
+
+  x = (p(0)-q(0)),
+  y = (p(1)-q(1)),
+  z = (p(2)-q(2)),
+
+  l = norm(p-q),
+  if l > 0 then alpha = asin(z/l)
+  else alpha = 0,
+  if y > 0 && alpha ~= 0 && x/(l*cos(alpha)) > -1 && x/(l*cos(alpha)) < 1 then 
+    theta = asin(x / (l * cos(alpha)))
+  elseif y < 0 && alpha ~= 0 && x/(l*cos(alpha)) > -1 && x/(l*cos(alpha)) < 1 then
+    theta = -asin(x / (l * cos(alpha))) + pi
+  noelse
+
+
+model Main (simulator) = 
+initially 
+  device  =  create iPhone(0) ,
+  x  =  0 ,
+  y  =  0 ,
+  z  =  0 ,
+  alpha  =  0 ,
+  beta   =  0 ,
+  gamma  =  0 ,
+  tbeta  =  0 ,
+  x''  =  0 ,
+  y''  =  0 ,
+  z''  =  0 ,
+  x'   =  0 ,
+  y'   =  0 ,
+  z'   =  0 ,
+  ax   =  0 ,
+  ay   =  0 ,
+  az   =  0 ,
+  tx   =  0 ,
+  ty   =  0 ,
+  tz   =  0 ,
+  normal_vector  =  (1,0,0) ,
+  link  =  create cylinder () ,
+  mode  =  "initializedevice" ,
+  _3D  =  ()
+always
+  match mode with [
+    "initializedevice" ->       
+      simulator.endTime + = 20 ,
+      simulator.timeStep + = 0.01 ,
+      mode + = "filter"
+  | "filter" -> 
+      alpha = device.alpha ,
+      beta  = device.beta ,
+      gamma = device.gamma ,
+      ax    = device.ax ,    // raw data from phone
+      ay    = device.ay ,
+      az    = device.az ,
+      // coordinate transformation
+      tx = (ax * (cos(alpha) * cos(gamma) + sin(alpha) * sin(beta) * sin(gamma))
+          + ay * sin(alpha) * cos(beta)
+          + az * (-cos(alpha) * sin(gamma) + sin(alpha) * sin(beta) * cos(gamma))) ,
+      ty = (ax * (-sin(alpha) * cos(gamma) + cos(device.alpha) * sin(beta) * sin(gamma))
+          + ay * cos(alpha) * cos(beta)
+          + az * (sin(alpha) * sin(gamma) + cos(alpha) * sin(beta) * cos(gamma))) ,
+      tz = (ax * (cos(beta) * sin(gamma))
+          + ay * (-sin(beta))
+          + az * cos(beta) * cos(gamma)) ,
+      // PID controller for position
+      x'' = (-20 * tx - 10 * x - 10 * x') ,
+      y'' = (-20 * ty - 10 * y - 10 * y') ,
+      z'' = 20 * (tz - 9.81) - 10 * z - 10 * z' ,
+                        
+      // For the angle problem, the player should identify it
+      if beta >= 0 && az < 0 then
+        beta = pi - beta 
+      elseif beta <= 0 && az < 0 then
+        beta = -pi - beta 
+      noelse,
+      tbeta = beta + pi/2 ,
+      // Calculate the normal vector
+      normal_vector = ((-cos(alpha) * sin(gamma) + sin(alpha) * sin(beta) * cos(gamma)),
+                       -(sin(alpha) * sin(gamma) + cos(alpha) * sin(beta) * cos(gamma)),
+                       (cos(beta) * cos(gamma))),
+      /*nvector_ori   = (atan2(normal_vector(0),normal_vector(2)),
+                         atan2(normal_vector(1),normal_vector(0)),
+                         atan2(normal_vector(1),normal_vector(2))) ,*/
+      link.p = (0,0,0) ,
+      link.q = normal_vector ,     
+      _3D = (Box center=(x,y,z)+(0.05,0,0) size=(0.3,0.2,0.05) color=(0.1,0.1,0.1) rotation=(beta,gamma,alpha))
+    ]
+
+
+      
