@@ -118,6 +118,7 @@ class Console extends ListView[(Msg, Boolean /*messageIsOld*/)] { self =>
     override def mouseClicked(e: MouseEvent) { 
       if (e.getClickCount == 2) self.peer.getSelectedValues.head match {
         case (m: Message, _) => scrollToError(m)
+        case _ =>
       }
     }
   }) 
