@@ -64,7 +64,7 @@ case class SomeMetadata
                 else
                   (Some(li pick ri), Some(lm pick rm), ls pick rs)
           }}).toMap
-        , Math.min(timeDomainHi, ttHi), Math.max(timeDomainHi, ttHi)
+        , Math.min(timeDomainLo, ttLo), Math.max(timeDomainHi, ttHi)
         , rr && rigorous, if (f isDefined) f else ff)
     } 
   }
