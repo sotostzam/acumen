@@ -10,7 +10,7 @@ import HypothesisResultFilter._
 abstract class Metadata(f: Option[HypothesisResultFilter] /* Optional filtering parameter */
   ) {
   def combine(that: Metadata): Metadata
-  final def reportAsString = new SummarizeHypothesisOutcomes().makeReport(this)
+  final def reportAsString = StringHypothesisOutcomeSummary.makeReport(this)
 }
 case object NoMetadata extends Metadata(None) {
   def combine(that: Metadata): Metadata = that
@@ -119,18 +119,17 @@ case class UncertainFailure(
     case f: CertainFailure   => f
   } 
 }
-class SummarizeHypothesisOutcomes {
+trait HypothesisOutcomeSummary {
 
   import HypothesisResultFilter._
   
-  // override these methods to customize the formatting in makeReport
-  def colorSuccess(m: String) = m
-  def colorUncertain(m: String) = m
-  def colorFailure(m: String) = m
-  def nbsp = " "
-  def br = "\n"
-  def formatReport(header: String, summary: String, report: String) : String = 
-    s"$header\n$summary\n$report\n"
+  // Implement these methods to customize the formatting in makeReport
+  def colorSuccess(m: String): String
+  def colorUncertain(m: String): String
+  def colorFailure(m: String): String
+  def nbsp: String
+  def br: String
+  def formatReport(header: String, summary: String, report: String) : String
 
   final def makeReport(md0: Metadata) : String = md0 match {
     case md:SomeMetadata => 
@@ -144,7 +143,7 @@ class SummarizeHypothesisOutcomes {
       val (report, successes, uncertains, failures) = md.hyp.toList.reverse.foldLeft(("", 0, 0, 0)) {
         case ((resReport, resS, resU, resF), ((id, cn, hn), ho)) =>
           /* Hypothesis outcome is a triple: ho = (iRes, mRes, aRes)
-           *  Results about tests for initial, momentary falsifications 
+           * Results about tests for initial, momentary falsifications 
            * and almost always satisfaction */
           
           val sid = s"(#${id.cid.toString}:${cn.x})".padTo(mLenCId + mLenCN + 2, nbsp).mkString
@@ -177,32 +176,35 @@ class SummarizeHypothesisOutcomes {
           /* Reports from initial and momentary tests*/
           lazy val subReports =
             (ho1._2 match { 
-               case Some(TestFailure(tm, em)) => List( (colorFailure("-"), fail("Falsified momentarily at", tm, em)) ) 
-               case _ => List()}) ++ 
+               case Some(TestFailure(tm, em)) => List( None -> fail("Falsified momentarily at", tm, em) ) 
+               case _ => Nil }) ++ 
             (ho1._1 match { 
-               case Some(InitialTestFailure(ei)) => List( (colorFailure("-"), fail("Falsified initially", "", ei)) ) 
-               case _ => List()}) 
+               case Some(InitialTestFailure(ei)) => List( None -> fail("Falsified initially", "", ei) ) 
+               case _ => Nil }) 
           
           /* (successes, uncertains, failures, report lines) */
           val (s, u, f, hoLines) = (ho1 : @unchecked) match {
 
             /* Traditional interpreter outcomes */
             case (Some(TestSuccess) | None, Some(TestSuccess) | None, TestSuccess) => 
-              (1, 0, 0, List( ("+", "Tested") ))
+              (1, 0, 0, List( Some("+") -> "Tested" ))
             case (_, _, TestSuccess) => 
-              (0, 1, 0, (if (md.f != Some(MostSignificant)) List( ("+", "Tested almost everywhere") ) else List()) ++ subReports ) 
+              (0, 1, 0, (if (md.f == Some(MostSignificant)) Nil else List( Some("+") -> "Tested almost everywhere" )) ++ subReports ) 
             case (_, _, TestFailure(t,e)) =>
-              (0, 0, 1, List( (colorFailure("-"), fail("Falsified at", t, e)) ) ++ subReports )
+              (0, 0, 1, List( Some(colorFailure("-")) -> fail("Falsified at", t, e) ) ++ subReports )
 
             /* Rigorous interpreter outcomes */
             case (None, None, CertainSuccess) => 
-              (1, 0, 0, List( ("+", "Proved") ))
+              (1, 0, 0, List( Some("+") -> "Proved" ))
             case (None, None, UncertainFailure(tLo, tHi, e)) => 
-              (0, 1, 0, List( (colorUncertain("?"), fail("Inconclusive over", s"[$tLo..$tHi]", e)) ))
+              (0, 1, 0, List( Some(colorUncertain("?")) -> fail("Inconclusive over", s"[$tLo..$tHi]", e) ))
             case (None, None, CertainFailure(tLo, tHi, e)) => 
-              (0, 0, 1, List( (colorFailure("-"), fail("Disproved over", s"[$tLo..$tHi]", e)) ))
+              (0, 0, 1, List( Some(colorFailure("-")) -> fail("Disproved over", s"[$tLo..$tHi]", e) ))
           }
-          ( hoLines.map{ case (symbol, sho) => s"$symbol $sid $shn $sho" }.mkString(br) + br + resReport
+          ( hoLines.map{ case (symbol, outcome) =>
+              if (symbol.nonEmpty) symbol.get + s" $sid $shn " + outcome
+              else nbsp * (mLenCId + mLenCN + mLenHN + 10) + outcome
+            }.mkString(br) + br + resReport
           , resS + s, resU + u, resF + f)
       }
       val domain = s" OVER [${md.timeDomainLo}..${md.timeDomainHi}]" 
@@ -223,4 +225,13 @@ class SummarizeHypothesisOutcomes {
       }
     case _ => "" // NoMetadata does not contribute to report
   }
+}
+object StringHypothesisOutcomeSummary extends HypothesisOutcomeSummary {
+  def colorSuccess(m: String) = m
+  def colorUncertain(m: String) = m
+  def colorFailure(m: String) = m
+  def nbsp = " "
+  def br = "\n"
+  def formatReport(header: String, summary: String, report: String) : String = 
+    s"$header\n$summary\n$report\n"
 }
