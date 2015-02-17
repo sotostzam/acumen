@@ -189,7 +189,7 @@ trait HypothesisOutcomeSummary {
             case (Some(TestSuccess) | None, Some(TestSuccess) | None, TestSuccess) => 
               (1, 0, 0, List( Some("+") -> "Tested" ))
             case (_, _, TestSuccess) => 
-              (0, 1, 0, (if (md.f == Some(MostSignificant)) Nil else List( Some("+") -> "Tested almost everywhere" )) ++ subReports ) 
+              (0, 1, 0, (if (md.f == Some(MostSignificant)) Nil else List( Some(colorUncertain("~")) -> "Tested almost everywhere" )) ++ subReports ) 
             case (_, _, TestFailure(t,e)) =>
               (0, 0, 1, List( Some(colorFailure("-")) -> fail("Falsified at", t, e) ) ++ subReports )
 
