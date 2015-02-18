@@ -1009,6 +1009,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
       p match {
         case Lit(CertainTrue | Uncertain) => Some(st)
         case Lit(CertainFalse) => None
+        case Op(Name("||",0), _) => Some(st)
         case Op(Name("&&",0), List(l,r)) => 
           (contract(st,l,prog,env,selfCId), contract(st,r,prog,env,selfCId)) match {
             case (Some(pil),Some(pir)) => pil intersect pir
