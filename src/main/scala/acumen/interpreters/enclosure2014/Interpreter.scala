@@ -26,6 +26,9 @@ import util.Canonical._
 import util.Conversions.{
   extractDouble, extractDoubles, extractId, extractInterval, extractIntervals
 }
+import util.DebugUtil.{
+  asProgram
+}
 import enclosure.{
   Abs, Box, Constant, Contract, Cos, Divide, Expression, Field, 
   Interval, Negate, Parameters, Rounding, Sin, Sqrt
@@ -1056,8 +1059,10 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
             contract(r, claim.c, prog, claim.env, claim.selfCId) map 
               (Right(_)) getOrElse Left("Empty enclosure after applying claim " + pprint(claim.c))
           } catch {
-            case e: AcumenError => throw e
-            case e: Throwable => Left("Error while applying claim " + pprint(claim.c) + ": " + e.getMessage) 
+            case e: Throwable =>
+              Logger.trace(Pretty pprint asProgram(st, prog))
+              if (e.isInstanceOf[AcumenError]) throw e
+              else Left("Error while applying claim " + pprint(claim.c) + ": " + e.getMessage) 
           }
         case _ => res
       }
