@@ -48,12 +48,14 @@ class CStoreCntrl(val semantics: SemanticsImpl[Interpreter], val interpreter: CS
       })
     }
 
-    def produce : Unit = {
-      val startTime = System.currentTimeMillis
-      val I = interpreter
-      val (p, store0, md0) = I.init(prog)
-      var opts = new CStoreOpts
-      val adder = new FilterDataAdder(opts) {
+    // CStoreFilterDataAdder for Legacy Interpreters 2014 or before
+    class LegacyCStoreFilterDataAdder(opts: CStoreOpts) extends CStoreFilterDataAdder(opts) {
+      override val initialShouldAddData = ShouldAddData.IfLast
+      override def addLast : Boolean = (shouldAddData == ShouldAddData.IfLast)
+    } 
+    
+    // CStoreFilterDataAdder 
+    class CStoreFilterDataAdder(opts : CStoreOpts) extends FilterDataAdder(opts) {
         outputRow = true
         var buffer2 = new ListBuffer[(CId,GObject)]
         override def noMoreData() = {
@@ -72,8 +74,16 @@ class CStoreCntrl(val semantics: SemanticsImpl[Interpreter], val interpreter: CS
           //buffer.size < bufferSize 
           false
         }
-      }
-      
+    }
+    
+    def produce : Unit = {
+      val startTime = System.currentTimeMillis
+      val I = interpreter
+      val (p, store0, md0) = I.init(prog)
+      var opts = new CStoreOpts
+      // Create the DataAdder
+      val adder = if (semantics.isOldSemantics) new LegacyCStoreFilterDataAdder(opts)
+                  else                          new CStoreFilterDataAdder(opts)
       // Add initial store to trace
       I.repr(store0).foreach{case (id,v) => adder.addData(id, v)}
       adder.continue

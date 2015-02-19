@@ -53,13 +53,13 @@ trait CStoreInterpreter extends Interpreter {
      *   in the first Discrete step that is output depending
      *   on Common/initStoreTxt 
      * - Thereafter, the DataAdder decides what should be output */
-    var shouldAddData = ShouldAddData.No 
+    adder.shouldAddData = adder.initialShouldAddData
     while (true) {
       step(p, st, md) match {
         case Data(resSt,resMd) => // If the simulation is not over
           cstore = repr(resSt) 
-          shouldAddData = adder.newStep(getResultType(cstore))
-          if (shouldAddData == ShouldAddData.Yes)
+          adder.shouldAddData = adder.newStep(getResultType(cstore))
+          if (adder.shouldAddData == ShouldAddData.Yes)
             cstore.foreach{case (id,obj) => adder.addData(id, obj)}
           if (!adder.continue)
             return (resSt,resMd,Double.NaN)
@@ -220,6 +220,16 @@ abstract class DataAdder {
    */
   def continue : Boolean
   /**
+   *  Decides how the data adding flag is initialized
+   *  it might become relevant (depending on addLast) 
+   *  if multistep immediately reaches Done
+   */
+  val initialShouldAddData = ShouldAddData.No
+  /**
+   *  Data adding flag
+   */
+  var shouldAddData = ShouldAddData.No
+  /**
    * Called to check if the last Store should be forcefully output
    */
   def addLast : Boolean = false
@@ -300,6 +310,7 @@ abstract class FilterDataAdder(var opts: CStoreOpts) extends DataAdder {
 
     // Legacy, used values are Yes/No -> Boolean
     if (outputRow)         ShouldAddData.Yes
+    else if (what == Last) ShouldAddData.IfLast
     else                   ShouldAddData.No
   }
   def mkFilter(e:GObject) : ((Name, GValue)) => Boolean = {
