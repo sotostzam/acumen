@@ -88,7 +88,7 @@ object SemanticsImpl {
       case S2014 => reference2014.Interpreter
       case S2015 => reference2015.Interpreter
     }
-    override val isOldSemantics = !(semantics == S2014 ||  semantics == S2015)
+    override val isOldSemantics = !(semantics == S2015)
     def interpreter() = i
   }
   case class Enclosure2014(contraction: Boolean) extends CStore {
@@ -202,9 +202,9 @@ object SemanticsImpl {
   def sel(si: SemanticsSel, ids: String*) = Sel(si,false,ids:_*)
   def exp(si: SemanticsSel, ids: String*) = Sel(si,true,ids:_*)
   val selections = 
-    List(sel(Ref2015, "2015 Reference", "reference2015"),
-         sel(Opt2015, "2015 Optimized", "optimized2015"),
-         sel(Ref2014, "2014 Reference", "reference2014", "reference", ""),
+    List(sel(Ref2015, "2015 Reference", "reference2015", "reference"),
+         sel(Opt2015, "2015 Optimized", "optimized2015", ""),
+         sel(Ref2014, "2014 Reference", "reference2014"),
          sel(Opt2014, "2014 Optimized", "optimized2014"),
          sel(Ref2013, "2013 Reference", "reference2013"),
          sel(Opt2013, "2013 Optimized", "optimized2013"),
