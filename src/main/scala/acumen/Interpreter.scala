@@ -53,7 +53,7 @@ trait CStoreInterpreter extends Interpreter {
      *   in the first Discrete step that is output depending
      *   on Common/initStoreTxt 
      * - Thereafter, the DataAdder decides what should be output */
-    var shouldAddData = ShouldAddData.No 
+    var shouldAddData = ShouldAddData.IfLast
     while (true) {
       step(p, st, md) match {
         case Data(resSt,resMd) => // If the simulation is not over
@@ -66,7 +66,7 @@ trait CStoreInterpreter extends Interpreter {
           st = resSt
           md = resMd
         case Done(resMd,endTime) => // If the simulation is over
-          if (adder.addLast)
+          if (shouldAddData == ShouldAddData.IfLast)
             cstore.foreach{case (id,obj) => adder.addData(id, obj)}
           adder.noMoreData()
           return (st,resMd,endTime)
@@ -145,7 +145,7 @@ trait RecursiveInterpreter extends Interpreter {
 //
 
 class CStoreOpts {
-  var outputRows = OutputRows.All
+  var outputRows = OutputRows.WhenChanged
   var continuousSkip = 0
   var outputInternalState = false // controls "parent", "nextChild", "seed1", "seed2" but not "className"
   var outputSimulatorState = false // does not control Simulator.time, Simulator.resultType, or Simulator.endTime
@@ -254,8 +254,8 @@ class StopAtFixedPoint extends DataAdder {
 }
 
 abstract class FilterDataAdder(var opts: CStoreOpts) extends DataAdder {
-  var prevStepType : ResultType = Initial
-  var curStepType : ResultType = Initial
+  var prevStepType : ResultType = Discrete
+  var curStepType : ResultType = Discrete
   var outputRow : Boolean = false
   var contCountdown : Int = 0
 
@@ -300,6 +300,7 @@ abstract class FilterDataAdder(var opts: CStoreOpts) extends DataAdder {
 
     // Legacy, used values are Yes/No -> Boolean
     if (outputRow)         ShouldAddData.Yes
+    else if(what == Last)  ShouldAddData.IfLast
     else                   ShouldAddData.No
   }
   def mkFilter(e:GObject) : ((Name, GValue)) => Boolean = {
