@@ -27,7 +27,7 @@ abstract class SemanticsSel
   def withArgs(args: List[String]) : SemanticsImpl[Interpreter]
   def argsHelpString : String
   val isOldSemantics = true // override and set to false if the
-                          // semantics should be enabled
+                            // semantics should be enabled
 }
 
 abstract class SemanticsImpl[+I <: Interpreter] extends SemanticsSel
@@ -120,6 +120,7 @@ object SemanticsImpl {
     override def argsHelpString = "[-<num threads>]"
     // "static|sharing" options is considered experimental and should not be documented
   }
+  // Optimized interpreters up to 2014
   case class Optimized(parDiscr: Boolean = true, contMode: ContMode = ContMode.Seq, 
                        contWithDiscr: Boolean = false) extends CStore
   {
@@ -127,7 +128,6 @@ object SemanticsImpl {
     val semantics = if (parDiscr == true && contMode == ContMode.Seq && contWithDiscr == false) S2013
                     else if (parDiscr == true && contMode == ContMode.IVP && contWithDiscr == false) S2014
                     else S2014.copy(id = None)
-    override val isOldSemantics = semantics != S2014
     def interpreter() = i
     override def withArgs(args: List[String]) : Optimized = args match {
       case "parDiscr" :: tail => copy(parDiscr = true).withArgs(tail)
@@ -217,7 +217,7 @@ object SemanticsImpl {
          sel(Enclosure(EVT,true), "2013 EVT (Contraction)", "enclosure-evt-contraction"),
          sel(Enclosure2014(false), "2014 Enclosure", "enclosure2014"),
          sel(Enclosure2014(true), "2014 Enclosure (Contraction)", "enclosure2014-contraction"),
-         exp(Optimized, "Optimized", "optimized"))
+         exp(Optimized2015(), "Optimized", "optimized"))
 
   def lookup(si: SemanticsSel) : Option[Sel] = 
     selections.find{case Sel(si0, _, _*) => si == si0}
