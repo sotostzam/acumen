@@ -161,8 +161,8 @@ class App extends SimpleSwingApplication {
   private val plotStyleLinesAction            = new Action(  "Lines")       { mnemonic =            VK_L; def apply = plotView.setPlotStyle(plot.Lines()) }
   private val plotStyleDotsAction             = new Action(  "Dots")        { mnemonic =            VK_D; def apply = plotView.setPlotStyle(plot.Dots()) }
   private val plotStyleBothAction             = new Action(  "Both")        { mnemonic =            VK_B; def apply = plotView.setPlotStyle(plot.Both()) }
-  private val reference2015Action             = mkActionMask("2015 Reference",                      VK_R, NONE,       shortcutMask | SHIFT_MASK, setSemantics(S.Ref2015))
-  private val reference2014Action             = mkActionMask("2014 Reference",                      VK_R, VK_R,       shortcutMask | SHIFT_MASK, setSemantics(S.Ref2014))
+  private val reference2015Action             = mkActionMask("2015 Reference",                      VK_R, VK_R,       shortcutMask | SHIFT_MASK, setSemantics(S.Ref2015))
+  private val reference2014Action             = mkActionMask("2014 Reference",                      VK_R, NONE,       shortcutMask | SHIFT_MASK, setSemantics(S.Ref2014))
   private val reference2013Action             = mkActionMask("2013 Reference",                      VK_R, NONE,       shortcutMask | SHIFT_MASK, setSemantics(S.Ref2013))
   private val reference2012Action             = mkActionMask("2012 Reference",                      VK_R, NONE,       shortcutMask | SHIFT_MASK, setSemantics(S.Ref2012))
   private val optimized2015Action             = mkActionMask("2015 Optimized",                      VK_O, NONE,       shortcutMask | SHIFT_MASK, setSemantics(S.Opt2015))
@@ -522,17 +522,19 @@ class App extends SimpleSwingApplication {
         enableWhenStopped(this)
         action = reference2015Action
       }
-      val ref2014 = new RadioMenuItem("") {
-        selected = false
-        enableWhenStopped(this)
-        action = reference2014Action
-      }
       val opt2015 = new RadioMenuItem("") {
         selected = false
         enableWhenStopped(this)
         action = optimized2015Action
       }
+      val ref2014 = new RadioMenuItem("") {
+        visible = Main.enableOldSemantics
+        selected = false
+        enableWhenStopped(this)
+        action = reference2014Action
+      }
       val opt2014 = new RadioMenuItem("") {
+        visible = Main.enableOldSemantics
         selected = false
         enableWhenStopped(this)
         action = optimized2014Action
@@ -611,23 +613,18 @@ class App extends SimpleSwingApplication {
       mnemonic = Key.S
       contents += new Menu("Traditional") {
         mnemonic = Key.T
-        contents += ref2014
-        contents += opt2014
+        contents += ref2015
+        contents += opt2015
       }
       contents += new Menu("Enclosure") {
         mnemonic = Key.E
-        contents ++= Seq(encPWL, encEVT, enc2014, new Separator, ls)
-      }
-      contents += new Menu("Experimental") {
-        mnemonic = Key.X
-        contents += ref2015
-        contents += opt2015
+        contents ++= Seq(enc2014, encPWL, encEVT, new Separator, ls)
       }
       if (Main.enableAllSemantics) {
         contents += new Menu("Deprecated") {
           visible = Main.enableOldSemantics
           mnemonic = Key.D
-          contents ++= Seq(ref2013, opt2013, new Separator, ref2012, opt2012, par2012)
+          contents ++= Seq(ref2014, opt2014, new Separator, ref2013, opt2013, new Separator, ref2012, opt2012, par2012)
         }
         contents ++= Seq(new Separator, lc)
       }
