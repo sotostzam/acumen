@@ -158,19 +158,19 @@ class ThreeDView extends JPanel {
       val newZ = new SimpleVector(0,1,0)
       
       // the transformation matrix
-      var S = new Matrix()
+      val S = new Matrix()
       S.setRow(0, newX.x, newX.y, newX.z, 0)
       S.setRow(1, newY.x, newY.y, newY.z, 0)
       S.setRow(2, newZ.x, newZ.y, newZ.z, 0) 
 
       invert match {
         case false => // the transformation
-          var v = newOrigin calcSub positionVector
+          val v = newOrigin calcSub positionVector
           v rotate S
           v
         case true  => // the inverse transformation
-          var v = positionVector
-          v rotate (S invert3x3)
+          val v = positionVector
+          v rotate (S invert3x3())
           newOrigin calcSub v 
       } }
     
@@ -204,8 +204,8 @@ class ThreeDView extends JPanel {
     val (x1, y1, z1) = convSPHtoXYZ((r1, theta1, phi1))
       
     // updated jPCT
-    if (click == 1) camera      setPosition transform(convXYZtoSV((x1, y1, z1)), lookAtPoint, true) 
-    else            lookAtPoint set         transform(convXYZtoSV((x1, y1, z1)), camera.getPosition, true) 
+    if (click == 1) camera      setPosition transform(convXYZtoSV((x1, y1, z1)), lookAtPoint, true)
+    else            lookAtPoint set         transform(convXYZtoSV((x1, y1, z1)), camera.getPosition, true)
     
     // look at the lookAtPoint
     lookAt(null,lookAtPoint)
@@ -690,7 +690,7 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D, playSpeed: Double,
    */
   def transformObject(objectKey: (CId, Int), valueList: List[_],
                       lastFrame: Int, currentFrame: Int) {
-    var objID = app.objects(objectKey).getID  // get the object ID
+    var objID = app.objects(objectKey).getName  // get the object ID
     /* Get the 3D information of the object at that frame	*/
     val (name: String, position: Array[Double], size: Array[Double],
     color: Array[Double], angle: Array[Double]) =
@@ -736,7 +736,7 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D, playSpeed: Double,
           transObject = app.objects(objectKey)
           setScaleFactors(Array(sizeToSetY,sizeToSetZ,sizeToSetX), transObject,
                           name, app.scaleFactors)
-          objID = app.objects(objectKey).getID // refresh the object ID
+          objID = app.objects(objectKey).getName // refresh the object ID
           transObject.setShadingMode(Object3D.SHADING_FAKED_FLAT)
           if (anaglyphObject != null) {
             anaglyphObject = transAnaglyphObject(transObject, objectKey)
@@ -761,13 +761,13 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D, playSpeed: Double,
           && checkResizeable(angle)) {
           // change the object in
           val (sizeToSetR, sizeToSetS) = (checkSize(size(0)), checkSize(size(1)))
-          app.objectsToDelete += app.world.getObject(objID)
+          app.objectsToDelete += app.objects(objectKey)
           app.scaleFactors -= app.objects(objectKey)
           app.objects(objectKey) = Primitives.getCylinder(20, abs(sizeToSetR.toFloat),
                                     abs(sizeToSetS / (2 * sizeToSetR)).toFloat)
           transObject = app.objects(objectKey)
           setScaleFactors(size, transObject, name, app.scaleFactors)
-          objID = app.objects(objectKey).getID // refresh the object ID
+          objID = app.objects(objectKey).getName // refresh the object ID
           transObject.setShadingMode(Object3D.SHADING_FAKED_FLAT)
           if (anaglyphObject != null) {
             anaglyphObject = transAnaglyphObject(transObject, objectKey)
@@ -790,13 +790,13 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D, playSpeed: Double,
           && checkResizeable(angle)) {
           // change the object in
           val (sizeToSetR, sizeToSetS) = (checkSize(size(0)), checkSize(size(1)))
-          app.objectsToDelete += app.world.getObject(objID)
+          app.objectsToDelete += app.objects(objectKey)
           app.scaleFactors -= app.objects(objectKey)
           app.objects(objectKey) = Primitives.getCone(20, abs(sizeToSetR.toFloat),
             abs(sizeToSetS / (sizeToSetR * 2)).toFloat)
           transObject = app.objects(objectKey)
           setScaleFactors(size, transObject, name, app.scaleFactors)
-          objID = app.objects(objectKey).getID // refresh the object ID
+          objID = app.objects(objectKey).getName// refresh the object ID
           if (anaglyphObject != null) {
             anaglyphObject = transAnaglyphObject(transObject, objectKey)
             newAnaglyphObject = true
@@ -818,12 +818,12 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D, playSpeed: Double,
           && checkResizeable(angle)) {
           // change the object in
           val sizeToSetR = checkSize(size(0))
-          app.objectsToDelete += app.world.getObject(objID)
+          app.objectsToDelete += app.objects(objectKey)
           app.scaleFactors -= app.objects(objectKey)
           app.objects(objectKey) = Primitives.getSphere(10, abs(sizeToSetR.toFloat))
           transObject = app.objects(objectKey)
           setScaleFactors(size, transObject, name, app.scaleFactors)
-          objID = app.objects(objectKey).getID // refresh the object ID
+          objID = app.objects(objectKey).getName // refresh the object ID
           if (anaglyphObject != null) {
             anaglyphObject = transAnaglyphObject(transObject, objectKey)
             newAnaglyphObject = true
@@ -848,12 +848,12 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D, playSpeed: Double,
           && checkResizeable(size) && checkResizeable(angle)) {
           // change the object in
           val sizeToSetR = checkSize(size(0))
-          app.objectsToDelete += app.world.getObject(objID)
+          app.objectsToDelete += app.objects(objectKey)
           app.scaleFactors -= app.objects(objectKey)
           app.objects(objectKey) = buildText(text, sizeToSetR)
           transObject = app.objects(objectKey)
           setScaleFactors(size, transObject, name, app.scaleFactors)
-          objID = app.objects(objectKey).getID // refresh the object ID
+          objID = app.objects(objectKey).getName // refresh the object ID
           if (anaglyphObject != null) {
             anaglyphObject = transAnaglyphObject(transObject, objectKey)
             newAnaglyphObject = true
@@ -878,12 +878,12 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D, playSpeed: Double,
           && checkResizeable(size) && checkResizeable(angle)) {
           // change the object in
           val sizeToSetR = checkSize(size(0) / 132)
-          app.objectsToDelete += app.world.getObject(objID)
+          app.objectsToDelete += app.objects(objectKey)
           app.scaleFactors -= app.objects(objectKey)
           app.objects(objectKey) = loadObj(path, sizeToSetR)
           transObject = app.objects(objectKey)
           setScaleFactors(size, transObject, name, app.scaleFactors)
-          objID = app.objects(objectKey).getID // refresh the object ID
+          objID = app.objects(objectKey).getName // refresh the object ID
           if (anaglyphObject != null) {
             anaglyphObject = transAnaglyphObject(transObject, objectKey)
             newAnaglyphObject = true
