@@ -211,27 +211,30 @@ class ThreeDData extends Publisher {
           this.endTime = extractDouble(value).toFloat
   }
 
-  /* Look for 3D camera's position and orientation in "Main" class */
-  def lookUpViewInfo(id: CId, o: GObject) {
-    //  CId(List()) is the main class
-    if (id.equals(new CId(List())))
-      for ((name, value) <- o)
-        if (name.x == "_3DView")
-          value match {
-            case VVector(l) =>
-              if (l.size > 0)
-                _3DView += new Tuple2(extractDoubles(l(0)).toArray,
-                  extractDoubles(l(1)).toArray)
-            case VLit(_) => // initialization is empty
-            case _ => throw _3DError(value)
-          }
+  /* Look for 3D camera's position and orientation in all the classes */
+  def lookUpViewInfo(id: CId, o: GObject, lastID: CId) {
+    if (lastID != id && lastID != null) {
+
+      throw _3DViewDuplicateError(id, lastID)
+    }
+    for ((name, value) <- o)
+      if (name.x == "_3DView")
+        value match {
+          case VVector(l) =>
+            if (l.size > 0)
+              _3DView += new Tuple2(extractDoubles(l(0)).toArray,
+                extractDoubles(l(1)).toArray)
+          case VLit(_) => // initialization is empty
+          case _ => throw _3DError(value)
+        }
   }
 
   /* Add _3D information of every class to _3DStore */
   def get3DData(s: GStore):Unit = {
+    var lastCId:CId = null
     for ((id, o) <- s) {
       lookUpEndTime(id, o)
-      lookUpViewInfo(id, o)
+      lookUpViewInfo(id, o, lastCId)
       /* Look for variable named _3D */
       for ((name, value) <- o) {
         if (name.x == "_3D") {
@@ -258,6 +261,7 @@ class ThreeDData extends Publisher {
           }
         }
       }
+      lastCId = id
     }
     if (!_3DData.contains(frameNumber))
       _3DData += frameNumber -> null

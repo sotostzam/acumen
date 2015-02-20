@@ -302,6 +302,11 @@ object Errors {
  case class _3DError(v:Value[_]) extends AcumenError {
     override def getMessage = 
 			pprint(v) + " is not a valid 3D object"
+ }
+
+  case class _3DViewDuplicateError(id: CId, lastID: CId) extends AcumenError {
+    override def getMessage =
+      "_3DView can not be defined in both Object #" + id + " and Object #" + lastID + "."
   }
 
   case class FromJSONError(s:String) extends AcumenError {
