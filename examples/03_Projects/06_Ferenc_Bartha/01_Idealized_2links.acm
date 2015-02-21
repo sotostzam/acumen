@@ -1,0 +1,92 @@
+// Model for the Idealized 2 links
+//
+// Author: Ferenc A. Bartha - 2015
+//
+model Main(simulator) = 
+
+initially
+  // First point:  mass, radius
+  m1 = 1, d1 = 1,
+  // Second poinr: mass, radius
+  m2 = 1, d2 = 1,
+
+  // Experiment:
+  //  - Initial alignment:
+  //      the two links are forming one 
+  //      line segment along the vertical axis
+  //  - Initial impulse:
+  //      the first point gets an initial velocity
+  //      the second point has 0 as initial velocity
+  //  - No external forces act thereafter
+  //
+  // Initial Conditions
+  theta1  = pi/2,
+  theta1' = -1,               // result of initial impulse
+  theta2  = 0,
+  theta2' = 2,                // this needs to counteract theta1' as 
+                              // is taken in relative coordinates
+                              // with respect to the first link
+                              //  =>
+                              // if theta1  = pi/2, theta2  = 0
+                              //    then
+                              // theta2' = - d1 / d2 * theta1' - theta1'
+
+  // A fun set of initial conditions (of course for another experiments)
+  // Set 1)
+// m1 = 1, d1 = 1, m2 = 1, d2 = 1, theta1 = pi/2, theta1' = -1, theta2 = 0, theta2' = 1,
+  // Set 2)
+// m1 = 3, d1 = 2, m2 = 1, d2 = 1, theta1 = pi/2, theta1' = -1, theta2 = 0, theta2' = 5,
+  // Set 3)
+// m1 = 3, d1 = 2, m2 = 1, d2 = 1, theta1 = pi/2, theta1' = -1, theta2 = 0, theta2' = 9,
+
+  // Technical stuff:
+  kinetic = 0,
+  theta1'' = 0, theta2'' = 0,
+  theta1acc = 0,
+  p1 = (0,1), p2 = (0,2),
+  _3D = ()
+
+always
+  // Simulation time
+  simulator.endTime+=100, 
+
+  // theta1'' from Equation (3)
+  // - technical solution to save us from even lengthier formulae
+  theta1acc = (   (d2/d1 * (2 * theta1' + theta2') * theta2' * sin(theta2)) 
+                  + (d2/d1 + cos(theta2)) * theta1'^2 * sin(theta2)   )
+               /
+              (m1/m2 + sin(theta2)^2), 
+
+  // First point
+  theta1'' = theta1acc,
+
+  // Second point relative to first link
+  // - we use theta1acc to substitute into Equation (2)
+  theta2'' = - (   (1 + d1/d2 * cos(theta2)) * theta1acc 
+                   + d1/d2 * theta1'^2 * sin(theta2)   ),
+
+  // Kinetic energy (Lagrangian)
+  // - just for display purposes, it doesn't affect the simulation
+  kinetic =   1/2 * (m1 + m2) * d1^2 * theta1'^2 
+            + 1/2 * m2 * d2^2 * (theta1' + theta2')^2 
+            + m2 * d1 * d2 * theta1' * (theta1' + theta2') * cos(theta2),
+
+  // Coordinate conversion and display
+  p1 = d1 * (cos(theta1), sin(theta1)),
+  p2 = p1 + d2 * (cos(theta1 + theta2), sin(theta1 + theta2)),
+  _3D = 
+  (
+    // First  point
+    Sphere   center= ( p1(0), 0, p1(1)) size=0.1 color=blue rotation=(0,0,0),  
+    // Second point
+    Sphere   center= ( p2(0), 0, p2(1)) size=0.1 color=blue rotation=(0,0,0),
+    // First link
+    Cylinder center= (p1(0)/2 , 0 , p1(1)/2) radius=0.01 length=d1 color=yellow 
+             rotation=(pi/2, -pi/2 + theta1, 0),
+    // Second link
+    Cylinder center= ((p2(0)+p1(0))/2 , 0 , (p2(1)+p1(1))/2) radius=0.01 length=d2 color=cyan 
+             rotation=(pi/2, -pi/2 + theta1 + theta2, 0),
+   // Kinetic energy
+   Text center = (-2.55, 3, -1) color=red content="Kinetic energy: ",
+   Text center = (-1.1, 3, -1) color=red content=kinetic
+) 
