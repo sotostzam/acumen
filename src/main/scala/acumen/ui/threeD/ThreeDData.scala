@@ -38,6 +38,8 @@ class ThreeDData extends Publisher {
   var _3DTexture = ""
   /* Camera's position and orientation*/
   var _3DView = mutable.ArrayBuffer[ViewInfo]()
+  /* CId of the object that contain _3DView info */
+  var _3DViewID:CId = null
   /* Used for synchronize real time 3D-visualisation with real world time */
   protected[threeD] var timeStep = 0.0
 
@@ -45,6 +47,7 @@ class ThreeDData extends Publisher {
     _3DData.clear()
     _3DView.clear()
     frameNumber = 0
+    _3DViewID = null
   }
 
   def isVectorOfNumbers(l: List[_]): Boolean = {
@@ -212,29 +215,31 @@ class ThreeDData extends Publisher {
   }
 
   /* Look for 3D camera's position and orientation in all the classes */
-  def lookUpViewInfo(id: CId, o: GObject, lastID: CId) {
-    if (lastID != id && lastID != null) {
-
-      throw _3DViewDuplicateError(id, lastID)
-    }
+  def lookUpViewInfo(id: CId, o: GObject) {
     for ((name, value) <- o)
       if (name.x == "_3DView")
         value match {
           case VVector(l) =>
-            if (l.size > 0)
+            if (l.size > 0) {
               _3DView += new Tuple2(extractDoubles(l(0)).toArray,
                 extractDoubles(l(1)).toArray)
+              if (_3DViewID != id && _3DViewID != null)
+                throw _3DViewDuplicateError(id, _3DViewID)
+              _3DViewID = id
+            }
           case VLit(_) => // initialization is empty
+            if (_3DViewID != id && _3DViewID != null)
+              throw _3DViewDuplicateError(id, _3DViewID)
+            _3DViewID = id
           case _ => throw _3DError(value)
         }
   }
 
   /* Add _3D information of every class to _3DStore */
   def get3DData(s: GStore):Unit = {
-    var lastCId:CId = null
     for ((id, o) <- s) {
       lookUpEndTime(id, o)
-      lookUpViewInfo(id, o, lastCId)
+      lookUpViewInfo(id, o)
       /* Look for variable named _3D */
       for ((name, value) <- o) {
         if (name.x == "_3D") {
@@ -261,7 +266,6 @@ class ThreeDData extends Publisher {
           }
         }
       }
-      lastCId = id
     }
     if (!_3DData.contains(frameNumber))
       _3DData += frameNumber -> null
