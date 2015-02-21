@@ -48,13 +48,16 @@ class CStoreCntrl(val semantics: SemanticsImpl[Interpreter], val interpreter: CS
       })
     }
 
-    // CStoreFilterDataAdder for Legacy Interpreters 2014 or before
+    // CStoreFilterDataAdder for Interpreters 2014 or before
     class LegacyCStoreFilterDataAdder(opts: CStoreOpts) extends CStoreFilterDataAdder(opts) {
       override val initialShouldAddData = ShouldAddData.IfLast
       override def addLast : Boolean = (shouldAddData == ShouldAddData.IfLast)
+      prevStepType = Discrete
+      curStepType = Discrete
+      shouldAddData = ShouldAddData.IfLast
     } 
     
-    // CStoreFilterDataAdder 
+    // CStoreFilterDataAdder - uses the "buffer" of the actor "init"
     class CStoreFilterDataAdder(opts : CStoreOpts) extends FilterDataAdder(opts) {
         outputRow = true
         var buffer2 = new ListBuffer[(CId,GObject)]
@@ -82,8 +85,8 @@ class CStoreCntrl(val semantics: SemanticsImpl[Interpreter], val interpreter: CS
       val (p, store0, md0) = I.init(prog)
       var opts = new CStoreOpts
       // Create the DataAdder
-      val adder = if (semantics.isOldSemantics) new LegacyCStoreFilterDataAdder(opts)
-                  else                          new CStoreFilterDataAdder(opts)
+      val adder = if (semantics.isOldSemantics) {opts.outputRows = OutputRows.WhenChanged; new LegacyCStoreFilterDataAdder(opts)} 
+                  else                                                                     new CStoreFilterDataAdder(opts)
       // Add initial store to trace
       I.repr(store0).foreach{case (id,v) => adder.addData(id, v)}
       adder.continue

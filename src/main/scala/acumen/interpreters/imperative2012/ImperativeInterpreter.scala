@@ -9,7 +9,7 @@ import acumen.Pretty._
 import acumen.util.Conversions._
 import acumen.util.Random
 import acumen.interpreters.Common.{ 
-  classDef, evalOp, initStoreImpr, magicClass, visibleParametersImpr 
+  classDef, evalOp, initStoreInterpreter, magicClass, visibleParametersMap 
 }
 import acumen.util.Canonical.{
   childrenOf, 
@@ -38,10 +38,11 @@ class ImperativeInterpreter extends CStoreInterpreter {
   def fromCStore (cs:CStore, root:CId) : Store = Common.fromCStore(cs, root)
   val initStepType = Discrete
   val timeStep = 0.01
-  override def visibleParameters = visibleParametersImpr(initStepType, timeStep)
+  val outputRows = "WhenChanged"
+  override def visibleParameters = visibleParametersMap(initStoreInterpreter(initStep = initStepType, initTimeStep = timeStep, initOutputRows = outputRows, isImperative = true))
 
   def init(prog: Prog): (Prog, Store, Metadata) = {
-    val magic = fromCStore(initStoreImpr(initStepType, timeStep), CId(0))
+    val magic = fromCStore(initStoreInterpreter(initStep = initStepType, initTimeStep = timeStep, initOutputRows = outputRows, isImperative = true), CId(0))
     /* WARNING: the following line works because there is no children access check
        if one of the instructions of the provate section tries to access magic,
        and there was a check, this would crash (which we don't want) */

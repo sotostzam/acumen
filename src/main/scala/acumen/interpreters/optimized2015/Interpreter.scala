@@ -38,11 +38,12 @@ class Interpreter extends CStoreInterpreter {
   def fromCStore (cs:CStore, root:CId) : Store = Common.fromCStore(cs, root)
   val initStepType = Initial
   val timeStep = 0.015625
-  override def visibleParameters = visibleParametersImpr(initStepType, timeStep)
+  val outputRows = "All"
+  override def visibleParameters = visibleParametersMap(initStoreInterpreter(initStep = initStepType, initTimeStep = timeStep, initOutputRows = outputRows, isImperative = true))
 
   def init(prog: Prog): (Prog, Store, Metadata) = {
     checkContinuousAssignmentToSimulator(prog)
-    val magic = fromCStore(initStoreImpr(initStepType, timeStep), CId(0))
+    val magic = fromCStore(initStoreInterpreter(initStep = initStepType, initTimeStep = timeStep, initOutputRows = outputRows, isImperative = true), CId(0))
     val cprog = CleanParameters.run(prog, CStoreInterpreterType)
     val sprog = Simplifier.run(cprog)
     val (sd1, sd2) = Random.split(Random.mkGen(0))
@@ -259,7 +260,7 @@ class Interpreter extends CStoreInterpreter {
   // determine when teh simulation is done
   override def multiStep(p: Prog, st: Store, md: Metadata, adder: DataAdder): (Store, Metadata, Double) = {
     setMetadata(st, md)
-    var shouldAddData = ShouldAddData.No
+    adder.shouldAddData = adder.initialShouldAddData
     var endTime = Double.NaN
     @tailrec def step0() : Unit = {
       val res = localStep(p, st)
@@ -269,8 +270,8 @@ class Interpreter extends CStoreInterpreter {
         adder.noMoreData()
         endTime = getEndTime(getSimulator(st))
       } else {
-        shouldAddData = adder.newStep(res)
-        if (shouldAddData == ShouldAddData.Yes)
+        adder.shouldAddData = adder.newStep(res)
+        if (adder.shouldAddData == ShouldAddData.Yes)
           addData(st, adder)
         if (adder.continue)
           step0()

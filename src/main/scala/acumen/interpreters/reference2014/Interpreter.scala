@@ -37,8 +37,9 @@ object Interpreter extends acumen.CStoreInterpreter {
   def repr(st:Store) = st
   def fromCStore(st:CStore, root:CId) = st
   val initStepType = Discrete
-  val initTimeStep = 0.01
-  override def visibleParameters = visibleParametersImpr(initStepType, initTimeStep) + ("method" -> VLit(GStr(RungeKutta)))
+  val timeStep = 0.01
+  val outputRows = "WhenChanged"
+  override def visibleParameters = visibleParametersMap(initStoreInterpreter(initStep = initStepType, initTimeStep = timeStep, initOutputRows = outputRows, isImperative = false)) + ("method" -> VLit(GStr(RungeKutta)))
 
   /* initial values */
   val emptyStore : Store = HashMap.empty
@@ -365,7 +366,7 @@ object Interpreter extends acumen.CStoreInterpreter {
     val mprog = Prog(magicClass :: sprog.defs)
     val (sd1,sd2) = Random.split(Random.mkGen(0))
     val (id,_,st1) = 
-      mkObj(cmain, mprog, None, sd1, List(VObjId(Some(CId(0)))), 1)(initStoreRef(initStepType, initTimeStep))
+      mkObj(cmain, mprog, None, sd1, List(VObjId(Some(CId(0)))), 1)(initStoreInterpreter(initStep = initStepType, initTimeStep = timeStep, initOutputRows = outputRows, isImperative = false))
     val st2 = changeParent(CId(0), id, st1)
     val st3 = changeSeed(CId(0), sd2, st2)
     val st4 = countVariables(st3)

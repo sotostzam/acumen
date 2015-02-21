@@ -393,12 +393,13 @@ object Common {
 
   val magicClassTxt =
     """model Simulator(time, timeStep, outputRows, continuousSkip, endTime, resultType, lastCreatedId)="""
-  def initStoreTxt(initStep: ResultType, timeStep: Double) =
-    s"""#0.0 { className = Simulator, parent = %s, time = 0.0, timeStep = $timeStep, outputRows = "All", hypothesisReport = "Comprehensive", continuousSkip = 0,endTime = 10.0, resultType = @$initStep, nextChild = 0,method = "$RungeKutta", seed1 = 0, seed2 = 0, variableCount = 0 }"""
-
   lazy val magicClass = Parser.run(Parser.classDef, magicClassTxt)
-  def initStoreRef(initStep: ResultType, initTimeStep: Double) = Parser.run(Parser.store, initStoreTxt(initStep, initTimeStep).format("#0"))
-  def initStoreImpr(initStep: ResultType, initTimeStep: Double) = Parser.run(Parser.store, initStoreTxt(initStep, initTimeStep).format("none"))
+
+  def initStoreTxt(initStep: ResultType, timeStep: Double, outputRows: String, hypothesisReport: String, method: String) = 
+    s"""#0.0 { className = Simulator, parent = %s, time = 0.0, timeStep = $timeStep, outputRows = "$outputRows", hypothesisReport = "$hypothesisReport", continuousSkip = 0,endTime = 10.0, resultType = @$initStep, nextChild = 0,method = "$method", seed1 = 0, seed2 = 0, variableCount = 0 }"""
+  def initStoreInterpreter(initStep: ResultType = Initial, initTimeStep: Double = 0.015625, initOutputRows: String = "All", 
+                       initHypothesisReport: String = "Comprehensive", initMethod: String = RungeKutta, isImperative: Boolean) =
+      Parser.run(Parser.store, initStoreTxt(initStep, initTimeStep, initOutputRows, initHypothesisReport, initMethod).format( if (isImperative) "none" else "#0" ))
   
   // Register simulator parameters that should appear as completions in the code editor 
   // for any interpreter. Additional parameters are taken from Interpreter.parameters. 
@@ -408,8 +409,6 @@ object Common {
     val initialMagic = initStore(magicId(initStore))
     visibleSimulatorFields.map(p => (p, initialMagic(name(p)))).toMap
   }
-  def visibleParametersRef(initStep: ResultType, initTimeStep: Double) = visibleParametersMap(initStoreRef(initStep, initTimeStep))
-  def visibleParametersImpr(initStep: ResultType, initTimeStep: Double) = visibleParametersMap(initStoreImpr(initStep, initTimeStep))
                                   
   // Register valid simulator parameters
   val simulatorFields = visibleSimulatorFields ::: List("outputRows", "hypothesisReport", "continuousSkip", "resultType", "lastCreatedId", "method", "variableCount")

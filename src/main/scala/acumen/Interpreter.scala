@@ -96,8 +96,8 @@ trait CStoreInterpreter extends Interpreter {
     st #:: (step(p, st, md) match {
         case Done(_,_)      => empty
         case Data(st1, md1) => 
-		      val (st2, md2) = exposeExternally(st1, md1)
-		      lazyLoop(p, st2, md2)
+          val (st2, md2) = exposeExternally(st1, md1)
+          lazyLoop(p, st2, md2)
       })
   }
 
@@ -308,9 +308,8 @@ abstract class FilterDataAdder(var opts: CStoreOpts) extends DataAdder {
       }
     }
 
-    // Legacy, used values are Yes/No -> Boolean
     if (outputRow)         ShouldAddData.Yes
-    else if (what == Last) ShouldAddData.IfLast
+    else if (what == Last) ShouldAddData.IfLast // Legacy
     else                   ShouldAddData.No
   }
   def mkFilter(e:GObject) : ((Name, GValue)) => Boolean = {
@@ -333,6 +332,16 @@ class FilterRowsDataAdder(opts: CStoreOpts) extends FilterDataAdder(opts) {
   def continue = !outputRow 
 }
 
+// Legacy DumpSample for 2014 and before
+class LegacyDumpSample(out: java.io.PrintStream) extends DumpSample(out) {
+   override val initialShouldAddData = ShouldAddData.IfLast
+   override def addLast : Boolean = (shouldAddData == ShouldAddData.IfLast)
+   prevStepType = Discrete
+   curStepType = Discrete
+   shouldAddData = ShouldAddData.IfLast
+}
+
+// Filter used for regression tests
 class DumpSample(out: java.io.PrintStream) extends DataAdder {
   val pp = new Pretty
   pp.filterStore = true
@@ -340,8 +349,8 @@ class DumpSample(out: java.io.PrintStream) extends DataAdder {
   var stepNum = -1
   var discrStepNum = -1
   var last : CStore = null
-  var prevStepType : ResultType = Discrete
-  var curStepType : ResultType = Discrete
+  var prevStepType : ResultType = Initial
+  var curStepType : ResultType = Initial
   var useResult : ShouldAddData.Value =  ShouldAddData.No
   var store = new scala.collection.mutable.MutableList[(CId, GObject)]
   
