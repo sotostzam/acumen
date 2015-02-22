@@ -44,22 +44,23 @@ case class SomeMetadata
                , "Can not combine SomeMetadata with non-overlapping time domains.")
         SomeMetadata(
           (this.hyp.keySet union th.keySet).map(k => k -> {
-             /* (!) The new metadata is not from a Continuous state, 
+             /* (!) The new Metadata is not from a Continuous state, 
               * thus former failure at the very same time is 
               * not severe but only momentary */
-            def thisIsMomentary(ho: HypothesisOutcome) = 
-              timeDomainHi == ttHi && ho.isInstanceOf[TestFailure]
+            def thisIsMomentary(ho: HypothesisOutcome, thHi : Double, ttHi : Double) = (thHi == ttHi, ho) match {
+              case (true, TestFailure(t,e)) => t == thHi
+              case _                        => false }
             ((this.hyp get k, th get k): @unchecked) match {
               case (Some(o @ (i, m, s)), None) =>
-                if (thisIsMomentary(s))
+                if (thisIsMomentary(s, timeDomainHi, ttHi))
                   (i, Some(s pick m), TestSuccess) // (!)
                 else
                   o
               case (None, Some(o)) => o
               case (Some((Some(li), Some(lm), ls))
                    ,Some((Some(ri), Some(rm), rs))) =>
-                if (thisIsMomentary(ls))
-                  (Some(li pick ri), Some(lm pick ls pick rm), rs)  // (!)
+                if (thisIsMomentary(ls, timeDomainHi, ttHi)) 
+                  (Some(li pick ri), Some(lm pick ls pick rm), rs) // (!)
                                                // ^^ this has priority over the new element rm so it gets picked first
                 else
                   (Some(li pick ri), Some(lm pick rm), ls pick rs)
