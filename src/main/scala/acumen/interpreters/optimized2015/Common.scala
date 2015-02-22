@@ -131,6 +131,9 @@ object Common {
     var creates = new ArrayBuffer[Any];
     /** Metadata */
     var metaData : Metadata = NoMetadata
+    /** Hypotheses results accumulated during one state */
+    type HypResult = Map[ (CId, ClassName, Option[String]), (Option[HypothesisOutcome], Option[HypothesisOutcome], HypothesisOutcome) ]
+    var stepHypothesisResults : HypResult = Map.empty
     
     def reset(doD : EvalMode, doT: EvalMode, doI: EvalMode) {
       usePrev = true
@@ -717,10 +720,8 @@ object Common {
     val hypRes = computeHypothesisOutcomes(
       evalExpr(e, p, env), time, getResultType(magic),
       dots(e).toSet[Dot].map(d => d -> (evalExpr(d, p, env) : GValue)))
-    val md = SomeMetadata(Map(((self.cid, getClassOf(self), s), hypRes)),
-                          magic.phaseParms.hypTimeDomainLeft, time,
-                          false, None)
-    magic.phaseParms.metaData = magic.phaseParms.metaData.combine(md)
+    val md = Map(((self.cid, getClassOf(self), s), hypRes))
+    magic.phaseParms.stepHypothesisResults = magic.phaseParms.stepHypothesisResults ++ md
     noChange
   }
 

@@ -50,9 +50,23 @@ class Interpreter extends CStoreInterpreter {
     val mainObj = mkObj(cmain, sprog, IsMain, sd1, List(VObjId(Some(magic))), magic, 1)
     magic.seed = sd2
     val mprog = Prog(magicClass :: sprog.defs)
-    (mprog , mainObj, NoMetadata)
+    checkHypothesis(magic.phaseParms, mprog, magic, mainObj)
+    (mprog , mainObj, magic.phaseParms.metaData)
   }
 
+  // Hypotheses check
+  def checkHypothesis(pp : PhaseParms, p: Prog, magic : Store, st: Object) {
+      pp.reset(Ignore, Ignore, Ignore)
+      pp.usePrev = false
+      pp.doHypothesis = true
+      magic.phaseParms.stepHypothesisResults = Map.empty
+      traverse(evalStep(p, magic), st)
+      val md = SomeMetadata(magic.phaseParms.stepHypothesisResults,
+                          magic.phaseParms.hypTimeDomainLeft, getTime(magic),
+                          false, None)
+      magic.phaseParms.metaData = magic.phaseParms.metaData.combine(md)
+    }
+  
   def localStep(p: Prog, st: Store): ResultType = {
     val magic = getSimulator(st)
   
@@ -121,13 +135,6 @@ class Interpreter extends CStoreInterpreter {
       }
     } finally {
       pp.usePrev = true
-    }
-
-    def checkHypothesis() {
-      pp.reset(Ignore, Ignore, Ignore)
-      pp.usePrev = false
-      pp.doHypothesis = true
-      traverse(evalStep(p, magic), st)
     }
 
     if (getResultType(magic) == FixedPoint && getTime(magic) >= getEndTime(magic)) {
@@ -241,7 +248,7 @@ class Interpreter extends CStoreInterpreter {
 
       setResultType(magic, rt)
 
-      if (rt != FixedPoint) checkHypothesis()      
+      if (rt != FixedPoint) checkHypothesis(pp, p, magic, st)      
 
       rt
     }
