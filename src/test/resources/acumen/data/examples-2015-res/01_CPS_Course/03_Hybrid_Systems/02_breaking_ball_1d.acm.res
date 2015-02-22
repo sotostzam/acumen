@@ -5,7 +5,7 @@
   mode = "Fly",
   x = 100,
   x' = 0,
-  x'' = 0
+  x'' = -9.800000
 }
 ------------------------------0
 #0 { className = Main, mode = "Persist", simulator = #0.0 }
@@ -25,20 +25,5 @@
   x'' = -9.800000
 }
 ------------------------------1507
-#0 { className = Main, mode = "Persist", simulator = #0.0 }
-#0.0 { className = Simulator, time = 10.002000 }
-#0.1.0 {
-  className = Ball,
-  mode = "Fly",
-  x = 95.427536,
-  x' = -9.466800,
-  x'' = -9.800000
-}
-#0.1.1 {
-  className = Ball,
-  mode = "Fly",
-  x = 95.427536,
-  x' = -9.466800,
-  x'' = -9.800000
-}
+
 ------------------------------3335
