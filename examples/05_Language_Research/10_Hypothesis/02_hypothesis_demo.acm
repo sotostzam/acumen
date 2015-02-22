@@ -2,6 +2,7 @@
 // outcomes of hypothesis checks [2015 Semantics]
 model Main(simulator) =
 initially
+  t = 0, t' = 1,
   a = 0, a' = 1,
   b = 1, 
   c = 0, 
@@ -31,6 +32,10 @@ always
   //simulator.hypothesisReport+ = "Ignore",
 
   // --------------------------- Dynamics ---------------------------
+
+  // in place of simulator.time
+  t' = 1,
+  
   // dynamics for a
   a' = 1,
   if a >= 0.5 then a+ = 0 noelse, 
@@ -60,13 +65,13 @@ always
   f = a + 1,
 
   // dynamics for g
-  if simulator.time >= 1.0 then 
+  if t >= 1.0 then 
     g = a + 1
   else 
     g = a,
 
   // dynamics for h
-  if simulator.time == 1.0 then 
+  if t == 1.0 then 
     h+ = a + 1
   else 
     h = a,
