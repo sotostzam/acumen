@@ -1,4 +1,4 @@
-model Palwaysulum() = 
+model Pendulum() = 
 initially
   M  =  1 ,
   m  =  1 ,
@@ -39,7 +39,7 @@ always
 
 model Main(simulator) = 
 initially
-  palwaysulum = create Palwaysulum() 
+  palwaysulum = create Pendulum() 
 always
   simulator.timeStep + = 0.01 ,
   simulator.endTime + =10
