@@ -113,6 +113,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
       case (le: Real, re: Real) => Some(le /\ re)
       case (ls: GStrEnclosure, rs: GStrEnclosure) => Some(GStrEnclosure(ls.start union rs.start, ls.range union rs.range, ls.end union rs.end))
       case (ls: GIntEnclosure, rs: GIntEnclosure) => Some(GIntEnclosure(ls.start union rs.start, ls.range union rs.range, ls.end union rs.end))
+      case (ls: GBoolEnclosure, rs: GBoolEnclosure) => Some(GBoolEnclosure(ls.start union rs.start, ls.range union rs.range, ls.end union rs.end))
     }).get
     /** Merge e and that Enclosure using ce to combine scalar enclosure values. */
     def merge(that: Enclosure, ce: (GEnclosure[_], GEnclosure[_]) => Option[GEnclosure[_]]): Option[Enclosure] = {
@@ -164,6 +165,8 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
                   l contains r
                 case (VLit(l: GIntEnclosure), Some(VLit(r: GIntEnclosure))) => 
                   l contains r
+                case (VLit(l: GBoolEnclosure), Some(VLit(r: GBoolEnclosure))) => 
+                  l contains r
                 case (VLit(_:GStr) | _:VResultType | _:VClassName, tv @ Some(VLit(_:GStr) | _:VResultType | _:VClassName)) => 
                   v == tv
                 case (VObjId(Some(o1)), Some(VObjId(Some(o2)))) => 
@@ -179,11 +182,15 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
       case (le: Real, re: Real) => le intersect re 
       case (ls: GStrEnclosure, rs: GStrEnclosure) => (ls.start intersect rs.start, ls.enclosure intersect rs.enclosure, ls.end intersect rs.end) match {
         case (start, enclosure, end) if start.nonEmpty && enclosure.nonEmpty && end.nonEmpty => Some(GStrEnclosure(start,enclosure,end))
-        case _ => sys.error(s"Empty intersection between $ls and $rs") // FIXME Use Either to propagate error information 
+        case _ => sys.error(s"Empty intersection between string enclosures $ls and $rs") // FIXME Use Either to propagate error information 
       }
       case (ls: GIntEnclosure, rs: GIntEnclosure) => (ls.start intersect rs.start, ls.enclosure intersect rs.enclosure, ls.end intersect rs.end) match {
         case (start, enclosure, end) if start.nonEmpty && enclosure.nonEmpty && end.nonEmpty => Some(GIntEnclosure(start, enclosure, end))
-        case _ => sys.error(s"Empty intersection between $ls and $rs") // FIXME Use Either to propagate error information 
+        case _ => sys.error(s"Empty intersection between integer enclosures $ls and $rs") // FIXME Use Either to propagate error information 
+      }
+      case (ls: GBoolEnclosure, rs: GBoolEnclosure) => (ls.start intersect rs.start, ls.enclosure intersect rs.enclosure, ls.end intersect rs.end) match {
+        case (start, enclosure, end) if start.nonEmpty && enclosure.nonEmpty && end.nonEmpty => Some(GBoolEnclosure(start, enclosure, end))
+        case _ => sys.error(s"Empty intersection between boolean enclosures $ls and $rs") // FIXME Use Either to propagate error information 
       }
     })
     /** Field-wise projection. Replaces each enclosure with a new one corresponding to its start-time interval. */
@@ -191,18 +198,21 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
       case ce: Real => Real(ce.start) 
       case ui: GIntEnclosure => GIntEnclosure(ui.start, ui.start, ui.start) 
       case us: GStrEnclosure => GStrEnclosure(us.start, us.start, us.start) 
+      case us: GBoolEnclosure => GBoolEnclosure(us.start, us.start, us.start) 
     }
     /** Field-wise projection. Replaces each enclosure with a new one corresponding to its end-time interval. */
     def end(): Enclosure = map{ 
       case ce: Real => Real(ce.end) 
       case ui: GIntEnclosure => GIntEnclosure(ui.end, ui.end, ui.end) 
       case us: GStrEnclosure => GStrEnclosure(us.end, us.end, us.end) 
+      case us: GBoolEnclosure => GBoolEnclosure(us.end, us.end, us.end) 
     }
     /** Field-wise range. */
     def range(): Enclosure = map{ 
       case ce: Real => Real(ce.enclosure) 
       case ui: GIntEnclosure => GIntEnclosure(ui.range, ui.range, ui.range) 
       case us: GStrEnclosure => GStrEnclosure(us.range, us.range, us.range) 
+      case us: GBoolEnclosure => GBoolEnclosure(us.range, us.range, us.range) 
     }
     /** Returns a copy of this where f has been applied to all enclosure fields. */
     def map(f: GEnclosure[_] => GEnclosure[_]) =
@@ -316,23 +326,32 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
     def apply(d: Double)(implicit rnd: Rounding): Real = GConstantRealEnclosure(Interval(d))
     def apply(i: Int)(implicit rnd: Rounding): Real = GConstantRealEnclosure(Interval(i))
   }
-  abstract class GConstantDiscreteEncosure[T](val start: Set[T], val enclosure: Set[T], val end: Set[T]) extends GDiscreteEnclosure[T] {
+  abstract class GConstantDiscreteEnclosure[T](val start: Set[T], val enclosure: Set[T], val end: Set[T]) extends GDiscreteEnclosure[T] {
     def apply(t: Interval) = range
     def range = start union enclosure union end
     def isThin = start.size == 1 && enclosure.size == 1 && end.size == 1
     def show = s"{${enclosure mkString ","}}"
-    def contains(that: GConstantDiscreteEncosure[T]): Boolean =
+    def contains(that: GConstantDiscreteEnclosure[T]): Boolean =
       (that.start subsetOf this.start) && (that.enclosure subsetOf this.enclosure) && (that.end subsetOf this.end)
   }
   case class GStrEnclosure(override val start: Set[String], override val enclosure: Set[String], override val end: Set[String]) 
-    extends GConstantDiscreteEncosure[String](start, enclosure, end)
+    extends GConstantDiscreteEnclosure[String](start, enclosure, end)
   object GStrEnclosure {
     def apply(ss: Set[String]): GStrEnclosure = GStrEnclosure(ss, ss, ss)
     def apply(s: String): GStrEnclosure = GStrEnclosure(Set(s))
   }
   case class GIntEnclosure(override val start: Set[Int], override val enclosure: Set[Int], override val end: Set[Int]) 
-    extends GConstantDiscreteEncosure[Int](start, enclosure, end)
-  
+    extends GConstantDiscreteEnclosure[Int](start, enclosure, end)
+  case class GBoolEnclosure(override val start: Set[Boolean], override val enclosure: Set[Boolean], override val end: Set[Boolean])  
+    extends GConstantDiscreteEnclosure[Boolean](start,enclosure,end)
+  object GBoolEnclosure {
+    def apply(ss: Set[Boolean]): GBoolEnclosure = GBoolEnclosure(ss, ss, ss)
+    def apply(s: Boolean): GBoolEnclosure = GBoolEnclosure(Set(s))
+  }
+  val CertainTrue = GBoolEnclosure(Set(true), Set(true), Set(true))
+  val CertainFalse = GBoolEnclosure(Set(false), Set(false), Set(false))
+  val Uncertain = GBoolEnclosure(Set(true, false), Set(true, false), Set(true, false))
+
   /* Set-up */
   
   /**
@@ -563,7 +582,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
       case "max" => Interval.max(l,r)
     }
     // Based on implementations from acumen.interpreters.enclosure.Relation
-    def implemBool(f:String, l:Interval, r:Interval): GUncertainBool = {
+    def implemBool(f:String, l:Interval, r:Interval): GBoolEnclosure = {
       lazy val (startL: Interval, endL: Interval) = vl match {
         case ce: Real => (ce.start, ce.end)
         case _ => (l,l)
@@ -794,7 +813,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
       if (classOf(co) == cmagic) Map[String,(CId,Name)]()
       else co.filter{
         case (n,_) if bannedFieldNames contains n => false
-        case (_, VLit(_: GStr) | VLit(_: GStrEnclosure) | _:VObjId[_]) => false
+        case (_, VLit(_: GStr) | VLit(_: GStrEnclosure) | VLit(_: GBoolEnclosure) | _:VObjId[_]) => false
         case (_, VLit(_: Real)) => true
         case (n,v) =>
           val typ = "type " + v.getClass.getSimpleName
@@ -1008,6 +1027,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
       p match {
         case Lit(CertainTrue | Uncertain) => Some(st)
         case Lit(CertainFalse) => None
+        case Op(Name("||",0), _) => Some(st)
         case Op(Name("&&",0), List(l,r)) => 
           (contract(st,l,prog,env,selfCId), contract(st,r,prog,env,selfCId)) match {
             case (Some(pil),Some(pir)) => pil intersect pir
@@ -1018,28 +1038,34 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
           val rv = evalExpr(r, env, st)
           lazy val le = acumenExprToExpression(l,selfCId,env,st,prog)
           lazy val re = acumenExprToExpression(r,selfCId,env,st,prog)
-          val smallerBox = (op,lv,rv) match {
-            // Based on acumen.interpreters.enclosure.Contract.contractEq 
-            case ("==", VLit(_: GStrEnclosure), VLit(_: GStrEnclosure)) =>
-              Map((l, r, lv, rv) match {
-                case (Dot(obj, ln), _, VLit(lvs: GStrEnclosure), VLit(rvs: GStrEnclosure)) =>
-                  val VObjId(Some(objId)) = evalExpr(obj, env, st)
-                  (objId.cid, ln) -> VLit(GStrEnclosure(lvs.range intersect rvs.range))
-                case (_, Dot(obj, rn), VLit(lvs: GStrEnclosure), VLit(rvs: GStrEnclosure)) =>
-                  val VObjId(Some(objId)) = evalExpr(obj, env, st)
-                  (objId.cid, rn) -> VLit(GStrEnclosure(lvs.range intersect rvs.range))
-                case _ => sys.error(s"Can not apply '$op' to operands (${Pretty pprint l}, ${Pretty pprint r})")
+          /** Based on acumen.interpreters.enclosure.Contract.contractEq */
+          def eq[T](lde: GDiscreteEnclosure[T], rde: GDiscreteEnclosure[T]) = {
+            val i = lde.range intersect rde.range
+            def mapping(obj: Expr, n: Name) = {
+              val VObjId(Some(objId)) = evalExpr(obj, env, st)
+              (objId.cid, n) -> VLit((lde, rde) match {
+                case (_: GStrEnclosure, _: GStrEnclosure)   => GStrEnclosure(i)
+                case (_: GBoolEnclosure, _: GBoolEnclosure) => GBoolEnclosure(i)
               })
-            // Based on acumen.interpreters.enclosure.Contract.contractNeq
-            case ("~=", VLit(_: GStrEnclosure), VLit(_: GStrEnclosure)) =>
-              (lv, rv) match {
-                case (VLit(lvs: GStrEnclosure), VLit(rvs: GStrEnclosure)) =>
-                  val ranl = lvs.range
-                  val ranr = rvs.range
-                  if (!(ranl.size == 1) || !(ranr.size == 1) || !(ranl == ranr)) noUpdate
-                  else sys.error("contracted to empty box") // only when both lhs and rhs are thin can equality be established
-                case _ => sys.error(s"Operator $op does not support operands (${Pretty pprint l}, ${Pretty pprint r})")
-              }
+            }
+            Map((l, r) match {
+              case (Dot(obj, ln), _) => mapping(obj, ln)
+              case (_, Dot(obj, rn)) => mapping(obj, rn)
+              case _ => sys.error(s"Can not apply '$op' to operands (${Pretty pprint l}, ${Pretty pprint r})")
+            })
+          }
+          /** Based on acumen.interpreters.enclosure.Contract.contractNeq */
+          def neq[T](lvs: GDiscreteEnclosure[T], rvs: GDiscreteEnclosure[T]) = {
+            val ranl = lvs.range
+            val ranr = rvs.range
+            if (!(ranl.size == 1) || !(ranr.size == 1) || !(ranl == ranr)) noUpdate
+            else sys.error("contracted to empty box") // only when both lhs and rhs are thin can equality be established
+          }
+          val smallerBox = (op,lv,rv) match {
+            case ("==", VLit(lvgv: GStrEnclosure),  VLit(rvgv: GStrEnclosure))  => eq(lvgv, rvgv)
+            case ("==", VLit(lvgv: GBoolEnclosure), VLit(rvgv: GBoolEnclosure)) => eq(lvgv, rvgv)
+            case ("~=", VLit(lvgv: GStrEnclosure),  VLit(rvgv: GStrEnclosure))  => neq(lvgv, rvgv)
+            case ("~=", VLit(lvgv: GBoolEnclosure), VLit(rvgv: GBoolEnclosure)) => neq(lvgv, rvgv)
             case ("==", _, _)       => toAssoc(contractInstance.contractEq(le, re)(box))
             case ("~=", _, _)       => toAssoc(contractInstance.contractNeq(le, re)(box))
             case ("<=" | "<", _, _) => toAssoc(contractInstance.contractLeq(le, re)(box))

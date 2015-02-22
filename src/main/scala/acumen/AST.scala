@@ -165,11 +165,6 @@ package acumen {
   case class GBool(b: Boolean) extends GroundValue
   /* Example: ("fall", (1,2,3))*/
   case class GPattern(p : List[GroundValue]) extends GroundValue
-  /* Example: CertainTrue, CertainFalse, Uncertain */
-  sealed class GUncertainBool(v: Set[Boolean]) extends GroundValue
-  object CertainTrue extends GUncertainBool(Set(true))
-  object CertainFalse extends GUncertainBool(Set(false))
-  object Uncertain extends GUncertainBool(Set(true,false))
   /* Example: "foo" */
   case class GStr(s: String) extends GroundValue
   /* Representation of an uncertain, time varying value */

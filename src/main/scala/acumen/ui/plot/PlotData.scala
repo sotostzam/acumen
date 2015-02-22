@@ -338,7 +338,7 @@ class PlotData(parms: PlotParms = null, tb:PlotModel = null, val disableThreshol
                val frame = s + f) {
             p.values(f) match {
               case VLit(GStr(str)) => lines.add(time(frame),Set(str))
-              case VLit(e:GDiscreteEnclosure[String]) => lines.add(time(frame),e.range)
+              case VLit(e:GDiscreteEnclosure[_]) => lines.add(time(frame),e.range.map(_.toString))
               case VLit(GInt(i)) => lines.add(time(frame),Set(i.toString))
             }
           }
