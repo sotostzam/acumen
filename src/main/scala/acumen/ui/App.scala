@@ -172,7 +172,7 @@ class App extends SimpleSwingApplication {
   private val parallel2012Action              = mkActionMask("2012 Parallel",                       VK_P, NONE,       shortcutMask | SHIFT_MASK, promptForNumberOfThreads)
   private val pwlHybridSolverAction           = mkActionMask("2013 PWL",                            VK_L, VK_L,       shortcutMask | SHIFT_MASK, setSemantics(S.Enclosure(S.PWL,contraction))) 
   private val eventTreeHybridSolverAction     = mkActionMask("2013 EVT",                            VK_T, VK_T,       shortcutMask | SHIFT_MASK, setSemantics(S.Enclosure(S.EVT,contraction)))
-  private val enclosure2014Action             = mkActionMask("2014 Enclosure",                      VK_4, VK_D,       shortcutMask | SHIFT_MASK, setSemantics(S.Enclosure2014(contraction)))
+  private val enclosure2015Action             = mkActionMask("2015 Enclosure",                      VK_5, VK_D,       shortcutMask | SHIFT_MASK, setSemantics(S.Enclosure2015(contraction)))
   private val enableAnaglyph                  = mkAction(    "Enable 3D Anaglyph",                  NONE, NONE,       enableAnaglyph3D())
   private val enableRealTimeRender            = mkAction(    "Enable Real Time Animation",          NONE, NONE,       enableRealTme())
   private val contractionAction               = mkActionMask("Contraction",                         VK_C, VK_C,       shortcutMask | SHIFT_MASK, toggleContraction())
@@ -212,8 +212,8 @@ class App extends SimpleSwingApplication {
     Main.defaultSemantics match {
       case S.Enclosure(eh, _) => 
         setSemantics(S.Enclosure(eh, contraction))
-      case S.Enclosure2014(_) => 
-        setSemantics(S.Enclosure2014(contraction))
+      case S.Enclosure2015(_) => 
+        setSemantics(S.Enclosure2015(contraction))
     }
   }
   
@@ -583,14 +583,14 @@ class App extends SimpleSwingApplication {
         selected = false // Main.useEnclosures &&
           //enclosure.Interpreter.strategy.eventEncloser.getClass == classOf[TreeEventEncloser]
       }
-      val enc2014 = new RadioMenuItem("") {
-        action = enclosure2014Action
+      val enc2015 = new RadioMenuItem("") {
+        action = enclosure2015Action
         enableWhenStopped(this) 
         selected = false
       }
-      val bg = new ButtonGroup(ref2013, opt2013, ref2014, opt2014, ref2015, opt2015, ref2012, opt2012, par2012, encPWL, encEVT, enc2014)
+      val bg = new ButtonGroup(ref2013, opt2013, ref2014, opt2014, ref2015, opt2015, ref2012, opt2012, par2012, encPWL, encEVT, enc2015)
       val ls = new CheckMenuItem("") {
-        def shouldBeEnabled = Main.defaultSemantics match { case _:S.Enclosure | _:S.Enclosure2014 => true; case _ => false }
+        def shouldBeEnabled = Main.defaultSemantics match { case _:S.Enclosure | _:S.Enclosure2015 => true; case _ => false }
         action = contractionAction
         enabledWhenStopped += (this, () => shouldBeEnabled)
         enabled = false //Main.useEnclosures
@@ -618,7 +618,7 @@ class App extends SimpleSwingApplication {
       }
       contents += new Menu("Enclosure") {
         mnemonic = Key.E
-        contents ++= Seq(enc2014, encPWL, encEVT, new Separator, ls)
+        contents ++= Seq(enc2015, encPWL, encEVT, new Separator, ls)
       }
       if (Main.enableAllSemantics) {
         contents += new Menu("Deprecated") {
@@ -759,7 +759,7 @@ class App extends SimpleSwingApplication {
       case _:S.Parallel2012  => bar.semantics.par2012.selected = true
       case S.Enclosure(S.PWL, c) => contraction = c; bar.semantics.encPWL.selected = true
       case S.Enclosure(S.EVT, c) => contraction = c; bar.semantics.encEVT.selected = true
-      case S.Enclosure2014(c)    => contraction = c; bar.semantics.enc2014.selected = true
+      case S.Enclosure2015(c)    => contraction = c; bar.semantics.enc2015.selected = true
       case _ => /* Other semantics not selectable from the menu selected */
     }
     bar.semantics.ls.selected = contraction

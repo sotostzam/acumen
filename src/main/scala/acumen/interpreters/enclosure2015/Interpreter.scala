@@ -1,6 +1,6 @@
 package acumen
 package interpreters
-package enclosure2014
+package enclosure2015
 
 import scala.annotation.tailrec
 import scala.Stream._
@@ -679,7 +679,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
         else 
           throw internalPosError("Hypothesis statements are only allowed on the top level.", e.pos)
       case ForEach(n, col, body) => //TODO Add support for for-each statements
-        throw internalPosError("For-each statements are not supported in the Enclosure 2014 semantics.", col.pos)
+        throw internalPosError("For-each statements are not supported in the Enclosure 2015 semantics.", col.pos)
     }
 
   /** 
@@ -707,7 +707,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
       /* Basically, following says that variable names must be 
          fully qualified at this language level */
       case c: Create =>
-        throw internalPosError("The 2014 Enclosure semantics does not support create statements in the always section.", c.pos)
+        throw internalPosError("The 2015 Enclosure semantics does not support create statements in the always section.", c.pos)
       case Assign(_,_) => 
         throw BadLhs()
     }

@@ -91,9 +91,9 @@ object SemanticsImpl {
     override val isOldSemantics = !(semantics == S2015)
     def interpreter() = i
   }
-  case class Enclosure2014(contraction: Boolean) extends CStore {
+  case class Enclosure2015(contraction: Boolean) extends CStore {
     override val isOldSemantics  = false
-    val i = enclosure2014.Interpreter(contraction)
+    val i = enclosure2015.Interpreter(contraction)
     val semantics = Semantics(None, Seq("desugar-local-inline"), Seq("SD"))
     def interpreter() = i
   }
@@ -215,8 +215,8 @@ object SemanticsImpl {
          sel(Enclosure(EVT), "2013 EVT", "enclosure-evt"),
          sel(Enclosure(PWL,true), "2013 PWL (Contraction)", "enclosure-pwl-contraction"),
          sel(Enclosure(EVT,true), "2013 EVT (Contraction)", "enclosure-evt-contraction"),
-         sel(Enclosure2014(false), "2014 Enclosure", "enclosure2014"),
-         sel(Enclosure2014(true), "2014 Enclosure (Contraction)", "enclosure2014-contraction"),
+         sel(Enclosure2015(false), "2015 Enclosure", "enclosure2015"),
+         sel(Enclosure2015(true), "2015 Enclosure (Contraction)", "enclosure2015-contraction"),
          exp(Optimized2015(), "Optimized", "optimized"))
 
   def lookup(si: SemanticsSel) : Option[Sel] = 
