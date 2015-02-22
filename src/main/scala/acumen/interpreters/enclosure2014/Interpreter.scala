@@ -64,7 +64,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
   def fromCStore(st: CStore, root: CId): Store = EnclosureAndBranches(st, (st, Epsilon, StartTime) :: Nil)
   override def visibleParameters: Map[String, CValue] = 
     Map(ParamTime, ParamEndTime, ParamTimeStep, 
-        ParamMaxBranches, ParamMaxIterationsPerBranch, ParamIntersectWithGuardBeforeReset) 
+        ParamMaxBranches, ParamMaxIterationsPerBranch, ParamIntersectWithGuardBeforeReset, ParamHypothesisReport) 
 
   /* Constants */
   
@@ -74,6 +74,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
   private val ParamMaxBranches                   = "maxBranches"                   -> VLit(GInt(100))                  
   private val ParamMaxIterationsPerBranch        = "maxIterationsPerBranch"        -> VLit(GInt(1000))    
   private val ParamIntersectWithGuardBeforeReset = "intersectWithGuardBeforeReset" -> VLit(GBool(true))
+  private val ParamHypothesisReport              = "hypothesisReport"              -> VLit(GStr("Comprehensive"))
   
   private val legacyParameters = Parameters.default.copy(interpreter = Some(enclosure.Interpreter.EVT))
   private implicit val rnd = Rounding(legacyParameters)
