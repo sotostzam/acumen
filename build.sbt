@@ -114,3 +114,6 @@ javaOptions in run += "-Xmx1G"
 parallelExecution in Test := false
 
 logBuffered in Test := false
+
+// enable improved (experimental) incremental compilation algorithm called "name hashing"
+incOptions := incOptions.value.withNameHashing(true)
