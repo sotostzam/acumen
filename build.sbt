@@ -2,14 +2,14 @@ name := "acumen"
 
 version := "10-devel"
 
-scalaVersion := "2.10.4"
+scalaVersion := "2.11.5"
 
 theMainClass := "acumen.Main"
 
 libraryDependencies ++= Seq(
-  "org.scala-lang" % "scala-swing" % "2.10.4",
-  "org.scala-lang" % "scala-actors" % "2.10.4",
-  "org.scalatest" %% "scalatest" % "2.0.M5b" % "test",
+  "org.scala-lang.modules" %% "scala-swing" % "1.0.1",
+  "org.scala-lang" % "scala-actors" % "2.11.5",
+  "org.scalatest" % "scalatest_2.11" % "2.2.4" % "test",
   "org.scalacheck" %% "scalacheck" % "1.10.1" % "test"
 )
 

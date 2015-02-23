@@ -21,10 +21,10 @@ object System {
   }
   
   sealed abstract class OS
-  case class Windows extends OS
-  case class Unix extends OS
-  case class Mac extends OS
-  case class Other extends OS
+  case object Windows extends OS
+  case object Unix extends OS
+  case object Mac extends OS
+  case object Other extends OS
 
   def detectOperatingSystem() =
     if (osName contains "win") Windows

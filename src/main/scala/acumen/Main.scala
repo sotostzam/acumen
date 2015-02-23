@@ -165,7 +165,7 @@ object Main {
     val openFile = new File(fn)
     if (!openFile.exists) {
       System.err.println("File not found: " + openFile)
-      exit(1)
+      sys.exit(1)
     }
     openFile
   }

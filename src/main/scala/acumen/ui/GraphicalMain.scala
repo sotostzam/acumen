@@ -59,13 +59,13 @@ object GraphicalMain extends SimpleSwingApplication {
         inheritIO(process.getErrorStream(), System.err, null)
         rv = process.waitFor()
         if (rv == 0)
-          exit(0);
+          sys.exit(0);
         System.err.println("Fork failed with exit code: " + rv);
       } catch {
         case e => System.err.println("Fork failed with error: " + e.getMessage())
       }
       if (foundIt)
-        exit(rv)
+        sys.exit(rv)
       else
         System.err.println("Continuing anyway, acumen may be slow...")
     }

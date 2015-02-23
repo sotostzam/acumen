@@ -788,8 +788,8 @@ object Interpreter {
   def getAllFields(cd: ClassDef) : List[Name] = 
     cd.fields ++ cd.priv.map {case Init(name, _) => name}
 
-  def getFilteredSortedFields(cd: ClassDef) : List[(Name,Option[Int],String,String => String)] = {
-    val res = getAllFields(cd).sortWith{(x,y) => x < y}.map { name =>
+  def getFilteredSortedFields(cd: ClassDef) : List[(Name,Option[Int],String,String => String)] =
+    getAllFields(cd).sortWith{(x,y) => x < y}.map { name =>
       cd._types(name) match {
         case NumericType => List((name, None, "%f", {n:String => n}))
         case IntType => List((name, None, "%i", {n:String => n}))
@@ -800,8 +800,6 @@ object Interpreter {
           (0 until lst.size).map{i => (name, Some(i), "%f", {n:String => n})}.toList 
         case _ => Nil
       }
-    }
-    List.flatten(res)
-  }
+    }.flatten
 
 }
