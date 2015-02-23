@@ -316,6 +316,7 @@ class Pretty {
 
   implicit def prettyStepType: PrettyAble[ResultType] =
     PrettyAble {
+      case Initial     => "@Initial"
       case Discrete    => "@Discrete"
       case FixedPoint  => "@FixedPoint"
       case Continuous  => "@Continuous"

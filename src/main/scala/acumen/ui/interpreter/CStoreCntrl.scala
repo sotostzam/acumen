@@ -51,19 +51,58 @@ class CStoreCntrl(val semantics: SemanticsImpl[Interpreter], val interpreter: CS
       })
     }
 
-    def produce(): Unit = {
+    // CStoreFilterDataAdder for Interpreters 2014 or before
+    class LegacyCStoreFilterDataAdder(opts: CStoreOpts) extends CStoreFilterDataAdder(opts) {
+      override val initialShouldAddData = ShouldAddData.IfLast
+      override def addLast : Boolean = (shouldAddData == ShouldAddData.IfLast)
+      prevStepType = Discrete
+      curStepType = Discrete
+      shouldAddData = ShouldAddData.IfLast
+    } 
+    
+    // CStoreFilterDataAdder - uses the "buffer" of the actor "init"
+    class CStoreFilterDataAdder(opts : CStoreOpts) extends FilterDataAdder(opts) {
+        outputRow = true
+        var buffer2 = new ListBuffer[(CId,GObject)]
+        override def noMoreData() = {
+          super.noMoreData()
+          if (buffer2.nonEmpty)
+            buffer = buffer enqueue buffer2
+        }
+        def addData(objId: CId, values: GObject) = {
+          buffer2 += (objId -> values.toList.filter(mkFilter(values)))
+        }
+        def continue = {
+          if (outputRow) {
+            buffer = buffer enqueue buffer2
+            buffer2 = new ListBuffer[(CId,GObject)]
+          }
+          //buffer.size < bufferSize 
+          false
+        }
+    }
+    
+    def produce : Unit = {
       val startTime = System.currentTimeMillis
       val I = interpreter
       val (p, store0, md0) = I.init(prog)
-      var (store, md, endTime) = I.multiStep(p, store0, md0, new StopAtFixedPoint)
-      val cstore = I.repr(store)
-      val opts = new CStoreOpts
+      var opts = new CStoreOpts
+      // Variables for real-time simulation
       val threeDTab = App.ui.threeDtab.asInstanceOf[threeD.ThreeDTab]
       var lastvirtualTime = 0.0
       var timesteps = 0
       var slackvalue = 0.0
       var updateTime = 0.0
       var missedDeadline = 0.0
+      // Create the DataAdder
+      val adder = if (semantics.isOldSemantics) {opts.outputRows = OutputRows.WhenChanged; new LegacyCStoreFilterDataAdder(opts)} 
+                  else                                                                     new CStoreFilterDataAdder(opts)
+      // Add initial store to trace
+      I.repr(store0).foreach{case (id,v) => adder.addData(id, v)}
+      adder.continue
+      // Read simulator parameters from program
+      var (store, md, endTime) = I.multiStep(p, store0, md0, adder)
+      val cstore = I.repr(store)
       acumen.util.Canonical.getInSimulator(Name("outputRows",0), cstore) match {
         case VLit(GStr("All"))              => opts.outputRows = OutputRows.All
         case VLit(GStr("WhenChanged"))      => opts.outputRows = OutputRows.WhenChanged
@@ -76,28 +115,13 @@ class CStoreCntrl(val semantics: SemanticsImpl[Interpreter], val interpreter: CS
         case VLit(GInt(n)) => opts.continuousSkip = n
         case _             => /* fixme: throw error */
       }
-      val adder = new FilterDataAdder(opts) {
-        var buffer2 = new ListBuffer[(CId,GObject)]
-        override def noMoreData() = {
-          super.noMoreData()
-          if (buffer2.nonEmpty)
-            buffer = buffer enqueue buffer2
-        }
-        def addData(objId: CId, values: GObject) = {
-          buffer2 += ((objId, values.toList.filter(mkFilter(values))))
-        }
-        def continue = {
-          if (outputRow) {
-            buffer = buffer enqueue buffer2
-            buffer2 = new ListBuffer[(CId,GObject)]
-          }
-          //buffer.size < bufferSize 
-          false
-        }
+      acumen.util.Canonical.getInSimulator(Name("hypothesisReport",0), cstore) match {
+        case VLit(GStr("Ignore"))            => md = NoMetadata(Some(HypothesisResultFilter.Ignore)) combine md
+        case VLit(GStr("Comprehensive"))     => md = NoMetadata(Some(HypothesisResultFilter.Comprehensive)) combine md
+        case VLit(GStr("IgnoreInitialOnly")) => md = NoMetadata(Some(HypothesisResultFilter.IgnoreInitialOnly)) combine md
+        case VLit(GStr("MostSignificant"))   => md = NoMetadata(Some(HypothesisResultFilter.MostSignificant)) combine md
+        case _                               => /* fixme: throw error */
       }
-      adder.outputRow = true
-      cstore.foreach{case (id,v) => adder.addData(id, v)}
-      adder.continue
       loopWhile(!adder.done) {
         reactWithin(0) (emergencyActions orElse {
           case TIMEOUT =>

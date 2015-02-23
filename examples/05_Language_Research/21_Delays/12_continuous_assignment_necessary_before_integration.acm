@@ -1,0 +1,19 @@
+model Main(simulator) =
+initially
+  a = 1, a' = 1
+always
+  // simulator
+  simulator.endTime += 4,
+  simulator.timeStep += 0.25,
+
+  // a' = a
+  a' = a,
+
+  // if a becomes greater than 3, we reset it to 0
+  if a > 3 then
+   a+ = 1
+  noelse,
+
+ hypothesis
+  "a' = a"
+  a' == a

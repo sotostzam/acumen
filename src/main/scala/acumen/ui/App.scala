@@ -164,21 +164,20 @@ class App extends SimpleSwingApplication {
   private val plotStyleLinesAction            = new Action(  "Lines")       { mnemonic =            VK_L; def apply = plotView.setPlotStyle(plot.Lines()) }
   private val plotStyleDotsAction             = new Action(  "Dots")        { mnemonic =            VK_D; def apply = plotView.setPlotStyle(plot.Dots()) }
   private val plotStyleBothAction             = new Action(  "Both")        { mnemonic =            VK_B; def apply = plotView.setPlotStyle(plot.Both()) }
-  private val reference2015Action             = mkActionMask("2015 Reference",                      VK_R, NONE,       shortcutMask | SHIFT_MASK, setSemantics(S.Ref2015))
-  private val reference2014Action             = mkActionMask("2014 Reference",                      VK_R, VK_R,       shortcutMask | SHIFT_MASK, setSemantics(S.Ref2014))
+  private val reference2015Action             = mkActionMask("2015 Reference",                      VK_R, VK_R,       shortcutMask | SHIFT_MASK, setSemantics(S.Ref2015))
+  private val reference2014Action             = mkActionMask("2014 Reference",                      VK_R, NONE,       shortcutMask | SHIFT_MASK, setSemantics(S.Ref2014))
   private val reference2013Action             = mkActionMask("2013 Reference",                      VK_R, NONE,       shortcutMask | SHIFT_MASK, setSemantics(S.Ref2013))
   private val reference2012Action             = mkActionMask("2012 Reference",                      VK_R, NONE,       shortcutMask | SHIFT_MASK, setSemantics(S.Ref2012))
-  private val optimized2015bAction            = mkActionMask("2015 Optimized (b)",                  VK_O, NONE,       shortcutMask | SHIFT_MASK, setSemantics(S.Opt2015b))
-  private val optimized2015Action             = mkActionMask("2015 Optimized",                      VK_O, NONE,       shortcutMask | SHIFT_MASK, setSemantics(S.Opt2015))
+  private val optimized2015Action             = mkActionMask("2015 Optimized",                      VK_O, VK_O,       shortcutMask | SHIFT_MASK, setSemantics(S.Opt2015))
   private val optimized2014Action             = mkActionMask("2014 Optimized",                      VK_O, NONE,       shortcutMask | SHIFT_MASK, setSemantics(S.Opt2014))
   private val optimized2013Action             = mkActionMask("2013 Optimized",                      VK_O, NONE,       shortcutMask | SHIFT_MASK, setSemantics(S.Opt2013))
   private val optimized2012Action             = mkActionMask("2012 Optimized",                      VK_O, NONE,       shortcutMask | SHIFT_MASK, setSemantics(S.Opt2012)) 
   private val parallel2012Action              = mkActionMask("2012 Parallel",                       VK_P, NONE,       shortcutMask | SHIFT_MASK, promptForNumberOfThreads)
   private val pwlHybridSolverAction           = mkActionMask("2013 PWL",                            VK_L, VK_L,       shortcutMask | SHIFT_MASK, setSemantics(S.Enclosure(S.PWL,contraction))) 
   private val eventTreeHybridSolverAction     = mkActionMask("2013 EVT",                            VK_T, VK_T,       shortcutMask | SHIFT_MASK, setSemantics(S.Enclosure(S.EVT,contraction)))
-  private val enclosure2014Action             = mkActionMask("2014 Enclosure",                      VK_4, VK_D,       shortcutMask | SHIFT_MASK, setSemantics(S.Enclosure2014(contraction)))
+  private val enclosure2015Action             = mkActionMask("2015 Enclosure",                      VK_5, VK_D,       shortcutMask | SHIFT_MASK, setSemantics(S.Enclosure2015(contraction)))
   private val enableAnaglyph                  = mkAction(    "Enable 3D Anaglyph",                  NONE, NONE,       toggleAnaglyph3D())
-  private val enableRealTimeRender            = mkAction(    "Enable Real Time Animation",          VK_R, NONE,       toggleRealTime())
+  private val enableRealTimeRender            = mkAction(    "Enable Real Time Animation",          NONE, NONE,       toggleRealTime())
   private val matchWallClockAction            = mkAction(    "Match with Wall Clock",               VK_W, NONE,       toggleMatchWallClock())
   private val startSeverAction                = mkAction(    "Start Server",                        NONE, NONE,       startServer())
   private val stopServerAction                = mkAction(    "Stop Server",                         NONE, NONE,       stopServer())
@@ -220,8 +219,8 @@ class App extends SimpleSwingApplication {
     Main.defaultSemantics match {
       case S.Enclosure(eh, _) => 
         setSemantics(S.Enclosure(eh, contraction))
-      case S.Enclosure2014(_) => 
-        setSemantics(S.Enclosure2014(contraction))
+      case S.Enclosure2015(_) => 
+        setSemantics(S.Enclosure2015(contraction))
     }
   }
   
@@ -556,22 +555,19 @@ class App extends SimpleSwingApplication {
         enableWhenStopped(this)
         action = reference2015Action
       }
-      val ref2014 = new RadioMenuItem("") {
-        selected = false
-        enableWhenStopped(this)
-        action = reference2014Action
-      }
-      val opt2015b = new RadioMenuItem("") {
-        selected = false
-        enableWhenStopped(this)
-        action = optimized2015bAction
-      }
       val opt2015 = new RadioMenuItem("") {
         selected = false
         enableWhenStopped(this)
         action = optimized2015Action
       }
+      val ref2014 = new RadioMenuItem("") {
+        visible = Main.enableOldSemantics
+        selected = false
+        enableWhenStopped(this)
+        action = reference2014Action
+      }
       val opt2014 = new RadioMenuItem("") {
+        visible = Main.enableOldSemantics
         selected = false
         enableWhenStopped(this)
         action = optimized2014Action
@@ -620,14 +616,14 @@ class App extends SimpleSwingApplication {
         selected = false // Main.useEnclosures &&
           //enclosure.Interpreter.strategy.eventEncloser.getClass == classOf[TreeEventEncloser]
       }
-      val enc2014 = new RadioMenuItem("") {
-        action = enclosure2014Action
+      val enc2015 = new RadioMenuItem("") {
+        action = enclosure2015Action
         enableWhenStopped(this) 
         selected = false
       }
-      val bg = new ButtonGroup(ref2013, opt2013, ref2014, opt2014, ref2015, opt2015, opt2015b, ref2012, opt2012, par2012, encPWL, encEVT, enc2014)
+      val bg = new ButtonGroup(ref2013, opt2013, ref2014, opt2014, ref2015, opt2015, ref2012, opt2012, par2012, encPWL, encEVT, enc2015)
       val ls = new CheckMenuItem("") {
-        def shouldBeEnabled = Main.defaultSemantics match { case _:S.Enclosure | _:S.Enclosure2014 => true; case _ => false }
+        def shouldBeEnabled = Main.defaultSemantics match { case _:S.Enclosure | _:S.Enclosure2015 => true; case _ => false }
         action = contractionAction
         enabledWhenStopped += (this, () => shouldBeEnabled)
         enabled = false //Main.useEnclosures
@@ -650,24 +646,18 @@ class App extends SimpleSwingApplication {
       mnemonic = Key.S
       contents += new Menu("Traditional") {
         mnemonic = Key.T
-        contents += ref2014
-        contents += opt2014
+        contents += ref2015
+        contents += opt2015
       }
       contents += new Menu("Enclosure") {
         mnemonic = Key.E
-        contents ++= Seq(encPWL, encEVT, enc2014, new Separator, ls)
-      }
-      contents += new Menu("Experimental") {
-        mnemonic = Key.X
-        contents += ref2015
-        contents += opt2015
-        contents += opt2015b
+        contents ++= Seq(enc2015, encPWL, encEVT, new Separator, ls)
       }
       if (Main.enableAllSemantics) {
         contents += new Menu("Deprecated") {
           visible = Main.enableOldSemantics
           mnemonic = Key.D
-          contents ++= Seq(ref2013, opt2013, new Separator, ref2012, opt2012, par2012)
+          contents ++= Seq(ref2014, opt2014, new Separator, ref2013, opt2013, new Separator, ref2012, opt2012, par2012)
         }
         contents ++= Seq(new Separator, lc)
       }
@@ -853,13 +843,12 @@ class App extends SimpleSwingApplication {
       case S.Ref2014 => bar.semantics.ref2014.selected = true
       case S.Ref2015 => bar.semantics.ref2015.selected = true
       case S.Opt2014 => bar.semantics.opt2014.selected = true
-      case S.Opt2015b => bar.semantics.opt2015b.selected = true
       case S.Opt2015 => bar.semantics.opt2015.selected = true
       case S.Opt2012 => bar.semantics.opt2012.selected = true
       case _:S.Parallel2012  => bar.semantics.par2012.selected = true
       case S.Enclosure(S.PWL, c) => contraction = c; bar.semantics.encPWL.selected = true
       case S.Enclosure(S.EVT, c) => contraction = c; bar.semantics.encEVT.selected = true
-      case S.Enclosure2014(c)    => contraction = c; bar.semantics.enc2014.selected = true
+      case S.Enclosure2015(c)    => contraction = c; bar.semantics.enc2015.selected = true
       case _ => /* Other semantics not selectable from the menu selected */
     }
     bar.semantics.ls.selected = contraction

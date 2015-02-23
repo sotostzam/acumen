@@ -36,7 +36,10 @@ object Interpreter extends acumen.CStoreInterpreter {
 
   def repr(st:Store) = st
   def fromCStore(st:CStore, root:CId) = st
-  override def visibleParameters = visibleParametersRef + ("method" -> VLit(GStr(RungeKutta)))
+  val initStepType = Discrete
+  val timeStep = 0.01
+  val outputRows = "WhenChanged"
+  override def visibleParameters = visibleParametersMap(initStoreInterpreter(initStep = initStepType, initTimeStep = timeStep, initOutputRows = outputRows, isImperative = false)) + ("method" -> VLit(GStr(RungeKutta)))
 
   /* initial values */
   val emptyStore : Store = HashMap.empty
@@ -364,7 +367,7 @@ object Interpreter extends acumen.CStoreInterpreter {
     val mprog = Prog(magicClass :: sprog.defs)
     val (sd1,sd2) = Random.split(Random.mkGen(0))
     val (id,_,st1) = 
-      mkObj(cmain, mprog, None, sd1, List(VObjId(Some(CId(0)))), 1)(initStoreRef)
+      mkObj(cmain, mprog, None, sd1, List(VObjId(Some(CId(0)))), 1)(initStoreInterpreter(initStep = initStepType, initTimeStep = timeStep, initOutputRows = outputRows, isImperative = false))
     val st2 = changeParent(CId(0), id, st1)
     val st3 = changeSeed(CId(0), sd2, st2)
     val st4 = countVariables(st3)
@@ -401,7 +404,7 @@ object Interpreter extends acumen.CStoreInterpreter {
         def resolveDots(s: List[(CId,Dot,Expr,Env)]): List[ResolvedDot] =
           s.map{ case (o, d, _, env) => resolveDot(d, env, st1) }
         val res = getResultType(st) match {
-          case Discrete | Continuous => // Either conclude fixpoint is reached or do discrete step
+          case Initial | Discrete | Continuous => // Either conclude fixpoint is reached or do discrete step
             checkDuplicateAssingments(resolveDots(das), DuplicateDiscreteAssingment)
             val dasValues = evaluateAssignments(das, st1)
             val nonIdentityDas = dasValues.filterNot{ a => a._3 == getObjectField(a._1, a._2.field, st1) }
@@ -431,11 +434,10 @@ object Interpreter extends acumen.CStoreInterpreter {
   def testHypotheses(hyps: List[(CId, Option[String], Expr, Env)], old: Metadata, st: Store): Metadata =
     old combine (if (hyps isEmpty) NoMetadata else SomeMetadata(hyps.map {
       case (o, hn, h, env) =>
-        val cn = getCls(o, st)
-        lazy val counterEx = dots(h).toSet[Dot].map(d => d -> (evalExpr(d, env, st) : GValue))
-        val VLit(GBool(b)) = evalExpr(h, env, st)
-        (o, cn, hn) -> (if (b) TestSuccess else TestFailure(getTime(st), counterEx))
-    }.toMap, (getTime(st), getTime(st) + getTimeStep(st)), false))
+        (o, getCls(o, st), hn) -> computeHypothesisOutcomes( 
+          evalExpr(h, env, st), getTime(st), getResultType(st), 
+          dots(h).toSet[Dot].map(d => d -> (evalExpr(d, env, st))))
+    }.toMap, getTime(st), getTime(st) + getTimeStep(st), false, None))
 
   /**
    * Solve ODE-IVP defined by odes parameter tuple, which consists of:

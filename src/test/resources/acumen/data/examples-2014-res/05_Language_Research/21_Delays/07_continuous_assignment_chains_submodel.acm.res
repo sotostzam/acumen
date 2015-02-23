@@ -48,5 +48,5 @@
 ------------------------------1001
 SOME HYPOTHESES FALSIFIED OVER [0.0..10.009999999999831]
 0 TRUE, 1 FALSE, 0 INCONCLUSIVE
-- (#0:Main) 'distributing variables across submodels does not cause delays' Tested false at 0.02, where x10 = 0, self.s1.s2x0 = 0.01
+- (#0:Main) 'distributing variables across submodels does not cause delays' Falsified at 0.02, where x10 = 0, self.s1.s2x0 = 0.01
 

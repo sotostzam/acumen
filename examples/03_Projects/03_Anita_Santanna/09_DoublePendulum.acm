@@ -1,4 +1,4 @@
-model DoublePalwaysulum(m1,m2,L1,L2) = 
+model DoublePendulum(m1,m2,L1,L2) = 
 initially 
   x1 = 0 , y1 = 0 , x2 = 0 , y2 = 0 , theta1 = 0.1 , theta1' = 0.00 , theta1'' = 0 ,
   theta2 = 0 , theta2' = 0 , theta2'' = 0 , g = 9.8 ,
@@ -24,6 +24,6 @@ always
 
 model Main(simulator) = 
 initially 
-  sys1  =  create DoublePalwaysulum(2,2,0.5,1) 
+  sys1  =  create DoublePendulum(2,2,0.5,1) 
 
  

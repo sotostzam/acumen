@@ -39,7 +39,7 @@ object Main {
   //    enable console message so that its clear what options are in effect
 
   // temporary hack
-  var enableOldSemantics = false
+  var enableOldSemantics = true
 
   var debugExtract = false
   var printLogLevel: Option[Logger.Level] = None

@@ -146,7 +146,7 @@ object Parser extends MyStdTokenParsers {
   lexical.reserved ++=
     List("foreach", "end", "if", "else","elseif", "create", "move", "in", "terminate", "model","then","initially","always",
          "sum", "true", "false", "init", "match","with", "case", "type", "claim", "hypothesis", "let","noelse",
-         "Continuous", "Discrete", "FixedPoint", "none","cross","do","dot","for","_3D")
+         "Initial", "Continuous", "Discrete", "FixedPoint", "none","cross","do","dot","for","_3D")
 
   /* token conversion */
 
@@ -606,7 +606,7 @@ object Parser extends MyStdTokenParsers {
 
   def vObjId = ("none" ^^^ None | objid ^^ (id => Some(id))) ^^ VObjId[CId]
   def vClassName = className ^^ VClassName
-  def vStepType = "@" ~! ("Continuous" ^^^ Continuous | "FixedPoint" ^^^ FixedPoint | "Discrete" ^^^ Discrete) ^^
+  def vStepType = "@" ~! ("Initial" ^^^ Initial | "Continuous" ^^^ Continuous | "FixedPoint" ^^^ FixedPoint | "Discrete" ^^^ Discrete) ^^
     { case _ ~ st => VResultType(st) }
   
 }

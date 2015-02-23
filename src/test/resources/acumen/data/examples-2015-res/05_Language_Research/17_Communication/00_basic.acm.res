@@ -16,10 +16,10 @@
 }
 #0.2 {
   Id = 0,
-  Id' = 0,
+  Id' = -5.000000,
   L = 1,
   R = 1,
-  Vs = 0,
+  Vs = -5,
   className = Channel_RL
 }
 #0.3 { className = Destination, meaning = 0, sensor = 0 }
@@ -31,7 +31,7 @@
   simulator = #0.0,
   source = #0.1
 }
-#0.0 { className = Simulator, time = 0.400000 }
+#0.0 { className = Simulator, time = 0.406250 }
 #0.1 {
   Vs = 5,
   className = Source,
@@ -41,19 +41,19 @@
   t' = 1
 }
 #0.2 {
-  Id = -1.648400,
-  Id' = -3.351600,
+  Id = -1.669282,
+  Id' = 6.669282,
   L = 1,
   R = 1,
-  Vs = -5,
+  Vs = 5,
   className = Channel_RL
 }
 #0.3 {
   className = Destination,
   meaning = 0,
-  sensor = -1.648400
+  sensor = -1.669282
 }
-------------------------------41
+------------------------------27
 #0 {
   channel = #0.2,
   className = Main,
@@ -61,7 +61,7 @@
   simulator = #0.0,
   source = #0.1
 }
-#0.0 { className = Simulator, time = 0.800000 }
+#0.0 { className = Simulator, time = 0.812500 }
 #0.1 {
   Vs = -5,
   className = Source,
@@ -71,19 +71,19 @@
   t' = 1
 }
 #0.2 {
-  Id = 0.543444,
-  Id' = 4.456556,
+  Id = 0.557300,
+  Id' = -5.557300,
   L = 1,
   R = 1,
-  Vs = 5,
+  Vs = -5,
   className = Channel_RL
 }
 #0.3 {
   className = Destination,
-  meaning = 0,
-  sensor = 0.543444
+  meaning = 1,
+  sensor = 0.557300
 }
-------------------------------82
+------------------------------54
 #0 {
   channel = #0.2,
   className = Main,
@@ -91,18 +91,18 @@
   simulator = #0.0,
   source = #0.1
 }
-#0.0 { className = Simulator, time = 1.200000 }
+#0.0 { className = Simulator, time = 1.031250 }
 #0.1 {
-  Vs = 5,
+  Vs = -5,
   className = Source,
   f = 2.500000,
-  signal = 1,
-  t = 0,
+  signal = 0,
+  t = 0.218750,
   t' = 1
 }
 #0.2 {
-  Id = -1.284118,
-  Id' = -3.715882,
+  Id = -0.534584,
+  Id' = -4.465416,
   L = 1,
   R = 1,
   Vs = -5,
@@ -111,36 +111,8 @@
 #0.3 {
   className = Destination,
   meaning = 0,
-  sensor = -1.284118
+  sensor = -0.534584
 }
-------------------------------123
-#0 {
-  channel = #0.2,
-  className = Main,
-  destination = #0.3,
-  simulator = #0.0,
-  source = #0.1
-}
-#0.0 { className = Simulator, time = 10.010000 }
-#0.1 {
-  Vs = 5,
-  className = Source,
-  f = 2.500000,
-  signal = 1,
-  t = 0.010000,
-  t' = 1
-}
-#0.2 {
-  Id = -0.927351,
-  Id' = 5.927351,
-  L = 1,
-  R = 1,
-  Vs = 5,
-  className = Channel_RL
-}
-#0.3 {
-  className = Destination,
-  meaning = 0,
-  sensor = -0.927351
-}
-------------------------------1026
+------------------------------69
+
+------------------------------686

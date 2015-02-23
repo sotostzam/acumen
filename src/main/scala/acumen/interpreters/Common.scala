@@ -400,9 +400,6 @@ object Common {
   // compass heading is the angle between device orientation and north of the earth
     """model Device(id) = initially ax=0, ay=0, az=0, alpha=0, beta=0, gamma=0, compassHeading=0"""
 
-  val initStoreTxt =
-    s"""#0.0 { className = Simulator, parent = %s, time = 0.0, timeStep = 0.01, outputRows = "WhenChanged", continuousSkip = 0,endTime = 10.0, resultType = @Discrete, nextChild = 0,method = "$RungeKutta", seed1 = 0, seed2 = 0, variableCount = 0 }"""
-
   lazy val magicClass = Parser.run(Parser.classDef, magicClassTxt)
   lazy val deviceClass = {
     val d = Parser.run(Parser.classDef, deviceClassTxt)
@@ -410,9 +407,13 @@ object Common {
       pr => Continuously(EquationT(Var(pr.x), Input(Dot(Var(self), Name("id",0)), pr.x.x)))
     })
   }
-  lazy val initStoreRef = Parser.run(Parser.store, initStoreTxt.format("#0"))
-  lazy val initStoreImpr = Parser.run(Parser.store, initStoreTxt.format("none"))
-  
+
+  def initStoreTxt(initStep: ResultType, timeStep: Double, outputRows: String, hypothesisReport: String, method: String) = 
+    s"""#0.0 { className = Simulator, parent = %s, time = 0.0, timeStep = $timeStep, outputRows = "$outputRows", hypothesisReport = "$hypothesisReport", continuousSkip = 0,endTime = 10.0, resultType = @$initStep, nextChild = 0,method = "$method", seed1 = 0, seed2 = 0, variableCount = 0 }"""
+  def initStoreInterpreter(initStep: ResultType = Initial, initTimeStep: Double = 0.015625, initOutputRows: String = "All", 
+                       initHypothesisReport: String = "Comprehensive", initMethod: String = RungeKutta, isImperative: Boolean) =
+      Parser.run(Parser.store, initStoreTxt(initStep, initTimeStep, initOutputRows, initHypothesisReport, initMethod).format( if (isImperative) "none" else "#0" ))
+
   // Register simulator parameters that should appear as completions in the code editor 
   // for any interpreter. Additional parameters are taken from Interpreter.parameters. 
   val visibleSimulatorFields = List("time", "timeStep", "endTime")
@@ -421,11 +422,9 @@ object Common {
     val initialMagic = initStore(magicId(initStore))
     visibleSimulatorFields.map(p => (p, initialMagic(name(p)))).toMap
   }
-  val visibleParametersRef = visibleParametersMap(initStoreRef)
-  val visibleParametersImpr = visibleParametersMap(initStoreImpr)
                                   
   // Register valid simulator parameters
-  val simulatorFields = visibleSimulatorFields ::: List("outputRows", "continuousSkip", "resultType", "lastCreatedId", "method", "variableCount")
+  val simulatorFields = visibleSimulatorFields ::: List("outputRows", "hypothesisReport", "continuousSkip", "resultType", "lastCreatedId", "method", "variableCount")
 
   val specialFields = List("nextChild","parent","className","seed1","seed2")
 
@@ -489,14 +488,19 @@ object Common {
    * number of columns in the table, as the latter also contains information 
    * such as class names etc. 
    */
-  def countVariables(st: CStore): CStore = {
-    def objectVariables(o: CObject): Int = o.map{
+  def countVariables(st: CStore): CStore = setObjectField(magicId(st), stateVars, VLit(GInt(countStateVars(st))), st)
+  /**
+   *  Computes the variableCount for a CStore.
+   */
+  def countStateVars(st: CStore): Int = {
+      def objectVariables(o: CObject): Int = o.map{
       case (_, VObjId(_)) => 0 
-      case (n,v) => if (specialFields contains n.x) 0 else v.yieldsPlots getOrElse 0
+      // _3D and _3DView objects should not increase variable count
+      case (n,v) => if ((specialFields ++ List("_3D", "_3DView")) contains n.x) 0 else v.yieldsPlots getOrElse 0
     }.sum
-    val count = st.map{ case(id, o) => if (id == magicId(st)) 0 else objectVariables(o) }.sum
-    setObjectField(magicId(st), stateVars, VLit(GInt(count)), st)
+    st.map{ case(id, o) => if (id == magicId(st)) 0 else objectVariables(o) }.sum
   }
+  
   
   //
   // ODEs
@@ -542,5 +546,14 @@ object Common {
     def +++(that: S): S;
     def ***(that: Double): S;
   }
+
+  /** Compute hypothesis outcomes (for non-rigorous intepreters) */
+  def computeHypothesisOutcomes(outcome: Value[Any], time: => Double, resultType: ResultType, counterEx: => Set[(Dot, Value[Any])]) =
+    (outcome, resultType) match {
+      /* Use TestSuccess as default as it is the unit of HypothesisOutcome.pick */
+      case (VLit(GBool(true)), _)                                   => (Some(TestSuccess), Some(TestSuccess), TestSuccess)
+      case (VLit(GBool(false)), Initial)                            => (Some(InitialTestFailure(counterEx)), Some(TestSuccess), TestSuccess)
+      case (VLit(GBool(false)), Discrete | Continuous | FixedPoint) => (Some(TestSuccess), Some(TestSuccess), TestFailure(time, counterEx))
+    }
   
 }

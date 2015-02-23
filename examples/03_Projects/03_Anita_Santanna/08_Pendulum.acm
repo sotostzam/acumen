@@ -1,4 +1,4 @@
-model Palwaysulum(m,L,D) = 
+model Pendulum(m,L,D) = 
 initially 
   x = 2 , y = 0 , theta = 3.1416/4 , theta' = 0.01 , theta'' = 0 , T = 0 , g = 9.8 ,
   _3D = (Sphere center=(1,0,0) size=0.01*3 color=(0,0,1) rotation=(0,0,0),
@@ -17,7 +17,7 @@ always
 
 model Main(simulator) = 
 initially 
-  sys1  =  create Palwaysulum(5, 1, (0,0,0)) 
+  sys1  =  create Pendulum(5, 1, (0,0,0)) 
   //sys2 = create Pendulum(5, 1, (1,0,0)) , 
 always
   sys1.T=20*(-sys1.theta') 

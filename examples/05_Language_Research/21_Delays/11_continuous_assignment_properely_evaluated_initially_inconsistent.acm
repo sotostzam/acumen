@@ -1,0 +1,109 @@
+model Main(simulator) =
+initially
+  // a_0 = 2, b_0 = 4, d_0 = 4
+  // keep a * a = b = d
+  a = 2, b = 4, d = 4, 
+ 
+  // none of these assignments will be consistent
+  // with the ones in the 'always' section
+  a' = -1, b' = -2, d' = -3,
+  c = 0.1, e = 0.2, f = 0.3,
+
+  // time
+  t = 0, t' = 1
+always
+  // simulator
+  simulator.endTime += 1,
+  simulator.timeStep += 0.125,
+
+  // time
+  t' = 1,
+
+  // a = a' = a_0 * e^t
+  a' = a,
+
+  // b = c = b_0 * e^2t, b' = 2 * b_0 * e^2t
+  b' = b + c,
+  c = b,
+
+  // d = d_0 * e^2t, e = f = d' = 2 * d_0 * e^2t
+  d' = e,
+  e = f,
+  f = 2 * d,
+
+  // repeating the equations above (except the ones for fs)
+  // - the equations did not hold after the 'initial' section
+  // - we check only if they are true for time > 0
+  hypothesis 
+    "a' = a"
+    t == 0 || a' == a,
+ 
+  hypothesis
+    "b' = b + c"
+    t == 0 || b' == b + c,
+ 
+  hypothesis
+    "c = b"
+    t == 0 || c == b,
+
+  hypothesis
+    "d' = e"
+    t == 0 || d' == e,
+
+  hypothesis
+    "e = f"
+    t == 0 || f == e,
+
+  hypothesis
+    "f = 2 * d"
+    t == 0 || f == 2 * d,
+
+  hypothesis
+    "b' = d'"
+    t == 0 || b' == d',
+
+  // repeating the equations above (except the ones for fs)
+  // - we check if we properely apply all equations before
+  //   time advances
+ hypothesis 
+    "at t = 0 : a' = a"
+    t > 0 || (a' == a && t == 0),
+ 
+  hypothesis
+    "at t = 0 : b' = b + c"
+    t > 0 || (b' == b + c && t == 0),
+ 
+  hypothesis
+    "at t = 0 : c = b"
+    t > 0 || (c == b && t == 0),
+
+  hypothesis
+    "at t = 0 : d' = e"
+    t > 0 || (d' == e && t == 0),
+
+  hypothesis
+    "at t = 0 : e = f"
+    t > 0 || (f == e && t == 0),
+
+  hypothesis
+    "at t = 0 : f = 2 * d"
+    t > 0 || (f == 2 * d && t == 0),
+
+  hypothesis
+    "at t = 0 : b' = d'"
+    t > 0 || (b' == d' && t == 0),
+
+// additional checks that arise from what functions a, b, d are
+// - these have to hold initially as well
+
+  // even the numerical solutions should coincide here
+  hypothesis
+  "b == d"
+   b == d,
+
+  // slight difference might occur due to numerics
+  // - increasing the endtime and/or stepsize will lead to
+  //   violation here due to numerical reasons
+  hypothesis
+  "a * a == b"
+   abs(a * a - b) < 0.01

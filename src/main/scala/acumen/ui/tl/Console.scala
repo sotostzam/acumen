@@ -45,7 +45,7 @@ class Console extends ListView[(Msg, Boolean /*messageIsOld*/)] { self =>
       "</pre></html>"
 
   private def summarizeHypothesisOutcomes(md: SomeMetadata, messageIsOld: Boolean): String = 
-    new SummarizeHypothesisOutcomes {
+    new HypothesisOutcomeSummary {
       override def colorSuccess(m: String)   = color("green",  messageIsOld, m)
       override def colorUncertain(m: String) = color("ff9900", messageIsOld, m)
       override def colorFailure(m: String)   = color("red",    messageIsOld, m)
@@ -118,6 +118,7 @@ class Console extends ListView[(Msg, Boolean /*messageIsOld*/)] { self =>
     override def mouseClicked(e: MouseEvent) { 
       if (e.getClickCount == 2) self.peer.getSelectedValues.head match {
         case (m: Message, _) => scrollToError(m)
+        case _ =>
       }
     }
   }) 

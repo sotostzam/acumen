@@ -29,51 +29,119 @@ import acumen.util.Canonical.{
 }
 import scala.annotation.tailrec
 
-class Interpreter(val specialInitContStep : Boolean = false) extends CStoreInterpreter {
+class Interpreter extends CStoreInterpreter {
 
   import Common._ 
 
   type Store = Common.Store
   def repr (s:Store) : CStore = Common.repr(s)
   def fromCStore (cs:CStore, root:CId) : Store = Common.fromCStore(cs, root)
-  override def visibleParameters = visibleParametersImpr
+  val initStepType = Initial
+  val timeStep = 0.015625
+  val outputRows = "All"
+  override def visibleParameters = visibleParametersMap(initStoreInterpreter(initStep = initStepType, initTimeStep = timeStep, initOutputRows = outputRows, isImperative = true))
 
   def init(prog: Prog): (Prog, Store, Metadata) = {
     checkContinuousAssignmentToSimulator(prog)
-    val magic = fromCStore(initStoreImpr, CId(0))
+    val magic = fromCStore(initStoreInterpreter(initStep = initStepType, initTimeStep = timeStep, initOutputRows = outputRows, isImperative = true), CId(0))
     val cprog = CleanParameters.run(prog, CStoreInterpreterType)
     val sprog = Simplifier.run(cprog)
     val (sd1, sd2) = Random.split(Random.mkGen(0))
     val mainObj = mkObj(cmain, sprog, IsMain, sd1, List(VObjId(Some(magic))), magic, 1)
     magic.seed = sd2
     val mprog = Prog(magicClass :: sprog.defs)
-    if (specialInitContStep)
-      println("Doing specialInitContStep")
-    if (specialInitContStep)
-      magic.phaseParms.specialInitialStep = true
-    (mprog , mainObj, NoMetadata)
+    setVarNum(magic, countStateVars(repr(mainObj)))
+    checkHypothesis(magic.phaseParms, mprog, magic, mainObj)
+    (mprog , mainObj, magic.phaseParms.metaData)
   }
 
+  // Hypotheses check
+  def checkHypothesis(pp : PhaseParms, p: Prog, magic : Store, st: Object) {
+      pp.reset(Ignore, Ignore, Ignore)
+      pp.usePrev = false
+      pp.doHypothesis = true
+      magic.phaseParms.stepHypothesisResults = Map.empty
+      traverse(evalStep(p, magic), st)
+      val md = 
+        if (magic.phaseParms.stepHypothesisResults nonEmpty) 
+          SomeMetadata(magic.phaseParms.stepHypothesisResults,
+                       magic.phaseParms.hypTimeDomainLeft, getTime(magic),
+                       false, None)
+        else NoMetadata
+      magic.phaseParms.metaData = magic.phaseParms.metaData.combine(md)
+    }
+  
   def localStep(p: Prog, st: Store): ResultType = {
     val magic = getSimulator(st)
   
     val pp = magic.phaseParms
     pp.curIter += 1
 
-    def doEquationT(odeEnv: OdeEnv) = try {
-      pp.usePrev = false
+    /** If false then there exist active discrete assignments or non-clashing
+      * continuous assignments */
+    var isFixedPoint : Boolean = true
+
+    /** Retrieves the collected discrete assignments */
+    def doEquationD() = try {
+      var idx = 0
+      while (idx < pp.das.size) {
+        val da = pp.das(idx)
+        // Execute the assignment and check for duplicates
+        setField(da.id, da.field, da.v, da.pos) match {
+          case NoChange() =>
+          case SomeChange(_,_) =>
+            isFixedPoint = false
+        }
+        idx += 1
+      }
+    }
+
+    /** Filters the collected continuous assignments */
+    def filterEquationT() = try {
+
       var idx = 0
       while (idx < pp.assigns.size) {
-        val eqt = pp.assigns(idx)
+        val (eqt, pos) = pp.assigns(idx)
+        
+        // The continuous assignment is non-clashing
+        if (!magic.phaseParms.das.exists {
+          a => a.id == eqt.id && a.field == eqt.field
+        }) {
+          // Initialize the field:
+          // mark the value to be updated and check for duplicates
+          setField(eqt.id, eqt.field, AssignLookup(idx), pos)
+          idx += 1
+        
+        // The assignment clashes with some discrete assignment
+        } else {
+          pp.assigns.remove(idx)
+        }
+      }
+    }
+    
+    /** Retrieves the collected continuous assignments */
+    def doEquationT(odeEnv: OdeEnv) = try {
+      
+      var idx = 0
+      pp.usePrev = false
+      
+      while (idx < pp.assigns.size) {
+        val (eqt, _) = pp.assigns(idx)
+        // Algebraic loop is checked
         val v = getField(eqt.id, eqt.field, p, Env(eqt.env,Some(odeEnv)))
-        updateField(eqt.id, eqt.field, v)
+        // Execute the assignment
+        updateField(eqt.id, eqt.field, v) match {
+          case NoChange() =>
+          case SomeChange(_,_) =>
+            isFixedPoint = false
+        }
         idx += 1
       }
     } finally {
       pp.usePrev = true
     }
 
-    if (getTime(magic) >= getEndTime(magic)) {
+    if (getResultType(magic) == FixedPoint && getTime(magic) >= getEndTime(magic)) {
 
       null
 
@@ -81,12 +149,40 @@ class Interpreter(val specialInitContStep : Boolean = false) extends CStoreInter
 
       val rt = if (getResultType(magic) != FixedPoint) { // Discrete Step
 
-        pp.reset(true, Ignore, Ignore)
+        // Gather discrete assignments, structural actions are ignored
+        pp.reset(Gather, Preserve, Ignore)
+        traverse(evalStep(p, magic), st) 
 
-        traverse(evalStep(p, magic), st) match {
+        // Gather all continuous assignments.
+        pp.reset(Preserve, Gather, Ignore)
+        traverse(evalStep(p, magic), st)
+        
+        // Execute creates, other structural actions are ignored.
+        // Append the list of discrete assignments.
+        pp.reset(CreateOnly, Preserve, Ignore)
+        traverse(evalStep(p, magic), st) 
+
+        // Collect structural actions.
+        pp.reset(Structural, Preserve, Ignore)
+        val reParentings = traverse(evalStep(p, magic), st) 
+
+        // Retrieve updated values for discrete assignments.
+        doEquationD()
+        
+        // Mark that we begin processing the continuous assignments.
+        pp.curIter += 1
+
+        // Filter out clashing continuous assignments.
+        filterEquationT()
+        
+        // Retrieve updated values the non-clashing ones.
+        doEquationT(OdeEnv(IndexedSeq.empty, Array.fill[AssignVal](pp.assigns.length)(Unknown)))
+
+        // Apply the structural actions: elim, move.
+        reParentings match {
           case SomeChange(dead, rps) =>
             for ((o, p) <- rps)
-            changeParent(o, p)
+              changeParent(o, p)
             for (o <- dead) {
               o.parent match {
                 case None => ()
@@ -95,18 +191,29 @@ class Interpreter(val specialInitContStep : Boolean = false) extends CStoreInter
                   op.children = op.children diff Seq(o)
               }
             }
-
-            Discrete
+            isFixedPoint = false
+        
           case NoChange() =>
-            FixedPoint
-          }
+        }
+        
+        // Decide if a FixedPoint is reached
+        if (isFixedPoint) { 
+          FixedPoint
+        } else {
+          pp.hypTimeDomainLeft = getTime(magic)
 
+          Discrete
+        } 
       } else { // Continuous step
 
-        pp.reset(false, Gather, Gather)
-
+        // Gather continuous assignments and integrations
+        pp.reset(Ignore, Gather, Gather)
         traverse(evalStep(p, magic), st)
 
+        // After the pp.reset the das list is empty,
+        // thus filtering only initializes the fields
+        filterEquationT()
+        
         checkContinuousDynamicsAlwaysDefined(st, magic)
         
         // Compute the initial values the the ode solver
@@ -124,8 +231,7 @@ class Interpreter(val specialInitContStep : Boolean = false) extends CStoreInter
         // Run the ode solver
         implicit val field = FieldImpl(pp.odes, p)
         val initOdeEnv = OdeEnv(initVal, Array.fill[AssignVal](pp.assigns.length)(Unknown))
-        val res = if (pp.specialInitialStep) initOdeEnv
-                  else new Solver(getField(magic, Name("method", 0)), initOdeEnv, getTimeStep(magic)).solve
+        val res = new Solver(getField(magic, Name("method", 0)), initOdeEnv, getTimeStep(magic)).solve
 
         // Evaluate (if necessary) and update values assigned to by EquationT
         doEquationT(res)
@@ -138,15 +244,16 @@ class Interpreter(val specialInitContStep : Boolean = false) extends CStoreInter
           idx += 1
         }
 
-        if (pp.specialInitialStep)
-          pp.specialInitialStep = false
-        else
-          setTime(magic, getTime(magic) + getTimeStep(magic))
-
+        pp.hypTimeDomainLeft = getTime(magic)
+        setTime(magic, getTime(magic) + getTimeStep(magic))
+        
         Continuous
       }
 
       setResultType(magic, rt)
+      setVarNum(magic, countStateVars(repr(st)))
+      
+      if (rt != FixedPoint) checkHypothesis(pp, p, magic, st)      
 
       rt
     }
@@ -163,19 +270,18 @@ class Interpreter(val specialInitContStep : Boolean = false) extends CStoreInter
   // determine when teh simulation is done
   override def multiStep(p: Prog, st: Store, md: Metadata, adder: DataAdder): (Store, Metadata, Double) = {
     setMetadata(st, md)
-    var shouldAddData = ShouldAddData.IfLast
-    // ^^ set to IfLast on purpose to make things work
+    adder.shouldAddData = adder.initialShouldAddData
     var endTime = Double.NaN
     @tailrec def step0() : Unit = {
       val res = localStep(p, st)
       if (res == null) {
-        if (shouldAddData == ShouldAddData.IfLast)
+        if (adder.addLast)
           addData(st, adder)
         adder.noMoreData()
         endTime = getEndTime(getSimulator(st))
       } else {
-        shouldAddData = adder.newStep(res)
-        if (shouldAddData == ShouldAddData.Yes)
+        adder.shouldAddData = adder.newStep(res)
+        if (adder.shouldAddData == ShouldAddData.Yes)
           addData(st, adder)
         if (adder.continue)
           step0()
@@ -194,5 +300,4 @@ class Interpreter(val specialInitContStep : Boolean = false) extends CStoreInter
   }
 }
 
-object Interpreter extends Interpreter(false)
-
+object Interpreter extends Interpreter()

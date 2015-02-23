@@ -1,0 +1,114 @@
+// A model for demonstrating the possible
+// outcomes of hypothesis checks [2015 Semantics]
+model Main(simulator) =
+initially
+  t = 0, t' = 1,
+  a = 0, a' = 1,
+  b = 1, 
+  c = 0, 
+  d = 1,
+  e = 0,
+  f = 0,
+  g = 0,
+  h = 0,
+  firstDiscreteStep = true
+always
+  // --------------------------- Simulator ---------------------------
+  // NOTE: the setting of simulator parameters implies the necessity
+  //       of a Discrete step between Initial and the first FixedPoint
+  simulator.endTime += 1.1,
+
+  // filtering states to be output
+  // NOTE: Hypotheses are not checked at FixedPoints, thus
+  //       it makes sense to filter them out now with the
+  //       WhenChanged option to get a better overview.
+  simulator.outputRows+ = "WhenChanged",
+  //simulator.outputRows+ = "All",
+  
+   // filtering hypothesis reports
+  simulator.hypothesisReport+ = "Comprehensive",
+  //simulator.hypothesisReport+ = "MostSignificant",
+  //simulator.hypothesisReport+ = "IgnoreInitialOnly",
+  //simulator.hypothesisReport+ = "Ignore",
+
+  // --------------------------- Dynamics ---------------------------
+
+  // in place of simulator.time
+  t' = 1,
+  
+  // dynamics for a
+  a' = 1,
+  if a >= 0.5 then a+ = 0 noelse, 
+  
+  // dynamics for b
+  b = a,
+
+  // dynamics for c
+  c = a,
+  if a >= 0.5 then c+ = 1 noelse,
+
+  // dynamics for d
+  d = a,
+  if a >= 0.5 then d+ = 1 noelse,
+
+  // dynamics for e
+  e = a + 1,
+
+  // dynamics for f
+  // NOTE: the clashing between f+ = a and f = a + 1 implies the 
+  //       existence of a second Discrete step between Initial 
+  //       and the first FixedPoint
+  if firstDiscreteStep then
+    firstDiscreteStep+ = false,
+    f+ = a
+  noelse,
+  f = a + 1,
+
+  // dynamics for g
+  if t >= 1.0 then 
+    g = a + 1
+  else 
+    g = a,
+
+  // dynamics for h
+  if t == 1.0 then 
+    h+ = a + 1
+  else 
+    h = a,
+ 
+  // --------------------------- Hypotheses ---------------------------
+  // a == a holds always
+  hypothesis "a == a (true)" a == a,
+
+  // a == b doesn't hold in the initially section, 
+  // thereafter the assignment b = a keeps it satisfied
+  hypothesis "a == b (true but initially)" a == b,
+
+  // a == c doesn't hold at times 0.5 and 1.0 since momentarily a = 0.5,
+  // then momentarily a = 0 and c = 1 follows. Finally, 
+  // fixed point is reached with a = 0 and c = 0 at time 0.5.
+  hypothesis "a == c (true but momentarily at 0.5)" a == c,
+
+  // a == d doesn't hold in the initially section, 
+  // thereafter the assignment d = a keeps it satisfied
+  // except when momentarily a = 0.5 in a similar manner to c.
+  hypothesis "a == d (true but initially and momentarily at 0.5)" a == d,
+
+  // a != a never holds.
+  hypothesis "a != a (false)" not(a == a),
+
+  // a == e never holds except initially.
+  // It doesn't hold in the first (technical) discrete step either,
+  // as the non-clashing assignment e = a + 1 kicks in.
+  hypothesis "a == e (false but initially)" a == e,
+
+   // a == f never holds except initially.
+  // It holds in the first (technical) discrete step,
+  // as assignment f = a + 1 clashes with f+ = a.
+  hypothesis "a == f (false but initially and at 1st discrete step)" a == f,
+
+  // a == g holds up to time 1.0
+  hypothesis "a == g (true until time 1.0)" a == g,
+
+  // a == h holds except at time 1.0
+  hypothesis "a == h (true but at time 1.0)" a == h

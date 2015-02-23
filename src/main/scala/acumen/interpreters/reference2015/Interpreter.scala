@@ -36,11 +36,14 @@ object Interpreter extends acumen.CStoreInterpreter {
 
   def repr(st:Store) = st
   def fromCStore(st:CStore, root:CId) = st
-  override def visibleParameters = visibleParametersRef + ("method" -> VLit(GStr(RungeKutta)))
+  val initStepType = Initial
+  val timeStep = 0.015625
+  val outputRows = "All"
+  override def visibleParameters = visibleParametersMap(initStoreInterpreter(initStep = initStepType, initTimeStep = timeStep, initOutputRows = outputRows, isImperative = false)) + ("method" -> VLit(GStr(RungeKutta)))
 
   /* Bindings, expressed in models as continuous assignments 
    * to unprimed variables, are used to look up sub-expressions
-   * during evaluation of continuous assignments. */
+   * during evaluation. */
   type Bindings = Map[(CId,Name), Binding] 
   val NoBindings = Map.empty[(CId,Name), Binding]
   sealed trait Binding
@@ -48,8 +51,11 @@ object Interpreter extends acumen.CStoreInterpreter {
   case class UnusedBinding(e: Expr, env: Env) extends Binding
   case class CachedUnusedBinding(v: CValue) extends Binding
   def cacheBindings(b: Bindings, st: Store): Bindings = 
-    b.foldLeft(b){ case (res, (k, UnusedBinding(e, env))) => 
-      res updated (k, CachedUnusedBinding(evalExpr(e, env, st)(res))) }
+    b.foldLeft(b){ 
+      case (res, (k, UnusedBinding(e, env))) => 
+        res updated (k, CachedUnusedBinding(evalExpr(e, env, st)(res)))
+      case (res, (_, _: CachedUnusedBinding)) => res
+    }
   
   /* initial values */
   val emptyStore : Store = HashMap.empty
@@ -96,25 +102,25 @@ object Interpreter extends acumen.CStoreInterpreter {
     mapM_ (logReparent(_:CId,p), cs)
     
   /* discretely assign the value of r evaluated in e to a field n in object o */
-  def assign(o: CId, d: Dot, r: Expr, e: Env) : Eval[Unit] = logAssign(o, d, r, e)
+  def assign(o: CId, d: Dot, r: Expr, e: Env) : Eval[Unit] = 
+    logAssign(o, d, r, e)
 
   /* continuously assign the value of r evaluated in e to a field n in object o */
-  def equation(o: CId, d: Dot, r: Expr, e: Env) : Eval[Unit] = logEquation(o, d, r, e)
+  def equation(o: CId, d: Dot, r: Expr, e: Env) : Eval[Unit] = 
+    logEquation(o, d, r, e)
 
   /* continuously assign the value of r evaluated in e to a field n in object o */
-  def ode(o: CId, d: Dot, r: Expr, e: Env) : Eval[Unit] = logODE(o, d, r, e)
+  def ode(o: CId, d: Dot, r: Expr, e: Env) : Eval[Unit] = 
+    logODE(o, d, r, e)
+  
+  /* log an id as being new */
+  def birth(da: Option[(CId, Name)], c: ClassName, parent: CId, sd: (Int, Int), ves: List[CValue]) : Eval[Unit] = 
+    logBorn(da, c, parent, sd, ves)
   
   /* log an id as being dead */
-  def kill(a:CId) : Eval[Unit] = logCId(a)
-  
-  /* transfer the parenthood of (object at a)'s 
-   * children to (object at a)'s parent */
-  def vanish(a:CId) : Eval[Unit] = { 
-    for { Some(p) <- asks(getParent(a,_))
-          cs <- asks(childrenOf(a,_))
-    } reparent(cs,p) >> kill(a)
-  }
-    
+  def kill(a:CId) : Eval[Unit] = 
+    logDead(a)
+        
   /* create an env from a class spec and init values */
   def mkObj(c:ClassName, p:Prog, prt:Option[CId], sd:(Int,Int),
             v:List[CValue], childrenCounter:Int =0) : Eval[CId] = {
@@ -136,26 +142,25 @@ object Interpreter extends acumen.CStoreInterpreter {
        into   ([x1, ..., xn], [rhs1, ..., rhsn] */
     def helper(p:(List[Name],List[InitRhs]),i:Init) = 
       (p,i) match { case ((xs,rhss), Init(x,rhs)) => (x::xs, rhs::rhss) }
-    val (privVars, ctrs) = {
+    val (privVars, crInits) = {
       val (xs,ys) = cd.priv.foldLeft[(List[Name],List[InitRhs])]((Nil,Nil))(helper)
       (xs.reverse, ys.reverse)
     }
     implicit val bindings = NoBindings
     for { fid <- freshCId(prt)
-          _ <- setObjectM(fid, pub)
-          vs <- mapM[InitRhs, CValue]( 
+          _ <- setObjectM(fid, pub) // add new object to resulting store 
+          vs <- mapM[InitRhs, CValue]( // process create initializers
                   { case NewRhs(e,es) =>
                       for { ve <- asks(evalExpr(e, Map(self -> VObjId(Some(fid))), _)) 
-                            val cn = ve match {case VClassName(cn) => cn; case _ => throw NotAClassName(ve)}
-                            ves <- asks(st => es map (
-                            evalExpr(_, Map(self -> VObjId(Some(fid))), st)))
-			    nsd <- getNewSeed(fid)
-			    oid <- mkObj(cn, p, Some(fid), nsd, ves)
+                            val cn = ve match { case VClassName(cn) => cn; case _ => throw NotAClassName(ve) }
+                            ves <- asks(st => es map (evalExpr(_, Map(self -> VObjId(Some(fid))), st)))
+                  			    nsd <- getNewSeed(fid)
+                  			    oid <- mkObj(cn, p, Some(fid), nsd, ves)
                       } yield VObjId(Some(oid))
                     case ExprRhs(e) =>
                       asks(evalExpr(e, Map(self -> VObjId(Some(fid))), _))
                   },
-                  ctrs)
+                  crInits)
           val priv = privVars zip vs 
           // new object creation may have changed the nextChild counter
           newpub <- asks(deref(fid,_))
@@ -299,16 +304,17 @@ object Interpreter extends acumen.CStoreInterpreter {
             }
           }
       }
-        
-        
+      /* Decides when a discrete assignment is in scope */  
       case Discretely(da) =>
         for (ty <- asks(getResultType))
-          if (ty == FixedPoint) pass
-          else evalDiscreteAction(da, env, p)
+          /* We do not consider discrete and structural actions after 
+           * a fixpoint is reached, i.e. during continuous steps. */
+          if (ty == Initial || ty == Discrete || ty == Continuous) 
+            evalDiscreteAction(da, env, p)
+          else pass
+      /* Decides when a continuous assignment is in scope */
       case Continuously(ca) =>
-        for (ty <- asks(getResultType))
-          if (ty != FixedPoint) pass
-          else evalContinuousAction(ca, env, p) 
+        evalContinuousAction(ca, env, p)
       case Claim(_) =>
         pass
       case Hypothesis(s, e) =>
@@ -332,17 +338,17 @@ object Interpreter extends acumen.CStoreInterpreter {
               ves <- asks(st => es map (evalExpr(_, env, st)))
 						  val self = selfCId(env)
 						  sd <- getNewSeed(self)
-              fa  <- mkObj(c, p, Some(self), sd, ves)
         } lhs match { 
-          case None => pass
+          case None =>
+            birth(None, c, self, sd, ves)
           case Some(Dot(e,x)) => 
             for (id <- asks(evalToObjId(e, env, _)))
-              setObjectFieldM(id, x, VObjId(Some(fa))) 
+              birth(Some(id,x), c, self, sd, ves) 
           case Some(_) => throw BadLhs()
         }
       case Elim(e) =>
         for (id <- asks(evalToObjId(e, env, _)))
-          vanish(id)
+          kill(id)
       case Move(Dot(o1,x), o2) => 
         for { o1Id <- asks(evalToObjId(o1, env, _))
               xId  <- asks(getObjectField(o1Id, x, _)) map extractId
@@ -359,8 +365,11 @@ object Interpreter extends acumen.CStoreInterpreter {
         for { id <- asks(evalToObjId(e, env, _)) 
               _  <- asks(checkVariableDeclared(id, n, d.pos, _))
             } equation(id, d, rhs, env)
-      case EquationI(d@Dot(e,_),rhs) => // No need to check that lhs is declared, as EquationI:s are generated  
-        for { id <- asks(evalToObjId(e, env, _)) } ode(id, d, rhs, env)
+      case EquationI(d@Dot(e,_),rhs) => // No need to check that lhs is declared, as EquationI:s are generated
+        for { id <- asks(evalToObjId(e, env, _))
+              resultType <- asks(getResultType)
+            } if (resultType == FixedPoint) ode(id, d, rhs, env) 
+              else pass
       case _ =>
         throw ShouldNeverHappen() // FIXME: enforce that with refinement types
     }
@@ -391,13 +400,20 @@ object Interpreter extends acumen.CStoreInterpreter {
     val mprog = Prog(magicClass :: sprog.defs)
     val (sd1,sd2) = Random.split(Random.mkGen(0))
     val (id,_,st1) = 
-      mkObj(cmain, mprog, None, sd1, List(VObjId(Some(CId(0)))), 1)(initStoreRef)
+      mkObj(cmain, mprog, None, sd1, List(VObjId(Some(CId(0)))), 1)(initStoreInterpreter(initStep = initStepType, initTimeStep = timeStep, initOutputRows = outputRows, isImperative = false))
     val st2 = changeParent(CId(0), id, st1)
     val st3 = changeSeed(CId(0), sd2, st2)
     val st4 = countVariables(st3)
-    (mprog, st4, NoMetadata)
+    val hyps = st4.toList.flatMap { case (cid, co) =>
+      mprog.defs.find(_.name == getCls(cid, st4)).get.body.flatMap {
+        case Hypothesis(s, e) =>
+          DelayedHypothesis(cid, s, e, Map(self -> VObjId(Some(cid)))) :: Nil
+        case _ => Nil
+    }}
+    val md = testHypotheses(hyps, NoMetadata, st4, 0)(NoBindings)
+    (mprog, st4, md)
   }
-
+  
   override def exposeExternally(store: Store, md: Metadata): (Store, Metadata) =
     if (Main.serverMode) {
       val json1 = JSon.toJSON(store).toString
@@ -419,54 +435,118 @@ object Interpreter extends acumen.CStoreInterpreter {
   /** Updates the values of variables in xs (identified by CId and Dot.field) to the corresponding CValue. */
   def applyDelayedAssignments(xs: List[DelayedAction], st: Store)(implicit bindings: Bindings): Store = 
     applyAssignments(evaluateAssignments(xs, st)) ~> st
+
+  /** For each r in rps, makes r._1 into a child of r._2.  */
+  def applyReparentings(rps: List[(CId,CId)]): Eval[Unit] =
+    mapM_((pair:(CId, CId)) => changeParentM(pair._1, pair._2), rps)
+    
+  /** Adds new objects to the store and applies any corresponding discrete assignments. */
+  def applyDelayedCreates(dcs: List[DelayedCreate], p: Prog): Eval[Unit] =
+    mapM_({ case DelayedCreate(da, c, parent, sd, ves) =>
+      for (fa <- mkObj(c, p, Some(parent), sd, ves))
+        da match {
+          case None          => pass
+          case Some((id, x)) => setObjectFieldM(id, x, VObjId(Some(fa)))
+        }}: DelayedCreate => Eval[Unit], dcs)
   
-  def step(p:Prog, st:Store, md: Metadata) : StepRes =
-    if (getTime(st) >= getEndTime(st)){
+  /** Remove dead objects and compute list of orphans, i.e. reparentings required 
+   *  to transfer the parenthood of dead objects' children to their parents */
+  def applyTerminations(dead: List[CId], st: Store): (Store, List[(CId,CId)]) = {
+    val (_, cs, st1) = mapM_((a: CId) => 
+      for { Some(p) <- asks(getParent(a,_))
+            cs <- asks(childrenOf(a,_))
+          } reparent(cs,p), dead)(st)
+    (st1 -- dead, cs.reps)
+  }
+
+  /**
+   * Reference interpreter state machine:
+   * 
+   * 0. Initial step, where the contents of the initially section
+   *    are reported.
+   * 1. Discrete steps, where discrete assignments and structural
+   *    actions are evaluated, are taken until a FixedPoint.
+   * 2. A Continuous step is taken, where the ODEs defined by 
+   *    continuous assignments to primed variables are solved. 
+   * 
+   * After each sub-step of step 1 and step 2, all continuous 
+   * assignments (EquationT) are applied to the store with the
+   * exception that, during Discrete steps, discrete assignments 
+   * are given precedence over clashing continuous assignments.
+   * Simulation starts with step 0 and then alternates steps 1 
+   * and 2 until a) the end time is reached and b) step 1 has 
+   * reached a FixedPoint.
+   */
+  def step(p:Prog, st:Store, md: Metadata) : StepRes = {
+    val resultType = getResultType(st)
+    /* We are done when the simulation time is over the given end 
+     * time and we have reached a discrete fixed point */
+    if (resultType == FixedPoint && getTime(st) >= getEndTime(st))
       Done(md, getEndTime(st))
-    } 
     else 
-      { val (_, Changeset(ids, rps, das, eqs, odes, hyps), st1) = iterate(evalStep(p)(_)(NoBindings), mainId(st))(st)
+      { val (_, Changeset(born, dead, rps, das, eqs, odes, hyps), _) = iterate(evalStep(p)(_)(NoBindings), mainId(st))(st)
+        /* Create objects and apply any corresponding discrete assignments */
+        val st1 = applyDelayedCreates(born, p) ~> st
         implicit val bindings = eqs.map{ e => val rd = resolveDot(e.d, e.env, st1)
           (rd.id, rd.field) -> UnusedBinding(e.rhs, e.env)}.toMap
-        val md1 = testHypotheses(hyps, md, st)(cacheBindings(bindings, st))
         def resolveDots(s: List[DelayedAction]): List[ResolvedDot] =
           s.map(da => resolveDot(da.d, da.env, st1))
-        val res = getResultType(st) match {
-          case Discrete | Continuous => // Either conclude fixpoint is reached or do discrete step
+        val res = resultType match {
+          case Initial | Discrete | Continuous => // Do discrete step or conclude discrete fixpoint
             checkDuplicateAssingments(resolveDots(das), DuplicateDiscreteAssingment)
-            val dasValues = evaluateAssignments(das, st1)(NoBindings)
-            val nonIdentityDas = dasValues.filterNot{ a => a._3 == getObjectField(a._1, a._2.field, st1) }
-            if (st == st1 && ids.isEmpty && rps.isEmpty && nonIdentityDas.isEmpty) 
+            checkDuplicateAssingments(resolveDots(eqs), DuplicateContinuousAssingment)
+            /* Evaluate discrete assignments */
+            val dasValues = evaluateAssignments(das, st1)
+            /* Evaluate continuous assignments that do not clash with discrete assignments */
+            val nonClashingEqs = eqs.filterNot (e => dasValues.exists { case (id, d, _) =>  
+              id == resolveDot(e.d, e.env, st1).id && d.field == e.d.field })
+            val nonClashingEqsValues = evaluateAssignments(nonClashingEqs, st1)(bindings ++
+              /* Give discrete assignments precedence by replacing clashing bindings */
+              dasValues.map { case (id, d, v) => (id, d.field) -> CachedUnusedBinding(v) })
+            /* Find (non-ODE) assignments that modify the store */
+            val nonIdentityAs = (dasValues ++ nonClashingEqsValues).filterNot{ case (id, d, v) => 
+              threeDField(d.field.x) || v == getObjectField(id, d.field, st1) }
+            /* If the discrete, structural and non-ODE continuous actions do not modify the store, conclude discrete fixpoint */
+            if (nonIdentityAs.isEmpty && born.isEmpty && dead.isEmpty && rps.isEmpty)
               setResultType(FixedPoint, st1)
             else {
-              val stA = applyAssignments(dasValues) ~> st1
-              def repHelper(pair:(CId, CId)) = changeParentM(pair._1, pair._2) 
-              val stR = mapM_(repHelper, rps) ~> stA
-              val st3 = stR -- ids
-              setResultType(Discrete, st3)
+              /* Apply discrete and non-clashing continuous assignment values */
+              val st2 = applyAssignments(nonClashingEqsValues ++ dasValues) ~> st1
+              /* Apply terminations to get store without dead objects and list of orphans */
+              val (st3, orphans) = applyTerminations(dead, st2)
+              /* Apply reparentings */
+              val st4 = applyReparentings(rps ++ orphans) ~> st3
+              setResultType(Discrete, st4)
             }
           case FixedPoint => // Do continuous step
             val eqsIds = resolveDots(eqs)
             val odesIds = resolveDots(odes)
             checkDuplicateAssingments(eqsIds ++ odesIds, DuplicateContinuousAssingment)
             checkContinuousDynamicsAlwaysDefined(p, eqsIds, st1)
-            val stODE = solveIVP(odes, p, st1)
-            val stE = applyDelayedAssignments(eqs, stODE)
-            val st2 = setResultType(Continuous, stE)
-            setTime(getTime(st2) + getTimeStep(st2), st2)
+            /* After reaching a discrete fixpoint, integrate */
+            val stODES = solveIVP(odes, p, st1)
+            val stT = setTime(getTime(stODES) + getTimeStep(stODES), stODES)
+            /* Ensure that the resulting store is consistent w.r.t. continuous assignments */
+            val stEQS = applyDelayedAssignments(eqs, stT)
+            setResultType(Continuous, stEQS)
         }
-        Data(countVariables(res), md1)
+        // Hypotheses check only when the result is not a FixedPoint
+        lazy val md1 = testHypotheses(hyps, md, res, getTime(st))(NoBindings) // No bindings needed, res is consistent 
+        if (getResultType(res) != FixedPoint)
+          Data(countVariables(res), md1)
+        else
+          Data(countVariables(res), md)
       }
+    }
   
   /** Summarize result of evaluating the hypotheses of all objects. */
-  def testHypotheses(hyps: List[DelayedHypothesis], old: Metadata, st: Store)(implicit bindings: Bindings): Metadata =
+  def testHypotheses(hyps: List[DelayedHypothesis], old: Metadata, st: Store, timeBefore: Double)(implicit bindings: Bindings): Metadata =
     old combine (if (hyps isEmpty) NoMetadata else SomeMetadata(hyps.map {
       case DelayedHypothesis(o, hn, h, env) =>
-        val cn = getCls(o, st)
-        lazy val counterEx = dots(h).toSet[Dot].map(d => d -> (evalExpr(d, env, st) : GValue))
-        val VLit(GBool(b)) = evalExpr(h, env, st)
-        (o, cn, hn) -> (if (b) TestSuccess else TestFailure(getTime(st), counterEx))
-    }.toMap, (getTime(st), getTime(st) + getTimeStep(st)), false))
+        (o, getCls(o, st), hn) -> computeHypothesisOutcomes( 
+          evalExpr(h, env, st), getTime(st), getResultType(st), 
+          dots(h).toSet[Dot].map(d => d -> (evalExpr(d, env, st))))
+    }.toMap, timeBefore, getTime(st), false, None))
 
   /**
    * Solve ODE-IVP defined by odes parameter tuple, which consists of:

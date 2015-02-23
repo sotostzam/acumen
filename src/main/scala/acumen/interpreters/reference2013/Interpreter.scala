@@ -36,7 +36,10 @@ object Interpreter extends acumen.CStoreInterpreter {
 
   def repr(st:Store) = st
   def fromCStore(st:CStore, root:CId) = st
-  override def visibleParameters = visibleParametersRef
+  val initStepType = Discrete
+  val timeStep = 0.01
+  val outputRows = "WhenChanged"
+  override def visibleParameters = visibleParametersMap(initStoreInterpreter(initStep = initStepType, initTimeStep = timeStep, initOutputRows = outputRows, isImperative = false))
 
   /* initial values */
   val emptyStore : Store = HashMap.empty
@@ -266,6 +269,8 @@ object Interpreter extends acumen.CStoreInterpreter {
           else evalContinuousAction(ca, env, p) 
       case Claim(_) =>
         pass
+      case _: Hypothesis =>
+        pass
     }
   }
  
@@ -361,12 +366,12 @@ object Interpreter extends acumen.CStoreInterpreter {
     val mprog = Prog(magicClass :: sprog.defs)
     val (sd1,sd2) = Random.split(Random.mkGen(0))
     val (id,_,_,_,_,st1) = 
-      mkObj(cmain, mprog, None, sd1, List(VObjId(Some(CId(0)))), 1)(initStoreRef)
+      mkObj(cmain, mprog, None, sd1, List(VObjId(Some(CId(0)))), 1)(initStoreInterpreter(initStep = initStepType, initTimeStep = timeStep, initOutputRows = outputRows, isImperative = false))
     val st2 = changeParent(CId(0), id, st1)
     val st3 = changeSeed(CId(0), sd2, st2)
     (mprog, st3, NoMetadata)
   }
-
+      
   override def exposeExternally(store: Store, md: Metadata): (Store, Metadata) = {
     if (Main.serverMode) {
       val json1 = JSon.toJSON(store).toString

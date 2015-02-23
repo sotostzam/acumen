@@ -21,128 +21,6 @@ abstract class InterpreterRes {
   def metadata : Metadata;
 }
 
-/** Used to store information about the Store. */
-abstract class Metadata { 
-  def combine(that: Metadata): Metadata 
-  final def reportAsString = new SummarizeHypothesisOutcomes().makeReport(this)
-}
-case object NoMetadata extends Metadata {
-  def combine(that: Metadata): Metadata = that
-}
-case class SomeMetadata 
-  ( hyp: Map[ (CId, ClassName, Option[String]), HypothesisOutcome ] /* (object, class, name) -> outcome */
-  , timeDomain: (Double, Double)
-  , rigorous: Boolean /* Does this describe output of a rigorous interpreter? */
-  ) extends Metadata {
-  def combine(that: Metadata): Metadata = {
-    that match {
-      case NoMetadata => this
-      case SomeMetadata(th,tt,r) =>
-        require( this.timeDomain._2 >= tt._1 || tt._2 >= this.timeDomain._1 
-               , "Can not combine SomeMetadata with non-overlapping time domains.")
-        SomeMetadata(
-          (this.hyp.keySet union th.keySet).map(k => k -> {
-            (this.hyp.get(k), th.get(k)) match {
-              case (Some(o), None)    => o
-              case (None, Some(o))    => o
-              case (Some(l), Some(r)) => l pick r
-          }}).toMap
-        , (Math.min(this.timeDomain._1, tt._1), Math.max(this.timeDomain._2, tt._2))
-        , r && rigorous)
-    } 
-  }
-}
-
-/** The result of evaluating a hypothesis.*/
-trait HypothesisOutcome {
-  /**
-   * Returns either this or that outcome, depending on which is more significant. 
-   * A failure is more significant than a success, and an earlier failure more
-   * significant than a later one.
-   */
-  def pick(that: HypothesisOutcome): HypothesisOutcome
-}
-abstract class Success extends HypothesisOutcome { def pick(that: HypothesisOutcome) = that }
-abstract class Failure(counterExample: Set[(Dot,GValue)]) extends HypothesisOutcome
-/** Result of non-rigorous hypothesis evaluation (reference interpreter). */
-case object TestSuccess extends Success
-case class TestFailure(earliestTime: Double, counterExample: Set[(Dot,GValue)]) extends Failure(counterExample: Set[(Dot,GValue)]) {
-  def pick(that: HypothesisOutcome) = that match {
-    case TestSuccess    => this
-    case f: TestFailure => if (this.earliestTime <= f.earliestTime) this else that
-  }
-}
-/** Result of rigorous hypothesis evaluation (enclosure interpreter). */
-case object CertainSuccess extends Success
-abstract class RigorousFailure(earliestTime: (Double,Double), counterExample: Set[(Dot,GValue)]) extends Failure(counterExample: Set[(Dot,GValue)]) 
-case class CertainFailure(earliestTime: (Double,Double), counterExample: Set[(Dot,GValue)]) extends RigorousFailure(earliestTime, counterExample) {
-  def pick(that: HypothesisOutcome) = that match {
-    case CertainSuccess      => this
-    case _: UncertainFailure => this
-    case f: CertainFailure   => if (this.earliestTime._1 <= f.earliestTime._1) this else that
-  } 
-}  
-case class UncertainFailure(earliestTime: (Double,Double), counterExample: Set[(Dot,GValue)]) extends RigorousFailure(earliestTime, counterExample) {
-  def pick(that: HypothesisOutcome): HypothesisOutcome = that match {
-    case CertainSuccess      => this
-    case f: UncertainFailure => if (this.earliestTime._1 <= f.earliestTime._1) this else that
-    case f: CertainFailure   => f
-  } 
-}
-class SummarizeHypothesisOutcomes {
-
-  // override these methods to customize the formatting in makeReport
-  def colorSuccess(m: String) = m
-  def colorUncertain(m: String) = m
-  def colorFailure(m: String) = m
-  def nbsp = " "
-  def br = "\n"
-  def formatReport(header: String, summary: String, report: String) : String = 
-    s"$header\n$summary\n$report\n"
-
-  final def makeReport(md0: Metadata) : String = md0 match {
-    case NoMetadata => ""
-    case md:SomeMetadata => 
-      val (mLenCId, mLenCN, mLenHN) = md.hyp.foldLeft((0, 0, 0)) {
-        case ((rid, rcn, rhn), ((id,cn,hn), od)) =>
-          val sid = id.cid.toString
-          ( Math.max(rid, sid.length)
-          , Math.max(rcn, cn.x.length)
-          , Math.max(rhn, hn.map(_.length).getOrElse(0)))
-      }
-      val (report, successes, uncertains, failures) = md.hyp.toList.reverse.foldLeft(("", 0, 0, 0)) {
-        case ((resReport, resS, resU, resF), ((id, cn, hn), ho)) =>
-          val sid = s"(#${id.cid.toString}:${cn.x})".padTo(mLenCId + mLenCN + 2, nbsp).mkString
-          val shn = hn.map("'" + _ + "'").getOrElse("").padTo(mLenHN + 2, nbsp).mkString
-          def fail(prefix: String, t: String, e: Set[(Dot,GValue)]) = 
-            s"$prefix $t" + (if (e isEmpty) "" else ", where " + e.map { case (d, v) => 
-              val lhs = Pretty pprint (if (d.obj == Var(util.Canonical.self)) Var(d.field) else (d:Expr)) 
-              s"$lhs = ${Pretty pprint v}"
-            }.mkString(", "))
-          val (s, u, f, symbol, sho) = ho match {
-            case TestSuccess            => (1, 0, 0,                "+",       "Tested")
-            case TestFailure(t, e)      => (0, 0, 1, colorFailure  ("-"), fail("Tested false at", t.toString, e))
-            case CertainSuccess         => (1, 0, 0,                "+",       "Proved")
-            case UncertainFailure(t, e) => (0, 1, 0, colorUncertain("?"), fail("Inconclusive over", s"[${t._1}..${t._2}]", e))
-            case CertainFailure(t, e)   => (0, 0, 1, colorFailure  ("-"), fail("Disproved over", s"[${t._1}..${t._2}]", e))
-          }
-          (s"$symbol $sid $shn $sho$br$resReport", resS + s, resU + u, resF + f)
-      }
-      val domain = s" OVER [${md.timeDomain._1}..${md.timeDomain._2}]" 
-      val header = (successes, uncertains, failures) match {
-        case (_, _, f) if f > 0 =>
-          colorFailure ("SOME HYPOTHESES " + (if (md.rigorous) "DISPROVED" else "FALSIFIED") + domain)
-        case (_, u, 0) if u > 0 =>
-          colorUncertain("SOME HYPOTHESES INCONCLUSIVE" + domain)
-        case _  =>
-          colorSuccess((if (md.rigorous) "ALL HYPOTHESES PROVED" else "NO HYPOTHESES FALSIFIED") + domain)
-      }
-      val summary = s"$successes TRUE, $failures FALSE, $uncertains INCONCLUSIVE"
-      formatReport(header, summary, report)
-  }
-}
-
-
 /** Interface common to all interpreters whose results can be converted to/from CStores. */
 trait CStoreInterpreter extends Interpreter {
   type Store
@@ -172,21 +50,25 @@ trait CStoreInterpreter extends Interpreter {
     var st = st0
     var md = md0
     var cstore = repr(st0)
-    var shouldAddData = ShouldAddData.IfLast 
-    // ^^ set to IfLast on purpose to make things work
+    /* - The Initial store is output on a higher level
+     * - The user set simulator parameters are evaluated 
+     *   in the first Discrete step that is output depending
+     *   on Common/initStoreTxt 
+     * - Thereafter, the DataAdder decides what should be output */
+    adder.shouldAddData = adder.initialShouldAddData
     while (true) {
       step(p, st, md) match {
         case Data(resSt,resMd) => // If the simulation is not over
-          cstore = repr(resSt)
-          shouldAddData = adder.newStep(getResultType(cstore))
-          if (shouldAddData == ShouldAddData.Yes)
+          cstore = repr(resSt) 
+          adder.shouldAddData = adder.newStep(getResultType(cstore))
+          if (adder.shouldAddData == ShouldAddData.Yes)
             cstore.foreach{case (id,obj) => adder.addData(id, obj)}
           if (!adder.continue)
             return (resSt,resMd,Double.NaN)
           st = resSt
           md = resMd
         case Done(resMd,endTime) => // If the simulation is over
-          if (shouldAddData == ShouldAddData.IfLast)
+          if (adder.addLast)
             cstore.foreach{case (id,obj) => adder.addData(id, obj)}
           adder.noMoreData()
           return (st,resMd,endTime)
@@ -216,8 +98,8 @@ trait CStoreInterpreter extends Interpreter {
     st #:: (step(p, st, md) match {
         case Done(_,_)      => empty
         case Data(st1, md1) => 
-		      val (st2, md2) = exposeExternally(st1, md1)
-		      lazyLoop(p, st2, md2)
+          val (st2, md2) = exposeExternally(st1, md1)
+          lazyLoop(p, st2, md2)
       })
   }
 
@@ -265,7 +147,7 @@ trait RecursiveInterpreter extends Interpreter {
 //
 
 class CStoreOpts {
-  var outputRows = OutputRows.WhenChanged
+  var outputRows = OutputRows.All
   var continuousSkip = 0
   var outputInternalState = false // controls "parent", "nextChild", "seed1", "seed2" but not "className"
   var outputSimulatorState = false // does not control Simulator.time, Simulator.resultType, or Simulator.endTime
@@ -338,7 +220,21 @@ abstract class DataAdder {
    * Called after each step.  If false than multiStep should not continue and
    * return the current Store.
    */
-  def continue : Boolean 
+  def continue : Boolean
+  /**
+   *  Decides how the data adding flag is initialized
+   *  it might become relevant (depending on addLast) 
+   *  if multistep immediately reaches Done
+   */
+  val initialShouldAddData = ShouldAddData.No
+  /**
+   *  Data adding flag
+   */
+  var shouldAddData = ShouldAddData.No
+  /**
+   * Called to check if the last Store should be forcefully output
+   */
+  def addLast : Boolean = false
 }
 
 /** 
@@ -346,7 +242,7 @@ abstract class DataAdder {
  * whether or not to add the data. IfLast refers to the very last step of the
  * simulation.
  */
-object ShouldAddData extends Enumeration {
+object ShouldAddData extends Enumeration { // Legacy, used values are Yes/No -> Boolean
   val Yes, IfLast, No = Value
 }
 
@@ -370,25 +266,41 @@ class StopAtFixedPoint extends DataAdder {
 }
 
 abstract class FilterDataAdder(var opts: CStoreOpts) extends DataAdder {
-  var prevStepType : ResultType = Discrete
-  var curStepType : ResultType = Discrete
+  var prevStepType : ResultType = Initial
+  var curStepType : ResultType = Initial
   var outputRow : Boolean = false
   var contCountdown : Int = 0
+
+  override def addLast : Boolean = {
+    import OutputRows._
+    opts.outputRows == Last || opts.outputRows == ContinuousOnly
+  }
+  
   def newStep(t: ResultType) = {
     curStepType = t
     import OutputRows._
     val what = opts.outputRows
-    outputRow = (what == All // 1
-                 || (curStepType == Continuous && what != Last)  // 2
-                 || (curStepType ==  Discrete && what == WhenChanged) // 3
+    outputRow = (   (                                                         what == All)               // 1
+                 || (                            curStepType == Continuous && what != Last)              // 2
+                 || (                            curStepType == Discrete   && what == WhenChanged)       // 3
                  || (prevStepType == Discrete && curStepType == FixedPoint && what == FinalWhenChanged)) // 4
-    //                   <Last> @Continuous @Discrete <FP. Changed> @FixedPoint
-    // All                 1         1 2        1          1             1 
-    // WhenChanged         y          2         3          n             n
-    // FinalWhenChanged    y          2         n          4             n
-    // ContinuousOnly      y          2         n          n             n 
-    // Last                y          n         n          n             n 
+    /*                   <Initial> [1st @Discrete] @Discrete @FixedPoint @Continuous <Last '15   '14> <Last Forced>
+     * All                   y            y            y          y           y              y    y       n 
+     * WhenChanged           y            y            y          n           y              n+   y       n
+     * FinalWhenChanged      y            y            n          4           y              4+   2 4     n
+     * ContinuousOnly        y            y            n          n           y              n    2       y
+     * Last                  y            y            n          n           n              n    n       y
+     * 
+     * - The user set simulator parameters are processed in the 1st Discrete step (if there is any).
+     * - The '+' marks under Last '15 signal that even if the (technically) last Store is not output by
+     *   the filtering above, a preceding one, that is identical to it except for the resultType, is.
+     * - This is guaranteed under Last '14 as well if simulator.endTime != 0 
+     * - The last Store is forcefully output during multiStep if the addLast member function returns true
+     */
+
     prevStepType = curStepType
+ 
+    // Skips reporting opts.continuousSkip number of continuous segments
     if (curStepType == Continuous) {
       if (contCountdown == 0) {
         contCountdown = opts.continuousSkip
@@ -397,8 +309,9 @@ abstract class FilterDataAdder(var opts: CStoreOpts) extends DataAdder {
         contCountdown -= 1
       }
     }
+
     if (outputRow)         ShouldAddData.Yes
-    else if (what == Last) ShouldAddData.IfLast
+    else if (what == Last) ShouldAddData.IfLast // Legacy
     else                   ShouldAddData.No
   }
   def mkFilter(e:GObject) : ((Name, GValue)) => Boolean = {
@@ -421,6 +334,16 @@ class FilterRowsDataAdder(opts: CStoreOpts) extends FilterDataAdder(opts) {
   def continue = !outputRow 
 }
 
+// Legacy DumpSample for 2014 and before
+class LegacyDumpSample(out: java.io.PrintStream) extends DumpSample(out) {
+   override val initialShouldAddData = ShouldAddData.IfLast
+   override def addLast : Boolean = (shouldAddData == ShouldAddData.IfLast)
+   prevStepType = Discrete
+   curStepType = Discrete
+   shouldAddData = ShouldAddData.IfLast
+}
+
+// Filter used for regression tests
 class DumpSample(out: java.io.PrintStream) extends DataAdder {
   val pp = new Pretty
   pp.filterStore = true
@@ -428,8 +351,8 @@ class DumpSample(out: java.io.PrintStream) extends DataAdder {
   var stepNum = -1
   var discrStepNum = -1
   var last : CStore = null
-  var prevStepType : ResultType = Discrete
-  var curStepType : ResultType = Discrete
+  var prevStepType : ResultType = Initial
+  var curStepType : ResultType = Initial
   var useResult : ShouldAddData.Value =  ShouldAddData.No
   var store = new scala.collection.mutable.MutableList[(CId, GObject)]
   
@@ -479,7 +402,7 @@ case class CStoreRes(ctrace: Stream[CStore], metadata: Metadata) extends Interpr
     }
   }
   
-  def loop(action: (CStore, ResultType) => Unit) : Unit = {
+  private def loop(action: (CStore, ResultType) => Unit) : Unit = {
     var prevStepType : ResultType = Discrete
     var nextContinuous = true
     for (st <- ctrace) {

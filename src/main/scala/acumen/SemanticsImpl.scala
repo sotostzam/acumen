@@ -28,7 +28,7 @@ abstract class SemanticsSel
   def withArgs(args: List[String]) : SemanticsImpl[Interpreter]
   def argsHelpString : String
   val isOldSemantics = true // override and set to false if the
-                          // semantics should be enabled
+                            // semantics should be enabled
 }
 
 abstract class SemanticsImpl[+I <: Interpreter] extends SemanticsSel
@@ -102,12 +102,12 @@ object SemanticsImpl {
       case S2014 => reference2014.Interpreter
       case S2015 => reference2015.Interpreter
     }
-    override val isOldSemantics = !(semantics == S2014 ||  semantics == S2015)
+    override val isOldSemantics = !(semantics == S2015)
     def interpreter() = i
   }
-  case class Enclosure2014(contraction: Boolean) extends CStore {
+  case class Enclosure2015(contraction: Boolean) extends CStore {
     override val isOldSemantics  = false
-    val i = enclosure2014.Interpreter(contraction)
+    val i = enclosure2015.Interpreter(contraction)
     val semantics = Semantics(None, Seq("desugar-local-inline"), Seq("SD"))
     def interpreter() = i
   }
@@ -134,6 +134,7 @@ object SemanticsImpl {
     override def argsHelpString = "[-<num threads>]"
     // "static|sharing" options is considered experimental and should not be documented
   }
+  // Optimized interpreters up to 2014
   case class Optimized(parDiscr: Boolean = true, contMode: ContMode = ContMode.Seq, 
                        contWithDiscr: Boolean = false) extends CStore
   {
@@ -141,7 +142,6 @@ object SemanticsImpl {
     val semantics = if (parDiscr == true && contMode == ContMode.Seq && contWithDiscr == false) S2013
                     else if (parDiscr == true && contMode == ContMode.IVP && contWithDiscr == false) S2014
                     else S2014.copy(id = None)
-    override val isOldSemantics = semantics != S2014
     def interpreter() = i
     override def withArgs(args: List[String]) : Optimized = args match {
       case "parDiscr" :: tail => copy(parDiscr = true).withArgs(tail)
@@ -161,19 +161,21 @@ object SemanticsImpl {
                                             case ContMode.IVP => "IVP"},
                             if (contWithDiscr) "contWithDiscr" else "contWithCont")
   }
-  case class Optimized2015(specialInitContStep : Boolean = false) extends CStore
+  case class Optimized2015() extends CStore
   {
-    val i = new optimized2015.Interpreter(specialInitContStep)
+    val i = new optimized2015.Interpreter
     val semantics = S2015
     override val isOldSemantics = false
     def interpreter() = i
     override def withArgs(args: List[String]) : Optimized2015 = args match {
-      case "specialInitContStep" :: tail => copy(specialInitContStep = true).withArgs(tail)
+      /** Template for handling of arguments
+       * case "SomeArgument" :: tail => copy(SomeFlag = true).withArgs(tail)  */
       case Nil => this
       case _ => null
     }
-    override def id = Array("optimized2015", 
-                            if (specialInitContStep) "specialInitContStep" else "")
+    /** Template for handling of arguments
+      * override def id = Array("optimized2015", 
+      *                      if (SomeFlag) "SomeName" else "") */
   }
   // Use this as a base for selecting the generic optimized semantics
   // that not trying to match a particular semantics
@@ -204,7 +206,6 @@ object SemanticsImpl {
   lazy val Opt2013 = Optimized()
   lazy val Opt2014 = Optimized(contMode = ContMode.IVP)
   lazy val Opt2015 = Optimized2015()
-  lazy val Opt2015b = Optimized2015(specialInitContStep = true)
 
   case class Sel(si: SemanticsSel, 
                  // First id is the display name
@@ -215,10 +216,9 @@ object SemanticsImpl {
   def sel(si: SemanticsSel, ids: String*) = Sel(si,false,ids:_*)
   def exp(si: SemanticsSel, ids: String*) = Sel(si,true,ids:_*)
   val selections = 
-    List(sel(Ref2015, "2015 Reference", "reference2015"),
-         sel(Opt2015, "2015 Optimized", "optimized2015"),
-         sel(Opt2015b, "2015 Optimized (b)", "optimized2015b"),
-         sel(Ref2014, "2014 Reference", "reference2014", "reference", ""),
+    List(sel(Ref2015, "2015 Reference", "reference2015", "reference"),
+         sel(Opt2015, "2015 Optimized", "optimized2015", ""),
+         sel(Ref2014, "2014 Reference", "reference2014"),
          sel(Opt2014, "2014 Optimized", "optimized2014"),
          sel(Ref2013, "2013 Reference", "reference2013"),
          sel(Opt2013, "2013 Optimized", "optimized2013"),
@@ -229,9 +229,9 @@ object SemanticsImpl {
          sel(Enclosure(EVT), "2013 EVT", "enclosure-evt"),
          sel(Enclosure(PWL,true), "2013 PWL (Contraction)", "enclosure-pwl-contraction"),
          sel(Enclosure(EVT,true), "2013 EVT (Contraction)", "enclosure-evt-contraction"),
-         sel(Enclosure2014(false), "2014 Enclosure", "enclosure2014"),
-         sel(Enclosure2014(true), "2014 Enclosure (Contraction)", "enclosure2014-contraction"),
-         exp(Optimized, "Optimized", "optimized"))
+         sel(Enclosure2015(false), "2015 Enclosure", "enclosure2015"),
+         sel(Enclosure2015(true), "2015 Enclosure (Contraction)", "enclosure2015-contraction"),
+         exp(Optimized2015(), "Optimized", "optimized"))
 
   def lookup(si: SemanticsSel) : Option[Sel] = 
     selections.find{case Sel(si0, _, _*) => si == si0}
