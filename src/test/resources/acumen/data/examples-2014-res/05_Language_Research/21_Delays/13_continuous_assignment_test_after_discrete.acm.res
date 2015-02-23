@@ -58,8 +58,7 @@
 }
 #0.0 { className = Simulator, time = 10.000000 }
 ------------------------------88
-SOME HYPOTHESES INCONCLUSIVE OVER [0.0..10.0]
-0 TRUE, 0 FALSE, 1 INCONCLUSIVE
-~ (#0:Main) 'c = b' Tested almost everywhere
-                    Falsified momentarily at 1.125, where c = 0, b = 1
+SOME HYPOTHESES FALSIFIED OVER [0.0..10.0]
+0 TRUE, 1 FALSE, 0 INCONCLUSIVE
+- (#0:Main) 'c = b' Falsified at 1.125, where c = 0, b = 1
 

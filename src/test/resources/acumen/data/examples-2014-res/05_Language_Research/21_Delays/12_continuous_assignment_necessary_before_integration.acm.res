@@ -35,6 +35,5 @@
 ------------------------------19
 SOME HYPOTHESES FALSIFIED OVER [0.0..4.0]
 0 TRUE, 1 FALSE, 0 INCONCLUSIVE
-- (#0:Main) 'a' = a' Falsified at 3.75, where a' = 2.718209939201323, a = 1
-                     Falsified momentarily at 0.25, where a' = 1, a = 1.2840169270833333
+- (#0:Main) 'a' = a' Falsified at 0.25, where a' = 1, a = 1.2840169270833333
 

@@ -34,22 +34,13 @@
 ------------------------------8
 SOME HYPOTHESES FALSIFIED OVER [0.0..1.0]
 0 TRUE, 9 FALSE, 0 INCONCLUSIVE
-- (#0:Main) 'b' = d''    Falsified at 0.875, where b' = 26.828483642691186, d' = 16.5
-                         Falsified momentarily at 0.25, where b' = 9.065185546875, d' = 8
-- (#0:Main) 'f = 2 * d'  Falsified at 0.875, where f = 23.0, d = 13.5625
-                         Falsified momentarily at 0.125, where f = 8, d = 5.0
-- (#0:Main) 'a' = a'     Falsified at 0.875, where a' = 4.233994210859933, a = 4.797742890729985
-                         Falsified momentarily at 0.125, where a' = 2, a = 2.26629638671875
-- (#0:Main) 'c = b'      Falsified at 0.875, where c = 14.854068064575108, b = 18.426232192170982
-                         Falsified momentarily at 0.125, where c = 4, b = 5.065185546875
-- (#0:Main) 'b == d'     Falsified at 0.875, where b = 18.426232192170982, d = 13.5625
-                         Falsified momentarily at 0.125, where b = 5.065185546875, d = 5.0
-- (#0:Main) 'e = f'      Falsified at 0.875, where f = 23.0, e = 19.5
-                         Falsified momentarily at 0.25, where f = 10.0, e = 8
-- (#0:Main) 'a * a == b' Falsified at 0.875, where a = 4.797742890729985, b = 18.426232192170982
-                         Falsified momentarily at 0.125, where a = 2.26629638671875, b = 5.065185546875
-- (#0:Main) 'b' = b + c' Falsified at 0.875, where b' = 26.828483642691186, b = 18.426232192170982, c = 14.854068064575108
-                         Falsified momentarily at 0.125, where b' = 8, b = 5.065185546875, c = 4
-- (#0:Main) 'd' = e'     Falsified at 0.875, where d' = 16.5, e = 19.5
-                         Falsified momentarily at 0.375, where d' = 8, e = 10.0
+- (#0:Main) 'b' = d''    Falsified at 0.25, where b' = 9.065185546875, d' = 8
+- (#0:Main) 'f = 2 * d'  Falsified at 0.125, where f = 8, d = 5.0
+- (#0:Main) 'a' = a'     Falsified at 0.125, where a' = 2, a = 2.26629638671875
+- (#0:Main) 'c = b'      Falsified at 0.125, where c = 4, b = 5.065185546875
+- (#0:Main) 'b == d'     Falsified at 0.125, where b = 5.065185546875, d = 5.0
+- (#0:Main) 'e = f'      Falsified at 0.25, where f = 10.0, e = 8
+- (#0:Main) 'a * a == b' Falsified at 0.125, where a = 2.26629638671875, b = 5.065185546875
+- (#0:Main) 'b' = b + c' Falsified at 0.125, where b' = 8, b = 5.065185546875, c = 4
+- (#0:Main) 'd' = e'     Falsified at 0.375, where d' = 8, e = 10.0
 

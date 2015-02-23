@@ -45,6 +45,5 @@
 ------------------------------43
 SOME HYPOTHESES FALSIFIED OVER [0.0..10.0]
 0 TRUE, 1 FALSE, 0 INCONCLUSIVE
-- (#0:Main) 'a is always = b' Falsified at 9.75, where a = 2.0, b = 2.25
-                              Falsified momentarily at 0.25, where a = 0, b = 0.25
+- (#0:Main) 'a is always = b' Falsified at 0.25, where a = 0, b = 0.25
 

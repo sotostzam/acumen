@@ -72,21 +72,13 @@
 ------------------------------112
 SOME HYPOTHESES FALSIFIED OVER [0.0..1.1000000000000008]
 1 TRUE, 8 FALSE, 0 INCONCLUSIVE
-- (#0:Main) 'a == g (true until time 1.0)'                          Falsified at 1.0900000000000007, where a = 0.09, g = 1.08
-                                                                    Falsified momentarily at 0.01, where a = 0.01, g = 0
-- (#0:Main) 'a == d (true but initially and momentarily at 0.5)'    Falsified at 1.0900000000000007, where a = 0.09, d = 0.08
-                                                                    Falsified momentarily at 0.0, where a = 0, d = 1
-- (#0:Main) 'a == b (true but initially)'                           Falsified at 1.0900000000000007, where a = 0.09, b = 0.08
-                                                                    Falsified momentarily at 0.0, where a = 0, b = 1
-- (#0:Main) 'a == c (true but momentarily at 0.5)'                  Falsified at 1.0900000000000007, where a = 0.09, c = 0.08
-                                                                    Falsified momentarily at 0.01, where a = 0.01, c = 0
-- (#0:Main) 'a == h (true but at time 1.0)'                         Falsified at 1.0900000000000007, where a = 0.09, h = 0.08
-                                                                    Falsified momentarily at 0.01, where a = 0.01, h = 0
+- (#0:Main) 'a == g (true until time 1.0)'                          Falsified at 0.01, where a = 0.01, g = 0
+- (#0:Main) 'a == d (true but initially and momentarily at 0.5)'    Falsified at 0.0, where a = 0, d = 1
+- (#0:Main) 'a == b (true but initially)'                           Falsified at 0.0, where a = 0, b = 1
+- (#0:Main) 'a == c (true but momentarily at 0.5)'                  Falsified at 0.01, where a = 0.01, c = 0
+- (#0:Main) 'a == h (true but at time 1.0)'                         Falsified at 0.01, where a = 0.01, h = 0
 + (#0:Main) 'a == a (true)'                                         Tested
-- (#0:Main) 'a == e (false but initially)'                          Falsified at 1.0900000000000007, where a = 0.09, e = 1.08
-                                                                    Falsified momentarily at 0.01, where a = 0.01, e = 1
-- (#0:Main) 'a == f (false but initially and at 1st discrete step)' Falsified at 1.0900000000000007, where a = 0.09, f = 1.08
-                                                                    Falsified momentarily at 0.01, where a = 0.01, f = 1
-- (#0:Main) 'a != a (false)'                                        Falsified at 1.0900000000000007, where a = 0.09
-                                                                    Falsified momentarily at 0.0, where a = 0
+- (#0:Main) 'a == e (false but initially)'                          Falsified at 0.01, where a = 0.01, e = 1
+- (#0:Main) 'a == f (false but initially and at 1st discrete step)' Falsified at 0.01, where a = 0.01, f = 1
+- (#0:Main) 'a != a (false)'                                        Falsified at 0.0, where a = 0
 
