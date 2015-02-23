@@ -263,6 +263,8 @@ object Interpreter extends acumen.CStoreInterpreter {
           else evalContinuousAction(ca, env, p) 
       case Claim(_) =>
         pass
+      case _: Hypothesis =>
+        pass
     }
   }
  

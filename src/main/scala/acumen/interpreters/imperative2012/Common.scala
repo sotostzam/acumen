@@ -437,6 +437,10 @@ object Common {
         if (ty == FixedPoint)
           evalContinuousAction(ca, env, p, magic)
         noChange
+      case Claim(_) =>
+        noChange
+      case _: Hypothesis =>
+        noChange
     }
   }
 
