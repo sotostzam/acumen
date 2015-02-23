@@ -12,7 +12,7 @@ import util.ASTUtil.exprSubParts
 //   priv section than the topo. sort could change the behavior
 
 object TopoSortInit {
-  case class CircularDep extends Errors.AcumenError {
+  case object CircularDep extends Errors.AcumenError {
     override def getMessage = 
       "Circular dependency detected in private section of some model."
   }
@@ -32,7 +32,7 @@ object TopoSortInit {
     if (tosort.nonEmpty) {
       val sortedDeps = sorted.map{_.init.x}
       val (newSorted,stillTosort) = tosort.partition{_.deps.diff(sortedDeps).isEmpty}
-      if (newSorted.isEmpty) throw CircularDep()
+      if (newSorted.isEmpty) throw CircularDep
       topoSort(sorted ++ newSorted, stillTosort)
     } else {
       sorted
