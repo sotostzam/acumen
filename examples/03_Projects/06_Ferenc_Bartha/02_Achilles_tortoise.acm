@@ -1,0 +1,73 @@
+// Model for Achilles competing with the Tortoise
+//
+// Author: Ferenc A. Bartha - 2015
+//
+model Main(simulator) = 
+
+initially
+  Achilles = 0, Achilles' = 2,
+  Tortoise = 20, Tortoise' = 0.5,
+  defaultStep = 0.25,
+  mode = "Chasing",
+  distanceStr = "Tortoise leads by:",
+  distance = 20,
+  _3D = ()
+always
+  // Simulation time
+  simulator.endTime+=20,
+
+  // The competitors are running with different speeds
+  Achilles' = 2,
+  Tortoise' = 0.5,
+
+  // Achilles is either
+  // - behind the Tortoise, thus chasing
+  // - has reached the Tortoise
+  // - is ahead of the Tortouse, thus leading
+  if Tortoise - Achilles > 0 then
+    mode = "Chasing"
+  else if Tortoise - Achilles == 0 then
+    mode = "Reached"
+  else (
+    mode = "Leading" 
+  ),
+
+  // If Achilles is chasing we advance in time just enough 
+  // so that he reaches the Tortoise's previous position
+  // - thus time step is systematically reduced
+  // - observe that as it cannot be reduced below 
+  //   machine epsilon, at that resolution Achilles
+  //   takes the lead
+  match mode with [
+    "Chasing" -> 
+      distanceStr = "Tortoise leads by:",
+      distance = Tortoise - Achilles,
+      if (Tortoise - Achilles) / Achilles' < defaultStep then
+        simulator.timeStep+ = (Tortoise - Achilles) / Achilles'
+      else
+        simulator.timeStep+ = defaultStep
+  | "Reached" ->
+      distanceStr = "Distance is:",
+      distance = 0
+  | "Leading" ->
+      distanceStr = "Achilles leads by:",
+      distance = Achilles - Tortoise,
+      simulator.timeStep+ = defaultStep
+  ],
+
+  _3D = (
+    // Achilles
+    Sphere center=(-3+Achilles/10,     -3,   0) size=0.1           color=red, 
+    Text   center=(-3+Achilles/10+0.1, -3, 0.1) content="Achilles" color=red,
+    // Tortoise
+    Sphere center=(-3+Tortoise/10,      -1,    0) size=0.05          color=green, 
+    Text   center=(-3+Tortoise/10+0.05, -1, 0.05) content="Tortoise" color=green,
+    // Achilles vs Tortoise
+    Cylinder center=(-3+Achilles/10, -2, 0) radius=0.005 length=2 color=(200,255,200),  
+    // Time step
+    Text center=(-2.5,5,0) content="Time step:"       color=blue,
+    Text center=(-1.5,5,0) content=simulator.timeStep color=blue,
+    // Distance
+    Text center=(-2.5,5,0.3) content=distanceStr color=yellow,
+    Text center=(-0.8,5,0.3) content=distance    color=yellow 
+  )
