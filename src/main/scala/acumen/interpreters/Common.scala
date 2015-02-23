@@ -482,7 +482,8 @@ object Common {
   def countStateVars(st: CStore): Int = {
       def objectVariables(o: CObject): Int = o.map{
       case (_, VObjId(_)) => 0 
-      case (n,v) => if (specialFields contains n.x) 0 else v.yieldsPlots getOrElse 0
+      // _3D and _3DView objects should not increase variable count
+      case (n,v) => if ((specialFields ++ List("_3D", "_3DView")) contains n.x) 0 else v.yieldsPlots getOrElse 0
     }.sum
     st.map{ case(id, o) => if (id == magicId(st)) 0 else objectVariables(o) }.sum
   }
