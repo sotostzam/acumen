@@ -26,6 +26,7 @@ import acumen.util.Canonical.{
   seed2,
   self,
   resultType,
+  stateVars,
   time,
   timeStep
 }
@@ -434,6 +435,8 @@ object Common {
   def setTime(magic: Object, d: Double) = setField(magic, time, VLit(GDouble(d)))
   /* SIDE EFFECT */
   def setResultType(magic: Object, t: ResultType) = setField(magic, resultType, VResultType(t))
+  /* SIDE EFFECT */
+  def setVarNum(magic: Object, count: Int) = setField(magic, stateVars, VLit(GInt(count)))
 
   /* SIDE EFFECT */
   def changeParent(o: Object, p: Object): Unit = {

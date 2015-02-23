@@ -475,14 +475,18 @@ object Common {
    * number of columns in the table, as the latter also contains information 
    * such as class names etc. 
    */
-  def countVariables(st: CStore): CStore = {
-    def objectVariables(o: CObject): Int = o.map{
+  def countVariables(st: CStore): CStore = setObjectField(magicId(st), stateVars, VLit(GInt(countStateVars(st))), st)
+  /**
+   *  Computes the variableCount for a CStore.
+   */
+  def countStateVars(st: CStore): Int = {
+      def objectVariables(o: CObject): Int = o.map{
       case (_, VObjId(_)) => 0 
       case (n,v) => if (specialFields contains n.x) 0 else v.yieldsPlots getOrElse 0
     }.sum
-    val count = st.map{ case(id, o) => if (id == magicId(st)) 0 else objectVariables(o) }.sum
-    setObjectField(magicId(st), stateVars, VLit(GInt(count)), st)
+    st.map{ case(id, o) => if (id == magicId(st)) 0 else objectVariables(o) }.sum
   }
+  
   
   //
   // ODEs

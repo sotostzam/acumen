@@ -50,6 +50,7 @@ class Interpreter extends CStoreInterpreter {
     val mainObj = mkObj(cmain, sprog, IsMain, sd1, List(VObjId(Some(magic))), magic, 1)
     magic.seed = sd2
     val mprog = Prog(magicClass :: sprog.defs)
+    setVarNum(magic, countStateVars(repr(mainObj)))
     checkHypothesis(magic.phaseParms, mprog, magic, mainObj)
     (mprog , mainObj, magic.phaseParms.metaData)
   }
@@ -247,7 +248,8 @@ class Interpreter extends CStoreInterpreter {
       }
 
       setResultType(magic, rt)
-
+      setVarNum(magic, countStateVars(repr(st)))
+      
       if (rt != FixedPoint) checkHypothesis(pp, p, magic, st)      
 
       rt
