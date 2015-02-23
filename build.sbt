@@ -8,6 +8,8 @@ theMainClass := "acumen.Main"
 
 libraryDependencies ++= Seq(
   "org.scala-lang.modules" %% "scala-swing" % "1.0.1",
+  "org.scala-lang.modules" %% "scala-parser-combinators" % "1.0.2",
+  "org.scala-lang.modules" %% "scala-xml" % "1.0.2",
   "org.scala-lang" % "scala-actors" % "2.11.5",
   "org.scalatest" % "scalatest_2.11" % "2.2.4" % "test",
   "org.scalacheck" %% "scalacheck" % "1.10.1" % "test"
