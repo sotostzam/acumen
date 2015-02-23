@@ -62,9 +62,12 @@ class Interpreter extends CStoreInterpreter {
       pp.doHypothesis = true
       magic.phaseParms.stepHypothesisResults = Map.empty
       traverse(evalStep(p, magic), st)
-      val md = SomeMetadata(magic.phaseParms.stepHypothesisResults,
-                          magic.phaseParms.hypTimeDomainLeft, getTime(magic),
-                          false, None)
+      val md = 
+        if (magic.phaseParms.stepHypothesisResults nonEmpty) 
+          SomeMetadata(magic.phaseParms.stepHypothesisResults,
+                       magic.phaseParms.hypTimeDomainLeft, getTime(magic),
+                       false, None)
+        else NoMetadata
       magic.phaseParms.metaData = magic.phaseParms.metaData.combine(md)
     }
   
