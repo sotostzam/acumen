@@ -144,6 +144,9 @@ class ThreeDData extends Publisher {
       /* 3D text's size should be a number */
       case _ => if (_3DSize.length != 1) throw _3DTextSizeError()
     }
+    for (i <- _3DSize)
+      if (i < 0)
+        throw _3DNegativeSizeError(this._3DType)
   }
 
   def init3DClassStore(id: CId, _3DData: _3DStore, frameNumber: Int) = {
