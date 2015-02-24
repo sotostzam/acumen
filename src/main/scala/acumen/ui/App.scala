@@ -651,7 +651,7 @@ class App extends SimpleSwingApplication {
       }
       contents += new Menu("Enclosure") {
         mnemonic = Key.E
-        contents ++= Seq(enc2015, encPWL, encEVT, new Separator, ls)
+        contents ++= Seq(enc2015) ++ (if (Main.enableOldSemantics) Seq(new Separator, encPWL, encEVT) else Seq()) ++ Seq(new Separator, ls)
       }
       if (Main.enableAllSemantics) {
         contents += new Menu("Deprecated") {
