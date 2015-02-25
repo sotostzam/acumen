@@ -1,0 +1,108 @@
+// Model for the Pendulum on a movable support in 2D
+// http://en.wikipedia.org/wiki/Lagrangian_mechanics#Pendulum_on_a_movable_support
+//
+// Author: Ferenc A. Bartha - 2015
+//
+// A pendulum of mass m and length l 
+// is attached to a support with mass M 
+// which can move along a line in the x-direction.
+//
+model Main(simulator) = 
+
+initially
+  // Support:  mass, position
+  M = 1, 
+  // Pendulum: mass, length, 
+  m = 1, l = 1, 
+
+  // Initial Conditions
+  x = 1.5,     // position of the support
+  x' = -1,     // velocity of the support
+  theta = 0,   // angle of the pendulum (from the certical axis)
+  theta' = 2,  // angular velocity
+
+  // Gravitational constant
+  g = 9.81,
+
+  // Technical stuff:
+  kinetic = 0,
+  potential = 0,
+  Lagrangian = 0,
+  
+  x'' = 0, theta'' = 0,
+  thetaAcc = 0,
+  direction = (0, 0, 0), direction2 = (0, 0, 0),
+  p1 = (0, 0, 0), p2 = (0, 0, 0),
+  scale = 1/2,
+  _3D = ()
+
+always
+  // Simulation time
+  simulator.endTime+=15, 
+
+  // theta''
+  // - technical solution to save us from even lengthier formulae
+  thetaAcc = (  m / (M + m) * theta'^2 * sin(theta) * cos(theta) + g / l * sin(theta)  )
+              /
+              (m / (M + m) * cos(theta)^2 - 1),
+
+  // Pendulum
+  theta'' = thetaAcc,
+
+  // Support
+  x'' = (  m * l * theta'^2 * sin(theta) - m * l * thetaAcc * cos(theta)  )
+        /
+        (M + m),
+
+  // Just for display purposes, it doesn't affect the simulation
+  // - kinetic energy
+  kinetic =  1/2 * (M + m) * x'^2 + m * x' * l * theta' * cos(theta) 
+           + 1/2 * m * l^2 * theta'^2,
+  // - potential energy
+  potential = - m * g * l * cos(theta),
+  // - Lagrangian
+  Lagrangian = kinetic - potential,
+
+  // Coordinate conversion and display
+  p1 = (x, 0, 2.2),
+  p2 = (x + l * sin(theta), 0, p1(2) -  l * cos(theta)),
+  direction  = (p2 - p1)/2 / norm((p2 - p1)/2),
+  direction2 = (direction cross (0, 1, 0)) / norm(direction cross (0, 1, 0)),
+  _3D = 
+  (
+    // Support
+    Box center=p1 + (0, 0, 0.05) size=(0.2, 0.1, 0.1) color=blue, 
+    Box center=p1                size=(100,    1,  0) color=(200, 200, 200),
+    // Pendulum
+    Sphere   center=p2 size=0.05 color=red,
+    Cylinder center=(p1 + p2)/2 radius=0.01 length=l color=yellow rotation=(pi/2, theta, 0),
+    // Gravity and components on the pendulum (change scale if arrows are small)
+    Cylinder center=p2 + (0, 0, -m/2) * scale radius=0.01 length=m * scale color=green rotation=( pi/2, 0, 0),
+    Cone     center=p2 + (0, 0, -m)   * scale radius=0.03 length=0.1       color=green rotation=(-pi/2, 0, 0),
+    Cylinder center=p2 + direction * m/2 * cos(theta) * scale radius=0.01 length=(m * cos(theta) * scale) color=red rotation=( pi/2, theta, 0),
+    Cone     center=p2 + direction * m   * cos(theta) * scale radius=0.03 length=0.1                      color=red rotation=(-pi/2, theta, 0),
+    Cylinder center=p2 - direction2 * m/2 * sin(theta) * scale radius=0.01 length=(m * sin(theta) * scale) color=red rotation=(                     pi/2, pi/2 + theta, 0),
+    Cone     center=p2 - direction2 * m   * sin(theta) * scale radius=0.03 length=0.1                      color=red rotation=(signum(sin(theta)) * pi/2, pi/2 + theta, 0),
+    // Internal Forces
+    Cylinder center=p2 - direction * m/2 * cos(theta) * scale radius=0.01 length=(m * cos(theta) * scale) color=blue rotation=(pi/2, theta, 0),
+    Cone     center=p2 - direction * m   * cos(theta) * scale radius=0.03 length=0.1                      color=blue rotation=(pi/2, theta, 0),
+    Cylinder center=p1 + direction * m/2 * cos(theta) * scale radius=0.01 length=(m * cos(theta) * scale) color=blue rotation=( pi/2, theta, 0),
+    Cone     center=p1 + direction * m   * cos(theta) * scale radius=0.03 length=0.1                      color=blue rotation=(-pi/2, theta, 0),
+    // Support Force
+    Cylinder center=p1 - direction * m/2 * cos(theta) * scale radius=0.01 length=(m * cos(theta) * scale) color=red rotation=(pi/2, theta, 0),
+    Cone     center=p1 - direction * m   * cos(theta) * scale radius=0.03 length=0.1                      color=red rotation=(pi/2, theta, 0),
+    Cylinder center=p1 - (m/4 * sin(2 * theta), 0, 0) * scale radius=0.01 length=(m/2 * sin(2 * theta) * scale) color=red rotation=(0, 0,                      pi/2),
+    Cone     center=p1 - (m/2 * sin(2 * theta), 0, 0) * scale radius=0.03 length=0.1                            color=red rotation=(0, 0, signum(sin(theta)) * pi/2),
+    Cylinder center=p1 + (0, 0, m/2 * cos(theta)^2) * scale radius=0.01 length=(m * cos(theta)^2 * scale) color=red rotation=(pi/2, 0, 0),
+    Cone     center=p1 + (0, 0, m   * cos(theta)^2) * scale radius=0.03 length=0.1                        color=red rotation=(pi/2, 0, 0),
+
+    // Kinetic energy
+    Text center=(-2.75, 3, 1.1) color=red content="Kinetic energy: ",
+    Text center=(-1.1,  3, 1.1) color=red content=kinetic,
+    // Potential energy
+    Text center=(-2.75, 3, 1.35) color=blue content="Potential energy: ",
+    Text center=(-1.1,  3, 1.35) color=blue content=potential,
+    // Lagrangian
+    Text center=(-2.75, 3, 1.6) color=green content="Lagrangian: ",
+    Text center=(-1.1,  3, 1.6) color=green content=Lagrangian
+)
