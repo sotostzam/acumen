@@ -407,7 +407,7 @@ object Interpreter extends acumen.CStoreInterpreter {
     val hyps = st4.toList.flatMap { case (cid, co) =>
       mprog.defs.find(_.name == getCls(cid, st4)).get.body.flatMap {
         case Hypothesis(s, e) =>
-          DelayedHypothesis(cid, s, e, Map(self -> VObjId(Some(cid)))) :: Nil
+          CollectedHypothesis(cid, s, e, Map(self -> VObjId(Some(cid)))) :: Nil
         case _ => Nil
     }}
     val md = testHypotheses(hyps, NoMetadata, st4, 0)(NoBindings)
@@ -427,13 +427,13 @@ object Interpreter extends acumen.CStoreInterpreter {
     mapM_((a: (CId, Dot, CValue)) => setObjectFieldM(a._1, a._2.field, a._3), xs)
 
   /** Computes the values of variables in xs (identified by CId and Dot.field). */
-  def evaluateAssignments(xs: List[DelayedAction], st: Store)(implicit bindings: Bindings): List[(CId, Dot, CValue)] = {
+  def evaluateAssignments(xs: List[CollectedAction], st: Store)(implicit bindings: Bindings): List[(CId, Dot, CValue)] = {
     val cache = cacheBindings(bindings, st)
     xs.map(a => (a.o, a.d, evalExpr(a.rhs, a.env, st)(cache)))
   }
     
   /** Updates the values of variables in xs (identified by CId and Dot.field) to the corresponding CValue. */
-  def applyDelayedAssignments(xs: List[DelayedAction], st: Store)(implicit bindings: Bindings): Store = 
+  def applyCollectedAssignments(xs: List[CollectedAction], st: Store)(implicit bindings: Bindings): Store = 
     applyAssignments(evaluateAssignments(xs, st)) ~> st
 
   /** For each r in rps, makes r._1 into a child of r._2.  */
@@ -441,13 +441,13 @@ object Interpreter extends acumen.CStoreInterpreter {
     mapM_((pair:(CId, CId)) => changeParentM(pair._1, pair._2), rps)
     
   /** Adds new objects to the store and applies any corresponding discrete assignments. */
-  def applyDelayedCreates(dcs: List[DelayedCreate], p: Prog): Eval[Unit] =
-    mapM_({ case DelayedCreate(da, c, parent, sd, ves) =>
+  def applyCollectedCreates(dcs: List[CollectedCreate], p: Prog): Eval[Unit] =
+    mapM_({ case CollectedCreate(da, c, parent, sd, ves) =>
       for (fa <- mkObj(c, p, Some(parent), sd, ves))
         da match {
           case None          => pass
           case Some((id, x)) => setObjectFieldM(id, x, VObjId(Some(fa)))
-        }}: DelayedCreate => Eval[Unit], dcs)
+        }}: CollectedCreate => Eval[Unit], dcs)
   
   /** Remove dead objects and compute list of orphans, i.e. reparentings required 
    *  to transfer the parenthood of dead objects' children to their parents */
@@ -486,10 +486,10 @@ object Interpreter extends acumen.CStoreInterpreter {
     else 
       { val (_, Changeset(born, dead, rps, das, eqs, odes, hyps), _) = iterate(evalStep(p)(_)(NoBindings), mainId(st))(st)
         /* Create objects and apply any corresponding discrete assignments */
-        val st1 = applyDelayedCreates(born, p) ~> st
+        val st1 = applyCollectedCreates(born, p) ~> st
         implicit val bindings = eqs.map{ e => val rd = resolveDot(e.d, e.env, st1)
           (rd.id, rd.field) -> UnusedBinding(e.rhs, e.env)}.toMap
-        def resolveDots(s: List[DelayedAction]): List[ResolvedDot] =
+        def resolveDots(s: List[CollectedAction]): List[ResolvedDot] =
           s.map(da => resolveDot(da.d, da.env, st1))
         val res = resultType match {
           case Initial | Discrete | Continuous => // Do discrete step or conclude discrete fixpoint
@@ -527,7 +527,7 @@ object Interpreter extends acumen.CStoreInterpreter {
             val stODES = solveIVP(odes, p, st1)
             val stT = setTime(getTime(stODES) + getTimeStep(stODES), stODES)
             /* Ensure that the resulting store is consistent w.r.t. continuous assignments */
-            val stEQS = applyDelayedAssignments(eqs, stT)
+            val stEQS = applyCollectedAssignments(eqs, stT)
             setResultType(Continuous, stEQS)
         }
         // Hypotheses check only when the result is not a FixedPoint
@@ -540,9 +540,9 @@ object Interpreter extends acumen.CStoreInterpreter {
     }
   
   /** Summarize result of evaluating the hypotheses of all objects. */
-  def testHypotheses(hyps: List[DelayedHypothesis], old: Metadata, st: Store, timeBefore: Double)(implicit bindings: Bindings): Metadata =
+  def testHypotheses(hyps: List[CollectedHypothesis], old: Metadata, st: Store, timeBefore: Double)(implicit bindings: Bindings): Metadata =
     old combine (if (hyps isEmpty) NoMetadata else SomeMetadata(hyps.map {
-      case DelayedHypothesis(o, hn, h, env) =>
+      case CollectedHypothesis(o, hn, h, env) =>
         (o, getCls(o, st), hn) -> computeHypothesisOutcomes( 
           evalExpr(h, env, st), getTime(st), getResultType(st), 
           dots(h).toSet[Dot].map(d => d -> (evalExpr(d, env, st))))
@@ -556,7 +556,7 @@ object Interpreter extends acumen.CStoreInterpreter {
    *  - Env:  Initial conditions of the IVP.
    * The time segment is derived from time step in store st. 
    */
-  def solveIVP(odes: List[DelayedAction], p: Prog, st: Store)(implicit bindings: Bindings): Store = {
+  def solveIVP(odes: List[CollectedAction], p: Prog, st: Store)(implicit bindings: Bindings): Store = {
     implicit val field = FieldImpl(odes, p)
     new Solver(getInSimulator(Name("method", 0),st), xs = st, h = getTimeStep(st)){
       // add the EulerCromer solver
@@ -569,9 +569,9 @@ object Interpreter extends acumen.CStoreInterpreter {
   }
   
   /** Representation of a set of ODEs. */
-  case class FieldImpl(odes: List[DelayedAction], p: Prog)(implicit bindings: Bindings) extends Field[Store] {
+  case class FieldImpl(odes: List[CollectedAction], p: Prog)(implicit bindings: Bindings) extends Field[Store] {
     /** Evaluate the field (the RHS of each equation in ODEs) in s. */
-    override def apply(s: Store): Store = applyDelayedAssignments(odes, s)
+    override def apply(s: Store): Store = applyCollectedAssignments(odes, s)
     /** 
      * Returns the set of variables affected by the field.
      * These are the LHSs of each ODE and the corresponding unprimed variables.
@@ -611,10 +611,10 @@ object Interpreter extends acumen.CStoreInterpreter {
   def solveIVPEulerCromer(st: Store, h: Double)(implicit f: FieldImpl, bindings: Bindings): Store = {
     // Ensure that derivatives are being integrated in the correct order
     val sortedODEs = f.odes
-      .groupBy{ case DelayedAction(o, Dot(_, n), r, e) => (o, n.x) }
-      .mapValues(_.sortBy { case DelayedAction(_, Dot(_, n), _, _) => n.primes }).values.flatten
+      .groupBy{ case CollectedAction(o, Dot(_, n), r, e) => (o, n.x) }
+      .mapValues(_.sortBy { case CollectedAction(_, Dot(_, n), _, _) => n.primes }).values.flatten
     val solutions = sortedODEs.foldRight(Map.empty[(CId, Dot), CValue]) {
-      case (DelayedAction(o, d@Dot(_, n), r, e), updatedEnvs) =>
+      case (CollectedAction(o, d@Dot(_, n), r, e), updatedEnvs) =>
         val updatedEnv = e ++ (for (((obj, dot), v) <- updatedEnvs if obj == o) yield (dot.field -> v))
         val vt = evalExpr(r, updatedEnv, st)
         val lhs = getObjectField(o, n, st)

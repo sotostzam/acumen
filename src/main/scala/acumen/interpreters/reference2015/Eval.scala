@@ -7,13 +7,13 @@ import acumen.Errors._
 
 /** Used to represent the statements that are active at a given point during the simulation. */
 case class Changeset
-  ( born: List[DelayedCreate]     = Nil /* born */
-  , dead: List[CId]               = Nil /* dead */
-  , reps: List[(CId,CId)]         = Nil /* reparentings */
-  , das:  List[DelayedAction]     = Nil /* discrete assignments */
-  , eqs:  List[DelayedAction]     = Nil /* continuous assignments / equations */
-  , odes: List[DelayedAction]     = Nil /* ode assignments / differential equations */
-  , hyps: List[DelayedHypothesis] = Nil /* hypotheses */
+  ( born: List[CollectedCreate]     = Nil /* born */
+  , dead: List[CId]                 = Nil /* dead */
+  , reps: List[(CId,CId)]           = Nil /* reparentings */
+  , das:  List[CollectedAction]     = Nil /* discrete assignments */
+  , eqs:  List[CollectedAction]     = Nil /* continuous assignments / equations */
+  , odes: List[CollectedAction]     = Nil /* ode assignments / differential equations */
+  , hyps: List[CollectedHypothesis] = Nil /* hypotheses */
   ) {
   def ++(that: Changeset) =
     Changeset(born ++ that.born, dead ++ that.dead, reps ++ that.reps, das ++ that.das, eqs ++ that.eqs, odes ++ that.odes, hyps ++ that.hyps)
@@ -22,9 +22,9 @@ object Changeset {
   val empty = Changeset()
 }
 
-case class DelayedCreate(da: Option[(CId, Name)], c: ClassName, parent: CId, sd: (Int, Int), ves: List[CValue])
-case class DelayedAction(o: CId, d: Dot, rhs: Expr, env: Env)
-case class DelayedHypothesis(o: CId, s: Option[String], h: Expr, env: Env)
+case class CollectedCreate(da: Option[(CId, Name)], c: ClassName, parent: CId, sd: (Int, Int), ves: List[CValue])
+case class CollectedAction(o: CId, d: Dot, rhs: Expr, env: Env)
+case class CollectedHypothesis(o: CId, s: Option[String], h: Expr, env: Env)
 
 /** A custom state+writer monad, inpired by the state monad of scalaz. */
 sealed trait Eval[+A] {
@@ -81,7 +81,7 @@ object Eval {
     mkEval(s => ((), Changeset.empty, f(s)))
     
   def logBorn(da: Option[(CId, Name)], c: ClassName, parent: CId, sd: (Int, Int), ves: List[CValue]) : Eval[Unit] = 
-    mkEval(s => ((), Changeset(born = List(DelayedCreate(da, c, parent, sd, ves))), s))   
+    mkEval(s => ((), Changeset(born = List(CollectedCreate(da, c, parent, sd, ves))), s))   
  
   def logDead(id:CId) : Eval[Unit] = 
     mkEval(s => ((), Changeset(dead = List(id)), s))
@@ -90,16 +90,16 @@ object Eval {
     mkEval(s => ((), Changeset(reps = List((o,parent))), s))
     
   def logAssign(o: CId, d: Dot, r: Expr, e: Env) : Eval[Unit] =
-    mkEval(s => ((), Changeset(das = List(DelayedAction(o,d,r,e))), s))
+    mkEval(s => ((), Changeset(das = List(CollectedAction(o,d,r,e))), s))
 
   def logEquation(o: CId, d: Dot, r: Expr, e: Env) : Eval[Unit] =
-    mkEval(s => ((), Changeset(eqs = List(DelayedAction(o,d,r,e))), s))
+    mkEval(s => ((), Changeset(eqs = List(CollectedAction(o,d,r,e))), s))
 
   def logODE(o: CId, d: Dot, r: Expr, e: Env) : Eval[Unit] =
-    mkEval(s => ((), Changeset(odes = List(DelayedAction(o,d,r,e))), s))
+    mkEval(s => ((), Changeset(odes = List(CollectedAction(o,d,r,e))), s))
 
   def logHypothesis(o: CId, n: Option[String], h: Expr, e: Env) : Eval[Unit] =
-    mkEval(s => ((), Changeset(hyps = List(DelayedHypothesis(o,n,h,e))), s))
+    mkEval(s => ((), Changeset(hyps = List(CollectedHypothesis(o,n,h,e))), s))
 
   /** Apply f to the store and wrap it in an Eval */
   def asks[A](f : Store => A) : Eval[A] = 
