@@ -265,9 +265,13 @@ object Errors {
     override def getMessage = 
       pprint(v) + " is not a valid 3D object's name." 
   }
-   case class _3DSizeError(v:Value[_]) extends AcumenError {
+  case class _3DSizeError(v:Value[_]) extends AcumenError {
     override def getMessage = 
 			pprint(v) + "is not a valid 3D object's size variable"
+  }
+  case class _3DNegativeSizeError(n: String) extends AcumenError {
+    override def getMessage =
+      n + "'s size can not be negative value."
   }
   case class _3DSphereSizeError() extends AcumenError {
     override def getMessage = 
