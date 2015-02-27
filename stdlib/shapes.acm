@@ -1,0 +1,51 @@
+/* Line segment between two points.
+ * p: Start point (x1,y1,z1)
+ * q: End point (x2,y2,z2) 
+ * r: Radius
+ * c: Color (R,G,B)
+ */
+model Line(p,q,r,c) =
+  initially
+    l = 0.01, alpha = 0,
+    _3D = ()
+  always
+    _3D = 
+      ( Cylinder
+        center = (p+q)/2
+        radius = r length = l color = c 
+        rotation = (alpha, 0, atan2(p(1)-q(1),p(0)-q(0)) - pi/2)
+      ),
+    l = norm(p-q),
+    if (abs(l) < 0.0001) then
+     alpha = 0
+    else
+     alpha = asin((p(2)-q(2))/l)
+
+/* Arrow between two points, the head points at q.
+ * p: Head (p(0),p(1),p(2))
+ * q: Tail (q(0),q(1),q(2)) 
+ * r: Radius
+ * c: Color (R,G,B)
+ */
+model Arrow(p,q,rt,rh,c) =
+  initially
+    l = 0.01, alphaCone = 0, alphaLine = 0,
+    _3D = ()
+  always
+    _3D = 
+      ( Cylinder
+        center = (p + q - rh*(1,1,1)/2)/2
+        radius = rt length = l-rh color = c 
+        rotation = (alphaLine, 0, atan2(p(1)-q(1),p(0)-q(0)) - pi/2)
+      , Cone
+        center = q - rh*3.4*(p+q)/l
+        radius = rh length = rh*4 color = c 
+        rotation = (alphaCone, 0, atan2(q(1)-p(1),q(0)-p(0)) - pi/2)
+      ),
+    l = norm(p-q),
+    if (abs(l) < 0.0001) then
+     alphaCone = 0, alphaLine = 0
+    else (
+     alphaCone = asin((q(2)-p(2))/l),
+     alphaLine = asin((p(2)-q(2))/l)
+    )
