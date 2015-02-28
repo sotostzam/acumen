@@ -1,0 +1,62 @@
+#include "shapes.acm"
+
+// Model of Hans Hilfiker's railway clock
+//
+// Author: Adam Duracz
+
+model Main(simulator) =
+  initially
+    _3DView = (),
+    c = create Clock(12,55,0)
+  always
+    simulator.endTime+ = 3600,
+    simulator.timeStep+ = 1/32,
+    _3DView = ((0,0,10),(0,0,0))
+
+model Clock(h,m,s) =
+  initially
+    s' = 1,
+    sh = create Line((0,0,0), (-1,0,0), 0.02, red),
+    mh = create Line((0,0,0), (-1,0,0), 0.03, black),
+    hh = create Line((0,0,0), (-0.7,0,0), 0.05, black),
+    minuteTicks = create Ticks(2*pi/60, 0, 0.075, 0.015, true),
+    minuteTicks = create Ticks(2*pi/12, 0, 0.22, 0.035, true),
+    sync = "all",
+    _3D = ()
+  always
+    _3D = 
+      ( Cylinder radius = 1.1 length = 0.01 color = black
+                 center = (0,0,-0.011) rotation = (pi/2,0,0)
+      , Cylinder radius = 1.05 length = 0.01
+                 center = (0,0,-0.01) rotation = (pi/2,0,0)
+      , Cylinder radius = 0.1 length = 0.01 color = red
+                 center = (sin((2*pi)*s/60-pi/2),cos((2*pi)*s/60-pi/2),0.125)*0.65
+                 rotation = (pi/2,0,0)
+      ),
+    s' = 1,
+    if s >= 60 then s+ = s - 60, m+ = m + 1, sync+ = "all" noelse,
+    if m >= 60 then m+ = m - 60, h+ = h + 1 noelse,
+    if h >= 12 then h+ = h - 12 noelse,
+    match sync with
+    [ "all" ->
+      mh.q = (sin(2*pi*   (m+s/60)/60    -  pi/2)     , cos(2*pi*   (m+s/60)/60    -  pi/2)     , 0   ),
+      mh.p = (sin(2*pi*   (m+s/60)/60    -3*pi/2)*0.2 , cos(2*pi*   (m+s/60)/60    -3*pi/2)*0.2 , 0   ),
+      hh.q = (sin(2*pi*(h+(m+s/60)/60)/12-  pi/2)*0.7 , cos(2*pi*(h+(m+s/60)/60)/12-  pi/2)*0.7 , 0   ),
+      hh.p = (sin(2*pi*(h+(m+s/60)/60)/12-3*pi/2)*0.2 , cos(2*pi*(h+(m+s/60)/60)/12-3*pi/2)*0.2 , 0   ),
+      sync+ = "seconds"
+    | "seconds" ->
+      sh.q = (sin(2*pi*      s/60        -  pi/2)*0.65, cos(2*pi*      s/60        -  pi/2)*0.65, 0.05),
+      sh.p = (sin(2*pi*      s/60        -3*pi/2)*0.2 , cos(2*pi*      s/60        -3*pi/2)*0.2 , 0.05)
+    ]
+
+model Ticks(delta, angle, length, thickness, moreTicks) =
+  initially
+    t = create Line( (sin(angle-pi/2),cos(angle-pi/2),0)*(1-length)
+                   , (sin(angle-pi/2),cos(angle-pi/2),0)
+                   , thickness, black )
+  always
+    if moreTicks && angle + delta < 2 * pi then
+      create Ticks(delta, angle + delta, length, thickness, moreTicks),
+      moreTicks+ = false
+    noelse
+    
