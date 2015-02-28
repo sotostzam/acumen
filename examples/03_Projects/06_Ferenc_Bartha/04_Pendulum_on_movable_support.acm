@@ -7,6 +7,8 @@
 // is attached to a support with mass M 
 // which can move along a line in the x-direction.
 //
+// Note the energy drift.
+//
 model Main(simulator) = 
 
 initially
@@ -27,7 +29,7 @@ initially
   // Technical stuff:
   kinetic = 0,
   potential = 0,
-  Lagrangian = 0,
+  total = 0,
   
   x'' = 0, theta'' = 0,
   thetaAcc = 0,
@@ -61,7 +63,7 @@ always
   // - potential energy
   potential = - m * g * l * cos(theta),
   // - Lagrangian
-  Lagrangian = kinetic - potential,
+  total = kinetic + potential,
 
   // Coordinate conversion and display
   p1 = (x, 0, 2.2),
@@ -102,7 +104,7 @@ always
     // Potential energy
     Text center=(-2.75, 3, 1.35) color=blue content="Potential energy: ",
     Text center=(-1.1,  3, 1.35) color=blue content=potential,
-    // Lagrangian
-    Text center=(-2.75, 3, 1.6) color=green content="Lagrangian: ",
-    Text center=(-1.1,  3, 1.6) color=green content=Lagrangian
+    // Total energy
+    Text center=(-2.75, 3, 1.6) color=green content="Total energy: ",
+    Text center=(-1.1,  3, 1.6) color=green content=total
 )
