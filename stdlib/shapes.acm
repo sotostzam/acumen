@@ -1,8 +1,32 @@
-/* Line segment between two points.
- * p: Start point (x1,y1,z1)
- * q: End point (x2,y2,z2) 
- * r: Radius
- * c: Color (R,G,B)
+/****************************/
+/*  Two-dimensional shapes  */
+/****************************/
+
+/** Two-dimensional rectangle (in the X-Y plane).
+ *  w: Line width
+ *  c: Color (R,G,B)
+ */
+model Rectangle(p,q,r,s,w,c) =
+  initially
+    x = create Quad((p(0),p(1),0),
+                    (q(0),q(1),0),
+                    (r(0),r(1),0),
+                    (s(0),s(1),0),w,c)
+  always
+    x.p = (p(0),p(1),0),
+    x.q = (q(0),q(1),0),
+    x.r = (r(0),r(1),0),
+    x.s = (s(0),s(1),0)
+
+/****************************/
+/* Three-dimensional shapes */
+/****************************/
+
+/** Line segment between two three-dimensional points.
+ *  p: Start point (x1,y1,z1)
+ *  q: End point (x2,y2,z2) 
+ *  r: Radius
+ *  c: Color (R,G,B)
  */
 model Line(p,q,r,c) =
   initially
@@ -21,11 +45,27 @@ model Line(p,q,r,c) =
     else
      alpha = asin((p(2)-q(2))/l)
 
-/* Arrow between two points, the head points at q.
- * p: Head (p(0),p(1),p(2))
- * q: Tail (q(0),q(1),q(2)) 
- * r: Radius
- * c: Color (R,G,B)
+/** Three-dimensional quadrilateral polygon.
+ *  w: Line width
+ *  c: Color (R,G,B)
+ */
+model Quad(p,q,r,s,w,c) =
+  initially
+    ab = create Line((p(0),p(1),p(2)),(q(0),q(1),q(2)),w,c),
+    bc = create Line((q(0),q(1),q(2)),(r(0),r(1),r(2)),w,c),
+    cd = create Line((r(0),r(1),r(2)),(s(0),s(1),s(2)),w,c),
+    da = create Line((s(0),s(1),s(2)),(p(0),p(1),p(2)),w,c)
+  always
+    ab.p = p, ab.q = q,
+    bc.p = q, bc.q = r,
+    cd.p = r, cd.q = s,
+    da.p = s, da.q = p
+
+/** Arrow between two points, the head points at q.
+ *  p: Head (p(0),p(1),p(2))
+ *  q: Tail (q(0),q(1),q(2)) 
+ *  r: Radius
+ *  c: Color (R,G,B)
  */
 model Arrow(p,q,rt,rh,c) =
   initially
