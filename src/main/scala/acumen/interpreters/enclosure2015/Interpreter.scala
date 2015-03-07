@@ -1013,6 +1013,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
         ((rp, e, UnknownTime) :: Nil, Nil)
       } else { // possible event
         Logger.trace(s"handleEvent (Possible event, |hr| = ${hr.size}, q.ass = {${q.dis.map(Pretty pprint _.a).mkString(", ")}})")
+        Logger.trace(s"handleEvent hr.odes = ${hr.map{cs => cs.odes.map(Pretty pprint _.a).mkString(", ")}}, hr.dis = ${hr.map{cs => cs.dis.map(Pretty pprint _.a).mkString(", ")}}")
         ((rp, e, UnknownTime) :: Nil, (up.right.get, e, StartTime) :: Nil)
       }
     }
