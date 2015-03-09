@@ -888,9 +888,9 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
           lazy val counterEx = dots(h).toSet[Dot].map(d => d -> (evalExpr(d, env, st) : GValue))
           (o, getCls(o,st), s) -> (evalExpr(h, env, st) match {
             /* Use TestSuccess as default as it is the unit of HypothesisOutcome.pick */
-            case VLit(CertainTrue)  => (None, None, CertainSuccess)
-            case VLit(Uncertain)    => (None, None, UncertainFailure(timeDomainLo, timeDomainHi, counterEx))
-            case VLit(CertainFalse) => (None, None, CertainFailure(timeDomainLo, timeDomainHi, counterEx))
+            case VLit(CertainTrue)  => (Some(TestSuccess), Some(TestSuccess), CertainSuccess)
+            case VLit(Uncertain)    => (Some(TestSuccess), Some(TestSuccess), UncertainFailure(timeDomainLo, timeDomainHi, counterEx))
+            case VLit(CertainFalse) => (Some(TestSuccess), Some(TestSuccess), CertainFailure(timeDomainLo, timeDomainHi, counterEx))
           })
       }).toMap, timeDomainLo, timeDomainHi, true, None)
     old combine active(st, p).map(c => testHypothesesOneChangeset(c.hyps))

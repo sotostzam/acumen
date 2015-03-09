@@ -195,11 +195,11 @@ trait HypothesisOutcomeSummary {
               (0, 0, 1, List( Some(colorFailure("-")) -> fail("Falsified at", t, e) ) ++ subReports )
 
             /* Rigorous interpreter outcomes */
-            case (None, None, CertainSuccess) => 
+            case (_, _, CertainSuccess) => 
               (1, 0, 0, List( Some("+") -> "Proved" ))
-            case (None, None, UncertainFailure(tLo, tHi, e)) => 
+            case (_, _, UncertainFailure(tLo, tHi, e)) => 
               (0, 1, 0, List( Some(colorUncertain("?")) -> fail("Inconclusive over", s"[$tLo..$tHi]", e) ))
-            case (None, None, CertainFailure(tLo, tHi, e)) => 
+            case (_, _, CertainFailure(tLo, tHi, e)) => 
               (0, 0, 1, List( Some(colorFailure("-")) -> fail("Disproved over", s"[$tLo..$tHi]", e) ))
           }
           ( hoLines.map{ case (symbol, outcome) =>
