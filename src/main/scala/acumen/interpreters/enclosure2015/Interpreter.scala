@@ -138,7 +138,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
       } catch { case e: Throwable => None } // FIXME Use Either to propagate error information 
     }
     /** Returns a copy of e with das applied to it. */
-    def apply(das: Set[DelayedAction]): Enclosure = 
+    def apply(das: Set[CollectedAction]): Enclosure = 
       update(das.map(d => (d.selfCId, d.lhs.field) -> evalExpr(d.rhs, d.env, this.e)).toMap)
     /** Update e with respect to u. */
     def update(u: Map[(CId, Name), CValue]) =
@@ -238,10 +238,10 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
   /** Return type of AST traversal (evalActions) */
   case class Changeset
     ( reps:   Set[(CId,CId)]         = Set.empty // reparentings
-    , dis:    Set[DelayedAction]     = Set.empty // discrete assignments
-    , eqs:    Set[DelayedAction]     = Set.empty // continuous assignments / algebraic equations
-    , odes:   Set[DelayedAction]     = Set.empty // ode assignments / differential equations
-    , claims: Set[DelayedConstraint] = Set.empty // claims / constraints
+    , dis:    Set[CollectedAction]     = Set.empty // discrete assignments
+    , eqs:    Set[CollectedAction]     = Set.empty // continuous assignments / algebraic equations
+    , odes:   Set[CollectedAction]     = Set.empty // ode assignments / differential equations
+    , claims: Set[CollectedConstraint] = Set.empty // claims / constraints
     , hyps:   Set[DelayedHypothesis] = Set.empty // hypotheses
     ) {
     def ||(that: Changeset) =
@@ -269,18 +269,18 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
     def logReparent(o:CId, parent:CId): Set[Changeset] =
       Set(Changeset(reps = Set((o,parent))))
     def logAssign(path: Expr, o: CId, a: Action, env: Env): Set[Changeset] =
-      Set(Changeset(dis = Set(DelayedAction(path,o,a,env))))
+      Set(Changeset(dis = Set(CollectedAction(path,o,a,env))))
     def logEquation(path: Expr, o: CId, a: Action, env: Env): Set[Changeset] =
-      Set(Changeset(eqs = Set(DelayedAction(path,o,a,env))))
+      Set(Changeset(eqs = Set(CollectedAction(path,o,a,env))))
     def logODE(path: Expr, o: CId, a: Action, env: Env): Set[Changeset] =
-      Set(Changeset(odes = Set(DelayedAction(path,o,a,env))))
+      Set(Changeset(odes = Set(CollectedAction(path,o,a,env))))
     def logClaim(o: CId, c: Expr, env: Env) : Set[Changeset] =
-      Set(Changeset(claims = Set(DelayedConstraint(o,c,env))))
+      Set(Changeset(claims = Set(CollectedConstraint(o,c,env))))
     def logHypothesis(o: CId, s: Option[String], h: Expr, env: Env): Set[Changeset] =
       Set(Changeset(hyps = Set(DelayedHypothesis(o,s,h,env))))
     lazy val empty = Changeset()
   }
-  case class DelayedAction(path: Expr, selfCId: CId, a: Action, env: Env) {
+  case class CollectedAction(path: Expr, selfCId: CId, a: Action, env: Env) {
     def lhs: ResolvedDot = (a: @unchecked) match {
       case Discretely(Assign(d: ResolvedDot, _))      => d
       case Continuously(EquationT(d: ResolvedDot, _)) => d
@@ -294,7 +294,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
     override def toString() =
       s"$selfCId.${Pretty pprint (lhs: Expr)} = ${Pretty pprint rhs}"
   }
-  case class DelayedConstraint(selfCId: CId, c: Expr, env: Env)
+  case class CollectedConstraint(selfCId: CId, c: Expr, env: Env)
   case class DelayedHypothesis(selfCId: CId, s: Option[String], h: Expr, env: Env)
   
   import Changeset._
@@ -826,7 +826,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
   
   def step(p: Prog, st: Store, md: Metadata): StepRes = {
     val st1 = updateSimulator(p, st)
-    if (getTime(st1.enclosure) >= getEndTime(st1.enclosure)) {
+    if (getTime(st1.enclosure) >= getEndTime(st1.enclosure) && getResultType(st.enclosure) == FixedPoint) {
       Done(md, getEndTime(st1.enclosure))
     }
     else {
@@ -950,7 +950,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
             Logger.trace(s"encloseHw (Not a flow)")
             val wi = 
               if (intersectWithGuardBeforeReset)
-                contract(w, q.dis.map(da => DelayedConstraint(da.selfCId, da.path, da.env)), prog)
+                contract(w, q.dis.map(da => CollectedConstraint(da.selfCId, da.path, da.env)), prog)
                   .fold(sys error "Empty intersection while contracting with guard. " + _, i => i)
               else w
             ((wi(q.dis), q :: qw, t) :: tmpW, tmpR, tmpU)
@@ -1017,7 +1017,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
    * NOTE: Returns Left if the support of any of the claims has an empty intersection with st,
    *       or if some other exception is thrown by contract.
    */
-  def contract(st: Enclosure, claims: Iterable[DelayedConstraint], prog: Prog): Either[String, Enclosure] = {
+  def contract(st: Enclosure, claims: Iterable[CollectedConstraint], prog: Prog): Either[String, Enclosure] = {
     /**
      * Given a predicate p and store st, removes that part of st for which p does not hold.
      * NOTE: The range of st is first computed, as contraction currently only works on intervals.  
@@ -1123,9 +1123,9 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
    *       are not allowed.
    */
   def continuousEncloser
-    ( odes: Set[DelayedAction] // Set of delayed ContinuousAction
-    , eqs: Set[DelayedAction]
-    , claims: Set[DelayedConstraint]
+    ( odes: Set[CollectedAction] // Set of delayed ContinuousAction
+    , eqs: Set[CollectedAction]
+    , claims: Set[CollectedConstraint]
     , T: Interval
     , p: Prog
     , st: Enclosure
@@ -1151,15 +1151,15 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
     }
     val odeSolutions = ic update solutionMap
     val equationsMap = inline(eqs, eqs, st).map { // LHSs of EquationsTs, including highest derivatives of ODEs
-      case DelayedAction(_, cid, Continuously(EquationT(ResolvedDot(_, _, n), rhs)), env) =>
+      case CollectedAction(_, cid, Continuously(EquationT(ResolvedDot(_, _, n), rhs)), env) =>
         (cid, n) -> evalExpr(rhs, env, odeSolutions)
     }.toMap
     odeSolutions update equationsMap
   }
 
   /** Convert odes into a Field compatible with acumen.interpreters.enclosure.ivp.IVPSolver. */
-  def getFieldFromActions(odes: Set[DelayedAction], st: Enclosure, p: Prog)(implicit rnd: Rounding): Field =
-    Field(odes.map { case DelayedAction(_, cid, Continuously(EquationI(ResolvedDot(_, _, n), rhs)), env) =>
+  def getFieldFromActions(odes: Set[CollectedAction], st: Enclosure, p: Prog)(implicit rnd: Rounding): Field =
+    Field(odes.map { case CollectedAction(_, cid, Continuously(EquationI(ResolvedDot(_, _, n), rhs)), env) =>
       (fieldIdToName(cid, n), acumenExprToExpression(rhs, cid, env, st, p))
     }.toMap)
   
@@ -1171,9 +1171,9 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
    * NOTE: This implies a restriction on the programs that are accepted: 
    *       If the program contains an algebraic loop, an exception will be thrown.
    */
-  def inline(as: Set[DelayedAction], bs: Set[DelayedAction], st: CStore): Set[DelayedAction] = {
+  def inline(as: Set[CollectedAction], bs: Set[CollectedAction], st: CStore): Set[CollectedAction] = {
     val resolvedDotToDA = as.map(da => da.lhs -> da).toMap
-    def inline(hosts: Map[DelayedAction,List[DelayedAction]]): Set[DelayedAction] = {
+    def inline(hosts: Map[CollectedAction,List[CollectedAction]]): Set[CollectedAction] = {
       val next = hosts.map {
         case (host, inlined) =>
           dots(host.rhs).foldLeft((host, inlined)) {
