@@ -242,7 +242,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
     , eqs:    Set[CollectedAction]     = Set.empty // continuous assignments / algebraic equations
     , odes:   Set[CollectedAction]     = Set.empty // ode assignments / differential equations
     , claims: Set[CollectedConstraint] = Set.empty // claims / constraints
-    , hyps:   Set[DelayedHypothesis] = Set.empty // hypotheses
+    , hyps:   Set[CollectedHypothesis] = Set.empty // hypotheses
     ) {
     def ||(that: Changeset) =
       that match {
@@ -277,7 +277,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
     def logClaim(o: CId, c: Expr, env: Env) : Set[Changeset] =
       Set(Changeset(claims = Set(CollectedConstraint(o,c,env))))
     def logHypothesis(o: CId, s: Option[String], h: Expr, env: Env): Set[Changeset] =
-      Set(Changeset(hyps = Set(DelayedHypothesis(o,s,h,env))))
+      Set(Changeset(hyps = Set(CollectedHypothesis(o,s,h,env))))
     lazy val empty = Changeset()
   }
   case class CollectedAction(path: Expr, selfCId: CId, a: Action, env: Env) {
@@ -295,7 +295,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
       s"$selfCId.${Pretty pprint (lhs: Expr)} = ${Pretty pprint rhs}"
   }
   case class CollectedConstraint(selfCId: CId, c: Expr, env: Env)
-  case class DelayedHypothesis(selfCId: CId, s: Option[String], h: Expr, env: Env)
+  case class CollectedHypothesis(selfCId: CId, s: Option[String], h: Expr, env: Env)
   
   import Changeset._
 
@@ -881,10 +881,10 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
   
   /** Summarize result of evaluating the hypotheses of all objects. */
   def testHypotheses(st: Enclosure, timeDomainLo: Double, timeDomainHi: Double, p: Prog, old: Metadata): Metadata = {
-    def testHypothesesOneChangeset(hs: Set[DelayedHypothesis]) =
+    def testHypothesesOneChangeset(hs: Set[CollectedHypothesis]) =
       if (hs isEmpty) NoMetadata
       else SomeMetadata(
-        (for (DelayedHypothesis(o, s, h, env) <- hs) yield {
+        (for (CollectedHypothesis(o, s, h, env) <- hs) yield {
           lazy val counterEx = dots(h).toSet[Dot].map(d => d -> (evalExpr(d, env, st) : GValue))
           (o, getCls(o,st), s) -> (evalExpr(h, env, st) match {
             /* Use TestSuccess as default as it is the unit of HypothesisOutcome.pick */
