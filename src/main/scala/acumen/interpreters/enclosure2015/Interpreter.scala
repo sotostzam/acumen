@@ -830,21 +830,18 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
       Done(md, getEndTime(st1.enclosure))
     }
     else {
-      getResultType(st1.enclosure) match {
-        case Continuous =>
-          Data(setResultType(Discrete, st1), md)
-        case Discrete =>
-          Data(setResultType(FixedPoint, st1), md)
-        case FixedPoint => // Do hybrid step
-          val tNow = getTime(st1.enclosure)
-          val tNext = tNow + getTimeStep(st1.enclosure)
-          val T = Interval(tNow, tNext)
-          val st2 = hybridEncloser(T, p, st1) // valid enclosure over T
-          val md1 = testHypotheses(st2.enclosure, tNow, tNext, p, md)
-          val st3 = setResultType(Continuous, st2)
-          val st4 = setTime(tNext, st3)
-          Data(st4, md1)
+      val tNow = getTime(st1.enclosure)
+      val (tNext, resType) = getResultType(st1.enclosure) match {
+        case Continuous | Discrete =>
+          (tNow, FixedPoint)
+        case FixedPoint =>
+          (tNow + getTimeStep(st1.enclosure), Continuous)
       }
+      val st2 = hybridEncloser(Interval(tNow, tNext), p, st1) // valid enclosure over T
+      val md1 = testHypotheses(st2.enclosure, tNow, tNext, p, md)
+      val st3 = setResultType(resType, st2)
+      val st4 = setTime(tNext, st3)
+      Data(st4, md1)
     }
   }
 
@@ -910,43 +907,56 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
     require(st.branches.nonEmpty, "hybridEncloser called with zero branches")
     require(st.branches.size < maxBranches, s"Number of branches (${st.branches.size}) exceeds maximum ($maxBranches).")
     Logger.debug(s"hybridEncloser (over $T, ${st.branches.size} branches)")
+    
+    // Strategy for merging the branches
     def mergeBranches(ics: List[InitialCondition]): List[InitialCondition] =
       ics.groupBy(ic => (ic._2, ic._3)).map { case ((m, t), ic) => (ic.map(_._1).reduce(_ /\ _), m, t) }.toList
+ 
+    // Process a list of ICs   
     @tailrec def enclose
       ( pwlW:  List[InitialCondition] // Waiting ICs, the statements that yielded them and time where they should be used
-      , pwlR:  List[Enclosure] // Enclosure (valid over all of T)
+      , pwlR:  List[Enclosure]        // Enclosure (valid over all of T)
       , pwlU:  List[InitialCondition] // Branches, i.e. states possibly valid at right end-point of T (ICs for next time segment)
-      , pwlP:  List[Enclosure] // Passed states at initial time
-      , pwlPs: List[Enclosure] // Passed states at uncertain time in T
-      , iterations: Int // Remaining iterations
+      , pwlP:  List[Enclosure]        // Passed states
+      , iterations: Int               // Remaining iterations
       ): Store =
+      // No more IC to process
       if (pwlW isEmpty) {
-        EnclosureAndBranches((pwlR union pwlP union pwlPs).reduce(_ /\ _), mergeBranches(pwlU))        
+        EnclosureAndBranches((pwlR union pwlP).reduce(_ /\ _), mergeBranches(pwlU))        
       }
+      // Exceeding the maximum iterations per branch
       else if (iterations / st.branches.size > maxIterationsPerBranch)
         sys.error(s"Enclosure computation over $T did not terminate in ${st.branches.size * maxIterationsPerBranch} iterations.")
+      // Processing the next IC
       else {
         Logger.trace(s"enclose (${pwlW.size} waiting initial conditions, iteration $iterations)")
         val (w, q, t) :: waiting = pwlW
-        if (isPassed(w, t, pwlP, pwlPs))
-          enclose(waiting, pwlR, pwlU, pwlP, pwlPs, iterations + 1)
+        // An element may be ignored if it was passed already 
+        if (isPassed(w, pwlP))
+           enclose(waiting, pwlR, pwlU, pwlP, iterations + 1)
         else {
-          val (newP, newPs) = if (t == StartTime) (w :: pwlP, pwlPs) else (pwlP, w :: pwlPs)
+          // The set of active ChangeSets
           val hw = active(w, prog)
           checkValidChange(hw)
           if (q.nonEmpty && isFlow(q.head) && Set(q.head) == hw && t == UnknownTime)
             sys error "Model error!" // Repeated flow, t == UnknownTime means w was created in this time step
+          // Process the active ChangeSets
           val (newW, newR, newU) = encloseHw((w, q, t), hw)
-          enclose(waiting ::: newW, pwlR ::: newR, pwlU ::: newU, newP, newPs, iterations + 1)
+          
+          enclose(waiting ::: newW, pwlR ::: newR, pwlU ::: newU, w :: pwlP, iterations + 1)
         }
       }
+    // Process the active ChangeSets
     def encloseHw
       ( wqt: InitialCondition, hw: Set[Changeset]
       ): (List[InitialCondition], List[Enclosure], List[InitialCondition]) = {
       val (w, qw, t) = wqt
       hw.foldLeft((List.empty[InitialCondition], List.empty[Enclosure], List.empty[InitialCondition])) {
         case ((tmpW, tmpR, tmpU), q) =>
-          if (!isFlow(q)) {
+          // q is not a flow and T is thin
+          if (!isFlow(q) && (T.isThin || 
+          // q is not a flow, T is not thin and time is Unknown
+             t == UnknownTime) ) {
             Logger.trace(s"encloseHw (Not a flow)")
             val wi = 
               if (intersectWithGuardBeforeReset)
@@ -955,8 +965,13 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
               else w
             ((wi(q.dis), q :: qw, t) :: tmpW, tmpR, tmpU)
           }
-          else if ((t == UnknownTime && qw.nonEmpty && qw.head == q) || T.isThin)
+          // q is a repeated flow or T is thin
+          else if (t == UnknownTime && qw.nonEmpty && qw.head == q)
             (tmpW, tmpR, tmpU)
+          // q is a flow T is thin
+          else if (T.isThin)
+            (tmpW, tmpR, (w, qw, StartTime) :: tmpU)
+          // q is a flow to be processed T is not thin
           else {
             checkFlowDefined(prog, q, w)
             val s = continuousEncloser(q.odes, q.eqs, q.claims, T, prog, w)
@@ -983,7 +998,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
         ((rp, e, UnknownTime) :: Nil, (up.right.get, e, StartTime) :: Nil)
       }
     }
-    enclose(st.branches, Nil, Nil, Nil, Nil, 0)
+    enclose(st.branches, Nil, Nil, Nil, 0)
   }
   
   /**
@@ -1006,8 +1021,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
   }
   
   /** Returns true if some element of passed contains s */
-  def isPassed(s: Enclosure, t: InitialConditionTime, P: List[Enclosure], P1: List[Enclosure]) =
-    (if (t == StartTime) P else P1) exists (_ contains s)
+  def isPassed(s: Enclosure, P: List[Enclosure]) = P exists (_ contains s)
   
   /** Returns true if the discrete assignments in cs are empty or have no effect on s. */
   def isFlow(cs: Changeset) = cs.dis.isEmpty
