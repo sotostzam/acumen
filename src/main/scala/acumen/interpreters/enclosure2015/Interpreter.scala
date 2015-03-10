@@ -804,7 +804,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
   lazy val initStore = Parser.run(Parser.store, initStoreTxt.format("#0"))
   val initStoreTxt: String = 
     s"""#0.0 { className = Simulator, parent = %s, nextChild = 0, seed1 = 0, seed2 = 0, variableCount = 0, 
-               outputRows = "All", continuousSkip = 0, resultType = @Discrete, 
+               outputRows = "All", continuousSkip = 0, resultType = @Initial, 
                ${visibleParameters.map(p => p._1 + "=" + pprint(p._2)).mkString(",")} }"""
 
   /** Updates the values of variables in xs (identified by CId and Dot.field) to the corresponding CValue. */
@@ -832,7 +832,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
     else {
       val tNow = getTime(st1.enclosure)
       val (tNext, resType) = getResultType(st1.enclosure) match {
-        case Continuous | Discrete =>
+        case Continuous | Initial =>
           (tNow, FixedPoint)
         case FixedPoint =>
           (tNow + getTimeStep(st1.enclosure), Continuous)
