@@ -953,25 +953,32 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
       val (w, qw, t) = wqt
       hw.foldLeft((List.empty[InitialCondition], List.empty[Enclosure], List.empty[InitialCondition])) {
         case ((tmpW, tmpR, tmpU), q) =>
-          // q is not a flow and T is thin
-          if (!isFlow(q) && (T.isThin || 
-          // q is not a flow, T is not thin and time is Unknown
-             t == UnknownTime) ) {
-            Logger.trace(s"encloseHw (Not a flow)")
-            val wi = 
-              if (intersectWithGuardBeforeReset)
-                contract(w, q.dis.map(da => CollectedConstraint(da.selfCId, da.path, da.env)), prog)
-                  .fold(sys error "Empty intersection while contracting with guard. " + _, i => i)
-              else w
-            ((wi(q.dis), q :: qw, t) :: tmpW, tmpR, tmpU)
-          }
-          // q is a repeated flow or T is thin
+          // q is not a flow
+          if (!isFlow(q)) 
+            // we process q if T is thin
+            if (T.isThin ||
+            // or T is not thin, but the time is unknown    
+               t == UnknownTime) {
+              Logger.trace(s"encloseHw (Not a flow)")
+              val wi = 
+                if (intersectWithGuardBeforeReset)
+                  contract(w, q.dis.map(da => CollectedConstraint(da.selfCId, da.path, da.env)), prog)
+                    .fold(sys error "Empty intersection while contracting with guard. " + _, i => i)
+                else w
+              ((wi(q.dis), q :: qw, t) :: tmpW, tmpR, tmpU)
+            }
+            // otherwise the non-flow q is not processed
+            else
+              (tmpW, tmpR, tmpU)
+
+          // q is a flow
+          // q is a repeated flow
           else if (t == UnknownTime && qw.nonEmpty && qw.head == q)
             (tmpW, tmpR, tmpU)
-          // q is a flow T is thin
+          // T is thin => the state will be an initial condition for the next time interval
           else if (T.isThin)
             (tmpW, tmpR, (w, qw, StartTime) :: tmpU)
-          // q is a flow to be processed T is not thin
+          // T is not thin, the flow is processed
           else {
             checkFlowDefined(prog, q, w)
             val s = continuousEncloser(q.odes, q.eqs, q.claims, T, prog, w)
