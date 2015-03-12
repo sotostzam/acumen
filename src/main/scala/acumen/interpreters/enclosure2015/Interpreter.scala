@@ -781,7 +781,14 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
       mkObj(cmain, mprog, None, sd1, List(VObjId(Some(CId(0)))), initStore, 1)
     val st2 = changeParent(CId(0), id, st1)
     val st3 = changeSeed(CId(0), sd2, st2)
-    (mprog, fromCStore(st3), NoMetadata)
+    val hyps = st3.toList.flatMap { case (cid, co) =>
+      mprog.defs.find(_.name == getCls(cid, st3)).get.body.flatMap {
+        case Hypothesis(s, e) =>
+          CollectedHypothesis(cid, s, e, Map(self -> VObjId(Some(cid)))) :: Nil
+        case _ => Nil
+    }}
+    val md = testHypotheses(fromCStore(st3).enclosure, 0, 0, mprog, NoMetadata) 
+    (mprog, fromCStore(st3), md)
   }
   
   /** Remove unsupported declarations and statements from the AST. */
@@ -883,11 +890,15 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
       else SomeMetadata(
         (for (CollectedHypothesis(o, s, h, env) <- hs) yield {
           lazy val counterEx = dots(h).toSet[Dot].map(d => d -> (evalExpr(d, env, st) : GValue))
-          (o, getCls(o,st), s) -> (evalExpr(h, env, st) match {
-            /* Use TestSuccess as default as it is the unit of HypothesisOutcome.pick */
-            case VLit(CertainTrue)  => (Some(TestSuccess), Some(TestSuccess), CertainSuccess)
-            case VLit(Uncertain)    => (Some(TestSuccess), Some(TestSuccess), UncertainFailure(timeDomainLo, timeDomainHi, counterEx))
-            case VLit(CertainFalse) => (Some(TestSuccess), Some(TestSuccess), CertainFailure(timeDomainLo, timeDomainHi, counterEx))
+          (o, getCls(o,st), s) -> ((evalExpr(h, env, st), getResultType(st)) match {
+            /* Use TestSuccess as default as it is the unit of HypothesisOutcome.pick 
+             * For rigorous interpreters the momentary test is unused (middle element) */
+            case (VLit(CertainTrue),  Initial) => (Some(CertainSuccess), Some(TestSuccess), CertainSuccess)
+            case (VLit(CertainTrue),        _) => (Some(CertainSuccess), Some(TestSuccess), CertainSuccess)
+            case (VLit(Uncertain),    Initial) => (Some(UncertainFailure(timeDomainLo, timeDomainHi, counterEx)), Some(TestSuccess), UncertainFailure(timeDomainLo, timeDomainHi, counterEx))
+            case (VLit(Uncertain),          _) => (Some(CertainSuccess), Some(TestSuccess), UncertainFailure(timeDomainLo, timeDomainHi, counterEx))
+            case (VLit(CertainFalse), Initial) => (Some(CertainFailure(timeDomainLo, timeDomainHi, counterEx)), Some(TestSuccess), CertainFailure(timeDomainLo, timeDomainHi, counterEx))
+            case (VLit(CertainFalse),       _) => (Some(CertainSuccess), Some(TestSuccess), CertainFailure(timeDomainLo, timeDomainHi, counterEx))
           })
       }).toMap, timeDomainLo, timeDomainHi, true, None)
     old combine active(st, p).map(c => testHypothesesOneChangeset(c.hyps))

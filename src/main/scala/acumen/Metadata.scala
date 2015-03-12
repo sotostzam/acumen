@@ -182,6 +182,13 @@ trait HypothesisOutcomeSummary {
             (ho1._1 match { 
                case Some(InitialTestFailure(ei)) => List( None -> fail("Falsified initially", "", ei) ) 
                case _ => Nil }) 
+         
+          /* Report from initial test for the rigorous interpreter */
+          lazy val rigInitialReport = ho1._1 match {
+            case Some(UncertainFailure(tLo, tHi, e)) => List( None -> fail("Inconclusive initially", "", e) )
+            case Some(CertainFailure(tLo, tHi, e)) => List( None -> fail("Disproved initially", "", e) )
+            case _ => Nil
+          }
           
           /* (successes, uncertains, failures, report lines) */
           val (s, u, f, hoLines) = (ho1 : @unchecked) match {
@@ -198,9 +205,9 @@ trait HypothesisOutcomeSummary {
             case (_, _, CertainSuccess) => 
               (1, 0, 0, List( Some("+") -> "Proved" ))
             case (_, _, UncertainFailure(tLo, tHi, e)) => 
-              (0, 1, 0, List( Some(colorUncertain("?")) -> fail("Inconclusive over", s"[$tLo..$tHi]", e) ))
+              (0, 1, 0, List( Some(colorUncertain("?")) -> fail("Inconclusive over", s"[$tLo..$tHi]", e) ) ++ rigInitialReport)
             case (_, _, CertainFailure(tLo, tHi, e)) => 
-              (0, 0, 1, List( Some(colorFailure("-")) -> fail("Disproved over", s"[$tLo..$tHi]", e) ))
+              (0, 0, 1, List( Some(colorFailure("-")) -> fail("Disproved over", s"[$tLo..$tHi]", e) ) ++ rigInitialReport)
           }
           ( hoLines.map{ case (symbol, outcome) =>
               if (symbol.nonEmpty) symbol.get + s" $sid $shn " + outcome
