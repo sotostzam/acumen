@@ -52,14 +52,14 @@ case class SomeMetadata
               case _                        => false }
             ((this.hyp get k, th get k): @unchecked) match {
               case (Some(o @ (i, m, s)), None) =>
-                if (thisIsMomentary(s, timeDomainHi, ttHi))
+                if (thisIsMomentary(s, timeDomainHi, ttHi) && !rr)
                   (i, Some(s pick m), TestSuccess) // (!)
                 else
                   o
               case (None, Some(o)) => o
               case (Some((Some(li), Some(lm), ls))
                    ,Some((Some(ri), Some(rm), rs))) =>
-                if (thisIsMomentary(ls, timeDomainHi, ttHi)) 
+                if (thisIsMomentary(ls, timeDomainHi, ttHi) && !rr && !rigorous) 
                   (Some(li pick ri), Some(lm pick ls pick rm), rs) // (!)
                                                // ^^ this has priority over the new element rm so it gets picked first
                 else
