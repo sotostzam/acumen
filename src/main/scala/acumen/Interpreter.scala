@@ -130,7 +130,9 @@ trait CStoreInterpreter extends Interpreter {
       if (adder.done) (empty, md)
       else {
         val (st1, md1, _) = multiStep(p, st, md, adder)
-        loop(p, st1, md1, adder)}
+        val (st2, md2) = exposeExternally(st1, md1)
+        loop(p, st2, md2, adder)
+      }
     }
     (st #:: st9, md9)
   }
@@ -139,6 +141,7 @@ trait CStoreInterpreter extends Interpreter {
    val (p1,st,md) = init(p)
    loop(p1, st, md, adder)
   }
+
 }
 
 abstract class InterpreterCallbacks
