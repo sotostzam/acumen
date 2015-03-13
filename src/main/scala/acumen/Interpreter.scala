@@ -1,5 +1,6 @@
 package acumen
 
+import annotation.tailrec
 import collection.JavaConversions.iterableAsScalaIterable
 import Stream._
 import util.Canonical._
@@ -125,16 +126,15 @@ trait CStoreInterpreter extends Interpreter {
   /* multistep versions of loop and run, not lazy but supports
    * returning metadata */
 
-  def loop(p:Prog, st:Store, md: Metadata, adder: DataAdder) : (History, Metadata) = {
-    val (st9,md9) = { 
-      if (adder.done) (empty, md)
+  def loop(p:Prog, st:Store, md: Metadata, adder: DataAdder): (History, Metadata) = {
+    @tailrec def loopInner(st0: Store, md0: Metadata, h: => History): (History, Metadata) =
+      if (adder.done) (h, md0)
       else {
-        val (st1, md1, _) = multiStep(p, st, md, adder)
+        val (st1, md1, _) = multiStep(p, st0, md0, adder)
         val (st2, md2) = exposeExternally(st1, md1)
-        loop(p, st2, md2, adder)
-      }
-    }
-    (st #:: st9, md9)
+        loopInner(st2, md2, st2 #:: h)
+      }   
+    loopInner(st, md, empty)
   }
 
   def run(p: Prog, adder: DataAdder) : (History,Metadata) = {
