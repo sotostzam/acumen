@@ -365,16 +365,6 @@ object Interpreter extends acumen.CStoreInterpreter {
     (mprog, st3, NoMetadata)
   }
 
-  override def exposeExternally(store: Store, md: Metadata): (Store, Metadata) = {
-    if (Main.serverMode) {
-      val json1 = JSon.toJSON(store).toString
-      val store2 = JSon.fromJSON(Main.send_recv(json1))
-      (store2, md) // FIXME Add support for metadata
-    } else {
-      (store, md)
-    }
-  }
-
   def step(p:Prog, st:Store, md: Metadata) : StepRes =
     if (getTime(st) > getEndTime(st)) Done(md, getEndTime(st))
     else 

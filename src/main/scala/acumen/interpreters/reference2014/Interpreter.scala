@@ -374,14 +374,6 @@ object Interpreter extends acumen.CStoreInterpreter {
     (mprog, st4, NoMetadata)
   }
 
-  override def exposeExternally(store: Store, md: Metadata): (Store, Metadata) =
-    if (Main.serverMode) {
-      val json1 = JSon.toJSON(store).toString
-      val store2 = JSon.fromJSON(Main.send_recv(json1))
-      (store2, md) // FIXME add support for metadata
-    }
-    else (store, md)
-
   /** Updates the values of variables in xs (identified by CId and Dot.field) to the corresponding CValue. */
   def applyAssignments(xs: List[(CId, Dot, CValue)]): Eval[Unit] = 
     mapM_((a: (CId, Dot, CValue)) => setObjectFieldM(a._1, a._2.field, a._3), xs)

@@ -87,7 +87,12 @@ trait CStoreInterpreter extends Interpreter {
     fromCStore(st, mainId(st))
 
   def exposeExternally(store:Store, md:Metadata) : (Store, Metadata) =
-    (store, md)
+    if (Main.serverMode) {
+      val json1 = JSon.toJSON(repr(store)).toString
+      val store2 = JSon.fromJSON(Main.send_recv(json1))
+      (fromCStore(store2), md) // FIXME add support for metadata
+    }
+    else (store, md)
 
   /* main loop */
   /* Note: returns a Stream (i.e. lazy list), but does not
