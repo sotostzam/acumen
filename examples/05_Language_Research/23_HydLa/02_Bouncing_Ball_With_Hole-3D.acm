@@ -1,0 +1,52 @@
+// Bouncing ball with hole
+// Date: 2015-03-13
+// Authors: Shota Matsumoto, Yoshiaki Wakatsuki, 
+//          Takeshi Ito, Yingfu Zeng, Adam Duracz 
+// Note: Adds 3D visualization and guards that make 
+//       it possible to simulate the model using the
+//       reference semantics.
+
+model Main(simulator) =
+  initially
+    x = 0, x' = 1, x'' = 0,
+    y = 10, y' = 0, y'' = -10,
+    _3D = (), _3DView = ()
+  always
+  
+    // FALL
+    y'' = -10, 
+    // BOUNCE
+    if (y <= -7 || ((x <= 7 || x >= 10) && y <= 0)) && y' < 0
+    then y'+ = -4/5 * y'
+    noelse,
+    // XCONST
+    x'' = 0,
+    // XBOUNCE
+    if ((x <= 7 && x' < 0) || (x >= 10 && x' > 0)) && y < 0
+    then x'+ = -x'
+    noelse,
+    
+    simulator.endTime+ = 20,
+    _3DView = ((0,-50,0), (x,0,0)),
+    _3D = ( Sphere center = (x,0,y)
+          , Box center = (0,0,0)
+                size = (14,0.1,0.1)
+          , Box center = (20,0,0)
+                size = (20,0.1,0.1)
+          , Box center = (8.5,0,-7)
+                size = (3,0.1,0.1)
+          , Box center = (7,0,-3.5)
+                size = (0.1,0.1,7)
+          , Box center = (10,0,-3.5)
+                size = (0.1,0.1,7)
+          )
+    
+
+// Original HydLa model
+//INIT <=> y = 10 & y' = 0 & x = 0 & 1 <= x' <= 5.
+//FALL <=> [](y'' = -10).
+//XCONST <=> [](x'' = 0).
+//XBOUNCE <=> []((x- = 7 | x- = 10) & y- < 0 => x' = -x'-). 
+//BOUNCE <=> [](y- = -7 | (x- <= 7 | x- >= 10) & y- = 0 => y' = -(4/5) * y'-).
+//
+//INIT, FALL << BOUNCE, XCONST << XBOUNCE.
