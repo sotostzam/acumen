@@ -250,7 +250,6 @@ class EnclosurePath(val palette: Palette) extends PlotEntity {
       area = new Area(polyPath)
     } catch { 
       case FallBackToSlow =>
-        println("Falling Back to Slow Plotting Method.")
         for (polyPoints <- polys) {
           val toDraw = PolyPoints(new Point2D.Double,
                                   new Point2D.Double,
