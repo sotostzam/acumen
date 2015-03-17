@@ -933,7 +933,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
       ): Store =
       // No more IC to process
       if (pwlW isEmpty) {
-        EnclosureAndBranches((pwlR union pwlP).reduce(_ /\ _), mergeBranches(pwlU))        
+        EnclosureAndBranches((pwlR union pwlP).reduce(_ /\ _), if (T.isThin) pwlU else mergeBranches(pwlU))      
       }
       // Exceeding the maximum iterations per branch
       else if (iterations / st.branches.size > maxIterationsPerBranch)
