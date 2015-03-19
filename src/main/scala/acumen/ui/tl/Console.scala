@@ -15,27 +15,30 @@ import Errors.{ ParseError, PositionalAcumenError }
 import scala.util.parsing.input.{Position,NoPosition}
 import Logger._
 
-class Console extends ListView[(Msg, Boolean /*messageIsOld*/)] { self =>
+class Console extends ListView[(Msg, Boolean /*messageIsOld*/)] {
 
   import Console._
-
-  renderer = ListView.Renderer.wrap[(Msg,Boolean)](new ListCellRenderer {
-    protected val defaultRenderer = new DefaultListCellRenderer
-    override def getListCellRendererComponent(list: JList, v: Any, index: Int, 
-                                              isSelected: Boolean, cellHasFocus: Boolean): Component = { 
-      val value = v.asInstanceOf[(Msg,Boolean)]
+  
+  renderer = new ListView.Renderer[(Msg, Boolean)] {
+    def componentFor(l: ListView[_], isSelected: Boolean, focused: Boolean, value: (Msg, Boolean), index: Int) = {
       val messageIsOld = value._2
       val message = value._1 match {
         case Message(ERROR, m, p)         => formatErrorMessage(m.msg, p, messageIsOld)
         case Message(_,     m, _)         => m.msg
         case HypothesisReport(md, st, et) => summarizeHypothesisOutcomes(md, messageIsOld)
       }
-      val renderer = (defaultRenderer.getListCellRendererComponent(list,message,index,false,false)).asInstanceOf[JLabel]
-      if (messageIsOld) renderer setForeground Color.LIGHT_GRAY
-      if (isSelected) renderer setBackground MessageColorSelected
-      renderer
+      new Label{ // Used to display one Msg
+        text = message
+        font = l.peer.getFont
+        horizontalAlignment = scala.swing.Alignment.Left
+        opaque = true
+        foreground = if (messageIsOld) Color.LIGHT_GRAY else l.peer.getForeground
+        background = if (isSelected) MessageColorSelected else l.peer.getBackground
+        peer.setComponentOrientation(l.peer.getComponentOrientation)
+        enabled = l.peer.isEnabled
+      }
     }
-  })
+  }
   
   def formatErrorMessage(m: String, pos: Position, messageIsOld: Boolean): String =
     "<html>" + color("red", messageIsOld, "ERROR:") + "<pre>" + 
@@ -116,7 +119,7 @@ class Console extends ListView[(Msg, Boolean /*messageIsOld*/)] { self =>
   })
   this.peer.addMouseListener(new MouseAdapter {
     override def mouseClicked(e: MouseEvent) { 
-      if (e.getClickCount == 2) self.peer.getSelectedValues.head match {
+      if (e.getClickCount == 2) peer.getSelectedValues.head match {
         case (m: Message, _) => scrollToError(m)
         case _ =>
       }
