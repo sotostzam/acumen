@@ -67,8 +67,30 @@ case class AffineEnclosure private[enclosure] (
     AffineEnclosure(collapsedDomain, collapsedNormalizedDomain, components.mapValues(_.collapse(name)))
   }
 
-  def collapse(names: VarName*)(implicit rnd: Rounding): AffineEnclosure =
-    names.foldLeft(this)((res, name) => res.collapseName(name))
+  def collapse(names: VarName*)(implicit rnd: Rounding): AffineEnclosure = {
+    val nl = names.toList
+    if (nl.size > 5) collapseFast(nl)
+    else nl.foldLeft(this)((res, name) => res.collapseName(name))
+  }
+
+  /** Implementation based on (encapsulated) mutable data structures. */
+  def collapseFast(names: List[VarName])(implicit rnd: Rounding): AffineEnclosure = {
+    val zero = Interval(0)
+    val boxCache = collection.mutable.Map[Box, Box]()
+    def collapseNames(b: Box) = boxCache.getOrElseUpdate(b, 
+      ((collection.mutable.Map[VarName, Interval]() ++ b) -- names).toMap)
+    AffineEnclosure( 
+      collapseNames(domain),
+      collapseNames(normalizedDomain),
+      components.mapValues { c =>
+        AffineScalarEnclosure( collapseNames(c.domain)
+                             , collapseNames(c.normalizedDomain)
+                             , names.foldLeft(c.constant)((con, n) =>
+                                 con + c.coefficients.getOrElse(n, zero) * 
+                                       c.normalizedDomain.getOrElse(n, zero))
+                             , collapseNames(c.coefficients) )
+      })
+  }
 
   /**
    * Component-wise containment of enclosures.

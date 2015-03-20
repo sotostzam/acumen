@@ -14,7 +14,8 @@ object BoxTest extends Properties("Box") {
 
   /* Properties */
 
-  property("collapsing") = {
+  // AffineEnclosure before and after collapsing "x" 
+  val (ae, aenox) = {
     val dom = Box("x" -> Interval(0, 1), "y" -> Interval(0, 1))
     val ndom = Box.normalize(dom)
     val ase = AffineScalarEnclosure(dom, ndom, Interval(0), Box("x" -> Interval(1)))
@@ -23,7 +24,15 @@ object BoxTest extends Properties("Box") {
     val ndomnox = ndom - "x"
     val asenox = ase.collapse("x")
     val aenox = AffineEnclosure(domnox, ndomnox, Map("a" -> asenox))
+    (ae, aenox)
+  }
+
+  property("collapsing") = {
     ae.collapse("x") == aenox
+  } 
+  
+  property("fast collapsing") = {
+    ae.collapseFast("x" :: Nil) == aenox
   }
 
   property("box normalization") =
