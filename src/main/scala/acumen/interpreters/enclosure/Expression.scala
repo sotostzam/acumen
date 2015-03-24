@@ -17,6 +17,8 @@ import scala.collection.SortedMap
  * variable independence analysis.
  */
 sealed abstract class Expression {
+  
+  val rnd = new Rounding(Parameters.default)
 
   def isConstant = this match {
     case Constant(_) => true
@@ -48,7 +50,7 @@ sealed abstract class Expression {
    * Precondition: the box must contain the names of all variables in the
    * expression.
    */
-  def apply(x: Box)(implicit rnd: Rounding): Interval = {
+  def apply(x: Box): Interval = {
     assert(varNames subsetOf x.keySet, "The box " + x + " must contain the names of all variables in the expression " + this)
     this match {
       case Constant(v)    => v
@@ -79,7 +81,7 @@ sealed abstract class Expression {
    * Precondition: the box must contain the names of all variables in the
    * expression.
    */
-  def apply(x: UnivariateAffineEnclosure)(implicit rnd: Rounding): UnivariateAffineScalarEnclosure = {
+  def apply(x: UnivariateAffineEnclosure): UnivariateAffineScalarEnclosure = {
     assert(varNames subsetOf x.components.keySet,
       "The enclosure must contain the names of all variables in the expression.")
     this match {
@@ -109,7 +111,7 @@ sealed abstract class Expression {
    * 
    * NOTE: For sqrt and exp, Interval over-approximations are used.
    */
-  def apply(x: AffineEnclosure)(implicit rnd: Rounding): AffineScalarEnclosure = this match {
+  def apply(x: AffineEnclosure): AffineScalarEnclosure = this match {
     case Constant(v)    => AffineScalarEnclosure(x.domain, v)
     case Variable(name) => x(name)
     case Negate(e)      => -e(x)
@@ -129,7 +131,7 @@ sealed abstract class Expression {
    * Precondition: the box must contain the names of all variables in the
    * expression.
    */
-  def enclosureEval(x: Box)(implicit rnd: Rounding): Interval = {
+  def enclosureEval(x: Box): Interval = {
     assert(varNames subsetOf x.keySet, "The box must contain the names of all variables in the expression.")
     enclosureEvalHelper(x).range
   }
@@ -145,7 +147,7 @@ sealed abstract class Expression {
    * Implementation note: we use the worker-wrapper pattern do stop
    * evaluation from prematurely using the top-level apply.
    */
-  private def enclosureEvalHelper(x: Box)(implicit rnd: Rounding): AffineScalarEnclosure = this match {
+  private def enclosureEvalHelper(x: Box): AffineScalarEnclosure = this match {
     case Constant(v)            => AffineScalarEnclosure(x, v)
     case Variable(name)         => AffineScalarEnclosure(x, name)
     case Negate(e)              => -(e.enclosureEvalHelper(x))
@@ -160,7 +162,7 @@ sealed abstract class Expression {
   }
 
   // TODO add explanation!
-  def contractBox(box: Box, ran: Interval)(implicit rnd: Rounding): Box =
+  def contractBox(box: Box, ran: Interval): Box =
     enclosureEvalHelper(box).contractDomain(ran)
 
   /** Returns the set of variable names which occur in the expression. */
@@ -185,22 +187,22 @@ sealed abstract class Expression {
     case Constant(v) => Constant(-v)
     case _           => Negate(this)
   }
-  def +(that: Expression)(implicit rnd: Rounding) = (this, that) match {
+  def +(that: Expression) = (this, that) match {
     case (Constant(c), e) if c isZero => e
     case (e, Constant(c)) if c isZero => e
     case (l, r) if l == r             => Multiply(Constant(2), l)
     case _                            => Plus(this, that)
   }
-  def -(that: Expression)(implicit rnd: Rounding) = this + (-that)
-  def *(that: Expression)(implicit rnd: Rounding) = (this, that) match {
+  def -(that: Expression) = this + (-that)
+  def *(that: Expression) = (this, that) match {
     case (Constant(c), e) if c equalTo 1 => e
     case (Constant(c), e) if c isZero    => Constant(0)
     case (e, Constant(c)) if c equalTo 1 => e
     case (e, Constant(c)) if c isZero    => Constant(0)
     case _                               => Multiply(this, that)
   }
-  def /(that: Double)(implicit rnd: Rounding) = Divide(this, Constant(that))
-  def /(that: Expression)(implicit rnd: Rounding) = (this, that) match {
+  def /(that: Double) = Divide(this, Constant(that))
+  def /(that: Expression) = (this, that) match {
     case (Constant(c), e) if c isZero    => Constant(0)
     case (e, Constant(c)) if c equalTo 1 => e
     case _                               => Divide(this, that)
@@ -211,7 +213,7 @@ sealed abstract class Expression {
   def sin = Sin(this)
   def cos = Cos(this)
 
-  def dif(name: VarName)(implicit rnd: Rounding): Expression = this match {
+  def dif(name: VarName): Expression = this match {
     case Constant(_)    => Constant(0)
     case Variable(n)    => if (n == name) Constant(1) else Constant(0)
     case Negate(e)      => -e.dif(name)
@@ -234,8 +236,8 @@ object Expression {
 
   /** Implicit lifting of numeric values allows for writing e.g. x + 1. */
   implicit def lift(value: Interval): Expression = Constant(value)
-  implicit def lift(value: Double)(implicit r: Rounding): Expression = Constant(value)
-  implicit def lift(value: Int)(implicit r: Rounding): Expression = Constant(value)
+  implicit def lift(value: Double): Expression = Constant(value)
+  implicit def lift(value: Int): Expression = Constant(value)
 
   /** Implicit lifting of variable names allows for writing e.g. x + "y". */
   implicit def lift(name: String) = Variable(name)
@@ -247,8 +249,8 @@ case class Constant(value: Interval) extends Expression {
   def variables: Set[VarName] = Set()
 }
 object Constant {
-  def apply(value: Double)(implicit r: Rounding): Constant = Constant(Interval(value))
-  def apply(value: Int)(implicit r: Rounding): Constant = Constant(Interval(value))
+  def apply(value: Double): Constant = Constant(Interval(value))
+  def apply(value: Int): Constant = Constant(Interval(value))
 }
 
 case class Variable(name: String) extends Expression {
@@ -308,7 +310,6 @@ case class Divide(left: Expression, right: Expression) extends Expression {
 
 object ExpressionApp extends App {
 
-  implicit val rnd = Parameters.default.rnd
   val x = Variable("x")
   val y = Variable("y")
   println((x * (x + y)).compose(1 + y, "x"))

@@ -4,7 +4,6 @@ import acumen.interpreters.enclosure.EnclosureInterpreterCallbacks
 import acumen.interpreters.enclosure.HybridSystem
 import acumen.interpreters.enclosure.Interval
 import acumen.interpreters.enclosure.Interval.toInterval
-import acumen.interpreters.enclosure.Rounding
 import acumen.interpreters.enclosure.Types.UncertainState
 import acumen.interpreters.enclosure.Util
 import acumen.interpreters.enclosure.affine.UnivariateAffineEnclosure
@@ -24,7 +23,7 @@ trait HybridSolver extends AtomicStep {
     e: Double, // maximum time step size
     minComputationImprovement: Double, // minimum improvement of enclosure
     output: String, // path to write output 
-    cb: EnclosureInterpreterCallbacks)(implicit rnd: Rounding): Seq[UnivariateAffineEnclosure] = {
+    cb: EnclosureInterpreterCallbacks): Seq[UnivariateAffineEnclosure] = {
     Util.newFile(output)
     cb.endTime = T.hiDouble
     solveHybrid(H, delta, m, n, degree, K, output, cb)(d, minComputationImprovement)(Ss, T).get._1
@@ -42,7 +41,7 @@ trait HybridSolver extends AtomicStep {
       minTimeStep: Double,
       minComputationImprovement: Double)(
         us: Set[UncertainState],
-        t: Interval)(implicit rnd: Rounding): MaybeResult = {
+        t: Interval): MaybeResult = {
     val maybeResultT = atomicStep(H, delta, m, n, degree, K, output, cb.log)(us, t)
     if (t.width lessThanOrEqualTo minTimeStep) maybeResultT
     else maybeResultT match {
@@ -68,7 +67,7 @@ trait HybridSolver extends AtomicStep {
       minTimeStep: Double,
       minComputationImprovement: Double)(
         us: Set[UncertainState],
-        t: Interval)(implicit rnd: Rounding): MaybeResult =
+        t: Interval): MaybeResult =
     solveHybrid(H, delta, m, n, degree, K, output, cb)(minTimeStep, minComputationImprovement)(us, t.left) match {
       case None => None
       case Some((esl, usl)) =>
@@ -89,7 +88,7 @@ trait HybridSolver extends AtomicStep {
     output: String,
     log: String => Unit)(
       us: Set[UncertainState],
-      t: Interval)(implicit rnd: Rounding): MaybeResult =
+      t: Interval): MaybeResult =
     atomicStep(H, delta, m, n, degree, K, output, log)(us, t.left) match {
       case None => None
       case Some((es, usl)) => atomicStep(H, delta, m, n, degree, K, output, log)(usl, t.right)

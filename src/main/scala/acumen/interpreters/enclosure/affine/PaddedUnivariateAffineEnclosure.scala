@@ -1,6 +1,5 @@
 package acumen.interpreters.enclosure.affine
 
-import acumen.interpreters.enclosure.Rounding
 import acumen.interpreters.enclosure.Types._
 import acumen.interpreters.enclosure.Interval
 import acumen.interpreters.enclosure.Box
@@ -20,10 +19,8 @@ case class PaddedUnivariateAffineEnclosure private[affine] (
   override val domain: Interval,
   override val normalizedDomain: Interval,
   override val components: Map[VarName, PaddedUnivariateAffineScalarEnclosure],
-  padding: Interval => Interval)(implicit rnd: Rounding)
+  padding: Interval => Interval)
     extends UnivariateAffineEnclosure {
-
-  override def rounding = rnd
 
   /** The low bound enclosure of this enclosure. */
   override def low =
@@ -66,10 +63,10 @@ case class PaddedUnivariateAffineEnclosure private[affine] (
    * Since the enclosure is a safe approximation of any contained function
    * the range also safely approximates the range of any such function.
    */
-  override def range(implicit rnd: Rounding): Box = this(domain)
+  override def range: Box = this(domain)
 
   /** Component-wise containment of enclosures. */
-  override def contains(that: UnivariateAffineEnclosure)(implicit rnd: Rounding): Boolean = {
+  override def contains(that: UnivariateAffineEnclosure): Boolean = {
     assert(domain == that.domain, "Containment can only be tested for enclosures with equal domains.")
     assert(components.keySet == that.components.keySet, "Containment can only be tested for enclosures with equal component names.")
     components.forall { case (name, component) => component contains that.components(name) }
@@ -90,8 +87,8 @@ case class PaddedUnivariateAffineEnclosure private[affine] (
       components.map { case (name, component) => name -> (component union (that.components(name))) })
   }
 
-  override def restrictTo(subDomain: Interval)(implicit rnd: Rounding): UnivariateAffineEnclosure = {
-    require((domain contains subDomain) && (normalizedDomain contains Interval(0) /\ subDomain.width.high))
+  override def restrictTo(subDomain: Interval): UnivariateAffineEnclosure = {
+    require((domain contains subDomain) && (normalizedDomain contains Interval.zero /\ subDomain.width.high))
     PaddedUnivariateAffineEnclosure(subDomain, components.mapValues(_.restrictTo(subDomain)), padding)
   }
 
@@ -103,13 +100,13 @@ object PaddedUnivariateAffineEnclosure {
       e.domain,
       e.normalizedDomain,
       e.components.mapValues(PaddedUnivariateAffineScalarEnclosure(_, padding)),
-      padding)(e.rounding)
+      padding)
 
   /** Convenience method, normalizes the domain. */
-  def apply(domain: Interval, components: Map[VarName, PaddedUnivariateAffineScalarEnclosure], padding: Interval => Interval)(implicit rnd: Rounding): UnivariateAffineEnclosure =
+  def apply(domain: Interval, components: Map[VarName, PaddedUnivariateAffineScalarEnclosure], padding: Interval => Interval): UnivariateAffineEnclosure =
     PaddedUnivariateAffineEnclosure(
       domain,
-      Interval(0) /\ domain.width.high,
+      Interval.zero /\ domain.width.high,
       components,
       padding)
 

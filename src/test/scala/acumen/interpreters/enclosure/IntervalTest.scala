@@ -118,7 +118,7 @@ object IntervalUnitTest extends Properties("Interval.UnitTest") {
     Interval(0, 1) + Interval(-1, 0) == Interval(-1, 1) &&
       Interval(0, 1) + Interval(-2, 2) == Interval(-2, 3) &&
       Interval(-1, 0) + Interval(-3, -2) == Interval(-4, -2) &&
-      Interval(-2, 2) + Interval(1) == Interval(-1, 3) &&
+      Interval(-2, 2) + Interval.one == Interval(-1, 3) &&
       Interval(0, 1) + Interval(-3, -2) == Interval(-3, -1)
   }
 
@@ -144,11 +144,11 @@ object IntervalUnitTest extends Properties("Interval.UnitTest") {
   }
   
   property("ACUMEN-408 - Interval.sqrt does not terminate for input 4.000000004") = {
-    Interval(1.9999, 2.0001) contains Interval(new java.math.BigDecimal("4.000000004")).sqrt 
+    Interval(1.9999, 2.0001) contains Interval(Interval.ic.textToInterval("4.000000004")).sqrt 
   }
 
   property("sqrt of 0") = {
-    Interval(0).sqrt == Interval(0) 
+    Interval.zero.sqrt == Interval.zero 
   }
-
+  
 }

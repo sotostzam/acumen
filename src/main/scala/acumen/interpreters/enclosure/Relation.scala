@@ -43,7 +43,7 @@ abstract class Relation extends Contract {
    * Note that the result will be a set of Boolean values rather than a single
    * one as the predicate is evaluated over intervals, i.e. sets of reals.
    */
-  def apply(x: Box)(implicit rnd: Rounding): Set[Boolean] = this match {
+  def apply(x: Box): Set[Boolean] = this match {
     case BinaryRelation(relname, l, r) =>
       {
         val left = l(x)
@@ -110,7 +110,7 @@ abstract class Relation extends Contract {
    * Note that the result will be a set of Boolean values rather than a single one
    * as the relation is evaluated over the domains of variables, i.e. sets of reals.
    */
-  def apply(x: UnivariateAffineEnclosure)(implicit rnd: Rounding): Set[Boolean] = this match {
+  def apply(x: UnivariateAffineEnclosure): Set[Boolean] = this match {
     case BinaryRelation(relname, l, r) =>
       val left = l(x)
       val right = r(x)
@@ -170,7 +170,7 @@ abstract class Relation extends Contract {
   }
 
   /** A conservative approximation of the intersection of x with the support of r. */
-  def support(x: Box)(implicit rnd: Rounding): Box = {
+  def support(x: Box): Box = {
     this match {
       case BinaryRelation(relname, l, r) =>
         //        println("support of: " + this)
@@ -213,7 +213,7 @@ abstract class Relation extends Contract {
   }
 
   /** TODO add description! */
-  def supportBySplitting(maxDepth: Int)(box: Box)(implicit rnd: Rounding): Option[Box] = {
+  def supportBySplitting(maxDepth: Int)(box: Box): Option[Box] = {
     require(maxDepth >= 0 && varNames.subsetOf(box.keySet))
     def supportHelper(supportBoxes: Seq[Box], queue: Seq[(Int, Box)]): Seq[Box] = queue match {
       case (depth, b) :: bs =>

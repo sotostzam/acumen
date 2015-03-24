@@ -69,19 +69,19 @@ object Types {
    * Implementation note: defined in Definition 6.5.
    */
   // TODO add better description
-  def M(states: Set[UncertainState])(implicit rnd: Rounding): Set[UncertainState] =
+  def M(states: Set[UncertainState]): Set[UncertainState] =
     states.groupBy(_.mode).mapValues { ss =>
       ss.tail.foldLeft(ss.head.initialCondition) {
-        (res, s) => zipDefault(res, s.initialCondition, Interval(0)).mapValues { case (l, r) => l /\ r }
+        (res, s) => zipDefault(res, s.initialCondition, Interval.zero).mapValues { case (l, r) => l /\ r }
       }
     }.map(UncertainState(_)).toSet
 
   /** Computes the union of the uncertain state initial conditions. */
   // TODO add better description
-  def endTimeInterval(ss: Set[UncertainState])(implicit rnd: Rounding): Box = {
+  def endTimeInterval(ss: Set[UncertainState]): Box = {
     require(ss.nonEmpty)
     ss.tail.foldLeft(ss.head.initialCondition) { (res, s) =>
-      zipDefault(res, s.initialCondition, Interval(0)).mapValues { case (l, r) => l /\ r }
+      zipDefault(res, s.initialCondition, Interval.zero).mapValues { case (l, r) => l /\ r }
     }
   }
 

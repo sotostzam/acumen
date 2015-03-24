@@ -18,7 +18,7 @@ object BoxTest extends Properties("Box") {
   val (ae, aenox) = {
     val dom = Box("x" -> Interval(0, 1), "y" -> Interval(0, 1))
     val ndom = Box.normalize(dom)
-    val ase = AffineScalarEnclosure(dom, ndom, Interval(0), Box("x" -> Interval(1)))
+    val ase = AffineScalarEnclosure(dom, ndom, Interval.zero, Box("x" -> Interval.one))
     val ae = AffineEnclosure(dom, ndom, Map("a" -> ase))
     val domnox = dom - "x"
     val ndomnox = ndom - "x"
@@ -39,7 +39,7 @@ object BoxTest extends Properties("Box") {
     forAll(genBox) { box =>
       Box.normalize(box).forall {
         case (_, i) =>
-          i greaterThanOrEqualTo Interval(0)
+          i greaterThanOrEqualTo Interval.zero
       }
     }
 

@@ -319,15 +319,15 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
   }
   object GConstantRealEnclosure {
     def apply(i: Interval): GConstantRealEnclosure = GConstantRealEnclosure(i,i,i)
-    def apply(d: Double)(implicit rnd: Rounding): GConstantRealEnclosure = GConstantRealEnclosure(Interval(d))
-    def apply(i: Int)(implicit rnd: Rounding): GConstantRealEnclosure = GConstantRealEnclosure(Interval(i))
+    def apply(d: Double): GConstantRealEnclosure = GConstantRealEnclosure(Interval(d))
+    def apply(i: Int): GConstantRealEnclosure = GConstantRealEnclosure(Interval(i))
   }
   type Real = GConstantRealEnclosure
   object Real {
     def apply(start: Interval, enclosure: Interval, end: Interval): Real = GConstantRealEnclosure(start,enclosure,end)
     def apply(i: Interval): Real = GConstantRealEnclosure(i,i,i)
-    def apply(d: Double)(implicit rnd: Rounding): Real = GConstantRealEnclosure(Interval(d))
-    def apply(i: Int)(implicit rnd: Rounding): Real = GConstantRealEnclosure(Interval(i))
+    def apply(d: Double): Real = GConstantRealEnclosure(Interval(d))
+    def apply(i: Int): Real = GConstantRealEnclosure(Interval(i))
   }
   abstract class GConstantDiscreteEnclosure[T](val start: Set[T], val enclosure: Set[T], val end: Set[T]) extends GDiscreteEnclosure[T] {
     def apply(t: Interval) = range
@@ -561,12 +561,26 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
   /** Purely functional unary operator evaluation at the ground values level */
   def unaryGroundOp[V](f:String, vx:GroundValue) = {
     def implem(f: String, x: Interval) = f match {
-      case "-"    => -x
-      case "abs"  => x.abs
-      case "sqrt" => x.sqrt
-      case "sin"  => rnd.transcendentals.sin(x)
-      case "cos"  => rnd.transcendentals.cos(x)
-      case _      => throw UnknownOperator(f)
+      case "-"      => -x
+      case "abs"    => x.abs
+      case "sin"    => x.sin
+      case "cos"    => x.cos
+      case "tan"    => x.tan
+      case "acos"   => x.acos
+      case "asin"   => x.asin
+      case "atan"   => x.atan
+      case "exp"    => x.exp
+      case "log"    => x.log
+      case "log10"  => x.log10
+      case "sqrt"   => x.sqrt
+      case "cbrt"   => x.cbrt
+      case "ceil"   => x.ceil
+      case "floor"  => x.floor
+      case "sinh"   => x.sinh
+      case "cosh"   => x.cosh
+      case "tanh"   => x.tanh
+      case "signum" => x.signum
+      case _        => throw UnknownOperator(f)
     }
     (f, vx) match {
       case ("not", Uncertain | CertainTrue | CertainFalse) => Uncertain
@@ -577,12 +591,14 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
   /** Purely functional binary operator evaluation at the ground values level */
   def binGroundOp[V](f:String, vl:GEnclosure[V], vr:GEnclosure[V]): GroundValue = {
     def implemInterval(f:String, l:Interval, r:Interval) = f match {
-      case "+"   => l + r
-      case "-"   => l - r
-      case "*"   => if (l equalTo r) l.square else l * r
-      case "/"   => l / r
-      case "min" => Interval.min(l,r)
-      case "max" => Interval.max(l,r)
+      case "+"     => l + r
+      case "-"     => l - r
+      case "*"     => if (l equalTo r) l.square else l * r
+      case "^"     => l.pow(r)
+      case "/"     => l / r
+      case "atan2" => Interval.atan2(l, r)
+      case "min"   => Interval.min(l, r)
+      case "max"   => Interval.max(l, r)
     }
     // Based on implementations from acumen.interpreters.enclosure.Relation
     def implemBool(f:String, l:Interval, r:Interval): GBoolEnclosure = {
@@ -1162,7 +1178,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
     , T: Interval
     , p: Prog
     , st: Enclosure
-    )(implicit rnd: Rounding): Enclosure = {
+    ): Enclosure = {
     val ic = contract(st.end, claims, p) match {
       case Left(_) => sys.error("Initial condition violates claims {" + claims.map(c => pprint(c.c)).mkString(", ") + "}.")
       case Right(r) => r
@@ -1191,7 +1207,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
   }
 
   /** Convert odes into a Field compatible with acumen.interpreters.enclosure.ivp.IVPSolver. */
-  def getFieldFromActions(odes: Set[CollectedAction], st: Enclosure, p: Prog)(implicit rnd: Rounding): Field =
+  def getFieldFromActions(odes: Set[CollectedAction], st: Enclosure, p: Prog): Field =
     Field(odes.map { case CollectedAction(_, cid, Continuously(EquationI(ResolvedDot(_, _, n), rhs)), env) =>
       (fieldIdToName(cid, n), acumenExprToExpression(rhs, cid, env, st, p))
     }.toMap)
@@ -1272,7 +1288,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
     })
   }
   
-  def acumenExprToExpression(e: Expr, selfCId: CId, env: Env, st: Enclosure, p: Prog)(implicit rnd: Rounding): Expression = {
+  def acumenExprToExpression(e: Expr, selfCId: CId, env: Env, st: Enclosure, p: Prog): Expression = {
     def convert(x: Expr) = acumenExprToExpression(x, selfCId, env, st, p)
     e match {
       case Lit(v) if v.eq(Constants.PI) => Constant(Interval.pi) // Test for reference equality not structural equality

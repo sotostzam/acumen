@@ -4,7 +4,6 @@ import acumen.interpreters.enclosure.EnclosureInterpreterCallbacks
 import acumen.interpreters.enclosure.HybridSystem
 import acumen.interpreters.enclosure.Interval
 import acumen.interpreters.enclosure.Interval.toInterval
-import acumen.interpreters.enclosure.Rounding
 import acumen.interpreters.enclosure.Types.UncertainState
 import acumen.interpreters.enclosure.Util
 import acumen.interpreters.enclosure.affine.UnivariateAffineEnclosure
@@ -24,7 +23,7 @@ trait ReusingSolver extends AtomicStep {
     maxTimeStep: Double, // maximum time step size
     minComputationImprovement: Double, // minimum improvement of enclosure
     output: String, // path to write output 
-    cb: EnclosureInterpreterCallbacks)(implicit rnd: Rounding): Seq[UnivariateAffineEnclosure] = {
+    cb: EnclosureInterpreterCallbacks): Seq[UnivariateAffineEnclosure] = {
     Util.newFile(output)
     cb.endTime = T.hiDouble
     solveHybrid(H, delta, m, n, degree, K, output, cb)(minTimeStep, maxTimeStep, minComputationImprovement)(Ss, T).get._1
@@ -43,7 +42,7 @@ trait ReusingSolver extends AtomicStep {
       maxTimeStep: Double,
       minComputationImprovement: Double)(
         us: Set[UncertainState],
-        t: Interval)(implicit rnd: Rounding): MaybeResult = {
+        t: Interval): MaybeResult = {
     if (t.width lessThanOrEqualTo maxTimeStep) {
       val maybeResultT = atomicStep(H, delta, m, n, degree, K, output, cb.log)(us, t)
       solveHybridAux(H, delta, m, n, degree, K, output, cb)(minTimeStep, maxTimeStep: Double, minComputationImprovement)(us, t, maybeResultT)
@@ -71,7 +70,7 @@ trait ReusingSolver extends AtomicStep {
       minComputationImprovement: Double)(
         us: Set[UncertainState],
         t: Interval,
-        maybeResultT: MaybeResult)(implicit rnd: Rounding): MaybeResult = {
+        maybeResultT: MaybeResult): MaybeResult = {
     if (t.width lessThanOrEqualTo minTimeStep) maybeResultT
     else maybeResultT match {
       case None => subdivideAndRecur(H, delta, m, n, degree, K, output, cb)(minTimeStep, maxTimeStep, minComputationImprovement)(us, t, None)
@@ -98,7 +97,7 @@ trait ReusingSolver extends AtomicStep {
       minComputationImprovement: Double)(
         us: Set[UncertainState],
         t: Interval,
-        maybeResultTL: MaybeResult)(implicit rnd: Rounding): MaybeResult =
+        maybeResultTL: MaybeResult): MaybeResult =
     solveHybridAux(H, delta, m, n, degree, K, output, cb)(minTimeStep, maxTimeStep, minComputationImprovement)(us, t.left, maybeResultTL) match {
       case None => None
       case Some((esl, usl)) =>
@@ -118,7 +117,7 @@ trait ReusingSolver extends AtomicStep {
     output: String,
     log: String => Unit)(
       us: Set[UncertainState],
-      t: Interval)(implicit rnd: Rounding) = {
+      t: Interval) = {
     val maybeResultTL = atomicStep(H, delta, m, n, degree, K, output, log)(us, t.left)
     maybeResultTL match {
       case None => (None, None)

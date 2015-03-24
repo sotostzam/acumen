@@ -35,7 +35,7 @@ object Util extends App {
     } finally fw.close
   }
 
-  def fixedPoint[A](f: A => A)(x: A)(implicit rnd: Rounding): A = {
+  def fixedPoint[A](f: A => A)(x: A): A = {
     val y = f(x)
     if (x == y) x
     else fixedPoint(f)(y)

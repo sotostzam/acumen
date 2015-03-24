@@ -3,7 +3,6 @@ package util
 
 import scala.math._
 import Errors._
-import acumen.interpreters.enclosure.Rounding
 import acumen.interpreters.enclosure.Interval
 
 object Conversions {
@@ -54,7 +53,7 @@ object Conversions {
       case _        => throw ConversionError(v, "int")
     }
 
-  def extractInterval(v: GroundValue)(implicit rnd: Rounding): Interval =
+  def extractInterval(v: GroundValue): Interval =
     v match {
       case GInterval(i) => i
       case GInt(i) => Interval(i, i)
@@ -63,7 +62,7 @@ object Conversions {
       case _ => throw GroundConversionError(v, "interval")
     }
   
-  def extractInterval(v:Value[_])(implicit rnd: Rounding) : Interval =
+  def extractInterval(v:Value[_]) : Interval =
       v match {
       case VLit(gv) => extractInterval(gv)
       case _        => throw ConversionError(v, "interval")
@@ -100,10 +99,10 @@ object Conversions {
     ls.map(x => VVector(x.map(y => VLit(GDouble(y)))))		  
   }
 
-  def extractIntervals(vs:List[Value[_]])(implicit rnd: Rounding) : List[Interval] =
+  def extractIntervals(vs:List[Value[_]]) : List[Interval] =
     vs map extractInterval
   
-  def extractIntervals(v:Value[_])(implicit rnd: Rounding) : List[Interval] =
+  def extractIntervals(v:Value[_]) : List[Interval] =
      v match {
       case VList(vs) => extractIntervals(vs)
       case VVector(vs) => extractIntervals(vs)

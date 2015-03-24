@@ -52,7 +52,7 @@ trait Extract {
    * statement  by a discrete assignment to the mode designator variable.
    *
    */
-  def extract(classDef: ClassDef)(implicit rnd: Rounding): (HybridSystem, UncertainState) =
+  def extract(classDef: ClassDef): (HybridSystem, UncertainState) =
     classDef match {
       case ClassDef(
         name: ClassName,
@@ -140,7 +140,7 @@ trait Extract {
   def getHybridSystem(
     modeVariable: String,
     stateVariables: List[String],
-    clauses: List[Clause])(implicit rnd: Rounding) =
+    clauses: List[Clause]) =
     clauses.foldLeft(HybridSystem.empty) {
       case (res, clause) => {
         val (mode, domain, field) = getMode(stateVariables, clause)
@@ -151,7 +151,7 @@ trait Extract {
       }
     }
 
-  def getInitialState(modeVariable: String, stateVariables: List[VarName], priv: List[Init])(implicit rnd: Rounding) = {
+  def getInitialState(modeVariable: String, stateVariables: List[VarName], priv: List[Init]) = {
     val initialMode = priv.filter {
       case Init(Name(i, 0), m) => i == modeVariable
       case _                   => false
@@ -163,14 +163,14 @@ trait Extract {
       case Init(name, ExprRhs(initialValueExpr)) => (name.x + "'" * name.primes) -> initialValueExpr
     }.toMap
     val initialCondition = intializations.filterKeys(stateVariables.contains(_)).
-      mapValues(acumenExprToExpression(_)(rnd)(Box.empty))
+      mapValues(acumenExprToExpression(_)(Box.empty))
     UncertainState(initialMode, initialCondition)
   }
 
   def getEvents(
     modeVariable: String,
     stateVariables: List[String],
-    clause: Clause)(implicit rnd: Rounding): List[(Event, Guard, ResetMap)] = {
+    clause: Clause): List[(Event, Guard, ResetMap)] = {
     var countEventsWithSameTarget = Map[Mode, Int]()
     clause match {
       case Clause(source: GroundValue, assertion: Expr, as: List[Action]) => as.flatMap {
@@ -200,12 +200,12 @@ trait Extract {
       case _       => sys.error("Each if-branch in conditional statements must contain precisely one assignment to " + modeVariable)
     }
 
-  def getGuard(cond: Expr)(implicit rnd: Rounding) = acumenExprToPredicate(cond).asInstanceOf[Guard]
+  def getGuard(cond: Expr) = acumenExprToPredicate(cond).asInstanceOf[Guard]
 
   def getReset(
     modeVariable: String,
     stateVariables: List[String],
-    as: List[Action])(implicit rnd: Rounding): ResetMap = {
+    as: List[Action]): ResetMap = {
     val resetComponents = as.flatMap {
       case Discretely(Assign(lhs @ Dot(Var(Name("self", 0)), Name(name, _)), rhs)) =>
         if (name == modeVariable) List()
@@ -220,7 +220,7 @@ trait Extract {
     ResetMap(stateVariables.map(name => name -> resetComponents.getOrElse(name, Variable(name))).toMap)
   }
 
-  def getMode(stateVariables: List[VarName], clause: Clause)(implicit rnd: Rounding): (Mode, Domain, Field) = {
+  def getMode(stateVariables: List[VarName], clause: Clause): (Mode, Domain, Field) = {
     clause match {
       case Clause(modeVariable: GroundValue, assertion: Expr, as: List[Action]) => {
         val domain = acumenExprToPredicate(assertion).asInstanceOf[Domain]
@@ -238,7 +238,7 @@ trait Extract {
     case GStr(s)    => s
   })
 
-  def getField(stateVariables: List[VarName], as: List[Action])(implicit rnd: Rounding) = {
+  def getField(stateVariables: List[VarName], as: List[Action]) = {
     val highestDerivatives = as.flatMap {
       case Continuously(EquationT(d @ Dot(Var(Name(self, 0)), _), rhs)) => List((d, rhs))
       case Continuously(EquationT(lhs, rhs)) => sys.error("Continuous assignment of " + rhs + " to " + lhs + " is not supported.")
@@ -269,7 +269,7 @@ trait Extract {
       map { case Init(Name(name, order), _) => name + "'" * order }.toList
   }
 
-  def acumenExprToPredicate(e: Expr)(implicit rnd: Rounding): Predicate = e match {
+  def acumenExprToPredicate(e: Expr): Predicate = e match {
     case Lit(GBool(b))                 => if (b) True else False
     case Op(Name("not", 0), List(e))   => acumenExprToPredicate(negateExpression(e))
     case Op(Name("||", 0), List(l, r)) => Or(acumenExprToPredicate(l), acumenExprToPredicate(r))
@@ -295,13 +295,13 @@ trait Extract {
     case _ => false
   }
 
-  def acumenExprToRelations(e: Expr)(implicit rnd: Rounding): List[Relation] = e match {
+  def acumenExprToRelations(e: Expr): List[Relation] = e match {
     case Op(Name("&&", 0), List(l, r)) => acumenExprToRelations(l) ++ acumenExprToRelations(r)
     case Op(Name("<=" | "<" | "==" | "~=" | ">" | ">=", _), _) => List(acumenExprToRelation(e))
     case _ => sys.error("Handling of predicates " + e + "not implemented!")
   }
 
-  def acumenExprToRelation(e: Expr)(implicit rnd: Rounding): Relation = e match {
+  def acumenExprToRelation(e: Expr): Relation = e match {
     case Op(Name("<=", 0), List(x, y)) => lessThanOrEqualTo(acumenExprToExpression(x), acumenExprToExpression(y))
     case Op(Name("<", 0), List(x, y))  => lessThan(acumenExprToExpression(x), acumenExprToExpression(y))
     case Op(Name("==", 0), List(x, y)) => equalTo(acumenExprToExpression(x), acumenExprToExpression(y))
@@ -316,7 +316,7 @@ trait Extract {
     case _                             => sys.error("Handling of relation " + e + " not implemented!")
   }
 
-  def acumenExprToExpression(e: Expr)(implicit rnd: Rounding): Expression = e match {
+  def acumenExprToExpression(e: Expr): Expression = e match {
     case Lit(v) if v.eq(Constants.PI) // Test for reference equality
                                       // not structural equality
                               => Constant(Interval.pi)
@@ -341,7 +341,7 @@ trait Extract {
     case _                                      => sys.error("Handling of expression " + e + " not implemented!")
   }
 
-  def foldConstant(e: Expr)(implicit rnd: Rounding): Constant = e match {
+  def foldConstant(e: Expr): Constant = e match {
     case Lit(GInt(i))                 => Constant(i)
     case Lit(GDouble(d))              => Constant(d)
     case Lit(_)                       => sys.error("foldConstant called with non-numeric expression!")

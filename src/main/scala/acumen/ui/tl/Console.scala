@@ -42,9 +42,10 @@ class Console extends ListView[(Msg, Boolean /*messageIsOld*/)] {
   
   def formatErrorMessage(m: String, pos: Position, messageIsOld: Boolean): String =
     "<html>" + color("red", messageIsOld, "ERROR:") + "<pre>" + 
+      (if (m == null) "" else
       m.replaceAll("<","&lt;")
        .replaceAll(">","&gt;")
-       .replaceAll("\n","<br/>") + 
+       .replaceAll("\n","<br/>")) + 
       "</pre></html>"
 
   private def summarizeHypothesisOutcomes(md: SomeMetadata, messageIsOld: Boolean): String = 

@@ -5,11 +5,10 @@ import Types._
 import scala.collection.immutable.MapProxy
 
 /** Interval boxes with named components. */
-class Box(val self: Map[VarName, Interval])(implicit rnd: Rounding) extends MapProxy[VarName, Interval] {
-  import rnd._
+class Box(val self: Map[VarName, Interval]) extends MapProxy[VarName, Interval] {
 
   /** Look up an interval in the box. Return the [0,0] interval as default if the variable name not exist. */
-  override def apply(name: VarName): Interval = self getOrElse (name, Interval(0, 0))
+  override def apply(name: VarName): Interval = self getOrElse (name, Interval.zero)
 
   /** Returns true if all intervals in "subBox" are contained in the corresponding interval in "box". */
   def contains(box: Box) = {
@@ -36,7 +35,7 @@ class Box(val self: Map[VarName, Interval])(implicit rnd: Rounding) extends MapP
   }
 
   /** Component-wise set difference. */
-  def \(that: Box)(implicit rnd: Rounding): Box = {
+  def \(that: Box): Box = {
     require(keySet == that.keySet)
     map { case (name, interval) => name -> (interval setminus that(name)).get }
   }
@@ -79,13 +78,6 @@ class Box(val self: Map[VarName, Interval])(implicit rnd: Rounding) extends MapP
   def split: Set[Box] =
     foldLeft(Set(this)) { case (res, (name, _)) => res flatMap (_ split name) }
 
-  /** Refine the interval of the 'name' component. */
-  def refine(pieces: Int, name: VarName): Set[Box] = {
-    require(keySet contains name)
-    (this(name) refine (pieces) map ((i: Interval) =>
-      (this + (name -> i)): Box)).toSet
-  }
-
   /** Refine the interval of each 'names' component. */
   def refine(pieces: Int, names: VarName*): Set[Box] = {
     require(names.toSet subsetOf keySet)
@@ -112,7 +104,7 @@ class Box(val self: Map[VarName, Interval])(implicit rnd: Rounding) extends MapP
     }
 
   /** The midpoint of this box. */
-  def midpoint(implicit rnd: Rounding): Box = Box.toBox(mapValues(_.midpoint))
+  def midpoint: Box = Box.toBox(mapValues(_.midpoint))
 
   /**
    * Approximation of the max norm for interval vectors.
@@ -140,21 +132,21 @@ class Box(val self: Map[VarName, Interval])(implicit rnd: Rounding) extends MapP
 object Box {
 
   /** An empty box. */
-  def empty(implicit rnd: Rounding): Box = Box()
+  def empty: Box = Box()
 
   /** Build a box out of name-interval pairs. */
-  def apply(domains: (VarName, Interval)*)(implicit rnd: Rounding): Box = new Box(Map(domains: _*))
+  def apply(domains: (VarName, Interval)*): Box = new Box(Map(domains: _*))
 
   /**
    * Translate the domain so that each interval is of the form [0,_].
    * For each interval i in "box", use i.width.high as the new end-point to give a safe
    * over-approximation of the end-point.
    */
-  def normalize(box: Box)(implicit rnd: Rounding): Box = box.mapValues { i => 0 /\ i.width.high }
+  def normalize(box: Box): Box = box.mapValues { i => 0 /\ i.width.high }
 
   /** The corners of the box. */
   def corners(box: Box) = box.corners
 
-  implicit def toBox(m: Map[VarName, Interval])(implicit rnd: Rounding): Box = new Box(m)
+  implicit def toBox(m: Map[VarName, Interval]): Box = new Box(m)
 
 }

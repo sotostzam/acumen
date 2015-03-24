@@ -86,37 +86,35 @@ class EnclosurePlotter extends JFreePlotter {
     ren
   }
 
-  def plotUAE(e: UnivariateAffineEnclosure, fun: Double => Double)(implicit rnd: Rounding) = {
+  def plotUAE(e: UnivariateAffineEnclosure, fun: Double => Double) = {
     val color = Color.red
     for ((varName, it) <- e.components) {
-      def low(t: Double) = it.low(t) match { case Interval(lo, _) => lo.doubleValue }
-      def high(t: Double) = it.high(t) match { case Interval(_, hi) => hi.doubleValue }
+      def low(t: Double) = it.low(t) match { case i => i.loDouble }
+      def high(t: Double) = it.high(t) match { case i => i.hiDouble }
       val dom = it.domain
-      val (lo, hi) = dom match { case Interval(l, h) => (l.doubleValue, h.doubleValue) }
-      addEnclosure(lo, hi, high, low, 0, color, varName, fun)
+      addEnclosure(dom.loDouble, dom.hiDouble, high, low, 0, color, varName, fun)
     }
   }
 
-  def plot(es: Seq[UnivariateAffineEnclosure], fun: Double => Double)(implicit rnd: Rounding): Unit = {
+  def plot(es: Seq[UnivariateAffineEnclosure], fun: Double => Double): Unit = {
     combinedPlot.setNotify(false)
     for (e <- es) plotUAE(e, fun)
     combinedPlot.setNotify(true)
   }
 
   // Plot into a new frame
-  def plot(frametitle: String)(fun: Double => Double)(es: Seq[UnivariateAffineEnclosure])(implicit rnd: Rounding): Unit = {
+  def plot(frametitle: String)(fun: Double => Double)(es: Seq[UnivariateAffineEnclosure]): Unit = {
     val frame = createFrame(frametitle)
     plot(es, fun)
   }
 
-  def plotForSaving(es: Seq[UnivariateAffineEnclosure])(implicit rnd: Rounding): Unit = {
+  def plotForSaving(es: Seq[UnivariateAffineEnclosure]): Unit = {
     initPlot
     plot(es, null)
   }
 
-  val defRnd = new Rounding(Parameters.default)
   def addToPlot(d: Object) = {
-    plot(d.asInstanceOf[Seq[UnivariateAffineEnclosure]], null)(defRnd)
+    plot(d.asInstanceOf[Seq[UnivariateAffineEnclosure]], null)
   }
 
 }

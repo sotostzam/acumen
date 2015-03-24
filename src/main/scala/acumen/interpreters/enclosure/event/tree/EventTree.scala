@@ -112,7 +112,7 @@ case class EventTree(
   private def onlyUpdateAffectedComponents(
     e: Event,
     previous: UnivariateAffineEnclosure,
-    current: Box)(implicit rnd: Rounding) =
+    current: Box) =
     current.map {
       case (name, x) => {
         name -> {
@@ -126,7 +126,7 @@ case class EventTree(
   /**
    * Adds another event to the event sequences in the tree.
    */
-  def addLayer(ivpSolver: IVPSolver)(implicit rnd: Rounding): EventTree = {
+  def addLayer(ivpSolver: IVPSolver): EventTree = {
 
     def newSequences(v: EventSequence, o: Outcome) = {
       o.events.map { e =>
@@ -171,7 +171,7 @@ case class EventTree(
         H: HybridSystem,
         T: Interval,
         q: Mode,
-        Y: UnivariateAffineEnclosure)(implicit rnd: Rounding): Outcome = {
+        Y: UnivariateAffineEnclosure): Outcome = {
         /**
          * This is likely where we get the issues with enclosures exploding from. The
          * events that are deemed possible are determined by evaluating the guard over
@@ -212,7 +212,7 @@ case class EventTree(
 
   /** TODO add description */
   // TODO add tests
-  def endTimeStates(implicit rnd: Rounding): Set[UncertainState] = {
+  def endTimeStates: Set[UncertainState] = {
     val mayBeLastSequences =
       maximalSequences.flatMap(v => (v +: v.prefixes).toSet).filter(v => v.mayBeLast)
     val mayBeLastStates = mayBeLastSequences.flatMap { v =>
@@ -230,7 +230,7 @@ case class EventTree(
       (mayBeLastStates groupBy (_.mode)).mapValues(_.map(_.initialCondition))
     modewiseMayBeLastStates.mapValues(xs => xs.tail.foldLeft(xs.head) {
       (res, x) =>
-        zipDefault(res, x, Interval(0)).mapValues { case (l, r) => l /\ r }
+        zipDefault(res, x, Interval.zero).mapValues { case (l, r) => l /\ r }
     }).map {
       case (q, b) => UncertainState(q, H.domains(q).support(b))
     }.toSet
@@ -238,7 +238,7 @@ case class EventTree(
 
   /** TODO add description */
   // TODO add tests
-  def enclosureUnion(implicit rnd: Rounding): UnivariateAffineEnclosure = {
+  def enclosureUnion: UnivariateAffineEnclosure = {
     val sequences = maximalSequences.flatMap(v => (v +: v.prefixes).toSet)
     require(sequences.nonEmpty)
     val affs = sequences.tail.foldLeft(sequences.head.enclosure.components) { (res, v) =>
@@ -252,7 +252,7 @@ case class EventTree(
 
   /** TODO add description */
   // TODO add tests
-  def unprunedEnclosures(implicit rnd: Rounding): Seq[UnivariateAffineEnclosure] = {
+  def unprunedEnclosures: Seq[UnivariateAffineEnclosure] = {
     val sequences = maximalSequences.flatMap(v => (v +: v.prefixes).toSet)
     sequences.map(_.enclosure).toSeq
   }
@@ -264,7 +264,7 @@ case class EventTree(
    * This has the effect of "shaving off" of the parts of enclosures that e.g.
    * in the bouncing ball example "dip below" the ground.
    */
-  def prunedEnclosures(implicit rnd: Rounding): Seq[UnivariateAffineEnclosure] =
+  def prunedEnclosures: Seq[UnivariateAffineEnclosure] =
     maximalSequences.head match {
       case EmptySequence(_, enclosure, _) => Seq(enclosure)
       case _ =>
@@ -277,12 +277,12 @@ case class EventTree(
   // StateEnclosure extraction methods
 
   /** TODO add description */
-  def stateEnclosure(implicit rnd: Rounding): StateEnclosure =
+  def stateEnclosure: StateEnclosure =
     StateEnclosure.union(sequences.map(s => new StateEnclosure(Map(
       s.tau.head -> Some(H.domains(s.tau.head).support(s.enclosure.range))))))
 
   /** TODO add description */
-  def endTimeStateEnclosure(implicit rnd: Rounding) =
+  def endTimeStateEnclosure =
     StateEnclosure.union(endTimeStates.map(s =>
       new StateEnclosure(Map(s.mode -> Some(s.initialCondition)))))
 
@@ -300,9 +300,9 @@ object EventTree {
     m: Int,
     n: Int,
     degree: Int,
-    ivpSolver: IVPSolver)(implicit rnd: Rounding) = {
+    ivpSolver: IVPSolver) = {
     val mode = S.mode
-    val (enclosure, _) = ivpSolver.solveIVP(H.fields(mode), T, S.initialCondition, delta, m, n, degree)(rnd)
+    val (enclosure, _) = ivpSolver.solveIVP(H.fields(mode), T, S.initialCondition, delta, m, n, degree)
     val mayBeLast = false
     val sequences = Set(EmptySequence(mode, enclosure, mayBeLast).asInstanceOf[EventSequence])
     EventTree(sequences, T, H, S, delta, m, n, degree)

@@ -30,7 +30,7 @@ trait LocalizingSolver extends SolveVt {
     maxTimeStep: Double, // maximum time step size
     splittingDegree: Int, // initial condition splitting degree
     outputFile: String, // path to write output 
-    cb: EnclosureInterpreterCallbacks)(implicit rnd: Rounding): Seq[UnivariateAffineEnclosure] = {
+    cb: EnclosureInterpreterCallbacks): Seq[UnivariateAffineEnclosure] = {
     // get an enclosure for each uncertain state
     val enclosures = uncertainStates.toSeq.flatMap(us => piecewisePicard(system.fields(us.mode), initialConditionPadding, picardImprovements, maxPicardIterations, minTimeStep, maxTimeStep, splittingDegree, outputFile, cb)(us.initialCondition, time))
     enclosures
@@ -49,7 +49,7 @@ trait LocalizingSolver extends SolveVt {
     maxTimeStep: Double,
     splittingDegree: Int,
     outputFile: String,
-    cb: EnclosureInterpreterCallbacks)(initialCondition: Box, segment: Interval)(implicit rnd: Rounding): Seq[UnivariateAffineEnclosure] = {
+    cb: EnclosureInterpreterCallbacks)(initialCondition: Box, segment: Interval): Seq[UnivariateAffineEnclosure] = {
     def piecewisePicardHelper = piecewisePicard(field, initialConditionPadding, picardImprovements, maxPicardIterations, minTimeStep, maxTimeStep, splittingDegree, outputFile, cb)_
     if (segment.width greaterThan maxTimeStep) {
       val (leftSegment, rightSegment) = segment.split
@@ -88,8 +88,8 @@ trait LocalizingSolver extends SolveVt {
 object LocalizingSolverApp extends LocalizingSolver with App {
   implicit val rnd = Parameters.default.rnd
   val initalCondition = Box(
-    "x" -> Interval(1),
-    "x'" -> Interval(0))
+    "x" -> Interval.one,
+    "x'" -> Interval.zero)
   val field = Field(Map(
     "x" -> Variable("x'"),
     "x'" -> -(0.5 * Variable("x'") + Variable("x"))))

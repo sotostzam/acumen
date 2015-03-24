@@ -5,7 +5,6 @@ import acumen.interpreters.enclosure.Types._
 import acumen.interpreters.enclosure.Util._
 import org.jfree.ui.ApplicationFrame
 import java.awt.Color
-import acumen.interpreters.enclosure.Rounding
 import acumen.interpreters.enclosure.Interval
 import acumen.interpreters.enclosure.Box
 
@@ -28,11 +27,9 @@ case class AffineScalarEnclosure private[enclosure] (
    * constant term and coefficients. */
     private[enclosure]normalizedDomain: Box,
     private[enclosure]constant: Interval,
-    private[enclosure]coefficients: Box)(implicit rnd: Rounding) {
+    private[enclosure]coefficients: Box) {
   assert(coefficients.keySet subsetOf domain.keySet, "The variable of each coefficient must occur in the domain.")
   assert(domain.keySet == normalizedDomain.keySet, "The variables of the normalized domain must coincide with those of the domain.")
-
-  import rnd._
 
   /** The number of variables the enclosure depends on. */
   def arity = coefficients.size
@@ -48,7 +45,7 @@ case class AffineScalarEnclosure private[enclosure] (
 
   //  /** Compose `that` enclosure into variable `name` in `this` enclosure. */
   //  // TODO first simple version, improve using monotonicity analysis!
-  //  def compose(name: VarName, that: AffineScalarEnclosure)(implicit rnd: Rounding): AffineScalarEnclosure = {
+  //  def compose(name: VarName, that: AffineScalarEnclosure): AffineScalarEnclosure = {
   //    require(domain.keySet contains name, "The composition variable must be in the domain of the outer enclosure!")
   //    require(domain(name) contains that.range, "The inner enclosure must map into the domain of the composition variable!")
   //    require((domain.keySet.intersect(that.domain.keySet) - name).forall(n => domain(n).equalTo(that.domain(n))),
@@ -85,7 +82,7 @@ case class AffineScalarEnclosure private[enclosure] (
 
       val contractedRange = range \/ desiredRange
       val nameDomain = normalizedDomain(name)
-      val nameCoefficient = coefficients.getOrElse(name, Interval(0))
+      val nameCoefficient = coefficients.getOrElse(name, Interval.zero)
       // The name term is equal to the range minus the other terms
       val nameTerm = -AffineScalarEnclosure(domain, normalizedDomain, constant - contractedRange, coefficients - name).range
       val contrctedNameTerm = nameTerm \/ (nameCoefficient * nameDomain)
@@ -202,7 +199,7 @@ case class AffineScalarEnclosure private[enclosure] (
     AffineScalarEnclosure(
       domain - name,
       normalizedDomain - name,
-      constant + coefficients.getOrElse(name, Interval(0)) * normalizedDomain.getOrElse(name, Interval(0)),
+      constant + coefficients.getOrElse(name, Interval.zero) * normalizedDomain.getOrElse(name, Interval.zero),
       coefficients - name)
 
   def collapse(names: VarName*): AffineScalarEnclosure =
@@ -255,8 +252,8 @@ case class AffineScalarEnclosure private[enclosure] (
       f(constant, that.constant),
       (this.coefficients.keySet union that.coefficients.keySet).map { k =>
         (k, f(
-          this.coefficients.getOrElse(k, Interval(0)),
-          that.coefficients.getOrElse(k, Interval(0))))
+          this.coefficients.getOrElse(k, Interval.zero),
+          that.coefficients.getOrElse(k, Interval.zero)))
       }.toMap)
 
   /** Addition of enclosures. */
@@ -308,7 +305,7 @@ case class AffineScalarEnclosure private[enclosure] (
    */
   def primitive(name: VarName) = {
     require(domain.contains(name))
-    val coeff = coefficients.getOrElse(name, Interval(0))
+    val coeff = coefficients.getOrElse(name, Interval.zero)
     val quadr = AffineScalarEnclosure.quadratic(normalizedDomain, name) * (coeff / 2)
     val prods = (coefficients - name).map { case (n, c) => AffineScalarEnclosure.mixed(normalizedDomain, name, n) * c }
     val nonlinear = prods.foldLeft(quadr) { case (res, f) => res + f }
@@ -334,21 +331,21 @@ case class AffineScalarEnclosure private[enclosure] (
 object AffineScalarEnclosure {
 
   /** Convenience method, normalizes the domain. */
-  private[enclosure] def apply(domain: Box, constant: Interval, coefficients: Box)(implicit rnd: Rounding): AffineScalarEnclosure =
+  private[enclosure] def apply(domain: Box, constant: Interval, coefficients: Box): AffineScalarEnclosure =
     AffineScalarEnclosure(domain, Box.normalize(domain), constant, coefficients)
 
   /** Lifts a constant interval to a constant enclosure. */
-  def apply(domain: Box, constant: Interval)(implicit rnd: Rounding): AffineScalarEnclosure = {
+  def apply(domain: Box, constant: Interval): AffineScalarEnclosure = {
     AffineScalarEnclosure(domain, constant, Box.empty)
   }
 
   /** Lifts a variable "name" in the domain to an identity function over the corresponding interval. */
-  def apply(domain: Box, name: VarName)(implicit rnd: Rounding): AffineScalarEnclosure = {
+  def apply(domain: Box, name: VarName): AffineScalarEnclosure = {
     assert(domain contains name,
       "Projecting is only possible for variables in the domain.")
     /* Implementation note: The constant term needs to be domain(name).low 
      * because the internal representation is over the normalized domain. */
-    AffineScalarEnclosure(domain, domain(name).low, Map(name -> Interval(1)))
+    AffineScalarEnclosure(domain, domain(name).low, Map(name -> Interval.one))
   }
 
   /**
@@ -360,7 +357,7 @@ object AffineScalarEnclosure {
    *
    * AffineIntervalFunction enclosure over doms of the quadratic monomial in variable name
    */
-  def quadratic(domain: Box, name: VarName)(implicit rnd: Rounding) =
+  def quadratic(domain: Box, name: VarName) =
     mixed(domain, name, name) // TODO remove quadratic eventually
   //  {
   //    require(domain.contains(name))
@@ -385,7 +382,7 @@ object AffineScalarEnclosure {
    * where mx = (ax+bx)/2 is the mid-point of the domain of x
    * and   rx = (bx-ax)/2 is the radius of the domain of x.
    */
-  def mixed(domain: Box, name1: VarName, name2: VarName)(implicit rnd: Rounding) = {
+  def mixed(domain: Box, name1: VarName, name2: VarName) = {
     val collapsedName1Name2 = (if (name1 == name2) 0 else -1) /\ 1 // approximation of the nonlinear term over [-1,1]x[-1,1]
     val (a1, b1) = domain(name1).bounds
     val (a2, b2) = domain(name2).bounds

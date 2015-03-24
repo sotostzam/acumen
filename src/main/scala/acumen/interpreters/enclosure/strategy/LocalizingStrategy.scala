@@ -10,7 +10,6 @@ import acumen.interpreters.enclosure.Interval
 import acumen.interpreters.enclosure.Interval.toInterval
 import acumen.interpreters.enclosure.Parameters
 import acumen.interpreters.enclosure.Predicate
-import acumen.interpreters.enclosure.Rounding
 import acumen.interpreters.enclosure.StateEnclosure
 import acumen.interpreters.enclosure.Types.Mode
 import acumen.interpreters.enclosure.affine.UnivariateAffineEnclosure
@@ -25,10 +24,10 @@ case class LocalizingStrategy(override val eventEncloser: EventEncloser) extends
 
   def withSolver(s: IVPSolver) = LocalizingStrategy(eventEncloser.withSolver(s))
 
-  override def enclosePiecewise(ps: Parameters, h: HybridSystem, t: Interval, s: StateEnclosure, cb: EnclosureInterpreterCallbacks)(implicit rnd: Rounding): Seq[UnivariateAffineEnclosure] =
+  override def enclosePiecewise(ps: Parameters, h: HybridSystem, t: Interval, s: StateEnclosure, cb: EnclosureInterpreterCallbacks): Seq[UnivariateAffineEnclosure] =
     encloseHybrid(ps, h, t, s, cb)
 
-  private def encloseHybrid(ps: Parameters, h: HybridSystem, t: Interval, sInit: StateEnclosure, cb: EnclosureInterpreterCallbacks)(implicit rnd: Rounding): Seq[UnivariateAffineEnclosure] = {
+  private def encloseHybrid(ps: Parameters, h: HybridSystem, t: Interval, sInit: StateEnclosure, cb: EnclosureInterpreterCallbacks): Seq[UnivariateAffineEnclosure] = {
 
     // call event localising ODE solver for each possible mode:
     val lfes: Map[Mode, LFE] = for ((mode, obox) <- sInit if obox.isDefined) yield mode -> encloseFlowUntilEventDetected(ps, h, t, mode, obox.get, cb)
@@ -67,7 +66,7 @@ case class LocalizingStrategy(override val eventEncloser: EventEncloser) extends
     }
   }
 
-  private def unionOfEnclosureListsUntil(t: Interval, enclosureLists: Seq[Seq[UnivariateAffineEnclosure]])(implicit rnd: Rounding): Seq[UnivariateAffineEnclosure] = {
+  private def unionOfEnclosureListsUntil(t: Interval, enclosureLists: Seq[Seq[UnivariateAffineEnclosure]]): Seq[UnivariateAffineEnclosure] = {
     require(!enclosureLists.isEmpty)
     val lists = enclosureLists.filter(!_.isEmpty)
     if (lists.isEmpty) Seq()
@@ -98,7 +97,7 @@ case class LocalizingStrategy(override val eventEncloser: EventEncloser) extends
     }
   }
 
-  private def encloseFlowUntilEventDetected(ps: Parameters, h: HybridSystem, t: Interval, m: Mode, init: Box, cb: EnclosureInterpreterCallbacks)(implicit rnd: Rounding): LFE = {
+  private def encloseFlowUntilEventDetected(ps: Parameters, h: HybridSystem, t: Interval, m: Mode, init: Box, cb: EnclosureInterpreterCallbacks): LFE = {
 
     def computeLFE(t: Interval, init: Box): LFE =
       if (t.width greaterThan ps.maxTimeStep) splitAndRepeatComputeLFE(t, init)
@@ -144,7 +143,7 @@ case class LocalizingStrategy(override val eventEncloser: EventEncloser) extends
       }
     }
 
-    def computeLFEnoODE(e: UnivariateAffineEnclosure)(implicit rnd: Rounding): LFE = {
+    def computeLFEnoODE(e: UnivariateAffineEnclosure): LFE = {
       val eHasNoLocalizationInfo = enclosureHasNoEventInfo(ps, h, m, e)
       val (eLFE, _) = enclosureToLFE(h, m, e)
       val (_, wm, _) = eLFE
@@ -172,7 +171,7 @@ case class LocalizingStrategy(override val eventEncloser: EventEncloser) extends
     res
   }
 
-  private def repeatEncloseUntilEventDetected(ps: Parameters, h: HybridSystem, t: Interval, m: Mode, init: Box, cb: EnclosureInterpreterCallbacks)(implicit rnd: Rounding): LFE = {
+  private def repeatEncloseUntilEventDetected(ps: Parameters, h: HybridSystem, t: Interval, m: Mode, init: Box, cb: EnclosureInterpreterCallbacks): LFE = {
     val (tL, tR) = t.split
     val lfeL = encloseFlowUntilEventDetected(ps, h, tL, m, init, cb)
     if (!(domain(lfeL) equalTo tL)) lfeL
@@ -183,7 +182,7 @@ case class LocalizingStrategy(override val eventEncloser: EventEncloser) extends
     }
   }
 
-  private def enclosureToLFE(h: HybridSystem, m: Mode, e: UnivariateAffineEnclosure)(implicit rnd: Rounding): (LFE, Boolean) = {
+  private def enclosureToLFE(h: HybridSystem, m: Mode, e: UnivariateAffineEnclosure): (LFE, Boolean) = {
     val eRange = e.range
     val res @ (lfe, lfeIsBad) =
       if (!h.events.filter(_.sigma == m).exists(h.guards(_)(eRange).contains(true))) ((Seq(e), Seq(), false), false) // TODO LaTeX specification says narrow to 0 here
@@ -192,14 +191,14 @@ case class LocalizingStrategy(override val eventEncloser: EventEncloser) extends
     res
   }
 
-  private def eventCertain(h: HybridSystem, e: UnivariateAffineEnclosure, m: Mode)(implicit rnd: Rounding): Boolean = {
+  private def eventCertain(h: HybridSystem, e: UnivariateAffineEnclosure, m: Mode): Boolean = {
     val eAtRightEndpoint = e(e.domain.high)
     (try { h.domains(m).support(eAtRightEndpoint); false } catch { case _ => true }) ||
       // (h.domains(m)(eAtRightEndpoint) == Set(false)) || // TODO LaTeX specification only narrows to empty box here
       h.events.filter(_.sigma == m).exists(h.guards(_)(eAtRightEndpoint) == Set(true))
   }
 
-  private def enclosureHasNoEventInfo(ps: Parameters, h: HybridSystem, m: Mode, e: UnivariateAffineEnclosure)(implicit rnd: Rounding): Boolean = {
+  private def enclosureHasNoEventInfo(ps: Parameters, h: HybridSystem, m: Mode, e: UnivariateAffineEnclosure): Boolean = {
     val guards = h.events.filter(_.sigma == m).map(h.guards(_))
     val inv = h.domains(m)
     conditionNowhereFalsifiableOnEnclosure(e, inv) &&
@@ -207,7 +206,7 @@ case class LocalizingStrategy(override val eventEncloser: EventEncloser) extends
       (guards.forall(conditionNowhereProvableOnEnclosure(e, _)))
   }
 
-  private def conditionNowhereFalsifiableOnEnclosure(e: UnivariateAffineEnclosure, cond: Predicate)(implicit rnd: Rounding): Boolean = {
+  private def conditionNowhereFalsifiableOnEnclosure(e: UnivariateAffineEnclosure, cond: Predicate): Boolean = {
     val condAtLoRan = cond(e.low.range)
     val condAtHiRan = cond(e.high.range)
     val oneTrueOneFalse =
@@ -215,7 +214,7 @@ case class LocalizingStrategy(override val eventEncloser: EventEncloser) extends
         (condAtLoRan == Set(false) && condAtHiRan == Set(true))
     val equalityNowhereFalsified = cond match {
       case All(Seq(BinaryRelation(Eq, expr1, expr2))) =>
-        val expre = (expr1 - expr2)(rnd)(e)
+        val expre = (expr1 - expr2)(e)
         (expre.low.range lessThanOrEqualTo 0) && (expre.high.range greaterThanOrEqualTo 0)
       case _ => false
     }
@@ -232,7 +231,7 @@ case class LocalizingStrategy(override val eventEncloser: EventEncloser) extends
     oneTrueOneFalse || equalityNowhereFalsified || conjunctionSplit
   }
 
-  private def conditionNowhereProvableOnEnclosure(e: UnivariateAffineEnclosure, cond: Predicate)(implicit rnd: Rounding): Boolean = {
+  private def conditionNowhereProvableOnEnclosure(e: UnivariateAffineEnclosure, cond: Predicate): Boolean = {
     val condAtLoRan = cond(e.low.range)
     val condAtHiRan = cond(e.high.range)
     val oneTrueOneFalse =
@@ -276,7 +275,7 @@ case class LocalizingStrategy(override val eventEncloser: EventEncloser) extends
 
   // get the first component of `lfe` truncated at `time`
   // TODO utilize that the enclosures in `lfe` are ordered to optimize this inefficient version
-  private def getNoeUntil(x: Interval, lfe: LFE)(implicit rnd: Rounding): Seq[UnivariateAffineEnclosure] = lfe match {
+  private def getNoeUntil(x: Interval, lfe: LFE): Seq[UnivariateAffineEnclosure] = lfe match {
     case (noe, _, _) =>
       val unchanged = noe.filter(_.domain.high lessThanOrEqualTo x)
       val toBeRestricted = noe.filter(e => (e.domain.low lessThanOrEqualTo x) && (x lessThan e.domain.high))
@@ -286,7 +285,7 @@ case class LocalizingStrategy(override val eventEncloser: EventEncloser) extends
 
   // assumes that `x` is in the domain of some enclosure in `lfe`
   // assumes that `lfe` is nonempty
-  private def evalAt(lfe: LFE, x: Interval)(implicit rnd: Rounding): Box = lfe match {
+  private def evalAt(lfe: LFE, x: Interval): Box = lfe match {
     case (noe, mae, _) =>
       val es = noe ++ mae
       require(es.exists(_.domain.contains(x)))

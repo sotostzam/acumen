@@ -10,7 +10,6 @@ import acumen.interpreters.enclosure.Box._
 import acumen.interpreters.enclosure.Generators._
 import acumen.interpreters.enclosure.Interval._
 import acumen.interpreters.enclosure.Types._
-import acumen.interpreters.enclosure.Rounding
 import acumen.interpreters.enclosure.TestingContext
 import acumen.interpreters.enclosure.Box
 import acumen.interpreters.enclosure.Interval
@@ -243,7 +242,7 @@ object AffineScalarEnclosureUnitTest extends Properties("AffineScalarEnclosure.U
     val dom = Box("x" -> Interval(0, 1), "y" -> Interval(1, 2))
     def e(b: Box) = x(b) - y(b)
     val cdom = e(dom).contractDomain(0)
-    cdom("x") == Interval(1) && cdom("y") == Interval(1)
+    cdom("x") == Interval.one && cdom("y") == Interval.one
   }
 
   property("contract linear 2") = {
@@ -258,7 +257,7 @@ object AffineScalarEnclosureUnitTest extends Properties("AffineScalarEnclosure.U
     val dom = Box("x" -> Interval(0, 3))
     def e(b: Box) = x(b) - 1
     val cdom = e(dom).contractDomain(0)
-    cdom("x") == Interval(1)
+    cdom("x") == Interval.one
   }
 
   property("contract affine 2") = {

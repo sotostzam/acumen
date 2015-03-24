@@ -5,7 +5,6 @@ import acumen.interpreters.enclosure.Types._
 import acumen.interpreters.enclosure.Util._
 import org.jfree.ui.ApplicationFrame
 import java.awt.Color
-import acumen.interpreters.enclosure.Rounding
 import acumen.interpreters.enclosure.Interval
 import acumen.interpreters.enclosure.Box
 
@@ -15,7 +14,7 @@ import acumen.interpreters.enclosure.Box
  * Implementation notes: see the implementation notes for
  * AffineEnclosure.
  */
-abstract class UnivariateAffineEnclosure private[affine](implicit rnd: Rounding) {
+abstract class UnivariateAffineEnclosure private[affine] {
 
   def domain: Interval
   private[affine] def normalizedDomain: Interval
@@ -23,8 +22,6 @@ abstract class UnivariateAffineEnclosure private[affine](implicit rnd: Rounding)
   def components: Map[VarName, UnivariateAffineScalarEnclosure]
 
   assert(normalizedDomain.low equalTo 0, "The low end-point of the normalizedDomain should be zero!")
-
-  def rounding = rnd
 
   /** The low bound enclosure of this enclosure. */
   def low = UnivariateAffineEnclosure(domain, normalizedDomain, components.mapValues(_.low))
@@ -57,10 +54,10 @@ abstract class UnivariateAffineEnclosure private[affine](implicit rnd: Rounding)
    * Since the enclosure is a safe approximation of any contained function
    * the range also safely approximates the range of any such function.
    */
-  def range(implicit rnd: Rounding): Box = this(domain)
+  def range: Box = this(domain)
 
   /** Component-wise containment of enclosures. */
-  def contains(that: UnivariateAffineEnclosure)(implicit rnd: Rounding): Boolean = {
+  def contains(that: UnivariateAffineEnclosure): Boolean = {
     assert(domain == that.domain, "Containment can only be tested for enclosures with equal domains.")
     assert(components.keySet == that.components.keySet, "Containment can only be tested for enclosures with equal component names.")
     components.forall { case (name, component) => component contains that.components(name) }
@@ -81,12 +78,12 @@ abstract class UnivariateAffineEnclosure private[affine](implicit rnd: Rounding)
       components.map { case (name, component) => name -> (component union (that.components(name))) })
   }
 
-  def restrictTo(subDomain: Interval)(implicit rnd: Rounding): UnivariateAffineEnclosure = {
+  def restrictTo(subDomain: Interval): UnivariateAffineEnclosure = {
     require((domain contains subDomain) && (normalizedDomain contains 0 /\ subDomain.width.high))
     UnivariateAffineEnclosure(subDomain, components.mapValues(_.restrictTo(subDomain)))
   }
 
-  def improvesOn(that: UnivariateAffineEnclosure, at: Interval, improvement: Double)(implicit rnd: Rounding) = {
+  def improvesOn(that: UnivariateAffineEnclosure, at: Interval, improvement: Double) = {
     val normOld = that(at).l1Norm
     val normNew = this(at).l1Norm
     normOld - normNew greaterThan improvement
@@ -98,7 +95,7 @@ case class UnivariateAffineEnclosureImpl private[affine] (
     domain: Interval,
     private[affine]normalizedDomain: Interval,
     //  private[enclosure]
-    components: Map[VarName, UnivariateAffineScalarEnclosure])(implicit rnd: Rounding) 
+    components: Map[VarName, UnivariateAffineScalarEnclosure]) 
      extends UnivariateAffineEnclosure
 {
   override def productPrefix = "UnivariateAffineEnclosure"
@@ -108,16 +105,16 @@ object UnivariateAffineEnclosure {
 
   def apply(domain: Interval,
             normalizedDomain: Interval,
-            components: Map[VarName, UnivariateAffineScalarEnclosure])(implicit rnd: Rounding): UnivariateAffineEnclosure = 
+            components: Map[VarName, UnivariateAffineScalarEnclosure]): UnivariateAffineEnclosure = 
     UnivariateAffineEnclosureImpl(domain,normalizedDomain,components)
 
   /** Convenience method, normalizes the domain. */
   //  private[enclosure] 
-  def apply(domain: Interval, components: Map[VarName, UnivariateAffineScalarEnclosure])(implicit rnd: Rounding): UnivariateAffineEnclosure =
+  def apply(domain: Interval, components: Map[VarName, UnivariateAffineScalarEnclosure]): UnivariateAffineEnclosure =
     UnivariateAffineEnclosure(domain, 0 /\ domain.width.high, components)
 
   /** Lifts a constant interval box to a constant enclosure. */
-  def apply(domain: Interval, constant: Box)(implicit rnd: Rounding): UnivariateAffineEnclosure = {
+  def apply(domain: Interval, constant: Box): UnivariateAffineEnclosure = {
     UnivariateAffineEnclosure(domain, constant.mapValues(UnivariateAffineScalarEnclosure(domain, _)))
   }
 
@@ -126,7 +123,7 @@ object UnivariateAffineEnclosure {
    *
    * Precondition: "that" must have domain and normliazedDomain of size one.
    */
-  def apply(that: AffineEnclosure)(implicit rnd: Rounding): UnivariateAffineEnclosure = {
+  def apply(that: AffineEnclosure): UnivariateAffineEnclosure = {
     assert(that.domain.size == 1, "Univariate enclosures have domain of size 1.")
     assert(that.normalizedDomain.size == 1, "Univariate enclosures have normalizedDomain of size 1.")
     val name = that.domain.keys.head
