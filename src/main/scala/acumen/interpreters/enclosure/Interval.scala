@@ -222,7 +222,7 @@ case class Interval(val i: SetInterval) extends AnyVal {
    *
    * property: for any interval X it holds that (-X).width == X.width.
    */
-  def width = Interval(i.wid)
+  def width = if (i isEmpty) Interval.zero else Interval(i.wid)
 
   /**
    * Comparison operations on intervals. WARNING!
