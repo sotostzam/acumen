@@ -40,7 +40,10 @@ object Main {
 
   // temporary hack
   var enableOldSemantics = true
-
+  
+  // state related to real-time simulation
+  var enableRealTime = true
+  
   var debugExtract = false
   var printLogLevel: Option[Logger.Level] = None
 
@@ -61,6 +64,7 @@ object Main {
     "--3d|--lazy-3d|--no-3d  controls the default state for the 3d tab",
     "--newplot               enable experimental plotter",
     "--play                  automatically run the model",
+    "--disable-realtime      disable real-time visualization",
     "--disable-completion    disable code completion in the source code editor",
     "--dont-fork             disable auto-forking of a new JVM when required")
   def experimentalOptsHelp = Array(
@@ -123,6 +127,8 @@ object Main {
         disableNewPlot = true; parseArgs(tail)
       case ("--prune-semantics") :: tail => 
         enableAllSemantics = false; parseArgs(tail)
+      case "--disable-realtime" :: tail =>
+        enableRealTime = false
       case "--play" :: tail =>
         autoPlay = true; parseArgs(tail)
       case "--enable-completion" :: tail =>

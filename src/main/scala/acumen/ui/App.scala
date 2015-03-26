@@ -441,13 +441,13 @@ class App extends SimpleSwingApplication {
     new ButtonGroup(rb1)
   }
   
+  // FIXME Move all of this state into Main, and expose through CLI 
   private var startAnaglyph = false
-  private var startRealTime = true // Note: This will be reset below
   private var matchWallClock = false // Note: This will be reset below
   def getStartAnaglyph = startAnaglyph
-  def getStartRealTime = startRealTime
+  def getStartRealTime = Main.enableRealTime
   def getMatchWallClock = matchWallClock
-  enableRealTime() // Enable real-time simulation by default
+  if (Main.enableRealTime) enableRealTime() // Enable real-time simulation by default
   disableMatchWallClock() // Disable wall-clock synchronization by default
   
   val bar = new MenuBar {
@@ -773,7 +773,7 @@ class App extends SimpleSwingApplication {
 
   def startServer(): Unit = {
     BuildHost.BuildHost.start()
-    if (!startRealTime) {
+    if (!getStartRealTime) {
       toggleRealTime()
       enableRealTimeItem.selected = true
     }
@@ -812,10 +812,10 @@ class App extends SimpleSwingApplication {
 
   def enableRealTime(): Unit = setRealTime(true)
   def disableRealTime(): Unit = setRealTime(false)
-  def toggleRealTime(): Unit = setRealTime(!startRealTime)
+  def toggleRealTime(): Unit = setRealTime(!getStartRealTime)
   /** Control whether or not the 3D visualization will run synchronously with the simulation */
   def setRealTime(targetState: Boolean): Unit = {
-    startRealTime = targetState
+    Main.enableRealTime = targetState
     enableRealTimeItem.selected = targetState
     matchWallClockItem.enabled = targetState
     setMatchWallClock(targetState)
@@ -907,7 +907,7 @@ class App extends SimpleSwingApplication {
       if (controller.threeDData.modelContains3D()) {
         codeArea.editedSinceLastRun = false
         if (Main.threeDState == ThreeDState.ENABLE && modelFinished
-          && !startRealTime) {
+          && !getStartRealTime) {
           views.selectThreeDView()
           threeDtab.play()
         }
