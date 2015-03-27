@@ -278,9 +278,8 @@ case class Interval(val i: SetInterval) extends AnyVal {
     lo.compareTo(it.lo) <= 0 && it.hi.compareTo(hi) <= 0
   }
 
-  // FIXME improve this
-  def properlyContains(that: Interval): Boolean =
-    contains(that) && (lo.compareTo(that.lo) < 0 || that.hi.compareTo(hi) < 0)
+  def properlyContains(that: Interval): Boolean = 
+    that.i containedInInterior this.i
 
   def isThin = (lo compareTo hi) == 0
 
@@ -288,20 +287,19 @@ case class Interval(val i: SetInterval) extends AnyVal {
   
   def isNonnegative = greaterThanOrEqualTo(Interval.zero)
 
-  def almostEqualTo(that: Interval) = {
-    //    println("almostEqualTo: " + epsilon + " contains " + (this.low - that.low) + " is " + (epsilon contains (this.low - that.low)))
-    //    println("almostEqualTo: " + epsilon + " contains " + (this.high - that.high) + " is " + (epsilon contains (this.high - that.high)))
-    (epsilon contains (this.low - that.low)) &&
-      (epsilon contains (this.high - that.high))
-  }
+  def almostEqualTo(that: Interval) =
+    epsilon.contains(this.low - that.low) &&
+      epsilon.contains(this.high - that.high)
 
-  /**
-   * @return a string representation of the interval in the usual
-   * notation for closed intervals.
-   */
+  /** @return a string representation of the interval in the usual
+   *  notation for closed intervals. */
   override def toString =
     s"[${lo.doubleValueDown}..${hi.doubleValueUp}]"
-//    s"[(${lo.getNumerator}/${lo.getDenominator})..(${hi.getNumerator}/${hi.getDenominator})]"
+    
+  /** @return a string representation of the interval with the 
+   *  rational end-points represented exactly. */
+  def toRationalString =
+    s"[(${lo.getNumerator}/${lo.getDenominator})..(${hi.getNumerator}/${hi.getDenominator})]"
 
   // TODO improve description
   /** UNSAFE only to be used for plotting */
