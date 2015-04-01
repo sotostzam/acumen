@@ -31,7 +31,7 @@ import util.DebugUtil.{
 }
 import enclosure.{
   Abs, Box, Constant, Contract, Cos, Divide, Expression, Field, 
-  Interval, Negate, Parameters, Rounding, Sin, Sqrt
+  Interval, Negate, Parameters, Rounding, Sin, Sqrt, Tan
 }
 import enclosure.Types.VarName
 import acumen.interpreters.enclosure.Transcendentals
@@ -1310,6 +1310,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
       case Op(Name("cos", 0), List(x))  => Cos(convert(x))
       case Op(Name("sin", 0), List(x))  => Sin(convert(x))
       case Op(Name("sqrt", 0), List(x)) => Sqrt(convert(x))
+      case Op(Name("tan", 0), List(x))  => Tan(convert(x))
       case Op(Name("-", 0), List(l, r)) => convert(l) - convert(r)
       case Op(Name("+", 0), List(l, r)) => convert(l) + convert(r)
       case Op(Name("/", 0), List(l, r)) => Divide(convert(l), convert(r))

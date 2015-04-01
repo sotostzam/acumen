@@ -118,8 +118,9 @@ sealed abstract class Expression {
     case Sqrt(e)        => AffineScalarEnclosure(x.domain, e(x).range.sqrt) // FIXME Interval over-approximation!
     case Exp(e)         => AffineScalarEnclosure(x.domain, e(x).range.exp) // FIXME Interval over-approximation!
     case Log(e)         => sys.error("undefined")
-    case Cos(e)         => rnd.transcendentals.cos(e(x))
-    case Sin(e)         => rnd.transcendentals.sin(e(x))
+    case Cos(e)         => AffineScalarEnclosure(x.domain, e(x).range.cos)
+    case Sin(e)         => AffineScalarEnclosure(x.domain, e(x).range.sin)
+    case Tan(e)         => AffineScalarEnclosure(x.domain, e(x).range.tan)
     case Plus(l, r)     => l(x) + r(x)
     case Multiply(l, r) => l(x) * r(x)
     case Divide(l, r)   => rnd.transcendentals.div(l(x), r(x))
@@ -285,6 +286,11 @@ case class Sin(expression: Expression) extends Expression {
 
 case class Cos(expression: Expression) extends Expression {
   override def toString = "cos(" + expression + ")"
+  def variables: Set[VarName] = expression.variables
+}
+
+case class Tan(expression: Expression) extends Expression {
+  override def toString = "tan(" + expression + ")"
   def variables: Set[VarName] = expression.variables
 }
 
