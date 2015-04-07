@@ -2,7 +2,6 @@ package acumen.interpreters.enclosure.taylor
 
 import acumen.interpreters.enclosure.ivp.LohnerSolver
 import acumen.interpreters.enclosure.Types.{ VarName }
-import acumen.interpreters.enclosure.Rounding
 import acumen.interpreters.enclosure.Box
 import acumen.interpreters.enclosure.Variable
 import acumen.interpreters.enclosure.Expression
@@ -19,7 +18,7 @@ trait SymbolicTaylor {
   /**
    *  Taylor remainder of the given order and expansion for e around x
    */
-  def taylorRemainder(order: Int, e: Expression)(x: Box)(implicit rnd: Rounding): Expression = {
+  def taylorRemainder(order: Int, e: Expression)(x: Box): Expression = {
     val varNames = e.varNames
     def abs(multiIndex: Map[VarName, Int]): Int = multiIndex.values.sum
     // FIXME: replace this solution with one that scales
@@ -35,7 +34,7 @@ trait SymbolicTaylor {
   /**
    * Taylor expansion of the given order for e around x
    */
-  def taylorPolynomial(order: Int, e: Expression)(x: Box)(implicit rnd: Rounding): Expression = {
+  def taylorPolynomial(order: Int, e: Expression)(x: Box): Expression = {
     val varNames = e.varNames
     def abs(multiIndex: Map[VarName, Int]): Int = multiIndex.values.sum
     // FIXME: replace this solution with one that scales
@@ -53,7 +52,7 @@ trait SymbolicTaylor {
   /**
    * Term in Taylor expansion for e around x
    */
-  def taylorTerm(multiIndex: Map[VarName, Int], e: Expression)(x: Box)(implicit rnd: Rounding): Expression = {
+  def taylorTerm(multiIndex: Map[VarName, Int], e: Expression)(x: Box): Expression = {
     var coeff = e
     var monic: Expression = 1
     for ((varName, order) <- multiIndex)
@@ -67,7 +66,7 @@ trait SymbolicTaylor {
   /**
    * Partial derivative, milti
    */
-  def partialDerivative(multiIndex: Map[VarName, Int], e: Expression)(implicit rnd: Rounding): Expression = {
+  def partialDerivative(multiIndex: Map[VarName, Int], e: Expression): Expression = {
     var res = e
     for ((varName, order) <- multiIndex)
       for (_ <- 1 to order)
@@ -83,7 +82,7 @@ object LohnerSolverApp extends SymbolicTaylor with App {
   val x = Variable("x")
   val y = Variable("y")
   val e = x * x
-  val a = Map("x" -> Interval(1))
+  val a = Map("x" -> Interval.one)
   val b = Map("x" -> Interval(0.9, 1.1))
   val t = taylorPolynomial(1, e)(a)
   val r = taylorRemainder(2, e)(a)

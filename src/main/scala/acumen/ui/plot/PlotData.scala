@@ -216,63 +216,27 @@ class EnclosurePath(val palette: Palette) extends PlotEntity {
     update(x0,ys.loLeft);
   }
   def draw(g:Graphics2D, tr:AffineTransform) = {
-    val upper = new ArrayBuffer[Point2D.Double]
-    val lower = new ArrayBuffer[Point2D.Double]
-    case object FallBackToSlow extends Exception
     g.setStroke(new BasicStroke(1))
-    var area = new Area()
-    // set prev to special value to avoid special case
-    var prev = new PolyPoints(null, polys(0).a, null, null)
-    try {
-      for (polyPoints <- polys) {
-        if (prev == polyPoints) {/* skip */}
-        else if (prev.b.getX != polyPoints.a.getX) throw FallBackToSlow
-        else {
-          prev = polyPoints
-          val area = new Area();
-          val toDraw = PolyPoints(new Point2D.Double,
-                                  new Point2D.Double,
-                                  new Point2D.Double,
-                                  new Point2D.Double)
-          polyPoints.transform(tr, toDraw)
-          upper += toDraw.a
-          upper += toDraw.b
-          lower += toDraw.d
-          lower += toDraw.c
-        }
-      }
-      val polyPath = new Path2D.Double
-      polyPath.moveTo(upper.head.getX, upper.head.getY)
-      upper.tail.foreach { p => polyPath.lineTo(p.getX, p.getY) }
-      lower.reverse.foreach { p => polyPath.lineTo(p.getX, p.getY) }
-      polyPath.closePath()
-      g.draw(polyPath)
-      area = new Area(polyPath)
-    } catch { 
-      case FallBackToSlow =>
-        println("Falling Back to Slow Plotting Method.")
-        for (polyPoints <- polys) {
-          val toDraw = PolyPoints(new Point2D.Double,
-                                  new Point2D.Double,
-                                  new Point2D.Double,
-                                  new Point2D.Double);
-          polyPoints.transform(tr, toDraw)
-          val polyPath = new Path2D.Double;
-          polyPath.moveTo(toDraw.a.getX(),toDraw.a.getY())
-          polyPath.lineTo(toDraw.b.getX(),toDraw.b.getY())
-          polyPath.lineTo(toDraw.c.getX(),toDraw.c.getY())
-          polyPath.lineTo(toDraw.d.getX(),toDraw.d.getY())
-          area.add(new Area(polyPath))
-          // Draw exact solutions as a line
-          if (toDraw.a == toDraw.d && toDraw.b == toDraw.c)
-            g.draw(new Line2D.Double(toDraw.a.getX(),toDraw.a.getY(),toDraw.b.getX(),toDraw.b.getY()))
-        }
-        g.draw(area)
+    val polyPath = new Path2D.Double
+    for (polyPoints <- polys) {
+      val toDraw = PolyPoints(new Point2D.Double, new Point2D.Double,
+                              new Point2D.Double, new Point2D.Double)
+      polyPoints.transform(tr, toDraw)
+      polyPath.moveTo(toDraw.a.getX, toDraw.a.getY)
+      polyPath.lineTo(toDraw.b.getX, toDraw.b.getY)
+      polyPath.lineTo(toDraw.c.getX, toDraw.c.getY)
+      polyPath.lineTo(toDraw.d.getX, toDraw.d.getY)
+      // Draw exact solutions as a line
+      if (toDraw.a == toDraw.d && toDraw.b == toDraw.c)
+        g.draw(new Line2D.Double(toDraw.a.getX, toDraw.a.getY, 
+                                 toDraw.b.getX, toDraw.b.getY))
     }
-    val prevComposite = g.getComposite()
-    g.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.10f))
-    g.fill(area)
-    g.setComposite(prevComposite)
+    val area = new Area(polyPath)
+    g draw area
+    val prevComposite = g.getComposite
+    g setComposite AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.10f)
+    g fill area
+    g setComposite prevComposite
   }
 
   def drawDots(g:Graphics2D, tr:AffineTransform) = draw(g,tr)

@@ -13,8 +13,7 @@ import scala.collection.immutable.MapProxy
  * A None value associated with a particular mode indicates that the system cannot be in
  * that mode over the given time segment.
  */
-class StateEnclosure(val self: Map[Mode, Option[Box]])(implicit rnd: Rounding) extends MapProxy[Mode, Option[Box]] {
-  import rnd._
+class StateEnclosure(val self: Map[Mode, Option[Box]]) extends MapProxy[Mode, Option[Box]] {
   import StateEnclosure._
 
   // operations on state enclosures
@@ -79,7 +78,7 @@ class StateEnclosure(val self: Map[Mode, Option[Box]])(implicit rnd: Rounding) e
 object StateEnclosure {
 
   /** mode-wise union */
-  def union(ss: Set[StateEnclosure])(implicit rnd: Rounding): StateEnclosure =
+  def union(ss: Set[StateEnclosure]): StateEnclosure =
     new StateEnclosure({
       def hull(obs: Seq[Option[Box]]): Option[Box] = {
         def ohull(l: Option[Box], r: Option[Box]) =
@@ -98,7 +97,7 @@ object StateEnclosure {
     })
 
   /** the state enclosure that is empty in each mode */
-  def emptyState(h: HybridSystem)(implicit rnd: Rounding): StateEnclosure =
+  def emptyState(h: HybridSystem): StateEnclosure =
     new StateEnclosure(h.modes.map(_ -> None).toMap)
 
 }

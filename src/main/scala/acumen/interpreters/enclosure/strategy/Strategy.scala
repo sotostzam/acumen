@@ -4,7 +4,6 @@ import acumen.interpreters.enclosure.EnclosureInterpreterCallbacks
 import acumen.interpreters.enclosure.HybridSystem
 import acumen.interpreters.enclosure.Interval
 import acumen.interpreters.enclosure.Parameters
-import acumen.interpreters.enclosure.Rounding
 import acumen.interpreters.enclosure.StateEnclosure
 import acumen.interpreters.enclosure.affine.UnivariateAffineEnclosure
 import acumen.interpreters.enclosure.event.EventEncloser
@@ -26,6 +25,6 @@ trait Strategy {
     t: Interval, // the time interval
     s: StateEnclosure, // initial states at t.low
     cb: EnclosureInterpreterCallbacks // handles communication with GUI
-    )(implicit rnd: Rounding): Seq[UnivariateAffineEnclosure]
+    ): Seq[UnivariateAffineEnclosure]
 
 }

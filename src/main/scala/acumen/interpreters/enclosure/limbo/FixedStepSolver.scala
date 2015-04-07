@@ -31,7 +31,7 @@ trait FixedStepSolver extends TreeEventEncloser {
     minComputationImprovement: Double, // minimum improvement of enclosure
     output: String, // path to write output 
     cb: EnclosureInterpreterCallbacks // carrier for GUI call-backs 
-    )(implicit rnd: Rounding): Seq[UnivariateAffineEnclosure] = {
+    ): Seq[UnivariateAffineEnclosure] = {
     assert(d > 0, "minimum step size " + d + " not allowed!")
     Util.newFile(output)
     cb.endTime = T.hiDouble
@@ -56,7 +56,7 @@ trait FixedStepSolver extends TreeEventEncloser {
 
     var result = Seq[UnivariateAffineEnclosure]()
     var initialConditions = uncertainStates
-    val pieces = (T.width / d).hiDouble.ceil
+    val pieces = (T.width / d).hiDouble
 
     var segments = Seq(T)
     while (segments.head.width.low greaterThan d) {

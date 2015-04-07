@@ -7,7 +7,6 @@ import acumen.interpreters.enclosure.ivp.PicardSolver
 import acumen.interpreters.enclosure.Box
 import acumen.interpreters.enclosure.Interval
 import acumen.interpreters.enclosure.Parameters
-import acumen.interpreters.enclosure.Rounding
 import acumen.interpreters.enclosure.affine.UnivariateAffineEnclosure
 import acumen.interpreters.enclosure.ivp.IVPSolver
 import acumen.interpreters.enclosure.HybridSystem
@@ -27,7 +26,7 @@ case class PWLEventEncloser(override val ivpSolver: IVPSolver) extends EventEncl
   // main function
 
   /** Implements the event handler method in EventEncloser. */
-  override def encloseEvents(ps: Parameters, h: HybridSystem, t: Interval, s: StateEnclosure)(implicit rnd: Rounding): (StateEnclosure, StateEnclosure) = {
+  override def encloseEvents(ps: Parameters, h: HybridSystem, t: Interval, s: StateEnclosure): (StateEnclosure, StateEnclosure) = {
     val (s0, fin0) = encloseFlowNoEvents(ps, h, s, t)
     val sEvents = reachableStatesPWL(ps, h, t, ps.maxIterations, emptyState(h), s0)
     val sEnclosed = union(Set(s0, sEvents))
@@ -37,7 +36,7 @@ case class PWLEventEncloser(override val ivpSolver: IVPSolver) extends EventEncl
 
   // helper functions
 
-  private def reachableStatesPWL(ps: Parameters, h: HybridSystem, t: Interval, maxIterations: Int, pIn: StateEnclosure, wIn: StateEnclosure)(implicit rnd: Rounding): StateEnclosure =
+  private def reachableStatesPWL(ps: Parameters, h: HybridSystem, t: Interval, maxIterations: Int, pIn: StateEnclosure, wIn: StateEnclosure): StateEnclosure =
     if (maxIterations == 0) sys.error("EncloseEventsFailure")
     else {
       if (wIn.isDefinitelyEmpty) pIn
@@ -50,13 +49,13 @@ case class PWLEventEncloser(override val ivpSolver: IVPSolver) extends EventEncl
       }
     }
 
-  private def encloseOneEvent(h: HybridSystem, s: StateEnclosure)(implicit rnd: Rounding): StateEnclosure = {
+  private def encloseOneEvent(h: HybridSystem, s: StateEnclosure): StateEnclosure = {
     val allPossibleResets = h.events.map(e => s.intersectGuard(h, e).reset(h, e))
     val unionOfResets = union(allPossibleResets)
     unionOfResets.intersectInv(h)
   }
 
-  private def encloseFlowNoEvents(ps: Parameters, h: HybridSystem, sIn: StateEnclosure, t: Interval)(implicit rnd: Rounding): (StateEnclosure, StateEnclosure) = {
+  private def encloseFlowNoEvents(ps: Parameters, h: HybridSystem, sIn: StateEnclosure, t: Interval): (StateEnclosure, StateEnclosure) = {
     val sPreAndFinalPre = sIn map {
       case (q, None)      => (q, (None, None))
       case (q, Some(box)) => (q, encloseFlowRange(ps, h.fields(q), t, box))
@@ -68,7 +67,7 @@ case class PWLEventEncloser(override val ivpSolver: IVPSolver) extends EventEncl
     (s, fin)
   }
 
-  private def encloseFlowRange(ps: Parameters, f: Field, t: Interval, init: Box)(implicit rnd: Rounding): (Option[Box], Option[Box]) = {
+  private def encloseFlowRange(ps: Parameters, f: Field, t: Interval, init: Box): (Option[Box], Option[Box]) = {
     val flow = encloseFlow(ps, f, t, init)
     if (flow isEmpty) (None, None)
     else {
@@ -77,7 +76,7 @@ case class PWLEventEncloser(override val ivpSolver: IVPSolver) extends EventEncl
     }
   }
 
-  private def encloseFlow(ps: Parameters, f: Field, t: Interval, init: Box)(implicit rnd: Rounding): Seq[UnivariateAffineEnclosure] = {
+  private def encloseFlow(ps: Parameters, f: Field, t: Interval, init: Box): Seq[UnivariateAffineEnclosure] = {
     if (t.width greaterThan ps.maxTimeStep)
       splitAndRepeatEncloseFlow(ps, f, t, init)
     else
@@ -98,7 +97,7 @@ case class PWLEventEncloser(override val ivpSolver: IVPSolver) extends EventEncl
       }
   }
 
-  private def splitAndEncloseFlowStep(ps: Parameters, field: Field, t: Interval, init: Box)(implicit rnd: Rounding): (UnivariateAffineEnclosure, UnivariateAffineEnclosure) = {
+  private def splitAndEncloseFlowStep(ps: Parameters, field: Field, t: Interval, init: Box): (UnivariateAffineEnclosure, UnivariateAffineEnclosure) = {
     val (tL, tR) = t.split
     val (eL, initR) = encloseFlowStep(ps, field, tL, init)
     //    val initR = eL(tL.high)
@@ -106,7 +105,7 @@ case class PWLEventEncloser(override val ivpSolver: IVPSolver) extends EventEncl
     (eL, eR)
   }
 
-  private def splitAndRepeatEncloseFlow(ps: Parameters, field: Field, t: Interval, init: Box)(implicit rnd: Rounding): Seq[UnivariateAffineEnclosure] = {
+  private def splitAndRepeatEncloseFlow(ps: Parameters, field: Field, t: Interval, init: Box): Seq[UnivariateAffineEnclosure] = {
     val (tL, tR) = t.split
     val esL = encloseFlow(ps, field, tL, init)
     val initR = esL.filter(_.domain.contains(tL.high)).last(tL.high)
@@ -114,7 +113,7 @@ case class PWLEventEncloser(override val ivpSolver: IVPSolver) extends EventEncl
     esL ++ esR
   }
 
-  private def encloseFlowStep(ps: Parameters, f: Field, t: Interval, b: Box)(implicit rnd: Rounding): (UnivariateAffineEnclosure, Box) =
+  private def encloseFlowStep(ps: Parameters, f: Field, t: Interval, b: Box): (UnivariateAffineEnclosure, Box) =
     ivpSolver.solveIVP(f, t, b,
       ps.initialPicardPadding,
       ps.picardImprovements,

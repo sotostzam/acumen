@@ -33,36 +33,36 @@ object Generators {
   /* Interval */
 
   /** Generates a random interval. */
-  def genInterval(implicit rnd: Rounding): Gen[Interval] = for {
+  def genInterval: Gen[Interval] = for {
     lo <- arbitrary[Double]
     hi <- arbitrary[Double]
   } yield Interval(min(lo, hi), max(lo, hi))
   implicit val arbitraryInterval = Arbitrary(genInterval)
 
   /** Generates a positive interval */
-  def genPosInterval(implicit rnd: Rounding): Gen[Interval] = for {
+  def genPosInterval: Gen[Interval] = for {
     lo <- posNum[Double]
     hi <- posNum[Double]
   } yield Interval(min(lo, hi), max(lo, hi))
 
   /** Generates a non-zero interval */
-  def genNonZeroInterval(implicit rnd: Rounding): Gen[Interval] = for {
+  def genNonZeroInterval: Gen[Interval] = for {
     i <- genPosInterval
     b <- arbitrary[Boolean]
   } yield if (b) i else -i
 
   /** Generates a sub-interval of the interval. */
-  def genSubInterval(i: Interval)(implicit rnd: Rounding): Gen[Interval] = for {
+  def genSubInterval(i: Interval): Gen[Interval] = for {
     s <- choose(0.0, 1.0)
     val r = ((i.width.low / 2).low * s).low
   } yield (i.low + r) /\ (i.high - r)
 
   /** Generates a point in the interval. */
-  def genThinSubInterval(i: Interval)(implicit rnd: Rounding) = for {
+  def genThinSubInterval(i: Interval) = for {
     s <- choose(0.0, 1.0)
   } yield (i.low + i.width.low * s).high
 
-  def genIntervalFilter(implicit rnd: Rounding): Gen[Interval] = for {
+  def genIntervalFilter: Gen[Interval] = for {
     lo <- arbitrary[Double]
     hi <- genLargerDouble(lo)
   } yield Interval(lo, hi)
@@ -78,24 +78,24 @@ object Generators {
   /* Box */
 
   /** Generates a plain box. */
-  def genBox(implicit rnd: Rounding): Gen[Box] = for {
+  def genBox: Gen[Box] = for {
     dim <- posNum[Int]
     intervals <- listOfN(dim, arbitrary[Interval])
   } yield (listOfNames(dim) zip intervals).toMap
   implicit def arbitraryBox: Arbitrary[Box] = Arbitrary(genBox)
 
   /** Generates a dim-dimensional box. */
-  def genDimBox(dim: Int)(implicit rnd: Rounding): Gen[Box] = for {
+  def genDimBox(dim: Int): Gen[Box] = for {
     intervals <- listOfN(dim, arbitrary[Interval])
   } yield (listOfNames(dim) zip intervals).toMap
 
   /** Generates a sub-box of the box. */
-  def genSubBox(box: Box)(implicit rnd: Rounding): Gen[Box] = for {
+  def genSubBox(box: Box): Gen[Box] = for {
     subIntervals <- Gen.sequence[List, Interval](box.values.map(genSubInterval(_)))
   } yield (box.keys zip subIntervals).toMap
 
   /** Generates a point in the box. */
-  def genThinSubBox(box: Box)(implicit rnd: Rounding): Gen[Box] = for {
+  def genThinSubBox(box: Box): Gen[Box] = for {
     thinSubIntervals <- Gen.sequence[List, Interval](box.values.map(genThinSubInterval(_)))
   } yield (box.keys zip thinSubIntervals).toMap
 
@@ -107,7 +107,7 @@ object Generators {
   /* AffineScalarEnclosure */
 
   /** Generates a plain enclosure. */
-  def genAffineScalarEnclosure(implicit rnd: Rounding): Gen[AffineScalarEnclosure] = for {
+  def genAffineScalarEnclosure: Gen[AffineScalarEnclosure] = for {
     dim <- posNum[Int]
     names <- listOfN(dim, arbitrary[VarName])
     domains <- listOfN(dim, arbitrary[Interval])
@@ -119,7 +119,7 @@ object Generators {
   implicit val arbitraryAffineScalarEnclosure = Arbitrary(genAffineScalarEnclosure)
 
   /** Generates a dim-dimensional enclosure. */
-  def genDimAffineScalarEnclosure(dim: Int)(implicit rnd: Rounding): Gen[AffineScalarEnclosure] = for {
+  def genDimAffineScalarEnclosure(dim: Int): Gen[AffineScalarEnclosure] = for {
     names <- listOfN(dim, arbitrary[VarName])
     domains <- listOfN(dim, arbitrary[Interval])
     constant <- arbitrary[Interval]
@@ -129,14 +129,14 @@ object Generators {
   } yield AffineScalarEnclosure(domain, Box.normalize(domain), constant, coefficients)
 
   /** Generates an enclosure over the box. */
-  def genBoxAffineScalarEnclosure(box: Box)(implicit rnd: Rounding): Gen[AffineScalarEnclosure] = for {
+  def genBoxAffineScalarEnclosure(box: Box): Gen[AffineScalarEnclosure] = for {
     constant <- arbitrary[Interval]
     coeffs <- listOfN(box.size, arbitrary[Interval])
     val coefficients = (box.keys zip coeffs).toMap
   } yield AffineScalarEnclosure(box, Box.normalize(box), constant, coefficients)
 
   /** Generates a sub-enclosure of the enclosure. */
-  def genSubAffineScalarEnclosure(f: AffineScalarEnclosure)(implicit rnd: Rounding): Gen[AffineScalarEnclosure] = for {
+  def genSubAffineScalarEnclosure(f: AffineScalarEnclosure): Gen[AffineScalarEnclosure] = for {
     subconst <- genSubInterval(f.constant)
     subcoeffs <- Gen.sequence[List, Interval](f.coefficients.values.map(genSubInterval(_)))
   } yield AffineScalarEnclosure(f.domain, f.normalizedDomain, subconst, (f.domain.keys zip subcoeffs).toMap)
@@ -144,14 +144,14 @@ object Generators {
   /* AffineEnclosure */
 
   /** Generates a plain enclosure. */
-  def genAffineEnclosure(implicit rnd: Rounding): Gen[AffineEnclosure] = for {
+  def genAffineEnclosure: Gen[AffineEnclosure] = for {
     dom <- arbitrary[Box]
     components <- listOfN(dom.size, genBoxAffineScalarEnclosure(dom))
   } yield AffineEnclosure(dom, dom.keys.zip(components).toMap)
   implicit def arbitraryAffineEnclosure: Arbitrary[AffineEnclosure] = Arbitrary(genAffineEnclosure)
 
   /** Generates a plain enclosure. */
-  def genDimAffineEnclosure(dim: Int)(implicit rnd: Rounding): Gen[AffineEnclosure] = for {
+  def genDimAffineEnclosure(dim: Int): Gen[AffineEnclosure] = for {
     dom <- genDimBox(dim)
     components <- listOfN(dom.size, genBoxAffineScalarEnclosure(dom))
   } yield AffineEnclosure(dom, dom.keys.zip(components).toMap)
@@ -207,7 +207,7 @@ object Generators {
    * generate smaller expression trees we sample the leaf
    * generators more often.
    */
-  def genExpression(implicit rnd: Rounding) =
+  def genExpression =
     frequency(
       (2, genConstant),
       (2, genVariable),
@@ -218,35 +218,35 @@ object Generators {
   implicit val arbitraryExpression: Arbitrary[Expression] = Arbitrary(genExpression)
 
   /** Generates a random constant. */
-  def genConstant(implicit rnd: Rounding) = for {
+  def genConstant = for {
     value <- arbitrary[Interval]
   } yield Constant(value)
 
   /** Generates a random constant. */
-  def genVariable(implicit rnd: Rounding) = for {
+  def genVariable = for {
     name <- arbitrary[VarName]
   } yield Variable(name)
 
   /** Generates a random negated expression. */
-  def genNegate(implicit rnd: Rounding) = for {
+  def genNegate = for {
     e <- Gen.lzy { arbitrary[Expression] }
   } yield Negate(e)
 
   /** Generates a random negated expression. */
-  def genPlus(implicit rnd: Rounding) = for {
+  def genPlus = for {
     l <- Gen.lzy { arbitrary[Expression] }
     r <- arbitrary[Expression]
   } yield Plus(l, r)
 
   /** Generates a random negated expression. */
-  def genMultiply(implicit rnd: Rounding) = for {
+  def genMultiply = for {
     l <- Gen.lzy { arbitrary[Expression] }
     r <- arbitrary[Expression]
   } yield Multiply(l, r)
 
   // TODO un-specialize the generator once enclosure division is implemented.
   /** Generates a random negated expression. */
-  def genDivide(implicit rnd: Rounding) = for {
+  def genDivide = for {
     l <- Gen.lzy { arbitrary[Expression] }
     v <- genNonZeroInterval
   } yield Divide(l, Constant(v))
@@ -255,7 +255,7 @@ object Generators {
    * Generates a random affine expression.
    * See implementation note for genExpression.
    */
-  def genAffineExpression(implicit rnd: Rounding): Gen[Expression] =
+  def genAffineExpression: Gen[Expression] =
     frequency(
       (2, genConstant),
       (2, genVariable),
@@ -264,24 +264,24 @@ object Generators {
       (1, genAffineMultiply))
 
   /** Generates a random negated affine expression. */
-  def genAffineNegate(implicit rnd: Rounding): Gen[Expression] = for {
+  def genAffineNegate: Gen[Expression] = for {
     e <- Gen.lzy { genAffineExpression }
   } yield Negate(e)
 
   /** Generates a random sum of affine expressions. */
-  def genAffinePlus(implicit rnd: Rounding): Gen[Expression] = for {
+  def genAffinePlus: Gen[Expression] = for {
     l <- Gen.lzy { genAffineExpression }
     r <- genAffineExpression
   } yield Plus(l, r)
 
   /** Generates a random scalar multiple of an affine expression. */
-  def genAffineMultiply(implicit rnd: Rounding): Gen[Expression] = for {
+  def genAffineMultiply: Gen[Expression] = for {
     l <- Gen.lzy { genConstant }
     r <- genAffineExpression
   } yield Multiply(l, r)
 
   /** Generates a random scalar quoteient of an affine expression. */
-  def genAffineDivide(implicit rnd: Rounding): Gen[Expression] = for {
+  def genAffineDivide: Gen[Expression] = for {
     l <- Gen.lzy { genAffineExpression }
     r <- genConstant
   } yield Divide(l, r)

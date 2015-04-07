@@ -20,7 +20,7 @@ case class TreeEventEncloser(override val ivpSolver: IVPSolver) extends EventEnc
     h: HybridSystem, // the system 
     t: Interval, // the time interval 
     s: StateEnclosure // initial states at t.low
-    )(implicit rnd: Rounding): (StateEnclosure, StateEnclosure) = {
+    ): (StateEnclosure, StateEnclosure) = {
     val trees = s.uncertainStates.map {
       eventTree(
         h, t, _,
@@ -44,7 +44,7 @@ case class TreeEventEncloser(override val ivpSolver: IVPSolver) extends EventEnc
     m: Int,
     n: Int,
     degree: Int,
-    K: Int)(implicit rnd: Rounding): EventTree = {
+    K: Int): EventTree = {
     var res = EventTree.initialTree(T, H, S, delta, m, n, degree, ivpSolver)
     var tmp = res.addLayer(ivpSolver)
     while (res.size < K && tmp != res) {
@@ -68,7 +68,7 @@ case class TreeEventEncloser(override val ivpSolver: IVPSolver) extends EventEnc
     n: Int,
     degree: Int,
     K: Int,
-    log: String => Unit)(implicit rnd: Rounding): Option[(Set[UncertainState], Seq[UnivariateAffineEnclosure])] =
+    log: String => Unit): Option[(Set[UncertainState], Seq[UnivariateAffineEnclosure])] =
     try {
       val tree = eventTree(H, T, S, delta, m, n, degree, K)
       Some((tree.endTimeStates, tree.prunedEnclosures))

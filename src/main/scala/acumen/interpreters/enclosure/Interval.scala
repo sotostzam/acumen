@@ -1,10 +1,9 @@
 package acumen.interpreters.enclosure
 
-import java.math.BigDecimal
-import java.math.MathContext
 import scala.annotation.unchecked
-
 import Interval._
+import net.java.jinterval.rational._
+import net.java.jinterval.interval.set._
 
 /**
  * Intervals with outward-rounded operations.
@@ -27,22 +26,18 @@ import Interval._
  * such that A_i is contained in B_i for each i, f(A_1,...,A_n) is
  * contained in f(B_1,...,B_n).
  */
-case class Interval(
-    val lo: Real,
-    val hi: Real)(implicit val rnd: Rounding) {
-  import rnd._
+case class Interval(val i: SetInterval) extends AnyVal {
+   
+  def lo: Real = i.inf
+  def hi: Real = i.sup
+  def midpoint: Real = i.mid
 
-  lazy val low = Interval(lo)
+  def low: Interval = Interval(lo)
+  def high: Interval = Interval(hi)
+  def bounds: (Interval, Interval) = (low, high)
 
-  lazy val high = Interval(hi)
-
-  lazy val bounds = (low, high)
-
-  lazy val midpoint = hi.subtract(lo, dn).divide(Interval(2).lo, dn).add(lo, dn)
-
-  def left = Interval(lo, midpoint)
-
-  def right = Interval(midpoint, hi)
+  def left: Interval = Interval(lo, midpoint)
+  def right: Interval = Interval(midpoint, hi)
 
   /**
    * Set difference.
@@ -74,19 +69,8 @@ case class Interval(
     (Interval(lo, mid), Interval(mid, hi))
   }
 
-  def refine(pieces: Int) = {
-    val mesh = width.lo.divide(Interval(pieces).hi, dn)
-    (0 until pieces - 1).map {
-      i =>
-        Interval(lo.add(mesh.multiply(Interval(i).lo, dn), dn),
-          lo.add(mesh.multiply(Interval(i + 1).lo, dn), dn))
-    } :+ Interval(lo.add(mesh.multiply(Interval(pieces - 1).lo, dn), dn), hi)
-  }
-
   /** Interval of absolute values of elements in this interval. */
-  def abs =
-    if (this contains 0) Interval.max(this /\ -this, Interval(0))
-    else Interval.max(this, -this)
+  def abs = Interval(ic.abs(this.i))
 
   /**
    * Interval of n:th power values of elements in this interval.
@@ -95,101 +79,65 @@ case class Interval(
    */
   def pow(n: Int): Interval = {
     require(n >= 0)
-    val h = hi.pow(n, rnd.up)
-    val l = lo.pow(n, rnd.dn)
-    val res = Interval(l) /\ Interval(h)
-    val result =
-      if ((n % 2 != 0) || !(this contains 0)) res
-      else Interval(0) /\ res
-    result
+    Interval(ic.pown(this.i, n))
   }
 
-  /** Interval of possible square roots elements in this interval. */
-  def sqrt = {
-    // If oscillating around fixpoint (flipping between two values), pick the 
-    // correct lower or upper end-point of the safe (outer) approximation. 
-    def safeApproximation(dir: java.math.MathContext)(x: Real, y: Real) =
-      (dir.getRoundingMode(): @unchecked) match {
-        case java.math.RoundingMode.CEILING => x max y
-        case java.math.RoundingMode.FLOOR   => x min y
-      }
-    def sqrt(dir: java.math.MathContext)(x: Real) = {
-      val half = new Real(0.5, dir)
-      val xinit = x.round(dir)
-      val zero = xinit.subtract(xinit, dir) // a zero of the right precision
-      if (xinit != zero) { // guard against / by zero in newtonIterate
-        def newtonIterate(est: Real) = half.multiply(est.add(xinit.divide(est, dir), dir), dir)
-        var tmp2 = xinit
-        var tmp1 = newtonIterate(tmp2)
-        var res = newtonIterate(tmp1)
-        while (res != safeApproximation(dir)(tmp1, tmp2)) {
-          tmp2 = tmp1
-          tmp1 = res
-          res = newtonIterate(res)
-        }
-        res
-      }
-      else zero
-    }
-    if (this lessThan Interval(0)) sys.error("sqrt is undefined on " + this)
-    else Interval(sqrt(dn)(max(lo, lo.subtract(lo))), sqrt(up)(hi))
-  }
+  def pow(that: Interval) = Interval(ic.pow(this.i, that.i))
+  
+  /** Sinus */
+  def sin = Interval(ic.sin(this.i))
 
+  /** Cosinus */
+  def cos = Interval(ic.cos(this.i))
+
+  /** Tangens */
+  def tan = Interval(ic.tan(this.i))
+
+  /** Arcus sinus */
+  def asin = Interval(ic.asin(this.i))
+
+  /** Arcus cosinus */
+  def acos = Interval(ic.acos(this.i))
+
+  /** Arcus tangens */
+  def atan = Interval(ic.atan(this.i))
+  
+  /** Natural logarithm */
+  def log = Interval(ic.log(this.i))
+
+  /** Base 10 logarithm */
+  def log10 = Interval(ic.log10(this.i))
+
+  /** Square root */
+  def sqrt = Interval(ic.sqrt(this.i))
+
+  /** Cubic root */
+  def cbrt = Interval(ic.rootn(this.i, 3)) 
+
+  /** Ceiling */
+  def ceil = Interval(ic.ceil(this.i))
+  
+  /** Floor */
+  def floor = Interval(ic.floor(this.i))
+
+  /** Sinus hyperbolicus */
+  def sinh = Interval(ic.sinh(this.i))
+
+  /** Cosinus hyperbolicus */
+  def cosh = Interval(ic.cosh(this.i))
+  
+  /** Tangens hyperbolicus */
+  def tanh = Interval(ic.tanh(this.i))
+  
+  /** Signum */
+  def signum = Interval(ic.sign(this.i))
+  
   /**
    * Interval of possible values of the exponential function over this interval.
    *
    * FIXME: need to check that truncation is accounted for!
    */
-  def exp(implicit rnd: Rounding) = {
-    val zero = Interval(0)
-    val one = Interval(1)
-    val unit = Interval(-1, 1)
-    // scales this interval into [-1,1] 
-    // returns scaled interval and the power to take when scaling back
-    def scaleDownByHalving(x: Interval): (Interval, Int) = {
-      var result = x
-      var power = 1
-      while (!(unit contains result)) {
-        result /= 2
-        power *= 2
-      }
-      val res = (result, power)
-      res
-    }
-    // expects thin x
-    def expThin(x: Interval) = {
-      require(x.low == x.high, x + " should be thin!")
-      // expects thin nonnegative x
-      def expThinNonneg(x: Interval) = {
-        require(x greaterThanOrEqualTo zero)
-        if (x contains 0) one
-        else {
-          // expects degree > 1
-          def expTaylor(x: Interval, degree: Int): Interval = {
-            require(degree > 1)
-            var pow = x
-            var res = one + pow
-            for (i <- 2 to degree) {
-              pow *= x / i
-              res += pow
-            }
-            res
-          }
-          // arbitrarily chosen degree to be odd and grow with precision
-          expTaylor(x, 2 * rnd.precision + 1)
-        }
-      }
-      if (x lessThan zero) one / expThinNonneg(-x)
-      else expThinNonneg(x)
-    }
-    val (scaledLow, halvingsLow) = scaleDownByHalving(low)
-    val (scaledHigh, halvingsHigh) = scaleDownByHalving(high)
-    val scaledLowExp = expThin(scaledLow.low)
-    val scaledHighExp = expThin(scaledHigh.high)
-    val resLow = scaledLowExp.low.pow(halvingsLow).low
-    val resHigh = scaledHighExp.high.pow(halvingsHigh).high
-    resLow /\ resHigh
-  }
+  def exp = Interval(ic.exp(this.i))
 
   /**
    * Adds that interval to this one.
@@ -198,7 +146,7 @@ case class Interval(
    *  of the sum of this and that and representable in the given
    *  precision.
    */
-  def +(that: Interval) = Interval(lo.add(that.lo, dn), hi.add(that.hi, up))
+  def +(that: Interval) = Interval(ic.add(this.i, that.i))
 
   /**
    * Subtracts that interval from this one.
@@ -207,13 +155,13 @@ case class Interval(
    *  of the difference of this and that and representable in the
    *  given precision.
    */
-  def -(that: Interval) = Interval(lo.subtract(that.hi, dn), hi.subtract(that.lo, up))
+  def -(that: Interval) = Interval(ic.sub(this.i, that.i))
 
   /**
    * Negation of this interval.
    *  @return an interval which is the negation of this.
    */
-  def unary_- = Interval(hi.negate, lo.negate)
+  def unary_- = Interval(ic.neg(this.i))
 
   /**
    * Multiplies that interval with this one.
@@ -222,16 +170,12 @@ case class Interval(
    *  of the product of this and that and representable in the
    *  given precision.
    */
-  def *(that: Interval) = {
-    val prodsDN: List[Real] = List(lo.multiply(that.hi, dn), hi.multiply(that.lo, dn), hi.multiply(that.hi, dn))
-    val prodsUP: List[Real] = List(lo.multiply(that.hi, up), hi.multiply(that.lo, up), hi.multiply(that.hi, up))
-    Interval(prodsDN.foldLeft(lo.multiply(that.lo, dn))(min(_, _)), prodsUP.foldLeft(lo.multiply(that.lo, up))(max(_, _)))
-  }
+  def *(that: Interval) = Interval(ic.mul(this.i, that.i))
 
   def *(that: Double): Interval = this * Interval(that)
 
   /** Squares this interval. */
-  def square = max(Interval(0), this * this)
+  def square = max(Interval.zero, this * this)
 
   /**
    * Divides this interval by that one.
@@ -240,12 +184,7 @@ case class Interval(
    *  of the quotient of this and that and representable in the
    *  given precision.
    */
-  def /(that: Interval) = {
-    require(!that.contains(0), "division by 0")
-    val divsDN: List[Real] = List(lo.divide(that.hi, dn), hi.divide(that.lo, dn), hi.divide(that.hi, dn))
-    val divsUP: List[Real] = List(lo.divide(that.hi, up), hi.divide(that.lo, up), hi.divide(that.hi, up))
-    Interval(divsDN.foldLeft(lo.divide(that.lo, dn))(min(_, _)), divsUP.foldLeft(lo.divide(that.lo, up))(max(_, _)))
-  }
+  def /(that: Interval) = Interval(ic.div(this.i, that.i))
 
   def /(that: Double): Interval = this / Interval(that)
 
@@ -258,7 +197,7 @@ case class Interval(
    *  property: for any intervals A and B it holds that A /\ B
    *  contains both A and B.
    */
-  def /\(that: Interval) = Interval(min(lo, that.lo), max(hi, that.hi))
+  def /\(that: Interval) = Interval(ic.convexHull(this.i, that.i))
 
   /**
    * Take the join, or l.u.b., of this and that interval.
@@ -283,7 +222,7 @@ case class Interval(
    *
    * property: for any interval X it holds that (-X).width == X.width.
    */
-  def width = Interval(hi.subtract(lo, dn), hi.subtract(lo, up))
+  def width = if (i isEmpty) Interval.zero else Interval(i.wid)
 
   /**
    * Comparison operations on intervals. WARNING!
@@ -339,93 +278,97 @@ case class Interval(
     lo.compareTo(it.lo) <= 0 && it.hi.compareTo(hi) <= 0
   }
 
-  // FIXME improve this
-  def properlyContains(that: Interval): Boolean =
-    contains(that) && (lo.compareTo(that.lo) < 0 || that.hi.compareTo(hi) < 0)
+  def properlyContains(that: Interval): Boolean = 
+    that.i containedInInterior this.i
 
   def isThin = (lo compareTo hi) == 0
 
-  def isZero = equalTo(Interval(0))
-  def isNonnegative = greaterThanOrEqualTo(Interval(0))
+  def isZero = equalTo(Interval.zero)
+  
+  def isNonnegative = greaterThanOrEqualTo(Interval.zero)
 
-  def almostEqualTo(that: Interval) = {
-    //    println("almostEqualTo: " + epsilon + " contains " + (this.low - that.low) + " is " + (epsilon contains (this.low - that.low)))
-    //    println("almostEqualTo: " + epsilon + " contains " + (this.high - that.high) + " is " + (epsilon contains (this.high - that.high)))
-    (epsilon contains (this.low - that.low)) &&
-      (epsilon contains (this.high - that.high))
-  }
+  def almostEqualTo(that: Interval) =
+    epsilon.contains(this.low - that.low) &&
+      epsilon.contains(this.high - that.high)
 
-  /**
-   * @return a string representation of the interval in the usual
-   * notation for closed intervals.
-   */
-  override def toString = "[" + lo + ".." + hi + "]"
-
-  // TODO improve description
-  /** UNSAFE only to be used for plotting */
-  def loDouble: Double = lo.doubleValue()
+  /** @return a string representation of the interval in the usual
+   *  notation for closed intervals. */
+  override def toString =
+    s"[${lo.doubleValueDown}..${hi.doubleValueUp}]"
+    
+  /** @return a string representation of the interval with the 
+   *  rational end-points represented exactly. */
+  def toRationalString =
+    s"[(${lo.getNumerator}/${lo.getDenominator})..(${hi.getNumerator}/${hi.getDenominator})]"
 
   // TODO improve description
   /** UNSAFE only to be used for plotting */
-  def hiDouble: Double = hi.doubleValue()
+  def loDouble: Double = lo.doubleValue
+
+  // TODO improve description
+  /** UNSAFE only to be used for plotting */
+  def hiDouble: Double = hi.doubleValue
 }
 
 object Interval {
-  import java.math.BigDecimal
-  type Real = java.math.BigDecimal
 
-  def apply(lo: Double, hi: Double)(implicit rnd: Rounding): Interval =
-    Interval(new BigDecimal(lo, rnd.dn), new BigDecimal(hi, rnd.up))
-  def apply(x: Int)(implicit rnd: Rounding): Interval = Interval(x, x)
-  def apply(x: Double)(implicit rnd: Rounding): Interval = Interval(x, x)
-  def apply(x: Real)(implicit rnd: Rounding): Interval = Interval(x, x)
-  def min(left: Interval, right: Interval)(implicit rnd: Rounding): Interval =
-    Interval(min(left.lo, right.lo), min(left.hi, right.hi))
-  def max(left: Interval, right: Interval)(implicit rnd: Rounding): Interval =
-    Interval(max(left.lo, right.lo), max(left.hi, right.hi))
-  def min(left: Real, right: Real) = if (left.compareTo(right) < 0) left else right
-  def max(left: Real, right: Real) = if (left.compareTo(right) > 0) left else right
+  type Real = ExtendedRational
 
-  implicit def toInterval(x: Real)(implicit rnd: Rounding) = Interval(x)
-  implicit def toInterval(x: Double)(implicit rnd: Rounding) = Interval(x)
-  implicit def toInterval(x: Int)(implicit rnd: Rounding) = Interval(x)
-  def epsilon(implicit rnd: Rounding) = {
-    val eps = new Real(0.1).pow(rnd.precision - 1, rnd.up)
-    Interval(eps.negate, eps)
-  }
+  /** Use outward rounded floating-point number operations in interval library. */
+  val ic = SetIntervalContexts.getInfSup(BinaryValueSet.BINARY64)
+  val rc = ExtendedRationalContexts.exact()
+
+  def apply(lo: Real, hi: Real): Interval =
+    Interval(ic.numsToInterval(lo, hi))
+  def apply(lo: Double, hi: Double): Interval =
+    Interval(ic.numsToInterval(lo, hi))
+  def apply(x: Int): Interval = Interval(x, x)
+  def apply(x: Double): Interval = Interval(x, x)
+  def apply(x: Real): Interval = Interval(x, x)
+  def min(left: Interval, right: Interval): Interval =
+    Interval(ic.min(left.i, right.i))
+  def max(left: Interval, right: Interval): Interval =
+    Interval(ic.max(left.i, right.i))
+  def min(left: Real, right: Real) = rc.min(left, right)
+  def max(left: Real, right: Real) = rc.max(left, right)
+
+  implicit def toInterval(x: Real) = Interval(x)
+  implicit def toInterval(x: Double) = Interval(x)
+  implicit def toInterval(x: Int) = Interval(x)
 
   /* Constants */
 
-  def pi(implicit rnd: Rounding): Interval = {
-    require(rnd.precision <= 1000, "pi constant only supported up to precision 1000.")
-    return Interval(pi1000 round rnd.dn, pi1000 round rnd.up) // TODO Memoize
-  }
-  private val pi1000 = new BigDecimal(
-    "3.1415926535897932384626433832795028841971693993751058209749445923078164062862089986280348253421170679" +
-      "821480865132823066470938446095505822317253594081284811174502841027019385211055596446229489549303819644" +
-      "288109756659334461284756482337867831652712019091456485669234603486104543266482133936072602491412737245" +
-      "870066063155881748815209209628292540917153643678925903600113305305488204665213841469519415116094330572" +
-      "703657595919530921861173819326117931051185480744623799627495673518857527248912279381830119491298336733" +
-      "624406566430860213949463952247371907021798609437027705392171762931767523846748184676694051320005681271" +
-      "452635608277857713427577896091736371787214684409012249534301465495853710507922796892589235420199561121" +
-      "290219608640344181598136297747713099605187072113499999983729780499510597317328160963185950244594553469" +
-      "083026425223082533446850352619311881710100031378387528865875332083814206171776691473035982534904287554" +
-      "687311595628638823537875937519577818577805321712268066130019278766111959092164201989380952572010654858" +
-      "632788659361533818279682303019520353018529689957736225994138912497217752834791315155748572424541506959")
+  /** Neighborhood with twice the width of the smallest representable Double. */
+  val epsilon = Interval(-Double.MinPositiveValue, Double.MinPositiveValue)
 
+  /** Approximation based on first 1000 digits. */
+  val pi = Interval(ic.textToInterval(
+    "3.1415926535897932384626433832795028841971693993751058209749445923078164062862089986280348253421170679" +
+    "821480865132823066470938446095505822317253594081284811174502841027019385211055596446229489549303819644" +
+    "288109756659334461284756482337867831652712019091456485669234603486104543266482133936072602491412737245" +
+    "870066063155881748815209209628292540917153643678925903600113305305488204665213841469519415116094330572" +
+    "703657595919530921861173819326117931051185480744623799627495673518857527248912279381830119491298336733" +
+    "624406566430860213949463952247371907021798609437027705392171762931767523846748184676694051320005681271" +
+    "452635608277857713427577896091736371787214684409012249534301465495853710507922796892589235420199561121" +
+    "290219608640344181598136297747713099605187072113499999983729780499510597317328160963185950244594553469" +
+    "083026425223082533446850352619311881710100031378387528865875332083814206171776691473035982534904287554" +
+    "687311595628638823537875937519577818577805321712268066130019278766111959092164201989380952572010654858" +
+    "632788659361533818279682303019520353018529689957736225994138912497217752834791315155748572424541506959")) 
+
+  val zero: Interval = Interval(0)
+
+  val one: Interval = Interval(1)
+      
   def union(is: Seq[Interval]): Interval =
     if (is.isEmpty) sys.error("Interval.union: empty union")
     else is.tail.fold(is.head)(_ /\ _)
 
-  def max(is: Iterable[Interval])(implicit rnd: Rounding): Interval = {
+  def max(is: Iterable[Interval]): Interval = {
     require(is.nonEmpty)
     is.tail.fold(is.head)(max(_, _))
   }
-
-}
-
-object IntervalApp extends App {
-
-  implicit val rnd = Parameters.default.rnd
+  
+  /** Converts rectangular coordinates (x, y) to polar (r, theta) */
+  def atan2(x: Interval, y: Interval) = Interval(ic.atan2(x.i, y.i))
 
 }

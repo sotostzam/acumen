@@ -21,7 +21,7 @@ sealed abstract class Predicate {
    * Evaluate the predicate by taking the variables to range over the
    * intervals of the box x.
    */
-  def apply(x: Box)(implicit rnd: Rounding): Set[Boolean] = this match {
+  def apply(x: Box): Set[Boolean] = this match {
     case True            => Set(true)
     case False           => Set(false)
     case Or(left, right) => for (l <- left(x); r <- right(x)) yield l || r
@@ -41,7 +41,7 @@ sealed abstract class Predicate {
    * Evaluate the predicate by composing with the enclosure and taking the
    * variables to range over the domains of the variables.
    */
-  def apply(x: UnivariateAffineEnclosure)(implicit rnd: Rounding): Set[Boolean] = this match {
+  def apply(x: UnivariateAffineEnclosure): Set[Boolean] = this match {
     case True            => Set(true)
     case Or(left, right) => for (l <- left(x); r <- right(x)) yield l || r
     case All(ps) => {
@@ -59,7 +59,7 @@ sealed abstract class Predicate {
    * Compute an interval box wrapping the intersection of x with the support
    * of the predicate.
    */
-  def support(x: Box)(implicit rnd: Rounding): Box =
+  def support(x: Box): Box =
     if (this(x) == Set(false)) sys.error("empty box")
     else this match {
     case True  => x

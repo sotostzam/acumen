@@ -3,7 +3,6 @@ package acumen.interpreters.enclosure.affine
 import acumen.interpreters.enclosure.Interval._
 import acumen.ui.interpreter.Enclosure
 import java.awt.Color
-import acumen.interpreters.enclosure.Rounding
 import acumen.interpreters.enclosure.Interval
 
 /**
@@ -18,7 +17,7 @@ case class PaddedUnivariateAffineScalarEnclosure private[enclosure] (
   override val normalizedDomain: Interval,
   override val constant: Interval,
   override val coefficient: Interval,
-  padding: Interval => Interval)(implicit rnd: Rounding)
+  padding: Interval => Interval)
     extends UnivariateAffineScalarEnclosure {
   assert(normalizedDomain.low equalTo 0,
     "The low end-point of the normalizedDomain should be zero!")
@@ -29,8 +28,6 @@ case class PaddedUnivariateAffineScalarEnclosure private[enclosure] (
       normalizedDomain,
       constant,
       coefficient)
-
-  override def rounding = rnd
 
   /** The low bound enclosure of this enclosure. */
   override def low =
@@ -73,7 +70,7 @@ case class PaddedUnivariateAffineScalarEnclosure private[enclosure] (
    * interval and the box should be thin, i.e. each interval should have zero
    * width.
    */
-  private def evalThinAtThin(x: Interval)(implicit rnd: Rounding): Interval = {
+  private def evalThinAtThin(x: Interval): Interval = {
     //    assert(normalizedDomain contains x,
     //      "The enclosure must be evaluated over sub-intervals of the normalizedDomain.")
     constant + coefficient * x
@@ -85,7 +82,7 @@ case class PaddedUnivariateAffineScalarEnclosure private[enclosure] (
    * Since the enclosure is a safe approximation of any contained function
    * the range also safely approximates the range of any such function.
    */
-  override def range(implicit rnd: Rounding): Interval = this(domain)
+  override def range: Interval = this(domain)
 
   /**
    * Containment of enclosures.
@@ -95,7 +92,7 @@ case class PaddedUnivariateAffineScalarEnclosure private[enclosure] (
    * be decided by comparing the upper and lower bounds of the
    * enclosures at the domain's end-points.
    */
-  override def contains(that: UnivariateAffineScalarEnclosure)(implicit rnd: Rounding) = {
+  override def contains(that: UnivariateAffineScalarEnclosure) = {
     assert(this.domain == that.domain, "Containment is only defined for enclosures over the same domain.")
     val lo = domain.low
     val hi = domain.high
@@ -130,7 +127,7 @@ case class PaddedUnivariateAffineScalarEnclosure private[enclosure] (
         domain,
         normalizedDomain,
         this(lo) /\ that(lo),
-        Interval(0),
+        Interval.zero,
         newPadding(_))
     else {
       val thisLo = this.low
@@ -169,7 +166,7 @@ case class PaddedUnivariateAffineScalarEnclosure private[enclosure] (
         domain,
         normalizedDomain,
         this.constant /\ that.constant,
-        Interval(0),
+        Interval.zero,
         newPadding)
     else {
       val resConstant = this.constant /\ that.constant
@@ -193,7 +190,7 @@ case class PaddedUnivariateAffineScalarEnclosure private[enclosure] (
    * enclosure, redefined over a sub-interval of its domain.
    */
   //TODO Add property
-  override def restrictTo(subDomain: Interval)(implicit rnd: Rounding): PaddedUnivariateAffineScalarEnclosure = {
+  override def restrictTo(subDomain: Interval): PaddedUnivariateAffineScalarEnclosure = {
     require((domain contains subDomain) && (normalizedDomain contains 0 /\ subDomain.width.high))
     PaddedUnivariateAffineScalarEnclosure(
       subDomain,
@@ -227,11 +224,11 @@ object PaddedUnivariateAffineScalarEnclosure {
       e.normalizedDomain,
       e.constant,
       e.coefficient,
-      padding)(e.rounding)
+      padding)
 
   /** Convenience method, normalizes the domain. */
   //  private[enclosure] 
-  def apply(domain: Interval, constant: Interval, coefficient: Interval, padding: Interval => Interval)(implicit rnd: Rounding): PaddedUnivariateAffineScalarEnclosure =
+  def apply(domain: Interval, constant: Interval, coefficient: Interval, padding: Interval => Interval): PaddedUnivariateAffineScalarEnclosure =
     PaddedUnivariateAffineScalarEnclosure(
       domain, 0 /\ domain.width.high,
       constant,
@@ -239,7 +236,7 @@ object PaddedUnivariateAffineScalarEnclosure {
       padding)
 
   /** Lifts a constant interval to a constant enclosure. */
-  def apply(domain: Interval, constant: Interval, padding: Interval => Interval)(implicit rnd: Rounding): PaddedUnivariateAffineScalarEnclosure = {
+  def apply(domain: Interval, constant: Interval, padding: Interval => Interval): PaddedUnivariateAffineScalarEnclosure = {
     PaddedUnivariateAffineScalarEnclosure(
       domain,
       constant,

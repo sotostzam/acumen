@@ -7,7 +7,6 @@ import acumen.interpreters.enclosure.Types.UncertainState
 import acumen.interpreters.enclosure.Types.endTimeInterval
 import acumen.interpreters.enclosure.EnclosureInterpreterCallbacks
 import acumen.interpreters.enclosure.Interval
-import acumen.interpreters.enclosure.Rounding
 import acumen.interpreters.enclosure.affine.UnivariateAffineEnclosure
 import acumen.interpreters.enclosure.Util
 import acumen.interpreters.enclosure.HybridSystem
@@ -31,7 +30,7 @@ trait JanSolver extends TreeEventEncloser {
     d: Double, // minimum time step size
     e: Double, // maximum time step size
     output: String, // path to write output 
-    cb: EnclosureInterpreterCallbacks)(implicit rnd: Rounding): Seq[UnivariateAffineEnclosure] = {
+    cb: EnclosureInterpreterCallbacks): Seq[UnivariateAffineEnclosure] = {
 
     // TODO add description
     def solveHybrid(
@@ -41,10 +40,9 @@ trait JanSolver extends TreeEventEncloser {
 
       def localizeEvents: Interval = {
         def maybeContainsEvent(x: Interval): Boolean = {
-          
           true
         }
-        null
+        ??? // was null
       }
 
       val onT = Ss.map(solveVtE(H, T, _, delta, m, n, degree, K, cb.log))
@@ -103,8 +101,8 @@ trait JanSolver extends TreeEventEncloser {
             }
             //          lazy val noImprovement = nowhereBetter || somewhereWorse
             lazy val improvement = {
-              val onT = endTimeInterval(ssT).values.foldLeft(Interval(0)) { case (res, i) => i.width + res }
-              val onrT = endTimeInterval(ssrT).values.foldLeft(Interval(0)) { case (res, i) => i.width + res }
+              val onT = endTimeInterval(ssT).values.foldLeft(Interval.zero) { case (res, i) => i.width + res }
+              val onrT = endTimeInterval(ssrT).values.foldLeft(Interval.zero) { case (res, i) => i.width + res }
               onT - onrT
             }
 

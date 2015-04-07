@@ -9,7 +9,6 @@ import acumen.interpreters.enclosure.Interval
 import acumen.interpreters.enclosure.Multiply
 import acumen.interpreters.enclosure.Negate
 import acumen.interpreters.enclosure.Plus
-import acumen.interpreters.enclosure.Rounding
 import acumen.interpreters.enclosure.Variable
 import acumen.interpreters.enclosure.affine.UnivariateAffineEnclosure
 import scala.collection.mutable.ArrayBuffer
@@ -29,7 +28,7 @@ trait LohnerSolver extends PicardSolver {
     m: Int, // extra iterations after inclusion of iterates
     n: Int, // maximum number of iterations before inclusion of iterates
     degree: Int // number of pieces to split each initial condition interval
-    )(implicit rnd: Rounding): (PaddedUnivariateAffineEnclosure, Box) = {
+    ): (PaddedUnivariateAffineEnclosure, Box) = {
     val enclosure = super.solveIVP(F, T, A.midpoint, delta, m, n, degree)
     val (midpointEnclosure, midpointEndTimeBox) = enclosure
     val logNormBound = F.jacobianLogMaxNorm(A).high

@@ -5,7 +5,6 @@ import acumen.interpreters.enclosure.Box.toBox
 import acumen.interpreters.enclosure.Field
 import acumen.interpreters.enclosure.Interval
 import acumen.interpreters.enclosure.Interval.toInterval
-import acumen.interpreters.enclosure.Rounding
 import acumen.interpreters.enclosure.Types.VarName
 import acumen.interpreters.enclosure.affine.AffineEnclosure
 import acumen.interpreters.enclosure.affine.AffineScalarEnclosure
@@ -38,7 +37,7 @@ trait SolveVt {
     m: Int, // extra iterations after inclusion of iterates
     n: Int, // maximum number of iterations before inclusion of iterates
     degree: Int // number of pieces to split each initial condition interval 
-    )(implicit rnd: Rounding): UnivariateAffineEnclosure = {
+    ): UnivariateAffineEnclosure = {
 
     val timeName = A.keys.fold("_")(_ + _)
     val a = initialConditionsAsFunctions(timeName, A, T)
@@ -63,7 +62,7 @@ trait SolveVt {
    * Iteration may not terminate (e.g. when F is not Leipzig) and is stopped
    * after n attempts.
    */
-  private def iterationLimitReached(i: Int, n: Int)(T: Interval)(implicit rnd: Rounding) =
+  private def iterationLimitReached(i: Int, n: Int)(T: Interval) =
     if (i < n) false else sys.error("solveVt: terminated at " + T + " after " + n + " Picard iterations")
 
   /**
@@ -71,7 +70,7 @@ trait SolveVt {
    * Naively, this could be thought of as replacing each occurrence of a_i
    * in the solution with its corresponding A_i.
    */
-  private def convertToSolutionOnlyOfTime(approx: AffineEnclosure, timeName: VarName, T: Interval)(implicit rnd: Rounding) = {
+  private def convertToSolutionOnlyOfTime(approx: AffineEnclosure, timeName: VarName, T: Interval) = {
     val onNornaizedDomain = approx.collapse((approx.domain.keys.toList.filterNot{_ == timeName}): _*)
     AffineEnclosure(
       onNornaizedDomain.domain.mapValues(_ => T), // assuming only variable is timeName
@@ -84,7 +83,7 @@ trait SolveVt {
   /**
    * The Picard operator
    */
-  private def picard(timeName: VarName, a: AffineEnclosure, F: Field)(X: AffineEnclosure)(implicit rnd: Rounding): AffineEnclosure = {
+  private def picard(timeName: VarName, a: AffineEnclosure, F: Field)(X: AffineEnclosure): AffineEnclosure = {
     a + (F(X).primitive(timeName))
   }
 
@@ -92,7 +91,7 @@ trait SolveVt {
    * Represent each interval A_i in A as a variable a_i, corresponding to an
    * identity function \x. x
    */
-  private def initialConditionsAsFunctions(timeName: VarName, A: Box, T: Interval)(implicit rnd: Rounding) = {
+  private def initialConditionsAsFunctions(timeName: VarName, A: Box, T: Interval) = {
     val domain = A + (timeName -> 0 /\ T.width) // NOTE: translated t to [0,T.hi-T.lo]
     AffineEnclosure(domain, A.keys.toSeq: _*) // [(t,a1,...,an) -> (a1,...,an)]
   }

@@ -6,7 +6,7 @@ import Interval._
 trait Contract {
 
   /** Contracts the environment box for the variables in the relation. */
-  def contract(rel: Relation)(env: Box)(implicit rnd: Rounding): Box = {
+  def contract(rel: Relation)(env: Box): Box = {
     rel match {
       case BinaryRelation(relname, l, r) => relname match {
         case Eq       => contractEq(l, r)(env)
@@ -16,7 +16,7 @@ trait Contract {
     }
   }
 
-  def contractEq(left: Expression, right: Expression)(env: Box)(implicit rnd: Rounding): Box = {
+  def contractEq(left: Expression, right: Expression)(env: Box): Box = {
     val ranl = left(env)
     val ranr = right(env)
     if (ranl almostEqualTo ranr) {
@@ -35,14 +35,14 @@ trait Contract {
     }
   }
 
-  def contractNeq(left: Expression, right: Expression)(env: Box)(implicit rnd: Rounding): Box = {
+  def contractNeq(left: Expression, right: Expression)(env: Box): Box = {
     val ranl = left(env)
     val ranr = right(env)
     if (!ranl.isThin || !ranr.isThin || !ranl.equalTo(ranr)) env
     else sys.error("contracted to empty box") // only when both lhs and rhs are thin can equality be established
   }
 
-  def contractLeq(left: Expression, right: Expression)(env: Box)(implicit rnd: Rounding): Box = {
+  def contractLeq(left: Expression, right: Expression)(env: Box): Box = {
     val leftRan = left(env)
     val rightRan = right(env)
     if (leftRan lessThanOrEqualTo rightRan) env
@@ -62,7 +62,7 @@ trait Contract {
   }
 
   /** Contracts the environment box for the variables in the expression. */
-  def contract(env: Box, ran: Interval, e: Expression)(implicit rnd: Rounding): Box = {
+  def contract(env: Box, ran: Interval, e: Expression): Box = {
     val contracted = backPropagate(env, ran, e)
     if (env == contracted) env
     else contract(contracted, ran \/ e(contracted), e)
@@ -70,7 +70,7 @@ trait Contract {
 
   object Arg extends Enumeration { type Arg = Value; val Left, Right = Value }; import Arg._
 
-  def backPropagate(env: Box, ran: Interval, expr: Expression)(implicit rnd: Rounding): Box = expr match {
+  def backPropagate(env: Box, ran: Interval, expr: Expression): Box = expr match {
     case Constant(_)    => env
     case Variable(name) => env + (name -> env(name) \/ ran)
     case Abs(e) =>
@@ -124,7 +124,7 @@ trait Contract {
       left \/ right
   }
 
-  def inverseRelation(env: Box, ran: Interval, arg: Arg, e: Expression)(implicit rnd: Rounding): Interval = e match {
+  def inverseRelation(env: Box, ran: Interval, arg: Arg, e: Expression): Interval = e match {
     case Plus(l, r) => arg match {
       case Left  => ran - r(env)
       case Right => ran - l(env)

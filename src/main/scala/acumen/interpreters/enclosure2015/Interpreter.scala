@@ -31,7 +31,7 @@ import util.DebugUtil.{
 }
 import enclosure.{
   Abs, Box, Constant, Contract, Cos, Divide, Expression, Field, 
-  Interval, Negate, Parameters, Rounding, Sin, Sqrt
+  Interval, Negate, Parameters, Rounding, Sin, Sqrt, Tan
 }
 import enclosure.Types.VarName
 import acumen.interpreters.enclosure.Transcendentals
@@ -138,7 +138,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
       } catch { case e: Throwable => None } // FIXME Use Either to propagate error information 
     }
     /** Returns a copy of e with das applied to it. */
-    def apply(das: Set[DelayedAction]): Enclosure = 
+    def apply(das: Set[CollectedAction]): Enclosure = 
       update(das.map(d => (d.selfCId, d.lhs.field) -> evalExpr(d.rhs, d.env, this.e)).toMap)
     /** Update e with respect to u. */
     def update(u: Map[(CId, Name), CValue]) =
@@ -238,11 +238,11 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
   /** Return type of AST traversal (evalActions) */
   case class Changeset
     ( reps:   Set[(CId,CId)]         = Set.empty // reparentings
-    , dis:    Set[DelayedAction]     = Set.empty // discrete assignments
-    , eqs:    Set[DelayedAction]     = Set.empty // continuous assignments / algebraic equations
-    , odes:   Set[DelayedAction]     = Set.empty // ode assignments / differential equations
-    , claims: Set[DelayedConstraint] = Set.empty // claims / constraints
-    , hyps:   Set[DelayedHypothesis] = Set.empty // hypotheses
+    , dis:    Set[CollectedAction]     = Set.empty // discrete assignments
+    , eqs:    Set[CollectedAction]     = Set.empty // continuous assignments / algebraic equations
+    , odes:   Set[CollectedAction]     = Set.empty // ode assignments / differential equations
+    , claims: Set[CollectedConstraint] = Set.empty // claims / constraints
+    , hyps:   Set[CollectedHypothesis] = Set.empty // hypotheses
     ) {
     def ||(that: Changeset) =
       that match {
@@ -269,18 +269,18 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
     def logReparent(o:CId, parent:CId): Set[Changeset] =
       Set(Changeset(reps = Set((o,parent))))
     def logAssign(path: Expr, o: CId, a: Action, env: Env): Set[Changeset] =
-      Set(Changeset(dis = Set(DelayedAction(path,o,a,env))))
+      Set(Changeset(dis = Set(CollectedAction(path,o,a,env))))
     def logEquation(path: Expr, o: CId, a: Action, env: Env): Set[Changeset] =
-      Set(Changeset(eqs = Set(DelayedAction(path,o,a,env))))
+      Set(Changeset(eqs = Set(CollectedAction(path,o,a,env))))
     def logODE(path: Expr, o: CId, a: Action, env: Env): Set[Changeset] =
-      Set(Changeset(odes = Set(DelayedAction(path,o,a,env))))
+      Set(Changeset(odes = Set(CollectedAction(path,o,a,env))))
     def logClaim(o: CId, c: Expr, env: Env) : Set[Changeset] =
-      Set(Changeset(claims = Set(DelayedConstraint(o,c,env))))
+      Set(Changeset(claims = Set(CollectedConstraint(o,c,env))))
     def logHypothesis(o: CId, s: Option[String], h: Expr, env: Env): Set[Changeset] =
-      Set(Changeset(hyps = Set(DelayedHypothesis(o,s,h,env))))
+      Set(Changeset(hyps = Set(CollectedHypothesis(o,s,h,env))))
     lazy val empty = Changeset()
   }
-  case class DelayedAction(path: Expr, selfCId: CId, a: Action, env: Env) {
+  case class CollectedAction(path: Expr, selfCId: CId, a: Action, env: Env) {
     def lhs: ResolvedDot = (a: @unchecked) match {
       case Discretely(Assign(d: ResolvedDot, _))      => d
       case Continuously(EquationT(d: ResolvedDot, _)) => d
@@ -294,8 +294,8 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
     override def toString() =
       s"$selfCId.${Pretty pprint (lhs: Expr)} = ${Pretty pprint rhs}"
   }
-  case class DelayedConstraint(selfCId: CId, c: Expr, env: Env)
-  case class DelayedHypothesis(selfCId: CId, s: Option[String], h: Expr, env: Env)
+  case class CollectedConstraint(selfCId: CId, c: Expr, env: Env)
+  case class CollectedHypothesis(selfCId: CId, s: Option[String], h: Expr, env: Env)
   
   import Changeset._
 
@@ -319,15 +319,15 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
   }
   object GConstantRealEnclosure {
     def apply(i: Interval): GConstantRealEnclosure = GConstantRealEnclosure(i,i,i)
-    def apply(d: Double)(implicit rnd: Rounding): GConstantRealEnclosure = GConstantRealEnclosure(Interval(d))
-    def apply(i: Int)(implicit rnd: Rounding): GConstantRealEnclosure = GConstantRealEnclosure(Interval(i))
+    def apply(d: Double): GConstantRealEnclosure = GConstantRealEnclosure(Interval(d))
+    def apply(i: Int): GConstantRealEnclosure = GConstantRealEnclosure(Interval(i))
   }
   type Real = GConstantRealEnclosure
   object Real {
     def apply(start: Interval, enclosure: Interval, end: Interval): Real = GConstantRealEnclosure(start,enclosure,end)
     def apply(i: Interval): Real = GConstantRealEnclosure(i,i,i)
-    def apply(d: Double)(implicit rnd: Rounding): Real = GConstantRealEnclosure(Interval(d))
-    def apply(i: Int)(implicit rnd: Rounding): Real = GConstantRealEnclosure(Interval(i))
+    def apply(d: Double): Real = GConstantRealEnclosure(Interval(d))
+    def apply(i: Int): Real = GConstantRealEnclosure(Interval(i))
   }
   abstract class GConstantDiscreteEnclosure[T](val start: Set[T], val enclosure: Set[T], val end: Set[T]) extends GDiscreteEnclosure[T] {
     def apply(t: Interval) = range
@@ -561,12 +561,26 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
   /** Purely functional unary operator evaluation at the ground values level */
   def unaryGroundOp[V](f:String, vx:GroundValue) = {
     def implem(f: String, x: Interval) = f match {
-      case "-"    => -x
-      case "abs"  => x.abs
-      case "sqrt" => x.sqrt
-      case "sin"  => rnd.transcendentals.sin(x)
-      case "cos"  => rnd.transcendentals.cos(x)
-      case _      => throw UnknownOperator(f)
+      case "-"      => -x
+      case "abs"    => x.abs
+      case "sin"    => x.sin
+      case "cos"    => x.cos
+      case "tan"    => x.tan
+      case "acos"   => x.acos
+      case "asin"   => x.asin
+      case "atan"   => x.atan
+      case "exp"    => x.exp
+      case "log"    => x.log
+      case "log10"  => x.log10
+      case "sqrt"   => x.sqrt
+      case "cbrt"   => x.cbrt
+      case "ceil"   => x.ceil
+      case "floor"  => x.floor
+      case "sinh"   => x.sinh
+      case "cosh"   => x.cosh
+      case "tanh"   => x.tanh
+      case "signum" => x.signum
+      case _        => throw UnknownOperator(f)
     }
     (f, vx) match {
       case ("not", Uncertain | CertainTrue | CertainFalse) => Uncertain
@@ -577,12 +591,14 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
   /** Purely functional binary operator evaluation at the ground values level */
   def binGroundOp[V](f:String, vl:GEnclosure[V], vr:GEnclosure[V]): GroundValue = {
     def implemInterval(f:String, l:Interval, r:Interval) = f match {
-      case "+"   => l + r
-      case "-"   => l - r
-      case "*"   => if (l equalTo r) l.square else l * r
-      case "/"   => l / r
-      case "min" => Interval.min(l,r)
-      case "max" => Interval.max(l,r)
+      case "+"     => l + r
+      case "-"     => l - r
+      case "*"     => if (l equalTo r) l.square else l * r
+      case "^"     => l.pow(r)
+      case "/"     => l / r
+      case "atan2" => Interval.atan2(l, r)
+      case "min"   => Interval.min(l, r)
+      case "max"   => Interval.max(l, r)
     }
     // Based on implementations from acumen.interpreters.enclosure.Relation
     def implemBool(f:String, l:Interval, r:Interval): GBoolEnclosure = {
@@ -781,7 +797,14 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
       mkObj(cmain, mprog, None, sd1, List(VObjId(Some(CId(0)))), initStore, 1)
     val st2 = changeParent(CId(0), id, st1)
     val st3 = changeSeed(CId(0), sd2, st2)
-    (mprog, fromCStore(st3), NoMetadata)
+    val hyps = st3.toList.flatMap { case (cid, co) =>
+      mprog.defs.find(_.name == getCls(cid, st3)).get.body.flatMap {
+        case Hypothesis(s, e) =>
+          CollectedHypothesis(cid, s, e, Map(self -> VObjId(Some(cid)))) :: Nil
+        case _ => Nil
+    }}
+    val md = testHypotheses(fromCStore(st3).enclosure, 0, 0, mprog, NoMetadata) 
+    (mprog, fromCStore(st3), md)
   }
   
   /** Remove unsupported declarations and statements from the AST. */
@@ -804,7 +827,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
   lazy val initStore = Parser.run(Parser.store, initStoreTxt.format("#0"))
   val initStoreTxt: String = 
     s"""#0.0 { className = Simulator, parent = %s, nextChild = 0, seed1 = 0, seed2 = 0, variableCount = 0, 
-               outputRows = "All", continuousSkip = 0, resultType = @Discrete, 
+               outputRows = "All", continuousSkip = 0, resultType = @Initial, 
                ${visibleParameters.map(p => p._1 + "=" + pprint(p._2)).mkString(",")} }"""
 
   /** Updates the values of variables in xs (identified by CId and Dot.field) to the corresponding CValue. */
@@ -826,25 +849,22 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
   
   def step(p: Prog, st: Store, md: Metadata): StepRes = {
     val st1 = updateSimulator(p, st)
-    if (getTime(st1.enclosure) >= getEndTime(st1.enclosure)) {
+    if (getTime(st1.enclosure) >= getEndTime(st1.enclosure) && getResultType(st.enclosure) == FixedPoint) {
       Done(md, getEndTime(st1.enclosure))
     }
     else {
-      getResultType(st1.enclosure) match {
-        case Continuous =>
-          Data(setResultType(Discrete, st1), md)
-        case Discrete =>
-          Data(setResultType(FixedPoint, st1), md)
-        case FixedPoint => // Do hybrid step
-          val tNow = getTime(st1.enclosure)
-          val tNext = tNow + getTimeStep(st1.enclosure)
-          val T = Interval(tNow, tNext)
-          val st2 = hybridEncloser(T, p, st1) // valid enclosure over T
-          val md1 = testHypotheses(st2.enclosure, tNow, tNext, p, md)
-          val st3 = setResultType(Continuous, st2)
-          val st4 = setTime(tNext, st3)
-          Data(st4, md1)
+      val tNow = getTime(st1.enclosure)
+      val (tNext, resType) = getResultType(st1.enclosure) match {
+        case Continuous | Initial =>
+          (tNow, FixedPoint)
+        case FixedPoint =>
+          (tNow + getTimeStep(st1.enclosure), Continuous)
       }
+      val st2 = hybridEncloser(Interval(tNow, tNext), p, st1) // valid enclosure over T
+      val md1 = testHypotheses(st2.enclosure, tNow, tNext, p, md)
+      val st3 = setResultType(resType, st2)
+      val st4 = setTime(tNext, st3)
+      Data(st4, md1)
     }
   }
 
@@ -881,16 +901,20 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
   
   /** Summarize result of evaluating the hypotheses of all objects. */
   def testHypotheses(st: Enclosure, timeDomainLo: Double, timeDomainHi: Double, p: Prog, old: Metadata): Metadata = {
-    def testHypothesesOneChangeset(hs: Set[DelayedHypothesis]) =
+    def testHypothesesOneChangeset(hs: Set[CollectedHypothesis]) =
       if (hs isEmpty) NoMetadata
       else SomeMetadata(
-        (for (DelayedHypothesis(o, s, h, env) <- hs) yield {
+        (for (CollectedHypothesis(o, s, h, env) <- hs) yield {
           lazy val counterEx = dots(h).toSet[Dot].map(d => d -> (evalExpr(d, env, st) : GValue))
-          (o, getCls(o,st), s) -> (evalExpr(h, env, st) match {
-            /* Use TestSuccess as default as it is the unit of HypothesisOutcome.pick */
-            case VLit(CertainTrue)  => (None, None, CertainSuccess)
-            case VLit(Uncertain)    => (None, None, UncertainFailure(timeDomainLo, timeDomainHi, counterEx))
-            case VLit(CertainFalse) => (None, None, CertainFailure(timeDomainLo, timeDomainHi, counterEx))
+          (o, getCls(o,st), s) -> ((evalExpr(h, env, st), getResultType(st)) match {
+            /* Use TestSuccess as default as it is the unit of HypothesisOutcome.pick 
+             * For rigorous interpreters the momentary test is unused (middle element) */
+            case (VLit(CertainTrue),  Initial) => (Some(CertainSuccess), Some(TestSuccess), CertainSuccess)
+            case (VLit(CertainTrue),        _) => (Some(CertainSuccess), Some(TestSuccess), CertainSuccess)
+            case (VLit(Uncertain),    Initial) => (Some(UncertainFailure(timeDomainLo, timeDomainHi, counterEx)), Some(TestSuccess), UncertainFailure(timeDomainLo, timeDomainHi, counterEx))
+            case (VLit(Uncertain),          _) => (Some(CertainSuccess), Some(TestSuccess), UncertainFailure(timeDomainLo, timeDomainHi, counterEx))
+            case (VLit(CertainFalse), Initial) => (Some(CertainFailure(timeDomainLo, timeDomainHi, counterEx)), Some(TestSuccess), CertainFailure(timeDomainLo, timeDomainHi, counterEx))
+            case (VLit(CertainFalse),       _) => (Some(CertainSuccess), Some(TestSuccess), CertainFailure(timeDomainLo, timeDomainHi, counterEx))
           })
       }).toMap, timeDomainLo, timeDomainHi, true, None)
     old combine active(st, p).map(c => testHypothesesOneChangeset(c.hyps))
@@ -910,53 +934,78 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
     require(st.branches.nonEmpty, "hybridEncloser called with zero branches")
     require(st.branches.size < maxBranches, s"Number of branches (${st.branches.size}) exceeds maximum ($maxBranches).")
     Logger.debug(s"hybridEncloser (over $T, ${st.branches.size} branches)")
+    
+    // Strategy for merging the branches
     def mergeBranches(ics: List[InitialCondition]): List[InitialCondition] =
       ics.groupBy(ic => (ic._2, ic._3)).map { case ((m, t), ic) => (ic.map(_._1).reduce(_ /\ _), m, t) }.toList
+ 
+    // Process a list of ICs   
     @tailrec def enclose
       ( pwlW:  List[InitialCondition] // Waiting ICs, the statements that yielded them and time where they should be used
-      , pwlR:  List[Enclosure] // Enclosure (valid over all of T)
+      , pwlR:  List[Enclosure]        // Enclosure (valid over all of T)
       , pwlU:  List[InitialCondition] // Branches, i.e. states possibly valid at right end-point of T (ICs for next time segment)
-      , pwlP:  List[Enclosure] // Passed states at initial time
-      , pwlPs: List[Enclosure] // Passed states at uncertain time in T
-      , iterations: Int // Remaining iterations
+      , pwlP:  List[Enclosure]        // Passed states
+      , iterations: Int               // Remaining iterations
       ): Store =
+      // No more IC to process
       if (pwlW isEmpty) {
-        EnclosureAndBranches((pwlR union pwlP union pwlPs).reduce(_ /\ _), mergeBranches(pwlU))        
+        EnclosureAndBranches((pwlR union pwlP).reduce(_ /\ _), if (T.isThin) pwlU else mergeBranches(pwlU))      
       }
+      // Exceeding the maximum iterations per branch
       else if (iterations / st.branches.size > maxIterationsPerBranch)
         sys.error(s"Enclosure computation over $T did not terminate in ${st.branches.size * maxIterationsPerBranch} iterations.")
+      // Processing the next IC
       else {
         Logger.trace(s"enclose (${pwlW.size} waiting initial conditions, iteration $iterations)")
         val (w, q, t) :: waiting = pwlW
-        if (isPassed(w, t, pwlP, pwlPs))
-          enclose(waiting, pwlR, pwlU, pwlP, pwlPs, iterations + 1)
+        // An element may be ignored if it was passed already 
+        if (isPassed(w, pwlP))
+           enclose(waiting, pwlR, pwlU, pwlP, iterations + 1)
         else {
-          val (newP, newPs) = if (t == StartTime) (w :: pwlP, pwlPs) else (pwlP, w :: pwlPs)
+          // The set of active ChangeSets
           val hw = active(w, prog)
           checkValidChange(hw)
           if (q.nonEmpty && isFlow(q.head) && Set(q.head) == hw && t == UnknownTime)
             sys error "Model error!" // Repeated flow, t == UnknownTime means w was created in this time step
+          // Process the active ChangeSets
           val (newW, newR, newU) = encloseHw((w, q, t), hw)
-          enclose(waiting ::: newW, pwlR ::: newR, pwlU ::: newU, newP, newPs, iterations + 1)
+          
+          enclose(waiting ::: newW, pwlR ::: newR, pwlU ::: newU, w :: pwlP, iterations + 1)
         }
       }
+    // Process the active ChangeSets
     def encloseHw
       ( wqt: InitialCondition, hw: Set[Changeset]
       ): (List[InitialCondition], List[Enclosure], List[InitialCondition]) = {
       val (w, qw, t) = wqt
       hw.foldLeft((List.empty[InitialCondition], List.empty[Enclosure], List.empty[InitialCondition])) {
         case ((tmpW, tmpR, tmpU), q) =>
-          if (!isFlow(q)) {
-            Logger.trace(s"encloseHw (Not a flow)")
-            val wi = 
-              if (intersectWithGuardBeforeReset)
-                contract(w, q.dis.map(da => DelayedConstraint(da.selfCId, da.path, da.env)), prog)
-                  .fold(sys error "Empty intersection while contracting with guard. " + _, i => i)
-              else w
-            ((wi(q.dis), q :: qw, t) :: tmpW, tmpR, tmpU)
-          }
-          else if ((t == UnknownTime && qw.nonEmpty && qw.head == q) || T.isThin)
+          // q is not a flow
+          if (!isFlow(q)) 
+            // we process q if T is thin
+            if (T.isThin ||
+            // or T is not thin, but the time is unknown    
+               t == UnknownTime) {
+              Logger.trace(s"encloseHw (Not a flow)")
+              val wi = 
+                if (intersectWithGuardBeforeReset)
+                  contract(w, q.dis.map(da => CollectedConstraint(da.selfCId, da.path, da.env)), prog)
+                    .fold(sys error "Empty intersection while contracting with guard. " + _, i => i)
+                else w
+              ((wi(q.dis), q :: qw, t) :: tmpW, tmpR, tmpU)
+            }
+            // otherwise the non-flow q is not processed
+            else
+              (tmpW, tmpR, tmpU)
+
+          // q is a flow
+          // q is a repeated flow
+          else if (t == UnknownTime && qw.nonEmpty && qw.head == q)
             (tmpW, tmpR, tmpU)
+          // T is thin => the state will be an initial condition for the next time interval
+          else if (T.isThin)
+            (tmpW, tmpR, (w, qw, StartTime) :: tmpU)
+          // T is not thin, the flow is processed
           else {
             checkFlowDefined(prog, q, w)
             val s = continuousEncloser(q.odes, q.eqs, q.claims, T, prog, w)
@@ -980,10 +1029,11 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
         ((rp, e, UnknownTime) :: Nil, Nil)
       } else { // possible event
         Logger.trace(s"handleEvent (Possible event, |hr| = ${hr.size}, q.ass = {${q.dis.map(Pretty pprint _.a).mkString(", ")}})")
+        Logger.trace(s"handleEvent hr.odes = ${hr.map{cs => cs.odes.map(Pretty pprint _.a).mkString(", ")}}, hr.dis = ${hr.map{cs => cs.dis.map(Pretty pprint _.a).mkString(", ")}}")
         ((rp, e, UnknownTime) :: Nil, (up.right.get, e, StartTime) :: Nil)
       }
     }
-    enclose(st.branches, Nil, Nil, Nil, Nil, 0)
+    enclose(st.branches, Nil, Nil, Nil, 0)
   }
   
   /**
@@ -1006,8 +1056,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
   }
   
   /** Returns true if some element of passed contains s */
-  def isPassed(s: Enclosure, t: InitialConditionTime, P: List[Enclosure], P1: List[Enclosure]) =
-    (if (t == StartTime) P else P1) exists (_ contains s)
+  def isPassed(s: Enclosure, P: List[Enclosure]) = P exists (_ contains s)
   
   /** Returns true if the discrete assignments in cs are empty or have no effect on s. */
   def isFlow(cs: Changeset) = cs.dis.isEmpty
@@ -1017,7 +1066,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
    * NOTE: Returns Left if the support of any of the claims has an empty intersection with st,
    *       or if some other exception is thrown by contract.
    */
-  def contract(st: Enclosure, claims: Iterable[DelayedConstraint], prog: Prog): Either[String, Enclosure] = {
+  def contract(st: Enclosure, claims: Iterable[CollectedConstraint], prog: Prog): Either[String, Enclosure] = {
     /**
      * Given a predicate p and store st, removes that part of st for which p does not hold.
      * NOTE: The range of st is first computed, as contraction currently only works on intervals.  
@@ -1123,13 +1172,13 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
    *       are not allowed.
    */
   def continuousEncloser
-    ( odes: Set[DelayedAction] // Set of delayed ContinuousAction
-    , eqs: Set[DelayedAction]
-    , claims: Set[DelayedConstraint]
+    ( odes: Set[CollectedAction] // Set of delayed ContinuousAction
+    , eqs: Set[CollectedAction]
+    , claims: Set[CollectedConstraint]
     , T: Interval
     , p: Prog
     , st: Enclosure
-    )(implicit rnd: Rounding): Enclosure = {
+    ): Enclosure = {
     val ic = contract(st.end, claims, p) match {
       case Left(_) => sys.error("Initial condition violates claims {" + claims.map(c => pprint(c.c)).mkString(", ") + "}.")
       case Right(r) => r
@@ -1151,15 +1200,15 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
     }
     val odeSolutions = ic update solutionMap
     val equationsMap = inline(eqs, eqs, st).map { // LHSs of EquationsTs, including highest derivatives of ODEs
-      case DelayedAction(_, cid, Continuously(EquationT(ResolvedDot(_, _, n), rhs)), env) =>
+      case CollectedAction(_, cid, Continuously(EquationT(ResolvedDot(_, _, n), rhs)), env) =>
         (cid, n) -> evalExpr(rhs, env, odeSolutions)
     }.toMap
     odeSolutions update equationsMap
   }
 
   /** Convert odes into a Field compatible with acumen.interpreters.enclosure.ivp.IVPSolver. */
-  def getFieldFromActions(odes: Set[DelayedAction], st: Enclosure, p: Prog)(implicit rnd: Rounding): Field =
-    Field(odes.map { case DelayedAction(_, cid, Continuously(EquationI(ResolvedDot(_, _, n), rhs)), env) =>
+  def getFieldFromActions(odes: Set[CollectedAction], st: Enclosure, p: Prog): Field =
+    Field(odes.map { case CollectedAction(_, cid, Continuously(EquationI(ResolvedDot(_, _, n), rhs)), env) =>
       (fieldIdToName(cid, n), acumenExprToExpression(rhs, cid, env, st, p))
     }.toMap)
   
@@ -1171,9 +1220,9 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
    * NOTE: This implies a restriction on the programs that are accepted: 
    *       If the program contains an algebraic loop, an exception will be thrown.
    */
-  def inline(as: Set[DelayedAction], bs: Set[DelayedAction], st: CStore): Set[DelayedAction] = {
+  def inline(as: Set[CollectedAction], bs: Set[CollectedAction], st: CStore): Set[CollectedAction] = {
     val resolvedDotToDA = as.map(da => da.lhs -> da).toMap
-    def inline(hosts: Map[DelayedAction,List[DelayedAction]]): Set[DelayedAction] = {
+    def inline(hosts: Map[CollectedAction,List[CollectedAction]]): Set[CollectedAction] = {
       val next = hosts.map {
         case (host, inlined) =>
           dots(host.rhs).foldLeft((host, inlined)) {
@@ -1239,7 +1288,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
     })
   }
   
-  def acumenExprToExpression(e: Expr, selfCId: CId, env: Env, st: Enclosure, p: Prog)(implicit rnd: Rounding): Expression = {
+  def acumenExprToExpression(e: Expr, selfCId: CId, env: Env, st: Enclosure, p: Prog): Expression = {
     def convert(x: Expr) = acumenExprToExpression(x, selfCId, env, st, p)
     e match {
       case Lit(v) if v.eq(Constants.PI) => Constant(Interval.pi) // Test for reference equality not structural equality
@@ -1261,6 +1310,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
       case Op(Name("cos", 0), List(x))  => Cos(convert(x))
       case Op(Name("sin", 0), List(x))  => Sin(convert(x))
       case Op(Name("sqrt", 0), List(x)) => Sqrt(convert(x))
+      case Op(Name("tan", 0), List(x))  => Tan(convert(x))
       case Op(Name("-", 0), List(l, r)) => convert(l) - convert(r)
       case Op(Name("+", 0), List(l, r)) => convert(l) + convert(r)
       case Op(Name("/", 0), List(l, r)) => Divide(convert(l), convert(r))

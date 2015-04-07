@@ -25,7 +25,11 @@ libraryDependencies ++= Seq (
 resolvers += "acumen" at "https://bitbucket.org/effective/acumen_maven-repo/raw/master/repository/"
 
 libraryDependencies ++= Seq (
-  "com.rapid_i" % "jpct" % "1.28"
+  "com.rapid_i" % "jpct" % "1.28",
+  "com.rapid_i" % "jinterval-interval-java-0.1-SNAPSHOT" % "0.1-SNAPSHOT",
+  "com.rapid_i" % "jinterval-rational-java-0.1-SNAPSHOT" % "0.1-SNAPSHOT",
+  "com.rapid_i" % "fortress-rounding-0.1-SNAPSHOT" % "0.1-SNAPSHOT",
+  "com.rapid_i" % "boehm-creals-0.1-SNAPSHOT" % "0.1-SNAPSHOT"
 )
 
 resolvers ++= Seq(

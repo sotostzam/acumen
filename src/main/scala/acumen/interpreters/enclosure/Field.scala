@@ -9,7 +9,7 @@ import acumen.interpreters.enclosure.affine.AffineEnclosure
  * Implementation note: TODO
  */
 // TODO write tests.
-case class Field(components: Map[VarName, Expression])(implicit rnd: Rounding) {
+case class Field(components: Map[VarName, Expression]) {
 
   lazy val variables = components.values.flatMap(_.varNames)
 
@@ -18,14 +18,14 @@ case class Field(components: Map[VarName, Expression])(implicit rnd: Rounding) {
    *
    * Implementation note: TODO
    */
-  def apply(x: AffineEnclosure)(implicit rnd: Rounding) = {
+  def apply(x: AffineEnclosure) = {
     AffineEnclosure(x.domain, x.normalizedDomain, components.mapValues(_(x)))
   }
 
   /**
    * The components of the Jacobian matrix of the field.
    */
-  private def jacobian(component: VarName, variable: VarName)(implicit rnd: Rounding): Expression = {
+  private def jacobian(component: VarName, variable: VarName): Expression = {
     require(components.keySet contains component, this + " must have a " + component + " component!")
     components(component).dif(variable)
   }
@@ -44,7 +44,7 @@ case class Field(components: Map[VarName, Expression])(implicit rnd: Rounding) {
   /**
    * The logarithmic norm for the max norm evaluated in the Jacobian of the field.
    */
-  def jacobianLogMaxNorm(b: Box)(implicit rnd: Rounding): Interval =
+  def jacobianLogMaxNorm(b: Box): Interval =
     Interval.max(components.keys.map(component => {
       (components.keySet - component).foldLeft(jacobian(component)(component)(b)) {
         case (res, variable) => res + jacobian(component)(variable)(b)

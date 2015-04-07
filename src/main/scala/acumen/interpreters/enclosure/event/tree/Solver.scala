@@ -7,7 +7,6 @@ import acumen.interpreters.enclosure.Types.UncertainState
 import acumen.interpreters.enclosure.Types.endTimeInterval
 import acumen.interpreters.enclosure.EnclosureInterpreterCallbacks
 import acumen.interpreters.enclosure.Interval
-import acumen.interpreters.enclosure.Rounding
 import acumen.interpreters.enclosure.Util
 import acumen.interpreters.enclosure.event.pwl.PWLEventEncloser
 import acumen.interpreters.enclosure.affine.UnivariateAffineEnclosure
@@ -42,7 +41,7 @@ trait Solver extends TreeEventEncloser {
     d: Double, // minimum time step size
     e: Double, // maximum time step size
     minComputationImprovement: Double, // minimum improvement of enclosure
-    cb: EnclosureInterpreterCallbacks)(implicit rnd: Rounding): Seq[UnivariateAffineEnclosure] = {
+    cb: EnclosureInterpreterCallbacks): Seq[UnivariateAffineEnclosure] = {
     cb.endTime = T.hiDouble
     solveHybrid(H, T, Ss, delta, m, n, degree, K, d, e, minComputationImprovement, cb)._2
   }
@@ -61,7 +60,7 @@ trait Solver extends TreeEventEncloser {
     e: Double, // maximum time step size
     minComputationImprovement: Double, // minimum improvement of enclosure
     cb: EnclosureInterpreterCallbacks // carrier for call-backs for communicating with the GUI
-    )(implicit rnd: Rounding): (Set[UncertainState], Seq[UnivariateAffineEnclosure]) = {
+    ): (Set[UncertainState], Seq[UnivariateAffineEnclosure]) = {
     //    println("solveHybrid: on so" + T)
     val mustSplit = T.width greaterThan e
     val (lT, rT) = T.split
@@ -129,8 +128,8 @@ trait Solver extends TreeEventEncloser {
             }
             //          lazy val noImprovement = nowhereBetter || somewhereWorse
             lazy val improvement = {
-              val onT = endTimeInterval(ssT).values.foldLeft(Interval(0)) { case (res, i) => i.width + res }
-              val onrT = endTimeInterval(ssrT).values.foldLeft(Interval(0)) { case (res, i) => i.width + res }
+              val onT = endTimeInterval(ssT).values.foldLeft(Interval.zero) { case (res, i) => i.width + res }
+              val onrT = endTimeInterval(ssrT).values.foldLeft(Interval.zero) { case (res, i) => i.width + res }
               onT - onrT
             }
 

@@ -22,7 +22,7 @@ trait PicardSolver extends IVPSolver {
     m: Int, // extra iterations after inclusion of iterates
     n: Int, // maximum number of iterations before inclusion of iterates
     degree: Int // number of pieces to split each initial condition interval
-    )(implicit rnd: Rounding): (UnivariateAffineEnclosure, Box) = {
+    ): (UnivariateAffineEnclosure, Box) = {
     val as = degree match {
       case 1          => Set(A)
       case d if d > 1 => A.refine(degree, A.keySet.filter(name => !(F.components(name) == Constant(0))).toSeq: _*)
@@ -57,7 +57,7 @@ trait PicardSolver extends IVPSolver {
     delta: Double, // padding 
     m: Int, // extra iterations after inclusion of iterates
     n: Int // maximum number of iterations before inclusion of iterates
-    )(implicit rnd: Rounding): UnivariateAffineEnclosure = {
+    ): UnivariateAffineEnclosure = {
 
     val timeName = A.keys.fold("_")(_ + _)
     val a = initialConditionsAsFunctions(timeName, A, T)
@@ -84,7 +84,7 @@ trait PicardSolver extends IVPSolver {
    * Iteration may not terminate (e.g. when F is not Leipzig) and is stopped
    * after n attempts.
    */
-  private def iterationLimitReached(i: Int, n: Int)(T: Interval)(implicit rnd: Rounding) =
+  private def iterationLimitReached(i: Int, n: Int)(T: Interval) =
     if (i < n) false else throw PicardIterationsExceeded(T, n)
   //      sys.error("solveVt: terminated at " + T + " after " + n + " Picard iterations")
 
@@ -93,7 +93,7 @@ trait PicardSolver extends IVPSolver {
    * Naively, this could be thought of as replacing each occurrence of a_i
    * in the solution with its corresponding A_i.
    */
-  private def convertToSolutionOnlyOfTime(approx: AffineEnclosure, timeName: VarName, T: Interval)(implicit rnd: Rounding) = {
+  private def convertToSolutionOnlyOfTime(approx: AffineEnclosure, timeName: VarName, T: Interval) = {
     val onNornaizedDomain = approx.collapse((approx.domain.keys.toList.filterNot{_ == timeName}): _*)
     AffineEnclosure(
       onNornaizedDomain.domain.mapValues(_ => T), // assuming only variable is timeName
@@ -108,7 +108,7 @@ trait PicardSolver extends IVPSolver {
   /**
    * The Picard operator
    */
-  private def picard(timeName: VarName, a: AffineEnclosure, F: Field)(X: AffineEnclosure)(implicit rnd: Rounding): AffineEnclosure = {
+  private def picard(timeName: VarName, a: AffineEnclosure, F: Field)(X: AffineEnclosure): AffineEnclosure = {
     //    try {
     a + (F(X).primitive(timeName))
     //    } catch { case _ => throw PicardOverflow() }
@@ -118,7 +118,7 @@ trait PicardSolver extends IVPSolver {
    * Represent each interval A_i in A as a variable a_i, corresponding to an
    * identity function \x. x
    */
-  private def initialConditionsAsFunctions(timeName: VarName, A: Box, T: Interval)(implicit rnd: Rounding) = {
+  private def initialConditionsAsFunctions(timeName: VarName, A: Box, T: Interval) = {
     val domain = A + (timeName -> 0 /\ T.width) // NOTE: translated t to [0,T.hi-T.lo]
     AffineEnclosure(domain, A.keys.toSeq: _*) // [(t,a1,...,an) -> (a1,...,an)]
   }

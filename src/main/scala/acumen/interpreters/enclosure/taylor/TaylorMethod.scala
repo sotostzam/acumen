@@ -13,7 +13,6 @@ import acumen.interpreters.enclosure.Log
 import acumen.interpreters.enclosure.Multiply
 import acumen.interpreters.enclosure.Negate
 import acumen.interpreters.enclosure.Plus
-import acumen.interpreters.enclosure.Rounding
 import acumen.interpreters.enclosure.Sin
 import acumen.interpreters.enclosure.Sqrt
 import acumen.interpreters.enclosure.Variable
@@ -29,12 +28,12 @@ trait TaylorMethod {
    * TODO: assuming each call within a single simulation is with the same d the
    * map allocated inside should be re-used!
    */
-  def taylorMethod(f: Field, d: Int, b: Box, h: Interval)(implicit rnd: Rounding) = {
+  def taylorMethod(f: Field, d: Int, b: Box, h: Interval) = {
     val polyTable = taylorTable(f, d, b, h)
     //    val restTable = taylorTable(f, d + 1, b.mapValues(_ => h /\ 0), h)
     val polyValue = Box.toBox(f.components.map {
       case (variable, _) =>
-        variable -> polyTable(variable).reverse.tail.fold(Interval(0))(_ + _)
+        variable -> polyTable(variable).reverse.tail.fold(Interval.zero)(_ + _)
     })
     //    val restValue = Box.toBox(f.components.map {
     //      case (variable, _) =>
@@ -46,7 +45,7 @@ trait TaylorMethod {
   /**
    * FIXME add description.
    */
-  def taylorTable(f: Field, d: Int, b: Box, h: Interval)(implicit rnd: Rounding) = {
+  def taylorTable(f: Field, d: Int, b: Box, h: Interval) = {
     val table = new scala.collection.mutable.HashMap[Expression, scala.collection.mutable.ArrayBuffer[Interval]]
     val variables = f.components.keys.map(Variable(_))
     for (variable <- variables) table += variable -> (new scala.collection.mutable.ArrayBuffer() += b(variable.name))
@@ -62,7 +61,7 @@ trait TaylorMethod {
         res
       }
       table(e) = e match {
-        case Constant(v) => table(e) += Interval(0)
+        case Constant(v) => table(e) += Interval.zero
         case Variable(n) => table(e)
         case Negate(e)   => table(e).map(-(_))
         case Sqrt(e)     => sys.error("undefined")
@@ -95,7 +94,7 @@ trait TaylorMethod {
    *
    * Note: See "Introduction to Automatic Differentiation" by Rall and Corliss, pp. 4-5.
    */
-  def taylorTerms(e: Expression, d: Int, b: Box, h: Box)(implicit rnd: Rounding): Array[Interval] = {
+  def taylorTerms(e: Expression, d: Int, b: Box, h: Box): Array[Interval] = {
     require(e.varNames.forall(b.keySet.contains(_)), "each variable in " + e + " must have have a domain in " + b)
     val table = new scala.collection.mutable.HashMap[Expression, Array[Interval]]()
     def addToTable(x: Expression) = {
@@ -114,8 +113,8 @@ trait TaylorMethod {
         res
       }
       x match {
-        case Constant(v)    => table += x -> (v :: (1 to d).toList.map(_ => Interval(0))).toArray
-        case Variable(n)    => table += x -> (b(n) :: h(n) :: (1 until d).toList.map(_ => Interval(0))).toArray
+        case Constant(v)    => table += x -> (v :: (1 to d).toList.map(_ => Interval.zero)).toArray
+        case Variable(n)    => table += x -> (b(n) :: h(n) :: (1 until d).toList.map(_ => Interval.zero)).toArray
         case Negate(e)      => table += x -> table(e).map(-(_))
         case Sqrt(e)        => sys.error("undefined")
         case Exp(e)         => sys.error("undefined")
@@ -159,8 +158,8 @@ object TaylorMethodApp extends App with TaylorMethod {
 
   val f = Field(Map("" -> Variable("")))
   val d = 10
-  val b = Box("" -> Interval(1))
+  val b = Box("" -> Interval.one)
 
-  println(taylorMethod(f, d, b, 1)(rnd)("")) // FIXME account for truncation error in taylorMethod 
+  println(taylorMethod(f, d, b, 1)("")) // FIXME account for truncation error in taylorMethod 
 
 }

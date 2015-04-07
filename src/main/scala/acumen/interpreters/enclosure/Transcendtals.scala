@@ -66,8 +66,8 @@ case class Transcendentals(ps: Parameters) {
 
   private val cosineDomain = Interval(0, 1.6) // Where we will compute the solution
   private val initialCondition = Box(
-    "y" -> Interval(1), // y(0) = 1
-    "y'" -> Interval(0)); // y'(0) = 0
+    "y" -> Interval.one, // y(0) = 1
+    "y'" -> Interval.zero); // y'(0) = 0
   private val cosineInitialConditionStateEnclosure =
     new StateEnclosure(Map(mode -> Some(initialCondition)));
 
@@ -100,14 +100,14 @@ case class Transcendentals(ps: Parameters) {
   def cos(x: Interval) = {
 
     // quadrants
-    val firstQuadrant = Interval(0) /\ (pi / 2)
+    val firstQuadrant = Interval.zero /\ (pi / 2)
     val secondQuadrant = (pi / 2) /\ pi
 
     // cosine over [0,2pi]
     def cos2pi(x: Interval) = {
-      val dom = Interval(0) /\ pi * 2
+      val dom = Interval.zero /\ pi * 2
       require(dom contains x, x + " is not contained in " + dom)
-      val firstTwoQuadrants = Interval(0) /\ pi
+      val firstTwoQuadrants = Interval.zero /\ pi
       val secondTwoQuadrants = pi /\ (pi * 2)
 
       if (firstTwoQuadrants contains x) cospi(x)
@@ -144,11 +144,11 @@ case class Transcendentals(ps: Parameters) {
 
     // returned result
     if (x.width greaterThanOrEqualTo pi * 2) Interval(-1, 1)
-    else if ((Interval(0) /\ pi * 2) contains x) cos2pi(x)
+    else if ((Interval.zero /\ pi * 2) contains x) cos2pi(x)
     else {
       val absx = x.abs // cosine is an even function 
       var i = 0
-      while (!(Interval(0) /\ pi * 2 contains (absx - (pi * i)))) {
+      while (!(Interval.zero /\ pi * 2 contains (absx - (pi * i)))) {
         if (i > maxCosineIterations)
           sys.error(s"Evaluation of trigonometric function over $x did not terminate in $maxCosineIterations iterations.")
         i += 1

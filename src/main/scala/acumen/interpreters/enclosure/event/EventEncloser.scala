@@ -3,7 +3,6 @@ package acumen.interpreters.enclosure.event
 import acumen.interpreters.enclosure.HybridSystem
 import acumen.interpreters.enclosure.Interval
 import acumen.interpreters.enclosure.Parameters
-import acumen.interpreters.enclosure.Rounding
 import acumen.interpreters.enclosure.StateEnclosure
 import acumen.interpreters.enclosure.ivp.IVPSolver
 import acumen.interpreters.enclosure.affine.UnivariateAffineEnclosure
@@ -25,10 +24,10 @@ trait EventEncloser {
     h: HybridSystem, // the system 
     t: Interval, // the time interval 
     s: StateEnclosure // initial states at t.low
-    )(implicit rnd: Rounding): (StateEnclosure, StateEnclosure)
+    ): (StateEnclosure, StateEnclosure)
 
   // FIXME move to a method of UnivariateAffineEnclosure
-  def significantImprovement(eOld: UnivariateAffineEnclosure, eNew: UnivariateAffineEnclosure, x: Interval, minComputationImprovement: Double)(implicit rnd: Rounding) = {
+  def significantImprovement(eOld: UnivariateAffineEnclosure, eNew: UnivariateAffineEnclosure, x: Interval, minComputationImprovement: Double) = {
     val normOld = eOld(x).l1Norm
     val normNew = eNew(x).l1Norm
     normOld - normNew greaterThan minComputationImprovement
