@@ -22,24 +22,24 @@ initially
   // ba2 Vehicle 2 acceleration after t=10 (m/s2)
   s = create Scenario(
 //|-------------------------------------------------------------------------------------------
-//| x1,   y1,   x1v,  y1v,  x2,   y2,   x2v,  y2v,  ba2
+//| x1,   y1,   x1v,  y1v,  x2,   y2,   x2v,  y2v,  ba2    s
 //|-------------------------------------------------------------------------------------------
-//  0,   -75,     0,   10,   9,    0,    -3,    0,    3   // 1 No collision, detection in turn
-//  0,   -81,     0,   10,   9,    0,    -3,    0,    3   // 2 No collision, detection late in turn
-//  0,   -90,     0,   10,   9,    0,    -3,    0,    3   // 3 No collision, detection after turn
-//  0,  -100,     0,    8,   9,    0,    -3,    0,   -1   // 4 No collision, decelerate after turn  <<< This scenario points to an issue with the braking logic
-  0,   -90,     0,   15,   9,    0,    -3,    0,    3   // 5 Near collision, detection in turn
-//  0,   -80,     0,   16,   9,    0,    -3,    0,  -10   // 6 Collision, stop after turn
-//  0,   -50,     0,   21,   9,    0,    -3,    0,    3   // 7 Collision in turn
-//  0,   -60,     0,   10,   9,    0,    -3,    0,    0   // 8 Slow collision
-//  0,   -80,     0,   21,   9,    0,    -3,    0,    3   // 9 Fast collision   
+//  0,   -75,     0,   10,   9,    0,    -3,    0,    3,   1  // No collision, detection in turn
+//  0,   -81,     0,   10,   9,    0,    -3,    0,    3,   2  // No collision, detection late in turn
+//  0,   -90,     0,   10,   9,    0,    -3,    0,    3,   3  // No collision, detection after turn
+//  0,  -100,     0,    8,   9,    0,    -3,    0,   -1,   4  // No collision, decelerate after turn  <<< This scenario points to an issue with the braking logic
+  0,   -90,     0,   15,   9,    0,    -3,    0,    3,   5  // Near collision, detection in turn
+//  0,   -80,     0,   16,   9,    0,    -3,    0,  -10,   6  // Collision, stop after turn
+//  0,   -50,     0,   21,   9,    0,    -3,    0,    3,   7  // Collision in turn
+//  0,   -60,     0,   10,   9,    0,    -3,    0,    0,   8  // Slow collision
+//  0,   -80,     0,   21,   9,    0,    -3,    0,    3,   9  // Fast collision   
 //|-------------------------------------------------------------------------------------------
   ),
   _3DView = (),
   _3D = ()
 always
 
-  hypothesis "No collision" s.state12 ~= "1-Post-Collision", // Requires time step 2^(-10)
+  hypothesis "No collision" s.s <= 5 || s.state12 ~= "1-Post-Collision", // Requires time step 2^(-10) when s = 5
 
   simulator.endTime+ = 15,
 //  simulator.timeStep+ = 0.000976562, // 2^(-10)
@@ -136,7 +136,8 @@ model Scenario
   , y2  // Vehicle 2 initial position in y dimension (m)
   , x2v // Vehicle 2 initial speed    in x dimension (m/s)
   , y2v // Vehicle 2 initial speed    in y dimension (m/s)
-  , ba2 // Vehicle 2 acceleration after t=10 (m/s2)
+  , ba2 // Vehicle 2 acceleration in the Act mode (m/s2)
+  , s   // Scenario number
   ) =
 initially
 
