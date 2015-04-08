@@ -109,21 +109,41 @@ sealed abstract class Expression {
    * Precondition: the box must contain the names of all variables in the
    * expression.
    * 
-   * NOTE: For sqrt and exp, Interval over-approximations are used.
+   * NOTE: Interval over-approximations are used for:
+   *       abs, sin, cos, tan, acos, asin, atan, exp, log, log10, 
+   *       sqrt, cbrt, ceil, floor, sinh, cosh, tanh, signum, ^, 
+   *       atan2, min, max.
    */
   def apply(x: AffineEnclosure): AffineScalarEnclosure = this match {
     case Constant(v)    => AffineScalarEnclosure(x.domain, v)
     case Variable(name) => x(name)
     case Negate(e)      => -e(x)
-    case Sqrt(e)        => AffineScalarEnclosure(x.domain, e(x).range.sqrt) // FIXME Interval over-approximation!
-    case Exp(e)         => AffineScalarEnclosure(x.domain, e(x).range.exp) // FIXME Interval over-approximation!
-    case Log(e)         => sys.error("undefined")
-    case Cos(e)         => AffineScalarEnclosure(x.domain, e(x).range.cos)
+    // FIXME Interval over-approximations!
+    case Abs(e)         => AffineScalarEnclosure(x.domain, e(x).range.abs)
     case Sin(e)         => AffineScalarEnclosure(x.domain, e(x).range.sin)
+    case Cos(e)         => AffineScalarEnclosure(x.domain, e(x).range.cos)
     case Tan(e)         => AffineScalarEnclosure(x.domain, e(x).range.tan)
+    case ACos(e)        => AffineScalarEnclosure(x.domain, e(x).range.acos)
+    case ASin(e)        => AffineScalarEnclosure(x.domain, e(x).range.asin)
+    case ATan(e)        => AffineScalarEnclosure(x.domain, e(x).range.atan)
+    case Exp(e)         => AffineScalarEnclosure(x.domain, e(x).range.exp)  
+    case Log(e)         => AffineScalarEnclosure(x.domain, e(x).range.log)
+    case Log10(e)       => AffineScalarEnclosure(x.domain, e(x).range.log10)
+    case Sqrt(e)        => AffineScalarEnclosure(x.domain, e(x).range.sqrt)
+    case Cbrt(e)        => AffineScalarEnclosure(x.domain, e(x).range.cbrt)
+    case Ceil(e)        => AffineScalarEnclosure(x.domain, e(x).range.ceil)
+    case Floor(e)       => AffineScalarEnclosure(x.domain, e(x).range.floor)
+    case Sinh(e)        => AffineScalarEnclosure(x.domain, e(x).range.sinh)
+    case Cosh(e)        => AffineScalarEnclosure(x.domain, e(x).range.cosh)
+    case Tanh(e)        => AffineScalarEnclosure(x.domain, e(x).range.tanh)
+    case Signum(e)      => AffineScalarEnclosure(x.domain, e(x).range.signum)
     case Plus(l, r)     => l(x) + r(x)
     case Multiply(l, r) => l(x) * r(x)
+    case Pow(l, r)      => AffineScalarEnclosure(x.domain, l(x).range pow r(x).range)
     case Divide(l, r)   => rnd.transcendentals.div(l(x), r(x))
+    case ATan2(l, r)    => AffineScalarEnclosure(x.domain, Interval.atan2(l(x).range, r(x).range))
+    case Min(l, r)      => AffineScalarEnclosure(x.domain, Interval.min(l(x).range, r(x).range))
+    case Max(l, r)      => AffineScalarEnclosure(x.domain, Interval.max(l(x).range, r(x).range))
   }
 
   /**
@@ -259,60 +279,59 @@ case class Variable(name: String) extends Expression {
   def variables: Set[VarName] = Set(name)
 }
 
-case class Abs(expression: Expression) extends Expression {
-  override def toString = "abs(" + expression + ")"
+abstract class UnaryFunction(name: String) extends Expression {
+  override def toString = s"$name($expression)"
+  /** Parameter */
+  def expression: Expression
   def variables: Set[VarName] = expression.variables
 }
 
-case class Sqrt(expression: Expression) extends Expression {
-  override def toString = "sqrt(" + expression + ")"
-  def variables: Set[VarName] = expression.variables
-}
-
-case class Exp(expression: Expression) extends Expression {
-  override def toString = "exp(" + expression + ")"
-  def variables: Set[VarName] = expression.variables
-}
-
-case class Log(expression: Expression) extends Expression {
-  override def toString = "exp(" + expression + ")"
-  def variables: Set[VarName] = expression.variables
-}
-
-case class Sin(expression: Expression) extends Expression {
-  override def toString = "sin(" + expression + ")"
-  def variables: Set[VarName] = expression.variables
-}
-
-case class Cos(expression: Expression) extends Expression {
-  override def toString = "cos(" + expression + ")"
-  def variables: Set[VarName] = expression.variables
-}
-
-case class Tan(expression: Expression) extends Expression {
-  override def toString = "tan(" + expression + ")"
-  def variables: Set[VarName] = expression.variables
-}
+case class Abs    (expression: Expression) extends UnaryFunction("abs")
+case class Sin    (expression: Expression) extends UnaryFunction("sin")
+case class Cos    (expression: Expression) extends UnaryFunction("cos")
+case class Tan    (expression: Expression) extends UnaryFunction("tan")
+case class ACos   (expression: Expression) extends UnaryFunction("acos")
+case class ASin   (expression: Expression) extends UnaryFunction("asin")
+case class ATan   (expression: Expression) extends UnaryFunction("atan")
+case class Exp    (expression: Expression) extends UnaryFunction("exp")
+case class Log    (expression: Expression) extends UnaryFunction("log")
+case class Log10  (expression: Expression) extends UnaryFunction("log10")
+case class Sqrt   (expression: Expression) extends UnaryFunction("sqrt")
+case class Cbrt   (expression: Expression) extends UnaryFunction("cbrt")
+case class Ceil   (expression: Expression) extends UnaryFunction("ceil")
+case class Floor  (expression: Expression) extends UnaryFunction("floor")
+case class Sinh   (expression: Expression) extends UnaryFunction("sinh")
+case class Cosh   (expression: Expression) extends UnaryFunction("cosh")
+case class Tanh   (expression: Expression) extends UnaryFunction("tanh")
+case class Signum (expression: Expression) extends UnaryFunction("signum")
 
 case class Negate(expression: Expression) extends Expression {
   override def toString = "-" + expression
   def variables: Set[VarName] = expression.variables
 }
 
-case class Plus(left: Expression, right: Expression) extends Expression {
-  override def toString = "(" + left + " + " + right + ")"
+abstract class BinaryOp(name: String) extends Expression {
+  override def toString = s"($left $name $right)"
+  def left: Expression
+  def right: Expression
   def variables: Set[VarName] = left.variables ++ right.variables
 }
 
-case class Multiply(left: Expression, right: Expression) extends Expression {
-  override def toString = "(" + left + " * " + right + ")"
-  def variables: Set[VarName] = left.variables ++ right.variables
-}
+case class Plus     (left: Expression, right: Expression) extends BinaryOp("+")
+case class Multiply (left: Expression, right: Expression) extends BinaryOp("*")
+case class Pow      (left: Expression, right: Expression) extends BinaryOp("^")
+case class Divide   (left: Expression, right: Expression) extends BinaryOp("/")
 
-case class Divide(left: Expression, right: Expression) extends Expression {
-  override def toString = "(" + left + " / " + right + ")"
+abstract class BinaryFunction(name: String) extends Expression {
+  override def toString = s"$name($left, $right)"
+  def left: Expression
+  def right: Expression
   def variables: Set[VarName] = left.variables ++ right.variables
-}
+} 
+
+case class ATan2 (left: Expression, right: Expression) extends BinaryFunction("atan2")
+case class Min   (left: Expression, right: Expression) extends BinaryFunction("min")
+case class Max   (left: Expression, right: Expression) extends BinaryFunction("max")
 
 object ExpressionApp extends App {
 
