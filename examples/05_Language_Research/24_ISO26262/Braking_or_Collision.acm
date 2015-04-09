@@ -45,11 +45,11 @@ always
   hypothesis "No collision" s.n <= 5 || s.state12 ~= "1-Post-Collision", // Requires time step 2^(-10) when s = 5
 
   simulator.endTime+ = 15,
-//  simulator.timeStep+ = 0.000976562, // 2^(-10)
+  simulator.timeStep+ = 0.0009765625, // 2^(-10)
 //  simulator.timeStep+ = 0.001953125, // 2^(-9)
 //  simulator.timeStep+ = 0.00390625, // 2^(-8)
 //  simulator.timeStep+ = 0.0078125, // 2^(-7)
-  simulator.timeStep+ = 0.015625, // 2^(-6)
+//  simulator.timeStep+ = 0.015625, // 2^(-6)
 //  simulator.timeStep+ = 0.03125, // 2^(-5)
 //  simulator.timeStep+ = 0.0625, // 2^(-4)
 //  simulator.timeStep+ = 0.05,
