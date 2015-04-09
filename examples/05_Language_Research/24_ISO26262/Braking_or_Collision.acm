@@ -44,7 +44,7 @@ initially
   _3D = ()
 always
 
-  hypothesis "No collision" s.n <= 5 || s.state12 ~= "1-Post-Collision", // Requires time step 2^(-10) when s = 5
+  hypothesis "No collision" s.n <= 5 || s.state12 ~= "1-Post-Collision", // Requires time step 2^(-10) when s.n = 5
 
   simulator.endTime+ = 15,
   simulator.timeStep+ = 0.0009765625, // 2^(-10)
