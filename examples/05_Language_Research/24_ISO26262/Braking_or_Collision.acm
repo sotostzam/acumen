@@ -11,35 +11,38 @@
 model Main(simulator) =
 initially
   // A scenario is defined by:
-  // x1  Vehicle 1 initial position in x dimension (m)
-  // y1  Vehicle 1 initial position in y dimension (m)
-  // x1v Vehicle 1 initial speed    in x dimension (m/s)
-  // y1v Vehicle 1 initial speed    in y dimension (m/s)
-  // x2  Vehicle 2 initial position in x dimension (m)
-  // y2  Vehicle 2 initial position in y dimension (m)
-  // x2v Vehicle 2 initial speed    in x dimension (m/s)
-  // y2v Vehicle 2 initial speed    in y dimension (m/s)
-  // ba2 Vehicle 2 acceleration after t=10 (m/s2)
+  // x1    Vehicle 1 initial position in x dimension (m)
+  // y1    Vehicle 1 initial position in y dimension (m)
+  // x1v   Vehicle 1 initial speed    in x dimension (m/s)
+  // y1v   Vehicle 1 initial speed    in y dimension (m/s)
+  // x2    Vehicle 2 initial position in x dimension (m)
+  // y2    Vehicle 2 initial position in y dimension (m)
+  // x2v   Vehicle 2 initial speed    in x dimension (m/s)
+  // y2v   Vehicle 2 initial speed    in y dimension (m/s)
+  // ba2   Vehicle 2 acceleration after t=10 (m/s2)
+  // ttcpb Vehicle 1 pre-brake ttc threshold (s)
+  // ttcfb Vehicle 1 full-brake ttc threshold (s)
+  // i     Scenario number
   s = create Scenario(
 //|-------------------------------------------------------------------------------------------
-//| x1,   y1,   x1v,  y1v,  x2,   y2,   x2v,  y2v,  ba2    s
+//| x1,  y1, x1v, y1v, x2, y2, x2v, y2v, ba2, ttcpb, ttcfb,  i
 //|-------------------------------------------------------------------------------------------
-//  0,   -75,     0,   10,   9,    0,    -3,    0,    3,   1  // No collision, detection in turn
-//  0,   -81,     0,   10,   9,    0,    -3,    0,    3,   2  // No collision, detection late in turn
-//  0,   -90,     0,   10,   9,    0,    -3,    0,    3,   3  // No collision, detection after turn
-//  0,  -100,     0,    8,   9,    0,    -3,    0,   -1,   4  // No collision, decelerate after turn  <<< This scenario points to an issue with the braking logic
-  0,   -90,     0,   15,   9,    0,    -3,    0,    3,   5  // Near collision, detection in turn
-//  0,   -80,     0,   16,   9,    0,    -3,    0,  -10,   6  // Collision, stop after turn
-//  0,   -50,     0,   21,   9,    0,    -3,    0,    3,   7  // Collision in turn
-//  0,   -60,     0,   10,   9,    0,    -3,    0,    0,   8  // Slow collision
-//  0,   -80,     0,   21,   9,    0,    -3,    0,    3,   9  // Fast collision   
+//  0,  -75,   0,  10,  9,  0,  -3,   0,   3,     2,   0.5,  1  // No collision, detection in turn
+//  0,  -81,   0,  10,  9,  0,  -3,   0,   3,     2,   0.5,  2  // No collision, detection late in turn
+//  0,  -90,   0,  10,  9,  0,  -3,   0,   3,     2,   0.5,  3  // No collision, detection after turn
+//  0, -100,   0,   8,  9,  0,  -3,   0,  -1,     2,   0.5,  4  // No collision, decelerate after turn  <<< This scenario points to an issue with the braking logic
+//  0,  -90,   0,  15,  9,  0,  -3,   0,   3,     2,   0.5,  5  // Near collision, detection in turn
+//  0,  -80,   0,  16,  9,  0,  -3,   0, -10,     2,   0.5,  6  // Collision, stop after turn
+//  0,  -50,   0,  21,  9,  0,  -3,   0,   3,     2,   0.5,  7  // Collision in turn
+//  0,  -60,   0,  10,  9,  0,  -3,   0,   0,     2,   0.5,  8  // Slow collision
+//  0,  -80,   0,  21,  9,  0,  -3,   0,   3,     2,   0.5,  9  // Fast collision     
 //|-------------------------------------------------------------------------------------------
   ),
   _3DView = (),
   _3D = ()
 always
 
-  hypothesis "No collision" s.s <= 5 || s.state12 ~= "1-Post-Collision", // Requires time step 2^(-10) when s = 5
+  hypothesis "No collision" s.n <= 5 || s.state12 ~= "1-Post-Collision", // Requires time step 2^(-10) when s = 5
 
   simulator.endTime+ = 15,
 //  simulator.timeStep+ = 0.000976562, // 2^(-10)
@@ -128,16 +131,18 @@ always
 //  _3DView = ((-15,s.y2-15,15), (s.x2,s.y2,0))
 
 model Scenario
-  ( x1  // Vehicle 1 initial position in x dimension (m)
-  , y1  // Vehicle 1 initial position in y dimension (m)
-  , x1v // Vehicle 1 initial speed    in x dimension (m/s)
-  , y1v // Vehicle 1 initial speed    in y dimension (m/s)
-  , x2  // Vehicle 1 initial position in x dimension (m)
-  , y2  // Vehicle 2 initial position in y dimension (m)
-  , x2v // Vehicle 2 initial speed    in x dimension (m/s)
-  , y2v // Vehicle 2 initial speed    in y dimension (m/s)
-  , ba2 // Vehicle 2 acceleration in the Act mode (m/s2)
-  , s   // Scenario number
+  ( x1    // Vehicle 1 initial position in x dimension (m)
+  , y1    // Vehicle 1 initial position in y dimension (m)
+  , x1v   // Vehicle 1 initial speed    in x dimension (m/s)
+  , y1v   // Vehicle 1 initial speed    in y dimension (m/s)
+  , x2    // Vehicle 1 initial position in x dimension (m)
+  , y2    // Vehicle 2 initial position in y dimension (m)
+  , x2v   // Vehicle 2 initial speed    in x dimension (m/s)
+  , y2v   // Vehicle 2 initial speed    in y dimension (m/s)
+  , ba2   // Vehicle 2 acceleration in the Act mode (m/s2)
+  , ttcpb // Vehicle 1 pre-brake ttc threshold (s)
+  , ttcfb // Vehicle 1 full-brake ttc threshold (s)
+  , n     // Scenario number
   ) =
 initially
 
@@ -147,18 +152,16 @@ initially
   m1 = 20000,
   x1' = x1v, x1'' = 0,
   y1' = y1v, y1'' = 0,
-  vw1 = 2, vl1 = 11,  // Width and length
-  flx1 = 0, fly1 = 0, // Front left corner
-  frx1 = 0, fry1 = 0, // Front right corner
-  rlx1 = 0, rly1 = 0, // Rear left corner
-  rrx1 = 0, rry1 = 0, // Rear right corner
-  pba   = -3,         // Pre-brake deceleration      m/s2
-  ttcpb =  2,         // Pre-brake ttc threshold     s
-  fba   = -6,         // Full-brake deceleration     m/s2
-  ttcfb =  0.5,       // Full-brake ttc threshold    s
-  mu    =  0.95,      // Brake efficiency            %/100
-  pcb   =  0,         // Post-collision deceleration m/s2
-  sr = 50, sw = 2,    // Sensor range and width
+  vw1 = 2, vl1 = 11,    // Width and length
+  flx1 = 0, fly1 = 0,   // Front left corner
+  frx1 = 0, fry1 = 0,   // Front right corner
+  rlx1 = 0, rly1 = 0,   // Rear left corner
+  rrx1 = 0, rry1 = 0,   // Rear right corner
+  pba   = -3,           // Pre-brake deceleration      m/s2
+  fba   = -6,           // Full-brake deceleration     m/s2
+  mu    =  0.95,        // Brake efficiency            %/100
+  pcb   =  0,           // Post-collision deceleration m/s2
+  sr = 50, sw = 2,      // Sensor range and width
  
   /* Vehicle 2 */
  
