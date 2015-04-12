@@ -1,30 +1,44 @@
 
 model Main(simulator) = 
-initially 
+initially
+
+// Red (r):  The target ball
   theta = 0, theta' = 0,
   l = 1, l' = 0,
-    
   x_r = 1, y_r = 0,// This is the target
- 
-  k_p = 5, k_d = 1,
 
+// Green (g):  The spherically controlled ball
+
+  x_g  = 0, y_g  = 0, 
+    theta_g = 0, theta_g' = 0, theta_g'' = 0,
+  l_g = 1,  l_g' = 0, l_g'' = 0,
+
+// Blue (b):  The cartesian analog
+
+  k_p = 5, k_d = 1,
   x_b  = 1, x_b' = 0, x_b'' = 0, 
   y_b  = 0, y_b' = 0, y_b'' = 0,
-  x_g  = 0, y_g  = 0, 
-  
-  theta_g = 0, theta_g' = 0, theta_g'' = 0,
-  l_g = 1,  l_g' = 0, l_g'' = 0,  
+
   _3D = ()
 always  
-  theta' = 1, l' = 0.5*sin(theta),
 
-  x_r = l * cos(theta), y_r = l * sin(theta),
+// Red(r): The target ball
+
+  theta' = 1, l' = 0.5*sin(theta),
+  
+   x_r = l * cos(theta), y_r = l * sin(theta),
+// x_r = -theta , y_r = -theta,
+
+// Green(g): The spherically-controlled ball
    
   theta_g'' = k_p * (theta - theta_g) - k_d * theta_g',
   l_g''     = k_p * (l - l_g) - k_d * l_g',
 
   x_g = l_g * cos(theta_g),
   y_g = l_g * sin(theta_g),
+
+// Blue(b):  The cartesian ball
+
   x_b'' = - y_b * theta_g'' - y_b' * theta_g' 
           - l_g'  * sin(theta_g) * theta_g' 
           + l_g'' * cos(theta_g),
@@ -33,6 +47,6 @@ always
           + l_g'  * cos(theta_g) * theta_g' 
           + l_g'' * sin(theta_g), 
   _3D = (Sphere center= (x_r, 0, y_r) size= 0.1 color= (1, 0, 0) rotation= (0,0,0),
-         Sphere center= (x_g, 0, y_g) size= 0.1 color= (0, 1, 0) rotation= (0,0,0),
-         Sphere center= (x_b, 0, y_b) size= 0.1 color= (0, 0, 1) rotation= (0,0,0))
+         Sphere center= (x_g, 0, y_g) size= 0.1 color= (0, 1, 0) rotation= (0,0,0))
+//         Sphere center= (x_b, 0, y_b) size= 0.1 color= (0, 0, 1) rotation= (0,0,0))
  

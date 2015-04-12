@@ -10,7 +10,7 @@ initially
            center=(-2.2,0,0)        // Starting point in [x,y,z] form
            size=0.75                // Font size
            color=yellow             // Color in red-green-blue (RGB) intensity
-           rotation=(0,0,0)      // Orientation (pi/2 around x-axis)
+           rotation=(0,0,0)         // Orientation (pi/2 around x-axis)
            content="Hello Acumen!") // Text you wish to display
 
 
