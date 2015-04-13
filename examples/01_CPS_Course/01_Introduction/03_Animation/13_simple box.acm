@@ -1,0 +1,21 @@
+
+// The simpe box
+
+model Main(simulator) = 
+initially
+  t   =  0,
+  t'  =  1,
+ _3D  =  ()
+always
+  t' = 1,
+  _3D = 
+  (Box 
+     center=(0,2*t,-t)
+     size=(5,1,0.1)
+     color=(1,0,0) 
+     rotation=(-pi*t,pi*t/20,0))
+
+// Exercises
+// 1) Does the box rotate during the animation?
+// 2) Display the area of the surface that changes
+//    size during the animation
