@@ -27,7 +27,6 @@ always
   theta' = 1, l' = 0.5*sin(theta),
   
    x_r = l * cos(theta), y_r = l * sin(theta),
-// x_r = -theta , y_r = -theta,
 
 // Green(g): The spherically-controlled ball
    
@@ -47,6 +46,6 @@ always
           + l_g'  * cos(theta_g) * theta_g' 
           + l_g'' * sin(theta_g), 
   _3D = (Sphere center= (x_r, 0, y_r) size= 0.1 color= (1, 0, 0) rotation= (0,0,0),
-         Sphere center= (x_g, 0, y_g) size= 0.1 color= (0, 1, 0) rotation= (0,0,0))
-//         Sphere center= (x_b, 0, y_b) size= 0.1 color= (0, 0, 1) rotation= (0,0,0))
+         Sphere center= (x_g, 0, y_g) size= 0.1 color= (0, 1, 0) rotation= (0,0,0),
+         Box    center= (x_b, 0, y_b) size= (0.14,0.14,0.14) color= (0, 0, 1) rotation= (0,0,0))
  
