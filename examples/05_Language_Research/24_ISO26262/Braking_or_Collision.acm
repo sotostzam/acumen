@@ -109,11 +109,10 @@ always
   , Sphere center = (s.x1-s.sw/2,s.ySensorFront,0) size = 0.1 color = yellow
     /* Vehicle 1 */
   , Obj
-    rotation = (pi/2,0,-pi)
-    center = (s.x1,s.y1+0.75,0.4)
+    rotation = (0,0,-pi/2)
+    center = (s.x1,s.y1+0.75,0.75)
     size = 100
-    color = blue
-    content = "truck.obj"
+    content = "truck"
   , Sphere center = (s.flx1,s.fly1,0) size = 0.1 color = blue
   , Sphere center = (s.frx1,s.fry1,0) size = 0.1 color = blue
   , Sphere center = (s.rlx1,s.rly1,0) size = 0.1 color = blue
