@@ -348,11 +348,13 @@ class ThreeDView extends JPanel {
   // create some light sources for the scene
   def letThereBeLight() = {
     // Set the overall brightness of the world:
-    world.setAmbientLight(-200, -200, -200)
+    world.setAmbientLight(-125, -125, -125)
     // Create main light sources:
-    world.addLight(new SimpleVector(15.076f, -7.904f, 0f), 12, 12, 12)
-    world.addLight(new SimpleVector(-15.076f, -7.904f, 0f), 12, 12, 12)
-    world.addLight(new SimpleVector(0, -8f, 0), 8, 8, 8)
+    world.addLight(new SimpleVector(150f, -80f, 0f), 18, 18, 18)
+    world.addLight(new SimpleVector(-150f, -80f, 0f), 18, 18, 18)
+    world.addLight(new SimpleVector(0f, -80f, -150f), 8, 8, 6)
+    world.addLight(new SimpleVector(0f, -80f, 150f), 8, 8, 8)
+    world.addLight(new SimpleVector(0, -80f, 0), 6, 6, 6)
   }
 
   def defaultView() = {
@@ -1191,13 +1193,13 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D, playSpeed: Double,
     val mtlFile = objectFiles.filter(file => file.getName.endsWith(".mtl"))
     // make sure there's only one object file
     if (objFile.isEmpty) throw _3DLoadFileError("Can not find object file for " + path)
-    else if (objFile.length > 1) throw _3DLoadFileError("Duplicate object files for" + path)
+    else if (objFile.length > 1) throw _3DLoadFileError("Duplicate object files for " + path)
     // load OBJ file
     val resultObject =
       if (objFile.head.getName.endsWith(".obj")) {
         // make sure there's only one material file
-        if (mtlFile.isEmpty) throw _3DLoadFileError("Can not find material file for" + path)
-        else if (mtlFile.length > 1) throw _3DLoadFileError("Duplicate material files for" + path)
+        if (mtlFile.isEmpty) throw _3DLoadFileError("Can not find material file for " + path)
+        else if (mtlFile.length > 1) throw _3DLoadFileError("Duplicate material files for " + path)
         else {
           for (texture <- textureFiles) {
             if (!TextureManager.getInstance().containsTexture(texture.getName))
@@ -1253,7 +1255,7 @@ class coAxis(characters: Map[Char, Object3D], mainBox: Object3D) {
   val mainbox = mainBox
   // add the main box
   mainbox.setShadingMode(Object3D.SHADING_FAKED_FLAT)
-  new setGlass(new Color(125, 125, 125), mainbox, 0)
+  new setGlass(new Color(50, 50, 50), mainbox, 0)
   cylinders(0) = mainbox
   for (x <- 1 until 4)
     cylinders(x) = Primitives.getCylinder(12, 0.01f, 50f)
