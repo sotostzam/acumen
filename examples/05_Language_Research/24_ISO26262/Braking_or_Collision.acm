@@ -79,11 +79,11 @@ always
   , Box                    // x-axis road
     center = (0,-1.5,-0.02)
     size = (1000,6,0.02)
-    color = white * 0.9
+    color = white * 0.93
   , Box                    // x-axis curb
     center = (0,-1.5,-0.025)
     size = (1000,9,0.02)
-    color = white * 0.95
+    color = white * 0.99
   , Box                    // x-axis road stripe
     center = (0,-1.5,-0.01)
     size = (1000,0.1,0.01)
@@ -91,11 +91,11 @@ always
   , Box                    // y-axis road
     center = (-1.5,0,-0.02)
     size = (6,1000,0.02)
-    color = white * 0.9
+    color = white * 0.93
   , Box                    // y-axis curb
     center = (-1.5,0,-0.025)
     size = (9,1000,0.02)
-    color = white * 0.95
+    color = white * 0.99
   , Box                    // y-axis road stripe
     center = (-1.5,0,-0.01)
     size = (0.1,1000,1/20)
