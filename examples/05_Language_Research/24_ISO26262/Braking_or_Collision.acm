@@ -11,41 +11,46 @@
 model Main(simulator) =
 initially
   // A scenario is defined by:
-  // x1    Vehicle 1 initial position in x dimension (m)
-  // y1    Vehicle 1 initial position in y dimension (m)
-  // x1v   Vehicle 1 initial speed    in x dimension (m/s)
-  // y1v   Vehicle 1 initial speed    in y dimension (m/s)
-  // x2    Vehicle 2 initial position in x dimension (m)
-  // y2    Vehicle 2 initial position in y dimension (m)
-  // x2v   Vehicle 2 initial speed    in x dimension (m/s)
-  // y2v   Vehicle 2 initial speed    in y dimension (m/s)
-  // ba2   Vehicle 2 acceleration after t=10         (m/s2)
-  // ttcpb Vehicle 1 pre-brake ttc threshold         (s)
-  // ttcfb Vehicle 1 full-brake ttc threshold        (s)
-  // pba   Vehicle 1 pre-brake deceleration          (m/s2)           
-  // fba   Vehicle 1 full-brake deceleration         (m/s2)   
-  // n     Scenario number
+  // x1     Vehicle 1 initial position in x dimension (m)
+  // y1     Vehicle 1 initial position in y dimension (m)
+  // x1v    Vehicle 1 initial speed    in x dimension (m/s)
+  // y1v    Vehicle 1 initial speed    in y dimension (m/s)
+  // x2     Vehicle 2 initial position in x dimension (m)
+  // y2     Vehicle 2 initial position in y dimension (m)
+  // x2v    Vehicle 2 initial speed    in x dimension (m/s)
+  // y2v    Vehicle 2 initial speed    in y dimension (m/s)
+  // ba2    Vehicle 2 acceleration after t=10         (m/s2)
+  // state2 Vehicle 2 automaton initial mode          (0-Pre-Turn/1-Turn/2-Post-Turn/3-Act)
+  // rot2   Vehicle 2 rotation                        (radians)
+  // ttcpb  Vehicle 1 pre-brake ttc threshold         (s)
+  // ttcfb  Vehicle 1 full-brake ttc threshold        (s)
+  // pba    Vehicle 1 pre-brake deceleration          (m/s2)           
+  // fba    Vehicle 1 full-brake deceleration         (m/s2)   
+  // n      Scenario number
   s = create Scenario(
 //|--------------------------------------------------------------------------------------------------------------------------------------------------------------
-//| x1,  y1, x1v,          y1v, x2, y2,  x2v, y2v,            ba2,      ttcpb,      ttcfb,         pba,         fba,  i
-//|--------------------------------------------------------------------------------------------------------------------------------------------------------------
-//  0,  -75,   0, [10.0..10.0],  9,  0, -3.0,   0, [  3.0..  3.0], [2.0..2.5], [0.5..0.7], -[3.0..3.5], -[6.0..7.0],  1  // No collision, detection in turn
-//  0,  -81,   0, [10.0..10.0],  9,  0, -3.0,   0, [  3.0..  3.0], [2.0..2.5], [0.5..0.7], -[3.0..3.5], -[6.0..7.0],  2  // No collision, detection late in turn
-//  0,  -90,   0, [10.0..10.0],  9,  0, -3.0,   0, [  3.0..  3.0], [2.0..2.5], [0.5..0.7], -[3.0..3.5], -[6.0..7.0],  3  // No collision, detection after turn
-//  0, -100,   0, [ 8.0.. 8.0],  9,  0, -3.0,   0, [ -1.0.. -1.0], [2.0..2.5], [0.5..0.7], -[3.0..3.5], -[6.0..7.0],  4  // No collision, decelerate after turn  <<< This scenario points to an issue with the braking logic
-//  0,  -90,   0, [15.0..15.0],  9,  0, -3.0,   0, [  3.0..  3.0], [2.0..2.5], [0.5..0.7], -[3.0..3.5], -[6.0..7.0],  5  // Near collision, detection in turn
-//  0,  -80,   0, [16.0..16.0],  9,  0, -3.0,   0, [-10.0..-10.0], [2.0..2.5], [0.5..0.7], -[3.0..3.5], -[6.0..7.0],  6  // Collision, stop after turn
-//  0,  -50,   0, [21.0..21.0],  9,  0, -3.0,   0, [  3.0..  3.0], [2.0..2.5], [0.5..0.7], -[3.0..3.5], -[6.0..7.0],  7  // Collision in turn
-//  0,  -60,   0, [10.0..10.0],  9,  0, -3.0,   0, [  0.0..  0.0], [2.0..2.5], [0.5..0.7], -[3.0..3.5], -[6.0..7.0],  8  // Slow collision
-//  0,  -80,   0, [21.0..21.0],  9,  0, -3.0,   0, [  3.0..  3.0], [2.0..2.5], [0.5..0.7], -[3.0..3.5], -[6.0..7.0],  9  // Fast collision
-  0, -100,   0, [20.0..24.0],  9,  0, -3.0,   0, [  3.0..  3.5], [2.0..2.5], [0.5..0.7], -[3.0..3.5], -[6.0..7.0],  10 // Fast collision, uncertain y1v and ba2
+//| n, x1,   y1, x1v,          y1v, x2, y2,  x2v,        y2v,            ba2,        state2, rot2,      ttcpb,      ttcfb,         pba,         fba 
+//|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+//  0,  0, -120,   0, [21.6..22.8],  0,  0,  0.0, [2.7..3.9], [  3.0..  3.0], "2-Post-Turn", pi/2, [3.5..3.5], [2.5..2.5], -[2.0..2.0], -[5.0..5.0] // No collision, case study
+//  1,  0,  -75,   0, [10.0..10.0],  9,  0, -3.0, [0.0..0.0], [  3.0..  3.0],  "0-Pre-Turn",    0, [2.0..2.5], [0.5..0.7], -[3.0..3.5], -[6.0..7.0] // No collision, detection in turn
+//  2,  0,  -81,   0, [10.0..10.0],  9,  0, -3.0, [0.0..0.0], [  3.0..  3.0],  "0-Pre-Turn",    0, [2.0..2.5], [0.5..0.7], -[3.0..3.5], -[6.0..7.0] // No collision, detection late in turn
+//  3,  0,  -90,   0, [10.0..10.0],  9,  0, -3.0, [0.0..0.0], [  3.0..  3.0],  "0-Pre-Turn",    0, [2.0..2.5], [0.5..0.7], -[3.0..3.5], -[6.0..7.0] // No collision, detection after turn
+//  4,  0, -100,   0, [ 8.0.. 8.0],  9,  0, -3.0, [0.0..0.0], [ -1.0.. -1.0],  "0-Pre-Turn",    0, [2.0..2.5], [0.5..0.7], -[3.0..3.5], -[6.0..7.0] // No collision, decelerate after turn
+//  5,  0,  -90,   0, [15.0..15.0],  9,  0, -3.0, [0.0..0.0], [  3.0..  3.0],  "0-Pre-Turn",    0, [2.0..2.5], [0.5..0.7], -[3.0..3.5], -[6.0..7.0] // Near collision, detection in turn
+//  6,  0,  -80,   0, [16.0..16.0],  9,  0, -3.0, [0.0..0.0], [-10.0..-10.0],  "0-Pre-Turn",    0, [2.0..2.5], [0.5..0.7], -[3.0..3.5], -[6.0..7.0] // Collision, stop after turn
+//  7,  0,  -50,   0, [21.0..21.0],  9,  0, -3.0, [0.0..0.0], [  3.0..  3.0],  "0-Pre-Turn",    0, [2.0..2.5], [0.5..0.7], -[3.0..3.5], -[6.0..7.0] // Collision in turn
+//  8,  0,  -60,   0, [12.0..14.0],  9,  0, -3.0, [0.0..0.0], [  0.0..  0.0],  "0-Pre-Turn",    0, [2.0..2.5], [0.5..0.7], -[3.0..3.5], -[6.0..7.0] // Slow collision
+//  9,  0,  -80,   0, [21.0..21.0],  9,  0, -3.0, [0.0..0.0], [  3.0..  3.0],  "0-Pre-Turn",    0, [2.0..2.5], [0.5..0.7], -[3.0..3.5], -[6.0..7.0] // Fast collision
 //|--------------------------------------------------------------------------------------------------------------------------------------------------------------
   ),
   _3DView = (),
   _3D = ()
 always
 
-  hypothesis "No collision" s.n <= 5 || s.state12 ~= "1-Post-Collision", // Requires time step 2^(-10) when s.n = 5
+  hypothesis "Collision" 
+             (s.n <= 5 && s.state12 ~= "1-Post-Collision")
+          || (s.n >  5 && (simulator.time < simulator.endTime || 
+                           s.state12 == "1-Post-Collision")), 
 
   simulator.endTime+ = 15,
   simulator.timeStep+ = 0.0009765625, // 2^(-10)
@@ -110,8 +115,8 @@ always
     /* Vehicle 1 */
   , Obj
     rotation = (0,0,-pi/2)
-    center = (s.x1,s.y1+0.75,0.75)
-    size = 100
+    center = (s.x1,s.y1+1.73,0.75)
+    size = 105
     content = "truck"
   , Sphere center = (s.flx1,s.fly1,0) size = 0.1 color = blue
   , Sphere center = (s.frx1,s.fry1,0) size = 0.1 color = blue
@@ -132,20 +137,22 @@ always
 //  _3DView = ((-15,s.y2-15,15), (s.x2,s.y2,0))
 
 model Scenario
-  ( x1    // Vehicle 1 initial position in x dimension (m)
-  , y1    // Vehicle 1 initial position in y dimension (m)
-  , x1v   // Vehicle 1 initial speed    in x dimension (m/s)
-  , y1v   // Vehicle 1 initial speed    in y dimension (m/s)
-  , x2    // Vehicle 1 initial position in x dimension (m)
-  , y2    // Vehicle 2 initial position in y dimension (m)
-  , x2v   // Vehicle 2 initial speed    in x dimension (m/s)
-  , y2v   // Vehicle 2 initial speed    in y dimension (m/s)
-  , ba2   // Vehicle 2 acceleration in the Act mode    (m/s2)
-  , ttcpb // Vehicle 1 pre-brake ttc threshold         (s)
-  , ttcfb // Vehicle 1 full-brake ttc threshold        (s)
-  , pba   // Vehicle 1 pre-brake deceleration          (m/s2)        
-  , fba   // Vehicle 1 full-brake deceleration         (m/s2)
-  , n     // Scenario number
+  ( n      // Scenario number
+  , x1     // Vehicle 1 initial position in x dimension (m)
+  , y1     // Vehicle 1 initial position in y dimension (m)
+  , x1v    // Vehicle 1 initial speed    in x dimension (m/s)
+  , y1v    // Vehicle 1 initial speed    in y dimension (m/s)
+  , x2     // Vehicle 1 initial position in x dimension (m)
+  , y2     // Vehicle 2 initial position in y dimension (m)
+  , x2v    // Vehicle 2 initial speed    in x dimension (m/s)
+  , y2v    // Vehicle 2 initial speed    in y dimension (m/s)
+  , ba2    // Vehicle 2 acceleration in the Act mode    (m/s2)
+  , state2 // Vehicle 2 automaton initial mode
+  , rot2   // Vehicle 2 rotation
+  , ttcpb  // Vehicle 1 pre-brake ttc threshold         (s)
+  , ttcfb  // Vehicle 1 full-brake ttc threshold        (s)
+  , pba    // Vehicle 1 pre-brake deceleration          (m/s2)        
+  , fba    // Vehicle 1 full-brake deceleration         (m/s2)
   ) =
 initially
 
@@ -166,13 +173,12 @@ initially
  
   /* Vehicle 2 */
  
-  state2 = "0-Pre-Turn",
   m2 = 1500,
   x2' = x2v, x2'' = 0,
   y2' = y2v, y2'' = 0,
   vw2 = 2, vl2 = 4.5,  // Width and length
   radius = 3,          // Turn radius
-  rot2 = 0, rot2' = 0, // Rotation
+  rot2' = 0,           // Angular velocity
   // Front left corner
   flx2 = x2 - 2/2 * sin(0) - 4.5/2 * cos(0),
   fly2 = y2 - 2/2 * cos(0) + 4.5/2 * sin(0),
@@ -201,7 +207,7 @@ initially
   collision_delta_xv2 = 0, collision_delta_yv2 = 0, // Estimate of damage to Vehicle 2
   sense = false,                          // Sensor area intersects Vehicle 2 (approxmation)
   collide = false,                        // Vehicle 1 intersects Vehicle 2 (approxmation)
-  lineSegmentDefinedBy = "leftSide",      // Either leftSide or rearSide side
+  lineSegmentDefinedBy = "rearSide",      // Either leftSide or rearSide side
   lineTilts = "right",
   sensorCornerAboveLine = false,          // Front of sensor area is above line segment defining Vehicle 2
   sensorFrontWithinLineSegmentXBounds = false,
@@ -333,12 +339,15 @@ always
 
   match lineSegmentDefinedBy with
   [ "leftSide" ->
-    if (sw/2 <= rlx2) then
+    if (0 <= rlx2) then
       ax = flx2, ay = fly2, bx = rlx2, by = rly2
     else
       lineSegmentDefinedBy+ = "rearSide"
   | "rearSide" ->
-    ax = rlx2, ay = rly2, bx = rrx2, by = rry2
+    if (rlx2 <= sw/2) then
+      ax = rlx2, ay = rly2, bx = rrx2, by = rry2
+    else
+      lineSegmentDefinedBy+ = "leftSide"
   ],
   // aboveLine = ySensorFront >= slope * sw/2 + xIntercept
   // slope = (ay - by) / (ax - bx), xIntercept = ay - slope * ax,
