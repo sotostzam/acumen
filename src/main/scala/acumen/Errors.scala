@@ -318,6 +318,16 @@ object Errors {
     override def getMessage = 
       "New Plot does not support enclosures"
   }
+
+  case class _3DObjectPathError(s:String) extends AcumenError {
+    override def getMessage =
+      s + " folder is not in _3D directory."
+  }
+
+  case class _3DLoadFileError(s:String) extends AcumenError {
+    override def getMessage =
+      s + " in _3D directory."
+  }
   
   /* Device Input Error */
   case class invalidInput(s: String) extends AcumenError {
