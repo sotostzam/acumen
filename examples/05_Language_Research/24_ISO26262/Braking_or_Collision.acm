@@ -119,11 +119,10 @@ always
   , Sphere center = (s.rrx1,s.rry1,0) size = 0.1 color = blue
     /* Vehicle 2 */
   , Obj
-    rotation = (pi/2,0,-s.rot2)
+    rotation = (0,0,-s.rot2)
     center = (s.x2,s.y2,0.5)
     size = 2.1
-    color = red
-    content = "car.obj"
+    content = "car"
   , Sphere center = (s.flx2,s.fly2,0) size = 0.1 color = red
   , Sphere center = (s.frx2,s.fry2,0) size = 0.1 color = red
   , Sphere center = (s.rlx2,s.rly2,0) size = 0.1 color = red
