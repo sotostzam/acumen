@@ -239,13 +239,13 @@ always
  
     /* Collision detection and handling */
     if collide then
-      x1'+ = (m1*x1' + m2*x2' + m2*c*(-xvdiff))/(m1 + m2),
+      // Caveat: This will only produce correct values in those 
+      //         scenarios where the collision happens from behind
+      //         and x1' and x2' are both negligible. Note that
+      //         this holds for the case study scenario.
       y1'+ = (m1*y1' + m2*y2' + m2*c*(-yvdiff))/(m1 + m2),
-      x2'+ = (m1*x1' + m2*x2' + m1*c*( xvdiff))/(m1 + m2), 
       y2'+ = (m1*y1' + m2*y2' + m1*c*( yvdiff))/(m1 + m2),
-      collision_delta_xv1+ = x1' - (m1*x1' + m2*x2' + m2*c*(-xvdiff))/(m1 + m2),
       collision_delta_yv1+ = y1' - (m1*y1' + m2*y2' + m2*c*(-yvdiff))/(m1 + m2),
-      collision_delta_xv2+ = x2' - (m1*x1' + m2*x2' + m1*c*( xvdiff))/(m1 + m2),  
       collision_delta_yv2+ = y2' - (m1*y1' + m2*y2' + m1*c*( yvdiff))/(m1 + m2),    
       state12+ = "1-Post-Collision"
     noelse,
