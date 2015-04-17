@@ -459,7 +459,7 @@ class ThreeDView extends JPanel {
       tranObjectRotMatrix.rotateX((-Pi / 2).toFloat)
       tranObjectRotMatrix.rotateY(Pi.toFloat)
     }
-    tranObjectRotMatrixZ.rotateZ(-angle(1).toFloat)
+    tranObjectRotMatrixZ.rotateZ(angle(1).toFloat)
     tranObjectRotMatrixY.rotateY(-angle(2).toFloat)
     tranObjectRotMatrixX.rotateX(angle(0).toFloat)
     tranObjectRotTempMat.matMul(tranObjectRotMatrixX)
