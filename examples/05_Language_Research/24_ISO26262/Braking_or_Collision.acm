@@ -247,10 +247,14 @@ always
       //         scenarios where the collision happens from behind
       //         and x1' and x2' are both negligible. Note that
       //         this holds for the case study scenario.
-      y1'+ = (m1*y1' + m2*y2' + m2*c*(-yvdiff))/(m1 + m2),
-      y2'+ = (m1*y1' + m2*y2' + m1*c*( yvdiff))/(m1 + m2),
-      collision_delta_yv1+ = y1' - (m1*y1' + m2*y2' + m2*c*(-yvdiff))/(m1 + m2),
-      collision_delta_yv2+ = y2' - (m1*y1' + m2*y2' + m1*c*( yvdiff))/(m1 + m2),    
+      // y1'+ = (m1*y1' + m2*y2' + m2*c*(-yvdiff))/(m1 + m2),
+      // y2'+ = (m1*y1' + m2*y2' + m1*c*( yvdiff))/(m1 + m2),
+      // collision_delta_yv1+ = y1' - (m1*y1' + m2*y2' + m2*c*(-yvdiff))/(m1 + m2),
+      // collision_delta_yv2+ = y2' - (m1*y1' + m2*y2' + m1*c*( yvdiff))/(m1 + m2), 
+      y1'+ = ((m1 - m2 * c)*y1' + m2*(1 + c)*y2')/(m1 + m2),
+      y2'+ = (m1*(1+c)*y1' + (m2 - m1 * c)*y2')/(m1 + m2),
+      collision_delta_yv1+ = - (m2*(1 + c)*y1' + m2*(1 + c)*y2')/(m1 + m2),
+      collision_delta_yv2+ = - (m1*(1 + c)*y1' + m1*(1 + c)*y2')/(m1 + m2),    
       state12+ = "1-Post-Collision"
     noelse,
    
@@ -357,16 +361,25 @@ always
   // slope = (ay - by) / (ax - bx), xIntercept = ay - slope * ax,
   match lineTilts with
   [ "right" ->
+//    sensorCornerAboveLine = ySensorFront*(ax - bx) 
+//                          < (ay - by)*sw/2 + (ay*(ax - bx) - (ay - by)*ax),
+//    v1CornerAboveLine     = v1Front*(ax - bx) 
+//                          < (ay - by)*vw1/2 + (ay*(ax - bx) - (ay - by)*ax),
     sensorCornerAboveLine = ySensorFront*(ax - bx) 
-                          < (ay - by)*sw/2 + (ay*(ax - bx) - (ay - by)*ax),
+                          < ay * (sw/2 - bx) + by * (ax  - sw/2),
     v1CornerAboveLine     = v1Front*(ax - bx) 
-                          < (ay - by)*vw1/2 + (ay*(ax - bx) - (ay - by)*ax),
+                          < ay * (vw1/2 - bx) + by * (ax - vw1/2),
+
     if (ax >= bx) then lineTilts+ = "left" noelse
   | "left" ->
+//    sensorCornerAboveLine = ySensorFront*(ax - bx) 
+//                         >= (ay - by)*sw/2 + (ay*bx) - (ay - by)*ax),
+//    v1CornerAboveLine     = v1Front*(ax - bx) 
+//                         >= (ay - by)*vw1/2 + (ay*(ax - bx) - (ay - by)*ax)
     sensorCornerAboveLine = ySensorFront*(ax - bx) 
-                         >= (ay - by)*sw/2 + (ay*(ax - bx) - (ay - by)*ax),
+                         >= ay * (sw/2 - bx) + by * (ax  - sw/2),
     v1CornerAboveLine     = v1Front*(ax - bx) 
-                         >= (ay - by)*vw1/2 + (ay*(ax - bx) - (ay - by)*ax)
+                         >= ay * (vw1/2 - bx) + by * (ax - vw1/2)
   ],
 
   /* Vehicle 1 and 2 boundaries */
