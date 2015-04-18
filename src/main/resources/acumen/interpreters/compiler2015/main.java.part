@@ -1,0 +1,81 @@
+  /**
+   * Generic simulator functions
+   **/
+  
+  /* Generic Continuous step (with Runge-Kutta integration) */
+  static void continuousStep(double h) {
+    double [] k1 = f(s, m);
+    double hOver2 = h/2.0;
+    double hOver6 = h/6.0;
+    double [] sk1 = new double[s.length];
+    for (int i = 0; i < s.length; i++) sk1[i] = s[i] + k1[i] * hOver2;
+    double [] k2 = f(sk1, m);
+    double [] sk2 = new double[s.length];
+    for (int i = 0; i < s.length; i++) sk2[i] = s[i] + k2[i] * hOver2;
+    double [] k3 = f(sk2, m);
+    double [] sk3 = new double[s.length];
+    for (int i = 0; i < s.length; i++) sk3[i] = s[i] + k3[i] * hOver2;
+    double [] k4 = f(sk3, m);
+    for (int i = 0; i < s.length; i++) 
+      sNext[i] = s[i] + (k1[i] + k2[i] * 2.0 + k3[i] * 2.0 + k4[i]) * hOver6;
+  }
+  
+  /* Simulator state machine */
+  static void modelMain(double h) {
+    if(fixpoint) {
+      continuousStep(h);
+      t += h;
+    }
+    else {
+      discreteStep();
+      fixpoint = true;
+      for (int i = 0; i < s.length; i++)
+        if (s[i] != sNext[i])
+          fixpoint = false;
+      for (int i = 0; i < m.length; i++)
+        if (m[i] != mNext[i])
+          fixpoint = false;
+    }
+    for (int i = 0; i < s.length; i++)
+      s[i] = sNext[i];
+  }
+  
+  /* GnuPlot rendering of store s */
+  static void printStore(double[] s, double t) {
+    System.out.printf("%f\t", t);
+    for (int i = 0; i < s.length; i++)
+      System.out.printf("%f\t", s[i]);
+    System.out.printf("\n");
+  }
+  
+  /* Generate GnuPlot script */
+  static void genGnuPlot(double[] s) throws FileNotFoundException, UnsupportedEncodingException {
+    String fn = "plot.gp";
+    PrintWriter pw = new PrintWriter(fn, "UTF-8");
+    pw.printf("set terminal postscript\n");
+    pw.printf("set output 'plot.ps'\n");
+    pw.printf("set multiplot layout 3, 1 title 'Multiplot layout 3, 1'\n");
+    pw.printf("set tmargin 2\n\n");
+    for(int x=0; x<s.length; x++) {
+      pw.printf("set title \"%s\"\n", continuousVariableName(x));
+      pw.printf("unset key\n");
+      pw.printf("plot 'plot.dat' using 1:%d ti 'plot.dat' with dots\n\n", x + 2);
+    }
+    pw.close();
+  }
+  
+  /* Main method */
+  public static void main(String [] args) throws FileNotFoundException, UnsupportedEncodingException
+  {
+    genGnuPlot(s);
+    /* Simulator parameters */
+    double endTime = 10.0;
+    double h = 0.01;
+    /* Simulation loop */
+    for(t = 0.0; !(fixpoint && t > endTime);) {
+      modelMain(h);
+      printStore(s, t);
+    }
+  }
+
+}

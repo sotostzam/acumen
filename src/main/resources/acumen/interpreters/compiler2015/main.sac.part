@@ -1,0 +1,71 @@
+
+/**
+ * Generic simulator functions
+ **/
+
+/* Generic Continuous step (with Runge-Kutta integration) */
+double[.], int[.] continuousStep(double[.] s, int[.] m, double h) {
+  k1 = f(s, m);
+  k2 = f(s + k1 * (h/2.0), m);
+  k3 = f(s + k2 * (h/2.0), m);
+  k4 = f(s + k3 * h, m);
+  return (s + (k1 + k2 * 2.0 + k3 * 2.0 + k4) * (h/6.0), m);
+}
+
+/* GnuPlot rendering of store s */
+void printStore(double[.] s, double t) {
+  printf("%f\t", t);
+  for (i = 0; i < shape(s)[0]; i++)
+    printf("%f\t", s[[i]]);
+  printf("\n");
+}
+
+/* Generate GnuPlot script */
+void genGnuPlot(double[.] s) {
+  fn = "plot.gp";
+  err, f = fopen(fn, "w");
+  if(SysErr::fail(err)) {
+    RuntimeError::error(1, "\nFailed to open file \"%s\" for writing.\n", fn);
+  }
+  fprintf(f, "set terminal png size 800,%i\n", 150*shape(s)[0]);
+  fprintf(f, "set output 'plot.png'\n");
+  fprintf(f, "set multiplot layout %i, 1 title 'Simulation output'\n", shape(s)[0]);
+  fprintf(f, "set tmargin 2\n\n");
+  for(x=0; x<shape(s)[0]; x++) {
+    fprintf(f, "set title \"%s\"\n", continuousVariableName(x));
+    fprintf(f, "unset key\n");
+    fprintf(f, "set size 1,%f\n", 1.0/tod(shape(s)[0]));
+    fprintf(f, "set tmargin 2\n\n");
+    fprintf(f, "set bmargin 2\n\n");
+    fprintf(f, "plot 'plot.dat' using 1:%d ti 'plot.dat' with dots\n\n", x + 2);
+  }
+  fclose( f);
+}
+
+/* Main method */
+int main()
+{
+  outputPlot = String::==("--plot", sscanf_str(argv(),"./acumen%s"));
+  s, m = init();
+  if (outputPlot) genGnuPlot(s);
+  /* Simulator parameters */
+  endTime = 10.0;
+  h = 0.01;
+  /* Simulation loop */
+  fixpoint = false;
+  for(t = 0.0; !(fixpoint && t > endTime);) {
+    s1 = s; 
+    m1 = m;
+    if(fixpoint) {
+      s, m = continuousStep(s,m,h);
+      t += h;
+      fixpoint = false;
+    }
+    else {
+      s, m = discreteStep(s,m);
+      fixpoint = all(s1 == s) && all(m1 == m);
+    }
+    if (outputPlot) printStore(s, t);
+  }
+  return(0);
+}

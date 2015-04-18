@@ -79,6 +79,26 @@ object ASTUtil {
         }
       }.mapProg(prog)
     }
+  
+  /** Use r to reduce expressions in p to lists of A and flatten them all into a list. */
+  def reduce[A](p: Prog, r: Expr => List[A]): List[A] = {
+     def reduce(a: Action): List[A] = a match {
+       case IfThenElse(c,t,e) => r(c) ++ (t flatMap reduce) ++ (e flatMap reduce)   
+       case ForEach(_,c,b) => r(c) ++ (b flatMap reduce)
+       case Switch(c,cs) => r(c) ++ (cs flatMap { case Clause(g, a, rhs) => r(Lit(g)) ++ r(a) ++ (rhs flatMap reduce) }) 
+       case Continuously(EquationT(_,e)) => r(e)
+       case Continuously(EquationI(_,e)) => r(e)
+       case Discretely(Assign(lhs,rhs)) => r(lhs) ++ r(rhs)
+       case Hypothesis(_,p) => r(p)
+     } 
+     p.defs.flatMap(d => 
+      d.priv.flatMap(_.rhs match { 
+        case NewRhs(c,fs) => r(c) ++ (fs flatMap r)
+        case ExprRhs(e) => r(e)
+      }) ++
+      (d.body flatMap reduce)
+    )
+  }
 
 }
 

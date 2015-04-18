@@ -123,7 +123,8 @@ object Interpreter extends acumen.CStoreInterpreter {
         
   /* create an env from a class spec and init values */
   def mkObj(c:ClassName, p:Prog, prt:Option[CId], sd:(Int,Int),
-            v:List[CValue], childrenCounter:Int =0) : Eval[CId] = {
+            v:List[CValue], childrenCounter:Int,
+            evalExpr: (Expr, Env, Store) => CValue) : Eval[CId] = {
     val cd = classDef(c,p)
     val base = HashMap(
       (classf, VClassName(c)),
@@ -155,7 +156,7 @@ object Interpreter extends acumen.CStoreInterpreter {
                             val cn = ve match { case VClassName(cn) => cn; case _ => throw NotAClassName(ve) }
                             ves <- asks(st => es map (evalExpr(_, Map(self -> VObjId(Some(fid))), st)))
                   			    nsd <- getNewSeed(fid)
-                  			    oid <- mkObj(cn, p, Some(fid), nsd, ves)
+                  			    oid <- mkObj(cn, p, Some(fid), nsd, ves, 0, evalExpr)
                       } yield VObjId(Some(oid))
                     case ExprRhs(e) =>
                       asks(evalExpr(e, Map(self -> VObjId(Some(fid))), _))
@@ -399,8 +400,9 @@ object Interpreter extends acumen.CStoreInterpreter {
     val sprog = Simplifier.run(cprog)
     val mprog = Prog(magicClass :: sprog.defs)
     val (sd1,sd2) = Random.split(Random.mkGen(0))
+    implicit val bindings = NoBindings
     val (id,_,st1) = 
-      mkObj(cmain, mprog, None, sd1, List(VObjId(Some(CId(0)))), 1)(initStoreInterpreter(initStep = initStepType, initTimeStep = timeStep, initOutputRows = outputRows, isImperative = false))
+      mkObj(cmain, mprog, None, sd1, List(VObjId(Some(CId(0)))), 1, evalExpr)(initStoreInterpreter(initStep = initStepType, initTimeStep = timeStep, initOutputRows = outputRows, isImperative = false))
     val st2 = changeParent(CId(0), id, st1)
     val st3 = changeSeed(CId(0), sd2, st2)
     val st4 = countVariables(st3)
@@ -433,9 +435,9 @@ object Interpreter extends acumen.CStoreInterpreter {
     mapM_((pair:(CId, CId)) => changeParentM(pair._1, pair._2), rps)
     
   /** Adds new objects to the store and applies any corresponding discrete assignments. */
-  def applyCollectedCreates(dcs: List[CollectedCreate], p: Prog): Eval[Unit] =
+  def applyCollectedCreates(dcs: List[CollectedCreate], p: Prog)(implicit bindings: Bindings): Eval[Unit] =
     mapM_({ case CollectedCreate(da, c, parent, sd, ves) =>
-      for (fa <- mkObj(c, p, Some(parent), sd, ves))
+      for (fa <- mkObj(c, p, Some(parent), sd, ves, 0, evalExpr))
         da match {
           case None          => pass
           case Some((id, x)) => setObjectFieldM(id, x, VObjId(Some(fa)))
@@ -478,7 +480,7 @@ object Interpreter extends acumen.CStoreInterpreter {
     else 
       { val (_, Changeset(born, dead, rps, das, eqs, odes, hyps), _) = iterate(evalStep(p)(_)(NoBindings), mainId(st))(st)
         /* Create objects and apply any corresponding discrete assignments */
-        val st1 = applyCollectedCreates(born, p) ~> st
+        val st1 = applyCollectedCreates(born, p)(NoBindings) ~> st
         implicit val bindings = eqs.map{ e => val rd = resolveDot(e.d, e.env, st1)
           (rd.id, rd.field) -> UnusedBinding(e.rhs, e.env)}.toMap
         def resolveDots(s: List[CollectedAction]): List[ResolvedDot] =

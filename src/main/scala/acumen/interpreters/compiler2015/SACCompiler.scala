@@ -1,0 +1,165 @@
+package acumen
+package interpreters
+package compiler2015
+
+object SACCompiler extends Compiler {
+
+  /* Compiler */
+  
+  def suffix = "sac"
+  
+  def discreteStateName = "m"
+  
+  def continuousStateName = "s"
+
+  def genArrayAccess(arrayName: String, index: Int, ir: IR) = 
+    s"$arrayName[$index]"
+  
+  def genVariableName(ir: IR) = {
+s"""
+/* Variable names */
+string continuousVariableName(int i) {
+  if (i < 0 || ${ir.continuousState.size} < i)
+    RuntimeError::error(1, "No continuous variable name with index", "");
+  return 
+    ${ir.continuousState.zipWithIndex.map { case (((cid, name), _), i) =>  
+      parens("i == " + i) + " ? \"" + genName(name) + "\" :"
+    }.mkString("\n    ")}
+    "DUMMY";
+}
+"""
+  }
+  
+  def genStringValues(ir: IR) =
+    "/* String values */\n" +
+    ir.stringValues.map{ case (s,v) => 
+      s"int string_${IR.toValidFunctionNamePart(s)}() { return $v; } // $s"
+    }.mkString("\n")
+
+  def genInitialStore(ir: IR) = {
+s"""
+/* Initial store */
+double[.], int[.] init() {
+  ${stateToString(ir.continuousState, Continuous, ir)}
+  ${stateToString(ir.discreteState,   Discrete,   ir)}
+  return (s, m);
+}
+"""
+  }
+
+  def genDiscreteStep(ir: IR) = {
+s"""
+/* Discrete step */
+double[.], int[.] discreteStep(double[.] ${continuousStateName}, int[.] ${discreteStateName}) {
+  ${continuousStateName}1 = ${continuousStateName};
+  ${discreteStateName}1 = ${discreteStateName};
+  /* Model */
+${ir.modes.toList.flatMap{ case (guard,mode) =>
+  if (mode isEmpty) Nil
+  else List(
+   s"  if (" + genConjunction(guard, ir, Discrete) + ") {\n" +
+   s"    " + ir.continuousState.zipWithIndex.map{ case (((cid,name),_),i) =>
+               mode.das.find{ da => da.selfCId == cid && da.lhs.field == name }
+                       .map(da => genExpr(da.rhs)(ir, Discrete)) match {
+                         case None => ""
+                         case Some(rhs) =>
+                           s"${continuousStateName}1[$i] = $rhs;\n    "
+                       }
+             }.mkString("") +
+   s"    " + ir.discreteState.zipWithIndex.map{ case (((cid,name),_),i) =>
+               mode.das.find{ da => da.selfCId == cid && da.lhs.field == name }
+                       .map(da => genExpr(da.rhs)(ir, Discrete)) match {
+                         case None => ""
+                         case Some(rhs) =>
+                           s"${discreteStateName}1[$i] = $rhs;\n    "
+                       }
+             }.mkString("") + 
+    "  }"
+  )}.mkString("\n")}
+  return (${continuousStateName}1, ${discreteStateName}1);
+}
+"""
+  }
+  
+  def genField(ir: IR) = {
+s"""
+/* Field */
+double[.] f(double[.] ${continuousStateName}, int[.] ${discreteStateName}) {
+  ${continuousStateName}1 = 0.0 * ${continuousStateName};
+  /* Model */
+${ir.modes.toList.flatMap{ case (guard,mode) =>
+  if (mode isEmpty) Nil
+  else List(
+   s"  if (" + genConjunction(guard, ir, Continuous) + ") {\n" +
+   s"    " + ir.continuousState.zipWithIndex.map{ case (((cid,name),_),i) =>
+               mode.odes.find{ da => da.selfCId == cid && da.lhs.field == name }
+                       .map(da => genExpr(da.rhs)(ir, Continuous)) match {
+                         case None => ""
+                         case Some(rhs) =>
+                           s"${continuousStateName}1[$i] = $rhs;\n    "
+                       }
+             }.mkString("") + 
+    "  }"
+  )}.mkString("\n")}
+  // If none of the modes are active, throw an error
+  if(${ir.modes.map(m => "!(" + genConjunction(m._1, ir, Continuous) + ")").mkString(" && ")}) 
+    { RuntimeError::error(1, "No continuous dynamics in scope!", ""); }
+  return ${continuousStateName}1;
+}
+"""
+  }
+
+  /* Utilities */
+  
+  def stateToString[A](state: Map[(CId,Name),A], k: StateKind, ir: IR) = {
+    val (name, description) = k match {
+      case Continuous => ("s","Continuous")
+      case Discrete   => ("m","Discrete") 
+    } 
+    val vLens = state.values.map(_.toString.length)
+    def vLine(v: String, o: CId, n: Name, stringValue: String) = 
+      s"$v${" " * (vLens.max - v.length + 1)}// $o.${(Pretty pprint n) + stringValue}"
+    if (vLens.isEmpty) 
+      name + " = [];" 
+    else
+      s"""$name = ${" " * vLens.max} // $description
+    [ ${
+        state.map {
+          case ((o, n), v: Int) if k == Discrete =>
+            vLine(v.toString, o, n, ir.stringIndices.get(v).map(" = \""+_+"\"") getOrElse "")
+          case ((o, n), v) =>
+            vLine(v.toString, o, n, "")
+        }.mkString("\n    , ")
+      }
+    ];"""    
+  }
+  
+  /* Expressions */
+  
+  def genOp(f:Name, es:List[Expr])(implicit ir: IR, sk: StateKind) =
+    (f,es) match {
+      case (Name("not",0),x::Nil) => 
+        "!" + parens(genExpr(x))
+      case (Name("_:_:_",0), x::y::z::Nil) =>
+        parens(genExpr(x) + ":" + genExpr(y) + ":" + genExpr(z))
+      case (Name(op,0),x::y::Nil) if Parser.lexical.delimiters contains op => 
+        (x,y) match {
+          case (Lit(GBool(true)), _) => genExpr(y)
+          case (_, Lit(GBool(true))) => genExpr(x)
+          case _ => parens(genExpr(x) + " " + op + " " + genExpr(y))
+        }
+      case _ => 
+        genName(f) + parens((es map genExpr).mkString(", "))
+    }
+  
+  def genGroundValue(gv: GroundValue)(implicit ir: IR, sk: StateKind): String =
+    gv match {
+      case GInt(i)      => "%f".format(i.toDouble) //i.toString
+      case GDouble(x)   => "%f".format(x)
+      case GBool(b)     => b.toString
+      case GStr(s)      => s"string_${IR.toValidFunctionNamePart(s)}(/* $s */)" //"\"" + s + "\""
+      case GPattern(ls) => "(" + (ls map genGroundValue).mkString(", ") + ")"
+      case _            => "??"
+    }
+  
+}

@@ -1,0 +1,26 @@
+use Array: all;
+use Math: all;
+use StdIO: all;
+use CommandLine: { argv };
+use String: { string, sscanf_str };
+
+/**
+ * Representation of Acumen model as three key functions:
+ *  1) init()                   return the initial store 
+ *  2) discreteStep()           compute a discrete step 
+ *  3) f()                      compute the field (ODE RHSs)
+ *
+ * They use these utility functions:
+ *  4) continuousVariableName() look up variable names
+ *  5) string_VALUEHASH()       a function for each string variable value
+ *
+ * During compilation, values of string variables are
+ * encoded as integers. Each is then represented by a 
+ * function called string_VALUEHASH(), where VALUEHASH 
+ * is a hexadecimal hash code computed based on the 
+ * value that the function represents.
+ *
+ * The store is represented as two arrays:
+ *  1) a double array to represent real variables
+ *  2) a string array to represent discrete (string and integer) variables
+ **/

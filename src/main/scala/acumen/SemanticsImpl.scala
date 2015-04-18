@@ -177,6 +177,18 @@ object SemanticsImpl {
       * override def id = Array("optimized2015", 
       *                      if (SomeFlag) "SomeName" else "") */
   }
+  case class Compiled2015(i: CStoreInterpreter = compiler2015.SACCompiler) extends CStore
+  {
+    val semantics = S2015
+    override val isOldSemantics = false
+    def interpreter() = i
+    override def withArgs(args: List[String]) : Compiled2015 = args match {
+      case Nil => this
+      case "sac" :: tail => copy(i = compiler2015.SACCompiler).withArgs(tail)
+      case "java" :: tail => copy(i = compiler2015.JavaCompiler).withArgs(tail)
+      case _ => null
+    }
+  }
   // Use this as a base for selecting the generic optimized semantics
   // that not trying to match a particular semantics
   object Optimized extends SemanticsSel {
@@ -206,6 +218,7 @@ object SemanticsImpl {
   lazy val Opt2013 = Optimized()
   lazy val Opt2014 = Optimized(contMode = ContMode.IVP)
   lazy val Opt2015 = Optimized2015()
+  lazy val Com2015 = Compiled2015()
 
   case class Sel(si: SemanticsSel, 
                  // First id is the display name
@@ -218,6 +231,7 @@ object SemanticsImpl {
   val selections = 
     List(sel(Ref2015, "2015 Reference", "reference2015", "reference"),
          sel(Opt2015, "2015 Optimized", "optimized2015", ""),
+         sel(Com2015, "2015 Compiled",  "compiled2015", ""),
          sel(Ref2014, "2014 Reference", "reference2014"),
          sel(Opt2014, "2014 Optimized", "optimized2014"),
          sel(Ref2013, "2013 Reference", "reference2013"),

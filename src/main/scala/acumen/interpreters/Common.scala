@@ -556,4 +556,14 @@ object Common {
       case (VLit(GBool(false)), Discrete | Continuous | FixedPoint) => (Some(TestSuccess), Some(TestSuccess), TestFailure(time, counterEx))
     }
   
+  /* Utilities */
+  
+  def internalError(s: String): AcumenError = new AcumenError {
+    def mesg = s 
+  }
+
+  def internalPosError(s: String, p: Position): PositionalAcumenError = new PositionalAcumenError {
+    def mesg = s
+  }.setPos(p)
+  
 }

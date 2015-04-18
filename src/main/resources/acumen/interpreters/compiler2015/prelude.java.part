@@ -1,0 +1,24 @@
+import static java.lang.Math.*;
+import java.io.FileNotFoundException;
+import java.io.PrintWriter;
+import java.io.UnsupportedEncodingException;
+import java.util.Arrays;
+
+/**
+ * Representation of Acumen model as three functions:
+ *  1) init()         initial store 
+ *  2) discreteStep() discrete step 
+ *  3) f()            field
+ *
+ * The values of string variables are encoded as
+ * integers, represented by functions with name
+ * string_a_b, where a is the name of the variable
+ * and b is the value of the variable (with spaces)
+ * replaced by underscores.
+ *
+ * The store is represented as a combination of:
+ *  1) a double array to represent real variables
+ *  2) a string array to represent string variables
+ **/
+
+class Acumen {
