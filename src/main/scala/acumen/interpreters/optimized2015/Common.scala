@@ -833,9 +833,8 @@ object Common {
   /* IVP */
 
   case class FieldImpl(odes: ArrayBuffer[Equation], p: Prog) extends Field[OdeEnv] {
-    override def apply(s: OdeEnv) =  {
+    override def apply(s: OdeEnv) = 
       OdeEnv(odes.map{e => evalExpr(e.rhs, p, Env(e.env,Some(s)))}, s.emptyAssignVals)
-    }
   }
   
   case class RichStoreImpl(s: OdeEnv) extends RichStore[OdeEnv] {

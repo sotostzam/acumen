@@ -12,6 +12,8 @@ object Conversions {
       case GInt(i)    => i.toDouble
       case GDouble(x) => x
       case e: GRealEnclosure if (e isThin) => e.range.loDouble
+      case GDoubleDif(c) => c.coeff.head
+      case GIntDif(c) => c.coeff.head
       case _ => throw GroundConversionError(v, "double")
     }
   

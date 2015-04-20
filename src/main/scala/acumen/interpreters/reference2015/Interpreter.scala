@@ -28,6 +28,7 @@ import scala.collection.immutable.Queue
 import scala.math._
 import Stream._
 import Errors._
+import AD._
 
 object Interpreter extends acumen.CStoreInterpreter {
 
@@ -420,8 +421,14 @@ object Interpreter extends acumen.CStoreInterpreter {
 
   /** Computes the values of variables in xs (identified by CId and Dot.field). */
   def evaluateAssignments(xs: List[CollectedAction], st: Store)(implicit bindings: Bindings): List[(CId, Dot, CValue)] = {
-    val cache = cacheBindings(bindings, st)
-    xs.map(a => (a.o, a.d, evalExpr(a.rhs, a.env, st)(cache)))
+    val liftedSt = AD.lift(st)
+    val liftedBindings = bindings.mapValues { 
+      case UnusedBinding(e,env) => UnusedBinding(AD.lift(e), env)
+      case b => b
+    }
+    val cache = cacheBindings(bindings, liftedSt)
+    val vs = xs.map(a => (a.o, a.d, evalExpr(AD.lift(a.rhs), a.env, liftedSt)(cache)))
+    vs
   }
     
   /** Updates the values of variables in xs (identified by CId and Dot.field) to the corresponding CValue. */
@@ -552,9 +559,10 @@ object Interpreter extends acumen.CStoreInterpreter {
     implicit val field = FieldImpl(odes, p)
     new Solver(getInSimulator(Name("method", 0),st), xs = st, h = getTimeStep(st)){
       // add the EulerCromer solver
-      override def knownSolvers = super.knownSolvers :+ EulerCromer
+      override def knownSolvers = super.knownSolvers :+ EulerCromer :+ Taylor
       override def solveIfKnown(name: String) = super.solveIfKnown(name) orElse (name match {
         case EulerCromer => Some(solveIVPEulerCromer(xs, h))
+        case Taylor      => Some(solveIVPTaylor(xs, h))
         case _           => None
       })
     }.solve
@@ -562,31 +570,64 @@ object Interpreter extends acumen.CStoreInterpreter {
   
   /** Representation of a set of ODEs. */
   case class FieldImpl(odes: List[CollectedAction], p: Prog)(implicit bindings: Bindings) extends Field[Store] {
-    /** Evaluate the field (the RHS of each equation in ODEs) in s. */
     override def apply(s: Store): Store = applyCollectedAssignments(odes, s)
-    /** 
-     * Returns the set of variables affected by the field.
-     * These are the LHSs of each ODE and the corresponding unprimed variables.
-     * NOTE: Assumes that the de-sugarer has reduced all higher-order ODEs.  
-     */
-    def variables: List[(CId, Dot)] =
-      odes.flatMap { da => List((da.o, da.d), (da.o, Dot(da.d.obj, Name(da.d.field.x, 0)))) }
+    /** NOTE: Assumes that the de-sugarer has reduced all higher-order ODEs. */
+    val variables: List[(CId, Dot, Env)] =
+      odes.map { da => (da.o, da.d, da.env) }
   }
 
   /**
    * Embedded DSL for expressing integrators.
-   * NOTE: Operators affect only field.variables.
+   * NOTE: Operators affect only field.variables and field.derivatives.
    */
   case class RichStoreImpl(s: Store)(implicit field: FieldImpl) extends RichStore[Store] {
     override def +++(that: Store): Store = op("+", (cid, dot) => getObjectField(cid, dot.field, that))
     override def ***(that: Double): Store = op("*", (_, _) => VLit(GDouble(that)))
     /** Combine this (s) and that Store using operator. */
     def op(operator: String, that: (CId, Dot) => Value[CId]): Store =
-      applyAssignments(field.variables.map {
+      applyAssignments(field.variables.toList.flatMap{ case (id,d,_) => List((id,d)) }.map {
         case (o, n) => (o, n, evalOp(operator, List(getObjectField(o, n.field, s), that(o, n))))
       }) ~> s
   }
   implicit def liftStore(s: Store)(implicit field: FieldImpl): RichStoreImpl = RichStoreImpl(s)
+  
+  def solveIVPTaylor(s: Store, h: Double)(implicit f: FieldImpl, bindings: Bindings): Store = {
+    val orderOfIntegration = 4
+    val ode = FieldImpl(f.odes.map(ca => ca.copy(d = ca.d.copy(field = Name(ca.d.field.x, ca.d.field.primes + 1)))),f.p)
+    // compute Taylor coefficients of order 0 to orderOfIntegration
+    val taylorCoeffs = (1 to orderOfIntegration).foldLeft(AD.lift(s)) {
+      case (sTmp, i) => // xsTmp contains coeffs up to order i-1
+        val fieldApplied = ode(sTmp)
+        // compute the i-th Taylor coefficients
+        ode.variables.foldLeft(sTmp) { // we are modifying from the store containing the coefficients up to order i-1
+          case (sUpdTmp, (id, d, env)) =>
+            val ResolvedDot(dId, dObj, dN) = resolveDot(d, env, s)
+            val ResolvedDot(vId, vObj, vN) = resolveDot(Dot(d.obj, Name(dN.x, dN.primes - 1)), env, s)
+            val vDif = getObjectField(vId, vN, sTmp) match {
+              case VLit(GDoubleDif(vDif)) => vDif.coeff
+              case VLit(GIntDif(vDif))    => vDif.coeff.map(_.toDouble)
+            }
+            val vUpd = vDif updated (i, getObjectField(dId, dN, fieldApplied) match { // read derivative from fieldApplied
+              case VLit(GDoubleDif(dDif)) => dDif(i - 1) / i
+              case VLit(GIntDif(dDif))    => dDif(i - 1) / (i: Double)
+            })
+            setObjectField(vId, vN, VLit(GDoubleDif(Dif(vUpd))), sUpdTmp) // update i:th Taylor coeff for variable (vId, vN)
+        }
+    }   
+    // the Taylor series
+    // FIXME Does it not make more sense to accumulate solution when computing taylorCoeffs?
+    val solution = ode.variables.foldLeft(taylorCoeffs) {
+      case (sTmp, (id, d, env)) =>
+        val ResolvedDot(dId, dObj, dN) = resolveDot(d, env, s)
+        val ResolvedDot(vId, vObj, vN) = resolveDot(Dot(d.obj, Name(dN.x, dN.primes - 1)), env, s)
+        val vNext = getObjectField(vId, vN, taylorCoeffs) match { // summing the Taylor coeffs from the store in which they were computed (paranoia)
+          case VLit(GDoubleDif(Dif(vcs))) =>
+            vcs.zipWithIndex.map { case (x, i) => if (i <= orderOfIntegration) x * Math.pow(h, i) else 0 }.sum
+        }
+        setObjectField(vId, vN, VLit(GDoubleDif(Dif(vNext))), sTmp)
+    }
+    AD.lower(solution)
+  }
   
   /**
    * Euler-Cromer integration. 
