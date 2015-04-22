@@ -1,0 +1,23 @@
+
+// The show box
+
+model Main(simulator) = 
+initially
+  t   =  0,
+  t'  =  1,
+ _3D  =  ()
+always
+  t' = 1,
+  _3D = 
+  (Box 
+     center=(0,0,0)
+     size=(3,5,0.5)
+     color=(0.3,0.5,0.6) 
+     rotation=(exp(-1*(3-t)^2),
+               exp(-1*(18-3*t)^2),
+               exp(-1*(40-5*t)^2))) 
+
+// Exercises
+// 1) Does the box rotate during the animation?
+// 2) Display the area of the surface that changes
+//    size during the animation

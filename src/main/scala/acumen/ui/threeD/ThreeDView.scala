@@ -289,7 +289,7 @@ class ThreeDView extends JPanel {
         case "addAxes" => // only called in axisOff function
           if (!axisArray.contains(axes(0))) {
             axisArray(0) = axes(0)
-            for (i <- 0 until axes.length)
+            for (i <- axes.indices)
               CustomObject3D.partialBuild(axes(i), i < 7)
             world.addObjects(axes)
           }
@@ -300,7 +300,7 @@ class ThreeDView extends JPanel {
           world.removeAllObjects()
         case "deleteAxes" => // only called in axisOff function
           if (axisArray.contains(axes(0))) {
-            for (i <- 0 until axes.length)
+            for (i <- axes.indices)
               world.removeObject(axes(i))
             axisArray(0) = null
           }
@@ -348,11 +348,13 @@ class ThreeDView extends JPanel {
   // create some light sources for the scene
   def letThereBeLight() = {
     // Set the overall brightness of the world:
-    world.setAmbientLight(-200, -200, -200)
+    world.setAmbientLight(-125, -125, -125)
     // Create main light sources:
-    world.addLight(new SimpleVector(15.076f, -7.904f, 0f), 12, 12, 12)
-    world.addLight(new SimpleVector(-15.076f, -7.904f, 0f), 12, 12, 12)
-    world.addLight(new SimpleVector(0, -8f, 0), 8, 8, 8)
+    world.addLight(new SimpleVector(150f, -80f, 0f), 18, 18, 18)
+    world.addLight(new SimpleVector(-150f, -80f, 0f), 18, 18, 18)
+    world.addLight(new SimpleVector(0f, -80f, -150f), 8, 8, 6)
+    world.addLight(new SimpleVector(0f, -80f, 150f), 8, 8, 8)
+    world.addLight(new SimpleVector(0, -80f, 0), 6, 6, 6)
   }
 
   def defaultView() = {
@@ -602,7 +604,7 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D, playSpeed: Double,
     if (_3DDataBuffer.contains(lastRenderFrame)
       && _3DDataBuffer(lastRenderFrame) != null) {
       if (_3DDataBuffer(lastRenderFrame).contains(objectKey)) {
-        valueList(0)
+        valueList.head
       } else false // can not find the object
     } else false
   }
@@ -623,7 +625,7 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D, playSpeed: Double,
       && _3DDataBuffer(lastRenderFrame) != null) {
       val (lastSize : Array[Double], curSize: Array[Double]) =
         (lastValList(2), currentValList(2))
-      for (i <- 0 until lastSize.length)
+      for (i <- lastSize.indices)
         if (lastSize(i) != curSize(i))
           resizeResult = true
     } else resizeResult = true
@@ -678,8 +680,8 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D, playSpeed: Double,
           if (_3DDataBuffer.contains(latestFrame) && !_3DDataBuffer(latestFrame).contains(objectKey))
             deleteObj(objectKey)
         lastRenderFrame = latestFrame
-        if (_3DView.size > 0)
-          app.transformView(_3DView(_3DView.size - 1)._1, _3DView(_3DView.size - 1)._2)
+        if (_3DView.nonEmpty)
+          app.transformView(_3DView.last._1, _3DView.last._2)
         app.viewStateMachine("renderCurrentObjects")
       }
     }
@@ -944,7 +946,7 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D, playSpeed: Double,
     /* Get the 3D information of the object at that frame	*/
     val (name: String, position: Array[Double], size: Array[Double],
     color: Array[Double], angle: Array[Double]) =
-      (valueList(0), valueList(1), valueList(2), valueList(3), valueList(4))
+      (valueList.head, valueList(1), valueList(2), valueList(3), valueList(4))
     val (text: String, path: String) =
       (if (name == "Text") valueList(5) else " ",
         if (name == "OBJ")  valueList(5) else " ")
@@ -1177,31 +1179,44 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D, playSpeed: Double,
     stringObject
   }
 
-  // Load .obj file
+  // Load external object files
   def loadObj(path: String, size: Double): Object3D = {
     //read in the geometry information from the data file
-    val _3DFolder = new File(_3DBasePath + File.separator)
-    val listOfFiles = _3DFolder.listFiles()
-    val objectFileBase = (_3DBasePath + File.separator + path).split("\\.")(0)
-    var objectTexture: Texture = null
-    val texturePath = objectFileBase + ".png"
-    var MTLPath:String = null
-    for (i <- 0 until listOfFiles.length) {
-      if (listOfFiles(i).getPath == texturePath
-        && !TextureManager.getInstance().containsTexture(objectFileBase + ".mtl"))
-        objectTexture = new Texture(texturePath)
-      if (listOfFiles(i).getPath == objectFileBase + ".mtl")
-        MTLPath = listOfFiles(i).getPath
-    }
-    val objFileloader = Loader.loadOBJ(_3DBasePath + File.separator
-                                      + path, MTLPath, size.toFloat)(0)
-    if (objectTexture != null) {
-      TextureManager.getInstance().addTexture(MTLPath, objectTexture)
-      objFileloader.setTexture(MTLPath)
-    } else {
-      objFileloader.setTexture(objectFileBase + ".mtl")
-    }
-    objFileloader
+    val _3DFolderPath = (_3DBasePath + File.separator + path).split("\\.")(0)
+    val _3DFolder = new File(_3DFolderPath) // the folder of the objects' files
+    // load all the texture files
+    val objectFiles =
+      if (_3DFolder.canExecute) _3DFolder.listFiles()
+      else throw _3DLoadFileError(path)
+    val objFile = objectFiles.filter(file => file.getName.endsWith(".3ds") || file.getName.endsWith(".obj"))
+    val textureFiles = objectFiles.filter(file => file.getName.endsWith(".png") || file.getName.endsWith(".jpg"))
+    val mtlFile = objectFiles.filter(file => file.getName.endsWith(".mtl"))
+    // make sure there's only one object file
+    if (objFile.isEmpty) throw _3DLoadFileError("Can not find object file for " + path)
+    else if (objFile.length > 1) throw _3DLoadFileError("Duplicate object files for " + path)
+    // load OBJ file
+    val resultObject =
+      if (objFile.head.getName.endsWith(".obj")) {
+        // make sure there's only one material file
+        if (mtlFile.isEmpty) throw _3DLoadFileError("Can not find material file for " + path)
+        else if (mtlFile.length > 1) throw _3DLoadFileError("Duplicate material files for " + path)
+        else {
+          for (texture <- textureFiles) {
+            if (!TextureManager.getInstance().containsTexture(texture.getName))
+              TextureManager.getInstance().addTexture(texture.getName, new Texture(texture.toString))
+          }
+        }
+        Object3D.mergeAll(Loader.loadOBJ(objFile.head.toString, mtlFile.head.toString, size.toFloat))
+      }
+      // load 3ds file
+      else {
+        for (texture <- textureFiles) {
+          if (!TextureManager.getInstance().containsTexture(texture.getName))
+            TextureManager.getInstance().addTexture(texture.getName, new Texture(texture.toString))
+        }
+        Object3D.mergeAll(Loader.load3DS(objFile.head.toString, size.toFloat))
+      }
+    resultObject
   }
 
   def setColor(objectToSet: Object3D, colorRGB: Array[Double]) =
@@ -1240,7 +1255,7 @@ class coAxis(characters: Map[Char, Object3D], mainBox: Object3D) {
   val mainbox = mainBox
   // add the main box
   mainbox.setShadingMode(Object3D.SHADING_FAKED_FLAT)
-  new setGlass(new Color(125, 125, 125), mainbox, 0)
+  new setGlass(new Color(50, 50, 50), mainbox, 0)
   cylinders(0) = mainbox
   for (x <- 1 until 4)
     cylinders(x) = Primitives.getCylinder(12, 0.01f, 50f)

@@ -30,8 +30,10 @@ import util.DebugUtil.{
   asProgram
 }
 import enclosure.{
-  Abs, Box, Constant, Contract, Cos, Divide, Expression, Field, 
-  Interval, Negate, Parameters, Rounding, Sin, Sqrt, Tan
+  Box, Constant, Contract, Expression, Field, Interval, Parameters, Rounding,
+  Abs, Sin, Cos, Tan, ACos, ASin, ATan, Exp, Log, Log10, Sqrt, 
+  Cbrt, Ceil, Floor, Sinh, Cosh, Tanh, Signum, Plus, Negate, 
+  Multiply, Pow, Divide, ATan2, Min, Max
 }
 import enclosure.Types.VarName
 import acumen.interpreters.enclosure.Transcendentals
@@ -553,8 +555,13 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
          VLit(unaryGroundOp(op,x))
        case (_,VLit(x:GEnclosure[A])::VLit(y:GEnclosure[A])::Nil) =>  
          VLit(binGroundOp(op,x,y))
-       case _ =>
-         throw UnknownOperator(op)    
+       case (_,VLit(x)::VLit(y)::Nil) =>
+         try {
+           VLit(binGroundOp(op,Real(extractInterval(x)),Real(extractInterval(x))))
+         }
+         catch { case e =>
+           throw UnknownOperator(op)    
+         }
     }
   }
   
@@ -1290,6 +1297,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
   
   def acumenExprToExpression(e: Expr, selfCId: CId, env: Env, st: Enclosure, p: Prog): Expression = {
     def convert(x: Expr) = acumenExprToExpression(x, selfCId, env, st, p)
+    import util.Names.op
     e match {
       case Lit(v) if v.eq(Constants.PI) => Constant(Interval.pi) // Test for reference equality not structural equality
       case Lit(GInt(d))                 => Constant(d)
@@ -1305,16 +1313,35 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
         fieldIdToName(obj, n)
       case ResolvedDot(obj,_,n) => 
         fieldIdToName(obj, n)
-      case Op(Name("-", 0), List(x))    => Negate(convert(x))
-      case Op(Name("abs", 0), List(x))  => Abs(convert(x))
-      case Op(Name("cos", 0), List(x))  => Cos(convert(x))
-      case Op(Name("sin", 0), List(x))  => Sin(convert(x))
-      case Op(Name("sqrt", 0), List(x)) => Sqrt(convert(x))
-      case Op(Name("tan", 0), List(x))  => Tan(convert(x))
-      case Op(Name("-", 0), List(l, r)) => convert(l) - convert(r)
-      case Op(Name("+", 0), List(l, r)) => convert(l) + convert(r)
-      case Op(Name("/", 0), List(l, r)) => Divide(convert(l), convert(r))
-      case Op(Name("*", 0), List(l, r)) => convert(l) * convert(r)
+      case Op(Name("-"      , 0), List(x))    => Negate(convert(x))
+      case Op(Name("abs"    , 0), List(x))    => Abs(convert(x))
+      case Op(Name("sin"    , 0), List(x))    => Sin(convert(x))
+      case Op(Name("cos"    , 0), List(x))    => Cos(convert(x))
+      case Op(Name("tan"    , 0), List(x))    => Tan(convert(x))
+      case Op(Name("acos"   , 0), List(x))    => ACos(convert(x))
+      case Op(Name("sqrt"   , 0), List(x))    => Sqrt(convert(x))
+      case Op(Name("tan"    , 0), List(x))    => Tan(convert(x))
+      case Op(Name("asin"   , 0), List(x))    => ASin(convert(x))  
+      case Op(Name("atan"   , 0), List(x))    => ATan(convert(x))  
+      case Op(Name("exp"    , 0), List(x))    => Exp(convert(x))   
+      case Op(Name("log"    , 0), List(x))    => Log(convert(x))   
+      case Op(Name("log10"  , 0), List(x))    => Log10(convert(x)) 
+      case Op(Name("sqrt"   , 0), List(x))    => Sqrt(convert(x))  
+      case Op(Name("cbrt"   , 0), List(x))    => Cbrt(convert(x))  
+      case Op(Name("ceil"   , 0), List(x))    => Ceil(convert(x))  
+      case Op(Name("floor"  , 0), List(x))    => Floor(convert(x)) 
+      case Op(Name("sinh"   , 0), List(x))    => Sinh(convert(x))  
+      case Op(Name("cosh"   , 0), List(x))    => Cosh(convert(x))  
+      case Op(Name("tanh"   , 0), List(x))    => Tanh(convert(x))  
+      case Op(Name("signum" , 0), List(x))    => Signum(convert(x)) 
+      case Op(Name("-"      , 0), List(l, r)) => convert(l) - convert(r)
+      case Op(Name("+"      , 0), List(l, r)) => convert(l) + convert(r)
+      case Op(Name("*"      , 0), List(l, r)) => convert(l) * convert(r)
+      case Op(Name("^"      , 0), List(l, r)) => Pow(convert(l), convert(r))
+      case Op(Name("/"      , 0), List(l, r)) => Divide(convert(l), convert(r))
+      case Op(Name("atan2"  , 0), List(l, r)) => ATan2(convert(l), convert(r))
+      case Op(Name("min"    , 0), List(l, r)) => Min(convert(l), convert(r))
+      case Op(Name("max"    , 0), List(l, r)) => Max(convert(l), convert(r))
       case _                            => sys.error("Handling of expression " + e + " not implemented!")
     }
   }
