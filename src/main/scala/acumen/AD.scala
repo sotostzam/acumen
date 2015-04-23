@@ -127,8 +127,8 @@ object AD extends App {
         val n = x.size
         val sinCoeff = new collection.mutable.ArraySeq[V](n)
         val cosCoeff = new collection.mutable.ArraySeq[V](n)
-        sinCoeff(0) = x(0).cos
-        cosCoeff(0) = x(0).sin
+        sinCoeff(0) = x(0).sin
+        cosCoeff(0) = x(0).cos
         for (k <- 1 until n) {
           val (sck, cck) = (1 to k).foldLeft(zeroOfV, zeroOfV) {
             case ((sckSum, cckSum), i) => 
@@ -137,7 +137,7 @@ object AD extends App {
               , cckSum + ixi * sinCoeff(k - i) )
           }
           val kL = evVIsNum.lift(k)
-          sinCoeff(k) = -sck / kL
+          sinCoeff(k) =  sck / kL
           cosCoeff(k) = -cck / kL
         }
         (Dif(sinCoeff.toVector), Dif(cosCoeff.toVector))
