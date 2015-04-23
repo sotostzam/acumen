@@ -40,7 +40,8 @@ object Interpreter extends acumen.CStoreInterpreter {
   val initStepType = Initial
   val timeStep = 0.015625
   val outputRows = "All"
-  override def visibleParameters = visibleParametersMap(initStoreInterpreter(initStep = initStepType, initTimeStep = timeStep, initOutputRows = outputRows, isImperative = false)) + ("method" -> VLit(GStr(RungeKutta)))
+  val initStore = initStoreInterpreter(initStep = initStepType, initTimeStep = timeStep, initOutputRows = outputRows, isImperative = false)
+  override def visibleParameters = visibleParametersMap(initStore) + ("method" -> VLit(GStr(RungeKutta))) + ("orderOfIntegration" -> VLit(GInt(4)))
 
   /* Bindings, expressed in models as continuous assignments 
    * to unprimed variables, are used to look up sub-expressions
@@ -400,8 +401,7 @@ object Interpreter extends acumen.CStoreInterpreter {
     val sprog = Simplifier.run(cprog)
     val mprog = Prog(magicClass :: sprog.defs)
     val (sd1,sd2) = Random.split(Random.mkGen(0))
-    val (id,_,st1) = 
-      mkObj(cmain, mprog, None, sd1, List(VObjId(Some(CId(0)))), 1)(initStoreInterpreter(initStep = initStepType, initTimeStep = timeStep, initOutputRows = outputRows, isImperative = false))
+    val (id,_,st1) = mkObj(cmain, mprog, None, sd1, List(VObjId(Some(CId(0)))), 1)(initStore)
     val st2 = changeParent(CId(0), id, st1)
     val st3 = changeSeed(CId(0), sd2, st2)
     val st4 = countVariables(st3)
@@ -551,12 +551,12 @@ object Interpreter extends acumen.CStoreInterpreter {
    */
   def solveIVP(odes: List[CollectedAction], p: Prog, st: Store)(implicit bindings: Bindings): Store = {
     implicit val field = FieldImpl(odes, p)
-    new Solver(getInSimulator(Name("method", 0),st), xs = st, h = getTimeStep(st)){
-      // add the EulerCromer solver
+    lazy val VLit(GInt(taylorOrder)) = getInSimulator(Name("orderOfIntegration", 0), st)
+    new Solver(getInSimulator(Name("method", 0),st), xs = st, h = getTimeStep(st)) {
       override def knownSolvers = super.knownSolvers :+ EulerCromer :+ Taylor
       override def solveIfKnown(name: String) = super.solveIfKnown(name) orElse (name match {
         case EulerCromer => Some(solveIVPEulerCromer(xs, h))
-        case Taylor      => Some(solveIVPTaylor(xs, h))
+        case Taylor      => Some(solveIVPTaylor(xs, h, taylorOrder))
         case _           => None
       })
     }.solve
@@ -585,8 +585,8 @@ object Interpreter extends acumen.CStoreInterpreter {
   }
   implicit def liftStore(s: Store)(implicit field: FieldImpl): RichStoreImpl = RichStoreImpl(s)
   
-  def solveIVPTaylor(s: Store, h: Double)(implicit f: FieldImpl, bindings: Bindings): Store = {
-    val orderOfIntegration = 4
+  def solveIVPTaylor(s: Store, h: Double, orderOfIntegration: Int)(implicit f: FieldImpl, bindings: Bindings): Store = {
+    require (orderOfIntegration > 0, s"Order of integration ($orderOfIntegration) must be greater than 0")
     val ode = FieldImpl(f.odes.map(ca => ca.copy(d = ca.d.copy(field = Name(ca.d.field.x, ca.d.field.primes + 1)))),f.p)
     // compute Taylor coefficients of order 0 to orderOfIntegration
     val taylorCoeffs = (1 to orderOfIntegration).foldLeft(AD.lift(s)) {

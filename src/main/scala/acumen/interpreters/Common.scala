@@ -435,7 +435,7 @@ object Common {
   }
 
   def initStoreTxt(initStep: ResultType, timeStep: Double, outputRows: String, hypothesisReport: String, method: String) = 
-    s"""#0.0 { className = Simulator, parent = %s, time = 0.0, timeStep = $timeStep, outputRows = "$outputRows", hypothesisReport = "$hypothesisReport", continuousSkip = 0,endTime = 10.0, resultType = @$initStep, nextChild = 0,method = "$method", seed1 = 0, seed2 = 0, variableCount = 0 }"""
+    s"""#0.0 { className = Simulator, parent = %s, time = 0.0, timeStep = $timeStep, outputRows = "$outputRows", hypothesisReport = "$hypothesisReport", continuousSkip = 0,endTime = 10.0, resultType = @$initStep, nextChild = 0,method = "$method", orderOfIntegration = 4, seed1 = 0, seed2 = 0, variableCount = 0 }"""
   def initStoreInterpreter(initStep: ResultType = Initial, initTimeStep: Double = 0.015625, initOutputRows: String = "All", 
                        initHypothesisReport: String = "Comprehensive", initMethod: String = RungeKutta, isImperative: Boolean) =
       Parser.run(Parser.store, initStoreTxt(initStep, initTimeStep, initOutputRows, initHypothesisReport, initMethod).format( if (isImperative) "none" else "#0" ))
