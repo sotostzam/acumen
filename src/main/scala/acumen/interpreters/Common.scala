@@ -72,7 +72,9 @@ object Common {
       case "signum"    => signum(x)
     }
     def implemNum[V: Num](f: String, x: V): V = f match {
-      case "-" => implicitly[Num[V]].zero - x
+      case "-" => -x
+      case "sin" => x.sin
+      case "cos" => x.cos
     }
     (f, vx) match {
       case ("not", GBool(x))     => GBool(!x)

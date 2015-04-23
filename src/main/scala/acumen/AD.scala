@@ -19,18 +19,25 @@ object AD extends App {
     def sub(l: V, r: V): V
     def mul(l: V, r: V): V
     def div(l: V, r: V): V
+    def neg(x: V): V
+    def sin(x: V): V
+    def cos(x: V): V
+    def lift(i: Int): V
     def zero: V
     def one: V
   }
-  implicit class NumOps[V](val lhs: V)(implicit ev: Num[V]) {
-    def +(rhs: V): V = ev.add(lhs, rhs)
-    def -(rhs: V): V = ev.sub(lhs, rhs)
-    def *(rhs: V): V = ev.mul(lhs, rhs)
-    def /(rhs: V): V = ev.div(lhs, rhs)
-    def < (rhs: V): Boolean = ev.lt(lhs, rhs)
-    def > (rhs: V): Boolean = ev.gt(lhs, rhs)
-    def <= (rhs: V): Boolean = ev.lteq(lhs, rhs)
-    def >= (rhs: V): Boolean = ev.gteq(lhs, rhs)
+  implicit class NumOps[V](val l: V)(implicit ev: Num[V]) {
+    def +(r: V): V = ev.add(l, r)
+    def -(r: V): V = ev.sub(l, r)
+    def *(r: V): V = ev.mul(l, r)
+    def /(r: V): V = ev.div(l, r)
+    def < (r: V): Boolean = ev.lt(l, r)
+    def > (r: V): Boolean = ev.gt(l, r)
+    def <= (r: V): Boolean = ev.lteq(l, r)
+    def >= (r: V): Boolean = ev.gteq(l, r)
+    def unary_- = ev.neg(l)
+    def sin: V = ev.sin(l)
+    def cos: V = ev.cos(l)
     def zero: V = ev.zero
     def one: V = ev.one
   }
@@ -40,6 +47,10 @@ object AD extends App {
     def sub(l: Int, r: Int): Int = l - r
     def mul(l: Int, r: Int): Int = l * r
     def div(l: Int, r: Int): Int = l / r
+    def neg(x: Int): Int = -x
+    def sin(x: Int): Int = ???
+    def cos(x: Int): Int = ???
+    def lift(x: Int): Int = x
     def zero: Int = 0
     def one: Int = 1
     def tryCompare(l: Int, r: Int): Option[Int] = Some(l compareTo r)
@@ -50,6 +61,10 @@ object AD extends App {
     def sub(l: Double, r: Double): Double = l - r
     def mul(l: Double, r: Double): Double = l * r
     def div(l: Double, r: Double): Double = l / r
+    def neg(x: Double): Double = -x
+    def sin(x: Double): Double = Math.sin(x)
+    def cos(x: Double): Double = Math.cos(x)
+    def lift(x: Int): Double = x
     def zero: Double = 0
     def one: Double = 1
     def tryCompare(l: Double, r: Double): Option[Int] = Some(l compareTo r)
@@ -60,6 +75,10 @@ object AD extends App {
     def sub(l: Interval, r: Interval): Interval = l - r
     def mul(l: Interval, r: Interval): Interval = l * r
     def div(l: Interval, r: Interval): Interval = l / r
+    def neg(x: Interval): Interval = -x
+    def sin(x: Interval): Interval = x.sin
+    def cos(x: Interval): Interval = x.cos
+    def lift(x: Int): Interval = Interval(x)
     def zero: Interval = Interval.zero
     def one: Interval = Interval.one
     // FIXME Check if something needs to be overridden
@@ -74,6 +93,7 @@ object AD extends App {
     /* Caches */
     val mulCache = collection.mutable.HashMap[(Dif[V], Dif[V]), Dif[V]]()
     val divCache = collection.mutable.HashMap[(Dif[V], Dif[V]), Dif[V]]()
+    val sinAndCosCache = collection.mutable.HashMap[Dif[V], (/*sin*/Dif[V], /*cos*/Dif[V])]()
     /* Constants */
     val evVIsNum = implicitly[Num[V]]
     val zeroOfV = evVIsNum.zero
@@ -99,6 +119,30 @@ object AD extends App {
           }) / r(0)
         coeff.toVector
       })
+    def neg(x: Dif[V]): Dif[V] = Dif(x.coeff.map(y => -y))
+    def sin(x: Dif[V]): Dif[V] = sinAndCos(x)._1
+    def cos(x: Dif[V]): Dif[V] = sinAndCos(x)._2
+    private def sinAndCos(x: Dif[V]): (Dif[V],Dif[V]) =
+      sinAndCosCache.getOrElseUpdate(x,{
+        val n = x.size
+        val sinCoeff = new collection.mutable.ArraySeq[V](n)
+        val cosCoeff = new collection.mutable.ArraySeq[V](n)
+        sinCoeff(0) = x(0).cos
+        cosCoeff(0) = x(0).sin
+        for (k <- 1 until n) {
+          val (sck, cck) = (1 to k).foldLeft(zeroOfV, zeroOfV) {
+            case ((sckSum, cckSum), i) => 
+              val ixi = evVIsNum.lift(i) * x(i)
+              ( sckSum + ixi * cosCoeff(k - i)
+              , cckSum + ixi * sinCoeff(k - i) )
+          }
+          val kL = evVIsNum.lift(k)
+          sinCoeff(k) = -sck / kL
+          cosCoeff(k) = -cck / kL
+        }
+        (Dif(sinCoeff.toVector), Dif(cosCoeff.toVector))
+      })
+    def lift(x: Int): Dif[V] = Dif.constant(evVIsNum lift x)
     // FIXME Test these definitions
     def zero: Dif[V] = Dif.fill(zeroOfV)
     def one: Dif[V] = Dif.constant(oneOfV)
@@ -140,8 +184,8 @@ object AD extends App {
   /** Lift all numeric values in an Expr into Difs */
   def lift(e: Expr): Expr = new acumen.util.ASTMap {
     override def mapExpr(e: Expr): Expr = (e match {
-      case Lit(GDouble(d)) => Lit(GDoubleDif(Dif.constant(d)))
       case Lit(GInt(i)) => Lit(GIntDif(Dif.constant(i)))
+      case Lit(GDouble(d)) => Lit(GDoubleDif(Dif.constant(d)))
       case _ => super.mapExpr(e)
     }).setPos(e.pos)
   }.mapExpr(e)
