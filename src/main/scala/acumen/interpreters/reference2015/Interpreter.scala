@@ -421,14 +421,8 @@ object Interpreter extends acumen.CStoreInterpreter {
 
   /** Computes the values of variables in xs (identified by CId and Dot.field). */
   def evaluateAssignments(xs: List[CollectedAction], st: Store)(implicit bindings: Bindings): List[(CId, Dot, CValue)] = {
-    val liftedSt = AD.lift(st)
-    val liftedBindings = bindings.mapValues { 
-      case UnusedBinding(e,env) => UnusedBinding(AD.lift(e), env)
-      case b => b
-    }
-    val cache = cacheBindings(bindings, liftedSt)
-    val vs = xs.map(a => (a.o, a.d, evalExpr(AD.lift(a.rhs), a.env, liftedSt)(cache)))
-    vs
+    val cache = cacheBindings(bindings, st)
+    xs.map(a => (a.o, a.d, evalExpr(a.rhs, a.env, st)(cache)))
   }
     
   /** Updates the values of variables in xs (identified by CId and Dot.field) to the corresponding CValue. */
