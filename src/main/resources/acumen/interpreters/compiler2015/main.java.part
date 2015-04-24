@@ -52,14 +52,14 @@
   static void genGnuPlot(double[] s) throws FileNotFoundException, UnsupportedEncodingException {
     String fn = "plot.gp";
     PrintWriter pw = new PrintWriter(fn, "UTF-8");
-    pw.printf("set terminal postscript\n");
-    pw.printf("set output 'plot.ps'\n");
+    pw.printf("set terminal svg size 800\n");
+    pw.printf("set output 'plot.svg'\n");
     pw.printf("set multiplot layout 3, 1 title 'Multiplot layout 3, 1'\n");
     pw.printf("set tmargin 2\n\n");
     for(int x=0; x<s.length; x++) {
       pw.printf("set title \"%s\"\n", continuousVariableName(x));
       pw.printf("unset key\n");
-      pw.printf("plot 'plot.dat' using 1:%d ti 'plot.dat' with dots\n\n", x + 2);
+      pw.printf("plot 'plot.dat' using 1:%d ti 'plot.dat' with lines\n\n", x + 2);
     }
     pw.close();
   }

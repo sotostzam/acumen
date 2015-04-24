@@ -27,8 +27,8 @@ void genGnuPlot(double[.] s) {
   if(SysErr::fail(err)) {
     RuntimeError::error(1, "\nFailed to open file \"%s\" for writing.\n", fn);
   }
-  fprintf(f, "set terminal png size 800,%i\n", 150*shape(s)[0]);
-  fprintf(f, "set output 'plot.png'\n");
+  fprintf(f, "set terminal svg size 800,%i\n", 150*shape(s)[0]);
+  fprintf(f, "set output 'plot.svg'\n");
   fprintf(f, "set multiplot layout %i, 1 title 'Simulation output'\n", shape(s)[0]);
   fprintf(f, "set tmargin 2\n\n");
   for(x=0; x<shape(s)[0]; x++) {
@@ -37,7 +37,7 @@ void genGnuPlot(double[.] s) {
     fprintf(f, "set size 1,%f\n", 1.0/tod(shape(s)[0]));
     fprintf(f, "set tmargin 2\n\n");
     fprintf(f, "set bmargin 2\n\n");
-    fprintf(f, "plot 'plot.dat' using 1:%d ti 'plot.dat' with dots\n\n", x + 2);
+    fprintf(f, "plot 'plot.dat' using 1:%d ti 'plot.dat' with lines\n\n", x + 2);
   }
   fclose( f);
 }
