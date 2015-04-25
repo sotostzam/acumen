@@ -159,6 +159,7 @@ object AD extends App {
           }) / evVIsNum.lift(k)
         coeff.toVector
       })
+    // TODO Add square function according to Griewank book
     def lift(x: Int): Dif[V] = Dif.constant(evVIsNum lift x)
     // FIXME Test these definitions
     def zero: Dif[V] = Dif.fill(zeroOfV)
