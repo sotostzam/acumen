@@ -22,6 +22,7 @@ object AD extends App {
     def neg(x: V): V
     def sin(x: V): V
     def cos(x: V): V
+    def exp(x: V): V
     def lift(i: Int): V
     def zero: V
     def one: V
@@ -38,6 +39,7 @@ object AD extends App {
     def unary_- = ev.neg(l)
     def sin: V = ev.sin(l)
     def cos: V = ev.cos(l)
+    def exp: V = ev.exp(l)
     def zero: V = ev.zero
     def one: V = ev.one
   }
@@ -50,6 +52,7 @@ object AD extends App {
     def neg(x: Int): Int = -x
     def sin(x: Int): Int = ???
     def cos(x: Int): Int = ???
+    def exp(x: Int): Int = x.exp
     def lift(x: Int): Int = x
     def zero: Int = 0
     def one: Int = 1
@@ -64,6 +67,7 @@ object AD extends App {
     def neg(x: Double): Double = -x
     def sin(x: Double): Double = Math.sin(x)
     def cos(x: Double): Double = Math.cos(x)
+    def exp(x: Double): Double = Math.exp(x)
     def lift(x: Int): Double = x
     def zero: Double = 0
     def one: Double = 1
@@ -78,6 +82,7 @@ object AD extends App {
     def neg(x: Interval): Interval = -x
     def sin(x: Interval): Interval = x.sin
     def cos(x: Interval): Interval = x.cos
+    def exp(x: Interval): Interval = x.exp
     def lift(x: Int): Interval = Interval(x)
     def zero: Interval = Interval.zero
     def one: Interval = Interval.one
@@ -94,6 +99,7 @@ object AD extends App {
     val mulCache = collection.mutable.HashMap[(Dif[V], Dif[V]), Dif[V]]()
     val divCache = collection.mutable.HashMap[(Dif[V], Dif[V]), Dif[V]]()
     val sinAndCosCache = collection.mutable.HashMap[Dif[V], (/*sin*/Dif[V], /*cos*/Dif[V])]()
+    val expCache = collection.mutable.HashMap[Dif[V], Dif[V]]()
     /* Constants */
     val evVIsNum = implicitly[Num[V]]
     val zeroOfV = evVIsNum.zero
@@ -141,6 +147,17 @@ object AD extends App {
           cosCoeff(k) = -cck / kL
         }
         (Dif(sinCoeff.toVector), Dif(cosCoeff.toVector))
+      })
+    def exp(x: Dif[V]): Dif[V] =
+      expCache.getOrElseUpdate(x, Dif {
+        val n = x.size
+        val coeff = new collection.mutable.ArraySeq[V](n)
+        coeff(0) = x(0).exp
+        for (k <- 1 until n)
+          coeff(k) = ((1 to k).foldLeft(zeroOfV) {
+            case (sum, i) => sum + evVIsNum.lift(i) * x(i) * exp(x)(k-i)
+          }) / evVIsNum.lift(k)
+        coeff.toVector
       })
     def lift(x: Int): Dif[V] = Dif.constant(evVIsNum lift x)
     // FIXME Test these definitions
