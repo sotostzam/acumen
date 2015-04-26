@@ -81,7 +81,10 @@ object Common {
       case ("abs", GInt(i))      => GInt(abs(i))
       case ("-", GInt(i))        => GInt(-i)
       case ("round", GDouble(x)) => GInt(x.toInt)
-      case (f, GIntDif(d))       => GIntDif(implemNum(f, d))
+      case (f, GIntDif(d))       => f match {
+        case "-" => GIntDif(implemNum(f, d)) // keep as Dif[Int] if f has an integer result 
+        case _   => GDoubleDif(implemNum(f, Dif(d.coeff.map(_.toDouble)))) // otherwise, convert to Dif[Double] 
+      }
       case (f, GDoubleDif(d))    => GDoubleDif(implemNum(f, d))
       case _                     => GDouble(implem(f, extractDouble(vx)))
     }
