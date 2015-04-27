@@ -155,7 +155,7 @@ object AD extends App {
         coeff(0) = x(0).exp
         for (k <- 1 until n)
           coeff(k) = ((1 to k).foldLeft(zeroOfV) {
-            case (sum, i) => sum + evVIsNum.lift(i) * x(i) * exp(x)(k-i)
+            case (sum, i) => sum + evVIsNum.lift(i) * x(i) * coeff(k-i)
           }) / evVIsNum.lift(k)
         coeff.toVector
       })
