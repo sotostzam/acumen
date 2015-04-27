@@ -587,7 +587,8 @@ object Interpreter extends acumen.CStoreInterpreter {
   
   def solveIVPTaylor(s: Store, h: Double, orderOfIntegration: Int)(implicit f: FieldImpl, bindings: Bindings): Store = {
     require (orderOfIntegration > 0, s"Order of integration ($orderOfIntegration) must be greater than 0")
-    val ode = FieldImpl(f.odes.map(ca => ca.copy(d = ca.d.copy(field = Name(ca.d.field.x, ca.d.field.primes + 1)))),f.p)
+    val ode = FieldImpl(f.odes.map(ca => ca.copy( rhs = AD.lift(ca.rhs)
+                                                , d = ca.d.copy(field = Name(ca.d.field.x, ca.d.field.primes + 1)))),f.p)
     // compute Taylor coefficients of order 0 to orderOfIntegration
     val taylorCoeffs = (1 to orderOfIntegration).foldLeft(AD.lift(s)) {
       case (sTmp, i) => // xsTmp contains coeffs up to order i-1
