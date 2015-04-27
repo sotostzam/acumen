@@ -75,6 +75,8 @@ object Common {
       case "-" => -x
       case "sin" => x.sin
       case "cos" => x.cos
+      case "exp" => x.exp
+      case "log" => x.log
     }
     (f, vx) match {
       case ("not", GBool(x))     => GBool(!x)
