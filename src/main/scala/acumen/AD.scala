@@ -140,7 +140,7 @@ object AD extends App {
     def pow(l: Dif[V], r: Dif[V]): Dif[V] = {
       val l0 = l(0)
       val rc = r(0) // FIXME This is a constant! Should not be lifted in the first place.
-      require(!(l0 == zeroOfV && rc > zeroOfV))
+      require(!(l0 == zeroOfV && rc > zeroOfV), "pow is not applicable to ($l,$r). $l may not be equal to 0.")
       powCache.getOrElseUpdate((l, r), Dif {
         val n = l.size
         val coeff = new collection.mutable.ArraySeq[V](n)
