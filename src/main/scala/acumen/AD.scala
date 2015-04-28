@@ -19,6 +19,7 @@ object AD extends App {
     def sub(l: V, r: V): V
     def mul(l: V, r: V): V
     def div(l: V, r: V): V
+    def pow(l: V, r: V): V
     def neg(x: V): V
     def sin(x: V): V
     def cos(x: V): V
@@ -33,6 +34,7 @@ object AD extends App {
     def -(r: V): V = ev.sub(l, r)
     def *(r: V): V = ev.mul(l, r)
     def /(r: V): V = ev.div(l, r)
+    def ^(r: V): V = ev.pow(l, r)
     def < (r: V): Boolean = ev.lt(l, r)
     def > (r: V): Boolean = ev.gt(l, r)
     def <= (r: V): Boolean = ev.lteq(l, r)
@@ -51,6 +53,7 @@ object AD extends App {
     def sub(l: Int, r: Int): Int = l - r
     def mul(l: Int, r: Int): Int = l * r
     def div(l: Int, r: Int): Int = l / r
+    def pow(l: Int, r: Int): Int = Math.pow(l,r).toInt // FIXME Re-implement using Int
     def neg(x: Int): Int = -x
     def sin(x: Int): Int = ???
     def cos(x: Int): Int = ???
@@ -67,6 +70,7 @@ object AD extends App {
     def sub(l: Double, r: Double): Double = l - r
     def mul(l: Double, r: Double): Double = l * r
     def div(l: Double, r: Double): Double = l / r
+    def pow(l: Double, r: Double): Double = Math.pow(l, r)
     def neg(x: Double): Double = -x
     def sin(x: Double): Double = Math.sin(x)
     def cos(x: Double): Double = Math.cos(x)
@@ -83,6 +87,7 @@ object AD extends App {
     def sub(l: Interval, r: Interval): Interval = l - r
     def mul(l: Interval, r: Interval): Interval = l * r
     def div(l: Interval, r: Interval): Interval = l / r
+    def pow(l: Interval, r: Interval): Interval = l pow r
     def neg(x: Interval): Interval = -x
     def sin(x: Interval): Interval = x.sin
     def cos(x: Interval): Interval = x.cos
@@ -103,6 +108,7 @@ object AD extends App {
     /* Caches */
     val mulCache = collection.mutable.HashMap[(Dif[V], Dif[V]), Dif[V]]()
     val divCache = collection.mutable.HashMap[(Dif[V], Dif[V]), Dif[V]]()
+    val powCache = collection.mutable.HashMap[(Dif[V], Dif[V]), Dif[V]]()
     val sinAndCosCache = collection.mutable.HashMap[Dif[V], (/*sin*/Dif[V], /*cos*/Dif[V])]()
     val expCache = collection.mutable.HashMap[Dif[V], Dif[V]]()
     val logCache = collection.mutable.HashMap[Dif[V], Dif[V]]()
@@ -131,6 +137,24 @@ object AD extends App {
           }) / r(0)
         coeff.toVector
       })
+    def pow(l: Dif[V], r: Dif[V]): Dif[V] = {
+      val l0 = l(0)
+      val rc = r(0) // FIXME This is a constant! Should not be lifted in the first place.
+      require(!(l0 == zeroOfV && rc > zeroOfV))
+      powCache.getOrElseUpdate((l, r), Dif {
+        val n = l.size
+        val coeff = new collection.mutable.ArraySeq[V](n)
+        coeff(0) = l0 ^ rc
+        for (k <- 1 until n) {
+          val kL = evVIsNum.lift(k)          
+          coeff(k) = ((1 to k).foldLeft(zeroOfV) {
+            case (sum, i) =>  
+              sum + (((((rc + oneOfV) * evVIsNum.lift(i)) / kL) - oneOfV) * l(i) * coeff(k - i)) 
+          }) / l0
+        }
+        coeff.toVector
+      })
+    }
     def neg(x: Dif[V]): Dif[V] = Dif(x.coeff.map(y => -y))
     def sin(x: Dif[V]): Dif[V] = sinAndCos(x)._1
     def cos(x: Dif[V]): Dif[V] = sinAndCos(x)._2

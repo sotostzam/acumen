@@ -132,6 +132,7 @@ object Common {
       case "-" => x - y
       case "*" => x * y
       case "/" => x / y
+      case "^" => x ^ y
       case _ => throw UnknownOperator(f)
     }
     (f, vx, vy) match {
