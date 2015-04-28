@@ -133,7 +133,7 @@ object AD extends App {
         coeff(0) = l(0) / r(0)
         for (k <- 1 until n)
           coeff(k) = (l(k) - (0 to k - 1).foldLeft(zeroOfV) {
-            case (sum, i) => sum - (coeff(i) * r(k - i))
+            case (sum, i) => sum + (coeff(i) * r(k - i))
           }) / r(0)
         coeff.toVector
       })
