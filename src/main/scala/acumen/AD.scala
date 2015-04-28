@@ -238,9 +238,10 @@ object AD extends App {
   }
   
   /** Lift all numeric values in a CStore into Difs */
-  def lift(st: CStore): CStore = st.mapValues(_.mapValues{
-    case VLit(GInt(i)) => VLit(GIntDif(Dif.constant(i)))
-    case VLit(GDouble(n)) => VLit(GDoubleDif(Dif.constant(n)))
+  def lift(st: CStore): CStore = st.mapValues(_.map{
+    case nv@(Name(n,_),_) if interpreters.Common.specialFields.contains(n) => nv 
+    case (n, VLit(GInt(i))) => (n, VLit(GIntDif(Dif constant i)))
+    case (n, VLit(GDouble(d))) => (n, VLit(GDoubleDif(Dif constant d)))
     case v => v 
   })
   
