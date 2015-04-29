@@ -62,8 +62,8 @@ object AD extends App {
     def sin(x: Int): Int = ???
     def cos(x: Int): Int = ???
     def tan(x: Int): Int = ???
-    def exp(x: Int): Int = x.exp
-    def log(x: Int): Int = x.log
+    def exp(x: Int): Int = ???
+    def log(x: Int): Int = ???
     def lift(x: Int): Int = x
     def lift(x: Double): Int = ???
     def zero: Int = 0
