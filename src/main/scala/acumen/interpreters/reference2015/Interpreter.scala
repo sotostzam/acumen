@@ -480,8 +480,9 @@ object Interpreter extends acumen.CStoreInterpreter {
       { val (_, Changeset(born, dead, rps, das, eqs, odes, hyps), _) = iterate(evalStep(p)(_)(NoBindings), mainId(st))(st)
         /* Create objects and apply any corresponding discrete assignments */
         val st1 = applyCollectedCreates(born, p) ~> st
-        implicit val bindings = eqs.map{ e => val rd = resolveDot(e.d, e.env, st1)
-          (rd.id, rd.field) -> UnusedBinding(e.rhs, e.env)}.toMap
+        implicit val bindings = eqs.flatMap{ e => val rd = resolveDot(e.d, e.env, st1)
+          if (e.d.field == _3D || e.d.field == _3DView) Nil
+          else List((rd.id, rd.field) -> UnusedBinding(e.rhs, e.env))}.toMap
         def resolveDots(s: List[CollectedAction]): List[ResolvedDot] =
           s.map(da => resolveDot(da.d, da.env, st1))
         val res = resultType match {
