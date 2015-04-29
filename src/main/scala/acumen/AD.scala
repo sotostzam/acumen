@@ -26,6 +26,7 @@ object AD extends App {
     def exp(x: V): V
     def log(x: V): V
     def lift(i: Int): V
+    def lift(i: Double): V
     def zero: V
     def one: V
   }
@@ -48,6 +49,7 @@ object AD extends App {
     def one: V = ev.one
   }
 
+  // FIXME Extract this into a separate type class
   implicit object IntIsNum extends Num[Int] {
     def add(l: Int, r: Int): Int = l + r
     def sub(l: Int, r: Int): Int = l - r
@@ -60,6 +62,7 @@ object AD extends App {
     def exp(x: Int): Int = x.exp
     def log(x: Int): Int = x.log
     def lift(x: Int): Int = x
+    def lift(x: Double): Int = ???
     def zero: Int = 0
     def one: Int = 1
     def tryCompare(l: Int, r: Int): Option[Int] = Some(l compareTo r)
@@ -77,6 +80,7 @@ object AD extends App {
     def exp(x: Double): Double = Math.exp(x)
     def log(x: Double): Double = Math.log(x)
     def lift(x: Int): Double = x
+    def lift(x: Double): Double = x
     def zero: Double = 0
     def one: Double = 1
     def tryCompare(l: Double, r: Double): Option[Int] = Some(l compareTo r)
@@ -94,6 +98,7 @@ object AD extends App {
     def exp(x: Interval): Interval = x.exp
     def log(x: Interval): Interval = x.log
     def lift(x: Int): Interval = Interval(x)
+    def lift(x: Double): Interval = Interval(x)
     def zero: Interval = Interval.zero
     def one: Interval = Interval.one
     // FIXME Check if something needs to be overridden
@@ -206,6 +211,7 @@ object AD extends App {
       })
     // TODO Add square function according to Griewank book
     def lift(x: Int): Dif[V] = Dif.constant(evVIsNum lift x)
+    def lift(x: Double): Dif[V] = Dif.constant(evVIsNum lift x)
     // FIXME Test these definitions
     def zero: Dif[V] = Dif.fill(zeroOfV)
     def one: Dif[V] = Dif.constant(oneOfV)
