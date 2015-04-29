@@ -59,6 +59,10 @@ object ADTest extends Properties("AD") {
   property("Dif[Double].div: x/x ~= 1") = forAll { (x: Dif[Double]) =>
     (x(0) != 0d) ==> ((x / x) ~= one)  
   }
+  
+  property("Dif[Double]: tan(x) ~= tan(x+pi/2)") = forAll(genSmallDoubleDif) { (x: Dif[Double]) =>
+    x.tan ~= (x + evDoubleDifIsNum.lift(Math.PI)).tan
+  }
 
   property("lower is inverse of lift") = forAll { (st: CStore) =>
     lower(lift(st)) == st

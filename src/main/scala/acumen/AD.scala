@@ -23,6 +23,7 @@ object AD extends App {
     def neg(x: V): V
     def sin(x: V): V
     def cos(x: V): V
+    def tan(x: V): V
     def exp(x: V): V
     def log(x: V): V
     def lift(i: Int): V
@@ -43,6 +44,7 @@ object AD extends App {
     def unary_- = ev.neg(l)
     def sin: V = ev.sin(l)
     def cos: V = ev.cos(l)
+    def tan: V = ev.tan(l)
     def exp: V = ev.exp(l)
     def log: V = ev.log(l)
     def zero: V = ev.zero
@@ -59,6 +61,7 @@ object AD extends App {
     def neg(x: Int): Int = -x
     def sin(x: Int): Int = ???
     def cos(x: Int): Int = ???
+    def tan(x: Int): Int = ???
     def exp(x: Int): Int = x.exp
     def log(x: Int): Int = x.log
     def lift(x: Int): Int = x
@@ -77,6 +80,7 @@ object AD extends App {
     def neg(x: Double): Double = -x
     def sin(x: Double): Double = Math.sin(x)
     def cos(x: Double): Double = Math.cos(x)
+    def tan(x: Double): Double = Math.tan(x)
     def exp(x: Double): Double = Math.exp(x)
     def log(x: Double): Double = Math.log(x)
     def lift(x: Int): Double = x
@@ -95,6 +99,7 @@ object AD extends App {
     def neg(x: Interval): Interval = -x
     def sin(x: Interval): Interval = x.sin
     def cos(x: Interval): Interval = x.cos
+    def tan(x: Interval): Interval = x.tan
     def exp(x: Interval): Interval = x.exp
     def log(x: Interval): Interval = x.log
     def lift(x: Int): Interval = Interval(x)
@@ -115,6 +120,7 @@ object AD extends App {
     val divCache = collection.mutable.HashMap[(Dif[V], Dif[V]), Dif[V]]()
     val powCache = collection.mutable.HashMap[(Dif[V], Dif[V]), Dif[V]]()
     val sinAndCosCache = collection.mutable.HashMap[Dif[V], (/*sin*/Dif[V], /*cos*/Dif[V])]()
+    val tanCache = collection.mutable.HashMap[Dif[V], Dif[V]]()
     val expCache = collection.mutable.HashMap[Dif[V], Dif[V]]()
     val logCache = collection.mutable.HashMap[Dif[V], Dif[V]]()
     /* Constants */
@@ -182,6 +188,22 @@ object AD extends App {
           cosCoeff(k) = -cck / kL
         }
         (Dif(sinCoeff.toVector), Dif(cosCoeff.toVector))
+      })
+    def tan(x: Dif[V]): Dif[V] = 
+      tanCache.getOrElseUpdate(x, Dif {
+        val n = x.size
+        val coeff = new collection.mutable.ArraySeq[V](n)
+        coeff(0) = x(0).tan
+        val cos0 = x(0).cos
+        val cos02 = cos0 * cos0 // FIXME Use cos0^2 instead
+        for (k <- 1 until n) {
+          coeff(k) = (x(k) - ((1 to k-1).foldLeft(zeroOfV) {
+            case (sum, i) => 
+              val c = cos(x)(k - i)
+              sum + evVIsNum.lift(i) * coeff(i) * c * c // FIXME Use c^2 instead
+          }) / evVIsNum.lift(k)) / cos02
+        }
+        coeff.toVector
       })
     def exp(x: Dif[V]): Dif[V] =
       expCache.getOrElseUpdate(x, Dif {
