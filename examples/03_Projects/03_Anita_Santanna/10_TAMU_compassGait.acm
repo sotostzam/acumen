@@ -12,7 +12,7 @@ model Main(simulator) = initially
          Sphere center=(0,0,0) size=0.01*5 color=(0,1,0) rotation=(0,0,0),
          Cylinder center=(0,0,-1/2) radius= 0.01 length=1  color=(0,0,1) rotation=(3.1416/2,0,0),
          Cylinder center=(0,0,-1/2-1/2) radius= 0.01 length=1  color=(0,0,1) rotation=(3.1416/2,0,0),
-         Box center=(0,0,0) size=(10,2,2) color=(0.5,0.5,0) rotation=(3.1416/2,0.06,0))
+         Box center=(0,0,0) size=(10,2,2) color=(0.5,0.5,0) rotation=(3.1416/2,-0.06,0))
 always
 
   //DINAMICS EQUATIONS
@@ -48,9 +48,9 @@ always
   _3D=(Sphere center=(sfx+pm1x-2,0,sfz+pm1z) size=0.01*m color=(1,0,0) rotation=(0,0,0),
        Sphere center=(sfx+pM2x-2,0,sfz+pM2z) size=0.01*M color=(1,0,0) rotation=(0,0,0),
        Sphere center=(sfx+pm3x-2,0,sfz+pm3z) size=0.01*m color=(0,1,0) rotation=(0,0,0),
-       Cylinder center=(sfx+pm1x-2,0,sfz+pm1z) radius= 0.01 length=L  color=(0,0,1) rotation=(3.1416/2,q1,0),
-       Cylinder center=(sfx+pm3x-2,0,sfz+pm3z) radius= 0.01 length=L  color=(0,0,1) rotation=(3.1416/2,q1+q2,0),
-       Box center=(0-2,0,0) size=(20,0.01,2) color=(0.5,0.5,0) rotation=(3.1416/2,-s,0)),
+       Cylinder center=(sfx+pm1x-2,0,sfz+pm1z) radius= 0.01 length=L  color=(0,0,1) rotation=(3.1416/2,-q1,0),
+       Cylinder center=(sfx+pm3x-2,0,sfz+pm3z) radius= 0.01 length=L  color=(0,0,1) rotation=(3.1416/2,-q1-q2,0),
+       Box center=(0-2,0,0) size=(20,0.01,2) color=(0.5,0.5,0) rotation=(3.1416/2,s,0)),
 
   //GUARD
   h=2*L*(1/cos(s))*sin(q2/2)*sin(q1 + q2/2 + s) ,

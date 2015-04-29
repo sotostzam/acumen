@@ -546,10 +546,10 @@ always
   c = (3,3,0) ,
   _3D = (Cylinder center=D+(-sin(pitch)*v/2,0,-v/2-0.1)
         radius=0.05*v+0.02 length=v color=c
-        rotation=(-3.14159265359/2,-roll-pitch,0),
+        rotation=(-3.14159265359/2,roll+pitch,0),
         Cone center=D+(0,0,-0.1)
         radius=0.2*v+0.05 length=0.2*v+0.05 color=c
-        rotation=(pi/2,-roll-pitch,0))
+        rotation=(pi/2,roll+pitch,0))
 
 // Dynamic of the QuadCopter system
 model QuadCopter(GlobalP,phi,theta,psi) = 
@@ -674,10 +674,10 @@ always
   rotor2p = p-(l/2 * cos(roll) * sin(yaw), l/2 * cos(roll) * cos(yaw),l/2 * sin(roll)) ,
   rotor3p = p+(-1*l/2 * cos(pitch) * cos(yaw), l/2 * cos(pitch) * sin(yaw),l/2 * sin(pitch)) ,
   rotor1p = p-(-1*l/2 * cos(pitch) * cos(yaw), l/2 * cos(pitch) * sin(yaw),l/2 * sin(pitch)) ,
-  _3D = (Cylinder center=rotor1p radius=0.3 length=0.04 color=(0.5,0.5,0.5) rotation=(pi/2+roll,-pitch,0) , // Rotor1
-         Cylinder center=rotor3p radius=0.3 length=0.04 color=(0.5,0.5,0.5) rotation=(pi/2+roll,-pitch,0) , // Rotor3
-         Cylinder center=rotor2p radius=0.3 length=0.04 color=(0.5,0.5,0.5) rotation=(pi/2+roll,-pitch,0) , // Rotor2
-         Cylinder center=rotor4p radius=0.3 length=0.04 color=(0.5,0.5,0.5) rotation=(pi/2+roll,-pitch,0) , // Rotor4
+  _3D = (Cylinder center=rotor1p radius=0.3 length=0.04 color=(0.5,0.5,0.5) rotation=(pi/2+roll,pitch,0) , // Rotor1
+         Cylinder center=rotor3p radius=0.3 length=0.04 color=(0.5,0.5,0.5) rotation=(pi/2+roll,pitch,0) , // Rotor3
+         Cylinder center=rotor2p radius=0.3 length=0.04 color=(0.5,0.5,0.5) rotation=(pi/2+roll,pitch,0) , // Rotor2
+         Cylinder center=rotor4p radius=0.3 length=0.04 color=(0.5,0.5,0.5) rotation=(pi/2+roll,pitch,0) , // Rotor4
          Cylinder center=p radius=0.02 length=2 color=(1,0,0) rotation=(roll,0,-yaw) ,  //Local y-axis
          Cylinder center=p radius=0.02 length=2 color=(0,0,1) rotation=(pitch,0,-yaw+pi/2) )  // Local x-axis
            
