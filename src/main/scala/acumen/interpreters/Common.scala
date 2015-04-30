@@ -75,6 +75,7 @@ object Common {
       case "-" => -x
       case "sin" => x.sin
       case "cos" => x.cos
+      case "tan" => x.tan
       case "exp" => x.exp
       case "log" => x.log
     }
