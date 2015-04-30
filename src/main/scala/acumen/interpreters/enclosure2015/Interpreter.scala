@@ -555,8 +555,13 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
          VLit(unaryGroundOp(op,x))
        case (_,VLit(x:GEnclosure[A])::VLit(y:GEnclosure[A])::Nil) =>  
          VLit(binGroundOp(op,x,y))
-       case _ =>
-         throw UnknownOperator(op)    
+       case (_,VLit(x)::VLit(y)::Nil) =>
+         try {
+           VLit(binGroundOp(op,Real(extractInterval(x)),Real(extractInterval(x))))
+         }
+         catch { case e =>
+           throw UnknownOperator(op)    
+         }
     }
   }
   
