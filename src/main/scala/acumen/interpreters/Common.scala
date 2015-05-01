@@ -115,10 +115,14 @@ object Common {
       case "<=" => x <= y
       case ">=" => x >= y
     }
+    def implem5(f:String, x:String, y:Double) = f match {
+      case "format" => x.format(y).toDouble
+    }
     (f, vx, vy) match {
       case (">="|"<="|"<"|">", GInt(n), GInt(m)) => GBool(implem3(f,n,m))
       case ("<"|">"|"<="|">=", _, _) => GBool(implem4(f,extractDouble(vx),extractDouble(vy)))
       case ("+"|"-"|"*"|"<<"|">>"|"&"|"|"|"%"|"xor", GInt(n), GInt(m)) => GInt(implem1(f,n,m))
+      case ("format", GStr(n), _) => GDouble(implem5(f, n, extractDouble(vy)))
       case _  => GDouble(implem2(f, extractDouble(vx), extractDouble(vy)))
     }
   }
