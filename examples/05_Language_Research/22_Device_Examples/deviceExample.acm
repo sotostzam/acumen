@@ -101,7 +101,7 @@ always
                          atan2(normal_vector(1),normal_vector(2))) ,*/
       link.p = (0,0,0) ,
       link.q = normal_vector ,     
-      _3D = (Box center=(x,y,z)+(0.05,0,0) size=(0.3,0.2,0.05) color=(0.1,0.1,0.1) rotation=(beta,gamma,alpha))
+      _3D = (Box center=(x,y,z)+(0.05,0,0) size=(0.3,0.2,0.05) color=(0.1,0.1,0.1) rotation=(beta,-gamma,alpha))
     ]
 
 

@@ -65,7 +65,7 @@ always
   theta'' = (g*sin(theta)-mp*l*(theta'*theta')*cos(theta)*sin(theta)/M - (cos(theta)/M)*(V) ) / (L - (mp*l*cos(theta)*cos(theta))/M),
   p   = (x+0.5*sin(theta), 0, 0.15+0.5*cos(theta)),
   _3D = (Box center=(x, 0, 0) size=(0.3, 0.3, 0.3) color=red rotation=(0, 0, 0),
-         Cylinder center=p-(0, 0, 0) radius=0.01 length= 1  color=green rotation=(3.14/2, -theta, 0))
+         Cylinder center=p-(0, 0, 0) radius=0.01 length= 1  color=green rotation=(3.14/2, theta, 0))
   
 model Main(simulator) = 
 initially

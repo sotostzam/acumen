@@ -19,8 +19,8 @@ always
 
   _3D = (Sphere center=(x1,0,y1) size=0.01*m1 color=(1,0,0) rotation=(0,0,0),
          Sphere center=(x2,0,y2) size=0.01*m2 color=(0,1,0) rotation=(0,0,0),
-         Cylinder center=(x1/2,0,y1/2) radius= 0.01 length=L1  color=(0,0,1) rotation=(3.1416/2,theta1,0),
-         Cylinder center=((x2-x1)/2+x1,0,(y2-y1)/2+y1) radius= 0.01 length=L2  color=(0,0,1) rotation=(3.1416/2,theta2,0)) 
+         Cylinder center=(x1/2,0,y1/2) radius= 0.01 length=L1  color=(0,0,1) rotation=(3.1416/2,-theta1,0),
+         Cylinder center=((x2-x1)/2+x1,0,(y2-y1)/2+y1) radius= 0.01 length=L2  color=(0,0,1) rotation=(3.1416/2,-theta2,0)) 
 
 model Main(simulator) = 
 initially 

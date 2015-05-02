@@ -18,11 +18,11 @@ always
    Text center=(-2,0,0) size=1 color=(0,1,0) rotation=(-pi/4,0,0) content="2",
    Text center=(-2,0,0) size=1 color=(0,0,1) rotation=(0+t,0,0) content="3",
    Text center=( 0,0,0) size=1 color=(1,0,0) rotation=(0,0,0) content="Y",
-   Text center=( 0,0,0) size=1 color=(0,1,0) rotation=(0,pi/4,0) content="2",
-   Text center=( 0,0,0) size=1 color=(0,0,1) rotation=(0,pi/2+t,0) content="3",
-   Text center=( 2,0,0) size=1 color=(1,0,0) rotation=(0,pi/2,0) content="Z",
-   Text center=( 2,0,0) size=1 color=(0,1,0) rotation=(0,pi/2,pi/4) content="2",
-   Text center=( 2,0,0) size=1 color=(0,0,1) rotation=(0,pi/2,pi/2+t) content="3") 
+   Text center=( 0,0,0) size=1 color=(0,1,0) rotation=(0,-pi/4,0) content="2",
+   Text center=( 0,0,0) size=1 color=(0,0,1) rotation=(0,-pi/2+t,0) content="3",
+   Text center=( 2,0,0) size=1 color=(1,0,0) rotation=(0,-pi/2,0) content="Z",
+   Text center=( 2,0,0) size=1 color=(0,1,0) rotation=(0,-pi/2,pi/4) content="2",
+   Text center=( 2,0,0) size=1 color=(0,0,1) rotation=(0,-pi/2,pi/2+t) content="3") 
  
 
 // Exercises
