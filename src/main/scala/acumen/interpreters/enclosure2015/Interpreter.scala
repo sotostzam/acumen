@@ -883,8 +883,8 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
   def checkValidChange(c: Set[Changeset]): Unit = c.foreach{ cs =>
     val contIds = (cs.eqs.toList ++ cs.odes.toList).map(_.lhs)
     val assIds = cs.dis.toList.map(_.lhs)
-    checkDuplicateAssingments(contIds, DuplicateContinuousAssingment)
-    checkDuplicateAssingments(assIds, DuplicateDiscreteAssingment)
+    checkDuplicateAssingments2014(contIds, DuplicateContinuousAssingment)
+    checkDuplicateAssingments2014(assIds, DuplicateDiscreteAssingment)
   }
   
   /**

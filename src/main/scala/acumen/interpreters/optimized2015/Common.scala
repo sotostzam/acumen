@@ -664,23 +664,41 @@ object Common {
 
   def evalContinuousAction(a: ContinuousAction, env: Env, p: Prog, magic: Object): Changeset =
     a match {
-      case EquationT(d@Dot(e, x), t) =>
+      case EquationT(d, t) => d match {
+        case Dot(e, x) =>
+          // "Now": Not used, kept for legacy
+          if (magic.phaseParms.doEquationT == Now) {
+            val id = evalToObjId(e, p, env)
+            val vt = evalExpr(t, p, env)
+            setField(id, x, vt, d.pos)
 
-        // "Now": Not used, kept for legacy
-        if (magic.phaseParms.doEquationT == Now) { 
-          val id = evalToObjId(e, p, env)
-          val vt = evalExpr(t, p, env)
-          setField(id, x, vt, d.pos)
+            // "Gather": Collecting continuous assignments
+          } else if (magic.phaseParms.doEquationT == Gather) {
+            val id = evalToObjId(e, p, env)
 
-        // "Gather": Collecting continuous assignments
-        } else if (magic.phaseParms.doEquationT == Gather) {
-          val id = evalToObjId(e, p, env)
+            // Log the assignment
+            magic.phaseParms.assigns.append((Equation(id, x, t, env.env), d.pos))
 
-          // Log the assignment
-          magic.phaseParms.assigns.append((Equation(id,x,t,env.env), d.pos))
+            noChange
+          } else noChange
+          /*
+        case Index(dot@Dot(e,x), idx) =>
+           // "Now": Not used, kept for legacy
+          if (magic.phaseParms.doEquationT == Now) {
+            val id = evalToObjId(e, p, env)
+            val vt = evalExpr(t, p, env)
+            setField(id, x, vt, dot.pos)
 
-          noChange
-      } else noChange
+            // "Gather": Collecting continuous assignments
+          } else if (magic.phaseParms.doEquationT == Gather) {
+            val id = evalToObjId(e, p, env)
+
+            // Log the assignment
+            magic.phaseParms.assigns.append((Equation(id, x, t, env.env), dot.pos))
+
+            noChange
+          } else noChange  */     
+      }
       case EquationI(d@Dot(e, x), t) =>
 
         // "Now": Not used, kept for legacy
@@ -715,6 +733,7 @@ object Common {
         } else noChange
 
       case _ =>
+        println(a)
         throw ShouldNeverHappen() // FIXME: fix that with refinement types
     }
 

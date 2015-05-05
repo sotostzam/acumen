@@ -134,6 +134,8 @@ package acumen {
   case class Op(f: Name, es: List[Expr]) extends Expr
   /* Example x(10) */
   case class Index(e: Expr, idx: List[Expr]) extends Expr
+  
+  case class DIndex(d: Dot, idx: List[Int]) extends Expr
   /* Reference to field f in object obj. */
   sealed abstract class Ref extends Expr {
     def obj: Expr
