@@ -115,16 +115,10 @@ object Common {
       case "<=" => x <= y
       case ">=" => x >= y
     }
-    def implem5(f:String, x:String, y:Double) = f match {
-      case "format" => x.format(y).toDouble
-    }
     (f, vx, vy) match {
       case (">="|"<="|"<"|">", GInt(n), GInt(m)) => GBool(implem3(f,n,m))
       case ("<"|">"|"<="|">=", _, _) => GBool(implem4(f,extractDouble(vx),extractDouble(vy)))
       case ("+"|"-"|"*"|"<<"|">>"|"&"|"|"|"%"|"xor", GInt(n), GInt(m)) => GInt(implem1(f,n,m))
-      case ("format", GStr(n), _) =>
-        if (implem5(f, n, extractDouble(vy)) % 1 == 0) GInt(implem5(f, n, extractDouble(vy)).toInt)
-        else GDouble(implem5(f, n, extractDouble(vy)))
       case _  => GDouble(implem2(f, extractDouble(vx), extractDouble(vy)))
     }
   }
@@ -353,6 +347,11 @@ object Common {
          VLit(GBool(x != y))
        case ("_:_:_", VLit(GInt(s))::VLit(GInt(d))::VLit(GInt(e))::Nil) =>
          sequenceOp(s,d,e)
+       case ("format", VLit(GStr(s)) :: ps) => 
+         VLit(GStr(s.format(ps.flatMap{
+           case p @ VLit(_:GInt | _:GDouble) => extractDouble(p) :: Nil
+           case VLit(GStr(x)) => x :: Nil
+         }:_*))) 
        case (_, VLit(x)::Nil) =>
          VLit(unaryGroundOp(op,x))
        case (_, VList(u)::Nil) =>
