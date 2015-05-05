@@ -71,7 +71,10 @@ object Common {
       case "tanh"      => tanh(x)
       case "signum"    => signum(x)
     }
-    def implemNum[V: Num](f: String, x: V): V = f match {
+    def implemIntegral[V: AD.Integral](f: String, x: V): V = f match {
+      case "-" => -x
+    }
+    def implemReal[V: Real](f: String, x: V): V = f match {
       case "-" => -x
       case "sin" => x.sin
       case "cos" => x.cos
@@ -85,10 +88,10 @@ object Common {
       case ("-", GInt(i))        => GInt(-i)
       case ("round", GDouble(x)) => GInt(x.toInt)
       case (f, GIntDif(d))       => f match {
-        case "-" => GIntDif(implemNum(f, d)) // keep as Dif[Int] if f has an integer result 
-        case _   => GDoubleDif(implemNum(f, Dif(d.coeff.map(_.toDouble)))) // otherwise, convert to Dif[Double] 
+        case "-" => GIntDif(implemIntegral(f, d)) // keep as Dif[Int] if f has an integer result 
+        case _   => GDoubleDif(implemReal(f, Dif(d.coeff.map(_.toDouble)))) // otherwise, convert to Dif[Double] 
       }
-      case (f, GDoubleDif(d))    => GDoubleDif(implemNum(f, d))
+      case (f, GDoubleDif(d))    => GDoubleDif(implemReal(f, d))
       case _                     => GDouble(implem(f, extractDouble(vx)))
     }
   }
@@ -128,7 +131,7 @@ object Common {
       case "<=" => x <= y
       case ">=" => x >= y
     }
-    def implemNum[V: Num](f: String, x: V, y: V) = f match {
+    def implemIntegral[V: AD.Integral](f: String, x: V, y: V) = f match {
       case "+" => x + y
       case "-" => x - y
       case "*" => x * y
@@ -141,11 +144,11 @@ object Common {
       case ("<"|">"|"<="|">=", _, _) => GBool(implem4(f,extractDouble(vx),extractDouble(vy)))
       case ("+"|"-"|"*"|"<<"|">>"|"&"|"|"|"%"|"xor", GInt(n), GInt(m)) => GInt(implem1(f,n,m))
       
-      case (_, GIntDif(n), GIntDif(m)) => GIntDif(implemNum(f, n, m))
-      case (_, GDoubleDif(n), GDoubleDif(m)) => GDoubleDif(implemNum(f, n, m))
+      case (_, GIntDif(n), GIntDif(m)) => GIntDif(implemIntegral(f, n, m))
+      case (_, GDoubleDif(n), GDoubleDif(m)) => GDoubleDif(implemIntegral(f, n, m))
       
-      case (_, GDoubleDif(n), GIntDif(m)) => GDoubleDif(implemNum(f, n, Dif(m.coeff.map(_.toDouble))))
-      case (_, GIntDif(n), GDoubleDif(m)) => GDoubleDif(implemNum(f, Dif(n.coeff.map(_.toDouble)), m))
+      case (_, GDoubleDif(n), GIntDif(m)) => GDoubleDif(implemIntegral(f, n, Dif(m.coeff.map(_.toDouble))))
+      case (_, GIntDif(n), GDoubleDif(m)) => GDoubleDif(implemIntegral(f, Dif(n.coeff.map(_.toDouble)), m))
       
       case (_, n: GDif, GInt(m)) => binGroundOp(f, n, GIntDif(Dif.constant(m)))
       case (_, n: GDif, GDouble(m)) => binGroundOp(f, n, GDoubleDif(Dif.constant(m)))

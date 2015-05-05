@@ -11,67 +11,68 @@ import util.ASTUtil
  * Warrick Tucker, pages 121 and 122.
  */
 object AD extends App {
-  
+
   // FIXME Should this really be a partial ordering? 
   //       Do the properties hold for intervals?
-  trait Num[V] extends PartialOrdering[V] {
+  trait Integral[V] extends PartialOrdering[V] {
     def add(l: V, r: V): V
     def sub(l: V, r: V): V
     def mul(l: V, r: V): V
     def div(l: V, r: V): V
     def pow(l: V, r: V): V
     def neg(x: V): V
+    def liftInt(i: Int): V
+    def zero: V
+    def one: V
+  }
+
+  trait Real[V] extends Integral[V] {
     def sin(x: V): V
     def cos(x: V): V
     def tan(x: V): V
     def exp(x: V): V
     def log(x: V): V
-    def lift(i: Int): V
-    def lift(i: Double): V
-    def zero: V
-    def one: V
+    def liftDouble(i: Double): V
   }
-  implicit class NumOps[V](val l: V)(implicit ev: Num[V]) {
+  
+  implicit class IntegralOps[V](val l: V)(implicit ev: Integral[V]) {
     def +(r: V): V = ev.add(l, r)
     def -(r: V): V = ev.sub(l, r)
     def *(r: V): V = ev.mul(l, r)
     def /(r: V): V = ev.div(l, r)
     def ^(r: V): V = ev.pow(l, r)
+    def unary_- = ev.neg(l)
     def < (r: V): Boolean = ev.lt(l, r)
     def > (r: V): Boolean = ev.gt(l, r)
     def <= (r: V): Boolean = ev.lteq(l, r)
     def >= (r: V): Boolean = ev.gteq(l, r)
-    def unary_- = ev.neg(l)
+    def zero: V = ev.zero
+    def one: V = ev.one
+  }
+
+  implicit class RealOps[V](val l: V)(implicit ev: Real[V]) {
     def sin: V = ev.sin(l)
     def cos: V = ev.cos(l)
     def tan: V = ev.tan(l)
     def exp: V = ev.exp(l)
     def log: V = ev.log(l)
-    def zero: V = ev.zero
-    def one: V = ev.one
   }
 
-  // FIXME Extract this into a separate type class
-  implicit object IntIsNum extends Num[Int] {
+  implicit object IntIsIntegral extends Integral[Int] {
     def add(l: Int, r: Int): Int = l + r
     def sub(l: Int, r: Int): Int = l - r
     def mul(l: Int, r: Int): Int = l * r
     def div(l: Int, r: Int): Int = l / r
     def pow(l: Int, r: Int): Int = Math.pow(l,r).toInt // FIXME Re-implement using Int
     def neg(x: Int): Int = -x
-    def sin(x: Int): Int = ???
-    def cos(x: Int): Int = ???
-    def tan(x: Int): Int = ???
-    def exp(x: Int): Int = ???
-    def log(x: Int): Int = ???
-    def lift(x: Int): Int = x
-    def lift(x: Double): Int = ???
+    def liftInt(x: Int): Int = x
     def zero: Int = 0
     def one: Int = 1
     def tryCompare(l: Int, r: Int): Option[Int] = Some(l compareTo r)
     def lteq(l: Int, r: Int): Boolean = l <= r
   }
-  implicit object DoubleIsNum extends Num[Double] {
+
+  implicit object DoubleIsReal extends Real[Double] {
     def add(l: Double, r: Double): Double = l + r
     def sub(l: Double, r: Double): Double = l - r
     def mul(l: Double, r: Double): Double = l * r
@@ -83,14 +84,15 @@ object AD extends App {
     def tan(x: Double): Double = Math.tan(x)
     def exp(x: Double): Double = Math.exp(x)
     def log(x: Double): Double = Math.log(x)
-    def lift(x: Int): Double = x
-    def lift(x: Double): Double = x
+    def liftInt(x: Int): Double = x
+    def liftDouble(x: Double): Double = x
     def zero: Double = 0
     def one: Double = 1
     def tryCompare(l: Double, r: Double): Option[Int] = Some(l compareTo r)
     def lteq(l: Double, r: Double): Boolean = l <= r
   }
-  implicit object IntervalIsNum extends Num[Interval] {
+
+  implicit object IntervalIsReal extends Real[Interval] {
     def add(l: Interval, r: Interval): Interval = l + r
     def sub(l: Interval, r: Interval): Interval = l - r
     def mul(l: Interval, r: Interval): Interval = l * r
@@ -102,8 +104,8 @@ object AD extends App {
     def tan(x: Interval): Interval = x.tan
     def exp(x: Interval): Interval = x.exp
     def log(x: Interval): Interval = x.log
-    def lift(x: Int): Interval = Interval(x)
-    def lift(x: Double): Interval = Interval(x)
+    def liftInt(x: Int): Interval = Interval(x)
+    def liftDouble(x: Double): Interval = Interval(x)
     def zero: Interval = Interval.zero
     def one: Interval = Interval.one
     // FIXME Check if something needs to be overridden
@@ -114,20 +116,17 @@ object AD extends App {
       else if (lteq(r,l)) Some(-1)
       else                None
   }
-  class DifAsNum[V: Num] extends Num[Dif[V]] {
+
+  class DifAsIntegral[V: Integral] extends Integral[Dif[V]] {
     /* Caches */
     val mulCache = collection.mutable.HashMap[(Dif[V], Dif[V]), Dif[V]]()
     val divCache = collection.mutable.HashMap[(Dif[V], Dif[V]), Dif[V]]()
-    val powCache = collection.mutable.HashMap[(Dif[V], Dif[V]), Dif[V]]()
-    val sinAndCosCache = collection.mutable.HashMap[Dif[V], (/*sin*/Dif[V], /*cos*/Dif[V])]()
-    val tanCache = collection.mutable.HashMap[Dif[V], Dif[V]]()
-    val expCache = collection.mutable.HashMap[Dif[V], Dif[V]]()
-    val logCache = collection.mutable.HashMap[Dif[V], Dif[V]]()
+    val powCache = collection.mutable.HashMap[(Dif[V], Dif[V]), Dif[V]]()    
     /* Constants */
-    val evVIsNum = implicitly[Num[V]]
-    val zeroOfV = evVIsNum.zero
-    val oneOfV = evVIsNum.one
-    /* Num instance */
+    val evVIsIntegral = implicitly[Integral[V]]
+    val zeroOfV = evVIsIntegral.zero
+    val oneOfV = evVIsIntegral.one
+    /* Integral instance */
     def add(l: Dif[V], r: Dif[V]): Dif[V] = Dif((l.coeff, r.coeff).zipped.map(_ + _))
     def sub(l: Dif[V], r: Dif[V]): Dif[V] = Dif((l.coeff, r.coeff).zipped.map(_ - _))
     def mul(l: Dif[V], r: Dif[V]): Dif[V] =
@@ -157,16 +156,33 @@ object AD extends App {
         val coeff = new collection.mutable.ArraySeq[V](n)
         coeff(0) = l0 ^ rc
         for (k <- 1 until n) {
-          val kL = evVIsNum.lift(k)          
+          val kL = evVIsIntegral.liftInt(k)          
           coeff(k) = ((1 to k).foldLeft(zeroOfV) {
             case (sum, i) =>  
-              sum + (((((rc + oneOfV) * evVIsNum.lift(i)) / kL) - oneOfV) * l(i) * coeff(k - i)) 
+              sum + (((((rc + oneOfV) * evVIsIntegral.liftInt(i)) / kL) - oneOfV) * l(i) * coeff(k - i)) 
           }) / l0
         }
         coeff.toVector
       })
     }
     def neg(x: Dif[V]): Dif[V] = Dif(x.coeff.map(y => -y))
+    def liftInt(x: Int): Dif[V] = Dif.constant(evVIsIntegral liftInt x)
+    // FIXME Test these definitions
+    def zero: Dif[V] = Dif.fill(zeroOfV)
+    def one: Dif[V] = Dif.constant(oneOfV)
+    def tryCompare(l: Dif[V], r: Dif[V]): Option[Int] = evVIsIntegral.tryCompare(l(0), r(0))
+    def lteq(l: Dif[V], r: Dif[V]): Boolean = evVIsIntegral.lteq(l(0), r(0))
+  }
+  
+  class DifAsReal[V: Real] extends DifAsIntegral[V] with Real[Dif[V]] {
+    /* Caches */
+    val sinAndCosCache = collection.mutable.HashMap[Dif[V], (/*sin*/Dif[V], /*cos*/Dif[V])]()
+    val tanCache = collection.mutable.HashMap[Dif[V], Dif[V]]()
+    val expCache = collection.mutable.HashMap[Dif[V], Dif[V]]()
+    val logCache = collection.mutable.HashMap[Dif[V], Dif[V]]()
+    /* Constants */
+    val evVIsReal = implicitly[Real[V]]
+    /* Real instance */
     def sin(x: Dif[V]): Dif[V] = sinAndCos(x)._1
     def cos(x: Dif[V]): Dif[V] = sinAndCos(x)._2
     private def sinAndCos(x: Dif[V]): (Dif[V],Dif[V]) =
@@ -179,11 +195,11 @@ object AD extends App {
         for (k <- 1 until n) {
           val (sck, cck) = (1 to k).foldLeft(zeroOfV, zeroOfV) {
             case ((sckSum, cckSum), i) => 
-              val ixi = evVIsNum.lift(i) * x(i)
+              val ixi = evVIsIntegral.liftInt(i) * x(i)
               ( sckSum + ixi * cosCoeff(k - i)
               , cckSum + ixi * sinCoeff(k - i) )
           }
-          val kL = evVIsNum.lift(k)
+          val kL = evVIsIntegral.liftInt(k)
           sinCoeff(k) =  sck / kL
           cosCoeff(k) = -cck / kL
         }
@@ -200,8 +216,8 @@ object AD extends App {
           coeff(k) = (x(k) - ((1 to k-1).foldLeft(zeroOfV) {
             case (sum, i) => 
               val c = cos(x)(k - i)
-              sum + evVIsNum.lift(i) * coeff(i) * c * c // FIXME Use c^2 instead
-          }) / evVIsNum.lift(k)) / cos02
+              sum + evVIsIntegral.liftInt(i) * coeff(i) * c * c // FIXME Use c^2 instead
+          }) / evVIsIntegral.liftInt(k)) / cos02
         }
         coeff.toVector
       })
@@ -212,8 +228,8 @@ object AD extends App {
         coeff(0) = x(0).exp
         for (k <- 1 until n)
           coeff(k) = ((1 to k).foldLeft(zeroOfV) {
-            case (sum, i) => sum + evVIsNum.lift(i) * x(i) * coeff(k-i)
-          }) / evVIsNum.lift(k)
+            case (sum, i) => sum + evVIsIntegral.liftInt(i) * x(i) * coeff(k-i)
+          }) / evVIsIntegral.liftInt(k)
         coeff.toVector
       })
     /** Natural logarithm */
@@ -224,25 +240,19 @@ object AD extends App {
         val x0 = x(0)
         coeff(0) = x0.log
         for (k <- 1 until n) {
-          val kL = evVIsNum.lift(k)          
+          val kL = evVIsIntegral.liftInt(k)          
           coeff(k) = (x(k) - ((1 to k - 1).foldLeft(zeroOfV) {
-            case (sum, i) => sum + evVIsNum.lift(i) * coeff(i) * x(k-i)
+            case (sum, i) => sum + evVIsIntegral.liftInt(i) * coeff(i) * x(k-i)
           }) / kL) / x0
         }
         coeff.toVector
       })
     // TODO Add square function according to Griewank book
-    def lift(x: Int): Dif[V] = Dif.constant(evVIsNum lift x)
-    def lift(x: Double): Dif[V] = Dif.constant(evVIsNum lift x)
-    // FIXME Test these definitions
-    def zero: Dif[V] = Dif.fill(zeroOfV)
-    def one: Dif[V] = Dif.constant(oneOfV)
-    def tryCompare(l: Dif[V], r: Dif[V]): Option[Int] = evVIsNum.tryCompare(l(0), r(0))
-    def lteq(l: Dif[V], r: Dif[V]): Boolean = evVIsNum.lteq(l(0), r(0))
+    def liftDouble(x: Double): Dif[V] = Dif.constant(evVIsReal liftDouble x)
   }
-  implicit object IntDifIsNum extends DifAsNum[Int]
-  implicit object DoubleDifIsNum extends DifAsNum[Double]
-  implicit object IntervalDifIsNum extends DifAsNum[Interval]
+  implicit object IntDifIsIntegral extends DifAsIntegral[Int]
+  implicit object DoubleDifIsReal extends DifAsReal[Double]
+  implicit object IntervalDifIsReal extends DifAsReal[Interval]
   
   case class Dif[V](coeff: Vector[V]) {
     import Dif._
@@ -253,16 +263,16 @@ object AD extends App {
   object Dif {
     val dim: Int = 10 // FIXME Expose this as a simulator parameter
     /** Lift a constant value of type A to a Dif. */
-    def constant[V: Num](a: V) = padWithZeros(Vector(a, implicitly[Num[V]].zero))
+    def constant[V: Integral](a: V) = padWithZeros(Vector(a, implicitly[Integral[V]].zero))
     /** Lift a variable of type V to a Dif. The value a is the current value of the variable. */
-    def variable[V: Num](a: V) = padWithZeros(Vector(a, implicitly[Num[V]].one))
+    def variable[V: Integral](a: V) = padWithZeros(Vector(a, implicitly[Integral[V]].one))
     /** Use a sequence of values of type V as the coefficients of a Dif.
      *  The sequence is padded to dim with the zero of V. */
-    def apply[V: Num](as: V*) = padWithZeros(as.toVector)
+    def apply[V: Integral](as: V*) = padWithZeros(as.toVector)
     /** Use a repeated sequence of the value a as the coefficients of a Dif. */
-    def fill[V: Num](a: V) = Dif(Vector.fill(dim)(a))
+    def fill[V: Integral](a: V) = Dif(Vector.fill(dim)(a))
     /** Create a Dif by filling the missing positions up to dim with the zero of V. */
-    private def padWithZeros[V: Num](v: Vector[V]): Dif[V] = Dif(v.padTo(dim, implicitly[Num[V]].zero))
+    private def padWithZeros[V: Integral](v: Vector[V]): Dif[V] = Dif(v.padTo(dim, implicitly[Integral[V]].zero))
   }
   
   /** Lift all numeric values in a CStore into Difs */

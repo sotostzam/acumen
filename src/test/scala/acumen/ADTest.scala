@@ -15,10 +15,11 @@ object ADTest extends Properties("AD") {
 
   /* Utilities */
   
-  val evDoubleDifIsNum = implicitly[Num[Dif[Double]]]
+  val evDoubleDifIsIntegral = implicitly[Integral[Dif[Double]]]
+  val evDoubleDifIsReal = implicitly[Real[Dif[Double]]]
   
-  def liftInt(i: Int) = evDoubleDifIsNum.lift(i)
-  val one = evDoubleDifIsNum.one
+  def liftInt(i: Int) = evDoubleDifIsIntegral.liftInt(i)
+  val one = evDoubleDifIsIntegral.one
   
   implicit class DoubleOps(l: Double) {
     def ~=(r: Double): Boolean = 
@@ -61,7 +62,7 @@ object ADTest extends Properties("AD") {
   }
   
   property("Dif[Double]: tan(x) ~= tan(x+pi/2)") = forAll(genSmallDoubleDif) { (x: Dif[Double]) =>
-    x.tan ~= (x + evDoubleDifIsNum.lift(Math.PI)).tan
+    x.tan ~= (x + evDoubleDifIsReal.liftDouble(Math.PI)).tan
   }
 
   property("lower is inverse of lift") = forAll { (st: CStore) =>
@@ -70,7 +71,12 @@ object ADTest extends Properties("AD") {
   
   /* Generators */
   
-  def genDif[N: Num](genN: Gen[N]): Gen[Dif[N]] =
+  def genIntegralDif[N: Integral](genN: Gen[N]): Gen[Dif[N]] =
+      for {
+        coeffs <- listOfN(10, genN)
+      } yield Dif(coeffs.to[Vector])
+
+  def genRealDif[N: Real](genN: Gen[N]): Gen[Dif[N]] =
     for {
       coeffs <- listOfN(10, genN)
     } yield Dif(coeffs.to[Vector])
@@ -79,14 +85,14 @@ object ADTest extends Properties("AD") {
     
   def genBoundedDoubleDif(magnitude: Double): Gen[Dif[Double]] = {
     val abs = Math.abs(magnitude)       
-    genDif(choose(-abs, abs))
+    genRealDif(choose(-abs, abs))
   }
     
   implicit def arbitraryIntDif: Arbitrary[Dif[Int]] =
-    Arbitrary(genDif(arbitrary[Int]))
+    Arbitrary(genIntegralDif(arbitrary[Int]))
   implicit def arbitraryDoubleDif: Arbitrary[Dif[Double]] =
-    Arbitrary(genDif(arbDouble.arbitrary))
+    Arbitrary(genRealDif(arbDouble.arbitrary))
   implicit def arbitraryIntervalDif: Arbitrary[Dif[Interval]] =
-    Arbitrary(genDif(arbitrary[Interval]))
+    Arbitrary(genRealDif(arbitrary[Interval]))
   
 }
