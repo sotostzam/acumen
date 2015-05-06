@@ -18,7 +18,7 @@ object ADTest extends Properties("AD") {
   val evDoubleDifIsIntegral = implicitly[Integral[Dif[Double]]]
   val evDoubleDifIsReal = implicitly[Real[Dif[Double]]]
   
-  def liftInt(i: Int) = evDoubleDifIsIntegral.liftInt(i)
+  def fromInt(i: Int) = evDoubleDifIsIntegral.fromInt(i)
   val one = evDoubleDifIsIntegral.one
   
   implicit class DoubleOps(l: Double) {
@@ -38,7 +38,7 @@ object ADTest extends Properties("AD") {
   /* Properties */
 
   property("Dif[Double].add: x+x ~= 2*x") = forAll(genSmallDoubleDif) { (x: Dif[Double]) =>
-    (x + x) ~= (liftInt(2) * x)
+    (x + x) ~= (fromInt(2) * x)
   }
   
   property("Dif[Double].add: 1+x > x") = forAll(genSmallDoubleDif) { (x: Dif[Double]) =>
@@ -62,7 +62,7 @@ object ADTest extends Properties("AD") {
   }
   
   property("Dif[Double]: tan(x) ~= tan(x+pi/2)") = forAll(genSmallDoubleDif) { (x: Dif[Double]) =>
-    x.tan ~= (x + evDoubleDifIsReal.liftDouble(Math.PI)).tan
+    x.tan ~= (x + evDoubleDifIsReal.fromDouble(Math.PI)).tan
   }
 
   property("lower is inverse of lift") = forAll { (st: CStore) =>

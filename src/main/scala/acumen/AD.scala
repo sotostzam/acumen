@@ -21,7 +21,7 @@ object AD extends App {
     def div(l: V, r: V): V
     def pow(l: V, r: V): V
     def neg(x: V): V
-    def liftInt(i: Int): V
+    def fromInt(i: Int): V
     def zero: V
     def one: V
   }
@@ -32,7 +32,7 @@ object AD extends App {
     def tan(x: V): V
     def exp(x: V): V
     def log(x: V): V
-    def liftDouble(i: Double): V
+    def fromDouble(i: Double): V
   }
   
   implicit class IntegralOps[V](val l: V)(implicit ev: Integral[V]) {
@@ -65,7 +65,7 @@ object AD extends App {
     def div(l: Int, r: Int): Int = l / r
     def pow(l: Int, r: Int): Int = Math.pow(l,r).toInt // FIXME Re-implement using Int
     def neg(x: Int): Int = -x
-    def liftInt(x: Int): Int = x
+    def fromInt(x: Int): Int = x
     def zero: Int = 0
     def one: Int = 1
     def tryCompare(l: Int, r: Int): Option[Int] = Some(l compareTo r)
@@ -84,8 +84,8 @@ object AD extends App {
     def tan(x: Double): Double = Math.tan(x)
     def exp(x: Double): Double = Math.exp(x)
     def log(x: Double): Double = Math.log(x)
-    def liftInt(x: Int): Double = x
-    def liftDouble(x: Double): Double = x
+    def fromInt(x: Int): Double = x
+    def fromDouble(x: Double): Double = x
     def zero: Double = 0
     def one: Double = 1
     def tryCompare(l: Double, r: Double): Option[Int] = Some(l compareTo r)
@@ -104,8 +104,8 @@ object AD extends App {
     def tan(x: Interval): Interval = x.tan
     def exp(x: Interval): Interval = x.exp
     def log(x: Interval): Interval = x.log
-    def liftInt(x: Int): Interval = Interval(x)
-    def liftDouble(x: Double): Interval = Interval(x)
+    def fromInt(x: Int): Interval = Interval(x)
+    def fromDouble(x: Double): Interval = Interval(x)
     def zero: Interval = Interval.zero
     def one: Interval = Interval.one
     // FIXME Check if something needs to be overridden
@@ -156,17 +156,17 @@ object AD extends App {
         val coeff = new collection.mutable.ArraySeq[V](n)
         coeff(0) = l0 ^ rc
         for (k <- 1 until n) {
-          val kL = evVIsIntegral.liftInt(k)          
+          val kL = evVIsIntegral.fromInt(k)          
           coeff(k) = ((1 to k).foldLeft(zeroOfV) {
             case (sum, i) =>  
-              sum + (((((rc + oneOfV) * evVIsIntegral.liftInt(i)) / kL) - oneOfV) * l(i) * coeff(k - i)) 
+              sum + (((((rc + oneOfV) * evVIsIntegral.fromInt(i)) / kL) - oneOfV) * l(i) * coeff(k - i)) 
           }) / l0
         }
         coeff.toVector
       })
     }
     def neg(x: Dif[V]): Dif[V] = Dif(x.coeff.map(y => -y))
-    def liftInt(x: Int): Dif[V] = Dif.constant(evVIsIntegral liftInt x)
+    def fromInt(x: Int): Dif[V] = Dif.constant(evVIsIntegral fromInt x)
     // FIXME Test these definitions
     def zero: Dif[V] = Dif.fill(zeroOfV)
     def one: Dif[V] = Dif.constant(oneOfV)
@@ -195,11 +195,11 @@ object AD extends App {
         for (k <- 1 until n) {
           val (sck, cck) = (1 to k).foldLeft(zeroOfV, zeroOfV) {
             case ((sckSum, cckSum), i) => 
-              val ixi = evVIsIntegral.liftInt(i) * x(i)
+              val ixi = evVIsIntegral.fromInt(i) * x(i)
               ( sckSum + ixi * cosCoeff(k - i)
               , cckSum + ixi * sinCoeff(k - i) )
           }
-          val kL = evVIsIntegral.liftInt(k)
+          val kL = evVIsIntegral.fromInt(k)
           sinCoeff(k) =  sck / kL
           cosCoeff(k) = -cck / kL
         }
@@ -216,8 +216,8 @@ object AD extends App {
           coeff(k) = (x(k) - ((1 to k-1).foldLeft(zeroOfV) {
             case (sum, i) => 
               val c = cos(x)(k - i)
-              sum + evVIsIntegral.liftInt(i) * coeff(i) * c * c // FIXME Use c^2 instead
-          }) / evVIsIntegral.liftInt(k)) / cos02
+              sum + evVIsIntegral.fromInt(i) * coeff(i) * c * c // FIXME Use c^2 instead
+          }) / evVIsIntegral.fromInt(k)) / cos02
         }
         coeff.toVector
       })
@@ -228,8 +228,8 @@ object AD extends App {
         coeff(0) = x(0).exp
         for (k <- 1 until n)
           coeff(k) = ((1 to k).foldLeft(zeroOfV) {
-            case (sum, i) => sum + evVIsIntegral.liftInt(i) * x(i) * coeff(k-i)
-          }) / evVIsIntegral.liftInt(k)
+            case (sum, i) => sum + evVIsIntegral.fromInt(i) * x(i) * coeff(k-i)
+          }) / evVIsIntegral.fromInt(k)
         coeff.toVector
       })
     /** Natural logarithm */
@@ -240,15 +240,15 @@ object AD extends App {
         val x0 = x(0)
         coeff(0) = x0.log
         for (k <- 1 until n) {
-          val kL = evVIsIntegral.liftInt(k)          
+          val kL = evVIsIntegral.fromInt(k)          
           coeff(k) = (x(k) - ((1 to k - 1).foldLeft(zeroOfV) {
-            case (sum, i) => sum + evVIsIntegral.liftInt(i) * coeff(i) * x(k-i)
+            case (sum, i) => sum + evVIsIntegral.fromInt(i) * coeff(i) * x(k-i)
           }) / kL) / x0
         }
         coeff.toVector
       })
     // TODO Add square function according to Griewank book
-    def liftDouble(x: Double): Dif[V] = Dif.constant(evVIsReal liftDouble x)
+    def fromDouble(x: Double): Dif[V] = Dif.constant(evVIsReal fromDouble x)
   }
   implicit object IntDifIsIntegral extends DifAsIntegral[Int]
   implicit object DoubleDifIsReal extends DifAsReal[Double]
