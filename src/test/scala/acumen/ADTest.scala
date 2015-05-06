@@ -69,9 +69,25 @@ object ADTest extends Properties("AD") {
     }
   
   /* Properties of Real */
+  
+  property("Dif[Double]: sin(x) ~= cos(pi/2 - x)") = 
+    forAll(genSmallDoubleDif) { (x: Dif[Double]) =>
+      x.sin ~= ((pi / fromInt(2)) - x).cos
+    }
+
+  property("Dif[Double]: cos(x) ~= sin(pi/2 - x)") = 
+    forAll(genSmallDoubleDif) { (x: Dif[Double]) =>
+      x.cos ~= ((pi / fromInt(2)) - x).sin
+    }
+
   property("Dif[Double]: tan(x) ~= tan(x + pi)") = 
     forAll(genSmallDoubleDif) { (x: Dif[Double]) =>
       x.tan ~= (x + pi).tan
+    }
+
+  property("Dif[Double]: for small x, log(exp(x)) ~= x") = 
+    forAll(genBoundedDoubleDif(30)) { (x: Dif[Double]) =>
+      x.exp.log ~= x
     }
 
   property("lower is inverse of lift") = forAll { (st: CStore) =>
