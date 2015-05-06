@@ -25,7 +25,7 @@ object ADTest extends Properties("AD") {
   
   implicit class DoubleOps(l: Double) {
     def ~=(r: Double): Boolean = 
-      Math.abs(l - r) <= Math.abs(Math.min(Math.abs(l), Math.abs(r))) / 1000
+      Math.abs(l - r) <= 10e-6 * Math.min(Math abs l, Math abs r)
   }
   
   implicit class DoubleDifOps(l: Dif[Double]) {
