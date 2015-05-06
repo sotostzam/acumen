@@ -100,6 +100,16 @@ object ADTest extends Properties("AD") {
   property("lower is inverse of lift") = forAll { (st: CStore) =>
     lower(lift(st)) == st
   }
+  property("Dif[Double]: pow(0) ~= 1") = 
+    forAll(genSmallDoubleDif) { (x: Dif[Double]) =>
+      (x ^ zero) ~= one
+    }
+  
+  property("Dif[Double]: 0 < x < 1 && y > 1 => x^y < x") = 
+    forAll(genRealDif(choose(0.01,0.99)), genRealDif(choose(1.0,100))) { 
+      (x: Dif[Double], y: Dif[Double]) =>
+        (x ^ y) < x
+    }
   
   /* Generators */
   
