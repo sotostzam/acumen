@@ -20,6 +20,7 @@ object ADTest extends Properties("AD") {
   
   def fromInt(i: Int) = evDoubleDifIsIntegral.fromInt(i)
   val one = evDoubleDifIsIntegral.one
+  val pi = evDoubleDifIsReal.fromDouble(Math.PI)
   
   implicit class DoubleOps(l: Double) {
     def ~=(r: Double): Boolean = 
@@ -35,35 +36,43 @@ object ADTest extends Properties("AD") {
        lc ~= rc }
   }
   
-  /* Properties */
+  /* Properties of Integral */
 
-  property("Dif[Double].add: x+x ~= 2*x") = forAll(genSmallDoubleDif) { (x: Dif[Double]) =>
-    (x + x) ~= (fromInt(2) * x)
-  }
+  property("Dif[Double].add: x+x ~= 2*x") = 
+    forAll(genSmallDoubleDif) { (x: Dif[Double]) =>
+      (x + x) ~= (fromInt(2) * x)
+    }
   
-  property("Dif[Double].add: 1+x > x") = forAll(genSmallDoubleDif) { (x: Dif[Double]) =>
-    (one + x) > x
-  }
+  property("Dif[Double].add: 1+x > x") = 
+    forAll(genSmallDoubleDif) { (x: Dif[Double]) =>
+      (one + x) > x
+    }
   
-  property("Dif[Double].mul: x*x >= x") = forAll { (x: Dif[Double]) =>
-    (x * x) >= x  
-  }  
+  property("Dif[Double].mul: x*x >= x") = 
+    forAll { (x: Dif[Double]) =>
+      (x * x) >= x  
+    }  
 
-  property("Dif[Double].mul: x*1 ~= x && 1*x ~= x") = forAll { (x: Dif[Double]) =>
-    ((x * one) ~= x) && ((one * x) ~= x) 
-  }  
+  property("Dif[Double].mul: x*1 ~= x && 1*x ~= x") = 
+    forAll { (x: Dif[Double]) =>
+      ((x * one) ~= x) && ((one * x) ~= x) 
+    }  
   
-  property("Dif[Double].div: x/1 ~= x") = forAll { (x: Dif[Double]) =>
-    (x / one) ~= x
-  }
+  property("Dif[Double].div: x/1 ~= x") = 
+    forAll { (x: Dif[Double]) =>
+      (x / one) ~= x
+    }
 
-  property("Dif[Double].div: x/x ~= 1") = forAll { (x: Dif[Double]) =>
-    (x(0) != 0d) ==> ((x / x) ~= one)  
-  }
+  property("Dif[Double].div: x/x ~= 1") = 
+    forAll { (x: Dif[Double]) =>
+      (x(0) != 0d) ==> ((x / x) ~= one)  
+    }
   
-  property("Dif[Double]: tan(x) ~= tan(x+pi/2)") = forAll(genSmallDoubleDif) { (x: Dif[Double]) =>
-    x.tan ~= (x + evDoubleDifIsReal.fromDouble(Math.PI)).tan
-  }
+  /* Properties of Real */
+  property("Dif[Double]: tan(x) ~= tan(x + pi)") = 
+    forAll(genSmallDoubleDif) { (x: Dif[Double]) =>
+      x.tan ~= (x + pi).tan
+    }
 
   property("lower is inverse of lift") = forAll { (st: CStore) =>
     lower(lift(st)) == st
