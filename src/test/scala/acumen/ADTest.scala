@@ -19,6 +19,7 @@ object ADTest extends Properties("AD") {
   val evDoubleDifIsReal = implicitly[Real[Dif[Double]]]
   
   def fromInt(i: Int) = evDoubleDifIsIntegral.fromInt(i)
+  val zero = evDoubleDifIsIntegral.zero
   val one = evDoubleDifIsIntegral.one
   val pi = evDoubleDifIsReal.fromDouble(Math.PI)
   
@@ -85,6 +86,12 @@ object ADTest extends Properties("AD") {
       x.tan ~= (x + pi).tan
     }
 
+  property("Dif[Double]: exp(x) > 0") =
+    // Generate x such that exp(x) is representable as a Double
+    forAll(genBoundedDoubleDif(Math.log(Double.MaxValue))) { (x: Dif[Double]) =>
+      x.exp > zero
+    }
+  
   property("Dif[Double]: for small x, log(exp(x)) ~= x") = 
     forAll(genBoundedDoubleDif(30)) { (x: Dif[Double]) =>
       x.exp.log ~= x
