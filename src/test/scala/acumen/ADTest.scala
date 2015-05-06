@@ -98,7 +98,7 @@ object ADTest extends Properties("AD") {
     }
   
   property("Dif[Double]: for small x, log(exp(x)) ~= x") = 
-    forAll(genBoundedDoubleDif(30)) { (x: Dif[Double]) =>
+    forAll(genSmallDoubleDif) { (x: Dif[Double]) =>
       x.exp.log ~= x
     }
 
