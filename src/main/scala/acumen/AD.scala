@@ -210,13 +210,12 @@ object AD extends App {
         val n = x.size
         val coeff = new collection.mutable.ArraySeq[V](n)
         coeff(0) = x(0).tan
-        val cos0 = x(0).cos
-        val cos02 = cos0 * cos0 // FIXME Use cos0^2 instead
+        val cos02 = (x(0).cos) * (x(0).cos) // FIXME Use cos0^2 instead
+        val cos2 = mul(cos(x), cos(x)) // FIXME Use c^2 instead
         for (k <- 1 until n) {
           coeff(k) = (x(k) - ((1 to k-1).foldLeft(zeroOfV) {
             case (sum, i) => 
-              val c = cos(x)(k - i)
-              sum + evVIsIntegral.fromInt(i) * coeff(i) * c * c // FIXME Use c^2 instead
+              sum + evVIsIntegral.fromInt(i) * coeff(i) * cos2(k - i)
           }) / evVIsIntegral.fromInt(k)) / cos02
         }
         coeff.toVector

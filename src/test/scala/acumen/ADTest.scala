@@ -81,6 +81,11 @@ object ADTest extends Properties("AD") {
       x.cos ~= ((pi / fromInt(2)) - x).sin
     }
 
+  property("Dif[Double]: tan(x) ~= sin(x) / cos(x)") = 
+    forAll(genSmallDoubleDif) { (x: Dif[Double]) =>
+      (x.cos.coeff.forall(_ != 0.0)) ==> (x.tan ~= x.sin / x.cos)
+    }
+
   property("Dif[Double]: tan(x) ~= tan(x + pi)") = 
     forAll(genSmallDoubleDif) { (x: Dif[Double]) =>
       x.tan ~= (x + pi).tan
