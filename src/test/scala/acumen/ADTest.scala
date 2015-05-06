@@ -102,9 +102,6 @@ object ADTest extends Properties("AD") {
       x.exp.log ~= x
     }
 
-  property("lower is inverse of lift") = forAll { (st: CStore) =>
-    lower(lift(st)) == st
-  }
   property("Dif[Double]: pow(0) ~= 1") = 
     forAll(genSmallDoubleDif) { (x: Dif[Double]) =>
       (x ^ zero) ~= one
@@ -115,6 +112,12 @@ object ADTest extends Properties("AD") {
       (x: Dif[Double], y: Dif[Double]) =>
         (x ^ y) < x
     }
+  
+  /* Other properties */
+  
+  property("lower is inverse of lift") = forAll { (st: CStore) =>
+    lower(lift(st)) == st
+  }
   
   /* Generators */
   
