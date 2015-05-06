@@ -309,23 +309,5 @@ object AD extends App {
       case _ => super.mapExpr(e)
     }).setPos(e.pos)
   }.mapExpr(e)
-  
-  /* Sandbox */
-  
-  val s: CStore = Map(CId(0) -> Map(Name("x",0) -> VLit(GDouble(-3.0))))
-
-  println("s: " + s)
-  println("lift(s): " + lift(s))
-  println("lower(lift(s)): " + lower(lift(s)))
-  
-//  val dd = Dif(1.0, 2.0)
-//  val id = Dif(Interval(1.0), Interval(1.0))
-
-//  def divide[A: Num](l: A, r: A): A = l / r
-
-//  println(divide(1.0, 2.0))
-//  println(divide(dd, dd))
-//  println(divide(id, id))
-//  println(Dif.variable(Interval(1)) * Dif.variable(Interval(1)))
 
 }
