@@ -5,7 +5,7 @@ import interpreters.enclosure.Interval
 import util.ASTUtil
 
 /**
- * Taylor series arithmetic.
+ * Automatic Differentiation.
  *
  * Based on description from book "Validated Numerics" by
  * Warrick Tucker, pages 121 and 122.
