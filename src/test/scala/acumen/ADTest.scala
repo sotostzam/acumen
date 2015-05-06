@@ -106,7 +106,7 @@ object ADTest extends Properties("AD") {
     }
   
   property("Dif[Double]: 0 < x < 1 && y > 1 => x^y < x") = 
-    forAll(genRealDif(choose(0.01,0.99)), genRealDif(choose(1.0,100))) { 
+    forAll(genRealDif(choose(0.01,0.99)), genRealDif(choose(1.0,10))) { 
       (x: Dif[Double], y: Dif[Double]) =>
         (x ^ y) < x
     }
@@ -123,7 +123,7 @@ object ADTest extends Properties("AD") {
       coeffs <- listOfN(10, genN)
     } yield Dif(coeffs.to[Vector])
   
-  def genSmallDoubleDif: Gen[Dif[Double]] = genBoundedDoubleDif(1000000)
+  def genSmallDoubleDif: Gen[Dif[Double]] = genBoundedDoubleDif(10)
     
   def genBoundedDoubleDif(magnitude: Double): Gen[Dif[Double]] = {
     val abs = Math.abs(magnitude)       
