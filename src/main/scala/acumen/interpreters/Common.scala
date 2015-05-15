@@ -135,9 +135,12 @@ object Common {
       case "+" => x + y
       case "-" => x - y
       case "*" => x * y
+      case _ => throw UnknownOperator(f)
+    }
+    def implemReal[V: AD.Real](f: String, x: V, y: V) = f match {
       case "/" => x / y
       case "^" => x ^ y
-      case _ => throw UnknownOperator(f)
+      case _ => implemIntegral(f, x, y)
     }
     (f, vx, vy) match {
       case (">="|"<="|"<"|">", GInt(n), GInt(m)) => GBool(implem3(f,n,m))
@@ -145,10 +148,10 @@ object Common {
       case ("+"|"-"|"*"|"<<"|">>"|"&"|"|"|"%"|"xor", GInt(n), GInt(m)) => GInt(implem1(f,n,m))
       
       case (_, GIntDif(n), GIntDif(m)) => GIntDif(implemIntegral(f, n, m))
-      case (_, GDoubleDif(n), GDoubleDif(m)) => GDoubleDif(implemIntegral(f, n, m))
+      case (_, GDoubleDif(n), GDoubleDif(m)) => GDoubleDif(implemReal(f, n, m))
       
-      case (_, GDoubleDif(n), GIntDif(m)) => GDoubleDif(implemIntegral(f, n, Dif(m.coeff.map(_.toDouble))))
-      case (_, GIntDif(n), GDoubleDif(m)) => GDoubleDif(implemIntegral(f, Dif(n.coeff.map(_.toDouble)), m))
+      case (_, GDoubleDif(n), GIntDif(m)) => GDoubleDif(implemReal(f, n, Dif(m.coeff.map(_.toDouble))))
+      case (_, GIntDif(n), GDoubleDif(m)) => GDoubleDif(implemReal(f, Dif(n.coeff.map(_.toDouble)), m))
       
       case (_, n: GDif, GInt(m)) => binGroundOp(f, n, GIntDif(Dif.constant(m)))
       case (_, n: GDif, GDouble(m)) => binGroundOp(f, n, GDoubleDif(Dif.constant(m)))

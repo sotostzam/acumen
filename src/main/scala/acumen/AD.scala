@@ -18,8 +18,6 @@ object AD extends App {
     def add(l: V, r: V): V
     def sub(l: V, r: V): V
     def mul(l: V, r: V): V
-    def div(l: V, r: V): V
-    def pow(l: V, r: V): V
     def neg(x: V): V
     def fromInt(i: Int): V
     def zero: V
@@ -27,6 +25,8 @@ object AD extends App {
   }
 
   trait Real[V] extends Integral[V] {
+    def div(l: V, r: V): V
+    def pow(l: V, r: V): V
     def sin(x: V): V
     def cos(x: V): V
     def tan(x: V): V
@@ -43,8 +43,6 @@ object AD extends App {
     def +(r: V): V = ev.add(l, r)
     def -(r: V): V = ev.sub(l, r)
     def *(r: V): V = ev.mul(l, r)
-    def /(r: V): V = ev.div(l, r)
-    def ^(r: V): V = ev.pow(l, r)
     def unary_- = ev.neg(l)
     def < (r: V): Boolean = ev.lt(l, r)
     def > (r: V): Boolean = ev.gt(l, r)
@@ -55,6 +53,8 @@ object AD extends App {
   }
 
   implicit class RealOps[V](val l: V)(implicit ev: Real[V]) {
+    def /(r: V): V = ev.div(l, r)
+    def ^(r: V): V = ev.pow(l, r)
     def sin: V = ev.sin(l)
     def cos: V = ev.cos(l)
     def tan: V = ev.tan(l)
@@ -70,8 +70,6 @@ object AD extends App {
     def add(l: Int, r: Int): Int = l + r
     def sub(l: Int, r: Int): Int = l - r
     def mul(l: Int, r: Int): Int = l * r
-    def div(l: Int, r: Int): Int = l / r
-    def pow(l: Int, r: Int): Int = Math.pow(l,r).toInt // FIXME Re-implement using Int
     def neg(x: Int): Int = -x
     def fromInt(x: Int): Int = x
     def zero: Int = 0
@@ -136,8 +134,6 @@ object AD extends App {
   class DifAsIntegral[V: Integral] extends Integral[Dif[V]] {
     /* Caches */
     val mulCache = collection.mutable.HashMap[(Dif[V], Dif[V]), Dif[V]]()
-    val divCache = collection.mutable.HashMap[(Dif[V], Dif[V]), Dif[V]]()
-    val powCache = collection.mutable.HashMap[(Dif[V], Dif[V]), Dif[V]]()    
     /* Constants */
     val evVIsIntegral = implicitly[Integral[V]]
     val zeroOfV = evVIsIntegral.zero
@@ -151,6 +147,30 @@ object AD extends App {
         Dif((for (k <- 0 until l.size) yield ((0 to k).foldLeft(zeroOfV) {
           case (sum, i) => sum + (l(i) * r(k - i))
         })).toVector))
+    def neg(x: Dif[V]): Dif[V] = Dif(x.coeff.map(- _))
+    def fromInt(x: Int): Dif[V] = Dif.constant(evVIsIntegral fromInt x)
+    // FIXME Test these definitions
+    def zero: Dif[V] = Dif.fill(zeroOfV)
+    def one: Dif[V] = Dif.constant(oneOfV)
+    def tryCompare(l: Dif[V], r: Dif[V]): Option[Int] = evVIsIntegral.tryCompare(l(0), r(0))
+    def lteq(l: Dif[V], r: Dif[V]): Boolean = evVIsIntegral.lteq(l(0), r(0))
+  }
+  
+  class DifAsReal[V: Real] extends DifAsIntegral[V] with Real[Dif[V]] {
+    /* Caches */
+    val divCache = collection.mutable.HashMap[(Dif[V], Dif[V]), Dif[V]]()
+    val powCache = collection.mutable.HashMap[(Dif[V], Dif[V]), Dif[V]]()    
+    val sinAndCosCache = collection.mutable.HashMap[Dif[V], (/*sin*/Dif[V], /*cos*/Dif[V])]()
+    val tanCache = collection.mutable.HashMap[Dif[V], Dif[V]]()
+    val acosCache = collection.mutable.HashMap[Dif[V], Dif[V]]()
+    val asinCache = collection.mutable.HashMap[Dif[V], Dif[V]]()
+    val atanCache = collection.mutable.HashMap[Dif[V], Dif[V]]()
+    val expCache = collection.mutable.HashMap[Dif[V], Dif[V]]()
+    val logCache = collection.mutable.HashMap[Dif[V], Dif[V]]()
+    val sqrtCache = collection.mutable.HashMap[Dif[V], Dif[V]]()
+    /* Constants */
+    val evVIsReal = implicitly[Real[V]]
+    /* Real instance */
     def div(l: Dif[V], r: Dif[V]): Dif[V] =
       // FIXME Extend using l’Hopital’s rule
       divCache.getOrElseUpdate((l, r), Dif {
@@ -181,28 +201,6 @@ object AD extends App {
         coeff.toVector
       })
     }
-    def neg(x: Dif[V]): Dif[V] = Dif(x.coeff.map(y => -y))
-    def fromInt(x: Int): Dif[V] = Dif.constant(evVIsIntegral fromInt x)
-    // FIXME Test these definitions
-    def zero: Dif[V] = Dif.fill(zeroOfV)
-    def one: Dif[V] = Dif.constant(oneOfV)
-    def tryCompare(l: Dif[V], r: Dif[V]): Option[Int] = evVIsIntegral.tryCompare(l(0), r(0))
-    def lteq(l: Dif[V], r: Dif[V]): Boolean = evVIsIntegral.lteq(l(0), r(0))
-  }
-  
-  class DifAsReal[V: Real] extends DifAsIntegral[V] with Real[Dif[V]] {
-    /* Caches */
-    val sinAndCosCache = collection.mutable.HashMap[Dif[V], (/*sin*/Dif[V], /*cos*/Dif[V])]()
-    val tanCache = collection.mutable.HashMap[Dif[V], Dif[V]]()
-    val acosCache = collection.mutable.HashMap[Dif[V], Dif[V]]()
-    val asinCache = collection.mutable.HashMap[Dif[V], Dif[V]]()
-    val atanCache = collection.mutable.HashMap[Dif[V], Dif[V]]()
-    val expCache = collection.mutable.HashMap[Dif[V], Dif[V]]()
-    val logCache = collection.mutable.HashMap[Dif[V], Dif[V]]()
-    val sqrtCache = collection.mutable.HashMap[Dif[V], Dif[V]]()
-    /* Constants */
-    val evVIsReal = implicitly[Real[V]]
-    /* Real instance */
     def sin(x: Dif[V]): Dif[V] = sinAndCos(x)._1
     def cos(x: Dif[V]): Dif[V] = sinAndCos(x)._2
     private def sinAndCos(x: Dif[V]): (Dif[V],Dif[V]) =
