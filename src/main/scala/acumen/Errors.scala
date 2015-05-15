@@ -172,7 +172,7 @@ object Errors {
   }
   case class BadPreLhs() extends PositionalAcumenError {
     override def mesg = 
-      "The left hand-side of an equation must be a field."
+      "The left-hand side of an equation must be a field."
   }
   case class BadMove() extends PositionalAcumenError {
     override def mesg = 
