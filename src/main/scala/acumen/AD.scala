@@ -14,6 +14,11 @@ object AD extends App {
 
   // FIXME Should this really be a partial ordering? 
   //       Do the properties hold for intervals?
+  /**
+   * Type class with operations that have sensible
+   * implementations for Int as well as all the
+   * other numeric types.
+   */
   trait Integral[V] extends PartialOrdering[V] {
     def add(l: V, r: V): V
     def sub(l: V, r: V): V
@@ -24,6 +29,11 @@ object AD extends App {
     def one: V
   }
 
+  /**
+   * Type class with operations that have sensible
+   * implementations for numeric types that represent
+   * real numbers. 
+   */
   trait Real[V] extends Integral[V] {
     def div(l: V, r: V): V
     def pow(l: V, r: V): V
@@ -39,6 +49,7 @@ object AD extends App {
     def fromDouble(i: Double): V
   }
   
+  /** Syntactic sugar for Integral operations */
   implicit class IntegralOps[V](val l: V)(implicit ev: Integral[V]) {
     def +(r: V): V = ev.add(l, r)
     def -(r: V): V = ev.sub(l, r)
@@ -52,6 +63,7 @@ object AD extends App {
     def one: V = ev.one
   }
 
+  /** Syntactic sugar for Real operations */
   implicit class RealOps[V](val l: V)(implicit ev: Real[V]) {
     def /(r: V): V = ev.div(l, r)
     def ^(r: V): V = ev.pow(l, r)
@@ -66,6 +78,7 @@ object AD extends App {
     def sqrt: V = ev.sqrt(l)
   }
 
+  /** Integral instance for Int */
   implicit object IntIsIntegral extends Integral[Int] {
     def add(l: Int, r: Int): Int = l + r
     def sub(l: Int, r: Int): Int = l - r
@@ -78,6 +91,7 @@ object AD extends App {
     def lteq(l: Int, r: Int): Boolean = l <= r
   }
 
+  /** Real instance for Double */
   implicit object DoubleIsReal extends Real[Double] {
     def add(l: Double, r: Double): Double = l + r
     def sub(l: Double, r: Double): Double = l - r
@@ -102,6 +116,7 @@ object AD extends App {
     def lteq(l: Double, r: Double): Boolean = l <= r
   }
 
+  /** Real instance for Interval */
   implicit object IntervalIsReal extends Real[Interval] {
     def add(l: Interval, r: Interval): Interval = l + r
     def sub(l: Interval, r: Interval): Interval = l - r
@@ -131,6 +146,7 @@ object AD extends App {
       else                None
   }
 
+  /** Integral instance for Dif[V], where V itself has an Integral instance */
   class DifAsIntegral[V: Integral] extends Integral[Dif[V]] {
     /* Caches */
     val mulCache = collection.mutable.HashMap[(Dif[V], Dif[V]), Dif[V]]()
@@ -156,6 +172,7 @@ object AD extends App {
     def lteq(l: Dif[V], r: Dif[V]): Boolean = evVIsIntegral.lteq(l(0), r(0))
   }
   
+  /** Real instance for Dif[V], where V itself has a Real instance */
   class DifAsReal[V: Real] extends DifAsIntegral[V] with Real[Dif[V]] {
     /* Caches */
     val divCache = collection.mutable.HashMap[(Dif[V], Dif[V]), Dif[V]]()
@@ -318,6 +335,7 @@ object AD extends App {
   implicit object DoubleDifIsReal extends DifAsReal[Double]
   implicit object IntervalDifIsReal extends DifAsReal[Interval]
   
+  /** Representation of a number and its derivatives. */
   case class Dif[V](coeff: Vector[V]) {
     import Dif._
     require(coeff.size == dim, s"Tried to create Dif with incompatible dimension (${coeff.size} ~= $dim).")
