@@ -30,8 +30,12 @@ object AD extends App {
     def sin(x: V): V
     def cos(x: V): V
     def tan(x: V): V
+    def acos(x: V): V
+    def asin(x: V): V
+    def atan(x: V): V
     def exp(x: V): V
     def log(x: V): V
+    def sqrt(x: V): V
     def fromDouble(i: Double): V
   }
   
@@ -54,8 +58,12 @@ object AD extends App {
     def sin: V = ev.sin(l)
     def cos: V = ev.cos(l)
     def tan: V = ev.tan(l)
+    def acos: V = ev.acos(l)
+    def asin: V = ev.asin(l)
+    def atan: V = ev.atan(l)
     def exp: V = ev.exp(l)
     def log: V = ev.log(l)
+    def sqrt: V = ev.sqrt(l)
   }
 
   implicit object IntIsIntegral extends Integral[Int] {
@@ -82,8 +90,12 @@ object AD extends App {
     def sin(x: Double): Double = Math.sin(x)
     def cos(x: Double): Double = Math.cos(x)
     def tan(x: Double): Double = Math.tan(x)
+    def acos(x: Double): Double = Math.acos(x)
+    def asin(x: Double): Double = Math.asin(x)
+    def atan(x: Double): Double = Math.atan(x)
     def exp(x: Double): Double = Math.exp(x)
     def log(x: Double): Double = Math.log(x)
+    def sqrt(x: Double): Double = Math.sqrt(x)
     def fromInt(x: Int): Double = x
     def fromDouble(x: Double): Double = x
     def zero: Double = 0
@@ -102,8 +114,12 @@ object AD extends App {
     def sin(x: Interval): Interval = x.sin
     def cos(x: Interval): Interval = x.cos
     def tan(x: Interval): Interval = x.tan
+    def acos(x: Interval): Interval = x.acos
+    def asin(x: Interval): Interval = x.asin
+    def atan(x: Interval): Interval = x.atan
     def exp(x: Interval): Interval = x.exp
     def log(x: Interval): Interval = x.log
+    def sqrt(x: Interval): Interval = x.sqrt
     def fromInt(x: Int): Interval = Interval(x)
     def fromDouble(x: Double): Interval = Interval(x)
     def zero: Interval = Interval.zero
@@ -178,8 +194,12 @@ object AD extends App {
     /* Caches */
     val sinAndCosCache = collection.mutable.HashMap[Dif[V], (/*sin*/Dif[V], /*cos*/Dif[V])]()
     val tanCache = collection.mutable.HashMap[Dif[V], Dif[V]]()
+    val acosCache = collection.mutable.HashMap[Dif[V], Dif[V]]()
+    val asinCache = collection.mutable.HashMap[Dif[V], Dif[V]]()
+    val atanCache = collection.mutable.HashMap[Dif[V], Dif[V]]()
     val expCache = collection.mutable.HashMap[Dif[V], Dif[V]]()
     val logCache = collection.mutable.HashMap[Dif[V], Dif[V]]()
+    val sqrtCache = collection.mutable.HashMap[Dif[V], Dif[V]]()
     /* Constants */
     val evVIsReal = implicitly[Real[V]]
     /* Real instance */
@@ -220,6 +240,51 @@ object AD extends App {
         }
         coeff.toVector
       })
+    def acos(x: Dif[V]): Dif[V] =
+      acosCache.getOrElseUpdate(x, Dif{
+        val n = x.size
+        val coeff = new collection.mutable.ArraySeq[V](n)
+        coeff(0) = x(0).acos
+        val c0 = (oneOfV - (x(0) * x(0))).sqrt // FIXME use x(0)^2 instead
+        val c = sqrt(sub(one, mul(x, x)))
+        for (k <- 1 until n) {
+          coeff(k) = -(x(k) + ((1 to k-1).foldLeft(zeroOfV) {
+            case (sum, i) => 
+              sum + evVIsIntegral.fromInt(i) * coeff(i) * c(k - i)
+          }) / evVIsIntegral.fromInt(k)) / c0
+        }
+        coeff.toVector
+      })
+    def asin(x: Dif[V]): Dif[V] =
+      asinCache.getOrElseUpdate(x, Dif{
+        val n = x.size
+        val coeff = new collection.mutable.ArraySeq[V](n)
+        coeff(0) = x(0).asin
+        val c0 = (oneOfV - (x(0) * x(0))).sqrt // FIXME use x(0)^2 instead
+        val c = sqrt(sub(one, mul(x, x)))
+        for (k <- 1 until n) {
+          coeff(k) = (x(k) - ((1 to k-1).foldLeft(zeroOfV) {
+            case (sum, i) => 
+              sum + evVIsIntegral.fromInt(i) * coeff(i) * c(k - i)
+          }) / evVIsIntegral.fromInt(k)) / c0
+        }
+        coeff.toVector
+      })
+    def atan(x: Dif[V]): Dif[V] =
+      atanCache.getOrElseUpdate(x, Dif{
+        val n = x.size
+        val coeff = new collection.mutable.ArraySeq[V](n)
+        coeff(0) = x(0).atan
+        val c0 = oneOfV + (x(0) * x(0)) // FIXME use x(0)^2 instead
+        val c = add(one, mul(x, x))
+        for (k <- 1 until n) {
+          coeff(k) = (x(k) - ((1 to k-1).foldLeft(zeroOfV) {
+            case (sum, i) => 
+              sum + evVIsIntegral.fromInt(i) * coeff(i) * c(k - i)
+          }) / evVIsIntegral.fromInt(k)) / c0
+        }
+        coeff.toVector
+      })
     def exp(x: Dif[V]): Dif[V] =
       expCache.getOrElseUpdate(x, Dif {
         val n = x.size
@@ -247,6 +312,8 @@ object AD extends App {
         coeff.toVector
       })
     // TODO Add square function according to Griewank book
+    def sqrt(x: Dif[V]): Dif[V] =
+      pow(x, fromDouble(0.5)) // FIXME Use specific formula for rational powers
     def fromDouble(x: Double): Dif[V] = Dif.constant(evVIsReal fromDouble x)
   }
   implicit object IntDifIsIntegral extends DifAsIntegral[Int]

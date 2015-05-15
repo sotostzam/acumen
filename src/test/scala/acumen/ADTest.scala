@@ -90,6 +90,21 @@ object ADTest extends Properties("AD") {
     forAll(genSmallDoubleDif) { (x: Dif[Double]) =>
       x.tan ~= (x + pi).tan
     }
+  
+  property("Dif[Double]: -1 <= x <= 1 => cos(acos(x)) ~= x") = 
+    forAll(genBoundedDoubleDif(1)) { (x: Dif[Double]) =>
+      x.acos.cos ~= x
+    }
+  
+  property("Dif[Double]: sin(asin(x)) ~= x") = 
+    forAll(genSmallDoubleDif) { (x: Dif[Double]) =>
+      x.asin.sin ~= x
+    }
+  
+  property("Dif[Double]: tan(atan(x)) ~= x") = 
+    forAll(genSmallDoubleDif) { (x: Dif[Double]) =>
+      x.atan.tan ~= x
+    }
 
   property("Dif[Double]: exp(x) > 0") =
     // Generate x such that exp(x) is representable as a Double
@@ -100,6 +115,11 @@ object ADTest extends Properties("AD") {
   property("Dif[Double]: for small x, log(exp(x)) ~= x") = 
     forAll(genSmallDoubleDif) { (x: Dif[Double]) =>
       x.exp.log ~= x
+    }
+    
+  property("Dif[Double]: x >= 0 => sqrt(x*x) ~= x") = 
+    forAll(genSmallDoubleDif) { (x: Dif[Double]) =>
+      (x >= zero) ==> ((x*x).sqrt ~= x)
     }
 
   property("Dif[Double]: pow(0) ~= 1") = 
