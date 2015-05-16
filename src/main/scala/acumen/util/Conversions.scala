@@ -121,6 +121,7 @@ object Conversions {
     }
   }
   
+  /* Update vector e with a new value vt at position i */
   def updateEntry[A](e:Value[A],i:List[Int],vt:Value[A]):VVector[A]={
       e match {
       case VVector(l) => i match {
@@ -132,6 +133,7 @@ object Conversions {
       }
       case _ => throw CantIndex() }
   }
+   /* Update vector e with multiple new values vts at corresponding positions is */
    def updateMultipleEntries[A](e:Value[A],is:List[List[Int]],vts:List[Value[A]]):VVector[A]={
       e match {
       case VVector(l) =>

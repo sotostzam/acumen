@@ -901,7 +901,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
           if (o != magicId(st))
             odeNamesDeclared.get(getCls(o, st)).map(_.foreach { n =>
               if (!contNamesActive.exists { case (ao, an) => ao == o && an == n.x })
-                throw ContinuousDynamicsUndefined(o, n, Pretty.pprint(getObjectField(o, classf, st)), getTime(st))
+                throw ContinuousDynamicsUndefined(o, n,None, Pretty.pprint(getObjectField(o, classf, st)), getTime(st))
             })
       }
     }
