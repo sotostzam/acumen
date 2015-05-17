@@ -680,24 +680,7 @@ object Common {
             magic.phaseParms.assigns.append((Equation(id, x, t, env.env), d.pos))
 
             noChange
-          } else noChange
-          /*
-        case Index(dot@Dot(e,x), idx) =>
-           // "Now": Not used, kept for legacy
-          if (magic.phaseParms.doEquationT == Now) {
-            val id = evalToObjId(e, p, env)
-            val vt = evalExpr(t, p, env)
-            setField(id, x, vt, dot.pos)
-
-            // "Gather": Collecting continuous assignments
-          } else if (magic.phaseParms.doEquationT == Gather) {
-            val id = evalToObjId(e, p, env)
-
-            // Log the assignment
-            magic.phaseParms.assigns.append((Equation(id, x, t, env.env), dot.pos))
-
-            noChange
-          } else noChange  */     
+          } else noChange  
       }
       case EquationI(d@Dot(e, x), t) =>
 

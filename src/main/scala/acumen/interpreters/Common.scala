@@ -450,10 +450,10 @@ object Common {
     case _ => Nil
   }
   /* Example: size:(2,2) -> (0,0), (0,1), (1,0), (1,1) */
-  def getIndivisualIndexesFromSize(size:List[Int]):List[List[Int]] = size match {
+  def getIndividualIndexesFromSize(size:List[Int]):List[List[Int]] = size match {
     case n :: Nil => (for(i <- 0 to n-1) yield List(i)).toList
     case n :: tail => 
-      val res = getIndivisualIndexesFromSize(tail)
+      val res = getIndividualIndexesFromSize(tail)
       (0 to n-1).toList.map(i => for(j<-res) yield i::j).flatten
 
   }
@@ -481,7 +481,7 @@ object Common {
 
           declaredODEVectors.get(getCls(o, st)).map(_.foreach {
             case (n, size) =>
-              val idxes = getIndivisualIndexesFromSize(size)
+              val idxes = getIndividualIndexesFromSize(size)
               for (idx <- idxes)
                 // There exists equation for specific index or for the whole vector
                 if (!odes.exists { case d => d._1.id == o && d._1.field.x == n.x && (d._2 == idx || d._2 == Nil) })
