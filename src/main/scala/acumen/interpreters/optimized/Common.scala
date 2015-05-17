@@ -651,7 +651,7 @@ object Common {
     val pp = o.phaseParms
     o.fields.foreach{case (n,v) => 
       if (n.primes == 1 && o.fields(Name(n.x, 0)).lastUpdated != pp.curIter)
-          throw ContinuousDynamicsUndefined(o.id, n, Pretty.pprint(getField(o, classf)), getTime(magic));
+          throw ContinuousDynamicsUndefined(o.id, n,None, Pretty.pprint(getField(o, classf)), getTime(magic));
       }
     o.children.foreach{child => checkContinuousDynamicsAlwaysDefined(child, magic)}
   }

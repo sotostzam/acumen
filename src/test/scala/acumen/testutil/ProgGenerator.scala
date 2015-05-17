@@ -140,7 +140,7 @@ class ProgGenerator
   private def ensureGoodProg(p: Prog): Gen[Prog] =
     simulationThrowsError(p) match {
       case None => value(p)
-      case Some(err@ContinuousDynamicsUndefined(_, n, cn, _)) =>
+      case Some(err@ContinuousDynamicsUndefined(_, n,_, cn, _)) =>
         ensureGoodProg(Prog(p.defs.map {
           case cd @ ClassDef(cn1, fs, ps, body) if cn1.x == cn =>
             val nWithMostPrimes = (fs ++ ps.map(_.x)).filter(_.x == n.x).sortBy(_.primes).last

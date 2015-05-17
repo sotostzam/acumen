@@ -23,7 +23,7 @@ object Changeset {
 }
 
 case class CollectedCreate(da: Option[(CId, Name)], c: ClassName, parent: CId, sd: (Int, Int), ves: List[CValue])
-case class CollectedAction(o: CId, d: Dot, rhs: Expr, env: Env)
+case class CollectedAction(o: CId, d: Index, rhs: Expr, env: Env)
 case class CollectedHypothesis(o: CId, s: Option[String], h: Expr, env: Env)
 
 /** A custom state+writer monad, inpired by the state monad of scalaz. */
@@ -89,13 +89,13 @@ object Eval {
   def logReparent(o:CId, parent:CId) : Eval[Unit] =
     mkEval(s => ((), Changeset(reps = List((o,parent))), s))
     
-  def logAssign(o: CId, d: Dot, r: Expr, e: Env) : Eval[Unit] =
+  def logAssign(o: CId, d: Index, r: Expr, e: Env) : Eval[Unit] =
     mkEval(s => ((), Changeset(das = List(CollectedAction(o,d,r,e))), s))
 
-  def logEquation(o: CId, d: Dot, r: Expr, e: Env) : Eval[Unit] =
+  def logEquation(o: CId, d: Index, r: Expr, e: Env) : Eval[Unit] =
     mkEval(s => ((), Changeset(eqs = List(CollectedAction(o,d,r,e))), s))
 
-  def logODE(o: CId, d: Dot, r: Expr, e: Env) : Eval[Unit] =
+  def logODE(o: CId, d: Index, r: Expr, e: Env) : Eval[Unit] =
     mkEval(s => ((), Changeset(odes = List(CollectedAction(o,d,r,e))), s))
 
   def logHypothesis(o: CId, n: Option[String], h: Expr, e: Env) : Eval[Unit] =

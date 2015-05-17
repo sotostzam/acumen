@@ -664,23 +664,24 @@ object Common {
 
   def evalContinuousAction(a: ContinuousAction, env: Env, p: Prog, magic: Object): Changeset =
     a match {
-      case EquationT(d@Dot(e, x), t) =>
+      case EquationT(d, t) => d match {
+        case Dot(e, x) =>
+          // "Now": Not used, kept for legacy
+          if (magic.phaseParms.doEquationT == Now) {
+            val id = evalToObjId(e, p, env)
+            val vt = evalExpr(t, p, env)
+            setField(id, x, vt, d.pos)
 
-        // "Now": Not used, kept for legacy
-        if (magic.phaseParms.doEquationT == Now) { 
-          val id = evalToObjId(e, p, env)
-          val vt = evalExpr(t, p, env)
-          setField(id, x, vt, d.pos)
+            // "Gather": Collecting continuous assignments
+          } else if (magic.phaseParms.doEquationT == Gather) {
+            val id = evalToObjId(e, p, env)
 
-        // "Gather": Collecting continuous assignments
-        } else if (magic.phaseParms.doEquationT == Gather) {
-          val id = evalToObjId(e, p, env)
+            // Log the assignment
+            magic.phaseParms.assigns.append((Equation(id, x, t, env.env), d.pos))
 
-          // Log the assignment
-          magic.phaseParms.assigns.append((Equation(id,x,t,env.env), d.pos))
-
-          noChange
-      } else noChange
+            noChange
+          } else noChange  
+      }
       case EquationI(d@Dot(e, x), t) =>
 
         // "Now": Not used, kept for legacy
@@ -856,7 +857,7 @@ object Common {
     val pp = o.phaseParms
     o.fields.foreach{case (n,v) => 
       if (n.primes == 1 && o.fields(Name(n.x, 0)).lastUpdated != pp.curIter)
-          throw ContinuousDynamicsUndefined(o.id, n, Pretty.pprint(getField(o, classf)), getTime(magic));
+          throw ContinuousDynamicsUndefined(o.id, n,None, Pretty.pprint(getField(o, classf)), getTime(magic));
       }
     o.children.foreach{child => checkContinuousDynamicsAlwaysDefined(child, magic)}
   }

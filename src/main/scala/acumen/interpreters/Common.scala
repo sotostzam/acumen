@@ -392,8 +392,15 @@ object Common {
         }
         case VVector(rows) :: c ::Nil => evalIndexOp(e, VVector(rows) :: VVector(List(c)) :: Nil)
         case head :: tail => evalIndexOp(evalIndexOp(e,List(head)), tail)
-      }
+      }    
       case _ => throw CantIndex() }
+  }
+  
+  def valueToExpr(v:Value[_]):Expr = {
+    v match{
+      case VLit(n) => Lit(n)
+      case VVector(ls) => ExprVector(ls map valueToExpr)
+    }
   }
 
   val magicClassTxt =
@@ -438,32 +445,87 @@ object Common {
       
   def patternVariable(name:String) = 
     name.split("__")(0) == "Pattern"
+    
+  def getExprVectorSize(e:Expr):List[Int] = e match{
+    // All sub vectors should have the same size
+    case ExprVector(ls) => ls match{
+      case Nil => List(0)
+      case _ => ls.size :: (getExprVectorSize(ls(0)))
+    }
+    case _ => Nil
+  }
+  /* Example: size:(2,2) -> (0,0), (0,1), (1,0), (1,1) */
+  def getIndividualIndexesFromSize(size:List[Int]):List[List[Int]] = size match {
+    case n :: Nil => (for(i <- 0 to n-1) yield List(i)).toList
+    case n :: tail => 
+      val res = getIndividualIndexesFromSize(tail)
+      (0 to n-1).toList.map(i => for(j<-res) yield i::j).flatten
+
+  }
   /* error checking */
-  
+
   /**
-   * Ensure that for each variable that has an ODE declared in the private section, there is 
-   * an equation in scope at the current time step. This is done by checking that for each 
+   * Ensure that for each variable that has an ODE declared in the private section, there is
+   * an equation in scope at the current time step. This is done by checking that for each
    * primed field name in each object in st, there is a corresponding CId-Name pair in odes.
    */
-  def checkContinuousDynamicsAlwaysDefined(prog: Prog, odes: List[ResolvedDot], st: CStore): Unit = {
+  def checkContinuousDynamicsAlwaysDefined(prog: Prog, odes: List[(ResolvedDot, List[Int])], st: CStore): Unit = {
     val declaredODENames = prog.defs.map(d => (d.name, (d.fields ++ d.priv.map(_.x)).filter(_.primes > 0))).toMap
-    st.foreach { case (o, _) =>
-      if (o != magicId(st))
-        declaredODENames.get(getCls(o, st)).map(_.foreach { n =>
-          if (!odes.exists { case d => d.id == o && d.field.x == n.x })
-            throw ContinuousDynamicsUndefined(o, n, Pretty.pprint(getObjectField(o, classf, st)), getTime(st))
-        })
+    /* A map with tuple of name and size for vector prime variables*/
+    val declaredODEVectors = prog.defs.map(d => (d.name, (d.priv.map(y => (y.x, y.rhs match {
+      case ExprRhs(e) => getExprVectorSize(e)
+      case _          => Nil
+    })).filter(x => x._1.primes > 0 && x._2 != Nil)))).toMap
+    st.foreach {
+      case (o, _) =>
+        if (o != magicId(st)) {
+          declaredODENames.get(getCls(o, st)).map(_.foreach { n =>
+            if (!odes.exists { case d => d._1.id == o && d._1.field.x == n.x })
+              throw ContinuousDynamicsUndefined(o, n,None, Pretty.pprint(getObjectField(o, classf, st)), getTime(st))
+          })
+
+          declaredODEVectors.get(getCls(o, st)).map(_.foreach {
+            case (n, size) =>
+              val idxes = getIndividualIndexesFromSize(size)
+              for (idx <- idxes)
+                // There exists equation for specific index or for the whole vector
+                if (!odes.exists { case d => d._1.id == o && d._1.field.x == n.x && (d._2 == idx || d._2 == Nil) })
+                  throw ContinuousDynamicsUndefined(o, n,Some(idx), Pretty.pprint(getObjectField(o, classf, st)), getTime(st))
+          })
+
+        }
     }
   }
 
   /** Check for a duplicate assignment (of a specific kind) scheduled in assignments. */
-  def checkDuplicateAssingments(assignments: List[ResolvedDot], error: Name => DuplicateAssingment): Unit = {
+  def checkDuplicateAssingments(assignments: List[(ResolvedDot,List[Int])], error: Name => DuplicateAssingment): Unit = {
+    val duplicates = assignments.groupBy(a => (a._1.id, a._1.field,a._2)).filter{ case (_, l) => l.size > 1 }.toList
+    if (duplicates.size != 0) {
+      val first = duplicates(0)
+      val x = first._1._2
+      val poss = first._2.map{x => x._1.obj.pos}.sortWith{(a, b) => b < a}
+      throw error(first._1._2).setPos(poss(0)).setOtherPos(poss(1))
+    }
+  }
+  
+   /** Old code for compatible with reference 2014 interpreter **/
+   def checkDuplicateAssingments2014(assignments: List[ResolvedDot], error: Name => DuplicateAssingment): Unit = {
     val duplicates = assignments.groupBy(a => (a.id, a.field)).filter{ case (_, l) => l.size > 1 }.toList
     if (duplicates.size != 0) {
       val first = duplicates(0)
       val x = first._1._2
       val poss = first._2.map{_.obj.pos}.sortWith{(a, b) => b < a}
       throw error(first._1._2).setPos(poss(0)).setOtherPos(poss(1))
+    }
+  }
+  def checkContinuousDynamicsAlwaysDefined2014(prog: Prog, odes: List[ResolvedDot], st: CStore): Unit = {
+    val declaredODENames = prog.defs.map(d => (d.name, (d.fields ++ d.priv.map(_.x)).filter(_.primes > 0))).toMap
+    st.foreach { case (o, _) =>
+      if (o != magicId(st))
+        declaredODENames.get(getCls(o, st)).map(_.foreach { n =>
+          if (!odes.exists { case d => d.id == o && d.field.x == n.x })
+            throw ContinuousDynamicsUndefined(o,n,None,Pretty.pprint(getObjectField(o, classf, st)), getTime(st))
+        })
     }
   }
   

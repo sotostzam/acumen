@@ -50,6 +50,7 @@ object Conversions {
   def extractInt(v:Value[_]) : Int =
     v match {
       case VLit(gv) => extractInt(gv)
+      case VVector(VLit(gv)::Nil) => extractInt(gv)
       case _        => throw ConversionError(v, "int")
     }
 
@@ -118,6 +119,30 @@ object Conversions {
       case VObjId(Some(id)) => id
       case _ => throw NotAnObject(v)
     }
+  }
+  
+  /* Update vector e with a new value vt at position i */
+  def updateEntry[A](e:Value[A],i:List[Int],vt:Value[A]):VVector[A]={
+      e match {
+      case VVector(l) => i match {
+        case Nil => VVector(l)
+        case idx :: Nil => 
+          VVector(l.updated(idx,vt))       
+        case idx::tail => 
+          VVector(l.updated(idx,updateEntry(l(idx),tail,vt)))
+      }
+      case _ => throw CantIndex() }
+  }
+   /* Update vector e with multiple new values vts at corresponding positions is */
+   def updateMultipleEntries[A](e:Value[A],is:List[List[Int]],vts:List[Value[A]]):VVector[A]={
+      e match {
+      case VVector(l) =>
+        var result = VVector(l)
+        for( (i,vt) <- is zip vts){
+          result = updateEntry(result,i,vt)
+        }
+        result
+      case _ => throw CantIndex() }
   }
 
 }
