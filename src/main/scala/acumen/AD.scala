@@ -190,8 +190,8 @@ object AD extends App {
     def neg(x: Dif[V]): Dif[V] = Dif(x.coeff.map(- _))
     def fromInt(x: Int): Dif[V] = Dif.constant(evVIsIntegral fromInt x)
     // FIXME Test these definitions
-    def zero: Dif[V] = Dif.fill(zeroOfV)
-    def one: Dif[V] = Dif.constant(oneOfV)
+    lazy val zero: Dif[V] = Dif.fill(zeroOfV)
+    lazy val one: Dif[V] = Dif.constant(oneOfV)
     // FIXME optimize firstNonZero
     def toInt(x: Dif[V]): Int = x(0).toInt
     def toDouble(x: Dif[V]): Double = x(0).toDouble
