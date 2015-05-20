@@ -25,8 +25,12 @@ object AD extends App {
     def mul(l: V, r: V): V
     def neg(x: V): V
     def fromInt(i: Int): V
+    def toInt(x: V): Int
+    def toDouble(x: V): Double
     def zero: V
     def one: V
+    def isValidInt(x: V): Boolean
+    def isValidDouble(x: V): Boolean
   }
 
   /**
@@ -45,6 +49,7 @@ object AD extends App {
     def atan(x: V): V
     def exp(x: V): V
     def log(x: V): V
+    def square(x: V): V
     def sqrt(x: V): V
     def fromDouble(i: Double): V
   }
@@ -61,6 +66,10 @@ object AD extends App {
     def >= (r: V): Boolean = ev.gteq(l, r)
     def zero: V = ev.zero
     def one: V = ev.one
+    def isValidInt: Boolean = ev.isValidInt(l)
+    def toInt: Int = ev.toInt(l)
+    def isValidDouble: Boolean = ev.isValidDouble(l)
+    def toDouble: Double = ev.toDouble(l)
   }
 
   /** Syntactic sugar for Real operations */
@@ -75,6 +84,7 @@ object AD extends App {
     def atan: V = ev.atan(l)
     def exp: V = ev.exp(l)
     def log: V = ev.log(l)
+    def square: V = ev.square(l)
     def sqrt: V = ev.sqrt(l)
   }
 
@@ -89,6 +99,10 @@ object AD extends App {
     def one: Int = 1
     def tryCompare(l: Int, r: Int): Option[Int] = Some(l compareTo r)
     def lteq(l: Int, r: Int): Boolean = l <= r
+    def isValidInt(x: Int): Boolean = true
+    def toInt(x: Int): Int = x
+    def isValidDouble(x: Int): Boolean = true
+    def toDouble(x: Int): Double = x.toDouble
   }
 
   /** Real instance for Double */
@@ -107,6 +121,7 @@ object AD extends App {
     def atan(x: Double): Double = Math.atan(x)
     def exp(x: Double): Double = Math.exp(x)
     def log(x: Double): Double = Math.log(x)
+    def square(x: Double): Double = x * x
     def sqrt(x: Double): Double = Math.sqrt(x)
     def fromInt(x: Int): Double = x
     def fromDouble(x: Double): Double = x
@@ -114,6 +129,10 @@ object AD extends App {
     def one: Double = 1
     def tryCompare(l: Double, r: Double): Option[Int] = Some(l compareTo r)
     def lteq(l: Double, r: Double): Boolean = l <= r
+    def isValidInt(x: Double): Boolean = (Math.floor(x) == Math.ceil(x))
+    def toInt(x: Double): Int = x.toInt
+    def isValidDouble(x: Double): Boolean = true
+    def toDouble(x: Double): Double = x
   }
 
   /** Real instance for Interval */
@@ -132,11 +151,16 @@ object AD extends App {
     def atan(x: Interval): Interval = x.atan
     def exp(x: Interval): Interval = x.exp
     def log(x: Interval): Interval = x.log
+    def square(x: Interval): Interval = x.square
     def sqrt(x: Interval): Interval = x.sqrt
     def fromInt(x: Int): Interval = Interval(x)
     def fromDouble(x: Double): Interval = Interval(x)
     def zero: Interval = Interval.zero
     def one: Interval = Interval.one
+    def isValidInt(x: Interval): Boolean = ((x.lo).doubleValueFloor == (x.hi).doubleValueCeiling) // FIXME Check if this is ok
+    def toInt(x: Interval): Int = ((x.lo).doubleValueFloor).toInt // FIXME Check if this is ok
+    def isValidDouble(x: Interval): Boolean = (x.lo == x.hi)
+    def toDouble(x: Interval): Double = (x.lo).doubleValueFloor
     // FIXME Check if something needs to be overridden
     def lteq(l: Interval, r: Interval): Boolean = l lessThanOrEqualTo r
     def tryCompare(l: Interval, r: Interval): Option[Int] =
@@ -168,12 +192,21 @@ object AD extends App {
     // FIXME Test these definitions
     def zero: Dif[V] = Dif.fill(zeroOfV)
     def one: Dif[V] = Dif.constant(oneOfV)
+    // FIXME optimize isValidInt, isConstant, firstNonZero
+    def toInt(x: Dif[V]): Int = x(0).toInt
+    def toDouble(x: Dif[V]): Double = x(0).toDouble
+    def isValidInt(x: Dif[V]): Boolean = isConstant(x) && x(0).isValidInt
+    def isValidDouble(x: Dif[V]): Boolean = isConstant(x) && x(0).isValidDouble
+    def isConstant(x: Dif[V]): Boolean = (1 until x.size).foldLeft(true) { case (isC, i) => isC && x(i) == zeroOfV}
+    def firstNonZero(x: Dif[V]): Integer = (0 until x.size).foldLeft(x.size + 1) { case (n, i) => if (i < n && x(i) != zeroOfV) i else n}
     def tryCompare(l: Dif[V], r: Dif[V]): Option[Int] = evVIsIntegral.tryCompare(l(0), r(0))
     def lteq(l: Dif[V], r: Dif[V]): Boolean = evVIsIntegral.lteq(l(0), r(0))
   }
   
   /** Real instance for Dif[V], where V itself has a Real instance */
   class DifAsReal[V: Real] extends DifAsIntegral[V] with Real[Dif[V]] {
+    def fromDouble(x: Double): Dif[V] = Dif.constant(evVIsReal fromDouble x)
+    override def isValidInt(x: Dif[V]): Boolean = ???
     /* Caches */
     val divCache = collection.mutable.HashMap[(Dif[V], Dif[V]), Dif[V]]()
     val powCache = collection.mutable.HashMap[(Dif[V], Dif[V]), Dif[V]]()    
@@ -184,9 +217,11 @@ object AD extends App {
     val atanCache = collection.mutable.HashMap[Dif[V], Dif[V]]()
     val expCache = collection.mutable.HashMap[Dif[V], Dif[V]]()
     val logCache = collection.mutable.HashMap[Dif[V], Dif[V]]()
+    val squareCache = collection.mutable.HashMap[Dif[V], Dif[V]]()
     val sqrtCache = collection.mutable.HashMap[Dif[V], Dif[V]]()
     /* Constants */
     val evVIsReal = implicitly[Real[V]]
+    
     /* Real instance */
     def div(l: Dif[V], r: Dif[V]): Dif[V] =
       // FIXME Extend using l’Hopital’s rule
@@ -200,24 +235,139 @@ object AD extends App {
           }) / r(0)
         coeff.toVector
       })
-    def pow(l: Dif[V], r: Dif[V]): Dif[V] = {
-      val l0 = l(0)
-      val rc = r(0) // FIXME This is a constant! Should not be lifted in the first place.
-      require(!(l0 == zeroOfV && rc > zeroOfV), "pow is not applicable to ($l,$r). $l may not be equal to 0.")
-      powCache.getOrElseUpdate((l, r), Dif {
-        val n = l.size
+      
+    /* Power functions */
+    /** General interface for power */
+    def pow(l: Dif[V], r: Dif[V]): Dif[V] =  
+      powCache.getOrElseUpdate((l, r), {
+        // FIXME these checks might be optimized e.g. zero, one are all constants, is that more efficient check?
+        if (r == one)      l                 else
+        if (r == zero) {   require(!(l == zero), "pow is not applicable to ($l,$r) as 0^0 is not defined.")
+                           one             } else
+        if (l == zero)     zero              else 
+        if (isConstant(r)) powOnReal(l, r)   else exp(mul(r, log(l)))
+      })
+    
+    /** Square root */
+    def sqrt(x: Dif[V]): Dif[V] =
+      sqrtCache.getOrElseUpdate(x, if (x == zero) zero else Dif { // We might call sqrt directly not only through power, so we check for zero
+        val n  = x.size
+        val m  = firstNonZero(x) // n >= m because x != zero
+        require((m % 2 == 0), "First non-vanishing coefficient must be an even power in $x in order to expand the sqrt function.")
+        val x0 = x(m)
+        val k0 = m / 2
         val coeff = new collection.mutable.ArraySeq[V](n)
-        coeff(0) = l0 ^ rc
-        for (k <- 1 until n) {
-          val kL = evVIsIntegral.fromInt(k)          
-          coeff(k) = ((1 to k).foldLeft(zeroOfV) {
+        for (k <- 0 to k0 - 1) coeff(k) = zeroOfV          // the first k0 coefficients are zero
+        coeff(k0) = x0.sqrt                                // the first non-zero coefficient of the result
+        for (k <- k0 + 1 to n - m - 1) {                   // ----------------------------------------------
+          val kL = evVIsIntegral.fromInt(k)
+          val mL = evVIsIntegral.fromInt(m)
+          val kRel = k - k0
+          val kEnd = (kRel + kRel%2 - 2) / 2
+                                                           // possibly  non-zero coefficients k0 + 1 .. n - m
+          coeff(k) = (x(k0 + k) - evVIsIntegral.fromInt(2) * ((1 to kEnd).foldLeft(zeroOfV) { 
             case (sum, i) =>  
-              sum + (((((rc + oneOfV) * evVIsIntegral.fromInt(i)) / kL) - oneOfV) * l(i) * coeff(k - i)) 
-          }) / l0
+              val iL = evVIsIntegral.fromInt(i)
+              sum + coeff(k0 + i) * coeff(k - i)  
+          }) - (if (kRel % 2 == 0) - coeff(k0 + kEnd + 1).square else zeroOfV )) / (evVIsIntegral.fromInt(2) * coeff(k0)) // FIXME optimize substraction of zeroOfV
+        }                                                  // ----------------------------------------------
+        for (k <- n - m to n - 1) coeff(k) = zeroOfV       // the last m coefficients are zero
+        coeff.toVector        
+      })
+    
+    /** Square */
+    def square(x: Dif[V]): Dif[V] =
+      squareCache.getOrElseUpdate(x, Dif {
+        val n = x.size
+        val coeff = new collection.mutable.ArraySeq[V](n)
+        coeff(0) = x(0).square
+        for (k <- 1 until n) {
+          val kEnd = (k + k%2 - 2)/2
+          // 2 x(i)x(j), i != j
+          coeff(k) = evVIsIntegral.fromInt(2) * ((0 to kEnd).foldLeft(zeroOfV) {
+            case (sum, i) => sum + x(i) * x(k - i)
+          // x(k/2)^2 if k was even
+          }) + (if (k % 2 == 0) x(k/2).square else zeroOfV) // FIXME should adding zeroOfV optimized? 
         }
         coeff.toVector
       })
+    
+    /** Integer power by squaring */
+    def powBySquare(l: Dif[V], n: Int): Dif[V] =
+      mul(square(powByInt(l, n/2)), (if (n % 2 == 1) l else one)) // FIXME should multiplying with one be optimized? 
+    
+    /** Power with integer exponent */
+    def powByInt(l: Dif[V], n: Int) : Dif[V] = {
+        if (n == 0) one                       else // FIXME if powByInt is only called by powByReal that is only called by pow, then we do not need to check here for l==0 case 
+        if (n == 1) l                         else
+        if (n == 2) square(l)                 else
+        if (n <  0) div(one, powByInt(l, -n)) else
+        powBySquare(l, n)
     }
+    
+    /** Power with real exponent
+     *  l != zero, r != zero, r != one */
+    def powOnReal(l: Dif[V], r: Dif[V]) : Dif[V] = {
+      if (r(0).isValidInt) powByInt(l, r(0).toInt) else 
+      /*if (r(0).isValidDouble && r(0).toDouble == 0.5) sqrt(l)
+      else*/ {
+        Dif {
+          val n  = l.size
+          val m  = firstNonZero(l) // n >= m because l != zero
+          val lm = l(m)
+          val r0 = r(0) // FIXME This is a constant! Should not be lifted in the first place.
+          val k0V = r0 * evVIsIntegral.fromInt(m)
+          require((m == 1 || k0V.isValidInt), "pow is not applicable to ($l,$r). Expanding around 0 needs the product of the exponent and of the index of the first non-zero coefficient to be an integer.")
+          val k0 = k0V.toInt
+          val coeff = new collection.mutable.ArraySeq[V](n)
+          for (k <- 0 to k0 - 1) coeff(k) = zeroOfV          // the first k0 coefficients are zero
+          coeff(k0) = lm ^ r0                                // the first non-zero coefficient of the result
+          for (k <- k0 + m + 1 to n - 1) {                   // ----------------------------------------------
+            val kL = evVIsIntegral.fromInt(k)
+            val mL = evVIsIntegral.fromInt(m)
+            coeff(k - m) = ((0 to k - m - 1).foldLeft(zeroOfV) { // possibly  non-zero coefficients k0 + 1 .. n - m
+              case (sum, i) =>  
+                val iL = evVIsIntegral.fromInt(i)
+                sum + (r0 * (kL - iL) - iL) * l(k - i) * coeff(i)  
+            }) / ((kL - mL * (r0 + oneOfV) ) * lm)
+          }                                                  // ----------------------------------------------
+          for (k <- n - m to n - 1) coeff(k) = zeroOfV       // the last m coefficients are zero
+          coeff.toVector
+        }
+      }
+    }
+    
+    /** Exponential function */
+    def exp(x: Dif[V]): Dif[V] =
+      expCache.getOrElseUpdate(x, Dif {
+        val n = x.size
+        val coeff = new collection.mutable.ArraySeq[V](n)
+        coeff(0) = x(0).exp
+        for (k <- 1 until n)
+          coeff(k) = ((1 to k).foldLeft(zeroOfV) {
+            case (sum, i) => sum + evVIsIntegral.fromInt(i) * x(i) * coeff(k-i)
+          }) / evVIsIntegral.fromInt(k)
+        coeff.toVector
+      })
+    
+    /** Natural logarithm */
+    def log(x: Dif[V]): Dif[V] =
+      logCache.getOrElseUpdate(x, Dif {
+        require(firstNonZero(x) == 0, "Not possible to expand log around 0.")
+        val n = x.size
+        val coeff = new collection.mutable.ArraySeq[V](n)
+        val x0 = x(0)
+        coeff(0) = x0.log
+        for (k <- 1 until n) {
+          val kL = evVIsIntegral.fromInt(k)          
+          coeff(k) = (x(k) - ((1 to k - 1).foldLeft(zeroOfV) {
+            case (sum, i) => sum + evVIsIntegral.fromInt(i) * coeff(i) * x(k-i)
+          }) / kL) / x0
+        }
+        coeff.toVector
+      })
+    
+    /* Trigonometric functions */
     def sin(x: Dif[V]): Dif[V] = sinAndCos(x)._1
     def cos(x: Dif[V]): Dif[V] = sinAndCos(x)._2
     private def sinAndCos(x: Dif[V]): (Dif[V],Dif[V]) =
@@ -245,13 +395,12 @@ object AD extends App {
         val n = x.size
         val coeff = new collection.mutable.ArraySeq[V](n)
         coeff(0) = x(0).tan
-        val cos02 = (x(0).cos) * (x(0).cos) // FIXME Use cos0^2 instead
-        val cos2 = mul(cos(x), cos(x)) // FIXME Use c^2 instead
+        val cos2 = square(cos(x))
         for (k <- 1 until n) {
           coeff(k) = (x(k) - ((1 to k-1).foldLeft(zeroOfV) {
             case (sum, i) => 
               sum + evVIsIntegral.fromInt(i) * coeff(i) * cos2(k - i)
-          }) / evVIsIntegral.fromInt(k)) / cos02
+          }) / evVIsIntegral.fromInt(k)) / (x(0).cos).square
         }
         coeff.toVector
       })
@@ -260,13 +409,12 @@ object AD extends App {
         val n = x.size
         val coeff = new collection.mutable.ArraySeq[V](n)
         coeff(0) = x(0).acos
-        val c0 = (oneOfV - (x(0) * x(0))).sqrt // FIXME use x(0)^2 instead
-        val c = sqrt(sub(one, mul(x, x)))
+        val c = sqrt(sub(one, square(x)))
         for (k <- 1 until n) {
-          coeff(k) = -(x(k) + ((1 to k-1).foldLeft(zeroOfV) {
+          coeff(k) = - (x(k) + ((1 to k-1).foldLeft(zeroOfV) {
             case (sum, i) => 
               sum + evVIsIntegral.fromInt(i) * coeff(i) * c(k - i)
-          }) / evVIsIntegral.fromInt(k)) / c0
+          }) / evVIsIntegral.fromInt(k)) / (oneOfV - x(0).square).sqrt
         }
         coeff.toVector
       })
@@ -275,13 +423,12 @@ object AD extends App {
         val n = x.size
         val coeff = new collection.mutable.ArraySeq[V](n)
         coeff(0) = x(0).asin
-        val c0 = (oneOfV - (x(0) * x(0))).sqrt // FIXME use x(0)^2 instead
-        val c = sqrt(sub(one, mul(x, x)))
+        val c = sqrt(sub(one, square(x)))
         for (k <- 1 until n) {
           coeff(k) = (x(k) - ((1 to k-1).foldLeft(zeroOfV) {
             case (sum, i) => 
               sum + evVIsIntegral.fromInt(i) * coeff(i) * c(k - i)
-          }) / evVIsIntegral.fromInt(k)) / c0
+          }) / evVIsIntegral.fromInt(k)) / (oneOfV - x(0).square).sqrt
         }
         coeff.toVector
       })
@@ -290,46 +437,15 @@ object AD extends App {
         val n = x.size
         val coeff = new collection.mutable.ArraySeq[V](n)
         coeff(0) = x(0).atan
-        val c0 = oneOfV + (x(0) * x(0)) // FIXME use x(0)^2 instead
-        val c = add(one, mul(x, x))
+        val c = add(one, square(x))
         for (k <- 1 until n) {
           coeff(k) = (x(k) - ((1 to k-1).foldLeft(zeroOfV) {
             case (sum, i) => 
               sum + evVIsIntegral.fromInt(i) * coeff(i) * c(k - i)
-          }) / evVIsIntegral.fromInt(k)) / c0
+          }) / evVIsIntegral.fromInt(k)) / (oneOfV + x(0).square)
         }
         coeff.toVector
       })
-    def exp(x: Dif[V]): Dif[V] =
-      expCache.getOrElseUpdate(x, Dif {
-        val n = x.size
-        val coeff = new collection.mutable.ArraySeq[V](n)
-        coeff(0) = x(0).exp
-        for (k <- 1 until n)
-          coeff(k) = ((1 to k).foldLeft(zeroOfV) {
-            case (sum, i) => sum + evVIsIntegral.fromInt(i) * x(i) * coeff(k-i)
-          }) / evVIsIntegral.fromInt(k)
-        coeff.toVector
-      })
-    /** Natural logarithm */
-    def log(x: Dif[V]): Dif[V] =
-      logCache.getOrElseUpdate(x, Dif {
-        val n = x.size
-        val coeff = new collection.mutable.ArraySeq[V](n)
-        val x0 = x(0)
-        coeff(0) = x0.log
-        for (k <- 1 until n) {
-          val kL = evVIsIntegral.fromInt(k)          
-          coeff(k) = (x(k) - ((1 to k - 1).foldLeft(zeroOfV) {
-            case (sum, i) => sum + evVIsIntegral.fromInt(i) * coeff(i) * x(k-i)
-          }) / kL) / x0
-        }
-        coeff.toVector
-      })
-    // TODO Add square function according to Griewank book
-    def sqrt(x: Dif[V]): Dif[V] =
-      pow(x, fromDouble(0.5)) // FIXME Use specific formula for rational powers
-    def fromDouble(x: Double): Dif[V] = Dif.constant(evVIsReal fromDouble x)
   }
   implicit object IntDifIsIntegral extends DifAsIntegral[Int]
   implicit object DoubleDifIsReal extends DifAsReal[Double]
@@ -346,7 +462,7 @@ object AD extends App {
     val dim: Int = 10 // FIXME Expose this as a simulator parameter
     /** Lift a constant value of type A to a Dif. */
     def constant[V: Integral](a: V) = padWithZeros(Vector(a, implicitly[Integral[V]].zero))
-    /** Lift a variable of type V to a Dif. The value a is the current value of the variable. */
+    /** Lift the variable (that we differentiate w.r. to) of type V to a Dif. The value a is the current value of the variable. */
     def variable[V: Integral](a: V) = padWithZeros(Vector(a, implicitly[Integral[V]].one))
     /** Use a sequence of values of type V as the coefficients of a Dif.
      *  The sequence is padded to dim with the zero of V. */
