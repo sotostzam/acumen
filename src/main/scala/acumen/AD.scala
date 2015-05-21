@@ -192,13 +192,13 @@ object AD extends App {
     // FIXME Test these definitions
     lazy val zero: Dif[V] = Dif.fill(zeroOfV)
     lazy val one: Dif[V] = Dif.constant(oneOfV)
-    // FIXME optimize firstNonZero
     def toInt(x: Dif[V]): Int = x(0).toInt
     def toDouble(x: Dif[V]): Double = x(0).toDouble
     def isValidInt(x: Dif[V]): Boolean = x(0).isValidInt && isConstant(x)
     def isValidDouble(x: Dif[V]): Boolean = x(0).isValidDouble && isConstant(x)
     def isConstant(x: Dif[V]): Boolean = x.coeff.tail.forall(_ == zeroOfV)
-    def firstNonZero(x: Dif[V]): Integer = (0 until x.size).foldLeft(x.size + 1) { case (n, i) => if (i < n && x(i) != zeroOfV) i else n}
+    /** Return index of first non-zero coefficient. When none exists, returns -1. */
+    def firstNonZero(x: Dif[V]): Int = x.coeff.indexWhere(_ != zeroOfV)
     def tryCompare(l: Dif[V], r: Dif[V]): Option[Int] = evVIsIntegral.tryCompare(l(0), r(0))
     def lteq(l: Dif[V], r: Dif[V]): Boolean = evVIsIntegral.lteq(l(0), r(0))
   }
