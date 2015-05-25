@@ -883,8 +883,8 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
   def checkValidChange(c: Set[Changeset]): Unit = c.foreach{ cs =>
     val contIds = (cs.eqs.toList ++ cs.odes.toList).map(_.lhs)
     val assIds = cs.dis.toList.map(_.lhs)
-    checkDuplicateAssingments(contIds, DuplicateContinuousAssingment)
-    checkDuplicateAssingments(assIds, DuplicateDiscreteAssingment)
+    checkDuplicateAssingments2014(contIds, DuplicateContinuousAssingment)
+    checkDuplicateAssingments2014(assIds, DuplicateDiscreteAssingment)
   }
   
   /**
@@ -901,7 +901,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
           if (o != magicId(st))
             odeNamesDeclared.get(getCls(o, st)).map(_.foreach { n =>
               if (!contNamesActive.exists { case (ao, an) => ao == o && an == n.x })
-                throw ContinuousDynamicsUndefined(o, n, Pretty.pprint(getObjectField(o, classf, st)), getTime(st))
+                throw ContinuousDynamicsUndefined(o, n,None, Pretty.pprint(getObjectField(o, classf, st)), getTime(st))
             })
       }
     }

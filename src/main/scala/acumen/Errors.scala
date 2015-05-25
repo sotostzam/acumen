@@ -172,7 +172,7 @@ object Errors {
   }
   case class BadPreLhs() extends PositionalAcumenError {
     override def mesg = 
-      "The left hand-side of an equation must be a field."
+      "The left-hand side of an equation must be a field."
   }
   case class BadMove() extends PositionalAcumenError {
     override def mesg = 
@@ -187,9 +187,13 @@ object Errors {
       s"Can not change value of (${id.toString}:${Pretty pprint clazz}).${Pretty pprint f} from ${Pretty pprint vOld} of type ${vOld.getClass.getSimpleName} to ${Pretty pprint vNew} of type ${vNew.getClass.getSimpleName}. $reason."
     pos = vNew.pos
   }
-  case class ContinuousDynamicsUndefined(o: CId, n: Name, className: String, time: Double) extends AcumenError {
-    override def getMessage = 
-      "No equation was specified for (#" + o.cid.toString + " : " + className + ")." + n.x + " at time " + time + "."
+  case class ContinuousDynamicsUndefined(o: CId, n: Name, idx: Option[List[Int]], className: String, time: Double) extends AcumenError {
+    override def getMessage =
+      "No equation was specified for (#" + o.cid.toString + " : " + className + ")." + n.x + (idx match {
+        case None    => ""
+        case Some(l) => "(" + l.map(x => x.toString).mkString(",") + ")"
+      }) +
+        " at time " + time + "."
   }
   case class AlgebraicLoop(first : ObjField, posIsSetPoint : Boolean = false,
                            haveLoop : Boolean = false, chain : List[(ObjField,Position)] = Nil) 
