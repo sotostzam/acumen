@@ -477,10 +477,11 @@ object Parser extends MyStdTokenParsers {
   val defaultContent = Lit(GStr(" "))
   val defaultColor = ExprVector(List(Lit(GInt(1)),Lit(GInt(1)),Lit(GInt(1))))
   val defaultRotation = ExprVector(List(Lit(GInt(0)),Lit(GInt(0)),Lit(GInt(0))))
-  
+  val defaultCoordinates = Lit(GStr("Global"))
+
   def threeDPara: Parser[(Name, Expr)] = name ~ "=" ~ expr ^^ {case n ~_~ e => 
     if (n.x == "center" | n.x == "length" | n.x == "radius" | n.x == "size" | n.x == "color" |
-        n.x == "rotation" | n.x == "content") 
+        n.x == "rotation" | n.x == "content" | n.x == "coordinates")
     	  (n,e)
     else throw new PositionalAcumenError{
          def mesg = n.x + " is not a valid _3D parameter" 
@@ -573,15 +574,25 @@ object Parser extends MyStdTokenParsers {
       	  }
         else error("_3D object " + name + " can't have 'content' parameter")
       case None => defaultContent
-    } 
+    }
+
+    val coordinates = paras.find(_._1.x == "coordinates") match {
+      case Some(x) =>
+        x._2 match {
+          case _ @ Lit(GStr("Global") | GStr("Camera")) => x._2
+          case _ => error("_3D object " + name + "'s 'coordinates' parameter is not correct")
+        }
+      case None => defaultCoordinates
+    }
+
     val rl = ExprVector(List(radius,length))
      name match{
-      case "Cylinder" => ExprVector(List(Lit(GStr("Cylinder")),center,rl,color,rotation))
-      case "Cone" => ExprVector(List(Lit(GStr("Cone")),center,rl,color,rotation))
-      case "Box" => ExprVector(List(Lit(GStr("Box")),center,size,color,rotation))
-      case "Sphere" => ExprVector(List(Lit(GStr("Sphere")),center,size,color,rotation))
-      case "Text" => ExprVector(List(Lit(GStr("Text")),center,size,color,rotation,content))
-      case "Obj" => ExprVector(List(Lit(GStr("OBJ")),center,size,color,rotation,content))
+      case "Cylinder" => ExprVector(List(Lit(GStr("Cylinder")),center,rl,color,rotation,coordinates))
+      case "Cone" => ExprVector(List(Lit(GStr("Cone")),center,rl,color,rotation,coordinates))
+      case "Box" => ExprVector(List(Lit(GStr("Box")),center,size,color,rotation,coordinates))
+      case "Sphere" => ExprVector(List(Lit(GStr("Sphere")),center,size,color,rotation,coordinates))
+      case "Text" => ExprVector(List(Lit(GStr("Text")),center,size,color,rotation,content,coordinates))
+      case "Obj" => ExprVector(List(Lit(GStr("OBJ")),center,size,color,rotation,content,coordinates))
       case _ => error("Unsupported 3D object " + name)
     }
 
