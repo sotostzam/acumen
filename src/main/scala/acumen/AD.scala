@@ -369,10 +369,9 @@ object AD extends App {
         val x0 = x(0)
         coeff(0) = x0.log
         for (k <- 1 until n) {
-          val kL = evVIsIntegral.fromInt(k)          
           coeff(k) = (x(k) - ((1 to k - 1).foldLeft(zeroOfV) {
             case (sum, i) => sum + evVIsIntegral.fromInt(i) * coeff(i) * x(k-i)
-          }) / kL) / x0
+          }) / evVIsIntegral.fromInt(k)) / x0
         }
         coeff.toVector
       })
