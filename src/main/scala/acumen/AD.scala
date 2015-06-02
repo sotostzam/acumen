@@ -317,25 +317,24 @@ object AD extends App {
       else*/ {
         Dif {
           val n  = l.size
-          val m  = firstNonZero(l) // n >= m because l != zero
-          val lm = l(m)
-          val r0 = r(0) // FIXME This is a constant! Should not be lifted in the first place.
-          val k0V = r0 * evVIsIntegral.fromInt(m)
-          require((m == 1 || k0V.isValidInt), "pow is not applicable to ($l,$r). Expanding around 0 needs the product of the exponent and of the index of the first non-zero coefficient to be an integer.")
-          val k0 = k0V.toInt
+          val k0  = firstNonZero(l) // n >= k0 because l != zero
+          val lk0 = l(k0)
+          val a = r(0) // FIXME This is a constant! Should not be lifted in the first place.
+          val k0V = a * evVIsIntegral.fromInt(k0)
+          require((k0 == 0 || k0V.isValidInt), "pow is not applicable to ($l,$r). Expanding around 0 needs the product of the exponent and of the index of the first non-zero coefficient to be an integer.")
+          val ak0 = k0V.toInt
           val coeff = new collection.mutable.ArraySeq[V](n)
-          for (k <- 0 to k0 - 1) coeff(k) = zeroOfV          // the first k0 coefficients are zero
-          coeff(k0) = lm ^ r0                                // the first non-zero coefficient of the result
-          for (k <- k0 + m + 1 to n - 1) {                   // ----------------------------------------------
+          for (k <- 0 to ak0 - 1) coeff(k) = zeroOfV         // the first a * k0 coefficients are zero
+          coeff(ak0) = lk0 ^ a                               // the first non-zero coefficient of the result
+          for (k <- ak0 + 1 to n - 1) {                      // ----------------------------------------------
             val kL = evVIsIntegral.fromInt(k)
-            val mL = evVIsIntegral.fromInt(m)
-            coeff(k - m) = ((0 to k - m - 1).foldLeft(zeroOfV) { // possibly  non-zero coefficients k0 + 1 .. n - m
+            val ak0L = evVIsIntegral.fromInt(ak0)            // possibly  non-zero coefficients a * k0 + 1 .. n - 1
+            coeff(k) = ((1 to Math.min(k, n - 1 - k0)).foldLeft(zeroOfV) { 
               case (sum, i) =>  
                 val iL = evVIsIntegral.fromInt(i)
-                sum + (r0 * (kL - iL) - iL) * l(k - i) * coeff(i)  
-            }) / ((kL - mL * (r0 + oneOfV) ) * lm)
-          }                                                  // ----------------------------------------------
-          for (k <- n - m to n - 1) coeff(k) = zeroOfV       // the last m coefficients are zero
+                sum + ( (a + oneOfV) * iL / (kL - ak0L) - oneOfV ) * l(i + k0) * coeff(k - i)  
+            }) /  lk0
+          } 
           coeff.toVector
         }
       }
