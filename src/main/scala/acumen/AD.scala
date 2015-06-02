@@ -8,7 +8,11 @@ import util.ASTUtil
  * Automatic Differentiation.
  *
  * Based on description from book "Validated Numerics" by
- * Warrick Tucker, pages 121 and 122.
+ * Warwick Tucker, pages 121 and 122
+ * 
+ * and on the note
+ * "Automatic Differentiation Rules for Univariate Taylor Series" by
+ * Ferenc A. Bartha
  */
 object AD extends App {
 
@@ -224,15 +228,21 @@ object AD extends App {
     
     /* Real instance */
     def div(l: Dif[V], r: Dif[V]): Dif[V] =
-      // FIXME Extend using l’Hopital’s rule
       divCache.getOrElseUpdate((l, r), Dif {
         val n = l.size
+        val k0 = firstNonZero(r)
+        require((k0 > -1), "Division by zero is not allowed.")
+        require((k0 <= firstNonZero(l)), "First non-vanishing coefficient of $r must not be higher order than the first non-vanishing coefficient of $l.")
         val coeff = new collection.mutable.ArraySeq[V](n)
-        coeff(0) = l(0) / r(0)
-        for (k <- 1 until n)
-          coeff(k) = (l(k) - (0 to k - 1).foldLeft(zeroOfV) {
-            case (sum, i) => sum + (coeff(i) * r(k - i))
-          }) / r(0)
+        coeff(0) = l(k0) / r(k0)
+        for (k <- 1 to n - k0 - 1)
+          coeff(k) = (l(k + k0) - (0 to k - 1).foldLeft(zeroOfV) {
+            case (sum, i) => sum + (coeff(i) * r(k - i + k0))
+          }) / r(k0)
+        for (k <- n - k0 to n - 1)
+          coeff(k) = - (k - (n - 1) + k0 to k - 1).foldLeft(zeroOfV) {
+            case (sum, i) => sum + (coeff(i) * r(k - i + k0))
+          } / r(k0)
         coeff.toVector
       })
       
