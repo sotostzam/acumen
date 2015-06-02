@@ -250,12 +250,17 @@ object AD extends App {
     /** General interface for power */
     def pow(l: Dif[V], r: Dif[V]): Dif[V] =  
       powCache.getOrElseUpdate((l, r), {
-        // FIXME these checks might be optimized e.g. zero, one are all constants, is that more efficient check?
-        if (r == one)      l                 else
-        if (r == zero) {   require(!(l == zero), "pow is not applicable to ($l,$r) as 0^0 is not defined.")
-                           one             } else
-        if (l == zero)     zero              else 
-        if (isConstant(r)) powOnReal(l, r)   else exp(mul(r, log(l)))
+        // r is constant
+        if (isConstant(r))
+          if (r(0) == oneOfV)    l        else
+          if (r(0) == zeroOfV) { require(!(l == zero), "pow is not applicable to ($l,$r) as 0^0 is not defined.")
+                                 one }
+          else                   powOnReal(l, r)
+        // r is not constant   
+        else 
+          if (l == zero)         { require(!(r(0) == zeroOfV), "pow is not applicable to ($l,$r) as 0^0 is not defined.")
+                                 zero }
+          else                   exp(mul(r, log(l)))
       })
     
     /** Square root */
