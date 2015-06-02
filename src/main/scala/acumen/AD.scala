@@ -262,26 +262,20 @@ object AD extends App {
     def sqrt(x: Dif[V]): Dif[V] =
       sqrtCache.getOrElseUpdate(x, if (x == zero) zero else Dif { // We might call sqrt directly not only through power, so we check for zero
         val n  = x.size
-        val m  = firstNonZero(x) // n >= m because x != zero
-        require((m % 2 == 0), "First non-vanishing coefficient must be an even power in $x in order to expand the sqrt function.")
-        val x0 = x(m)
-        val k0 = m / 2
+        val k0  = firstNonZero(x) // n >= k0 because x != zero
+        require((k0 % 2 == 0), "First non-vanishing coefficient must be an even power in $x in order to expand the sqrt function.")
+        val x0 = x(k0)
+        val k0d2 = k0 / 2
         val coeff = new collection.mutable.ArraySeq[V](n)
-        for (k <- 0 to k0 - 1) coeff(k) = zeroOfV          // the first k0 coefficients are zero
-        coeff(k0) = x0.sqrt                                // the first non-zero coefficient of the result
-        for (k <- k0 + 1 to n - m - 1) {                   // ----------------------------------------------
-          val kL = evVIsIntegral.fromInt(k)
-          val mL = evVIsIntegral.fromInt(m)
-          val kRel = k - k0
-          val kEnd = (kRel + kRel%2 - 2) / 2
-                                                           // possibly  non-zero coefficients k0 + 1 .. n - m
-          coeff(k) = (x(k0 + k) - evVIsIntegral.fromInt(2) * ((1 to kEnd).foldLeft(zeroOfV) { 
-            case (sum, i) =>  
-              val iL = evVIsIntegral.fromInt(i)
-              sum + coeff(k0 + i) * coeff(k - i)  
-          }) - (if (kRel % 2 == 0) - coeff(k0 + kEnd + 1).square else zeroOfV )) / (evVIsIntegral.fromInt(2) * coeff(k0)) // FIXME optimize substraction of zeroOfV
-        }                                                  // ----------------------------------------------
-        for (k <- n - m to n - 1) coeff(k) = zeroOfV       // the last m coefficients are zero
+        for (k <- 0 to k0d2 - 1) coeff(k) = zeroOfV        // the first k0/2 coefficients are zero
+        coeff(k0d2) = x0.sqrt                              // the first non-zero coefficient of the result
+        for (k <- 1 + k0 to n - 1 + k0d2) {                // ----------------------------------------------
+          val kEnd = (k + k%2 - 2) / 2
+                                                           // possibly  non-zero coefficients k0/2 + 1 .. n - 1
+          coeff(k - k0d2) = ((if (k < n) x(k) else zeroOfV) - evVIsIntegral.fromInt(2) * ((k0d2 + 1 to kEnd).foldLeft(zeroOfV) { 
+            case (sum, i) => sum + coeff(i) * coeff(k - i)  
+          }) - (if (k % 2 == 0) - coeff(k / 2).square else zeroOfV )) / (evVIsIntegral.fromInt(2) * coeff(k0d2)) // FIXME optimize substraction of zeroOfV
+        } 
         coeff.toVector        
       })
     
