@@ -1164,13 +1164,14 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D, playSpeed: Double,
         objectsArray += new Object3D(app.characters.allCharacters(allChar(i)), false)
         // calculate the shift distance from last letter, firstly, we need to get the last letter index
         var j = 1 // the count for blank space
-        while (!app.characters.allCharacters.contains(allChar(i-j)) && j <= i) {
+        while (j <= i && !app.characters.allCharacters.contains(allChar(i-j))) {
           j += 1
         }
         // get the width of last letter
-        val tempDis = abs(objectsArray.apply(i-j).getMesh.getBoundingBox()(1)
-                        - objectsArray.apply(i-j).getMesh.getBoundingBox()(0))
-        if (app.characters.letterDistance.contains(allChar(i-j)))
+        val tempDis = if (j <= i) abs(objectsArray.apply(i-j).getMesh.getBoundingBox()(1)
+                                  - objectsArray.apply(i-j).getMesh.getBoundingBox()(0))
+                      else 0
+        if (i >= j && app.characters.letterDistance.contains(allChar(i-j)))
           distanceToShift += tempDis + app.characters.letterDistance(allChar(i-j))
         else
           distanceToShift += tempDis + 0.2
@@ -1183,13 +1184,11 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D, playSpeed: Double,
       } else {
         objectsArray += new Object3D(1)
         firstLetter = false
-        if (i != 0) {
-          var j = 1     // the count for blank space
-          while (!app.characters.allCharacters.contains(allChar(i-j)) && j <= i) {
-            j += 1
-          }
-          distanceToShift += 0.2 * j
+        var j = 1     // the count for blank space
+        while (j <= i && !app.characters.allCharacters.contains(allChar(i-j))) {
+          j += 1
         }
+        distanceToShift += 0.2 * j
       }
     }
     val stringObject = Object3D.mergeAll(objectsArray.toArray)
