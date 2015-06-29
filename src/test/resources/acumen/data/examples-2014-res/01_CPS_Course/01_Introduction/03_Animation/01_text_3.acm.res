@@ -9,7 +9,7 @@
 #0.0 { className = Simulator, time = 0.000000 }
 ------------------------------0
 #0 {
-  _3D = ("Text", (-2.200000, 0, 0), 1.419536, (1, 1, 0), (0, 0, 0), "Hello Acumen!", "Global"),
+  _3D = ("Text", (-2.200000, 0, 0), 1.419536, (1, 1, 0), (0, 0, 0), "Hello Acumen!", "Global", -1),
   className = Main,
   simulator = #0.0,
   size = 1.416795,
