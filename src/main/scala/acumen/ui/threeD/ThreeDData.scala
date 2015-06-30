@@ -37,6 +37,7 @@ class ThreeDData extends Publisher {
   /* Optional field to indicate transparent object or not */
   var _3DTexture = ""
   var _3DCoordinates = "Global"
+  var _3DTransparency = -1
   /* Camera's position and orientation*/
   var _3DView = mutable.ArrayBuffer[ViewInfo]()
   /* CId of the object that contain _3DView info */
@@ -106,9 +107,9 @@ class ThreeDData extends Publisher {
   }
 
   /* _3D texture should be a string */
-  def extractTexture(value: Value[_]) {
+  def extractTransparency(value: Value[_]) {
     value match {
-      case VLit(GStr(tex)) => _3DTexture = tex
+      case VLit(GInt(transparency)) => _3DTransparency = transparency
       case _ => throw _3DNameError(value)
     }
   }
@@ -181,7 +182,7 @@ class ThreeDData extends Publisher {
       val vector = value(i)
       vector match {
         case VVector(l) =>
-          if (l.size != 6 && l.size != 7)
+          if (l.size != 7 && l.size != 8)
             throw _3DError(vector)
           else {
             extractType(l.head)
@@ -193,24 +194,24 @@ class ThreeDData extends Publisher {
               extractText(l(5))
             else if (_3DType == "OBJ")
               extractPath(l(5))
-            else if (l.size == 7) {
-              extractTexture(l(5))
+            else if (l.size == 8) {
+              extractTransparency(l(7))
               extractCoordinates(l(6))
             }
-            if (l.size == 6)
+            if (l.size == 7) {
+              extractTransparency(l(6))
               extractCoordinates(l(5))
+            }
           }
         case _ => throw ShouldNeverHappen()
       }
       val valueList =
         if (_3DType == "Text")
-          List(_3DType, _3DPosition, _3DSize, _3DColor, _3DAngle, _3DText, _3DCoordinates)
+          List(_3DType, _3DPosition, _3DSize, _3DColor, _3DAngle, _3DText, _3DCoordinates, _3DTransparency)
         else if (_3DType == "OBJ")
-          List(_3DType, _3DPosition, _3DSize, _3DColor, _3DAngle, _3DPath, _3DCoordinates)
-        else if (_3DTexture == "transparent")
-          List(_3DType, _3DPosition, _3DSize, _3DColor, _3DAngle, _3DTexture, _3DCoordinates)
+          List(_3DType, _3DPosition, _3DSize, _3DColor, _3DAngle, _3DPath, _3DCoordinates, _3DTransparency)
         else
-          List(_3DType, _3DPosition, _3DSize, _3DColor, _3DAngle, _3DCoordinates)
+          List(_3DType, _3DPosition, _3DSize, _3DColor, _3DAngle, _3DCoordinates, _3DTransparency)
 
       addValuesTo3DClass(objectKey, valueList, _3DData, frameNumber)
 
