@@ -1,0 +1,14 @@
+model Main (simulator) =
+initially
+ time =0, time'=0.1,
+ _3D = ()
+always
+  time'=0.1,
+  _3D = (Box color  = red     center = (0,0,0),
+         Box color  = green   center = (1+time,0,0),
+         Box color  = blue    center = (0,1+time,0),
+         Box color  = yellow  center = (0,0,1+time),
+         Box color  = magenta center = (-1-time,0,0),
+         Box color  = cyan    center = (0,-1-time,0),
+         Box color  = white   center = (0,0,-1-time)
+         )

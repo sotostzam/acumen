@@ -1,0 +1,13 @@
+model Main (simulator) =
+initially
+ x = 0, x' = 0.2, _3D=()
+always
+ x' = 0.2,
+ _3D = (Box color=red     center = (x,0,0),
+        Box color=blue    center = (0,x,0),
+        Box color=green   center = (0,0,x),
+        
+        Box color=cyan    center = (-x,0,0),
+        Box color=magenta center = (0,-x,0),
+        Box color=yellow  center = (0,0,-x)
+        )

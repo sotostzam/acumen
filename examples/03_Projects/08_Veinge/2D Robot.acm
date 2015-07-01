@@ -1,0 +1,14 @@
+model Main (simulator) =
+initially
+  time=0, time'=1,_3D = ()
+always
+  time'=1,
+  _3D = (Box color=yellow  center=(0,0,0)     size=(2,2,0),
+         Box color=blue    center=(0,2,0)     size=(1,1,0),
+         Box color=green   center=(1.5,0,0)   size=(1/2,2,0),
+         Box color=green   center=(-1.5,0,0)  size=(1/2,2,0),
+         Box color=white   center=(-1/2,-3,0) size=(1/2,3,0)
+             rotation = (0,0,0.1*sin(time)),
+         Box color=white   center=(1/2,-3,0)  size=(1/2,3,0)
+             rotation = (0,0,0.1*sin(time))
+         )
