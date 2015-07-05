@@ -1,0 +1,9 @@
+model arrow(position, rot, color) = 
+initially
+  _3D = (Cylinder center=(0,0,0)+position radius=0.01 length=1 rotation=rot color = color)
+
+model axis(position) = 
+initially
+  x = create arrow ((0.5,0,0)+position, (0,0,pi/2), red),// x-axis
+  y = create arrow ((0,0.5,0)+position, (0,0,0), green),// y-axis
+  z = create arrow ((0,0,0.5)+position, (pi/2,0,0), blue)// y-axis
