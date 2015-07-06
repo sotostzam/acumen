@@ -58,9 +58,9 @@ sealed abstract class Expression {
       case Abs(e)         => e(x).abs
       case Sqrt(e)        => e(x).sqrt
       case Exp(e)         => e(x).exp
-      case Log(e)         => sys.error("undefined")
-      case Sin(e)         => sys.error("undefined")
-      case Cos(e)         => sys.error("undefined")
+      case Log(e)         => throw new NotImplementedError("Expression.eval.log")
+      case Sin(e)         => throw new NotImplementedError("Expression.eval.sin")
+      case Cos(e)         => throw new NotImplementedError("Expression.eval.cos")
       case Negate(e)      => -e(x)
       case Plus(l, r)     => l(x) + r(x)
       case Multiply(l, r) =>

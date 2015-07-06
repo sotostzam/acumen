@@ -1146,6 +1146,8 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
             case e: Throwable =>
               Logger.trace(Pretty pprint asProgram(st, prog))
               if (e.isInstanceOf[AcumenError]) throw e
+              else if (e.isInstanceOf[NotImplementedError]) 
+                throw new NotImplementedError(s"Cannot contract. Missing implementation for: ${e.getMessage}.") 
               else Left("Error while applying claim " + pprint(claim.c) + ": " + e.getMessage) 
           }
         case _ => res
