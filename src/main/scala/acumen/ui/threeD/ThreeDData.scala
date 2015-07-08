@@ -96,7 +96,7 @@ class ThreeDData extends Publisher {
     }
     val temp = helper(value)
     index match {
-      case "position" => if (temp.length == 2) _3DPosition = Array(temp.apply(0), 0, temp.apply(1))
+      case "position" => if (temp.length == 2) _3DPosition = Array(temp.apply(0), temp.apply(1), 0)
                          else _3DPosition = temp
       case "color" => _3DColor = temp
       case "angle" => _3DAngle = temp
