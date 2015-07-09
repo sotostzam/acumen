@@ -492,11 +492,11 @@ object Parser extends MyStdTokenParsers {
     case _ => ExprVector(ls)
   }}
 
-  def checkVector(l:List[_], name: String): Boolean = {
+  def vectorValidation(l:List[_], name: String): Boolean = {
     l.size == 3 && name != "center"
   }
 
-  def checkPosition(l:List[_], name: String): Boolean = {
+  def positionValidation(l:List[_], name: String): Boolean = {
     (l.size == 3 || l.size == 2) && name == "center"
   }
 
@@ -505,8 +505,8 @@ object Parser extends MyStdTokenParsers {
       if (ls.forall(x => x match{
         case _ @ Lit(GStr(_) | GBool(_)) => false
         case _ => true
-       }) && (checkVector(ls, n.x)
-        || checkPosition(ls, n.x))) ExprVector(ls)
+       }) && (vectorValidation(ls, n.x)
+        || positionValidation(ls, n.x))) ExprVector(ls)
       else
        throw new PositionalAcumenError{
          def mesg = "_3D parameter " + n + "'s value is not a valid vector of 3 numbers: " + Pretty.pprint(v)
