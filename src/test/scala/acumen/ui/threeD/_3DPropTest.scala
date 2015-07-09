@@ -27,9 +27,9 @@ object _3DTests extends Properties("acumen") {
 	property("checkVecorContent Correctness") =
     forAll { (x:List[VLit]) =>
 			if ((x.size == 3) && isNumber(x(0)) && isNumber(x(1)) && isNumber(x(2)))	
-				app.threeDData.checkVectorContent(x) == true 
+				app.threeDData.vectorValidation(x) == true
       else
-			  app.threeDData.checkVectorContent(x) == false
+			  app.threeDData.vectorValidation(x) == false
     }
 	
 	/* _3D object's type should be a string or an int */

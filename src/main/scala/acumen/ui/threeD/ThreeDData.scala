@@ -71,12 +71,12 @@ class ThreeDData extends Publisher {
     }
   }
 
-  /* Check if the list's size is 3 and only contains numbers (int, double) */
-  def checkVectorContent(l: List[_]): Boolean = {
+  /* Check if the list size of color and angle is 3 and only contains numbers (int, double) */
+  def vectorValidation(l: List[_]): Boolean = {
     (l.size == 3) && isVectorOfNumbers(l)
   }
   /* Check if the position's size is 3 or 2 and only contains numbers (int, double) */
-  def checkPositionContent(l: List[_]): Boolean = {
+  def positionValidation(l: List[_]): Boolean = {
     (l.size == 3 || l.size == 2) && isVectorOfNumbers(l)
   }
 
@@ -86,9 +86,9 @@ class ThreeDData extends Publisher {
       value match {
         case VLit(GPattern(ls)) => helper(VVector(ls map VLit))
         case VVector(vs) =>
-          if (index != "position" && checkVectorContent(vs))
+          if (index != "position" && vectorValidation(vs))
             extractDoubles(vs).toArray
-          else if (index == "position" && checkPositionContent(vs))
+          else if (index == "position" && positionValidation(vs))
             extractDoubles(vs).toArray
           else throw _3DVectorError(value, index)
         case _ => throw _3DVectorError(value, index)
@@ -96,8 +96,8 @@ class ThreeDData extends Publisher {
     }
     val temp = helper(value)
     index match {
-      case "position" => if (temp.length == 2) _3DPosition = Array(temp.apply(0), temp.apply(1), 0)
-                         else _3DPosition = temp
+      case "position" => _3DPosition = if (temp.length == 2) Array(temp.apply(0), temp.apply(1), 0)
+                                       else temp
       case "color" => _3DColor = temp
       case "angle" => _3DAngle = temp
       case _ => throw ShouldNeverHappen()
