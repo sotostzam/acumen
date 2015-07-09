@@ -492,10 +492,12 @@ object Parser extends MyStdTokenParsers {
     case _ => ExprVector(ls)
   }}
 
+  // Check if the list size of color and angle is 3 and only contains numbers (int, double)
   def vectorValidation(l:List[_], name: String): Boolean = {
     l.size == 3 && name != "center"
   }
 
+  // Check if the list size of position is 2 or 3 and only contains numbers (int, double)
   def positionValidation(l:List[_], name: String): Boolean = {
     (l.size == 3 || l.size == 2) && name == "center"
   }
