@@ -72,11 +72,11 @@ class ThreeDData extends Publisher {
   }
 
   /* Check if the list size of color and angle is 3 and only contains numbers (int, double) */
-  def vectorValidation(l: List[_]): Boolean = {
+  def validVector(l: List[_]): Boolean = {
     (l.size == 3) && isVectorOfNumbers(l)
   }
   /* Check if the position's size is 3 or 2 and only contains numbers (int, double) */
-  def positionValidation(l: List[_]): Boolean = {
+  def validPosition(l: List[_]): Boolean = {
     (l.size == 3 || l.size == 2) && isVectorOfNumbers(l)
   }
 
@@ -86,9 +86,9 @@ class ThreeDData extends Publisher {
       value match {
         case VLit(GPattern(ls)) => helper(VVector(ls map VLit))
         case VVector(vs) =>
-          if (index != "position" && vectorValidation(vs))
+          if (index != "position" && validVector(vs))
             extractDoubles(vs).toArray
-          else if (index == "position" && positionValidation(vs))
+          else if (index == "position" && validPosition(vs))
             extractDoubles(vs).toArray
           else throw _3DVectorError(value, index)
         case _ => throw _3DVectorError(value, index)

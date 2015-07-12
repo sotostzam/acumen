@@ -26,10 +26,10 @@ object _3DTests extends Properties("acumen") {
 	/* _3D Position,color,angle should all be a vector with 3 numbers */
 	property("checkVecorContent Correctness") =
     forAll { (x:List[VLit]) =>
-			if ((x.size == 3) && isNumber(x(0)) && isNumber(x(1)) && isNumber(x(2)))	
-				app.threeDData.vectorValidation(x) == true
+			if ((x.size == 3) && isNumber(x.head) && isNumber(x(1)) && isNumber(x(2)))
+				app.threeDData.validVector(x)
       else
-			  app.threeDData.vectorValidation(x) == false
+			  !app.threeDData.validVector(x)
     }
 	
 	/* _3D object's type should be a string or an int */
