@@ -492,13 +492,24 @@ object Parser extends MyStdTokenParsers {
     case List(single) => single
     case _ => ExprVector(ls)
   }}
-  
+
+  // Check if the list size of color and angle is 3 and only contains numbers (int, double)
+  def validVector(l:List[_], name: String): Boolean = {
+    l.size == 3 && name != "center"
+  }
+
+  // Check if the list size of position is 2 or 3 and only contains numbers (int, double)
+  def validPosition(l:List[_], name: String): Boolean = {
+    (l.size == 3 || l.size == 2) && name == "center"
+  }
+
   def _3DVectorHelper(n:Name,v:Expr):Expr = v match{
     case ExprVector(ls) => 
       if (ls.forall(x => x match{
         case _ @ Lit(GStr(_) | GBool(_)) => false
         case _ => true
-       }) && ls.length == 3) ExprVector(ls) 
+       }) && (validVector(ls, n.x)
+        || validPosition(ls, n.x))) ExprVector(ls)
       else
        throw new PositionalAcumenError{
          def mesg = "_3D parameter " + n + "'s value is not a valid vector of 3 numbers: " + Pretty.pprint(v)

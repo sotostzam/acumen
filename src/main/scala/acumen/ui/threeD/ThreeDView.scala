@@ -341,7 +341,6 @@ class ThreeDView extends JPanel {
         fps = 0
         _3DTimeCounter = System.currentTimeMillis()
       }
-      g.drawString("FPS: " + lps.toString, 10, 30)
       // draw real time render information
       if (acumen.ui.App.ui.getStartRealTime) {
         g.drawString("Missed deadlines: %.4f".format(percentagemissDL * 100) + "%", 10, 45)
