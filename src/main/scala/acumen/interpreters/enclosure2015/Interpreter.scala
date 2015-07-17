@@ -1063,9 +1063,12 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
       (!(hu contains q) || up.isLeft) // Some possible event is certain 
   }
   
-  /** Returns true if P contains an ic1 whose enclosure contains that of ic. */
+  /** Returns true if P contains an ic1:  
+   *  1) That has the same dynamics (head of evolution) as ic and 
+   *  2) Whose enclosure contains that of ic. */
   def isPassed(ic: InitialCondition, P: List[InitialCondition]) = 
-    P exists (ic1 => ic1.enclosure.contains(ic.enclosure))
+    P exists (ic1 => ic.evolution.changes.headOption == ic1.evolution.changes.headOption && 
+                       ic1.enclosure.contains(ic.enclosure))
   
   /** Returns true if the discrete assignments in cs are empty or have no effect on s. */
   def isFlow(cs: Changeset) = cs.dis.isEmpty
