@@ -232,7 +232,7 @@ object AD extends App {
         val n = l.size
         val k0 = firstNonZero(r)
         require((k0 > -1), "Division by zero is not allowed.")
-        require((k0 <= firstNonZero(l)), "First non-vanishing coefficient of $r must not be higher order than the first non-vanishing coefficient of $l.")
+        require((k0 <= firstNonZero(l)), s"First non-vanishing coefficient of $r must not be higher order than the first non-vanishing coefficient of $l.")
         val coeff = new collection.mutable.ArraySeq[V](n)
         coeff(0) = l(k0) / r(k0)
         for (k <- 1 to n - k0 - 1)
@@ -253,12 +253,12 @@ object AD extends App {
         // r is constant
         if (isConstant(r))
           if (r(0) == oneOfV)    l        else
-          if (r(0) == zeroOfV) { require(!(l == zero), "pow is not applicable to ($l,$r) as 0^0 is not defined.")
+          if (r(0) == zeroOfV) { require(!(l == zero), s"pow is not applicable to ($l,$r) as 0^0 is not defined.")
                                  one }
           else                   powOnReal(l, r)
         // r is not constant   
         else 
-          if (l == zero)         { require(!(r(0) == zeroOfV), "pow is not applicable to ($l,$r) as 0^0 is not defined.")
+          if (l == zero)         { require(!(r(0) == zeroOfV), s"pow is not applicable to ($l,$r) as 0^0 is not defined.")
                                  zero }
           else                   exp(mul(r, log(l)))
       })
@@ -268,7 +268,7 @@ object AD extends App {
       sqrtCache.getOrElseUpdate(x, if (x == zero) zero else Dif { // We might call sqrt directly not only through power, so we check for zero
         val n  = x.size
         val k0  = firstNonZero(x) // n >= k0 because x != zero
-        require((k0 % 2 == 0), "First non-vanishing coefficient must be an even power in $x in order to expand the sqrt function.")
+        require((k0 % 2 == 0), s"First non-vanishing coefficient must be an even power in $x in order to expand the sqrt function.")
         val x0 = x(k0)
         val k0d2 = k0 / 2
         val coeff = new collection.mutable.ArraySeq[V](n)
@@ -326,7 +326,7 @@ object AD extends App {
           val lk0 = l(k0)
           val a = r(0) // FIXME This is a constant! Should not be lifted in the first place.
           val k0V = a * evVIsIntegral.fromInt(k0)
-          require((k0 == 0 || k0V.isValidInt), "pow is not applicable to ($l,$r). Expanding around 0 needs the product of the exponent and of the index of the first non-zero coefficient to be an integer.")
+          require((k0 == 0 || k0V.isValidInt), s"pow is not applicable to ($l,$r). Expanding around 0 needs the product of the exponent and of the index of the first non-zero coefficient to be an integer.")
           val ak0 = k0V.toInt
           val coeff = new collection.mutable.ArraySeq[V](n)
           for (k <- 0 to ak0 - 1) coeff(k) = zeroOfV         // the first a * k0 coefficients are zero
