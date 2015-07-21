@@ -29,12 +29,14 @@ object ADTest extends Properties("AD") {
   }
   
   implicit class DoubleDifOps(l: Dif[Double]) {
-     def ~=(r: Dif[Double]): Boolean =
-       (l.coeff zip r.coeff).forall{ case (lc, rc) => 
-       if (!(lc ~= rc))
-         sys.error("NO: " + (lc,rc) + "\nNO:\n" + l + "\n" + r)
-         else
-       lc ~= rc }
+    def ~=(r: Dif[Double]): Boolean =
+      (l.coeff zip r.coeff).zipWithIndex.forall {
+        case ((lc, rc), i) =>
+          if (lc ~= rc) true
+          else sys.error(s"\n\nFound difference at index $i:\n\n" +
+            s"Left coefficient:\n$lc\n\nRight coefficient:\n$rc\n\n" +
+            s"Full left Dif:\n$l\n\nFull right Dif:\n$r\n\n")
+      }
   }
   
   /* Properties of Integral */
