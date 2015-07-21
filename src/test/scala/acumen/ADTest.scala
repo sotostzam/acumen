@@ -124,6 +124,16 @@ object ADTest extends Properties("AD") {
       (x >= zero) ==> ((x*x).sqrt ~= x)
     }
 
+  property("Dif[Double]: x > 1 => sqrt(x) < x") =
+    forAll(genSmallDoubleDif) { (x: Dif[Double]) =>
+      (x > one) ==> x.sqrt < x
+    }
+  
+  property("Dif[Double]: x >= 1 => square(x) >= x") =
+    forAll(genSmallDoubleDif) { (x: Dif[Double]) =>
+      (x >= one) ==> x.square >= x
+    }
+  
   property("Dif[Double]: pow(0) ~= 1") = 
     forAll(genSmallDoubleDif) { (x: Dif[Double]) =>
       (x ^ zero) ~= one
