@@ -279,7 +279,7 @@ object AD extends App {
                                                            // possibly  non-zero coefficients k0/2 + 1 .. n - 1
           coeff(k - k0d2) = ((if (k < n) x(k) else zeroOfV) - evVIsIntegral.fromInt(2) * ((k0d2 + 1 to kEnd).foldLeft(zeroOfV) { 
             case (sum, i) => sum + coeff(i) * coeff(k - i)  
-          }) - (if (k % 2 == 0) - coeff(k / 2).square else zeroOfV )) / (evVIsIntegral.fromInt(2) * coeff(k0d2)) // FIXME optimize substraction of zeroOfV
+          }) + (if (k % 2 == 0) - coeff(k / 2).square else zeroOfV )) / (evVIsIntegral.fromInt(2) * coeff(k0d2)) // FIXME optimize substraction of zeroOfV
         } 
         coeff.toVector        
       })
