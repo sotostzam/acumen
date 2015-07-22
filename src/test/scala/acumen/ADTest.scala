@@ -17,38 +17,64 @@ object ADTest extends Properties("AD") {
   
   val evDoubleDifIsIntegral = implicitly[Integral[Dif[Double]]]
   val evDoubleDifIsReal = implicitly[Real[Dif[Double]]]
+      
+  val evIntervalDifIsIntegral = implicitly[Integral[Dif[Interval]]]
+  val evIntervalDifIsReal = implicitly[Real[Dif[Interval]]]
+              
+  def fromIntD(i: Int) = evDoubleDifIsIntegral.fromInt(i)
+  val zeroD = evDoubleDifIsIntegral.zero
+  val oneD = evDoubleDifIsIntegral.one
+  val piD = evDoubleDifIsReal.fromDouble(Math.PI)
   
-  def fromInt(i: Int) = evDoubleDifIsIntegral.fromInt(i)
-  val zero = evDoubleDifIsIntegral.zero
-  val one = evDoubleDifIsIntegral.one
-  val pi = evDoubleDifIsReal.fromDouble(Math.PI)
+  def fromIntI(i: Int) = evIntervalDifIsIntegral.fromInt(i)
+  val zeroI = evIntervalDifIsIntegral.zero
+  val oneI = evIntervalDifIsIntegral.one
+  val piI = evIntervalDifIsReal.fromDouble(Math.PI)
   
-  implicit class DoubleOps(l: Double) {
-    def ~=(r: Double): Boolean = 
+  trait Similar[T] {
+    def close(l: T, r: T): Boolean
+    def in(l: T, r: T): Boolean
+  }
+  implicit object DoubleIsSimilar extends Similar[Double] {
+    def close(l: Double, r: Double): Boolean = 
       Math.abs(l - r) <= 10e-6 * Math.min(Math abs l, Math abs r)
+    def in(l: Double, r: Double): Boolean =
+      l == r
+  }
+  implicit object IntervalIsSimilar extends Similar[Interval] {
+    def close(l: Interval, r: Interval): Boolean = 
+      (l intersect r).isDefined
+    def in(l: Interval, r: Interval): Boolean =
+      r contains l
+  }
+  implicit class SimilarOps[V](val l: V)(implicit ev: Similar[V]) {
+    def ~=(r: V): Boolean = ev.close(l, r)
+    def in(r: V): Boolean = ev.in(l, r)
   }
   
-  implicit class DoubleDifOps(l: Dif[Double]) {
-    def ~=(r: Dif[Double]): Boolean =
+  implicit class DifIsSimilar[T : Similar](l: Dif[T]) {
+    def similar(r: Dif[T], comp: (T,T) => Boolean, msg: String): Boolean =
       (l.coeff zip r.coeff).zipWithIndex.forall {
         case ((lc, rc), i) =>
-          if (lc ~= rc) true
-          else sys.error(s"\n\nFound difference at index $i:\n\n" +
-            s"Left coefficient:\n$lc\n\nRight coefficient:\n$rc\n\n" +
-            s"Full left Dif:\n$l\n\nFull right Dif:\n$r\n\n")
-      }
+          if (comp(lc, rc)) true
+          else sys.error(s"\n\nFound $msg at index $i:\n\n" +
+              s"Left coefficient:\n$lc\n\nRight coefficient:\n$rc\n\n" +
+              s"Full left Dif:\n$l\n\nFull right Dif:\n$r\n\n")
+    }
+    def ~=(r: Dif[T]): Boolean = similar(r, (lc:T,rc:T) => lc ~= rc, "dissimilarity")
+    def in(r: Dif[T]): Boolean = similar(r, (lc:T,rc:T) => lc in rc, "non-inclusion")
   }
   
-  /* Properties of Integral */
+  /* Properties of Dif[Double] as Integral */
 
   property("Dif[Double].add: x+x ~= 2*x") = 
     forAll(genSmallDoubleDif) { (x: Dif[Double]) =>
-      (x + x) ~= (fromInt(2) * x)
+      (x + x) ~= (fromIntD(2) * x)
     }
   
   property("Dif[Double].add: 1+x > x") = 
     forAll(genSmallDoubleDif) { (x: Dif[Double]) =>
-      (one + x) > x
+      (oneD + x) > x
     }
   
   property("Dif[Double].mul: x*x >= x") = 
@@ -58,49 +84,39 @@ object ADTest extends Properties("AD") {
 
   property("Dif[Double].mul: x*1 ~= x && 1*x ~= x") = 
     forAll { (x: Dif[Double]) =>
-      ((x * one) ~= x) && ((one * x) ~= x) 
+      ((x * oneD) ~= x) && ((oneD * x) ~= x) 
     }  
   
   property("Dif[Double].div: x/1 ~= x") = 
     forAll { (x: Dif[Double]) =>
-      (x / one) ~= x
+      (x / oneD) ~= x
     }
 
   property("Dif[Double].div: x/x ~= 1") = 
     forAll { (x: Dif[Double]) =>
-      (x(0) != 0d) ==> ((x / x) ~= one)  
+      (x(0) != 0d) ==> ((x / x) ~= oneD)  
     }
   
-  /* Properties of Real */
+  /* Properties of Dif[Double] as Real */
   
   property("Dif[Double]: sin(x) ~= cos(pi/2 - x)") = 
     forAll(genSmallDoubleDif) { (x: Dif[Double]) =>
-      x.sin ~= ((pi / fromInt(2)) - x).cos
+      x.sin ~= ((piD / fromIntD(2)) - x).cos
     }
 
   property("Dif[Double]: cos(x) ~= sin(pi/2 - x)") = 
     forAll(genSmallDoubleDif) { (x: Dif[Double]) =>
-      x.cos ~= ((pi / fromInt(2)) - x).sin
+      x.cos ~= ((piD / fromIntD(2)) - x).sin
     }
 
   property("Dif[Double]: x != 0 => tan(x) ~= sin(x) / cos(x)") = 
     forAll(genSmallDoubleDif) { (x: Dif[Double]) =>
-      (x != zero) ==> (x.tan ~= x.sin / x.cos)
+      (x != zeroD) ==> (x.tan ~= x.sin / x.cos)
     }
 
   property("Dif[Double]: tan(x) ~= tan(x + pi)") = 
     forAll(genSmallDoubleDif) { (x: Dif[Double]) =>
-      x.tan ~= (x + pi).tan
-    }
-  
-  property("Dif[Double]: -1 <= x <= 1 => cos(acos(x)) ~= x") = 
-    forAll(genBoundedDoubleDif(1)) { (x: Dif[Double]) =>
-      x.acos.cos ~= x
-    }
-  
-  property("Dif[Double]: sin(asin(x)) ~= x") = 
-    forAll(genSmallDoubleDif) { (x: Dif[Double]) =>
-      x.asin.sin ~= x
+      x.tan ~= (x + piD).tan
     }
   
   property("Dif[Double]: tan(atan(x)) ~= x") = 
@@ -111,27 +127,22 @@ object ADTest extends Properties("AD") {
   property("Dif[Double]: exp(x) > 0") =
     // Generate x such that exp(x) is representable as a Double
     forAll(genBoundedDoubleDif(Math.log(Double.MaxValue))) { (x: Dif[Double]) =>
-      x.exp > zero
+      x.exp > zeroD
     }
   
   property("Dif[Double]: for small x, log(exp(x)) ~= x") = 
     forAll(genSmallDoubleDif) { (x: Dif[Double]) =>
       x.exp.log ~= x
     }
-    
-  property("Dif[Double]: x >= 0 => sqrt(x*x) ~= x") = 
-    forAll(genSmallDoubleDif) { (x: Dif[Double]) =>
-      (x >= zero) ==> ((x*x).sqrt ~= x)
-    }
 
   property("Dif[Double]: x > 1 => sqrt(x) < x") =
     forAll(genSmallDoubleDif) { (x: Dif[Double]) =>
-      (x > one) ==> x.sqrt < x
+      (x > oneD) ==> x.sqrt < x
     }
   
   property("Dif[Double]: x >= 1 => square(x) >= x") =
     forAll(genSmallDoubleDif) { (x: Dif[Double]) =>
-      (x >= one) ==> x.square >= x
+      (x >= oneD) ==> x.square >= x
     }
   
   property("Dif[Double]: square(x) ~= x*x") =
@@ -141,7 +152,7 @@ object ADTest extends Properties("AD") {
   
   property("Dif[Double]: pow(0) ~= 1") = 
     forAll(genSmallDoubleDif) { (x: Dif[Double]) =>
-      (x ^ zero) ~= one
+      (x ^ zeroD) ~= oneD
     }
   
   property("Dif[Double]: 0 < x < 1 && y > 1 => x^y < x") = 
@@ -150,18 +161,40 @@ object ADTest extends Properties("AD") {
         (x ^ y) < x
     }
   
-  /* Other properties */
+  /* Properties of Dif[Interval] as Real */
   
+  property("Dif[Interval]: -1 <= x <= 1 => x in cos(acos(x))") = 
+    forAll(genBoundedIntervalDif(-1,1)) { (x: Dif[Interval]) =>
+      x in x.acos.cos
+    }
+
+  property("Dif[Interval]: -1 <= x <= 1 => x in sin(asin(x))") = 
+    forAll(genBoundedIntervalDif(-1,1)) { (x: Dif[Interval]) =>
+      x in x.asin.sin
+    }
+      
+  property("Dif[Interval]: x >= 0 => x in sqrt(x*x)") = 
+    forAll(genSmallIntervalDif) { (x: Dif[Interval]) =>
+      (x >= zeroI) ==> (x in (x*x).sqrt)
+    }
+
+  property("Dif[Interval]: x >= 0 => x in square(sqrt(x))") =
+    forAll(genSmallIntervalDif) { (x: Dif[Interval]) =>
+      (x >= zeroI) ==> (x in x.sqrt.square)
+    }
+
+  /* Other properties */
+
   property("lower is inverse of lift") = forAll { (st: CStore) =>
     lower(lift(st)) == st
   }
-  
+
   /* Generators */
   
   def genIntegralDif[N: Integral](genN: Gen[N]): Gen[Dif[N]] =
-      for {
-        coeffs <- listOfN(10, genN)
-      } yield Dif(coeffs.to[Vector])
+    for {
+      coeffs <- listOfN(10, genN)
+    } yield Dif(coeffs.to[Vector])
 
   def genRealDif[N: Real](genN: Gen[N]): Gen[Dif[N]] =
     for {
@@ -169,11 +202,17 @@ object ADTest extends Properties("AD") {
     } yield Dif(coeffs.to[Vector])
   
   def genSmallDoubleDif: Gen[Dif[Double]] = genBoundedDoubleDif(10)
+  def genSmallIntervalDif: Gen[Dif[Interval]] = genBoundedIntervalDif(-10,10)
     
   def genBoundedDoubleDif(magnitude: Double): Gen[Dif[Double]] = {
     val abs = Math.abs(magnitude)       
     genRealDif(choose(-abs, abs))
   }
+  def genBoundedIntervalDif(lo: Double, hi: Double): Gen[Dif[Interval]] =
+    genRealDif(for {
+      a <- choose(lo, hi)
+      b <- choose(lo, hi)
+    } yield Interval(Math.min(a,b), Math.max(a,b)))
     
   implicit def arbitraryIntDif: Arbitrary[Dif[Int]] =
     Arbitrary(genIntegralDif(arbitrary[Int]))
