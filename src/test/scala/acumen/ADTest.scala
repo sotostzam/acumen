@@ -174,13 +174,13 @@ object ADTest extends Properties("AD") {
     }
       
   property("Dif[Interval]: x >= 0 => x in sqrt(x*x)") = 
-    forAll(genSmallThinIntervalDif) { (x: Dif[Interval]) =>
-      (x >= zeroI) ==> (x in (x*x).sqrt)
+    forAll(genBoundedThinIntervalDif(0,10)) { (x: Dif[Interval]) =>
+      x in (x*x).sqrt
     }
 
   property("Dif[Interval]: x >= 0 => x in square(sqrt(x))") =
-    forAll(genSmallThinIntervalDif) { (x: Dif[Interval]) =>
-      (x >= zeroI) ==> (x in x.sqrt.square)
+    forAll(genBoundedThinIntervalDif(0,10)) { (x: Dif[Interval]) =>
+      x in x.sqrt.square
     }
   
   property("Dif[Interval]: x >= 0 => x in (sqrt(x))^2") =
