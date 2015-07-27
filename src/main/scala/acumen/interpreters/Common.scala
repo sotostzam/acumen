@@ -142,16 +142,18 @@ object Common {
       case "^" => x ^ y
       case _ => implemIntegral(f, x, y)
     }
+    def toDoubleDif(di: Dif[Int]): Dif[Double] = Dif(di.coeff.map(_.toDouble))
     (f, vx, vy) match {
       case (">="|"<="|"<"|">", GInt(n), GInt(m)) => GBool(implem3(f,n,m))
       case ("<"|">"|"<="|">=", _, _) => GBool(implem4(f,extractDouble(vx),extractDouble(vy)))
       case ("+"|"-"|"*"|"<<"|">>"|"&"|"|"|"%"|"xor", GInt(n), GInt(m)) => GInt(implem1(f,n,m))
       
+      // FIXME Add special case for integer powers of Dif[Int], to avoid lifting to Dif[Double]
+      case ("^" | "/", GIntDif(n), GIntDif(m)) => GDoubleDif(implemReal(f, toDoubleDif(n), toDoubleDif(m)))
       case (_, GIntDif(n), GIntDif(m)) => GIntDif(implemIntegral(f, n, m))
+      case (_, GDoubleDif(n), GIntDif(m)) => GDoubleDif(implemReal(f, n, toDoubleDif(m)))
+      case (_, GIntDif(n), GDoubleDif(m)) => GDoubleDif(implemReal(f, toDoubleDif(n), m))
       case (_, GDoubleDif(n), GDoubleDif(m)) => GDoubleDif(implemReal(f, n, m))
-      
-      case (_, GDoubleDif(n), GIntDif(m)) => GDoubleDif(implemReal(f, n, Dif(m.coeff.map(_.toDouble))))
-      case (_, GIntDif(n), GDoubleDif(m)) => GDoubleDif(implemReal(f, Dif(n.coeff.map(_.toDouble)), m))
       
       case (_, n: GDif, GInt(m)) => binGroundOp(f, n, GIntDif(Dif.constant(m)))
       case (_, n: GDif, GDouble(m)) => binGroundOp(f, n, GDoubleDif(Dif.constant(m)))
