@@ -16,8 +16,6 @@ import util.ASTUtil
  */
 object AD extends App {
 
-  // FIXME Should this really be a partial ordering? 
-  //       Do the properties hold for intervals?
   /**
    * Type class with operations that have sensible
    * implementations for Int as well as all the
@@ -162,11 +160,10 @@ object AD extends App {
     def fromDouble(x: Double): Interval = Interval(x)
     def zero: Interval = Interval.zero
     def one: Interval = Interval.one
-    def isValidInt(x: Interval): Boolean = ((x.lo).doubleValueFloor == (x.hi).doubleValueCeiling) // FIXME Check if this is ok
-    def toInt(x: Interval): Int = ((x.lo).doubleValueFloor).toInt // FIXME Check if this is ok
+    def isValidInt(x: Interval): Boolean = x.lo.doubleValueFloor == x.hi.doubleValueCeiling
+    def toInt(x: Interval): Int = x.lo.doubleValueFloor.toInt 
     def isValidDouble(x: Interval): Boolean = (x.lo == x.hi)
     def toDouble(x: Interval): Double = (x.lo).doubleValueFloor
-    // FIXME Check if something needs to be overridden
     def lteq(l: Interval, r: Interval): Boolean = l lessThanOrEqualTo r
     def tryCompare(l: Interval, r: Interval): Option[Int] =
       if (l == r)         Some(0)
@@ -187,14 +184,12 @@ object AD extends App {
     def add(l: Dif[V], r: Dif[V]): Dif[V] = Dif((l.coeff, r.coeff).zipped.map(_ + _))
     def sub(l: Dif[V], r: Dif[V]): Dif[V] = Dif((l.coeff, r.coeff).zipped.map(_ - _))
     def mul(l: Dif[V], r: Dif[V]): Dif[V] =
-      // FIXME Implement using mutable data, but keep the immutable interface
       mulCache.getOrElseUpdate((l, r),
         Dif((for (k <- 0 until l.size) yield ((0 to k).foldLeft(zeroOfV) {
           case (sum, i) => sum + (l(i) * r(k - i))
         })).toVector))
     def neg(x: Dif[V]): Dif[V] = Dif(x.coeff.map(- _))
     def fromInt(x: Int): Dif[V] = Dif.constant(evVIsIntegral fromInt x)
-    // FIXME Test these definitions
     lazy val zero: Dif[V] = Dif.fill(zeroOfV)
     lazy val one: Dif[V] = Dif.constant(oneOfV)
     def toInt(x: Dif[V]): Int = x(0).toInt
@@ -303,24 +298,22 @@ object AD extends App {
       })
     
     /** Integer power by squaring */
-    def powBySquare(l: Dif[V], n: Int): Dif[V] =
-      mul(square(powByInt(l, n/2)), (if (n % 2 == 1) l else one)) // FIXME should multiplying with one be optimized? 
+    private def powBySquare(l: Dif[V], n: Int): Dif[V] =
+      mul(square(powOnInt(l, n/2)), (if (n % 2 == 1) l else one)) // FIXME should multiplying with one be optimized? 
     
     /** Power with integer exponent */
-    def powByInt(l: Dif[V], n: Int) : Dif[V] = {
-        if (n == 0) one                       else // FIXME if powByInt is only called by powByReal that is only called by pow, then we do not need to check here for l==0 case 
+    private def powOnInt(l: Dif[V], n: Int) : Dif[V] = {
+        if (n == 0) one                       else 
         if (n == 1) l                         else
         if (n == 2) square(l)                 else
-        if (n <  0) div(one, powByInt(l, -n)) else
+        if (n <  0) div(one, powOnInt(l, -n)) else
         powBySquare(l, n)
     }
     
     /** Power with real exponent
      *  l != zero, r != zero, r != one */
-    def powOnReal(l: Dif[V], r: Dif[V]) : Dif[V] = {
-      if (r(0).isValidInt) powByInt(l, r(0).toInt) else 
-      /*if (r(0).isValidDouble && r(0).toDouble == 0.5) sqrt(l)
-      else*/ {
+    private def powOnReal(l: Dif[V], r: Dif[V]) : Dif[V] = {
+      if (r(0).isValidInt) powOnInt(l, r(0).toInt) else {
         Dif {
           val n  = l.size
           val k0  = firstNonZero(l) // n >= k0 because l != zero
