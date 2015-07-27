@@ -164,22 +164,22 @@ object ADTest extends Properties("AD") {
   /* Properties of Dif[Interval] as Real */
   
   property("Dif[Interval]: -1 <= x <= 1 => x in cos(acos(x))") = 
-    forAll(genBoundedIntervalDif(-1,1)) { (x: Dif[Interval]) =>
+    forAll(genBoundedThinIntervalDif(-1,1)) { (x: Dif[Interval]) =>
       x in x.acos.cos
     }
 
   property("Dif[Interval]: -1 <= x <= 1 => x in sin(asin(x))") = 
-    forAll(genBoundedIntervalDif(-1,1)) { (x: Dif[Interval]) =>
+    forAll(genBoundedThinIntervalDif(-1,1)) { (x: Dif[Interval]) =>
       x in x.asin.sin
     }
       
   property("Dif[Interval]: x >= 0 => x in sqrt(x*x)") = 
-    forAll(genSmallIntervalDif) { (x: Dif[Interval]) =>
+    forAll(genSmallThinIntervalDif) { (x: Dif[Interval]) =>
       (x >= zeroI) ==> (x in (x*x).sqrt)
     }
 
   property("Dif[Interval]: x >= 0 => x in square(sqrt(x))") =
-    forAll(genSmallIntervalDif) { (x: Dif[Interval]) =>
+    forAll(genSmallThinIntervalDif) { (x: Dif[Interval]) =>
       (x >= zeroI) ==> (x in x.sqrt.square)
     }
 
@@ -203,7 +203,8 @@ object ADTest extends Properties("AD") {
   
   def genSmallDoubleDif: Gen[Dif[Double]] = genBoundedDoubleDif(10)
   def genSmallIntervalDif: Gen[Dif[Interval]] = genBoundedIntervalDif(-10,10)
-    
+  def genSmallThinIntervalDif: Gen[Dif[Interval]] = genBoundedThinIntervalDif(-10,10)
+
   def genBoundedDoubleDif(magnitude: Double): Gen[Dif[Double]] = {
     val abs = Math.abs(magnitude)       
     genRealDif(choose(-abs, abs))
@@ -213,6 +214,9 @@ object ADTest extends Properties("AD") {
       a <- choose(lo, hi)
       b <- choose(lo, hi)
     } yield Interval(Math.min(a,b), Math.max(a,b)))
+  def genBoundedThinIntervalDif(lo: Double, hi: Double): Gen[Dif[Interval]] =
+    genRealDif(choose(lo, hi) map (b => Interval(b,b)))
+
     
   implicit def arbitraryIntDif: Arbitrary[Dif[Int]] =
     Arbitrary(genIntegralDif(arbitrary[Int]))
