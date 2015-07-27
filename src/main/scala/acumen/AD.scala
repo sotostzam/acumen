@@ -80,6 +80,7 @@ object AD extends App {
   implicit class RealOps[V](val l: V)(implicit ev: Real[V]) {
     def /(r: V): V = ev.div(l, r)
     def ^(r: V): V = ev.pow(l, r)
+    def ^(r: Int): V = ev.pow(l, ev.fromInt(r))
     def sin: V = ev.sin(l)
     def cos: V = ev.cos(l)
     def tan: V = ev.tan(l)

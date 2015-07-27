@@ -182,7 +182,27 @@ object ADTest extends Properties("AD") {
     forAll(genSmallThinIntervalDif) { (x: Dif[Interval]) =>
       (x >= zeroI) ==> (x in x.sqrt.square)
     }
+  
+  property("Dif[Interval]: x >= 0 => x in (sqrt(x))^2") =
+    forAll(genBoundedThinIntervalDif(0,10)) { (x: Dif[Interval]) =>
+      x in x.sqrt^2
+    }
 
+  property("Dif[Interval]: x >= 0 => x in sqrt(x^2)") =
+    forAll(genBoundedThinIntervalDif(0,10)) { (x: Dif[Interval]) =>
+      x in (x^2).sqrt
+    }
+  
+  property("Dif[Interval]: 1 in x^0") =
+    forAll(genSmallThinIntervalDif) { (x: Dif[Interval]) =>
+      IntervalDifIsReal.fromInt(1) in x^0 
+    }
+  
+  property("Dif[Interval]: x in x^1") =
+    forAll(genSmallThinIntervalDif) { (x: Dif[Interval]) =>
+      x in x^1
+    }
+  
   /* Other properties */
 
   property("lower is inverse of lift") = forAll { (st: CStore) =>
