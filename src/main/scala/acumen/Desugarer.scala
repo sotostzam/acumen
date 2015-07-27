@@ -161,16 +161,26 @@ case class Desugarer(odeTransformMode: ODETransformMode) {
     val des = desugar(p, _:List[Name], env, _: Expr)
     def mkEquationT(lhs:Expr, rhs:Expr,newNames:List[Name]):List[ContinuousAction] = {
       val dlhs = des(fs:::newNames,lhs)
-       val drhs = des(fs:::newNames,rhs)
-        dlhs match {
+      val drhs = des(fs ::: newNames, rhs)
+      dlhs match {
+        case dot: Dot =>
+          EquationT(dlhs, drhs) ::
+            (odeTransformMode match {
+              case Local       => firstOrderSystem(dot)
+              case LocalInline => firstOrderSystemInline(dot, drhs)
+              case TopLevel    => Nil
+            })
+        case Index(e, idx) => des(fs ::: newNames, e) match {
           case dot: Dot =>
-            EquationT(dlhs, drhs) :: 
-              (odeTransformMode match { 
-                case Local => firstOrderSystem(dot)
-                case LocalInline => firstOrderSystemInline(dot,drhs)
-                case TopLevel => Nil })
-          case _ => throw BadPreLhs()
+            EquationT(Index(dot,idx), drhs) ::
+              (odeTransformMode match {
+                case Local       => firstOrderSystem(Index(dot,idx))
+                case LocalInline => firstOrderSystemInline(Index(dot,idx), drhs)
+                case TopLevel    => Nil
+              })
         }
+        case _ => throw BadPreLhs()
+      }
     }
     
     def patternMatch(pattern:Pattern, e:Expr, newNames:List[Name]):(List[ContinuousAction], List[(Var,Pattern)]) = {
@@ -210,19 +220,27 @@ case class Desugarer(odeTransformMode: ODETransformMode) {
     e match {
       case Clause(lhs, inv, rhs) => Clause(lhs, desugar(p, fs, env, inv), desugar(p, fs, env, rhs)._1)
     }
-  
-  def firstOrderSystem(dot: Dot): List[ContinuousAction] = dot match {
-    case Dot(o, Name(f, n)) => 
+
+  def firstOrderSystem(dot: Expr): List[ContinuousAction] = dot match {
+    case Dot(o, Name(f, n)) =>
       (for (k <- n until (0, -1))
         yield EquationI(Dot(o, Name(f, k - 1)).setPos(dot.pos), Dot(o, Name(f, k)))).toList
+    case Index(Dot(o, Name(f, n)),idx) =>
+      (for (k <- n until (0, -1))
+        yield EquationI(Index(Dot(o, Name(f, k - 1)),idx).setPos(dot.pos), Index(Dot(o, Name(f, k)),idx))).toList
   }
 
-  def firstOrderSystemInline(dot: Dot, rhs: Expr): List[ContinuousAction] = dot match {
+  def firstOrderSystemInline(dot: Expr, rhs: Expr): List[ContinuousAction] = dot match {
     case Dot(o, Name(f, n)) =>
       if (n == 0) Nil
       else EquationI(Dot(o, Name(f, n-1)) setPos dot.pos, rhs) +:
         (for (k <- 0 until n-1)
           yield EquationI(Dot(o, Name(f, k)) setPos dot.pos, Dot(o, Name(f, k + 1)))).toList
+    case Index(Dot(o, Name(f, n)),idx) =>
+      if (n == 0) Nil
+      else EquationI(Index(Dot(o, Name(f, n-1)),idx) setPos dot.pos, rhs) +:
+        (for (k <- 0 until n-1)
+          yield EquationI(Index(Dot(o, Name(f, k)),idx) setPos dot.pos, Index(Dot(o, Name(f, k + 1)),idx))).toList
   }
   
   def highestOrderNames(ns: List[Name]): List[Name] =

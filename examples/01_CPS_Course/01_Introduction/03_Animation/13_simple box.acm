@@ -13,7 +13,7 @@ always
      center=(0,2*t,-t)
      size=(5,1,0.1)
      color=(1,0,0) 
-     rotation=(-pi*t,pi*t/20,0))
+     rotation=(-pi*t,-pi*t/20,0))
 
 // Exercises
 // 1) Does the box rotate during the animation?

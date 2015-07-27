@@ -1,0 +1,14 @@
+model Main(simulator)=
+initially
+ _3D = (Box color=(red+2*white)/3 center=(0,0,0) 
+            size=(2,2,1/5),
+        Box color=blue center=(-0.5,-2,0) 
+            size=(1/2,2,1/5),
+        Box color=blue center=(0.5,-2,0) 
+            size=(1/2,2,1/5),
+        Box color=green center=(0,2,0) 
+            size=(1,1,1/5),
+        Box color=red center=(1.5,0,0) 
+            size=(1/2,2,1/5),
+        Box color=red center=(-1.5,0,0) 
+            size=(1/2,2,1/5))

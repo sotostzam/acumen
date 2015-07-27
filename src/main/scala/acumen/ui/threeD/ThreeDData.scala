@@ -36,6 +36,8 @@ class ThreeDData extends Publisher {
   var _3DText = ""
   /* Optional field to indicate transparent object or not */
   var _3DTexture = ""
+  var _3DCoordinates = "Global"
+  var _3DTransparency = -1
   /* Camera's position and orientation*/
   var _3DView = mutable.ArrayBuffer[ViewInfo]()
   /* CId of the object that contain _3DView info */
@@ -70,9 +72,13 @@ class ThreeDData extends Publisher {
     }
   }
 
-  /* Check if the list's size is 3 and only contains numbers (int, double) */
-  def checkVectorContent(l: List[_]): Boolean = {
+  /* Check if the list size of color and angle is 3 and only contains numbers (int, double) */
+  def validVector(l: List[_]): Boolean = {
     (l.size == 3) && isVectorOfNumbers(l)
+  }
+  /* Check if the position's size is 3 or 2 and only contains numbers (int, double) */
+  def validPosition(l: List[_]): Boolean = {
+    (l.size == 3 || l.size == 2) && isVectorOfNumbers(l)
   }
 
   /* _3D Position,color,angle should all be a vector with 3 numbers */
@@ -81,15 +87,18 @@ class ThreeDData extends Publisher {
       value match {
         case VLit(GPattern(ls)) => helper(VVector(ls map VLit))
         case VVector(vs) =>
-          if (checkVectorContent(vs))
+          if (index != "position" && validVector(vs))
+            extractDoubles(vs).toArray
+          else if (index == "position" && validPosition(vs))
             extractDoubles(vs).toArray
           else throw _3DVectorError(value, index)
-        case _ => throw _3DVectorError(value, index);
+        case _ => throw _3DVectorError(value, index)
       }
     }
     val temp = helper(value)
     index match {
-      case "position" => _3DPosition = temp
+      case "position" => _3DPosition = if (temp.length == 2) Array(temp.apply(0), temp.apply(1), 0)
+                                       else temp
       case "color" => _3DColor = temp
       case "angle" => _3DAngle = temp
       case _ => throw ShouldNeverHappen()
@@ -105,9 +114,16 @@ class ThreeDData extends Publisher {
   }
 
   /* _3D texture should be a string */
-  def extractTexture(value: Value[_]) {
+  def extractTransparency(value: Value[_]) {
     value match {
-      case VLit(GStr(tex)) => _3DTexture = tex
+      case VLit(GInt(transparency)) => _3DTransparency = transparency
+      case _ => throw _3DNameError(value)
+    }
+  }
+
+  def extractCoordinates(value: Value[_]) {
+    value match {
+      case VLit(GStr(coordinates)) => _3DCoordinates = coordinates
       case _ => throw _3DNameError(value)
     }
   }
@@ -173,10 +189,10 @@ class ThreeDData extends Publisher {
       val vector = value(i)
       vector match {
         case VVector(l) =>
-          if (l.size != 5 && l.size != 6)
+          if (l.size != 7 && l.size != 8)
             throw _3DError(vector)
           else {
-            extractType(l(0))
+            extractType(l.head)
             extractSize(l(2))
             extractVector(l(1), "position")
             extractVector(l(3), "color")
@@ -185,20 +201,24 @@ class ThreeDData extends Publisher {
               extractText(l(5))
             else if (_3DType == "OBJ")
               extractPath(l(5))
-            else if (l.size == 6)
-              extractTexture(l(5))
+            else if (l.size == 8) {
+              extractTransparency(l(7))
+              extractCoordinates(l(6))
+            }
+            if (l.size == 7) {
+              extractTransparency(l(6))
+              extractCoordinates(l(5))
+            }
           }
         case _ => throw ShouldNeverHappen()
       }
       val valueList =
         if (_3DType == "Text")
-          List(_3DType, _3DPosition, _3DSize, _3DColor, _3DAngle, _3DText)
+          List(_3DType, _3DPosition, _3DSize, _3DColor, _3DAngle, _3DText, _3DCoordinates, _3DTransparency)
         else if (_3DType == "OBJ")
-          List(_3DType, _3DPosition, _3DSize, _3DColor, _3DAngle, _3DPath)
-        else if (_3DTexture == "transparent")
-          List(_3DType, _3DPosition, _3DSize, _3DColor, _3DAngle, _3DTexture)
+          List(_3DType, _3DPosition, _3DSize, _3DColor, _3DAngle, _3DPath, _3DCoordinates, _3DTransparency)
         else
-          List(_3DType, _3DPosition, _3DSize, _3DColor, _3DAngle)
+          List(_3DType, _3DPosition, _3DSize, _3DColor, _3DAngle, _3DCoordinates, _3DTransparency)
 
       addValuesTo3DClass(objectKey, valueList, _3DData, frameNumber)
 
@@ -220,8 +240,8 @@ class ThreeDData extends Publisher {
       if (name.x == "_3DView")
         value match {
           case VVector(l) =>
-            if (l.size > 0) {
-              _3DView += new Tuple2(extractDoubles(l(0)).toArray,
+            if (l.nonEmpty) {
+              _3DView += new Tuple2(extractDoubles(l.head).toArray,
                 extractDoubles(l(1)).toArray)
               if (_3DViewID != id && _3DViewID != null)
                 throw _3DViewDuplicateError(id, _3DViewID)
@@ -245,9 +265,9 @@ class ThreeDData extends Publisher {
         if (name.x == "_3D") {
           value match {
             case VVector(l) =>
-              if (l.size == 0) {} //
+              if (l.isEmpty) {} //
               else
-                l(0) match {
+                l.head match {
                   /* If only one object, _3D will start with a string or an int,
 								   *  example:  _3D = ("Sphere",...,...,..),
 							     *    		  	_3D = (2,...,...,..)

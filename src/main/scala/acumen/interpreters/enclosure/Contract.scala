@@ -82,10 +82,10 @@ trait Contract {
       }
     case Negate(e) => backPropagate(env, e(env) \/ (-ran), e)
     case Sqrt(e)   => backPropagate(env, e(env) \/ ran.square, e)
-    case Exp(e)    => sys.error("undefined")
-    case Log(e)    => sys.error("undefined")
-    case Sin(e)    => sys.error("undefined")
-    case Cos(e)    => sys.error("undefined")
+    case Exp(e)    => throw new NotImplementedError("Contract.backPropagate.exp")
+    case Log(e)    => throw new NotImplementedError("Contract.backPropagate.log")
+    case Sin(e)    => throw new NotImplementedError("Contract.backPropagate.sin")
+    case Cos(e)    => throw new NotImplementedError("Contract.backPropagate.cos")
     case Plus(l, r) =>
       val lenv = l(env)
       val renv = r(env)

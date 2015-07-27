@@ -66,10 +66,10 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
   
   type Store = EnclosureAndBranches
   def repr(st:Store) = st.enclosure
-  def fromCStore(st: CStore, root: CId): Store = EnclosureAndBranches(st, (st, Epsilon, StartTime) :: Nil)
+  def fromCStore(st: CStore, root: CId): Store = EnclosureAndBranches(st, InitialCondition(st, Epsilon, StartTime) :: Nil)
   override def visibleParameters: Map[String, CValue] = 
     Map(ParamTime, ParamEndTime, ParamTimeStep, 
-        ParamMaxBranches, ParamMaxIterationsPerBranch, ParamIntersectWithGuardBeforeReset, ParamHypothesisReport) 
+        ParamMaxBranches, ParamMaxIterationsPerBranch, ParamIntersectWithGuardBeforeReset, ParamHypothesisReport, ParamDisableContraction) 
 
   /* Constants */
   
@@ -79,6 +79,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
   private val ParamMaxBranches                   = "maxBranches"                   -> VLit(GInt(100))                  
   private val ParamMaxIterationsPerBranch        = "maxIterationsPerBranch"        -> VLit(GInt(1000))    
   private val ParamIntersectWithGuardBeforeReset = "intersectWithGuardBeforeReset" -> VLit(GBool(true))
+  private val ParamDisableContraction            = "disableContraction"            -> VLit(GBool(false))
   private val ParamHypothesisReport              = "hypothesisReport"              -> VLit(GStr("Comprehensive"))
   
   private val legacyParameters = Parameters.default.copy(interpreter = Some(enclosure.Interpreter.EVT))
@@ -91,7 +92,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
   sealed abstract trait InitialConditionTime
   case object StartTime extends InitialConditionTime
   case object UnknownTime extends InitialConditionTime
-  type InitialCondition = (Enclosure, Evolution, InitialConditionTime)
+  case class InitialCondition(enclosure:Enclosure, evolution: Evolution, time: InitialConditionTime)
   class EnclosureAndBranches(val enclosure: Enclosure, val branches: List[InitialCondition])
   object EnclosureAndBranches{
     def apply(e: Enclosure, bs: List[InitialCondition]): EnclosureAndBranches = 
@@ -400,7 +401,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
    */
   def setInSimulator(f:Name, v:CValue, s:Store): Store = {
     def helper(e: Enclosure) = setObjectField(magicId(e), f, v, e)
-    EnclosureAndBranches(helper(s.enclosure), s.branches.map { case (e, ev, t) => (helper(e), ev, t) })
+    EnclosureAndBranches(helper(s.enclosure), s.branches.map(ic => ic.copy(enclosure = helper(ic.enclosure))))
   }
     
   /** Update simulator parameters in st.enclosure with values from the code in p. */
@@ -883,8 +884,8 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
   def checkValidChange(c: Set[Changeset]): Unit = c.foreach{ cs =>
     val contIds = (cs.eqs.toList ++ cs.odes.toList).map(_.lhs)
     val assIds = cs.dis.toList.map(_.lhs)
-    checkDuplicateAssingments(contIds, DuplicateContinuousAssingment)
-    checkDuplicateAssingments(assIds, DuplicateDiscreteAssingment)
+    checkDuplicateAssingments2014(contIds, DuplicateContinuousAssingment)
+    checkDuplicateAssingments2014(assIds, DuplicateDiscreteAssingment)
   }
   
   /**
@@ -901,7 +902,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
           if (o != magicId(st))
             odeNamesDeclared.get(getCls(o, st)).map(_.foreach { n =>
               if (!contNamesActive.exists { case (ao, an) => ao == o && an == n.x })
-                throw ContinuousDynamicsUndefined(o, n, Pretty.pprint(getObjectField(o, classf, st)), getTime(st))
+                throw ContinuousDynamicsUndefined(o, n,None, Pretty.pprint(getObjectField(o, classf, st)), getTime(st))
             })
       }
     }
@@ -944,30 +945,30 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
     
     // Strategy for merging the branches
     def mergeBranches(ics: List[InitialCondition]): List[InitialCondition] =
-      ics.groupBy(ic => (ic._2, ic._3)).map { case ((m, t), ic) => (ic.map(_._1).reduce(_ /\ _), m, t) }.toList
+      ics.groupBy(ic => (ic.evolution, ic.time)).map { case ((m, t), ic) => 
+        InitialCondition(ic.map(_.enclosure).reduce(_ /\ _), m, t) }.toList
  
     // Process a list of ICs   
     @tailrec def enclose
       ( pwlW:  List[InitialCondition] // Waiting ICs, the statements that yielded them and time where they should be used
       , pwlR:  List[Enclosure]        // Enclosure (valid over all of T)
       , pwlU:  List[InitialCondition] // Branches, i.e. states possibly valid at right end-point of T (ICs for next time segment)
-      , pwlP:  List[Enclosure]        // Passed states
+      , pwlP:  List[InitialCondition] // Passed states
       , iterations: Int               // Remaining iterations
       ): Store =
       // No more IC to process
-      if (pwlW isEmpty) {
-        EnclosureAndBranches((pwlR union pwlP).reduce(_ /\ _), if (T.isThin) pwlU else mergeBranches(pwlU))      
-      }
+      if (pwlW isEmpty)
+        EnclosureAndBranches((pwlR union pwlP.map(_.enclosure)).reduce(_ /\ _), if (T.isThin) pwlU else mergeBranches(pwlU))      
       // Exceeding the maximum iterations per branch
       else if (iterations / st.branches.size > maxIterationsPerBranch)
         sys.error(s"Enclosure computation over $T did not terminate in ${st.branches.size * maxIterationsPerBranch} iterations.")
       // Processing the next IC
       else {
         Logger.trace(s"enclose (${pwlW.size} waiting initial conditions, iteration $iterations)")
-        val (w, q, t) :: waiting = pwlW
+        val (ic @ InitialCondition(w, q, t)) :: waiting = pwlW
         // An element may be ignored if it was passed already 
-        if (isPassed(w, pwlP))
-           enclose(waiting, pwlR, pwlU, pwlP, iterations + 1)
+        if (isPassed(ic, pwlP))
+          enclose(waiting, pwlR, pwlU, pwlP, iterations + 1)
         else {
           // The set of active ChangeSets
           val hw = active(w, prog)
@@ -975,16 +976,16 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
           if (q.nonEmpty && isFlow(q.head) && Set(q.head) == hw && t == UnknownTime)
             sys error "Model error!" // Repeated flow, t == UnknownTime means w was created in this time step
           // Process the active ChangeSets
-          val (newW, newR, newU) = encloseHw((w, q, t), hw)
+          val (newW, newR, newU) = encloseHw(ic, hw)
           
-          enclose(waiting ::: newW, pwlR ::: newR, pwlU ::: newU, w :: pwlP, iterations + 1)
+          enclose(waiting ::: newW, pwlR ::: newR, pwlU ::: newU, ic :: pwlP, iterations + 1)
         }
       }
     // Process the active ChangeSets
     def encloseHw
       ( wqt: InitialCondition, hw: Set[Changeset]
       ): (List[InitialCondition], List[Enclosure], List[InitialCondition]) = {
-      val (w, qw, t) = wqt
+      val InitialCondition(w, qw, t) = wqt
       hw.foldLeft((List.empty[InitialCondition], List.empty[Enclosure], List.empty[InitialCondition])) {
         case ((tmpW, tmpR, tmpU), q) =>
           // q is not a flow
@@ -999,7 +1000,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
                   contract(w, q.dis.map(da => CollectedConstraint(da.selfCId, da.path, da.env)), prog)
                     .fold(sys error "Empty intersection while contracting with guard. " + _, i => i)
                 else w
-              ((wi(q.dis), q :: qw, t) :: tmpW, tmpR, tmpU)
+              (InitialCondition(wi(q.dis), q :: qw, t) :: tmpW, tmpR, tmpU)
             }
             // otherwise the non-flow q is not processed
             else
@@ -1011,7 +1012,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
             (tmpW, tmpR, tmpU)
           // T is thin => the state will be an initial condition for the next time interval
           else if (T.isThin)
-            (tmpW, tmpR, (w, qw, StartTime) :: tmpU)
+            (tmpW, tmpR, InitialCondition(w, qw, StartTime) :: tmpU)
           // T is not thin, the flow is processed
           else {
             checkFlowDefined(prog, q, w)
@@ -1030,14 +1031,14 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
       val e = q :: past
       if (noEvent(q, hr, up)) { // no event
         Logger.trace("handleEvent (No event)")
-        (Nil, (u, e, StartTime) :: Nil)
+        (Nil, InitialCondition(u, e, StartTime) :: Nil)
       } else if (certainEvent(q, hr, hu, up)) { // certain event
         Logger.trace("handleEvent (Certain event)")
-        ((rp, e, UnknownTime) :: Nil, Nil)
+        (InitialCondition(rp, e, UnknownTime) :: Nil, Nil)
       } else { // possible event
         Logger.trace(s"handleEvent (Possible event, |hr| = ${hr.size}, q.ass = {${q.dis.map(Pretty pprint _.a).mkString(", ")}})")
         Logger.trace(s"handleEvent hr.odes = ${hr.map{cs => cs.odes.map(Pretty pprint _.a).mkString(", ")}}, hr.dis = ${hr.map{cs => cs.dis.map(Pretty pprint _.a).mkString(", ")}}")
-        ((rp, e, UnknownTime) :: Nil, (up.right.get, e, StartTime) :: Nil)
+        (InitialCondition(rp, e, UnknownTime) :: Nil, InitialCondition(up.right.get, e, StartTime) :: Nil)
       }
     }
     enclose(st.branches, Nil, Nil, Nil, 0)
@@ -1062,8 +1063,12 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
       (!(hu contains q) || up.isLeft) // Some possible event is certain 
   }
   
-  /** Returns true if some element of passed contains s */
-  def isPassed(s: Enclosure, P: List[Enclosure]) = P exists (_ contains s)
+  /** Returns true if P contains an ic1:  
+   *  1) That has the same dynamics (head of evolution) as ic and 
+   *  2) Whose enclosure contains that of ic. */
+  def isPassed(ic: InitialCondition, P: List[InitialCondition]) = 
+    P exists (ic1 => ic.evolution.changes.headOption == ic1.evolution.changes.headOption && 
+                       ic1.enclosure.contains(ic.enclosure))
   
   /** Returns true if the discrete assignments in cs are empty or have no effect on s. */
   def isFlow(cs: Changeset) = cs.dis.isEmpty
@@ -1136,7 +1141,9 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
           Some(st) // Do not contract
       }
     }
-    claims.foldLeft(Right(st): Either[String, Enclosure]) {
+    val VLit(GBool(disableContraction)) = getInSimulator(ParamDisableContraction._1, st)
+    if (disableContraction) Right(st)
+    else claims.foldLeft(Right(st): Either[String, Enclosure]) {
       case (res, claim) => res match {
         case Right(r) => 
           try {
@@ -1146,6 +1153,8 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
             case e: Throwable =>
               Logger.trace(Pretty pprint asProgram(st, prog))
               if (e.isInstanceOf[AcumenError]) throw e
+              else if (e.isInstanceOf[NotImplementedError]) 
+                throw new NotImplementedError(s"Cannot contract. Missing implementation for: ${e.getMessage}.") 
               else Left("Error while applying claim " + pprint(claim.c) + ": " + e.getMessage) 
           }
         case _ => res

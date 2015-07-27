@@ -15,7 +15,7 @@ initially
   t'  =  0 ,
   _3D = (Box center=(-1,0,0) size=(0.3,0.3,0.3) color=(1,1,1) rotation=(0,0,0),
          Sphere center=(-1,0,0) size=0.1 color=(1,0,0) rotation=(0,0,0),
-         Cylinder center=(-1+0.5*sin(0.2),0,0.15+0.5*cos(0.2)) radius= 0.01 length=1  color=(0,1,0) rotation=(pi/2,0.2,0))
+         Cylinder center=(-1+0.5*sin(0.2),0,0.15+0.5*cos(0.2)) radius= 0.01 length=1  color=(0,1,0) rotation=(pi/2,-0.2,0))
 always
   
   t'  = 1 ,
@@ -33,7 +33,7 @@ always
   pball = p + (0.5*sin(theta),0,0.5*cos(theta))  ,
   _3D = (Box center=(x,0,0) size=(0.4,0.4,0.4) color=(0.3,0.3,0.3) rotation=(0,0,0),
          Sphere center=pball size=0.1 color=(1,0,0) rotation=(0,0,0),
-         Cylinder center=p radius=0.01 length=1 color=(0,1,0) rotation=(pi/2,-theta,0)) 
+         Cylinder center=p radius=0.01 length=1 color=(0,1,0) rotation=(pi/2,theta,0)) 
 
 model Main(simulator) = 
 initially

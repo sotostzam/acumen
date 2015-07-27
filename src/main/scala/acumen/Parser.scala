@@ -477,10 +477,12 @@ object Parser extends MyStdTokenParsers {
   val defaultContent = Lit(GStr(" "))
   val defaultColor = ExprVector(List(Lit(GInt(1)),Lit(GInt(1)),Lit(GInt(1))))
   val defaultRotation = ExprVector(List(Lit(GInt(0)),Lit(GInt(0)),Lit(GInt(0))))
-  
+  val defaultCoordinates = Lit(GStr("Global"))
+  val defaultTransparency = Lit(GInt(-1))
+
   def threeDPara: Parser[(Name, Expr)] = name ~ "=" ~ expr ^^ {case n ~_~ e => 
     if (n.x == "center" | n.x == "length" | n.x == "radius" | n.x == "size" | n.x == "color" |
-        n.x == "rotation" | n.x == "content") 
+        n.x == "rotation" | n.x == "content" | n.x == "coordinates" | n.x == "transparency")
     	  (n,e)
     else throw new PositionalAcumenError{
          def mesg = n.x + " is not a valid _3D parameter" 
@@ -490,13 +492,24 @@ object Parser extends MyStdTokenParsers {
     case List(single) => single
     case _ => ExprVector(ls)
   }}
-  
+
+  // Check if the list size of color and angle is 3 and only contains numbers (int, double)
+  def validVector(l:List[_], name: String): Boolean = {
+    l.size == 3 && name != "center"
+  }
+
+  // Check if the list size of position is 2 or 3 and only contains numbers (int, double)
+  def validPosition(l:List[_], name: String): Boolean = {
+    (l.size == 3 || l.size == 2) && name == "center"
+  }
+
   def _3DVectorHelper(n:Name,v:Expr):Expr = v match{
     case ExprVector(ls) => 
       if (ls.forall(x => x match{
         case _ @ Lit(GStr(_) | GBool(_)) => false
         case _ => true
-       }) && ls.length == 3) ExprVector(ls) 
+       }) && (validVector(ls, n.x)
+        || validPosition(ls, n.x))) ExprVector(ls)
       else
        throw new PositionalAcumenError{
          def mesg = "_3D parameter " + n + "'s value is not a valid vector of 3 numbers: " + Pretty.pprint(v)
@@ -573,15 +586,36 @@ object Parser extends MyStdTokenParsers {
       	  }
         else error("_3D object " + name + " can't have 'content' parameter")
       case None => defaultContent
-    } 
+    }
+
+    val coordinates = paras.find(_._1.x == "coordinates") match {
+      case Some(x) =>
+        x._2 match {
+          case _ @ Lit(GStr("Global") | GStr("Camera")) => x._2
+          case _ => error("_3D object " + name + "'s 'coordinates' parameter is not correct")
+        }
+      case None => defaultCoordinates
+    }
+
+    val transparency = paras.find(_._1.x == "transparency") match {
+      case Some(x) =>
+        x._2 match {
+          case Lit(GInt(_)) => x._2
+          case Lit(_) => error("_3D object " + name + "'s 'transparency' parameter is not a integer")
+          case _ => x._2
+        }
+      case None => defaultTransparency
+    }
+
+
     val rl = ExprVector(List(radius,length))
      name match{
-      case "Cylinder" => ExprVector(List(Lit(GStr("Cylinder")),center,rl,color,rotation))
-      case "Cone" => ExprVector(List(Lit(GStr("Cone")),center,rl,color,rotation))
-      case "Box" => ExprVector(List(Lit(GStr("Box")),center,size,color,rotation))
-      case "Sphere" => ExprVector(List(Lit(GStr("Sphere")),center,size,color,rotation))
-      case "Text" => ExprVector(List(Lit(GStr("Text")),center,size,color,rotation,content))
-      case "Obj" => ExprVector(List(Lit(GStr("OBJ")),center,size,color,rotation,content))
+      case "Cylinder" => ExprVector(List(Lit(GStr("Cylinder")),center,rl,color,rotation,coordinates,transparency))
+      case "Cone" => ExprVector(List(Lit(GStr("Cone")),center,rl,color,rotation,coordinates,transparency))
+      case "Box" => ExprVector(List(Lit(GStr("Box")),center,size,color,rotation,coordinates,transparency))
+      case "Sphere" => ExprVector(List(Lit(GStr("Sphere")),center,size,color,rotation,coordinates,transparency))
+      case "Text" => ExprVector(List(Lit(GStr("Text")),center,size,color,rotation,content,coordinates,transparency))
+      case "Obj" => ExprVector(List(Lit(GStr("OBJ")),center,size,color,rotation,content,coordinates,transparency))
       case _ => error("Unsupported 3D object " + name)
     }
 

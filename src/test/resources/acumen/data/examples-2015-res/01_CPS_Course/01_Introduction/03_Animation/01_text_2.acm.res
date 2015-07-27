@@ -1,5 +1,5 @@
 #0 {
-  _3D = ("Text", (-2.200000, 0, 0), 0.500000, (1, 1, 0), (0, 0, 0), "Hello Acumen!"),
+  _3D = ("Text", (-2.200000, 0, 0), 0.500000, (1, 1, 0), (0, 0, 0), "Hello Acumen!", "Global", -1),
   className = Main,
   simulator = #0.0,
   size = 0.500000,

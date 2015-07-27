@@ -16,7 +16,7 @@ always
         (x,0,z) radius=
          0.2 length=0.9  color=
          red/2 rotation=
-         (pi/2,theta-pi/2,0))
+         (pi/2,-theta+pi/2,0))
  
 
 // Note:  Polynomials are closed under integration

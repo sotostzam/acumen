@@ -80,7 +80,7 @@ always
  _3D = (Cylinder center = position + (0,0,0.5)
                radius = 0.5
                length = 0.19
-               rotation = (0,rotation,pi/2-direction)
+               rotation = (0,-rotation,pi/2-direction)
                color = white,
         Box center = position + (0,0,0.5)
             size = (0.2, 0.05, 0.97)

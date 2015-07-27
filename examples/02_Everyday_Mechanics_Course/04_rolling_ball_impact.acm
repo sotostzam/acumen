@@ -19,7 +19,7 @@ always
            center=(0,0,-0.05)      // Center point
            size=(0.01,2,4000)      // Size in (x,y,z) form
            color=0.5*white         // Color
-           rotation=(0,pi/2,0),     // Orientation
+           rotation=(0,-pi/2,0),     // Orientation
                     
            Sphere                  // Type of _3D object
            center=(u/10,0,0.05)    // Starting point in (x,y,z) form

@@ -8,7 +8,7 @@ always
 
   _3D = (Sphere center=(x,0,y)+D size=0.01*m color=(0,0,1) rotation=(0,0,0),
          Sphere center=(0,0,0)+D size=0.01*1 color=(0,0,1) rotation=(0,0,0),
-         Cylinder center=(x/2,0,y/2)+D radius= 0.01 length=L  color=(0,1,0) rotation=(3.1416/2,theta,0)),
+         Cylinder center=(x/2,0,y/2)+D radius= 0.01 length=L  color=(0,1,0) rotation=(3.1416/2,-theta,0)),
     
   theta''=(T - m*g*L*sin(theta))/(m*L^2) ,
   x=L*sin(theta) ,
