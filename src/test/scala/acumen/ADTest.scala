@@ -210,6 +210,12 @@ object ADTest extends Properties("AD") {
     forAll(genSmallThinIntervalDif) { (x: Dif[Interval]) =>
       x in ((x^3) / (x^2))
     }
+  
+  property("Dif[Interval]: a > 0 => x^a ~= x*x*...*x (a times)") =
+    forAll(genBoundedThinIntervalDif(0,1), chooseNum[Int](1, 20)) { (x: Dif[Interval], a: Int) =>
+      val xa = List.fill(a)(x)
+      xa.nonEmpty ==> ((x^a) ~= xa.reduce(_*_))
+    }
 
   property("Dif[Interval]: n > 0 => 1^n = 1") =
     forAll (posNum[Int]) { (n: Int) =>
