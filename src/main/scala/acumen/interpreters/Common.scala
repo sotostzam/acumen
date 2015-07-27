@@ -7,6 +7,8 @@ import scala.math._
 import Errors._
 import util.Canonical._
 import scala.util.parsing.input.Position
+import AD._
+
 //
 // Common stuff to CStore Interpreters
 //
@@ -19,6 +21,7 @@ object Common {
   val EulerCromer  = "EulerCromer"
   val EulerForward = "EulerForward"
   val RungeKutta   = "RungeKutta"
+  val Taylor       = "Taylor"
   
   /** Get self reference in an env. */
   def selfCId(e:Env) : CId =
@@ -43,46 +46,59 @@ object Common {
  
   /** Purely functional unary operator evaluation at the ground values level. */
   def unaryGroundOp(f:String, vx:GroundValue) = {
-    def implem(f:String, x:Double) = f match {
-        case "sin" => sin(x)
-        case "cos" => cos(x)
-        case "tan" => tan(x)
-        case "acos"=> acos(x)
-        case "asin"=> asin(x)
-        case "atan"=> atan(x)
-        case "toRadians"  => toRadians(x)
-        case "toDegrees"  => toDegrees(x)
-        case "exp"  => exp(x)
-        case "log"  => log(x)
-        case "log10"  => log10(x)
-        case "sqrt" => sqrt(x)
-        case "cbrt" => cbrt(x)
-        case "ceil"=> ceil(x)
-        case "floor"=> floor(x)
-        case "rint"=> rint(x)
-        case "round"=> round(x)
-        case "sinh" => sinh(x)
-        case "cosh" => cosh(x)
-        case "tanh" => tanh(x)
-        case "signum"=> signum(x)
-
-// Should abs and and - above?
-
+    def implem(f: String, x: Double) = f match {
+      case "-"         => -x
+      case "abs"       => abs(x)
+      case "sin"       => sin(x)
+      case "cos"       => cos(x)
+      case "tan"       => tan(x)
+      case "acos"      => acos(x)
+      case "asin"      => asin(x)
+      case "atan"      => atan(x)
+      case "toRadians" => toRadians(x)
+      case "toDegrees" => toDegrees(x)
+      case "exp"       => exp(x)
+      case "log"       => log(x)
+      case "log10"     => log10(x)
+      case "sqrt"      => sqrt(x)
+      case "cbrt"      => cbrt(x)
+      case "ceil"      => ceil(x)
+      case "floor"     => floor(x)
+      case "rint"      => rint(x)
+      case "round"     => round(x)
+      case "sinh"      => sinh(x)
+      case "cosh"      => cosh(x)
+      case "tanh"      => tanh(x)
+      case "signum"    => signum(x)
+    }
+    def implemIntegral[V: AD.Integral](f: String, x: V): V = f match {
+      case "-" => -x
+    }
+    def implemReal[V: Real](f: String, x: V): V = f match {
+      case "-" => -x
+      case "sin" => x.sin
+      case "cos" => x.cos
+      case "tan" => x.tan
+      case "exp" => x.exp
+      case "log" => x.log
     }
     (f, vx) match {
-      case ("not", GBool(x))   => GBool(!x)
-      case ("abs", GInt(i))    => GInt(abs(i))
-      case ("-",   GInt(i))    => GInt(-i)
-      case ("abs", GDouble(x)) => GDouble(abs(x))
-      case ("-",   GDouble(x)) => GDouble(-x)
+      case ("not", GBool(x))     => GBool(!x)
+      case ("abs", GInt(i))      => GInt(abs(i))
+      case ("-", GInt(i))        => GInt(-i)
       case ("round", GDouble(x)) => GInt(x.toInt)
-      case _                   => GDouble(implem(f, extractDouble(vx)))
+      case (f, GIntDif(d))       => f match {
+        case "-" => GIntDif(implemIntegral(f, d)) // keep as Dif[Int] if f has an integer result 
+        case _   => GDoubleDif(implemReal(f, Dif(d.coeff.map(_.toDouble)))) // otherwise, convert to Dif[Double] 
+      }
+      case (f, GDoubleDif(d))    => GDoubleDif(implemReal(f, d))
+      case _                     => GDouble(implem(f, extractDouble(vx)))
     }
   }
   
   /* purely functional binary operator evaluation 
    * at the ground values level */
-  def binGroundOp(f:String, vx:GroundValue, vy:GroundValue) = {
+  def binGroundOp(f:String, vx:GroundValue, vy:GroundValue): GroundValue = {
     def implem1(f:String, x:Int, y:Int) = f match {
       case "+" => x + y
       case "-" => x - y
@@ -115,10 +131,33 @@ object Common {
       case "<=" => x <= y
       case ">=" => x >= y
     }
+    def implemIntegral[V: AD.Integral](f: String, x: V, y: V) = f match {
+      case "+" => x + y
+      case "-" => x - y
+      case "*" => x * y
+      case _ => throw UnknownOperator(f)
+    }
+    def implemReal[V: AD.Real](f: String, x: V, y: V) = f match {
+      case "/" => x / y
+      case "^" => x ^ y
+      case _ => implemIntegral(f, x, y)
+    }
     (f, vx, vy) match {
       case (">="|"<="|"<"|">", GInt(n), GInt(m)) => GBool(implem3(f,n,m))
       case ("<"|">"|"<="|">=", _, _) => GBool(implem4(f,extractDouble(vx),extractDouble(vy)))
       case ("+"|"-"|"*"|"<<"|">>"|"&"|"|"|"%"|"xor", GInt(n), GInt(m)) => GInt(implem1(f,n,m))
+      
+      case (_, GIntDif(n), GIntDif(m)) => GIntDif(implemIntegral(f, n, m))
+      case (_, GDoubleDif(n), GDoubleDif(m)) => GDoubleDif(implemReal(f, n, m))
+      
+      case (_, GDoubleDif(n), GIntDif(m)) => GDoubleDif(implemReal(f, n, Dif(m.coeff.map(_.toDouble))))
+      case (_, GIntDif(n), GDoubleDif(m)) => GDoubleDif(implemReal(f, Dif(n.coeff.map(_.toDouble)), m))
+      
+      case (_, n: GDif, GInt(m)) => binGroundOp(f, n, GIntDif(Dif.constant(m)))
+      case (_, n: GDif, GDouble(m)) => binGroundOp(f, n, GDoubleDif(Dif.constant(m)))
+      case (_, GInt(n), m: GDif) => binGroundOp(f, GIntDif(Dif.constant(n)), m)
+      case (_, GDouble(n), m: GDif) => binGroundOp(f, GDoubleDif(Dif.constant(n)), m)
+      
       case _  => GDouble(implem2(f, extractDouble(vx), extractDouble(vy)))
     }
   }
@@ -128,7 +167,7 @@ object Common {
     val aun = au.length;    val avn = av.length;
     val aum = au(0).length; val avm = av(0).length;
     if(aum != avn)
-      error("Matrice's size aren't suitable for multiplication")
+      error("Matrix sizes are not suitable for multiplication")
     
     val result = for (row <- au)
 	   yield for(col <- av.transpose)
@@ -421,7 +460,7 @@ object Common {
   }
 
   def initStoreTxt(initStep: ResultType, timeStep: Double, outputRows: String, hypothesisReport: String, method: String) = 
-    s"""#0.0 { className = Simulator, parent = %s, time = 0.0, timeStep = $timeStep, outputRows = "$outputRows", hypothesisReport = "$hypothesisReport", continuousSkip = 0,endTime = 10.0, resultType = @$initStep, nextChild = 0,method = "$method", seed1 = 0, seed2 = 0, variableCount = 0 }"""
+    s"""#0.0 { className = Simulator, parent = %s, time = 0.0, timeStep = $timeStep, outputRows = "$outputRows", hypothesisReport = "$hypothesisReport", continuousSkip = 0,endTime = 10.0, resultType = @$initStep, nextChild = 0,method = "$method", orderOfIntegration = 4, seed1 = 0, seed2 = 0, variableCount = 0 }"""
   def initStoreInterpreter(initStep: ResultType = Initial, initTimeStep: Double = 0.015625, initOutputRows: String = "All", 
                        initHypothesisReport: String = "Comprehensive", initMethod: String = RungeKutta, isImperative: Boolean) =
       Parser.run(Parser.store, initStoreTxt(initStep, initTimeStep, initOutputRows, initHypothesisReport, initMethod).format( if (isImperative) "none" else "#0" ))
@@ -602,16 +641,18 @@ object Common {
     xs +++ (k1 +++ k2 *** 2 +++ k3 *** 2 +++ k4) *** (h/6)
   }
 
-  /** Representation of a set of ODEs. */
+  /** Representation of a set of ODEs. 
+   *  FieldId is a type, specific to the store type S, whose values 
+   *  can be used to uniquely identify values in the store. */
   abstract class Field[S /* store */] {
     /** Evaluate the field (the RHS of each equation in ODEs) in s. */
-    def apply(s: S): S;
+    def apply(s: S): S
   }
 
   /** Embedded DSL for expressing integrators. */
   abstract class RichStore[S /* store */] {
-    def +++(that: S): S;
-    def ***(that: Double): S;
+    def +++(that: S): S
+    def ***(that: Double): S
   }
 
   /** Compute hypothesis outcomes (for non-rigorous intepreters) */

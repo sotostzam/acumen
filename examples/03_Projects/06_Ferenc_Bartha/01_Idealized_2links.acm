@@ -49,6 +49,7 @@ initially
 always
   // Simulation time
   simulator.endTime+=100, 
+  simulator.method+ = "Taylor",
 
   // theta1'' from Equation (3)
   // - technical solution to save us from even lengthier formulae

@@ -629,10 +629,8 @@ object Common {
   /* IVP */
 
   case class FieldImpl(odes: ArrayBuffer[Equation], p: Prog) extends Field[IndexedSeq[Val]] {
-    override def apply(s: IndexedSeq[Val]) =  {
-      val res = odes.map{e => evalExpr(e.rhs, p, Env(e.env,Some(s)))}
-      res
-    }
+    override def apply(s: IndexedSeq[Val]) =
+      odes.map{e => evalExpr(e.rhs, p, Env(e.env,Some(s)))}
   }
   
   case class RichStoreImpl(s: IndexedSeq[Val]) extends RichStore[IndexedSeq[Val]] {
