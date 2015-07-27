@@ -53,16 +53,19 @@ object ADTest extends Properties("AD") {
   }
   
   implicit class DifIsSimilar[T : Similar](l: Dif[T]) {
-    def similar(r: Dif[T], comp: (T,T) => Boolean, msg: String): Boolean =
+    /** Compare two Difs coefficient-wise using comp, ignoring first n coefficients */
+    def similar(r: Dif[T], comp: (T,T) => Boolean, msg: String, n: Int): Boolean =
       (l.coeff zip r.coeff).zipWithIndex.forall {
         case ((lc, rc), i) =>
-          if (comp(lc, rc)) true
+          if (i < n || comp(lc, rc)) true
           else sys.error(s"\n\nFound $msg at index $i:\n\n" +
               s"Left coefficient:\n$lc\n\nRight coefficient:\n$rc\n\n" +
               s"Full left Dif:\n$l\n\nFull right Dif:\n$r\n\n")
     }
-    def ~=(r: Dif[T]): Boolean = similar(r, (lc:T,rc:T) => lc ~= rc, "dissimilarity")
-    def in(r: Dif[T]): Boolean = similar(r, (lc:T,rc:T) => lc in rc, "non-inclusion")
+    def ~=(r: Dif[T]): Boolean = similar(r, (lc:T,rc:T) => lc ~= rc, "dissimilarity", 0)
+    /** Ignore first n coefficients */
+    def ~=(n: Int)(r: Dif[T]): Boolean = similar(r, (lc:T,rc:T) => lc ~= rc, "dissimilarity", n)
+    def in(r: Dif[T]): Boolean = similar(r, (lc:T,rc:T) => lc in rc, "non-inclusion", 0)
   }
   
   /* Properties of Dif[Double] as Integral */
