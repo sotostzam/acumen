@@ -206,6 +206,26 @@ object ADTest extends Properties("AD") {
       x in x^1
     }
   
+  property("Dif[Interval]: x in (x^3 / x^2)") =
+    forAll(genSmallThinIntervalDif) { (x: Dif[Interval]) =>
+      x in ((x^3) / (x^2))
+    }
+
+  property("Dif[Interval]: n > 0 => 1^n = 1") =
+    forAll (posNum[Int]) { (n: Int) =>
+      (IntervalDifIsReal.one ^ n) == IntervalDifIsReal.one 
+    }
+
+  property("Dif[Interval]: x^0 = 1") =
+    forAll(genSmallThinIntervalDif) { (x: Dif[Interval]) =>
+      (x^0) == IntervalDifIsReal.one
+    }
+  
+  property("Dif[Interval]: x > 1 && n < 0 => x^n <= x") =
+    forAll(genBoundedThinIntervalDif(1,10), negNum[Int]) { (x: Dif[Interval], n: Int) =>
+      (x^n) <= x
+    }
+  
   /* Other properties */
 
   property("lower is inverse of lift") = forAll { (st: CStore) =>
