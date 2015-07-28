@@ -206,7 +206,7 @@ object AD extends App {
   /** Real instance for Dif[V], where V itself has a Real instance */
   class DifAsReal[V: Real] extends DifAsIntegral[V] with Real[Dif[V]] {
     def fromDouble(x: Double): Dif[V] = Dif.constant(evVIsReal fromDouble x)
-    override def isValidInt(x: Dif[V]): Boolean = ???
+    override def isValidInt(x: Dif[V]): Boolean = x.coeff.head.isValidInt && isConstant(x)
     /* Caches */
     val divCache = collection.mutable.HashMap[(Dif[V], Dif[V]), Dif[V]]()
     val powCache = collection.mutable.HashMap[(Dif[V], Dif[V]), Dif[V]]()    
