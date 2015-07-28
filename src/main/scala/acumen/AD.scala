@@ -1,8 +1,8 @@
 package acumen
 
 import interpreters.enclosure.Interval
-
 import util.ASTUtil
+import acumen.interpreters.Common.RichStore
 
 /**
  * Automatic Differentiation.
@@ -33,6 +33,7 @@ object AD extends App {
     def one: V
     def isValidInt(x: V): Boolean
     def isValidDouble(x: V): Boolean
+    def groundValue(v: V): GroundValue
   }
 
   /**
@@ -106,6 +107,7 @@ object AD extends App {
     def toInt(x: Int): Int = x
     def isValidDouble(x: Int): Boolean = true
     def toDouble(x: Int): Double = x.toDouble
+    def groundValue(v: Int): GroundValue = GInt(v)
   }
 
   /** Real instance for Double */
@@ -132,10 +134,12 @@ object AD extends App {
     def one: Double = 1
     def tryCompare(l: Double, r: Double): Option[Int] = Some(l compareTo r)
     def lteq(l: Double, r: Double): Boolean = l <= r
-    def isValidInt(x: Double): Boolean = (Math.floor(x) == Math.ceil(x))
+    def isValidInt(x: Double): Boolean =
+      Math.floor(x) == Math.ceil(x) && Integer.MIN_VALUE <= x && x <= Integer.MAX_VALUE
     def toInt(x: Double): Int = x.toInt
     def isValidDouble(x: Double): Boolean = true
     def toDouble(x: Double): Double = x
+    def groundValue(v: Double): GroundValue = GDouble(v)
   }
 
   /** Real instance for Interval */
@@ -170,10 +174,11 @@ object AD extends App {
       else if (lteq(l,r)) Some(1) 
       else if (lteq(r,l)) Some(-1)
       else                None
+    def groundValue(v: Interval) = GInterval(v)
   }
 
   /** Integral instance for Dif[V], where V itself has an Integral instance */
-  class DifAsIntegral[V: Integral] extends Integral[Dif[V]] {
+  abstract class DifAsIntegral[V: Integral] extends Integral[Dif[V]] {
     /* Caches */
     val mulCache = collection.mutable.HashMap[(Dif[V], Dif[V]), Dif[V]]()
     /* Constants */
@@ -204,7 +209,7 @@ object AD extends App {
   }
   
   /** Real instance for Dif[V], where V itself has a Real instance */
-  class DifAsReal[V: Real] extends DifAsIntegral[V] with Real[Dif[V]] {
+  abstract class DifAsReal[V: Real] extends DifAsIntegral[V] with Real[Dif[V]] {
     def fromDouble(x: Double): Dif[V] = Dif.constant(evVIsReal fromDouble x)
     override def isValidInt(x: Dif[V]): Boolean = x.coeff.head.isValidInt && isConstant(x)
     /* Caches */
@@ -259,7 +264,7 @@ object AD extends App {
                                  zero }
           else                   exp(mul(r, log(l)))
       })
-    
+      
     /** Square root */
     def sqrt(x: Dif[V]): Dif[V] =
       sqrtCache.getOrElseUpdate(x, if (x == zero) zero else Dif { // We might call sqrt directly not only through power, so we check for zero
@@ -449,9 +454,15 @@ object AD extends App {
         coeff.toVector
       })
   }
-  implicit object IntDifIsIntegral extends DifAsIntegral[Int]
-  implicit object DoubleDifIsReal extends DifAsReal[Double]
-  implicit object IntervalDifIsReal extends DifAsReal[Interval]
+  implicit object IntDifIsIntegral extends DifAsIntegral[Int] {
+    def groundValue(v: Dif[Int]) = GIntDif(v)
+  }
+  implicit object DoubleDifIsReal extends DifAsReal[Double] {
+    def groundValue(v: Dif[Double]) = GDoubleDif(v)
+  }
+  implicit object IntervalDifIsReal extends DifAsReal[Interval] {
+    def groundValue(v: Dif[Interval]) = GIntervalDif(v)
+  }
   
   /** Representation of a number and its derivatives. */
   case class Dif[V](coeff: Vector[V]) {
@@ -475,39 +486,45 @@ object AD extends App {
     private def padWithZeros[V: Integral](v: Vector[V]): Dif[V] = Dif(v.padTo(dim, implicitly[Integral[V]].zero))
   }
   
-  /** Lift all numeric values in a CStore into Difs */
-  def lift(st: CStore): CStore = st.mapValues(_.map{
-    case nv@(Name(n,_),_) if interpreters.Common.specialFields.contains(n) => nv 
-    case (n, VLit(GInt(i))) => (n, VLit(GIntDif(Dif constant i)))
-    case (n, VLit(GDouble(d))) => (n, VLit(GDoubleDif(Dif constant d)))
+  /** Lift all numeric values in a store into Difs */
+  def lift[S,Id](st: RichStore[S,Id]): S = st.map {
+    case VLit(gv: GroundValue) => VLit(liftGroundValue(gv))
     case v => v 
-  })
+  }
   
   /** Lift all numeric values in an Expr into Difs */
   def lift(e: Expr): Expr = new acumen.util.ASTMap {
     override def mapExpr(e: Expr): Expr = (e match {
-      case Lit(GInt(i)) => Lit(GIntDif(Dif.constant(i)))
-      case Lit(GDouble(d)) => Lit(GDoubleDif(Dif.constant(d)))
+      case Lit(gv) => Lit(liftGroundValue(gv))
       case _ => super.mapExpr(e)
     }).setPos(e.pos)
   }.mapExpr(e)
+  
+  private def liftGroundValue(gv: GroundValue): GroundValue = gv match {
+    case GDouble(d) => GDoubleDif(Dif constant d)
+    case GInt(i) => GDoubleDif(Dif constant i)
+    case _ => gv
+  }
  
-  /** Lower all Dif values in a CStore into the corresponding numeric value */
-  def lower(st: CStore): CStore = {
-    st.mapValues(_.mapValues{
-      case VLit(GIntDif(Dif(v))) => VLit(GInt(v(0)))
-      case VLit(GDoubleDif(Dif(v))) => VLit(GDouble(v(0)))
-      case v => v 
-    }) 
+  /** Lower all Dif values in a RichStore into the corresponding numeric value */
+  def lower[S,Id](st: RichStore[S,Id]): S = st.map {
+    case VLit(gv) => VLit(lowerGroundValue(gv))
+    case v => v 
   }
   
   /** Lower all Dif values in an Expr into the corresponding numeric value */
   def lower(e: Expr): Expr = new acumen.util.ASTMap {
     override def mapExpr(e: Expr): Expr = (e match {
-      case Lit(GIntDif(Dif(v))) => Lit(GInt(v(0)))
-      case Lit(GDoubleDif(Dif(v))) => Lit(GDouble(v(0)))
+      case Lit(gv) => Lit(lowerGroundValue(gv))
       case _ => super.mapExpr(e)
     }).setPos(e.pos)
   }.mapExpr(e)
+  
+  private def lowerGroundValue(gd: GroundValue): GroundValue = gd match {
+    case GIntDif(Dif(v)) => GInt(v(0))
+    case GDoubleDif(Dif(v)) => val v0 = v(0)
+      if (DoubleIsReal isValidInt v0) GInt(DoubleIsReal toInt v0) else GDouble(v0)
+    case _ => gd
+  }
 
 }

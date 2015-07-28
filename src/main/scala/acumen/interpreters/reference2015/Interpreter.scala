@@ -28,12 +28,10 @@ import scala.collection.immutable.Queue
 import scala.math._
 import Stream._
 import Errors._
-import AD._
 
 object Interpreter extends acumen.CStoreInterpreter {
 
   type Store = CStore
-  type Env = Map[Name, CValue]
 
   def repr(st:Store) = st
   def fromCStore(st:CStore, root:CId) = st
@@ -69,7 +67,7 @@ object Interpreter extends acumen.CStoreInterpreter {
   
   /* initial values */
   val emptyStore : Store = HashMap.empty
-  val emptyEnv   : Env   = HashMap.empty
+  val emptyEnv   : Env   = Env.empty
 
   /* get a fresh object id for a child of parent */
   def freshCId(parent:Option[CId]) : Eval[CId] = parent match {
@@ -161,14 +159,14 @@ object Interpreter extends acumen.CStoreInterpreter {
           _ <- setObjectM(fid, pub) // add new object to resulting store 
           vs <- mapM[InitRhs, CValue]( // process create initializers
                   { case NewRhs(e,es) =>
-                      for { ve <- asks(evalExpr(e, Map(self -> VObjId(Some(fid))), _)) 
+                      for { ve <- asks(evalExpr(e, Env(Map(self -> VObjId(Some(fid)))), _)) 
                             val cn = ve match { case VClassName(cn) => cn; case _ => throw NotAClassName(ve) }
-                            ves <- asks(st => es map (evalExpr(_, Map(self -> VObjId(Some(fid))), st)))
+                            ves <- asks(st => es map (evalExpr(_, Env(Map(self -> VObjId(Some(fid)))), st)))
                   			    nsd <- getNewSeed(fid)
                   			    oid <- mkObj(cn, p, Some(fid), nsd, ves)
                       } yield VObjId(Some(oid))
                     case ExprRhs(e) =>
-                      asks(evalExpr(e, Map(self -> VObjId(Some(fid))), _))
+                      asks(evalExpr(e, Env(Map(self -> VObjId(Some(fid)))), _))
                   },
                   crInits)
           val priv = privVars zip vs 
@@ -411,7 +409,7 @@ object Interpreter extends acumen.CStoreInterpreter {
   def evalStep(p:Prog)(id:CId)(implicit bindings: Bindings) : Eval[Unit] =
     for (cl <- asks(getCls(id,_))) {
       val as = classDef(cl, p).body
-      val env = HashMap((self, VObjId(Some(id))))
+      val env = Env(HashMap((self, VObjId(Some(id)))))
       evalActions(as, env, p)
     }
 
@@ -440,7 +438,7 @@ object Interpreter extends acumen.CStoreInterpreter {
     val hyps = st4.toList.flatMap { case (cid, co) =>
       mprog.defs.find(_.name == getCls(cid, st4)).get.body.flatMap {
         case Hypothesis(s, e) =>
-          CollectedHypothesis(cid, s, e, Map(self -> VObjId(Some(cid)))) :: Nil
+          CollectedHypothesis(cid, s, e, Env(Map(self -> VObjId(Some(cid))))) :: Nil
         case _ => Nil
     }}
     val md = testHypotheses(hyps, NoMetadata, st4, 0)(NoBindings)
@@ -448,18 +446,19 @@ object Interpreter extends acumen.CStoreInterpreter {
   }
   
   /** Updates the values of variables in xs (identified by CId and Dot.field) to the corresponding CValue. */
-  def applyAssignments(xs: List[(CId, Dot, CValue)]): Eval[Unit] = 
-    mapM_((a: (CId, Dot, CValue)) => setObjectFieldM(a._1, a._2.field, a._3), xs)
+  def applyAssignments(xs: List[(CId, Name, CValue)]): Eval[Unit] = 
+    mapM_((a: (CId, Name, CValue)) => setObjectFieldM(a._1, a._2, a._3), xs)
 
   /** Computes the values of variables in xs (identified by CId and Dot.field). */
-  def evaluateAssignments(xs: List[CollectedAction], st: Store)(implicit bindings: Bindings): List[(CId, Dot, CValue)] = {
+  def evaluateAssignments(xs: List[CollectedAction], st: Store)(implicit bindings: Bindings): List[(CId, Name, CValue)] = {
     val cache = cacheBindings(bindings, st)
     val groupUpdates = xs.groupBy {x => (x.o,x.d.lhs)}
     
     groupUpdates.map{case ((id,dot),as) => as match {
       /* Update (id,dot) with new value v */
-      case CollectedAction(o, Index(d, Nil), rhs, env)::Nil =>
-        (id, dot, evalExpr(rhs, env, st)(cache))
+      case CollectedAction(o, Index(d: Dot, Nil), rhs, env)::Nil =>
+        val ResolvedDot(rId, _, rN) = resolveDot(d, env, st)
+        (rId, rN, evalExpr(rhs, env, st)(cache))
       /* Congregate multiple index assignments to (id,dot) into one assignment and update */
       case multipleIndexUpdates => 
         val indexes = multipleIndexUpdates.map(x => x.d.idx.map(y => y match{case Lit(GInt(i)) => i}))
@@ -469,7 +468,8 @@ object Interpreter extends acumen.CStoreInterpreter {
           case VVector(u) =>
             updateMultipleEntries(VVector(u), indexes, vts)
         }
-        (id, dot, v)
+        val ResolvedDot(rId, _, rN) = resolveDot(dot, multipleIndexUpdates.head.env, st)
+        (rId, rN, v)
     }}.toList
   }
     
@@ -549,14 +549,14 @@ object Interpreter extends acumen.CStoreInterpreter {
             /* Evaluate discrete assignments */
             val dasValues = evaluateAssignments(das, st1)
             /* Evaluate continuous assignments that do not clash with discrete assignments */
-            val nonClashingEqs = eqs.filterNot (e => dasValues.exists { case (id, d, _) =>  
-              id == resolveDot(e.d.lhs, e.env, st1).id && d.field == e.d.lhs.field })
+            val nonClashingEqs = eqs.filterNot (e => dasValues.exists { case (id, n, _) =>  
+              id == resolveDot(e.d.lhs, e.env, st1).id && n == e.d.lhs.field })
             val nonClashingEqsValues = evaluateAssignments(nonClashingEqs, st1)(bindings ++
               /* Give discrete assignments precedence by replacing clashing bindings */
-              dasValues.map { case (id, d, v) => (id, d.field, Nil) -> CachedUnusedBinding(v) })
+              dasValues.map { case (id, n, v) => (id, n, Nil) -> CachedUnusedBinding(v) })
             /* Find (non-ODE) assignments that modify the store */
-            val nonIdentityAs = (dasValues ++ nonClashingEqsValues).filterNot{ case (id, d, v) => 
-              threeDField(d.field.x) || v == getObjectField(id, d.field, st1) }
+            val nonIdentityAs = (dasValues ++ nonClashingEqsValues).filterNot{ case (id, n, v) => 
+              threeDField(n.x) || v == getObjectField(id, n, st1) }
             /* If the discrete, structural and non-ODE continuous actions do not modify the store, conclude discrete fixpoint */
             if (nonIdentityAs.isEmpty && born.isEmpty && dead.isEmpty && rps.isEmpty)
               setResultType(FixedPoint, st1)
@@ -609,85 +609,55 @@ object Interpreter extends acumen.CStoreInterpreter {
    */
   def solveIVP(odes: List[CollectedAction], p: Prog, st: Store)(implicit bindings: Bindings): Store = {
     implicit val field = FieldImpl(odes, p)
-    lazy val VLit(GInt(taylorOrder)) = getInSimulator(Name("orderOfIntegration", 0), st)
+    implicit val doubleIsReal = AD.DoubleIsReal
     new Solver(getInSimulator(Name("method", 0),st), xs = st, h = getTimeStep(st)) {
-      override def knownSolvers = super.knownSolvers :+ EulerCromer :+ Taylor
+      override def knownSolvers = super.knownSolvers :+ EulerCromer
       override def solveIfKnown(name: String) = super.solveIfKnown(name) orElse (name match {
         case EulerCromer => Some(solveIVPEulerCromer(xs, h))
-        case Taylor      => Some(solveIVPTaylor(xs, h, taylorOrder))
         case _           => None
       })
     }.solve
   }
   
   /** Representation of a set of ODEs. */
-  case class FieldImpl(odes: List[CollectedAction], p: Prog)(implicit bindings: Bindings) extends Field[Store] {
+  case class FieldImpl(odes: List[CollectedAction], p: Prog)(implicit bindings: Bindings) extends Field[Store,CId] {
     /** Evaluate the field (the RHS of each equation in ODEs) in s. */
     override def apply(s: Store): Store = applyCollectedAssignments(odes, s)
-    /** 
-     * Returns the set of variables affected by the field.
-     * These are the LHSs of each ODE and the corresponding unprimed variables.
-     * NOTE: Assumes that the de-sugarer has reduced all higher-order ODEs.  
-     */
-    val variables: List[(CId, Dot, Env)] =
-      odes.map { da => (da.o, da.d.lhs, da.env) }
+    /** NOTE: Assumes that the de-sugarer has reduced all higher-order ODEs.  */
+    override def variables(s: Store): List[(CId, Name)] =
+      odes.map { da =>
+        val ResolvedDot(dId, _, dN) = resolveDot(da.d.lhs, da.env, s)
+        (dId, dN) 
+      }
+    override def map(nm: Name => Name, em: Expr => Expr) = 
+      FieldImpl(odes.map{ eqn => 
+        eqn.copy( rhs = em(eqn.rhs), 
+                  d = eqn.d.copy(e = eqn.d.lhs.copy(field = nm(eqn.d.lhs.field))) ) }
+      , p)
   }
 
   /**
    * Embedded DSL for expressing integrators.
    * NOTE: Operators affect only field.variables and field.derivatives.
    */
-  case class RichStoreImpl(s: Store)(implicit field: FieldImpl) extends RichStore[Store] {
-    override def +++(that: Store): Store = op("+", (cid, dot) => getObjectField(cid, dot.field, that))
+  case class RichStoreImpl(s: Store)(implicit field: FieldImpl) extends RichStore[Store,CId] {
+    override def +++(that: Store): Store = op("+", (cid, n) => getObjectField(cid, n, that))
     override def ***(that: Double): Store = op("*", (_, _) => VLit(GDouble(that)))
     /** Combine this (s) and that Store using operator. */
-    def op(operator: String, that: (CId, Dot) => Value[CId]): Store =
-      applyAssignments(field.variables.map {
-        case (o, n, _) => (o, n, evalOp(operator, List(getObjectField(o, n.field, s), that(o, n))))
+    def op(operator: String, that: (CId, Name) => Value[CId]): Store =
+      applyAssignments(field.variables(s).map {
+        case (o, n) => (o, n, evalOp(operator, List(s(o, n), that(o, n))))
       }) ~> s
+    override def map(m: CValue => CValue) = 
+      s.mapValues(_.map{ 
+        case nv@(Name(n,_),_) if interpreters.Common.specialFields.contains(n) => nv   
+        case (n,v) => (n, m(v)) 
+      })
+    override def apply(id: CId, n: Name): CValue = getObjectField(id, n, s)
+    override def updated(id: CId, n: Name, v: CValue): Store = setObjectField(id, n, v, s)
+    override def getInSimulator(variable: String) = Canonical.getInSimulator(Name(variable, 0), s)
   }
   implicit def liftStore(s: Store)(implicit field: FieldImpl): RichStoreImpl = RichStoreImpl(s)
-  
-  def solveIVPTaylor(s: Store, h: Double, orderOfIntegration: Int)(implicit f: FieldImpl, bindings: Bindings): Store = {
-    require (orderOfIntegration > 0, s"Order of integration ($orderOfIntegration) must be greater than 0")
-    val ode = FieldImpl(f.odes.map(ca => 
-      ca.copy( rhs = AD.lift(ca.rhs)
-             , d = ca.d.copy(e = ca.d.lhs.copy(field = Name(ca.d.lhs.field.x, ca.d.lhs.field.primes + 1)))))
-             , f.p)
-    // compute Taylor coefficients of order 0 to orderOfIntegration
-    val taylorCoeffs = (1 to orderOfIntegration).foldLeft(AD.lift(s)) {
-      case (sTmp, i) => // xsTmp contains coeffs up to order i-1
-        val fieldApplied = ode(sTmp)
-        // compute the i-th Taylor coefficients
-        ode.variables.foldLeft(sTmp) { // we are modifying from the store containing the coefficients up to order i-1
-          case (sUpdTmp, (id, d, env)) =>
-            val ResolvedDot(dId, dObj, dN) = resolveDot(d, env, s)
-            val ResolvedDot(vId, vObj, vN) = resolveDot(Dot(d.obj, Name(dN.x, dN.primes - 1)), env, s)
-            val vDif = getObjectField(vId, vN, sTmp) match {
-              case VLit(GDoubleDif(vDif)) => vDif.coeff
-              case VLit(GIntDif(vDif))    => vDif.coeff.map(_.toDouble)
-            }
-            val vUpd = vDif updated (i, getObjectField(dId, dN, fieldApplied) match { // read derivative from fieldApplied
-              case VLit(GDoubleDif(dDif)) => dDif(i - 1) / i
-              case VLit(GIntDif(dDif))    => dDif(i - 1) / (i: Double)
-            })
-            setObjectField(vId, vN, VLit(GDoubleDif(Dif(vUpd))), sUpdTmp) // update i:th Taylor coeff for variable (vId, vN)
-        }
-    }   
-    // the Taylor series
-    // FIXME Does it not make more sense to accumulate solution when computing taylorCoeffs?
-    val solution = ode.variables.foldLeft(taylorCoeffs) {
-      case (sTmp, (id, d, env)) =>
-        val ResolvedDot(dId, dObj, dN) = resolveDot(d, env, s)
-        val ResolvedDot(vId, vObj, vN) = resolveDot(Dot(d.obj, Name(dN.x, dN.primes - 1)), env, s)
-        val vNext = getObjectField(vId, vN, taylorCoeffs) match { // summing the Taylor coeffs from the store in which they were computed (paranoia)
-          case VLit(GDoubleDif(Dif(vcs))) =>
-            vcs.zipWithIndex.map { case (x, i) => if (i <= orderOfIntegration) x * Math.pow(h, i) else 0 }.sum
-        }
-        setObjectField(vId, vN, VLit(GDoubleDif(Dif(vNext))), sTmp)
-    }
-    AD.lower(solution)
-  }
   
   /**
    * Euler-Cromer integration. 
@@ -706,9 +676,9 @@ object Interpreter extends acumen.CStoreInterpreter {
     val sortedODEs = f.odes
       .groupBy{ case CollectedAction(o, Index(Dot(_, n),idx), r, e) => (o, n.x) }
       .mapValues(_.sortBy { case CollectedAction(_, Index(Dot(_, n),idx), _, _) => n.primes }).values.flatten
-    val solutions = sortedODEs.foldRight(Map.empty[(CId, Dot), CValue]) {
+    val solutions = sortedODEs.foldRight(Map.empty[(CId, Name), CValue]) {
       case (CollectedAction(o, d@Index(Dot(_, n),idx), r, e), updatedEnvs) =>
-        val updatedEnv = e ++ (for (((obj, dot), v) <- updatedEnvs if obj == o) yield (dot.field -> v))
+        val updatedEnv = e ++ (for (((obj, name), v) <- updatedEnvs if obj == o) yield (name -> v))
         val vt = evalExpr(r, updatedEnv, st)
         val lhs = getObjectField(o, n, st)
         val v = lhs match {
@@ -723,7 +693,8 @@ object Interpreter extends acumen.CStoreInterpreter {
           case _ =>
             throw BadLhs()
         }
-        updatedEnvs + ((o, d.lhs) -> v)
+        val ResolvedDot(rId,_,rN) = resolveDot(d.lhs, e, st)
+        updatedEnvs + ((rId, rN) -> v)
     }.map { case ((o, d), v) => (o, d, v) }.toList
     applyAssignments(solutions) ~> st
   }

@@ -32,7 +32,6 @@ import Errors._
 object Interpreter extends acumen.CStoreInterpreter {
 
   type Store = CStore
-  type Env = Map[Name, CValue]
 
   def repr(st:Store) = st
   def fromCStore(st:CStore, root:CId) = st
@@ -43,7 +42,7 @@ object Interpreter extends acumen.CStoreInterpreter {
 
   /* initial values */
   val emptyStore : Store = HashMap.empty
-  val emptyEnv   : Env   = HashMap.empty
+  val emptyEnv   : Env   = Env.empty
 
   /* get a fresh object id for a child of parent */
   def freshCId(parent:Option[CId]) : Eval[CId] = parent match {
@@ -135,15 +134,15 @@ object Interpreter extends acumen.CStoreInterpreter {
           _ <- setObjectM(fid, pub)
           vs <- mapM[InitRhs, CValue]( 
                   { case NewRhs(e,es) =>
-                      for { ve <- asks(evalExpr(e, Map(self -> VObjId(Some(fid))), _)) 
+                      for { ve <- asks(evalExpr(e, Env(self -> VObjId(Some(fid))), _)) 
                             val cn = ve match {case VClassName(cn) => cn; case _ => throw NotAClassName(ve)}
                             ves <- asks(st => es map (
-                            evalExpr(_, Map(self -> VObjId(Some(fid))), st)))
+                            evalExpr(_, Env(self -> VObjId(Some(fid))), st)))
 			    nsd <- getNewSeed(fid)
 			    oid <- mkObj(cn, p, Some(fid), nsd, ves)
                       } yield VObjId(Some(oid))
                     case ExprRhs(e) =>
-                      asks(evalExpr(e, Map(self -> VObjId(Some(fid))), _))
+                      asks(evalExpr(e, Env(self -> VObjId(Some(fid))), _))
                   },
                   ctrs)
           val priv = privVars zip vs 
@@ -344,7 +343,7 @@ object Interpreter extends acumen.CStoreInterpreter {
   def evalStep(p:Prog)(id:CId) : Eval[Unit] =
     for (cl <- asks(getCls(id,_))) {
       val as = classDef(cl, p).body
-      val env = HashMap((self, VObjId(Some(id))))
+      val env = Env((self, VObjId(Some(id))))
       evalActions(as, env, p)
     }
 
@@ -375,12 +374,15 @@ object Interpreter extends acumen.CStoreInterpreter {
   }
 
   /** Updates the values of variables in xs (identified by CId and Dot.field) to the corresponding CValue. */
-  def applyAssignments(xs: List[(CId, Dot, CValue)]): Eval[Unit] = 
-    mapM_((a: (CId, Dot, CValue)) => setObjectFieldM(a._1, a._2.field, a._3), xs)
+  def applyAssignments(xs: List[(CId, Name, CValue)]): Eval[Unit] = 
+    mapM_((a: (CId, Name, CValue)) => setObjectFieldM(a._1, a._2, a._3), xs)
 
   /** Computes the values of variables in xs (identified by CId and Dot.field). */
-  def evaluateAssignments(xs: List[(CId, Dot, Expr, Env)], st: Store): List[(CId, Dot, CValue)] = 
-    xs.map((a: (CId, Dot, Expr, Env)) => (a._1, a._2, evalExpr(a._3, a._4, st)))
+  def evaluateAssignments(xs: List[(CId, Dot, Expr, Env)], st: Store): List[(CId, Name, CValue)] = 
+    xs.map{ case (id, d, rhs, env) => 
+      val ResolvedDot(rId, _, rN) = resolveDot(d, env, st)
+      (rId, rN, evalExpr(rhs, env, st))
+    }
     
   /** Updates the values of variables in xs (identified by CId and Dot.field) to the corresponding CValue. */
   def applyDelayedAssignments(xs: List[(CId, Dot, Expr, Env)], st: Store): Eval[Unit] = 
@@ -399,7 +401,7 @@ object Interpreter extends acumen.CStoreInterpreter {
           case Initial | Discrete | Continuous => // Either conclude fixpoint is reached or do discrete step
             checkDuplicateAssingments2014(resolveDots(das), DuplicateDiscreteAssingment)
             val dasValues = evaluateAssignments(das, st1)
-            val nonIdentityDas = dasValues.filterNot{ a => a._3 == getObjectField(a._1, a._2.field, st1) }
+            val nonIdentityDas = dasValues.filterNot{ case (id,n,v) => v == getObjectField(id, n, st1) }
             if (st == st1 && ids.isEmpty && rps.isEmpty && nonIdentityDas.isEmpty) 
               setResultType(FixedPoint, st1)
             else {
@@ -441,6 +443,7 @@ object Interpreter extends acumen.CStoreInterpreter {
    */
   def solveIVP(odes: List[(CId, Dot, Expr, Env)], p: Prog, st: Store): Store = {
     implicit val field = FieldImpl(odes, p)
+    implicit val doubleIsReal = AD.DoubleIsReal
     new Solver(getInSimulator(Name("method", 0),st), xs = st, h = getTimeStep(st)){
       // add the EulerCromer solver
       override def knownSolvers = super.knownSolvers :+ EulerCromer
@@ -452,33 +455,42 @@ object Interpreter extends acumen.CStoreInterpreter {
   }
   
   /** Representation of a set of ODEs. */
-  case class FieldImpl(odes: List[(CId, Dot, Expr, Env)], p: Prog) extends Field[Store] {
+  case class FieldImpl(odes: List[(CId, Dot, Expr, Env)], p: Prog) extends Field[Store,CId] {
     /** Evaluate the field (the RHS of each equation in ODEs) in s. */
-    override def apply(s: Store): Store =
-      applyAssignments(odes.map { 
-        case (o, n, rhs, env) => (o, n, evalExpr(rhs, env, s)) 
-      }) ~> s
+    override def apply(s: Store): Store = applyDelayedAssignments(odes, s) ~> s
     /** 
      * Returns the set of variables affected by the field.
      * These are the LHSs of each ODE and the corresponding unprimed variables.
      * NOTE: Assumes that the de-sugarer has reduced all higher-order ODEs.  
      */
-    def variables: List[(CId, Dot)] =
-      odes.flatMap { case (o, d, _, _) => List((o, d), (o, Dot(d.obj, Name(d.field.x, 0)))) }
+    override def variables(s: Store): List[(CId, Name)] =
+      odes.flatMap { case (o, d, _, env) => 
+        val ResolvedDot(dId, _, dN) = resolveDot(d, env, s)  
+        List((dId, dN), (dId, Name(dN.x, 0)))
+      }
+    override def map(nm: Name => Name, em: Expr => Expr) = ???
   }
 
   /**
    * Embedded DSL for expressing integrators.
    * NOTE: Operators affect only field.variables.
    */
-  case class RichStoreImpl(s: Store)(implicit field: FieldImpl) extends RichStore[Store] {
-    override def +++(that: Store): Store = op("+", (cid, dot) => getObjectField(cid, dot.field, that))
+  case class RichStoreImpl(s: Store)(implicit field: FieldImpl) extends RichStore[Store,CId] {
+    override def +++(that: Store): Store = op("+", (cid, n) => getObjectField(cid, n, that))
     override def ***(that: Double): Store = op("*", (_, _) => VLit(GDouble(that)))
     /** Combine this (s) and that Store using operator. */
-    def op(operator: String, that: (CId, Dot) => Value[CId]): Store =
-      applyAssignments(field.variables.map {
-        case (o, n) => (o, n, evalOp(operator, List(getObjectField(o, n.field, s), that(o, n))))
+    def op(operator: String, that: (CId, Name) => Value[CId]): Store =
+      applyAssignments(field.variables(s).map {
+        case (o, n) => (o, n, evalOp(operator, List(s(o, n), that(o, n))))
       }) ~> s
+    override def map(m: CValue => CValue) = 
+      s.mapValues(_.map{ 
+        case nv@(Name(n,_),_) if interpreters.Common.specialFields.contains(n) => nv   
+        case (n,v) => (n, m(v)) 
+      })
+    override def apply(id: CId, n: Name): CValue = getObjectField(id, n, s)
+    override def updated(id: CId, n: Name, v: CValue): Store = setObjectField(id, n, v, s)
+    override def getInSimulator(variable: String) = Canonical.getInSimulator(Name(variable, 0), s)
   }
   implicit def liftStore(s: Store)(implicit field: FieldImpl): RichStoreImpl = RichStoreImpl(s)
   
@@ -499,9 +511,9 @@ object Interpreter extends acumen.CStoreInterpreter {
     val sortedODEs = f.odes
       .groupBy{ case (o, Dot(_, n), r, e) => (o, n.x) }
       .mapValues(_.sortBy { case (_, Dot(_, n), _, _) => n.primes }).values.flatten
-    val solutions = sortedODEs.foldRight(Map.empty[(CId, Dot), CValue]) {
+    val solutions = sortedODEs.foldRight(Map.empty[(CId, Name), CValue]) {
       case ((o, d@Dot(_, n), r, e), updatedEnvs) =>
-        val updatedEnv = e ++ (for (((obj, dot), v) <- updatedEnvs if obj == o) yield (dot.field -> v))
+        val updatedEnv = e ++ (for (((obj, name), v) <- updatedEnvs if obj == o) yield (name -> v))
         val vt = evalExpr(r, updatedEnv, st)
         val lhs = getObjectField(o, n, st)
         val v = lhs match {
@@ -514,7 +526,8 @@ object Interpreter extends acumen.CStoreInterpreter {
           case _ =>
             throw BadLhs()
         }
-        updatedEnvs + ((o, d) -> v)
+        val ResolvedDot(rId,_,rN) = resolveDot(d, e, st)
+        updatedEnvs + ((rId, rN) -> v)
     }.map { case ((o, d), v) => (o, d, v) }.toList
     applyAssignments(solutions) ~> st
   }

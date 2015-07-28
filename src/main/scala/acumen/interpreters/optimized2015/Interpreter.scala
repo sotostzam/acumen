@@ -39,11 +39,12 @@ class Interpreter extends CStoreInterpreter {
   val initStepType = Initial
   val timeStep = 0.015625
   val outputRows = "All"
-  override def visibleParameters = visibleParametersMap(initStoreInterpreter(initStep = initStepType, initTimeStep = timeStep, initOutputRows = outputRows, isImperative = true))
+  val initStore = initStoreInterpreter(initStep = initStepType, initTimeStep = timeStep, initOutputRows = outputRows, isImperative = true)
+  override def visibleParameters = visibleParametersMap(initStore) + ("method" -> VLit(GStr(RungeKutta))) + ("orderOfIntegration" -> VLit(GInt(4)))
 
   def init(prog: Prog): (Prog, Store, Metadata) = {
     checkContinuousAssignmentToSimulator(prog)
-    val magic = fromCStore(initStoreInterpreter(initStep = initStepType, initTimeStep = timeStep, initOutputRows = outputRows, isImperative = true), CId(0))
+    val magic = fromCStore(initStore, CId(0))
     val cprog = CleanParameters.run(prog, CStoreInterpreterType)
     val sprog = Simplifier.run(cprog)
     val (sd1, sd2) = Random.split(Random.mkGen(0))
@@ -176,7 +177,7 @@ class Interpreter extends CStoreInterpreter {
         filterEquationT()
         
         // Retrieve updated values the non-clashing ones.
-        doEquationT(OdeEnv(IndexedSeq.empty, Array.fill[AssignVal](pp.assigns.length)(Unknown)))
+        doEquationT(OdeEnv(IndexedSeq.empty, Array.fill[AssignVal](pp.assigns.length)(Unknown), magic))
 
         // Apply the structural actions: elim, move.
         reParentings match {
@@ -230,7 +231,8 @@ class Interpreter extends CStoreInterpreter {
 
         // Run the ode solver
         implicit val field = FieldImpl(pp.odes, p)
-        val initOdeEnv = OdeEnv(initVal, Array.fill[AssignVal](pp.assigns.length)(Unknown))
+        implicit val doubleIsReal = AD.DoubleIsReal
+        val initOdeEnv = OdeEnv(initVal, Array.fill[AssignVal](pp.assigns.length)(Unknown), magic)
         val res = new Solver(getField(magic, Name("method", 0)), initOdeEnv, getTimeStep(magic)).solve
 
         // Evaluate (if necessary) and update values assigned to by EquationT

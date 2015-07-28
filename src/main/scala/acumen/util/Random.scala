@@ -70,7 +70,7 @@ object Random {
 		}
 	}
 
-	private val intRange = Int.MaxValue - Int.MinValue
+	private val intRange: Long = Int.MaxValue - Int.MinValue
 
   def randomIvalDouble (l:Double, h:Double, rng:Gen) : (Double, Gen) = {
 		if (l>h) randomIvalDouble(h,l,rng)

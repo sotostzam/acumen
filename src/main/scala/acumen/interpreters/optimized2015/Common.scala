@@ -45,16 +45,23 @@ object Common {
    */
   case class OdeEnv(
     odeVals: IndexedSeq[Val], 
-    assignVals: Array[AssignVal]) 
+    assignVals: Array[AssignVal],
+    simulator: Object ) 
   {
     /** Create an empty assignment cache the same size of the existing one */
     def emptyAssignVals() = Array.fill[AssignVal](assignVals.length)(Unknown)
   }
 
-  case class Env(env: Map[Name, Val], odeEnv: Option[OdeEnv] = None) {
-    def apply(n: Name) = env.apply(n)
-    def get(n: Name) = env.get(n)
-    def +(v:(Name,Val)) = Env(env + v, odeEnv)
+  case class Env(env: Map[Name, Val], odeEnv: Option[OdeEnv] = None) extends Environment[Val] {
+    override def apply(n: Name) = env.apply(n)
+    override def get(n: Name) = env.get(n)
+    override def +(v: (Name,Val)) = Env(env + v, odeEnv)
+    override def ++(v: Map[Name,Val]) = Env(env ++ v, odeEnv)
+    override def empty = Env.empty
+  }
+  object Env {
+    val empty = new Env(Map.empty)
+    def apply(nvs: (Name, Val)*): Env = new Env(Map(nvs:_*), None)
   }
   
   type MMap[A, B] = scala.collection.mutable.Map[A, B]
@@ -156,8 +163,8 @@ object Common {
     }
   }
 
-  case class Assignment(id: ObjId, field: Name, v: Val, pos: Position);
-  case class Equation(id: ObjId, field: Name, rhs: Expr, env: Map[Name, Val]);
+  case class Assignment(id: ObjId, field: Name, v: Val, pos: Position)
+  case class Equation(id: ObjId, field: Name, rhs: Expr, env: Map[Name, Val])
     
   case class Object(
       val id: CId,
@@ -549,15 +556,15 @@ object Common {
 
     val vs = ctrs map {
       case NewRhs(e, es) =>
-        val cn = evalExpr(e, p, Env(Map(self -> VObjId(Some(res))))) match {
+        val cn = evalExpr(e, p, Env(self -> VObjId(Some(res)))) match {
           case VClassName(cn) => cn
           case v => throw NotAClassName(v).setPos(e.pos)
         }
-        val ves = es map (evalExpr(_, p, Env(Map(self -> VObjId(Some(res))))))
+        val ves = es map (evalExpr(_, p, Env(self -> VObjId(Some(res)))))
         val nsd = getNewSeed(res)
         VObjId(Some(mkObj(cn, p, ParentIs(res), nsd, ves, magic)))
       case ExprRhs(e) =>
-        evalExpr(e, p, Env(Map(self -> VObjId(Some(res)))))
+        evalExpr(e, p, Env(self -> VObjId(Some(res))))
     }
     val priv = privVars zip vs.map{new ValVal(_)}
     res.fields = pub ++ priv
@@ -833,16 +840,29 @@ object Common {
 
   /* IVP */
 
-  case class FieldImpl(odes: ArrayBuffer[Equation], p: Prog) extends Field[OdeEnv] {
+  case class FieldImpl(odes: ArrayBuffer[Equation], p: Prog) extends Field[OdeEnv,ObjId] {
     override def apply(s: OdeEnv) = 
-      OdeEnv(odes.map{e => evalExpr(e.rhs, p, Env(e.env,Some(s)))}, s.emptyAssignVals)
+      OdeEnv(odes.map{e => evalExpr(e.rhs, p, Env(e.env,Some(s)))}, s.emptyAssignVals, s.simulator)
+    override def variables(s: OdeEnv): List[(ObjId, Name)] =
+      odes.toList.map { da => (da.id, da.field) }
+    override def map(nm: Name => Name, em: Expr => Expr) = 
+      FieldImpl(odes.map(eqn => eqn.copy(field = nm(eqn.field), rhs = em(eqn.rhs))), p)
   }
   
-  case class RichStoreImpl(s: OdeEnv) extends RichStore[OdeEnv] {
+  case class RichStoreImpl(s: OdeEnv) extends RichStore[OdeEnv,ObjId] {
     override def +++(that: OdeEnv) = OdeEnv((this.s.odeVals,that.odeVals).zipped.map{(a,b) => evalOp("+", List(a,b))},
-                                            s.emptyAssignVals)
+                                            s.emptyAssignVals, s.simulator)
     override def ***(that: Double) = OdeEnv(this.s.odeVals.map{a => evalOp("*", List(a,VLit(GDouble(that))))},
-                                            s.emptyAssignVals)
+                                            s.emptyAssignVals, s.simulator)
+    override def map(m: Val => Val) = 
+      OdeEnv( s.odeVals.map(m)
+            , s.assignVals.map{ case KnownVal(v) => KnownVal(m(v)); case v => v }
+            , s.simulator )
+    lazy val odeValsLookup = s.simulator.phaseParms.odes.zipWithIndex.
+      map{ case (o,i) => (o.id, o.field) -> i }.toMap
+    override def apply(id: ObjId, n: Name): Val = s.odeVals(odeValsLookup(id,n))
+    override def updated(id: ObjId, n: Name, v: Val) = s.copy(odeVals = s.odeVals.updated(odeValsLookup(id,n), v))
+    override def getInSimulator(variable: String) = getField(s.simulator, Name(variable, 0))
   }
   
   implicit def liftStore(s: OdeEnv)(implicit field: FieldImpl): RichStoreImpl = RichStoreImpl(s)

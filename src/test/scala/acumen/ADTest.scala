@@ -10,6 +10,7 @@ import testutil.Generators._
 import interpreters.enclosure.Interval
 import interpreters.enclosure.Generators._
 import AD._
+import acumen.interpreters.reference2015.Interpreter.FieldImpl
 
 object ADTest extends Properties("AD") {
 
@@ -233,9 +234,12 @@ object ADTest extends Properties("AD") {
     }
   
   /* Other properties */
-
-  property("lower is inverse of lift") = forAll { (st: CStore) =>
-    lower(lift(st)) == st
+  
+  property("lift leaves no base number types") = forAll { (gv: GroundValue) =>
+    lift(Lit(gv)) match {
+      case Lit(_: GDouble | _: GInt | _: GInterval) => false
+      case _ => true
+    }
   }
 
   /* Generators */

@@ -137,6 +137,7 @@ class Interpreter(val parDiscr: Boolean = true,
         }
 
         implicit val field = FieldImpl(pp.odes, p)
+        implicit val doubleIsReal = AD.DoubleIsReal 
         val res = new Solver(getField(magic, Name("method", 0)), initVal : IndexedSeq[Val], getTimeStep(magic)).solve
         idx = 0
         while (idx < sz) {

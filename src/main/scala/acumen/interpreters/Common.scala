@@ -1,22 +1,40 @@
 package acumen
 package interpreters
 
+import AD.{ Dif, Integral, Real, IntegralOps, RealOps }
 import util.Names._
 import util.Conversions._
 import scala.math._
 import Errors._
 import util.Canonical._
 import scala.util.parsing.input.Position
-import AD._
 
 //
 // Common stuff to CStore Interpreters
 //
 
 object Common {
- 
-  type Env = Map[Name, CValue]
+  
+  trait Environment[V] extends Any {
+    def apply(n: Name): V
+    def get(n: Name): Option[V]
+    def +(v: (Name,V)): Environment[V]
+    def ++(v: Map[Name,V]): Environment[V]
+    def empty: Environment[V]
+  }
   type Matrix = Array[Array[Double]]
+
+  case class Env(val env: Map[Name, CValue]) extends AnyVal with Environment[CValue] {
+    override def apply(n: Name) = env(n)
+    override def get(n: Name) = env.get(n)
+    override def +(v: (Name,CValue)) = new Env(env + v) 
+    override def ++(v: Map[Name,CValue]) = new Env(env ++ v) 
+    override def empty = Env.empty
+  }
+  object Env {
+    val empty = new Env(Map.empty)
+    def apply(nvs: (Name, Value[CId])*): Env = Env(Map(nvs:_*))
+  }
   
   val EulerCromer  = "EulerCromer"
   val EulerForward = "EulerForward"
@@ -151,14 +169,15 @@ object Common {
       // FIXME Add special case for integer powers of Dif[Int], to avoid lifting to Dif[Double]
       case ("^" | "/", GIntDif(n), GIntDif(m)) => GDoubleDif(implemReal(f, toDoubleDif(n), toDoubleDif(m)))
       case (_, GIntDif(n), GIntDif(m)) => GIntDif(implemIntegral(f, n, m))
-      case (_, GDoubleDif(n), GIntDif(m)) => GDoubleDif(implemReal(f, n, toDoubleDif(m)))
-      case (_, GIntDif(n), GDoubleDif(m)) => GDoubleDif(implemReal(f, toDoubleDif(n), m))
       case (_, GDoubleDif(n), GDoubleDif(m)) => GDoubleDif(implemReal(f, n, m))
       
-      case (_, n: GDif, GInt(m)) => binGroundOp(f, n, GIntDif(Dif.constant(m)))
-      case (_, n: GDif, GDouble(m)) => binGroundOp(f, n, GDoubleDif(Dif.constant(m)))
-      case (_, GInt(n), m: GDif) => binGroundOp(f, GIntDif(Dif.constant(n)), m)
-      case (_, GDouble(n), m: GDif) => binGroundOp(f, GDoubleDif(Dif.constant(n)), m)
+      case (_, GDoubleDif(n), GIntDif(m)) => GDoubleDif(implemReal(f, n, Dif(m.coeff.map(_.toDouble))))
+      case (_, GIntDif(n), GDoubleDif(m)) => GDoubleDif(implemReal(f, Dif(n.coeff.map(_.toDouble)), m))
+      
+      case (_, n: GDif[_], GInt(m)) => binGroundOp(f, n, GIntDif(Dif.constant(m)))
+      case (_, n: GDif[_], GDouble(m)) => binGroundOp(f, n, GDoubleDif(Dif.constant(m)))
+      case (_, GInt(n), m: GDif[_]) => binGroundOp(f, GIntDif(Dif.constant(n)), m)
+      case (_, GDouble(n), m: GDif[_]) => binGroundOp(f, GDoubleDif(Dif.constant(n)), m)
       
       case _  => GDouble(implem2(f, extractDouble(vx), extractDouble(vy)))
     }
@@ -501,7 +520,6 @@ object Common {
     case n :: tail => 
       val res = getIndividualIndexesFromSize(tail)
       (0 to n-1).toList.map(i => for(j<-res) yield i::j).flatten
-
   }
   /* error checking */
 
@@ -614,7 +632,7 @@ object Common {
   // ODEs
   // 
   
-  class Solver[S <% RichStore[S]](solverName: Value[_], val xs: S, val h: Double)(implicit f: Field[S]) {
+  class Solver[Id, S <% RichStore[S,Id],V, R: Real](solverName: Value[_], val xs: S, val h: Double)(implicit f: Field[S,Id]) {
     private def msg(meth: String) = "Invalid integration method \"" + meth +
         "\". Please select one of: " + knownSolvers.mkString(", ")
     final def solve: S = {
@@ -624,37 +642,77 @@ object Common {
         case m                          => throw new Error(msg(m.toString))
       }
     }
-    def knownSolvers = List(EulerForward, RungeKutta)
+    def knownSolvers = List(EulerForward, RungeKutta, Taylor)
+    lazy val VLit(GInt(taylorOrder)) = xs getInSimulator "orderOfIntegration"
     def solveIfKnown(name: String) : Option[S] = name match {
       case EulerForward => Some(solveIVPEulerForward(xs, h))
       case RungeKutta   => Some(solveIVPRungeKutta(xs, h))
-      case _            => None
+      case Taylor       => Some(solveIVPTaylor(xs, h, taylorOrder))
     }
   }
 
-  def solveIVPEulerForward[S <% RichStore[S]](xs: S, h: Double)(implicit f: Field[S]): S =
+  def solveIVPEulerForward[Id, S <% RichStore[S,Id],V](xs: S, h: Double)(implicit f: Field[S,Id]): S =
     xs +++ f(xs) *** h
 
-  def solveIVPRungeKutta[S <% RichStore[S]](xs: S, h: Double)(implicit f: Field[S]): S = {
+  def solveIVPRungeKutta[Id, S <% RichStore[S,Id],V](xs: S, h: Double)(implicit f: Field[S,Id]): S = {
     val k1 = f(xs)
     val k2 = f(xs +++ k1 *** (h/2)) 
     val k3 = f(xs +++ k2 *** (h/2))
     val k4 = f(xs +++ k3 *** h)
     xs +++ (k1 +++ k2 *** 2 +++ k3 *** 2 +++ k4) *** (h/6)
   }
+  
+  def solveIVPTaylor[Id, S <% RichStore[S,Id], R: Real](s: S, h: Double, orderOfIntegration: Int)(implicit f: Field[S,Id]): S = {
+    require (orderOfIntegration > 0, s"Order of integration ($orderOfIntegration) must be greater than 0")
+    val ode = f.map(n => n, AD lift _)
+    val rIsReal = implicitly[Real[R]]
+    val hl = rIsReal fromDouble h
+    // compute Taylor coefficients of order 0 to orderOfIntegration
+    val taylorCoeffs = (1 to orderOfIntegration).foldLeft(AD lift s) {
+      case (sTmp, i) => // xsTmp contains coeffs up to order i-1
+        val fieldApplied = ode(sTmp)
+        // compute the i-th Taylor coefficients
+        f.variables(s).foldLeft(sTmp) { // we are modifying from the store containing the coefficients up to order i-1
+          case (sUpdTmp, (id, n)) =>
+            val VLit(gdif: GDif[R]) = sTmp(id, n)
+            val VLit(der: GDif[R]) = fieldApplied(id, n)
+            val coeff = gdif.dif.coeff updated (i, der.dif.coeff(i - 1) / (rIsReal fromInt i))
+            sUpdTmp updated (id, n, VLit(gdif updated Dif(coeff))) // update i:th Taylor coeff for variable (vId, n)
+        }
+    }   
+    // the Taylor series // FIXME Does it not make more sense to accumulate solution when computing taylorCoeffs?
+    val solution = f.variables(s).foldLeft(taylorCoeffs) {
+      case (sTmp, (id, n)) =>
+        val VLit(gdif: GDif[R]) = taylorCoeffs(id, n) // will sum the Taylor coeffs from the store in which they were computed (paranoia)
+        val vNext = gdif.dif.coeff.zipWithIndex.map{ case (x, i) => 
+          if (i <= orderOfIntegration) x * rIsReal.pow(hl, rIsReal fromInt i) // FIXME Use powOnInt 
+          else rIsReal.zero }.reduce(_+_)
+        sTmp updated (id, n, VLit(rIsReal groundValue vNext))
+    }
+    AD lower solution
+  }
 
   /** Representation of a set of ODEs. 
    *  FieldId is a type, specific to the store type S, whose values 
    *  can be used to uniquely identify values in the store. */
-  abstract class Field[S /* store */] {
+  abstract class Field[S /* store */, Id /* object id */] {
     /** Evaluate the field (the RHS of each equation in ODEs) in s. */
     def apply(s: S): S
+    /** Returns the set of variables affected by the field.
+     * These are the LHSs of each ODE and the corresponding unprimed variables. */
+    def variables(s: S): List[(Id, Name)]
+    /** Map m over the LHS and RHS of ODE */
+    def map(nm: Name => Name, em: Expr => Expr): Field[S,Id]    
   }
 
   /** Embedded DSL for expressing integrators. */
-  abstract class RichStore[S /* store */] {
+  abstract class RichStore[S /* store */, Id /* object id */] {
     def +++(that: S): S
     def ***(that: Double): S
+    def map(m: Value[Id] => Value[Id]): S
+    def apply(id: Id, n: Name): Value[Id]
+    def updated(id: Id, n: Name, v: Value[Id]): S
+    def getInSimulator(variable: String): Value[Id]
   }
 
   /** Compute hypothesis outcomes (for non-rigorous intepreters) */

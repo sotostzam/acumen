@@ -36,10 +36,16 @@ object Common {
   type Store = Object
   type ObjId = Object
   type Val = Value[ObjId]
-  case class Env(env: Map[Name, Val], forOde: Option[IndexedSeq[Val]] = None) {
-    def apply(n: Name) = env.apply(n)
-    def get(n: Name) = env.get(n)
-    def +(v:(Name,Val)) = Env(env + v, forOde)
+  case class Env(env: Map[Name, Val], forOde: Option[IndexedSeq[Val]] = None) extends Environment[Val] {
+    override def apply(n: Name) = env.apply(n)
+    override def get(n: Name) = env.get(n)
+    override def +(v: (Name,Val)) = Env(env + v, forOde)
+    override def ++(v: Map[Name,Val]) = Env(env ++ v, forOde)
+    override def empty = Env.empty
+  }
+  object Env {
+    val empty = new Env(Map.empty, None)
+    def apply(nvs: (Name, Val)*): Env = new Env(Map(nvs:_*), None)
   }
   
   type MMap[A, B] = scala.collection.mutable.Map[A, B]
@@ -439,15 +445,15 @@ object Common {
 
     val vs = ctrs map {
       case NewRhs(e, es) =>
-        val cn = evalExpr(e, p, Env(Map(self -> VObjId(Some(res))))) match {
+        val cn = evalExpr(e, p, Env(self -> VObjId(Some(res)))) match {
           case VClassName(cn) => cn
           case v => throw NotAClassName(v).setPos(e.pos)
         }
-        val ves = es map (evalExpr(_, p, Env(Map(self -> VObjId(Some(res))))))
+        val ves = es map (evalExpr(_, p, Env(self -> VObjId(Some(res)))))
         val nsd = getNewSeed(res)
         VObjId(Some(mkObj(cn, p, ParentIs(res), nsd, ves, magic)))
       case ExprRhs(e) =>
-        evalExpr(e, p, Env(Map(self -> VObjId(Some(res)))))
+        evalExpr(e, p, Env(self -> VObjId(Some(res))))
     }
     val priv = privVars zip vs.map{new ValVal(_)}
     res.fields = pub ++ priv
@@ -628,14 +634,22 @@ object Common {
 
   /* IVP */
 
-  case class FieldImpl(odes: ArrayBuffer[Equation], p: Prog) extends Field[IndexedSeq[Val]] {
+  case class FieldImpl(odes: ArrayBuffer[Equation], p: Prog) extends Field[IndexedSeq[Val],ObjId] {
     override def apply(s: IndexedSeq[Val]) =
       odes.map{e => evalExpr(e.rhs, p, Env(e.env,Some(s)))}
+    override def variables(s: IndexedSeq[Val]): List[(ObjId, Name)] =
+      odes.toList.map { da => (da.id, da.field) }
+    override def map(nm: Name => Name, em: Expr => Expr) = 
+      FieldImpl(odes.map(eqn => eqn.copy(field = nm(eqn.field), rhs = em(eqn.rhs))), p)
   }
   
-  case class RichStoreImpl(s: IndexedSeq[Val]) extends RichStore[IndexedSeq[Val]] {
+  case class RichStoreImpl(s: IndexedSeq[Val]) extends RichStore[IndexedSeq[Val],ObjId] {
     override def +++(that: IndexedSeq[Val]) = (this.s,that).zipped.map{(a,b) => evalOp("+", List(a,b))}
     override def ***(that: Double) = this.s.map{a => evalOp("*", List(a,VLit(GDouble(that))))}
+    override def map(m: Val => Val) = s.map(m)
+    override def apply(id: ObjId, n: Name): Val = ???
+    override def updated(id: ObjId, n: Name, v: Val) = ???
+    override def getInSimulator(variable: String) = ???
   }
   
   implicit def liftStore(s: IndexedSeq[Val])(implicit field: FieldImpl): RichStoreImpl = RichStoreImpl(s)
