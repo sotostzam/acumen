@@ -229,7 +229,7 @@ object AD extends App {
         val k0 = firstNonZero(r)
         val l0 = firstNonZero(l)
         require((k0 > -1), "Division by zero is not allowed.")
-        require((k0 <= firstNonZero(l) || l0 == -1), s"First non-vanishing coefficient of $r must not be higher order than the first non-vanishing coefficient of $l.")
+        require((k0 <= l0 || l0 == -1), s"First non-vanishing coefficient of $r must not be higher order than the first non-vanishing coefficient of $l.")
         val coeff = new collection.mutable.ArraySeq[V](n)
         coeff(0) = l(k0) / r(k0)
         for (k <- 1 to n - k0 - 1)
