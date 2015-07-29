@@ -7,13 +7,14 @@ import util.Filters._
 import render.ToPython._
 import Pretty._
 import PassManager._
+import benchTool._
 
-import java.net.{Socket, InetAddress, ServerSocket}
+import java.net.{ Socket, InetAddress, ServerSocket }
 
 import scala.collection.mutable.ArrayBuffer
 
 object ThreeDState extends Enumeration {
-  val ERROR,DISABLE,ENABLE = Value
+  val ERROR, DISABLE, ENABLE = Value
 }
 
 object Main {
@@ -27,23 +28,26 @@ object Main {
   var enableAllSemantics = true
   var autoPlay = false
   var openFile: File = null
-  var defaultSemantics : SemanticsImpl[Interpreter] = null
+  var defaultSemantics: SemanticsImpl[Interpreter] = null
   var useCompletion = true
   var useTemplates = false
   var dontFork = false
   var synchEditorWithBrowser = true // Synchronize code editor with file browser
   var extraPasses = Seq.empty[String]
   var displayHelp = "none"
-  var commandLineParms = false 
+  var commandLineParms = false
   // ^^ true when certain command line paramatics are specified, will
   //    enable console message so that its clear what options are in effect
 
   // temporary hack
   var enableOldSemantics = true
-  
+
+  //Destination file (used for example by the performance plugin)
+  var outputFile = "benchFiles/outputs/bench.output"
+
   // state related to real-time simulation
   var enableRealTime = true
-  
+
   var debugExtract = false
   var printLogLevel: Option[Logger.Level] = None
 
@@ -53,7 +57,7 @@ object Main {
   //  the preferred version should be showed.  Lots also have
   //  enable|disable|no version but only one that changes the default
   //  behavior should be displayed
-  lazy val pa : Seq[String] = passAliases.collect{case PassAlias(from,_,Some(_)) => from}
+  lazy val pa: Seq[String] = passAliases.collect { case PassAlias(from, _, Some(_)) => from }
   def optsHelp = Array(
     "--help                  this help message",
     "-i|--semantics <semantics string>",
@@ -71,11 +75,9 @@ object Main {
     "--full-help",
     "--templates             enables template expansion in the source code editor",
     "--prune-semantics       hide experimental semantics in the U.I.",
-   s"-l|--log <level>        print logs to command line (level is one of: ${Logger.levels.mkString(",")})."
-  )
+    s"-l|--log <level>        print logs to command line (level is one of: ${Logger.levels.mkString(",")}).")
   def commandHelp = Array(
-    "ui [<file>]             starts the U.I."
-  )
+    "ui [<file>]             starts the U.I.")
   def experimentalCommandHelp = Array(
     "pretty <file>           pretty print model",
     "last <file>             run model and print final result",
@@ -93,39 +95,40 @@ object Main {
     "                        enclosure benchmark", //  see --help-bench-enclosures",
     "listen <file> <portnum>",
     "",
-    "examples                record reference outputs for test suite"
-    //"2d|3d" // have no clue what these do! -- kevina
+    "detailed_time <file> [--output outputFile]    run the time measurements based on the experiment file" +
+      " and print the output in the specified output file or in \"" + outputFile + "\"",
+    "examples                record reference outputs for test suite" //"2d|3d" // have no clue what these do! -- kevina
     //"fromJson",
-  )
+    )
 
   def usage() = {
     System.err.println("Try --help for more information.")
     System.exit(1)
   }
 
-  def parseArgs(args: List[String]) : Unit = try {
+  def parseArgs(args: List[String]): Unit = try {
     args match {
       case Nil =>
-      case ("--help" ) :: tail =>
+      case ("--help") :: tail =>
         displayHelp = "normal"; parseArgs(tail)
-      case ("--help-full"|"--full-help") :: tail =>
+      case ("--help-full" | "--full-help") :: tail =>
         displayHelp = "full"; parseArgs(tail)
       case ("--help-bench-enclosures") :: tail =>
         displayHelp = "bench-enclosures"; parseArgs(tail)
-      case ("--semantics"|"--interpreter"|"-i") :: i :: tail =>
+      case ("--semantics" | "--interpreter" | "-i") :: i :: tail =>
         commandLineParms = true
         defaultSemantics = SemanticsImpl(i); parseArgs(tail)
       case ("--model") :: f :: tail =>
         openFile = checkFile(f); parseArgs(tail)
-      case ("--enable-3d" | "--3d") :: tail => 
+      case ("--enable-3d" | "--3d") :: tail =>
         threeDState = ThreeDState.ENABLE; parseArgs(tail)
-      case ("--disable-3d" | "--no-3d") :: tail => 
+      case ("--disable-3d" | "--no-3d") :: tail =>
         threeDState = ThreeDState.DISABLE; parseArgs(tail)
-      case ("--enable-newplot" | "--newplot") :: tail => 
+      case ("--enable-newplot" | "--newplot") :: tail =>
         disableNewPlot = false; parseArgs(tail)
-      case ("--disable-newplot" | "--no-newplot") :: tail => 
+      case ("--disable-newplot" | "--no-newplot") :: tail =>
         disableNewPlot = true; parseArgs(tail)
-      case ("--prune-semantics") :: tail => 
+      case ("--prune-semantics") :: tail =>
         enableAllSemantics = false; parseArgs(tail)
       case "--disable-realtime" :: tail =>
         enableRealTime = false
@@ -139,10 +142,10 @@ object Main {
         useTemplates = true; parseArgs(tail)
       case "--dont-fork" :: tail =>
         dontFork = true; parseArgs(tail)
-      case ("--passes"|"-p") :: p :: tail =>
+      case ("--passes" | "-p") :: p :: tail =>
         commandLineParms = true
         validatePassesStr(p); extraPasses = splitPassesString(p); parseArgs(tail)
-      case ("--log"|"-l") :: level :: tail =>
+      case ("--log" | "-l") :: level :: tail =>
         level match {
           case "TRACE" => printLogLevel = Some(Logger.TRACE)
           case "DEBUG" => printLogLevel = Some(Logger.DEBUG)
@@ -154,15 +157,15 @@ object Main {
             usage()
         }
         parseArgs(tail)
-      case opt ::  tail if opt.startsWith("-") =>
+      case opt :: tail if opt.startsWith("-") =>
         System.err.println("Unrecognized Option: " + opt)
         usage()
-      case arg :: tail => 
+      case arg :: tail =>
         positionalArgs += arg
         parseArgs(tail)
     }
   } catch {
-    case e : AcumenError => 
+    case e: AcumenError =>
       System.err.println(e.getMessage())
       usage()
   }
@@ -176,19 +179,18 @@ object Main {
     openFile
   }
 
-  def extraInfo(full: Boolean) : Unit = {
+  def extraInfo(full: Boolean): Unit = {
     println("");
     println("Valid Semantic Strings: ");
     println(SemanticsImpl.helpText(full))
     println("Valid Passes: ");
-    println(passAliases.collect{case PassAlias(from,_,Some(desc)) => "  %-23s %s".format(from,desc)}.mkString("\n"))
+    println(passAliases.collect { case PassAlias(from, _, Some(desc)) => "  %-23s %s".format(from, desc) }.mkString("\n"))
     if (full)
-      println(availPasses.map{p => "  %-23s %s".format(p.id,p.desc)}.mkString("\n"))
+      println(availPasses.map { p => "  %-23s %s".format(p.id, p.desc) }.mkString("\n"))
     println("")
   }
-  
 
-  def main(args: Array[String]) : Unit = {
+  def main(args: Array[String]): Unit = {
     parseArgs(args.toList)
     if (defaultSemantics == null)
       defaultSemantics = SemanticsImpl("")
@@ -196,29 +198,29 @@ object Main {
       println("Usage: acumen [options] [command]")
       println("");
       println("Options: ");
-      optsHelp.foreach{line => println("  " + line)}
+      optsHelp.foreach { line => println("  " + line) }
       extraInfo(false)
       println("Commands: ");
-      commandHelp.foreach{line => println("  " + line)} 
+      commandHelp.foreach { line => println("  " + line) }
     } else if (displayHelp == "full") {
       println("Usage: acumen [options] [command]")
       println("");
       println("Options: ");
-      optsHelp.foreach{line => println("  " + line)}
+      optsHelp.foreach { line => println("  " + line) }
       println("");
       println("Experimental options:")
-      experimentalOptsHelp.foreach{line => println("  " + line)}
+      experimentalOptsHelp.foreach { line => println("  " + line) }
       extraInfo(true)
       println("Commands: ");
-      commandHelp.foreach{line => println("  " + line)} 
+      commandHelp.foreach { line => println("  " + line) }
       println("");
       println("Experimental commands:");
-      experimentalCommandHelp.foreach{line => println("  " + line)}
+      experimentalCommandHelp.foreach { line => println("  " + line) }
     } else {
       (if (positionalArgs.size == 0) "ui" else positionalArgs(0)) match {
-        case "ui" => 
+        case "ui" =>
           ui.GraphicalMain.main(args)
-        case "examples"|"record-reference-outputs" => 
+        case "examples" | "record-reference-outputs" =>
           examples
         case _ =>
           origMain(positionalArgs.toArray)
@@ -230,13 +232,13 @@ object Main {
   // Other stuff that should eventually be factored out
   //
 
-  var portNo : Int = 9999
-  var serverSocket : ServerSocket = null
-  var serverMode : Boolean = false
-  var serverBufferedReader : BufferedReader = null
-  var serverBufferedWriter : BufferedWriter = null
+  var portNo: Int = 9999
+  var serverSocket: ServerSocket = null
+  var serverMode: Boolean = false
+  var serverBufferedReader: BufferedReader = null
+  var serverBufferedWriter: BufferedWriter = null
 
-  def send_recv(s: String) : String = {
+  def send_recv(s: String): String = {
     serverBufferedWriter.write(s)
     serverBufferedWriter.newLine()
     serverBufferedWriter.flush()
@@ -244,10 +246,10 @@ object Main {
   }
 
   def as_ctrace(trace: InterpreterRes) = {
-    trace match {case CStoreRes(r,_) => r; case _ => null}    
+    trace match { case CStoreRes(r, _) => r; case _ => null }
   }
 
-  def origMain(args: Array[String]) : Unit = {
+  def origMain(args: Array[String]): Unit = {
     try {
 
       /* Read the Acumen source, parse, pre-process and interpret it. */
@@ -255,7 +257,7 @@ object Main {
       def in = new InputStreamReader(new FileInputStream(file))
       lazy val semantics = Parser.run(Parser.getSemantics, in, Some(file)) match {
         case Some(s) => SemanticsImpl(s)
-        case None => defaultSemantics
+        case None    => defaultSemantics
       }
       lazy val i = semantics.interpreter()
       lazy val ast = semantics.parse(in, file.getParentFile(), Some(file.getName()))
@@ -265,15 +267,15 @@ object Main {
       lazy val md = trace.metadata
       /* Perform user-selected action. */
       args(0) match {
-        case "compile" => 
-          // FIXME: Fix to Work with new SemanticsImpl
-          //val typeChecker = new TypeCheck(desugared)
-          //val (typechecked, res) = typeChecker.run()
-          //interpreters.compiler.Interpreter.compile(typechecked, typeChecker)
-        case "pretty" => println(pprint(ast))
-        case "3d" => toPython3D(toSummary3D(ctrace))
-        case "2d" => toPython2D(toSummary2D(ctrace))
-        case "json" => for (st <- ctrace) println(JSon.toJSON(st))
+        case "compile" =>
+        // FIXME: Fix to Work with new SemanticsImpl
+        //val typeChecker = new TypeCheck(desugared)
+        //val (typechecked, res) = typeChecker.run()
+        //interpreters.compiler.Interpreter.compile(typechecked, typeChecker)
+        case "pretty"  => println(pprint(ast))
+        case "3d"      => toPython3D(toSummary3D(ctrace))
+        case "2d"      => toPython2D(toSummary2D(ctrace))
+        case "json"    => for (st <- ctrace) println(JSon.toJSON(st))
         case "fromJson" =>
           val st = ctrace(0)
           val x = JSon.fromJSON(JSon.toJSON(st).toString)
@@ -291,21 +293,23 @@ object Main {
         case "last" =>
           trace.printLast
           print(md.reportAsString)
-        case "time" => 
+        case "detailed_time" =>
+          bench.runTimer(args(1), outputFile)
+        case "time" =>
           val forced = final_out
           val startTime = System.currentTimeMillis()
           trace.printLast
           val endTime = System.currentTimeMillis()
-          println("Time to run: " + (endTime - startTime)/1000.0)
+          println("Time to run: " + (endTime - startTime) / 1000.0)
         case "bench" =>
           val offset = 2;
           val start: Int = Integer.parseInt(args(offset + 0))
           val stop: Int = Integer.parseInt(args(offset + 1))
-          val warmup : Int = if (args.size > offset + 2) Integer.parseInt(args(offset+2)) else 0
-          val repeat : Int = if (args.size > offset + 3) Integer.parseInt(args(offset+3)) else 10
+          val warmup: Int = if (args.size > offset + 2) Integer.parseInt(args(offset + 2)) else 0
+          val repeat: Int = if (args.size > offset + 3) Integer.parseInt(args(offset + 3)) else 10
           val forced = final_out
           for (nbThreads <- start to stop) {
-        	interpreters.imperative2012.ParallelInterpreter(nbThreads)
+            interpreters.imperative2012.ParallelInterpreter(nbThreads)
             print(nbThreads + " threads: ")
             as_ctrace(i.run(forced)).last
             for (_ <- 0 until warmup) { print("w"); as_ctrace(i.run(forced)).last }
@@ -319,10 +323,10 @@ object Main {
           val offset = 2;
           val start: Int = Integer.parseInt(args(offset + 0))
           val stop: Int = Integer.parseInt(args(offset + 1))
-          val warmup : Int = if (args.size > offset + 2) Integer.parseInt(args(offset+2)) else 0
-          val repeat : Int = if (args.size > offset + 3) Integer.parseInt(args(offset+3)) else 10
+          val warmup: Int = if (args.size > offset + 2) Integer.parseInt(args(offset + 2)) else 0
+          val repeat: Int = if (args.size > offset + 3) Integer.parseInt(args(offset + 3)) else 10
           val forced = final_out
-          var data = Map[Int,Double]()
+          var data = Map[Int, Double]()
           for (nbThreads <- start to stop) {
             interpreters.imperative2012.ParallelInterpreter(nbThreads)
             as_ctrace(i.run(forced)).last
@@ -332,22 +336,22 @@ object Main {
             val endTime = System.currentTimeMillis()
             val time = endTime - startTime
             System.err.print(".")
-            data += nbThreads -> time 
+            data += nbThreads -> time
           }
           // the result would ideally be written to a file, which would allow for 
           // outputting progress information as is done in the "bench" case
           println(Gnuplot.script(data))
-        case "bench-enclosures" => 
+        case "bench-enclosures" =>
           BenchEnclosures.run(i, final_out, args, 2)
         case "trace" =>
           trace.print
           print(md.reportAsString)
         case what => try {
-            val transformed = applyPasses(ast, splitPassesString(what), Nil, extraPasses)
-            Pretty.withType = true
-            println(pprint(transformed))
+          val transformed = applyPasses(ast, splitPassesString(what), Nil, extraPasses)
+          Pretty.withType = true
+          println(pprint(transformed))
         } catch {
-          case _:UnrecognizedTransformation => 
+          case _: UnrecognizedTransformation =>
             System.err.println("Unrecognized Command: " + what)
             usage()
         }
@@ -363,7 +367,7 @@ object Main {
   def examples = {
     var somethingUpdated = false
     def doit(ex: Examples, intr: SemanticsImpl.CStore) = {
-      ex.cstoreExamplesAction{(dn, f) =>
+      ex.cstoreExamplesAction { (dn, f) =>
         val loc = ex.expectLoc
         val resFile = ex.resultFile(loc, dn, f)
         if (resFile.exists) {
@@ -374,17 +378,17 @@ object Main {
             ex.writeExampleResult(loc, dn, f, intr)
             println("CREATED " + resFile)
           } catch {
-            case e => 
+            case e =>
               println("ERROR while creating " + resFile + ":")
               println("  " + e)
           }
         }
       }
     }
-    doit(Examples2012,SemanticsImpl.Ref2012)
-    doit(Examples2013,SemanticsImpl.Ref2013)
-    doit(Examples2014,SemanticsImpl.Ref2014)
-    doit(Examples2015,SemanticsImpl.Ref2015)
+    doit(Examples2012, SemanticsImpl.Ref2012)
+    doit(Examples2013, SemanticsImpl.Ref2013)
+    doit(Examples2014, SemanticsImpl.Ref2014)
+    doit(Examples2015, SemanticsImpl.Ref2015)
     if (somethingUpdated) {
       println("Results updated.  Be sure to git add & commit the updated files as appropriate.")
     }

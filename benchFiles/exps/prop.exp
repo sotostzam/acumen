@@ -1,0 +1,21 @@
+executions <- 
+ { 5 times 
+   2 seconds 
+   single
+ }
+
+Semantics <- 
+ { "reference2015" }
+
+Models <- 
+ {
+ 	examples/01_CPS_Course/04_Control_Theory/99_inverted_pendulum.acm ,
+	examples/03_Projects/04_Yingfu_Zeng/03_BreakingBall.acm
+  }
+
+warmup = 10
+
+repeat = 2
+
+GNUPLOT
+"RawTest"
