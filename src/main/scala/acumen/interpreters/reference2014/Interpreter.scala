@@ -38,7 +38,8 @@ object Interpreter extends acumen.CStoreInterpreter {
   val initStepType = Discrete
   val timeStep = 0.01
   val outputRows = "WhenChanged"
-  override def visibleParameters = visibleParametersMap(initStoreInterpreter(initStep = initStepType, initTimeStep = timeStep, initOutputRows = outputRows, isImperative = false)) + ("method" -> VLit(GStr(RungeKutta)))
+  val initStore = initStoreInterpreter(initStep = initStepType, initTimeStep = timeStep, initOutputRows = outputRows, isImperative = false)
+  override def visibleParameters = visibleParametersMap(initStore) + ("method" -> VLit(GStr(RungeKutta))) + ("orderOfIntegration" -> VLit(GInt(4)))
 
   /* initial values */
   val emptyStore : Store = HashMap.empty
@@ -366,7 +367,7 @@ object Interpreter extends acumen.CStoreInterpreter {
     val mprog = Prog(magicClass :: sprog.defs)
     val (sd1,sd2) = Random.split(Random.mkGen(0))
     val (id,_,st1) = 
-      mkObj(cmain, mprog, None, sd1, List(VObjId(Some(CId(0)))), 1)(initStoreInterpreter(initStep = initStepType, initTimeStep = timeStep, initOutputRows = outputRows, isImperative = false))
+      mkObj(cmain, mprog, None, sd1, List(VObjId(Some(CId(0)))), 1)(initStore)
     val st2 = changeParent(CId(0), id, st1)
     val st3 = changeSeed(CId(0), sd2, st2)
     val st4 = countVariables(st3)
@@ -468,7 +469,8 @@ object Interpreter extends acumen.CStoreInterpreter {
         val ResolvedDot(dId, _, dN) = resolveDot(d, env, s)  
         List((dId, dN), (dId, Name(dN.x, 0)))
       }
-    override def map(nm: Name => Name, em: Expr => Expr) = ???
+    override def map(nm: Name => Name, em: Expr => Expr) =
+      copy(odes = odes.map { case (id, d, e, env) => (id, d.copy(field = nm(d.field)), em(e), env) })
   }
 
   /**
