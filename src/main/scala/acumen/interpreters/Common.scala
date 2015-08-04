@@ -93,12 +93,28 @@ object Common {
       case "-" => -x
     }
     def implemReal[V: Real](f: String, x: V): V = f match {
-      case "-" => -x
-      case "sin" => x.sin
-      case "cos" => x.cos
-      case "tan" => x.tan
-      case "exp" => x.exp
-      case "log" => x.log
+      case "-"         => -x
+      case "sin"       => x.sin
+      case "cos"       => x.cos
+      case "tan"       => x.tan
+      case "acos"      => x.acos
+      case "asin"      => x.asin
+      case "atan"      => x.atan
+      case "toRadians" => throw new NotImplemented(f)
+      case "toDegrees" => throw new NotImplemented(f)
+      case "exp"       => x.exp
+      case "log"       => x.log
+      case "log10"     => throw new NotImplemented(f)
+      case "sqrt"      => x.sqrt
+      case "cbrt"      => throw new NotImplemented(f)
+      case "ceil"      => throw new NotImplemented(f)
+      case "floor"     => throw new NotImplemented(f)
+      case "rint"      => throw new NotImplemented(f)
+      case "round"     => throw new NotImplemented(f)
+      case "sinh"      => throw new NotImplemented(f)
+      case "cosh"      => throw new NotImplemented(f)
+      case "tanh"      => throw new NotImplemented(f)
+      case "signum"    => throw new NotImplemented(f)
     }
     (f, vx) match {
       case ("not", GBool(x))     => GBool(!x)

@@ -333,6 +333,11 @@ object Errors {
       s + " in _3D directory."
   }
   
+  case class NotImplemented(s:String) extends AcumenError {
+    override def getMessage =
+      s + " is not yet implemented."
+  }
+  
   /* Device Input Error */
   case class invalidInput(s: String) extends AcumenError {
     override def getMessage =
