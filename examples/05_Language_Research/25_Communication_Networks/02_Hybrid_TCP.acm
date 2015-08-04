@@ -5,16 +5,16 @@
 // by Farnqvist et al. and 
 //   "Principles of object oriented Modeling and Simulation
 //    with Modelica 2.1"
-// by Peter Fritzson
+// by Peter Fritzson, pages 564 to 578.
 //
 // Simplified to: one sender, one receiver, no routers.
 
 model Main(simulator) =
   initially
-    // NOTE: Guess round-trip time: 50ms!
-    s1  = create TCPSender  (1,500,0.05,false), // sender
-    q1  = create Queue      (1,500,0.05,false), // link
-    r1  = create TCPReceiver(1,500,0.05),       // receiver
+    // NOTE: Guess constant round-trip time: 50ms!
+    s1  = create TCPSender  (0,500,0.05,false), // sender
+    q1  = create Queue      (0,500,0.05,false), // link
+    r1  = create TCPReceiver(0,500,0.05),       // receiver
     eps = 0.01 // avoid division by 0
   always
     // establish link
@@ -24,9 +24,7 @@ model Main(simulator) =
       s1.drop+ = true,
       q1.drop+ = false
     noelse,
-    simulator.endTime+ = 15,
-
-    hypothesis "no drops" q1.drop == false
+    simulator.endTime+ = 15
 
 model TCPReceiver
   ( r    // packet flow rate in bytes/sec
@@ -55,7 +53,6 @@ model Queue
     B     = L*1250*1,  // outgoing link bandwidth
     z     = 0,         // dropped bytes
     z'    = 0, 
-    eps   = 0.01,      // avoid division by 0 
     mode  = "Not-Full" // Full, Not-Full
   always
 
