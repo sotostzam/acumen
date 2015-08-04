@@ -841,8 +841,10 @@ object Common {
   /* IVP */
 
   case class FieldImpl(odes: ArrayBuffer[Equation], p: Prog) extends Field[OdeEnv,ObjId] {
-    override def apply(s: OdeEnv) = 
-      OdeEnv(odes.map{e => evalExpr(e.rhs, p, Env(e.env,Some(s)))}, s.emptyAssignVals, s.simulator)
+    override def apply(s: OdeEnv) = {
+      val s1 = s.copy(assignVals = s.emptyAssignVals) // re-initialize assignVals to make sure bindings are current
+      OdeEnv(odes.map{e => evalExpr(e.rhs, p, Env(e.env,Some(s1)))}, s.emptyAssignVals, s.simulator)
+    }
     override def variables(s: OdeEnv): List[(ObjId, Name)] =
       odes.toList.map { da => (da.id, da.field) }
     override def map(nm: Name => Name, em: Expr => Expr) = 
