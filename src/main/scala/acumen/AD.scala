@@ -487,10 +487,7 @@ object AD extends App {
   }
   
   /** Lift all numeric values in a store into Difs */
-  def lift[S,Id](st: RichStore[S,Id]): S = st.map {
-    case VLit(gv: GroundValue) => VLit(liftGroundValue(gv))
-    case v => v 
-  }
+  def lift[S,Id](st: RichStore[S,Id]): S = st map liftValue 
   
   /** Lift all numeric values in an Expr into Difs */
   def lift(e: Expr): Expr = new acumen.util.ASTMap {
@@ -505,12 +502,16 @@ object AD extends App {
     case GInt(i) => GDoubleDif(Dif constant i)
     case _ => gv
   }
- 
-  /** Lower all Dif values in a RichStore into the corresponding numeric value */
-  def lower[S,Id](st: RichStore[S,Id]): S = st.map {
-    case VLit(gv) => VLit(lowerGroundValue(gv))
-    case v => v 
+  
+  private def liftValue[Id](v: Value[Id]): Value[Id] = v match {
+    case VLit(gv) => VLit(liftGroundValue(gv))
+    case VVector(lv: List[Value[Id]]) => VVector(lv map liftValue)
+    case VList(lv: List[Value[Id]]) => VList(lv map liftValue)
+    case _ => v
   }
+  
+  /** Lower all Dif values in a RichStore into the corresponding numeric value */
+  def lower[S,Id](st: RichStore[S,Id]): S = st map lowerValue
   
   /** Lower all Dif values in an Expr into the corresponding numeric value */
   def lower(e: Expr): Expr = new acumen.util.ASTMap {
@@ -526,5 +527,13 @@ object AD extends App {
       if (DoubleIsReal isValidInt v0) GInt(DoubleIsReal toInt v0) else GDouble(v0)
     case _ => gd
   }
+  
+  private def lowerValue[Id](v: Value[Id]): Value[Id] = v match {
+    case VLit(gv) => VLit(lowerGroundValue(gv))
+    case VVector(lv: List[Value[Id]]) => VVector(lv map lowerValue)
+    case VList(lv: List[Value[Id]]) => VList(lv map lowerValue)
+    case _ => v
+  }
+  
 
 }
