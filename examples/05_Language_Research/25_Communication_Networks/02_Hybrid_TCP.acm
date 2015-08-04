@@ -1,0 +1,172 @@
+// Hybrid TCP SACK Congestion Avoidance Example
+//
+// Based on hybrid TCP models in
+//   "Hybrid modeling of communication networks using Modelica"
+// by Farnqvist et al. and 
+//   "Principles of object oriented Modeling and Simulation
+//    with Modelica 2.1"
+// by Peter Fritzson
+//
+// Simplified to: one sender, one receiver, no routers.
+
+model Main(simulator) =
+  initially
+    // NOTE: Guess round-trip time: 50ms!
+    s1  = create TCPSender  (1,500,0.05,false), // sender
+    q1  = create Queue      (1,500,0.05,false), // link
+    r1  = create TCPReceiver(1,500,0.05),       // receiver
+    eps = 0.01 // avoid division by 0
+  always
+    // establish link
+    q1.s = s1.r, r1.r = q1.r,
+    // transfer drop event from queue to sender
+    if q1.drop then
+      s1.drop+ = true,
+      q1.drop+ = false
+    noelse,
+    simulator.endTime+ = 15,
+
+    hypothesis "no drops" q1.drop == false
+
+model TCPReceiver
+  ( r    // packet flow rate in bytes/sec
+  , L    // packet size
+  , RTT  // round-trip time 
+  ) =
+  initially
+    received  = 0,
+    received' = r 
+  always
+    received' = r
+
+model Queue
+  ( r    // packet flow rate in bytes/sec
+  , L    // packet size
+  , RTT  // round-trip time
+  , drop
+  ) =
+  initially
+    dropS = "NO",
+    s     = 9,         // packet arrival rate
+    r     = 5,         // packet departure rate
+    q     = 1,         // queue size
+    q'    = 4,         // s_1 - r_1
+    q_max = 50*L,      // queue size bound
+    B     = L*1250*1,  // outgoing link bandwidth
+    z     = 0,         // dropped bytes
+    z'    = 0, 
+    eps   = 0.01,      // avoid division by 0 
+    mode  = "Not-Full" // Full, Not-Full
+  always
+
+    if drop then dropS = "YES" else dropS = "NO",
+  
+    match mode with
+    [ "Not-Full" ->
+    
+      claim 0 <= q && q < q_max,
+      z' = 0, // NOTE: Missing from model!
+      q' = s - r,
+      if q <= 0 && s < B then // NOTE: replaced == with <=
+        r = s
+      else 
+        r = B,
+        
+      if q >= q_max && s > B then // NOTE: replaced == with >=
+        mode+ = "Full",
+        drop = true,
+        z+ = 0
+      noelse
+      
+    | "Full" ->
+    
+      claim q == q_max,
+      z'   = s - B,
+      q' = 0,
+      r  = B,
+      
+      if z >= L then // NOTE: replaced == with >=
+        z+    = 0,
+        drop+ = true
+      elseif s <= B then
+        mode+ = "Not-Full",
+        drop+ = true
+      noelse
+      
+    ]
+
+// Model of a single TCP sender/flow
+model TCPSender
+  ( r    // sending rate
+  , L    // packet size
+  , RTT  // round-trip time
+  , drop
+  ) =
+  initially
+    t_tim  = 0,
+    t_tim' = 0,
+    w      = 1,         // window size
+    w'     = log(2),    // window size rate of change
+    ssth   = 65536 / L, // slow-start threshold
+    RTO    = 0.200,     // retransmission timeout, 200ms
+    mode   = "Slow-start" 
+  always
+  
+    match mode with
+    [ "Timeout" ->
+    
+      w'     =  0,
+      t_tim' = -1,
+      r      =  0,
+      
+      if 0 <= t_tim then
+        mode+ = "Slow-start"
+      noelse
+      
+    | "Slow-start" ->
+    
+      w'     = log(2) * w / RTT, // NOTE: * w added compared to model
+      t_tim' = 0, // NOTE: Missing from model!
+      r      = (w * L) / RTT,
+      
+      if w >= ssth then
+        mode+ = "Congestion avoidance"
+      elseif drop && w >= 4 then
+        drop+ = "no",
+        mode+  = "Fast recovery",
+        t_tim+ = RTT,
+        w+     = w / 2,
+        ssth+  = w / 2
+      noelse
+      
+    | "Congestion avoidance" ->
+    
+      w'     = 1 / RTT,
+      t_tim' = 0, // NOTE: Missing from model!
+      r = (w * L) / RTT,
+      
+      if drop && w < 4 then
+        drop+ = false,
+        mode+  = "Timeout",
+        ssth+  = w / 2,
+        w+     = 1,
+        t_tim+ = RTO
+      elseif drop && w >= 4 then
+        drop+ = false,
+        mode+  = "Fast recovery",
+        t_tim+ = RTT,
+        w+     = w / 2,
+        ssth+  = w / 2
+      noelse
+      
+    | "Fast recovery" ->
+    
+      w'     = 0,
+      t_tim' = -1,
+      r      = (w * L) / RTT,
+      
+      if 0 <= t_tim then
+        mode+ = "Congestion avoidance"
+      noelse
+      
+    ]
