@@ -434,13 +434,13 @@ object Common {
 
   /* eval Index(e, i) */
   def evalIndexOp[A](e: Value[A], i: List[Value[A]]) : Value[A] = {
+    def lookup(i: Int, l: List[Value[A]]): Value[A] =
+      try { l(i) } 
+      catch { case _: IndexOutOfBoundsException => throw IndexOutOfBounds(i) }
     e match {
       case VVector(l) => i match {
-        case VLit(GInt(idx)) :: Nil => try {
-          l(idx)
-        } catch {
-          case _:IndexOutOfBoundsException => throw IndexOutOfBounds(idx)
-        }
+        case VLit(GInt(idx)) :: Nil => lookup(idx, l)
+        case VLit(gd: GDif[_]) :: Nil if gd.isValidInt => lookup(gd.toInt, l)
         case VVector(idxs) :: Nil => VVector(idxs.map(x => evalIndexOp(e,List(x))))
         case VVector(rows) :: VVector(columns) :: Nil => {
           val topRows = VVector(rows.map(x => evalIndexOp(e,List(x))))
