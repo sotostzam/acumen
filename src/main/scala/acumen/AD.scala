@@ -503,6 +503,7 @@ object AD extends App {
     case _ => gv
   }
   
+  /** Lift all the values inside a Value[Id] into Difs */
   private def liftValue[Id](v: Value[Id]): Value[Id] = v match {
     case VLit(gv) => VLit(liftGroundValue(gv))
     case VVector(lv: List[Value[Id]]) => VVector(lv map liftValue)
@@ -528,6 +529,7 @@ object AD extends App {
     case _ => gd
   }
   
+  /** Lower all the values inside a Value[Id] from Difs */
   private def lowerValue[Id](v: Value[Id]): Value[Id] = v match {
     case VLit(gv) => VLit(lowerGroundValue(gv))
     case VVector(lv: List[Value[Id]]) => VVector(lv map lowerValue)
