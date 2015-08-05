@@ -469,8 +469,8 @@ object Interpreter extends acumen.CStoreInterpreter {
         val ResolvedDot(dId, _, dN) = resolveDot(d, env, s)  
         List((dId, dN), (dId, Name(dN.x, 0)))
       }
-    override def map(nm: Name => Name, em: Expr => Expr) =
-      copy(odes = odes.map { case (id, d, e, env) => (id, d.copy(field = nm(d.field)), em(e), env) })
+    override def map(m: Expr => Expr) =
+      copy(odes = odes.map { case (id, d, e, env) => (id, d, m(e), env) })
   }
 
   /**

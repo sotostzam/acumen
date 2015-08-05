@@ -680,7 +680,7 @@ object Common {
   
   def solveIVPTaylor[Id, S <% RichStore[S,Id], R: Real](s: S, h: Double, orderOfIntegration: Int)(implicit f: Field[S,Id]): S = {
     require (orderOfIntegration > 0, s"Order of integration ($orderOfIntegration) must be greater than 0")
-    val ode = f.map(n => n, AD lift _)
+    val ode = f map (AD lift _)
     val rIsReal = implicitly[Real[R]]
     val hl = rIsReal fromDouble h
     // compute Taylor coefficients of order 0 to orderOfIntegration
@@ -717,8 +717,8 @@ object Common {
     /** Returns the set of variables affected by the field.
      * These are the LHSs of each ODE and the corresponding unprimed variables. */
     def variables(s: S): List[(Id, Name)]
-    /** Map m over the LHS and RHS of ODE */
-    def map(nm: Name => Name, em: Expr => Expr): Field[S,Id]    
+    /** Map m over the RHS of ODE */
+    def map(m: Expr => Expr): Field[S,Id]    
   }
 
   /** Embedded DSL for expressing integrators. */

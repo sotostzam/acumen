@@ -629,11 +629,8 @@ object Interpreter extends acumen.CStoreInterpreter {
         val ResolvedDot(dId, _, dN) = resolveDot(da.d.lhs, da.env, s)
         (dId, dN) 
       }
-    override def map(nm: Name => Name, em: Expr => Expr) = 
-      FieldImpl(odes.map{ eqn => 
-        eqn.copy( rhs = em(eqn.rhs), 
-                  d = eqn.d.copy(e = eqn.d.lhs.copy(field = nm(eqn.d.lhs.field))) ) }
-      , p)
+    override def map(em: Expr => Expr) = 
+      FieldImpl(odes.map(ode => ode.copy(rhs = em(ode.rhs))))
   }
 
   /**

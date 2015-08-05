@@ -847,8 +847,8 @@ object Common {
     }
     override def variables(s: OdeEnv): List[(ObjId, Name)] =
       odes.toList.map { da => (da.id, da.field) }
-    override def map(nm: Name => Name, em: Expr => Expr) = 
-      FieldImpl(odes.map(eqn => eqn.copy(field = nm(eqn.field), rhs = em(eqn.rhs))), p)
+    override def map(m: Expr => Expr) = 
+      FieldImpl(odes.map(ode => ode.copy(rhs = m(ode.rhs))), p)
   }
   
   case class RichStoreImpl(s: OdeEnv) extends RichStore[OdeEnv,ObjId] {
