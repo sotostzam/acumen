@@ -575,7 +575,7 @@ object Interpreter extends acumen.CStoreInterpreter {
             checkDuplicateAssingments(eqsIds ++ odesIds, DuplicateContinuousAssingment)
             checkContinuousDynamicsAlwaysDefined(p, eqsIds, st1)
             /* After reaching a discrete fixpoint, integrate */
-            val stODES = solveIVP(odes, p, st1)
+            val stODES = solveIVP(odes, st1)
             val stT = setTime(getTime(stODES) + getTimeStep(stODES), stODES)
             /* Ensure that the resulting store is consistent w.r.t. continuous assignments */
             val stEQS = applyCollectedAssignments(eqs, stT)
@@ -607,8 +607,8 @@ object Interpreter extends acumen.CStoreInterpreter {
    *  - Env:  Initial conditions of the IVP.
    * The time segment is derived from time step in store st. 
    */
-  def solveIVP(odes: List[CollectedAction], p: Prog, st: Store)(implicit bindings: Bindings): Store = {
-    implicit val field = FieldImpl(odes, p)
+  def solveIVP(odes: List[CollectedAction], st: Store)(implicit bindings: Bindings): Store = {
+    implicit val field = FieldImpl(odes)
     implicit val doubleIsReal = AD.DoubleIsReal
     new Solver(getInSimulator(Name("method", 0),st), xs = st, h = getTimeStep(st)) {
       override def knownSolvers = super.knownSolvers :+ EulerCromer
@@ -620,7 +620,7 @@ object Interpreter extends acumen.CStoreInterpreter {
   }
   
   /** Representation of a set of ODEs. */
-  case class FieldImpl(odes: List[CollectedAction], p: Prog)(implicit bindings: Bindings) extends Field[Store,CId] {
+  case class FieldImpl(odes: List[CollectedAction])(implicit bindings: Bindings) extends Field[Store,CId] {
     /** Evaluate the field (the RHS of each equation in ODEs) in s. */
     override def apply(s: Store): Store = applyCollectedAssignments(odes, s)
     /** NOTE: Assumes that the de-sugarer has reduced all higher-order ODEs.  */
