@@ -27,7 +27,7 @@ class PlotInput(val model : () => PlotModel,
   @volatile var enabled = false
   @volatile var parms = PlotParms()
   @volatile var plotStyle : PlotStyle = Lines()
-  val DISABLE_THRESHOLD = 25
+  val DISABLE_THRESHOLD = 50
   @volatile var disableThreshold = DISABLE_THRESHOLD
 }
 
