@@ -7,6 +7,7 @@ import util.Conversions._
 import scala.math._
 import Errors._
 import util.Canonical._
+import util.ASTUtil._
 import scala.util.parsing.input.Position
 
 //
@@ -685,25 +686,24 @@ object Common {
     val hl = rIsReal fromDouble h
     // compute Taylor coefficients of order 0 to orderOfIntegration
     val taylorCoeffs = (1 to orderOfIntegration).foldLeft(AD lift s) {
-      case (sTmp, i) => // xsTmp contains coeffs up to order i-1
-        val fieldApplied = ode(sTmp)
+      case (sTmp, i) => // sTmp contains coeffs up to order i-1
+        val fieldApplied = AD lift ode(sTmp) // FIXME Eliminate unnecessary lifting
         // compute the i-th Taylor coefficients
         f.variables(s).foldLeft(sTmp) { // we are modifying from the store containing the coefficients up to order i-1
           case (sUpdTmp, (id, n)) =>
-            val VLit(gdif: GDif[R]) = sTmp(id, n)
-            val VLit(der: GDif[R]) = fieldApplied(id, n)
-            val coeff = gdif.dif.coeff updated (i, der.dif.coeff(i - 1) / (rIsReal fromInt i))
-            sUpdTmp updated (id, n, VLit(gdif updated Dif(coeff))) // update i:th Taylor coeff for variable (vId, n)
-        }
-    }   
+            sUpdTmp updated (id, n, // update i:th Taylor coeff for variable (id, n)
+              mapValuePair(sTmp(id, n), fieldApplied(id, n), { (gdif: GDif[R], der: GDif[R]) =>
+                val coeff = gdif.dif.coeff updated (i, der.dif.coeff(i - 1) / (rIsReal fromInt i))
+                VLit(gdif updated Dif(coeff)) })) }
+    }
     // the Taylor series // FIXME Does it not make more sense to accumulate solution when computing taylorCoeffs?
-    val solution = f.variables(s).foldLeft(taylorCoeffs) {
-      case (sTmp, (id, n)) =>
-        val VLit(gdif: GDif[R]) = taylorCoeffs(id, n) // will sum the Taylor coeffs from the store in which they were computed (paranoia)
-        val vNext = gdif.dif.coeff.zipWithIndex.map{ case (x, i) => 
-          if (i <= orderOfIntegration) x * rIsReal.pow(hl, rIsReal fromInt i) // FIXME Use powOnInt 
-          else rIsReal.zero }.reduce(_+_)
-        sTmp updated (id, n, VLit(rIsReal groundValue vNext))
+    val solution = f.variables(s).foldLeft(taylorCoeffs) { case (sTmp, (id, n)) => 
+      sTmp updated (id, n, // sum the Taylor coeffs from the store in which they were computed (paranoia)
+        mapValue(taylorCoeffs(id, n), { gdif: GDif[R] =>
+          val vNext = gdif.dif.coeff.zipWithIndex.map { case (x, i) =>
+            if (i <= orderOfIntegration) x * rIsReal.pow(hl, rIsReal fromInt i) // FIXME Use powOnInt 
+            else rIsReal.zero }.reduce(_ + _)
+          VLit(rIsReal groundValue vNext) }))
     }
     AD lower solution
   }
