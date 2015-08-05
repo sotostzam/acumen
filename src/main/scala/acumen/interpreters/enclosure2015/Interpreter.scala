@@ -500,7 +500,10 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
         case Var(n)         => env.get(n).getOrElse(VClassName(ClassName(n.x)))
         case Index(v,i)     => evalIndexOp(eval(env, v), i.map(x => eval(env, x)))
         case Dot(o,f) =>
-          val id = extractId(evalExpr(o,env,st))
+          val id = evalExpr(o, env, st) match {
+            case VObjId(Some(id)) => checkAccessOk(id, env, st, e); id
+            case v => throw NotAnObject(v).setPos(e.pos)
+          }
           env.get(f).getOrElse(getObjectField(id, f, st))
         /* e.f */
         case ResolvedDot(id, o, f) =>
@@ -760,10 +763,11 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
 
   def evalContinuousAction(certain:Boolean, path: Expr, a:ContinuousAction, env:Env, p:Prog, st: Enclosure) : Set[Changeset] = 
     a match {
-      case EquationT(Dot(e: Dot, n), rhs) =>
-        val (rd, rRhs) = resolve(e, rhs, env, st)
-        logEquation(path, rd.id, Continuously(EquationT(rd, rRhs)), env)
-      case EquationT(e @ Dot(o, _), rhs) =>
+      case EquationT(d @ Dot(e: Dot, n), rhs) =>
+        val (erd, _) = resolve(e, rhs, env, st)
+        val (drd, drRhs) = resolve(d, rhs, env, st)
+        logEquation(path, erd.id, Continuously(EquationT(drd, drRhs)), env)
+      case EquationT(e @ Dot(o, f), rhs) =>
         val (rd, rRhs) = resolve(e, rhs, env, st)
         logEquation(path, rd.id, Continuously(EquationT(rd, rRhs)), env)
       case EquationI(e @ Dot(o, _), rhs) =>
@@ -1216,7 +1220,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
     }
     val odeSolutions = ic update solutionMap
     val equationsMap = inline(eqs, eqs, st).map { // LHSs of EquationsTs, including highest derivatives of ODEs
-      case CollectedAction(_, cid, Continuously(EquationT(ResolvedDot(_, _, n), rhs)), env) =>
+      case CollectedAction(_, _, Continuously(EquationT(ResolvedDot(cid, _, n), rhs)), env) =>
         (cid, n) -> evalExpr(rhs, env, odeSolutions)
     }.toMap
     odeSolutions update equationsMap
