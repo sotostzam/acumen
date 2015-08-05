@@ -17,6 +17,7 @@ object DebugUtil {
           case ExprRhs(_) =>
             val VLit(v) = st(mainId(st))(f.x)
             ExprRhs(Lit(v))
+          case _ => f.rhs
         })
       }) else d
     })
