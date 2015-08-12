@@ -6,7 +6,8 @@ import scala.collection.mutable.HashMap
 import scala.collection.mutable.{Map => MutMap}
 import scala.util.parsing.input.{Positional}
 import acumen.interpreters.enclosure.Interval
-import acumen.AD._
+import acumen.TAD._
+import acumen.FAD._
 
 package acumen {
 
@@ -178,25 +179,47 @@ package acumen {
   case class GPattern(p : List[GroundValue]) extends GroundValue
   /* Example: "foo" */
   case class GStr(s: String) extends GroundValue
-  /* Representation of a value and its derivatives */
+  /* Representation of a value and its time derivatives */
   abstract class GDif[V] extends GroundValue {
-    def dif: Dif[V] 
+    def dif: TDif[V] 
     def isValidInt: Boolean
     def toInt: Int
-    def updated(d: Dif[V]): GDif[V]
+    def updated(d: TDif[V]): GDif[V]
   }
-  case class GDoubleDif(dif: Dif[Double]) extends GDif[Double] {
-    def updated(d: Dif[Double]) = GDoubleDif(d)
+  case class GDoubleDif(dif: TDif[Double]) extends GDif[Double] {
+    def updated(d: TDif[Double]) = GDoubleDif(d)
     def isValidInt = dif.isValidInt
     def toInt = dif.toInt
   }
-  case class GIntDif(dif: Dif[Int]) extends GDif[Int] {
-    def updated(d: Dif[Int]) = GIntDif(d)
+  case class GIntDif(dif: TDif[Int]) extends GDif[Int] {
+    def updated(d: TDif[Int]) = GIntDif(d)
     def isValidInt = dif.isValidInt
     def toInt = dif.toInt
   }
-  case class GIntervalDif(dif: Dif[Interval]) extends GDif[Interval] {
-    def updated(d: Dif[Interval]) = GIntervalDif(d)
+  case class GIntervalDif(dif: TDif[Interval]) extends GDif[Interval] {
+    def updated(d: TDif[Interval]) = GIntervalDif(d)
+    def isValidInt = dif.isValidInt
+    def toInt = dif.toInt
+  }
+  /* Representation of a value and its partial derivatives w.r.t. the state variables */
+  abstract class GFDif[V] extends GroundValue {
+    def dif: FDif[V] 
+    def isValidInt: Boolean
+    def toInt: Int
+    def updated(d: FDif[V]): GFDif[V]
+  }
+  case class GDoubleFDif(dif: FDif[Double]) extends GFDif[Double] {
+    def updated(d: FDif[Double]) = GDoubleFDif(d)
+    def isValidInt = dif.isValidInt
+    def toInt = dif.toInt
+  }
+  case class GIntFDif(dif: FDif[Int]) extends GFDif[Int] {
+    def updated(d: FDif[Int]) = GIntFDif(d)
+    def isValidInt = dif.isValidInt
+    def toInt = dif.toInt
+  }
+  case class GIntervalFDif(dif: FDif[Interval]) extends GFDif[Interval] {
+    def updated(d: FDif[Interval]) = GIntervalFDif(d)
     def isValidInt = dif.isValidInt
     def toInt = dif.toInt
   }
@@ -445,5 +468,197 @@ package object acumen {
   type GValue = Value[_]
   type GObject = collection.Iterable[(Name, GValue)]
   type GStore = collection.Iterable[(CId, GObject)]
+  
+  /**
+   * Type class with operations that have sensible
+   * implementations for Int as well as all the
+   * other numeric types.
+   */
+  trait Integral[V] extends PartialOrdering[V] {
+    def add(l: V, r: V): V
+    def sub(l: V, r: V): V
+    def mul(l: V, r: V): V
+    def neg(x: V): V
+    def fromInt(i: Int): V
+    def toInt(x: V): Int
+    def toDouble(x: V): Double
+    def zero: V
+    def one: V
+    def isValidInt(x: V): Boolean
+    def isValidDouble(x: V): Boolean
+    def groundValue(v: V): GroundValue
+  }
+
+  /**
+   * Type class with operations that have sensible
+   * implementations for numeric types that represent
+   * real numbers. 
+   */
+  trait Real[V] extends Integral[V] {
+    def div(l: V, r: V): V
+    def pow(l: V, r: V): V
+    def sin(x: V): V
+    def cos(x: V): V
+    def tan(x: V): V
+    def acos(x: V): V
+    def asin(x: V): V
+    def atan(x: V): V
+    def exp(x: V): V
+    def log(x: V): V
+    def square(x: V): V
+    def sqrt(x: V): V
+    def fromDouble(i: Double): V
+  }
+  
+  /** Syntactic sugar for Integral operations */
+  implicit class IntegralOps[V](val l: V)(implicit ev: Integral[V]) {
+    def +(r: V): V = ev.add(l, r)
+    def -(r: V): V = ev.sub(l, r)
+    def *(r: V): V = ev.mul(l, r)
+    def unary_- = ev.neg(l)
+    def < (r: V): Boolean = ev.lt(l, r)
+    def > (r: V): Boolean = ev.gt(l, r)
+    def <= (r: V): Boolean = ev.lteq(l, r)
+    def >= (r: V): Boolean = ev.gteq(l, r)
+    def zero: V = ev.zero
+    def one: V = ev.one
+    def isValidInt: Boolean = ev.isValidInt(l)
+    def toInt: Int = ev.toInt(l)
+    def isValidDouble: Boolean = ev.isValidDouble(l)
+    def toDouble: Double = ev.toDouble(l)
+  }
+
+  /** Syntactic sugar for Real operations */
+  implicit class RealOps[V](val l: V)(implicit ev: Real[V]) {
+    def /(r: V): V = ev.div(l, r)
+    def ^(r: V): V = ev.pow(l, r)
+    def ^(r: Int): V = ev.pow(l, ev.fromInt(r))
+    def sin: V = ev.sin(l)
+    def cos: V = ev.cos(l)
+    def tan: V = ev.tan(l)
+    def acos: V = ev.acos(l)
+    def asin: V = ev.asin(l)
+    def atan: V = ev.atan(l)
+    def exp: V = ev.exp(l)
+    def log: V = ev.log(l)
+    def square: V = ev.square(l)
+    def sqrt: V = ev.sqrt(l)
+  }
+  
+  /** Integral instance for Int */
+  implicit object IntIsIntegral extends Integral[Int] {
+    def add(l: Int, r: Int): Int = l + r
+    def sub(l: Int, r: Int): Int = l - r
+    def mul(l: Int, r: Int): Int = l * r
+    def neg(x: Int): Int = -x
+    def fromInt(x: Int): Int = x
+    def zero: Int = 0
+    def one: Int = 1
+    def tryCompare(l: Int, r: Int): Option[Int] = Some(l compareTo r)
+    def lteq(l: Int, r: Int): Boolean = l <= r
+    def isValidInt(x: Int): Boolean = true
+    def toInt(x: Int): Int = x
+    def isValidDouble(x: Int): Boolean = true
+    def toDouble(x: Int): Double = x.toDouble
+    def groundValue(v: Int): GroundValue = GInt(v)
+  }
+
+  /** Real instance for Double */
+  implicit object DoubleIsReal extends Real[Double] {
+    def add(l: Double, r: Double): Double = l + r
+    def sub(l: Double, r: Double): Double = l - r
+    def mul(l: Double, r: Double): Double = l * r
+    def div(l: Double, r: Double): Double = l / r
+    def pow(l: Double, r: Double): Double = Math.pow(l, r)
+    def neg(x: Double): Double = -x
+    def sin(x: Double): Double = Math.sin(x)
+    def cos(x: Double): Double = Math.cos(x)
+    def tan(x: Double): Double = Math.tan(x)
+    def acos(x: Double): Double = Math.acos(x)
+    def asin(x: Double): Double = Math.asin(x)
+    def atan(x: Double): Double = Math.atan(x)
+    def exp(x: Double): Double = Math.exp(x)
+    def log(x: Double): Double = Math.log(x)
+    def square(x: Double): Double = x * x
+    def sqrt(x: Double): Double = Math.sqrt(x)
+    def fromInt(x: Int): Double = x
+    def fromDouble(x: Double): Double = x
+    def zero: Double = 0
+    def one: Double = 1
+    def tryCompare(l: Double, r: Double): Option[Int] = Some(l compareTo r)
+    def lteq(l: Double, r: Double): Boolean = l <= r
+    def isValidInt(x: Double): Boolean =
+      Math.floor(x) == Math.ceil(x) && Integer.MIN_VALUE <= x && x <= Integer.MAX_VALUE
+    def toInt(x: Double): Int = x.toInt
+    def isValidDouble(x: Double): Boolean = true
+    def toDouble(x: Double): Double = x
+    def groundValue(v: Double): GroundValue = GDouble(v)
+  }
+
+  /** Real instance for Interval */
+  implicit object IntervalIsReal extends Real[Interval] {
+    def add(l: Interval, r: Interval): Interval = l + r
+    def sub(l: Interval, r: Interval): Interval = l - r
+    def mul(l: Interval, r: Interval): Interval = l * r
+    def div(l: Interval, r: Interval): Interval = l / r
+    def pow(l: Interval, r: Interval): Interval = l pow r
+    def neg(x: Interval): Interval = -x
+    def sin(x: Interval): Interval = x.sin
+    def cos(x: Interval): Interval = x.cos
+    def tan(x: Interval): Interval = x.tan
+    def acos(x: Interval): Interval = x.acos
+    def asin(x: Interval): Interval = x.asin
+    def atan(x: Interval): Interval = x.atan
+    def exp(x: Interval): Interval = x.exp
+    def log(x: Interval): Interval = x.log
+    def square(x: Interval): Interval = x.square
+    def sqrt(x: Interval): Interval = x.sqrt
+    def fromInt(x: Int): Interval = Interval(x)
+    def fromDouble(x: Double): Interval = Interval(x)
+    def zero: Interval = Interval.zero
+    def one: Interval = Interval.one
+    def isValidInt(x: Interval): Boolean = x.lo.doubleValueFloor == x.hi.doubleValueCeiling
+    def toInt(x: Interval): Int = x.lo.doubleValueFloor.toInt 
+    def isValidDouble(x: Interval): Boolean = (x.lo == x.hi)
+    def toDouble(x: Interval): Double = (x.lo).doubleValueFloor
+    def lteq(l: Interval, r: Interval): Boolean = l lessThanOrEqualTo r
+    def tryCompare(l: Interval, r: Interval): Option[Int] =
+      if (l == r)         Some(0)
+      else if (lteq(l,r)) Some(1) 
+      else if (lteq(r,l)) Some(-1)
+      else                None
+    def groundValue(v: Interval) = GInterval(v)
+  }
+  
+  /** Representation of a number and its derivatives. */
+  trait Dif[V] {
+    def coeff: Seq[V]
+    def apply(i: Int): V = coeff(i)
+    def size: Int = coeff.size
+  }
+  
+  abstract class DifAsIntegral[V: Integral, D <: Dif[V]] {
+    /** Factory method */
+    def dif(v: Seq[V]): D
+    /* Constants */
+    val evVIsIntegral = implicitly[Integral[V]]
+    val zeroOfV = evVIsIntegral.zero
+    val oneOfV = evVIsIntegral.one
+    /* Integral instance */
+    def add(l: D, r: D): D = dif((l.coeff, r.coeff).zipped.map(_ + _))
+    def sub(l: D, r: D): D = dif((l.coeff, r.coeff).zipped.map(_ - _))
+    
+    def neg(x: D): D = dif(x.coeff.map(- _))
+    
+    def toInt(x: D): Int = x(0).toInt
+    def toDouble(x: D): Double = x(0).toDouble
+    def isValidInt(x: D): Boolean = evVIsIntegral.isValidInt(x(0)) && isConstant(x)
+    def isValidDouble(x: D): Boolean = evVIsIntegral.isValidDouble(x(0)) && isConstant(x)
+    def isConstant(x: D): Boolean = x.coeff.tail.forall(_ == zeroOfV)
+    
+    def tryCompare(l: D, r: D): Option[Int] = evVIsIntegral.tryCompare(l(0), r(0))
+    def lteq(l: D, r: D): Boolean = evVIsIntegral.lteq(l(0), r(0))
+  }
+
 
 }

@@ -609,8 +609,7 @@ object Interpreter extends acumen.CStoreInterpreter {
    */
   def solveIVP(odes: List[CollectedAction], st: Store)(implicit bindings: Bindings): Store = {
     implicit val field = FieldImpl(odes)
-    implicit val doubleIsReal = AD.DoubleIsReal
-    new Solver(getInSimulator(Name("method", 0),st), xs = st, h = getTimeStep(st)) {
+    new Solver[CId,CStore,Double](getInSimulator(Name("method", 0),st), xs = st, h = getTimeStep(st)) {
       override def knownSolvers = super.knownSolvers :+ EulerCromer
       override def solveIfKnown(name: String) = super.solveIfKnown(name) orElse (name match {
         case EulerCromer => Some(solveIVPEulerCromer(xs, h))

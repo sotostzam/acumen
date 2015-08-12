@@ -1,7 +1,7 @@
 package acumen
 package interpreters
 
-import AD.{ Dif, Integral, Real, IntegralOps, RealOps }
+import TAD.{ TDif }
 import util.Names._
 import util.Conversions._
 import scala.math._
@@ -90,7 +90,7 @@ object Common {
       case "tanh"      => tanh(x)
       case "signum"    => signum(x)
     }
-    def implemIntegral[V: AD.Integral](f: String, x: V): V = f match {
+    def implemIntegral[V: acumen.Integral](f: String, x: V): V = f match {
       case "-" => -x
     }
     def implemReal[V: Real](f: String, x: V): V = f match {
@@ -123,8 +123,8 @@ object Common {
       case ("-", GInt(i))        => GInt(-i)
       case ("round", GDouble(x)) => GInt(x.toInt)
       case (f, GIntDif(d))       => f match {
-        case "-" => GIntDif(implemIntegral(f, d)) // keep as Dif[Int] if f has an integer result 
-        case _   => GDoubleDif(implemReal(f, Dif(d.coeff.map(_.toDouble)))) // otherwise, convert to Dif[Double] 
+        case "-" => GIntDif(implemIntegral(f, d)) // keep as TDif[Int] if f has an integer result 
+        case _   => GDoubleDif(implemReal(f, TDif(d.coeff.map(_.toDouble)))) // otherwise, convert to TDif[Double] 
       }
       case (f, GDoubleDif(d))    => GDoubleDif(implemReal(f, d))
       case _                     => GDouble(implem(f, extractDouble(vx)))
@@ -166,35 +166,35 @@ object Common {
       case "<=" => x <= y
       case ">=" => x >= y
     }
-    def implemIntegral[V: AD.Integral](f: String, x: V, y: V) = f match {
+    def implemIntegral[V: acumen.Integral](f: String, x: V, y: V) = f match {
       case "+" => x + y
       case "-" => x - y
       case "*" => x * y
       case _ => throw UnknownOperator(f)
     }
-    def implemReal[V: AD.Real](f: String, x: V, y: V) = f match {
+    def implemReal[V: acumen.Real](f: String, x: V, y: V) = f match {
       case "/" => x / y
       case "^" => x ^ y
       case _ => implemIntegral(f, x, y)
     }
-    def toDoubleDif(di: Dif[Int]): Dif[Double] = Dif(di.coeff.map(_.toDouble))
+    def toDoubleDif(di: TDif[Int]): TDif[Double] = TDif(di.coeff.map(_.toDouble))
     (f, vx, vy) match {
       case (">="|"<="|"<"|">", GInt(n), GInt(m)) => GBool(implem3(f,n,m))
       case ("<"|">"|"<="|">=", _, _) => GBool(implem4(f,extractDouble(vx),extractDouble(vy)))
       case ("+"|"-"|"*"|"<<"|">>"|"&"|"|"|"%"|"xor", GInt(n), GInt(m)) => GInt(implem1(f,n,m))
       
-      // FIXME Add special case for integer powers of Dif[Int], to avoid lifting to Dif[Double]
+      // FIXME Add special case for integer powers of TDif[Int], to avoid lifting to TDif[Double]
       case ("^" | "/", GIntDif(n), GIntDif(m)) => GDoubleDif(implemReal(f, toDoubleDif(n), toDoubleDif(m)))
       case (_, GIntDif(n), GIntDif(m)) => GIntDif(implemIntegral(f, n, m))
       case (_, GDoubleDif(n), GDoubleDif(m)) => GDoubleDif(implemReal(f, n, m))
       
-      case (_, GDoubleDif(n), GIntDif(m)) => GDoubleDif(implemReal(f, n, Dif(m.coeff.map(_.toDouble))))
-      case (_, GIntDif(n), GDoubleDif(m)) => GDoubleDif(implemReal(f, Dif(n.coeff.map(_.toDouble)), m))
+      case (_, GDoubleDif(n), GIntDif(m)) => GDoubleDif(implemReal(f, n, TDif(m.coeff.map(_.toDouble))))
+      case (_, GIntDif(n), GDoubleDif(m)) => GDoubleDif(implemReal(f, TDif(n.coeff.map(_.toDouble)), m))
       
-      case (_, n: GDif[_], GInt(m)) => binGroundOp(f, n, GIntDif(Dif.constant(m)))
-      case (_, n: GDif[_], GDouble(m)) => binGroundOp(f, n, GDoubleDif(Dif.constant(m)))
-      case (_, GInt(n), m: GDif[_]) => binGroundOp(f, GIntDif(Dif.constant(n)), m)
-      case (_, GDouble(n), m: GDif[_]) => binGroundOp(f, GDoubleDif(Dif.constant(n)), m)
+      case (_, n: GDif[_], GInt(m)) => binGroundOp(f, n, GIntDif(TDif.constant(m)))
+      case (_, n: GDif[_], GDouble(m)) => binGroundOp(f, n, GDoubleDif(TDif.constant(m)))
+      case (_, GInt(n), m: GDif[_]) => binGroundOp(f, GIntDif(TDif.constant(n)), m)
+      case (_, GDouble(n), m: GDif[_]) => binGroundOp(f, GDoubleDif(TDif.constant(n)), m)
       
       case _  => GDouble(implem2(f, extractDouble(vx), extractDouble(vy)))
     }
@@ -649,7 +649,7 @@ object Common {
   // ODEs
   // 
   
-  class Solver[Id, S <% RichStore[S,Id],V, R: Real](solverName: Value[_], val xs: S, val h: Double)(implicit f: Field[S,Id]) {
+  class Solver[Id, S <% RichStore[S,Id], R: Real](solverName: Value[_], val xs: S, val h: Double)(implicit f: Field[S,Id]) {
     private def msg(meth: String) = "Invalid integration method \"" + meth +
         "\". Please select one of: " + knownSolvers.mkString(", ")
     final def solve: S = {
@@ -664,7 +664,7 @@ object Common {
     def solveIfKnown(name: String) : Option[S] = name match {
       case EulerForward => Some(solveIVPEulerForward(xs, h))
       case RungeKutta   => Some(solveIVPRungeKutta(xs, h))
-      case Taylor       => Some(solveIVPTaylor(xs, h, taylorOrder))
+      case Taylor       => Some(solveIVPTaylor[Id,S,R](xs, h, taylorOrder))
     }
   }
 
@@ -681,20 +681,20 @@ object Common {
   
   def solveIVPTaylor[Id, S <% RichStore[S,Id], R: Real](s: S, h: Double, orderOfIntegration: Int)(implicit f: Field[S,Id]): S = {
     require (orderOfIntegration > 0, s"Order of integration ($orderOfIntegration) must be greater than 0")
-    val ode = f map (AD lift _)
+    val ode = f map (TAD lift _)
     val rIsReal = implicitly[Real[R]]
     val hl = rIsReal fromDouble h
     // compute Taylor coefficients of order 0 to orderOfIntegration
-    val taylorCoeffs = (1 to orderOfIntegration).foldLeft(AD lift s) {
+    val taylorCoeffs = (1 to orderOfIntegration).foldLeft(TAD lift s) {
       case (sTmp, i) => // sTmp contains coeffs up to order i-1
-        val fieldApplied = AD lift ode(sTmp) // FIXME Eliminate unnecessary lifting
+        val fieldApplied = TAD lift ode(sTmp) // FIXME Eliminate unnecessary lifting
         // compute the i-th Taylor coefficients
         f.variables(s).foldLeft(sTmp) { // we are modifying from the store containing the coefficients up to order i-1
           case (sUpdTmp, (id, n)) =>
             sUpdTmp updated (id, n, // update i:th Taylor coeff for variable (id, n)
               mapValuePair(sTmp(id, n), fieldApplied(id, n), { (gdif: GDif[R], der: GDif[R]) =>
                 val coeff = gdif.dif.coeff updated (i, der.dif.coeff(i - 1) / (rIsReal fromInt i))
-                VLit(gdif updated Dif(coeff)) })) }
+                VLit(gdif updated TDif(coeff)) })) }
     }
     // the Taylor series // FIXME Does it not make more sense to accumulate solution when computing taylorCoeffs?
     val solution = f.variables(s).foldLeft(taylorCoeffs) { case (sTmp, (id, n)) => 
@@ -705,7 +705,7 @@ object Common {
             else rIsReal.zero }.reduce(_ + _)
           VLit(rIsReal groundValue vNext) }))
     }
-    AD lower solution
+    TAD lower solution
   }
 
   /** Representation of a set of ODEs. 

@@ -138,9 +138,8 @@ class Interpreter(val parDiscr: Boolean = true,
         }
 
         implicit val field = FieldImpl(pp.odes, p)
-        implicit val doubleIsReal = AD.DoubleIsReal 
         val initOdeEnv = OdeEnv(initVal, magic)
-        val res = new Solver(getField(magic, Name("method", 0)), initOdeEnv : OdeEnv, getTimeStep(magic)).solve
+        val res = new Solver[ObjId,OdeEnv,Double](getField(magic, Name("method", 0)), initOdeEnv : OdeEnv, getTimeStep(magic)).solve
         idx = 0
         while (idx < sz) {
           val eqt = pp.odes(idx)
