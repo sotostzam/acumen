@@ -630,31 +630,86 @@ package object acumen {
     def groundValue(v: Interval) = GInterval(v)
   }
   
+  /** Safe version of Seq collection data type, to avoid runtime errors
+   *  when working with sequences that can be wither finite or infinite.
+   *  Specifically, the types of all divergent operations are wrapped
+   *  in an Option, with None indicating divergence.
+   *  
+   *  NOTE: Operations performed on the unsafeSeq may diverge! */
+  sealed trait SafeSeq[V] extends Any {
+    def unsafeSeq: Seq[V]
+    def apply(i: Int): V
+    def head: V = apply(0)
+    def length: Option[Int]
+    def map[W](m: V => W): SafeSeq[W]
+    def zip[W](that: SafeSeq[W]): SafeSeq[(V,W)]
+    def zipWithIndex: SafeSeq[(V,Int)]
+    def tail: SafeSeq[V]
+    def forall(b: V => Boolean): Option[Boolean]
+    def indexWhere(b: V => Boolean): Option[Int]
+    def ::(v: V): SafeSeq[V]
+  }
+  case class SafeVector[V](unsafeSeq: Vector[V]) extends AnyVal with SafeSeq[V] {
+    def apply(i: Int): V = unsafeSeq(i)
+    def length: Option[Int] = Some(unsafeSeq.length)
+    def map[W](m: V => W): SafeSeq[W] = SafeVector(unsafeSeq map m)
+    def zip[W](that: SafeSeq[W]): SafeSeq[(V,W)] = SafeVector(this.unsafeSeq zip that.unsafeSeq)
+    def zipWithIndex: SafeSeq[(V,Int)] = SafeVector(unsafeSeq zipWithIndex)
+    def tail: SafeSeq[V] = SafeVector(unsafeSeq.tail)
+    def forall(b: V => Boolean): Option[Boolean] = Some(unsafeSeq forall b)
+    def indexWhere(b: V => Boolean): Option[Int] = Some(unsafeSeq indexWhere b)
+    def :+(v: V): SafeSeq[V] = SafeVector(unsafeSeq :+ v)
+  }
+  case class SafeStream[V](known: Map[Int, V], rest: Either[Int => V, V]) extends SafeSeq[V] {
+    private lazy val maxKnownIndex = known.keySet.max
+    private lazy val denseKnown = Vector.tabulate(maxKnownIndex)(apply)
+    def length: Option[Int] = None
+    def unsafeSeq: Seq[V] = denseKnown ++: Stream.from(maxKnownIndex + 1).map(apply(rest,_))
+    def apply(i: Int): V = known.getOrElse(i, apply(rest,i))
+    private def apply[W](r: Either[Int => W, W], i: Int) = r.fold(_(i), w => w)  
+    def map[W](m: V => W): SafeSeq[W] = SafeStream(known mapValues m, Left(i => m(apply(rest,i))))
+    def zip[W](that: SafeSeq[W]): SafeSeq[(V,W)] = that match {
+      case SafeStream(k, r) => 
+        SafeStream((known.keySet union k.keySet).
+          map(i => i -> (apply(i), k(i))).toMap, Left(j => (apply(rest,j), apply(r,j)))) 
+      case SafeVector(ts) => 
+        SafeVector(Vector.tabulate(ts.size)(i => (apply(i), ts(i))))
+    }
+    def zipWithIndex: SafeSeq[(V,Int)] = SafeStream(known map { case (i,v) => i -> (v,i) }, Left(j => (apply(rest,j), j)))
+    def tail: SafeSeq[V] = if (known isEmpty) this else
+      SafeStream(known.flatMap{ case (0, v) => Nil; case (i, v) => (i-1, v) :: Nil }, rest) 
+    def forall(b: V => Boolean): Option[Boolean] = 
+      rest.fold(_ => None, v => Some((known.values forall b) && b(v)))
+    def indexWhere(b: V => Boolean): Option[Int] = 
+      known.find{ case (_,v) => b(v) }.map(_._1).map(Some(_)).getOrElse(
+        rest.fold(_ => None, i => Some(if (b(i)) maxKnownIndex + 1 else -1)))
+    def :+(v: V): SafeStream[V] = SafeStream(known + (maxKnownIndex + 1 -> v), rest)
+  }
+
   /** Representation of a number and its derivatives. */
   trait Dif[V] {
-    def coeff: Seq[V]
+    def coeff: SafeSeq[V]
     def apply(i: Int): V = coeff(i)
-    def size: Int = coeff.size
   }
   
   abstract class DifAsIntegral[V: Integral, D <: Dif[V]] {
     /** Factory method */
-    def dif(v: Seq[V]): D
+    def dif(v: SafeSeq[V]): D
     /* Constants */
     val evVIsIntegral = implicitly[Integral[V]]
     val zeroOfV = evVIsIntegral.zero
     val oneOfV = evVIsIntegral.one
     /* Integral instance */
-    def add(l: D, r: D): D = dif((l.coeff, r.coeff).zipped.map(_ + _))
-    def sub(l: D, r: D): D = dif((l.coeff, r.coeff).zipped.map(_ - _))
+    def add(l: D, r: D): D = dif((l.coeff zip r.coeff).map{ case (lv,rv) => lv + rv })
+    def sub(l: D, r: D): D = dif((l.coeff zip r.coeff).map{ case (lv,rv) => lv - rv })
     
     def neg(x: D): D = dif(x.coeff.map(- _))
     
     def toInt(x: D): Int = x(0).toInt
     def toDouble(x: D): Double = x(0).toDouble
-    def isValidInt(x: D): Boolean = evVIsIntegral.isValidInt(x(0)) && isConstant(x)
-    def isValidDouble(x: D): Boolean = evVIsIntegral.isValidDouble(x(0)) && isConstant(x)
-    def isConstant(x: D): Boolean = x.coeff.tail.forall(_ == zeroOfV)
+    def isValidInt(x: D): Option[Boolean] = isConstant(x).map(evVIsIntegral.isValidInt(x(0)) && _)
+    def isValidDouble(x: D): Option[Boolean] = isConstant(x).map(evVIsIntegral.isValidDouble(x(0)) && _)
+    def isConstant(x: => D): Option[Boolean] = x.coeff.tail.forall(_ == zeroOfV)
     
     def tryCompare(l: D, r: D): Option[Int] = evVIsIntegral.tryCompare(l(0), r(0))
     def lteq(l: D, r: D): Boolean = evVIsIntegral.lteq(l(0), r(0))

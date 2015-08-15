@@ -702,7 +702,7 @@ object Common {
         mapValue(taylorCoeffs(id, n), { gdif: GDif[R] =>
           val vNext = gdif.dif.coeff.zipWithIndex.map { case (x, i) =>
             if (i <= orderOfIntegration) x * rIsReal.pow(hl, rIsReal fromInt i) // FIXME Use powOnInt 
-            else rIsReal.zero }.reduce(_ + _)
+            else rIsReal.zero }.take(orderOfIntegration).reduce(_ + _)
           VLit(rIsReal groundValue vNext) }))
     }
     TAD lower solution
