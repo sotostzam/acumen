@@ -247,12 +247,12 @@ object ADTest extends Properties("AD") {
   def genIntegralDif[N: Integral](genN: Gen[N]): Gen[TDif[N]] =
     for {
       coeffs <- listOfN(10, genN)
-    } yield TDif(coeffs.to[Vector])
+    } yield TDif(coeffs.to[Vector], coeffs.length)
 
   def genRealDif[N: Real](genN: Gen[N]): Gen[TDif[N]] =
     for {
       coeffs <- listOfN(10, genN)
-    } yield TDif(coeffs.to[Vector])
+    } yield TDif(coeffs.to[Vector], coeffs.length)
   
   def genSmallDoubleDif: Gen[TDif[Double]] = genBoundedDoubleDif(10)
   def genSmallIntervalDif: Gen[TDif[Interval]] = genBoundedIntervalDif(-10,10)

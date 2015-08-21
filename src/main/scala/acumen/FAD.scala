@@ -9,7 +9,10 @@ import util.ASTUtil.mapValue
 object FAD extends App {
   
   /** Representation of a number and its derivatives. */
-  case class FDif[V: Integral](coeff: Seq[V]) extends Dif[V]
+  case class FDif[V: Integral](coeff: Seq[V], known: Option[Int]) extends Dif[V]
+  object FDif {
+    def apply[V: Integral](coeff: Seq[V], known: Int): FDif[V] = FDif(coeff, Some(known))
+  }
   
   /** Lift all numeric values in a store into FDifs */
   def lift[S, Id, I: Integral](st: RichStore[S, Id])(implicit n: (Id, Name), ns: List[(Id, Name)]): S = st map liftValue[Id,I] 
@@ -23,8 +26,8 @@ object FAD extends App {
   }.mapExpr(e)
   
   private def liftGroundValue[Id](gv: GroundValue)(implicit n: (Id, Name), ns: List[(Id, Name)]): GroundValue = gv match {
-    case GDouble(d: Double) => GDoubleFDif(FDif((d :: ns.map(_ => 0d)).toVector))
-    case GInt(i) => GDoubleFDif(FDif((i.toDouble :: ns.map(_ => 0d)).toVector))
+    case GDouble(d) => GDoubleFDif(FDif(d :: ns.map(_ => 0d), 1 + ns.size))
+    case GInt(i) => GDoubleFDif(FDif(i.toDouble :: ns.map(_ => 0d), 1 + ns.size))
     case _ => gv
   }
   
@@ -38,11 +41,10 @@ object FAD extends App {
   
   /** Integral instance for TDif[V], where V itself has an Integral instance */
   abstract class FDifAsIntegral[V: Integral] extends DifAsIntegral[V,FDif[V]] with Integral[FDif[V]] {
-    def dif(v: Seq[V]): FDif[V] = FDif(v)
-    /* Caches */
-    val mulCache = collection.mutable.HashMap[(FDif[V], FDif[V]), FDif[V]]()
+    def dif(v: Seq[V], known: Option[Int]): FDif[V] = FDif(v, known)
     /* Integral instance */
-    def mul(l: FDif[V], r: FDif[V]): FDif[V] = FDif(Vector.tabulate(l.coeff.size)(i => l(i)*r(0) + l(0)*r(i)))
+    def mul(l: FDif[V], r: FDif[V]): FDif[V] = 
+      FDif(Stream.from(0).map(k => l(k)*r(0) + l(0)*r(k)), combinedKnown(l,r))
     def fromInt(x: Int): FDif[V] = ???
     def zero: FDif[V] = ???
     def one: FDif[V] = ???
@@ -54,8 +56,9 @@ object FAD extends App {
   abstract class FDifAsReal[V: Real] extends FDifAsIntegral[V] with Real[FDif[V]] {
     /* Constants */
     val evVIsReal = implicitly[Real[V]]
-    
-    def div(l: FDif[V], r: FDif[V]): FDif[V] = FDif(Vector.tabulate(l.coeff.size)(i => (l(i)*r(0) - l(0)*r(i)) / r(0).square))
+    /* Real instance */
+    def div(l: FDif[V], r: FDif[V]): FDif[V] = 
+      FDif(Stream.from(0).map(k => (l(k)*r(0) - l(0)*r(k)) / r(0).square), combinedKnown(l,r))
     def pow(l: FDif[V], r: FDif[V]): FDif[V] = ???
     def sin(x: FDif[V]): FDif[V] = ???
     def cos(x: FDif[V]): FDif[V] = ???
@@ -84,13 +87,14 @@ object FAD extends App {
   
   def computeJacobian[Id, S <% RichStore[S,Id], V: Real](f: Field[S,Id], s: S): Vector[FDif[V]] = {
     val vars = f.variables(s).toVector
+    val dim = 1 + vars.size
     val zero = implicitly[Integral[V]].zero
     val one = implicitly[Integral[V]].one
     vars.toVector.map{ case qn@(id,n) =>
       // FIXME Extend to vectors
       s(id,n) match { 
         case VLit(v: V) =>
-          FDif(v +: vars.map{ (qn1: (Id,Name)) => if (qn1 == qn) one else zero })
+          FDif(v +: vars.map{ (qn1: (Id,Name)) => if (qn1 == qn) one else zero }, dim)
       }
     }
   }

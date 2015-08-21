@@ -124,7 +124,7 @@ object Common {
       case ("round", GDouble(x)) => GInt(x.toInt)
       case (f, GIntDif(d))       => f match {
         case "-" => GIntDif(implemIntegral(f, d)) // keep as TDif[Int] if f has an integer result 
-        case _   => GDoubleDif(implemReal(f, TDif(d.coeff.map(_.toDouble)))) // otherwise, convert to TDif[Double] 
+        case _   => GDoubleDif(implemReal(f, TDif(d.coeff.map(_.toDouble), d.known))) // otherwise, convert to TDif[Double] 
       }
       case (f, GDoubleDif(d))    => GDoubleDif(implemReal(f, d))
       case _                     => GDouble(implem(f, extractDouble(vx)))
@@ -177,7 +177,7 @@ object Common {
       case "^" => x ^ y
       case _ => implemIntegral(f, x, y)
     }
-    def toDoubleDif(di: TDif[Int]): TDif[Double] = TDif(di.coeff.map(_.toDouble))
+    def toDoubleDif(di: TDif[Int]): TDif[Double] = TDif(di.coeff.map(_.toDouble), di.known)
     (f, vx, vy) match {
       case (">="|"<="|"<"|">", GInt(n), GInt(m)) => GBool(implem3(f,n,m))
       case ("<"|">"|"<="|">=", _, _) => GBool(implem4(f,extractDouble(vx),extractDouble(vy)))
@@ -188,8 +188,8 @@ object Common {
       case (_, GIntDif(n), GIntDif(m)) => GIntDif(implemIntegral(f, n, m))
       case (_, GDoubleDif(n), GDoubleDif(m)) => GDoubleDif(implemReal(f, n, m))
       
-      case (_, GDoubleDif(n), GIntDif(m)) => GDoubleDif(implemReal(f, n, TDif(m.coeff.map(_.toDouble))))
-      case (_, GIntDif(n), GDoubleDif(m)) => GDoubleDif(implemReal(f, TDif(n.coeff.map(_.toDouble)), m))
+      case (_, GDoubleDif(n), GIntDif(m)) => GDoubleDif(implemReal(f, n, toDoubleDif(m)))
+      case (_, GIntDif(n), GDoubleDif(m)) => GDoubleDif(implemReal(f, toDoubleDif(n), m))
       
       case (_, n: GDif[_], GInt(m)) => binGroundOp(f, n, GIntDif(TDif.constant(m)))
       case (_, n: GDif[_], GDouble(m)) => binGroundOp(f, n, GDoubleDif(TDif.constant(m)))
@@ -694,7 +694,7 @@ object Common {
             sUpdTmp updated (id, n, // update i:th Taylor coeff for variable (id, n)
               mapValuePair(sTmp(id, n), fieldApplied(id, n), { (gdif: GDif[R], der: GDif[R]) =>
                 val coeff = gdif.dif.coeff updated (i, der.dif.coeff(i - 1) / (rIsReal fromInt i))
-                VLit(gdif updated TDif(coeff)) })) }
+                VLit(gdif updated TDif(coeff, Some(orderOfIntegration))) })) } // FIXME How many?
     }
     // the Taylor series // FIXME Does it not make more sense to accumulate solution when computing taylorCoeffs?
     val solution = f.variables(s).foldLeft(taylorCoeffs) { case (sTmp, (id, n)) => 
@@ -702,7 +702,7 @@ object Common {
         mapValue(taylorCoeffs(id, n), { gdif: GDif[R] =>
           val vNext = gdif.dif.coeff.zipWithIndex.map { case (x, i) =>
             if (i <= orderOfIntegration) x * rIsReal.pow(hl, rIsReal fromInt i) // FIXME Use powOnInt 
-            else rIsReal.zero }.reduce(_ + _)
+            else rIsReal.zero }.take(orderOfIntegration).reduce(_ + _)
           VLit(rIsReal groundValue vNext) }))
     }
     TAD lower solution

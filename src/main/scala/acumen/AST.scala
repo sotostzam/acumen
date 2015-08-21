@@ -484,6 +484,7 @@ package object acumen {
     def toDouble(x: V): Double
     def zero: V
     def one: V
+    def isZero(x: V): Boolean = x == zero
     def isValidInt(x: V): Boolean
     def isValidDouble(x: V): Boolean
     def groundValue(v: V): GroundValue
@@ -522,6 +523,7 @@ package object acumen {
     def >= (r: V): Boolean = ev.gteq(l, r)
     def zero: V = ev.zero
     def one: V = ev.one
+    def isZero: Boolean = ev.isZero(l)
     def isValidInt: Boolean = ev.isValidInt(l)
     def toInt: Int = ev.toInt(l)
     def isValidDouble: Boolean = ev.isValidDouble(l)
@@ -634,21 +636,29 @@ package object acumen {
   trait Dif[V] {
     def coeff: Seq[V]
     def apply(i: Int): V = coeff(i)
-    def size: Int = coeff.size
+    def known: Option[Int]
   }
   
   abstract class DifAsIntegral[V: Integral, D <: Dif[V]] {
     /** Factory method */
-    def dif(v: Seq[V]): D
+    def dif(v: Seq[V], known: Option[Int]): D
     /* Constants */
     val evVIsIntegral = implicitly[Integral[V]]
     val zeroOfV = evVIsIntegral.zero
     val oneOfV = evVIsIntegral.one
     /* Integral instance */
-    def add(l: D, r: D): D = dif((l.coeff, r.coeff).zipped.map(_ + _))
-    def sub(l: D, r: D): D = dif((l.coeff, r.coeff).zipped.map(_ - _))
+    protected def combinedKnown(l: D, r: D) = (l.known, r.known) match {
+      case (Some(lk), Some(rk)) => Some(Math.max(lk,rk))
+      case (lk@Some(_), None) => lk 
+      case (None, rk@Some(_)) => rk
+      case (None, None) => None
+    }
+    private def simpleBinary(l: D, r: D, op: (V,V) => V): D =
+      dif((l.coeff zip r.coeff).map{ case (l, r) => op(l, r) }, combinedKnown(l,r)) 
+    def add(l: D, r: D): D = simpleBinary(l, r, _ + _)
+    def sub(l: D, r: D): D = simpleBinary(l, r, _ - _)
     
-    def neg(x: D): D = dif(x.coeff.map(- _))
+    def neg(x: D): D = dif(x.coeff.map(- _), x.known)
     
     def toInt(x: D): Int = x(0).toInt
     def toDouble(x: D): Double = x(0).toDouble
