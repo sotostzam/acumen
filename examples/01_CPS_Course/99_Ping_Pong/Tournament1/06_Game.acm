@@ -77,11 +77,13 @@ always
   player2.p_ball  = ballob.outputp,
   player1.v_ball  = ballob.outputv,
   player2.v_ball  = ballob.outputv,
-  if bat1.mode ~= "Rest" && gameTime <= gameLength then
+  if bat1.mode ~= "Rest" && gameTime <= gameLength 
+     && batActuator1.energy <= maxEnergy then
     batActuator1.p'    = player1.v,
     batActuator1.angle = player1.angle_bat
   noelse,
-  if bat2.mode ~= "Rest" && gameTime <= gameLength then
+  if bat2.mode ~= "Rest" && gameTime <= gameLength 
+     && batActuator2.energy <= maxEnergy then
     batActuator2.p'    = player2.v,
     batActuator2.angle = player2.angle_bat
   noelse,
@@ -269,14 +271,14 @@ always
         mode + = "Freeze",
         t    + = 0
       else (
-        if serveNumber == 2 && (ball.p dot (1,0,0)) > 0 && gameMonitor.restart ~= 1 then
+        if serveNumber == 2 && (ball.p(0)) > 0 && gameMonitor.restart ~= 1 then
           serveNumber     + = 1,
           mode            + = "Player1Serve",
           player2.myServe + = false,
           player1.myServe + = true,
           player1.bounced + = false
         noelse,
-        if serveNumber == 1 && (ball.p dot (1,0,0)) <= 0 && gameMonitor.restart ~= 1 then
+        if serveNumber == 1 && (ball.p(0)) <= 0 && gameMonitor.restart ~= 1 then
           serveNumber     + = 2,
           mode            + = "Player2Serve",
           player1.myServe + = false,

@@ -188,7 +188,7 @@ always
           v' =7*((0,0,0)-v)
         // Prepare to hit the ball
         elseif norm(p_ball - p_bat) < 0.30 then
-          v' = (-35*(p_ball(0)),0,25)
+          v' = (-16*(p_ball(0)),0,25)
         noelse
       else
         angle_bat' = (0,0,0)

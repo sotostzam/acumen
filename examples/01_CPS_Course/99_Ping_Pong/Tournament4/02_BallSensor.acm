@@ -30,9 +30,9 @@ always
         mode + = "Estimate1"
       noelse
   | "Estimate1" ->
-      outputv    + = (ap(0)-pp(0))/0.01*(1,0,0)+
-                     (ap(2)-pp(2))/0.01*(0,0,1)+
-                     (ap(1)-pp(1))/0.01*(0,1,0),
+      outputv    + = ((ap(0)-pp(0))/0.01, 
+                      (ap(1)-pp(1))/0.01,
+                      (ap(2)-pp(2))/0.01),
       mode + = "Sample",
       t    + = 0
   | "Panic!" -> ],

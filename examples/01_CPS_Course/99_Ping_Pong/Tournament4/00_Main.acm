@@ -19,7 +19,7 @@ always
   t' = 1,
   match mode with [
     "Initialize" ->
-      simulator.endTime  + = 20,
+      simulator.endTime  + = 20.05,
       simulator.timeStep + = 0.01,
       mode + = "CreateGame"
   | "CreateGame"  ->

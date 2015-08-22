@@ -23,8 +23,11 @@ initially
   baseP    =  (2.4*(-1)^n,0,0.3),
   unit     =  (0,0,0),  // Unit vector from baseP to P
   timer    =  0,        // timer for BatActuator
-  timer'   =  1
+  timer'   =  1,
+  k        =  0,        // discrete assignment counter
+  k'       =  1 
 always
+  k' = 1,
   match mode with [
     "Sample" -> 
       v + = p',
@@ -40,8 +43,9 @@ always
       mode + = "Sample" ],
          
   F = m * norm(a),
-  if norm(p') > 5 then  // ???Saturate??? speeds over 5
-    p' + = p'/norm(p') * 5 
+  if norm(p') > 5 && k >= 0.01 then  // ???Saturate??? speeds over 5
+    p' += p'/norm(p') * 5,
+    k  = 0 
   noelse,
   energy' = F * norm(p'), // Simplistic model of power consumed
   // Visualize arm
