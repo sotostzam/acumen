@@ -33,7 +33,7 @@ object TAD extends App {
     def fromInt(x: Int): TDif[V] = TDif.constant(evVIsIntegral fromInt x)
     lazy val zero: TDif[V] = TDif.constant(zeroOfV)
     lazy val one: TDif[V] = TDif.constant(oneOfV)
-    def isConstant(x: TDif[V]) = x.coeff.tail.forall(_ == zeroOfV)
+    def isConstant(x: TDif[V]) = x.coeff.tail.take(x.length).forall(_ == zeroOfV)
     override def isZero(x: TDif[V]): Boolean = isConstant(x) && x.coeff(0).isZero
     /** Return index of first non-zero coefficient. When none exists, returns -1. */
     def firstNonZero(x: TDif[V]): Int = x.coeff.take(x.length + 1).indexWhere(c => !(evVIsIntegral isZero c))
