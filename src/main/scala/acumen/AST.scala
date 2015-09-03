@@ -633,13 +633,14 @@ package object acumen {
   }
   
   /** Representation of a number and its derivatives. */
-  trait Dif[V] {
-    def coeff: Seq[V]
+  abstract class Dif[V : Integral] {
     /** Returns the i:th element of the Dif when i < length
      *  and otherwise the zero of V. */
     def apply(i: Int): V
     /** Returns an integer > 0. */
     def length: Int
+    /** Apply m to every element. */
+    def map[W: Integral](m: V => W): Dif[W] 
   }
   
   abstract class DifAsIntegral[V: Integral, D <: Dif[V]] {
@@ -651,19 +652,12 @@ package object acumen {
     val oneOfV = evVIsIntegral.one
     /* Integral instance */
     protected def combinedLength(l: D, r: D) = Math.max(l.length, r.length)
-    private def simpleBinary(l: D, r: D, op: (V,V) => V): D =
-      dif((l.coeff zip r.coeff).map{ case (l, r) => op(l, r) }, combinedLength(l,r)) 
-    def add(l: D, r: D): D = simpleBinary(l, r, _ + _)
-    def sub(l: D, r: D): D = simpleBinary(l, r, _ - _)
-    
-    def neg(x: D): D = dif(x.coeff.map(- _), x.length)
-    
     def toInt(x: D): Int = x(0).toInt
     def toDouble(x: D): Double = x(0).toDouble
     def isValidInt(x: D): Boolean = evVIsIntegral.isValidInt(x(0)) && isConstant(x)
     def isValidDouble(x: D): Boolean = evVIsIntegral.isValidDouble(x(0)) && isConstant(x)
-    def isConstant(x: D): Boolean = x.coeff.tail.forall(_ == zeroOfV)
-    
+    def isConstant(x: D): Boolean
+
     def tryCompare(l: D, r: D): Option[Int] = evVIsIntegral.tryCompare(l(0), r(0))
     def lteq(l: D, r: D): Boolean = evVIsIntegral.lteq(l(0), r(0))
   }

@@ -11,6 +11,7 @@ object FAD extends App {
   /** Representation of a number and its derivatives. */
   case class FDif[V: Integral](coeff: Seq[V], length: Int) extends Dif[V] {
     def apply(i: Int) = if (i < length) coeff(i) else implicitly[Integral[V]].zero
+    def map[W: Integral](m: V => W): FDif[W] = FDif(coeff map m, length)
   }
   
   /** Lift all numeric values in a store into FDifs */
@@ -42,11 +43,18 @@ object FAD extends App {
   abstract class FDifAsIntegral[V: Integral] extends DifAsIntegral[V,FDif[V]] with Integral[FDif[V]] {
     def dif(v: Seq[V], length: Int): FDif[V] = FDif(v, length)
     /* Integral instance */
+    def add(l: FDif[V], r: FDif[V]): FDif[V] =
+      FDif(Stream.from(0).map(k => l(k) + r(k)), combinedLength(l,r))
+    def sub(l: FDif[V], r: FDif[V]): FDif[V] =
+      FDif(Stream.from(0).map(k => l(k) - r(k)), combinedLength(l,r))
+    def neg(x: FDif[V]): FDif[V] =
+      FDif(Stream.from(0).map(k => - x(k)), x.length)
     def mul(l: FDif[V], r: FDif[V]): FDif[V] = 
       FDif(Stream.from(0).map(k => l(k)*r(0) + l(0)*r(k)), combinedLength(l,r))
     def fromInt(x: Int): FDif[V] = ???
     def zero: FDif[V] = ???
     def one: FDif[V] = ???
+    def isConstant(x: FDif[V]) = x.coeff.tail.forall(_ == zeroOfV)
     /** Return index of first non-zero coefficient. When none exists, returns -1. */
     def firstNonZero(x: FDif[V]): Int = ???
   }
