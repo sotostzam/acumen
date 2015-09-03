@@ -42,7 +42,6 @@ object TAD extends App {
   /** Real instance for TDif[V], where V itself has a Real instance */
   abstract class TDifAsReal[V: Real] extends TDifAsIntegral[V] with Real[TDif[V]] {
     def fromDouble(x: Double): TDif[V] = TDif.constant(evVIsReal fromDouble x)
-    override def isValidInt(x: TDif[V]): Boolean = x.coeff.head.isValidInt && isConstant(x)
     /* Constants */
     val evVIsReal = implicitly[Real[V]]
     /* Real instance */
