@@ -33,10 +33,10 @@ object TAD extends App {
     def fromInt(x: Int): TDif[V] = TDif.constant(evVIsIntegral fromInt x)
     lazy val zero: TDif[V] = TDif.constant(zeroOfV)
     lazy val one: TDif[V] = TDif.constant(oneOfV)
-    def isConstant(x: TDif[V]) = x.coeff.tail.take(x.length).forall(_ == zeroOfV)
-    override def isZero(x: TDif[V]): Boolean = isConstant(x) && x.coeff(0).isZero
+    def isConstant(x: TDif[V]) = (1 until x.length).forall(x(_) == zeroOfV)
+    override def isZero(x: TDif[V]): Boolean = isConstant(x) && x(0).isZero
     /** Return index of first non-zero coefficient. When none exists, returns -1. */
-    def firstNonZero(x: TDif[V]): Int = x.coeff.take(x.length + 1).indexWhere(c => !(evVIsIntegral isZero c))
+    def firstNonZero(x: TDif[V]): Int = x.indexWhere(xk => !(evVIsIntegral isZero xk))
   }
   
   /** Real instance for TDif[V], where V itself has a Real instance */
@@ -236,8 +236,8 @@ object TAD extends App {
   /** Representation of a number and its time derivatives. */
   case class TDif[V: Integral](coeff: Seq[V], length: Int) extends Dif[V]{
     def apply(i: Int): V = if (i < length) coeff(i) else implicitly[Integral[V]].zero
-    def tail: TDif[V] = TDif(coeff.tail, length - 1)
     def map[W: Integral](m: V => W): TDif[W] = TDif(coeff map m, length)
+    def indexWhere(m: V => Boolean): Int = coeff.take(length).indexWhere(c => m(c))
   }
   object TDif {
     /** Lift a constant value of type A to a TDif. */

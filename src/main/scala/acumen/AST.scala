@@ -657,7 +657,6 @@ package object acumen {
     def isValidInt(x: D): Boolean = evVIsIntegral.isValidInt(x(0)) && isConstant(x)
     def isValidDouble(x: D): Boolean = evVIsIntegral.isValidDouble(x(0)) && isConstant(x)
     def isConstant(x: D): Boolean
-
     def tryCompare(l: D, r: D): Option[Int] = evVIsIntegral.tryCompare(l(0), r(0))
     def lteq(l: D, r: D): Boolean = evVIsIntegral.lteq(l(0), r(0))
   }
