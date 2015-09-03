@@ -635,30 +635,28 @@ package object acumen {
   /** Representation of a number and its derivatives. */
   trait Dif[V] {
     def coeff: Seq[V]
-    def apply(i: Int): V = coeff(i)
-    def known: Option[Int]
+    /** Returns the i:th element of the Dif when i < length
+     *  and otherwise the zero of V. */
+    def apply(i: Int): V
+    /** Returns an integer > 0. */
+    def length: Int
   }
   
   abstract class DifAsIntegral[V: Integral, D <: Dif[V]] {
     /** Factory method */
-    def dif(v: Seq[V], known: Option[Int]): D
+    def dif(v: Seq[V], length: Int): D
     /* Constants */
     val evVIsIntegral = implicitly[Integral[V]]
     val zeroOfV = evVIsIntegral.zero
     val oneOfV = evVIsIntegral.one
     /* Integral instance */
-    protected def combinedKnown(l: D, r: D) = (l.known, r.known) match {
-      case (Some(lk), Some(rk)) => Some(Math.max(lk,rk))
-      case (lk@Some(_), None) => lk 
-      case (None, rk@Some(_)) => rk
-      case (None, None) => None
-    }
+    protected def combinedLength(l: D, r: D) = Math.max(l.length, r.length)
     private def simpleBinary(l: D, r: D, op: (V,V) => V): D =
-      dif((l.coeff zip r.coeff).map{ case (l, r) => op(l, r) }, combinedKnown(l,r)) 
+      dif((l.coeff zip r.coeff).map{ case (l, r) => op(l, r) }, combinedLength(l,r)) 
     def add(l: D, r: D): D = simpleBinary(l, r, _ + _)
     def sub(l: D, r: D): D = simpleBinary(l, r, _ - _)
     
-    def neg(x: D): D = dif(x.coeff.map(- _), x.known)
+    def neg(x: D): D = dif(x.coeff.map(- _), x.length)
     
     def toInt(x: D): Int = x(0).toInt
     def toDouble(x: D): Double = x(0).toDouble

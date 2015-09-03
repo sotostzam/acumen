@@ -18,21 +18,18 @@ object TAD extends App {
 
   /** Integral instance for TDif[V], where V itself has an Integral instance */
   abstract class TDifAsIntegral[V: Integral] extends DifAsIntegral[V,TDif[V]] with Integral[TDif[V]] {
-    override def dif(v: Seq[V], known: Option[Int]): TDif[V] = TDif(v, known)
+    override def dif(v: Seq[V], length: Int): TDif[V] = TDif(v, length)
     /* Integral instance */
     def mul(l: TDif[V], r: TDif[V]): TDif[V] =
       TDif(Stream.from(0).map(k => (0 to k).foldLeft(zeroOfV) {
         case (sum, i) => sum + (l(i) * r(k - i))
-      }), combinedKnown(l,r))
+      }), combinedLength(l,r))
     def fromInt(x: Int): TDif[V] = TDif.constant(evVIsIntegral fromInt x)
     lazy val zero: TDif[V] = TDif.constant(zeroOfV)
     lazy val one: TDif[V] = TDif.constant(oneOfV)
     override def isZero(x: TDif[V]): Boolean = isConstant(x) && x.coeff(0).isZero
     /** Return index of first non-zero coefficient. When none exists, returns -1. */
-    def firstNonZero(x: TDif[V]): Int = x.known match {
-      case None => -1
-      case Some(k) => x.coeff.take(k).indexWhere(c => !(evVIsIntegral isZero c))
-    }
+    def firstNonZero(x: TDif[V]): Int = x.coeff.take(x.length + 1).indexWhere(c => !(evVIsIntegral isZero c))
   }
   
   /** Real instance for TDif[V], where V itself has a Real instance */
@@ -53,7 +50,7 @@ object TAD extends App {
         }) / r(k0)
       )
       coeff
-    }, combinedKnown(l,r))
+    }, combinedLength(l,r))
       
     /* Power functions */
     /** General interface for power */
@@ -87,7 +84,7 @@ object TAD extends App {
             }) + (if (k % 2 == 0) - coeff(k / 2).square else zeroOfV )) / (evVIsIntegral.fromInt(2) * coeff(k0d2)) 
           })
         coeff        
-      }, None) // FIXME How many? 
+      }, 1) // FIXME How many? 
     
     /** Square */
     def square(x: TDif[V]): TDif[V] = TDif ({
@@ -100,7 +97,7 @@ object TAD extends App {
         }) + (if (k % 2 == 0) x(k/2).square else zeroOfV) // FIXME should adding zeroOfV optimized? 
       }
       coeff
-    }, None) // FIXME How many?
+    }, 1) // FIXME How many?
     
     /** Integer power by squaring */
     private def powBySquare(l: TDif[V], n: Int): TDif[V] =
@@ -138,7 +135,7 @@ object TAD extends App {
             }
           }
           coeff
-        }, None) // FIXME How many?
+        }, 1) // FIXME How many?
     
     /** Exponential function */
     def exp(x: TDif[V]): TDif[V] = TDif ({
@@ -147,7 +144,7 @@ object TAD extends App {
           case (sum, i) => sum + evVIsIntegral.fromInt(i) * x(i) * coeff(k-i)
         }) / evVIsIntegral.fromInt(k))
       coeff
-    }, None) // FIXME How many?
+    }, 1) // FIXME How many?
     
     /** Natural logarithm */
     def log(x: TDif[V]): TDif[V] = TDif ({
@@ -158,11 +155,11 @@ object TAD extends App {
             case (sum, i) => sum + evVIsIntegral.fromInt(i) * coeff(i) * x(k-i)
           }) / evVIsIntegral.fromInt(k)) / x0)
         coeff
-      }, None) // FIXME How many?
+      }, 1) // FIXME How many?
     
     /* Trigonometric functions */
-    def sin(x: TDif[V]): TDif[V] = TDif(sinAndCos(x).map(_._1), None) // FIXME How many?
-    def cos(x: TDif[V]): TDif[V] = TDif(sinAndCos(x).map(_._2), None) // FIXME How many?
+    def sin(x: TDif[V]): TDif[V] = TDif(sinAndCos(x).map(_._1), 1) // FIXME How many?
+    def cos(x: TDif[V]): TDif[V] = TDif(sinAndCos(x).map(_._2), 1) // FIXME How many?
     private def sinAndCos(x: TDif[V]): Stream[(V,V)] = {
       lazy val coeff: Stream[(V,V)] =
         (x(0).sin, x(0).cos) #:: Stream.from(1).map{ k =>
@@ -187,7 +184,7 @@ object TAD extends App {
             sum + evVIsIntegral.fromInt(i) * coeff(i) * cos2(k - i)
         }) / evVIsIntegral.fromInt(k)) / (x(0).cos).square)
       coeff
-    }, None) // FIXME How many?
+    }, 1) // FIXME How many?
     
     def acos(x: TDif[V]): TDif[V] = TDif ({
       val c = sqrt(sub(one, square(x)))
@@ -197,7 +194,7 @@ object TAD extends App {
             sum + evVIsIntegral.fromInt(i) * coeff(i) * c(k - i)
         }) / evVIsIntegral.fromInt(k)) / (oneOfV - x(0).square).sqrt)
       coeff
-    }, None) // FIXME How many?
+    }, 1) // FIXME How many?
     
     def asin(x: TDif[V]): TDif[V] = TDif ({
       val c = sqrt(sub(one, square(x)))
@@ -207,7 +204,7 @@ object TAD extends App {
             sum + evVIsIntegral.fromInt(i) * coeff(i) * c(k - i)
         }) / evVIsIntegral.fromInt(k)) / (oneOfV - x(0).square).sqrt)
       coeff
-    }, None) // FIXME How many?
+    }, 1) // FIXME How many?
     
     def atan(x: TDif[V]): TDif[V] = TDif ({
         val c = add(one, square(x))
@@ -217,7 +214,7 @@ object TAD extends App {
               sum + evVIsIntegral.fromInt(i) * coeff(i) * c(k - i)
           }) / evVIsIntegral.fromInt(k)) / (oneOfV + x(0).square))
         coeff
-      }, None) // FIXME How many?
+      }, 1) // FIXME How many?
   }
   implicit object IntDifIsIntegral extends TDifAsIntegral[Int] {
     def groundValue(v: TDif[Int]) = GIntDif(v)
@@ -230,9 +227,10 @@ object TAD extends App {
   }
   
   /** Representation of a number and its time derivatives. */
-  case class TDif[V: Integral](coeff: Seq[V], known: Option[Int]) extends Dif[V]
+  case class TDif[V: Integral](coeff: Seq[V], length: Int) extends Dif[V]{
+    def apply(i: Int): V = if (i < length) coeff(i) else implicitly[Integral[V]].zero
+  }
   object TDif {
-    def apply[V: Integral](coeff: Seq[V], known: Int): TDif[V] = TDif(coeff, Some(known))
     /** Lift a constant value of type A to a TDif. */
     def constant[V: Integral](a: V) = TDif(a #:: Stream.continually(implicitly[Integral[V]].zero), 1)
   }

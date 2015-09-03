@@ -9,9 +9,8 @@ import util.ASTUtil.mapValue
 object FAD extends App {
   
   /** Representation of a number and its derivatives. */
-  case class FDif[V: Integral](coeff: Seq[V], known: Option[Int]) extends Dif[V]
-  object FDif {
-    def apply[V: Integral](coeff: Seq[V], known: Int): FDif[V] = FDif(coeff, Some(known))
+  case class FDif[V: Integral](coeff: Seq[V], length: Int) extends Dif[V] {
+    def apply(i: Int) = if (i < length) coeff(i) else implicitly[Integral[V]].zero
   }
   
   /** Lift all numeric values in a store into FDifs */
@@ -41,10 +40,10 @@ object FAD extends App {
   
   /** Integral instance for TDif[V], where V itself has an Integral instance */
   abstract class FDifAsIntegral[V: Integral] extends DifAsIntegral[V,FDif[V]] with Integral[FDif[V]] {
-    def dif(v: Seq[V], known: Option[Int]): FDif[V] = FDif(v, known)
+    def dif(v: Seq[V], length: Int): FDif[V] = FDif(v, length)
     /* Integral instance */
     def mul(l: FDif[V], r: FDif[V]): FDif[V] = 
-      FDif(Stream.from(0).map(k => l(k)*r(0) + l(0)*r(k)), combinedKnown(l,r))
+      FDif(Stream.from(0).map(k => l(k)*r(0) + l(0)*r(k)), combinedLength(l,r))
     def fromInt(x: Int): FDif[V] = ???
     def zero: FDif[V] = ???
     def one: FDif[V] = ???
@@ -58,7 +57,7 @@ object FAD extends App {
     val evVIsReal = implicitly[Real[V]]
     /* Real instance */
     def div(l: FDif[V], r: FDif[V]): FDif[V] = 
-      FDif(Stream.from(0).map(k => (l(k)*r(0) - l(0)*r(k)) / r(0).square), combinedKnown(l,r))
+      FDif(Stream.from(0).map(k => (l(k)*r(0) - l(0)*r(k)) / r(0).square), combinedLength(l,r))
     def pow(l: FDif[V], r: FDif[V]): FDif[V] = ???
     def sin(x: FDif[V]): FDif[V] = ???
     def cos(x: FDif[V]): FDif[V] = ???
