@@ -651,7 +651,7 @@ package object acumen {
     val zeroOfV = evVIsIntegral.zero
     val oneOfV = evVIsIntegral.one
     /* Integral instance */
-    protected def combinedLength(l: D, r: D) = Math.max(l.length, r.length)
+    protected def combinedLength(l: D, r: D) = Math.min(l.length, r.length)
     def toInt(x: D): Int = x(0).toInt
     def toDouble(x: D): Double = x(0).toDouble
     def isValidInt(x: D): Boolean = evVIsIntegral.isValidInt(x(0)) && isConstant(x)

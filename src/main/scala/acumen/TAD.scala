@@ -21,15 +21,15 @@ object TAD extends App {
     override def dif(v: Seq[V], length: Int): TDif[V] = TDif(v, length)
     /* Integral instance */
     def add(l: TDif[V], r: TDif[V]): TDif[V] =
-      TDif(Stream.from(0).map(k => l(k) + r(k)), combinedLength(l,r))
+      TDif(Stream.from(0).map(k => l(k) + r(k)), combinedLength(l, r))
     def sub(l: TDif[V], r: TDif[V]): TDif[V] =
-      TDif(Stream.from(0).map(k => l(k) - r(k)), combinedLength(l,r))
+      TDif(Stream.from(0).map(k => l(k) - r(k)), combinedLength(l, r))
     def neg(x: TDif[V]): TDif[V] =
       TDif(Stream.from(0).map(k => - x(k)), x.length)
     def mul(l: TDif[V], r: TDif[V]): TDif[V] =
       TDif(Stream.from(0).map(k => (0 to k).foldLeft(zeroOfV) {
         case (sum, i) => sum + (l(i) * r(k - i))
-      }), combinedLength(l,r))
+      }), combinedLength(l, r))
     def fromInt(x: Int): TDif[V] = TDif.constant(evVIsIntegral fromInt x)
     lazy val zero: TDif[V] = TDif.constant(zeroOfV)
     lazy val one: TDif[V] = TDif.constant(oneOfV)
@@ -45,19 +45,20 @@ object TAD extends App {
     /* Constants */
     val evVIsReal = implicitly[Real[V]]
     /* Real instance */
-    def div(l: TDif[V], r: TDif[V]): TDif[V] = TDif ({
+    def div(l: TDif[V], r: TDif[V]): TDif[V] = {
       val k0 = firstNonZero(r)
       val l0 = firstNonZero(l)
       require(k0 > -1, "Division by zero is not allowed.")
       require(k0 <= l0 || l0 == -1, s"First non-vanishing coefficient of $r must not be higher order than the first non-vanishing coefficient of $l.")
-      lazy val coeff: Stream[V] = (l(k0) / r(k0)) #:: Stream.from(1).map(k =>
-        (l(k + k0) - (0 to k - 1).foldLeft(zeroOfV) {
-          case (sum, i) => sum + (coeff(i) * r(k - i + k0))
-        }) / r(k0)
-      )
-      coeff
-    }, combinedLength(l,r))
-      
+      TDif ({
+        lazy val coeff: Stream[V] = (l(k0) / r(k0)) #:: Stream.from(1).map(k =>
+          (l(k + k0) - (0 to k - 1).foldLeft(zeroOfV) {
+            case (sum, i) => sum + (coeff(i) * r(k - i + k0))
+          }) / r(k0))
+        coeff
+        }, combinedLength(l, r) - k0) // as 0 <= k0 <= l0, this is a positive integer
+    }
+
     /* Power functions */
     /** General interface for power */
     def pow(l: TDif[V], r: TDif[V]): TDif[V] =
@@ -75,22 +76,24 @@ object TAD extends App {
       
     /** Square root */
     def sqrt(x: TDif[V]): TDif[V] =
-      if (isZero(x)) zero else TDif ({ // We might call sqrt directly not only through power, so we check for zero
+      if (isZero(x)) zero else { 
         val k0  = firstNonZero(x) // n >= k0 because x != zero
         require((k0 % 2 == 0), s"First non-vanishing coefficient must be an even power in $x in order to expand the sqrt function.")
         val x0 = x(k0)
         val k0d2 = k0 / 2
-        lazy val coeff: Stream[V] = Stream.from(0).map(k =>
-          if (k < k0d2) zeroOfV       // the first k0/2 coefficients are zero
-          else if (k == k0d2) x0.sqrt // the first non-zero coefficient of the result
-          else {                      // possibly  non-zero coefficients k0/2 + 1 .. n - 1
-            val kEnd = k + (k % 2) - 2
-            (x(k) - evVIsIntegral.fromInt(2) * ((k0d2 + 1 to kEnd).foldLeft(zeroOfV) { 
-              case (sum, i) => sum + coeff(i) * coeff(k - i)  
-            }) + (if (k % 2 == 0) - coeff(k / 2).square else zeroOfV )) / (evVIsIntegral.fromInt(2) * coeff(k0d2)) 
-          })
-        coeff        
-      }, 1) // FIXME How many? 
+        TDif ({ // We might call sqrt directly not only through power, so we check for zero
+          lazy val coeff: Stream[V] = Stream.from(0).map(k =>
+            if (k < k0d2) zeroOfV       // the first k0/2 coefficients are zero
+            else if (k == k0d2) x0.sqrt // the first non-zero coefficient of the result
+            else {                      // possibly  non-zero coefficients k0/2 + 1 .. n - 1
+              val kEnd = k + (k % 2) - 2
+              (x(k) - evVIsIntegral.fromInt(2) * ((k0d2 + 1 to kEnd).foldLeft(zeroOfV) { 
+                case (sum, i) => sum + coeff(i) * coeff(k - i)  
+              }) + (if (k % 2 == 0) - coeff(k / 2).square else zeroOfV )) / (evVIsIntegral.fromInt(2) * coeff(k0d2)) 
+            })
+          coeff        
+        }, x.length - k0d2) // FIXME How many?
+      }
     
     /** Square */
     def square(x: TDif[V]): TDif[V] = TDif ({
@@ -103,7 +106,7 @@ object TAD extends App {
         }) + (if (k % 2 == 0) x(k/2).square else zeroOfV) // FIXME should adding zeroOfV optimized? 
       }
       coeff
-    }, 1) // FIXME How many?
+    }, x.length) // FIXME How many?
     
     /** Integer power by squaring */
     private def powBySquare(l: TDif[V], n: Int): TDif[V] =
@@ -121,14 +124,14 @@ object TAD extends App {
     /** Power with real exponent
      *  l != zero, r != zero, r != one */
     private def powOnReal(l: TDif[V], r: TDif[V]) : TDif[V] =
-      if (r(0).isValidInt) powOnInt(l, r(0).toInt) else
+      if (r(0).isValidInt) powOnInt(l, r(0).toInt) else {
+        val k0  = firstNonZero(l) // n >= k0 because l != zero
+        val lk0 = l(k0)
+        val a = r(0) // FIXME This is a constant! Should not be lifted in the first place.
+        val k0V = a * evVIsIntegral.fromInt(k0)
+        require((k0 == 0 || k0V.isValidInt), s"pow is not applicable to ($l,$r). Expanding around 0 needs the product of the exponent and of the index of the first non-zero coefficient to be an integer.")
+        val ak0 = k0V.toInt
         TDif ({
-          val k0  = firstNonZero(l) // n >= k0 because l != zero
-          val lk0 = l(k0)
-          val a = r(0) // FIXME This is a constant! Should not be lifted in the first place.
-          val k0V = a * evVIsIntegral.fromInt(k0)
-          require((k0 == 0 || k0V.isValidInt), s"pow is not applicable to ($l,$r). Expanding around 0 needs the product of the exponent and of the index of the first non-zero coefficient to be an integer.")
-          val ak0 = k0V.toInt
           lazy val coeff: Stream[V] = Stream.from(0).map { k =>
             if (k <  ak0) zeroOfV else   // the first a * k0 coefficients are zero
             if (k == ak0) lk0 ^ a else { // the first non-zero coefficient of the result
@@ -141,7 +144,8 @@ object TAD extends App {
             }
           }
           coeff
-        }, 1) // FIXME How many?
+        }, l.length - k0) // FIXME How many?
+      }
     
     /** Exponential function */
     def exp(x: TDif[V]): TDif[V] = TDif ({
@@ -150,7 +154,7 @@ object TAD extends App {
           case (sum, i) => sum + evVIsIntegral.fromInt(i) * x(i) * coeff(k-i)
         }) / evVIsIntegral.fromInt(k))
       coeff
-    }, 1) // FIXME How many?
+    }, x.length) // FIXME How many?
     
     /** Natural logarithm */
     def log(x: TDif[V]): TDif[V] = TDif ({
@@ -161,11 +165,11 @@ object TAD extends App {
             case (sum, i) => sum + evVIsIntegral.fromInt(i) * coeff(i) * x(k-i)
           }) / evVIsIntegral.fromInt(k)) / x0)
         coeff
-      }, 1) // FIXME How many?
+      }, x.length) // FIXME How many?
     
     /* Trigonometric functions */
-    def sin(x: TDif[V]): TDif[V] = TDif(sinAndCos(x).map(_._1), 1) // FIXME How many?
-    def cos(x: TDif[V]): TDif[V] = TDif(sinAndCos(x).map(_._2), 1) // FIXME How many?
+    def sin(x: TDif[V]): TDif[V] = TDif(sinAndCos(x).map(_._1), x.length) // FIXME How many?
+    def cos(x: TDif[V]): TDif[V] = TDif(sinAndCos(x).map(_._2), x.length) // FIXME How many?
     private def sinAndCos(x: TDif[V]): Stream[(V,V)] = {
       lazy val coeff: Stream[(V,V)] =
         (x(0).sin, x(0).cos) #:: Stream.from(1).map{ k =>
@@ -190,7 +194,7 @@ object TAD extends App {
             sum + evVIsIntegral.fromInt(i) * coeff(i) * cos2(k - i)
         }) / evVIsIntegral.fromInt(k)) / (x(0).cos).square)
       coeff
-    }, 1) // FIXME How many?
+    }, x.length) // FIXME How many?
     
     def acos(x: TDif[V]): TDif[V] = TDif ({
       val c = sqrt(sub(one, square(x)))
@@ -200,7 +204,7 @@ object TAD extends App {
             sum + evVIsIntegral.fromInt(i) * coeff(i) * c(k - i)
         }) / evVIsIntegral.fromInt(k)) / (oneOfV - x(0).square).sqrt)
       coeff
-    }, 1) // FIXME How many?
+    }, x.length) // FIXME How many?
     
     def asin(x: TDif[V]): TDif[V] = TDif ({
       val c = sqrt(sub(one, square(x)))
@@ -210,7 +214,7 @@ object TAD extends App {
             sum + evVIsIntegral.fromInt(i) * coeff(i) * c(k - i)
         }) / evVIsIntegral.fromInt(k)) / (oneOfV - x(0).square).sqrt)
       coeff
-    }, 1) // FIXME How many?
+    }, x.length) // FIXME How many?
     
     def atan(x: TDif[V]): TDif[V] = TDif ({
         val c = add(one, square(x))
@@ -220,7 +224,7 @@ object TAD extends App {
               sum + evVIsIntegral.fromInt(i) * coeff(i) * c(k - i)
           }) / evVIsIntegral.fromInt(k)) / (oneOfV + x(0).square))
         coeff
-      }, 1) // FIXME How many?
+      }, x.length) // FIXME How many?
   }
   implicit object IntDifIsIntegral extends TDifAsIntegral[Int] {
     def groundValue(v: TDif[Int]) = GIntDif(v)
