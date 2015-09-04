@@ -36,7 +36,7 @@ object TAD extends App {
     def isConstant(x: TDif[V]) = x.coeff.tail.take(x.length).forall(_ == zeroOfV)
     override def isZero(x: TDif[V]): Boolean = isConstant(x) && x.coeff(0).isZero
     /** Return index of first non-zero coefficient. When none exists, returns -1. */
-    def firstNonZero(x: TDif[V]): Int = x.coeff.take(x.length + 1).indexWhere(c => !(evVIsIntegral isZero c))
+    def firstNonZero(x: TDif[V]): Int = x.coeff.take(x.length).indexWhere(c => !(evVIsIntegral isZero c))
   }
   
   /** Real instance for TDif[V], where V itself has a Real instance */
@@ -91,7 +91,7 @@ object TAD extends App {
             }) + (if (k % 2 == 0) - coeff(k / 2).square else zeroOfV )) / (evVIsIntegral.fromInt(2) * coeff(k0d2)) 
           })
         coeff        
-      }, 1) // FIXME How many? 
+      }, x.length) // FIXME How many? 
     
     /** Square */
     def square(x: TDif[V]): TDif[V] = TDif ({
@@ -104,7 +104,7 @@ object TAD extends App {
         }) + (if (k % 2 == 0) x(k/2).square else zeroOfV) // FIXME should adding zeroOfV optimized? 
       }
       coeff
-    }, 1) // FIXME How many?
+    }, x.length) // FIXME How many?
     
     /** Integer power by squaring */
     private def powBySquare(l: TDif[V], n: Int): TDif[V] =
@@ -142,7 +142,7 @@ object TAD extends App {
             }
           }
           coeff
-        }, 1) // FIXME How many?
+        }, combinedLength(l, r)) // FIXME How many?
     
     /** Exponential function */
     def exp(x: TDif[V]): TDif[V] = TDif ({
@@ -151,7 +151,7 @@ object TAD extends App {
           case (sum, i) => sum + evVIsIntegral.fromInt(i) * x(i) * coeff(k-i)
         }) / evVIsIntegral.fromInt(k))
       coeff
-    }, 1) // FIXME How many?
+    }, x.length) // FIXME How many?
     
     /** Natural logarithm */
     def log(x: TDif[V]): TDif[V] = TDif ({
@@ -162,11 +162,11 @@ object TAD extends App {
             case (sum, i) => sum + evVIsIntegral.fromInt(i) * coeff(i) * x(k-i)
           }) / evVIsIntegral.fromInt(k)) / x0)
         coeff
-      }, 1) // FIXME How many?
+      }, x.length) // FIXME How many?
     
     /* Trigonometric functions */
-    def sin(x: TDif[V]): TDif[V] = TDif(sinAndCos(x).map(_._1), 1) // FIXME How many?
-    def cos(x: TDif[V]): TDif[V] = TDif(sinAndCos(x).map(_._2), 1) // FIXME How many?
+    def sin(x: TDif[V]): TDif[V] = TDif(sinAndCos(x).map(_._1), x.length) // FIXME How many?
+    def cos(x: TDif[V]): TDif[V] = TDif(sinAndCos(x).map(_._2), x.length) // FIXME How many?
     private def sinAndCos(x: TDif[V]): Stream[(V,V)] = {
       lazy val coeff: Stream[(V,V)] =
         (x(0).sin, x(0).cos) #:: Stream.from(1).map{ k =>
@@ -191,7 +191,7 @@ object TAD extends App {
             sum + evVIsIntegral.fromInt(i) * coeff(i) * cos2(k - i)
         }) / evVIsIntegral.fromInt(k)) / (x(0).cos).square)
       coeff
-    }, 1) // FIXME How many?
+    }, x.length) // FIXME How many?
     
     def acos(x: TDif[V]): TDif[V] = TDif ({
       val c = sqrt(sub(one, square(x)))
@@ -201,7 +201,7 @@ object TAD extends App {
             sum + evVIsIntegral.fromInt(i) * coeff(i) * c(k - i)
         }) / evVIsIntegral.fromInt(k)) / (oneOfV - x(0).square).sqrt)
       coeff
-    }, 1) // FIXME How many?
+    }, x.length) // FIXME How many?
     
     def asin(x: TDif[V]): TDif[V] = TDif ({
       val c = sqrt(sub(one, square(x)))
@@ -211,7 +211,7 @@ object TAD extends App {
             sum + evVIsIntegral.fromInt(i) * coeff(i) * c(k - i)
         }) / evVIsIntegral.fromInt(k)) / (oneOfV - x(0).square).sqrt)
       coeff
-    }, 1) // FIXME How many?
+    }, x.length) // FIXME How many?
     
     def atan(x: TDif[V]): TDif[V] = TDif ({
         val c = add(one, square(x))
@@ -221,7 +221,7 @@ object TAD extends App {
               sum + evVIsIntegral.fromInt(i) * coeff(i) * c(k - i)
           }) / evVIsIntegral.fromInt(k)) / (oneOfV + x(0).square))
         coeff
-      }, 1) // FIXME How many?
+      }, x.length) // FIXME How many?
   }
   implicit object IntDifIsIntegral extends TDifAsIntegral[Int] {
     def groundValue(v: TDif[Int]) = GIntDif(v)
