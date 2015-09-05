@@ -694,7 +694,7 @@ object Common {
             sUpdTmp updated (id, n, // update i:th Taylor coeff for variable (id, n)
               mapValuePair(sTmp(id, n), fieldApplied(id, n), { (gdif: GDif[R], der: GDif[R]) =>
                 val coeff = gdif.dif.coeff updated (i, der.dif.coeff(i - 1) / (rIsReal fromInt i))
-                VLit(gdif updated TDif(coeff, i)) })) } // FIXME How many?
+                VLit(gdif updated TDif(coeff, i + 1)) })) } // FIXME How many?
     }
     // the Taylor series // FIXME Does it not make more sense to accumulate solution when computing taylorCoeffs?
     val solution = f.variables(s).foldLeft(taylorCoeffs) { case (sTmp, (id, n)) => 

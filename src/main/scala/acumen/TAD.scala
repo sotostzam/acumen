@@ -56,7 +56,7 @@ object TAD extends App {
             case (sum, i) => sum + (coeff(i) * r(k - i + k0))
           }) / r(k0))
         coeff
-        }, combinedLength(l, r) - k0) // as 0 <= k0 <= l0, this is a positive integer
+        }, combinedLength(l, r)) // as 0 <= k0 <= l0, this is a positive integer
     }
 
     /* Power functions */
@@ -92,7 +92,7 @@ object TAD extends App {
               }) + (if (k % 2 == 0) - coeff(k / 2).square else zeroOfV )) / (evVIsIntegral.fromInt(2) * coeff(k0d2)) 
             })
           coeff        
-        }, x.length - k0d2) // FIXME How many?
+        }, x.length) // FIXME How many?
       }
     
     /** Square */
@@ -144,7 +144,7 @@ object TAD extends App {
             }
           }
           coeff
-        }, l.length - k0) // FIXME How many?
+        }, l.length) // FIXME How many?
       }
     
     /** Exponential function */
