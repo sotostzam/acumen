@@ -56,7 +56,7 @@ object ADTest extends Properties("AD") {
   implicit class TDifIsSimilar[T : Similar](l: TDif[T]) {
     /** Compare two TDifs coefficient-wise using comp, ignoring first n coefficients */
     def similar(r: TDif[T], comp: (T,T) => Boolean, msg: String, n: Int): Boolean =
-      (l.coeff zip r.coeff).zipWithIndex.forall {
+      (l.coeff zip r.coeff).zipWithIndex.take(Math.max(l.length, r.length)).forall {
         case ((lc, rc), i) =>
           if (i < n || comp(lc, rc)) true
           else sys.error(s"\n\nFound $msg at index $i:\n\n" +
@@ -220,12 +220,12 @@ object ADTest extends Properties("AD") {
 
   property("Dif[Interval]: n > 0 => 1^n = 1") =
     forAll (posNum[Int]) { (n: Int) =>
-      (IntervalDifIsReal.one ^ n) == IntervalDifIsReal.one 
+      (IntervalDifIsReal.one ^ n) ~= IntervalDifIsReal.one 
     }
 
   property("Dif[Interval]: x^0 = 1") =
     forAll(genSmallThinIntervalDif) { (x: TDif[Interval]) =>
-      (x^0) == IntervalDifIsReal.one
+      (x^0) ~= IntervalDifIsReal.one
     }
   
   property("Dif[Interval]: x > 1 && n < 0 => x^n <= x") =
