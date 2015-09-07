@@ -9,54 +9,61 @@ import util.ASTUtil.mapValue
 object FAD extends App {
   
   /** Representation of a number and its derivatives. */
-  case class FDif[V: Integral](coeff: Seq[V], length: Int) extends Dif[V] {
-    def apply(i: Int) = if (i < length) coeff(i) else implicitly[Integral[V]].zero
-    def map[W: Integral](m: V => W): FDif[W] = FDif(coeff map m, length)
+  case class FDif[V: Integral](head: V, coeff: Map[QName,V]) extends Dif[V,QName] {
+    def apply(i: QName) = coeff(i)
+    val length = coeff.size + 1
+    def map[W: Integral](m: V => W): FDif[W] = FDif(m(head), coeff mapValues m)
   }
   
   /** Lift all numeric values in a store into FDifs */
-  def lift[S, Id, I: Integral](st: RichStore[S, Id])(implicit n: (Id, Name), ns: List[(Id, Name)]): S = st map liftValue[Id,I] 
+  def lift[S, I: Integral](st: RichStore[S, GId])(implicit n: QName, ns: List[QName]): S = st map liftValue[I] 
   
   /** Lift all numeric values in an Expr into FDifs */
-  def lift[Id, V: Integral](e: Expr)(implicit n: (Id, Name), ns: List[(Id, Name)]): Expr = new acumen.util.ASTMap {
+  def lift[Id, V: Integral](e: Expr)(implicit n: QName, ns: List[QName]): Expr = new acumen.util.ASTMap {
     override def mapExpr(e: Expr): Expr = (e match {
       case Lit(gv) => Lit(liftGroundValue(gv))
       case _ => super.mapExpr(e)
     }).setPos(e.pos)
   }.mapExpr(e)
-  
-  private def liftGroundValue[Id](gv: GroundValue)(implicit n: (Id, Name), ns: List[(Id, Name)]): GroundValue = gv match {
-    case GDouble(d) => GDoubleFDif(FDif(d :: ns.map(_ => 0d), 1 + ns.size))
-    case GInt(i) => GDoubleFDif(FDif(i.toDouble :: ns.map(_ => 0d), 1 + ns.size))
-    case _ => gv
+
+  private def liftGroundValue(gv: GroundValue)(implicit n: QName, ns: List[QName]): GroundValue = {
+    val der = ns.map(id => id -> (if (id == n) 1d else 0d)).toMap
+    gv match {
+      case GDouble(d) => GDoubleFDif(FDif(d,          der))
+      case GInt(i)    => GDoubleFDif(FDif(i.toDouble, der))
+      case _          => gv
+    }
   }
   
   /** Lift all the values inside a Value[Id] into TDifs */
-  private def liftValue[Id, I: Integral](v: Value[Id])(implicit n: (Id, Name), ns: List[(Id, Name)]): Value[Id] = v match {
+  private def liftValue[I: Integral](v: Value[GId])(implicit n: QName, ns: List[QName]): Value[GId] = v match {
     case VLit(gv) => VLit(liftGroundValue(gv))
-    case VVector(lv: List[Value[Id]]) => VVector(lv map liftValue[Id,I])
-    case VList(lv: List[Value[Id]]) => VList(lv map liftValue[Id,I])
+    case VVector(lv: List[Value[GId]]) => VVector(lv map liftValue[I])
+    case VList(lv: List[Value[GId]]) => VList(lv map liftValue[I])
     case _ => v
   }
   
   /** Integral instance for TDif[V], where V itself has an Integral instance */
-  abstract class FDifAsIntegral[V: Integral] extends DifAsIntegral[V,FDif[V]] with Integral[FDif[V]] {
-    def dif(v: Seq[V], length: Int): FDif[V] = FDif(v, length)
+  abstract class FDifAsIntegral[V: Integral] extends DifAsIntegral[V,QName,FDif[V]] with Integral[FDif[V]] {
     /* Integral instance */
-    def add(l: FDif[V], r: FDif[V]): FDif[V] =
-      FDif(Stream.from(0).map(k => l(k) + r(k)), combinedLength(l,r))
-    def sub(l: FDif[V], r: FDif[V]): FDif[V] =
-      FDif(Stream.from(0).map(k => l(k) - r(k)), combinedLength(l,r))
+    def add(l: FDif[V], r: FDif[V]): FDif[V] = {
+      require(l.coeff.keySet == r.coeff.keySet, "Cannot add FDifs with different sets of names.")
+      FDif(l.head + r.head, l.coeff.keySet.map(k => k -> (l.coeff(k) + r.coeff(k))).toMap)
+    }
+    def sub(l: FDif[V], r: FDif[V]): FDif[V] = {
+      require(l.coeff.keySet == r.coeff.keySet, "Cannot subtract FDifs with different sets of names.")
+      FDif(l.head + r.head, l.coeff.keySet.map(k => k -> (l.coeff(k) - r.coeff(k))).toMap)
+    }
     def neg(x: FDif[V]): FDif[V] =
-      FDif(Stream.from(0).map(k => - x(k)), x.length)
-    def mul(l: FDif[V], r: FDif[V]): FDif[V] = 
-      FDif(Stream.from(0).map(k => l(k)*r(0) + l(0)*r(k)), combinedLength(l,r))
+      FDif(- x.head, x.coeff.mapValues(- _))
+    def mul(l: FDif[V], r: FDif[V]): FDif[V] = {
+      require(l.coeff.keySet == r.coeff.keySet, "Cannot multiply FDifs with different sets of names.")      
+      FDif(l.head * r.head, l.coeff.keySet.map(k => k -> (l(k)*r.head + l.head*r(k))).toMap)
+    }
     def fromInt(x: Int): FDif[V] = ???
     def zero: FDif[V] = ???
     def one: FDif[V] = ???
-    def isConstant(x: FDif[V]) = x.coeff.tail.forall(_ == zeroOfV)
-    /** Return index of first non-zero coefficient. When none exists, returns -1. */
-    def firstNonZero(x: FDif[V]): Int = ???
+    def isConstant(x: FDif[V]): Boolean = ???
   }
   
   /** Real instance for TDif[V], where V itself has a Real instance */
@@ -64,8 +71,10 @@ object FAD extends App {
     /* Constants */
     val evVIsReal = implicitly[Real[V]]
     /* Real instance */
-    def div(l: FDif[V], r: FDif[V]): FDif[V] = 
-      FDif(Stream.from(0).map(k => (l(k)*r(0) - l(0)*r(k)) / r(0).square), combinedLength(l,r))
+    def div(l: FDif[V], r: FDif[V]): FDif[V] = {
+      require(l.coeff.keySet == r.coeff.keySet, "Cannot multiply FDifs with different sets of names.")      
+      FDif(l.head * r.head, l.coeff.keySet.map(k => k -> ((l(k)*r.head - l.head*r(k)) / r.head.square)).toMap)
+    }
     def pow(l: FDif[V], r: FDif[V]): FDif[V] = ???
     def sin(x: FDif[V]): FDif[V] = ???
     def cos(x: FDif[V]): FDif[V] = ???
@@ -92,16 +101,17 @@ object FAD extends App {
     def groundValue(v: FDif[Interval]) = GIntervalFDif(v)
   }
   
-  def computeJacobian[Id, S <% RichStore[S,Id], V: Real](f: Field[S,Id], s: S): Vector[FDif[V]] = {
-    val vars = f.variables(s).toVector
+  def computeJacobian[Id <: GId, S <% RichStore[S,Id], V: Real](f: Field[S,Id], s: S): Vector[FDif[V]] = {
+    val vars = f.variables(s)
     val dim = 1 + vars.size
     val zero = implicitly[Integral[V]].zero
     val one = implicitly[Integral[V]].one
     vars.toVector.map{ case qn@(id,n) =>
       // FIXME Extend to vectors
-      s(id,n) match { 
+      s(id,n) match {
         case VLit(v: V) =>
-          FDif(v +: vars.map{ (qn1: (Id,Name)) => if (qn1 == qn) one else zero }, dim)
+          val mappp: Map[QName,V] = vars.map{ case qn1@(id1,n1) => QName(id1,n1) -> (if (qn1 == qn) one else zero) }.toMap
+          FDif(v, mappp)
       }
     }
   }

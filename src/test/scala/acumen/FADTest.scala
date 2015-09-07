@@ -46,10 +46,16 @@ object FADTest extends Properties("AD") {
   implicit class FDifIsSimilar[T : Similar](l: FDif[T]) {
     /** Compare two FDifs coefficient-wise using comp, ignoring first n coefficients */
     def similar(r: FDif[T], comp: (T,T) => Boolean, msg: String, n: Int): Boolean =
-      (l coeff).zip(r coeff).zipWithIndex.forall {
+      if (l.head != r.head)
+        sys.error(s"\n\nFound $msg at head :\n\n" +
+            s"Left coefficient:\n${l.head}\n\nRight coefficient:\n${r.head}\n\n" +
+            s"Full left Dif:\n$l\n\nFull right Dif:\n$r\n\n")
+      else if (l.coeff.keySet != r.coeff.keySet)
+        sys.error("Key sets do not match!")
+      else l.coeff.keySet.map(k => ((l.coeff(k), r.coeff(k)), k)).forall {
         case ((lc, rc), i) =>
-          if (i < n || comp(lc, rc)) true
-          else sys.error(s"\n\nFound $msg at index $i:\n\n" +
+          if (comp(lc, rc)) true
+          else sys.error(s"\n\nFound $msg at key $i:\n\n" +
               s"Left coefficient:\n$lc\n\nRight coefficient:\n$rc\n\n" +
               s"Full left Dif:\n$l\n\nFull right Dif:\n$r\n\n")
     }
@@ -63,8 +69,8 @@ object FADTest extends Properties("AD") {
   
   property("lift leaves no base number types") = 
     forAll(arbitrary[GroundValue], listOf1(arbitrary[(CId,Name)])) { (gv, ns) =>
-      forAll(oneOf(ns)) { (n: (CId,Name)) =>
-        lift[CId,Double](Lit(gv))(DoubleIsReal, n, ns) match {
+      forAll(oneOf(ns)) { case (id,n) =>
+        lift[CId,Double](Lit(gv))(DoubleIsReal, QName(id,n), ns.map{ case (id1,n1) => QName(id1,n1) }) match {
           case Lit(_: GDouble | _: GInt | _: GInterval) => false
           case _ => true
         } 

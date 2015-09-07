@@ -307,6 +307,8 @@ package acumen {
      #0.k1.k2. ... .kn is represented as List(kn,...,k2,k1) */
 
   trait GId {def cid : CId}
+  
+  case class QName(id: GId, n: Name)
 
   class CId(val id: List[Int]) extends Ordered[CId] with GId {
     def cid = this
@@ -632,33 +634,33 @@ package object acumen {
     def groundValue(v: Interval) = GInterval(v)
   }
   
-  /** Representation of a number and its derivatives. */
-  abstract class Dif[V : Integral] {
-    /** Returns the i:th element of the Dif when i < length
-     *  and otherwise the zero of V. */
-    def apply(i: Int): V
+  /** Representation of a number and its derivatives, indexed by the type I. */
+  abstract class Dif[V : Integral, Id] {
+    /** Returns the element of the Dif corresponding to i when 
+     *  i < length and otherwise the zero of V. */
+    def apply(i: Id): V
     /** Returns an integer > 0. */
     def length: Int
+    /** Returns the leading coefficient of the Dif. */
+    def head: V
     /** Apply m to every element. */
-    def map[W: Integral](m: V => W): Dif[W] 
+    def map[W: Integral](m: V => W): Dif[W,Id] 
   }
   
-  abstract class DifAsIntegral[V: Integral, D <: Dif[V]] {
-    /** Factory method */
-    def dif(v: Seq[V], length: Int): D
+  abstract class DifAsIntegral[V: Integral, Id, D <: Dif[V,Id]] {
     /* Constants */
     val evVIsIntegral = implicitly[Integral[V]]
     val zeroOfV = evVIsIntegral.zero
     val oneOfV = evVIsIntegral.one
     /* Integral instance */
     protected def combinedLength(l: D, r: D) = Math.max(l.length, r.length)
-    def toInt(x: D): Int = x(0).toInt
-    def toDouble(x: D): Double = x(0).toDouble
-    def isValidInt(x: D): Boolean = evVIsIntegral.isValidInt(x(0)) && isConstant(x)
-    def isValidDouble(x: D): Boolean = evVIsIntegral.isValidDouble(x(0)) && isConstant(x)
+    def toInt(x: D): Int = x.head.toInt
+    def toDouble(x: D): Double = x.head.toDouble
+    def isValidInt(x: D): Boolean = evVIsIntegral.isValidInt(x.head) && isConstant(x)
+    def isValidDouble(x: D): Boolean = evVIsIntegral.isValidDouble(x.head) && isConstant(x)
     def isConstant(x: D): Boolean
-    def tryCompare(l: D, r: D): Option[Int] = evVIsIntegral.tryCompare(l(0), r(0))
-    def lteq(l: D, r: D): Boolean = evVIsIntegral.lteq(l(0), r(0))
+    def tryCompare(l: D, r: D): Option[Int] = evVIsIntegral.tryCompare(l.head, r.head)
+    def lteq(l: D, r: D): Boolean = evVIsIntegral.lteq(l.head, r.head)
   }
 
 

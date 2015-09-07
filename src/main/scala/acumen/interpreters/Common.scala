@@ -649,7 +649,7 @@ object Common {
   // ODEs
   // 
   
-  class Solver[Id, S <% RichStore[S,Id], R: Real](solverName: Value[_], val xs: S, val h: Double)(implicit f: Field[S,Id]) {
+  class Solver[Id <: GId, S <% RichStore[S,Id], R: Real](solverName: Value[_], val xs: S, val h: Double)(implicit f: Field[S,Id]) {
     private def msg(meth: String) = "Invalid integration method \"" + meth +
         "\". Please select one of: " + knownSolvers.mkString(", ")
     final def solve: S = {
@@ -668,10 +668,10 @@ object Common {
     }
   }
 
-  def solveIVPEulerForward[Id, S <% RichStore[S,Id],V](xs: S, h: Double)(implicit f: Field[S,Id]): S =
+  def solveIVPEulerForward[Id <: GId, S <% RichStore[S,Id],V](xs: S, h: Double)(implicit f: Field[S,Id]): S =
     xs +++ f(xs) *** h
 
-  def solveIVPRungeKutta[Id, S <% RichStore[S,Id],V](xs: S, h: Double)(implicit f: Field[S,Id]): S = {
+  def solveIVPRungeKutta[Id <: GId, S <% RichStore[S,Id],V](xs: S, h: Double)(implicit f: Field[S,Id]): S = {
     val k1 = f(xs)
     val k2 = f(xs +++ k1 *** (h/2)) 
     val k3 = f(xs +++ k2 *** (h/2))
@@ -679,7 +679,7 @@ object Common {
     xs +++ (k1 +++ k2 *** 2 +++ k3 *** 2 +++ k4) *** (h/6)
   }
   
-  def solveIVPTaylor[Id, S <% RichStore[S,Id], R: Real](s: S, h: Double, orderOfIntegration: Int)(implicit f: Field[S,Id]): S = {
+  def solveIVPTaylor[Id <: GId, S <% RichStore[S,Id], R: Real](s: S, h: Double, orderOfIntegration: Int)(implicit f: Field[S,Id]): S = {
     require (orderOfIntegration > 0, s"Order of integration ($orderOfIntegration) must be greater than 0")
     val ode = f map (TAD lift _)
     val rIsReal = implicitly[Real[R]]
@@ -711,7 +711,7 @@ object Common {
   /** Representation of a set of ODEs. 
    *  FieldId is a type, specific to the store type S, whose values 
    *  can be used to uniquely identify values in the store. */
-  abstract class Field[S /* store */, Id /* object id */] {
+  abstract class Field[S /* store */, Id <: GId /* object id */] {
     /** Evaluate the field (the RHS of each equation in ODEs) in s. */
     def apply(s: S): S
     /** Returns the set of variables affected by the field.

@@ -17,8 +17,7 @@ import acumen.interpreters.Common.RichStore
 object TAD extends App {
 
   /** Integral instance for TDif[V], where V itself has an Integral instance */
-  abstract class TDifAsIntegral[V: Integral] extends DifAsIntegral[V,TDif[V]] with Integral[TDif[V]] {
-    override def dif(v: Seq[V], length: Int): TDif[V] = TDif(v, length)
+  abstract class TDifAsIntegral[V: Integral] extends DifAsIntegral[V,Int,TDif[V]] with Integral[TDif[V]] {
     /* Integral instance */
     def add(l: TDif[V], r: TDif[V]): TDif[V] =
       TDif(Stream.from(0).map(k => l(k) + r(k)), combinedLength(l, r))
@@ -237,8 +236,9 @@ object TAD extends App {
   }
   
   /** Representation of a number and its time derivatives. */
-  case class TDif[V: Integral](coeff: Seq[V], length: Int) extends Dif[V]{
+  case class TDif[V: Integral](coeff: Seq[V], length: Int) extends Dif[V,Int]{
     def apply(i: Int): V = if (i < length) coeff(i) else implicitly[Integral[V]].zero
+    def head: V = coeff(0)
     def map[W: Integral](m: V => W): TDif[W] = TDif(coeff map m, length)
     def indexWhere(m: V => Boolean): Int = coeff.take(length).indexWhere(c => m(c))
   }
