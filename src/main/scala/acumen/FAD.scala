@@ -70,19 +70,25 @@ object FAD extends App {
     /* Constants */
     val evVIsReal = implicitly[Real[V]]
     /* Real instance */
-    def div(l: FDif[V], r: FDif[V]): FDif[V] = 
-      FDif(Stream.from(0).map(k => (l(k)*r(0) - l(0)*r(k)) / r(0).square), combinedLength(l,r))
+    def div(l: FDif[V], r: FDif[V]): FDif[V] = {
+      val k0 = firstNonZero(r)
+      require(k0 == 0, "Division by zero is not allowed.")
+      FDif ({
+        lazy val coeff: Stream[V] = (l(0) / r(0)) #:: Stream.from(1).map(k => (l(k)*r(0) - l(0)*r(k)) / r(0).square)
+        coeff
+        }, combinedLength(l, r))
+    }
     def pow(l: FDif[V], r: FDif[V]): FDif[V] = ???
+    def exp(x: FDif[V]): FDif[V] = ???
+    def log(x: FDif[V]): FDif[V] = ???
+    def square(x: FDif[V]): FDif[V] = ???
+    def sqrt(x: FDif[V]): FDif[V] = ???
     def sin(x: FDif[V]): FDif[V] = ???
     def cos(x: FDif[V]): FDif[V] = ???
     def tan(x: FDif[V]): FDif[V] = ???
     def acos(x: FDif[V]): FDif[V] = ???
     def asin(x: FDif[V]): FDif[V] = ???
     def atan(x: FDif[V]): FDif[V] = ???
-    def exp(x: FDif[V]): FDif[V] = ???
-    def log(x: FDif[V]): FDif[V] = ???
-    def square(x: FDif[V]): FDif[V] = ???
-    def sqrt(x: FDif[V]): FDif[V] = ???
   }
   implicit object IntFDifIsIntegral extends FDifAsIntegral[Int] {
     def groundValue(v: FDif[Int]) = GIntFDif(v)
