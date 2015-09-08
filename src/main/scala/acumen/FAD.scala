@@ -76,20 +76,21 @@ object FAD extends App {
     val evVIsReal = implicitly[Real[V]]
     /* Real instance */
     def div(l: FDif[V], r: FDif[V]): FDif[V] = {
-      require(l.coeff.keySet == r.coeff.keySet, "Cannot multiply FDifs with different sets of names.")      
+      require(!r.head.isZero, "Division by zero is not allowed.")
+      require(l.coeff.keySet == r.coeff.keySet, "Cannot multiply FDifs with different sets of names.")
       FDif(l.head * r.head, l.coeff.keySet.map(k => k -> ((l(k)*r.head - l.head*r(k)) / r.head.square)).toMap)
     }
     def pow(l: FDif[V], r: FDif[V]): FDif[V] = ???
+    def exp(x: FDif[V]): FDif[V] = ???
+    def log(x: FDif[V]): FDif[V] = ???
+    def square(x: FDif[V]): FDif[V] = ???
+    def sqrt(x: FDif[V]): FDif[V] = ???
     def sin(x: FDif[V]): FDif[V] = ???
     def cos(x: FDif[V]): FDif[V] = ???
     def tan(x: FDif[V]): FDif[V] = ???
     def acos(x: FDif[V]): FDif[V] = ???
     def asin(x: FDif[V]): FDif[V] = ???
     def atan(x: FDif[V]): FDif[V] = ???
-    def exp(x: FDif[V]): FDif[V] = ???
-    def log(x: FDif[V]): FDif[V] = ???
-    def square(x: FDif[V]): FDif[V] = ???
-    def sqrt(x: FDif[V]): FDif[V] = ???
     def fromDouble(x: Double): FDif[V] = FDif.constant(evVIsReal fromDouble x)
   }
   implicit object IntFDifIsIntegral extends FDifAsIntegral[Int] {
