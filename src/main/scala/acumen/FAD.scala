@@ -12,6 +12,11 @@ object FAD extends App {
   case class FDif[V: Integral](coeff: Seq[V], length: Int) extends Dif[V] {
     def apply(i: Int) = if (i < length) coeff(i) else implicitly[Integral[V]].zero
     def map[W: Integral](m: V => W): FDif[W] = FDif(coeff map m, length)
+    def indexWhere(m: V => Boolean): Int = coeff.take(length).indexWhere(c => m(c))
+  }
+  object FDif {
+    /** Lift a constant value of type A to an FDif. */
+    def constant[V: Integral](a: V) = FDif(a #:: Stream.continually(implicitly[Integral[V]].zero), 1)
   }
   
   /** Lift all numeric values in a store into FDifs */
@@ -31,7 +36,7 @@ object FAD extends App {
     case _ => gv
   }
   
-  /** Lift all the values inside a Value[Id] into TDifs */
+  /** Lift all the values inside a Value[Id] into FDifs */
   private def liftValue[Id, I: Integral](v: Value[Id])(implicit n: (Id, Name), ns: List[(Id, Name)]): Value[Id] = v match {
     case VLit(gv) => VLit(liftGroundValue(gv))
     case VVector(lv: List[Value[Id]]) => VVector(lv map liftValue[Id,I])
@@ -39,7 +44,7 @@ object FAD extends App {
     case _ => v
   }
   
-  /** Integral instance for TDif[V], where V itself has an Integral instance */
+  /** Integral instance for FDif[V], where V itself has an Integral instance */
   abstract class FDifAsIntegral[V: Integral] extends DifAsIntegral[V,FDif[V]] with Integral[FDif[V]] {
     def dif(v: Seq[V], length: Int): FDif[V] = FDif(v, length)
     /* Integral instance */
@@ -51,15 +56,15 @@ object FAD extends App {
       FDif(Stream.from(0).map(k => - x(k)), x.length)
     def mul(l: FDif[V], r: FDif[V]): FDif[V] = 
       FDif(Stream.from(0).map(k => l(k)*r(0) + l(0)*r(k)), combinedLength(l,r))
-    def fromInt(x: Int): FDif[V] = ???
-    def zero: FDif[V] = ???
-    def one: FDif[V] = ???
-    def isConstant(x: FDif[V]) = x.coeff.tail.forall(_ == zeroOfV)
+    def fromInt(x: Int): FDif[V] = FDif.constant(evVIsIntegral fromInt x)
+    lazy val zero: FDif[V] = FDif.constant(zeroOfV)
+    lazy val one: FDif[V] = FDif.constant(oneOfV)
+    def isConstant(x: FDif[V]) = (1 until x.length).forall(x(_) == zeroOfV)
     /** Return index of first non-zero coefficient. When none exists, returns -1. */
-    def firstNonZero(x: FDif[V]): Int = ???
+    def firstNonZero(x: FDif[V]): Int = x.indexWhere(xk => !(evVIsIntegral isZero xk))
   }
   
-  /** Real instance for TDif[V], where V itself has a Real instance */
+  /** Real instance for FDif[V], where V itself has a Real instance */
   abstract class FDifAsReal[V: Real] extends FDifAsIntegral[V] with Real[FDif[V]] {
     /* Constants */
     val evVIsReal = implicitly[Real[V]]
