@@ -85,10 +85,11 @@ object TAD extends App {
             if (k < k0d2) zeroOfV       // the first k0/2 coefficients are zero
             else if (k == k0d2) x0.sqrt // the first non-zero coefficient of the result
             else {                      // possibly  non-zero coefficients k0/2 + 1 .. n - 1
-              val kEnd = k + (k % 2) - 2
-              (x(k) - evVIsIntegral.fromInt(2) * ((k0d2 + 1 to kEnd).foldLeft(zeroOfV) { 
-                case (sum, i) => sum + coeff(i) * coeff(k - i)  
-              }) + (if (k % 2 == 0) - coeff(k / 2).square else zeroOfV )) / (evVIsIntegral.fromInt(2) * coeff(k0d2)) 
+              val kPk0d2 = k + k0d2
+              val kEnd = kPk0d2 + (kPk0d2 % 2) - 2
+              (x(kPk0d2) - evVIsIntegral.fromInt(2) * ((k0d2 + 1 to kEnd).foldLeft(zeroOfV) { 
+                case (sum, i) => sum + coeff(i) * coeff(kPk0d2 - i)  
+              }) + (if (kPk0d2 % 2 == 0) - coeff(kPk0d2 / 2).square else zeroOfV )) / (evVIsIntegral.fromInt(2) * coeff(k0d2)) 
             })
           coeff        
         }, x.length) // FIXME How many?

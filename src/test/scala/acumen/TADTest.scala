@@ -56,13 +56,11 @@ object ADTest extends Properties("AD") {
   implicit class TDifIsSimilar[T : Similar](l: TDif[T]) {
     /** Compare two TDifs coefficient-wise using comp, ignoring first n coefficients */
     def similar(r: TDif[T], comp: (T,T) => Boolean, msg: String, n: Int): Boolean =
-      (l.coeff zip r.coeff).zipWithIndex.take(Math.max(l.length, r.length)).forall {
-        case ((lc, rc), i) =>
-          if (i < n || comp(lc, rc)) true
+      (0 to Math.max(l.length, r.length)).forall(i => 
+          if (comp(l(i), r(i))) true
           else sys.error(s"\n\nFound $msg at index $i:\n\n" +
-              s"Left coefficient:\n$lc\n\nRight coefficient:\n$rc\n\n" +
-              s"Full left TDif:\n$l\n\nFull right TDif:\n$r\n\n")
-    }
+              s"Left coefficient:\n${l(i)}\n\nRight coefficient:\n${r(i)}\n\n" +
+              s"Full left TDif:\n$l\n\nFull right TDif:\n$r\n\n"))
     def ~=(r: TDif[T]): Boolean = similar(r, (lc:T,rc:T) => lc ~= rc, "dissimilarity", 0)
     /** Ignore first n coefficients */
     def ~=(n: Int)(r: TDif[T]): Boolean = similar(r, (lc:T,rc:T) => lc ~= rc, "dissimilarity", n)
