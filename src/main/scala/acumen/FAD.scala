@@ -83,12 +83,48 @@ object FAD extends App {
     def log(x: FDif[V]): FDif[V] = ???
     def square(x: FDif[V]): FDif[V] = ???
     def sqrt(x: FDif[V]): FDif[V] = ???
-    def sin(x: FDif[V]): FDif[V] = ???
-    def cos(x: FDif[V]): FDif[V] = ???
-    def tan(x: FDif[V]): FDif[V] = ???
-    def acos(x: FDif[V]): FDif[V] = ???
-    def asin(x: FDif[V]): FDif[V] = ???
-    def atan(x: FDif[V]): FDif[V] = ???
+    def sin(x: FDif[V]): FDif[V] = {
+      val cosx = x(0).cos
+      FDif ({
+        lazy val coeff: Stream[V] = (x(0).sin) #:: Stream.from(1).map(k => cosx * x(k))
+        coeff
+        }, x.length)
+    }
+    def cos(x: FDif[V]): FDif[V] = {
+      val minsinx = - x(0).sin
+      FDif ({
+        lazy val coeff: Stream[V] = (x(0).cos) #:: Stream.from(1).map(k => minsinx * x(k))
+        coeff
+        }, x.length)
+    }
+    def tan(x: FDif[V]): FDif[V] = {
+      val tan2p1 = oneOfV + (x(0).tan).square
+      FDif ({
+        lazy val coeff: Stream[V] = (x(0).tan) #:: Stream.from(1).map(k => tan2p1 * x(k))
+        coeff
+        }, x.length)
+    }
+    def acos(x: FDif[V]): FDif[V] = {
+      val c = - oneOfV / (oneOfV - x(0).square).sqrt
+      FDif ({
+        lazy val coeff: Stream[V] = (x(0).acos) #:: Stream.from(1).map(k => c * x(k))
+        coeff
+        }, x.length)
+    }
+    def asin(x: FDif[V]): FDif[V] = {
+      val c = oneOfV / (oneOfV - x(0).square).sqrt
+      FDif ({
+        lazy val coeff: Stream[V] = (x(0).asin) #:: Stream.from(1).map(k => c * x(k))
+        coeff
+        }, x.length)
+    }
+    def atan(x: FDif[V]): FDif[V] = {
+      val c = oneOfV / (oneOfV + x(0).square)
+      FDif ({
+        lazy val coeff: Stream[V] = (x(0).atan) #:: Stream.from(1).map(k => c * x(k))
+        coeff
+        }, x.length)
+    }
   }
   implicit object IntFDifIsIntegral extends FDifAsIntegral[Int] {
     def groundValue(v: FDif[Int]) = GIntFDif(v)
