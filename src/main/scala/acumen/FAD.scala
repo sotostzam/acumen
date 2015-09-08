@@ -10,9 +10,13 @@ object FAD extends App {
   
   /** Representation of a number and its derivatives. */
   case class FDif[V: Integral](head: V, coeff: Map[QName,V]) extends Dif[V,QName] {
-    def apply(i: QName) = coeff(i)
+    def apply(i: QName) = coeff.getOrElse(i, implicitly[Integral[V]].zero)
     val length = coeff.size + 1
     def map[W: Integral](m: V => W): FDif[W] = FDif(m(head), coeff mapValues m)
+  }
+  object FDif {
+    /** Lift a constant value of type A to an FDif. */
+    def constant[V: Integral](a: V) = FDif(a, Map.empty)
   }
   
   /** Lift all numeric values in a store into FDifs */
@@ -35,7 +39,7 @@ object FAD extends App {
     }
   }
   
-  /** Lift all the values inside a Value[Id] into TDifs */
+  /** Lift all the values inside a Value[Id] into FDifs */
   private def liftValue[I: Integral](v: Value[GId])(implicit n: QName, ns: List[QName]): Value[GId] = v match {
     case VLit(gv) => VLit(liftGroundValue(gv))
     case VVector(lv: List[Value[GId]]) => VVector(lv map liftValue[I])
@@ -43,7 +47,7 @@ object FAD extends App {
     case _ => v
   }
   
-  /** Integral instance for TDif[V], where V itself has an Integral instance */
+  /** Integral instance for FDif[V], where V itself has an Integral instance */
   abstract class FDifAsIntegral[V: Integral] extends DifAsIntegral[V,QName,FDif[V]] with Integral[FDif[V]] {
     /* Integral instance */
     def add(l: FDif[V], r: FDif[V]): FDif[V] = {
@@ -60,13 +64,13 @@ object FAD extends App {
       require(l.coeff.keySet == r.coeff.keySet, "Cannot multiply FDifs with different sets of names.")      
       FDif(l.head * r.head, l.coeff.keySet.map(k => k -> (l(k)*r.head + l.head*r(k))).toMap)
     }
-    def fromInt(x: Int): FDif[V] = ???
-    def zero: FDif[V] = ???
-    def one: FDif[V] = ???
-    def isConstant(x: FDif[V]): Boolean = ???
+    def fromInt(x: Int): FDif[V] = FDif.constant(evVIsIntegral fromInt x)
+    def zero: FDif[V] = FDif constant zeroOfV
+    def one: FDif[V] = FDif constant oneOfV
+    def isConstant(x: FDif[V]): Boolean = x.coeff.values.forall(_ == zeroOfV)
   }
   
-  /** Real instance for TDif[V], where V itself has a Real instance */
+  /** Real instance for FDif[V], where V itself has a Real instance */
   abstract class FDifAsReal[V: Real] extends FDifAsIntegral[V] with Real[FDif[V]] {
     /* Constants */
     val evVIsReal = implicitly[Real[V]]
