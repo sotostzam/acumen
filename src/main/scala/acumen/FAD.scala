@@ -85,12 +85,30 @@ object FAD extends App {
     def log(x: FDif[V]): FDif[V] = ???
     def square(x: FDif[V]): FDif[V] = ???
     def sqrt(x: FDif[V]): FDif[V] = ???
-    def sin(x: FDif[V]): FDif[V] = ???
-    def cos(x: FDif[V]): FDif[V] = ???
-    def tan(x: FDif[V]): FDif[V] = ???
-    def acos(x: FDif[V]): FDif[V] = ???
-    def asin(x: FDif[V]): FDif[V] = ???
-    def atan(x: FDif[V]): FDif[V] = ???
+    def sin(x: FDif[V]): FDif[V] = {
+      val cosx = x.head.cos      
+      FDif(x.head.sin, x.coeff.mapValues(cosx * _))
+    } 
+    def cos(x: FDif[V]): FDif[V] = {
+      val minsinx = - x.head.sin     
+      FDif(x.head.cos, x.coeff.mapValues(minsinx * _))
+    } 
+    def tan(x: FDif[V]): FDif[V] = {
+      val tan2p1 = oneOfV + (x.head.tan).square
+      FDif(x.head.tan, x.coeff.mapValues(tan2p1 * _))
+    }
+    def acos(x: FDif[V]): FDif[V] = {
+      val c = - oneOfV / (oneOfV - x.head.square).sqrt
+      FDif(x.head.acos, x.coeff.mapValues(c * _))
+    }
+    def asin(x: FDif[V]): FDif[V] = {
+      val c = oneOfV / (oneOfV - x.head.square).sqrt
+      FDif(x.head.asin, x.coeff.mapValues(c * _))
+    }
+    def atan(x: FDif[V]): FDif[V] = {
+      val c = oneOfV / (oneOfV + x.head.square)
+      FDif(x.head.atan, x.coeff.mapValues(c * _))
+    }
     def fromDouble(x: Double): FDif[V] = FDif.constant(evVIsReal fromDouble x)
   }
   implicit object IntFDifIsIntegral extends FDifAsIntegral[Int] {
