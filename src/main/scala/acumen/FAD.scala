@@ -66,6 +66,7 @@ object FAD extends App {
   
   /** Real instance for FDif[V], where V itself has a Real instance */
   abstract class FDifAsReal[V: Real] extends FDifAsIntegral[V] with Real[FDif[V]] {
+    def fromDouble(x: Double): FDif[V] = FDif.constant(evVIsReal fromDouble x)
     /* Constants */
     val evVIsReal = implicitly[Real[V]]
     /* Real instance */
@@ -82,10 +83,6 @@ object FAD extends App {
     def log(x: FDif[V]): FDif[V] = ???
     def square(x: FDif[V]): FDif[V] = ???
     def sqrt(x: FDif[V]): FDif[V] = ???
-    def fromDouble(i: Double): FDif[V] = ???
-    
-    override def isValidInt(x: FDif[V]): Boolean = ???
-    override def toInt(x: FDif[V]): Int = ???
   }
   implicit object IntFDifIsIntegral extends FDifAsIntegral[Int] {
     def groundValue(v: FDif[Int]) = GIntFDif(v)
