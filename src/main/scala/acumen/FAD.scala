@@ -8,9 +8,11 @@ import util.ASTUtil.mapValue
 
 object FAD extends App {
   
-  /** Representation of a number and its derivatives. */
+  /** Representation of a number and its derivatives. 
+   *  NOTE: An FDif with an empty coeff represents a constant value.
+   */
   case class FDif[V: Integral](head: V, coeff: Map[QName,V]) extends Dif[V,QName] {
-    def apply(i: QName) = coeff.getOrElse(i, implicitly[Integral[V]].zero)
+    def apply(i: QName) = if (coeff isEmpty) implicitly[Integral[V]].zero else coeff(i)
     val length = coeff.size + 1
     def map[W: Integral](m: V => W): FDif[W] = FDif(m(head), coeff mapValues m)
   }
@@ -49,21 +51,20 @@ object FAD extends App {
   
   /** Integral instance for FDif[V], where V itself has an Integral instance */
   abstract class FDifAsIntegral[V: Integral] extends DifAsIntegral[V,QName,FDif[V]] with Integral[FDif[V]] {
+    def binaryOp(op: String, l: FDif[V], r: FDif[V], h: (V,V) => V, c: QName => V): FDif[V] = {
+      require(l.coeff.isEmpty || r.coeff.isEmpty || l.coeff.keySet == r.coeff.keySet, 
+        s"Cannot $op FDifs with different sets of names.")
+      FDif(h(l.head, r.head), (l.coeff.keySet union r.coeff.keySet).map(k => k -> c(k)).toMap)
+    }
     /* Integral instance */
-    def add(l: FDif[V], r: FDif[V]): FDif[V] = {
-      require(l.coeff.keySet == r.coeff.keySet, "Cannot add FDifs with different sets of names.")
-      FDif(l.head + r.head, l.coeff.keySet.map(k => k -> (l.coeff(k) + r.coeff(k))).toMap)
-    }
-    def sub(l: FDif[V], r: FDif[V]): FDif[V] = {
-      require(l.coeff.keySet == r.coeff.keySet, "Cannot subtract FDifs with different sets of names.")
-      FDif(l.head + r.head, l.coeff.keySet.map(k => k -> (l.coeff(k) - r.coeff(k))).toMap)
-    }
+    def add(l: FDif[V], r: FDif[V]): FDif[V] =
+      binaryOp("add", l, r, _ + _, k => l(k) + r(k))
+    def sub(l: FDif[V], r: FDif[V]): FDif[V] =
+      binaryOp("subtract", l, r, _ - _, k => l(k) - r(k))
     def neg(x: FDif[V]): FDif[V] =
-      FDif(- x.head, x.coeff.mapValues(- _))
-    def mul(l: FDif[V], r: FDif[V]): FDif[V] = {
-      require(l.coeff.keySet == r.coeff.keySet, "Cannot multiply FDifs with different sets of names.")      
-      FDif(l.head * r.head, l.coeff.keySet.map(k => k -> (l(k)*r.head + l.head*r(k))).toMap)
-    }
+      FDif(-x.head, x.coeff.mapValues(-_))
+    def mul(l: FDif[V], r: FDif[V]): FDif[V] =
+      binaryOp("multiply", l, r, _ * _, k => l(k) * r.head + l.head * r(k))
     def fromInt(x: Int): FDif[V] = FDif.constant(evVIsIntegral fromInt x)
     def zero: FDif[V] = FDif constant zeroOfV
     def one: FDif[V] = FDif constant oneOfV
@@ -77,8 +78,7 @@ object FAD extends App {
     /* Real instance */
     def div(l: FDif[V], r: FDif[V]): FDif[V] = {
       require(!r.head.isZero, "Division by zero is not allowed.")
-      require(l.coeff.keySet == r.coeff.keySet, "Cannot multiply FDifs with different sets of names.")
-      FDif(l.head * r.head, l.coeff.keySet.map(k => k -> ((l(k)*r.head - l.head*r(k)) / r.head.square)).toMap)
+      binaryOp("add", l, r, _/_, k => (l(k)*r.head - l.head*r(k)) / r.head.square)
     }
     def pow(l: FDif[V], r: FDif[V]): FDif[V] = ???
     def exp(x: FDif[V]): FDif[V] = ???

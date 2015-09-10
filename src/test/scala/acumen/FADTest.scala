@@ -12,7 +12,7 @@ import interpreters.enclosure.Generators._
 import FAD._
 import acumen.interpreters.reference2015.Interpreter.FieldImpl
 
-object FADTest extends Properties("AD") {
+object FADTest extends Properties("FAD") {
 
   /* Utilities */
   
@@ -21,6 +21,11 @@ object FADTest extends Properties("AD") {
       
   val evIntervalFDifIsIntegral = implicitly[Integral[FDif[Interval]]]
   val evIntervalFDifIsReal = implicitly[Real[FDif[Interval]]]
+  
+  def fromIntD(i: Int) = evDoubleFDifIsIntegral.fromInt(i)
+  val zeroD = evDoubleFDifIsIntegral.zero
+  val oneD = evDoubleFDifIsIntegral.one
+  val piD = evDoubleFDifIsReal.fromDouble(Math.PI)
                
   trait Similar[T] {
     def close(l: T, r: T): Boolean
@@ -50,9 +55,9 @@ object FADTest extends Properties("AD") {
         sys.error(s"\n\nFound $msg at head :\n\n" +
             s"Left coefficient:\n${l.head}\n\nRight coefficient:\n${r.head}\n\n" +
             s"Full left Dif:\n$l\n\nFull right Dif:\n$r\n\n")
-      else if (l.coeff.keySet != r.coeff.keySet)
-        sys.error("Key sets do not match!")
-      else l.coeff.keySet.map(k => ((l.coeff(k), r.coeff(k)), k)).forall {
+      else if (!(l.coeff.isEmpty || r.coeff.isEmpty || l.coeff.keySet == r.coeff.keySet))
+        sys.error("Key sets do not match: \n\t" + l.coeff.keySet + "\n\t" + r.coeff.keySet)
+      else l.coeff.keySet.map(k => ((l(k), r(k)), k)).forall {
         case ((lc, rc), i) =>
           if (comp(lc, rc)) true
           else sys.error(s"\n\nFound $msg at key $i:\n\n" +
@@ -64,7 +69,51 @@ object FADTest extends Properties("AD") {
     def ~=(n: Int)(r: FDif[T]): Boolean = similar(r, (lc:T,rc:T) => lc ~= rc, "dissimilarity", n)
     def in(r: FDif[T]): Boolean = similar(r, (lc:T,rc:T) => lc in rc, "non-inclusion", 0)
   }
-   
+  
+  /* Properties of FDif[Double] as Integral */
+  
+  property("FDif[Double].add: x+x ~= 2*x") =
+    forAll(listOf1(genQName)) { (ns: List[QName]) =>
+      forAll(genConstantFDif[Double](ns)) { (x: FDif[Double]) =>
+        (x + x) ~= (FDif.constant(2d) * x)
+      }
+    }
+  
+  property("FDif[Double].add: 1+x > x") = 
+    forAll(listOf1(genQName)) { (ns: List[QName]) =>
+      forAll(genConstantFDif[Double](ns)) { (x: FDif[Double]) =>
+        (oneD + x) > x
+      }
+    }
+  
+  property("FDif[Double].mul: x*x >= x") = 
+    forAll(listOf1(genQName)) { (ns: List[QName]) =>
+      forAll(genConstantFDif[Double](ns)) { (x: FDif[Double]) =>
+        (x * x) >= x
+      }
+    }
+  
+  property("FDif[Double].mul: x*1 ~= x && 1*x ~= x") =
+    forAll(listOf1(genQName)) { (ns: List[QName]) =>
+      forAll(genConstantFDif[Double](ns)) { (x: FDif[Double]) =>
+        ((x * oneD) ~= x) && ((oneD * x) ~= x)
+      }
+    }
+  
+  property("FDif[Double].div: x/1 ~= x") = 
+    forAll(listOf1(genQName)) { (ns: List[QName]) =>
+      forAll(genConstantFDif[Double](ns)) { (x: FDif[Double]) =>
+        (x / oneD) ~= x
+      }
+    }
+  
+  property("Dif[Double].div: x/x ~= 1") = 
+    forAll(listOf1(genQName)) { (ns: List[QName]) =>
+      forAll(genConstantFDif[Double](ns)) { (x: FDif[Double]) =>
+        (x.head != 0d) ==> ((x / x) ~= oneD)
+      }
+    }
+  
   /* Other properties */
   
   property("lift leaves no base number types") = 
@@ -77,4 +126,21 @@ object FADTest extends Properties("AD") {
       }
     }
 
+  /* Generators */
+  
+  def genConstantFDif[I: Integral](ns: List[QName]): Gen[FDif[I]] = {
+    val ev = implicitly[Integral[I]]    
+    for {
+      n <- oneOf(ns)
+      c <- choose(-1000,1000)
+    } yield FDif(ev fromInt c, ns.map(m => m -> (if (m == n) ev.one else ev.zero)).toMap)
+  }
+
+  def genQName(): Gen[QName] =
+    for {
+      id <- arbitrary[CId]
+      n <- arbitrary[Name]
+    } yield QName(id, n)
+  
+  
 }

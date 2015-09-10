@@ -12,7 +12,7 @@ import interpreters.enclosure.Generators._
 import TAD._
 import acumen.interpreters.reference2015.Interpreter.FieldImpl
 
-object ADTest extends Properties("AD") {
+object ADTest extends Properties("TAD") {
 
   /* Utilities */
   
