@@ -62,7 +62,7 @@ object FAD extends App {
     def sub(l: FDif[V], r: FDif[V]): FDif[V] =
       binaryOp("subtract", l, r, _ - _, k => l(k) - r(k))
     def neg(x: FDif[V]): FDif[V] =
-      FDif(-x.head, x.coeff.mapValues(-_))
+      FDif(- x.head, x.coeff.mapValues(-_))
     def mul(l: FDif[V], r: FDif[V]): FDif[V] =
       binaryOp("multiply", l, r, _ * _, k => l(k) * r.head + l.head * r(k))
     def fromInt(x: Int): FDif[V] = FDif.constant(evVIsIntegral fromInt x)
@@ -73,44 +73,118 @@ object FAD extends App {
   
   /** Real instance for FDif[V], where V itself has a Real instance */
   abstract class FDifAsReal[V: Real] extends FDifAsIntegral[V] with Real[FDif[V]] {
+    def fromDouble(x: Double): FDif[V] = FDif.constant(evVIsReal fromDouble x)
+
     /* Constants */
     val evVIsReal = implicitly[Real[V]]
+
     /* Real instance */
     def div(l: FDif[V], r: FDif[V]): FDif[V] = {
       require(!r.head.isZero, "Division by zero is not allowed.")
       binaryOp("add", l, r, _/_, k => (l(k)*r.head - l.head*r(k)) / r.head.square)
     }
-    def pow(l: FDif[V], r: FDif[V]): FDif[V] = ???
-    def exp(x: FDif[V]): FDif[V] = ???
-    def log(x: FDif[V]): FDif[V] = ???
-    def square(x: FDif[V]): FDif[V] = ???
-    def sqrt(x: FDif[V]): FDif[V] = ???
+    
+    /* Power functions */
+    def pow(l: FDif[V], r: FDif[V]): FDif[V] = {
+      if (isConstant(r))
+        if (isConstant(l))
+          powOfRealOnReal(l.head, r.head)
+        else
+          powOnReal(l, r.head)
+      else if (isConstant(l))
+        powOfReal(l.head, r)
+      else
+        exp(mul(r, log(l)))
+    }
+    def pow(l: FDif[V], r: V): FDif[V] = {
+      if (isConstant(l))
+        powOfRealOnReal(l.head, r)
+      else
+        powOnReal(l, r)
+    }
+    def pow(l: V, r: FDif[V]): FDif[V] = {
+      if (isConstant(r))
+        powOfRealOnReal(l, r.head)
+      else
+        powOfReal(l, r)
+    }
+    def powOnReal(l: FDif[V], r: V) : FDif[V] = {
+      if (r == oneOfV)
+        l
+      else if (r == zeroOfV) {
+        require(!(l.head == zeroOfV), s"pow is not applicable to ($l,$r) as 0^0 is not defined.")
+        one }
+      else {
+        val tmp = r * (l.head ^ (r - oneOfV))
+        FDif(l.head ^ r, l.coeff.mapValues(_ * tmp))
+      }
+    }
+    def powOfReal(l: V, r: FDif[V]) : FDif[V] = {
+      if (l == oneOfV)
+        one
+      else if (l == zeroOfV) {
+        require(!(r.head == zeroOfV), s"pow is not applicable to ($l,$r) as 0^0 is not defined.")
+        zero }
+      else {
+        val lonr = l ^ r.head
+        val tmp = lonr * l.log
+        FDif(lonr, r.coeff.mapValues(_ * tmp))
+      }
+    }
+    def powOfRealOnReal(l: V, r: V) : FDif[V] = {
+      FDif constant (l ^ r)
+    }
+
+    /* Square and Square root */
+    def square(x: FDif[V]): FDif[V] = {
+      val twox = evVIsIntegral.fromInt(2) * x.head
+      FDif(x.head.square, x.coeff.mapValues(_ * twox))
+    }
+    def sqrt(x: FDif[V]): FDif[V] = {
+      if (isZero(x)) zero else {
+        require(!x.head.isZero, "Square root of zero (non-constant) is not allowed.")
+        val sqrtx = x.head.sqrt
+        FDif(sqrtx, x.coeff.mapValues(_ / (evVIsIntegral.fromInt(2) * sqrtx)))
+      }
+    }
+
+    /* Exponential functions */
+    def exp(x: FDif[V]): FDif[V] = {
+      val expx = x.head.exp
+      FDif(expx, x.coeff.mapValues(_ * expx))
+    }
+    def log(x: FDif[V]): FDif[V] = {
+      require(!x.head.isZero, "Logarithm of zero is not allowed.")
+      FDif(x.head.log, x.coeff.mapValues(_ / x.head))
+    }
+
+    /* Trigonometric functions */
     def sin(x: FDif[V]): FDif[V] = {
       val cosx = x.head.cos      
-      FDif(x.head.sin, x.coeff.mapValues(cosx * _))
+      FDif(x.head.sin, x.coeff.mapValues(_ * cosx))
     } 
     def cos(x: FDif[V]): FDif[V] = {
       val minsinx = - x.head.sin     
-      FDif(x.head.cos, x.coeff.mapValues(minsinx * _))
+      FDif(x.head.cos, x.coeff.mapValues(_ * minsinx))
     } 
     def tan(x: FDif[V]): FDif[V] = {
       val tan2p1 = oneOfV + (x.head.tan).square
-      FDif(x.head.tan, x.coeff.mapValues(tan2p1 * _))
+      FDif(x.head.tan, x.coeff.mapValues(_ * tan2p1))
     }
     def acos(x: FDif[V]): FDif[V] = {
-      val c = - oneOfV / (oneOfV - x.head.square).sqrt
-      FDif(x.head.acos, x.coeff.mapValues(c * _))
+      val tmp = - oneOfV / (oneOfV - x.head.square).sqrt
+      FDif(x.head.acos, x.coeff.mapValues(_ * tmp))
     }
     def asin(x: FDif[V]): FDif[V] = {
-      val c = oneOfV / (oneOfV - x.head.square).sqrt
-      FDif(x.head.asin, x.coeff.mapValues(c * _))
+      val tmp = oneOfV / (oneOfV - x.head.square).sqrt
+      FDif(x.head.asin, x.coeff.mapValues(_ * tmp))
     }
     def atan(x: FDif[V]): FDif[V] = {
-      val c = oneOfV / (oneOfV + x.head.square)
-      FDif(x.head.atan, x.coeff.mapValues(c * _))
+      val tmp = oneOfV / (oneOfV + x.head.square)
+      FDif(x.head.atan, x.coeff.mapValues(_ * tmp))
     }
-    def fromDouble(x: Double): FDif[V] = FDif.constant(evVIsReal fromDouble x)
   }
+
   implicit object IntFDifIsIntegral extends FDifAsIntegral[Int] {
     def groundValue(v: FDif[Int]) = GIntFDif(v)
   }
