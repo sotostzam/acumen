@@ -75,7 +75,8 @@ object TAD extends App {
       
     /** Square root */
     def sqrt(x: TDif[V]): TDif[V] =
-      if (isZero(x)) zero else { 
+      if (isZero(x)) zero else {
+        val twoOfV = evVIsIntegral fromInt 2
         val k0  = firstNonZero(x) // n >= k0 because x != zero
         require((k0 % 2 == 0), s"First non-vanishing coefficient must be an even power in $x in order to expand the sqrt function.")
         val x0 = x(k0)
@@ -87,9 +88,9 @@ object TAD extends App {
             else {                      // possibly  non-zero coefficients k0/2 + 1 .. n - 1
               val kPk0d2 = k + k0d2
               val kEnd = (kPk0d2 + (kPk0d2 % 2) - 2) / 2
-              (x(kPk0d2) - evVIsIntegral.fromInt(2) * ((k0d2 + 1 to kEnd).foldLeft(zeroOfV) { 
+              (x(kPk0d2) - twoOfV * ((k0d2 + 1 to kEnd).foldLeft(zeroOfV) { 
                 case (sum, i) => sum + coeff(i) * coeff(kPk0d2 - i)  
-              }) + (if (kPk0d2 % 2 == 0) - coeff(kPk0d2 / 2).square else zeroOfV )) / (evVIsIntegral.fromInt(2) * coeff(k0d2)) 
+              }) + (if (kPk0d2 % 2 == 0) - coeff(kPk0d2 / 2).square else zeroOfV )) / (twoOfV * coeff(k0d2)) 
             })
           coeff        
         }, x.length) // FIXME How many?
