@@ -178,23 +178,23 @@ object ADTest extends Properties("TAD") {
       x in x.asin.sin
     }
       
-  property("TDif[Interval]: x >= 0 => x in sqrt(x*x)") = 
-    forAll(genBoundedThinIntervalTDif(0,10)) { (x: TDif[Interval]) =>
+  property("TDif[Interval]: x >= 0 => x in sqrt(x*x)") =
+    forAll(genBoundedThinIntervalTDifEvenLeadingZeros) { (x: TDif[Interval]) =>
       x in (x*x).sqrt
     }
 
   property("TDif[Interval]: x >= 0 => x in square(sqrt(x))") =
-    forAll(genBoundedThinIntervalTDif(0,10)) { (x: TDif[Interval]) =>
+    forAll(genBoundedThinIntervalTDifEvenLeadingZeros) { (x: TDif[Interval]) =>
       x in x.sqrt.square
     }
   
   property("TDif[Interval]: x >= 0 => x in (sqrt(x))^2") =
-    forAll(genBoundedThinIntervalTDif(0,10)) { (x: TDif[Interval]) =>
+    forAll(genBoundedThinIntervalTDifEvenLeadingZeros) { (x: TDif[Interval]) =>
       x in x.sqrt^2
     }
 
   property("TDif[Interval]: x >= 0 => x in sqrt(x^2)") =
-    forAll(genBoundedThinIntervalTDif(0,10)) { (x: TDif[Interval]) =>
+    forAll(genBoundedThinIntervalTDifEvenLeadingZeros) { (x: TDif[Interval]) =>
       x in (x^2).sqrt
     }
   
@@ -280,5 +280,15 @@ object ADTest extends Properties("TAD") {
     Arbitrary(genTDif(arbDouble.arbitrary))
   implicit def arbitraryIntervalTDif: Arbitrary[TDif[Interval]] =
     Arbitrary(genTDif(arbitrary[Interval]))
-  
+
+  /* Requirement-specific generators */
+
+  /** Generate TDif[Interval] with a number of leading zeros that satisfies 
+   *  even-power requirement of e.g. the sqrt function. */
+  def genBoundedThinIntervalTDifEvenLeadingZeros: Gen[TDif[Interval]] =
+    for {
+      halfLeadingZeros <- choose(0, maxLength / 2)
+      tdif <- genBoundedThinIntervalTDif(0, 10, 2 * halfLeadingZeros)
+    } yield tdif
+    
 }
