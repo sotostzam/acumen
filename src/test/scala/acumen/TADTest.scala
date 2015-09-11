@@ -14,6 +14,9 @@ import acumen.interpreters.reference2015.Interpreter.FieldImpl
 
 object ADTest extends Properties("TAD") {
 
+  val maxLength = 10 // Maximum number of coefficients used in generators
+  val smallValue = 10 // Bound used for generating "small" values
+  
   /* Utilities */
   
   val evDoubleTDifIsIntegral = implicitly[Integral[TDif[Double]]]
@@ -158,7 +161,7 @@ object ADTest extends Properties("TAD") {
     }
   
   property("TDif[Double]: 0 < x < 1 && y > 1 => x^y < x") = 
-    forAll(genRealTDif(choose(0.01,0.99)), genRealTDif(choose(1.0,10))) { 
+    forAll(genTDif(choose(0.01,0.99)), genTDif(choose(1.0,10))) { 
       (x: TDif[Double], y: TDif[Double]) =>
         (x ^ y) < x
     }
@@ -241,39 +244,39 @@ object ADTest extends Properties("TAD") {
   }
 
   /* Generators */
-  
-  def genIntegralTDif[N: Integral](genN: Gen[N]): Gen[TDif[N]] =
-    for {
-      coeffs <- listOfN(10, genN)
-    } yield TDif(coeffs.to[Vector], coeffs.length)
 
-  def genRealTDif[N: Real](genN: Gen[N]): Gen[TDif[N]] =
-    for {
-      coeffs <- listOfN(10, genN)
-    } yield TDif(coeffs.to[Vector], coeffs.length)
+  def genTDif[N: Integral](genN: Gen[N]): Gen[TDif[N]] =
+    genCoeffsWithLeadingZeros(genN, 0).map(c => TDif(c, c.length)) 
+    
+  def genCoeffsWithLeadingZeros[N: Integral](genN: Gen[N], leadingZeros: Int): Gen[Vector[N]] =
+    if (leadingZeros > maxLength)
+      sys.error("Too many leading zeros. Choose a number less than " + maxLength)
+    else for {
+      coeffs <- listOfN(maxLength - leadingZeros, genN)
+    } yield (Vector.fill(leadingZeros)(implicitly[Integral[N]].zero) ++ coeffs.to[Vector])
   
-  def genSmallDoubleTDif: Gen[TDif[Double]] = genBoundedDoubleTDif(10)
-  def genSmallIntervalTDif: Gen[TDif[Interval]] = genBoundedIntervalTDif(-10,10)
-  def genSmallThinIntervalTDif: Gen[TDif[Interval]] = genBoundedThinIntervalTDif(-10,10)
+  def genSmallDoubleTDif: Gen[TDif[Double]] = genBoundedDoubleTDif(smallValue)
+  def genSmallIntervalTDif: Gen[TDif[Interval]] = genBoundedIntervalTDif(-smallValue,smallValue)
+  def genSmallThinIntervalTDif: Gen[TDif[Interval]] = genBoundedThinIntervalTDif(-smallValue,smallValue)
 
   def genBoundedDoubleTDif(magnitude: Double): Gen[TDif[Double]] = {
     val abs = Math.abs(magnitude)       
-    genRealTDif(choose(-abs, abs))
+    genTDif(choose(-abs, abs))
   }
   def genBoundedIntervalTDif(lo: Double, hi: Double): Gen[TDif[Interval]] =
-    genRealTDif(for {
+    genTDif(for {
       a <- choose(lo, hi)
       b <- choose(lo, hi)
     } yield Interval(Math.min(a,b), Math.max(a,b)))
   def genBoundedThinIntervalTDif(lo: Double, hi: Double): Gen[TDif[Interval]] =
-    genRealTDif(choose(lo, hi) map (b => Interval(b,b)))
+    genTDif(choose(lo, hi) map (b => Interval(b,b)))
 
     
   implicit def arbitraryIntTDif: Arbitrary[TDif[Int]] =
-    Arbitrary(genIntegralTDif(arbitrary[Int]))
+    Arbitrary(genTDif(arbitrary[Int]))
   implicit def arbitraryDoubleTDif: Arbitrary[TDif[Double]] =
-    Arbitrary(genRealTDif(arbDouble.arbitrary))
+    Arbitrary(genTDif(arbDouble.arbitrary))
   implicit def arbitraryIntervalTDif: Arbitrary[TDif[Interval]] =
-    Arbitrary(genRealTDif(arbitrary[Interval]))
+    Arbitrary(genTDif(arbitrary[Interval]))
   
 }
