@@ -16,21 +16,21 @@ object ADTest extends Properties("TAD") {
 
   /* Utilities */
   
-  val evDoubleDifIsIntegral = implicitly[Integral[TDif[Double]]]
-  val evDoubleDifIsReal = implicitly[Real[TDif[Double]]]
+  val evDoubleTDifIsIntegral = implicitly[Integral[TDif[Double]]]
+  val evDoubleTDifIsReal = implicitly[Real[TDif[Double]]]
       
-  val evIntervalDifIsIntegral = implicitly[Integral[TDif[Interval]]]
-  val evIntervalDifIsReal = implicitly[Real[TDif[Interval]]]
+  val evIntervalTDifIsIntegral = implicitly[Integral[TDif[Interval]]]
+  val evIntervalTDifIsReal = implicitly[Real[TDif[Interval]]]
               
-  def fromIntD(i: Int) = evDoubleDifIsIntegral.fromInt(i)
-  val zeroD = evDoubleDifIsIntegral.zero
-  val oneD = evDoubleDifIsIntegral.one
-  val piD = evDoubleDifIsReal.fromDouble(Math.PI)
+  def fromIntD(i: Int) = evDoubleTDifIsIntegral.fromInt(i)
+  val zeroD = evDoubleTDifIsIntegral.zero
+  val oneD = evDoubleTDifIsIntegral.one
+  val piD = evDoubleTDifIsReal.fromDouble(Math.PI)
   
-  def fromIntI(i: Int) = evIntervalDifIsIntegral.fromInt(i)
-  val zeroI = evIntervalDifIsIntegral.zero
-  val oneI = evIntervalDifIsIntegral.one
-  val piI = evIntervalDifIsReal.fromDouble(Math.PI)
+  def fromIntI(i: Int) = evIntervalTDifIsIntegral.fromInt(i)
+  val zeroI = evIntervalTDifIsIntegral.zero
+  val oneI = evIntervalTDifIsIntegral.one
+  val piI = evIntervalTDifIsReal.fromDouble(Math.PI)
   
   trait Similar[T] {
     def close(l: T, r: T): Boolean
@@ -69,165 +69,165 @@ object ADTest extends Properties("TAD") {
   
   /* Properties of TDif[Double] as Integral */
 
-  property("Dif[Double].add: x+x ~= 2*x") = 
-    forAll(genSmallDoubleDif) { (x: TDif[Double]) =>
+  property("TDif[Double].add: x+x ~= 2*x") = 
+    forAll(genSmallDoubleTDif) { (x: TDif[Double]) =>
       (x + x) ~= (fromIntD(2) * x)
     }
   
-  property("Dif[Double].add: 1+x > x") = 
-    forAll(genSmallDoubleDif) { (x: TDif[Double]) =>
+  property("TDif[Double].add: 1+x > x") = 
+    forAll(genSmallDoubleTDif) { (x: TDif[Double]) =>
       (oneD + x) > x
     }
   
-  property("Dif[Double].mul: x*x >= x") = 
+  property("TDif[Double].mul: x*x >= x") = 
     forAll { (x: TDif[Double]) =>
       (x * x) >= x  
     }  
 
-  property("Dif[Double].mul: x*1 ~= x && 1*x ~= x") = 
+  property("TDif[Double].mul: x*1 ~= x && 1*x ~= x") = 
     forAll { (x: TDif[Double]) =>
       ((x * oneD) ~= x) && ((oneD * x) ~= x) 
     }  
   
-  property("Dif[Double].div: x/1 ~= x") = 
+  property("TDif[Double].div: x/1 ~= x") = 
     forAll { (x: TDif[Double]) =>
       (x / oneD) ~= x
     }
 
-  property("Dif[Double].div: x/x ~= 1") = 
+  property("TDif[Double].div: x/x ~= 1") = 
     forAll { (x: TDif[Double]) =>
       (x(0) != 0d) ==> ((x / x) ~= oneD)  
     }
   
   /* Properties of TDif[Double] as Real */
   
-  property("Dif[Double]: sin(x) ~= cos(pi/2 - x)") = 
-    forAll(genSmallDoubleDif) { (x: TDif[Double]) =>
+  property("TDif[Double]: sin(x) ~= cos(pi/2 - x)") = 
+    forAll(genSmallDoubleTDif) { (x: TDif[Double]) =>
       x.sin ~= ((piD / fromIntD(2)) - x).cos
     }
 
-  property("Dif[Double]: cos(x) ~= sin(pi/2 - x)") = 
-    forAll(genSmallDoubleDif) { (x: TDif[Double]) =>
+  property("TDif[Double]: cos(x) ~= sin(pi/2 - x)") = 
+    forAll(genSmallDoubleTDif) { (x: TDif[Double]) =>
       x.cos ~= ((piD / fromIntD(2)) - x).sin
     }
 
-  property("Dif[Double]: x != 0 => tan(x) ~= sin(x) / cos(x)") = 
-    forAll(genSmallDoubleDif) { (x: TDif[Double]) =>
+  property("TDif[Double]: x != 0 => tan(x) ~= sin(x) / cos(x)") = 
+    forAll(genSmallDoubleTDif) { (x: TDif[Double]) =>
       (x != zeroD) ==> (x.tan ~= x.sin / x.cos)
     }
 
-  property("Dif[Double]: tan(x) ~= tan(x + pi)") = 
-    forAll(genSmallDoubleDif) { (x: TDif[Double]) =>
+  property("TDif[Double]: tan(x) ~= tan(x + pi)") = 
+    forAll(genSmallDoubleTDif) { (x: TDif[Double]) =>
       x.tan ~= (x + piD).tan
     }
   
-  property("Dif[Double]: tan(atan(x)) ~= x") = 
-    forAll(genSmallDoubleDif) { (x: TDif[Double]) =>
+  property("TDif[Double]: tan(atan(x)) ~= x") = 
+    forAll(genSmallDoubleTDif) { (x: TDif[Double]) =>
       x.atan.tan ~= x
     }
 
-  property("Dif[Double]: exp(x) > 0") =
+  property("TDif[Double]: exp(x) > 0") =
     // Generate x such that exp(x) is representable as a Double
-    forAll(genBoundedDoubleDif(Math.log(Double.MaxValue))) { (x: TDif[Double]) =>
+    forAll(genBoundedDoubleTDif(Math.log(Double.MaxValue))) { (x: TDif[Double]) =>
       x.exp > zeroD
     }
   
-  property("Dif[Double]: for small x, log(exp(x)) ~= x") = 
-    forAll(genSmallDoubleDif) { (x: TDif[Double]) =>
+  property("TDif[Double]: for small x, log(exp(x)) ~= x") = 
+    forAll(genSmallDoubleTDif) { (x: TDif[Double]) =>
       x.exp.log ~= x
     }
 
-  property("Dif[Double]: x > 1 => sqrt(x) < x") =
-    forAll(genSmallDoubleDif) { (x: TDif[Double]) =>
+  property("TDif[Double]: x > 1 => sqrt(x) < x") =
+    forAll(genSmallDoubleTDif) { (x: TDif[Double]) =>
       (x > oneD) ==> x.sqrt < x
     }
   
-  property("Dif[Double]: x >= 1 => square(x) >= x") =
-    forAll(genSmallDoubleDif) { (x: TDif[Double]) =>
+  property("TDif[Double]: x >= 1 => square(x) >= x") =
+    forAll(genSmallDoubleTDif) { (x: TDif[Double]) =>
       (x >= oneD) ==> x.square >= x
     }
   
-  property("Dif[Double]: square(x) ~= x*x") =
-    forAll(genSmallDoubleDif) { (x: TDif[Double]) =>
+  property("TDif[Double]: square(x) ~= x*x") =
+    forAll(genSmallDoubleTDif) { (x: TDif[Double]) =>
       x.square ~= x*x
     }
   
-  property("Dif[Double]: pow(0) ~= 1") = 
-    forAll(genSmallDoubleDif) { (x: TDif[Double]) =>
+  property("TDif[Double]: pow(0) ~= 1") = 
+    forAll(genSmallDoubleTDif) { (x: TDif[Double]) =>
       (x ^ zeroD) ~= oneD
     }
   
-  property("Dif[Double]: 0 < x < 1 && y > 1 => x^y < x") = 
-    forAll(genRealDif(choose(0.01,0.99)), genRealDif(choose(1.0,10))) { 
+  property("TDif[Double]: 0 < x < 1 && y > 1 => x^y < x") = 
+    forAll(genRealTDif(choose(0.01,0.99)), genRealTDif(choose(1.0,10))) { 
       (x: TDif[Double], y: TDif[Double]) =>
         (x ^ y) < x
     }
   
   /* Properties of TDif[Interval] as Real */
   
-  property("Dif[Interval]: -1 <= x <= 1 => x in cos(acos(x))") = 
-    forAll(genBoundedThinIntervalDif(-1,1)) { (x: TDif[Interval]) =>
+  property("TDif[Interval]: -1 <= x <= 1 => x in cos(acos(x))") = 
+    forAll(genBoundedThinIntervalTDif(-1,1)) { (x: TDif[Interval]) =>
       x in x.acos.cos
     }
 
-  property("Dif[Interval]: -1 <= x <= 1 => x in sin(asin(x))") = 
-    forAll(genBoundedThinIntervalDif(-1,1)) { (x: TDif[Interval]) =>
+  property("TDif[Interval]: -1 <= x <= 1 => x in sin(asin(x))") = 
+    forAll(genBoundedThinIntervalTDif(-1,1)) { (x: TDif[Interval]) =>
       x in x.asin.sin
     }
       
-  property("Dif[Interval]: x >= 0 => x in sqrt(x*x)") = 
-    forAll(genBoundedThinIntervalDif(0,10)) { (x: TDif[Interval]) =>
+  property("TDif[Interval]: x >= 0 => x in sqrt(x*x)") = 
+    forAll(genBoundedThinIntervalTDif(0,10)) { (x: TDif[Interval]) =>
       x in (x*x).sqrt
     }
 
-  property("Dif[Interval]: x >= 0 => x in square(sqrt(x))") =
-    forAll(genBoundedThinIntervalDif(0,10)) { (x: TDif[Interval]) =>
+  property("TDif[Interval]: x >= 0 => x in square(sqrt(x))") =
+    forAll(genBoundedThinIntervalTDif(0,10)) { (x: TDif[Interval]) =>
       x in x.sqrt.square
     }
   
-  property("Dif[Interval]: x >= 0 => x in (sqrt(x))^2") =
-    forAll(genBoundedThinIntervalDif(0,10)) { (x: TDif[Interval]) =>
+  property("TDif[Interval]: x >= 0 => x in (sqrt(x))^2") =
+    forAll(genBoundedThinIntervalTDif(0,10)) { (x: TDif[Interval]) =>
       x in x.sqrt^2
     }
 
-  property("Dif[Interval]: x >= 0 => x in sqrt(x^2)") =
-    forAll(genBoundedThinIntervalDif(0,10)) { (x: TDif[Interval]) =>
+  property("TDif[Interval]: x >= 0 => x in sqrt(x^2)") =
+    forAll(genBoundedThinIntervalTDif(0,10)) { (x: TDif[Interval]) =>
       x in (x^2).sqrt
     }
   
-  property("Dif[Interval]: 1 in x^0") =
-    forAll(genSmallThinIntervalDif) { (x: TDif[Interval]) =>
+  property("TDif[Interval]: 1 in x^0") =
+    forAll(genSmallThinIntervalTDif) { (x: TDif[Interval]) =>
       IntervalDifIsReal.fromInt(1) in x^0 
     }
   
-  property("Dif[Interval]: x in x^1") =
-    forAll(genSmallThinIntervalDif) { (x: TDif[Interval]) =>
+  property("TDif[Interval]: x in x^1") =
+    forAll(genSmallThinIntervalTDif) { (x: TDif[Interval]) =>
       x in x^1
     }
   
-  property("Dif[Interval]: x in (x^3 / x^2)") =
-    forAll(genSmallThinIntervalDif) { (x: TDif[Interval]) =>
+  property("TDif[Interval]: x in (x^3 / x^2)") =
+    forAll(genSmallThinIntervalTDif) { (x: TDif[Interval]) =>
       x in ((x^3) / (x^2))
     }
   
-  property("Dif[Interval]: a > 0 => x^a ~= x*x*...*x (a times)") =
-    forAll(genBoundedThinIntervalDif(0,1), chooseNum[Int](1, 20)) { (x: TDif[Interval], a: Int) =>
+  property("TDif[Interval]: a > 0 => x^a ~= x*x*...*x (a times)") =
+    forAll(genBoundedThinIntervalTDif(0,1), chooseNum[Int](1, 20)) { (x: TDif[Interval], a: Int) =>
       val xa = List.fill(a)(x)
       xa.nonEmpty ==> ((x^a) ~= xa.reduce(_*_))
     }
 
-  property("Dif[Interval]: n > 0 => 1^n = 1") =
+  property("TDif[Interval]: n > 0 => 1^n = 1") =
     forAll (posNum[Int]) { (n: Int) =>
       (IntervalDifIsReal.one ^ n) ~= IntervalDifIsReal.one 
     }
 
-  property("Dif[Interval]: x^0 = 1") =
-    forAll(genSmallThinIntervalDif) { (x: TDif[Interval]) =>
+  property("TDif[Interval]: x^0 = 1") =
+    forAll(genSmallThinIntervalTDif) { (x: TDif[Interval]) =>
       (x^0) ~= IntervalDifIsReal.one
     }
   
-  property("Dif[Interval]: x > 1 && n < 0 => x^n <= x") =
-    forAll(genBoundedThinIntervalDif(1,10), negNum[Int]) { (x: TDif[Interval], n: Int) =>
+  property("TDif[Interval]: x > 1 && n < 0 => x^n <= x") =
+    forAll(genBoundedThinIntervalTDif(1,10), negNum[Int]) { (x: TDif[Interval], n: Int) =>
       (x^n) <= x
     }
   
@@ -242,38 +242,38 @@ object ADTest extends Properties("TAD") {
 
   /* Generators */
   
-  def genIntegralDif[N: Integral](genN: Gen[N]): Gen[TDif[N]] =
+  def genIntegralTDif[N: Integral](genN: Gen[N]): Gen[TDif[N]] =
     for {
       coeffs <- listOfN(10, genN)
     } yield TDif(coeffs.to[Vector], coeffs.length)
 
-  def genRealDif[N: Real](genN: Gen[N]): Gen[TDif[N]] =
+  def genRealTDif[N: Real](genN: Gen[N]): Gen[TDif[N]] =
     for {
       coeffs <- listOfN(10, genN)
     } yield TDif(coeffs.to[Vector], coeffs.length)
   
-  def genSmallDoubleDif: Gen[TDif[Double]] = genBoundedDoubleDif(10)
-  def genSmallIntervalDif: Gen[TDif[Interval]] = genBoundedIntervalDif(-10,10)
-  def genSmallThinIntervalDif: Gen[TDif[Interval]] = genBoundedThinIntervalDif(-10,10)
+  def genSmallDoubleTDif: Gen[TDif[Double]] = genBoundedDoubleTDif(10)
+  def genSmallIntervalTDif: Gen[TDif[Interval]] = genBoundedIntervalTDif(-10,10)
+  def genSmallThinIntervalTDif: Gen[TDif[Interval]] = genBoundedThinIntervalTDif(-10,10)
 
-  def genBoundedDoubleDif(magnitude: Double): Gen[TDif[Double]] = {
+  def genBoundedDoubleTDif(magnitude: Double): Gen[TDif[Double]] = {
     val abs = Math.abs(magnitude)       
-    genRealDif(choose(-abs, abs))
+    genRealTDif(choose(-abs, abs))
   }
-  def genBoundedIntervalDif(lo: Double, hi: Double): Gen[TDif[Interval]] =
-    genRealDif(for {
+  def genBoundedIntervalTDif(lo: Double, hi: Double): Gen[TDif[Interval]] =
+    genRealTDif(for {
       a <- choose(lo, hi)
       b <- choose(lo, hi)
     } yield Interval(Math.min(a,b), Math.max(a,b)))
-  def genBoundedThinIntervalDif(lo: Double, hi: Double): Gen[TDif[Interval]] =
-    genRealDif(choose(lo, hi) map (b => Interval(b,b)))
+  def genBoundedThinIntervalTDif(lo: Double, hi: Double): Gen[TDif[Interval]] =
+    genRealTDif(choose(lo, hi) map (b => Interval(b,b)))
 
     
-  implicit def arbitraryIntDif: Arbitrary[TDif[Int]] =
-    Arbitrary(genIntegralDif(arbitrary[Int]))
-  implicit def arbitraryDoubleDif: Arbitrary[TDif[Double]] =
-    Arbitrary(genRealDif(arbDouble.arbitrary))
-  implicit def arbitraryIntervalDif: Arbitrary[TDif[Interval]] =
-    Arbitrary(genRealDif(arbitrary[Interval]))
+  implicit def arbitraryIntTDif: Arbitrary[TDif[Int]] =
+    Arbitrary(genIntegralTDif(arbitrary[Int]))
+  implicit def arbitraryDoubleTDif: Arbitrary[TDif[Double]] =
+    Arbitrary(genRealTDif(arbDouble.arbitrary))
+  implicit def arbitraryIntervalTDif: Arbitrary[TDif[Interval]] =
+    Arbitrary(genRealTDif(arbitrary[Interval]))
   
 }
