@@ -73,12 +73,12 @@ object ADTest extends Properties("TAD") {
   /* Properties of TDif[Double] as Integral */
 
   property("TDif[Double].add: x+x ~= 2*x") = 
-    forAll(genSmallDoubleTDif) { (x: TDif[Double]) =>
+    forAll(genSmallDoubleTDif()) { (x: TDif[Double]) =>
       (x + x) ~= (fromIntD(2) * x)
     }
   
   property("TDif[Double].add: 1+x > x") = 
-    forAll(genSmallDoubleTDif) { (x: TDif[Double]) =>
+    forAll(genSmallDoubleTDif()) { (x: TDif[Double]) =>
       (oneD + x) > x
     }
   
@@ -105,27 +105,27 @@ object ADTest extends Properties("TAD") {
   /* Properties of TDif[Double] as Real */
   
   property("TDif[Double]: sin(x) ~= cos(pi/2 - x)") = 
-    forAll(genSmallDoubleTDif) { (x: TDif[Double]) =>
+    forAll(genSmallDoubleTDif()) { (x: TDif[Double]) =>
       x.sin ~= ((piD / fromIntD(2)) - x).cos
     }
 
   property("TDif[Double]: cos(x) ~= sin(pi/2 - x)") = 
-    forAll(genSmallDoubleTDif) { (x: TDif[Double]) =>
+    forAll(genSmallDoubleTDif()) { (x: TDif[Double]) =>
       x.cos ~= ((piD / fromIntD(2)) - x).sin
     }
 
   property("TDif[Double]: x != 0 => tan(x) ~= sin(x) / cos(x)") = 
-    forAll(genSmallDoubleTDif) { (x: TDif[Double]) =>
+    forAll(genSmallDoubleTDif()) { (x: TDif[Double]) =>
       (x != zeroD) ==> (x.tan ~= x.sin / x.cos)
     }
 
   property("TDif[Double]: tan(x) ~= tan(x + pi)") = 
-    forAll(genSmallDoubleTDif) { (x: TDif[Double]) =>
+    forAll(genSmallDoubleTDif()) { (x: TDif[Double]) =>
       x.tan ~= (x + piD).tan
     }
   
   property("TDif[Double]: tan(atan(x)) ~= x") = 
-    forAll(genSmallDoubleTDif) { (x: TDif[Double]) =>
+    forAll(genSmallDoubleTDif()) { (x: TDif[Double]) =>
       x.atan.tan ~= x
     }
 
@@ -136,27 +136,27 @@ object ADTest extends Properties("TAD") {
     }
   
   property("TDif[Double]: for small x, log(exp(x)) ~= x") = 
-    forAll(genSmallDoubleTDif) { (x: TDif[Double]) =>
+    forAll(genSmallDoubleTDif()) { (x: TDif[Double]) =>
       x.exp.log ~= x
     }
 
   property("TDif[Double]: x > 1 => sqrt(x) < x") =
-    forAll(genSmallDoubleTDif) { (x: TDif[Double]) =>
+    forAll(genSmallDoubleTDif()) { (x: TDif[Double]) =>
       (x > oneD) ==> x.sqrt < x
     }
   
   property("TDif[Double]: x >= 1 => square(x) >= x") =
-    forAll(genSmallDoubleTDif) { (x: TDif[Double]) =>
+    forAll(genSmallDoubleTDif()) { (x: TDif[Double]) =>
       (x >= oneD) ==> x.square >= x
     }
   
   property("TDif[Double]: square(x) ~= x*x") =
-    forAll(genSmallDoubleTDif) { (x: TDif[Double]) =>
+    forAll(genSmallDoubleTDif()) { (x: TDif[Double]) =>
       x.square ~= x*x
     }
   
   property("TDif[Double]: pow(0) ~= 1") = 
-    forAll(genSmallDoubleTDif) { (x: TDif[Double]) =>
+    forAll(genSmallDoubleTDif()) { (x: TDif[Double]) =>
       (x ^ zeroD) ~= oneD
     }
   
@@ -199,17 +199,17 @@ object ADTest extends Properties("TAD") {
     }
   
   property("TDif[Interval]: 1 in x^0") =
-    forAll(genSmallThinIntervalTDif) { (x: TDif[Interval]) =>
+    forAll(genSmallThinIntervalTDif()) { (x: TDif[Interval]) =>
       IntervalDifIsReal.fromInt(1) in x^0 
     }
   
   property("TDif[Interval]: x in x^1") =
-    forAll(genSmallThinIntervalTDif) { (x: TDif[Interval]) =>
+    forAll(genSmallThinIntervalTDif()) { (x: TDif[Interval]) =>
       x in x^1
     }
   
   property("TDif[Interval]: x in (x^3 / x^2)") =
-    forAll(genSmallThinIntervalTDif) { (x: TDif[Interval]) =>
+    forAll(genSmallThinIntervalTDif()) { (x: TDif[Interval]) =>
       x in ((x^3) / (x^2))
     }
   
@@ -225,7 +225,7 @@ object ADTest extends Properties("TAD") {
     }
 
   property("TDif[Interval]: x^0 = 1") =
-    forAll(genSmallThinIntervalTDif) { (x: TDif[Interval]) =>
+    forAll(genSmallThinIntervalTDif()) { (x: TDif[Interval]) =>
       (x^0) ~= IntervalDifIsReal.one
     }
   
@@ -243,34 +243,36 @@ object ADTest extends Properties("TAD") {
     }
   }
 
-  /* Generators */
+  /* Generic generators */
 
-  def genTDif[N: Integral](genN: Gen[N]): Gen[TDif[N]] =
-    genCoeffsWithLeadingZeros(genN, 0).map(c => TDif(c, c.length)) 
+  def genTDif[N: Integral](genN: Gen[N], leadingZeros: Int = 0): Gen[TDif[N]] =
+    genCoeffs(genN, leadingZeros).map(c => TDif(c, c.length))
     
-  def genCoeffsWithLeadingZeros[N: Integral](genN: Gen[N], leadingZeros: Int): Gen[Vector[N]] =
+  def genCoeffs[N: Integral](genN: Gen[N], leadingZeros: Int): Gen[Vector[N]] =
     if (leadingZeros > maxLength)
       sys.error("Too many leading zeros. Choose a number less than " + maxLength)
     else for {
       coeffs <- listOfN(maxLength - leadingZeros, genN)
     } yield (Vector.fill(leadingZeros)(implicitly[Integral[N]].zero) ++ coeffs.to[Vector])
   
-  def genSmallDoubleTDif: Gen[TDif[Double]] = genBoundedDoubleTDif(smallValue)
-  def genSmallIntervalTDif: Gen[TDif[Interval]] = genBoundedIntervalTDif(-smallValue,smallValue)
-  def genSmallThinIntervalTDif: Gen[TDif[Interval]] = genBoundedThinIntervalTDif(-smallValue,smallValue)
+  def genSmallDoubleTDif(leadingZeros: Int = 0): Gen[TDif[Double]] = 
+    genBoundedDoubleTDif(smallValue)
+  def genSmallIntervalTDif(leadingZeros: Int = 0): Gen[TDif[Interval]] = 
+    genBoundedIntervalTDif(-smallValue,smallValue)
+  def genSmallThinIntervalTDif(leadingZeros: Int = 0): Gen[TDif[Interval]] = 
+    genBoundedThinIntervalTDif(-smallValue,smallValue)
 
-  def genBoundedDoubleTDif(magnitude: Double): Gen[TDif[Double]] = {
+  def genBoundedDoubleTDif(magnitude: Double, leadingZeros: Int = 0): Gen[TDif[Double]] = {
     val abs = Math.abs(magnitude)       
     genTDif(choose(-abs, abs))
   }
-  def genBoundedIntervalTDif(lo: Double, hi: Double): Gen[TDif[Interval]] =
+  def genBoundedIntervalTDif(lo: Double, hi: Double, leadingZeros: Int = 0): Gen[TDif[Interval]] =
     genTDif(for {
       a <- choose(lo, hi)
       b <- choose(lo, hi)
     } yield Interval(Math.min(a,b), Math.max(a,b)))
-  def genBoundedThinIntervalTDif(lo: Double, hi: Double): Gen[TDif[Interval]] =
-    genTDif(choose(lo, hi) map (b => Interval(b,b)))
-
+  def genBoundedThinIntervalTDif(lo: Double, hi: Double, leadingZeros: Int = 0): Gen[TDif[Interval]] =
+    genTDif(choose(lo, hi) map (b => Interval(b,b)), leadingZeros)
     
   implicit def arbitraryIntTDif: Arbitrary[TDif[Int]] =
     Arbitrary(genTDif(arbitrary[Int]))
