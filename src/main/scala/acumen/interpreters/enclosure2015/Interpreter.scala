@@ -11,12 +11,7 @@ import util.ASTUtil.{
   dots, checkContinuousAssignmentToSimulator, checkNestedHypotheses, op, substitute
 }
 import Common._
-import Errors.{
-  AcumenError, BadLhs, BadRhs, ConstructorArity, ContinuousDynamicsUndefined, 
-  DuplicateAssingment, DuplicateContinuousAssingment, DuplicateDiscreteAssingment,  
-  HypothesisFalsified, NotAClassName, NotAnObject, NoMatch,
-  PositionalAcumenError, ShouldNeverHappen, UnknownOperator, UnsupportedTypeError
-}
+import Errors._
 import Pretty.pprint
 import ui.tl.Console
 import util.{
@@ -65,8 +60,8 @@ import scala.util.parsing.input.Position
 case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
   
   type Store = EnclosureAndBranches
-  def repr(st:Store) = st.enclosure
-  def fromCStore(st: CStore, root: CId): Store = EnclosureAndBranches(st, InitialCondition(st, Epsilon, StartTime) :: Nil)
+  def repr(st:Store) = st.enclosure.cStore
+  def fromCStore(st: CStore, root: CId): Store = EnclosureAndBranches(Enclosure(st), InitialCondition(Enclosure(st), Epsilon, StartTime) :: Nil)
   override def visibleParameters: Map[String, CValue] = 
     Map(ParamTime, ParamEndTime, ParamTimeStep, 
         ParamMaxBranches, ParamMaxIterationsPerBranch, ParamIntersectWithGuardBeforeReset, ParamHypothesisReport, ParamDisableContraction) 
@@ -84,7 +79,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
   
   private val legacyParameters = Parameters.default.copy(interpreter = Some(enclosure.Interpreter.EVT))
   private implicit val rnd = Rounding(legacyParameters)
-  private val bannedFieldNames = List(self, parent, classf, nextChild, seed1, seed2, magicf)
+  private val bannedFieldNames = List(self, parent, classf, nextChild, magicf)
   private val contractInstance = new Contract{}
 
   /* Types */
@@ -92,11 +87,11 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
   sealed abstract trait InitialConditionTime
   case object StartTime extends InitialConditionTime
   case object UnknownTime extends InitialConditionTime
-  case class InitialCondition(enclosure:Enclosure, evolution: Evolution, time: InitialConditionTime)
+  case class InitialCondition(enclosure: Enclosure, evolution: Evolution, time: InitialConditionTime)
   class EnclosureAndBranches(val enclosure: Enclosure, val branches: List[InitialCondition])
   object EnclosureAndBranches{
     def apply(e: Enclosure, bs: List[InitialCondition]): EnclosureAndBranches = 
-      new EnclosureAndBranches(countVariables(e), bs) 
+      new EnclosureAndBranches(e.countVariables, bs) 
   }
   
   /** Represents a sequence of Changesets without consecutive repeated flows. */
@@ -109,11 +104,100 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
   }
   val Epsilon = Evolution(Nil)
   
-  type Enclosure = CStore
-  case class EnclosureOps(e: Enclosure) {
+  case class Enclosure(private val st: CStore) {
+    
+    /* Enclosure as Map */
+    
+    def apply(id: CId): CObject =
+      st(id)
+    def map(f: ((CId,CObject)) => (CId,CObject)): Enclosure =
+      Enclosure(st map f)
+    def flatMap(f: ((CId,CObject)) => scala.collection.GenTraversableOnce[(CId,CObject)]): Enclosure =
+      Enclosure(st flatMap f)
+    def filter(f: ((CId,CObject)) => Boolean): Enclosure =
+      Enclosure(st filter f)
+    def foreach(p: ((CId,CObject)) => Unit): Unit =
+      st foreach p
+    def forall(p: ((CId,CObject)) => Boolean): Boolean =
+      st forall p
+    def updated(id: CId, o: CObject): Enclosure =
+      Enclosure(st updated (id,o))
+    def keySet: Set[CId] =
+      st.keySet
+    def toList: List[(CId,CObject)] =
+      st.toList
+    
+    /* Store Operations */
+      
+    def cStore: CStore = st
+      
+    def getObjectField(id:CId, f:Name) = {
+      val obj = apply(id)
+      obj.get(f) match {
+        case Some(v) => v
+        case None => 
+          println("Tried to look up " + (id, f) + " in:\n\n" + obj.mkString("\n"))
+          throw VariableNotDeclared(f)
+      }
+    }
+    def setObject(id:CId, o:CObject) : Enclosure =
+      updated(id, o)
+    def setObjectField(id:CId, f:Name, v:CValue) : Enclosure = {
+      val obj = apply(id)
+      if (f != _3D && f != _3DView && f != devicef)
+        obj.get(f) map { oldVal =>
+          if (oldVal.yieldsPlots != v.yieldsPlots)
+            throw new UnsupportedTypeChangeError(f, id, classOf(obj), oldVal, v, 
+              "These values require a different number of plots")
+        }
+      setObject(id, setField(obj,f,v))
+    }
+    def changeParent(id:CId, p:CId) : Enclosure = {
+      val obj = deref(id,st)
+      setObject(id, setParent(obj, p))
+    }
+    def setParent(o:CObject, a:CId) : CObject = 
+       setField(o, parent, VObjId(Some(a)))
+       
+    /* Simulator Object Operations 
+     * NOTE: These operations only affect st */  
+
+    def getInSimulator(s:String): CValue = 
+      getInSimulator(Name(s,0))
+    def getInSimulator(f:Name) = 
+      getObjectField(simulatorId, f)
+    def getTime: Double =
+      Canonical getTime st
+    def getEndTime: Double =
+      Canonical getEndTime st
+    def getTimeStep: Double =
+      Canonical getTimeStep st
+    def getResultType: ResultType =
+      Canonical getResultType st
+    def getCls(id: CId): ClassName = 
+      Canonical classOf deref(id,st)
+    def mainId: CId = 
+      Canonical mainId st
+    def simulatorId: CId = 
+      Canonical magicId st
+    def childrenOf(id: CId): List[CId] = 
+      Canonical childrenOf (id, st)
+    def checkAccessOk(id:CId, env:Env, context: Expr): Unit =
+      Common checkAccessOk (id, env, st, context)
+    /**
+     * Updates the variableCount simulator field. This corresponds to 
+     * the number of plots of model variables that will be shown, but not the 
+     * number of columns in the table, as the latter also contains information 
+     * such as class names etc. 
+     */
+    def countVariables: Enclosure = 
+      setObjectField(simulatorId, stateVars, VLit(GInt(countStateVars(st))))
+      
+    /* Enclosure Operations */
+    
     /** Take the meet, or g.l.b., of e and that Enclosure. */
-    def /\(that: Enclosure): Enclosure = e meet that
-    def /\(that: Option[Enclosure]): Enclosure = if (that isDefined) this meet that.get else e 
+    def /\(that: Enclosure): Enclosure = this meet that
+    def /\(that: Option[Enclosure]): Enclosure = if (that isDefined) this meet that.get else this
     /** Take the meet, or g.l.b., of e and that Enclosure. */
     def meet (that: Enclosure): Enclosure = merge(that: Enclosure, (l: GEnclosure[_], r: GEnclosure[_]) => (l,r) match {
       case (le: Real, re: Real) => Some(le /\ re)
@@ -123,13 +207,13 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
     }).get
     /** Merge e and that Enclosure using ce to combine scalar enclosure values. */
     def merge(that: Enclosure, ce: (GEnclosure[_], GEnclosure[_]) => Option[GEnclosure[_]]): Option[Enclosure] = {
-      require(e.keySet == that.keySet, "Can not merge enclosures with differing object sets.") // TODO Update for dynamic objects
+      require(this.keySet == that.keySet, "Can not merge enclosures with differing object sets.") // TODO Update for dynamic objects
       try {
-        Some(for ((cid, co) <- e) yield (cid, {
+        Some(for ((cid,co) <- this) yield { 
           val tco = that(cid)
           require(co.keySet == tco.keySet, "Can not merge objects with differing name sets.") // TODO Update for dynamic objects
           require(classOf(co) == classOf(tco), s"Can not merge objects of differing models (${classOf(co).x}, ${classOf(tco).x}).")
-          if (classOf(co) == cmagic)
+          (cid, if (classOf(co) == cmagic)
             co // FIXME Sanity check this (that it is OK to merge Enclosures with different simulator objects)
           else
             for ((n, v) <- co) yield (n,
@@ -137,15 +221,15 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
                 case (VLit(l: GEnclosure[_]), VLit(r: GEnclosure[_])) => VLit(ce(l, r).getOrElse(sys.error("Error when merging $cid.$n.")))
                 case (l, r) if l == r                                 => l
               })
-        }))
+        )})
       } catch { case e: Throwable => None } // FIXME Use Either to propagate error information 
     }
     /** Returns a copy of e with das applied to it. */
     def apply(das: Set[CollectedAction]): Enclosure = 
-      update(das.map(d => (d.selfCId, d.lhs.field) -> evalExpr(d.rhs, d.env, this.e)).toMap)
+      update(das.map(d => (d.selfCId, d.lhs.field) -> evalExpr(d.rhs, d.env, this)).toMap)
     /** Update e with respect to u. */
     def update(u: Map[(CId, Name), CValue]) =
-      for { (cid, co) <- e }
+      for { (cid, co) <- this }
       yield (cid,
         for { (n, v) <- co }
         yield (n, u getOrElse ((cid, n), v)))
@@ -176,12 +260,12 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
                 case (VLit(_:GStr) | _:VResultType | _:VClassName, tv @ Some(VLit(_:GStr) | _:VResultType | _:VClassName)) => 
                   v == tv
                 case (VObjId(Some(o1)), Some(VObjId(Some(o2)))) => 
-                  containsCObject(e(o1), that(o2))
+                  containsCObject(this(o1), that(o2))
                 case (_, Some(tv)) => 
                   throw internalError(s"Contains not applicable to ${pprint(n)}: ${pprint(v)}, ${pprint(tv)}")
                 
               })}}
-        e.forall { case (cid, co) => containsCObject(co, that(cid)) }
+        this.forall { case (cid, co) => containsCObject(co, that(cid)) }
       }
     /** Take the intersection of e and that Object. */
     def intersect(that: Enclosure): Option[Enclosure] = merge(that, (l: GroundValue, r: GroundValue) => ((l,r): @unchecked) match {
@@ -200,43 +284,42 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
       }
     })
     /** Field-wise projection. Replaces each enclosure with a new one corresponding to its start-time interval. */
-    def start(): Enclosure = map{ 
+    def start(): Enclosure = mapEnclosures{ 
       case ce: Real => Real(ce.start) 
       case ui: GIntEnclosure => GIntEnclosure(ui.start, ui.start, ui.start) 
       case us: GStrEnclosure => GStrEnclosure(us.start, us.start, us.start) 
       case us: GBoolEnclosure => GBoolEnclosure(us.start, us.start, us.start) 
     }
     /** Field-wise projection. Replaces each enclosure with a new one corresponding to its end-time interval. */
-    def end(): Enclosure = map{ 
+    def end(): Enclosure = mapEnclosures{ 
       case ce: Real => Real(ce.end) 
       case ui: GIntEnclosure => GIntEnclosure(ui.end, ui.end, ui.end) 
       case us: GStrEnclosure => GStrEnclosure(us.end, us.end, us.end) 
       case us: GBoolEnclosure => GBoolEnclosure(us.end, us.end, us.end) 
     }
     /** Field-wise range. */
-    def range(): Enclosure = map{ 
+    def range(): Enclosure = mapEnclosures{ 
       case ce: Real => Real(ce.enclosure) 
       case ui: GIntEnclosure => GIntEnclosure(ui.range, ui.range, ui.range) 
       case us: GStrEnclosure => GStrEnclosure(us.range, us.range, us.range) 
       case us: GBoolEnclosure => GBoolEnclosure(us.range, us.range, us.range) 
     }
     /** Returns a copy of this where f has been applied to all enclosure fields. */
-    def map(f: GEnclosure[_] => GEnclosure[_]) =
-      e.mapValues(_.mapValues{
+    def mapEnclosures(f: GEnclosure[_] => GEnclosure[_]) =
+      this map{ case (cid,co) => (cid, co.mapValues{
         case VLit(ce: GEnclosure[_]) => VLit(f(ce))
         case field => field
-      })
+      })}
     /** Use f to reduce this enclosure to a value of type A. */
     def foldLeft[A](z: A)(f: (A, Real) => A): A =
       this.flatten.foldLeft(z) { case (r, (id, n, e)) => f(r, e) }
     /** Returns iterable of all Reals contained in this object and its descendants. */
     def flatten(): Iterable[(CId, Name, Real)] =
-      e.flatMap{ case (cid, co) => co.flatMap{ 
+      st.flatMap{ case (cid, co) => co.flatMap{ 
         case (n, VLit(ce:Real)) => List((cid, n, ce))
         case _ => Nil
       }}
   }
-  implicit def liftEnclosure(st: CStore): EnclosureOps = EnclosureOps(st)
   
   /** Return type of AST traversal (evalActions) */
   case class Changeset
@@ -400,7 +483,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
    * NOTE: Simulators objects of st.branches are not affected.
    */
   def setInSimulator(f:Name, v:CValue, s:Store): Store = {
-    def helper(e: Enclosure) = setObjectField(magicId(e), f, v, e)
+    def helper(e: Enclosure) = e.setObjectField(e.simulatorId, f, v)
     EnclosureAndBranches(helper(s.enclosure), s.branches.map(ic => ic.copy(enclosure = helper(ic.enclosure))))
   }
     
@@ -420,19 +503,12 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
   def setResultType(t:ResultType, s:Store) = setInSimulator(resultType, VResultType(t), s)
     
   /** Get a fresh object id for a child of parent */
-  def freshCId(parent:Option[CId], st: CStore) : (CId, CStore) = parent match {
-    case None => (CId.nil, st)
+  def freshCId(parent:Option[CId], e: Enclosure) : (CId, Enclosure) = parent match {
+    case None => (CId.nil, e)
     case Some(p) =>
-      val VLit(GInt(n)) = getObjectField(p, nextChild, st)
-      val st1 = setObjectField(p, nextChild, VLit(GInt(n+1)), st)
+      val VLit(GInt(n)) = e.getObjectField(p, nextChild)
+      val st1 = e.setObjectField(p, nextChild, VLit(GInt(n+1)))
       (n :: p, st1)
-  }
-  
-  /** Splits self's seed into (s1,s2), assigns s1 to self and returns s2 */
-  def getNewSeed(self:CId, st: Enclosure) : ((Int,Int), Enclosure) = {
-    val (s1,s2) = Random.split(getSeed(self,st))
-	  val st1 = changeSeed(self, s1, st)
-    (s2, st1)
   }
   
   /** Transfer parenthood of a list of objects, whose ids are "cs", to address p */
@@ -440,14 +516,12 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
     cs.toSet flatMap (logReparent( _:CId,p))
     
   /** Create an env from a class spec and init values */
-  def mkObj(c:ClassName, p:Prog, prt:Option[CId], seed:(Int,Int),
+  def mkObj(c:ClassName, p:Prog, prt:Option[CId], 
             paramvs:List[CValue], st: Enclosure, childrenCounter:Int = 0) : (CId, Enclosure) = {
     val cd = classDef(c,p)
     val base = HashMap(
       (classf, VClassName(c)),
       (parent, VObjId(prt)),
-      (seed1, VLit(GInt(seed._1))),
-      (seed2, VLit(GInt(seed._2))),
       (nextChild, VLit(GInt(childrenCounter))))
     val pub = base ++ (cd.fields zip paramvs)
 
@@ -466,42 +540,41 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
     }
        
     val (fid, st1) = freshCId(prt, st)
-    val st2 = setObject(fid, pub, st1)
+    val st2 = st1.setObject(fid, pub)
     val (vs, st3) = 
       constrs.foldLeft((List.empty[CValue],st2)) 
         { case ((vsTmp, stTmp), NewRhs(e,es)) =>
             val ve = evalExpr(e, Env(self -> VObjId(Some(fid))), stTmp) 
             val cn = ve match {case VClassName(cn) => cn; case _ => throw NotAClassName(ve)}
             val ves = es map (evalExpr(_, Env(self -> VObjId(Some(fid))), stTmp))
-            val (nsd, stTmp1) = getNewSeed(fid, stTmp)
-            val (oid, stTmp2) = mkObj(cn, p, Some(fid), nsd, ves, stTmp1)
-            (VObjId(Some(oid)) :: vsTmp, stTmp2)
+            val (oid, stTmp1) = mkObj(cn, p, Some(fid), ves, stTmp)
+            (VObjId(Some(oid)) :: vsTmp, stTmp1)
           case ((vsTmp, stTmp), ExprRhs(e)) =>
             val ve = evalExpr(e, Env(self -> VObjId(Some(fid))), stTmp)
             (ve :: vsTmp, stTmp)
         }
         val priv = privVars zip vs.reverse 
         // new object creation may have changed the nextChild counter
-        val newpub = deref(fid,st3)
-        val st4 = setObject(fid, newpub ++ priv, st3)
+        val newpub = st3(fid)
+        val st4 = st3.setObject(fid, newpub ++ priv)
     (fid, st4)
   }
 
   /* Interpreter */
 
   /** Evaluate e in the scope of env for definitions p with current store st */
-  def evalExpr(e:Expr, env:Env, st:Enclosure) : CValue = {
+  def evalExpr(e:Expr, env:Env, enc:Enclosure) : CValue = {
     def eval(env:Env, e:Expr) : CValue = try {
 	    e match {
   	    case Lit(i)         => VLit(i)
         case ExprInterval(lo,hi) => 
-          VLit(GConstantRealEnclosure(extractInterval(evalExpr(lo, env, st)) /\ extractInterval(evalExpr(hi, env, st))))
+          VLit(GConstantRealEnclosure(extractInterval(evalExpr(lo, env, enc)) /\ extractInterval(evalExpr(hi, env, enc))))
         case ExprVector(l)  => VVector (l map (eval(env,_)))
         case Var(n)         => env.get(n).getOrElse(VClassName(ClassName(n.x)))
         case Index(v,i)     => evalIndexOp(eval(env, v), i.map(x => eval(env, x)))
         case Dot(o,f) =>
-          val id = extractId(evalExpr(o,env,st))
-          env.get(f).getOrElse(getObjectField(id, f, st))
+          val id = extractId(evalExpr(o,env,enc))
+          env.get(f).getOrElse(enc.getObjectField(id, f))
         /* e.f */
         case ResolvedDot(id, o, f) =>
           if (f == Name("children",0))
@@ -510,9 +583,9 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
              each object maintain a list of its children. This is why the childrens'
              list has to be computed on the fly when requested. 
              An efficient implementation wouldn't do that. */
-            VList(childrenOf(id,st) map (c => VObjId(Some(c))))
+            VList(enc.childrenOf(id) map (c => VObjId(Some(c))))
           else
-            getObjectField(id, f, st)
+            enc.getObjectField(id, f)
         /* FIXME:
            Could && and || be expressed in term of ifthenelse ? 
            => we would need ifthenelse to be an expression  */
@@ -735,9 +808,9 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
    * 
    * Note: Checks that the access implied by d is OK. 
    */
-  def resolve(d: Dot, rhs: Expr, env: Env, st: CStore): (ResolvedDot, Expr) = {
-    val id = extractId(evalExpr(d.obj, env, st))
-    checkAccessOk(id, env, st, d.obj)
+  def resolve(d: Dot, rhs: Expr, env: Env, e: Enclosure): (ResolvedDot, Expr) = {
+    val id = extractId(evalExpr(d.obj, env, e))
+    e.checkAccessOk(id, env, d.obj)
     val rd = ResolvedDot(id, d.obj, d.field)
     (rd, substitute(d, rd, rhs))
   }
@@ -773,21 +846,21 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
         throw ShouldNeverHappen() // FIXME: enforce that with refinement types
     }
   
-  def evalStep(p:Prog, st: Enclosure, rootId:CId) : Set[Changeset] = {
-    val cl = getCls(rootId, st)
+  def evalStep(p:Prog, e: Enclosure, rootId:CId) : Set[Changeset] = {
+    val cl = e.getCls(rootId)
     val as = classDef(cl, p).body
     val env = Env((self, VObjId(Some(rootId))))
-    evalActions(true, Lit(CertainTrue), as, env, p, st)
+    evalActions(true, Lit(CertainTrue), as, env, p, e)
   }
 
   /**
    * Outer loop. Iterates f from the root to the leaves of the tree formed 
    * by the parent-children relation.
    */
-  def iterate(f: CId => Set[Changeset], root: CId, st: Enclosure): Set[Changeset] = {
+  def iterate(f: CId => Set[Changeset], root: CId, e: Enclosure): Set[Changeset] = {
     val r = f(root)
-    val cs = childrenOf(root, st)
-    if (cs.isEmpty) r else combine(r, combine(cs, iterate(f, _:CId, st)))
+    val cs = e childrenOf root
+    if (cs.isEmpty) r else combine(r, combine(cs, iterate(f, _:CId, e)))
   }
   
   /* Main simulation loop */  
@@ -802,17 +875,17 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
     val mprog = Prog(magicClass :: enclosureProg.defs)
     val (sd1,sd2) = Random.split(Random.mkGen(0))
     val (id,st1) = 
-      mkObj(cmain, mprog, None, sd1, List(VObjId(Some(CId(0)))), initStore, 1)
-    val st2 = changeParent(CId(0), id, st1)
-    val st3 = changeSeed(CId(0), sd2, st2)
-    val hyps = st3.toList.flatMap { case (cid, co) =>
-      mprog.defs.find(_.name == getCls(cid, st3)).get.body.flatMap {
+      mkObj(cmain, mprog, None, List(VObjId(Some(CId(0)))), Enclosure(initStore), 1)
+    val st2 = st1.changeParent(CId(0), id)
+    val hyps = st2.toList.flatMap { case (cid, co) =>
+      mprog.defs.find(_.name == st2.getCls(cid)).get.body.flatMap {
         case Hypothesis(s, e) =>
           CollectedHypothesis(cid, s, e, Env(self -> VObjId(Some(cid)))) :: Nil
         case _ => Nil
     }}
-    val md = testHypotheses(fromCStore(st3).enclosure, 0, 0, mprog, NoMetadata) 
-    (mprog, fromCStore(st3), md)
+    val st2E = fromCStore(st2.cStore)
+    val md = testHypotheses(st2E.enclosure, 0, 0, mprog, NoMetadata) 
+    (mprog, st2E, md)
   }
   
   /** Remove unsupported declarations and statements from the AST. */
@@ -834,16 +907,16 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
   
   lazy val initStore = Parser.run(Parser.store, initStoreTxt.format("#0"))
   val initStoreTxt: String = 
-    s"""#0.0 { className = Simulator, parent = %s, nextChild = 0, seed1 = 0, seed2 = 0, variableCount = 0, 
+    s"""#0.0 { className = Simulator, parent = %s, nextChild = 0, variableCount = 0, 
                outputRows = "All", continuousSkip = 0, resultType = @Initial, 
                ${visibleParameters.map(p => p._1 + "=" + pprint(p._2)).mkString(",")} }"""
 
   /** Updates the values of variables in xs (identified by CId and Dot.field) to the corresponding CValue. */
   def applyAssignments(xs: List[(CId, Dot, CValue)], st: Enclosure): Enclosure =
-    xs.foldLeft(st)((stTmp, a: (CId, Dot, CValue)) => setObjectField(a._1, a._2.field, a._3, stTmp))
+    xs.foldLeft(st)((stTmp, a: (CId, Dot, CValue)) => stTmp.setObjectField(a._1, a._2.field, a._3))
 
-  def varNameToFieldIdMap(st: Enclosure): Map[VarName,(CId,Name)] =
-    st.flatMap{ case (cid, co) =>
+  def varNameToFieldIdMap(e: Enclosure): Map[VarName,(CId,Name)] =
+    e.toList.flatMap{ case (cid, co) =>
       if (classOf(co) == cmagic) Map[String,(CId,Name)]()
       else co.filter{
         case (n,_) if bannedFieldNames contains n => false
@@ -851,22 +924,22 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
         case (_, VLit(_: Real)) => true
         case (n,v) =>
           val typ = "type " + v.getClass.getSimpleName
-          throw new UnsupportedTypeError(typ, s"(${cid.cid.toString}:${getCls(cid, st).x}).${pprint(n)}", v)
+          throw new UnsupportedTypeError(typ, s"(${cid.cid.toString}:${e.getCls(cid).x}).${pprint(n)}", v)
       }.map{ case (n,v) => (fieldIdToName(cid,n), (cid, n)) } 
-    }
+    }.toMap
   
   def step(p: Prog, st: Store, md: Metadata): StepRes = {
     val st1 = updateSimulator(p, st)
-    if (getTime(st1.enclosure) >= getEndTime(st1.enclosure) && getResultType(st.enclosure) == FixedPoint) {
-      Done(md, getEndTime(st1.enclosure))
+    if (st1.enclosure.getTime >= st1.enclosure.getEndTime && st.enclosure.getResultType == FixedPoint) {
+      Done(md, st1.enclosure.getEndTime)
     }
     else {
-      val tNow = getTime(st1.enclosure)
-      val (tNext, resType) = getResultType(st1.enclosure) match {
+      val tNow = st1.enclosure.getTime
+      val (tNext, resType) = st1.enclosure.getResultType match {
         case Continuous | Initial =>
           (tNow, FixedPoint)
         case FixedPoint =>
-          (tNow + getTimeStep(st1.enclosure), Continuous)
+          (tNow + st1.enclosure.getTimeStep, Continuous)
       }
       val st2 = hybridEncloser(Interval(tNow, tNext), p, st1) // valid enclosure over T
       val md1 = testHypotheses(st2.enclosure, tNow, tNext, p, md)
@@ -877,8 +950,8 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
   }
 
   /** Traverse the AST (p) and collect statements that are active given st. */
-  def active(st: Enclosure, p: Prog): Set[Changeset] = 
-    iterate(evalStep(p, st, _), mainId(st), st)
+  def active(e: Enclosure, p: Prog): Set[Changeset] = 
+    iterate(evalStep(p, e, _), e.mainId, e)
 
   /** Ensure that c does not contain duplicate assignments. */
   def checkValidChange(c: Set[Changeset]): Unit = c.foreach{ cs =>
@@ -893,28 +966,28 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
    * there is an equation in scope at the current time step. This is done by checking that for each 
    * primed field name in each object in st, there is a corresponding CId-Name pair in eqs or odes.
    */
-  def checkFlowDefined(prog: Prog, cs: Changeset, st: Enclosure): Unit =
+  def checkFlowDefined(prog: Prog, cs: Changeset, e: Enclosure): Unit =
     if (isFlow(cs)) {
       val contNamesActive = (cs.eqs union cs.odes).map { da => (da.lhs.id, da.lhs.field.x) }
       val odeNamesDeclared = prog.defs.map(d => (d.name, (d.fields ++ d.priv.map(_.x)).filter(_.primes > 0))).toMap
-      st.foreach {
+      e.foreach {
         case (o, _) =>
-          if (o != magicId(st))
-            odeNamesDeclared.get(getCls(o, st)).map(_.foreach { n =>
+          if (o != e.simulatorId)
+            odeNamesDeclared.get(e getCls o).map(_.foreach { n =>
               if (!contNamesActive.exists { case (ao, an) => ao == o && an == n.x })
-                throw ContinuousDynamicsUndefined(o, n,None, Pretty.pprint(getObjectField(o, classf, st)), getTime(st))
+                throw ContinuousDynamicsUndefined(o, n,None, Pretty.pprint(e.getObjectField(o, classf)), e.getTime)
             })
       }
     }
   
   /** Summarize result of evaluating the hypotheses of all objects. */
-  def testHypotheses(st: Enclosure, timeDomainLo: Double, timeDomainHi: Double, p: Prog, old: Metadata): Metadata = {
+  def testHypotheses(enc: Enclosure, timeDomainLo: Double, timeDomainHi: Double, p: Prog, old: Metadata): Metadata = {
     def testHypothesesOneChangeset(hs: Set[CollectedHypothesis]) =
       if (hs isEmpty) NoMetadata
       else SomeMetadata(
         (for (CollectedHypothesis(o, s, h, env) <- hs) yield {
-          lazy val counterEx = dots(h).toSet[Dot].map(d => d -> (evalExpr(d, env, st) : GValue))
-          (o, getCls(o,st), s) -> ((evalExpr(h, env, st), getResultType(st)) match {
+          lazy val counterEx = dots(h).toSet[Dot].map(d => d -> (evalExpr(d, env, enc) : GValue))
+          (o, enc getCls o, s) -> ((evalExpr(h, env, enc), enc.getResultType) match {
             /* Use TestSuccess as default as it is the unit of HypothesisOutcome.pick 
              * For rigorous interpreters the momentary test is unused (middle element) */
             case (VLit(CertainTrue),  Initial) => (Some(CertainSuccess), Some(TestSuccess), CertainSuccess)
@@ -925,8 +998,8 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
             case (VLit(CertainFalse),       _) => (Some(CertainSuccess), Some(TestSuccess), CertainFailure(timeDomainLo, timeDomainHi, counterEx))
           })
       }).toMap, timeDomainLo, timeDomainHi, true, None)
-    old combine active(st, p).map(c => testHypothesesOneChangeset(c.hyps))
-                             .reduce[Metadata](_ combine _)
+    old combine active(enc, p).map(c => testHypothesesOneChangeset(c.hyps))
+                              .reduce[Metadata](_ combine _)
   }
   
   /** 
@@ -936,9 +1009,9 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
    * for the next time interval.
    */
   def hybridEncloser(T: Interval, prog: Prog, st: EnclosureAndBranches): EnclosureAndBranches = {
-    val VLit(GInt(maxBranches))                    = getInSimulator(ParamMaxBranches._1,                   st.enclosure)
-    val VLit(GInt(maxIterationsPerBranch))         = getInSimulator(ParamMaxIterationsPerBranch._1,        st.enclosure)
-    val VLit(GBool(intersectWithGuardBeforeReset)) = getInSimulator(ParamIntersectWithGuardBeforeReset._1, st.enclosure)
+    val VLit(GInt(maxBranches))                    = st.enclosure.getInSimulator(ParamMaxBranches._1)
+    val VLit(GInt(maxIterationsPerBranch))         = st.enclosure.getInSimulator(ParamMaxIterationsPerBranch._1)
+    val VLit(GBool(intersectWithGuardBeforeReset)) = st.enclosure.getInSimulator(ParamIntersectWithGuardBeforeReset._1)
     require(st.branches.nonEmpty, "hybridEncloser called with zero branches")
     require(st.branches.size < maxBranches, s"Number of branches (${st.branches.size}) exceeds maximum ($maxBranches).")
     Logger.debug(s"hybridEncloser (over $T, ${st.branches.size} branches)")
@@ -1078,7 +1151,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
    * NOTE: Returns Left if the support of any of the claims has an empty intersection with st,
    *       or if some other exception is thrown by contract.
    */
-  def contract(st: Enclosure, claims: Iterable[CollectedConstraint], prog: Prog): Either[String, Enclosure] = {
+  def contract(enc: Enclosure, claims: Iterable[CollectedConstraint], prog: Prog): Either[String, Enclosure] = {
     /**
      * Given a predicate p and store st, removes that part of st for which p does not hold.
      * NOTE: The range of st is first computed, as contraction currently only works on intervals.  
@@ -1141,9 +1214,9 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
           Some(st) // Do not contract
       }
     }
-    val VLit(GBool(disableContraction)) = getInSimulator(ParamDisableContraction._1, st)
-    if (disableContraction) Right(st)
-    else claims.foldLeft(Right(st): Either[String, Enclosure]) {
+    val VLit(GBool(disableContraction)) = enc getInSimulator ParamDisableContraction._1
+    if (disableContraction) Right(enc)
+    else claims.foldLeft(Right(enc): Either[String, Enclosure]) {
       case (res, claim) => res match {
         case Right(r) => 
           try {
@@ -1151,7 +1224,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
               (Right(_)) getOrElse Left("Empty enclosure after applying claim " + pprint(claim.c))
           } catch {
             case e: Throwable =>
-              Logger.trace(Pretty pprint asProgram(st, prog))
+              Logger.trace(Pretty pprint asProgram(enc.cStore, prog))
               if (e.isInstanceOf[AcumenError]) throw e
               else if (e.isInstanceOf[NotImplementedError]) 
                 throw new NotImplementedError(s"Cannot contract. Missing implementation for: ${e.getMessage}.") 
@@ -1193,14 +1266,14 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
     , claims: Set[CollectedConstraint]
     , T: Interval
     , p: Prog
-    , st: Enclosure
+    , enc: Enclosure
     ): Enclosure = {
-    val ic = contract(st.end, claims, p) match {
+    val ic = contract(enc.end, claims, p) match {
       case Left(_) => sys.error("Initial condition violates claims {" + claims.map(c => pprint(c.c)).mkString(", ") + "}.")
       case Right(r) => r
     }
     val varNameToFieldId = varNameToFieldIdMap(ic)
-    val F = getFieldFromActions(inline(eqs, odes, st), ic, p) // in-line eqs to obtain explicit ODEs
+    val F = getFieldFromActions(inline(eqs, odes, enc.cStore), ic, p) // in-line eqs to obtain explicit ODEs
     val stateVariables = varNameToFieldId.keys.toList
     val A = new Box(stateVariables.flatMap{ v => 
       val (o,n) = varNameToFieldId(v)
@@ -1215,7 +1288,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
       case (k, v) => (varNameToFieldId(k), VLit(Real(A(k), v, solutions._2(k))))
     }
     val odeSolutions = ic update solutionMap
-    val equationsMap = inline(eqs, eqs, st).map { // LHSs of EquationsTs, including highest derivatives of ODEs
+    val equationsMap = inline(eqs, eqs, enc.cStore).map { // LHSs of EquationsTs, including highest derivatives of ODEs
       case CollectedAction(_, cid, Continuously(EquationT(ResolvedDot(_, _, n), rhs)), env) =>
         (cid, n) -> evalExpr(rhs, env, odeSolutions)
     }.toMap
