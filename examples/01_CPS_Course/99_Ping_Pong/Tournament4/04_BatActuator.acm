@@ -27,8 +27,11 @@ initially
   alpha    =  acos(0.2/norm((1.6,0.1,0.2))) ,
   alpha'   =  0 ,                     alpha''  =  0 ,
   theta    =  atan(1.6*(-1)^n/0.1) ,
-  theta'   =  0 ,                     theta''  =  0
+  theta'   =  0 ,                     theta''  =  0,
+  k        =  0,
+  k'       =  1
 always
+  k' = 1,
   // If mode is not valid then make mode "Panic!"
   if mode ~= "Normal" && mode ~= "Reset" then
     mode + = "Panic!" 
@@ -36,8 +39,9 @@ always
   match mode with [
     "Normal" ->
       F = m * norm(p''),
-      if norm(p') > 5 then // ???Saturate??? speeds over 5
-        p' + = p'/norm(p') * 5 
+      if norm(p') > 5 && k >= 0.01 then // ???Saturate??? speeds over 5
+        p' + = p'/norm(p') * 5,
+        k = 0
       noelse,
       energy' = F * norm(p'), // Simplistic model of power consumed
       // Transformation from Spherical coordinate to Cartesian coordinate system
