@@ -2,7 +2,6 @@
 
 set -e
 
-SBT=${SBT:-`which sbt`}
 COMMIT=${GIT_COMMIT:-master}
 
 usage () {
@@ -61,17 +60,19 @@ echo Writing version file.
 echo "20$REL" > src/main/resources/acumen/version
 echo "$REV-$HASH" > src/main/resources/acumen/build_id
 
+$SBT_JAVA7 compile
+
 # Test to make sure everything is still okay
 # Use the quick test so it doesn't take forever and also so that something
 # will be created even if some of the "full" propriety based tests fail.
-$SBT compile quick:test
+$SBT quick:test
 
 # make release build
 cd ..
 test ! -e $REL_DIR || error "$REL_DIR exists"
 cp -a acumen-rel-working ${DIR_PREFIX}_Acumen
 cd $REL_DIR
-$SBT proguard
+$SBT_JAVA7 proguard
 cp target/scala-*/acumen-$REL.jar ..
 git clean -xfd -e src/main/resources/acumen/version -e src/main/resources/acumen/build_id
 rm -rf .git
