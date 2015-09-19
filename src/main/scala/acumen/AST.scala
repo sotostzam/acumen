@@ -5,6 +5,8 @@ import scala.math._
 import scala.collection.mutable.HashMap
 import scala.collection.mutable.{Map => MutMap}
 import scala.util.parsing.input.{Positional}
+import breeze.math._
+import breeze.linalg._
 import acumen.interpreters.enclosure.Interval
 import acumen.TAD._
 import acumen.FAD._
@@ -476,7 +478,7 @@ package object acumen {
    * implementations for Int as well as all the
    * other numeric types.
    */
-  trait Integral[V] extends PartialOrdering[V] {
+  trait Integral[V] extends PartialOrdering[V] with Semiring[V] {
     def add(l: V, r: V): V
     def sub(l: V, r: V): V
     def mul(l: V, r: V): V
@@ -490,6 +492,9 @@ package object acumen {
     def isValidInt(x: V): Boolean
     def isValidDouble(x: V): Boolean
     def groundValue(v: V): GroundValue
+    /* Semiring */
+    def +(l: V, r: V): V = add(l,r)
+    def *(l: V, r: V): V = mul(l,r)
   }
 
   /**
@@ -558,6 +563,8 @@ package object acumen {
     def fromInt(x: Int): Int = x
     def zero: Int = 0
     def one: Int = 1
+    def ==(a: Int, b: Int): Boolean = a == b
+    def !=(a: Int, b: Int): Boolean = a != b
     def tryCompare(l: Int, r: Int): Option[Int] = Some(l compareTo r)
     def lteq(l: Int, r: Int): Boolean = l <= r
     def isValidInt(x: Int): Boolean = true
@@ -589,6 +596,8 @@ package object acumen {
     def fromDouble(x: Double): Double = x
     def zero: Double = 0
     def one: Double = 1
+    def ==(a: Double, b: Double): Boolean = a == b
+    def !=(a: Double, b: Double): Boolean = a != b
     def tryCompare(l: Double, r: Double): Option[Int] = Some(l compareTo r)
     def lteq(l: Double, r: Double): Boolean = l <= r
     def isValidInt(x: Double): Boolean =
@@ -621,6 +630,8 @@ package object acumen {
     def fromDouble(x: Double): Interval = Interval(x)
     def zero: Interval = Interval.zero
     def one: Interval = Interval.one
+    def ==(a: Interval, b: Interval): Boolean = a == b
+    def !=(a: Interval, b: Interval): Boolean = a != b
     def isValidInt(x: Interval): Boolean = x.lo.doubleValueFloor == x.hi.doubleValueCeiling
     def toInt(x: Interval): Int = x.lo.doubleValueFloor.toInt 
     def isValidDouble(x: Interval): Boolean = (x.lo == x.hi)

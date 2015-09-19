@@ -36,6 +36,8 @@ object TAD extends App {
     override def isZero(x: TDif[V]): Boolean = isConstant(x) && x(0).isZero
     /** Return index of first non-zero coefficient. When none exists, returns -1. */
     def firstNonZero(x: TDif[V]): Int = x.indexWhere(xk => !(evVIsIntegral isZero xk))
+    def ==(a: TDif[V], b: TDif[V]): Boolean = (0 to a.length).forall(i => a(i) == b(i))
+    def !=(a: TDif[V], b: TDif[V]): Boolean = (0 to a.length).exists(i => a(i) != b(i))
   }
   
   /** Real instance for TDif[V], where V itself has a Real instance */

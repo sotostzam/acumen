@@ -69,6 +69,14 @@ object FAD extends App {
     def zero: FDif[V] = FDif constant zeroOfV
     def one: FDif[V] = FDif constant oneOfV
     def isConstant(x: FDif[V]): Boolean = x.coeff.values.forall(_ == zeroOfV)
+    def ==(a: FDif[V], b: FDif[V]): Boolean = {
+      require(a.coeff.keys == b.coeff.keys, "Cannot compare FDifs with different sets of names.")
+      a.coeff.keys.forall(i => a(i) == b(i))
+    }
+    def !=(a: FDif[V], b: FDif[V]): Boolean = {
+      require(a.coeff.keys == b.coeff.keys, "Cannot compare FDifs with different sets of names.")
+      a.coeff.keys.exists(i => a(i) != b(i))
+    }
   }
   
   /** Real instance for FDif[V], where V itself has a Real instance */
