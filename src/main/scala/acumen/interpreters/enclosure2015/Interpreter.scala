@@ -200,7 +200,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
     def /\(that: Option[Enclosure]): Enclosure = if (that isDefined) this meet that.get else this
     /** Take the meet, or g.l.b., of e and that Enclosure. */
     def meet (that: Enclosure): Enclosure = merge(that: Enclosure, (l: GEnclosure[_], r: GEnclosure[_]) => (l,r) match {
-      case (le: Real, re: Real) => Some(le /\ re)
+      case (le: RealScalar, re: RealScalar) => Some(le /\ re)
       case (ls: GStrEnclosure, rs: GStrEnclosure) => Some(GStrEnclosure(ls.start union rs.start, ls.range union rs.range, ls.end union rs.end))
       case (ls: GIntEnclosure, rs: GIntEnclosure) => Some(GIntEnclosure(ls.start union rs.start, ls.range union rs.range, ls.end union rs.end))
       case (ls: GBoolEnclosure, rs: GBoolEnclosure) => Some(GBoolEnclosure(ls.start union rs.start, ls.range union rs.range, ls.end union rs.end))
@@ -249,7 +249,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
             if (bannedFieldNames contains n) true
             else {
               ((v, ro get n) match {
-                case (VLit(l: Real), Some(VLit(r: Real))) => 
+                case (VLit(l: RealScalar), Some(VLit(r: RealScalar))) => 
                   l contains r
                 case (VLit(l: GStrEnclosure), Some(VLit(r: GStrEnclosure))) => 
                   l contains r
@@ -269,7 +269,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
       }
     /** Take the intersection of e and that Object. */
     def intersect(that: Enclosure): Option[Enclosure] = merge(that, (l: GroundValue, r: GroundValue) => ((l,r): @unchecked) match {
-      case (le: Real, re: Real) => le intersect re 
+      case (le: RealScalar, re: RealScalar) => le intersect re 
       case (ls: GStrEnclosure, rs: GStrEnclosure) => (ls.start intersect rs.start, ls.enclosure intersect rs.enclosure, ls.end intersect rs.end) match {
         case (start, enclosure, end) if start.nonEmpty && enclosure.nonEmpty && end.nonEmpty => Some(GStrEnclosure(start,enclosure,end))
         case _ => sys.error(s"Empty intersection between string enclosures $ls and $rs") // FIXME Use Either to propagate error information 
@@ -285,21 +285,21 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
     })
     /** Field-wise projection. Replaces each enclosure with a new one corresponding to its start-time interval. */
     def start(): Enclosure = mapEnclosures{ 
-      case ce: Real => Real(ce.start) 
+      case ce: RealScalar => RealScalar(ce.start) 
       case ui: GIntEnclosure => GIntEnclosure(ui.start, ui.start, ui.start) 
       case us: GStrEnclosure => GStrEnclosure(us.start, us.start, us.start) 
       case us: GBoolEnclosure => GBoolEnclosure(us.start, us.start, us.start) 
     }
     /** Field-wise projection. Replaces each enclosure with a new one corresponding to its end-time interval. */
     def end(): Enclosure = mapEnclosures{ 
-      case ce: Real => Real(ce.end) 
+      case ce: RealScalar => RealScalar(ce.end) 
       case ui: GIntEnclosure => GIntEnclosure(ui.end, ui.end, ui.end) 
       case us: GStrEnclosure => GStrEnclosure(us.end, us.end, us.end) 
       case us: GBoolEnclosure => GBoolEnclosure(us.end, us.end, us.end) 
     }
     /** Field-wise range. */
     def range(): Enclosure = mapEnclosures{ 
-      case ce: Real => Real(ce.enclosure) 
+      case ce: RealScalar => RealScalar(ce.enclosure) 
       case ui: GIntEnclosure => GIntEnclosure(ui.range, ui.range, ui.range) 
       case us: GStrEnclosure => GStrEnclosure(us.range, us.range, us.range) 
       case us: GBoolEnclosure => GBoolEnclosure(us.range, us.range, us.range) 
@@ -311,12 +311,12 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
         case field => field
       })}
     /** Use f to reduce this enclosure to a value of type A. */
-    def foldLeft[A](z: A)(f: (A, Real) => A): A =
+    def foldLeft[A](z: A)(f: (A, RealScalar) => A): A =
       this.flatten.foldLeft(z) { case (r, (id, n, e)) => f(r, e) }
-    /** Returns iterable of all Reals contained in this object and its descendants. */
-    def flatten(): Iterable[(CId, Name, Real)] =
-      st.flatMap{ case (cid, co) => co.flatMap{ 
-        case (n, VLit(ce:Real)) => List((cid, n, ce))
+    /** Returns iterable of all RealScalars contained in this object and its descendants. */
+    def flatten(): Iterable[(CId, Name, RealScalar)] =
+      cStore.flatMap{ case (cid, co) => co.flatMap{ 
+        case (n, VLit(ce:RealScalar)) => List((cid, n, ce))
         case _ => Nil
       }}
   }
@@ -408,12 +408,12 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
     def apply(d: Double): GConstantRealEnclosure = GConstantRealEnclosure(Interval(d))
     def apply(i: Int): GConstantRealEnclosure = GConstantRealEnclosure(Interval(i))
   }
-  type Real = GConstantRealEnclosure
-  object Real {
-    def apply(start: Interval, enclosure: Interval, end: Interval): Real = GConstantRealEnclosure(start,enclosure,end)
-    def apply(i: Interval): Real = GConstantRealEnclosure(i,i,i)
-    def apply(d: Double): Real = GConstantRealEnclosure(Interval(d))
-    def apply(i: Int): Real = GConstantRealEnclosure(Interval(i))
+  type RealScalar = GConstantRealEnclosure
+  object RealScalar {
+    def apply(start: Interval, enclosure: Interval, end: Interval): RealScalar = GConstantRealEnclosure(start,enclosure,end)
+    def apply(i: Interval): RealScalar = GConstantRealEnclosure(i,i,i)
+    def apply(d: Double): RealScalar = GConstantRealEnclosure(Interval(d))
+    def apply(i: Int): RealScalar = GConstantRealEnclosure(Interval(i))
   }
   abstract class GConstantDiscreteEnclosure[T](val start: Set[T], val enclosure: Set[T], val end: Set[T]) extends GDiscreteEnclosure[T] {
     def apply(t: Interval) = range
@@ -454,12 +454,12 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
         if (c.name == cmagic) c else super.mapClassDef(c)
       override def mapExpr(e: Expr): Expr = e match {
         case Lit(GBool(b))          => Lit(if (b) CertainTrue else CertainFalse)
-        case Lit(GInt(i))           => Lit(Real(i))
-        case Lit(GDouble(d))        => Lit(Real(d))
-        case Lit(GInterval(i))      => Lit(Real(i))
+        case Lit(GInt(i))           => Lit(RealScalar(i))
+        case Lit(GDouble(d))        => Lit(RealScalar(d))
+        case Lit(GInterval(i))      => Lit(RealScalar(i))
         case ExprInterval( Lit(lo@(GDouble(_)|GInt(_)))  // FIXME Add support for arbitrary expression end-points
                          , Lit(hi@(GDouble(_)|GInt(_))))    
-                                    => Lit(Real(Interval(extractDouble(lo), extractDouble(hi))))
+                                    => Lit(RealScalar(Interval(extractDouble(lo), extractDouble(hi))))
         case ExprInterval(lo,hi)    => sys.error("Only constant interval end-points are currently supported. Offending expression: " + pprint(e))
         case ExprIntervalM(lo,hi)   => sys.error("Centered interval syntax is currently not supported. Offending expression: " + pprint(e))
         case Lit(GStr(s))           => Lit(GStrEnclosure(s))
@@ -471,7 +471,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
       }
       override def mapClause(c: Clause) : Clause = c match {
         case Clause(GStr(lhs), as, rhs) => Clause(GStrEnclosure(lhs), mapExpr(as), mapActions(rhs))
-        case Clause(GInt(lhs), as, rhs) => Clause(Real(lhs), mapExpr(as), mapActions(rhs)) // FIXME Use discrete integer enclosure instead of Real
+        case Clause(GInt(lhs), as, rhs) => Clause(RealScalar(lhs), mapExpr(as), mapActions(rhs)) // FIXME Use discrete integer enclosure instead of Real
         case _ => super.mapClause(c)
       }
     }.mapProg(p)
@@ -631,7 +631,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
          VLit(binGroundOp(op,x,y))
        case (_,VLit(x)::VLit(y)::Nil) =>
          try {
-           VLit(binGroundOp(op,Real(extractInterval(x)),Real(extractInterval(x))))
+           VLit(binGroundOp(op,RealScalar(extractInterval(x)),RealScalar(extractInterval(x))))
          }
          catch { case e =>
            throw UnknownOperator(op)    
@@ -665,7 +665,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
     }
     (f, vx) match {
       case ("not", Uncertain | CertainTrue | CertainFalse) => Uncertain
-      case (_, e: GRealEnclosure) => Real(implem(f, e.start), implem(f, e.range), implem(f, e.end))
+      case (_, e: GRealEnclosure) => RealScalar(implem(f, e.start), implem(f, e.range), implem(f, e.end))
     }
   }
   
@@ -684,11 +684,11 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
     // Based on implementations from acumen.interpreters.enclosure.Relation
     def implemBool(f:String, l:Interval, r:Interval): GBoolEnclosure = {
       lazy val (startL: Interval, endL: Interval) = vl match {
-        case ce: Real => (ce.start, ce.end)
+        case ce: RealScalar => (ce.start, ce.end)
         case _ => (l,l)
       }
       lazy val (startR: Interval, endR: Interval) = vr match {
-        case ce: Real => (ce.start, ce.end)
+        case ce: RealScalar => (ce.start, ce.end)
         case _ => (r,r)
       }
       f match {
@@ -739,7 +739,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
       case ("==" | "~=" | ">=" | "<=" | "<" | ">", _, _) =>
         implemBool(f, extractInterval(vl), extractInterval(vr))
       case ("+" | "-" | "*" | "/", el: GRealEnclosure, er: GRealEnclosure) => 
-        Real(implemInterval(f, el.start, er.start), implemInterval(f, el.range, er.range), implemInterval(f, el.end, er.end))
+        RealScalar(implemInterval(f, el.start, er.start), implemInterval(f, el.range, er.range), implemInterval(f, el.end, er.end))
     }
   }
 
@@ -921,7 +921,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
       else co.filter{
         case (n,_) if bannedFieldNames contains n => false
         case (_, VLit(_: GStr) | VLit(_: GStrEnclosure) | VLit(_: GBoolEnclosure) | _:VObjId[_]) => false
-        case (_, VLit(_: Real)) => true
+        case (_, VLit(_: RealScalar)) => true
         case (n,v) =>
           val typ = "type " + v.getClass.getSimpleName
           throw new UnsupportedTypeError(typ, s"(${cid.cid.toString}:${e.getCls(cid).x}).${pprint(n)}", v)
@@ -1160,7 +1160,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
       lazy val box = envBox(p, env, st)
       val varNameToFieldId = varNameToFieldIdMap(st)
       val noUpdate = Map[(CId,Name), CValue]()
-      def toAssoc(b: Box) = b.map{ case (k, v) => (varNameToFieldId(k), VLit(Real(v))) }
+      def toAssoc(b: Box) = b.map{ case (k, v) => (varNameToFieldId(k), VLit(RealScalar(v))) }
       p match {
         case Lit(CertainTrue | Uncertain) => Some(st)
         case Lit(CertainFalse) => None
@@ -1240,7 +1240,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
     new Box(dots(e).flatMap{ case d@Dot(obj,n) =>
       val VObjId(Some(objId)) = evalExpr(obj, env, st) 
       evalExpr(d, env, st) match {
-        case VLit(r: Real) => (fieldIdToName(objId.cid,n), r.range) :: Nil
+        case VLit(r: RealScalar) => (fieldIdToName(objId.cid,n), r.range) :: Nil
         case VLit(r: GStrEnclosure) => Nil
       }
     }.toMap)
@@ -1278,14 +1278,14 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
     val A = new Box(stateVariables.flatMap{ v => 
       val (o,n) = varNameToFieldId(v)
       (ic(o)(n): @unchecked) match {
-        case VLit(ce:Real) => (v, ce.end) :: Nil
+        case VLit(ce:RealScalar) => (v, ce.end) :: Nil
         case VObjId(_) => Nil
         case e => sys.error((o,n) + " ~ " + e.toString)
       }
     }.toMap)
     val solutions = solver.solveIVP(F, T, A, delta = 0, m = 0, n = 200, degree = 1) // FIXME Expose as simulator parameters
     val solutionMap = solutions._1.apply(T).map{
-      case (k, v) => (varNameToFieldId(k), VLit(Real(A(k), v, solutions._2(k))))
+      case (k, v) => (varNameToFieldId(k), VLit(RealScalar(A(k), v, solutions._2(k))))
     }
     val odeSolutions = ic update solutionMap
     val equationsMap = inline(eqs, eqs, enc.cStore).map { // LHSs of EquationsTs, including highest derivatives of ODEs
@@ -1384,7 +1384,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
       case Lit(v) if v.eq(Constants.PI) => Constant(Interval.pi) // Test for reference equality not structural equality
       case Lit(GInt(d))                 => Constant(d)
       case Lit(GDouble(d))              => Constant(d)
-      case Lit(e:Real)                  => Constant(e.enclosure) // FIXME Over-approximation of end-time interval!
+      case Lit(e:RealScalar)            => Constant(e.enclosure) // FIXME Over-approximation of end-time interval!
       case ExprInterval(lo, hi)         => Constant(extract.foldConstant(lo).value /\ extract.foldConstant(hi).value)
       case ExprIntervalM(mid0, pm0)     => val mid = extract.foldConstant(mid0).value
                                            val pm = extract.foldConstant(pm0).value
