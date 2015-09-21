@@ -7,6 +7,9 @@ import scala.Stream._
 import scala.collection.immutable.{
   HashMap, MapProxy
 }
+import breeze.linalg.{
+  DenseVector, DenseMatrix 
+}
 import util.ASTUtil.{
   dots, checkContinuousAssignmentToSimulator, checkNestedHypotheses, op, substitute
 }
@@ -104,60 +107,112 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
   }
   val Epsilon = Evolution(Nil)
   
-  case class Enclosure(private val st: CStore) {
+  case class Enclosure(private val st: CStore) { 
+
+    private lazy val variables: Vector[(CId,Name)] =
+      st.flatMap{ case (id,o) => o.map{ case (n,_) => (id, n) } }.toVector
+      
+    private lazy val odeVariables: Vector[(CId,Name)] =
+      // TODO Ensure that lookup in this data structure is fast!
+      variables.filter{ case (id,n) =>
+        id != simulatorId && !(bannedFieldNames contains n) && (getObjectField(id, n) match {
+          case VLit(_: GRealEnclosure) => true
+          case _ => false
+        })
+      }
+    private lazy val idToIndex: Map[(CId,Name),Int] = odeVariables.zipWithIndex.toMap
+    private lazy val indexToId: Map[Int,(CId,Name)] = idToIndex.map{ case (idn, i) => (i, idn) }
+    private def indexOf(qn: (CId,Name)): Int = idToIndex(qn)
+    private def idOf(i: Int): (CId,Name) = indexToId(i)
     
+    /* Lohner Set */
+      
+    // FIXME Replace placeholder definitions!
+    private val midPoint: DenseVector[Interval] =
+      DenseVector(odeVariables.map{ case (id,n) => 
+        getObjectField(id, n) match { 
+          case e: GEnclosure[Interval] => Interval(e.range.midpoint) 
+        }
+      }:_*) 
+    private val transform: DenseMatrix[Interval] =
+      DenseMatrix.tabulate(odeVariables.length, odeVariables.length){
+        case (i:Int,j:Int) => if (i == j) Interval.one else Interval.zero
+      }
+    private val width: DenseVector[Interval] =
+      DenseVector(odeVariables.map{ case (id,n) => 
+        getObjectField(id, n) match {
+          case e: GEnclosure[Interval] => e.range 
+        }
+      }:_*) 
+      
+    private val lohnerSet: DenseVector[Interval] =
+      midPoint + (transform * width)
+
     /* Enclosure as Map */
     
-    def apply(id: CId): CObject =
-      st(id)
+    def iterator: Iterator[(CId,CObject)] =
+      // FIXME This should take the Lohner set into account!
+      cStore.iterator
     def map(f: ((CId,CObject)) => (CId,CObject)): Enclosure =
-      Enclosure(st map f)
+      Enclosure((iterator map f).toMap)
     def flatMap(f: ((CId,CObject)) => scala.collection.GenTraversableOnce[(CId,CObject)]): Enclosure =
-      Enclosure(st flatMap f)
+      Enclosure((iterator flatMap f).toMap)
     def filter(f: ((CId,CObject)) => Boolean): Enclosure =
-      Enclosure(st filter f)
+      Enclosure((iterator filter f).toMap)
     def foreach(p: ((CId,CObject)) => Unit): Unit =
-      st foreach p
+      // FIXME This should take the Lohner set into account!
+      iterator foreach p
     def forall(p: ((CId,CObject)) => Boolean): Boolean =
-      st forall p
-    def updated(id: CId, o: CObject): Enclosure =
-      Enclosure(st updated (id,o))
-    def keySet: Set[CId] =
-      st.keySet
+      // FIXME This should take the Lohner set into account!
+      iterator forall p
     def toList: List[(CId,CObject)] =
-      st.toList
+      iterator.toList
     
     /* Store Operations */
-      
+    
     def cStore: CStore = st
+    
+    /** Returns true if this is an enclosure of the same set of objects as that, and false otherwise. */
+    def objectIds: Set[CId] =
+      cStore.keySet
       
-    def getObjectField(id:CId, f:Name) = {
-      val obj = apply(id)
-      obj.get(f) match {
-        case Some(v) => v
-        case None => 
-          println("Tried to look up " + (id, f) + " in:\n\n" + obj.mkString("\n"))
-          throw VariableNotDeclared(f)
+    def getObject(id: CId): CObject =
+      cStore(id)
+    def getObjectField(id:CId, f:Name) =
+      // FIXME Introduce a flag to check if st is up to date w.r.t.
+      //       lohnerSet. Use it to check when to cache all 
+      //       odeVariables values in st. 
+      idToIndex.get((id,f)) match {
+        case Some(i) =>
+          // FIXME Return enclosure with range and end-time intervals
+          println("RETURNING FROM LOHNER SET: " + VLit(RealScalar(lohnerSet(i))))
+          VLit(RealScalar(lohnerSet(i)))
+        case _=>
+          val obj = getObject(id)
+          obj.get(f) match {
+            case Some(v) => v
+            case None => 
+              println("Tried to look up " + (id, f) + " in:\n\n" + obj.mkString("\n"))
+              throw VariableNotDeclared(f)
+          }        
       }
-    }
     def setObject(id:CId, o:CObject) : Enclosure =
-      updated(id, o)
+      // FIXME Update w.r.t. Lohner set
+      Enclosure(st updated (id,o))
+//      update(o.map{ case (n,v) => (id,n) -> v })
     def setObjectField(id:CId, f:Name, v:CValue) : Enclosure = {
-      val obj = apply(id)
-      if (f != _3D && f != _3DView && f != devicef)
+      if (f != _3D && f != _3DView && f != devicef) {
+        val obj = getObject(id)
         obj.get(f) map { oldVal =>
           if (oldVal.yieldsPlots != v.yieldsPlots)
             throw new UnsupportedTypeChangeError(f, id, classOf(obj), oldVal, v, 
               "These values require a different number of plots")
         }
-      setObject(id, setField(obj,f,v))
+      }
+      update(Map((id,f) -> v))
     }
-    def changeParent(id:CId, p:CId) : Enclosure = {
-      val obj = deref(id,st)
-      setObject(id, setParent(obj, p))
-    }
-    def setParent(o:CObject, a:CId) : CObject = 
-       setField(o, parent, VObjId(Some(a)))
+    def changeParent(id:CId, p:CId) : Enclosure =
+      update(Map((id, parent) -> VObjId(Some(p))))
        
     /* Simulator Object Operations 
      * NOTE: These operations only affect st */  
@@ -167,23 +222,23 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
     def getInSimulator(f:Name) = 
       getObjectField(simulatorId, f)
     def getTime: Double =
-      Canonical getTime st
+      Canonical getTime cStore
     def getEndTime: Double =
-      Canonical getEndTime st
+      Canonical getEndTime cStore
     def getTimeStep: Double =
-      Canonical getTimeStep st
+      Canonical getTimeStep cStore
     def getResultType: ResultType =
-      Canonical getResultType st
+      Canonical getResultType cStore
     def getCls(id: CId): ClassName = 
-      Canonical classOf deref(id,st)
+      Canonical classOf deref(id,cStore)
     def mainId: CId = 
-      Canonical mainId st
+      Canonical mainId cStore
     def simulatorId: CId = 
-      Canonical magicId st
+      Canonical magicId cStore
     def childrenOf(id: CId): List[CId] = 
-      Canonical childrenOf (id, st)
+      Canonical childrenOf (id, cStore)
     def checkAccessOk(id:CId, env:Env, context: Expr): Unit =
-      Common checkAccessOk (id, env, st, context)
+      Common checkAccessOk (id, env, cStore, context)
     /**
      * Updates the variableCount simulator field. This corresponds to 
      * the number of plots of model variables that will be shown, but not the 
@@ -191,7 +246,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
      * such as class names etc. 
      */
     def countVariables: Enclosure = 
-      setObjectField(simulatorId, stateVars, VLit(GInt(countStateVars(st))))
+      setObjectField(simulatorId, stateVars, VLit(GInt(countStateVars(cStore))))
       
     /* Enclosure Operations */
     
@@ -207,10 +262,10 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
     }).get
     /** Merge e and that Enclosure using ce to combine scalar enclosure values. */
     def merge(that: Enclosure, ce: (GEnclosure[_], GEnclosure[_]) => Option[GEnclosure[_]]): Option[Enclosure] = {
-      require(this.keySet == that.keySet, "Can not merge enclosures with differing object sets.") // TODO Update for dynamic objects
+      require(this.objectIds == that.objectIds, "Can not merge enclosures with differing object sets.") // TODO Update for dynamic objects
       try {
         Some(for ((cid,co) <- this) yield { 
-          val tco = that(cid)
+          val tco = that getObject cid
           require(co.keySet == tco.keySet, "Can not merge objects with differing name sets.") // TODO Update for dynamic objects
           require(classOf(co) == classOf(tco), s"Can not merge objects of differing models (${classOf(co).x}, ${classOf(tco).x}).")
           (cid, if (classOf(co) == cmagic)
@@ -229,6 +284,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
       update(das.map(d => (d.selfCId, d.lhs.field) -> evalExpr(d.rhs, d.env, this)).toMap)
     /** Update e with respect to u. */
     def update(u: Map[(CId, Name), CValue]) =
+      // FIXME Update Lohner set!
       for { (cid, co) <- this }
       yield (cid,
         for { (n, v) <- co }
@@ -260,12 +316,12 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
                 case (VLit(_:GStr) | _:VResultType | _:VClassName, tv @ Some(VLit(_:GStr) | _:VResultType | _:VClassName)) => 
                   v == tv
                 case (VObjId(Some(o1)), Some(VObjId(Some(o2)))) => 
-                  containsCObject(this(o1), that(o2))
+                  containsCObject(this getObject o1, that getObject o2)
                 case (_, Some(tv)) => 
                   throw internalError(s"Contains not applicable to ${pprint(n)}: ${pprint(v)}, ${pprint(tv)}")
                 
               })}}
-        this.forall { case (cid, co) => containsCObject(co, that(cid)) }
+        this.forall { case (cid, co) => containsCObject(co, that getObject cid) }
       }
     /** Take the intersection of e and that Object. */
     def intersect(that: Enclosure): Option[Enclosure] = merge(that, (l: GroundValue, r: GroundValue) => ((l,r): @unchecked) match {
@@ -555,7 +611,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
         }
         val priv = privVars zip vs.reverse 
         // new object creation may have changed the nextChild counter
-        val newpub = st3(fid)
+        val newpub = st3 getObject fid
         val st4 = st3.setObject(fid, newpub ++ priv)
     (fid, st4)
   }
@@ -1277,7 +1333,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
     val stateVariables = varNameToFieldId.keys.toList
     val A = new Box(stateVariables.flatMap{ v => 
       val (o,n) = varNameToFieldId(v)
-      (ic(o)(n): @unchecked) match {
+      (ic.getObjectField(o, n): @unchecked) match {
         case VLit(ce:RealScalar) => (v, ce.end) :: Nil
         case VObjId(_) => Nil
         case e => sys.error((o,n) + " ~ " + e.toString)
