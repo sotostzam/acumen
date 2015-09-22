@@ -20,13 +20,13 @@ import util.{
 import util.Canonical._
 import Changeset._
 import util.Conversions.{
-  extractDouble, extractDoubles, extractId, extractInterval, extractIntervals
+  extractDouble, extractDoubles, extractId, extractInt, extractInterval, extractIntervals
 }
 import util.DebugUtil.{
   asProgram
 }
 import enclosure.{
-  Box, Constant, Contract, Expression, Field, Interval, Parameters, Rounding,
+  Box, Constant, Contract, Expression, Interval, Parameters, Rounding,
   Abs, Sin, Cos, Tan, ACos, ASin, ATan, Exp, Log, Log10, Sqrt, 
   Cbrt, Ceil, Floor, Sinh, Cosh, Tanh, Signum, Plus, Negate, 
   Multiply, Pow, Divide, ATan2, Min, Max
@@ -775,14 +775,14 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
       val e = q :: past
       if (noEvent(q, hr, up)) { // no event
         Logger.trace("handleEvent (No event)")
-        (Nil, InitialCondition(u, e, StartTime) :: Nil)
+        (Nil, InitialCondition(u.end, e, StartTime) :: Nil)
       } else if (certainEvent(q, hr, hu, up)) { // certain event
         Logger.trace("handleEvent (Certain event)")
         (InitialCondition(rp, e, UnknownTime) :: Nil, Nil)
       } else { // possible event
         Logger.trace(s"handleEvent (Possible event, |hr| = ${hr.size}, q.ass = {${q.dis.map(Pretty pprint _.a).mkString(", ")}})")
         Logger.trace(s"handleEvent hr.odes = ${hr.map{cs => cs.odes.map(Pretty pprint _.a).mkString(", ")}}, hr.dis = ${hr.map{cs => cs.dis.map(Pretty pprint _.a).mkString(", ")}}")
-        (InitialCondition(rp, e, UnknownTime) :: Nil, InitialCondition(up.right.get, e, StartTime) :: Nil)
+        (InitialCondition(rp, e, UnknownTime) :: Nil, InitialCondition(up.right.get.end, e, StartTime) :: Nil)
       }
     }
     enclose(st.branches, Nil, Nil, Nil, 0)
@@ -939,7 +939,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
     , p: Prog
     , enc: Enclosure
     ): Enclosure = {
-    val ic = contract(enc.end, claims, p) match {
+    val ic = contract(enc, claims, p) match {
       case Left(_) => sys.error("Initial condition violates claims {" + claims.map(c => pprint(c.c)).mkString(", ") + "}.")
       case Right(r) => r
     }
@@ -965,10 +965,74 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
     }.toMap
     odeSolutions update equationsMap
   }
+  
+  import breeze.linalg._
+  
+  case class OdeEnv(v: DenseVector[Interval], m: Map[(CId,Name), Int], simulator: CObject)
+  
+  /** Representation of a set of ODEs. */
+  case class FieldImpl(odes: List[CollectedAction]) extends Field[OdeEnv,CId] {
+    /** Evaluate the field (the RHS of each equation in ODEs) in s. */
+    override def apply(s: OdeEnv): OdeEnv = 
+      s.copy(v = DenseVector(odes.zipWithIndex.map{
+        case (ode,i) => extractInterval(evalExpr(ode.rhs, ode.env, ???)) // FIXME Need to use s and not an Enclosure
+      }:_*))
+    /** NOTE: Assumes that the de-sugarer has reduced all higher-order ODEs.  */
+    override def variables(s: OdeEnv): List[(CId, Name)] =
+      odes.map(ode => (ode.lhs.id, ode.lhs.field))
+    override def map(em: Expr => Expr) =
+      FieldImpl(odes.map(ode => ode.copy(a = (ode.a: @unchecked) match {
+        case Discretely(Assign(lhs: Expr, rhs: Expr)) => 
+          Discretely(Assign(em(lhs), em(rhs)))
+        case Continuously(EquationT(lhs: Expr, rhs: Expr)) =>
+          Continuously(EquationT(em(lhs), em(rhs)))
+        case Continuously(EquationI(lhs: Expr, rhs: Expr)) =>
+          Continuously(EquationI(em(lhs), em(rhs)))
+      })))
+  }
+  
+  implicit class RichStoreImpl(odeEnv: OdeEnv) extends RichStore[OdeEnv,CId] {
+    def +++(that: OdeEnv): OdeEnv = 
+      odeEnv.copy(v = odeEnv.v + that.v)
+    def ***(that: Double): OdeEnv =
+      odeEnv.copy(v = odeEnv.v.map(_ * that))
+    def map(m: CValue => CValue): OdeEnv =
+      ???
+    def apply(id: CId, n: Name): CValue =
+      VLit(GConstantRealEnclosure(odeEnv v odeEnv.m(id,n))) // NOTE: Wrapping
+    def updated(id: CId, n: Name, v: CValue): OdeEnv =
+      ???
+    def getInSimulator(variable: String): CValue =
+      odeEnv simulator Name(variable,0)
+  }
+  
+  def continuousEncloserTaylor
+    ( odes: Set[CollectedAction]
+    , eqs: Set[CollectedAction]
+    , claims: Set[CollectedConstraint]
+    , T: Interval
+    , p: Prog
+    , enc: Enclosure
+    ): Enclosure = {
+    val odeList = odes.toList // fix an order for the ODEs
+    implicit val field = FieldImpl(odeList)
+    // run solveIVPTaylor so its store (ic) is the midpoint of lohnerSetStart
+    val ic = OdeEnv( enc.lohnerSetStart.midPoint
+                   , odeList.map(ode => (ode.lhs.id, ode.lhs.field)).zipWithIndex.toMap
+                   , enc getObject enc.simulatorId)
+    // this will give us a solution vector with same size as ic
+    val solution = Common.solveIVPTaylor[CId, OdeEnv, Interval](
+      ic, enc.getTimeStep, extractInt(enc getInSimulator "orderOfIntegration"))
+    // write solution into the midpoint vector of the range and the end time 
+    Enclosure( enc.cStore // FIXME Update st w.r.t. solution!
+             , enc.lohnerSetStart
+             , enc.lohnerSetRange.copy(midPoint = solution.v)
+             , enc.lohnerSetEnd.copy(midPoint = solution.v)) 
+  }
 
   /** Convert odes into a Field compatible with acumen.interpreters.enclosure.ivp.IVPSolver. */
-  def getFieldFromActions(odes: Set[CollectedAction], st: Enclosure, p: Prog): Field =
-    Field(odes.map { case CollectedAction(_, cid, Continuously(EquationI(ResolvedDot(_, _, n), rhs)), env) =>
+  def getFieldFromActions(odes: Set[CollectedAction], st: Enclosure, p: Prog): enclosure.Field =
+    enclosure.Field(odes.map { case CollectedAction(_, cid, Continuously(EquationI(ResolvedDot(_, _, n), rhs)), env) =>
       (fieldIdToName(cid, n), acumenExprToExpression(rhs, cid, env, st, p))
     }.toMap)
   
