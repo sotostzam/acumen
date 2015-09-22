@@ -7,9 +7,6 @@ import scala.Stream._
 import scala.collection.immutable.{
   HashMap, MapProxy
 }
-import breeze.linalg.{
-  DenseVector, DenseMatrix 
-}
 import util.ASTUtil.{
   dots, checkContinuousAssignmentToSimulator, checkNestedHypotheses, op, substitute
 }
@@ -21,6 +18,7 @@ import util.{
   Canonical, Random
 }
 import util.Canonical._
+import Changeset._
 import util.Conversions.{
   extractDouble, extractDoubles, extractId, extractInterval, extractIntervals
 }
@@ -60,11 +58,17 @@ import scala.util.parsing.input.Position
  *     
  * @param Use Lohner-based ODE solver instead of a pure Picard solver
  */
+object Interpreter {
+  val bannedFieldNames = List(self, parent, classf, nextChild, magicf)
+  val legacyParameters = Parameters.default.copy(interpreter = Some(enclosure.Interpreter.EVT))
+  implicit val rnd = Rounding(legacyParameters)
+}
 case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
   
   type Store = EnclosureAndBranches
   def repr(st:Store) = st.enclosure.cStore
-  def fromCStore(st: CStore, root: CId): Store = EnclosureAndBranches(Enclosure(st), InitialCondition(Enclosure(st), Epsilon, StartTime) :: Nil)
+  def fromCStore(st: CStore, root: CId): Store = EnclosureAndBranches(Enclosure.init(st), InitialCondition(Enclosure.init(st), Epsilon, StartTime) :: Nil)
+  import Interpreter._
   override def visibleParameters: Map[String, CValue] = 
     Map(ParamTime, ParamEndTime, ParamTimeStep, 
         ParamMaxBranches, ParamMaxIterationsPerBranch, ParamIntersectWithGuardBeforeReset, ParamHypothesisReport, ParamDisableContraction) 
@@ -80,9 +84,6 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
   private val ParamDisableContraction            = "disableContraction"            -> VLit(GBool(false))
   private val ParamHypothesisReport              = "hypothesisReport"              -> VLit(GStr("Comprehensive"))
   
-  private val legacyParameters = Parameters.default.copy(interpreter = Some(enclosure.Interpreter.EVT))
-  private implicit val rnd = Rounding(legacyParameters)
-  private val bannedFieldNames = List(self, parent, classf, nextChild, magicf)
   private val contractInstance = new Contract{}
 
   /* Types */
@@ -107,392 +108,6 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
   }
   val Epsilon = Evolution(Nil)
   
-  case class Enclosure(private val st: CStore) { 
-
-    private lazy val variables: Vector[(CId,Name)] =
-      st.flatMap{ case (id,o) => o.map{ case (n,_) => (id, n) } }.toVector
-      
-    private lazy val odeVariables: Vector[(CId,Name)] =
-      // TODO Ensure that lookup in this data structure is fast!
-      variables.filter{ case (id,n) =>
-        id != simulatorId && !(bannedFieldNames contains n) && (getObjectField(id, n) match {
-          case VLit(_: GRealEnclosure) => true
-          case _ => false
-        })
-      }
-    private lazy val idToIndex: Map[(CId,Name),Int] = odeVariables.zipWithIndex.toMap
-    private lazy val indexToId: Map[Int,(CId,Name)] = idToIndex.map{ case (idn, i) => (i, idn) }
-    private def indexOf(qn: (CId,Name)): Int = idToIndex(qn)
-    private def idOf(i: Int): (CId,Name) = indexToId(i)
-    
-    /* Lohner Set */
-      
-    // FIXME Replace placeholder definitions!
-    private val midPoint: DenseVector[Interval] =
-      DenseVector(odeVariables.map{ case (id,n) => 
-        getObjectField(id, n) match { 
-          case e: GEnclosure[Interval] => Interval(e.range.midpoint) 
-        }
-      }:_*) 
-    private val transform: DenseMatrix[Interval] =
-      DenseMatrix.tabulate(odeVariables.length, odeVariables.length){
-        case (i:Int,j:Int) => if (i == j) Interval.one else Interval.zero
-      }
-    private val width: DenseVector[Interval] =
-      DenseVector(odeVariables.map{ case (id,n) => 
-        getObjectField(id, n) match {
-          case e: GEnclosure[Interval] => e.range 
-        }
-      }:_*) 
-      
-    private val lohnerSet: DenseVector[Interval] =
-      midPoint + (transform * width)
-
-    /* Enclosure as Map */
-    
-    def iterator: Iterator[(CId,CObject)] =
-      // FIXME This should take the Lohner set into account!
-      cStore.iterator
-    def map(f: ((CId,CObject)) => (CId,CObject)): Enclosure =
-      Enclosure((iterator map f).toMap)
-    def flatMap(f: ((CId,CObject)) => scala.collection.GenTraversableOnce[(CId,CObject)]): Enclosure =
-      Enclosure((iterator flatMap f).toMap)
-    def filter(f: ((CId,CObject)) => Boolean): Enclosure =
-      Enclosure((iterator filter f).toMap)
-    def foreach(p: ((CId,CObject)) => Unit): Unit =
-      // FIXME This should take the Lohner set into account!
-      iterator foreach p
-    def forall(p: ((CId,CObject)) => Boolean): Boolean =
-      // FIXME This should take the Lohner set into account!
-      iterator forall p
-    def toList: List[(CId,CObject)] =
-      iterator.toList
-    
-    /* Store Operations */
-    
-    def cStore: CStore = st
-    
-    /** Returns true if this is an enclosure of the same set of objects as that, and false otherwise. */
-    def objectIds: Set[CId] =
-      cStore.keySet
-      
-    def getObject(id: CId): CObject =
-      cStore(id)
-    def getObjectField(id:CId, f:Name) =
-      // FIXME Introduce a flag to check if st is up to date w.r.t.
-      //       lohnerSet. Use it to check when to cache all 
-      //       odeVariables values in st. 
-      idToIndex.get((id,f)) match {
-        case Some(i) =>
-          // FIXME Return enclosure with range and end-time intervals
-          println("RETURNING FROM LOHNER SET: " + VLit(RealScalar(lohnerSet(i))))
-          VLit(RealScalar(lohnerSet(i)))
-        case _=>
-          val obj = getObject(id)
-          obj.get(f) match {
-            case Some(v) => v
-            case None => 
-              println("Tried to look up " + (id, f) + " in:\n\n" + obj.mkString("\n"))
-              throw VariableNotDeclared(f)
-          }        
-      }
-    def setObject(id:CId, o:CObject) : Enclosure =
-      // FIXME Update w.r.t. Lohner set
-      Enclosure(st updated (id,o))
-//      update(o.map{ case (n,v) => (id,n) -> v })
-    def setObjectField(id:CId, f:Name, v:CValue) : Enclosure = {
-      if (f != _3D && f != _3DView && f != devicef) {
-        val obj = getObject(id)
-        obj.get(f) map { oldVal =>
-          if (oldVal.yieldsPlots != v.yieldsPlots)
-            throw new UnsupportedTypeChangeError(f, id, classOf(obj), oldVal, v, 
-              "These values require a different number of plots")
-        }
-      }
-      update(Map((id,f) -> v))
-    }
-    def changeParent(id:CId, p:CId) : Enclosure =
-      update(Map((id, parent) -> VObjId(Some(p))))
-       
-    /* Simulator Object Operations 
-     * NOTE: These operations only affect st */  
-
-    def getInSimulator(s:String): CValue = 
-      getInSimulator(Name(s,0))
-    def getInSimulator(f:Name) = 
-      getObjectField(simulatorId, f)
-    def getTime: Double =
-      Canonical getTime cStore
-    def getEndTime: Double =
-      Canonical getEndTime cStore
-    def getTimeStep: Double =
-      Canonical getTimeStep cStore
-    def getResultType: ResultType =
-      Canonical getResultType cStore
-    def getCls(id: CId): ClassName = 
-      Canonical classOf deref(id,cStore)
-    def mainId: CId = 
-      Canonical mainId cStore
-    def simulatorId: CId = 
-      Canonical magicId cStore
-    def childrenOf(id: CId): List[CId] = 
-      Canonical childrenOf (id, cStore)
-    def checkAccessOk(id:CId, env:Env, context: Expr): Unit =
-      Common checkAccessOk (id, env, cStore, context)
-    /**
-     * Updates the variableCount simulator field. This corresponds to 
-     * the number of plots of model variables that will be shown, but not the 
-     * number of columns in the table, as the latter also contains information 
-     * such as class names etc. 
-     */
-    def countVariables: Enclosure = 
-      setObjectField(simulatorId, stateVars, VLit(GInt(countStateVars(cStore))))
-      
-    /* Enclosure Operations */
-    
-    /** Take the meet, or g.l.b., of e and that Enclosure. */
-    def /\(that: Enclosure): Enclosure = this meet that
-    def /\(that: Option[Enclosure]): Enclosure = if (that isDefined) this meet that.get else this
-    /** Take the meet, or g.l.b., of e and that Enclosure. */
-    def meet (that: Enclosure): Enclosure = merge(that: Enclosure, (l: GEnclosure[_], r: GEnclosure[_]) => (l,r) match {
-      case (le: RealScalar, re: RealScalar) => Some(le /\ re)
-      case (ls: GStrEnclosure, rs: GStrEnclosure) => Some(GStrEnclosure(ls.start union rs.start, ls.range union rs.range, ls.end union rs.end))
-      case (ls: GIntEnclosure, rs: GIntEnclosure) => Some(GIntEnclosure(ls.start union rs.start, ls.range union rs.range, ls.end union rs.end))
-      case (ls: GBoolEnclosure, rs: GBoolEnclosure) => Some(GBoolEnclosure(ls.start union rs.start, ls.range union rs.range, ls.end union rs.end))
-    }).get
-    /** Merge e and that Enclosure using ce to combine scalar enclosure values. */
-    def merge(that: Enclosure, ce: (GEnclosure[_], GEnclosure[_]) => Option[GEnclosure[_]]): Option[Enclosure] = {
-      require(this.objectIds == that.objectIds, "Can not merge enclosures with differing object sets.") // TODO Update for dynamic objects
-      try {
-        Some(for ((cid,co) <- this) yield { 
-          val tco = that getObject cid
-          require(co.keySet == tco.keySet, "Can not merge objects with differing name sets.") // TODO Update for dynamic objects
-          require(classOf(co) == classOf(tco), s"Can not merge objects of differing models (${classOf(co).x}, ${classOf(tco).x}).")
-          (cid, if (classOf(co) == cmagic)
-            co // FIXME Sanity check this (that it is OK to merge Enclosures with different simulator objects)
-          else
-            for ((n, v) <- co) yield (n,
-              (v, tco(n)) match {
-                case (VLit(l: GEnclosure[_]), VLit(r: GEnclosure[_])) => VLit(ce(l, r).getOrElse(sys.error("Error when merging $cid.$n.")))
-                case (l, r) if l == r                                 => l
-              })
-        )})
-      } catch { case e: Throwable => None } // FIXME Use Either to propagate error information 
-    }
-    /** Returns a copy of e with das applied to it. */
-    def apply(das: Set[CollectedAction]): Enclosure = 
-      update(das.map(d => (d.selfCId, d.lhs.field) -> evalExpr(d.rhs, d.env, this)).toMap)
-    /** Update e with respect to u. */
-    def update(u: Map[(CId, Name), CValue]) =
-      // FIXME Update Lohner set!
-      for { (cid, co) <- this }
-      yield (cid,
-        for { (n, v) <- co }
-        yield (n, u getOrElse ((cid, n), v)))
-    /** Field-wise containment. */
-    def contains(that: Enclosure): Boolean = { // TODO Update for dynamic objects
-      def containsCObject(lo: CObject, ro: CObject): Boolean =
-        if (classOf(lo) == cmagic && classOf(ro) == cmagic){
-          if (lo(time) == ro(time) && lo(timeStep) == ro(timeStep))
-            true
-          else 
-            throw internalError("Attempt to check containment of enclosures with incompatoble time domains: " +
-              s" [${lo(time)},${extractDouble(lo(time)) + extractDouble(lo(timeStep))}]" +
-              s", [${ro(time)},${extractDouble(ro(time)) + extractDouble(ro(timeStep))}]") 
-        }
-        else lo.forall {
-          case (n, v) =>
-            if (bannedFieldNames contains n) true
-            else {
-              ((v, ro get n) match {
-                case (VLit(l: RealScalar), Some(VLit(r: RealScalar))) => 
-                  l contains r
-                case (VLit(l: GStrEnclosure), Some(VLit(r: GStrEnclosure))) => 
-                  l contains r
-                case (VLit(l: GIntEnclosure), Some(VLit(r: GIntEnclosure))) => 
-                  l contains r
-                case (VLit(l: GBoolEnclosure), Some(VLit(r: GBoolEnclosure))) => 
-                  l contains r
-                case (VLit(_:GStr) | _:VResultType | _:VClassName, tv @ Some(VLit(_:GStr) | _:VResultType | _:VClassName)) => 
-                  v == tv
-                case (VObjId(Some(o1)), Some(VObjId(Some(o2)))) => 
-                  containsCObject(this getObject o1, that getObject o2)
-                case (_, Some(tv)) => 
-                  throw internalError(s"Contains not applicable to ${pprint(n)}: ${pprint(v)}, ${pprint(tv)}")
-                
-              })}}
-        this.forall { case (cid, co) => containsCObject(co, that getObject cid) }
-      }
-    /** Take the intersection of e and that Object. */
-    def intersect(that: Enclosure): Option[Enclosure] = merge(that, (l: GroundValue, r: GroundValue) => ((l,r): @unchecked) match {
-      case (le: RealScalar, re: RealScalar) => le intersect re 
-      case (ls: GStrEnclosure, rs: GStrEnclosure) => (ls.start intersect rs.start, ls.enclosure intersect rs.enclosure, ls.end intersect rs.end) match {
-        case (start, enclosure, end) if start.nonEmpty && enclosure.nonEmpty && end.nonEmpty => Some(GStrEnclosure(start,enclosure,end))
-        case _ => sys.error(s"Empty intersection between string enclosures $ls and $rs") // FIXME Use Either to propagate error information 
-      }
-      case (ls: GIntEnclosure, rs: GIntEnclosure) => (ls.start intersect rs.start, ls.enclosure intersect rs.enclosure, ls.end intersect rs.end) match {
-        case (start, enclosure, end) if start.nonEmpty && enclosure.nonEmpty && end.nonEmpty => Some(GIntEnclosure(start, enclosure, end))
-        case _ => sys.error(s"Empty intersection between integer enclosures $ls and $rs") // FIXME Use Either to propagate error information 
-      }
-      case (ls: GBoolEnclosure, rs: GBoolEnclosure) => (ls.start intersect rs.start, ls.enclosure intersect rs.enclosure, ls.end intersect rs.end) match {
-        case (start, enclosure, end) if start.nonEmpty && enclosure.nonEmpty && end.nonEmpty => Some(GBoolEnclosure(start, enclosure, end))
-        case _ => sys.error(s"Empty intersection between boolean enclosures $ls and $rs") // FIXME Use Either to propagate error information 
-      }
-    })
-    /** Field-wise projection. Replaces each enclosure with a new one corresponding to its start-time interval. */
-    def start(): Enclosure = mapEnclosures{ 
-      case ce: RealScalar => RealScalar(ce.start) 
-      case ui: GIntEnclosure => GIntEnclosure(ui.start, ui.start, ui.start) 
-      case us: GStrEnclosure => GStrEnclosure(us.start, us.start, us.start) 
-      case us: GBoolEnclosure => GBoolEnclosure(us.start, us.start, us.start) 
-    }
-    /** Field-wise projection. Replaces each enclosure with a new one corresponding to its end-time interval. */
-    def end(): Enclosure = mapEnclosures{ 
-      case ce: RealScalar => RealScalar(ce.end) 
-      case ui: GIntEnclosure => GIntEnclosure(ui.end, ui.end, ui.end) 
-      case us: GStrEnclosure => GStrEnclosure(us.end, us.end, us.end) 
-      case us: GBoolEnclosure => GBoolEnclosure(us.end, us.end, us.end) 
-    }
-    /** Field-wise range. */
-    def range(): Enclosure = mapEnclosures{ 
-      case ce: RealScalar => RealScalar(ce.enclosure) 
-      case ui: GIntEnclosure => GIntEnclosure(ui.range, ui.range, ui.range) 
-      case us: GStrEnclosure => GStrEnclosure(us.range, us.range, us.range) 
-      case us: GBoolEnclosure => GBoolEnclosure(us.range, us.range, us.range) 
-    }
-    /** Returns a copy of this where f has been applied to all enclosure fields. */
-    def mapEnclosures(f: GEnclosure[_] => GEnclosure[_]) =
-      this map{ case (cid,co) => (cid, co.mapValues{
-        case VLit(ce: GEnclosure[_]) => VLit(f(ce))
-        case field => field
-      })}
-    /** Use f to reduce this enclosure to a value of type A. */
-    def foldLeft[A](z: A)(f: (A, RealScalar) => A): A =
-      this.flatten.foldLeft(z) { case (r, (id, n, e)) => f(r, e) }
-    /** Returns iterable of all RealScalars contained in this object and its descendants. */
-    def flatten(): Iterable[(CId, Name, RealScalar)] =
-      cStore.flatMap{ case (cid, co) => co.flatMap{ 
-        case (n, VLit(ce:RealScalar)) => List((cid, n, ce))
-        case _ => Nil
-      }}
-  }
-  
-  /** Return type of AST traversal (evalActions) */
-  case class Changeset
-    ( reps:   Set[(CId,CId)]         = Set.empty // reparentings
-    , dis:    Set[CollectedAction]     = Set.empty // discrete assignments
-    , eqs:    Set[CollectedAction]     = Set.empty // continuous assignments / algebraic equations
-    , odes:   Set[CollectedAction]     = Set.empty // ode assignments / differential equations
-    , claims: Set[CollectedConstraint] = Set.empty // claims / constraints
-    , hyps:   Set[CollectedHypothesis] = Set.empty // hypotheses
-    ) {
-    def ||(that: Changeset) =
-      that match {
-        case Changeset.empty => this
-        case Changeset(reps1, ass1, eqs1, odes1, claims1, hyps1) =>
-          Changeset(reps ++ reps1, dis ++ ass1, eqs ++ eqs1, odes ++ odes1, claims ++ claims1, hyps ++ hyps1)
-      }
-    override def toString =
-      (reps, dis.map(d => d.selfCId + "." + pprint(d.a))
-           , eqs.map(d => d.selfCId + "." + pprint(d.a))
-           , odes.map(d => d.selfCId + "." + pprint(d.a))
-           , claims.map(d => d.selfCId + "." + pprint(d.c))).toString
-  }
-  object Changeset {
-    def combine[A](ls: Set[Changeset], rs: Set[Changeset]): Set[Changeset] =
-      if (ls isEmpty) rs
-      else if (rs isEmpty) ls
-      // FIXME Handle Changeset.empty case correctly
-      else for (l <- ls; r <- rs) yield l || r
-    def combine[A](xs: Traversable[Set[Changeset]]): Set[Changeset] =
-      xs.foldLeft(Set.empty[Changeset])(combine(_,_))
-    def combine[A](xs: Traversable[A], f: A => Set[Changeset]): Set[Changeset] =
-      combine(xs map f)
-    def logReparent(o:CId, parent:CId): Set[Changeset] =
-      Set(Changeset(reps = Set((o,parent))))
-    def logAssign(path: Expr, o: CId, a: Action, env: Env): Set[Changeset] =
-      Set(Changeset(dis = Set(CollectedAction(path,o,a,env))))
-    def logEquation(path: Expr, o: CId, a: Action, env: Env): Set[Changeset] =
-      Set(Changeset(eqs = Set(CollectedAction(path,o,a,env))))
-    def logODE(path: Expr, o: CId, a: Action, env: Env): Set[Changeset] =
-      Set(Changeset(odes = Set(CollectedAction(path,o,a,env))))
-    def logClaim(o: CId, c: Expr, env: Env) : Set[Changeset] =
-      Set(Changeset(claims = Set(CollectedConstraint(o,c,env))))
-    def logHypothesis(o: CId, s: Option[String], h: Expr, env: Env): Set[Changeset] =
-      Set(Changeset(hyps = Set(CollectedHypothesis(o,s,h,env))))
-    lazy val empty = Changeset()
-  }
-  case class CollectedAction(path: Expr, selfCId: CId, a: Action, env: Env) {
-    def lhs: ResolvedDot = (a: @unchecked) match {
-      case Discretely(Assign(d: ResolvedDot, _))      => d
-      case Continuously(EquationT(d: ResolvedDot, _)) => d
-      case Continuously(EquationI(d: ResolvedDot, _)) => d
-    }
-    def rhs: Expr = (a: @unchecked) match {
-      case Discretely(x: Assign)      => x.rhs
-      case Continuously(x: EquationT) => x.rhs
-      case Continuously(x: EquationI) => x.rhs
-    }
-    override def toString() =
-      s"$selfCId.${Pretty pprint (lhs: Expr)} = ${Pretty pprint rhs}"
-  }
-  case class CollectedConstraint(selfCId: CId, c: Expr, env: Env)
-  case class CollectedHypothesis(selfCId: CId, s: Option[String], h: Expr, env: Env)
-  
-  import Changeset._
-
-  case class GConstantRealEnclosure(start: Interval, enclosure: Interval, end: Interval) extends GRealEnclosure {
-    require(enclosure contains end, // Enclosure may not contain start (initial condition), when the Lohner IVP solver is used 
-      s"Enclosure must be valid over entire domain. Invalid enclosure: GConstantGConstantRealEnclosureEnclosure($start,$enclosure,$end)")
-    override def apply(t: Interval): Interval = enclosure
-    override def range: Interval = enclosure 
-    override def isThin: Boolean = start.isThin && enclosure.isThin && end.isThin
-    override def show: String = enclosure.toString
-    def contains(that: GConstantRealEnclosure): Boolean =
-      (start contains that.start) && (enclosure contains that.enclosure) && (end contains that.end)
-    def /\ (that: GConstantRealEnclosure): GConstantRealEnclosure =
-      GConstantRealEnclosure(start /\ that.start, enclosure /\ that.enclosure, end /\ that.end)
-    def intersect(that: GConstantRealEnclosure): Option[GConstantRealEnclosure] =
-      for {
-        si <- start     intersect that.start
-        e  <- enclosure intersect that.enclosure
-        ei <- end       intersect that.end
-      } yield GConstantRealEnclosure(si, e, ei)
-  }
-  object GConstantRealEnclosure {
-    def apply(i: Interval): GConstantRealEnclosure = GConstantRealEnclosure(i,i,i)
-    def apply(d: Double): GConstantRealEnclosure = GConstantRealEnclosure(Interval(d))
-    def apply(i: Int): GConstantRealEnclosure = GConstantRealEnclosure(Interval(i))
-  }
-  type RealScalar = GConstantRealEnclosure
-  object RealScalar {
-    def apply(start: Interval, enclosure: Interval, end: Interval): RealScalar = GConstantRealEnclosure(start,enclosure,end)
-    def apply(i: Interval): RealScalar = GConstantRealEnclosure(i,i,i)
-    def apply(d: Double): RealScalar = GConstantRealEnclosure(Interval(d))
-    def apply(i: Int): RealScalar = GConstantRealEnclosure(Interval(i))
-  }
-  abstract class GConstantDiscreteEnclosure[T](val start: Set[T], val enclosure: Set[T], val end: Set[T]) extends GDiscreteEnclosure[T] {
-    def apply(t: Interval) = range
-    def range = start union enclosure union end
-    def isThin = start.size == 1 && enclosure.size == 1 && end.size == 1
-    def show = s"{${enclosure mkString ","}}"
-    def contains(that: GConstantDiscreteEnclosure[T]): Boolean =
-      (that.start subsetOf this.start) && (that.enclosure subsetOf this.enclosure) && (that.end subsetOf this.end)
-  }
-  case class GStrEnclosure(override val start: Set[String], override val enclosure: Set[String], override val end: Set[String]) 
-    extends GConstantDiscreteEnclosure[String](start, enclosure, end)
-  object GStrEnclosure {
-    def apply(ss: Set[String]): GStrEnclosure = GStrEnclosure(ss, ss, ss)
-    def apply(s: String): GStrEnclosure = GStrEnclosure(Set(s))
-  }
-  case class GIntEnclosure(override val start: Set[Int], override val enclosure: Set[Int], override val end: Set[Int]) 
-    extends GConstantDiscreteEnclosure[Int](start, enclosure, end)
-  case class GBoolEnclosure(override val start: Set[Boolean], override val enclosure: Set[Boolean], override val end: Set[Boolean])  
-    extends GConstantDiscreteEnclosure[Boolean](start,enclosure,end)
-  object GBoolEnclosure {
-    def apply(ss: Set[Boolean]): GBoolEnclosure = GBoolEnclosure(ss, ss, ss)
-    def apply(s: Boolean): GBoolEnclosure = GBoolEnclosure(Set(s))
-  }
   val CertainTrue = GBoolEnclosure(Set(true), Set(true), Set(true))
   val CertainFalse = GBoolEnclosure(Set(false), Set(false), Set(false))
   val Uncertain = GBoolEnclosure(Set(true, false), Set(true, false), Set(true, false))
@@ -510,12 +125,12 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
         if (c.name == cmagic) c else super.mapClassDef(c)
       override def mapExpr(e: Expr): Expr = e match {
         case Lit(GBool(b))          => Lit(if (b) CertainTrue else CertainFalse)
-        case Lit(GInt(i))           => Lit(RealScalar(i))
-        case Lit(GDouble(d))        => Lit(RealScalar(d))
-        case Lit(GInterval(i))      => Lit(RealScalar(i))
+        case Lit(GInt(i))           => Lit(GConstantRealEnclosure(i))
+        case Lit(GDouble(d))        => Lit(GConstantRealEnclosure(d))
+        case Lit(GInterval(i))      => Lit(GConstantRealEnclosure(i))
         case ExprInterval( Lit(lo@(GDouble(_)|GInt(_)))  // FIXME Add support for arbitrary expression end-points
                          , Lit(hi@(GDouble(_)|GInt(_))))    
-                                    => Lit(RealScalar(Interval(extractDouble(lo), extractDouble(hi))))
+                                    => Lit(GConstantRealEnclosure(Interval(extractDouble(lo), extractDouble(hi))))
         case ExprInterval(lo,hi)    => sys.error("Only constant interval end-points are currently supported. Offending expression: " + pprint(e))
         case ExprIntervalM(lo,hi)   => sys.error("Centered interval syntax is currently not supported. Offending expression: " + pprint(e))
         case Lit(GStr(s))           => Lit(GStrEnclosure(s))
@@ -527,7 +142,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
       }
       override def mapClause(c: Clause) : Clause = c match {
         case Clause(GStr(lhs), as, rhs) => Clause(GStrEnclosure(lhs), mapExpr(as), mapActions(rhs))
-        case Clause(GInt(lhs), as, rhs) => Clause(RealScalar(lhs), mapExpr(as), mapActions(rhs)) // FIXME Use discrete integer enclosure instead of Real
+        case Clause(GInt(lhs), as, rhs) => Clause(GConstantRealEnclosure(lhs), mapExpr(as), mapActions(rhs)) // FIXME Use discrete integer enclosure instead of Real
         case _ => super.mapClause(c)
       }
     }.mapProg(p)
@@ -619,7 +234,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
   /* Interpreter */
 
   /** Evaluate e in the scope of env for definitions p with current store st */
-  def evalExpr(e:Expr, env:Env, enc:Enclosure) : CValue = {
+  implicit def evalExpr(e:Expr, env:Env, enc:Enclosure) : CValue = {
     def eval(env:Env, e:Expr) : CValue = try {
 	    e match {
   	    case Lit(i)         => VLit(i)
@@ -687,7 +302,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
          VLit(binGroundOp(op,x,y))
        case (_,VLit(x)::VLit(y)::Nil) =>
          try {
-           VLit(binGroundOp(op,RealScalar(extractInterval(x)),RealScalar(extractInterval(x))))
+           VLit(binGroundOp(op,GConstantRealEnclosure(extractInterval(x)),GConstantRealEnclosure(extractInterval(x))))
          }
          catch { case e =>
            throw UnknownOperator(op)    
@@ -721,7 +336,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
     }
     (f, vx) match {
       case ("not", Uncertain | CertainTrue | CertainFalse) => Uncertain
-      case (_, e: GRealEnclosure) => RealScalar(implem(f, e.start), implem(f, e.range), implem(f, e.end))
+      case (_, e: GRealEnclosure) => GConstantRealEnclosure(implem(f, e.start), implem(f, e.range), implem(f, e.end))
     }
   }
   
@@ -740,11 +355,11 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
     // Based on implementations from acumen.interpreters.enclosure.Relation
     def implemBool(f:String, l:Interval, r:Interval): GBoolEnclosure = {
       lazy val (startL: Interval, endL: Interval) = vl match {
-        case ce: RealScalar => (ce.start, ce.end)
+        case ce: GConstantRealEnclosure => (ce.start, ce.end)
         case _ => (l,l)
       }
       lazy val (startR: Interval, endR: Interval) = vr match {
-        case ce: RealScalar => (ce.start, ce.end)
+        case ce: GConstantRealEnclosure => (ce.start, ce.end)
         case _ => (r,r)
       }
       f match {
@@ -795,13 +410,13 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
       case ("==" | "~=" | ">=" | "<=" | "<" | ">", _, _) =>
         implemBool(f, extractInterval(vl), extractInterval(vr))
       case ("+" | "-" | "*" | "/", el: GRealEnclosure, er: GRealEnclosure) => 
-        RealScalar(implemInterval(f, el.start, er.start), implemInterval(f, el.range, er.range), implemInterval(f, el.end, er.end))
+        GConstantRealEnclosure(implemInterval(f, el.start, er.start), implemInterval(f, el.range, er.range), implemInterval(f, el.end, er.end))
     }
   }
 
   def evalActions(certain:Boolean, path: Expr, as:List[Action], env:Env, p:Prog, st: Enclosure) : Set[Changeset] =
     if (as isEmpty) Set(Changeset.empty) 
-    else combine(as, evalAction(certain, path, _: Action, env, p, st))
+    else Changeset.combine(as, evalAction(certain, path, _: Action, env, p, st))
 
   def evalAction(certain:Boolean, path: Expr, a:Action, env:Env, p:Prog, st: Enclosure) : Set[Changeset] =
     a match {
@@ -827,12 +442,12 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
             }
           (lhs, inScope, claim match {
             case Lit(CertainTrue) => stmts
-            case _ => combine(stmts :: logClaim(selfCId(env), claim, env) :: Nil)
+            case _ => Changeset.combine(stmts :: logClaim(selfCId(env), claim, env) :: Nil)
           })
         }
         val (allCertFalse, in, uncertain) = modes.foldLeft((true, Set.empty[Changeset], Set.empty[Changeset])) {
           case (iu @ (a, i, u), (_, gub, scs)) => (gub: @unchecked) match {
-            case CertainTrue  => (false, combine(i, scs), u)
+            case CertainTrue  => (false, Changeset.combine(i, scs), u)
             case Uncertain    => (false, i, u union scs)
             case CertainFalse => (true && a, i, u)
           }
@@ -841,7 +456,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
           val VLit(gv) = evalExpr(mode, env, st)
           throw NoMatch(gv).setPos(mode.pos)
         }
-        combine(in, uncertain)
+        Changeset.combine(in, uncertain)
       case Discretely(da) =>
         evalDiscreteAction(certain, path, da, env, p, st)
       case Continuously(ca) =>
@@ -916,7 +531,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
   def iterate(f: CId => Set[Changeset], root: CId, e: Enclosure): Set[Changeset] = {
     val r = f(root)
     val cs = e childrenOf root
-    if (cs.isEmpty) r else combine(r, combine(cs, iterate(f, _:CId, e)))
+    if (cs.isEmpty) r else Changeset.combine(r, Changeset.combine(cs, iterate(f, _:CId, e)))
   }
   
   /* Main simulation loop */  
@@ -931,7 +546,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
     val mprog = Prog(magicClass :: enclosureProg.defs)
     val (sd1,sd2) = Random.split(Random.mkGen(0))
     val (id,st1) = 
-      mkObj(cmain, mprog, None, List(VObjId(Some(CId(0)))), Enclosure(initStore), 1)
+      mkObj(cmain, mprog, None, List(VObjId(Some(CId(0)))), Enclosure.init(initStore), 1)
     val st2 = st1.changeParent(CId(0), id)
     val hyps = st2.toList.flatMap { case (cid, co) =>
       mprog.defs.find(_.name == st2.getCls(cid)).get.body.flatMap {
@@ -977,7 +592,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
       else co.filter{
         case (n,_) if bannedFieldNames contains n => false
         case (_, VLit(_: GStr) | VLit(_: GStrEnclosure) | VLit(_: GBoolEnclosure) | _:VObjId[_]) => false
-        case (_, VLit(_: RealScalar)) => true
+        case (_, VLit(_: GConstantRealEnclosure)) => true
         case (n,v) =>
           val typ = "type " + v.getClass.getSimpleName
           throw new UnsupportedTypeError(typ, s"(${cid.cid.toString}:${e.getCls(cid).x}).${pprint(n)}", v)
@@ -1216,7 +831,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
       lazy val box = envBox(p, env, st)
       val varNameToFieldId = varNameToFieldIdMap(st)
       val noUpdate = Map[(CId,Name), CValue]()
-      def toAssoc(b: Box) = b.map{ case (k, v) => (varNameToFieldId(k), VLit(RealScalar(v))) }
+      def toAssoc(b: Box) = b.map{ case (k, v) => (varNameToFieldId(k), VLit(GConstantRealEnclosure(v))) }
       p match {
         case Lit(CertainTrue | Uncertain) => Some(st)
         case Lit(CertainFalse) => None
@@ -1296,7 +911,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
     new Box(dots(e).flatMap{ case d@Dot(obj,n) =>
       val VObjId(Some(objId)) = evalExpr(obj, env, st) 
       evalExpr(d, env, st) match {
-        case VLit(r: RealScalar) => (fieldIdToName(objId.cid,n), r.range) :: Nil
+        case VLit(r: GConstantRealEnclosure) => (fieldIdToName(objId.cid,n), r.range) :: Nil
         case VLit(r: GStrEnclosure) => Nil
       }
     }.toMap)
@@ -1334,14 +949,14 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
     val A = new Box(stateVariables.flatMap{ v => 
       val (o,n) = varNameToFieldId(v)
       (ic.getObjectField(o, n): @unchecked) match {
-        case VLit(ce:RealScalar) => (v, ce.end) :: Nil
+        case VLit(ce:GConstantRealEnclosure) => (v, ce.end) :: Nil
         case VObjId(_) => Nil
         case e => sys.error((o,n) + " ~ " + e.toString)
       }
     }.toMap)
     val solutions = solver.solveIVP(F, T, A, delta = 0, m = 0, n = 200, degree = 1) // FIXME Expose as simulator parameters
     val solutionMap = solutions._1.apply(T).map{
-      case (k, v) => (varNameToFieldId(k), VLit(RealScalar(A(k), v, solutions._2(k))))
+      case (k, v) => (varNameToFieldId(k), VLit(GConstantRealEnclosure(A(k), v, solutions._2(k))))
     }
     val odeSolutions = ic update solutionMap
     val equationsMap = inline(eqs, eqs, enc.cStore).map { // LHSs of EquationsTs, including highest derivatives of ODEs
@@ -1440,7 +1055,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
       case Lit(v) if v.eq(Constants.PI) => Constant(Interval.pi) // Test for reference equality not structural equality
       case Lit(GInt(d))                 => Constant(d)
       case Lit(GDouble(d))              => Constant(d)
-      case Lit(e:RealScalar)            => Constant(e.enclosure) // FIXME Over-approximation of end-time interval!
+      case Lit(e:GConstantRealEnclosure)            => Constant(e.enclosure) // FIXME Over-approximation of end-time interval!
       case ExprInterval(lo, hi)         => Constant(extract.foldConstant(lo).value /\ extract.foldConstant(hi).value)
       case ExprIntervalM(mid0, pm0)     => val mid = extract.foldConstant(mid0).value
                                            val pm = extract.foldConstant(pm0).value
@@ -1487,14 +1102,5 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
   /* Utilities */
   
   def fieldIdToName(o: CId, n: Name): String = s"$n@$o"
-  
-  def internalError(s: String): AcumenError = new AcumenError {
-    def mesg = s 
-  }
-
-  def internalPosError(s: String, p: Position): PositionalAcumenError = new PositionalAcumenError {
-    def mesg = s
-  }.setPos(p)
-    
   
 }

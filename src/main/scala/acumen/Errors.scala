@@ -348,9 +348,19 @@ object Errors {
       id + " is an invalid device ID, please check the devices that connected to Acumen."
   }
 
-  /* utility class */
+  /* Utilities */
+
   case class ObjField(o: CId, cn: String, f: Name) {
     override def toString = s"(#$o : $cn)." + pprint(f)
   }
+  
+  def internalError(s: String): AcumenError = new AcumenError {
+    def mesg = s 
+  }
+  
+  def internalPosError(s: String, p: Position): PositionalAcumenError = new PositionalAcumenError {
+    def mesg = s
+  }.setPos(p)
+
 
 }
