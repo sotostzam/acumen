@@ -265,6 +265,7 @@ object TAD extends App {
   private def liftGroundValue(gv: GroundValue): GroundValue = gv match {
     case GDouble(d) => GDoubleDif(TDif constant d)
     case GInt(i) => GDoubleDif(TDif constant i)
+    case GInterval(i) => GIntervalDif(TDif constant i)
     case _ => gv
   }
   

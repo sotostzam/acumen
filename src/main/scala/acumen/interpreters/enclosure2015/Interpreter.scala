@@ -70,14 +70,16 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
   def fromCStore(st: CStore, root: CId): Store = EnclosureAndBranches(Enclosure.init(st), InitialCondition(Enclosure.init(st), Epsilon, StartTime) :: Nil)
   import Interpreter._
   override def visibleParameters: Map[String, CValue] = 
-    Map(ParamTime, ParamEndTime, ParamTimeStep, 
-        ParamMaxBranches, ParamMaxIterationsPerBranch, ParamIntersectWithGuardBeforeReset, ParamHypothesisReport, ParamDisableContraction) 
+    Map(ParamTime, ParamEndTime, ParamTimeStep, ParamOrderOfIntegration,
+        ParamMaxBranches, ParamMaxIterationsPerBranch, ParamIntersectWithGuardBeforeReset, ParamDisableContraction, 
+        ParamHypothesisReport) 
 
   /* Constants */
   
   private val ParamTime                          = "time"                          -> VLit(GDouble( 0.0))
   private val ParamEndTime                       = "endTime"                       -> VLit(GDouble(10.0))
   private val ParamTimeStep                      = "timeStep"                      -> VLit(GDouble( 0.015625))
+  private val ParamOrderOfIntegration            = "orderOfIntegration"            -> VLit(GInt(4))
   private val ParamMaxBranches                   = "maxBranches"                   -> VLit(GInt(100))                  
   private val ParamMaxIterationsPerBranch        = "maxIterationsPerBranch"        -> VLit(GInt(1000))    
   private val ParamIntersectWithGuardBeforeReset = "intersectWithGuardBeforeReset" -> VLit(GBool(true))
@@ -234,7 +236,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
   /* Interpreter */
 
   /** Evaluate e in the scope of env for definitions p with current store st */
-  implicit def evalExpr(e:Expr, env:Env, enc:Enclosure) : CValue = {
+  implicit def evalExpr(e:Expr, env:Env, enc:EStore) : CValue = {
     def eval(env:Env, e:Expr) : CValue = try {
 	    e match {
   	    case Lit(i)         => VLit(i)
@@ -760,7 +762,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
           // T is not thin, the flow is processed
           else {
             checkFlowDefined(prog, q, w)
-            val s = continuousEncloser(q.odes, q.eqs, q.claims, T, prog, w)
+            val s = continuousEncloserTaylor(q.odes, q.eqs, q.claims, T, prog, w)
             val r = s.range
             val rp = contract(r, q.claims, prog).right.get
             val (newW, newU) = handleEvent(q, qw, r, rp, if (t == StartTime) s.end else r)
@@ -968,14 +970,21 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
   
   import breeze.linalg._
   
-  case class OdeEnv(v: DenseVector[Interval], m: Map[(CId,Name), Int], simulator: CObject)
+  case class OdeEnv
+    ( v: DenseVector[Interval]
+    , m: Map[(CId,Name), Int]
+    , private val st: CStore) extends EStore {
+    def getInSimulator(f: String) = Canonical.getInSimulator(f, st)
+    def childrenOf(id: CId): List[CId] = Canonical.childrenOf(id, st)
+    def getObjectField(id: CId, n: Name): CValue = VLit(GInterval(v(m(id,n)))) // FIXME: Boxing
+  }
   
   /** Representation of a set of ODEs. */
   case class FieldImpl(odes: List[CollectedAction]) extends Field[OdeEnv,CId] {
     /** Evaluate the field (the RHS of each equation in ODEs) in s. */
     override def apply(s: OdeEnv): OdeEnv = 
       s.copy(v = DenseVector(odes.zipWithIndex.map{
-        case (ode,i) => extractInterval(evalExpr(ode.rhs, ode.env, ???)) // FIXME Need to use s and not an Enclosure
+        case (ode,i) => extractInterval(evalExpr(ode.rhs, ode.env, s))
       }:_*))
     /** NOTE: Assumes that the de-sugarer has reduced all higher-order ODEs.  */
     override def variables(s: OdeEnv): List[(CId, Name)] =
@@ -996,14 +1005,23 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
       odeEnv.copy(v = odeEnv.v + that.v)
     def ***(that: Double): OdeEnv =
       odeEnv.copy(v = odeEnv.v.map(_ * that))
-    def map(m: CValue => CValue): OdeEnv =
-      ???
+    def map(m: CValue => CValue): OdeEnv = {
+      val v1 = odeEnv.v.copy // NOTE: Copying
+      val v2 = v1.map{ (i:Interval) => 
+        val v = m(VLit(GInterval(i)))
+        extractInterval(v) // FIXME Lifting will change type from Interval to TDif here!
+      } //FIXME Boxing
+      odeEnv.copy(v = v2)
+    }
     def apply(id: CId, n: Name): CValue =
       VLit(GConstantRealEnclosure(odeEnv v odeEnv.m(id,n))) // NOTE: Wrapping
-    def updated(id: CId, n: Name, v: CValue): OdeEnv =
-      ???
+    def updated(id: CId, n: Name, v: CValue): OdeEnv = {
+      val v1 = odeEnv.v.copy // NOTE: Copying
+      v1.update(odeEnv.m(id, n), extractInterval(v)) //FIXME Boxing
+      odeEnv.copy(v = v1)      
+    }
     def getInSimulator(variable: String): CValue =
-      odeEnv simulator Name(variable,0)
+      odeEnv getInSimulator variable
   }
   
   def continuousEncloserTaylor
@@ -1019,7 +1037,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
     // run solveIVPTaylor so its store (ic) is the midpoint of lohnerSetStart
     val ic = OdeEnv( enc.lohnerSetStart.midPoint
                    , odeList.map(ode => (ode.lhs.id, ode.lhs.field)).zipWithIndex.toMap
-                   , enc getObject enc.simulatorId)
+                   , enc.cStore)
     // this will give us a solution vector with same size as ic
     val solution = Common.solveIVPTaylor[CId, OdeEnv, Interval](
       ic, enc.getTimeStep, extractInt(enc getInSimulator "orderOfIntegration"))

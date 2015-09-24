@@ -15,6 +15,11 @@ import enclosure.Interval
 import enclosure2015.Interpreter.bannedFieldNames
 import enclosure2015.Changeset._
 
+trait EStore {
+  def getObjectField(id: CId, n: Name): CValue
+  def childrenOf(id: CId): List[CId]
+}
+
 /** Representation of the continuous state of a program.
  *  To avoid wrapping, the enclosure is represented as:
  *    midPoint + (transform * width) + error
@@ -35,7 +40,7 @@ case class Enclosure
   ( private val st: CStore
   , lohnerSetStart: LohnerSet 
   , lohnerSetRange: LohnerSet 
-  , lohnerSetEnd: LohnerSet ) {
+  , lohnerSetEnd: LohnerSet ) extends EStore {
 
   import Enclosure._
   
