@@ -156,7 +156,9 @@ class ThreeDData extends Publisher {
       case "Sphere" => if (_3DSize.length != 1) throw _3DSphereSizeError()
       case "Cylinder" => if (_3DSize.length != 2) throw _3DCylinderSizeError()
       case "Cone" => if (_3DSize.length != 2) throw _3DConeSizeError()
-      case "Box" => if (_3DSize.length != 3) throw _3DBoxSizeError()
+      case "Box" =>
+        if (_3DSize.length == 2) _3DSize = _3DSize :+ 0.001
+        else if (_3DSize.length != 3) throw _3DBoxSizeError()
       /* 3D text's size should be a number */
       case _ => if (_3DSize.length != 1) throw _3DTextSizeError()
     }
