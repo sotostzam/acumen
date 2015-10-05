@@ -495,12 +495,12 @@ object Parser extends MyStdTokenParsers {
 
   // Check if the list size of color and angle is 3 and only contains numbers (int, double)
   def validVector(l:List[_], name: String): Boolean = {
-    l.size == 3 && name != "center"
+    l.size == 3 && (name == "center" || name == "size")
   }
 
   // Check if the list size of position is 2 or 3 and only contains numbers (int, double)
   def validPosition(l:List[_], name: String): Boolean = {
-    (l.size == 3 || l.size == 2) && name == "center"
+    (l.size == 3 || l.size == 2) && (name == "center" || name == "size")
   }
 
   def _3DVectorHelper(n:Name,v:Expr):Expr = v match{

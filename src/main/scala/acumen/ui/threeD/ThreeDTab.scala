@@ -110,7 +110,7 @@ class ThreeDTab (val appModel: Controller) extends AbstractEditorTab{
       else threeDView.axisOff()
     }
   }
-  check.selected = true
+  check.selected = false
 
   def hide(button: Button) {
     button.peer.setEnabled(false)
@@ -155,6 +155,7 @@ class ThreeDTab (val appModel: Controller) extends AbstractEditorTab{
     timer3d.destroy = true
     threeDView.reset()
     statusZone3d.bar.value = 0
+    threeDView.manualView = false
     if (!threeDView.customView)
       threeDView.customView = true
     if (check.selected)
@@ -192,6 +193,7 @@ class ThreeDTab (val appModel: Controller) extends AbstractEditorTab{
       threedplay.toolTip = "pause"
       threedplay.icon = Icons.pause
       endTime = appModel.threeDData.endTime
+      threeDView.manualView = false
       threeDView.preCustomView = true
       threeDView.customView = true
       if (played) {
@@ -217,7 +219,7 @@ class ThreeDTab (val appModel: Controller) extends AbstractEditorTab{
         /* The frame start from 0, and end up at the last index of buffer */
         lastFrame = appModel.threeDData._3DData.size - 1
       }
-      if (appModel.threeDData._3DView.size != 0) {
+      if (appModel.threeDData._3DView.nonEmpty) {
         threeDView.customView = false
         threeDView.preCustomView = threeDView.customView
       }
