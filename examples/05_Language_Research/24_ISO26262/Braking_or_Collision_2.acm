@@ -32,14 +32,11 @@ initially
   
   s = create Scenario(
 
-
 //-----------------------------------Scenarios for the Enclosure Interpreter---------------------------------------//
 //|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-//|         n, x1,   y1, x1v,          y1v, x2, y2,  x2v,        y2v,            u2a,   CollisionType     state2, rot2,      ttcpb,      ttcfb,         u1pb,         u1fb 
+//|     n, x1,   y1, x1v,          y1v, x2, y2,  x2v,        y2v,            u2a,   CollisionType      state2, rot2,      ttcpb,      ttcfb,         u1pb,         u1fb 
 //|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-            3,  0, -140,   0,         30.0,  9,  0, -3.0,          0,     [1.0..1.2],    "inElastic",  "0-Pre-Turn",    0,        3.5,        2.5,         -0.9,  -[1.4..1.7]  // Near Collision, detection in post-turn           
-//          4,  0, -100,   0,         30.0,  9,  0, -3.0,          0,              1,    "inElastic",  "0-Pre-Turn",    0,        2.0,        0.7,         -0.9,         -1.5  // Collision, detection in turn, fast collision           
-//          5,  0,  -75,   0,         22.2,  9,  0, -3.0,          0,              0,    "Elastic",    "0-Pre-Turn",    0,        3.5,        2.5,        -1.25,         -2.15 // Collision [Case study: EU347/2012]              
+        5,  0, -75,    0,         22.2,  9,  0, -3.0,          0,              0,  "0-Pre-Turn",    0,        3.5,        2.5,        -1.25,        -2.15 // Collision [Case study: EU347/2012] 
 //|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 //-----------------------------------Scenarios for the Reference/Optimized Interpreter---------------------------------------//
@@ -53,8 +50,6 @@ initially
 //      5,  0,  -80,   0, [21.0..21.0],  9,  0, -3.0, [0.0..0.0], [  1.0..  1.0],  "0-Pre-Turn",    0, [2.0..2.5], [0.5..0.7], -[0.3..0.5],  -[0.8..1.0] // Collision, detection in turn
 //      6,  0,  -75,   0,         22.2,  9,  0, -3.0,          0,              0,  "0-Pre-Turn",     0,        3.5,        2.5,        -1.25,      -2.15 // Collision [Case study: EU347/2012] 
 //|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-
-
 
   ),
   _3DView = (),
@@ -176,7 +171,7 @@ initially
   frx1 = 0, fry1 = 0,   // Front right corner
   rlx1 = 0, rly1 = 0,   // Rear left corner
   rrx1 = 0, rry1 = 0,   // Rear right corner
-  a1    =  2,         // Brake efficiency            %/100
+  a1    =  2,           // Brake efficiency            %/100
   mu    =  0.95,        // Brake efficiency            %/100
   pcb   =  0,           // Post-collision deceleration m/s2
   sr = 50, sw = 2,      // Sensor range and width
@@ -231,7 +226,7 @@ initially
   xvdiff = x1v - x2v, yvdiff = y1v - y2v, // Vehicle 1/2 speed difference
   distance = sqrt(  ((x1 - x2)*(x1 - x2)) // 2D distance between Vehicle 1 and 2
                   + ((y1 - y2)*(y1 - y2))),
-  epsilon  = 0.001,                        // Quantity close to 0
+  epsilon  = 0.001,                       // Quantity close to 0
   
 
   SenseToPreBrake = false,                // Future Collision is detected: Vehicle 1 Pre-Braking action
@@ -263,13 +258,15 @@ always
   dre= (y1' + abs(yvdiff))* tr,
   dbr= 0.5*(((y1' * y1')/(9.81*fri))-((y1'-yvdiff)*(y1'-yvdiff)/(9.81*fri))),
   ds= dre+dbr,
+  
   match TerrainTopography with
   [ "Uphill" ->
-  fri = fri0 + (TerrainSlopepercentage/100)
+    fri = fri0 + (TerrainSlopepercentage/100)
   | "Downhill" ->
-  fri = fri0 - (TerrainSlopepercentage/100)
+    fri = fri0 - (TerrainSlopepercentage/100)
   | "Flat" ->
-  fri = fri0],
+    fri = fri0
+  ],
 
   xdiff    = x1  - x2,
   ydiff    = y1  - y2,
@@ -307,75 +304,66 @@ always
       state12+ = "1-Post-Collision"     
     noelse,
     
-   
     /* Vehicle 1 */
+    
     match state1 with
     [ "0-Cruise" ->
       x1' = 0, y1' = y1v,
       if sense then state1+ = "1-Sense" noelse
     | "1-Sense" ->  
-    match TestProcedureLevel with
-    [ "A" ->
-     
-     if (abs(yvdiff) > epsilon && (((-ydiff)<ttcpb*yvdiff) || (distance < dw1))) then 
-     state1+ = "2-Pre-Brake" 
-     else (
-        x1' = 0,
-        y1'' = 0
-      )
-     
-     | "B" ->
-      
-      if (abs(yvdiff) > epsilon && ((-ydiff)<ttcpb*yvdiff))  then 
-     state1+ = "2-Pre-Brake" 
-     else (
-        x1' = 0,
-        y1'' = 0
-      ) 
-     | "C" ->
-     
-     if (abs(yvdiff) > epsilon && ((distance < dw1)))  then 
-     state1+ = "2-Pre-Brake" 
-     else (
-        x1' = 0,
-        y1'' = 0
-      )] 
-
-
+      match TestProcedureLevel with
+      [ "A" ->
+        if (abs(yvdiff) > epsilon && (((-ydiff)<ttcpb*yvdiff) || (distance < dw1))) then 
+         state1+ = "2-Pre-Brake" 
+        else (
+          x1' = 0,
+          y1'' = 0
+        )
+      | "B" ->
+        if (abs(yvdiff) > epsilon && ((-ydiff)<ttcpb*yvdiff))  then 
+          state1+ = "2-Pre-Brake" 
+        else (
+          x1' = 0,
+          y1'' = 0
+        ) 
+      | "C" ->
+        if (abs(yvdiff) > epsilon && ((distance < dw1)))  then 
+          state1+ = "2-Pre-Brake" 
+        else (
+          x1' = 0,
+          y1'' = 0
+        )
+      ]
     | "2-Pre-Brake" ->
-        match TestProcedureLevel with
-    [ "A" -> if ((abs(yvdiff) > epsilon) && (((-ydiff)<ttcfb*yvdiff) || (distance < ds))) then  
-     state1+ = "3-Brake"      
-      else (
-        if (y1' > 0) then 
-          x1' = 0,
-          y1'' = a1*u1pb*mu
+      match TestProcedureLevel with
+      [ "A" -> 
+        if ((abs(yvdiff) > epsilon) && (((-ydiff)<ttcfb*yvdiff) || (distance < ds))) then  
+          state1+ = "3-Brake"      
         else
-          state1+ = "4-Stopped"
-      )
-      
-      | "B" -> if (abs(yvdiff) > epsilon && ((-ydiff)<ttcfb*yvdiff)) then  
-     state1+ = "3-Brake"      
-      else (
-        if (y1' > 0) then 
-          x1' = 0,
-          y1'' = a1*u1pb*mu
+          if (y1' > 0) then 
+            x1' = 0,
+            y1'' = a1*u1pb*mu
+          else
+            state1+ = "4-Stopped"
+      | "B" -> 
+        if (abs(yvdiff) > epsilon && ((-ydiff)<ttcfb*yvdiff)) then  
+         state1+ = "3-Brake"      
         else
-          state1+ = "4-Stopped"
-      )
-      
-      | "C" -> if (abs(yvdiff) > epsilon && ((distance < ds))) then  
-     state1+ = "3-Brake"      
-      else (
-        if (y1' > 0) then 
-          x1' = 0,
-          y1'' = a1*u1pb*mu
+          if (y1' > 0) then 
+            x1' = 0,
+            y1'' = a1*u1pb*mu
+          else
+            state1+ = "4-Stopped"
+      | "C" -> 
+        if (abs(yvdiff) > epsilon && ((distance < ds))) then  
+          state1+ = "3-Brake"      
         else
-          state1+ = "4-Stopped"
-      )]
-
-
-      
+          if (y1' > 0) then 
+            x1' = 0,
+            y1'' = a1*u1pb*mu
+          else
+            state1+ = "4-Stopped"
+      ]
     | "3-Brake" ->
       if (y1' > 0) then 
         x1' = 0,
@@ -387,6 +375,7 @@ always
     ],
 
     /* Vehicle 2 */
+    
     match state2 with
     [ "0-Pre-Turn" ->
       if (x2-vl2/2 > radius) then 
@@ -404,29 +393,23 @@ always
         state2+ = "2-Post-Turn"
  
     | "2-Post-Turn" ->
-       match TestProcedureLevel with
-    [ "A" -> if (abs(yvdiff) > epsilon && (((-ydiff)<ttcpb*yvdiff) || (distance < dw1))) then      
-     state2+ = "3-Act" 
-      else
-        rot2' = 0,
-        x2' = 0,
-        y2'' = 0 
-      
-      | "B" -> if (abs(yvdiff) > epsilon && ((-ydiff)<ttcpb*yvdiff)) then      
-     state2+ = "3-Act" 
-      else
-        rot2' = 0,
-        x2' = 0,
-        y2'' = 0 
-      
-      | "C" ->  if (abs(yvdiff) > epsilon && ((distance < dw1))) then      
-     state2+ = "3-Act" 
-      else
-        rot2' = 0,
-        x2' = 0,
-        y2'' = 0 ]
-    
-
+      rot2' = 0,
+      x2' = 0,
+      y2'' = 0,
+      match TestProcedureLevel with
+      [ "A" -> 
+        if (abs(yvdiff) > epsilon && (((-ydiff)<ttcpb*yvdiff) || (distance < dw1))) then      
+          state2+ = "3-Act" 
+        noelse
+      | "B" ->
+        if (abs(yvdiff) > epsilon && ((-ydiff)<ttcpb*yvdiff)) then      
+          state2+ = "3-Act" 
+        noelse
+      | "C" ->
+        if (abs(yvdiff) > epsilon && ((distance < dw1))) then      
+          state2+ = "3-Act" 
+        noelse
+      ]
     | "3-Act" ->
       if (y2' > 0) then 
         rot2' = 0,
