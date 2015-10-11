@@ -224,8 +224,8 @@ initially
   v1Front = y1 + 10/2,                    // y coordinate of the front of the sensor area
   xdiff  = x1 - x2,   ydiff  = y1 - y2,   // Vehicle 1/2 position difference
   xvdiff = x1v - x2v, yvdiff = y1v - y2v, // Vehicle 1/2 speed difference
-  distance = sqrt(  ((x1 - x2)*(x1 - x2)) // 2D distance between Vehicle 1 and 2
-                  + ((y1 - y2)*(y1 - y2))),
+  distance = sqrt(((x1 - x2)*(x1 - x2))   // 2D distance between Vehicle 1 and 2
+                 +((y1 - y2)*(y1 - y2))),
   epsilon  = 0.001,                       // Quantity close to 0
   
 
@@ -233,31 +233,31 @@ initially
   PreBrakeToBrake = false,                // Future Collision is detected: Vehicle 1 Full-Braking action
   Act = false,                            // Future Collision is detected: Vehicle 2 Acceleration action
   TerrainTopography = "Flat",             // Either Flat or Uphill or Downhill
-  TerrainSlopepercentage= 0,              // The grade of the terrain slope in case of Uphill or Downhill road
-  TestProcedureLevel="B",                 //  The reliability of the test procedure for safety specification
-                                          //       A: Extremly High (Reliable): Use TTC, dw, dre, dbr, and ds for the collision detection
-                                          //       B: Very High: Use only TTC for the collision detection
-                                          //       C: High: Use Only dw, dre, dbr, and ds for the collision detection
-  //TTC1=0,                               // Time to Collision estimated by the on-bord computer of vehicle 1                     
-  dw1=0,                                  // Critical warning distance estimated by the on-bord computer of vehicle 1 
-  dre=0,                                  // Critical reaction distance estimated by the on-bord computer of vehicle 1 
-  dbr=0,                                  // Critical braking distance estimated by the on-bord computer of vehicle 1 
+  TerrainSlopepercentage = 0,             // The grade of the terrain slope in case of Uphill or Downhill road
+  TestProcedureLevel = "B",               // The reliability of the test procedure for safety specification
+                                          //   A: Extremly High (Reliable): Use TTC, dw, dre, dbr, and ds for the collision detection
+                                          //   B: Very High: Use only TTC for the collision detection
+                                          //   C: High: Use Only dw, dre, dbr, and ds for the collision detection
+  //TTC1=0,                               // Time to Collision estimated by the on-bord computer of Vehicle 1                     
+  dw1=0,                                  // Critical warning distance estimated by the on-bord computer of Vehicle 1 
+  dre=0,                                  // Critical reaction distance estimated by the on-bord computer of Vehicle 1 
+  dbr=0,                                  // Critical braking distance estimated by the on-bord computer of Vehicle 1 
   tr=2.5,                                 // Reaction time of the driver (2.5 sec recommaneded by American Association of State and Highway Officials (AASHTO))
   ds=0,                                   // Critical stopping distance 
   fri=0,                                  // Equivalent coefficient of friction: The following values are recommended by AASHTO
   fri0=0.35                               // Initial Equivalent coefficient of friction: The following values are recommended by AASHTO 
-                                          // v =110 km2 -> fri = 0.28
-                                          // v =95  km2 -> fri = 0.29
-                                          // v =80  km2 -> fri = 0.3
-                                          // v =60  km2 -> fri = 0.32
-                                          // v =50  km2 -> fri = 0.3
+                                          // v = 110 km2 -> fri = 0.28
+                                          // v = 95  km2 -> fri = 0.29
+                                          // v = 80  km2 -> fri = 0.3
+                                          // v = 60  km2 -> fri = 0.32
+                                          // v = 50  km2 -> fri = 0.3
 
 always
   //TTC1= ((-ydiff)/yvdiff),
-  dw1=((2.2 * abs(yvdiff))+6.2),
-  dre= (y1' + abs(yvdiff))* tr,
-  dbr= 0.5*(((y1' * y1')/(9.81*fri))-((y1'-yvdiff)*(y1'-yvdiff)/(9.81*fri))),
-  ds= dre+dbr,
+  dw1 = ((2.2 * abs(yvdiff))+6.2),
+  dre = (y1' + abs(yvdiff))* tr,
+  dbr = 0.5*(((y1'*y1')/(9.81*fri))-((y1'-yvdiff)*(y1'-yvdiff)/(9.81*fri))),
+  ds = dre+dbr,
   
   match TerrainTopography with
   [ "Uphill" ->
@@ -311,61 +311,42 @@ always
       x1' = 0, y1' = y1v,
       if sense then state1+ = "1-Sense" noelse
     | "1-Sense" ->  
-      match TestProcedureLevel with
-      [ "A" ->
-        if (abs(yvdiff) > epsilon && (((-ydiff)<ttcpb*yvdiff) || (distance < dw1))) then 
-         state1+ = "2-Pre-Brake" 
-        else (
-          x1' = 0,
-          y1'' = 0
-        )
-      | "B" ->
-        if (abs(yvdiff) > epsilon && ((-ydiff)<ttcpb*yvdiff))  then 
-          state1+ = "2-Pre-Brake" 
-        else (
-          x1' = 0,
-          y1'' = 0
-        ) 
-      | "C" ->
-        if (abs(yvdiff) > epsilon && ((distance < dw1)))  then 
-          state1+ = "2-Pre-Brake" 
-        else (
-          x1' = 0,
-          y1'' = 0
-        )
-      ]
+      x1' = 0,
+      y1'' = 0,
+      if abs(yvdiff) > epsilon then
+        match TestProcedureLevel with
+        [ "A" ->
+          if -ydiff < ttcpb*yvdiff || distance < dw1 then 
+            state1+ = "2-Pre-Brake" noelse
+        | "B" ->
+          if -ydiff < ttcpb*yvdiff  then 
+            state1+ = "2-Pre-Brake" noelse
+        | "C" ->
+          if distance < dw1 then 
+            state1+ = "2-Pre-Brake" noelse
+        ] 
+      noelse
     | "2-Pre-Brake" ->
-      match TestProcedureLevel with
-      [ "A" -> 
-        if ((abs(yvdiff) > epsilon) && (((-ydiff)<ttcfb*yvdiff) || (distance < ds))) then  
-          state1+ = "3-Brake"      
-        else
-          if (y1' > 0) then 
-            x1' = 0,
-            y1'' = a1*u1pb*mu
-          else
-            state1+ = "4-Stopped"
-      | "B" -> 
-        if (abs(yvdiff) > epsilon && ((-ydiff)<ttcfb*yvdiff)) then  
-         state1+ = "3-Brake"      
-        else
-          if (y1' > 0) then 
-            x1' = 0,
-            y1'' = a1*u1pb*mu
-          else
-            state1+ = "4-Stopped"
-      | "C" -> 
-        if (abs(yvdiff) > epsilon && ((distance < ds))) then  
-          state1+ = "3-Brake"      
-        else
-          if (y1' > 0) then 
-            x1' = 0,
-            y1'' = a1*u1pb*mu
-          else
-            state1+ = "4-Stopped"
-      ]
+      if y1' > 0 then 
+        x1' = 0,
+        y1'' = a1*u1pb*mu
+      else
+        state1+ = "4-Stopped",
+      if abs(yvdiff) > epsilon then
+        match TestProcedureLevel with
+        [ "A" -> 
+          if -ydiff < ttcfb*yvdiff || distance < ds then  
+            state1+ = "3-Brake" noelse
+        | "B" -> 
+          if -ydiff < ttcfb*yvdiff then  
+            state1+ = "3-Brake" noelse
+        | "C" -> 
+          if distance < ds then  
+            state1+ = "3-Brake" noelse
+        ]
+      noelse
     | "3-Brake" ->
-      if (y1' > 0) then 
+      if y1' > 0 then 
         x1' = 0,
         y1'' = a1*u1fb*mu
       else
@@ -378,7 +359,7 @@ always
     
     match state2 with
     [ "0-Pre-Turn" ->
-      if (x2-vl2/2 > radius) then 
+      if x2-vl2/2 > radius then 
         rot2' = 0,
         x2' = x2v,
         y2' = y2v
@@ -391,27 +372,25 @@ always
         y2'' = radius - y2
       else
         state2+ = "2-Post-Turn"
- 
     | "2-Post-Turn" ->
       rot2' = 0,
       x2' = 0,
       y2'' = 0,
-      match TestProcedureLevel with
-      [ "A" -> 
-        if (abs(yvdiff) > epsilon && (((-ydiff)<ttcpb*yvdiff) || (distance < dw1))) then      
-          state2+ = "3-Act" 
-        noelse
-      | "B" ->
-        if (abs(yvdiff) > epsilon && ((-ydiff)<ttcpb*yvdiff)) then      
-          state2+ = "3-Act" 
-        noelse
-      | "C" ->
-        if (abs(yvdiff) > epsilon && ((distance < dw1))) then      
-          state2+ = "3-Act" 
-        noelse
-      ]
+      if abs(yvdiff) > epsilon then
+        match TestProcedureLevel with
+        [ "A" -> 
+          if -ydiff < ttcpb*yvdiff || distance < dw1 then      
+            state2+ = "3-Act" noelse
+        | "B" ->
+          if -ydiff < ttcpb*yvdiff then      
+            state2+ = "3-Act" noelse
+        | "C" ->
+          if distance < dw1 then      
+            state2+ = "3-Act" noelse
+        ]
+      noelse
     | "3-Act" ->
-      if (y2' > 0) then 
+      if y2' > 0 then 
         rot2' = 0,
         x2' = 0,
         y2'' = a2*u2a
@@ -421,7 +400,6 @@ always
       rot2' = 0,
       x2' = 0, y2' = 0
     ]
-
   ],
 
   /* Detect when front right corner of sensor area crosses the 
