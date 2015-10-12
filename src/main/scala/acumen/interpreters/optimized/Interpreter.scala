@@ -48,11 +48,12 @@ class Interpreter(val parDiscr: Boolean = true,
   val initStepType = Discrete
   val timeStep = 0.01
   val outputRows = "WhenChanged"
-  override def visibleParameters = visibleParametersMap(initStoreInterpreter(initStep = initStepType, initTimeStep = timeStep, initOutputRows = outputRows, isImperative = true))
+  val initStore = initStoreInterpreter(initStep = initStepType, initTimeStep = timeStep, initOutputRows = outputRows, isImperative = true)
+  override def visibleParameters = visibleParametersMap(initStore) + ("method" -> VLit(GStr(RungeKutta))) + ("orderOfIntegration" -> VLit(GInt(4)))
 
   def init(prog: Prog): (Prog, Store, Metadata) = {
     checkContinuousAssignmentToSimulator(prog)
-    val magic = fromCStore(initStoreInterpreter(initStep = initStepType, initTimeStep = timeStep, initOutputRows = outputRows, isImperative = true), CId(0))
+    val magic = fromCStore(initStore, CId(0))
     val cprog = CleanParameters.run(prog, CStoreInterpreterType)
     val sprog = Simplifier.run(cprog)
     val (sd1, sd2) = Random.split(Random.mkGen(0))
@@ -137,11 +138,13 @@ class Interpreter(val parDiscr: Boolean = true,
         }
 
         implicit val field = FieldImpl(pp.odes, p)
-        val res = new Solver(getField(magic, Name("method", 0)), initVal : IndexedSeq[Val], getTimeStep(magic)).solve
+        implicit val doubleIsReal = AD.DoubleIsReal 
+        val initOdeEnv = OdeEnv(initVal, magic)
+        val res = new Solver(getField(magic, Name("method", 0)), initOdeEnv : OdeEnv, getTimeStep(magic)).solve
         idx = 0
         while (idx < sz) {
           val eqt = pp.odes(idx)
-          setFieldSimple(eqt.id, eqt.field, res(idx))
+          setFieldSimple(eqt.id, eqt.field, res.odeVals(idx))
           idx += 1
         }
 

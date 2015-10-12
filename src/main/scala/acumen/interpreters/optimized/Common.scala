@@ -36,10 +36,22 @@ object Common {
   type Store = Object
   type ObjId = Object
   type Val = Value[ObjId]
-  case class Env(env: Map[Name, Val], forOde: Option[IndexedSeq[Val]] = None) {
-    def apply(n: Name) = env.apply(n)
-    def get(n: Name) = env.get(n)
-    def +(v:(Name,Val)) = Env(env + v, forOde)
+  /** The environment for the ODE solver
+   *  @param odeVals    The store for the ode solver.  The corresponding equations are in PhaseParms#odes.
+   */
+  case class OdeEnv(
+    odeVals: IndexedSeq[Val], 
+    simulator: Object ) 
+  case class Env(env: Map[Name, Val], forOde: Option[OdeEnv] = None) extends Environment[Val] {
+    override def apply(n: Name) = env.apply(n)
+    override def get(n: Name) = env.get(n)
+    override def +(v: (Name,Val)) = Env(env + v, forOde)
+    override def ++(v: Map[Name,Val]) = Env(env ++ v, forOde)
+    override def empty = Env.empty
+  }
+  object Env {
+    val empty = new Env(Map.empty, None)
+    def apply(nvs: (Name, Val)*): Env = new Env(Map(nvs:_*), None)
   }
   
   type MMap[A, B] = scala.collection.mutable.Map[A, B]
@@ -249,7 +261,7 @@ object Common {
   def getField(o: Object, f: Name, env: Env) = {
     val v = o.fields(f)
     if (v.lookupIdx != -1) env.forOde match {
-      case Some(l) => l(v.lookupIdx)
+      case Some(l) => l.odeVals(v.lookupIdx)
       case None => v.prevVal
     }
     else if (o.phaseParms.delayUpdate && v.lastUpdated == o.phaseParms.curIter) v.prevVal
@@ -439,15 +451,15 @@ object Common {
 
     val vs = ctrs map {
       case NewRhs(e, es) =>
-        val cn = evalExpr(e, p, Env(Map(self -> VObjId(Some(res))))) match {
+        val cn = evalExpr(e, p, Env(self -> VObjId(Some(res)))) match {
           case VClassName(cn) => cn
           case v => throw NotAClassName(v).setPos(e.pos)
         }
-        val ves = es map (evalExpr(_, p, Env(Map(self -> VObjId(Some(res))))))
+        val ves = es map (evalExpr(_, p, Env(self -> VObjId(Some(res)))))
         val nsd = getNewSeed(res)
         VObjId(Some(mkObj(cn, p, ParentIs(res), nsd, ves, magic)))
       case ExprRhs(e) =>
-        evalExpr(e, p, Env(Map(self -> VObjId(Some(res)))))
+        evalExpr(e, p, Env(self -> VObjId(Some(res))))
     }
     val priv = privVars zip vs.map{new ValVal(_)}
     res.fields = pub ++ priv
@@ -628,19 +640,30 @@ object Common {
 
   /* IVP */
 
-  case class FieldImpl(odes: ArrayBuffer[Equation], p: Prog) extends Field[IndexedSeq[Val]] {
-    override def apply(s: IndexedSeq[Val]) =  {
-      val res = odes.map{e => evalExpr(e.rhs, p, Env(e.env,Some(s)))}
-      res
-    }
+  case class FieldImpl(odes: ArrayBuffer[Equation], p: Prog) extends Field[OdeEnv,ObjId] {
+    override def apply(s: OdeEnv) =
+      OdeEnv(odes.map{e => evalExpr(e.rhs, p, Env(e.env,Some(s)))}, s.simulator)
+    override def variables(s: OdeEnv): List[(ObjId, Name)] =
+      odes.toList.map { da => (da.id, da.field) }
+    override def map(m: Expr => Expr) = 
+      FieldImpl(odes.map(ode => ode.copy(rhs = m(ode.rhs))), p)
   }
   
-  case class RichStoreImpl(s: IndexedSeq[Val]) extends RichStore[IndexedSeq[Val]] {
-    override def +++(that: IndexedSeq[Val]) = (this.s,that).zipped.map{(a,b) => evalOp("+", List(a,b))}
-    override def ***(that: Double) = this.s.map{a => evalOp("*", List(a,VLit(GDouble(that))))}
+  case class RichStoreImpl(s: OdeEnv) extends RichStore[OdeEnv,ObjId] {
+    override def +++(that: OdeEnv) = 
+      OdeEnv((this.s.odeVals,that.odeVals).zipped.map{(a,b) => evalOp("+", List(a,b))}, s.simulator)
+    override def ***(that: Double) = 
+      OdeEnv(this.s.odeVals.map{a => evalOp("*", List(a,VLit(GDouble(that))))}, s.simulator)
+    override def map(m: Val => Val) = 
+      OdeEnv(s.odeVals map m, s.simulator)
+    lazy val odeValsLookup = s.simulator.phaseParms.odes.zipWithIndex.
+      map{ case (o,i) => (o.id, o.field) -> i }.toMap
+    override def apply(id: ObjId, n: Name): Val = s.odeVals(odeValsLookup(id,n))
+    override def updated(id: ObjId, n: Name, v: Val) = s.copy(odeVals = s.odeVals.updated(odeValsLookup(id,n), v))
+    override def getInSimulator(variable: String) = getField(s.simulator, Name(variable, 0))
   }
   
-  implicit def liftStore(s: IndexedSeq[Val])(implicit field: FieldImpl): RichStoreImpl = RichStoreImpl(s)
+  implicit def liftStore(s: OdeEnv)(implicit field: FieldImpl): RichStoreImpl = RichStoreImpl(s)
 
   /**
    * Ensure that for each variable that has an ODE declared in the private section, there is 

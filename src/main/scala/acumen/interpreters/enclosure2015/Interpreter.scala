@@ -470,14 +470,14 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
     val (vs, st3) = 
       constrs.foldLeft((List.empty[CValue],st2)) 
         { case ((vsTmp, stTmp), NewRhs(e,es)) =>
-            val ve = evalExpr(e, Map(self -> VObjId(Some(fid))), stTmp) 
+            val ve = evalExpr(e, Env(self -> VObjId(Some(fid))), stTmp) 
             val cn = ve match {case VClassName(cn) => cn; case _ => throw NotAClassName(ve)}
-            val ves = es map (evalExpr(_, Map(self -> VObjId(Some(fid))), stTmp))
+            val ves = es map (evalExpr(_, Env(self -> VObjId(Some(fid))), stTmp))
             val (nsd, stTmp1) = getNewSeed(fid, stTmp)
             val (oid, stTmp2) = mkObj(cn, p, Some(fid), nsd, ves, stTmp1)
             (VObjId(Some(oid)) :: vsTmp, stTmp2)
           case ((vsTmp, stTmp), ExprRhs(e)) =>
-            val ve = evalExpr(e, Map(self -> VObjId(Some(fid))), stTmp)
+            val ve = evalExpr(e, Env(self -> VObjId(Some(fid))), stTmp)
             (ve :: vsTmp, stTmp)
         }
         val priv = privVars zip vs.reverse 
@@ -776,7 +776,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
   def evalStep(p:Prog, st: Enclosure, rootId:CId) : Set[Changeset] = {
     val cl = getCls(rootId, st)
     val as = classDef(cl, p).body
-    val env = HashMap((self, VObjId(Some(rootId))))
+    val env = Env((self, VObjId(Some(rootId))))
     evalActions(true, Lit(CertainTrue), as, env, p, st)
   }
 
@@ -808,7 +808,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
     val hyps = st3.toList.flatMap { case (cid, co) =>
       mprog.defs.find(_.name == getCls(cid, st3)).get.body.flatMap {
         case Hypothesis(s, e) =>
-          CollectedHypothesis(cid, s, e, Map(self -> VObjId(Some(cid)))) :: Nil
+          CollectedHypothesis(cid, s, e, Env(self -> VObjId(Some(cid)))) :: Nil
         case _ => Nil
     }}
     val md = testHypotheses(fromCStore(st3).enclosure, 0, 0, mprog, NoMetadata) 
@@ -1260,7 +1260,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
                         val dot = Dot(inlineMe.lhs.obj,inlineMe.lhs.field)
                         Continuously(e.copy(rhs = substitute(dot, inlineMe.rhs, e.rhs)))
                     }, 
-                    env = hostPrev.env ++ inlineMe.env)
+                    env = hostPrev.env ++ inlineMe.env.env)
                   daNext -> (inlineMe :: inlined)
                 }
             }

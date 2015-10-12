@@ -3,6 +3,7 @@ package interpreters
 package reference2015
 
 import Interpreter._
+import Common._
 import acumen.Errors._
 
 /** Used to represent the statements that are active at a given point during the simulation. */

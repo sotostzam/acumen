@@ -49,6 +49,8 @@ initially
 always
   // Simulation time
   simulator.endTime+=100, 
+  simulator.method+ = "Taylor",
+  simulator.orderOfIntegration+ = 9,
 
   // theta1'' from Equation (3)
   // - technical solution to save us from even lengthier formulae

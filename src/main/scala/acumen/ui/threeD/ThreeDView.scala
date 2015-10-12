@@ -51,6 +51,7 @@ class ThreeDView extends JPanel {
   private val lookAtPoint = new SimpleVector(0,0,0) // in jPCT coordinate system
   var customView = true // enable for allowing the user move the camera by themselves
   var preCustomView = customView // to enable custom view when we pause
+  var manualView = false // to disable custom view when use manually changed the view
 
   var percentagemissDL = 0.0
   var averageSlack = 0.0
@@ -112,18 +113,21 @@ class ThreeDView extends JPanel {
 
   addMouseMotionListener(new MouseAdapter {
     override def mouseDragged(e: MouseEvent) = {
-      if (dragging && customView) {
+      if (dragging) {
         newMouseX = e.getX
         newMouseY = e.getY
         // to decrease the burden of calculations
         if (abs(newMouseX - lastMouseX) > 0.1
          || abs(newMouseY - lastMouseY) > 0.1) {
           // left button dragging, move camera
-          if (SwingUtilities isLeftMouseButton e)
+          if (SwingUtilities isLeftMouseButton e) {
             cameraLeftDirection = moveCamera(cameraLeftDirection, 1)
+            manualView = true
+          }
           // right button dragging, move look at point
           else if (SwingUtilities isRightMouseButton e)
             cameraRightDirection = moveCamera(cameraRightDirection, -1)
+            manualView = true
         }
       }
     }
@@ -252,6 +256,7 @@ class ThreeDView extends JPanel {
     cameraLeftDirection = (-1,-1)
     cameraRightDirection = (1,1)
     cameraFlipped = false
+    manualView = false
     defaultView()
     lookAt(coAxes.mainbox, null) // camera faces towards the object
     staticCamera.lookAt(new SimpleVector(0,0,0))
@@ -340,11 +345,6 @@ class ThreeDView extends JPanel {
         lps = fps
         fps = 0
         _3DTimeCounter = System.currentTimeMillis()
-      }
-      // draw real time render information
-      if (acumen.ui.App.ui.getStartRealTime) {
-        g.drawString("Missed deadlines: %.4f".format(percentagemissDL * 100) + "%", 10, 45)
-        g.drawString("Waiting time: %.4f".format(averageSlack * 100) + "%", 10, 60)
       }
       waitingPaint = false
     }
@@ -668,7 +668,7 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D, playSpeed: Double,
           if (!_3DDataBuffer(currentFrame).contains(objectKey))
             deleteObj(objectKey)
         lastRenderFrame = currentFrame
-        if(currentFrame < _3DView.size)
+        if(currentFrame < _3DView.size && !app.manualView)
           app.transformView(_3DView(currentFrame)._1, _3DView(currentFrame)._2)
         app.viewStateMachine("renderCurrentObjects")
       }
@@ -695,7 +695,7 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D, playSpeed: Double,
           if (_3DDataBuffer.contains(latestFrame) && !_3DDataBuffer(latestFrame).contains(objectKey))
             deleteObj(objectKey)
         lastRenderFrame = latestFrame
-        if (_3DView.nonEmpty)
+        if (_3DView.nonEmpty && !app.manualView)
           app.transformView(_3DView.last._1, _3DView.last._2)
         app.viewStateMachine("renderCurrentObjects")
       }

@@ -79,6 +79,22 @@ object ASTUtil {
         }
       }.mapProg(prog)
     }
+  
+  /** Apply mapG recursively to v. */
+  def mapValue[Id,G](v: Value[Id], mapG: G => Value[Id]): Value[Id] = v match {
+    case VLit(g: G) => mapG(g)
+    case VVector(l: List[Value[Id]]) => VVector(l map (mapValue(_, mapG)))
+    case VList(l: List[Value[Id]]) => VList(l map (mapValue(_, mapG)))
+  }
+  
+  /** Apply mapGs recursively to l and r, assuming they have identical structure. */
+  def mapValuePair[Id,G](l: Value[Id], r: Value[Id], mapGs: (G,G) => Value[Id]): Value[Id] = (l, r) match {
+    case (VLit(gl: G), VLit(gr: G)) => mapGs(gl, gr)
+    case (VVector(ll: List[Value[Id]]), VVector(lr: List[Value[Id]])) => 
+      VVector((ll zip lr) map { case (l,r) => mapValuePair(l, r, mapGs) })
+    case (VList(ll: List[Value[Id]]), VList(lr: List[Value[Id]])) => 
+      VList((ll zip lr) map { case (l,r) => mapValuePair(l, r, mapGs) })
+  }
 
 }
 

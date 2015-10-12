@@ -59,7 +59,9 @@ object Canonical {
     val obj = deref(id,st)
     obj.get(f) match {
       case Some(v) => v
-      case None => throw VariableNotDeclared(f)
+      case None => 
+        println("Tried to look up " + (id, f) + " in:\n\n" + obj.mkString("\n"))
+        throw VariableNotDeclared(f)
     }
   }
 

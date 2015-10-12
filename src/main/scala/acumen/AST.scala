@@ -6,6 +6,7 @@ import scala.collection.mutable.HashMap
 import scala.collection.mutable.{Map => MutMap}
 import scala.util.parsing.input.{Positional}
 import acumen.interpreters.enclosure.Interval
+import acumen.AD._
 
 package acumen {
 
@@ -177,6 +178,28 @@ package acumen {
   case class GPattern(p : List[GroundValue]) extends GroundValue
   /* Example: "foo" */
   case class GStr(s: String) extends GroundValue
+  /* Representation of a value and its derivatives */
+  abstract class GDif[V] extends GroundValue {
+    def dif: Dif[V] 
+    def isValidInt: Boolean
+    def toInt: Int
+    def updated(d: Dif[V]): GDif[V]
+  }
+  case class GDoubleDif(dif: Dif[Double]) extends GDif[Double] {
+    def updated(d: Dif[Double]) = GDoubleDif(d)
+    def isValidInt = dif.isValidInt
+    def toInt = dif.toInt
+  }
+  case class GIntDif(dif: Dif[Int]) extends GDif[Int] {
+    def updated(d: Dif[Int]) = GIntDif(d)
+    def isValidInt = dif.isValidInt
+    def toInt = dif.toInt
+  }
+  case class GIntervalDif(dif: Dif[Interval]) extends GDif[Interval] {
+    def updated(d: Dif[Interval]) = GIntervalDif(d)
+    def isValidInt = dif.isValidInt
+    def toInt = dif.toInt
+  }
   /* Representation of an uncertain, time varying value */
   trait GEnclosure[V] extends GroundValue {
     def apply(t: Interval): V

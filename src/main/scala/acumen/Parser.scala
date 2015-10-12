@@ -480,10 +480,21 @@ object Parser extends MyStdTokenParsers {
   val defaultCoordinates = Lit(GStr("Global"))
   val defaultTransparency = Lit(GInt(-1))
 
+  // _3D parameter names with valid dimensions (Nil for parameters whose values are not vectors) 
+  val paramDimensions: Map[String, List[Int]] =
+    Map( "center"       -> List(2,3)
+       , "color"        -> List(3)
+       , "coordinates"  -> Nil
+       , "content"      -> Nil
+       , "length"       -> Nil
+       , "radius"       -> Nil
+       , "rotation"     -> List(2,3)
+       , "size"         -> List(2,3)
+       , "transparency" -> Nil
+       )
+  
   def threeDPara: Parser[(Name, Expr)] = name ~ "=" ~ expr ^^ {case n ~_~ e => 
-    if (n.x == "center" | n.x == "length" | n.x == "radius" | n.x == "size" | n.x == "color" |
-        n.x == "rotation" | n.x == "content" | n.x == "coordinates" | n.x == "transparency")
-    	  (n,e)
+    if (paramDimensions contains n.x) (n,e)
     else throw new PositionalAcumenError{
          def mesg = n.x + " is not a valid _3D parameter" 
          }.setPos(e.pos) }
@@ -492,30 +503,21 @@ object Parser extends MyStdTokenParsers {
     case List(single) => single
     case _ => ExprVector(ls)
   }}
-
-  // Check if the list size of color and angle is 3 and only contains numbers (int, double)
-  def validVector(l:List[_], name: String): Boolean = {
-    l.size == 3 && name != "center"
-  }
-
-  // Check if the list size of position is 2 or 3 and only contains numbers (int, double)
-  def validPosition(l:List[_], name: String): Boolean = {
-    (l.size == 3 || l.size == 2) && name == "center"
-  }
-
+  
   def _3DVectorHelper(n:Name,v:Expr):Expr = v match{
     case ExprVector(ls) => 
       if (ls.forall(x => x match{
         case _ @ Lit(GStr(_) | GBool(_)) => false
         case _ => true
-       }) && (validVector(ls, n.x)
-        || validPosition(ls, n.x))) ExprVector(ls)
+       }) && (paramDimensions(n.x) contains ls.size)) v
       else
-       throw new PositionalAcumenError{
-         def mesg = "_3D parameter " + n + "'s value is not a valid vector of 3 numbers: " + Pretty.pprint(v)
-         }.setPos(v.pos)
+       throw new PositionalAcumenError {
+         def mesg = "Value of _3D parameter '" + n + "' is not a valid vector of " + 
+                    paramDimensions(n.x).mkString(" or ") + " numbers: " + Pretty.pprint(v)
+       }.setPos(v.pos)
     case _ => v 
-  } 
+  }
+
   /* Process the 3d object information and adding default values*/
   def threeDParasProcess(n:Name, paras:List[(Name, Expr)]):ExprVector = {
     val name = n.x
