@@ -1,14 +1,14 @@
 // Two dimensional
 // Authors: Walid Taha, Henrik Eriksson, Adam Duraz, and Ayman Aljarbouh
-// 2015/02/27
+// 2015/10/12
 
 // Key model features:
-// - 2D model
+// - Test bench to validate the test procedures for safety specifications.
+// - 2D model.
 // - Three levels of test procedure reliability: (A: Extremely High, B: Very High, C: High).
 // - Braking based on: TTC (time-to-collision), dw (critical warning distance), dre (critical reaction distance), dbr (critical braking distance), and ds (critical stopping distance).
-// - mu (friction coefficient, i.e. brake efficiency)
-// - Braking target
-// - A nice test bench with a to validate the test procedures for safety specifications.
+// - mu (friction coefficient, i.e. brake efficiency).
+// - Braking target.
 
 model Main(simulator) =
 initially
@@ -32,38 +32,40 @@ initially
   
   s = create Scenario(
 
-//-----------------------------------Scenarios for the Enclosure Interpreter---------------------------------------//
+//-----------------------------------Scenarios for the Reference/Optimized/Enclosure Interpreter---------------------------------------//
 //|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-//|     n, x1,   y1, x1v,          y1v, x2, y2,  x2v,        y2v,            u2a,        state2, rot2,      ttcpb,      ttcfb,         u1pb,        u1fb 
+//|     n, x1,   y1, x1v,          y1v, x2, y2,  x2v,        y2v,            u2a,         state2, rot2,      ttcpb,      ttcfb,        u1pb,          u1fb 
 //|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-//      5,  0,  -75,   0,         22.2,  9,  0, -3.0,          0,              0,  "0-Pre-Turn",    0,        3.5,        2.5,        -1.25,       -2.15  // Collision [Case study: EU347/2012] 
-//      3,  0, -140,   0,         30.0,  9,  0, -3.0,          0,     [1.0..1.2],  "0-Pre-Turn",    0,        3.5,        2.5,         -0.9,  -[1.4..1.7] // Near Collision, detection in post-turn           
-//      4,  0, -100,   0,         30.0,  9,  0, -3.0,          0,              1,  "0-Pre-Turn",    0,        2.0,        0.7,         -0.9,        -1.5  // Collision, detection in turn, fast collision   
-//     50,  0,  -75,   0,        19.55,  9,  0, -3.0,          0,              0,  "0-Pre-Turn",    0,        3.5,        2.5,        -1.25,       -2.15  // Collision [Slow: Severity 1]
-//|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+//      1,  0,  -75,   0,        22.20,  9,  0, -3.0,          0,              0,   "0-Pre-Turn",    0,        3.5,        2.5,       -1.25,        -2.150  // Collision      [Case study: EU347/2012] 
+        2,  0,  -75,   0,        19.55,  9,  0, -3.0,          0,              0,   "0-Pre-Turn",    0,        3.5,        2.5,       -1.25,        -2.150  // Slow collision [Case study: Severity Class 1]
+//      3,  0, -100,   0,        30.00,  9,  0, -3.0,          0,              1,   "0-Pre-Turn",    0,        2.0,        0.7,        -0.9,         -1.50  // Fast Collision [Detection in turn]
+//      4,  0, -170,   0,        40.20,  9,  0, -3.0,          0,           0.75,   "0-Pre-Turn",    0,        3.5,        2.5,        -0.5,         -1.20  // Fast Collision [Detection in in post-turn]
+//      5,  0, -170,   0,        35.20, 11,  0, -3.0,          0,            2.4,   "0-Pre-Turn",    0,        3.5,        2.5, -[0.5..0.7],  -[0.93..1.42] // Near Collision [Detection in in turn]
+//      6,  0, -140,   0,        30.00,  9,  0, -3.0,          0,     [1.0..1.2],   "0-Pre-Turn",    0,        3.5,        2.5,        -0.9,  -[1.34..1.70] // Near Collision [Detection in post-turn]
+//      7,  0, -130,   0,        25.20,  9,  0, -3.0,          0,            0.5,   "0-Pre-Turn",    0,        3.5,        2.5,        -0.7,         -1.90  // No Collision   [Detection in in post-turn] 
 
-//-----------------------------------Scenarios for the Reference/Optimized Interpreter---------------------------------------//
-//|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-//|     n, x1,   y1, x1v,          y1v, x2, y2,  x2v,        y2v,            u2a,        state2, rot2,      ttcpb,      ttcfb,         u1pb,         u1fb 
-//|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-//      1,  0, -120,   0, [21.6..22.8],  0,  0,  0.0, [2.7..3.9], [  0.5.. 0.75],  "2-Post-Turn", pi/2, [3.5..3.5], [2.5..2.5], -[0.2..0.6], -[1.0..1.2] // No collision [Case study: full uncertaint]
-//      2,  0, -120,   0, [21.6..22.8],  0,  0,  0.0, [2.7..3.9], [  0.5..  0.7],  "2-Post-Turn", pi/2, [3.5..3.5], [2.5..2.5], -[0.5..0.8], -[1.0..1.2] // Near collision (for TestProcedure = level C) [Case study: full uncertainty]
-//      3,  0,  -40,   0, [21.6..22.8],  0,  0,  0.0, [2.7..3.9], [  0.2..  0.3],  "2-Post-Turn", pi/2, [3.5..3.5], [2.5..2.5], -[0.2..0.4], -[1.0..1.2] // Collision [Case study: full uncertainty]
-//      4,  0, -100,   0,         22.2,  9,  0, -3.0,          0,           0.75,  "0-Pre-Turn",    0,        3.5,        2.5,        -0.5,         -1.2 // No Collision, detection in turn
-//      5,  0,  -80,   0, [21.0..21.0],  9,  0, -3.0, [0.0..0.0], [  1.0..  1.0],  "0-Pre-Turn",    0, [2.0..2.5], [0.5..0.7], -[0.3..0.5],  -[0.8..1.0] // Collision, detection in turn
-//      6,  0,  -75,   0,         22.2,  9,  0, -3.0,          0,              0,  "0-Pre-Turn",     0,        3.5,        2.5,        -1.25,      -2.15 // Collision [Case study: EU347/2012] 
-//|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+//      8,  0, -120,   0, [21.6..22.8],  0,  0,  0.0, [2.7..3.9], [  0.5.. 0.75],  "2-Post-Turn", pi/2, [3.5..3.5], [2.5..2.5], -[0.2..0.6],    -[1.0..1.2] // No collision   [Case study: Full uncertainty]
+//      9,  0, -120,   0, [21.6..22.8],  0,  0,  0.0, [2.7..3.9], [  0.5..  0.7],  "2-Post-Turn", pi/2, [3.5..3.5], [2.5..2.5], -[0.5..0.8],    -[1.0..1.2] // Near collision [Case study: Full uncertainty] (for TestProcedure = level C)
+//     10,  0,  -40,   0, [21.6..22.8],  0,  0,  0.0, [2.7..3.9], [  0.2..  0.3],  "2-Post-Turn", pi/2, [3.5..3.5], [2.5..2.5], -[0.2..0.4],    -[1.0..1.2] // Collision      [Case study: Full uncertainty]      
 
   ),
   _3DView = (),
   _3D = ()
 always
 
-  simulator.endTime+ = 8,
+  hypothesis "Collision cases"
+       // Collision always happens eventually in the first five scenarios
+       (s.n <= 4 && (simulator.time < simulator.endTime ||
+                     s.state12 == "1-Post-Collision"))
+       // Collision never happens in the latter scenarios
+    || 
+       (s.n >  4 && s.state12 ~= "1-Post-Collision"),
+
+  simulator.endTime+ = 12,
 //  simulator.timeStep+ = 0.00024414062512, // 2^(-12)  
 //  simulator.timeStep+ = 0.00048828125, // 2^(-11)
 //  simulator.timeStep+ = 0.0009765625, // 2^(-10)
-  simulator.timeStep+ = 0.001953125, // 2^(-9)
+    simulator.timeStep+ = 0.001953125, // 2^(-9)
 //  simulator.timeStep+ = 0.00390625, // 2^(-8)
 //  simulator.timeStep+ = 0.0078125, // 2^(-7)
 //  simulator.timeStep+ = 0.015625, // 2^(-6)
@@ -238,7 +240,7 @@ initially
   Act = false,                            // Future Collision is detected: Vehicle 2 Acceleration action
   TerrainTopography = "Flat",             // Either Flat or Uphill or Downhill
   TerrainSlopepercentage = 0,             // The grade of the terrain slope in case of Uphill or Downhill road
-  TestProcedureLevel = "B",               // The reliability of the test procedure for safety specification
+  TestProcedureLevel = "A",               // The reliability of the test procedure for safety specification
                                           //   A: Extremly High (Reliable): Use TTC, dw, dre, dbr, and ds for the collision detection
                                           //   B: Very High: Use only TTC for the collision detection
                                           //   C: High: Use Only dw, dre, dbr, and ds for the collision detection
@@ -297,7 +299,7 @@ always
       x2'+ = (c*m1*(x1' - x2') + m1*x1' + m2*x2')/(m1 + m2),
       y2'+ = (c*m1*(y1' - y2') + m1*y1' + m2*y2')/(m1 + m2),
       collision_delta_yv1+ = (c*m2*(y2' - y1') + m1*y1' + m2*y2')/(m1 + m2) - y1',
-      collision_delta_yv2+ = (c*m1*(y1' - y2') + m1*y1' + m2*y2')/(m1 + m2) - y2',    
+      collision_delta_yv2+ = (c*m1*(y1' - y2') + m1*y1' + m2*y2')/(m1 + m2) - y2',         
       state12+ = "1-Post-Collision"     
     noelse,
     
