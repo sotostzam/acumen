@@ -37,16 +37,16 @@ initially
 //|     n, x1,   y1, x1v,          y1v, x2, y2,  x2v,        y2v,            u2a,         state2, rot2,      ttcpb,      ttcfb,        u1pb,          u1fb 
 //|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 //      1,  0,  -75,   0,        22.20,  9,  0, -3.0,          0,              0,   "0-Pre-Turn",    0,        3.5,        2.5,       -1.25,        -2.150  // Collision      [Case study: EU347/2012] 
-        2,  0,  -75,   0,        19.55,  9,  0, -3.0,          0,              0,   "0-Pre-Turn",    0,        3.5,        2.5,       -1.25,        -2.150  // Slow collision [Case study: Severity Class 1]
+//      2,  0,  -75,   0,        19.55,  9,  0, -3.0,          0,              0,   "0-Pre-Turn",    0,        3.5,        2.5,       -1.25,        -2.150  // Slow collision [Case study: Severity Class 1]
 //      3,  0, -100,   0,        30.00,  9,  0, -3.0,          0,              1,   "0-Pre-Turn",    0,        2.0,        0.7,        -0.9,         -1.50  // Fast Collision [Detection in turn]
 //      4,  0, -170,   0,        40.20,  9,  0, -3.0,          0,           0.75,   "0-Pre-Turn",    0,        3.5,        2.5,        -0.5,         -1.20  // Fast Collision [Detection in in post-turn]
-//      5,  0, -170,   0,        35.20, 11,  0, -3.0,          0,            2.4,   "0-Pre-Turn",    0,        3.5,        2.5, -[0.5..0.7],  -[0.93..1.42] // Near Collision [Detection in in turn]
-//      6,  0, -140,   0,        30.00,  9,  0, -3.0,          0,     [1.0..1.2],   "0-Pre-Turn",    0,        3.5,        2.5,        -0.9,  -[1.34..1.70] // Near Collision [Detection in post-turn]
-//      7,  0, -130,   0,        25.20,  9,  0, -3.0,          0,            0.5,   "0-Pre-Turn",    0,        3.5,        2.5,        -0.7,         -1.90  // No Collision   [Detection in in post-turn] 
-
-//      8,  0, -120,   0, [21.6..22.8],  0,  0,  0.0, [2.7..3.9], [  0.5.. 0.75],  "2-Post-Turn", pi/2, [3.5..3.5], [2.5..2.5], -[0.2..0.6],    -[1.0..1.2] // No collision   [Case study: Full uncertainty]
-//      9,  0, -120,   0, [21.6..22.8],  0,  0,  0.0, [2.7..3.9], [  0.5..  0.7],  "2-Post-Turn", pi/2, [3.5..3.5], [2.5..2.5], -[0.5..0.8],    -[1.0..1.2] // Near collision [Case study: Full uncertainty] (for TestProcedure = level C)
-//     10,  0,  -40,   0, [21.6..22.8],  0,  0,  0.0, [2.7..3.9], [  0.2..  0.3],  "2-Post-Turn", pi/2, [3.5..3.5], [2.5..2.5], -[0.2..0.4],    -[1.0..1.2] // Collision      [Case study: Full uncertainty]      
+//      5,  0, -120,   0, [37.6..39.8],  0,  0,  0.0, [2.7..3.9], [  0.7.. 0.95],  "2-Post-Turn", pi/2, [3.5..3.5], [2.5..2.5], -[0.4..0.6],    -[1.0..1.2] // Collision      [Detection in post-turn]        
+//      6,  0,  -70,   0, [21.6..22.8],  0,  0,  0.0, [2.7..3.9], [  0.2..  0.3],  "2-Post-Turn", pi/2, [3.5..3.5], [2.5..2.5], -[0.2..0.4],    -[1.0..1.5] // Slow Collision [Detection in post-turn] 
+//      7,  0, -170,   0,        35.20, 11,  0, -3.0,          0,            2.4,   "0-Pre-Turn",    0,        3.5,        2.5, -[0.5..0.7],  -[0.93..1.42] // Near Collision [Detection in in turn]
+//      8,  0, -140,   0,        30.00,  9,  0, -3.0,          0,     [1.0..1.2],   "0-Pre-Turn",    0,        3.5,        2.5,        -0.9,  -[1.34..1.70] // Near Collision [Detection in post-turn]
+//      9,  0, -130,   0,        25.20,  9,  0, -3.0,          0,            0.5,   "0-Pre-Turn",    0,        3.5,        2.5,        -0.7,         -1.90  // No Collision   [Detection in in post-turn] 
+//     10,  0,  -90,   0, [19.6..25.5],  0,  0,  0.0, [2.7..3.9],[  0.3..  0.58],  "2-Post-Turn", pi/2, [3.5..3.5], [2.5..2.5], -[0.5..0.8],    -[1.4..1.6] // No collision   [Detection in post-turn]
+       11,  0, -120,   0,         22.8,  0,  0,  0.0,        2.7,              0,  "2-Post-Turn", pi/2,        3.5,        2.5,       -1.35,        -2.550  // No Collision   [Case study: EU347/2012 - Extreme values] 
 
   ),
   _3DView = (),
@@ -55,17 +55,17 @@ always
 
   hypothesis "Collision cases"
        // Collision always happens eventually in the first five scenarios
-       (s.n <= 4 && (simulator.time < simulator.endTime ||
+       (s.n <= 6 && (simulator.time < simulator.endTime ||
                      s.state12 == "1-Post-Collision"))
        // Collision never happens in the latter scenarios
     || 
-       (s.n >  4 && s.state12 ~= "1-Post-Collision"),
+       (s.n >  6 && s.state12 ~= "1-Post-Collision"),
 
-  simulator.endTime+ = 12,
+  simulator.endTime+ = 10,
 //  simulator.timeStep+ = 0.00024414062512, // 2^(-12)  
 //  simulator.timeStep+ = 0.00048828125, // 2^(-11)
-//  simulator.timeStep+ = 0.0009765625, // 2^(-10)
-    simulator.timeStep+ = 0.001953125, // 2^(-9)
+    simulator.timeStep+ = 0.0009765625, // 2^(-10)
+//  simulator.timeStep+ = 0.001953125, // 2^(-9)
 //  simulator.timeStep+ = 0.00390625, // 2^(-8)
 //  simulator.timeStep+ = 0.0078125, // 2^(-7)
 //  simulator.timeStep+ = 0.015625, // 2^(-6)
@@ -213,7 +213,7 @@ initially
   a2    =  4,         // Brake efficiency            %/100  
   
   /* Common */
-  
+  e1=0,e2=0,
   state12 = "0-Pre-Collision",
   c = 0.5,                                // Coefficient of restitution used in collision
   collision_delta_xv1 = 0, collision_delta_yv1 = 0, // Estimate of damage to Vehicle 1
@@ -240,7 +240,7 @@ initially
   Act = false,                            // Future Collision is detected: Vehicle 2 Acceleration action
   TerrainTopography = "Flat",             // Either Flat or Uphill or Downhill
   TerrainSlopepercentage = 0,             // The grade of the terrain slope in case of Uphill or Downhill road
-  TestProcedureLevel = "A",               // The reliability of the test procedure for safety specification
+  TestProcedureLevel = "B",               // The reliability of the test procedure for safety specification
                                           //   A: Extremly High (Reliable): Use TTC, dw, dre, dbr, and ds for the collision detection
                                           //   B: Very High: Use only TTC for the collision detection
                                           //   C: High: Use Only dw, dre, dbr, and ds for the collision detection
@@ -249,7 +249,7 @@ initially
   dre=0,                                  // Critical reaction distance estimated by the on-bord computer of Vehicle 1 
   dbr=0,                                  // Critical braking distance estimated by the on-bord computer of Vehicle 1 
   tr=2.5,                                 // Reaction time of the driver (2.5 sec recommaneded by American Association of State and Highway Officials (AASHTO))
-  ds=0,                                   // Critical stopping distance 
+  ds=0,                                   // Critical stopping distance   
   fri=0,                                  // Equivalent coefficient of friction: The following values are recommended by AASHTO
   fri0=0.35                               // Initial Equivalent coefficient of friction: The following values are recommended by AASHTO 
                                           // v = 110 km2 -> fri = 0.28
@@ -259,21 +259,25 @@ initially
                                           // v = 50  km2 -> fri = 0.3
 
 always
-  //TTC1= ((-ydiff)/yvdiff),
-  dw1 = ((2.2 * abs(yvdiff))+6.2),
-  dre = (y1' + abs(yvdiff))* tr,
-  dbr = 0.5*(((y1'*y1')/(9.81*fri))-((y1'-yvdiff)*(y1'-yvdiff)/(9.81*fri))),
-  ds = dre+dbr,
-  
-  match TerrainTopography with
-  [ "Uphill" ->
-    fri = fri0 + (TerrainSlopepercentage/100)
-  | "Downhill" ->
-    fri = fri0 - (TerrainSlopepercentage/100)
-  | "Flat" ->
-    fri = fri0
-  ],
 
+  match TerrainTopography with
+  [ "Uphill" ->    
+    //Critical Braking distance
+    dbr = 0.5*(((y1'*y1')/(9.81*(fri0 + (TerrainSlopepercentage/100))))-((y1'-yvdiff)*(y1'-yvdiff)/(9.81*(fri0 + (TerrainSlopepercentage/100)))))  
+  | "Downhill" ->
+    //Critical Braking distance
+    dbr = 0.5*(((y1'*y1')/(9.81*(fri0 - (TerrainSlopepercentage/100))))-((y1'-yvdiff)*(y1'-yvdiff)/(9.81*(fri0 - (TerrainSlopepercentage/100)))))  
+  | "Flat" ->
+    //Critical Braking distance
+    dbr = 0.5*(((y1'*y1')/(9.81*fri0))-((y1'-yvdiff)*(y1'-yvdiff)/(9.81*fri0)))
+  ],
+    //Critical Warning distance
+    dw1 = ((2.2 * abs(yvdiff))+6.2),    
+    //Critical Reaction distance
+    dre = (y1' + abs(yvdiff))* tr,
+    //Critical Stopping distance
+    ds = dre+dbr,
+    
   xdiff    = x1  - x2,
   ydiff    = y1  - y2,
   xvdiff   = x1' - x2',
