@@ -59,7 +59,7 @@ always
                      s.state12 == "1-Post-Collision"))
        // Collision never happens in the latter scenarios
     || 
-       (s.n >  6 && s.state12 ~= "1-Post-Collision"),
+       (s.n >  6 && s.state12 == "0-Pre-Collision"),
 
   simulator.endTime+ = 10,
 //  simulator.timeStep+ = 0.00024414062512, // 2^(-12)  
