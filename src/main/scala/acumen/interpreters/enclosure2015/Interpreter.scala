@@ -655,10 +655,14 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
       case ("==", sl: GStr, sr: GStr) => if (sl == sr) CertainTrue else CertainFalse
       case ("~=", sl: GStr, sr: GStr) => if (sl != sr) CertainTrue else CertainFalse
       // TODO Check if access to start-time values changes the definitions of == and ~=
-      case ("==", GStrEnclosure(sls, sl, sle), GStrEnclosure(srs, sr, sre)) =>
-        if (sls == srs && sl == sr && sle == sre) CertainTrue
-        else if ((sl intersect sr).nonEmpty) Uncertain
+      case ("==", lde: GDiscreteEnclosure[_], rde: GDiscreteEnclosure[_]) =>
+        if (lde.start == rde.start && lde.range == rde.range && lde.end == rde.end) CertainTrue
+        else if ((lde.range intersect rde.range).nonEmpty) Uncertain
         else CertainFalse
+      case ("~=", lde: GDiscreteEnclosure[_], rde: GDiscreteEnclosure[_]) =>
+        if (lde.start == rde.start && lde.range == rde.range && lde.end == rde.end) CertainFalse
+        else if ((lde.range intersect rde.range).nonEmpty) CertainTrue
+        else Uncertain
       case ("~=", GStrEnclosure(sls, sl, sle), GStrEnclosure(srs, sr, sre)) =>
         if (sls == srs && sl == sr && sle == sre) CertainFalse
         else if ((sl intersect sr).isEmpty) CertainTrue
