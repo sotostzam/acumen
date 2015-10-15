@@ -200,6 +200,7 @@ initially
   vw2 = 2, vl2 = 4.5,  // Width and length
   radius = 3,          // Turn radius
   rot2' = 0,           // Angular velocity
+  a2    =  4,         // Brake efficiency            %/100  
   // Front left corner
   flx2 = x2 - 2/2 * sin(0) - 4.5/2 * cos(0),
   fly2 = y2 - 2/2 * cos(0) + 4.5/2 * sin(0),
@@ -212,14 +213,8 @@ initially
   // Rear right corner
   rrx2 = x2 + 2/2 * sin(0) + 4.5/2 * cos(0),
   rry2 = y2 + 2/2 * cos(0) - 4.5/2 * sin(0),
-  // End points (a,b), x-intercept and slope of the line 
-  // segment definig either the left or rear side
-  ax = x2 - 2/2 * sin(0) - 4.5/2 * cos(0), 
-  ay = y2 - 2/2 * cos(0) + 4.5/2 * sin(0),
-  bx = x2 - 2/2 * sin(0) + 4.5/2 * cos(0),
-  by = y2 - 2/2 * cos(0) - 4.5/2 * sin(0),
-  xIntercept = 0, slope = 0,
-  a2    =  4,         // Brake efficiency            %/100  
+ 
+
   
   /* Common */
   
@@ -232,12 +227,7 @@ initially
   xvdiff = x1v - x2v, yvdiff = y1v - y2v, // Vehicle 1/2 speed difference
   distance = sqrt(((x1 - x2)*(x1 - x2))   // 2D distance between Vehicle 1 and 2
                  +((y1 - y2)*(y1 - y2))),
-  epsilon  = 0.001,                       // Quantity close to 0
-  
-
-  SenseToPreBrake = false,                // Future Collision is detected: Vehicle 1 Pre-Braking action
-  PreBrakeToBrake = false,                // Future Collision is detected: Vehicle 1 Full-Braking action
-  Act = false,                            // Future Collision is detected: Vehicle 2 Acceleration action
+ 
   TerrainTopography = "Flat",             // Either Flat or Uphill or Downhill
   TerrainSlopepercentage = 0,             // The grade of the terrain slope in case of Uphill or Downhill road
   TestProcedureLevel = "A",               // The reliability of the test procedure for safety specification
@@ -331,7 +321,7 @@ always
     | "1-Sense" ->  
       x1' = 0,
       y1'' = 0,
-      if abs(yvdiff) > epsilon then
+      if abs(yvdiff) > 0 then
         match TestProcedureLevel with
         [ "A" ->
           if -ydiff < ttcpb*yvdiff || distance < dw1 then 
@@ -350,7 +340,7 @@ always
         y1'' = a1*u1pb*mu
       else
         state1+ = "4-Stopped",
-      if abs(yvdiff) > epsilon then
+      if abs(yvdiff) > 0 then
         match TestProcedureLevel with
         [ "A" -> 
           if -ydiff < ttcfb*yvdiff || distance < ds then  
@@ -394,7 +384,7 @@ always
       rot2' = 0,
       x2' = 0,
       y2'' = 0,
-      if abs(yvdiff) > epsilon then
+      if abs(yvdiff) > 0 then
         match TestProcedureLevel with
         [ "A" -> 
           if -ydiff < ttcpb*yvdiff || distance < dw1 then      
