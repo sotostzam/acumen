@@ -387,6 +387,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
         case _ => super.mapDiscreteAction(a)
       }
       override def mapClause(c: Clause) : Clause = c match {
+        case Clause(GBool(lhs), as, rhs) => Clause(GBoolEnclosure(lhs), mapExpr(as), mapActions(rhs))
         case Clause(GStr(lhs), as, rhs) => Clause(GStrEnclosure(lhs), mapExpr(as), mapActions(rhs))
         case Clause(GInt(lhs), as, rhs) => Clause(Real(lhs), mapExpr(as), mapActions(rhs)) // FIXME Use discrete integer enclosure instead of Real
         case _ => super.mapClause(c)
@@ -655,10 +656,14 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
       case ("==", sl: GStr, sr: GStr) => if (sl == sr) CertainTrue else CertainFalse
       case ("~=", sl: GStr, sr: GStr) => if (sl != sr) CertainTrue else CertainFalse
       // TODO Check if access to start-time values changes the definitions of == and ~=
-      case ("==", GStrEnclosure(sls, sl, sle), GStrEnclosure(srs, sr, sre)) =>
-        if (sls == srs && sl == sr && sle == sre) CertainTrue
-        else if ((sl intersect sr).nonEmpty) Uncertain
+      case ("==", lde: GDiscreteEnclosure[_], rde: GDiscreteEnclosure[_]) =>
+        if (lde.start == rde.start && lde.range == rde.range && lde.end == rde.end) CertainTrue
+        else if ((lde.range intersect rde.range).nonEmpty) Uncertain
         else CertainFalse
+      case ("~=", lde: GDiscreteEnclosure[_], rde: GDiscreteEnclosure[_]) =>
+        if (lde.start == rde.start && lde.range == rde.range && lde.end == rde.end) CertainFalse
+        else if ((lde.range intersect rde.range).nonEmpty) CertainTrue
+        else Uncertain
       case ("~=", GStrEnclosure(sls, sl, sle), GStrEnclosure(srs, sr, sre)) =>
         if (sls == srs && sl == sr && sle == sre) CertainFalse
         else if ((sl intersect sr).isEmpty) CertainTrue
@@ -1083,19 +1088,22 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
      * Given a predicate p and store st, removes that part of st for which p does not hold.
      * NOTE: The range of st is first computed, as contraction currently only works on intervals.  
      */
-    def contract(st: Enclosure, p: Expr, prog: Prog, env: Env, selfCId: CId): Option[Enclosure] = {
+    def contract(st: Enclosure, p: Expr, prog: Prog, env: Env, selfCId: CId): Either[String,Enclosure] = {
       lazy val box = envBox(p, env, st)
       val varNameToFieldId = varNameToFieldIdMap(st)
       val noUpdate = Map[(CId,Name), CValue]()
       def toAssoc(b: Box) = b.map{ case (k, v) => (varNameToFieldId(k), VLit(Real(v))) }
       p match {
-        case Lit(CertainTrue | Uncertain) => Some(st)
-        case Lit(CertainFalse) => None
-        case Op(Name("||",0), _) => Some(st)
+        case Lit(CertainTrue | Uncertain) => Right(st)
+        case Lit(CertainFalse) => Left("Contracted with CertainFalse")
+        case Op(Name("||",0), _) => Right(st)
         case Op(Name("&&",0), List(l,r)) => 
           (contract(st,l,prog,env,selfCId), contract(st,r,prog,env,selfCId)) match {
-            case (Some(pil),Some(pir)) => pil intersect pir
-            case _ => None
+            case (Right(pil), Right(pir)) => 
+              (pil intersect pir) map (Right(_)) getOrElse Left("Empty intersection.")
+            case (Right(_), Left(pir)) => Left(pir)
+            case (Left(pil), Right(_)) => Left(pil)
+            case (Left(pil), Left(pir)) => Left(pil + ", " + pir)
           }
         case Op(Name(op,0), List(l,r)) =>
           val lv = evalExpr(l, env, st)
@@ -1136,9 +1144,9 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
             case (">=" | ">", _, _) => toAssoc(contractInstance.contractLeq(re, le)(box))
 
           } 
-          Some(st update smallerBox)
+          Right(st update smallerBox)
         case _ => 
-          Some(st) // Do not contract
+          Right(st) // Do not contract
       }
     }
     val VLit(GBool(disableContraction)) = getInSimulator(ParamDisableContraction._1, st)
@@ -1147,8 +1155,8 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
       case (res, claim) => res match {
         case Right(r) => 
           try {
-            contract(r, claim.c, prog, claim.env, claim.selfCId) map 
-              (Right(_)) getOrElse Left("Empty enclosure after applying claim " + pprint(claim.c))
+            contract(r, claim.c, prog, claim.env, claim.selfCId).
+              fold(s => Left("Empty enclosure after applying claim " + pprint(claim.c) + ": " + s), Right(_)) 
           } catch {
             case e: Throwable =>
               Logger.trace(Pretty pprint asProgram(st, prog))

@@ -1,0 +1,525 @@
+// Two dimensional
+// Authors: Walid Taha, Henrik Eriksson, Adam Duraz, Ayman Aljarbouh and Ferenc Bartha
+// 2015/10/14
+
+// Key model features:
+// - Test bench to validate the test procedures for safety specifications.
+// - 2D model.
+// - Three levels of test procedure reliability: (A: Extremely High, B: Very High, C: High).
+// - Braking based on: TTC (time-to-collision), dw (critical warning distance), dre (critical reaction distance), dbr (critical braking distance), and ds (critical stopping distance).
+// - mu (friction coefficient, i.e. brake efficiency).
+// - Braking target.
+
+model Main(simulator) =
+initially
+  // A scenario is defined by:
+  // x1     Vehicle 1 initial position in x dimension (m)
+  // y1     Vehicle 1 initial position in y dimension (m)
+  // x1v    Vehicle 1 initial speed    in x dimension (m/s)
+  // y1v    Vehicle 1 initial speed    in y dimension (m/s)
+  // x2     Vehicle 2 initial position in x dimension (m)
+  // y2     Vehicle 2 initial position in y dimension (m)
+  // x2v    Vehicle 2 initial speed    in x dimension (m/s)
+  // y2v    Vehicle 2 initial speed    in y dimension (m/s)
+  // u2a    Vehicle 2 control input for acceleration
+  // state2 Vehicle 2 automaton initial mode          (0-Pre-Turn/1-Turn/2-Post-Turn/3-Act)
+  // rot2   Vehicle 2 rotation                        (radians)
+  // ttcpb  Vehicle 1 pre-brake ttc threshold         (s)
+  // ttcfb  Vehicle 1 full-brake ttc threshold        (s)
+  // u1pb   Vehicle 1 control input for pre-brake deceleration                    
+  // u1fb   Vehicle 1 control input for full-brake deceleration          
+  // n      Scenario number
+  
+  s = create Scenario(
+
+//-----------------------------------Scenarios for the Reference/Optimized/Enclosure Interpreter---------------------------------------//
+//|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+//|     n, x1,   y1, x1v,          y1v, x2, y2,  x2v,        y2v,            u2a,         state2, rot2,      ttcpb,      ttcfb,        u1pb,          u1fb 
+//|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+//      1,  0,  -55,   0,        22.20,  9,  0, -3.0,          0,              0,   "0-Pre-Turn",    0,        3.5,        2.5,       -1.25,        -2.150  // Collision      [Case study: EU347/2012] 
+//      2,  0,  -75,   0,        19.55,  9,  0, -3.0,          0,              0,   "0-Pre-Turn",    0,        3.5,        2.5,       -1.25,        -2.150  // Slow collision [Case study: Severity Class 1]
+//      3,  0, -135,   0,        30.00,  9,  0, -3.0,          0,              1,   "0-Pre-Turn",    0,        2.0,        0.7,        -0.9,         -1.80  // Fast Collision [Case study: Severity Class 2, Detection in turn]
+//      4,  0, -170,   0,        40.20,  9,  0, -3.0,          0,           0.75,   "0-Pre-Turn",    0,        3.5,        2.5,        -0.5,         -1.20  // Fast Collision [Detection in in post-turn]
+//      5,  0, -120,   0, [37.6..39.8],  0,  0,  0.0, [2.7..3.9], [  0.7.. 0.95],  "2-Post-Turn", pi/2, [3.5..3.5], [2.5..2.5], -[0.4..0.6],    -[1.0..1.2] // Collision      [Detection in post-turn]        
+//      6,  0,  -70,   0, [21.6..22.8],  0,  0,  0.0, [2.7..3.9], [  0.2..  0.3],  "2-Post-Turn", pi/2, [3.5..3.5], [2.5..2.5], -[0.2..0.4],    -[1.0..1.5] // Slow Collision [Detection in post-turn] 
+//      7,  0, -170,   0,        35.20, 11,  0, -3.0,          0,            2.4,   "0-Pre-Turn",    0,        3.5,        2.5, -[0.5..0.7],  -[0.93..1.42] // Near Collision [Detection in in turn]
+//      8,  0, -140,   0,        30.00,  9,  0, -3.0,          0,     [1.0..1.2],   "0-Pre-Turn",    0,        3.5,        2.5,        -0.9,  -[1.34..1.70] // Near Collision [Detection in post-turn]
+//      9,  0, -130,   0,        25.20,  9,  0, -3.0,          0,            0.5,   "0-Pre-Turn",    0,        3.5,        2.5,        -0.7,         -1.90  // No Collision   [Detection in in post-turn] 
+//     10,  0,  -90,   0, [19.6..25.5],  0,  0,  0.0, [2.7..3.9],[  0.3..  0.58],  "2-Post-Turn", pi/2, [3.5..3.5], [2.5..2.5], -[0.5..0.8],    -[1.4..1.6] // No collision   [Detection in post-turn]
+       11,  0, -120,   0,         22.8,  0,  0,  0.0,        2.7,              0,  "2-Post-Turn", pi/2,        3.5,        2.5,       -1.35,        -2.250  // No Collision   [Case study: EU347/2012 - Extreme values] 
+  ),
+  _3DView = (),
+  _3D = ()
+always
+
+  hypothesis "Collision cases"
+       // Collision always happens eventually in the first five scenarios
+       (s.n <= 6 && (simulator.time < simulator.endTime ||
+                     s.state12 == "1-Post-Collision"))
+       // Collision never happens in the latter scenarios
+    || 
+       (s.n >  6 && s.state12 == "0-Pre-Collision"),
+
+  simulator.endTime+ = 10,
+//  simulator.timeStep+ = 0.00024414062512, // 2^(-12)  
+//  simulator.timeStep+ = 0.00048828125, // 2^(-11)
+    simulator.timeStep+ = 0.0009765625, // 2^(-10)
+//  simulator.timeStep+ = 0.001953125, // 2^(-9)
+//  simulator.timeStep+ = 0.00390625, // 2^(-8)
+//  simulator.timeStep+ = 0.0078125, // 2^(-7)
+//  simulator.timeStep+ = 0.015625, // 2^(-6)
+//  simulator.timeStep+ = 0.03125, // 2^(-5)
+//  simulator.timeStep+ = 0.0625, // 2^(-4)
+//  simulator.timeStep+ = 0.05,
+
+  _3D =
+  ( Text                  // Collision state
+    center = (-2.2,s.y2+3,1.6)
+    size = 0.3
+    color = yellow
+    content = s.state12
+  , Text                  // Vechicle 1 state
+    center = (-2.2,s.y2+3,1.3)
+    size = 0.3
+    color = blue
+    content = s.state1
+  , Text                  // Vehicle 2 state
+    center = (-2.2,s.y2+3,1.0)
+    size = 0.3
+    color = red
+    content = s.state2
+  , Box                    // Sheet behind state texts
+    center = (-1.1,s.y2+3,1.38)
+    size = (2.4,0.01,1)
+  , Box                    // x-axis road
+    center = (0,-1.5,-0.02)
+    size = (1000,6,0.02)
+    color = white * 0.93
+  , Box                    // x-axis curb
+    center = (0,-1.5,-0.025)
+    size = (1000,9,0.02)
+    color = white * 0.99
+  , Box                    // x-axis road stripe
+    center = (0,-1.5,-0.01)
+    size = (1000,0.1,0.01)
+    color = white
+  , Box                    // y-axis road
+    center = (-1.5,0,-0.02)
+    size = (6,1000,0.02)
+    color = white * 0.93
+  , Box                    // y-axis curb
+    center = (-1.5,0,-0.025)
+    size = (9,1000,0.02)
+    color = white * 0.99
+  , Box                    // y-axis road stripe
+    center = (-1.5,0,-0.01)
+    size = (0.1,1000,1/20)
+    color = white
+    /* Sensor area and corners */
+  , Obj 
+    center =  (s.x1,s.y1+s.vl1/2+s.sRange/2,0.1)
+    size = 1
+    rotation = (0,0,pi/2)
+    content = "sensor"
+  , Sphere center = (s.x1+(s.sWidthBumper+s.sWidthDelta)/2,s.frys,0) size = 0.1 color = yellow
+  , Sphere center = (s.x1-(s.sWidthBumper+s.sWidthDelta)/2,s.frys,0) size = 0.1 color = yellow
+    /* Vehicle 1 */
+  , Obj
+    rotation = (0,0,-pi/2)
+    center = (s.x1,s.y1+1.73,0.75)
+    size = 105
+    content = "truck"
+  , Sphere center = (s.flx1,s.fly1,0) size = 0.1 color = blue
+  , Sphere center = (s.frx1,s.fry1,0) size = 0.1 color = blue
+  , Sphere center = (s.rlx1,s.rly1,0) size = 0.1 color = blue
+  , Sphere center = (s.rrx1,s.rry1,0) size = 0.1 color = blue
+    /* Vehicle 2 */
+  , Obj
+    rotation = (0,0,-s.rot2)
+    center = (s.x2,s.y2,0.5)
+    size = 2.1
+    content = "car"
+  , Sphere center = (s.flx2,s.fly2,0) size = 0.1 color = red
+  , Sphere center = (s.frx2,s.fry2,0) size = 0.1 color = red
+  , Sphere center = (s.rlx2,s.rly2,0) size = 0.1 color = red
+  , Sphere center = (s.rrx2,s.rry2,0) size = 0.1 color = red
+  ),
+//  _3DView = ((0,0,45), (0,0,0)) // Intersection from above
+  _3DView = ((-15,s.y2-15,15), (s.x2,s.y2,0))
+
+model Scenario
+  ( n      // Scenario number
+  , x1     // Vehicle 1 initial position in x dimension (m)
+  , y1     // Vehicle 1 initial position in y dimension (m)
+  , x1v    // Vehicle 1 initial speed    in x dimension (m/s)
+  , y1v    // Vehicle 1 initial speed    in y dimension (m/s)
+  , x2     // Vehicle 1 initial position in x dimension (m)
+  , y2     // Vehicle 2 initial position in y dimension (m)
+  , x2v    // Vehicle 2 initial speed    in x dimension (m/s)
+  , y2v    // Vehicle 2 initial speed    in y dimension (m/s)
+  , u2a    // Vehicle 2 control input for acceleration
+  , state2 // Vehicle 2 automaton initial mode
+  , rot2   // Vehicle 2 rotation
+  , ttcpb  // Vehicle 1 pre-brake ttc threshold         (s)
+  , ttcfb  // Vehicle 1 full-brake ttc threshold        (s)
+  , u1pb   // Vehicle 1 control input for pre-brake deceleration   
+  , u1fb   // Vehicle 1 control input for full-brake deceleration
+  ) =
+initially
+
+  /* Vehicle 1 */
+ 
+  state1 = "0-Cruise",
+  m1 = 55000,
+  x1' = x1v, x1'' = 0,
+  y1' = y1v, y1'' = 0,
+  vw1 = 2, vl1 = 11,    // Width and length
+  flx1 = 0, fly1 = 0,   // Front left corner
+  frx1 = 0, fry1 = 0,   // Front right corner
+  rlx1 = 0, rly1 = 0,   // Rear left corner
+  rrx1 = 0, rry1 = 0,   // Rear right corner
+  a1    =  2,           // Brake efficiency            %/100
+  mu    =  0.95,        // Brake efficiency            %/100
+  pcb   =  0,           // Post-collision deceleration m/s2
+
+  /* Sensor of Vehicle 1 */
+  
+  sRange = 50,        // Sensor range 
+  sWidthBumper = 2,   // Sensor width at the bumper
+  sWidthDelta = 0,    // Increase in width by the range (total increase)
+  frxs = 0, frys = 0, // Front right corner of the sensor area
+  flxs = 0, flys = 0, // Front left  corner of the sensor area
+  rrxs = 0, rrys = 0, // Rear  right corner of the sensor area
+  rlxs = 0, rlys = 0, // Rear  left  corner of the sensor area
+  
+  /* Vehicle 2 */
+ 
+  m2 = 1500,
+  x2' = x2v, x2'' = 0,
+  y2' = y2v, y2'' = 0,
+  vw2 = 2, vl2 = 4.5,  // Width and length
+  radius = 3,          // Turn radius
+  rot2' = 0,           // Angular velocity
+  a2    =  4,         // Brake efficiency            %/100  
+  // Front left corner
+  flx2 = x2 - 2/2 * sin(0) - 4.5/2 * cos(0),
+  fly2 = y2 - 2/2 * cos(0) + 4.5/2 * sin(0),
+  // Front right corner
+  frx2 = x2 + 2/2 * sin(0) - 4.5/2 * cos(0),
+  fry2 = y2 + 2/2 * cos(0) + 4.5/2 * sin(0),
+  // Rear left corner
+  rlx2 = x2 - 2/2 * sin(0) + 4.5/2 * cos(0),
+  rly2 = y2 - 2/2 * cos(0) - 4.5/2 * sin(0),
+  // Rear right corner
+  rrx2 = x2 + 2/2 * sin(0) + 4.5/2 * cos(0),
+  rry2 = y2 + 2/2 * cos(0) - 4.5/2 * sin(0),
+ 
+
+  
+  /* Common */
+  
+  state12 = "0-Pre-Collision",
+  c = 0.5,                                // Coefficient of restitution used in collision
+  collision_delta_xv1 = 0, collision_delta_yv1 = 0, // Estimate of damage to Vehicle 1
+  collision_delta_xv2 = 0, collision_delta_yv2 = 0, // Estimate of damage to Vehicle 2
+  
+  xdiff  = x1 - x2,   ydiff  = y1 - y2,   // Vehicle 1/2 position difference
+  xvdiff = x1v - x2v, yvdiff = y1v - y2v, // Vehicle 1/2 speed difference
+  distance = sqrt(((x1 - x2)*(x1 - x2))   // 2D distance between Vehicle 1 and 2
+                 +((y1 - y2)*(y1 - y2))),
+ 
+  TerrainTopography = "Flat",             // Either Flat or Uphill or Downhill
+  TerrainSlopepercentage = 0,             // The grade of the terrain slope in case of Uphill or Downhill road
+  TestProcedureLevel = "A",               // The reliability of the test procedure for safety specification
+                                          //   A: Extremly High (Reliable): Use TTC, dw, dre, dbr, and ds for the collision detection
+                                          //   B: Very High: Use only TTC for the collision detection
+                                          //   C: High: Use Only dw, dre, dbr, and ds for the collision detection
+  //TTC1=0,                               // Time to Collision estimated by the on-bord computer of Vehicle 1                     
+  dw1=0,                                  // Critical warning distance estimated by the on-bord computer of Vehicle 1 
+  dre=0,                                  // Critical reaction distance estimated by the on-bord computer of Vehicle 1 
+  dbr=0,                                  // Critical braking distance estimated by the on-bord computer of Vehicle 1 
+  tr=2.5,                                 // Reaction time of the driver (2.5 sec recommaneded by American Association of State and Highway Officials (AASHTO))
+  ds=0,                                   // Critical stopping distance 
+  fri=0,                                  // Equivalent coefficient of friction: The following values are recommended by AASHTO
+  fri0=0.35,                              // Initial Equivalent coefficient of friction: The following values are recommended by AASHTO 
+                                          // v = 110 km2 -> fri = 0.28
+                                          // v = 95  km2 -> fri = 0.29
+                                          // v = 80  km2 -> fri = 0.3
+                                          // v = 60  km2 -> fri = 0.32
+                                          // v = 50  km2 -> fri = 0.3
+
+  sense = false,                          // Sensor area intersects Vehicle 2 (approxmation)
+  caseSenseA = false, caseSenseB = false, 
+  caseSenseC = false, caseSenseD = false, 
+  caseSenseE = false,                     // Different cases for activating the sensor
+  collide = false,                        // Vehicle 1 intersects Vehicle 2 (approxmation)
+  caseCollideA = false, caseCollideB = false, 
+  caseCollideC = false, caseCollideD = false, 
+  caseCollideE = false,                   // Different cases for collision
+
+  /* Additional cases to check due to errors in floating point computations */
+  performAdditionalChecks = true,         // When true, the additional Left - Rear checks are enabled
+  caseSenseNR = false,                    // Left - Rear sense for non rigorous computations
+  caseCollideNR = false                   // Left - Rear collision for non rigorous computations
+
+always
+
+  match TerrainTopography with
+  [ "Uphill" ->    
+    //Critical Braking distance
+    dbr = 0.5*(((y1'*y1')/(9.81*(fri0 + (TerrainSlopepercentage/100))))-((y1'-yvdiff)*(y1'-yvdiff)/(9.81*(fri0 + (TerrainSlopepercentage/100)))))  
+  | "Downhill" ->
+    //Critical Braking distance
+    dbr = 0.5*(((y1'*y1')/(9.81*(fri0 - (TerrainSlopepercentage/100))))-((y1'-yvdiff)*(y1'-yvdiff)/(9.81*(fri0 - (TerrainSlopepercentage/100)))))  
+  | "Flat" ->
+    //Critical Braking distance
+    dbr = 0.5*(((y1'*y1')/(9.81*fri0))-((y1'-yvdiff)*(y1'-yvdiff)/(9.81*fri0)))
+  ],
+  //Critical Warning distance
+  dw1 = ((2.2 * abs(yvdiff))+6.2),    
+  //Critical Reaction distance
+  dre = (y1' + abs(yvdiff))* tr,
+  //Critical Stopping distance
+  ds = dre+dbr,
+    
+  xdiff    = x1  - x2,
+  ydiff    = y1  - y2,
+  xvdiff   = x1' - x2',
+  yvdiff   = y1' - y2',
+  distance = sqrt((xdiff*xdiff)+(ydiff*ydiff)),
+
+  match state12 with
+  [ "1-Post-Collision" ->
+    rot2' = 0,
+    x1'' = 0,
+    if y1'>0 then y1'' = pcb else y1' = 0,
+    x2'' = 0, y2'' = 0
+  | "0-Pre-Collision" ->
+ 
+    /* Collision detection and handling */
+    
+    if collide then
+      // Caveat: This will only produce correct values in those 
+      //         scenarios where the collision happens from behind
+      //         and x1' and x2' are both negligible. Note that
+      //         this holds for the case study scenario.
+      x1'+ = (c*m2*(x2' - x1') + m1*x1' + m2*x2')/(m1 + m2),
+      y1'+ = (c*m2*(y2' - y1') + m1*y1' + m2*y2')/(m1 + m2),
+      x2'+ = (c*m1*(x1' - x2') + m1*x1' + m2*x2')/(m1 + m2),
+      y2'+ = (c*m1*(y1' - y2') + m1*y1' + m2*y2')/(m1 + m2),
+      collision_delta_yv1+ = (c*m2*(y2' - y1') + m1*y1' + m2*y2')/(m1 + m2) - y1',
+      collision_delta_yv2+ = (c*m1*(y1' - y2') + m1*y1' + m2*y2')/(m1 + m2) - y2',         
+      state12+ = "1-Post-Collision"     
+    noelse,
+    
+    /* Vehicle 1 */
+    
+    match state1 with
+    [ "0-Cruise" ->
+      x1' = 0, y1' = y1v,
+      if sense then state1+ = "1-Sense" noelse
+    | "1-Sense" ->  
+      x1' = 0,
+      y1'' = 0,
+      if abs(yvdiff) > 0 then
+        match TestProcedureLevel with
+        [ "A" ->
+          if -ydiff < ttcpb*yvdiff || distance < dw1 then 
+            state1+ = "2-Pre-Brake" noelse
+        | "B" ->
+          if -ydiff < ttcpb*yvdiff  then 
+            state1+ = "2-Pre-Brake" noelse
+        | "C" ->
+          if distance < dw1 then 
+            state1+ = "2-Pre-Brake" noelse
+        ] 
+      noelse
+    | "2-Pre-Brake" ->
+      if y1' > 0 then 
+        x1' = 0,
+        y1'' = a1*u1pb*mu
+      else
+        state1+ = "4-Stopped",
+      if abs(yvdiff) > 0 then
+        match TestProcedureLevel with
+        [ "A" -> 
+          if -ydiff < ttcfb*yvdiff || distance < ds then  
+            state1+ = "3-Brake" noelse
+        | "B" -> 
+          if -ydiff < ttcfb*yvdiff then  
+            state1+ = "3-Brake" noelse
+        | "C" -> 
+          if distance < ds then  
+            state1+ = "3-Brake" noelse
+        ]
+      noelse
+    | "3-Brake" ->
+      if y1' > 0 then 
+        x1' = 0,
+        y1'' = a1*u1fb*mu
+      else
+        state1+ = "4-Stopped"
+    | "4-Stopped" ->
+      x1' = 0, y1' = 0
+    ],
+
+    /* Vehicle 2 */
+    
+    match state2 with
+    [ "0-Pre-Turn" ->
+      if x2-vl2/2 > radius then 
+        rot2' = 0,
+        x2' = x2v,
+        y2' = y2v
+      else
+        state2+ = "1-Turn"
+    | "1-Turn" ->
+      if (rot2 < pi/2) then 
+        rot2' = 1,
+        x2'' = radius - x2,
+        y2'' = radius - y2
+      else
+        state2+ = "2-Post-Turn"
+    | "2-Post-Turn" ->
+      rot2' = 0,
+      x2' = 0,
+      y2'' = 0,
+      if abs(yvdiff) > 0 then
+        match TestProcedureLevel with
+        [ "A" -> 
+          if -ydiff < ttcpb*yvdiff || distance < dw1 then      
+            state2+ = "3-Act" noelse
+        | "B" ->
+          if -ydiff < ttcpb*yvdiff then      
+            state2+ = "3-Act" noelse
+        | "C" ->
+          if distance < dw1 then      
+            state2+ = "3-Act" noelse
+        ]
+      noelse
+    | "3-Act" ->
+      if y2' > 0 then 
+        rot2' = 0,
+        x2' = 0,
+        y2'' = a2*u2a
+      else
+        state2+ = "4-Stopped"
+    | "4-Stopped" ->
+      rot2' = 0,
+      x2' = 0, y2' = 0
+    ]
+  ],
+
+  /* Compute when the sensor detects V2, 
+     detection is assumed during collision though it is not used. */
+     
+  sense =  caseSenseA || caseSenseB || caseSenseC || caseSenseD || caseSenseE || collide
+           || caseSenseNR,
+ 
+  // front of the sensor intersects the left side of V2
+  caseSenseA = ((fly2 - frys) * (rly2 - frys) <= 0)
+               &&
+               (( (frxs-rlx2)*(fly2-rly2) + (frys-rly2)*(rlx2-flx2)) * 
+                ( (flxs-rlx2)*(fly2-rly2) + (flys-rly2)*(rlx2-flx2)) <= 0),
+  // front of the sensor intersects the rear side of V2
+  caseSenseB = ((rly2 - frys) * (rry2 - frys) <= 0)
+               &&
+               (( (frxs-rlx2)*(rry2-rly2) + (frys-rly2)*(rlx2-rrx2)) * 
+                ( (flxs-rlx2)*(rry2-rly2) + (flys-rly2)*(rlx2-rrx2)) <= 0),
+  // right side of the sensor intersects the left side of V2
+  caseSenseC = (( (rlx2-frxs)*(rrys-frys) + (rly2-frys)*(frxs-rrxs) ) * 
+                ( (flx2-frxs)*(rrys-frys) + (fly2-frys)*(frxs-rrxs) ) <= 0)
+               &&
+               (( (frxs-rlx2)*(fly2-rly2) + (frys-rly2)*(rlx2-flx2)) * 
+                ( (rrxs-rlx2)*(fly2-rly2) + (rrys-rly2)*(rlx2-flx2)) <= 0),
+  // right side of the sensor intersects the rear side of V2
+  caseSenseD = (( (rlx2-frxs)*(rrys-frys) + (rly2-frys)*(frxs-rrxs) ) * 
+                ( (rrx2-frxs)*(rrys-frys) + (rry2-frys)*(frxs-rrxs) ) <= 0)
+               &&
+               (( (frxs-rlx2)*(rry2-rly2) + (frys-rly2)*(rlx2-rrx2)) * 
+                ( (rrxs-rlx2)*(rry2-rly2) + (rrys-rly2)*(rlx2-rrx2)) <= 0),
+  // V2 is possibly in the interior of the sensor area (might intersect with the sides)
+  // (specialized to the rectangle V1 moving symmetrically along the y-axis)
+  caseSenseE = (frx2 <= frxs) && (flx2 >= flxs) && (fry2 <= frys) && (fly2 <= flys)
+               &&
+               (rrx2 <= rrxs) && (rlx2 >= rlxs) && (rry2 <= rrys) && (rly2 <= rlys),
+  /* Only needed for non-rigorous computations: 
+     left side of V1 collides with the rear side of V2 */
+  match performAdditionalChecks with
+  [ false  ->
+      caseSenseNR = false
+  | true ->
+      caseSenseNR = (( (rlx2-flxs)*(rlys-flys) + (rly2-flys)*(flxs-rlxs) ) * 
+                     ( (rrx2-flxs)*(rlys-flys) + (rry2-flys)*(flxs-rlxs) ) <= 0)
+                    &&
+                    (( (flxs-rlx2)*(rry2-rly2) + (flys-rly2)*(rlx2-rrx2)) * 
+                     ( (rlxs-rlx2)*(rry2-rly2) + (rlys-rly2)*(rlx2-rrx2)) <= 0)
+  ],
+
+  /* Compute when the two vehicles collide */
+   
+  collide = caseCollideA || caseCollideB || caseCollideC || caseCollideD || caseCollideE
+            || caseCollideNR,
+
+  // front of V1 collides with the left side of V2
+  caseCollideA = ((fly2 - fry1) * (rly2 - fry1) <= 0)
+                 &&
+                 (( (frx1-rlx2)*(fly2-rly2) + (fry1-rly2)*(rlx2-flx2)) * 
+                  ( (flx1-rlx2)*(fly2-rly2) + (fly1-rly2)*(rlx2-flx2)) <= 0),
+  // front of V1 collides with the rear side of V2
+  caseCollideB = ((rly2 - fry1) * (rry2 - fry1) <= 0)
+                 &&
+                 (( (frx1-rlx2)*(rry2-rly2) + (fry1-rly2)*(rlx2-rrx2)) * 
+                  ( (flx1-rlx2)*(rry2-rly2) + (fly1-rly2)*(rlx2-rrx2)) <= 0),
+  // right side of V1 collides with the left side of V2
+  caseCollideC = ((rlx2-frx1) * (flx2-frx1) <= 0)
+                 &&
+                 (( (frx1-rlx2)*(fly2-rly2) + (fry1-rly2)*(rlx2-flx2)) * 
+                  ( (rrx1-rlx2)*(fly2-rly2) + (rry1-rly2)*(rlx2-flx2)) <= 0),
+  // right side of V1 collides with the rear side of V2
+  caseCollideD = ((rlx2-frx1) * (rrx2-frx1) <= 0)
+                 &&
+                 (( (frx1-rlx2)*(rry2-rly2) + (fry1-rly2)*(rlx2-rrx2)) * 
+                  ( (rrx1-rlx2)*(rry2-rly2) + (rry1-rly2)*(rlx2-rrx2)) <= 0),
+  // V2 is in the interior of V1 
+  // (specialized to the rectangle V1 moving symmetrically along the y-axis)
+  caseCollideE = (frx2 <= frx1) && (flx2 >= flx1) && (fry2 <= fry1) && (fly2 <= fly1)
+                 &&
+                 (rrx2 <= rrx1) && (rlx2 >= rlx1) && (rry2 <= rry1) && (rly2 <= rly1),
+  /* Only needed for non-rigorous computations: 
+     left side of V1 collides with the rear side of V2 */
+  match performAdditionalChecks with
+  [ false  ->
+      caseCollideNR = false
+  | true ->
+      caseCollideNR = ((rlx2-flx1) * (rrx2-flx1) <= 0)
+                      &&
+                      (( (flx1-rlx2)*(rry2-rly2) + (fly1-rly2)*(rlx2-rrx2)) * 
+                       ( (rlx1-rlx2)*(rry2-rly2) + (rly1-rly2)*(rlx2-rrx2)) <= 0)
+  ],
+  /* Vehicle 1 and 2 boundaries */
+  
+  flx1 = x1 - vw1/2, fly1 = y1 + vl1/2,
+  frx1 = x1 + vw1/2, fry1 = y1 + vl1/2,
+  rlx1 = x1 - vw1/2, rly1 = y1 - vl1/2,
+  rrx1 = x1 + vw1/2, rry1 = y1 - vl1/2,
+
+  flx2 = x2 - vw2/2 * sin(rot2) - vl2/2 * cos(rot2),
+  fly2 = y2 - vw2/2 * cos(rot2) + vl2/2 * sin(rot2),
+  frx2 = x2 + vw2/2 * sin(rot2) - vl2/2 * cos(rot2),
+  fry2 = y2 + vw2/2 * cos(rot2) + vl2/2 * sin(rot2),
+  rlx2 = x2 - vw2/2 * sin(rot2) + vl2/2 * cos(rot2),
+  rly2 = y2 - vw2/2 * cos(rot2) - vl2/2 * sin(rot2),
+  rrx2 = x2 + vw2/2 * sin(rot2) + vl2/2 * cos(rot2),
+  rry2 = y2 + vw2/2 * cos(rot2) - vl2/2 * sin(rot2),
+
+  /* Sensor Boundaries */
+  
+  frxs = (sWidthBumper + sWidthDelta) / 2,
+  frys = fry1 + sRange,
+  flxs = - (sWidthBumper + sWidthDelta) / 2,
+  flys = frys,
+  rrxs = sWidthBumper / 2,
+  rrys = fry1,
+  rlxs = -rrxs,
+  rlys = rrys
