@@ -176,9 +176,6 @@ class App extends SimpleSwingApplication {
   private val pwlHybridSolverAction           = mkActionMask("2013 PWL",                            VK_L, VK_L,       shortcutMask | SHIFT_MASK, setSemantics(S.Enclosure(S.PWL,contraction))) 
   private val eventTreeHybridSolverAction     = mkActionMask("2013 EVT",                            VK_T, VK_T,       shortcutMask | SHIFT_MASK, setSemantics(S.Enclosure(S.EVT,contraction)))
   private val enclosure2015Action             = mkActionMask("2015 Enclosure",                      VK_5, VK_D,       shortcutMask | SHIFT_MASK, setSemantics(S.Enclosure2015(contraction)))
-  private val enableAnaglyph                  = mkAction(    "Enable 3D Anaglyph",                  NONE, NONE,       toggleAnaglyph3D())
-  private val enableRealTimeRender            = mkAction(    "Enable Real Time Animation",          NONE, NONE,       toggleRealTime())
-  private val matchWallClockAction            = mkAction(    "Match with Wall Clock",               VK_W, NONE,       toggleMatchWallClock())
   private val startSeverAction                = mkAction(    "Start Server",                        NONE, NONE,       startServer())
   private val stopServerAction                = mkAction(    "Stop Server",                         NONE, NONE,       stopServer())
   private val resetDeviceNum                  = mkAction(    "Reset Device",                        NONE, NONE,       resetDevice())
@@ -426,9 +423,6 @@ class App extends SimpleSwingApplication {
   private val stepMenuItem = new MenuItem(stepAction)
   private val stopMenuItem = new MenuItem(stopAction)
 
-  private val enableAnaglyphItem = new RadioMenuItem("Enable 3D Anaglyph") {selected = false; action = enableAnaglyph}
-  private val enableRealTimeItem = new RadioMenuItem("Enable Real Time Animation") {selected = false; action = enableRealTimeRender}
-  private val matchWallClockItem = new RadioMenuItem("Match with Wall Clock") {selected = false; action = matchWallClockAction}
   private val startserverItem = new RadioMenuItem("Start Server") {selected = false; action = startSeverAction}
   private val resetDeviceItem = new MenuItem("Reset Device")  {action = resetDeviceNum}
   private val stopserverItem  = new MenuItem("Stop Server")  {action = stopServerAction}
@@ -441,14 +435,8 @@ class App extends SimpleSwingApplication {
     new ButtonGroup(rb1)
   }
   
-  // FIXME Move all of this state into Main, and expose through CLI 
-  private var startAnaglyph = false
-  private var matchWallClock = false // Note: This will be reset below
-  def getStartAnaglyph = startAnaglyph
-  def getStartRealTime = Main.enableRealTime
-  def getMatchWallClock = matchWallClock
-  if (Main.enableRealTime) enableRealTime() // Enable real-time simulation by default
-  disableMatchWallClock() // Disable wall-clock synchronization by default
+  // FIXME Move all of this state into Main, and expose through CLI
+  def getStartAnaglyph = false
   
   val bar = new MenuBar {
     contents += new Menu("File") {
@@ -510,13 +498,6 @@ class App extends SimpleSwingApplication {
         action = showLineNumbersAction
       }
 
-      contents += new Separator()
-
-      /* Notes: anaglyph should be enable after the function is correct */
-      contents += new Menu("_3D") {
-        mnemonic = Key.Key3
-        contents ++= Seq(enableRealTimeItem, matchWallClockItem)
-      }
     }
 
     contents += new Menu("Plotting") {
@@ -773,9 +754,11 @@ class App extends SimpleSwingApplication {
 
   def startServer(): Unit = {
     BuildHost.BuildHost.start()
-    if (!getStartRealTime) {
-      toggleRealTime()
-      enableRealTimeItem.selected = true
+    if (!threeDtab.checkBoxState("realTime")) {
+      threeDtab.setCheckBoxState(true, "realTime")
+      threeDtab.setCheckBoxState(true, "matchWallClock")
+    } else if (!threeDtab.checkBoxState("matchWallClock")) {
+      threeDtab.setCheckBoxState(true, "matchWallClock")
     }
     resetDeviceItem.enabled = true
     serverLinkItem.enabled = true
@@ -804,31 +787,6 @@ class App extends SimpleSwingApplication {
     BuildHost.BuildHost.sensors.clear()
     BuildHost.BuildHost.sensors.add(0, tempsensor)
     BuildHost.BuildHost.Device_counter = 0
-  }
-
-  def toggleAnaglyph3D(): Unit = {
-    startAnaglyph = !startAnaglyph
-  }
-
-  def enableRealTime(): Unit = setRealTime(true)
-  def disableRealTime(): Unit = setRealTime(false)
-  def toggleRealTime(): Unit = setRealTime(!getStartRealTime)
-  /** Control whether or not the 3D visualization will run synchronously with the simulation */
-  def setRealTime(targetState: Boolean): Unit = {
-    Main.enableRealTime = targetState
-    enableRealTimeItem.selected = targetState
-    matchWallClockItem.enabled = targetState
-    setMatchWallClock(targetState)
-    threeDtab.setButtons(!targetState)
-  }
-
-  def enableMatchWallClock(): Unit = setMatchWallClock(true)
-  def disableMatchWallClock(): Unit = setMatchWallClock(false)
-  def toggleMatchWallClock(): Unit = setMatchWallClock(!matchWallClock)
-  /** Control whether or not the simulation will run synchronously with the wall clock */
-  def setMatchWallClock(targetState: Boolean): Unit = {
-    matchWallClock = targetState
-    matchWallClockItem.selected = targetState
   }
 
   /* ----- events handling ---- */
@@ -907,7 +865,7 @@ class App extends SimpleSwingApplication {
       if (controller.threeDData.modelContains3D()) {
         codeArea.editedSinceLastRun = false
         if (Main.threeDState == ThreeDState.ENABLE && modelFinished
-          && !getStartRealTime) {
+          && !threeDtab.checkBoxState("realTime")) {
           views.selectThreeDView()
           threeDtab.play()
         }
@@ -986,24 +944,12 @@ class App extends SimpleSwingApplication {
     }
   }
   
-  def enableRealTimeSimulationMenuItems() = {
-    enableAnaglyphItem.enabled = true
-    enableRealTimeItem.enabled = true
-    matchWallClockItem.enabled = getMatchWallClock
-  }
-  
-  def diableRealTimeSimulationMenuItems() = {
-    enableAnaglyphItem.enabled = false
-    enableRealTimeItem.enabled = false
-    matchWallClockItem.enabled = false
-  }
-  
   /** Everything that needs to be done to start a simulation. */
   def runSimulation() {
     controller.threeDData.reset
     threeDtab.reset
     codeArea.autoSave
-    diableRealTimeSimulationMenuItems()
+    threeDtab.setCheckBoxes(false)
     threeDtab.disableButtons()
     controller ! Play
   }
@@ -1011,14 +957,14 @@ class App extends SimpleSwingApplication {
   /** Everything that needs to compute one simulation step. */
   def stepSimulation() {
     codeArea.autoSave
-    diableRealTimeSimulationMenuItems()
+    threeDtab.setCheckBoxes(false)
     threeDtab.disableButtons()
     controller ! Step
   }
 
   /** Everything that needs to be done after simulation finished. */
   def stopSimulation() {
-    enableRealTimeSimulationMenuItems()
+    threeDtab.setCheckBoxes(true)
     threeDtab.enableButtons()
   }
   
