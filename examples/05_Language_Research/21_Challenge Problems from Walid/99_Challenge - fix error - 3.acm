@@ -8,4 +8,4 @@ model Main (simulator) =
     t'=-1,
     x'=s,
     if (x<=0) then s+=10 noelse,
-    if (x>=t) then s+=-10 noelse
+    if (x>=t && x>0) then s+=-10 noelse

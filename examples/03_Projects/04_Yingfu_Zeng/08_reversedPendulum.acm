@@ -1,3 +1,4 @@
+#semantics "2014 Optimized"
 model Pendulum() = 
 initially
   M  =  1 ,

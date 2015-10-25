@@ -7,8 +7,8 @@ model Main (simulator) =
   always
     x''=-10,
     if (x<=0)&&(x'<0)
-      then (x'+ = -0.5 * x,
-            e+  = 0.25 * e)
+      then x'+ = -0.5 * x,
+            e+  = 0.25 * e
       noelse,
     claim (x>=0),
     claim (e = 0.5 *x*x + -10*x)

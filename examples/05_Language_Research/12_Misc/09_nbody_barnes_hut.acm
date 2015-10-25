@@ -10,11 +10,11 @@ ux  =  (1, 0, 0),
 uy  =  (0, 1, 0),
 uz  =  (0, 0, 1)
 always
-switch mode
- case "Idle"
+match mode with [
+  "Idle" ->
   // do nothing
   
- case "Subspace"
+ | "Subspace" ->
   spaceRays + = spaceRays * 0.5,
   if dot (planetCoord, ux) > dot(spaceCenter, ux)
    && dot (planetCoord, uy) > dot (spaceCenter, uy)
