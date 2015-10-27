@@ -1,7 +1,7 @@
 package acumen.ui.threeD
 import java.awt.BorderLayout
 import javax.swing.JPanel
-import acumen.CId
+import acumen.{Main, CId}
 
 import scala.collection.mutable
 import acumen.ui.{App, Controller, Icons}
@@ -18,6 +18,9 @@ abstract class AbstractEditorTab extends BorderPanel{
   def disableButtons(): Unit
   def enableButtons(): Unit
   def setButtons(targetState: Boolean): Unit
+  def setCheckBoxes(targetState: Boolean): Unit
+  def checkBoxState(boxType: String): Boolean
+  def setCheckBoxState(targetState: Boolean, boxType: String): Unit
 }
 
 class ThreeDTab (val appModel: Controller) extends AbstractEditorTab{
@@ -112,6 +115,34 @@ class ThreeDTab (val appModel: Controller) extends AbstractEditorTab{
   }
   check.selected = false
 
+  val checkMatchTime = new CheckBox("") {
+    action = Action("Match Wall Clock") {}
+  }
+  checkMatchTime.selected = false
+  checkMatchTime.enabled = false
+
+  val missedDeadLine = new Label("   Missed deadlines:%.2f".format(threeDView.percentagemissDL * 100) + "%    ")
+  missedDeadLine.border = Swing.EmptyBorder(2,0,0,0)
+  val slackTime = new Label("Slack:%.2f".format(threeDView.averageSlack * 100) + "%  ")
+  slackTime.border = Swing.EmptyBorder(2,0,0,0)
+  val checkRTAnimation = new CheckBox(""){
+    action = Action("Real Time Animation") {
+      if (selected) {
+        checkMatchTime.enabled = true
+        missedDeadLine.visible = true
+        slackTime.visible = true
+        checkMatchTime.border = Swing.EmptyBorder(0,0,0,0)
+      } else {
+        checkMatchTime.selected = false
+        checkMatchTime.enabled = false
+        missedDeadLine.visible = false
+        slackTime.visible = false
+        checkMatchTime.border = Swing.EmptyBorder(0,0,0,260)
+      }
+    }
+  }
+  if (Main.enableRealTime) checkRTAnimation.doClick()
+
   def hide(button: Button) {
     button.peer.setEnabled(false)
   }
@@ -128,8 +159,16 @@ class ThreeDTab (val appModel: Controller) extends AbstractEditorTab{
         pauseOff()
   })
 
-  val threeDBottomPane = new BoxPanel(Orientation.Horizontal) {
+  val threeDControlPane = new BoxPanel(Orientation.Horizontal) {
     contents ++= Seq(check, b3dplay, b3dstop, b3dslower, b3dfaster, statusZone3d)
+  }
+
+  val threeDInfoPane = new BoxPanel(Orientation.Horizontal) {
+    contents ++= Seq(checkRTAnimation, checkMatchTime, missedDeadLine, slackTime)
+  }
+
+  val threeDBottomPane = new BoxPanel(Orientation.Vertical) {
+    contents ++= Seq(threeDInfoPane, threeDControlPane)
   }
 
   var _receiver = new _3DDisplay(threeDView, statusZone3d, playSpeed,
@@ -268,6 +307,29 @@ class ThreeDTab (val appModel: Controller) extends AbstractEditorTab{
     b3dstop.enabled = targetState
     statusZone3d.bar.enabled = targetState
   }
+
+  def checkBoxState(boxType: String): Boolean = {
+    if (boxType == "realTime") {
+      if (checkRTAnimation.selected) true
+      else false
+    } else {
+      if (checkMatchTime.selected) true
+      else false
+    }
+  }
+
+  def setCheckBoxState(targetState: Boolean, boxType: String) = {
+    if (boxType == "realTime") {
+      checkRTAnimation.selected = targetState
+    } else {
+      checkMatchTime.selected = targetState
+    }
+  }
+
+  def setCheckBoxes(targetState: Boolean) = {
+    checkRTAnimation.enabled = targetState
+    checkMatchTime.enabled = targetState
+  }
   
   // Final Init
   createCanvas()
@@ -281,6 +343,9 @@ class DisabledEditorTab(msg: String) extends AbstractEditorTab {
   def disableButtons() = {}
   def enableButtons() = {}
   def setButtons(targetState: Boolean) = {}
+  def setCheckBoxes(targetState: Boolean) = {}
+  def checkBoxState(boxType: String): Boolean = false
+  def setCheckBoxState(targetState: Boolean, boxType: String) = {}
   def pause() = {}
   val msgBox = new TextArea("\n" + msg)
   msgBox.editable = false
