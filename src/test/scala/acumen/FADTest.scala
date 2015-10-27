@@ -119,7 +119,7 @@ object FADTest extends Properties("FAD") {
   property("lift leaves no base number types") = 
     forAll(arbitrary[GroundValue], listOf1(arbitrary[(CId,Name)])) { (gv, ns) =>
       forAll(oneOf(ns)) { case (id,n) =>
-        lift[CId,Double](Lit(gv))(DoubleIsReal, QName(id,n), ns.map{ case (id1,n1) => QName(id1,n1) }) match {
+        lift(Lit(gv), QName(id,n), ns.map{ case (id1,n1) => QName(id1,n1) })(DoubleIsReal) match {
           case Lit(_: GDouble | _: GInt | _: GInterval) => false
           case _ => true
         } 

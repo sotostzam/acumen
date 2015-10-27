@@ -20,32 +20,38 @@ object FAD extends App {
     /** Lift a constant value of type A to an FDif. */
     def constant[V: Integral](a: V) = FDif(a, Map.empty)
   }
+
+  /** Lift all numeric values in a store into FDifs */
+  def lift[Id, S <% RichStore[S, Id], I: Integral](st: S): List[S] = {
+    val odeVariables: List[QName] = ???
+    odeVariables.map(n => st map (liftValue[Id, I](_, n, odeVariables)))
+  }
   
   /** Lift all numeric values in a store into FDifs */
-  def lift[S, I: Integral](st: RichStore[S, GId])(implicit n: QName, ns: List[QName]): S = st map liftValue[I] 
+  def lift[Id, S <% RichStore[S, Id], I: Integral](st: S, n: QName, ns: List[QName]): S = st map (liftValue[Id,I](_, n, ns))
   
   /** Lift all numeric values in an Expr into FDifs */
-  def lift[Id, V: Integral](e: Expr)(implicit n: QName, ns: List[QName]): Expr = new acumen.util.ASTMap {
+  def lift[Id, V: Integral](e: Expr, n: QName, ns: List[QName]): Expr = new acumen.util.ASTMap {
     override def mapExpr(e: Expr): Expr = (e match {
-      case Lit(gv) => Lit(liftGroundValue(gv))
+      case Lit(gv) => Lit(liftGroundValue(gv, n, ns))
       case _ => super.mapExpr(e)
     }).setPos(e.pos)
   }.mapExpr(e)
 
-  private def liftGroundValue(gv: GroundValue)(implicit n: QName, ns: List[QName]): GroundValue = {
-    val der = ns.map(id => id -> (if (id == n) 1d else 0d)).toMap
+  private def liftGroundValue(gv: GroundValue, n: QName, ns: List[QName]): GroundValue = {
     gv match {
-      case GDouble(d) => GDoubleFDif(FDif(d,          der))
-      case GInt(i)    => GDoubleFDif(FDif(i.toDouble, der))
-      case _          => gv
+      case GDouble(d)   => GDoubleFDif(FDif(d,          ns.map(id => id -> (if (id == n) 1d else 0d)).toMap))
+      case GInt(i)      => GDoubleFDif(FDif(i.toDouble, ns.map(id => id -> (if (id == n) 1d else 0d)).toMap))
+      case GInterval(i) => GIntervalFDif(FDif(i,        ns.map(id => id -> (if (id == n) Interval.one else Interval.zero)).toMap))
+      case _            => gv
     }
   }
   
   /** Lift all the values inside a Value[Id] into FDifs */
-  private def liftValue[I: Integral](v: Value[GId])(implicit n: QName, ns: List[QName]): Value[GId] = v match {
-    case VLit(gv) => VLit(liftGroundValue(gv))
-    case VVector(lv: List[Value[GId]]) => VVector(lv map liftValue[I])
-    case VList(lv: List[Value[GId]]) => VList(lv map liftValue[I])
+  private def liftValue[Id, I: Integral](v: Value[Id], n: QName, ns: List[QName]): Value[Id] = v match {
+    case VLit(gv) => VLit(liftGroundValue(gv, n, ns))
+    case VVector(lv: List[Value[Id]]) => VVector(lv map (liftValue[Id, I](_, n, ns)))
+    case VList(lv: List[Value[Id]]) => VList(lv map (liftValue[Id, I](_, n, ns)))
     case _ => v
   }
   

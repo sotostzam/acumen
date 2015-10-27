@@ -3,6 +3,7 @@ package acumen
 import interpreters.enclosure.Interval
 import util.ASTUtil
 import acumen.interpreters.Common.RichStore
+import acumen._
 
 /**
  * Automatic Differentiation.
@@ -230,13 +231,13 @@ object TAD extends App {
       }, x.length) // FIXME How many?
   }
   implicit object IntDifIsIntegral extends TDifAsIntegral[Int] {
-    def groundValue(v: TDif[Int]) = GIntDif(v)
+    def groundValue(v: TDif[Int]) = GIntTDif(v)
   }
   implicit object DoubleDifIsReal extends TDifAsReal[Double] {
-    def groundValue(v: TDif[Double]) = GDoubleDif(v)
+    def groundValue(v: TDif[Double]) = GDoubleTDif(v)
   }
   implicit object IntervalDifIsReal extends TDifAsReal[Interval] {
-    def groundValue(v: TDif[Interval]) = GIntervalDif(v)
+    def groundValue(v: TDif[Interval]) = GIntervalTDif(v)
   }
   
   /** Representation of a number and its time derivatives. */
@@ -263,8 +264,10 @@ object TAD extends App {
   }.mapExpr(e)
   
   private def liftGroundValue(gv: GroundValue): GroundValue = gv match {
-    case GDouble(d) => GDoubleDif(TDif constant d)
-    case GInt(i) => GDoubleDif(TDif constant i)
+    case GDouble(d) => GDoubleTDif(TDif constant d)
+    case GInt(i) => GDoubleTDif(TDif constant i)
+    case GInterval(i) => GIntervalTDif(TDif constant i)
+    case GConstantRealEnclosure(i) => GIntervalTDif(TDif constant i)
     case _ => gv
   }
   
@@ -288,8 +291,9 @@ object TAD extends App {
   }.mapExpr(e)
   
   private def lowerGroundValue(gd: GroundValue): GroundValue = gd match {
-    case GIntDif(TDif(v,_)) => GInt(v(0))
-    case GDoubleDif(TDif(v,_)) => val v0 = v(0)
+    case GIntTDif(TDif(v,_)) => GInt(v(0))
+    case GIntervalTDif(TDif(v,_)) => GConstantRealEnclosure(v(0))
+    case GDoubleTDif(TDif(v,_)) => val v0 = v(0)
       if (DoubleIsReal isValidInt v0) GInt(DoubleIsReal toInt v0) else GDouble(v0)
     case _ => gd
   }

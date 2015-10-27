@@ -182,24 +182,28 @@ package acumen {
   /* Example: "foo" */
   case class GStr(s: String) extends GroundValue
   /* Representation of a value and its time derivatives */
-  abstract class GDif[V] extends GroundValue {
+  abstract class GTDif[V] extends GroundValue {
     def dif: TDif[V] 
     def isValidInt: Boolean
     def toInt: Int
-    def updated(d: TDif[V]): GDif[V]
+    def updated(d: TDif[V]): GTDif[V]
   }
-  case class GDoubleDif(dif: TDif[Double]) extends GDif[Double] {
-    def updated(d: TDif[Double]) = GDoubleDif(d)
+  case class GDoubleTDif(dif: TDif[Double]) extends GTDif[Double] {
+    def updated(d: TDif[Double]) = GDoubleTDif(d)
     def isValidInt = dif.isValidInt
     def toInt = dif.toInt
   }
-  case class GIntDif(dif: TDif[Int]) extends GDif[Int] {
-    def updated(d: TDif[Int]) = GIntDif(d)
+  case class GIntTDif(dif: TDif[Int]) extends GTDif[Int] {
+    def updated(d: TDif[Int]) = GIntTDif(d)
     def isValidInt = dif.isValidInt
     def toInt = dif.toInt
   }
-  case class GIntervalDif(dif: TDif[Interval]) extends GDif[Interval] {
-    def updated(d: TDif[Interval]) = GIntervalDif(d)
+  case class GIntervalTDif(dif: TDif[Interval]) extends GTDif[Interval] with GEnclosure[Interval] {
+    def apply(x: Interval): Interval = dif.head
+    def isThin: Boolean = dif.head.isThin
+    def range: Interval = dif.head
+    def show = this.toString
+    def updated(d: TDif[Interval]) = GIntervalTDif(d)
     def isValidInt = dif.isValidInt
     def toInt = dif.toInt
   }
@@ -229,16 +233,61 @@ package acumen {
   trait GEnclosure[V] extends GroundValue {
     def apply(t: Interval): V
     def range: V
-    def start: V
-    def end: V
     def isThin: Boolean
     def show: String
   }
   /* Internal, rigorous representation of a real function */
   abstract class GRealEnclosure extends GEnclosure[Interval]
   /* Internal, rigorous representation of a discrete function */
-  abstract class GDiscreteEnclosure[T] extends GEnclosure[Set[T]]
+  abstract class GDiscreteEnclosure[T] extends GEnclosure[Set[T]] {
+    def lift(s: Set[T]): GDiscreteEnclosure[T] 
+    def intersect(that: GDiscreteEnclosure[T]): Option[GDiscreteEnclosure[T]] = {
+      val i = this.range intersect that.range 
+      if (i isEmpty) None else Some(lift(i))
+    }
+  }
    
+  case class GConstantRealEnclosure(range: Interval) extends GRealEnclosure {
+    override def apply(t: Interval): Interval = range
+    override def isThin: Boolean = range.isThin
+    override def show: String = range.toString
+    def contains(that: GConstantRealEnclosure): Boolean =
+      this.range contains that.range
+    def /\ (that: GConstantRealEnclosure): GConstantRealEnclosure =
+      GConstantRealEnclosure(this.range /\ that.range)
+    def intersect(that: GConstantRealEnclosure): Option[GConstantRealEnclosure] =
+      for { e  <- range intersect that.range } yield GConstantRealEnclosure(e)
+  }
+  object GConstantRealEnclosure {
+    def apply(d: Double): GConstantRealEnclosure = GConstantRealEnclosure(Interval(d))
+    def apply(i: Int): GConstantRealEnclosure = GConstantRealEnclosure(Interval(i))
+  }
+  abstract class GConstantDiscreteEnclosure[T](val range: Set[T]) extends GDiscreteEnclosure[T] {
+    def apply(t: Interval) = range
+    def isThin = range.size == 1
+    def show = s"{${range mkString ","}}"
+    def contains(that: GConstantDiscreteEnclosure[T]): Boolean =
+      that.range subsetOf this.range
+  }
+  case class GStrEnclosure(override val range: Set[String])
+    extends GConstantDiscreteEnclosure[String](range) {
+    def lift(s: Set[String]) = GStrEnclosure(s)
+  }
+  object GStrEnclosure {
+    def apply(s: String): GStrEnclosure = GStrEnclosure(Set(s))
+  }
+  case class GIntEnclosure(override val range: Set[Int]) 
+    extends GConstantDiscreteEnclosure[Int](range) {
+    def lift(s: Set[Int]) = GIntEnclosure(s)
+  }
+  case class GBoolEnclosure(override val range: Set[Boolean])  
+    extends GConstantDiscreteEnclosure[Boolean](range){
+    def lift(s: Set[Boolean]) = GBoolEnclosure(s)
+  }
+  object GBoolEnclosure {
+    def apply(s: Boolean): GBoolEnclosure = GBoolEnclosure(Set(s))
+  }
+  
   // NOTE: Constants.PI (a GDouble(math.Pi)) is meant as a special
   //   value and is tested for reference equality in
   //   interpreters.enclosure.Extract.  This needs to be taken into

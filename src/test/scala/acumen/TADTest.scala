@@ -56,7 +56,7 @@ object ADTest extends Properties("TAD") {
     def in(r: V): Boolean = ev.in(l, r)
   }
   
-  implicit class TDifIsSimilar[T : Similar](l: TDif[T]) {
+  implicit class TDifIsSimilar[T : Similar : Integral](l: TDif[T]) {
     /** Compare two TDifs coefficient-wise using comp, ignoring first n coefficients */
     def similar(r: TDif[T], comp: (T,T) => Boolean, msg: String, n: Int): Boolean =
       (0 to Math.max(l.length, r.length)).forall(i => 
@@ -68,6 +68,20 @@ object ADTest extends Properties("TAD") {
     /** Ignore first n coefficients */
     def ~=(n: Int)(r: TDif[T]): Boolean = similar(r, (lc:T,rc:T) => lc ~= rc, "dissimilarity", n)
     def in(r: TDif[T]): Boolean = similar(r, (lc:T,rc:T) => lc in rc, "non-inclusion", 0)
+    /**
+     * We operate with fixed-length series. When taking the square root of a 
+     * series with even leading zeros, more coefficients than this fixed length 
+     * would be needed to preserve the precision implied by the original fixed 
+     * length. The loss of precision equals to the number of leading zeros.
+     */
+    def inSqrtOfSquareOfX(r: TDif[T]): Boolean = {
+      // FIXME Make this comparator work correctly even when r.length > l.length
+      def leadingZeros(d: TDif[T]) = d.coeff.take(d.length).takeWhile(_.isZero).length
+      val lzl = leadingZeros(l)
+      val nl: TDif[T] = TDif(l.coeff, l.length - lzl)
+      val nr: TDif[T] = TDif(r.coeff, l.length - lzl)
+      nl in nr
+    }
   }
   
   /* Properties of TDif[Double] as Integral */
@@ -180,7 +194,7 @@ object ADTest extends Properties("TAD") {
       
   property("TDif[Interval]: x >= 0 => x in sqrt(x*x)") =
     forAll(genBoundedThinIntervalTDifEvenLeadingZeros) { (x: TDif[Interval]) =>
-      x in (x*x).sqrt
+      x inSqrtOfSquareOfX (x*x).sqrt
     }
 
   property("TDif[Interval]: x >= 0 => x in square(sqrt(x))") =
@@ -195,7 +209,7 @@ object ADTest extends Properties("TAD") {
 
   property("TDif[Interval]: x >= 0 => x in sqrt(x^2)") =
     forAll(genBoundedThinIntervalTDifEvenLeadingZeros) { (x: TDif[Interval]) =>
-      x in (x^2).sqrt
+      x inSqrtOfSquareOfX (x^2).sqrt
     }
   
   property("TDif[Interval]: 1 in x^0") =
