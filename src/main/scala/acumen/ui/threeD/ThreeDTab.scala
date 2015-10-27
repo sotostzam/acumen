@@ -194,9 +194,6 @@ class ThreeDTab (val appModel: Controller) extends AbstractEditorTab{
     timer3d.destroy = true
     threeDView.reset()
     statusZone3d.bar.value = 0
-    threeDView.manualView = false
-    if (!threeDView.customView)
-      threeDView.customView = true
     if (check.selected)
       threeDView.axisOn()
   }
@@ -205,16 +202,12 @@ class ThreeDTab (val appModel: Controller) extends AbstractEditorTab{
     timer3d.pause = false
     threedplay.icon = Icons.play
     threedplay.toolTip = "resume"
-    if (!threeDView.customView && !threeDView.preCustomView)
-      threeDView.customView = true
   }
   
   def pauseOff(): Unit = {
     timer3d.pause = true
     threedplay.icon = Icons.pause
     threedplay.toolTip = "pause"
-    if (threeDView.customView && !threeDView.preCustomView)
-      threeDView.customView = false
   }
 
   def pause(): Unit =
@@ -232,9 +225,6 @@ class ThreeDTab (val appModel: Controller) extends AbstractEditorTab{
       threedplay.toolTip = "pause"
       threedplay.icon = Icons.pause
       endTime = appModel.threeDData.endTime
-      threeDView.manualView = false
-      threeDView.preCustomView = true
-      threeDView.customView = true
       if (played) {
         receiver.stop()
         timer3d.destroy = true
@@ -257,10 +247,6 @@ class ThreeDTab (val appModel: Controller) extends AbstractEditorTab{
         }
         /* The frame start from 0, and end up at the last index of buffer */
         lastFrame = appModel.threeDData._3DData.size - 1
-      }
-      if (appModel.threeDData._3DView.nonEmpty) {
-        threeDView.customView = false
-        threeDView.preCustomView = threeDView.customView
       }
       threeDView.viewStateMachine("deleteAllObjects")
       threeDView.objects.clear()
@@ -287,10 +273,6 @@ class ThreeDTab (val appModel: Controller) extends AbstractEditorTab{
   def playinRealTime() = {
     endTime = appModel.threeDData.endTime
     statusZone3d.setSpeed(playSpeed.toString)
-    if (appModel.threeDData._3DView.size == appModel.threeDData._3DData.size) {
-      threeDView.customView = false
-      threeDView.preCustomView = threeDView.customView
-    }
     lastFrame = appModel.threeDData._3DData.size - 1
     _receiver = new _3DDisplay(threeDView, statusZone3d, playSpeed,
       appModel.threeDData._3DData, lastFrame, appModel.threeDData.endTime,

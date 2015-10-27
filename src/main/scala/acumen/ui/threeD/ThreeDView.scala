@@ -48,9 +48,7 @@ class ThreeDView extends JPanel {
   val imageOrig = ImageIO.read(anaglyphTexture)//ImageIO.read(anaglyphInputstream)
 
   val defaultCamPos = new SimpleVector(3, -3, 10)
-  private val lookAtPoint = new SimpleVector(0,0,0) // in jPCT coordinate system
-  var customView = true // enable for allowing the user move the camera by themselves
-  var preCustomView = customView // to enable custom view when we pause
+  protected[threeD] val lookAtPoint = new SimpleVector(0,0,0) // in jPCT coordinate system
   var manualView = false // to disable custom view when use manually changed the view
 
   var percentagemissDL = 0.0
@@ -64,6 +62,10 @@ class ThreeDView extends JPanel {
   private var cameraLeftDirection = (-1,-1)  // to make sure the camera rotate forward or backward both in X and Y directions
   private var cameraRightDirection = (1,1) // to make sure the camera rotate forward or backward both in X and Y directions
   private var cameraFlipped = false
+  protected[threeD] var cameraMoved = new SimpleVector(0,0,0)
+  protected[threeD] var lookAtMoved = new SimpleVector(0,0,0)
+  protected[threeD] var rtCameraInitialize = false
+  protected[threeD] var rtLastRenderFrame = 0
 
   val lookAtCenter = Primitives.getSphere(20, 0.1f)
 
@@ -119,12 +121,10 @@ class ThreeDView extends JPanel {
           // left button dragging, move camera
           if (SwingUtilities isLeftMouseButton e) {
             cameraLeftDirection = moveCamera(cameraLeftDirection, 1)
-            manualView = true
           }
           // right button dragging, move look at point
           else if (SwingUtilities isRightMouseButton e)
             cameraRightDirection = moveCamera(cameraRightDirection, -1)
-            manualView = true
         }
       }
     }
@@ -210,7 +210,7 @@ class ThreeDView extends JPanel {
     // updated jPCT
     if (click == 1) camera      setPosition transform(convXYZtoSV((x1, y1, z1)), lookAtPoint, true)
     else            lookAtPoint set         transform(convXYZtoSV((x1, y1, z1)), camera.getPosition, true)
-    
+
     // look at the lookAtPoint
     lookAt(null,lookAtPoint)
     
@@ -253,7 +253,6 @@ class ThreeDView extends JPanel {
     cameraLeftDirection = (-1,-1)
     cameraRightDirection = (1,1)
     cameraFlipped = false
-    manualView = false
     defaultView()
     lookAt(coAxes.mainbox, null) // camera faces towards the object
     staticCamera.lookAt(new SimpleVector(0,0,0))
@@ -375,17 +374,24 @@ class ThreeDView extends JPanel {
     scaleFactors.clear()
     objectsToDelete.clear()
     axisArray(0) = null
+    rtCameraInitialize = false
+    rtLastRenderFrame = 0
     init()
   }
 
   def zoomin()  = camera.increaseFOV(0.02f)
   def zoomout() = camera.decreaseFOV(0.02f)
 
-  def transformView(position: Array[Double], rotation: Array[Double]) = {
+  def transformView(position: Array[Double], rotation: Array[Double],
+                    cameraOffset: Array[Double], lookAtOffset: Array[Double]) = {
     val cameraToSet = world.getCamera
-    cameraToSet.setPosition(-position(0).toFloat, -position(2).toFloat,
-                            -position(1).toFloat)
-    rotateObject(null, rotation, "Camera", cameraToSet)
+    cameraToSet.setPosition(-position(0).toFloat + cameraOffset(0).toFloat,
+                            -position(2).toFloat + cameraOffset(1).toFloat,
+                            -position(1).toFloat + cameraOffset(2).toFloat)
+    val offRotation = Array(rotation.apply(0) - lookAtOffset(0).toFloat,
+                            rotation.apply(1) - lookAtOffset(2).toFloat,
+                            rotation.apply(2) - lookAtOffset(1).toFloat)
+    rotateObject(null, offRotation, "Camera", cameraToSet)
   }
 
   /** Isolate Color Channel */
@@ -524,6 +530,7 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D, playSpeed: Double,
   var destroy = false
   /* used for recording last frame number */
   private var lastRenderFrame = 0
+  private var cameraInitialized = false
   private var mouseSleepTime = 10.toLong
   private var lastSetFrameTime = System.currentTimeMillis()
   private var setFrameDone = true
@@ -537,6 +544,9 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D, playSpeed: Double,
     app.scaleFactors.clear()
     app.objectsToDelete.clear()
     lastRenderFrame = 0
+    app.rtLastRenderFrame = 0
+    cameraInitialized = false
+    app.rtCameraInitialize = false
     mouseSleepTime = 10.toLong
   }
 
@@ -657,9 +667,20 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D, playSpeed: Double,
         for ((objectKey, o) <- app.objects)
           if (!_3DDataBuffer(currentFrame).contains(objectKey))
             deleteObj(objectKey)
+        if(currentFrame < _3DView.size) {
+          if (lastRenderFrame > 0 && cameraInitialized) {
+            val cameraPosition = app.world.getCamera.getPosition().toArray.map(_.toDouble)
+            val lookAtPosition = app.lookAtPoint.toArray.map(_.toDouble)
+            app.transformView((_3DView(currentFrame)._1, _3DView(lastRenderFrame)._1).zipped.map(_ - _),
+                              (_3DView(currentFrame)._2, _3DView(lastRenderFrame)._2).zipped.map(_ - _),
+                              cameraPosition, lookAtPosition)
+          } else {
+            app.transformView(_3DView(currentFrame)._1, _3DView(currentFrame)._2,
+              Array(0,0,0), Array(0,0,0))
+            cameraInitialized = true
+          }
+        }
         lastRenderFrame = currentFrame
-        if(currentFrame < _3DView.size && !app.manualView)
-          app.transformView(_3DView(currentFrame)._1, _3DView(currentFrame)._2)
         app.viewStateMachine("renderCurrentObjects")
       }
     }
@@ -684,9 +705,19 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D, playSpeed: Double,
         for ((objectKey, o) <- app.objects)
           if (_3DDataBuffer.contains(latestFrame) && !_3DDataBuffer(latestFrame).contains(objectKey))
             deleteObj(objectKey)
-        lastRenderFrame = latestFrame
-        if (_3DView.nonEmpty && !app.manualView)
-          app.transformView(_3DView.last._1, _3DView.last._2)
+        if (_3DView.nonEmpty) {
+          if (app.rtLastRenderFrame > 0 && app.rtCameraInitialize) {
+            val cameraPosition = app.world.getCamera.getPosition().toArray.map(_.toDouble)
+            val lookAtPosition = app.lookAtPoint.toArray.map(_.toDouble)
+            app.transformView((_3DView.last._1, _3DView(app.rtLastRenderFrame)._1).zipped.map(_ - _),
+                              (_3DView.last._2, _3DView(app.rtLastRenderFrame)._2).zipped.map(_ - _),
+                               cameraPosition, lookAtPosition)
+          } else {
+            app.rtCameraInitialize = true
+            app.transformView(_3DView.last._1, _3DView.last._2, Array(0,0,0), Array(0,0,0))
+          }
+        }
+        app.rtLastRenderFrame = latestFrame
         app.viewStateMachine("renderCurrentObjects")
       }
     }
@@ -1094,7 +1125,6 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D, playSpeed: Double,
             // Animation is over
             slider.setProgress3D(100)
             slider.setTime(endTime.toFloat)
-            app.customView = true
           }
           if (totalFrames > 0) {
             val percentage = currentFrame * 100 / totalFrames
