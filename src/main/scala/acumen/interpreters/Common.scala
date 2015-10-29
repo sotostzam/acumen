@@ -724,7 +724,9 @@ object Common {
   /** Embedded DSL for expressing integrators. */
   abstract class RichStore[S /* store */, Id /* object id */] {
     def +++(that: S): S
+    def haramardProduct(that: S): S
     def ***(that: Double): S
+    def foldVariables(names: List[(Id, Name)], f: (Value[Id],Value[Id]) => Value[Id]): Value[Id]
     def map(m: Value[Id] => Value[Id]): S
     def apply(id: Id, n: Name): Value[Id]
     def updated(id: Id, n: Name, v: Value[Id]): S
@@ -739,5 +741,14 @@ object Common {
       case (VLit(GBool(false)), Initial)                            => (Some(InitialTestFailure(counterEx)), Some(TestSuccess), TestSuccess)
       case (VLit(GBool(false)), Discrete | Continuous | FixedPoint) => (Some(TestSuccess), Some(TestSuccess), TestFailure(time, counterEx))
     }
+
+  /** Converts a predicate Expr into a set of switching functions, by converting each relation a R b into a switching function a - b. */
+  def computeSwitchingFunctions(predicate: Expr, env: Env): Set[(Expr, Env)] = predicate match {
+      // FIXME Make sure these lists are complete  
+      case Op(Name("==" | "~=" | "<" | ">" | "<=" | ">=", 0), List(l, r)) =>
+        Set((Op(Name("-", 0), List(l, r)), env))
+      case Op(Name("&&" | "||", 0), List(l, r)) =>
+        computeSwitchingFunctions(l, env) union computeSwitchingFunctions(r, env)
+  } 
   
 }

@@ -652,8 +652,11 @@ object Common {
   case class RichStoreImpl(s: OdeEnv) extends RichStore[OdeEnv,ObjId] {
     override def +++(that: OdeEnv) = 
       OdeEnv((this.s.odeVals,that.odeVals).zipped.map{(a,b) => evalOp("+", List(a,b))}, s.simulator)
+    override def haramardProduct(that: OdeEnv) = 
+      OdeEnv((this.s.odeVals,that.odeVals).zipped.map{(a,b) => evalOp("*", List(a,b))}, s.simulator)
     override def ***(that: Double) = 
       OdeEnv(this.s.odeVals.map{a => evalOp("*", List(a,VLit(GDouble(that))))}, s.simulator)
+    override def foldVariables(names: List[(ObjId, Name)], f: (Value[ObjId],Value[ObjId]) => Value[ObjId]): Value[ObjId] = ???
     override def map(m: Val => Val) = 
       OdeEnv(s.odeVals map m, s.simulator)
     lazy val odeValsLookup = s.simulator.phaseParms.odes.zipWithIndex.

@@ -478,7 +478,9 @@ object Interpreter extends acumen.CStoreInterpreter {
    */
   case class RichStoreImpl(s: Store)(implicit field: FieldImpl) extends RichStore[Store,CId] {
     override def +++(that: Store): Store = op("+", (cid, n) => getObjectField(cid, n, that))
+    override def haramardProduct(that: Store): Store = op("*", (cid, n) => getObjectField(cid, n, that))
     override def ***(that: Double): Store = op("*", (_, _) => VLit(GDouble(that)))
+    override def foldVariables(names: List[(CId, Name)], f: (Value[CId],Value[CId]) => Value[CId]): Value[CId] = ???
     /** Combine this (s) and that Store using operator. */
     def op(operator: String, that: (CId, Name) => Value[CId]): Store =
       applyAssignments(field.variables(s).map {

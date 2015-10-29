@@ -1204,8 +1204,10 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
    */
   case class RichStoreImpl(s: Enclosure)(implicit field: FieldImpl) extends RichStore[Enclosure,CId] {
     override def +++(that: Enclosure): Enclosure = ???
+    override def haramardProduct(that: Enclosure): Enclosure = ???
     override def ***(that: Double): Enclosure = ???
     override def map(m: CValue => CValue): Enclosure = Enclosure(s.cStore.mapValues(_ mapValues m))
+    override def foldVariables(names: List[(CId, Name)], f: (Value[CId],Value[CId]) => Value[CId]): Value[CId] = ???
     override def apply(id: CId, n: Name): CValue = s.getObjectField(id, n)
     override def updated(id: CId, n: Name, v: CValue): Enclosure = s.setObjectField(id, n, v)
     override def getInSimulator(variable: String) = s.getInSimulator(variable)
