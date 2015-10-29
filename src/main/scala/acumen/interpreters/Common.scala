@@ -575,7 +575,17 @@ object Common {
 
   /** Check for a duplicate assignment (of a specific kind) scheduled in assignments. */
   def checkDuplicateAssingments(assignments: List[(ResolvedDot,List[Int])], error: Name => DuplicateAssingment): Unit = {
-    val duplicates = assignments.groupBy(a => (a._1.id, a._1.field,a._2)).filter{ case (_, l) => l.size > 1 }.toList
+   val duplicatesInit = assignments.groupBy(a => (a._1.id, a._1.field, a._2))
+   val duplicates =
+      (for { ((id, name, index), l) <- duplicatesInit } yield index match {
+        case i :: idx => ((id, name, index), l)
+        case Nil => ((id, name, index),
+          // Check duplicate with same variable and nonempty index
+          l ::: duplicatesInit.filter {
+            case ((id1, name1, i :: idx), l) =>
+              id1 == id && name1 == name
+            case _ => false }.toList.flatMap(_._2) // Append to report duplicate 
+             )}).filter{ case (_,l) => l.size > 1 }.toList
     if (duplicates.size != 0) {
       val first = duplicates(0)
       val x = first._1._2

@@ -44,8 +44,8 @@ object Interpreter extends acumen.CStoreInterpreter {
   /* Bindings, expressed in models as continuous assignments 
    * to unprimed variables, are used to look up sub-expressions
    * during evaluation. */
-  type Bindings = Map[(CId,Name,List[Int]), Binding] 
-  val NoBindings = Map.empty[(CId,Name,List[Int]), Binding]
+  type Bindings = Map[(CId,Name,List[Expr]), Binding] 
+  val NoBindings = Map.empty[(CId,Name,List[Expr]), Binding]
   sealed trait Binding
   case object UsedBinding extends Binding
   case class UnusedBinding(e: Expr, env: Env) extends Binding
@@ -461,7 +461,7 @@ object Interpreter extends acumen.CStoreInterpreter {
         (rId, rN, evalExpr(rhs, env, st)(cache))
       /* Congregate multiple index assignments to (id,dot) into one assignment and update */
       case multipleIndexUpdates => 
-        val indexes = multipleIndexUpdates.map(x => x.d.idx.map(y => y match{case Lit(GInt(i)) => i}))
+        val indexes = multipleIndexUpdates.map(x => x.d.idx.map(y => evalExpr(y, x.env, st)(cache) match{case VLit(GInt(i)) => i}))
         val vts = multipleIndexUpdates.map(x => evalExpr(x.rhs, x.env, st)(cache))
         val lhs = getObjectField(id, dot.field, st)
         val v = lhs match {
@@ -525,23 +525,13 @@ object Interpreter extends acumen.CStoreInterpreter {
     if (resultType == FixedPoint && getTime(st) >= getEndTime(st))
       Done(md, getEndTime(st))
     else 
-      { val (_, Changeset(born, dead, rps, das1, eqs1, odes1, hyps), _) = iterate(evalStep(p)(_)(NoBindings), mainId(st))(st)
+      { val (_, Changeset(born, dead, rps, das, eqs, odes, hyps), _) = iterate(evalStep(p)(_)(NoBindings), mainId(st))(st)
         /* Create objects and apply any corresponding discrete assignments */
         val st1 = applyCollectedCreates(born, p) ~> st
-        // All indexes are evaluated to List[Lit(GInt)]        
-        val das = evaluateIndexes(das1, st1)(NoBindings)
-        val eqs = evaluateIndexes(eqs1, st1)(NoBindings)
-        val odes = evaluateIndexes(odes1, st1)(NoBindings)
         implicit val bindings = eqs.map{ e => val rd = resolveDot(e.d.lhs, e.env, st1)
-          (rd.id, rd.field,e.d.idx.map{x => x match{case Lit(GInt(i)) => i}}) -> UnusedBinding(e.rhs, e.env)}.toMap       
-      
+          (rd.id, rd.field, e.d.idx) -> UnusedBinding(e.rhs, e.env)}.toMap       
         def resolveDots(s: List[CollectedAction]): List[(ResolvedDot,List[Int])] =
-          s.map(da => (resolveDot(da.d.lhs, da.env, st1),da.d.idx match{
-            case Nil => Nil
-            case ls => ls.map(x => x match{
-              case Lit(GInt(i)) => i
-            })
-          }))
+          s.map(da => (resolveDot(da.d.lhs, da.env, st1), da.d.idx.map(evalExpr(_, da.env, st1) match { case VLit(GInt(i)) => i})))
         val res = resultType match {
           case Initial | Discrete | Continuous => // Do discrete step or conclude discrete fixpoint
             checkDuplicateAssingments(resolveDots(das), DuplicateDiscreteAssingment)
