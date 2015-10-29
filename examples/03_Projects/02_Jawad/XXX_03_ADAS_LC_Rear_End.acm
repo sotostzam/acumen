@@ -20,7 +20,7 @@ initially
   x  =  x0 ,
   sx  =  s0
 always  
-  sx  = r-x  // Ideal sensing model  along X-direction. We can adjust this parameter according to our sensor range 
+  // Ideal sensing model  along X-direction. We can adjust this parameter according to our sensor range 
 
 //*********************ADAS********************************************// 
 model Control(s0,y0,vy0,Fy0,kP,kD) = //PD controller Open loop
@@ -90,11 +90,11 @@ model VehicleT(p,d,name) =
 initially
   _3D  =  ()
 always      
-  _3D = (Obj center=p size=1 color=(1,1,1) rotation=(pi/2,0,d*pi) content=name)
+  _3D = (Obj center=p size=1 color=(1,1,1) rotation=(0,0,d*pi) content=name)
 
 model VehicleS(p,d,name) = 
 initially
   _3D  =  ()
 always      
-  _3D = (Obj center=p size=1 color=(1,1,1) rotation=(pi/2,0,d*pi) content=name) 
+  _3D = (Obj center=p size=1 color=(1,1,1) rotation=(0,0,d*pi) content=name) 
  

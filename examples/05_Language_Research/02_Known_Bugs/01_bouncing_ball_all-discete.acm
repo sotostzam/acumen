@@ -1,3 +1,4 @@
+#semantics "2014 Optimized"
 model Main(simulator) =
 
 // This model should fail after the first reset.

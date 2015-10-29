@@ -2,6 +2,7 @@
  * By Yingfu Zeng, Jawad Masood and Adam Duracz
  * Implemented as a constrained double palwaysulum.
  */
+#semantics "2014 Optimized"
 model DoublePendulum (theta1, theta2) = 
 initially
   theta1'  =  0, theta1''  =  0,

@@ -12,7 +12,7 @@ initially
   _3D = ()
 always
   _3D =(Obj center=p size=1 color=(1,1,1) 
-        rotation=(pi/2,0,d*pi/2) content = name)
+        rotation=(0,0,d*pi/2) content = name)
 
 
 
@@ -43,9 +43,9 @@ always
    t' = 0.5,
    _3DView + = ((2,x+4,1), (2,x,1)),
    simulator.endTime+ = 10,
-   car.p = (2,x,0),
-   car1.p = (-2,x1,0),
-   car2.p = (-2,x2,0),
+   car.p = (2,x,-0.2),
+   car1.p = (-2,x1,-0.2),
+   car2.p = (-2,x2,-0.2),
    x' = -3,
    x1' = 3,
    x2' = 3 

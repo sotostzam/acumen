@@ -62,13 +62,13 @@ model VehicleT (p,d,s,name) =
 initially
   _3D  =  () 
 always      
-  _3D = (Obj center=p size=1 color=(1,1,1) rotation=(pi/2,0,d*pi) content=name)
+  _3D = (Obj center=p size=1 color=(1,1,1) rotation=(0,0,d*pi) content=name)
   
 model VehicleS(p,d,s,name) = 
 initially
   _3D  =  () 
 always      
-  _3D = (Obj center=p size=1 color=(1,1,1) rotation=(pi/2,0,d*pi) content=name)
+  _3D = (Obj center=p size=1 color=(1,1,1) rotation=(0,0,d*pi) content=name)
 
 model Road() =
 initially

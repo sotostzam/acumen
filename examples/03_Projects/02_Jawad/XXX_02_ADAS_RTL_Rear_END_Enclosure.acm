@@ -15,14 +15,13 @@ initially
   w = 0 ,
   V = 0 ,
   s = 0 ,
-  th  =  0 ,     
+  th  =  0  
 always
   s = 50-x ,
   V= (1/2)*(v_r+v_l) ,
   w= (v_r-v_l)/l ,
   x'= V*cos(th) ,
   y' = V*sin(th) ,
-  th'= w ,
   if s<=10 && s>=7 then
     th = -(pi/8)
   elseif s<=-7 && s>=-10 then

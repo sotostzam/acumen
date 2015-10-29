@@ -48,7 +48,7 @@ always
     "push" ->
       system.F=10,
       if t>=0.5 then
-        mode+ =="free_motion"
+        mode+ ="free_motion"
       noelse
   | "free_motion" ->
       system.F=0 ]

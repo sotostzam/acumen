@@ -16,30 +16,30 @@ model Main(simulator) =
     "q1" claim x1 >= 0 -> 
      if -0.1 <= x1&& x1 <= 0 
     &&               x2 <= 0 then
-       x1+ == 5,
-       x2+ == -c * x2,
-         mode+ == "q2"
+       x1+ = 5,
+       x2+ = -c * x2,
+         mode+ = "q2"
      noelse,
-     x1' == x2,
-     x2' == -10 
+     x1' = x2,
+     x2' = -10 
     |"q2" claim x1 >= 3 -> 
      if 4.9 <= x1&& x1 <= 5
     &&              x2 <= 0 then
-       x1+ == 3,
-       x2+ == -c * x2,
-         mode+ == "q2" 
+       x1+ = 3,
+       x2+ = -c * x2,
+         mode+ = "q2" 
      noelse,
      if 2.9 <= x1&& x1 <= 3
     &&              x2 <= 0 then
-       x1+ == 0,
-       x2+ == -c * x2,
-       mode+ == "q1" 
+       x1+ = 0,
+       x2+ = -c * x2,
+       mode+ = "q1" 
      noelse,
-     x1' == x2,
-     x2' == -10        
+     x1' = x2,
+     x2' = -10        
   ],
-  simulator.startTime+ == 0,
-  simulator.endTime+ == 13,
-  simulator.minSolverStep+ == 0.1,
-  simulator.minLocalizationStep+ == 0.1,
-  simulator.minComputationImprovement+ == 0.1 
+  simulator.startTime+ = 0,
+  simulator.endTime+ = 13,
+  simulator.minSolverStep+ = 0.1,
+  simulator.minLocalizationStep+ = 0.1,
+  simulator.minComputationImprovement+ = 0.1 

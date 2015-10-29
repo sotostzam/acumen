@@ -37,8 +37,7 @@ always
   V= (1/2)*(v_r+v_l) ,
   w= (v_r-v_l)/l ,
   x'= V*cos(th) ,
-  y' = V*sin(th) ,
-  th'= w 
+  y' = V*sin(th) 
  //*********************Machine Sensor********************************************// 
 model Sensor(x0,s0,r) = 
 initially
@@ -64,8 +63,8 @@ always
 model Main(simulator) = 
 initially 
   mechanics  =  create VehicleMechanics(10,10,0.5,0) ,    
-  subject  =  create VehicleT((0,0,0),1,2,(0,0,0),"car.obj") ,
-  target  =  create VehicleS((50,0,0),1,2,"car.obj") ,
+  subject  =  create VehicleT((0,0,0),1,2,(0,0,0),"car") ,
+  target  =  create VehicleS((50,0,0),1,2,"car") ,
   environment  =  create Road() ,
   sens  =  create Sensor(0,0,50) ,
   controller  =  create Control(0,0) ,
@@ -75,7 +74,7 @@ always
   controller.s = sens.s ,
   mechanics.th = controller.th ,
   subject.p = (mechanics.x,mechanics.y,0) ,
-  subject.o = (pi/2,0,pi+mechanics.th) ,
+  subject.o = (0,0,pi+mechanics.th) ,
   _3DView = ((mechanics.x-10,mechanics.y,5),(mechanics.x,mechanics.y,0.5)) ,
   simulator.endTime+ = 25 
 
@@ -122,5 +121,5 @@ model VehicleS(p,d,s,name) =
 initially
   _3D  =  ()
 always      
-  _3D = (Obj center=p size=1 color=(1,1,1) rotation=(pi/2,0,d*pi) content=name) 
+  _3D = (Obj center=p size=1 color=(1,1,1) rotation=(0,0,d*pi) content=name) 
  
