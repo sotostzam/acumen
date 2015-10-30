@@ -126,7 +126,7 @@ class ThreeDTab (val appModel: Controller) extends AbstractEditorTab{
   val slackTime = new Label("Slack:%.2f".format(threeDView.averageSlack * 100) + "%  ")
   slackTime.border = Swing.EmptyBorder(2,0,0,0)
   val checkRTAnimation = new CheckBox(""){
-    action = Action("Real Time Animation") {
+    action = Action("Stream Animation") {
       if (selected) {
         checkMatchTime.enabled = true
         missedDeadLine.visible = true
