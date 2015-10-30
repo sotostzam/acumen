@@ -231,9 +231,8 @@ class Interpreter extends CStoreInterpreter {
 
         // Run the ode solver
         implicit val field = FieldImpl(pp.odes, p)
-        implicit val doubleIsReal = AD.DoubleIsReal
         val initOdeEnv = OdeEnv(initVal, Array.fill[AssignVal](pp.assigns.length)(Unknown), magic)
-        val res = new Solver(getField(magic, Name("method", 0)), initOdeEnv, getTimeStep(magic)).solve
+        val res = new Solver[ObjId,OdeEnv,Double](getField(magic, Name("method", 0)), initOdeEnv, getTimeStep(magic)).solve
 
         // Evaluate (if necessary) and update values assigned to by EquationT
         doEquationT(res)
