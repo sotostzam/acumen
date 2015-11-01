@@ -65,13 +65,14 @@ class ThreeDTab (val appModel: Controller) extends AbstractEditorTab{
   }
   /* ----3D-Visualization---- */
   var played = false
+  var realTimePlayed = false
 
   // play/pause button
   val threedplay = new Action("play") {
     icon = Icons.play
     toolTip = "play"
     def apply() = {
-      if (toolTip == "play") {
+      if (toolTip == "play" || realTimePlayed) {
         play()
         // after click play, this button become pause
         toolTip = "pause"
@@ -266,10 +267,13 @@ class ThreeDTab (val appModel: Controller) extends AbstractEditorTab{
       timer3d.listenTo(statusZone3d.bar.mouse.clicks)
       timer3d.listenTo(statusZone3d.bar.mouse.moves)
       played = true
+      realTimePlayed = false
     }
   }
 
   def playinRealTime() = {
+    threedplay.toolTip = "play"
+    threedplay.icon = Icons.play
     endTime = appModel.threeDData.endTime
     statusZone3d.setSpeed(playSpeed.toString)
     lastFrame = appModel.threeDData._3DData.size - 1
@@ -281,6 +285,8 @@ class ThreeDTab (val appModel: Controller) extends AbstractEditorTab{
     listenTo(receiver)
     receiver.listenTo(statusZone3d.bar.mouse.moves)
     receiver.listenTo(statusZone3d.bar.mouse.clicks)
+    played = false
+    realTimePlayed = true
   }
 
   def enableButtons() = setButtons(true)
