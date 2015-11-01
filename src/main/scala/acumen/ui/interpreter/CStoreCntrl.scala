@@ -180,6 +180,10 @@ class CStoreCntrl(val semantics: SemanticsImpl[Interpreter], val interpreter: CS
             }
         })
       } andThen {
+        if (threeDTab.checkRTAnimation.selected) {
+          threeDTab.play()
+          threeDTab.threedplay.apply()
+        }
         sendChunk()
         App.ui.stopSimulation()
         consumer ! Done(List("Time to run simulation: %.3fs".format((System.currentTimeMillis - startTime) / 1000.0)), md, endTime)

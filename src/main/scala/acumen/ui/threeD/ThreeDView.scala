@@ -531,7 +531,7 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D, playSpeed: Double,
   /* used for recording last frame number */
   private var lastRenderFrame = 0
   private var cameraInitialized = false
-  private var mouseSleepTime = 10.toLong
+  private val mouseSleepTime = 10.toLong
   private var lastSetFrameTime = System.currentTimeMillis()
   private var setFrameDone = true
   initAnaglyph()
@@ -547,7 +547,6 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D, playSpeed: Double,
     app.rtLastRenderFrame = 0
     cameraInitialized = false
     app.rtCameraInitialize = false
-    mouseSleepTime = 10.toLong
   }
 
   def checkResizeable(newSize: Array[Double]): Boolean =

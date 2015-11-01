@@ -235,7 +235,6 @@ class ThreeDTab (val appModel: Controller) extends AbstractEditorTab{
       if (!played) {
         _3DDataBuffer.clear()
         lastFrame = 0
-        statusZone3d.setSpeed("1.0")
         for ((frameNo, map) <- appModel.threeDData._3DData) {
           val temp = if (map != null) mutable.Map[(CId, Int), List[_]]()
                      else null
