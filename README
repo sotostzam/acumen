@@ -1,7 +1,20 @@
-ACUMEN 2014_12_01 RELEASE NOTES
+ACUMEN 2015_11_01 RELEASE NOTES
 -------------------------------
 
 Major changes since the 2014_12_01 release:
+
+ - New Stream Animation mode shows _3D animation during simulation
+ - New Device input feature
+   - Use a mobile device (such as a smartphone) to control
+     objects in Acumen
+ - New matrix operations
+ - New notation for conveniently generating vectors
+ - Improved support for pattern matching
+ - Continuous assignments are always taken into account when
+   expressions are evaluated
+ - Improved interval arithmetic based on the JInterval library
+
+Major changes since the 2014_11_03 release:
 
  - Improved stability of _3D view
  - Re-enabled optimized traditional semantics
