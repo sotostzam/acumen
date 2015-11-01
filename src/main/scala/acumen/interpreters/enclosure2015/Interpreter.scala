@@ -257,7 +257,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
                   l contains r
                 case (VLit(l: GBoolEnclosure), Some(VLit(r: GBoolEnclosure))) => 
                   l contains r
-                case (VLit(_:GStr) | _:VResultType | _:VClassName, tv @ Some(VLit(_:GStr) | _:VResultType | _:VClassName)) => 
+                case (VLit(_:GStr) | _:VResultType | _:VClassName, Some(tv @ (VLit(_:GStr) | _:VResultType | _:VClassName))) => 
                   v == tv
                 case (VObjId(Some(o1)), Some(VObjId(Some(o2)))) => 
                   containsCObject(this(o1), that(o2))
@@ -650,16 +650,13 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
       case _ => implemIntegral(f, x, y)
     }
     (f, vl, vr) match {
-      case ("==", sl: GStr, sr: GStr) => if (sl == sr) CertainTrue else CertainFalse
-      case ("~=", sl: GStr, sr: GStr) => if (sl != sr) CertainTrue else CertainFalse
-      // TODO Check if access to start-time values changes the definitions of == and ~=
-      case ("==", GStrEnclosure(sl), GStrEnclosure(sr)) =>
-        if (sl == sr) CertainTrue
-        else if ((sl intersect sr).nonEmpty) Uncertain
+      case ("==", lde: GDiscreteEnclosure[_], rde: GDiscreteEnclosure[_]) =>
+        if (lde.range == rde.range) CertainTrue
+        else if ((lde.range intersect rde.range).nonEmpty) Uncertain
         else CertainFalse
-      case ("~=", GStrEnclosure(sl), GStrEnclosure(sr)) =>
-        if (sl == sr) CertainFalse
-        else if ((sl intersect sr).isEmpty) CertainTrue
+      case ("~=", lde: GDiscreteEnclosure[_], rde: GDiscreteEnclosure[_]) =>
+        if (lde.range == rde.range) CertainFalse
+        else if ((lde.range intersect rde.range).nonEmpty) CertainTrue
         else Uncertain
       case ("==" | "~=" | ">=" | "<=" | "<" | ">", _, _) =>
         implemBool(f, extractInterval(vl), extractInterval(vr))
