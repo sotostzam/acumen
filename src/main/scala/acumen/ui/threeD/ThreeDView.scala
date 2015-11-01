@@ -50,6 +50,7 @@ class ThreeDView extends JPanel {
   val defaultCamPos = new SimpleVector(3, -3, 10)
   protected[threeD] val lookAtPoint = new SimpleVector(0,0,0) // in jPCT coordinate system
   var manualView = false // to disable custom view when use manually changed the view
+  protected[threeD] var barEnabled = true
 
   var percentagemissDL = 0.0
   var averageSlack = 0.0
@@ -1143,8 +1144,8 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D, playSpeed: Double,
             val percentage = currentFrame * 100 / totalFrames
             slider.setTime(percentage / 100f * endTime)
             renderCurrentFrame()
-            setFrameDone = true
           }
+          setFrameDone = true
         case "real time render" =>
           if (!app.waitingPaint)
             renderFrameInRealTime()
@@ -1167,7 +1168,7 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D, playSpeed: Double,
     case e: scala.swing.event.MouseDragged =>
       val curSystemTime = System.currentTimeMillis()
       if (curSystemTime > lastSetFrameTime + mouseSleepTime
-        && setFrameDone) {
+        && setFrameDone && app.barEnabled) {
         receiver ! "set frame"
         lastSetFrameTime = System.currentTimeMillis()
       }

@@ -279,11 +279,14 @@ class ThreeDTab (val appModel: Controller) extends AbstractEditorTab{
     receiver.start()
     receiver ! "real time render"
     listenTo(receiver)
+    receiver.listenTo(statusZone3d.bar.mouse.moves)
+    receiver.listenTo(statusZone3d.bar.mouse.clicks)
   }
 
   def enableButtons() = setButtons(true)
   def disableButtons() = setButtons(false)
   def setButtons(targetState: Boolean): Unit = {
+    threeDView.barEnabled = targetState
     b3dplay.enabled = targetState
     b3dstop.enabled = targetState
     statusZone3d.bar.enabled = targetState
