@@ -148,6 +148,14 @@ class CStoreCntrl(val semantics: SemanticsImpl[Interpreter], val interpreter: CS
               var averageSlack = 0.0
               val calculationTime = System.currentTimeMillis - temptime
 
+              // set slider bar
+              val simulationEndTime = acumen.util.Canonical.getEndTime(I.repr(store))
+              val slidePercentage = (virtualtime * 100 / simulationEndTime).toInt
+              if (slidePercentage >= 100)
+                threeDTab.statusZone3d.setProgress3D(100)
+              else
+                threeDTab.statusZone3d.setProgress3D(slidePercentage)
+
               if (calculationTime > (virtualtime - lastvirtualTime) * 1000 / playspeed
                 && virtualtime > lastvirtualTime)
                 missedDeadline += 1

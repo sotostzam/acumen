@@ -1147,10 +1147,8 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D, playSpeed: Double,
             setFrameDone = true
           }
         case "real time render" =>
-          if (!app.waitingPaint) {
+          if (!app.waitingPaint)
             renderFrameInRealTime()
-            slider.setProgress3D(100)
-          }
       }
     }
   }
