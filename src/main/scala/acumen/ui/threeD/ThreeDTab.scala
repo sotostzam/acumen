@@ -116,29 +116,35 @@ class ThreeDTab (val appModel: Controller) extends AbstractEditorTab{
   }
   check.selected = false
 
-  val checkMatchTime = new CheckBox("") {
-    action = Action("Match Wall Clock") {}
-  }
-  checkMatchTime.selected = false
-  checkMatchTime.enabled = false
-
   val missedDeadLine = new Label("   Missed deadlines:%.2f".format(threeDView.percentagemissDL * 100) + "%    ")
   missedDeadLine.border = Swing.EmptyBorder(2,0,0,0)
+  missedDeadLine.visible = false
   val slackTime = new Label("Slack:%.2f".format(threeDView.averageSlack * 100) + "%  ")
   slackTime.border = Swing.EmptyBorder(2,0,0,0)
+  slackTime.visible = false
+  val checkMatchTime = new CheckBox("") {
+    action = Action("Match Wall Clock") {
+      if (selected) {
+        missedDeadLine.visible = true
+        slackTime.visible = true
+        border = Swing.EmptyBorder(0,0,0,0)
+      } else {
+        missedDeadLine.visible = false
+        slackTime.visible = false
+        border = Swing.EmptyBorder(0,0,0,259)
+      }
+    }
+  }
+  checkMatchTime.border = Swing.EmptyBorder(0,0,0,259)
+  checkMatchTime.selected = false
+  checkMatchTime.enabled = false
   val checkRTAnimation = new CheckBox(""){
     action = Action("Stream Animation") {
       if (selected) {
         checkMatchTime.enabled = true
-        missedDeadLine.visible = true
-        slackTime.visible = true
-        checkMatchTime.border = Swing.EmptyBorder(0,0,0,0)
       } else {
         checkMatchTime.selected = false
         checkMatchTime.enabled = false
-        missedDeadLine.visible = false
-        slackTime.visible = false
-        checkMatchTime.border = Swing.EmptyBorder(0,0,0,260)
       }
     }
   }

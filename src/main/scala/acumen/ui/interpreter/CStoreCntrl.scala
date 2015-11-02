@@ -172,8 +172,10 @@ class CStoreCntrl(val semantics: SemanticsImpl[Interpreter], val interpreter: CS
                 // update every 100ms
                 threeDTab.threeDView.percentagemissDL = percentagemissDL
                 threeDTab.threeDView.averageSlack = averageSlack
-                threeDTab.missedDeadLine.text = "   Missed deadlines:%.2f".format(percentagemissDL * 100) + "%    "
-                threeDTab.slackTime.text = "Slack:%.2f".format(averageSlack * 100) + "%  "
+                if (threeDTab.checkMatchTime.selected) {
+                  threeDTab.missedDeadLine.text = "   Missed deadlines:%.2f".format(percentagemissDL * 100) + "%    "
+                  threeDTab.slackTime.text = "Slack:%.2f".format(averageSlack * 100) + "%  "
+                }
                 updateTime = virtualtime
               }
               lastvirtualTime = virtualtime
