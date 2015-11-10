@@ -5,6 +5,10 @@ import util.ASTUtil
 import acumen.interpreters.Common.RichStore
 import acumen._
 
+import reflect.runtime.universe.{
+  typeOf, TypeTag
+}
+
 /**
  * Automatic Differentiation.
  *
@@ -230,13 +234,13 @@ object TAD extends App {
         coeff
       }, x.length) // FIXME How many?
   }
-  implicit object IntDifIsIntegral extends TDifAsIntegral[Int] {
+  implicit object intTDifIsIntegral extends TDifAsIntegral[Int] {
     def groundValue(v: TDif[Int]) = GIntTDif(v)
   }
-  implicit object DoubleDifIsReal extends TDifAsReal[Double] {
+  implicit object doubleTDifIsReal extends TDifAsReal[Double] {
     def groundValue(v: TDif[Double]) = GDoubleTDif(v)
   }
-  implicit object IntervalDifIsReal extends TDifAsReal[Interval] {
+  implicit object intervalTDifIsReal extends TDifAsReal[Interval] {
     def groundValue(v: TDif[Interval]) = GIntervalTDif(v)
   }
   
@@ -267,7 +271,10 @@ object TAD extends App {
     case GDouble(d) => GDoubleTDif(TDif constant d)
     case GInt(i) => GDoubleTDif(TDif constant i)
     case GInterval(i) => GIntervalTDif(TDif constant i)
-    case GConstantRealEnclosure(i) => GIntervalTDif(TDif constant i)
+    case g: GConstantRealEnclosure => 
+      GCValueTDif(TDif.constant(VLit(g): CValue)(interpreters.enclosure2015.intervalBase.cValueIsReal))
+    case g: GIntervalFDif => 
+      GCValueTDif(TDif.constant(VLit(g): CValue)(interpreters.enclosure2015.fDifBase.cValueIsReal))
     case _ => gv
   }
   
@@ -280,7 +287,7 @@ object TAD extends App {
   }
   
   /** Lower all TDif values in a RichStore into the corresponding numeric value */
-  def lower[S,Id](st: RichStore[S,Id]): S = st map lowerValue
+  def lower[S,Id: TypeTag](st: RichStore[S,Id]): S = st map lowerValue
   
   /** Lower all TDif values in an Expr into the corresponding numeric value */
   def lower(e: Expr): Expr = new acumen.util.ASTMap {
@@ -294,13 +301,18 @@ object TAD extends App {
     case GIntTDif(TDif(v,_)) => GInt(v(0))
     case GIntervalTDif(TDif(v,_)) => GConstantRealEnclosure(v(0))
     case GDoubleTDif(TDif(v,_)) => val v0 = v(0)
-      if (DoubleIsReal isValidInt v0) GInt(DoubleIsReal toInt v0) else GDouble(v0)
+      if (doubleIsReal isValidInt v0) GInt(doubleIsReal toInt v0) else GDouble(v0)
     case _ => gd
   }
   
   /** Lower all the values inside a Value[Id] from TDifs */
-  private def lowerValue[Id](v: Value[Id]): Value[Id] = v match {
-    case VLit(gv) => VLit(lowerGroundValue(gv))
+  private def lowerValue[Id: TypeTag](v: Value[Id]): Value[Id] = v match {
+    case VLit(gv) => gv match {
+      // Special case where a GroundValue wraps a CValue 
+      case GCValueTDif(TDif(v, _)) if typeOf[Id] <:< typeOf[CId] =>
+        v(0).asInstanceOf[Value[Id]]
+      case _ => VLit(lowerGroundValue(gv))
+    }
     case VVector(lv: List[Value[Id]]) => VVector(lv map lowerValue)
     case VList(lv: List[Value[Id]]) => VList(lv map lowerValue)
     case _ => v

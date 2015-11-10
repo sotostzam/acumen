@@ -656,10 +656,13 @@ object Common {
       OdeEnv(this.s.odeVals.map{a => evalOp("*", List(a,VLit(GDouble(that))))}, s.simulator)
     override def map(m: Val => Val) = 
       OdeEnv(s.odeVals map m, s.simulator)
-    lazy val odeValsLookup = s.simulator.phaseParms.odes.zipWithIndex.
+    override def mapName(m: (GId, Name, Val) => Val) =
+      OdeEnv(s.odeVals.zipWithIndex.map { case (v, i) => val (id, n) = indexToName(i); m(id, n, v) }, s.simulator)
+    lazy val nameToIndex = s.simulator.phaseParms.odes.zipWithIndex.
       map{ case (o,i) => (o.id, o.field) -> i }.toMap
-    override def apply(id: ObjId, n: Name): Val = s.odeVals(odeValsLookup(id,n))
-    override def updated(id: ObjId, n: Name, v: Val) = s.copy(odeVals = s.odeVals.updated(odeValsLookup(id,n), v))
+    lazy val indexToName = nameToIndex.map(_.swap)
+    override def apply(id: ObjId, n: Name): Val = s.odeVals(nameToIndex(id,n))
+    override def updated(id: ObjId, n: Name, v: Val) = s.copy(odeVals = s.odeVals.updated(nameToIndex(id,n), v))
     override def getInSimulator(variable: String) = getField(s.simulator, Name(variable, 0))
   }
   

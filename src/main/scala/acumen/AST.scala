@@ -10,6 +10,7 @@ import breeze.linalg._
 import acumen.interpreters.enclosure.Interval
 import acumen.TAD._
 import acumen.FAD._
+import breeze.storage.Zero
 
 package acumen {
 
@@ -169,12 +170,14 @@ package acumen {
   case class Pattern(ps:List[Expr]) extends Expr
   /* ground values (common to expressions and values) */
   sealed abstract class GroundValue
+  /* GroundValue that wraps a numeric type that has an Integral or Real instance. */
+  trait GNumber[V] extends GroundValue
   /* Example: 42 */
-  case class GInt(i: Int) extends GroundValue
+  case class GInt(i: Int) extends GNumber[Int]
   /* Example: 4.2e1 */
-  case class GDouble(d: Double) extends GroundValue
+  case class GDouble(d: Double) extends GNumber[Double]
   /* Example: [3.1 .. 3.2] */
-  case class GInterval(i: Interval) extends GroundValue
+  case class GInterval(i: Interval) extends GNumber[Interval]
   /* Example: true */
   case class GBool(b: Boolean) extends GroundValue
   /* Example: ("fall", (1,2,3))*/
@@ -182,7 +185,7 @@ package acumen {
   /* Example: "foo" */
   case class GStr(s: String) extends GroundValue
   /* Representation of a value and its time derivatives */
-  abstract class GTDif[V] extends GroundValue {
+  abstract class GTDif[V] extends GNumber[V] {
     def dif: TDif[V] 
     def isValidInt: Boolean
     def toInt: Int
@@ -198,7 +201,7 @@ package acumen {
     def isValidInt = dif.isValidInt
     def toInt = dif.toInt
   }
-  case class GIntervalTDif(dif: TDif[Interval]) extends GTDif[Interval] with GEnclosure[Interval] {
+  case class GIntervalTDif(dif: TDif[Interval]) extends GTDif[Interval] {
     def apply(x: Interval): Interval = dif.head
     def isThin: Boolean = dif.head.isThin
     def range: Interval = dif.head
@@ -206,6 +209,19 @@ package acumen {
     def updated(d: TDif[Interval]) = GIntervalTDif(d)
     def isValidInt = dif.isValidInt
     def toInt = dif.toInt
+  }
+  case class GCValueTDif(dif: TDif[CValue]) extends GTDif[CValue] {
+    def apply(x: Interval): CValue = dif.head
+    def show = this.toString
+    def updated(d: TDif[CValue]) = GCValueTDif(d)
+    def isValidInt = dif.head match {
+      case VLit(GConstantRealEnclosure(i)) => intervalIsReal isValidInt i
+      case VLit(GIntervalFDif(d)) => intervalFDifIsReal isValidInt d  
+    }
+    def toInt = dif.head match {
+      case VLit(GConstantRealEnclosure(i)) => intervalIsReal toInt i
+      case VLit(GIntervalFDif(d)) => intervalFDifIsReal toInt d  
+    }
   }
   /* Representation of a value and its partial derivatives w.r.t. the state variables */
   abstract class GFDif[V] extends GroundValue {
@@ -230,7 +246,7 @@ package acumen {
     def toInt = dif.toInt
   }
   /* Representation of an uncertain, time varying value */
-  trait GEnclosure[V] extends GroundValue {
+  trait GEnclosure[V] extends GNumber[V] {
     def apply(t: Interval): V
     def range: V
     def isThin: Boolean
@@ -527,7 +543,7 @@ package object acumen {
    * implementations for Int as well as all the
    * other numeric types.
    */
-  trait Integral[V] extends PartialOrdering[V] with Semiring[V] {
+  trait Integral[V] extends PartialOrdering[V] with Semiring[V] with Zero[V] {
     def add(l: V, r: V): V
     def sub(l: V, r: V): V
     def mul(l: V, r: V): V
@@ -604,7 +620,7 @@ package object acumen {
   }
   
   /** Integral instance for Int */
-  implicit object IntIsIntegral extends Integral[Int] {
+  implicit object intIsIntegral extends Integral[Int] {
     def add(l: Int, r: Int): Int = l + r
     def sub(l: Int, r: Int): Int = l - r
     def mul(l: Int, r: Int): Int = l * r
@@ -624,7 +640,7 @@ package object acumen {
   }
 
   /** Real instance for Double */
-  implicit object DoubleIsReal extends Real[Double] {
+  implicit object doubleIsReal extends Real[Double] {
     def add(l: Double, r: Double): Double = l + r
     def sub(l: Double, r: Double): Double = l - r
     def mul(l: Double, r: Double): Double = l * r
@@ -658,7 +674,7 @@ package object acumen {
   }
 
   /** Real instance for Interval */
-  implicit object IntervalIsReal extends Real[Interval] {
+  implicit object intervalIsReal extends Real[Interval] {
     def add(l: Interval, r: Interval): Interval = l + r
     def sub(l: Interval, r: Interval): Interval = l - r
     def mul(l: Interval, r: Interval): Interval = l * r

@@ -484,11 +484,14 @@ object Interpreter extends acumen.CStoreInterpreter {
       applyAssignments(field.variables(s).map {
         case (o, n) => (o, n, evalOp(operator, List(s(o, n), that(o, n))))
       }) ~> s
-    override def map(m: CValue => CValue) = 
-      s.mapValues(_.map{ 
-        case nv@(Name(n,_),_) if interpreters.Common.specialFields.contains(n) => nv   
-        case (n,v) => (n, m(v)) 
-      })
+    override def map(m: CValue => CValue) = mapName((_,_,v) => m(v)) 
+    override def mapName(m: (GId, Name, CValue) => CValue): Store = 
+      s.map{ case (cid,co) =>
+        (cid, co.map{ 
+          case nv@(Name(n,_),_) if interpreters.Common.specialFields.contains(n) => nv   
+          case (n,v) => (n, m(cid, n, v)) 
+        })
+      }
     override def apply(id: CId, n: Name): CValue = getObjectField(id, n, s)
     override def updated(id: CId, n: Name, v: CValue): Store = setObjectField(id, n, v, s)
     override def getInSimulator(variable: String) = Canonical.getInSimulator(Name(variable, 0), s)

@@ -9,6 +9,7 @@ import Errors._
 import util.Canonical._
 import util.ASTUtil._
 import scala.util.parsing.input.Position
+import reflect.runtime.universe.TypeTag
 
 //
 // Common stuff to CStore Interpreters
@@ -41,6 +42,7 @@ object Common {
   val EulerForward = "EulerForward"
   val RungeKutta   = "RungeKutta"
   val Taylor       = "Taylor"
+  val Picard       = "Picard"
   
   /** Get self reference in an env. */
   def selfCId(e:Env) : CId =
@@ -64,22 +66,11 @@ object Common {
   }
  
   /** Purely functional unary operator evaluation at the ground values level. */
-  def unaryGroundOp(f:String, vx:GroundValue) = {
+  def unaryGroundOp(f:String, vx:GroundValue) = {    
     def implem(f: String, x: Double) = f match {
-      case "-"         => -x
       case "abs"       => abs(x)
-      case "sin"       => sin(x)
-      case "cos"       => cos(x)
-      case "tan"       => tan(x)
-      case "acos"      => acos(x)
-      case "asin"      => asin(x)
-      case "atan"      => atan(x)
       case "toRadians" => toRadians(x)
       case "toDegrees" => toDegrees(x)
-      case "exp"       => exp(x)
-      case "log"       => log(x)
-      case "log10"     => log10(x)
-      case "sqrt"      => sqrt(x)
       case "cbrt"      => cbrt(x)
       case "ceil"      => ceil(x)
       case "floor"     => floor(x)
@@ -89,33 +80,7 @@ object Common {
       case "cosh"      => cosh(x)
       case "tanh"      => tanh(x)
       case "signum"    => signum(x)
-    }
-    def implemIntegral[V: acumen.Integral](f: String, x: V): V = f match {
-      case "-" => -x
-    }
-    def implemReal[V: Real](f: String, x: V): V = f match {
-      case "-"         => -x
-      case "sin"       => x.sin
-      case "cos"       => x.cos
-      case "tan"       => x.tan
-      case "acos"      => x.acos
-      case "asin"      => x.asin
-      case "atan"      => x.atan
-      case "toRadians" => throw new NotImplemented(f)
-      case "toDegrees" => throw new NotImplemented(f)
-      case "exp"       => x.exp
-      case "log"       => x.log
-      case "log10"     => throw new NotImplemented(f)
-      case "sqrt"      => x.sqrt
-      case "cbrt"      => throw new NotImplemented(f)
-      case "ceil"      => throw new NotImplemented(f)
-      case "floor"     => throw new NotImplemented(f)
-      case "rint"      => throw new NotImplemented(f)
-      case "round"     => throw new NotImplemented(f)
-      case "sinh"      => throw new NotImplemented(f)
-      case "cosh"      => throw new NotImplemented(f)
-      case "tanh"      => throw new NotImplemented(f)
-      case "signum"    => throw new NotImplemented(f)
+      case _ => implemUnaryReal(f, x)
     }
     (f, vx) match {
       case ("not", GBool(x))     => GBool(!x)
@@ -123,10 +88,10 @@ object Common {
       case ("-", GInt(i))        => GInt(-i)
       case ("round", GDouble(x)) => GInt(x.toInt)
       case (f, GIntTDif(d))      => f match {
-        case "-" => GIntTDif(implemIntegral(f, d)) // keep as TDif[Int] if f has an integer result 
-        case _   => GDoubleTDif(implemReal(f, TDif(d.coeff.map(_.toDouble), d.length))) // otherwise, convert to TDif[Double] 
+        case "-" => GIntTDif(implemUnaryIntegral(f, d)) // keep as TDif[Int] if f has an integer result 
+        case _   => GDoubleTDif(implemUnaryReal(f, TDif(d.coeff.map(_.toDouble), d.length))) // otherwise, convert to TDif[Double] 
       }
-      case (f, GDoubleTDif(d))   => GDoubleTDif(implemReal(f, d))
+      case (f, GDoubleTDif(d))   => GDoubleTDif(implemUnaryReal(f, d))
       case _                     => GDouble(implem(f, extractDouble(vx)))
     }
   }
@@ -134,71 +99,93 @@ object Common {
   /* purely functional binary operator evaluation 
    * at the ground values level */
   def binGroundOp(f:String, vx:GroundValue, vy:GroundValue): GroundValue = {
-    def implem1(f:String, x:Int, y:Int) = f match {
-      case "+" => x + y
-      case "-" => x - y
-      case "*" => x * y
+    def implemInt(f:String, x:Int, y:Int) = f match {
       case "<<" => x << y
       case ">>" => x >> y
       case "&"  => x & y
       case "|"  => x | y
       case "%"  => x % y
       case "xor" => x ^ y
+      case _ => implemBinIntegral(f, x, y)
     }
-    def implem2(f:String, x:Double, y:Double) = f match {
-      case "+" => x + y
-      case "-" => x - y
-      case "*" => x * y
-      case "^" => pow(x,y)
-      case "/" => x / y
+    def implemDouble(f:String, x:Double, y:Double) = f match {
       case "atan2" => atan2(x,y)
-      case _ => throw UnknownOperator(f)
-    }
-    def implem3(f:String, x:Int, y:Int) = f match {
-      case "<"  => x < y
-      case ">"  => x > y
-      case "<=" => x <= y
-      case ">=" => x >= y
-    }
-    def implem4(f:String, x:Double, y:Double) = f match {
-      case "<" => x < y
-      case ">" => x > y
-      case "<=" => x <= y
-      case ">=" => x >= y
-    }
-    def implemIntegral[V: acumen.Integral](f: String, x: V, y: V) = f match {
-      case "+" => x + y
-      case "-" => x - y
-      case "*" => x * y
-      case _ => throw UnknownOperator(f)
-    }
-    def implemReal[V: acumen.Real](f: String, x: V, y: V) = f match {
-      case "/" => x / y
-      case "^" => x ^ y
-      case _ => implemIntegral(f, x, y)
+      case _ => implemBinReal(f, x, y)
     }
     def toDoubleDif(di: TDif[Int]): TDif[Double] = TDif(di.coeff.map(_.toDouble), di.length)
     (f, vx, vy) match {
-      case (">="|"<="|"<"|">", GInt(n), GInt(m)) => GBool(implem3(f,n,m))
-      case ("<"|">"|"<="|">=", _, _) => GBool(implem4(f,extractDouble(vx),extractDouble(vy)))
-      case ("+"|"-"|"*"|"<<"|">>"|"&"|"|"|"%"|"xor", GInt(n), GInt(m)) => GInt(implem1(f,n,m))
+      case (">="|"<="|"<"|">", GInt(n), GInt(m)) => GBool(implemBinBoolean(f,n,m))
+      case ("<"|">"|"<="|">=", _, _) => GBool(implemBinBoolean(f,extractDouble(vx),extractDouble(vy)))
+      case ("+"|"-"|"*"|"<<"|">>"|"&"|"|"|"%"|"xor", GInt(n), GInt(m)) => GInt(implemInt(f,n,m))
       
       // FIXME Add special case for integer powers of TDif[Int], to avoid lifting to TDif[Double]
-      case ("^" | "/", GIntTDif(n), GIntTDif(m)) => GDoubleTDif(implemReal(f, toDoubleDif(n), toDoubleDif(m)))
-      case (_, GIntTDif(n), GIntTDif(m)) => GIntTDif(implemIntegral(f, n, m))
-      case (_, GDoubleTDif(n), GDoubleTDif(m)) => GDoubleTDif(implemReal(f, n, m))
+      case ("^" | "/", GIntTDif(n), GIntTDif(m)) => GDoubleTDif(implemBinReal(f, toDoubleDif(n), toDoubleDif(m)))
+      case (_, GIntTDif(n), GIntTDif(m)) => GIntTDif(implemBinIntegral(f, n, m))
+      case (_, GDoubleTDif(n), GDoubleTDif(m)) => GDoubleTDif(implemBinReal(f, n, m))
       
-      case (_, GDoubleTDif(n), GIntTDif(m)) => GDoubleTDif(implemReal(f, n, toDoubleDif(m)))
-      case (_, GIntTDif(n), GDoubleTDif(m)) => GDoubleTDif(implemReal(f, toDoubleDif(n), m))
+      case (_, GDoubleTDif(n), GIntTDif(m)) => GDoubleTDif(implemBinReal(f, n, toDoubleDif(m)))
+      case (_, GIntTDif(n), GDoubleTDif(m)) => GDoubleTDif(implemBinReal(f, toDoubleDif(n), m))
       
       case (_, n: GTDif[_], GInt(m)) => binGroundOp(f, n, GIntTDif(TDif.constant(m)))
       case (_, n: GTDif[_], GDouble(m)) => binGroundOp(f, n, GDoubleTDif(TDif.constant(m)))
       case (_, GInt(n), m: GTDif[_]) => binGroundOp(f, GIntTDif(TDif.constant(n)), m)
       case (_, GDouble(n), m: GTDif[_]) => binGroundOp(f, GDoubleTDif(TDif.constant(n)), m)
       
-      case _  => GDouble(implem2(f, extractDouble(vx), extractDouble(vy)))
+      case _  => GDouble(implemDouble(f, extractDouble(vx), extractDouble(vy)))
     }
   }
+
+  def implemUnaryIntegral[V: acumen.Integral](f: String, x: V): V = f match {
+    case "-" => -x
+  }
+  def implemUnaryReal[V: Real](f: String, x: V): V = f match {
+    case "sin"       => x.sin
+    case "cos"       => x.cos
+    case "tan"       => x.tan
+    case "acos"      => x.acos
+    case "asin"      => x.asin
+    case "atan"      => x.atan
+    case "toRadians" => throw new NotImplemented(f)
+    case "toDegrees" => throw new NotImplemented(f)
+    case "exp"       => x.exp
+    case "log"       => x.log
+    case "log10"     => throw new NotImplemented(f)
+    case "sqrt"      => x.sqrt
+    case "cbrt"      => throw new NotImplemented(f)
+    case "ceil"      => throw new NotImplemented(f)
+    case "floor"     => throw new NotImplemented(f)
+    case "rint"      => throw new NotImplemented(f)
+    case "round"     => throw new NotImplemented(f)
+    case "sinh"      => throw new NotImplemented(f)
+    case "cosh"      => throw new NotImplemented(f)
+    case "tanh"      => throw new NotImplemented(f)
+    case "signum"    => throw new NotImplemented(f)
+    case _           => implemUnaryIntegral(f, x) 
+  }
+  def implemBinIntegral[V: acumen.Integral](f: String, x: V, y: V) = f match {
+    case "+" => x + y
+    case "-" => x - y
+    case "*" => x * y
+    case _ => throw UnknownOperator(f)
+  }
+  def implemBinReal[V: acumen.Real](f: String, x: V, y: V) = f match {
+    case "/" => x / y
+    case "^" => x ^ y
+    case _ => implemBinIntegral(f, x, y)
+  }
+  def implemBinBoolean[V: acumen.Integral](f: String, x: V, y: V): Boolean = f match {
+    case "!=" => implicitly[acumen.Integral[V]].!=(x,y)
+    case "==" => implicitly[acumen.Integral[V]].==(x,y)
+    case "<=" => x <= y
+    case ">=" => x >= y
+    case "<" => x < y
+    case ">" => x > y
+  }
+  def implemUnaryBoolean[V: acumen.Real](f: String, x: V): Boolean = f match {
+    case "isValidInt" => x.isValidInt
+    case "isValidDouble" => x.isValidDouble
+  }
+  
   def matrixMultiply[A](u:List[Value[_]], v:List[Value[_]]): Value[A] = {
     val au = transMatrixArray(u)
     val av = transMatrixArray(v)
@@ -208,8 +195,8 @@ object Common {
       error("Matrix sizes are not suitable for multiplication")
     
     val result = for (row <- au)
-	   yield for(col <- av.transpose)
-        yield row zip col map Function.tupled(_*_) reduceLeft (_+_)
+     yield for(col <- av.transpose)
+        yield row zip col map scala.Function.tupled(_*_) reduceLeft (_+_)
     
     val ls = result.map(x => x.toList).toList
     if(ls.length > 1)
@@ -239,13 +226,13 @@ object Common {
   }
   def matrixScaleOp[A](op:String, au:Matrix, gv:Double): Matrix = {     
     for(row <- au)
- 		yield op match{
- 		  	case "+" => row map(_+gv)
- 			case "*" => row map(_*gv)
-	        case "/" => row map(_/gv)
-	        case ".^" => row map(pow(_,gv))
-	        case _ => throw UnknownOperator(op)
- 			}
+    yield op match{
+        case "+" => row map(_+gv)
+      case "*" => row map(_*gv)
+          case "/" => row map(_/gv)
+          case ".^" => row map(pow(_,gv))
+          case _ => throw UnknownOperator(op)
+      }
   }
   def isVector[A](u:List[Value[_]]):Boolean = {
     u.forall(x => x match{
@@ -379,9 +366,9 @@ object Common {
       case "trans" =>      
           val ls = transpose(transMatrixArray(u)).map(x => x.toList).toList
           if(ls.length > 1)        
-        	VVector(ls.map(x => VVector(x.map(y => VLit(GDouble(y))))))          
+          VVector(ls.map(x => VVector(x.map(y => VLit(GDouble(y))))))          
           else
-        	VVector(ls(0).map(x => VLit(GDouble(x))))                  
+          VVector(ls(0).map(x => VLit(GDouble(x))))                  
       case _ => throw InvalidVectorOp(op)
     }
   }
@@ -403,13 +390,13 @@ object Common {
       VVector(ls.map(x => VVector(x.map(y => VLit(GDouble(y))))))
     }
     else  
-    	op match {
-    		case "+" => VVector(du map (d => VLit(GDouble(d+dx))))
-    		case "*" => VVector(du map (d => VLit(GDouble(d*dx))))
-    		case "/" => VVector(du map (d => VLit(GDouble(d/dx))))
-    		case ".^" => VVector(du map (d => VLit(GDouble(pow(d,dx)))))
-    		case _ => throw InvalidVectorScalarOp(op)
-    	}
+      op match {
+        case "+" => VVector(du map (d => VLit(GDouble(d+dx))))
+        case "*" => VVector(du map (d => VLit(GDouble(d*dx))))
+        case "/" => VVector(du map (d => VLit(GDouble(d/dx))))
+        case ".^" => VVector(du map (d => VLit(GDouble(pow(d,dx)))))
+        case _ => throw InvalidVectorScalarOp(op)
+      }
   }
 
   def sequenceOp[A](s:Int, d:Int, e:Int) : Value[A] =
@@ -649,7 +636,7 @@ object Common {
   // ODEs
   // 
   
-  class Solver[Id <: GId, S <% RichStore[S,Id], R: Real](solverName: Value[_], val xs: S, val h: Double)(implicit f: Field[S,Id]) {
+  class Solver[Id <: GId : TypeTag, S <% RichStore[S,Id], R: Real](solverName: Value[_], val xs: S, val h: Double)(implicit f: Field[S,Id]) {
     private def msg(meth: String) = "Invalid integration method \"" + meth +
         "\". Please select one of: " + knownSolvers.mkString(", ")
     final def solve: S = {
@@ -679,7 +666,7 @@ object Common {
     xs +++ (k1 +++ k2 *** 2 +++ k3 *** 2 +++ k4) *** (h/6)
   }
   
-  def solveIVPTaylor[Id <: GId, S <% RichStore[S,Id], R: Real](s: S, h: Double, orderOfIntegration: Int)(implicit f: Field[S,Id]): S = {
+  def solveIVPTaylor[Id <: GId : TypeTag, S <% RichStore[S,Id], R: Real](s: S, h: Double, orderOfIntegration: Int)(implicit f: Field[S,Id]): S = {
     require (orderOfIntegration > 0, s"Order of integration ($orderOfIntegration) must be greater than 0")
     val ode = f map (TAD lift _)
     val rIsReal = implicitly[Real[R]]
@@ -726,6 +713,7 @@ object Common {
     def +++(that: S): S
     def ***(that: Double): S
     def map(m: Value[Id] => Value[Id]): S
+    def mapName(m: (GId, Name, Value[Id]) => Value[Id]): S
     def apply(id: Id, n: Name): Value[Id]
     def updated(id: Id, n: Name, v: Value[Id]): S
     def getInSimulator(variable: String): Value[Id]
