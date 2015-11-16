@@ -14,8 +14,8 @@ initially
   th  =  th0
 always
   x'= V*cos(th) ,
-  y' = V*sin(th) ,
-  th'= w 
+  y' = V*sin(th) 
+  //th'= w 
 
 //*********************Machine Sensor********************************************// 
 model Sensor(x0,y0,th0,s0,s1,s2) = 
@@ -77,7 +77,7 @@ initially
 always
   sens.x = mechanics.x ,
   sens.y = mechanics.y ,
-  sens.th = mechanics.th ,
+  //sens.th = mechanics.th ,
   controller.x = sens.x ,
   controller.y = sens.y ,
   controller.th = sens.th ,

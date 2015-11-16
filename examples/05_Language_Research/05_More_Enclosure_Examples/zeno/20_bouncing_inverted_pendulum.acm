@@ -19,12 +19,12 @@ model Main(simulator) =
   match mode with [
     "Fall" ->
       if t <= 0&& t' <= 0 then
-        t+ == -t,
-        t'+ == -0.9*t',
-        mode+ == "Fall" 
+        t+ = -t,
+        t'+ = -0.9*t',
+        mode+ = "Fall" 
       noelse,
-      t'' == -9.8*sin(pi/2-t),
-      x   == sin(t),
-      y   == cos(t),
-      _3D == (Sphere center = (y, 0, x) size =  0.05) 
+      t'' = -9.8*sin(pi/2-t),
+      x   = sin(t),
+      y   = cos(t),
+      _3D = (Sphere center = (y, 0, x) size =  0.05) 
  ]

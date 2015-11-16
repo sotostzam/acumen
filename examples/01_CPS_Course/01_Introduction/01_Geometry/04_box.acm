@@ -1,22 +1,18 @@
-// Displaying Three Spheres
 
-// To run this example, click on the Play button below, 
-// then click on the "3D" display selector to the right
-// and click Play on that pane.  See exercises below.
+// Displaying a box
 
 model Main(simulator) = 
 initially
-  _3D = (Sphere              // Type of _3D object
-           center=(0,0,0)     // Starting point in [x,y,z] form
-           size=0.55          // Radius
-           color= white        // Color in red-green-blue (RGB) intensity
-           rotation=(0,0,0), // Orientation (pi/2 around x-axis)
-         Sphere center=(0,0,0.65) size=0.35 color=magenta rotation=(0,0,0), // Another sphere
-         Sphere center=(0,0.5,0) size=0.25 color=red     rotation=(0,0,0),
-         Sphere center=(0.5,0,0) size=0.25 color=black     rotation=(0,0,0),
-         Cone center =(0,0,1) radius =0.25 color=yellow rotation=(1.5,0,0)) // And another one
- 
+  _3D = (Box                 // Type of _3D object
+           center=(0,0,0)    // Center point
+           size=(0.2,1,3)    // Size in [x,y,z] form
+           color=red         // Color
+           rotation=(0,0,0)) // Orientation
+
 
 // Exercises
-// 1) Where's the red sphere? :-)
-// 2) Add a yellow sphere with radius 0.25 at [1,0,0]
+// 1) Add another box to form an + sign
+//     copying and pasting the above "Box" vector
+//     and then  changing the dimensions.
+//    Note:  don't change the orientation!  :-)
+//    Hint:  look at previous example

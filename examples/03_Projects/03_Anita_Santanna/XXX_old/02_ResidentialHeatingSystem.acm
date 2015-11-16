@@ -81,6 +81,8 @@
 //     
 //
 // weather profile for Portland Oregon, hourly averages for January 
+
+#semantics "2014 Optimized"
 model WeatherPortland() = 
 initially 
   mode  =  "hour" , T_O  =  3 , tx   =  1 , tx'  =  1/3600 , i = 1 
@@ -116,9 +118,9 @@ always
         | 23 -> T_O = 4 
         | 24 -> T_O = 3 ]        
       noelse,
-      i + == i + 1 ,
-      tx+ ==0 ,
-      if i>24 then mode + == "NoMore" noelse
+      i + = i + 1 ,
+      tx+ =0 ,
+      if i>24 then mode + = "NoMore" noelse
   | "NoMore" -> ]
 
 // weather profile for Halmstad, Sweden, hourly averages for January 
@@ -156,9 +158,9 @@ always
         | 23 -> T_O = 0 
         | 24 -> T_O = 0 ]
       noelse ,
-      i + == i + 1 ,
-      tx+ ==0 ,
-      if i>24 then mode + == "NoMore" noelse
+      i + = i + 1 ,
+      tx+ =0 ,
+      if i>24 then mode + = "NoMore" noelse
   | "NoMore" -> ]
 
 // weather profile for Colorado Springs, CO, hourly averages for January 
@@ -196,9 +198,9 @@ always
         | 23 -> T_O = -5 
         | 24 -> T_O = -5 ]       
       noelse ,
-      i + == i + 1 ,
-      tx+ ==0 ,
-      if i>24 then mode + == "NoMore" noelse
+      i + = i + 1 ,
+      tx+ =0 ,
+      if i>24 then mode + = "NoMore" noelse
   | "NoMore" -> ]
 
 
@@ -211,9 +213,9 @@ always
       COP=0 ,
       power=power ,    // (kW.h)
       cost=cost ,      // (cents)
-      if Q_HP_prime > 1 && Q_HP_prime < 3 then mode+ =="low"  
-      elseif Q_HP_prime > 4 && Q_HP_prime < 5 then mode+ =="medium"  
-      elseif Q_HP_prime > 6 && Q_HP_prime < 11 then mode+ =="high"  
+      if Q_HP_prime > 1 && Q_HP_prime < 3 then mode+ ="low"  
+      elseif Q_HP_prime > 4 && Q_HP_prime < 5 then mode+ ="medium"  
+      elseif Q_HP_prime > 6 && Q_HP_prime < 11 then mode+ ="high"  
       noelse
   
 
@@ -221,22 +223,22 @@ always
       COP=-0.0002592*T_O^2 + 0.0358*T_O + 4.0181 ,
       power=power + (Q_HP_prime/COP)*(1/60) ,          // (kW.h)
       cost=cost + (rate/100)*(Q_HP_prime/COP)*(1/60) , // (dollars)
-      if Q_HP_prime > 1 && Q_HP_prime < 3 then mode+ =="low" 
-      elseif Q_HP_prime > 4 && Q_HP_prime < 5 then mode+ =="medium"  
-      elseif Q_HP_prime > 6 && Q_HP_prime < 11 then mode+ =="high" 
+      if Q_HP_prime > 1 && Q_HP_prime < 3 then mode+ ="low" 
+      elseif Q_HP_prime > 4 && Q_HP_prime < 5 then mode+ ="medium"  
+      elseif Q_HP_prime > 6 && Q_HP_prime < 11 then mode+ ="high" 
       noelse
   | "medium" ->    
       COP=-0.0002592*T_O^2 + 0.0313*T_O + 3.6381 ,
       power=power + (Q_HP_prime/COP)*(1/60) ,          // (kW.h)
       cost=cost + (rate/100)*(Q_HP_prime/COP)*(1/60) , // (dollars)
-      if Q_HP_prime > 1 then mode+ =="on" noelse
+      if Q_HP_prime > 1 then mode+ ="on" noelse
   | "high" ->    
       COP=-0.0002592*T_O^2 + 0.0268*T_O + 3.2581 ,
       power=power + (Q_HP_prime/COP)*(1/60) ,          // (kW.h)
       cost=cost + (rate/100)*(Q_HP_prime/COP)*(1/60) , // (dollars)
-      if Q_HP_prime > 1 && Q_HP_prime < 3 then mode+ =="low"  
-      elseif Q_HP_prime > 4 && Q_HP_prime < 5 then mode+ =="medium" 
-      elseif Q_HP_prime > 6 && Q_HP_prime < 11 then mode+ =="high"
+      if Q_HP_prime > 1 && Q_HP_prime < 3 then mode+ ="low"  
+      elseif Q_HP_prime > 4 && Q_HP_prime < 5 then mode+ ="medium" 
+      elseif Q_HP_prime > 6 && Q_HP_prime < 11 then mode+ ="high"
       noelse ]
 
 // Time of use rates determine the cost of electricity depending on the hour of the day
@@ -248,16 +250,16 @@ always
   match mode with [
     "off_peak" ->    
       rate = 4.422 ,
-      if t > 6 && t < 10 then mode+ =="on_peak" noelse
+      if t > 6 && t < 10 then mode+ ="on_peak" noelse
   | "mid_peak" ->    
       rate = 7.5 ,
-      if t > 17 && t < 20 then mode+ =="on_peak" 
-      elseif t > 22 || t < 6 then mode+ =="off_peak" 
+      if t > 17 && t < 20 then mode+ ="on_peak" 
+      elseif t > 22 || t < 6 then mode+ ="off_peak" 
       noelse
   | "on_peak" -> 
       rate = 13.266 ,
       if (t > 10 && t < 17) || (t > 20 && t < 22) then
-        mode+ =="mid_peak" 
+        mode+ ="mid_peak" 
       noelse ]
 
 
@@ -270,29 +272,29 @@ always
     "high" ->    
       Q_HP_prime = 10.5 ,
       if (T_TM > 65 && count > 5) || (rate > 13 && count > 5) then
-        mode+ =="off" , count+ ==0 
-      elseif T_TM > 64 && T_TM < 65 then mode+ =="low"  
-      elseif T_TM > 62 && T_TM < 64 then mode+ =="medium" 
+        mode+ ="off" , count+ =0 
+      elseif T_TM > 64 && T_TM < 65 then mode+ ="low"  
+      elseif T_TM > 62 && T_TM < 64 then mode+ ="medium" 
       noelse
   | "medium" ->   
       Q_HP_prime = 10.5*0.6 ,
       if (T_TM > 65 && count > 5) || (rate > 13 && count > 5) then
-        mode+ =="off" , count+ ==0 
-      elseif T_TM > 64 && T_TM < 65 then mode+ =="low" 
-      elseif T_TM < 62 then mode+ =="high" 
+        mode+ ="off" , count+ =0 
+      elseif T_TM > 64 && T_TM < 65 then mode+ ="low" 
+      elseif T_TM < 62 then mode+ ="high" 
       noelse
   | "low" ->   
       Q_HP_prime = 10.5*0.3 ,
       if (T_TM > 66 && count > 5) || (rate > 13 && count > 5) then
-        mode+ =="off" , count+ ==0
-      elseif T_TM > 62 && T_TM < 64 then mode+ =="medium"   
-      elseif T_TM < 62 then mode+ =="high"
+        mode+ ="off" , count+ =0
+      elseif T_TM > 62 && T_TM < 64 then mode+ ="medium"   
+      elseif T_TM < 62 then mode+ ="high"
       noelse 
   | "off" ->   
       Q_HP_prime = 0 ,
-      if T_TM > 64 && T_TM < 65 && count>5 && rate < 13 then mode+ =="low"  
-      elseif T_TM > 62 && T_TM < 64 && count>5 && rate < 13 then mode+ =="medium" 
-      elseif T_TM < 62 && count>5 && rate < 13 then mode+ =="high" 
+      if T_TM > 64 && T_TM < 65 && count>5 && rate < 13 then mode+ ="low"  
+      elseif T_TM > 62 && T_TM < 64 && count>5 && rate < 13 then mode+ ="medium" 
+      elseif T_TM < 62 && count>5 && rate < 13 then mode+ ="high" 
       noelse ]
 
 model HeatingSystem(m_H, K_H, C_H, m_TM, C_TM) = 
@@ -306,18 +308,18 @@ always
   match mode with [
     "fan_off" ->
       Y_TM_H=0 ,
-      if T_H > 20 && T_H < 21 then mode+ =="fan_low" 
-      elseif T_H < 20 then mode+ =="fan_high"  
+      if T_H > 20 && T_H < 21 then mode+ ="fan_low" 
+      elseif T_H < 20 then mode+ ="fan_high"  
       noelse
   | "fan_high" -> 
       Y_TM_H=0.2605 ,
-      if T_H > 20 && T_H < 21 then mode+ =="fan_low"  
-      elseif T_H >= 21 then mode+ =="fan_off" 
+      if T_H > 20 && T_H < 21 then mode+ ="fan_low"  
+      elseif T_H >= 21 then mode+ ="fan_off" 
       noelse
   | "fan_low" ->   
       Y_TM_H=0.1303 ,
-      if T_H < 20 then mode+ =="fan_high" 
-      elseif T_H >= 21 then mode+ =="fan_off"
+      if T_H < 20 then mode+ ="fan_high" 
+      elseif T_H >= 21 then mode+ ="fan_off"
       noelse ]
  
 model Main(simulator) = 

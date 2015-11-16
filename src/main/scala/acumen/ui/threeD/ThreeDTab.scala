@@ -1,7 +1,7 @@
 package acumen.ui.threeD
 import java.awt.BorderLayout
 import javax.swing.JPanel
-import acumen.CId
+import acumen.{Main, CId}
 
 import scala.collection.mutable
 import acumen.ui.{App, Controller, Icons}
@@ -18,6 +18,9 @@ abstract class AbstractEditorTab extends BorderPanel{
   def disableButtons(): Unit
   def enableButtons(): Unit
   def setButtons(targetState: Boolean): Unit
+  def setCheckBoxes(targetState: Boolean): Unit
+  def checkBoxState(boxType: String): Boolean
+  def setCheckBoxState(targetState: Boolean, boxType: String): Unit
 }
 
 class ThreeDTab (val appModel: Controller) extends AbstractEditorTab{
@@ -62,13 +65,14 @@ class ThreeDTab (val appModel: Controller) extends AbstractEditorTab{
   }
   /* ----3D-Visualization---- */
   var played = false
+  var realTimePlayed = false
 
   // play/pause button
   val threedplay = new Action("play") {
     icon = Icons.play
     toolTip = "play"
     def apply() = {
-      if (toolTip == "play") {
+      if (toolTip == "play" || realTimePlayed) {
         play()
         // after click play, this button become pause
         toolTip = "pause"
@@ -112,6 +116,34 @@ class ThreeDTab (val appModel: Controller) extends AbstractEditorTab{
   }
   check.selected = false
 
+  val checkMatchTime = new CheckBox("") {
+    action = Action("Match Wall Clock") {}
+  }
+  checkMatchTime.selected = false
+  checkMatchTime.enabled = false
+
+  val missedDeadLine = new Label("   Missed deadlines:%.2f".format(threeDView.percentagemissDL * 100) + "%    ")
+  missedDeadLine.border = Swing.EmptyBorder(2,0,0,0)
+  val slackTime = new Label("Slack:%.2f".format(threeDView.averageSlack * 100) + "%  ")
+  slackTime.border = Swing.EmptyBorder(2,0,0,0)
+  val checkRTAnimation = new CheckBox(""){
+    action = Action("Stream Animation") {
+      if (selected) {
+        checkMatchTime.enabled = true
+        missedDeadLine.visible = true
+        slackTime.visible = true
+        checkMatchTime.border = Swing.EmptyBorder(0,0,0,0)
+      } else {
+        checkMatchTime.selected = false
+        checkMatchTime.enabled = false
+        missedDeadLine.visible = false
+        slackTime.visible = false
+        checkMatchTime.border = Swing.EmptyBorder(0,0,0,260)
+      }
+    }
+  }
+  if (Main.enableRealTime) checkRTAnimation.doClick()
+
   def hide(button: Button) {
     button.peer.setEnabled(false)
   }
@@ -128,8 +160,16 @@ class ThreeDTab (val appModel: Controller) extends AbstractEditorTab{
         pauseOff()
   })
 
-  val threeDBottomPane = new BoxPanel(Orientation.Horizontal) {
+  val threeDControlPane = new BoxPanel(Orientation.Horizontal) {
     contents ++= Seq(check, b3dplay, b3dstop, b3dslower, b3dfaster, statusZone3d)
+  }
+
+  val threeDInfoPane = new BoxPanel(Orientation.Horizontal) {
+    contents ++= Seq(checkRTAnimation, checkMatchTime, missedDeadLine, slackTime)
+  }
+
+  val threeDBottomPane = new BoxPanel(Orientation.Vertical) {
+    contents ++= Seq(threeDInfoPane, threeDControlPane)
   }
 
   var _receiver = new _3DDisplay(threeDView, statusZone3d, playSpeed,
@@ -155,9 +195,6 @@ class ThreeDTab (val appModel: Controller) extends AbstractEditorTab{
     timer3d.destroy = true
     threeDView.reset()
     statusZone3d.bar.value = 0
-    threeDView.manualView = false
-    if (!threeDView.customView)
-      threeDView.customView = true
     if (check.selected)
       threeDView.axisOn()
   }
@@ -166,16 +203,12 @@ class ThreeDTab (val appModel: Controller) extends AbstractEditorTab{
     timer3d.pause = false
     threedplay.icon = Icons.play
     threedplay.toolTip = "resume"
-    if (!threeDView.customView && !threeDView.preCustomView)
-      threeDView.customView = true
   }
   
   def pauseOff(): Unit = {
     timer3d.pause = true
     threedplay.icon = Icons.pause
     threedplay.toolTip = "pause"
-    if (threeDView.customView && !threeDView.preCustomView)
-      threeDView.customView = false
   }
 
   def pause(): Unit =
@@ -193,9 +226,6 @@ class ThreeDTab (val appModel: Controller) extends AbstractEditorTab{
       threedplay.toolTip = "pause"
       threedplay.icon = Icons.pause
       endTime = appModel.threeDData.endTime
-      threeDView.manualView = false
-      threeDView.preCustomView = true
-      threeDView.customView = true
       if (played) {
         receiver.stop()
         timer3d.destroy = true
@@ -206,7 +236,6 @@ class ThreeDTab (val appModel: Controller) extends AbstractEditorTab{
       if (!played) {
         _3DDataBuffer.clear()
         lastFrame = 0
-        statusZone3d.setSpeed("1.0")
         for ((frameNo, map) <- appModel.threeDData._3DData) {
           val temp = if (map != null) mutable.Map[(CId, Int), List[_]]()
                      else null
@@ -218,10 +247,6 @@ class ThreeDTab (val appModel: Controller) extends AbstractEditorTab{
         }
         /* The frame start from 0, and end up at the last index of buffer */
         lastFrame = appModel.threeDData._3DData.size - 1
-      }
-      if (appModel.threeDData._3DView.nonEmpty) {
-        threeDView.customView = false
-        threeDView.preCustomView = threeDView.customView
       }
       threeDView.viewStateMachine("deleteAllObjects")
       threeDView.objects.clear()
@@ -242,16 +267,15 @@ class ThreeDTab (val appModel: Controller) extends AbstractEditorTab{
       timer3d.listenTo(statusZone3d.bar.mouse.clicks)
       timer3d.listenTo(statusZone3d.bar.mouse.moves)
       played = true
+      realTimePlayed = false
     }
   }
 
   def playinRealTime() = {
+    threedplay.toolTip = "play"
+    threedplay.icon = Icons.play
     endTime = appModel.threeDData.endTime
     statusZone3d.setSpeed(playSpeed.toString)
-    if (appModel.threeDData._3DView.size == appModel.threeDData._3DData.size) {
-      threeDView.customView = false
-      threeDView.preCustomView = threeDView.customView
-    }
     lastFrame = appModel.threeDData._3DData.size - 1
     _receiver = new _3DDisplay(threeDView, statusZone3d, playSpeed,
       appModel.threeDData._3DData, lastFrame, appModel.threeDData.endTime,
@@ -259,14 +283,42 @@ class ThreeDTab (val appModel: Controller) extends AbstractEditorTab{
     receiver.start()
     receiver ! "real time render"
     listenTo(receiver)
+    receiver.listenTo(statusZone3d.bar.mouse.moves)
+    receiver.listenTo(statusZone3d.bar.mouse.clicks)
+    played = false
+    realTimePlayed = true
   }
 
   def enableButtons() = setButtons(true)
   def disableButtons() = setButtons(false)
   def setButtons(targetState: Boolean): Unit = {
+    threeDView.barEnabled = targetState
     b3dplay.enabled = targetState
     b3dstop.enabled = targetState
     statusZone3d.bar.enabled = targetState
+  }
+
+  def checkBoxState(boxType: String): Boolean = {
+    if (boxType == "realTime") {
+      if (checkRTAnimation.selected) true
+      else false
+    } else {
+      if (checkMatchTime.selected) true
+      else false
+    }
+  }
+
+  def setCheckBoxState(targetState: Boolean, boxType: String) = {
+    if (boxType == "realTime") {
+      checkRTAnimation.selected = targetState
+    } else {
+      checkMatchTime.selected = targetState
+    }
+  }
+
+  def setCheckBoxes(targetState: Boolean) = {
+    checkRTAnimation.enabled = targetState
+    checkMatchTime.enabled = targetState
   }
   
   // Final Init
@@ -281,6 +333,9 @@ class DisabledEditorTab(msg: String) extends AbstractEditorTab {
   def disableButtons() = {}
   def enableButtons() = {}
   def setButtons(targetState: Boolean) = {}
+  def setCheckBoxes(targetState: Boolean) = {}
+  def checkBoxState(boxType: String): Boolean = false
+  def setCheckBoxState(targetState: Boolean, boxType: String) = {}
   def pause() = {}
   val msgBox = new TextArea("\n" + msg)
   msgBox.editable = false

@@ -12,13 +12,13 @@ always
  _3D = (Obj center = c1
             size = 0.1
             color = green
-            content = "car.obj"
-            rotation = (pi/2,0,pi-t),
+            content = "car"
+            rotation = (0,0,pi-t),
         Obj center = c2 
             size = 0.1
             color = red
-            content = "car.obj"
-            rotation = (pi/2,0,pi-t),
+            content = "car"
+            rotation = (0,0,pi-t),
         Cylinder center = (0,0,-0.05)
                  radius = 1
                  length = 0

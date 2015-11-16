@@ -1,3 +1,4 @@
+#semantics "2014 Optimized"
 model DoublePendulum(m1,m2,L1,L2) = 
 initially 
   x1 = 0 , y1 = 0 , x2 = 0 , y2 = 0 , theta1 = 0.1 , theta1' = 0.00 , theta1'' = 0 ,

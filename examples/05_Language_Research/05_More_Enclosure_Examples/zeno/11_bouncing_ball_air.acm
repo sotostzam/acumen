@@ -5,18 +5,18 @@ model Main(simulator) =
   match mode with [
     "Rise" claim x >= 0&& x' >= 0 -> 
       if x' == 0 then
-        mode+ == "Fall"
+        mode+ = "Fall"
       noelse,
-      x'' == -10 - 0.1*x'*x'
+      x'' = -10 - 0.1*x'*x'
     |"Fall" claim x >= 0&& x' <= 0-> 
       if x == 0 then
-        x'+ == -0.5 * x',
-        mode+ == "Rise"
+        x'+ = -0.5 * x',
+        mode+ = "Rise"
       noelse,
-      x'' == -10 + 0.1*x'*x'
+      x'' = -10 + 0.1*x'*x'
   ],
-  simulator.startTime+ == 0,
-  simulator.endTime+ == 3.5,
-  simulator.minSolverStep+ == 0.01,
-  simulator.minLocalizationStep+ == 0.001,
-  simulator.minComputationImprovement+ == 0.001     
+  simulator.startTime+ = 0,
+  simulator.endTime+ = 3.5,
+  simulator.minSolverStep+ = 0.01,
+  simulator.minLocalizationStep+ = 0.001,
+  simulator.minComputationImprovement+ = 0.001     

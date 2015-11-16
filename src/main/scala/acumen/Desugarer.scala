@@ -170,15 +170,6 @@ case class Desugarer(odeTransformMode: ODETransformMode) {
               case LocalInline => firstOrderSystemInline(dot, drhs)
               case TopLevel    => Nil
             })
-        case Index(e, idx) => des(fs ::: newNames, e) match {
-          case dot: Dot =>
-            EquationT(Index(dot,idx), drhs) ::
-              (odeTransformMode match {
-                case Local       => firstOrderSystem(Index(dot,idx))
-                case LocalInline => firstOrderSystemInline(Index(dot,idx), drhs)
-                case TopLevel    => Nil
-              })
-        }
         case _ => throw BadPreLhs()
       }
     }

@@ -11,13 +11,13 @@ model Main(simulator) =
   match mode with [
     "" claim s <= abs(d) -> 
       if d == s then
-        s+ == s/2, 
-        mode+ == "" 
+        s+ = s/2, 
+        mode+ = "" 
       noelse,
-      d' == -(d + 1) 
+      d' = -(d + 1) 
   ],
-  simulator.startTime+ == 0,
-  simulator.endTime+ == 0.8,
-  simulator.minSolverStep+ == 0.01,
-  simulator.minLocalizationStep+ == 0.001,
-  simulator.minComputationImprovement+ == 0.0001 
+  simulator.startTime+ = 0,
+  simulator.endTime+ = 0.8,
+  simulator.minSolverStep+ = 0.01,
+  simulator.minLocalizationStep+ = 0.001,
+  simulator.minComputationImprovement+ = 0.0001 
