@@ -233,7 +233,12 @@ object Interpreter extends acumen.CStoreInterpreter {
             else eval(env,y)
         /* op(args) */
         case Op(Name(op,0),args) =>
-          evalOp(op, args map (eval(env,_)))
+          if (op == "rand") {
+            val seed = getSeed(selfCId(env), st)
+            val (rand,gen) = Random.randomIvalDouble(0, 1, seed)
+            VLit(GDouble(rand))
+          } else
+            evalOp(op, args map (eval(env,_)))
         /* sum e for i in c st t */
         case Sum(e,i,c,t) =>
           def helper(acc:CValue, v:CValue) = {
@@ -581,12 +586,19 @@ object Interpreter extends acumen.CStoreInterpreter {
             val stEQS = applyCollectedAssignments(eqs, stT)
             setResultType(Continuous, stEQS)
         }
+        // Increment the seeds of each object
+        val stSeed = res.foldLeft(res) {
+          case (res1, (id,o)) =>
+            val (seed1,seed2) = getSeed(id, res)
+            val (tmp,newSeed) = Random.next((seed1,seed2))
+            setObject(id, setSeed(res(id), newSeed), res1)
+        }
         // Hypotheses check only when the result is not a FixedPoint
-        lazy val md1 = testHypotheses(hyps, md, res, getTime(st))(NoBindings) // No bindings needed, res is consistent 
-        if (getResultType(res) != FixedPoint)
-          Data(countVariables(res), md1)
+        lazy val md1 = testHypotheses(hyps, md, stSeed, getTime(st))(NoBindings) // No bindings needed, res is consistent
+        if (getResultType(stSeed) != FixedPoint)
+          Data(countVariables(stSeed), md1)
         else
-          Data(countVariables(res), md)
+          Data(countVariables(stSeed), md)
       }
     }
   
