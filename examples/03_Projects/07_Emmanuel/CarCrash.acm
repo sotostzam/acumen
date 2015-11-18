@@ -1,0 +1,63 @@
+
+// Incorrect simulation of a car accident
+//
+// Author: Emmanuel Brelle
+//
+// This simulation will give a simple understanding of Acumen language
+// and can be used to make your computer very slow (many objects must be created)
+
+model Vehicle (d,s,name) = 
+initially
+  _3D  =  (),x = 10,x'=-4,x''=-2
+always 
+x'' = -2,
+if(x < 1.2) then 
+create Debris ((0,0,0),(-x'-1,1,0),0.2,0),
+create Debris ((0,0,0),(-x'-1,-1,0),0.2,0),
+create Debris ((0,0,0),(-x'-1,0,1),0.2,0),
+create Debris ((0,0,0),(-x'-1,0,-1),0.2,0),
+create Debris ((0,0,0),(-x'-1,0.7,0.7),0.2,0),
+create Debris ((0,0,0),(-x'-1,-0.7,0.7),0.2,0),
+create Debris ((0,0,0),(-x'-1,0.7,-0.7),0.2,0),
+create Debris ((0,0,0),(-x'-1,-0.7,-0.7),0.2,0),
+terminate self
+else
+  _3D = (Obj center=(x,0,0) size=s color=(1,1,1) rotation=(pi/2,0,d*pi) content=name)
+
+
+model Debris (p,v,s,step)=
+initially
+p' = (0,0,0),
+mode = "init",
+_3D = (Box center = p size = (s,s,s) color = p )
+always
+p' = v,
+_3D = (Box center = p size = (s,s,s)  color = p ),
+if mode == "init" && step < 3 && step+1 < p(0)*2 then
+create Debris (p,(v(0),v(1)*2,v(2)*2),s*3/4,step +1),
+create Debris (p,(v(0),v(1)*2/3,v(2)*2),s*3/4,step +1),
+create Debris (p,(v(0),v(1)*2,v(2)*2/3),s*3/4,step +1),
+create Debris (p,(v(0),v(1)*2/3,v(2)*2/3),s*3/4,step +1),
+mode += "done"
+noelse
+
+model Wall (p,d)=
+initially 
+_3D = ()
+always
+_3D = (Box center = p size = (0.1,1,1))
+
+
+model Main (simulator) = 
+initially
+_3DView = ((20,10,10), (0,0,0)),
+mode = "Init",
+wall = create Wall ((0,0,0),0)
+always
+simulator.endTime += 10,
+simulator.timeStep += 0.1,
+match mode with [
+    "Init" ->     
+      create Vehicle(0,1,"car.obj") ,
+      mode + = "Persist" 
+  | "Persist" -> ]

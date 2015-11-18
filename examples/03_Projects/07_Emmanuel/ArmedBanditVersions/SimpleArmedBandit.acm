@@ -1,0 +1,59 @@
+// Simplest application of the Upper Confidence Bound algorithm for multi armed bandits
+//
+// Author: Emmanuel Brelle
+//
+// This model remove all unnecessary objects (for example 3D) to compute the solutuon
+// This model may be used to check quickly the correctness of the results but will 
+// give a output which wll be diffiult for human eyes to read.
+
+model Main(_)=
+initially 
+S = create solver()
+
+model solver()=
+initially
+  mode = "ini",
+  t= 0,t'=1,tStep = 2, // steps duration
+  ptr = 4, max =0,imax = 0
+always
+  t'= 1,
+  if mode == "ini" then
+      create ArmedBandit(0,0.3),
+      create ArmedBandit(1,0.7),
+      create ArmedBandit(2,0.6),
+      create ArmedBandit(3,0.8),
+    mode += "running"
+  noelse,
+  if ptr >= length(children) then   //play the selected bandit
+    ptr +=0,imax +=0, max +=0, t+= 0,
+    foreach c in children do (  //Select the bandit
+      if c.id == imax then //play the bandit
+        if c.prob <0.5 then 
+          c.lastTry += rand()*(2*c.prob)
+        else
+          c.lastTry += c.prob + 2*(rand()-0.5)*(1-c.prob)
+      noelse)
+  else  if t > tStep then  //find the max among the children
+    ptr+=ptr +1,
+    foreach c in children do 
+      if (ptr == c.id && c.upperBound > max) then
+        max += c.upperBound,
+        imax += ptr    
+      noelse
+  noelse
+
+model ArmedBandit (id,prob) = 
+initially
+mode="run",
+upperBound = 1 , average = 0.5, numberOfRun = 0,
+confidenceConst = sqrt(log(2/0.1)/2),  
+confidence = sqrt(log(2/0.1)/2),
+lastTry = -1
+always 
+  upperBound =average +confidence,
+  if lastTry ~= -1  then
+    lastTry += -1,
+    confidence= confidenceConst/sqrt(numberOfRun),
+    average += (average *numberOfRun + lastTry)/ (numberOfRun +1),
+    numberOfRun+=numberOfRun+1
+  noelse
