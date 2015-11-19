@@ -1,0 +1,30 @@
+file = executions ~ semantics ~ models ~ optionalParameter 
+executions = kwExecutions "<- {" <execution> "}"
+execution= coupleTimesAndTime ("interleaved" | "Interleaved" | "single" | "Single") 
+semantics= kwSemantics "<-{" <stringLit> "}"
+models= kwModels "<- {" <path> "}"
+ 
+kwSeconds= ("second" | "seconds")
+kwTimes= "times" 
+kwWarmup= "warmup"
+kwRepeat= "repeat"
+kwTableOption = "meta_test_max"
+kwSemantics= ("semantics" | "Semantics")
+kwExecutions= ("executions" | "Executions") 
+kwModels = ("models" | "Models") 
+
+coupleTimesAndTime= numericLit kwTimes (numericLit|floatLit) kwSeconds 
+path= dashedNamePath "/" regWord ".acm" | regWord ".acm" 
+dashedNamePath = dashedName | dashedNameList "/" dashedName
+dashedNameList = dashedName | dashedNameList "," dashedName
+dashedName= name | dashedName "-" name 
+regWord = [ dashedName ] ~ option ~ [regWord] | dashedName
+option= "[" dashedNameList "]"
+name= [numericLit] ident
+
+optionalParameter = optWarmup ~ optRepeat ~ [statisticsOptions] 
+optWarmup = [warmup]
+warmup= kwWarmup "=" numericLit
+optRepeat = [repeat]
+repeat = kwRepeat "=" numericLit
+statisticsOptions= kwTableOption "=(" coupleTimesAndTime ")"
