@@ -492,7 +492,12 @@ object Common {
           else eval(env, y)
         /* op(args) */
         case Op(Name(op, 0), args) =>
-          evalOp(op, args map (eval(env, _)))
+          if (op == "rand"){
+            val seed = selfObjId(env).seed
+            val (rand,gen) =  Random.randomIvalDouble(0,1,seed)
+            VLit(GDouble(rand))
+          } else
+            evalOp(op, args map (eval(env, _)))
         /* sum e for i in c st t */
         case Sum(e, i, c, t) =>
           def helper(acc: Val, v: Val) = {

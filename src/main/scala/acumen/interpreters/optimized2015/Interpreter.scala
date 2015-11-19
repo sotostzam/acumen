@@ -25,7 +25,9 @@ import acumen.util.Canonical.{
   self,
   resultType,
   time,
-  timeStep
+  timeStep,
+  setObject,
+  setSeed
 }
 import scala.annotation.tailrec
 
@@ -253,6 +255,13 @@ class Interpreter extends CStoreInterpreter {
 
       setResultType(magic, rt)
       setVarNum(magic, countStateVars(repr(st)))
+
+      repr(st).foldLeft(repr(st)){
+        case (res1, (id,o)) =>
+        val (seed1,seed2) = getNewSeed(st)
+        val (tmp,newSeed) = Random.next((seed1,seed2))
+        setObject(id, setSeed(repr(st)(id), newSeed), res1)
+      }
       
       if (rt != FixedPoint) checkHypothesis(pp, p, magic, st)      
 

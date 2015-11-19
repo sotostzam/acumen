@@ -1,0 +1,65 @@
+// Tool used to plot 4th order polynoms 
+//
+// Author: Emmanuel Brelle
+//
+
+model Poly_Segment (indice, p1, p2, color, radius, limitNegDisplay, limitPosDisplay)=
+initially 
+  _3D=()
+always
+  if p1(2)> limitPosDisplay || p2(2)> limitPosDisplay || 
+    p1(2)< limitNegDisplay || p2(2)< limitNegDisplay then
+    _3D=()
+  else
+    _3D=(Box color=color 
+        size=(2*radius,norm(p2-p1)+radius/2,2*radius) 
+        center=(p1+p2)/2 
+        rotation=(pi/2,atan((p1(0)-p2(0))/(p1(2)-p2(2))),0))
+
+model polynom (coef, degree, color, precision, interval, radius, origin, limitNegDisplay, limitPosDisplay)= 
+initially
+  mode =3, 
+  toEnd = 0,
+  vals=(
+    (interval(0)*precision:interval(1)*precision ),
+    (interval(0)*precision:interval(1)*precision )/precision,
+    (interval(0)*precision:interval(1)*precision ),
+    (interval(0)*precision:interval(1)*precision ),
+    (interval(0)*precision:interval(1)*precision )
+  ),
+  imgs=(interval(0)*precision:interval(1)*precision)
+always
+  if toEnd == 1 then
+    foreach c in children do 
+      terminate c ,
+    toEnd += 2
+  noelse,
+
+  if mode == 3 then 
+    mode+=mode-1,
+    foreach i in 0:((interval(1)-interval(0))*precision) do (
+      vals(0,i)+=1,
+      vals(2,i)+=vals(1,i)*vals(1,i),
+      vals(3,i)+=vals(1,i)*vals(1,i)*vals(1,i),
+      vals(4,i)+=vals(1,i)*vals(1,i)*vals(1,i)*vals(1,i))
+  else if mode == 2  && toEnd  == 0 then 
+    mode+=mode-1,
+    foreach i in 0:((interval(1)-interval(0))*precision-1) do 
+      create Poly_Segment (i,origin+(i/precision+interval(0),0,imgs(i)),
+        origin+((i+1)/precision+interval(0),0,imgs(i+1)),
+        color,radius,limitNegDisplay, limitPosDisplay)
+  else
+    imgs = coef * vals,
+    
+  foreach c in children do(
+    c.p1 = origin+(c.indice/precision+interval(0),0,imgs(c.indice)),
+    c.p2 = origin+((c.indice+1)/precision+interval(0),0,imgs(c.indice+1)))
+
+/*
+model Main (simulator)=
+initially
+poly= create polynom ((0,-2,1,4,2),4,green,20,(-3,3),0.1, (0,0,0), -50, 2.5),
+poly= create polynom ((0,-2,1,4,2),4,red,4,(-3,3),0.1, (0,0,-4), -50,0)
+always
+simulator.endTime += 0.1
+*/

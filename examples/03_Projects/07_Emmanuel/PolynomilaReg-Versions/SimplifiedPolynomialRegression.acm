@@ -1,0 +1,28 @@
+// Simplest application of the polynomila regression
+//
+// Author: Emmanuel Brelle
+//
+// This model remove all unnecessary objects (for example 3D) to compute the solutuon
+// This model may be used to check quickly the correctness of the results but will 
+// give a output which wll be diffiult for human eyes to read.
+
+model Main (_)=
+initially
+  n = 4, 
+  mode = 2, 
+  x = (0:4,0:4,0:4,0:4,0:4), y=(-0.8,0.7,0,0.5,0),
+  coef = (0,0,0,0,0), 
+  error= 0
+always
+  if mode == 2 then 
+    foreach i in 0:n do 
+      x(i,1) += i+0.5,
+    mode += mode-1
+  else if mode == 1 then 
+    foreach i in 0:n do 
+      x(i) += (1,x(i,1),x(i,1)*x(i,1),x(i,1)*x(i,1)*x(i,1),x(i,1)*x(i,1)*x(i,1)*x(i,1)),
+    mode += mode-1
+  noelse ,
+  
+  coef =y*x*inv(trans(x)*x),
+  error = norm(coef*trans(x)-y)

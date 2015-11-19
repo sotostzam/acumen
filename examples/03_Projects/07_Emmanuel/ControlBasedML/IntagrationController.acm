@@ -1,0 +1,26 @@
+// Integration controller 
+//
+// Author: Emmanuel Brelle
+//
+
+model Main(simulator)=
+initially
+s = create system(),
+m = create machine()
+always
+s.x = m.x_test,
+m.y_observed = s.y
+
+model system ()= 
+initially
+x =0, y= 0
+always
+y= x*x
+
+model machine ()= 
+initially
+x_test = 0,x_test' = 0,y_observed = 0,
+x_answer = 0, y_target =7
+always
+x_test' = 100* (y_target - y_observed)
+

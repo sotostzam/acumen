@@ -1,0 +1,181 @@
+//Explaination for the polynomial regression using Acumen 3D rendering
+//
+// Author: Emmanuel Brelle
+//
+// This version add color and indexed value in equations
+
+#include "../polynoms.acm"
+#include "../TextPlotter.Acm"
+
+model Main (simulator) = 
+initially
+t=0,t'=0, 
+step =0, phase ="wait",
+topLeft = ((-3.2,0,5),(-2,0,7),(-2,0,7),(-2,0,7),(-2,0,7),
+            (-2,0,7.5),(-2,0,5.5),(-2,0,7.5),(-2,0,7.5),(-2,0,7.5),
+            (-2,0,6)),
+
+phaseDuration = (4, 33,26,5, 15, 35, 10),
+nextPhaseStart = (4, 7,21,5, 15, 35, 10),
+
+titleFontSize =1,
+textFontSize = 0.5,
+_3DView =((5.5,-27,3.5),(4.5,0,4.5))
+always 
+t'=1,
+simulator.endTime += -0.1+ sum nextPhaseStart(i) for i in 0:6,
+if t > nextPhaseStart(step) then 
+  t+=0,
+  step += step +1,
+  phase +="wait" 
+noelse,
+
+if  phase == "wait" then  phase +="run",
+match step with [
+0 -> 
+  //create PolynomilaRegression(0,0.5,0),
+  create TimedText ("K-th Ordrer Polynomial Regression",titleFontSize,topLeft(step),0,phaseDuration(step),blue),
+  create TimedText ("by Emmanuel Brelle",textFontSize,topLeft(step)+(5.5,0,-textFontSize-titleFontSize),0,phaseDuration(step),blue)
+
+| 1 ->
+  create TimedText ("This video illustrates a 4th ordrer polynomial regression", textFontSize,topLeft(step),0,phaseDuration(step),blue),
+  create TimedText ("on an input made of 5 couples (xi,yi)", textFontSize,topLeft(step)+(0,0,-textFontSize),0,phaseDuration(step),blue)
+| 2 ->
+  create TimedText ("Polynomial regression tries to find the coefficients", textFontSize,topLeft(step)+(0,0,-3*textFontSize),0,phaseDuration(step),blue),
+  create TimedText ("C = [   ,   ,   ,   ,   ] of a 4th ordrer polynom P", textFontSize,topLeft(step)+(0,0,-4*textFontSize),0,phaseDuration(step),blue),
+  create TimedText ("c0  c1  c2  c3  c4", textFontSize,topLeft(step)+(1.1,0,-4*textFontSize),0,phaseDuration(step),green),
+  create TimedText ("such as P(xi)-yi =   +   xi +   xi  +   xi  +   xi  - yi ", textFontSize,topLeft(step)+(0,0,-5*textFontSize),0,phaseDuration(step),blue),
+  create TimedText ("c0", textFontSize,topLeft(step)+(3.9,0,-5*textFontSize),0,phaseDuration(step),green),
+  create TimedText ("c1", textFontSize,topLeft(step)+(4.9,0,-5*textFontSize),0,phaseDuration(step),green),
+  create TimedText ("c2", textFontSize,topLeft(step)+(6.3,0,-5*textFontSize),0,phaseDuration(step),green),
+  create TimedText ("c3", textFontSize,topLeft(step)+(8,0,-5*textFontSize),0,phaseDuration(step),green),
+  create TimedText ("c4", textFontSize,topLeft(step)+(9.7,0,-5*textFontSize),0,phaseDuration(step),green),
+  create TimedText ("2", 0.5*textFontSize,topLeft(step)+(7.3,0,-4.6*textFontSize),0,phaseDuration(step),blue),
+  create TimedText ("3", 0.5*textFontSize,topLeft(step)+(9.0,0,-4.6*textFontSize),0,phaseDuration(step),blue),
+  create TimedText ("4", 0.5*textFontSize,topLeft(step)+(10.7,0,-4.6*textFontSize),0,phaseDuration(step),blue),
+  create TimedText ("is the smallest for any couple (xi,yi)", textFontSize,topLeft(step)+(0,0,-6*textFontSize),0,phaseDuration(step),blue)
+| 3 ->
+  create TimedText ("This value P(xi)-yi is called the error", textFontSize,topLeft(step)+(0,0,-8*textFontSize),0,phaseDuration(step),blue)
+| 4 ->
+  create TimedText ("It can be mathematically proved that C = (    )", textFontSize,topLeft(step),0,phaseDuration(step),blue),
+  create TimedText ("X", textFontSize,topLeft(step)+(9,0,0),0,phaseDuration(step),(1,0.7,0)),
+  create TimedText ("T", 0.7*textFontSize,topLeft(step)+(9.4,0,0.2),0,phaseDuration(step),(1,0.7,0)),
+  create TimedText ("X", textFontSize,topLeft(step)+(9.6,0,0),0,phaseDuration(step),green),
+  create TimedText ("-1", 0.7*textFontSize,topLeft(step)+(10.2,0,0.2),0,phaseDuration(step),blue),
+  create TimedText ("X", textFontSize,topLeft(step)+(10.6,0,0),0,phaseDuration(step),(1,0.7,0)),
+  create TimedText ("T", 0.7*textFontSize,topLeft(step)+(11,0,0.2),0,phaseDuration(step),(1,0.7,0)),
+  create TimedText ("Y", textFontSize,topLeft(step)+(11.3,0,0),0,phaseDuration(step),yellow),
+  create TimedText ("where   is the matrix of all the [1,xi,xi ,xi ,xi  ]", textFontSize,topLeft(step)+(0.7,0,-2*textFontSize),0,phaseDuration(step),blue),
+  create TimedText ("2", 0.5*textFontSize,topLeft(step)+(9.2,0,-1.6*textFontSize),0,phaseDuration(step),blue),
+  create TimedText ("3", 0.5*textFontSize,topLeft(step)+(9.9,0,-1.6*textFontSize),0,phaseDuration(step),blue),
+  create TimedText ("4", 0.5*textFontSize,topLeft(step)+(10.6,0,-1.6*textFontSize),0,phaseDuration(step),blue),
+  create TimedText ("X", textFontSize,topLeft(step)+(2.2,0,-2*textFontSize),0,phaseDuration(step),green),
+  create TimedText ("is the matrix of all the 'yi's", textFontSize,topLeft(step)+(1.2,0,-3*textFontSize),0,phaseDuration(step),blue),
+  create TimedText ("Y", textFontSize,topLeft(step)+(0.7,0,-3*textFontSize),0,phaseDuration(step),yellow),
+  create TimedText ("is the transpose of  ", textFontSize,topLeft(step)+(1.4,0,-4*textFontSize),0,phaseDuration(step),blue),
+  create TimedText ("X", textFontSize,topLeft(step)+(0.7,0,-4*textFontSize),0,phaseDuration(step),(1,0.7,0)),
+  create TimedText ("T", 0.7*textFontSize,topLeft(step)+(1.1,0,-3.6*textFontSize),0,phaseDuration(step),(1,0.7,0)),
+  create TimedText ("X", textFontSize,topLeft(step)+(5.5,0,-4*textFontSize),0,phaseDuration(step),green)
+  
+| 5 ->
+create PolynomilaRegression(15,17,3),
+  create TimedText ("Each input (xi,yi) is represented by a cross", textFontSize,topLeft(step),0,phaseDuration(step),blue),
+  create TimedText ("the black line is the polynom",textFontSize,topLeft(step)+(0,0,-textFontSize),0,phaseDuration(step),blue),
+  create TimedText ("The error is the norm of CX-Y", textFontSize,topLeft(step)+(0,0,-3*textFontSize),0,phaseDuration(step),blue),
+ create TimedText ("(the vector of the different errors)", textFontSize,topLeft(step)+(0,0,-4*textFontSize),0,phaseDuration(step),blue)
+| 6 ->
+   create TimedText ("Thank you for watching!", titleFontSize,topLeft(step)+(1,0,0),0,phaseDuration(step),blue),
+    create TimedText ("The Effective Modeling Group", textFontSize,topLeft(step)+(3,0,-titleFontSize-textFontSize),0,phaseDuration(step),blue),
+    create TimedText ("(effective-modeling.org)",textFontSize,topLeft(step)+(3.5,0,-titleFontSize-textFontSize*3),0,phaseDuration(step),blue)
+]
+ noelse
+
+model PolynomilaRegression (tPauseBefore,tEnd,tPauseAfter)=
+initially
+n = 4, mode = 2, 
+t = -tPauseBefore , t'=1,
+x = (0:4,0:4,0:4,0:4,0:4), y=(-0.8,0.7,0,0.5,0),
+coef = (0,0,0,0,0), error= 0,
+bSize = 1, errorBarSize= 0.3,errorColor=green,
+errorText ="No significant error", errorMSgPos=(0,0,0),
+_3D = (),position = (1.5,0,3.5),
+poly= create polynom((0,0,0,0,0),4,black,5,(0,5),0.05,(0,1,0),-0.2,5)
+always
+t'=1,
+if (t>0)then
+coef =y*x*inv(trans(x)*x)
+noelse,
+
+ if (t> 0 && t< tEnd) then
+y(0) = -0.8,
+y(1) = 0.7*cos(t/2),
+y(2) = 0.7*sin(t/2),
+y(3) = 0.5,
+y(4) = -0.5*sin(t/2)
+noelse,
+
+if(length(children)>0) then 
+poly.coef = coef,
+poly.origin+=position+ (0,bSize/20,0)
+noelse,
+
+if mode == 2 then 
+foreach i in 0:n do 
+x(i,1) += i+0.5,
+mode += mode-1
+noelse ,
+
+if mode == 1 then 
+foreach i in 0:n do 
+x(i) += (1,x(i,1),x(i,1)*x(i,1),x(i,1)*x(i,1)*x(i,1),x(i,1)*x(i,1)*x(i,1)*x(i,1)),
+mode += mode-1
+noelse ,
+
+if(t>=tEnd+tPauseAfter)then 
+  if(mode == 0 ) then
+    foreach c in children do 
+      if c.toEnd == 0 then 
+      c.toEnd += 1
+      noelse,
+    mode += mode -1
+  else if(mode == -1 ) then
+    foreach c in children do 
+     if c.toEnd == 2 then 
+       terminate c
+     noelse,
+     if length(children) <= 0 then 
+       terminate self
+     noelse
+  noelse
+noelse
+,
+
+error = norm(coef*trans(x)-y),
+if error < (10^-10) then 
+errorColor +=green,
+errorText+="No significant error",
+errorMSgPos += (0.5,0,-2)
+else (
+errorColor +=red,
+errorText+=format("The error is above 10^%3.0f",floor(log(error)/log(10))),
+errorMSgPos += (-0.2,0,-2)),
+
+_3D =( 
+ Text content=errorText center=position+errorMSgPos size =0.5  color= errorColor,
+  
+  Box size=(bSize*0.1,bSize,bSize*0.1) rotation=(pi/2,0,0) center=position+(x(0,1),0,y(0)) color=blue,
+  Box size=(bSize*0.1,bSize,bSize*0.1) rotation=(0,0,pi/2) center=position+(x(0,1),0,y(0)) color=blue,
+
+  Box size=(bSize*0.1,bSize,bSize*0.1) rotation=(pi/2,0,0) center=position+(x(1,1),0,y(1)) color=red,
+  Box size=(bSize*0.1,bSize,bSize*0.1) rotation=(0,0,pi/2) center=position+(x(1,1),0,y(1)) color=red,
+
+  Box size=(bSize*0.1,bSize,bSize*0.1) rotation=(pi/2,0,0) center=position+(x(2,1),0,y(2)) color=green,
+  Box size=(bSize*0.1,bSize,bSize*0.1) rotation=(0,0,pi/2) center=position+(x(2,1),0,y(2)) color=green,
+  
+  Box size=(bSize*0.1,bSize,bSize*0.1) rotation=(pi/2,0,0) center=position+(x(3,1),0,y(3)) color=white,
+  Box size=(bSize*0.1,bSize,bSize*0.1) rotation=(0,0,pi/2) center=position+(x(3,1),0,y(3)) color=white,
+
+  Box size=(bSize*0.1,bSize,bSize*0.1) rotation=(pi/2,0,0) center=position+(x(4,1),0,y(4)) color=yellow,
+  Box size=(bSize*0.1,bSize,bSize*0.1) rotation=(0,0,pi/2) center=position+(x(4,1),0,y(4)) color=yellow
+
+)

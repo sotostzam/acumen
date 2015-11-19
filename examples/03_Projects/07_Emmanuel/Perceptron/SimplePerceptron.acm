@@ -1,0 +1,27 @@
+// Simplest application of the perceptron algorithm for discrete output
+//
+// Author: Emmanuel Brelle
+//
+// This model remove all unnecessary objects (for example 3D) to compute the solutuon
+// This model may be used to check quickly the correctness of the results but will 
+// give a output which wll be diffiult for human eyes to read.
+
+model Main (_)=
+initially
+  n= 6,
+  var = ((0,1,0), (0,1,1), (1,1,0), (1,1,1), (0,1,0.5), (0.5,1,1), (0.5,1,0.5)),
+  goals = ((1),(1),(0),(0),(1),(0),(1)),
+  weights = ((0),(0),(0)),
+  alpha= 0.1, // learning coefficient
+  error = ((0),(0),(0),(0),(0),(0),(0)),
+  imOfError = ((0),(0),(0),(0),(0),(0),(0)),
+  t=0,t'=1
+
+always 
+  t'=1,
+  error = goals - var * weights,
+  foreach i in 0:n do 
+    imOfError(i,0) = floor(error(i,0)+0.5),
+  if t > 0 then t+= 0,
+    weights += weights + alpha * trans(var) * imOfError
+  noelse

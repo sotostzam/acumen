@@ -1,0 +1,64 @@
+//Initial version of the simulation of the K-means clustering
+//
+// Author: Emmanuel Brelle
+//
+//Each color is a group, data are spheres and cubes are means
+
+model Main (_)=
+initially
+n=9,m=2,
+data  = ((0,0),(0.2,0.4),(0.4,0.8),(0.6,1.2),(0.8,0.8),(1,0.4),(1.2,0),(0.5,0.4),(0.7,0.4),(1.8,0)),
+belonging = (-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1),
+color = (black,black,black,black,black,black,black,black,black,black,black),
+means = ((0,0),(0,0),(0,0)),
+stepBeforeRun= 1,
+_3D=(),_3DView =((1,-6,0.5),(1,0,0.5)),
+t=0,t'=0
+always
+_3D = (
+  Sphere center=(data(0,0),0,data(0,1)) color=color(0),
+  Sphere center=(data(1,0),0,data(1,1)) color=color(1),
+  Sphere center=(data(2,0),0,data(2,1)) color=color(2),
+  Sphere center=(data(3,0),0,data(3,1)) color=color(3),
+  Sphere center=(data(4,0),0,data(4,1)) color=color(4),
+  Sphere center=(data(5,0),0,data(5,1)) color=color(5),
+  Sphere center=(data(6,0),0,data(6,1)) color=color(6),
+  Sphere center=(data(7,0),0,data(7,1)) color=color(7),
+  Sphere center=(data(8,0),0,data(8,1)) color=color(8),
+  Sphere center=(data(9,0),0,data(9,1)) color=color(9),
+  Box size=(0.3,0.3,0.3) center=(means(0,0),0,means(0,1)) color=(1,0.7,0.1),
+  Box size=(0.3,0.3,0.3) center=(means(1,0),0,means(1,1)) color=(0.5,0.7,1),
+  Box size=(0.3,0.3,0.3) center=(means(2,0),0,means(2,1)) color=(0.2,0.8,0.2)
+  ),
+  t'=1,
+//Definition for the initial means
+if stepBeforeRun== 1 then 
+  if t> 0.5 then t+=0,
+  means(0) += data(0),
+  means(1) += data(1),
+  means(2) += data(2), 
+  stepBeforeRun +=0
+  noelse
+else (
+//Find for each data the closest mean
+if t>0.5 then
+foreach i in 0:n do 
+  if (norm(means(0)-data(i)) <= norm(means(1)-data(i)) 
+    && norm(means(0)-data(i)) <= norm(means(2)-data(i)))then 
+    belonging(i) +=0,color(i)+= yellow
+  else  if (norm(means(1)-data(i)) <= norm(means(0)-data(i)) 
+    && norm(means(1)-data(i)) <= norm(means(2)-data(i)))then
+    belonging(i) +=1,color(i)+= blue
+  else
+    (belonging(i) +=2,color(i)+= (0,0.5,0.1))
+noelse,
+//Compute the mean of the news sets
+if(t > 1)then
+  t+= 0,
+  foreach k in 0:m do
+    means(k) += (
+      sum data(i,0)/(sum 1 for i in  0:n  if belonging(i)==k) for i in  0:n if belonging(i)==k,
+      sum data(i,1)/(sum 1 for i in  0:n  if belonging(i)==k) for i in  0:n if belonging(i)==k
+      )
+  noelse
+)

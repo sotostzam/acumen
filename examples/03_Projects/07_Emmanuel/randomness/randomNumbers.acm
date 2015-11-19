@@ -1,0 +1,13 @@
+// Simplest application using random generator of Acumen
+//
+// Author: Emmanuel Brelle
+//
+// Can be used for testing this function
+//The curT ensure the reachability of the fixed point
+
+model Main (simulator)=
+initially
+x = rand(), t =0 , t'= 1,curT = 0
+always
+t'=1,
+if (curT < t) then x = rand() , curT = t noelse
