@@ -8,20 +8,6 @@ case object Local extends ODETransformMode
 case object LocalInline extends ODETransformMode
 case object TopLevel extends ODETransformMode
 
-object GenSym{
-  private var counter = 0;
-  def gensym(vs:List[Expr]):Var = {
-    counter = counter + 1
-    def getNames(ns:List[Expr]):String = {
-      ns.map(x => x match{
-        case Var(name) => name.x
-        case Dot(e,n) => n.x
-        case Pattern(ls) => getNames(ls) 
-      }).mkString("")
-    }
-   Var(Name("pattern__"+getNames(vs)+"_"+vs.length.toString+"_"+counter.toString,0)) 
-  }  
-}
 /**
  * @param odeTransformMode Configures the way in which higher-order continuous 
  *        assignments are expanded into systems of first-order continuous 
