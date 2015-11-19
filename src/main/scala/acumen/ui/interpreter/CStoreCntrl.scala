@@ -148,6 +148,14 @@ class CStoreCntrl(val semantics: SemanticsImpl[Interpreter], val interpreter: CS
               var averageSlack = 0.0
               val calculationTime = System.currentTimeMillis - temptime
 
+              // set slider bar
+              val simulationEndTime = acumen.util.Canonical.getEndTime(I.repr(store))
+              val slidePercentage = (virtualtime * 100 / simulationEndTime).toInt
+              if (slidePercentage >= 100)
+                threeDTab.statusZone3d.setProgress3D(100)
+              else
+                threeDTab.statusZone3d.setProgress3D(slidePercentage)
+
               if (calculationTime > (virtualtime - lastvirtualTime) * 1000 / playspeed
                 && virtualtime > lastvirtualTime)
                 missedDeadline += 1
@@ -172,8 +180,10 @@ class CStoreCntrl(val semantics: SemanticsImpl[Interpreter], val interpreter: CS
                 // update every 100ms
                 threeDTab.threeDView.percentagemissDL = percentagemissDL
                 threeDTab.threeDView.averageSlack = averageSlack
-                threeDTab.missedDeadLine.text = "   Missed deadlines:%.2f".format(percentagemissDL * 100) + "%    "
-                threeDTab.slackTime.text = "Slack:%.2f".format(averageSlack * 100) + "%  "
+                if (threeDTab.checkMatchTime.selected) {
+                  threeDTab.missedDeadLine.text = "   Missed deadlines:%.2f".format(percentagemissDL * 100) + "%    "
+                  threeDTab.slackTime.text = "Slack:%.2f".format(averageSlack * 100) + "%  "
+                }
                 updateTime = virtualtime
               }
               lastvirtualTime = virtualtime

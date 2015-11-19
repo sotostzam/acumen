@@ -1144,8 +1144,8 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D, playSpeed: Double,
             val percentage = currentFrame * 100 / totalFrames
             slider.setTime(percentage / 100f * endTime)
             renderCurrentFrame()
+            setFrameDone = true
           }
-          setFrameDone = true
         case "real time render" =>
           if (!app.waitingPaint)
             renderFrameInRealTime()
@@ -1168,7 +1168,7 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D, playSpeed: Double,
     case e: scala.swing.event.MouseDragged =>
       val curSystemTime = System.currentTimeMillis()
       if (curSystemTime > lastSetFrameTime + mouseSleepTime
-        && setFrameDone && app.barEnabled) {
+        && app.barEnabled) {
         receiver ! "set frame"
         lastSetFrameTime = System.currentTimeMillis()
       }
