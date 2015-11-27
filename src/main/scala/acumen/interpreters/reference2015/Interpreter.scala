@@ -562,17 +562,20 @@ object Interpreter extends acumen.CStoreInterpreter {
             /* Find (non-ODE) assignments that modify the store */
             val nonIdentityAs = (dasValues ++ nonClashingEqsValues).filterNot{ case (id, n, v) => 
               threeDField(n.x) || v == getObjectField(id, n, st1) }
+            /* Apply discrete assignments to _3D and _3DView variables */
+            val threeDValues = dasValues.filter{ case (_, n, _) => threeDField(n.x) }
+            val st2 = applyAssignments(threeDValues) ~> st1
             /* If the discrete, structural and non-ODE continuous actions do not modify the store, conclude discrete fixpoint */
             if (nonIdentityAs.isEmpty && born.isEmpty && dead.isEmpty && rps.isEmpty)
-              setResultType(FixedPoint, st1)
+              setResultType(FixedPoint, st2)
             else {
               /* Apply discrete and non-clashing continuous assignment values */
-              val st2 = applyAssignments(nonClashingEqsValues ++ dasValues) ~> st1
+              val st3 = applyAssignments(nonClashingEqsValues ++ dasValues) ~> st2
               /* Apply terminations to get store without dead objects and list of orphans */
-              val (st3, orphans) = applyTerminations(dead, st2)
+              val (st4, orphans) = applyTerminations(dead, st3)
               /* Apply reparentings */
-              val st4 = applyReparentings(rps ++ orphans) ~> st3
-              setResultType(Discrete, st4)
+              val st5 = applyReparentings(rps ++ orphans) ~> st4
+              setResultType(Discrete, st5)
             }
           case FixedPoint => // Do continuous step
             val eqsIds = resolveDots(eqs)
