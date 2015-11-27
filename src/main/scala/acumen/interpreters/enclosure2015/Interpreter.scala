@@ -38,6 +38,7 @@ import acumen.interpreters.enclosure.ivp.{
 }
 import scala.util.parsing.input.Position
 import scala.reflect.runtime.universe.typeTag
+import acumen.interpreters.enclosure.Interval
 
 /**
  * Reference implementation of direct enclosure semantics.
@@ -1075,6 +1076,44 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
     val odeList = odes.toList // TODO Align this with the order in enc.indexToName
     val odeVariables = enc.indexToName.values.map{ case (id,n) => QName(id,n) }.toList
 
+    /* A priori enclosure */
+    
+    val aPriori = {
+      implicit val useIntervalArithmetic: Real[CValue] = intervalBase.cValueIsReal
+      implicit val aPrioriField = intervalBase.FieldImpl(odeList, evalExpr)
+      implicit def liftToRichStore(s: intervalBase.ODEEnv): intervalBase.RichStoreImpl = intervalBase.liftODEEnv(s) // midpointField passed implicitly
+
+      val ts: CValue = VLit(GConstantRealEnclosure(Interval(0, timeStep)))
+      val ls: RealVector = enc.lohnerSet
+      val fieldAppliedToLohnerSet = aPrioriField(intervalBase.ODEEnv(ls, enc))
+      // TODO Rewrite functionally
+      var candidate = ls + breeze.linalg.Vector.tabulate(enc.dim){ i =>
+        val (id, n) = enc.indexToName(i)
+        fieldAppliedToLohnerSet(id,n) * ts }
+      var c: RealVector = null
+      var b: Boolean = true
+      while (b) {
+        val fieldAppliedToCandidate = aPrioriField(intervalBase.ODEEnv(candidate, enc))
+        c = ls + breeze.linalg.Vector.tabulate(enc.dim) { i =>
+          val (id, n) = enc.indexToName(i)
+          fieldAppliedToCandidate(id, n) * ts
+        }
+        b = (0 until enc.dim).forall(i =>
+            (candidate(i), c(i)) match {
+              // FIXME Must be strict containment for Picard-Lindelöf to imply that we have an enclosure!!
+              case (VLit(GConstantRealEnclosure(e)), VLit(GConstantRealEnclosure(ce))) => e contains ce 
+            })
+        if (!b)
+          (0 until enc.dim).foreach{ i =>
+            val VLit(GConstantRealEnclosure(e)) = candidate(i)
+            val m = Interval(e.midpoint).hiDouble
+            val wHalf = (e.width.hiDouble * 1.1) / 2
+            candidate(i) = VLit(GConstantRealEnclosure(Interval(m - wHalf, m + wHalf)))
+          }
+      }
+      candidate
+    }
+    
     /* Midpoint */
     
     val midpointNext = {
@@ -1101,7 +1140,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
         })
       }, evalExpr)
       implicit def liftToRichStore(s: fDifBase.ODEEnv): fDifBase.RichStoreImpl = fDifBase.liftODEEnv(s) // linearTransformationField passed implicitly
-      val linearTransformationIC = FAD.lift[CId,fDifBase.ODEEnv,CValue](fDifBase.ODEEnv(enc.midpoint, enc), odeVariables) /* FIXME Replace midpoint with a priori enclosure? */
+      val linearTransformationIC = FAD.lift[CId,fDifBase.ODEEnv,CValue](fDifBase.ODEEnv(enc.lohnerSet, enc), odeVariables)
       val linearTransformationSolution = solveIVPTaylor[CId,fDifBase.ODEEnv,CValue](linearTransformationIC, timeStep, orderOfIntegration) // linearTransformationField passed implicitly
       breeze.linalg.Matrix.tabulate[CValue](enc.dim, enc.dim) {
         case (r, c) =>
@@ -1138,7 +1177,13 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
                                   , errorNext                              
                                   , enc.nameToIndex
                                   , enc.indexToName )
-    val rangeEnclosure = endTimeEnclosure // FIXME Find the a priori enclosure
+    val rangeEnclosure =
+      intervalBase.initializeEnclosure((0 until enc.dim).foldLeft(enc.cStore) {
+        case (tmpSt, i) =>
+          val (id, n) = enc.indexToName(i)
+          println((id, n, aPriori(i) ) )
+          Canonical.setObjectField(id, n, aPriori(i), tmpSt)
+      })
     (rangeEnclosure, endTimeEnclosure)
     
   }
