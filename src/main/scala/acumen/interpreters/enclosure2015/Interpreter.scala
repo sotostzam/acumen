@@ -1082,36 +1082,23 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
       implicit val useIntervalArithmetic: Real[CValue] = intervalBase.cValueIsReal
       implicit val aPrioriField = intervalBase.FieldImpl(odeList, evalExpr)
       implicit def liftToRichStore(s: intervalBase.ODEEnv): intervalBase.RichStoreImpl = intervalBase.liftODEEnv(s) // midpointField passed implicitly
-
-      val ts: CValue = VLit(GConstantRealEnclosure(Interval(0, timeStep)))
-      val ls: RealVector = enc.lohnerSet
-      val fieldAppliedToLohnerSet = aPrioriField(intervalBase.ODEEnv(ls, enc))
-      // TODO Rewrite functionally
-      var candidate = ls + breeze.linalg.Vector.tabulate(enc.dim){ i =>
-        val (id, n) = enc.indexToName(i)
-        fieldAppliedToLohnerSet(id,n) * ts }
-      var c: RealVector = null
-      var b: Boolean = true
-      while (b) {
+      val step: CValue = VLit(GConstantRealEnclosure(Interval(0, timeStep)))
+      @tailrec def picardIterator(candidate: RealVector): RealVector = {
         val fieldAppliedToCandidate = aPrioriField(intervalBase.ODEEnv(candidate, enc))
-        c = ls + breeze.linalg.Vector.tabulate(enc.dim) { i =>
-          val (id, n) = enc.indexToName(i)
-          fieldAppliedToCandidate(id, n) * ts
-        }
-        b = (0 until enc.dim).forall(i =>
-            (candidate(i), c(i)) match {
-              // FIXME Must be strict containment for Picard-Lindelöf to imply that we have an enclosure!!
-              case (VLit(GConstantRealEnclosure(e)), VLit(GConstantRealEnclosure(ce))) => e contains ce 
-            })
-        if (!b)
-          (0 until enc.dim).foreach{ i =>
-            val VLit(GConstantRealEnclosure(e)) = candidate(i)
-            val m = Interval(e.midpoint).hiDouble
-            val wHalf = (e.width.hiDouble * 1.1) / 2
-            candidate(i) = VLit(GConstantRealEnclosure(Interval(m - wHalf, m + wHalf)))
-          }
+        val c = enc.lohnerSet + step ** fieldAppliedToCandidate.s
+        val b = (0 until enc.dim).forall(i => (candidate(i), c(i)) match {
+          case (VLit(GConstantRealEnclosure(e)), VLit(GConstantRealEnclosure(ce))) => 
+            e properlyContains ce 
+        })
+        if (b) candidate else picardIterator(breeze.linalg.Vector.tabulate(enc.dim){ i =>
+          val VLit(GConstantRealEnclosure(e)) = candidate(i)
+          val m = Interval(e.midpoint).hiDouble
+          val wHalf = (e.width.hiDouble * 1.1) / 2
+          VLit(GConstantRealEnclosure(Interval(m - wHalf, m + wHalf)))
+        })
       }
-      candidate
+      val fieldAppliedToLohnerSet = aPrioriField(intervalBase.ODEEnv(enc.lohnerSet, enc))
+      picardIterator(enc.lohnerSet + step ** fieldAppliedToLohnerSet.s)
     }
     
     /* Midpoint */

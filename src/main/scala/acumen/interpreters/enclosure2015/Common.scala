@@ -41,6 +41,10 @@ object Common {
   type RealVector = breeze.linalg.Vector[CValue]
   type RealMatrix = breeze.linalg.Matrix[CValue]
   
+  implicit class CValueOps(val v: CValue) extends AnyVal {
+    def **(that: RealVector)(implicit ev: Real[CValue]) = that.copy.map(v * _)
+  }
+  
   trait LohnerEnclosure extends Enclosure {
     def midpoint: RealVector
     def linearTransformation: RealMatrix
