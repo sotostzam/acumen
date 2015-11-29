@@ -1186,8 +1186,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
       eqs.map{ ca => val lhs = ca.lhs; enc.nameToIndex(lhs.id, lhs.field) }
     
     val rangeEnclosure =
-      intervalBase.initializeEnclosure(updateCStore(aPriori)).
-        copy(nonOdeIndices = eqIndices)
+      intervalBase.initializeEnclosure(updateCStore(aPriori))
     val endTimeEnclosure = {
       implicit val useIntervalArithmetic = intervalBase.cValueIsReal
       val lohnerSet = midpointNext + (linearTransformationNext * widthNext) + errorNext
