@@ -24,8 +24,8 @@ case class LohnerBase
   type E = LohnerEnclosure
   
   def initializeEnclosure(st: CStore): CValueEnclosure = {
-    val nameToIndex = st.toList.flatMap {
-      case (id, co) => co.toList.flatMap {
+    val nameToIndex = st.toList.sortBy(_._1).flatMap {
+      case (id, co) => co.toList.sortBy(_._1).flatMap {
         case (n, VLit(v: GConstantRealEnclosure)) => List((id, n))
         case (n, v)                               => Nil
       }
