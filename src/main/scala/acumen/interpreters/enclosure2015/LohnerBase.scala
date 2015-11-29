@@ -39,7 +39,7 @@ case class LohnerBase
           case VLit(e: GConstantRealEnclosure) => VLit(GConstantRealEnclosure(f(e.range)))
         }}
     val midpoint = initializeVector(i => Interval(i.midpoint))
-    val width = initializeVector(_.width)
+    val width = initializeVector{ i => val w = i.width / 2; Interval((-w).lo, w.hi) }
     val zero = VLit(GConstantRealEnclosure(Interval.zero))
     val one = VLit(GConstantRealEnclosure(Interval.one))
     val linearTransformation = breeze.linalg.Matrix.tabulate[CValue](dim, dim) { case (r, c) if r == c => one; case _ => zero }
