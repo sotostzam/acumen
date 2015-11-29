@@ -23,7 +23,7 @@ case class LohnerBase
   
   type E = LohnerEnclosure
   
-  def initializeEnclosure(st: CStore): E = {
+  def initializeEnclosure(st: CStore): CValueEnclosure = {
     val nameToIndex = st.toList.flatMap {
       case (id, co) => co.toList.flatMap {
         case (n, VLit(v: GConstantRealEnclosure)) => List((id, n))
@@ -44,7 +44,7 @@ case class LohnerBase
     val one = VLit(GConstantRealEnclosure(Interval.one))
     val linearTransformation = breeze.linalg.Matrix.tabulate[CValue](dim, dim) { case (r, c) if r == c => one; case _ => zero }
     val error = breeze.linalg.Vector.fill[CValue](dim)(zero)
-    CValueEnclosure(st, midpoint, linearTransformation, width, error, nameToIndex, indexToName) 
+    CValueEnclosure(st, midpoint, linearTransformation, width, error, nameToIndex, indexToName, Set.empty) 
   }
   
   case class ODEEnv
@@ -57,8 +57,8 @@ case class LohnerBase
     /* EStore */
     def childrenOf(id: CId): List[CId] = e.childrenOf(id)
     def getObjectField(id: CId, n: Name): CValue = e.nameToIndex.get(id,n) match {
-      case Some(i) => s(i)
-      case None => e.getObjectField(id, n)
+      case Some(i) if !(e.nonOdeIndices contains i) => s(i)
+      case _ => e.getObjectField(id, n)
     }
   }
 
@@ -110,12 +110,14 @@ case class LohnerBase
     , error: RealVector
     , nameToIndex: Map[(CId,Name), Int]
     , indexToName: Map[Int, (CId,Name)]
+    , nonOdeIndices: Set[Int]
+    , cachedLohnerSet: Option[RealVector] = None
     ) extends LohnerEnclosure with EStore {
     
     def initialize(s: CStore): Enclosure = initializeEnclosure(s)
     
-    lazy val lohnerSet = 
-      midpoint + (linearTransformation * width) + error
+    lazy val lohnerSet =
+      cachedLohnerSet.getOrElse(midpoint + (linearTransformation * width) + error)
   
     /* Store Operations */
       
@@ -123,12 +125,12 @@ case class LohnerBase
   
     override def getObjectField(id: CId, f: Name) =
       nameToIndex.get((id, f)) match {
-        case Some(i) =>
+        case Some(i) if !(nonOdeIndices contains i) =>
           lohnerSet(i)
-        case None =>
+        case _ =>
           super.getObjectField(id, f)
       }
-    override def setObjectField(id:CId, f:Name, v:CValue) : Enclosure =
+    override def setObjectField(id:CId, f:Name, v:CValue): Enclosure =
       nameToIndex.get((id,f)) match {
         case Some(i) =>
           Logger.trace(s"Setting Lohner set variable $id.${Pretty pprint f}.")
@@ -149,7 +151,8 @@ case class LohnerBase
                      , width.copy map m
                      , error.copy map m
                      , nameToIndex
-                     , indexToName )
+                     , indexToName
+                     , nonOdeIndices )
     /** Apply m to all CValues in the CStore and Lohner set components with the 
      *  CId and Name of the value in context */
     def mapName(m: (CId, Name, CValue) => CValue): Enclosure = {
@@ -171,7 +174,8 @@ case class LohnerBase
                      , mapVector(width)
                      , mapVector(error)
                      , nameToIndex
-                     , indexToName )
+                     , indexToName
+                     , nonOdeIndices )
     }
   }
   

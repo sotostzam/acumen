@@ -30,6 +30,9 @@ object Common {
   def orderOfIntegration(st: CStore) = getInSimulator("orderOfIntegration", st) match {
     case VLit(GInt(taylorOrder)) => taylorOrder
   }
+  def maxPicardIterations(st: CStore) = getInSimulator("maxPicardIterations", st) match {
+    case VLit(GInt(maxPicardIterations)) => maxPicardIterations
+  }
   
   /** Abstract store known to evalExpr */
   trait EStore {
@@ -52,6 +55,7 @@ object Common {
     def error: RealVector
     def nameToIndex: Map[(CId,Name), Int]
     def indexToName: Map[Int, (CId,Name)]
+    def nonOdeIndices: Set[Int]
 
     def lohnerSet: RealVector
     lazy val dim = midpoint.size

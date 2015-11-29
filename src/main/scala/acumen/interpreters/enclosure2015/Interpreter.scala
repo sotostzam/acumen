@@ -69,7 +69,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
     EnclosureAndBranches(e, InitialCondition(e, Epsilon, StartTime) :: Nil) 
   }
   override def visibleParameters: Map[String, CValue] = 
-    Map(ParamTime, ParamEndTime, ParamTimeStep, ParamMethod, ParamOrderOfIntegration, 
+    Map(ParamTime, ParamEndTime, ParamTimeStep, ParamMethod, ParamOrderOfIntegration, ParamMaxPicardIterations, 
         ParamMaxBranches, ParamMaxIterationsPerBranch, ParamMergeBranches, 
         ParamIntersectWithGuardBeforeReset, ParamHypothesisReport, ParamDisableContraction) 
 
@@ -80,6 +80,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
   private val ParamTimeStep                      = "timeStep"                      -> VLit(GDouble( 0.015625))
   private val ParamMethod                        = "method"                        -> VLit(GStr(Picard))
   private val ParamOrderOfIntegration            = "orderOfIntegration"            -> VLit(GInt(4))
+  private val ParamMaxPicardIterations           = "maxPicardIterations"           -> VLit(GInt(1000))
   private val ParamMaxBranches                   = "maxBranches"                   -> VLit(GInt(100))                  
   private val ParamMaxIterationsPerBranch        = "maxIterationsPerBranch"        -> VLit(GInt(1000))    
   private val ParamMergeBranches                 = "mergeBranches"                 -> VLit(GBool(true))                  
@@ -1071,47 +1072,47 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
     ): (Enclosure, Enclosure) = {
     Logger.trace(s"continuousEncloserLohner (over $T)")
     
+    val field = inline(eqs, odes, enc.cStore) // in-line eqs to obtain explicit ODEs
+    
     val timeStep = T.width.hiDouble
     val orderOfIntegration = Common orderOfIntegration enc.cStore
-    val odeList = odes.toList // TODO Align this with the order in enc.indexToName
+    val maxPicardIterations = Common maxPicardIterations enc.cStore
+    val odeList = field.toList // TODO Align this with the order in enc.indexToName
     val odeVariables = enc.indexToName.values.map{ case (id,n) => QName(id,n) }.toList
-
-    /* A priori enclosure */
     
-    val aPriori = {
+    /* A Priori Enclosure and Midpoint */
+    
+    val (aPriori, midpointNext) = {
+      // Set up interval evaluation
       implicit val useIntervalArithmetic: Real[CValue] = intervalBase.cValueIsReal
-      implicit val aPrioriField = intervalBase.FieldImpl(odeList, evalExpr)
-      implicit def liftToRichStore(s: intervalBase.ODEEnv): intervalBase.RichStoreImpl = intervalBase.liftODEEnv(s) // midpointField passed implicitly
+      implicit val intervalField = intervalBase.FieldImpl(odeList, evalExpr)
+      // A priori enclosure
       val step: CValue = VLit(GConstantRealEnclosure(Interval(0, timeStep)))
-      @tailrec def picardIterator(candidate: RealVector): RealVector = {
-        val fieldAppliedToCandidate = aPrioriField(intervalBase.ODEEnv(candidate, enc))
+      @tailrec def picardIterator(candidate: RealVector, iterations: Int): RealVector = {
+        val fieldAppliedToCandidate = intervalField(intervalBase.ODEEnv(candidate, enc))
         val c = enc.lohnerSet + step ** fieldAppliedToCandidate.s
-        val b = (0 until enc.dim).forall(i => (candidate(i), c(i)) match {
+        val isValidEnclosure = (0 until enc.dim).forall(i => (candidate(i), c(i)) match {
           case (VLit(GConstantRealEnclosure(e)), VLit(GConstantRealEnclosure(ce))) => 
             e properlyContains ce 
         })
-        if (b) candidate else picardIterator(breeze.linalg.Vector.tabulate(enc.dim){ i =>
+        lazy val candidateNext: RealVector = breeze.linalg.Vector.tabulate(enc.dim){ i =>
           val VLit(GConstantRealEnclosure(e)) = candidate(i)
           val m = Interval(e.midpoint).hiDouble
           val wHalf = (e.width.hiDouble * 1.1) / 2
           VLit(GConstantRealEnclosure(Interval(m - wHalf, m + wHalf)))
-        })
+        } 
+        if (iterations > maxPicardIterations) sys.error(s"Unable to find valid enclosure over $T in $maxPicardIterations iterations.")
+        if (isValidEnclosure) candidate else picardIterator(candidateNext, iterations + 1)
       }
-      val fieldAppliedToLohnerSet = aPrioriField(intervalBase.ODEEnv(enc.lohnerSet, enc))
-      picardIterator(enc.lohnerSet + step ** fieldAppliedToLohnerSet.s)
-    }
-    
-    /* Midpoint */
-    
-    val midpointNext = {
-      implicit val useIntervalArithmetic: Real[CValue] = intervalBase.cValueIsReal
-      implicit val midpointField = intervalBase.FieldImpl(odeList, evalExpr)
-      implicit def liftToRichStore(s: intervalBase.ODEEnv): intervalBase.RichStoreImpl = intervalBase.liftODEEnv(s) // midpointField passed implicitly
+      val fieldAppliedToLohnerSet = intervalField(intervalBase.ODEEnv(enc.lohnerSet, enc))
+      val ap = picardIterator(enc.lohnerSet + step ** fieldAppliedToLohnerSet.s, 0)
+      // Midpoint solution
       val midpointIC = intervalBase.ODEEnv(enc.midpoint, enc)
       val midpointSolution = solveIVPTaylor[CId,intervalBase.ODEEnv,CValue](midpointIC, timeStep, orderOfIntegration)
-      midpointSolution.s.copy.map{ case VLit(GConstantRealEnclosure(i)) =>
+      val mp = midpointSolution.s.copy.map{ case VLit(GConstantRealEnclosure(i)) =>
         VLit(GConstantRealEnclosure(Interval(i.midpoint))): Value[CId]
-      }      
+      }
+      (ap, mp)
     }
   
     /* Linear Transformation */
@@ -1155,24 +1156,52 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
     val errorNext = enc.error // FIXME TODO
     
     /* Return */
+
+    val eqsInlined = inline(eqs, eqs, enc.cStore) // LHSs of EquationsTs, including highest derivatives of ODEs 
+
+    // Update variables in enc.cStore defined by continuous assignments w.r.t. odeValues
+    def updateCStore(odeValues: RealVector): CStore = {
+      def updateODEVariables(unupdated: CStore, odeValues: RealVector): CStore =
+        (0 until enc.dim).foldLeft(unupdated) {
+          case (tmpSt, i) =>
+            val (id, n) = enc.indexToName(i)
+            Canonical.setObjectField(id, n, odeValues(i), tmpSt)
+        }
+      def updateEquationVariables(unupdated: CStore, odeValues: RealVector): CStore = {
+        val odeStore = intervalBase.ODEEnv(odeValues, enc)
+        eqsInlined.foldLeft(unupdated){ case (stTmp, ca) =>
+          val rd = ca.lhs
+          val cv = evalExpr(ca.rhs, ca.env, odeStore)
+          Canonical.setObjectField(rd.id, rd.field, cv, stTmp)
+        }
+      }
+      updateEquationVariables(updateODEVariables(enc.cStore, odeValues), odeValues)
+    }
     
-    val endTimeEnclosure =
-      intervalBase.CValueEnclosure( enc.cStore
+    // In LohnerBase.{ODEEnv,Enclosure}.getObjectField this will be used to get values for 
+    // non-ODE variables from the (up-to-date) CStore instead of the (out-of-date) lohnerSet.
+    // FIXME NOTE: These can change over time! How to avoid issues?
+    val eqIndices = 
+      eqs.map{ ca => val lhs = ca.lhs; enc.nameToIndex(lhs.id, lhs.field) }
+    
+    val rangeEnclosure =
+      intervalBase.initializeEnclosure(updateCStore(aPriori)).
+        copy(nonOdeIndices = eqIndices)
+    val endTimeEnclosure = {
+      implicit val useIntervalArithmetic = intervalBase.cValueIsReal
+      val lohnerSet = midpointNext + (linearTransformationNext * widthNext) + errorNext
+      val stNext = updateCStore(lohnerSet)
+      intervalBase.CValueEnclosure( stNext
                                   , midpointNext                        
                                   , linearTransformationNext
                                   , widthNext                              
                                   , errorNext                              
                                   , enc.nameToIndex
-                                  , enc.indexToName )
-    val rangeEnclosure =
-      intervalBase.initializeEnclosure((0 until enc.dim).foldLeft(enc.cStore) {
-        case (tmpSt, i) =>
-          val (id, n) = enc.indexToName(i)
-          println((id, n, aPriori(i) ) )
-          Canonical.setObjectField(id, n, aPriori(i), tmpSt)
-      })
+                                  , enc.indexToName
+                                  , eqIndices
+                                  , Some(lohnerSet) )
+    }
     (rangeEnclosure, endTimeEnclosure)
-    
   }
   
   // FIXME Remove debug code
