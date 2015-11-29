@@ -1139,9 +1139,9 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
           }
       }
     }
-    printMatrix(jacobian, enc.indexToName)
+
     val linearTransformationNext = {
-      implicit val useIntervalArithmetic: Real[CValue] = intervalBase.cValueIsReal // For * below 
+      implicit val useIntervalArithmetic: Real[CValue] = intervalBase.cValueIsReal 
       jacobian * enc.linearTransformation
     }
     
@@ -1179,14 +1179,13 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
       updateEquationVariables(updateODEVariables(enc.cStore, odeValues), odeValues)
     }
     
-    // In LohnerBase.{ODEEnv,Enclosure}.getObjectField this will be used to get values for 
-    // non-ODE variables from the (up-to-date) CStore instead of the (out-of-date) lohnerSet.
-    // FIXME NOTE: These can change over time! How to avoid issues?
+    // FIXME These can change over time! Will this cause issues? (see comment for LohnerEnclosure.nonOdeIndices)
     val eqIndices = 
       eqs.map{ ca => val lhs = ca.lhs; enc.nameToIndex(lhs.id, lhs.field) }
     
     val rangeEnclosure =
       intervalBase.initializeEnclosure(updateCStore(aPriori))
+
     val endTimeEnclosure = {
       implicit val useIntervalArithmetic = intervalBase.cValueIsReal
       val lohnerSet = midpointNext + (linearTransformationNext * widthNext) + errorNext
@@ -1201,23 +1200,32 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
                                   , eqIndices
                                   , Some(lohnerSet) )
     }
+    
     (rangeEnclosure, endTimeEnclosure)
   }
   
   // FIXME Remove debug code
-  def printMatrix(m: RealMatrix, indexToName: Int => (CId,Name)) {
+  def printMatrix(title: String, m: RealMatrix, indexToName: Int => (CId, Name)) {
     var row = 0
+    if (title != "") println(title + ": ")
     print(s"${indexToName(row)}\t")
-    m.foreachKey{
-      case (r,c) => 
-        m(r,c) match {
-          case VLit(GConstantRealEnclosure(i)) => 
+    m.foreachKey {
+      case (r, c) =>
+        m(r, c) match {
+          case VLit(GConstantRealEnclosure(i)) =>
             if (r > row) { row += 1; print(s"\n${indexToName(row)}\t") }
             print(s"$i\t")
         }
     }
     print("\n")
   }
+  def printVector(title: String, rv: RealVector, indexToName: Int => (CId, Name)) =
+    println((if (title != "") title + ": " else "") +
+      rv.toArray.zipWithIndex.map { case (v, i) => indexToName(i) + ": " + v }.mkString(", "))
+  def printStore(title: String, st: CStore) =
+    println((if (title != "") title + ": " else "") +
+      (Pretty pprint (Pretty prettyStore st)))
+
 
   /** Convert odes into a Field compatible with acumen.interpreters.enclosure.ivp.IVPSolver. */
   def getFieldFromActions(odes: Set[CollectedAction], st: Enclosure, p: Prog): Field =

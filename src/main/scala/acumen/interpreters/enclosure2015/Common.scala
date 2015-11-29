@@ -55,6 +55,8 @@ object Common {
     def error: RealVector
     def nameToIndex: Map[(CId,Name), Int]
     def indexToName: Map[Int, (CId,Name)]
+    /** LohnerBase.{ODEEnv,Enclosure}.getObjectField will use this to get values for 
+      * non-ODE variables from the (up-to-date) cStore instead of the (out-of-date) lohnerSet. */
     def nonOdeIndices: Set[Int]
 
     def lohnerSet: RealVector
