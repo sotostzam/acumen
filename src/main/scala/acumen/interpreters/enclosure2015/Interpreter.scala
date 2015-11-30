@@ -1118,9 +1118,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
       implicit val useIntervalArithmetic: Real[CValue] = intervalBase.cValueIsReal
       val midpointIC = intervalBase.ODEEnv(enc.midpoint, enc)
       val midpointSolution = solveIVPTaylor[CId,intervalBase.ODEEnv,CValue](midpointIC, timeStep, orderOfIntegration)
-      midpointSolution.s.copy.map{ case VLit(GConstantRealEnclosure(i)) =>
-        VLit(GConstantRealEnclosure(Interval(i.midpoint))): Value[CId]
-      }
+      midpointSolution.s
     }
   
     /* Linear Transformation */
