@@ -417,14 +417,10 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
   /** Purely functional binary operator evaluation at the ground values level */
   def binGroundOp[V](f:String, vl:GNumber[V], vr:GNumber[V]): GroundValue = {
     def implemInterval(f:String, l:Interval, r:Interval) = f match {
-      case "+"     => l + r
-      case "-"     => l - r
-      case "*"     => if (l equalTo r) l.square else l * r
-      case "^"     => l.pow(r)
-      case "/"     => l / r
       case "atan2" => Interval.atan2(l, r)
       case "min"   => Interval.min(l, r)
       case "max"   => Interval.max(l, r)
+      case _ => implemBinReal(f, l, r)
     }
     // Based on implementations from acumen.interpreters.enclosure.Relation
     def implemBool(f:String, l:Interval, r:Interval): GBoolEnclosure = {
@@ -466,7 +462,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
         else Uncertain
       case ("==" | "~=" | ">=" | "<=" | "<" | ">", _, _) =>
         implemBool(f, extractInterval(vl), extractInterval(vr))
-      case ("+" | "-" | "*" | "/", el: GRealEnclosure, er: GRealEnclosure) => 
+      case (_, el: GRealEnclosure, er: GRealEnclosure) => 
         GConstantRealEnclosure(implemInterval(f, el.range, er.range))
       // FIXME Add special case for integer powers of TDif[Int], to avoid lifting to TDif[Double]
       case (_, GIntervalTDif(n), GIntervalTDif(m)) => GIntervalTDif(implemBinReal(f, n, m))
