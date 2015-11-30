@@ -671,7 +671,6 @@ object Common {
   
   def solveIVPTaylor[Id <: GId : TypeTag, S <% RichStore[S,Id], R: Real](s: S, h: R, orderOfIntegration: Int)(implicit f: Field[S,Id]): S = {
     val rIsReal = implicitly[Real[R]]
-    // compute Taylor coefficients of order 0 to orderOfIntegration
     val taylorCoeffs = computeTaylorCoefficients[Id,S,R](s, orderOfIntegration)
     // the Taylor series // FIXME Does it not make more sense to accumulate solution when computing taylorCoeffs?
     val solution = f.variables(s).foldLeft(taylorCoeffs) { case (sTmp, (id, n)) => 
@@ -684,12 +683,12 @@ object Common {
     }
     TAD lower solution
   }
-  
+
+  /** Compute Taylor coefficients of order 0 to orderOfExpansion */
   def computeTaylorCoefficients[Id <: GId : TypeTag, S <% RichStore[S,Id], R: Real](s: S, orderOfExpansion: Int)(implicit f: Field[S,Id]): S = {
     require (orderOfExpansion > 0, s"Order of Taylor expansion ($orderOfExpansion) must be greater than 0")
     val ode = f map (TAD lift _)
     val rIsReal = implicitly[Real[R]]
-    // compute Taylor coefficients of order 0 to orderOfIntegration
     (1 to orderOfExpansion).foldLeft(TAD lift s) {
       case (sTmp, i) => // sTmp contains coeffs up to order i-1
         val fieldApplied = TAD lift ode(sTmp) // FIXME Eliminate unnecessary lifting
