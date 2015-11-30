@@ -1083,7 +1083,6 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
     
     val aPriori = {
       implicit val useIntervalArithmetic: Real[CValue] = intervalBase.cValueIsReal
-      // A priori enclosure
       val step: CValue = VLit(GConstantRealEnclosure(timeStepInterval))
       @tailrec def picardIterator(candidate: RealVector, iterations: Int): RealVector = {
         val fieldAppliedToCandidate = intervalField(intervalBase.ODEEnv(candidate, enc))
