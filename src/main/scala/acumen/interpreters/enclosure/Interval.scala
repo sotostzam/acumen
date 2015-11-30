@@ -278,7 +278,7 @@ case class Interval(val i: SetInterval) extends AnyVal {
     lo.compareTo(it.lo) <= 0 && it.hi.compareTo(hi) <= 0
   }
 
-  def properlyContains(that: Interval): Boolean = 
+  def containsInInterior(that: Interval): Boolean = 
     that.i containedInInterior this.i
 
   def isThin = (lo compareTo hi) == 0

@@ -1089,7 +1089,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
         val c = enc.outerEnclosure + step ** fieldAppliedToCandidate.s
         val invalidEnclosureDirections = (0 until enc.dim).filterNot(i => (candidate(i), c(i)) match {
           case (VLit(GConstantRealEnclosure(e)), VLit(GConstantRealEnclosure(ce))) => 
-            e properlyContains ce 
+            e containsInInterior ce 
         })
         lazy val candidateNext: RealVector = breeze.linalg.Vector.tabulate(enc.dim){ i =>
           if (invalidEnclosureDirections contains i) {
