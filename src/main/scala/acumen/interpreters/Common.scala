@@ -666,28 +666,29 @@ object Common {
     xs +++ (k1 +++ k2 *** 2 +++ k3 *** 2 +++ k4) *** (h/6)
   }
   
-  def solveIVPTaylor[Id <: GId : TypeTag, S <% RichStore[S,Id], R: Real](s: S, h: Double, orderOfIntegration: Int)(implicit f: Field[S,Id]): S = {
+  def solveIVPTaylor[Id <: GId : TypeTag, S <% RichStore[S,Id], R: Real](s: S, h: Double, orderOfIntegration: Int)(implicit f: Field[S,Id]): S =
+    solveIVPTaylor(s, implicitly[Real[R]] fromDouble h, orderOfIntegration)
+  
+  def solveIVPTaylor[Id <: GId : TypeTag, S <% RichStore[S,Id], R: Real](s: S, h: R, orderOfIntegration: Int)(implicit f: Field[S,Id]): S = {
     val rIsReal = implicitly[Real[R]]
-    val hl = rIsReal fromDouble h
     // compute Taylor coefficients of order 0 to orderOfIntegration
-    val taylorCoeffs = computeTaylorCoefficients[Id,S,R](s, h, orderOfIntegration)
+    val taylorCoeffs = computeTaylorCoefficients[Id,S,R](s, orderOfIntegration)
     // the Taylor series // FIXME Does it not make more sense to accumulate solution when computing taylorCoeffs?
     val solution = f.variables(s).foldLeft(taylorCoeffs) { case (sTmp, (id, n)) => 
       sTmp updated (id, n, // sum the Taylor coeffs from the store in which they were computed (paranoia)
         mapValue(taylorCoeffs(id, n), { gdif: GTDif[R] =>
           val vNext = gdif.dif.coeff.zipWithIndex.map { case (x, i) =>
-            if (i <= orderOfIntegration) x * rIsReal.pow(hl, rIsReal fromInt i) // FIXME Use powOnInt 
+            if (i <= orderOfIntegration) x * rIsReal.pow(h, rIsReal fromInt i) // FIXME Use powOnInt 
             else rIsReal.zero }.take(orderOfIntegration).reduce(_ + _)
           VLit(rIsReal groundValue vNext) }))
     }
     TAD lower solution
   }
   
-  def computeTaylorCoefficients[Id <: GId : TypeTag, S <% RichStore[S,Id], R: Real](s: S, h: Double, orderOfExpansion: Int)(implicit f: Field[S,Id]): S = {
+  def computeTaylorCoefficients[Id <: GId : TypeTag, S <% RichStore[S,Id], R: Real](s: S, orderOfExpansion: Int)(implicit f: Field[S,Id]): S = {
     require (orderOfExpansion > 0, s"Order of Taylor expansion ($orderOfExpansion) must be greater than 0")
     val ode = f map (TAD lift _)
     val rIsReal = implicitly[Real[R]]
-    val hl = rIsReal fromDouble h
     // compute Taylor coefficients of order 0 to orderOfIntegration
     (1 to orderOfExpansion).foldLeft(TAD lift s) {
       case (sTmp, i) => // sTmp contains coeffs up to order i-1

@@ -1160,7 +1160,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
     val errorNext: RealVector = {
       implicit val useIntervalArithmetic: Real[CValue] = intervalBase.cValueIsReal
       val errorNextIC = intervalBase.ODEEnv(aPriori, enc)
-      val tcs = computeTaylorCoefficients[CId,intervalBase.ODEEnv,CValue](errorNextIC, timeStep, orderOfIntegration + 1)
+      val tcs = computeTaylorCoefficients[CId,intervalBase.ODEEnv,CValue](errorNextIC, orderOfIntegration + 1)
       val factor = VLit(GConstantRealEnclosure(timeStepInterval pow (orderOfIntegration + 1)))
       tcs.s.map(_ match { case VLit(GCValueTDif(tdif)) => (tdif coeff orderOfIntegration) * factor })
     }
