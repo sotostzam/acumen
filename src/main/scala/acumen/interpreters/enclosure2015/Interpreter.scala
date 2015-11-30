@@ -1091,21 +1091,25 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
       @tailrec def picardIterator(candidate: RealVector, iterations: Int): RealVector = {
         val fieldAppliedToCandidate = intervalField(intervalBase.ODEEnv(candidate, enc))
         val c = enc.lohnerSet + step ** fieldAppliedToCandidate.s
-        val isValidEnclosure = (0 until enc.dim).forall(i => (candidate(i), c(i)) match {
+        val enclosureFailedInDirections = (0 until enc.dim).filterNot(i => (candidate(i), c(i)) match {
           case (VLit(GConstantRealEnclosure(e)), VLit(GConstantRealEnclosure(ce))) => 
             e properlyContains ce 
         })
         lazy val candidateNext: RealVector = breeze.linalg.Vector.tabulate(enc.dim){ i =>
-          val VLit(GConstantRealEnclosure(e)) = candidate(i)
-          val m = Interval(e.midpoint).hiDouble
-          val wHalf = (e.width.hiDouble * 1.1) / 2
-          VLit(GConstantRealEnclosure(Interval(m - wHalf, m + wHalf)))
+          if (enclosureFailedInDirections contains i) {
+            val VLit(GConstantRealEnclosure(e)) = candidate(i)
+            val m = Interval(e.midpoint).hiDouble
+            val wHalf = (e.width.hiDouble * 1.5) / 2
+            VLit(GConstantRealEnclosure(Interval(m - wHalf, m + wHalf)))
+          } else candidate(i)
         } 
         if (iterations > maxPicardIterations) sys.error(s"Unable to find valid enclosure over $T in $maxPicardIterations iterations.")
-        if (isValidEnclosure) candidate else picardIterator(candidateNext, iterations + 1)
+        if (enclosureFailedInDirections.isEmpty) candidate else picardIterator(candidateNext, iterations + 1)
       }
       val fieldAppliedToLohnerSet = intervalField(intervalBase.ODEEnv(enc.lohnerSet, enc))
-      val ap = picardIterator(enc.lohnerSet + step ** fieldAppliedToLohnerSet.s, 0)
+      val candidateStep: CValue = VLit(GConstantRealEnclosure(Interval(-0.2, 1.2) * timeStep))
+      val epsilon: RealVector = breeze.linalg.Vector.tabulate(enc.dim){ i => VLit(GConstantRealEnclosure(Interval(-1, 1) * 1e-21)) }
+      val ap = picardIterator(enc.lohnerSet + candidateStep ** fieldAppliedToLohnerSet.s + epsilon, 0)
       // Midpoint solution
       val midpointIC = intervalBase.ODEEnv(enc.midpoint, enc)
       val midpointSolution = solveIVPTaylor[CId,intervalBase.ODEEnv,CValue](midpointIC, timeStep, orderOfIntegration)
