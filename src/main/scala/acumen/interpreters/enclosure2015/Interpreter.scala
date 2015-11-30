@@ -1137,8 +1137,12 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
         }, evalExpr)
         implicit def liftToRichStore(s: fDifBase.ODEEnv): fDifBase.RichStoreImpl = fDifBase.liftODEEnv(s) // linearTransformationField passed implicitly
         val linearTransformationIC = FAD.lift[CId,fDifBase.ODEEnv,CValue](fDifBase.ODEEnv(enc.outerEnclosure, enc), odeVariables)
-        val VLit(GIntervalFDif(FAD.FDif(_, zeroCoeffs))) = useFDifArithmetic.fromDouble(0)
-        val linearTransformationSolution = solveIVPTaylor[CId,fDifBase.ODEEnv,CValue](linearTransformationIC, VLit(GIntervalFDif(FAD.FDif(myStep, zeroCoeffs))), orderOfIntegration) // linearTransformationField passed implicitly
+        val myStepWrapped = {
+          val VLit(GIntervalFDif(FAD.FDif(_, zeroCoeffs))) = useFDifArithmetic.fromDouble(0)
+          VLit(GIntervalFDif(FAD.FDif(myStep, zeroCoeffs)))
+        }
+        val linearTransformationSolution = // linearTransformationField passed implicitly
+          solveIVPTaylor[CId,fDifBase.ODEEnv,CValue](linearTransformationIC, myStepWrapped, orderOfIntegration)
         breeze.linalg.Matrix.tabulate[CValue](enc.dim, enc.dim) {
           case (r, c) =>
             (linearTransformationSolution s c) match {
