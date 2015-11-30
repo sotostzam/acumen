@@ -1104,7 +1104,11 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
           } else candidate(i)
         } 
         if (iterations > maxPicardIterations) sys.error(s"Unable to find valid enclosure over $T in $maxPicardIterations iterations.")
-        if (enclosureFailedInDirections.isEmpty) candidate else picardIterator(candidateNext, iterations + 1)
+        if (enclosureFailedInDirections.isEmpty) {
+          Logger.debug(s"apriori enclosure over $T has been generated in $iterations iteration(s)")
+          candidate 
+        } else 
+          picardIterator(candidateNext, iterations + 1)
       }
       val fieldAppliedToLohnerSet = intervalField(intervalBase.ODEEnv(enc.lohnerSet, enc))
       val candidateStep: CValue = VLit(GConstantRealEnclosure(Interval(-0.2, 1.2) * timeStep))
