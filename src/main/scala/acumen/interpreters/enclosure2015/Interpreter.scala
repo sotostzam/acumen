@@ -1151,10 +1151,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
     
     /* Width */
     
-    val widthNext = midpointNext.copy.map{ case VLit(GConstantRealEnclosure(i)) =>
-      val w = i.width / 2
-      VLit(GConstantRealEnclosure(Interval((-w).lo, w.hi))): Value[CId]
-    }
+    val widthNext = enc.width // FIXME TODO
     
     /* Error */
     
