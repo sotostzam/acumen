@@ -1153,13 +1153,19 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
       jacobian * enc.linearTransformation
     }
     
-    /* Width */
+    /* Width - initial-time uncertainty */
     
     val widthNext = enc.width // FIXME TODO
     
-    /* Error */
+    /* Error - numerical computation uncertainty */
     
-    val errorNext = enc.error // FIXME TODO
+    val errorNext: RealVector = {
+      implicit val useIntervalArithmetic: Real[CValue] = intervalBase.cValueIsReal
+      implicit val intervalField = intervalBase.FieldImpl(odeList, evalExpr)
+      val errorNextIC = intervalBase.ODEEnv(aPriori, enc)
+      val tcs = computeTaylorCoefficients[CId,intervalBase.ODEEnv,CValue](errorNextIC, timeStep, orderOfIntegration + 1) 
+      tcs.s.map(_ match { case VLit(GCValueTDif(tdif)) => tdif coeff orderOfIntegration })
+    }
     
     /* Return */
 
