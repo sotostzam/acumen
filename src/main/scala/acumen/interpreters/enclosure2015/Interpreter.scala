@@ -1094,7 +1094,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
         })
         lazy val candidateNext: RealVector = breeze.linalg.Vector.tabulate(enc.dim){ i =>
           if (invalidEnclosureDirections contains i) {
-            val VLit(GConstantRealEnclosure(e)) = candidate(i)
+            val VLit(GConstantRealEnclosure(e)) = c(i)
             val m = Interval(e.midpoint).hiDouble
             val wHalf = (e.width.hiDouble * 1.5) / 2
             VLit(GConstantRealEnclosure(Interval(m - wHalf, m + wHalf)))
