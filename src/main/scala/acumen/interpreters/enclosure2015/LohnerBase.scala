@@ -111,13 +111,13 @@ case class LohnerBase
     , nameToIndex: Map[(CId,Name), Int]
     , indexToName: Map[Int, (CId,Name)]
     , nonOdeIndices: Set[Int]
-    , cachedLohnerSet: Option[RealVector] = None
+    , cachedOuterEnclosure: Option[RealVector] = None
     ) extends LohnerEnclosure with EStore {
     
     def initialize(s: CStore): Enclosure = initializeEnclosure(s)
     
-    lazy val lohnerSet =
-      cachedLohnerSet.getOrElse(midpoint + (linearTransformation * width) + error)
+    lazy val outerEnclosure = cachedOuterEnclosure.getOrElse(
+      midpoint + (linearTransformation * width) + error)
   
     /* Store Operations */
       
@@ -126,7 +126,7 @@ case class LohnerBase
     override def getObjectField(id: CId, f: Name) =
       nameToIndex.get((id, f)) match {
         case Some(i) if !(nonOdeIndices contains i) =>
-          lohnerSet(i)
+          outerEnclosure(i)
         case _ =>
           super.getObjectField(id, f)
       }

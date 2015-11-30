@@ -1071,28 +1071,29 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
     val field = inline(eqs, odes, enc.cStore) // in-line eqs to obtain explicit ODEs
     
     val timeStep = T.width.hiDouble
+    val timeStepInterval = Interval(0, timeStep)
     val orderOfIntegration = Common orderOfIntegration enc.cStore
     val maxPicardIterations = Common maxPicardIterations enc.cStore
     val odeList = field.toList // TODO Align this with the order in enc.indexToName
     val odeVariables = enc.indexToName.values.map{ case (id,n) => QName(id,n) }.toList
     
-    /* A Priori Enclosure and Midpoint */
+    implicit val intervalField = intervalBase.FieldImpl(odeList, evalExpr)
     
-    val (aPriori, midpointNext) = {
-      // Set up interval evaluation
+    /* Midpoint */
+    
+    val aPriori = {
       implicit val useIntervalArithmetic: Real[CValue] = intervalBase.cValueIsReal
-      implicit val intervalField = intervalBase.FieldImpl(odeList, evalExpr)
       // A priori enclosure
-      val step: CValue = VLit(GConstantRealEnclosure(Interval(0, timeStep)))
+      val step: CValue = VLit(GConstantRealEnclosure(timeStepInterval))
       @tailrec def picardIterator(candidate: RealVector, iterations: Int): RealVector = {
         val fieldAppliedToCandidate = intervalField(intervalBase.ODEEnv(candidate, enc))
-        val c = enc.lohnerSet + step ** fieldAppliedToCandidate.s
-        val enclosureFailedInDirections = (0 until enc.dim).filterNot(i => (candidate(i), c(i)) match {
+        val c = enc.outerEnclosure + step ** fieldAppliedToCandidate.s
+        val invalidEnclosureDirections = (0 until enc.dim).filterNot(i => (candidate(i), c(i)) match {
           case (VLit(GConstantRealEnclosure(e)), VLit(GConstantRealEnclosure(ce))) => 
             e properlyContains ce 
         })
         lazy val candidateNext: RealVector = breeze.linalg.Vector.tabulate(enc.dim){ i =>
-          if (enclosureFailedInDirections contains i) {
+          if (invalidEnclosureDirections contains i) {
             val VLit(GConstantRealEnclosure(e)) = candidate(i)
             val m = Interval(e.midpoint).hiDouble
             val wHalf = (e.width.hiDouble * 1.5) / 2
@@ -1100,23 +1101,27 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
           } else candidate(i)
         } 
         if (iterations > maxPicardIterations) sys.error(s"Unable to find valid enclosure over $T in $maxPicardIterations iterations.")
-        if (enclosureFailedInDirections.isEmpty) {
+        if (invalidEnclosureDirections isEmpty) {
           Logger.debug(s"apriori enclosure over $T has been generated in $iterations iteration(s)")
           candidate 
         } else 
           picardIterator(candidateNext, iterations + 1)
       }
-      val fieldAppliedToLohnerSet = intervalField(intervalBase.ODEEnv(enc.lohnerSet, enc))
+      val fieldAppliedToLohnerSet = intervalField(intervalBase.ODEEnv(enc.outerEnclosure, enc))
       val candidateStep: CValue = VLit(GConstantRealEnclosure(Interval(-0.2, 1.2) * timeStep))
       val epsilon: RealVector = breeze.linalg.Vector.tabulate(enc.dim){ i => VLit(GConstantRealEnclosure(Interval(-1, 1) * 1e-21)) }
-      val ap = picardIterator(enc.lohnerSet + candidateStep ** fieldAppliedToLohnerSet.s + epsilon, 0)
-      // Midpoint solution
+      picardIterator(enc.outerEnclosure + candidateStep ** fieldAppliedToLohnerSet.s + epsilon, 0)
+    }
+    
+    /* Midpoint */
+    
+    val midpointNext = {
+      implicit val useIntervalArithmetic: Real[CValue] = intervalBase.cValueIsReal
       val midpointIC = intervalBase.ODEEnv(enc.midpoint, enc)
       val midpointSolution = solveIVPTaylor[CId,intervalBase.ODEEnv,CValue](midpointIC, timeStep, orderOfIntegration)
-      val mp = midpointSolution.s.copy.map{ case VLit(GConstantRealEnclosure(i)) =>
+      midpointSolution.s.copy.map{ case VLit(GConstantRealEnclosure(i)) =>
         VLit(GConstantRealEnclosure(Interval(i.midpoint))): Value[CId]
       }
-      (ap, mp)
     }
   
     /* Linear Transformation */
@@ -1132,7 +1137,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
         })
       }, evalExpr)
       implicit def liftToRichStore(s: fDifBase.ODEEnv): fDifBase.RichStoreImpl = fDifBase.liftODEEnv(s) // linearTransformationField passed implicitly
-      val linearTransformationIC = FAD.lift[CId,fDifBase.ODEEnv,CValue](fDifBase.ODEEnv(enc.lohnerSet, enc), odeVariables)
+      val linearTransformationIC = FAD.lift[CId,fDifBase.ODEEnv,CValue](fDifBase.ODEEnv(enc.outerEnclosure, enc), odeVariables)
       val linearTransformationSolution = solveIVPTaylor[CId,fDifBase.ODEEnv,CValue](linearTransformationIC, timeStep, orderOfIntegration) // linearTransformationField passed implicitly
       breeze.linalg.Matrix.tabulate[CValue](enc.dim, enc.dim) {
         case (r, c) =>
@@ -1149,18 +1154,17 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
       jacobian * enc.linearTransformation
     }
     
-    /* Width - initial-time uncertainty */
+    /* Width (initial-time uncertainty) */
     
-    val widthNext = enc.width // FIXME TODO
+    val widthNext = enc.width // FIXME: Move uncertainty to error part of LohnerSet
     
-    /* Error - numerical computation uncertainty */
+    /* Error (numerical computation uncertainty) */
     
     val errorNext: RealVector = {
       implicit val useIntervalArithmetic: Real[CValue] = intervalBase.cValueIsReal
-      implicit val intervalField = intervalBase.FieldImpl(odeList, evalExpr)
       val errorNextIC = intervalBase.ODEEnv(aPriori, enc)
       val tcs = computeTaylorCoefficients[CId,intervalBase.ODEEnv,CValue](errorNextIC, timeStep, orderOfIntegration + 1)
-      val factor = VLit(GConstantRealEnclosure(Interval(0, timeStep) pow (orderOfIntegration + 1)))
+      val factor = VLit(GConstantRealEnclosure(timeStepInterval pow (orderOfIntegration + 1)))
       tcs.s.map(_ match { case VLit(GCValueTDif(tdif)) => (tdif coeff orderOfIntegration) * factor })
     }
     

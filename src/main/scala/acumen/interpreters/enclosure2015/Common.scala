@@ -59,7 +59,7 @@ object Common {
       * non-ODE variables from the (up-to-date) cStore instead of the (out-of-date) lohnerSet. */
     def nonOdeIndices: Set[Int]
 
-    def lohnerSet: RealVector
+    def outerEnclosure: RealVector
     lazy val dim = midpoint.size
   }
   
