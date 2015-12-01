@@ -1127,14 +1127,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
     
       val jacobian = {
         implicit val useFDifArithmetic: Real[CValue] = fDifBase.cValueIsReal
-        implicit val linearTransformationField = fDifBase.FieldImpl(odeList.map{ ode =>
-          def liftRHS(e: Expr): Expr = FAD.lift[CId,CValue](e, odeVariables)
-          ode.copy(a = (ode.a: @unchecked) match {
-            case Discretely(x: Assign)      => Discretely(x.copy(rhs = liftRHS(x.rhs)))
-            case Continuously(x: EquationT) => Continuously(x.copy(rhs = liftRHS(x.rhs)))
-            case Continuously(x: EquationI) => Continuously(x.copy(rhs = liftRHS(x.rhs)))
-          })
-        }, evalExpr)
+        implicit val linearTransformationField = fDifBase.FieldImpl(odeList.map(_ mapRhs (FAD.lift[CId,CValue](_, odeVariables))), evalExpr)
         implicit def liftToRichStore(s: fDifBase.ODEEnv): fDifBase.RichStoreImpl = fDifBase.liftODEEnv(s) // linearTransformationField passed implicitly
         val linearTransformationIC = FAD.lift[CId,fDifBase.ODEEnv,CValue](fDifBase.ODEEnv(enc.outerEnclosure, enc), odeVariables)
         val myStepWrapped = {
