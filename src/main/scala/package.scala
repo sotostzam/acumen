@@ -211,6 +211,71 @@ package object acumen {
     def groundValue(v: Interval) = GInterval(v)
   }
   
+  /** Template for Real instances of Vs wrapped as CValues */
+  abstract class CValueIsReal[V] extends Real[CValue] {
+    def ev: Real[V]
+    implicit def wrap(i: V): CValue
+    def unOp[A](x: CValue, op: V => A): A
+    def binOp[A](a: CValue, b: CValue, op: (V, V) => A): A 
+    def one: CValue = ev.one
+    def zero: CValue = ev.zero
+    def !=(a: CValue, b: CValue): Boolean = binOp(a, b , (l,r) => ev.!=(l,r))
+    def ==(a: CValue, b: CValue): Boolean = binOp(a, b , (l,r) => ev.==(l,r))
+    def acos(x: CValue): CValue = unOp(x, i => ev.acos(i))
+    def add(a: CValue, b: CValue): CValue = binOp(a, b , (l,r) => ev.add(l,r))
+    def asin(x: CValue): CValue = unOp(x, i => ev.asin(i))
+    def atan(x: CValue): CValue = unOp(x, i => ev.atan(i))
+    def cos(x: CValue): CValue = unOp(x, i => ev.cos(i))
+    def div(a: CValue, b: CValue): CValue = binOp(a, b , (l,r) => ev.div(l,r))
+    def exp(x: CValue): CValue = unOp(x, i => ev.exp(i))
+    def groundValue(v: CValue): GroundValue = v match { case VLit(gv) => gv }
+    def isValidDouble(x: CValue): Boolean = unOp(x, i => ev.isValidDouble(i))
+    def isValidInt(x: CValue): Boolean = unOp(x, i => ev.isValidInt(i))
+    def log(x: CValue): CValue = unOp(x, i => ev.log(i))
+    def lteq(x: CValue, y: CValue): Boolean = binOp(x, y, (l,r) => ev.lteq(l,r))
+    def mul(a: CValue, b: CValue): CValue = binOp(a, b , (l,r) => ev.mul(l,r))
+    def neg(x: CValue): CValue = unOp(x, i => ev.neg(i))
+    def pow(a: CValue, b: CValue): CValue = binOp(a, b , (l,r) => ev.pow(l,r))
+    def sin(x: CValue): CValue = unOp(x, y => ev.sin(y))
+    def sqrt(x: CValue): CValue = unOp(x, y => ev.sqrt(y))
+    def square(x: CValue): CValue = unOp(x, y => ev.square(y))
+    def sub(a: CValue, b: CValue): CValue = binOp(a, b, (l,r) => ev.sub(l,r))
+    def tan(x: CValue): CValue = unOp(x, y => ev.tan(y))
+    def toDouble(x: CValue): Double = unOp(x, y => ev.toDouble(y))
+    def toInt(x: CValue): Int = unOp(x, y => ev.toInt(y))
+    def tryCompare(a: CValue, b: CValue): Option[Int] = binOp(a, b, (l,r) => ev.tryCompare(l,r))
+  }
+  
+  object intervalCValueIsReal extends CValueIsReal[Interval] {
+    val ev = implicitly[Real[Interval]]
+    implicit def wrap(i: Interval): CValue = VLit(GConstantRealEnclosure(i))
+    def unOp[A](x: CValue, op: Interval => A): A = 
+      x match { case VLit(y: GConstantRealEnclosure) => op(y.range) }
+    def binOp[A](a: CValue, b: CValue, op: (Interval, Interval) => A): A = 
+      (a,b) match { case (VLit(l: GConstantRealEnclosure), VLit(r: GConstantRealEnclosure)) => op(l.range, r.range) }
+    def fromDouble(i: Double): CValue = VLit(GConstantRealEnclosure(i))  
+    def fromInt(i: Int): CValue = VLit(GConstantRealEnclosure(i))
+  }
+  
+  object fDifCValueIsReal extends CValueIsReal[FDif[Interval]] {
+    val ev = implicitly[Real[FDif[Interval]]]
+    implicit def wrap(i: FDif[Interval]): CValue = VLit(GIntervalFDif(i))
+    def unOp[A](x: CValue, op: FDif[Interval] => A): A = 
+      x match { case VLit(GIntervalFDif(y)) => op(y) }
+    def binOp[A](a: CValue, b: CValue, op: (FDif[Interval], FDif[Interval]) => A): A = 
+      (a,b) match { case (VLit(GIntervalFDif(l)), VLit(GIntervalFDif(r))) => op(l, r) }
+    def fromDouble(i: Double): CValue = VLit(GIntervalFDif(FDif constant i))  
+    def fromInt(i: Int): CValue = VLit(GIntervalFDif(FDif constant i))
+  }
+  
+  object intervalCValueTDifIsReal extends TAD.TDifAsReal[CValue]()(intervalCValueIsReal) {
+    def groundValue(v: TAD.TDif[CValue]) = GCValueTDif(v)
+  }
+  
+  object fDifCValueTDifIsReal extends TDifAsReal[CValue]()(fDifCValueIsReal) {
+    def groundValue(v: TAD.TDif[CValue]) = GCValueTDif(v)
+  }
+  
   /** Representation of a number and its derivatives, indexed by the type I. */
   abstract class Dif[V : Integral, Id] {
     /** Returns the element of the Dif corresponding to i when 
