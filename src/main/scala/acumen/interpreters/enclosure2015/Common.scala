@@ -248,6 +248,11 @@ object Common {
       case Continuously(x: EquationT) => x.rhs
       case Continuously(x: EquationI) => x.rhs
     }
+    def mapRhs(m: Expr => Expr) = copy(a = (a: @unchecked) match {
+      case Discretely(x: Assign)      => Discretely(x.copy(rhs = m(x.rhs)))
+      case Continuously(x: EquationT) => Continuously(x.copy(rhs = m(x.rhs)))
+      case Continuously(x: EquationI) => Continuously(x.copy(rhs = m(x.rhs)))
+    })
     override def toString() =
       s"$selfCId.${Pretty pprint (lhs: Expr)} = ${Pretty pprint rhs}"
   }
