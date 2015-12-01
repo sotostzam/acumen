@@ -1112,11 +1112,11 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
       picardIterator(enc.outerEnclosure + candidateStep ** fieldAppliedToLohnerSet.s + epsilon, 0)
     }
     
-    def encloseMap(enc: LohnerEnclosure, aPriori: RealVector, myStep: Interval): (RealVector, RealMatrix, RealVector, RealVector) = { 
+    def encloseMap(enc: LohnerEnclosure, aPriori: RealVector, myStep: Interval): (RealVector, RealMatrix, RealVector) = { 
     
       /* Midpoint */
     
-      val midpointNext = {
+      val midpointImage = {
         implicit val useIntervalArithmetic: Real[CValue] = intervalBase.cValueIsReal
         val midpointIC = intervalBase.ODEEnv(enc.midpoint, enc)
         val midpointSolution = solveIVPTaylor[CId,intervalBase.ODEEnv,CValue](midpointIC, VLit(GConstantRealEnclosure(myStep)), orderOfIntegration)
@@ -1145,27 +1145,18 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
             }
         }
       }
-
-      val linearTransformationNext = {
-        implicit val useIntervalArithmetic: Real[CValue] = intervalBase.cValueIsReal 
-        jacobian * enc.linearTransformation
-      }
+     
+      /* Remainder (numerical computation uncertainty) */
     
-      /* Width (initial-time uncertainty) */
-    
-      val widthNext = enc.width // FIXME: Move uncertainty to error part of LohnerSet
-    
-      /* Error (numerical computation uncertainty) */
-    
-      val errorNext: RealVector = {
+      val remainder: RealVector = {
         implicit val useIntervalArithmetic: Real[CValue] = intervalBase.cValueIsReal
         val errorNextIC = intervalBase.ODEEnv(aPriori, enc)
         val tcs = computeTaylorCoefficients[CId,intervalBase.ODEEnv,CValue](errorNextIC, orderOfIntegration + 1)
         val factor = VLit(GConstantRealEnclosure(myStep pow (orderOfIntegration + 1)))
-        tcs.s.map(_ match { case VLit(GCValueTDif(tdif)) => (tdif coeff orderOfIntegration) * factor })
+        tcs.s.map(_ match { case VLit(GCValueTDif(tdif)) => (tdif coeff (orderOfIntegration + 1)) * factor })
       }
     
-      (midpointNext, linearTransformationNext, widthNext, errorNext)
+      (midpointImage, jacobian, remainder)
     }
     /* Return */
 
@@ -1196,8 +1187,8 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
     
     lazy val refinedRange = {
       implicit val useIntervalArithmetic = intervalBase.cValueIsReal
-      val (midpointNext, linearTransformationNext, widthNext, errorNext) = encloseMap(enc, aPriori, Interval(0, timeStep))
-      midpointNext + (linearTransformationNext * widthNext) + errorNext
+      val (midpointImage, jacobian, remainder) = encloseMap(enc, aPriori, Interval(0, timeStep))
+      midpointImage + (jacobian * enc.linearTransformation * enc.width) + jacobian * enc.error + remainder
     }
     
     lazy val refinedRangeEnclosure = 
@@ -1210,13 +1201,22 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
       
     val endTimeEnclosure = {
       implicit val useIntervalArithmetic = intervalBase.cValueIsReal
-      val (midpointNext, linearTransformationNext, widthNext, errorNext) = encloseMap(enc, aPriori, timeStep)
-      val lohnerSet = midpointNext + (linearTransformationNext * widthNext) + errorNext
+      val (midpointImage, jacobian, remainder) = encloseMap(enc, aPriori, timeStep)
+      val midpointAndRemainder = midpointImage + remainder
+      // FIXME add routines for getting the midpoint / width vectors of Interval vectors, possibly
+      //  both solo and simultaneuosly
+      val midpointNext: RealVector = breeze.linalg.Vector.tabulate(enc.dim){ i => midpointAndRemainder(i) match { 
+        case (VLit(GConstantRealEnclosure(i))) => VLit(GConstantRealEnclosure(i.midpoint)) } }
+      val mpARwidth: RealVector = breeze.linalg.Vector.tabulate(enc.dim){ i => midpointAndRemainder(i) match { 
+        case (VLit(GConstantRealEnclosure(i))) => VLit(GConstantRealEnclosure(Interval(-1,1) * i.width)) } }
+      val errorNext = jacobian * enc.error + mpARwidth
+      val linearTransformationNext = jacobian * enc.linearTransformation
+      val lohnerSet = midpointNext + (linearTransformationNext * enc.width) + errorNext
       val stNext = updateCStore(lohnerSet)
       intervalBase.CValueEnclosure( stNext
                                   , midpointNext                        
                                   , linearTransformationNext
-                                  , widthNext                              
+                                  , enc.width                              
                                   , errorNext                              
                                   , enc.nameToIndex
                                   , enc.indexToName
