@@ -678,7 +678,7 @@ object Common {
         mapValue(taylorCoeffs(id, n), { gdif: GTDif[R] =>
           val vNext = gdif.dif.coeff.zipWithIndex.map { case (x, i) =>
             if (i <= orderOfIntegration) x * rIsReal.pow(h, rIsReal fromInt i) // FIXME Use powOnInt 
-            else rIsReal.zero }.take(orderOfIntegration).reduce(_ + _)
+            else rIsReal.zero }.take(orderOfIntegration + 1).reduce(_ + _) // FIXME evaluate the polynomial using Horner-scheme
           VLit(rIsReal groundValue vNext) }))
     }
     TAD lower solution
