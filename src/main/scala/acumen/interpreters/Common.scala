@@ -684,7 +684,8 @@ object Common {
     TAD lower solution
   }
 
-  /** Compute Taylor coefficients of order 0 to orderOfExpansion */
+  /** Compute Taylor coefficients of order 0 to orderOfExpansion.
+   *  Returns a store containing values of type TDif[R] that contain the Taylor coefficients. */
   def computeTaylorCoefficients[Id <: GId : TypeTag, S <% RichStore[S,Id], R: Real](s: S, orderOfExpansion: Int)(implicit f: Field[S,Id]): S = {
     require (orderOfExpansion > 0, s"Order of Taylor expansion ($orderOfExpansion) must be greater than 0")
     val ode = f map (TAD lift _)
