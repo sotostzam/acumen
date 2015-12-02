@@ -30,6 +30,7 @@ case class LohnerBase
   type E = DynSetEnclosure
   
   def initializeEnclosure(st: CStore): CValueEnclosure = {
+    // TODO when introducing indexing, this one needs to match on indices too
     val nameToIndex = st.toList.sortBy(_._1).flatMap {
       case (id, co) => co.toList.sortBy(_._1).flatMap {
         case (n, VLit(v: GConstantRealEnclosure)) => List((id, n))
@@ -37,13 +38,12 @@ case class LohnerBase
       }
     }.zipWithIndex.toMap
     val indexToName = nameToIndex.map(_.swap)
-    val dim = indexToName.size
-    def initialVector =
-      breeze.linalg.Vector.tabulate[CValue](dim) { i =>
-        val (id, n) = indexToName(i)
-        getObjectField(id, n, st) match {
-          case VLit(e: GConstantRealEnclosure) => VLit(GConstantRealEnclosure(e.range))
-        }}
+    def initialVector = breeze.linalg.Vector.tabulate[CValue](indexToName.size) { 
+      i => val (id, n) = indexToName(i)
+           getObjectField(id, n, st) match {
+             case VLit(e: GConstantRealEnclosure) => VLit(GConstantRealEnclosure(e.range))
+           }
+    }
 
     CValueEnclosure(st, Cuboid(initialVector), nameToIndex, indexToName, Set.empty) 
   }
