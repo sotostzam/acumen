@@ -45,6 +45,7 @@ case class Box(v : RealVector) extends IntervalDynSet {
     def map(m: CValue => CValue): Box = Box(v.copy.map(m))
     
     def map(m: (Int, CValue) => CValue): Box = {
+      // TODO implement with UFunc
       def mapVector(v: RealVector) = breeze.linalg.Vector.tabulate[CValue](dim) { i      => m(i, v(i)) }
       Box(mapVector(v))
     }
@@ -97,6 +98,7 @@ case class Cuboid
     }
     
     def map(m: (Int, CValue) => CValue): Cuboid = {
+      // TODO implement with UFunc
       def mapVector(v:   RealVector) = breeze.linalg.Vector.tabulate[CValue](dim)      { i      => m(i, v(i)) }
       def mapMatrix(mtx: RealMatrix) = breeze.linalg.Matrix.tabulate[CValue](dim, dim) { (r, c) => m(c, mtx(r, c)) } // Columns correspond to indices 
       val imageMidpoint             : RealVector = mapVector(midpoint)

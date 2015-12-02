@@ -41,6 +41,7 @@ object Common {
   }
   
   /* Interface for Breeze Linalg */
+  
   // FIXME: Replace breeze.linalg.Vector[CValue] with breeze.linalg.Vector[R] with R: Real
   type RealVector = breeze.linalg.Vector[CValue]
   type RealMatrix = breeze.linalg.Matrix[CValue]
