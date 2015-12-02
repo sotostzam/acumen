@@ -38,19 +38,14 @@ case class LohnerBase
     }.zipWithIndex.toMap
     val indexToName = nameToIndex.map(_.swap)
     val dim = indexToName.size
-    def initializeVector(f: Interval => Interval) =
+    def initialVector =
       breeze.linalg.Vector.tabulate[CValue](dim) { i =>
         val (id, n) = indexToName(i)
         getObjectField(id, n, st) match {
-          case VLit(e: GConstantRealEnclosure) => VLit(GConstantRealEnclosure(f(e.range)))
+          case VLit(e: GConstantRealEnclosure) => VLit(GConstantRealEnclosure(e.range))
         }}
-    val midpoint = initializeVector(i => Interval(i.midpoint))
-    val width = initializeVector{ i => val w = i.width / 2; Interval((-w).lo, w.hi) }
-    val zero = VLit(GConstantRealEnclosure(Interval.zero))
-    val one = VLit(GConstantRealEnclosure(Interval.one))
-    val linearTransformation = breeze.linalg.Matrix.tabulate[CValue](dim, dim) { case (r, c) if r == c => one; case _ => zero }
-    val error = breeze.linalg.Vector.fill[CValue](dim)(zero)
-    CValueEnclosure(st, Cuboid(midpoint, linearTransformation, width, error), nameToIndex, indexToName, Set.empty) 
+
+    CValueEnclosure(st, Cuboid(initialVector), nameToIndex, indexToName, Set.empty) 
   }
   
   case class ODEEnv

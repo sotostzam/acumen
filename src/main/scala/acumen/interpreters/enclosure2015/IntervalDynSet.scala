@@ -33,7 +33,22 @@ abstract class IntervalDynSet
   def move(f: C1Flow)  : (IntervalDynSet, IntervalDynSet)
 }
 
-/* Implementation of the Cuboid */
+/** Constructing a Cuboid from a RealVector */
+object Cuboid {
+  def apply(v: RealVector)(implicit cValueIsReal: Real[CValue]): Cuboid = {
+    val dim = v.size
+    val zero = cValueIsReal.zero
+    val one = cValueIsReal.one
+    val imageMidpoint             : RealVector = breeze.linalg.Vector.tabulate[CValue](dim) { i => v(i) match { case VLit(GConstantRealEnclosure(i)) => VLit(GConstantRealEnclosure(Interval(i.midpoint)))}}
+    val imageWidth                : RealVector = breeze.linalg.Vector.tabulate[CValue](dim) { i => v(i) match { case VLit(GConstantRealEnclosure(i)) => VLit(GConstantRealEnclosure(Interval(-0.5, 0.5) * i.width))}}
+    val imageLinearTransformation : RealMatrix = breeze.linalg.Matrix.tabulate[CValue](dim, dim) { case (r, c) if r == c => one; case _ => zero }    
+    val imageError                : RealVector = breeze.linalg.Vector.fill[CValue](dim)(zero)
+      
+    Cuboid(imageMidpoint, imageLinearTransformation, imageWidth, imageError)
+  }
+}
+
+/** Implementation of the Cuboid */
 case class Cuboid
   ( midpoint             : RealVector
   , linearTransformation : RealMatrix
@@ -48,17 +63,6 @@ case class Cuboid
   
     val dim = midpoint.size
 
-    // TODO rewrite this as a constructor
-    def initializeIntervalDynSet(v: RealVector) = {
-      val imageMidpoint             : RealVector = breeze.linalg.Vector.tabulate[CValue](dim) { i => v(i) match { case VLit(GConstantRealEnclosure(i)) => VLit(GConstantRealEnclosure(Interval(i.midpoint)))}}
-      val imageWidth                : RealVector = breeze.linalg.Vector.tabulate[CValue](dim) { i => v(i) match { case VLit(GConstantRealEnclosure(i)) => VLit(GConstantRealEnclosure(Interval(-0.5, 0.5) * i.width))}}
-      val imageLinearTransformation : RealMatrix = breeze.linalg.Matrix.tabulate[CValue](dim, dim) { case (r, c) if r == c => one; case _ => zero }    
-      val imageError                : RealVector = breeze.linalg.Vector.fill[CValue](dim)(zero)
-      
-      Cuboid(imageMidpoint, imageLinearTransformation, imageWidth, imageError)
-    }
-
-    
     def map(m: CValue => CValue): Cuboid = {
       val imageMidpoint             : RealVector = midpoint.copy.map(m)
       val imageWidth                : RealVector = width.copy.map(m)
@@ -79,7 +83,7 @@ case class Cuboid
       Cuboid(imageMidpoint, imageLinearTransformation, imageWidth, imageError)
     }
     
-    def move(f: Mapping): Cuboid = initializeIntervalDynSet(f(outerEnclosure))
+    def move(f: Mapping): Cuboid = Cuboid(f(outerEnclosure))
           
     def move(f: C1Flow): (Cuboid, Cuboid) = {
       val coarseRangeEnclosure = f.range(outerEnclosure)
@@ -103,7 +107,7 @@ case class Cuboid
         rangeMidpoint + rangeJacobian * (linearTransformation * width + error) + rangeRemainder 
       }
   
-      ( initializeIntervalDynSet(refinedRangeEnclosure)
+      ( Cuboid(refinedRangeEnclosure)
       , Cuboid(imageMidpoint, imageLinearTransformation, imageWidth, imageError) )
     }
 }
