@@ -33,6 +33,29 @@ abstract class IntervalDynSet
   def move(f: C1Flow)  : (IntervalDynSet, IntervalDynSet)
 }
 
+/* Box */
+
+/** Implementation of the Box */
+case class Box(v : RealVector) extends IntervalDynSet {
+  
+  val outerEnclosure = v
+  
+  val dim = v.size
+
+    def map(m: CValue => CValue): Box = Box(v.copy.map(m))
+    
+    def map(m: (Int, CValue) => CValue): Box = {
+      def mapVector(v: RealVector) = breeze.linalg.Vector.tabulate[CValue](dim) { i      => m(i, v(i)) }
+      Box(mapVector(v))
+    }
+    
+    def move(f: Mapping): Box = Box(f(v))
+          
+    def move(f: C1Flow): (Box, Box) = (Box(f(v)), Box(f.range(v)))
+}
+
+/* Cuboid */
+
 /** Constructing a Cuboid from a RealVector */
 object Cuboid {
   def apply(v: RealVector)(implicit cValueIsReal: Real[CValue]): Cuboid = {
