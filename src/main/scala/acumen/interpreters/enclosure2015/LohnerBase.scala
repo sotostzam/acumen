@@ -27,7 +27,7 @@ case class LohnerBase
   ,          cValueTDifIsReal: TDifAsReal[CValue] 
   ) extends SolverBase {
   
-  type E = LohnerEnclosure
+  type E = DynSetEnclosure
   
   def initializeEnclosure(st: CStore): CValueEnclosure = {
     val nameToIndex = st.toList.sortBy(_._1).flatMap {
@@ -50,12 +50,12 @@ case class LohnerBase
     val one = VLit(GConstantRealEnclosure(Interval.one))
     val linearTransformation = breeze.linalg.Matrix.tabulate[CValue](dim, dim) { case (r, c) if r == c => one; case _ => zero }
     val error = breeze.linalg.Vector.fill[CValue](dim)(zero)
-    CValueEnclosure(st, midpoint, linearTransformation, width, error, nameToIndex, indexToName, Set.empty) 
+    CValueEnclosure(st, Cuboid(midpoint, linearTransformation, width, error), nameToIndex, indexToName, Set.empty) 
   }
   
   case class ODEEnv
     ( s: RealVector 
-    , private val e: LohnerEnclosure
+    , private val e: DynSetEnclosure
     ) extends EStore {
     val dim = s.size
     def nameToIndex = e.nameToIndex
@@ -110,21 +110,18 @@ case class LohnerBase
   
   case class CValueEnclosure
     ( private val st: CStore
-    , midpoint: RealVector
-    , linearTransformation: RealMatrix  
-    , width: RealVector  
-    , error: RealVector
+    , dynSet: Cuboid
     , nameToIndex: Map[(CId,Name), Int]
     , indexToName: Map[Int, (CId,Name)]
     , nonOdeIndices: Set[Int]
     , cachedOuterEnclosure: Option[RealVector] = None
-    ) extends LohnerEnclosure with EStore {
+    ) extends DynSetEnclosure with EStore {
     
     def initialize(s: CStore): Enclosure = initializeEnclosure(s)
     
-    lazy val outerEnclosure = cachedOuterEnclosure.getOrElse(
-      midpoint + (linearTransformation * width) + error)
-  
+    // FIXME should it not take into account the actual variables in the dynset
+    lazy val outerEnclosure = cachedOuterEnclosure.getOrElse(dynSet.outerEnclosure)
+    
     /* Store Operations */
       
     def cStore: CStore = st
@@ -150,35 +147,19 @@ case class LohnerBase
     /** Apply m to all CValues in the CStore and Lohner set components */
     def map(m: CValue => CValue): Enclosure =
       CValueEnclosure( st.mapValues(_ mapValues m)
-                     , midpoint.copy map m
-                     , breeze.linalg.Matrix.tabulate[CValue](dim, dim) { 
-                         (r, c) => m(linearTransformation(r, c)) 
-                       }
-                     , width.copy map m
-                     , error.copy map m
+                     , dynSet.map(m)
                      , nameToIndex
                      , indexToName
                      , nonOdeIndices )
     /** Apply m to all CValues in the CStore and Lohner set components with the 
      *  CId and Name of the value in context */
     def mapName(m: (CId, Name, CValue) => CValue): Enclosure = {
-      def mapVector(v: RealVector) = 
-        breeze.linalg.Vector.tabulate[CValue](dim){ i => 
-          val (cid,n) = indexToName(i)
-          m(cid, n, v(i)) 
-        }
       CValueEnclosure( st.map{ case (cid,co) => 
                          (cid, co.map{ case (n,v) =>
                            (n, m(cid,n,v))  
                          }) 
                        }
-                     , mapVector(midpoint)
-                     , breeze.linalg.Matrix.tabulate[CValue](dim, dim) {  (r, c) =>
-                         val (cid,n) = indexToName(c) // Columns correspond to state variables 
-                         m(cid, n, linearTransformation(r, c)) 
-                       }
-                     , mapVector(width)
-                     , mapVector(error)
+                     , dynSet.map((i: Int, v: CValue) => m(indexToName(i)._1, indexToName(i)._2, v))
                      , nameToIndex
                      , indexToName
                      , nonOdeIndices )
@@ -188,11 +169,8 @@ case class LohnerBase
     /** Move the enclosure by the mapping m, returning range and image enclosures. */
     def move
       ( eqsInlined: Set[CollectedAction]
-      , timeStep: Double
-      , timeStepInterval: Interval
-      , coarseEnclosure: (LohnerEnclosure, RealVector, Interval) => RealVector 
-      , encloseMap: (LohnerEnclosure, RealVector, RealVector, RealVector, Interval) => (RealVector, RealMatrix, RealVector)
-      , evalExpr: (Expr, Env, EStore) => CValue
+      , flow      : C1Flow
+      , evalExpr  : (Expr, Env, EStore) => CValue
       ): (CValueEnclosure, CValueEnclosure) = {
       
       // Update variables in this.cStore defined by continuous assignments w.r.t. odeValues
@@ -219,46 +197,27 @@ case class LohnerBase
       val eqIndices = 
         eqsInlined.map{ ca => val lhs = ca.lhs; this.nameToIndex(lhs.id, lhs.field) }
       
-      val aPriori = coarseEnclosure(this, this.midpoint, timeStep)
-      
-      lazy val refinedRange = {
-        val (midpointImage, jacobian, remainder) = encloseMap(this, this.midpoint, this.outerEnclosure, aPriori, timeStepInterval)
-        midpointImage + (jacobian * this.linearTransformation * this.width) + jacobian * this.error + remainder
-      }
-      
-      lazy val refinedRangeEnclosure = 
-        initializeEnclosure(updateCStore(refinedRange))
-      
-      lazy val aprioriRangeEnclosure = 
-        initializeEnclosure(updateCStore(aPriori))
-  
-      val rangeEnclosure = refinedRangeEnclosure
+        val (range_dynSet, end_dynSet) = dynSet.move(flow)
         
-      val endTimeEnclosure = {
-        val (midpointImage, jacobian, remainder) = encloseMap(this, this.midpoint, this.outerEnclosure, aPriori, timeStep)
-        val midpointAndRemainder = midpointImage + remainder
-        // FIXME add routines for getting the midpoint / width vectors of Interval vectors, possibly
-        //  both solo and simultaneuosly
-        val midpointNext: RealVector = breeze.linalg.Vector.tabulate(this.dim){ i => midpointAndRemainder(i) match { 
-          case (VLit(GConstantRealEnclosure(i))) => VLit(GConstantRealEnclosure(i.midpoint)) } }
-        val mpARwidth: RealVector = breeze.linalg.Vector.tabulate(this.dim){ i => midpointAndRemainder(i) match { 
-          case (VLit(GConstantRealEnclosure(i))) => VLit(GConstantRealEnclosure(Interval(-1,1) * i.width)) } }
-        val errorNext = jacobian * this.error + mpARwidth
-        val linearTransformationNext = jacobian * this.linearTransformation
-        val lohnerSet = midpointNext + (linearTransformationNext * this.width) + errorNext
-        val stNext = updateCStore(lohnerSet)
-        CValueEnclosure( stNext
-                       , midpointNext                        
-                       , linearTransformationNext
-                       , this.width                              
-                       , errorNext                              
-                       , this.nameToIndex
-                       , this.indexToName
-                       , eqIndices
-                       , Some(lohnerSet) )
-      }
+        val range_lohnerSet = range_dynSet.outerEnclosure
+        val range_stNext = updateCStore(range_lohnerSet)
+        
+        val end_lohnerSet = end_dynSet.outerEnclosure
+        val end_stNext = updateCStore(end_lohnerSet)
+        
+        ( CValueEnclosure( range_stNext
+                         , range_dynSet                              
+                         , this.nameToIndex
+                         , this.indexToName
+                         , eqIndices
+                         , Some(range_lohnerSet) )
+        , CValueEnclosure( end_stNext
+                         , end_dynSet                              
+                         , this.nameToIndex
+                         , this.indexToName
+                         , eqIndices
+                         , Some(end_lohnerSet) ) )
       
-      (rangeEnclosure, endTimeEnclosure)
 
     }
     

@@ -48,29 +48,39 @@ object Common {
     def **(that: RealVector)(implicit ev: Real[CValue]) = that.copy.map(v * _)
   }
   
-  trait LohnerEnclosure extends Enclosure {
-    def midpoint: RealVector
-    def linearTransformation: RealMatrix
-    def width: RealVector
-    def error: RealVector
+  trait DynSetEnclosure extends Enclosure {
     def nameToIndex: Map[(CId,Name), Int]
     def indexToName: Map[Int, (CId,Name)]
     /** LohnerBase.{ODEEnv,Enclosure}.getObjectField will use this to get values for 
-      * non-ODE variables from the (up-to-date) cStore instead of the (out-of-date) lohnerSet. */
+      * non-ODE variables from the (up-to-date) cStore instead of the (out-of-date) dynSet. */
     def nonOdeIndices: Set[Int]
-
-    def outerEnclosure: RealVector
-    lazy val dim = midpoint.size
+    
+    val dim = nameToIndex.size
     
     /** Move the enclosure by the mapping m, returning range and image enclosures. */
     def move
-      ( eqsInlined: Set[CollectedAction]
-      , timeStep: Double
-      , timeStepInterval: Interval
-      , coarseEnclosure: (LohnerEnclosure, RealVector, Interval) => RealVector
-      , encloseMap: (LohnerEnclosure, RealVector, RealVector, RealVector, Interval) => (RealVector, RealMatrix, RealVector)
-      , evalExpr: (Expr, Env, EStore) => CValue
-      ): (LohnerEnclosure, LohnerEnclosure)
+      ( eqsInlined : Set[CollectedAction]
+      , flow       : C1Flow
+      , evalExpr   : (Expr, Env, EStore) => CValue
+      ): (DynSetEnclosure, DynSetEnclosure)
+  }
+  
+  trait Mapping {
+    def apply(x: RealVector): RealVector 
+  }
+  
+  trait C1Mapping extends Mapping {
+    def phi(x: RealVector)      : RealVector
+    def jacPhi(x: RealVector)   : RealMatrix
+    def remainder(x: RealVector): RealVector
+  }
+  
+  trait Flow extends Mapping {
+    def range: Mapping
+  }
+  
+  trait C1Flow extends C1Mapping with Flow {
+    def range: C1Mapping
   }
   
   trait Enclosure extends EStore {

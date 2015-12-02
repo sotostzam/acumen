@@ -1008,7 +1008,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
         continuousEncloserPicard(odes, eqs, claims, T, p, enc)
       case `intervalBase` => 
         continuousEncloserLohner(odes, eqs, claims, T, p, enc match {
-          case lenc: LohnerEnclosure => lenc
+          case lenc: DynSetEnclosure => lenc
           case cenc: picardBase.CValueEnclosure => 
             intervalBase initializeEnclosure cenc.cStore
         })
@@ -1064,112 +1064,119 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
     , claims: Set[CollectedConstraint]
     , T: Interval
     , p: Prog
-    , enc: LohnerEnclosure
+    , enc: DynSetEnclosure
     ): (Enclosure, Enclosure) = {
     Logger.trace(s"continuousEncloserLohner (over $T)")
     
     val field = inline(eqs, odes, enc.cStore) // in-line eqs to obtain explicit ODEs
+
+    val odeVariables = enc.indexToName.values.map{ case (id,n) => QName(id,n) }.toList // used in jacPhi for lifting
     
-    val timeStep = T.width.hiDouble
-    val timeStepInterval = Interval(0, timeStep)
-    val orderOfIntegration = Common orderOfIntegration enc.cStore
-    val maxPicardIterations = Common maxPicardIterations enc.cStore
-    val odeList = field.toList // TODO Align this with the order in enc.indexToName
-    val odeVariables = enc.indexToName.values.map{ case (id,n) => QName(id,n) }.toList
-    
-    implicit val intervalField = intervalBase.FieldImpl(odeList, evalExpr)
-    
-    /* A-priori */
-    
-    // TODO take only necessary parameters
-    def coarseEnclosure(enc: LohnerEnclosure, x: RealVector, timeStep: Interval): RealVector = {
-      implicit val useIntervalArithmetic: Real[CValue] = intervalBase.cValueIsReal
-      val step: CValue = VLit(GConstantRealEnclosure(timeStepInterval))
-      @tailrec def picardIterator(candidate: RealVector, iterations: Int): RealVector = {
-        val fieldAppliedToCandidate = intervalField(intervalBase.ODEEnv(candidate, enc))
-        val c = x + step ** fieldAppliedToCandidate.s
-        val invalidEnclosureDirections = (0 until enc.dim).filterNot(i => (candidate(i), c(i)) match {
-          case (VLit(GConstantRealEnclosure(e)), VLit(GConstantRealEnclosure(ce))) => 
-            e containsInInterior ce 
-        })
-        lazy val candidateNext: RealVector = breeze.linalg.Vector.tabulate(enc.dim){ i =>
-          if (invalidEnclosureDirections contains i) {
-            val VLit(GConstantRealEnclosure(e)) = c(i)
-            val m = Interval(e.midpoint).hiDouble
-            val wHalf = (e.width.hiDouble * 1.5) / 2
-            VLit(GConstantRealEnclosure(Interval(m - wHalf, m + wHalf)))
-          } else candidate(i)
-        } 
-        if (iterations > maxPicardIterations) sys.error(s"Unable to find valid enclosure over $T in $maxPicardIterations iterations.")
-        if (invalidEnclosureDirections isEmpty) {
-          Logger.debug(s"apriori enclosure over $T has been generated in $iterations iteration(s)")
-          candidate 
-        } else 
-          picardIterator(candidateNext, iterations + 1)
+    // TODO the class uses odeVariables and enc from the outside
+    case class TaylorIntegrator( odeList             : List[CollectedAction]
+                               , timeStep            : Interval
+                               , orderOfIntegration  : Int 
+                               , maxPicardIterations : Int 
+                               ) extends C1Flow {
+      implicit val intervalField = intervalBase.FieldImpl(odeList, evalExpr)
+      
+      val timeStepInterval = Interval(0, timeStep.hiDouble)
+          
+      /** Computes the apriori enclosure (a coarse range enclosure of the flow) */ 
+      def apply(x: RealVector): RealVector = {
+    		implicit val useIntervalArithmetic: Real[CValue] = intervalBase.cValueIsReal
+    		val step: CValue = VLit(GConstantRealEnclosure(timeStepInterval))
+    		@tailrec def picardIterator(candidate: RealVector, iterations: Int): RealVector = {
+    	     val fieldAppliedToCandidate = intervalField(intervalBase.ODEEnv(candidate, enc))
+    			 val c = x + step ** fieldAppliedToCandidate.s
+    			 val invalidEnclosureDirections = (0 until enc.dim).filterNot(i => (candidate(i), c(i)) match {
+    			   case (VLit(GConstantRealEnclosure(e)), VLit(GConstantRealEnclosure(ce))) => 
+    			     e containsInInterior ce 
+    			   })
+    			 lazy val candidateNext: RealVector = breeze.linalg.Vector.tabulate(enc.dim){ i =>
+    			   if (invalidEnclosureDirections contains i) {
+    				   val VLit(GConstantRealEnclosure(e)) = c(i)
+    					 val m = Interval(e.midpoint).hiDouble
+    					 val wHalf = (e.width.hiDouble * 1.5) / 2
+    					 VLit(GConstantRealEnclosure(Interval(m - wHalf, m + wHalf)))
+    			   } else candidate(i)
+    			 } 
+    			 if (iterations > maxPicardIterations) sys.error(s"Unable to find valid enclosure over $T in $maxPicardIterations iterations.")
+    			 if (invalidEnclosureDirections isEmpty) {
+    				 Logger.debug(s"apriori enclosure over $T has been generated in $iterations iteration(s)")
+    				 candidate 
+    			 } else 
+    				 picardIterator(candidateNext, iterations + 1)
+        }
+        val fieldAppliedToLohnerSet = intervalField(intervalBase.ODEEnv(x, enc))
+    	  val candidateStep: CValue = VLit(GConstantRealEnclosure(Interval(-0.2, 1.2) * timeStep))
+        val epsilon: RealVector = breeze.linalg.Vector.tabulate(enc.dim){ i => VLit(GConstantRealEnclosure(Interval(-1, 1) * 1e-21)) }
+    	  picardIterator(x + candidateStep ** fieldAppliedToLohnerSet.s + epsilon, 0)
       }
-      val fieldAppliedToLohnerSet = intervalField(intervalBase.ODEEnv(x, enc))
-      val candidateStep: CValue = VLit(GConstantRealEnclosure(Interval(-0.2, 1.2) * timeStep))
-      val epsilon: RealVector = breeze.linalg.Vector.tabulate(enc.dim){ i => VLit(GConstantRealEnclosure(Interval(-1, 1) * 1e-21)) }
-      picardIterator(x + candidateStep ** fieldAppliedToLohnerSet.s + epsilon, 0)
-    }
-    
-    // TODO Take mapping as parameter, e.g. taylorIntegrator
-    def encloseMap
-      ( enc: LohnerEnclosure 
-      , parameter1: RealVector, parameter2: RealVector
-      , aPriori: RealVector, myStep: Interval
-      ): (RealVector, RealMatrix, RealVector) = { 
-    
-      /* Image of mapping */
-    
-      val imageOfMapping: RealVector = {
+      
+      /** Computes the finite Taylor expansion */
+      def phi(x: RealVector, timeStep: Interval): RealVector = {
         implicit val useIntervalArithmetic: Real[CValue] = intervalBase.cValueIsReal
-        val p = intervalBase.ODEEnv(parameter1, enc) // FIXME was enc.midpoint
-        val imageOfP = solveIVPTaylor[CId,intervalBase.ODEEnv,CValue](p, VLit(GConstantRealEnclosure(myStep)), orderOfIntegration)
-        imageOfP.s
+        val xLift = intervalBase.ODEEnv(x, enc) // FIXME was enc.midpoint
+        val imageOfx = solveIVPTaylor[CId,intervalBase.ODEEnv,CValue](xLift, VLit(GConstantRealEnclosure(timeStep)), orderOfIntegration)
+        imageOfx.s
       }
-  
-      /* Linear Transformation */
-    
-      val jacobianOfMapping: RealMatrix = {
+      
+      /** Computes the Jacobian of phi */
+      def jacPhi(x: RealVector, timeStep: Interval): RealMatrix = {
         implicit val useFDifArithmetic: Real[CValue] = fDifBase.cValueIsReal
         implicit val linearTransformationField = fDifBase.FieldImpl(odeList.map(_ mapRhs (FAD.lift[CId,CValue](_, odeVariables))), evalExpr)
         implicit def liftToRichStore(s: fDifBase.ODEEnv): fDifBase.RichStoreImpl = fDifBase.liftODEEnv(s) // linearTransformationField passed implicitly
-        val p = FAD.lift[CId,fDifBase.ODEEnv,CValue](fDifBase.ODEEnv(parameter2, enc), odeVariables) // FIXME parameter2 was enc.outerEnclosure
+        val p = FAD.lift[CId,fDifBase.ODEEnv,CValue](fDifBase.ODEEnv(x, enc), odeVariables) // FIXME parameter2 was enc.outerEnclosure
         val myStepWrapped = {
           val VLit(GIntervalFDif(FAD.FDif(_, zeroCoeffs))) = useFDifArithmetic.fromDouble(0)
-          VLit(GIntervalFDif(FAD.FDif(myStep, zeroCoeffs)))
+          VLit(GIntervalFDif(FAD.FDif(timeStep, zeroCoeffs)))
         }
         val linearTransformationSolution = // linearTransformationField passed implicitly
-          solveIVPTaylor[CId,fDifBase.ODEEnv,CValue](p, myStepWrapped, orderOfIntegration)
+        solveIVPTaylor[CId,fDifBase.ODEEnv,CValue](p, myStepWrapped, orderOfIntegration)
         breeze.linalg.Matrix.tabulate[CValue](enc.dim, enc.dim) {
           case (r, c) =>
-            (linearTransformationSolution s c) match {
+        	  (linearTransformationSolution s c) match {
               case VLit(GIntervalFDif(FAD.FDif(_, ds))) =>
-                val (id, n) = linearTransformationSolution indexToName r
-                VLit(GConstantRealEnclosure(ds(QName(id, n))))
-            }
+        		    val (id, n) = linearTransformationSolution indexToName r
+        		    VLit(GConstantRealEnclosure(ds(QName(id, n))))
+        		}
         }
       }
-     
-      /* Remainder (numerical computation uncertainty) */
-    
-      val remainder: RealVector = {
+      
+      /** Bounds the difference between the finite Taylor expansion and the flow */
+      def remainder(x: RealVector, timeStep: Interval): RealVector = {
         implicit val useIntervalArithmetic: Real[CValue] = intervalBase.cValueIsReal
-        val p = intervalBase.ODEEnv(aPriori, enc)
+        val p = intervalBase.ODEEnv(x, enc)
         val tcs = computeTaylorCoefficients[CId,intervalBase.ODEEnv,CValue](p, orderOfIntegration + 1)
-        val factor = VLit(GConstantRealEnclosure(myStep pow (orderOfIntegration + 1)))
+        val factor = VLit(GConstantRealEnclosure(timeStep pow (orderOfIntegration + 1)))
         tcs.s.map(_ match { case VLit(GCValueTDif(tdif)) => (tdif coeff (orderOfIntegration + 1)) * factor })
       }
+      
+      /* C1Flow interface */
+      
+      // computation of the image
+      def       phi(x: RealVector) =       phi(x, timeStep)
+      def    jacPhi(x: RealVector) =    jacPhi(x, timeStep)
+      def remainder(x: RealVector) = remainder(x, timeStep)
+     
+      // computation of the range
+      val self  = this
+      val range = new C1Mapping {
+        def     apply(x: RealVector) : RealVector = self     apply(x)
+        def       phi(x: RealVector) : RealVector = self       phi(x, timeStepInterval)
+        def    jacPhi(x: RealVector) : RealMatrix = self    jacPhi(x, timeStepInterval)
+        def remainder(x: RealVector) : RealVector = self remainder(x, timeStepInterval)
+      }
     
-      (imageOfMapping, jacobianOfMapping, remainder)
-    }
-    
-    /* Return */
+  }    
+
+    val myIntegrator = TaylorIntegrator(field.toList,T.width, Common orderOfIntegration enc.cStore, Common maxPicardIterations enc.cStore)
     
     val eqsInlined = inline(eqs, eqs, enc.cStore) // LHSs of EquationsTs, including highest derivatives of ODEs
     
-    enc.move(eqsInlined, timeStep, timeStepInterval, coarseEnclosure, encloseMap, evalExpr)
+    // TODO Align field.toList with the order in enc.indexToName
+    enc.move(eqsInlined, myIntegrator, evalExpr)
 
   }
   
