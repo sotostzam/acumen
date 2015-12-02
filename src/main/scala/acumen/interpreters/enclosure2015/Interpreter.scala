@@ -1081,13 +1081,13 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
     
     /* A-priori */
     
-    // TODO Make into a function f(enc.outerEnclosure: RealVector): RealVector
-    val aPriori: RealVector = {
+    // TODO take only necessary parameters
+    def coarseEnclosure(enc: LohnerEnclosure, x: RealVector, timeStep: Interval): RealVector = {
       implicit val useIntervalArithmetic: Real[CValue] = intervalBase.cValueIsReal
       val step: CValue = VLit(GConstantRealEnclosure(timeStepInterval))
       @tailrec def picardIterator(candidate: RealVector, iterations: Int): RealVector = {
         val fieldAppliedToCandidate = intervalField(intervalBase.ODEEnv(candidate, enc))
-        val c = enc.outerEnclosure + step ** fieldAppliedToCandidate.s
+        val c = x + step ** fieldAppliedToCandidate.s
         val invalidEnclosureDirections = (0 until enc.dim).filterNot(i => (candidate(i), c(i)) match {
           case (VLit(GConstantRealEnclosure(e)), VLit(GConstantRealEnclosure(ce))) => 
             e containsInInterior ce 
@@ -1107,10 +1107,10 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
         } else 
           picardIterator(candidateNext, iterations + 1)
       }
-      val fieldAppliedToLohnerSet = intervalField(intervalBase.ODEEnv(enc.outerEnclosure, enc))
+      val fieldAppliedToLohnerSet = intervalField(intervalBase.ODEEnv(x, enc))
       val candidateStep: CValue = VLit(GConstantRealEnclosure(Interval(-0.2, 1.2) * timeStep))
       val epsilon: RealVector = breeze.linalg.Vector.tabulate(enc.dim){ i => VLit(GConstantRealEnclosure(Interval(-1, 1) * 1e-21)) }
-      picardIterator(enc.outerEnclosure + candidateStep ** fieldAppliedToLohnerSet.s + epsilon, 0)
+      picardIterator(x + candidateStep ** fieldAppliedToLohnerSet.s + epsilon, 0)
     }
     
     // TODO Take mapping as parameter, e.g. taylorIntegrator
@@ -1169,7 +1169,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
     
     val eqsInlined = inline(eqs, eqs, enc.cStore) // LHSs of EquationsTs, including highest derivatives of ODEs
     
-    enc.move(eqsInlined, aPriori, timeStep, timeStepInterval, encloseMap, evalExpr)
+    enc.move(eqsInlined, timeStep, timeStepInterval, coarseEnclosure, encloseMap, evalExpr)
 
   }
   

@@ -65,9 +65,9 @@ object Common {
     /** Move the enclosure by the mapping m, returning range and image enclosures. */
     def move
       ( eqsInlined: Set[CollectedAction]
-      , aPriori: RealVector
       , timeStep: Double
       , timeStepInterval: Interval
+      , coarseEnclosure: (LohnerEnclosure, RealVector, Interval) => RealVector
       , encloseMap: (LohnerEnclosure, RealVector, RealVector, RealVector, Interval) => (RealVector, RealMatrix, RealVector)
       , evalExpr: (Expr, Env, EStore) => CValue
       ): (LohnerEnclosure, LohnerEnclosure)

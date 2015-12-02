@@ -188,9 +188,9 @@ case class LohnerBase
     /** Move the enclosure by the mapping m, returning range and image enclosures. */
     def move
       ( eqsInlined: Set[CollectedAction]
-      , aPriori: RealVector
       , timeStep: Double
       , timeStepInterval: Interval
+      , coarseEnclosure: (LohnerEnclosure, RealVector, Interval) => RealVector 
       , encloseMap: (LohnerEnclosure, RealVector, RealVector, RealVector, Interval) => (RealVector, RealMatrix, RealVector)
       , evalExpr: (Expr, Env, EStore) => CValue
       ): (CValueEnclosure, CValueEnclosure) = {
@@ -218,6 +218,8 @@ case class LohnerBase
       // FIXME These can change over time! Will this cause issues? (see comment for LohnerEnclosure.nonOdeIndices)
       val eqIndices = 
         eqsInlined.map{ ca => val lhs = ca.lhs; this.nameToIndex(lhs.id, lhs.field) }
+      
+      val aPriori = coarseEnclosure(this, this.midpoint, timeStep)
       
       lazy val refinedRange = {
         val (midpointImage, jacobian, remainder) = encloseMap(this, this.midpoint, this.outerEnclosure, aPriori, timeStepInterval)
