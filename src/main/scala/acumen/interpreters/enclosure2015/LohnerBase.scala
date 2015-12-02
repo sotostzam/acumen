@@ -197,26 +197,26 @@ case class LohnerBase
       val eqIndices = 
         eqsInlined.map{ ca => val lhs = ca.lhs; this.nameToIndex(lhs.id, lhs.field) }
       
-        val (range_dynSet, end_dynSet) = dynSet.move(flow)
+        val (rangeDynSet, endDynSet) = dynSet.move(flow)
         
-        val range_lohnerSet = range_dynSet.outerEnclosure
-        val range_stNext = updateCStore(range_lohnerSet)
+        val rangeEnclosure = rangeDynSet.outerEnclosure
+        val rangeStNext    = updateCStore(rangeEnclosure)
         
-        val end_lohnerSet = end_dynSet.outerEnclosure
-        val end_stNext = updateCStore(end_lohnerSet)
+        val endEnclosure   = endDynSet.outerEnclosure
+        val endStNext      = updateCStore(endEnclosure)
         
-        ( CValueEnclosure( range_stNext
-                         , range_dynSet                              
+        ( CValueEnclosure( rangeStNext
+                         , rangeDynSet                              
                          , this.nameToIndex
                          , this.indexToName
                          , eqIndices
-                         , Some(range_lohnerSet) )
-        , CValueEnclosure( end_stNext
-                         , end_dynSet                              
+                         , Some(rangeEnclosure) )
+        , CValueEnclosure( endStNext
+                         , endDynSet                              
                          , this.nameToIndex
                          , this.indexToName
                          , eqIndices
-                         , Some(end_lohnerSet) ) )
+                         , Some(endEnclosure) ) )
       
 
     }
