@@ -1081,7 +1081,8 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
     
     /* A-priori */
     
-    val aPriori = {
+    // TODO Make into a function f(enc.outerEnclosure: RealVector): RealVector
+    val aPriori: RealVector = {
       implicit val useIntervalArithmetic: Real[CValue] = intervalBase.cValueIsReal
       val step: CValue = VLit(GConstantRealEnclosure(timeStepInterval))
       @tailrec def picardIterator(candidate: RealVector, iterations: Int): RealVector = {
@@ -1112,30 +1113,35 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
       picardIterator(enc.outerEnclosure + candidateStep ** fieldAppliedToLohnerSet.s + epsilon, 0)
     }
     
-    def encloseMap(enc: LohnerEnclosure, aPriori: RealVector, myStep: Interval): (RealVector, RealMatrix, RealVector) = { 
+    // TODO Take mapping as parameter, e.g. taylorIntegrator
+    def encloseMap
+      ( enc: LohnerEnclosure 
+      , parameter1: RealVector, parameter2: RealVector
+      , aPriori: RealVector, myStep: Interval
+      ): (RealVector, RealMatrix, RealVector) = { 
     
-      /* Midpoint */
+      /* Image of mapping */
     
-      val midpointImage = {
+      val imageOfMapping: RealVector = {
         implicit val useIntervalArithmetic: Real[CValue] = intervalBase.cValueIsReal
-        val midpointIC = intervalBase.ODEEnv(enc.midpoint, enc)
-        val midpointSolution = solveIVPTaylor[CId,intervalBase.ODEEnv,CValue](midpointIC, VLit(GConstantRealEnclosure(myStep)), orderOfIntegration)
-        midpointSolution.s
+        val p = intervalBase.ODEEnv(parameter1, enc) // FIXME was enc.midpoint
+        val imageOfP = solveIVPTaylor[CId,intervalBase.ODEEnv,CValue](p, VLit(GConstantRealEnclosure(myStep)), orderOfIntegration)
+        imageOfP.s
       }
   
       /* Linear Transformation */
     
-      val jacobian = {
+      val jacobianOfMapping: RealMatrix = {
         implicit val useFDifArithmetic: Real[CValue] = fDifBase.cValueIsReal
         implicit val linearTransformationField = fDifBase.FieldImpl(odeList.map(_ mapRhs (FAD.lift[CId,CValue](_, odeVariables))), evalExpr)
         implicit def liftToRichStore(s: fDifBase.ODEEnv): fDifBase.RichStoreImpl = fDifBase.liftODEEnv(s) // linearTransformationField passed implicitly
-        val linearTransformationIC = FAD.lift[CId,fDifBase.ODEEnv,CValue](fDifBase.ODEEnv(enc.outerEnclosure, enc), odeVariables)
+        val p = FAD.lift[CId,fDifBase.ODEEnv,CValue](fDifBase.ODEEnv(parameter2, enc), odeVariables) // FIXME parameter2 was enc.outerEnclosure
         val myStepWrapped = {
           val VLit(GIntervalFDif(FAD.FDif(_, zeroCoeffs))) = useFDifArithmetic.fromDouble(0)
           VLit(GIntervalFDif(FAD.FDif(myStep, zeroCoeffs)))
         }
         val linearTransformationSolution = // linearTransformationField passed implicitly
-          solveIVPTaylor[CId,fDifBase.ODEEnv,CValue](linearTransformationIC, myStepWrapped, orderOfIntegration)
+          solveIVPTaylor[CId,fDifBase.ODEEnv,CValue](p, myStepWrapped, orderOfIntegration)
         breeze.linalg.Matrix.tabulate[CValue](enc.dim, enc.dim) {
           case (r, c) =>
             (linearTransformationSolution s c) match {
@@ -1150,81 +1156,21 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
     
       val remainder: RealVector = {
         implicit val useIntervalArithmetic: Real[CValue] = intervalBase.cValueIsReal
-        val errorNextIC = intervalBase.ODEEnv(aPriori, enc)
-        val tcs = computeTaylorCoefficients[CId,intervalBase.ODEEnv,CValue](errorNextIC, orderOfIntegration + 1)
+        val p = intervalBase.ODEEnv(aPriori, enc)
+        val tcs = computeTaylorCoefficients[CId,intervalBase.ODEEnv,CValue](p, orderOfIntegration + 1)
         val factor = VLit(GConstantRealEnclosure(myStep pow (orderOfIntegration + 1)))
         tcs.s.map(_ match { case VLit(GCValueTDif(tdif)) => (tdif coeff (orderOfIntegration + 1)) * factor })
       }
     
-      (midpointImage, jacobian, remainder)
+      (imageOfMapping, jacobianOfMapping, remainder)
     }
+    
     /* Return */
+    
+    val eqsInlined = inline(eqs, eqs, enc.cStore) // LHSs of EquationsTs, including highest derivatives of ODEs
+    
+    enc.move(eqsInlined, aPriori, timeStep, timeStepInterval, encloseMap, evalExpr)
 
-    val eqsInlined = inline(eqs, eqs, enc.cStore) // LHSs of EquationsTs, including highest derivatives of ODEs 
-
-    // Update variables in enc.cStore defined by continuous assignments w.r.t. odeValues
-    def updateCStore(odeValues: RealVector): CStore = {
-      def updateODEVariables(unupdated: CStore, odeValues: RealVector): CStore =
-        (0 until enc.dim).foldLeft(unupdated) {
-          case (tmpSt, i) =>
-            val (id, n) = enc.indexToName(i)
-            Canonical.setObjectField(id, n, odeValues(i), tmpSt)
-        }
-      def updateEquationVariables(unupdated: CStore, odeValues: RealVector): CStore = {
-        val odeStore = intervalBase.ODEEnv(odeValues, enc)
-        eqsInlined.foldLeft(unupdated){ case (stTmp, ca) =>
-          val rd = ca.lhs
-          val cv = evalExpr(ca.rhs, ca.env, odeStore)
-          Canonical.setObjectField(rd.id, rd.field, cv, stTmp)
-        }
-      }
-      updateEquationVariables(updateODEVariables(enc.cStore, odeValues), odeValues)
-    }
-    
-    // FIXME These can change over time! Will this cause issues? (see comment for LohnerEnclosure.nonOdeIndices)
-    val eqIndices = 
-      eqs.map{ ca => val lhs = ca.lhs; enc.nameToIndex(lhs.id, lhs.field) }
-    
-    lazy val refinedRange = {
-      implicit val useIntervalArithmetic = intervalBase.cValueIsReal
-      val (midpointImage, jacobian, remainder) = encloseMap(enc, aPriori, Interval(0, timeStep))
-      midpointImage + (jacobian * enc.linearTransformation * enc.width) + jacobian * enc.error + remainder
-    }
-    
-    lazy val refinedRangeEnclosure = 
-      intervalBase.initializeEnclosure(updateCStore(refinedRange))
-    
-    lazy val aprioriRangeEnclosure = 
-      intervalBase.initializeEnclosure(updateCStore(aPriori))
-
-    val rangeEnclosure = refinedRangeEnclosure
-      
-    val endTimeEnclosure = {
-      implicit val useIntervalArithmetic = intervalBase.cValueIsReal
-      val (midpointImage, jacobian, remainder) = encloseMap(enc, aPriori, timeStep)
-      val midpointAndRemainder = midpointImage + remainder
-      // FIXME add routines for getting the midpoint / width vectors of Interval vectors, possibly
-      //  both solo and simultaneuosly
-      val midpointNext: RealVector = breeze.linalg.Vector.tabulate(enc.dim){ i => midpointAndRemainder(i) match { 
-        case (VLit(GConstantRealEnclosure(i))) => VLit(GConstantRealEnclosure(i.midpoint)) } }
-      val mpARwidth: RealVector = breeze.linalg.Vector.tabulate(enc.dim){ i => midpointAndRemainder(i) match { 
-        case (VLit(GConstantRealEnclosure(i))) => VLit(GConstantRealEnclosure(Interval(-1,1) * i.width)) } }
-      val errorNext = jacobian * enc.error + mpARwidth
-      val linearTransformationNext = jacobian * enc.linearTransformation
-      val lohnerSet = midpointNext + (linearTransformationNext * enc.width) + errorNext
-      val stNext = updateCStore(lohnerSet)
-      intervalBase.CValueEnclosure( stNext
-                                  , midpointNext                        
-                                  , linearTransformationNext
-                                  , enc.width                              
-                                  , errorNext                              
-                                  , enc.nameToIndex
-                                  , enc.indexToName
-                                  , eqIndices
-                                  , Some(lohnerSet) )
-    }
-    
-    (rangeEnclosure, endTimeEnclosure)
   }
   
   // FIXME Remove debug code

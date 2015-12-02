@@ -183,6 +183,83 @@ case class LohnerBase
                      , indexToName
                      , nonOdeIndices )
     }
+    
+    
+    /** Move the enclosure by the mapping m, returning range and image enclosures. */
+    def move
+      ( eqsInlined: Set[CollectedAction]
+      , aPriori: RealVector
+      , timeStep: Double
+      , timeStepInterval: Interval
+      , encloseMap: (LohnerEnclosure, RealVector, RealVector, RealVector, Interval) => (RealVector, RealMatrix, RealVector)
+      , evalExpr: (Expr, Env, EStore) => CValue
+      ): (CValueEnclosure, CValueEnclosure) = {
+      
+      // Update variables in this.cStore defined by continuous assignments w.r.t. odeValues
+      def updateCStore(odeValues: RealVector): CStore = {
+        def updateODEVariables(unupdated: CStore, odeValues: RealVector): CStore =
+          (0 until this.dim).foldLeft(unupdated) {
+            case (tmpSt, i) =>
+              val (id, n) = this.indexToName(i)
+              Canonical.setObjectField(id, n, odeValues(i), tmpSt)
+          }
+        def updateEquationVariables(unupdated: CStore, odeValues: RealVector): CStore = {
+          val odeStore = intervalBase.ODEEnv(odeValues, this)
+          eqsInlined.foldLeft(unupdated){ case (stTmp, ca) =>
+            val rd = ca.lhs
+            val cv = evalExpr(ca.rhs, ca.env, odeStore)
+            Canonical.setObjectField(rd.id, rd.field, cv, stTmp)
+          }
+        }
+        updateEquationVariables(updateODEVariables(this.cStore, odeValues), odeValues)
+      }
+      
+      // Indices in the Lohner set that are not defied by ODEs. These will become invalid after applying the mapping.
+      // FIXME These can change over time! Will this cause issues? (see comment for LohnerEnclosure.nonOdeIndices)
+      val eqIndices = 
+        eqsInlined.map{ ca => val lhs = ca.lhs; this.nameToIndex(lhs.id, lhs.field) }
+      
+      lazy val refinedRange = {
+        val (midpointImage, jacobian, remainder) = encloseMap(this, this.midpoint, this.outerEnclosure, aPriori, timeStepInterval)
+        midpointImage + (jacobian * this.linearTransformation * this.width) + jacobian * this.error + remainder
+      }
+      
+      lazy val refinedRangeEnclosure = 
+        initializeEnclosure(updateCStore(refinedRange))
+      
+      lazy val aprioriRangeEnclosure = 
+        initializeEnclosure(updateCStore(aPriori))
+  
+      val rangeEnclosure = refinedRangeEnclosure
+        
+      val endTimeEnclosure = {
+        val (midpointImage, jacobian, remainder) = encloseMap(this, this.midpoint, this.outerEnclosure, aPriori, timeStep)
+        val midpointAndRemainder = midpointImage + remainder
+        // FIXME add routines for getting the midpoint / width vectors of Interval vectors, possibly
+        //  both solo and simultaneuosly
+        val midpointNext: RealVector = breeze.linalg.Vector.tabulate(this.dim){ i => midpointAndRemainder(i) match { 
+          case (VLit(GConstantRealEnclosure(i))) => VLit(GConstantRealEnclosure(i.midpoint)) } }
+        val mpARwidth: RealVector = breeze.linalg.Vector.tabulate(this.dim){ i => midpointAndRemainder(i) match { 
+          case (VLit(GConstantRealEnclosure(i))) => VLit(GConstantRealEnclosure(Interval(-1,1) * i.width)) } }
+        val errorNext = jacobian * this.error + mpARwidth
+        val linearTransformationNext = jacobian * this.linearTransformation
+        val lohnerSet = midpointNext + (linearTransformationNext * this.width) + errorNext
+        val stNext = updateCStore(lohnerSet)
+        CValueEnclosure( stNext
+                       , midpointNext                        
+                       , linearTransformationNext
+                       , this.width                              
+                       , errorNext                              
+                       , this.nameToIndex
+                       , this.indexToName
+                       , eqIndices
+                       , Some(lohnerSet) )
+      }
+      
+      (rangeEnclosure, endTimeEnclosure)
+
+    }
+    
   }
   
 }

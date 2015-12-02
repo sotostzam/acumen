@@ -61,6 +61,16 @@ object Common {
 
     def outerEnclosure: RealVector
     lazy val dim = midpoint.size
+    
+    /** Move the enclosure by the mapping m, returning range and image enclosures. */
+    def move
+      ( eqsInlined: Set[CollectedAction]
+      , aPriori: RealVector
+      , timeStep: Double
+      , timeStepInterval: Interval
+      , encloseMap: (LohnerEnclosure, RealVector, RealVector, RealVector, Interval) => (RealVector, RealMatrix, RealVector)
+      , evalExpr: (Expr, Env, EStore) => CValue
+      ): (LohnerEnclosure, LohnerEnclosure)
   }
   
   trait Enclosure extends EStore {
