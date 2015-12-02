@@ -36,14 +36,15 @@ abstract class IntervalDynSet
 /** Constructing a Cuboid from a RealVector */
 object Cuboid {
   def apply(v: RealVector)(implicit cValueIsReal: Real[CValue]): Cuboid = {
-    val dim = v.size
+    val dim  = v.size
     val zero = cValueIsReal.zero
-    val one = cValueIsReal.one
-    val imageMidpoint             : RealVector = breeze.linalg.Vector.tabulate[CValue](dim) { i => v(i) match { case VLit(GConstantRealEnclosure(i)) => VLit(GConstantRealEnclosure(Interval(i.midpoint)))}}
-    val imageWidth                : RealVector = breeze.linalg.Vector.tabulate[CValue](dim) { i => v(i) match { case VLit(GConstantRealEnclosure(i)) => VLit(GConstantRealEnclosure(Interval(-0.5, 0.5) * i.width))}}
-    val imageLinearTransformation : RealMatrix = breeze.linalg.Matrix.tabulate[CValue](dim, dim) { case (r, c) if r == c => one; case _ => zero }    
-    val imageError                : RealVector = breeze.linalg.Vector.fill[CValue](dim)(zero)
-      
+    val one  = cValueIsReal.one
+
+    val imageMidpoint             : RealVector = midpointVector(v)
+    val imageWidth                : RealVector = centeredVector(v)
+    val imageLinearTransformation : RealMatrix = breeze.linalg.DenseMatrix.eye[CValue](dim)    
+    val imageError                : RealVector = breeze.linalg.Vector.zeros[CValue](dim)
+    
     Cuboid(imageMidpoint, imageLinearTransformation, imageWidth, imageError)
   }
 }
@@ -92,13 +93,13 @@ case class Cuboid
       val jacobian             = f.jacPhi(outerEnclosure)
       val remainder            = f.remainder(coarseRangeEnclosure)
       
-      val phiPlusRemainder = phi + remainder
+      val phiPlusRemainder: RealVector = phi + remainder
 
-      val imageMidpoint             : RealVector = breeze.linalg.Vector.tabulate[CValue](dim) { i => phiPlusRemainder(i) match { case VLit(GConstantRealEnclosure(i)) => VLit(GConstantRealEnclosure(Interval(i.midpoint)))}}
+      val imageMidpoint             : RealVector = midpointVector(phiPlusRemainder)
       val imageWidth                : RealVector = width
       val imageLinearTransformation : RealMatrix = jacobian * linearTransformation
       val imageError                : RealVector = jacobian * error + 
-                                                   breeze.linalg.Vector.tabulate[CValue](dim) { i => phiPlusRemainder(i) match { case VLit(GConstantRealEnclosure(i)) => VLit(GConstantRealEnclosure(Interval(-0.5, 0.5) * i.width))}}
+                                                   centeredVector(phiPlusRemainder)
       lazy val refinedRangeEnclosure = {
         val rangeMidpoint  : RealVector = f.range.phi(midpoint)
         val rangeJacobian  : RealMatrix = f.range.jacPhi(outerEnclosure)

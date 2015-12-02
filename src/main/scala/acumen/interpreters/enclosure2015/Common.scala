@@ -40,9 +40,22 @@ object Common {
     def childrenOf(id: CId): List[CId]
   }
   
+  /* Interface for Breeze Linalg */
   // FIXME: Replace breeze.linalg.Vector[CValue] with breeze.linalg.Vector[R] with R: Real
   type RealVector = breeze.linalg.Vector[CValue]
   type RealMatrix = breeze.linalg.Matrix[CValue]
+  
+  object midpointVector extends breeze.generic.UFunc {
+   implicit object implInterval extends Impl[CValue, CValue] {
+     def apply(i: CValue) = i match { case VLit(GConstantRealEnclosure(i)) => VLit(GConstantRealEnclosure(Interval(i.midpoint))) }
+   }
+  }
+  object centeredVector extends breeze.generic.UFunc {
+   implicit object implInterval extends Impl[CValue, CValue] {
+     def apply(i: CValue) = i match { case VLit(GConstantRealEnclosure(i)) => VLit(GConstantRealEnclosure(Interval(-0.5, 0.5) * i.width)) }
+   }
+  }
+
   
   implicit class CValueOps(val v: CValue) extends AnyVal {
     def **(that: RealVector)(implicit ev: Real[CValue]) = that.copy.map(v * _)
@@ -56,7 +69,7 @@ object Common {
     def nonOdeIndices: Set[Int]
     
     val dim = nameToIndex.size
-    
+    val dynSet : IntervalDynSet
     /** Move the enclosure by the mapping m, returning range and image enclosures. */
     def move
       ( eqsInlined : Set[CollectedAction]
