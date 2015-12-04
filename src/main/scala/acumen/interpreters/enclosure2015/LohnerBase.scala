@@ -26,53 +26,40 @@ case class LohnerBase
   ( implicit cValueIsReal:     Real[CValue]
   ,          cValueTDifIsReal: TDifAsReal[CValue] 
   ) extends SolverBase {
+  
+  /* SolverBase interface */
   type E = DynSetEnclosure
-  def initializeEnclosure(st: CStore): DynSetEnclosure = {
-    // TODO when introducing indexing, this one needs to match on indices too
-    val nameToIndex = st.toList.sortBy(_._1).flatMap {
-      case (id, co) => co.toList.sortBy(_._1).flatMap {
-        case (n, VLit(v: GConstantRealEnclosure)) => List((id, n))
-        case (n, v)                               => Nil
-      }
-    }.zipWithIndex.toMap
-    val indexToName = nameToIndex.map(_.swap)
-    def initialVector = breeze.linalg.Vector.tabulate[CValue](indexToName.size) { 
-      i => val (id, n) = indexToName(i)
-           getObjectField(id, n, st) match {
-             case VLit(e: GConstantRealEnclosure) => VLit(GConstantRealEnclosure(e.range))
-           }
-    }
-
-    DynSetEnclosure(st, Cuboid(initialVector), nameToIndex, indexToName, Set.empty) 
-  }
-
-  implicit class RichStoreImpl(odeEnv: DynSetEnclosure) extends RichStore[DynSetEnclosure,CId] {
+  def initializeEnclosure(st: CStore) = DynSetEnclosure(st)
+  
+  /* Implicit Conversions */
+  implicit class RichStoreImpl(dynSetEnclosure: DynSetEnclosure) extends RichStore[DynSetEnclosure,CId] {
     /* RichStore */
     override def +++(that: DynSetEnclosure): DynSetEnclosure =
-      odeEnv.copy(dynSet = IntervalBox(breeze.linalg.Vector.tabulate(odeEnv.dim)(i => odeEnv.dynSet(i) + that.dynSet(i))))
+      dynSetEnclosure.copy(dynSet = IntervalBox(breeze.linalg.Vector.tabulate(dynSetEnclosure.dim)(i => dynSetEnclosure.dynSet(i) + that.dynSet(i))))
     override def ***(that: Double): DynSetEnclosure =
-      odeEnv.copy(dynSet = IntervalBox(breeze.linalg.Vector.tabulate(odeEnv.dim)(i => odeEnv.dynSet(i) * cValueIsReal.fromDouble(that))))
-    override def map(m: CValue => CValue): DynSetEnclosure = odeEnv.copy(dynSet = odeEnv.dynSet map m)
+      dynSetEnclosure.copy(dynSet = IntervalBox(breeze.linalg.Vector.tabulate(dynSetEnclosure.dim)(i => dynSetEnclosure.dynSet(i) * cValueIsReal.fromDouble(that))))
+    override def map(m: CValue => CValue): DynSetEnclosure = dynSetEnclosure.copy(dynSet = dynSetEnclosure.dynSet map m)
     override def mapName(m: (GId, Name, CValue) => CValue): DynSetEnclosure =
-      odeEnv.copy(dynSet = IntervalBox(breeze.linalg.Vector.tabulate[CValue](odeEnv.dim){ i => 
-        val (cid,n) = odeEnv indexToName i
-        m(cid, n, odeEnv dynSet i)
+      dynSetEnclosure.copy(dynSet = IntervalBox(breeze.linalg.Vector.tabulate[CValue](dynSetEnclosure.dim){ i => 
+        val (cid,n) = dynSetEnclosure indexToName i
+        m(cid, n, dynSetEnclosure dynSet i)
       }))
-    override def apply(id: CId, n: Name): CValue = odeEnv.dynSet(odeEnv.nameToIndex(id, n))
+    override def apply(id: CId, n: Name): CValue = dynSetEnclosure.dynSet(dynSetEnclosure.nameToIndex(id, n))
     override def updated(id: CId, n: Name, v: CValue): DynSetEnclosure =
       // TODO: Group updates or do this with mutation instead
-      odeEnv.copy(dynSet = { val encl = odeEnv.dynSet.copy; encl.update(odeEnv.nameToIndex(id, n), v); IntervalBox(encl) })
-    override def getInSimulator(variable: String) = odeEnv.getInSimulator(variable)
+      dynSetEnclosure.copy(dynSet = { val encl = dynSetEnclosure.dynSet.copy; encl.update(dynSetEnclosure.nameToIndex(id, n), v); IntervalBox(encl) })
+    override def getInSimulator(variable: String) = dynSetEnclosure.getInSimulator(variable)
   }
-  def liftODEEnv(s: DynSetEnclosure)(implicit field: FieldImpl): RichStoreImpl = RichStoreImpl(s)
+  
+  def liftDynSetEnclosure(s: DynSetEnclosure)(implicit field: FieldImpl): RichStoreImpl = RichStoreImpl(s)
   
   case class FieldImpl(odes: List[CollectedAction], evalExpr: (Expr, Env, EStore) => CValue) extends interpreters.Common.Field[DynSetEnclosure,CId] {
-    override def apply(odeEnv: DynSetEnclosure): DynSetEnclosure = {
-      val s1 = odeEnv.dynSet.copy
+    override def apply(dynSetEnclosure: DynSetEnclosure): DynSetEnclosure = {
+      val s1 = dynSetEnclosure.dynSet.copy
       odes.foreach{ ode => 
-        s1.update(odeEnv.nameToIndex(ode.lhs.id, ode.lhs.field), evalExpr(ode.rhs, ode.env, odeEnv)) 
+        s1.update(dynSetEnclosure.nameToIndex(ode.lhs.id, ode.lhs.field), evalExpr(ode.rhs, ode.env, dynSetEnclosure)) 
       }
-      odeEnv.copy(dynSet = IntervalBox(s1))
+      dynSetEnclosure.copy(dynSet = IntervalBox(s1))
     }
     override def variables(s: DynSetEnclosure): List[(CId, Name)] = odes.map(ode => (ode.lhs.id, ode.lhs.field))
     override def map(em: Expr => Expr) =

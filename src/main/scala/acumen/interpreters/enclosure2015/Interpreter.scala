@@ -1119,7 +1119,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
       def phi(x: RealVector, timeStep: Interval): RealVector = {
         implicit val useIntervalArithmetic: Real[CValue] = intervalBase.cValueIsReal
         implicit val intervalField = intervalBase.FieldImpl(odeList, evalExpr)
-        implicit def liftToRichStore(s: DynSetEnclosure): intervalBase.RichStoreImpl = intervalBase.liftODEEnv(s) // linearTransformationField passed implicitly
+        implicit def liftToRichStore(s: DynSetEnclosure): intervalBase.RichStoreImpl = intervalBase.liftDynSetEnclosure(s) // linearTransformationField passed implicitly
         val xLift = DynSetEnclosure(x, enc) // FIXME was enc.midpoint
         val imageOfx = solveIVPTaylor[CId,DynSetEnclosure,CValue](xLift, VLit(GConstantRealEnclosure(timeStep)), orderOfIntegration)
         imageOfx.dynSet
@@ -1129,7 +1129,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
       def jacPhi(x: RealVector, timeStep: Interval): RealMatrix = {
         implicit val useFDifArithmetic: Real[CValue] = fDifBase.cValueIsReal
         implicit val linearTransformationField = fDifBase.FieldImpl(odeList.map(_ mapRhs (FAD.lift[CId,CValue](_, odeVariables))), evalExpr)
-        implicit def liftToRichStore(s: DynSetEnclosure): fDifBase.RichStoreImpl = fDifBase.liftODEEnv(s) // linearTransformationField passed implicitly
+        implicit def liftToRichStore(s: DynSetEnclosure): fDifBase.RichStoreImpl = fDifBase.liftDynSetEnclosure(s) // linearTransformationField passed implicitly
         val p = FAD.lift[CId,DynSetEnclosure,CValue](DynSetEnclosure(x, enc), odeVariables) // FIXME parameter2 was enc.outerEnclosure
         val myStepWrapped = {
           val VLit(GIntervalFDif(FAD.FDif(_, zeroCoeffs))) = useFDifArithmetic.fromDouble(0)
@@ -1151,7 +1151,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
       def remainder(x: RealVector, timeStep: Interval): RealVector = {
         implicit val useIntervalArithmetic: Real[CValue] = intervalBase.cValueIsReal
         implicit val intervalField = intervalBase.FieldImpl(odeList, evalExpr)
-        implicit def liftToRichStore(s: DynSetEnclosure): intervalBase.RichStoreImpl = intervalBase.liftODEEnv(s) // linearTransformationField passed implicitly
+        implicit def liftToRichStore(s: DynSetEnclosure): intervalBase.RichStoreImpl = intervalBase.liftDynSetEnclosure(s) // linearTransformationField passed implicitly
         val p = DynSetEnclosure(x, enc)
         val tcs = computeTaylorCoefficients[CId,DynSetEnclosure,CValue](p, orderOfIntegration + 1)
         val factor = VLit(GConstantRealEnclosure(timeStep pow (orderOfIntegration + 1)))
