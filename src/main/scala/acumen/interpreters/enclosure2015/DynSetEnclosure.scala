@@ -153,16 +153,16 @@ case class DynSetEnclosure
   override def getObjectField(id: CId, n: Name): CValue =
     nameToIndex.get(id, n) match {
       case Some(i) if !(nonOdeIndices contains i) => dynSet(i)
-      case _ => Canonical.getObjectField(id, n, st)
+      case _ => super.getObjectField(id, n)
     }
 
   override def setObjectField(id: CId, n: Name, v: CValue): Enclosure =
     nameToIndex.get(id, n) match {
       case Some(i) =>
         Logger.trace(s"Setting DynSet variable $id.${Pretty pprint n}.")
-        setObjectField(id, n, v) // FIXME check this
+        super.setObjectField(id, n, v) // FIXME check this
       case None =>
-        DynSetEnclosure( Canonical.setObjectField(id, n, v, st)
+        DynSetEnclosure( super.setObjectField(id, n, v).cStore
                        , dynSet
                        , nameToIndex
                        , indexToName
