@@ -1070,7 +1070,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
     
     val field = inline(eqs, odes, enc.cStore) // in-line eqs to obtain explicit ODEs
 
-    val odeVariables = enc.indexToName.values.map{ case (id,n) => QName(id,n) }.toList // used in jacPhi for lifting
+    val flowVariables = enc.indexToName.values.map{ case (id,n) => QName(id,n) }.toList // used in jacPhi for lifting
     
     // TODO the class uses odeVariables and enc from the outside
     case class TaylorIntegrator( odeList             : List[CollectedAction]
@@ -1128,9 +1128,9 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
       /** Computes the Jacobian of phi */
       def jacPhi(x: RealVector, timeStep: Interval): RealMatrix = {
         implicit val useFDifArithmetic: Real[CValue] = fDifBase.cValueIsReal
-        implicit val linearTransformationField = fDifBase.FieldImpl(odeList.map(_ mapRhs (FAD.lift[CId,CValue](_, odeVariables))), evalExpr)
+        implicit val linearTransformationField = fDifBase.FieldImpl(odeList.map(_ mapRhs (FAD.lift[CId,CValue](_, flowVariables))), evalExpr)
         implicit def liftToRichStore(s: DynSetEnclosure): fDifBase.RichStoreImpl = fDifBase.liftDynSetEnclosure(s) // linearTransformationField passed implicitly
-        val p = FAD.lift[CId,DynSetEnclosure,CValue](DynSetEnclosure(x, enc), odeVariables) // FIXME parameter2 was enc.outerEnclosure
+        val p = FAD.lift[CId,DynSetEnclosure,CValue](DynSetEnclosure(x, enc), flowVariables) // FIXME parameter2 was enc.outerEnclosure
         val myStepWrapped = {
           val VLit(GIntervalFDif(FAD.FDif(_, zeroCoeffs))) = useFDifArithmetic.fromDouble(0)
           VLit(GIntervalFDif(FAD.FDif(timeStep, zeroCoeffs)))

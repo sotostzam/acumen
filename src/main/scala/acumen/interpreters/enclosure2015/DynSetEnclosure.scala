@@ -12,12 +12,12 @@ import util.Canonical._
 /** Alternative constructors for DynSetEnclosure */
 object DynSetEnclosure {
   def apply(v: RealVector, enc: DynSetEnclosure)(implicit cValueIsReal: Real[CValue]): DynSetEnclosure =
-    DynSetEnclosure(enc.st, IntervalBox(v), enc.nameToIndex, enc.indexToName, enc.nonOdeIndices, Some(v))
+    DynSetEnclosure(enc.st, IntervalBox(v), enc.nameToIndex, enc.indexToName, enc.nonFlowIndices, Some(v))
     
-  def apply(nonOdeIndices: Set[Int], enc: DynSetEnclosure)(implicit cValueIsReal: Real[CValue]): DynSetEnclosure =
-    DynSetEnclosure(enc.st, enc.dynSet, enc.nameToIndex, enc.indexToName, nonOdeIndices, None)
+  def apply(nonFlowIndices: Set[Int], enc: DynSetEnclosure)(implicit cValueIsReal: Real[CValue]): DynSetEnclosure =
+    DynSetEnclosure(enc.st, enc.dynSet, enc.nameToIndex, enc.indexToName, nonFlowIndices, None)
   
-  def apply(st: CStore, nonOdeIndices: Set[Int])(implicit cValueIsReal: Real[CValue]): DynSetEnclosure = 
+  def apply(st: CStore, nonFlowIndices: Set[Int])(implicit cValueIsReal: Real[CValue]): DynSetEnclosure = 
   {
     // TODO when introducing indexing, this one needs to match on indices too
     val nameToIndex = st.toList.sortBy(_._1).flatMap {
@@ -35,7 +35,7 @@ object DynSetEnclosure {
            }
     }
 
-    DynSetEnclosure(st, Cuboid(initialVector), nameToIndex, indexToName, nonOdeIndices)
+    DynSetEnclosure(st, Cuboid(initialVector), nameToIndex, indexToName, nonFlowIndices)
   }
   
   def apply(st: CStore)(implicit cValueIsReal: Real[CValue]): DynSetEnclosure =
@@ -46,15 +46,15 @@ object DynSetEnclosure {
  *  nameToIndex and indexToName identify which CStore (id, n) pairs are 
  *  overridden by the data contained in the IntervalDynSet
  *  
- *  nonOdeIndices: getObjectField will use this to get values for 
- *                 non-ODE variables from the (up-to-date) cStore 
- *                 instead of the (out-of-date) dynSet. */
+ *  nonFlowIndices: getObjectField will use this to get values for 
+ *                  non-flow variables from the (up-to-date) cStore 
+ *                  instead of the (out-of-date) dynSet. */
 case class DynSetEnclosure
   ( st                   : CStore
   , dynSet               : IntervalDynSet
   , nameToIndex          : Map[(CId, Name), Int]
   , indexToName          : Map[Int, (CId, Name)]
-  , nonOdeIndices        : Set[Int]
+  , nonFlowIndices        : Set[Int]
   , cachedOuterEnclosure : Option[RealVector] = None ) 
   ( implicit cValueIsReal: Real[CValue]
   ) extends Enclosure with EStore {
@@ -72,29 +72,29 @@ case class DynSetEnclosure
           , flow       : C1Flow
           , evalExpr   : (Expr, Env, EStore) => CValue ) = {
       
-    // Update variables in this.cStore defined by continuous assignments w.r.t. odeValues
-    def updateCStore(odeValues: RealVector): CStore = {
-      def updateODEVariables(unupdated: CStore, odeValues: RealVector): CStore =
+    // Update variables in this.cStore defined by continuous assignments w.r.t. flowValues
+    def updateCStore(flowValues: RealVector): CStore = {
+      def updateFlowVariables(unupdated: CStore, flowValues: RealVector): CStore =
         (0 until this.dim).foldLeft(unupdated) {
           case (tmpSt, i) =>
             val (id, n) = this.indexToName(i)
-            Canonical.setObjectField(id, n, odeValues(i), tmpSt)
+            Canonical.setObjectField(id, n, flowValues(i), tmpSt)
         }
-      def updateEquationVariables(unupdated: CStore, odeValues: RealVector): CStore = {
-        val odeStore = DynSetEnclosure(cStore, IntervalBox(odeValues), nameToIndex, indexToName, nonOdeIndices, Some(IntervalBox(odeValues)))
+      def updateEquationVariables(unupdated: CStore, flowValues: RealVector): CStore = {
+        val flowStore = DynSetEnclosure(cStore, IntervalBox(flowValues), nameToIndex, indexToName, nonFlowIndices, Some(IntervalBox(flowValues)))
         eqsInlined.foldLeft(unupdated){ case (stTmp, ca) =>
           val rd = ca.lhs
-          val cv = evalExpr(ca.rhs, ca.env, odeStore)
+          val cv = evalExpr(ca.rhs, ca.env, flowStore)
           Canonical.setObjectField(rd.id, rd.field, cv, stTmp)
         }
       }
-      updateEquationVariables(updateODEVariables(this.cStore, odeValues), odeValues)
+      updateEquationVariables(updateFlowVariables(this.cStore, flowValues), flowValues)
     }
       
-    // Indices in the Lohner set that are not defied by ODEs. These will become invalid after applying the mapping.
-    // FIXME These can change over time! Will this cause issues? (see comment for LohnerEnclosure.nonOdeIndices)
+    // Indices in the DynSet that are not defied by Flow. These will become invalid after applying the mapping.
+    // FIXME These can change over time! Will this cause issues? (see comment for LohnerEnclosure.nonFlowIndices)
     val eqIndices = eqsInlined.map{ ca => val lhs = ca.lhs; this.nameToIndex(lhs.id, lhs.field) }
-      
+
     val (rangeDynSet, endDynSet) = dynSet.move(flow)
         
     val rangeEnclosure = rangeDynSet.outerEnclosure
@@ -119,8 +119,8 @@ case class DynSetEnclosure
   
   override def contains(that: Enclosure): Boolean = that match {
     case dse: DynSetEnclosure =>
-      val odeNames = (indexToName -- nonOdeIndices).values.toSet
-      val containsNonOdeVariables = contains(that, odeNames)
+      val flowNames = (indexToName -- nonFlowIndices).values.toSet
+      val containsNonOdeVariables = contains(that, flowNames)
       containsNonOdeVariables && (this.dynSet contains dse.dynSet)
     case oe =>
       throw internalError(s"Have not implemented check for containment of ${oe.getClass} in ${this.getClass}.")
@@ -138,7 +138,7 @@ case class DynSetEnclosure
                    , dynSet.map(m)
                    , nameToIndex
                    , indexToName
-                   , nonOdeIndices )
+                   , nonFlowIndices )
                                
   /** Apply m to all CValues in the CStore and Lohner set components with the 
    *  CId and Name of the value in context */
@@ -147,12 +147,12 @@ case class DynSetEnclosure
                    , dynSet.map((i: Int, v: CValue) => m(indexToName(i)._1, indexToName(i)._2, v))
                    , nameToIndex
                    , indexToName
-                   , nonOdeIndices )
+                   , nonFlowIndices )
 
   /* EStore interface */
   override def getObjectField(id: CId, n: Name): CValue =
     nameToIndex.get(id, n) match {
-      case Some(i) if !(nonOdeIndices contains i) => dynSet(i)
+      case Some(i) if !(nonFlowIndices contains i) => dynSet(i)
       case _ => super.getObjectField(id, n)
     }
 
@@ -166,7 +166,7 @@ case class DynSetEnclosure
                        , dynSet
                        , nameToIndex
                        , indexToName
-                       , nonOdeIndices )
+                       , nonFlowIndices )
     }
                 
  }
