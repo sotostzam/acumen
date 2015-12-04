@@ -5,17 +5,9 @@ package enclosure2015
 import enclosure.Interval
 import enclosure2015.Common._
 import interpreters.Common._
-import FAD.FDif
-import TAD.TDifAsReal
-import Pretty.pprint
-import util._
-import util.Canonical._
-import util.Conversions.{
-  extractDouble, extractDoubles, extractId, extractInterval, extractIntervals
-}
 import Errors._
 
-abstract class IntervalDynSet
+abstract class IntervalDynSet extends RealVector
 {  
   implicit val cValueIsReal: Real[CValue] = acumen.intervalCValueIsReal
   
@@ -24,35 +16,52 @@ abstract class IntervalDynSet
     
   val dim: Int
   
-  val outerEnclosure: RealVector
+  type Foo <: IntervalDynSet
+  
+  def apply(i: Int): CValue
   
   def map(m: CValue => CValue)        : IntervalDynSet
   def map(m: (Int, CValue) => CValue) : IntervalDynSet
   
   def move(f: Mapping) : IntervalDynSet
   def move(f: C1Flow)  : (IntervalDynSet, IntervalDynSet)
+  
+  /* RealVector interface */
+  val outerEnclosure: RealVector
+  def repr = outerEnclosure.repr
+  def activeIterator = outerEnclosure.activeIterator
+  def activeKeysIterator = outerEnclosure.activeKeysIterator   
+  def activeValuesIterator = outerEnclosure.activeValuesIterator 
+  def activeSize = outerEnclosure.activeSize
+  def length: Int = dim
+  def update(i: Int,v: acumen.CValue) = throw ShouldNeverHappen()         
+  def copy = outerEnclosure.copy
 }
 
 /* Box */
 
-/** Implementation of the Box */
-case class Box(v : RealVector) extends IntervalDynSet {
-  
-  val outerEnclosure = v
+/** Implementation of the IntervalBox */
+case class IntervalBox(v : RealVector) extends IntervalDynSet {
+   
+  type DynSetType = IntervalBox
   
   val dim = v.size
 
-    def map(m: CValue => CValue): Box = Box(v.copy.map(m))
+  val outerEnclosure = v
+  
+  def apply(i: Int) = v(i)
+  
+  def map(m: CValue => CValue): IntervalBox = IntervalBox(v.copy.map(m))
     
-    def map(m: (Int, CValue) => CValue): Box = {
-      // TODO implement with UFunc
-      def mapVector(v: RealVector) = breeze.linalg.Vector.tabulate[CValue](dim) { i      => m(i, v(i)) }
-      Box(mapVector(v))
-    }
+  def map(m: (Int, CValue) => CValue): IntervalBox = {
+    // TODO implement with UFunc
+    def mapVector(v: RealVector) = breeze.linalg.Vector.tabulate[CValue](dim) { i      => m(i, v(i)) }
+    IntervalBox(mapVector(v))
+  }
     
-    def move(f: Mapping): Box = Box(f(v))
+  def move(f: Mapping): IntervalBox = IntervalBox(f(v))
           
-    def move(f: C1Flow): (Box, Box) = (Box(f(v)), Box(f.range(v)))
+  def move(f: C1Flow): (IntervalBox, IntervalBox) = (IntervalBox(f(v)), IntervalBox(f.range(v)))
 }
 
 /* Cuboid */
@@ -84,10 +93,14 @@ case class Cuboid
     // FIXME is there a nicer way to do this?
     assert(Set(midpoint.size, linearTransformation.rows, linearTransformation.cols, width.size, error.size).size == 1)
     
-    lazy val outerEnclosure = midpoint + linearTransformation * width + error
-  
+    type DynSetType = Cuboid
+    
     val dim = midpoint.size
-
+    
+    lazy val outerEnclosure = midpoint + linearTransformation * width + error
+    
+    def apply(i: Int) = outerEnclosure(i)
+    
     def map(m: CValue => CValue): Cuboid = {
       val imageMidpoint             : RealVector = midpoint.copy.map(m)
       val imageWidth                : RealVector = width.copy.map(m)

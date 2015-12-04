@@ -62,23 +62,6 @@ object Common {
     def **(that: RealVector)(implicit ev: Real[CValue]) = that.copy.map(v * _)
   }
   
-  trait DynSetEnclosure extends Enclosure {
-    def nameToIndex: Map[(CId,Name), Int]
-    def indexToName: Map[Int, (CId,Name)]
-    /** LohnerBase.{ODEEnv,Enclosure}.getObjectField will use this to get values for 
-      * non-ODE variables from the (up-to-date) cStore instead of the (out-of-date) dynSet. */
-    def nonOdeIndices: Set[Int]
-    
-    val dim = nameToIndex.size
-    val dynSet : IntervalDynSet
-    /** Move the enclosure by the mapping m, returning range and image enclosures. */
-    def move
-      ( eqsInlined : Set[CollectedAction]
-      , flow       : C1Flow
-      , evalExpr   : (Expr, Env, EStore) => CValue
-      ): (DynSetEnclosure, DynSetEnclosure)
-  }
-  
   trait Mapping {
     def apply(x: RealVector): RealVector 
   }

@@ -1088,7 +1088,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
     		val step: CValue = VLit(GConstantRealEnclosure(timeStepInterval))
     		@tailrec def picardIterator(candidate: RealVector, iterations: Int): RealVector = {
     	     val fieldAppliedToCandidate = intervalField(intervalBase.ODEEnv(candidate, enc))
-    			 val c = x + step ** fieldAppliedToCandidate.s
+    			 val c = x + step ** fieldAppliedToCandidate.dynSet
     			 val invalidEnclosureDirections = (0 until enc.dim).filterNot(i => (candidate(i), c(i)) match {
     			   case (VLit(GConstantRealEnclosure(e)), VLit(GConstantRealEnclosure(ce))) => 
     			     e containsInInterior ce 
@@ -1111,7 +1111,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
         val fieldAppliedToLohnerSet = intervalField(intervalBase.ODEEnv(x, enc))
     	  val candidateStep: CValue = VLit(GConstantRealEnclosure(Interval(-0.2, 1.2) * timeStep))
         val epsilon: RealVector = breeze.linalg.Vector.tabulate(enc.dim){ i => VLit(GConstantRealEnclosure(Interval(-1, 1) * 1e-21)) }
-    	  picardIterator(x + candidateStep ** fieldAppliedToLohnerSet.s + epsilon, 0)
+    	  picardIterator(x + candidateStep ** fieldAppliedToLohnerSet.dynSet + epsilon, 0)
       }
       
       /** Computes the finite Taylor expansion */
@@ -1119,7 +1119,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
         implicit val useIntervalArithmetic: Real[CValue] = intervalBase.cValueIsReal
         val xLift = intervalBase.ODEEnv(x, enc) // FIXME was enc.midpoint
         val imageOfx = solveIVPTaylor[CId,intervalBase.ODEEnv,CValue](xLift, VLit(GConstantRealEnclosure(timeStep)), orderOfIntegration)
-        imageOfx.s
+        imageOfx.dynSet
       }
       
       /** Computes the Jacobian of phi */
@@ -1136,7 +1136,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
         solveIVPTaylor[CId,fDifBase.ODEEnv,CValue](p, myStepWrapped, orderOfIntegration)
         breeze.linalg.Matrix.tabulate[CValue](enc.dim, enc.dim) {
           case (r, c) =>
-        	  (linearTransformationSolution s c) match {
+        	  (linearTransformationSolution dynSet c) match {
               case VLit(GIntervalFDif(FAD.FDif(_, ds))) =>
         		    val (id, n) = linearTransformationSolution indexToName r
         		    VLit(GConstantRealEnclosure(ds(QName(id, n))))
@@ -1150,7 +1150,8 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
         val p = intervalBase.ODEEnv(x, enc)
         val tcs = computeTaylorCoefficients[CId,intervalBase.ODEEnv,CValue](p, orderOfIntegration + 1)
         val factor = VLit(GConstantRealEnclosure(timeStep pow (orderOfIntegration + 1)))
-        tcs.s.map(_ match { case VLit(GCValueTDif(tdif)) => (tdif coeff (orderOfIntegration + 1)) * factor })
+        // TODO remove outerEnclosure
+        tcs.dynSet.outerEnclosure.map(_ match { case VLit(GCValueTDif(tdif)) => (tdif coeff (orderOfIntegration + 1)) * factor })
       }
       
       /* C1Flow interface */
