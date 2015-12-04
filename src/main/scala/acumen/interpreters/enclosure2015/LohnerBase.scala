@@ -27,7 +27,7 @@ case class LohnerBase
   ,          cValueTDifIsReal: TDifAsReal[CValue] 
   ) extends SolverBase {
   type E = DynSetEnclosure
-  def initializeEnclosure(st: CStore): ODEEnv = {
+  def initializeEnclosure(st: CStore): DynSetEnclosure = {
     // TODO when introducing indexing, this one needs to match on indices too
     val nameToIndex = st.toList.sortBy(_._1).flatMap {
       case (id, co) => co.toList.sortBy(_._1).flatMap {
@@ -43,73 +43,38 @@ case class LohnerBase
            }
     }
 
-    ODEEnv(st, Cuboid(initialVector), nameToIndex, indexToName, Set.empty) 
-  }
-  
-  object ODEEnv {
-    def apply(v: RealVector, enc: DynSetEnclosure): ODEEnv =
-      ODEEnv(enc.cStore, IntervalBox(v), enc.nameToIndex, enc.indexToName, enc.nonOdeIndices, Some(v))
-  }
-  
-  case class ODEEnv
-    ( st: CStore
-    , dynSet: IntervalDynSet
-    , nameToIndex: Map[(CId,Name), Int]
-    , indexToName: Map[Int, (CId,Name)]
-    , nonOdeIndices: Set[Int]
-    , cachedOuterEnclosure: Option[RealVector] = None
-    ) extends DynSetEnclosure {
-
-
-
-        def init( st: CStore
-    , dynSet: IntervalDynSet
-    , nameToIndex: Map[(CId,Name), Int]
-    , indexToName: Map[Int, (CId,Name)]
-    , nonOdeIndices: Set[Int]
-    , cachedOuterEnclosure: Option[RealVector] = None
-    ) =     
-   ODEEnv( st
-    , dynSet
-    , nameToIndex
-    , indexToName
-    , nonOdeIndices
-    , cachedOuterEnclosure
-    )
-   
-       
-  
+    DynSetEnclosure(st, Cuboid(initialVector), nameToIndex, indexToName, Set.empty) 
   }
 
-  implicit class RichStoreImpl(odeEnv: ODEEnv) extends RichStore[ODEEnv,CId] {
+  implicit class RichStoreImpl(odeEnv: DynSetEnclosure) extends RichStore[DynSetEnclosure,CId] {
     /* RichStore */
-    override def +++(that: ODEEnv): ODEEnv =
+    override def +++(that: DynSetEnclosure): DynSetEnclosure =
       odeEnv.copy(dynSet = IntervalBox(breeze.linalg.Vector.tabulate(odeEnv.dim)(i => odeEnv.dynSet(i) + that.dynSet(i))))
-    override def ***(that: Double): ODEEnv =
+    override def ***(that: Double): DynSetEnclosure =
       odeEnv.copy(dynSet = IntervalBox(breeze.linalg.Vector.tabulate(odeEnv.dim)(i => odeEnv.dynSet(i) * cValueIsReal.fromDouble(that))))
-    override def map(m: CValue => CValue): ODEEnv = odeEnv.copy(dynSet = odeEnv.dynSet map m)
-    override def mapName(m: (GId, Name, CValue) => CValue): ODEEnv =
+    override def map(m: CValue => CValue): DynSetEnclosure = odeEnv.copy(dynSet = odeEnv.dynSet map m)
+    override def mapName(m: (GId, Name, CValue) => CValue): DynSetEnclosure =
       odeEnv.copy(dynSet = IntervalBox(breeze.linalg.Vector.tabulate[CValue](odeEnv.dim){ i => 
         val (cid,n) = odeEnv indexToName i
         m(cid, n, odeEnv dynSet i)
       }))
     override def apply(id: CId, n: Name): CValue = odeEnv.dynSet(odeEnv.nameToIndex(id, n))
-    override def updated(id: CId, n: Name, v: CValue): ODEEnv =
+    override def updated(id: CId, n: Name, v: CValue): DynSetEnclosure =
       // TODO: Group updates or do this with mutation instead
       odeEnv.copy(dynSet = { val encl = odeEnv.dynSet.copy; encl.update(odeEnv.nameToIndex(id, n), v); IntervalBox(encl) })
     override def getInSimulator(variable: String) = odeEnv.getInSimulator(variable)
   }
-  def liftODEEnv(s: ODEEnv)(implicit field: FieldImpl): RichStoreImpl = RichStoreImpl(s)
+  def liftODEEnv(s: DynSetEnclosure)(implicit field: FieldImpl): RichStoreImpl = RichStoreImpl(s)
   
-  case class FieldImpl(odes: List[CollectedAction], evalExpr: (Expr, Env, EStore) => CValue) extends interpreters.Common.Field[ODEEnv,CId] {
-    override def apply(odeEnv: ODEEnv): ODEEnv = {
+  case class FieldImpl(odes: List[CollectedAction], evalExpr: (Expr, Env, EStore) => CValue) extends interpreters.Common.Field[DynSetEnclosure,CId] {
+    override def apply(odeEnv: DynSetEnclosure): DynSetEnclosure = {
       val s1 = odeEnv.dynSet.copy
       odes.foreach{ ode => 
         s1.update(odeEnv.nameToIndex(ode.lhs.id, ode.lhs.field), evalExpr(ode.rhs, ode.env, odeEnv)) 
       }
       odeEnv.copy(dynSet = IntervalBox(s1))
     }
-    override def variables(s: ODEEnv): List[(CId, Name)] = odes.map(ode => (ode.lhs.id, ode.lhs.field))
+    override def variables(s: DynSetEnclosure): List[(CId, Name)] = odes.map(ode => (ode.lhs.id, ode.lhs.field))
     override def map(em: Expr => Expr) =
       FieldImpl(odes.map(ode => ode.copy(a = (ode.a: @unchecked) match {
         case Discretely(Assign(lhs: Expr, rhs: Expr)) =>

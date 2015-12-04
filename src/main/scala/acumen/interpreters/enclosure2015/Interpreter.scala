@@ -1078,16 +1078,17 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
                                , orderOfIntegration  : Int 
                                , maxPicardIterations : Int 
                                ) extends C1Flow {
-      implicit val intervalField = intervalBase.FieldImpl(odeList, evalExpr)
+      
       
       val timeStepInterval = Interval(0, timeStep.hiDouble)
           
       /** Computes the apriori enclosure (a coarse range enclosure of the flow) */ 
       def apply(x: RealVector): RealVector = {
     		implicit val useIntervalArithmetic: Real[CValue] = intervalBase.cValueIsReal
-    		val step: CValue = VLit(GConstantRealEnclosure(timeStepInterval))
+    	  implicit val intervalField = intervalBase.FieldImpl(odeList, evalExpr)
+        val step: CValue = VLit(GConstantRealEnclosure(timeStepInterval))
     		@tailrec def picardIterator(candidate: RealVector, iterations: Int): RealVector = {
-    	     val fieldAppliedToCandidate = intervalField(intervalBase.ODEEnv(candidate, enc))
+    	     val fieldAppliedToCandidate = intervalField(DynSetEnclosure(candidate, enc))
     			 val c = x + step ** fieldAppliedToCandidate.dynSet
     			 val invalidEnclosureDirections = (0 until enc.dim).filterNot(i => (candidate(i), c(i)) match {
     			   case (VLit(GConstantRealEnclosure(e)), VLit(GConstantRealEnclosure(ce))) => 
@@ -1108,7 +1109,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
     			 } else 
     				 picardIterator(candidateNext, iterations + 1)
         }
-        val fieldAppliedToLohnerSet = intervalField(intervalBase.ODEEnv(x, enc))
+        val fieldAppliedToLohnerSet = intervalField(DynSetEnclosure(x, enc))
     	  val candidateStep: CValue = VLit(GConstantRealEnclosure(Interval(-0.2, 1.2) * timeStep))
         val epsilon: RealVector = breeze.linalg.Vector.tabulate(enc.dim){ i => VLit(GConstantRealEnclosure(Interval(-1, 1) * 1e-21)) }
     	  picardIterator(x + candidateStep ** fieldAppliedToLohnerSet.dynSet + epsilon, 0)
@@ -1117,8 +1118,10 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
       /** Computes the finite Taylor expansion */
       def phi(x: RealVector, timeStep: Interval): RealVector = {
         implicit val useIntervalArithmetic: Real[CValue] = intervalBase.cValueIsReal
-        val xLift = intervalBase.ODEEnv(x, enc) // FIXME was enc.midpoint
-        val imageOfx = solveIVPTaylor[CId,intervalBase.ODEEnv,CValue](xLift, VLit(GConstantRealEnclosure(timeStep)), orderOfIntegration)
+        implicit val intervalField = intervalBase.FieldImpl(odeList, evalExpr)
+        implicit def liftToRichStore(s: DynSetEnclosure): intervalBase.RichStoreImpl = intervalBase.liftODEEnv(s) // linearTransformationField passed implicitly
+        val xLift = DynSetEnclosure(x, enc) // FIXME was enc.midpoint
+        val imageOfx = solveIVPTaylor[CId,DynSetEnclosure,CValue](xLift, VLit(GConstantRealEnclosure(timeStep)), orderOfIntegration)
         imageOfx.dynSet
       }
       
@@ -1126,14 +1129,14 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
       def jacPhi(x: RealVector, timeStep: Interval): RealMatrix = {
         implicit val useFDifArithmetic: Real[CValue] = fDifBase.cValueIsReal
         implicit val linearTransformationField = fDifBase.FieldImpl(odeList.map(_ mapRhs (FAD.lift[CId,CValue](_, odeVariables))), evalExpr)
-        implicit def liftToRichStore(s: fDifBase.ODEEnv): fDifBase.RichStoreImpl = fDifBase.liftODEEnv(s) // linearTransformationField passed implicitly
-        val p = FAD.lift[CId,fDifBase.ODEEnv,CValue](fDifBase.ODEEnv(x, enc), odeVariables) // FIXME parameter2 was enc.outerEnclosure
+        implicit def liftToRichStore(s: DynSetEnclosure): fDifBase.RichStoreImpl = fDifBase.liftODEEnv(s) // linearTransformationField passed implicitly
+        val p = FAD.lift[CId,DynSetEnclosure,CValue](DynSetEnclosure(x, enc), odeVariables) // FIXME parameter2 was enc.outerEnclosure
         val myStepWrapped = {
           val VLit(GIntervalFDif(FAD.FDif(_, zeroCoeffs))) = useFDifArithmetic.fromDouble(0)
           VLit(GIntervalFDif(FAD.FDif(timeStep, zeroCoeffs)))
         }
         val linearTransformationSolution = // linearTransformationField passed implicitly
-        solveIVPTaylor[CId,fDifBase.ODEEnv,CValue](p, myStepWrapped, orderOfIntegration)
+        solveIVPTaylor[CId,DynSetEnclosure,CValue](p, myStepWrapped, orderOfIntegration)
         breeze.linalg.Matrix.tabulate[CValue](enc.dim, enc.dim) {
           case (r, c) =>
         	  (linearTransformationSolution dynSet c) match {
@@ -1147,8 +1150,10 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
       /** Bounds the difference between the finite Taylor expansion and the flow */
       def remainder(x: RealVector, timeStep: Interval): RealVector = {
         implicit val useIntervalArithmetic: Real[CValue] = intervalBase.cValueIsReal
-        val p = intervalBase.ODEEnv(x, enc)
-        val tcs = computeTaylorCoefficients[CId,intervalBase.ODEEnv,CValue](p, orderOfIntegration + 1)
+        implicit val intervalField = intervalBase.FieldImpl(odeList, evalExpr)
+        implicit def liftToRichStore(s: DynSetEnclosure): intervalBase.RichStoreImpl = intervalBase.liftODEEnv(s) // linearTransformationField passed implicitly
+        val p = DynSetEnclosure(x, enc)
+        val tcs = computeTaylorCoefficients[CId,DynSetEnclosure,CValue](p, orderOfIntegration + 1)
         val factor = VLit(GConstantRealEnclosure(timeStep pow (orderOfIntegration + 1)))
         // TODO remove outerEnclosure
         tcs.dynSet.outerEnclosure.map(_ match { case VLit(GCValueTDif(tdif)) => (tdif coeff (orderOfIntegration + 1)) * factor })
