@@ -7,20 +7,50 @@ import interpreters.Common._
 import util._
 import util.Canonical._
 
+/* DynSetEnclosure */
+
+/** Alternative constructors for DynSetEnclosure */
 object DynSetEnclosure {
-  def apply(v: RealVector, enc: DynSetEnclosure): DynSetEnclosure =
+  def apply(v: RealVector, enc: DynSetEnclosure)(implicit cValueIsReal: Real[CValue]): DynSetEnclosure =
     DynSetEnclosure(enc.cStore, IntervalBox(v), enc.nameToIndex, enc.indexToName, enc.nonOdeIndices, Some(v))
+  
+    def apply(st: CStore)(implicit cValueIsReal: Real[CValue]): DynSetEnclosure = 
+    {
+      // TODO when introducing indexing, this one needs to match on indices too
+      val nameToIndex = st.toList.sortBy(_._1).flatMap {
+        case (id, co) => co.toList.sortBy(_._1).flatMap {
+          case (n, VLit(v: GConstantRealEnclosure)) => List((id, n))
+          case (n, v)                               => Nil
+        }
+      }.zipWithIndex.toMap
+      val indexToName = nameToIndex.map(_.swap)
+
+      def initialVector: RealVector = breeze.linalg.Vector.tabulate[CValue](indexToName.size) { 
+        i => val (id, n) = indexToName(i)
+             Canonical.getObjectField(id, n, st) match {
+               case VLit(e: GConstantRealEnclosure) => VLit(GConstantRealEnclosure(e.range))
+             }
+      }
+
+      DynSetEnclosure(st, Cuboid(initialVector), nameToIndex, indexToName, Set.empty)
+  }
 }
 
-/** nonOdeIndices: getObjectField will use this to get values for 
-  * non-ODE variables from the (up-to-date) cStore instead of the (out-of-date) dynSet. */
+/** DynSetEnclosure wraps an IntervalDynSet and a CStore. The two maps
+ *  nameToIndex and indexToName identify which CStore (id, n) pairs are 
+ *  overriden by the data contained in the IntervalDynSet
+ *  
+ *  nonOdeIndices: getObjectField will use this to get values for 
+ *                 non-ODE variables from the (up-to-date) cStore 
+ *                 instead of the (out-of-date) dynSet. */
 case class DynSetEnclosure
   ( st                   : CStore
   , dynSet               : IntervalDynSet
   , nameToIndex          : Map[(CId, Name), Int]
   , indexToName          : Map[Int, (CId, Name)]
   , nonOdeIndices        : Set[Int]
-  , cachedOuterEnclosure : Option[RealVector] = None 
+  , cachedOuterEnclosure : Option[RealVector] = None ) 
+  ( implicit cValueIsReal: Real[CValue]
   ) extends Enclosure with EStore {
   
   // FIXME is there a nicer way to do this?
@@ -29,8 +59,8 @@ case class DynSetEnclosure
   val dim = nameToIndex.size
 
   // FIXME should it not take into account the actual variables in the dynset
-  lazy val outerEnclosure: RealVector = cachedOuterEnclosure.getOrElse(dynSet)
-   
+  lazy val outerEnclosure: RealVector = cachedOuterEnclosure.getOrElse(dynSet)  
+  
   /** Move the enclosure by the mapping m, returning range and image enclosures. */
   def move( eqsInlined : Set[CollectedAction]
           , flow       : C1Flow
@@ -84,24 +114,7 @@ case class DynSetEnclosure
   /* Enclosure interface */
   def cStore = st
   
-  def initialize(s: CStore): Enclosure = {
-  // TODO when introducing indexing, this one needs to match on indices too
-    val nameToIndex = st.toList.sortBy(_._1).flatMap {
-      case (id, co) => co.toList.sortBy(_._1).flatMap {
-        case (n, VLit(v: GConstantRealEnclosure)) => List((id, n))
-        case (n, v)                               => Nil
-      }
-    }.zipWithIndex.toMap
-    val indexToName = nameToIndex.map(_.swap)
-    def initialVector = breeze.linalg.Vector.tabulate[CValue](indexToName.size) { 
-      i => val (id, n) = indexToName(i)
-           Canonical.getObjectField(id, n, st) match {
-             case VLit(e: GConstantRealEnclosure) => VLit(GConstantRealEnclosure(e.range))
-           }
-    }
-
-    DynSetEnclosure(st, dynSet.init(initialVector), nameToIndex, indexToName, Set.empty) 
-  }
+  def initialize(s: CStore): Enclosure = DynSetEnclosure(s)
 
   /** Apply m to all CValues in the CStore and Lohner set components */
   def map(m: CValue => CValue): Enclosure =
