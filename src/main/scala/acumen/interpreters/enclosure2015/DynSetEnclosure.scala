@@ -12,28 +12,34 @@ import util.Canonical._
 /** Alternative constructors for DynSetEnclosure */
 object DynSetEnclosure {
   def apply(v: RealVector, enc: DynSetEnclosure)(implicit cValueIsReal: Real[CValue]): DynSetEnclosure =
-    DynSetEnclosure(enc.cStore, IntervalBox(v), enc.nameToIndex, enc.indexToName, enc.nonOdeIndices, Some(v))
+    DynSetEnclosure(enc.st, IntervalBox(v), enc.nameToIndex, enc.indexToName, enc.nonOdeIndices, Some(v))
+    
+  def apply(nonOdeIndices: Set[Int], enc: DynSetEnclosure)(implicit cValueIsReal: Real[CValue]): DynSetEnclosure =
+    DynSetEnclosure(enc.st, enc.dynSet, enc.nameToIndex, enc.indexToName, nonOdeIndices, None)
   
-    def apply(st: CStore)(implicit cValueIsReal: Real[CValue]): DynSetEnclosure = 
-    {
-      // TODO when introducing indexing, this one needs to match on indices too
-      val nameToIndex = st.toList.sortBy(_._1).flatMap {
-        case (id, co) => co.toList.sortBy(_._1).flatMap {
-          case (n, VLit(v: GConstantRealEnclosure)) => List((id, n))
-          case (n, v)                               => Nil
-        }
-      }.zipWithIndex.toMap
-      val indexToName = nameToIndex.map(_.swap)
-
-      def initialVector: RealVector = breeze.linalg.Vector.tabulate[CValue](indexToName.size) { 
-        i => val (id, n) = indexToName(i)
-             Canonical.getObjectField(id, n, st) match {
-               case VLit(e: GConstantRealEnclosure) => VLit(GConstantRealEnclosure(e.range))
-             }
+  def apply(st: CStore, nonOdeIndices: Set[Int])(implicit cValueIsReal: Real[CValue]): DynSetEnclosure = 
+  {
+    // TODO when introducing indexing, this one needs to match on indices too
+    val nameToIndex = st.toList.sortBy(_._1).flatMap {
+      case (id, co) => co.toList.sortBy(_._1).flatMap {
+        case (n, VLit(v: GConstantRealEnclosure)) => List((id, n))
+        case (n, v)                               => Nil
       }
+    }.zipWithIndex.toMap
+    val indexToName = nameToIndex.map(_.swap)
 
-      DynSetEnclosure(st, Cuboid(initialVector), nameToIndex, indexToName, Set.empty)
+    def initialVector: RealVector = breeze.linalg.Vector.tabulate[CValue](indexToName.size) { 
+      i => val (id, n) = indexToName(i)
+           Canonical.getObjectField(id, n, st) match {
+             case VLit(e: GConstantRealEnclosure) => VLit(GConstantRealEnclosure(e.range))
+           }
+    }
+
+    DynSetEnclosure(st, Cuboid(initialVector), nameToIndex, indexToName, nonOdeIndices)
   }
+  
+  def apply(st: CStore)(implicit cValueIsReal: Real[CValue]): DynSetEnclosure =
+    DynSetEnclosure(st: CStore, Set.empty : Set[Int])
 }
 
 /** DynSetEnclosure wraps an IntervalDynSet and a CStore. The two maps
