@@ -44,7 +44,7 @@ object DynSetEnclosure {
 
 /** DynSetEnclosure wraps an IntervalDynSet and a CStore. The two maps
  *  nameToIndex and indexToName identify which CStore (id, n) pairs are 
- *  overriden by the data contained in the IntervalDynSet
+ *  overridden by the data contained in the IntervalDynSet
  *  
  *  nonOdeIndices: getObjectField will use this to get values for 
  *                 non-ODE variables from the (up-to-date) cStore 
@@ -116,8 +116,18 @@ case class DynSetEnclosure
                      , eqIndices
                      , Some(endEnclosure) ) )
   }
+  
+  override def contains(that: Enclosure): Boolean = that match {
+    case dse: DynSetEnclosure =>
+      val odeNames = (indexToName -- nonOdeIndices).values.toSet
+      val containsNonOdeVariables = contains(that, odeNames)
+      containsNonOdeVariables && (this.dynSet contains dse.dynSet)
+    case oe =>
+      throw internalError(s"Have not implemented check for containment of ${oe.getClass} in ${this.getClass}.")
+  }
               
   /* Enclosure interface */
+  
   def cStore = st
   
   def initialize(s: CStore): Enclosure = DynSetEnclosure(s)

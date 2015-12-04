@@ -191,9 +191,10 @@ object Common {
     /** Update e with respect to u. */
     def update(u: Map[(CId, Name), CValue]): Enclosure =
       u.foldLeft(this: Enclosure) { case (res, ((id, n), v)) => res.setObjectField(id, n, v) }
-    /** Field-wise containment. */
-    def contains(that: Enclosure): Boolean = { // TODO Update for dynamic objects
-      def containsCObject(lo: CObject, ro: CObject): Boolean =
+    /** Field-wise containment that omits fields identified by "ignoredFields".
+     *  Fields in the Simulator object other than time and timeStep are ignored. */
+    def contains(that: Enclosure, ignoredFields: Set[(CId,Name)]): Boolean = { // TODO Update for dynamic objects
+      def containsCObject(lo: CObject, ro: CObject, id: CId): Boolean =
         if (classOf(lo) == cmagic && classOf(ro) == cmagic){
           if (lo(time) == ro(time) && lo(timeStep) == ro(timeStep))
             true
@@ -204,7 +205,7 @@ object Common {
         }
         else lo.forall {
           case (n, v) =>
-            if (bannedFieldNames contains n) true
+            if ((bannedFieldNames contains n) || (ignoredFields contains (id,n))) true
             else {
               ((v, ro get n) match {
                 case (VLit(l: GConstantRealEnclosure), Some(VLit(r: GConstantRealEnclosure))) => 
@@ -217,14 +218,17 @@ object Common {
                   l contains r
                 case (VLit(_:GStr) | _:VResultType | _:VClassName, Some(tv @ (VLit(_:GStr) | _:VResultType | _:VClassName))) => 
                   v == tv
-                case (VObjId(Some(o1)), Some(VObjId(Some(o2)))) => 
-                  containsCObject(this(o1), that(o2))
+                case (VObjId(Some(id1)), Some(VObjId(Some(id2)))) =>
+                  require(id1 == id2, s"Contains can not compare objects with different CId: $id1 is not equal to $id2.")
+                  containsCObject(this(id1), that(id2), id1)
                 case (_, Some(tv)) => 
                   throw internalError(s"Contains not applicable to ${pprint(n)}: ${pprint(v)}, ${pprint(tv)}")
                 
               })}}
-        this.forall { case (cid, co) => containsCObject(co, that(cid)) }
+        this.forall { case (cid, co) => containsCObject(co, that(cid), cid) }
       }
+    /** Field-wise containment that checks all fields (in objects other than the Simulator). */
+    def contains(that: Enclosure): Boolean = contains(that, Set.empty)
     /** Take the intersection of e and that Object. */
     def intersect(that: Enclosure): Option[Enclosure] = {
       Logger.trace("Intersecting enclosures")
