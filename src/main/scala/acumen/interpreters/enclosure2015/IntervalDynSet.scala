@@ -26,6 +26,11 @@ abstract class IntervalDynSet extends RealVector
   def move(f: Mapping) : IntervalDynSet
   def move(f: C1Flow)  : (IntervalDynSet, IntervalDynSet)
   
+  // TODO this is a stub to enabl development on a higher level
+  def contains(that: IntervalDynSet): Boolean = (0 until dim).forall {
+    i => val (VLit(GConstantRealEnclosure(i1)), VLit(GConstantRealEnclosure(i2))) = (this(i), that(i))
+         i1 contains i2 }
+  
   /* RealVector interface */
   val outerEnclosure: RealVector
   def repr = outerEnclosure.repr
