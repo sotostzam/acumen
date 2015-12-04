@@ -27,7 +27,7 @@ case class LohnerBase
   ,          cValueTDifIsReal: TDifAsReal[CValue] 
   ) extends SolverBase {
   type E = DynSetEnclosure
-  def initializeEnclosure(st: CStore): CValueEnclosure = {
+  def initializeEnclosure(st: CStore): ODEEnv = {
     // TODO when introducing indexing, this one needs to match on indices too
     val nameToIndex = st.toList.sortBy(_._1).flatMap {
       case (id, co) => co.toList.sortBy(_._1).flatMap {
@@ -43,7 +43,7 @@ case class LohnerBase
            }
     }
 
-    CValueEnclosure(st, Cuboid(initialVector), nameToIndex, indexToName, Set.empty) 
+    ODEEnv(st, Cuboid(initialVector), nameToIndex, indexToName, Set.empty) 
   }
   
   object ODEEnv {
@@ -57,7 +57,7 @@ case class LohnerBase
     , nameToIndex: Map[(CId,Name), Int]
     , indexToName: Map[Int, (CId,Name)]
     , nonOdeIndices: Set[Int]
-    , cachedOuterEnclosure: Option[RealVector]
+    , cachedOuterEnclosure: Option[RealVector] = None
     ) extends DynSetEnclosure {
 
 
@@ -120,40 +120,6 @@ case class LohnerBase
           Continuously(EquationI(em(lhs), em(rhs)))
       })), evalExpr)
   }
-  
-  case class CValueEnclosure
-    ( st: CStore
-    , dynSet: IntervalDynSet
-    , nameToIndex: Map[(CId,Name), Int]
-    , indexToName: Map[Int, (CId,Name)]
-    , nonOdeIndices: Set[Int]
-    , cachedOuterEnclosure: Option[RealVector] = None
-    ) extends DynSetEnclosure {
     
-    
-    def init( st: CStore
-    , dynSet: IntervalDynSet
-    , nameToIndex: Map[(CId,Name), Int]
-    , indexToName: Map[Int, (CId,Name)]
-    , nonOdeIndices: Set[Int]
-    , cachedOuterEnclosure: Option[RealVector] = None
-    ) =     
-   CValueEnclosure( st
-    , dynSet
-    , nameToIndex
-    , indexToName
-    , nonOdeIndices
-    , cachedOuterEnclosure
-    )
-
-    
-
-    
-
-    
- 
-    
-  }
-  
 }
 
