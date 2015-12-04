@@ -7,7 +7,9 @@ import interpreters.Common._
 import util._
 import util.Canonical._
 
-abstract class DynSetEnclosure extends Enclosure {
+abstract class DynSetEnclosure 
+  ( implicit cValueIsReal: Real[CValue]
+  ) extends Enclosure with EStore {
   
   val st: CStore
   val dynSet : IntervalDynSet
@@ -88,8 +90,27 @@ abstract class DynSetEnclosure extends Enclosure {
   }
               
   /* Enclosure interface */
-  def cStore = st       
+  def cStore = st
   
+  def initialize(s: CStore): Enclosure = {
+  // TODO when introducing indexing, this one needs to match on indices too
+    val nameToIndex = st.toList.sortBy(_._1).flatMap {
+      case (id, co) => co.toList.sortBy(_._1).flatMap {
+        case (n, VLit(v: GConstantRealEnclosure)) => List((id, n))
+        case (n, v)                               => Nil
+      }
+    }.zipWithIndex.toMap
+    val indexToName = nameToIndex.map(_.swap)
+    def initialVector = breeze.linalg.Vector.tabulate[CValue](indexToName.size) { 
+      i => val (id, n) = indexToName(i)
+           Canonical.getObjectField(id, n, st) match {
+             case VLit(e: GConstantRealEnclosure) => VLit(GConstantRealEnclosure(e.range))
+           }
+    }
+
+    init(st, dynSet.init(initialVector), nameToIndex, indexToName, Set.empty) 
+  }
+
   /** Apply m to all CValues in the CStore and Lohner set components */
   def map(m: CValue => CValue): Enclosure =
     init( st.mapValues(_ mapValues m)
@@ -107,4 +128,24 @@ abstract class DynSetEnclosure extends Enclosure {
                 , indexToName
                 , nonOdeIndices )
 
-}
+  /* EStore interface */
+  override def getObjectField(id: CId, n: Name): CValue =
+    nameToIndex.get(id, n) match {
+      case Some(i) if !(nonOdeIndices contains i) => dynSet(i)
+      case _ => Canonical.getObjectField(id, n, st)
+    }
+
+  override def setObjectField(id: CId, n: Name, v: CValue): Enclosure =
+    nameToIndex.get(id, n) match {
+      case Some(i) =>
+        Logger.trace(s"Setting Lohner set variable $id.${Pretty pprint n}.")
+        setObjectField(id, n, v) // FIXME check this
+      case None =>
+        init( Canonical.setObjectField(id, n, v, st)
+            , dynSet
+            , nameToIndex
+            , indexToName
+            , nonOdeIndices )
+    }
+                
+ }

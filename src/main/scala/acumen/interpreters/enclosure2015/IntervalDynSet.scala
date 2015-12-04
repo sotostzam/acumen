@@ -16,7 +16,7 @@ abstract class IntervalDynSet extends RealVector
     
   val dim: Int
   
-  type Foo <: IntervalDynSet
+  def init(v: RealVector): IntervalDynSet
   
   def apply(i: Int): CValue
   
@@ -41,13 +41,13 @@ abstract class IntervalDynSet extends RealVector
 /* Box */
 
 /** Implementation of the IntervalBox */
-case class IntervalBox(v : RealVector) extends IntervalDynSet {
-   
-  type DynSetType = IntervalBox
+case class IntervalBox(v: RealVector) extends IntervalDynSet {
   
   val dim = v.size
 
   val outerEnclosure = v
+  
+  def init(v: RealVector) = IntervalBox(v: RealVector)
   
   def apply(i: Int) = v(i)
   
@@ -93,11 +93,11 @@ case class Cuboid
     // FIXME is there a nicer way to do this?
     assert(Set(midpoint.size, linearTransformation.rows, linearTransformation.cols, width.size, error.size).size == 1)
     
-    type DynSetType = Cuboid
-    
     val dim = midpoint.size
     
     lazy val outerEnclosure = midpoint + linearTransformation * width + error
+    
+    def init(v: RealVector) = Cuboid(v)
     
     def apply(i: Int) = outerEnclosure(i)
     

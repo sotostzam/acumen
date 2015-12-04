@@ -58,7 +58,7 @@ case class LohnerBase
     , indexToName: Map[Int, (CId,Name)]
     , nonOdeIndices: Set[Int]
     , cachedOuterEnclosure: Option[RealVector]
-    ) extends DynSetEnclosure with EStore {
+    ) extends DynSetEnclosure {
 
 
 
@@ -77,16 +77,8 @@ case class LohnerBase
     , cachedOuterEnclosure
     )
    
-    
-    /* Enclosure Operations */
-    def initialize(s: CStore): Enclosure = initializeEnclosure(s)
-
-    
-    /* EStore */
-    override def getObjectField(id: CId, n: Name): CValue = nameToIndex.get(id,n) match {
-      case Some(i) if !(nonOdeIndices contains i) => dynSet(i)
-      case _ => getObjectField(id, n)
-    }
+       
+  
   }
 
   implicit class RichStoreImpl(odeEnv: ODEEnv) extends RichStore[ODEEnv,CId] {
@@ -136,9 +128,8 @@ case class LohnerBase
     , indexToName: Map[Int, (CId,Name)]
     , nonOdeIndices: Set[Int]
     , cachedOuterEnclosure: Option[RealVector] = None
-    ) extends DynSetEnclosure with EStore {
+    ) extends DynSetEnclosure {
     
-    def initialize(s: CStore): Enclosure = initializeEnclosure(s)
     
     def init( st: CStore
     , dynSet: IntervalDynSet
@@ -158,25 +149,7 @@ case class LohnerBase
     
 
     
-    /* Store Operations */
-  
-    override def getObjectField(id: CId, f: Name) =
-      nameToIndex.get((id, f)) match {
-        case Some(i) if !(nonOdeIndices contains i) =>
-          outerEnclosure(i)
-        case _ =>
-          super.getObjectField(id, f)
-      }
-    override def setObjectField(id:CId, f:Name, v:CValue): Enclosure =
-      nameToIndex.get((id,f)) match {
-        case Some(i) =>
-          Logger.trace(s"Setting Lohner set variable $id.${Pretty pprint f}.")
-          super.setObjectField(id, f, v)
-        case None =>
-          this.copy(st = Canonical.setObjectField(id, f, v, st))
-      }
-       
-    /* Enclosure Operations */
+
     
  
     
