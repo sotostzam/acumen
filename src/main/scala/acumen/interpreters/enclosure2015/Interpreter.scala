@@ -878,9 +878,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
     , p: Prog
     , enc: Enclosure
     ): (Enclosure, Enclosure) = {
-    val sb = solverBase(enc.cStore)
-    val e = sb.solver.convertEnclosure(enc)
-    sb.solver.continuousEncloser(odes, eqs, claims, T, p, e, evalExpr)
+    solverBase(enc.cStore).solver.solve(odes, eqs, claims, T, p, enc, evalExpr)
   }
   
   // FIXME Remove debug code

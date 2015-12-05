@@ -22,10 +22,23 @@ object Common {
   val bannedFieldNames = List(self, parent, classf, nextChild, magicf)
   
   trait EnclosureSolver[E <: Enclosure] {
+    /** Computes the enclosure over T of the IVP defined by odes and enc.
+     *  Uses convertEnclosure to ensure that continuousEncloser is called
+     *  with the appropriate enclosure type E. */
+    def solve
+      ( odes: Set[CollectedAction] // Set of delayed ContinuousAction
+      , eqs: Set[CollectedAction]
+      , claims: Set[CollectedConstraint]
+      , T: Interval
+      , p: Prog
+      , enc: Enclosure
+      , evalExpr: (Expr,Env,EStore) => CValue
+      ): (Enclosure, Enclosure) =
+      continuousEncloser(odes, eqs, claims, T, p, convertEnclosure(enc), evalExpr)
     /** Obtain an E <: Enclosure as required by continuousEncloser. */
-    def convertEnclosure(e: Enclosure): E 
+    protected[EnclosureSolver] def convertEnclosure(e: Enclosure): E 
     /** Computes the enclosure over T of the IVP defined by odes and enc */
-    def continuousEncloser
+    protected[EnclosureSolver] def continuousEncloser
       ( odes: Set[CollectedAction] // Set of delayed ContinuousAction
       , eqs: Set[CollectedAction]
       , claims: Set[CollectedConstraint]
