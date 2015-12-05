@@ -324,13 +324,14 @@ object Common {
    *       If the program contains an algebraic loop, an exception will be thrown.
    */
   def inline(as: Set[CollectedAction], bs: Set[CollectedAction], st: CStore): Set[CollectedAction] = {
-    val resolvedDotToDA = as.map(da => da.lhs -> da).toMap
+    val uniqueIdToDA = as.map{ da => val rd = da.lhs; (rd.id, rd.field) -> da }.toMap
     def inline(hosts: Map[CollectedAction,List[CollectedAction]]): Set[CollectedAction] = {
       val next = hosts.map {
         case (host, inlined) =>
           dots(host.rhs).foldLeft((host, inlined)) {
           case (prev@(hostPrev, ildPrev), d) =>
-              resolvedDotToDA.get(resolveDot(d, host.env, st)) match {
+              val rd = resolveDot(d, host.env, st)
+              uniqueIdToDA.get((rd.id, rd.field)) match {
               case None => prev // No assignment is active for d
               case Some(inlineMe) => 
                 if (inlineMe.lhs.obj          == hostPrev.lhs.obj && 
