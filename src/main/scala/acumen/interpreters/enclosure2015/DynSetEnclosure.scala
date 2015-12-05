@@ -91,9 +91,12 @@ case class DynSetEnclosure
       updateEquationVariables(updateFlowVariables(this.cStore, flowValues), flowValues)
     }
       
-    // Indices in the DynSet that are not defied by Flow. These will become invalid after applying the mapping.
+    // Indices of numeric variables in the DynSet that are not defied by Flow. These will become invalid after applying the mapping.
     // FIXME These can change over time! Will this cause issues? (see comment for LohnerEnclosure.nonFlowIndices)
-    val eqIndices = eqsInlined.map{ ca => val lhs = ca.lhs; this.nameToIndex(lhs.id, lhs.field) }
+    val eqIndices = eqsInlined.flatMap{ ca => 
+      val lhs = ca.lhs
+      this.nameToIndex.get(lhs.id, lhs.field).fold(List.empty[Int])(List(_)) // Omit non-numeric variables
+    }
 
     val (rangeDynSet, endDynSet) = dynSet.move(flow)
         
