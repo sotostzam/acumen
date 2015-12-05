@@ -7,6 +7,9 @@ import enclosure2015.Common._
 import interpreters.Common._
 import Pretty.pprint
 import util._
+import util.ASTUtil.{
+  dots, substitute
+}
 import util.Canonical._
 import util.Conversions.{
   extractDouble, extractDoubles, extractId, extractInterval, extractIntervals
@@ -18,9 +21,24 @@ object Common {
 
   val bannedFieldNames = List(self, parent, classf, nextChild, magicf)
   
+  trait EnclosureSolver[E <: Enclosure] {
+    /** Obtain an E <: Enclosure as required by continuousEncloser. */
+    def convertEnclosure(e: Enclosure): E 
+    /** Computes the enclosure over T of the IVP defined by odes and enc */
+    def continuousEncloser
+      ( odes: Set[CollectedAction] // Set of delayed ContinuousAction
+      , eqs: Set[CollectedAction]
+      , claims: Set[CollectedConstraint]
+      , T: Interval
+      , p: Prog
+      , enc: E
+      , evalExpr: (Expr,Env,EStore) => CValue
+      ): (Enclosure, Enclosure)
+  }
   trait SolverBase {
     type E <: Enclosure
     def initializeEnclosure(st: CStore): E
+    def solver: EnclosureSolver[E]
   }
   
   def solverBase(st: CStore): SolverBase = getInSimulator("method", st) match {
@@ -39,6 +57,10 @@ object Common {
     def getObjectField(id:CId, f:Name): CValue
     def childrenOf(id: CId): List[CId]
   }
+
+  val CertainTrue = GBoolEnclosure(Set(true))
+  val CertainFalse = GBoolEnclosure(Set(false))
+  val Uncertain = GBoolEnclosure(Set(true, false))
   
   /* Interface for Breeze Linalg */
   
@@ -279,6 +301,58 @@ object Common {
   }
   case class CollectedConstraint(selfCId: CId, c: Expr, env: Env)
   case class CollectedHypothesis(selfCId: CId, s: Option[String], h: Expr, env: Env)
+  
+/**
+   * In-line the variables defined by the equations in as into the equations in bs. 
+   * This means that, in the RHS of each element of b, all references to variables that are 
+   * defined by an equation in a.
+   * 
+   * NOTE: This implies a restriction on the programs that are accepted: 
+   *       If the program contains an algebraic loop, an exception will be thrown.
+   */
+  def inline(as: Set[CollectedAction], bs: Set[CollectedAction], st: CStore): Set[CollectedAction] = {
+    val resolvedDotToDA = as.map(da => da.lhs -> da).toMap
+    def inline(hosts: Map[CollectedAction,List[CollectedAction]]): Set[CollectedAction] = {
+      val next = hosts.map {
+        case (host, inlined) =>
+          dots(host.rhs).foldLeft((host, inlined)) {
+          case (prev@(hostPrev, ildPrev), d) =>
+              resolvedDotToDA.get(resolveDot(d, host.env, st)) match {
+              case None => prev // No assignment is active for d
+              case Some(inlineMe) => 
+                if (inlineMe.lhs.obj          == hostPrev.lhs.obj && 
+                    inlineMe.lhs.field.x      == hostPrev.lhs.field.x &&
+                    inlineMe.lhs.field.primes == hostPrev.lhs.field.primes + 1)
+                  hostPrev -> inlined // Do not in-line derivative equations
+                else {
+                  val daNext = hostPrev.copy(
+                    a = hostPrev.a match {
+                      case Continuously(e: EquationI) =>
+                        val dot = Dot(inlineMe.lhs.obj,inlineMe.lhs.field)
+                        Continuously(e.copy(rhs = substitute(dot, inlineMe.rhs, e.rhs)))
+                      case Continuously(e: EquationT) =>
+                        val dot = Dot(inlineMe.lhs.obj,inlineMe.lhs.field)
+                        Continuously(e.copy(rhs = substitute(dot, inlineMe.rhs, e.rhs)))
+                    }, 
+                    env = hostPrev.env ++ inlineMe.env.env)
+                  daNext -> (inlineMe :: inlined)
+                }
+            }
+        }
+      }
+      val reachedFixpoint = next.forall{ case (da, inlined) =>
+        val dupes = inlined.groupBy(identity).collect{ case(x,ds) if ds.length > 1 => x }.toList
+        lazy val loop = inlined.reverse.dropWhile(!dupes.contains(_))
+        if (dupes isEmpty)
+          hosts.get(da) == Some(inlined)
+        else 
+          throw internalPosError("Algebraic loop detected: " + loop.map(a => pprint (a.lhs: Expr)).mkString(" -> "), loop.head.lhs.pos)
+      }
+      if (reachedFixpoint) next.keySet
+      else inline(next)
+    }
+    inline(bs.map(_ -> Nil).toMap)
+  }
   
   /* Utilities */
   

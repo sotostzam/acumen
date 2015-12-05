@@ -22,16 +22,12 @@ import util.Canonical._
 import util.Conversions.{
   extractDouble, extractDoubles, extractId, extractInterval, extractIntervals
 }
-import util.DebugUtil.{
-  asProgram
-}
 import enclosure.{
   Box, Constant, Contract, Expression, Field, Interval, Parameters, Rounding,
   Abs, Sin, Cos, Tan, ACos, ASin, ATan, Exp, Log, Log10, Sqrt, 
   Cbrt, Ceil, Floor, Sinh, Cosh, Tanh, Signum, Plus, Negate, 
   Multiply, Pow, Divide, ATan2, Min, Max
 }
-import enclosure.Types.VarName
 import acumen.interpreters.enclosure.Transcendentals
 import acumen.interpreters.enclosure.ivp.{
   LohnerSolver, PicardSolver
@@ -90,7 +86,6 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
   
   private val legacyParameters = Parameters.default.copy(interpreter = Some(enclosure.Interpreter.EVT))
   private implicit val rnd = Rounding(legacyParameters)
-  private val contractInstance = new Contract{}
 
   /* Types */
 
@@ -161,10 +156,6 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
   }
   
   import Changeset._
-
-  val CertainTrue = GBoolEnclosure(Set(true))
-  val CertainFalse = GBoolEnclosure(Set(false))
-  val Uncertain = GBoolEnclosure(Set(true, false))
 
   /* Set-up */
   
@@ -649,19 +640,6 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
   def applyAssignments(xs: List[(CId, Dot, CValue)], st: Enclosure): Enclosure =
     xs.foldLeft(st)((stTmp, a: (CId, Dot, CValue)) => stTmp.setObjectField(a._1, a._2.field, a._3))
 
-  def varNameToFieldIdMap(e: Enclosure): Map[VarName,(CId,Name)] =
-    e.toList.flatMap{ case (cid, co) =>
-      if (classOf(co) == cmagic) Map[String,(CId,Name)]()
-      else co.filter{
-        case (n,_) if bannedFieldNames contains n => false
-        case (_, VLit(_: GStr) | VLit(_: GStrEnclosure) | VLit(_: GBoolEnclosure) | _:VObjId[_]) => false
-        case (_, VLit(_: GConstantRealEnclosure)) => true
-        case (n,v) =>
-          val typ = "type " + v.getClass.getSimpleName
-          throw new UnsupportedTypeError(typ, s"(${cid.cid.toString}:${e.getCls(cid).x}).${pprint(n)}", v)
-      }.map{ case (n,v) => (fieldIdToName(cid,n), (cid, n)) } 
-    }.toMap
-  
   def step(p: Prog, st: Store, md: Metadata): StepRes = {
     val st1 = updateSimulator(p, st)
     if (st1.enclosure.getTime >= st1.enclosure.getEndTime && st.enclosure.getResultType == FixedPoint) {
@@ -807,7 +785,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
               Logger.trace(s"encloseHw (Not a flow)")
               val wi = 
                 if (intersectWithGuardBeforeReset)
-                  contract(w, q.dis.map(da => CollectedConstraint(da.selfCId, da.path, da.env)), prog)
+                  picardBase.contract(w, q.dis.map(da => CollectedConstraint(da.selfCId, da.path, da.env)), prog, evalExpr)
                     .fold(sys error "Empty intersection while contracting with guard. " + _, i => i)
                 else w
               (InitialCondition(wi(q.dis, evalExpr), q :: qw, t) :: tmpW, tmpR, tmpU)
@@ -835,7 +813,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
     def handleEvent(q: Changeset, past: Evolution, r: Enclosure, rp: Enclosure, u: Enclosure): (List[InitialCondition], List[InitialCondition]) = {
       val hr = active(r, prog)
       val hu = active(u, prog) 
-      val up = contract(u, q.claims, prog)
+      val up = picardBase.contract(u, q.claims, prog, evalExpr)
       val e = q :: past
       if (noEvent(q, hr, up)) { // no event
         Logger.trace("handleEvent (No event)")
@@ -882,109 +860,6 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
   def isFlow(cs: Changeset) = cs.dis.isEmpty
 
   /**
-   * Contract st based on all claims.
-   * NOTE: Returns Left if the support of any of the claims has an empty intersection with st,
-   *       or if some other exception is thrown by contract.
-   */
-  def contract(enc: Enclosure, claims: Iterable[CollectedConstraint], prog: Prog): Either[String, Enclosure] = {
-    /**
-     * Given a predicate p and store st, removes that part of st for which p does not hold.
-     * NOTE: The range of st is first computed, as contraction currently only works on intervals.  
-     */
-    def contract(st: Enclosure, p: Expr, prog: Prog, env: Env, selfCId: CId): Either[String,Enclosure] = {
-      lazy val box = envBox(p, env, st)
-      val varNameToFieldId = varNameToFieldIdMap(st)
-      val noUpdate = Map[(CId,Name), CValue]()
-      def toAssoc(b: Box) = b.map{ case (k, v) => (varNameToFieldId(k), VLit(GConstantRealEnclosure(v))) }
-      p match {
-        case Lit(CertainTrue | Uncertain) => Right(st)
-        case Lit(CertainFalse) => Left("Contracted with CertainFalse")
-        case Op(Name("||",0), _) => Right(st)
-        case Op(Name("&&",0), List(l,r)) => 
-          (contract(st,l,prog,env,selfCId), contract(st,r,prog,env,selfCId)) match {
-            case (Right(pil), Right(pir)) => 
-              (pil intersect pir) map (Right(_)) getOrElse Left("Empty intersection.")
-            case (Right(_), Left(pir)) => Left(pir)
-            case (Left(pil), Right(_)) => Left(pil)
-            case (Left(pil), Left(pir)) => Left(pil + ", " + pir)
-          }
-        case Op(Name(op,0), List(l,r)) =>
-          val lv = evalExpr(l, env, st)
-          val rv = evalExpr(r, env, st)
-          lazy val le = acumenExprToExpression(l,selfCId,env,st,prog)
-          lazy val re = acumenExprToExpression(r,selfCId,env,st,prog)
-          /** Based on acumen.interpreters.enclosure.Contract.contractEq */
-          def eq[T](lde: GDiscreteEnclosure[T], rde: GDiscreteEnclosure[T]) = {
-            val i = lde.range intersect rde.range
-            def mapping(obj: Expr, n: Name) = {
-              val VObjId(Some(objId)) = evalExpr(obj, env, st)
-              (objId.cid, n) -> VLit((lde, rde) match {
-                case (_: GStrEnclosure, _: GStrEnclosure)   => GStrEnclosure(i)
-                case (_: GBoolEnclosure, _: GBoolEnclosure) => GBoolEnclosure(i)
-              })
-            }
-            Map((l, r) match {
-              case (Dot(obj, ln), _) => mapping(obj, ln)
-              case (_, Dot(obj, rn)) => mapping(obj, rn)
-              case _ => sys.error(s"Can not apply '$op' to operands (${Pretty pprint l}, ${Pretty pprint r})")
-            })
-          }
-          /** Based on acumen.interpreters.enclosure.Contract.contractNeq */
-          def neq[T](lvs: GDiscreteEnclosure[T], rvs: GDiscreteEnclosure[T]) = {
-            val ranl = lvs.range
-            val ranr = rvs.range
-            if (!(ranl.size == 1) || !(ranr.size == 1) || !(ranl == ranr)) noUpdate
-            else sys.error("contracted to empty box") // only when both lhs and rhs are thin can equality be established
-          }
-          val smallerBox = (op,lv,rv) match {
-            case ("==", VLit(lvgv: GStrEnclosure),  VLit(rvgv: GStrEnclosure))  => eq(lvgv, rvgv)
-            case ("==", VLit(lvgv: GBoolEnclosure), VLit(rvgv: GBoolEnclosure)) => eq(lvgv, rvgv)
-            case ("~=", VLit(lvgv: GStrEnclosure),  VLit(rvgv: GStrEnclosure))  => neq(lvgv, rvgv)
-            case ("~=", VLit(lvgv: GBoolEnclosure), VLit(rvgv: GBoolEnclosure)) => neq(lvgv, rvgv)
-            case ("==", _, _)       => toAssoc(contractInstance.contractEq(le, re)(box))
-            case ("~=", _, _)       => toAssoc(contractInstance.contractNeq(le, re)(box))
-            case ("<=" | "<", _, _) => toAssoc(contractInstance.contractLeq(le, re)(box))
-            case (">=" | ">", _, _) => toAssoc(contractInstance.contractLeq(re, le)(box))
-
-          } 
-          Right(st update smallerBox)
-        case _ => 
-          Right(st) // Do not contract
-      }
-    }
-    val VLit(GBool(disableContraction)) = enc getInSimulator ParamDisableContraction._1
-    if (disableContraction) Right(enc)
-    else claims.foldLeft(Right(enc): Either[String, Enclosure]) {
-      case (res, claim) => res match {
-        case Right(r) => 
-          try {
-            contract(r, claim.c, prog, claim.env, claim.selfCId).
-              fold(s => Left("Empty enclosure after applying claim " + pprint(claim.c) + ": " + s), Right(_)) 
-          } catch {
-            case e: Throwable =>
-              Logger.trace(Pretty pprint asProgram(enc.cStore, prog))
-              if (e.isInstanceOf[AcumenError]) throw e
-              else if (e.isInstanceOf[NotImplementedError]) 
-                throw new NotImplementedError(s"Cannot contract. Missing implementation for: ${e.getMessage}.") 
-              else Left("Error while applying claim " + pprint(claim.c) + ": " + e.getMessage) 
-          }
-        case _ => res
-      }
-    }
-  }
-  
-  /** Box containing the values of all variables (Dots) that occur in it. */
-  def envBox(e: Expr, env: Env, st: Enclosure): Box = {
-    new Box(dots(e).flatMap{ case d@Dot(obj,n) =>
-      val VObjId(Some(objId)) = evalExpr(obj, env, st) 
-      evalExpr(d, env, st) match {
-        case VLit(r: GConstantRealEnclosure) => (fieldIdToName(objId.cid,n), r.range) :: Nil
-        case VLit(r: GStrEnclosure) => Nil
-      }
-    }.toMap)
-  }
-  
-  /**
    * Compute enclosures (range and end-time) for the system of equations 
    * corresponding to odes and eqs put together.
    * 
@@ -1002,188 +877,10 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
     , T: Interval
     , p: Prog
     , enc: Enclosure
-    ): (Enclosure, Enclosure) =  {
-    solverBase(enc.cStore) match {
-      case `picardBase` =>
-        continuousEncloserPicard(odes, eqs, claims, T, p, enc)
-      case `intervalBase` => 
-        continuousEncloserLohner(odes, eqs, claims, T, p, enc match {
-          case lenc: DynSetEnclosure => lenc
-          case cenc: picardBase.CValueEnclosure => 
-            intervalBase initializeEnclosure cenc.cStore
-        })
-    }
-  }
-  
-  val solver = if (contraction) new LohnerSolver {} else new PicardSolver {}
-  val extract = new acumen.interpreters.enclosure.Extract{}
-  
-  def continuousEncloserPicard
-    ( odes: Set[CollectedAction] // Set of delayed ContinuousAction
-    , eqs: Set[CollectedAction]
-    , claims: Set[CollectedConstraint]
-    , T: Interval
-    , p: Prog
-    , enc: Enclosure
     ): (Enclosure, Enclosure) = {
-    Logger.trace(s"continuousEncloserPicard (over $T)")
-    val ic = contract(enc, claims, p) match {
-      case Left(_) => sys.error("Initial condition violates claims {" + claims.map(c => pprint(c.c)).mkString(", ") + "}.")
-      case Right(r) => r
-    }
-    val varNameToFieldId = varNameToFieldIdMap(ic)
-    val F = getFieldFromActions(inline(eqs, odes, enc.cStore), ic, p) // in-line eqs to obtain explicit ODEs
-    val stateVariables = varNameToFieldId.keys.toList
-    val A = new Box(stateVariables.flatMap{ v => 
-      val (o,n) = varNameToFieldId(v)
-      (ic(o)(n): @unchecked) match {
-        case VLit(ce: GConstantRealEnclosure) => (v, ce.range) :: Nil
-        case VObjId(_) => Nil
-        case e => sys.error((o,n) + " ~ " + e.toString)
-      }
-    }.toMap)
-    val solutions = solver.solveIVP(F, T, A, delta = 0, m = 0, n = 200, degree = 1) // FIXME Expose as simulator parameters
-    def updateICToSolution(pickValue: (VarName, Interval) => Interval) = {
-      val solutionMap = solutions._1.apply(T).map{
-        case (k, v) => (varNameToFieldId(k) -> VLit(GConstantRealEnclosure(pickValue(k,v))))
-      }
-      val odeSolutions = ic update solutionMap
-      val equationsMap = inline(eqs, eqs, enc.cStore).map { // LHSs of EquationsTs, including highest derivatives of ODEs
-        case CollectedAction(_, cid, Continuously(EquationT(ResolvedDot(_, _, n), rhs)), env) =>
-          (cid, n) -> evalExpr(rhs, env, odeSolutions)
-      }.toMap
-      odeSolutions update equationsMap
-    }
-    ( updateICToSolution((k,v) => v               /* range enclosure */)
-    , updateICToSolution((k,v) => solutions._2(k) /* end-time enclosure */) )
-  }
-  
-  def continuousEncloserLohner
-    ( odes: Set[CollectedAction]
-    , eqs: Set[CollectedAction]
-    , claims: Set[CollectedConstraint]
-    , T: Interval
-    , p: Prog
-    , enc: DynSetEnclosure
-    ): (Enclosure, Enclosure) = {
-    Logger.trace(s"continuousEncloserLohner (over $T)")
-    
-    val field = inline(eqs, odes, enc.cStore) // in-line eqs to obtain explicit ODEs
-
-    val flowVariables = enc.indexToName.values.map{ case (id,n) => QName(id,n) }.toList // used in jacPhi for lifting
-    
-    // TODO the class uses odeVariables and enc from the outside
-    case class TaylorIntegrator( odeList             : List[CollectedAction]
-                               , timeStep            : Interval
-                               , orderOfIntegration  : Int 
-                               , maxPicardIterations : Int 
-                               ) extends C1Flow {
-      
-      
-      val timeStepInterval = Interval(0, timeStep.hiDouble)
-          
-      /** Computes the apriori enclosure (a coarse range enclosure of the flow) */ 
-      def apply(x: RealVector): RealVector = {
-    		implicit val useIntervalArithmetic: Real[CValue] = intervalBase.cValueIsReal
-    	  implicit val intervalField = intervalBase.FieldImpl(odeList, evalExpr)
-        val step: CValue = VLit(GConstantRealEnclosure(timeStepInterval))
-    		@tailrec def picardIterator(candidate: RealVector, iterations: Int): RealVector = {
-    	     val fieldAppliedToCandidate = intervalField(DynSetEnclosure(candidate, enc))
-    			 val c = x + step ** fieldAppliedToCandidate.dynSet
-    			 val invalidEnclosureDirections = (0 until enc.dim).filterNot(i => (candidate(i), c(i)) match {
-    			   case (VLit(GConstantRealEnclosure(e)), VLit(GConstantRealEnclosure(ce))) => 
-    			     e containsInInterior ce 
-    			   })
-    			 lazy val candidateNext: RealVector = breeze.linalg.Vector.tabulate(enc.dim){ i =>
-    			   if (invalidEnclosureDirections contains i) {
-    				   val VLit(GConstantRealEnclosure(e)) = c(i)
-    					 val m = Interval(e.midpoint).hiDouble
-    					 val wHalf = (e.width.hiDouble * 1.5) / 2
-    					 VLit(GConstantRealEnclosure(Interval(m - wHalf, m + wHalf)))
-    			   } else candidate(i)
-    			 } 
-    			 if (iterations > maxPicardIterations) sys.error(s"Unable to find valid enclosure over $T in $maxPicardIterations iterations.")
-    			 if (invalidEnclosureDirections isEmpty) {
-    				 Logger.debug(s"apriori enclosure over $T has been generated in $iterations iteration(s)")
-    				 candidate 
-    			 } else 
-    				 picardIterator(candidateNext, iterations + 1)
-        }
-        val fieldAppliedToLohnerSet = intervalField(DynSetEnclosure(x, enc))
-    	  val candidateStep: CValue = VLit(GConstantRealEnclosure(Interval(-0.2, 1.2) * timeStep))
-        val epsilon: RealVector = breeze.linalg.Vector.tabulate(enc.dim){ i => VLit(GConstantRealEnclosure(Interval(-1, 1) * 1e-21)) }
-    	  picardIterator(x + candidateStep ** fieldAppliedToLohnerSet.dynSet + epsilon, 0)
-      }
-      
-      /** Computes the finite Taylor expansion */
-      def phi(x: RealVector, timeStep: Interval): RealVector = {
-        implicit val useIntervalArithmetic: Real[CValue] = intervalBase.cValueIsReal
-        implicit val intervalField = intervalBase.FieldImpl(odeList, evalExpr)
-        implicit def liftToRichStore(s: DynSetEnclosure): intervalBase.RichStoreImpl = intervalBase.liftDynSetEnclosure(s) // linearTransformationField passed implicitly
-        val xLift = DynSetEnclosure(x, enc) // FIXME was enc.midpoint
-        val imageOfx = solveIVPTaylor[CId,DynSetEnclosure,CValue](xLift, VLit(GConstantRealEnclosure(timeStep)), orderOfIntegration)
-        imageOfx.dynSet
-      }
-      
-      /** Computes the Jacobian of phi */
-      def jacPhi(x: RealVector, timeStep: Interval): RealMatrix = {
-        implicit val useFDifArithmetic: Real[CValue] = fDifBase.cValueIsReal
-        implicit val linearTransformationField = fDifBase.FieldImpl(odeList.map(_ mapRhs (FAD.lift[CId,CValue](_, flowVariables))), evalExpr)
-        implicit def liftToRichStore(s: DynSetEnclosure): fDifBase.RichStoreImpl = fDifBase.liftDynSetEnclosure(s) // linearTransformationField passed implicitly
-        val p = FAD.lift[CId,DynSetEnclosure,CValue](DynSetEnclosure(x, enc), flowVariables) // FIXME parameter2 was enc.outerEnclosure
-        val myStepWrapped = {
-          val VLit(GIntervalFDif(FAD.FDif(_, zeroCoeffs))) = useFDifArithmetic.fromDouble(0)
-          VLit(GIntervalFDif(FAD.FDif(timeStep, zeroCoeffs)))
-        }
-        val linearTransformationSolution = // linearTransformationField passed implicitly
-        solveIVPTaylor[CId,DynSetEnclosure,CValue](p, myStepWrapped, orderOfIntegration)
-        breeze.linalg.Matrix.tabulate[CValue](enc.dim, enc.dim) {
-          case (r, c) =>
-        	  (linearTransformationSolution dynSet c) match {
-              case VLit(GIntervalFDif(FAD.FDif(_, ds))) =>
-        		    val (id, n) = linearTransformationSolution indexToName r
-        		    VLit(GConstantRealEnclosure(ds(QName(id, n))))
-        		}
-        }
-      }
-      
-      /** Bounds the difference between the finite Taylor expansion and the flow */
-      def remainder(x: RealVector, timeStep: Interval): RealVector = {
-        implicit val useIntervalArithmetic: Real[CValue] = intervalBase.cValueIsReal
-        implicit val intervalField = intervalBase.FieldImpl(odeList, evalExpr)
-        implicit def liftToRichStore(s: DynSetEnclosure): intervalBase.RichStoreImpl = intervalBase.liftDynSetEnclosure(s) // linearTransformationField passed implicitly
-        val p = DynSetEnclosure(x, enc)
-        val tcs = computeTaylorCoefficients[CId,DynSetEnclosure,CValue](p, orderOfIntegration + 1)
-        val factor = VLit(GConstantRealEnclosure(timeStep pow (orderOfIntegration + 1)))
-        // TODO remove outerEnclosure
-        tcs.dynSet.outerEnclosure.map(_ match { case VLit(GCValueTDif(tdif)) => (tdif coeff (orderOfIntegration + 1)) * factor })
-      }
-      
-      /* C1Flow interface */
-      
-      // computation of the image
-      def       phi(x: RealVector) =       phi(x, timeStep)
-      def    jacPhi(x: RealVector) =    jacPhi(x, timeStep)
-      def remainder(x: RealVector) = remainder(x, timeStep)
-     
-      // computation of the range
-      val self  = this
-      val range = new C1Mapping {
-        def     apply(x: RealVector) : RealVector = self     apply(x)
-        def       phi(x: RealVector) : RealVector = self       phi(x, timeStepInterval)
-        def    jacPhi(x: RealVector) : RealMatrix = self    jacPhi(x, timeStepInterval)
-        def remainder(x: RealVector) : RealVector = self remainder(x, timeStepInterval)
-      }
-    
-  }    
-
-    val myIntegrator = TaylorIntegrator(field.toList,T.width, Common orderOfIntegration enc.cStore, Common maxPicardIterations enc.cStore)
-    
-    val eqsInlined = inline(eqs, eqs, enc.cStore) // LHSs of EquationsTs, including highest derivatives of ODEs
-    
-    // TODO Align field.toList with the order in enc.indexToName
-    enc.move(eqsInlined, myIntegrator, evalExpr)
-
+    val sb = solverBase(enc.cStore)
+    val e = sb.solver.convertEnclosure(enc)
+    sb.solver.continuousEncloser(odes, eqs, claims, T, p, e, evalExpr)
   }
   
   // FIXME Remove debug code
@@ -1209,64 +906,6 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
       (Pretty pprint (Pretty prettyStore st)))
 
 
-  /** Convert odes into a Field compatible with acumen.interpreters.enclosure.ivp.IVPSolver. */
-  def getFieldFromActions(odes: Set[CollectedAction], st: Enclosure, p: Prog): Field =
-    Field(odes.map { case CollectedAction(_, cid, Continuously(EquationI(ResolvedDot(_, _, n), rhs)), env) =>
-      (fieldIdToName(cid, n), acumenExprToExpression(rhs, cid, env, st, p))
-    }.toMap)
-  
-  /**
-   * In-line the variables defined by the equations in as into the equations in bs. 
-   * This means that, in the RHS of each element of b, all references to variables that are 
-   * defined by an equation in a.
-   * 
-   * NOTE: This implies a restriction on the programs that are accepted: 
-   *       If the program contains an algebraic loop, an exception will be thrown.
-   */
-  def inline(as: Set[CollectedAction], bs: Set[CollectedAction], st: CStore): Set[CollectedAction] = {
-    val resolvedDotToDA = as.map(da => da.lhs -> da).toMap
-    def inline(hosts: Map[CollectedAction,List[CollectedAction]]): Set[CollectedAction] = {
-      val next = hosts.map {
-        case (host, inlined) =>
-          dots(host.rhs).foldLeft((host, inlined)) {
-          case (prev@(hostPrev, ildPrev), d) =>
-              resolvedDotToDA.get(resolveDot(d, host.env, st)) match {
-              case None => prev // No assignment is active for d
-              case Some(inlineMe) => 
-                if (inlineMe.lhs.obj          == hostPrev.lhs.obj && 
-                    inlineMe.lhs.field.x      == hostPrev.lhs.field.x &&
-                    inlineMe.lhs.field.primes == hostPrev.lhs.field.primes + 1)
-                  hostPrev -> inlined // Do not in-line derivative equations
-                else {
-                  val daNext = hostPrev.copy(
-                    a = hostPrev.a match {
-                      case Continuously(e: EquationI) =>
-                        val dot = Dot(inlineMe.lhs.obj,inlineMe.lhs.field)
-                        Continuously(e.copy(rhs = substitute(dot, inlineMe.rhs, e.rhs)))
-                      case Continuously(e: EquationT) =>
-                        val dot = Dot(inlineMe.lhs.obj,inlineMe.lhs.field)
-                        Continuously(e.copy(rhs = substitute(dot, inlineMe.rhs, e.rhs)))
-                    }, 
-                    env = hostPrev.env ++ inlineMe.env.env)
-                  daNext -> (inlineMe :: inlined)
-                }
-            }
-        }
-      }
-      val reachedFixpoint = next.forall{ case (da, inlined) =>
-        val dupes = inlined.groupBy(identity).collect{ case(x,ds) if ds.length > 1 => x }.toList
-        lazy val loop = inlined.reverse.dropWhile(!dupes.contains(_))
-        if (dupes isEmpty)
-          hosts.get(da) == Some(inlined)
-        else 
-          throw internalPosError("Algebraic loop detected: " + loop.map(a => pprint (a.lhs: Expr)).mkString(" -> "), loop.head.lhs.pos)
-      }
-      if (reachedFixpoint) next.keySet
-      else inline(next)
-    }
-    inline(bs.map(_ -> Nil).toMap)
-  }
-
   /**
    * Reject invalid models. The following rules are checked:
    *  - RHS of a continuous assignment to a primed variable must not contain the LHS.
@@ -1289,57 +928,6 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
       case Switch(_, cs) => cs.forall(c => checkValidAssignments(c.rhs))
       case _ => true
     })
-  }
-  
-  def acumenExprToExpression(e: Expr, selfCId: CId, env: Env, st: Enclosure, p: Prog): Expression = {
-    def convert(x: Expr) = acumenExprToExpression(x, selfCId, env, st, p)
-    import util.Names.op
-    e match {
-      case Lit(v) if v.eq(Constants.PI) => Constant(Interval.pi) // Test for reference equality not structural equality
-      case Lit(GInt(d))                 => Constant(d)
-      case Lit(GDouble(d))              => Constant(d)
-      case Lit(e:GConstantRealEnclosure)=> Constant(e.range) // FIXME Over-approximation of end-time interval!
-      case ExprInterval(lo, hi)         => Constant(extract.foldConstant(lo).value /\ extract.foldConstant(hi).value)
-      case ExprIntervalM(mid0, pm0)     => val mid = extract.foldConstant(mid0).value
-                                           val pm = extract.foldConstant(pm0).value
-                                           Constant((mid - pm) /\ (mid + pm))
-      case Var(n)                       => fieldIdToName(selfCId, n)
-      case Dot(objExpr, n) => 
-        val VObjId(Some(obj)) = evalExpr(objExpr, env, st) 
-        fieldIdToName(obj, n)
-      case ResolvedDot(obj,_,n) => 
-        fieldIdToName(obj, n)
-      case Op(Name("-"      , 0), List(x))    => Negate(convert(x))
-      case Op(Name("abs"    , 0), List(x))    => Abs(convert(x))
-      case Op(Name("sin"    , 0), List(x))    => Sin(convert(x))
-      case Op(Name("cos"    , 0), List(x))    => Cos(convert(x))
-      case Op(Name("tan"    , 0), List(x))    => Tan(convert(x))
-      case Op(Name("acos"   , 0), List(x))    => ACos(convert(x))
-      case Op(Name("sqrt"   , 0), List(x))    => Sqrt(convert(x))
-      case Op(Name("tan"    , 0), List(x))    => Tan(convert(x))
-      case Op(Name("asin"   , 0), List(x))    => ASin(convert(x))  
-      case Op(Name("atan"   , 0), List(x))    => ATan(convert(x))  
-      case Op(Name("exp"    , 0), List(x))    => Exp(convert(x))   
-      case Op(Name("log"    , 0), List(x))    => Log(convert(x))   
-      case Op(Name("log10"  , 0), List(x))    => Log10(convert(x)) 
-      case Op(Name("sqrt"   , 0), List(x))    => Sqrt(convert(x))  
-      case Op(Name("cbrt"   , 0), List(x))    => Cbrt(convert(x))  
-      case Op(Name("ceil"   , 0), List(x))    => Ceil(convert(x))  
-      case Op(Name("floor"  , 0), List(x))    => Floor(convert(x)) 
-      case Op(Name("sinh"   , 0), List(x))    => Sinh(convert(x))  
-      case Op(Name("cosh"   , 0), List(x))    => Cosh(convert(x))  
-      case Op(Name("tanh"   , 0), List(x))    => Tanh(convert(x))  
-      case Op(Name("signum" , 0), List(x))    => Signum(convert(x)) 
-      case Op(Name("-"      , 0), List(l, r)) => convert(l) - convert(r)
-      case Op(Name("+"      , 0), List(l, r)) => convert(l) + convert(r)
-      case Op(Name("*"      , 0), List(l, r)) => convert(l) * convert(r)
-      case Op(Name("^"      , 0), List(l, r)) => Pow(convert(l), convert(r))
-      case Op(Name("/"      , 0), List(l, r)) => Divide(convert(l), convert(r))
-      case Op(Name("atan2"  , 0), List(l, r)) => ATan2(convert(l), convert(r))
-      case Op(Name("min"    , 0), List(l, r)) => Min(convert(l), convert(r))
-      case Op(Name("max"    , 0), List(l, r)) => Max(convert(l), convert(r))
-      case _                            => sys.error("Handling of expression " + e + " not implemented!")
-    }
   }
   
 }
