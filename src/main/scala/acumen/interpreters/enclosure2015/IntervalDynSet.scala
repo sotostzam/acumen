@@ -20,6 +20,8 @@ abstract class IntervalDynSet extends RealVector
   
   def apply(i: Int): CValue
   
+  def set(i: Int, v: CValue): IntervalDynSet
+  
   def map(m: CValue => CValue)        : IntervalDynSet
   def map(m: (Int, CValue) => CValue) : IntervalDynSet
   
@@ -55,6 +57,12 @@ case class IntervalBox(v: RealVector) extends IntervalDynSet {
   def init(v: RealVector) = IntervalBox(v: RealVector)
   
   def apply(i: Int) = v(i)
+  
+  def set(i: Int, c: CValue): IntervalBox = {
+    val v1 = v.copy
+    v1.update(i, c)
+    IntervalBox(v1)
+  }
   
   def map(m: CValue => CValue): IntervalBox = IntervalBox(v.copy.map(m))
     
@@ -106,10 +114,19 @@ case class Cuboid
     
     def apply(i: Int) = outerEnclosure(i)
     
+    // FIXME Can this be done more cleverly? (updating the all the terms individually to avoid wrapping)
+    def set(i: Int, c: CValue): Cuboid = {
+      val outerEnclosure1 = outerEnclosure.copy
+      outerEnclosure1.update(i, c)
+      Cuboid(outerEnclosure1)
+    }
+    
     def map(m: CValue => CValue): Cuboid = {
       val imageMidpoint             : RealVector = midpoint.copy.map(m)
       val imageWidth                : RealVector = width.copy.map(m)
-      val imageLinearTransformation : RealMatrix = linearTransformation    
+      val imageLinearTransformation : RealMatrix = breeze.linalg.Matrix.tabulate(linearTransformation.rows, linearTransformation.cols){ 
+                                                     case (r, c) => m(linearTransformation(r, c)) 
+                                                   }    
       val imageError                : RealVector = error.copy.map(m)
       
       Cuboid(imageMidpoint, imageLinearTransformation, imageWidth, imageError)
