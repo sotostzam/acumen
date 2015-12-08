@@ -43,7 +43,7 @@ object DynSetEnclosure {
   /** Build a name-to-index map of all real variables in st. */
   def buildNameToIndexMap(st: CStore): Map[(CId,Name), Int] = {
     val realVariables = st.toList.flatMap {
-      case (id, co) => co.flatMap {
+      case (id, co) => co.toList.flatMap {
         case (n, VLit(v: GConstantRealEnclosure)) => List((id, n))
         case (n, v)                               => Nil
       }
