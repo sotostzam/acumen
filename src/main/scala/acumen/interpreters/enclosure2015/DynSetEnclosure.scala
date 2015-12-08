@@ -45,6 +45,8 @@ object DynSetEnclosure {
     val realVariables = st.toList.flatMap {
       case (id, co) => co.toList.flatMap {
         case (n, VLit(v: GConstantRealEnclosure)) => List((id, n))
+        case (n, VLit(v: GTDif[_]))               => List((id, n))
+        case (n, VLit(v: GFDif[_]))               => List((id, n))
         case (n, v)                               => Nil
       }
     }.toSet
