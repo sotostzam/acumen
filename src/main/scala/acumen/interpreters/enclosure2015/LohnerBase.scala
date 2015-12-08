@@ -60,7 +60,7 @@ object LohnerEnclosureSolver extends EnclosureSolver[DynSetEnclosure] {
       /** Computes the apriori enclosure (a coarse range enclosure of the flow) */ 
       def apply(x: RealVector): RealVector = {
         implicit val useIntervalArithmetic: Real[CValue] = intervalBase.cValueIsReal
-        implicit val intervalField = intervalBase.FieldImpl(odeList, evalExpr)
+        implicit val intervalField = intervalBase.FieldImpl(odeList, eqsInlined, evalExpr)
         val step: CValue = VLit(GConstantRealEnclosure(timeStepInterval))
         @tailrec def picardIterator(candidate: RealVector, iterations: Int): RealVector = {
            val fieldAppliedToCandidate = intervalField(DynSetEnclosure(candidate, enc, eqsInlined, evalExpr))
@@ -93,7 +93,7 @@ object LohnerEnclosureSolver extends EnclosureSolver[DynSetEnclosure] {
       /** Computes the finite Taylor expansion */
       def phi(x: RealVector, timeStep: Interval): RealVector = {
         implicit val useIntervalArithmetic: Real[CValue] = intervalBase.cValueIsReal
-        implicit val intervalField = intervalBase.FieldImpl(odeList, evalExpr)
+        implicit val intervalField = intervalBase.FieldImpl(odeList, eqsInlined, evalExpr)
         implicit def liftToRichStore(s: DynSetEnclosure): intervalBase.RichStoreImpl = intervalBase.liftDynSetEnclosure(s) // linearTransformationField passed implicitly
         val xLift = DynSetEnclosure(x, enc, eqsInlined, evalExpr) // FIXME was enc.midpoint
         val imageOfx = solveIVPTaylor[CId,DynSetEnclosure,CValue](xLift, VLit(GConstantRealEnclosure(timeStep)), orderOfIntegration)
@@ -104,7 +104,7 @@ object LohnerEnclosureSolver extends EnclosureSolver[DynSetEnclosure] {
       def jacPhi(x: RealVector, timeStep: Interval): RealMatrix = {
         implicit val useFDifArithmetic: Real[CValue] = fDifBase.cValueIsReal
         val flowVariables = enc.indexToName.values.map{ case (id,n) => QName(id,n) }.toList // used for lifting
-        implicit val linearTransformationField = fDifBase.FieldImpl(odeList.map(_ mapRhs (FAD.lift[CId,CValue](_, flowVariables))), evalExpr)
+        implicit val linearTransformationField = fDifBase.FieldImpl(odeList.map(_ mapRhs (FAD.lift[CId,CValue](_, flowVariables))), eqsInlined.map(_ mapRhs (FAD.lift[CId,CValue](_, flowVariables))), evalExpr)
         implicit def liftToRichStore(s: DynSetEnclosure): fDifBase.RichStoreImpl = fDifBase.liftDynSetEnclosure(s) // linearTransformationField passed implicitly
         val p = FAD.lift[CId,DynSetEnclosure,CValue](DynSetEnclosure(x, enc, eqsInlined, evalExpr), flowVariables) // FIXME parameter2 was enc.outerEnclosure
         val myStepWrapped = {
@@ -126,7 +126,7 @@ object LohnerEnclosureSolver extends EnclosureSolver[DynSetEnclosure] {
       /** Bounds the difference between the finite Taylor expansion and the flow */
       def remainder(x: RealVector, timeStep: Interval): RealVector = {
         implicit val useIntervalArithmetic: Real[CValue] = intervalBase.cValueIsReal
-        implicit val intervalField = intervalBase.FieldImpl(odeList, evalExpr)
+        implicit val intervalField = intervalBase.FieldImpl(odeList, eqsInlined, evalExpr)
         implicit def liftToRichStore(s: DynSetEnclosure): intervalBase.RichStoreImpl = intervalBase.liftDynSetEnclosure(s) // linearTransformationField passed implicitly
         val p = DynSetEnclosure(x, enc, eqsInlined, evalExpr)
         val tcs = computeTaylorCoefficients[CId,DynSetEnclosure,CValue](p, orderOfIntegration + 1)
@@ -197,24 +197,27 @@ case class LohnerBase
   
   def liftDynSetEnclosure(s: DynSetEnclosure)(implicit field: FieldImpl): RichStoreImpl = RichStoreImpl(s)
   
-  case class FieldImpl(odes: List[CollectedAction], evalExpr: (Expr, Env, EStore) => CValue) extends interpreters.Common.Field[DynSetEnclosure,CId] {
+  case class FieldImpl(odes: List[CollectedAction], eqsInlined: Set[CollectedAction], evalExpr: (Expr, Env, EStore) => CValue) extends interpreters.Common.Field[DynSetEnclosure,CId] {
     override def apply(dynSetEnclosure: DynSetEnclosure): DynSetEnclosure = {
       val s1 = dynSetEnclosure.dynSet.copy
       odes.foreach{ ode => 
         s1.update(dynSetEnclosure.nameToIndex(ode.lhs.id, ode.lhs.field), evalExpr(ode.rhs, ode.env, dynSetEnclosure)) 
       }
-      dynSetEnclosure.copy(dynSet = IntervalBox(s1))
+      DynSetEnclosure(s1, dynSetEnclosure, eqsInlined, evalExpr)
     }
     override def variables(s: DynSetEnclosure): List[(CId, Name)] = odes.map(ode => (ode.lhs.id, ode.lhs.field))
-    override def map(em: Expr => Expr) =
-      FieldImpl(odes.map(ode => ode.copy(a = (ode.a: @unchecked) match {
-        case Discretely(Assign(lhs: Expr, rhs: Expr)) =>
-          Discretely(Assign(em(lhs), em(rhs)))
-        case Continuously(EquationT(lhs: Expr, rhs: Expr)) =>
-          Continuously(EquationT(em(lhs), em(rhs)))
-        case Continuously(EquationI(lhs: Expr, rhs: Expr)) =>
-          Continuously(EquationI(em(lhs), em(rhs)))
-      })), evalExpr)
+    override def map(mE: Expr => Expr) = {
+      def mCA(ca: CollectedAction): CollectedAction =
+        ca.copy(a = (ca.a: @unchecked) match {
+          case Discretely(Assign(lhs: Expr, rhs: Expr)) =>
+            Discretely(Assign(mE(lhs), mE(rhs)))
+          case Continuously(EquationT(lhs: Expr, rhs: Expr)) =>
+            Continuously(EquationT(mE(lhs), mE(rhs)))
+          case Continuously(EquationI(lhs: Expr, rhs: Expr)) =>
+            Continuously(EquationI(mE(lhs), mE(rhs)))
+        })
+      FieldImpl(odes map mCA, eqsInlined map mCA, evalExpr)
+    }
   }
   
 }
