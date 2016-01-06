@@ -19,7 +19,7 @@ case class Parameters(
     interpreter: Option[Interpreter] // interpreter to use for cosineTable
     ) {
   implicit val rnd = Rounding(this)
-  val simulationTime = Interval(startTime, endTime)
+  def simulationTime = Interval(startTime, endTime)
 }
 object Parameters {
 

@@ -26,7 +26,7 @@ import net.java.jinterval.interval.set._
  * such that A_i is contained in B_i for each i, f(A_1,...,A_n) is
  * contained in f(B_1,...,B_n).
  */
-case class Interval(val i: SetInterval) extends AnyVal {
+class Interval(private val i: SetInterval) {
    
   def lo: Real = i.inf
   def hi: Real = i.sup
@@ -300,6 +300,14 @@ case class Interval(val i: SetInterval) extends AnyVal {
    *  rational end-points represented exactly. */
   def toRationalString =
     s"[(${lo.getNumerator}/${lo.getDenominator})..(${hi.getNumerator}/${hi.getDenominator})]"
+	
+  /** Override equals because Interval wraps a SetInterval object, 
+   *  whose equals implementation may be too specific. */
+  override def equals(that: Any): Boolean = that match {
+    case t: Interval => this equalTo t
+    case _ => false
+  }
+  override def hashCode = i.hashCode
 
   // TODO improve description
   /** UNSAFE only to be used for plotting */
@@ -318,6 +326,8 @@ object Interval {
   val ic = SetIntervalContexts.getInfSup(BinaryValueSet.BINARY64)
   val rc = ExtendedRationalContexts.exact()
 
+  def apply(i: SetInterval): Interval =
+    new Interval(i)
   def apply(lo: Real, hi: Real): Interval =
     Interval(ic.numsToInterval(lo, hi))
   def apply(lo: Double, hi: Double): Interval =
