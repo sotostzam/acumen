@@ -147,6 +147,10 @@ object IntervalUnitTest extends Properties("Interval.UnitTest") {
     Interval(1.9999, 2.0001) contains Interval(Interval.ic.textToInterval("4.000000004")).sqrt 
   }
 
+  property("ACUMEN-646 - Structural equality for intervals broken in enclosure interpreter") = {
+    Interval(0,0.0) equals Interval.zero
+  }
+  
   property("sqrt of 0") = {
     Interval.zero.sqrt == Interval.zero 
   }
