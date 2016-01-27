@@ -94,7 +94,6 @@ object LohnerEnclosureSolver extends EnclosureSolver[DynSetEnclosure] {
       def phi(x: RealVector, timeStep: Interval): RealVector = {
         implicit val useIntervalArithmetic: Real[CValue] = intervalBase.cValueIsReal
         implicit val intervalField = intervalBase.FieldImpl(odeList, eqsInlined, evalExpr)
-        implicit def liftToRichStore(s: DynSetEnclosure): intervalBase.RichStoreImpl = intervalBase.liftDynSetEnclosure(s) // linearTransformationField passed implicitly
         val xLift = DynSetEnclosure(x, enc, eqsInlined, evalExpr) // FIXME was enc.midpoint
         val imageOfx = solveIVPTaylor[CId,DynSetEnclosure,CValue](xLift, VLit(GConstantRealEnclosure(timeStep)), orderOfIntegration)
         imageOfx.dynSet
@@ -105,7 +104,6 @@ object LohnerEnclosureSolver extends EnclosureSolver[DynSetEnclosure] {
         implicit val useFDifArithmetic: Real[CValue] = fDifBase.cValueIsReal
         val flowVariables = enc.indexToName.values.map{ case (id,n) => QName(id,n) }.toList // used for lifting
         implicit val linearTransformationField = fDifBase.FieldImpl(odeList.map(_ mapRhs (FAD.lift[CId,CValue](_, flowVariables))), eqsInlined.map(_ mapRhs (FAD.lift[CId,CValue](_, flowVariables))), evalExpr)
-        implicit def liftToRichStore(s: DynSetEnclosure): fDifBase.RichStoreImpl = fDifBase.liftDynSetEnclosure(s) // linearTransformationField passed implicitly
         val p = FAD.lift[CId,DynSetEnclosure,CValue](DynSetEnclosure(x, enc, eqsInlined, evalExpr), flowVariables) // FIXME parameter2 was enc.outerEnclosure
         val myStepWrapped = {
           val VLit(GIntervalFDif(FAD.FDif(_, zeroCoeffs))) = useFDifArithmetic.fromDouble(0)
@@ -127,7 +125,6 @@ object LohnerEnclosureSolver extends EnclosureSolver[DynSetEnclosure] {
       def remainder(x: RealVector, timeStep: Interval): RealVector = {
         implicit val useIntervalArithmetic: Real[CValue] = intervalBase.cValueIsReal
         implicit val intervalField = intervalBase.FieldImpl(odeList, eqsInlined, evalExpr)
-        implicit def liftToRichStore(s: DynSetEnclosure): intervalBase.RichStoreImpl = intervalBase.liftDynSetEnclosure(s) // linearTransformationField passed implicitly
         val p = DynSetEnclosure(x, enc, eqsInlined, evalExpr)
         val tcs = computeTaylorCoefficients[CId,DynSetEnclosure,CValue](p, orderOfIntegration + 1)
         val factor = VLit(GConstantRealEnclosure(timeStep pow (orderOfIntegration + 1)))
@@ -178,24 +175,6 @@ case class LohnerBase
   type E = DynSetEnclosure
   def initializeEnclosure(st: CStore) = DynSetEnclosure(st)
   def solver = LohnerEnclosureSolver 
-  
-  /* Implicit Conversions */
-  implicit class RichStoreImpl(dynSetEnclosure: DynSetEnclosure) extends RichStore[DynSetEnclosure,CId] {
-    /* RichStore */
-    override def +++(that: DynSetEnclosure): DynSetEnclosure =
-      dynSetEnclosure.copy(dynSet = IntervalBox(breeze.linalg.Vector.tabulate(dynSetEnclosure.dim)(i => dynSetEnclosure.dynSet(i) + that.dynSet(i))))
-    override def ***(that: Double): DynSetEnclosure =
-      dynSetEnclosure.copy(dynSet = IntervalBox(breeze.linalg.Vector.tabulate(dynSetEnclosure.dim)(i => dynSetEnclosure.dynSet(i) * cValueIsReal.fromDouble(that))))
-    override def map(m: CValue => CValue): DynSetEnclosure = dynSetEnclosure map m
-    override def mapName(m: (GId, Name, CValue) => CValue): DynSetEnclosure = dynSetEnclosure mapName m
-    override def apply(id: CId, n: Name): CValue = dynSetEnclosure.getObjectField(id, n)
-    override def updated(id: CId, n: Name, v: CValue): DynSetEnclosure =
-      // TODO: Group updates or do this with mutation instead
-      dynSetEnclosure.copy(dynSet = { val encl = dynSetEnclosure.dynSet.copy; encl.update(dynSetEnclosure.nameToIndex(id, n), v); IntervalBox(encl) })
-    override def getInSimulator(variable: String) = dynSetEnclosure.getInSimulator(variable)
-  }
-  
-  def liftDynSetEnclosure(s: DynSetEnclosure)(implicit field: FieldImpl): RichStoreImpl = RichStoreImpl(s)
   
   case class FieldImpl(odes: List[CollectedAction], eqsInlined: Set[CollectedAction], evalExpr: (Expr, Env, EStore) => CValue) extends interpreters.Common.Field[DynSetEnclosure,CId] {
     override def apply(dynSetEnclosure: DynSetEnclosure): DynSetEnclosure = {

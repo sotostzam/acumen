@@ -94,7 +94,7 @@ case class DynSetEnclosure
   , dynSet               : IntervalDynSet
   , nameToIndex          : Map[(CId, Name), Int] ) 
   ( implicit cValueIsReal: Real[CValue]
-  ) extends Enclosure with EStore {
+  ) extends RichStore[DynSetEnclosure, CId] with Enclosure with EStore {
   
   assert(dynSet.dim == nameToIndex.size && nameToIndex.size == indexToName.size)
 
@@ -145,7 +145,7 @@ case class DynSetEnclosure
                                
   /** Apply m to all CValues in the CStore and Lohner set components with the 
    *  CId and Name of the value in context */
-  def mapName(m: (CId, Name, CValue) => CValue): DynSetEnclosure = 
+  override def mapName(m: (GId, Name, CValue) => CValue): DynSetEnclosure = 
     DynSetEnclosure( st.map{ case (cid,co) => (cid, co.map{ case (n,v) => (n, m(cid,n,v)) }) }
                    , dynSet.map((i: Int, v: CValue) => m(indexToName(i)._1, indexToName(i)._2, v))
                    , nameToIndex )
@@ -164,11 +164,24 @@ case class DynSetEnclosure
                        , dynSet
                        , nameToIndex )
     }
-
+  
   override def getObjectField(id: CId, n: Name): CValue =
     nameToIndex.get(id, n) match {
       case Some(i) => dynSet(i)
       case None => super.getObjectField(id, n)
     }
 
+  /* RichStore interface */
+  
+  override def apply(id: CId, n: Name): CValue = getObjectField(id, n)
+  
+  override def updated(id: CId, n: Name, v: CValue): DynSetEnclosure = 
+    DynSetEnclosure( st.updated(id, st(id).updated(n, v))
+                     , if (nameToIndex.isDefinedAt(id, n)) dynSet.set(nameToIndex(id, n), v) else
+                                                           dynSet
+                     , nameToIndex )
+  
+  override def +++(that: DynSetEnclosure): DynSetEnclosure = mapName( (id: GId, n: Name, v: CValue) => cValueIsReal.add(v, that(id.cid, n)) )
+                       
+  override def ***(that: Double): DynSetEnclosure = map( x => cValueIsReal.fromDouble(that) * x ) 
  }
