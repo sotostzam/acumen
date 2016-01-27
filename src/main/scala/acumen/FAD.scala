@@ -111,6 +111,8 @@ object FAD extends App {
       else
         exp(mul(r, log(l)))
     }
+    def pow(l: FDif[V], r: Int): FDif[V] =
+      pow(l, evVIsReal.fromInt(r))
     def pow(l: FDif[V], r: V): FDif[V] = {
       if (isConstant(l))
         powOfRealOnReal(l.head, r)

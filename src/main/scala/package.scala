@@ -71,6 +71,7 @@ package object acumen {
   trait Real[V] extends Integral[V] {
     def div(l: V, r: V): V
     def pow(l: V, r: V): V
+    def pow(l: V, r: Int): V
     def sin(x: V): V
     def cos(x: V): V
     def tan(x: V): V
@@ -106,8 +107,8 @@ package object acumen {
   /** Syntactic sugar for Real operations */
   implicit class RealOps[V](val l: V)(implicit ev: Real[V]) {
     def /(r: V): V = ev.div(l, r)
-    def ^(r: V): V = ev.pow(l, r)
-    def ^(r: Int): V = ev.pow(l, ev.fromInt(r))
+    def ^(r: V): V = if (ev.isValidInt(r)) ev.pow(l, ev.toInt(r)) else ev.pow(l, r)
+    def ^(r: Int): V = ev.pow(l, r)
     def sin: V = ev.sin(l)
     def cos: V = ev.cos(l)
     def tan: V = ev.tan(l)
@@ -147,6 +148,7 @@ package object acumen {
     def mul(l: Double, r: Double): Double = l * r
     def div(l: Double, r: Double): Double = l / r
     def pow(l: Double, r: Double): Double = Math.pow(l, r)
+    def pow(l: Double, r: Int): Double = Math.pow(l, r)
     def neg(x: Double): Double = -x
     def sin(x: Double): Double = Math.sin(x)
     def cos(x: Double): Double = Math.cos(x)
@@ -181,6 +183,7 @@ package object acumen {
     def mul(l: Interval, r: Interval): Interval = l * r
     def div(l: Interval, r: Interval): Interval = l / r
     def pow(l: Interval, r: Interval): Interval = l pow r
+    def pow(l: Interval, r: Int): Interval = l pow r
     def neg(x: Interval): Interval = -x
     def sin(x: Interval): Interval = x.sin
     def cos(x: Interval): Interval = x.cos
@@ -236,6 +239,7 @@ package object acumen {
     def mul(a: CValue, b: CValue): CValue = binOp(a, b , (l,r) => ev.mul(l,r))
     def neg(x: CValue): CValue = unOp(x, i => ev.neg(i))
     def pow(a: CValue, b: CValue): CValue = binOp(a, b , (l,r) => ev.pow(l,r))
+    def pow(a: CValue, b: Int): CValue = binOp(a, VLit(GInt(b)) , (l,r) => ev.pow(l,b))
     def sin(x: CValue): CValue = unOp(x, y => ev.sin(y))
     def sqrt(x: CValue): CValue = unOp(x, y => ev.sqrt(y))
     def square(x: CValue): CValue = unOp(x, y => ev.square(y))

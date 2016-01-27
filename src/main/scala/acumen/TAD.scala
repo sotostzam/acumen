@@ -79,6 +79,15 @@ object TAD extends App {
         if (l == zero)         { require(!(r(0) == zeroOfV), s"pow is not applicable to ($l,$r) as 0^0 is not defined.")
                                zero }
         else                   exp(mul(r, log(l)))
+
+    /** Power with integer exponent */
+    def pow(l: TDif[V], n: Int) : TDif[V] = {
+        if (n == 0) one                       else 
+        if (n == 1) l                         else
+        if (n == 2) square(l)                 else
+        if (n <  0) div(one, pow(l, -n)) else
+        powBySquare(l, n)
+    }
       
     /** Square root */
     def sqrt(x: TDif[V]): TDif[V] =
@@ -118,21 +127,12 @@ object TAD extends App {
     
     /** Integer power by squaring */
     private def powBySquare(l: TDif[V], n: Int): TDif[V] =
-      mul(square(powOnInt(l, n/2)), (if (n % 2 == 1) l else one)) // FIXME should multiplying with one be optimized? 
-    
-    /** Power with integer exponent */
-    private def powOnInt(l: TDif[V], n: Int) : TDif[V] = {
-        if (n == 0) one                       else 
-        if (n == 1) l                         else
-        if (n == 2) square(l)                 else
-        if (n <  0) div(one, powOnInt(l, -n)) else
-        powBySquare(l, n)
-    }
+      mul(square(pow(l, n/2)), (if (n % 2 == 1) l else one)) // FIXME should multiplying with one be optimized? 
     
     /** Power with real exponent
      *  l != zero, r != zero, r != one */
     private def powOnReal(l: TDif[V], r: TDif[V]) : TDif[V] =
-      if (r(0).isValidInt) powOnInt(l, r(0).toInt) else {
+      if (r(0).isValidInt) pow(l, r(0).toInt) else {
         val k0  = firstNonZero(l) // n >= k0 because l != zero
         val lk0 = l(k0)
         val a = r(0) // FIXME This is a constant! Should not be lifted in the first place.
