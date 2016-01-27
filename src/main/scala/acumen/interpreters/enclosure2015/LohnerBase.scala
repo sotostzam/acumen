@@ -188,7 +188,7 @@ case class LohnerBase
       dynSetEnclosure.copy(dynSet = IntervalBox(breeze.linalg.Vector.tabulate(dynSetEnclosure.dim)(i => dynSetEnclosure.dynSet(i) * cValueIsReal.fromDouble(that))))
     override def map(m: CValue => CValue): DynSetEnclosure = dynSetEnclosure map m
     override def mapName(m: (GId, Name, CValue) => CValue): DynSetEnclosure = dynSetEnclosure mapName m
-    override def apply(id: CId, n: Name): CValue = dynSetEnclosure.dynSet(dynSetEnclosure.nameToIndex(id, n))
+    override def apply(id: CId, n: Name): CValue = dynSetEnclosure.getObjectField(id, n)
     override def updated(id: CId, n: Name, v: CValue): DynSetEnclosure =
       // TODO: Group updates or do this with mutation instead
       dynSetEnclosure.copy(dynSet = { val encl = dynSetEnclosure.dynSet.copy; encl.update(dynSetEnclosure.nameToIndex(id, n), v); IntervalBox(encl) })

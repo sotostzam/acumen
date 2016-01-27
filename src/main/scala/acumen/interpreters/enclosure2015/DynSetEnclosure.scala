@@ -164,5 +164,11 @@ case class DynSetEnclosure
                        , dynSet
                        , nameToIndex )
     }
-                
+
+  override def getObjectField(id: CId, n: Name): CValue =
+    nameToIndex.get(id, n) match {
+      case Some(i) => dynSet(i)
+      case None => super.getObjectField(id, n)
+    }
+
  }
