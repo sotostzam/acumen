@@ -80,7 +80,18 @@ object Common {
   // FIXME: Replace breeze.linalg.Vector[CValue] with breeze.linalg.Vector[R] with R: Real
   type RealVector = breeze.linalg.Vector[CValue]
   type RealMatrix = breeze.linalg.Matrix[CValue]
-  
+
+  // Adding functionality to RealVector
+  class FunctionalRealVector(v: RealVector) {
+    def updated(i: Int, c: CValue) = {
+      val tmpVector = v.copy
+      tmpVector.update(i, c)
+      tmpVector
+    }
+    def mapIndexwise(m: (Int, CValue) => CValue) = breeze.linalg.Vector.tabulate[CValue](v.length) { i => m(i, v(i)) }
+  }
+  implicit def RealVectorIsFunctional(v: RealVector) = new FunctionalRealVector(v)
+
   object midpointVector extends breeze.generic.UFunc {
    implicit object implInterval extends Impl[CValue, CValue] {
      def apply(i: CValue) = i match { case VLit(GConstantRealEnclosure(i)) => VLit(GConstantRealEnclosure(Interval(i.midpoint))) }

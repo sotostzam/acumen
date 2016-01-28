@@ -96,13 +96,16 @@ case class DynSetEnclosure
   ( implicit cValueIsReal: Real[CValue]
   ) extends RichStore[DynSetEnclosure, CId] with Enclosure with EStore {
   
-  assert(dynSet.dim == nameToIndex.size && nameToIndex.size == indexToName.size)
+  assert( dynSet.size      == nameToIndex.size 
+       && nameToIndex.size == indexToName.size,
+       "Creation of DynSetEnclosure failed: dimensions mismatch.")
 
+  assert( nameToIndex.size > 0, 
+       "Creation of DynSetEnclosure failed: dimension is 0.")
+       
   lazy val indexToName = nameToIndex.map(_.swap)
  
   val dim = nameToIndex.size
-
-  assert(dim > 0, "Continuous dynamics must be defined") // FIXME Improve error checking
   
   /** Move the enclosure by the mapping m, returning range and image enclosures. */
   def move( eqsInlined : Set[CollectedAction]
