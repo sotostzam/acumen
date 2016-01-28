@@ -50,7 +50,7 @@ abstract class IntervalDynSet extends RealVector
   def activeSize           = outerEnclosure.activeSize
   def length: Int          = outerEnclosure.length
   def copy                 = outerEnclosure.copy
-  def update(i: Int,v: acumen.CValue) = throw ShouldNeverHappen()         
+  def update(i: Int, c: CValue) = throw ShouldNeverHappen()         
 }
 
 /** The IntervalBox represents the vector as itself.
