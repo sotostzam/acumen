@@ -20,16 +20,21 @@ abstract class IntervalDynSet extends RealVector
   // An outer enclosure of the represented RealVector
   val outerEnclosure: RealVector
   
+  // Initialize an IntervalDynSet representing vec
   def init(vec: RealVector): IntervalDynSet
   
+  // Obtain an enclosure of the represented vectors i-th element
   def apply(i: Int): CValue = outerEnclosure(i)
   
-  def set(i: Int, c: CValue): IntervalDynSet = init(outerEnclosure.updated(i, c))
-  
+  // Modify the represented vector
+  def set(i: Int, c: CValue)          : IntervalDynSet = init(outerEnclosure.updated(i, c))
   def map(m: CValue => CValue)        : IntervalDynSet = init(outerEnclosure.map(m))
   def map(m: (Int, CValue) => CValue) : IntervalDynSet = init(outerEnclosure.mapIndexwise(m))
   
+  // Map the represented vector
   def move(f: Mapping) : IntervalDynSet = init(f(outerEnclosure))
+  
+  // Move the represented vector by a flow: (range enclosure, end-time enclosure)
   def move(f: C1Flow)  : (IntervalDynSet, IntervalDynSet)
   
   // TODO this is a stub to enable development on a higher level
@@ -38,14 +43,14 @@ abstract class IntervalDynSet extends RealVector
          i1 contains i2 }
   
   /* RealVector interface */
-  def repr = outerEnclosure.repr
-  def activeIterator = outerEnclosure.activeIterator
-  def activeKeysIterator = outerEnclosure.activeKeysIterator   
+  def repr                 = outerEnclosure.repr
+  def activeIterator       = outerEnclosure.activeIterator
+  def activeKeysIterator   = outerEnclosure.activeKeysIterator   
   def activeValuesIterator = outerEnclosure.activeValuesIterator 
-  def activeSize = outerEnclosure.activeSize
-  def length: Int = outerEnclosure.length
+  def activeSize           = outerEnclosure.activeSize
+  def length: Int          = outerEnclosure.length
+  def copy                 = outerEnclosure.copy
   def update(i: Int,v: acumen.CValue) = throw ShouldNeverHappen()         
-  def copy = outerEnclosure.copy
 }
 
 /** The IntervalBox represents the vector as itself.
@@ -83,20 +88,21 @@ case class Cuboid
      * and phi(X(0), t) \in phi(x, t) + Dphi(X(0), t)(X(0) - x)
      */
     def move(f: C1Flow): (Cuboid, Cuboid) = {
-      val coarseRangeEnclosure = f.range(outerEnclosure)
+      val coarseRangeEnclosure : RealVector = f.range(outerEnclosure)
       
-      val phi                  = f.phi(midpoint)
-      val jacobian             = f.jacPhi(outerEnclosure)
-      val remainder            = f.remainder(coarseRangeEnclosure)
+      val phi                 : RealVector = f.phi(midpoint)
+      val jacobian            : RealMatrix = f.jacPhi(outerEnclosure)
+      val remainder           : RealVector = f.remainder(coarseRangeEnclosure)
       
-      val phiPlusRemainder: RealVector = phi + remainder
+      val phiPlusRemainder    : RealVector = phi + remainder
 
       val imageMidpoint             : RealVector = midpointVector(phiPlusRemainder)
       val imageWidth                : RealVector = width
       val imageLinearTransformation : RealMatrix = jacobian * linearTransformation
       val imageError                : RealVector = jacobian * error + 
                                                    centeredVector(phiPlusRemainder)
-      lazy val refinedRangeEnclosure = {
+
+      lazy val refinedRangeEnclosure : RealVector = {
         val rangeMidpoint  : RealVector = f.range.phi(midpoint)
         val rangeJacobian  : RealMatrix = f.range.jacPhi(outerEnclosure)
         val rangeRemainder : RealVector = f.range.remainder(coarseRangeEnclosure)
