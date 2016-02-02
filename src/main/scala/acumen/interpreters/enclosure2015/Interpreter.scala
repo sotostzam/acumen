@@ -880,29 +880,6 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
     ): (Enclosure, Enclosure) = {
     solverBase(enc.cStore).solver.solve(odes, eqs, claims, T, p, enc, evalExpr)
   }
-  
-  // FIXME Remove debug code
-  def printMatrix(title: String, m: RealMatrix, indexToName: Int => (CId, Name)) {
-    var row = 0
-    if (title != "") println(title + ": ")
-    print(s"${indexToName(row)}\t")
-    m.foreachKey {
-      case (r, c) =>
-        m(r, c) match {
-          case VLit(GConstantRealEnclosure(i)) =>
-            if (r > row) { row += 1; print(s"\n${indexToName(row)}\t") }
-            print(s"$i\t")
-        }
-    }
-    print("\n")
-  }
-  def printVector(title: String, rv: RealVector, indexToName: Int => (CId, Name)) =
-    println((if (title != "") title + ": " else "") +
-      rv.toArray.zipWithIndex.map { case (v, i) => indexToName(i) + ": " + v }.mkString(", "))
-  def printStore(title: String, st: CStore) =
-    println((if (title != "") title + ": " else "") +
-      (Pretty pprint (Pretty prettyStore st)))
-
 
   /**
    * Reject invalid models. The following rules are checked:
