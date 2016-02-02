@@ -6,6 +6,7 @@ import enclosure.Interval
 import enclosure2015.Common._
 import interpreters.Common._
 import Errors._
+import enclosure2015.ValidatedLinAlg._
 
 /** An IntervalDynSet represents a dim-dimensional RealVector.
  *  By choosing an appropriate representation, wrapping may be reduced.
@@ -64,23 +65,29 @@ case class IntervalBox(v: RealVector) extends IntervalDynSet
   def move(f: C1Flow): (IntervalBox, IntervalBox) = (IntervalBox(f(v)), IntervalBox(f.range(v)))
 }
 
-/** The Cuboid represents the vector as midpoint + linearTransformation * width + error, where
+/** The Cuboid represents the vector as midpoint + linearTransform * width + error, where
  *    midpoint, width, error \in R^n
- *    linearTransformation   \in R^{n x n}
+ *    linearTransform        \in R^{n x n} effectively orthogonal
+ *    linearTransformT       \in R^{n x n}
+ *    errorLTTLT             \in R^{n x n}
+ *    
+ *    such that linearTransformT * linearTransform \subseteq Id + errorLTTLT.
  */
 case class Cuboid
   ( midpoint             : RealVector
-  , linearTransformation : RealMatrix
+  , linearTransform      : RealMatrix
+  , linearTransformT     : RealMatrix
+  , errorLTTLT           : RealMatrix
   , width                : RealVector
   , error                : RealVector )
     extends IntervalDynSet
     {
-    assert( midpoint.size             == linearTransformation.rows 
-         && linearTransformation.rows == linearTransformation.cols 
-         && width.size                == error.size,
+    assert( midpoint.size        == linearTransform.rows 
+         && linearTransform.rows == linearTransform.cols 
+         && width.size           == error.size,
          "Creation of Cuboid failed: dimensions mismatch.")
     
-    val outerEnclosure = midpoint + linearTransformation * width + error
+    val outerEnclosure = midpoint + linearTransform * width + error
     
     def init(vec: RealVector) = Cuboid(vec)
           
@@ -95,23 +102,27 @@ case class Cuboid
       val remainder           : RealVector = f.remainder(coarseRangeEnclosure)
       
       val phiPlusRemainder    : RealVector = phi + remainder
+      
+      val resultOfQR : (RealMatrix, RealMatrix, RealMatrix, RealMatrix, RealMatrix) = validatedQR(jacobian * linearTransform)
 
       val imageMidpoint             : RealVector = midpointVector(phiPlusRemainder)
-      val imageWidth                : RealVector = width
-      val imageLinearTransformation : RealMatrix = jacobian * linearTransformation
-      val imageError                : RealVector = jacobian * error + 
+      val imageWidth                : RealVector = resultOfQR._2 * width
+      val imageLinearTransform      : RealMatrix = resultOfQR._1
+      val imageLinearTransformT     : RealMatrix = resultOfQR._3
+      val imageErrorLTTLT           : RealMatrix = resultOfQR._5
+      val imageError                : RealVector = resultOfQR._4 * width + jacobian * error + 
                                                    centeredVector(phiPlusRemainder)
-
+      
       lazy val refinedRangeEnclosure : RealVector = {
         val rangeMidpoint  : RealVector = f.range.phi(midpoint)
         val rangeJacobian  : RealMatrix = f.range.jacPhi(outerEnclosure)
         val rangeRemainder : RealVector = f.range.remainder(coarseRangeEnclosure)
         
-        rangeMidpoint + rangeJacobian * (linearTransformation * width + error) + rangeRemainder 
+        rangeMidpoint + rangeJacobian * (linearTransform * width + error) + rangeRemainder 
       }
   
       ( Cuboid(refinedRangeEnclosure)
-      , Cuboid(imageMidpoint, imageLinearTransformation, imageWidth, imageError) )
+      , Cuboid(imageMidpoint, imageLinearTransform, imageLinearTransformT, imageErrorLTTLT, imageWidth, imageError) )
     }
 }
 
@@ -124,9 +135,11 @@ object Cuboid {
 
     val newMidpoint             : RealVector = midpointVector(v)
     val newWidth                : RealVector = centeredVector(v)
-    val newLinearTransformation : RealMatrix = breeze.linalg.DenseMatrix.eye[CValue](v.size)    
+    val newLinearTransform      : RealMatrix = breeze.linalg.DenseMatrix.eye[CValue](v.size)
+    val newLinearTransformT     : RealMatrix = newLinearTransform
+    val newErrorLTTLT           : RealMatrix = breeze.linalg.DenseMatrix.zeros[CValue](v.size, v.size)
     val newError                : RealVector = breeze.linalg.Vector.zeros[CValue](v.size)
     
-    Cuboid(newMidpoint, newLinearTransformation, newWidth, newError)
+    Cuboid(newMidpoint, newLinearTransform, newLinearTransformT, newErrorLTTLT, newWidth, newError)
   }
 }
