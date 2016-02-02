@@ -38,10 +38,8 @@ abstract class IntervalDynSet extends RealVector
   // Move the represented vector by a flow: (range enclosure, end-time enclosure)
   def move(f: C1Flow)  : (IntervalDynSet, IntervalDynSet)
   
-  // TODO this is a stub to enable development on a higher level
-  def contains(that: IntervalDynSet): Boolean = (0 until outerEnclosure.length).forall {
-    i => val (VLit(GConstantRealEnclosure(i1)), VLit(GConstantRealEnclosure(i2))) = (this(i), that(i))
-         i1 contains i2 }
+  // Containment relation between IntervalDynSets
+  def contains(that: IntervalDynSet): Boolean
   
   /* RealVector interface */
   def repr                 = outerEnclosure.repr
@@ -63,6 +61,8 @@ case class IntervalBox(v: RealVector) extends IntervalDynSet
   def init(vec: RealVector) = IntervalBox(vec)
           
   def move(f: C1Flow): (IntervalBox, IntervalBox) = (IntervalBox(f(v)), IntervalBox(f.range(v)))
+  
+  def contains(that: IntervalDynSet): Boolean = isContained(that, v)
 }
 
 /** The Cuboid represents the vector as midpoint + linearTransform * width + error, where
@@ -123,6 +123,28 @@ case class Cuboid
   
       ( Cuboid(refinedRangeEnclosure)
       , Cuboid(imageMidpoint, imageLinearTransform, imageLinearTransformT, imageErrorLTTLT, imageWidth, imageError) )
+    }
+    
+    def contains(that: IntervalDynSet): Boolean = that match {
+        
+        case IntervalBox(_) => this contains Cuboid(that)
+    
+        /* m1 + L1 * w1 + e1 \supseteq m2 + L2 * w2 + e2
+         * 
+         *  <=>                 (if L1 is non-singular)
+         *  
+         * L1^t( m1 + L1 * w1 + e1 ) \supseteq L1^t( m2 + L2 * w2 + e2 )
+         * 
+         *  is implied by       (if Id + eL1tL1 \supseteq L1^t L1)
+         *  
+         * w1 \supseteq L1^t( m2 - m1 + e2 - e1 ) + (L1^t * L2) * w2  - eL1tL1 * w1
+         */
+        case Cuboid(thatMidpoint: RealVector, thatLinearTransform: RealMatrix, _, _, thatWidth: RealVector, thatError: RealVector) =>
+          // FIXME use proper implicits so vectors can be substracted from each other directly
+          val minusId = breeze.linalg.DenseMatrix.tabulate[CValue](length, length) { 
+            (i, j) => if (i == j) VLit(GConstantRealEnclosure(Interval(-1.0))) else zero }
+            val rhs = linearTransformT * (thatMidpoint + minusId * midpoint + thatError + minusId * error) + (linearTransformT * thatLinearTransform) * thatWidth + minusId * (errorLTTLT * width)
+            isContained(rhs, width)        
     }
 }
 
