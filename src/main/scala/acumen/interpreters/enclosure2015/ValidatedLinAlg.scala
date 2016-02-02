@@ -18,7 +18,16 @@ object ValidatedLinAlg {
   def isContained(v1: RealVector, v2: RealVector): Boolean = 
     (v1.length == v2.length) && (0 until v1.length).forall {
       i => val (VLit(GConstantRealEnclosure(i1)), VLit(GConstantRealEnclosure(i2))) = (v1(i), v2(i))
-         i2 contains i1 }
+        i2 contains i1 }
+
+  /** Containment relation between RealMatrices
+   *    m1 \subseteq m2
+   */
+  def isContained(m1: RealMatrix, m2: RealMatrix): Boolean = 
+    (m1.rows == m2.rows) && (m1.cols == m2.cols) && (0 until m1.rows).forall { 
+      i => (0 until m1.cols).forall { 
+        j => val (VLit(GConstantRealEnclosure(i1)), VLit(GConstantRealEnclosure(i2))) = (m1(i, j), m2(i, j))
+          i2 contains i1 }}
   
   /** Computes an interval 'e' such that 
    *  i1 \subseteq i2 + e
@@ -74,6 +83,7 @@ object ValidatedLinAlg {
         val (VLit(GConstantRealEnclosure(int1)), VLit(GConstantRealEnclosure(int2))) = (QtQ(i, j), if (i == j) one else zero) 
         VLit(GConstantRealEnclosure(computeDifferenceInterval(int1, int2))) }
 
+    // TODO Add property based tests using isContained
     (Q, R, Qt, errorQR, errorQtQ)
   }
 }
