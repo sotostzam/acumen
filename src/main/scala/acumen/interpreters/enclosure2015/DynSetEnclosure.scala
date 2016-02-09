@@ -125,6 +125,20 @@ case class DynSetEnclosure
                      , nameToIndex ) )
   }
   
+  def mapping( c1map    : C1Mapping
+             , evalExpr : (Expr, Env, EStore) => CValue ) = {
+
+    def updateCStore(mapValues: RealVector): CStore = 
+      DynSetEnclosure.updateCStore(this.cStore, mapValues, Set.empty[CollectedAction], evalExpr, indexToName, nameToIndex)
+      
+    val imageDynSet = dynSet mapping c1map
+    
+    DynSetEnclosure( updateCStore(imageDynSet)
+                   , imageDynSet
+                   , nameToIndex )
+  } 
+
+  
   override def contains(that: Enclosure): Boolean = that match {
     case dse: DynSetEnclosure =>
       val flowNames = indexToName.values.toSet
