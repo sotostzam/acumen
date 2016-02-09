@@ -157,6 +157,65 @@ object LohnerEnclosureSolver extends EnclosureSolver[DynSetEnclosure] {
 
   }
   
+  def jumpEncloser
+    ( das: Set[CollectedAction]
+    , T: Interval
+    , p: Prog
+    , encIn: DynSetEnclosure
+    , evalExpr: (Expr, Env, EStore) => CValue
+    ): Enclosure = {
+    Logger.trace(s"jumpEncloserLohner (over $T)")
+
+    val nameToIndexNext = 
+      DynSetEnclosure.buildNameToIndexMap(das.map{ ca => val rd = ca.lhs; (rd.id, rd.field) })
+      
+    // FIXME Be more clever here, analogously to the issue with setting values in the IntervalDynSet
+    val enc =
+      if (nameToIndexNext == encIn.nameToIndex) encIn
+      else // convert dynSet in enc to be of the dimension specified by odes 
+        DynSetEnclosure(encIn.cStore, nameToIndexNext)(intervalBase cValueIsReal) 
+    
+  
+    case class MeanvalueEvaluation( das : List[CollectedAction]  
+                                  ) extends C1Mapping {
+
+        
+      def apply(x: RealVector): RealVector = phi(x)
+      def remainder(x: RealVector): RealVector = x
+      
+      /** Computes the image */
+      def phi(x: RealVector): RealVector = {
+        implicit val useIntervalArithmetic: Real[CValue] = intervalBase.cValueIsReal
+        implicit val intervalField = intervalBase.FieldImpl(das, Set.empty[CollectedAction], evalExpr)
+        val xLift = DynSetEnclosure(x, enc, das.toSet, evalExpr) 
+        val imageOfx = xLift map (das.map(d => (d.selfCId, d.lhs.field) -> evalExpr(d.rhs, d.env, xLift)).toMap)
+        imageOfx.dynSet
+      }
+
+      /** Computes the Jacobian of phi */
+      def jacPhi(x: RealVector): RealMatrix = {
+        implicit val useFDifArithmetic: Real[CValue] = fDifBase.cValueIsReal
+        val mapVariables = enc.indexToName.values.map{ case (id,n) => QName(id,n) }.toList // used for lifting
+        implicit val linearTransformationField = fDifBase.FieldImpl(das.map(_ mapRhs (FAD.lift[CId,CValue](_, mapVariables))), Set.empty[CollectedAction], evalExpr)
+        val xLift = DynSetEnclosure(x, enc, das.toSet, evalExpr) 
+        val imageOfx = xLift map (das.map(d => (d.selfCId, d.lhs.field) -> evalExpr(d.rhs, d.env, xLift)).toMap)   
+        breeze.linalg.Matrix.tabulate[CValue](enc.dim, enc.dim) {
+          case (r, c) =>
+            (imageOfx dynSet c) match {
+              case VLit(GIntervalFDif(FAD.FDif(_, ds))) =>
+                val (id, n) = imageOfx indexToName r
+                VLit(GConstantRealEnclosure(ds(QName(id, n))))
+            }
+        }
+      }
+          
+    }
+
+    val myEvaluator = MeanvalueEvaluation(das.toList)
+    
+    enc.mapping(myEvaluator, evalExpr)
+  
+  }
 }
 
 /** Interval evaluation of solveIVPTaylor */
