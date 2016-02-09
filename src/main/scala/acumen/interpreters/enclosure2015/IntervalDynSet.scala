@@ -33,7 +33,7 @@ abstract class IntervalDynSet extends RealVector
   def map(m: (Int, CValue) => CValue) : IntervalDynSet = init(outerEnclosure.mapIndexwise(m))
   
   // Map the represented vector
-  def move(f: Mapping) : IntervalDynSet = init(f(outerEnclosure))
+  def mapping(f: C1Mapping) : IntervalDynSet = init(f(outerEnclosure))
   
   // Move the represented vector by a flow: (range enclosure, end-time enclosure)
   def move(f: C1Flow)  : (IntervalDynSet, IntervalDynSet)
@@ -123,6 +123,24 @@ case class Cuboid
   
       ( Cuboid(refinedRangeEnclosure)
       , Cuboid(imageMidpoint, imageLinearTransform, imageLinearTransformT, imageErrorLTTLT, imageWidth, imageError) )
+    }
+    
+    override def mapping(f: C1Mapping): Cuboid = {
+      
+      val phi                 : RealVector = f.phi(midpoint)
+      val jacobian            : RealMatrix = f.jacPhi(outerEnclosure)
+      
+      val resultOfQR : (RealMatrix, RealMatrix, RealMatrix, RealMatrix, RealMatrix) = validatedQR(jacobian * linearTransform)
+
+      val imageMidpoint             : RealVector = midpointVector(phi)
+      val imageWidth                : RealVector = resultOfQR._2 * width
+      val imageLinearTransform      : RealMatrix = resultOfQR._1
+      val imageLinearTransformT     : RealMatrix = resultOfQR._3
+      val imageErrorLTTLT           : RealMatrix = resultOfQR._5
+      val imageError                : RealVector = resultOfQR._4 * width + jacobian * error + 
+                                                   centeredVector(phi)
+      
+      Cuboid(imageMidpoint, imageLinearTransform, imageLinearTransformT, imageErrorLTTLT, imageWidth, imageError)
     }
     
     def contains(that: IntervalDynSet): Boolean = that match {
