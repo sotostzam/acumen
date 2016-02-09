@@ -164,6 +164,12 @@ case class Cuboid
             val rhs = linearTransformT * (thatMidpoint + minusId * midpoint + thatError + minusId * error) + (linearTransformT * thatLinearTransform) * thatWidth + minusId * (errorLTTLT * width)
             isContained(rhs, width)        
     }
+    
+  def toBeReorganized: Boolean =
+   (0 until length).filter( i => (width(i), error(i)) match { 
+     case (VLit(GConstantRealEnclosure(wi)), VLit(GConstantRealEnclosure(ei))) => ei.width.hiDouble > wi.width.hiDouble * 10.0 } ).isEmpty
+
+  def reorganize: Cuboid = Cuboid(outerEnclosure)
 }
 
 /** Initializing a Cuboid from a RealVector.
