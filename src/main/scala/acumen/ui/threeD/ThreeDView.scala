@@ -611,7 +611,7 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D, playSpeed: Double,
       planeMesh.removeVertexController()
     } catch {
       case e: java.lang.NullPointerException =>
-        println("Och!!!") // should never happen
+        throw ShouldNeverHappen()
     }
   }
 
