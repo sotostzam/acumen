@@ -611,7 +611,7 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D, playSpeed: Double,
       planeMesh.removeVertexController()
     } catch {
       case e: java.lang.NullPointerException =>
-        println("Och!!!")
+        throw ShouldNeverHappen()
     }
   }
 
@@ -647,7 +647,7 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D, playSpeed: Double,
     resizeResult
   }
 
-  def renderCurrentFrame() = this.synchronized {
+  def renderCurrentFrame() = app.world.synchronized {
     app.objects.synchronized {
       app.objectsToDelete.clear()
       // 3d objects within the current frame
@@ -686,7 +686,7 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D, playSpeed: Double,
     }
   }
 
-  def renderFrameInRealTime() = this.synchronized {
+  def renderFrameInRealTime(): Int = app.world.synchronized {
     app.objects.synchronized {
       app.objectsToDelete.clear()
       val latestFrame = _3DDataBuffer.size - 1
@@ -699,7 +699,7 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D, playSpeed: Double,
             app.objects -= objectKey
             matchingObject(objectKey, valueList, latestFrame)
           } else
-            transformObject(objectKey, valueList, lastRenderFrame, latestFrame)
+            transformObject(objectKey, valueList, app.rtLastRenderFrame, latestFrame)
 
         // delete the object not in this frame
         for ((objectKey, o) <- app.objects)
@@ -717,9 +717,9 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D, playSpeed: Double,
             app.transformView(_3DView.last._1, _3DView.last._2, Array(0,0,0), Array(0,0,0))
           }
         }
-        app.rtLastRenderFrame = latestFrame
         app.viewStateMachine("renderCurrentObjects")
       }
+      latestFrame
     }
   }
 
@@ -1148,7 +1148,7 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D, playSpeed: Double,
           }
         case "real time render" =>
           if (!app.waitingPaint)
-            renderFrameInRealTime()
+            app.rtLastRenderFrame = renderFrameInRealTime()
       }
     }
   }
