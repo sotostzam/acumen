@@ -138,12 +138,11 @@ case class DynSetEnclosure
                    , nameToIndex )
   } 
 
-  
   override def contains(that: Enclosure): Boolean = that match {
     case dse: DynSetEnclosure =>
       val flowNames = indexToName.values.toSet
       val containsNonOdeVariables = contains(that, flowNames)
-      containsNonOdeVariables && (this.dynSet contains dse.dynSet)
+      containsNonOdeVariables && (this.dynSet.length == dse.dynSet.length) && (this.dynSet contains dse.dynSet)
     case oe =>
       throw internalError(s"Have not implemented check for containment of ${oe.getClass} in ${this.getClass}.")
   }
