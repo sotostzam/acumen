@@ -250,6 +250,13 @@ object TAD extends App {
     def head: V = coeff(0)
     def map[W: Integral](m: V => W): TDif[W] = TDif(coeff map m, length)
     def indexWhere(m: V => Boolean): Int = coeff.take(length).indexWhere(c => m(c))
+    override def hashCode() = (coeff take length).hashCode
+    override def equals(o: Any) = o match {
+      case tdif: TDif[V] => 
+        this.length == tdif.length && 
+          ((this.coeff zip tdif.coeff) take length).forall{ case (l,r) => l equals r }
+      case _ => false
+    } 
   }
   object TDif {
     /** Lift a constant value of type A to a TDif. */
