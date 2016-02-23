@@ -32,8 +32,11 @@ object ValidatedLinAlg {
   /** Computes an interval 'e' such that 
    *  i1 \subseteq i2 + e
    */
-  def computeDifferenceInterval(i1: Interval, i2: Interval): Interval = 
-    Interval( (i1.low - i2.low).loDouble, (i1.high - i2.high).hiDouble )
+  def computeDifferenceInterval(i1: Interval, i2: Interval): Interval = { 
+    val loDiff = (i1.low - i2.low).loDouble
+    val hiDiff = (i1.high - i2.high).hiDouble 
+    Interval( scala.math.min(loDiff, hiDiff), scala.math.max(loDiff, hiDiff) )
+  }
 
   /** Computes a validated QR decomposition for an input matrix M. 
    *  The result is 5 matrices Q, R, Q^t, eQR, eQtQ such that
