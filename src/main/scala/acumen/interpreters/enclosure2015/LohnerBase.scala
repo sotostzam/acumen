@@ -93,8 +93,8 @@ object LohnerEnclosureSolver extends EnclosureSolver[DynSetEnclosure] {
       /** Computes the finite Taylor expansion */
       def phi(x: RealVector, timeStep: Interval): RealVector = {
         implicit val useIntervalArithmetic: Real[CValue] = intervalBase.cValueIsReal
-        implicit val intervalField = intervalBase.FieldImpl(odeList, eqsInlined, evalExpr)
-        val xLift = DynSetEnclosure(x, enc, eqsInlined, evalExpr) // FIXME was enc.midpoint
+        implicit val intervalField = intervalBase.FieldImpl(odeList, Set.empty[CollectedAction], evalExpr)
+        val xLift = DynSetEnclosure(x, enc, Set.empty[CollectedAction], evalExpr) // FIXME was enc.midpoint
         val imageOfx = solveIVPTaylor[CId,DynSetEnclosure,CValue](xLift, VLit(GConstantRealEnclosure(timeStep)), orderOfIntegration)
         imageOfx.dynSet
       }
@@ -103,8 +103,8 @@ object LohnerEnclosureSolver extends EnclosureSolver[DynSetEnclosure] {
       def jacPhi(x: RealVector, timeStep: Interval): RealMatrix = {
         implicit val useFDifArithmetic: Real[CValue] = fDifBase.cValueIsReal
         val flowVariables = enc.indexToName.values.map{ case (id,n) => QName(id,n) }.toList // used for lifting
-        implicit val linearTransformationField = fDifBase.FieldImpl(odeList.map(_ mapRhs (FAD.lift[CId,CValue](_, flowVariables))), eqsInlined.map(_ mapRhs (FAD.lift[CId,CValue](_, flowVariables))), evalExpr)
-        val p = FAD.lift[CId,DynSetEnclosure,CValue](DynSetEnclosure(x, enc, eqsInlined, evalExpr), flowVariables) // FIXME parameter2 was enc.outerEnclosure
+        implicit val linearTransformationField = fDifBase.FieldImpl(odeList.map(_ mapRhs (FAD.lift[CId,CValue](_, flowVariables))), Set.empty[CollectedAction], evalExpr)
+        val p = FAD.lift[CId,DynSetEnclosure,CValue](DynSetEnclosure(x, enc, Set.empty[CollectedAction], evalExpr), flowVariables) // FIXME parameter2 was enc.outerEnclosure
         val myStepWrapped = {
           val VLit(GIntervalFDif(FAD.FDif(_, zeroCoeffs))) = useFDifArithmetic.fromDouble(0)
           VLit(GIntervalFDif(FAD.FDif(timeStep, zeroCoeffs)))
@@ -124,8 +124,8 @@ object LohnerEnclosureSolver extends EnclosureSolver[DynSetEnclosure] {
       /** Bounds the difference between the finite Taylor expansion and the flow */
       def remainder(x: RealVector, timeStep: Interval): RealVector = {
         implicit val useIntervalArithmetic: Real[CValue] = intervalBase.cValueIsReal
-        implicit val intervalField = intervalBase.FieldImpl(odeList, eqsInlined, evalExpr)
-        val p = DynSetEnclosure(x, enc, eqsInlined, evalExpr)
+        implicit val intervalField = intervalBase.FieldImpl(odeList, Set.empty[CollectedAction], evalExpr)
+        val p = DynSetEnclosure(x, enc, Set.empty[CollectedAction], evalExpr)
         val tcs = computeTaylorCoefficients[CId,DynSetEnclosure,CValue](p, orderOfIntegration + 1)
         val factor = VLit(GConstantRealEnclosure(timeStep pow (orderOfIntegration + 1)))
         // TODO remove outerEnclosure
