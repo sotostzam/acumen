@@ -167,6 +167,17 @@ case class DynSetEnclosure
                    , dynSet.map((i: Int, v: CValue) => m(indexToName(i)._1, indexToName(i)._2, v))
                    , nameToIndex )
 
+  override def setObject(id: CId, o: CObject): Enclosure = this updated (id, o)
+  
+  def updated(id: CId, o: CObject): DynSetEnclosure = 
+    if (nameToIndex.keySet.filter( key => key._1 == id ).isEmpty) 
+      DynSetEnclosure( st updated(id, o)
+                     , dynSet 
+                     , nameToIndex )
+    else
+      DynSetEnclosure( st updated(id, o) )
+
+
   /* EStore interface */
 
   override def setObjectField(id: CId, n: Name, v: CValue): Enclosure =
