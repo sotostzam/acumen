@@ -776,18 +776,31 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
       val InitialCondition(w, qw, t) = wqt
       hw.foldLeft((List.empty[InitialCondition], List.empty[Enclosure], List.empty[InitialCondition])) {
         case ((tmpW, tmpR, tmpU), q) =>
+          val wi = if (intersectWithGuardBeforeReset && ((!isFlow(q)) || ((!qw.nonEmpty) || (q != qw.head)))) {
+                     val wCont = if (qw.nonEmpty && (isFlow(qw.head)))
+                                   picardBase.contract(w, (qw.head.odes union qw.head.eqs).map(ca => CollectedConstraint(ca.selfCId, ca.path, ca.env)) union qw.head.claims, prog, evalExpr)
+                                   //FIXME was .fold(sys error "Empty intersection while contracting with guard. " + _, i => i)
+                                 else Right(w)
+                     val wContInit = wCont match {
+                                       case Left(_) => wCont
+                                       case Right(wc) => 
+                                         if (isFlow(q)) 
+                                             picardBase.contract(wc, (q.odes union q.eqs).map(ca => CollectedConstraint(ca.selfCId, ca.path, ca.env)) union q.claims, prog, evalExpr)
+                                           else
+                                             picardBase.contract(wc, q.dis.map(da => CollectedConstraint(da.selfCId, da.path, da.env)), prog, evalExpr)
+                                     }
+                    wContInit match {
+                      case Left(_)    => throw ShouldNeverHappen()
+                      case Right(wci) => wci 
+                    }
+          } else w
           // q is not a flow
           if (!isFlow(q)) 
             // we process q if T is thin
             if (T.isThin ||
             // or T is not thin, but the time is unknown    
                t == UnknownTime) {
-              Logger.trace(s"encloseHw (Not a flow)")
-              val wi = 
-                if (intersectWithGuardBeforeReset)
-                  picardBase.contract(w, q.dis.map(da => CollectedConstraint(da.selfCId, da.path, da.env)), prog, evalExpr)
-                    .fold(sys error "Empty intersection while contracting with guard. " + _, i => i)
-                else w
+              Logger.trace(s"encloseHw (Not a flow)") 
               (InitialCondition(wi(q.dis, evalExpr), q :: qw, t) :: tmpW, tmpR, tmpU)
             }
             // otherwise the non-flow q is not processed
@@ -804,7 +817,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
           // T is not thin, the flow is processed
           else {
             checkFlowDefined(prog, q, w)
-            val (range, end) = continuousEncloser(q.odes, q.eqs, q.claims, T, prog, w)
+            val (range, end) = continuousEncloser(q.odes, q.eqs, q.claims, T, prog, wi)
             val (newW, newU) = handleEvent(q, qw, range, range, if (t == StartTime) end else range)
             (newW ::: tmpW, range :: tmpR, newU ::: tmpU)
           }
@@ -813,7 +826,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
     def handleEvent(q: Changeset, past: Evolution, r: Enclosure, rp: Enclosure, u: Enclosure): (List[InitialCondition], List[InitialCondition]) = {
       val hr = active(r, prog)
       val hu = active(u, prog) 
-      val up = picardBase.contract(u, q.claims, prog, evalExpr)
+      val up = picardBase.contract(u, (q.odes union q.eqs).map(ca => CollectedConstraint(ca.selfCId, ca.path, ca.env)) union q.claims, prog, evalExpr)
       val e = q :: past
       if (noEvent(q, hr, up)) { // no event
         Logger.trace("handleEvent (No event)")
@@ -824,7 +837,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
       } else { // possible event
         Logger.trace(s"handleEvent (Possible event, |hr| = ${hr.size}, q.ass = {${q.dis.map(Pretty pprint _.a).mkString(", ")}})")
         Logger.trace(s"handleEvent hr.odes = ${hr.map{cs => cs.odes.map(Pretty pprint _.a).mkString(", ")}}, hr.dis = ${hr.map{cs => cs.dis.map(Pretty pprint _.a).mkString(", ")}}")
-        (InitialCondition(rp, e, UnknownTime) :: Nil, InitialCondition(up.right.get, e, StartTime) :: Nil)
+        (InitialCondition(rp, e, UnknownTime) :: Nil, InitialCondition(u, e, StartTime) :: Nil)
       }
     }
     enclose(st.branches, Nil, Nil, Nil, 0)
