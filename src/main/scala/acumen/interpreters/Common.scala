@@ -664,15 +664,17 @@ object Common {
     val k3 = f(xs +++ k2 *** (h/2))
     val k4 = f(xs +++ k3 *** h)
     xs +++ (k1 +++ k2 *** 2 +++ k3 *** 2 +++ k4) *** (h/6)
-  }
-  
-  def solveIVPTaylor[Id <: GId : TypeTag, S <% RichStore[S,Id], R: Real](s: S, h: Double, orderOfIntegration: Int)(implicit f: Field[S,Id]): S =
-    solveIVPTaylor(s, implicitly[Real[R]] fromDouble h, orderOfIntegration)
-  
+  }  
+    
+  /** Taylor Integrator 
+   *  - initial condition: s (of StoreType S)
+   *  - timestep:          h (of Real)
+   *  - order:             orderOfIntegration
+   *  - field:             f (of Field[S, Id])     */
   def solveIVPTaylor[Id <: GId : TypeTag, S <% RichStore[S,Id], R: Real](s: S, h: R, orderOfIntegration: Int)(implicit f: Field[S,Id]): S = {
     val rIsReal = implicitly[Real[R]]
     val taylorCoeffs = computeTaylorCoefficients[Id,S,R](s, orderOfIntegration)
-    // the Taylor series // FIXME Does it not make more sense to accumulate solution when computing taylorCoeffs?
+    // the Taylor series
     val solution = f.variables(s).foldLeft(taylorCoeffs) { case (sTmp, (id, n)) => 
       sTmp updated (id, n, // sum the Taylor coeffs from the store in which they were computed (paranoia)
         mapValue(taylorCoeffs(id, n), { gdif: GTDif[R] =>
@@ -683,6 +685,10 @@ object Common {
     }
     TAD lower solution
   }
+  
+  /** Taylor Integrator for Double timestep */
+  def solveIVPTaylor[Id <: GId : TypeTag, S <% RichStore[S,Id], R: Real](s: S, h: Double, orderOfIntegration: Int)(implicit f: Field[S,Id]): S =
+    solveIVPTaylor(s, implicitly[Real[R]] fromDouble h, orderOfIntegration)
 
   /** Compute Taylor coefficients of order 0 to orderOfExpansion.
    *  Returns a store containing values of type TDif[R] that contain the Taylor coefficients. */
