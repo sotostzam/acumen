@@ -291,7 +291,6 @@ object picardBase extends SolverBase {
               fold(s => Left("Empty enclosure after applying claim " + pprint(claim.c) + ": " + s), Right(_)) 
           } catch {
             case e: Throwable =>
-              Logger.trace(Pretty pprint asProgram(enc.cStore, prog))
               if (e.isInstanceOf[AcumenError]) throw e
               else if (e.isInstanceOf[NotImplementedError]) 
                 throw new NotImplementedError(s"Cannot contract. Missing implementation for: ${e.getMessage}.") 
