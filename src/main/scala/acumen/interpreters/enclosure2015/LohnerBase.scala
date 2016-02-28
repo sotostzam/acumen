@@ -113,9 +113,9 @@ object LohnerEnclosureSolver extends EnclosureSolver[DynSetEnclosure] {
         solveIVPTaylor[CId,DynSetEnclosure,CValue](p, myStepWrapped, orderOfIntegration)
         breeze.linalg.Matrix.tabulate[CValue](enc.dim, enc.dim) {
           case (r, c) =>
-            (linearTransformationSolution dynSet c) match {
+            (linearTransformationSolution dynSet r) match {
               case VLit(GIntervalFDif(FAD.FDif(_, ds))) =>
-                val (id, n) = linearTransformationSolution indexToName r
+                val (id, n) = linearTransformationSolution indexToName c
                 VLit(GConstantRealEnclosure(ds(QName(id, n))))
             }
         }
