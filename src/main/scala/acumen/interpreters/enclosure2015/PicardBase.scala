@@ -23,7 +23,11 @@ object picardEnclosureSolver extends EnclosureSolver[Enclosure] {
   
   import picardBase._
   
-  def convertEnclosure(e: Enclosure): Enclosure = e
+  def convertEnclosure(e: Enclosure): Enclosure = e match {
+    case dse: DynSetEnclosure => initializeEnclosure(dse.cStore)
+    case _ => e 
+  }
+
   
   def continuousEncloser
     ( odes: Set[CollectedAction] // Set of delayed ContinuousAction
