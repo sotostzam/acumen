@@ -673,14 +673,17 @@ object Common {
    *  - field:             f (of Field[S, Id])     */
   def solveIVPTaylor[Id <: GId : TypeTag, S <% RichStore[S,Id], R: Real](s: S, h: R, orderOfIntegration: Int)(implicit f: Field[S,Id]): S = {
     val rIsReal = implicitly[Real[R]]
-    val taylorCoeffs = computeTaylorCoefficients[Id,S,R](s, orderOfIntegration)
+    val computedTaylorCoeffs = computeTaylorCoefficients[Id,S,R](s, orderOfIntegration)
     // the Taylor series
-    val solution = f.variables(s).foldLeft(taylorCoeffs) { case (sTmp, (id, n)) => 
-      sTmp updated (id, n, // sum the Taylor coeffs from the store in which they were computed (paranoia)
-        mapValue(taylorCoeffs(id, n), { gdif: GTDif[R] =>
-          val vNext = gdif.dif.coeff.zipWithIndex.map { case (x, i) =>
-            if (i <= orderOfIntegration) x * rIsReal.pow(h, rIsReal fromInt i) // FIXME Use powOnInt 
-            else rIsReal.zero }.take(orderOfIntegration + 1).reduce(_ + _) // FIXME evaluate the polynomial using Horner-scheme
+    val solution = f.variables(s).foldLeft(s) { 
+      // computing the Taylor series of id.n  
+      case (sTmp, (id, n)) => sTmp updated (id, n, 
+        mapValue(computedTaylorCoeffs(id, n), { gdif: GTDif[R] => 
+          val taylorCoeffs = gdif.dif.coeff.take(orderOfIntegration + 1)
+          // the summation using Horner-scheme ('until' does not reach orderOfIntegration)
+          val vNext = (0 until orderOfIntegration).foldRight(taylorCoeffs(orderOfIntegration)) {
+            case (i, accumulatingValue) => (accumulatingValue * h) + taylorCoeffs(i)
+          }
           VLit(rIsReal groundValue vNext) }))
     }
     TAD lower solution
