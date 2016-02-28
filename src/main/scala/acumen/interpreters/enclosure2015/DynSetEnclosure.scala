@@ -179,7 +179,7 @@ case class DynSetEnclosure
 
   /* EStore interface */
 
-  override def setObjectField(id: CId, n: Name, v: CValue): Enclosure =
+  override def setObjectField(id: CId, n: Name, v: CValue): DynSetEnclosure =
     nameToIndex.get(id, n) match {
       case Some(i) =>
         Logger.trace(s"Setting DynSet variable $id.${Pretty pprint n}.")

@@ -35,6 +35,31 @@ object LohnerEnclosureSolver extends EnclosureSolver[DynSetEnclosure] {
     ): (Enclosure, Enclosure) = {
     Logger.trace(s"continuousEncloserLohner (over $T)")
 
+    // in-line eqs to obtain explicit ODEs
+    val field = inline(eqs, odes, encIn.cStore)
+    // LHSs of EquationsTs, including highest derivatives of ODEs
+    val eqsInlined = inline(eqs, eqs, encIn.cStore) 
+
+    // There are no ODEs in scope
+    if (field.isEmpty) {
+      Logger.trace("continuousEncloserLohner: there are no ODEs in scope")
+      // There are no EquationTs in scope
+      if (eqsInlined.isEmpty) {
+        Logger.trace("continuousEncloserLohner: there are no EqTs in scope")
+        (encIn, encIn)
+      // There are some EquationTs in scope
+      } else {
+        Logger.trace("continuousEncloserLohner: there are some EqTs in scope")
+        val equationTsApplied = 
+          eqsInlined.foldLeft(encIn: DynSetEnclosure){ case (stTmp, ca) =>
+            val rd = ca.lhs
+            val cv = evalExpr(ca.rhs, ca.env, encIn)
+            stTmp.setObjectField(rd.id, rd.field, cv)
+          }
+        (equationTsApplied, equationTsApplied)
+      }
+    } else {
+    
     val nameToIndexNext = 
       DynSetEnclosure.buildNameToIndexMap(odes.map{ ca => val rd = ca.lhs; (rd.id, rd.field) })
       
@@ -43,10 +68,6 @@ object LohnerEnclosureSolver extends EnclosureSolver[DynSetEnclosure] {
       if (nameToIndexNext == encIn.nameToIndex) encIn
       else // convert dynSet in enc to be of the dimension specified by odes 
         DynSetEnclosure(encIn.cStore, nameToIndexNext)(intervalBase cValueIsReal) 
-    
-    val field = inline(eqs, odes, enc.cStore) // in-line eqs to obtain explicit ODEs
-    val eqsInlined = inline(eqs, eqs, enc.cStore) // LHSs of EquationsTs, including highest derivatives of ODEs
-
     
     // TODO the class uses odeVariables and enc from the outside
     case class TaylorIntegrator( odeList             : List[CollectedAction]
@@ -155,6 +176,7 @@ object LohnerEnclosureSolver extends EnclosureSolver[DynSetEnclosure] {
     // TODO Align field.toList with the order in enc.indexToName
     enc.move(eqsInlined, myIntegrator, evalExpr)
 
+  }
   }
   
   def jumpEncloser
