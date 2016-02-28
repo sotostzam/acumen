@@ -679,6 +679,7 @@ object Common {
       // computing the Taylor series of id.n  
       case (sTmp, (id, n)) => sTmp updated (id, n, 
         mapValue(computedTaylorCoeffs(id, n), { gdif: GTDif[R] => 
+          // the length of the relevant TDif is now orderOfIntegration + 1 (as it holds data for 0, 1, .., orderOfIntegration)
           val taylorCoeffs = gdif.dif.coeff.take(orderOfIntegration + 1)
           // the summation using Horner-scheme ('until' does not reach orderOfIntegration)
           val vNext = (0 until orderOfIntegration).foldRight(taylorCoeffs(orderOfIntegration)) {
@@ -699,16 +700,21 @@ object Common {
     require (orderOfExpansion > 0, s"Order of Taylor expansion ($orderOfExpansion) must be greater than 0")
     val ode = f map (TAD lift _)
     val rIsReal = implicitly[Real[R]]
+    // computing the Taylor coefficients ('to' reaches orderOfExpansion)
     (1 to orderOfExpansion).foldLeft(TAD lift s) {
-      case (sTmp, i) => // sTmp contains coeffs up to order i-1
-        val fieldApplied = TAD lift ode(sTmp) // FIXME Eliminate unnecessary lifting
+      // accumulatingCoeffs contains coefficients up to order i - 1  
+      case (accumulatingCoeffs, i) => 
+        val fieldApplied = TAD lift ode(accumulatingCoeffs) // FIXME Eliminate unnecessary lifting
         // compute the i-th Taylor coefficients
-        f.variables(s).foldLeft(sTmp) { // we are modifying from the store containing the coefficients up to order i-1
-          case (sUpdTmp, (id, n)) =>
-            sUpdTmp updated (id, n, // update i:th Taylor coeff for variable (id, n)
-              mapValuePair(sTmp(id, n), fieldApplied(id, n), { (gdif: GTDif[R], der: GTDif[R]) =>
+        f.variables(s).foldLeft(accumulatingCoeffs) { 
+          case (accumulatingIthCoeffs, (id, n)) =>
+            // update i-th Taylor coefficient for variable id.n
+            accumulatingIthCoeffs updated (id, n, 
+              mapValuePair(accumulatingCoeffs(id, n), fieldApplied(id, n), { (gdif: GTDif[R], der: GTDif[R]) =>
+                // the i-th coefficient for id.n is computed 
                 val coeff = gdif.dif.coeff updated (i, der.dif.coeff(i - 1) / (rIsReal fromInt i))
-                VLit(gdif updated TDif(coeff, i + 1)) })) } // FIXME How many?
+                // the length of the TDif is now i + 1 (as it holds data for 0, 1, .., i)
+                VLit(gdif updated TDif(coeff, i + 1)) })) }
     }
   }
 
