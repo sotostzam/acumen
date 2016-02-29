@@ -759,7 +759,14 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
           enclose(waiting, pwlR, pwlU, pwlP, iterations + 1)
         else {
           // The set of active ChangeSets
-          val hw = active(w, prog)
+          val wPic = picardEnclosureSolver convertEnclosure w
+          val evolutionConstraints = deduceConstraintsFromEvolution(q)
+          val wCont = (if (evolutionConstraints.isEmpty)
+            Right(wPic)
+          else
+            picardBase.contract(wPic, evolutionConstraints, prog, evalExpr))
+              .fold(sys error "Empty intersection while contracting with guard. " + _, i => i)
+          val hw = active(w, prog) intersect active(wCont, prog)
           checkValidChange(hw)
           if (q.nonEmpty && isFlow(q.head) && Set(q.head) == hw && t == UnknownTime)
             sys error "Model error!" // Repeated flow, t == UnknownTime means w was created in this time step
