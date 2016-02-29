@@ -175,7 +175,7 @@ case class Cuboid
 /** Initializing a Cuboid from a RealVector.
  */
 object Cuboid {
-  def apply(v: RealVector)(implicit cValueIsReal: Real[CValue]): Cuboid = {
+  def apply(v: RealVector)(implicit cValueIsReal: acumen.Real[CValue]): Cuboid = {
     val zero = cValueIsReal.zero
     val one  = cValueIsReal.one
 

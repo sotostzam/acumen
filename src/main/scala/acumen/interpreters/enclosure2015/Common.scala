@@ -92,12 +92,12 @@ object Common {
   }
   implicit def RealVectorIsFunctional(v: RealVector) = new FunctionalRealVector(v)
 
-  object midpointVector extends breeze.generic.UFunc {
+  object midpointVector extends breeze.generic.UFunc with breeze.generic.MappingUFunc {
    implicit object implInterval extends Impl[CValue, CValue] {
      def apply(i: CValue) = i match { case VLit(GConstantRealEnclosure(i)) => VLit(GConstantRealEnclosure(Interval(i.midpoint))) }
    }
   }
-  object centeredVector extends breeze.generic.UFunc {
+  object centeredVector extends breeze.generic.UFunc with breeze.generic.MappingUFunc {
    implicit object implInterval extends Impl[CValue, CValue] {
      def apply(i: CValue) = i match { case VLit(GConstantRealEnclosure(i)) => VLit(GConstantRealEnclosure(Interval(-0.5, 0.5) * i.width)) }
    }
