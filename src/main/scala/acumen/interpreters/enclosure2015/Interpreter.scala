@@ -759,14 +759,14 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
           enclose(waiting, pwlR, pwlU, pwlP, iterations + 1)
         else {
           // The set of active ChangeSets
-          val wPic = picardEnclosureSolver convertEnclosure w
+          val wPicard = picardEnclosureSolver convertEnclosure w
           val evolutionConstraints = deduceConstraintsFromEvolution(q, t)
-          val wCont = (if (evolutionConstraints.isEmpty)
-            Right(wPic)
+          val wContractedWithEvolution = (if (evolutionConstraints.isEmpty)
+            Right(wPicard)
           else
-            picardBase.contract(wPic, evolutionConstraints, prog, evalExpr))
+            picardBase.contract(wPicard, evolutionConstraints, prog, evalExpr))
               .fold(sys error "Empty intersection while contracting with guard. " + _, i => i)
-          val hw = active(wPic, prog) intersect active(wCont, prog)
+          val hw = active(wPicard, prog) intersect active(wContractedWithEvolution, prog)
           checkValidChange(hw)
           if (q.nonEmpty && isFlow(q.head) && Set(q.head) == hw && t == UnknownTime)
             sys error "Model error!" // Repeated flow, t == UnknownTime means w was created in this time step
@@ -833,19 +833,19 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
     def obtainInitialCondition(w: Enclosure, qw: Evolution, t: InitialConditionTime, q: Changeset): Either[String, Enclosure] =  
       if (intersectWithGuardBeforeReset && (isQualifiedChange(qw, q) || solverBase(w.cStore) == picardBase)) {
    
-        val wPic = picardEnclosureSolver convertEnclosure w
+        val wPicard = picardEnclosureSolver convertEnclosure w
         val evolutionConstraints = deduceConstraintsFromEvolution(qw, t)
         val changesetConstraints = deduceConstraintsFromChangeset(q)
       
-        val wPast = 
+        val wContractedWithEvolution = 
           if (evolutionConstraints.isEmpty)
-            Right(wPic)
+            Right(wPicard)
           else
-            picardBase.contract(wPic, evolutionConstraints, prog, evalExpr)
+            picardBase.contract(wPicard, evolutionConstraints, prog, evalExpr)
           
-        wPast match {
-          case Right(wc) => picardBase.contract(wc, changesetConstraints, prog, evalExpr)
-          case _ => wPast
+        wContractedWithEvolution match {
+          case Right(wContracted) => picardBase.contract(wContracted, changesetConstraints, prog, evalExpr)
+          case _ => wContractedWithEvolution
         }
         
       } else Right(w)
