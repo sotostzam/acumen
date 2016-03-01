@@ -760,13 +760,13 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
         else {
           // The set of active ChangeSets
           val wPic = picardEnclosureSolver convertEnclosure w
-          val evolutionConstraints = deduceConstraintsFromEvolution(q)
+          val evolutionConstraints = deduceConstraintsFromEvolution(q, t)
           val wCont = (if (evolutionConstraints.isEmpty)
             Right(wPic)
           else
             picardBase.contract(wPic, evolutionConstraints, prog, evalExpr))
               .fold(sys error "Empty intersection while contracting with guard. " + _, i => i)
-          val hw = active(w, prog) intersect active(wCont, prog)
+          val hw = active(wPic, prog) intersect active(wCont, prog)
           checkValidChange(hw)
           if (q.nonEmpty && isFlow(q.head) && Set(q.head) == hw && t == UnknownTime)
             sys error "Model error!" // Repeated flow, t == UnknownTime means w was created in this time step
@@ -790,7 +790,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
             // or T is not thin, but the time is unknown    
                t == UnknownTime) {
               Logger.trace(s"encloseHw (Not a flow)")
-              val wi = obtainInitialCondition(w, q, qw).fold(sys error "Empty intersection while contracting with guard. " + _, i => i)
+              val wi = obtainInitialCondition(w, qw, t, q).fold(sys error "Empty intersection while contracting with guard. " + _, i => i)
               (InitialCondition(wi(q.dis, evalExpr), q :: qw, t) :: tmpW, tmpR, tmpU)
             }
             // otherwise the non-flow q is not processed
@@ -807,7 +807,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
           // T is not thin, the flow is processed
           else {
             checkFlowDefined(prog, q, w)
-            val wi = obtainInitialCondition(w, q, qw).fold(sys error "Empty intersection while contracting with guard. " + _, i => i)
+            val wi = obtainInitialCondition(w, qw, t, q).fold(sys error "Empty intersection while contracting with guard. " + _, i => i)
             val (range, end) = continuousEncloser(q.odes, q.eqs, q.claims, T, prog, wi)
             val (newW, newU) = handleEvent(q, qw, range, range, if (t == StartTime) end else range)
             (newW ::: tmpW, range :: tmpR, newU ::: tmpU)
@@ -815,8 +815,8 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
       }
     }
     
-    def deduceConstraintsFromEvolution(qw: Evolution): Iterable[CollectedConstraint] = 
-      if (qw.nonEmpty && (isFlow(qw.head)))
+    def deduceConstraintsFromEvolution(qw: Evolution, t: InitialConditionTime): Iterable[CollectedConstraint] = 
+      if (qw.nonEmpty && isFlow(qw.head) && t != UnknownTime)
         (qw.head.odes union qw.head.eqs).map(ca => CollectedConstraint(ca.selfCId, ca.path, ca.env)) union qw.head.claims
       else
         List.empty[CollectedConstraint]
@@ -827,14 +827,14 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
       else
         q.dis.map(da => CollectedConstraint(da.selfCId, da.path, da.env))
     
-    def isQualifiedChange(q: Changeset, qw: Evolution): Boolean =
+    def isQualifiedChange(qw: Evolution, q: Changeset): Boolean =
       (!isFlow(q)) || (!qw.nonEmpty) || (q != qw.head)
         
-    def obtainInitialCondition(w: Enclosure, q: Changeset, qw: Evolution): Either[String, Enclosure] =  
-      if (intersectWithGuardBeforeReset && (isQualifiedChange(q, qw) || solverBase(w.cStore) == picardBase)) {
+    def obtainInitialCondition(w: Enclosure, qw: Evolution, t: InitialConditionTime, q: Changeset): Either[String, Enclosure] =  
+      if (intersectWithGuardBeforeReset && (isQualifiedChange(qw, q) || solverBase(w.cStore) == picardBase)) {
    
         val wPic = picardEnclosureSolver convertEnclosure w
-        val evolutionConstraints = deduceConstraintsFromEvolution(qw)
+        val evolutionConstraints = deduceConstraintsFromEvolution(qw, t)
         val changesetConstraints = deduceConstraintsFromChangeset(q)
       
         val wPast = 
