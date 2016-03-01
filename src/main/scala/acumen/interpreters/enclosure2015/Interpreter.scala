@@ -746,7 +746,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
       ): Store =
       // No more IC to process
       if (pwlW isEmpty)
-        EnclosureAndBranches((pwlR union pwlP.map(_.enclosure)).reduce(_ /\ _), if (T.isThin) pwlU else mergeBranchList(pwlU))      
+        EnclosureAndBranches(pwlR.reduce(_ /\ _), if (T.isThin) pwlU else mergeBranchList(pwlU))      
       // Exceeding the maximum iterations per branch
       else if (iterations / st.branches.size > maxIterationsPerBranch)
         sys.error(s"Enclosure computation over $T did not terminate in ${st.branches.size * maxIterationsPerBranch} iterations.")
@@ -773,7 +773,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
           // Process the active ChangeSets
           val (newW, newR, newU) = encloseHw(ic, hw)
           
-          enclose(waiting ::: newW, pwlR ::: newR, pwlU ::: newU, ic :: pwlP, iterations + 1)
+          enclose(waiting ::: newW, pwlR ::: newR ::: List[Common.Enclosure](wContractedWithEvolution), pwlU ::: newU, ic :: pwlP, iterations + 1)
         }
       }
     // Process the active ChangeSets
@@ -810,7 +810,9 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
             val wi = obtainInitialCondition(w, qw, t, q).fold(sys error "Empty intersection while contracting with guard. " + _, i => i)
             val (range, end) = continuousEncloser(q.odes, q.eqs, q.claims, T, prog, wi)
             val (newW, newU) = handleEvent(q, qw, range, if (t == StartTime) end else range)
-            (newW ::: tmpW, range :: tmpR, newU ::: tmpU)
+            val rangePicard = picardEnclosureSolver convertEnclosure range
+            val rangeContracted = picardBase.contract(rangePicard, deduceConstraintsFromChangeset(q), prog, evalExpr).right.get
+            (newW ::: tmpW, rangeContracted :: tmpR, newU ::: tmpU)
           }
       }
     }
