@@ -809,7 +809,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
             checkFlowDefined(prog, q, w)
             val wi = obtainInitialCondition(w, qw, t, q).fold(sys error "Empty intersection while contracting with guard. " + _, i => i)
             val (range, end) = continuousEncloser(q.odes, q.eqs, q.claims, T, prog, wi)
-            val (newW, newU) = handleEvent(q, qw, range, range, if (t == StartTime) end else range)
+            val (newW, newU) = handleEvent(q, qw, range, if (t == StartTime) end else range)
             (newW ::: tmpW, range :: tmpR, newU ::: tmpU)
           }
       }
@@ -850,22 +850,23 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
         
       } else Right(w)
 
-    def handleEvent(q: Changeset, past: Evolution, r: Enclosure, rp: Enclosure, u: Enclosure): (List[InitialCondition], List[InitialCondition]) = {
+    def handleEvent(q: Changeset, qw: Evolution, r: Enclosure, u: Enclosure): (List[InitialCondition], List[InitialCondition]) = {
       val hr = active(r, prog)
       val hu = active(u, prog)
       val changesetConstraints = deduceConstraintsFromChangeset(q)
-      val up = picardBase.contract(u, changesetConstraints, prog, evalExpr)
-      val e = q :: past
-      if (noEvent(q, hr, up)) { // no event
+      val uPicard = picardEnclosureSolver convertEnclosure u
+      val uContracted = picardBase.contract(uPicard, changesetConstraints, prog, evalExpr)
+      val newQw = q :: qw
+      if (noEvent(q, hr, uContracted)) { // no event
         Logger.trace("handleEvent (No event)")
-        (Nil, InitialCondition(u, e, StartTime) :: Nil)
-      } else if (certainEvent(q, hr, hu, up)) { // certain event
+        (Nil, InitialCondition(u, newQw, StartTime) :: Nil)
+      } else if (certainEvent(q, hr, hu, uContracted)) { // certain event
         Logger.trace("handleEvent (Certain event)")
-        (InitialCondition(rp, e, UnknownTime) :: Nil, Nil)
+        (InitialCondition(r, newQw, UnknownTime) :: Nil, Nil)
       } else { // possible event
         Logger.trace(s"handleEvent (Possible event, |hr| = ${hr.size}, q.ass = {${q.dis.map(Pretty pprint _.a).mkString(", ")}})")
         Logger.trace(s"handleEvent hr.odes = ${hr.map{cs => cs.odes.map(Pretty pprint _.a).mkString(", ")}}, hr.dis = ${hr.map{cs => cs.dis.map(Pretty pprint _.a).mkString(", ")}}")
-        (InitialCondition(rp, e, UnknownTime) :: Nil, InitialCondition(u, e, StartTime) :: Nil)
+        (InitialCondition(r, newQw, UnknownTime) :: Nil, InitialCondition(u, newQw, StartTime) :: Nil)
       }
     }
     enclose(st.branches, Nil, Nil, Nil, 0)
@@ -875,8 +876,8 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
    * Returns true if there is only a single change set is active over the current time segment, this 
    * change set contains no discrete assignments and the claim in q is not violated entirely by u.
    */
-  def noEvent(q: Changeset, hr: Set[Changeset], up: Either[String,Enclosure]) =
-    hr.size == 1 && q.dis.isEmpty && (up match {
+  def noEvent(q: Changeset, hr: Set[Changeset], uContracted: Either[String,Enclosure]) =
+    hr.size == 1 && q.dis.isEmpty && (uContracted match {
       case Left(s) => sys.error("Inconsistent model. A claim was invalidated without any event taking place. " + s) 
       case Right(_) => true
     })
@@ -885,9 +886,9 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
    *  1) More than one change set is active over the current time segment or q contains an assignment
    *  2) The change sets active at the end-point of the current time segment do not contain q or the  
    *     claim in q violates the enclosure at the end-point of the current time segment. */
-  def certainEvent(q: Changeset, hr: Set[Changeset], hu: Set[Changeset], up: Either[String,Enclosure]): Boolean = {
+  def certainEvent(q: Changeset, hr: Set[Changeset], hu: Set[Changeset], uContracted: Either[String,Enclosure]): Boolean = {
     (hr.size > 1 || q.dis.nonEmpty) && // Some event is possible 
-      (!(hu contains q) || up.isLeft) // Some possible event is certain 
+      (!(hu contains q) || uContracted.isLeft) // Some possible event is certain 
   }
   
   /** Returns true if P contains an ic1:  
