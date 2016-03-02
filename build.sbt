@@ -6,6 +6,8 @@ scalaVersion := "2.11.5"
 
 theMainClass := "acumen.Main"
 
+ivyScala := ivyScala.value map { _.copy(overrideScalaVersion = true) }
+
 libraryDependencies ++= Seq(
   "org.scala-lang.modules" %% "scala-swing" % "1.0.1",
   "org.scala-lang.modules" %% "scala-parser-combinators" % "1.0.2",
