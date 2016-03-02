@@ -31,13 +31,13 @@ object FADTest extends Properties("FAD") {
     def close(l: T, r: T): Boolean
     def in(l: T, r: T): Boolean
   }
-  implicit object DoubleIsSimilar extends Similar[Double] {
+  implicit object doubleIsSimilar extends Similar[Double] {
     def close(l: Double, r: Double): Boolean = 
       Math.abs(l - r) <= 10e-6 * Math.min(Math abs l, Math abs r)
     def in(l: Double, r: Double): Boolean =
       l == r
   }
-  implicit object IntervalIsSimilar extends Similar[Interval] {
+  implicit object dntervalIsSimilar extends Similar[Interval] {
     def close(l: Interval, r: Interval): Boolean = 
       (l intersect r).isDefined
     def in(l: Interval, r: Interval): Boolean =
@@ -115,14 +115,15 @@ object FADTest extends Properties("FAD") {
     }
   
   /* Other properties */
-  
-  property("lift leaves no base number types") = 
-    forAll(arbitrary[GroundValue], listOf1(arbitrary[(CId,Name)])) { (gv, ns) =>
-      forAll(oneOf(ns)) { case (id,n) =>
-        lift(Lit(gv), QName(id,n), ns.map{ case (id1,n1) => QName(id1,n1) })(DoubleIsReal) match {
-          case Lit(_: GDouble | _: GInt | _: GInterval) => false
-          case _ => true
-        } 
+
+  property("lift leaves no base number types") =
+    forAll(arbitrary[GroundValue], listOf1(arbitrary[(CId, Name)])) { (gv, ns) =>
+      forAll(oneOf(ns)) {
+        case (id, n) =>
+          lift(Lit(gv), ns.map { case (id1, n1) => QName(id1, n1) })(doubleIsReal) match {
+            case Lit(_: GDouble | _: GInt | _: GInterval | _: GConstantRealEnclosure) => false
+            case _ => true
+          }
       }
     }
 

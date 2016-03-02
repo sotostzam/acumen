@@ -7,6 +7,8 @@ import interpreters.optimized.ContMode
 import java.io.{File,InputStreamReader,FileInputStream}
 import scala.util.parsing.input.{Position}
 import scala.collection.mutable.{HashMap => MutHashMap}
+import acumen.interpreters.enclosure2015.Common.SolverBase
+import acumen.interpreters.enclosure2015.{ fDifBase, intervalBase, picardBase }
 
 case class Semantics(id: Option[String], 
                      // id is None if the semantics being implement

@@ -214,7 +214,7 @@ object ADTest extends Properties("TAD") {
   
   property("TDif[Interval]: 1 in x^0") =
     forAll(genSmallThinIntervalTDif()) { (x: TDif[Interval]) =>
-      IntervalDifIsReal.fromInt(1) in x^0 
+      intervalTDifIsReal.fromInt(1) in x^0 
     }
   
   property("TDif[Interval]: x in x^1") =
@@ -235,12 +235,12 @@ object ADTest extends Properties("TAD") {
 
   property("TDif[Interval]: n > 0 => 1^n = 1") =
     forAll (posNum[Int]) { (n: Int) =>
-      (IntervalDifIsReal.one ^ n) ~= IntervalDifIsReal.one 
+      (intervalTDifIsReal.one ^ n) ~= intervalTDifIsReal.one 
     }
 
   property("TDif[Interval]: x^0 = 1") =
     forAll(genSmallThinIntervalTDif()) { (x: TDif[Interval]) =>
-      (x^0) ~= IntervalDifIsReal.one
+      (x^0) ~= intervalTDifIsReal.one
     }
   
   property("TDif[Interval]: x > 1 && n < 0 => x^n <= x") =

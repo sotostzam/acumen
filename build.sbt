@@ -13,7 +13,7 @@ libraryDependencies ++= Seq(
   "org.scala-lang" % "scala-actors" % "2.11.5",
   "org.scalatest" % "scalatest_2.11" % "2.2.4" % "test",
   "org.scalacheck" %% "scalacheck" % "1.10.1" % "test",
-  "org.scalanlp" % "breeze_2.11" % "0.11.2"
+  "org.scalanlp" % "breeze_2.11" % "0.12"
 )
 
 resolvers += "tuxfamily" at "http://download.tuxfamily.org/arakhne/maven/"

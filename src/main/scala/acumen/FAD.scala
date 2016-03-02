@@ -22,34 +22,35 @@ object FAD extends App {
   }
 
   /** Lift all numeric values in a store into FDifs */
-  def lift[Id, S <% RichStore[S, Id], I: Integral](st: S): List[S] = {
-    val odeVariables: List[QName] = ???
-    odeVariables.map(n => st map (liftValue[Id, I](_, n, odeVariables)))
-  }
-  
-  /** Lift all numeric values in a store into FDifs */
-  def lift[Id, S <% RichStore[S, Id], I: Integral](st: S, n: QName, ns: List[QName]): S = st map (liftValue[Id,I](_, n, ns))
+  def lift[Id, S <% RichStore[S, Id], I: Integral](st: S, odeVariables: List[QName]): S =
+    st mapName { case (id,n,v) => liftValue[Id, I](v, QName(id,n), odeVariables) }
   
   /** Lift all numeric values in an Expr into FDifs */
-  def lift[Id, V: Integral](e: Expr, n: QName, ns: List[QName]): Expr = new acumen.util.ASTMap {
+  def lift[Id, V: Integral](e: Expr, ns: List[QName]): Expr = new acumen.util.ASTMap {
     override def mapExpr(e: Expr): Expr = (e match {
-      case Lit(gv) => Lit(liftGroundValue(gv, n, ns))
+      case Lit(gv) => Lit(liftGroundValue(gv, None, ns))
       case _ => super.mapExpr(e)
     }).setPos(e.pos)
   }.mapExpr(e)
 
-  private def liftGroundValue(gv: GroundValue, n: QName, ns: List[QName]): GroundValue = {
+  private def liftGroundValue(gv: GroundValue, n: Option[QName], ns: List[QName]): GroundValue = {
+    def zeroOrOne[A](qn: QName, zero: A, one: A): A = if (n.isDefined && qn == n.get) one else zero
     gv match {
-      case GDouble(d)   => GDoubleFDif(FDif(d,          ns.map(id => id -> (if (id == n) 1d else 0d)).toMap))
-      case GInt(i)      => GDoubleFDif(FDif(i.toDouble, ns.map(id => id -> (if (id == n) 1d else 0d)).toMap))
-      case GInterval(i) => GIntervalFDif(FDif(i,        ns.map(id => id -> (if (id == n) Interval.one else Interval.zero)).toMap))
+      case GDouble(d)   => 
+        GDoubleFDif(FDif(d,          ns.map(id => id -> zeroOrOne(id, 0d, 1d)).toMap))
+      case GInt(i)      => 
+        GDoubleFDif(FDif(i.toDouble, ns.map(id => id -> zeroOrOne(id, 0d, 1d)).toMap))
+      case GInterval(i) => 
+        GIntervalFDif(FDif(i,        ns.map(id => id -> zeroOrOne(id, Interval.zero, Interval.one)).toMap))
+      case GConstantRealEnclosure(i) => 
+        GIntervalFDif(FDif(i,        ns.map(id => id -> zeroOrOne(id, Interval.zero, Interval.one)).toMap))
       case _            => gv
     }
   }
   
   /** Lift all the values inside a Value[Id] into FDifs */
   private def liftValue[Id, I: Integral](v: Value[Id], n: QName, ns: List[QName]): Value[Id] = v match {
-    case VLit(gv) => VLit(liftGroundValue(gv, n, ns))
+    case VLit(gv) => VLit(liftGroundValue(gv, Some(n), ns))
     case VVector(lv: List[Value[Id]]) => VVector(lv map (liftValue[Id, I](_, n, ns)))
     case VList(lv: List[Value[Id]]) => VList(lv map (liftValue[Id, I](_, n, ns)))
     case _ => v
@@ -110,6 +111,8 @@ object FAD extends App {
       else
         exp(mul(r, log(l)))
     }
+    def pow(l: FDif[V], r: Int): FDif[V] =
+      pow(l, evVIsReal.fromInt(r))
     def pow(l: FDif[V], r: V): FDif[V] = {
       if (isConstant(l))
         powOfRealOnReal(l.head, r)
@@ -199,13 +202,13 @@ object FAD extends App {
     }
   }
 
-  implicit object IntFDifIsIntegral extends FDifAsIntegral[Int] {
+  implicit object intFDifIsIntegral extends FDifAsIntegral[Int] {
     def groundValue(v: FDif[Int]) = GIntFDif(v)
   }
-  implicit object DoubleFDifIsReal extends FDifAsReal[Double] {
+  implicit object doubleFDifIsReal extends FDifAsReal[Double] {
     def groundValue(v: FDif[Double]) = GDoubleFDif(v)
   }
-  implicit object IntervalFDifIsReal extends FDifAsReal[Interval] {
+  implicit object intervalFDifIsReal extends FDifAsReal[Interval] {
     def groundValue(v: FDif[Interval]) = GIntervalFDif(v)
   }
   

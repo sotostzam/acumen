@@ -84,7 +84,7 @@ case class LocalizingStrategy(override val eventEncloser: EventEncloser) extends
         val isLastSegment = t lessThanOrEqualTo tH
         val tHT = if (isLastSegment) t else tH
         def chopAt(here: Interval)(e: UnivariateAffineEnclosure) =
-          if (e.domain properlyContains here)
+          if (e.domain containsInInterior here)
             e.restrictTo(e.domain.low /\ here)
           else e
         val headsChopped = heads.map(chopAt(tHT))
@@ -270,7 +270,7 @@ case class LocalizingStrategy(override val eventEncloser: EventEncloser) extends
       val tR = domain(maeR)
       (tR lessThan tL) ||
         // ((tL almostEqualTo tR) && !complR && complL) || // TODO this is included in the LaTeX specification
-        (tR properlyContains tL)
+        (tR containsInInterior tL)
   }
 
   // get the first component of `lfe` truncated at `time`

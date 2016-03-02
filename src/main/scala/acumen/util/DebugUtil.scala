@@ -11,14 +11,16 @@ object DebugUtil {
    *  Note: Only works on models consisting of a single model definition
    *        and only updates the instance variables of the Main object. */
   def asProgram(st: CStore, base: Prog): Prog =
-    Prog(base.defs.filter(_.name != cdevice).map{ d =>
-      if (d.name == cmain) d.copy(priv = d.priv.map{ f =>
-        f.copy(rhs = (f.rhs: @unchecked) match {
-          case ExprRhs(_) =>
-            val VLit(v) = st(mainId(st))(f.x)
-            ExprRhs(Lit(v))
-        })
-      }) else d
-    })
+    if (base.defs.size > 3) base
+    else
+      Prog(base.defs.filter(_.name != cdevice).map{ d =>
+        if (d.name == cmain) d.copy(priv = d.priv.map{ f =>
+          f.copy(rhs = (f.rhs: @unchecked) match {
+            case ExprRhs(_) =>
+              val VLit(v) = st(mainId(st))(f.x)
+              ExprRhs(Lit(v))
+          })
+        }) else d
+      })
 
 }
