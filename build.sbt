@@ -2,7 +2,7 @@ name := "acumen"
 
 version := "10-devel"
 
-scalaVersion := "2.11.5"
+scalaVersion := "2.11.6"
 
 theMainClass := "acumen.Main"
 
