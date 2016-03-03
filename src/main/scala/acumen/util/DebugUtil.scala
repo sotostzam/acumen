@@ -2,6 +2,7 @@ package acumen
 package util
 
 import Canonical._
+import interpreters.enclosure2015.Common._
 
 object DebugUtil {
   
@@ -22,5 +23,43 @@ object DebugUtil {
           })
         }) else d
       })
+
+  def printRealVector(title: String, rv: RealVector) =
+    println((if (title != "") title + ": " else "") +
+      rv.toArray.zipWithIndex.map { case (v, i) => v }.mkString(", "))
+
+  def printStore(title: String, st: CStore) =
+    println((if (title != "") title + ": " else "") +
+      (Pretty pprint (Pretty prettyStore st)))
+
+  def printRealMatrix(title: String, m: RealMatrix, indexToName: Int => (CId, Name)) {
+    var row = 0
+    if (title != "") println(title + ": ")
+    print(s"${indexToName(row)}\t")
+    m.foreachKey {
+      case (r, c) =>
+        m(r, c) match {
+          case VLit(GConstantRealEnclosure(i)) =>
+            if (r > row) { row += 1; print(s"\n${indexToName(row)}\t") }
+            print(s"$i\t")
+        }
+    }
+    print("\n")
+  }
+
+  def printRealMatrix(title: String, m: RealMatrix) {
+    var row = 0
+    if (title != "") println(title + ": ")
+    print(s"${row}\t")
+    m.foreachKey {
+      case (r, c) =>
+        m(r, c) match {
+          case VLit(GConstantRealEnclosure(i)) =>
+            if (r > row) { row += 1; print(s"\n${row}\t") }
+            print(s"$i\t")
+        }
+    }
+    print("\n")
+  }
 
 }
