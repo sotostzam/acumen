@@ -60,6 +60,7 @@ always
     || 
        (s.n >  6 && s.state12 == "0-Pre-Collision"),
 
+  simulator.method+ = "Taylor",
   simulator.endTime+ = 10,
 //  simulator.timeStep+ = 0.00024414062512, // 2^(-12)  
 //  simulator.timeStep+ = 0.00048828125, // 2^(-11)
