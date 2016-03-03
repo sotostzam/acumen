@@ -311,6 +311,7 @@ class ThreeDView extends JPanel {
             world.addObject(lookAtCenter)
         case "deleteAllObjects" =>
           world.removeAllObjects()
+          staticWorld.removeAllObjects()
         case "deleteAxes" => // only called in axisOff function
           if (axisArray.contains(axes(0))) {
             for (i <- axes.indices)
@@ -363,7 +364,7 @@ class ThreeDView extends JPanel {
     camera.setPosition(defaultCamPos)
     camera.setFOVLimits(0.01f, 3.0f)
     camera.setFOV(0.65f)
-    staticCamera.setPosition(defaultCamPos)
+    staticCamera.setPosition(0, 0, 10)
     staticCamera.setFOVLimits(0.01f, 3.0f)
     staticCamera.setFOV(0.65f)
   }
@@ -657,7 +658,8 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D, playSpeed: Double,
           if (!app.objects.contains(objectKey))
             matchingObject(objectKey, valueList, currentFrame)
           else if (app.objects.contains(objectKey)  // this should not happen
-            && app.world.getObjectByName(app.objects(objectKey)._1.getName) == null) {
+            && app.world.getObjectByName(app.objects(objectKey)._1.getName) == null
+            && app.staticWorld.getObjectByName(app.objects(objectKey)._1.getName) == null) {
             app.objects -= objectKey
             matchingObject(objectKey, valueList, currentFrame)
           } else
@@ -695,7 +697,8 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D, playSpeed: Double,
           if (!app.objects.contains(objectKey))
             matchingObject(objectKey, valueList, latestFrame)
           else if (app.objects.contains(objectKey)  // this should not happen
-            && app.world.getObjectByName(app.objects(objectKey)._1.getName) == null) {
+            && app.world.getObjectByName(app.objects(objectKey)._1.getName) == null
+            && app.staticWorld.getObjectByName(app.objects(objectKey)._1.getName) == null) {
             app.objects -= objectKey
             matchingObject(objectKey, valueList, latestFrame)
           } else
@@ -1179,7 +1182,8 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D, playSpeed: Double,
    */
   def deleteObj(c: (CId, Int)) {
     if (app.objects.contains(c)) {
-      if (app.world.getObjectByName(app.objects(c)._1.getName) != null) {
+      if (app.world.getObjectByName(app.objects(c)._1.getName) != null
+       && app.staticWorld.getObjectByName(app.objects(c)._1.getName) != null) {
         app.objectsToDelete += app.objects(c)
         if (acumen.ui.App.ui.getStartAnaglyph)
           app.objectsToDelete += app.objectsCopy(c)

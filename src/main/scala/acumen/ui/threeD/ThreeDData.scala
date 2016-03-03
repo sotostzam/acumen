@@ -203,11 +203,10 @@ class ThreeDData extends Publisher {
               extractText(l(5))
             else if (_3DType == "OBJ")
               extractPath(l(5))
-            else if (l.size == 8) {
+            if (l.size == 8) {
               extractTransparency(l(7))
               extractCoordinates(l(6))
-            }
-            if (l.size == 7) {
+            } else {
               extractTransparency(l(6))
               extractCoordinates(l(5))
             }
