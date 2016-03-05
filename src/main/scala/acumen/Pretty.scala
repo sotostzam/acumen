@@ -8,6 +8,7 @@ import scala.util.parsing.json._
 import com.sun.corba.se.impl.corba.CORBAObjectImpl
 import acumen.Errors.{FromJSONError, ShouldNeverHappen}
 import scala.util.parsing.input.{Positional,Position,NoPosition}
+import interpreters.enclosure2015.Common._
 
 class Pretty {
 
@@ -322,6 +323,24 @@ class Pretty {
       case FixedPoint  => "@FixedPoint"
       case Continuous  => "@Continuous"
     }
+  
+  def prettyRealVector(rv: RealVector) : String =
+    rv.toArray.zipWithIndex.map { case (v, i) => Pretty pprint v }.mkString(", ")
+  
+  def prettyRealMatrix(m: RealMatrix, indexToString: Int => String) : String = {
+    var row = 0
+    val res = new StringBuffer(s"${indexToString(row)}\t")
+    m.foreachKey {
+      case (r, c) =>
+        m(r, c) match {
+          case VLit(GConstantRealEnclosure(i)) =>
+            if (r > row) { row += 1; res.append(s"\n${indexToString(row)}\t") }
+            print(s"$i\t")
+        }
+    }
+    res.toString + "\n"      
+  }
+    
 }
 
 object Pretty extends Pretty
