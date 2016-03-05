@@ -120,6 +120,11 @@ case class Cuboid
         
         rangeMidpoint + rangeJacobian * (linearTransform * width + error) + rangeRemainder 
       }
+      
+      // Log information about the jacobian and error
+      val (eigenValReal, eigenValImag, eigenVecs) = ValidatedLinAlg.approximateED(jacobian)
+      Logger.trace(s"Cuboid.move: Jacobian eigenvalue real component: ${Pretty prettyRealVector eigenValReal}, complex component: ${Pretty prettyRealVector eigenValImag}")
+      Logger.trace(s"Cuboid.move: Maximum image error width: ${imageError.maxWidth}")
   
       ( Cuboid(refinedRangeEnclosure)
       , Cuboid(imageMidpoint, imageLinearTransform, imageLinearTransformT, imageErrorLTTLT, imageWidth, imageError) )

@@ -89,4 +89,42 @@ object ValidatedLinAlg {
     // TODO Add property based tests using isContained
     (Q, R, Qt, errorQR, errorQtQ)
   }
+  
+  /** Approximate eigenvalue decomposition.
+   *  Returns a triple (ER, EC, EV) where:
+   *  - ER: Eigenvalue vector real component
+   *  - EC: Eigenvalue vector imaginary component
+   *  - EV: Eigenvector matrix
+   */
+  def approximateED(M: RealMatrix): (RealVector, RealVector, RealMatrix) = {
+    implicit val cValueIsReal: Real[CValue] = acumen.intervalCValueIsReal
+
+    val zero = VLit(GConstantRealEnclosure(Interval.zero))
+    val one = VLit(GConstantRealEnclosure(Interval.one))
+
+    assert(M.rows == M.cols,
+      "validated QR-decomposition failed: a square matrix is required.")
+
+    val midOfM = breeze.linalg.DenseMatrix.tabulate[Double](M.rows, M.cols) {
+      (i, j) =>
+        M(i, j) match {
+          case VLit(GConstantRealEnclosure(i)) => i.midpoint.doubleValue()
+          case _                               => throw ShouldNeverHappen()
+        }
+    }
+
+    val doubleED: breeze.linalg.eig.DenseEig = breeze.linalg.eig(midOfM)
+    val ER = breeze.linalg.DenseVector.tabulate[CValue](M.rows) {
+      i => VLit(GConstantRealEnclosure(Interval(doubleED.eigenvalues(i))))
+    }
+    val EC = breeze.linalg.DenseVector.tabulate[CValue](M.rows) {
+      i => VLit(GConstantRealEnclosure(Interval(doubleED.eigenvaluesComplex(i))))
+    }
+    val EV = breeze.linalg.DenseMatrix.tabulate[CValue](M.rows, M.cols) {
+      (i, j) => VLit(GConstantRealEnclosure(Interval(doubleED.eigenvectors(i, j))))
+    }
+
+    (ER, EC, EV)
+  }
+  
 }

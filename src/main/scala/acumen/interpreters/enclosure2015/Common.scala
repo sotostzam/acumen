@@ -89,6 +89,13 @@ object Common {
       tmpVector
     }
     def mapIndexwise(m: (Int, CValue) => CValue) = breeze.linalg.Vector.tabulate[CValue](v.length) { i => m(i, v(i)) }
+    /** Maximum of the widths of the elements of v.
+     *  Note: Only applicable when v is a vector of VLit(GConstantRealEnclosure) */
+    def maxWidth: Double =
+      v.iterator.foldLeft(Double.MinValue){ case (res, (_, VLit(GConstantRealEnclosure(v)))) =>
+        val w = v.width.hiDouble 
+        if (w > res) w else res
+      }
   }
   implicit def RealVectorIsFunctional(v: RealVector) = new FunctionalRealVector(v)
 
