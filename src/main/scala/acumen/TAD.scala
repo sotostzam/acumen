@@ -24,6 +24,7 @@ object TAD extends App {
   /** Integral instance for TDif[V], where V itself has an Integral instance */
   abstract class TDifAsIntegral[V: Integral] extends DifAsIntegral[V,Int,TDif[V]] with Integral[TDif[V]] {
     /* Integral instance */
+    def abs(x: TDif[V]): TDif[V] = throw Errors.NotImplemented("TDif.abs")
     def add(l: TDif[V], r: TDif[V]): TDif[V] =
       TDif(Stream.from(0).map(k => l(k) + r(k)), combinedLength(l, r))
     def sub(l: TDif[V], r: TDif[V]): TDif[V] =

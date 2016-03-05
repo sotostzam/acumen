@@ -136,7 +136,8 @@ object Common {
   }
 
   def implemUnaryIntegral[V: acumen.Integral](f: String, x: V): V = f match {
-    case "-" => -x
+    case "-"   => -x
+    case "abs" => x.abs
   }
   def implemUnaryReal[V: Real](f: String, x: V): V = f match {
     case "sin"       => x.sin

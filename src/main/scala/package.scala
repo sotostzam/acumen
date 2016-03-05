@@ -45,6 +45,7 @@ package object acumen {
    * other numeric types.
    */
   trait Integral[V] extends PartialOrdering[V] with Semiring[V] with Zero[V] {
+    def abs(x: V): V
     def add(l: V, r: V): V
     def sub(l: V, r: V): V
     def mul(l: V, r: V): V
@@ -87,6 +88,7 @@ package object acumen {
   
   /** Syntactic sugar for Integral operations */
   implicit class IntegralOps[V](val l: V)(implicit ev: Integral[V]) {
+    def abs: V = ev.abs(l)
     def +(r: V): V = ev.add(l, r)
     def -(r: V): V = ev.sub(l, r)
     def *(r: V): V = ev.mul(l, r)
@@ -123,6 +125,7 @@ package object acumen {
   
   /** Integral instance for Int */
   implicit object intIsIntegral extends Integral[Int] {
+    def abs(x: Int): Int = x.abs
     def add(l: Int, r: Int): Int = l + r
     def sub(l: Int, r: Int): Int = l - r
     def mul(l: Int, r: Int): Int = l * r
@@ -143,6 +146,7 @@ package object acumen {
 
   /** Real instance for Double */
   implicit object doubleIsReal extends Real[Double] {
+    def abs(x: Double): Double = x.abs
     def add(l: Double, r: Double): Double = l + r
     def sub(l: Double, r: Double): Double = l - r
     def mul(l: Double, r: Double): Double = l * r
@@ -178,6 +182,7 @@ package object acumen {
 
   /** Real instance for Interval */
   implicit object intervalIsReal extends Real[Interval] {
+    def abs(x: Interval): Interval = x.abs
     def add(l: Interval, r: Interval): Interval = l + r
     def sub(l: Interval, r: Interval): Interval = l - r
     def mul(l: Interval, r: Interval): Interval = l * r
@@ -224,6 +229,7 @@ package object acumen {
     def zero: CValue = ev.zero
     def !=(a: CValue, b: CValue): Boolean = binOp(a, b , (l,r) => ev.!=(l,r))
     def ==(a: CValue, b: CValue): Boolean = binOp(a, b , (l,r) => ev.==(l,r))
+    def abs(x: CValue): CValue = unOp(x, i => ev.abs(i))
     def acos(x: CValue): CValue = unOp(x, i => ev.acos(i))
     def add(a: CValue, b: CValue): CValue = binOp(a, b , (l,r) => ev.add(l,r))
     def asin(x: CValue): CValue = unOp(x, i => ev.asin(i))

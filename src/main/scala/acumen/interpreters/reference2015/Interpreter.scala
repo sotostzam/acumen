@@ -49,11 +49,11 @@ object Interpreter extends acumen.CStoreInterpreter {
   sealed trait Binding
   case object UsedBinding extends Binding
   case class UnusedBinding(e: Expr, env: Env) extends Binding
-  case class CachedUnusedBinding(v: CValue) extends Binding
+  case class CachedUnusedBinding(v: () => CValue) extends Binding
   def cacheBindings(b: Bindings, st: Store): Bindings = 
     b.foldLeft(b){ 
       case (res, (k, UnusedBinding(e, env))) => 
-        res updated (k, CachedUnusedBinding(evalExpr(e, env, st)(res)))
+        res updated (k, CachedUnusedBinding(() => evalExpr(e, env, st)(res)))
       case (res, (_, _: CachedUnusedBinding)) => res
     }
   
@@ -211,7 +211,7 @@ object Interpreter extends acumen.CStoreInterpreter {
                   env.get(f).getOrElse(getObjectField(id, f, st))
                 else
                   getObjectField(id, f, st)
-              case Some(CachedUnusedBinding(v)) => v
+              case Some(CachedUnusedBinding(v)) => v()
               case Some(UnusedBinding(e1, env1)) =>
                 eval(env1,e1)(bindings updated (fid, UsedBinding))
               case Some(UsedBinding) =>
@@ -558,7 +558,7 @@ object Interpreter extends acumen.CStoreInterpreter {
               id == resolveDot(e.d.lhs, e.env, st1).id && n == e.d.lhs.field })
             val nonClashingEqsValues = evaluateAssignments(nonClashingEqs, st1)(bindings ++
               /* Give discrete assignments precedence by replacing clashing bindings */
-              dasValues.map { case (id, n, v) => (id, n, Nil) -> CachedUnusedBinding(v) })
+              dasValues.map { case (id, n, v) => (id, n, Nil) -> CachedUnusedBinding(() => v) })
             /* Find (non-ODE) assignments that modify the store */
             val nonIdentityAs = (dasValues ++ nonClashingEqsValues).filterNot{ case (id, n, v) => 
               threeDField(n.x) || v == getObjectField(id, n, st1) }

@@ -64,6 +64,7 @@ object FAD extends App {
       FDif(h(l.head, r.head), (l.coeff.keySet union r.coeff.keySet).map(k => k -> c(k)).toMap)
     }
     /* Integral instance */
+    def abs(x: FDif[V]): FDif[V] = throw Errors.NotImplemented("FDif.abs")
     def add(l: FDif[V], r: FDif[V]): FDif[V] =
       binaryOp("add", l, r, _ + _, k => l(k) + r(k))
     def sub(l: FDif[V], r: FDif[V]): FDif[V] =
