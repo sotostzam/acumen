@@ -95,6 +95,7 @@ object ValidatedLinAlg {
    *  - ER: Eigenvalue vector real component
    *  - EC: Eigenvalue vector imaginary component
    *  - EV: Eigenvector matrix
+   * Note: Results are _not_ validated.
    */
   def approximateED(M: RealMatrix): (RealVector, RealVector, RealMatrix) = {
     implicit val cValueIsReal: Real[CValue] = acumen.intervalCValueIsReal
