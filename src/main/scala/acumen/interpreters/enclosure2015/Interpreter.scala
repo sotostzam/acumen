@@ -74,7 +74,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
   private val ParamTime                          = "time"                          -> VLit(GDouble( 0.0))
   private val ParamEndTime                       = "endTime"                       -> VLit(GDouble(10.0))
   private val ParamTimeStep                      = "timeStep"                      -> VLit(GDouble( 0.015625))
-  private val ParamMethod                        = "method"                        -> VLit(GStr(Picard))
+  private val ParamMethod                        = "method"                        -> VLit(GStr(Taylor))
   private val ParamOrderOfIntegration            = "orderOfIntegration"            -> VLit(GInt(4))
   private val ParamMaxPicardIterations           = "maxPicardIterations"           -> VLit(GInt(1000))
   private val ParamMaxBranches                   = "maxBranches"                   -> VLit(GInt(100))                  
@@ -593,15 +593,18 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
     prog.defs.foreach(d => checkValidAssignments(d.body))
     checkNestedHypotheses(prog)
     checkContinuousAssignmentToSimulator(prog)
-    val sb = solverBase(initStore)
+    // Initialize as affine enclosure to correctly initialize non-ODE variables.
+    // This dynset will be converted to the type used by the default and 
+    // user-selected integrators at the first call to continuousEncloser. 
+    def initializeEnclosure = picardBase.initializeEnclosure(_)
     val cprog = CleanParameters.run(prog, CStoreInterpreterType)
     val cprog1 = makeCompatible(cprog)
     val enclosureProg = liftToUncertain(cprog1)
     val mprog = Prog(magicClass :: enclosureProg.defs)
     val (sd1,sd2) = Random.split(Random.mkGen(0))
     val (id,st1) = 
-      mkObj(cmain, mprog, None, List(VObjId(Some(CId(0)))), sb initializeEnclosure initStore, 1)
-    val st2 = sb initializeEnclosure changeParent(CId(0), id, st1.cStore)
+      mkObj(cmain, mprog, None, List(VObjId(Some(CId(0)))), initializeEnclosure(initStore), 1)
+    val st2 = initializeEnclosure(changeParent(CId(0), id, st1.cStore))
     val hyps = st2.toList.flatMap { case (cid, co) =>
       mprog.defs.find(_.name == st2.getCls(cid)).get.body.flatMap {
         case Hypothesis(s, e) =>
