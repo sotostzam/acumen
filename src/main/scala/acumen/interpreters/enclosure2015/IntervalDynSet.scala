@@ -132,8 +132,34 @@ case class Cuboid
                                      s"imaginary component: ${Pretty prettyRealVector eigenValImag}.")
       Logger.trace(s"Cuboid.move: Maximum image error width: ${imageError.maxWidth}")
   
+      /** If error width exceeds the image width in any dimension, then 
+       *  re-initialize the Cuboid, moving the error to the width term. */
+      def reorganizeIfNeeded( imageMidpoint         : RealVector
+                            , imageLinearTransform  : RealMatrix 
+                            , imageLinearTransformT : RealMatrix
+                            , imageErrorLTTLT       : RealMatrix
+                            , imageWidth            : RealVector
+                            , imageError            : RealVector)
+                            : Cuboid = {
+        
+        val factor = 1
+        
+        if (imageError.maxWidth > factor * imageWidth.maxWidth) {
+          val newWidth                : RealVector = imageError + imageLinearTransform * imageWidth 
+          val newLinearTransform      : RealMatrix = breeze.linalg.DenseMatrix.eye[CValue](this.size)
+          val newLinearTransformT     : RealMatrix = newLinearTransform
+          val newErrorLTTLT           : RealMatrix = breeze.linalg.DenseMatrix.zeros[CValue](this.size, this.size)
+          val newError                : RealVector = breeze.linalg.Vector.zeros[CValue](this.size)
+          
+          Logger.trace(s"Cuboid.move: Reorganizing the data structure: ${imageError.maxWidth} > ${factor} * ${imageWidth.maxWidth}")
+          
+          Cuboid(imageMidpoint, newLinearTransform, newLinearTransformT, newErrorLTTLT, newWidth, newError)
+        } else
+          Cuboid(imageMidpoint, imageLinearTransform, imageLinearTransformT, imageErrorLTTLT, imageWidth, imageError)
+      }
+      
       ( Cuboid(refinedRangeEnclosure)
-      , Cuboid(imageMidpoint, imageLinearTransform, imageLinearTransformT, imageErrorLTTLT, imageWidth, imageError) )
+      , reorganizeIfNeeded(imageMidpoint, imageLinearTransform, imageLinearTransformT, imageErrorLTTLT, imageWidth, imageError) )
     }
     
     override def mapping(f: C1Mapping): Cuboid = {
