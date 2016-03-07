@@ -123,7 +123,13 @@ case class Cuboid
       
       // Log information about the jacobian and error
       val (eigenValReal, eigenValImag, eigenVecs) = ValidatedLinAlg.approximateED(jacobian)
-      Logger.trace(s"Cuboid.move: Jacobian eigenvalue real component: ${Pretty prettyRealVector eigenValReal}, complex component: ${Pretty prettyRealVector eigenValImag}")
+      val eigenValNorm = breeze.linalg.DenseVector.tabulate[CValue](eigenValReal.length) {
+        i => val (VLit(GConstantRealEnclosure(a)), VLit(GConstantRealEnclosure(b))) = (eigenValReal(i), eigenValImag(i))  
+          VLit(GConstantRealEnclosure((a.square + b.square).sqrt))
+      }
+      Logger.trace(s"Cuboid.move: Jacobian eigenvalue norm: ${Pretty prettyRealVector eigenValNorm}, " + 
+                                          s"real component: ${Pretty prettyRealVector eigenValReal}, " +
+                                     s"imaginary component: ${Pretty prettyRealVector eigenValImag}.")
       Logger.trace(s"Cuboid.move: Maximum image error width: ${imageError.maxWidth}")
   
       ( Cuboid(refinedRangeEnclosure)
