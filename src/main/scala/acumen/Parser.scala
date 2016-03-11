@@ -430,12 +430,12 @@ object Parser extends MyStdTokenParsers {
     {case ls => ExprVector(ls.map(x => ExprVector(List(x))))}
   def atom: Parser[Expr] =
     positioned( sum
+      | parens(expr)
       | interval
       |"type" ~! parens(className) ^^ { case _ ~ cn => TypeOf(cn) }
       | name >> { n => args(expr) ^^ { es => Op(n, es) } | success(Var(n)) }
       | colVector	
       | parens(rep2sep(expr, ",")) ^^ ExprVector
-      | parens(expr)
       | gvalue ^^ Lit
       )
 
