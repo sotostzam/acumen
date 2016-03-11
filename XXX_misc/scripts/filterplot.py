@@ -74,8 +74,9 @@ if not isTimePlot and len(cols) != 2:
 
 maxTime = 0
 
-# Python regex for Acumen intervals. NOTE: Note same as gnuplot pattern furhter down!
-intervalRegex = "\[(\-?\d*(\.\d*)?)\.\.(-?\d*(\.\d*))?\]"
+# Python RegEx for Acumen intervals. NOTE: Note same as gnuplot pattern furhter down!
+floatRegex = "[+-]?(\d+(\.\d*)?|\.\d+)([eE][+-]?\d+)?"
+intervalRegex = "\[\s*(" + floatRegex + ")\s*\.\.\s*(" + floatRegex + ")\s*\]"
 
 with open(args.inFile,'rb') as tsvin, open(args.outFile, 'wb') as csvout:
     for c in cols:
@@ -103,7 +104,7 @@ with open(args.inFile,'rb') as tsvin, open(args.outFile, 'wb') as csvout:
                         try:
                             yMatch = re.match(intervalRegex, row[i])
                             y1 = yMatch.group(1)
-                            y2 = yMatch.group(3)
+                            y2 = yMatch.group(5)
                             x1y1 += " " + y1
                             x2y1 += " " + y1
                             x2y2 += " " + y2
@@ -113,20 +114,22 @@ with open(args.inFile,'rb') as tsvin, open(args.outFile, 'wb') as csvout:
                 csvout.write(x1y1 + "\n")
                 csvout.write(x2y1 + "\n")
                 csvout.write(x2y2 + "\n")
-                csvout.write(x1y2 + "\n\n")
+                csvout.write(x1y2 + "\n")
+                csvout.write(x1y1 + "\n\n")
             else: # Phase-space plot
                 for i,c in er:
                     try:
                         xMatch = re.match(intervalRegex, row[outColIndexes[0]])
                         yMatch = re.match(intervalRegex, row[outColIndexes[1]])
                         x1 = xMatch.group(1)
-                        x2 = xMatch.group(3)
+                        x2 = xMatch.group(5)
                         y1 = yMatch.group(1)
-                        y2 = yMatch.group(3)
+                        y2 = yMatch.group(5)
                         csvout.write(x1 + " " + y1 + "\n")
                         csvout.write(x2 + " " + y1 + "\n")
                         csvout.write(x2 + " " + y2 + "\n")
-                        csvout.write(x1 + " " + y2 + "\n\n")
+                        csvout.write(x1 + " " + y2 + "\n")
+                        csvout.write(x1 + " " + y1 + "\n\n")
                     except:
                         print(("Phase-space plot: Could not parse ",row[outColIndexes[0]],row[outColIndexes[1]]))
 lc = len(cols)
