@@ -2,6 +2,7 @@ package acumen
 package util
 
 import Canonical._
+import interpreters.enclosure2015.Common._
 
 object DebugUtil {
   
@@ -11,14 +12,32 @@ object DebugUtil {
    *  Note: Only works on models consisting of a single model definition
    *        and only updates the instance variables of the Main object. */
   def asProgram(st: CStore, base: Prog): Prog =
-    Prog(base.defs.filter(_.name != cdevice).map{ d =>
-      if (d.name == cmain) d.copy(priv = d.priv.map{ f =>
-        f.copy(rhs = (f.rhs: @unchecked) match {
-          case ExprRhs(_) =>
-            val VLit(v) = st(mainId(st))(f.x)
-            ExprRhs(Lit(v))
-        })
-      }) else d
-    })
+    if (base.defs.size > 3) base
+    else
+      Prog(base.defs.filter(_.name != cdevice).map{ d =>
+        if (d.name == cmain) d.copy(priv = d.priv.map{ f =>
+          f.copy(rhs = (f.rhs: @unchecked) match {
+            case ExprRhs(_) =>
+              val VLit(v) = st(mainId(st))(f.x)
+              ExprRhs(Lit(v))
+          })
+        }) else d
+      })
+      
+  def printRealVector(title: String, rv: RealVector) =
+    println((if (title != "") title + ": " else "") +
+      (Pretty prettyRealVector rv))
+
+  def printStore(title: String, st: CStore) =
+    println((if (title != "") title + ": " else "") +
+      (Pretty pprint (Pretty prettyStore st)))
+
+  def printRealMatrix(title: String, m: RealMatrix, indexToName: Int => (CId, Name)) =
+    println((if (title != "") title + ": " else "") +
+      (Pretty.prettyRealMatrix(m, indexToName(_).toString)))
+
+  def printRealMatrix(title: String, m: RealMatrix) =
+    println((if (title != "") title + ": " else "") +
+      (Pretty.prettyRealMatrix(m, _.toString)))
 
 }

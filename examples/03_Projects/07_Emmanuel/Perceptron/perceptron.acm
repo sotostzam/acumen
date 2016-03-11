@@ -1,0 +1,74 @@
+// Perceptron for discrete outputs
+//
+// Author: Emmanuel Brelle
+//
+// This is the implementation of a perceptron to determine the value (black or white)
+//of any point of the plane. The moving sphere give the results for differents point
+//in space. The coefficent are the weights in the perceptrons according to the 
+// dimensional value of the points (colors match the axes)
+
+model Main (_)=
+initially
+n= 6,
+var = (
+  (0,1,0),  (0,1,1),  (1,1,0),  (1,1,1),  (0,1,0.5),
+  (0.5,1,1),  (0.5,1,0.5)
+  ),
+goals = ((1),(1),(0),(0),(1),(0),(1)),
+weights = ((0),(0),(0)),
+alpha= 0.1, // learning coefficient
+error = ((0),(0),(0),(0),(1),(0),(0)),
+imOfError = ((0),(0),(0),(0),(1),(0),(0)),
+
+_3D=(),colors = (black,black,black,black,black,black,black),
+_3DView=((0,-5,0.4),(0.5,0.5,0.3)),
+test = (0,1,0), testValue=-1, testColor = (0.4,0.4,0.4),
+t=0,t'=1,t2=0,t2'=1
+
+always 
+t'=4,t2'=1,
+if t>10 && t< 28 then var(5,0)+=- 0.2*cos(t/3-10)+0.7, var(6,0)+=- 0.2*cos(t/3-10)+0.7 noelse,
+testValue =( test*weights)(0),
+if testValue >= 0.5 then testColor = black 
+else  testColor = white,
+test= 1/3*(cos(t/2),0,sin(t)) +(0.5,1,0.5),
+
+foreach i in 0:n do 
+imOfError(i,0) = floor(error(i,0)+0.5),
+
+error = goals - var * weights,
+if t2 > 0.05 then t2+= 0,
+  weights += weights + alpha * trans(var) * imOfError
+noelse,
+
+
+foreach i in 0:n do 
+ if goals(i,0)== 1 
+ then colors(i)+= black 
+ else  colors(i)+= white,
+_3D=(
+  Sphere center=var(0) color=colors(0),
+  Sphere center=var(1) color=colors(1),
+  Sphere center=var(2) color=colors(2),
+  Sphere center=var(3) color=colors(3),
+  Sphere center=var(4) color=colors(4),
+  Sphere center=var(5) color=colors(5),
+  Sphere center=var(6) color=colors(6),
+  
+  Text center=var(0)+(-0.15,-0.2,-0.05) content = imOfError(0,0) ,
+  Text center=var(1)+(-0.15,-0.2,-0.05) content = imOfError(1,0),
+  Text center=var(2)+(-0.15,-0.2,-0.05) content = imOfError(2,0) ,
+  Text center=var(3)+(-0.15,-0.2,-0.05) content = imOfError(3,0) ,
+  Text center=var(4)+(-0.15,-0.2,-0.05) content = imOfError(4,0),
+  Text center=var(5)+(-0.15,-0.2,-0.05) content = imOfError(5,0) ,
+  Text center=var(6)+(-0.15,-0.2,-0.05) content = imOfError(6,0) ,
+  
+  Text center=(-0.3,0,-0.4) content = format("%.2f",weights(0,0)) color=red ,
+  Text center=(0.9,0,-0.4) content = format("%.2f",weights(1,0)) color = green ,
+  Text center=(0.3,0,-0.4) content = format("%.2f",weights(2,0)) color = blue,
+  Text center=(-0.3,0,-0.4) content = format("%.2f",weights(0,0)) color=red ,
+  Text center=(0.9,0,-0.4) content = format("%.2f",weights(1,0)) color = green ,
+  Text center=(0.3,0,-0.4) content = format("%.2f",weights(2,0)) color = blue,
+  
+  Sphere center=test color=testColor
+  )

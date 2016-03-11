@@ -22,7 +22,8 @@ object AcumenProject extends Build {
                       //    examples are removed (i.e. in the release script), so 
                       //    put it here to prevent from being in the "quick" test
                       //    that the release script uses.
-                      "acumen.ExtractBaseTest", "acumen.ExtractEnclosureTest")
+                      "acumen.ExtractBaseTest", "acumen.ExtractEnclosureTest",
+                      "acumen.BenchToolTest")
   def slowTestFilter(name: String) = slowTests.contains(name)
 
   // broken: Currently broken tests that should eventually be fixed

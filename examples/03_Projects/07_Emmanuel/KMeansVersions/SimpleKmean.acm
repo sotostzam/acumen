@@ -1,0 +1,55 @@
+// Simplest application of the K-Means clustering algorithm 
+//
+// Author: Emmanuel Brelle
+//
+// This model remove all unnecessary objects (for example 3D) to compute the solutuon
+// This model may be used to check quickly the correctness of the results but will 
+// give a output which wll be diffiult for human eyes to read.
+
+
+model Main (simulator)=
+
+initially
+n=29,m=2,means = ((0,0),(0.2,0.4),(0.4,0.8)),
+stepBeforeRun= 1,
+t=0,t'=0,
+data  = ((0,0),(0.2,0.4),(0.4,0.8),(0.6,1.2),(0.8,0.8),(1,0.4),(1.2,0),(0.5,0.4),(0.7,0.4),(1.8,0),(0,0),(0.2,0.4),(0.4,0.8),(0.6,1.2),(0.8,0.8),(1,0.4),(1.2,0),(0.5,0.4),(0.7,0.4),(1.8,0),(0,0),(0.2,0.4),(0.4,0.8),(0.6,1.2),(0.8,0.8),(1,0.4),(1.2,0),(0.5,0.4),(0.7,0.4),(1.8,0))*2,
+data'  = ((0,0),(0,0),(0,0),(0,0),(0,0),(0,0),(0,0),(0,0),(0,0),(0,0),(0,0),(0,0),(0,0),(0,0),(0,0),(0,0),(0,0),(0,0),(0,0),(0,0),(0,0),(0,0),(0,0),(0,0),(0,0),(0,0),(0,0),(0,0),(0,0),(0,0)
+  ),
+belonging = (-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,
+  -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,
+  -1,-1,-1,-1,-1,-1,-1,-1,-1,-1),
+_3D=()
+always
+data'  = ((0.81,0.2),(0.52,0.15),(0.24,0.18),(0.16,0.32),(0.18,0.34),(0.46,0.42),(0.38,0.2),(0.35,0.41),(0.27,0.46),(0.47,0.24),(0.82,0.35),(0.32,0.14),(0.74,0.28),(0.49,0.32),(0.48,0.54),(0.13,0.32),(0.29,0.75),(0.51,0.41),(0.17,0.48),(0.18,0.78),(0.43,0.46),(0.22,0.47),(0.46,0.84),(0.58,0.77),(0.14,0.87),(0.38,0.45),(0.27,0.75),(0.52,0.43),(0.41,0.34),(0.38,0.15))/2.5,
+t'=2,
+//Definition for the initial means
+  if stepBeforeRun== 1 then 
+    if t> 0.5 then t+=0,
+    means(0) += data(0),
+    means(1) += data(1),
+    means(2) += data(2), 
+    stepBeforeRun +=0
+    noelse
+  else (
+    if t>0.5  then  //Find for each data the closest mean
+    foreach i in 0:n do 
+      if (norm(means(0)-data(i)) <= norm(means(1)-data(i)) 
+        && norm(means(0)-data(i)) <= norm(means(2)-data(i)))then 
+        belonging(i) +=0
+      else  if (norm(means(1)-data(i)) <= norm(means(0)-data(i)) 
+        && norm(means(1)-data(i)) <= norm(means(2)-data(i)))then
+        belonging(i) +=1
+      else
+        (belonging(i) +=2)
+    noelse,
+    //Compute the mean of the news sets
+    if(t > 1 )then
+      t+= 0,
+      foreach k in 0:m do
+        means(k) += (
+          sum data(i,0)/(sum 1 for i in  0:n  if belonging(i)==k) for i in  0:n if belonging(i)==k,
+          sum data(i,1)/(sum 1 for i in  0:n  if belonging(i)==k) for i in  0:n if belonging(i)==k
+          )
+      noelse
+    )

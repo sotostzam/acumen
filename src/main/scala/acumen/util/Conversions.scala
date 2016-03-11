@@ -4,6 +4,8 @@ package util
 import scala.math._
 import Errors._
 import acumen.interpreters.enclosure.Interval
+import acumen.TAD.TDif
+import acumen.FAD.FDif
 
 object Conversions {
 
@@ -58,10 +60,28 @@ object Conversions {
 
   def extractInterval(v: GroundValue): Interval =
     v match {
-      case GInterval(i) => i
-      case GInt(i) => Interval(i, i)
-      case GDouble(d) => Interval(d, d)
+      case GInterval(i)              => i
+      case GConstantRealEnclosure(i) => i
+      case GInt(i)                   => Interval(i, i)
+      case GDouble(d)                => Interval(d, d)
+      
+      case GIntTDif(TDif(tv,_))      => Interval(tv(0), tv(0))
+      case GIntervalTDif(TDif(tv,_)) => tv(0)
+      case GDoubleTDif(TDif(tv,_))   => Interval(tv(0), tv(0))
+      
+      case GCValueTDif(TDif(tv,_)) => tv(0) match {
+        case VLit(GInterval(i))               => i
+        case VLit(GConstantRealEnclosure(i))  => i
+        case VLit(GInt(i))                    => Interval(i, i)
+        case VLit(GDouble(d))                 => Interval(d, d)
+        
+        case VLit(GIntervalFDif(FDif(tfv,_))) => tfv
+        
+        case _ => throw GroundConversionError(v, "interval")
+      }
+
       case e: GRealEnclosure => e.range
+
       case _ => throw GroundConversionError(v, "interval")
     }
   

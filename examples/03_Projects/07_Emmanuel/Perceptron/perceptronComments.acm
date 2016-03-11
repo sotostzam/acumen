@@ -1,0 +1,188 @@
+//Explaination for the perceptron algorithm with discete outputs on dynmic data
+//
+// Author: Emmanuel Brelle
+
+#include "../TextPlotter.Acm"
+
+model Main (simulator) = 
+initially
+t=0,t'=0, //time
+step =0, phase ="wait", // to go to the next text creation
+topLeft = ((1,0,5),  // list of the reference positions for the text
+          (-2,0,7),(-2,0,7),(-2,0,7),(-2,0,7),
+          (-2,0,10),(-2,0,10),(-2,0,10),(-2,0,10),(-2,0,10),(-2,0,10),(-2,0,10),
+          (-2,0,6)),
+phaseDuration = (1, 4,3,2,1, 8,7,6,5,4,3,2, 10, 1,1,1,1,1), // duration for each text
+nextPhaseStart = (5, 1,1,1,1, 6,7,5,4,5,5,28, 10, 1,1,1,1,1), // time to wait before creating the next text
+titleFontSize =1, // some font size  parameter
+textFontSize = 0.5, // some font size  parameter
+_3DView = ((5.5,-23,3.5),(4.5,0,4.5)) // the position of the camera
+
+
+always 
+t'=1,
+simulator.timeStep += 0.005,
+simulator.endTime += -0.1+ sum nextPhaseStart(i) for i in 0:12,
+if t > nextPhaseStart(step) then 
+  t+=0,
+  step += step +1,
+  phase +="wait" 
+noelse,
+if  phase == "wait" then     phase +="run",
+match step with [
+0 -> 
+create TimedText ("The Perceptron",titleFontSize,topLeft(step),0,phaseDuration(step),blue),
+create TimedText ("by Emmanuel Brelle",textFontSize,topLeft(step)+(1.5,0,-titleFontSize-textFontSize),0,phaseDuration(step),blue)
+
+| 1 ->
+create TimedText ("This video illustrates the perceptron algorithm to achieve", textFontSize,topLeft(step),0,phaseDuration(step),blue),
+create TimedText ("space partitioning", textFontSize,topLeft(step)+(0,0,-textFontSize*1),0,phaseDuration(step),blue)
+| 2 ->
+create TimedText ("The result for each 2D input is a color according to a value", textFontSize,topLeft(step)+(0,0,-textFontSize*3),0,phaseDuration(step),blue),
+create TimedText ("(black if it is negative else white)", textFontSize,topLeft(step)+(0,0,-textFontSize*4),0,phaseDuration(step),blue)
+| 3 ->
+create TimedText ("The value is a weighted average of the dimensional compo-", textFontSize,topLeft(step)+(0,0,-textFontSize*6),0,phaseDuration(step),blue),
+create TimedText ("nents", textFontSize,topLeft(step)+(0,0,-textFontSize*7),0,phaseDuration(step),blue)
+| 4 ->
+create TimedText ("The weights are determined on the training set composed", textFontSize,topLeft(step)+(0,0,-textFontSize*9),0,phaseDuration(step),blue),
+create TimedText ("of known values", textFontSize,topLeft(step)+(0,0,-textFontSize*10),0,phaseDuration(step),blue)
+
+
+| 5 ->
+create Perceptron(28,6,15,3),
+create TimedText ("Each data point is represented by a ball.", textFontSize,topLeft(step),0,phaseDuration(step),blue)
+| 6 ->
+create TimedText ("Static balls belong to the training set (their color are input", textFontSize,topLeft(step)+(0,0,-textFontSize*2),0,phaseDuration(step),blue),
+create TimedText ("of the problem)", textFontSize,topLeft(step)+(0,0,-textFontSize*3),0,phaseDuration(step),blue)
+| 7 ->
+create TimedText ("Numbers on the balls are local errors of the currents weights", textFontSize,topLeft(step)+(0,0,-textFontSize*5),0,phaseDuration(step),blue)
+| 8 ->
+create TimedText ("Values at the bottom are weights", textFontSize,topLeft(step)+(0,0,-textFontSize*7),0,phaseDuration(step),blue)
+| 9 ->
+create TimedText ("The last one is an additional constant for the result",textFontSize,topLeft(step)+(0,0,-textFontSize*9),0,phaseDuration(step),blue)
+| 10 ->
+create TimedText ("The boxes show the values at differents points in space",textFontSize,topLeft(step)+(0,0,-textFontSize*11),0,phaseDuration(step),blue)
+| 11 ->
+create TimedText ("The process also works when the data are moving", textFontSize,topLeft(step)+(0,0,-textFontSize*13),0,phaseDuration(step),blue),
+create TimedText ("However there is a delay to get stable weights", textFontSize,topLeft(step)+(0,0,-textFontSize*14),0,phaseDuration(step),blue)
+
+
+| 12 ->
+create TimedText ("Thank you for watching!", titleFontSize,topLeft(step)+(1,0,0),0,phaseDuration(step),blue),
+create TimedText ("The Effective Modeling Group", textFontSize,topLeft(step)+(3,0,-3),0,phaseDuration(step),blue),
+create TimedText ("(effective-modeling.org)",textFontSize,topLeft(step)+(3.5,0,-4),0,phaseDuration(step),blue)
+]
+ noelse
+
+model testBox(id,position,size,color)=
+initially
+_3D=()
+always
+_3D=(Box size=size*(0.1,0.1,0.1) center=position color=color)
+
+model Perceptron (tPauseBefore,tTransition,tEnd,tPauseAfter)=
+initially
+position = (2.5,0,0), size=2,
+n= 6,
+var = (
+  (0,1,0),(0,1,1), (1,1,0),  
+  (1,1,1),(0,1,0.5),(0.5,1,1),  
+  (0.5,1,0.5)
+  ),
+goals = ((1),(1),(0),(0),(1),(0),(1)),
+weights = ((0),(0),(0)),
+alpha= 0.1, // learning coefficient
+error = ((0),(0),(0),(0),(1),(0),(0)),
+imOfError = ((0),(0),(0),(0),(1),(0),(0)),
+Bsize = 0.3,ballSize=0.1,
+_3D=(),colors = (black,black,black,black,black,black,black),
+
+test =((-0.25,1,-0.25),(0,1,-0.25),(0.25,1,-0.25),(0.5,1,-0.25),(0.75,1,-0.25),(1,1,-0.25),(1.25,1,-0.25),
+(-0.25,1,0),(0,1,0),(0.25,1,0),(0.5,1,0),(0.75,1,0),(1,1,0),(1.25,1,0),
+(-0.25,1,0.25),(0,1,0.25),(0.25,1,0.25),(0.5,1,0.25),(0.75,1,0.25),(1,1,0.25),(1.25,1,0.25),
+(-0.25,1,0.5),(0,1,0.5),(0.25,1,0.5),(0.5,1,0.5),(0.75,1,0.5),(1,1,0.5),(1.25,1,0.5),
+(-0.25,1,0.75),(0,1,0.75),(0.25,1,0.75),(0.5,1,0.75),(0.75,1,0.75),(1,1,0.75),(1.25,1,0.75),
+(-0.25,1,1),(0,1,1),(0.25,1,1),(0.5,1,1),(0.75,1,1),(1,1,1),(1.25,1,1),
+(-0.25,1,1.25),(0,1,1.25),(0.25,1,1.25),(0.5,1,1.25),(0.75,1,1.25),(1,1,1.25),(1.25,1,1.25)
+),
+nTest=48,
+testValue=(
+-1,-1,-1,-1,-1,-1,-1,
+-1,-1,-1,-1,-1,-1,-1,
+-1,-1,-1,-1,-1,-1,-1,
+-1,-1,-1,-1,-1,-1,-1,
+-1,-1,-1,-1,-1,-1,-1,
+-1,-1,-1,-1,-1,-1,-1,
+-1,-1,-1,-1,-1,-1,-1),
+testColor = (
+red,red,red,red,red,red,red,
+red,red,red,red,red,red,red,
+red,red,red,red,red,red,red,
+red,red,red,red,red,red,red,
+red,red,red,red,red,red,red,
+red,red,red,red,red,red,red,
+red,red,red,red,red,red,red),
+mode="ini",
+t0=-tPauseBefore,t0'=1,t=0,t'=1,tStep=0,tStep'=1
+
+always 
+if mode == "ini" then mode+= "run",
+foreach i in 0:nTest do 
+create testBox(i,position+size*test(i),1,testColor(i))
+else
+foreach c in children do 
+c.color=testColor(c.id)
+,
+
+t0'=1,tStep'=100,
+foreach i in 0:n do 
+imOfError(i,0) = floor(error(i,0)+0.5),
+error = goals - var * weights,
+
+testValue = trans( test*weights),
+foreach i in 0:nTest do
+
+  if testValue(i) >= 0.5 then 
+    testColor(i) = black 
+  else  
+    testColor(i) = white,
+    
+if (t0 > tEnd+tPauseAfter) then foreach c in children do terminate c, mode+="end", if mode == "end" then terminate self noelse noelse,
+
+if (t0>0 && t0< tEnd) then 
+  t'=2,
+  if t0>tTransition && t0< 28 then
+    var(5,0)+=- 0.2*cos(t/3-tTransition)+0.7, var(6,0)+=- 0.2*cos(t/3-tTransition)+0.7 
+  noelse,
+  
+  if tStep > 1 then tStep+= 0,
+    weights += weights + alpha * trans(var) * imOfError
+  noelse
+else 
+(t'=0),
+
+foreach i in 0:n do 
+ if goals(i,0)== 1 
+ then colors(i)+= black 
+ else  colors(i)+= white,
+_3D=(
+  Sphere center=position+size*var(0) color=colors(0) size=ballSize*size,
+  Sphere center=position+size*var(1) color=colors(1) size=ballSize*size,
+  Sphere center=position+size*var(2) color=colors(2) size=ballSize*size,
+  Sphere center=position+size*var(3) color=colors(3) size=ballSize*size,
+  Sphere center=position+size*var(4) color=colors(4) size=ballSize*size,
+  Sphere center=position+size*var(5) color=colors(5) size=ballSize*size,
+  Sphere center=position+size*var(6) color=colors(6) size=ballSize*size,
+  
+  Text size=0.2*size center=position+size*var(0)+size*(-0.15,-0.2,-0.05) content = imOfError(0,0) ,
+  Text size=0.2*size center=position+size*var(1)+size*(-0.15,-0.2,-0.05) content = imOfError(1,0),
+  Text size=0.2*size center=position+size*var(2)+size*(-0.15,-0.2,-0.05) content = imOfError(2,0) ,
+  Text size=0.2*size center=position+size*var(3)+size*(-0.15,-0.2,-0.05) content = imOfError(3,0) ,
+  Text size=0.2*size center=position+size*var(4)+size*(-0.15,-0.2,-0.05) content = imOfError(4,0),
+  Text size=0.2*size center=position+size*var(5)+size*(-0.15,-0.2,-0.05) content = imOfError(5,0) ,
+  Text size=0.2*size center=position+size*var(6)+size*(-0.15,-0.2,-0.05) content = imOfError(6,0) ,
+  
+  Text size=0.2*size center=position+size*(-0.3,0,-0.4) content = format("%.2f",weights(0,0)) color=red ,
+  Text size=0.2*size center=position+size*(0.9,0,-0.4) content = format("%.2f",weights(1,0)) color = green ,
+  Text size=0.2*size center=position+size*(0.3,0,-0.4) content = format("%.2f",weights(2,0)) color = blue
+  )

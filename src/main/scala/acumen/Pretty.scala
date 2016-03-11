@@ -8,6 +8,7 @@ import scala.util.parsing.json._
 import com.sun.corba.se.impl.corba.CORBAObjectImpl
 import acumen.Errors.{FromJSONError, ShouldNeverHappen}
 import scala.util.parsing.input.{Positional,Position,NoPosition}
+import interpreters.enclosure2015.Common._
 
 class Pretty {
 
@@ -225,6 +226,7 @@ class Pretty {
       (e match {
         case Lit(i)             => pretty(i)
         case Var(n)             => pretty(n)
+        case Input(src,id)      => "input" :: parens(pretty(src) :: comma :: id)  
         case Index(e,i)         => pretty(e) :: parens(sepBy(comma :: " ", i map pretty[Expr]))
         case Dot(o,f)           => pretty(o) :: "." :: pretty(f)
         case ResolvedDot(i,o,f) => parens(pretty(o) :: "~" :: i.cid.toString) :: "." :: pretty(f)
@@ -321,6 +323,24 @@ class Pretty {
       case FixedPoint  => "@FixedPoint"
       case Continuous  => "@Continuous"
     }
+  
+  def prettyRealVector(rv: RealVector) : String =
+    rv.toArray.zipWithIndex.map { case (v, i) => Pretty pprint v }.mkString(", ")
+  
+  def prettyRealMatrix(m: RealMatrix, indexToString: Int => String) : String = {
+    var row = 0
+    val res = new StringBuffer(s"${indexToString(row)}\t")
+    m.foreachKey {
+      case (r, c) =>
+        m(r, c) match {
+          case VLit(GConstantRealEnclosure(i)) =>
+            if (r > row) { row += 1; res.append(s"\n${indexToString(row)}\t") }
+            print(s"$i\t")
+        }
+    }
+    res.toString + "\n"      
+  }
+    
 }
 
 object Pretty extends Pretty

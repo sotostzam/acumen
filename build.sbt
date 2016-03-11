@@ -2,9 +2,11 @@ name := "acumen"
 
 version := "10-devel"
 
-scalaVersion := "2.11.5"
+scalaVersion := "2.11.6"
 
 theMainClass := "acumen.Main"
+
+ivyScala := ivyScala.value map { _.copy(overrideScalaVersion = true) }
 
 libraryDependencies ++= Seq(
   "org.scala-lang.modules" %% "scala-swing" % "1.0.1",
@@ -13,7 +15,7 @@ libraryDependencies ++= Seq(
   "org.scala-lang" % "scala-actors" % "2.11.5",
   "org.scalatest" % "scalatest_2.11" % "2.2.4" % "test",
   "org.scalacheck" %% "scalacheck" % "1.10.1" % "test",
-  "org.scalanlp" % "breeze_2.11" % "0.11.2"
+  "org.scalanlp" % "breeze_2.11" % "0.12"
 )
 
 resolvers += "tuxfamily" at "http://download.tuxfamily.org/arakhne/maven/"

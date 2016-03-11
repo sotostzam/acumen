@@ -1,0 +1,33 @@
+// Discrete system to find the expected value
+//
+// Author: Emmanuel Brelle
+//
+//Unlike a controller the value is not updated at any time 
+// but it will mimic a controller updating the value each second
+
+
+model Main(simulator)=
+initially
+s = create system(),
+m = create machine()
+always
+s.x = m.x_test,
+m.y_observed = s.y
+
+model system ()= 
+initially
+x =0, y= 0
+always
+y= x*x
+
+model machine ()= 
+initially
+x_test = 0,y_observed = 0,
+x_answer = 0, y_target =7,
+t=0,t'=1
+always
+t'= 1,
+if(t>=1)then 
+t+=t-1,
+x_test += 100* (y_target - y_observed)
+noelse

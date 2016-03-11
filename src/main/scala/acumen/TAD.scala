@@ -5,6 +5,10 @@ import util.ASTUtil
 import acumen.interpreters.Common.RichStore
 import acumen._
 
+import reflect.runtime.universe.{
+  typeOf, TypeTag
+}
+
 /**
  * Automatic Differentiation.
  *
@@ -20,6 +24,7 @@ object TAD extends App {
   /** Integral instance for TDif[V], where V itself has an Integral instance */
   abstract class TDifAsIntegral[V: Integral] extends DifAsIntegral[V,Int,TDif[V]] with Integral[TDif[V]] {
     /* Integral instance */
+    def abs(x: TDif[V]): TDif[V] = throw Errors.NotImplemented("TDif.abs")
     def add(l: TDif[V], r: TDif[V]): TDif[V] =
       TDif(Stream.from(0).map(k => l(k) + r(k)), combinedLength(l, r))
     def sub(l: TDif[V], r: TDif[V]): TDif[V] =
@@ -75,6 +80,15 @@ object TAD extends App {
         if (l == zero)         { require(!(r(0) == zeroOfV), s"pow is not applicable to ($l,$r) as 0^0 is not defined.")
                                zero }
         else                   exp(mul(r, log(l)))
+
+    /** Power with integer exponent */
+    def pow(l: TDif[V], n: Int) : TDif[V] = {
+        if (n == 0) one                       else 
+        if (n == 1) l                         else
+        if (n == 2) square(l)                 else
+        if (n <  0) div(one, pow(l, -n)) else
+        powBySquare(l, n)
+    }
       
     /** Square root */
     def sqrt(x: TDif[V]): TDif[V] =
@@ -114,21 +128,12 @@ object TAD extends App {
     
     /** Integer power by squaring */
     private def powBySquare(l: TDif[V], n: Int): TDif[V] =
-      mul(square(powOnInt(l, n/2)), (if (n % 2 == 1) l else one)) // FIXME should multiplying with one be optimized? 
-    
-    /** Power with integer exponent */
-    private def powOnInt(l: TDif[V], n: Int) : TDif[V] = {
-        if (n == 0) one                       else 
-        if (n == 1) l                         else
-        if (n == 2) square(l)                 else
-        if (n <  0) div(one, powOnInt(l, -n)) else
-        powBySquare(l, n)
-    }
+      mul(square(pow(l, n/2)), (if (n % 2 == 1) l else one)) // FIXME should multiplying with one be optimized? 
     
     /** Power with real exponent
      *  l != zero, r != zero, r != one */
     private def powOnReal(l: TDif[V], r: TDif[V]) : TDif[V] =
-      if (r(0).isValidInt) powOnInt(l, r(0).toInt) else {
+      if (r(0).isValidInt) pow(l, r(0).toInt) else {
         val k0  = firstNonZero(l) // n >= k0 because l != zero
         val lk0 = l(k0)
         val a = r(0) // FIXME This is a constant! Should not be lifted in the first place.
@@ -230,13 +235,13 @@ object TAD extends App {
         coeff
       }, x.length) // FIXME How many?
   }
-  implicit object IntDifIsIntegral extends TDifAsIntegral[Int] {
+  implicit object intTDifIsIntegral extends TDifAsIntegral[Int] {
     def groundValue(v: TDif[Int]) = GIntTDif(v)
   }
-  implicit object DoubleDifIsReal extends TDifAsReal[Double] {
+  implicit object doubleTDifIsReal extends TDifAsReal[Double] {
     def groundValue(v: TDif[Double]) = GDoubleTDif(v)
   }
-  implicit object IntervalDifIsReal extends TDifAsReal[Interval] {
+  implicit object intervalTDifIsReal extends TDifAsReal[Interval] {
     def groundValue(v: TDif[Interval]) = GIntervalTDif(v)
   }
   
@@ -246,6 +251,13 @@ object TAD extends App {
     def head: V = coeff(0)
     def map[W: Integral](m: V => W): TDif[W] = TDif(coeff map m, length)
     def indexWhere(m: V => Boolean): Int = coeff.take(length).indexWhere(c => m(c))
+    override def hashCode() = (coeff take length).hashCode
+    override def equals(o: Any) = o match {
+      case tdif: TDif[V] => 
+        this.length == tdif.length && 
+          ((this.coeff zip tdif.coeff) take length).forall{ case (l,r) => l equals r }
+      case _ => false
+    } 
   }
   object TDif {
     /** Lift a constant value of type A to a TDif. */
@@ -267,7 +279,10 @@ object TAD extends App {
     case GDouble(d) => GDoubleTDif(TDif constant d)
     case GInt(i) => GDoubleTDif(TDif constant i)
     case GInterval(i) => GIntervalTDif(TDif constant i)
-    case GConstantRealEnclosure(i) => GIntervalTDif(TDif constant i)
+    case g: GConstantRealEnclosure => 
+      GCValueTDif(TDif.constant(VLit(g): CValue)(interpreters.enclosure2015.intervalBase.cValueIsReal))
+    case g: GIntervalFDif => 
+      GCValueTDif(TDif.constant(VLit(g): CValue)(interpreters.enclosure2015.fDifBase.cValueIsReal))
     case _ => gv
   }
   
@@ -280,7 +295,7 @@ object TAD extends App {
   }
   
   /** Lower all TDif values in a RichStore into the corresponding numeric value */
-  def lower[S,Id](st: RichStore[S,Id]): S = st map lowerValue
+  def lower[S,Id: TypeTag](st: RichStore[S,Id]): S = st map lowerValue
   
   /** Lower all TDif values in an Expr into the corresponding numeric value */
   def lower(e: Expr): Expr = new acumen.util.ASTMap {
@@ -294,13 +309,18 @@ object TAD extends App {
     case GIntTDif(TDif(v,_)) => GInt(v(0))
     case GIntervalTDif(TDif(v,_)) => GConstantRealEnclosure(v(0))
     case GDoubleTDif(TDif(v,_)) => val v0 = v(0)
-      if (DoubleIsReal isValidInt v0) GInt(DoubleIsReal toInt v0) else GDouble(v0)
+      if (doubleIsReal isValidInt v0) GInt(doubleIsReal toInt v0) else GDouble(v0)
     case _ => gd
   }
   
   /** Lower all the values inside a Value[Id] from TDifs */
-  private def lowerValue[Id](v: Value[Id]): Value[Id] = v match {
-    case VLit(gv) => VLit(lowerGroundValue(gv))
+  private def lowerValue[Id: TypeTag](v: Value[Id]): Value[Id] = v match {
+    case VLit(gv) => gv match {
+      // Special case where a GroundValue wraps a CValue 
+      case GCValueTDif(TDif(v, _)) if typeOf[Id] <:< typeOf[CId] =>
+        v(0).asInstanceOf[Value[Id]]
+      case _ => VLit(lowerGroundValue(gv))
+    }
     case VVector(lv: List[Value[Id]]) => VVector(lv map lowerValue)
     case VList(lv: List[Value[Id]]) => VList(lv map lowerValue)
     case _ => v

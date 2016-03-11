@@ -49,11 +49,11 @@ object Interpreter extends acumen.CStoreInterpreter {
   sealed trait Binding
   case object UsedBinding extends Binding
   case class UnusedBinding(e: Expr, env: Env) extends Binding
-  case class CachedUnusedBinding(v: CValue) extends Binding
+  case class CachedUnusedBinding(v: () => CValue) extends Binding
   def cacheBindings(b: Bindings, st: Store): Bindings = 
     b.foldLeft(b){ 
       case (res, (k, UnusedBinding(e, env))) => 
-        res updated (k, CachedUnusedBinding(evalExpr(e, env, st)(res)))
+        res updated (k, CachedUnusedBinding(() => evalExpr(e, env, st)(res)))
       case (res, (_, _: CachedUnusedBinding)) => res
     }
   
@@ -211,7 +211,7 @@ object Interpreter extends acumen.CStoreInterpreter {
                   env.get(f).getOrElse(getObjectField(id, f, st))
                 else
                   getObjectField(id, f, st)
-              case Some(CachedUnusedBinding(v)) => v
+              case Some(CachedUnusedBinding(v)) => v()
               case Some(UnusedBinding(e1, env1)) =>
                 eval(env1,e1)(bindings updated (fid, UsedBinding))
               case Some(UsedBinding) =>
@@ -233,7 +233,12 @@ object Interpreter extends acumen.CStoreInterpreter {
             else eval(env,y)
         /* op(args) */
         case Op(Name(op,0),args) =>
-          evalOp(op, args map (eval(env,_)))
+          if (op == "rand") {
+            val seed = getSeed(selfCId(env), st)
+            val (rand,gen) = Random.randomIvalDouble(0, 1, seed)
+            VLit(GDouble(rand))
+          } else
+            evalOp(op, args map (eval(env,_)))
         /* sum e for i in c st t */
         case Sum(e,i,c,t) =>
           def helper(acc:CValue, v:CValue) = {
@@ -553,21 +558,24 @@ object Interpreter extends acumen.CStoreInterpreter {
               id == resolveDot(e.d.lhs, e.env, st1).id && n == e.d.lhs.field })
             val nonClashingEqsValues = evaluateAssignments(nonClashingEqs, st1)(bindings ++
               /* Give discrete assignments precedence by replacing clashing bindings */
-              dasValues.map { case (id, n, v) => (id, n, Nil) -> CachedUnusedBinding(v) })
+              dasValues.map { case (id, n, v) => (id, n, Nil) -> CachedUnusedBinding(() => v) })
             /* Find (non-ODE) assignments that modify the store */
             val nonIdentityAs = (dasValues ++ nonClashingEqsValues).filterNot{ case (id, n, v) => 
               threeDField(n.x) || v == getObjectField(id, n, st1) }
+            /* Apply discrete assignments to _3D and _3DView variables */
+            val threeDValues = dasValues.filter{ case (_, n, _) => threeDField(n.x) }
+            val st2 = applyAssignments(threeDValues) ~> st1
             /* If the discrete, structural and non-ODE continuous actions do not modify the store, conclude discrete fixpoint */
             if (nonIdentityAs.isEmpty && born.isEmpty && dead.isEmpty && rps.isEmpty)
-              setResultType(FixedPoint, st1)
+              setResultType(FixedPoint, st2)
             else {
               /* Apply discrete and non-clashing continuous assignment values */
-              val st2 = applyAssignments(nonClashingEqsValues ++ dasValues) ~> st1
+              val st3 = applyAssignments(nonClashingEqsValues ++ dasValues) ~> st2
               /* Apply terminations to get store without dead objects and list of orphans */
-              val (st3, orphans) = applyTerminations(dead, st2)
+              val (st4, orphans) = applyTerminations(dead, st3)
               /* Apply reparentings */
-              val st4 = applyReparentings(rps ++ orphans) ~> st3
-              setResultType(Discrete, st4)
+              val st5 = applyReparentings(rps ++ orphans) ~> st4
+              setResultType(Discrete, st5)
             }
           case FixedPoint => // Do continuous step
             val eqsIds = resolveDots(eqs)
@@ -581,12 +589,19 @@ object Interpreter extends acumen.CStoreInterpreter {
             val stEQS = applyCollectedAssignments(eqs, stT)
             setResultType(Continuous, stEQS)
         }
+        // Increment the seeds of each object
+        val stSeed = res.foldLeft(res) {
+          case (res1, (id,o)) =>
+            val (seed1,seed2) = getSeed(id, res)
+            val (tmp,newSeed) = Random.next((seed1,seed2))
+            setObject(id, setSeed(res(id), newSeed), res1)
+        }
         // Hypotheses check only when the result is not a FixedPoint
-        lazy val md1 = testHypotheses(hyps, md, res, getTime(st))(NoBindings) // No bindings needed, res is consistent 
-        if (getResultType(res) != FixedPoint)
-          Data(countVariables(res), md1)
+        lazy val md1 = testHypotheses(hyps, md, stSeed, getTime(st))(NoBindings) // No bindings needed, res is consistent
+        if (getResultType(stSeed) != FixedPoint)
+          Data(countVariables(stSeed), md1)
         else
-          Data(countVariables(res), md)
+          Data(countVariables(stSeed), md)
       }
     }
   
@@ -644,11 +659,14 @@ object Interpreter extends acumen.CStoreInterpreter {
       applyAssignments(field.variables(s).map {
         case (o, n) => (o, n, evalOp(operator, List(s(o, n), that(o, n))))
       }) ~> s
-    override def map(m: CValue => CValue) = 
-      s.mapValues(_.map{ 
-        case nv@(Name(n,_),_) if interpreters.Common.specialFields.contains(n) => nv   
-        case (n,v) => (n, m(v)) 
-      })
+    override def map(m: CValue => CValue) = mapName((_,_,v) => m(v))
+    override def mapName(m: (GId, Name, CValue) => CValue): Store = 
+      s.map{ case (cid,co) =>
+        (cid, co.map{ 
+          case nv@(Name(n,_),_) if interpreters.Common.specialFields.contains(n) => nv   
+          case (n,v) => (n, m(cid, n, v)) 
+        })
+      }
     override def apply(id: CId, n: Name): CValue = getObjectField(id, n, s)
     override def updated(id: CId, n: Name, v: CValue): Store = setObjectField(id, n, v, s)
     override def getInSimulator(variable: String) = Canonical.getInSimulator(Name(variable, 0), s)

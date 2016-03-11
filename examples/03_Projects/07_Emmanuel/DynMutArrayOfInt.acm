@@ -1,0 +1,146 @@
+// Dynamic mutable Array
+//
+// Author: Emmanuel Brelle
+//
+// These arrays can be modified, extended, shrunk or plotted
+// Modifying the variables of the first cell will recursively change 
+//the entire array : 
+// "modify" is the position of the value which must be changed and the new value
+// extend is both for extending or shrinking the array according to the new value
+// access will set retValue to the content which has the same position as the new value
+
+model null ()=
+model ArrayOfInt(size) =
+initially 
+value = 0, isRoot=1,
+next = create null(),
+mode = "ini",
+modify = (-1,0),
+extend = 0, extended =0,
+access = -1,accessed= 0,retValue=0 
+,_3D=(),enable3D =  false,color = cyan,position = (0,0,0),space= (1,0,0)
+always
+//initial step : create next cells of the array
+if(mode == "ini") then  
+  if (size > 1 ) then 
+  terminate next , 
+  next += create ArrayOfInt(size - 1)
+  noelse,
+  mode += "active" 
+noelse,
+
+if(size > 1 && mode == "active"  ) then
+if (enable3D ~= next.enable3D) then next.enable3D+=enable3D noelse,
+if (color ~= next.color) then next.color+=color noelse,
+if (next.position ~= position + space) then next.position+=position+space noelse,
+if( next.isRoot == 1) then next.isRoot += 0 noelse
+noelse, 
+if enable3D then 
+_3D=(
+  Text content=value center = position+(0,0,0.3),
+  Sphere center=position color = color
+)
+else
+_3D=(),
+
+//Modifications of a precise value : to replace the nth value by V,
+// set modify to (n,V)
+if (modify(0) >=0 &&  extend ==0) then 
+    if (modify(0) == 0) then 
+    value += modify(1)
+    else if (size > 1 ) then 
+      next.modify += (modify(0)-1,modify(1))
+    noelse,
+    modify +=(-1,0)
+noelse,
+
+//Read value : to acces to the nth value set access to n
+//and read the value in retvalue
+if(access >= 0 ) then 
+  if (size > 1  && access > 0 && next.access == -1 && next.accessed == 0) then 
+  next.access += access -1
+  else if (access == 0) then 
+  access += -1,accessed += 1, retValue+= value
+  else if (size > 1 && next.accessed== 1)then
+  access+=-1, accessed+=1, next.accessed +=0, retValue += next.retValue
+  noelse
+noelse,
+
+//Change the size of the array : to extend the array of n cells set extend to n
+//increase the size of the array
+if (extend > 0  && extended == 0 ) then  
+  if(size == 1) then   //end of the array
+    terminate next , 
+    next += create ArrayOfInt(extend),
+    size+= size + extend,
+    extended += 1
+  else if ( size > 1 && next.extended == 0) then   // ask for extension to the child
+    next.extend += extend
+  else if ( size > 1 && next.extended == 1) then   //middle
+    size+= size + extend,
+    next.extend += 0,
+    next.extended +=0,
+    extended += 1
+   noelse
+else if (extend < 0 && extended == 0) then //reduce the size of the array
+  if (size == 1 || (size <= -extend &&  next.extended == 1 )) then //end of array
+    terminate next, 
+    size += size + extend,
+    extended +=1
+  else if(size > 1 && next.extended == 0 ) then //middle
+    next.extend += extend
+  else if (size > 1  && next.extended == 1  && size == -extend+1) then
+    terminate next,
+    next += create null(),
+    size += 1,
+    extended += 1
+  else if (size > 1  && next.extended == 1  && size > -extend+1) then
+    next.extended += 0,
+    next.extend+= 0,
+    size += size + extend,
+    extended += 1
+  noelse
+noelse,
+if(isRoot== 1 && extended == 1 && extend ~= 0) then
+extended += 0,extend += 0 
+noelse
+
+/*//add or remove a "/" at the begining of the line to un-/comment the main model
+model Main (_)= 
+initially
+tmp =0,
+arr = create ArrayOfInt(3),
+time = 0,time' =1, nbMod = 0,
+_3D = ()
+always
+_3D=  (
+  Text content=tmp center = (0,0.5,0.3),
+  Sphere center=(0,0.5,0) color = yellow),
+time'= 1,
+//Read the value
+if(arr.accessed == 1)then arr.accessed+= 0 ,tmp += arr.retValue noelse,
+//Events
+if( time >1) then
+time +=time-1,
+nbMod += nbMod + 1,
+  if (nbMod == 0 ) then 
+  arr.extend += 1
+  else if (nbMod == 1  ) then
+  arr.enable3D += true
+  else if (nbMod == 2 ) then
+  arr.modify += (1,4) 
+  else if (nbMod == 3 ) then
+  arr.position+=(-2,0,1)
+  else if (nbMod == 4) then
+  arr.access += 1
+  else if (nbMod == 5) then
+  arr.extend += 2,
+  arr.modify += (4,5)
+  else if (nbMod == 6) then
+  arr.extend += -2,
+  arr.access += 4
+  else if (nbMod == 7) then
+  arr.extend += 1
+  noelse
+noelse
+//*/

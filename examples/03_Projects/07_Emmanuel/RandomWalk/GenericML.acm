@@ -1,0 +1,53 @@
+// Generic and parallel computation of random walk model
+//
+// Author: Emmanuel Brelle
+//
+//Instead of waiting for a single value this model run several submodels 
+//and  then wait for their value. This parallel version can be used for other 
+//simulaton modifying the CPS model : this model computes its value based on 
+//another model it would have created 
+
+model Main(simulator) = 
+initially
+  R = create run (3)
+  
+model run (n)=
+initially
+  timer =0, timer' = 1, 
+  nbChildrenCreated = 0,        
+  iterator = 0, 
+  maxInvDistance = 0,
+  guess = 0
+always
+timer'=1,
+if length(children)  < n then 
+  create CPS(guess+rand(),nbChildrenCreated,1),
+  nbChildrenCreated += nbChildrenCreated + 1  
+noelse,
+
+if timer > 0 then 
+   foreach c in self.children do 
+   if c.id == iterator then 
+     if 1/(c.value) > maxInvDistance then
+       maxInvDistance += 1/(c.value),
+       guess += c.p
+     noelse,
+     iterator += iterator+1
+   noelse,
+   if iterator >= nbChildrenCreated then 
+     iterator += nbChildrenCreated - length(children),
+     timer += 0
+   noelse
+noelse,
+if (iterator < nbChildrenCreated-length(children)) then 
+  iterator += nbChildrenCreated - length(children)
+noelse
+
+model CPS(p,id,age)=
+initially 
+  value = abs(2-p),
+  age'=-1
+always
+  age'= -1,
+  if age <= 0 then terminate self noelse
+

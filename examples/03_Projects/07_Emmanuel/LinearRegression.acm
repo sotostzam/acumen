@@ -1,0 +1,35 @@
+// Linear regression 
+//
+// Author: Emmanuel Brelle
+//
+// Find the line which minimize the distance to all the points
+
+model Main (_)= 
+initially
+points = ((0,0,0), (1,1,0), (2,4,0), (-0.5,0.25,0), (-1,1,0), (1.5,2.25,0), (1.73,2.99,0), (0.5,0.25,0)),
+sX=0, sY=0, sXX=0, sXY=0,
+n=8, bX=0, b1=0,
+_3D= (), _3DView = ((0,0,10),(0,0,0))
+always
+//Coefficients of XtX
+sX =  sum points(i,0) for i in 0:(n-1),
+sXX = sum points(i,0) * points(i)(0) for i in 0:(n-1),
+//Coefficients of XY
+sY =  sum points(i,1) for i in 0:(n-1),
+sXY = sum points(i,0) * points(i)(1) for i in 0:(n-1),
+//solution vector for the line
+b1 = (sY - sX*bX)/n,
+bX =  (n*sXY - sX*sY)/(n*sXX - sX*sX),
+
+_3DView = ((0,0,30),(0,pi/2,0)),
+_3D = (
+  Sphere center=points(0) color = yellow,
+  Sphere center=points(1) color = yellow,
+  Sphere center=points(2) color = yellow,
+  Sphere center=points(3) color = yellow,
+  Sphere center=points(4) color = yellow,
+  Sphere center=points(5) color = yellow,
+  Sphere center=points(6) color = yellow,
+  Sphere center=points(7) color = yellow,
+  Cylinder center=(0,b1,0)  rotation= (0,0,atan(bX)-pi/2) length = 20 radius= 0.05 color= (0.7,0,0)
+)

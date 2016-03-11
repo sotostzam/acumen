@@ -1,0 +1,63 @@
+// Generic and parallel computation of random walk model
+//
+// Author: Emmanuel Brelle
+//
+//Instead of waiting for a single value this model run several submodels 
+//and  then wait for their value. This parallel version can be used for other 
+//simulaton modifying the Learn model : this model computes its value based on 
+//another model it would have created 
+
+model Main(simulator) = 
+initially
+R = create run (3,simulator.timeStep)
+
+//abstract objet which evaluate the object (here a number)
+model Learn(p,id,age)=
+initially 
+value = -abs(5-p),     // a mark to evaluate the function from the parent model
+age'=-1
+always
+age'= -1,
+if age <= 0 then terminate self noelse
+
+
+//Model to iterate children (main has a simulator which may not have the proper attributes)
+model run (n,timestep)=
+initially
+nbChildrenCreated = 0,         // unique id generator for children
+ptr = 0, timer =0, timer' = 1, // to iterate very often over all children
+max = -999999999,rate = 0,              // results : maximum with the convolution and value p which gave this maximum
+_3D=(),_3DView=(), displayPosZ =1         //variables for easily read the result
+always
+timer'=1,
+if length(children)  < n then 
+create Learn(rate+rand(),nbChildrenCreated,1),
+nbChildrenCreated += nbChildrenCreated + 1  noelse,
+//update of the maximum value by iterating the children bypassing the simultaneous assignments in acumen
+if timer > timestep then 
+   foreach c in self.children do 
+   if c.id == ptr then 
+     if c.value > max then
+       max += c.value,
+       rate += c.p
+     noelse,
+     ptr += ptr+1
+   noelse,
+   if ptr >= nbChildrenCreated then 
+     ptr += nbChildrenCreated - length(children),
+     timer += timer-timestep
+   noelse
+noelse,
+if (ptr <  nbChildrenCreated - length(children) ) then ptr += ptr +1 noelse,
+_3DView=((0,-6,displayPosZ),(-0.3,2,1)),
+_3D=(
+  Text center = (-2,0,displayPosZ-0.2) content = rate,
+  Text center = (0,0,displayPosZ-0.2) content = "was the best p",
+  Text center = (-2.1,0,displayPosZ) content = max,
+  Text center = (0,0,displayPosZ) content = "as a maximum value",
+  Text center = (-0.3,0,displayPosZ+0.2) content =length(children),
+  Text center = (0,0,displayPosZ+0.2) content ="Children alive",
+  Text center = (-0.3,0,displayPosZ+0.4) content =nbChildrenCreated,
+  Text center = (0,0,displayPosZ+0.4) content ="ChildrenCreated"
+  )
+

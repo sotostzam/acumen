@@ -1,0 +1,69 @@
+// Simple Support Vector Machine Example
+//
+// Author: Emmanuel Brelle
+//
+// Find the separator which would be the solution given by the SVM algorithm
+// This model requires that all the points are used (cf SVM algorithm where 
+// few points are necessary to decribe the solution : the points which 
+// constrain the direction of the line)
+
+model data(id,position,size,color,distance)=
+initially
+_3D=()
+always
+_3D=(Sphere color=color center=position size=size,
+Text content=format("%.3g",distance) center= position + (0.2,0,0)
+)
+
+model Main (simulator)= 
+initially
+v=create SVM()
+
+model SVM()=
+initially
+n=2, t =0  , t'=1,
+color = (black,white,white,white),
+alpha = 0.5,
+data = ((0,1,-1),(2.5,1,1),(2,1,0),(3,1,3)),
+distance = (0,0,0,0),
+output = (-1,1,1,1),
+weight = ((1),(1),(0)),
+ptr = 0,
+iLastPos = 1, iLastNeg =0,
+mode="ini",
+center = (0,0,0),
+_3DView =((2,-15,2),(2,0.0,2)),
+_3D= ()
+
+always
+if mode == "ini" then mode += "run",
+  foreach i  in 0:(n-1) do
+  create data(i,data(i),0.1,color(i),distance(i))
+noelse,
+
+t'=1,
+center=0.5*(data(0)+data(1)),
+foreach c in children do (
+  c.distance= distance(c.id)
+),
+foreach i in 0:(n-1) do 
+    distance(i)= output(i)*((data(i)-center)*weight)(0),
+if t > 0 then
+  t+=0,
+  if ptr < (n-1) then 
+    ptr += ptr +1
+  else (
+    ptr +=0,
+    alpha+= alpha *0.99),
+  
+  if  distance(ptr) < 1 then 
+    weight += (1-alpha)* weight  + alpha*output(ptr)*trans(data(ptr)-center)  
+  else
+   weight+=0.99*weight
+ noelse,
+     
+
+_3D = (
+Box center=center size = (50,0.09,2/norm(trans(weight))) rotation=(0,pi/2-atan(weight(2,0)/weight(0,0)),0) color=green,
+Box center=center size = (50,0.1,0.1) rotation=(0,pi/2-atan(weight(2,0)/weight(0,0)),0)
+)

@@ -47,14 +47,16 @@ object Random {
 	private def iLogBase(b:Int, i:Int) : Int =
 		if (i < b) 1 else 1 + iLogBase(b, i / b)
 
+	private def lLogBase(b:Int, i:Long) : Int =
+		if (i < b) 1 else 1 + lLogBase(b, i / b)
 
 	def randomIvalInt (low:Int, high:Int, rng:Gen) : (Int, Gen) = {
 		if (low > high) 
 			randomIvalInt(high, low, rng)
 		else {
-			lazy val k = high - low  + 1
+			lazy val k = high.toLong - low.toLong  + 1
 			lazy val b = 2147483561
-			lazy val n = iLogBase(b,k)
+			lazy val n = lLogBase(b,k)
 
 			def f(i:Int, acc:Int, g:Gen) : (Int, Gen) = {
 				if (i == 0) 
@@ -66,11 +68,11 @@ object Random {
 			}
 			
 			lazy val (v, rngp) = f(n,1,rng)
-			(low + (v % k), rngp)
+			(low + (v % k).toInt, rngp)
 		}
 	}
 
-	private val intRange: Long = Int.MaxValue - Int.MinValue
+	private val intRange: Long = Int.MaxValue.toLong - Int.MinValue.toLong
 
   def randomIvalDouble (l:Double, h:Double, rng:Gen) : (Double, Gen) = {
 		if (l>h) randomIvalDouble(h,l,rng)

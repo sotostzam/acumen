@@ -26,7 +26,7 @@ import net.java.jinterval.interval.set._
  * such that A_i is contained in B_i for each i, f(A_1,...,A_n) is
  * contained in f(B_1,...,B_n).
  */
-case class Interval(val i: SetInterval) extends AnyVal {
+class Interval(private val i: SetInterval) {
    
   def lo: Real = i.inf
   def hi: Real = i.sup
@@ -278,7 +278,7 @@ case class Interval(val i: SetInterval) extends AnyVal {
     lo.compareTo(it.lo) <= 0 && it.hi.compareTo(hi) <= 0
   }
 
-  def properlyContains(that: Interval): Boolean = 
+  def containsInInterior(that: Interval): Boolean = 
     that.i containedInInterior this.i
 
   def isThin = (lo compareTo hi) == 0
@@ -300,6 +300,14 @@ case class Interval(val i: SetInterval) extends AnyVal {
    *  rational end-points represented exactly. */
   def toRationalString =
     s"[(${lo.getNumerator}/${lo.getDenominator})..(${hi.getNumerator}/${hi.getDenominator})]"
+	
+  /** Override equals because Interval wraps a SetInterval object, 
+   *  whose equals implementation may be too specific. */
+  override def equals(that: Any): Boolean = that match {
+    case t: Interval => this equalTo t
+    case _ => false
+  }
+  override def hashCode = i.hashCode
 
   // TODO improve description
   /** UNSAFE only to be used for plotting */
@@ -318,6 +326,8 @@ object Interval {
   val ic = SetIntervalContexts.getInfSup(BinaryValueSet.BINARY64)
   val rc = ExtendedRationalContexts.exact()
 
+  def apply(i: SetInterval): Interval =
+    new Interval(i)
   def apply(lo: Real, hi: Real): Interval =
     Interval(ic.numsToInterval(lo, hi))
   def apply(lo: Double, hi: Double): Interval =
@@ -341,8 +351,7 @@ object Interval {
   /** Neighborhood with twice the width of the smallest representable Double. */
   val epsilon = Interval(-Double.MinPositiveValue, Double.MinPositiveValue)
 
-  /** Approximation based on first 1000 digits. */
-  val pi = Interval(ic.textToInterval(
+  val piDigits =
     "3.1415926535897932384626433832795028841971693993751058209749445923078164062862089986280348253421170679" +
     "821480865132823066470938446095505822317253594081284811174502841027019385211055596446229489549303819644" +
     "288109756659334461284756482337867831652712019091456485669234603486104543266482133936072602491412737245" +
@@ -353,7 +362,10 @@ object Interval {
     "290219608640344181598136297747713099605187072113499999983729780499510597317328160963185950244594553469" +
     "083026425223082533446850352619311881710100031378387528865875332083814206171776691473035982534904287554" +
     "687311595628638823537875937519577818577805321712268066130019278766111959092164201989380952572010654858" +
-    "632788659361533818279682303019520353018529689957736225994138912497217752834791315155748572424541506959")) 
+    "6327886593615338182796823030195203530185296899577362259941389124972177528347913151557485724245415069" // ..59
+  
+  /** Approximation based on first 1000 digits which end in "59". */
+  val pi = Interval(ic.textToInterval(s"[${piDigits}58,${piDigits}60]"))
 
   val zero: Interval = Interval(0)
 

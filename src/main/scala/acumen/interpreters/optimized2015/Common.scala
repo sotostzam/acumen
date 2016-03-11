@@ -492,7 +492,12 @@ object Common {
           else eval(env, y)
         /* op(args) */
         case Op(Name(op, 0), args) =>
-          evalOp(op, args map (eval(env, _)))
+          if (op == "rand"){
+            val seed = selfObjId(env).seed
+            val (rand,gen) =  Random.randomIvalDouble(0,1,seed)
+            VLit(GDouble(rand))
+          } else
+            evalOp(op, args map (eval(env, _)))
         /* sum e for i in c st t */
         case Sum(e, i, c, t) =>
           def helper(acc: Val, v: Val) = {
@@ -860,10 +865,17 @@ object Common {
       OdeEnv( s.odeVals.map(m)
             , s.assignVals.map{ case KnownVal(v) => KnownVal(m(v)); case v => v }
             , s.simulator )
-    lazy val odeValsLookup = s.simulator.phaseParms.odes.zipWithIndex.
+    override def mapName(m: (GId, Name, Val) => Val) = {
+      def mi(i: Int, v: Val): Val = { val (id, n) = indexToName(i); m(id, n, v) }      
+      OdeEnv( s.odeVals   .zipWithIndex.map{ case (v,          i) => mi(i,v) } 
+            , s.assignVals.zipWithIndex.map{ case (KnownVal(v),i) => KnownVal(mi(i, v)); case (v, _) => v }
+            , s.simulator )    
+    } 
+    lazy val nameToIndex = s.simulator.phaseParms.odes.zipWithIndex.
       map{ case (o,i) => (o.id, o.field) -> i }.toMap
-    override def apply(id: ObjId, n: Name): Val = s.odeVals(odeValsLookup(id,n))
-    override def updated(id: ObjId, n: Name, v: Val) = s.copy(odeVals = s.odeVals.updated(odeValsLookup(id,n), v))
+    lazy val indexToName = nameToIndex.map(_.swap)
+    override def apply(id: ObjId, n: Name): Val = s.odeVals(nameToIndex(id,n))
+    override def updated(id: ObjId, n: Name, v: Val) = s.copy(odeVals = s.odeVals.updated(nameToIndex(id,n), v))
     override def getInSimulator(variable: String) = getField(s.simulator, Name(variable, 0))
   }
   

@@ -1,0 +1,84 @@
+//Initial version of the simulation of the multi armed bandit resolution based on 
+// on the Upper Confidence Bound algorithm
+//
+// Author: Emmanuel Brelle
+//
+//Each play requiers an investisment of 0.5 : if the result of the bandit is above 0.5 
+//then the won money for this bandit will increase 
+//(the contrary will decrease the value) 
+
+model Main (simulator)= 
+initially
+s = create solver(),
+_3DView = ((1.5,-10,0),(1.5,0,0))
+always 
+simulator.timeStep += 0.005
+
+model ArmedBandit (id) = 
+initially
+prob = rand (),
+upperBound = 1 ,
+lowerBound = 0,
+average = 0.5,
+numberOfRun = 1,
+confidenceConst = sqrt(log(2/0.1)/2),
+confidence = 0,
+lastTry = -1,
+_3D =()
+always 
+confidence= confidenceConst/sqrt(numberOfRun),
+upperBound =average +confidence,
+lowerBound =average -confidence,
+_3D=(
+  Box color=red center=(id,0,0) size = (0.5,0.3,0.8),
+  Cylinder color=(0.5,0.5,0.5) radius= 0.05 center=(id-0.3,-0.2,0.2),
+  Text content = format("%.2f",(average-0.5)*numberOfRun) center = (id-0.2,-0.3,-1) color=(0,0.7,0) ,
+  Text content = format("%.2f",prob) center = (id-0.2,-0.15,0)
+),
+if lastTry > -1 then 
+average += (average *numberOfRun + lastTry)/ (numberOfRun +1),
+numberOfRun+=numberOfRun+1,
+lastTry += -1
+noelse
+
+model solver()=
+initially
+mode = "ini",
+max= (0,0,0),
+t= 0,t'=1,
+ptr = 0, max =0,imax = -1,best = -1,
+_3D =()
+always
+
+t'= 1,
+_3D= (
+  Text content ="money won =" center =(-0.5,-0.3,-0.8) color=(0,0.7,0),
+  Cone center=(best,0,1) rotation=(-pi/2,0,0) color= green,
+   Cone center=(best,0,1.1) rotation=(pi/2,0,0) color= green
+),
+if mode == "ini" then
+  foreach i in 0:3 do 
+    create ArmedBandit(i),
+  mode += "running"
+noelse,
+
+if ptr >= length(children) then
+ptr +=0,imax +=0, best += imax,max +=0,
+foreach c in children do 
+  if imax == c.id then
+  c.lastTry += rand()*(2*c.prob)
+  noelse
+noelse,
+
+if t > 0.01 then
+  ptr+=ptr +1,
+  t+= 0,
+  foreach c in children do 
+    if (ptr == c.id && c.upperBound > max) then
+    max +=c.upperBound,
+    imax += ptr    
+    noelse
+noelse
+
+
+
