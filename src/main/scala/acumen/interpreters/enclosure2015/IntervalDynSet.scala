@@ -132,34 +132,8 @@ case class Cuboid
                                      s"imaginary component: ${Pretty prettyRealVector eigenValImag}.")
       Logger.trace(s"Cuboid.move: Maximum image error width: ${imageError.maxWidth}")
   
-      /** If error width exceeds the image width in any dimension, then 
-       *  re-initialize the Cuboid, moving the error to the width term. */
-      def reorganizeIfNeeded( imageMidpoint         : RealVector
-                            , imageLinearTransform  : RealMatrix 
-                            , imageLinearTransformT : RealMatrix
-                            , imageErrorLTTLT       : RealMatrix
-                            , imageWidth            : RealVector
-                            , imageError            : RealVector)
-                            : Cuboid = {
-        
-        val factor = 1
-        
-        if (imageError.maxWidth > factor * imageWidth.maxWidth) {
-          val newWidth                : RealVector = imageError + imageLinearTransform * imageWidth 
-          val newLinearTransform      : RealMatrix = breeze.linalg.DenseMatrix.eye[CValue](this.size)
-          val newLinearTransformT     : RealMatrix = newLinearTransform
-          val newErrorLTTLT           : RealMatrix = breeze.linalg.DenseMatrix.zeros[CValue](this.size, this.size)
-          val newError                : RealVector = breeze.linalg.Vector.zeros[CValue](this.size)
-          
-          Logger.trace(s"Cuboid.move: Reorganizing the data structure: ${imageError.maxWidth} > ${factor} * ${imageWidth.maxWidth}")
-          
-          Cuboid(imageMidpoint, newLinearTransform, newLinearTransformT, newErrorLTTLT, newWidth, newError)
-        } else
-          Cuboid(imageMidpoint, imageLinearTransform, imageLinearTransformT, imageErrorLTTLT, imageWidth, imageError)
-      }
-      
       ( Cuboid(refinedRangeEnclosure)
-      , reorganizeIfNeeded(imageMidpoint, imageLinearTransform, imageLinearTransformT, imageErrorLTTLT, imageWidth, imageError) )
+      , Cuboid.reorganizeIfNeeded(imageMidpoint, imageLinearTransform, imageLinearTransformT, imageErrorLTTLT, imageWidth, imageError) )
     }
     
     override def mapping(f: C1Mapping)(implicit parameters: Parameters): Cuboid = {
@@ -224,5 +198,43 @@ object Cuboid {
     val newError                : RealVector = breeze.linalg.Vector.zeros[CValue](v.size)
     
     Cuboid(newMidpoint, newLinearTransform, newLinearTransformT, newErrorLTTLT, newWidth, newError)
+  }
+  
+  /** If error width exceeds the image width in any dimension, then 
+   *  re-initialize the Cuboid, moving the error to the width term. */
+  def reorganizeIfNeeded( imageMidpoint         : RealVector
+                        , imageLinearTransform  : RealMatrix 
+                        , imageLinearTransformT : RealMatrix
+                        , imageErrorLTTLT       : RealMatrix
+                        , imageWidth            : RealVector
+                        , imageError            : RealVector
+                        )( implicit cValueIsReal: Real[CValue] 
+                        ,  parameters: Parameters
+                        ): Cuboid = {
+
+    val size = imageMidpoint.size
+    
+    lazy val default = Cuboid(imageMidpoint, imageLinearTransform, imageLinearTransformT, imageErrorLTTLT, imageWidth, imageError)
+    
+    parameters.reorganization match {
+      case (`ReorganizationOff`, Nil) =>
+        default
+      case (`ReorganizationErrorExceedsWidth`, List(factor)) =>
+        if (imageError.maxWidth > factor * imageWidth.maxWidth) {
+          val newWidth                : RealVector = imageError + imageLinearTransform * imageWidth 
+          val newLinearTransform      : RealMatrix = breeze.linalg.DenseMatrix.eye[CValue](size)
+          val newLinearTransformT     : RealMatrix = newLinearTransform
+          val newErrorLTTLT           : RealMatrix = breeze.linalg.DenseMatrix.zeros[CValue](size, size)
+          val newError                : RealVector = breeze.linalg.Vector.zeros[CValue](size)
+          
+          Logger.trace(s"Cuboid.move: Reorganizing the data structure: ${imageError.maxWidth} > ${factor} * ${imageWidth.maxWidth}")
+          
+          Cuboid(imageMidpoint, newLinearTransform, newLinearTransformT, newErrorLTTLT, newWidth, newError)
+        } 
+        else 
+          default
+      case (unknown, ps) =>
+        throw new acumen.Errors.InvalidReorganization(unknown + " " + (ps mkString " "))
+    }
   }
 }

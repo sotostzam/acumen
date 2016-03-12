@@ -92,6 +92,10 @@ object Errors {
     override def mesg = 
       op + " is not a valid vector-scalar operation."
   }
+  case class InvalidReorganization(r:String) extends PositionalAcumenError {
+    override def mesg = 
+      r + " is not a valid reorganization."
+  }
   case class ConstructorArity(cd:ClassDef,got:Int) extends PositionalAcumenError {
     override def mesg = {
       val cn = cd.name

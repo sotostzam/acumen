@@ -39,6 +39,7 @@ object Common {
                        , endTime                       : Double                 = 10.0 
                        , timeStep                      : Double                 =  0.015625 
                        , dynSetType                    : String                 = DynSetCuboid 
+                       , reorganization                : (String, List[Double]) = (ReorganizationErrorExceedsWidth, List(1))
                        , method                        : String                 = Taylor
                        , orderOfIntegration            : Int                    = 4 
                        , maxPicardIterations           : Int                    = 1000 
@@ -56,6 +57,7 @@ object Common {
       val endTime                       = "endTime"                      
       val timeStep                      = "timeStep"                     
       val dynSetType                    = "dynSetType"                   
+      val reorganization                = "reorganization"                   
       val method                        = "method"                       
       val orderOfIntegration            = "orderOfIntegration"           
       val maxPicardIterations           = "maxPicardIterations"          
@@ -75,6 +77,7 @@ object Common {
          , endTime                       -> (true, VLit(GDouble(p.endTime)))
          , timeStep                      -> (true, VLit(GDouble(p.timeStep)))
          , dynSetType                    -> (true, VLit(GStr(p.dynSetType)))
+         , reorganization                -> (true, VVector[CId](VLit(GStr(p.reorganization._1)) :: p.reorganization._2.map(d => VLit(GDouble(d)))))
          , method                        -> (true, VLit(GStr(p.method)))
          , orderOfIntegration            -> (true, VLit(GInt(p.orderOfIntegration)))
          , maxPicardIterations           -> (true, VLit(GInt(p.maxPicardIterations)))
@@ -92,6 +95,11 @@ object Common {
       val           endTime                          = extractDouble(getInSimulator(Names.endTime, st))
       val           timeStep                         = extractDouble(getInSimulator(Names.timeStep, st))
       val VLit(GStr (dynSetType))                    = getInSimulator(Names.dynSetType, st)
+      val           reorganization                   = getInSimulator(Names.reorganization, st) match {
+        case VLit(GStr(reorgName))                         => (reorgName, Nil)
+        case VLit(GPattern(List(GStr(reorgName), gv)))     => (reorgName, List(extractDouble(gv)))
+        case VVector(VLit(GStr(reorgName)) :: reorgParams) => (reorgName, reorgParams map extractDouble)
+      }
       val VLit(GStr (method))                        = getInSimulator(Names.method, st)
       val VLit(GInt (orderOfIntegration))            = getInSimulator(Names.orderOfIntegration, st)
       val VLit(GInt (maxPicardIterations))           = getInSimulator(Names.maxPicardIterations, st)
@@ -105,6 +113,7 @@ object Common {
                 , endTime                       = endTime                      
                 , timeStep                      = timeStep                     
                 , dynSetType                    = dynSetType                   
+                , reorganization                = reorganization                       
                 , method                        = method                       
                 , orderOfIntegration            = orderOfIntegration           
                 , maxPicardIterations           = maxPicardIterations          
