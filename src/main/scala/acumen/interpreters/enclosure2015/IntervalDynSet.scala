@@ -33,10 +33,10 @@ abstract class IntervalDynSet extends RealVector
   def map(m: (Int, CValue) => CValue) : IntervalDynSet = init(outerEnclosure.mapIndexwise(m))
   
   // Map the represented vector
-  def mapping(f: C1Mapping) : IntervalDynSet = init(f(outerEnclosure))
+  def mapping(f: C1Mapping)(implicit parameters: Parameters): IntervalDynSet = init(f(outerEnclosure))
   
   // Move the represented vector by a flow: (range enclosure, end-time enclosure)
-  def move(f: C1Flow)  : (IntervalDynSet, IntervalDynSet)
+  def move(f: C1Flow)(implicit parameters: Parameters): (IntervalDynSet, IntervalDynSet)
   
   // Containment relation between IntervalDynSets
   def contains(that: IntervalDynSet): Boolean
@@ -60,7 +60,7 @@ case class IntervalBox(v: RealVector) extends IntervalDynSet
   
   def init(vec: RealVector) = IntervalBox(vec)
           
-  def move(f: C1Flow): (IntervalBox, IntervalBox) = (IntervalBox(f(v)), IntervalBox(f.range(v)))
+  def move(f: C1Flow)(implicit parameters: Parameters): (IntervalBox, IntervalBox) = (IntervalBox(f(v)), IntervalBox(f.range(v)))
   
   def contains(that: IntervalDynSet): Boolean = isContained(that, v)
 }
@@ -94,7 +94,7 @@ case class Cuboid
     /* flow(X(0), t) = phi(X(0), t) + remainder(X(0, t), t)
      * and phi(X(0), t) \in phi(x, t) + Dphi(X(0), t)(X(0) - x)
      */
-    def move(f: C1Flow): (Cuboid, Cuboid) = {
+    def move(f: C1Flow)(implicit parameters: Parameters): (Cuboid, Cuboid) = {
       val coarseRangeEnclosure : RealVector = f.range(outerEnclosure)
       
       val phi                 : RealVector = f.phi(midpoint)
@@ -162,7 +162,7 @@ case class Cuboid
       , reorganizeIfNeeded(imageMidpoint, imageLinearTransform, imageLinearTransformT, imageErrorLTTLT, imageWidth, imageError) )
     }
     
-    override def mapping(f: C1Mapping): Cuboid = {
+    override def mapping(f: C1Mapping)(implicit parameters: Parameters): Cuboid = {
       
       val phi                 : RealVector = f.phi(midpoint)
       val jacobian            : RealMatrix = f.jacPhi(outerEnclosure)

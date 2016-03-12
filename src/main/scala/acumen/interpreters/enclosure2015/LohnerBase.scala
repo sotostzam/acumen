@@ -32,6 +32,7 @@ object LohnerEnclosureSolver extends EnclosureSolver[DynSetEnclosure] {
     , p: Prog
     , encIn: DynSetEnclosure
     , evalExpr: (Expr, Env, EStore) => CValue
+    )( implicit parameters: Parameters
     ): (Enclosure, Enclosure) = {
     Logger.trace(s"continuousEncloserLohner (over $T)")
 
@@ -67,19 +68,20 @@ object LohnerEnclosureSolver extends EnclosureSolver[DynSetEnclosure] {
     val enc =
       if (nameToIndexNext == encIn.nameToIndex) encIn
       else // convert dynSet in enc to be of the dimension specified by odes 
-        DynSetEnclosure(encIn.cStore, nameToIndexNext)(intervalBase cValueIsReal) 
+        DynSetEnclosure(encIn.cStore, nameToIndexNext)(intervalBase cValueIsReal, parameters) 
     
     // TODO the class uses odeVariables and enc from the outside
     case class TaylorIntegrator( odeList             : List[CollectedAction]
                                , timeStep            : Interval
                                , orderOfIntegration  : Int 
-                               , maxPicardIterations : Int 
+                               , maxPicardIterations : Int
+                               )( implicit parameters: Parameters
                                ) extends C1Flow {
       
       val timeStepInterval = Interval(0, timeStep.hiDouble)
           
       /** Computes the apriori enclosure (a coarse range enclosure of the flow) */ 
-      def apply(x: RealVector): RealVector = {
+      def apply(x: RealVector)(implicit parameters: Parameters): RealVector = {
         implicit val useIntervalArithmetic: Real[CValue] = intervalBase.cValueIsReal
         implicit val intervalField = intervalBase.FieldImpl(odeList, eqsInlined, evalExpr)
         val step: CValue = VLit(GConstantRealEnclosure(timeStepInterval))
@@ -112,7 +114,7 @@ object LohnerEnclosureSolver extends EnclosureSolver[DynSetEnclosure] {
       }
       
       /** Computes the finite Taylor expansion */
-      def phi(x: RealVector, timeStep: Interval): RealVector = {
+      def phi(x: RealVector, timeStep: Interval)(implicit parameters: Parameters): RealVector = {
         implicit val useIntervalArithmetic: Real[CValue] = intervalBase.cValueIsReal
         implicit val intervalField = intervalBase.FieldImpl(odeList, Set.empty[CollectedAction], evalExpr)
         val xLift = DynSetEnclosure(x, enc, Set.empty[CollectedAction], evalExpr) // FIXME was enc.midpoint
@@ -121,7 +123,7 @@ object LohnerEnclosureSolver extends EnclosureSolver[DynSetEnclosure] {
       }
       
       /** Computes the Jacobian of phi */
-      def jacPhi(x: RealVector, timeStep: Interval): RealMatrix = {
+      def jacPhi(x: RealVector, timeStep: Interval)(implicit parameters: Parameters): RealMatrix = {
         implicit val useFDifArithmetic: Real[CValue] = fDifBase.cValueIsReal
         val flowVariables = enc.indexToName.values.map{ case (id,n) => QName(id,n) }.toList // used for lifting
         implicit val linearTransformationField = fDifBase.FieldImpl(odeList.map(_ mapRhs (FAD.lift[CId,CValue](_, flowVariables))), Set.empty[CollectedAction], evalExpr)
@@ -143,7 +145,7 @@ object LohnerEnclosureSolver extends EnclosureSolver[DynSetEnclosure] {
       }
       
       /** Bounds the difference between the finite Taylor expansion and the flow */
-      def remainder(x: RealVector, timeStep: Interval): RealVector = {
+      def remainder(x: RealVector, timeStep: Interval)(implicit parameters: Parameters): RealVector = {
         implicit val useIntervalArithmetic: Real[CValue] = intervalBase.cValueIsReal
         implicit val intervalField = intervalBase.FieldImpl(odeList, Set.empty[CollectedAction], evalExpr)
         val p = DynSetEnclosure(x, enc, Set.empty[CollectedAction], evalExpr)
@@ -156,22 +158,22 @@ object LohnerEnclosureSolver extends EnclosureSolver[DynSetEnclosure] {
       /* C1Flow interface */
       
       // computation of the image
-      def       phi(x: RealVector) =       phi(x, timeStep)
-      def    jacPhi(x: RealVector) =    jacPhi(x, timeStep)
-      def remainder(x: RealVector) = remainder(x, timeStep)
+      def       phi(x: RealVector)(implicit parameters: Parameters) =       phi(x, timeStep)
+      def    jacPhi(x: RealVector)(implicit parameters: Parameters) =    jacPhi(x, timeStep)
+      def remainder(x: RealVector)(implicit parameters: Parameters) = remainder(x, timeStep)
      
       // computation of the range
       val self  = this
       val range = new C1Mapping {
-        def     apply(x: RealVector) : RealVector = self     apply(x)
-        def       phi(x: RealVector) : RealVector = self       phi(x, timeStepInterval)
-        def    jacPhi(x: RealVector) : RealMatrix = self    jacPhi(x, timeStepInterval)
-        def remainder(x: RealVector) : RealVector = self remainder(x, timeStepInterval)
+        def     apply(x: RealVector)(implicit parameters: Parameters) : RealVector = self     apply(x)
+        def       phi(x: RealVector)(implicit parameters: Parameters) : RealVector = self       phi(x, timeStepInterval)
+        def    jacPhi(x: RealVector)(implicit parameters: Parameters) : RealMatrix = self    jacPhi(x, timeStepInterval)
+        def remainder(x: RealVector)(implicit parameters: Parameters) : RealVector = self remainder(x, timeStepInterval)
       }
     
     }    
 
-    val myIntegrator = TaylorIntegrator(field.toList, T.width, Common orderOfIntegration enc.cStore, Common maxPicardIterations enc.cStore)
+    val myIntegrator = TaylorIntegrator(field.toList, T.width, parameters.orderOfIntegration, parameters.maxPicardIterations)
     
     // TODO Align field.toList with the order in enc.indexToName
     enc.move(eqsInlined, myIntegrator, evalExpr)
@@ -185,6 +187,7 @@ object LohnerEnclosureSolver extends EnclosureSolver[DynSetEnclosure] {
     , p: Prog
     , encIn: DynSetEnclosure
     , evalExpr: (Expr, Env, EStore) => CValue
+    )( implicit parameters: Parameters
     ): Enclosure = {
     Logger.trace(s"jumpEncloserLohner (over $T)")
 
@@ -195,18 +198,18 @@ object LohnerEnclosureSolver extends EnclosureSolver[DynSetEnclosure] {
     val enc =
       if (nameToIndexNext == encIn.nameToIndex) encIn
       else // convert dynSet in enc to be of the dimension specified by odes 
-        DynSetEnclosure(encIn.cStore, nameToIndexNext)(intervalBase cValueIsReal) 
+        DynSetEnclosure(encIn.cStore, nameToIndexNext)(intervalBase cValueIsReal, parameters) 
     
   
     case class MeanvalueEvaluation( das : List[CollectedAction]  
                                   ) extends C1Mapping {
 
         
-      def apply(x: RealVector): RealVector = phi(x)
-      def remainder(x: RealVector): RealVector = x
+      def apply    (x: RealVector)(implicit parameters: Parameters): RealVector = phi(x)
+      def remainder(x: RealVector)(implicit parameters: Parameters): RealVector = x
       
       /** Computes the image */
-      def phi(x: RealVector): RealVector = {
+      def phi(x: RealVector)(implicit parameters: Parameters): RealVector = {
         implicit val useIntervalArithmetic: Real[CValue] = intervalBase.cValueIsReal
         implicit val intervalField = intervalBase.FieldImpl(das, Set.empty[CollectedAction], evalExpr)
         val xLift = DynSetEnclosure(x, enc, das.toSet, evalExpr) 
@@ -215,7 +218,7 @@ object LohnerEnclosureSolver extends EnclosureSolver[DynSetEnclosure] {
       }
 
       /** Computes the Jacobian of phi */
-      def jacPhi(x: RealVector): RealMatrix = {
+      def jacPhi(x: RealVector)(implicit parameters: Parameters): RealMatrix = {
         implicit val useFDifArithmetic: Real[CValue] = fDifBase.cValueIsReal
         val mapVariables = enc.indexToName.values.map{ case (id,n) => QName(id,n) }.toList // used for lifting
         implicit val linearTransformationField = fDifBase.FieldImpl(das.map(_ mapRhs (FAD.lift[CId,CValue](_, mapVariables))), Set.empty[CollectedAction], evalExpr)
@@ -254,10 +257,17 @@ case class LohnerBase
   
   /* SolverBase interface */
   type E = DynSetEnclosure
-  def initializeEnclosure(st: CStore) = DynSetEnclosure(st)
+  def initializeEnclosure(st: CStore) = {
+    implicit val parameters = Parameters(st)
+    DynSetEnclosure(st)
+  }
   def solver = LohnerEnclosureSolver 
   
-  case class FieldImpl(odes: List[CollectedAction], eqsInlined: Set[CollectedAction], evalExpr: (Expr, Env, EStore) => CValue) extends interpreters.Common.Field[DynSetEnclosure,CId] {
+  case class FieldImpl( odes: List[CollectedAction]
+                      , eqsInlined: Set[CollectedAction]
+                      , evalExpr: (Expr, Env, EStore) => CValue
+                      )( implicit parameters: Parameters
+                      ) extends interpreters.Common.Field[DynSetEnclosure,CId] {
     override def apply(dynSetEnclosure: DynSetEnclosure): DynSetEnclosure = {
       val s1 = dynSetEnclosure.dynSet.copy
       odes.foreach{ ode => 

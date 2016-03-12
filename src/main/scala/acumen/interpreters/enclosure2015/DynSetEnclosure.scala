@@ -15,13 +15,13 @@ import util.Canonical._
 object DynSetEnclosure {
 
   /** Update the CStore in enc w.r.t. v (also updating variables defined by eqs). */
-  def apply(v: RealVector, enc: DynSetEnclosure, eqsInlined: Set[CollectedAction], evalExpr: (Expr,Env,EStore) => CValue)(implicit cValueIsReal: Real[CValue]): DynSetEnclosure = {
+  def apply(v: RealVector, enc: DynSetEnclosure, eqsInlined: Set[CollectedAction], evalExpr: (Expr,Env,EStore) => CValue)(implicit cValueIsReal: Real[CValue], parameters: Parameters): DynSetEnclosure = {
     val updatedSt = updateCStore(enc.st, v, eqsInlined, evalExpr, enc.indexToName, enc.nameToIndex)
     DynSetEnclosure(updatedSt, IntervalBox(v), enc.nameToIndex)
   }
   
   /** Initialize a DynSetEnclosure (including its underlying IntervalDynSet) from a CStore and a nameToIndex Map. */
-  def apply(st: CStore, nameToIndex: Map[(CId,Name),Int])(implicit cValueIsReal: Real[CValue]): DynSetEnclosure = {
+  def apply(st: CStore, nameToIndex: Map[(CId,Name),Int])(implicit cValueIsReal: Real[CValue], parameters: Parameters): DynSetEnclosure = {
     val indexToName = nameToIndex.map(_.swap)
     def initialVector: RealVector = breeze.linalg.Vector.tabulate[CValue](indexToName.size) { 
       i => val (id, n) = indexToName(i)
@@ -29,11 +29,15 @@ object DynSetEnclosure {
              case VLit(e: GConstantRealEnclosure) => VLit(GConstantRealEnclosure(e.range))
            }
     }
-    DynSetEnclosure(st, Cuboid(initialVector), nameToIndex)
+    val dynSet = parameters.dynSetType match {
+      case `DynSetCuboid`      => Cuboid(initialVector)
+      case `DynSetIntervalBox` => IntervalBox(initialVector)
+    }
+    DynSetEnclosure(st, dynSet, nameToIndex)
   }
   
   /** Initialize a DynSetEnclosure (including its underlying IntervalDynSet) from a CStore. */
-  def apply(st: CStore)(implicit cValueIsReal: Real[CValue]): DynSetEnclosure = 
+  def apply(st: CStore)(implicit cValueIsReal: Real[CValue], parameters: Parameters): DynSetEnclosure = 
     apply(st, buildNameToIndexMap(st)) // TODO when introducing indexing, this one needs to match on indices too
   
   /** Build a name-to-index map of variableNames, sorted lexicographically first by CId then by Name. */
@@ -62,6 +66,7 @@ object DynSetEnclosure {
     , indexToName: Map[Int,(CId,Name)]
     , nameToIndex: Map[(CId,Name),Int] )
     ( implicit cValueIsReal: Real[CValue]
+    ,          parameters: Parameters
     ): CStore = {
     def updateFlowVariables(unupdated: CStore): CStore =
       (0 until flowValues.size).foldLeft(unupdated) {
@@ -94,6 +99,7 @@ case class DynSetEnclosure
   , dynSet               : IntervalDynSet
   , nameToIndex          : Map[(CId, Name), Int] ) 
   ( implicit cValueIsReal: Real[CValue]
+  ,          parameters: Parameters
   ) extends RichStore[DynSetEnclosure, CId] with Enclosure with EStore {
   
   assert( dynSet.size      == nameToIndex.size 

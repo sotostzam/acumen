@@ -21,6 +21,103 @@ object Common {
 
   val bannedFieldNames = List(self, parent, classf, nextChild, magicf)
   
+  /* DynSet names */
+  
+  val DynSetCuboid      = "Cuboid"
+  val DynSetIntervalBox = "IntervalBox"
+  
+  /* DynSet Reorganization strategies */
+    
+  val ReorganizationOff               = "off"
+  val ReorganizationErrorExceedsWidth = "errorExceedsWidth"
+  
+  /** Parameter carrier
+   *  Note: Defaults are set here.  
+   */
+  // Note: When adding a parameter, remember to add it in all five places below.
+  case class Parameters( time                          : Double                 =  0.0 
+                       , endTime                       : Double                 = 10.0 
+                       , timeStep                      : Double                 =  0.015625 
+                       , dynSetType                    : String                 = DynSetCuboid 
+                       , method                        : String                 = Taylor
+                       , orderOfIntegration            : Int                    = 4 
+                       , maxPicardIterations           : Int                    = 1000 
+                       , maxBranches                   : Int                    = 100 
+                       , maxIterationsPerBranch        : Int                    = 1000 
+                       , mergeBranches                 : Boolean                = true 
+                       , intersectWithGuardBeforeReset : Boolean                = true 
+                       , disableContraction            : Boolean                = false 
+                       , hypothesisReport              : String                 = "Comprehensive"
+                       )
+  object Parameters {
+
+    object Names {
+      val time                          = "time"                         
+      val endTime                       = "endTime"                      
+      val timeStep                      = "timeStep"                     
+      val dynSetType                    = "dynSetType"                   
+      val method                        = "method"                       
+      val orderOfIntegration            = "orderOfIntegration"           
+      val maxPicardIterations           = "maxPicardIterations"          
+      val maxBranches                   = "maxBranches"                  
+      val maxIterationsPerBranch        = "maxIterationsPerBranch"       
+      val mergeBranches                 = "mergeBranches"                
+      val intersectWithGuardBeforeReset = "intersectWithGuardBeforeReset"
+      val disableContraction            = "disableContraction"           
+      val hypothesisReport              = "hypothesisReport"             
+    }
+    
+    /** Name -> (User-visible?, Default Value) */
+    val defaults: Map[String, (Boolean, CValue)] = {
+      import Names._
+      val p = new Common.Parameters() // default values will be copied from here
+      Map( time                          -> (true, VLit(GDouble(p.time)))
+         , endTime                       -> (true, VLit(GDouble(p.endTime)))
+         , timeStep                      -> (true, VLit(GDouble(p.timeStep)))
+         , dynSetType                    -> (true, VLit(GStr(p.dynSetType)))
+         , method                        -> (true, VLit(GStr(p.method)))
+         , orderOfIntegration            -> (true, VLit(GInt(p.orderOfIntegration)))
+         , maxPicardIterations           -> (true, VLit(GInt(p.maxPicardIterations)))
+         , maxBranches                   -> (true, VLit(GInt(p.maxBranches)))
+         , maxIterationsPerBranch        -> (true, VLit(GInt(p.maxIterationsPerBranch)))
+         , mergeBranches                 -> (true, VLit(GBool(p.mergeBranches)))
+         , intersectWithGuardBeforeReset -> (true, VLit(GBool(p.intersectWithGuardBeforeReset)))
+         , disableContraction            -> (true, VLit(GBool(p.disableContraction)))
+         , hypothesisReport              -> (true, VLit(GStr(p.hypothesisReport)))
+         )
+    }
+    
+    def apply(st: CStore): Parameters = {
+      val           time                             = extractDouble(getInSimulator(Names.time, st))
+      val           endTime                          = extractDouble(getInSimulator(Names.endTime, st))
+      val           timeStep                         = extractDouble(getInSimulator(Names.timeStep, st))
+      val VLit(GStr (dynSetType))                    = getInSimulator(Names.dynSetType, st)
+      val VLit(GStr (method))                        = getInSimulator(Names.method, st)
+      val VLit(GInt (orderOfIntegration))            = getInSimulator(Names.orderOfIntegration, st)
+      val VLit(GInt (maxPicardIterations))           = getInSimulator(Names.maxPicardIterations, st)
+      val VLit(GInt (maxBranches))                   = getInSimulator(Names.maxBranches, st)
+      val VLit(GInt (maxIterationsPerBranch))        = getInSimulator(Names.maxIterationsPerBranch, st)
+      val VLit(GBool(mergeBranches))                 = getInSimulator(Names.mergeBranches, st)
+      val VLit(GBool(intersectWithGuardBeforeReset)) = getInSimulator(Names.intersectWithGuardBeforeReset, st)
+      val VLit(GBool(disableContraction))            = getInSimulator(Names.disableContraction, st)
+      val VLit(GStr (hypothesisReport))              = getInSimulator(Names.hypothesisReport, st)
+      Parameters( time                          = time                         
+                , endTime                       = endTime                      
+                , timeStep                      = timeStep                     
+                , dynSetType                    = dynSetType                   
+                , method                        = method                       
+                , orderOfIntegration            = orderOfIntegration           
+                , maxPicardIterations           = maxPicardIterations          
+                , maxBranches                   = maxBranches                  
+                , maxIterationsPerBranch        = maxIterationsPerBranch       
+                , mergeBranches                 = mergeBranches                
+                , intersectWithGuardBeforeReset = intersectWithGuardBeforeReset
+                , disableContraction            = disableContraction           
+                , hypothesisReport              = hypothesisReport             
+                )                                           
+    }
+  }
+  
   trait EnclosureSolver[E <: Enclosure] {
     /** Computes the enclosure over T of the IVP defined by odes and enc.
      *  Uses convertEnclosure to ensure that continuousEncloser is called
@@ -33,6 +130,7 @@ object Common {
       , p: Prog
       , enc: Enclosure
       , evalExpr: (Expr,Env,EStore) => CValue
+      )( implicit parameters: Parameters
       ): (Enclosure, Enclosure) =
       continuousEncloser(odes, eqs, claims, T, p, convertEnclosure(enc), evalExpr)
     /** Obtain an E <: Enclosure as required by continuousEncloser. */
@@ -46,6 +144,7 @@ object Common {
       , p: Prog
       , enc: E
       , evalExpr: (Expr,Env,EStore) => CValue
+      )( implicit parameters: Parameters
       ): (Enclosure, Enclosure)
   }
   trait SolverBase {
@@ -57,12 +156,6 @@ object Common {
   def solverBase(st: CStore): SolverBase = getInSimulator("method", st) match {
     case VLit(GStr(`Taylor`)) => intervalBase
     case VLit(GStr(`Picard`)) => picardBase
-  }
-  def orderOfIntegration(st: CStore) = getInSimulator("orderOfIntegration", st) match {
-    case VLit(GInt(taylorOrder)) => taylorOrder
-  }
-  def maxPicardIterations(st: CStore) = getInSimulator("maxPicardIterations", st) match {
-    case VLit(GInt(maxPicardIterations)) => maxPicardIterations
   }
   
   /** Abstract store known to evalExpr */
@@ -116,13 +209,13 @@ object Common {
   }
   
   trait Mapping {
-    def apply(x: RealVector): RealVector 
+    def apply(x: RealVector)(implicit parameters: Parameters): RealVector 
   }
   
   trait C1Mapping extends Mapping {
-    def phi(x: RealVector)      : RealVector
-    def jacPhi(x: RealVector)   : RealMatrix
-    def remainder(x: RealVector): RealVector
+    def phi      (x: RealVector)(implicit parameters: Parameters) : RealVector
+    def jacPhi   (x: RealVector)(implicit parameters: Parameters) : RealMatrix
+    def remainder(x: RealVector)(implicit parameters: Parameters) : RealVector
   }
   
   trait Flow extends Mapping {
@@ -157,7 +250,7 @@ object Common {
     def setObject(id:CId, o:CObject): Enclosure = initialize(cStore updated (id,o))
     def setObjectField(id:CId, f:Name, v:CValue) : Enclosure = {
       val obj = apply(id)
-      if (f != _3D && f != _3DView && f != devicef)
+      if (f != _3D && f != _3DView && f != devicef && id != simulatorId)
         obj.get(f) map { oldVal =>
           if (oldVal.yieldsPlots != v.yieldsPlots)
             throw new UnsupportedTypeChangeError(f, id, classOf(obj), oldVal, v, 

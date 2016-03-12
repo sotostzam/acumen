@@ -5,7 +5,12 @@ package enclosure2015
 import enclosure2015.Common._
 import Errors._
 import interpreters.Common._
-import interpreters.enclosure._
+import interpreters.enclosure.{
+  Box, Contract, Expression, Field, Interval,
+  Constant, Negate, Abs, Sin, Cos, Tan, ACos, Sqrt, ASin, ATan,  
+  Exp, Log, Log10, Cbrt, Ceil, Floor, Sinh, Cosh, Tanh, Signum, 
+  Pow, Divide, ATan2, Min, Max
+}
 import interpreters.enclosure.Types.{
   VarName
 }
@@ -37,6 +42,7 @@ object picardEnclosureSolver extends EnclosureSolver[Enclosure] {
     , p: Prog
     , enc: Enclosure
     , evalExpr: (Expr,Env,EStore) => CValue
+    )( implicit parameters: Parameters
     ): (Enclosure, Enclosure) = {
     Logger.trace(s"continuousEncloserPicard (over $T)")
     val ic = contract(enc, claims, p, evalExpr) match {

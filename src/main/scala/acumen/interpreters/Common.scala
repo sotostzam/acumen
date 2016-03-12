@@ -38,6 +38,8 @@ object Common {
     def apply(nvs: (Name, Value[CId])*): Env = Env(Map(nvs:_*))
   }
   
+  /* Solver names */
+
   val EulerCromer  = "EulerCromer"
   val EulerForward = "EulerForward"
   val RungeKutta   = "RungeKutta"

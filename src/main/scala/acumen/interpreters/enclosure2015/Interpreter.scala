@@ -23,7 +23,7 @@ import util.Conversions.{
   extractDouble, extractDoubles, extractId, extractInterval, extractIntervals
 }
 import enclosure.{
-  Box, Constant, Contract, Expression, Field, Interval, Parameters, Rounding,
+  Box, Constant, Contract, Expression, Field, Interval, Rounding,
   Abs, Sin, Cos, Tan, ACos, ASin, ATan, Exp, Log, Log10, Sqrt, 
   Cbrt, Ceil, Floor, Sinh, Cosh, Tanh, Signum, Plus, Negate, 
   Multiply, Pow, Divide, ATan2, Min, Max
@@ -64,27 +64,13 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
     val e = solverBase(st) initializeEnclosure st
     EnclosureAndBranches(e, InitialCondition(e, Epsilon, StartTime) :: Nil) 
   }
-  override def visibleParameters: Map[String, CValue] = 
-    Map(ParamTime, ParamEndTime, ParamTimeStep, ParamMethod, ParamOrderOfIntegration, ParamMaxPicardIterations, 
-        ParamMaxBranches, ParamMaxIterationsPerBranch, ParamMergeBranches, 
-        ParamIntersectWithGuardBeforeReset, ParamHypothesisReport, ParamDisableContraction) 
+  override val visibleParameters: Map[String, CValue] =
+    Parameters.defaults.filter{ case (_, (b, _)) => b      }
+                       .map   { case (n, (_, v)) => (n, v) } 
 
   /* Constants */
   
-  private val ParamTime                          = "time"                          -> VLit(GDouble( 0.0))
-  private val ParamEndTime                       = "endTime"                       -> VLit(GDouble(10.0))
-  private val ParamTimeStep                      = "timeStep"                      -> VLit(GDouble( 0.015625))
-  private val ParamMethod                        = "method"                        -> VLit(GStr(Taylor))
-  private val ParamOrderOfIntegration            = "orderOfIntegration"            -> VLit(GInt(4))
-  private val ParamMaxPicardIterations           = "maxPicardIterations"           -> VLit(GInt(1000))
-  private val ParamMaxBranches                   = "maxBranches"                   -> VLit(GInt(100))                  
-  private val ParamMaxIterationsPerBranch        = "maxIterationsPerBranch"        -> VLit(GInt(1000))    
-  private val ParamMergeBranches                 = "mergeBranches"                 -> VLit(GBool(true))                  
-  private val ParamIntersectWithGuardBeforeReset = "intersectWithGuardBeforeReset" -> VLit(GBool(true))
-  private val ParamDisableContraction            = "disableContraction"            -> VLit(GBool(false))
-  private val ParamHypothesisReport              = "hypothesisReport"              -> VLit(GStr("Comprehensive"))
-  
-  private val legacyParameters = Parameters.default.copy(interpreter = Some(enclosure.Interpreter.EVT))
+  private val legacyParameters = enclosure.Parameters.default.copy(interpreter = Some(enclosure.Interpreter.EVT))
   private implicit val rnd = Rounding(legacyParameters)
 
   /* Types */
@@ -182,7 +168,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
         case _                      => super.mapExpr(e)
       }
       override def mapDiscreteAction(a: DiscreteAction) : DiscreteAction = a match {
-        case Assign(lhs @ Dot(`magicDot`, _), rhs) => Assign(mapExpr(lhs), super.mapExpr(rhs))
+        case a @ Assign(Dot(`magicDot`, _), _) => a
         case _ => super.mapDiscreteAction(a)
       }
       override def mapClause(c: Clause) : Clause = c match {
@@ -207,9 +193,13 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
   /** Update simulator parameters in st.enclosure with values from the code in p. */
   def updateSimulator(p: Prog, st: Store): Store = {
     val paramMap = p.defs.find(_.name == cmain).get.body.flatMap {
-      case Discretely( Assign(Dot(Dot(Var(`self`), `magicf`), param)
-                     , Lit(rhs @ (GStr(_) | GBool(_) | GDouble(_) | GInt(_) | GInterval(_))))) => 
-        List((param, VLit(rhs)))
+      case Discretely( Assign(Dot(Dot(Var(`self`), `magicf`), param), rhs)) => 
+        List((param, rhs match {
+          case Lit(v @ (GStr(_) | GBool(_) | GDouble(_) | GInt(_) | GInterval(_))) => 
+            VLit(v)
+          case ExprVector(rhsVector) => 
+            VVector(rhsVector.map{ case Lit(l) => VLit(l) })
+        }))
       case _ => Nil
     }.toMap
     paramMap.foldLeft(st){ case (stTmp, (p,v)) => setInSimulator(p, v, stTmp) }
@@ -645,6 +635,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
 
   def step(p: Prog, st: Store, md: Metadata): StepRes = {
     val st1 = updateSimulator(p, st)
+    implicit val parameters = Common.Parameters(st1.enclosure.cStore)
     if (st1.enclosure.getTime >= st1.enclosure.getEndTime && st.enclosure.getResultType == FixedPoint) {
       Done(md, st1.enclosure.getEndTime)
     }
@@ -723,18 +714,14 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
    * as a new set of initial conditions (.branches part of the result) 
    * for the next time interval.
    */
-  def hybridEncloser(T: Interval, prog: Prog, st: EnclosureAndBranches): EnclosureAndBranches = {
-    val VLit(GInt(maxBranches))                    = st.enclosure.getInSimulator(ParamMaxBranches._1)
-    val VLit(GInt(maxIterationsPerBranch))         = st.enclosure.getInSimulator(ParamMaxIterationsPerBranch._1)
-    val VLit(GBool(mergeBranches))                 = st.enclosure.getInSimulator(ParamMergeBranches._1)
-    val VLit(GBool(intersectWithGuardBeforeReset)) = st.enclosure.getInSimulator(ParamIntersectWithGuardBeforeReset._1)
+  def hybridEncloser(T: Interval, prog: Prog, st: EnclosureAndBranches)(implicit parameters: Parameters): EnclosureAndBranches = {
     require(st.branches.nonEmpty, "hybridEncloser called with zero branches")
-    require(st.branches.size < maxBranches, s"Number of branches (${st.branches.size}) exceeds maximum ($maxBranches).")
+    require(st.branches.size < parameters.maxBranches, s"Number of branches (${st.branches.size}) exceeds maximum (${parameters.maxBranches}).")
     Logger.debug(s"hybridEncloser (over $T, ${st.branches.size} branches)")
     
     // Strategy for merging the branches
     def mergeBranchList(ics: List[InitialCondition]): List[InitialCondition] =
-      if (mergeBranches) 
+      if (parameters.mergeBranches) 
         ics.groupBy(ic => (ic.evolution, ic.time)).map { case ((m, t), ic) => 
           InitialCondition(ic.map(_.enclosure).reduce(_ /\ _), m, t) }.toList
       else ics
@@ -751,8 +738,8 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
       if (pwlW isEmpty)
         EnclosureAndBranches(pwlR.reduce(_ /\ _), if (T.isThin) pwlU else mergeBranchList(pwlU))      
       // Exceeding the maximum iterations per branch
-      else if (iterations / st.branches.size > maxIterationsPerBranch)
-        sys.error(s"Enclosure computation over $T did not terminate in ${st.branches.size * maxIterationsPerBranch} iterations.")
+      else if (iterations / st.branches.size > parameters.maxIterationsPerBranch)
+        sys.error(s"Enclosure computation over $T did not terminate in ${st.branches.size * parameters.maxIterationsPerBranch} iterations.")
       // Processing the next IC
       else {
         Logger.trace(s"enclose (${pwlW.size} waiting initial conditions, iteration $iterations)")
@@ -836,7 +823,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
       (!isFlow(q)) || (!qw.nonEmpty) || (q != qw.head)
         
     def obtainInitialCondition(w: Enclosure, qw: Evolution, t: InitialConditionTime, q: Changeset): Either[String, Enclosure] =  
-      if (intersectWithGuardBeforeReset && (isQualifiedChange(qw, q) || solverBase(w.cStore) == picardBase)) {
+      if (parameters.intersectWithGuardBeforeReset && (isQualifiedChange(qw, q) || solverBase(w.cStore) == picardBase)) {
    
         val wPicard = picardEnclosureSolver convertEnclosure w
         val evolutionConstraints = deduceConstraintsFromEvolution(qw, t)
@@ -926,6 +913,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
     , T: Interval
     , p: Prog
     , enc: Enclosure
+    )( implicit parameters: Parameters
     ): (Enclosure, Enclosure) = {
     solverBase(enc.cStore).solver.solve(odes, eqs, claims, T, p, enc, evalExpr)
   }
