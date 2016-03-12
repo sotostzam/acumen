@@ -103,14 +103,14 @@ case class Cuboid
       
       val phiPlusRemainder    : RealVector = phi + remainder
       
-      val resultOfQR : (RealMatrix, RealMatrix, RealMatrix, RealMatrix, RealMatrix) = validatedQR(jacobian * linearTransform)
+      val (resQ, resR, resQt, resErrorQR, resErrorQtQ) = validatedQR(jacobian * linearTransform)
 
       val imageMidpoint             : RealVector = midpointVector(phiPlusRemainder)
-      val imageWidth                : RealVector = resultOfQR._2 * width
-      val imageLinearTransform      : RealMatrix = resultOfQR._1
-      val imageLinearTransformT     : RealMatrix = resultOfQR._3
-      val imageErrorLTTLT           : RealMatrix = resultOfQR._5
-      val imageError                : RealVector = resultOfQR._4 * width + jacobian * error + 
+      val imageWidth                : RealVector = resR * width
+      val imageLinearTransform      : RealMatrix = resQ
+      val imageLinearTransformT     : RealMatrix = resQt
+      val imageErrorLTTLT           : RealMatrix = resErrorQtQ
+      val imageError                : RealVector = resErrorQR * width + jacobian * error + 
                                                    centeredVector(phiPlusRemainder)
       
       lazy val refinedRangeEnclosure : RealVector = {
