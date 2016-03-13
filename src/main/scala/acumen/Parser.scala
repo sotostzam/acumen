@@ -146,7 +146,7 @@ object Parser extends MyStdTokenParsers {
   lexical.reserved ++=
     List("foreach", "end", "if", "else","elseif", "create", "move", "in", "terminate", "model","then","initially","always",
          "sum", "true", "false", "init", "match","with", "case", "type", "claim", "hypothesis", "let","noelse",
-         "Initial", "Continuous", "Discrete", "FixedPoint", "none","cross","do","dot","for","_3D")
+         "Initial", "Continuous", "Discrete", "FixedPoint", "none","cross","do","dot","for","_3D","splitBy")
 
   /* token conversion */
 
@@ -430,7 +430,8 @@ object Parser extends MyStdTokenParsers {
     {case ls => ExprVector(ls.map(x => ExprVector(List(x))))}
   def atom: Parser[Expr] =
     positioned( sum
-      | interval
+      | splitby
+      | interval     
       |"type" ~! parens(className) ^^ { case _ ~ cn => TypeOf(cn) }
       | name >> { n => args(expr) ^^ { es => Op(n, es) } | success(Var(n)) }
       | colVector	

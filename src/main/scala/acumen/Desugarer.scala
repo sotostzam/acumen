@@ -109,6 +109,7 @@ case class Desugarer(odeTransformMode: ODETransformMode) {
     val des = desugar(p, fs, env, _: Expr)
     (e match {
       case Lit(gv) => Lit(gv)
+      case SplitBy(i,n) => e 
       case Var(x) =>
         if (env.contains(x) || (p.defs map (_.name)).contains(ClassName(x.x))) Var(x)
         else if (fs contains x) Dot(Var(self), x)

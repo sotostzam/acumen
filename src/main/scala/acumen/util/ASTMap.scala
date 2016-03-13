@@ -48,6 +48,7 @@ class ASTMap {
   // Expr has state information associated with it
   def mapExpr(e: Expr) : Expr = (e match {
     case Lit(v) => Lit(v)
+    case SplitBy(_,_) => e
     case Var(v) => Var(v)
     case Op(name, es) => Op(name, es.map{mapExpr(_)})
     case Dot(a,b) => Dot(mapExpr(a),b)

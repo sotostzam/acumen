@@ -397,6 +397,85 @@ object Common {
   def internalPosError(s: String, p: Position): PositionalAcumenError = new PositionalAcumenError {
     def mesg = s
   }.setPos(p)
+
+  /**
+   * *
+   *  For programs containing splitBy expression and resulting
+   *  in a list of programs with the corresponding slice of that
+   *  interval.
+   */
+  //  def splitBy(p:Prog):List[Prog] ={
+  //    
+  //    
+  //  }
+  def mkOp(o: String, xs: Expr*) =
+    Op(Name(o, 0), xs.toList)
   
+  /**
+   * Generic function for combining split results
+   * */
+  def splitByList[A](es:List[A], splitBy: A => List[A]): List[List[A]] = es match {
+    case Nil => Nil
+    case e::Nil => splitBy(e).map(x => List(x))
+    case e :: res => 
+      val se = splitBy(e)
+      val sres = splitByList(res, splitBy)
+      // Cross product combine 
+      se.map(singleE => sres.map(le => singleE::le)).flatten
+  }  
+  
+  def splitByExpr(e: Expr): List[Expr] = {
+    e match {
+      // Base case
+      case SplitBy(i, num) =>
+        val width = mkOp("/",mkOp("-",i.hi,i.lo),Lit(num))
+        // List of intervals
+        (0 to num.i - 1).toList.map(x => 
+          ExprInterval(mkOp("+", i.lo, mkOp("*", Lit(GInt(x)), width)),
+                       mkOp("+", i.lo, mkOp("*", Lit(GInt(x+1))), width)))
+      
+      case Op(f,es) => splitByList(es, splitByExpr).map(Op(f,_))
+      case _ => List(e)
+    }
+  }
+  def splitByAction(a: Action): List[Action] = a match{
+    case Continuously(Equation(lhs,rhs)) =>
+      splitByExpr(rhs).map(x => Continuously(Equation(lhs,x)))
+    case Discretely(Assign(lhs,rhs)) => 
+      splitByExpr(rhs).map(x => Discretely(Assign(lhs,x)))
+    case _ => List(a)
+  }
+   
+  def splitByInit(i: Init):List[Init] = i match{
+    case Init(n,ExprRhs(rhs)) =>
+      splitByExpr(rhs).map(x => Init(n, ExprRhs(x)))
+    case _ => List(i)     
+  }
+  
+  def splitByClass(c:ClassDef):List[ClassDef] = c match{
+    case ClassDef(name,fields,privs,body) => 
+      val splitedInits = splitByList(privs, splitByInit)
+      splitedInits map println
+      val splitedActions = splitByList(body, splitByAction)
+      // Cross product of different inits and bodys
+      val initBodys = splitedInits.map(init => 
+        splitedActions match{
+          case Nil => List((init,Nil))
+          case _ =>splitedActions.map(body => (init,body))
+        }).flatten
+      initBodys.map{case (i,b) =>ClassDef(name,fields,i,b) }
+  }
+  
+  def splitByProg(p:Prog):List[Prog] = {
+    val splitClasses = splitByList(p.defs, splitByClass)
+    splitClasses.map(c => Prog(c))   
+  }
+  
+  
+//  /* Delete me after testing */
+//  val e1 = SplitBy(ExprInterval(Lit(GInt(0)),Lit(GInt(2))), GInt(2))
+//  val e2 = SplitBy(ExprInterval(Lit(GInt(3)),Lit(GInt(5))), GInt(2)) 
+// // splitByList(e1::e2::Nil)//.map(x => println(x))
+//  splitByExpr(mkOp("+",e1,e2)).map(x => println(pprint(x)))
 }
 

@@ -238,6 +238,7 @@ class Pretty {
                                      " in " :: pretty(c) :: " if " :: pretty(t)
         case TypeOf(cn)         => "type" :: parens(pretty(cn))
         case ExprInterval(lo,hi) => brackets(pretty(lo) :: " .. " :: pretty(hi))
+        case SplitBy(i,num) => parens(pretty(i.asInstanceOf[Expr]) :: "splitBy" :: num.i.toString)
         case ExprIntervalM(m,r)  => parens(pretty(m) :: "+/-" :: pretty(r))
         case Pattern(l) => l match{
           case n :: Nil => pretty(n)
