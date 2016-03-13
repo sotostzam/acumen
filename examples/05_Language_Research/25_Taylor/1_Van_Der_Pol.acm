@@ -1,0 +1,8 @@
+model Main(simulator) = 
+initially
+  x = 0.5, x' = 0, x'' = -0.5, 
+  mu = 2 // dampening
+always
+  x'' = mu*(1-x*x)*x'-x,
+  simulator.endTime+ = 50,
+  simulator.orderOfIntegration+ = 6

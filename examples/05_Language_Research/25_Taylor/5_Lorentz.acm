@@ -1,0 +1,18 @@
+// Lorentz equations
+//
+// Author: Adam Duracz
+//
+// Source: "Modeling by Nonlinear Differential
+//          equations" by Phillipson and Schuster
+
+model Main(simulator) =
+initially
+  s = 2, r = 5, b = 1,
+  x = 1, x' = -2*1 + 2*1,
+  y = 1, y' = 5*1 - 1 - 1*1,
+  z = 1, z' = -1*1 + 1*1
+always
+  x' = -s*x + s*y,
+  y' = r*x - y - x*z,
+  z' = -b*z + x*y,
+  simulator.endTime+ = 20

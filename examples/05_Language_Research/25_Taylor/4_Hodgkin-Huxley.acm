@@ -1,0 +1,19 @@
+// FitzHugh-Nagumo reduced Hodgkin-Huxley equations
+//
+// Author: Adam Duracz
+//
+// Source: "Analytical dynamics of nerve impulse 
+//          oscillation" by Phillipson and Schuster
+
+model Main(simulator) =
+initially
+  // Physiological state constants
+  a = 3, b = 2, e = 1,
+  F = 1,
+  // Action potential across membrane
+  V = 2, V' = -2*(2 - 3)*(2 - 1) - 3 + 1,
+  // Recovery (excitability of cell)
+  Y = 3, Y' = 2*2 - 1*3
+always
+  V' = -V*(V - a)*(V - 1) - Y + F,
+  Y' = b*V - e*Y

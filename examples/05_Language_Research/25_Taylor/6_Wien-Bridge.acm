@@ -1,0 +1,23 @@
+// Wien-Bridge Oscillator
+//
+// Author: Adam Duracz
+//
+// Model of an electronic oscillator that 
+// generates sine waves.
+//
+// Note: The system has a limit cycle and a
+//       single critical point at (0,0).
+
+model Main(simulator) =
+initially 
+  x1 = 0.1, x1' = 0,
+  x2 = 0.2, x2' = 0,
+  C1 = 1, C2 = 1, R1 = 1, R2 = 1,
+  g = 0
+always
+  x1' = (- x1 + x2 - g)/(C1*R1),
+  x2' = -(-x1 + x2 - g)/(C2*R1) - x2/(C2*R2),
+  g = 3.234*x2 - 2.195*x2*x2*x2 + 0.666*x2*x2*x2*x2*x2,
+  simulator.endTime+ = 50
+//  ,simulator.timeStep+ = 0.125
+  ,simulator.orderOfIntegration+ = 6

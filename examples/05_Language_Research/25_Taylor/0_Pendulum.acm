@@ -1,0 +1,8 @@
+model Main(simulator) = 
+initially
+  x = 3, x' = 0, x'' = -10*sin(3) - 0
+always
+  x'' = -10*sin(x) - x',
+  simulator.endTime+ = 20,
+  simulator.timeStep+ = 0.0625,
+  simulator.orderOfIntegration+ = 8

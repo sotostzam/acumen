@@ -1,0 +1,26 @@
+// Lotka-Volterra Example
+//
+// Author: Adam Duracz
+//
+// Model of populations of two species, where one feeds
+// on the other. Also known as the predator–prey 
+// equations.
+//
+// Note: This system has periodic solutions.
+
+model Main(simulator) =
+initially
+  // Interaction parameters
+  a = 3.0, // Prey birth rate
+  b = 2.0, // Victim rate
+  d = 0.5, // Predator birth rate
+  g = 1.0, // Predator self-competition factor
+  // Number of prey
+  x = 5, x' = 3.0*5 - 2.0*5*1,
+  // Number of predators
+  y = 1, y' = 0.5*5*1 - 1.0*1
+always
+  x' = a*x - b*x*y,
+  y' = d*x*y - g*y,
+  simulator.endTime+ = 30,
+  simulator.orderOfIntegration+ = 7
