@@ -452,7 +452,12 @@ object Parser extends MyStdTokenParsers {
   def interval: Parser[Expr] =
 //    nlit ~ ".." ~ nlit ^^ { case lo ~ ".." ~ hi => ExprInterval(lo,hi) }
       "[" ~> nlit ~ ".." ~ nlit <~ "]" ^^ { case lo ~ ".." ~ hi => ExprInterval(lo,hi) }
-
+ 
+  def splitby: Parser[SplitBy] = 
+     interval ~ "splitBy" ~ gint ^^ {case i ~ _ ~ num => i match {
+       case e:ExprInterval => SplitBy(e,num) 
+     }}
+  
   def lit = positioned((gint | gfloat | gstr) ^^ Lit)
 
   def name: Parser[Name] =
