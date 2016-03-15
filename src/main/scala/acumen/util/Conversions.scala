@@ -45,11 +45,14 @@ object Conversions {
       case _        => throw NotACollection(v)
     }
 
-  def extractInt(v:GroundValue) : Int = 
-    v match {
-      case GInt(i)    => i
+  def extractInt(v:GroundValue) : Int = {
+    lazy val ed = extractDouble(v)    
+    (v, ed) match {
+      case (GInt(i), _) => i
+      case (_, d) if doubleIsReal isValidInt d => doubleIsReal toInt d 
       case _ => throw GroundConversionError(v, "int")
     }
+  } 
   
   def extractInt(v:Value[_]) : Int =
     v match {

@@ -239,6 +239,10 @@ object Errors {
     override def getMessage = 
       "Simulation's stepType is not a step type."
   }
+  case class InvalidSimulatorParameterValue(msg: String) extends AcumenError {
+    override def getMessage = 
+      "Invalid simulator parameter value: " + msg
+  }
   case class BadUiTransition(message:String) extends AcumenError {
     override def getMessage = message
   }

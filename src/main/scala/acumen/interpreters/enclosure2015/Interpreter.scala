@@ -151,9 +151,6 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
    */
   def liftToUncertain(p: Prog): Prog =
     new util.ASTMap {
-      val magicDot = Dot(Var(self),magicf)
-      override def mapClassDef(c: ClassDef): ClassDef =
-        if (c.name == cmagic) c else super.mapClassDef(c)
       override def mapExpr(e: Expr): Expr = e match {
         case Lit(GBool(b))          => Lit(if (b) CertainTrue else CertainFalse)
         case Lit(GInt(i))           => Lit(GConstantRealEnclosure(i))
@@ -166,10 +163,6 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
         case ExprIntervalM(lo,hi)   => sys.error("Centered interval syntax is currently not supported. Offending expression: " + pprint(e))
         case Lit(GStr(s))           => Lit(GStrEnclosure(s))
         case _                      => super.mapExpr(e)
-      }
-      override def mapDiscreteAction(a: DiscreteAction) : DiscreteAction = a match {
-        case a @ Assign(Dot(`magicDot`, _), _) => a
-        case _ => super.mapDiscreteAction(a)
       }
       override def mapClause(c: Clause) : Clause = c match {
         case Clause(GBool(lhs), as, rhs) => Clause(GBoolEnclosure(lhs), mapExpr(as), mapActions(rhs))
@@ -193,12 +186,23 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
   /** Update simulator parameters in st.enclosure with values from the code in p. */
   def updateSimulator(p: Prog, st: Store): Store = {
     val paramMap = p.defs.find(_.name == cmain).get.body.flatMap {
-      case Discretely( Assign(Dot(Dot(Var(`self`), `magicf`), param), rhs)) => 
-        List((param, rhs match {
-          case Lit(v @ (GStr(_) | GBool(_) | GDouble(_) | GInt(_) | GInterval(_))) => 
-            VLit(v)
+      case Discretely(Assign(Dot(Dot(Var(`self`), `magicf`), pn @ Name(param, _)), rhs)) => 
+        List((pn, rhs match {
           case ExprVector(rhsVector) => 
             VVector(rhsVector.map{ case Lit(l) => VLit(l) })
+          case Lit(v @ (GStr(_) | GBool(_) | GDouble(_) | GInt(_) | GInterval(_))) => 
+            VLit(v)
+          case e: Expr =>
+            evalExpr(e, Env(self -> VObjId(Some(st.enclosure.mainId))), st.enclosure) match {
+              case v @ VLit(ge: GEnclosure[_]) if !ge.isThin =>
+                val errorMessage = s"$param evaluates to an uncertain value $ge. Please use an expression that evaluates to an exact value."
+                throw new InvalidSimulatorParameterValue(
+                  if (pn != timeStep) errorMessage 
+                  else errorMessage + " Note that timeStep must be a power of 2.")
+              case VLit(GConstantRealEnclosure(i)) => VLit(GDouble(i.loDouble))             
+              case VLit(GBoolEnclosure(s)) => VLit(GBool(s.head))             
+              case VLit(GStrEnclosure(s)) => VLit(GStr(s.head))             
+            }
         }))
       case _ => Nil
     }.toMap

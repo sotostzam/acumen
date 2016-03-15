@@ -12,7 +12,7 @@ import util.ASTUtil.{
 }
 import util.Canonical._
 import util.Conversions.{
-  extractDouble, extractDoubles, extractId, extractInterval, extractIntervals
+  extractDouble, extractDoubles, extractId, extractInt, extractInterval, extractIntervals
 }
 import Errors._
 import scala.util.parsing.input.Position
@@ -101,10 +101,10 @@ object Common {
         case VVector(VLit(GStr(reorgName)) :: reorgParams) => (reorgName, reorgParams map extractDouble)
       }
       val VLit(GStr (method))                        = getInSimulator(Names.method, st)
-      val VLit(GInt (orderOfIntegration))            = getInSimulator(Names.orderOfIntegration, st)
-      val VLit(GInt (maxPicardIterations))           = getInSimulator(Names.maxPicardIterations, st)
-      val VLit(GInt (maxBranches))                   = getInSimulator(Names.maxBranches, st)
-      val VLit(GInt (maxIterationsPerBranch))        = getInSimulator(Names.maxIterationsPerBranch, st)
+      val            orderOfIntegration              = extractInt(getInSimulator(Names.orderOfIntegration, st))
+      val            maxPicardIterations             = extractInt(getInSimulator(Names.maxPicardIterations, st))
+      val            maxBranches                     = extractInt(getInSimulator(Names.maxBranches, st))
+      val            maxIterationsPerBranch          = extractInt(getInSimulator(Names.maxIterationsPerBranch, st))
       val VLit(GBool(mergeBranches))                 = getInSimulator(Names.mergeBranches, st)
       val VLit(GBool(intersectWithGuardBeforeReset)) = getInSimulator(Names.intersectWithGuardBeforeReset, st)
       val VLit(GBool(disableContraction))            = getInSimulator(Names.disableContraction, st)
