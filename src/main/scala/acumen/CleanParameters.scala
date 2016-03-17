@@ -20,11 +20,11 @@ object CleanParameters {
       update(parm, intr :: get(parm).getOrElse(Nil))
   }
 
-  // add paramaters for CStore based interpreters
+  // add parameters for CStore based interpreters
   acumen.interpreters.Common.simulatorFields.foreach { parm => 
     parms.registerParm(parm, acumen.CStoreInterpreterType)
   }
-  // add paramters for Enclosure based interpreters
+  // add parameters for legacy Enclosure based interpreters
   acumen.interpreters.enclosure.Parameters.defaults.foreach {
     case (parm, _) =>
       acumen.CleanParameters.parms.registerParm(parm, acumen.EnclosureInterpreterType)

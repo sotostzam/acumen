@@ -67,11 +67,6 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
   override val visibleParameters: Map[String, CValue] =
     enclosure2015.Common.Parameters.defaults.filter(_._2._1).map{ case (n,(_,v)) => (n,v) } 
 
-  /* Constants */
-  
-  private val legacyParameters = enclosure.Parameters.default.copy(interpreter = Some(enclosure.Interpreter.EVT))
-  private implicit val rnd = Rounding(legacyParameters)
-
   /* Types */
 
   sealed abstract trait InitialConditionTime
