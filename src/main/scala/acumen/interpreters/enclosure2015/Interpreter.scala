@@ -751,9 +751,10 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
       (eabOfPreviousCandidate, hi)
     else {
       val midpoint = lo + width / 2
-      val (esNextCandidate, bsNextCandidate, midpointHasCrossed) = stepBranches(loT, midpoint, prog, loTBranches)
+      val (esNextCandidate, bsNextCandidate, _) = stepBranches(loT, midpoint, prog, loTBranches)
+      val (_, _, midpointHasCrossed) = stepBranches(midpoint, midpoint + parameters.minTimeStep, prog, bsNextCandidate)
       val (loNext, hiNext) = if (midpointHasCrossed) (lo, midpoint) else (midpoint, hi)
-      findTightRightEndPoint(lo, midpoint, prog, loT, loTBranches, EnclosureAndBranches(esNextCandidate, bsNextCandidate))
+      findTightRightEndPoint(loNext, hiNext, prog, loT, loTBranches, EnclosureAndBranches(esNextCandidate, bsNextCandidate))
     }
   }
   
