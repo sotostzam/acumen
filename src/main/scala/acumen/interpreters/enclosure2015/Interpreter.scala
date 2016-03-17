@@ -662,12 +662,15 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
     }
   }
   
-  // Strategy for merging the branches
-  def mergeBranchList(ics: List[InitialCondition])(implicit parameters: Parameters): List[InitialCondition] =
-    if (parameters.mergeBranches) 
-      ics.groupBy(ic => (ic.evolution, ic.time)).map { case ((m, t), ic) => 
-        InitialCondition(ic.map(_.enclosure).reduce(_ /\ _), m, t) }.toList
-    else ics
+  /** Apply zero or more strategies for merging the branches */
+  def mergeBranchList(branches: List[InitialCondition])(implicit parameters: Parameters): List[InitialCondition] =
+    parameters.mergeBranches.foldLeft(branches) {
+      case (bsTmp, `BranchMergingEvolution`) =>
+        bsTmp.groupBy(ic => (ic.evolution, ic.time)).map { case ((m, t), ic) => 
+          InitialCondition(ic.map(_.enclosure).reduce(_ /\ _), m, t) }.toList
+      case (bsTmp, `BranchMergingOff`) => bsTmp
+      case (_, s) => throw new InvalidBranchMergingStrategy(s)
+    }
   
   /** Adaptive stepping strategy.
    *  

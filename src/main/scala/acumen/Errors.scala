@@ -96,6 +96,10 @@ object Errors {
     override def mesg = 
       r + " is not a valid reorganization."
   }
+  case class InvalidBranchMergingStrategy(r:String) extends PositionalAcumenError {
+    override def mesg = 
+        r + " is not a valid branch merging strategy."
+  }
   case class ConstructorArity(cd:ClassDef,got:Int) extends PositionalAcumenError {
     override def mesg = {
       val cn = cd.name

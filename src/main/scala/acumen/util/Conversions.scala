@@ -93,6 +93,20 @@ object Conversions {
       case VLit(gv) => extractInterval(gv)
       case _        => throw ConversionError(v, "interval")
   }
+  
+  def extractString(v: GroundValue): String =
+    v match {
+      case GStr(s) => s  
+      case e @ GStrEnclosure(s) if e.isThin => s.head  
+      case _ => throw GroundConversionError(v, "string")
+    }
+
+  def extractString(v: Value[_]): String =
+    v match {
+      case VLit(gv) => extractString(gv)
+      case _        => throw ConversionError(v, "string")
+    }
+  
   // Check that every row has the same length
   def isMatrix(m:List[Value[_]]):Boolean ={
     try{

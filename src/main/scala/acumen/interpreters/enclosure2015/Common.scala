@@ -12,7 +12,7 @@ import util.ASTUtil.{
 }
 import util.Canonical._
 import util.Conversions.{
-  extractDouble, extractDoubles, extractId, extractInt, extractInterval, extractIntervals
+  extractDouble, extractDoubles, extractId, extractInt, extractInterval, extractIntervals, extractString
 }
 import Errors._
 import scala.util.parsing.input.Position
@@ -28,8 +28,13 @@ object Common {
   
   /* DynSet Reorganization strategies */
     
-  val ReorganizationOff               = "off"
-  val ReorganizationErrorExceedsWidth = "errorExceedsWidth"
+  val ReorganizationOff               = "Off"
+  val ReorganizationErrorExceedsWidth = "ErrorExceedsWidth"
+
+  /* Branch Merging strategies */
+    
+  val BranchMergingOff       = "Off"
+  val BranchMergingEvolution = "Evolution"
   
   /** Parameter carrier
    *  Note: Defaults are set here.  
@@ -47,7 +52,7 @@ object Common {
                        , maxPicardIterations           : Int                    = 1000 
                        , maxBranches                   : Int                    = 100 
                        , maxIterationsPerBranch        : Int                    = 1000 
-                       , mergeBranches                 : Boolean                = true 
+                       , mergeBranches                 : List[String]           = List("Evolution") 
                        , intersectWithGuardBeforeReset : Boolean                = true 
                        , disableContraction            : Boolean                = false 
                        , hypothesisReport              : String                 = "Comprehensive"
@@ -89,7 +94,7 @@ object Common {
          , maxPicardIterations           -> (true, VLit(GInt(p.maxPicardIterations)))
          , maxBranches                   -> (true, VLit(GInt(p.maxBranches)))
          , maxIterationsPerBranch        -> (true, VLit(GInt(p.maxIterationsPerBranch)))
-         , mergeBranches                 -> (true, VLit(GBool(p.mergeBranches)))
+         , mergeBranches                 -> (true, VVector(p.mergeBranches.map(s => VLit(GStr(s)))))
          , intersectWithGuardBeforeReset -> (true, VLit(GBool(p.intersectWithGuardBeforeReset)))
          , disableContraction            -> (true, VLit(GBool(p.disableContraction)))
          , hypothesisReport              -> (true, VLit(GStr(p.hypothesisReport)))
@@ -113,7 +118,11 @@ object Common {
       val            maxPicardIterations             = extractInt(getInSimulator(Names.maxPicardIterations, st))
       val            maxBranches                     = extractInt(getInSimulator(Names.maxBranches, st))
       val            maxIterationsPerBranch          = extractInt(getInSimulator(Names.maxIterationsPerBranch, st))
-      val VLit(GBool(mergeBranches))                 = getInSimulator(Names.mergeBranches, st)
+      val            mergeBranches                   = getInSimulator(Names.mergeBranches, st) match {
+        case VLit(GStr(strategy))                 => List(strategy)
+        case VLit(GPattern(List(GStr(strategy)))) => List(strategy)
+        case VVector(strategies)                  => strategies map extractString
+      }
       val VLit(GBool(intersectWithGuardBeforeReset)) = getInSimulator(Names.intersectWithGuardBeforeReset, st)
       val VLit(GBool(disableContraction))            = getInSimulator(Names.disableContraction, st)
       val VLit(GStr (hypothesisReport))              = getInSimulator(Names.hypothesisReport, st)
