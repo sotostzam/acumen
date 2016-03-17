@@ -64,7 +64,8 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
     val e = solverBase(st) initializeEnclosure st
     EnclosureAndBranches(e, InitialCondition(e, Epsilon, StartTime) :: Nil) 
   }
-  override val visibleParameters: Map[String, CValue] = visibleParametersMap(initStore) 
+  override val visibleParameters: Map[String, CValue] =
+    enclosure2015.Common.Parameters.defaults.filter(_._2._1).map{ case (n,(_,v)) => (n,v) } 
 
   /* Constants */
   
