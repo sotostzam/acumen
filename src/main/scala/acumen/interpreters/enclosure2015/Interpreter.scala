@@ -588,7 +588,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
     // This dynset will be converted to the type used by the default and 
     // user-selected integrators at the first call to continuousEncloser. 
     def initializeEnclosure = picardBase.initializeEnclosure(_)
-    val cprog = CleanParameters.run(prog, CStoreInterpreterType)
+    val cprog = CleanParameters.run(prog, Enclosure2015InterpreterType)
     val cprog1 = makeCompatible(cprog)
     val enclosureProg = liftToUncertain(cprog1)
     val mprog = Prog(magicClass :: enclosureProg.defs)

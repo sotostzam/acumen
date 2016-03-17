@@ -7,6 +7,7 @@ import acumen.util.Canonical
 sealed abstract class InterpreterType
 case object CStoreInterpreterType extends InterpreterType
 case object EnclosureInterpreterType extends InterpreterType
+case object Enclosure2015InterpreterType extends InterpreterType
 
 trait Parameters extends scala.collection.Map[String, List[InterpreterType]]
 {
@@ -28,6 +29,11 @@ object CleanParameters {
   acumen.interpreters.enclosure.Parameters.defaults.foreach {
     case (parm, _) =>
       acumen.CleanParameters.parms.registerParm(parm, acumen.EnclosureInterpreterType)
+  }
+  // add parameters for 2015 Enclosure based interpreters
+  acumen.interpreters.enclosure2015.Common.Parameters.defaults.foreach {
+    case (parm, _) =>
+      acumen.CleanParameters.parms.registerParm(parm, acumen.Enclosure2015InterpreterType)
   }
 
   case object AssignToSimulator extends Throwable
