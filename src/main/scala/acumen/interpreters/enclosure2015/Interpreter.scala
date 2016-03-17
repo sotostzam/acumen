@@ -64,9 +64,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
     val e = solverBase(st) initializeEnclosure st
     EnclosureAndBranches(e, InitialCondition(e, Epsilon, StartTime) :: Nil) 
   }
-  override val visibleParameters: Map[String, CValue] =
-    Parameters.defaults.filter{ case (_, (b, _)) => b      }
-                       .map   { case (n, (_, v)) => (n, v) } 
+  override val visibleParameters: Map[String, CValue] = visibleParametersMap(initStore) 
 
   /* Constants */
   
@@ -83,6 +81,8 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
   object EnclosureAndBranches{
     def apply(e: Enclosure, bs: List[InitialCondition]): EnclosureAndBranches = 
       new EnclosureAndBranches(e.countVariables, bs) 
+    def apply(e: List[Enclosure], bs: List[InitialCondition]): EnclosureAndBranches = 
+      new EnclosureAndBranches(e.reduce(_ /\ _).countVariables, bs)
   }
   
   /** Represents a sequence of Changesets without consecutive repeated flows. */
@@ -210,6 +210,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
   }
   
   def setTime(d:Double, s:Store) = setInSimulator(time, VLit(GDouble(d)), s)
+  def setTimeStep(d:Double, s:Store) = setInSimulator(timeStep, VLit(GDouble(d)), s)
   
   def setResultType(t:ResultType, s:Store) = setInSimulator(resultType, VResultType(t), s)
     
@@ -606,8 +607,9 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
         case _ => Nil
     }}
     val st2E = fromCStore(st2.cStore)
-    val md = testHypotheses(st2E.enclosure, 0, 0, mprog, NoMetadata) 
-    (mprog, st2E, md)
+    val st2U = updateSimulator(mprog, st2E)
+    val md = testHypotheses(st2U.enclosure, 0, 0, mprog, NoMetadata)
+    (mprog, st2U, md)
   }
   
   /** Remove unsupported declarations and statements from the AST. */
@@ -628,35 +630,149 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
   }
   
   lazy val initStore = Parser.run(Parser.store, initStoreTxt.format("#0"))
-  val initStoreTxt: String = 
+  lazy val initStoreTxt: String = 
     s"""#0.0 { className = Simulator, parent = %s, nextChild = 0, variableCount = 0, 
                outputRows = "All", continuousSkip = 0, resultType = @Initial, 
-               ${visibleParameters.map(p => p._1 + "=" + pprint(p._2)).mkString(",")} }"""
+               ${ Common.Parameters.defaults.map{ case (pn, (vis, pv)) => pn + "=" + pprint(pv)}.mkString(",") } }"""
 
   /** Updates the values of variables in xs (identified by CId and Dot.field) to the corresponding CValue. */
   def applyAssignments(xs: List[(CId, Dot, CValue)], st: Enclosure): Enclosure =
     xs.foldLeft(st)((stTmp, a: (CId, Dot, CValue)) => stTmp.setObjectField(a._1, a._2.field, a._3))
 
   def step(p: Prog, st: Store, md: Metadata): StepRes = {
-    val st1 = updateSimulator(p, st)
-    implicit val parameters = Common.Parameters(st1.enclosure.cStore)
-    if (st1.enclosure.getTime >= st1.enclosure.getEndTime && st.enclosure.getResultType == FixedPoint) {
-      Done(md, st1.enclosure.getEndTime)
+    implicit val parameters = Common.Parameters(st.enclosure.cStore)
+    if (st.enclosure.getTime >= st.enclosure.getEndTime && st.enclosure.getResultType == FixedPoint) {
+      Done(md, st.enclosure.getEndTime)
     }
     else {
-      val tNow = st1.enclosure.getTime
-      val (tNext, resType) = st1.enclosure.getResultType match {
+      val tNow = st.enclosure.getTime
+      val (tNext, resType) = st.enclosure.getResultType match {
         case Continuous | Initial =>
           (tNow, FixedPoint)
         case FixedPoint =>
-          (tNow + st1.enclosure.getTimeStep, Continuous)
+          (tNow + st.enclosure.getTimeStep, Continuous)
       }
-      val st2 = hybridEncloser(Interval(tNow, tNext), p, st1) // valid enclosure over T
-      val md1 = testHypotheses(st2.enclosure, tNow, tNext, p, md)
-      val st3 = setResultType(resType, st2)
-      val st4 = setTime(tNext, st3)
+      val (st1, tNextAdapted, tStepNext) = stepAdaptive(tNow, tNext, p, mergeBranchList(st.branches)) // valid enclosure over T
+      val md1 = testHypotheses(st1.enclosure, tNow, tNextAdapted, p, md)
+      val st2 = setResultType(resType, st1)
+      val st3 = setTime(tNextAdapted, st2)
+      val st4 = if (tNow == tNext) st3 else setTimeStep(tStepNext, st3)
       Data(st4, md1)
     }
+  }
+  
+  // Strategy for merging the branches
+  def mergeBranchList(ics: List[InitialCondition])(implicit parameters: Parameters): List[InitialCondition] =
+    if (parameters.mergeBranches) 
+      ics.groupBy(ic => (ic.evolution, ic.time)).map { case ((m, t), ic) => 
+        InitialCondition(ic.map(_.enclosure).reduce(_ /\ _), m, t) }.toList
+    else ics
+  
+  /** Adaptive stepping strategy.
+   *  
+   *  Try to take a step over the time interval [L,R] = [leftEndPoint, rightEndPoint].
+   *  If an event is possible in this interval then:
+   *    1. Localize the event time: use bisection to find an interval 
+   *       [L', R'] whose end-points are at most simulator.minTimeStep 
+   *       outside the end-points of the event time interval. 
+   *    2. Take a step over [L', R'].
+   *    
+   *  The left end-point L' is found recursing with half the time step, 
+   *  that is over [L, R+(R-L)/2], until R-L < 2*simulator.minTimeStep. 
+   *  
+   *  Returns a triple (eab, rightEndPointTight, stepSizeNext):
+   *  - eab: EnclosureAndBranches 
+   *    Contains the enclosure for prog over the time interval
+   *    [leftEndPoint, rightEndPointTight] and initial conditions for the time 
+   *    [rightEndPointTight].
+   *  - tightRightEndPoint: Double
+   *    A time that is at most simulator.minTimeStep later than the event time.
+   *  - stepSizeNext: Double
+   *    For time intervals without events this is double the width of [L,R] 
+   *    until that reaches parameters.maxTimeStep. Otherwise this is (R-L). 
+   */
+  def stepAdaptive(leftEndPoint: Double, rightEndPoint: Double, prog: Prog, branches: List[InitialCondition])(implicit parameters: Parameters): (EnclosureAndBranches, Double, Double) = {
+    require(branches.nonEmpty, "stepAdaptive called with zero branches")
+    require(branches.size < parameters.maxBranches, s"Number of branches (${branches.size}) exceeds maximum (${parameters.maxBranches}).")
+    Logger.debug(s"stepAdaptive (over ${ Interval(leftEndPoint, rightEndPoint) }, ${branches.size} branches)")
+    val (enclosuresNext, branchesNext, isFlow) = stepBranches(leftEndPoint, rightEndPoint, prog, branches) 
+    val step = rightEndPoint - leftEndPoint
+    val twiceStep = 2 * step
+    if (isFlow)
+      (EnclosureAndBranches(enclosuresNext, branchesNext), rightEndPoint, if (twiceStep < parameters.maxTimeStep) twiceStep else step)
+    else { // possible event
+      val halfStep = step / 2
+      if (halfStep < parameters.minTimeStep) { // leftEndPoint is close enough to event time interval
+        val (eab, timeNext) = findRightEndPoint(parameters.minTimeStep, prog, leftEndPoint, branches)
+        (eab, timeNext, step)
+      }
+      else // get closer to event time interval by halving the step
+        stepAdaptive(leftEndPoint, leftEndPoint + halfStep, prog, branches)
+    }
+  }
+  
+  /** Find a right bound for the event time interval by:
+   *  1. Finding a time after the event time interval by 
+   *     doubling the width.
+   *  2. Refining this rough estimate using findTightRightEndPoint().
+   */
+  def findRightEndPoint(width: Double, prog: Prog, leftEndPoint: Double, branches: List[InitialCondition])(implicit parameters: Parameters): (EnclosureAndBranches, Double) = {
+    val candidate = leftEndPoint + width
+    val (candidateEnclosures, candidateBranches, _) = stepBranches(leftEndPoint, candidate, prog, branches)
+    val justAfterCandidate = candidate + parameters.minTimeStep
+    // Check if this is a valid right end-point
+    val (afterCandidateEnclosures, afterCandidateBranches, candidateIsValid) = 
+      stepBranches(candidate, justAfterCandidate, prog, candidateBranches)
+    val widthTwice = width * 2
+    if (candidateIsValid) { // we have found _a_ right end-point, now find a better one
+      val previousCandidate = leftEndPoint + width / 2
+      val (rightEndPointTightEAB, rightEndPointTight) =  
+        findTightRightEndPoint(previousCandidate, candidate, prog, leftEndPoint, branches, EnclosureAndBranches(candidateEnclosures, candidateBranches))
+      (rightEndPointTightEAB, rightEndPointTight)
+    } else if (widthTwice >= parameters.maxTimeStep)
+      (EnclosureAndBranches(candidateEnclosures, candidateBranches), candidate)
+    else
+      findRightEndPoint(widthTwice, prog, leftEndPoint, branches)
+  }    
+  
+  /** Finds a time just after the event time interval. 
+   *  Returns a pair (eab, rightEndPoint):
+   *  - eab: EnclosureAndBranches
+   *    Enclosure for prog over [loT, t]
+   *  - t: Double
+   *    A time at most parameters.minTimeStep after the event time interval.
+   *  
+   *  Invariant: [lo,hi] is always a bound of right-end point of the event time interval */
+  def findTightRightEndPoint( lo: Double, hi: Double
+                           , prog: Prog, loT: Double, loTBranches: List[InitialCondition], eabOfPreviousCandidate: EnclosureAndBranches
+                           )( implicit parameters: Parameters
+                           ): (EnclosureAndBranches, Double) = {
+    val width = hi - lo
+    if (width <= parameters.minTimeStep)
+      (eabOfPreviousCandidate, hi)
+    else {
+      val midpoint = lo + width / 2
+      val (esNextCandidate, bsNextCandidate, midpointHasCrossed) = stepBranches(loT, midpoint, prog, loTBranches)
+      val (loNext, hiNext) = if (midpointHasCrossed) (lo, midpoint) else (midpoint, hi)
+      findTightRightEndPoint(lo, midpoint, prog, loT, loTBranches, EnclosureAndBranches(esNextCandidate, bsNextCandidate))
+    }
+  }
+  
+  /** Combined result of stepping prog over [loT, hiT] for all branches. 
+   *  Returns a triple (es,bs,isFlow): 
+   *  - es: List[Enclosure]
+   *    Enclosures for all branches valid over [loT, hiT].
+   *  - bs: List[InitialCondition]
+   *    New initial conditions valid at [hiT].
+   *  - isFlow: Boolean
+   *    True if an event is possible over [loT, hiT] for any branch.
+   */
+  def stepBranches(loT: Double, hiT: Double, prog: Prog, branches: List[InitialCondition])(implicit parameters: Parameters): (List[Enclosure], List[InitialCondition], Boolean) = {
+    val (es, bs) = branches.map{ b =>
+      val eab = hybridEncloser(Interval(loT, hiT), prog, b)
+      (eab.enclosure, eab.branches)
+    }.unzip
+    (es, bs.flatten.distinct, es.forall(active(_, prog).size == 1))
   }
 
   /** Traverse the AST (p) and collect statements that are active given st. */
@@ -713,22 +829,13 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
   }
   
   /** 
-   * Given a set of initial conditions (st.branches), computes a valid 
-   * enclosure (.enclosure part of the result) for prog over T, as well
-   * as a new set of initial conditions (.branches part of the result) 
+   * Given an initial condition (branch), computes a valid enclosure 
+   * (.enclosure part of the result) for prog over T, as well as a 
+   * new set of initial conditions (.branches part of the result) 
    * for the next time interval.
    */
-  def hybridEncloser(T: Interval, prog: Prog, st: EnclosureAndBranches)(implicit parameters: Parameters): EnclosureAndBranches = {
-    require(st.branches.nonEmpty, "hybridEncloser called with zero branches")
-    require(st.branches.size < parameters.maxBranches, s"Number of branches (${st.branches.size}) exceeds maximum (${parameters.maxBranches}).")
-    Logger.debug(s"hybridEncloser (over $T, ${st.branches.size} branches)")
-    
-    // Strategy for merging the branches
-    def mergeBranchList(ics: List[InitialCondition]): List[InitialCondition] =
-      if (parameters.mergeBranches) 
-        ics.groupBy(ic => (ic.evolution, ic.time)).map { case ((m, t), ic) => 
-          InitialCondition(ic.map(_.enclosure).reduce(_ /\ _), m, t) }.toList
-      else ics
+  def hybridEncloser(T: Interval, prog: Prog, branch: InitialCondition)(implicit parameters: Parameters): EnclosureAndBranches = {
+
  
     // Process a list of ICs   
     @tailrec def enclose
@@ -742,8 +849,8 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
       if (pwlW isEmpty)
         EnclosureAndBranches(pwlR.reduce(_ /\ _), if (T.isThin) pwlU else mergeBranchList(pwlU))      
       // Exceeding the maximum iterations per branch
-      else if (iterations / st.branches.size > parameters.maxIterationsPerBranch)
-        sys.error(s"Enclosure computation over $T did not terminate in ${st.branches.size * parameters.maxIterationsPerBranch} iterations.")
+      else if (iterations > parameters.maxIterationsPerBranch)
+        sys.error(s"Enclosure computation over $T did not terminate in ${parameters.maxIterationsPerBranch} iterations.")
       // Processing the next IC
       else {
         Logger.trace(s"enclose (${pwlW.size} waiting initial conditions, iteration $iterations)")
@@ -865,7 +972,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
         (InitialCondition(r, newQw, UnknownTime) :: Nil, InitialCondition(u, newQw, StartTime) :: Nil)
       }
     }
-    enclose(st.branches, Nil, Nil, Nil, 0)
+    enclose(branch :: Nil, Nil, Nil, Nil, 0)
   }
   
   /**

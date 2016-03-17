@@ -38,6 +38,8 @@ object Common {
   case class Parameters( time                          : Double                 =  0.0 
                        , endTime                       : Double                 = 10.0 
                        , timeStep                      : Double                 =  0.015625 
+                       , minTimeStep                   : Double                 =  0.0009765625
+                       , maxTimeStep                   : Double                 =  0.125
                        , dynSetType                    : String                 = DynSetCuboid 
                        , reorganization                : (String, List[Double]) = (ReorganizationErrorExceedsWidth, List(1))
                        , method                        : String                 = Taylor
@@ -56,6 +58,8 @@ object Common {
       val time                          = "time"                         
       val endTime                       = "endTime"                      
       val timeStep                      = "timeStep"                     
+      val minTimeStep                   = "minTimeStep"                     
+      val maxTimeStep                   = "maxTimeStep"                     
       val dynSetType                    = "dynSetType"                   
       val reorganization                = "reorganization"                   
       val method                        = "method"                       
@@ -76,6 +80,8 @@ object Common {
       Map( time                          -> (true, VLit(GDouble(p.time)))
          , endTime                       -> (true, VLit(GDouble(p.endTime)))
          , timeStep                      -> (true, VLit(GDouble(p.timeStep)))
+         , minTimeStep                   -> (true, VLit(GDouble(p.minTimeStep)))
+         , maxTimeStep                   -> (true, VLit(GDouble(p.maxTimeStep)))
          , dynSetType                    -> (true, VLit(GStr(p.dynSetType)))
          , reorganization                -> (true, VVector[CId](VLit(GStr(p.reorganization._1)) :: p.reorganization._2.map(d => VLit(GDouble(d)))))
          , method                        -> (true, VLit(GStr(p.method)))
@@ -94,6 +100,8 @@ object Common {
       val           time                             = extractDouble(getInSimulator(Names.time, st))
       val           endTime                          = extractDouble(getInSimulator(Names.endTime, st))
       val           timeStep                         = extractDouble(getInSimulator(Names.timeStep, st))
+      val           minTimeStep                      = extractDouble(getInSimulator(Names.minTimeStep, st))
+      val           maxTimeStep                      = extractDouble(getInSimulator(Names.maxTimeStep, st))
       val VLit(GStr (dynSetType))                    = getInSimulator(Names.dynSetType, st)
       val           reorganization                   = getInSimulator(Names.reorganization, st) match {
         case VLit(GStr(reorgName))                         => (reorgName, Nil)
@@ -112,6 +120,8 @@ object Common {
       Parameters( time                          = time                         
                 , endTime                       = endTime                      
                 , timeStep                      = timeStep                     
+                , minTimeStep                   = minTimeStep
+                , maxTimeStep                   = maxTimeStep
                 , dynSetType                    = dynSetType                   
                 , reorganization                = reorganization                       
                 , method                        = method                       

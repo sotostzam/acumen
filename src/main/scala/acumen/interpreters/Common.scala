@@ -503,7 +503,10 @@ object Common {
   }
                                   
   // Register valid simulator parameters
-  val simulatorFields = visibleSimulatorFields ::: List("outputRows", "hypothesisReport", "continuousSkip", "resultType", "lastCreatedId", "method", "variableCount")
+  val simulatorFields = 
+    (visibleSimulatorFields ::: 
+     List("outputRows", "hypothesisReport", "continuousSkip", "resultType", "lastCreatedId", "method", "variableCount") :::
+     enclosure2015.Common.Parameters.defaults.keys.toList).distinct
 
   val specialFields = List("nextChild","parent","className","seed1","seed2")
 
