@@ -42,9 +42,9 @@ object Common {
   // Note: When adding a parameter, remember to add it in all five places below.
   case class Parameters( time                          : Double                 =  0.0 
                        , endTime                       : Double                 = 10.0 
-                       , timeStep                      : Double                 =  0.015625 
-                       , minTimeStep                   : Double                 =  0.0009765625
-                       , maxTimeStep                   : Double                 =  0.125
+                       , timeStep                      : Double                 =  0.015625
+                       , minTimeStep                   : Double                 =  0.015625
+                       , maxTimeStep                   : Double                 =  0.015625
                        , dynSetType                    : String                 = DynSetCuboid 
                        , reorganization                : (String, List[Double]) = (ReorganizationErrorExceedsWidth, List(1))
                        , method                        : String                 = Taylor
