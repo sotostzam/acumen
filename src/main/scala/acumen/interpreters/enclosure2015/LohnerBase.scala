@@ -102,7 +102,7 @@ object LohnerEnclosureSolver extends EnclosureSolver[DynSetEnclosure] {
            } 
            if (iterations > maxPicardIterations) sys.error(s"Unable to find valid enclosure over $T in $maxPicardIterations iterations.")
            if (invalidEnclosureDirections isEmpty) {
-             Logger.debug(s"apriori enclosure over $T has been generated in $iterations iteration(s)")
+             Logger.trace(s"apriori enclosure over $T has been generated in $iterations iteration(s)")
              candidate 
            } else 
              picardIterator(candidateNext, iterations + 1)
