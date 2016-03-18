@@ -131,9 +131,6 @@ class CStoreCntrl(val semantics: SemanticsImpl[Interpreter], val interpreter: CS
             md = md1
             endTime = endTime1
 
-            if (buffer.size >= bufferSize || (System.currentTimeMillis -
-              timeOfLastFlush) > minPlotUpdateInterval) flush()
-
             threeDTab.appModel.threeDData.get3DData(I.repr(store))
             threeDTab.appModel.updateProgress(I.repr(store))
 
@@ -188,6 +185,10 @@ class CStoreCntrl(val semantics: SemanticsImpl[Interpreter], val interpreter: CS
               }
               lastvirtualTime = virtualtime
             }
+            
+            if (buffer.size >= bufferSize || (System.currentTimeMillis -
+              timeOfLastFlush) > minPlotUpdateInterval) flush()
+            
         })
       } andThen {
         sendChunk()
