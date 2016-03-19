@@ -648,11 +648,11 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
         case FixedPoint =>
           (tNow + st.enclosure.getTimeStep, Continuous)
       }
-      val (st1, tNextAdapted, tStepNext) = stepAdaptive(tNow, tNext, p, mergeBranchList(st.branches)) // valid enclosure over T
+      val (st1, tNextAdapted, tStepNext) = stepAdaptive(tNow, tNext, st.enclosure.getTimeStep, p, mergeBranchList(st.branches)) // valid enclosure over T
       val md1 = testHypotheses(st1.enclosure, tNow, tNextAdapted, p, md)
       val st2 = setResultType(resType, st1)
       val st3 = setTime(tNextAdapted, st2)
-      val st4 = if (tNow == tNext) st3 else setTimeStep(tStepNext, st3)
+      val st4 = setTimeStep(tStepNext, st3)
       Data(st4, md1)
     }
   }
@@ -679,34 +679,41 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
    *  The left end-point L' is found recursing with half the time step, 
    *  that is over [L, R+(R-L)/2], until R-L < 2*simulator.minTimeStep. 
    *  
-   *  Returns a triple (eab, rightEndPointTight, stepSizeNext):
+   *  Returns a triple (eab, rightEndPointTight, nextTimeStep):
    *  - eab: EnclosureAndBranches 
    *    Contains the enclosure for prog over the time interval
    *    [leftEndPoint, rightEndPointTight] and initial conditions for the time 
    *    [rightEndPointTight].
    *  - tightRightEndPoint: Double
    *    A time that is at most simulator.minTimeStep later than the event time.
-   *  - stepSizeNext: Double
-   *    For time intervals without events this is double the width of [L,R] 
-   *    until that reaches parameters.maxTimeStep. Otherwise this is (R-L). 
+   *  - nextTimeStep: Double
+   *    For thin time intervals this is previousTimeStep.
+   *    For non-thin time intervals without events this is double the width of  
+   *    [L,R] until that reaches parameters.maxTimeStep. Otherwise this is (R-L). 
    */
-  def stepAdaptive(leftEndPoint: Double, rightEndPoint: Double, prog: Prog, branches: List[InitialCondition])(implicit parameters: Parameters): (EnclosureAndBranches, Double, Double) = {
-    require(branches.nonEmpty, "stepAdaptive called with zero branches")
-    require(branches.size < parameters.maxBranches, s"Number of branches (${branches.size}) exceeds maximum (${parameters.maxBranches}).")
+  def stepAdaptive(leftEndPoint: Double, rightEndPoint: Double, previousTimeStep: Double, prog: Prog, branches: List[InitialCondition])(implicit parameters: Parameters): (EnclosureAndBranches, Double, Double) = {
+    require(branches.size > 0, "stepAdaptive called with zero branches")
+    require(branches.size <= parameters.maxBranches, s"Number of branches (${branches.size}) exceeds maximum (${parameters.maxBranches}).")
     Logger.debug(s"stepAdaptive (over ${ Interval(leftEndPoint, rightEndPoint) }, ${branches.size} branches)")
-    val (enclosuresNext, branchesNext, isFlow) = stepBranches(leftEndPoint, rightEndPoint, prog, branches) 
     val step = rightEndPoint - leftEndPoint
-    val twiceStep = 2 * step
-    if (isFlow)
-      (EnclosureAndBranches(enclosuresNext, branchesNext), rightEndPoint, if (twiceStep < parameters.maxTimeStep) twiceStep else step)
-    else { // possible event
-      val halfStep = step / 2
-      if (halfStep < parameters.minTimeStep) { // leftEndPoint is close enough to event time interval
-        val (eab, timeNext) = findRightEndPoint(parameters.minTimeStep, prog, leftEndPoint, branches)
-        (eab, timeNext, step)
+    if (leftEndPoint == rightEndPoint) // thin time interval
+      (hybridEncloser(Interval(leftEndPoint, rightEndPoint), prog, branches), rightEndPoint, previousTimeStep)
+    else if (step == parameters.minTimeStep && parameters.minTimeStep == parameters.maxTimeStep) // fixed step
+      (hybridEncloser(Interval(leftEndPoint, rightEndPoint), prog, branches), rightEndPoint, step)
+    else {
+      val (enclosuresNext, branchesNext, isFlow) = stepBranches(leftEndPoint, rightEndPoint, prog, branches) 
+      val twiceStep = 2 * step
+      if (isFlow)
+        (EnclosureAndBranches(enclosuresNext, branchesNext), rightEndPoint, if (twiceStep < parameters.maxTimeStep) twiceStep else step)
+      else { // possible event
+        val halfStep = step / 2
+        if (halfStep < parameters.minTimeStep) { // leftEndPoint is close enough to event time interval
+          val (eab, timeNext) = findRightEndPoint(parameters.minTimeStep, prog, leftEndPoint, branches)
+          (eab, timeNext, step)
+        }
+        else // get closer to event time interval by halving the step
+          stepAdaptive(leftEndPoint, leftEndPoint + halfStep, previousTimeStep, prog, branches)
       }
-      else // get closer to event time interval by halving the step
-        stepAdaptive(leftEndPoint, leftEndPoint + halfStep, prog, branches)
     }
   }
   
@@ -769,7 +776,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
    */
   def stepBranches(loT: Double, hiT: Double, prog: Prog, branches: List[InitialCondition])(implicit parameters: Parameters): (List[Enclosure], List[InitialCondition], Boolean) = {
     val (es, bs) = branches.map{ b =>
-      val eab = hybridEncloser(Interval(loT, hiT), prog, b)
+      val eab = hybridEncloser(Interval(loT, hiT), prog, b :: Nil)
       (eab.enclosure, eab.branches)
     }.unzip
     (es, bs.flatten.distinct, es.forall(active(_, prog).size == 1))
@@ -834,9 +841,10 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
    * new set of initial conditions (.branches part of the result) 
    * for the next time interval.
    */
-  def hybridEncloser(T: Interval, prog: Prog, branch: InitialCondition)(implicit parameters: Parameters): EnclosureAndBranches = {
-
- 
+  def hybridEncloser(T: Interval, prog: Prog, branches: List[InitialCondition])(implicit parameters: Parameters): EnclosureAndBranches = {
+    require(branches.nonEmpty, "hybridEncloser called with zero branches")
+    Logger.trace(s"hybridEncloser (over $T, ${branches.size} branch(es))")
+    
     // Process a list of ICs   
     @tailrec def enclose
       ( pwlW:  List[InitialCondition] // Waiting ICs, the statements that yielded them and time where they should be used
@@ -972,7 +980,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
         (InitialCondition(r, newQw, UnknownTime) :: Nil, InitialCondition(u, newQw, StartTime) :: Nil)
       }
     }
-    enclose(branch :: Nil, Nil, Nil, Nil, 0)
+    enclose(branches, Nil, Nil, Nil, 0)
   }
   
   /**
