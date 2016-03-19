@@ -499,7 +499,7 @@ initially
 // _ = create Cont2 ()
 // _ = create Cont2i0 () // interesting dynamics
 // _ = create Cont2i1 ()
-// _ = create Cont2i2_ () // Works w reorg but bubbly!
+// _ = create Cont2i2_ () // Works w reorg but bubbly!, endTime = 6
 // _ = create Cont2i2 ()
 // _ = create Cont2i3_ () // Works with re-reorg, OK
 // _ = create Cont2i3__ () // Works w r but a bit diff
@@ -523,12 +523,12 @@ initially
 // _ = create Hybrid1 () // Passes Zeno, diverges
 // _ = create Hybrid1_ () // Error computing enclosure
 
-// _ = create Hybrid2 () // BB+E converges
-// _ = create Hybrid2i1 () // IV1 error converges
-// _ = create Hybrid2i2 () // IV2 error converges
-// _ = create Hybrid2i3 () // "g" error converges
-// _ = create Hybrid2i4 () // "c" error converges
-_ = create Hybrid2i5 () // All error converges
+// _ = create Hybrid2 () // BB+E converges, endTime = 6
+// _ = create Hybrid2i1 () // IV1 error converges, endTime = 6
+// _ = create Hybrid2i2 () // IV2 error converges, endTime = 6
+// _ = create Hybrid2i3 () // "g" error converges, endTime = 6
+// _ = create Hybrid2i4 () // "c" error converges, endTime = 6
+//_ = create Hybrid2i5 () // All error converges, endTime = 6
 
 always
 // simulator.method+ = "Taylor" // For cont not disc
