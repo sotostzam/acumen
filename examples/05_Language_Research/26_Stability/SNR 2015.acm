@@ -1,0 +1,536 @@
+
+// "SNR 2015.acm"
+
+// This files contains the Acumen benchmark models 
+// presented in the SNR 2015 invited paper.
+
+// Note: The error re-org strategy
+// refered to in some examples was too new and so
+// was not considered as demonstrating convergence
+// in the behavior reported on in the paper.
+
+// Discrete, Continuous, and Hybrid
+
+model Disc0 () = 
+initially n = 0 always if n < 5 then n+ = n+1 noelse
+
+model Cont0 () = 
+initially t = 0, t' = 1 always t' = 1
+
+model Hybrid0 () = 
+initially t =0, t' = 1 always if t<1 then t' = 1 else t+ = 0
+
+// Something that requires attention
+
+model DiscHybrid0 () =
+initially t =0, t' = 0 always if t<5 then t+ = t+1 else t' = 0
+
+// Discrete systems
+
+model Disc1 () = // loop - factorial
+initially n = 5,
+          a = 1
+always if n > 0 then n+ = n-1, a+ = a*n noelse
+
+model Disc2 () = // loop - nested
+initially i = 1, i_max = 3,
+          j = 1, j_max = 4,
+          k = 1, k_max = 5,
+          a = 0
+always
+ if i<=i_max then
+   if j<=j_max then
+     if k<=k_max then
+       a+ = a+1, k+ = k+1
+     else (j+ = j+1, k+=1)
+   else (i+ = i+1, j+=1)
+ noelse
+
+model Disc3 () = // timed nested loop
+initially i = 1, i_max = 3,
+          j = 1, j_max = 4,
+          k = 1, k_max = 5,
+          a = 0, t = 0, t' = 1
+always
+ if t>0.1 then
+   t+ = 0,
+   if i<=i_max then
+     if j<=j_max then
+       if k<=k_max then
+         a+ = a+1, k+ = k+1
+       else (j+ = j+1, k+=1)
+     else (i+ = i+1, j+=1)
+   noelse
+ else t'= 1
+
+model Disc3i0 () = // timed nested loop with i
+initially i = 1, i_max = 3,
+          j = 1, j_max = 4,
+          k = 1, k_max = 5,
+          a = 0, t = 0, t' = 1
+always
+ if t>0.1 then
+   t+ = 0,
+   if i<=i_max then
+     if j<=j_max then
+       if k<=k_max then
+         a+ = a+1, k+ = k+1
+       else (j+ = j+1, k+=1)
+     else (i+ = i+1, j+=1)
+   noelse
+ else t'= [0.90 .. 1.0]
+
+model Disc3i1 () = // timed nested loop with i
+initially i = 1, i_max = 3,
+          j = 1, j_max = 4,
+          k = 1, k_max = 5,
+          a = 0, t = 0, t' = 1
+always
+ if t>[0.1 .. 0.11] then
+   t+ = 0,
+   if i<=i_max then
+     if j<=j_max then
+       if k<=k_max then
+         a+ = a+1, k+ = k+1
+       else (j+ = j+1, k+=1)
+     else (i+ = i+1, j+=1)
+   noelse
+ else t'= 1
+
+model Disc3i2 () = // timed nested loop with i
+initially i = 1, i_max = 3,
+          j = 1, j_max = 4,
+          k = 1, k_max = 5,
+          a = 0, t = 0, t' = 1
+always
+ if t>[0.1 .. 0.11] then
+   t+ = 0,
+   if i<=i_max then
+     if j<=j_max then
+       if k<=k_max then
+         a+ = a+1, k+ = k+1
+       else (j+ = j+1, k+=1)
+     else (i+ = i+1, j+=1)
+   noelse
+ else t'= [0.90 .. 1.0]
+
+model Disc4 () = // timed FIR filter
+initially x_0 = 10, x_1 = 0,
+          t = 0, t' = 1
+always
+ if t>0.1 then
+   t+ = 0,
+   x_1+ = x_0,
+   x_0+ = 0.33 * x_0 + 0.33 * x_1 + 0.3 * 5
+ else t'= 1
+
+model Disc4i0 () = // timed FIR filter with i rate
+initially x_0 = 10, x_1 = 0,
+          t = 0, t' = 1
+always
+ if t>0.1 then
+   t+ = 0,
+   x_1+ = x_0,
+   x_0+ = 0.33 * x_0 + 0.33 * x_1 + 0.3 * 5
+ else t'= [0.8 .. 1.2]
+
+model Disc4i1 () = // timed FIR filter with i step
+initially x_0 = 10, x_1 = 0,
+          t = 0, t' = 1
+always
+ if t>[0.09 .. 0.11] then
+   t+ = 0,
+   x_1+ = x_0,
+   x_0+ = 0.33 * x_0 + 0.33 * x_1 + 0.3 * 5
+ else t'= 1
+
+model Disc4i2 () = // timed FIR filter with i coeff
+initially x_0 = 10, x_1 = 0,
+          t = 0, t' = 1
+always
+ if t>0.1 then
+   t+ = 0,
+   x_1+ = x_0,
+   x_0+ = [0.33 .. 0.34] * x_0 + 
+          [0.33 .. 0.34] * x_1 + 
+          [0.33 .. 0.34] * 5
+ else t'= 1
+
+model Disc4i3 () = // timed FIR filter with i c & r
+initially x_0 = 10, x_1 = 0,
+          t = 0, t' = 1
+always
+ if t>0.1 then
+   t+ = 0,
+   x_1+ = x_0,
+   x_0+ = [0.33 .. 0.34] * x_0 + 
+          [0.33 .. 0.34] * x_1 + 
+          [0.33 .. 0.34] * 5
+ else t'= [0.8 .. 1.2]
+
+// The following example runs OK for some time but
+// then generates a "too many branches" error
+
+model Disc4i4 () = // timed FIR filter with i c, r, & s
+initially x_0 = 10, x_1 = 0,
+          t = 0, t' = 1
+always
+ if t>[0.09 .. 0.11] then
+   t+ = 0,
+   x_1+ = x_0,
+   x_0+ = [0.33 .. 0.34] * x_0 + 
+          [0.33 .. 0.34] * x_1 + 
+          [0.33 .. 0.34] * 5
+ else t'= [0.8 .. 1.2]
+
+model Disc4i5 () = // timed FIR filter with i all over
+initially x_0 = [0.0 .. 10.0], x_1 = [-10.0 .. 0],
+          t = 0, t' = 1
+always
+ if t>[0.09 .. 0.11] then
+   t+ = 0,
+   x_1+ = x_0,
+   x_0+ = [0.33 .. 0.34] * x_0 + 
+          [0.33 .. 0.34] * x_1 + 
+          [0.33 .. 0.34] * 5
+ else t'= [0.8 .. 1.2]
+
+// Intervals and stability
+
+model Cont0i0 () = 
+initially 
+ t =[0.0 .. 1.0], t' = 1 
+always 
+ t' = 1
+
+model Cont1 () = 
+initially 
+ x =0, x' = 1 
+always 
+ x' = 1-x
+
+model Cont1i0 () = 
+initially 
+ x =[-0.75 .. 0.75], x' = 1 
+always 
+ x' = 1-x
+
+model Cont1i1 () = 
+initially 
+ x =[-0.75 .. 0.75], x' = 1 
+always 
+ x' = 1 - [0.9 .. 1.1] * x
+
+model Cont1i2 () = 
+initially 
+ x =[-0.75 .. 0.75], x' = 1 
+always 
+ x' = [0.9 .. 1.1] - x
+
+// The following example is OK but should be tighter
+
+model Cont1i3 () = 
+initially 
+ x =[-0.75 .. 0.75], x' = 1
+always 
+ x' = [0.9 .. 1.1] - [0.9 .. 1.1] * x
+
+// Second order system continuous system with i
+model Cont2 () = 
+initially
+ x =0, x' = 0, x''=1
+always 
+ x'' = (1-x)-x'
+
+model Cont2i0 () = 
+initially 
+ x =[-0.5 .. 0.5], x' = 0, x''=1
+always 
+ x'' = (1-x)-x'
+
+model Cont2i1 () = 
+initially 
+ x =[-0.5 .. 0.5], x' = [-0.5 .. 0.5], x''=1
+always 
+ x'' = (1 - x)-x'
+
+// Examples that don't work very well
+
+model Cont2i2_ () = 
+initially 
+ x = 0, x' = 0, x''=1
+always 
+ x'' = ([0.90 .. 1.1] - x) - x'
+
+// The following one actually works
+
+model Cont2i2 () = 
+initially 
+ x = 0, x' = 0, x''=1,
+ a = [0.9 .. 1.1], a' = 0
+always
+ x'' = (a - x) - x', a'=0
+
+model Cont2i3_ () = 
+initially 
+ x =0, x' = 0, x''=1
+always 
+ x'' = [0.9 .. 1.1] *(1 - x) - x'
+
+// This does not seem to work either
+
+model Cont2i3__ () = 
+initially x =0, x' = 0, x''=1,
+          b = [0.9 .. 1.1], b'=0
+always x'' = b * (1 - x) - x', b'=0
+
+// And neither does this
+
+model Cont2i4_ () = 
+initially x =0, x' = 0, x''=1
+always x'' = (1 - x) - [0.90 .. 1.1] * x'
+
+// Nor this
+
+model Cont2i4__ () = 
+initially x =0, x' = 0, x''=1,
+          c = [0.90 .. 1.1], c' = 0
+always x'' = (1 - x) - c * x', c' = 0
+
+// Nonlinear system continuous system with i
+model Cont3 () = 
+initially 
+ x =0, x' = 0, x''=1
+always 
+ x'' = sin((pi/2-x))-x'
+
+// The above example should behave like the following
+// one near the equilibrium point
+
+model Cont3i1_x () = 
+initially x =[-0.25 .. 0.25], x' = 0, x''=1
+always
+  x'' = (pi/2-x)-x'
+ 
+// This also does not work with the basic solver
+
+model Cont3i1_ () = 
+initially x =[-0.25 .. 0.25], x' = 0, x''=1
+always
+  x'' = sin(pi/2-x)-x'
+
+// Back to non-linear system
+
+model Cont3i2_ () = 
+initially x =0, x' = [-0.05..0.05], x''=1
+always
+  x'' = sin(pi/2-x)-x'
+
+model Cont3i3_ () = 
+initially x =0, x' = 0, x''=1
+always
+  x'' = sin(pi/2-x)-[0.95..1.05]*x'
+
+model Cont3i4_ () = 
+initially x =0, x' = 0, x''=1
+always
+  x'' = [0.95..1.05]*sin(pi/2-x)-x'
+
+model Cont3i5_ () = 
+initially x =0, x' = 0, x''=1
+always
+  x'' = sin([-0.05..0.05]+pi/2-x)-x'
+
+model Cont3i6_ () = 
+initially x =0, x' = 0, x''=1
+always
+  x'' = sin(pi/2-[0.95..1.05]*x)-x'
+
+// Hybrid system - cont dynamics disc control
+
+// - for some reason this fails to compute an initial
+//   enclosure when the time step is 0.1
+
+model Hybrid0_ () = // Sampling
+initially x = 0, 
+          x' = 0,
+          i = 0, o = 1,
+          t = 0, t' = 1
+always
+  x' = o,
+  if t>0.5
+    then o+ = 1-x, t+ = 0
+  else t'=1
+
+// Here are a couple of variants that show something
+// curious
+
+model Hybrid0__ () = // Sampling and pass-through
+initially x = 0, 
+          x' = 1,
+          i = 0, o = 1,
+          t = 0, t' = 1
+always
+  x' = o,
+  if t>0.5
+    then o+ = 1-x, t+ = 0
+  else (t'=1, o=1-x)
+
+model Hybrid0___ () = // The continuous ODE
+initially x = 0, 
+          x' = 1,
+          i = 0, o = 1,
+          t = 0, t' = 1
+always
+  x' = o,
+  t'=1, o=1-x
+
+// - for some reason this fails to compute an initial
+//   enclosure when the time step is 0.1
+
+model Hybrid1_ () = 
+initially 
+  x = 10, x' = 0, x'' = -10
+always 
+  if x <= 0 && x' < 0 
+  then x'+ = -x'/2
+  else x'' = -10
+
+model Hybrid1 () = 
+initially 
+  x = 10, x' = 0, x'' = -10
+always 
+  claim x>=0,
+  if x <= 0 && x' < 0 
+  then x'+ = -x'/2
+  else x'' = -10
+
+model Hybrid2 () =
+initially
+  x = 10, x' = 0, x'' = -10,
+  e = 0*0/2 + 10*10
+always
+  claim x >= 0,
+  claim e == x'*x'/2 + 10*x,
+  if x <= 0 && x' < 0
+    then x'+ = -x'/2, e+ = [0 .. 0.25]*e
+    else x'' = -10
+
+model Hybrid2i1 () =
+initially
+  x = [9.5..10.5], x' = 0, x'' = -10,
+  e = 0*0/2 + 10*[9.5..10.5]
+always
+  claim x >= 0,
+  claim e == x'*x'/2 + 10*x,
+  if x <= 0 && x' < 0
+    then x'+ = -x'/2, e+ = [0 .. 0.25]*e
+    else x'' = -10
+
+model Hybrid2i2 () =
+initially
+  x = 10, x' = [-0.5..0.5], x'' = -10,
+  e = [0.0..0.5]*[0.0..0.5]/2 + 10*10
+always
+  claim x >= 0,
+  claim e == x'*x'/2 + 10*x,
+  if x <= 0 && x' < 0
+    then x'+ = -x'/2, e+ = [0 .. 0.25]*e
+    else x'' = -10
+
+model Hybrid2i3 () =
+initially
+  x = 10, x' = 0, x'' = -10,
+  e = 0*0/2 + [9.5..10.5]*10
+always
+  claim x >= 0,
+  claim e == x'*x'/2 + 10*x,
+  if x <= 0 && x' < 0
+    then x'+ = -x'/2, e+ = [0 .. 0.25]*e
+    else x'' = -[9.5..10.5]
+
+model Hybrid2i4 () =
+initially
+  x = 10, x' = 0, x'' = -10,
+  e = 0*0/2 + 10*10
+always
+  claim x >= 0,
+  claim e == x'*x'/2 + 10*x,
+  if x <= 0 && x' < 0
+    then x'+ = -x'/[1.9..2.1], e+ = [0 .. 0.28]*e
+    else x'' = -10
+
+model Hybrid2i5 () =
+initially
+  x = [9.5..10.5], x' = [-0.5..0.5], x'' = -10,
+  e = [0.0..0.5]*[0.0..0.5]/2 + [9.5..10.5]*[9.5..10.5]
+always
+  claim x >= 0,
+  claim e == x'*x'/2 + [9.5..10.5]*x,
+  if x <= 0 && x' < 0
+    then x'+ = -x'/[1.9..2.1], e+ = [0 .. 0.28]*e
+    else x'' = -[9.5..10.5]
+    
+model Main(simulator)=
+initially
+// _ = create Disc0 ()
+// _ = create Cont0 ()
+// _ = create Hybrid0 ()
+// _ = create DiscHybrid0 ()
+// _ = create Disc1 ()
+// _ = create Disc2 ()
+// _ = create Disc3 ()
+// _ = create Disc3i0 ()
+// _ = create Disc3i1 ()
+// _ = create Disc3i2 ()
+//_ = create Disc4 () // Conv. But runaway clock bound
+// _ = create Disc4i0 ()
+// _ = create Disc4i1 ()
+// _ = create Disc4i2 ()
+// _ = create Disc4i3 ()
+// _ = create Disc4i4 ()
+// _ = create Disc4i5 () 
+// _ = create Cont0i0 ()
+// _ = create Cont1 ()
+// _ = create Cont1i0 ()
+// _ = create Cont1i1 ()
+// _ = create Cont1i2 ()
+// _ = create Cont1i3 ()
+// _ = create Cont2 ()
+// _ = create Cont2i0 () // interesting dynamics
+// _ = create Cont2i1 ()
+// _ = create Cont2i2_ () // Works w reorg but bubbly!
+// _ = create Cont2i2 ()
+// _ = create Cont2i3_ () // Works with re-reorg, OK
+// _ = create Cont2i3__ () // Works w r but a bit diff
+// _ = create Cont2i4_ () // Works with re-reorg!
+// _ = create Cont2i4__ () // Maybe works w re-reorg
+// _ = create Cont3 ()
+// _ = create Cont3i1_x () // - similar linear system
+// _ = create Cont3i1_ () // Works w r
+// _ = create Cont3i2_ () // Works w r
+// _ = create Cont3i3_ () // Works w r, a bit bubbly
+// _ = create Cont3i4_ () // Works with w r
+// _ = create Cont3i5_ () // Works w r, but bubbly
+// _ = create Cont3i6_ () // Diverges w r
+
+// For internal discussion:
+
+// _ = create Hybrid0_ () // Just sampling causes diverge
+// _ = create Hybrid0__ () // Seems to converge
+// _ = create Hybrid0___ () // The ODE
+
+// _ = create Hybrid1 () // Passes Zeno, diverges
+// _ = create Hybrid1_ () // Error computing enclosure
+
+// _ = create Hybrid2 () // BB+E converges
+// _ = create Hybrid2i1 () // IV1 error converges
+// _ = create Hybrid2i2 () // IV2 error converges
+// _ = create Hybrid2i3 () // "g" error converges
+// _ = create Hybrid2i4 () // "c" error converges
+_ = create Hybrid2i5 () // All error converges
+
+always
+// simulator.method+ = "Taylor" // For cont not disc
+// simulator.endTime+ = 30
+// simulator.orderOfIntegration+ = 10
