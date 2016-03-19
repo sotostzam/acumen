@@ -46,7 +46,7 @@ object Common {
                        , minTimeStep                   : Double                 =  0.015625
                        , maxTimeStep                   : Double                 =  0.015625
                        , dynSetType                    : String                 = DynSetCuboid 
-                       , reorganization                : (String, List[Double]) = (ReorganizationErrorExceedsWidth, List(1))
+                       , reorganization                : (String, List[Double]) = ("Off", Nil)
                        , method                        : String                 = Taylor
                        , orderOfIntegration            : Int                    = 4 
                        , maxPicardIterations           : Int                    = 1000 
@@ -109,9 +109,16 @@ object Common {
       val           maxTimeStep                      = extractDouble(getInSimulator(Names.maxTimeStep, st))
       val VLit(GStr (dynSetType))                    = getInSimulator(Names.dynSetType, st)
       val           reorganization                   = getInSimulator(Names.reorganization, st) match {
-        case VLit(GStr(reorgName))                         => (reorgName, Nil)
-        case VLit(GPattern(List(GStr(reorgName), gv)))     => (reorgName, List(extractDouble(gv)))
-        case VVector(VLit(GStr(reorgName)) :: reorgParams) => (reorgName, reorgParams map extractDouble)
+        case VLit(GStr(reorgName)) => 
+          (reorgName, Nil)
+        case VLit(GPattern(GStr(reorgName) :: reorgParams)) =>
+          (reorgName, reorgParams map extractDouble)
+        case VVector(VLit(GStr(reorgName)) :: reorgParams) =>
+          (reorgName, reorgParams map extractDouble)
+        case VVector(VLit(reorgName:GStrEnclosure) :: reorgParams) if reorgName.isThin =>
+          (reorgName.range.head, reorgParams map extractDouble)
+        case ro =>
+          throw new InvalidReorganization(Pretty pprint ro)
       }
       val VLit(GStr (method))                        = getInSimulator(Names.method, st)
       val            orderOfIntegration              = extractInt(getInSimulator(Names.orderOfIntegration, st))
