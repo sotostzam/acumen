@@ -50,7 +50,7 @@ object Common {
                        , method                        : String                 = Taylor
                        , orderOfIntegration            : Int                    = 4 
                        , maxPicardIterations           : Int                    = 1000 
-                       , maxBranches                   : Int                    = 100 
+                       , maxBranches                   : Int                    = 500 
                        , maxIterationsPerBranch        : Int                    = 1000 
                        , mergeBranches                 : List[String]           = List("Evolution") 
                        , intersectWithGuardBeforeReset : Boolean                = true 
