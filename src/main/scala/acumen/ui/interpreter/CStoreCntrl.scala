@@ -116,10 +116,10 @@ class CStoreCntrl(val semantics: SemanticsImpl[Interpreter], val interpreter: CS
         case _             => /* fixme: throw error */
       }
       acumen.util.Canonical.getInSimulator(Name("hypothesisReport",0), cstore) match {
-        case VLit(GStr("Ignore"))            => md = NoMetadata(Some(HypothesisResultFilter.Ignore)) combine md
-        case VLit(GStr("Comprehensive"))     => md = NoMetadata(Some(HypothesisResultFilter.Comprehensive)) combine md
-        case VLit(GStr("IgnoreInitialOnly")) => md = NoMetadata(Some(HypothesisResultFilter.IgnoreInitialOnly)) combine md
-        case VLit(GStr("MostSignificant"))   => md = NoMetadata(Some(HypothesisResultFilter.MostSignificant)) combine md
+        case VLit(GStr("Ignore"))            => md = NoMetadata(Some(HypothesisResultFilter.Ignore), None) combine md
+        case VLit(GStr("Comprehensive"))     => md = NoMetadata(Some(HypothesisResultFilter.Comprehensive), None) combine md
+        case VLit(GStr("IgnoreInitialOnly")) => md = NoMetadata(Some(HypothesisResultFilter.IgnoreInitialOnly), None) combine md
+        case VLit(GStr("MostSignificant"))   => md = NoMetadata(Some(HypothesisResultFilter.MostSignificant), None) combine md
         case _                               => /* fixme: throw error */
       }
       loopWhile(!adder.done) {

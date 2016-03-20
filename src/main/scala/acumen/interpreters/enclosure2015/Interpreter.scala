@@ -73,7 +73,14 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
   case object StartTime extends InitialConditionTime
   case object UnknownTime extends InitialConditionTime
   case class InitialCondition(enclosure: Enclosure, evolution: Evolution, time: InitialConditionTime)
-  class EnclosureAndBranches(val enclosure: Enclosure, val branches: List[InitialCondition])
+  class EnclosureAndBranches(val enclosure: Enclosure, val branches: List[InitialCondition]) {
+    def contains(that: EnclosureAndBranches): Boolean = contains(that, false)
+    def contains(that: EnclosureAndBranches, ignoreTimeDomain: Boolean): Boolean =
+      that.branches.forall(bThat => 
+        this.branches.exists(bThis => 
+          bThis.time == bThat.time && 
+          bThis.enclosure.contains(bThat.enclosure, Set.empty, ignoreTimeDomain)))
+  }
   object EnclosureAndBranches{
     def apply(e: Enclosure, bs: List[InitialCondition]): EnclosureAndBranches = 
       new EnclosureAndBranches(e.countVariables, bs) 
@@ -653,9 +660,25 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
       val st2 = setResultType(resType, st1)
       val st3 = setTime(tNextAdapted, st2)
       val st4 = setTimeStep(tStepNext, st3)
-      Data(st4, md1)
+      val md2 = testForFixpoint(st, st4, md1) 
+      Data(st4, md2)
     }
   }
+
+  def testForFixpoint(oldStore: EnclosureAndBranches, newStore: EnclosureAndBranches, md: Metadata): Metadata =
+    if (oldStore.enclosure.getTime != newStore.enclosure.getTime)
+      md match {
+        case nmd @ NoMetadata(_, None) if oldStore.contains(newStore, true) =>
+          val fixpointInterval = Interval(newStore.enclosure.getTime, newStore.enclosure.getTime + newStore.enclosure.getTimeStep)
+          Logger.log("Found obvious fixed point at time " + fixpointInterval)
+          nmd.copy(firstFixpoint = Some(fixpointInterval))
+        case smd @ SomeMetadata(_, _, _, _, None, _) if oldStore.contains(newStore, true) =>
+          val fixpointInterval = Interval(newStore.enclosure.getTime, newStore.enclosure.getTime + newStore.enclosure.getTimeStep)
+          Logger.log("Found obvious fixed point at time " + fixpointInterval)
+          smd.copy(firstFixpoint = Some(fixpointInterval))
+        case _ => md
+      }
+    else md
   
   /** Apply zero or more strategies for merging the branches */
   def mergeBranchList(branches: List[InitialCondition])(implicit parameters: Parameters): List[InitialCondition] =
@@ -830,7 +853,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
             case (VLit(CertainFalse), Initial) => (Some(CertainFailure(timeDomainLo, timeDomainHi, counterEx)), Some(TestSuccess), CertainFailure(timeDomainLo, timeDomainHi, counterEx))
             case (VLit(CertainFalse),       _) => (Some(CertainSuccess), Some(TestSuccess), CertainFailure(timeDomainLo, timeDomainHi, counterEx))
           })
-      }).toMap, timeDomainLo, timeDomainHi, true, None)
+      }).toMap, timeDomainLo, timeDomainHi, true, None, None)
     old combine active(enc, p).map(c => testHypothesesOneChangeset(c.hyps))
                               .reduce[Metadata](_ combine _)
   }
