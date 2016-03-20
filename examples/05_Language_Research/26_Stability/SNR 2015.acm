@@ -5,11 +5,11 @@
 // presented in the SNR 2015 invited paper.
 
 // Note: The error re-org strategy
-// refered to in some examples was too new and so
+// referred to in some examples was too new and so
 // was not considered as demonstrating convergence
 // in the behavior reported on in the paper.
 
-// Discrete, Continuous, and Hybrid
+// Basic examples of Discrete, Continuous, and Hybrid
 
 model Disc0 () = 
 initially n = 0 always if n < 5 then n+ = n+1 noelse
@@ -168,9 +168,6 @@ always
           [0.33 .. 0.34] * 5
  else t'= [0.8 .. 1.2]
 
-// The following example runs OK for some time but
-// then generates a "too many branches" error
-
 model Disc4i4 () = // timed FIR filter with i c, r, & s
 initially x_0 = 10, x_1 = 0,
           t = 0, t' = 1
@@ -195,7 +192,7 @@ always
           [0.33 .. 0.34] * 5
  else t'= [0.8 .. 1.2]
 
-// Intervals and stability
+// Continuous examples with uncertainty
 
 model Cont0i0 () = 
 initially 
@@ -227,8 +224,6 @@ initially
 always 
  x' = [0.9 .. 1.1] - x
 
-// The following example is OK but should be tighter
-
 model Cont1i3 () = 
 initially 
  x =[-0.75 .. 0.75], x' = 1
@@ -236,6 +231,7 @@ always
  x' = [0.9 .. 1.1] - [0.9 .. 1.1] * x
 
 // Second order system continuous system with i
+
 model Cont2 () = 
 initially
  x =0, x' = 0, x''=1
@@ -254,7 +250,7 @@ initially
 always 
  x'' = (1 - x)-x'
 
-// Examples that don't work very well
+// An example that does not work very well
 
 model Cont2i2_ () = 
 initially 
@@ -298,6 +294,7 @@ initially x =0, x' = 0, x''=1,
 always x'' = (1 - x) - c * x', c' = 0
 
 // Nonlinear system continuous system with i
+
 model Cont3 () = 
 initially 
  x =0, x' = 0, x''=1
@@ -319,7 +316,7 @@ initially x =[-0.25 .. 0.25], x' = 0, x''=1
 always
   x'' = sin(pi/2-x)-x'
 
-// Back to non-linear system
+// Back to non-linear systems
 
 model Cont3i2_ () = 
 initially x =0, x' = [-0.05..0.05], x''=1
@@ -348,24 +345,17 @@ always
 
 // Hybrid system - cont dynamics disc control
 
-// - for some reason this fails to compute an initial
-//   enclosure when the time step is 0.1
-
-model Hybrid0_ () = // Sampling
-initially x = 0, 
-          x' = 0,
-          i = 0, o = 1,
-          t = 0, t' = 1
+model Cont4 () = // Variant of Cont1
+initially 
+  x = 0, x' = 1, o = 1,
+  t = 0, t' = 1
 always
-  x' = o,
-  if t>0.5
-    then o+ = 1-x, t+ = 0
-  else t'=1
+  x' = o, t' = 1, o = 1 - x
 
 // Here are a couple of variants that show something
 // curious
 
-model Hybrid0__ () = // Sampling and pass-through
+model Cont4h_ () = // Sampling and pass-through
 initially x = 0, 
           x' = 1,
           i = 0, o = 1,
@@ -376,25 +366,21 @@ always
     then o+ = 1-x, t+ = 0
   else (t'=1, o=1-x)
 
-model Hybrid0___ () = // The continuous ODE
+// - for some reason this fails to compute an initial
+//   enclosure when the time step is 0.1
+
+model Cont4hd_ () = // Sampling
 initially x = 0, 
-          x' = 1,
+          x' = 0,
           i = 0, o = 1,
           t = 0, t' = 1
 always
   x' = o,
-  t'=1, o=1-x
+  if t>0.5
+    then o+ = 1-x, t+ = 0
+  else t'=1
 
-// - for some reason this fails to compute an initial
-//   enclosure when the time step is 0.1
-
-model Hybrid1_ () = 
-initially 
-  x = 10, x' = 0, x'' = -10
-always 
-  if x <= 0 && x' < 0 
-  then x'+ = -x'/2
-  else x'' = -10
+// Hybrid systems
 
 model Hybrid1 () = 
 initially 
@@ -483,7 +469,7 @@ initially
 // _ = create Disc3i0 ()
 // _ = create Disc3i1 ()
 // _ = create Disc3i2 ()
-//_ = create Disc4 () // Conv. But runaway clock bound
+// _ = create Disc4 () // Conv. But runaway clock bound
 // _ = create Disc4i0 ()
 // _ = create Disc4i1 ()
 // _ = create Disc4i2 ()
@@ -495,11 +481,11 @@ initially
 // _ = create Cont1i0 ()
 // _ = create Cont1i1 ()
 // _ = create Cont1i2 ()
-// _ = create Cont1i3 ()
+// _ = create Cont1i3 () // Could be tighter
 // _ = create Cont2 ()
-// _ = create Cont2i0 () // interesting dynamics
+// _ = create Cont2i0 () // Interesting dynamics
 // _ = create Cont2i1 ()
-// _ = create Cont2i2_ () // Works w reorg but bubbly!, endTime = 6
+// _ = create Cont2i2_ () // Works w reorg but bubbly!
 // _ = create Cont2i2 ()
 // _ = create Cont2i3_ () // Works with re-reorg, OK
 // _ = create Cont2i3__ () // Works w r but a bit diff
@@ -514,23 +500,20 @@ initially
 // _ = create Cont3i5_ () // Works w r, but bubbly
 // _ = create Cont3i6_ () // Diverges w r
 
-// For internal discussion:
-
-// _ = create Hybrid0_ () // Just sampling causes diverge
-// _ = create Hybrid0__ () // Seems to converge
-// _ = create Hybrid0___ () // The ODE
+// _ = create Cont4 () // Variant on Cont1
+// _ = create Cont4h_ () // Converges
+// _ = create Cont4hd_ () // Diverges
 
 // _ = create Hybrid1 () // Passes Zeno, diverges
-// _ = create Hybrid1_ () // Error computing enclosure
 
-// _ = create Hybrid2 () // BB+E converges, endTime = 6
-// _ = create Hybrid2i1 () // IV1 error converges, endTime = 6
-// _ = create Hybrid2i2 () // IV2 error converges, endTime = 6
-// _ = create Hybrid2i3 () // "g" error converges, endTime = 6
-// _ = create Hybrid2i4 () // "c" error converges, endTime = 6
-//_ = create Hybrid2i5 () // All error converges, endTime = 6
+// _ = create Hybrid2 () // BB+E converges
+// _ = create Hybrid2i1 () // IV1 error converges
+// _ = create Hybrid2i2 () // IV2 error converges
+// _ = create Hybrid2i3 () // "g" error converges
+// _ = create Hybrid2i4 () // "c" error converges
+// _ = create Hybrid2i5 () // All error converges
 
 always
-// simulator.method+ = "Taylor" // For cont not disc
+// Some useful options for exploring further:
+//
 // simulator.endTime+ = 30
-// simulator.orderOfIntegration+ = 10
