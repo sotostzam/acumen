@@ -1,5 +1,7 @@
 package acumen
 
+import acumen.interpreters.enclosure.Interval
+
 case object HypothesisResultFilter extends Enumeration {
   type HypothesisResultFilter = Value
   val Ignore, Comprehensive, IgnoreInitialOnly, MostSignificant = Value
@@ -7,21 +9,26 @@ case object HypothesisResultFilter extends Enumeration {
 import HypothesisResultFilter._
 
 /** Used to store information about the Store. */
-abstract class Metadata(f: Option[HypothesisResultFilter] /* Optional filtering parameter */
-  ) {
+abstract class Metadata( f: Option[HypothesisResultFilter] /* Optional filtering parameter */
+                       , firstFixpoint: Option[Interval] 
+                       ) {
   def combine(that: Metadata): Metadata
   final def reportAsString = StringHypothesisOutcomeSummary.makeReport(this)
 }
-case object NoMetadata extends Metadata(None) {
+case object NoMetadata extends Metadata(None, None) {
   def combine(that: Metadata): Metadata = that
 }
-case class NoMetadata(f: Option[HypothesisResultFilter]) extends Metadata(f) {
+case class NoMetadata( f: Option[HypothesisResultFilter]
+                     , firstFixpoint: Option[Interval]
+                     ) extends Metadata(f, firstFixpoint) {
   /* As this class contains no data, 
    * only the filtering should be preserved */
   def combine(that: Metadata): Metadata = that match {
     case NoMetadata      => this
-    case n: NoMetadata   => n.copy(f = if (f isDefined) f else n.f)
-    case s: SomeMetadata => s.copy(f = if (f isDefined) f else s.f)
+    case n: NoMetadata   => n.copy( f = if (f isDefined) f else n.f
+                                  , firstFixpoint = if (firstFixpoint.isDefined) firstFixpoint else n.firstFixpoint )
+    case s: SomeMetadata => s.copy( f = if (f isDefined) f else s.f
+                                  , firstFixpoint = if (firstFixpoint.isDefined) firstFixpoint else s.firstFixpoint )
   }
 }
 case class SomeMetadata 
@@ -32,14 +39,16 @@ case class SomeMetadata
   , timeDomainLo: Double
   , timeDomainHi: Double
   , rigorous: Boolean /* Does this describe output of a rigorous interpreter? */
+  , firstFixpoint: Option[Interval]
   , f: Option[HypothesisResultFilter] = None
-  ) extends Metadata(f) {
+  ) extends Metadata(f, firstFixpoint) {
   /** Combines two Metadata, giving priority to the first */
   def combine(that: Metadata): Metadata = {
     that match {
       case NoMetadata => this
-      case NoMetadata(ff) => this.copy(f = if (f isDefined) f else ff)
-      case SomeMetadata(th,ttLo,ttHi,rr,ff) =>
+      case NoMetadata(tf, tff) => this.copy( f = if (f isDefined) f else tf
+                                           , firstFixpoint = if (firstFixpoint.isDefined) firstFixpoint else tff )
+      case SomeMetadata(th,ttLo,ttHi,tr,tff,tf) =>
         require( timeDomainLo <= ttHi && ttLo <= timeDomainHi  
                , "Can not combine SomeMetadata with non-overlapping time domains.")
         SomeMetadata(
@@ -52,21 +61,24 @@ case class SomeMetadata
               case _                        => false }
             ((this.hyp get k, th get k): @unchecked) match {
               case (Some(o @ (i, m, s)), None) =>
-                if (thisIsMomentary(s, timeDomainHi, ttHi) && !rr)
+                if (thisIsMomentary(s, timeDomainHi, ttHi) && !tr)
                   (i, Some(s pick m), TestSuccess) // (!)
                 else
                   o
               case (None, Some(o)) => o
               case (Some((Some(li), Some(lm), ls))
                    ,Some((Some(ri), Some(rm), rs))) =>
-                if (thisIsMomentary(ls, timeDomainHi, ttHi) && !rr && !rigorous) 
+                if (thisIsMomentary(ls, timeDomainHi, ttHi) && !tr && !rigorous) 
                   (Some(li pick ri), Some(lm pick ls pick rm), rs) // (!)
                                                // ^^ this has priority over the new element rm so it gets picked first
                 else
                   (Some(li pick ri), Some(lm pick rm), ls pick rs)
           }}).toMap
         , Math.min(timeDomainLo, ttLo), Math.max(timeDomainHi, ttHi)
-        , rr && rigorous, if (f isDefined) f else ff)
+        , tr && rigorous
+        , firstFixpoint = if (firstFixpoint.isDefined) firstFixpoint else tff
+        , if (f isDefined) f else tf
+        )
     } 
   }
 }

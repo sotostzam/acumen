@@ -372,12 +372,14 @@ object Common {
     /** Update e with respect to u. */
     def update(u: Map[(CId, Name), CValue]): Enclosure =
       u.foldLeft(this: Enclosure) { case (res, ((id, n), v)) => res.setObjectField(id, n, v) }
+    def contains(that: Enclosure, ignoredFields: Set[(CId,Name)]): Boolean =
+      contains(that, ignoredFields, false)
     /** Field-wise containment that omits fields identified by "ignoredFields".
      *  Fields in the Simulator object other than time and timeStep are ignored. */
-    def contains(that: Enclosure, ignoredFields: Set[(CId,Name)]): Boolean = { // TODO Update for dynamic objects
+    def contains(that: Enclosure, ignoredFields: Set[(CId,Name)], ignoreTimeDomain: Boolean): Boolean = { // TODO Update for dynamic objects
       def containsCObject(lo: CObject, ro: CObject, id: CId): Boolean =
         if (classOf(lo) == cmagic && classOf(ro) == cmagic){
-          if (lo(time) == ro(time) && lo(timeStep) == ro(timeStep))
+          if (ignoreTimeDomain || (lo(time) == ro(time) && lo(timeStep) == ro(timeStep)))
             true
           else 
             throw internalError("Attempt to check containment of enclosures with incompatoble time domains: " +
