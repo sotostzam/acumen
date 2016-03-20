@@ -704,7 +704,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
       val (enclosuresNext, branchesNext, isFlow) = stepBranches(leftEndPoint, rightEndPoint, prog, branches) 
       val twiceStep = 2 * step
       if (isFlow)
-        (EnclosureAndBranches(enclosuresNext, branchesNext), rightEndPoint, if (twiceStep < parameters.maxTimeStep) twiceStep else step)
+        (EnclosureAndBranches(enclosuresNext, branchesNext), rightEndPoint, Math.min(twiceStep, parameters.maxTimeStep))
       else { // possible event
         val halfStep = step / 2
         if (halfStep < parameters.minTimeStep) { // leftEndPoint is close enough to event time interval
