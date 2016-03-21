@@ -2,6 +2,7 @@ package acumen
 package util
 
 import Canonical._
+import Pretty._
 import interpreters.enclosure2015.Common._
 
 object DebugUtil {
@@ -26,18 +27,27 @@ object DebugUtil {
       
   def printRealVector(title: String, rv: RealVector) =
     println((if (title != "") title + ": " else "") +
-      (Pretty prettyRealVector rv))
+      prettyRealVector(rv))
 
   def printStore(title: String, st: CStore) =
     println((if (title != "") title + ": " else "") +
-      (Pretty pprint (Pretty prettyStore st)))
+      pprint(Pretty prettyStore st))
 
   def printRealMatrix(title: String, m: RealMatrix, indexToName: Int => (CId, Name)) =
     println((if (title != "") title + ": " else "") +
-      (Pretty.prettyRealMatrix(m, indexToName(_).toString)))
+      prettyRealMatrix(m, indexToName(_).toString))
 
   def printRealMatrix(title: String, m: RealMatrix) =
     println((if (title != "") title + ": " else "") +
-      (Pretty.prettyRealMatrix(m, _.toString)))
+      prettyRealMatrix(m, _.toString))
 
+  def printStateOf(names: List[Name], st: CStore) =
+    names.foreach { n =>
+      st.foreach { case (_, co) =>
+        co.foreach{ case (n1, v) =>
+            if (n1 == n) println(pprint(n) + ": " + pprint(v))
+        }
+      }
+    }
+      
 }
