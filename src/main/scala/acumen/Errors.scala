@@ -1,5 +1,6 @@
 package acumen
 import Pretty._
+import interpreters.enclosure2015.Common._
 import scala.util.parsing.input.{Position,Positional,NoPosition,OffsetPosition}
 
 object Errors {
@@ -92,13 +93,20 @@ object Errors {
     override def mesg = 
       op + " is not a valid vector-scalar operation."
   }
+  case class InvalidDynSet(r:String) extends PositionalAcumenError {
+    override def mesg = 
+      "\"" + r + "\" is not a valid dynamical set type. " + 
+        s"Use one of: ${allDynSets.productIterator.map("\"" + _ + "\"").mkString(", ")}."
+  }
   case class InvalidReorganization(r:String) extends PositionalAcumenError {
     override def mesg = 
-      r + " is not a valid reorganization."
+      "\"" + r + "\" is not a valid reorganization. " + 
+        s"Use one of: ${allReorganizations.productIterator.map("\"" + _ + "\"").mkString(", ")}."
   }
   case class InvalidBranchMergingStrategy(r:String) extends PositionalAcumenError {
     override def mesg = 
-        r + " is not a valid branch merging strategy."
+      "\"" + r + "\" is not a valid branch merging strategy. " + 
+        s"Use one of: ${allBranchMergingStrategies.productIterator.map("\"" + _ + "\"").mkString(", ")}."
   }
   case class ConstructorArity(cd:ClassDef,got:Int) extends PositionalAcumenError {
     override def mesg = {

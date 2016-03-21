@@ -25,16 +25,19 @@ object Common {
   
   val DynSetCuboid      = "Cuboid"
   val DynSetIntervalBox = "IntervalBox"
+  val allDynSets = (DynSetCuboid, DynSetIntervalBox)
   
   /* DynSet Reorganization strategies */
     
   val ReorganizationOff               = "Off"
   val ReorganizationErrorExceedsWidth = "ErrorExceedsWidth"
+  val allReorganizations = (ReorganizationOff, ReorganizationErrorExceedsWidth)
 
   /* Branch Merging strategies */
     
   val BranchMergingOff       = "Off"
   val BranchMergingEvolution = "Evolution"
+  val allBranchMergingStrategies = (BranchMergingOff, BranchMergingEvolution)
   
   /** Parameter carrier
    *  Note: Defaults are set here.  

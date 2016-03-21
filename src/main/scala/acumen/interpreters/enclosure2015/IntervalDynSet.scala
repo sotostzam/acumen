@@ -219,7 +219,11 @@ object Cuboid {
     parameters.reorganization match {
       case (`ReorganizationOff`, Nil) =>
         default
-      case (`ReorganizationErrorExceedsWidth`, List(factor)) =>
+      case (`ReorganizationErrorExceedsWidth`, maybeFactor) =>
+        val factor = maybeFactor match {
+          case factor :: _ => factor
+          case Nil         => 1 // default factor 
+        }
         if (imageError.maxWidth > factor * imageWidth.maxWidth) {
           val newWidth                : RealVector = imageError + imageLinearTransform * imageWidth 
           val newLinearTransform      : RealMatrix = breeze.linalg.DenseMatrix.eye[CValue](size)
