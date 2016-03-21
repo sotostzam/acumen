@@ -73,13 +73,17 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
   case object StartTime extends InitialConditionTime
   case object UnknownTime extends InitialConditionTime
   case class InitialCondition(enclosure: Enclosure, evolution: Evolution, time: InitialConditionTime)
+  object InitialCondition {
+    def coverIndividually(l: List[InitialCondition], r: List[InitialCondition], ignoreTimeDomain: Boolean): Boolean =
+     r.forall(br => 
+        l.exists(bl => 
+          (ignoreTimeDomain || bl.time == br.time) && 
+            bl.enclosure.contains(br.enclosure, Set.empty, ignoreTimeDomain)))
+  }
   class EnclosureAndBranches(val enclosure: Enclosure, val branches: List[InitialCondition]) {
     def contains(that: EnclosureAndBranches): Boolean = contains(that, false)
     def contains(that: EnclosureAndBranches, ignoreTimeDomain: Boolean): Boolean =
-      that.branches.forall(bThat => 
-        this.branches.exists(bThis => 
-          bThis.time == bThat.time && 
-          bThis.enclosure.contains(bThat.enclosure, Set.empty, ignoreTimeDomain)))
+      InitialCondition.coverIndividually(this.branches, that.branches, ignoreTimeDomain)
   }
   object EnclosureAndBranches{
     def apply(e: Enclosure, bs: List[InitialCondition]): EnclosureAndBranches = 
