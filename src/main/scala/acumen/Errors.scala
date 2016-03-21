@@ -108,6 +108,11 @@ object Errors {
       "\"" + r + "\" is not a valid branch merging strategy. " + 
         s"Use one of: ${allBranchMergingStrategies.productIterator.map("\"" + _ + "\"").mkString(", ")}."
   }
+  case class InvalidTimeStepConfiguration(r: List[String]) extends PositionalAcumenError {
+    override def mesg =
+      "Invalid time step configuration: " + r.mkString(", ") + ". " +
+      "Either set only timeStep (to use a fixed step) or both minTimeStep and maxTimeStep but not timeStep (to use adaptive step)."
+  }
   case class ConstructorArity(cd:ClassDef,got:Int) extends PositionalAcumenError {
     override def mesg = {
       val cn = cd.name

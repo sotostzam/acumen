@@ -104,7 +104,23 @@ object Common {
          )
     }
     
-    def apply(st: CStore): Parameters = {
+    /** Load parameter values from st. 
+     *  The Prog p is used the check if a simulator parameter in st was set by the user. */
+    def apply(st: CStore, p: Option[Prog]): Parameters = {
+      
+      val paramsSetByUser: List[String] = if (p.isEmpty) Nil else p.get.defs.flatMap {
+        case ClassDef(`cmain`, _, _, body) => body.flatMap {
+          case Discretely(Assign(Dot(Dot(Var(`self`), `magicf`), Name(paramName, 0)), _)) =>
+            List(paramName)
+          case _ => Nil /* FIXME Also look for parameters inside nested actions */ }
+        case _ => Nil }
+
+      /* Force user to either only set timeStep (to use fixed stepping) 
+       * or only set both maxTimeStep and minTimeStep (to use adaptive stepping) */
+      if ((paramsSetByUser contains Names.timeStep) &&
+          ((paramsSetByUser contains Names.minTimeStep) || (paramsSetByUser contains Names.maxTimeStep)))
+        throw new InvalidTimeStepConfiguration(paramsSetByUser.filter(_.toLowerCase.contains("timestep")))
+      
       val           time                             = extractDouble(getInSimulator(Names.time, st))
       val           endTime                          = extractDouble(getInSimulator(Names.endTime, st))
       val           timeStep                         = extractDouble(getInSimulator(Names.timeStep, st))

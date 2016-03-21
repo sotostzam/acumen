@@ -258,7 +258,7 @@ case class LohnerBase
   /* SolverBase interface */
   type E = DynSetEnclosure
   def initializeEnclosure(st: CStore) = {
-    implicit val parameters = Parameters(st)
+    implicit val parameters = Parameters(st, None)
     DynSetEnclosure(st)
   }
   def solver = LohnerEnclosureSolver 

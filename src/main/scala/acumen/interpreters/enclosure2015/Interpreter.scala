@@ -647,7 +647,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
     xs.foldLeft(st)((stTmp, a: (CId, Dot, CValue)) => stTmp.setObjectField(a._1, a._2.field, a._3))
 
   def step(p: Prog, st: Store, md: Metadata): StepRes = {
-    implicit val parameters = Common.Parameters(st.enclosure.cStore)
+    implicit val parameters = Common.Parameters(st.enclosure.cStore, Some(p))
     if (st.enclosure.getTime >= st.enclosure.getEndTime && st.enclosure.getResultType == FixedPoint) {
       Done(md, st.enclosure.getEndTime)
     }
