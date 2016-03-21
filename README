@@ -1,3 +1,17 @@
+ACUMEN 2016_03_21 RELEASE NOTES
+-------------------------------
+
+Major changes since the 2015_11_01 release:
+
+- Improvements to the 2015 Enclosure semantics
+  - New integrator based on Taylor series integration and Lohner’s 
+    method, with better accuracy on non-linear systems.
+  - Adaptive time stepping with event localisation. Enabled by 
+    setting simulator.minTimeStep to a small value such as 1/2^30.
+
+- New transparency parameter for 3D object
+- New coordinates parameter for keeping 3D object from manual rotation
+
 ACUMEN 2015_11_01 RELEASE NOTES
 -------------------------------
 
