@@ -36,7 +36,7 @@ class ThreeDData extends Publisher {
   var _3DText = ""
   /* Optional field to indicate transparent object or not */
   var _3DTexture = ""
-  var _3DCoordinates = "Global"
+  var _3DCoordinates = "global"
   var _3DTransparency = -1
   /* Camera's position and orientation*/
   var _3DView = mutable.ArrayBuffer[ViewInfo]()
@@ -123,7 +123,7 @@ class ThreeDData extends Publisher {
 
   def extractCoordinates(value: Value[_]) {
     value match {
-      case VLit(GStr(coordinates)) => _3DCoordinates = coordinates
+      case VLit(GStr(coordinates)) => _3DCoordinates = coordinates.toLowerCase
       case _ => throw _3DNameError(value)
     }
   }

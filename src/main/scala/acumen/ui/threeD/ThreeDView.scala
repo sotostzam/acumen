@@ -279,24 +279,24 @@ class ThreeDView extends JPanel {
       worldState match {
         case "renderCurrentObjects" => // only called in renderCurrentFrame()
           for (oldObject <- objectsToDelete) {
-            if (oldObject._2 == "Global" && world.getObjectByName(oldObject._1.getName) != null)
+            if (oldObject._2 == "global" && world.getObjectByName(oldObject._1.getName) != null)
               world.removeObject(oldObject._1)
-            else if (oldObject._2 == "Camera" && staticWorld.getObjectByName(oldObject._1.getName) != null)
+            else if (oldObject._2 == "camera" && staticWorld.getObjectByName(oldObject._1.getName) != null)
               staticWorld.removeObject(oldObject._1)
           }
           // add all the objects in current frame into the view
           for ((objectKey, objectToBuild) <- objects) {
-            if (objectToBuild._2 == "Global" && world.getObjectByName(objectToBuild._1.getName) == null)
+            if (objectToBuild._2 == "global" && world.getObjectByName(objectToBuild._1.getName) == null)
               world.addObject(objectToBuild._1)
-            else if (objectToBuild._2 == "Camera" && staticWorld.getObjectByName(objectToBuild._1.getName) == null)
+            else if (objectToBuild._2 == "camera" && staticWorld.getObjectByName(objectToBuild._1.getName) == null)
               staticWorld.addObject(objectToBuild._1)
           }
           // add the anaglyph objects in current frame
           if (acumen.ui.App.ui.getStartAnaglyph)
             for ((objectKey, objectToBuild) <- objectsCopy) {
-              if (objectToBuild._2 == "Global" && world.getObjectByName(objectToBuild._1.getName) == null)
+              if (objectToBuild._2 == "global" && world.getObjectByName(objectToBuild._1.getName) == null)
                 world.addObject(objectToBuild._1)
-              else if (objectToBuild._2 == "Camera" && staticWorld.getObjectByName(objectToBuild._1.getName) == null)
+              else if (objectToBuild._2 == "camera" && staticWorld.getObjectByName(objectToBuild._1.getName) == null)
                 staticWorld.addObject(objectToBuild._1)
             }
         case "addAxes" => // only called in axisOff function

@@ -593,7 +593,7 @@ object Parser extends MyStdTokenParsers {
     val coordinates = paras.find(_._1.x == "coordinates") match {
       case Some(x) =>
         x._2 match {
-          case _ @ Lit(GStr("Global") | GStr("Camera")) => x._2
+          case _ @ Lit(GStr("Global") | GStr("Camera")) | Lit(GStr("global") | GStr("camera")) => x._2
           case _ => error("_3D object " + name + "'s 'coordinates' parameter is not correct")
         }
       case None => defaultCoordinates
