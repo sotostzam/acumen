@@ -32,6 +32,7 @@ object DynSetEnclosure {
     val dynSet = parameters.dynSetType match {
       case `DynSetCuboid`      => Cuboid(initialVector)
       case `DynSetIntervalBox` => IntervalBox(initialVector)
+      case _                   => throw new Errors.InvalidDynSet(parameters.dynSetType)
     }
     DynSetEnclosure(st, dynSet, nameToIndex)
   }
