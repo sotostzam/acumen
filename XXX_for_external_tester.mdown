@@ -3,7 +3,7 @@
 Please send us one email consisting of an "OK" or "Not OK" for each of the 
 following steps.  If a step appears to be "Not OK", a brief explanation of 
 the problem you witnessed would be appreciated.  Please send your email to 
-both Adam Duracz (adam@duracz.net) and Walid Taha (maroneal@gmail.com).
+both Yingfu Zeng (yingfuzeng@gmail.com) and Walid Taha (maroneal@gmail.com).
 
 0. Download and unzip the particular Acumen distribution provided to you.
 1. Start Acumen by double-clicking the jar file in the extracted folder.
@@ -11,15 +11,15 @@ both Adam Duracz (adam@duracz.net) and Walid Taha (maroneal@gmail.com).
     1. Click File > Open.
     2. Browse to "examples/01_CPS_Course/01_Introduction/02_Dynamics/09_Sine_self_as_Second_Derivative.acm" and click Open.
 	3. Ensure that the Traditional semantics is selected by going to the 
-	   menu and selecting Semantics > Traditional -> 2014 Reference
-	4. Run the simulation by clicking the play button ( > ) below the code editor.
+	   menu and selecting Semantics > Traditional -> 2015 Optimized
+	4. Run the simulation by clicking the run button ( ⊙ ) below the code editor.
 	5. Check that the plot looks right. There should be three plots, all 
 	   displaying various kids of wave forms.
 3. Part 2 of test
 	1. Click File > Open.
     2. Select "examples/01_CPS_Course/01_Introduction/03_Animation/02_angles in pi.acm" 
        and click Open.
-	3. Run the simulation by clicking the play button ( > ) below the code editor.
+	3. Run the simulation by clicking the play button ( ⊙ )  below the code editor.
 	4. Wait until the simulation is done. You should be able to follow the 
 	   progress of the simulation from the progress bar underneath the editing area.
 	5. Once simulation is done, animation should start automatically.
