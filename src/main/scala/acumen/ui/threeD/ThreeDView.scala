@@ -1183,7 +1183,7 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D, playSpeed: Double,
   def deleteObj(c: (CId, Int)) {
     if (app.objects.contains(c)) {
       if (app.world.getObjectByName(app.objects(c)._1.getName) != null
-       && app.staticWorld.getObjectByName(app.objects(c)._1.getName) != null) {
+       || app.staticWorld.getObjectByName(app.objects(c)._1.getName) != null) {
         app.objectsToDelete += app.objects(c)
         if (acumen.ui.App.ui.getStartAnaglyph)
           app.objectsToDelete += app.objectsCopy(c)
