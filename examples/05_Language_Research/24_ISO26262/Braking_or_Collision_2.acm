@@ -235,7 +235,7 @@ initially
                  +((y1 - y2)*(y1 - y2))),
  
   TerrainTopography = "Flat",             // Either Flat or Uphill or Downhill
-  TerrainSlopepercentage = 0,             // The grade of the terrain slope in case of Uphill or Downhill road
+  TerrainSlopePercentage = 0,             // The grade of the terrain slope in case of Uphill or Downhill road
   TestProcedureLevel = "A",               // The reliability of the test procedure for safety specification
                                           //   A: Extremly High (Reliable): Use TTC, dw, dre, dbr, and ds for the collision detection
                                           //   B: Very High: Use only TTC for the collision detection
@@ -273,10 +273,10 @@ always
   match TerrainTopography with
   [ "Uphill" ->    
     //Critical Braking distance
-    dbr = 0.5*(((y1'*y1')/(9.81*(fri0 + (TerrainSlopepercentage/100))))-((y1'-yvdiff)*(y1'-yvdiff)/(9.81*(fri0 + (TerrainSlopepercentage/100)))))  
+    dbr = 0.5*(((y1'*y1')/(9.81*(fri0 + (TerrainSlopePercentage/100))))-((y1'-yvdiff)*(y1'-yvdiff)/(9.81*(fri0 + (TerrainSlopePercentage/100)))))  
   | "Downhill" ->
     //Critical Braking distance
-    dbr = 0.5*(((y1'*y1')/(9.81*(fri0 - (TerrainSlopepercentage/100))))-((y1'-yvdiff)*(y1'-yvdiff)/(9.81*(fri0 - (TerrainSlopepercentage/100)))))  
+    dbr = 0.5*(((y1'*y1')/(9.81*(fri0 - (TerrainSlopePercentage/100))))-((y1'-yvdiff)*(y1'-yvdiff)/(9.81*(fri0 - (TerrainSlopePercentage/100)))))  
   | "Flat" ->
     //Critical Braking distance
     dbr = 0.5*(((y1'*y1')/(9.81*fri0))-((y1'-yvdiff)*(y1'-yvdiff)/(9.81*fri0)))
