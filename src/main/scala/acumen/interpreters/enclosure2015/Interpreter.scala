@@ -62,10 +62,10 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
   def repr(st:Store) = st.enclosure.cStore
   def fromCStore(st: CStore, root: CId): Store = {
     val e = solverBase(st) initializeEnclosure st
-    EnclosureAndBranches(e, InitialCondition(e, Epsilon, StartTime) :: Nil) 
+    EnclosureAndBranches(e, InitialCondition(e, Epsilon, StartTime) :: Nil, Nil)
   }
   override val visibleParameters: Map[String, CValue] =
-    enclosure2015.Common.Parameters.defaults.filter(_._2._1).map{ case (n,(_,v)) => (n,v) } 
+    enclosure2015.Common.Parameters.defaults.filter(_._2._1).map{ case (n,(_,v)) => (n,v) }
 
   /* Types */
 
@@ -80,16 +80,17 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
           (ignoreTimeDomain || bl.time == br.time) && 
             bl.enclosure.contains(br.enclosure, Set.empty, ignoreTimeDomain)))
   }
-  class EnclosureAndBranches(val enclosure: Enclosure, val branches: List[InitialCondition]) {
+  class EnclosureAndBranches(val enclosure: Enclosure, val branches: List[InitialCondition],
+                             val branchHistory: List[InitialCondition]) {
     def contains(that: EnclosureAndBranches): Boolean = contains(that, false)
     def contains(that: EnclosureAndBranches, ignoreTimeDomain: Boolean): Boolean =
       InitialCondition.coverIndividually(this.branches, that.branches, ignoreTimeDomain)
   }
   object EnclosureAndBranches{
-    def apply(e: Enclosure, bs: List[InitialCondition]): EnclosureAndBranches = 
-      new EnclosureAndBranches(e.countVariables, bs) 
-    def apply(e: List[Enclosure], bs: List[InitialCondition]): EnclosureAndBranches = 
-      new EnclosureAndBranches(e.reduce(_ /\ _).countVariables, bs)
+    def apply(e: Enclosure, bs: List[InitialCondition], bh: List[InitialCondition]): EnclosureAndBranches =
+      new EnclosureAndBranches(e.countVariables, bs, bh)
+    def apply(e: List[Enclosure], bs: List[InitialCondition], bh: List[InitialCondition]): EnclosureAndBranches =
+      new EnclosureAndBranches(e.reduce(_ /\ _).countVariables, bs, bh)
   }
   
   /** Represents a sequence of Changesets without consecutive repeated flows. */
@@ -187,7 +188,8 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
    */
   def setInSimulator(f:Name, v:CValue, s:Store): Store = {
     def helper(e: Enclosure) = e.setObjectField(e.simulatorId, f, v)
-    EnclosureAndBranches(helper(s.enclosure), s.branches.map(ic => ic.copy(enclosure = helper(ic.enclosure))))
+    EnclosureAndBranches(helper(s.enclosure), s.branches.map(ic => ic.copy(enclosure = helper(ic.enclosure))),
+                         s.branchHistory)
   }
     
   /** Update simulator parameters in st.enclosure with values from the code in p. */
@@ -659,7 +661,9 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
         case FixedPoint =>
           (tNow + st.enclosure.getTimeStep, Continuous)
       }
-      val (st1, tNextAdapted, tStepNext) = stepAdaptive(tNow, tNext, st.enclosure.getTimeStep, p, mergeBranchList(st.branches)) // valid enclosure over T
+      val ((enclosureNext, branchesNext), tNextAdapted, tStepNext) =
+        stepAdaptive(tNow, tNext, st.enclosure.getTimeStep, p, mergeBranchList(st.branches)) // valid enclosure over T
+      val st1 = testForLoop(enclosureNext, branchesNext, st)
       val md1 = testHypotheses(st1.enclosure, tNow, tNextAdapted, p, md)
       val st2 = setResultType(resType, st1)
       val st3 = setTime(tNextAdapted, st2)
@@ -669,17 +673,33 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
     }
   }
 
+  def testForLoop(enclosureNext: Enclosure, branchesNext: List[InitialCondition],
+                  oldStore: EnclosureAndBranches): EnclosureAndBranches = {
+    val time = enclosureNext.getTime
+    val timeStep = enclosureNext.getTimeStep
+    val branchHistory = oldStore.branchHistory
+    val oldTime = oldStore.enclosure.getTime
+    val loopPointInterval = Interval(time, time + timeStep)
+    if (time != oldTime) {
+      if (InitialCondition.coverIndividually(branchHistory, branchesNext, true)) { // find the loop
+        Logger.log("Found loop at time " + loopPointInterval)
+        // Do something when we find the loop
+        EnclosureAndBranches(enclosureNext, branchesNext, branchHistory)
+      } else EnclosureAndBranches(enclosureNext, branchesNext, branchHistory ++ branchesNext)
+    } else EnclosureAndBranches(enclosureNext, branchesNext, branchHistory)
+  }
+
   def testForFixpoint(oldStore: EnclosureAndBranches, newStore: EnclosureAndBranches, md: Metadata): Metadata =
     if (oldStore.enclosure.getTime != newStore.enclosure.getTime)
       md match {
         case nmd @ NoMetadata(_, None) if oldStore.contains(newStore, true) =>
-          val fixpointInterval = Interval(newStore.enclosure.getTime, newStore.enclosure.getTime + newStore.enclosure.getTimeStep)
-          Logger.log("Found obvious fixed point at time " + fixpointInterval)
-          nmd.copy(firstFixpoint = Some(fixpointInterval))
+          val fixPointInterval = Interval(newStore.enclosure.getTime, newStore.enclosure.getTime + newStore.enclosure.getTimeStep)
+          Logger.log("Found obvious fixed point at time " + fixPointInterval)
+          nmd.copy(firstFixpoint = Some(fixPointInterval))
         case smd @ SomeMetadata(_, _, _, _, None, _) if oldStore.contains(newStore, true) =>
-          val fixpointInterval = Interval(newStore.enclosure.getTime, newStore.enclosure.getTime + newStore.enclosure.getTimeStep)
-          Logger.log("Found obvious fixed point at time " + fixpointInterval)
-          smd.copy(firstFixpoint = Some(fixpointInterval))
+          val fixPointInterval = Interval(newStore.enclosure.getTime, newStore.enclosure.getTime + newStore.enclosure.getTimeStep)
+          Logger.log("Found obvious fixed point at time " + fixPointInterval)
+          smd.copy(firstFixpoint = Some(fixPointInterval))
         case _ => md
       }
     else md
@@ -706,9 +726,9 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
    *  The left end-point L' is found recursing with half the time step, 
    *  that is over [L, R+(R-L)/2], until R-L < 2*simulator.minTimeStep. 
    *  
-   *  Returns a triple (eab, rightEndPointTight, nextTimeStep):
-   *  - eab: EnclosureAndBranches 
-   *    Contains the enclosure for prog over the time interval
+   *  Returns a triple ((Enclosure, Branches), rightEndPointTight, nextTimeStep):
+   *  - (Enclosure, Branches):
+   *    Contains the enclosure and branches for prog over the time interval
    *    [leftEndPoint, rightEndPointTight] and initial conditions for the time 
    *    [rightEndPointTight].
    *  - tightRightEndPoint: Double
@@ -718,25 +738,30 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
    *    For non-thin time intervals without events this is double the width of  
    *    [L,R] until that reaches parameters.maxTimeStep. Otherwise this is (R-L). 
    */
-  def stepAdaptive(leftEndPoint: Double, rightEndPoint: Double, previousTimeStep: Double, prog: Prog, branches: List[InitialCondition])(implicit parameters: Parameters): (EnclosureAndBranches, Double, Double) = {
-    require(branches.size > 0, "stepAdaptive called with zero branches")
+  def stepAdaptive(leftEndPoint: Double, rightEndPoint: Double, previousTimeStep: Double, prog: Prog, branches: List[InitialCondition])
+                  (implicit parameters: Parameters): ((Enclosure, List[InitialCondition]), Double, Double) = {
+    require(branches.nonEmpty, "stepAdaptive called with zero branches")
     require(branches.size <= parameters.maxBranches, s"Number of branches (${branches.size}) exceeds maximum (${parameters.maxBranches}).")
     Logger.debug(s"stepAdaptive (over ${ Interval(leftEndPoint, rightEndPoint) }, ${branches.size} branches)")
     val step = rightEndPoint - leftEndPoint
-    if (leftEndPoint == rightEndPoint) // thin time interval
-      (hybridEncloser(Interval(leftEndPoint, rightEndPoint), prog, branches), rightEndPoint, previousTimeStep)
-    else if (step == parameters.minTimeStep && parameters.minTimeStep == parameters.maxTimeStep) // fixed step
-      (hybridEncloser(Interval(leftEndPoint, rightEndPoint), prog, branches), rightEndPoint, step)
+    if (leftEndPoint == rightEndPoint) { // thin time interval
+      val nextEAB = hybridEncloser(Interval(leftEndPoint, rightEndPoint), prog, branches)
+      ((nextEAB.enclosure, nextEAB.branches), rightEndPoint, previousTimeStep)
+    }
+    else if (step == parameters.minTimeStep && parameters.minTimeStep == parameters.maxTimeStep) { // fixed step
+      val nextEAB = hybridEncloser(Interval(leftEndPoint, rightEndPoint), prog, branches)
+      ((nextEAB.enclosure, nextEAB.branches), rightEndPoint, step)
+    }
     else {
       val (enclosuresNext, branchesNext, isFlow) = stepBranches(leftEndPoint, rightEndPoint, prog, branches) 
       val twiceStep = 2 * step
       if (isFlow)
-        (EnclosureAndBranches(enclosuresNext, branchesNext), rightEndPoint, Math.min(twiceStep, parameters.maxTimeStep))
+        ((enclosuresNext.reduce(_ /\ _).countVariables, branchesNext), rightEndPoint, Math.min(twiceStep, parameters.maxTimeStep))
       else { // possible event
         val halfStep = step / 2
         if (halfStep < parameters.minTimeStep) { // leftEndPoint is close enough to event time interval
           val (eab, timeNext) = findRightEndPoint(parameters.minTimeStep, prog, leftEndPoint, branches)
-          (eab, timeNext, step)
+          ((eab.enclosure, eab.branches), timeNext, step)
         }
         else // get closer to event time interval by halving the step
           stepAdaptive(leftEndPoint, leftEndPoint + halfStep, previousTimeStep, prog, branches)
@@ -749,21 +774,23 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
    *     doubling the width.
    *  2. Refining this rough estimate using findTightRightEndPoint().
    */
-  def findRightEndPoint(width: Double, prog: Prog, leftEndPoint: Double, branches: List[InitialCondition])(implicit parameters: Parameters): (EnclosureAndBranches, Double) = {
+  def findRightEndPoint(width: Double, prog: Prog, leftEndPoint: Double, branches: List[InitialCondition])
+                       (implicit parameters: Parameters): (EnclosureAndBranches, Double) = {
     val candidate = leftEndPoint + width
     val (candidateEnclosures, candidateBranches, _) = stepBranches(leftEndPoint, candidate, prog, branches)
     val justAfterCandidate = candidate + parameters.minTimeStep
     // Check if this is a valid right end-point
-    val (afterCandidateEnclosures, afterCandidateBranches, candidateIsValid) = 
+    val (_, _, candidateIsValid) =
       stepBranches(candidate, justAfterCandidate, prog, candidateBranches)
     val widthTwice = width * 2
     if (candidateIsValid) { // we have found _a_ right end-point, now find a better one
       val previousCandidate = leftEndPoint + width / 2
-      val (rightEndPointTightEAB, rightEndPointTight) =  
-        findTightRightEndPoint(previousCandidate, candidate, prog, leftEndPoint, branches, EnclosureAndBranches(candidateEnclosures, candidateBranches))
+      val (rightEndPointTightEAB, rightEndPointTight) =
+        findTightRightEndPoint(previousCandidate, candidate, prog, leftEndPoint, branches,
+                               EnclosureAndBranches(candidateEnclosures, candidateBranches, Nil))
       (rightEndPointTightEAB, rightEndPointTight)
     } else if (widthTwice >= parameters.maxTimeStep)
-      (EnclosureAndBranches(candidateEnclosures, candidateBranches), candidate)
+      (EnclosureAndBranches(candidateEnclosures, candidateBranches, Nil), candidate)
     else
       findRightEndPoint(widthTwice, prog, leftEndPoint, branches)
   }    
@@ -788,7 +815,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
       val (esNextCandidate, bsNextCandidate, _) = stepBranches(loT, midpoint, prog, loTBranches)
       val (_, _, midpointHasCrossed) = stepBranches(midpoint, midpoint + parameters.minTimeStep, prog, bsNextCandidate)
       val (loNext, hiNext) = if (midpointHasCrossed) (lo, midpoint) else (midpoint, hi)
-      findTightRightEndPoint(loNext, hiNext, prog, loT, loTBranches, EnclosureAndBranches(esNextCandidate, bsNextCandidate))
+      findTightRightEndPoint(loNext, hiNext, prog, loT, loTBranches, EnclosureAndBranches(esNextCandidate, bsNextCandidate, Nil))
     }
   }
   
@@ -801,7 +828,8 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
    *  - isFlow: Boolean
    *    True if an event is possible over [loT, hiT] for any branch.
    */
-  def stepBranches(loT: Double, hiT: Double, prog: Prog, branches: List[InitialCondition])(implicit parameters: Parameters): (List[Enclosure], List[InitialCondition], Boolean) = {
+  def stepBranches(loT: Double, hiT: Double, prog: Prog, branches: List[InitialCondition])
+                  (implicit parameters: Parameters): (List[Enclosure], List[InitialCondition], Boolean) = {
     val (es, bs) = branches.map{ b =>
       val eab = hybridEncloser(Interval(loT, hiT), prog, b :: Nil)
       (eab.enclosure, eab.branches)
@@ -882,7 +910,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
       ): Store =
       // No more IC to process
       if (pwlW isEmpty)
-        EnclosureAndBranches(pwlR.reduce(_ /\ _), if (T.isThin) pwlU else mergeBranchList(pwlU))      
+        EnclosureAndBranches(pwlR.reduce(_ /\ _), if (T.isThin) pwlU else mergeBranchList(pwlU), Nil)
       // Exceeding the maximum iterations per branch
       else if (iterations > parameters.maxIterationsPerBranch)
         sys.error(s"Enclosure computation over $T did not terminate in ${parameters.maxIterationsPerBranch} iterations.")
