@@ -48,6 +48,7 @@ object Common {
                        , timeStep                      : Double                 =  0.015625
                        , minTimeStep                   : Double                 =  0.015625
                        , maxTimeStep                   : Double                 =  0.015625
+                       , useFixedStep                  : Boolean                = true
                        , dynSetType                    : String                 = DynSetCuboid 
                        , reorganization                : (String, List[Double]) = ("Off", Nil)
                        , method                        : String                 = Taylor
@@ -68,6 +69,7 @@ object Common {
       val timeStep                      = "timeStep"                     
       val minTimeStep                   = "minTimeStep"                     
       val maxTimeStep                   = "maxTimeStep"                     
+      val useFixedStep                  = "useFixedStep"                     
       val dynSetType                    = "dynSetType"                   
       val reorganization                = "reorganization"                   
       val method                        = "method"                       
@@ -90,6 +92,7 @@ object Common {
          , timeStep                      -> (true, VLit(GDouble(p.timeStep)))
          , minTimeStep                   -> (true, VLit(GDouble(p.minTimeStep)))
          , maxTimeStep                   -> (true, VLit(GDouble(p.maxTimeStep)))
+         , useFixedStep                  -> (false,VLit(GBool(p.useFixedStep)))
          , dynSetType                    -> (true, VLit(GStr(p.dynSetType)))
          , reorganization                -> (true, VVector[CId](VLit(GStr(p.reorganization._1)) :: p.reorganization._2.map(d => VLit(GDouble(d)))))
          , method                        -> (true, VLit(GStr(p.method)))
@@ -114,12 +117,6 @@ object Common {
             List(paramName)
           case _ => Nil /* FIXME Also look for parameters inside nested actions */ }
         case _ => Nil }
-
-      /* Force user to either only set timeStep (to use fixed stepping) 
-       * or only set both maxTimeStep and minTimeStep (to use adaptive stepping) */
-      if ((paramsSetByUser contains Names.timeStep) &&
-          ((paramsSetByUser contains Names.minTimeStep) || (paramsSetByUser contains Names.maxTimeStep)))
-        throw new InvalidTimeStepConfiguration(paramsSetByUser.filter(_.toLowerCase.contains("timestep")))
       
       val           time                             = extractDouble(getInSimulator(Names.time, st))
       val           endTime                          = extractDouble(getInSimulator(Names.endTime, st))
@@ -152,11 +149,23 @@ object Common {
       val VLit(GBool(intersectWithGuardBeforeReset)) = getInSimulator(Names.intersectWithGuardBeforeReset, st)
       val VLit(GBool(disableContraction))            = getInSimulator(Names.disableContraction, st)
       val VLit(GStr (hypothesisReport))              = getInSimulator(Names.hypothesisReport, st)
+      
+      val hasSetMinTimeStep = paramsSetByUser contains Names.minTimeStep
+      val hasSetMaxTimeStep = paramsSetByUser contains Names.maxTimeStep
+
+      val useFixedStep = !(hasSetMinTimeStep || hasSetMaxTimeStep) || minTimeStep == maxTimeStep
+
+      /* Force user to either only set timeStep (to use fixed stepping) 
+       * or only set both maxTimeStep and minTimeStep (to use adaptive stepping) */
+      if ((paramsSetByUser contains Names.timeStep) && (hasSetMinTimeStep || hasSetMaxTimeStep))
+        throw new InvalidTimeStepConfiguration(paramsSetByUser.filter(_.toLowerCase.contains("timestep")))
+      
       Parameters( time                          = time                         
                 , endTime                       = endTime                      
                 , timeStep                      = timeStep                     
                 , minTimeStep                   = minTimeStep
                 , maxTimeStep                   = maxTimeStep
+                , useFixedStep                  = useFixedStep
                 , dynSetType                    = dynSetType                   
                 , reorganization                = reorganization                       
                 , method                        = method                       
@@ -167,7 +176,7 @@ object Common {
                 , mergeBranches                 = mergeBranches                
                 , intersectWithGuardBeforeReset = intersectWithGuardBeforeReset
                 , disableContraction            = disableContraction           
-                , hypothesisReport              = hypothesisReport             
+                , hypothesisReport              = hypothesisReport 
                 )                                           
     }
   }

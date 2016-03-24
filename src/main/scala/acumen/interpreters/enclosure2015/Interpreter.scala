@@ -721,11 +721,11 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
   def stepAdaptive(leftEndPoint: Double, rightEndPoint: Double, previousTimeStep: Double, prog: Prog, branches: List[InitialCondition])(implicit parameters: Parameters): (EnclosureAndBranches, Double, Double) = {
     require(branches.size > 0, "stepAdaptive called with zero branches")
     require(branches.size <= parameters.maxBranches, s"Number of branches (${branches.size}) exceeds maximum (${parameters.maxBranches}).")
-    Logger.debug(s"stepAdaptive (over ${ Interval(leftEndPoint, rightEndPoint) }, ${branches.size} branches)")
     val step = rightEndPoint - leftEndPoint
+    Logger.debug(s"stepAdaptive (over ${ Interval(leftEndPoint, rightEndPoint) }, ${branches.size} branches, step $step)")
     if (leftEndPoint == rightEndPoint) // thin time interval
       (hybridEncloser(Interval(leftEndPoint, rightEndPoint), prog, branches), rightEndPoint, previousTimeStep)
-    else if (step == parameters.minTimeStep && parameters.minTimeStep == parameters.maxTimeStep) // fixed step
+    else if (parameters.useFixedStep) // fixed step
       (hybridEncloser(Interval(leftEndPoint, rightEndPoint), prog, branches), rightEndPoint, step)
     else {
       val (enclosuresNext, branchesNext, isFlow) = stepBranches(leftEndPoint, rightEndPoint, prog, branches) 
