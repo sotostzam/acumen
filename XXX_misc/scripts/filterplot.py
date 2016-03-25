@@ -60,6 +60,8 @@ parser.add_argument('--height', default="250")
 parser.add_argument('--width', default="400")
 parser.add_argument('--plotdict',
                     help="a python dict that maps (unqualified) variable names to pairs of hex colours and alternative names.")
+parser.add_argument('--moreGnuplot', 
+                    help='additional gnuplot code to be executed before plotting')
 parser.add_argument('inFile',
                     help="input TSV file exported using File > Export Table")
 parser.add_argument('outFile',
@@ -180,14 +182,15 @@ if args.yDomain is not None:
     vMax = args.yDomain[1]
     gpout.write("set yrange [" + str(vMin) + ":" + str(vMax) + "]\n")
 gpout.write("""
-# Colors
+# Default colors
 set linetype 1 lc rgb '#444444'
 set linetype 2 lc rgb '#AAAAAA'
-# Legend
-set key top left
-# unset key
-# Axis labels
 """)
+
+if args.moreGnuplot is not None:
+    if not('key') in args.moreGnuplot:
+        gpout.write('set key top left\n')
+    gpout.write(args.moreGnuplot + ' \n\n')
 
 si = "\[%*lf\.\.%*lf\]\\t" # pattern to skip an interval
 
