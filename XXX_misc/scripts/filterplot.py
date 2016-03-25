@@ -151,7 +151,7 @@ with open(args.inFile,'rb') as tsvin, open(args.outFile, 'wb') as csvout:
 lc = len(cols)
 rlc = range(lc+1)
 gpout = open('tmp/plot.gp','w')
-gpout.write("set term " + args.terminal + " size " + args.width + "," + args.height + "\n")
+gpout.write("set term " + args.terminal + " size " + args.width + "," + args.height + " font 'Times'\n")
 if args.terminal == 'tikz':
     gpout.write("set output 'tmp/out.tex'\n")
 else: 
