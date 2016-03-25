@@ -79,6 +79,13 @@ floatRegex = "[+-]?(\d+(\.\d*)?|\.\d+)([eE][+-]?\d+)?"
 intervalRegex = "\[\s*(" + floatRegex + ")\s*\.\.\s*(" + floatRegex + ")\s*\]"
 
 with open(args.inFile,'rb') as tsvin, open(args.outFile, 'wb') as csvout:
+    
+    # When variable step size was used to produce the tsv, these will be used to 
+    # compute the time interval over which an enclosure should be plotted.
+    if isTimePlot:
+        previousTime = 0
+        currentTime = 0
+    
     for c in cols:
         csvout.write('"' + c + '"\t'),
     csvout.write(""),
@@ -93,8 +100,11 @@ with open(args.inFile,'rb') as tsvin, open(args.outFile, 'wb') as csvout:
             csvout.write("\n")
         else:
             if isTimePlot:
-                x1 = row[timeCol]
-                x2 = row[timeCol]
+                previousTime = currentTime
+                currentTime = float(row[timeCol])
+                timeStep = currentTime - previousTime
+                x1 = str(previousTime)
+                x2 = str(previousTime + timeStep)
                 x1y1 = x1
                 x2y1 = x2
                 x2y2 = x2
