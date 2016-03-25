@@ -9,6 +9,7 @@ import csv
 import sys
 import argparse
 import re
+import ast
 
 parser = argparse.ArgumentParser(
   formatter_class=argparse.RawTextHelpFormatter, 
@@ -24,6 +25,7 @@ parser = argparse.ArgumentParser(
     Example usage for time-based plot (of x1 and x2 against time):
     
       filterplot.py --term svg exportedTable.tsv tmp/out.tsv \\
+        --plotdict "{ 'x1' : ('X1','#FF0000') , 'x2' : ('X2','#0000FF') }" \\
         "(#0.0 : Simulator).time"  "(#0 : Main).x1"  "(#0 : Main).x2"
       gnuplot < tmp/plot.gp > tmp/plot.svg     
     
@@ -56,6 +58,8 @@ parser.add_argument('--xLabel')
 parser.add_argument('--yLabel')
 parser.add_argument('--height', default="250")
 parser.add_argument('--width', default="400")
+parser.add_argument('--plotdict',
+                    help="a python dict that maps (unqualified) variable names to pairs of hex colours and alternative names.")
 parser.add_argument('inFile',
                     help="input TSV file exported using File > Export Table")
 parser.add_argument('outFile',
@@ -196,6 +200,7 @@ def strip(n):
 if isTimePlot: # Plot against time
     xName = args.xLabel if args.xLabel is not None else "Time"
     gpout.write('set xlabel "' + xName + '" offset 0,0.3\n')
+    plotdict = {} if args.plotdict is None else ast.literal_eval(args.plotdict)
     for i,c in zip(range(len(cols)),cols):      
         if i < lc-1:
             e = ', \\\n'
@@ -207,8 +212,13 @@ if isTimePlot: # Plot against time
             else:
                 f = "''"
             columnList = "1:" + str(i + 1)
-            gpout.write(f + ' u ' + columnList + ' with filledcurves closed title "')
             n = strip(c)
+            if args.plotdict is not None and n in plotdict:
+                (n,colorHex) = plotdict[n]
+                color = 'lc rgb "' + colorHex + '"'
+            else:
+                color = ''
+            gpout.write(f + ' u ' + columnList + ' with filledcurves closed ' + color + ' title "')
             if args.terminal == 'tikz':
                 gpout.write('$' + n + '$' + '"' + e)
             else:
