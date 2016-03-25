@@ -188,9 +188,9 @@ set linetype 2 lc rgb '#AAAAAA'
 """)
 
 if args.moreGnuplot is not None:
-    if not('key') in args.moreGnuplot:
+    if not('set key') in args.moreGnuplot:
         gpout.write('set key top left\n')
-    gpout.write(args.moreGnuplot + ' \n\n')
+    gpout.write(args.moreGnuplot + '\n')
 
 si = "\[%*lf\.\.%*lf\]\\t" # pattern to skip an interval
 
