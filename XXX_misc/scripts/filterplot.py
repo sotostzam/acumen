@@ -180,7 +180,7 @@ gpout.write("""
 set linetype 1 lc rgb '#444444'
 set linetype 2 lc rgb '#AAAAAA'
 # Legend
-set key bottom left
+set key top left
 # unset key
 # Axis labels
 """)
