@@ -186,7 +186,6 @@ initially
   rrx1 = 0, rry1 = 0,   // Rear right corner
   a1    =  2,           // Brake efficiency            %/100
   mu    =  0.95,        // Brake efficiency            %/100
-  pcb   =  0,           // Post-collision deceleration m/s2
 
   /* Sensor of Vehicle 1 */
   
@@ -297,9 +296,8 @@ always
   match state12 with
   [ "1-Post-Collision" ->
     rot2' = 0,
-    x1'' = 0,
-    if y1'>0 then y1'' = pcb else y1' = 0,
-    x2'' = 0, y2'' = 0
+    x1'' = -x1'/2, y1'' = -y1'/2,
+    x2'' = -x2'/2, y2'' = -y2'/2
   | "0-Pre-Collision" ->
  
     /* Collision detection and handling */
