@@ -173,8 +173,6 @@ gpout.write("""
 set style line 11 lc rgb '#000000' lt 1
 set border 3 back ls 11
 set tics nomirror in scale 0.5
-set arrow from graph 1,0 to graph 1.05,0 size screen 0.025,15,60 filled ls 11
-set arrow from graph 0,1 to graph 0,1.05 size screen 0.025,15,60 filled ls 11
 """)
 gpout.write("set xrange [" + str(xMin) + ":" + str(xMax) + "]\n")
 if args.yDomain is not None:
@@ -190,7 +188,7 @@ set linetype 2 lc rgb '#AAAAAA'
 if args.moreGnuplot is not None:
     if not('set key') in args.moreGnuplot:
         gpout.write('set key top left\n')
-    gpout.write(args.moreGnuplot + '\n')
+    [ gpout.write(mgp + '\n') for mgp in args.moreGnuplot.split('\\n') ]
 
 si = "\[%*lf\.\.%*lf\]\\t" # pattern to skip an interval
 
