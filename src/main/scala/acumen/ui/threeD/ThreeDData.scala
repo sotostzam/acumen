@@ -123,9 +123,9 @@ class ThreeDData extends Publisher {
       case _ => throw _3DNameError(value)
     }
     def assignTransparency(transparency: Double) = {
-      if (transparency == -1 || (transparency >= 0 && transparency <= 1))
+      if (transparency <= 1)
         _3DTransparency = transparency
-      else error("_3D object's 'transparency' parameter should either be a float number between 0 and 1 or -1")
+      else error("_3D object's 'transparency' parameter should either be a float number between 0 and 1 or negative value")
     }
   }
 

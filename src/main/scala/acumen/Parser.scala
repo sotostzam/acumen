@@ -605,7 +605,7 @@ object Parser extends MyStdTokenParsers {
           case Lit(GDouble(_)) => x._2
           case Lit(GInt(_)) => x._2
           case Lit(_) => error("_3D object " + name + "'s 'transparency' parameter should either be a float number " +
-            "between 0 to 1 or -1")
+            "between 0 to 1 or negative value")
           case _ => x._2
         }
       case None => defaultTransparency
