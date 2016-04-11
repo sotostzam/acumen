@@ -26,7 +26,7 @@ always
 
         Box color = 0.75*red + 0.9*green +blue
 
-             transparency = 20 
+             transparency = 1
 
              center = p+(0,0,0)+(0,-10*fun,10*fun)
 
@@ -36,7 +36,7 @@ always
 
         Box color =0.1*red+0.8*green + blue
 
-             transparency = 20 
+             transparency = 1
 
              center = p+(ca,sa,0)+(0,0,5*fun)
 
@@ -46,7 +46,7 @@ always
 
         Box color =0.1*red+0.8*green + blue
 
-             transparency = 20 
+             transparency = 1
 
              center = p+(-ca,-sa,0) + (-5*fun,0,0)
 
