@@ -478,7 +478,7 @@ object Parser extends MyStdTokenParsers {
   val defaultColor = ExprVector(List(Lit(GInt(1)),Lit(GInt(1)),Lit(GInt(1))))
   val defaultRotation = ExprVector(List(Lit(GInt(0)),Lit(GInt(0)),Lit(GInt(0))))
   val defaultCoordinates = Lit(GStr("Global"))
-  val defaultTransparency = Lit(GInt(-1))
+  val defaultTransparency = Lit(GDouble(-1.0))
 
   // _3D parameter names with valid dimensions (Nil for parameters whose values are not vectors) 
   val paramDimensions: Map[String, List[Int]] =
@@ -602,8 +602,10 @@ object Parser extends MyStdTokenParsers {
     val transparency = paras.find(_._1.x == "transparency") match {
       case Some(x) =>
         x._2 match {
+          case Lit(GDouble(_)) => x._2
           case Lit(GInt(_)) => x._2
-          case Lit(_) => error("_3D object " + name + "'s 'transparency' parameter is not a integer")
+          case Lit(_) => error("_3D object " + name + "'s 'transparency' parameter should either be a float number " +
+            "between 0 to 1 or -1")
           case _ => x._2
         }
       case None => defaultTransparency

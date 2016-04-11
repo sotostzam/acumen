@@ -37,7 +37,7 @@ class ThreeDData extends Publisher {
   /* Optional field to indicate transparent object or not */
   var _3DTexture = ""
   var _3DCoordinates = "global"
-  var _3DTransparency = -1
+  var _3DTransparency = -1.0
   /* Camera's position and orientation*/
   var _3DView = mutable.ArrayBuffer[ViewInfo]()
   /* CId of the object that contain _3DView info */
@@ -116,8 +116,16 @@ class ThreeDData extends Publisher {
   /* _3D texture should be a string */
   def extractTransparency(value: Value[_]) {
     value match {
-      case VLit(GInt(transparency)) => _3DTransparency = transparency
+      case VLit(GDouble(transparency)) =>
+        assignTransparency(transparency)
+      case VLit(GInt(transparency)) =>
+        assignTransparency(transparency.toDouble)
       case _ => throw _3DNameError(value)
+    }
+    def assignTransparency(transparency: Double) = {
+      if (transparency == -1 || (transparency >= 0 && transparency <= 1))
+        _3DTransparency = transparency
+      else error("_3D object's 'transparency' parameter should either be a float number between 0 and 1 or -1")
     }
   }
 
