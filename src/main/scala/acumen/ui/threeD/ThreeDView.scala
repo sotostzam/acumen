@@ -734,7 +734,7 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D, playSpeed: Double,
     var objID = app.objects(objectKey)._1.getName  // get the object ID
     /* Get the 3D information of the object at that frame	*/
     val (name: String, position: Array[Double], size: Array[Double],
-    color: Array[Double], angle: Array[Double], transparency: Int) =
+    color: Array[Double], angle: Array[Double], transparency: Double) =
       (valueList.head, valueList(1), valueList(2), valueList(3), valueList(4),
         if (valueList.size == 7) valueList(6)
         else valueList(7))
@@ -953,8 +953,8 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D, playSpeed: Double,
       transObject.setTransparencyMode(Object3D.TRANSPARENCY_MODE_DEFAULT) //TRANSPARENCY_MODE_DEFAULT
       val tempTransparency =
         if (transparency < 0) 21
-        else if (transparency > 20) 20
-        else transparency
+        else if (transparency > 1) 20
+        else (transparency * 20).toInt
       transObject.setTransparency(20 - tempTransparency)
       // rotate the object
       if (checkResizeable(angle))
@@ -994,7 +994,7 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D, playSpeed: Double,
     /* Find the corresponding index of the object */
     /* Get the 3D information of the object at that frame	*/
     val (name: String, position: Array[Double], size: Array[Double],
-    color: Array[Double], angle: Array[Double], transparency: Int) =
+    color: Array[Double], angle: Array[Double], transparency: Double) =
       (valueList.head, valueList(1), valueList(2), valueList(3), valueList(4),
         if (valueList.size == 7) valueList(6)
         else valueList(7))
@@ -1045,8 +1045,8 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D, playSpeed: Double,
       newObject.setTransparencyMode(Object3D.TRANSPARENCY_MODE_DEFAULT) //TRANSPARENCY_MODE_DEFAULT
       val tempTransparency =
         if (transparency < 0) 21
-        else if (transparency > 20) 20
-        else transparency
+        else if (transparency > 1) 20
+        else (transparency * 20).toInt
       newObject.setTransparency(20 - tempTransparency)
       // rotate the object
       app.rotateObject(newObject, angle, name, null)
