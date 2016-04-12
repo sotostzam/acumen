@@ -230,6 +230,7 @@ class App extends SimpleSwingApplication {
   codeAreaScrollPane.setVerticalScrollBarPolicy(javax.swing.ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED)
   
   def toggleLineNumbers = codeAreaScrollPane.setLineNumbersEnabled(!codeAreaScrollPane.getLineNumbersEnabled)
+  def fixed3DRatio = fixed3DRatioItem.selected
   def toggleFindReplaceToolbar = {
     codeArea.findReplaceToolBar.setVisible(!codeArea.findReplaceToolBar.isVisible)
     if (codeArea.findReplaceToolBar.isVisible) codeArea.searchField.requestFocus 
@@ -434,6 +435,7 @@ class App extends SimpleSwingApplication {
     contents ++= Seq(rb1)
     new ButtonGroup(rb1)
   }
+  private val fixed3DRatioItem = new CheckMenuItem("Fixed ratio for 3D view (4:3)")
   
   // FIXME Move all of this state into Main, and expose through CLI
   def getStartAnaglyph = false
@@ -498,6 +500,7 @@ class App extends SimpleSwingApplication {
         action = showLineNumbersAction
       }
 
+      contents += fixed3DRatioItem
     }
 
     contents += new Menu("Plotting") {
