@@ -339,18 +339,7 @@ class App extends SimpleSwingApplication {
 
   val traceTab = new ScrollPane(traceTable)
 
-  var threeDtab = if (Main.threeDState == ThreeDState.DISABLE) {
-    Logger.log("Acumen3D disabled.")
-    new DisabledEditorTab("3D visualization disabled on the command line.")
-  } else {
-    start3D()
-  }
-
-  def start3D() = try {
-    val res = new ThreeDTab(controller)
-    Main.threeDState = ThreeDState.ENABLE
-    res
-  }
+  var threeDtab = new ThreeDTab(controller)
 
   val views = new TabbedPane {
     assert(pages.size == 0)
@@ -499,7 +488,6 @@ class App extends SimpleSwingApplication {
         mnemonic = Key.L
         action = showLineNumbersAction
       }
-
       contents += fixed3DRatioItem
     }
 
@@ -867,8 +855,7 @@ class App extends SimpleSwingApplication {
     case Stopped =>
       if (controller.threeDData.modelContains3D()) {
         codeArea.editedSinceLastRun = false
-        if (Main.threeDState == ThreeDState.ENABLE && modelFinished
-          && !threeDtab.checkBoxState("realTime")) {
+        if (modelFinished && !threeDtab.checkBoxState("realTime")) {
           views.selectThreeDView()
           threeDtab.play()
         }
