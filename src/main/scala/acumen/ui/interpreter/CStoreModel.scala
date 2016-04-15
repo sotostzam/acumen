@@ -215,28 +215,43 @@ class CStoreModel(ops: CStoreOpts) extends InterpreterModel {
   //def ids = stores map { case (id,_,_,_,_) => id }
   private def addVal(id:CId, x:Name, v:GValue) = {
     def add(idx: Int, vectorIdx: Option[(Int,Option[Int])], v: GValue) = 
+  //  Add value to the resultCollectors
+  private def addVal(id: CId, name: Name, value: GValue) = {
+    def add(idx: Int, vectorIdx: Option[(Int,Option[Int])], v: GValue) =
       (stores(idx), v) match {
         case (sts:DoubleResultCollector, _) =>  sts += extractDoubleNoThrow(v)
         case (sts:GenericResultCollector, _) => sts += v
       }
-    if(x.x.split("__")(0) == "pattern")
-      ()
-    else
-    (x.x, v) match {
-      case ("_3D"|"_3DView", _) => ()
-      case (_,VVector(u)) =>
-        for ((ui,i) <- u zipWithIndex) {
-          ui match{
-	          case VVector(columns) => 
-	            for((uii,ii) <- columns zipWithIndex){
-	              val idx = indexes(ResultKey(id,x,Some(i,Some(ii))))
-                  add(idx, Some(i,Some(ii)), uii)
-	            }
-	          case _ => 
-	            val idx = indexes(ResultKey(id,x,Some(i,None)))
-	            add(idx, Some(i,None), ui)         
-	          }                 
-         }
+    if(name.x.split("__")(0) == "pattern") ()
+    else insertValue(value, None)
+
+    def insertValue(addedValue: GValue, vectorIdx: Option[(Int,Option[Int])]): Unit = {
+      (name.x, addedValue) match {
+        case ("_3D"|"_3DView"|"_plot", _) => ()
+        case (_, VVector(values)) => // the value is a VVector, extract each value out
+          for ((ui,i) <- values.zipWithIndex) {
+            ui match{
+              case VVector(columns) =>  //  the value is a VVector, extract again
+                for((uii,ii) <- columns.zipWithIndex){
+                  insertValue(uii, Some(i,Some(ii)))
+                }
+              case _ =>
+                insertValue(ui, Some(i, None))
+            }
+          }
+        case _ => // single GValue, such as VLit
+          // the variable is already exist in the indexes, add the value to the stores
+          if (indexes.contains(ResultKey(id, name, vectorIdx))) {
+            val idx = indexes(ResultKey(id, name, vectorIdx))
+            add(idx, vectorIdx, addedValue)
+          } else {  // the variable is filtered out before, need to be inserted into the store
+            val ar = newResultObj(addedValue, id, name, false, vectorIdx)
+            stores += ar
+            indexes += ((ar.key, stores.size-1))
+          }
+      }
+    }
+  }
       case _ =>
         val idx = indexes(ResultKey(id,x,None))
         add(idx, None, v)

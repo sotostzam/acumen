@@ -509,8 +509,9 @@ object Common {
 
   val specialFields = List("nextChild","parent","className","seed1","seed2")
 
-  def threeDField(name: String) = 
-    name == "_3D" || name == "_3DView"
+  /** special field for 3D view and _plot */
+  def specialField(name: String) =
+    name == "_3D" || name == "_3DView" || name == "_plot"
       
   def patternVariable(name:String) = 
     name.split("__")(0) == "Pattern"

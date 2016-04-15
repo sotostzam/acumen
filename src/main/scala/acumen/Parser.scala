@@ -146,7 +146,7 @@ object Parser extends MyStdTokenParsers {
   lexical.reserved ++=
     List("foreach", "end", "if", "else","elseif", "create", "move", "in", "terminate", "model","then","initially","always",
          "sum", "true", "false", "init", "match","with", "case", "type", "claim", "hypothesis", "let","noelse",
-         "Initial", "Continuous", "Discrete", "FixedPoint", "none","cross","do","dot","for","_3D")
+         "Initial", "Continuous", "Discrete", "FixedPoint", "none","cross","do","dot","for","_3D", "_plot")
 
   /* token conversion */
 
@@ -243,7 +243,9 @@ object Parser extends MyStdTokenParsers {
 
   def init = name ~! "=" ~! initrhs ^^ { case x ~ _ ~ rhs => Init(x, rhs) }|
              "_3D" ~ "=" ~ threeDRhs ^^ {
-             	case _ ~ _ ~ ls => Init(Name("_3D",0), ExprRhs(ls))}
+             	case _ ~ _ ~ ls => Init(Name("_3D",0), ExprRhs(ls))} |
+             "_plot" ~ "=" ~ plotRhs ^^ {
+              case _ ~ _ ~ ls => Init(Name("_plot",0), ExprRhs(ls))}
 
   def initrhs =
     ("create" ~! className ~! args(expr) ^^ { case _ ~ cn ~ es => NewRhs(Var(Name(cn.x,0)), es) }
@@ -314,7 +316,7 @@ object Parser extends MyStdTokenParsers {
 
   def discretelyOrContinuously =
     (newObject(None) ^^ Discretely | elim ^^ Discretely 
-      | move ^^ Discretely | patternMatch | assignOrEquation | _3DAction)
+      | move ^^ Discretely | patternMatch | assignOrEquation | _3DAction | _plotAction)
 
   def assignOrEquation =
     // Make sure lhs won't be an expr like a == b, which has the same syntax as equation
@@ -624,6 +626,16 @@ object Parser extends MyStdTokenParsers {
     }
 
   }
+
+  def _plotAction =
+    "_plot" ~ "="  ~ plotRhs ^^ {
+      case _ ~ _ ~ ls => Continuously(Equation(Var(Name("_plot",0)), ls))}|
+    "_plot" ~ "+"~"="  ~ plotRhs ^^ {
+      case _ ~ _~_ ~ ls => Discretely(Assign(Var(Name("_plot",0)), ls))
+    }
+
+  def plotRhs = parens(repsep(expr, ",")) ^^ { case es => ExprVector(es.map(e => Lit(GStr(Pretty pprint e)))) }
+
   /* interpreter configurations parser */
 
   def store: Parser[CStore] =

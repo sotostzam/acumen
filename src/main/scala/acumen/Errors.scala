@@ -362,6 +362,21 @@ object Errors {
     override def getMessage =
       s + " is not yet implemented."
   }
+
+  case class UnsupportedPlotType(s:String) extends AcumenError {
+    override def getMessage =
+      s"The expression $s can not be plotted. Only variable names are supported in _plot."
+  }
+
+  case class NonexistentVariableForPlot(s:String, objName: String) extends AcumenError {
+    override def getMessage =
+      s"The variable name $s is not defined in model $objName."
+  }
+
+  case class DuplicatesForPlot(objName: String) extends AcumenError {
+    override def getMessage =
+      s"There are duplicates for plotting in model $objName."
+  }
   
   /* Device Input Error */
   case class invalidInput(s: String) extends AcumenError {

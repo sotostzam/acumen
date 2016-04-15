@@ -392,7 +392,7 @@ object Common {
           val oldVal = v.prevSetVal
           if (oldVal == nv) noChange
           // _3D and _3DView are special objects, not interferring with reaching a FixedPoint
-          else if (f.x != "_3D" && f.x != "_3DView") {
+          else if (f.x != "_3D" && f.x != "_3DView" && f.x != "_plot") {
             if (oldVal.yieldsPlots != nv.yieldsPlots)
               throw new UnsupportedTypeChangeError(f, o.id, getClassOf(o), oldVal, nv, 
                                                    "These values require a different number of plots")
