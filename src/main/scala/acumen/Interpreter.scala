@@ -361,8 +361,7 @@ abstract class FilterDataAdder(var opts: CStoreOpts) extends DataAdder {
     val className = classOf(e)
     if (!names.contains(Name("_plot", 0))) null
     else {
-      val plotFiler = ListBuffer[Name]()
-      e.foreach { o =>
+      e.foldLeft (List.empty[Name]) { (p: List[Name], o: (Name, GValue)) =>
         val name = o._1
         val value = o._2
         if (name.x == "_plot")
@@ -370,14 +369,14 @@ abstract class FilterDataAdder(var opts: CStoreOpts) extends DataAdder {
             case VVector(l) =>
               if (l.nonEmpty && l.distinct.size != l.size)  // check whether there are duplicates in _plot
                 throw DuplicatesForPlot(className.x)
-              else if (l.nonEmpty)
-                l.foreach( v => plotFiler += extractVariableName(v, names, className) )
+              else if (l.nonEmpty) p ::: l.map( v => extractVariableName(v, names, className) )
+              else p
             case VLit(GStr(v)) =>
-              plotFiler += parseVariableName(v)
+              p :+ parseVariableName(v)
             case _ => throw UnsupportedPlotType(value.toString)
           }
+        else p
       }
-      plotFiler.toList
     }
   }
   /** Extract the variable from GValue to a Name */
