@@ -181,6 +181,7 @@ class App extends SimpleSwingApplication {
   private val resetDeviceNum                  = mkAction(    "Reset Device",                        NONE, NONE,       resetDevice())
   private val contractionAction               = mkActionMask("Contraction",                         VK_C, VK_C,       shortcutMask | SHIFT_MASK, toggleContraction())
   private val normalizeAction                 = mkAction(    "Normalize (to H.A.)",                 VK_N, NONE,       toggleNormalization())
+  private val btaAction                       = mkAction(    "BTA",                                 VK_N, NONE,       toggleBTA())
   private val manualAction                    = mkAction(    "Reference Manual",                    VK_M, VK_F1,      manual)
   private val aboutAction                     = new Action(  "About")       { mnemonic =            VK_A; def apply = about }
   private val licenseAction                   = new Action(  "License")     { mnemonic =            VK_L; def apply = license }
@@ -529,7 +530,13 @@ class App extends SimpleSwingApplication {
       mnemonic = Key.S
       contents ++= Seq(playMenuItem, stepMenuItem, stopMenuItem)
     }
-
+    
+    val bta = new RadioMenuItem(""){
+        selected = false
+        enableWhenStopped(this)
+        action = btaAction
+      }
+    
     object semantics {
       val ref2015 = new RadioMenuItem("") {
         selected = false
@@ -629,6 +636,7 @@ class App extends SimpleSwingApplication {
         mnemonic = Key.T
         contents += ref2015
         contents += opt2015
+        contents += bta
       }
       contents += new Menu("Enclosure") {
         mnemonic = Key.E
@@ -663,7 +671,14 @@ class App extends SimpleSwingApplication {
       contents += new MenuItem(licenseAction) 
     }
   }
-
+  def toggleBTA() = {
+    import Main.extraPasses
+    if (extraPasses.contains("BTA")) 
+      extraPasses = extraPasses.filter(_ != "BTA")
+    else
+      extraPasses = extraPasses :+ "BTA"
+  }
+  
   def toggleNormalization() = {
     import Main.extraPasses
     if (extraPasses.contains("normalize")) 

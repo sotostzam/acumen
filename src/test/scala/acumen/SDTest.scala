@@ -78,7 +78,7 @@ object SDTest extends Properties("SD") {
 
   property("PD on addition of identity functions") = {
     forAll(mkPlusExpr(x)) { (e: Expr) =>
-      SD.hashFlag = false
+      //SD.hashFlag = false
       val time1 = Platform.currentTime
       val (expr, newbindings) = dif(e, x.name, ctx2, Nil).pair
       val bindings = mkBindings(newbindings)

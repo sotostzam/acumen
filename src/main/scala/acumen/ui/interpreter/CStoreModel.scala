@@ -219,7 +219,7 @@ class CStoreModel(ops: CStoreOpts) extends InterpreterModel {
         case (sts:DoubleResultCollector, _) =>  sts += extractDoubleNoThrow(v)
         case (sts:GenericResultCollector, _) => sts += v
       }
-    if(x.x.split("__")(0) == "pattern")
+    if(x.x.split("__")(0) == "pattern" || x.x.contains("@@"))
       ()
     else
     (x.x, v) match {

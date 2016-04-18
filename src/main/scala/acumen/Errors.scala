@@ -372,6 +372,12 @@ object Errors {
     override def getMessage =
       id + " is an invalid device ID, please check the devices that connected to Acumen."
   }
+  case class GEVarsNotEqualToEquations(equations:List[Equation], vars:List[Var]) extends AcumenError{
+    override def getMessage = 
+      "Found " + equations.length + " equations and " + vars.length + " indireced variables " + 
+       vars.map(x => pprint(x.asInstanceOf[Expr])).mkString(",") + "\n" +
+       equations.map(x => pprint(x.lhs) + " = " + pprint(x.rhs) + "\n").mkString("\n")
+  }
 
   /* utility class */
   case class ObjField(o: CId, cn: String, f: Name) {

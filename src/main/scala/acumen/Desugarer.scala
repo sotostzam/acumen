@@ -3,10 +3,27 @@ package acumen
 import Errors._
 import util.Names._
 import Pretty._
+import interpreters.Common._
 sealed abstract class ODETransformMode
 case object Local extends ODETransformMode
 case object LocalInline extends ODETransformMode
 case object TopLevel extends ODETransformMode
+object GenSym{
+  private var counter = 0;
+  def gensym(vs:List[Expr]):Var = {
+    counter = counter + 1
+    def getNames(ns:List[Expr]):String = {
+      ns.map(x => x match{
+        case Var(name) => name.x
+        case Dot(e,n) => n.x
+        case Pattern(ls) => getNames(ls)
+        case _ => "z" + "@@" + counter
+      }).mkString("")
+    }
+    Var(Name(getNames(vs)+"_",0)) 
+  }
+  def clear() = counter = 0
+}
 
 /**
  * @param odeTransformMode Configures the way in which higher-order continuous 
