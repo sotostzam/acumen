@@ -22,10 +22,10 @@ import annotation.tailrec
 object BindingTimeAnalysis {
   import Specialization._
   type Label = Int
-  type ScopeEnv = scala.collection.mutable.Map[Var, Label]
-  type LabelEnv = scala.collection.mutable.Map[Label, ScopeEnv]
-  def emptyScopeEnv = scala.collection.mutable.Map[Var, Label]()
-  def emptyLabelEnv = scala.collection.mutable.Map[Label, ScopeEnv]()
+  type ScopeEnv = scala.collection.immutable.Map[Var, Label]
+  type LabelEnv = scala.collection.immutable.Map[Label, ScopeEnv]
+  def emptyScopeEnv = scala.collection.immutable.Map[Var, Label]()
+  def emptyLabelEnv = scala.collection.immutable.Map[Label, ScopeEnv]()
   def initLabelEnv = emptyLabelEnv + ((root, emptyScopeEnv))
   /* The starting point of label */
   def root = -1
@@ -223,7 +223,7 @@ object BindingTimeAnalysis {
           val initResult = labelListAst(privs, label, new EnvVars())
           val (afields,counter,aenv) = 
             fields.foldLeft((List[AName[Label]](),initResult._2,new EnvVars()))((r,field) =>
-              (AName(field, r._2) :: r._1, r._2 + 1,  r._3 += (Var(field) -> r._2))
+              (AName(field, r._2) :: r._1, r._2 + 1,  r._3 + (Var(field) -> r._2))
             )
           val actionResult = labelListAst(body, counter, root, initLabelEnv)(fields ::: priVars)
           (AClassDef(cName, afields, initResult._1, actionResult._1), aenv, actionResult._2, actionResult._3)
@@ -243,7 +243,7 @@ object BindingTimeAnalysis {
   def labelListAst(inits: List[Init], initLabel: Label, initEnv: EnvVars): (List[AInit[Label]], Label, EnvVars) = {
     val result = inits.foldLeft( (List[AInit[Label]](), initLabel,new EnvVars()))((r, x) => {
       val ainit = AInit(AVar(x.x, r._2), x.rhs)
-      (ainit::r._1, r._2 + 1, r._3 += (Var(x.x) -> r._2) )
+      (ainit::r._1, r._2 + 1, r._3 + (Var(x.x) -> r._2) )
     })
     (result._1.reverse, result._2, result._3)
   }
@@ -273,8 +273,8 @@ object BindingTimeAnalysis {
     }).toSet.toList
   }
   // Map with bindings of variable to its label, which stay constant during BTA phase
-  type EnvVars = scala.collection.mutable.HashMap[Var, Label]
-  type LabelKnowledge = scala.collection.mutable.HashMap[Int, Boolean]
+  type EnvVars = scala.collection.immutable.HashMap[Var, Label]
+  type LabelKnowledge = scala.collection.immutable.HashMap[Int, Boolean]
   val emptyCs: List[Constraint] = List.empty
 
   // Traversal ast and generate constraints
@@ -310,16 +310,16 @@ object BindingTimeAnalysis {
     case ADot(aexpr, n, l) => List(Unknown(l)) ::: traversal(aexpr, env)
     case ASum(ae, i, acol, acond, l) =>
       NLT(ae.an, l) :: NLT(acond.an, l) :: NLT(acol.an, l) :: NLT(acol.an, i.an) ::
-        traversal(acond, (env += (i.expr -> i.an))) :::
+        traversal(acond, (env + (i.expr -> i.an))) :::
         traversal(acol, env) :::
-        traversal(ae, (env += (i.expr -> i.an)))
+        traversal(ae, (env + (i.expr -> i.an)))
 
     case AExprVector(es, l) =>
       es.map(x => NLT(x.an, l)) :::
         es.foldLeft(List[Constraint]())((r, x) => traversal(x, env) ::: r)
 
     case AExprLet(bindings, expr, l) => {
-      val newEnv = bindings.foldLeft(env)((r, x) => r += (Var(x._1.name) -> x._1.an))
+      val newEnv = bindings.foldLeft(env)((r, x) => r + (Var(x._1.name) -> x._1.an))
       bindings.foldLeft(List[Constraint]())((r, x) => traversal(x._2, newEnv) ::: r) :::
         bindings.map(x => NLT(x._2.an, x._1.an)) :::
         List(NLT(expr.an, l)) :::
