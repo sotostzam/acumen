@@ -1,0 +1,220 @@
+// Dynamic of the QuadCopter system
+
+model QuadCopter(P,phi,theta,psi) =
+initially
+  g = 9.81,     m = 0.468,                
+  l = 0.225,    k = 2.98*10^(-6),
+  b = 1.140*10^(-7), 
+  IM = 3.357*10^(-5),  
+  Ixx = 4.856*10^(-3), 
+  Iyy = 4.856*10^(-3),    
+  Izz = 8.801*10^(-3),  
+  Ax  = 0.25,  Ay  = 0.25, 
+  Az  = 0.25, 
+  w1 = 0,  w2= 0,   w3 = 0,                  
+  w4 = 0,  wT = 0,  f1 = 0, 
+  f2 = 0,  f3 = 0,  f4 = 0,                  
+  TM1 = 0, TM2 = 0, T = 0, 
+  TM3 = 0, TM4 = 0,
+  P' = (0,0,0),    P'' = (0,0,0),
+  phi' = 0, theta' = 0, psi' = 0,
+  phi'' = 0, theta'' = 0, psi'' = 0, 
+  p = 0, q = 0, r = 0, p' = 0,      
+  q' = 0, r' = 0, Ch=0, Sh=0,
+  Sp=0, Cp=0, St=0, Ct=0, Tt=0
+always
+  T = k* (w1^2 + w2^2 + w3^2 + w4^2),
+  f1 = k * w1^2, TM1 = b * w1^2,
+  f2 = k * w2^2, TM2 = b * w2^2,
+  f3 = k * w3^2, TM3 = b * w3^2,
+  f4 = k * w4^2, TM4 = b * w4^2,
+  wT = w1 - w2 + w3 - w4,
+
+  Ch = cos(phi), Sh = sin(phi),
+  Sp = sin(psi), Cp = cos(psi),
+  St = sin(theta), Ct = cos(theta), 
+  Tt = tan(theta),
+
+  P'' = -g * (0,0,1) + T/m
+   *(Cp*St*Ch+Sp*Sh,Sp*St*Ch-Cp*Sh,Ct*Ch) 
+   -1/m*(Ax*P'(0),
+         Ay*P'(1),
+         Az*P'(2)),          
+  p' = (Iyy-Izz)*q*r/Ixx - IM*q/Ixx*wT
+   + l*k*(w4^2 - w2^2)/Ixx,
+  q' = (Izz-Ixx)*p*r/Iyy-IM*(-p)/Iyy*wT
+   + l*k*(w3^2 -w1^2)/Iyy,
+  r' = (Ixx - Iyy)*p*q/Izz  + b*(w1^2  
+   + w2^2 -w3^2 -w4^2)/Izz,
+  phi'' = (phi'*Ch*Tt+ theta'*Sh/Ct^2)*q 
+   + (-phi'*Sh*Ct+theta'*Ch/Ct^2)*r 
+   + (p'+q'*Sh*Tt+r'*Ch*Tt),
+  theta'' = (-phi'*Sh)*q + (-phi'*Ch)*r 
+   + (q'*Ch+r'*(-Sh)),
+  psi'' = (phi'*Ch/Ct+phi'*Sh*Tt/Ct)*q 
+   + (-phi'*Sh/Ct+theta'*Ch*Tt/Ct)*r 
+   + (q'*Sh/Ct+r'*Ch/Ct)
+
+
+// Objective is drive the quadcopter to hover position(all angle to zero)
+model PDController(z,phi,theta,psi,zp,phip,thetap,psip) = 
+initially
+  // Target height and angles 
+  zd  =  2 , phid  =  0, thetad  =  0 , psid  =  0 ,
+  errorZ  =  0 , errorZP  =  0 ,
+  errorPhi  =  0 , errorPhiP  =  0 ,
+  errorTheta  =  0 , errorThetaP  =  0 , 
+  errorPsi  =  0 , errorPsiP  =  0 , 
+  Kzd  =  2.5 , Kzp  =  1.5 ,
+  Kpd  =  1.75 ,Kpp  =  6 ,
+  Ktd  =  1.75 ,Ktp  =  6 ,
+  Kpsd  =  1.75 ,Kpsp  =  6 ,
+  Ixx  =  4.856*10^(-3) ,// kg m2
+  Iyy  =  4.856*10^(-3) ,// kg m2
+  Izz  =  8.801*10^(-3) ,// kg m2
+  g  =  9.81 ,  // m/s2
+  m  =  0.468 , // kg
+  l  =  0.225 , // m
+  k  =  2.98*10^(-6) ,
+  b  =  1.140*10^(-7) ,
+  T  =  0 ,
+  _3D = (),
+  torqueP  =  0 , torqueT  =  0 , torquePsi  =  0 ,
+  w1  =  0 , w2  =  0 , w3  =  0 , w4  =  0  // Output control signal
+always
+  errorZ = zd - z ,
+  errorPhi = phid - phi ,
+  errorTheta = thetad - theta ,
+  //errorPsi  = psid - psi ,
+  errorZP = 0 - zp ,
+  errorPhiP = 0 - phip ,
+  errorThetaP = 0 - thetap ,
+  //errorPsiP  = 0 - psip ,
+    
+  T = (g + Kzd*(errorZP) + Kzp*(errorZ))*m/(cos(phi)*cos(theta)) ,
+  torqueP = (Kpd*(errorPhiP)+Kpp*(errorPhi))*Ixx ,
+  torqueT = (Ktd*(errorThetaP)+Ktp*(errorTheta))*Iyy ,
+  torquePsi = (Kpsd*(errorPsiP)+Kpsp*(errorPsi))*Izz ,
+    
+  w1 = sqrt(abs(T/(4*k) - torqueT/(2*k*l) - torquePsi/(4*b))) ,
+  w2 = sqrt(abs(T/(4*k) - torqueP/(2*k*l) + torquePsi/(4*b))) ,
+  w3 = sqrt(abs(T/(4*k) + torqueT/(2*k*l) - torquePsi/(4*b))) ,
+  w4 = sqrt(abs(T/(4*k) + torqueP/(2*k*l) + torquePsi/(4*b))),
+
+  _3D = (Sphere center = (1.9,0,zd) color = green size = 0.1,
+         Sphere center = (-1,0,0) color = red size = 0.1)
+
+model VisualCopter(p,roll,pitch,yaw) = // Global position and orientation
+initially
+  l  =  2 ,
+  rotor4p  =  (0,1,0) ,
+  rotor2p  =  (0,-1,0) ,
+  rotor1p  =  (1,0,0) ,
+  rotor3p  =  (-1,0,0) ,
+  _3D  =  ()
+always
+  rotor4p = p+(l/2 * cos(roll) * sin(yaw), l/2 * cos(roll) * cos(yaw),l/2 * sin(roll)) ,
+  rotor2p = p-(l/2 * cos(roll) * sin(yaw), l/2 * cos(roll) * cos(yaw),l/2 * sin(roll)) ,
+  rotor3p = p+(-1*l/2 * cos(pitch) * cos(yaw), l/2 * cos(pitch) * sin(yaw),l/2 * sin(pitch)) ,
+  rotor1p = p-(-1*l/2 * cos(pitch) * cos(yaw), l/2 * cos(pitch) * sin(yaw),l/2 * sin(pitch)) ,
+  _3D = (Cylinder center=rotor1p radius=0.3 length=0.04 color=(0.5,0.5,0.5) rotation=(pi/2+roll,pitch,0) , // Rotor1
+         Cylinder center=rotor3p radius=0.3 length=0.04 color=(0.5,0.5,0.5) rotation=(pi/2+roll,pitch,0) , // Rotor3
+         Cylinder center=rotor2p radius=0.3 length=0.04 color=(0.5,0.5,0.5) rotation=(pi/2+roll,pitch,0) , // Rotor2
+         Cylinder center=rotor4p radius=0.3 length=0.04 color=(0.5,0.5,0.5) rotation=(pi/2+roll,pitch,0) , // Rotor4
+         Cylinder center=p radius=0.02 length=2 color=(1,0,0) rotation=(roll,0,-yaw) ,  //Local y-axis
+         Cylinder center=p radius=0.02 length=2 color=(0,0,1) rotation=(pitch,0,-yaw+pi/2) )  // Local x-axis
+model Display_bar1 (v,c,D) = 
+initially
+  roll = 0 ,
+  pitch = 0 ,
+  // Arrow
+  _3D = (Cylinder center=D 
+         radius=0.02 length=v color=c 
+         rotation=(-3.14159265359/2,0,0),
+         Cone  center=D 
+         radius=0.02 length=v color=c 
+         rotation=(-3.14159265359/2,0,0))
+always
+  c = (3,3,0) ,
+  _3D = (Cylinder center=D+(-sin(pitch)*v/2,0,-v/2)
+        radius=0.04 length=v color=c
+        rotation=(-3.14159265359/2,roll+pitch,0),
+        Cone center=D+(-sin(pitch)*0.1/2,0,-0.1/2-0.05)
+        radius=0.1 length=0.1 color=c
+        rotation=(pi/2,roll+pitch,0))
+           
+model Main(simulator) = 
+initially
+  mode  =  "Init" ,
+  copter  =  create QuadCopter((-1,0,0),0,0.4,0) ,
+  visual  =  create VisualCopter((2.2,0,2),0,-0.5,0) ,
+  f1  =  create Display_bar1(0,(0.1,0.8,0.1),(1,0,0)) ,
+  f2  =  create Display_bar1(0,(0.1,0.8,0.1),(0,-1,0)) ,
+  f3  =  create Display_bar1(0,(0.1,0.8,0.1),(-1,0,0)) ,
+  f4  =  create Display_bar1(0,(0.1,0.8,0.1),(0,1,0)) ,
+  // Controller
+  controller  =  create PDController(10,0.2,0.2,0.2,0,0,0,0) ,
+  flag  =  0 ,
+  max  =  0.00001 
+always
+  f2.roll = visual.roll ,
+  f4.roll = visual.roll ,
+  f1.roll = visual.roll ,
+  f3.roll = visual.roll ,
+  f2.pitch = visual.pitch ,
+  f4.pitch = visual.pitch ,
+  f1.pitch = visual.pitch ,
+  f3.pitch = visual.pitch ,
+  
+  f1.v = (copter.w1 - max)/5,
+  f1.D = visual.rotor1p ,
+  f2.v = (copter.w2 - max)/5,
+  f2.D = visual.rotor2p ,
+  f3.v = (copter.w3 - max)/5,
+  f3.D = visual.rotor3p ,
+  f4.v = (copter.w4 - max)/5,
+  f4.D = visual.rotor4p ,
+
+
+  if copter.w1 < copter.w2 && copter.w1 < copter.w3 && copter.w1 < copter.w4 then
+    max = copter.w1
+  noelse,
+  if copter.w2 < copter.w1 && copter.w2 < copter.w3 && copter.w2 < copter.w4 then
+    max = copter.w2
+  noelse,
+  if copter.w3 < copter.w1 && copter.w3 < copter.w2 && copter.w3 < copter.w4 then
+    max = copter.w3
+  noelse,
+  if copter.w4 < copter.w1 && copter.w4 < copter.w2 && copter.w4 < copter.w3 then
+    max = copter.w4
+  noelse,
+  simulator.timeStep + = 0.01,
+
+  
+  match mode with [
+    "Init" ->
+      //simulator.endTime + = 6.0 ,
+      //simulator.timeStep + = 0.001 ,
+      controller.z = (copter.P dot (0,0,1)) ,
+      controller.zp = (copter.P' dot (0,0,1)) ,
+      controller.phi = copter.phi ,
+      controller.theta = copter.theta ,
+      controller.psi = copter.psi ,
+      controller.phip = copter.phi' ,
+      controller.thetap = copter.theta' ,
+      controller.psip = copter.psi' ,  
+      //controller.timeStep = simulator.timeStep ,    
+  
+      copter.w1 = controller.w1 , 
+      copter.w2 = controller.w2 ,   
+      copter.w3 = controller.w3 ,   
+      copter.w4 = controller.w4 ,      
+
+      visual.p = copter.P ,
+      visual.roll = copter.phi ,
+      visual.pitch = copter.theta ,
+      visual.yaw = copter.psi 
+      
+  | "Persist" -> ]
+
+ 

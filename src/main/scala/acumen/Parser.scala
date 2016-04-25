@@ -438,6 +438,7 @@ object Parser extends MyStdTokenParsers {
       | colVector	
       | parens(rep2sep(expr, ",")) ^^ ExprVector
       | gvalue ^^ Lit
+      
       )
 
 
@@ -682,7 +683,7 @@ object Parser extends MyStdTokenParsers {
   def field = name ~! "=" ~! value ^^ { case x ~ _ ~ v => (x, v) }
 
   def value: Parser[CValue] =
-    gvalue ^^ VLit | vObjId | vClassName | vStepType
+    gvalue ^^ VLit | vObjId | vClassName | vStepType | parens(value)
 
   def objid = cidLit ^^ toCId
 

@@ -7,6 +7,7 @@ package acumen
 import Specialization._
 import GenSym._
 import Pretty._
+import Errors._
 
 /**
  * Hashed version of symbolic differentiation
@@ -81,20 +82,16 @@ object SD {
   private def runClause(c: Clause, vars: List[Var]): Clause = Clause(c.lhs, runExpr(c.assertion, vars), c.rhs map (runAction(_, vars)))
 
   /**
-   * Apply symbolic differentiation (dif) to an expression.
-   * This is done by traversing the expression tree, looking for subexpressions
-   * of the form "dif(f)(n)". Such subexpressions are then replaced with the
-   * result of applying the dif function.
+   * This function merely checks the existence of symbolic differentiation operator
+   * without enabling the partial evaluator
    */
   private def runExpr(e: Expr, vars: List[Var]): Expr =
     e match {
       /* Unary function */
       case Op(opName, args) => opName.x match {
-        case "dif" => args match {
-          // f is the funciton that we are diffing, 
-          // n is the variable w.r.t which we are diffing 
-          case List(f, Var(n)) => Op(opName, args) 
-        }
+        case "dif" => 
+          // Reaching this point means having partial derivative without enabling BTA
+          throw symbolicDifWithoutBTA(e)
         // Example: 1 + dif(x^2)
         case _ => Op(opName, args.map(runExpr(_, vars)))
       }
@@ -143,6 +140,7 @@ object SD {
         }
       }
     }
+  
   private def mem(e1: Expr,e2:Expr,neweqs:List[Action]): (Expr,List[Action]) =
     ctx.get(e1) match {
       /* If the expression already exists in the context, return the 
@@ -175,7 +173,17 @@ object SD {
       case Dot(_,_) => new HashExpr(e,Nil)
       case Lit(GDouble(value)) => literal(value)
       case Var(n) => variable(n)
-      case Op(Name(f,_),es) => op(f,es.map(x=> HashExpr(x)))
+      case Op(Name(f,_),es) => (f, es) match{
+        case ("+",Lit(GInt(0)) :: e :: Nil ) => HashExpr(e)
+        case ("+",e :: Lit(GInt(0)) :: Nil ) => HashExpr(e)
+        case ("*",Lit(GInt(0)) :: e :: Nil ) => literal(0)
+        case ("*",e :: Lit(GInt(0)) :: Nil ) => literal(0)
+        case ("*",Lit(GInt(1)) :: e :: Nil ) => HashExpr(e)
+        case ("*",e :: Lit(GInt(1)) :: Nil ) => HashExpr(e)
+        case _ => op(f,es.map(x=> HashExpr(x)))
+      }
+        
+        
       case ExprVector(es) => HashVector(es.map(x=> HashExpr(x)))
       
   }
@@ -264,16 +272,15 @@ object SD {
    }
     
    }
-   class HashVector(expr:Expr,eqs:List[Action]) extends HashExpr(expr,eqs)
-   object HashVector{
-     def apply(es:List[HashExpr]):HashExpr = {    
-      val hop = ExprVector(es.map(x => x.expr)) 
-      val neweqs = es.foldLeft(List[Action]())((r,x) => x.eqs ::: r).toSet.toList
+  class HashVector(expr: Expr, eqs: List[Action]) extends HashExpr(expr, eqs)
+  object HashVector {
+    def apply(es: List[HashExpr]): HashExpr = {
+      val hop = ExprVector(es.map(x => x.expr))
+      val neweqs = es.foldLeft(List[Action]())((r, x) => x.eqs ::: r).toSet.toList
       val em = mem(hop);
-      new HashExpr(em._1,em._2:::neweqs)
-      
-     }
-   }
+      new HashExpr(em._1, em._2 ::: neweqs)
+    }
+  }
      
   /* Smart constructors */ // TODO Make regular constructors private to force use of these. 
 
@@ -563,17 +570,16 @@ object SD {
             else
               None
           case (_,_) => None
-        }             
-    case Continuously(e@Equation(lhs,rhs))  => lhs match{
-      case Var(n) =>
-        if(n.x == v.name.x && ((n.primes > v.name.primes) ||(n.primes == v.name.primes)) ){
-          Some(a)
         }
-        else{
-          None
-          }          
-    }
-    case _ => None
+      case Continuously(e @ Equation(lhs, rhs)) => lhs match {
+        case Var(n) =>
+          if (n.x == v.name.x && ((n.primes > v.name.primes) || (n.primes == v.name.primes))) {
+            Some(a)
+          } else {
+            None
+          }
+      }
+      case _ => None
     }
   }
 }

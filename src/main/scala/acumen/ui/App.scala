@@ -530,12 +530,13 @@ class App extends SimpleSwingApplication {
       mnemonic = Key.S
       contents ++= Seq(playMenuItem, stepMenuItem, stopMenuItem)
     }
-    
-    val bta = new RadioMenuItem(""){
-        selected = false
-        enableWhenStopped(this)
-        action = btaAction
-      }
+
+    val bta = new RadioMenuItem("") {
+      import Main.extraPasses
+      selected = extraPasses.contains("BTA")
+      enableWhenStopped(this)
+      action = btaAction
+    }
     
     object semantics {
       val ref2015 = new RadioMenuItem("") {
@@ -636,7 +637,6 @@ class App extends SimpleSwingApplication {
         mnemonic = Key.T
         contents += ref2015
         contents += opt2015
-        contents += bta
       }
       contents += new Menu("Enclosure") {
         mnemonic = Key.E
@@ -648,7 +648,7 @@ class App extends SimpleSwingApplication {
           mnemonic = Key.D
           contents ++= Seq(ref2014, opt2014, new Separator, ref2013, opt2013, new Separator, ref2012, opt2012, par2012)
         }
-        contents ++= Seq(new Separator, lc)
+        contents ++= Seq(new Separator, bta, lc)
       }
     }
 
@@ -967,6 +967,8 @@ class App extends SimpleSwingApplication {
     threeDtab.setCheckBoxes(false)
     threeDtab.disableButtons()
     controller ! Play
+     // Clear the hash table every time a new simulation runs
+    SD.clear
   }
   
   /** Everything that needs to compute one simulation step. */

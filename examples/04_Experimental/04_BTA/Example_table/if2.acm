@@ -1,0 +1,8 @@
+model Main(simulator)=
+ initially x= 0,y=0
+ always
+  y = 1,
+  if y > 2 then
+   x= 1
+   else
+   x = 2

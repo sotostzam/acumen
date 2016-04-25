@@ -6,14 +6,15 @@ import Simplifier._
 import SymbolicCommon._
 import interpreters.Common._
 import annotation.tailrec
- 
-/** Partial evaluator that specializes annotated program based on BTA result
+
+/**
+ * Partial evaluator that specializes annotated program based on BTA result
  *  Assumption:  Equations are reordered based on dependence (DAG)
  *  @param subs: substitution function
  *  @Result: Specialized expression and additional equations due to hash-consing
- * */
+ */
 object Specialization {
- 
+
   def specialize(aexpr: AExpr[Label], bta: Map[Label, Constraint], env: Map[Expr, Expr], conditionalAction: List[Action], subs: Expr => Expr): (Expr, List[Action]) = {
     val specializeE = specialize(_: AExpr[Label], bta, env, conditionalAction, subs)
     val inlineE = inline(_: Expr, env)
@@ -29,12 +30,12 @@ object Specialization {
     aexpr match {
       case ALit(gv, l)        => ((Lit(gv)), Nil)
       case AVar(name, l)      => (subs(Var(name)), Nil)
-      case ATypeOf(cn,l)   =>    (TypeOf(cn), Nil)
+      case ATypeOf(cn, l)     => (TypeOf(cn), Nil)
       case ADot(aer, name, l) => (Dot(aer.expr, name), Nil)
       case AExprVector(es, l) => specializeEs(es) match {
         case (aes, aas) => (ExprVector(aes), aas)
       }
-    
+
       case ASum(ae, ai, acol, acond, l) =>
         val i = ai.expr
         val btaNew = bta + ((ai.an, Known(ai.an)))
@@ -57,9 +58,9 @@ object Specialization {
         val newEnv_newRhs =
           bs.foldLeft((env, List[(Name, Expr)]())) {
             case (r, (bv, bExpr)) =>
-              
-              (r._1 + (bv.expr -> specialize(bExpr, bta, r._1, conditionalAction, subs)._1), 
-              (bv.name, specialize(bExpr, bta, r._1, conditionalAction, subs)._1) :: r._2  )
+
+              (r._1 + (bv.expr -> specialize(bExpr, bta, r._1, conditionalAction, subs)._1),
+                (bv.name, specialize(bExpr, bta, r._1, conditionalAction, subs)._1) :: r._2)
           }
         bta(l) match {
           case Known(_)   => specialize(expr, bta, newEnv_newRhs._1, conditionalAction, subs)
@@ -132,6 +133,7 @@ object Specialization {
           case _ =>
             // Perform eval function at the value level when all elements are reduced to Lit
             exprsToValues(es.map(x => inline(x, newenv))) match {
+              // Invoke the Common.evalop function to evaluate doubles/intervals accordingly
               case Some(ls) => evalOp(f.x, ls) match {
                 case VLit(gv)   => (Lit(gv), newEquation)
                 case VVector(l) => (ExprVector(l.asInstanceOf[List[VLit]] map (x => Lit(x.gv))), newEquation)
@@ -146,14 +148,14 @@ object Specialization {
                 case (op, ExprVector(ls) :: Lit(n) :: Nil) =>
                   (symBinVectorScalarOp(op, ExprVector(ls), Lit(n)), newEquation)
                 case (op, ExprVector(ls1) :: ExprVector(ls2) :: Nil) =>
-                  (symBinVectorOp(op, ExprVector(ls1), ExprVector(ls2)), newEquation)               
+                  (symBinVectorOp(op, ExprVector(ls1), ExprVector(ls2)), newEquation)
                 case _ => (Op(f.x, es), newEquation)
               }
             }
         }
     }
   }
-  
+
   def specialize(aaction: AAction[Label], bta: Map[Label, Constraint], env: Map[Expr, Expr], dvars: List[Var],
                  conditionalAction: List[Action], subs: Expr => Expr): (List[Action], Map[Expr, Expr], List[Action]) = {
     val specializeE = specialize(_: AExpr[Label], bta, env, conditionalAction, subs)
@@ -174,14 +176,14 @@ object Specialization {
       case AForEach(i, q, aes, l) => {
         inlineE(specializeE(q)._1) match {
           case ExprVector(es) =>
-            val sActions_neqs = (0 to es.length - 1).toList.foldLeft((List[Action](),List[Action]())){
-              case ((sactions,neqs),j) =>
+            val sActions_neqs = (0 to es.length - 1).toList.foldLeft((List[Action](), List[Action]())) {
+              case ((sactions, neqs), j) =>
                 val newEnv = env + (Var(i) -> es(j))
                 val newactions = aes.map(a =>
-                specialize(a, bta, newEnv, dvars, conditionalAction, mksub(Var(i), es(j)) compose subs))
-            ((newactions.map(x => x._1)).flatten.reverse ::: sactions,
-              newactions.map(x => x._3).flatten ::: neqs)
-            }          
+                  specialize(a, bta, newEnv, dvars, conditionalAction, mksub(Var(i), es(j)) compose subs))
+                ((newactions.map(x => x._1)).flatten.reverse ::: sactions,
+                  newactions.map(x => x._3).flatten ::: neqs)
+            }
             (sActions_neqs._1, env, sActions_neqs._2.toSet.toList)
           case eq =>
             val newActions = (aes.map(a => specialize(a, bta, env, dvars, conditionalAction, mksub(Var(i), Var(i)))._1)).flatten
@@ -205,16 +207,16 @@ object Specialization {
         }
       case ASwitch(cond, clauses, l) => {
         val sclausesTuple = clauses.map { c =>
-            val sc = specializeListActions(c.rhs, bta, env, dvars, conditionalAction)
-            (Clause(c.lhs, specializeE(c.assertion)._1, sc._1), sc._3)
-          }
+          val sc = specializeListActions(c.rhs, bta, env, dvars, conditionalAction)
+          (Clause(c.lhs, specializeE(c.assertion)._1, sc._1), sc._3)
+        }
         // specialized clauses and any newly added equations from hash-consing
         val (scalauses, neqs) = sclausesTuple.unzip
         (List(Switch(specializeE(cond)._1,
-         scalauses)),
+          scalauses)),
           env, neqs.flatten)
       }
-      case AClaim(aq, l) =>      
+      case AClaim(aq, l) =>
         (List(Claim(aq.expr)), env, Nil)
       case AHypothesis(s, aq, l) =>
         (List(Hypothesis(s, aq.expr)), env, Nil)
@@ -239,7 +241,7 @@ object Specialization {
         }
     }
   }
-  
+
   def specializeListActions(aActions: List[AAction[Label]],
                             bta: Map[Label, Constraint], scopeEnv: Map[Expr, Expr],
                             dvars: List[Var], conditionalAction: List[Action]): (List[Action], Map[Expr, Expr], List[Action]) = {
@@ -249,7 +251,7 @@ object Specialization {
     val directedEquations = equations.filter(x => x.lhs.isInstanceOf[AVar[_]] || x.lhs.isInstanceOf[AIndex[_]])
     val indirectedEquations = equations.filter(x => !x.lhs.isInstanceOf[AVar[_]] && !x.lhs.isInstanceOf[AIndex[_]])
     val otherActions = aActions.filter(x => !x.isInstanceOf[AContinuously[Label]])
-     
+
     // For every directed variables, regard its lower derivatives also as "solved"
     val directedVars = aActions.map(findDirectedVars).flatten.foldLeft(List[Var]())((r, x) => x match {
       case Var(Name(n, p)) =>
@@ -260,44 +262,42 @@ object Specialization {
     })
     // First specialize all directed equations (topologically sort them first)  
     val orderLabels = Specialization.topoSort(directedEquations)
-    val orderedEquations = orderLabels.reverse.foldLeft(List[AEquation[Label]]())((r,x) =>
-      equations.filter(e => e.an == x) ::: r
-      ).map(x => AContinuously(x, x.an))
-    val (resultDirecdOde,envAfterOde,neweqsAfterOde) = 
-      orderedEquations.foldLeft((List[Action](),scopeEnv,List[Action]())){(r,x) =>
-      val sode = specialize(x, bta, r._2, dvars ::: directedVars, r._3 ::: conditionalAction, nosub)
-      (sode._1 ::: r._1, sode._2 ++ r._2, sode._3 ::: r._3)
-    }
+    val orderedEquations = orderLabels.reverse.foldLeft(List[AEquation[Label]]())((r, x) =>
+      equations.filter(e => e.an == x) ::: r).map(x => AContinuously(x, x.an))
+    val (resultDirecdOde, envAfterOde, neweqsAfterOde) =
+      orderedEquations.foldLeft((List[Action](), scopeEnv, List[Action]())) { (r, x) =>
+        val sode = specialize(x, bta, r._2, dvars ::: directedVars, r._3 ::: conditionalAction, nosub)
+        (sode._1 ::: r._1, sode._2 ++ r._2, sode._3 ::: r._3)
+      }
     val odeeqs = resultDirecdOde ::: neweqsAfterOde
     // Specialize non-equation actions    
-    val r = otherActions.foldLeft((List[Action](),List[Action](),neweqsAfterOde,List[Action]())){(r,x) => 
-      val (sactions, newenv, eqs) = specialize(x, bta, envAfterOde, dvars ::: directedVars,  odeeqs ::: conditionalAction, nosub)
+    val r = otherActions.foldLeft((List[Action](), List[Action](), neweqsAfterOde, List[Action]())) { (r, x) =>
+      val (sactions, newenv, eqs) = specialize(x, bta, envAfterOde, dvars ::: directedVars, odeeqs ::: conditionalAction, nosub)
       sactions match {
-        case IfThenElse(_, _, _) :: n          =>
-          (r._1, sactions:::r._2, eqs:::r._3,  r._4)       
-        case Switch(_, _) :: n                 =>
-          (r._1, sactions:::r._2, eqs:::r._3,  r._4)       
+        case IfThenElse(_, _, _) :: n =>
+          (r._1, sactions ::: r._2, eqs ::: r._3, r._4)
+        case Switch(_, _) :: n =>
+          (r._1, sactions ::: r._2, eqs ::: r._3, r._4)
         case Continuously(Equation(_, _)) :: n =>
-          (sactions:::r._1, r._2, r._3, eqs::: r._4)   
-        case Discretely(Assign(_, _)) :: n     =>
-           (sactions:::r._1, r._2, r._3, eqs::: r._4) 
-        case _                                 => 
-          (r._1, sactions:::r._2, eqs:::r._3,  r._4) 
+          (sactions ::: r._1, r._2, r._3, eqs ::: r._4)
+        case Discretely(Assign(_, _)) :: n =>
+          (sactions ::: r._1, r._2, r._3, eqs ::: r._4)
+        case _ =>
+          (r._1, sactions ::: r._2, eqs ::: r._3, r._4)
       }
     }
-    val Iodes = r._1; val Ifs = r._2; val neweqsinIf = r._3;val  neweqsoutIf = r._4
+    val Iodes = r._1; val Ifs = r._2; val neweqsinIf = r._3; val neweqsoutIf = r._4
     // Specialize undirected equations   
-    val (specializedIndirecedEquations, envAfterGE, neweqsGE) = 
-      indirectedEquations.foldLeft(( List[Action](),envAfterOde , List[Action]())){(r,x) =>
-      val (aaction, ev, eqs) = specialize(x, bta, envAfterOde, odeeqs::: conditionalAction, nosub)
-      (aaction::r._1, ev++r._2, eqs ::: r._3)
-    }
+    val (specializedIndirecedEquations, envAfterGE, neweqsGE) =
+      indirectedEquations.foldLeft((List[Action](), envAfterOde, List[Action]())) { (r, x) =>
+        val (aaction, ev, eqs) = specialize(x, bta, envAfterOde, odeeqs ::: conditionalAction, nosub)
+        (aaction :: r._1, ev ++ r._2, eqs ::: r._3)
+      }
     // Calling GE to directed all undirected equations
-    val bindings = convertEqsEnv(neweqsGE ::: neweqsAfterOde:::neweqsoutIf) 
-    val inlinedIndirectedEqs = (specializedIndirecedEquations ::: Iodes)  
-    val result = BindingTimeAnalysis.gaussianElimination(inlinedIndirectedEqs 
-    , dvars ::: directedVars, bindings) ::: Ifs ::: odeeqs ::: neweqsGE.toSet.toList
-    (result.reverse:::(neweqsAfterOde ::: neweqsGE :::neweqsoutIf).toSet.toList, envAfterOde, (neweqsAfterOde ::: neweqsGE ::: neweqsinIf:::neweqsoutIf).toSet.toList)
+    val bindings = convertEqsEnv(neweqsGE ::: neweqsAfterOde ::: neweqsoutIf)
+    val inlinedIndirectedEqs = (specializedIndirecedEquations ::: Iodes)
+    val result = BindingTimeAnalysis.gaussianElimination(inlinedIndirectedEqs, dvars ::: directedVars, bindings) ::: Ifs ::: odeeqs ::: neweqsGE.toSet.toList
+    (result.reverse ::: (neweqsAfterOde ::: neweqsGE ::: neweqsoutIf).toSet.toList, envAfterOde, (neweqsAfterOde ::: neweqsGE ::: neweqsinIf ::: neweqsoutIf).toSet.toList)
 
   }
 
@@ -344,9 +344,9 @@ object Specialization {
       case ACall(af, aes, an) => (findAVars(af) ::: aes.map(findAVars(_)).flatten).toSet.toList
       case ASum(e, i, col, cond, an) =>
         List(e, col, cond).map(findAVars(_)(i :: exceptVars)).flatten.toSet.toList
-      case AExprLet(bs, e, an)     => findAVars(e)(bs.map(x => x._1) ::: exceptVars)
-      case ADot(_, _, _)           => Nil
-      case _                       => Nil
+      case AExprLet(bs, e, an) => findAVars(e)(bs.map(x => x._1) ::: exceptVars)
+      case ADot(_, _, _)       => Nil
+      case _                   => Nil
     }
     def mkEdges(vs: List[AVar[Label]], env: Map[Var, Label], label: Label): List[Edge] = {
       vs.map(x => env.get(x.expr) match {
@@ -367,16 +367,6 @@ object Specialization {
           mkEdges(findAVars(rhs)(List.empty), env, l) :::
             mkEdges(findAVars(lhs)(List.empty), env, l)))
       }).toMap
-      // Add dependence (incoming) edges
-      for (e <- es) {
-        e match {
-          case AEquation(lhs, rhs, l) => lhs match {
-            case AVar(n, nl) => findAVars(rhs)(List.empty).map(x => vertexes(l).addEdge(Edge(env(Var(n)), l)))
-            case _           => 
-          }
-
-        }
-      }
       vertexes.values.toList
     }
 
@@ -443,7 +433,7 @@ object Specialization {
   def nosub = (x: Expr) => x
   def mksub(v: Expr, e: Expr): Expr => Expr =
     (x: Expr) => if (x == v) e else nosub(x)
- 
+
   // Find AVars in the expr
 
   def findVars(expr: Expr, bindings: Map[Expr, Expr])(implicit exceptVars: List[Var]): List[Var] = expr match {
@@ -500,28 +490,3 @@ object Specialization {
     case _              => e
   }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

@@ -31,6 +31,7 @@ object PassManager {
   // ^ If desc is none the alias won't show up in help screens
   val passAliases = Seq(
     PassAlias("sd", Seq("SD"), None),
+    PassAlias("BTA",Seq("BTA"), Some("enable symolic differentiation and acasual equations")),
     PassAlias("extract", Seq("extract-ha"), None),
     PassAlias("normalize", Seq("toposort", "inlinepriv", "elimconst", "extract-ha", "killnot"),
               Some("Normalize the program into a H.A.")))

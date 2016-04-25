@@ -152,33 +152,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
 
   /* Set-up */
   
-  /**
-   * Lift all numeric values to ConstantEnclosures (excluding the Simulator object) 
-   * and all strings to uncertain strings.
-   */
-  def liftToUncertain(p: Prog): Prog =
-    new util.ASTMap {
-      override def mapExpr(e: Expr): Expr = e match {
-        case Lit(GBool(b))          => Lit(if (b) CertainTrue else CertainFalse)
-        case Lit(GInt(i))           => Lit(GConstantRealEnclosure(i))
-        case Lit(GDouble(d))        => Lit(GConstantRealEnclosure(d))
-        case Lit(GInterval(i))      => Lit(GConstantRealEnclosure(i))
-        case ExprInterval( Lit(lo@(GDouble(_)|GInt(_)))  // FIXME Add support for arbitrary expression end-points
-                         , Lit(hi@(GDouble(_)|GInt(_))))    
-                                    => Lit(GConstantRealEnclosure(Interval(extractDouble(lo), extractDouble(hi))))
-        case ExprInterval(lo,hi)    => sys.error("Only constant interval end-points are currently supported. Offending expression: " + pprint(e))
-        case ExprIntervalM(lo,hi)   => sys.error("Centered interval syntax is currently not supported. Offending expression: " + pprint(e))
-        case Lit(GStr(s))           => Lit(GStrEnclosure(s))
-        case _                      => super.mapExpr(e)
-      }
-      override def mapClause(c: Clause) : Clause = c match {
-        case Clause(GBool(lhs), as, rhs) => Clause(GBoolEnclosure(lhs), mapExpr(as), mapActions(rhs))
-        case Clause(GStr(lhs), as, rhs) => Clause(GStrEnclosure(lhs), mapExpr(as), mapActions(rhs))
-        case Clause(GInt(lhs), as, rhs) => Clause(GConstantRealEnclosure(lhs), mapExpr(as), mapActions(rhs)) // FIXME Use discrete integer enclosure instead of Real
-        case _ => super.mapClause(c)
-      }
-    }.mapProg(p)
-    
+  
   /* Store manipulation */
   
   /** 
@@ -619,6 +593,8 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
     (mprog, st2U, md)
   }
   
+  def lift = liftToUncertain
+  
   /** Remove unsupported declarations and statements from the AST. */
   def makeCompatible(p: Prog): Prog = {
     def action(a: Action): List[Action] = a match {
@@ -641,7 +617,6 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
     s"""#0.0 { className = Simulator, parent = %s, nextChild = 0, variableCount = 0, 
                outputRows = "All", continuousSkip = 0, resultType = @Initial, 
                ${ Common.Parameters.defaults.map{ case (pn, (vis, pv)) => pn + "=" + pprint(pv)}.mkString(",") } }"""
-
   /** Updates the values of variables in xs (identified by CId and Dot.field) to the corresponding CValue. */
   def applyAssignments(xs: List[(CId, Dot, CValue)], st: Enclosure): Enclosure =
     xs.foldLeft(st)((stTmp, a: (CId, Dot, CValue)) => stTmp.setObjectField(a._1, a._2.field, a._3))

@@ -1,0 +1,81 @@
+model Controller() = 
+ initially 
+ gd = 0, gi = 0, gp = 0,
+ t = 0, t' = 0
+ always
+ t' = 1,
+ if t < 6 then
+   gp = 0, gi = 0, gd = 0
+ else(
+   gp = 60, gi = 0, gd = 10)
+
+model Main(simulator)=
+ initially
+   c = create Controller(),
+   q = (0,0), torque = (0,0),
+   m1 = 1, m2 = 1, l1 = 1, l2 = 1,
+   m = 1,
+   l = 1,  g = 9.8, 
+   theta1 = -pi/2, theta1' = 0.2, theta1'' =0.2,
+   theta2 =  0, theta2' = 0.1, theta2'' =0.2,
+   I2 = 1, I1 = 1, I1c = 0, I2c = 0,
+   I = 0,
+   A = 1, B = 1, C = 1,
+   T = 0, V = 0, L = 0,
+   torque1 = 0, torque2 = 0,
+   t = 0, t' = 0,
+   goal1 = 0, goal2 = 0, e1i = 0, e2i = 0, e1i' = 0, e2i' = 0,
+   goalx = 0, goaly=0,
+   gp = 0, gd = 0, gi = 0,
+   // For visualization
+   x1 = 0, y1 = 0,
+   x2 = 0, y2 = 0,
+   E = 0, onoff = 1,
+   content = "",
+   offset = (-1,0,0),
+   _3D = ()
+ always
+   simulator.timeStep  += 0.005,
+   simulator.endTime  += 10,
+   // PID controller 
+   t' = 1,
+   if t < 6 then
+     content = "Free fall"
+   else(
+     content = "PD On"),
+   goalx = 1.5, goaly = 0,
+   goal1 = asin(0.75) ,
+   goal2 = 3.1415926 - goal1,
+   e1i' = goal1 - theta1,
+   e2i' = goal2 - theta2,
+   E = T + V,
+   // PD controller
+   torque1 = c.gp*(goal1 - theta1) + c.gd*(0 - theta1'),
+   torque2 = c.gp*(goal2 - theta2) + c.gd*(0 - theta2'),
+   // Dynamics
+   torque = (torque1,torque2), 
+   q = (theta1, theta2),
+   m1 = 0.3, m2 = 0.3, I1 = 0.3, I2 = 0.3,
+   m = 0.3, I = 0.3,  
+   l1 = 0.5, l2 = 0.5,
+   l = 1, g = 9.8,
+   I1c = I1 + m1*l1^2 +m2*l^2, I2c = I2 + m2*l2^2,
+   T = 0.5*I1c*theta1'^2 + 0.5*I2c*theta2'^2 + m2*l*l2*theta1'*theta2'*cos(theta2 - theta1),
+   V = -m1*g*l1*cos(theta1) - m2*g*(l*cos(theta1) + l2*cos(theta2)),
+   L = T - V,
+   foreach i in 0 : (length(q) -1) do  
+    L'[(q(i))']' - L'[q(i)] = torque(i),
+
+   // Visualization
+   x1 = l1*sin(theta1),y1 = l1*cos(theta1),
+   x2 = l*sin(theta1) + l2*sin(theta2),
+   y2 = l*cos(theta1) + l2*cos(theta2),
+   offset = (-1,0,0),
+   _3D = (
+          Text center =offset + (0.5,0,1) content = content size = 0.3 color = (0.8,0.8,0.2),       
+          Obj center = offset +(x1,0,-y1)rotation=(pi/2,-theta1,0) size = 8  content = "Robotarm",
+          Obj center = offset + (x2,0,-y2)rotation=(-pi/2,-theta2,0) size = 8  content = "Robotarm",
+          Sphere center = offset + (goalx, 0,goaly) color = (1,0,0) size = 0.1)
+   
+ 
+     

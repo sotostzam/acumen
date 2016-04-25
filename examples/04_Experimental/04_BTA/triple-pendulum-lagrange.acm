@@ -1,0 +1,30 @@
+ model Main(simulator) = 
+  initially q = (0,0,0),m = 1, g = 0,l=0, T=0,V=0,L=0,
+          t1 = pi/2, t1' = 0, t1'' = 0,
+          t2 = 0, t2' = 0, t2'' = 0,
+          t3 = -pi/2, t3' = 0, t3'' = 0,
+          // Auxiliary variables
+          x1 = 0, y1 = 0,
+          x2 = 0, y2 = 0, 
+          x3 = 0, y3 = 0,
+          E = 0, 
+          
+          _3D = ()
+  always
+   _3D = (Cylinder radius = 0.03 length = l center = (x1/2,0,y1/2) rotation = (-pi/2,-t1,0),
+          Cylinder radius = 0.03 length = l center = (x1 + 0.5*l*sin(t2), 0,y1-0.5*l*cos(t2)) rotation = (-pi/2,-t2,0),
+          Cylinder radius = 0.03 length = l center = (x2 + 0.5*l*sin(t3), 0,y2-0.5*l*cos(t3)) rotation = (-pi/2,-t3,0)),
+    q = (t1,t2,t3),
+    g = 9.8,
+    l = 1,
+    m = 1,
+    x1 = l * sin(t1),      y1 = -l*cos(t1),
+    x2 = x1 + l*sin(t2),   y2 = y1 - l*cos(t2),
+    x3 = x2 + l*sin(t3),   y3 = y2 - l*cos(t3),
+    E = T + V,
+    T = 1/2 * ((x1)' ^2 + (y1)' ^2 + (x2)' ^2 + (y2)' ^2 + (x3)' ^2 + (y3)' ^2 ),
+    V = m*g*(y1 + y2 + y3),
+    L = T - V,
+    foreach i in 0 : (length(q) -1) do  
+     L'[(q(i))']' - L'[q(i)] = 0
+  

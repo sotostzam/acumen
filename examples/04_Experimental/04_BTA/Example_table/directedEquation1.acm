@@ -1,0 +1,4 @@
+model Main(simulator)=
+ initially x = 0
+ always
+   x = 1

@@ -173,7 +173,8 @@ case class Desugarer(odeTransformMode: ODETransformMode) {
               case LocalInline => firstOrderSystemInline(dot, drhs)
               case TopLevel    => Nil
             })
-        case _ => throw BadPreLhs()
+        // non-directed equation encountered,
+        case _ => throw equationalWithoutBTA(lhs)
       }
     }
     

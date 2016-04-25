@@ -156,6 +156,7 @@ class Interpreter extends acumen.CStoreInterpreter {
   
   type Store = I.Store
   def init(prog: Prog) = null
+  def lift  = null
   def fromCStore(st: CStore, root: CId) = null
   def repr(st: Store) = null
   def visibleParameters = Map()

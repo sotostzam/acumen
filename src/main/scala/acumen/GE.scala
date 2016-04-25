@@ -144,16 +144,16 @@ object GE {
         case _           => error(exp.toString + " is not a basic term")
       }
     }
-    // Simplify a constant expression, example 2 + 2 => 4
+    // Simplify a constant expression
     def evalConstant(exp: Expr): Expr = exp match {
       case Lit(n) => Lit(n)
       case Op(f, es) => exprsToValues(es.map(x => evalConstant(x))) match {
+        // Invoke common.evalop 
         case Some(ls) => evalOp(f.x, ls) match {
           case VLit(gv) => Lit(gv)
         }
         case None => exp
       }
-      case Var(Name("pi", 0)) => Lit(GDouble(Math.PI))
       case Dot(_, _)          => exp
       case _                  => exp
 
@@ -298,42 +298,8 @@ object GE {
     result.reverse
   }
 
-  /* Example: 2*x*y - 2*x*y => 0 */
   def combineConstVarTerms(varTerms: List[Expr]): Expr = {
-    /* Break a const var term into coef * List(prim function) form */
-    def breakConstVarTerm(varTerm: Expr): (Double, List[Expr]) = varTerm match {
-      case Var(n)                                        => (1.toDouble, List(Var(n)))
-      case Op(Name("*", 0), Lit(GInt(n)) :: t :: Nil)    => (n.toDouble * breakConstVarTerm(t)._1, breakConstVarTerm(t)._2)
-      case Op(Name("*", 0), Lit(GDouble(n)) :: t :: Nil) => (n.toDouble * breakConstVarTerm(t)._1, breakConstVarTerm(t)._2)
-      case Op(Name("*", 0), t :: Lit(GInt(n)) :: Nil)    => (n.toDouble * breakConstVarTerm(t)._1, breakConstVarTerm(t)._2)
-      case Op(Name("*", 0), t :: Lit(GDouble(n)) :: Nil) => (n.toDouble * breakConstVarTerm(t)._1, breakConstVarTerm(t)._2)
-      // Prim function
-      case Op(f, t :: Nil)                               => (1.toDouble, List(Op(f, List(t))))
-      case Op(Name("^", 0), x :: n :: Nil)               => (1.toDouble, List(Op(Name("^", 0), List(x, n))))
-      case Op(Name("*", 0), t1 :: t2 :: Nil) =>
-        val bt1 = breakConstVarTerm(t1)
-        val bt2 = breakConstVarTerm(t2)
-        (bt1._1 * bt2._1, bt1._2 ::: bt2._2)
-      case Op(Name("/", 0), e1 :: e2 :: Nil) =>
-        (1, List(mkOp("/", e1, e2)))
-      case _ => (1, varTerm :: Nil)
-
-    }
-
-    val normalTerms = varTerms.map(breakConstVarTerm(_))
-    val tempTerms =  normalTerms.foldLeft((List[Expr](),Set[List[Expr]]() )){ case((r,usedTerms),x) => 
-      if (!usedTerms.contains(x._2)) {
-        // Find all the terms with the same prim function composition as x's
-        val sameComps = normalTerms.filter(y => x._2.foldLeft(x._2.size == y._2.size)(_ && y._2.contains(_)))
-        // Combine them together
-        (mkOp("*", Lit(GDouble(sameComps.drop(1).foldLeft(sameComps(0)._1)((r, x) =>
-          r.toDouble + x._1))), mkTimes(x._2)) :: r,
-           usedTerms ++ sameComps.map(x => x._2))
-      }
-      else
-        (r,usedTerms)
-    }
-    mkPlus(tempTerms._1)
+    mkPlus(varTerms)
   }
   /* Example: 3*x => 3 */
   def getCoef(e: Expr, v: Var): List[Expr] = e match {

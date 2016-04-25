@@ -1,0 +1,11 @@
+model Main(simulator)=
+ initially t = pi/4, t' = 0, t'' = 0,g=0,
+ m = 1, l = 1, L = 0, T = 0, V = 0
+ always
+ m = 1,g=9.8,
+ l = 1,
+ T = (1/2) * m * l^2 * t'^2,
+ V = -m*g*l*cos(t),
+ L = T - V,
+ L'[t']' - L'[t]=0
+ 

@@ -2,6 +2,7 @@ package acumen
 package ui
 package interpreter
 
+
 import scala.collection.JavaConversions._
 import scala.collection.mutable.{ArrayBuffer, HashMap, HashSet, ListBuffer}
 import scala.collection.{immutable => im}
@@ -219,7 +220,7 @@ class CStoreModel(ops: CStoreOpts) extends InterpreterModel {
         case (sts:DoubleResultCollector, _) =>  sts += extractDoubleNoThrow(v)
         case (sts:GenericResultCollector, _) => sts += v
       }
-    if(x.x.split("__")(0) == "pattern" || x.x.contains("@@"))
+    if(x.x.split("__")(0) == "pattern" || x.x.contains(hashVariable))
       ()
     else
     (x.x, v) match {
