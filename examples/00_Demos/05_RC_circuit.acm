@@ -1,6 +1,6 @@
 // Battery charging and discharging
 //
-// Author:  Anita Sant'Anna, 2012
+// Author:  Anita Sant'Anna and Fei Xu, 2016
 //
 // Run this example, view Plot, and then 3D
 
@@ -14,12 +14,15 @@
 //       R: resistance
 //       C: capacitance
 
-model CircuitRC(C,R,POS)=
+model CircuitRC(C,R,POS,plot)=
 initially 
-  Vc = 0, Vc' = 0, Vin = 5, _plot = (Vc, Vin),
+  Vc = 0, Vc' = 0, Vin = 5, _plot = (),
   _3D = (Cylinder center=POS radius= 0.1 length=0 color = (0,1,0)  rotation=(0,0,0)) 
 always 
   Vc'=(Vin-Vc)/(R*C),
+  if (plot) then
+    _plot = (Vc, Vin)
+  noelse,
   _3D=(Cylinder center=POS radius= 0.1 length=Vc/2 color = (0,1,0)  rotation=(3.1416/2,0,0)) 
 
 
@@ -27,8 +30,8 @@ always
 model Main(simulator) = 
 initially 
   // Create two RC circuits with different parameters
-  circuit1  =  create  CircuitRC(0.02,10,(0,0,0)), 
-  circuit2  =  create  CircuitRC(0.2,10,(1,0,0)), 
+  circuit1  =  create  CircuitRC(0.02,10,(0,0,0),true), 
+  circuit2  =  create  CircuitRC(0.2,10,(1,0,0),false), 
   t = 0, t' = 1, mode = "charge" 
 always
   t'=1,
