@@ -1,6 +1,0 @@
-model Main(simulator)=
- initially q=(1,2,3) , x = 0, x' =0, r = 0
- always
-   x' = 1,
-   q = (1,2,3),
-   r = sum x + i for i in q 

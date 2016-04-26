@@ -1,5 +1,0 @@
-model Main(simulator)=
- initially x = 0, y = 0
- always
-   y = 1,
-   x + y  = 1
