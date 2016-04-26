@@ -284,7 +284,7 @@ object Common {
       v.lastSetPos = pos;
       if (oldVal == newVal) noChange
       else {
-        if (f.x != "_3D" && f.x != "_3DView" && newVal != null && oldVal.yieldsPlots != newVal.yieldsPlots)
+        if (f.x != "_3D" && f.x != "_3DView" && f.x != "_plot" && newVal != null && oldVal.yieldsPlots != newVal.yieldsPlots)
           throw new UnsupportedTypeChangeError(f, o.id, getClassOf(o), oldVal, newVal, 
                                                "These values require a different number of plots")
         logModified
