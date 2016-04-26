@@ -1,0 +1,61 @@
+model Main (simulator) =
+
+initially
+
+ _3DView = ((10,10,10),(0,0,0)),
+
+ _3D = (),
+
+ p = (0,0,0), a = 2, a' = -2, sa = 0, ca=1,
+
+ fun = 0
+
+always
+
+ a' = -a, sa=sin(a), ca=cos(a),
+
+ fun = a,
+
+ _3D = (Box color =0.5*blue 
+
+             center = p+(0,0,0)
+
+             size = (2,1,0)+(-5*fun,0,0)
+
+             rotation=(0,0,a) + (0,fun,0),
+
+        Box color = 0.75*red + 0.9*green +blue
+
+             transparency = 1
+
+             center = p+(0,0,0)+(0,-10*fun,10*fun)
+
+             size = (0,1,2)
+
+             rotation=(0,0,a) + (fun,20*fun,0),
+
+        Box color =0.1*red+0.8*green + blue
+
+             transparency = 1
+
+             center = p+(ca,sa,0)+(0,0,5*fun)
+
+             size = (0,1,2)
+
+             rotation=(0,0,a) + (fun,0,0),
+
+        Box color =0.1*red+0.8*green + blue
+
+             transparency = 1
+
+             center = p+(-ca,-sa,0) + (-5*fun,0,0)
+
+             size = (0,1,2)
+
+             rotation=(0,0,a) + (fun,0,0),
+
+        Box  color=0.9*white
+
+             center = (-10,-10,-10)
+
+             size = (20,20,0))
