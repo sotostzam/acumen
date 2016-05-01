@@ -3,6 +3,7 @@ package interpreters
 
 import TAD.{ TDif }
 import util.Names._
+import Pretty._
 import util.Conversions._
 import scala.math._
 import Errors._
@@ -10,6 +11,8 @@ import util.Canonical._
 import util.ASTUtil._
 import scala.util.parsing.input.Position
 import reflect.runtime.universe.TypeTag
+import enclosure2015.Common._
+import acumen.interpreters.enclosure.Interval
 
 //
 // Common stuff to CStore Interpreters
@@ -46,6 +49,36 @@ object Common {
   val Taylor       = "Taylor"
   val Picard       = "Picard"
   
+  /* Identity lift function */
+  def identLift(p:Prog) = p 
+  /**
+   * Lift all numeric values to ConstantEnclosures (excluding the Simulator object) 
+   * and all strings to uncertain strings.
+   */
+  
+  def liftToUncertain(p: Prog): Prog =
+    new util.ASTMap {
+      override def mapExpr(e: Expr): Expr = e match {
+        case Lit(GBool(b))          => Lit(if (b) CertainTrue else CertainFalse)
+        case Lit(GInt(i))           => Lit(GConstantRealEnclosure(i))
+        case Lit(GDouble(d))        => Lit(GConstantRealEnclosure(d))
+        case Lit(GInterval(i))      => Lit(GConstantRealEnclosure(i))
+        case ExprInterval( Lit(lo@(GDouble(_)|GInt(_)))  // FIXME Add support for arbitrary expression end-points
+                         , Lit(hi@(GDouble(_)|GInt(_))))    
+                                    => Lit(GConstantRealEnclosure(Interval(extractDouble(lo), extractDouble(hi))))
+        case ExprInterval(lo,hi)    => sys.error("Only constant interval end-points are currently supported. Offending expression: " + pprint(e))
+        case ExprIntervalM(lo,hi)   => sys.error("Centered interval syntax is currently not supported. Offending expression: " + pprint(e))
+        case Lit(GStr(s))           => Lit(GStrEnclosure(s))
+        case _                      => super.mapExpr(e)
+      }
+      override def mapClause(c: Clause) : Clause = c match {
+        case Clause(GBool(lhs), as, rhs) => Clause(GBoolEnclosure(lhs), mapExpr(as), mapActions(rhs))
+        case Clause(GStr(lhs), as, rhs) => Clause(GStrEnclosure(lhs), mapExpr(as), mapActions(rhs))
+        case Clause(GInt(lhs), as, rhs) => Clause(GConstantRealEnclosure(lhs), mapExpr(as), mapActions(rhs)) // FIXME Use discrete integer enclosure instead of Real
+        case _ => super.mapClause(c)
+      }
+    }.mapProg(p)
+    
   /** Get self reference in an env. */
   def selfCId(e:Env) : CId =
     e(self) match {

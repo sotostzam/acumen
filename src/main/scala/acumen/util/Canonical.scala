@@ -28,6 +28,7 @@ object Canonical {
   val cmain        = ClassName("Main")
   val cmagic       = ClassName("Simulator")
   val cdevice      = ClassName("Device")
+  val hashVariable = "@@"
 
   /* object getters */
   def parentOf(o:CObject) : Option[CId] = { val VObjId(id) = o(parent); id }

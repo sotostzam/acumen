@@ -22,7 +22,7 @@ object Semantics {
   val S2012 = Semantics(Some("2012"), Seq("desugar-local"), Seq("SD"))
   val S2013 = Semantics(Some("2013"), Seq("desugar-toplevel"), Seq("SD"))
   val S2014 = Semantics(Some("2014"), Seq("desugar-local-inline"), Seq("SD"))
-  val S2015 = Semantics(Some("2015"), Seq("desugar-local-inline"), Seq("SD"))
+  val S2015 = Semantics(Some("2015"), Seq("desugar-local-inline"), Seq("BTA"))
 }
 
 abstract class SemanticsSel

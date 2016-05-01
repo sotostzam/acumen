@@ -40,7 +40,9 @@ class ImperativeInterpreter extends CStoreInterpreter {
   val timeStep = 0.01
   val outputRows = "WhenChanged"
   override def visibleParameters = visibleParametersMap(initStoreInterpreter(initStep = initStepType, initTimeStep = timeStep, initOutputRows = outputRows, isImperative = true))
-
+   /* Identity lift function */
+  def identLift(p:Prog) = p 
+  def lift = identLift
   def init(prog: Prog): (Prog, Store, Metadata) = {
     val magic = fromCStore(initStoreInterpreter(initStep = initStepType, initTimeStep = timeStep, initOutputRows = outputRows, isImperative = true), CId(0))
     /* WARNING: the following line works because there is no children access check

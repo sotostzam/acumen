@@ -42,8 +42,8 @@ always
   z''=-9.8,
   _3D = (Sphere center=(x,y,z) size=size color=color rotation=(0,0,0)),
 
-  if z<-0.95 then z' + =-0.9*z',z + = -0.95 noelse,
+  if z< -0.95 then z' + =-0.9*z',z + = -0.95 noelse,
   if x>0.95  then x' + = -0.1*x', x + = 0.95 noelse,
   if y>0.95  then y' + = -0.1*y', y + = 0.95 noelse,
-  if x<-0.95 then x' + = -0.1*x',  x + = -0.95 noelse,
-  if y<-0.95 then y' + = -0.1*y',  y + = -0.95 noelse
+  if x< -0.95 then x' + = -0.1*x',  x + = -0.95 noelse,
+  if y< -0.95 then y' + = -0.1*y',  y + = -0.95 noelse

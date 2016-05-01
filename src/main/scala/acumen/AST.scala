@@ -360,6 +360,117 @@ package acumen {
   /* Example: @Continuous */
   case class VResultType(s: ResultType) extends Value
 
+  /* Annotated version of the AST used for partial evaluation (used internally) */
+
+  case class AProg[A](defs: List[AClassDef[A]])
+
+  case class AClassDef[A](name: ClassName, fields: List[AName[A]], priv: List[AInit[A]], body: List[AAction[A]])
+
+  case class AInit[A](x: AVar[A], rhs: InitRhs)
+
+  sealed abstract class AAction[A] {
+    def an: A
+  }
+  case class AIfThenElse[A](cond: AExpr[A], t: List[AAction[A]], e: List[AAction[A]], val an: A, scope1: A, scope2: A) extends AAction[A]
+
+  case class ASwitch[A](subject: AExpr[A], clauses: List[AClause[A]], val an: A) extends AAction[A]
+
+  case class AForEach[A](it: Name, col: AExpr[A], body: List[AAction[A]], val an: A) extends AAction[A]
+
+  case class AClaim[A](ap: AExpr[A], val an: A) extends AAction[A]
+
+  case class AHypothesis[A](s: Option[String], ap: AExpr[A], val an: A) extends AAction[A]
+
+  case class AContinuously[A](act: AnContinuousAction[A], val an: A) extends AAction[A]
+
+  case class ADiscretely[A](act: AnDiscreteAction[A], val an: A) extends AAction[A]
+
+  case class AClause[A](lhs: GroundValue, assertion: AExpr[A], rhs: List[AAction[A]], a: A, scope: A)
+
+  sealed abstract class AnContinuousAction[A] {
+    def an: A
+  }
+  case class AEquation[A](lhs: AExpr[A], rhs: AExpr[A], val an: A) extends AnContinuousAction[A]
+  case class AEquationI[A](lhs: AExpr[A], rhs: AExpr[A], val an: A) extends AnContinuousAction[A]
+
+  case class AEquationT[A](lhs: AExpr[A], rhs: AExpr[A], a: A) extends AnContinuousAction[A] {
+    override def an = a
+  }
+  sealed abstract class AnDiscreteAction[A] {
+    def an: A
+  }
+  case class AAssign[A](lhs: AExpr[A], rhs: AExpr[A], val an: A) extends AnDiscreteAction[A]
+  case class ACreate[A](x: Option[Expr], // Some(x) means "x = create ..." 
+                        name: Expr,
+                        args: List[AExpr[A]], val an: A) extends AnDiscreteAction[A]
+
+  case class AElim[A](e: AExpr[A], val an: A) extends AnDiscreteAction[A]
+
+  case class AMove[A](obj: AExpr[A], newParent: AExpr[A], val an: A) extends AnDiscreteAction[A]
+
+  sealed abstract class AExpr[A] {
+    def an: A
+    def expr: Expr
+  }
+  case class ALit[A](gv: GroundValue, val an: A) extends AExpr[A] {
+    def expr = Lit(gv)
+  }
+  case class AVar[A](name: Name, val an: A) extends AExpr[A] {
+    def expr = Var(name)
+  }
+
+  case class AName[A](name: Name, val an: A) {
+  }
+
+  case class AOp[A](f: Name, es: List[AExpr[A]], val an: A) extends AExpr[A] {
+    def expr = Op(f, es.map(x => x.expr))
+  }
+  case class AIndex[A](e: AExpr[A], idx: List[AExpr[A]], val an: A) extends AExpr[A] {
+    def expr = Index(e.expr, idx map (_.expr))
+  }
+  case class ADot[A](obj: AExpr[A], field: Name, val an: A) extends AExpr[A] {
+    def expr = Dot(obj.expr, field)
+  }
+  case class AExprVector[A](l: List[AExpr[A]], val an: A) extends AExpr[A] {
+    def expr = ExprVector(l.map(x => x.expr))
+  }
+  case class ASum[A](e: AExpr[A], i: AVar[A], col: AExpr[A], cond: AExpr[A], val an: A) extends AExpr[A] {
+    def expr = Sum(e.expr, i.expr.name, col.expr, cond.expr)
+  }
+  case class ATypeOf[A](cn: ClassName, val an: A) extends AExpr[A] {
+    def expr = TypeOf(cn)
+  }
+  case class AExprInterval[A](lo: AExpr[A], hi: AExpr[A], val an: A) extends AExpr[A] {
+    def expr = ExprInterval(lo.expr, hi.expr)
+  }
+  case class AExprIntervalM[A](mid: AExpr[A], pm: AExpr[A], val an: A) extends AExpr[A] {
+    def expr = ExprInterval(mid.expr, pm.expr)
+  }
+  case class AExprLet[A](bindings: List[(AVar[A], AExpr[A])], e2: AExpr[A], val an: A) extends AExpr[A] {
+    def expr = ExprLet(bindings.map(x => (x._1.name, x._2.expr)), e2.expr)
+  }
+  case class ACall[A](f: AExpr[A], es: List[AExpr[A]], an: A) extends AExpr[A] {
+    def expr = Call(f.expr, es.map(_.expr))
+  }
+
+  /* Constraints for binding time analysis. Solving them
+   * would result in assigning static/dynamic for each label */
+  sealed abstract class Constraint
+
+  /* l1 must happen no later than l2(l1 <= l2) */
+  case class NLT(val label: Int, val l2: Int) extends Constraint
+
+  case class Equals(val l1: Int, val l2: Int) extends Constraint
+
+  /* Use for determine equation known or not by the n-1 variables in it*/
+  case class NLTS(val label: Int, val l2: List[Int]) extends Constraint
+
+  case class Known(val label: Int) extends Constraint
+
+  case class Unknown(val label: Int) extends Constraint
+  
+
+
   /* ==== Canonical (reference) representation of object ids. ==== */
 
   // 'C' is for 'Canonical'.

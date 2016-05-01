@@ -1,0 +1,10 @@
+model Main(simulator) =
+  initially
+   x = 0, x' = 0
+
+  always 
+   if(1 > 1) then 
+     x' = 2
+   else
+     x' = 3
+   

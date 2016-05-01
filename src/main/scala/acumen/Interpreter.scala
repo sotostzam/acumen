@@ -15,6 +15,7 @@ import scala.collection.mutable.ListBuffer
 /** Interface common to all interpreters. */
 trait Interpreter {
   def newInterpreterModel : InterpreterModel
+  def lift: Prog => Prog
   def run(p:Prog) : InterpreterRes
   /** Map of parameters -> default values, visible to the user, e.g. in code area completions. */
   def visibleParameters(): Map[String,CValue]
@@ -37,6 +38,9 @@ trait CStoreInterpreter extends Interpreter {
 
   /** Based on prog, creates the initial store that will be used to start the simulation. */
   def init(prog:Prog) : (Prog, Store, Metadata)
+  
+  /** Based on the current interpreter, prog will be lifted differently  */
+  def lift ():Prog => Prog
 
   sealed abstract class StepRes
   case class Data(st: Store, md: Metadata) extends StepRes

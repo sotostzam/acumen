@@ -1,0 +1,23 @@
+ model Main(simulator) = 
+  initially q = (0,0),m1 = 1, m2= 1, g = 0,l1 = 0,l2=0, T=0,V=0,L=0,
+          t1 = pi, t1' = 0, t1'' = 0, error = 0,
+          t2 = pi, t2' = 5, t2'' = 0, E = 0,dummy = 2,
+          _3D = (),_3DView=()
+  always
+   _3DView= ((0,-10,0),(0,0,0)),
+   _3D = (Cylinder radius = 0.03 length = l1 center = (l1*sin(t1)/2,0,-l1*cos(t1)/2) rotation = (-pi/2,-t1,0),
+          Cylinder radius = 0.03 length = l2 center = (l1*sin(t1)+l2*sin(t2)/2,0,-l1*cos(t1)-l2*cos(t2)/2) rotation = (-pi/2,-t2,0)),
+    q = (t1,t2),
+    g = 9.81,
+    l1 = 1,
+    l2 = 1,
+    m1 = 1,
+    m2 = 1,
+    E = T + V,
+    T = 0.5*m1*l1^2*t1'^2 + 0.5*m2*(l1^2*t1'^2 + l2^2*t2'^2 + 2*l1*l2*t1'*t2'*cos(t1-t2)),
+    V = -1*(m1 + m2)*g*l1*cos(t1) - m2*g*l2*cos(t2),
+    L = T - V,
+    foreach i in 0 : (length(q) -1) do  
+      L'[(q(i))']' - L'[q(i)] = 0,
+   simulator.endTime + = 20
+  

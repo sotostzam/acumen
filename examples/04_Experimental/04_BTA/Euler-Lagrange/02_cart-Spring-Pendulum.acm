@@ -1,0 +1,26 @@
+
+model Main(simulator)=
+initially
+ x = 2.5, x' = 0, x''=0,
+ theta = 0.3*pi, theta' = 0, theta''=0,
+ M = 0, m = 0, a = 0, g = 0, 
+ q = zeros(2), E = 0,
+ T = 0, U = 0, L = 0, k = 2, I = 0,
+ _3D = () 
+always
+ M = 5, m = 1, a = 1, g = 9.81, k = 10,
+ E = T + U,
+ I = (4/3)*m*a^2,
+ q = (x, theta),
+ T = 0.5*(M+m)*x'^2+m*x'*theta'*a*cos(theta)+(1/2)*m*a^2*theta'^2 + 0.5*I*theta'^2,
+ U = 0.5*k*(x-2)^2 +m*g*a*(1-cos(theta)),
+ L = T - U,
+ foreach i in 0 : (length(q) -1) do 
+   L'[(q(i))']' - L'[q(i)] = 0,
+
+ simulator.endTime + = 20,
+ _3D = (Box center = (x,0,0) size = (0.5,0.2,0.3) color = (0,128,255),
+        Sphere center = (x+a*sin(theta),0,-a*cos(theta)) size = 0.1 color = (0,128,255),
+        Cylinder center = (x+0.5*a*sin(theta),0,-0.5*a*cos(theta)) rotation = (pi/2,-theta,0) radius = 0.01 length = a color = (0,0,0),
+        Cylinder center =(x/2,0,0) radius = 0.05 rotation = (0,0,pi/2) length = abs(x),
+        Sphere center = (2,0,0) color = red size = 0.1)

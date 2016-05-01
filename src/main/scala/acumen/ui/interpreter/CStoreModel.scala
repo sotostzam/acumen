@@ -2,6 +2,8 @@ package acumen
 package ui
 package interpreter
 
+
+import scala.collection.JavaConversions._
 import scala.collection.mutable.{ArrayBuffer, HashMap, HashSet, ListBuffer}
 import scala.collection.{immutable => im}
 import Pretty._
@@ -223,7 +225,7 @@ class CStoreModel(ops: CStoreOpts) extends InterpreterModel {
         case (sts:DoubleResultCollector, _) =>  sts += extractDoubleNoThrow(v)
         case (sts:GenericResultCollector, _) => sts += v
       }
-    if(name.x.split("__")(0) == "pattern") ()
+    if(name.x.split("__")(0) == "pattern"  || name.x.contains(hashVariable)) ()
     else insertValue(value, None)
 
     def insertValue(addedValue: GValue, vectorIdx: Option[(Int,Option[Int])]): Unit = {

@@ -25,9 +25,8 @@ class CStoreCntrl(val semantics: SemanticsImpl[Interpreter], val interpreter: CS
 
     def parse() = {
       val ast = semantics.parse(progText, currentDir, None)
-      val astWithPrelude = Prog(deviceClass :: ast.defs)
-      val des = semantics.applyPasses(astWithPrelude, Main.extraPasses)
-      prog = des
+      val des = semantics.applyPasses(ast,Main.extraPasses)
+      prog = Prog(deviceClass:: des.defs )
     }
     
     def sendChunk() {
