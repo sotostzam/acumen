@@ -7,6 +7,10 @@ import util.Canonical._
 import util.Names._
 import ui.interpreter._
 import Pretty._
+import acumen.Errors._
+import acumen.util.Conversions
+
+import scala.collection.mutable.ListBuffer
 
 /** Interface common to all interpreters. */
 trait Interpreter {
@@ -322,14 +326,76 @@ abstract class FilterDataAdder(var opts: CStoreOpts) extends DataAdder {
     else if (what == Last) ShouldAddData.IfLast // Legacy
     else                   ShouldAddData.No
   }
-  def mkFilter(e:GObject) : ((Name, GValue)) => Boolean = {
+  def mkFilter(e:GObject, plotFilter: List[Name]) : ((Name, GValue)) => Boolean = {
     val VClassName(ClassName(name)) = e.find{_._1 == Name("className",0)}.get._2
     if (name == "Simulator" && !opts.outputSimulatorState)
       { case (x,v) => x.x == "className" || x.x == "time" || x.x == "endTime" || x.x == "resultType" || x.x == "variableCount" }
     else if (!opts.outputInternalState)
-      { case (x,_) => x.x == "className" || interpreters.Common.specialFields.indexOf(x.x) == -1 }
+      { case (x,_) => variableFilter(x.x, x.primes, plotFilter) }
     else
-      { case (_,_) => true }
+      { case (_,_) => false }
+  }
+
+  /** Filter the variables that need to be plotted.
+    * If the _plot not exists, plot everything except the specialFields.
+    * Else if the _plot exists but it is empty, then not plot anything.
+    * Otherwise, plot the variables that contained in the _plot. */
+  def variableFilter(variableName: String, primes: Int, plotFilter: List[Name]): Boolean = {
+    variableName match {
+      case "className" => true
+      case "_plot" => false
+      case _ =>
+        if (interpreters.Common.specialFields.contains(variableName)) false
+        else if (plotFilter == null) true
+        else if (plotFilter.isEmpty) false
+        else { // check the variable name is contained in the _plot variable
+          if (plotFilter.contains(Name(variableName, primes))) true
+          else false
+        }
+    }
+  }
+  /** Get the variable names from _plot variable */
+  def getPlotFilter(e: GObject): List[Name] = {
+    // All the names in this GObject, the variable names in _plot should be contained in the list
+    val names = e.unzip._1.toList
+    val className = classOf(e)
+    if (!names.contains(Name("_plot", 0))) null
+    else {
+      e.foldLeft (List.empty[Name]) { (p: List[Name], o: (Name, GValue)) =>
+        val name = o._1
+        val value = o._2
+        if (name.x == "_plot")
+          value match {
+            case VVector(l) =>
+              if (l.nonEmpty && l.distinct.size != l.size)  // check whether there are duplicates in _plot
+                throw DuplicatesForPlot(className.x)
+              else if (l.nonEmpty) p ::: l.map( v => extractVariableName(v, names, className) )
+              else p
+            case VLit(GStr(v)) =>
+              p :+ parseVariableName(v)
+            case _ => throw UnsupportedPlotType(value.toString)
+          }
+        else p
+      }
+    }
+  }
+  /** Extract the variable from GValue to a Name */
+  def extractVariableName(variable: Value[_], names: List[Name], objName: ClassName): Name = {
+    variable match {
+      case VLit(vs) =>
+        val variableString = Conversions.extractString(vs)
+        val variableName = parseVariableName(variableString)
+        if (names.contains(variableName)) variableName  // check whether the variable name for plot is exist
+        else throw NonexistentVariableForPlot(variableName.x, objName.x)
+      case _ => throw UnsupportedPlotType(variable.toString)
+    }
+  }
+  def parseVariableName(name: String): Name = {
+    try
+      Parser.run(Parser.name, name)
+    catch {
+      case e: Exception => throw UnsupportedPlotType(name)
+    }
   }
   //def sortObject(e:GObject) = {
   //  e.toList.sortWith { (a,b) => a._1 < b._1 } 

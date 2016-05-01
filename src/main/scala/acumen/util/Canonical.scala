@@ -24,6 +24,7 @@ object Canonical {
   val stateVars    = name("variableCount")
   val _3D          = name("_3D")
   val _3DView      = name("_3DView")
+  val _plot        = name("_plot")
   val cmain        = ClassName("Main")
   val cmagic       = ClassName("Simulator")
   val cdevice      = ClassName("Device")
@@ -87,7 +88,7 @@ object Canonical {
 
   def setObjectField(id:CId, f:Name, v:CValue, s:CStore) : CStore = {
     val obj = deref(id,s)
-    if (f != _3D && f != _3DView && f != devicef)
+    if (f != _3D && f != _3DView && f != devicef && f != _plot)
       obj.get(f) map { oldVal =>
         if (oldVal.yieldsPlots != v.yieldsPlots)
           throw new UnsupportedTypeChangeError(f, id, classOf(obj), oldVal, v, 

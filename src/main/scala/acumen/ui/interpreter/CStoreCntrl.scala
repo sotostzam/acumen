@@ -70,7 +70,8 @@ class CStoreCntrl(val semantics: SemanticsImpl[Interpreter], val interpreter: CS
             buffer = buffer enqueue buffer2
         }
         def addData(objId: CId, values: GObject) = {
-          buffer2 += (objId -> values.toList.filter(mkFilter(values)))
+          val plotFilter = getPlotFilter(values)
+          buffer2 += (objId -> values.toList.filter(mkFilter(values, plotFilter)))
         }
         def continue = {
           if (outputRow) {

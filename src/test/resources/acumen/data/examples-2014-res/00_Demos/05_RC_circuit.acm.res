@@ -16,7 +16,9 @@
   Vc' = 0,
   Vin = 5,
   _3D = ("Cylinder", (0, 0, 0), (0.100000, 0), (0, 1, 0), (0, 0, 0), "Global", -1.000000),
-  className = CircuitRC
+  _plot = (),
+  className = CircuitRC,
+  plot = true
 }
 #0.2 {
   C = 0.200000,
@@ -26,7 +28,9 @@
   Vc' = 0,
   Vin = 5,
   _3D = ("Cylinder", (1, 0, 0), (0.100000, 0), (0, 1, 0), (0, 0, 0), "Global", -1.000000),
-  className = CircuitRC
+  _plot = (),
+  className = CircuitRC,
+  plot = false
 }
 ------------------------------0
 #0 {
@@ -47,7 +51,9 @@
   Vc' = 0.177085,
   Vin = 5,
   _3D = ("Cylinder", (0, 0, 0), (0.100000, 2.482291), (0, 1, 0), (1.570800, 0, 0), "Global", -1.000000),
-  className = CircuitRC
+  _plot = ("Vc", "Vin"),
+  className = CircuitRC,
+  plot = true
 }
 #0.2 {
   C = 0.200000,
@@ -57,7 +63,9 @@
   Vc' = 1.523927,
   Vin = 5,
   _3D = ("Cylinder", (1, 0, 0), (0.100000, 0.976073), (0, 1, 0), (1.570800, 0, 0), "Global", -1.000000),
-  className = CircuitRC
+  _plot = (),
+  className = CircuitRC,
+  plot = false
 }
 ------------------------------101
 #0 {
@@ -78,7 +86,9 @@
   Vc' = -0.184971,
   Vin = 0,
   _3D = ("Cylinder", (0, 0, 0), (0.100000, 0.018497), (0, 1, 0), (1.570800, 0, 0), "Global", -1.000000),
-  className = CircuitRC
+  _plot = ("Vc", "Vin"),
+  className = CircuitRC,
+  plot = true
 }
 #0.2 {
   C = 0.200000,
@@ -88,7 +98,9 @@
   Vc' = -0.607257,
   Vin = 0,
   _3D = ("Cylinder", (1, 0, 0), (0.100000, 0.607257), (0, 1, 0), (1.570800, 0, 0), "Global", -1.000000),
-  className = CircuitRC
+  _plot = (),
+  className = CircuitRC,
+  plot = false
 }
 ------------------------------202
 #0 {
@@ -109,7 +121,9 @@
   Vc' = 0.184918,
   Vin = 5,
   _3D = ("Cylinder", (0, 0, 0), (0.100000, 2.481508), (0, 1, 0), (1.570800, 0, 0), "Global", -1.000000),
-  className = CircuitRC
+  _plot = ("Vc", "Vin"),
+  className = CircuitRC,
+  plot = true
 }
 #0.2 {
   C = 0.200000,
@@ -119,7 +133,9 @@
   Vc' = 1.163246,
   Vin = 5,
   _3D = ("Cylinder", (1, 0, 0), (0.100000, 1.336754), (0, 1, 0), (1.570800, 0, 0), "Global", -1.000000),
-  className = CircuitRC
+  _plot = (),
+  className = CircuitRC,
+  plot = false
 }
 ------------------------------303
 #0 {
@@ -140,7 +156,9 @@
   Vc' = -0.175900,
   Vin = 5,
   _3D = ("Cylinder", (0, 0, 0), (0.100000, 0.017590), (0, 1, 0), (1.570800, 0, 0), "Global", -1.000000),
-  className = CircuitRC
+  _plot = ("Vc", "Vin"),
+  className = CircuitRC,
+  plot = true
 }
 #0.2 {
   C = 0.200000,
@@ -150,6 +168,8 @@
   Vc' = -0.942276,
   Vin = 5,
   _3D = ("Cylinder", (1, 0, 0), (0.100000, 0.942276), (0, 1, 0), (1.570800, 0, 0), "Global", -1.000000),
-  className = CircuitRC
+  _plot = (),
+  className = CircuitRC,
+  plot = false
 }
 ------------------------------1011
