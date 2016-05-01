@@ -9,21 +9,7 @@ import scala.swing._
 import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
 
-abstract class AbstractEditorTab extends BorderPanel{
-
-  def receiver: Publisher
-  def reset(): Unit
-  def play(): Unit
-  def pause(): Unit
-  def disableButtons(): Unit
-  def enableButtons(): Unit
-  def setButtons(targetState: Boolean): Unit
-  def setCheckBoxes(targetState: Boolean): Unit
-  def checkBoxState(boxType: String): Boolean
-  def setCheckBoxState(targetState: Boolean, boxType: String): Unit
-}
-
-class ThreeDTab (val appModel: Controller) extends AbstractEditorTab{
+case class ThreeDTab (appModel: Controller) extends BorderPanel {
   val canvasPanel = new JPanel
   val threeDView = new ThreeDView
 
@@ -330,24 +316,6 @@ class ThreeDTab (val appModel: Controller) extends AbstractEditorTab{
   // Final Init
   createCanvas()
   add(threeDBottomPane, BorderPanel.Position.South)
-}
-
-class DisabledEditorTab(msg: String) extends AbstractEditorTab {
-  def receiver = null
-  def reset() = {}
-  def play() = {}
-  def disableButtons() = {}
-  def enableButtons() = {}
-  def setButtons(targetState: Boolean) = {}
-  def setCheckBoxes(targetState: Boolean) = {}
-  def checkBoxState(boxType: String): Boolean = false
-  def setCheckBoxState(targetState: Boolean, boxType: String) = {}
-  def pause() = {}
-  val msgBox = new TextArea("\n" + msg)
-  msgBox.editable = false
-  msgBox.lineWrap = true
-  msgBox.peer.setWrapStyleWord(true)
-  add(msgBox,BorderPanel.Position.Center)
 }
 
 

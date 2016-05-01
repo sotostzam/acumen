@@ -13,17 +13,12 @@ import java.net.{ Socket, InetAddress, ServerSocket }
 
 import scala.collection.mutable.ArrayBuffer
 
-object ThreeDState extends Enumeration {
-  val ERROR, DISABLE, ENABLE = Value
-}
-
 object Main {
 
   //
   // What should be in Main
   //
 
-  var threeDState: ThreeDState.Value = ThreeDState.ENABLE
   var disableNewPlot = true
   var enableAllSemantics = true
   var autoPlay = false
@@ -65,7 +60,6 @@ object Main {
     "-p|--passes <pass1>[,<pass2>[,...]]",
     "                        comma seperated list of extra passes to run",
     "--model <file>          model file to open",
-    "--3d|--lazy-3d|--no-3d  controls the default state for the 3d tab",
     "--newplot               enable experimental plotter",
     "--play                  automatically run the model",
     "--disable-realtime      disable real-time visualization",
