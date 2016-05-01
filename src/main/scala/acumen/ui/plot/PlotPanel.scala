@@ -271,7 +271,7 @@ class PlotPanel(pub:Publisher) extends Panel
           pub.publish(PointedAtEvent(qt, name, value))
           // update the green dot Y coordinate
           val (scale, shift) = pd.yTransformations(hb)
-          dotY = for (y <- model.getDouble(row, column))
+          dotY = for (y <- model.getDoubleAt(row, column))
                    yield applyTr(new Point2D.Double(0, y*scale + shift)).getY
           // updating the hovered box number
           hoveredBox = Some(hb)

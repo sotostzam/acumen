@@ -13,12 +13,16 @@ import java.net.{ Socket, InetAddress, ServerSocket }
 
 import scala.collection.mutable.ArrayBuffer
 
+object ThreeDState extends Enumeration {
+  val ERROR, DISABLE, ENABLE = Value
+}
+
 object Main {
 
   //
   // What should be in Main
   //
-
+  var threeDState: ThreeDState.Value = ThreeDState.ENABLE
   var disableNewPlot = true
   var enableAllSemantics = true
   var autoPlay = false
