@@ -184,7 +184,7 @@ object Specialization {
                 ((newactions.map(x => x._1)).flatten.reverse ::: sactions,
                   newactions.map(x => x._3).flatten ::: neqs)
             }
-            (sActions_neqs._1, env, sActions_neqs._2.toSet.toList)
+            (sActions_neqs._1, env, sActions_neqs._2.distinct)
           case eq =>
             val newActions = (aes.map(a => specialize(a, bta, env, dvars, conditionalAction, mksub(Var(i), Var(i)))._1)).flatten
             (ForEach(i, eq, newActions) :: Nil, env, Nil)
@@ -203,7 +203,7 @@ object Specialization {
             newt._1,
             newe._1)),
             env, (newcond._2 :::
-              newt._3 ::: newe._3).toSet.toList)
+              newt._3 ::: newe._3).distinct)
         }
       case ASwitch(cond, clauses, l) => {
         val sclausesTuple = clauses.map { c =>
@@ -237,7 +237,7 @@ object Specialization {
           case _ =>
             val (newrhs, rhseqs) = specialize(rhs, bta, env, conditionalAction, subs)
             val (newlhs, lhseqs) = specialize(lhs, bta, env, conditionalAction ::: rhseqs, subs)
-            (Continuously(Equation(newlhs, newrhs)), env, (rhseqs ::: lhseqs).toSet.toList)
+            (Continuously(Equation(newlhs, newrhs)), env, (rhseqs ::: lhseqs).distinct)
         }
     }
   }
@@ -296,8 +296,8 @@ object Specialization {
     // Calling GE to directed all undirected equations
     val bindings = convertEqsEnv(neweqsGE ::: neweqsAfterOde ::: neweqsoutIf)
     val inlinedIndirectedEqs = (specializedIndirecedEquations ::: Iodes)
-    val result = BindingTimeAnalysis.gaussianElimination(inlinedIndirectedEqs, dvars ::: directedVars, bindings) ::: Ifs ::: odeeqs ::: neweqsGE.toSet.toList
-    (result.reverse ::: (neweqsAfterOde ::: neweqsGE ::: neweqsoutIf).toSet.toList, envAfterOde, (neweqsAfterOde ::: neweqsGE ::: neweqsinIf ::: neweqsoutIf).toSet.toList)
+    val result = BindingTimeAnalysis.gaussianElimination(inlinedIndirectedEqs, dvars ::: directedVars, bindings) ::: Ifs ::: odeeqs ::: neweqsGE.distinct
+    (result.reverse ::: (neweqsAfterOde ::: neweqsGE ::: neweqsoutIf).distinct, envAfterOde, (neweqsAfterOde ::: neweqsGE ::: neweqsinIf ::: neweqsoutIf).distinct)
 
   }
 
@@ -333,17 +333,17 @@ object Specialization {
               }).map(y => findAVars(y.lhs) ::: findAVars(y.rhs))).flatten).flatten
             val morevars = varse ::: varse.map(y => directedVars.filter(_.name.x == y.name.x)).flatten
             morevars ::: findAVars(v)
-          case _ => args.map(findAVars(_)).flatten.toSet.toList
+          case _ => args.map(findAVars(_)).flatten.distinct
         }
-        case _ => args.map(findAVars(_)).flatten.toSet.toList
+        case _ => args.map(findAVars(_)).flatten.distinct
       }
 
       // Explicit vector is considered knwon, thus will not add depenence edge to graph(fix me)
-      case AExprVector(es, _) => es.map(findAVars(_)).flatten.toSet.toList
-      case AIndex(e, idx, an) => (findAVars(e) ::: idx.map(findAVars(_)).flatten).toSet.toList
-      case ACall(af, aes, an) => (findAVars(af) ::: aes.map(findAVars(_)).flatten).toSet.toList
+      case AExprVector(es, _) => es.map(findAVars(_)).flatten.distinct
+      case AIndex(e, idx, an) => (findAVars(e) ::: idx.map(findAVars(_)).flatten).distinct
+      case ACall(af, aes, an) => (findAVars(af) ::: aes.map(findAVars(_)).flatten).distinct
       case ASum(e, i, col, cond, an) =>
-        List(e, col, cond).map(findAVars(_)(i :: exceptVars)).flatten.toSet.toList
+        List(e, col, cond).map(findAVars(_)(i :: exceptVars)).flatten.distinct
       case AExprLet(bs, e, an) => findAVars(e)(bs.map(x => x._1) ::: exceptVars)
       case ADot(_, _, _)       => Nil
       case _                   => Nil
@@ -448,10 +448,10 @@ object Specialization {
           List(Var(n))
       }
 
-    case Op(f, es)            => es.map(findVars(_, bindings)).flatten.toSet.toList
-    case ExprVector(ls)       => ls.map(findVars(_, bindings)).flatten.toSet.toList
-    case Index(e, idx)        => (findVars(e, bindings) ::: idx.map(findVars(_, bindings)).flatten).toSet.toList
-    case Sum(e, i, col, cond) => List(e, col, cond).map(findVars(_, bindings)(Var(i) :: Nil)).flatten.toSet.toList
+    case Op(f, es)            => es.map(findVars(_, bindings)).flatten.distinct
+    case ExprVector(ls)       => ls.map(findVars(_, bindings)).flatten.distinct
+    case Index(e, idx)        => (findVars(e, bindings) ::: idx.map(findVars(_, bindings)).flatten).distinct
+    case Sum(e, i, col, cond) => List(e, col, cond).map(findVars(_, bindings)(Var(i) :: Nil)).flatten.distinct
     case ExprLet(bs, e)       => findVars(e, bindings)(bs.map(x => Var(x._1)) ::: exceptVars)
     case Dot(_, _)            => Nil
   }

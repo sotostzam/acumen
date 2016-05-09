@@ -66,7 +66,7 @@ object BindingTimeAnalysis {
     val newAst = ast match {
       case ClassDef(n, f, p, _) =>
         val temp = specializeListActions(anActions, btaResult, Map[Expr, Expr](), List[Var](), Nil)
-        val (actions, neweqs) = (temp._1, temp._3.toSet.toList)
+        val (actions, neweqs) = (temp._1, temp._3.distinct)
         val newInits = neweqs.flatMap(x => x match {
           case Continuously(a @ Equation(lhs, rhs)) => (lhs,rhs) match{
             case (Var(n), ExprVector(l)) => 
@@ -76,7 +76,7 @@ object BindingTimeAnalysis {
           }
            
         })
-        ClassDef(n, f, p ::: newInits, (actions).toSet.toList)
+        ClassDef(n, f, p ::: newInits, actions)
     }
     // Clean the hash table in symbolic differentiation after each class
     SD.clear()
@@ -587,7 +587,7 @@ object BindingTimeAnalysis {
     cs.map(x => x match {
       case NLT(l1, l2) => Unknown(l1) :: Unknown(l2) :: List[Constraint]()
       case _           => sys.error("Fail to solve constraints")
-    }).flatten.toSet.toList
+    }).flatten.distinct
   }
 
   def remove(C: List[Constraint], c: Constraint): List[Constraint] = C match {
@@ -646,7 +646,7 @@ object BindingTimeAnalysis {
 
     val simplicitOdes = implicitOdes.map(x => (x))
     // Finding all the variables to be solved in the implicit ODEs
-    val vars: List[Var] = implicitOdes.map(x => findVars(x.lhs, hashMap)(List.empty) ::: findVars(x.rhs, hashMap)(List.empty)).flatten.toSet.toList
+    val vars: List[Var] = implicitOdes.map(x => findVars(x.lhs, hashMap)(List.empty) ::: findVars(x.rhs, hashMap)(List.empty)).flatten.distinct
     // Only the highest order variables are variables to be solved, get rid of the lower order ones
     val trueVars = vars.filter(x => !directedVars.contains(x) &&
       !(vars.exists(y => (y.name.x == x.name.x && y.name.primes > x.name.primes))))

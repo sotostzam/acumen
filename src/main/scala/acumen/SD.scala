@@ -188,7 +188,7 @@ object SD {
       
   }
    def apply(he:HashExpr, eqs:List[Action]):HashExpr = 
-     new HashExpr(he.expr, he.eqs:::eqs.toSet.toList)
+     new HashExpr(he.expr, he.eqs:::eqs.distinct)
    }
    class Literal(expr:Expr, eqs:List[Action]) extends HashExpr(expr,eqs){
 
@@ -209,7 +209,7 @@ object SD {
     def apply(n:String, hes:List[HashExpr]):HashExpr= {
       def mkOp(f:String,es:List[HashExpr]):HashExpr = {
         val hop = Op(Name(f,0), es.map(x => x.expr)) 
-        val neweqs = es.foldLeft(List[Action]())((r,x) => x.eqs ::: r).toSet.toList
+        val neweqs = es.foldLeft(List[Action]())((r,x) => x.eqs ::: r).distinct
         val em = mem(hop);
         new HashExpr(em._1,em._2:::neweqs)
       }
@@ -276,7 +276,7 @@ object SD {
   object HashVector {
     def apply(es: List[HashExpr]): HashExpr = {
       val hop = ExprVector(es.map(x => x.expr))
-      val neweqs = es.foldLeft(List[Action]())((r, x) => x.eqs ::: r).toSet.toList
+      val neweqs = es.foldLeft(List[Action]())((r, x) => x.eqs ::: r).distinct
       val em = mem(hop);
       new HashExpr(em._1, em._2 ::: neweqs)
     }
