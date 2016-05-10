@@ -1,0 +1,16 @@
+model Main(simulator) =
+  initially q = (0,0),a = 1, m = 2, M = 5, g = 0, k = 2, T=0,I=0,V=0,L=0,
+            t = pi/4, t' = 0, t'' = 0,
+            x = 1, x' = 0, x'' = 0,
+            _3D = ()
+  always
+    _3D = (Box center = (x,0,0) color = (1,1,0) size = (0.2,0.2,0.2),
+           Cylinder center = (x + 0.5*sin(t),0,-0.5*cos(t)) radius = 0.02 rotation = (pi/2,t,0)),
+
+           
+    q = (x, t), a = 1, m = 2, M = 5,   
+    g = 49/5,   k = 2, I = (4/3)*m*a,  
+    T = 1/2*(M+m)*x'^2 + m*a*x'*t'*cos(t) + (2/3)*m*a^2*t'^2,
+    V = 1/2*k*x^2 + m*g*a*(1-cos(t)), L = T - V,   
+    foreach i in 0 : (length(q) -1) do  
+      L'[(q(i))']' - L'[q(i)] = 0

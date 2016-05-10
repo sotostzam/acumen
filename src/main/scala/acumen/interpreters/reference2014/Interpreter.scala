@@ -356,6 +356,8 @@ object Interpreter extends acumen.CStoreInterpreter {
           ids <- asks(childrenOf(root,_))
     } mapM_(iterate(f,_:CId), ids)
   }
+  
+  def lift = identLift
 
   /* Main simulation loop */  
 

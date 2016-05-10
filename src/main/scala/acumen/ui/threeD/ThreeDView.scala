@@ -75,8 +75,18 @@ class ThreeDView extends JPanel {
 
   addComponentListener(new ComponentAdapter {
     override def componentResized(e: ComponentEvent) = {
+      val fixed3DRatio = acumen.ui.App.ui.fixed3DRatio
       val c = e.getSource.asInstanceOf[Component]
-      initBuffer(c.getWidth, c.getHeight)
+      if (!fixed3DRatio)
+        initBuffer(c.getWidth, c.getHeight)
+      else { // the default fixed ratio of width to height is 4:3
+        val (width, height) =
+        if (c.getHeight * 4 > c.getWidth * 3)
+          (c.getWidth         , c.getWidth * 3 / 4)
+        else
+          (c.getHeight * 4 / 3, c.getHeight)
+        initBuffer(width, height)
+      }
       repaint()
     }
   })
@@ -336,7 +346,9 @@ class ThreeDView extends JPanel {
       world.draw(buffer)
       staticWorld.draw(buffer)
       buffer.update()
-      buffer.display(g)
+      val threeDViewComponent = acumen.ui.App.ui.threeDtab.threeDView
+      buffer.display(g, (threeDViewComponent.getWidth  - buffer.getWidth)  / 2,
+                        (threeDViewComponent.getHeight - buffer.getHeight) / 2)
       waitingPaint = false
     }
   }

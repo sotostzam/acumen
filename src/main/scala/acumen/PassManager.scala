@@ -11,6 +11,7 @@ object PassManager {
     // Order matters!  The order is the order the passes are applied.
     // And each passes is grouped into mutually excursive categories
     // in which only one pass from that category is applied.
+    mkPass("BTA", "Binding time analysis", BindingTimeAnalysis.run(_)),
     mkPass("SD", "Symbolic differentiation", SD.run(_)),
     mkPass("toposort", "Topo. Sort. Priv Section", passes.TopoSortInit.proc(_)),
     mkPass("inlinepriv", "Inline Priv Deps.", passes.InlineInitDeps.proc(_)),
@@ -30,6 +31,7 @@ object PassManager {
   // ^ If desc is none the alias won't show up in help screens
   val passAliases = Seq(
     PassAlias("sd", Seq("SD"), None),
+    PassAlias("BTA",Seq("BTA"), Some("enable symolic differentiation and acasual equations")),
     PassAlias("extract", Seq("extract-ha"), None),
     PassAlias("normalize", Seq("toposort", "inlinepriv", "elimconst", "extract-ha", "killnot"),
               Some("Normalize the program into a H.A.")))

@@ -22,7 +22,6 @@ object Main {
   //
   // What should be in Main
   //
-
   var threeDState: ThreeDState.Value = ThreeDState.ENABLE
   var disableNewPlot = true
   var enableAllSemantics = true
@@ -65,10 +64,10 @@ object Main {
     "-p|--passes <pass1>[,<pass2>[,...]]",
     "                        comma seperated list of extra passes to run",
     "--model <file>          model file to open",
-    "--3d|--lazy-3d|--no-3d  controls the default state for the 3d tab",
     "--newplot               enable experimental plotter",
     "--play                  automatically run the model",
     "--disable-realtime      disable real-time visualization",
+    "--disable-bta           disable partial evaluator",
     "--disable-completion    disable code completion in the source code editor",
     "--dont-fork             disable auto-forking of a new JVM when required")
   def experimentalOptsHelp = Array(
@@ -124,6 +123,10 @@ object Main {
         threeDState = ThreeDState.ENABLE; parseArgs(tail)
       case ("--disable-3d" | "--no-3d") :: tail =>
         threeDState = ThreeDState.DISABLE; parseArgs(tail)
+      case ("--enable-bta") :: tail =>
+        extraPasses = extraPasses :+ "BTA"; parseArgs(tail)
+      case ("--disable-bta") :: tail =>
+        extraPasses = extraPasses.filter(_ != "BTA"); parseArgs(tail)
       case ("--enable-newplot" | "--newplot") :: tail =>
         disableNewPlot = false; parseArgs(tail)
       case ("--disable-newplot" | "--no-newplot") :: tail =>
@@ -261,7 +264,9 @@ object Main {
       }
       lazy val i = semantics.interpreter()
       lazy val ast = semantics.parse(in, file.getParentFile(), Some(file.getName()))
-      lazy val final_out = semantics.applyPasses(ast, extraPasses)
+      /* Lift the prog according to the active interpreter */
+      lazy val liftedAst = i.lift(ast)
+      lazy val final_out = semantics.applyPasses(liftedAst, extraPasses)
       lazy val trace = i.run(final_out)
       lazy val ctrace = as_ctrace(trace)
       lazy val md = trace.metadata

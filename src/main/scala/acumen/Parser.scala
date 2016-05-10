@@ -140,13 +140,13 @@ object Parser extends MyStdTokenParsers {
   lexical.delimiters ++=
     List("(", ")", "{", "}", "[", "]", ";", "=", ":=", "=[i]", "=[t]", "'", ","," ",
       ".", "+", "-", "*", "/", "^", ".+", ".-", ".*", "./", ".^",
-      ":", "<", ">", "<=", ">=", "~=", "||","->","==",
+      ":", "<", ">", "<=", ">=", "~=", "||","->","<-","==",
       "&&", "<<", ">>", "&", "|", "%", "@", "..", "+/-", "#include", "#semantics")
 
   lexical.reserved ++=
     List("foreach", "end", "if", "else","elseif", "create", "move", "in", "terminate", "model","then","initially","always",
          "sum", "true", "false", "init", "match","with", "case", "type", "claim", "hypothesis", "let","noelse",
-         "Initial", "Continuous", "Discrete", "FixedPoint", "none","cross","do","dot","for","_3D")
+         "Initial", "Continuous", "Discrete", "FixedPoint", "none","cross","do","dot","for","_3D","zeros","ones", "_plot")
 
   /* token conversion */
 
@@ -178,7 +178,7 @@ object Parser extends MyStdTokenParsers {
     e match {
       case e@Lit(GDouble(x)) => Lit(GDouble(-x)).setPos(e.pos)
       case e@Lit(GInt(x)) => Lit(GInt(-x)).setPos(e.pos)
-      case other => mkOp("-", other)
+      case other => mkOp("*",Lit(GInt(-1)), other)
     }
   }
 
@@ -217,7 +217,7 @@ object Parser extends MyStdTokenParsers {
   }
   def gstr = stringLit ^^ GStr
   def gbool = "true" ^^^ GBool(true) | "false" ^^^ GBool(false)
-  def gpattern: Parser[GPattern] = parens(repsep(gvalue, ",")) ^^{case ls => GPattern(ls)}
+  def gpattern: Parser[GPattern] = parens(rep2sep(gvalue, ",")) ^^{case ls => GPattern(ls)}
 
   /* the actual parser */
 
@@ -241,10 +241,11 @@ object Parser extends MyStdTokenParsers {
     ("initially" ~> repsep(init, ",") 
       | success(Nil))
 
-  def init = name ~! "=" ~! initrhs ^^ { case x ~ _ ~ rhs => Init(x, rhs) }|
-             "_3D" ~ "=" ~ threeDRhs ^^ {
-             	case _ ~ _ ~ ls => Init(Name("_3D",0), ExprRhs(ls))}
-
+ def init = name ~! "=" ~! initrhs ^^ { case x ~ _ ~ rhs => Init(x, rhs) }|
+              "_3D" ~ "=" ~ threeDRhs ^^ {
+               case _ ~ _ ~ ls => Init(Name("_3D",0), ExprRhs(ls))} |
+             "_plot" ~ "=" ~ plotRhs ^^ {
+              case _ ~ _ ~ ls => Init(Name("_plot",0), ExprRhs(ls))}
   def initrhs =
     ("create" ~! className ~! args(expr) ^^ { case _ ~ cn ~ es => NewRhs(Var(Name(cn.x,0)), es) }
       | expr ^^ ExprRhs)
@@ -309,16 +310,15 @@ object Parser extends MyStdTokenParsers {
 		                          parens(repsep(pattern,",")) ^^ {case ls => Pattern(ls.map(x => x.ps match{
 		                            case s::Nil => x.ps
 		                            case ss => List(Pattern(ss))}).flatten)}
-  //println(run(action, " b' == b''' "))	                           
   def patternMatch : Parser[Continuously] = positioned(pattern) ~ "=" ~ expr ^^{case p ~ _ ~ e => Continuously(Assignment(p,e))}
 
   def discretelyOrContinuously =
     (newObject(None) ^^ Discretely | elim ^^ Discretely 
-      | move ^^ Discretely | patternMatch | assignOrEquation | _3DAction)
+      | move ^^ Discretely | assignOrEquation | _3DAction | patternMatch | _plotAction)
 
   def assignOrEquation =
     // Make sure lhs won't be an expr like a == b, which has the same syntax as equation
-    access >> { e =>
+    expr >> { e =>
       (	"=" ~> expr ^^ (e1 => Continuously(Equation(e, e1)))
         |"+" ~> "=" ~> assignrhs(e) ^^ Discretely     
         | "=[i]" ~> expr ^^ (e1 => Continuously(EquationI(e, e1)))
@@ -430,10 +430,13 @@ object Parser extends MyStdTokenParsers {
     {case ls => ExprVector(ls.map(x => ExprVector(List(x))))}
   def atom: Parser[Expr] =
     positioned( sum
+      | difExpr
+      | dif   
       | parens(expr)
       | interval
       |"type" ~! parens(className) ^^ { case _ ~ cn => TypeOf(cn) }
       | name >> { n => args(expr) ^^ { es => Op(n, es) } | success(Var(n)) }
+      | vectorConstruct
       | colVector	
       | parens(rep2sep(expr, ",")) ^^ ExprVector
       | gvalue ^^ Lit
@@ -448,6 +451,50 @@ object Parser extends MyStdTokenParsers {
             case Some(_ ~ f) => f
           })} 
      
+  final val one = Lit(GInt(1))
+  final val zero = Lit(GInt(0))
+  
+  def vectorConstruct : Parser[ExprVector] = 
+    "ones" ~ parens(rep1sep(gint,",")) ^^ {case _ ~ls => vectorHelper("ones", ls.map(x => x.i))}  |
+    "zeros" ~ parens(rep1sep(gint,",")) ^^ {case _ ~ ls => vectorHelper("zeros", ls.map(x => x.i))} |
+    "("~")" ^^{case _ ~ _ => ExprVector(List.empty)}
+   
+  def vectorHelper(name:String, dimensions:List[Int]):ExprVector = dimensions match{
+    case n :: Nil => ExprVector((for (i<- 0 to n-1) yield if(name == "zeros") zero else one).toList)
+    case n :: tail => ExprVector((for (i<- 0 to n-1) yield vectorHelper(name,tail)).toList)
+  }
+   def dif = lagrange | difVar 
+
+  def lagrange: Parser[Expr] = difVar ~ rep("'") ^^ {case e ~ ps => recursiveDif(e,ps.size)}
+
+  def difVar: Parser[Expr] = ident ~ rep("'") ~ brackets(repsep(expr,",")) ^^ {
+           case x ~ ps ~ List(y) =>  recursiveDif(Var(Name(x,0)),ps.size,y)
+                             case x ~ ps ~ ls => ExprVector(ls.map(z => recursiveDif(Var(Name(x,0)),ps.size,z)))
+        }
+  def difExpr: Parser[Expr] =  
+    parens(expr) >> { e1 =>
+      (positioned(  rep1("'")~ opt(brackets(rep1sep(expr,","))) ^^ 
+          {case ps ~ Some(List(n)) => recursiveDif(e1,ps.size,n)
+          case  ps ~ Some(ls) => ExprVector(ls.map(x => recursiveDif(e1,ps.size,x)))
+          case  ps ~ None => recursiveDif(e1,ps.size)} )
+        | success(e1))
+    }
+        
+  def recursiveDif(e:Expr, n:Int):Expr = {
+    if(n == 0)
+      e
+    else
+      mkOp("dif",recursiveDif(e,n-1))
+  }
+
+  def recursiveDif(e:Expr, n:Int, v:Expr):Expr = {
+    if(n == 0)
+      e
+     else
+       mkOp("dif",recursiveDif(e,n-1,v),v)
+  }
+    
+  def bs: Parser[(Name, Expr)] = name ~ "<-" ~ expr ^^ {case n ~ _ ~ e => (n,e)}
  
   def interval: Parser[Expr] =
 //    nlit ~ ".." ~ nlit ^^ { case lo ~ ".." ~ hi => ExprInterval(lo,hi) }
@@ -624,6 +671,15 @@ object Parser extends MyStdTokenParsers {
     }
 
   }
+  def _plotAction =
+    "_plot" ~ "="  ~ plotRhs ^^ {
+      case _ ~ _ ~ ls => Continuously(Equation(Var(Name("_plot",0)), ls))}|
+    "_plot" ~ "+"~"="  ~ plotRhs ^^ {
+      case _ ~ _~_ ~ ls => Discretely(Assign(Var(Name("_plot",0)), ls))
+    }
+
+  def plotRhs = parens(repsep(expr, ",")) ^^ { case es => ExprVector(es.map(e => Lit(GStr(Pretty pprint e)))) }
+  
   /* interpreter configurations parser */
 
   def store: Parser[CStore] =
@@ -638,7 +694,7 @@ object Parser extends MyStdTokenParsers {
   def field = name ~! "=" ~! value ^^ { case x ~ _ ~ v => (x, v) }
 
   def value: Parser[CValue] =
-    gvalue ^^ VLit | vObjId | vClassName | vStepType
+    gvalue ^^ VLit | vObjId | vClassName | vStepType | parens(value)
 
   def objid = cidLit ^^ toCId
 

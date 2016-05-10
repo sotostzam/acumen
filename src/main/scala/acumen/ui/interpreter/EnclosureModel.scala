@@ -139,7 +139,7 @@ class EnclosureModel extends InterpreterModel {
                                      encls(row+1).loLeft, encls(row+1).hiLeft)
       }
       
-      override def getDouble(row: Int, column: Int) = None
+      override def getDoubleAt(row: Int, column: Int) = None
       
       override def getPlotTitle(col: Int) = plotTitles(col)
       

@@ -43,7 +43,7 @@ trait PlotModel {
   def getRowCount() : Int
   def getValueAt(row:Int, column:Int) : String
   def getPlotTitle(col:Int) : String
-  def getDouble(row:Int, column:Int): Option[Double]
+  def getDoubleAt(row:Int, column:Int): Option[Double]
   def isEmpty(): Boolean
   // getTimes() is expected to have one more element than the data
   // that is being plotted when the plottables are enclosures

@@ -14,7 +14,6 @@ import interpreters.Common._
 import util.Canonical._
 import interpreters.Common.Env
 import scala.compat.Platform
-//import ADTest._
 
 object SDTest extends Properties("SD") {
   // How big the arbitrary expression is 
@@ -39,7 +38,6 @@ object SDTest extends Properties("SD") {
   // Make a copy of each identity function 10 times
   def duplicate[T](list: List[T], N: Int): List[T] =
     list.flatMap(x => for (i <- 0 to N) yield x)
-  //val env:Env = Env(Map(x -> VLit(GInt(1)) ))
 
   def oriIdentityFunctions(x: Expr): List[Expr] =
     x ::
@@ -78,7 +76,6 @@ object SDTest extends Properties("SD") {
 
   property("PD on addition of identity functions") = {
     forAll(mkPlusExpr(x)) { (e: Expr) =>
-      SD.hashFlag = false
       val time1 = Platform.currentTime
       val (expr, newbindings) = dif(e, x.name, ctx2, Nil).pair
       val bindings = mkBindings(newbindings)
@@ -87,7 +84,6 @@ object SDTest extends Properties("SD") {
       SD.clear()
       // Property
       evalResult ~= N
-      // e == e
     }
   }
 
@@ -116,7 +112,7 @@ object SDTest extends Properties("SD") {
       // Property
       (evalpx ~= evalpy) && (evalpx ~= 1)
     }
-  ////    
+
   property("PD on two demensional functions") =
     forAll(genFxTimesFy) { (e: Expr) =>
       val (px, xbindings) = dif(e, x.name, ctx2, Nil).pair

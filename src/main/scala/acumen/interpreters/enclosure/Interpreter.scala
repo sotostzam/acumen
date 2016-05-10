@@ -48,6 +48,8 @@ case class Interpreter(strategy: Strategy)
   val noAdjustParms = (p: Parameters) => p
   
   override def visibleParameters = Parameters.defaults.mapValues(d => VLit(GDouble(d)))
+  
+  def lift = interpreters.Common.liftToUncertain
 
   def run(des: Prog) = runInterpreter(des, defaultInterpreterCallbacks)
 

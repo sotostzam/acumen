@@ -50,7 +50,8 @@ class Interpreter(val parDiscr: Boolean = true,
   val outputRows = "WhenChanged"
   val initStore = initStoreInterpreter(initStep = initStepType, initTimeStep = timeStep, initOutputRows = outputRows, isImperative = true)
   override def visibleParameters = visibleParametersMap(initStore) + ("method" -> VLit(GStr(RungeKutta))) + ("orderOfIntegration" -> VLit(GInt(4)))
-
+  
+  def lift = identLift
   def init(prog: Prog): (Prog, Store, Metadata) = {
     checkContinuousAssignmentToSimulator(prog)
     val magic = fromCStore(initStore, CId(0))

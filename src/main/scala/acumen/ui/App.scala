@@ -181,6 +181,7 @@ class App extends SimpleSwingApplication {
   private val resetDeviceNum                  = mkAction(    "Reset Device",                        NONE, NONE,       resetDevice())
   private val contractionAction               = mkActionMask("Contraction",                         VK_C, VK_C,       shortcutMask | SHIFT_MASK, toggleContraction())
   private val normalizeAction                 = mkAction(    "Normalize (to H.A.)",                 VK_N, NONE,       toggleNormalization())
+  private val btaAction                       = mkAction(    "BTA",                                 VK_N, NONE,       toggleBTA())
   private val manualAction                    = mkAction(    "Reference Manual",                    VK_M, VK_F1,      manual)
   private val aboutAction                     = new Action(  "About")       { mnemonic =            VK_A; def apply = about }
   private val licenseAction                   = new Action(  "License")     { mnemonic =            VK_L; def apply = license }
@@ -230,6 +231,7 @@ class App extends SimpleSwingApplication {
   codeAreaScrollPane.setVerticalScrollBarPolicy(javax.swing.ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED)
   
   def toggleLineNumbers = codeAreaScrollPane.setLineNumbersEnabled(!codeAreaScrollPane.getLineNumbersEnabled)
+  def fixed3DRatio = fixed3DRatioItem.selected
   def toggleFindReplaceToolbar = {
     codeArea.findReplaceToolBar.setVisible(!codeArea.findReplaceToolBar.isVisible)
     if (codeArea.findReplaceToolBar.isVisible) codeArea.searchField.requestFocus 
@@ -338,18 +340,7 @@ class App extends SimpleSwingApplication {
 
   val traceTab = new ScrollPane(traceTable)
 
-  var threeDtab = if (Main.threeDState == ThreeDState.DISABLE) {
-    Logger.log("Acumen3D disabled.")
-    new DisabledEditorTab("3D visualization disabled on the command line.")
-  } else {
-    start3D()
-  }
-
-  def start3D() = try {
-    val res = new ThreeDTab(controller)
-    Main.threeDState = ThreeDState.ENABLE
-    res
-  }
+  var threeDtab = new ThreeDTab(controller)
 
   val views = new TabbedPane {
     assert(pages.size == 0)
@@ -434,6 +425,7 @@ class App extends SimpleSwingApplication {
     contents ++= Seq(rb1)
     new ButtonGroup(rb1)
   }
+  private val fixed3DRatioItem = new CheckMenuItem("Fixed ratio for 3D view (4:3)")
   
   // FIXME Move all of this state into Main, and expose through CLI
   def getStartAnaglyph = false
@@ -497,7 +489,7 @@ class App extends SimpleSwingApplication {
         mnemonic = Key.L
         action = showLineNumbersAction
       }
-
+      contents += fixed3DRatioItem
     }
 
     contents += new Menu("Plotting") {
@@ -530,6 +522,13 @@ class App extends SimpleSwingApplication {
       contents ++= Seq(playMenuItem, stepMenuItem, stopMenuItem)
     }
 
+    val bta = new RadioMenuItem("") {
+      import Main.extraPasses
+      selected = extraPasses.contains("BTA")
+      enableWhenStopped(this)
+      action = btaAction
+    }
+    
     object semantics {
       val ref2015 = new RadioMenuItem("") {
         selected = false
@@ -640,7 +639,7 @@ class App extends SimpleSwingApplication {
           mnemonic = Key.D
           contents ++= Seq(ref2014, opt2014, new Separator, ref2013, opt2013, new Separator, ref2012, opt2012, par2012)
         }
-        contents ++= Seq(new Separator, lc)
+        contents ++= Seq(new Separator, bta, lc)
       }
     }
 
@@ -663,7 +662,14 @@ class App extends SimpleSwingApplication {
       contents += new MenuItem(licenseAction) 
     }
   }
-
+  def toggleBTA() = {
+    import Main.extraPasses
+    if (extraPasses.contains("BTA")) 
+      extraPasses = extraPasses.filter(_ != "BTA")
+    else
+      extraPasses = extraPasses :+ "BTA"
+  }
+  
   def toggleNormalization() = {
     import Main.extraPasses
     if (extraPasses.contains("normalize")) 
@@ -864,8 +870,7 @@ class App extends SimpleSwingApplication {
     case Stopped =>
       if (controller.threeDData.modelContains3D()) {
         codeArea.editedSinceLastRun = false
-        if (Main.threeDState == ThreeDState.ENABLE && modelFinished
-          && !threeDtab.checkBoxState("realTime")) {
+        if (modelFinished && !threeDtab.checkBoxState("realTime")) {
           views.selectThreeDView()
           threeDtab.play()
         }
@@ -952,6 +957,8 @@ class App extends SimpleSwingApplication {
     threeDtab.setCheckBoxes(false)
     threeDtab.disableButtons()
     controller ! Play
+     // Clear the hash table every time a new simulation runs
+    SD.clear
   }
   
   /** Everything that needs to compute one simulation step. */

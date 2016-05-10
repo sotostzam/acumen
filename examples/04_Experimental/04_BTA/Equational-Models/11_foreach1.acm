@@ -1,0 +1,8 @@
+model Main(simulator)=
+ initially q = (0,0), x = 0,y = 0, r = 0
+ always
+   q = (x,y),
+   foreach i in 0:1 do
+     q(i) + 1 = 0
+    
+     

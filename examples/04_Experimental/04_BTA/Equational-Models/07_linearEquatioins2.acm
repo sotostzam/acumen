@@ -1,0 +1,8 @@
+model Main(simulator) =
+  initially
+     x = 0, y = 0, w = 0, z = 0
+    always
+     x = 1,
+     y = 2,
+     x + y + z = 4,
+     x + y + w + z = 4

@@ -1,0 +1,8 @@
+model Main(simulator) =
+  initially
+   x = 0, y = 0,x' = 1, y' = 1, r = 0
+  always
+   if r <= 0 then 
+  (sin(x) + 2*y)' = 5 + pi,
+  (sin(x) - 2*pi*y)' = 6
+  noelse

@@ -362,6 +362,21 @@ object Errors {
     override def getMessage =
       s + " is not yet implemented."
   }
+
+  case class UnsupportedPlotType(s:String) extends AcumenError {
+    override def getMessage =
+      s"The expression $s can not be plotted. Only variable names are supported in _plot."
+  }
+
+  case class NonexistentVariableForPlot(s:String, objName: String) extends AcumenError {
+    override def getMessage =
+      s"The variable name $s is not defined in model $objName."
+  }
+
+  case class DuplicatesForPlot(objName: String) extends AcumenError {
+    override def getMessage =
+      s"There are duplicates for plotting in model $objName."
+  }
   
   /* Device Input Error */
   case class invalidInput(s: String) extends AcumenError {
@@ -372,7 +387,26 @@ object Errors {
     override def getMessage =
       id + " is an invalid device ID, please check the devices that connected to Acumen."
   }
-
+  case class GEVarsNotEqualToEquations(equations:List[Equation], vars:List[Var]) extends AcumenError{
+    override def getMessage = 
+      "Found " + equations.length + " equations and " + vars.length + " indireced variables " + 
+       vars.map(x => pprint(x.asInstanceOf[Expr])).mkString(",") + "\n" +
+       equations.map(x => pprint(x.lhs) + " = " + pprint(x.rhs) + "\n").mkString("\n")
+  }
+  
+  case class symbolicDifWithoutBTA (e:Expr) extends PositionalAcumenError{
+    override def mesg = 
+       "Support for symbolic differentiation needs to be enabled for this model to run. \n " + 
+       "Enable the 'BTA' checkbox under 'Semantics' menu or rerun the model with --enable-bta"
+    pos = e.pos
+  }
+  
+  case class equationalWithoutBTA (a:Expr) extends PositionalAcumenError{
+    override def mesg = 
+       "Support for equaltional models needs to be enabled for this model to run. \n " + 
+       "Enable the 'BTA' checkbox under 'Semantics' menu or rerun the model with --enable-bta"
+    pos = a.pos
+  }
   /* utility class */
   case class ObjField(o: CId, cn: String, f: Name) {
     override def toString = s"(#$o : $cn)." + pprint(f)

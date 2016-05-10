@@ -25,9 +25,8 @@ class CStoreCntrl(val semantics: SemanticsImpl[Interpreter], val interpreter: CS
 
     def parse() = {
       val ast = semantics.parse(progText, currentDir, None)
-      val astWithPrelude = Prog(deviceClass :: ast.defs)
-      val des = semantics.applyPasses(astWithPrelude, Main.extraPasses)
-      prog = des
+      val des = semantics.applyPasses(ast,Main.extraPasses)
+      prog = Prog(deviceClass:: des.defs )
     }
     
     def sendChunk() {
@@ -70,7 +69,8 @@ class CStoreCntrl(val semantics: SemanticsImpl[Interpreter], val interpreter: CS
             buffer = buffer enqueue buffer2
         }
         def addData(objId: CId, values: GObject) = {
-          buffer2 += (objId -> values.toList.filter(mkFilter(values)))
+          val plotFilter = getPlotFilter(values)
+          buffer2 += (objId -> values.toList.filter(mkFilter(values, plotFilter)))
         }
         def continue = {
           if (outputRow) {

@@ -1,0 +1,12 @@
+model Main(simulator) =
+  initially
+   x = 0, y = 0,x' = 1, L = 0,y' = 1, r = 0,t = 0, t' = 0,q = (0,0)
+  always
+  t' = 1,
+  q = (x,y),
+  L = (x + y)^2+y^2,
+  if t > 2 then 
+  foreach i in  0:1 do(
+    L'[q(i)]' + L'[q(i)] = 2
+  )
+  else(x' = 0, y' = 0)
