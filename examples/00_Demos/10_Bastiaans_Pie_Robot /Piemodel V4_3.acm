@@ -1,0 +1,51 @@
+// Pierobot model version 4.3
+// in this version we adjust the measers of the model to the true ones
+// 1=1cm
+
+
+
+
+//----------------------------------
+model PieRobot(Vl,Vr)=
+
+initially
+Wr=0,Wr'=0,Wl=0,Wl'=0,
+X=5,Y=0,X'=0,Y'=0,
+i=100, //the measurment are in mm but divided by i
+theta=0,
+theta'=0,
+WheelRB=5/100,   // the raduis of the wheel guide bal
+WheelRW=15/100,
+WheelP=90/100, //
+
+_3D =()
+always
+
+Wr'=Vr/WheelRW,
+Wl'=Vl/WheelRW,
+theta'=(Vr-Vl)/WheelP,
+X'=(Vl+Vr)/2*cos(theta),
+Y'=(Vl+Vr)/2*sin(theta),
+
+
+_3D =    //plot Pie robot
+( 
+  (Cylinder transparency= 20 center = (X,Y,WheelRB) radius = 125 /(2 *i) length = 1.5/i color = red rotation = (pi/2,0,theta)) ,  // base cilinder
+  (Box center=(X+125 /(4 *i)*cos(theta),Y+125 /(4 *i)*sin(theta),WheelRB)    size=(125 /(2 *i),1.6/i,1.6/i) color=blue   rotation=(0,0,theta)),
+  // left wheel (yellow)
+  (Cylinder  center = (X-WheelP/2*sin(theta),Y+WheelP/2*cos(theta),WheelRW) radius = WheelRW   length = 5/i color = yellow rotation = (0,0,theta)), 
+  (Box center=(X-WheelP/2*sin(theta),Y+WheelP/2*cos(theta),WheelRW)    size=(WheelRW*2,5.1/i,1/i) color=blue   rotation=(0,Wl+pi/4,theta)),
+  (Box center=(X-WheelP/2*sin(theta),Y+WheelP/2*cos(theta),WheelRW)    size=(WheelRW*2,5.1/i,1/i) color=blue   rotation=(0,Wl-pi/4,theta)),
+   // right wheel (green)
+  (Cylinder  center = (X+WheelP/2*sin(theta),Y-WheelP/2*cos(theta),WheelRW) radius = WheelRW   length = 5/i color = green rotation = (0,0,theta)), 
+  (Box center=(X+WheelP/2*sin(theta),Y-WheelP/2*cos(theta),WheelRW)   size=(WheelRW*2,5.1/i,1/i) color=blue   rotation=(0,Wr+pi/4,theta)),
+  (Box center=(X+WheelP/2*sin(theta),Y-WheelP/2*cos(theta),WheelRW)    size=(WheelRW*2,5.1/i,1/i) color=blue   rotation=(0,Wr-pi/4,theta)),
+  // spupport wheels
+  (Sphere center= (X+cos(theta)*110/(2*i),Y+sin(theta)*110/(2*i),WheelRB/2) size=WheelRB/2 color=black rotation=(0,0,theta)),                            // front support wheel
+  (Sphere center= (X-cos(theta)*110/(2*i),Y-sin(theta)*110/(2*i),WheelRB/2) size=WheelRB/2 color=black rotation=(0,0,theta))                         // back support wheel
+  //sensors
+  
+  
+  )
+
+//--------------------------------
