@@ -1,0 +1,16 @@
+
+
+
+model sensor () =
+initially
+x=0,y=0,
+flag=0,
+colors=(1,0.5,1),
+_3D=()
+always
+
+if flag==1 then
+colors=(0.5,0,0.8)
+else
+colors=(1,0.5,1),
+_3D = (Cylinder center = (x,y,0.05) radius = 0.02 length = 0.051 color = colors rotation = (pi/2,0,0))

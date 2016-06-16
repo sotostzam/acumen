@@ -1,0 +1,26 @@
+// Pierobot model version 3.0
+// In this version we make the dynamic model of the Pie robot
+// this version will drive the robot in a loop
+// this model has aan error in the heading
+#include "PID V1_1.acm"
+
+//-------------------------------------------
+
+model controller (speed, heading) =
+initially
+vr= speed-heading*0.9/2,   // 0.9 = WheelP
+vl= speed+heading*0.9/2,
+
+Wl=0,Wr=0,Wl'=0,Wr'=0,vR=0,vL=0,
+PIDL = create PID (1,0,0),
+PIDR = create PID (1,0,0)
+always
+
+/*vr= speed-heading*0.9/2,   // 0.9 = WheelP
+vl= speed+heading*0.9/2,   */
+
+PIDL.x'= (speed+heading*0.9/2-Wl'*0.015),   // 0.015= wheel raduis
+PIDR.x'= (speed-heading*0.9/2-Wr'*0.015),   // 0.015= wheel raduis
+vR=PIDR.output,
+vL=PIDL.output
+//----------------------------------

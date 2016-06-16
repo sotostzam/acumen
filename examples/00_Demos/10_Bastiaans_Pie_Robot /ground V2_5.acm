@@ -1,0 +1,102 @@
+// in this version we make an track by splitting the track in different segments
+// lines and arcs
+// the objectes of the lines are discripet in the model lines
+// the ojectes of the arc discripet in the model lines
+// abble detection
+
+model line (p1,p2)=
+initially
+
+alpha= atan2 ((p2(1)-p1(1)),(p2(0)-p1(0))),
+l=sqrt((p2(0)-p1(0))^2+(p2(1)-p1(1))^2),
+point= ((p1(0)+p2(0))/2,(p1(1)+p2(1))/2)
+
+//------------------------
+model line3D (p1,p2,th)=
+initially
+
+_3D=(
+      Box center=( (p1(0)+p2(0))/2,(p1(1)+p2(1))/2)
+          size=(sqrt((p2(0)-p1(0))^2+(p2(1)-p1(1))^2),th,0.01)
+          color=black 
+          rotation=(0,0,atan2 ((p2(1)-p1(1)),(p2(0)-p1(0))))
+      )
+//-----------------------
+model arc (p,m,theta)=
+initially
+
+point= (m(0),m(1)),
+alpha= atan2((p(1)-m(1)),(p(0)-m(0))),
+r=sqrt((p(0)-m(0))^2+(p(1)-m(1))^2)
+
+//--------------------------
+
+
+model arc3D (p,m,theta,th)=
+initially
+mode      =  "Initialize",
+
+alpha= atan2((p(1)-m(1)),(p(0)-m(0))),
+r=sqrt((p(0)-m(0))^2+(p(1)-m(1))^2),
+deff=50
+
+always
+
+
+match mode with [
+    "Initialize" ->
+      foreach i in 1:deff do(
+         create line3D  ( 
+                           (
+                            m(0)+r*cos(theta*(i-1)/deff)*cos(alpha) -r*sin(theta*(i-1)/deff)*sin(alpha)  ,
+                            m(1)+r*cos(theta*(i-1)/deff)*sin(alpha)+r*sin(theta*(i-1)/deff)*cos(alpha)
+                            ),
+         
+                           (
+                            m(0)+r*cos(theta*(i)/deff)*cos(alpha) -r*sin(theta*(i)/deff)*sin(alpha)  ,
+                            m(1)+r*cos(theta*(i)/deff)*sin(alpha)+r*sin(theta*(i)/deff)*cos(alpha)
+                            )
+                            ,
+                            th
+                        )
+      ),mode + = "Persist"
+| "Persist" -> ]
+  
+//-----------------------
+
+
+
+
+//-----------------------------
+model Track (tr)=
+initially
+mode      =  "Plot"
+
+ always    
+
+
+
+match mode with [
+   
+      
+   "Plot" -> 
+        foreach i in 1:(length(tr)-1) do(
+        if tr(i,2) == 0 then
+             create line3D  ( tr(i,0),tr(i,1),tr(0))
+         else
+             create arc3D ( tr(i,0),tr(i,1),tr(i,2),tr(0))
+             ),
+        mode + = "Persist"
+      
+  | "Persist" -> ]
+/*
+model Main(simulator) =
+initially 
+   track1 = create Track(0.1)
+
+*/
+
+
+
+
+   

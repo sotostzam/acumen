@@ -1,0 +1,60 @@
+// the main model define only what happens in the raspberry pie
+//version 2.0
+// the communication between the different sim models happens in "communication V1_0.acm"
+#include "communication V1_4.acm"
+
+
+model Main (simulator) = 
+
+
+initially
+com = create communication(0,0),
+x=0,
+x'=0,
+x''=0,
+memory=0
+always
+com.speed=x',
+if x'<=2  then
+   x''=4 else x''=0,
+   
+ if com.sFlagL1==0 && com.sFlagL1==0 && com.sFlagM==0 && com.sFlagR==0 && com.sFlagR1==0 && memory==0   then
+ com.heading=0 noelse, 
+ if ( com.sFlagL1==1 || com.sFlagL==1 || com.sFlagM==1 || com.sFlagR==1 || com.sFlagR1==1 ) && memory==0 && x'>=0.5 then
+     if( com.sFlagL1==1 || com.sFlagL==1 )&& com.sFlagM==1&& com.sFlagR==0 then
+         com.heading+=-3
+     noelse,
+     if( com.sFlagR1==1 || com.sFlagR==1 )&& com.sFlagM==1&& com.sFlagL==0 then
+         com.heading+=3
+     noelse,
+     if com.sFlagL==1 && com.sFlagM==1&& com.sFlagR==1 then
+        com.heading+=-6
+     noelse,
+ memory=1 noelse,
+
+if memory==1 then
+      
+    if com.sFlagL==1 && com.sFlagM==1&& com.sFlagR==0 then
+         com.heading+=-0.5
+     noelse,
+     if com.sFlagL1==1 && com.sFlagL==1 && com.sFlagM==0 then
+         com.heading+=-2
+     noelse,
+     if com.sFlagL1==1 && com.sFlagL==0 && com.sFlagM==0 then
+         com.heading+=-6
+     noelse,
+     if com.sFlagR==1 && com.sFlagM==1&& com.sFlagL==0 then
+         com.heading+=0.5
+     noelse,
+     if com.sFlagR1==1 && com.sFlagR==1 && com.sFlagM==0 then
+         com.heading+=2
+     noelse,
+     if com.sFlagR1==1 && com.sFlagR==0 && com.sFlagM==0 then
+         com.heading+=6
+     noelse
+
+ noelse
+//(com.heading=0)
+
+
+

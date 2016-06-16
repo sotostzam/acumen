@@ -1,0 +1,127 @@
+// the main model combines al the simulation of reality  version 3.0
+// in this model make the robot follow the line
+
+// sensor method
+#include "detect V1_4.acm"
+#include "ground V2_5.acm"
+#include "sensor V1_4.acm"
+#include "controller V1_2.acm"
+#include "Piemodel V4_3.acm"
+//-------------------------------------------
+
+
+
+//----------------------------------
+
+
+//--------------------------------
+model communication (speed,heading) = 
+
+
+initially
+// coordinates for the track
+tr=(   
+        ((-5,-5),(5,-5),0),
+        ((5,-5),(5,0),pi),
+        ((5,5),(-5,5),0),        
+        ((-5,5),(-5,0),pi)
+     ),
+ //plot the track
+ground = create Track( 
+          (0.2, 
+        ((-5,-5),(5,-5),0),
+        ((5,-5),(5,0),pi),
+        ((5,5),(-5,5),0),        
+        ((-5,5),(-5,0),pi))
+        
+     ),
+detectL1= create detect(  
+        (0.2, 
+        ((-5,-5),(5,-5),0),
+        ((5,-5),(5,0),pi),
+        ((5,5),(-5,5),0),        
+        ((-5,5),(-5,0),pi))
+       ),
+detectL= create detect(  
+        (0.2, 
+        ((-5,-5),(5,-5),0),
+        ((5,-5),(5,0),pi),
+        ((5,5),(-5,5),0),        
+        ((-5,5),(-5,0),pi))
+       ),
+detectM= create detect(  
+        (0.2, 
+        ((-5,-5),(5,-5),0),
+        ((5,-5),(5,0),pi),
+        ((5,5),(-5,5),0),        
+        ((-5,5),(-5,0),pi))
+       ),
+detectR= create detect(  
+        (0.2, 
+        ((-5,-5),(5,-5),0),
+        ((5,-5),(5,0),pi),
+        ((5,5),(-5,5),0),        
+        ((-5,5),(-5,0),pi))
+       ),
+detectR1= create detect(  
+        (0.2, 
+        ((-5,-5),(5,-5),0),
+        ((5,-5),(5,0),pi),
+        ((5,5),(-5,5),0),        
+        ((-5,5),(-5,0),pi))
+       ) ,
+       
+con= create controller (0,0),
+robot= create PieRobot(0,0),
+sensorL1 = create sensor (),
+sensorL = create sensor (),
+sensorM = create sensor (),
+sensorR = create sensor (),
+sensorR1 = create sensor (),
+sFlagL1=0 , sFlagL=0,sFlagM=0,sFlagR=0,sFlagR1=0,
+_3D = (),_3DView=()
+always
+con.speed= speed,
+con.heading= heading,
+con.Wr=robot.Wr,
+con.Wl=robot.Wl,
+robot.Vr= con.vR,
+robot.Vl= con.vL,
+//sensorL1
+sensorL1.x= (robot.X+0.375*cos(robot.theta)-0.125*sin(robot.theta)),
+sensorL1.y=(robot.Y+0.375*sin(robot.theta)+0.125*cos(robot.theta)),
+detectL1.x=(robot.X+0.375*cos(robot.theta)-0.125*sin(robot.theta)),
+detectL1.y=(robot.Y+0.375*sin(robot.theta)+0.125*cos(robot.theta)),
+sensorL1.flag=detectL1.flag,sFlagL1=detectL1.flag,
+//sensorL
+sensorL.x= (robot.X+0.335*cos(robot.theta)-0.2875*sin(robot.theta)),
+sensorL.y=(robot.Y+0.335*sin(robot.theta)+0.2875*cos(robot.theta)),
+detectL.x=(robot.X+0.335*cos(robot.theta)-0.2875*sin(robot.theta)),
+detectL.y=(robot.Y+0.335*sin(robot.theta)+0.2875*cos(robot.theta)),
+sensorL.flag=detectL.flag,sFlagL=detectL.flag,
+//sensorM
+sensorM.x= (robot.X+0.375*cos(robot.theta)),
+sensorM.y=(robot.Y+0.375*sin(robot.theta)),
+detectM.x= (robot.X+0.375*cos(robot.theta)),
+detectM.y=(robot.Y+0.375*sin(robot.theta)),
+sensorM.flag=detectM.flag,sFlagM=detectM.flag,
+//sensorR
+sensorR.x= (robot.X+0.375*cos(robot.theta)+0.125*sin(robot.theta)),
+sensorR.y=(robot.Y+0.375*sin(robot.theta)-0.125*cos(robot.theta)),
+detectR.x= (robot.X+0.375*cos(robot.theta)+0.125*sin(robot.theta)),
+detectR.y=(robot.Y+0.375*sin(robot.theta)-0.125*cos(robot.theta)),
+sensorR.flag=detectR.flag,sFlagR=detectR.flag,
+//sensorR1
+sensorR1.x= (robot.X+0.335*cos(robot.theta)+0.2875*sin(robot.theta)),
+sensorR1.y=(robot.Y+0.335*sin(robot.theta)-0.2875*cos(robot.theta)),
+detectR1.x= (robot.X+0.335*cos(robot.theta)+0.2875*sin(robot.theta)),
+detectR1.y=(robot.Y+0.335*sin(robot.theta)-0.2875*cos(robot.theta)),
+sensorR1.flag=detectR1.flag,sFlagR1=detectR1.flag,
+
+
+
+
+_3D = (
+   
+  ),_3DView=((robot.X-20,robot.Y-20,5),(robot.X,robot.Y,0))
+ 
