@@ -69,6 +69,10 @@ object Errors {
     override def mesg = 
       "Unknown operator " + op + "."
   }
+  case class InvalidPrintName(nm: Value[_]) extends PositionalAcumenError {
+    override def mesg =
+      pprint(nm) + " is not a valid value name to print. The value name should be a string."
+  }
   case class CrossProductError() extends PositionalAcumenError {
     override def mesg = 
       "Cross product only defined over vectors of size 3."
