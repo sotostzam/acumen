@@ -23,7 +23,7 @@ class CStoreCntrl(val semantics: SemanticsImpl[Interpreter], val interpreter: CS
     val minPlotUpdateInterval = 100 // wait at most this many milliseconds before updating plot
 
     def parse() = {
-      val ast = semantics.parse(paramModelTxt + progText, currentDir, None)
+      val ast = semantics.parse(progText + paramModelTxt, currentDir, None)
       val des = semantics.applyPasses(ast,Main.extraPasses)
       prog = Prog(deviceClass :: des.defs)
     }
