@@ -326,7 +326,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
     (op,xs) match {
       case ("print", v :: Nil) =>
         Logger.log(Pretty pprint v)
-        println(Pretty pprint v)
+        if (Main.printMode) println(Pretty pprint v)
         v.asInstanceOf[Value[A]]
       case ("print", n :: v :: Nil) =>
         val name = n match {
@@ -335,7 +335,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
           case _ => throw InvalidPrintName(n)
         }
         Logger.log(name + (Pretty pprint v))
-        println(name + (Pretty pprint v))
+        if (Main.printMode) println(name + (Pretty pprint v))
         v.asInstanceOf[Value[A]]
        case (_, VLit(x:GNumber[A])::Nil) =>
          VLit(unaryGroundOp(op,x))

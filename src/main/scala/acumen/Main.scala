@@ -80,6 +80,7 @@ object Main {
   def experimentalCommandHelp = Array(
     "pretty <file>           pretty print model",
     "last <file>             run model and print final result",
+    "print <file>            run model and print value with print function",
     "trace <file>            run model and print trace output",
     "time <file>             time time it takes to run model",
     "",
@@ -264,6 +265,7 @@ object Main {
   var serverMode: Boolean = false
   var serverBufferedReader: BufferedReader = null
   var serverBufferedWriter: BufferedWriter = null
+  var printMode = false
 
   def send_recv(s: String): String = {
     serverBufferedWriter.write(s)
@@ -322,6 +324,9 @@ object Main {
         case "last" =>
           trace.printLast
           print(md.reportAsString)
+        case "print" => // only output the value with print function
+          printMode = true
+          trace
         case "detailed_time" =>
           bench.runTimer(args(1), outputFile)
         case "time" =>

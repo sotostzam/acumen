@@ -449,7 +449,7 @@ object Common {
          sequenceOp(s,d,e)
        case ("print", v :: Nil) =>
          Logger.log(Pretty pprint v)
-         println(Pretty pprint v)
+         if (Main.printMode) println(Pretty pprint v)
          v
        case ("print", n :: v :: Nil) =>
          val name = n match {
@@ -457,7 +457,7 @@ object Common {
            case _ => throw InvalidPrintName(n)
          }
          Logger.log(name + (Pretty pprint v))
-         println(name + (Pretty pprint v))
+         if (Main.printMode) println(name + (Pretty pprint v))
          v
        case ("format", VLit(GStr(s)) :: ps) =>
          VLit(GStr(s.format(ps.flatMap{
