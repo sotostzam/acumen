@@ -30,7 +30,7 @@ Y'=(Vl+Vr)/2*sin(theta),
 
 _3D =    //plot Pie robot
 ( 
-  (Cylinder transparency= 20 center = (X,Y,WheelRB) radius = 125 /(2 *i) length = 1.5/i color = red rotation = (pi/2,0,theta)) ,  // base cilinder
+  (Cylinder transparency= 1 center = (X,Y,WheelRB) radius = 125 /(2 *i) length = 1.5/i color = red rotation = (pi/2,0,theta)) ,  // base cilinder
   (Box center=(X+125 /(4 *i)*cos(theta),Y+125 /(4 *i)*sin(theta),WheelRB)    size=(125 /(2 *i),1.6/i,1.6/i) color=blue   rotation=(0,0,theta)),
   // left wheel (yellow)
   (Cylinder  center = (X-WheelP/2*sin(theta),Y+WheelP/2*cos(theta),WheelRW) radius = WheelRW   length = 5/i color = yellow rotation = (0,0,theta)), 
