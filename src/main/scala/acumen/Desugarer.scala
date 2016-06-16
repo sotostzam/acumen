@@ -88,6 +88,7 @@ case class Desugarer(odeTransformMode: ODETransformMode) {
       case Nil => (List(), Nil)
       case Init(x, rhs) :: is1 =>
         val drhs = rhs match {
+          case ParaRhs(e, nm, es) => ParaRhs(desugar(p, fs, env, e), nm, es map (desugar(p, fs, env, _)))
           case NewRhs(e, es) => NewRhs(desugar(p, fs, env, e), es map (desugar(p, fs, env, _)))
           case ExprRhs(e) => ExprRhs(desugar(p, fs, env, e))
         }

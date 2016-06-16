@@ -10,7 +10,7 @@ import PassManager._
 import benchTool._
 
 import java.net.{ Socket, InetAddress, ServerSocket }
-
+import acumen.interpreters.Common.paramModelTxt
 import scala.collection.mutable.ArrayBuffer
 
 object ThreeDState extends Enumeration {
@@ -96,7 +96,9 @@ object Main {
     "",
     "detailed_time <file> [--output outputFile]    run the time measurements based on the experiment file" +
       " and print the output in the specified output file or in \"" + outputFile + "\"",
-    "examples                record reference outputs for test suite" //"2d|3d" // have no clue what these do! -- kevina
+    "examples                record reference outputs for test suite", //"2d|3d" // have no clue what these do! -- kevina
+    "parameters              must be the last option, bind the given variables to the given values: val_name1 val1 " +
+    "                        val_name2 val2 [...]"
     //"fromJson",
     )
 
@@ -104,6 +106,25 @@ object Main {
     System.err.println("Try --help for more information.")
     System.exit(1)
   }
+
+  def mkParamModel(parameters: List[String]): (String, List[String]) = {
+    def parseParam(initFields: List[String], param: List[String]): (List[String], List[String]) =
+      param match {
+        case opt :: tail if opt.startsWith("-") =>
+          (List.empty, param)
+        case name :: value :: tail =>
+          Parser.run(Parser.ident, name)
+          Parser.run(Parser.cl_lit, value)
+          parseParam(name + " = " + value :: initFields, tail)
+      case e if e.isEmpty => (initFields, param)
+      case _ =>
+        System.err.println("Invalid parameters list: " + parameters.mkString(" "))
+        usage(); (List.empty, param)
+      }
+      val (paraModelInit, leftArgs) = parseParam(List.empty, parameters)
+      val paraModelText = "model Parameters() = initially " + paraModelInit.mkString(", ")
+      (paraModelText, leftArgs)
+    }
 
   def parseArgs(args: List[String]): Unit = try {
     args match {
@@ -134,7 +155,7 @@ object Main {
       case ("--prune-semantics") :: tail =>
         enableAllSemantics = false; parseArgs(tail)
       case "--disable-realtime" :: tail =>
-        enableRealTime = false
+        enableRealTime = false; parseArgs(tail)
       case "--play" :: tail =>
         autoPlay = true; parseArgs(tail)
       case "--enable-completion" :: tail =>
@@ -160,6 +181,9 @@ object Main {
             usage()
         }
         parseArgs(tail)
+      case "--parameters" :: tail =>
+        val (tempParaText, leftTail) = mkParamModel(tail)
+        paramModelTxt =  tempParaText + "\n\n"; parseArgs(leftTail)
       case opt :: tail if opt.startsWith("-") =>
         System.err.println("Unrecognized Option: " + opt)
         usage()
