@@ -447,7 +447,19 @@ object Common {
          VLit(GBool(x != y))
        case ("_:_:_", VLit(GInt(s))::VLit(GInt(d))::VLit(GInt(e))::Nil) =>
          sequenceOp(s,d,e)
-       case ("format", VLit(GStr(s)) :: ps) => 
+       case ("print", v :: Nil) =>
+         Logger.log(Pretty pprint v)
+         println(Pretty pprint v)
+         v
+       case ("print", n :: v :: Nil) =>
+         val name = n match {
+           case VLit(GStr(nm)) => nm
+           case _ => throw InvalidPrintName(n)
+         }
+         Logger.log(name + (Pretty pprint v))
+         println(name + (Pretty pprint v))
+         v
+       case ("format", VLit(GStr(s)) :: ps) =>
          VLit(GStr(s.format(ps.flatMap{
            case p @ VLit(_:GInt | _:GDouble) => extractDouble(p) :: Nil
            case VLit(GStr(x)) => x :: Nil

@@ -324,6 +324,19 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
   /** Purely functional operator evaluation at the values level */
   def evalOp[A](op:String, xs:List[Value[_]]) : Value[A] = {
     (op,xs) match {
+      case ("print", v :: Nil) =>
+        Logger.log(Pretty pprint v)
+        println(Pretty pprint v)
+        v.asInstanceOf[Value[A]]
+      case ("print", n :: v :: Nil) =>
+        val name = n match {
+          case VLit(GStr(nm)) => nm
+          case VLit(GStrEnclosure(nm)) => nm.head
+          case _ => throw InvalidPrintName(n)
+        }
+        Logger.log(name + (Pretty pprint v))
+        println(name + (Pretty pprint v))
+        v.asInstanceOf[Value[A]]
        case (_, VLit(x:GNumber[A])::Nil) =>
          VLit(unaryGroundOp(op,x))
        case (_,VLit(x:GNumber[A])::VLit(y:GNumber[A])::Nil) =>  
