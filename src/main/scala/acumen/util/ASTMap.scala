@@ -21,6 +21,7 @@ class ASTMap {
   }
   
   def mapInitRhs(rhs: InitRhs) : InitRhs = rhs match {
+    case ParaRhs(cn, vn, f) => ParaRhs(cn, vn, f.map{mapExpr(_)})
     case NewRhs(c, f) => NewRhs(c, f.map{mapExpr(_)})
     case ExprRhs(e) => ExprRhs(mapExpr(e))
   }

@@ -62,6 +62,8 @@ package acumen {
   sealed abstract class InitRhs
   /* Example: create Ball(x) */
   case class NewRhs(c: Expr, fields: List[Expr]) extends InitRhs
+  /* Example: create Ball.speed() */
+  case class ParaRhs(ex: Expr, nm: Name, fields: List[Expr]) extends InitRhs
   /* Example: 1+2 */
   case class ExprRhs(e: Expr) extends InitRhs
 

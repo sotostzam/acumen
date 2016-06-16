@@ -520,8 +520,18 @@ object Common {
     })
   }
 
-  def initStoreTxt(initStep: ResultType, timeStep: Double, outputRows: String, hypothesisReport: String, method: String) = 
-    s"""#0.0 { className = Simulator, parent = %s, time = 0.0, timeStep = $timeStep, outputRows = "$outputRows", hypothesisReport = "$hypothesisReport", continuousSkip = 0,endTime = 10.0, resultType = @$initStep, nextChild = 0,method = "$method", orderOfIntegration = 4, seed1 = 0, seed2 = 0, variableCount = 0 }"""
+  // The model contains command line input variables
+  var paramModelTxt = "model Parameters()= \n\n"
+
+  // This store txt of Simulator model used for optimize, reference and enclosure interpreter
+  val commonInitStoreTxt = s"""#0.0 { className = Simulator, parent = %s, nextChild = 0,
+                             variableCount = 0, continuousSkip = 0, parameters = Parameters, """
+
+  // The store txt for Simulator model
+  def initStoreTxt(initStep: ResultType, timeStep: Double, outputRows: String, hypothesisReport: String, method: String) =
+    (commonInitStoreTxt + s"""time = 0.0, timeStep = $timeStep, outputRows = "$outputRows",
+       |hypothesisReport = "$hypothesisReport", endTime = 10.0, resultType = @$initStep,
+       |method = "$method", orderOfIntegration = 4, seed1 = 0, seed2 = 0}""").stripMargin
   def initStoreInterpreter(initStep: ResultType = Initial, initTimeStep: Double = 0.015625, initOutputRows: String = "All", 
                        initHypothesisReport: String = "Comprehensive", initMethod: String = RungeKutta, isImperative: Boolean) =
       Parser.run(Parser.store, initStoreTxt(initStep, initTimeStep, initOutputRows, initHypothesisReport, initMethod).format( if (isImperative) "none" else "#0" ))

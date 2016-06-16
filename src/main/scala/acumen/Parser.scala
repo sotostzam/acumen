@@ -247,8 +247,9 @@ object Parser extends MyStdTokenParsers {
              "_plot" ~ "=" ~ plotRhs ^^ {
               case _ ~ _ ~ ls => Init(Name("_plot",0), ExprRhs(ls))}
   def initrhs =
-    ("create" ~! className ~! args(expr) ^^ { case _ ~ cn ~ es => NewRhs(Var(Name(cn.x,0)), es) }
-      | expr ^^ ExprRhs)
+    ("create" ~ className ~ args(expr) ^^ { case _ ~ cn ~ es => NewRhs(Var(Name(cn.x,0)), es) }
+    |"create" ~ name ~ "." ~ name ~ args(expr) ^^ { case _ ~ cn ~ "." ~ nm ~ args => ParaRhs(Var(Name(cn.x,0)), nm, args) }
+    | expr ^^ ExprRhs)
 
   def actions = repsep(action, ",") 
 
@@ -335,8 +336,10 @@ object Parser extends MyStdTokenParsers {
     (expr ^^ (Assign(e, _)) | newObject(Some(e)))
 
   def newObject(lhs: Option[Expr]) =
-    positioned("create" ~! className ~! args(expr) ^^
-      { case _ ~ cn ~ args => Create(lhs, Var(Name(cn.x,0)), args) })
+    positioned(
+      "create" ~ className ~ args(expr) ^^ { case _ ~ cn ~ args => Create(lhs, Var(Name(cn.x,0)), args) }
+    | "create" ~ name ~ "." ~ name ~ args(expr) ^^ { case _ ~ cn ~ "." ~ nm ~ args =>
+        Create(lhs, Dot(Var(Name(cn.x,0)), nm), args )})
 
   def elim = "terminate" ~> expr ^^ Elim
 
@@ -501,6 +504,9 @@ object Parser extends MyStdTokenParsers {
       "[" ~> nlit ~ ".." ~ nlit <~ "]" ^^ { case lo ~ ".." ~ hi => ExprInterval(lo,hi) }
 
   def lit = positioned((gint | gfloat | gstr) ^^ Lit)
+
+  //allowed syntax for values in the command line
+  def cl_lit = (gint | gfloat | gbool | gstr) ^^ Lit
 
   def name: Parser[Name] =
     (ident) ~! rep("'") ^^ { case id ~ ps => Name(id, ps.size) }

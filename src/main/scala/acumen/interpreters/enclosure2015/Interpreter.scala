@@ -245,6 +245,12 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
           case ((vsTmp, stTmp), ExprRhs(e)) =>
             val ve = evalExpr(e, Env(self -> VObjId(Some(fid))), stTmp)
             (ve :: vsTmp, stTmp)
+          case ((vsTmp, stTmp), ParaRhs(e, nm, es)) =>
+            val ve = evalExpr(Dot(e, nm), Env(self -> VObjId(Some(fid))), stTmp)
+            val cn = ve match {case VClassName(cn) => cn; case _ => throw NotAClassName(ve)}
+            val ves = es map (evalExpr(_, Env(self -> VObjId(Some(fid))), stTmp))
+            val (oid, stTmp1) = mkObj(cn, p, Some(fid), ves, stTmp)
+            (VObjId(Some(oid)) :: vsTmp, stTmp1)
         }
         val priv = privVars zip vs.reverse 
         // new object creation may have changed the nextChild counter
@@ -613,9 +619,8 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
   }
   
   lazy val initStore = Parser.run(Parser.store, initStoreTxt.format("#0"))
-  lazy val initStoreTxt: String = 
-    s"""#0.0 { className = Simulator, parent = %s, nextChild = 0, variableCount = 0, 
-               outputRows = "All", continuousSkip = 0, resultType = @Initial, 
+  lazy val initStoreTxt: String =
+    commonInitStoreTxt + s"""outputRows = "All", resultType = @Initial,
                ${ Common.Parameters.defaults.map{ case (pn, (vis, pv)) => pn + "=" + pprint(pv)}.mkString(",") } }"""
   /** Updates the values of variables in xs (identified by CId and Dot.field) to the corresponding CValue. */
   def applyAssignments(xs: List[(CId, Dot, CValue)], st: Enclosure): Enclosure =
