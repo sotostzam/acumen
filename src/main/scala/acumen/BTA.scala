@@ -121,6 +121,10 @@ object BindingTimeAnalysis {
       val aexpr = labelAst(expr, label)
       (ADot(aexpr._1, name, aexpr._2), aexpr._2 + 1)
     }
+    case Quest(expr, name) => {
+      val aexpr = labelAst(expr, label)
+      (AQuest(aexpr._1, name, aexpr._2), aexpr._2 + 1)
+    }
     case ExprLet(bindings, expr) => {
       val (abindings,nextLabel,newFields) = bindings.foldLeft((List[(AVar[Label], AExpr[Label])](),label,fields)){
         case (r,binding) => 

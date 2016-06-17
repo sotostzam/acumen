@@ -152,6 +152,8 @@ package acumen {
   } 
   /* Example: self.x */
   case class Dot(obj: Expr, field: Name) extends Ref
+  /* Example: a?x */
+  case class Quest(obj: Expr, field: Name) extends Ref
   /* Example: self@(0.1:Clazz).x 
    * id with field is a globally unique name (obj has been resolved to id). */
   case class ResolvedDot(id: CId, obj: Expr, field: Name) extends Ref
@@ -432,6 +434,9 @@ package acumen {
   }
   case class ADot[A](obj: AExpr[A], field: Name, val an: A) extends AExpr[A] {
     def expr = Dot(obj.expr, field)
+  }
+  case class AQuest[A](obj: AExpr[A], field: Name, val an: A) extends AExpr[A] {
+    def expr = Quest(obj.expr, field)
   }
   case class AExprVector[A](l: List[AExpr[A]], val an: A) extends AExpr[A] {
     def expr = ExprVector(l.map(x => x.expr))

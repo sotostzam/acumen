@@ -148,6 +148,7 @@ case class Desugarer(odeTransformMode: ODETransformMode) {
       case Input(s,i) => Input(s,i)
       case Index(e,i) => Index(des(e), i map des)
       case Dot(o, f) => Dot(des(o), f)
+      case Quest(o, f) => Quest(des(o), f)
       case ExprVector(es) => ExprVector(es map des)
       case Sum(e, i, col, cond) =>
         Sum(desugar(p, fs, i :: env, e), i, des(col), desugar(p, fs, i :: env, cond))

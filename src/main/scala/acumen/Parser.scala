@@ -139,7 +139,7 @@ sealed class MyReader(seq: PagedSeq[Char], override val offset: Int, lnum: Int, 
 object Parser extends MyStdTokenParsers {
   lexical.delimiters ++=
     List("(", ")", "{", "}", "[", "]", ";", "=", ":=", "=[i]", "=[t]", "'", ","," ",
-      ".", "+", "-", "*", "/", "^", ".+", ".-", ".*", "./", ".^",
+      ".", "?", "+", "-", "*", "/", "^", ".+", ".-", ".*", "./", ".^",
       ":", "<", ">", "<=", ">=", "~=", "||","->","<-","==",
       "&&", "<<", ">>", "&", "|", "%", "@", "..", "+/-", "#include", "#semantics")
 
@@ -306,7 +306,9 @@ object Parser extends MyStdTokenParsers {
    // For positionlize pattern matching 
    def varP : Parser[Var] = name ^^ {x => Var(x)}
    def dotP : Parser[Dot] = varP ~ "." ~ name ^^ {case e ~ _ ~ n => Dot(e,n)}
-   def pattern : Parser[Pattern] =  positioned(dotP) ^^ {case d => Pattern(List(d))}|		                          
+   def questP  : Parser[Quest] = varP ~ "?" ~ name ^^ {case e ~ _ ~ n => Quest(e,n)}
+   def pattern : Parser[Pattern] =  positioned(dotP) ^^ {case d => Pattern(List(d))}|
+                    positioned(questP) ^^ {case d => Pattern(List(d))}|
 		   							positioned(varP) ^^ {case x => Pattern(List(x))}|
 		                          parens(repsep(pattern,",")) ^^ {case ls => Pattern(ls.map(x => x.ps match{
 		                            case s::Nil => x.ps
@@ -426,6 +428,7 @@ object Parser extends MyStdTokenParsers {
   def access: Parser[Expr] = 
     atom >> { e =>
       (positioned("." ~ name ^^ { case _ ~ x => Dot(e, x) })
+        | positioned("?" ~ name ^^ { case _ ~ x => Quest(e, x) })
         | success(e))
     }
   // For column matrix like ((1),(1),(1))

@@ -481,6 +481,9 @@ object Common {
           val id = evalToObjId(e0,p,env)
           getField(id, f, p, env, e.pos)
         /* x && y */
+        case Quest(e0, f) =>
+          val id = evalToObjId(e0,p,env)
+          VLit(GBool(id.fields.contains(f)))
         case Op(Name("&&", 0), x :: y :: Nil) =>
           val VLit(GBool(vx)) = eval(env, x)
           if (!vx) VLit(GBool(false))
