@@ -196,7 +196,7 @@ object Main {
     }
   } catch {
     case e: AcumenError =>
-      System.err.println(e.getMessage())
+      System.err.println(e.getMessage)
       usage()
   }
 
@@ -210,10 +210,10 @@ object Main {
   }
 
   def extraInfo(full: Boolean): Unit = {
-    println("");
-    println("Valid Semantic Strings: ");
+    println("")
+    println("Valid Semantic Strings: ")
     println(SemanticsImpl.helpText(full))
-    println("Valid Passes: ");
+    println("Valid Passes: ")
     println(passAliases.collect { case PassAlias(from, _, Some(desc)) => "  %-23s %s".format(from, desc) }.mkString("\n"))
     if (full)
       println(availPasses.map { p => "  %-23s %s".format(p.id, p.desc) }.mkString("\n"))
@@ -226,32 +226,32 @@ object Main {
       defaultSemantics = SemanticsImpl("")
     if (displayHelp == "normal") {
       println("Usage: acumen [options] [command]")
-      println("");
-      println("Options: ");
+      println("")
+      println("Options: ")
       optsHelp.foreach { line => println("  " + line) }
       extraInfo(false)
-      println("Commands: ");
+      println("Commands: ")
       commandHelp.foreach { line => println("  " + line) }
     } else if (displayHelp == "full") {
       println("Usage: acumen [options] [command]")
-      println("");
-      println("Options: ");
+      println("")
+      println("Options: ")
       optsHelp.foreach { line => println("  " + line) }
-      println("");
+      println("")
       println("Experimental options:")
       experimentalOptsHelp.foreach { line => println("  " + line) }
       extraInfo(true)
-      println("Commands: ");
+      println("Commands: ")
       commandHelp.foreach { line => println("  " + line) }
-      println("");
-      println("Experimental commands:");
+      println("")
+      println("Experimental commands:")
       experimentalCommandHelp.foreach { line => println("  " + line) }
     } else {
-      (if (positionalArgs.size == 0) "ui" else positionalArgs(0)) match {
+      (if (positionalArgs.isEmpty) "ui" else positionalArgs(0)) match {
         case "ui" =>
           ui.GraphicalMain.main(args)
         case "examples" | "record-reference-outputs" =>
-          examples
+          examples()
         case _ =>
           origMain(positionalArgs.toArray)
       }
@@ -294,7 +294,7 @@ object Main {
         case None    => defaultSemantics
       }
       lazy val i = semantics.interpreter()
-      lazy val ast = semantics.parse(in, file.getParentFile(), Some(file.getName()))
+      lazy val ast = semantics.parse(in, file.getParentFile, Some(file.getName))
       /* Lift the prog according to the active interpreter */
       lazy val liftedAst = i.lift(ast)
       lazy val final_out = semantics.applyPasses(liftedAst, extraPasses)
@@ -313,7 +313,7 @@ object Main {
         case "2d"      => toPython2D(toSummary2D(ctrace))
         case "json"    => for (st <- ctrace) println(JSon.toJSON(st))
         case "fromJson" =>
-          val st = ctrace(0)
+          val st = ctrace.head
           val x = JSon.fromJSON(JSon.toJSON(st).toString)
           println(x)
         case "listen" =>
@@ -335,17 +335,16 @@ object Main {
         case "detailed_time" =>
           bench.runTimer(args(1), outputFile)
         case "time" =>
-          val forced = final_out
           val startTime = System.currentTimeMillis()
           trace.printLast
           val endTime = System.currentTimeMillis()
           println("Time to run: " + (endTime - startTime) / 1000.0)
         case "bench" =>
-          val offset = 2;
+          val offset = 2
           val start: Int = Integer.parseInt(args(offset + 0))
           val stop: Int = Integer.parseInt(args(offset + 1))
-          val warmup: Int = if (args.size > offset + 2) Integer.parseInt(args(offset + 2)) else 0
-          val repeat: Int = if (args.size > offset + 3) Integer.parseInt(args(offset + 3)) else 10
+          val warmup: Int = if (args.length > offset + 2) Integer.parseInt(args(offset + 2)) else 0
+          val repeat: Int = if (args.length > offset + 3) Integer.parseInt(args(offset + 3)) else 10
           val forced = final_out
           for (nbThreads <- start to stop) {
             interpreters.imperative2012.ParallelInterpreter(nbThreads)
@@ -359,11 +358,11 @@ object Main {
           }
         // the first six lines are shared with the "bench" case and would ideally not be repeated
         case "bench-gnuplot" =>
-          val offset = 2;
+          val offset = 2
           val start: Int = Integer.parseInt(args(offset + 0))
           val stop: Int = Integer.parseInt(args(offset + 1))
-          val warmup: Int = if (args.size > offset + 2) Integer.parseInt(args(offset + 2)) else 0
-          val repeat: Int = if (args.size > offset + 3) Integer.parseInt(args(offset + 3)) else 10
+          val warmup: Int = if (args.length > offset + 2) Integer.parseInt(args(offset + 2)) else 0
+          val repeat: Int = if (args.length > offset + 3) Integer.parseInt(args(offset + 3)) else 10
           val forced = final_out
           var data = Map[Int, Double]()
           for (nbThreads <- start to stop) {
@@ -403,7 +402,7 @@ object Main {
     }
   }
 
-  def examples = {
+  def examples() = {
     var somethingUpdated = false
     def doit(ex: Examples, intr: SemanticsImpl.CStore) = {
       ex.cstoreExamplesAction { (dn, f) =>
@@ -417,7 +416,7 @@ object Main {
             ex.writeExampleResult(loc, dn, f, intr)
             println("CREATED " + resFile)
           } catch {
-            case e =>
+            case e: Exception =>
               println("ERROR while creating " + resFile + ":")
               println("  " + e)
           }
