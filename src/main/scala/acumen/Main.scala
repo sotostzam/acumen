@@ -8,8 +8,7 @@ import render.ToPython._
 import Pretty._
 import PassManager._
 import benchTool._
-
-import java.net.{ Socket, InetAddress, ServerSocket }
+import java.net.ServerSocket
 import acumen.interpreters.Common.paramModelTxt
 import scala.collection.mutable.ArrayBuffer
 
@@ -62,25 +61,27 @@ object Main {
     "-i|--semantics <semantics string>",
     "                        select semantics to use",
     "-p|--passes <pass1>[,<pass2>[,...]]",
-    "                        comma seperated list of extra passes to run",
+    "                        comma separated list of extra passes to run",
     "--model <file>          model file to open",
     "--newplot               enable experimental plotter",
     "--play                  automatically run the model",
     "--disable-realtime      disable real-time visualization",
     "--disable-bta           disable partial evaluator",
     "--disable-completion    disable code completion in the source code editor",
-    "--dont-fork             disable auto-forking of a new JVM when required")
+    "--dont-fork             disable auto-forking of a new JVM when required",
+    "--enable-print          enable to print value with print function in terminal",
+    "--parameters            bind the given variables to the given values: val_name1 val1 val_name2 val2 [...]")
   def experimentalOptsHelp = Array(
     "--full-help",
     "--templates             enables template expansion in the source code editor",
     "--prune-semantics       hide experimental semantics in the U.I.",
-    s"-l|--log <level>        print logs to command line (level is one of: ${Logger.levels.mkString(",")}).")
+    s"-l|--log <level>       print logs to command line (level is one of: ${Logger.levels.mkString(",")}).")
   def commandHelp = Array(
     "ui [<file>]             starts the U.I.")
   def experimentalCommandHelp = Array(
     "pretty <file>           pretty print model",
+    "offline <file>          run model",
     "last <file>             run model and print final result",
-    "print <file>            run model and print value with print function",
     "trace <file>            run model and print trace output",
     "time <file>             time time it takes to run model",
     "",
@@ -97,9 +98,7 @@ object Main {
     "",
     "detailed_time <file> [--output outputFile]    run the time measurements based on the experiment file" +
       " and print the output in the specified output file or in \"" + outputFile + "\"",
-    "examples                record reference outputs for test suite", //"2d|3d" // have no clue what these do! -- kevina
-    "parameters              must be the last option, bind the given variables to the given values: val_name1 val1 " +
-    "                        val_name2 val2 [...]"
+    "examples                record reference outputs for test suite" //"2d|3d" // have no clue what these do! -- kevina
     //"fromJson",
     )
 
@@ -185,6 +184,9 @@ object Main {
       case "--parameters" :: tail =>
         val (tempParaText, leftTail) = mkParamModel(tail)
         paramModelTxt =  tempParaText + "\n\n"; parseArgs(leftTail)
+      case "--enable-print" :: tail =>
+        // enable output the value with print function in terminal
+        printMode = true; parseArgs(tail)
       case opt :: tail if opt.startsWith("-") =>
         System.err.println("Unrecognized Option: " + opt)
         usage()
@@ -283,7 +285,10 @@ object Main {
 
       /* Read the Acumen source, parse, pre-process and interpret it. */
       lazy val file = new File(args(1)).getAbsoluteFile
-      def in = new InputStreamReader(new FileInputStream(file))
+      def fileIn = new FileInputStream(file)
+      def paraIn = new ByteArrayInputStream(paramModelTxt.getBytes())
+      def mergedIn = new SequenceInputStream(fileIn, paraIn)
+      def in = new InputStreamReader(mergedIn)
       lazy val semantics = Parser.run(Parser.getSemantics, in, Some(file)) match {
         case Some(s) => SemanticsImpl(s)
         case None    => defaultSemantics
@@ -324,8 +329,8 @@ object Main {
         case "last" =>
           trace.printLast
           print(md.reportAsString)
-        case "print" => // only output the value with print function
-          printMode = true
+        case "offline" =>
+          // run Acumen in offline mode
           trace
         case "detailed_time" =>
           bench.runTimer(args(1), outputFile)
