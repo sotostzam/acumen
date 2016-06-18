@@ -285,6 +285,12 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
             VList(enc.childrenOf(id) map (c => VObjId(Some(c))))
           else
             enc.getObjectField(id, f)
+        /* e?f */
+        case Quest(o,f) =>
+          val id = extractId(evalExpr(o,env,enc))
+          val obj = deref(id, enc.cStore)
+          if (obj.get(f).isDefined) VLit(GBoolEnclosure(Set(true)))
+          else VLit(GBoolEnclosure(Set(false)))
         /* FIXME:
            Could && and || be expressed in term of ifthenelse ? 
            => we would need ifthenelse to be an expression  */
@@ -712,7 +718,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
    *    [L,R] until that reaches parameters.maxTimeStep. Otherwise this is (R-L). 
    */
   def stepAdaptive(leftEndPoint: Double, rightEndPoint: Double, previousTimeStep: Double, prog: Prog, branches: List[InitialCondition])(implicit parameters: Parameters): (EnclosureAndBranches, Double, Double) = {
-    require(branches.size > 0, "stepAdaptive called with zero branches")
+    require(branches.nonEmpty, "stepAdaptive called with zero branches")
     require(branches.size <= parameters.maxBranches, s"Number of branches (${branches.size}) exceeds maximum (${parameters.maxBranches}).")
     Logger.debug(s"stepAdaptive (over ${ Interval(leftEndPoint, rightEndPoint) }, ${branches.size} branches)")
     val step = rightEndPoint - leftEndPoint

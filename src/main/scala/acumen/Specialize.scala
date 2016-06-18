@@ -32,6 +32,7 @@ object Specialization {
       case AVar(name, l)      => (subs(Var(name)), Nil)
       case ATypeOf(cn, l)     => (TypeOf(cn), Nil)
       case ADot(aer, name, l) => (Dot(aer.expr, name), Nil)
+      case AQuest(aer, name, l) => (Quest(aer.expr, name), Nil)
       case AExprVector(es, l) => specializeEs(es) match {
         case (aes, aas) => (ExprVector(aes), aas)
       }

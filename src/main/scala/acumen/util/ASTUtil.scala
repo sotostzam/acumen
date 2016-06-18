@@ -28,7 +28,7 @@ object ASTUtil {
   def substitute(d: Expr, e: Expr, h: Expr): Expr = {
     def sub(h: Expr): Expr = substitute(d, e, h)
     if (h == d) e else h match {
-      case _: Dot | _: ResolvedDot | _: Lit | _: TypeOf | _: Var => h
+      case _: Dot | _: Quest | _: ResolvedDot | _: Lit | _: TypeOf | _: Var => h
       case Op(name, es)           => Op(name, es map sub)
       case Index(a, idx)          => Index(sub(a), idx map sub)
       case ExprVector(l)          => ExprVector(l map sub)

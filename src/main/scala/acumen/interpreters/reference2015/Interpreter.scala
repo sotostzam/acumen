@@ -225,6 +225,12 @@ object Interpreter extends acumen.CStoreInterpreter {
                 throw new AlgebraicLoop(ObjField(id, getCls(id,st).x, f))
             }  
           }
+        /* e?f */
+        case Quest(o, f) =>
+          val id = evalToObjId(o, env, st)
+          val obj = deref(id, st)
+          if (obj.get(f).isDefined) VLit(GBool(true))
+          else VLit(GBool(false))
         /* FIXME:
            Could && and || be expressed in term of ifthenelse ? 
            => we would need ifthenelse to be an expression  */

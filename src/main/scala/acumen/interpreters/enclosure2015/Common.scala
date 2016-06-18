@@ -215,6 +215,7 @@ object Common {
   /** Abstract store known to evalExpr */
   trait EStore {
     def getObjectField(id:CId, f:Name): CValue
+    def cStore: CStore
     def childrenOf(id: CId): List[CId]
   }
 
