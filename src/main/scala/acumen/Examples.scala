@@ -2,6 +2,8 @@ package acumen
 
 import Errors._
 import java.io._
+
+import acumen.interpreters.Common._
 import util.Canonical._
 import util.Filters._
 import util.Names._
@@ -52,7 +54,10 @@ abstract class Examples {
     d2.mkdirs()
     val f2 = new File(d2, f.getName+".res")
     val out = new PrintStream(f2)
-    val in = new InputStreamReader(new FileInputStream(f))
+    val fileIn = new FileInputStream(f)
+    val paraIn = new ByteArrayInputStream(paramModelTxt.getBytes())
+    val mergedIn = new SequenceInputStream(fileIn, paraIn)
+    val in = new InputStreamReader(mergedIn)
     try {
       val ast = semantics.parse(in, f.getParentFile(), Some(f.getName()))
       if (ast.defs.exists{_.name == cmain}) {
