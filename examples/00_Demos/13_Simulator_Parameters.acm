@@ -1,0 +1,32 @@
+// This model need run with command line input,
+// the command is: --parameters var1 value1 var2 value2
+// For example, command: 
+// java -jar acumen_jar.jar --parameter abc 11 
+// will allow you use abc=11 from the instance of 
+// simulator.parameters.
+// The following Command: 
+// java -jar acumen_jar.jar offline file_name
+// --enable-print --parameter abc 11 
+// will allow you run the model in offline mode and 
+// print the value with print function.
+
+model Main (simulator) =
+  initially 
+    params = create simulator.parameters(),
+    abc = 0,
+	  output = 0,
+	  flag = true
+  always
+    // if there is a variable called abc from inputs
+    if params?abc then
+      abc = params.abc,
+	    // print out the abc value
+	    if flag == true then
+	      flag+ = false,
+		    output+ = print("params.abc=", params.abc)
+	    noelse
+    // else abc will get a default value as 17  
+    else
+      abc = 17
+    
+
