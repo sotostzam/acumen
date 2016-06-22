@@ -12,16 +12,12 @@ import java.net.ServerSocket
 import acumen.interpreters.Common.paramModelTxt
 import scala.collection.mutable.ArrayBuffer
 
-object ThreeDState extends Enumeration {
-  val ERROR, DISABLE, ENABLE = Value
-}
 
 object Main {
 
   //
   // What should be in Main
   //
-  var threeDState: ThreeDState.Value = ThreeDState.ENABLE
   var disableNewPlot = true
   var enableAllSemantics = true
   var autoPlay = false
@@ -140,10 +136,6 @@ object Main {
         defaultSemantics = SemanticsImpl(i); parseArgs(tail)
       case ("--model") :: f :: tail =>
         openFile = checkFile(f); parseArgs(tail)
-      case ("--enable-3d" | "--3d") :: tail =>
-        threeDState = ThreeDState.ENABLE; parseArgs(tail)
-      case ("--disable-3d" | "--no-3d") :: tail =>
-        threeDState = ThreeDState.DISABLE; parseArgs(tail)
       case ("--enable-bta") :: tail =>
         extraPasses = extraPasses :+ "BTA"; parseArgs(tail)
       case ("--disable-bta") :: tail =>
