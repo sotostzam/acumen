@@ -75,7 +75,7 @@ class EnclosureCntrl(val semantics: SemanticsImpl[Interpreter], val interpreter:
     }
 
     override def parse() = {
-      val ast = semantics.parse(progText,currentDir,None)
+      val ast = semantics.parse(progText + interpreters.Common.paramModelTxt,currentDir,None)
       val des = semantics.applyPasses(ast,Main.extraPasses)
       prog = des
     }

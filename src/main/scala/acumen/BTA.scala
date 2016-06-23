@@ -34,8 +34,10 @@ object BindingTimeAnalysis {
     t match {
       case Prog(defs) =>
         Prog(defs.map(d => d match {
-          case ClassDef(n, f, d, b) =>
-            bta(ClassDef(n, f, d, b))
+          case ClassDef(n, f, d, b) => n.x match{
+            case "Device" => ClassDef(n, f, d, b)
+            case _ => bta(ClassDef(n, f, d, b))
+          }
         }))
     }
   }
