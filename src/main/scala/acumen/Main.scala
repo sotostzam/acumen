@@ -272,15 +272,18 @@ object Main {
     trace match { case CStoreRes(r, _) => r; case _ => null }
   }
 
+  def insertParamModel(f: File): SequenceInputStream = {
+    val fileIn = new FileInputStream(f)
+    val paraIn = new ByteArrayInputStream(paramModelTxt.getBytes())
+    new SequenceInputStream(fileIn, paraIn)
+  }
+
   def origMain(args: Array[String]): Unit = {
     try {
 
       /* Read the Acumen source, parse, pre-process and interpret it. */
       lazy val file = new File(args(1)).getAbsoluteFile
-      def fileIn = new FileInputStream(file)
-      def paraIn = new ByteArrayInputStream(paramModelTxt.getBytes())
-      def mergedIn = new SequenceInputStream(fileIn, paraIn)
-      def in = new InputStreamReader(mergedIn)
+      def in = new InputStreamReader(insertParamModel(file))
       lazy val semantics = Parser.run(Parser.getSemantics, in, Some(file)) match {
         case Some(s) => SemanticsImpl(s)
         case None    => defaultSemantics
