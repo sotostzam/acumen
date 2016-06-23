@@ -175,7 +175,7 @@ object Main {
         parseArgs(tail)
       case "--parameters" :: tail =>
         val (tempParaText, leftTail) = mkParamModel(tail)
-        paramModelTxt =  tempParaText + "\n\n"; parseArgs(leftTail)
+        paramModelTxt =  "\n\n" + tempParaText + "\n\n"; parseArgs(leftTail)
       case "--enable-print" :: tail =>
         // enable output the value with print function in terminal
         printMode = true; parseArgs(tail)

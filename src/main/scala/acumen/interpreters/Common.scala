@@ -533,7 +533,7 @@ object Common {
   }
 
   // The model contains command line input variables
-  var paramModelTxt = "model Parameters()= \n\n"
+  var paramModelTxt = "\n\n model Parameters()= \n\n"
 
   // This store txt of Simulator model used for optimize, reference and enclosure interpreter
   val commonInitStoreTxt = s"""#0.0 { className = Simulator, parent = %s, nextChild = 0,
