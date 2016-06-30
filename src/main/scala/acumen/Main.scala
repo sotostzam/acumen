@@ -12,16 +12,12 @@ import java.net.ServerSocket
 import acumen.interpreters.Common.paramModelTxt
 import scala.collection.mutable.ArrayBuffer
 
-object ThreeDState extends Enumeration {
-  val ERROR, DISABLE, ENABLE = Value
-}
 
 object Main {
 
   //
   // What should be in Main
   //
-  var threeDState: ThreeDState.Value = ThreeDState.ENABLE
   var disableNewPlot = true
   var enableAllSemantics = true
   var autoPlay = false
@@ -140,10 +136,6 @@ object Main {
         defaultSemantics = SemanticsImpl(i); parseArgs(tail)
       case ("--model") :: f :: tail =>
         openFile = checkFile(f); parseArgs(tail)
-      case ("--enable-3d" | "--3d") :: tail =>
-        threeDState = ThreeDState.ENABLE; parseArgs(tail)
-      case ("--disable-3d" | "--no-3d") :: tail =>
-        threeDState = ThreeDState.DISABLE; parseArgs(tail)
       case ("--enable-bta") :: tail =>
         extraPasses = extraPasses :+ "BTA"; parseArgs(tail)
       case ("--disable-bta") :: tail =>
@@ -183,7 +175,7 @@ object Main {
         parseArgs(tail)
       case "--parameters" :: tail =>
         val (tempParaText, leftTail) = mkParamModel(tail)
-        paramModelTxt =  tempParaText + "\n\n"; parseArgs(leftTail)
+        paramModelTxt =  "\n\n" + tempParaText + "\n\n"; parseArgs(leftTail)
       case "--enable-print" :: tail =>
         // enable output the value with print function in terminal
         printMode = true; parseArgs(tail)
@@ -280,15 +272,18 @@ object Main {
     trace match { case CStoreRes(r, _) => r; case _ => null }
   }
 
+  def insertParamModel(f: File): SequenceInputStream = {
+    val fileIn = new FileInputStream(f)
+    val paraIn = new ByteArrayInputStream(paramModelTxt.getBytes())
+    new SequenceInputStream(fileIn, paraIn)
+  }
+
   def origMain(args: Array[String]): Unit = {
     try {
 
       /* Read the Acumen source, parse, pre-process and interpret it. */
       lazy val file = new File(args(1)).getAbsoluteFile
-      def fileIn = new FileInputStream(file)
-      def paraIn = new ByteArrayInputStream(paramModelTxt.getBytes())
-      def mergedIn = new SequenceInputStream(fileIn, paraIn)
-      def in = new InputStreamReader(mergedIn)
+      def in = new InputStreamReader(insertParamModel(file))
       lazy val semantics = Parser.run(Parser.getSemantics, in, Some(file)) match {
         case Some(s) => SemanticsImpl(s)
         case None    => defaultSemantics

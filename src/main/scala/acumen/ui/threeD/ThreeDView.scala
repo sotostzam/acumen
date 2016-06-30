@@ -34,8 +34,7 @@ class ThreeDView extends JPanel {
   val characters = new Characters
 
   // Add texture for the axis
-  val mainbox = drawBox(1, 1, 1)
-  val coAxes = new coAxis (characters.allCharacters, mainbox)
+  val coAxes = new coAxis (characters.allCharacters)
   val axes = coAxes.cylinders
   val axisArray = Array(new Object3D(1))
   // the String (Object3D, String) decide which world the object belong to
@@ -265,7 +264,7 @@ class ThreeDView extends JPanel {
     cameraRightDirection = (1,1)
     cameraFlipped = false
     defaultView()
-    lookAt(coAxes.mainbox, null) // camera faces towards the object
+    lookAt(null, new SimpleVector(0,0,0)) // camera faces towards the object
     staticCamera.lookAt(new SimpleVector(0,0,0))
     lookAtPoint.set(0,0,0)
   }
@@ -1320,21 +1319,16 @@ case class Resizer(xFactor: Float, yFactor: Float, zFactor: Float)
 }
 
 // Axis
-class coAxis(characters: Map[Char, Object3D], mainBox: Object3D) {
-  val cylinders: Array[Object3D] = new Array[Object3D](10)
-  val mainbox = mainBox
-  // add the main box
-  mainbox.setShadingMode(Object3D.SHADING_FAKED_FLAT)
-  new setGlass(new Color(50, 50, 50), mainbox, 0)
-  cylinders(0) = mainbox
-  for (x <- 1 until 4)
+class coAxis(characters: Map[Char, Object3D]) {
+  val cylinders: Array[Object3D] = new Array[Object3D](9)
+  for (x <- 0 until 3)
     cylinders(x) = Primitives.getCylinder(12, 0.01f, 50f)
-  for (x <- 4 until 7)
+  for (x <- 3 until 6)
     cylinders(x) = Primitives.getCone(12, 0.05f, 2f)
-  cylinders(9) = new Object3D(characters('y'), false)
-  cylinders(8) = new Object3D(characters('x'), false)
-  cylinders(7) = new Object3D(characters('z'), false)
-  for (i <- 7 to 9) {
+  cylinders(8) = new Object3D(characters('y'), false)
+  cylinders(7) = new Object3D(characters('x'), false)
+  cylinders(6) = new Object3D(characters('z'), false)
+  for (i <- 6 to 8) {
     cylinders(i).setRotationPivot(new SimpleVector(0,0,0))
     cylinders(i).setCenter(new SimpleVector(0,0,0))
     cylinders(i).scale(0.6f)
@@ -1343,24 +1337,24 @@ class coAxis(characters: Map[Char, Object3D], mainBox: Object3D) {
     cylinders(i).setBillboarding(Object3D.BILLBOARDING_ENABLED)
   }
 
-  for (i <- 1 until cylinders.length)
+  for (i <- cylinders.indices)
     new setGlass( if      (i % 3 == 1) Color.BLUE
                   else if (i % 3 == 2) Color.RED
                   else                 Color.GREEN
                 , cylinders(i), -1)
-  cylinders(1).translate(0f, -0.5f, 0f)       // z axis cylinder
-  cylinders(4).translate(0f, -1f, 0f)         // z axis cone
-  cylinders(7).translate(-0.05f, -1f, 0f)     // z text
-  cylinders(2).rotateZ(0.5f * -Pi.toFloat)    // x axis cylinder
-  cylinders(2).translate(-0.5f, 0f, 0f)
-  cylinders(5).translate(-1f, 0f, 0f)         // x axis cone
-  cylinders(5).rotateZ(0.5f * Pi.toFloat)
-  cylinders(8).translate(-1f, -0.05f, 0f)     // x text
-  cylinders(3).rotateX(-0.5f * Pi.toFloat)    // y axis cylinder
-  cylinders(3).translate(0f, 0f, -0.5f)
-  cylinders(6).translate(0f, 0f, -1f)         // y axis cone
-  cylinders(6).rotateX(-0.5f * Pi.toFloat)
-  cylinders(9).translate(0f, -0.05f, -1f)     // y text
+  cylinders(0).translate(0f, -0.5f, 0f)       // z axis cylinder
+  cylinders(3).translate(0f, -1f, 0f)         // z axis cone
+  cylinders(6).translate(-0.05f, -1f, 0f)     // z text
+  cylinders(1).rotateZ(0.5f * -Pi.toFloat)    // x axis cylinder
+  cylinders(1).translate(-0.5f, 0f, 0f)
+  cylinders(4).translate(-1f, 0f, 0f)         // x axis cone
+  cylinders(4).rotateZ(0.5f * Pi.toFloat)
+  cylinders(7).translate(-1f, -0.05f, 0f)     // x text
+  cylinders(2).rotateX(-0.5f * Pi.toFloat)    // y axis cylinder
+  cylinders(2).translate(0f, 0f, -0.5f)
+  cylinders(5).translate(0f, 0f, -1f)         // y axis cone
+  cylinders(5).rotateX(-0.5f * Pi.toFloat)
+  cylinders(8).translate(0f, -0.05f, -1f)     // y text
 }
 
 class Characters {

@@ -51,7 +51,7 @@ object bench {
   def timeModInter(model: String, inter: String): (LtimeT) = {
     val t0 = System.currentTimeMillis
     val file = new File(model).getAbsoluteFile
-    def in = new InputStreamReader(new FileInputStream(file))
+    def in = new InputStreamReader(Main.insertParamModel(file))
     val t1 = System.currentTimeMillis
     val semantics = SemanticsImpl(inter)
     val i = semantics.interpreter().asInstanceOf[CStoreInterpreter]
