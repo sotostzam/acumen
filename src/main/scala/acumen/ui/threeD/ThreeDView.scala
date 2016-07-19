@@ -67,8 +67,8 @@ class ThreeDView extends JPanel {
   protected[threeD] var rtCameraInitialize = false
   protected[threeD] var rtLastRenderFrame = 0
   // default aspect ratio of 3D view
-  var widthRatio = 4
-  var heightRatio = 3
+  var widthRatio = 16
+  var heightRatio = 9
 
   val lookAtCenter = Primitives.getSphere(20, 0.1f)
 

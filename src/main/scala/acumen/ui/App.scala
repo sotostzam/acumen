@@ -411,10 +411,10 @@ class App extends SimpleSwingApplication {
   private val disable3DRatioItem = new RadioMenuItem("Disable")
   private val fixed3DRatioItem = new RadioMenuItem("4:3") {
     selected = true
-    action = new Action("4:3 Ratio") {
+    action = new Action("16:9 Ratio") {
       def apply() = {
-        threeDtab.threeDView.widthRatio = 4
-        threeDtab.threeDView.heightRatio = 3
+        threeDtab.threeDView.widthRatio = 16
+        threeDtab.threeDView.heightRatio = 9
       }
     }
   }
