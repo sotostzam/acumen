@@ -1341,41 +1341,49 @@ case class Resizer(xFactor: Float, yFactor: Float, zFactor: Float)
 
 // Axis
 class coAxis(characters: Map[Char, Object3D]) {
-  val cylinders: Array[Object3D] = new Array[Object3D](9)
-  for (x <- 0 until 3)
-    cylinders(x) = Primitives.getCylinder(12, 0.01f, 50f)
-  for (x <- 3 until 6)
+  val cylinders: Array[Object3D] = new Array[Object3D](12)
+  for (x <- 0 to 2)
+    cylinders(x) = Primitives.getCylinder(12, 0.01f, 100f)
+  for (x <- 3 to 5)
     cylinders(x) = Primitives.getCone(12, 0.05f, 2f)
   cylinders(8) = new Object3D(characters('y'), false)
   cylinders(7) = new Object3D(characters('x'), false)
   cylinders(6) = new Object3D(characters('z'), false)
-  for (i <- 6 to 8) {
-    cylinders(i).setRotationPivot(new SimpleVector(0,0,0))
-    cylinders(i).setCenter(new SimpleVector(0,0,0))
-    cylinders(i).scale(0.6f)
-    cylinders(i).rotateY(Pi.toFloat)
-    cylinders(i).rotateMesh()
-    cylinders(i).setBillboarding(Object3D.BILLBOARDING_ENABLED)
+  for (x <- 6 to 8) {
+    cylinders(x).setRotationPivot(new SimpleVector(0,0,0))
+    cylinders(x).setCenter(new SimpleVector(0,0,0))
+    cylinders(x).scale(0.6f)
+    cylinders(x).rotateY(Pi.toFloat)
+    cylinders(x).rotateMesh()
+    cylinders(x).setBillboarding(Object3D.BILLBOARDING_ENABLED)
   }
+  for (x <- 9 to 11)
+    cylinders(x) = Primitives.getCylinder(12, 0.075f, 0.01f)
+
 
   for (i <- cylinders.indices)
     new setGlass( if      (i % 3 == 1) Color.BLUE
                   else if (i % 3 == 2) Color.RED
                   else                 Color.GREEN
                 , cylinders(i), -1)
-  cylinders(0).translate(0f, -0.5f, 0f)       // z axis cylinder
-  cylinders(3).translate(0f, -1f, 0f)         // z axis cone
-  cylinders(6).translate(-0.05f, -1f, 0f)     // z text
-  cylinders(1).rotateZ(0.5f * -Pi.toFloat)    // x axis cylinder
-  cylinders(1).translate(-0.5f, 0f, 0f)
-  cylinders(4).translate(-1f, 0f, 0f)         // x axis cone
+  cylinders(0).translate(0f, -1f, 0f)             // z axis cylinder
+  cylinders(3).translate(0f, -2f, 0f)             // z axis cone
+  cylinders(6).translate(0.225f, -2f, -0.075f)    // z text
+  cylinders(9).translate(0f, -1f, 0f)             // z unit
+  cylinders(1).rotateZ(0.5f * -Pi.toFloat)        // x axis cylinder
+  cylinders(1).translate(-1f, 0f, 0f)
+  cylinders(4).translate(-2f, 0f, 0f)             // x axis cone
   cylinders(4).rotateZ(0.5f * Pi.toFloat)
-  cylinders(7).translate(-1f, -0.05f, 0f)     // x text
-  cylinders(2).rotateX(-0.5f * Pi.toFloat)    // y axis cylinder
-  cylinders(2).translate(0f, 0f, -0.5f)
-  cylinders(5).translate(0f, 0f, -1f)         // y axis cone
+  cylinders(7).translate(-2.15f, -0.05f, -0.15f)  // x text
+  cylinders(10).rotateZ(0.5f * Pi.toFloat)
+  cylinders(10).translate(-1f, 0f, 0f)            // x unit
+  cylinders(2).rotateX(-0.5f * Pi.toFloat)        // y axis cylinder
+  cylinders(2).translate(0f, 0f, -1f)
+  cylinders(5).translate(0f, 0f, -2f)             // y axis cone
   cylinders(5).rotateX(-0.5f * Pi.toFloat)
-  cylinders(8).translate(0f, -0.05f, -1f)     // y text
+  cylinders(8).translate(0.05f, -0.075f, -2f)     // y text
+  cylinders(11).rotateX(-0.5f * Pi.toFloat)
+  cylinders(11).translate(0f, 0f, -1f)            // y unit
 }
 
 class Characters {
