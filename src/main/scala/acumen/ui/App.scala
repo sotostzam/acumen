@@ -23,33 +23,16 @@ import java.awt.RenderingHints
 import java.awt.Toolkit
 import java.awt.event.KeyEvent
 import java.awt.event.KeyEvent._
-import java.awt.event.KeyEvent.{
-  VK_CLOSE_BRACKET => VK_RBRACKET, VK_OPEN_BRACKET => VK_LBRACKET 
-}
+import java.awt.event.KeyEvent.{VK_CLOSE_BRACKET => VK_RBRACKET, VK_OPEN_BRACKET => VK_LBRACKET}
 import java.awt.event.InputEvent._
 import java.io._
-import javax.swing.AbstractAction
-import javax.swing.JCheckBox
-import javax.swing.JOptionPane
-import javax.swing.JToolBar
-import javax.swing.SwingUtilities
-import javax.swing.undo._
-import javax.swing.text._
-import javax.swing.KeyStroke
-import javax.swing.event.DocumentListener
-import javax.swing.event.DocumentEvent
-import org.fife.ui.rtextarea.{
-  RTextArea, RTextScrollPane
-}
-import swing.{Action, BorderPanel, BoxPanel, ButtonGroup, CheckMenuItem, 
-			  Component, Dialog, Dimension, FileChooser, FlowPanel, Label, 
-			  Menu, MainFrame, MenuBar, MenuItem, Orientation, Publisher, RadioMenuItem, 
-			  ScrollPane, Separator, SimpleSwingApplication, SplitPane, Swing, 
-			  TabbedPane, Table}
+import javax.swing._
+import org.fife.ui.rtextarea.{RTextArea, RTextScrollPane}
+import swing.{Action, BorderPanel, BoxPanel, ButtonGroup, CheckMenuItem, Component, Dialog, Dimension, FileChooser, FlowPanel, Frame, Label, MainFrame, Menu, MenuBar, MenuItem, Orientation, Publisher, RadioMenuItem, ScrollPane, Separator, SimpleSwingApplication, SplitPane, Swing, TabbedPane, Table, TextField}
 import swing.event._
 import scala.Boolean
-import acumen.interpreters.{enclosure,imperative2012}
-import acumen.interpreters.{reference2012,reference2013}
+import acumen.interpreters.{enclosure, imperative2012}
+import acumen.interpreters.{reference2012, reference2013}
 import acumen.interpreters.enclosure.ivp.PicardSolver
 import acumen.interpreters.enclosure.ivp.LohnerSolver
 import acumen.interpreters.enclosure.event.pwl.PWLEventEncloser
@@ -231,7 +214,7 @@ class App extends SimpleSwingApplication {
   codeAreaScrollPane.setVerticalScrollBarPolicy(javax.swing.ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED)
   
   def toggleLineNumbers = codeAreaScrollPane.setLineNumbersEnabled(!codeAreaScrollPane.getLineNumbersEnabled)
-  def fixed3DRatio = fixed3DRatioItem.selected
+  def fixed3DRatio = disable3DRatioItem.selected
   def toggleFindReplaceToolbar = {
     codeArea.findReplaceToolBar.setVisible(!codeArea.findReplaceToolBar.isVisible)
     if (codeArea.findReplaceToolBar.isVisible) codeArea.searchField.requestFocus 
@@ -425,8 +408,45 @@ class App extends SimpleSwingApplication {
     contents ++= Seq(rb1)
     new ButtonGroup(rb1)
   }
-  private val fixed3DRatioItem = new CheckMenuItem("Fixed ratio for 3D view (4:3)")
-  
+  private val disable3DRatioItem = new RadioMenuItem("Disable")
+  private val fixed3DRatioItem = new RadioMenuItem("4:3") {
+    selected = true
+    action = new Action("4:3 Ratio") {
+      def apply() = {
+        threeDtab.threeDView.widthRatio = 4
+        threeDtab.threeDView.heightRatio = 3
+      }
+    }
+  }
+  private val custom3DRatioItem = new RadioMenuItem("Custom Ratio") {
+    action = new Action("Custom Ratio") {
+      def apply () = {
+        val widthField = new JTextField(threeDtab.threeDView.widthRatio.toString, 5)
+        val heightField = new JTextField(threeDtab.threeDView.heightRatio.toString, 5)
+        val ratioPanel = new JPanel()
+        ratioPanel.add(new JLabel("width:"))
+        ratioPanel.add(widthField)
+        ratioPanel.add(new JLabel("height:"))
+        ratioPanel.add(heightField)
+        val result = JOptionPane.showConfirmDialog(null, ratioPanel, "Please enter the ratio of width and height",
+                                                   JOptionPane.OK_CANCEL_OPTION)
+        def parseInt(s: String): Boolean = try {
+          Some(s.toInt)
+          true
+        } catch { case e: Exception => false }
+        if (result == JOptionPane.OK_OPTION) {
+          if (parseInt(widthField.getText) && parseInt(heightField.getText)) {
+            threeDtab.threeDView.widthRatio = widthField.getText.toInt
+            threeDtab.threeDView.heightRatio = heightField.getText.toInt
+          } else {
+            JOptionPane.showMessageDialog(null, "Aspect ratio should be integer.")
+          }
+        }
+      }
+    }
+  }
+
+
   // FIXME Move all of this state into Main, and expose through CLI
   def getStartAnaglyph = false
   
@@ -489,7 +509,10 @@ class App extends SimpleSwingApplication {
         mnemonic = Key.L
         action = showLineNumbersAction
       }
-      contents += fixed3DRatioItem
+      contents += new Menu("Aspect Ratio") {
+        contents ++= Seq(disable3DRatioItem, fixed3DRatioItem, custom3DRatioItem)
+        new ButtonGroup(disable3DRatioItem,fixed3DRatioItem,custom3DRatioItem)
+      }
     }
 
     contents += new Menu("Plotting") {

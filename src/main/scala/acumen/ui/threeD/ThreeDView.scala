@@ -66,25 +66,46 @@ class ThreeDView extends JPanel {
   protected[threeD] var lookAtMoved = new SimpleVector(0,0,0)
   protected[threeD] var rtCameraInitialize = false
   protected[threeD] var rtLastRenderFrame = 0
+  // default aspect ratio of 3D view
+  var widthRatio = 4
+  var heightRatio = 3
 
   val lookAtCenter = Primitives.getSphere(20, 0.1f)
 
   letThereBeLight(world)  // create light sources for the scene
   letThereBeLight(staticWorld)  // create light sources for the scene
 
+  protected[threeD] val cameraPos = new Label("   Camera Position X: %.2f ".format(camera.getPosition.x) +
+                            "Y: %.2f ".format(camera.getPosition.y) +
+                            "Z: %.2f".format(camera.getPosition.z))
+  cameraPos.border = Swing.EmptyBorder(2,0,0,0)
+  protected[threeD] val lookAtPosition = new Label("   Look At Point X:%.2f ".format(lookAtPoint.x) +
+                                 "Y :%.2f ".format(lookAtPoint.y) +
+                                 "Z :%.2f".format(lookAtPoint.z))
+  lookAtPosition.border = Swing.EmptyBorder(2,0,0,0)
+
+  def updateCameraInfo() = {
+    cameraPos.text = "   Camera Position X: %.2f ".format(camera.getPosition.x) +
+                     "Y: %.2f ".format(camera.getPosition.y) +
+                     "Z: %.2f".format(camera.getPosition.z)
+    lookAtPosition.text = "   Look At Point X:%.2f ".format(lookAtPoint.x) +
+                          "Y :%.2f ".format(lookAtPoint.y) +
+                          "Z :%.2f".format(lookAtPoint.z)
+  }
+
   addComponentListener(new ComponentAdapter {
     override def componentResized(e: ComponentEvent) = {
       val fixed3DRatio = acumen.ui.App.ui.fixed3DRatio
       val c = e.getSource.asInstanceOf[Component]
-      if (!fixed3DRatio)
+      if (fixed3DRatio)
         initBuffer(c.getWidth, c.getHeight)
       else { // the default fixed ratio of width to height is 4:3
         val (width, height) =
-        if (c.getHeight * 4 > c.getWidth * 3)
-          (c.getWidth         , c.getWidth * 3 / 4)
+        if ( (c.getWidth * heightRatio / widthRatio) > c.getHeight)
+          (c.getHeight * widthRatio / heightRatio, c.getHeight)
         else
-          (c.getHeight * 4 / 3, c.getHeight)
-        initBuffer(width, height)
+          (c.getWidth, c.getWidth * heightRatio / widthRatio)
+        initBuffer(width.toInt, height.toInt)
       }
       repaint()
     }
