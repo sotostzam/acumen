@@ -544,7 +544,7 @@ object Parser extends MyStdTokenParsers {
        , "content"      -> Nil
        , "length"       -> Nil
        , "radius"       -> Nil
-       , "rotation"     -> List(2,3)
+       , "rotation"     -> List(1,3)
        , "size"         -> List(2,3)
        , "transparency" -> Nil
        )
