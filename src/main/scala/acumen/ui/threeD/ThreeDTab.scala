@@ -1,13 +1,17 @@
 package acumen.ui.threeD
 import java.awt.BorderLayout
-import javax.swing.JPanel
-import acumen.{Main, CId}
+import javax.swing.{JLabel, JOptionPane, JPanel, JTextField}
+
+import acumen.{CId, Main}
 
 import scala.collection.mutable
 import acumen.ui.{App, Controller, Icons}
+
 import scala.swing._
 import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
+
+import com.threed.jpct.SimpleVector
 
 case class ThreeDTab (appModel: Controller) extends BorderPanel {
   val canvasPanel = new JPanel
@@ -17,6 +21,7 @@ case class ThreeDTab (appModel: Controller) extends BorderPanel {
     if (check.selected)
       threeDView.axisOn()
     threeDView.init()
+    threeDView.defaultView()
     canvasPanel.setLayout(new BorderLayout())
     canvasPanel.add(threeDView, BorderLayout.CENTER)
     peer.add(canvasPanel, BorderLayout.CENTER)
@@ -77,6 +82,52 @@ case class ThreeDTab (appModel: Controller) extends BorderPanel {
   var lastFrame = 0
   var endTime = 10.0
 
+  val viewButtonSize = new Dimension(55, 55)
+  val defaultView = new Action("defaultView") {
+    icon = Icons.defaultView
+    toolTip = "default view"
+    def apply() = {
+      threeDView.defaultView()
+    }
+  }
+  val defaultViewButton = new Button(defaultView) {
+    peer.setHideActionText(true)
+    preferredSize = viewButtonSize
+  }
+  val frontView = new Action("frontView") {
+    icon = Icons.frontView
+    toolTip = "front view"
+    def apply() = {
+      threeDView.frontView()
+    }
+  }
+  val frontViewButton = new Button(frontView) {
+    peer.setHideActionText(true)
+    preferredSize = viewButtonSize
+  }
+  val topView = new Action("topView") {
+    icon = Icons.topView
+    toolTip = "top view"
+    def apply() = {
+      threeDView.topView()
+    }
+  }
+  val topViewButton = new Button(topView) {
+    peer.setHideActionText(true)
+    preferredSize = viewButtonSize
+  }
+  val rightView = new Action("rightView") {
+    icon = Icons.rightView
+    toolTip = "right view"
+    def apply() = {
+      threeDView.rightView()
+    }
+  }
+  val rightViewButton = new Button(rightView) {
+    peer.setHideActionText(true)
+    preferredSize = viewButtonSize
+  }
+
   val s = new Dimension(50, 40)
   val b3dplay = new Button(threedplay) {
     peer.setHideActionText(true)
@@ -136,10 +187,6 @@ case class ThreeDTab (appModel: Controller) extends BorderPanel {
   }
   if (Main.enableRealTime) checkRTAnimation.doClick()
 
-  def hide(button: Button) {
-    button.peer.setEnabled(false)
-  }
-
   val statusZone3d = new Slider3D
   statusZone3d.bar.peer.addMouseListener(new MouseAdapter{
     var wasPlayingBeforeMousePressed = threedplay.toolTip == "pause"
@@ -152,6 +199,37 @@ case class ThreeDTab (appModel: Controller) extends BorderPanel {
         pauseOff()
   })
 
+  val setCameraButton = new Button("Set") {
+    action = new Action("Set") {
+      def apply () = {
+        threeDView.setPositionButton(true)
+      }
+    }
+  }
+  val setLookAtButton = new Button("Set") {
+    action = new Action("Set") {
+      def apply () = {
+        threeDView.setPositionButton(false)
+      }
+    }
+  }
+
+  val cameraInfoPane = new BoxPanel(Orientation.Horizontal) {
+    contents ++= Seq(threeDView.cameraPos, setCameraButton)
+  }
+
+  val lookAtInfoPane = new BoxPanel(Orientation.Horizontal) {
+    contents ++= Seq(threeDView.lookAtPosition, setLookAtButton)
+  }
+
+  val positionInfoPane = new BoxPanel(Orientation.Vertical) {
+    contents ++= Seq(cameraInfoPane, lookAtInfoPane)
+  }
+
+  val threeDViewPane = new BoxPanel(Orientation.Horizontal) {
+    contents ++= Seq(defaultViewButton, frontViewButton, topViewButton, rightViewButton, positionInfoPane)
+  }
+
   val threeDControlPane = new BoxPanel(Orientation.Horizontal) {
     contents ++= Seq(check, b3dplay, b3dstop, b3dslower, b3dfaster, statusZone3d)
   }
@@ -161,7 +239,7 @@ case class ThreeDTab (appModel: Controller) extends BorderPanel {
   }
 
   val threeDBottomPane = new BoxPanel(Orientation.Vertical) {
-    contents ++= Seq(threeDInfoPane, threeDControlPane)
+    contents ++= Seq(threeDViewPane, threeDInfoPane, threeDControlPane)
   }
 
   var _receiver = new _3DDisplay(threeDView, statusZone3d, playSpeed,
@@ -288,6 +366,8 @@ case class ThreeDTab (appModel: Controller) extends BorderPanel {
     b3dplay.enabled = targetState
     b3dstop.enabled = targetState
     statusZone3d.bar.enabled = targetState
+    setCameraButton.enabled = targetState
+    setLookAtButton.enabled = targetState
   }
 
   def checkBoxState(boxType: String): Boolean = {
