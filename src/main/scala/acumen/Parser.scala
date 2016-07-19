@@ -636,12 +636,14 @@ object Parser extends MyStdTokenParsers {
 
     val content = paras.find(_._1.x == "content") match{
       case Some(x) => 
-        if(name == "Text" | name == "Obj") 
+        if(name == "Text")
+          x._2
+        else if (name == "Obj")
           x._2 match{
-      	   case Lit(GStr(_)) => x._2
-      	   case Lit(_) => error("_3D object " + name + "'s 'content' parameter is not a string")
-      	   case _ => x._2
-      	  }
+            case Lit(GStr(_)) => x._2
+            case Lit(_) => error("_3D object " + name + "'s 'content' parameter is not a string")
+            case _ => x._2
+          }
         else error("_3D object " + name + " can't have 'content' parameter")
       case None => defaultContent
     }

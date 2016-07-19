@@ -155,6 +155,8 @@ class ThreeDData extends Publisher {
       case VLit(GStr(s)) => _3DText = s
       case VLit(GInt(i)) => _3DText = i.toString
       case VLit(GDouble(i)) => _3DText = i.toString
+      case VLit(GBool(i)) => _3DText = i.toString
+      case VLit(_) => Pretty pprint value
       case _ => throw _3DNameError(value)
     }
   }
