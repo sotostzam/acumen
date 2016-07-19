@@ -5,7 +5,7 @@ import java.awt.image.BufferedImage
 import java.awt.{Color, Component, Graphics}
 import java.io._
 import javax.imageio.ImageIO
-import javax.swing.{SwingUtilities, JPanel}
+import javax.swing._
 
 import acumen.CId
 import acumen.Errors._
@@ -14,7 +14,7 @@ import com.threed.jpct._
 
 import scala.actors._
 import scala.math._
-import scala.swing.Publisher
+import scala.swing.{Label, Publisher, Swing}
 import scala.collection.mutable
 
 /* 3D visualization panel */
@@ -255,7 +255,8 @@ class ThreeDView extends JPanel {
     // storing the mouse position
     lastMouseX = newMouseX
     lastMouseY = newMouseY
-    
+
+    updateCameraInfo()
     repaint()
     cameraDirection
   }
@@ -284,10 +285,8 @@ class ThreeDView extends JPanel {
     cameraLeftDirection = (-1,-1)
     cameraRightDirection = (1,1)
     cameraFlipped = false
-    defaultView()
-    lookAt(null, new SimpleVector(0,0,0)) // camera faces towards the object
+    lookAt(null, lookAtPoint) // camera faces towards the object
     staticCamera.lookAt(new SimpleVector(0,0,0))
-    lookAtPoint.set(0,0,0)
   }
 
   // the state machine for adding or deleting objects in view state machine
@@ -396,9 +395,76 @@ class ThreeDView extends JPanel {
     camera.setPosition(defaultCamPos)
     camera.setFOVLimits(0.01f, 3.0f)
     camera.setFOV(0.65f)
-    staticCamera.setPosition(0, 0, 10)
+    staticCamera.setPosition(new SimpleVector(0, 0, 12))
     staticCamera.setFOVLimits(0.01f, 3.0f)
     staticCamera.setFOV(0.65f)
+    lookAt(null,lookAtPoint)
+    updateCameraInfo()
+    repaint()
+  }
+
+  def frontView() = {
+    camera.setPosition(new SimpleVector(0, 0, 12))
+    camera.setFOVLimits(0.01f, 3.0f)
+    camera.setFOV(0.65f)
+    lookAt(null,lookAtPoint)
+    updateCameraInfo()
+    repaint()
+  }
+
+  def topView() = {
+    camera.setPosition(new SimpleVector(0, -12, 0.1))
+    camera.setFOVLimits(0.01f, 3.0f)
+    camera.setFOV(0.65f)
+    lookAt(null,lookAtPoint)
+    updateCameraInfo()
+    repaint()
+  }
+
+  def rightView() = {
+    camera.setPosition(new SimpleVector(-12, 0, 0))
+    camera.setFOVLimits(0.01f, 3.0f)
+    camera.setFOV(0.65f)
+    lookAt(null,lookAtPoint)
+    updateCameraInfo()
+    repaint()
+  }
+
+  def setPositionButton(isCamera: Boolean) = {
+    val xField = if (isCamera) new JTextField(camera.getPosition.x.formatted("%.2f"), 6)
+                 else new JTextField(lookAtPoint.x.formatted("%.2f"), 6)
+    val yField = if (isCamera) new JTextField(camera.getPosition.y.formatted("%.2f"), 6)
+                 else new JTextField(lookAtPoint.y.formatted("%.2f"), 6)
+    val zField = if (isCamera) new JTextField(camera.getPosition.z.formatted("%.2f"), 6)
+                 else new JTextField(lookAtPoint.z.formatted("%.2f"), 6)
+    val ratioPanel = new JPanel()
+    ratioPanel.add(new JLabel("X:"))
+    ratioPanel.add(xField)
+    ratioPanel.add(new JLabel("Y:"))
+    ratioPanel.add(yField)
+    ratioPanel.add(new JLabel("Z:"))
+    ratioPanel.add(zField)
+    val result = JOptionPane.showConfirmDialog(null, ratioPanel, "Please enter the ratio of width and height",
+                                               JOptionPane.OK_CANCEL_OPTION)
+    def parseFloat(s: String): Boolean = try {
+      Some(s.toFloat)
+      true
+    } catch { case e: Exception => false }
+    if (result == JOptionPane.OK_OPTION) {
+      if (parseFloat(xField.getText) && parseFloat(yField.getText) && parseFloat(zField.getText)) {
+        val newPosition = new SimpleVector(xField.getText.toFloat, yField.getText.toFloat, zField.getText.toFloat)
+        if (isCamera) camera.setPosition(newPosition)
+        else lookAtPoint.set(newPosition)
+        updateCameraInfo()
+        lookAt(null,lookAtPoint)
+        repaint()
+      } else {
+        if (isCamera)
+          JOptionPane.showMessageDialog(null, "Camera position should be numbers.")
+        else
+          JOptionPane.showMessageDialog(null, "Look at point should be numbers.")
+      }
+    }
   }
 
   def reset() = {
@@ -517,6 +583,7 @@ class ThreeDView extends JPanel {
       // angle is the position of look at point in this case
       lookAtPoint.set(-angle(0).toFloat, -angle(2).toFloat, -angle(1).toFloat)
       lookAt(null, lookAtPoint)
+      updateCameraInfo()
     }
   }
 }
