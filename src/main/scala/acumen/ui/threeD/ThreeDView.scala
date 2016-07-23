@@ -6,6 +6,7 @@ import java.awt.{Color, Component, Graphics}
 import java.io._
 import javax.imageio.ImageIO
 import javax.swing._
+import javax.swing.event.{DocumentEvent, DocumentListener}
 
 import acumen.CId
 import acumen.Errors._
@@ -14,8 +15,9 @@ import com.threed.jpct._
 
 import scala.actors._
 import scala.math._
-import scala.swing.{Label, Publisher, Swing}
+import scala.swing.{Label, Publisher, Swing, TextField}
 import scala.collection.mutable
+import scala.swing.event.EditDone
 
 /* 3D visualization panel */
 class ThreeDView extends JPanel {
@@ -75,22 +77,70 @@ class ThreeDView extends JPanel {
   letThereBeLight(world)  // create light sources for the scene
   letThereBeLight(staticWorld)  // create light sources for the scene
 
-  protected[threeD] val cameraPos = new Label("   Camera Position X: %.2f ".format(camera.getPosition.x) +
-                            "Y: %.2f ".format(camera.getPosition.y) +
-                            "Z: %.2f".format(camera.getPosition.z))
-  cameraPos.border = Swing.EmptyBorder(2,0,0,0)
-  protected[threeD] val lookAtPosition = new Label("   Look At Point X:%.2f ".format(lookAtPoint.x) +
-                                 "Y :%.2f ".format(lookAtPoint.y) +
-                                 "Z :%.2f".format(lookAtPoint.z))
-  lookAtPosition.border = Swing.EmptyBorder(2,0,0,0)
+  def checkPosInput(component: TextField) = {
+    if (component.text.length() <= 0) {
+      JOptionPane.showMessageDialog(null, "Error: Please enter number bigger than 0",
+        "Error Massage", JOptionPane.ERROR_MESSAGE)
+      updatePosInfo()
+    } else if (!parseFloat(component.text)) {
+      JOptionPane.showMessageDialog(null, "Error: The input for the position should be a number",
+        "Error Massage", JOptionPane.ERROR_MESSAGE)
+      updatePosInfo()
+    } else inputPosInfo(component)
+  }
 
-  def updateCameraInfo() = {
-    cameraPos.text = "   Camera Position X: %.2f ".format(camera.getPosition.x) +
-                     "Y: %.2f ".format(camera.getPosition.y) +
-                     "Z: %.2f".format(camera.getPosition.z)
-    lookAtPosition.text = "   Look At Point X:%.2f ".format(lookAtPoint.x) +
-                          "Y :%.2f ".format(lookAtPoint.y) +
-                          "Z :%.2f".format(lookAtPoint.z)
+  def parseFloat(s: String): Boolean = try {
+    Some(s.toFloat)
+    true
+  } catch { case e: Exception => false }
+
+  protected[threeD] val cameraPosX = new Label("Camera X:")
+  cameraPosX.border = Swing.EmptyBorder(2,4,0,0)
+  protected[threeD] val cameraX = new TextField {
+    text = "%.2f".format(camera.getPosition.x)
+    columns = 5
+  }
+  protected[threeD] val posY = new Label("Y:")
+  protected[threeD] val cameraY = new TextField {
+    text = "%.2f".format(camera.getPosition.y)
+    columns = 5
+  }
+  protected[threeD] val posZ = new Label("Z:")
+  protected[threeD] val cameraZ = new TextField {
+    text = "%.2f".format(camera.getPosition.z)
+    columns = 5
+  }
+  protected[threeD] val lookAtPosLabel = new Label("Look At X:")
+  lookAtPosLabel.border = Swing.EmptyBorder(2,4,0,0)
+  protected[threeD] val lookAtX = new TextField {
+    text = "%.2f".format(lookAtPoint.x)
+    columns = 5
+  }
+  protected[threeD] val lookAtY = new TextField {
+    text = "%.2f".format(lookAtPoint.y)
+    columns = 5
+  }
+  protected[threeD] val lookAtZ = new TextField {
+    text = "%.2f".format(lookAtPoint.z)
+    columns = 5
+  }
+
+  def inputPosInfo(component: TextField) = {
+    val newCamPosition = new SimpleVector(cameraX.text.toFloat, cameraY.text.toFloat, cameraZ.text.toFloat)
+    val newLookAtPoint = new SimpleVector(lookAtX.text.toFloat, lookAtY.text.toFloat, lookAtZ.text.toFloat)
+    camera.setPosition(newCamPosition)
+    lookAtPoint.set(newLookAtPoint)
+    lookAt(null,lookAtPoint)
+    repaint()
+  }
+
+  def updatePosInfo() = {
+    cameraX.text = "%.2f".format(camera.getPosition.x)
+    cameraY.text = "%.2f".format(camera.getPosition.y)
+    cameraZ.text = "%.2f".format(camera.getPosition.z)
+    lookAtX.text = "%.2f".format(lookAtPoint.x)
+    lookAtY.text = "%.2f".format(lookAtPoint.y)
+    lookAtZ.text = "%.2f".format(lookAtPoint.z)
   }
 
   addComponentListener(new ComponentAdapter {
@@ -256,7 +306,7 @@ class ThreeDView extends JPanel {
     lastMouseX = newMouseX
     lastMouseY = newMouseY
 
-    updateCameraInfo()
+    updatePosInfo()
     repaint()
     cameraDirection
   }
@@ -394,77 +444,40 @@ class ThreeDView extends JPanel {
   def defaultView() = {
     camera.setPosition(defaultCamPos)
     camera.setFOVLimits(0.01f, 3.0f)
-    camera.setFOV(0.65f)
+    camera.setFOV(0.8f)
     staticCamera.setPosition(new SimpleVector(0, 0, 12))
     staticCamera.setFOVLimits(0.01f, 3.0f)
-    staticCamera.setFOV(0.65f)
+    staticCamera.setFOV(0.5f)
     lookAt(null,lookAtPoint)
-    updateCameraInfo()
+    updatePosInfo()
     repaint()
   }
 
   def frontView() = {
     camera.setPosition(new SimpleVector(0, 0, 12))
     camera.setFOVLimits(0.01f, 3.0f)
-    camera.setFOV(0.65f)
+    camera.setFOV(0.8f)
     lookAt(null,lookAtPoint)
-    updateCameraInfo()
+    updatePosInfo()
     repaint()
   }
 
   def topView() = {
     camera.setPosition(new SimpleVector(0, -12, 0.1))
     camera.setFOVLimits(0.01f, 3.0f)
-    camera.setFOV(0.65f)
+    camera.setFOV(0.8f)
     lookAt(null,lookAtPoint)
-    updateCameraInfo()
+    updatePosInfo()
     repaint()
   }
 
   def rightView() = {
     camera.setPosition(new SimpleVector(-12, 0, 0))
     camera.setFOVLimits(0.01f, 3.0f)
-    camera.setFOV(0.65f)
+    camera.setFOV(0.8f)
     lookAt(null,lookAtPoint)
-    updateCameraInfo()
+    updatePosInfo()
     repaint()
-  }
-
-  def setPositionButton(isCamera: Boolean) = {
-    val xField = if (isCamera) new JTextField(camera.getPosition.x.formatted("%.2f"), 6)
-                 else new JTextField(lookAtPoint.x.formatted("%.2f"), 6)
-    val yField = if (isCamera) new JTextField(camera.getPosition.y.formatted("%.2f"), 6)
-                 else new JTextField(lookAtPoint.y.formatted("%.2f"), 6)
-    val zField = if (isCamera) new JTextField(camera.getPosition.z.formatted("%.2f"), 6)
-                 else new JTextField(lookAtPoint.z.formatted("%.2f"), 6)
-    val ratioPanel = new JPanel()
-    ratioPanel.add(new JLabel("X:"))
-    ratioPanel.add(xField)
-    ratioPanel.add(new JLabel("Y:"))
-    ratioPanel.add(yField)
-    ratioPanel.add(new JLabel("Z:"))
-    ratioPanel.add(zField)
-    val result = JOptionPane.showConfirmDialog(null, ratioPanel, "Please enter the ratio of width and height",
-                                               JOptionPane.OK_CANCEL_OPTION)
-    def parseFloat(s: String): Boolean = try {
-      Some(s.toFloat)
-      true
-    } catch { case e: Exception => false }
-    if (result == JOptionPane.OK_OPTION) {
-      if (parseFloat(xField.getText) && parseFloat(yField.getText) && parseFloat(zField.getText)) {
-        val newPosition = new SimpleVector(xField.getText.toFloat, yField.getText.toFloat, zField.getText.toFloat)
-        if (isCamera) camera.setPosition(newPosition)
-        else lookAtPoint.set(newPosition)
-        updateCameraInfo()
-        lookAt(null,lookAtPoint)
-        repaint()
-      } else {
-        if (isCamera)
-          JOptionPane.showMessageDialog(null, "Camera position should be numbers.")
-        else
-          JOptionPane.showMessageDialog(null, "Look at point should be numbers.")
-      }
-    }
   }
 
   def reset() = {
@@ -583,7 +596,7 @@ class ThreeDView extends JPanel {
       // angle is the position of look at point in this case
       lookAtPoint.set(-angle(0).toFloat, -angle(2).toFloat, -angle(1).toFloat)
       lookAt(null, lookAtPoint)
-      updateCameraInfo()
+      updatePosInfo()
     }
   }
 }

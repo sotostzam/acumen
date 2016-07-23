@@ -13,6 +13,8 @@ import java.awt.event.MouseEvent
 
 import com.threed.jpct.SimpleVector
 
+import scala.swing.event.{EditDone, FocusLost}
+
 case class ThreeDTab (appModel: Controller) extends BorderPanel {
   val canvasPanel = new JPanel
   val threeDView = new ThreeDView
@@ -199,27 +201,25 @@ case class ThreeDTab (appModel: Controller) extends BorderPanel {
         pauseOff()
   })
 
-  val setCameraButton = new Button("Set") {
-    action = new Action("Set") {
-      def apply () = {
-        threeDView.setPositionButton(true)
-      }
-    }
-  }
-  val setLookAtButton = new Button("Set") {
-    action = new Action("Set") {
-      def apply () = {
-        threeDView.setPositionButton(false)
-      }
-    }
-  }
-
   val cameraInfoPane = new BoxPanel(Orientation.Horizontal) {
-    contents ++= Seq(threeDView.cameraPos, setCameraButton)
+    contents ++= Seq(threeDView.cameraPosX, threeDView.cameraX, threeDView.posY,
+                     threeDView.cameraY, threeDView.posZ, threeDView.cameraZ)
   }
 
   val lookAtInfoPane = new BoxPanel(Orientation.Horizontal) {
-    contents ++= Seq(threeDView.lookAtPosition, setLookAtButton)
+    contents ++= Seq(threeDView.lookAtPosLabel, threeDView.lookAtX, threeDView.posY,
+                     threeDView.lookAtY, threeDView.posZ, threeDView.lookAtZ)
+  }
+
+  listenTo(threeDView.cameraX, threeDView.cameraY, threeDView.cameraZ,
+    threeDView.lookAtX, threeDView.lookAtY, threeDView.lookAtZ)
+  reactions += {
+    case EditDone(threeDView.cameraX) => threeDView.checkPosInput(threeDView.cameraX)
+    case EditDone(threeDView.cameraY) => threeDView.checkPosInput(threeDView.cameraY)
+    case EditDone(threeDView.cameraZ) => threeDView.checkPosInput(threeDView.cameraZ)
+    case EditDone(threeDView.lookAtX) => threeDView.checkPosInput(threeDView.lookAtX)
+    case EditDone(threeDView.lookAtY) => threeDView.checkPosInput(threeDView.lookAtY)
+    case EditDone(threeDView.lookAtZ) => threeDView.checkPosInput(threeDView.lookAtZ)
   }
 
   val positionInfoPane = new BoxPanel(Orientation.Vertical) {
@@ -366,8 +366,12 @@ case class ThreeDTab (appModel: Controller) extends BorderPanel {
     b3dplay.enabled = targetState
     b3dstop.enabled = targetState
     statusZone3d.bar.enabled = targetState
-    setCameraButton.enabled = targetState
-    setLookAtButton.enabled = targetState
+    threeDView.cameraX.editable = targetState
+    threeDView.cameraY.editable = targetState
+    threeDView.cameraZ.editable = targetState
+    threeDView.lookAtX.editable = targetState
+    threeDView.lookAtY.editable = targetState
+    threeDView.lookAtZ.editable = targetState
   }
 
   def checkBoxState(boxType: String): Boolean = {
