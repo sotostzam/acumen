@@ -202,13 +202,13 @@ case class ThreeDTab (appModel: Controller) extends BorderPanel {
   })
 
   val cameraInfoPane = new BoxPanel(Orientation.Horizontal) {
-    contents ++= Seq(threeDView.cameraPosX, threeDView.cameraX, threeDView.posY,
-                     threeDView.cameraY, threeDView.posZ, threeDView.cameraZ)
+    contents ++= Seq(threeDView.cameraPosX, threeDView.cameraX, new Label("Y:"),
+                     threeDView.cameraY, new Label("Z:"), threeDView.cameraZ)
   }
 
   val lookAtInfoPane = new BoxPanel(Orientation.Horizontal) {
-    contents ++= Seq(threeDView.lookAtPosLabel, threeDView.lookAtX, threeDView.posY,
-                     threeDView.lookAtY, threeDView.posZ, threeDView.lookAtZ)
+    contents ++= Seq(threeDView.lookAtPosLabel, threeDView.lookAtX, new Label("Y:"),
+                     threeDView.lookAtY, new Label("Z:"), threeDView.lookAtZ)
   }
 
   listenTo(threeDView.cameraX, threeDView.cameraY, threeDView.cameraZ,

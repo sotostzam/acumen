@@ -100,12 +100,10 @@ class ThreeDView extends JPanel {
     text = "%.2f".format(camera.getPosition.x)
     columns = 5
   }
-  protected[threeD] val posY = new Label("Y:")
   protected[threeD] val cameraY = new TextField {
     text = "%.2f".format(camera.getPosition.y)
     columns = 5
   }
-  protected[threeD] val posZ = new Label("Z:")
   protected[threeD] val cameraZ = new TextField {
     text = "%.2f".format(camera.getPosition.z)
     columns = 5
@@ -447,7 +445,8 @@ class ThreeDView extends JPanel {
     camera.setFOV(0.8f)
     staticCamera.setPosition(new SimpleVector(0, 0, 12))
     staticCamera.setFOVLimits(0.01f, 3.0f)
-    staticCamera.setFOV(0.5f)
+    staticCamera.setFOV(0.8f)
+    lookAtPoint.set(new SimpleVector(0, 0, 0))
     lookAt(null,lookAtPoint)
     updatePosInfo()
     repaint()
@@ -457,6 +456,7 @@ class ThreeDView extends JPanel {
     camera.setPosition(new SimpleVector(0, 0, 12))
     camera.setFOVLimits(0.01f, 3.0f)
     camera.setFOV(0.8f)
+    lookAtPoint.set(new SimpleVector(0, 0, 0))
     lookAt(null,lookAtPoint)
     updatePosInfo()
     repaint()
@@ -466,6 +466,7 @@ class ThreeDView extends JPanel {
     camera.setPosition(new SimpleVector(0, -12, 0.1))
     camera.setFOVLimits(0.01f, 3.0f)
     camera.setFOV(0.8f)
+    lookAtPoint.set(new SimpleVector(0, 0, 0))
     lookAt(null,lookAtPoint)
     updatePosInfo()
     repaint()
@@ -476,6 +477,7 @@ class ThreeDView extends JPanel {
     camera.setFOVLimits(0.01f, 3.0f)
     camera.setFOV(0.8f)
     lookAt(null,lookAtPoint)
+    lookAtPoint.set(new SimpleVector(0, 0, 0))
     updatePosInfo()
     repaint()
   }
