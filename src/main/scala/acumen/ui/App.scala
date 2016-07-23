@@ -409,7 +409,7 @@ class App extends SimpleSwingApplication {
     new ButtonGroup(rb1)
   }
   private val disable3DRatioItem = new RadioMenuItem("Disable")
-  private val fixed3DRatioItem = new RadioMenuItem("4:3") {
+  private val fixed3DRatioItem = new RadioMenuItem("16:9") {
     selected = true
     action = new Action("16:9 Ratio") {
       def apply() = {
@@ -439,7 +439,8 @@ class App extends SimpleSwingApplication {
             threeDtab.threeDView.widthRatio = widthField.getText.toInt
             threeDtab.threeDView.heightRatio = heightField.getText.toInt
           } else {
-            JOptionPane.showMessageDialog(null, "Aspect ratio should be integer.")
+            JOptionPane.showMessageDialog(null, "Error: Aspect ratio should be integer",
+              "Error Massage", JOptionPane.ERROR_MESSAGE)
           }
         }
       }
