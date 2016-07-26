@@ -88,6 +88,7 @@ case class Desugarer(odeTransformMode: ODETransformMode) {
       case Nil => (List(), Nil)
       case Init(x, rhs) :: is1 =>
         val drhs = rhs match {
+          case ParaRhs(e, nm, es) => ParaRhs(desugar(p, fs, env, e), nm, es map (desugar(p, fs, env, _)))
           case NewRhs(e, es) => NewRhs(desugar(p, fs, env, e), es map (desugar(p, fs, env, _)))
           case ExprRhs(e) => ExprRhs(desugar(p, fs, env, e))
         }
@@ -147,6 +148,7 @@ case class Desugarer(odeTransformMode: ODETransformMode) {
       case Input(s,i) => Input(s,i)
       case Index(e,i) => Index(des(e), i map des)
       case Dot(o, f) => Dot(des(o), f)
+      case Quest(o, f) => Quest(des(o), f)
       case ExprVector(es) => ExprVector(es map des)
       case Sum(e, i, col, cond) =>
         Sum(desugar(p, fs, i :: env, e), i, des(col), desugar(p, fs, i :: env, cond))

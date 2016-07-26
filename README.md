@@ -1,3 +1,21 @@
+ACUMEN 2016_06_16 RELEASE NOTES
+-------------------------------
+
+Major changes since the 2016_03_22 release:
+
+- Improvements to the 2015 semantics
+	- Added support for equations 
+	- Added support for symbolic time and partial differentiation
+	- New command line input feature 
+	- New print operation
+	- New _plot support for conveniently plotting variables 
+	
+- New aspect ratio support 
+- Improvement to the transparency parameter for 3D object
+- Improvement to the static view of 3D 
+
+
+
 ACUMEN 2016_03_22 RELEASE NOTES
 -------------------------------
 

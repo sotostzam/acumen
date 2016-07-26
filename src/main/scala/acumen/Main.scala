@@ -8,21 +8,16 @@ import render.ToPython._
 import Pretty._
 import PassManager._
 import benchTool._
-
-import java.net.{ Socket, InetAddress, ServerSocket }
-
+import java.net.ServerSocket
+import acumen.interpreters.Common.paramModelTxt
 import scala.collection.mutable.ArrayBuffer
 
-object ThreeDState extends Enumeration {
-  val ERROR, DISABLE, ENABLE = Value
-}
 
 object Main {
 
   //
   // What should be in Main
   //
-  var threeDState: ThreeDState.Value = ThreeDState.ENABLE
   var disableNewPlot = true
   var enableAllSemantics = true
   var autoPlay = false
@@ -62,23 +57,26 @@ object Main {
     "-i|--semantics <semantics string>",
     "                        select semantics to use",
     "-p|--passes <pass1>[,<pass2>[,...]]",
-    "                        comma seperated list of extra passes to run",
+    "                        comma separated list of extra passes to run",
     "--model <file>          model file to open",
     "--newplot               enable experimental plotter",
     "--play                  automatically run the model",
     "--disable-realtime      disable real-time visualization",
     "--disable-bta           disable partial evaluator",
     "--disable-completion    disable code completion in the source code editor",
-    "--dont-fork             disable auto-forking of a new JVM when required")
+    "--dont-fork             disable auto-forking of a new JVM when required",
+    "--enable-print          enable to print value with print function in terminal",
+    "--parameters            bind the given variables to the given values: val_name1 val1 val_name2 val2 [...]")
   def experimentalOptsHelp = Array(
     "--full-help",
     "--templates             enables template expansion in the source code editor",
     "--prune-semantics       hide experimental semantics in the U.I.",
-    s"-l|--log <level>        print logs to command line (level is one of: ${Logger.levels.mkString(",")}).")
+    s"-l|--log <level>       print logs to command line (level is one of: ${Logger.levels.mkString(",")}).")
   def commandHelp = Array(
     "ui [<file>]             starts the U.I.")
   def experimentalCommandHelp = Array(
     "pretty <file>           pretty print model",
+    "offline <file>          run model",
     "last <file>             run model and print final result",
     "trace <file>            run model and print trace output",
     "time <file>             time time it takes to run model",
@@ -105,6 +103,25 @@ object Main {
     System.exit(1)
   }
 
+  def mkParamModel(parameters: List[String]): (String, List[String]) = {
+    def parseParam(initFields: List[String], param: List[String]): (List[String], List[String]) =
+      param match {
+        case opt :: tail if opt.startsWith("-") =>
+          (List.empty, param)
+        case name :: value :: tail =>
+          Parser.run(Parser.ident, name)
+          Parser.run(Parser.cl_lit, value)
+          parseParam(name + " = " + value :: initFields, tail)
+      case e if e.isEmpty => (initFields, param)
+      case _ =>
+        System.err.println("Invalid parameters list: " + parameters.mkString(" "))
+        usage(); (List.empty, param)
+      }
+      val (paraModelInit, leftArgs) = parseParam(List.empty, parameters)
+      val paraModelText = "model Parameters() = initially " + paraModelInit.mkString(", ")
+      (paraModelText, leftArgs)
+    }
+
   def parseArgs(args: List[String]): Unit = try {
     args match {
       case Nil =>
@@ -119,10 +136,6 @@ object Main {
         defaultSemantics = SemanticsImpl(i); parseArgs(tail)
       case ("--model") :: f :: tail =>
         openFile = checkFile(f); parseArgs(tail)
-      case ("--enable-3d" | "--3d") :: tail =>
-        threeDState = ThreeDState.ENABLE; parseArgs(tail)
-      case ("--disable-3d" | "--no-3d") :: tail =>
-        threeDState = ThreeDState.DISABLE; parseArgs(tail)
       case ("--enable-bta") :: tail =>
         extraPasses = extraPasses :+ "BTA"; parseArgs(tail)
       case ("--disable-bta") :: tail =>
@@ -134,7 +147,7 @@ object Main {
       case ("--prune-semantics") :: tail =>
         enableAllSemantics = false; parseArgs(tail)
       case "--disable-realtime" :: tail =>
-        enableRealTime = false
+        enableRealTime = false; parseArgs(tail)
       case "--play" :: tail =>
         autoPlay = true; parseArgs(tail)
       case "--enable-completion" :: tail =>
@@ -160,6 +173,12 @@ object Main {
             usage()
         }
         parseArgs(tail)
+      case "--parameters" :: tail =>
+        val (tempParaText, leftTail) = mkParamModel(tail)
+        paramModelTxt =  "\n\n" + tempParaText + "\n\n"; parseArgs(leftTail)
+      case "--enable-print" :: tail =>
+        // enable output the value with print function in terminal
+        printMode = true; parseArgs(tail)
       case opt :: tail if opt.startsWith("-") =>
         System.err.println("Unrecognized Option: " + opt)
         usage()
@@ -169,7 +188,7 @@ object Main {
     }
   } catch {
     case e: AcumenError =>
-      System.err.println(e.getMessage())
+      System.err.println(e.getMessage)
       usage()
   }
 
@@ -183,10 +202,10 @@ object Main {
   }
 
   def extraInfo(full: Boolean): Unit = {
-    println("");
-    println("Valid Semantic Strings: ");
+    println("")
+    println("Valid Semantic Strings: ")
     println(SemanticsImpl.helpText(full))
-    println("Valid Passes: ");
+    println("Valid Passes: ")
     println(passAliases.collect { case PassAlias(from, _, Some(desc)) => "  %-23s %s".format(from, desc) }.mkString("\n"))
     if (full)
       println(availPasses.map { p => "  %-23s %s".format(p.id, p.desc) }.mkString("\n"))
@@ -199,32 +218,32 @@ object Main {
       defaultSemantics = SemanticsImpl("")
     if (displayHelp == "normal") {
       println("Usage: acumen [options] [command]")
-      println("");
-      println("Options: ");
+      println("")
+      println("Options: ")
       optsHelp.foreach { line => println("  " + line) }
       extraInfo(false)
-      println("Commands: ");
+      println("Commands: ")
       commandHelp.foreach { line => println("  " + line) }
     } else if (displayHelp == "full") {
       println("Usage: acumen [options] [command]")
-      println("");
-      println("Options: ");
+      println("")
+      println("Options: ")
       optsHelp.foreach { line => println("  " + line) }
-      println("");
+      println("")
       println("Experimental options:")
       experimentalOptsHelp.foreach { line => println("  " + line) }
       extraInfo(true)
-      println("Commands: ");
+      println("Commands: ")
       commandHelp.foreach { line => println("  " + line) }
-      println("");
-      println("Experimental commands:");
+      println("")
+      println("Experimental commands:")
       experimentalCommandHelp.foreach { line => println("  " + line) }
     } else {
-      (if (positionalArgs.size == 0) "ui" else positionalArgs(0)) match {
+      (if (positionalArgs.isEmpty) "ui" else positionalArgs(0)) match {
         case "ui" =>
           ui.GraphicalMain.main(args)
         case "examples" | "record-reference-outputs" =>
-          examples
+          examples()
         case _ =>
           origMain(positionalArgs.toArray)
       }
@@ -240,6 +259,7 @@ object Main {
   var serverMode: Boolean = false
   var serverBufferedReader: BufferedReader = null
   var serverBufferedWriter: BufferedWriter = null
+  var printMode = false
 
   def send_recv(s: String): String = {
     serverBufferedWriter.write(s)
@@ -252,18 +272,24 @@ object Main {
     trace match { case CStoreRes(r, _) => r; case _ => null }
   }
 
+  def insertParamModel(f: File): SequenceInputStream = {
+    val fileIn = new FileInputStream(f)
+    val paraIn = new ByteArrayInputStream(paramModelTxt.getBytes())
+    new SequenceInputStream(fileIn, paraIn)
+  }
+
   def origMain(args: Array[String]): Unit = {
     try {
 
       /* Read the Acumen source, parse, pre-process and interpret it. */
       lazy val file = new File(args(1)).getAbsoluteFile
-      def in = new InputStreamReader(new FileInputStream(file))
+      def in = new InputStreamReader(insertParamModel(file))
       lazy val semantics = Parser.run(Parser.getSemantics, in, Some(file)) match {
         case Some(s) => SemanticsImpl(s)
         case None    => defaultSemantics
       }
       lazy val i = semantics.interpreter()
-      lazy val ast = semantics.parse(in, file.getParentFile(), Some(file.getName()))
+      lazy val ast = semantics.parse(in, file.getParentFile, Some(file.getName))
       /* Lift the prog according to the active interpreter */
       lazy val liftedAst = i.lift(ast)
       lazy val final_out = semantics.applyPasses(liftedAst, extraPasses)
@@ -282,7 +308,7 @@ object Main {
         case "2d"      => toPython2D(toSummary2D(ctrace))
         case "json"    => for (st <- ctrace) println(JSon.toJSON(st))
         case "fromJson" =>
-          val st = ctrace(0)
+          val st = ctrace.head
           val x = JSon.fromJSON(JSon.toJSON(st).toString)
           println(x)
         case "listen" =>
@@ -298,20 +324,22 @@ object Main {
         case "last" =>
           trace.printLast
           print(md.reportAsString)
+        case "offline" =>
+          // run Acumen in offline mode
+          trace
         case "detailed_time" =>
           bench.runTimer(args(1), outputFile)
         case "time" =>
-          val forced = final_out
           val startTime = System.currentTimeMillis()
           trace.printLast
           val endTime = System.currentTimeMillis()
           println("Time to run: " + (endTime - startTime) / 1000.0)
         case "bench" =>
-          val offset = 2;
+          val offset = 2
           val start: Int = Integer.parseInt(args(offset + 0))
           val stop: Int = Integer.parseInt(args(offset + 1))
-          val warmup: Int = if (args.size > offset + 2) Integer.parseInt(args(offset + 2)) else 0
-          val repeat: Int = if (args.size > offset + 3) Integer.parseInt(args(offset + 3)) else 10
+          val warmup: Int = if (args.length > offset + 2) Integer.parseInt(args(offset + 2)) else 0
+          val repeat: Int = if (args.length > offset + 3) Integer.parseInt(args(offset + 3)) else 10
           val forced = final_out
           for (nbThreads <- start to stop) {
             interpreters.imperative2012.ParallelInterpreter(nbThreads)
@@ -325,11 +353,11 @@ object Main {
           }
         // the first six lines are shared with the "bench" case and would ideally not be repeated
         case "bench-gnuplot" =>
-          val offset = 2;
+          val offset = 2
           val start: Int = Integer.parseInt(args(offset + 0))
           val stop: Int = Integer.parseInt(args(offset + 1))
-          val warmup: Int = if (args.size > offset + 2) Integer.parseInt(args(offset + 2)) else 0
-          val repeat: Int = if (args.size > offset + 3) Integer.parseInt(args(offset + 3)) else 10
+          val warmup: Int = if (args.length > offset + 2) Integer.parseInt(args(offset + 2)) else 0
+          val repeat: Int = if (args.length > offset + 3) Integer.parseInt(args(offset + 3)) else 10
           val forced = final_out
           var data = Map[Int, Double]()
           for (nbThreads <- start to stop) {
@@ -369,7 +397,7 @@ object Main {
     }
   }
 
-  def examples = {
+  def examples() = {
     var somethingUpdated = false
     def doit(ex: Examples, intr: SemanticsImpl.CStore) = {
       ex.cstoreExamplesAction { (dn, f) =>
@@ -383,7 +411,7 @@ object Main {
             ex.writeExampleResult(loc, dn, f, intr)
             println("CREATED " + resFile)
           } catch {
-            case e =>
+            case e: Exception =>
               println("ERROR while creating " + resFile + ":")
               println("  " + e)
           }

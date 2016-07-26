@@ -269,9 +269,10 @@ class CodeArea extends Panel with TreeSelectionListener {
         case _ =>
       }
     if (fc.showSaveDialog(App.ui.body) == FileChooser.Result.Approve) {
-      val f = fc.selectedFile
-      if (!f.exists || confirmSave(App.ui.body.peer, f))
-        writeText(f, updateCurrentFile)
+      val filePath = fc.selectedFile.getAbsolutePath
+      val f = if (filePath.contains("acm")) fc.selectedFile
+              else new File(fc.selectedFile.getAbsolutePath + ".acm")
+      if (!f.exists || confirmSave(App.ui.body.peer, f)) writeText(f, updateCurrentFile)
       setCurrentFile(Some(f))
     }
   }

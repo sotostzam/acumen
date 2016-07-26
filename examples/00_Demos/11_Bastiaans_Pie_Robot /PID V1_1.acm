@@ -1,0 +1,20 @@
+model PID (p,i,d) =
+initially
+
+x=0,x'=0,a=0,
+output=0
+always
+
+a+=x',
+output=p*x'+x*d+a*i
+/*
+model Main (simulator) =
+initially
+set=7,
+
+con = create PID(1,3,2)
+always
+
+con.x'=(con.output-7)*15
+
+*/

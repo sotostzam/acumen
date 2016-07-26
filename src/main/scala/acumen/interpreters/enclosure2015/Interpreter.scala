@@ -245,6 +245,12 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
           case ((vsTmp, stTmp), ExprRhs(e)) =>
             val ve = evalExpr(e, Env(self -> VObjId(Some(fid))), stTmp)
             (ve :: vsTmp, stTmp)
+          case ((vsTmp, stTmp), ParaRhs(e, nm, es)) =>
+            val ve = evalExpr(Dot(e, nm), Env(self -> VObjId(Some(fid))), stTmp)
+            val cn = ve match {case VClassName(cn) => cn; case _ => throw NotAClassName(ve)}
+            val ves = es map (evalExpr(_, Env(self -> VObjId(Some(fid))), stTmp))
+            val (oid, stTmp1) = mkObj(cn, p, Some(fid), ves, stTmp)
+            (VObjId(Some(oid)) :: vsTmp, stTmp1)
         }
         val priv = privVars zip vs.reverse 
         // new object creation may have changed the nextChild counter
@@ -279,6 +285,12 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
             VList(enc.childrenOf(id) map (c => VObjId(Some(c))))
           else
             enc.getObjectField(id, f)
+        /* e?f */
+        case Quest(o,f) =>
+          val id = extractId(evalExpr(o,env,enc))
+          val obj = deref(id, enc.cStore)
+          if (obj.get(f).isDefined) VLit(GBoolEnclosure(Set(true)))
+          else VLit(GBoolEnclosure(Set(false)))
         /* FIXME:
            Could && and || be expressed in term of ifthenelse ? 
            => we would need ifthenelse to be an expression  */
@@ -318,6 +330,19 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
   /** Purely functional operator evaluation at the values level */
   def evalOp[A](op:String, xs:List[Value[_]]) : Value[A] = {
     (op,xs) match {
+      case ("print", v :: Nil) =>
+        Logger.log(Pretty pprint v)
+        if (Main.printMode) println(Pretty pprint v)
+        v.asInstanceOf[Value[A]]
+      case ("print", n :: v :: Nil) =>
+        val name = n match {
+          case VLit(GStr(nm)) => nm
+          case VLit(GStrEnclosure(nm)) => nm.head
+          case _ => throw InvalidPrintName(n)
+        }
+        Logger.log(name + (Pretty pprint v))
+        if (Main.printMode) println(name + (Pretty pprint v))
+        v.asInstanceOf[Value[A]]
        case (_, VLit(x:GNumber[A])::Nil) =>
          VLit(unaryGroundOp(op,x))
        case (_,VLit(x:GNumber[A])::VLit(y:GNumber[A])::Nil) =>  
@@ -613,9 +638,8 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
   }
   
   lazy val initStore = Parser.run(Parser.store, initStoreTxt.format("#0"))
-  lazy val initStoreTxt: String = 
-    s"""#0.0 { className = Simulator, parent = %s, nextChild = 0, variableCount = 0, 
-               outputRows = "All", continuousSkip = 0, resultType = @Initial, 
+  lazy val initStoreTxt: String =
+    commonInitStoreTxt + s"""outputRows = "All", resultType = @Initial,
                ${ Common.Parameters.defaults.map{ case (pn, (vis, pv)) => pn + "=" + pprint(pv)}.mkString(",") } }"""
   /** Updates the values of variables in xs (identified by CId and Dot.field) to the corresponding CValue. */
   def applyAssignments(xs: List[(CId, Dot, CValue)], st: Enclosure): Enclosure =
@@ -694,7 +718,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
    *    [L,R] until that reaches parameters.maxTimeStep. Otherwise this is (R-L). 
    */
   def stepAdaptive(leftEndPoint: Double, rightEndPoint: Double, previousTimeStep: Double, prog: Prog, branches: List[InitialCondition])(implicit parameters: Parameters): (EnclosureAndBranches, Double, Double) = {
-    require(branches.size > 0, "stepAdaptive called with zero branches")
+    require(branches.nonEmpty, "stepAdaptive called with zero branches")
     require(branches.size <= parameters.maxBranches, s"Number of branches (${branches.size}) exceeds maximum (${parameters.maxBranches}).")
     Logger.debug(s"stepAdaptive (over ${ Interval(leftEndPoint, rightEndPoint) }, ${branches.size} branches)")
     val step = rightEndPoint - leftEndPoint

@@ -34,8 +34,10 @@ object BindingTimeAnalysis {
     t match {
       case Prog(defs) =>
         Prog(defs.map(d => d match {
-          case ClassDef(n, f, d, b) =>
-            bta(ClassDef(n, f, d, b))
+          case ClassDef(n, f, d, b) => n.x match{
+            case "Device" => ClassDef(n, f, d, b)
+            case _ => bta(ClassDef(n, f, d, b))
+          }
         }))
     }
   }
@@ -120,6 +122,10 @@ object BindingTimeAnalysis {
     case Dot(expr, name) => {
       val aexpr = labelAst(expr, label)
       (ADot(aexpr._1, name, aexpr._2), aexpr._2 + 1)
+    }
+    case Quest(expr, name) => {
+      val aexpr = labelAst(expr, label)
+      (AQuest(aexpr._1, name, aexpr._2), aexpr._2 + 1)
     }
     case ExprLet(bindings, expr) => {
       val (abindings,nextLabel,newFields) = bindings.foldLeft((List[(AVar[Label], AExpr[Label])](),label,fields)){

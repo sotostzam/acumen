@@ -1,0 +1,15 @@
+model myModel (a,b) =
+initially x=a, x'=b, x''=0
+always  x''=-x
+
+model Main (simulator) =
+initially
+ p = create simulator.parameters(), // Get command line parameters and put in an object
+ init_phase = true
+always
+ if init_phase 
+  then if (p?a && p?b) // Check to see if parameters were provided in the command line
+           then create myModel (p.a,p.b)    // Use command line parameters a and b
+           else create myModel (  17, 42) , // Default values, useful for interactive mode
+       init_phase+ = false
+  noelse

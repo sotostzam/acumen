@@ -481,6 +481,9 @@ object Common {
           val id = evalToObjId(e0,p,env)
           getField(id, f, p, env, e.pos)
         /* x && y */
+        case Quest(e0, f) =>
+          val id = evalToObjId(e0,p,env)
+          VLit(GBool(id.fields.contains(f)))
         case Op(Name("&&", 0), x :: y :: Nil) =>
           val VLit(GBool(vx)) = eval(env, x)
           if (!vx) VLit(GBool(false))
@@ -570,6 +573,14 @@ object Common {
         VObjId(Some(mkObj(cn, p, ParentIs(res), nsd, ves, magic)))
       case ExprRhs(e) =>
         evalExpr(e, p, Env(self -> VObjId(Some(res))))
+      case ParaRhs(e, nm, es) =>
+        val cn = evalExpr(Dot(e, nm), p, Env(self -> VObjId(Some(res)))) match {
+          case VClassName(cn) => cn
+          case v => throw NotAClassName(v).setPos(e.pos)
+        }
+        val ves = es map (evalExpr(_, p, Env(self -> VObjId(Some(res)))))
+        val nsd = getNewSeed(res)
+        VObjId(Some(mkObj(cn, p, ParentIs(res), nsd, ves, magic)))
     }
     val priv = privVars zip vs.map{new ValVal(_)}
     res.fields = pub ++ priv

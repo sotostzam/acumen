@@ -12,6 +12,12 @@ object Icons {
   private val stopUrl    = this.getClass.getResource("icons/stop.png")
   private val pauseUrl   = this.getClass.getResource("icons/pause.png")
   private val recordUrl  = this.getClass.getResource("icons/record.png")
+
+  private val defaultViewUrl  = this.getClass.getResource("icons/defaultView.png")
+  private val frontViewUrl    = this.getClass.getResource("icons/frontView.png")
+  private val topViewUrl      = this.getClass.getResource("icons/topView.png")
+  private val rightViewUrl    = this.getClass.getResource("icons/rightView.png")
+
   /* Plotter */          
   private val homeUrl    = this.getClass.getResource("icons/home.png")
   private val zoomInUrl  = this.getClass.getResource("icons/zoomin.png")
@@ -41,5 +47,9 @@ object Icons {
   lazy val replay  = get(replayUrl)
   lazy val faster  = get(fasterUrl)
   lazy val slower  = get(slowerUrl)
-  
+  lazy val defaultView  = get(defaultViewUrl)
+  lazy val frontView    = get(frontViewUrl)
+  lazy val topView      = get(topViewUrl)
+  lazy val rightView    = get(rightViewUrl)
+
 }

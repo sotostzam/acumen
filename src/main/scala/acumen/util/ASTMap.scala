@@ -21,6 +21,7 @@ class ASTMap {
   }
   
   def mapInitRhs(rhs: InitRhs) : InitRhs = rhs match {
+    case ParaRhs(cn, vn, f) => ParaRhs(cn, vn, f.map{mapExpr(_)})
     case NewRhs(c, f) => NewRhs(c, f.map{mapExpr(_)})
     case ExprRhs(e) => ExprRhs(mapExpr(e))
   }
@@ -51,6 +52,7 @@ class ASTMap {
     case Var(v) => Var(v)
     case Op(name, es) => Op(name, es.map{mapExpr(_)})
     case Dot(a,b) => Dot(mapExpr(a),b)
+    case Quest(a,b) => Quest(mapExpr(a), b)
     case ResolvedDot(id, obj, field) => ResolvedDot(id,mapExpr(obj),field)
     case Input(s,i) => Input(mapExpr(s),i)
     case Index(a,idx) => Index(mapExpr(a),idx map mapExpr)

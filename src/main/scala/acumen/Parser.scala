@@ -139,7 +139,7 @@ sealed class MyReader(seq: PagedSeq[Char], override val offset: Int, lnum: Int, 
 object Parser extends MyStdTokenParsers {
   lexical.delimiters ++=
     List("(", ")", "{", "}", "[", "]", ";", "=", ":=", "=[i]", "=[t]", "'", ","," ",
-      ".", "+", "-", "*", "/", "^", ".+", ".-", ".*", "./", ".^",
+      ".", "?", "+", "-", "*", "/", "^", ".+", ".-", ".*", "./", ".^",
       ":", "<", ">", "<=", ">=", "~=", "||","->","<-","==",
       "&&", "<<", ">>", "&", "|", "%", "@", "..", "+/-", "#include", "#semantics")
 
@@ -247,8 +247,9 @@ object Parser extends MyStdTokenParsers {
              "_plot" ~ "=" ~ plotRhs ^^ {
               case _ ~ _ ~ ls => Init(Name("_plot",0), ExprRhs(ls))}
   def initrhs =
-    ("create" ~! className ~! args(expr) ^^ { case _ ~ cn ~ es => NewRhs(Var(Name(cn.x,0)), es) }
-      | expr ^^ ExprRhs)
+    ("create" ~ className ~ args(expr) ^^ { case _ ~ cn ~ es => NewRhs(Var(Name(cn.x,0)), es) }
+    |"create" ~ name ~ "." ~ name ~ args(expr) ^^ { case _ ~ cn ~ "." ~ nm ~ args => ParaRhs(Var(Name(cn.x,0)), nm, args) }
+    | expr ^^ ExprRhs)
 
   def actions = repsep(action, ",") 
 
@@ -305,7 +306,9 @@ object Parser extends MyStdTokenParsers {
    // For positionlize pattern matching 
    def varP : Parser[Var] = name ^^ {x => Var(x)}
    def dotP : Parser[Dot] = varP ~ "." ~ name ^^ {case e ~ _ ~ n => Dot(e,n)}
-   def pattern : Parser[Pattern] =  positioned(dotP) ^^ {case d => Pattern(List(d))}|		                          
+   def questP  : Parser[Quest] = varP ~ "?" ~ name ^^ {case e ~ _ ~ n => Quest(e,n)}
+   def pattern : Parser[Pattern] =  positioned(dotP) ^^ {case d => Pattern(List(d))}|
+                    positioned(questP) ^^ {case d => Pattern(List(d))}|
 		   							positioned(varP) ^^ {case x => Pattern(List(x))}|
 		                          parens(repsep(pattern,",")) ^^ {case ls => Pattern(ls.map(x => x.ps match{
 		                            case s::Nil => x.ps
@@ -335,8 +338,10 @@ object Parser extends MyStdTokenParsers {
     (expr ^^ (Assign(e, _)) | newObject(Some(e)))
 
   def newObject(lhs: Option[Expr]) =
-    positioned("create" ~! className ~! args(expr) ^^
-      { case _ ~ cn ~ args => Create(lhs, Var(Name(cn.x,0)), args) })
+    positioned(
+      "create" ~ className ~ args(expr) ^^ { case _ ~ cn ~ args => Create(lhs, Var(Name(cn.x,0)), args) }
+    | "create" ~ name ~ "." ~ name ~ args(expr) ^^ { case _ ~ cn ~ "." ~ nm ~ args =>
+        Create(lhs, Dot(Var(Name(cn.x,0)), nm), args )})
 
   def elim = "terminate" ~> expr ^^ Elim
 
@@ -423,6 +428,7 @@ object Parser extends MyStdTokenParsers {
   def access: Parser[Expr] = 
     atom >> { e =>
       (positioned("." ~ name ^^ { case _ ~ x => Dot(e, x) })
+        | positioned("?" ~ name ^^ { case _ ~ x => Quest(e, x) })
         | success(e))
     }
   // For column matrix like ((1),(1),(1))
@@ -502,6 +508,9 @@ object Parser extends MyStdTokenParsers {
 
   def lit = positioned((gint | gfloat | gstr) ^^ Lit)
 
+  //allowed syntax for values in the command line
+  def cl_lit = (gint | gfloat | gbool | gstr) ^^ Lit
+
   def name: Parser[Name] =
     (ident) ~! rep("'") ^^ { case id ~ ps => Name(id, ps.size) }
 
@@ -535,7 +544,7 @@ object Parser extends MyStdTokenParsers {
        , "content"      -> Nil
        , "length"       -> Nil
        , "radius"       -> Nil
-       , "rotation"     -> List(2,3)
+       , "rotation"     -> List(1,3)
        , "size"         -> List(2,3)
        , "transparency" -> Nil
        )
@@ -627,12 +636,14 @@ object Parser extends MyStdTokenParsers {
 
     val content = paras.find(_._1.x == "content") match{
       case Some(x) => 
-        if(name == "Text" | name == "Obj") 
+        if(name == "Text")
+          x._2
+        else if (name == "Obj")
           x._2 match{
-      	   case Lit(GStr(_)) => x._2
-      	   case Lit(_) => error("_3D object " + name + "'s 'content' parameter is not a string")
-      	   case _ => x._2
-      	  }
+            case Lit(GStr(_)) => x._2
+            case Lit(_) => error("_3D object " + name + "'s 'content' parameter is not a string")
+            case _ => x._2
+          }
         else error("_3D object " + name + " can't have 'content' parameter")
       case None => defaultContent
     }

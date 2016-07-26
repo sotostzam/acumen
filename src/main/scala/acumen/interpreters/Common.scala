@@ -447,7 +447,19 @@ object Common {
          VLit(GBool(x != y))
        case ("_:_:_", VLit(GInt(s))::VLit(GInt(d))::VLit(GInt(e))::Nil) =>
          sequenceOp(s,d,e)
-       case ("format", VLit(GStr(s)) :: ps) => 
+       case ("print", v :: Nil) =>
+         Logger.log(Pretty pprint v)
+         if (Main.printMode) println(Pretty pprint v)
+         v
+       case ("print", n :: v :: Nil) =>
+         val name = n match {
+           case VLit(GStr(nm)) => nm
+           case _ => throw InvalidPrintName(n)
+         }
+         Logger.log(name + (Pretty pprint v))
+         if (Main.printMode) println(name + (Pretty pprint v))
+         v
+       case ("format", VLit(GStr(s)) :: ps) =>
          VLit(GStr(s.format(ps.flatMap{
            case p @ VLit(_:GInt | _:GDouble) => extractDouble(p) :: Nil
            case VLit(GStr(x)) => x :: Nil
@@ -520,8 +532,18 @@ object Common {
     })
   }
 
-  def initStoreTxt(initStep: ResultType, timeStep: Double, outputRows: String, hypothesisReport: String, method: String) = 
-    s"""#0.0 { className = Simulator, parent = %s, time = 0.0, timeStep = $timeStep, outputRows = "$outputRows", hypothesisReport = "$hypothesisReport", continuousSkip = 0,endTime = 10.0, resultType = @$initStep, nextChild = 0,method = "$method", orderOfIntegration = 4, seed1 = 0, seed2 = 0, variableCount = 0 }"""
+  // The model contains command line input variables
+  var paramModelTxt = "\n\n model Parameters()= \n\n"
+
+  // This store txt of Simulator model used for optimize, reference and enclosure interpreter
+  val commonInitStoreTxt = s"""#0.0 { className = Simulator, parent = %s, nextChild = 0,
+                             variableCount = 0, continuousSkip = 0, parameters = Parameters, """
+
+  // The store txt for Simulator model
+  def initStoreTxt(initStep: ResultType, timeStep: Double, outputRows: String, hypothesisReport: String, method: String) =
+    (commonInitStoreTxt + s"""time = 0.0, timeStep = $timeStep, outputRows = "$outputRows",
+       |hypothesisReport = "$hypothesisReport", endTime = 10.0, resultType = @$initStep,
+       |method = "$method", orderOfIntegration = 4, seed1 = 0, seed2 = 0}""").stripMargin
   def initStoreInterpreter(initStep: ResultType = Initial, initTimeStep: Double = 0.015625, initOutputRows: String = "All", 
                        initHypothesisReport: String = "Comprehensive", initMethod: String = RungeKutta, isImperative: Boolean) =
       Parser.run(Parser.store, initStoreTxt(initStep, initTimeStep, initOutputRows, initHypothesisReport, initMethod).format( if (isImperative) "none" else "#0" ))

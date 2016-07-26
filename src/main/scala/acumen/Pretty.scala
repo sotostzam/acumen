@@ -229,6 +229,7 @@ class Pretty {
         case Input(src,id)      => "input" :: parens(pretty(src) :: comma :: id)  
         case Index(e,i)         => pretty(e) :: parens(sepBy(comma :: " ", i map pretty[Expr]))
         case Dot(o,f)           => pretty(o) :: "." :: pretty(f)
+        case Quest(o,f)         => pretty(o) :: "." :: pretty(f)
         case ResolvedDot(i,o,f) => parens(pretty(o) :: "~" :: i.cid.toString) :: "." :: pretty(f)
         case Op(f,es)           => prettyOp(f,es)
         case ExprVector(l)      => parens(sepBy(comma :: " ", l map pretty[Expr]))

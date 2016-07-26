@@ -6,14 +6,23 @@
 // then click on the "3D" display selector to the right
 // and click Play on that pane
 
-model Main(simulator) = 
+model Main (simulator) =
 initially
-  _3D=(Text center=(-2,0,-1) size=0.5 color=(1,0,0) rotation=(0,0,0) content="(1,0,0)",
-       Text center=(-2,0, 0) size=0.5 color=(0,1,0) rotation=(0,0,0) content="(0,1,0)",
-       Text center=(-2,0, 1) size=0.5 color=(0,0,1) rotation=(0,0,0) content="(0,0,1)",
-       Text center=( 0,0,-1) size=0.5 color=(1,1,0) rotation=(0,0,0) content="(1,1,0)",
-       Text center=( 0,0, 0) size=0.5 color=(0,1,1) rotation=(0,0,0) content="(0,1,1)",
-       Text center=( 0,0, 1) size=0.5 color=(1,0,1) rotation=(0,0,0) content="(1,0,1)") 
+ _3DView = ((0.75,-4,0.5),(0.75,5,0.5)),
+ _3D = (Text content="Black"   color = (0,0,0) center = (0,0,1),
+        Text content="(0,0,0)" color = (0,0,0)  center = (1,0,1),
+        Text content="White"   color = (1,1,1) center = (0,0,0.8),
+        Text content="(1,1,1)" color = (1,1,1)  center = (1,0,0.8),
+        Text content="Red"     color = (1,0,0) center = (0,0,0.6),
+        Text content="(1,0,0)" color = (1,0,0)  center = (1,0,0.6),
+        Text content="Green"   color = (0,1,0) center = (0,0,0.4),
+        Text content="(0,1,0)" color = (0,1,0)  center = (1,0,0.4),
+        Text content="Blue"    color = (0,0,1) center = (0,0,0.2),
+        Text content="(0,0,1)" color = (0,0,1)   center = (1,0,0.2),
+        Text content="Purple"  color = (1,0,1) center = (0,0,0),
+        Text content="(1,0,1)" color = (1,0,1)  center = (1,0,0),
+        Text content="Yellow"  color = (1,1,0) center = (0,0,-0.2),
+        Text content="(1,1,0)" color = (1,1,0)  center = (1,0,-0.2))
 
 // Exercises
 // 1) What color does (0,0,0) produce?

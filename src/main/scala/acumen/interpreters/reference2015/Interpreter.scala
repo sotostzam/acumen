@@ -167,6 +167,13 @@ object Interpreter extends acumen.CStoreInterpreter {
                       } yield VObjId(Some(oid))
                     case ExprRhs(e) =>
                       asks(evalExpr(e, Env(Map(self -> VObjId(Some(fid)))), _))
+                  case ParaRhs(e, nm, es) =>
+                    for { ve <- asks(evalExpr(Dot(e, nm), Env(Map(self -> VObjId(Some(fid)))), _))
+                    val cn = ve match { case VClassName(cn) => cn; case _ => throw NotAClassName(ve) }
+                      ves <- asks(st => es map (evalExpr(_, Env(Map(self -> VObjId(Some(fid)))), st)))
+                      nsd <- getNewSeed(fid)
+                      oid <- mkObj(cn, p, Some(fid), nsd, ves)
+                    } yield VObjId(Some(oid))
                   },
                   crInits)
           val priv = privVars zip vs 
@@ -218,6 +225,12 @@ object Interpreter extends acumen.CStoreInterpreter {
                 throw new AlgebraicLoop(ObjField(id, getCls(id,st).x, f))
             }  
           }
+        /* e?f */
+        case Quest(o, f) =>
+          val id = evalToObjId(o, env, st)
+          val obj = deref(id, st)
+          if (obj.get(f).isDefined) VLit(GBool(true))
+          else VLit(GBool(false))
         /* FIXME:
            Could && and || be expressed in term of ifthenelse ? 
            => we would need ifthenelse to be an expression  */

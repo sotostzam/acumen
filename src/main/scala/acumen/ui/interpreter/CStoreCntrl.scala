@@ -7,8 +7,7 @@ import collection.mutable.ListBuffer
 import scala.actors._
 import InterpreterCntrl._
 import java.io.File
-
-import interpreters.Common.deviceClass
+import interpreters.Common.{deviceClass, paramModelTxt}
 
 class CStoreCntrl(val semantics: SemanticsImpl[Interpreter], val interpreter: CStoreInterpreter) extends InterpreterCntrl {
 
@@ -24,9 +23,10 @@ class CStoreCntrl(val semantics: SemanticsImpl[Interpreter], val interpreter: CS
     val minPlotUpdateInterval = 100 // wait at most this many milliseconds before updating plot
 
     def parse() = {
-      val ast = semantics.parse(progText, currentDir, None)
-      val des = semantics.applyPasses(ast,Main.extraPasses)
-      prog = Prog(deviceClass:: des.defs )
+      val ast = semantics.parse(progText + paramModelTxt, currentDir, None)
+      val astWithPrelude = Prog(deviceClass :: ast.defs)
+      val des = semantics.applyPasses(astWithPrelude, Main.extraPasses)
+      prog = des
     }
     
     def sendChunk() {
