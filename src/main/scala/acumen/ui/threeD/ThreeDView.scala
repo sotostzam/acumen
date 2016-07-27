@@ -604,7 +604,7 @@ class ThreeDView extends JPanel {
 }
 
 /* Timer for 3D-visualization, sends message to 3D renderer to coordinate animation */
-class ScalaTimer(receiver: _3DDisplay, endTime: Double,
+class ScalaTimer(receiver: _3DDisplay, endTime: Double, timeStep: Double,
                  playSpeed: Double) extends Publisher with Actor {
   var pause = true
   var destroy = false
@@ -612,7 +612,12 @@ class ScalaTimer(receiver: _3DDisplay, endTime: Double,
   var extraTime = 0.0
   var initSpeed = 0.0
 
-  if (receiver.totalFrames > 0)
+  if (!receiver.staticFrame && receiver.totalFrames * 20 < (endTime / timeStep))
+    receiver.staticFrame = true
+
+  if (receiver.totalFrames > 0 && receiver.staticFrame)
+    sleepTime = timeStep
+  else if (receiver.totalFrames > 0)
     sleepTime = endTime * 1000 / receiver.totalFrames
 
   initSpeed = sleepTime
@@ -635,14 +640,16 @@ class ScalaTimer(receiver: _3DDisplay, endTime: Double,
 
 /* 3D Render */
 class _3DDisplay(app: ThreeDView, slider: Slider3D, playSpeed: Double,
-                 _3DDataBuffer: mutable.Map[Int,mutable.Map[(CId,Int),List[_]]],
-                 lastFrame: Int, endTime: Float,
-                 _3DView: mutable.ArrayBuffer[(Array[Double], Array[Double])])
+                 _3DDataBuffer: mutable.Map[Int,mutable.Map[(CId,Int),List[_]]], lastFrame: Int,
+                 endTime: Float, _3DView: mutable.ArrayBuffer[(Array[Double], Array[Double])],
+                 _3DTimeTag: mutable.Map[Int, Double], timeStep: Double)
                  extends Publisher with Actor {
   /* Default directory where all the OBJ files are */
   private val _3DBasePath = Files._3DDir.getAbsolutePath
   private var currentFrame = 0
-  var totalFrames = lastFrame
+  protected[threeD] var staticFrame = false
+  // the amount of frames
+  val totalFrames = lastFrame
   var destroy = false
   /* used for recording last frame number */
   private var lastRenderFrame = 0
@@ -1238,28 +1245,32 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D, playSpeed: Double,
         exit()
       react {
         case "go" =>
-          if (currentFrame == totalFrames) {
+          if (currentFrame >= totalFrames && totalFrames > 0) {
             // Animation is over
             slider.setProgress3D(100)
             slider.setTime(endTime.toFloat)
-          }
-          if (totalFrames > 0) {
-            val percentage = currentFrame * 100 / totalFrames
+          } else if (totalFrames > 0 && currentFrame < totalFrames && _3DTimeTag.contains(currentFrame)) {
+            val percentage = (100 * _3DTimeTag(currentFrame) / endTime).toInt
             slider.setProgress3D(percentage)
-            slider.setTime(percentage / 100f * endTime)
+            slider.setTime(_3DTimeTag(currentFrame).toFloat)
           }
           if (currentFrame <= totalFrames) {
             if (!app.waitingPaint)
               renderCurrentFrame()
             currentFrame = setFrameNumber("go", currentFrame)
+          } else if (staticFrame) {
+            if (!app.waitingPaint) {
+              currentFrame = totalFrames - 1
+              renderCurrentFrame()
+              staticFrame = false
+            }
           }
         case "set frame" =>
           setFrameDone = false
           currentFrame = setFrameNumber("set frame", currentFrame)
           if (totalFrames > 0 && currentFrame <= totalFrames
             && !app.waitingPaint) {
-            val percentage = currentFrame * 100 / totalFrames
-            slider.setTime(percentage / 100f * endTime)
+            slider.setTime(_3DTimeTag(currentFrame).toFloat)
             renderCurrentFrame()
             setFrameDone = true
           }
@@ -1276,8 +1287,29 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D, playSpeed: Double,
       newFrameNumber = lastFrameNumber + 1 * playSpeed.toInt
     else if (setMode == "go" && playSpeed < 1)
       newFrameNumber = lastFrameNumber + 1
-    else newFrameNumber = slider.bar.value * totalFrames / 100
+    else {
+      // set the frame according to the slider bar position
+      val timeTag = slider.bar.value * endTime / 100
+      newFrameNumber = findFrameWithTag(timeTag)
+    }
     newFrameNumber
+  }
+
+  def findFrameWithTag(timeTag: Double): Int = {
+    var frameNo = 0
+    var timeDiff = -1.0
+    for ((frame, time) <- _3DTimeTag) {
+      if (timeDiff == -1.0) {
+        frameNo = frame
+        timeDiff = abs(timeTag - _3DTimeTag(frame))
+      } else {
+        if (abs(timeTag - _3DTimeTag(frame)) < timeDiff) {
+          frameNo = frame
+          timeDiff = abs(timeTag - _3DTimeTag(frame))
+        }
+      }
+    }
+    frameNo
   }
 
   // Reactions to the mouse events

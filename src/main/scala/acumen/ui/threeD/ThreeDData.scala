@@ -3,7 +3,9 @@ package ui
 package threeD
 
 import acumen.Errors._
+import acumen.util.Canonical
 import acumen.util.Conversions._
+
 import scala.collection.mutable
 import scala.swing._
 
@@ -16,6 +18,7 @@ class ThreeDData extends Publisher {
   * which is equal to (CId,objectNumber) */
   type _3DClass = mutable.Map[(CId, Int), List[_]]
   type ViewInfo = (Array[Double], Array[Double])
+  type TimeInfo = Double
   /* Key of _3DData is the frame number, 
      key of _3DClass is the (CId,objectNumber) */
   var _3DData = mutable.Map[Int, _3DClass]()
@@ -24,6 +27,7 @@ class ThreeDData extends Publisher {
   var frameNumber = 0
   /* Used for determine 3D-visualization play speed */
   var endTime = 0.0f
+  var _3DTimeStep = 0.0f
   /* Default settings to transform Acumen AST to generic data can be
    * used later for constructing a primitive
        Example : GStr("Sphere") => "Sphere" */
@@ -41,13 +45,16 @@ class ThreeDData extends Publisher {
   /* Camera's position and orientation*/
   var _3DView = mutable.ArrayBuffer[ViewInfo]()
   /* CId of the object that contain _3DView info */
-  var _3DViewID:CId = null
+  var _3DViewID:CId = _
+  /* Time Tag of each frame */
+  var _3DTimeTag = mutable.Map[Int, TimeInfo]()
   /* Used for synchronize real time 3D-visualisation with real world time */
   protected[threeD] var timeStep = 0.0
 
   def reset() {
     _3DData.clear()
     _3DView.clear()
+    _3DTimeTag.clear()
     frameNumber = 0
     _3DViewID = null
   }
@@ -139,7 +146,10 @@ class ThreeDData extends Publisher {
     def assignTransparency(transparency: Double) = {
       if (transparency <= 1)
         _3DTransparency = transparency
-      else error("_3D object's 'transparency' parameter should either be a float number between 0 and 1 or negative value")
+      else throw new AcumenError {
+        override def getMessage = "_3D object's 'transparency' parameter should either be a " +
+          "float number between 0 and 1 or negative value"
+      }
     }
   }
 
@@ -266,7 +276,7 @@ class ThreeDData extends Publisher {
         value match {
           case VVector(l) =>
             if (l.nonEmpty) {
-              _3DView += new Tuple2(extractDoubles(l.head).toArray,
+              _3DView += Tuple2(extractDoubles(l.head).toArray,
                 extractDoubles(l(1)).toArray)
               if (_3DViewID != id && _3DViewID != null)
                 throw _3DViewDuplicateError(id, _3DViewID)
@@ -280,11 +290,20 @@ class ThreeDData extends Publisher {
         }
   }
 
+  /* Look for timeStep in "Main" class */
+  def lookUpTimeStep(id: CId, o: GObject): Unit = {
+    if (id.equals(new CId(List(0))))
+        for ((name, value) <- o)
+    if (name.x == "timeStep")
+      this._3DTimeStep = extractDouble(value).toFloat
+  }
+
   /* Add _3D information of every class to _3DStore */
   def get3DData(s: GStore):Unit = {
     for ((id, o) <- s) {
       lookUpEndTime(id, o)
       lookUpViewInfo(id, o)
+      lookUpTimeStep(id, o)
       /* Look for variable named _3D */
       for ((name, value) <- o) {
         if (name.x == "_3D") {
@@ -312,6 +331,8 @@ class ThreeDData extends Publisher {
         }
       }
     }
+    if (!_3DTimeTag.contains(frameNumber))
+      _3DTimeTag += frameNumber -> Canonical.getTime(s)
     if (!_3DData.contains(frameNumber))
       _3DData += frameNumber -> null
     if (_3DData(frameNumber) != null && !App.ui.views.threeDViewSelected)

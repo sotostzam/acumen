@@ -242,10 +242,11 @@ case class ThreeDTab (appModel: Controller) extends BorderPanel {
     contents ++= Seq(threeDViewPane, threeDInfoPane, threeDControlPane)
   }
 
-  var _receiver = new _3DDisplay(threeDView, statusZone3d, playSpeed,
-    _3DDataBuffer, lastFrame, appModel.threeDData.endTime, appModel.threeDData._3DView)
+  var _receiver = new _3DDisplay(threeDView, statusZone3d, playSpeed, _3DDataBuffer,
+                                 lastFrame, appModel.threeDData.endTime, appModel.threeDData._3DView,
+                                 appModel.threeDData._3DTimeTag, appModel.threeDData._3DTimeStep)
 
-  var timer3d = new ScalaTimer(receiver, appModel.threeDData.endTime, playSpeed)
+  var timer3d = new ScalaTimer(receiver, appModel.threeDData.endTime, appModel.threeDData._3DTimeStep, playSpeed)
 
   def receiver: _3DDisplay = _receiver
 
@@ -325,10 +326,10 @@ case class ThreeDTab (appModel: Controller) extends BorderPanel {
       threeDView.axisArray(0) = null
       if (check.selected)
         threeDView.axisOn()
-      _receiver = new _3DDisplay(threeDView, statusZone3d, playSpeed,
-                          _3DDataBuffer, lastFrame, appModel.threeDData.endTime,
-                          appModel.threeDData._3DView)
-      timer3d = new ScalaTimer(receiver, appModel.threeDData.endTime, playSpeed)
+      _receiver = new _3DDisplay(threeDView, statusZone3d, playSpeed, _3DDataBuffer,
+                                 lastFrame, appModel.threeDData.endTime, appModel.threeDData._3DView,
+                                 appModel.threeDData._3DTimeTag, appModel.threeDData._3DTimeStep)
+      timer3d = new ScalaTimer(receiver, appModel.threeDData.endTime, appModel.threeDData._3DTimeStep, playSpeed)
       receiver.start()
       timer3d.start()
       listenTo(receiver)
@@ -347,9 +348,9 @@ case class ThreeDTab (appModel: Controller) extends BorderPanel {
     endTime = appModel.threeDData.endTime
     statusZone3d.setSpeed(playSpeed.toString)
     lastFrame = appModel.threeDData._3DData.size - 1
-    _receiver = new _3DDisplay(threeDView, statusZone3d, playSpeed,
-      appModel.threeDData._3DData, lastFrame, appModel.threeDData.endTime,
-      appModel.threeDData._3DView)
+    _receiver = new _3DDisplay(threeDView, statusZone3d, playSpeed, appModel.threeDData._3DData,
+                               lastFrame, appModel.threeDData.endTime, appModel.threeDData._3DView,
+                               appModel.threeDData._3DTimeTag, appModel.threeDData._3DTimeStep)
     receiver.start()
     receiver ! "real time render"
     listenTo(receiver)
