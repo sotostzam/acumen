@@ -19,7 +19,7 @@ import scala.util.parsing.input.Position
 
 object Common {
 
-  val bannedFieldNames = List(self, parent, classf, nextChild, magicf)
+  val bannedFieldNames = List(self, parent, classf, nextChild, magicf, _plot)
   
   /* DynSet names */
   
@@ -377,6 +377,8 @@ object Common {
                 (this.getObjectField(cid,n), that.getObjectField(cid,n)) match {
                   case (VLit(l: GEnclosure[_]), VLit(r: GEnclosure[_])) => 
                     VLit(ce(l, r).getOrElse(sys.error("Error when merging $cid.$n.")))
+                  case (v @ VVector(List(VLit(l: GEnclosure[_]))),VVector(Nil)) =>
+                    v // For choosing the first non-empty value of "_plot" when "_plot = ()" in the initially section 
                   case (l, r) if l == r => 
                     l
                 })

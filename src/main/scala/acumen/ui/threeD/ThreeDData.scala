@@ -81,13 +81,26 @@ class ThreeDData extends Publisher {
     (l.size == 3 || l.size == 2) && isVectorOfNumbers(l)
   }
 
+  /* Check if the rotation's size is 3 or 1 and only contains numbers (int, double) */
+  def validRotation(l: List[_]): Boolean = {
+    (l.size == 3 || l.size == 1) && isVectorOfNumbers(l)
+  }
+
   /* _3D Position,color,angle should all be a vector with 3 numbers */
   def extractVector(value: Value[_], index: String) {
     def helper(value: Value[_]): Array[Double] = {
       value match {
         case VLit(GPattern(ls)) => helper(VVector(ls map VLit))
+        case VLit(GInt(ls)) =>
+          if (index == "angle") extractDoubles(List(value)).toArray
+          else throw _3DVectorError(value, index)
+        case VLit(GDouble(ls)) =>
+          if (index == "angle") extractDoubles(List(value)).toArray
+          else throw _3DVectorError(value, index)
         case VVector(vs) =>
-          if (index != "position" && validVector(vs))
+          if (index != "position" && index != "angle" && validVector(vs))
+            extractDoubles(vs).toArray
+          else if (index == "angle" && validRotation(vs))
             extractDoubles(vs).toArray
           else if (index == "position" && validPosition(vs))
             extractDoubles(vs).toArray
@@ -100,7 +113,8 @@ class ThreeDData extends Publisher {
       case "position" => _3DPosition = if (temp.length == 2) Array(temp.apply(0), temp.apply(1), 0)
                                        else temp
       case "color" => _3DColor = temp
-      case "angle" => _3DAngle = temp
+      case "angle" => _3DAngle = if (temp.length == 1) Array(0, 0, temp.apply(0))
+                                 else temp
       case _ => throw ShouldNeverHappen()
     }
   }
@@ -141,6 +155,8 @@ class ThreeDData extends Publisher {
       case VLit(GStr(s)) => _3DText = s
       case VLit(GInt(i)) => _3DText = i.toString
       case VLit(GDouble(i)) => _3DText = i.toString
+      case VLit(GBool(i)) => _3DText = i.toString
+      case VLit(_) => Pretty pprint value
       case _ => throw _3DNameError(value)
     }
   }

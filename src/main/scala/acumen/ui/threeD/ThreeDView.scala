@@ -5,7 +5,8 @@ import java.awt.image.BufferedImage
 import java.awt.{Color, Component, Graphics}
 import java.io._
 import javax.imageio.ImageIO
-import javax.swing.{SwingUtilities, JPanel}
+import javax.swing._
+import javax.swing.event.{DocumentEvent, DocumentListener}
 
 import acumen.CId
 import acumen.Errors._
@@ -14,8 +15,9 @@ import com.threed.jpct._
 
 import scala.actors._
 import scala.math._
-import scala.swing.Publisher
+import scala.swing.{Label, Publisher, Swing, TextField}
 import scala.collection.mutable
+import scala.swing.event.EditDone
 
 /* 3D visualization panel */
 class ThreeDView extends JPanel {
@@ -66,25 +68,92 @@ class ThreeDView extends JPanel {
   protected[threeD] var lookAtMoved = new SimpleVector(0,0,0)
   protected[threeD] var rtCameraInitialize = false
   protected[threeD] var rtLastRenderFrame = 0
+  // default aspect ratio of 3D view
+  var widthRatio = 16
+  var heightRatio = 9
 
   val lookAtCenter = Primitives.getSphere(20, 0.1f)
 
   letThereBeLight(world)  // create light sources for the scene
   letThereBeLight(staticWorld)  // create light sources for the scene
 
+  def checkPosInput(component: TextField) = {
+    if (component.text.length() <= 0) {
+      JOptionPane.showMessageDialog(null, "Error: Please enter number bigger than 0",
+        "Error Massage", JOptionPane.ERROR_MESSAGE)
+      updatePosInfo()
+    } else if (!parseFloat(component.text)) {
+      JOptionPane.showMessageDialog(null, "Error: The input for the position should be a number",
+        "Error Massage", JOptionPane.ERROR_MESSAGE)
+      updatePosInfo()
+    } else inputPosInfo(component)
+  }
+
+  def parseFloat(s: String): Boolean = try {
+    Some(s.toFloat)
+    true
+  } catch { case e: Exception => false }
+
+  protected[threeD] val cameraPosX = new Label("Camera X:")
+  cameraPosX.border = Swing.EmptyBorder(2,4,0,0)
+  protected[threeD] val cameraX = new TextField {
+    text = "%.2f".format(camera.getPosition.x)
+    columns = 5
+  }
+  protected[threeD] val cameraY = new TextField {
+    text = "%.2f".format(camera.getPosition.y)
+    columns = 5
+  }
+  protected[threeD] val cameraZ = new TextField {
+    text = "%.2f".format(camera.getPosition.z)
+    columns = 5
+  }
+  protected[threeD] val lookAtPosLabel = new Label("Look At X:")
+  lookAtPosLabel.border = Swing.EmptyBorder(2,4,0,0)
+  protected[threeD] val lookAtX = new TextField {
+    text = "%.2f".format(lookAtPoint.x)
+    columns = 5
+  }
+  protected[threeD] val lookAtY = new TextField {
+    text = "%.2f".format(lookAtPoint.y)
+    columns = 5
+  }
+  protected[threeD] val lookAtZ = new TextField {
+    text = "%.2f".format(lookAtPoint.z)
+    columns = 5
+  }
+
+  def inputPosInfo(component: TextField) = {
+    val newCamPosition = new SimpleVector(cameraX.text.toFloat, cameraY.text.toFloat, cameraZ.text.toFloat)
+    val newLookAtPoint = new SimpleVector(lookAtX.text.toFloat, lookAtY.text.toFloat, lookAtZ.text.toFloat)
+    camera.setPosition(newCamPosition)
+    lookAtPoint.set(newLookAtPoint)
+    lookAt(null,lookAtPoint)
+    repaint()
+  }
+
+  def updatePosInfo() = {
+    cameraX.text = "%.2f".format(camera.getPosition.x)
+    cameraY.text = "%.2f".format(camera.getPosition.y)
+    cameraZ.text = "%.2f".format(camera.getPosition.z)
+    lookAtX.text = "%.2f".format(lookAtPoint.x)
+    lookAtY.text = "%.2f".format(lookAtPoint.y)
+    lookAtZ.text = "%.2f".format(lookAtPoint.z)
+  }
+
   addComponentListener(new ComponentAdapter {
     override def componentResized(e: ComponentEvent) = {
       val fixed3DRatio = acumen.ui.App.ui.fixed3DRatio
       val c = e.getSource.asInstanceOf[Component]
-      if (!fixed3DRatio)
+      if (fixed3DRatio)
         initBuffer(c.getWidth, c.getHeight)
       else { // the default fixed ratio of width to height is 4:3
         val (width, height) =
-        if (c.getHeight * 4 > c.getWidth * 3)
-          (c.getWidth         , c.getWidth * 3 / 4)
+        if ( (c.getWidth * heightRatio / widthRatio) > c.getHeight)
+          (c.getHeight * widthRatio / heightRatio, c.getHeight)
         else
-          (c.getHeight * 4 / 3, c.getHeight)
-        initBuffer(width, height)
+          (c.getWidth, c.getWidth * heightRatio / widthRatio)
+        initBuffer(width.toInt, height.toInt)
       }
       repaint()
     }
@@ -234,7 +303,8 @@ class ThreeDView extends JPanel {
     // storing the mouse position
     lastMouseX = newMouseX
     lastMouseY = newMouseY
-    
+
+    updatePosInfo()
     repaint()
     cameraDirection
   }
@@ -263,10 +333,8 @@ class ThreeDView extends JPanel {
     cameraLeftDirection = (-1,-1)
     cameraRightDirection = (1,1)
     cameraFlipped = false
-    defaultView()
-    lookAt(null, new SimpleVector(0,0,0)) // camera faces towards the object
+    lookAt(null, lookAtPoint) // camera faces towards the object
     staticCamera.lookAt(new SimpleVector(0,0,0))
-    lookAtPoint.set(0,0,0)
   }
 
   // the state machine for adding or deleting objects in view state machine
@@ -374,10 +442,44 @@ class ThreeDView extends JPanel {
   def defaultView() = {
     camera.setPosition(defaultCamPos)
     camera.setFOVLimits(0.01f, 3.0f)
-    camera.setFOV(0.65f)
-    staticCamera.setPosition(0, 0, 10)
+    camera.setFOV(0.8f)
+    staticCamera.setPosition(new SimpleVector(0, 0, 12))
     staticCamera.setFOVLimits(0.01f, 3.0f)
-    staticCamera.setFOV(0.65f)
+    staticCamera.setFOV(0.8f)
+    lookAtPoint.set(new SimpleVector(0, 0, 0))
+    lookAt(null,lookAtPoint)
+    updatePosInfo()
+    repaint()
+  }
+
+  def frontView() = {
+    camera.setPosition(new SimpleVector(0, 0, 12))
+    camera.setFOVLimits(0.01f, 3.0f)
+    camera.setFOV(0.8f)
+    lookAtPoint.set(new SimpleVector(0, 0, 0))
+    lookAt(null,lookAtPoint)
+    updatePosInfo()
+    repaint()
+  }
+
+  def topView() = {
+    camera.setPosition(new SimpleVector(0, -12, 0.1))
+    camera.setFOVLimits(0.01f, 3.0f)
+    camera.setFOV(0.8f)
+    lookAtPoint.set(new SimpleVector(0, 0, 0))
+    lookAt(null,lookAtPoint)
+    updatePosInfo()
+    repaint()
+  }
+
+  def rightView() = {
+    camera.setPosition(new SimpleVector(-12, 0, 0))
+    camera.setFOVLimits(0.01f, 3.0f)
+    camera.setFOV(0.8f)
+    lookAt(null,lookAtPoint)
+    lookAtPoint.set(new SimpleVector(0, 0, 0))
+    updatePosInfo()
+    repaint()
   }
 
   def reset() = {
@@ -496,6 +598,7 @@ class ThreeDView extends JPanel {
       // angle is the position of look at point in this case
       lookAtPoint.set(-angle(0).toFloat, -angle(2).toFloat, -angle(1).toFloat)
       lookAt(null, lookAtPoint)
+      updatePosInfo()
     }
   }
 }
@@ -1320,41 +1423,49 @@ case class Resizer(xFactor: Float, yFactor: Float, zFactor: Float)
 
 // Axis
 class coAxis(characters: Map[Char, Object3D]) {
-  val cylinders: Array[Object3D] = new Array[Object3D](9)
-  for (x <- 0 until 3)
-    cylinders(x) = Primitives.getCylinder(12, 0.01f, 50f)
-  for (x <- 3 until 6)
+  val cylinders: Array[Object3D] = new Array[Object3D](12)
+  for (x <- 0 to 2)
+    cylinders(x) = Primitives.getCylinder(12, 0.01f, 100f)
+  for (x <- 3 to 5)
     cylinders(x) = Primitives.getCone(12, 0.05f, 2f)
   cylinders(8) = new Object3D(characters('y'), false)
   cylinders(7) = new Object3D(characters('x'), false)
   cylinders(6) = new Object3D(characters('z'), false)
-  for (i <- 6 to 8) {
-    cylinders(i).setRotationPivot(new SimpleVector(0,0,0))
-    cylinders(i).setCenter(new SimpleVector(0,0,0))
-    cylinders(i).scale(0.6f)
-    cylinders(i).rotateY(Pi.toFloat)
-    cylinders(i).rotateMesh()
-    cylinders(i).setBillboarding(Object3D.BILLBOARDING_ENABLED)
+  for (x <- 6 to 8) {
+    cylinders(x).setRotationPivot(new SimpleVector(0,0,0))
+    cylinders(x).setCenter(new SimpleVector(0,0,0))
+    cylinders(x).scale(0.6f)
+    cylinders(x).rotateY(Pi.toFloat)
+    cylinders(x).rotateMesh()
+    cylinders(x).setBillboarding(Object3D.BILLBOARDING_ENABLED)
   }
+  for (x <- 9 to 11)
+    cylinders(x) = Primitives.getCylinder(12, 0.075f, 0.01f)
+
 
   for (i <- cylinders.indices)
     new setGlass( if      (i % 3 == 1) Color.BLUE
                   else if (i % 3 == 2) Color.RED
                   else                 Color.GREEN
                 , cylinders(i), -1)
-  cylinders(0).translate(0f, -0.5f, 0f)       // z axis cylinder
-  cylinders(3).translate(0f, -1f, 0f)         // z axis cone
-  cylinders(6).translate(-0.05f, -1f, 0f)     // z text
-  cylinders(1).rotateZ(0.5f * -Pi.toFloat)    // x axis cylinder
-  cylinders(1).translate(-0.5f, 0f, 0f)
-  cylinders(4).translate(-1f, 0f, 0f)         // x axis cone
+  cylinders(0).translate(0f, -1f, 0f)             // z axis cylinder
+  cylinders(3).translate(0f, -2f, 0f)             // z axis cone
+  cylinders(6).translate(0.225f, -2f, -0.075f)    // z text
+  cylinders(9).translate(0f, -1f, 0f)             // z unit
+  cylinders(1).rotateZ(0.5f * -Pi.toFloat)        // x axis cylinder
+  cylinders(1).translate(-1f, 0f, 0f)
+  cylinders(4).translate(-2f, 0f, 0f)             // x axis cone
   cylinders(4).rotateZ(0.5f * Pi.toFloat)
-  cylinders(7).translate(-1f, -0.05f, 0f)     // x text
-  cylinders(2).rotateX(-0.5f * Pi.toFloat)    // y axis cylinder
-  cylinders(2).translate(0f, 0f, -0.5f)
-  cylinders(5).translate(0f, 0f, -1f)         // y axis cone
+  cylinders(7).translate(-2.15f, -0.05f, -0.15f)  // x text
+  cylinders(10).rotateZ(0.5f * Pi.toFloat)
+  cylinders(10).translate(-1f, 0f, 0f)            // x unit
+  cylinders(2).rotateX(-0.5f * Pi.toFloat)        // y axis cylinder
+  cylinders(2).translate(0f, 0f, -1f)
+  cylinders(5).translate(0f, 0f, -2f)             // y axis cone
   cylinders(5).rotateX(-0.5f * Pi.toFloat)
-  cylinders(8).translate(0f, -0.05f, -1f)     // y text
+  cylinders(8).translate(0.05f, -0.075f, -2f)     // y text
+  cylinders(11).rotateX(-0.5f * Pi.toFloat)
+  cylinders(11).translate(0f, 0f, -1f)            // y unit
 }
 
 class Characters {
