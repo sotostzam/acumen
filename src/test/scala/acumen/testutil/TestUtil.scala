@@ -30,11 +30,16 @@ object TestUtil {
     val i = si.interpreter()
     val t1 = i.lazyRun(d1).ctrace
     val t2 = i.lazyRun(d2).ctrace
-    (t1 zip t2) foreach {
-      case (v1, v2) =>
-        val pp1 = pprint(prettyStore(v1))
-        val pp2 = pprint(prettyStore(v2))
-        assert(pp1 == pp2, "CStores differ!\n\n" + sideBySideDiff(pp1, pp2)) 
+    val pp1 = t1.toList.foldLeft(List[String]()) {
+      case (r, x) => pprint(prettyStore(x)) :: r
+    }
+
+    val pp2 = t2.toList.foldLeft(List[String]()) {
+      case (r, x) => pprint(prettyStore(x)) :: r
+    }
+    (pp1 zip pp2) foreach {
+      case(str1, str2) =>
+        assert(pp1 == pp2, "CStores differ!\n\n" + sideBySideDiff(str1, str2))
     }
     val l1 = t1.length
     val l2 = t2.length
