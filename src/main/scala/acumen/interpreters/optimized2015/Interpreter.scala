@@ -257,12 +257,12 @@ class Interpreter extends CStoreInterpreter {
 
       setResultType(magic, rt)
       setVarNum(magic, countStateVars(repr(st)))
-
-      repr(st).foldLeft(repr(st)){
+      val reprSt = repr(st)
+      reprSt.foldLeft(reprSt){
         case (res1, (id,o)) =>
         val (seed1,seed2) = getNewSeed(st)
         val (tmp,newSeed) = Random.next((seed1,seed2))
-        setObject(id, setSeed(repr(st)(id), newSeed), res1)
+        setObject(id, setSeed(reprSt(id), newSeed), res1)
       }
       
       if (rt != FixedPoint) checkHypothesis(pp, p, magic, st)      
