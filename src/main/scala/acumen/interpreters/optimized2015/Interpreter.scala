@@ -43,6 +43,7 @@ class Interpreter extends CStoreInterpreter {
   val outputRows = "All"
   val initStore = initStoreInterpreter(initStep = initStepType, initTimeStep = timeStep, initOutputRows = outputRows, isImperative = true)
   override def visibleParameters = visibleParametersMap(initStore) + ("method" -> VLit(GStr(RungeKutta))) + ("orderOfIntegration" -> VLit(GInt(4)))
+  private var reachFixPoint = true
   
   def lift = identLift
   
@@ -96,6 +97,7 @@ class Interpreter extends CStoreInterpreter {
           case NoChange() =>
           case SomeChange(_,_) =>
             isFixedPoint = false
+            reachFixPoint = false
         }
         idx += 1
       }
@@ -139,6 +141,7 @@ class Interpreter extends CStoreInterpreter {
           case NoChange() =>
           case SomeChange(_,_) =>
             isFixedPoint = false
+            reachFixPoint = false
         }
         idx += 1
       }
@@ -197,6 +200,7 @@ class Interpreter extends CStoreInterpreter {
               }
             }
             isFixedPoint = false
+            reachFixPoint = false
         
           case NoChange() =>
         }
@@ -218,6 +222,8 @@ class Interpreter extends CStoreInterpreter {
         // After the pp.reset the das list is empty,
         // thus filtering only initializes the fields
         filterEquationT()
+        if (pp.assigns.nonEmpty)
+          reachFixPoint = false
         
         checkContinuousDynamicsAlwaysDefined(st, magic)
         
@@ -265,8 +271,14 @@ class Interpreter extends CStoreInterpreter {
         setObject(id, setSeed(reprSt(id), newSeed), res1)
       }
       
-      if (rt != FixedPoint) checkHypothesis(pp, p, magic, st)      
+      if (rt != FixedPoint) checkHypothesis(pp, p, magic, st)
 
+      if (rt == FixedPoint) {
+        if (reachFixPoint && getTime(getSimulator(st)) > 0)
+          setTime(getSimulator(st), getEndTime(getSimulator(st)))
+        else
+          reachFixPoint = true
+      }
       rt
     }
   }
