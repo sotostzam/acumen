@@ -1,0 +1,45 @@
+// A simple networked control system
+// - a simplant with first order dynamics x'=-x+d
+// - a disturbance that is just a step at t=2
+// - a channel with d
+// STATUS: There seems to be an issue with discretization
+//         of time.
+// NB: No clock is actually needed here.
+//
+// Authors: Maben Rabi and Walid Taha
+
+model Main (simulator) =
+initially
+ T=0, T'=1,
+ t=0,
+ d=0,d'=0,d''=0,
+ x=0, x'=0,
+ ie=0, ie'=0,
+ e_s=0, t_s=0,
+ ie_last = 0,
+ u = 0, u_flag=0, u_ie=0,
+ k_p = -1, k_i = -1,
+ th_e = 0.5, // [0.49 .. 0.51],
+ t_out = 0.4
+//  _plot=(d,x,ie',ie,u,u_flag)
+always
+ T'=1,
+ 
+ if (0<=T && T<2)  then d=0 elseif
+    (2<=T && T<7)  then d=5 elseif
+    (7<=T && T<21) then d'' = 500*(4-d)
+    else d=0,
+ 
+ x'=-x+d+u,
+ ie'=x-0,
+ if (abs(ie'-e_s)>th_e || abs(ie - ie_last)>1)
+  then
+    ie_last+ = ie,
+    e_s+ = ie',
+    u+ = k_p * e_s + k_i * ie_last,
+    u_ie+ = u_ie + (ie - ie_last)
+                  /(T - t_s),
+    t_s+ = T,
+    u_flag+ = (1-u_flag)
+  noelse,
+  simulator.endTime+ = 30
