@@ -143,21 +143,26 @@ class ThreeDView extends JPanel {
 
   addComponentListener(new ComponentAdapter {
     override def componentResized(e: ComponentEvent) = {
-      val fixed3DRatio = acumen.ui.App.ui.fixed3DRatio
-      val c = e.getSource.asInstanceOf[Component]
-      if (fixed3DRatio)
-        initBuffer(c.getWidth, c.getHeight)
-      else { // the default fixed ratio of width to height is 4:3
-        val (width, height) =
-        if ( (c.getWidth * heightRatio / widthRatio) > c.getHeight)
-          (c.getHeight * widthRatio / heightRatio, c.getHeight)
-        else
-          (c.getWidth, c.getWidth * heightRatio / widthRatio)
-        initBuffer(width.toInt, height.toInt)
-      }
-      repaint()
+      resize3DView(e.getSource.asInstanceOf[Component])
     }
   })
+
+  def resize3DView(e: Component): Unit = {
+    val fixed3DRatio = acumen.ui.App.ui.fixed3DRatio
+    val c = if (e != null) e
+            else this
+    if (fixed3DRatio)
+      initBuffer(c.getWidth, c.getHeight)
+    else { // the default fixed ratio of width to height is 4:3
+    val (width, height) =
+    if ( (c.getWidth * heightRatio / widthRatio) > c.getHeight)
+      (c.getHeight * widthRatio / heightRatio, c.getHeight)
+    else
+      (c.getWidth, c.getWidth * heightRatio / widthRatio)
+      initBuffer(width.toInt, height.toInt)
+    }
+    repaint()
+  }
 
   addMouseListener(new MouseAdapter {
     override def mousePressed(e: MouseEvent) = {
