@@ -86,9 +86,9 @@ class CStoreCntrl(val semantics: SemanticsImpl[Interpreter], val interpreter: CS
       val startTime = System.currentTimeMillis
       val I = interpreter
       val (p, store0, md0) = I.init(prog)
-      var opts = new CStoreOpts
+      val opts = new CStoreOpts
       // Variables for real-time simulation
-      val threeDTab = App.ui.threeDtab.asInstanceOf[threeD.ThreeDTab]
+      val threeDTab = App.ui.threeDtab
       var lastvirtualTime = 0.0
       var timesteps = 0
       var slackvalue = 0.0

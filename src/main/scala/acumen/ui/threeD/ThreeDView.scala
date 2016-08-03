@@ -1255,7 +1255,7 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D, playSpeed: Double,
             slider.setProgress3D(100)
             slider.setTime(endTime.toFloat)
           } else if (totalFrames > 0 && currentFrame < totalFrames && _3DTimeTag.contains(currentFrame)) {
-            val percentage = (100 * _3DTimeTag(currentFrame) / endTime).toInt
+            val percentage = (100 * _3DTimeTag(currentFrame) / endTime).floor.toInt
             slider.setProgress3D(percentage)
             slider.setTime(_3DTimeTag(currentFrame).toFloat)
           }

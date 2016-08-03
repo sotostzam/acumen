@@ -1,19 +1,15 @@
 package acumen.ui.threeD
+
 import java.awt.BorderLayout
-import javax.swing.{JLabel, JOptionPane, JPanel, JTextField}
-
+import javax.swing. JPanel
 import acumen.{CId, Main}
-
 import scala.collection.mutable
 import acumen.ui.{App, Controller, Icons}
-
 import scala.swing._
 import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
-
-import com.threed.jpct.SimpleVector
-
-import scala.swing.event.{EditDone, FocusLost}
+import javax.swing.event.{ChangeEvent, ChangeListener}
+import scala.swing.event.EditDone
 
 case class ThreeDTab (appModel: Controller) extends BorderPanel {
   val canvasPanel = new JPanel
@@ -73,10 +69,17 @@ case class ThreeDTab (appModel: Controller) extends BorderPanel {
       } else if (toolTip == "pause") {
         pause()
       } else if (toolTip == "resume") {
-        pause()
+        /* Restart the animation */
+        if (statusZone3d.bar.value == 100) {
+          timer3d.destroy = true
+          threeDView.reset()
+          statusZone3d.bar.value = 0
+          play()
+          toolTip = "pause"
+          icon = Icons.pause
+        } else pause()
       }
     }
-
   }
 
   // _3DDataBuffer: Where all the state is stored
@@ -199,6 +202,14 @@ case class ThreeDTab (appModel: Controller) extends BorderPanel {
     override def mouseReleased(e: MouseEvent) =
       if (wasPlayingBeforeMousePressed && statusZone3d.bar.enabled)
         pauseOff()
+  })
+  statusZone3d.bar.peer.addChangeListener(new ChangeListener {
+    def stateChanged(e: ChangeEvent): Unit = {
+      /* Change the play button to resume */
+      if (statusZone3d.bar.value == 100 && threedplay.toolTip == "pause") {
+        pause()
+      }
+    }
   })
 
   val cameraInfoPane = new BoxPanel(Orientation.Horizontal) {
