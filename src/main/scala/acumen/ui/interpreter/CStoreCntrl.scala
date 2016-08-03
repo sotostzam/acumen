@@ -134,13 +134,24 @@ class CStoreCntrl(val semantics: SemanticsImpl[Interpreter], val interpreter: CS
             threeDTab.appModel.threeDData.get3DData(I.repr(store))
             threeDTab.appModel.updateProgress(I.repr(store))
 
+
+            val virtualtime = acumen.util.Canonical.getTime(I.repr(store))
+
+            if (virtualtime > 0 && !threeDTab.is3DInfoChecked && !threeDTab.hardSetRealTimeSimulation) {
+              if (!threeDTab.appModel.threeDData.modelContains3D() && threeDTab.checkRTAnimation.selected) {
+                threeDTab.checkRTAnimation.selected = false
+                threeDTab.checkMatchTime.selected = false
+              } else if (threeDTab.appModel.threeDData.modelContains3D() && !threeDTab.checkRTAnimation.selected)
+                threeDTab.checkRTAnimation.selected = true
+              threeDTab.is3DInfoChecked = true
+            }
+
             if (threeDTab.checkRTAnimation.selected) {
               // render the latest frame
-              if (threeDTab.appModel.threeDData._3DData.nonEmpty) {
+              if (threeDTab.appModel.threeDData.modelContains3D()) {
                 threeDTab.playinRealTime()
               }
               // calculate the real time performance
-              val virtualtime = acumen.util.Canonical.getTime(I.repr(store))
               val playspeed = threeDTab.playSpeed
               var averageSlack = 0.0
               val calculationTime = System.currentTimeMillis - temptime

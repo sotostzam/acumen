@@ -14,6 +14,8 @@ import scala.swing.event.EditDone
 case class ThreeDTab (appModel: Controller) extends BorderPanel {
   val canvasPanel = new JPanel
   val threeDView = new ThreeDView
+  var hardSetRealTimeSimulation = false
+  var is3DInfoChecked = false
 
   def createCanvas() = {
     if (check.selected)
@@ -191,6 +193,11 @@ case class ThreeDTab (appModel: Controller) extends BorderPanel {
     }
   }
   if (Main.enableRealTime) checkRTAnimation.doClick()
+  checkRTAnimation.peer.addMouseListener(new MouseAdapter {
+    override def mousePressed(e: MouseEvent) = {
+      hardSetRealTimeSimulation = true
+    }
+  })
 
   val statusZone3d = new Slider3D
   statusZone3d.bar.peer.addMouseListener(new MouseAdapter{
@@ -264,6 +271,7 @@ case class ThreeDTab (appModel: Controller) extends BorderPanel {
   def reset() = {
     receiver.stop()
     played = false
+    is3DInfoChecked = false
     receiver.destroy = true
     timer3d.destroy = true
     threeDView.reset()
