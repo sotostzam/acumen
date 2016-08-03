@@ -124,8 +124,8 @@ class ThreeDView extends JPanel {
   }
 
   def inputPosInfo(component: TextField) = {
-    val newCamPosition = new SimpleVector(cameraX.text.toFloat, cameraY.text.toFloat, cameraZ.text.toFloat)
-    val newLookAtPoint = new SimpleVector(lookAtX.text.toFloat, lookAtY.text.toFloat, lookAtZ.text.toFloat)
+    val newCamPosition = new SimpleVector(-cameraX.text.toFloat, -cameraZ.text.toFloat, -cameraY.text.toFloat)
+    val newLookAtPoint = new SimpleVector(-lookAtX.text.toFloat, -lookAtZ.text.toFloat, -lookAtY.text.toFloat)
     camera.setPosition(newCamPosition)
     lookAtPoint.set(newLookAtPoint)
     lookAt(null,lookAtPoint)
@@ -133,12 +133,12 @@ class ThreeDView extends JPanel {
   }
 
   def updatePosInfo() = {
-    cameraX.text = "%.2f".format(camera.getPosition.x)
-    cameraY.text = "%.2f".format(camera.getPosition.y)
-    cameraZ.text = "%.2f".format(camera.getPosition.z)
-    lookAtX.text = "%.2f".format(lookAtPoint.x)
-    lookAtY.text = "%.2f".format(lookAtPoint.y)
-    lookAtZ.text = "%.2f".format(lookAtPoint.z)
+    cameraX.text = if (-camera.getPosition.x == 0.0f) "%.2f".format(0.0f) else "%.2f".format(-camera.getPosition.x)
+    cameraY.text = if (-camera.getPosition.z == 0.0f) "%.2f".format(0.0f) else "%.2f".format(-camera.getPosition.z)
+    cameraZ.text = if (-camera.getPosition.y == 0.0f) "%.2f".format(0.0f) else "%.2f".format(-camera.getPosition.y)
+    lookAtX.text = if (-lookAtPoint.x == 0.0f) "%.2f".format(0.0f) else "%.2f".format(-lookAtPoint.x)
+    lookAtY.text = if (-lookAtPoint.z == 0.0f) "%.2f".format(0.0f) else "%.2f".format(-lookAtPoint.z)
+    lookAtZ.text = if (-lookAtPoint.y == 0.0f) "%.2f".format(0.0f) else "%.2f".format(-lookAtPoint.y)
   }
 
   addComponentListener(new ComponentAdapter {
@@ -328,8 +328,9 @@ class ThreeDView extends JPanel {
   private var buffer: FrameBuffer = null
 
   def initBuffer(bufferWidth: Int, bufferHeight: Int) = {
-    buffer = new FrameBuffer(bufferWidth, bufferHeight,
-                             FrameBuffer.SAMPLINGMODE_OGSS)
+    if (bufferHeight >= 0 && bufferWidth >= 0)
+      buffer = new FrameBuffer(bufferWidth, bufferHeight, FrameBuffer.SAMPLINGMODE_OGSS)
+
   }
 
   def init() = {
