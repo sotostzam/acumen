@@ -325,7 +325,7 @@ class ThreeDView extends JPanel {
 
 
   // create a new buffer to draw on:
-  private var buffer: FrameBuffer = null
+  private var buffer: FrameBuffer = _
 
   def initBuffer(bufferWidth: Int, bufferHeight: Int) = {
     if (bufferHeight >= 0 && bufferWidth >= 0)
@@ -339,6 +339,7 @@ class ThreeDView extends JPanel {
     cameraLeftDirection = (-1,-1)
     cameraRightDirection = (1,1)
     cameraFlipped = false
+    camera.setFOV(0.8f)
     lookAt(null, lookAtPoint) // camera faces towards the object
     staticCamera.lookAt(new SimpleVector(0,0,0))
   }
@@ -460,7 +461,6 @@ class ThreeDView extends JPanel {
 
   def frontView() = {
     camera.setPosition(new SimpleVector(0, 0, 12))
-    camera.setFOVLimits(0.01f, 3.0f)
     camera.setFOV(0.8f)
     lookAtPoint.set(new SimpleVector(0, 0, 0))
     lookAt(null,lookAtPoint)
@@ -470,7 +470,6 @@ class ThreeDView extends JPanel {
 
   def topView() = {
     camera.setPosition(new SimpleVector(0, -12, 0.1))
-    camera.setFOVLimits(0.01f, 3.0f)
     camera.setFOV(0.8f)
     lookAtPoint.set(new SimpleVector(0, 0, 0))
     lookAt(null,lookAtPoint)
@@ -480,7 +479,6 @@ class ThreeDView extends JPanel {
 
   def rightView() = {
     camera.setPosition(new SimpleVector(-12, 0, 0))
-    camera.setFOVLimits(0.01f, 3.0f)
     camera.setFOV(0.8f)
     lookAt(null,lookAtPoint)
     lookAtPoint.set(new SimpleVector(0, 0, 0))

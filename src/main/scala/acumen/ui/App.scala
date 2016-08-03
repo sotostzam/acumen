@@ -983,14 +983,14 @@ class App extends SimpleSwingApplication {
   
   /** Everything that needs to be done to start a simulation. */
   def runSimulation() {
-    controller.threeDData.reset
-    threeDtab.reset
+    controller.threeDData.reset()
+    threeDtab.reset()
     codeArea.autoSave
     threeDtab.setCheckBoxes(false)
     threeDtab.disableButtons()
     controller ! Play
      // Clear the hash table every time a new simulation runs
-    SD.clear
+    SD.clear()
   }
   
   /** Everything that needs to compute one simulation step. */
