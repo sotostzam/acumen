@@ -15,9 +15,9 @@ initially
   v        =  (0,0,0),
   offset   =  0,
   // Visualize energy spent
-  eb       =  create Cylinder((0,0,0),tablerow,tablecolum),
-  link1    =  create Cylinder((0,0,0),tablerow,tablecolum),
-  link2    =  create Cylinder((0,0,0),tablerow,tablecolum),
+  eb       =  create Cylinder((0,0,0),tablerow,tablecolum,true),
+  link1    =  create Cylinder((0,0,0),tablerow,tablecolum,false),
+  link2    =  create Cylinder((0,0,0),tablerow,tablecolum,false),
   L1       =  0.4,      // Length of link1 is fixed
   baseP    =  (2.4*(-1)^n,0,0.3),
   unit     =  (0,0,0), // Unit vector from baseP to P
@@ -41,7 +41,10 @@ always
   link2.r = 0.03,
   // Energy bar visualization
   offset  = (energy/maxE)*1.5,
-  eb.p    = ((-1)^n * 1.5, -0.8, -0.05),
-  eb.q    = ((-1)^n * 1.5 + (-1)^(n+1) * offset, -0.8, -0.05),
-  eb.r    = 0.02,
-  eb.col  = (0.2,1,0.2)
+  eb.p    = ((-1)^n * 4.5, 0, -1.5),
+  eb.q    = ((-1)^n * 4.5, 0, -1.5 + offset),
+  eb.r    = 0.075,
+  if n == 1 then
+    eb.col = red
+  else
+    eb.col = black

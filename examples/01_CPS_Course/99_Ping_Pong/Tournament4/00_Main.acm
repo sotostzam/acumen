@@ -18,7 +18,7 @@ initially
   _3DView   =  ()
 always
   t' = 1,
-  _3DView   =  ((-6 + t * 0.6, -9, 2),(0,0,0)),
+  _3DView   =  ((-4, -8, 5),(0,0,0)),
   match mode with [
     "Initialize" ->
       simulator.endTime  + = 20.05,
