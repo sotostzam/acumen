@@ -227,7 +227,7 @@ case class ThreeDTab (appModel: Controller) extends BorderPanel {
   }
 
   val threeDViewPane = new BoxPanel(Orientation.Horizontal) {
-    contents ++= Seq(defaultViewButton, frontViewButton, topViewButton, rightViewButton, positionInfoPane)
+    contents ++= Seq(defaultViewButton, topViewButton, frontViewButton, rightViewButton, positionInfoPane)
   }
 
   val threeDControlPane = new BoxPanel(Orientation.Horizontal) {
