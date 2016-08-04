@@ -2,12 +2,13 @@
 package acumen
 package ui
 
-import java.net.InetAddress
+import java.net.{InetAddress, URI}
 
 import tl._
 import interpreter._
 import util.System.shortcutMask
 import java.lang.Thread
+
 import scala.actors._
 import collection.JavaConversions._
 import java.awt.Font
@@ -27,7 +28,9 @@ import java.awt.event.KeyEvent.{VK_CLOSE_BRACKET => VK_RBRACKET, VK_OPEN_BRACKET
 import java.awt.event.InputEvent._
 import java.io._
 import javax.swing._
+
 import org.fife.ui.rtextarea.{RTextArea, RTextScrollPane}
+
 import swing.{Action, BorderPanel, BoxPanel, ButtonGroup, CheckMenuItem, Component, Dialog, Dimension, FileChooser, FlowPanel, Frame, Label, MainFrame, Menu, MenuBar, MenuItem, Orientation, Publisher, RadioMenuItem, ScrollPane, Separator, SimpleSwingApplication, SplitPane, Swing, TabbedPane, Table, TextField}
 import swing.event._
 import scala.Boolean
@@ -165,9 +168,10 @@ class App extends SimpleSwingApplication {
   private val contractionAction               = mkActionMask("Contraction",                         VK_C, VK_C,       shortcutMask | SHIFT_MASK, toggleContraction())
   private val normalizeAction                 = mkAction(    "Normalize (to H.A.)",                 VK_N, NONE,       toggleNormalization())
   private val btaAction                       = mkAction(    "BTA",                                 VK_N, NONE,       toggleBTA())
-  private val manualAction                    = mkAction(    "Reference Manual",                    VK_M, VK_F1,      manual)
-  private val aboutAction                     = new Action(  "About")       { mnemonic =            VK_A; def apply = about }
-  private val licenseAction                   = new Action(  "License")     { mnemonic =            VK_L; def apply = license }
+  private val manualAction                    = mkAction(    "Reference Manual",                    VK_M, VK_F1,      manual())
+  private val bugReportAction                 = mkAction(    "Bugs",                                NONE, NONE,       bugReport())
+  private val aboutAction                     = new Action(  "About")       { mnemonic =            VK_A; def apply = about() }
+  private val licenseAction                   = new Action(  "License")     { mnemonic =            VK_L; def apply = license() }
   
   /* Shows a dialog asking the user how many threads to use in the parallel interpreter. */
   private def promptForNumberOfThreads = {
@@ -690,7 +694,8 @@ class App extends SimpleSwingApplication {
     contents += new Menu("Help") {
       mnemonic = Key.H
       contents += new MenuItem(manualAction)
-      contents += new MenuItem(aboutAction) 
+      contents += new MenuItem(aboutAction)
+      contents += new MenuItem(bugReportAction)
       contents += new MenuItem(licenseAction) 
     }
   }
@@ -783,6 +788,9 @@ class App extends SimpleSwingApplication {
         ManualBrowser.peer requestFocus
       }
     }
+
+  def bugReport() =
+    Desktop.getDesktop.browse(new URI("http://www.acumen-language.org/p/report-bug.html"))
 
   def IPaddress():String = {
     val localHost = InetAddress.getLocalHost
