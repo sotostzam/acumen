@@ -40,6 +40,7 @@ object Interpreter extends acumen.CStoreInterpreter {
   val outputRows = "All"
   val initStore = initStoreInterpreter(initStep = initStepType, initTimeStep = timeStep, initOutputRows = outputRows, isImperative = false)
   override def visibleParameters = visibleParametersMap(initStore) + ("method" -> VLit(GStr(RungeKutta))) + ("orderOfIntegration" -> VLit(GInt(4)))
+  private var reachFixPoint = true
 
   /* Bindings, expressed in models as continuous assignments 
    * to unprimed variables, are used to look up sub-expressions
@@ -613,12 +614,28 @@ object Interpreter extends acumen.CStoreInterpreter {
         }
         // Hypotheses check only when the result is not a FixedPoint
         lazy val md1 = testHypotheses(hyps, md, stSeed, getTime(st))(NoBindings) // No bindings needed, res is consistent
+        // Finish the simulation if there's nothing change anymore
+        // Reinitialize the lastFixedStore if the simulation reach the discrete point
+        if (das.nonEmpty || odes.nonEmpty || eqs.nonEmpty)
+          reachFixPoint = false
         if (getResultType(stSeed) != FixedPoint)
           Data(countVariables(stSeed), md1)
-        else
-          Data(countVariables(stSeed), md)
+        else {
+          val st2 = reachStaticStatus(stSeed)
+          Data(countVariables(st2), md)
+        }
       }
     }
+
+  /* set the time to the endTime if the simulation reach static status */
+  def reachStaticStatus(res: Store): Store = {
+    if (getTime(res) > 0 && reachFixPoint)
+      setTime(getEndTime(res), res)
+    else {
+      reachFixPoint = true
+      res
+    }
+  }
   
   /** Summarize result of evaluating the hypotheses of all objects. */
   def testHypotheses(hyps: List[CollectedHypothesis], old: Metadata, st: Store, timeBefore: Double)(implicit bindings: Bindings): Metadata =
