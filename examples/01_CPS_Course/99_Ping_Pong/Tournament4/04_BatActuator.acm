@@ -78,7 +78,7 @@ always
   | "Panic!" -> ],
   
   // Energy bar visualization
-  offset  = (energy/maxE)*1.5,
+  offset  = ((maxE-energy)/maxE)*3.8,
   eb.p    = ((-1)^n * 4.5, 0, -1.5),
   eb.q    = ((-1)^n * 4.5, 0, -1.5 + offset),
   eb.r    = 0.075,
