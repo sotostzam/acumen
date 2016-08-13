@@ -6,18 +6,14 @@ import java.awt.{Color, Component, Graphics}
 import java.io._
 import javax.imageio.ImageIO
 import javax.swing._
-import javax.swing.event.{DocumentEvent, DocumentListener}
-
 import acumen.CId
 import acumen.Errors._
 import acumen.ui.Files
 import com.threed.jpct._
-
 import scala.actors._
 import scala.math._
 import scala.swing.{Label, Publisher, Swing, TextField}
 import scala.collection.mutable
-import scala.swing.event.EditDone
 
 /* 3D visualization panel */
 class ThreeDView extends JPanel {
@@ -568,6 +564,65 @@ class ThreeDView extends JPanel {
     box.addTriangle(upperRightBack,1,0, lowerRightFront, 0,1, lowerRightBack,1,1)
 
     box
+  }
+
+  def drawTriangle(p1: Array[Double], p2: Array[Double], p3: Array[Double], height: Double): Object3D = {
+    val triangle = new Object3D(10)
+
+    val lowerP1 = new SimpleVector(p1(0), p1(1), p1(2))
+    val lowerP2 = new SimpleVector(p2(0), p2(1), p2(2))
+    val lowerP3 = new SimpleVector(p3(0), p3(1), p3(2))
+
+    /** Calculate the normal vector of plane (p1, p2, p3)
+      * So for a triangle p1, p2, p3, if the vector U = p2 - p1 and the vector V = p3 - p1
+      * then the normal N = U x V and can be calculated by:
+      * Nx = UyVz - UzVy = (p2y - p1y)(p3z - p1z) - (p2z - p1z)(p3y - p1y)
+      * Ny = UzVx - UxVz = (p2z - p1z)(p3x - p1x) - (p2x - p1x)(p3z - p1z)
+      * Nz = UxVy - UyVx = (p2x - p1x)(p3y - p1y) - (p2y - p1y)(p3x - p1x)
+      * lengthN = sqrt(NxNx+NyNy+NzNz)
+      * Unit norm vector = 1/lengthN * N
+      * If the length is h, then the three new points p1',p2' and p3' are :
+      * NH = h*N,
+      * p1' = p1 + NH,  p2' = p2 + NH, p3' = p3 + NH
+      **/
+
+    val normalX = (p2(1) - p1(1)) * (p3(2) - p1(2)) - (p2(2) - p1(2)) * (p3(1) - p1(1))
+    val normalY = (p2(2) - p1(2)) * (p3(0) - p1(0)) - (p2(0) - p1(0)) * (p3(2) - p1(2))
+    val normalZ = (p2(0) - p1(0)) * (p3(1) - p1(1)) - (p2(1) - p1(1)) * (p3(0) - p1(0))
+
+    val lengthNormal = sqrt(normalX * normalX + normalY * normalY + normalZ * normalZ)
+    val unitLengthN = Array(1 / (lengthNormal * normalX),
+                            1 / (lengthNormal * normalY),
+                            1 / (lengthNormal * normalZ))
+    val newP1 = Array(p1(0) + height * unitLengthN(0),
+                      p1(1) + height * unitLengthN(1),
+                      p1(2) + height * unitLengthN(2))
+    val newP2 = Array(p2(0) + height * unitLengthN(0),
+                      p2(1) + height * unitLengthN(1),
+                      p2(2) + height * unitLengthN(2))
+    val newP3 = Array(p3(0) + height * unitLengthN(0),
+                      p3(1) + height * unitLengthN(1),
+                      p3(2) + height * unitLengthN(2))
+
+    val upperP1 = new SimpleVector(newP1(0), newP1(1), newP1(2))
+    val upperP2 = new SimpleVector(newP2(0), newP2(1), newP2(2))
+    val upperP3 = new SimpleVector(newP3(0), newP3(1), newP3(2))
+
+    // Upper
+    triangle.addTriangle(upperP1,0,0, upperP2,0,1, upperP3,1,0)
+    // Lower
+    triangle.addTriangle(lowerP1,0,0, lowerP2,0,1, lowerP3,1,0)
+    // Left
+    triangle.addTriangle(lowerP1,0,0, lowerP2,0,1, upperP2,1,0)
+    triangle.addTriangle(upperP2,0,0, upperP1,0,1, lowerP1,1,0)
+    // Right
+    triangle.addTriangle(lowerP2,0,0, lowerP3,0,1, upperP3,1,0)
+    triangle.addTriangle(upperP3,0,0, upperP2,0,1, lowerP2,1,0)
+    // Front
+    triangle.addTriangle(lowerP1,0,0, lowerP3,0,1, upperP3,1,0)
+    triangle.addTriangle(upperP3,0,0, upperP1,0,1, lowerP1,1,0)
+
+    triangle
   }
 
   // rotate object or camera
