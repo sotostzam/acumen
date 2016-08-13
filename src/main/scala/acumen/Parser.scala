@@ -592,10 +592,10 @@ object Parser extends MyStdTokenParsers {
 
     val size = paras.find(_._1.x == "size") match{
       case Some(x) => 
-        if(name == "Box" | name == "Text" | name == "Obj" | name == "Sphere"){
+        if(name == "Box" | name == "Text" | name == "Obj" | name == "Sphere" | name == "Triangle"){
           x._2 match{
             case ExprVector(ls) => 
-              if(name == "Box") 
+              if(name == "Box" | name == "Triangle") 
                 _3DVectorHelper(x._1, x._2)
               else
                 error("_3D object " + name + " size parameter can't be " + Pretty.pprint(x._2))
@@ -678,6 +678,7 @@ object Parser extends MyStdTokenParsers {
       case "Sphere" => ExprVector(List(Lit(GStr("Sphere")),center,size,color,rotation,coordinates,transparency))
       case "Text" => ExprVector(List(Lit(GStr("Text")),center,size,color,rotation,content,coordinates,transparency))
       case "Obj" => ExprVector(List(Lit(GStr("OBJ")),center,size,color,rotation,content,coordinates,transparency))
+      case "Triangle" => ExprVector(List(Lit(GStr("Triangle")),center,size,color,rotation,coordinates,transparency))
       case _ => error("Unsupported 3D object " + name)
     }
 
