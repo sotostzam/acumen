@@ -1,23 +1,21 @@
 package acumen.ui.threeD
+
 import java.awt.BorderLayout
-import javax.swing.{JLabel, JOptionPane, JPanel, JTextField}
-
+import javax.swing. JPanel
 import acumen.{CId, Main}
-
 import scala.collection.mutable
 import acumen.ui.{App, Controller, Icons}
-
 import scala.swing._
 import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
-
-import com.threed.jpct.SimpleVector
-
-import scala.swing.event.{EditDone, FocusLost}
+import javax.swing.event.{ChangeEvent, ChangeListener}
+import scala.swing.event.EditDone
 
 case class ThreeDTab (appModel: Controller) extends BorderPanel {
   val canvasPanel = new JPanel
   val threeDView = new ThreeDView
+  var hardSetRealTimeSimulation = false
+  var is3DInfoChecked = false
 
   def createCanvas() = {
     if (check.selected)
@@ -73,10 +71,17 @@ case class ThreeDTab (appModel: Controller) extends BorderPanel {
       } else if (toolTip == "pause") {
         pause()
       } else if (toolTip == "resume") {
-        pause()
+        /* Restart the animation */
+        if (statusZone3d.bar.value == 100) {
+          timer3d.destroy = true
+          threeDView.reset()
+          statusZone3d.bar.value = 0
+          play()
+          toolTip = "pause"
+          icon = Icons.pause
+        } else pause()
       }
     }
-
   }
 
   // _3DDataBuffer: Where all the state is stored
@@ -188,6 +193,11 @@ case class ThreeDTab (appModel: Controller) extends BorderPanel {
     }
   }
   if (Main.enableRealTime) checkRTAnimation.doClick()
+  checkRTAnimation.peer.addMouseListener(new MouseAdapter {
+    override def mousePressed(e: MouseEvent) = {
+      hardSetRealTimeSimulation = true
+    }
+  })
 
   val statusZone3d = new Slider3D
   statusZone3d.bar.peer.addMouseListener(new MouseAdapter{
@@ -199,6 +209,14 @@ case class ThreeDTab (appModel: Controller) extends BorderPanel {
     override def mouseReleased(e: MouseEvent) =
       if (wasPlayingBeforeMousePressed && statusZone3d.bar.enabled)
         pauseOff()
+  })
+  statusZone3d.bar.peer.addChangeListener(new ChangeListener {
+    def stateChanged(e: ChangeEvent): Unit = {
+      /* Change the play button to resume */
+      if (statusZone3d.bar.value == 100 && threedplay.toolTip == "pause") {
+        pause()
+      }
+    }
   })
 
   val cameraInfoPane = new BoxPanel(Orientation.Horizontal) {
@@ -227,7 +245,7 @@ case class ThreeDTab (appModel: Controller) extends BorderPanel {
   }
 
   val threeDViewPane = new BoxPanel(Orientation.Horizontal) {
-    contents ++= Seq(defaultViewButton, frontViewButton, topViewButton, rightViewButton, positionInfoPane)
+    contents ++= Seq(defaultViewButton, topViewButton, frontViewButton, rightViewButton, positionInfoPane)
   }
 
   val threeDControlPane = new BoxPanel(Orientation.Horizontal) {
@@ -242,16 +260,18 @@ case class ThreeDTab (appModel: Controller) extends BorderPanel {
     contents ++= Seq(threeDViewPane, threeDInfoPane, threeDControlPane)
   }
 
-  var _receiver = new _3DDisplay(threeDView, statusZone3d, playSpeed,
-    _3DDataBuffer, lastFrame, appModel.threeDData.endTime, appModel.threeDData._3DView)
+  var _receiver = new _3DDisplay(threeDView, statusZone3d, playSpeed, _3DDataBuffer,
+                                 lastFrame, appModel.threeDData.endTime, appModel.threeDData._3DView,
+                                 appModel.threeDData._3DTimeTag, appModel.threeDData._3DTimeStep)
 
-  var timer3d = new ScalaTimer(receiver, appModel.threeDData.endTime, playSpeed)
+  var timer3d = new ScalaTimer(receiver, appModel.threeDData.endTime, appModel.threeDData._3DTimeStep, playSpeed)
 
   def receiver: _3DDisplay = _receiver
 
   def reset() = {
     receiver.stop()
     played = false
+    is3DInfoChecked = false
     receiver.destroy = true
     timer3d.destroy = true
     threeDView.reset()
@@ -325,10 +345,10 @@ case class ThreeDTab (appModel: Controller) extends BorderPanel {
       threeDView.axisArray(0) = null
       if (check.selected)
         threeDView.axisOn()
-      _receiver = new _3DDisplay(threeDView, statusZone3d, playSpeed,
-                          _3DDataBuffer, lastFrame, appModel.threeDData.endTime,
-                          appModel.threeDData._3DView)
-      timer3d = new ScalaTimer(receiver, appModel.threeDData.endTime, playSpeed)
+      _receiver = new _3DDisplay(threeDView, statusZone3d, playSpeed, _3DDataBuffer,
+                                 lastFrame, appModel.threeDData.endTime, appModel.threeDData._3DView,
+                                 appModel.threeDData._3DTimeTag, appModel.threeDData._3DTimeStep)
+      timer3d = new ScalaTimer(receiver, appModel.threeDData.endTime, appModel.threeDData._3DTimeStep, playSpeed)
       receiver.start()
       timer3d.start()
       listenTo(receiver)
@@ -347,9 +367,9 @@ case class ThreeDTab (appModel: Controller) extends BorderPanel {
     endTime = appModel.threeDData.endTime
     statusZone3d.setSpeed(playSpeed.toString)
     lastFrame = appModel.threeDData._3DData.size - 1
-    _receiver = new _3DDisplay(threeDView, statusZone3d, playSpeed,
-      appModel.threeDData._3DData, lastFrame, appModel.threeDData.endTime,
-      appModel.threeDData._3DView)
+    _receiver = new _3DDisplay(threeDView, statusZone3d, playSpeed, appModel.threeDData._3DData,
+                               lastFrame, appModel.threeDData.endTime, appModel.threeDData._3DView,
+                               appModel.threeDData._3DTimeTag, appModel.threeDData._3DTimeStep)
     receiver.start()
     receiver ! "real time render"
     listenTo(receiver)

@@ -40,7 +40,7 @@ object Main {
   var outputFile = "benchFiles/outputs/bench.output"
 
   // state related to real-time simulation
-  var enableRealTime = true
+  var enableRealTime = false
 
   var debugExtract = false
   var printLogLevel: Option[Logger.Level] = None
@@ -148,6 +148,8 @@ object Main {
         enableAllSemantics = false; parseArgs(tail)
       case "--disable-realtime" :: tail =>
         enableRealTime = false; parseArgs(tail)
+      case "--enable-realtime" :: tail =>
+        enableRealTime = true; parseArgs(tail)
       case "--play" :: tail =>
         autoPlay = true; parseArgs(tail)
       case "--enable-completion" :: tail =>

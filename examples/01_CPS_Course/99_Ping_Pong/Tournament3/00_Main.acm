@@ -14,9 +14,11 @@ initially
   t         =  0,
   t'        =  1,
   j         =  0,
-  players   =  (Player,Player)  //Just put all the players here
+  players   =  (Player,Player),  //Just put all the players here
+  _3DView   =  ()
 always
   t' = 1,
+  _3DView   =  ((-2, -6.5, 2),(0,0,0)),
   match mode with [
     "Initialize" ->
       simulator.endTime  + = 20.05,

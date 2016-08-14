@@ -120,8 +120,8 @@ class ThreeDView extends JPanel {
   }
 
   def inputPosInfo(component: TextField) = {
-    val newCamPosition = new SimpleVector(cameraX.text.toFloat, cameraY.text.toFloat, cameraZ.text.toFloat)
-    val newLookAtPoint = new SimpleVector(lookAtX.text.toFloat, lookAtY.text.toFloat, lookAtZ.text.toFloat)
+    val newCamPosition = new SimpleVector(-cameraX.text.toFloat, -cameraZ.text.toFloat, -cameraY.text.toFloat)
+    val newLookAtPoint = new SimpleVector(-lookAtX.text.toFloat, -lookAtZ.text.toFloat, -lookAtY.text.toFloat)
     camera.setPosition(newCamPosition)
     lookAtPoint.set(newLookAtPoint)
     lookAt(null,lookAtPoint)
@@ -129,31 +129,36 @@ class ThreeDView extends JPanel {
   }
 
   def updatePosInfo() = {
-    cameraX.text = "%.2f".format(camera.getPosition.x)
-    cameraY.text = "%.2f".format(camera.getPosition.y)
-    cameraZ.text = "%.2f".format(camera.getPosition.z)
-    lookAtX.text = "%.2f".format(lookAtPoint.x)
-    lookAtY.text = "%.2f".format(lookAtPoint.y)
-    lookAtZ.text = "%.2f".format(lookAtPoint.z)
+    cameraX.text = if (-camera.getPosition.x == 0.0f) "%.2f".format(0.0f) else "%.2f".format(-camera.getPosition.x)
+    cameraY.text = if (-camera.getPosition.z == 0.0f) "%.2f".format(0.0f) else "%.2f".format(-camera.getPosition.z)
+    cameraZ.text = if (-camera.getPosition.y == 0.0f) "%.2f".format(0.0f) else "%.2f".format(-camera.getPosition.y)
+    lookAtX.text = if (-lookAtPoint.x == 0.0f) "%.2f".format(0.0f) else "%.2f".format(-lookAtPoint.x)
+    lookAtY.text = if (-lookAtPoint.z == 0.0f) "%.2f".format(0.0f) else "%.2f".format(-lookAtPoint.z)
+    lookAtZ.text = if (-lookAtPoint.y == 0.0f) "%.2f".format(0.0f) else "%.2f".format(-lookAtPoint.y)
   }
 
   addComponentListener(new ComponentAdapter {
     override def componentResized(e: ComponentEvent) = {
-      val fixed3DRatio = acumen.ui.App.ui.fixed3DRatio
-      val c = e.getSource.asInstanceOf[Component]
-      if (fixed3DRatio)
-        initBuffer(c.getWidth, c.getHeight)
-      else { // the default fixed ratio of width to height is 4:3
-        val (width, height) =
-        if ( (c.getWidth * heightRatio / widthRatio) > c.getHeight)
-          (c.getHeight * widthRatio / heightRatio, c.getHeight)
-        else
-          (c.getWidth, c.getWidth * heightRatio / widthRatio)
-        initBuffer(width.toInt, height.toInt)
-      }
-      repaint()
+      resize3DView(e.getSource.asInstanceOf[Component])
     }
   })
+
+  def resize3DView(e: Component): Unit = {
+    val fixed3DRatio = acumen.ui.App.ui.fixed3DRatio
+    val c = if (e != null) e
+            else this
+    if (fixed3DRatio)
+      initBuffer(c.getWidth, c.getHeight)
+    else { // the default fixed ratio of width to height is 4:3
+    val (width, height) =
+    if ( (c.getWidth * heightRatio / widthRatio) > c.getHeight)
+      (c.getHeight * widthRatio / heightRatio, c.getHeight)
+    else
+      (c.getWidth, c.getWidth * heightRatio / widthRatio)
+      initBuffer(width.toInt, height.toInt)
+    }
+    repaint()
+  }
 
   addMouseListener(new MouseAdapter {
     override def mousePressed(e: MouseEvent) = {
@@ -316,11 +321,12 @@ class ThreeDView extends JPanel {
 
 
   // create a new buffer to draw on:
-  private var buffer: FrameBuffer = null
+  private var buffer: FrameBuffer = _
 
   def initBuffer(bufferWidth: Int, bufferHeight: Int) = {
-    buffer = new FrameBuffer(bufferWidth, bufferHeight,
-                             FrameBuffer.SAMPLINGMODE_OGSS)
+    if (bufferHeight >= 0 && bufferWidth >= 0)
+      buffer = new FrameBuffer(bufferWidth, bufferHeight, FrameBuffer.SAMPLINGMODE_OGSS)
+
   }
 
   def init() = {
@@ -329,6 +335,7 @@ class ThreeDView extends JPanel {
     cameraLeftDirection = (-1,-1)
     cameraRightDirection = (1,1)
     cameraFlipped = false
+    camera.setFOV(0.8f)
     lookAt(null, lookAtPoint) // camera faces towards the object
     staticCamera.lookAt(new SimpleVector(0,0,0))
   }
@@ -450,7 +457,6 @@ class ThreeDView extends JPanel {
 
   def frontView() = {
     camera.setPosition(new SimpleVector(0, 0, 12))
-    camera.setFOVLimits(0.01f, 3.0f)
     camera.setFOV(0.8f)
     lookAtPoint.set(new SimpleVector(0, 0, 0))
     lookAt(null,lookAtPoint)
@@ -460,7 +466,6 @@ class ThreeDView extends JPanel {
 
   def topView() = {
     camera.setPosition(new SimpleVector(0, -12, 0.1))
-    camera.setFOVLimits(0.01f, 3.0f)
     camera.setFOV(0.8f)
     lookAtPoint.set(new SimpleVector(0, 0, 0))
     lookAt(null,lookAtPoint)
@@ -470,7 +475,6 @@ class ThreeDView extends JPanel {
 
   def rightView() = {
     camera.setPosition(new SimpleVector(-12, 0, 0))
-    camera.setFOVLimits(0.01f, 3.0f)
     camera.setFOV(0.8f)
     lookAt(null,lookAtPoint)
     lookAtPoint.set(new SimpleVector(0, 0, 0))
@@ -659,7 +663,7 @@ class ThreeDView extends JPanel {
 }
 
 /* Timer for 3D-visualization, sends message to 3D renderer to coordinate animation */
-class ScalaTimer(receiver: _3DDisplay, endTime: Double,
+class ScalaTimer(receiver: _3DDisplay, endTime: Double, timeStep: Double,
                  playSpeed: Double) extends Publisher with Actor {
   var pause = true
   var destroy = false
@@ -667,7 +671,12 @@ class ScalaTimer(receiver: _3DDisplay, endTime: Double,
   var extraTime = 0.0
   var initSpeed = 0.0
 
-  if (receiver.totalFrames > 0)
+  if (!receiver.staticFrame && receiver.totalFrames * 20 < (endTime / timeStep))
+    receiver.staticFrame = true
+
+  if (receiver.totalFrames > 0 && receiver.staticFrame)
+    sleepTime = timeStep
+  else if (receiver.totalFrames > 0)
     sleepTime = endTime * 1000 / receiver.totalFrames
 
   initSpeed = sleepTime
@@ -690,14 +699,16 @@ class ScalaTimer(receiver: _3DDisplay, endTime: Double,
 
 /* 3D Render */
 class _3DDisplay(app: ThreeDView, slider: Slider3D, playSpeed: Double,
-                 _3DDataBuffer: mutable.Map[Int,mutable.Map[(CId,Int),List[_]]],
-                 lastFrame: Int, endTime: Float,
-                 _3DView: mutable.ArrayBuffer[(Array[Double], Array[Double])])
+                 _3DDataBuffer: mutable.Map[Int,mutable.Map[(CId,Int),List[_]]], lastFrame: Int,
+                 endTime: Float, _3DView: mutable.ArrayBuffer[(Array[Double], Array[Double])],
+                 _3DTimeTag: mutable.Map[Int, Double], timeStep: Double)
                  extends Publisher with Actor {
   /* Default directory where all the OBJ files are */
   private val _3DBasePath = Files._3DDir.getAbsolutePath
   private var currentFrame = 0
-  var totalFrames = lastFrame
+  protected[threeD] var staticFrame = false
+  // the amount of frames
+  val totalFrames = lastFrame
   var destroy = false
   /* used for recording last frame number */
   private var lastRenderFrame = 0
@@ -1293,28 +1304,32 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D, playSpeed: Double,
         exit()
       react {
         case "go" =>
-          if (currentFrame == totalFrames) {
+          if (currentFrame >= totalFrames && totalFrames > 0) {
             // Animation is over
             slider.setProgress3D(100)
             slider.setTime(endTime.toFloat)
-          }
-          if (totalFrames > 0) {
-            val percentage = currentFrame * 100 / totalFrames
+          } else if (totalFrames > 0 && currentFrame < totalFrames && _3DTimeTag.contains(currentFrame)) {
+            val percentage = (100 * _3DTimeTag(currentFrame) / endTime).floor.toInt
             slider.setProgress3D(percentage)
-            slider.setTime(percentage / 100f * endTime)
+            slider.setTime(_3DTimeTag(currentFrame).toFloat)
           }
           if (currentFrame <= totalFrames) {
             if (!app.waitingPaint)
               renderCurrentFrame()
             currentFrame = setFrameNumber("go", currentFrame)
+          } else if (staticFrame) {
+            if (!app.waitingPaint) {
+              currentFrame = totalFrames - 1
+              renderCurrentFrame()
+              staticFrame = false
+            }
           }
         case "set frame" =>
           setFrameDone = false
           currentFrame = setFrameNumber("set frame", currentFrame)
           if (totalFrames > 0 && currentFrame <= totalFrames
             && !app.waitingPaint) {
-            val percentage = currentFrame * 100 / totalFrames
-            slider.setTime(percentage / 100f * endTime)
+            slider.setTime(_3DTimeTag(currentFrame).toFloat)
             renderCurrentFrame()
             setFrameDone = true
           }
@@ -1331,8 +1346,29 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D, playSpeed: Double,
       newFrameNumber = lastFrameNumber + 1 * playSpeed.toInt
     else if (setMode == "go" && playSpeed < 1)
       newFrameNumber = lastFrameNumber + 1
-    else newFrameNumber = slider.bar.value * totalFrames / 100
+    else {
+      // set the frame according to the slider bar position
+      val timeTag = slider.bar.value * endTime / 100
+      newFrameNumber = findFrameWithTag(timeTag)
+    }
     newFrameNumber
+  }
+
+  def findFrameWithTag(timeTag: Double): Int = {
+    var frameNo = 0
+    var timeDiff = -1.0
+    for ((frame, time) <- _3DTimeTag) {
+      if (timeDiff == -1.0) {
+        frameNo = frame
+        timeDiff = abs(timeTag - _3DTimeTag(frame))
+      } else {
+        if (abs(timeTag - _3DTimeTag(frame)) < timeDiff) {
+          frameNo = frame
+          timeDiff = abs(timeTag - _3DTimeTag(frame))
+        }
+      }
+    }
+    frameNo
   }
 
   // Reactions to the mouse events

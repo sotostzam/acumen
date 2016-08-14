@@ -42,14 +42,14 @@ initially
   zc2           =  0,
   zc3           =  0
 always
-  _3D = (Text center=(-3.5,6.5,-4)+(tablerow,tablecolum,0).*shiftD  size=1 color=red   rotation=(0,0,0) content=player1.name,
-         Text center=(1.5,6.5,-4)+(tablerow,tablecolum,0).*shiftD   size=1 color=black rotation=(0,0,0) content=player2.name,
-         Text center=(-1.8,6.5,-5)+(tablerow,tablecolum,0).*shiftD  size=1 color=red   rotation=(0,0,0) content=player1Score,
-         Text center=(3.5,6.5,-5)+(tablerow,tablecolum,0).*shiftD   size=1 color=black rotation=(0,0,0) content=player2Score,
-         Text center=(-1.8,6.5,-6)+(tablerow,tablecolum,0).*shiftD  size=1 color=red   rotation=(0,0,0) content=finalScore1,
-         Text center=(3.5,6.5,-6)+(tablerow,tablecolum,0).*shiftD   size=1 color=black rotation=(0,0,0) content=finalScore2,
-         Text center=(-1.8,6.5,1.5)+(tablerow,tablecolum,0).*shiftD size=1 color=red   rotation=(0,0,0) content=r1,
-         Text center=(3.5,6.5,1.5)+(tablerow,tablecolum,0).*shiftD  size=1 color=black rotation=(0,0,0) content=r2),
+  _3D = (Text center=(-6.5,5,-3.05)+(tablerow,tablecolum,0).*shiftD  size=0.5 color=red   rotation=(0,0,0) coordinates="camera" content=player1.name, 
+         Text center=(1.5,5,-3.05)+(tablerow,tablecolum,0).*shiftD   size=0.5 color=black rotation=(0,0,0) coordinates="camera" content=player2.name,
+         Text center=(-6.5,5,-3.5)+(tablerow,tablecolum,0).*shiftD   size=0.5 color=red   rotation=(0,0,0) coordinates="camera" content=r1,
+         Text center=(1.5,5,-3.5)+(tablerow,tablecolum,0).*shiftD    size=0.5 color=black rotation=(0,0,0) coordinates="camera" content=r2,
+         Text center=(-5.2,5,-3.5)+(tablerow,tablecolum,0).*shiftD   size=0.5 color=red   rotation=(0,0,0) coordinates="camera" content=player1Score,
+         Text center=(2.8,5,-3.5)+(tablerow,tablecolum,0).*shiftD    size=0.5 color=black rotation=(0,0,0) coordinates="camera" content=player2Score,
+         Text center=(-3.9,5,-3.5)+(tablerow,tablecolum,0).*shiftD   size=0.5 color=red   rotation=(0,0,0) coordinates="camera" content=finalScore1,
+         Text center=(4.1,5,-3.5)+(tablerow,tablecolum,0).*shiftD    size=0.5 color=black rotation=(0,0,0) coordinates="camera" content=finalScore2),
   //add two modes for alternating start the game
   if mode ~= "Restart1"     && mode ~= "Player1Serve" && mode ~= "Player2Serve"
   && mode ~= "Impact"       && mode ~= "Freeze"       && mode ~= "ChangeSide"
