@@ -594,17 +594,17 @@ class ThreeDView extends JPanel {
       * p1' = p1 + NH,  p2' = p2 + NH, p3' = p3 + NH
       **/
 
-    val normalX = (p2InAcumen(1) - p1InAcumen(1)) * (p3InAcumen(2) - p1InAcumen(2))
-                - (p2InAcumen(2) - p1InAcumen(2)) * (p3InAcumen(1) - p1InAcumen(1))
-    val normalY = (p2InAcumen(2) - p1InAcumen(2)) * (p3InAcumen(0) - p1InAcumen(0))
-                - (p2InAcumen(0) - p1InAcumen(0)) * (p3InAcumen(2) - p1InAcumen(2))
-    val normalZ = (p2InAcumen(0) - p1InAcumen(0)) * (p3InAcumen(1) - p1InAcumen(1))
-                - (p2InAcumen(1) - p1InAcumen(1)) * (p3InAcumen(0) - p1InAcumen(0))
+    val normalX = ((p2InAcumen(1) - p1InAcumen(1)) * (p3InAcumen(2) - p1InAcumen(2))
+                - (p2InAcumen(2) - p1InAcumen(2)) * (p3InAcumen(1) - p1InAcumen(1)))
+    val normalY = ((p2InAcumen(2) - p1InAcumen(2)) * (p3InAcumen(0) - p1InAcumen(0))
+                - (p2InAcumen(0) - p1InAcumen(0)) * (p3InAcumen(2) - p1InAcumen(2)))
+    val normalZ = ((p2InAcumen(0) - p1InAcumen(0)) * (p3InAcumen(1) - p1InAcumen(1))
+                - (p2InAcumen(1) - p1InAcumen(1)) * (p3InAcumen(0) - p1InAcumen(0)))
 
     val lengthNormal = sqrt(normalX * normalX + normalY * normalY + normalZ * normalZ)
-    val unitLengthN = Array(if (normalX == 0) 0 else 1 / (lengthNormal * normalX),
-                            if (normalY == 0) 0 else 1 / (lengthNormal * normalY),
-                            if (normalZ == 0) 0 else 1 / (lengthNormal * normalZ))
+    val unitLengthN = Array((1 / lengthNormal) * normalX,
+                            (1 / lengthNormal) * normalY,
+                            (1 / lengthNormal) * normalZ)
     val newP1 = Array(p1InAcumen(0) + height * unitLengthN(0),
                       p1InAcumen(1) + height * unitLengthN(1),
                       p1InAcumen(2) + height * unitLengthN(2))
@@ -634,8 +634,6 @@ class ThreeDView extends JPanel {
     // Front
     triangle.addTriangle(upperP1,0,0, upperP3,1,0, lowerP1,0,1)
     triangle.addTriangle(upperP3,1,0, lowerP3,1,1, lowerP1,0,1)
-    triangle.addTriangle(upperP1,0,0, upperP3,1,0, lowerP3,1,1)
-    triangle.addTriangle(lowerP3,1,1, lowerP1,0,1, upperP1,0,0)
     triangle
   }
 
@@ -1002,7 +1000,7 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D, playSpeed: Double,
           val (sizeToSetX, sizeToSetY, sizeToSetZ) = calculatePointsDistance(p1, p2, p3)
           app.objectsToDelete += app.objects(objectKey)
           app.scaleFactors -= app.objects(objectKey)._1
-          app.objects(objectKey) = (app.drawTriangle(p1, p2, p3, 1), coordinates)
+          app.objects(objectKey) = (app.drawTriangle(p1, p2, p3, 0.1), coordinates)
           transObject = app.objects(objectKey)._1
           setScaleFactors(Array(sizeToSetY,sizeToSetZ,sizeToSetX), transObject,
                           name, app.scaleFactors)
@@ -1212,9 +1210,21 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D, playSpeed: Double,
           anaglyphObject.translate(app.eyeOffSet, 0, 0)
         if (TextureManager.getInstance().containsTexture("ConeCyan"))
           anaglyphObject.setTexture("ConeCyan")
-        CustomObject3D.partialBuild(anaglyphObject, name == "Text")
+        if (name != "Text" && name != "Triangle")
+          CustomObject3D.partialBuild(anaglyphObject, false)
+        else {
+          anaglyphObject.setRotationPivot(new SimpleVector(0, 0, 0))
+          anaglyphObject.setCenter(new SimpleVector(0, 0, 0))
+          CustomObject3D.partialBuild(anaglyphObject, true)
+        }
       }
-      CustomObject3D.partialBuild(transObject, name == "Text")
+      if (name != "Text" && name != "Triangle")
+        CustomObject3D.partialBuild(transObject, false)
+      else {
+        transObject.setRotationPivot(new SimpleVector(0, 0, 0))
+        transObject.setCenter(new SimpleVector(0, 0, 0))
+        CustomObject3D.partialBuild(transObject, true)
+      }
     }
   }
 
@@ -1243,7 +1253,7 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D, playSpeed: Double,
           val p1 = Array(vertexes(0), vertexes(1), vertexes(2))
           val p2 = Array(vertexes(3), vertexes(4), vertexes(5))
           val p3 = Array(vertexes(6), vertexes(7), vertexes(8))
-          app.drawTriangle(p1, p2, p3, 1)
+          app.drawTriangle(p1, p2, p3, 0.1)
         case "Cylinder" =>
           val (sizeToSetR, sizeToSetS) = (checkSize(size(0)), checkSize(size(1)))
           Primitives.getCylinder(20, abs(sizeToSetR).toFloat,
@@ -1308,7 +1318,7 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D, playSpeed: Double,
           anaglyphObject.setTexture("ConeCyan")
         anaglyphObject.translate(app.eyeOffSet, 0, 0)
         app.objectsCopy += c -> (anaglyphObject, coordinates)
-        if (name != "Text")
+        if (name != "Text" && name != "Triangle")
           CustomObject3D.partialBuild(anaglyphObject, false)
         else {
           anaglyphObject.setRotationPivot(new SimpleVector(0,0,0))
@@ -1317,7 +1327,7 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D, playSpeed: Double,
         }
       }
       app.objects += c -> (newObject, coordinates)
-      if (name != "Text")
+      if (name != "Text" && name != "Triangle")
         CustomObject3D.partialBuild(newObject, false)
       else {
         newObject.setRotationPivot(new SimpleVector(0,0,0))
