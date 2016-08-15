@@ -594,9 +594,11 @@ object Parser extends MyStdTokenParsers {
       case Some(x) => 
         if(name == "Box" | name == "Text" | name == "Obj" | name == "Sphere" | name == "Triangle"){
           x._2 match{
-            case ExprVector(ls) => 
-              if(name == "Box" | name == "Triangle") 
+            case ExprVector(ls) =>
+              if(name == "Box")
                 _3DVectorHelper(x._1, x._2)
+              if(name == "Triangle")
+                x._2
               else
                 error("_3D object " + name + " size parameter can't be " + Pretty.pprint(x._2))
             case _ @ Lit(GBool(_) | GStr(_))  =>           

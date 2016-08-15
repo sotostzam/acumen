@@ -573,9 +573,13 @@ class ThreeDView extends JPanel {
   def drawTriangle(p1: Array[Double], p2: Array[Double], p3: Array[Double], height: Double): Object3D = {
     val triangle = new Object3D(10)
 
-    val lowerP1 = new SimpleVector(p1(0), p1(1), p1(2))
-    val lowerP2 = new SimpleVector(p2(0), p2(1), p2(2))
-    val lowerP3 = new SimpleVector(p3(0), p3(1), p3(2))
+    val p1InAcumen = Array(p1(0), -p1(2), -p1(1))
+    val p2InAcumen = Array(p2(0), -p2(2), -p2(1))
+    val p3InAcumen = Array(p3(0), -p3(2), -p3(1))
+
+    val lowerP1 = new SimpleVector(p1InAcumen(0), p1InAcumen(1), p1InAcumen(2))
+    val lowerP2 = new SimpleVector(p2InAcumen(0), p2InAcumen(1), p2InAcumen(2))
+    val lowerP3 = new SimpleVector(p3InAcumen(0), p3InAcumen(1), p3InAcumen(2))
 
     /** Calculate the normal vector of plane (p1, p2, p3)
       * So for a triangle p1, p2, p3, if the vector U = p2 - p1 and the vector V = p3 - p1
@@ -590,23 +594,26 @@ class ThreeDView extends JPanel {
       * p1' = p1 + NH,  p2' = p2 + NH, p3' = p3 + NH
       **/
 
-    val normalX = (p2(1) - p1(1)) * (p3(2) - p1(2)) - (p2(2) - p1(2)) * (p3(1) - p1(1))
-    val normalY = (p2(2) - p1(2)) * (p3(0) - p1(0)) - (p2(0) - p1(0)) * (p3(2) - p1(2))
-    val normalZ = (p2(0) - p1(0)) * (p3(1) - p1(1)) - (p2(1) - p1(1)) * (p3(0) - p1(0))
+    val normalX = (p2InAcumen(1) - p1InAcumen(1)) * (p3InAcumen(2) - p1InAcumen(2))
+                - (p2InAcumen(2) - p1InAcumen(2)) * (p3InAcumen(1) - p1InAcumen(1))
+    val normalY = (p2InAcumen(2) - p1InAcumen(2)) * (p3InAcumen(0) - p1InAcumen(0))
+                - (p2InAcumen(0) - p1InAcumen(0)) * (p3InAcumen(2) - p1InAcumen(2))
+    val normalZ = (p2InAcumen(0) - p1InAcumen(0)) * (p3InAcumen(1) - p1InAcumen(1))
+                - (p2InAcumen(1) - p1InAcumen(1)) * (p3InAcumen(0) - p1InAcumen(0))
 
     val lengthNormal = sqrt(normalX * normalX + normalY * normalY + normalZ * normalZ)
-    val unitLengthN = Array(1 / (lengthNormal * normalX),
-                            1 / (lengthNormal * normalY),
-                            1 / (lengthNormal * normalZ))
-    val newP1 = Array(p1(0) + height * unitLengthN(0),
-                      p1(1) + height * unitLengthN(1),
-                      p1(2) + height * unitLengthN(2))
-    val newP2 = Array(p2(0) + height * unitLengthN(0),
-                      p2(1) + height * unitLengthN(1),
-                      p2(2) + height * unitLengthN(2))
-    val newP3 = Array(p3(0) + height * unitLengthN(0),
-                      p3(1) + height * unitLengthN(1),
-                      p3(2) + height * unitLengthN(2))
+    val unitLengthN = Array(if (normalX == 0) 0 else 1 / (lengthNormal * normalX),
+                            if (normalY == 0) 0 else 1 / (lengthNormal * normalY),
+                            if (normalZ == 0) 0 else 1 / (lengthNormal * normalZ))
+    val newP1 = Array(p1InAcumen(0) + height * unitLengthN(0),
+                      p1InAcumen(1) + height * unitLengthN(1),
+                      p1InAcumen(2) + height * unitLengthN(2))
+    val newP2 = Array(p2InAcumen(0) + height * unitLengthN(0),
+                      p2InAcumen(1) + height * unitLengthN(1),
+                      p2InAcumen(2) + height * unitLengthN(2))
+    val newP3 = Array(p3InAcumen(0) + height * unitLengthN(0),
+                      p3InAcumen(1) + height * unitLengthN(1),
+                      p3InAcumen(2) + height * unitLengthN(2))
 
     val upperP1 = new SimpleVector(newP1(0), newP1(1), newP1(2))
     val upperP2 = new SimpleVector(newP2(0), newP2(1), newP2(2))
@@ -614,18 +621,21 @@ class ThreeDView extends JPanel {
 
     // Upper
     triangle.addTriangle(upperP1,0,0, upperP2,0,1, upperP3,1,0)
+    triangle.addTriangle(upperP1,0,0, upperP3,1,0, upperP2,0,1)
     // Lower
     triangle.addTriangle(lowerP1,0,0, lowerP2,0,1, lowerP3,1,0)
+    triangle.addTriangle(lowerP1,1,0, lowerP3,1,0, lowerP2,0,1)
     // Left
     triangle.addTriangle(lowerP1,0,0, lowerP2,0,1, upperP2,1,0)
-    triangle.addTriangle(upperP2,0,0, upperP1,0,1, lowerP1,1,0)
+    triangle.addTriangle(upperP2,1,0, upperP1,0,1, lowerP1,1,1)
     // Right
     triangle.addTriangle(lowerP2,0,0, lowerP3,0,1, upperP3,1,0)
-    triangle.addTriangle(upperP3,0,0, upperP2,0,1, lowerP2,1,0)
+    triangle.addTriangle(upperP3,1,0, upperP2,0,1, lowerP2,1,1)
     // Front
-    triangle.addTriangle(lowerP1,0,0, lowerP3,0,1, upperP3,1,0)
-    triangle.addTriangle(upperP3,0,0, upperP1,0,1, lowerP1,1,0)
-
+    triangle.addTriangle(upperP1,0,0, upperP3,1,0, lowerP1,0,1)
+    triangle.addTriangle(upperP3,1,0, lowerP3,1,1, lowerP1,0,1)
+    triangle.addTriangle(upperP1,0,0, upperP3,1,0, lowerP3,1,1)
+    triangle.addTriangle(lowerP3,1,1, lowerP1,0,1, upperP1,0,0)
     triangle
   }
 
@@ -979,6 +989,44 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D, playSpeed: Double,
               setReSize(factors(0), factors(1), factors(2), anaglyphObject)
           }
         }
+      case "Triangle" =>
+        // the type has been changed, delete the old object and create a new one
+        if (lastFrameName != name && checkResizeable(size)
+          && checkResizeable(angle)) {
+          // change the object in
+          // Since some object need to scale, we never allow the initial size become 0
+          val vertexes = size.map(vertex => checkSize(vertex))
+          val p1 = Array(vertexes(0), vertexes(1), vertexes(2))
+          val p2 = Array(vertexes(3), vertexes(4), vertexes(5))
+          val p3 = Array(vertexes(6), vertexes(7), vertexes(8))
+          val (sizeToSetX, sizeToSetY, sizeToSetZ) = calculatePointsDistance(p1, p2, p3)
+          app.objectsToDelete += app.objects(objectKey)
+          app.scaleFactors -= app.objects(objectKey)._1
+          app.objects(objectKey) = (app.drawTriangle(p1, p2, p3, 1), coordinates)
+          transObject = app.objects(objectKey)._1
+          setScaleFactors(Array(sizeToSetY,sizeToSetZ,sizeToSetX), transObject,
+                          name, app.scaleFactors)
+          objID = app.objects(objectKey)._1.getName // refresh the object ID
+          transObject.setShadingMode(Object3D.SHADING_FAKED_FLAT)
+          if (anaglyphObject != null) {
+            anaglyphObject = transAnaglyphObject(transObject, objectKey, coordinates)
+            newAnaglyphObject = true
+          }
+        } else if (checkResizeable(size) && needResize) {
+          // just need to change the size
+          if (app.objects.contains(objectKey) && transObject != null) {
+            val vertexes = size.map(vertex => checkSize(vertex))
+            val p1 = Array(vertexes(0), vertexes(1), vertexes(2))
+            val p2 = Array(vertexes(3), vertexes(4), vertexes(5))
+            val p3 = Array(vertexes(6), vertexes(7), vertexes(8))
+            val (sizeToSetX, sizeToSetY, sizeToSetZ) = calculatePointsDistance(p1, p2, p3)
+            val factors = calculateResizeFactor(transObject, Array(sizeToSetZ,
+                                                sizeToSetY, sizeToSetX), app.scaleFactors)
+            setReSize(factors(0), factors(1), factors(2), transObject)
+            if (anaglyphObject != null)
+              setReSize(factors(0), factors(1), factors(2), anaglyphObject)
+          }
+        }
       case "Cylinder" =>
         // the type has been changed, delete the old object and create a new one
         if (lastFrameName != name && checkResizeable(size)
@@ -1190,6 +1238,12 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D, playSpeed: Double,
                                                       checkSize(size(0)),
                                                       checkSize(size(2)))
           app.drawBox(abs(sizeToSetX), abs(sizeToSetY), abs(sizeToSetZ))
+        case "Triangle" =>
+          val vertexes = size.map(vertex => checkSize(vertex))
+          val p1 = Array(vertexes(0), vertexes(1), vertexes(2))
+          val p2 = Array(vertexes(3), vertexes(4), vertexes(5))
+          val p3 = Array(vertexes(6), vertexes(7), vertexes(8))
+          app.drawTriangle(p1, p2, p3, 1)
         case "Cylinder" =>
           val (sizeToSetR, sizeToSetS) = (checkSize(size(0)), checkSize(size(1)))
           Primitives.getCylinder(20, abs(sizeToSetR).toFloat,
@@ -1271,6 +1325,16 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D, playSpeed: Double,
         CustomObject3D.partialBuild(newObject, true)
       }
     }
+  }
+
+  def calculatePointsDistance(p1: Array[Double], p2: Array[Double], p3: Array[Double]): (Double, Double, Double) = {
+    val dis1 = sqrt((p2(0) - p1(0)) * (p2(0) - p1(0)) + (p2(1) - p1(1)) * (p2(1) - p1(1))
+                    + (p2(2) - p1(2)) * (p2(2) - p1(2)))
+    val dis2 = sqrt((p3(0) - p1(0)) * (p3(0) - p1(0)) + (p3(1) - p1(1)) * (p3(1) - p1(1))
+                    + (p3(2) - p1(2)) * (p3(2) - p1(2)))
+    val dis3 = sqrt((p3(0) - p2(0)) * (p3(0) - p2(0)) + (p3(1) - p2(1)) * (p3(1) - p2(1))
+                    + (p3(2) - p2(2)) * (p3(2) - p2(2)))
+    (dis1, dis2, dis3)
   }
 
   // initialize for anaglyph
