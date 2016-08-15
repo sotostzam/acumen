@@ -65,6 +65,7 @@ class ThreeDData extends Publisher {
       x match {
         case VLit(GInt(i)) =>
         case VLit(GDouble(i)) =>
+        case VVector(i) => isVectorOfNumbers(i)
         case _ => result = false;
       }
     result
@@ -173,13 +174,27 @@ class ThreeDData extends Publisher {
 
   /* _3D size should be either a vector or an number */
   def extractSize(value: Value[_]) {
+    _3DSize = Array[Double]()
     value match {
       case VLit(GPattern(ls)) => extractSize(VVector(ls map VLit))
       case VVector(vs) =>
-        if (isVectorOfNumbers(vs)) _3DSize = extractDoubles(vs).toArray
-        else {
-          _3DSize = Array[Double]()
-          throw _3DSizeError(value)
+        vs.head match {
+          case VVector(_) =>
+            if (isVectorOfNumbers(vs)) vs.foreach {
+              sv =>
+                val ss = extractDoubles(sv).toArray
+                _3DSize = _3DSize ++ ss
+            }
+            else {
+              _3DSize = Array[Double]()
+              throw _3DSizeError(value)
+            }
+          case _ =>
+            if (isVectorOfNumbers(vs)) _3DSize = extractDoubles(vs).toArray
+            else {
+              _3DSize = Array[Double]()
+              throw _3DSizeError(value)
+            }
         }
       case VLit(GInt(x)) => _3DSize = Array(x.toDouble)
       case VLit(GDouble(x)) => _3DSize = Array(x)
@@ -193,6 +208,7 @@ class ThreeDData extends Publisher {
       case "Box" =>
         if (_3DSize.length == 2) _3DSize = _3DSize :+ 0.001
         else if (_3DSize.length != 3) throw _3DBoxSizeError()
+      case "Triangle" => if (_3DSize.length != 9) throw _3DTriangleSizeError()
       /* 3D text's size should be a number */
       case _ => if (_3DSize.length != 1) throw _3DTextSizeError()
     }
