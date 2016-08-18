@@ -38,6 +38,7 @@ class ThreeDData extends Publisher {
   var _3DAngle = Array[Double](0.0, 0.0, 0.0)
   var _3DPath = ""
   var _3DText = ""
+  var _3DHeight = 1.0
   /* Optional field to indicate transparent object or not */
   var _3DTexture = ""
   var _3DCoordinates = "global"
@@ -124,6 +125,15 @@ class ThreeDData extends Publisher {
       case "angle" => _3DAngle = if (temp.length == 1) Array(0, 0, temp.apply(0))
                                  else temp
       case _ => throw ShouldNeverHappen()
+    }
+  }
+
+  /* Get the height of triangle */
+  def extractHeight(value: Value[_]) {
+    value match {
+      case VLit(GDouble(h)) => _3DHeight = h
+      case VLit(GInt(h)) => _3DHeight = h
+      case _ => throw _3DNameError(value)
     }
   }
 
@@ -253,7 +263,11 @@ class ThreeDData extends Publisher {
               extractText(l(5))
             else if (_3DType == "OBJ")
               extractPath(l(5))
-            if (l.size == 8) {
+            if (l.size == 8 && _3DType == "Triangle") {
+              extractHeight(l(7))
+              extractTransparency(l(6))
+              extractCoordinates(l(5))
+            } else if (l.size == 8 && _3DType != "Triangle") {
               extractTransparency(l(7))
               extractCoordinates(l(6))
             } else {
@@ -268,6 +282,8 @@ class ThreeDData extends Publisher {
           List(_3DType, _3DPosition, _3DSize, _3DColor, _3DAngle, _3DText, _3DCoordinates, _3DTransparency)
         else if (_3DType == "OBJ")
           List(_3DType, _3DPosition, _3DSize, _3DColor, _3DAngle, _3DPath, _3DCoordinates, _3DTransparency)
+        else if (_3DType == "Triangle")
+          List(_3DType, _3DPosition, _3DSize, _3DColor, _3DAngle, _3DHeight, _3DCoordinates, _3DTransparency)
         else
           List(_3DType, _3DPosition, _3DSize, _3DColor, _3DAngle, _3DCoordinates, _3DTransparency)
 
