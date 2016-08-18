@@ -919,10 +919,11 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D, playSpeed: Double,
       (valueList.head, valueList(1), valueList(2), valueList(3), valueList(4),
         if (valueList.size == 7) valueList(6)
         else valueList(7))
-    val (text: String, path: String, coordinates: String) =
+    val (text: String, path: String, coordinates: String, height: Double) =
       (if (name == "Text") valueList(5) else " ",
        if (name == "OBJ")  valueList(5) else " ",
-       if (valueList.size == 7) valueList(5) else valueList(6))
+       if (valueList.size == 7) valueList(5) else valueList(6),
+       if (name == "Triangle") valueList(5) else 0.4)
 
     // get the object need to transform
     var transObject: Object3D = app.objects(objectKey)._1
@@ -991,7 +992,7 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D, playSpeed: Double,
           val (sizeToSetX, sizeToSetY, sizeToSetZ) = calculatePointsDistance(p1, p2, p3)
           app.objectsToDelete += app.objects(objectKey)
           app.scaleFactors -= app.objects(objectKey)._1
-          app.objects(objectKey) = (app.drawTriangle(p1, p2, p3, 0.1), coordinates)
+          app.objects(objectKey) = (app.drawTriangle(p1, p2, p3, height), coordinates)
           transObject = app.objects(objectKey)._1
           setScaleFactors(Array(sizeToSetY,sizeToSetZ,sizeToSetX), transObject,
                           name, app.scaleFactors)
@@ -1213,10 +1214,11 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D, playSpeed: Double,
       (valueList.head, valueList(1), valueList(2), valueList(3), valueList(4),
         if (valueList.size == 7) valueList(6)
         else valueList(7))
-    val (text: String, path: String, coordinates: String) =
+    val (text: String, path: String, coordinates: String, height: Double) =
       (if (name == "Text") valueList(5) else " ",
         if (name == "OBJ")  valueList(5) else " ",
-        if (valueList.size == 7) valueList(5) else valueList(6))
+        if (valueList.size == 7) valueList(5) else valueList(6),
+        if (name == "Triangle") valueList(5) else 0.4)
 
     val newObject =
       if (checkResizeable(size) && checkResizeable(angle)) name match {
@@ -1230,7 +1232,7 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D, playSpeed: Double,
           val p1 = Array(vertexes(0), vertexes(1), vertexes(2))
           val p2 = Array(vertexes(3), vertexes(4), vertexes(5))
           val p3 = Array(vertexes(6), vertexes(7), vertexes(8))
-          app.drawTriangle(p1, p2, p3, 0.1)
+          app.drawTriangle(p1, p2, p3, height)
         case "Cylinder" =>
           val (sizeToSetR, sizeToSetS) = (checkSize(size(0)), checkSize(size(1)))
           Primitives.getCylinder(20, abs(sizeToSetR).toFloat,
