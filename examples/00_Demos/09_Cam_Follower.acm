@@ -3,7 +3,7 @@ model Main(simulator) =
   initially
     r = 0, dt = 0, t = 0, t' = 02,t'' =0,
     m = 1, g = 9.8, k = 14, r=0, N = 10,v = 0,a = 0,
-    mode = "init", c = create Cross((0,0,0),(-2,0,0)), box = create Chamber ((5,0,0),(-2,0,0)),
+    mode = "init", c = create Cross((0,-0.05,0),(-2,-0.05,0)), box = create Chamber ((5,0,0),(-2,0,0)),
     _3D = (),_3DView = (),D = (-2,0,0)
   always
     simulator.endTime + = 15, 
@@ -11,7 +11,7 @@ model Main(simulator) =
     r = (1.5-0.5*cos(t)) * (1 + 0.2 *cos(2*(t) )),
     v - r'[t]*t' = 0, // Speed of follwer
     a - (r)'' = 0, // Accerleration 
-    t'' = 0, N =100, // Number of segment for visualization
+    t'' = 0, N =40, // Number of segment for visualization
     box.x = r+2,
     c.t = t,
     match mode with [
@@ -45,8 +45,17 @@ always
  r2 = (1.5-0.5*cos(t20)) * (1 + 0.2 *cos(2*t20 )) ,
  p = (r1*cos(t1), 0, r1*sin(t1)),
  q = (r2*cos(t2), 0, r2*sin(t2)),
-  _3D = (Cylinder center=(p+q)/2+D radius=0.02 length=l color=0.7*(1,1,1) 
-         rotation=(alpha,0,-theta) ) ,
+  _3D = (
+    //Cylinder center=(p+q)/2+D radius=0.02 length=l color=0.7*(1,1,1) 
+    
+    //rotation=(alpha,0,-theta),
+         Triangle points = ((0,0,0)+D,
+                            p+D,
+                            q+D)
+                  height = 0.1
+                  color = 0.6*white
+           
+         ) ,
   x = (p-q) dot (1,0,0),
   y = (p-q) dot (0,1,0),
   z = (p-q) dot (0,0,1),

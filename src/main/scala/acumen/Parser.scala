@@ -669,6 +669,17 @@ object Parser extends MyStdTokenParsers {
         else error("_3D object " + name + " can't have 'length' parameter")
       case None => defaultLength
     }
+    val width = paras.find(_._1.x == "width") match{
+      case Some(x) => 
+        if(name == "Cylinder" | name == "Cone") 
+          x._2 match{
+           case _ @ Lit(GStr(_) | GBool(_)) => 
+             error("_3D object " + name + "'s 'length' parameter is not a number")
+           case _ => x._2
+          }
+        else error("_3D object " + name + " can't have 'length' parameter")
+      case None => defaultLength
+    }
     
     val height = paras.find(_._1.x == "height") match{
       case Some(x) => 
