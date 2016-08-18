@@ -167,7 +167,6 @@ class App extends SimpleSwingApplication {
   private val resetDeviceNum                  = mkAction(    "Reset Device",                        NONE, NONE,       resetDevice())
   private val contractionAction               = mkActionMask("Contraction",                         VK_C, VK_C,       shortcutMask | SHIFT_MASK, toggleContraction())
   private val normalizeAction                 = mkAction(    "Normalize (to H.A.)",                 VK_N, NONE,       toggleNormalization())
-  private val btaAction                       = mkAction(    "BTA",                                 VK_N, NONE,       toggleBTA())
   private val manualAction                    = mkAction(    "Reference Manual",                    VK_M, VK_F1,      manual())
   private val bugReportAction                 = mkAction(    "Bugs",                                NONE, NONE,       bugReport())
   private val aboutAction                     = new Action(  "About")       { mnemonic =            VK_A; def apply = about() }
@@ -560,9 +559,9 @@ class App extends SimpleSwingApplication {
 
     val bta = new RadioMenuItem("") {
       import Main.extraPasses
-      selected = extraPasses.contains("BTA")
-      enableWhenStopped(this)
-      action = btaAction
+      toggleBTA()
+      selected = true
+      enableWhenStopped(this)     
     }
     
     object semantics {
@@ -675,7 +674,7 @@ class App extends SimpleSwingApplication {
           mnemonic = Key.D
           contents ++= Seq(ref2014, opt2014, new Separator, ref2013, opt2013, new Separator, ref2012, opt2012, par2012)
         }
-        contents ++= Seq(new Separator, bta, lc)
+        contents ++= Seq(new Separator,lc)
       }
     }
 

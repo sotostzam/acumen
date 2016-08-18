@@ -686,33 +686,11 @@ initially
   mode  =  "Init" ,
   copter  =  create QuadCopter((2.2,0,1),0,-0.5,0) ,
   visual  =  create VisualCopter((2.2,0,1),0,-0.5,0) ,
-  f1  =  create Display_bar1(0,(0.1,0.8,0.1),(1,0,0)) ,
-  f2  =  create Display_bar1(0,(0.1,0.8,0.1),(0,-1,0)) ,
-  f3  =  create Display_bar1(0,(0.1,0.8,0.1),(-1,0,0)) ,
-  f4  =  create Display_bar1(0,(0.1,0.8,0.1),(0,1,0)) ,
-  // Controller
+ // Controller
   controller  =  create PDController(1,0.2,0.2,0.2,0,0,0,0) ,
   flag  =  0 ,
   max  =  0.00001 
 always
-  f2.roll = visual.roll ,
-  f4.roll = visual.roll ,
-  f1.roll = visual.roll ,
-  f3.roll = visual.roll ,
-  f2.pitch = visual.pitch ,
-  f4.pitch = visual.pitch ,
-  f1.pitch = visual.pitch ,
-  f3.pitch = visual.pitch ,
-  
-  f1.v = (copter.w1-max)*30/max ,
-  f1.D = visual.rotor1p ,
-  f2.v = (copter.w2-max)*30/max ,
-  f2.D = visual.rotor2p ,
-  f3.v = (copter.w3-max)*30/max ,
-  f3.D = visual.rotor3p ,
-  f4.v = (copter.w4-max)*30/max ,
-  f4.D = visual.rotor4p ,
-  
   if max == 0 then
     if max>copter.w2 then
       max + = copter.w2 

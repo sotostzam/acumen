@@ -81,6 +81,14 @@ object Errors {
     override def mesg = 
       op + " is not a valid vector-vector operation."
   }
+  case class LengthVectorVectorOp(u:List[Value[_]],v:List[Value[_]]) extends PositionalAcumenError {
+    override def mesg = 
+      "Vector " + u.mkString(",")  + " and vector " + v.mkString(",") + " has different length."
+  }
+  case class LengthVectorVectorOpExpr(u:ExprVector,v:ExprVector) extends PositionalAcumenError {
+    override def mesg = 
+      "Vector " + pprint(u.asInstanceOf[Expr])  + " and vector " + pprint(v.asInstanceOf[Expr]) + " has different length."
+  }
   case class InvalidVectorOp(op:String) extends PositionalAcumenError {
     override def mesg = 
       op + " is not a valid operation over vectors."

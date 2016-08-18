@@ -1,31 +1,36 @@
 // By: Yingfu 
 model Main(simulator) = 
   initially
-    r = 0, dt = 0, t = 0, t' = 2,t'' =0,
+    r = 0, dt = 0, t = 0, t' = 02,t'' =0,
     m = 1, g = 9.8, k = 14, r=0, N = 10,v = 0,a = 0,
-    mode = "init",
-    _3D = ()
-  always 
+    mode = "init", c = create Cross((0,0,0),(-2,0,0)), box = create Chamber ((5,0,0),(-2,0,0)),
+    _3D = (),_3DView = (),D = (-2,0,0)
+  always
+    simulator.endTime + = 15, 
     // Cam shape equation
-    r = (1.5-0.5*cos(pi/2 - t)) * (1 + 0.2 *cos(2*(pi/2 - t) )),
+    r = (1.5-0.5*cos(t)) * (1 + 0.2 *cos(2*(t) )),
     v - r'[t]*t' = 0, // Speed of follwer
     a - (r)'' = 0, // Accerleration 
-    t'' = 0, N =30, // Number of segment for visualization
+    t'' = 0, N =100, // Number of segment for visualization
+    box.x = r+2,
+    c.t = t,
     match mode with [
     "init" -> 
       foreach i in 0:(N-1) do
-        create segment(i*2*pi/(N-1), (i+1)*2*pi/(N-1)),
+        create segment(i*2*pi/(N-1), (i+1)*2*pi/(N-1),D),
       mode += "rest"
     
     |"rest" ->
     
     ],
-    _3D =(Cylinder length = 0.1 radius = 0.1 center = (0,0,r+0.05) color = (1,0,0),
-          Box size = (0.3,0.1,2) color = (0.7, 0.7, 0.7)center = (0,0,r+1+0.1))
+    _3DView = ((0,-15,0),(0,0,0)),
+    _3D =(Cylinder length = 0.1 radius = 0.1 center = (r+0.05,0,0) color = (0.7, 0.7, 0.7),
+          Box size = (2,0.1,0.2) color = (0.7, 0.7, 0.7)center = (r+1,0,0)+D,
+          Box size = (0.1,0.2,1) color = (0.7, 0.7, 0.7)center = (r+2,0,0)+D)
     
 
 // A segment of cam shape, from angle t10 to t20
-model segment(t10,t20) =
+model segment(t10,t20,D) =
 initially
  t1 = t10, t2 = t20, t1' = 2, t2' =2,t1'' = 0, t2'' = 0,
  r1 = 0, r2 = 0,
@@ -40,11 +45,31 @@ always
  r2 = (1.5-0.5*cos(t20)) * (1 + 0.2 *cos(2*t20 )) ,
  p = (r1*cos(t1), 0, r1*sin(t1)),
  q = (r2*cos(t2), 0, r2*sin(t2)),
-  _3D = (Cylinder center=(p+q)/2 radius=0.02 length=l color=(1,1,0) 
+  _3D = (Cylinder center=(p+q)/2+D radius=0.02 length=l color=0.7*(1,1,1) 
          rotation=(alpha,0,-theta) ) ,
   x = (p-q) dot (1,0,0),
   y = (p-q) dot (0,1,0),
   z = (p-q) dot (0,0,1),
   l = norm(p-q),
   alpha  = atan(z/x)
+
+
+model Chamber (p,D) =
+ initially 
+  _3D = (),x = 0, v = 0, c = (0,0,0),t= 0
+ always
+   v = p(0) - x, 
+   c = (1-v/1.8)*red + (v/1.8)*white,
+   _3D = (Box center = p+(0.15,0,0)+D color = black size = (0.25,0.2,1.4),
+         Box center = p - (0.8,0,0.6)+D color = black size = (2,0.2,0.2),
+         Box center = p + (-0.8,0,0.6)+D color = black size = (2,0.2,0.2),
+         Box center = (x+v/2+0.02,0,0)+D  color = c size = (v-0.04,0.2,1))   
+model Cross(p,D) = 
+ initially
+   t = 0, _3D = ()
+  always
+  _3D = (Cylinder center = p+D length = 0.8 radius = 0.02 color = yellow rotation = (-t,0,pi/2),
+         Cylinder center = p+D length = 0.8 radius = 0.02 color = yellow rotation = (pi/2,-t,0),
+         Cylinder center = p+D length = 0.01 radius = 0.4 color = blue rotation = (0,t,0))
+ 
   

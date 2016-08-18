@@ -352,13 +352,17 @@ object Common {
       case "+"   => 
         if(isMatrix(u) || isMatrix(v))
           matrixPlusMinus("+", u, v)
-        else        
-        VVector((du,dv).zipped map ((d1,d2) => VLit(GDouble(d1+d2))))
+        else if(du.length == dv.length)        
+         VVector((du,dv).zipped map ((d1,d2) => VLit(GDouble(d1+d2))))
+         else
+         throw LengthVectorVectorOp(u,v)
       case "-"   => 
          if(isMatrix(u) && isMatrix(v))
           matrixPlusMinus("-", u, v)
-        else        
-        VVector((du,dv).zipped map ((d1,d2) => VLit(GDouble(d1-d2))))
+        else if(du.length == dv.length)         
+          VVector((du,dv).zipped map ((d1,d2) => VLit(GDouble(d1-d2))))
+        else
+          throw LengthVectorVectorOp(u,v)
       case "dot" => VLit(GDouble(((du,dv).zipped map (_*_)).sum))
       case "*"   => 
         if(isMatrix(u) || isMatrix(v))
@@ -443,7 +447,7 @@ object Common {
     (op,xs) match {
        case ("==", x::y::Nil) => 
          VLit(GBool(x == y))
-       case ("~=", x::y::Nil) => 
+       case ("~=", x::y::Nil) =>          
          VLit(GBool(x != y))
        case ("_:_:_", VLit(GInt(s))::VLit(GInt(d))::VLit(GInt(e))::Nil) =>
          sequenceOp(s,d,e)
@@ -492,6 +496,7 @@ object Common {
     e match {
       case VVector(l) => i match {
         case VLit(GInt(idx)) :: Nil => lookup(idx, l)
+        case VLit(GDouble(dx)) :: Nil => throw ExpectedInteger(i(0))
         case VLit(gd: GTDif[_]) :: Nil if gd.isValidInt => lookup(gd.toInt, l)
         case VVector(idxs) :: Nil => VVector(idxs.map(x => evalIndexOp(e,List(x))))
         case VVector(rows) :: VVector(columns) :: Nil => {

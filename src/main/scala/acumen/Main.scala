@@ -27,7 +27,7 @@ object Main {
   var useTemplates = false
   var dontFork = false
   var synchEditorWithBrowser = true // Synchronize code editor with file browser
-  var extraPasses = Seq.empty[String]
+  var extraPasses = Seq("BTA")
   var displayHelp = "none"
   var commandLineParms = false
   // ^^ true when certain command line paramatics are specified, will
