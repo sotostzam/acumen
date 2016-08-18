@@ -533,6 +533,9 @@ object Parser extends MyStdTokenParsers {
   val defaultContent = Lit(GStr(" "))
   val defaultColor = ExprVector(List(Lit(GInt(1)),Lit(GInt(1)),Lit(GInt(1))))
   val defaultRotation = ExprVector(List(Lit(GInt(0)),Lit(GInt(0)),Lit(GInt(0))))
+  val defaultPoints = ExprVector(List(ExprVector(List(Lit(GInt(0)),Lit(GInt(0)),Lit(GInt(0)))),
+                                      ExprVector(List(Lit(GInt(1)),Lit(GInt(0)),Lit(GInt(0)))),
+                                      ExprVector(List(Lit(GInt(0)),Lit(GInt(1)),Lit(GInt(0))))))
   val defaultCoordinates = Lit(GStr("Global"))
   val defaultTransparency = Lit(GDouble(-1.0))
 
@@ -541,11 +544,13 @@ object Parser extends MyStdTokenParsers {
     Map( "center"       -> List(2,3)
        , "color"        -> List(3)
        , "coordinates"  -> Nil
+       , "height"       -> Nil
        , "content"      -> Nil
        , "length"       -> Nil
        , "radius"       -> Nil
        , "rotation"     -> List(1,3)
        , "size"         -> List(2,3)
+       , "points"       -> List(3)
        , "transparency" -> Nil
        )
   
@@ -597,7 +602,7 @@ object Parser extends MyStdTokenParsers {
             case ExprVector(ls) =>
               if(name == "Box")
                 _3DVectorHelper(x._1, x._2)
-              if(name == "Triangle")
+              else if(name == "Triangle")
                 x._2
               else
                 error("_3D object " + name + " size parameter can't be " + Pretty.pprint(x._2))
@@ -610,6 +615,17 @@ object Parser extends MyStdTokenParsers {
           def mesg = "_3D object " + name + " can't have 'size' parameter"
         }.setPos(x._2.pos)
       case None => if(name == "Box") defaultSize else defaultScale
+    }
+    
+    val points = paras.find(_._1.x == "points") match{
+      case Some(x) => 
+        if(name == "Triangle"){
+           x._2
+        }         
+        else throw new PositionalAcumenError{
+          def mesg = "_3D object " + name + " can't have 'size' parameter"
+        }.setPos(x._2.pos)
+      case None =>  defaultPoints
     }
 
     val radius = paras.find(_._1.x == "radius") match{
@@ -632,6 +648,18 @@ object Parser extends MyStdTokenParsers {
       	     error("_3D object " + name + "'s 'length' parameter is not a number")
       	   case _ => x._2
       	  }
+        else error("_3D object " + name + " can't have 'length' parameter")
+      case None => defaultLength
+    }
+    
+    val height = paras.find(_._1.x == "height") match{
+      case Some(x) => 
+        if(name == "Box" | name == "Triangle") 
+          x._2 match{
+           case _ @ Lit(GStr(_) | GBool(_)) => 
+             error("_3D object " + name + "'s 'length' parameter is not a number")
+           case _ => x._2
+          }
         else error("_3D object " + name + " can't have 'length' parameter")
       case None => defaultLength
     }
@@ -680,7 +708,7 @@ object Parser extends MyStdTokenParsers {
       case "Sphere" => ExprVector(List(Lit(GStr("Sphere")),center,size,color,rotation,coordinates,transparency))
       case "Text" => ExprVector(List(Lit(GStr("Text")),center,size,color,rotation,content,coordinates,transparency))
       case "Obj" => ExprVector(List(Lit(GStr("OBJ")),center,size,color,rotation,content,coordinates,transparency))
-      case "Triangle" => ExprVector(List(Lit(GStr("Triangle")),center,size,color,rotation,coordinates,transparency))
+      case "Triangle" => ExprVector(List(Lit(GStr("Triangle")),center,points,color,rotation,coordinates,transparency,height))
       case _ => error("Unsupported 3D object " + name)
     }
 

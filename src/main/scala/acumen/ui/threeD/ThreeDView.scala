@@ -570,17 +570,14 @@ class ThreeDView extends JPanel {
     box
   }
 
-  def drawTriangle(p1: Array[Double], p2: Array[Double], p3: Array[Double], height: Double): Object3D = {
+ def drawTriangle(p1: Array[Double], p2: Array[Double], p3: Array[Double], height: Double): Object3D = {
     val triangle = new Object3D(10)
-
-    val p1InAcumen = Array(p1(0), -p1(2), -p1(1))
-    val p2InAcumen = Array(p2(0), -p2(2), -p2(1))
-    val p3InAcumen = Array(p3(0), -p3(2), -p3(1))
-
+    val p1InAcumen = Array(-p1(0), -p1(2), -p1(1))
+    val p2InAcumen = Array(-p2(0), -p2(2), -p2(1))
+    val p3InAcumen = Array(-p3(0), -p3(2), -p3(1))
     val lowerP1 = new SimpleVector(p1InAcumen(0), p1InAcumen(1), p1InAcumen(2))
     val lowerP2 = new SimpleVector(p2InAcumen(0), p2InAcumen(1), p2InAcumen(2))
     val lowerP3 = new SimpleVector(p3InAcumen(0), p3InAcumen(1), p3InAcumen(2))
-
     /** Calculate the normal vector of plane (p1, p2, p3)
       * So for a triangle p1, p2, p3, if the vector U = p2 - p1 and the vector V = p3 - p1
       * then the normal N = U x V and can be calculated by:
@@ -593,14 +590,12 @@ class ThreeDView extends JPanel {
       * NH = h*N,
       * p1' = p1 + NH,  p2' = p2 + NH, p3' = p3 + NH
       **/
-
     val normalX = ((p2InAcumen(1) - p1InAcumen(1)) * (p3InAcumen(2) - p1InAcumen(2))
                 - (p2InAcumen(2) - p1InAcumen(2)) * (p3InAcumen(1) - p1InAcumen(1)))
     val normalY = ((p2InAcumen(2) - p1InAcumen(2)) * (p3InAcumen(0) - p1InAcumen(0))
                 - (p2InAcumen(0) - p1InAcumen(0)) * (p3InAcumen(2) - p1InAcumen(2)))
     val normalZ = ((p2InAcumen(0) - p1InAcumen(0)) * (p3InAcumen(1) - p1InAcumen(1))
                 - (p2InAcumen(1) - p1InAcumen(1)) * (p3InAcumen(0) - p1InAcumen(0)))
-
     val lengthNormal = sqrt(normalX * normalX + normalY * normalY + normalZ * normalZ)
     val unitLengthN = Array((1 / lengthNormal) * normalX,
                             (1 / lengthNormal) * normalY,
@@ -614,11 +609,9 @@ class ThreeDView extends JPanel {
     val newP3 = Array(p3InAcumen(0) + height * unitLengthN(0),
                       p3InAcumen(1) + height * unitLengthN(1),
                       p3InAcumen(2) + height * unitLengthN(2))
-
     val upperP1 = new SimpleVector(newP1(0), newP1(1), newP1(2))
     val upperP2 = new SimpleVector(newP2(0), newP2(1), newP2(2))
     val upperP3 = new SimpleVector(newP3(0), newP3(1), newP3(2))
-
     // Upper
     triangle.addTriangle(upperP1,0,0, upperP2,0,1, upperP3,1,0)
     triangle.addTriangle(upperP1,0,0, upperP3,1,0, upperP2,0,1)
@@ -988,9 +981,7 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D, playSpeed: Double,
           }
         }
       case "Triangle" =>
-        // the type has been changed, delete the old object and create a new one
-        if (lastFrameName != name && checkResizeable(size)
-          && checkResizeable(angle)) {
+        if (checkResizeable(size) && checkResizeable(angle)) {
           // change the object in
           // Since some object need to scale, we never allow the initial size become 0
           val vertexes = size.map(vertex => checkSize(vertex))
@@ -1009,20 +1000,6 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D, playSpeed: Double,
           if (anaglyphObject != null) {
             anaglyphObject = transAnaglyphObject(transObject, objectKey, coordinates)
             newAnaglyphObject = true
-          }
-        } else if (checkResizeable(size) && needResize) {
-          // just need to change the size
-          if (app.objects.contains(objectKey) && transObject != null) {
-            val vertexes = size.map(vertex => checkSize(vertex))
-            val p1 = Array(vertexes(0), vertexes(1), vertexes(2))
-            val p2 = Array(vertexes(3), vertexes(4), vertexes(5))
-            val p3 = Array(vertexes(6), vertexes(7), vertexes(8))
-            val (sizeToSetX, sizeToSetY, sizeToSetZ) = calculatePointsDistance(p1, p2, p3)
-            val factors = calculateResizeFactor(transObject, Array(sizeToSetZ,
-                                                sizeToSetY, sizeToSetX), app.scaleFactors)
-            setReSize(factors(0), factors(1), factors(2), transObject)
-            if (anaglyphObject != null)
-              setReSize(factors(0), factors(1), factors(2), anaglyphObject)
           }
         }
       case "Cylinder" =>
