@@ -534,6 +534,9 @@ object Parser extends MyStdTokenParsers {
   val defaultContent = Lit(GStr(" "))
   val defaultColor = ExprVector(List(Lit(GInt(1)),Lit(GInt(1)),Lit(GInt(1))))
   val defaultRotation = ExprVector(List(Lit(GInt(0)),Lit(GInt(0)),Lit(GInt(0))))
+  val defaultPoints = ExprVector(List(ExprVector(List(Lit(GInt(0)),Lit(GInt(0)),Lit(GInt(0)))),
+                                      ExprVector(List(Lit(GInt(1)),Lit(GInt(0)),Lit(GInt(0)))),
+                                      ExprVector(List(Lit(GInt(0)),Lit(GInt(1)),Lit(GInt(0))))))
   val defaultCoordinates = Lit(GStr("Global"))
   val defaultTransparency = Lit(GDouble(-1.0))
 
@@ -542,13 +545,14 @@ object Parser extends MyStdTokenParsers {
     Map( "center"       -> List(2,3)
        , "color"        -> List(3)
        , "coordinates"  -> Nil
+       , "height"       -> Nil
        , "content"      -> Nil
        , "length"       -> Nil
        , "width"        -> Nil
-       , "height"       -> Nil
        , "radius"       -> Nil
        , "rotation"     -> List(1,3)
        , "size"         -> List(2,3)
+       , "points"       -> List(3)
        , "transparency" -> Nil
        )
   
@@ -607,8 +611,8 @@ object Parser extends MyStdTokenParsers {
 
     val size = paras.find(_._1.x == "size") match{
       case Some(x) => 
-        if(name == "Box" | name == "Text" | name == "Obj" | name == "Sphere"|
-           name == "Cylinder" | name == "Cone"){
+        if(name == "Box" | name == "Text" | name == "Obj" | name == "Sphere"
+                         | name == "Cylinder" | name == "Cone"){
           x._2 match{
             case ExprVector(ls) => 
               if(name == "Box" | name == "Cylinder" | name == "Cone") 
@@ -630,6 +634,17 @@ object Parser extends MyStdTokenParsers {
           else 
             defaultScale
     }
+    
+    val points = paras.find(_._1.x == "points") match{
+      case Some(x) => 
+        if(name == "Triangle"){
+           x._2
+        }         
+        else throw new PositionalAcumenError{
+          def mesg = "_3D object " + name + " can't have 'size' parameter"
+        }.setPos(x._2.pos)
+      case None =>  defaultPoints
+    }
 
     val radius = paras.find(_._1.x == "radius") match{
       case Some(x) => 
@@ -645,7 +660,7 @@ object Parser extends MyStdTokenParsers {
     
     val length = paras.find(_._1.x == "length") match{
       case Some(x) => 
-        if(name == "Cylinder" | name == "Cone" | name == "Box") 
+        if(name == "Cylinder" | name == "Cone") 
           x._2 match{
       	   case _ @ Lit(GStr(_) | GBool(_)) => 
       	     error("_3D object " + name + "'s 'length' parameter is not a number")
@@ -654,25 +669,15 @@ object Parser extends MyStdTokenParsers {
         else error("_3D object " + name + " can't have 'length' parameter")
       case None => defaultLength
     }
-    val width = paras.find(_._1.x == "width") match{
-      case Some(x) => 
-        if(name == "Box") 
-          x._2 match{
-           case _ @ Lit(GStr(_) | GBool(_)) => 
-             error("_3D object " + name + "'s 'width' parameter is not a number")
-           case _ => x._2
-          }
-        else error("_3D object " + name + " can't have 'width' parameter")
-      case None => defaultLength
-    }
+    
     val height = paras.find(_._1.x == "height") match{
       case Some(x) => 
-        if(name == "Box") 
+        if(name == "Box" | name == "Triangle") 
           x._2 match{
-           case _ @ Lit(GStr(_) | GBool(_)) => 
-             error("_3D object " + name + "'s 'width' parameter is not a number")
-           case _ => x._2
-          }
+      	   case _ @ Lit(GStr(_) | GBool(_)) => 
+      	     error("_3D object " + name + "'s 'length' parameter is not a number")
+      	   case _ => x._2
+      	  }
         else error("_3D object " + name + " can't have 'length' parameter")
       case None => defaultLength
     }
@@ -763,6 +768,7 @@ object Parser extends MyStdTokenParsers {
       case "Sphere" => ExprVector(List(Lit(GStr("Sphere")),center,checkSize(name),color,rotation,coordinates,transparency))
       case "Text" => ExprVector(List(Lit(GStr("Text")),center,size,color,rotation,content,coordinates,transparency))
       case "Obj" => ExprVector(List(Lit(GStr("OBJ")),center,size,color,rotation,content,coordinates,transparency))
+      case "Triangle" => ExprVector(List(Lit(GStr("Triangle")),center,points,color,rotation,coordinates,transparency,height))
       case _ => error("Unsupported 3D object " + name)
     }
 

@@ -335,6 +335,11 @@ object Errors {
     override def getMessage = 
       "3D text's size should be a number"
   }
+
+  case class _3DTriangleSizeError() extends AcumenError {
+    override def getMessage =
+      "3D triangle's size should be a vector with 3 vectors"
+  }
   
 	 case class _3DVectorError(v:Value[_], n:String) extends AcumenError {
     override def getMessage = 

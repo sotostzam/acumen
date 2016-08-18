@@ -38,6 +38,7 @@ class ThreeDData extends Publisher {
   var _3DAngle = Array[Double](0.0, 0.0, 0.0)
   var _3DPath = ""
   var _3DText = ""
+  var _3DHeight = 1.0
   /* Optional field to indicate transparent object or not */
   var _3DTexture = ""
   var _3DCoordinates = "global"
@@ -65,6 +66,7 @@ class ThreeDData extends Publisher {
       x match {
         case VLit(GInt(i)) =>
         case VLit(GDouble(i)) =>
+        case VVector(i) => isVectorOfNumbers(i)
         case _ => result = false;
       }
     result
@@ -126,6 +128,15 @@ class ThreeDData extends Publisher {
     }
   }
 
+  /* Get the height of triangle */
+  def extractHeight(value: Value[_]) {
+    value match {
+      case VLit(GDouble(h)) => _3DHeight = h
+      case VLit(GInt(h)) => _3DHeight = h
+      case _ => throw _3DNameError(value)
+    }
+  }
+
   /* _3D OBJ path should be a string */
   def extractPath(value: Value[_]) {
     value match {
@@ -173,13 +184,27 @@ class ThreeDData extends Publisher {
 
   /* _3D size should be either a vector or an number */
   def extractSize(value: Value[_]) {
+    _3DSize = Array[Double]()
     value match {
       case VLit(GPattern(ls)) => extractSize(VVector(ls map VLit))
       case VVector(vs) =>
-        if (isVectorOfNumbers(vs)) _3DSize = extractDoubles(vs).toArray
-        else {
-          _3DSize = Array[Double]()
-          throw _3DSizeError(value)
+        vs.head match {
+          case VVector(_) =>
+            if (isVectorOfNumbers(vs)) vs.foreach {
+              sv =>
+                val ss = extractDoubles(sv).toArray
+                _3DSize = _3DSize ++ ss
+            }
+            else {
+              _3DSize = Array[Double]()
+              throw _3DSizeError(value)
+            }
+          case _ =>
+            if (isVectorOfNumbers(vs)) _3DSize = extractDoubles(vs).toArray
+            else {
+              _3DSize = Array[Double]()
+              throw _3DSizeError(value)
+            }
         }
       case VLit(GInt(x)) => _3DSize = Array(x.toDouble)
       case VLit(GDouble(x)) => _3DSize = Array(x)
@@ -193,6 +218,7 @@ class ThreeDData extends Publisher {
       case "Box" =>
         if (_3DSize.length == 2) _3DSize = _3DSize :+ 0.001
         else if (_3DSize.length != 3) throw _3DBoxSizeError()
+      case "Triangle" => if (_3DSize.length != 9) throw _3DTriangleSizeError()
       /* 3D text's size should be a number */
       case _ => if (_3DSize.length != 1) throw _3DTextSizeError()
     }
@@ -237,7 +263,11 @@ class ThreeDData extends Publisher {
               extractText(l(5))
             else if (_3DType == "OBJ")
               extractPath(l(5))
-            if (l.size == 8) {
+            if (l.size == 8 && _3DType == "Triangle") {
+              extractHeight(l(7))
+              extractTransparency(l(6))
+              extractCoordinates(l(5))
+            } else if (l.size == 8 && _3DType != "Triangle") {
               extractTransparency(l(7))
               extractCoordinates(l(6))
             } else {
@@ -252,6 +282,8 @@ class ThreeDData extends Publisher {
           List(_3DType, _3DPosition, _3DSize, _3DColor, _3DAngle, _3DText, _3DCoordinates, _3DTransparency)
         else if (_3DType == "OBJ")
           List(_3DType, _3DPosition, _3DSize, _3DColor, _3DAngle, _3DPath, _3DCoordinates, _3DTransparency)
+        else if (_3DType == "Triangle")
+          List(_3DType, _3DPosition, _3DSize, _3DColor, _3DAngle, _3DHeight, _3DCoordinates, _3DTransparency)
         else
           List(_3DType, _3DPosition, _3DSize, _3DColor, _3DAngle, _3DCoordinates, _3DTransparency)
 
