@@ -483,11 +483,28 @@ object Common {
        case (_, VVector(u)::VLit(x)::Nil) =>
          binVectorScalarOp(op,u,x)
        case ("trans", ls) => unaryVectorOp("trans",ls)
+       case (f, VObjId(Some((o1)))::VObjId(Some(o2))::Nil) =>
+         VLit(GBool(compareObjects(f,o1.cid,o2.cid, xs(0).pos)))
        case _ =>
          throw UnknownOperator(op)    
     }
   }
-
+  // Comparison (lexicographic ordering) between object using CId
+  def compareObjects (f:String, c1:CId, c2:CId,pos:Position): Boolean =  {
+    /* Returns an integer whose sign communicates how c1 compares to c2.
+   *  - negative if c1 < c2
+   *  - positive if c1 > c2
+   *  - zero otherwise (if c1 == c2)
+   */
+    val lex = c1.compare(c2)
+    f match {
+    case ">" => lex > 0
+    case "<" => lex < 0
+    case ">=" => lex >= 0
+    case "<=" => lex <= 0
+    case _ =>  throw UnknownOperator(f).setPos(pos)
+  } 
+  }
   /* eval Index(e, i) */
   def evalIndexOp[A](e: Value[A], i: List[Value[A]]) : Value[A] = {
     def lookup(i: Int, l: List[Value[A]]): Value[A] =

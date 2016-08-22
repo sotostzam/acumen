@@ -1,0 +1,6 @@
+model B(a,b) = 
+ initially
+model Main(_) = 
+ initially
+  b = create B(1)
+ 

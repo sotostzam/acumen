@@ -1,0 +1,9 @@
+
+model Main(_) = 
+ initially
+  a = 1,b =2
+ always
+  match a with [
+    2 -> 
+    | 3 ->
+  ]

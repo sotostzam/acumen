@@ -137,6 +137,7 @@ object Interpreter extends acumen.CStoreInterpreter {
     val cd = classDef(c,p)
     val base = HashMap(
       (classf, VClassName(c)),
+      (typef, VClassName(c)),
       (parent, VObjId(prt)),
       (seed1, VLit(GInt(sd._1))),
       (seed2, VLit(GInt(sd._2))),

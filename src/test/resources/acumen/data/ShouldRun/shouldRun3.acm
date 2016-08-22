@@ -81,7 +81,7 @@ model IR(mode,injection,basal,x,x',y,y',z,z',y2)
     "Normal" ->
       injection + = 0
     |"Inject" ->
-      it = it - 1,
+      it + = it - 1,
       if it == 0 then
         it + = 1,
         mode + = "Normal"

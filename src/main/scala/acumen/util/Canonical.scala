@@ -10,6 +10,7 @@ object Canonical {
   /* special variables */
   val self         = name("self")
   val parent       = name("parent")
+  val typef        = name("type") 
   val classf       = name("className")
   val magicf       = name("simulator")
   val devicef      = name("device")

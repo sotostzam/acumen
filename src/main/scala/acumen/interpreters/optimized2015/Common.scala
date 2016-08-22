@@ -544,7 +544,7 @@ object Common {
   def mkObj(c: ClassName, p: Prog, prt: ParentParm, 
             sd: (Int, Int), v: List[Val], magic: Object, childrenCounter: Int = 0): Object = {
     val cd = classDef(c, p)
-    val base = MMap((classf, new ValVal(VClassName(c))))
+    val base = MMap((classf, new ValVal(VClassName(c))), (Name("type",0), new ValVal(VClassName(c))))
     val pub = base ++ (cd.fields zip v.map{new ValVal(_)})
     // the following is just for debugging purposes:
     // the type system should ensure that property

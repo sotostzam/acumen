@@ -32,7 +32,7 @@ object Specialization {
       case ALit(gv, l)        => ((Lit(gv)).setPos(aexpr.pos), Nil)
       case AVar(name, l)      => (subs(Var(name)).setPos(aexpr.pos), Nil)
       case ATypeOf(cn, l)     => (TypeOf(cn).setPos(aexpr.pos), Nil)
-      case ADot(aer, name, l) => (Dot(aer.expr, name).setPos(aexpr.pos), Nil)
+      case ADot(aer, name, l) => (Dot(aer.expr.setPos(aer.pos), name).setPos(aexpr.pos), Nil)
       case AQuest(aer, name, l) => (Quest(aer.expr, name).setPos(aexpr.pos), Nil)
       case AExprVector(es, l) => specializeEs(es) match {
         case (aes, aas) => (ExprVector(aes).setPos(aexpr.pos), aas)
@@ -134,12 +134,17 @@ object Specialization {
             }
           case _ =>
             // Perform eval function at the value level when all elements are reduced to Lit
-            exprsToValues(es.map(x => inline(x, newenv))) match {
+            exprsToValues(es.map(x => inline(x, newenv).setPos(x.pos))) match {
               // Invoke the Common.evalop function to evaluate doubles/intervals accordingly
-              case Some(ls) => evalOp(f.x, ls) match {
-                case VLit(gv)   => (Lit(gv), newEquation)
-                case VVector(l) => (ExprVector(l.asInstanceOf[List[VLit]] map (x => Lit(x.gv))), newEquation)
-              }
+              case Some(ls) =>
+                try {
+                  evalOp(f.x, ls) match {
+                    case VLit(gv)   => (Lit(gv), newEquation)
+                    case VVector(l) => (ExprVector(l.asInstanceOf[List[VLit]] map (x => Lit(x.gv))), newEquation)
+                  }
+                } catch {
+                  case err: PositionalAcumenError => throw err.setPos(aexpr.pos)
+                }
               
               // Symbolic vector-vector operator evaluation
               case _ => (f.x, es.map(x => inline(x, newenv))) match {
