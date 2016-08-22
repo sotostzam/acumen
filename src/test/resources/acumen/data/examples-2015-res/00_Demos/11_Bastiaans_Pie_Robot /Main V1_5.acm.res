@@ -10,7 +10,7 @@
 #0.0 { className = Simulator, time = 0.000000 }
 #0.1 {
   _3D = (),
-  _3DView = ((-15, -20, 5), (5, 0, 0)),
+  _3DView = ((35, -30, 30), (5, 0, 0)),
   className = communication,
   con = #0.1.6,
   detectL = #0.1.2,
@@ -20,6 +20,8 @@
   detectR1 = #0.1.5,
   ground = #0.1.0,
   heading = 0,
+  mix = 0,
+  mix' = 1,
   robot = #0.1.7,
   sFlagL = 0,
   sFlagL1 = 0,
@@ -1298,7 +1300,7 @@
 #0.0 { className = Simulator, time = 0.015625 }
 #0.1 {
   _3D = (),
-  _3DView = ((-14.999512, -20.000000, 5), (5.000488, 0.000000, 0)),
+  _3DView = ((34.488871, -29.581404, 29.550397), (5.000488, 0.000000, 0)),
   className = communication,
   con = #0.1.6,
   detectL = #0.1.2,
@@ -1308,6 +1310,8 @@
   detectR1 = #0.1.5,
   ground = #0.1.0,
   heading = 0,
+  mix = 0.015504,
+  mix' = 0.984496,
   robot = #0.1.7,
   sFlagL = 0,
   sFlagL1 = 0,
@@ -2586,7 +2590,7 @@
 #0.0 { className = Simulator, time = 0.031250 }
 #0.1 {
   _3D = (),
-  _3DView = ((-14.998047, -20.000000, 5), (5.001953, 0.000000, 0)),
+  _3DView = ((33.986650, -29.169297, 29.107764), (5.001953, 0.000000, 0)),
   className = communication,
   con = #0.1.6,
   detectL = #0.1.2,
@@ -2596,6 +2600,8 @@
   detectR1 = #0.1.5,
   ground = #0.1.0,
   heading = 0,
+  mix = 0.030767,
+  mix' = 0.969233,
   robot = #0.1.7,
   sFlagL = 0,
   sFlagL1 = 0,
@@ -3874,7 +3880,7 @@
 #0.0 { className = Simulator, time = 0.046875 }
 #0.1 {
   _3D = (),
-  _3DView = ((-14.995605, -20.000000, 5), (5.004395, 0.000000, 0)),
+  _3DView = ((33.493215, -28.763580, 28.671993), (5.004395, 0.000000, 0)),
   className = communication,
   con = #0.1.6,
   detectL = #0.1.2,
@@ -3884,6 +3890,8 @@
   detectR1 = #0.1.5,
   ground = #0.1.0,
   heading = 0,
+  mix = 0.045793,
+  mix' = 0.954207,
   robot = #0.1.7,
   sFlagL = 0,
   sFlagL1 = 0,

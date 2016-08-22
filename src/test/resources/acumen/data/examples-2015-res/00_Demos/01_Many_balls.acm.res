@@ -1,4 +1,5 @@
 #0 {
+  _3DView = ((-17, -20, 2), (-5, 0, 2)),
   className = Main,
   counter = 50,
   mode = "Persist",
@@ -457,6 +458,7 @@
 }
 ------------------------------0
 #0 {
+  _3DView = ((-17, -20, 2), (-5, 0, 2)),
   className = Main,
   counter = 50,
   mode = "Persist",
@@ -915,6 +917,7 @@
 }
 ------------------------------2
 #0 {
+  _3DView = ((-17, -20, 2), (-5, 0, 2)),
   className = Main,
   counter = 50,
   mode = "Persist",
@@ -1373,6 +1376,7 @@
 }
 ------------------------------5
 #0 {
+  _3DView = ((-17, -20, 2), (-5, 0, 2)),
   className = Main,
   counter = 50,
   mode = "Persist",

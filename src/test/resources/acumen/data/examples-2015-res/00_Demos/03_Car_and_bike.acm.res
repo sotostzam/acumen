@@ -1,4 +1,5 @@
 #0 {
+  _3DView = ((0, -20, 2), (0, 0, 0)),
   car = #0.2,
   className = Main,
   motor = #0.3,
