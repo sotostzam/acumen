@@ -20,10 +20,10 @@ initially
   bounceTime    =  0,
   status        =  "Normal"
 always
-  if mode ~= "Initialize" && mode ~= "Player1Lost" && mode ~= "Player2Lost"
-  && mode ~= "SendMessage1" && status ~= "Normal" && reason ~= "Nothing"
-  && status ~= "Report"&& reason ~= "BallOutOfBoundary"&& mode ~= "SendMessage2"
-  && reason ~= "BallBouncedTwice"&& reason ~= "BallTouchNet"&& reason ~= "BallNotOverNet" then
+  if mode <> "Initialize" && mode <> "Player1Lost" && mode <> "Player2Lost"
+  && mode <> "SendMessage1" && status <> "Normal" && reason <> "Nothing"
+  && status <> "Report"&& reason <> "BallOutOfBoundary"&& mode <> "SendMessage2"
+  && reason <> "BallBouncedTwice"&& reason <> "BallTouchNet"&& reason <> "BallNotOverNet" then
     mode + = "Panic!"
   noelse,
   t'=1,
@@ -47,7 +47,7 @@ always
       status + = "Report" 
     noelse,
     // Fail to serve the ball back
-    if (abs(p(1)) <= 0.78 && abs(p(0)) <= 1.53) && bounced ~= false
+    if (abs(p(1)) <= 0.78 && abs(p(0)) <= 1.53) && bounced <> false
     && status == "Normal" && abs(p(0)) > 0.025 then
       if bounced == "YesIn1" && lastHit == 1 && p(0) < 0 then
         mode       + = "Player1Lost",
@@ -60,7 +60,7 @@ always
         bounced    + = true
       noelse 
     noelse,
-    if (abs(p(1)) <= 0.78 && abs(p(0)) <= 1.53) && bounced ~= false
+    if (abs(p(1)) <= 0.78 && abs(p(0)) <= 1.53) && bounced <> false
     && t > (bounceTime+0.1) && status == "Normal" then
       // The ball has bounced twice in player2's court
       if bounced == "YesIn2" && p(0) > 0 && lastHit == 1 then

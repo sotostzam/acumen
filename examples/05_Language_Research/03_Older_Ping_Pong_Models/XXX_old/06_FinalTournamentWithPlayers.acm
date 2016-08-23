@@ -42,7 +42,7 @@ class Virtue(n) // Based on WiffWaff's speed-control player
      end
      number = n;
      startPoint = [1.6*(-1)^number,0,0.2];
-     if mode ~= "Wait" && mode ~= "Prepare" && mode ~= "Hit"
+     if mode <> "Wait" && mode <> "Prepare" && mode <> "Hit"
        mode := "Panic!";
      end;
      t'  = 1;
@@ -81,7 +81,7 @@ class Virtue(n) // Based on WiffWaff's speed-control player
        if dot(ballp,[0,0,1]) < 0 && bounced == false
         bounced := true;
        end;
-       if(serve ~= true)
+       if(serve <> true)
          mode := "Wait";
        end;
      case "Hit"           // Decide how you want hit the ball,
@@ -181,7 +181,7 @@ coeff := 1.1;
  end
  number = n;
  startPoint = [1.6*(-1)^number,0,0.2];
- if mode ~= "Wait" && mode ~= "Prepare" && mode ~= "Hit"
+ if mode <> "Wait" && mode <> "Prepare" && mode <> "Hit"
    mode := "Panic!";
  end;
  t'  = 1;
@@ -218,7 +218,7 @@ coeff := 1.1;
    if dot(ballp,[0,0,1]) < 0 && bounced == false
     bounced := true;
    end;
-   if(serve ~= true)
+   if(serve <> true)
      mode := "Wait";
    end;
  case "Hit"           // Decide how you want hit the ball,
@@ -325,7 +325,7 @@ class ParadoX(n) // Based on WiffWaff's speed-control player
     number = n;
     startPoint = [1.6*(-1)^number,0,0.2];
     
-    if mode ~= "Wait" && mode ~= "Prepare" && mode ~= "Hit"
+    if mode <> "Wait" && mode <> "Prepare" && mode <> "Hit"
         mode := "Panic!";
     end;
     
@@ -370,7 +370,7 @@ class ParadoX(n) // Based on WiffWaff's speed-control player
         if dot(ballp,[0,0,1]) < 0 && bounced == false
             bounced := true;
         end;
-        if(serve ~= true)
+        if(serve <> true)
             mode := "Wait";
         end;
     case "Hit" // Decide how you want hit the ball,
@@ -450,7 +450,7 @@ class XPTO(n) // Based on WiffWaff's speed-control player
  end
  number = n;
  startPoint = [1.6*(-1)^number,0,0.2];
- if mode ~= "Wait" && mode ~= "Prepare" && mode ~= "Hit"
+ if mode <> "Wait" && mode <> "Prepare" && mode <> "Hit"
    mode := "Panic!";
  end;
  t'  = 1;
@@ -487,7 +487,7 @@ class XPTO(n) // Based on WiffWaff's speed-control player
    if dot(ballp,[0,0,1]) < 0 && bounced == false
     bounced := true;
    end;
-   if(serve ~= true)
+   if(serve <> true)
      mode := "Wait";
    end;
  case "Hit"           // Decide how you want hit the ball,
@@ -571,7 +571,7 @@ class WiffWaff(n) // Based on WiffWaff's speed-control player
  
 number = n;
  startPoint = [1.6*(-1)^number,0,0.2];
- if mode ~= "Wait" && mode ~= "Prepare" && mode ~= "Hit"
+ if mode <> "Wait" && mode <> "Prepare" && mode <> "Hit"
    mode := "Panic!";
  end;
  t'  = 1;
@@ -611,7 +611,7 @@ number = n;
    if dot(ballp,[0,0,1]) < 0 && bounced == false
     bounced := true;
    end;
-   if(serve ~= true)
+   if(serve <> true)
      mode := "Wait";
    end;
  case "Hit"           // Decide how you want hit the ball,
@@ -698,7 +698,7 @@ class PingPing(n) // Based on WiffWaff's speed-control player
  end
  number = n;
  startPoint = [1.6*(-1)^number,0,0.2];
- if mode ~= "Wait" && mode ~= "Prepare" && mode ~= "Hit"
+ if mode <> "Wait" && mode <> "Prepare" && mode <> "Hit"
    mode := "Panic!";
  end;
  t'  = 1;
@@ -741,7 +741,7 @@ class PingPing(n) // Based on WiffWaff's speed-control player
    if dot(ballp,[0,0,1]) < 0 && bounced == false
     bounced := true;
    end;
-   if(serve ~= true)
+   if(serve <> true)
      mode := "Wait";
    end;
 
@@ -762,7 +762,7 @@ class PingPing(n) // Based on WiffWaff's speed-control player
    if dot(ballp,[0,0,1]) < 0 && bounced == false
     bounced := true;
    end;
-   if(serve ~= true)
+   if(serve <> true)
      mode := "Wait";
    end;
   end; 
@@ -864,7 +864,7 @@ private
 end
 number = n;
 startPoint = [1.6*(-1)^number,0,0.2];
-if mode ~= "Wait" && mode ~= "Prepare" && mode ~= "Hit"
+if mode <> "Wait" && mode <> "Prepare" && mode <> "Hit"
   mode := "Panic!";
 end;
 t'  = 1;
@@ -899,7 +899,7 @@ end;
   if dot(ballp,[0,0,1]) < 0 && bounced == false
    bounced := true;
   end;
-  if(serve ~= true)
+  if(serve <> true)
     mode := "Wait";
   end;
 case "Hit"           // Decide how you want hit the ball,
@@ -987,7 +987,7 @@ class Kong(n) // Based on WiffWaff's speed-control player
  end
  number = n;
  startPoint = [1.6*(-1)^number,0,0.2];
- if mode ~= "Wait" && mode ~= "Prepare" && mode ~= "Hit"
+ if mode <> "Wait" && mode <> "Prepare" && mode <> "Hit"
    mode := "Panic!";
  end;
  t'  = 1;
@@ -1024,7 +1024,7 @@ mode := "Wait";
    if dot(ballp,[0,0,1]) < 0 && bounced == false
 bounced := true;
    end;
-   if(serve ~= true)
+   if(serve <> true)
   mode := "Wait";
    end;
  case "Hit"       // Decide how you want hit the ball,
@@ -1102,7 +1102,7 @@ class Ball ()
  end
  _3D = ["Sphere",p,0.03,[1,1,1],[0,0,0]];
  // Valid modes
- if mode ~= "Fly" && mode ~= "Bounce" && mode ~= "Freeze"
+ if mode <> "Fly" && mode <> "Bounce" && mode <> "Freeze"
    mode := "Panic!";
  end;
  switch mode
@@ -1197,7 +1197,7 @@ class BallActuator()  // Calculate result of impact
    done  := false;
    action := 0;
  end
-  if mode ~= "Initialize" && mode ~= "Calculate" && mode ~= "Wait"
+  if mode <> "Initialize" && mode <> "Calculate" && mode <> "Wait"
    mode := "Panic!";
   end;
  switch mode
@@ -1230,7 +1230,7 @@ class BallObserver()
   t' := 1;
  end
  t'=1;
- if mode ~= "Sample" && mode ~= "Estimate0" && mode ~= "Estimate1"
+ if mode <> "Sample" && mode <> "Estimate0" && mode <> "Estimate1"
   mode := "Panic!";
  end;
  switch mode
@@ -1274,10 +1274,10 @@ class Referee()  // This class will monitors the whole process of the game.
   bounceTime   := 0;
   status       := "Normal"
  end
- if mode ~= "Initialize" && mode ~= "Player1Lost" && mode ~= "Player2Lost" 
-    && mode ~= "SendMessage" && status ~= "Normal" && reason ~= "Nothing"
-    && status ~= "Report" && reason ~= "BallOutOfBoundary"
- && reason ~= "BallBouncedTwice" && reason ~= "BallTouchNet"
+ if mode <> "Initialize" && mode <> "Player1Lost" && mode <> "Player2Lost" 
+    && mode <> "SendMessage" && status <> "Normal" && reason <> "Nothing"
+    && status <> "Report" && reason <> "BallOutOfBoundary"
+ && reason <> "BallBouncedTwice" && reason <> "BallTouchNet"
   mode := "Panic!";
  end;
   t'=1;
@@ -1300,7 +1300,7 @@ class Referee()  // This class will monitors the whole process of the game.
     end;
     status := "Report";
    end;
-   if(abs(y)<0.78 && abs(x)<1.53) && bounced ~= false  
+   if(abs(y)<0.78 && abs(x)<1.53) && bounced <> false  
       && t>(bounceTime+0.1) && status=="Normal"
  // The ball has bounced twice in player2's court  
     if bounced == "YesIn2" && x > 0 
@@ -1416,9 +1416,9 @@ class Game (name1, name2)
  		 ["Text",[2.8,6.5,-4],1,[0.1,0.1,0.1],[1.7,0,0],player2.name],
     	 ["Text",[-1.5,6.5,-5],1,[0.6,0,0],[1.7,0,0],player1Score],
 		 ["Text",[4.5,6.5,-5],1,[0.1,0.1,0.1],[1.7,0,0],player2Score]];
-  if mode ~= "Restart" && mode ~= "Player1Serve" && mode ~= "Player2Serve" 
-  && mode ~= "Impact"  && mode ~= "Freeze" && mode ~= "ChangeSide" && mode ~= "Init"
-  && mode ~= "Act"
+  if mode <> "Restart" && mode <> "Player1Serve" && mode <> "Player2Serve" 
+  && mode <> "Impact"  && mode <> "Freeze" && mode <> "ChangeSide" && mode <> "Init"
+  && mode <> "Act"
    mode := "Panic!"
   end;
   t'=1;
@@ -1435,14 +1435,14 @@ class Game (name1, name2)
   player2.ballp     = ballob.p;  
   player1.ballv     = ballob.v;
   player2.ballv     = ballob.v;
-  if bat1.mode ~= "Rest"
+  if bat1.mode <> "Rest"
 //   batActuator1.p' = player1.v;
    if (player1.mode=="Hit")
      batActuator1.p' := player1.v
    end;
    batActuator1.p'' = player1.a;
   end;
-  if bat2.mode ~= "Rest"
+  if bat2.mode <> "Rest"
 //   batActuator2.p' = player2.v;
    if (player2.mode=="Hit")
      batActuator2.p' := player2.v
@@ -1546,7 +1546,7 @@ class Game (name1, name2)
   case "Player2Serve" // Player 2 is serving
    player1.serve = false;
    player2.serve =  true;
-   if player2.hit == true && norm(bat2.p - ball.p) < 0.15 && bat2.mode ~= "Rest"
+   if player2.hit == true && norm(bat2.p - ball.p) < 0.15 && bat2.mode <> "Rest"
     mode := "Impact"
    end;
    if referee.restart == 1
@@ -1556,7 +1556,7 @@ class Game (name1, name2)
  case "Player1Serve" // Player 1 is serving
   player2.serve = false;
   player1.serve = true;
-  if player1.hit == true && norm(bat1.p - ball.p) < 0.15 && bat1.mode ~= "Rest"
+  if player1.hit == true && norm(bat1.p - ball.p) < 0.15 && bat1.mode <> "Rest"
    mode := "Impact"
   end;
   if referee.restart == 1
@@ -1610,13 +1610,13 @@ class Game (name1, name2)
    mode := "Freeze";
    t    := 0;
   end;
-  if serveNumber == 2 && dot(ball.p,[1,0,0]) >0 && referee.restart ~= 1
+  if serveNumber == 2 && dot(ball.p,[1,0,0]) >0 && referee.restart <> 1
    serveNumber     := 1;
    mode            := "Player1Serve";
    player1.mode    := "Wait";
    player1.bounced := false;
   end;
-  if serveNumber == 1 && dot(ball.p,[1,0,0]) <= 0 && referee.restart ~= 1
+  if serveNumber == 1 && dot(ball.p,[1,0,0]) <= 0 && referee.restart <> 1
    serveNumber     := 2;
    mode            := "Player2Serve";
    player2.mode    := "Wait";

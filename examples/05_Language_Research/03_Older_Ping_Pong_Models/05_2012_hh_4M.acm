@@ -76,7 +76,7 @@ polar := [0,0,0];
 end
 number = n;
 startPoint = [1.6*(-1)^number,0,0.2];
-if mode ~= "Wait"&& mode ~= "Prepare"&& mode ~= "Hit"&& mode ~= "Restart"
+if mode <> "Wait"&& mode <> "Prepare"&& mode <> "Hit"&& mode <> "Restart"
 mode := "Panic!";
 end;
 t'  = 1;
@@ -125,7 +125,7 @@ if dot(ballp,[0,0,1]) < 0&& bounced = false
  end;
  
 end;
-if(serve ~= true)
+if(serve <> true)
 mode := "Wait";
 end;
 case "Hit"           // Decide how you want hit the ball,
@@ -365,7 +365,7 @@ p''  := [0,0,0];
 _3D  := ["Sphere",[0,0,0.5],0.03,[1,1,1],[0,0,0]];
 end
 // Valid modes
-if mode ~= "Fly"&& mode ~= "Bounce"&& mode ~= "Freeze"
+if mode <> "Fly"&& mode <> "Bounce"&& mode <> "Freeze"
 mode := "Panic!";
 end;
 switch mode
@@ -447,7 +447,7 @@ angle := [0,0,0];   // Bat's normal vector
 done  := false;
 action := 0;
 end
-if mode ~= "Initialize"&& mode ~= "Calculate"&& mode ~= "Wait"
+if mode <> "Initialize"&& mode <> "Calculate"&& mode <> "Wait"
 mode := "Panic!";
 end;
 switch mode
@@ -481,7 +481,7 @@ t  := 0;
 t' := 1;
 end
 t'=1;
-if mode ~= "Sample"&& mode ~= "Estimate0"&& mode ~= "Estimate1"
+if mode <> "Sample"&& mode <> "Estimate0"&& mode <> "Estimate1"
 mode := "Panic!";
 end;
 switch mode
@@ -526,10 +526,10 @@ acknowledged := 0;        // Check if the Game class has received
 bounceTime   := 0;
 status       := "Normal"
 end
-if mode ~= "Initialize"&& mode ~= "Player1Lost"&& mode ~= "Player2Lost"
-&& mode ~= "SendMessage"&& status ~= "Normal"&& reason ~= "Nothing"
-&& status ~= "Report"&& reason ~= "BallOutOfBoundary"
-&& reason ~= "BallBouncedTwice"&& reason ~= "BallTouchNet"
+if mode <> "Initialize"&& mode <> "Player1Lost"&& mode <> "Player2Lost"
+&& mode <> "SendMessage"&& status <> "Normal"&& reason <> "Nothing"
+&& status <> "Report"&& reason <> "BallOutOfBoundary"
+&& reason <> "BallBouncedTwice"&& reason <> "BallTouchNet"
 mode := "Panic!";
 end;
 t'=1;
@@ -552,7 +552,7 @@ end;
 end;
 status := "Report";
 end;
-if(abs(y)<0.78&& abs(x)<1.53)&& bounced ~= false
+if(abs(y)<0.78&& abs(x)<1.53)&& bounced <> false
 && t>(bounceTime+0.1)&& status="Normal"
 // The ball has bounced twice in player2's court
 if bounced = "YesIn2"&& x > 0
@@ -668,9 +668,9 @@ _3D = [["Text",[-2.8,6.5,-4],1,[0.9,0,0],[1.7,0,0],player1.name],
 ["Text",[2.8,6.5,-4],1,[0.1,0.1,0.1],[1.7,0,0],player2.name],
 ["Text",[-1.5,6.5,-5],1,[0.6,0,0],[1.7,0,0],player1Score],
 ["Text",[4.5,6.5,-5],1,[0.1,0.1,0.1],[1.7,0,0],player2Score]];
-if mode ~= "Restart"&& mode ~= "Player1Serve"&& mode ~= "Player2Serve"
-&& mode ~= "Impact"&& mode ~= "Freeze"&& mode ~= "ChangeSide"&& mode ~= "Init"
-&& mode ~= "Act"
+if mode <> "Restart"&& mode <> "Player1Serve"&& mode <> "Player2Serve"
+&& mode <> "Impact"&& mode <> "Freeze"&& mode <> "ChangeSide"&& mode <> "Init"
+&& mode <> "Act"
 mode := "Panic!"
 end;
 t'=1;
@@ -689,7 +689,7 @@ player2.ballp     = ballob.p;
 player1.ballv     = ballob.v;
 player2.ballv     = ballob.v;
 
-if bat1.mode ~= "Rest"
+if bat1.mode <> "Rest"
 player1.batv = batActuator1.v;
 batActuator1.l'' = player1.l'';
 batActuator1.theta'' = player1.theta'';
@@ -697,7 +697,7 @@ batActuator1.alpha'' = player1.alpha'';
 
 
 end;
-if bat2.mode ~= "Rest"
+if bat2.mode <> "Rest"
 player2.batv = batActuator2.v;
 batActuator2.l'' = player2.l'';
 batActuator2.theta'' = player2.theta'';
@@ -808,13 +808,13 @@ if referee.restart = 1
 mode := "Freeze";
 t    := 0;
 end;
-if serveNumber = 2&& referee.restart ~= 1
+if serveNumber = 2&& referee.restart <> 1
 serveNumber     := 1;
 mode            := "Player1Serve";
 player2.mode    := "Wait";
 player2.bounced := false;
 end;
-if serveNumber = 1&& referee.restart ~= 1
+if serveNumber = 1&& referee.restart <> 1
 serveNumber     := 2;
 mode            := "Player2Serve";
 player1.mode    := "Wait";

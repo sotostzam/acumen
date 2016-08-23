@@ -140,12 +140,12 @@ object Parser extends MyStdTokenParsers {
   lexical.delimiters ++=
     List("(", ")", "{", "}", "[", "]", ";", "=", ":=", "=[i]", "=[t]", "'", ","," ",
       ".", "?", "+", "-", "*", "/", "^", ".+", ".-", ".*", "./", ".^",
-      ":", "<", ">", "<=", ">=", "~=", "||","->","<-","==",
+      ":", "<", ">", "<=", ">=", "<>", "||","->","==",
       "&&", "<<", ">>", "&", "|", "%", "@", "..", "+/-", "#include", "#semantics")
 
   lexical.reserved ++=
     List("foreach", "end", "if", "else","elseif", "create", "move", "in", "terminate", "model","then","initially","always",
-         "sum", "true", "false", "init", "match","with", "case", "claim", "hypothesis", "let","noelse",
+         "sum", "true", "false", "init", "match","with", "case", "claim", "hypothesis", "let","noelse", "typeOf",
          "Initial", "Continuous", "Discrete", "FixedPoint", "none","cross","do","dot","for","_3D","zeros","ones", "_plot")
 
   /* token conversion */
@@ -372,7 +372,7 @@ object Parser extends MyStdTokenParsers {
 
   def level9: Parser[Expr] =
     level8 * ("==" ^^^ { (x: Expr, y: Expr) => mkOp("==", x, y) }
-      | "~=" ^^^ { (x: Expr, y: Expr) => mkOp("~=", x, y) })
+      | "<>" ^^^ { (x: Expr, y: Expr) => mkOp("~=", x, y) })
 
   def level8: Parser[Expr] =
     level7 * ("<" ^^^ { (x: Expr, y: Expr) => mkOp("<", x, y) }
@@ -440,7 +440,7 @@ object Parser extends MyStdTokenParsers {
       | dif   
       | parens(expr)
       | interval
-      |"type" ~! parens(className) ^^ { case _ ~ cn => TypeOf(cn) }
+      |"typeOf" ~! parens(className) ^^ { case _ ~ cn => TypeOf(cn) }
       | name >> { n => args(expr) ^^ { es => Op(n, es) } | success(Var(n)) }
       | vectorConstruct
       | colVector	

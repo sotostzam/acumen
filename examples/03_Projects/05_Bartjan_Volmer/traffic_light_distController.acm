@@ -146,7 +146,7 @@ model Controller_west(max, Cont_North, arrival, departure, prio) =
         loc+ = "stop",
         c+ = false,
         h+ = false
-      else if queue == 0 && Cont_North ~= "request" then
+      else if queue == 0 && Cont_North <> "request" then
         orange_t+ = orange_time,
         loc+ = "stop",
         c+ = false,
@@ -242,7 +242,7 @@ model Controller_north(max, Cont_West, arrival, departure, prio) =
       loc+ = "stop",
       b+ = false,
       g+ = false
-    else if queue == 0 && Cont_West ~= "request" then
+    else if queue == 0 && Cont_West <> "request" then
       orange_t+ = orange_time,
       loc+ = "stop",
       b+ = false,

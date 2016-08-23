@@ -340,7 +340,7 @@ polar := [0,0,0];
 end
 number = n;
 startPoint = [1.6*(-1)^number,0,0.2];
-if mode ~= "Wait"&& mode ~= "Prepare"&& mode ~= "Hit"&& mode ~= "Restart"
+if mode <> "Wait"&& mode <> "Prepare"&& mode <> "Hit"&& mode <> "Restart"
 mode := "Panic!";
 end;
 t'  = 1;
@@ -378,7 +378,7 @@ end;
 if dot(ballp,[0,0,1]) < 0&& bounced == false
 bounced := true;
 end;
-if(serve ~= true)
+if(serve <> true)
 mode := "Wait";
 end;
 case "Hit"           // Decide how you want hit the ball,
@@ -715,7 +715,7 @@ _3D  := ["Sphere",[0,0,0.5],0.03,[1,1,1],[0,0,0]];
 end
 _3D = ["Sphere",p,0.03,[1,1,1],[0,0,0]];
 // Valid modes
-if mode ~= "Fly"&& mode ~= "Bounce"&& mode ~= "Freeze"
+if mode <> "Fly"&& mode <> "Bounce"&& mode <> "Freeze"
 mode := "Panic!";
 end;
 switch mode
@@ -793,7 +793,7 @@ angle := [0,0,0];   // Bat's normal vector
 done  := false;
 action := 0;
 end
-if mode ~= "Initialize"&& mode ~= "Calculate"&& mode ~= "Wait"
+if mode <> "Initialize"&& mode <> "Calculate"&& mode <> "Wait"
 mode := "Panic!";
 end;
 switch mode
@@ -827,7 +827,7 @@ t  := 0;
 t' := 1;
 end
 t'=1;
-if mode ~= "Sample"&& mode ~= "Estimate0"&& mode ~= "Estimate1"
+if mode <> "Sample"&& mode <> "Estimate0"&& mode <> "Estimate1"
 mode := "Panic!";
 end;
 switch mode
@@ -872,10 +872,10 @@ acknowledged := 0;        // Check if the Game class has received
 bounceTime   := 0;
 status       := "Normal"
 end
-if mode ~= "Initialize"&& mode ~= "Player1Lost"&& mode ~= "Player2Lost"
-&& mode ~= "SendMessage"&& status ~= "Normal"&& reason ~= "Nothing"
-&& status ~= "Report"&& reason ~= "BallOutOfBoundary"
-&& reason ~= "BallBouncedTwice"&& reason ~= "BallTouchNet"
+if mode <> "Initialize"&& mode <> "Player1Lost"&& mode <> "Player2Lost"
+&& mode <> "SendMessage"&& status <> "Normal"&& reason <> "Nothing"
+&& status <> "Report"&& reason <> "BallOutOfBoundary"
+&& reason <> "BallBouncedTwice"&& reason <> "BallTouchNet"
 mode := "Panic!";
 end;
 t'=1;
@@ -898,7 +898,7 @@ end;
 end;
 status := "Report";
 end;
-if(abs(y)<0.78&& abs(x)<1.53)&& bounced ~= false
+if(abs(y)<0.78&& abs(x)<1.53)&& bounced <> false
 && t>(bounceTime+0.1)&& status=="Normal"
 // The ball has bounced twice in player2's court
 if bounced == "YesIn2"&& x > 0
@@ -1013,9 +1013,9 @@ _3D = [["Text",[-2.8,6.5,-4],1,[0.9,0,0],[1.7,0,0],player1.name],
 ["Text",[2.8,6.5,-4],1,[0.1,0.1,0.1],[1.7,0,0],player2.name],
 ["Text",[-1.5,6.5,-5],1,[0.6,0,0],[1.7,0,0],player1Score],
 ["Text",[4.5,6.5,-5],1,[0.1,0.1,0.1],[1.7,0,0],player2Score]];
-if mode ~= "Restart"&& mode ~= "Player1Serve"&& mode ~= "Player2Serve"
-&& mode ~= "Impact"&& mode ~= "Freeze"&& mode ~= "ChangeSide"&& mode ~= "Init"
-&& mode ~= "Act"
+if mode <> "Restart"&& mode <> "Player1Serve"&& mode <> "Player2Serve"
+&& mode <> "Impact"&& mode <> "Freeze"&& mode <> "ChangeSide"&& mode <> "Init"
+&& mode <> "Act"
 mode := "Panic!"
 end;
 t'=1;
@@ -1033,7 +1033,7 @@ player1.ballp     = ballob.p;
 player2.ballp     = ballob.p;
 player1.ballv     = ballob.v;
 player2.ballv     = ballob.v;
-if bat1.mode ~= "Rest"
+if bat1.mode <> "Rest"
 batActuator1.q'' = player1.a;// [player1.x1'',player1.y1'',player1.z1''];
 batActuator1.l'' = player1.l'';
 batActuator1.theta'' = player1.theta'';
@@ -1041,7 +1041,7 @@ batActuator1.alpha'' = player1.alpha'';
 
 
 end;
-if bat2.mode ~= "Rest"
+if bat2.mode <> "Rest"
 batActuator2.q'' = player2.a;
 batActuator2.l'' = player2.l'';
 batActuator2.theta'' = player2.theta'';
@@ -1137,7 +1137,7 @@ player2.mode := "Wait";
 case "Player2Serve" // Player 2 is serving
 player1.serve = false;
 player2.serve =  true;
-if player2.hit == true&& norm(bat2.p - ball.p) < 0.15&& bat2.mode ~= "Rest"
+if player2.hit == true&& norm(bat2.p - ball.p) < 0.15&& bat2.mode <> "Rest"
 mode := "Impact"
 end;
 if referee.restart == 1
@@ -1147,7 +1147,7 @@ end;
 case "Player1Serve" // Player 1 is serving
 player2.serve = false;
 player1.serve = true;
-if player1.hit == true&& norm(bat1.p - ball.p) < 0.15&& bat1.mode ~= "Rest"
+if player1.hit == true&& norm(bat1.p - ball.p) < 0.15&& bat1.mode <> "Rest"
 mode := "Impact"
 end;
 if referee.restart == 1
@@ -1198,14 +1198,14 @@ if referee.restart == 1
 mode := "Freeze";
 t    := 0;
 end;
-if serveNumber == 2&& dot(ball.p,[1,0,0]) >0&& referee.restart ~= 1
+if serveNumber == 2&& dot(ball.p,[1,0,0]) >0&& referee.restart <> 1
 serveNumber     := 1;
 //batActuator2.mode := "ReSet";
 mode            := "Player1Serve";
 player1.mode    := "Wait";
 player1.bounced := false;
 end;
-if serveNumber == 1&& dot(ball.p,[1,0,0]) <= 0&& referee.restart ~= 1
+if serveNumber == 1&& dot(ball.p,[1,0,0]) <= 0&& referee.restart <> 1
 serveNumber     := 2;
 //batActuator1.mode := "ReSet";
 mode            := "Player2Serve";

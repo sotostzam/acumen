@@ -54,6 +54,7 @@
     <dataType>Obj</dataType>
     <dataType>Sphere</dataType>
     <dataType>Text</dataType>
+	 <dataType>Triangle</dataType>
   </dataTypes>
   <functions>
     <function>abs</function>

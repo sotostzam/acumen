@@ -51,11 +51,11 @@ always
          Text center=(-3.9,5,-3.5)+(tablerow,tablecolum,0).*shiftD   size=0.5 color=red   rotation=(0,0,0) coordinates="camera" content=finalScore1,
          Text center=(4.1,5,-3.5)+(tablerow,tablecolum,0).*shiftD    size=0.5 color=black rotation=(0,0,0) coordinates="camera" content=finalScore2),
   //add two modes for alternating start the game
-  if mode ~= "Restart1"     && mode ~= "Player1Serve" && mode ~= "Player2Serve"
-  && mode ~= "Impact"       && mode ~= "Freeze"       && mode ~= "ChangeSide"
-  && mode ~= "Act"          && mode ~= "Endgame"      && mode ~= "Init"
-  && mode ~= "Restart2"     && mode ~= "StartBall1"
-  && mode ~= "StartBall2" then
+  if mode <> "Restart1"     && mode <> "Player1Serve" && mode <> "Player2Serve"
+  && mode <> "Impact"       && mode <> "Freeze"       && mode <> "ChangeSide"
+  && mode <> "Act"          && mode <> "Endgame"      && mode <> "Init"
+  && mode <> "Restart2"     && mode <> "StartBall1"
+  && mode <> "StartBall2" then
     mode + = "Panic!"
   noelse,
   t'=1,
@@ -77,12 +77,12 @@ always
   player2.p_ball  = ballob.outputp,
   player1.v_ball  = ballob.outputv,
   player2.v_ball  = ballob.outputv,
-  if bat1.mode ~= "Rest" && gameTime <= gameLength 
+  if bat1.mode <> "Rest" && gameTime <= gameLength 
      && batActuator1.energy <= maxEnergy then
     batActuator1.p'    = player1.v,
     batActuator1.angle = player1.angle_bat
   noelse,
-  if bat2.mode ~= "Rest" && gameTime <= gameLength 
+  if bat2.mode <> "Rest" && gameTime <= gameLength 
      && batActuator2.energy <= maxEnergy then
     batActuator2.p'    = player2.v,
     batActuator2.angle = player2.angle_bat
@@ -226,7 +226,7 @@ always
         zc3 = norm((ball.p - bat2.p) - ((ball.p - bat2.p) dot bat2.angle) * bat2.angle),
         if ((ball.p - bat2.p) dot bat2.angle) < 0
         && ((ball.p'- bat2.pv) dot bat2.angle) < 0
-        && zc3 < batRadius && gameMonitor.restart ~= 1 then
+        && zc3 < batRadius && gameMonitor.restart <> 1 then
           ball.p'             + = ball.p' - ((1.5*(ball.p'-batActuator2.p')) dot batActuator2.angle)*batActuator2.angle,
           player2.myServe     + = false,
           player2.starting    + = false,
@@ -251,7 +251,7 @@ always
         zc3 = norm((ball.p - bat1.p) - ((ball.p - bat1.p) dot bat1.angle) * bat1.angle),
         if ((ball.p - bat1.p) dot bat1.angle) < 0
         && ((ball.p'- bat1.pv) dot bat1.angle) < 0
-        && zc3 < batRadius && gameMonitor.restart ~= 1 then
+        && zc3 < batRadius && gameMonitor.restart <> 1 then
           ball.p'             + = ball.p' - ((1.5*(ball.p'-batActuator1.p')) dot batActuator1.angle)*batActuator1.angle,
           player1.myServe     + = false,
           player1.mode        + = "Wait",
@@ -271,14 +271,14 @@ always
         mode + = "Freeze",
         t    + = 0
       else (
-        if serveNumber == 2 && (ball.p(0)) > 0 && gameMonitor.restart ~= 1 then
+        if serveNumber == 2 && (ball.p(0)) > 0 && gameMonitor.restart <> 1 then
           serveNumber     + = 1,
           mode            + = "Player1Serve",
           player2.myServe + = false,
           player1.myServe + = true,
           player1.bounced + = false
         noelse,
-        if serveNumber == 1 && (ball.p(0)) <= 0 && gameMonitor.restart ~= 1 then
+        if serveNumber == 1 && (ball.p(0)) <= 0 && gameMonitor.restart <> 1 then
           serveNumber     + = 2,
           mode            + = "Player2Serve",
           player1.myServe + = false,

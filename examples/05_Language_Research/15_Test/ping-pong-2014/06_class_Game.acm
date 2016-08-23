@@ -50,11 +50,11 @@ class Game (player1,player2,tablerow, tablecolum,gameLength)
          ["Text",[-1.8,6.5,1.5]+[tablerow,tablecolum,0].*shiftD,1,[0.6,0,0],[1.7,0,0],r1],
          ["Text",[3.5,6.5,1.5]+[tablerow,tablecolum,0].*shiftD,1,[0.1,0.1,0.1],[1.7,0,0],r2]];
   //add two modes for alternating start the game
-  if mode ~= "Restart1"      && mode ~= "Player1Serve"  && mode ~= "Player2Serve" 
-  && mode ~= "Impact"        && mode ~= "Freeze"       && mode ~= "ChangeSide"   
-  && mode ~= "Act"           && mode ~= "Endgame"       && mode ~= "Init"  
-  && mode ~= "Restart2"      && mode ~= "StartBall1"
-  && mode ~= "StartBall2"
+  if mode <> "Restart1"      && mode <> "Player1Serve"  && mode <> "Player2Serve" 
+  && mode <> "Impact"        && mode <> "Freeze"       && mode <> "ChangeSide"   
+  && mode <> "Act"           && mode <> "Endgame"       && mode <> "Init"  
+  && mode <> "Restart2"      && mode <> "StartBall1"
+  && mode <> "StartBall2"
     mode := "Panic!"
   end;
   t'=1;
@@ -75,11 +75,11 @@ class Game (player1,player2,tablerow, tablecolum,gameLength)
   player2.p_ball  = ballob.p;
   player1.v_ball  = ballob.v;
   player2.v_ball  = ballob.v;
-  if bat1.mode ~= "Rest" && gameTime <= gameLength
+  if bat1.mode <> "Rest" && gameTime <= gameLength
     batActuator1.p' = player1.v;
     batActuator1.angle = player1.angle_bat;
   end;
-  if bat2.mode ~= "Rest" && gameTime <= gameLength
+  if bat2.mode <> "Rest" && gameTime <= gameLength
     batActuator2.p' = player2.v;
     batActuator2.angle = player2.angle_bat;
   end;
@@ -220,7 +220,7 @@ class Game (player1,player2,tablerow, tablecolum,gameLength)
         if dot((ball.p - bat2.p), bat2.angle) < 0 &&
            dot((ball.p'- bat2.pv),bat2.angle) < 0 &&
            zc3 < batRadius &&
-           gameMonitor.restart ~= 1
+           gameMonitor.restart <> 1
           ball.p'            := ball.p' - dot((1.5)*(ball.p'-batActuator2.p'),batActuator2.angle)*batActuator2.angle;
           player2.starting   := false;
           r2                 := r2+1;
@@ -248,7 +248,7 @@ class Game (player1,player2,tablerow, tablecolum,gameLength)
         if dot((ball.p - bat1.p), bat1.angle) < 0 &&
            dot((ball.p'- bat1.pv),bat1.angle) < 0 &&
            zc3 < batRadius &&
-           gameMonitor.restart ~= 1
+           gameMonitor.restart <> 1
           ball.p'            := ball.p' - dot((1.5) * (ball.p' - batActuator1.p'),batActuator1.angle) * batActuator1.angle;
           player1.myServe    := false;
           player1.mode       := "Wait";    
@@ -270,14 +270,14 @@ class Game (player1,player2,tablerow, tablecolum,gameLength)
         mode := "Freeze";
         t    := 0;
       else
-        if serveNumber == 2 && dot(ball.p,[1,0,0]) >0 && gameMonitor.restart ~= 1
+        if serveNumber == 2 && dot(ball.p,[1,0,0]) >0 && gameMonitor.restart <> 1
           serveNumber     := 1;
           mode            := "Player1Serve";
           player1.myServe := true;
           player2.myServe := false;
           player1.bounced := false;
         end;
-        if serveNumber == 1 && dot(ball.p,[1,0,0]) <= 0 && gameMonitor.restart ~= 1
+        if serveNumber == 1 && dot(ball.p,[1,0,0]) <= 0 && gameMonitor.restart <> 1
           serveNumber     := 2;
           mode            := "Player2Serve";
           player1.myServe := false;

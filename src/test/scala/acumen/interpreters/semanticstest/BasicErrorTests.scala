@@ -58,6 +58,7 @@ trait BasicErrorTests extends SemanticsTestBase {
       getError("data/ShouldCrash/Error11.acm") should be (Some(err))
       // No line number
     }
+    
   }
 
 }

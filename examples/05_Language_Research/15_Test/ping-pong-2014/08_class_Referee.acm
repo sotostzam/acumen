@@ -19,10 +19,10 @@ class Referee()
     status       := "Normal"
   end
   
-  if mode ~= "Initialize" && mode ~= "Player1Lost" && mode ~= "Player2Lost"
-    && mode ~= "SendMessage1" && status ~= "Normal" && reason ~= "Nothing"
-    && status ~= "Report" && reason ~= "BallOutOfBoundary" && mode ~= "SendMessage2"
-    && reason ~= "BallBouncedTwice" && reason ~= "BallTouchNet" && reason ~= "BallNotOverNet"
+  if mode <> "Initialize" && mode <> "Player1Lost" && mode <> "Player2Lost"
+    && mode <> "SendMessage1" && status <> "Normal" && reason <> "Nothing"
+    && status <> "Report" && reason <> "BallOutOfBoundary" && mode <> "SendMessage2"
+    && reason <> "BallBouncedTwice" && reason <> "BallTouchNet" && reason <> "BallNotOverNet"
 
     mode := "Panic!";
   end;
@@ -50,7 +50,7 @@ class Referee()
       status := "Report";
     end;
     // Fail to serve the ball back
-    if (abs(p(1))<=0.79 && abs(p(0))<=1.54) && bounced ~= false 
+    if (abs(p(1))<=0.79 && abs(p(0))<=1.54) && bounced <> false 
        && status=="Normal" && abs(p(0))>0.025
       if bounced == "YesIn1" && lastHit == 1 && p(0) < 0
         mode       := "Player1Lost";
@@ -63,7 +63,7 @@ class Referee()
         bounced    := true;
       end;
     end;
-    if(abs(p(1))<=0.79 && abs(p(0))<=1.54) && bounced ~= false
+    if(abs(p(1))<=0.79 && abs(p(0))<=1.54) && bounced <> false
       && t>(bounceTime+0.1) && status=="Normal"
     // The ball has bounced twice in player2's court
       if bounced == "YesIn2" && p(0) > 0 && lastHit == 1

@@ -14,7 +14,7 @@ initially
   t'      =  1
 always
   t'=1,
-  if mode ~= "Sample" && mode ~= "Estimate0" && mode ~= "Estimate1" then
+  if mode <> "Sample" && mode <> "Estimate0" && mode <> "Estimate1" then
     mode + = "Panic!"
   noelse,
   match mode with [

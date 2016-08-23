@@ -33,7 +33,7 @@ initially
 always
   k' = 1,
   // If mode is not valid then make mode "Panic!"
-  if mode ~= "Normal" && mode ~= "Reset" then
+  if mode <> "Normal" && mode <> "Reset" then
     mode + = "Panic!" 
   noelse,
   match mode with [

@@ -13,7 +13,8 @@ always
      center=(-2.2,0,0) 
      size=size             // Font size now changing over time
      color=(1,1,0)       
-     rotation=(0,0,0) 
+     rotation=(0,0,0)
+     coordinates = "camera" 
      content="Hello Acumen!")
  
 

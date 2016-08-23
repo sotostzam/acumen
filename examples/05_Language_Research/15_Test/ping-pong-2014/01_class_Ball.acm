@@ -16,7 +16,7 @@ class Ball (tablerow,tablecolum)
   end
  
  // If mode is not valid then make mode "Panic!"
-  if mode ~= "Fly" && mode ~= "Bounce" && mode ~= "Freeze"
+  if mode <> "Fly" && mode <> "Bounce" && mode <> "Freeze"
      mode := "Panic!";
   end;
  // Behavior of ball in different modes
