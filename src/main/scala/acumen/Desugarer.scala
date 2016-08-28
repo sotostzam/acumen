@@ -176,7 +176,7 @@ case class Desugarer(odeTransformMode: ODETransformMode) {
               case TopLevel    => Nil
             })
         // non-directed equation encountered,
-        case _ => throw equationalWithoutBTA(lhs)
+        case _ => throw BadLhs().setPos(dlhs.pos)
       }
     }
     

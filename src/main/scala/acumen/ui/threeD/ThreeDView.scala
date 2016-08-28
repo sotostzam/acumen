@@ -23,12 +23,13 @@ class ThreeDView extends JPanel {
   Config.useMultipleThreads = true
   Config.maxNumberOfCores = java.lang.Runtime.getRuntime.availableProcessors()
   Logger.setLogLevel(Logger.ERROR)
-
   val world = new World  // create a new world
   val staticWorld = new World
   private var camera = new Camera
   private var staticCamera = new Camera
-
+  var manualInput = false
+  var lastZ = 0.0
+  var cFlip = false
   val characters = new Characters
 
   // Add texture for the axis
@@ -162,9 +163,10 @@ class ThreeDView extends JPanel {
 
   addMouseListener(new MouseAdapter {
     override def mousePressed(e: MouseEvent) = {
+      manualInput = true
       if (!dragging) {
         lastMouseX = e.getX
-        lastMouseY = e.getY
+        lastMouseY = e.getY        
         new setGlass(Color.RED, lookAtCenter, -1)
         CustomObject3D.partialBuild(lookAtCenter, false)
         lookAtCenter.translate(lookAtPoint.calcSub
@@ -175,6 +177,7 @@ class ThreeDView extends JPanel {
     }
     override def mouseReleased(e: MouseEvent) = {
       dragging = false
+      manualInput = false
       viewStateMachine("deleteLookAtSphere")
     }
   })
@@ -206,7 +209,7 @@ class ThreeDView extends JPanel {
           else if (SwingUtilities isRightMouseButton e)
             cameraRightDirection = moveCamera(cameraRightDirection, -1)
         }
-      }
+      }      
     }
   })
 
@@ -309,7 +312,7 @@ class ThreeDView extends JPanel {
     repaint()
     cameraDirection
   }
-
+  
   def axisOn() = {
     viewStateMachine("addAxes")
   }
@@ -335,7 +338,8 @@ class ThreeDView extends JPanel {
     cameraLeftDirection = (-1,-1)
     cameraRightDirection = (1,1)
     cameraFlipped = false
-    camera.setFOV(0.8f)
+    cFlip = false
+    lastZ = 0.0
     lookAt(null, lookAtPoint) // camera faces towards the object
     staticCamera.lookAt(new SimpleVector(0,0,0))
   }
@@ -496,17 +500,61 @@ class ThreeDView extends JPanel {
 
   def zoomin()  = camera.increaseFOV(0.02f)
   def zoomout() = camera.decreaseFOV(0.02f)
-
+ 
+  
+  
   def transformView(position: Array[Double], rotation: Array[Double],
                     cameraOffset: Array[Double], lookAtOffset: Array[Double]) = {
+     def convXYZtoSV(v : (Double, Double, Double)) = v match { case (x, y, z) => 
+      new SimpleVector(x.toFloat, y.toFloat, z.toFloat) }
+     def transform(positionVector : SimpleVector, newOrigin : SimpleVector, invert : Boolean = false) : SimpleVector = { 
+      // the local coordinates given by the orientation of the camera
+      // the new origin is newOrigin
+      val newX = new SimpleVector(1,0,0)
+      val newY = new SimpleVector(0,0,1)
+      val newZ = new SimpleVector(0,1,0)
+      
+      // the transformation matrix
+      val S = new Matrix()
+      S.setRow(0, newX.x, newX.y, newX.z, 0)
+      S.setRow(1, newY.x, newY.y, newY.z, 0)
+      S.setRow(2, newZ.x, newZ.y, newZ.z, 0) 
+
+      invert match {
+        case false => // the transformation
+          val v = newOrigin calcSub positionVector
+          v rotate S
+          v
+        case true  => // the inverse transformation
+          val v = positionVector
+          v rotate (S invert3x3())
+          newOrigin calcSub v 
+      } }
+    if (lastZ.toFloat * (-position(1).toFloat + cameraOffset(2).toFloat) < 0)
+    cFlip =  !cFlip
+    
     val cameraToSet = world.getCamera
-    cameraToSet.setPosition(-position(0).toFloat + cameraOffset(0).toFloat,
+    lastZ = (-position(1).toFloat + cameraOffset(2).toFloat)
+    val newPos = convXYZtoSV(-position(0).toFloat + cameraOffset(0).toFloat,
                             -position(2).toFloat + cameraOffset(1).toFloat,
                             -position(1).toFloat + cameraOffset(2).toFloat)
+    val rotate = convXYZtoSV(rotation.apply(0) - lookAtOffset(0).toFloat,
+                            rotation.apply(2) - lookAtOffset(2).toFloat,
+                            rotation.apply(1) - lookAtOffset(1).toFloat)
+    camera.setPosition(newPos)   
     val offRotation = Array(rotation.apply(0) - lookAtOffset(0).toFloat,
                             rotation.apply(1) - lookAtOffset(2).toFloat,
                             rotation.apply(2) - lookAtOffset(1).toFloat)
-    rotateObject(null, offRotation, "Camera", cameraToSet)
+    
+     lookAtPoint.set(-offRotation(0).toFloat, -offRotation(2).toFloat, -offRotation(1).toFloat)
+      camera.lookAt(lookAtPoint)                      
+    if (cFlip ){
+      camera.rotateCameraZ(Pi.toFloat)
+    }                         
+    
+   
+     updatePosInfo()
+     repaint()
   }
 
   /** Isolate Color Channel */
@@ -659,6 +707,7 @@ class ThreeDView extends JPanel {
       lookAtPoint.set(-angle(0).toFloat, -angle(2).toFloat, -angle(1).toFloat)
       lookAt(null, lookAtPoint)
       updatePosInfo()
+      repaint()
     }
   }
 }
@@ -713,6 +762,7 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D, playSpeed: Double,
   var destroy = false
   /* used for recording last frame number */
   private var lastRenderFrame = 0
+  private var lastManualInput = false
   private var cameraInitialized = false
   private val mouseSleepTime = 10.toLong
   private var lastSetFrameTime = System.currentTimeMillis()
@@ -851,12 +901,15 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D, playSpeed: Double,
           if (!_3DDataBuffer(currentFrame).contains(objectKey))
             deleteObj(objectKey)
         if(currentFrame < _3DView.size) {
-          if (lastRenderFrame > 0 && cameraInitialized) {
+          if (lastRenderFrame > 0 && cameraInitialized) {                    
+           if (!app.manualInput && !lastManualInput){
             val cameraPosition = app.world.getCamera.getPosition().toArray.map(_.toDouble)
             val lookAtPosition = app.lookAtPoint.toArray.map(_.toDouble)
             app.transformView((_3DView(currentFrame)._1, _3DView(lastRenderFrame)._1).zipped.map(_ - _),
                               (_3DView(currentFrame)._2, _3DView(lastRenderFrame)._2).zipped.map(_ - _),
-                              cameraPosition, lookAtPosition)
+                              cameraPosition, lookAtPosition)           
+           }          
+           lastManualInput = app.manualInput
           } else {
             app.transformView(_3DView(currentFrame)._1, _3DView(currentFrame)._2,
               Array(0,0,0), Array(0,0,0))
@@ -889,11 +942,11 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D, playSpeed: Double,
         for ((objectKey, o) <- app.objects)
           if (_3DDataBuffer.contains(latestFrame) && !_3DDataBuffer(latestFrame).contains(objectKey))
             deleteObj(objectKey)
-        if (_3DView.nonEmpty) {
+        if (_3DView.nonEmpty && !app.manualInput) {
           if (app.rtLastRenderFrame > 0 && app.rtCameraInitialize) {
             val cameraPosition = app.world.getCamera.getPosition().toArray.map(_.toDouble)
-            val lookAtPosition = app.lookAtPoint.toArray.map(_.toDouble)
-            app.transformView((_3DView.last._1, _3DView(app.rtLastRenderFrame)._1).zipped.map(_ - _),
+            val lookAtPosition = app.lookAtPoint.toArray.map(_.toDouble)      
+             app.transformView((_3DView.last._1, _3DView(app.rtLastRenderFrame)._1).zipped.map(_ - _),
                               (_3DView.last._2, _3DView(app.rtLastRenderFrame)._2).zipped.map(_ - _),
                                cameraPosition, lookAtPosition)
           } else {
@@ -1262,7 +1315,7 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D, playSpeed: Double,
     if (newObject != null) {
       // set color to the object
       setColor(newObject, color)
-      if (name == "Box" || name == "Cylinder")
+      if (name == "Box" || name == "Cylinder" || name == "Triangle")
         newObject.setShadingMode(Object3D.SHADING_FAKED_FLAT)
       // set transparency to the object
       newObject.setTransparencyMode(Object3D.TRANSPARENCY_MODE_DEFAULT) //TRANSPARENCY_MODE_DEFAULT
@@ -1366,7 +1419,7 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D, playSpeed: Double,
             slider.setProgress3D(percentage)
             slider.setTime(_3DTimeTag(currentFrame).toFloat)
           }
-          if (currentFrame <= totalFrames) {
+          if (currentFrame <= totalFrames && !staticFrame) {
             if (!app.waitingPaint)
               renderCurrentFrame()
             currentFrame = setFrameNumber("go", currentFrame)

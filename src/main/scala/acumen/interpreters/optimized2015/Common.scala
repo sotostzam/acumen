@@ -504,6 +504,7 @@ object Common {
             VLit(GDouble(rand))
           } else
             evalOp(op, args map (eval(env, _)))
+          
         /* sum e for i in c st t */
         case Sum(e, i, c, t) =>
           def helper(acc: Val, v: Val) = {

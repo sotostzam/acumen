@@ -144,6 +144,7 @@ object Specialization {
                   }
                 } catch {
                   case err: PositionalAcumenError => throw err.setPos(aexpr.pos)
+                  case _:Throwable => (Op(f.x, es).setPos(aexpr.pos), newEquation)
                 }
               
               // Symbolic vector-vector operator evaluation

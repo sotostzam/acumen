@@ -53,7 +53,7 @@ always
                             p+D,
                             q+D)
                   height = 0.1
-                  color = 0.6*white
+                  color = 1*white
            
          ) ,
   x = (p-q) dot (1,0,0),
@@ -69,16 +69,18 @@ model Chamber (p,D) =
  always
    v = p(0) - x, 
    c = (1-v/1.8)*red + (v/1.8)*white,
-   _3D = (Box center = p+(0.15,0,0)+D color = black size = (0.25,0.2,1.4),
-         Box center = p - (0.8,0,0.6)+D color = black size = (2,0.2,0.2),
-         Box center = p + (-0.8,0,0.6)+D color = black size = (2,0.2,0.2),
-         Box center = (x+v/2+0.02,0,0)+D  color = c size = (v-0.04,0.2,1))   
+   _3D = (Box center = p+(0.31,0,0)+D color = black size = (0.25,0.2,1.4),
+         Box center = p - (0.8,0,0.6)+D color = black size = (2.5,0.2,0.2),
+         Box center = p + (-0.8,0,0.6)+D color = black size = (2.5,0.2,0.2),
+         Box center = (x+v/2+0.1,0,0)+D  color = c size = (v+0.1,0.2,1))   
 model Cross(p,D) = 
  initially
    t = 0, _3D = ()
   always
-  _3D = (Cylinder center = p+D length = 0.8 radius = 0.02 color = yellow rotation = (-t,0,pi/2),
-         Cylinder center = p+D length = 0.8 radius = 0.02 color = yellow rotation = (pi/2,-t,0),
-         Cylinder center = p+D length = 0.01 radius = 0.4 color = blue rotation = (0,t,0))
- 
+  _3D = (Cylinder center = p+D length = 0.8 radius = 0.02 color = white rotation = (-t,0,pi/2),
+         Cylinder center = p+D length = 0.8 radius = 0.02 color = white rotation = (pi/2,-t,0),
+         Cylinder center = p+D length = 0.01 radius = 0.4 color = black rotation = (0,t,0))
+ // Cross black on white
+ // Chamber bigger (longer)
+ // stiker longer
   

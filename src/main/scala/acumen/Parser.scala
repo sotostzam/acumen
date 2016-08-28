@@ -568,7 +568,7 @@ object Parser extends MyStdTokenParsers {
          def mesg = n.x + " is not a valid _3D parameter" 
          }.setPos(e.pos) }
   def threeDObject:Parser[ExprVector] = optParens(name ~ rep(threeDPara)) ^^ {case n ~ ls =>threeDParasProcess(n,ls)}
-  def threeDRhs = parens(repsep(threeDObject, ",")) ^^ {case ls => ls match{
+  def threeDRhs = parens(repsep(threeDObject, opt(","))) ^^ {case ls => ls match{
     case List(single) => single
     case _ => ExprVector(ls)
   }}
@@ -660,7 +660,7 @@ object Parser extends MyStdTokenParsers {
     
     val length = paras.find(_._1.x == "length") match{
       case Some(x) => 
-        if(name == "Cylinder" | name == "Cone") 
+        if(name == "Cylinder" | name == "Cone" | name == "Box") 
           x._2 match{
       	   case _ @ Lit(GStr(_) | GBool(_)) => 
       	     error("_3D object " + name + "'s 'length' parameter is not a number")
@@ -671,13 +671,13 @@ object Parser extends MyStdTokenParsers {
     }
     val width = paras.find(_._1.x == "width") match{
       case Some(x) => 
-        if(name == "Cylinder" | name == "Cone") 
+        if(name == "Cylinder" | name == "Cone" | name == "Box") 
           x._2 match{
            case _ @ Lit(GStr(_) | GBool(_)) => 
-             error("_3D object " + name + "'s 'length' parameter is not a number")
+             error("_3D object " + name + "'s 'width' parameter is not a number")
            case _ => x._2
           }
-        else error("_3D object " + name + " can't have 'length' parameter")
+        else error("_3D object " + name + " can't have 'width' parameter")
       case None => defaultLength
     }
     
