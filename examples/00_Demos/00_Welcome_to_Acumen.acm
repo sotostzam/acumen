@@ -8,7 +8,7 @@
 model Main (simulator) = 
 initially
  x = 1, x' = 0, x''= 0, y = 20, y' = 0, y'' = 0, 
- _3D = (),_3DView = ((0,-10,2),(0,0,0))
+ _3D = ()//_3DView = ((0,-10,2),(0,0,0))
 always
  x'' = -9.8, y'' = -9.8,
  if (x<0&& x'<0) then x'+ = -0.5 * x', x+ = -x noelse,
