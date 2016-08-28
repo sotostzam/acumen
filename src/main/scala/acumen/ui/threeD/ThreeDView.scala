@@ -65,6 +65,7 @@ class ThreeDView extends JPanel {
   protected[threeD] var lookAtMoved = new SimpleVector(0,0,0)
   protected[threeD] var rtCameraInitialize = false
   protected[threeD] var rtLastRenderFrame = 0
+  protected[threeD] var lastRenderFrame = 0
   // default aspect ratio of 3D view
   var widthRatio = 16
   var heightRatio = 9
@@ -216,51 +217,7 @@ class ThreeDView extends JPanel {
   /* draggingDirection is the direction for left or right button,
    * click is -1 (right) or 1 (left) */
   def moveCamera (initialCameraDirection: (Int,Int), click: Int): (Int,Int) = {
-    // conversion between jPCT and XYZ
-    def convSVtoXYZ(v : SimpleVector) = (v.x.toDouble, v.y.toDouble, v.z.toDouble)
-    def convXYZtoSV(v : (Double, Double, Double)) = v match { case (x, y, z) => 
-      new SimpleVector(x.toFloat, y.toFloat, z.toFloat) }
-    
-    // conversion between XYZ and Spherical
-    // (x, y, z) -> (r, theta, phi)
-    def convXYZtoSPH(v : (Double, Double, Double)) = v match { case (x, y, z) =>
-      val r     = sqrt(x * x + y * y + z * z)              // radius
-      val theta = if (r != 0) acos(z / r) else 0           // theta = the angle of the vector with the (x,y) plane
-      val phi   = if (x != 0 || y != 0) atan2(y, x) else 0 // phi = plane polar angle of the projection on the (x,y) plane
-      (r, theta, phi) }
 
-    // (r, theta, phi) -> (x, y, z)
-    def convSPHtoXYZ(v : (Double, Double, Double)) = v match { case (r, theta, phi) =>
-      val x = r * sin(theta) * cos(phi)
-      val y = r * sin(theta) * sin(phi)
-      val z = r * cos(theta)
-      (x, y, z) }
-    
-    // transformation of XYZ coordinates
-    def transform(positionVector : SimpleVector, newOrigin : SimpleVector, invert : Boolean = false) : SimpleVector = { 
-      // the local coordinates given by the orientation of the camera
-      // the new origin is newOrigin
-      val newX = new SimpleVector(1,0,0)
-      val newY = new SimpleVector(0,0,1)
-      val newZ = new SimpleVector(0,1,0)
-      
-      // the transformation matrix
-      val S = new Matrix()
-      S.setRow(0, newX.x, newX.y, newX.z, 0)
-      S.setRow(1, newY.x, newY.y, newY.z, 0)
-      S.setRow(2, newZ.x, newZ.y, newZ.z, 0) 
-
-      invert match {
-        case false => // the transformation
-          val v = newOrigin calcSub positionVector
-          v rotate S
-          v
-        case true  => // the inverse transformation
-          val v = positionVector
-          v rotate (S invert3x3())
-          newOrigin calcSub v 
-      } }
-    
     // initial XYZ of the 1st object in local coordinates centered at the 2nd
     val (x0, y0, z0) = convSVtoXYZ( if (click == 1)
                                       transform(camera.getPosition, lookAtPoint)
@@ -311,6 +268,51 @@ class ThreeDView extends JPanel {
     repaint()
     cameraDirection
   }
+
+  // conversion between jPCT and XYZ
+  def convSVtoXYZ(v : SimpleVector) = (v.x.toDouble, v.y.toDouble, v.z.toDouble)
+  def convXYZtoSV(v : (Double, Double, Double)) = v match { case (x, y, z) =>
+    new SimpleVector(x.toFloat, y.toFloat, z.toFloat) }
+
+  // conversion between XYZ and Spherical
+  // (x, y, z) -> (r, theta, phi)
+  def convXYZtoSPH(v : (Double, Double, Double)) = v match { case (x, y, z) =>
+    val r     = sqrt(x * x + y * y + z * z)              // radius
+  val theta = if (r != 0) acos(z / r) else 0           // theta = the angle of the vector with the (x,y) plane
+  val phi   = if (x != 0 || y != 0) atan2(y, x) else 0 // phi = plane polar angle of the projection on the (x,y) plane
+    (r, theta, phi) }
+
+  // (r, theta, phi) -> (x, y, z)
+  def convSPHtoXYZ(v : (Double, Double, Double)) = v match { case (r, theta, phi) =>
+    val x = r * sin(theta) * cos(phi)
+    val y = r * sin(theta) * sin(phi)
+    val z = r * cos(theta)
+    (x, y, z) }
+
+  // transformation of XYZ coordinates
+  def transform(positionVector : SimpleVector, newOrigin : SimpleVector, invert : Boolean = false) : SimpleVector = {
+    // the local coordinates given by the orientation of the camera
+    // the new origin is newOrigin
+    val newX = new SimpleVector(1,0,0)
+    val newY = new SimpleVector(0,0,1)
+    val newZ = new SimpleVector(0,1,0)
+
+    // the transformation matrix
+    val S = new Matrix()
+    S.setRow(0, newX.x, newX.y, newX.z, 0)
+    S.setRow(1, newY.x, newY.y, newY.z, 0)
+    S.setRow(2, newZ.x, newZ.y, newZ.z, 0)
+
+    invert match {
+      case false => // the transformation
+        val v = newOrigin calcSub positionVector
+        v rotate S
+        v
+      case true  => // the inverse transformation
+        val v = positionVector
+        v rotate (S invert3x3())
+        newOrigin calcSub v
+    } }
   
   def axisOn() = {
     viewStateMachine("addAxes")
@@ -496,6 +498,7 @@ class ThreeDView extends JPanel {
     axisArray(0) = null
     rtCameraInitialize = false
     rtLastRenderFrame = 0
+    lastRenderFrame = 0
     init()
   }
 
@@ -506,70 +509,30 @@ class ThreeDView extends JPanel {
   
   def transformView(position: Array[Double], rotation: Array[Double],
                     cameraOffset: Array[Double], lookAtOffset: Array[Double]) = {
-     def convXYZtoSV(v : (Double, Double, Double)) = v match { case (x, y, z) => 
-      new SimpleVector(x.toFloat, y.toFloat, z.toFloat) }
-    def convSVtoXYZ(v : SimpleVector) = (v.x.toDouble, v.y.toDouble, v.z.toDouble)
-     def convXYZtoSPH(v : (Double, Double, Double)) = v match { case (x, y, z) =>
-      val r     = sqrt(x * x + y * y + z * z)              // radius
-      val theta = if (r != 0) acos(z / r) else 0           // theta = the angle of the vector with the (x,y) plane
-      val phi   = if (x != 0 || y != 0) atan2(y, x) else 0 // phi = plane polar angle of the projection on the (x,y) plane
-      (r, theta, phi) }
-    // (r, theta, phi) -> (x, y, z)
-    def convSPHtoXYZ(v : (Double, Double, Double)) = v match { case (r, theta, phi) =>
-      val x = r * sin(theta) * cos(phi)
-      val y = r * sin(theta) * sin(phi)
-      val z = r * cos(theta)
-      (x, y, z) }
-     def transform(positionVector : SimpleVector, newOrigin : SimpleVector, invert : Boolean = false) : SimpleVector = { 
-      // the local coordinates given by the orientation of the camera
-      // the new origin is newOrigin
-      val newX = new SimpleVector(1,0,0)
-      val newY = new SimpleVector(0,0,1)
-      val newZ = new SimpleVector(0,1,0)
-      
-      // the transformation matrix
-      val S = new Matrix()
-      S.setRow(0, newX.x, newX.y, newX.z, 0)
-      S.setRow(1, newY.x, newY.y, newY.z, 0)
-      S.setRow(2, newZ.x, newZ.y, newZ.z, 0) 
 
-      invert match {
-        case false => // the transformation
-          val v = newOrigin calcSub positionVector
-          v rotate S
-          v
-        case true  => // the inverse transformation
-          val v = positionVector
-          v rotate (S invert3x3())
-          newOrigin calcSub v 
-      } }
     val newPos = convXYZtoSV(-position(0).toFloat + cameraOffset(0).toFloat,
-                            -position(2).toFloat + cameraOffset(1).toFloat,
-                            -position(1).toFloat + cameraOffset(2).toFloat)
-    val rotate = convXYZtoSV(rotation.apply(0) - lookAtOffset(0).toFloat,
-                            rotation.apply(2) - lookAtOffset(2).toFloat,
-                            rotation.apply(1) - lookAtOffset(1).toFloat)
+                             -position(2).toFloat + cameraOffset(1).toFloat,
+                             -position(1).toFloat + cameraOffset(2).toFloat)
      val offRotation = Array(rotation.apply(0) - lookAtOffset(0).toFloat,
-                            rotation.apply(1) - lookAtOffset(2).toFloat,
-                            rotation.apply(2) - lookAtOffset(1).toFloat)
+                             rotation.apply(1) - lookAtOffset(2).toFloat,
+                             rotation.apply(2) - lookAtOffset(1).toFloat)
     
     val (x0, y0, z0) = convSVtoXYZ(transform(camera.getPosition, lookAtPoint))
     
     lookAtPoint.set(-offRotation(0).toFloat, -offRotation(2).toFloat, -offRotation(1).toFloat)
     val (x1, y1, z1) = convSVtoXYZ(transform(newPos, lookAtPoint))
-    val (r0, theta0, phi0) = convXYZtoSPH((x0, y0, z0))
-    var (r1, theta1, phi1) = convXYZtoSPH((x1, y1, z1))
+    val (r1, theta1, phi1) = convXYZtoSPH((x1, y1, z1))
     if (y0> 0 && y1 < 0 && x0 > 0 && abs(x0) < 0.1 ) {
-           cFlip =  !cFlip                     
+           cFlip = !cFlip
     }
     val (x11, y11, z11) = convSPHtoXYZ((r1, theta1, phi1))  
-    camera      setPosition transform(convXYZtoSV((x11, y11, z11)), lookAtPoint, true)
+    camera setPosition transform(convXYZtoSV((x11, y11, z11)), lookAtPoint, true)
     camera.lookAt(lookAtPoint)                      
-    if (cFlip ){
+    if (cFlip){
       camera.rotateCameraZ(Pi.toFloat)
-    }                           
-     updatePosInfo()
-     repaint()
+    }
+    updatePosInfo()
+    repaint()
   }
 
   /** Isolate Color Channel */
@@ -776,8 +739,6 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D, playSpeed: Double,
   val totalFrames = lastFrame
   var destroy = false
   /* used for recording last frame number */
-  private var lastRenderFrame = 0
-  private var lastManualInput = false
   private var cameraInitialized = false
   private val mouseSleepTime = 10.toLong
   private var lastSetFrameTime = System.currentTimeMillis()
@@ -791,7 +752,7 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D, playSpeed: Double,
     app.axisArray(0) = null
     app.scaleFactors.clear()
     app.objectsToDelete.clear()
-    lastRenderFrame = 0
+    app.lastRenderFrame = 0
     app.rtLastRenderFrame = 0
     cameraInitialized = false
     app.rtCameraInitialize = false
@@ -863,18 +824,18 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D, playSpeed: Double,
   }
 
   def getLastType(objectKey: (CId, Int), valueList: List[_]): Any = {
-    if (_3DDataBuffer.contains(lastRenderFrame)
-      && _3DDataBuffer(lastRenderFrame) != null) {
-      if (_3DDataBuffer(lastRenderFrame).contains(objectKey)) {
+    if (_3DDataBuffer.contains(app.lastRenderFrame)
+      && _3DDataBuffer(app.lastRenderFrame) != null) {
+      if (_3DDataBuffer(app.lastRenderFrame).contains(objectKey)) {
         valueList.head
       } else false // can not find the object
     } else false
   }
 
   def getLastContent(objectKey: (CId, Int), valueList: List[_]): Any = {
-    if (_3DDataBuffer.contains(lastRenderFrame)
-      && _3DDataBuffer(lastRenderFrame) != null) {
-      if (_3DDataBuffer(lastRenderFrame).contains(objectKey)) {
+    if (_3DDataBuffer.contains(app.lastRenderFrame)
+      && _3DDataBuffer(app.lastRenderFrame) != null) {
+      if (_3DDataBuffer(app.lastRenderFrame).contains(objectKey)) {
         valueList(5)
       } else false   // can not find the object
     } else false
@@ -883,8 +844,8 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D, playSpeed: Double,
   def needToResize(objectKey: (CId, Int), currentValList: List[_],
                    lastValList: List[_]): Boolean = {
     var resizeResult = false
-    if (_3DDataBuffer.contains(lastRenderFrame)
-      && _3DDataBuffer(lastRenderFrame) != null) {
+    if (_3DDataBuffer.contains(app.lastRenderFrame)
+      && _3DDataBuffer(app.lastRenderFrame) != null) {
       val (lastSize : Array[Double], curSize: Array[Double]) =
         (lastValList(2), currentValList(2))
       for (i <- lastSize.indices)
@@ -909,18 +870,18 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D, playSpeed: Double,
             app.objects -= objectKey
             matchingObject(objectKey, valueList, currentFrame)
           } else
-            transformObject(objectKey, valueList, lastRenderFrame, currentFrame)
+            transformObject(objectKey, valueList, app.lastRenderFrame, currentFrame)
 
         // delete the object not in this frame
         for ((objectKey, o) <- app.objects)
           if (!_3DDataBuffer(currentFrame).contains(objectKey))
             deleteObj(objectKey)
         if(currentFrame < _3DView.size) {
-          if (lastRenderFrame > 0 && cameraInitialized) {                               
+          if (app.lastRenderFrame > 0 && cameraInitialized) {
             val cameraPosition = app.world.getCamera().getPosition().toArray.map(_.toDouble)
             val lookAtPosition = app.lookAtPoint.toArray.map(_.toDouble)
-            app.transformView((_3DView(currentFrame)._1, _3DView(lastRenderFrame)._1).zipped.map(_ - _),
-                              (_3DView(currentFrame)._2, _3DView(lastRenderFrame)._2).zipped.map(_ - _),
+            app.transformView((_3DView(currentFrame)._1, _3DView(app.lastRenderFrame)._1).zipped.map(_ - _),
+                              (_3DView(currentFrame)._2, _3DView(app.lastRenderFrame)._2).zipped.map(_ - _),
                               cameraPosition, lookAtPosition)                            
           } else {
             app.transformView(_3DView(currentFrame)._1, _3DView(currentFrame)._2,
@@ -928,7 +889,7 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D, playSpeed: Double,
             cameraInitialized = true
           }
         }
-        lastRenderFrame = currentFrame
+        app.lastRenderFrame = currentFrame
         app.viewStateMachine("renderCurrentObjects")
       }
     }
@@ -1452,8 +1413,10 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D, playSpeed: Double,
             setFrameDone = true
           }
         case "real time render" =>
-          if (!app.waitingPaint)
+          if (!app.waitingPaint) {
             app.rtLastRenderFrame = renderFrameInRealTime()
+            app.lastRenderFrame = app.rtLastRenderFrame
+          }
       }
     }
   }
