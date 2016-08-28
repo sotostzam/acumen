@@ -335,8 +335,7 @@ class ThreeDView extends JPanel {
     camera = world.getCamera  // grab a handle to the camera
     staticCamera = staticWorld.getCamera
     cameraLeftDirection = (-1,-1)
-    cameraRightDirection = (1,1)
-    
+    cameraRightDirection = (1,1)   
     cameraFlipped = false
     cFlip = false
     lastZ = 0.0
@@ -497,7 +496,6 @@ class ThreeDView extends JPanel {
     axisArray(0) = null
     rtCameraInitialize = false
     rtLastRenderFrame = 0
-    defaultView()
     init()
   }
 

@@ -103,6 +103,11 @@ class CStoreCntrl(val semantics: SemanticsImpl[Interpreter], val interpreter: CS
       // Read simulator parameters from program
       var (store, md, endTime) = I.multiStep(p, store0, md0, adder)
       val cstore = I.repr(store)
+      // Reset the 3D view if the file path has been changed
+      if (App.ui.codeArea.fileChangedSinceLastRun()){
+        threeDTab.threeDView.defaultView()
+        App.ui.codeArea.lastFileRun = App.ui.codeArea.currentFile
+      }
       acumen.util.Canonical.getInSimulator(Name("outputRows",0), cstore) match {
         case VLit(GStr("All"))              => opts.outputRows = OutputRows.All
         case VLit(GStr("WhenChanged"))      => opts.outputRows = OutputRows.WhenChanged

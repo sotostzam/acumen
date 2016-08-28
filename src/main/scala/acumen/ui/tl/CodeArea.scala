@@ -65,6 +65,7 @@ class CodeArea extends Panel with TreeSelectionListener {
   
   /* ---- state variables ---- */
   var currentFile: Option[File] = None
+  var lastFileRun: Option[File] = None
   var editedSinceLastSave: Boolean = false
   var editedSinceLastAutoSave: Boolean = false
   var editedSinceLastRun: Boolean = false
@@ -182,6 +183,9 @@ class CodeArea extends Panel with TreeSelectionListener {
     notifyPathChangeListeners
   }
 
+  def fileChangedSinceLastRun(): Boolean = {
+    if (lastFileRun != currentFile) true else false
+  }
   def setEdited = {
     if (!editedSinceLastSave) filenameLabel.text += " (unsaved)"
     editedSinceLastSave = true
