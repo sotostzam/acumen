@@ -553,7 +553,12 @@ object Common {
       pr => Continuously(EquationT(Var(pr.x), Input(Dot(Var(self), Name("id",0)), pr.x.x)))
     })
   }
-
+  lazy val paraClass = {
+    val d = Parser.run(Parser.classDef, paramModelTxt)
+    ClassDef(d.name,d.fields,d.priv,d.priv.map{
+      pr => Continuously(EquationT(Var(pr.x), Input(Dot(Var(self), Name("id",0)), pr.x.x)))
+    })
+  }
   // The model contains command line input variables
   var paramModelTxt = "\n\n model Parameters()= \n\n"
 
