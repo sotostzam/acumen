@@ -40,7 +40,7 @@ object BindingTimeAnalysis {
           }
         }))
     }
-    
+    t
   }
   /** Partial evaluation of a class
    *  

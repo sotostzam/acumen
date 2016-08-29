@@ -56,7 +56,11 @@ object Canonical {
 
   /* store query */
 
-  def deref(a:CId, st:CStore) : CObject = st(a)
+  def deref(a:CId, st:CStore) : CObject = 
+    try{st(a)} catch{
+    case err:java.util.NoSuchElementException =>
+      throw new ObjectDeleted(a)     
+    } 
 
   def getObjectField(id:CId, f:Name, st:CStore) = {
     val obj = deref(id,st)

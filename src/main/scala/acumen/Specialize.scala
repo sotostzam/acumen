@@ -86,7 +86,7 @@ object Specialization {
         val e = specializeE(af)
         val es = specializeEs(aes)
         val neweqs = e._2 ::: es._2
-        (Call(e._1, es._1), neweqs)
+        (Call(e._1.setPos(af.pos), es._1).setPos(aexpr.pos), neweqs)
       case AExprInterval(ae1, ae2, l) => (ExprInterval(ae1.expr, ae2.expr), Nil)
       case AOp(f, aes, l) =>
         val ses = specializeEs(aes)   

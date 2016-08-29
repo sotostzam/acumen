@@ -394,13 +394,13 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
     (f, vx) match {
       case ("not", Uncertain | CertainTrue | CertainFalse) => Uncertain
       case (_, e: GRealEnclosure) => GConstantRealEnclosure(implem(f, e.range))
-      case (_, GIntervalFDif(d)) => GIntervalFDif(implemUnaryReal(f, d))
+      case (_, GIntervalFDif(d)) => GIntervalFDif(implemUnaryReal(f, d,vx.pos))
       case (_, GCValueTDif(d @ TAD.TDif(vd,_))) => 
         vd.head match {
           case VLit(_:GConstantRealEnclosure) =>
-            GCValueTDif(implemUnaryReal(f, d)(intervalBase.cValueTDifIsReal))
+            GCValueTDif(implemUnaryReal(f, d,vx.pos)(intervalBase.cValueTDifIsReal))
           case VLit(_:GIntervalFDif) =>
-            GCValueTDif(implemUnaryReal(f, d)(fDifBase.cValueTDifIsReal))
+            GCValueTDif(implemUnaryReal(f, d,vx.pos)(fDifBase.cValueTDifIsReal))
         }
         
     }

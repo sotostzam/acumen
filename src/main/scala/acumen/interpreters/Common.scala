@@ -13,7 +13,7 @@ import scala.util.parsing.input.Position
 import reflect.runtime.universe.TypeTag
 import enclosure2015.Common._
 import acumen.interpreters.enclosure.Interval
-
+import scala.util.parsing.input.{Position,Positional,NoPosition,OffsetPosition}
 //
 // Common stuff to CStore Interpreters
 //
@@ -115,7 +115,7 @@ object Common {
       case "cosh"      => cosh(x)
       case "tanh"      => tanh(x)
       case "signum"    => signum(x)
-      case _ => implemUnaryReal(f, x)
+      case _ => implemUnaryReal(f, x, vx.pos) 
     }
     (f, vx) match {
       case ("not", GBool(x))     => GBool(!x)
@@ -124,9 +124,9 @@ object Common {
       case ("round", GDouble(x)) => GInt(x.toInt)
       case (f, GIntTDif(d))      => f match {
         case "-" => GIntTDif(implemUnaryIntegral(f, d)) // keep as TDif[Int] if f has an integer result 
-        case _   => GDoubleTDif(implemUnaryReal(f, TDif(d.coeff.map(_.toDouble), d.length))) // otherwise, convert to TDif[Double] 
+        case _   => GDoubleTDif(implemUnaryReal(f, TDif(d.coeff.map(_.toDouble), d.length),vx.pos)) // otherwise, convert to TDif[Double] 
       }
-      case (f, GDoubleTDif(d))   => GDoubleTDif(implemUnaryReal(f, d))
+      case (f, GDoubleTDif(d))   => GDoubleTDif(implemUnaryReal(f, d,vx.pos))
       case _                     => GDouble(implem(f, extractDouble(vx)))
     }
   }
@@ -174,12 +174,16 @@ object Common {
     case "-"   => -x
     case "abs" => x.abs
   }
-  def implemUnaryReal[V: Real](f: String, x: V): V = f match {
+  def implemUnaryReal[V: Real](f: String, x: V, pos:Position): V = f match {
     case "sin"       => x.sin
     case "cos"       => x.cos
     case "tan"       => x.tan
     case "acos"      => x.acos
-    case "asin"      => x.asin
+    case "asin"      => 
+      if(x.toDouble < -1 || x.toDouble > 1 )
+        throw new FunctionOutOfRange("asin",x.toDouble).setPos(pos)
+      else
+        x.asin
     case "atan"      => x.atan
     case "toRadians" => throw new NotImplemented(f)
     case "toDegrees" => throw new NotImplemented(f)

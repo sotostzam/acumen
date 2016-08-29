@@ -23,6 +23,10 @@ object Errors {
     override def mesg = 
       "Model " + pprint(cn) + " is defined twice."
   }
+  case class ObjectDeleted(cid:CId) extends PositionalAcumenError {
+    override def mesg = 
+      "Object " + cid + " is deleted."
+  }
   case class ClassIncludedTwice(cn:ClassName, pos1: List[Position], pos2: List[Position]) extends PositionalAcumenError {
     override def mesg = 
       "Model " + pprint(cn) + " included twice."
@@ -167,6 +171,10 @@ object Errors {
   case class NoMatch(gv:GroundValue) extends PositionalAcumenError {
     override def mesg = 
       "No case matching " + pprint(gv) + "."
+  }
+  case class FunctionOutOfRange(f:String, x:Double) extends PositionalAcumenError {
+    override def mesg =
+    "Argument " + x + "for Function "+ f + " is out of range."
   }
   sealed abstract class DuplicateAssingment extends PositionalAcumenError {
     val x: Name
@@ -379,7 +387,7 @@ object Errors {
     override def getMessage =
       s + " is not yet implemented."
   }
-
+ 
   case class UnsupportedPlotType(s:String) extends AcumenError {
     override def getMessage =
       s"The expression $s can not be plotted. Only variable names are supported in _plot."
