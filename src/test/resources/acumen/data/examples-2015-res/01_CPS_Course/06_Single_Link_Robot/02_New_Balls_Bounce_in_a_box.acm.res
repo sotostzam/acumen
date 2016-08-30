@@ -5,7 +5,8 @@
   b3 = #0.3,
   b4 = #0.4,
   className = Main,
-  simulator = #0.0
+  simulator = #0.0,
+  type = Main
 }
 #0.0 { className = Simulator, time = 0.000000 }
 #0.1 {
@@ -19,6 +20,7 @@
   theta = 0,
   theta' = 0,
   theta'' = -0.050000,
+  type = ball,
   x = 0,
   x' = 0,
   x'' = -0.050000,
@@ -40,6 +42,7 @@
   theta = 0,
   theta' = 0,
   theta'' = 0.100000,
+  type = ball,
   x = 0,
   x' = 0,
   x'' = 0.100000,
@@ -61,6 +64,7 @@
   theta = 0,
   theta' = 0,
   theta'' = -0.150000,
+  type = ball,
   x = 0,
   x' = 0,
   x'' = -0.150000,
@@ -82,6 +86,7 @@
   theta = 0,
   theta' = 0,
   theta'' = 0.200000,
+  type = ball,
   x = 0,
   x' = 0,
   x'' = 0.200000,
@@ -100,7 +105,8 @@
   b3 = #0.3,
   b4 = #0.4,
   className = Main,
-  simulator = #0.0
+  simulator = #0.0,
+  type = Main
 }
 #0.0 { className = Simulator, time = 0.640625 }
 #0.1 {
@@ -114,6 +120,7 @@
   theta = -0.010260,
   theta' = -0.032031,
   theta'' = -0.050000,
+  type = ball,
   x = -0.010259,
   x' = -0.032026,
   x'' = -0.049961,
@@ -135,6 +142,7 @@
   theta = 0.020520,
   theta' = 0.064063,
   theta'' = 0.100000,
+  type = ball,
   x = 0.020516,
   x' = 0.064022,
   x'' = 0.099684,
@@ -156,6 +164,7 @@
   theta = -0.030780,
   theta' = -0.096094,
   theta'' = -0.150000,
+  type = ball,
   x = -0.030765,
   x' = -0.095957,
   x'' = -0.148934,
@@ -177,6 +186,7 @@
   theta = 0.041040,
   theta' = 0.128125,
   theta'' = 0.200000,
+  type = ball,
   x = 0.041005,
   x' = 0.127801,
   x'' = 0.197475,
@@ -195,7 +205,8 @@
   b3 = #0.3,
   b4 = #0.4,
   className = Main,
-  simulator = #0.0
+  simulator = #0.0,
+  type = Main
 }
 #0.0 { className = Simulator, time = 1.796875 }
 #0.1 {
@@ -209,6 +220,7 @@
   theta = -0.080719,
   theta' = -0.089844,
   theta'' = -0.050000,
+  type = ball,
   x = -0.080456,
   x' = -0.088966,
   x'' = -0.047561,
@@ -230,6 +242,7 @@
   theta = 0.161438,
   theta' = 0.179687,
   theta'' = 0.100000,
+  type = ball,
   x = 0.159339,
   x' = 0.172688,
   x'' = 0.080580,
@@ -251,6 +264,7 @@
   theta = -0.242157,
   theta' = -0.269531,
   theta'' = -0.150000,
+  type = ball,
   x = -0.235092,
   x' = -0.246016,
   x'' = -0.084993,
@@ -272,6 +286,7 @@
   theta = 0.322876,
   theta' = 0.359375,
   theta'' = 0.200000,
+  type = ball,
   x = 0.306192,
   x' = 0.303988,
   x'' = 0.047674,
@@ -290,7 +305,8 @@
   b3 = #0.3,
   b4 = #0.4,
   className = Main,
-  simulator = #0.0
+  simulator = #0.0,
+  type = Main
 }
 #0.0 { className = Simulator, time = 2.843750 }
 #0.1 {
@@ -304,6 +320,7 @@
   theta = -0.202173,
   theta' = -0.142187,
   theta'' = -0.050000,
+  type = ball,
   x = -0.198055,
   x' = -0.133519,
   x'' = -0.034828,
@@ -325,6 +342,7 @@
   theta = 0.404346,
   theta' = 0.284375,
   theta'' = 0.100000,
+  type = ball,
   x = 0.371739,
   x' = 0.216206,
   x'' = -0.017665,
@@ -346,6 +364,7 @@
   theta = -0.606519,
   theta' = -0.426562,
   theta'' = -0.150000,
+  type = ball,
   x = -0.498338,
   x' = -0.203008,
   x'' = 0.226721,
@@ -367,6 +386,7 @@
   theta = 0.808691,
   theta' = 0.568750,
   theta'' = 0.200000,
+  type = ball,
   x = 0.558357,
   x' = 0.059975,
   x'' = -0.627521,

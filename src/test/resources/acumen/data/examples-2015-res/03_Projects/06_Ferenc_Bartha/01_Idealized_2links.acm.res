@@ -15,7 +15,8 @@
   theta1acc = 0.000000,
   theta2 = 0,
   theta2' = 2,
-  theta2'' = -0.000000
+  theta2'' = -0.000000,
+  type = Main
 }
 #0.0 { className = Simulator, time = 0.000000 }
 ------------------------------0

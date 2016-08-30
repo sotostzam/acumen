@@ -6,7 +6,8 @@
   className = Main,
   mode = "",
   o = 0,
-  simulator = #0.0
+  simulator = #0.0,
+  type = Main
 }
 #0.0 { className = Simulator, time = 0.000000 }
 #0.1 {
@@ -17,13 +18,15 @@
   className = Example3,
   h = #0.1.1,
   m = #0.1.0,
-  o = 0.000000
+  o = 0.000000,
+  type = Example3
 }
 #0.1.0 {
   a = 11.270453,
   b = 37.800219,
   c = 1,
   className = Example2,
+  type = Example2,
   x1 = 1,
   x1' = -11.270453,
   x10 = 1,
@@ -36,6 +39,7 @@
   b = 50.970044,
   c = 1,
   className = Example2,
+  type = Example2,
   x1 = 0,
   x1' = 50.970044,
   x10 = 0,

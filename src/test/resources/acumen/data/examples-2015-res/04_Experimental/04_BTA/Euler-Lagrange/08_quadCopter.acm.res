@@ -10,6 +10,7 @@
   max = 733.046086,
   mode = "Init",
   simulator = #0.0,
+  type = Main,
   visual = #0.2
 }
 #0.0 { className = Simulator, time = 0.000000 }
@@ -61,6 +62,7 @@
   theta = 0.400000,
   theta' = 0,
   theta'' = -2.400000,
+  type = QuadCopter,
   w1 = 744.807505,
   w2 = 738.950195,
   w3 = 733.046086,
@@ -78,6 +80,7 @@
   rotor2p = (-1.000000, -1.000000, 0.000000),
   rotor3p = (-1.921061, 0.000000, 0.389418),
   rotor4p = (-1.000000, 1.000000, 0.000000),
+  type = VisualCopter,
   yaw = 0
 }
 #0.3 {
@@ -87,6 +90,7 @@
   className = Display_bar1,
   pitch = 0.400000,
   roll = 0,
+  type = Display_bar1,
   v = 2.352284
 }
 #0.4 {
@@ -96,6 +100,7 @@
   className = Display_bar1,
   pitch = 0.400000,
   roll = 0,
+  type = Display_bar1,
   v = 1.180822
 }
 #0.5 {
@@ -105,6 +110,7 @@
   className = Display_bar1,
   pitch = 0.400000,
   roll = 0,
+  type = Display_bar1,
   v = 0.000000
 }
 #0.6 {
@@ -114,6 +120,7 @@
   className = Display_bar1,
   pitch = 0.400000,
   roll = 0,
+  type = Display_bar1,
   v = 1.180822
 }
 #0.7 {
@@ -156,6 +163,7 @@
   torqueP = 0.000000,
   torquePsi = 0.000000,
   torqueT = -0.011654,
+  type = PDController,
   w1 = 744.807505,
   w2 = 738.950195,
   w3 = 733.046086,
@@ -177,6 +185,7 @@
   max = 650.605988,
   mode = "Init",
   simulator = #0.0,
+  type = Main,
   visual = #0.2
 }
 #0.0 { className = Simulator, time = 0.520000 }
@@ -228,6 +237,7 @@
   theta = 0.184438,
   theta' = -0.617989,
   theta'' = -0.025717,
+  type = QuadCopter,
   w1 = 650.771582,
   w2 = 650.797224,
   w3 = 650.631637,
@@ -245,6 +255,7 @@
   rotor2p = (-0.474551, -0.999723, 0.243570),
   rotor3p = (-1.436558, 0.020517, 0.431385),
   rotor4p = (-0.432912, 0.999823, 0.252412),
+  type = VisualCopter,
   yaw = 0.020821
 }
 #0.3 {
@@ -254,6 +265,7 @@
   className = Display_bar1,
   pitch = 0.184438,
   roll = 0.004421,
+  type = Display_bar1,
   v = 0.033119
 }
 #0.4 {
@@ -263,6 +275,7 @@
   className = Display_bar1,
   pitch = 0.184438,
   roll = 0.004421,
+  type = Display_bar1,
   v = 0.038247
 }
 #0.5 {
@@ -272,6 +285,7 @@
   className = Display_bar1,
   pitch = 0.184438,
   roll = 0.004421,
+  type = Display_bar1,
   v = 0.005130
 }
 #0.6 {
@@ -281,6 +295,7 @@
   className = Display_bar1,
   pitch = 0.184438,
   roll = 0.004421,
+  type = Display_bar1,
   v = 0.000000
 }
 #0.7 {
@@ -323,6 +338,7 @@
   torqueP = -0.000167,
   torquePsi = 0.000000,
   torqueT = -0.000122,
+  type = PDController,
   w1 = 650.771582,
   w2 = 650.797224,
   w3 = 650.631637,
@@ -344,6 +360,7 @@
   max = 648.584901,
   mode = "Init",
   simulator = #0.0,
+  type = Main,
   visual = #0.2
 }
 #0.0 { className = Simulator, time = 0.540000 }
@@ -395,6 +412,7 @@
   theta = 0.172078,
   theta' = -0.617760,
   theta'' = 0.048115,
+  type = QuadCopter,
   w1 = 648.584901,
   w2 = 648.813927,
   w3 = 648.856261,
@@ -412,6 +430,7 @@
   rotor2p = (-0.441281, -0.999703, 0.258259),
   rotor3p = (-1.404307, 0.021688, 0.433991),
   rotor4p = (-0.397347, 0.999794, 0.267263),
+  type = VisualCopter,
   yaw = 0.021969
 }
 #0.3 {
@@ -421,6 +440,7 @@
   className = Display_bar1,
   pitch = 0.172078,
   roll = 0.004502,
+  type = Display_bar1,
   v = 0.000000
 }
 #0.4 {
@@ -430,6 +450,7 @@
   className = Display_bar1,
   pitch = 0.172078,
   roll = 0.004502,
+  type = Display_bar1,
   v = 0.045805
 }
 #0.5 {
@@ -439,6 +460,7 @@
   className = Display_bar1,
   pitch = 0.172078,
   roll = 0.004502,
+  type = Display_bar1,
   v = 0.054272
 }
 #0.6 {
@@ -448,6 +470,7 @@
   className = Display_bar1,
   pitch = 0.172078,
   roll = 0.004502,
+  type = Display_bar1,
   v = 0.008470
 }
 #0.7 {
@@ -490,6 +513,7 @@
   torqueP = -0.000162,
   torquePsi = 0.000000,
   torqueT = 0.000236,
+  type = PDController,
   w1 = 648.584901,
   w2 = 648.813927,
   w3 = 648.856261,
@@ -511,6 +535,7 @@
   max = 620.648813,
   mode = "Init",
   simulator = #0.0,
+  type = Main,
   visual = #0.2
 }
 #0.0 { className = Simulator, time = 1.900000 }
@@ -562,6 +587,7 @@
   theta = -0.054168,
   theta' = 0.185843,
   theta'' = -0.000210,
+  type = QuadCopter,
   w1 = 620.659223,
   w2 = 620.648813,
   w3 = 620.657946,
@@ -579,6 +605,7 @@
   rotor2p = (1.061879, -1.032149, 1.180676),
   rotor3p = (0.109116, 0.011551, 1.126149),
   rotor4p = (1.151416, 0.965846, 1.179904),
+  type = VisualCopter,
   yaw = 0.044783
 }
 #0.3 {
@@ -588,6 +615,7 @@
   className = Display_bar1,
   pitch = -0.054168,
   roll = -0.000386,
+  type = Display_bar1,
   v = 0.002082
 }
 #0.4 {
@@ -597,6 +625,7 @@
   className = Display_bar1,
   pitch = -0.054168,
   roll = -0.000386,
+  type = Display_bar1,
   v = 0.000000
 }
 #0.5 {
@@ -606,6 +635,7 @@
   className = Display_bar1,
   pitch = -0.054168,
   roll = -0.000386,
+  type = Display_bar1,
   v = 0.001827
 }
 #0.6 {
@@ -615,6 +645,7 @@
   className = Display_bar1,
   pitch = -0.054168,
   roll = -0.000386,
+  type = Display_bar1,
   v = 0.003909
 }
 #0.7 {
@@ -657,6 +688,7 @@
   torqueP = 0.000016,
   torquePsi = 0.000000,
   torqueT = -0.000001,
+  type = PDController,
   w1 = 620.659223,
   w2 = 620.648813,
   w3 = 620.657946,

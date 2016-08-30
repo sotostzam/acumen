@@ -4,6 +4,7 @@
   r = 50,
   r' = 0,
   simulator = #0.0,
+  type = Main,
   x = 5,
   x' = 0,
   x'' = -10

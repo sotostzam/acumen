@@ -2,6 +2,7 @@
   className = Main,
   mode = "Fly",
   simulator = #0.0,
+  type = Main,
   x = 5,
   x' = 0,
   x'' = -10

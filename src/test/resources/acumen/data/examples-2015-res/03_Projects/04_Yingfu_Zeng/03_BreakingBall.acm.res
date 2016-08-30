@@ -2,7 +2,8 @@
   className = Main,
   mode = "Persist",
   n = 2.000000,
-  simulator = #0.0
+  simulator = #0.0,
+  type = Main
 }
 #0.0 { className = Simulator, time = 0.000000 }
 #0.1 {
@@ -10,6 +11,7 @@
   c = (0.200000, 1.000000, 0.200000),
   className = BreakingBall,
   s = 0.100000,
+  type = BreakingBall,
   v = 0.300000,
   x = 0,
   x' = 0.300000,
@@ -22,7 +24,8 @@
   className = Main,
   mode = "Persist",
   n = 3.000000,
-  simulator = #0.0
+  simulator = #0.0,
+  type = Main
 }
 #0.0 { className = Simulator, time = 0.640625 }
 #0.1.0 {
@@ -30,6 +33,7 @@
   c = (0.192188, 0.384375, 0.960938),
   className = BreakingBall,
   s = 0.090000,
+  type = BreakingBall,
   v = -0.330000,
   x = 0.192188,
   x' = -0.330000,
@@ -42,6 +46,7 @@
   c = (6.278125, 0.192188, 0.100000),
   className = BreakingBall,
   s = 0.090000,
+  type = BreakingBall,
   v = 0.300000,
   x = 0.192188,
   x' = 0.300000,
@@ -54,7 +59,8 @@
   className = Main,
   mode = "Persist",
   n = 4.000000,
-  simulator = #0.0
+  simulator = #0.0,
+  type = Main
 }
 #0.0 { className = Simulator, time = 1.796875 }
 #0.1.0 {
@@ -62,6 +68,7 @@
   c = (0.192188, 0.384375, 0.960938),
   className = BreakingBall,
   s = 0.090000,
+  type = BreakingBall,
   v = -0.330000,
   x = -0.189375,
   x' = -0.330000,
@@ -74,6 +81,7 @@
   c = (0.539063, 1.078125, 2.695313),
   className = BreakingBall,
   s = 0.081000,
+  type = BreakingBall,
   v = -0.330000,
   x = 0.539063,
   x' = -0.330000,
@@ -86,6 +94,7 @@
   c = (5.680938, 0.539063, 0.090000),
   className = BreakingBall,
   s = 0.081000,
+  type = BreakingBall,
   v = 0.300000,
   x = 0.539063,
   x' = 0.300000,
@@ -98,7 +107,8 @@
   className = Main,
   mode = "Persist",
   n = 5.000000,
-  simulator = #0.0
+  simulator = #0.0,
+  type = Main
 }
 #0.0 { className = Simulator, time = 1.921875 }
 #0.1.0.0 {
@@ -106,6 +116,7 @@
   c = (0.230625, 0.461250, -1.153125),
   className = BreakingBall,
   s = 0.081000,
+  type = BreakingBall,
   v = 0.363000,
   x = -0.230625,
   x' = 0.363000,
@@ -118,6 +129,7 @@
   c = (6.278125, 0.230625, 0.090000),
   className = BreakingBall,
   s = 0.081000,
+  type = BreakingBall,
   v = -0.330000,
   x = -0.230625,
   x' = -0.330000,
@@ -130,6 +142,7 @@
   c = (0.539063, 1.078125, 2.695313),
   className = BreakingBall,
   s = 0.081000,
+  type = BreakingBall,
   v = -0.330000,
   x = 0.497813,
   x' = -0.330000,
@@ -142,6 +155,7 @@
   c = (5.680938, 0.539063, 0.090000),
   className = BreakingBall,
   s = 0.081000,
+  type = BreakingBall,
   v = 0.300000,
   x = 0.576563,
   x' = 0.300000,

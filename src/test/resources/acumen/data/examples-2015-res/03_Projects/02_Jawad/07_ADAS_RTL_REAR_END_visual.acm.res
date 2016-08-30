@@ -7,7 +7,8 @@
   sens = #0.5,
   simulator = #0.0,
   subject = #0.2,
-  target = #0.3
+  target = #0.3,
+  type = Main
 }
 #0.0 { className = Simulator, time = 0.000000 }
 #0.1 {
@@ -19,6 +20,7 @@
   th = 0,
   th' = 0,
   th0 = 0,
+  type = VehicleMechanics,
   w = 0,
   w0 = 0,
   x = 0,
@@ -35,7 +37,8 @@
   name = "car.obj",
   o = (0, 0, 3.141593),
   p = (0, 0, 0),
-  s = 2
+  s = 2,
+  type = VehicleT
 }
 #0.3 {
   _3D = ("OBJ", (45, 0, 0), 1, (1, 1, 1), (0, 0, 3.141593), "car.obj", "Global", -1.000000),
@@ -43,18 +46,21 @@
   d = 1,
   name = "car.obj",
   p = (45, 0, 0),
-  s = 2
+  s = 2,
+  type = VehicleS
 }
 #0.4 {
   _3D = (("Box", (0, 0, -0.457200), (1000, 3.962400, 0.100000), (0.300000, 0.300000, 0.300000), (0, 0, 0), "Global", -1.000000), ("Box", (0, 1.981200, -0.465000), (1000, 0.150000, 0.110000), (255, 255, 255), (0, 0, 0), "Global", -1.000000), ("Box", (0, -1.981200, -0.465000), (1000, 0.150000, 0.100000), (255, 255, 255), (0, 0, 0), "Global", -1.000000), ("Box", (0, 0, -0.450000), (3, 0.150000, 0.100000), (255, 255, 255), (0, 0, 0), "Global", -1.000000)),
   className = Road,
-  mode = "persist"
+  mode = "persist",
+  type = Road
 }
 #0.4.0 {
   _3D = ("Box", (0, 0, -0.450000), (3, 0.150000, 0.100000), (255, 255, 255), (0, 0, 0), "Global", -1.000000),
   className = Stripe,
   mode = "persist",
   stripesLeft = 33,
+  type = Stripe,
   xstart = 0
 }
 #0.4.0.0 {
@@ -62,6 +68,7 @@
   className = Stripe,
   mode = "persist",
   stripesLeft = 32,
+  type = Stripe,
   xstart = 7.500000
 }
 #0.4.0.0.0 {
@@ -69,6 +76,7 @@
   className = Stripe,
   mode = "persist",
   stripesLeft = 31,
+  type = Stripe,
   xstart = 15.000000
 }
 #0.4.0.0.0.0 {
@@ -76,6 +84,7 @@
   className = Stripe,
   mode = "persist",
   stripesLeft = 30,
+  type = Stripe,
   xstart = 22.500000
 }
 #0.4.0.0.0.0.0 {
@@ -83,6 +92,7 @@
   className = Stripe,
   mode = "persist",
   stripesLeft = 29,
+  type = Stripe,
   xstart = 30.000000
 }
 #0.4.0.0.0.0.0.0 {
@@ -90,6 +100,7 @@
   className = Stripe,
   mode = "persist",
   stripesLeft = 28,
+  type = Stripe,
   xstart = 37.500000
 }
 #0.4.0.0.0.0.0.0.0 {
@@ -97,6 +108,7 @@
   className = Stripe,
   mode = "persist",
   stripesLeft = 27,
+  type = Stripe,
   xstart = 45.000000
 }
 #0.4.0.0.0.0.0.0.0.0 {
@@ -104,6 +116,7 @@
   className = Stripe,
   mode = "persist",
   stripesLeft = 26,
+  type = Stripe,
   xstart = 52.500000
 }
 #0.4.0.0.0.0.0.0.0.0.0 {
@@ -111,6 +124,7 @@
   className = Stripe,
   mode = "persist",
   stripesLeft = 25,
+  type = Stripe,
   xstart = 60.000000
 }
 #0.4.0.0.0.0.0.0.0.0.0.0 {
@@ -118,6 +132,7 @@
   className = Stripe,
   mode = "persist",
   stripesLeft = 24,
+  type = Stripe,
   xstart = 67.500000
 }
 #0.4.0.0.0.0.0.0.0.0.0.0.0 {
@@ -125,6 +140,7 @@
   className = Stripe,
   mode = "persist",
   stripesLeft = 23,
+  type = Stripe,
   xstart = 75.000000
 }
 #0.4.0.0.0.0.0.0.0.0.0.0.0.0 {
@@ -132,6 +148,7 @@
   className = Stripe,
   mode = "persist",
   stripesLeft = 22,
+  type = Stripe,
   xstart = 82.500000
 }
 #0.4.0.0.0.0.0.0.0.0.0.0.0.0.0 {
@@ -139,6 +156,7 @@
   className = Stripe,
   mode = "persist",
   stripesLeft = 21,
+  type = Stripe,
   xstart = 90.000000
 }
 #0.4.0.0.0.0.0.0.0.0.0.0.0.0.0.0 {
@@ -146,6 +164,7 @@
   className = Stripe,
   mode = "persist",
   stripesLeft = 20,
+  type = Stripe,
   xstart = 97.500000
 }
 #0.4.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0 {
@@ -153,6 +172,7 @@
   className = Stripe,
   mode = "persist",
   stripesLeft = 19,
+  type = Stripe,
   xstart = 105.000000
 }
 #0.4.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0 {
@@ -160,6 +180,7 @@
   className = Stripe,
   mode = "persist",
   stripesLeft = 18,
+  type = Stripe,
   xstart = 112.500000
 }
 #0.4.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0 {
@@ -167,6 +188,7 @@
   className = Stripe,
   mode = "persist",
   stripesLeft = 17,
+  type = Stripe,
   xstart = 120.000000
 }
 #0.4.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0 {
@@ -174,6 +196,7 @@
   className = Stripe,
   mode = "persist",
   stripesLeft = 16,
+  type = Stripe,
   xstart = 127.500000
 }
 #0.4.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0 {
@@ -181,6 +204,7 @@
   className = Stripe,
   mode = "persist",
   stripesLeft = 15,
+  type = Stripe,
   xstart = 135.000000
 }
 #0.4.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0 {
@@ -188,6 +212,7 @@
   className = Stripe,
   mode = "persist",
   stripesLeft = 14,
+  type = Stripe,
   xstart = 142.500000
 }
 #0.4.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0 {
@@ -195,6 +220,7 @@
   className = Stripe,
   mode = "persist",
   stripesLeft = 13,
+  type = Stripe,
   xstart = 150.000000
 }
 #0.4.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0 {
@@ -202,6 +228,7 @@
   className = Stripe,
   mode = "persist",
   stripesLeft = 12,
+  type = Stripe,
   xstart = 157.500000
 }
 #0.4.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0 {
@@ -209,6 +236,7 @@
   className = Stripe,
   mode = "persist",
   stripesLeft = 11,
+  type = Stripe,
   xstart = 165.000000
 }
 #0.4.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0 {
@@ -216,6 +244,7 @@
   className = Stripe,
   mode = "persist",
   stripesLeft = 10,
+  type = Stripe,
   xstart = 172.500000
 }
 #0.4.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0 {
@@ -223,6 +252,7 @@
   className = Stripe,
   mode = "persist",
   stripesLeft = 9,
+  type = Stripe,
   xstart = 180.000000
 }
 #0.4.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0 {
@@ -230,6 +260,7 @@
   className = Stripe,
   mode = "persist",
   stripesLeft = 8,
+  type = Stripe,
   xstart = 187.500000
 }
 #0.4.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0 {
@@ -237,6 +268,7 @@
   className = Stripe,
   mode = "persist",
   stripesLeft = 7,
+  type = Stripe,
   xstart = 195.000000
 }
 #0.4.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0 {
@@ -244,6 +276,7 @@
   className = Stripe,
   mode = "persist",
   stripesLeft = 6,
+  type = Stripe,
   xstart = 202.500000
 }
 #0.4.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0 {
@@ -251,6 +284,7 @@
   className = Stripe,
   mode = "persist",
   stripesLeft = 5,
+  type = Stripe,
   xstart = 210.000000
 }
 #0.4.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0 {
@@ -258,6 +292,7 @@
   className = Stripe,
   mode = "persist",
   stripesLeft = 4,
+  type = Stripe,
   xstart = 217.500000
 }
 #0.4.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0 {
@@ -265,6 +300,7 @@
   className = Stripe,
   mode = "persist",
   stripesLeft = 3,
+  type = Stripe,
   xstart = 225.000000
 }
 #0.4.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0 {
@@ -272,6 +308,7 @@
   className = Stripe,
   mode = "persist",
   stripesLeft = 2,
+  type = Stripe,
   xstart = 232.500000
 }
 #0.4.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0 {
@@ -279,6 +316,7 @@
   className = Stripe,
   mode = "persist",
   stripesLeft = 1,
+  type = Stripe,
   xstart = 240.000000
 }
 #0.4.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0 {
@@ -286,6 +324,7 @@
   className = Stripe,
   mode = "spawn",
   stripesLeft = 0,
+  type = Stripe,
   xstart = 247.500000
 }
 #0.5 {
@@ -298,6 +337,7 @@
   sy = 0,
   th = 0,
   th0 = 0,
+  type = Sensor,
   x = 0,
   x0 = 0,
   y = 0,
@@ -324,6 +364,7 @@
   t' = 1,
   t_c = 0.010000,
   th = 0,
+  type = Control,
   w = 0,
   w0 = 0,
   x = 0,
@@ -339,7 +380,8 @@
   sens = #0.5,
   simulator = #0.0,
   subject = #0.2,
-  target = #0.3
+  target = #0.3,
+  type = Main
 }
 #0.0 { className = Simulator, time = 0.010000 }
 #0.1 {
@@ -351,6 +393,7 @@
   th = 0.000000,
   th' = 0.000000,
   th0 = 0,
+  type = VehicleMechanics,
   w = 0.000000,
   w0 = 0,
   x = 0.000000,
@@ -367,7 +410,8 @@
   name = "car.obj",
   o = (0, 0, 3.141593),
   p = (0.000000, 0.000000, 0),
-  s = 2
+  s = 2,
+  type = VehicleT
 }
 #0.3 {
   _3D = ("OBJ", (45, 0, 0), 1, (1, 1, 1), (0, 0, 3.141593), "car.obj", "Global", -1.000000),
@@ -375,18 +419,21 @@
   d = 1,
   name = "car.obj",
   p = (45, 0, 0),
-  s = 2
+  s = 2,
+  type = VehicleS
 }
 #0.4 {
   _3D = (("Box", (0, 0, -0.457200), (1000, 3.962400, 0.100000), (0.300000, 0.300000, 0.300000), (0, 0, 0), "Global", -1.000000), ("Box", (0, 1.981200, -0.465000), (1000, 0.150000, 0.110000), (255, 255, 255), (0, 0, 0), "Global", -1.000000), ("Box", (0, -1.981200, -0.465000), (1000, 0.150000, 0.100000), (255, 255, 255), (0, 0, 0), "Global", -1.000000), ("Box", (0, 0, -0.450000), (3, 0.150000, 0.100000), (255, 255, 255), (0, 0, 0), "Global", -1.000000)),
   className = Road,
-  mode = "persist"
+  mode = "persist",
+  type = Road
 }
 #0.4.0 {
   _3D = ("Box", (0, 0, -0.450000), (3, 0.150000, 0.100000), (255, 255, 255), (0, 0, 0), "Global", -1.000000),
   className = Stripe,
   mode = "persist",
   stripesLeft = 33,
+  type = Stripe,
   xstart = 0
 }
 #0.4.0.0 {
@@ -394,6 +441,7 @@
   className = Stripe,
   mode = "persist",
   stripesLeft = 32,
+  type = Stripe,
   xstart = 7.500000
 }
 #0.4.0.0.0 {
@@ -401,6 +449,7 @@
   className = Stripe,
   mode = "persist",
   stripesLeft = 31,
+  type = Stripe,
   xstart = 15.000000
 }
 #0.4.0.0.0.0 {
@@ -408,6 +457,7 @@
   className = Stripe,
   mode = "persist",
   stripesLeft = 30,
+  type = Stripe,
   xstart = 22.500000
 }
 #0.4.0.0.0.0.0 {
@@ -415,6 +465,7 @@
   className = Stripe,
   mode = "persist",
   stripesLeft = 29,
+  type = Stripe,
   xstart = 30.000000
 }
 #0.4.0.0.0.0.0.0 {
@@ -422,6 +473,7 @@
   className = Stripe,
   mode = "persist",
   stripesLeft = 28,
+  type = Stripe,
   xstart = 37.500000
 }
 #0.4.0.0.0.0.0.0.0 {
@@ -429,6 +481,7 @@
   className = Stripe,
   mode = "persist",
   stripesLeft = 27,
+  type = Stripe,
   xstart = 45.000000
 }
 #0.4.0.0.0.0.0.0.0.0 {
@@ -436,6 +489,7 @@
   className = Stripe,
   mode = "persist",
   stripesLeft = 26,
+  type = Stripe,
   xstart = 52.500000
 }
 #0.4.0.0.0.0.0.0.0.0.0 {
@@ -443,6 +497,7 @@
   className = Stripe,
   mode = "persist",
   stripesLeft = 25,
+  type = Stripe,
   xstart = 60.000000
 }
 #0.4.0.0.0.0.0.0.0.0.0.0 {
@@ -450,6 +505,7 @@
   className = Stripe,
   mode = "persist",
   stripesLeft = 24,
+  type = Stripe,
   xstart = 67.500000
 }
 #0.4.0.0.0.0.0.0.0.0.0.0.0 {
@@ -457,6 +513,7 @@
   className = Stripe,
   mode = "persist",
   stripesLeft = 23,
+  type = Stripe,
   xstart = 75.000000
 }
 #0.4.0.0.0.0.0.0.0.0.0.0.0.0 {
@@ -464,6 +521,7 @@
   className = Stripe,
   mode = "persist",
   stripesLeft = 22,
+  type = Stripe,
   xstart = 82.500000
 }
 #0.4.0.0.0.0.0.0.0.0.0.0.0.0.0 {
@@ -471,6 +529,7 @@
   className = Stripe,
   mode = "persist",
   stripesLeft = 21,
+  type = Stripe,
   xstart = 90.000000
 }
 #0.4.0.0.0.0.0.0.0.0.0.0.0.0.0.0 {
@@ -478,6 +537,7 @@
   className = Stripe,
   mode = "persist",
   stripesLeft = 20,
+  type = Stripe,
   xstart = 97.500000
 }
 #0.4.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0 {
@@ -485,6 +545,7 @@
   className = Stripe,
   mode = "persist",
   stripesLeft = 19,
+  type = Stripe,
   xstart = 105.000000
 }
 #0.4.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0 {
@@ -492,6 +553,7 @@
   className = Stripe,
   mode = "persist",
   stripesLeft = 18,
+  type = Stripe,
   xstart = 112.500000
 }
 #0.4.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0 {
@@ -499,6 +561,7 @@
   className = Stripe,
   mode = "persist",
   stripesLeft = 17,
+  type = Stripe,
   xstart = 120.000000
 }
 #0.4.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0 {
@@ -506,6 +569,7 @@
   className = Stripe,
   mode = "persist",
   stripesLeft = 16,
+  type = Stripe,
   xstart = 127.500000
 }
 #0.4.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0 {
@@ -513,6 +577,7 @@
   className = Stripe,
   mode = "persist",
   stripesLeft = 15,
+  type = Stripe,
   xstart = 135.000000
 }
 #0.4.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0 {
@@ -520,6 +585,7 @@
   className = Stripe,
   mode = "persist",
   stripesLeft = 14,
+  type = Stripe,
   xstart = 142.500000
 }
 #0.4.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0 {
@@ -527,6 +593,7 @@
   className = Stripe,
   mode = "persist",
   stripesLeft = 13,
+  type = Stripe,
   xstart = 150.000000
 }
 #0.4.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0 {
@@ -534,6 +601,7 @@
   className = Stripe,
   mode = "persist",
   stripesLeft = 12,
+  type = Stripe,
   xstart = 157.500000
 }
 #0.4.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0 {
@@ -541,6 +609,7 @@
   className = Stripe,
   mode = "persist",
   stripesLeft = 11,
+  type = Stripe,
   xstart = 165.000000
 }
 #0.4.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0 {
@@ -548,6 +617,7 @@
   className = Stripe,
   mode = "persist",
   stripesLeft = 10,
+  type = Stripe,
   xstart = 172.500000
 }
 #0.4.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0 {
@@ -555,6 +625,7 @@
   className = Stripe,
   mode = "persist",
   stripesLeft = 9,
+  type = Stripe,
   xstart = 180.000000
 }
 #0.4.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0 {
@@ -562,6 +633,7 @@
   className = Stripe,
   mode = "persist",
   stripesLeft = 8,
+  type = Stripe,
   xstart = 187.500000
 }
 #0.4.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0 {
@@ -569,6 +641,7 @@
   className = Stripe,
   mode = "persist",
   stripesLeft = 7,
+  type = Stripe,
   xstart = 195.000000
 }
 #0.4.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0 {
@@ -576,6 +649,7 @@
   className = Stripe,
   mode = "persist",
   stripesLeft = 6,
+  type = Stripe,
   xstart = 202.500000
 }
 #0.4.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0 {
@@ -583,6 +657,7 @@
   className = Stripe,
   mode = "persist",
   stripesLeft = 5,
+  type = Stripe,
   xstart = 210.000000
 }
 #0.4.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0 {
@@ -590,6 +665,7 @@
   className = Stripe,
   mode = "persist",
   stripesLeft = 4,
+  type = Stripe,
   xstart = 217.500000
 }
 #0.4.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0 {
@@ -597,6 +673,7 @@
   className = Stripe,
   mode = "persist",
   stripesLeft = 3,
+  type = Stripe,
   xstart = 225.000000
 }
 #0.4.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0 {
@@ -604,6 +681,7 @@
   className = Stripe,
   mode = "persist",
   stripesLeft = 2,
+  type = Stripe,
   xstart = 232.500000
 }
 #0.4.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0 {
@@ -611,6 +689,7 @@
   className = Stripe,
   mode = "persist",
   stripesLeft = 1,
+  type = Stripe,
   xstart = 240.000000
 }
 #0.4.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0 {
@@ -618,6 +697,7 @@
   className = Stripe,
   mode = "spawn",
   stripesLeft = 0,
+  type = Stripe,
   xstart = 247.500000
 }
 #0.5 {
@@ -630,6 +710,7 @@
   sy = 0.000000,
   th = 0.000000,
   th0 = 0,
+  type = Sensor,
   x = 0.000000,
   x0 = 0,
   y = 0.000000,
@@ -656,6 +737,7 @@
   t' = 1,
   t_c = 0.010000,
   th = 0.000000,
+  type = Control,
   w = 0.000000,
   w0 = 0,
   x = 0.000000,
@@ -671,7 +753,8 @@
   sens = #0.5,
   simulator = #0.0,
   subject = #0.2,
-  target = #0.3
+  target = #0.3,
+  type = Main
 }
 #0.0 { className = Simulator, time = 0.020000 }
 #0.1 {
@@ -683,6 +766,7 @@
   th = 0.000000,
   th' = 0.000000,
   th0 = 0,
+  type = VehicleMechanics,
   w = 0.000000,
   w0 = 0,
   x = 0.000000,
@@ -699,7 +783,8 @@
   name = "car.obj",
   o = (0, 0, 3.141593),
   p = (0.000000, 0.000000, 0),
-  s = 2
+  s = 2,
+  type = VehicleT
 }
 #0.3 {
   _3D = ("OBJ", (45, 0, 0), 1, (1, 1, 1), (0, 0, 3.141593), "car.obj", "Global", -1.000000),
@@ -707,18 +792,21 @@
   d = 1,
   name = "car.obj",
   p = (45, 0, 0),
-  s = 2
+  s = 2,
+  type = VehicleS
 }
 #0.4 {
   _3D = (("Box", (0, 0, -0.457200), (1000, 3.962400, 0.100000), (0.300000, 0.300000, 0.300000), (0, 0, 0), "Global", -1.000000), ("Box", (0, 1.981200, -0.465000), (1000, 0.150000, 0.110000), (255, 255, 255), (0, 0, 0), "Global", -1.000000), ("Box", (0, -1.981200, -0.465000), (1000, 0.150000, 0.100000), (255, 255, 255), (0, 0, 0), "Global", -1.000000), ("Box", (0, 0, -0.450000), (3, 0.150000, 0.100000), (255, 255, 255), (0, 0, 0), "Global", -1.000000)),
   className = Road,
-  mode = "persist"
+  mode = "persist",
+  type = Road
 }
 #0.4.0 {
   _3D = ("Box", (0, 0, -0.450000), (3, 0.150000, 0.100000), (255, 255, 255), (0, 0, 0), "Global", -1.000000),
   className = Stripe,
   mode = "persist",
   stripesLeft = 33,
+  type = Stripe,
   xstart = 0
 }
 #0.4.0.0 {
@@ -726,6 +814,7 @@
   className = Stripe,
   mode = "persist",
   stripesLeft = 32,
+  type = Stripe,
   xstart = 7.500000
 }
 #0.4.0.0.0 {
@@ -733,6 +822,7 @@
   className = Stripe,
   mode = "persist",
   stripesLeft = 31,
+  type = Stripe,
   xstart = 15.000000
 }
 #0.4.0.0.0.0 {
@@ -740,6 +830,7 @@
   className = Stripe,
   mode = "persist",
   stripesLeft = 30,
+  type = Stripe,
   xstart = 22.500000
 }
 #0.4.0.0.0.0.0 {
@@ -747,6 +838,7 @@
   className = Stripe,
   mode = "persist",
   stripesLeft = 29,
+  type = Stripe,
   xstart = 30.000000
 }
 #0.4.0.0.0.0.0.0 {
@@ -754,6 +846,7 @@
   className = Stripe,
   mode = "persist",
   stripesLeft = 28,
+  type = Stripe,
   xstart = 37.500000
 }
 #0.4.0.0.0.0.0.0.0 {
@@ -761,6 +854,7 @@
   className = Stripe,
   mode = "persist",
   stripesLeft = 27,
+  type = Stripe,
   xstart = 45.000000
 }
 #0.4.0.0.0.0.0.0.0.0 {
@@ -768,6 +862,7 @@
   className = Stripe,
   mode = "persist",
   stripesLeft = 26,
+  type = Stripe,
   xstart = 52.500000
 }
 #0.4.0.0.0.0.0.0.0.0.0 {
@@ -775,6 +870,7 @@
   className = Stripe,
   mode = "persist",
   stripesLeft = 25,
+  type = Stripe,
   xstart = 60.000000
 }
 #0.4.0.0.0.0.0.0.0.0.0.0 {
@@ -782,6 +878,7 @@
   className = Stripe,
   mode = "persist",
   stripesLeft = 24,
+  type = Stripe,
   xstart = 67.500000
 }
 #0.4.0.0.0.0.0.0.0.0.0.0.0 {
@@ -789,6 +886,7 @@
   className = Stripe,
   mode = "persist",
   stripesLeft = 23,
+  type = Stripe,
   xstart = 75.000000
 }
 #0.4.0.0.0.0.0.0.0.0.0.0.0.0 {
@@ -796,6 +894,7 @@
   className = Stripe,
   mode = "persist",
   stripesLeft = 22,
+  type = Stripe,
   xstart = 82.500000
 }
 #0.4.0.0.0.0.0.0.0.0.0.0.0.0.0 {
@@ -803,6 +902,7 @@
   className = Stripe,
   mode = "persist",
   stripesLeft = 21,
+  type = Stripe,
   xstart = 90.000000
 }
 #0.4.0.0.0.0.0.0.0.0.0.0.0.0.0.0 {
@@ -810,6 +910,7 @@
   className = Stripe,
   mode = "persist",
   stripesLeft = 20,
+  type = Stripe,
   xstart = 97.500000
 }
 #0.4.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0 {
@@ -817,6 +918,7 @@
   className = Stripe,
   mode = "persist",
   stripesLeft = 19,
+  type = Stripe,
   xstart = 105.000000
 }
 #0.4.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0 {
@@ -824,6 +926,7 @@
   className = Stripe,
   mode = "persist",
   stripesLeft = 18,
+  type = Stripe,
   xstart = 112.500000
 }
 #0.4.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0 {
@@ -831,6 +934,7 @@
   className = Stripe,
   mode = "persist",
   stripesLeft = 17,
+  type = Stripe,
   xstart = 120.000000
 }
 #0.4.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0 {
@@ -838,6 +942,7 @@
   className = Stripe,
   mode = "persist",
   stripesLeft = 16,
+  type = Stripe,
   xstart = 127.500000
 }
 #0.4.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0 {
@@ -845,6 +950,7 @@
   className = Stripe,
   mode = "persist",
   stripesLeft = 15,
+  type = Stripe,
   xstart = 135.000000
 }
 #0.4.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0 {
@@ -852,6 +958,7 @@
   className = Stripe,
   mode = "persist",
   stripesLeft = 14,
+  type = Stripe,
   xstart = 142.500000
 }
 #0.4.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0 {
@@ -859,6 +966,7 @@
   className = Stripe,
   mode = "persist",
   stripesLeft = 13,
+  type = Stripe,
   xstart = 150.000000
 }
 #0.4.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0 {
@@ -866,6 +974,7 @@
   className = Stripe,
   mode = "persist",
   stripesLeft = 12,
+  type = Stripe,
   xstart = 157.500000
 }
 #0.4.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0 {
@@ -873,6 +982,7 @@
   className = Stripe,
   mode = "persist",
   stripesLeft = 11,
+  type = Stripe,
   xstart = 165.000000
 }
 #0.4.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0 {
@@ -880,6 +990,7 @@
   className = Stripe,
   mode = "persist",
   stripesLeft = 10,
+  type = Stripe,
   xstart = 172.500000
 }
 #0.4.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0 {
@@ -887,6 +998,7 @@
   className = Stripe,
   mode = "persist",
   stripesLeft = 9,
+  type = Stripe,
   xstart = 180.000000
 }
 #0.4.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0 {
@@ -894,6 +1006,7 @@
   className = Stripe,
   mode = "persist",
   stripesLeft = 8,
+  type = Stripe,
   xstart = 187.500000
 }
 #0.4.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0 {
@@ -901,6 +1014,7 @@
   className = Stripe,
   mode = "persist",
   stripesLeft = 7,
+  type = Stripe,
   xstart = 195.000000
 }
 #0.4.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0 {
@@ -908,6 +1022,7 @@
   className = Stripe,
   mode = "persist",
   stripesLeft = 6,
+  type = Stripe,
   xstart = 202.500000
 }
 #0.4.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0 {
@@ -915,6 +1030,7 @@
   className = Stripe,
   mode = "persist",
   stripesLeft = 5,
+  type = Stripe,
   xstart = 210.000000
 }
 #0.4.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0 {
@@ -922,6 +1038,7 @@
   className = Stripe,
   mode = "persist",
   stripesLeft = 4,
+  type = Stripe,
   xstart = 217.500000
 }
 #0.4.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0 {
@@ -929,6 +1046,7 @@
   className = Stripe,
   mode = "persist",
   stripesLeft = 3,
+  type = Stripe,
   xstart = 225.000000
 }
 #0.4.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0 {
@@ -936,6 +1054,7 @@
   className = Stripe,
   mode = "persist",
   stripesLeft = 2,
+  type = Stripe,
   xstart = 232.500000
 }
 #0.4.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0 {
@@ -943,6 +1062,7 @@
   className = Stripe,
   mode = "persist",
   stripesLeft = 1,
+  type = Stripe,
   xstart = 240.000000
 }
 #0.4.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0 {
@@ -950,6 +1070,7 @@
   className = Stripe,
   mode = "spawn",
   stripesLeft = 0,
+  type = Stripe,
   xstart = 247.500000
 }
 #0.5 {
@@ -962,6 +1083,7 @@
   sy = 0.000000,
   th = 0.000000,
   th0 = 0,
+  type = Sensor,
   x = 0.000000,
   x0 = 0,
   y = 0.000000,
@@ -988,6 +1110,7 @@
   t' = 1,
   t_c = 0.010000,
   th = 0.000000,
+  type = Control,
   w = 0.000000,
   w0 = 0,
   x = 0.000000,
@@ -1003,7 +1126,8 @@
   sens = #0.5,
   simulator = #0.0,
   subject = #0.2,
-  target = #0.3
+  target = #0.3,
+  type = Main
 }
 #0.0 { className = Simulator, time = 0.030000 }
 #0.1 {
@@ -1015,6 +1139,7 @@
   th = 0.000000,
   th' = 0.000000,
   th0 = 0,
+  type = VehicleMechanics,
   w = 0.000000,
   w0 = 0,
   x = 0.300000,
@@ -1031,7 +1156,8 @@
   name = "car.obj",
   o = (0, 0, 3.141593),
   p = (0.300000, 0.000000, 0),
-  s = 2
+  s = 2,
+  type = VehicleT
 }
 #0.3 {
   _3D = ("OBJ", (45, 0, 0), 1, (1, 1, 1), (0, 0, 3.141593), "car.obj", "Global", -1.000000),
@@ -1039,18 +1165,21 @@
   d = 1,
   name = "car.obj",
   p = (45, 0, 0),
-  s = 2
+  s = 2,
+  type = VehicleS
 }
 #0.4 {
   _3D = (("Box", (0, 0, -0.457200), (1000, 3.962400, 0.100000), (0.300000, 0.300000, 0.300000), (0, 0, 0), "Global", -1.000000), ("Box", (0, 1.981200, -0.465000), (1000, 0.150000, 0.110000), (255, 255, 255), (0, 0, 0), "Global", -1.000000), ("Box", (0, -1.981200, -0.465000), (1000, 0.150000, 0.100000), (255, 255, 255), (0, 0, 0), "Global", -1.000000), ("Box", (0, 0, -0.450000), (3, 0.150000, 0.100000), (255, 255, 255), (0, 0, 0), "Global", -1.000000)),
   className = Road,
-  mode = "persist"
+  mode = "persist",
+  type = Road
 }
 #0.4.0 {
   _3D = ("Box", (0, 0, -0.450000), (3, 0.150000, 0.100000), (255, 255, 255), (0, 0, 0), "Global", -1.000000),
   className = Stripe,
   mode = "persist",
   stripesLeft = 33,
+  type = Stripe,
   xstart = 0
 }
 #0.4.0.0 {
@@ -1058,6 +1187,7 @@
   className = Stripe,
   mode = "persist",
   stripesLeft = 32,
+  type = Stripe,
   xstart = 7.500000
 }
 #0.4.0.0.0 {
@@ -1065,6 +1195,7 @@
   className = Stripe,
   mode = "persist",
   stripesLeft = 31,
+  type = Stripe,
   xstart = 15.000000
 }
 #0.4.0.0.0.0 {
@@ -1072,6 +1203,7 @@
   className = Stripe,
   mode = "persist",
   stripesLeft = 30,
+  type = Stripe,
   xstart = 22.500000
 }
 #0.4.0.0.0.0.0 {
@@ -1079,6 +1211,7 @@
   className = Stripe,
   mode = "persist",
   stripesLeft = 29,
+  type = Stripe,
   xstart = 30.000000
 }
 #0.4.0.0.0.0.0.0 {
@@ -1086,6 +1219,7 @@
   className = Stripe,
   mode = "persist",
   stripesLeft = 28,
+  type = Stripe,
   xstart = 37.500000
 }
 #0.4.0.0.0.0.0.0.0 {
@@ -1093,6 +1227,7 @@
   className = Stripe,
   mode = "persist",
   stripesLeft = 27,
+  type = Stripe,
   xstart = 45.000000
 }
 #0.4.0.0.0.0.0.0.0.0 {
@@ -1100,6 +1235,7 @@
   className = Stripe,
   mode = "persist",
   stripesLeft = 26,
+  type = Stripe,
   xstart = 52.500000
 }
 #0.4.0.0.0.0.0.0.0.0.0 {
@@ -1107,6 +1243,7 @@
   className = Stripe,
   mode = "persist",
   stripesLeft = 25,
+  type = Stripe,
   xstart = 60.000000
 }
 #0.4.0.0.0.0.0.0.0.0.0.0 {
@@ -1114,6 +1251,7 @@
   className = Stripe,
   mode = "persist",
   stripesLeft = 24,
+  type = Stripe,
   xstart = 67.500000
 }
 #0.4.0.0.0.0.0.0.0.0.0.0.0 {
@@ -1121,6 +1259,7 @@
   className = Stripe,
   mode = "persist",
   stripesLeft = 23,
+  type = Stripe,
   xstart = 75.000000
 }
 #0.4.0.0.0.0.0.0.0.0.0.0.0.0 {
@@ -1128,6 +1267,7 @@
   className = Stripe,
   mode = "persist",
   stripesLeft = 22,
+  type = Stripe,
   xstart = 82.500000
 }
 #0.4.0.0.0.0.0.0.0.0.0.0.0.0.0 {
@@ -1135,6 +1275,7 @@
   className = Stripe,
   mode = "persist",
   stripesLeft = 21,
+  type = Stripe,
   xstart = 90.000000
 }
 #0.4.0.0.0.0.0.0.0.0.0.0.0.0.0.0 {
@@ -1142,6 +1283,7 @@
   className = Stripe,
   mode = "persist",
   stripesLeft = 20,
+  type = Stripe,
   xstart = 97.500000
 }
 #0.4.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0 {
@@ -1149,6 +1291,7 @@
   className = Stripe,
   mode = "persist",
   stripesLeft = 19,
+  type = Stripe,
   xstart = 105.000000
 }
 #0.4.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0 {
@@ -1156,6 +1299,7 @@
   className = Stripe,
   mode = "persist",
   stripesLeft = 18,
+  type = Stripe,
   xstart = 112.500000
 }
 #0.4.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0 {
@@ -1163,6 +1307,7 @@
   className = Stripe,
   mode = "persist",
   stripesLeft = 17,
+  type = Stripe,
   xstart = 120.000000
 }
 #0.4.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0 {
@@ -1170,6 +1315,7 @@
   className = Stripe,
   mode = "persist",
   stripesLeft = 16,
+  type = Stripe,
   xstart = 127.500000
 }
 #0.4.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0 {
@@ -1177,6 +1323,7 @@
   className = Stripe,
   mode = "persist",
   stripesLeft = 15,
+  type = Stripe,
   xstart = 135.000000
 }
 #0.4.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0 {
@@ -1184,6 +1331,7 @@
   className = Stripe,
   mode = "persist",
   stripesLeft = 14,
+  type = Stripe,
   xstart = 142.500000
 }
 #0.4.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0 {
@@ -1191,6 +1339,7 @@
   className = Stripe,
   mode = "persist",
   stripesLeft = 13,
+  type = Stripe,
   xstart = 150.000000
 }
 #0.4.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0 {
@@ -1198,6 +1347,7 @@
   className = Stripe,
   mode = "persist",
   stripesLeft = 12,
+  type = Stripe,
   xstart = 157.500000
 }
 #0.4.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0 {
@@ -1205,6 +1355,7 @@
   className = Stripe,
   mode = "persist",
   stripesLeft = 11,
+  type = Stripe,
   xstart = 165.000000
 }
 #0.4.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0 {
@@ -1212,6 +1363,7 @@
   className = Stripe,
   mode = "persist",
   stripesLeft = 10,
+  type = Stripe,
   xstart = 172.500000
 }
 #0.4.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0 {
@@ -1219,6 +1371,7 @@
   className = Stripe,
   mode = "persist",
   stripesLeft = 9,
+  type = Stripe,
   xstart = 180.000000
 }
 #0.4.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0 {
@@ -1226,6 +1379,7 @@
   className = Stripe,
   mode = "persist",
   stripesLeft = 8,
+  type = Stripe,
   xstart = 187.500000
 }
 #0.4.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0 {
@@ -1233,6 +1387,7 @@
   className = Stripe,
   mode = "persist",
   stripesLeft = 7,
+  type = Stripe,
   xstart = 195.000000
 }
 #0.4.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0 {
@@ -1240,6 +1395,7 @@
   className = Stripe,
   mode = "persist",
   stripesLeft = 6,
+  type = Stripe,
   xstart = 202.500000
 }
 #0.4.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0 {
@@ -1247,6 +1403,7 @@
   className = Stripe,
   mode = "persist",
   stripesLeft = 5,
+  type = Stripe,
   xstart = 210.000000
 }
 #0.4.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0 {
@@ -1254,6 +1411,7 @@
   className = Stripe,
   mode = "persist",
   stripesLeft = 4,
+  type = Stripe,
   xstart = 217.500000
 }
 #0.4.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0 {
@@ -1261,6 +1419,7 @@
   className = Stripe,
   mode = "persist",
   stripesLeft = 3,
+  type = Stripe,
   xstart = 225.000000
 }
 #0.4.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0 {
@@ -1268,6 +1427,7 @@
   className = Stripe,
   mode = "persist",
   stripesLeft = 2,
+  type = Stripe,
   xstart = 232.500000
 }
 #0.4.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0 {
@@ -1275,6 +1435,7 @@
   className = Stripe,
   mode = "persist",
   stripesLeft = 1,
+  type = Stripe,
   xstart = 240.000000
 }
 #0.4.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0 {
@@ -1282,6 +1443,7 @@
   className = Stripe,
   mode = "spawn",
   stripesLeft = 0,
+  type = Stripe,
   xstart = 247.500000
 }
 #0.5 {
@@ -1294,6 +1456,7 @@
   sy = 0.000000,
   th = 0.000000,
   th0 = 0,
+  type = Sensor,
   x = 0.300000,
   x0 = 0,
   y = 0.000000,
@@ -1320,6 +1483,7 @@
   t' = 1,
   t_c = 0.010000,
   th = 0.000000,
+  type = Control,
   w = 0.000000,
   w0 = 0,
   x = 0.300000,

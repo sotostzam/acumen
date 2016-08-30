@@ -5,7 +5,8 @@
   simulator = #0.0,
   system = #0.1,
   t = 0,
-  t' = 1
+  t' = 1,
+  type = Main
 }
 #0.0 { className = Simulator, time = 0.000000 }
 #0.1 {
@@ -16,6 +17,7 @@
   className = SpringMass,
   k = 10,
   m = 3,
+  type = SpringMass,
   x = 0,
   x' = 0,
   x'' = -3.333333,
@@ -29,7 +31,8 @@
   simulator = #0.0,
   system = #0.1,
   t = 0.500000,
-  t' = 1
+  t' = 1,
+  type = Main
 }
 #0.0 { className = Simulator, time = 0.500000 }
 #0.1 {
@@ -40,6 +43,7 @@
   className = SpringMass,
   k = 10,
   m = 3,
+  type = SpringMass,
   x = -0.368105,
   x' = -1.330766,
   x'' = 1.670606,

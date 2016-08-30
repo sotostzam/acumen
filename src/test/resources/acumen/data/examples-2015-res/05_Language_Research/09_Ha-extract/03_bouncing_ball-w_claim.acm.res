@@ -2,6 +2,7 @@
   className = Main,
   mode = "Fly",
   simulator = #0.0,
+  type = Main,
   x = 1,
   x' = 0,
   x'' = -9.800000
@@ -12,6 +13,7 @@
   className = Main,
   mode = "Fly",
   simulator = #0.0,
+  type = Main,
   x = -0.036840,
   x' = 4.508000,
   x'' = -9.800000
@@ -22,6 +24,7 @@
   className = Main,
   mode = "Fly",
   simulator = #0.0,
+  type = Main,
   x = -0.036840,
   x' = 4.508000,
   x'' = -9.800000
@@ -32,6 +35,7 @@
   className = Main,
   mode = "Fly",
   simulator = #0.0,
+  type = Main,
   x = -0.036840,
   x' = 4.508000,
   x'' = -9.800000

@@ -1,28 +1,27 @@
-model ResponseExample(p,target,v) = 
+model ResponseExample(position,target,velocity) = 
 initially
- mode = "prepare", angle = 0,dis = 10, 
+ mode = "prepare", angle = 0,distance = 10, 
  _3D = ()
 always
-  dis  = target - p,
-  angle = (dis/20) 
+  distance  = target - position,
+  angle = abs(distance/10) 
 
-model Response1(p,target,v) = 
+model Response1(position,target,velocity) = 
 initially
- mode = "prepare", angle = 0,dis = 10, coef = 1,
- value = 10,
+ mode = "prepare", angle = 0,distance = 10,
  _3D = ()
 always
-  dis  = target - p,
-  angle = abs(dis/10) 
+  distance  = target - position,
+  angle = abs(distance/10) 
 
 
-model Response2(p,target,v) = 
+model Response2(position,target,velocity) = 
 initially
- mode = "prepare", angle = 0, dis = 10, coef = 1,
- _3D = (), value = 10
+ mode = "prepare", angle = 0, distance = 10, 
+ _3D = ()
 always
-  dis  = target - p,
-  angle = abs(dis/20) + pi/2
+  distance  = target - position,
+  angle = abs(distance/20) + pi/2
 
 model Bullet(p,v,angle,D,n) = 
 initially
@@ -240,6 +239,8 @@ always
 model Ammo (p,D) = 
 initially
 _3D = (Sphere center = D+p color = red radius = 0.1)
+
+// Canon Beach Game
  
 model Main(simulator) =
 initially

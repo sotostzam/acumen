@@ -7,7 +7,8 @@
   b' = 5.370312,
   b'' = -9.820000,
   className = Main,
-  simulator = #0.0
+  simulator = #0.0,
+  type = Main
 }
 #0.0 { className = Simulator, time = 0.781250 }
 ------------------------------50
@@ -20,7 +21,8 @@
   b' = 3.222187,
   b'' = -9.820000,
   className = Main,
-  simulator = #0.0
+  simulator = #0.0,
+  type = Main
 }
 #0.0 { className = Simulator, time = 1.000000 }
 ------------------------------65
@@ -33,7 +35,8 @@
   b' = 3.759219,
   b'' = -9.820000,
   className = Main,
-  simulator = #0.0
+  simulator = #0.0,
+  type = Main
 }
 #0.0 { className = Simulator, time = 1.875000 }
 ------------------------------122
@@ -46,7 +49,8 @@
   b' = 2.631453,
   b'' = -9.820000,
   className = Main,
-  simulator = #0.0
+  simulator = #0.0,
+  type = Main
 }
 #0.0 { className = Simulator, time = 2.640625 }
 ------------------------------172

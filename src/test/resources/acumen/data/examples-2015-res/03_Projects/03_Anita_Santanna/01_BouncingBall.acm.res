@@ -3,6 +3,7 @@
   className = Main,
   mode = "free_fall",
   simulator = #0.0,
+  type = Main,
   x = -0.111548,
   x' = 7.028438,
   x'' = -9.800000
@@ -14,6 +15,7 @@
   className = Main,
   mode = "free_fall",
   simulator = #0.0,
+  type = Main,
   x = -0.024458,
   x' = 6.215344,
   x'' = -9.800000
@@ -25,6 +27,7 @@
   className = Main,
   mode = "free_fall",
   simulator = #0.0,
+  type = Main,
   x = -0.007016,
   x' = 5.569003,
   x'' = -9.800000
@@ -36,6 +39,7 @@
   className = Main,
   mode = "free_fall",
   simulator = #0.0,
+  type = Main,
   x = -0.029896,
   x' = 5.048210,
   x'' = -9.800000

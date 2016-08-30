@@ -4,7 +4,8 @@
   angle' = -0.628319,
   className = Main,
   rate = -0.628319,
-  simulator = #0.0
+  simulator = #0.0,
+  type = Main
 }
 #0.0 { className = Simulator, time = 2.500000 }
 ------------------------------160
@@ -14,7 +15,8 @@
   angle' = 0.628319,
   className = Main,
   rate = 0.628319,
-  simulator = #0.0
+  simulator = #0.0,
+  type = Main
 }
 #0.0 { className = Simulator, time = 5.000000 }
 ------------------------------321
@@ -24,7 +26,8 @@
   angle' = -0.628319,
   className = Main,
   rate = -0.628319,
-  simulator = #0.0
+  simulator = #0.0,
+  type = Main
 }
 #0.0 { className = Simulator, time = 7.500000 }
 ------------------------------482
@@ -34,7 +37,8 @@
   angle' = 0.628319,
   className = Main,
   rate = 0.628319,
-  simulator = #0.0
+  simulator = #0.0,
+  type = Main
 }
 #0.0 { className = Simulator, time = 10.000000 }
 ------------------------------643

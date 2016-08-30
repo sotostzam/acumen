@@ -2,6 +2,7 @@
   c = 1,
   className = Main,
   simulator = #0.0,
+  type = Main,
   x = 0.500000,
   x' = 1
 }
@@ -11,6 +12,7 @@
   c = -1,
   className = Main,
   simulator = #0.0,
+  type = Main,
   x = 1.000000,
   x' = -1
 }
@@ -20,6 +22,7 @@
   c = 1,
   className = Main,
   simulator = #0.0,
+  type = Main,
   x = 0.000000,
   x' = 1
 }
@@ -29,6 +32,7 @@
   c = -1,
   className = Main,
   simulator = #0.0,
+  type = Main,
   x = 1.000000,
   x' = -1
 }

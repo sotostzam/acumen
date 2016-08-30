@@ -3,7 +3,8 @@
   _3DView = ((-15, -15, 15), (9, 0, 0)),
   className = Main,
   s = #0.1,
-  simulator = #0.0
+  simulator = #0.0,
+  type = Main
 }
 #0.0 { className = Simulator, time = 0.000000 }
 #0.1 {
@@ -81,6 +82,7 @@
   tr = 2.500000,
   ttcfb = 2.500000,
   ttcpb = 3.500000,
+  type = Scenario,
   u1fb = -2.150000,
   u1pb = -1.250000,
   u2a = 0.000000,
@@ -115,7 +117,8 @@
   _3DView = ((-15, -15.000000, 15), (5.250000, 0.000000, 0)),
   className = Main,
   s = #0.1,
-  simulator = #0.0
+  simulator = #0.0,
+  type = Main
 }
 #0.0 { className = Simulator, time = 1.250000 }
 #0.1 {
@@ -193,6 +196,7 @@
   tr = 2.500000,
   ttcfb = 2.500000,
   ttcpb = 3.500000,
+  type = Scenario,
   u1fb = -2.150000,
   u1pb = -1.250000,
   u2a = 0.000000,
@@ -227,7 +231,8 @@
   _3DView = ((-15, -14.586523, 15), (3.420058, 0.413477, 0)),
   className = Main,
   s = #0.1,
-  simulator = #0.0
+  simulator = #0.0,
+  type = Main
 }
 #0.0 { className = Simulator, time = 1.781250 }
 #0.1 {
@@ -305,6 +310,7 @@
   tr = 2.500000,
   ttcfb = 2.500000,
   ttcpb = 3.500000,
+  type = Scenario,
   u1fb = -2.150000,
   u1pb = -1.250000,
   u2a = 0.000000,
@@ -339,7 +345,8 @@
   _3DView = ((-15, -13.541240, 15), (1.582105, 1.458760, 0)),
   className = Main,
   s = #0.1,
-  simulator = #0.0
+  simulator = #0.0,
+  type = Main
 }
 #0.0 { className = Simulator, time = 2.281250 }
 #0.1 {
@@ -417,6 +424,7 @@
   tr = 2.500000,
   ttcfb = 2.500000,
   ttcpb = 3.500000,
+  type = Scenario,
   u1fb = -2.150000,
   u1pb = -1.250000,
   u2a = 0.000000,

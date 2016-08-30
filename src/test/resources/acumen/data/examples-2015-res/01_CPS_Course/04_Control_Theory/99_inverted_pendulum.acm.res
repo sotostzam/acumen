@@ -1,7 +1,8 @@
 #0 {
   className = Main,
   palwaysulum2 = #0.1,
-  simulator = #0.0
+  simulator = #0.0,
+  type = Main
 }
 #0.0 { className = Simulator, time = 0.000000 }
 #0.1 {
@@ -30,6 +31,7 @@
   theta = 0.400000,
   theta' = 0,
   theta'' = -1.912006,
+  type = P,
   x = 0,
   x' = 0,
   x'' = 4.987505,
@@ -40,7 +42,8 @@
 #0 {
   className = Main,
   palwaysulum2 = #0.1,
-  simulator = #0.0
+  simulator = #0.0,
+  type = Main
 }
 #0.0 { className = Simulator, time = 3.010000 }
 #0.1 {
@@ -69,6 +72,7 @@
   theta = 0.066903,
   theta' = -0.032113,
   theta'' = -0.385526,
+  type = P,
   x = 1.672320,
   x' = -0.367801,
   x'' = 0.813751,
@@ -79,7 +83,8 @@
 #0 {
   className = Main,
   palwaysulum2 = #0.1,
-  simulator = #0.0
+  simulator = #0.0,
+  type = Main
 }
 #0.0 { className = Simulator, time = 3.030000 }
 #0.1 {
@@ -108,6 +113,7 @@
   theta = 0.066185,
   theta' = -0.039663,
   theta'' = -0.369362,
+  type = P,
   x = 1.665126,
   x' = -0.351659,
   x'' = 0.800086,
@@ -118,7 +124,8 @@
 #0 {
   className = Main,
   palwaysulum2 = #0.1,
-  simulator = #0.0
+  simulator = #0.0,
+  type = Main
 }
 #0.0 { className = Simulator, time = 6.010000 }
 #0.1 {
@@ -147,6 +154,7 @@
   theta = 0.011570,
   theta' = -0.015502,
   theta'' = -0.018820,
+  type = P,
   x = 0.905093,
   x' = -0.237370,
   x'' = 0.121042,

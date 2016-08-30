@@ -2,6 +2,7 @@
   className = Main,
   mode = "xIsPositive",
   simulator = #0.0,
+  type = Main,
   x = 1,
   x' = -1
 }
@@ -11,6 +12,7 @@
   className = Main,
   mode = "xIsNonpositive",
   simulator = #0.0,
+  type = Main,
   x = 0.000000,
   x' = 1
 }
@@ -20,6 +22,7 @@
   className = Main,
   mode = "xIsPositive",
   simulator = #0.0,
+  type = Main,
   x = 0.015625,
   x' = -1
 }
@@ -29,6 +32,7 @@
   className = Main,
   mode = "xIsNonpositive",
   simulator = #0.0,
+  type = Main,
   x = 0.000000,
   x' = 1
 }

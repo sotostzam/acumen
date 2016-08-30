@@ -1,4 +1,9 @@
-#0 { className = Main, simulator = #0.0, sys1 = #0.1 }
+#0 {
+  className = Main,
+  simulator = #0.0,
+  sys1 = #0.1,
+  type = Main
+}
 #0.0 { className = Simulator, time = 0.000000 }
 #0.1 {
   D = (0, 0, 0),
@@ -11,6 +16,7 @@
   theta = 0.785400,
   theta' = 0.010000,
   theta'' = -6.969659,
+  type = Pendulum,
   x = 0.707108,
   y = -0.707105
 }

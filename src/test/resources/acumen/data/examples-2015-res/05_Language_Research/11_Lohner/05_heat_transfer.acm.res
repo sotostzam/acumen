@@ -5,7 +5,8 @@
   l = 0.000000,
   l' = -0.000000,
   mode = "",
-  simulator = #0.0
+  simulator = #0.0,
+  type = Main
 }
 #0.0 { className = Simulator, time = 0.000000 }
 ------------------------------0

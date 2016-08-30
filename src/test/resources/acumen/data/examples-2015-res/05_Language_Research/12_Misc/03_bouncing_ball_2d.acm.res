@@ -1,9 +1,15 @@
-#0 { className = Main, mode = "Persist", simulator = #0.0 }
+#0 {
+  className = Main,
+  mode = "Persist",
+  simulator = #0.0,
+  type = Main
+}
 #0.0 { className = Simulator, time = 0.000000 }
 #0.1 {
   className = Ball,
   m = 1.000000,
   mode = "Fly",
+  type = Ball,
   x = 5,
   x' = 10,
   x'' = 0,
@@ -12,12 +18,18 @@
   y'' = -9.800000
 }
 ------------------------------0
-#0 { className = Main, mode = "Persist", simulator = #0.0 }
+#0 {
+  className = Main,
+  mode = "Persist",
+  simulator = #0.0,
+  type = Main
+}
 #0.0 { className = Simulator, time = 0.003000 }
 #0.1 {
   className = Ball,
   m = 1.000000,
   mode = "Fly",
+  type = Ball,
   x = 5.030000,
   x' = -10.000000,
   x'' = 0,
@@ -26,12 +38,18 @@
   y'' = -9.800000
 }
 ------------------------------2
-#0 { className = Main, mode = "Persist", simulator = #0.0 }
+#0 {
+  className = Main,
+  mode = "Persist",
+  simulator = #0.0,
+  type = Main
+}
 #0.0 { className = Simulator, time = 0.507000 }
 #0.1 {
   className = Ball,
   m = 1.000000,
   mode = "Fly",
+  type = Ball,
   x = -0.010000,
   x' = 10.000000,
   x'' = 0,
@@ -40,12 +58,18 @@
   y'' = -9.800000
 }
 ------------------------------171
-#0 { className = Main, mode = "Persist", simulator = #0.0 }
+#0 {
+  className = Main,
+  mode = "Persist",
+  simulator = #0.0,
+  type = Main
+}
 #0.0 { className = Simulator, time = 1.011000 }
 #0.1 {
   className = Ball,
   m = 1.000000,
   mode = "Fly",
+  type = Ball,
   x = 5.030000,
   x' = -10.000000,
   x'' = 0,

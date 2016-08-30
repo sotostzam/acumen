@@ -2,6 +2,7 @@
   className = Main,
   mode = "on",
   simulator = #0.0,
+  type = Main,
   x = 10,
   x' = 10
 }
