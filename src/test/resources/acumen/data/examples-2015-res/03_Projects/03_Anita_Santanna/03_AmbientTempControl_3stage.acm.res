@@ -14,7 +14,8 @@
   mode = 2,
   simulator = #0.0,
   t = 0,
-  t' = 1
+  t' = 1,
+  type = Main
 }
 #0.0 { className = Simulator, time = 0.000000 }
 ------------------------------0
@@ -34,7 +35,8 @@
   mode = 2,
   simulator = #0.0,
   t = 0,
-  t' = 1
+  t' = 1,
+  type = Main
 }
 #0.0 { className = Simulator, time = 5.000000 }
 ------------------------------321
@@ -54,7 +56,8 @@
   mode = 3,
   simulator = #0.0,
   t = 0.187500,
-  t' = 1
+  t' = 1,
+  type = Main
 }
 #0.0 { className = Simulator, time = 5.187500 }
 ------------------------------334
@@ -74,7 +77,8 @@
   mode = 1,
   simulator = #0.0,
   t = 0.593750,
-  t' = 1
+  t' = 1,
+  type = Main
 }
 #0.0 { className = Simulator, time = 5.593750 }
 ------------------------------361

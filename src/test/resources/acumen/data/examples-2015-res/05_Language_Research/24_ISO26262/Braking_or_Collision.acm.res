@@ -3,7 +3,8 @@
   _3DView = ((0, 0, 45), (0, 0, 0)),
   className = Main,
   s = #0.1,
-  simulator = #0.0
+  simulator = #0.0,
+  type = Main
 }
 #0.0 { className = Simulator, time = 0.000000 }
 #0.1 {
@@ -60,6 +61,7 @@
   sw = 2,
   ttcfb = 2.500000,
   ttcpb = 3.500000,
+  type = Scenario,
   v1CornerAboveLine = false,
   v1Front = -194.500000,
   v1FrontWithinLineSegmentXBounds = false,
@@ -96,7 +98,8 @@
   _3DView = ((0, 0, 45), (0, 0, 0)),
   className = Main,
   s = #0.1,
-  simulator = #0.0
+  simulator = #0.0,
+  type = Main
 }
 #0.0 { className = Simulator, time = 1.250000 }
 #0.1 {
@@ -153,6 +156,7 @@
   sw = 2,
   ttcfb = 2.500000,
   ttcpb = 3.500000,
+  type = Scenario,
   v1CornerAboveLine = false,
   v1Front = -166.750000,
   v1FrontWithinLineSegmentXBounds = false,
@@ -189,7 +193,8 @@
   _3DView = ((0, 0, 45), (0, 0, 0)),
   className = Main,
   s = #0.1,
-  simulator = #0.0
+  simulator = #0.0,
+  type = Main
 }
 #0.0 { className = Simulator, time = 2.625000 }
 #0.1 {
@@ -246,6 +251,7 @@
   sw = 2,
   ttcfb = 2.500000,
   ttcpb = 3.500000,
+  type = Scenario,
   v1CornerAboveLine = false,
   v1Front = -136.225000,
   v1FrontWithinLineSegmentXBounds = true,
@@ -282,7 +288,8 @@
   _3DView = ((0, 0, 45), (0, 0, 0)),
   className = Main,
   s = #0.1,
-  simulator = #0.0
+  simulator = #0.0,
+  type = Main
 }
 #0.0 { className = Simulator, time = 2.828125 }
 #0.1 {
@@ -339,6 +346,7 @@
   sw = 2,
   ttcfb = 2.500000,
   ttcpb = 3.500000,
+  type = Scenario,
   v1CornerAboveLine = false,
   v1Front = -131.715625,
   v1FrontWithinLineSegmentXBounds = true,

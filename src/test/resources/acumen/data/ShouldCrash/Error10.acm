@@ -12,7 +12,7 @@ model Main(simulator) =
   simulator.endTime + = 1,
   match mode with [
     "Init" ->
-      if x.modelName == type(B) then
+      if x.modelName == typeOf(B) then
         y+ = 1
       else
         y+ = 2

@@ -12,7 +12,8 @@
   h = 0,
   simulator = #0.0,
   t = 0,
-  t' = 1
+  t' = 1,
+  type = Main
 }
 #0.0 { className = Simulator, time = 0.000000 }
 ------------------------------0
@@ -30,7 +31,8 @@
   h = 0,
   simulator = #0.0,
   t = 0.500000,
-  t' = 1
+  t' = 1,
+  type = Main
 }
 #0.0 { className = Simulator, time = 0.500000 }
 ------------------------------33
@@ -48,7 +50,8 @@
   h = 1,
   simulator = #0.0,
   t = 1.000000,
-  t' = 1
+  t' = 1,
+  type = Main
 }
 #0.0 { className = Simulator, time = 1.000000 }
 ------------------------------66
@@ -66,7 +69,8 @@
   h = 0.015625,
   simulator = #0.0,
   t = 1.015625,
-  t' = 1
+  t' = 1,
+  type = Main
 }
 #0.0 { className = Simulator, time = 1.015625 }
 ------------------------------68

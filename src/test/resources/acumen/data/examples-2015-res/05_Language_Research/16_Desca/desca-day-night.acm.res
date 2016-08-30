@@ -5,6 +5,7 @@
   simulator = #0.0,
   time = 0,
   time' = 1,
+  type = Main,
   x = 10,
   x' = 10
 }
@@ -17,6 +18,7 @@
   simulator = #0.0,
   time = 1.300000,
   time' = 1,
+  type = Main,
   x = 23.000000,
   x' = -28.000000
 }
@@ -29,6 +31,7 @@
   simulator = #0.0,
   time = 1.462500,
   time' = 1,
+  type = Main,
   x = 18.800451,
   x' = 10
 }
@@ -41,6 +44,7 @@
   simulator = #0.0,
   time = 1.887500,
   time' = 1,
+  type = Main,
   x = 23.050451,
   x' = -28.050451
 }

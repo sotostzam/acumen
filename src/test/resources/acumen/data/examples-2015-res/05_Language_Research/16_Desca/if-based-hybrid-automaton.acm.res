@@ -2,6 +2,7 @@
   className = Main,
   m = "stay",
   simulator = #0.0,
+  type = Main,
   x = 10.051270,
   x' = 0,
   x'' = 1

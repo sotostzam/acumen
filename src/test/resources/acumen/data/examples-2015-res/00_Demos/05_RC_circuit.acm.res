@@ -1,11 +1,13 @@
 #0 {
+  _3DView = ((0, -10, 2), (0, 0, 0)),
   circuit1 = #0.1,
   circuit2 = #0.2,
   className = Main,
   mode = "charge",
   simulator = #0.0,
   t = 0,
-  t' = 1
+  t' = 1,
+  type = Main
 }
 #0.0 { className = Simulator, time = 0.000000 }
 #0.1 {
@@ -18,7 +20,8 @@
   _3D = ("Cylinder", (0, 0, 0), (0.100000, 0.000000), (0, 1, 0), (1.570800, 0, 0), "Global", -1.000000),
   _plot = ("Vc", "Vin"),
   className = CircuitRC,
-  plot = true
+  plot = true,
+  type = CircuitRC
 }
 #0.2 {
   C = 0.200000,
@@ -30,17 +33,20 @@
   _3D = ("Cylinder", (1, 0, 0), (0.100000, 0.000000), (0, 1, 0), (1.570800, 0, 0), "Global", -1.000000),
   _plot = (),
   className = CircuitRC,
-  plot = false
+  plot = false,
+  type = CircuitRC
 }
 ------------------------------0
 #0 {
+  _3DView = ((0, -10, 2), (0, 0, 0)),
   circuit1 = #0.1,
   circuit2 = #0.2,
   className = Main,
   mode = "discharge",
   simulator = #0.0,
   t = 1.000000,
-  t' = 1
+  t' = 1,
+  type = Main
 }
 #0.0 { className = Simulator, time = 1.000000 }
 #0.1 {
@@ -53,7 +59,8 @@
   _3D = ("Cylinder", (0, 0, 0), (0.100000, 2.483155), (0, 1, 0), (1.570800, 0, 0), "Global", -1.000000),
   _plot = ("Vc", "Vin"),
   className = CircuitRC,
-  plot = true
+  plot = true,
+  type = CircuitRC
 }
 #0.2 {
   C = 0.200000,
@@ -65,17 +72,20 @@
   _3D = ("Cylinder", (1, 0, 0), (0.100000, 0.983673), (0, 1, 0), (1.570800, 0, 0), "Global", -1.000000),
   _plot = (),
   className = CircuitRC,
-  plot = false
+  plot = false,
+  type = CircuitRC
 }
 ------------------------------65
 #0 {
+  _3DView = ((0, -10, 2), (0, 0, 0)),
   circuit1 = #0.1,
   circuit2 = #0.2,
   className = Main,
   mode = "charge",
   simulator = #0.0,
   t = 0,
-  t' = 1
+  t' = 1,
+  type = Main
 }
 #0.0 { className = Simulator, time = 2.000000 }
 #0.1 {
@@ -88,7 +98,8 @@
   _3D = ("Cylinder", (0, 0, 0), (0.100000, 0.016731), (0, 1, 0), (1.570800, 0, 0), "Global", -1.000000),
   _plot = ("Vc", "Vin"),
   className = CircuitRC,
-  plot = true
+  plot = true,
+  type = CircuitRC
 }
 #0.2 {
   C = 0.200000,
@@ -100,17 +111,20 @@
   _3D = ("Cylinder", (1, 0, 0), (0.100000, 0.596628), (0, 1, 0), (1.570800, 0, 0), "Global", -1.000000),
   _plot = (),
   className = CircuitRC,
-  plot = false
+  plot = false,
+  type = CircuitRC
 }
 ------------------------------130
 #0 {
+  _3DView = ((0, -10, 2), (0, 0, 0)),
   circuit1 = #0.1,
   circuit2 = #0.2,
   className = Main,
   mode = "discharge",
   simulator = #0.0,
   t = 1.000000,
-  t' = 1
+  t' = 1,
+  type = Main
 }
 #0.0 { className = Simulator, time = 3.000000 }
 #0.1 {
@@ -123,7 +137,8 @@
   _3D = ("Cylinder", (0, 0, 0), (0.100000, 2.483268), (0, 1, 0), (1.570800, 0, 0), "Global", -1.000000),
   _plot = ("Vc", "Vin"),
   className = CircuitRC,
-  plot = true
+  plot = true,
+  type = CircuitRC
 }
 #0.2 {
   C = 0.200000,
@@ -135,7 +150,8 @@
   _3D = ("Cylinder", (1, 0, 0), (0.100000, 1.345547), (0, 1, 0), (1.570800, 0, 0), "Global", -1.000000),
   _plot = (),
   className = CircuitRC,
-  plot = false
+  plot = false,
+  type = CircuitRC
 }
 ------------------------------195
 

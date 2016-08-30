@@ -5,7 +5,8 @@
   c1 = #0.4,
   c2 = #0.5,
   className = Main,
-  simulator = #0.0
+  simulator = #0.0,
+  type = Main
 }
 #0.0 { className = Simulator, time = 0.000000 }
 #0.1 {
@@ -17,6 +18,7 @@
   phi = 0,
   phi' = 1,
   s = 1,
+  type = aircraft,
   w = 1,
   x = 0,
   y = 0
@@ -30,6 +32,7 @@
   phi = 0,
   phi' = 0.000000,
   s = 2,
+  type = aircraft,
   w = 0.000000,
   x = 0,
   y = 0
@@ -43,6 +46,7 @@
   phi = 0,
   phi' = 0.000000,
   s = 2,
+  type = aircraft,
   w = 0.000000,
   x = 0,
   y = 0
@@ -52,14 +56,16 @@
   g = 0.000000,
   i1 = (0.000000, 0.000000),
   i2 = 0,
-  o = 0.000000
+  o = 0.000000,
+  type = controller
 }
 #0.5 {
   className = controller,
   g = 0.000000,
   i1 = (0.000000, 0.000000),
   i2 = 0,
-  o = 0.000000
+  o = 0.000000,
+  type = controller
 }
 ------------------------------0
 

@@ -179,11 +179,7 @@ object Common {
     case "cos"       => x.cos
     case "tan"       => x.tan
     case "acos"      => x.acos
-    case "asin"      => 
-      if(x.toDouble < -1 || x.toDouble > 1 )
-        throw new FunctionOutOfRange("asin",x.toDouble).setPos(pos)
-      else
-        x.asin
+    case "asin"      => x.asin
     case "atan"      => x.atan
     case "toRadians" => throw new NotImplemented(f)
     case "toDegrees" => throw new NotImplemented(f)

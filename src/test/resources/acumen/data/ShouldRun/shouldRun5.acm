@@ -10,7 +10,7 @@ model Main(simulator) =
   simulator.endTime + = 1,
   match mode with[
     "Init" ->
-      if x.className == type(A) then
+      if x.className == typeOf(A) then
         y + = 1
       else
         y + = 2

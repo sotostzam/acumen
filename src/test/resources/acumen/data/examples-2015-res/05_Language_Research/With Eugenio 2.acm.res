@@ -3,6 +3,7 @@
   i = 0,
   i' = -6,
   simulator = #0.0,
+  type = Main,
   x = 1,
   x' = 4,
   y = -1,
