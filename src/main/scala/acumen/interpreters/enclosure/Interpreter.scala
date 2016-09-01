@@ -53,6 +53,9 @@ case class Interpreter(strategy: Strategy)
 
   def run(des: Prog) = runInterpreter(des, defaultInterpreterCallbacks)
 
+  def streamingRun(des: Prog) =
+    throw new NotImplementedError("Streaming simulation is not supported by this interpreter.")
+  
   def runInterpreter(des: Prog, cb0: InterpreterCallbacks) =
     runInterpreter(des, cb0, noAdjustParms)
 

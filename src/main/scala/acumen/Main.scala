@@ -32,7 +32,9 @@ object Main {
   var commandLineParms = false
   // ^^ true when certain command line paramatics are specified, will
   //    enable console message so that its clear what options are in effect
-
+  // true when "--streaming" is specified, and will not stroe the whole history but the
+  // last one
+  var enableStreaming = false
   // temporary hack
   var enableOldSemantics = true
 
@@ -163,6 +165,8 @@ object Main {
       case ("--passes" | "-p") :: p :: tail =>
         commandLineParms = true
         validatePassesStr(p); extraPasses = splitPassesString(p); parseArgs(tail)
+      case ("--streaming"::tail) =>
+        enableStreaming = true; parseArgs(tail)
       case ("--log" | "-l") :: level :: tail =>
         level match {
           case "TRACE" => printLogLevel = Some(Logger.TRACE)
@@ -295,7 +299,11 @@ object Main {
       /* Lift the prog according to the active interpreter */
       lazy val liftedAst = i.lift(ast)
       lazy val final_out = semantics.applyPasses(liftedAst, extraPasses)
-      lazy val trace = i.run(final_out)
+      lazy val trace = 
+       if (enableStreaming)
+         i.streamingRun(final_out)
+       else
+         i.run(final_out)
       lazy val ctrace = as_ctrace(trace)
       lazy val md = trace.metadata
       /* Perform user-selected action. */

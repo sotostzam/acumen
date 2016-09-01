@@ -16,7 +16,8 @@ import scala.collection.mutable.ListBuffer
 trait Interpreter {
   def newInterpreterModel : InterpreterModel
   def lift: Prog => Prog
-  def run(p:Prog) : InterpreterRes
+  def run(p: Prog): InterpreterRes
+  def streamingRun(p: Prog): InterpreterRes
   /** Map of parameters -> default values, visible to the user, e.g. in code area completions. */
   def visibleParameters(): Map[String,CValue]
 }
@@ -148,6 +149,24 @@ trait CStoreInterpreter extends Interpreter {
   def run(p: Prog, adder: DataAdder) : (History,Metadata) = {
    val (p1,st,md) = init(p)
    loop(p1, st, md, adder)
+  }
+
+  /* streaming version of loop. does not preserve history. */
+
+  def streamingRun(p: Prog): InterpreterRes = {
+    def streamingLoop(p: Prog, st: Store, md: Metadata, adder: DataAdder): (Store, Metadata) = {
+      @tailrec def loopInner(st0: Store, md0: Metadata): (Store, Metadata) =
+        if (adder.done) (st0, md0)
+        else {
+          val (st1, md1, _) = multiStep(p, st0, md0, adder)
+          val (st2, md2) = exposeExternally(st1, md1)
+          loopInner(st2, md2)
+        }
+      loopInner(st, md)
+    }
+    val (p1, st, md) = init(p)
+    val (lastStore, md1) = streamingLoop(p1, st, md, SingleStep)
+    CStoreRes(repr(lastStore) #:: empty, md1)
   }
 
 }
