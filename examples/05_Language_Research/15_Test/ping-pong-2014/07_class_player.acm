@@ -59,7 +59,7 @@ class Player(n,maxA)
            ["Sphere",[0,0,0],0.01,[200,0,0],[0,0,0]]];
   end
   
-  if mode ~= "Wait" && mode ~= "Prepare" && mode ~= "Startball"
+  if mode <> "Wait" && mode <> "Prepare" && mode <> "Startball"
      mode := "Panic!";
   end;
   
@@ -145,7 +145,7 @@ class Player(n,maxA)
       v2_predicted = p1_predicted + a2_predicted * t2_predicted;
       v'  = ([1.6*(-1)^n,0,0.2]-p_bat) * 5 + 5 * ([0,0,0]- v);
       // Predict the goal point to prepare hit the ball(only do once per turn)
-      if (t1_predicted < 0.15 && t1_predicted ~= 0) && 
+      if (t1_predicted < 0.15 && t1_predicted <> 0) && 
          ((n==1 && (p_ball(0))<0) || (n==2 && (p_ball(0))>0)) 
         
       // Calculating second prediction point

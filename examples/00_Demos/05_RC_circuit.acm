@@ -32,7 +32,8 @@ initially
   // Create two RC circuits with different parameters
   circuit1  =  create  CircuitRC(0.02,10,(0,0,0),true), 
   circuit2  =  create  CircuitRC(0.2,10,(1,0,0),false), 
-  t = 0, t' = 1, mode = "charge" 
+  t = 0, t' = 1, mode = "charge",
+  _3DView = ((0,-10,2),(0,0,0))
 always
   t'=1,
   // The input voltage to the circuits 

@@ -16,8 +16,9 @@ model Ball(x,y) =
 model Main(simulator) = 
   initially
     mode = "Init",
-    counter = 0
+    counter = 0,_3DView = ()
   always
+    _3DView = ((-17,-20,2),(-5,0,2)),
     match mode with [
     "Init" -> if (counter<50) then create Ball(counter,counter), counter+ = counter+1
               else

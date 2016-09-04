@@ -16,7 +16,7 @@ object Conversions {
       case e: GRealEnclosure if (e isThin) => e.range.loDouble
       case GDoubleTDif(c) => c.coeff.head
       case GIntTDif(c) => c.coeff.head
-      case _ => throw GroundConversionError(v, "double")
+      case _ =>throw GroundConversionError(v, "double").setPos(v.pos)
     }
   
   def extractDouble(v:Value[_]) : Double =

@@ -5,6 +5,7 @@
   simulator = #0.0,
   t = 0,
   t' = 1,
+  type = Main,
   x = 0,
   x' = 1,
   x'' = 0

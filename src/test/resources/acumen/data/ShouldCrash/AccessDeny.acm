@@ -1,0 +1,12 @@
+model A() = 
+ initially
+  c = 0
+model B()= 
+ initially
+  a = create A()
+model Main(_) = 
+ initially
+  b = create B(),d = 0
+ always 
+  d = (b.a).c 
+ 

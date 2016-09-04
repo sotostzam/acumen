@@ -43,7 +43,7 @@ class Virtue(n)
      end
      number = n;
      startPoint = [1.6*(-1)^number,0,0.2];
-     if mode ~= "Wait"&& mode ~= "Prepare"&& mode ~= "Hit"
+     if mode <> "Wait"&& mode <> "Prepare"&& mode <> "Hit"
        mode := "Panic!";
      end;
      t'  = 1;
@@ -82,7 +82,7 @@ class Virtue(n)
        if dot(ballp,[0,0,1]) < 0&& bounced == false
         bounced := true;
        end;
-       if(serve ~= true)
+       if(serve <> true)
          mode := "Wait";
        end;
      case "Hit"           // Decide how you want hit the ball,
@@ -182,7 +182,7 @@ coeff := 1.1;
  end
  number = n;
  startPoint = [1.6*(-1)^number,0,0.2];
- if mode ~= "Wait"&& mode ~= "Prepare"&& mode ~= "Hit"
+ if mode <> "Wait"&& mode <> "Prepare"&& mode <> "Hit"
    mode := "Panic!";
  end;
  t'  = 1;
@@ -219,7 +219,7 @@ coeff := 1.1;
    if dot(ballp,[0,0,1]) < 0&& bounced == false
     bounced := true;
    end;
-   if(serve ~= true)
+   if(serve <> true)
      mode := "Wait";
    end;
  case "Hit"           // Decide how you want hit the ball,
@@ -327,7 +327,7 @@ class ParadoX(n)
     number = n;
     startPoint = [1.6*(-1)^number,0,0.2];
     
-    if mode ~= "Wait"&& mode ~= "Prepare"&& mode ~= "Hit"
+    if mode <> "Wait"&& mode <> "Prepare"&& mode <> "Hit"
         mode := "Panic!";
     end;
     
@@ -372,7 +372,7 @@ class ParadoX(n)
         if dot(ballp,[0,0,1]) < 0&& bounced == false
             bounced := true;
         end;
-        if(serve ~= true)
+        if(serve <> true)
             mode := "Wait";
         end;
     case "Hit" // Decide how you want hit the ball,

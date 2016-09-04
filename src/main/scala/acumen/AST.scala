@@ -4,7 +4,7 @@
 import scala.math._
 import scala.collection.mutable.HashMap
 import scala.collection.mutable.{Map => MutMap}
-import scala.util.parsing.input.{Positional}
+import scala.util.parsing.input.{Position,Positional}
 import acumen.interpreters.enclosure.Interval
 import acumen.TAD._
 import acumen.FAD._
@@ -170,7 +170,7 @@ package acumen {
   case class ExprLet(bindings:List[(Name,Expr)], e2:Expr) extends Expr
   case class Pattern(ps:List[Expr]) extends Expr
   /* ground values (common to expressions and values) */
-  sealed abstract class GroundValue
+  sealed abstract class GroundValue extends Positional
   /* GroundValue that wraps a numeric type that has an Integral or Real instance. */
   trait GNumber[V] extends GroundValue
   /* Example: 42 */
@@ -412,53 +412,57 @@ package acumen {
 
   case class AMove[A](obj: AExpr[A], newParent: AExpr[A], val an: A) extends AnDiscreteAction[A]
 
-  sealed abstract class AExpr[A] {
+  sealed abstract class AExpr[A]  extends Positional{
     def an: A
-    def expr: Expr
+    def expr: Expr 
   }
-  case class ALit[A](gv: GroundValue, val an: A) extends AExpr[A] {
-    def expr = Lit(gv)
+  
+  trait AExprWithPos[A]  extends AExpr[A] with Positional {
+    def setP(p:Position) = {this.pos = p;this}
   }
-  case class AVar[A](name: Name, val an: A) extends AExpr[A] {
-    def expr = Var(name)
+  case class ALit[A](gv: GroundValue, val an: A) extends AExpr[A] with AExprWithPos[A]{
+    def expr = Lit(gv).setPos(this.pos) 
+  }
+  case class AVar[A](name: Name, val an: A) extends AExpr[A] with AExprWithPos[A] {
+    def expr = Var(name).setPos(this.pos) 
   }
 
   case class AName[A](name: Name, val an: A) {
   }
 
-  case class AOp[A](f: Name, es: List[AExpr[A]], val an: A) extends AExpr[A] {
-    def expr = Op(f, es.map(x => x.expr))
+  case class AOp[A](f: Name, es: List[AExpr[A]], val an: A) extends AExpr[A] with AExprWithPos[A]{
+    def expr = Op(f, es.map(x => x.expr)).setPos(this.pos) 
+   }
+  case class AIndex[A](e: AExpr[A], idx: List[AExpr[A]], val an: A) extends AExpr[A] with AExprWithPos[A] {
+    def expr = Index(e.expr, idx map (_.expr)).setPos(this.pos) 
   }
-  case class AIndex[A](e: AExpr[A], idx: List[AExpr[A]], val an: A) extends AExpr[A] {
-    def expr = Index(e.expr, idx map (_.expr))
+  case class ADot[A](obj: AExpr[A], field: Name, val an: A) extends AExpr[A] with AExprWithPos[A]{
+    def expr = Dot(obj.expr, field).setPos(this.pos) 
   }
-  case class ADot[A](obj: AExpr[A], field: Name, val an: A) extends AExpr[A] {
-    def expr = Dot(obj.expr, field)
+  case class AQuest[A](obj: AExpr[A], field: Name, val an: A) extends AExpr[A] with AExprWithPos[A] {
+    def expr = Quest(obj.expr, field).setPos(this.pos) 
+   }
+  case class AExprVector[A](l: List[AExpr[A]], val an: A) extends AExpr[A] with AExprWithPos[A]{
+    def expr = ExprVector(l.map(x => x.expr)).setPos(this.pos) 
+     }
+  case class ASum[A](e: AExpr[A], i: AVar[A], col: AExpr[A], cond: AExpr[A], val an: A) extends AExpr[A] with AExprWithPos[A] {
+    def expr = Sum(e.expr, i.expr.name, col.expr, cond.expr).setPos(this.pos) 
   }
-  case class AQuest[A](obj: AExpr[A], field: Name, val an: A) extends AExpr[A] {
-    def expr = Quest(obj.expr, field)
-  }
-  case class AExprVector[A](l: List[AExpr[A]], val an: A) extends AExpr[A] {
-    def expr = ExprVector(l.map(x => x.expr))
-  }
-  case class ASum[A](e: AExpr[A], i: AVar[A], col: AExpr[A], cond: AExpr[A], val an: A) extends AExpr[A] {
-    def expr = Sum(e.expr, i.expr.name, col.expr, cond.expr)
-  }
-  case class ATypeOf[A](cn: ClassName, val an: A) extends AExpr[A] {
-    def expr = TypeOf(cn)
-  }
-  case class AExprInterval[A](lo: AExpr[A], hi: AExpr[A], val an: A) extends AExpr[A] {
-    def expr = ExprInterval(lo.expr, hi.expr)
-  }
-  case class AExprIntervalM[A](mid: AExpr[A], pm: AExpr[A], val an: A) extends AExpr[A] {
-    def expr = ExprInterval(mid.expr, pm.expr)
-  }
-  case class AExprLet[A](bindings: List[(AVar[A], AExpr[A])], e2: AExpr[A], val an: A) extends AExpr[A] {
-    def expr = ExprLet(bindings.map(x => (x._1.name, x._2.expr)), e2.expr)
-  }
-  case class ACall[A](f: AExpr[A], es: List[AExpr[A]], an: A) extends AExpr[A] {
-    def expr = Call(f.expr, es.map(_.expr))
-  }
+  case class ATypeOf[A](cn: ClassName, val an: A) extends AExpr[A]with AExprWithPos[A] {
+    def expr = TypeOf(cn).setPos(this.pos) 
+      }
+  case class AExprInterval[A](lo: AExpr[A], hi: AExpr[A], val an: A) extends AExpr[A] with AExprWithPos[A] {
+    def expr = ExprInterval(lo.expr, hi.expr).setPos(this.pos) 
+     }
+  case class AExprIntervalM[A](mid: AExpr[A], pm: AExpr[A], val an: A) extends AExpr[A] with AExprWithPos[A]{
+    def expr = ExprInterval(mid.expr, pm.expr).setPos(this.pos) 
+     }
+  case class AExprLet[A](bindings: List[(AVar[A], AExpr[A])], e2: AExpr[A], val an: A) extends AExpr[A] with AExprWithPos[A]{
+    def expr = ExprLet(bindings.map(x => (x._1.name, x._2.expr)), e2.expr).setPos(this.pos) 
+    }
+  case class ACall[A](f: AExpr[A], es: List[AExpr[A]], an: A) extends AExpr[A]with AExprWithPos [A]{
+    def expr = Call(f.expr, es.map(_.expr)).setPos(this.pos) 
+   }
 
   /* Constraints for binding time analysis. Solving them
    * would result in assigning static/dynamic for each label */

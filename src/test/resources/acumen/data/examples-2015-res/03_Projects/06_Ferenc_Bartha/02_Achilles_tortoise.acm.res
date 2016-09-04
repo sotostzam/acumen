@@ -9,7 +9,8 @@
   distance = 20,
   distanceStr = "Tortoise leads by:",
   mode = "Chasing",
-  simulator = #0.0
+  simulator = #0.0,
+  type = Main
 }
 #0.0 { className = Simulator, time = 0.000000 }
 ------------------------------0
@@ -24,7 +25,8 @@
   distance = 0.125000,
   distanceStr = "Tortoise leads by:",
   mode = "Chasing",
-  simulator = #0.0
+  simulator = #0.0,
+  type = Main
 }
 #0.0 { className = Simulator, time = 13.250000 }
 ------------------------------54
@@ -39,7 +41,8 @@
   distance = 0.031250,
   distanceStr = "Tortoise leads by:",
   mode = "Chasing",
-  simulator = #0.0
+  simulator = #0.0,
+  type = Main
 }
 #0.0 { className = Simulator, time = 13.312500 }
 ------------------------------56
@@ -54,7 +57,8 @@
   distance = 0.007813,
   distanceStr = "Tortoise leads by:",
   mode = "Chasing",
-  simulator = #0.0
+  simulator = #0.0,
+  type = Main
 }
 #0.0 { className = Simulator, time = 13.328125 }
 ------------------------------58

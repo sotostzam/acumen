@@ -12,7 +12,7 @@ class BallObserver()
     t' := 1;
   end
   t'=1;
-  if mode ~= "Sample" && mode ~= "Estimate0" && mode ~= "Estimate1"
+  if mode <> "Sample" && mode <> "Estimate0" && mode <> "Estimate1"
     mode := "Panic!";
   end;
   switch mode

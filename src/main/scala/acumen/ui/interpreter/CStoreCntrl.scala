@@ -7,7 +7,7 @@ import collection.mutable.ListBuffer
 import scala.actors._
 import InterpreterCntrl._
 import java.io.File
-import interpreters.Common.{deviceClass, paramModelTxt}
+import interpreters.Common.{deviceClass, paramModelTxt,paraClass}
 
 class CStoreCntrl(val semantics: SemanticsImpl[Interpreter], val interpreter: CStoreInterpreter) extends InterpreterCntrl {
 
@@ -23,8 +23,8 @@ class CStoreCntrl(val semantics: SemanticsImpl[Interpreter], val interpreter: CS
     val minPlotUpdateInterval = 100 // wait at most this many milliseconds before updating plot
 
     def parse() = {
-      val ast = semantics.parse(progText + paramModelTxt, currentDir, None)
-      val astWithPrelude = Prog(deviceClass :: ast.defs)
+      val ast = semantics.parse(progText, currentDir, None)
+      val astWithPrelude = Prog(deviceClass :: paraClass :: ast.defs)
       val des = semantics.applyPasses(astWithPrelude, Main.extraPasses)
       prog = des
     }
@@ -103,6 +103,11 @@ class CStoreCntrl(val semantics: SemanticsImpl[Interpreter], val interpreter: CS
       // Read simulator parameters from program
       var (store, md, endTime) = I.multiStep(p, store0, md0, adder)
       val cstore = I.repr(store)
+      // Reset the 3D view if the file path has been changed
+      if (App.ui.codeArea.fileChangedSinceLastRun()){
+        threeDTab.threeDView.defaultView()
+        App.ui.codeArea.lastFileRun = App.ui.codeArea.currentFile
+      }
       acumen.util.Canonical.getInSimulator(Name("outputRows",0), cstore) match {
         case VLit(GStr("All"))              => opts.outputRows = OutputRows.All
         case VLit(GStr("WhenChanged"))      => opts.outputRows = OutputRows.WhenChanged

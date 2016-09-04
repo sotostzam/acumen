@@ -3,7 +3,8 @@
   controller = #0.3,
   mechanics = #0.1,
   sens = #0.2,
-  simulator = #0.0
+  simulator = #0.0,
+  type = Main
 }
 #0.0 { className = Simulator, time = 0.000000 }
 #0.1 {
@@ -15,6 +16,7 @@
   th = 0,
   th' = 0,
   th0 = 0,
+  type = VehicleMechanics,
   w = 0,
   w0 = 0,
   x = 0,
@@ -34,6 +36,7 @@
   sy = 0,
   th = 0,
   th0 = 0,
+  type = Sensor,
   x = 0,
   x0 = 0,
   y = 0,
@@ -60,6 +63,7 @@
   t' = 1,
   t_c = 0.010000,
   th = 0,
+  type = Control,
   w = 0,
   w0 = 0,
   x = 0,
@@ -71,7 +75,8 @@
   controller = #0.3,
   mechanics = #0.1,
   sens = #0.2,
-  simulator = #0.0
+  simulator = #0.0,
+  type = Main
 }
 #0.0 { className = Simulator, time = 0.015625 }
 #0.1 {
@@ -83,6 +88,7 @@
   th = 0.000000,
   th' = 0.000000,
   th0 = 0,
+  type = VehicleMechanics,
   w = 0.000000,
   w0 = 0,
   x = 0.000000,
@@ -102,6 +108,7 @@
   sy = 0.000000,
   th = 0.000000,
   th0 = 0,
+  type = Sensor,
   x = 0.000000,
   x0 = 0,
   y = 0.000000,
@@ -128,6 +135,7 @@
   t' = 1,
   t_c = 0.010000,
   th = 0.000000,
+  type = Control,
   w = 0.000000,
   w0 = 0,
   x = 0.000000,
@@ -139,7 +147,8 @@
   controller = #0.3,
   mechanics = #0.1,
   sens = #0.2,
-  simulator = #0.0
+  simulator = #0.0,
+  type = Main
 }
 #0.0 { className = Simulator, time = 0.031250 }
 #0.1 {
@@ -151,6 +160,7 @@
   th = 0.000000,
   th' = 14.922565,
   th0 = 0,
+  type = VehicleMechanics,
   w = 14.922565,
   w0 = 0,
   x = 0.000000,
@@ -170,6 +180,7 @@
   sy = 0.000000,
   th = 0.000000,
   th0 = 0,
+  type = Sensor,
   x = 0.000000,
   x0 = 0,
   y = 0.000000,
@@ -196,6 +207,7 @@
   t' = 1,
   t_c = 0.010000,
   th = 0.000000,
+  type = Control,
   w = 14.922565,
   w0 = 0,
   x = 0.000000,
@@ -207,7 +219,8 @@
   controller = #0.3,
   mechanics = #0.1,
   sens = #0.2,
-  simulator = #0.0
+  simulator = #0.0,
+  type = Main
 }
 #0.0 { className = Simulator, time = 0.046875 }
 #0.1 {
@@ -219,6 +232,7 @@
   th = 0.233165,
   th' = 14.922565,
   th0 = 0,
+  type = VehicleMechanics,
   w = 14.922565,
   w0 = 0,
   x = 0.464515,
@@ -238,6 +252,7 @@
   sy = 0.054401,
   th = 0.233165,
   th0 = 0,
+  type = Sensor,
   x = 0.464515,
   x0 = 0,
   y = 0.054401,
@@ -264,6 +279,7 @@
   t' = 1,
   t_c = 0.010000,
   th = 0.233165,
+  type = Control,
   w = 14.922565,
   w0 = 0,
   x = 0.464515,

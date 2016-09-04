@@ -1,0 +1,255 @@
+model ResponseExample(position,target,velocity) = 
+initially
+ mode = "prepare", angle = 0,distance = 10, 
+ _3D = ()
+always
+  distance  = target - position,
+  angle = abs(distance/10) 
+
+model Response1(position,target,velocity) = 
+initially
+ mode = "prepare", angle = 0,distance = 10,
+ _3D = ()
+always
+  distance  = target - position,
+  angle = abs(distance/10) 
+
+
+model Response2(position,target,velocity) = 
+initially
+ mode = "prepare", angle = 0, distance = 10, 
+ _3D = ()
+always
+  distance  = target - position,
+  angle = abs(distance/20) + pi/2
+
+model Bullet(p,v,angle,D,n) = 
+initially
+ g = 10, p' = v*(cos(angle),0,sin(angle)), p'' = (0,0,0),
+ _3D = (), t = 0, t' = 0, mode = "fly", 
+ coef = 0.05 // Air resistance coefficcient
+always
+
+ if p(2) < 0 then
+  p' = (0,0,0), mode = "stay"
+ else
+  p'' = (0,0,-9.8) - coef*norm(p')*p',
+
+ // Creating trace of the bullet
+ t' = 1,
+ 
+ match mode with[
+  "create" -> create BulletSnapshot(p,D),
+              t+ = 0,
+              mode += "fly"
+ | "fly" -> 
+  if t > 0.1  then
+    mode += "create",
+   t+ = 0
+  noelse
+ | "stay" ->
+ | "kill" -> 
+   foreach i in self.children do       
+           terminate i,          
+    terminate self
+ ],
+ _3D = (Sphere center = p + D color = red radius = 0.1)
+
+model BulletSnapshot(p,D) = 
+initially
+ _3D = ()
+always
+  _3D = (Sphere center = D+p radius = 0.05 transparency = 1 color = white)
+
+    
+model Grade (D) = 
+ initially
+  mode = "init", counter = 0, t = 0, t' = 0, target=0,
+  l = 1, angle1 = 0, v1 = 0,grade = (0,0),
+  angle2 = 0, v2 = 0,grade2 = 0, bp1 = 0, bp2 = 0,
+  // Predefined target locations
+  points = (4,-6,6,-3,0,-2, 4, 5, -1, -1.5),
+  p1 = -8,p2 = 8, vangle1 = pi/2, vangle2 = pi/2,
+  vangle1' = 0, vangle2' = 0, finish1 = false,
+  finish2 = false,
+  ammo1 = create Ammunation(10,(-9.5,0,-0.2),D),
+  ammo2 = create Ammunation(10,(9.5,0,-0.2),D),
+  // Maximum speed for bullet
+  maxSpeed = 15, _3D = ()
+ always
+ t' = 1,
+ match mode with [
+ "init" -> 
+    if t > 1 && counter < 10 then
+     target += points(counter),
+     t + = 0,
+     mode + = "response"
+    noelse,
+    // Rest scene
+    finish1 + = false,
+    finish2 + = false,
+    vangle1 + = pi/2,
+    vangle2 + = pi/2,
+    target = 100
+ | "response" -> 
+   if counter <= 9 then 
+       create Response1(-8,points(counter),maxSpeed),
+       create Response2(8,points(counter),maxSpeed),
+       mode + = "prepare"    
+    noelse
+        
+ | "prepare" ->
+      if t > 0.1 then
+      // Get velocity and angle from two responses    
+      foreach j in self.children do( 
+      if (j.type == Response1) then
+         angle1  = j.angle,        
+         v1 = maxSpeed
+      noelse,
+      if (j.type == Response2) then
+       angle2  = j.angle,        
+       v2 = maxSpeed
+      noelse    
+    ) ,
+    t + = 0,
+    mode + = "wait"
+    noelse
+   
+ | "wait" ->
+    // Move the cannon to specified angular postion 
+    // in one second
+    vangle1' = angle1 - pi/2,
+    vangle2' = angle2 - pi/2,
+    if t > 1 then
+     mode += "shot"
+    noelse
+ | "shot" ->
+      t + = 0,
+      create Bullet((-8,0,0),v1,angle1,D,1),
+      create Bullet((8,0,0),v2,angle2,D,2),
+      ammo1.n+ = 9- counter,
+      ammo1.mode+ = "refresh",
+      ammo2.n+ = 9- counter,
+      ammo2.mode+ = "refresh",
+      mode += "rest"
+ |"rest" ->
+  if (finish1 && finish2) then
+         mode+ = "score"
+  noelse,
+  foreach i in self.children do
+      if(i.type == Bullet ) then 
+        if (i.n == 1) then
+          bp1 = (i.p)(0), 
+          if (i.p(2) < 0 ) then
+           finish1 + = true
+          noelse
+        else( 
+          bp2 = (i.p)(0), 
+          if (i.p(2) < 0 ) then
+            finish2 + = true
+          noelse 
+         )       
+        noelse  
+ | "score" ->  
+    counter + = counter + 1,
+    t + = 0,
+    // Player 1 is closer to the target
+    if abs(target - bp1) < abs(target - bp2)  then
+       if abs(target - bp1) < 0.5 then
+         grade + = grade + (10,0)
+       else if abs(target - bp1) < 1 then
+         grade + = grade + (5,0)
+       else
+         grade + = grade + (0,0)
+    else 
+      if abs(target - bp2) < 0.5 then
+         grade + = grade + (0,10)
+       else if abs(target - bp2) < 1 then
+         grade + = grade + (0,5)
+       else
+         grade + = grade + (0,0),
+   mode+ = "reset" 
+
+ | "reset" -> 
+   if t > 3 then
+    foreach i in self.children do(
+      if (i.type == Response1 || i.type == Response2 ) then  
+        terminate i
+      noelse
+      ),
+       foreach i in self.children do
+         if (i.type == Bullet ) then         
+            i.mode+ = "kill"           
+          noelse,
+       mode + = "init"         
+       noelse
+
+ ],
+
+ if mode <> "wait" then 
+  vangle1' = 0,
+  vangle2' = 0
+ noelse,
+  // For visualization  
+ _3D = (Box center = D + (-8,0,0) - (0,-0.25,0.15)  color = 0.8*white  // Cannon one
+         length = 1 width = 0.5 height = 1,
+        Cylinder center = D+ (-8,0,0)  + 0.5*l*(cos(vangle1),0,sin(vangle1))  radius = 0.2 length = l
+                  color = black rotation = (vangle1,0,-pi/2),                 
+        Box center = D+(8,0,0) - (0,-0.25,0.15)  color = 0.8*white     // Cannon two
+         length = 1 width = 0.5 height = 1,
+        Cylinder center = D+(8,0,0)  + 0.5*l*(cos(vangle2),0,sin(vangle2))  radius = 0.2 length = l
+                  color = black rotation = (vangle2,0,-pi/2),
+        // Floor
+        Box center = D+(0,0,-5.5)
+         length = 30 width = 10 height = 10 color = 0.8*white,
+        Box center = D+(0,10,0)
+         length = 50 width = 1 height = 20 color = (0.75,0.9,1),
+       // The target
+        Cylinder center = D+(target,0,-0.2) length = 0.1 radius = 0.6 color = white rotation = (pi/2,0,0),          
+        Cylinder center = D+(target,0,-0.2+0.06) length = 0.01 radius = 0.45 color = red rotation = (pi/2,0,0)
+        Cylinder center = D+(target,0,-0.2+0.07) length = 0.01 radius = 0.3 color = white rotation = (pi/2,0,0),          
+        Cylinder center = D+(target,0,-0.2+0.085) length = 0.01 radius = 0.15 color = red rotation = (pi/2,0,0)
+       
+        Text center = (-4.5,0,2.0) size = 0.4 color = green content = "Player " coordinates = "Camera"
+        Text center = (-3.2,0,2.0) size = 0.4 color = green content = format("%.0f",grade(0)) coordinates = "Camera"
+        Text center = (3,0,2.0) size = 0.4 color = blue content = "Player " coordinates = "Camera"
+        Text center = (4.3,0,2.0) size = 0.4 color = blue content = format("%.0f",grade(1)) coordinates = "Camera")
+
+
+
+model Challenge(response) =
+initially
+
+model Ammunation(n,p,D) = 
+initially
+ mode = "create"
+always
+ match mode with [
+ "create" -> 
+  foreach i in 0:(n-1) do 
+    create Ammo(p + i*(0,0,0.2),D),
+  mode+ = "rest"
+ |"refresh" -> 
+   foreach i in self.children do
+    terminate i,
+   mode += "create"
+ |"rest" ->
+ ] 
+
+model Ammo (p,D) = 
+initially
+_3D = (Sphere center = D+p color = red radius = 0.1)
+
+// Canon Beach Game
+ 
+model Main(simulator) =
+initially
+  mode = "init", grade = (0,0),
+  g = create Grade((0,0,-2)),
+  c = create Challenge(Response1),
+  _3DView = ((0,-25,2),(0,0,0))
+always
+  grade = g.grade,
+  simulator.endTime + = 72
+  
+  

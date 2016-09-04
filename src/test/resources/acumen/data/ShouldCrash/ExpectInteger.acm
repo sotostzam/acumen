@@ -1,0 +1,6 @@
+model Main(_) = 
+ initially
+  a = 0 , b = (2,2)
+ always 
+  a = b(1.2)  
+ 

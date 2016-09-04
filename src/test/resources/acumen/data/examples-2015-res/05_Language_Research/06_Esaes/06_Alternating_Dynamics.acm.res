@@ -3,6 +3,7 @@
   b = 1,
   className = Main,
   simulator = #0.0,
+  type = Main,
   x = -1,
   x' = 1
 }
@@ -13,6 +14,7 @@
   b = 0,
   className = Main,
   simulator = #0.0,
+  type = Main,
   x = 1.015625,
   x' = -1.015625
 }
@@ -23,6 +25,7 @@
   b = 1,
   className = Main,
   simulator = #0.0,
+  type = Main,
   x = 0.494976,
   x' = 1.000000
 }
@@ -33,6 +36,7 @@
   b = 0,
   className = Main,
   simulator = #0.0,
+  type = Main,
   x = 1.010601,
   x' = -1.010601
 }

@@ -6,6 +6,7 @@
   theta = 0,
   theta' = 0,
   theta'' = 0.545455,
+  type = Main,
   x = 2,
   x' = 0,
   x'' = -0.727273

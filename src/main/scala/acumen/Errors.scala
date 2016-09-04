@@ -23,6 +23,10 @@ object Errors {
     override def mesg = 
       "Model " + pprint(cn) + " is defined twice."
   }
+  case class ObjectDeleted(cid:CId) extends PositionalAcumenError {
+    override def mesg = 
+      "Object " + cid + " is deleted."
+  }
   case class ClassIncludedTwice(cn:ClassName, pos1: List[Position], pos2: List[Position]) extends PositionalAcumenError {
     override def mesg = 
       "Model " + pprint(cn) + " included twice."
@@ -80,6 +84,14 @@ object Errors {
   case class InvalidVectorVectorOp(op:String) extends PositionalAcumenError {
     override def mesg = 
       op + " is not a valid vector-vector operation."
+  }
+  case class LengthVectorVectorOp(u:List[Value[_]],v:List[Value[_]]) extends PositionalAcumenError {
+    override def mesg = 
+      "Vector " + u.mkString(",")  + " and vector " + v.mkString(",") + " has different length."
+  }
+  case class LengthVectorVectorOpExpr(u:ExprVector,v:ExprVector) extends PositionalAcumenError {
+    override def mesg = 
+      "Vector " + pprint(u.asInstanceOf[Expr])  + " and vector " + pprint(v.asInstanceOf[Expr]) + " has different length."
   }
   case class InvalidVectorOp(op:String) extends PositionalAcumenError {
     override def mesg = 
@@ -159,6 +171,10 @@ object Errors {
   case class NoMatch(gv:GroundValue) extends PositionalAcumenError {
     override def mesg = 
       "No case matching " + pprint(gv) + "."
+  }
+  case class FunctionOutOfRange(f:String, x:Double) extends PositionalAcumenError {
+    override def mesg =
+    "Argument " + x + "for Function "+ f + " is out of range."
   }
   sealed abstract class DuplicateAssingment extends PositionalAcumenError {
     val x: Name
@@ -371,7 +387,7 @@ object Errors {
     override def getMessage =
       s + " is not yet implemented."
   }
-
+ 
   case class UnsupportedPlotType(s:String) extends AcumenError {
     override def getMessage =
       s"The expression $s can not be plotted. Only variable names are supported in _plot."

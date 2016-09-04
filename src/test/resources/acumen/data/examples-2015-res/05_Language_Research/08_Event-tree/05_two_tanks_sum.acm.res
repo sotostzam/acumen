@@ -2,6 +2,7 @@
   className = Main,
   mode = "Fill1",
   simulator = #0.0,
+  type = Main,
   x1 = 1,
   x1' = 2,
   x12 = 2,

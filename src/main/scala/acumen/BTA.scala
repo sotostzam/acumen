@@ -30,7 +30,7 @@ object BindingTimeAnalysis {
   /* The starting point of label */
   def root = -1
 
-  def run(t: Prog) = {
+  def run(t: Prog):Prog = {
     t match {
       case Prog(defs) =>
         Prog(defs.map(d => d match {
@@ -96,36 +96,37 @@ object BindingTimeAnalysis {
   }
   /* Annotate expression with a label, return the annotated ast and the next available label */
   def labelAst(e: Expr, label: Label)(implicit fields: List[Name]): (AExpr[Label], Label) = e match {
-    case Lit(gv)   => (ALit(gv, label), label + 1)
-    case Var(name) => (AVar(name, label), label + 1)
-    case TypeOf(cn) => (ATypeOf(cn,label),label + 1)
-    case Index(e, idx) =>
-      val ae = labelAst(e, label)
+    case Lit(gv)   => (ALit(gv, label).setP(e.pos), label + 1)
+    case Var(name) => (AVar(name, label).setP(e.pos), label + 1)
+    case TypeOf(cn) => (ATypeOf(cn,label).setP(e.pos),label + 1)
+    case Index(e1, idx) =>
+      val ae = labelAst(e1, label)
       val aidx = labelListExpr(idx, ae._2)
-      (AIndex(ae._1, aidx._1, aidx._2), aidx._2 + 1)
+      val aopWithPos = AIndex(ae._1, aidx._1, aidx._2).setP(e.pos)
+      (aopWithPos, aidx._2 + 1)
     case Sum(e, i, col, cond) =>
       val ae = labelAst(e, label + 1)
       val acol = labelAst(col, ae._2)
       val acond = labelAst(cond, acol._2)
-      (ASum(ae._1, AVar(i, label), acol._1, acond._1, acond._2), acond._2 + 1)
+      (ASum(ae._1, AVar(i, label), acol._1, acond._1, acond._2).setP(e.pos), acond._2 + 1)
     case Op(f, es) =>
       if (fields contains f) {
-        labelAst(Index(Var(f), es), label)
+        labelAst(Index(Var(f), es).setPos(e.pos), label)
       } else {
         val aresult = labelListExpr(es, label)
-        (AOp(f, aresult._1, aresult._2), aresult._2 + 1)
+        (AOp(f, aresult._1, aresult._2).setP(e.pos), aresult._2 + 1)
       }
     case ExprVector(es) => {
       val aresult = labelListExpr(es, label)
-      (AExprVector(aresult._1, aresult._2), aresult._2 + 1)
+      (AExprVector(aresult._1, aresult._2).setP(e.pos), aresult._2 + 1)
     }
     case Dot(expr, name) => {
       val aexpr = labelAst(expr, label)
-      (ADot(aexpr._1, name, aexpr._2), aexpr._2 + 1)
+      (ADot(aexpr._1, name, aexpr._2).setP(e.pos), aexpr._2 + 1)
     }
     case Quest(expr, name) => {
       val aexpr = labelAst(expr, label)
-      (AQuest(aexpr._1, name, aexpr._2), aexpr._2 + 1)
+      (AQuest(aexpr._1, name, aexpr._2).setP(e.pos), aexpr._2 + 1)
     }
     case ExprLet(bindings, expr) => {
       val (abindings,nextLabel,newFields) = bindings.foldLeft((List[(AVar[Label], AExpr[Label])](),label,fields)){
@@ -135,15 +136,15 @@ object BindingTimeAnalysis {
           ((avar, arhs._1) :: r._1,arhs._2, avar.name ::r._3)      
       }  
       val aexpr = labelAst(expr, nextLabel)(newFields)
-      (AExprLet(abindings.reverse, aexpr._1, aexpr._2), aexpr._2 + 1)
+      (AExprLet(abindings.reverse, aexpr._1, aexpr._2).setP(e.pos), aexpr._2 + 1)
     }
     case ExprInterval(e1, e2) =>
       val (ae1, ae2) = (labelAst(e1, label), labelAst(e2, label))
-      (AExprInterval(ae1._1, ae2._1, label), label)
+      (AExprInterval(ae1._1, ae2._1, label).setP(e.pos), label)
     case Call(f, es) =>
       val af = labelAst(f, label)
       val aresult = labelListExpr(es, af._2)
-      (ACall(af._1, aresult._1, aresult._2), aresult._2 + 1)
+      (ACall(af._1, aresult._1, aresult._2).setP(e.pos), aresult._2 + 1)
   }
   
   def labelAst(a: Action, label: Label, scope: Label, env: LabelEnv)(implicit fields: List[Name]): (AAction[Label], Label, LabelEnv) = a match {
@@ -649,7 +650,6 @@ object BindingTimeAnalysis {
         case _ => r
       })
     
-
     val simplicitOdes = implicitOdes.map(x => (x))
     // Finding all the variables to be solved in the implicit ODEs
     val vars: List[Var] = implicitOdes.map(x => findVars(x.lhs, hashMap)(List.empty) ::: findVars(x.rhs, hashMap)(List.empty)).flatten.distinct

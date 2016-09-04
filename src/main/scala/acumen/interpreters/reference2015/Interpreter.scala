@@ -18,6 +18,7 @@ import Common._
 import ui.tl.Console
 import util.ASTUtil.{ checkContinuousAssignmentToSimulator, checkNestedHypotheses, dots }
 import util.Names._
+import scala.util.parsing.input.{Positional,Position,NoPosition}
 import util.Canonical
 import util.Canonical._
 import util.Conversions._
@@ -136,16 +137,17 @@ object Interpreter extends acumen.CStoreInterpreter {
     val cd = classDef(c,p)
     val base = HashMap(
       (classf, VClassName(c)),
+      (typef, VClassName(c)),
       (parent, VObjId(prt)),
       (seed1, VLit(GInt(sd._1))),
       (seed2, VLit(GInt(sd._2))),
       (nextChild, VLit(GInt(childrenCounter))))
     val pub = base ++ (cd.fields zip v)
-
     // the following is just for debugging purposes:
     // the type system should ensure that property
-    if (cd.fields.length != v.length) 
-      throw ConstructorArity(cd, v.length)
+    val pos = if (v.length > 0) v(0).pos else NoPosition
+    if (cd.fields.length != v.length)
+      throw ConstructorArity(cd, v.length).setPos(pos)
   
     /* change [Init(x1,rhs1), ..., Init(xn,rhsn)]
        into   ([x1, ..., xn], [rhs1, ..., rhsn] */
@@ -320,14 +322,14 @@ object Interpreter extends acumen.CStoreInterpreter {
             val gp = VListToPattern(ls)
             (cls find (_.lhs == gp)) match {
               case Some(c) => evalActions(c.rhs, env, p)
-              case None    => throw NoMatch(gp)
+              case None    => throw NoMatch(gp).setPos(s.pos)
             }
           }
         case _ =>
           for (VLit(gv) <- asks(evalExpr(s, env, _))) {
             (cls find (_.lhs == gv)) match {
               case Some(c) => evalActions(c.rhs, env, p)
-              case None    => throw NoMatch(gv)
+              case None    => throw NoMatch(gv).setPos(s.pos)
             }
           }
       }

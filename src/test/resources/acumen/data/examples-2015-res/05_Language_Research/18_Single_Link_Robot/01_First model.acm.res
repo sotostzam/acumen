@@ -14,6 +14,7 @@
   theta_g = 0,
   theta_g' = 0,
   theta_g'' = 0,
+  type = Main,
   x_b = 1,
   x_b' = 0,
   x_b'' = 0.000000,

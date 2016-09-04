@@ -477,9 +477,12 @@ object Common {
           val id = evalToObjId(v,p,env)
           VList((id.children map (c => VObjId(Some(c)))).toList)
         /* e.f */
-        case Dot(e0, f) =>
+        case Dot(e0, f) =>          
           val id = evalToObjId(e0,p,env)
-          getField(id, f, p, env, e.pos)
+          try {getField(id, f, p, env, e.pos)}
+          catch {
+            case err:java.util.NoSuchElementException => throw VariableNotDeclared(f).setPos(e.pos)
+          }
         /* x && y */
         case Quest(e0, f) =>
           val id = evalToObjId(e0,p,env)
@@ -501,6 +504,7 @@ object Common {
             VLit(GDouble(rand))
           } else
             evalOp(op, args map (eval(env, _)))
+          
         /* sum e for i in c st t */
         case Sum(e, i, c, t) =>
           def helper(acc: Val, v: Val) = {
@@ -541,9 +545,13 @@ object Common {
   def mkObj(c: ClassName, p: Prog, prt: ParentParm, 
             sd: (Int, Int), v: List[Val], magic: Object, childrenCounter: Int = 0): Object = {
     val cd = classDef(c, p)
-    val base = MMap((classf, new ValVal(VClassName(c))))
+    val base = MMap((classf, new ValVal(VClassName(c))), (Name("type",0), new ValVal(VClassName(c))))
     val pub = base ++ (cd.fields zip v.map{new ValVal(_)})
-
+    // the following is just for debugging purposes:
+    // the type system should ensure that property
+    val pos = if (v.length > 0) v(0).pos else NoPosition
+    if (cd.fields.length != v.length)
+      throw ConstructorArity(cd, v.length).setPos(pos)
     /* change [Init(x1,rhs1), ..., Init(xn,rhsn)]
        into   ([x1, ..., xn], [rhs1, ..., rhsn] */
     def helper(p: (List[Name], List[InitRhs]), i: Init) =

@@ -6,6 +6,7 @@ import Simplifier._
 import SymbolicCommon._
 import interpreters.Common._
 import annotation.tailrec
+import Errors._
 
 /**
  * Partial evaluator that specializes annotated program based on BTA result
@@ -28,13 +29,13 @@ object Specialization {
     def get(e: Expr) = if (env.contains(e)) env(e) else e
     // Main pattern match
     aexpr match {
-      case ALit(gv, l)        => ((Lit(gv)), Nil)
-      case AVar(name, l)      => (subs(Var(name)), Nil)
-      case ATypeOf(cn, l)     => (TypeOf(cn), Nil)
-      case ADot(aer, name, l) => (Dot(aer.expr, name), Nil)
-      case AQuest(aer, name, l) => (Quest(aer.expr, name), Nil)
+      case ALit(gv, l)        => ((Lit(gv)).setPos(aexpr.pos), Nil)
+      case AVar(name, l)      => (subs(Var(name)).setPos(aexpr.pos), Nil)
+      case ATypeOf(cn, l)     => (TypeOf(cn).setPos(aexpr.pos), Nil)
+      case ADot(aer, name, l) => (Dot(aer.expr.setPos(aer.pos), name).setPos(aexpr.pos), Nil)
+      case AQuest(aer, name, l) => (Quest(aer.expr, name).setPos(aexpr.pos), Nil)
       case AExprVector(es, l) => specializeEs(es) match {
-        case (aes, aas) => (ExprVector(aes), aas)
+        case (aes, aas) => (ExprVector(aes).setPos(aexpr.pos), aas)
       }
 
       case ASum(ae, ai, acol, acond, l) =>
@@ -77,18 +78,18 @@ object Specialization {
             ls(i) match {
               // Perform vector lookup
               case ExprVector(ls1) => (ls1(j), neweqs)
-              case _               => (Index(e._1, es._1), neweqs)
+              case _               => (Index(e._1, es._1).setPos(aexpr.pos), neweqs)
             }
-          case _ => (Index(e._1, es._1), neweqs)
+          case _ => (Index(e._1, es._1).setPos(aexpr.pos), neweqs)
         }
       case ACall(af, aes, l) =>
         val e = specializeE(af)
         val es = specializeEs(aes)
         val neweqs = e._2 ::: es._2
-        (Call(e._1, es._1), neweqs)
+        (Call(e._1.setPos(af.pos), es._1).setPos(aexpr.pos), neweqs)
       case AExprInterval(ae1, ae2, l) => (ExprInterval(ae1.expr, ae2.expr), Nil)
       case AOp(f, aes, l) =>
-        val ses = specializeEs(aes)
+        val ses = specializeEs(aes)   
         val (es, newEquation) = (ses._1, ses._2)
         val newenv = env ++ convertEqsEnv(newEquation)
         f.x match {
@@ -133,12 +134,19 @@ object Specialization {
             }
           case _ =>
             // Perform eval function at the value level when all elements are reduced to Lit
-            exprsToValues(es.map(x => inline(x, newenv))) match {
+            exprsToValues(es.map(x => inline(x, newenv).setPos(x.pos))) match {
               // Invoke the Common.evalop function to evaluate doubles/intervals accordingly
-              case Some(ls) => evalOp(f.x, ls) match {
-                case VLit(gv)   => (Lit(gv), newEquation)
-                case VVector(l) => (ExprVector(l.asInstanceOf[List[VLit]] map (x => Lit(x.gv))), newEquation)
-              }
+              case Some(ls) =>
+                try {
+                  evalOp(f.x, ls) match {
+                    case VLit(gv)   => (Lit(gv), newEquation)
+                    case VVector(l) => (ExprVector(l.asInstanceOf[List[VLit]] map (x => Lit(x.gv))), newEquation)
+                  }
+                } catch {
+                  case err: PositionalAcumenError => throw err.setPos(aexpr.pos)
+                  case _:Throwable => (Op(f.x, es).setPos(aexpr.pos), newEquation)
+                }
+              
               // Symbolic vector-vector operator evaluation
               case _ => (f.x, es.map(x => inline(x, newenv))) match {
                 case (op, ExprVector(ls) :: Nil) => (symUnaryVectorOp(op, ExprVector(ls)), newEquation)
@@ -150,7 +158,7 @@ object Specialization {
                   (symBinVectorScalarOp(op, ExprVector(ls), Lit(n)), newEquation)
                 case (op, ExprVector(ls1) :: ExprVector(ls2) :: Nil) =>
                   (symBinVectorOp(op, ExprVector(ls1), ExprVector(ls2)), newEquation)
-                case _ => (Op(f.x, es), newEquation)
+                case _ => (Op(f.x, es).setPos(aexpr.pos), newEquation)
               }
             }
         }
@@ -167,7 +175,7 @@ object Specialization {
         (List(result._1), result._2, result._3)
       case ADiscretely(c, l) => c match {
         case AAssign(lhs, rhs, l1) => lhs match {
-          case AVar(_, _) => (List(Discretely(Assign(lhs.expr, rhs.expr))), env, Nil)
+          case AVar(_, _) => (List(Discretely(Assign(lhs.expr.setPos(lhs.pos), rhs.expr))), env, Nil)
           case _          => (List(Discretely(Assign(specializeE(lhs)._1, specializeE(rhs)._1))), env, Nil)
         }
         case ACreate(x, name, args, l) => (List(Discretely(Create(x, name, args.map(x => specializeE(x)._1)))), env, Nil)
@@ -232,7 +240,7 @@ object Specialization {
         lhs match {
           // For directed equations
           case AVar(name, lv) => newrhs match {
-            case e => (Continuously(Equation(lhs.expr, e)), env + (lhs.expr -> e), rhseqs)
+            case e => (Continuously(Equation(lhs.expr.setPos(lhs.pos), e)), env + (lhs.expr -> e), rhseqs)
           }
 
           case _ =>
@@ -421,7 +429,7 @@ object Specialization {
   def exprsToValues(exprs: List[Expr]): Option[List[VLit]] = {
     val lits: List[Lit] = exprs.filter(e => e.isInstanceOf[Lit]).asInstanceOf[List[Lit]]
     val values = lits.map(x => x match {
-      case Lit(gv) => VLit(gv)
+      case Lit(gv) => VLit(gv).setPos(x.pos)
     })
     if (values.size == exprs.length)
       Some(values)

@@ -1,6 +1,7 @@
 package acumen
 import GE._
 import Pretty._
+import Errors._
 
 // Symbolic common evaluations
 object SymbolicCommon {
@@ -75,14 +76,17 @@ object SymbolicCommon {
     case "+" => if (isMatrix(u) && isMatrix(v))
       ExprVector((u.l zip v.l).map(x =>
         symBinVectorOp(op, x._1.asInstanceOf[ExprVector], x._2.asInstanceOf[ExprVector])))
-    else
+    else if (u.l.length == v.l.length)
       ExprVector((u.l zip v.l).map(x => mkOp("+", x._1, x._2)))
-
+    else
+      throw LengthVectorVectorOpExpr(u,v)
     case "-" => if (isMatrix(u) && isMatrix(v))
       ExprVector((u.l zip v.l).map(x =>
         symBinVectorOp(op, x._1.asInstanceOf[ExprVector], x._2.asInstanceOf[ExprVector])))
-    else
+    else if (u.l.length == v.l.length)
       ExprVector((u.l zip v.l).map(x => mkOp("-", x._1, x._2)))
+    else
+      throw LengthVectorVectorOpExpr(u,v)
     case ".*" => if (isMatrix(u) && isMatrix(v))
       ExprVector((u.l zip v.l).map(x =>
         symBinVectorOp(op, x._1.asInstanceOf[ExprVector], x._2.asInstanceOf[ExprVector])))

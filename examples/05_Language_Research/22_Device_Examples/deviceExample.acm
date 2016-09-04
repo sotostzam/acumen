@@ -24,9 +24,9 @@ always
   l = norm(p-q),
   if l > 0 then alpha = asin(z/l)
   else alpha = 0,
-  if y > 0 && alpha ~= 0 && x/(l*cos(alpha)) > -1 && x/(l*cos(alpha)) < 1 then 
+  if y > 0 && alpha <> 0 && x/(l*cos(alpha)) > -1 && x/(l*cos(alpha)) < 1 then 
     theta = asin(x / (l * cos(alpha)))
-  elseif y < 0 && alpha ~= 0 && x/(l*cos(alpha)) > -1 && x/(l*cos(alpha)) < 1 then
+  elseif y < 0 && alpha <> 0 && x/(l*cos(alpha)) > -1 && x/(l*cos(alpha)) < 1 then
     theta = -asin(x / (l * cos(alpha))) + pi
   noelse
 

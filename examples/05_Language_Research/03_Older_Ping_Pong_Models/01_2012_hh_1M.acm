@@ -20,7 +20,7 @@ class Ball ()
  end
  
  // If mode is not valid then make mode "Panic!"
- if mode ~= "Fly"&& mode ~= "Bounce"&& mode ~= "Freeze"
+ if mode <> "Fly"&& mode <> "Bounce"&& mode <> "Freeze"
    mode := "Panic!";
  end;
  // Behavior of ball in different modes
@@ -123,7 +123,7 @@ class Player(n)
   t   := 0;
   t'  := 1;
  end
- if mode ~= "Wait"&& mode ~= "Prepare"&& mode ~= "Hit"
+ if mode <> "Wait"&& mode <> "Prepare"&& mode <> "Hit"
    mode := "Panic!";
  end;
  t'  = 1;   // Rate for local timer
@@ -162,7 +162,7 @@ class Player(n)
     bounced := true;
    end;
    // Go back to waiting when it is no longer your serve
-   if(serve ~= true)
+   if(serve <> true)
      mode := "Wait";
    end;
  case "Hit"           // This player???s hitting strategy
@@ -230,7 +230,7 @@ class BallObserver()
   t' := 1;
  end
  t'=1;
- if mode ~= "Sample"&& mode ~= "Estimate0"&& mode ~= "Estimate1"
+ if mode <> "Sample"&& mode <> "Estimate0"&& mode <> "Estimate1"
   mode := "Panic!";
  end;
  switch mode
@@ -276,10 +276,10 @@ class Referee()  // This class will monitors the whole game.
   bounceTime   := 0;
   status       := "Normal"
  end
- if mode ~= "Initialize"&& mode ~= "Player1Lost"&& mode ~= "Player2Lost"
-  && mode ~= "SendMessage"&& status ~= "Normal"&& reason ~= "Nothing"
-  && status ~= "Report"&& reason ~= "BallOutOfBoundary"
-&& reason ~= "BallBouncedTwice"&& reason ~= "BallTouchNet"
+ if mode <> "Initialize"&& mode <> "Player1Lost"&& mode <> "Player2Lost"
+  && mode <> "SendMessage"&& status <> "Normal"&& reason <> "Nothing"
+  && status <> "Report"&& reason <> "BallOutOfBoundary"
+&& reason <> "BallBouncedTwice"&& reason <> "BallTouchNet"
   mode := "Panic!";
  end;
   t'=1;
@@ -302,7 +302,7 @@ class Referee()  // This class will monitors the whole game.
     end;
     status := "Report";
    end;
-   if(abs(y)<0.78&& abs(x)<1.53)&& bounced ~= false
+   if(abs(y)<0.78&& abs(x)<1.53)&& bounced <> false
     && t>(bounceTime+0.1)&& status="Normal"
  // The ball has bounced twice in player2's court
     if bounced = "YesIn2"&& x > 0
@@ -395,10 +395,10 @@ class Game ()
   maxEnergy    := 18;
  _3D := [];
  end
-  if mode ~= "Restart"    && mode ~= "Player1Serve"&& 
-     mode ~= "Player2Serve"&& mode ~= "Impact"     && 
-     mode ~= "Freeze"     && mode ~= "ChangeSide" && 
-     mode ~= "Act"
+  if mode <> "Restart"    && mode <> "Player1Serve"&& 
+     mode <> "Player2Serve"&& mode <> "Impact"     && 
+     mode <> "Freeze"     && mode <> "ChangeSide" && 
+     mode <> "Act"
    mode := "Panic!"
   end;
   
@@ -420,10 +420,10 @@ _3D = [["Text",[-2.8,6.5,-4],1,[0.9,0,0],[1.7,0,0],player1.name],
   player2.ballp     = ballob.p;
   player1.ballv     = ballob.v;
   player2.ballv     = ballob.v;
-  if bat1.mode ~= "Rest"
+  if bat1.mode <> "Rest"
    batActuator1.p' = player1.v;
   end;
-  if bat2.mode ~= "Rest"
+  if bat2.mode <> "Rest"
    batActuator2.p' = player2.v;
   end;
   player1.batp  = bat1.p;
@@ -498,13 +498,13 @@ _3D = [["Text",[-2.8,6.5,-4],1,[0.9,0,0],[1.7,0,0],player1.name],
    mode := "Freeze";
    t    := 0;
   end;
-  if serveNumber = 2&& dot(ball.p,[1,0,0]) >0&& gameMonitor.restart ~= 1
+  if serveNumber = 2&& dot(ball.p,[1,0,0]) >0&& gameMonitor.restart <> 1
    serveNumber     := 1;
    mode            := "Player1Serve";
    player1.mode    := "Wait";
    player1.bounced := false;
   end;
-  if serveNumber = 1&& dot(ball.p,[1,0,0]) <= 0&& gameMonitor.restart ~= 1
+  if serveNumber = 1&& dot(ball.p,[1,0,0]) <= 0&& gameMonitor.restart <> 1
    serveNumber     := 2;
    mode            := "Player2Serve";
    player2.mode    := "Wait";

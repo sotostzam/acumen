@@ -2,6 +2,7 @@
   className = Main,
   simulator = #0.0,
   t = -1.000000,
+  type = Main,
   x = 0,
   x' = 1
 }

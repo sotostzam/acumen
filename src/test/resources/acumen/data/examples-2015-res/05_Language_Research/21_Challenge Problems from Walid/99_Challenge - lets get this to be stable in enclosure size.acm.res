@@ -1,6 +1,7 @@
 #0 {
   className = Main,
   simulator = #0.0,
+  type = Main,
   x = 0.000000,
   x' = 1.000000,
   y = 1.000000,

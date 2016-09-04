@@ -7,6 +7,7 @@
   system2 = #0.2,
   t = 0,
   t' = 1,
+  type = Main,
   x01 = 0,
   x02 = 1
 }
@@ -19,6 +20,7 @@
   className = SpringMass,
   k = 5,
   m = 3,
+  type = SpringMass,
   x = 0,
   x' = 0,
   x'' = 0.000000,
@@ -32,6 +34,7 @@
   className = SpringMass,
   k = 5,
   m = 1,
+  type = SpringMass,
   x = 1,
   x' = 0,
   x'' = -2.000000,
@@ -47,6 +50,7 @@
   system2 = #0.2,
   t = 1.000000,
   t' = 1,
+  type = Main,
   x01 = 0,
   x02 = 1
 }
@@ -59,6 +63,7 @@
   className = SpringMass,
   k = 5,
   m = 3,
+  type = SpringMass,
   x = -0.136384,
   x' = -0.368674,
   x'' = -0.483459,
@@ -72,6 +77,7 @@
   className = SpringMass,
   k = 5,
   m = 1,
+  type = SpringMass,
   x = 0.479755,
   x' = -0.581659,
   x'' = 2.500968,

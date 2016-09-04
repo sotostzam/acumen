@@ -10,6 +10,7 @@ object Canonical {
   /* special variables */
   val self         = name("self")
   val parent       = name("parent")
+  val typef        = name("type") 
   val classf       = name("className")
   val magicf       = name("simulator")
   val devicef      = name("device")
@@ -55,7 +56,11 @@ object Canonical {
 
   /* store query */
 
-  def deref(a:CId, st:CStore) : CObject = st(a)
+  def deref(a:CId, st:CStore) : CObject = 
+    try{st(a)} catch{
+    case err:java.util.NoSuchElementException =>
+      throw new ObjectDeleted(a)     
+    } 
 
   def getObjectField(id:CId, f:Name, st:CStore) = {
     val obj = deref(id,st)

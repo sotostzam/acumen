@@ -126,7 +126,7 @@ if t0>0 && t0<tEnd && not(nbPlayed == 1 && tPauseFirstPlay >0) then
         c.tTry +=banditLatency
         noelse,
         //Update the colors
-        if imax~= prev_imax then
+        if imax<> prev_imax then
           if c.id == imax  then
             c.diamondColor += green
           else if c.id == prev_imax then

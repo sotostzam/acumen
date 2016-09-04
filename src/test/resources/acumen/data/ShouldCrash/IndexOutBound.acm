@@ -1,0 +1,6 @@
+
+model Main(_) = 
+ initially
+  a = (1,2),b =2
+ always
+  b = a(4)

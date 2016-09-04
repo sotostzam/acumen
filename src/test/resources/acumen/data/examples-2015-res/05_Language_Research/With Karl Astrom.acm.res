@@ -1,6 +1,7 @@
 #0 {
   className = Main,
   simulator = #0.0,
+  type = Main,
   x = 3.100000,
   x' = 0,
   x'' = -0.415807
@@ -10,6 +11,7 @@
 #0 {
   className = Main,
   simulator = #0.0,
+  type = Main,
   x = 3.141593,
   x' = -1,
   x'' = -0.000000
@@ -19,6 +21,7 @@
 #0 {
   className = Main,
   simulator = #0.0,
+  type = Main,
   x = 3.141593,
   x' = -1,
   x'' = -0.000000
@@ -28,6 +31,7 @@
 #0 {
   className = Main,
   simulator = #0.0,
+  type = Main,
   x = 3.141593,
   x' = -1,
   x'' = -0.000000

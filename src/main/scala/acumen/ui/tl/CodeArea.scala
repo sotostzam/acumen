@@ -62,9 +62,10 @@ class CodeArea extends Panel with TreeSelectionListener {
   val PROMPT_CANCEL = "Cancel"
   val PROMPT_SAVE_AND_CONTINUE = "Save and continue"
   val PROMPT_DISCARD_AND_CONTINUE = "Discard and continue"
-    
+  
   /* ---- state variables ---- */
   var currentFile: Option[File] = None
+  var lastFileRun: Option[File] = None
   var editedSinceLastSave: Boolean = false
   var editedSinceLastAutoSave: Boolean = false
   var editedSinceLastRun: Boolean = false
@@ -72,6 +73,37 @@ class CodeArea extends Panel with TreeSelectionListener {
   val filenameLabel = new Label("[Untitled]")
   
   private val pathChangeListeners: Buffer[ChangeListener] = new ArrayBuffer
+  
+  /* templates */
+  
+  lazy val TEMPLATE_STUB = "stub"
+  lazy val TEMPLATE_MODEL = "model"
+  lazy val TEMPLATE_MAIN = "main"
+  lazy val TEMPLATE_INIT = "init"
+  lazy val TEMPLATE_IF = "if"
+  lazy val TEMPLATE_MATCH = "match"
+  lazy val TEMPLATE_HS = "hs"
+  lazy val TEMPLATE_MODE = "mode"
+  lazy val TEMPLATE_EVENT = "event"
+  lazy val TEMPLATE_PS = "ps"
+  
+  private def modelInitT(modelName: String, parameters: String, inits: String) =
+    s"model $modelName($parameters) =\ninitially\n$inits"
+  private def modelT(modelName: String, parameters: String, inits: String) =
+    modelInitT(modelName, parameters, inits) + "\nalways\n    "
+  private def mainModel(inits: String) = modelT("Main", "simulator", inits)
+  lazy val templates = Map(
+    (TEMPLATE_STUB,  modelInitT("Main","simulator","")),
+    (TEMPLATE_MODEL, modelT("","","")),
+    (TEMPLATE_MAIN,  mainModel("")),
+    (TEMPLATE_INIT,  "initially  always"),
+    (TEMPLATE_IF,    "if \n  \nnoelse,"),
+    (TEMPLATE_MATCH, "match \n  -> \n    \n,"),
+    (TEMPLATE_HS,    mainModel("mode = \"\"") + "match mode with\n    [ \"\" -> \n      \n    ],\n"),
+    (TEMPLATE_MODE,  "  \"\" -> \n  if  mode+ = \"\"  noelse,\n  "),
+    (TEMPLATE_EVENT, "if  mode+ = \"\"  noelse,\n"),
+    (TEMPLATE_PS,    Parameters.defaults.map{case (p,v) => "simulator.%s := %s".format(p,v)}.mkString(";\n"))
+  )
   
   /**
    * Create RSyntaxTextArea component. It provides features such as syntax highlighting and indentation.
@@ -97,6 +129,7 @@ class CodeArea extends Panel with TreeSelectionListener {
       RSyntaxTextArea setTemplatesEnabled true
       createCodeTemplateManager
     }
+    sta.setText(templates(TEMPLATE_STUB))
     sta
   }
   
@@ -129,23 +162,8 @@ class CodeArea extends Panel with TreeSelectionListener {
     cp
   }
 
-  def createCodeTemplateManager ={
-    def modelT(modelName: String, parameters: String, inits: String) =
-      s"model $modelName($parameters) =\n  initially\n    $inits\n  always\n    "
-    def mainModel(inits: String) = modelT("Main", "simulator", inits)
-    for (
-      t <- List(
-        ("model", modelT("","","")),
-        ("main", mainModel("")),
-        ("init", "initially  always"),
-        ("if", "if \n  \nnoelse,"),
-        ("match", "match \n  -> \n    \n,"),
-        ("hs", mainModel("mode = \"\"") + "match mode with\n    [ \"\" -> \n      \n    ],\n"),
-        ("mode", "  \"\" -> \n  if  mode+ = \"\"  noelse,\n  "),
-        ("event", "if  mode+ = \"\"  noelse,\n"),
-        ("ps", Parameters.defaults.map{case (p,v) => "simulator.%s := %s".format(p,v)}.mkString(";\n")))
-    ) { RSyntaxTextArea.getCodeTemplateManager addTemplate new StaticCodeTemplate(t._1, t._2, null) }
-  }
+  def createCodeTemplateManager = templates.foreach { t =>
+    RSyntaxTextArea.getCodeTemplateManager addTemplate new StaticCodeTemplate(t._1, t._2, null) }
 
   /* --- file handling ---- */
 
@@ -165,6 +183,9 @@ class CodeArea extends Panel with TreeSelectionListener {
     notifyPathChangeListeners
   }
 
+  def fileChangedSinceLastRun(): Boolean = {
+    if (lastFileRun != currentFile) true else false
+  }
   def setEdited = {
     if (!editedSinceLastSave) filenameLabel.text += " (unsaved)"
     editedSinceLastSave = true
@@ -185,7 +206,7 @@ class CodeArea extends Panel with TreeSelectionListener {
 
   def newFile: Unit = withErrorReporting {
     preventWorkLoss {
-      textArea.setText("")
+      textArea.setText(templates(TEMPLATE_STUB))
       setCurrentFile(None)
       editedSinceLastSave = false
       textArea.discardAllEdits

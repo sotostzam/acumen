@@ -25,7 +25,8 @@
   s = 0.025000,
   sfx = 0,
   sfz = 0,
-  simulator = #0.0
+  simulator = #0.0,
+  type = Main
 }
 #0.0 { className = Simulator, time = 0.000000 }
 ------------------------------0
@@ -56,7 +57,8 @@
   s = 0.025000,
   sfx = 0.457527,
   sfz = -0.013877,
-  simulator = #0.0
+  simulator = #0.0,
+  type = Main
 }
 #0.0 { className = Simulator, time = 0.343750 }
 ------------------------------23
@@ -87,7 +89,8 @@
   s = 0.025000,
   sfx = 0.938241,
   sfz = -0.033482,
-  simulator = #0.0
+  simulator = #0.0,
+  type = Main
 }
 #0.0 { className = Simulator, time = 1.031250 }
 ------------------------------68
@@ -118,7 +121,8 @@
   s = 0.025000,
   sfx = 1.443723,
   sfz = -0.050485,
-  simulator = #0.0
+  simulator = #0.0,
+  type = Main
 }
 #0.0 { className = Simulator, time = 1.718750 }
 ------------------------------113

@@ -400,9 +400,9 @@ always
   if t<4 then
    phi'=pi/2 ,
    L=sqrt(2.13^2+12^2) , 
-   _3DView=((L*sin(phi),-L*cos(phi),1.5),(-1*pi/15,phi,0))
+   _3DView=((L*sin(phi),-L*cos(phi),1.5),(0.8*-1*pi/15,0.8*phi,0))
   else (
-   _3DView=((-2.13,-12,1.5),(-1*pi/15,0,-1*pi/10)),
+   _3DView=((-2.15,-15,1.5),(-1*pi/15,0,-1*pi/10)),
    phi'=0 )
 
  

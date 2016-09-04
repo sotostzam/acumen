@@ -1,4 +1,4 @@
-ACUMEN 2016_06_16 RELEASE NOTES
+ACUMEN 2016_08_30 RELEASE NOTES
 -------------------------------
 
 Major changes since the 2016_03_22 release:
@@ -11,6 +11,7 @@ Major changes since the 2016_03_22 release:
 	- New _plot support for conveniently plotting variables 
 	
 - New aspect ratio support 
+- New 3D object Triangle
 - Improvement to the transparency parameter for 3D object
 - Improvement to the static view of 3D 
 

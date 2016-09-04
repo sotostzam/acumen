@@ -5,7 +5,8 @@
   className = Main,
   simulator = #0.0,
   t = 0,
-  t' = 1
+  t' = 1,
+  type = Main
 }
 #0.0 { className = Simulator, time = 0.000000 }
 #0.1 {
@@ -32,7 +33,8 @@
   prio = 1,
   queue = 0,
   t = 0,
-  t' = 1
+  t' = 1,
+  type = Controller_north
 }
 #0.1.0 {
   Cont = "observe",
@@ -43,7 +45,8 @@
   className = Light,
   fe = false,
   gh = false,
-  loc = "red"
+  loc = "red",
+  type = Light
 }
 #0.1.1 {
   Cont = "observe",
@@ -55,6 +58,7 @@
   depart_t' = -1,
   departure = 1,
   loc = "Red",
+  type = Traffic,
   x = 0
 }
 #0.2 {
@@ -81,7 +85,8 @@
   prio = 0,
   queue = 0,
   t = 0,
-  t' = 1
+  t' = 1,
+  type = Controller_west
 }
 #0.2.0 {
   Cont = "observe",
@@ -92,7 +97,8 @@
   className = Light,
   fe = false,
   gh = false,
-  loc = "red"
+  loc = "red",
+  type = Light
 }
 #0.2.1 {
   Cont = "observe",
@@ -104,6 +110,7 @@
   depart_t' = -1,
   departure = 1,
   loc = "Red",
+  type = Traffic,
   x = 0
 }
 ------------------------------0
@@ -114,7 +121,8 @@
   className = Main,
   simulator = #0.0,
   t = 4.000000,
-  t' = 1
+  t' = 1,
+  type = Main
 }
 #0.0 { className = Simulator, time = 4.000000 }
 #0.1 {
@@ -141,7 +149,8 @@
   prio = 1,
   queue = 1,
   t = 4.000000,
-  t' = 1
+  t' = 1,
+  type = Controller_north
 }
 #0.1.0 {
   Cont = "observe",
@@ -152,7 +161,8 @@
   className = Light,
   fe = false,
   gh = false,
-  loc = "red"
+  loc = "red",
+  type = Light
 }
 #0.1.1 {
   Cont = "observe",
@@ -164,6 +174,7 @@
   depart_t' = -1,
   departure = 1,
   loc = "Red",
+  type = Traffic,
   x = 1
 }
 #0.2 {
@@ -190,7 +201,8 @@
   prio = 0,
   queue = 1,
   t = 4.000000,
-  t' = 1
+  t' = 1,
+  type = Controller_west
 }
 #0.2.0 {
   Cont = "observe",
@@ -201,7 +213,8 @@
   className = Light,
   fe = false,
   gh = false,
-  loc = "red"
+  loc = "red",
+  type = Light
 }
 #0.2.1 {
   Cont = "observe",
@@ -213,6 +226,7 @@
   depart_t' = -1,
   departure = 1,
   loc = "Red",
+  type = Traffic,
   x = 1
 }
 ------------------------------257
@@ -223,7 +237,8 @@
   className = Main,
   simulator = #0.0,
   t = 8.000000,
-  t' = 1
+  t' = 1,
+  type = Main
 }
 #0.0 { className = Simulator, time = 8.000000 }
 #0.1 {
@@ -250,7 +265,8 @@
   prio = 1,
   queue = 2,
   t = 8.000000,
-  t' = 1
+  t' = 1,
+  type = Controller_north
 }
 #0.1.0 {
   Cont = "observe",
@@ -261,7 +277,8 @@
   className = Light,
   fe = false,
   gh = false,
-  loc = "red"
+  loc = "red",
+  type = Light
 }
 #0.1.1 {
   Cont = "observe",
@@ -273,6 +290,7 @@
   depart_t' = -1,
   departure = 1,
   loc = "Red",
+  type = Traffic,
   x = 2
 }
 #0.2 {
@@ -299,7 +317,8 @@
   prio = 0,
   queue = 2,
   t = 8.000000,
-  t' = 1
+  t' = 1,
+  type = Controller_west
 }
 #0.2.0 {
   Cont = "observe",
@@ -310,7 +329,8 @@
   className = Light,
   fe = false,
   gh = false,
-  loc = "red"
+  loc = "red",
+  type = Light
 }
 #0.2.1 {
   Cont = "observe",
@@ -322,6 +342,7 @@
   depart_t' = -1,
   departure = 1,
   loc = "Red",
+  type = Traffic,
   x = 2
 }
 ------------------------------514
@@ -332,7 +353,8 @@
   className = Main,
   simulator = #0.0,
   t = 12.000000,
-  t' = 1
+  t' = 1,
+  type = Main
 }
 #0.0 { className = Simulator, time = 12.000000 }
 #0.1 {
@@ -359,7 +381,8 @@
   prio = 1,
   queue = 3,
   t = 12.000000,
-  t' = 1
+  t' = 1,
+  type = Controller_north
 }
 #0.1.0 {
   Cont = "observe",
@@ -370,7 +393,8 @@
   className = Light,
   fe = false,
   gh = false,
-  loc = "red"
+  loc = "red",
+  type = Light
 }
 #0.1.1 {
   Cont = "observe",
@@ -382,6 +406,7 @@
   depart_t' = -1,
   departure = 1,
   loc = "Red",
+  type = Traffic,
   x = 3
 }
 #0.2 {
@@ -408,7 +433,8 @@
   prio = 0,
   queue = 3,
   t = 12.000000,
-  t' = 1
+  t' = 1,
+  type = Controller_west
 }
 #0.2.0 {
   Cont = "observe",
@@ -419,7 +445,8 @@
   className = Light,
   fe = false,
   gh = false,
-  loc = "red"
+  loc = "red",
+  type = Light
 }
 #0.2.1 {
   Cont = "observe",
@@ -431,6 +458,7 @@
   depart_t' = -1,
   departure = 1,
   loc = "Red",
+  type = Traffic,
   x = 3
 }
 ------------------------------771

@@ -14,7 +14,7 @@ initially
   _3D     =  ()
 always
   // If mode is not valid then make mode "Panic!"
-  if mode ~= "Fly" && mode ~= "Bounce" && mode ~= "Freeze" then
+  if mode <> "Fly" && mode <> "Bounce" && mode <> "Freeze" then
     mode + = "Panic!"
   noelse,
   // Behavior of ball in different modes

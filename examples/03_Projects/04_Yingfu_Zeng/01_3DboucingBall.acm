@@ -10,7 +10,7 @@ initially
 always
   _3D = (Sphere center=p size=0.03 color=green rotation=(0,0,0)),
   // Valid modes
-  if mode ~= "Fly" && mode ~= "Bounce" && mode ~= "Freeze" then
+  if mode <> "Fly" && mode <> "Bounce" && mode <> "Freeze" then
     mode  =  "Panic!" 
   noelse ,
   simulator.endTime + = 3  ,

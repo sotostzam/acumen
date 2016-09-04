@@ -7,7 +7,8 @@
   simulator = #0.0,
   theta = 1,
   theta' = 0,
-  theta'' = -4.123208
+  theta'' = -4.123208,
+  type = Main
 }
 #0.0 { className = Simulator, time = 0.000000 }
 ------------------------------0

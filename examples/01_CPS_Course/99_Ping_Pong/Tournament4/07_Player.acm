@@ -75,7 +75,7 @@ initially
   z       =  0.2 ,          z'  =  0 ,     z''      =  0
 always
   
-  if mode ~= "Wait" && mode ~= "Prepare" && mode ~= "Startball" && mode ~= "Reset" then
+  if mode <> "Wait" && mode <> "Prepare" && mode <> "Startball" && mode <> "Reset" then
     mode + = "Panic!"
   noelse,
   
@@ -156,7 +156,7 @@ always
         v2_predicted = p1_predicted + a2_predicted * t2_predicted,
         v'  = ((1.6*(-1)^n,0,0.2)-p_bat) * 5 + 5 * ((0,0,0)- v),
         // Predict the goal point to prepare hit the ball(only do once per turn)
-        if (t1_predicted < 0.15 && t1_predicted ~= 0)
+        if (t1_predicted < 0.15 && t1_predicted <> 0)
         && ((n==1 && (p_ball(0))<0) || (n==2 && (p_ball(0))>0)) then
         
           // Calculating second prediction point

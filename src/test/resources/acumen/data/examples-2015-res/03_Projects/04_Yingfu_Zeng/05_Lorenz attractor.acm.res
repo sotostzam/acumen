@@ -5,6 +5,7 @@
   r = 28,
   s = 10,
   simulator = #0.0,
+  type = Main,
   x = 0,
   x' = 10,
   y = 1,

@@ -8,7 +8,8 @@
   fun = 2,
   p = (0, 0, 0),
   sa = 0.909297,
-  simulator = #0.0
+  simulator = #0.0,
+  type = Main
 }
 #0.0 { className = Simulator, time = 0.000000 }
 ------------------------------0

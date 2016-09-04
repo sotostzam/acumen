@@ -79,7 +79,7 @@ sensorM = create sensor (),
 sensorR = create sensor (),
 sensorR1 = create sensor (),
 sFlagL1=0 , sFlagL=0,sFlagM=0,sFlagR=0,sFlagR1=0,
-_3D = (),_3DView=()
+_3D = (),_3DView=(), mix = 0, mix' = 0
 always
 con.speed= speed,
 con.heading= heading,
@@ -118,10 +118,13 @@ detectR1.x= (robot.X+0.335*cos(robot.theta)+0.2875*sin(robot.theta)),
 detectR1.y=(robot.Y+0.335*sin(robot.theta)-0.2875*cos(robot.theta)),
 sensorR1.flag=detectR1.flag,sFlagR1=detectR1.flag,
 
-
-
+mix' = 1 - mix,
 
 _3D = (
-   
-  ),_3DView=((robot.X-20,robot.Y-20,5),(robot.X,robot.Y,0))
- 
+  
+  ),_3DView=((robot.X-(mix*3-(1-mix)*30),
+              robot.Y-(mix*3+(1-mix)*30),
+              mix*1+(1-mix)*30),
+              (robot.X,robot.Y,0))
+
+

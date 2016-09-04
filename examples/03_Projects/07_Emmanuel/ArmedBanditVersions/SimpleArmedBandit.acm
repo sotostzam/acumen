@@ -51,7 +51,7 @@ confidence = sqrt(log(2/0.1)/2),
 lastTry = -1
 always 
   upperBound =average +confidence,
-  if lastTry ~= -1  then
+  if lastTry <> -1  then
     lastTry += -1,
     confidence= confidenceConst/sqrt(numberOfRun),
     average += (average *numberOfRun + lastTry)/ (numberOfRun +1),

@@ -30,9 +30,9 @@ if(mode == "ini") then
 noelse,
 
 if(size > 1 && mode == "active"  ) then
-if (enable3D ~= next.enable3D) then next.enable3D+=enable3D noelse,
-if (color ~= next.color) then next.color+=color noelse,
-if (next.position ~= position + space) then next.position+=position+space noelse,
+if (enable3D <> next.enable3D) then next.enable3D+=enable3D noelse,
+if (color <> next.color) then next.color+=color noelse,
+if (next.position <> position + space) then next.position+=position+space noelse,
 if( next.isRoot == 1) then next.isRoot += 0 noelse
 noelse, 
 if enable3D then 
@@ -101,7 +101,7 @@ else if (extend < 0 && extended == 0) then //reduce the size of the array
     extended += 1
   noelse
 noelse,
-if(isRoot== 1 && extended == 1 && extend ~= 0) then
+if(isRoot== 1 && extended == 1 && extend <> 0) then
 extended += 0,extend += 0 
 noelse
 

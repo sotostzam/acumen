@@ -13,7 +13,7 @@ import scala.util.parsing.input.Position
 import reflect.runtime.universe.TypeTag
 import enclosure2015.Common._
 import acumen.interpreters.enclosure.Interval
-
+import scala.util.parsing.input.{Position,Positional,NoPosition,OffsetPosition}
 //
 // Common stuff to CStore Interpreters
 //
@@ -115,7 +115,7 @@ object Common {
       case "cosh"      => cosh(x)
       case "tanh"      => tanh(x)
       case "signum"    => signum(x)
-      case _ => implemUnaryReal(f, x)
+      case _ => implemUnaryReal(f, x, vx.pos) 
     }
     (f, vx) match {
       case ("not", GBool(x))     => GBool(!x)
@@ -124,9 +124,9 @@ object Common {
       case ("round", GDouble(x)) => GInt(x.toInt)
       case (f, GIntTDif(d))      => f match {
         case "-" => GIntTDif(implemUnaryIntegral(f, d)) // keep as TDif[Int] if f has an integer result 
-        case _   => GDoubleTDif(implemUnaryReal(f, TDif(d.coeff.map(_.toDouble), d.length))) // otherwise, convert to TDif[Double] 
+        case _   => GDoubleTDif(implemUnaryReal(f, TDif(d.coeff.map(_.toDouble), d.length),vx.pos)) // otherwise, convert to TDif[Double] 
       }
-      case (f, GDoubleTDif(d))   => GDoubleTDif(implemUnaryReal(f, d))
+      case (f, GDoubleTDif(d))   => GDoubleTDif(implemUnaryReal(f, d,vx.pos))
       case _                     => GDouble(implem(f, extractDouble(vx)))
     }
   }
@@ -174,7 +174,7 @@ object Common {
     case "-"   => -x
     case "abs" => x.abs
   }
-  def implemUnaryReal[V: Real](f: String, x: V): V = f match {
+  def implemUnaryReal[V: Real](f: String, x: V, pos:Position): V = f match {
     case "sin"       => x.sin
     case "cos"       => x.cos
     case "tan"       => x.tan
@@ -352,13 +352,17 @@ object Common {
       case "+"   => 
         if(isMatrix(u) || isMatrix(v))
           matrixPlusMinus("+", u, v)
-        else        
-        VVector((du,dv).zipped map ((d1,d2) => VLit(GDouble(d1+d2))))
+        else if(du.length == dv.length)        
+         VVector((du,dv).zipped map ((d1,d2) => VLit(GDouble(d1+d2))))
+         else
+         throw LengthVectorVectorOp(u,v)
       case "-"   => 
          if(isMatrix(u) && isMatrix(v))
           matrixPlusMinus("-", u, v)
-        else        
-        VVector((du,dv).zipped map ((d1,d2) => VLit(GDouble(d1-d2))))
+        else if(du.length == dv.length)         
+          VVector((du,dv).zipped map ((d1,d2) => VLit(GDouble(d1-d2))))
+        else
+          throw LengthVectorVectorOp(u,v)
       case "dot" => VLit(GDouble(((du,dv).zipped map (_*_)).sum))
       case "*"   => 
         if(isMatrix(u) || isMatrix(v))
@@ -443,7 +447,7 @@ object Common {
     (op,xs) match {
        case ("==", x::y::Nil) => 
          VLit(GBool(x == y))
-       case ("~=", x::y::Nil) => 
+       case ("~=", x::y::Nil) =>          
          VLit(GBool(x != y))
        case ("_:_:_", VLit(GInt(s))::VLit(GInt(d))::VLit(GInt(e))::Nil) =>
          sequenceOp(s,d,e)
@@ -479,11 +483,28 @@ object Common {
        case (_, VVector(u)::VLit(x)::Nil) =>
          binVectorScalarOp(op,u,x)
        case ("trans", ls) => unaryVectorOp("trans",ls)
+       case (f, VObjId(Some((o1)))::VObjId(Some(o2))::Nil) =>
+         VLit(GBool(compareObjects(f,o1.cid,o2.cid, xs(0).pos)))
        case _ =>
          throw UnknownOperator(op)    
     }
   }
-
+  // Comparison (lexicographic ordering) between object using CId
+  def compareObjects (f:String, c1:CId, c2:CId,pos:Position): Boolean =  {
+    /* Returns an integer whose sign communicates how c1 compares to c2.
+   *  - negative if c1 < c2
+   *  - positive if c1 > c2
+   *  - zero otherwise (if c1 == c2)
+   */
+    val lex = c1.compare(c2)
+    f match {
+    case ">" => lex > 0
+    case "<" => lex < 0
+    case ">=" => lex >= 0
+    case "<=" => lex <= 0
+    case _ =>  throw UnknownOperator(f).setPos(pos)
+  } 
+  }
   /* eval Index(e, i) */
   def evalIndexOp[A](e: Value[A], i: List[Value[A]]) : Value[A] = {
     def lookup(i: Int, l: List[Value[A]]): Value[A] =
@@ -492,6 +513,7 @@ object Common {
     e match {
       case VVector(l) => i match {
         case VLit(GInt(idx)) :: Nil => lookup(idx, l)
+        case VLit(GDouble(dx)) :: Nil => throw ExpectedInteger(i(0))
         case VLit(gd: GTDif[_]) :: Nil if gd.isValidInt => lookup(gd.toInt, l)
         case VVector(idxs) :: Nil => VVector(idxs.map(x => evalIndexOp(e,List(x))))
         case VVector(rows) :: VVector(columns) :: Nil => {
@@ -531,7 +553,12 @@ object Common {
       pr => Continuously(EquationT(Var(pr.x), Input(Dot(Var(self), Name("id",0)), pr.x.x)))
     })
   }
-
+  lazy val paraClass = {
+    val d = Parser.run(Parser.classDef, paramModelTxt)
+    ClassDef(d.name,d.fields,d.priv,d.priv.map{
+      pr => Continuously(EquationT(Var(pr.x), Input(Dot(Var(self), Name("id",0)), pr.x.x)))
+    })
+  }
   // The model contains command line input variables
   var paramModelTxt = "\n\n model Parameters()= \n\n"
 
