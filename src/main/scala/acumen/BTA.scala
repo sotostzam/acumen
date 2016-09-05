@@ -141,6 +141,31 @@ object BindingTimeAnalysis {
     case ExprInterval(e1, e2) =>
       val (ae1, ae2) = (labelAst(e1, label), labelAst(e2, label))
       (AExprInterval(ae1._1, ae2._1, label).setP(e.pos), label)
+    case ExprSplitterN(i, n) =>
+      val (ai, an) = (labelAst(i, label), labelAst(n, label))
+      (AExprSplitterN(ai._1, an._1, label).setP(e.pos), label)
+    case ExprSplitterWeights(i, ws) =>
+      val (ai, aws) = (labelAst(i, label), ws map (labelAst(_, label)))
+      (AExprSplitterWeights(ai._1, aws.unzip._1 ,label).setP(e.pos), label)
+    case ExprSplitterPoints(ps, keeps) =>
+      val (aps, akeeps) = (ps map (labelAst(_, label)), keeps map (labelAst(_, label)))
+      (AExprSplitterPoints(aps.unzip._1, akeeps.unzip._1, label).setP(e.pos), label)
+    case ExprSplitInterval(i, s) =>
+      val (ai, as) = (labelAst(i, label), labelAst(s, label))
+      (AExprSplitInterval(ai._1, as._1, label).setP(e.pos), label)
+    case ExprSplitterNormal(mu, ss, c, n) =>
+      val (amu, ass, ac, an) = (labelAst(mu, label), labelAst(ss, label),
+                                labelAst(c, label), labelAst(n, label))
+      (AExprSplitterNormal(amu._1, ass._1, ac._1, an._1, label).setP(e.pos), label)
+    case ExprSplitterUniform(lo, hi, c, n) =>
+      val (alo, ahi, ac, an) = (labelAst(lo, label), labelAst(hi, label),
+                                labelAst(c, label), labelAst(n, label))
+      (AExprSplitterUniform(alo._1, ahi._1, ac._1, an._1, label).setP(e.pos), label)
+    case ExprSplitterBeta(lo, hi, a, b, c, n) =>
+      val (alo, ahi, aa, ab, ac, an) = (labelAst(lo, label), labelAst(hi, label),
+                                        labelAst(a, label), labelAst(b, label),
+                                        labelAst(c, label), labelAst(n, label))
+      (AExprSplitterBeta(alo._1, ahi._1, aa._1, ab._1, ac._1, an._1, label).setP(e.pos), label)
     case Call(f, es) =>
       val af = labelAst(f, label)
       val aresult = labelListExpr(es, af._2)
@@ -332,6 +357,14 @@ object BindingTimeAnalysis {
         List(NLT(expr.an, l)) :::
         traversal(expr, newEnv)
     }
+    case AExprInterval(ae1, ae2, l) => Nil
+    case AExprSplitterN(i, n, an) => Nil
+    case AExprSplitterWeights(i, ws, an) => Nil
+    case AExprSplitterPoints(ps, keeps, an) => Nil
+    case AExprSplitInterval(i, s, an) => Nil
+    case AExprSplitterNormal(mu, ss, c, n, an) => Nil
+    case AExprSplitterUniform(lo, hi, c, n, an) => Nil
+    case AExprSplitterBeta(lo, hi, a, b, c, n, an) => Nil
     case AExprInterval(ae1, ae2, l) => Nil
     case ACall(af, aes, l) =>
       NLT(af.an, l) ::

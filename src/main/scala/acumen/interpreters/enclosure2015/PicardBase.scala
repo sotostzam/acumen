@@ -295,10 +295,11 @@ object picardBase extends SolverBase {
               fold(s => Left("Empty enclosure after applying claim " + pprint(claim.c) + ": " + s), Right(_)) 
           } catch {
             case e: Throwable =>
-              if (e.isInstanceOf[AcumenError]) throw e
-              else if (e.isInstanceOf[NotImplementedError]) 
-                throw new NotImplementedError(s"Cannot contract. Missing implementation for: ${e.getMessage}.") 
-              else Left("Error while applying claim " + pprint(claim.c) + ": " + e.getMessage) 
+              e match {
+                case _: AcumenError         => throw e
+                case _: NotImplementedError => throw new NotImplementedError(s"Cannot contract. Missing implementation for: ${e.getMessage}.")
+                case _                      => Left("Error while applying claim " + pprint(claim.c) + ": " + e.getMessage)
+              } 
           }
         case _ => res
       }

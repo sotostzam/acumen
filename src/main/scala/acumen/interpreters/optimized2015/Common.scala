@@ -2,6 +2,7 @@ package acumen
 package interpreters
 package optimized2015
 
+import scala.annotation.tailrec
 import scala.collection.immutable.HashMap
 import scala.collection.immutable.Map
 import scala.collection.mutable.ArrayBuffer
@@ -12,15 +13,21 @@ import acumen.Pretty._
 import acumen.util.Conversions._
 import acumen.util.Random
 import acumen.interpreters.Common._
+import acumen.interpreters.enclosure.{
+  Field => _, Interval, SplitInterval,
+  BetaDistribution, NormalDistribution, UniformDistribution
+}
 import acumen.util.Canonical.{
   childrenOf, 
   classf,
   cmain,
   cmagic,
+  deadStore,
   endTime,
   nextChild,
   parentOf,
   parent,
+  plotEnabled,
   seedOf,
   seed1,
   seed2,
@@ -31,7 +38,6 @@ import acumen.util.Canonical.{
   timeStep
 }
 import acumen.util.ASTUtil.dots
-import scala.annotation.tailrec
 
 object Common {
   type Store = Object
@@ -142,6 +148,8 @@ object Common {
     /** Hypotheses results accumulated during one state */
     type HypResult = Map[ (CId, ClassName, Option[String]), (Option[HypothesisOutcome], Option[HypothesisOutcome], HypothesisOutcome) ]
     var stepHypothesisResults : HypResult = Map.empty
+    /** Tells if this Store must be split at the end of the step */
+    var splitMe = false
     
     def reset(doD : EvalMode, doT: EvalMode, doI: EvalMode) {
       usePrev = true
@@ -436,6 +444,7 @@ object Common {
   def getTimeStep(magic: Object) = extractDouble(getField(magic, timeStep))
   def getEndTime(magic: Object) = extractDouble(getField(magic, endTime))
   def getResultType(magic: Object) = { val VResultType(t) = getField(magic, resultType); t }
+  def getPlotEnabled(magic: Object) = extractBoolean(getField(magic, plotEnabled))
 
   /* write in magic */
   /* SIDE EFFECT */
@@ -444,6 +453,13 @@ object Common {
   def setResultType(magic: Object, t: ResultType) = setField(magic, resultType, VResultType(t))
   /* SIDE EFFECT */
   def setVarNum(magic: Object, count: Int) = setField(magic, stateVars, VLit(GInt(count)))
+  /* SIDE EFFECT */
+  def setDeadStore(magic: Object, b: Boolean) = {
+    //Avoid repeated assignment
+    val curDeadStoreVal = extractBoolean(magic.fields(deadStore).lastSetVal.asVal)
+    if (b && !curDeadStoreVal || !b && curDeadStoreVal)
+      setField(magic, deadStore, VLit(GBool(b)))
+  }
 
   /* SIDE EFFECT */
   def changeParent(o: Object, p: Object): Unit = {
@@ -470,6 +486,9 @@ object Common {
       e match {
         case Lit(i)        => VLit(i)
         case ExprVector(l) => VVector(l map (eval(env, _)))
+        case i : ExprInterval => evalExprIntervals(i)
+        case i : ExprSplitInterval => evalExprIntervals(i)
+        case i : ExprSplitterDistribution => evalExprIntervals(i)
         case Var(n)        => env.get(n).getOrElse(VClassName(ClassName(n.x)))
         case Input(s,i)    => Devices.getDeviceInput(extractInt(eval(env, s)), i)
         case Index(v,i)    => evalIndexOp(eval(env, v), i.map(x => eval(env, x)))
@@ -538,6 +557,56 @@ object Common {
     eval(env, e)
   }.setPos(e.pos)
 
+  /** Only handles intervals defined with constant bounds */
+  def evalExprIntervals(e: Expr): Val = {
+    def intExtractor(e: Expr): Option[Int] = e match {
+      case Lit(n @ GInt(_)) => Some(extractInt(n))
+      case _ => None
+    }
+    def doubleExtractor(e: Expr): Option[Double] = e match {
+      case Lit(x @ (GDouble(_) | GInt(_))) => Some(extractDouble(x))
+      case _ => None
+    }
+    def booleanExtractor(e: Expr): Option[Boolean] = e match {
+      case Lit(GBool(k)) => Some(k)
+      case _ => None
+    }
+    def intervalHelper(i: Expr) = i match {
+      case ExprInterval(lo, hi) =>
+        Interval(doubleExtractor(lo).get, doubleExtractor(hi).get)
+      case ExprIntervalM(mid, pm) =>
+        Interval(doubleExtractor(mid).get - doubleExtractor(pm).get, doubleExtractor(mid).get + doubleExtractor(pm).get)
+    }
+    e match {
+      case i @ (ExprInterval(_, _) | ExprIntervalM(_, _)) =>
+        //Every interval must be split to be processed by the interpreter.
+        //Hence a classic Interval is forced to a splitInterval with only one subinterval
+        VLit(GInterval(SplitInterval(intervalHelper(i))))
+      case ExprSplitInterval(i, s) => {
+        s match {
+          case ExprSplitterPoints(ps, kps) =>
+            val points = ps map { case v => doubleExtractor(v).get }
+            val keeps = kps map { case b => booleanExtractor(b).get }
+            VLit(GInterval(SplitInterval(points, keeps)))
+          case ExprSplitterWeights(_, ws) =>
+            val weights = ws map { case v => doubleExtractor(v).get }
+            VLit(GInterval(SplitInterval(intervalHelper(i), weights)))
+          case ExprSplitterN(_, n) =>
+            VLit(GInterval(SplitInterval(intervalHelper(i), intExtractor(n).get)))
+        }
+      }
+      case ExprSplitterNormal(m, s, c, n) =>
+        VLit(GInterval(
+          NormalDistribution(doubleExtractor(m).get, doubleExtractor(s).get, doubleExtractor(c).get, intExtractor(n).get)))
+      case ExprSplitterUniform(lo, hi, c, n) =>
+        VLit(GInterval(
+          UniformDistribution(doubleExtractor(lo).get, doubleExtractor(hi).get, doubleExtractor(c).get, intExtractor(n).get)))
+      case ExprSplitterBeta(lo, hi, a, b, c, n) =>
+        VLit(GInterval(
+          BetaDistribution(doubleExtractor(lo).get, doubleExtractor(hi).get, doubleExtractor(a).get, doubleExtractor(b).get, doubleExtractor(c).get, intExtractor(n).get)))
+    }
+  }
+  
   sealed abstract class ParentParm
   case object IsMain extends ParentParm
   case class ParentIs(id: ObjId) extends ParentParm
@@ -563,7 +632,9 @@ object Common {
 
     val res = prt match {
       case IsMain =>
-        Object(CId.nil, pub, magic.phaseParms, None, childrenCounter, sd, Vector(magic))
+        val o = Object(CId.nil, pub, magic.phaseParms, None, childrenCounter, sd, Vector(magic))
+        magic.parent = Some(o)
+        o
       case ParentIs(p) =>
         val counter = p.ccounter
         p.ccounter += 1

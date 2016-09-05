@@ -361,7 +361,7 @@ object Interpreter extends acumen.CStoreInterpreter {
 
   /* Main simulation loop */  
 
-  def init(prog:Prog) : (Prog, Store, Metadata) = {
+  def init(prog:Prog) : (Prog, SuperStore, Map[Tag, Metadata]) = {
     checkNestedHypotheses(prog)
     checkContinuousAssignmentToSimulator(prog)
     val cprog = CleanParameters.run(prog, CStoreInterpreterType)
@@ -373,7 +373,7 @@ object Interpreter extends acumen.CStoreInterpreter {
     val st2 = changeParent(CId(0), id, st1)
     val st3 = changeSeed(CId(0), sd2, st2)
     val st4 = countVariables(st3)
-    (mprog, st4, NoMetadata)
+    (mprog, Map((Tag.root, st4)), Map((Tag.root, NoMetadata)))
   }
 
   /** Updates the values of variables in xs (identified by CId and Dot.field) to the corresponding CValue. */
@@ -393,7 +393,7 @@ object Interpreter extends acumen.CStoreInterpreter {
   
   def step(p:Prog, st:Store, md: Metadata) : StepRes =
     if (getTime(st) >= getEndTime(st)){
-      Done(md, getEndTime(st))
+      Done(Map((Tag.root, md)), getEndTime(st))
     } 
     else 
       { val (_, Changeset(ids, rps, das, eqs, odes, hyps), st1) = iterate(evalStep(p), mainId(st))(st)
@@ -424,7 +424,7 @@ object Interpreter extends acumen.CStoreInterpreter {
             val st2 = setResultType(Continuous, stE)
             setTime(getTime(st2) + getTimeStep(st2), st2)
         }
-        Data(countVariables(res), md1)
+        Data(Map((Tag.root, countVariables(res))), Map((Tag.root, md1)))
       }
 
   /** Summarize result of evaluating the hypotheses of all objects. */

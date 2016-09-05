@@ -5,7 +5,7 @@ import scala.math._
 import scala.collection.mutable.HashMap
 import scala.collection.mutable.{Map => MutMap}
 import scala.util.parsing.input.{Position,Positional}
-import acumen.interpreters.enclosure.Interval
+import acumen.interpreters.enclosure.{Interval, SplitInterval, SplitterDistribution}
 import acumen.TAD._
 import acumen.FAD._
 
@@ -166,6 +166,24 @@ package acumen {
   /* Example: [a:b] deprecated, now [a..b] and m+/-r*/
   case class ExprInterval(lo: Expr, hi: Expr) extends Expr
   case class ExprIntervalM(mid: Expr, pm: Expr) extends Expr
+  /* Example: [1 .. 2] splitby ... */
+  sealed abstract class ExprSplitter extends Expr
+  /* Example: [1 .. 2] splitby 5 */
+  case class ExprSplitterN(i: Expr, n: Expr) extends ExprSplitter
+  /* Example: [1 .. 2] splitby (1,2,1) */
+  case class ExprSplitterWeights(i: Expr, ws: List[Expr]) extends ExprSplitter
+  /* Example: [0 .. 4] splitby (0 .. 1 ++ 2 .. 3 ++ 4) */
+  case class ExprSplitterPoints(ps: List[Expr], keeps: List[Expr]) extends ExprSplitter
+  /** s must be an ExprSplitter */
+  case class ExprSplitInterval(i: Expr, s: Expr) extends Expr
+  /* Distribtuion splitters */
+  abstract sealed class ExprSplitterDistribution extends Expr
+  /* Example: normald(0,1) central 75 splitby 10 */
+  case class ExprSplitterNormal(mu: Expr, sigmaSquared: Expr, central: Expr, n: Expr) extends ExprSplitterDistribution
+  /* Example: uniformd(0,1) splitby 5 */
+  case class ExprSplitterUniform(lo: Expr, hi: Expr, central: Expr, n: Expr) extends ExprSplitterDistribution
+  /* Example: betad(0,1,2,5) splitby 10 */
+  case class ExprSplitterBeta(lo: Expr, hi: Expr, a: Expr, b: Expr, central: Expr, n: Expr) extends ExprSplitterDistribution
   /* Example: let x=1+2;y=2+3 in x+y end */
   case class ExprLet(bindings:List[(Name,Expr)], e2:Expr) extends Expr
   case class Pattern(ps:List[Expr]) extends Expr
@@ -454,9 +472,32 @@ package acumen {
   case class AExprInterval[A](lo: AExpr[A], hi: AExpr[A], val an: A) extends AExpr[A] with AExprWithPos[A] {
     def expr = ExprInterval(lo.expr, hi.expr).setPos(this.pos) 
      }
-  case class AExprIntervalM[A](mid: AExpr[A], pm: AExpr[A], val an: A) extends AExpr[A] with AExprWithPos[A]{
+  case class AExprIntervalM[A](mid: AExpr[A], pm: AExpr[A], val an: A) extends AExpr[A] with AExprWithPos[A] {
     def expr = ExprInterval(mid.expr, pm.expr).setPos(this.pos) 
      }
+  abstract sealed class AExprSplitter[A] extends AExpr[A] with AExprWithPos[A] 
+  case class AExprSplitterN[A](i: AExpr[A], n: AExpr[A], val an: A) extends AExprSplitter[A] {
+    def expr = ExprSplitterN(i.expr, n.expr).setPos(this.pos)
+  }
+  case class AExprSplitterWeights[A](i: AExpr[A], ws: List[AExpr[A]], val an: A) extends AExprSplitter[A] {
+    def expr = ExprSplitterWeights(i.expr, ws map (_.expr)).setPos(this.pos)
+  }
+  case class AExprSplitterPoints[A](ps: List[AExpr[A]], keeps: List[AExpr[A]], val an: A) extends AExprSplitter[A] {
+    def expr = ExprSplitterPoints(ps map (_.expr), keeps map (_.expr)).setPos(this.pos)
+  }
+  case class AExprSplitInterval[A](i: AExpr[A], s: AExpr[A], val an: A) extends AExpr[A] with AExprWithPos[A] {
+    def expr = ExprSplitInterval(i.expr, s.expr).setPos(this.pos)
+  }
+  abstract sealed class AExprSplitterDistribution[A] extends AExpr[A] with AExprWithPos[A] 
+  case class AExprSplitterNormal[A](mu: AExpr[A], sigmaSquared: AExpr[A], central: AExpr[A], n: AExpr[A], val an: A) extends AExprSplitterDistribution[A] {
+    def expr = ExprSplitterNormal(mu.expr, sigmaSquared.expr, central.expr, n.expr).setPos(this.pos)
+  }
+  case class AExprSplitterUniform[A](lo: AExpr[A], hi: AExpr[A], central: AExpr[A], n: AExpr[A], val an: A) extends AExprSplitterDistribution[A] {
+    def expr = ExprSplitterUniform(lo.expr, hi.expr, central.expr, n.expr).setPos(this.pos)
+  }
+  case class AExprSplitterBeta[A](lo: AExpr[A], hi: AExpr[A], a: AExpr[A], b: AExpr[A], central: AExpr[A], n: AExpr[A], val an: A) extends AExprSplitterDistribution[A] {
+    def expr = ExprSplitterBeta(lo.expr, hi.expr, a.expr, b.expr, central.expr, n.expr).setPos(this.pos)
+  }
   case class AExprLet[A](bindings: List[(AVar[A], AExpr[A])], e2: AExpr[A], val an: A) extends AExpr[A] with AExprWithPos[A]{
     def expr = ExprLet(bindings.map(x => (x._1.name, x._2.expr)), e2.expr).setPos(this.pos) 
     }
@@ -621,6 +662,40 @@ package acumen {
       case DynamicClass => "DynamicClass"
       case NamedClass(cn) => cn.x
     }
+  }
+  
+  /** Tag gives informations about the Store to which it is attached and is supposed to be a unique identifier for it.
+    * It tells which values from a split have been kept (additional information can be added to this class)
+    * CId + Name: Identify the interval which has been split
+    * 1st Int: Identify the subinterval (or subpoint) kept to build the Store
+    * 2nd Int: Number of split done on the corresponding value
+    * Interval: Bounds the probability of the corresponding subinterval resulting from the split
+    */
+  case class Tag(tag: List[((CId, Name, Int, Int), Option[Interval])]) {
+    require(tag.forall(_._2.isEmpty) || tag.forall(Interval(0, 1) contains _._2.get),
+      "Probabilities must all be between 0 and 1 are all be undefined")
+    def pretty = {
+      val body =
+        if (tag.isEmpty) ""
+        else tag.map { case ((id, Name(x, p), i1, i2), _) => x + "'" * p + ":" + i1 + "/" + i2 }.mkString(", ")
+      val proba = if (p.nonEmpty) ", p=[%.2f..%.2f]".format(p.get.loDouble, p.get.hiDouble) else ""
+      "(" + body + proba + ")"
+    }
+    override def toString = {
+      val body = if(tag.nonEmpty)
+                    tag.map{case ((_, n, i1, i2), _) => "(" + n.x + ", " + n.primes + "), " + i1 + "/" + i2 }.mkString(", ")
+                 else "root"
+      val proba = if (p.nonEmpty) ", p=[%.2f..%.2f]".format(p.get.loDouble, p.get.hiDouble) else ""
+      "Tag(" + body + proba+ ")"
+    }
+    // The probability of the whole Store is the produce of the probabilities of each subStore
+    lazy val p: Option[Interval] = if (tag.isEmpty || tag.exists(_._2.isEmpty)) None else tag.unzip._2. reduce ((l, r) => Some(l.get * r.get))
+    // The default probability of a subinterval is the most uncertain possible
+    def ::(id: (CId, Name, Int, Int), p: Option[Interval] = None) = Tag((id, p)::tag)
+    def ::(t: Tag) = Tag(t.tag ::: tag)
+  }
+  object Tag {
+    def root = Tag(List.empty)
   }
 
 }

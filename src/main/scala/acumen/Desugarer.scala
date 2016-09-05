@@ -157,8 +157,18 @@ case class Desugarer(odeTransformMode: ODETransformMode) {
       case TypeOf(cn) =>
         if ((p.defs map (_.name)) contains cn) TypeOf(cn)
         else throw ClassNotDefined(cn).setPos(e.pos)
-      case i @ ExprInterval(_, _) => i
-      case i @ ExprIntervalM(_, _) => i
+      case ExprInterval(l, h) => ExprInterval(des(l), des(h))
+      case ExprIntervalM(m, pm) => ExprIntervalM(des(m), des(pm))
+      case ExprSplitterN(i, n) => ExprSplitterN(des(i), des(n)) 
+      case ExprSplitterWeights(i, ws) => ExprSplitterWeights(des(i), ws map des)
+      case ExprSplitterPoints(ps, keeps) => ExprSplitterPoints(ps map des, keeps map des)
+      case ExprSplitInterval(i, s) => ExprSplitInterval(des(i), des(s))
+      case ExprSplitterNormal(mu, sigmaSquared, central, n) => 
+        ExprSplitterNormal(des(mu), des(sigmaSquared), des(central), des(n))
+      case ExprSplitterUniform(lo, hi, central, n) => 
+        ExprSplitterUniform(des(lo), des(hi), des(central), des(n))
+      case ExprSplitterBeta(lo, hi, a, b, central, n) => 
+        ExprSplitterBeta(des(lo), des(hi), des(a), des(b), des(central), des(n))
     }).setPos(e.pos)
   }
 

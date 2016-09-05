@@ -6,7 +6,7 @@ import scala.collection.immutable._
 import java.awt.Color
 
 sealed abstract class Plottable(val simulator: Boolean, 
-                                val fn: Name,  // fixme: rename
+                                val key: ResultKey,
                                 val startFrame: Int, // fixme: rename to offset?
                                 val column: Int, /* column in trace table */
                                 val palette: Palette = Palette() )
@@ -16,19 +16,19 @@ sealed abstract class Plottable(val simulator: Boolean,
 
 case class Palette(val value: Color = Color.red, val yAxis: Color = Color.blue, val boundingBox: Color = Color.white)
 
-class PlotDoubles(simulator: Boolean, fn: Name, startFrame: Int, column: Int,
-                  val v: IndexedSeq[Double]) extends Plottable(simulator,fn,startFrame,column)
+class PlotDoubles(simulator: Boolean, key: ResultKey, startFrame: Int, column: Int,
+                  val v: IndexedSeq[Double]) extends Plottable(simulator,key,startFrame,column)
 {
   override def values : IndexedSeq[Double] = v;
 }
-class PlotDiscrete(simulator: Boolean, fn: Name, startFrame: Int, column: Int,
-                   val v: IndexedSeq[GValue]) extends Plottable(simulator,fn,startFrame,column,Palette(yAxis = Color.white))
+class PlotDiscrete(simulator: Boolean, key: ResultKey, startFrame: Int, column: Int,
+                   val v: IndexedSeq[GValue]) extends Plottable(simulator,key,startFrame,column,Palette(yAxis = Color.white))
 {
   override def values = v;
 }
 case class Enclosure(loLeft:Double, hiLeft:Double, loRight:Double, hiRight:Double)
-class PlotEnclosure(simulator: Boolean, fn: Name, startFrame: Int, column: Int,
-                    val v: IndexedSeq[Enclosure]) extends Plottable(simulator,fn,startFrame,column)
+class PlotEnclosure(simulator: Boolean, key: ResultKey, startFrame: Int, column: Int,
+                    val v: IndexedSeq[Enclosure]) extends Plottable(simulator,key,startFrame,column)
 {
   override def values : IndexedSeq[Enclosure] = v;
 }
@@ -40,15 +40,42 @@ case class PlotParms(plotSimulator: Boolean = false,
 		     plotSeeds: Boolean = false)
 
 trait PlotModel {
-  def getRowCount() : Int
+  //There is two versions for each accessor :
+  //  - The first with a tag is the one which respect the data structure
+  //  - The second without a tag acces the set of stores as id they were concatenated next to each other to form an only Store
+  def getRowCount : Int
+  def getRowCount(t: Tag) : Int
   def getValueAt(row:Int, column:Int) : String
+  def getValueAt(t: Tag, row:Int, column:Int) : String
   def getPlotTitle(col:Int) : String
+  def getPlotTitle(t: Tag, col:Int) : String
   def getDoubleAt(row:Int, column:Int): Option[Double]
-  def isEmpty(): Boolean
-  // getTimes() is expected to have one more element than the data
-  // that is being plotted when the plottables are enclosures
-  def getTimes(): IndexedSeq[Double] 
-  def getPlottables(parms: PlotParms): Iterable[Plottable]
+  def getDoubleAt(t: Tag, row:Int, column:Int): Option[Double]
+  def getBoundingAt(row:Int, column:Int) = {
+    getDoubleAt(row, column) match {
+      case Some(v) => Some(v, v)
+      case None => None
+    }
+  }
+  def getBoundingAt(t: Tag, row:Int, column:Int) = {
+    getDoubleAt(t, row, column) match {
+      case Some(v) => Some(v, v)
+      case None => None
+    }
+  }
+  def isEmpty: Boolean
+  def isEmpty(t: Tag): Boolean
+  def getTags: Set[Tag]
+  def getDeadTags: Set[Tag]
+  /** The time accessor needs a tag to work because there is no unified time.
+    * getTimes() is expected to have one more element than the data
+    * that is being plotted when the plottables are enclosures */
+  def getTimes(t: Tag): IndexedSeq[Double]
+  /* The optional set of tags allows to select the plottables to be displayed */
+  def getPlottables(parms: PlotParms, tags: Set[Tag] = Set.empty): Iterable[Plottable]
+  def getProba: Option[ProbaData]
+  // FIXME Not a good place for a writing accessor.
+  def setProba(pd: Option[ProbaData]): Unit
 }
 
 // Follows the same guidelines as the PlotModel
@@ -66,7 +93,7 @@ trait InterpreterModel
   // Should use any necessary locks to prevent problems if
   // getPlotModel or getTraceModel is called at the same time by a
   // different thread.
-  def addData(d: TraceData): Unit
+  def addData(t: Tag, deadTag: Boolean, d: TraceData): Unit
 
   // Returns an updated plot model for plotting, the object returned
   // should be considered immutable.
