@@ -5,13 +5,15 @@ import scala.util.parsing.combinator.lexical.{Scanners,StdLexical}
 import scala.util.parsing.combinator.syntactical.StdTokenParsers
 import scala.util.parsing.input.CharArrayReader.EofCh
 import scala.util.parsing.combinator.token.StdTokens
-import scala.collection.immutable.HashMap
+import scala.collection.immutable.{HashMap,PagedSeq}
 import scala.util.parsing.input.Position
 import java.io.File
 import java.io.BufferedReader
-import scala.collection.immutable.PagedSeq
+
+import org.apache.commons.math3.distribution.NormalDistribution
 
 import Errors._
+import interpreters.enclosure.{NormalDistribution, UniformDistribution, SplitterDistribution}
 
 /* enhance StdLexical with some more tokens (doubles) */
 class MyLexical extends StdLexical {
@@ -141,12 +143,13 @@ object Parser extends MyStdTokenParsers {
     List("(", ")", "{", "}", "[", "]", ";", "=", ":=", "=[i]", "=[t]", "'", ","," ",
       ".", "?", "+", "-", "*", "/", "^", ".+", ".-", ".*", "./", ".^",
       ":", "<", ">", "<=", ">=", "<>", "||","->","==",
-      "&&", "<<", ">>", "&", "|", "%", "@", "..", "+/-", "#include", "#semantics")
+      "&&", "<<", ">>", "&", "|", "%", "@", "..", "++", "+/-", "#include", "#semantics")
 
   lexical.reserved ++=
     List("foreach", "end", "if", "else","elseif", "create", "move", "in", "terminate", "model","then","initially","always",
          "sum", "true", "false", "init", "match","with", "case", "claim", "hypothesis", "let","noelse", "typeOf",
-         "Initial", "Continuous", "Discrete", "FixedPoint", "none","cross","do","dot","for","_3D","zeros","ones", "_plot")
+         "Initial", "Continuous", "Discrete", "FixedPoint", "none","cross","do","dot","for","_3D","zeros","ones", "_plot",
+         "splitby", "central", "normald", "uniformd", "betad")
 
   /* token conversion */
 
@@ -439,7 +442,7 @@ object Parser extends MyStdTokenParsers {
       | difExpr
       | dif   
       | parens(expr)
-      | interval
+      | intervals
       |"typeOf" ~! parens(className) ^^ { case _ ~ cn => TypeOf(cn) }
       | name >> { n => args(expr) ^^ { es => Op(n, es) } | success(Var(n)) }
       | vectorConstruct
@@ -502,9 +505,54 @@ object Parser extends MyStdTokenParsers {
     
   def bs: Parser[(Name, Expr)] = name ~ "<-" ~ expr ^^ {case n ~ _ ~ e => (n,e)}
  
+  def intervals = splitIntervaln | splitIntervalWeights | splitIntervalUnion | interval | splitIntervalPoints | distribution
+
   def interval: Parser[Expr] =
-//    nlit ~ ".." ~ nlit ^^ { case lo ~ ".." ~ hi => ExprInterval(lo,hi) }
       "[" ~> nlit ~ ".." ~ nlit <~ "]" ^^ { case lo ~ ".." ~ hi => ExprInterval(lo,hi) }
+
+  def splitIntervaln: Parser[Expr] =
+    interval ~ "splitby" ~ gint ^^
+        { case i ~ "splitby" ~ n => ExprSplitInterval(i, ExprSplitterN(i, Lit(n)))}
+  def splitIntervalWeights: Parser[Expr] =
+    interval ~ "splitby" ~  parens(rep1sep(nlit, ",")) ^^
+        { case i ~ "splitby" ~ ws => ExprSplitInterval(i, ExprSplitterWeights(i, ws))}
+  def splitIntervalPoints: Parser[Expr] =
+    "[" ~> nlit ~ rep((".." | "++") ~ nlit) <~ "]" ^^
+      {case lb ~ ps =>
+        val (points, keeps) = ((lb, true) :: (if(ps.isEmpty) List((lb, true)) else ps.take(ps.size) map {
+          case ".." ~ p => (p, true)
+          case "++" ~ p => (p, false)
+        })).unzip
+        ExprSplitInterval(ExprInterval(lb, if(ps.isEmpty) lb else ps.last match {case str ~ ub => ub}),
+                          ExprSplitterPoints(points, keeps.tail map (k => Lit(GBool(k)))))
+      }
+  def splitIntervalUnion: Parser[Expr] =
+    rep2sep(splitIntervalPoints, "++") ^^ (_ reduce { (l: Expr, r: Expr) => (l, r) match {
+      case (ExprSplitInterval(ExprInterval(lol, hil), ExprSplitterPoints(psl, kl)),
+      ExprSplitInterval(ExprInterval(lod, hid), ExprSplitterPoints(psd, kr))) =>
+        //Expression validity will be checked at evaluation
+        ExprSplitInterval(ExprInterval(lol, hid), ExprSplitterPoints(psl ::: psd, kl ::: List(Lit(GBool(false))) ::: kr))
+    }})
+
+  def distribution = splitIntervalNormal | splitIntervalUniform | splitIntervalBeta
+  def splitIntervalNormal: Parser[Expr] =
+    "normald" ~ "(" ~ nlit ~ "," ~ nlit ~ ")" ~ "central" ~ nlit ~ "splitby" ~ gint ^^ {
+      case  "normald" ~ "(" ~ m ~ "," ~ s ~ ")" ~ "central" ~ p ~ "splitby" ~ n =>
+          ExprSplitterNormal(m, s, p, Lit(n))
+    }
+
+  def splitIntervalUniform: Parser[Expr] =
+    "uniformd" ~ "(" ~ nlit ~ "," ~ nlit ~ ")" ~ opt("central" ~ nlit) ~ "splitby" ~ gint ^^ {
+      case "uniformd" ~ "(" ~ lo ~ "," ~ hi ~ ")" ~ p ~ "splitby" ~ n =>
+        if(p.isEmpty) ExprSplitterUniform(lo, hi, Lit(GDouble(1)), Lit(n))
+        else ExprSplitterUniform(lo, hi, p.get._2, Lit(n))
+    }
+  def splitIntervalBeta: Parser[Expr] =
+    "betad" ~ "(" ~ nlit ~ "," ~ nlit ~ "," ~ nlit ~ "," ~ nlit ~ ")" ~ opt("central" ~ nlit) ~ "splitby" ~ gint ^^ {
+      case "betad" ~ "(" ~ lo ~ "," ~ hi ~ "," ~ a ~ "," ~ b ~ ")" ~ p ~ "splitby" ~ n =>
+        if(p.isEmpty) ExprSplitterBeta(lo, hi, a, b, Lit(GDouble(1)), Lit(n))
+        else ExprSplitterBeta(lo, hi, a, b, p.get._2, Lit(n))
+    }
 
   def lit = positioned((gint | gfloat | gstr) ^^ Lit)
 

@@ -195,7 +195,7 @@ abstract class JFreePlotter {
 
   def renderer(color: Color) : XYItemRenderer
 
-  def addToPlot(d: Object) : Unit
+  def addToPlot(t: Tag, d: Object) : Unit
 
   def convertToPDF(width: Int, height: Int, filename: String) { // NRL: Non BSD. Dep
     ToPDF.JFreeChartToPDF(chart, width, height, filename)   // NRL

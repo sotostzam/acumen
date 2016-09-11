@@ -43,7 +43,7 @@ class ImperativeInterpreter extends CStoreInterpreter {
    /* Identity lift function */
   def identLift(p:Prog) = p 
   def lift = identLift
-  def init(prog: Prog): (Prog, Store, Metadata) = {
+  def init(prog: Prog): (Prog, SuperStore, Map[Tag, Metadata]) = {
     val magic = fromCStore(initStoreInterpreter(initStep = initStepType, initTimeStep = timeStep, initOutputRows = outputRows, isImperative = true), CId(0))
     /* WARNING: the following line works because there is no children access check
        if one of the instructions of the provate section tries to access magic,
@@ -55,7 +55,7 @@ class ImperativeInterpreter extends CStoreInterpreter {
     val cprog = CleanParameters.run(prog, CStoreInterpreterType)
     val sprog = Simplifier.run(cprog)
     val mprog = Prog(magicClass :: deviceClass :: sprog.defs)
-    (mprog , mainObj, NoMetadata)
+    (mprog , Map((Tag.root, mainObj)), Map((Tag.root, NoMetadata)))
   }
 
   def localStep(p: Prog, st: Store): ResultType = {
@@ -94,13 +94,13 @@ class ImperativeInterpreter extends CStoreInterpreter {
 
   def step(p: Prog, st: Store, md: Metadata): StepRes = {
     val res = localStep(p, st)
-    if (res == null) Done(NoMetadata, Double.NaN)
-    else Data(st, NoMetadata)
+    if (res == null) Done(Map((Tag.root, NoMetadata)), Double.NaN)
+    else Data(Map((Tag.root, st)), Map((Tag.root, NoMetadata)))
   }
 
   // always returns the last known step, the adder callback is used to
   // determine when teh simulation is done
-  override def multiStep(p: Prog, st: Store, md: Metadata, adder: DataAdder): (Store, Metadata, Double) = {
+  override def multiStep(p: Prog, st: Store, md: Metadata, adder: DataAdder, baseTag: Tag): Map[Tag, (Store, Metadata, Double)] = {
     val magic = getSimulator(st)
     var shouldAddData = ShouldAddData.IfLast
     // ^^ set to IfLast on purpose to make things work
@@ -109,26 +109,26 @@ class ImperativeInterpreter extends CStoreInterpreter {
       stepInit
       if (res == null) {
         if (shouldAddData == ShouldAddData.IfLast)
-          addData(st, adder)
+          addData(st, adder, baseTag)
         adder.noMoreData()
       } else {
         shouldAddData = adder.newStep(res)
         if (shouldAddData == ShouldAddData.Yes)
-          addData(st, adder)
+          addData(st, adder, baseTag)
         if (adder.continue)
           step0()
       }
     }
     step0()
-    (st, NoMetadata, Double.NaN)
+    Map((Tag.root, (st, NoMetadata, Double.NaN)))
   }
 
-  def addData(st: Store, adder: DataAdder) : Unit = {
+  override def addData(st: Store, adder: DataAdder, tag: Tag = Tag.root) : Unit = {
     // Note: Conversion to a CStore just to add the data is certainly
     // not the most efficient way to go about things, but for now it
     // will do. --kevina
-    adder.addData(st.id, st.fields)
-    st.children.foreach { child => addData(child, adder) }
+    adder.addData(st.id, st.fields, tag)
+    st.children.foreach { child => addData(child, adder, tag) }
   }
 
   def stepInit : Unit = {}

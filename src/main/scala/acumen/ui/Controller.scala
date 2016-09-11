@@ -132,11 +132,11 @@ class Controller extends DaemonActor {
         //
         // messages from Producer
         //
-        case IC.Chunk(d) if sender == producer =>
+        case IC.Chunk((t, dead), d) if sender == producer =>
           if (newState == Resuming) producer ! IC.GoOn
-          if (d != null) flush(d)
+          if (d != null) flush(t, dead, d)
           setState(newState)
-        case IC.Chunk(d) => // ignore chunks from supposedly dead producers
+        case IC.Chunk(_, _) => // ignore chunks from supposedly dead producers
         case IC.Done(msgs, md, endTime) =>
           App.ui.modelFinished = true
           setState(Stopped)
@@ -158,10 +158,10 @@ class Controller extends DaemonActor {
   //  am I still handling the saturation correctly, especially with
   //  the 3D code
   var n = 0
-  def flush(d: TraceData) : Unit = {
+  def flush(t: Tag, dead: Boolean, d: TraceData) : Unit = {
     if (d.isEmpty)
       return
-    model.addData(d)
+    model.addData(t, dead, d)
     // FIXME: This is still sick
     App.ui.plotView.plotPanel.plotter ! plot.Refresh
       

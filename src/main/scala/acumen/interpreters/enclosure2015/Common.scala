@@ -39,6 +39,12 @@ object Common {
   val BranchMergingEvolution = "Evolution"
   val allBranchMergingStrategies = (BranchMergingOff, BranchMergingEvolution)
   
+  /* Interval splitting strategy */
+
+  val splitOff = "Off"
+  val splitInitial = "Initial"
+  val allSplittingStrategies = (splitOff, splitInitial)
+
   /** Parameter carrier
    *  Note: Defaults are set here.  
    */
@@ -55,10 +61,14 @@ object Common {
                        , maxPicardIterations           : Int                    = 1000 
                        , maxBranches                   : Int                    = 500 
                        , maxIterationsPerBranch        : Int                    = 1000 
-                       , mergeBranches                 : List[String]           = List("Evolution") 
+                       , mergeBranches                 : List[String]           = List("Evolution")
+                       , userSplit                     : List[String]           = List("Initial")
                        , intersectWithGuardBeforeReset : Boolean                = true 
                        , disableContraction            : Boolean                = false 
                        , hypothesisReport              : String                 = "Comprehensive"
+                       , plotEnabled                   : Boolean                = true
+                       , plotOnly                      : Boolean                = false
+                       , deadStore                     : Boolean                = false
                        )
   object Parameters {
 
@@ -74,11 +84,15 @@ object Common {
       val orderOfIntegration            = "orderOfIntegration"           
       val maxPicardIterations           = "maxPicardIterations"          
       val maxBranches                   = "maxBranches"                  
+      val userSplit                     = "userSplit"
       val maxIterationsPerBranch        = "maxIterationsPerBranch"       
       val mergeBranches                 = "mergeBranches"                
       val intersectWithGuardBeforeReset = "intersectWithGuardBeforeReset"
       val disableContraction            = "disableContraction"           
       val hypothesisReport              = "hypothesisReport"             
+      val plotEnabled                   = "plotEnabled"
+      val plotOnly                      = "plotOnly"
+      val deadStore                     = "deadStore"
     }
     
     /** Name -> (User-visible?, Default Value) */
@@ -98,9 +112,13 @@ object Common {
          , maxBranches                   -> (true, VLit(GInt(p.maxBranches)))
          , maxIterationsPerBranch        -> (true, VLit(GInt(p.maxIterationsPerBranch)))
          , mergeBranches                 -> (true, VVector(p.mergeBranches.map(s => VLit(GStr(s)))))
+         , userSplit                     -> (true, VVector(p.userSplit.map(s => VLit(GStr(s)))))
          , intersectWithGuardBeforeReset -> (true, VLit(GBool(p.intersectWithGuardBeforeReset)))
          , disableContraction            -> (true, VLit(GBool(p.disableContraction)))
          , hypothesisReport              -> (true, VLit(GStr(p.hypothesisReport)))
+         , plotEnabled                   -> (true, VLit(GBool(p.plotEnabled)))
+         , plotOnly                      -> (true, VLit(GBool(p.plotOnly)))
+         , deadStore                     -> (true, VLit(GBool(p.deadStore)))
          )
     }
     
@@ -149,9 +167,17 @@ object Common {
         case VLit(GPattern(List(GStr(strategy)))) => List(strategy)
         case VVector(strategies)                  => strategies map extractString
       }
+      val            splitIntervals                  = getInSimulator(Names.userSplit, st) match {
+        case VLit(GStr(strategy))                 => List(strategy)
+        case VLit(GPattern(List(GStr(strategy)))) => List(strategy)
+        case VVector(strategies)                  => strategies map extractString
+      }
       val VLit(GBool(intersectWithGuardBeforeReset)) = getInSimulator(Names.intersectWithGuardBeforeReset, st)
       val VLit(GBool(disableContraction))            = getInSimulator(Names.disableContraction, st)
       val VLit(GStr (hypothesisReport))              = getInSimulator(Names.hypothesisReport, st)
+      val VLit(GBool(plotEnabled))                   = getInSimulator(Names.plotEnabled, st)
+      val VLit(GBool(plotOnly))                      = getInSimulator(Names.plotOnly, st)
+      val VLit(GBool(deadStore))                     = getInSimulator(Names.deadStore, st)
       Parameters( time                          = time                         
                 , endTime                       = endTime                      
                 , timeStep                      = timeStep                     
@@ -164,10 +190,14 @@ object Common {
                 , maxPicardIterations           = maxPicardIterations          
                 , maxBranches                   = maxBranches                  
                 , maxIterationsPerBranch        = maxIterationsPerBranch       
+                , userSplit                     = splitIntervals
                 , mergeBranches                 = mergeBranches                
                 , intersectWithGuardBeforeReset = intersectWithGuardBeforeReset
                 , disableContraction            = disableContraction           
                 , hypothesisReport              = hypothesisReport             
+                , plotEnabled                   = plotEnabled
+                , plotOnly                      = plotOnly
+                , deadStore                     = deadStore
                 )                                           
     }
   }

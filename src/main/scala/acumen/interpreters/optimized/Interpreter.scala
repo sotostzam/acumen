@@ -52,7 +52,7 @@ class Interpreter(val parDiscr: Boolean = true,
   override def visibleParameters = visibleParametersMap(initStore) + ("method" -> VLit(GStr(RungeKutta))) + ("orderOfIntegration" -> VLit(GInt(4)))
   
   def lift = identLift
-  def init(prog: Prog): (Prog, Store, Metadata) = {
+  def init(prog: Prog): (Prog, SuperStore, Map[Tag, Metadata]) = {
     checkContinuousAssignmentToSimulator(prog)
     val magic = fromCStore(initStore, CId(0))
     val cprog = CleanParameters.run(prog, CStoreInterpreterType)
@@ -61,7 +61,7 @@ class Interpreter(val parDiscr: Boolean = true,
     val mainObj = mkObj(cmain, sprog, IsMain, sd1, List(VObjId(Some(magic))), magic, 1)
     magic.seed = sd2
     val mprog = Prog(magicClass :: sprog.defs)
-    (mprog , mainObj, NoMetadata)
+    (mprog , Map((Tag.root, mainObj)), Map((Tag.root, NoMetadata)))
   }
 
   def localStep(p: Prog, st: Store): ResultType = {
@@ -162,13 +162,13 @@ class Interpreter(val parDiscr: Boolean = true,
   def step(p: Prog, st: Store, md: Metadata): StepRes = {
     setMetadata(st, md)
     val res = localStep(p, st)
-    if (res == null) Done(md, getEndTime(getSimulator(st)))
-    else Data(st,getMetadata(st))
+    if (res == null) Done(Map((Tag.root, md)), getEndTime(getSimulator(st)))
+    else Data(Map((Tag.root, st)),Map((Tag.root, getMetadata(st))))
   }
 
   // always returns the last known step, the adder callback is used to
   // determine when teh simulation is done
-  override def multiStep(p: Prog, st: Store, md: Metadata, adder: DataAdder): (Store, Metadata, Double) = {
+  override def multiStep(p: Prog, st: Store, md: Metadata, adder: DataAdder, baseTag: Tag): Map[Tag, (Store, Metadata, Double)] = {
     setMetadata(st, md)
     var shouldAddData = ShouldAddData.No
     var endTime = Double.NaN
@@ -176,27 +176,27 @@ class Interpreter(val parDiscr: Boolean = true,
       val res = localStep(p, st)
       if (res == null) {
         if (adder.addLast)
-          addData(st, adder)
+          addData(st, adder, baseTag)
         adder.noMoreData()
         endTime = getEndTime(getSimulator(st))
       } else {
         shouldAddData = adder.newStep(res)
         if (shouldAddData == ShouldAddData.Yes)
-          addData(st, adder)
+          addData(st, adder, baseTag)
         if (adder.continue)
           step0()
       }
     }
     step0()
-    (st, getMetadata(st), endTime)
+    Map((Tag.root, (st, getMetadata(st), endTime)))
   }
 
-  def addData(st: Store, adder: DataAdder) : Unit = {
+  override def addData(st: Store, adder: DataAdder, tag: Tag = Tag.root) : Unit = {
     // Note: Conversion to a CStore just to add the data is certainly
     // not the most efficient way to go about things, but for now it
     // will do. --kevina
-    adder.addData(st.id, st.fieldsCur)
-    st.children.foreach { child => addData(child, adder) }
+    adder.addData(st.id, st.fieldsCur, tag)
+    st.children.foreach { child => addData(child, adder, tag) }
   }
 }
 

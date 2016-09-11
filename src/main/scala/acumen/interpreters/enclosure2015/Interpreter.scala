@@ -3,10 +3,13 @@ package interpreters
 package enclosure2015
 
 import scala.annotation.tailrec
-import scala.Stream._
 import scala.collection.immutable.{
   HashMap, MapProxy
 }
+import scala.reflect.runtime.universe.typeTag
+import scala.Stream._
+import scala.util.parsing.input.Position
+import net.java.jinterval.rational.DomainException
 import util.ASTUtil.{
   dots, checkContinuousAssignmentToSimulator, checkNestedHypotheses, op, substitute
 }
@@ -23,18 +26,16 @@ import util.Conversions.{
   extractDouble, extractDoubles, extractId, extractInterval, extractIntervals
 }
 import enclosure.{
-  Box, Constant, Contract, Expression, Field, Interval, Rounding,
+  Box, Constant, Contract, Expression, Field, Interval, Rounding, Transcendentals,
+  IntervalSplitter, SplitInterval,
   Abs, Sin, Cos, Tan, ACos, ASin, ATan, Exp, Log, Log10, Sqrt, 
   Cbrt, Ceil, Floor, Sinh, Cosh, Tanh, Signum, Plus, Negate, 
   Multiply, Pow, Divide, ATan2, Min, Max
 }
-import acumen.interpreters.enclosure.Transcendentals
-import acumen.interpreters.enclosure.ivp.{
+import enclosure.{Parameters => _}
+import enclosure.ivp.{
   LohnerSolver, PicardSolver
 }
-import scala.util.parsing.input.Position
-import scala.reflect.runtime.universe.typeTag
-import acumen.interpreters.enclosure.Interval
 
 /**
  * Reference implementation of direct enclosure semantics.
@@ -590,7 +591,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
   
   /* Main simulation loop */  
 
-  def init(prog: Prog) : (Prog, Store, Metadata) = {
+  def init(prog: Prog) : (Prog, SuperStore, Map[Tag, Metadata]) = {
     prog.defs.foreach(d => checkValidAssignments(d.body))
     checkNestedHypotheses(prog)
     checkContinuousAssignmentToSimulator(prog)
@@ -614,8 +615,36 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
     }}
     val st2E = fromCStore(st2.cStore)
     val st2U = updateSimulator(mprog, st2E)
-    val md = testHypotheses(st2U.enclosure, 0, 0, mprog, NoMetadata)
-    (mprog, st2U, md)
+    val st2S = splitIntervalsEnclosure(st2U)(Common.Parameters(st2U.enclosure.cStore, Some(prog)))
+    val mds = st2S mapValues (st => testHypotheses(st.enclosure, 0, 0, mprog, NoMetadata))
+    (mprog, st2S, mds)
+  }
+
+  /** Split the intervals in a CStore */
+  def splitIntervalsEnclosure(st: Store)(implicit parameters: Parameters): SuperStore = {
+    //Find intervals in a CStore and produce a list of updates to apply
+    def findIntervals(cs: CStore): List[((CId, Name), IntervalSplitter)] = {
+      //return the interval in the object field "fields"
+      (cs flatMap { case (id, o) => o flatMap {
+        case (n, VLit(GConstantRealEnclosure(SplitInterval(_, is)))) => Some((id, n), is)
+        //Shouldn't happen, would lead to an interpreter error
+        case _ => None
+      }
+      }).toList
+    }
+
+    parameters.userSplit.foldLeft(Map(Tag.root -> st)) {
+      case (res, `splitInitial`) =>
+        //Build the list of updates
+        val updates = findIntervals(repr(st))
+        //Apply each update to every Object resulting from the previous updates
+        updates.foldLeft(Map(Tag.root -> repr(st))) { case (res, ((id, n), is)) =>
+          for ((tag, st) <- res; ((i, p), idx) <- is.subIntervals.zipWithIndex) yield
+            tag.::((id, n, idx, is.subIntervals.size - 1), p) -> st.updated(id, st(id) updated(n, VLit(GConstantRealEnclosure(i))))
+        } mapValues fromCStore
+      case (res, `splitOff`) => res
+      case (_, e) => throw new InvalidIntervalSplittingStrategy(e)
+    }
   }
   
   def lift = liftToUncertain
@@ -645,10 +674,10 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
   def applyAssignments(xs: List[(CId, Dot, CValue)], st: Enclosure): Enclosure =
     xs.foldLeft(st)((stTmp, a: (CId, Dot, CValue)) => stTmp.setObjectField(a._1, a._2.field, a._3))
 
-  def step(p: Prog, st: Store, md: Metadata): StepRes = {
+  def step(p: Prog, st: Store, md: Metadata): StepRes = try {
     implicit val parameters = Common.Parameters(st.enclosure.cStore, Some(p))
     if (st.enclosure.getTime >= st.enclosure.getEndTime && st.enclosure.getResultType == FixedPoint) {
-      Done(md, st.enclosure.getEndTime)
+      Done(Map((Tag.root, md)), st.enclosure.getEndTime)
     }
     else {
       val tNow = st.enclosure.getTime
@@ -658,14 +687,18 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
         case FixedPoint =>
           (tNow + st.enclosure.getTimeStep, Continuous)
       }
+      // TODO: Implement dynamic splitting for this interpreter
       val (st1, tNextAdapted, tStepNext) = stepAdaptive(tNow, tNext, st.enclosure.getTimeStep, p, mergeBranchList(st.branches)) // valid enclosure over T
       val md1 = testHypotheses(st1.enclosure, tNow, tNextAdapted, p, md)
       val st2 = setResultType(resType, st1)
       val st3 = setTime(tNextAdapted, st2)
       val st4 = setTimeStep(tStepNext, st3)
       val md2 = testForFixpoint(st, st4, md1) 
-      Data(st4, md2)
+      Data(Map(Tag.root -> st4), Map(Tag.root -> md2))
     }
+  } catch {
+    //If this error occur, the Store is set dead and returned in its last state
+    case e: DomainException => Data(Map(Tag.root -> setInSimulator(deadStore, VLit(GBool(true)), st)), Map(Tag.root -> md))
   }
 
   def testForFixpoint(oldStore: EnclosureAndBranches, newStore: EnclosureAndBranches, md: Metadata): Metadata =

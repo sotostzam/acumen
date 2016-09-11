@@ -8,6 +8,8 @@ import util.Names._
 import ui.interpreter._
 import Pretty._
 import acumen.Errors._
+import acumen.interpreters.Common._
+import acumen.interpreters.enclosure.{IntervalSplitter, SplitInterval}
 import acumen.util.Conversions
 
 import scala.collection.mutable.ListBuffer
@@ -30,6 +32,7 @@ abstract class InterpreterRes {
 
 /** Interface common to all interpreters whose results can be converted to/from CStores. */
 trait CStoreInterpreter extends Interpreter {
+  type SuperStore = Map[Tag, Store]
   type Store
 
   override def newInterpreterModel = new CStoreModel(new CStoreOpts)
@@ -38,14 +41,57 @@ trait CStoreInterpreter extends Interpreter {
   def fromCStore (cs:CStore, root:CId) : Store
 
   /** Based on prog, creates the initial store that will be used to start the simulation. */
-  def init(prog:Prog) : (Prog, Store, Metadata)
+  def init(prog:Prog) : (Prog, SuperStore, Map[Tag, Metadata])
   
   /** Based on the current interpreter, prog will be lifted differently  */
   def lift ():Prog => Prog
+  
+  /** Split the intervals into points in a CStore */
+  def splitIntervals(cs: CStore): Map[Tag, CStore] = {
+    //Find intervals in a CStore and produce a list of updates to apply
+    def findIntervals(cs: CStore): List[((CId, Name), IntervalSplitter)] = {
+      //return the interval in the object field "fields"
+      (cs flatMap { case (id, o) => o flatMap {
+        case (n, VLit(GInterval(SplitInterval(_, is)))) => Some((id, n), is)
+        //Shouldn't happen, would lead to an interpreter error
+        case (n, VLit(GInterval(_))) => println("Basic intervals are prohibited in the optimized interpreter"); None
+        case _ => None
+      }
+      }).toList
+    }
+
+    //Build the list of updates
+    val updates = findIntervals(cs)
+    //Apply each update to every Object resulting from the previous updates
+    updates.foldLeft(Map(Tag.root -> cs)) { case (res, ((id, n), is)) =>
+      for ((tag, st) <- res; (p, i) <- is.subPoints.map(_.doubleValue()).zipWithIndex) yield
+        ((id, n, i, is.subPoints.size - 1) :: tag) -> st.updated(id, st(id) updated(n, VLit(GDouble(p))))
+    }
+  }
+  /* General splitting function which relies on the repr / fromCStore pseudo reciprocity
+   * It might by usefull to overload it to perform splitting elsewhere than at the init step or not to use points */
+  def splitIntervalsStore(st: Store): SuperStore = splitIntervals(repr(st)) mapValues (fromCStore(_, CId.nil))
+
+  //Should be overriden for better performance
+  /** Read the deadStore value in the simulator */
+  def isDead(cs: Store): Boolean = {
+    acumen.util.Conversions.extractBoolean(
+      acumen.util.Canonical.getInSimulator(Name("deadStore", 0), repr(cs)))
+  }
+
+  //FIXME: Should be replaced by an exception mechanism because NaN an Infinity are not considered as invalid value in Acumen
+  /** return true if an illegal value appear in the Store */
+  def containsIllegalValues(st: Store) = {
+    repr(st) exists { case(id, o) => o exists {
+      //case (n, VLit(GDouble(v))) => v.isNaN || v.isInfinity
+      case _ => false
+    }}
+  }
 
   sealed abstract class StepRes
-  case class Data(st: Store, md: Metadata) extends StepRes
-  case class Done(md: Metadata, endTime: Double) extends StepRes
+  case class Data(st: SuperStore, md: Map[Tag, Metadata]) extends StepRes
+  case class Done(md: Map[Tag, Metadata], endTime: Double) extends StepRes
+
   /**
    * Moves the simulation one step forward.  Returns Done at the end of the simulation.
    * NOTE: Performing a step does not necessarily imply that time moves forward.
@@ -56,35 +102,47 @@ trait CStoreInterpreter extends Interpreter {
    * Performs multiple steps. Driven by "adder"  
    * NOTE: May be overridden for better performance.
    */
-  def multiStep(p: Prog, st0: Store, md0: Metadata, adder: DataAdder) : (Store, Metadata, Double) = {
+  def multiStep(p: Prog, st0: Store, md0: Metadata, adder: DataAdder, baseTag: Tag) : Map[Tag, (Store, Metadata, Double)] = {
+    //The tags in the returned map are absolute (baseTag added before the return)
     var st = st0
     var md = md0
-    var cstore = repr(st0)
+    var cstores = Map(Tag.root -> repr(st0))
     /* - The Initial store is output on a higher level
-     * - The user set simulator parameters are evaluated 
+     * - The user set simulator parameters are evaluated
      *   in the first Discrete step that is output depending
-     *   on Common/initStoreTxt 
+     *   on Common/initStoreTxt
      * - Thereafter, the DataAdder decides what should be output */
     adder.shouldAddData = adder.initialShouldAddData
     while (true) {
       step(p, st, md) match {
-        case Data(resSt,resMd) => // If the simulation is not over
-          cstore = repr(resSt) 
-          adder.shouldAddData = adder.newStep(getResultType(cstore))
-          if (adder.shouldAddData == ShouldAddData.Yes)
-            cstore.foreach{case (id,obj) => adder.addData(id, obj)}
-          if (!adder.continue)
-            return (resSt,resMd,Double.NaN)
-          st = resSt
-          md = resMd
-        case Done(resMd,endTime) => // If the simulation is over
+        case Data(resSSt,resSMd) => // If the simulation is not over
+          cstores = resSSt map {case (t, st) => (t::baseTag) -> repr(st)}
+          val deadStores = resSSt map {case (t, st) => (t::baseTag) -> isDead(st)}
+          // The same data adder is used for the possible splits resulting from an original
+          // store here because the duplication of DataAdder is impossible.
+          // The adders map will be reconstructed by produce in respect of the returned map.
+          cstores foreach {case (t, cst) =>
+            adder.shouldAddData = adder.newStep(getResultType(cst))
+            //Dead Stores are added to see that something wrong happened in the table. The plotter can deal with it.
+            if (adder.shouldAddData == ShouldAddData.Yes && getPlotEnabled(cst))
+              addData(cst, adder, t, deadStores(t))
+          }
+          if (!adder.continue) {
+            val res = resSSt.keys map (t => (t::baseTag) -> (resSSt(t), resSMd(t), Double.NaN))
+            return res.toMap
+          } else if(resSSt.size == 1){
+            //If no split occur, then we can continue. If some happen, then it is impossible to continue.
+            st = resSSt.values.head
+            md = resSMd.values.head
+          } else throw ShouldNeverHappen()
+        case Done(resSMd,endTime) => // If the simulation is over
           if (adder.addLast)
-            cstore.foreach{case (id,obj) => adder.addData(id, obj)}
+            addData(cstores.values.head, adder, baseTag, isDead(st0))
           adder.noMoreData()
-          return (st,resMd,endTime)
+          return resSMd map {case(t, md) => (t::baseTag) -> (st, md, endTime)}
       }
     }
-    (st,md,Double.NaN)
+    Map(baseTag -> (st,md,Double.NaN))
   }
 
   type History = Stream[Store]
@@ -112,16 +170,18 @@ trait CStoreInterpreter extends Interpreter {
   def lazyLoop(p:Prog, st:Store, md:Metadata = NoMetadata) : History = {
     st #:: (step(p, st, md) match {
         case Done(_,_)      => empty
-        case Data(st1, md1) => 
-          val (st2, md2) = exposeExternally(st1, md1)
+        case Data(sst1, smd1) =>
+          require(sst1.size == 1, "A step returned more than one Store. Splitting is prohibited in lazyLoop.")
+          val (st2, md2) = exposeExternally(sst1.values.head, smd1.values.head)
           lazyLoop(p, st2, md2)
       })
   }
 
   /* all-in-one main-loop */
-  def lazyRun(p:Prog) = {
-    val (p1,st,md) = init(p)
-    val trace = lazyLoop(p1, st, md)
+  def lazyRun(p:Prog): CStoreRes = {
+    val (p1,sst,mds) = init(p)
+    require(sst.size == 1, "Splitting is prohibited in this interpreter.")
+    val trace = lazyLoop(p1, sst.values.head, mds.values.head)
     CStoreRes(trace map repr, NoMetadata)
   }
 
@@ -139,16 +199,21 @@ trait CStoreInterpreter extends Interpreter {
     @tailrec def loopInner(st0: Store, md0: Metadata, h: => History): (History, Metadata) =
       if (adder.done) (h, md0)
       else {
-        val (st1, md1, _) = multiStep(p, st0, md0, adder)
-        val (st2, md2) = exposeExternally(st1, md1)
-        loopInner(st2, md2, st2 #:: h)
-      }   
+        //Dynamic split prohibited here
+        val multiStepRes = multiStep(p, st0, md0, adder, Tag.root)
+        require(multiStepRes.size >= 1, "A step retuned more than one store. Dynamic splitting in prohibited in the loop function.")
+        multiStepRes.head match  { case (tag, (st1, md1, _)) =>
+          val (st2, md2) = exposeExternally(st1, md1)
+          loopInner(st2, md2, st2 #:: h)
+        }
+      } 
     loopInner(st, md, empty)
   }
 
   def run(p: Prog, adder: DataAdder) : (History,Metadata) = {
-   val (p1,st,md) = init(p)
-   loop(p1, st, md, adder)
+   val (p1,sst,mds) = init(p)
+   require(sst.size == 1, "Splitting is prohibited in this interpreter.")
+   loop(p1, sst.values.head, mds.values.head, adder)
   }
 
   /* streaming version of loop. does not preserve history. */
@@ -158,17 +223,31 @@ trait CStoreInterpreter extends Interpreter {
       @tailrec def loopInner(st0: Store, md0: Metadata): (Store, Metadata) =
         if (adder.done) (st0, md0)
         else {
-          val (st1, md1, _) = multiStep(p, st0, md0, adder)
-          val (st2, md2) = exposeExternally(st1, md1)
-          loopInner(st2, md2)
+          //Dynamic split prohibited here
+          val multiStepRes = multiStep(p, st0, md0, adder, Tag.root)
+          require(multiStepRes.size >= 1, "A step retuned more than one store. Dynamic splitting in prohibited in the loop function.")
+          multiStepRes.head match  { case (tag, (st1, md1, _)) =>
+            val (st2, md2) = exposeExternally(st1, md1)
+            loopInner(st2, md2)
+          }
         }
       loopInner(st, md)
     }
-    val (p1, st, md) = init(p)
-    val (lastStore, md1) = streamingLoop(p1, st, md, SingleStep)
+    val (p1,sst,mds) = init(p)
+    require(sst.size == 1, "Splitting is prohibited in this interpreter.")
+    val (lastStore, md1) = streamingLoop(p1, sst.values.head, mds.values.head, SingleStep)
     CStoreRes(repr(lastStore) #:: empty, md1)
   }
 
+  // Generic data adding methods
+  def addData(sst: SuperStore, adders: collection.mutable.Map[Tag, DataAdder]): Unit = {
+    sst.keys foreach (tag => addData(sst(tag), adders(tag), tag))
+  }
+  def addData(st: Store, adder: DataAdder, tag: Tag): Unit =
+    addData(repr(st), adder, tag, isDead(st))
+  def addData(cStore: CStore, adder: DataAdder, tag: Tag, deadTag: Boolean): Unit =
+    cStore.foreach { case (id, o) => adder.addData(id, o, tag, deadTag) }
+  
 }
 
 abstract class InterpreterCallbacks
@@ -250,7 +329,7 @@ abstract class DataAdder {
    * Called to update the data collected for the object corresponding to "objId"
    * in this adder with "values".
    */
-  def addData(objId: CId, values: GObject) : Unit
+  def addData(objId: CId, values: GObject, tag: Tag, deadTag: Boolean = false) : Unit
   /**
    * Called after each step.  If false than multiStep should not continue and
    * return the current Store.
@@ -289,14 +368,14 @@ object ShouldAddData extends Enumeration { // Legacy, used values are Yes/No -> 
  * A data adder that only takes a single step each time. */
 case object SingleStep extends DataAdder {
   def newStep(t: ResultType) : ShouldAddData.Value = ShouldAddData.No
-  def addData(objId: CId, values: GObject) {}
+  def addData(objId: CId, values: GObject, tag: Tag = Tag.root, deadTag: Boolean = false) {}
   def continue = false
 }
 
 class StopAtFixedPoint extends DataAdder {
   var curStepType : ResultType = Discrete
   def newStep(t: ResultType) : ShouldAddData.Value = {curStepType = t; ShouldAddData.No}
-  def addData(objId: CId, values: GObject) {}
+  def addData(objId: CId, values: GObject, tag: Tag = Tag.root, deadTag: Boolean = false) {}
   def continue = curStepType != FixedPoint
 }
 
@@ -427,7 +506,7 @@ abstract class FilterDataAdder(var opts: CStoreOpts) extends DataAdder {
 
 class FilterRowsDataAdder(opts: CStoreOpts) extends FilterDataAdder(opts) {
   override def newStep(t: ResultType) = {super.newStep(t); ShouldAddData.No}
-  def addData(objId: CId, values: GObject) = {}
+  def addData(objId: CId, values: GObject, tag: Tag = Tag.root, deadTag: Boolean = false) = {}
   def continue = !outputRow 
 }
 
@@ -479,7 +558,7 @@ class DumpSample(out: java.io.PrintStream) extends DataAdder {
     super.noMoreData()
     dumpLastStep
   }
-  def addData(objId: CId, values: GObject) = {
+  def addData(objId: CId, values: GObject, tag: Tag = Tag.root, deadTag: Boolean = false) = {
     store += ((objId, values.toList)) // need to make a copy of the values as they could change
   }
   def continue = true

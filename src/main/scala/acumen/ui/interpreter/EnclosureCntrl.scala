@@ -31,9 +31,10 @@ class EnclosureCntrl(val semantics: SemanticsImpl[Interpreter], val interpreter:
 
       def sendChunk {
         if (buf.isEmpty) {
-          consumer ! Chunk(null)
+          // FIXME: Make me compatible with Store death detection
+          consumer ! Chunk((Tag.root, false), null)
         } else {
-          consumer ! Chunk(new EnclosureTraceData(buf, endTime))
+          consumer ! Chunk((Tag.root, false), new EnclosureTraceData(buf.toList, endTime))
           buf = new ArrayBuffer[UnivariateAffineEnclosure]
         }
       }
@@ -63,7 +64,7 @@ class EnclosureCntrl(val semantics: SemanticsImpl[Interpreter], val interpreter:
 
       override def sendResult(d: Iterable[UnivariateAffineEnclosure]) {
         if (maxBufSize == 1) {
-          consumer ! Chunk(new EnclosureTraceData(d, endTime))
+          consumer ! Chunk((Tag.root, false), new EnclosureTraceData(d, endTime))
           awaitNextAction
         } else {
           buf ++= d
