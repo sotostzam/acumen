@@ -621,7 +621,7 @@ object Interpreter extends acumen.CStoreInterpreter {
         }
 
         //If intervals have been introduced during the step, they must be split before hypothesis testing
-        val stSplit = splitIntervalsStore(stSeed)co
+        val stSplit = splitIntervalsStore(stSeed)
         val stepRes = stSplit mapValues (st0 => {
           // Hypotheses check only when the result is not a FixedPoint
           lazy val md1 = testHypotheses(hyps, md, st0, getTime(st))(NoBindings) // No bindings needed, res is consistent
