@@ -37,7 +37,7 @@ abstract class JPlotInput {
   @volatile var forsedDisable = false
   def obj : plot.JFreePlotTab;
   def newData(): Object;
-  def addToPlot(d: Object): Unit;
+  def addToPlot(t: Tag, d: Object): Unit;
 }
 
 case class TraceModelReady(model: TraceModel) 
@@ -128,7 +128,7 @@ class Plotter(tableI: TableInput, plotI: PlotInput, jPlotI: JPlotInput)
     //println("Updating JPlot with data: " + data)
     def toRun = {
       val startTime = System.currentTimeMillis
-      jPlotI.addToPlot(data)
+      jPlotI.addToPlot(Tag.root, data)
       val endTime = System.currentTimeMillis
       val runTime = (endTime-startTime) / 1000.0
       //println("Time to add data = " + runTime)

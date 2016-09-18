@@ -355,7 +355,7 @@ object Interpreter extends acumen.CStoreInterpreter {
 
   /* Main simulation loop */  
 
-  def init(prog:Prog) : (Prog, Store, Metadata) = {
+  def init(prog:Prog) : (Prog, SuperStore, Map[Tag, Metadata]) = {
     val cprog = CleanParameters.run(prog, CStoreInterpreterType)
     val sprog = Simplifier.run(cprog)
     val mprog = Prog(magicClass :: sprog.defs)
@@ -364,14 +364,14 @@ object Interpreter extends acumen.CStoreInterpreter {
       mkObj(cmain, mprog, None, sd1, List(VObjId(Some(CId(0)))), 1)(initStoreInterpreter(initStep = initStepType, initTimeStep = timeStep, initOutputRows = outputRows, isImperative = false))
     val st2 = changeParent(CId(0), id, st1)
     val st3 = changeSeed(CId(0), sd2, st2)
-    (mprog, st3, NoMetadata)
+    (mprog, Map((Tag.root, st3)), Map((Tag.root, NoMetadata)))
   }
 
   def step(p:Prog, st:Store, md: Metadata) : StepRes =
-    if (getTime(st) > getEndTime(st)) Done(md, getEndTime(st))
+    if (getTime(st) > getEndTime(st)) Done(Map((Tag.root, md)), getEndTime(st))
     else 
       { val (_,ids,rps,st1) = iterate(evalStep(p), mainId(st))(st)
-        Data(getResultType(st) match {
+        Data(Map((Tag.root, getResultType(st) match {
           case Discrete | Continuous => 
             if (st == st1 && ids.isEmpty && rps.isEmpty) 
               setResultType(FixedPoint, st1)
@@ -384,6 +384,6 @@ object Interpreter extends acumen.CStoreInterpreter {
           case FixedPoint =>
             val st2 = setResultType(Continuous, st1)
             setTime(getTime(st1) + getTimeStep(st1), st2)
-        }, md)
+        })), Map((Tag.root, md)))
       }
 }

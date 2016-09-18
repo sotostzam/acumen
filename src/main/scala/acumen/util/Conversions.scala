@@ -9,6 +9,18 @@ import acumen.FAD.FDif
 
 object Conversions {
 
+  def extractBoolean(v:GroundValue) : Boolean =
+    v match {
+      case GBool(b) => b
+      case _ => throw GroundConversionError(v, "boolean")
+    }
+
+  def extractBoolean(v:Value[_]): Boolean =
+    v match {
+      case VLit(gv) => extractBoolean(gv)
+      case _        => throw ConversionError(v, "boolean")
+    }
+  
   def extractDouble(v:GroundValue) : Double = 
     v match {
       case GInt(i)    => i.toDouble
@@ -16,6 +28,7 @@ object Conversions {
       case e: GRealEnclosure if (e isThin) => e.range.loDouble
       case GDoubleTDif(c) => c.coeff.head
       case GIntTDif(c) => c.coeff.head
+      case i: GInterval => throw InvalidOperationOnIntervals(i)
       case _ =>throw GroundConversionError(v, "double").setPos(v.pos)
     }
   

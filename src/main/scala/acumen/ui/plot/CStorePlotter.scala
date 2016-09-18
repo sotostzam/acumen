@@ -41,7 +41,7 @@ class CStorePlotter extends JFreePlotter {
     ren
   }
 
-  def addToPlot(d: Object) = try {
+  def addToPlot(t: Tag, d: Object) = try {
     //combinedPlot.setNotify(false)
     println("Adding data to plot")
     val model = d.asInstanceOf[PlotModel]
@@ -107,7 +107,8 @@ class CStorePlotter extends JFreePlotter {
 
 
   private def addDataHelper(model: PlotModel, toPlot: Plottable) = {
-    val times = model.getTimes
+    val tag = toPlot.key.tag
+    val times = model.getTimes(tag)
     /* Keep the possibility of using a different XYPlot & Renderer 
      * instance for discrete plots by passing a Boolean flag. */
     val series = dataSets.getOrElseUpdate(toPlot.column, 

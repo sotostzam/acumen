@@ -27,6 +27,8 @@ class EnclosureModel extends InterpreterModel {
   var es2: ArrayBuffer[UnivariateAffineEnclosure] = null
 
   class Data {
+    var tags = collection.mutable.Set.empty[Tag]
+    var deadTags = collection.mutable.Set.empty[Tag]
     var times  = Vector.empty[Double]
     var plottables = im.Seq.empty[PlotEnclosure]
     var tableTimes = Array.empty[Double]
@@ -54,7 +56,7 @@ class EnclosureModel extends InterpreterModel {
       plottables = 
         enclSeqs.map {
           case (name, idx, enclosures) =>
-            new PlotEnclosure(false, Name(name, 0), 0, idx, enclosures.toIndexedSeq)
+            new PlotEnclosure(false, ResultKey(Tag.root, CId(0), Name(name, 0), None), 0, idx, enclosures.toIndexedSeq)
         }
 
       // first group duplicate times together
@@ -139,15 +141,34 @@ class EnclosureModel extends InterpreterModel {
                                      encls(row+1).loLeft, encls(row+1).hiLeft)
       }
       
+      override def getRowCount(t: Tag): Int = getRowCount()
+
+      override def getValueAt(t: Tag, row: Int, column: Int): String = getValueAt(row, column)
+
+      override def getPlotTitle(t: Tag, col: Int): String = getPlotTitle(col)
+
+      override def getDoubleAt(t: Tag, row: Int, column: Int): Option[Double] = getDoubleAt(row, column)
+
+      override def isEmpty(t: Tag): Boolean = isEmpty()
+
       override def getDoubleAt(row: Int, column: Int) = None
       
       override def getPlotTitle(col: Int) = plotTitles(col)
       
       override def isEmpty() = tableData.isEmpty
+
+      override def getTimes(t: Tag) = times
       
-      override def getTimes() = times
-      
-      override def getPlottables(p: PlotParms) = plottables
+      override def getPlottables(p: PlotParms, tags: Set[Tag]) = plottables
+
+      override def getTags = tags.toSet
+
+      override def getDeadTags() = deadTags.toSet
+
+      override def getProba: Option[ProbaData] = ???
+
+      //FIXME Not a good place for a writing accessor.
+      override def setProba(pd: Option[ProbaData]): Unit = ???
     }
 
     val traceModel = new TraceModel {
@@ -170,7 +191,7 @@ class EnclosureModel extends InterpreterModel {
 
   var stale : Boolean = false;
 
-  override def addData(d:TraceData) = synchronized {
+  def addData(t: Tag, deadTag: Boolean, d:TraceData) = synchronized {
     es ++= d.asInstanceOf[Iterable[UnivariateAffineEnclosure]]
     if (es2 == null)
       es2 = new ArrayBuffer[UnivariateAffineEnclosure]

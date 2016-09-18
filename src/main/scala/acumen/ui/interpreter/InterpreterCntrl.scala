@@ -43,7 +43,8 @@ object InterpreterCntrl {
 
   // messages the Actor may send to the consumer
 
-  case class Chunk(css: TraceData) // data computer so far
+  /** The boolean with the tag tells if it corresponds to a dead store (true for dead) */
+  case class Chunk(tag: (Tag, Boolean),css: TraceData) // data computer so far
   case class Done(msgs: Seq[String], md: Metadata, endTime: Double) // finished computation, no more data
 
   // Get an appropriate InterpreterCntrl for the semantics

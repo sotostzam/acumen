@@ -299,8 +299,8 @@ class App extends SimpleSwingApplication {
   val jPlotI = new plot.JPlotInput {
     def obj() = newPlotView
     def newData() = if (controller.model != null) controller.model.getNewData else null // XXX: Why is null check required?
-    def addToPlot(d: Object) = {
-      newPlotView.plotter.addToPlot(d)
+    def addToPlot(t: Tag, d: Object) = {
+      newPlotView.plotter.addToPlot(t, d)
       newPlotView.plotter.chartPanel.validate
     }
   }

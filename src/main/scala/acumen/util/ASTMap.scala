@@ -61,6 +61,13 @@ class ASTMap {
     case TypeOf(v) => TypeOf(v)
     case ExprInterval(lo, hi) => ExprInterval(mapExpr(lo), mapExpr(hi))
     case ExprIntervalM(mid, pm) => ExprIntervalM(mapExpr(mid), mapExpr(pm))
+    case ExprSplitterWeights(i, ws) => ExprSplitterWeights(mapExpr(i), ws map mapExpr)
+    case ExprSplitterPoints(ps, keeps) => ExprSplitterPoints(ps map mapExpr, keeps map mapExpr)
+    case ExprSplitterN(i, n) => ExprSplitterN(mapExpr(i), mapExpr(n))
+    case ExprSplitInterval(i, s) => ExprSplitInterval(mapExpr(i), mapExpr(s))
+    case ExprSplitterNormal(m, s, c, n) => ExprSplitterNormal(mapExpr(m), mapExpr(s), mapExpr(c), mapExpr(n))
+    case ExprSplitterUniform(lo, hi, c, n) => ExprSplitterUniform(mapExpr(lo), mapExpr(hi), mapExpr(c), mapExpr(n))
+    case ExprSplitterBeta(lo, hi, a, b, c, n) => ExprSplitterBeta(mapExpr(lo), mapExpr(hi), mapExpr(a), mapExpr(b), mapExpr(c), mapExpr(n))
     case ExprLet(bindings, e2) => ExprLet(bindings.map{case (n,e) => (n,mapExpr(e))},
                                           mapExpr(e2))
     case Pattern(ps) => Pattern(ps.map{mapExpr(_)})

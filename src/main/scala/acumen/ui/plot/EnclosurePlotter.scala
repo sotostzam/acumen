@@ -113,7 +113,7 @@ class EnclosurePlotter extends JFreePlotter {
     plot(es, null)
   }
 
-  def addToPlot(d: Object) = {
+  def addToPlot(t: Tag, d: Object) = {
     plot(d.asInstanceOf[Seq[UnivariateAffineEnclosure]], null)
   }
 

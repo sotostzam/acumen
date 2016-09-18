@@ -124,6 +124,11 @@ object Errors {
       "\"" + r + "\" is not a valid branch merging strategy. " + 
         s"Use one of: ${allBranchMergingStrategies.productIterator.map("\"" + _ + "\"").mkString(", ")}."
   }
+  case class InvalidIntervalSplittingStrategy(r:String) extends PositionalAcumenError {
+    override def mesg =
+      "\"" + r + "\" is not a valid interval splitting strategy. " +
+        s"Use one of: ${allSplittingStrategies.productIterator.map("\"" + _ + "\"").mkString(", ")}."
+  }
   case class InvalidTimeStepConfiguration(r: List[String]) extends PositionalAcumenError {
     override def mesg =
       "Invalid time step configuration: " + r.mkString(", ") + ". " +
@@ -435,6 +440,11 @@ object Errors {
   /* utility class */
   case class ObjField(o: CId, cn: String, f: Name) {
     override def toString = s"(#$o : $cn)." + pprint(f)
+  }
+  case class InvalidOperationOnIntervals (i: GInterval) extends PositionalAcumenError{
+    override def mesg =
+      "Support for intervals arithmetic in this interpreter is not available yet.\n" +
+        "Please do not use intervals with operators."
   }
 
 }

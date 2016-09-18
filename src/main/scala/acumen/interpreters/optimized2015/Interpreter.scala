@@ -15,6 +15,7 @@ import acumen.util.Canonical.{
   classf,
   cmain,
   cmagic,
+  deadStore,
   endTime,
   nextChild,
   parentOf,
@@ -38,6 +39,8 @@ class Interpreter extends CStoreInterpreter {
   type Store = Common.Store
   def repr (s:Store) : CStore = Common.repr(s)
   def fromCStore (cs:CStore, root:CId) : Store = Common.fromCStore(cs, root)
+  override def isDead(st: Store): Boolean =
+    extractBoolean(getField(getSimulator(st), deadStore))
   val initStepType = Initial
   val timeStep = 0.015625
   val outputRows = "All"
@@ -47,18 +50,23 @@ class Interpreter extends CStoreInterpreter {
   
   def lift = identLift
   
-  def init(prog: Prog): (Prog, Store, Metadata) = {
+  def init(prog: Prog): (Prog, SuperStore, Map[Tag, Metadata]) = {
     checkContinuousAssignmentToSimulator(prog)
     val magic = fromCStore(initStore, CId(0))
     val cprog = CleanParameters.run(prog, CStoreInterpreterType)
-    val sprog = Simplifier.run(cprog)
     val (sd1, sd2) = Random.split(Random.mkGen(0))
-    val mainObj = mkObj(cmain, sprog, IsMain, sd1, List(VObjId(Some(magic))), magic, 1)
+    val mainObj = mkObj(cmain, cprog, IsMain, sd1, List(VObjId(Some(magic))), magic, 1)
     magic.seed = sd2
-    val mprog = Prog(magicClass :: sprog.defs)
+    val mprog = Prog(magicClass :: cprog.defs)
     setVarNum(magic, countStateVars(repr(mainObj)))
     checkHypothesis(magic.phaseParms, mprog, magic, mainObj)
-    (mprog , mainObj, magic.phaseParms.metaData)
+    val splitStore = splitIntervalsStore(mainObj)
+    //FIXME: fix splitIntervals and hypothesis checking
+    val metadatas = splitStore mapValues (obj => {
+      checkHypothesis(getSimulator(obj).phaseParms, mprog, getSimulator(obj), obj)
+      getMetadata(obj)
+    })
+    (mprog , splitStore, metadatas)
   }
 
   // Hypotheses check
@@ -77,9 +85,12 @@ class Interpreter extends CStoreInterpreter {
       magic.phaseParms.metaData = magic.phaseParms.metaData.combine(md)
     }
   
-  def localStep(p: Prog, st: Store): ResultType = {
+  def localStep(p: Prog, st: Store): (ResultType, SuperStore) = {
     val magic = getSimulator(st)
-  
+        
+    // SuperStore returned at the end of LocalStep. Will be updated if some split are required
+    var sst: SuperStore = Map((Tag.root, st))
+    
     val pp = magic.phaseParms
     pp.curIter += 1
 
@@ -98,6 +109,12 @@ class Interpreter extends CStoreInterpreter {
           case SomeChange(_,_) =>
             isFixedPoint = false
             reachFixPoint = false
+        }
+        //If the previously set value is prohibited (Inf or Nan, set the Store dead)
+        //If a splitInterval is assigned, trigger the splitMe flag
+        da.v match {
+          case VLit(GInterval(_)) => pp.splitMe = true
+          case _ =>
         }
         idx += 1
       }
@@ -143,6 +160,12 @@ class Interpreter extends CStoreInterpreter {
             isFixedPoint = false
             reachFixPoint = false
         }
+        //If the previously set value is prohibited (Inf or Nan, set the Store dead)
+        //If a splitInterval is assigned, trigger the splitMe flag
+        v match {
+          case VLit(GInterval(_)) => pp.splitMe = true
+          case _ =>
+        }
         idx += 1
       }
     } finally {
@@ -151,7 +174,7 @@ class Interpreter extends CStoreInterpreter {
 
     if (getResultType(magic) == FixedPoint && getTime(magic) >= getEndTime(magic)) {
 
-      null
+      (null, sst)
 
     } else {
 
@@ -200,7 +223,6 @@ class Interpreter extends CStoreInterpreter {
               }
             }
             isFixedPoint = false
-            reachFixPoint = false
         
           case NoChange() =>
         }
@@ -222,8 +244,6 @@ class Interpreter extends CStoreInterpreter {
         // After the pp.reset the das list is empty,
         // thus filtering only initializes the fields
         filterEquationT()
-        if (pp.assigns.nonEmpty)
-          reachFixPoint = false
         
         checkContinuousDynamicsAlwaysDefined(st, magic)
         
@@ -251,7 +271,14 @@ class Interpreter extends CStoreInterpreter {
         idx = 0
         while (idx < sz) {
           val eqt = pp.odes(idx)
-          updateField(eqt.id, eqt.field, res.odeVals(idx))
+          val value: Val = res.odeVals(idx)
+          updateField(eqt.id, eqt.field, value)
+          //If the previously set value is prohibited (Inf or Nan, set the Store dead)
+          //If a splitInterval is assigned, trigger the splitMe flag
+          value match {
+            case VLit(GInterval(_)) => pp.splitMe = true
+            case _ =>
+          }
           idx += 1
         }
 
@@ -271,56 +298,61 @@ class Interpreter extends CStoreInterpreter {
         setObject(id, setSeed(reprSt(id), newSeed), res1)
       }
       
-      if (rt != FixedPoint) checkHypothesis(pp, p, magic, st)
-
-      if (rt == FixedPoint) {
-        if (reachFixPoint && getTime(getSimulator(st)) > 0)
-          setTime(getSimulator(st), getEndTime(getSimulator(st)))
-        else
-          reachFixPoint = true
+      if (pp.splitMe) {
+        sst = splitIntervalsStore(st)
+        sst foreach {case (_, st) => getSimulator(st).phaseParms.splitMe = false}
       }
-      rt
+      if (rt != FixedPoint) checkHypothesis(pp, p, magic, st)
+      (rt, sst)
     }
   }
 
   def step(p: Prog, st: Store, md: Metadata): StepRes = {
     setMetadata(st, md)
-    val res = localStep(p, st)
-    if (res == null) Done(md, getEndTime(getSimulator(st)))
-    else Data(st,getMetadata(st)) 
+    val (resultType, sst) = localStep(p, st)
+    if (resultType == null) Done(Map(Tag.root -> md), getEndTime(getSimulator(st)))
+    else Data(sst, sst mapValues getMetadata)
   }
 
   // always returns the last known step, the adder callback is used to
   // determine when teh simulation is done
-  override def multiStep(p: Prog, st: Store, md: Metadata, adder: DataAdder): (Store, Metadata, Double) = {
+  override def multiStep(p: Prog, st: Store, md: Metadata, adder: DataAdder, baseTag: Tag): Map[Tag, (Store, Metadata, Double)] = {
     setMetadata(st, md)
     adder.shouldAddData = adder.initialShouldAddData
-    var endTime = Double.NaN
+    var (res, sst): (ResultType, SuperStore) = (null, Map.empty)
+    var endTimes = Map.empty[Tag, Double]
     @tailrec def step0() : Unit = {
-      val res = localStep(p, st)
+      localStep(p, st) match {
+        case (r, s) => res = r; sst = s
+      }
+      val magics = sst mapValues getSimulator
       if (res == null) {
         if (adder.addLast)
-          addData(st, adder)
+          sst foreach { case (t, st) => addData(st, adder, t :: baseTag, isDead(st)) }
         adder.noMoreData()
-        endTime = getEndTime(getSimulator(st))
+        endTimes = magics mapValues getEndTime
       } else {
-        adder.shouldAddData = adder.newStep(res)
-        if (adder.shouldAddData == ShouldAddData.Yes)
-          addData(st, adder)
-        if (adder.continue)
+        sst foreach { case (t, st) =>
+          endTimes += t -> Double.NaN
+          adder.shouldAddData = adder.newStep(res)
+          if (adder.shouldAddData == ShouldAddData.Yes && getPlotEnabled(magics(t)))
+            addData(st, adder, t :: baseTag, isDead(st))
+        }
+        // It is impossible to continue if a split occur during the last step. If no split occur, then sst.values == st.
+        if (adder.continue && sst.size == 1)
           step0()
       }
     }
     step0()
-    (st, getMetadata(st), endTime) 
+    sst map { case (t, st) => (t::baseTag) -> (st, getMetadata(st), endTimes(t)) }
   }
 
-  def addData(st: Store, adder: DataAdder) : Unit = {
+  def addData(st: Store, adder: DataAdder, tag: Tag, deadTag: Boolean) : Unit = {
     // Note: Conversion to a CStore just to add the data is certainly
     // not the most efficient way to go about things, but for now it
     // will do. --kevina
-    adder.addData(st.id, st.fieldsCur)
-    st.children.foreach { child => addData(child, adder) }
+    adder.addData(st.id, st.fieldsCur, tag, deadTag)
+    st.children.foreach { child => addData(child, adder, tag, deadTag) }
   }
 }
 
