@@ -104,16 +104,19 @@ class CStoreCntrl(val semantics: SemanticsImpl[Interpreter], val interpreter: CS
       }
     }
     
-        def produce: Unit = {
+    def produce: Unit = {
       val startTime = System.currentTimeMillis
       val I = interpreter
+      //Three types to store respectively the result of a multiStep call, the options and the adder for each split
       type multiStepResMap = collection.mutable.Map[Tag, (I.Store, Metadata, Double)]
       type optionsMap = collection.mutable.Map[Tag, CStoreOpts]
       type addersMap = collection.mutable.Map[Tag, DataAdder]
 
+      //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+      //Initialisation of the simulation--------------------------------------------------------------------------------
       val (p, sstore0, mds0) = I.init(prog)
-      //Used by the 3D view to refer to one arbitrary Store (repeated used of .head instead on a mutable map is not safe)
-      val headTag = sstore0.head._1
+      //Used by the 3D view to refer to one arbitrary Store and stock to it (repeated used of .head instead on a mutable map is not safe)
+      val (headTag, _) = sstore0.head
       val opts: optionsMap = collection.mutable.Map() ++ (sstore0 map { case (tag, _) => tag -> new CStoreOpts })
       // Variables for real-time simulation
       val threeDTab = App.ui.threeDtab.asInstanceOf[threeD.ThreeDTab]
@@ -123,7 +126,7 @@ class CStoreCntrl(val semantics: SemanticsImpl[Interpreter], val interpreter: CS
       var updateTime = 0.0
       var missedDeadline = 0.0
       var biggestTime = 0.0
-      // Create the DataAdder
+      // Create the DataAdders
       val adders: addersMap = collection.mutable.Map() ++
         (if (semantics.isOldSemantics) {
           opts mapValues (opt => {
@@ -140,10 +143,10 @@ class CStoreCntrl(val semantics: SemanticsImpl[Interpreter], val interpreter: CS
         (sstore0 map { case (tag, st) => tag -> (st, mds0(tag), 0.0) })
       performMultiStep()
 
+      // Read simulator parameters from program
       multiStepRes foreach { case (tag, (st, md, endTime)) =>
         val cstore = I.repr(st)
         var newMd = md
-        // Read simulator parameters from program
         acumen.util.Canonical.getInSimulator(Name("outputRows", 0), cstore) match {
           case VLit(GStr("All")) => opts(tag).outputRows = OutputRows.All
           case VLit(GStr("WhenChanged")) => opts(tag).outputRows = OutputRows.WhenChanged
@@ -165,6 +168,8 @@ class CStoreCntrl(val semantics: SemanticsImpl[Interpreter], val interpreter: CS
         }
         multiStepRes(tag) = (st, newMd, endTime)
       }
+      //End of the initialisation---------------------------------------------------------------------------------------
+      //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
       loopWhile(multiStepRes.nonEmpty && !adders.values.forall(_.done)) {
         reactWithin(0)(emergencyActions orElse {
@@ -174,8 +179,11 @@ class CStoreCntrl(val semantics: SemanticsImpl[Interpreter], val interpreter: CS
           case GoOn => bufferSize = defaultBufferSize
           case TIMEOUT =>
             val temptime = System.currentTimeMillis
+            // Perform a multistep
             performMultiStep()
-            //FIXME: Not a fully satisfying way to update the progressBar: The first Store might ends before the others
+            // Update the progress bar
+            //FIXME: Not a fully satisfying way to update the progressBar: The first Store might end before the others or never end.
+            //Indeed, there is no synchronisation guarantee between the stores (e.g. with adaptive stepping)
             if (multiStepRes.nonEmpty) threeDTab.appModel.updateProgress(I.repr(multiStepRes.head._2._1))
 
             //The 3D view is activated with the first Store arbitrarily.
@@ -279,7 +287,10 @@ class CStoreCntrl(val semantics: SemanticsImpl[Interpreter], val interpreter: CS
             }
           }
           //Set the new biggest time before deleting some stores
-          biggestTime = multiStepRes.values.map(_._3).max
+          biggestTime = multiStepRes.values.map(r => {
+            val (_, _, endTime) = r;
+            endTime
+          }).max
           //The Stores which have been split or which died do not need to exist anymore
           if (splitOccurred || deadStores.nonEmpty) {
             val toRemove = deadStores + tagS

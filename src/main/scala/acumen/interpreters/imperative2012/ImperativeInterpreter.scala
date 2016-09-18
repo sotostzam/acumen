@@ -43,7 +43,7 @@ class ImperativeInterpreter extends CStoreInterpreter {
    /* Identity lift function */
   def identLift(p:Prog) = p 
   def lift = identLift
-  def init(prog: Prog): (Prog, SuperStore, Map[Tag, Metadata]) = {
+  def init(prog: Prog): (Prog, SuperStore, SuperMetadata) = {
     val magic = fromCStore(initStoreInterpreter(initStep = initStepType, initTimeStep = timeStep, initOutputRows = outputRows, isImperative = true), CId(0))
     /* WARNING: the following line works because there is no children access check
        if one of the instructions of the provate section tries to access magic,
@@ -127,7 +127,7 @@ class ImperativeInterpreter extends CStoreInterpreter {
     // Note: Conversion to a CStore just to add the data is certainly
     // not the most efficient way to go about things, but for now it
     // will do. --kevina
-    adder.addData(st.id, st.fields, tag)
+    adder.addData(st.id, st.fields, tag, isDead(st))
     st.children.foreach { child => addData(child, adder, tag) }
   }
 

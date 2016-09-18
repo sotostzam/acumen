@@ -31,7 +31,6 @@ class EnclosureCntrl(val semantics: SemanticsImpl[Interpreter], val interpreter:
 
       def sendChunk {
         if (buf.isEmpty) {
-          // FIXME: Make me compatible with Store death detection
           consumer ! Chunk((Tag.root, false), null)
         } else {
           consumer ! Chunk((Tag.root, false), new EnclosureTraceData(buf.toList, endTime))

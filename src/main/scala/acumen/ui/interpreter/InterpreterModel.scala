@@ -44,27 +44,27 @@ trait PlotModel {
   //  - The first with a tag is the one which respect the data structure
   //  - The second without a tag acces the set of stores as id they were concatenated next to each other to form an only Store
   def getRowCount : Int
-  def getRowCount(t: Tag) : Int
+  def getRowCount(tag: Tag) : Int
   def getValueAt(row:Int, column:Int) : String
-  def getValueAt(t: Tag, row:Int, column:Int) : String
+  def getValueAt(tag: Tag, row:Int, column:Int) : String
   def getPlotTitle(col:Int) : String
-  def getPlotTitle(t: Tag, col:Int) : String
+  def getPlotTitle(tag: Tag, col:Int) : String
   def getDoubleAt(row:Int, column:Int): Option[Double]
-  def getDoubleAt(t: Tag, row:Int, column:Int): Option[Double]
+  def getDoubleAt(tag: Tag, row:Int, column:Int): Option[Double]
   def getBoundingAt(row:Int, column:Int) = {
     getDoubleAt(row, column) match {
       case Some(v) => Some(v, v)
       case None => None
     }
   }
-  def getBoundingAt(t: Tag, row:Int, column:Int) = {
-    getDoubleAt(t, row, column) match {
+  def getBoundingAt(tag: Tag, row:Int, column:Int) = {
+    getDoubleAt(tag, row, column) match {
       case Some(v) => Some(v, v)
       case None => None
     }
   }
   def isEmpty: Boolean
-  def isEmpty(t: Tag): Boolean
+  def isEmpty(tag: Tag): Boolean
   def getTags: Set[Tag]
   def getDeadTags: Set[Tag]
   /** The time accessor needs a tag to work because there is no unified time.

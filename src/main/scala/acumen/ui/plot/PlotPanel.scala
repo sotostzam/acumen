@@ -23,7 +23,7 @@ import net.java.jinterval.rational.ExtendedRational
 import util.Canonical._
 import util.Conversions._
 import interpreter._
-import interpreters.enclosure.{Interval, TagsGraph}
+import interpreters.enclosure.{Interval, TagsGraph, TagsGraphNaive}
 
 case class PointedAtEvent(time:Double, name:String, value:String) extends Event
 
@@ -75,8 +75,10 @@ class PlotPanel(pub:Publisher) extends Panel
     dotY = None
     selection = None
     drag = None
+    prbCursor = None
     resetViewPort(new Rectangle2D.Double(0,0,0,0))
     enabled = false
+    probaEnabled = false
     App.publish(Disabled)
   }
 
@@ -300,7 +302,7 @@ class PlotPanel(pub:Publisher) extends Panel
 
         // index of the curve group pointed by the mouse
         var hb = (op.getY / 1.2).toInt
-        if (hb < pd.columnIndices.length && hb >= 0 && potTags.nonEmpty) {
+        if (hb < pd.columnIndices.length && hb < pd.yTransformations.length && hb >= 0 && potTags.nonEmpty) {
           // corresponding columns in the trace model
           val columns = pd.columnIndices(hb).toMap
           // update the green dot Y coordinate
@@ -347,16 +349,16 @@ class PlotPanel(pub:Publisher) extends Panel
           val valRange = pp.getValuesRange
           var prb: Interval = null
           if(valRange.contains(op))
-            prb = pp.getCdf.find { case (i, p) => i.contains(op) }.get._2
+            prb = pp.cdf.find { case (i, p) => i.contains(op) }.get._2
           else if (op <= valRange.loDouble)
-              prb = pp.getProbaOut
-          else prb = Interval(1) - pp.getProbaOut
+              prb = pp.probaOut
+          else prb = Interval(1) - pp.probaOut
           dotX = (p.getX, p.getX)// No horizontal range here
           val (scale, shift) = pd.yTransformations(hb)
           dotY = Some(applyTr(new Point2D.Double(0, prb.loDouble * scale + shift)).getY,
                       applyTr(new Point2D.Double(0, prb.hiDouble * scale + shift)).getY)
           hoveredBox = Some(hb)
-          pub.publish(PointedAtEvent(pp.getTime, "CDF of " + pp.getName, s"P(<=$op) = " + prb.toString))
+          pub.publish(PointedAtEvent(pp.time, "CDF of " + pp.name, s"P(<=$op) = " + prb.toString))
         } else if (hb == pd.columnIndices.length + 1) {
           val pp = pd.probaPlottables.get
           // p in the original coordinate system
@@ -364,15 +366,15 @@ class PlotPanel(pub:Publisher) extends Panel
           val valRange = pp.getValuesRange
           var value, prb: Interval = null
           if (valRange.contains(op))  {
-            val res = pd.probaPlottables.get.getPdf.find { case (i, p) => i.contains(op) }.get
+            val res = pd.probaPlottables.get.pdf.find { case (i, p) => i.contains(op) }.get
             value = res._1
             prb = res._2
           } else if (op <= valRange.loDouble) {
             value = Interval(ExtendedRational.NEGATIVE_INFINITY, pd.probaPlottables.get.getValuesRange.lo)
-            prb = pp.getProbaOut
+            prb = pp.probaOut
           } else {
             value = Interval(pd.probaPlottables.get.getValuesRange.hi, ExtendedRational.POSITIVE_INFINITY)
-            prb = pp.getProbaOut
+            prb = pp.probaOut
           }
           dotX = (applyTr(new Point2D.Double(value.loDouble * pd.valToTimeTr._1 + pd.valToTimeTr._2, 0)).getX,
                   applyTr(new Point2D.Double(value.hiDouble * pd.valToTimeTr._1 + pd.valToTimeTr._2, 0)).getX)
@@ -388,7 +390,7 @@ class PlotPanel(pub:Publisher) extends Panel
           dotY = Some(applyTr(new Point2D.Double(0, prbScaled.loDouble * scale + shift)).getY,
             applyTr(new Point2D.Double(0, prbScaled.hiDouble * scale + shift)).getY)
           hoveredBox = Some(hb)
-          pub.publish(PointedAtEvent(pp.getTime, "PDF of " + pp.getName, "P(" + value + ") = " + prb.toString))
+          pub.publish(PointedAtEvent(pp.time, "PDF of " + pp.name, "P(" + value + ") = " + prb.toString))
           hoveredBox = Some(hb)
         } else {
           // the mouse is pointing at no box
@@ -441,7 +443,7 @@ class PlotPanel(pub:Publisher) extends Panel
             // Map: value bounds -> proba bounds
             var probaDist = Map.empty[Interval, Interval]
             var continue = true
-            var graphs = List(TagsGraph(boundingValues))
+            var graphs = List(TagsGraphNaive(boundingValues))
             def tagsOutsideOfInterval(i: Interval) = tags filter (t => {
               val bounds = boundingValues(t)
               (bounds.hi le i.lo) || (bounds.lo ge i.hi)
@@ -494,7 +496,7 @@ class PlotPanel(pub:Publisher) extends Panel
             // Build a list of enclosures from the cdfBounds at different times interval
             val cdfEnclosure =
             ((cdfBounds zip (cdfBounds unzip)._1.tail) map { case ((l, p), h) =>
-              Interval(l, h) -> p
+              Interval(l, h) -> p.intersect(Interval(0, 1)).get
             }).toMap
             model.setProba(Some(new ProbaData(name, qtAndRows.find(_._2.nonEmpty).get._2.get._1, probaOutBounding, probaDist, cdfEnclosure)))
             probaEnabled = true

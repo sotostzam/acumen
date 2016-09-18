@@ -123,7 +123,14 @@ trait SplitterDistribution {
     val (points, keep, probas) = producePoints(centered, n)
     SplitInterval(points, keep, probas)
   }
-  def producePoints(central: Double, n: Int): (List[Real], List[Boolean], List[Interval])  = {
+
+  /**
+    * Produce the list of the points resulting from the split in respect of the distribution which implement this trait
+    * @param central truncation of the distribution around the middle point (in [0 .. 1], 0 and or 1 excluded depending on the distribution)
+    * @param n number of splits to perform
+    * @return the list of points, the list of keep flags (cf ExprSplitterDistribution) and the list of probabilities atached to each subinterval)
+    */
+  def producePoints(central: Double, n: Int): (List[Real], List[Boolean], List[Interval]) = {
     require(central > 0 && central <= 1, s"central argument must be between 0 and 1: $central%")
     require(n > 0, s"The number of split must be positive: splitby $n")
     val lo = icdf((1 - central) / 2)

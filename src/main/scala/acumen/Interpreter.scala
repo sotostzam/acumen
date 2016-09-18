@@ -33,6 +33,7 @@ abstract class InterpreterRes {
 /** Interface common to all interpreters whose results can be converted to/from CStores. */
 trait CStoreInterpreter extends Interpreter {
   type SuperStore = Map[Tag, Store]
+  type SuperMetadata = Map[Tag, Metadata]
   type Store
 
   override def newInterpreterModel = new CStoreModel(new CStoreOpts)
@@ -41,39 +42,49 @@ trait CStoreInterpreter extends Interpreter {
   def fromCStore (cs:CStore, root:CId) : Store
 
   /** Based on prog, creates the initial store that will be used to start the simulation. */
-  def init(prog:Prog) : (Prog, SuperStore, Map[Tag, Metadata])
+  def init(prog:Prog) : (Prog, SuperStore, SuperMetadata)
   
   /** Based on the current interpreter, prog will be lifted differently  */
   def lift ():Prog => Prog
-  
-  /** Split the intervals into points in a CStore */
-  def splitIntervals(cs: CStore): Map[Tag, CStore] = {
-    //Find intervals in a CStore and produce a list of updates to apply
-    def findIntervals(cs: CStore): List[((CId, Name), IntervalSplitter)] = {
-      //return the interval in the object field "fields"
-      (cs flatMap { case (id, o) => o flatMap {
-        case (n, VLit(GInterval(SplitInterval(_, is)))) => Some((id, n), is)
-        //Shouldn't happen, would lead to an interpreter error
-        case (n, VLit(GInterval(_))) => println("Basic intervals are prohibited in the optimized interpreter"); None
-        case _ => None
+
+  /**
+    * Generic splitting function relying on a convertion to CStore and back to Store then
+    * @param st The store to split
+    * @return The SuperStore containing the result of the split
+    */
+  def splitIntervalsStore(st: Store): SuperStore = {
+    def splitIntervals(cs: CStore): Map[Tag, CStore] = {
+      //Find intervals in a CStore and produce a list of updates to apply
+      def findIntervals(cs: CStore): List[((CId, Name), IntervalSplitter)] = {
+        //return the interval in the object field "fields"
+        (cs flatMap { case (id, o) => o flatMap {
+          case (n, VLit(GInterval(SplitInterval(_, is)))) => Some((id, n), is)
+          //Shouldn't happen, would lead to an interpreter error
+          case (n, VLit(GInterval(_))) => println("Basic intervals are prohibited in the optimized interpreter"); None
+          case _ => None
+        }
+        }).toList
       }
-      }).toList
-    }
 
-    //Build the list of updates
-    val updates = findIntervals(cs)
-    //Apply each update to every Object resulting from the previous updates
-    updates.foldLeft(Map(Tag.root -> cs)) { case (res, ((id, n), is)) =>
-      for ((tag, st) <- res; (p, i) <- is.subPoints.map(_.doubleValue()).zipWithIndex) yield
-        ((id, n, i, is.subPoints.size - 1) :: tag) -> st.updated(id, st(id) updated(n, VLit(GDouble(p))))
+      //Build the list of updates
+      val intervalsToSplit = findIntervals(cs)
+      //Apply each update to every Object resulting from the previous updates
+      intervalsToSplit.foldLeft(Map(Tag.root -> cs)) { case (res, ((id, n), is)) =>
+        for ((tag, st) <- res; (p, i) <- is.subPoints.map(_.doubleValue()).zipWithIndex) yield
+          ((id, n, i, is.subPoints.size - 1) :: tag) -> st.updated(id, st(id) updated(n, VLit(GDouble(p))))
+      }
     }
+    /* General splitting function which relies on the repr / fromCStore pseudo reciprocity
+     * It might by usefull to overload it to perform splitting elsewhere than at the init step or not to use points */
+    splitIntervals(repr(st)) mapValues (fromCStore(_, CId.nil))
   }
-  /* General splitting function which relies on the repr / fromCStore pseudo reciprocity
-   * It might by usefull to overload it to perform splitting elsewhere than at the init step or not to use points */
-  def splitIntervalsStore(st: Store): SuperStore = splitIntervals(repr(st)) mapValues (fromCStore(_, CId.nil))
 
-  //Should be overriden for better performance
-  /** Read the deadStore value in the simulator */
+  /**
+    * Read the deadStore flag in a store. This flag is set to true if something which should have crashed the simulation happen
+    * NOTE: Override for performance
+    * @param cs the tested store
+    * @return true is the store is dead, false otherwise
+    */
   def isDead(cs: Store): Boolean = {
     acumen.util.Conversions.extractBoolean(
       acumen.util.Canonical.getInSimulator(Name("deadStore", 0), repr(cs)))
@@ -89,9 +100,8 @@ trait CStoreInterpreter extends Interpreter {
   }
 
   sealed abstract class StepRes
-  case class Data(st: SuperStore, md: Map[Tag, Metadata]) extends StepRes
-  case class Done(md: Map[Tag, Metadata], endTime: Double) extends StepRes
-
+  case class Data(st: SuperStore, md: SuperMetadata) extends StepRes
+  case class Done(md: SuperMetadata, endTime: Double) extends StepRes
   /**
    * Moves the simulation one step forward.  Returns Done at the end of the simulation.
    * NOTE: Performing a step does not necessarily imply that time moves forward.
@@ -102,7 +112,7 @@ trait CStoreInterpreter extends Interpreter {
    * Performs multiple steps. Driven by "adder"  
    * NOTE: May be overridden for better performance.
    */
-  def multiStep(p: Prog, st0: Store, md0: Metadata, adder: DataAdder, baseTag: Tag) : Map[Tag, (Store, Metadata, Double)] = {
+  def multiStep(p: Prog, st0: Store, md0: Metadata, adder: DataAdder, baseTag: Tag = Tag.root) : Map[Tag, (Store, Metadata, Double)] = {
     //The tags in the returned map are absolute (baseTag added before the return)
     var st = st0
     var md = md0
@@ -142,7 +152,7 @@ trait CStoreInterpreter extends Interpreter {
           return resSMd map {case(t, md) => (t::baseTag) -> (st, md, endTime)}
       }
     }
-    Map(baseTag -> (st,md,Double.NaN))
+    throw  ShouldNeverHappen()
   }
 
   type History = Stream[Store]
@@ -180,7 +190,7 @@ trait CStoreInterpreter extends Interpreter {
   /* all-in-one main-loop */
   def lazyRun(p:Prog): CStoreRes = {
     val (p1,sst,mds) = init(p)
-    require(sst.size == 1, "Splitting is prohibited in this interpreter.")
+    require(sst.size == 1, "More than one store returned by init. Splitting is prohibited in this interpreter.")
     val trace = lazyLoop(p1, sst.values.head, mds.values.head)
     CStoreRes(trace map repr, NoMetadata)
   }
@@ -212,7 +222,7 @@ trait CStoreInterpreter extends Interpreter {
 
   def run(p: Prog, adder: DataAdder) : (History,Metadata) = {
    val (p1,sst,mds) = init(p)
-   require(sst.size == 1, "Splitting is prohibited in this interpreter.")
+   require(sst.size == 1, "More than one store returned by init. Splitting is prohibited in this interpreter.")
    loop(p1, sst.values.head, mds.values.head, adder)
   }
 
@@ -223,28 +233,42 @@ trait CStoreInterpreter extends Interpreter {
       @tailrec def loopInner(st0: Store, md0: Metadata): (Store, Metadata) =
         if (adder.done) (st0, md0)
         else {
-          //Dynamic split prohibited here
-          val multiStepRes = multiStep(p, st0, md0, adder, Tag.root)
-          require(multiStepRes.size >= 1, "A step retuned more than one store. Dynamic splitting in prohibited in the loop function.")
-          multiStepRes.head match  { case (tag, (st1, md1, _)) =>
-            val (st2, md2) = exposeExternally(st1, md1)
-            loopInner(st2, md2)
-          }
+          //It is assumed that the data returned by multistep is a one element map.
+          val (st1, md1, _) = multiStep(p, st0, md0, adder).values.head
+          val (st2, md2) = exposeExternally(st1, md1)
+          loopInner(st2, md2)
         }
       loopInner(st, md)
     }
-    val (p1,sst,mds) = init(p)
-    require(sst.size == 1, "Splitting is prohibited in this interpreter.")
-    val (lastStore, md1) = streamingLoop(p1, sst.values.head, mds.values.head, SingleStep)
+    val (p1, st, md) = init(p)
+    val (lastStore, md1) = streamingLoop(p1, st.values.head, md.values.head, SingleStep)
     CStoreRes(repr(lastStore) #:: empty, md1)
   }
 
-  // Generic data adding methods
+  /**
+    * Generic method to buffer data from a SuperStore before sending it to the model
+    * @param sst the SuperStore to be added
+    * @param adders the adders corresponding to the stores in sst
+    */
   def addData(sst: SuperStore, adders: collection.mutable.Map[Tag, DataAdder]): Unit = {
     sst.keys foreach (tag => addData(sst(tag), adders(tag), tag))
   }
+
+  /**
+    * Generic method to buffer data from a Store before sending it to the model
+    * @param st the store to be added
+    * @param adder the adder to use to add st
+    * @param tag the tag attached to st
+    */
   def addData(st: Store, adder: DataAdder, tag: Tag): Unit =
     addData(repr(st), adder, tag, isDead(st))
+
+  /**
+    * Generic method to buffer data from a CStore before sending it to the model
+    * @param cStore the CStore to be added
+    * @param adder the adder to use to add cStore
+    * @param tag the tag attached to cStore
+    */
   def addData(cStore: CStore, adder: DataAdder, tag: Tag, deadTag: Boolean): Unit =
     cStore.foreach { case (id, o) => adder.addData(id, o, tag, deadTag) }
   
@@ -329,7 +353,7 @@ abstract class DataAdder {
    * Called to update the data collected for the object corresponding to "objId"
    * in this adder with "values".
    */
-  def addData(objId: CId, values: GObject, tag: Tag, deadTag: Boolean = false) : Unit
+  def addData(objId: CId, values: GObject, tag: Tag, deadTag: Boolean) : Unit
   /**
    * Called after each step.  If false than multiStep should not continue and
    * return the current Store.
