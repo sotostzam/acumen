@@ -12,7 +12,7 @@ import acumen.interpreters.Common._
 import acumen.interpreters.enclosure.{IntervalSplitter, SplitInterval}
 import acumen.util.Conversions
 
-import scala.collection.mutable.ListBuffer
+import scala.collection.mutable
 
 /** Interface common to all interpreters. */
 trait Interpreter {
@@ -205,12 +205,12 @@ trait CStoreInterpreter extends Interpreter {
   /* multistep versions of loop and run, not lazy but supports
    * returning metadata */
 
-  def loop(p:Prog, st:Store, md: Metadata, adder: DataAdder): (History, Metadata) = {
+  def loop(p:Prog, st:Store, md: Metadata, adder: DataAdder, tag: Tag): (History, Metadata) = {
     @tailrec def loopInner(st0: Store, md0: Metadata, h: => History): (History, Metadata) =
       if (adder.done) (h, md0)
       else {
         //Dynamic split prohibited here
-        val multiStepRes = multiStep(p, st0, md0, adder, Tag.root)
+        val multiStepRes = multiStep(p, st0, md0, adder, tag)
         require(multiStepRes.size == 1, "A step retuned more than one store. Dynamic splitting in prohibited in the loop function.")
         multiStepRes.head match  { case (tag, (st1, md1, _)) =>
           val (st2, md2) = exposeExternally(st1, md1)
@@ -222,8 +222,12 @@ trait CStoreInterpreter extends Interpreter {
 
   def run(p: Prog, adder: DataAdder) : (History,Metadata) = {
    val (p1,sst,mds) = init(p)
-   require(sst.size == 1, "More than one store returned by init. Splitting is prohibited in this interpreter.")
-   loop(p1, sst.values.head, mds.values.head, adder)
+    val simResult  = sst map { case (tag, st) =>
+      loop(p1, st, mds(tag), adder, tag)
+    }
+    // FIXME: Changing the signature of this function has broad consequences but is required to be consistent with the splitting
+    // But it seems that the resturned value is not used for the res file, which make this implementation sufficient for testing
+    simResult.head
   }
 
   /* streaming version of loop. does not preserve history. */
@@ -554,10 +558,14 @@ class DumpSample(out: java.io.PrintStream) extends DataAdder {
   var prevStepType : ResultType = Initial
   var curStepType : ResultType = Initial
   var useResult : ShouldAddData.Value =  ShouldAddData.No
-  var store = new scala.collection.mutable.MutableList[(CId, GObject)]
+  var store = mutable.Map.empty[Tag, mutable.MutableList[(CId, GObject)]]
   
   def dumpLastStep = {
-    out.println(pp.pprint(pp.prettyStore(store)))
+    store foreach {case (_, st) => out.println(pp.pprint(pp.prettyStore(st)))}
+    // FIXME: I strongly recommend to remove the next line once the tests have been done successfully and to regenerate the res files
+    // It is there only to mimic the previous situation where the store was printed even if empty
+    // (just a new line in that case), but it has no reason to continue to exist.
+    if(store.isEmpty) out.println(pp.pprint(pp.prettyStore(new mutable.MutableList[(CId, GObject)])))
     out.println("-" * 30 + stepNum)
   }
   
@@ -583,7 +591,8 @@ class DumpSample(out: java.io.PrintStream) extends DataAdder {
     dumpLastStep
   }
   def addData(objId: CId, values: GObject, tag: Tag = Tag.root, deadTag: Boolean = false) = {
-    store += ((objId, values.toList)) // need to make a copy of the values as they could change
+    if(!store.contains(tag)) store += tag -> new mutable.MutableList[(CId, GObject)]
+    store(tag) += ((objId, values.toList)) // need to make a copy of the values as they could change
   }
   def continue = true
 }
