@@ -211,7 +211,7 @@ trait CStoreInterpreter extends Interpreter {
       else {
         //Dynamic split prohibited here
         val multiStepRes = multiStep(p, st0, md0, adder, Tag.root)
-        require(multiStepRes.size >= 1, "A step retuned more than one store. Dynamic splitting in prohibited in the loop function.")
+        require(multiStepRes.size == 1, "A step retuned more than one store. Dynamic splitting in prohibited in the loop function.")
         multiStepRes.head match  { case (tag, (st1, md1, _)) =>
           val (st2, md2) = exposeExternally(st1, md1)
           loopInner(st2, md2, st2 #:: h)
