@@ -16,6 +16,10 @@ class Reference2015SemanticsTest extends Traditional2015Tests {
           , "09_Ha-extract/06_two-tanks-extracted.acm"        // and will stall at t = 2.0 
           , "09_Ha-extract/07_two-tanks.acm"                  // Zeno point when simulated
           , "09_Ha-extract/08_two-two-tanks-helper.acm"       // using 2015 semantics
+          //The following examples are not compatible anymore with the new intervals semantics
+          , "04_Experimental/02_Robust_Simulation/07_BB_OC_validated_w_mutiple_uncertainties.acm"
+          , "05_Language_Research/16_Desca/bouncing-ball-hypothesis.acm"
+          //----------------------------------------------------------------------------------
           ).exists(f endsWith _)
   }
 

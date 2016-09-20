@@ -222,6 +222,7 @@ trait CStoreInterpreter extends Interpreter {
 
   def run(p: Prog, adder: DataAdder) : (History,Metadata) = {
    val (p1,sst,mds) = init(p)
+
     val simResult  = sst map { case (tag, st) =>
       loop(p1, st, mds(tag), adder, tag)
     }
