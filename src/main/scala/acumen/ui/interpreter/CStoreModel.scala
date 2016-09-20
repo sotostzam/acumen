@@ -293,7 +293,7 @@ case class DataModel(columnNames: mutable.Map[Tag, im.IndexedSeq[String]],
             case collGV: ResultCollector[GValue] =>
               if (collGV.nonEmpty) // there is only one row in rs since we are taking each row in a loop
                 collGV.head match {
-                  case VLit(_: GStr | _: GDiscreteEnclosure[_]) =>
+                  case VLit(_: GBool | _: GStr | _: GDiscreteEnclosure[_]) =>
                     res += new PlotDiscrete(result.isSimulator, result.key, result.startFrame, idx, rs)
                   case VVector(n) =>
                   case _ => ()

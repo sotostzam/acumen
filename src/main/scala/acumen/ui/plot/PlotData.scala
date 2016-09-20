@@ -359,6 +359,8 @@ class PlotData(parms: PlotParms = null, tb:PlotModel = null, val disableThreshol
                 case VLit(GStr(str)) => lines.add(time(t)(frame), Set(str))
                 case VLit(e: GDiscreteEnclosure[_]) => lines.add(time(t)(frame), e.range.map(_.toString))
                 case VLit(GInt(i)) => lines.add(time(t)(frame), Set(i.toString))
+                case VLit(GBool(b)) => lines.add(time(t)(frame), Set(b.toString))
+                case _ => throw ShouldNeverHappen
               }
             }
 
