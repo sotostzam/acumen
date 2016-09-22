@@ -728,7 +728,7 @@ package acumen {
     * Interval: Bounds the probability of the corresponding subinterval resulting from the split
     * @param splitInfo split information of the store to wich the tag s attached
     */
-  case class Tag(splitInfo: List[((CId, Name, Int, Int), Option[Interval])]) {
+  case class Tag(splitInfo: List[((CId, Name, Int, Int), Option[Interval])]) extends Ordered[Tag] {
     require(splitInfo.forall(_._2.isEmpty) || splitInfo.forall(Interval(0, 1) contains _._2.get),
       "Probabilities must all be between 0 and 1 or all be undefined")
 
@@ -758,7 +758,38 @@ package acumen {
 
     def ::(id: (CId, Name, Int, Int), p: Option[Interval] = None) = Tag((id, p)::splitInfo)
     def ::(t: Tag) = Tag(t.splitInfo ::: splitInfo)
+
+    /**
+      * Defines a meaningless total order (no mathematical justification)
+      * Sorting tags is useful only to make the simulations reproducible despite the fact that Store are stored in maps
+      * which are not sorted.
+      * It is used to write the result file of a simulation in a reproducible way for the tests for instance
+      * @param that element to which this is compared
+      * @return 1 if this > that, -1 if this < that, 0 otherwise
+      */
+    override def compare(that: Tag): Int = {
+      val zippedTags = splitInfo.zip(that.splitInfo)
+      var i = 0
+      while(i < zippedTags.length) {
+        zippedTags(i) match {
+          case (((cid1, name1, i1, t1), p1), ((cid2, name2, i2, t2), p2)) =>
+            if (cid1 > cid2) return 1 else if (cid1 < cid2) return -1
+            if (name2 < name1) return 1 else if (name1 < name2) return -1
+            if (i1 > i2) return 1 else if (i1 < i2) return -1
+            if (t1 > t2) return 1 else if (t1 < t2) return -1
+            (p1, p2) match {
+              case (Some(_), None) => return 1
+              case (None, Some(_)) => return -1
+              case (Some(p1), Some(p2)) => if (p1 greaterThan p2) return 1 else if (p1 lessThan p2) return -1
+              case _ => //Continue
+            }
+        }
+        i += 1
+      }
+      0
+    }
   }
+
   object Tag {
     def root = Tag(List.empty)
   }

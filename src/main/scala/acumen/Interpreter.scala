@@ -562,7 +562,8 @@ class DumpSample(out: java.io.PrintStream) extends DataAdder {
   var store = mutable.Map.empty[Tag, mutable.MutableList[(CId, GObject)]]
   
   def dumpLastStep = {
-    store foreach {case (_, st) => out.println(pp.pprint(pp.prettyStore(st)))}
+    val ordTags = store.keys.toList.sorted
+    ordTags foreach (tag => out.println(pp.pprint(pp.prettyStore(store(tag)))))
     // FIXME: I strongly recommend to remove the next line once the tests have been done successfully and to regenerate the res files
     // It is there only to mimic the previous situation where the store was printed even if empty
     // (just a new line in that case), but it has no reason to continue to exist.
