@@ -607,10 +607,8 @@ object Common {
   var paramModelTxt = "\n\n model Parameters()= \n\n"
 
   // This store txt of Simulator model used for optimize, reference and enclosure interpreter
-  // PlotOnly tells that the store is produced only for plotting but must not be used to continue the simulation (i.e. it is a Snapshot of the simulation at a given step)
   val commonInitStoreTxt = s"""#0.0 { className = Simulator, parent = %s, nextChild = 0,
-                             variableCount = 0, continuousSkip = 0, parameters = Parameters,
-                             plotEnabled = true, plotOnly = false, deadStore = false, """
+                             variableCount = 0, continuousSkip = 0, parameters = Parameters, deadStore = false, """
 
   // The store txt for Simulator model
   def initStoreTxt(initStep: ResultType, timeStep: Double, outputRows: String, hypothesisReport: String, method: String) =

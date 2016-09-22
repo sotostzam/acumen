@@ -66,7 +66,6 @@ object Common {
                        , intersectWithGuardBeforeReset : Boolean                = true 
                        , disableContraction            : Boolean                = false 
                        , hypothesisReport              : String                 = "Comprehensive"
-                       , plotOnly                      : Boolean                = false
                        , deadStore                     : Boolean                = false
                        )
   object Parameters {
@@ -89,7 +88,6 @@ object Common {
       val intersectWithGuardBeforeReset = "intersectWithGuardBeforeReset"
       val disableContraction            = "disableContraction"           
       val hypothesisReport              = "hypothesisReport"             
-      val plotOnly                      = "plotOnly"
       val deadStore                     = "deadStore"
     }
     
@@ -114,7 +112,6 @@ object Common {
          , intersectWithGuardBeforeReset -> (true, VLit(GBool(p.intersectWithGuardBeforeReset)))
          , disableContraction            -> (true, VLit(GBool(p.disableContraction)))
          , hypothesisReport              -> (true, VLit(GStr(p.hypothesisReport)))
-         , plotOnly                      -> (true, VLit(GBool(p.plotOnly)))
          , deadStore                     -> (true, VLit(GBool(p.deadStore)))
          )
     }
@@ -172,7 +169,6 @@ object Common {
       val VLit(GBool(intersectWithGuardBeforeReset)) = getInSimulator(Names.intersectWithGuardBeforeReset, st)
       val VLit(GBool(disableContraction))            = getInSimulator(Names.disableContraction, st)
       val VLit(GStr (hypothesisReport))              = getInSimulator(Names.hypothesisReport, st)
-      val VLit(GBool(plotOnly))                      = getInSimulator(Names.plotOnly, st)
       val VLit(GBool(deadStore))                     = getInSimulator(Names.deadStore, st)
       Parameters( time                          = time                         
                 , endTime                       = endTime                      
@@ -191,7 +187,6 @@ object Common {
                 , intersectWithGuardBeforeReset = intersectWithGuardBeforeReset
                 , disableContraction            = disableContraction           
                 , hypothesisReport              = hypothesisReport             
-                , plotOnly                      = plotOnly
                 , deadStore                     = deadStore
                 )                                           
     }

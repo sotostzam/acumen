@@ -18,7 +18,6 @@ object Canonical {
   val timeStep     = name("timeStep")
   val resultType   = name("resultType")
   val endTime      = name("endTime")
-  val plotOnly     = name("plotOnly")
   val deadStore    = name("deadStore")
   val nextChild    = name("nextChild")
   val children     = name("children")
