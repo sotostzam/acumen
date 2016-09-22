@@ -18,7 +18,6 @@ object Canonical {
   val timeStep     = name("timeStep")
   val resultType   = name("resultType")
   val endTime      = name("endTime")
-  val plotEnabled  = name("plotEnabled")
   val plotOnly     = name("plotOnly")
   val deadStore    = name("deadStore")
   val nextChild    = name("nextChild")
@@ -138,7 +137,6 @@ object Canonical {
   def getTimeStep(st:CStore)   = extractDouble(getInSimulator(timeStep, st))
   def getEndTime(st:CStore)    = extractDouble(getInSimulator(endTime, st))
   def getResultType(st:CStore) = { val VResultType(t) = getInSimulator(resultType, st); t }
-  def getPlotEnabled(st:CStore) = extractBoolean(getInSimulator(plotEnabled, st))
 
   def setTime(d:Double, s:CStore)       = setInSimulator(time, VLit(GDouble(d)), s)
   def setResultType(t:ResultType, s:CStore) = setInSimulator(resultType, VResultType(t), s)

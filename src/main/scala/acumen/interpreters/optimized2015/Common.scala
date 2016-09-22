@@ -27,7 +27,6 @@ import acumen.util.Canonical.{
   nextChild,
   parentOf,
   parent,
-  plotEnabled,
   seedOf,
   seed1,
   seed2,
@@ -444,7 +443,6 @@ object Common {
   def getTimeStep(magic: Object) = extractDouble(getField(magic, timeStep))
   def getEndTime(magic: Object) = extractDouble(getField(magic, endTime))
   def getResultType(magic: Object) = { val VResultType(t) = getField(magic, resultType); t }
-  def getPlotEnabled(magic: Object) = extractBoolean(getField(magic, plotEnabled))
 
   /* write in magic */
   /* SIDE EFFECT */

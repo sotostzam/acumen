@@ -134,7 +134,7 @@ trait CStoreInterpreter extends Interpreter {
           cstores foreach {case (t, cst) =>
             adder.shouldAddData = adder.newStep(getResultType(cst))
             //Dead Stores are added to see that something wrong happened in the table. The plotter can deal with it.
-            if (adder.shouldAddData == ShouldAddData.Yes && getPlotEnabled(cst))
+            if (adder.shouldAddData == ShouldAddData.Yes)
               addData(cst, adder, t, deadStores(t))
           }
           if (!adder.continue) {

@@ -329,7 +329,7 @@ class Interpreter extends CStoreInterpreter {
         sst foreach { case (t, st) =>
           endTimes += t -> Double.NaN
           adder.shouldAddData = adder.newStep(res)
-          if (adder.shouldAddData == ShouldAddData.Yes && getPlotEnabled(magics(t)))
+          if (adder.shouldAddData == ShouldAddData.Yes)
             addData(st, adder, t :: baseTag, isDead(st))
         }
         // It is impossible to continue if a split occur during the last step. If no split occur, then sst.values == st.
