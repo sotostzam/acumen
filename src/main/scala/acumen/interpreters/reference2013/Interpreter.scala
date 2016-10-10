@@ -362,7 +362,7 @@ object Interpreter extends acumen.CStoreInterpreter {
   
   /* Main simulation loop */  
 
-  def init(prog:Prog) : (Prog, SuperStore, Map[Tag, Metadata]) = {
+  def init(prog:Prog) : (Prog, SuperStore, SuperMetadata) = {
     val cprog = CleanParameters.run(prog, CStoreInterpreterType)
     val sprog = Simplifier.run(cprog)
     val mprog = Prog(magicClass :: sprog.defs)

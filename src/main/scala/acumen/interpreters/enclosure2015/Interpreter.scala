@@ -591,7 +591,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
   
   /* Main simulation loop */  
 
-  def init(prog: Prog) : (Prog, SuperStore, Map[Tag, Metadata]) = {
+  def init(prog: Prog) : (Prog, SuperStore, SuperMetadata) = {
     prog.defs.foreach(d => checkValidAssignments(d.body))
     checkNestedHypotheses(prog)
     checkContinuousAssignmentToSimulator(prog)
@@ -698,7 +698,10 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
     }
   } catch {
     //If this error occur, the Store is set dead and returned in its last state
-    case e: DomainException => Data(Map(Tag.root -> setInSimulator(deadStore, VLit(GBool(true)), st)), Map(Tag.root -> md))
+    case e:DomainException =>
+      Logger.log("A Store crashed during the last step and has been removed from the plot.\n" +
+                 "The previous values are still accessible in the table.")
+      Data(Map(Tag.root -> setInSimulator(deadStore, VLit(GBool(true)), st)), Map(Tag.root -> md))
   }
 
   def testForFixpoint(oldStore: EnclosureAndBranches, newStore: EnclosureAndBranches, md: Metadata): Metadata =

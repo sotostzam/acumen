@@ -681,5 +681,13 @@ object Common {
       }
     o.children.foreach{child => checkContinuousDynamicsAlwaysDefined(child, magic)}
   }
-  
+
+  /**
+    * Tests if the passed object corresponds to a dead store
+    * @param main Object main of the Store to be tested
+    * @return true if and only if the Store is dead
+    */
+  def isDead(main: Object): Boolean =
+    extractBoolean(getField(getSimulator(main), Name("deadStore", 0)))
+
 }
