@@ -165,10 +165,11 @@ class EnclosureModel extends InterpreterModel {
 
       override def getDeadTags() = deadTags.toSet
 
-      override def getProba: Option[ProbaData] = ???
+      //This model is not supposed to be used with the probability features
+      override def getProba: Option[ProbaData] = throw ShouldNeverHappen()
 
-      //FIXME Not a good place for a writing accessor.
-      override def setProba(pd: Option[ProbaData]): Unit = ???
+      //This model is not supposed to be used with the probabiltiy features
+      override def setProba(pd: Option[ProbaData]) = throw ShouldNeverHappen()
     }
 
     val traceModel = new TraceModel {

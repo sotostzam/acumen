@@ -166,23 +166,78 @@ package acumen {
   /* Example: [a:b] deprecated, now [a..b] and m+/-r*/
   case class ExprInterval(lo: Expr, hi: Expr) extends Expr
   case class ExprIntervalM(mid: Expr, pm: Expr) extends Expr
-  /* Example: [1 .. 2] splitby ... */
+
+
   sealed abstract class ExprSplitter extends Expr
-  /* Example: [1 .. 2] splitby 5 */
+
+  /**
+    * Splitter using a number of equaly sized splits
+    * Example: splitby 5
+    * @param i bounds of the interval to split
+    * @param n number of splits to perform
+    */
   case class ExprSplitterN(i: Expr, n: Expr) extends ExprSplitter
-  /* Example: [1 .. 2] splitby (1,2,1) */
+
+  /**
+    * splitter using a list of relative weights for the splits size
+    * Example: splitby (1, 2, 1, 2, 1)
+    * @param i bounds of the interval to split
+    * @param ws list of the relativ weights (negative to ignore the corresponding split)
+    */
   case class ExprSplitterWeights(i: Expr, ws: List[Expr]) extends ExprSplitter
-  /* Example: [0 .. 4] splitby (0 .. 1 ++ 2 .. 3 ++ 4) */
+
+  /**
+    * Splitter using a list of inner points to split the total interval
+    * @param ps list of the innerpoints plus the bounds (sorted)
+    * @param keeps list of the flags corresponding to the subintervals described by ps. false to ignore a subinterval, true to keep it.
+    */
   case class ExprSplitterPoints(ps: List[Expr], keeps: List[Expr]) extends ExprSplitter
-  /** s must be an ExprSplitter */
+
+  /**
+    * Examples: [0 ..1] splitby 5 ; [0 .. 1] splitby (1, 2, 1) ; [0 .. 1] ++ [2 .. 3]
+    * @param i ExprInterval correspondong to the total interval
+    * @param s ExprSplitter depending on the splitting mechanism used
+    */
   case class ExprSplitInterval(i: Expr, s: Expr) extends Expr
-  /* Distribtuion splitters */
+
+  /**
+    * Splitters based on distribution. Can generate points or intervals with respect of a distribution
+    * Example: noramld(0, 1) central 0.9 splitby 10
+    *          uniformd(-5, 5) splitby 5
+    *          betad(-10, 10, 0.2, 0.2) splitby 100
+    */
   abstract sealed class ExprSplitterDistribution extends Expr
-  /* Example: normald(0,1) central 75 splitby 10 */
+
+  /**
+    * Splitter using a normal distribution
+    * Example: noramld(0, 1) central 0.9 splitby 10
+    * @param mu mean of the distribution
+    * @param sigmaSquared standard deviation squared
+    * @param central truncation of the whole distribution aroud the mean (in ]0 .. 1[)
+    * @param n number of splits
+    */
   case class ExprSplitterNormal(mu: Expr, sigmaSquared: Expr, central: Expr, n: Expr) extends ExprSplitterDistribution
-  /* Example: uniformd(0,1) splitby 5 */
+
+  /**
+    * Splitter using a uniform distribution
+    * Example: uniformd(-5, 5) splitby 5
+    * @param lo low bound of the distribution
+    * @param hi high bound
+    * @param central truncation of the whole distribution around the middle point (in [0, 1])
+    * @param n number of splits
+    */
   case class ExprSplitterUniform(lo: Expr, hi: Expr, central: Expr, n: Expr) extends ExprSplitterDistribution
-  /* Example: betad(0,1,2,5) splitby 10 */
+
+  /**
+    * Splitter using a beta distribution
+    * Example: betad(-10, 10, 0.2, 0.2) splitby 100
+    * @param lo low bound of the distribution
+    * @param hi high bound
+    * @param a a standard parameter
+    * @param b b standard parameter
+    * @param central truncation of the whole distribution aroud the mean (in ]0 .. 1])
+    * @param n number of splits
+    */
   case class ExprSplitterBeta(lo: Expr, hi: Expr, a: Expr, b: Expr, central: Expr, n: Expr) extends ExprSplitterDistribution
   /* Example: let x=1+2;y=2+3 in x+y end */
   case class ExprLet(bindings:List[(Name,Expr)], e2:Expr) extends Expr
@@ -663,37 +718,78 @@ package acumen {
       case NamedClass(cn) => cn.x
     }
   }
-  
-  /** Tag gives informations about the Store to which it is attached and is supposed to be a unique identifier for it.
+
+  /**
+    * Tag gives informations about the Store to which it is attached and is supposed to be a unique identifier for it.
     * It tells which values from a split have been kept (additional information can be added to this class)
     * CId + Name: Identify the interval which has been split
     * 1st Int: Identify the subinterval (or subpoint) kept to build the Store
     * 2nd Int: Number of split done on the corresponding value
     * Interval: Bounds the probability of the corresponding subinterval resulting from the split
+    * @param splitInfo split information of the store to wich the tag s attached
     */
-  case class Tag(tag: List[((CId, Name, Int, Int), Option[Interval])]) {
-    require(tag.forall(_._2.isEmpty) || tag.forall(Interval(0, 1) contains _._2.get),
-      "Probabilities must all be between 0 and 1 are all be undefined")
+  case class Tag(splitInfo: List[((CId, Name, Int, Int), Option[Interval])]) extends Ordered[Tag] {
+    require(splitInfo.forall(_._2.isEmpty) || splitInfo.forall(Interval(0, 1) contains _._2.get),
+      "Probabilities must all be between 0 and 1 or all be undefined")
+
     def pretty = {
-      val body =
-        if (tag.isEmpty) ""
-        else tag.map { case ((id, Name(x, p), i1, i2), _) => x + "'" * p + ":" + i1 + "/" + i2 }.mkString(", ")
-      val proba = if (p.nonEmpty) ", p=[%.2f..%.2f]".format(p.get.loDouble, p.get.hiDouble) else ""
-      "(" + body + proba + ")"
+      if (this == Tag.root)
+        ""
+      else {
+        val body =
+          if (splitInfo.isEmpty) ""
+          else splitInfo.map { case ((id, Name(x, p), i1, i2), _) => x + "'" * p + ":" + i1 + "/" + i2 }.mkString(", ")
+        val proba = if (p.nonEmpty) ", p=[%.2f..%.2f]".format(p.get.loDouble, p.get.hiDouble) else ""
+        "(" + body + proba + ")"
+      }
     }
     override def toString = {
-      val body = if(tag.nonEmpty)
-                    tag.map{case ((_, n, i1, i2), _) => "(" + n.x + ", " + n.primes + "), " + i1 + "/" + i2 }.mkString(", ")
+      val body = if(splitInfo.nonEmpty)
+                    splitInfo.map{case ((_, n, i1, i2), _) => "(" + n.x + ", " + n.primes + "), " + i1 + "/" + i2 }.mkString(", ")
                  else "root"
       val proba = if (p.nonEmpty) ", p=[%.2f..%.2f]".format(p.get.loDouble, p.get.hiDouble) else ""
       "Tag(" + body + proba+ ")"
     }
-    // The probability of the whole Store is the produce of the probabilities of each subStore
-    lazy val p: Option[Interval] = if (tag.isEmpty || tag.exists(_._2.isEmpty)) None else tag.unzip._2. reduce ((l, r) => Some(l.get * r.get))
-    // The default probability of a subinterval is the most uncertain possible
-    def ::(id: (CId, Name, Int, Int), p: Option[Interval] = None) = Tag((id, p)::tag)
-    def ::(t: Tag) = Tag(t.tag ::: tag)
+
+    /**
+      * probability of the Store to which the tag is attached
+      */
+    lazy val p: Option[Interval] = if (splitInfo.isEmpty || splitInfo.exists(_._2.isEmpty)) None else splitInfo.unzip._2. reduce ((l, r) => Some(l.get * r.get))
+
+    def ::(id: (CId, Name, Int, Int), p: Option[Interval] = None) = Tag((id, p)::splitInfo)
+    def ::(t: Tag) = Tag(t.splitInfo ::: splitInfo)
+
+    /**
+      * Defines a meaningless total order (no mathematical justification)
+      * Sorting tags is useful only to make the simulations reproducible despite the fact that Store are stored in maps
+      * which are not sorted.
+      * It is used to write the result file of a simulation in a reproducible way for the tests for instance
+      * @param that element to which this is compared
+      * @return 1 if this > that, -1 if this < that, 0 otherwise
+      */
+    override def compare(that: Tag): Int = {
+      val zippedTags = splitInfo.zip(that.splitInfo)
+      var i = 0
+      while(i < zippedTags.length) {
+        zippedTags(i) match {
+          case (((cid1, name1, i1, t1), p1), ((cid2, name2, i2, t2), p2)) =>
+            if (cid1 > cid2) return 1 else if (cid1 < cid2) return -1
+            if (name2 < name1) return 1 else if (name1 < name2) return -1
+            if (i1 > i2) return 1 else if (i1 < i2) return -1
+            if (t1 > t2) return 1 else if (t1 < t2) return -1
+            (p1, p2) match {
+              case (Some(_), None) => return 1
+              case (None, Some(_)) => return -1
+              case (Some(p1), Some(p2)) => if (p1 greaterThan p2) return 1 else if (p1 lessThan p2) return -1
+              case _ => //Continue
+            }
+        }
+        i += 1
+      }
+      0
+    }
   }
+
   object Tag {
     def root = Tag(List.empty)
   }

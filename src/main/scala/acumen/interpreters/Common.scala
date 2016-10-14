@@ -82,44 +82,44 @@ object Common {
     }.mapProg(p)
     
   def liftSplitIntervalToUncertain(e: Expr): Expr = {
-    def intExtractor(e: Expr): Option[Int] = e match {
-      case Lit(n @ GInt(_)) => Some(extractInt(n))
-      case _ => None
+    def intHelper(e: Expr): Int = e match {
+      case Lit(n @ GInt(_)) => extractInt(n)
+      case _ => throw ShouldNeverHappen()
     }
-    def doubleExtractor(e: Expr): Option[Double] = e match {
-      case Lit(x @ (GDouble(_) | GInt(_))) => Some(extractDouble(x))
-      case _ => None
+    def doubleExtractor(e: Expr): Double = e match {
+      case Lit(x @ (GDouble(_) | GInt(_))) => extractDouble(x)
+      case _ => throw ShouldNeverHappen()
     }
-    def booleanExtractor(e: Expr): Option[Boolean] = e match {
-      case Lit(GBool(k)) => Some(k)
-      case _ => None
+    def booleanExtractor(e: Expr): Boolean = e match {
+      case Lit(GBool(k)) => k
+      case _ => throw ShouldNeverHappen()
     }
     e match {
       case ExprSplitInterval(i, s) =>
         val interval = i match {
           case ExprInterval(lo, hi)
-          => Interval(doubleExtractor(lo).get, doubleExtractor(hi).get)
+          => Interval(doubleExtractor(lo), doubleExtractor(hi))
         }
         s match {
           case ExprSplitterPoints(ps, kps) =>
-            val points = ps map { case v => doubleExtractor(v).get }
-            val keeps = kps map { case b => booleanExtractor(b).get}
+            val points = ps map { case v => doubleExtractor(v) }
+            val keeps = kps map { case b => booleanExtractor(b)}
             Lit(GConstantRealEnclosure(SplitInterval(points, keeps)))
           case ExprSplitterWeights(_, ws) =>
-            val weights = ws map { case v => doubleExtractor(v).get }
+            val weights = ws map { case v => doubleExtractor(v) }
             Lit(GConstantRealEnclosure(SplitInterval(interval, weights)))
           case ExprSplitterN(i, n) =>
-            Lit(GConstantRealEnclosure(SplitInterval(interval, intExtractor(n).get)))
+            Lit(GConstantRealEnclosure(SplitInterval(interval, intHelper(n))))
         }
       case ExprSplitterNormal(m, s, c, n) =>
         Lit(GConstantRealEnclosure(
-          NormalDistribution(doubleExtractor(m).get, doubleExtractor(s).get, doubleExtractor(c).get, intExtractor(n).get)))
+          NormalDistribution(doubleExtractor(m), doubleExtractor(s), doubleExtractor(c), intHelper(n))))
       case ExprSplitterUniform(lo, hi, c, n) =>
         Lit(GConstantRealEnclosure(
-          UniformDistribution(doubleExtractor(lo).get, doubleExtractor(hi).get, doubleExtractor(c).get, intExtractor(n).get)))
+          UniformDistribution(doubleExtractor(lo), doubleExtractor(hi), doubleExtractor(c), intHelper(n))))
       case ExprSplitterBeta(lo, hi, a, b, c, n) =>
         Lit(GConstantRealEnclosure(
-          BetaDistribution(doubleExtractor(lo).get, doubleExtractor(hi).get, doubleExtractor(a).get, doubleExtractor(b).get, doubleExtractor(c).get, intExtractor(n).get)))
+          BetaDistribution(doubleExtractor(lo), doubleExtractor(hi), doubleExtractor(a), doubleExtractor(b), doubleExtractor(c), intHelper(n))))
     }
   }
     
@@ -608,8 +608,7 @@ object Common {
 
   // This store txt of Simulator model used for optimize, reference and enclosure interpreter
   val commonInitStoreTxt = s"""#0.0 { className = Simulator, parent = %s, nextChild = 0,
-                             variableCount = 0, continuousSkip = 0, parameters = Parameters,
-                             plotEnabled = true, plotOnly = false, deadStore = false, """
+                             variableCount = 0, continuousSkip = 0, parameters = Parameters, deadStore = false, """
 
   // The store txt for Simulator model
   def initStoreTxt(initStep: ResultType, timeStep: Double, outputRows: String, hypothesisReport: String, method: String) =
@@ -883,5 +882,56 @@ object Common {
       case (VLit(GBool(false)), Initial)                            => (Some(InitialTestFailure(counterEx)), Some(TestSuccess), TestSuccess)
       case (VLit(GBool(false)), Discrete | Continuous | FixedPoint) => (Some(TestSuccess), Some(TestSuccess), TestFailure(time, counterEx))
     }
-  
+
+  //Only handles intervals defined with constant bounds
+  def evalExprIntervals(e: Expr): CValue = {
+    def intHelper(e: Expr): Int = e match {
+      case Lit(n @ GInt(_)) => extractInt(n)
+      case _ => throw ShouldNeverHappen()
+    }
+    def doubleHelper(e: Expr): Double = e match {
+      case Lit(x @ (GDouble(_) | GInt(_))) => extractDouble(x)
+      case _ => throw ShouldNeverHappen()
+    }
+    def booleanExtractor(e: Expr): Boolean = e match {
+      case Lit(GBool(k)) => k
+      case _ => throw ShouldNeverHappen()
+    }
+    def intervalHelper(i: Expr) = i match {
+      case ExprInterval(lo, hi) =>
+        Interval(doubleHelper(lo), doubleHelper(hi))
+      case ExprIntervalM(mid, pm) =>
+        Interval(doubleHelper(mid) - doubleHelper(pm), doubleHelper(mid) + doubleHelper(pm))
+    }
+
+    e match {
+      case i @ (ExprInterval(_, _) | ExprIntervalM(_, _)) =>
+        //Every interval must be split to be processed by the interpreter.
+        //Hence a classic Interval is forced to a splitInterval with only one subinterval
+        VLit(GInterval(SplitInterval(intervalHelper(i))))
+      case ExprSplitInterval(i, s) => {
+        s match {
+          case ExprSplitterPoints(ps, kps) =>
+            val points = ps map { case v => doubleHelper(v) }
+            val keeps = kps map { case b => booleanExtractor(b) }
+            VLit(GInterval(SplitInterval(points, keeps)))
+          case ExprSplitterWeights(_, ws) =>
+            val weights = ws map { case v => doubleHelper(v) }
+            VLit(GInterval(SplitInterval(intervalHelper(i), weights)))
+          case ExprSplitterN(_, n) =>
+            VLit(GInterval(SplitInterval(intervalHelper(i), intHelper(n))))
+        }
+      }
+      case ExprSplitterNormal(m, s, c, n) =>
+        VLit(GInterval(
+          NormalDistribution(doubleHelper(m), doubleHelper(s), doubleHelper(c), intHelper(n))))
+      case ExprSplitterUniform(lo, hi, c, n) =>
+        VLit(GInterval(
+          UniformDistribution(doubleHelper(lo), doubleHelper(hi), doubleHelper(c), intHelper(n))))
+      case ExprSplitterBeta(lo, hi, a, b, c, n) =>
+        VLit(GInterval(
+          BetaDistribution(doubleHelper(lo), doubleHelper(hi), doubleHelper(a), doubleHelper(b), doubleHelper(c), intHelper(n))))
+    }
+  }
+
 }

@@ -27,7 +27,6 @@ import acumen.util.Canonical.{
   nextChild,
   parentOf,
   parent,
-  plotEnabled,
   seedOf,
   seed1,
   seed2,
@@ -444,7 +443,6 @@ object Common {
   def getTimeStep(magic: Object) = extractDouble(getField(magic, timeStep))
   def getEndTime(magic: Object) = extractDouble(getField(magic, endTime))
   def getResultType(magic: Object) = { val VResultType(t) = getField(magic, resultType); t }
-  def getPlotEnabled(magic: Object) = extractBoolean(getField(magic, plotEnabled))
 
   /* write in magic */
   /* SIDE EFFECT */
@@ -559,23 +557,23 @@ object Common {
 
   /** Only handles intervals defined with constant bounds */
   def evalExprIntervals(e: Expr): Val = {
-    def intExtractor(e: Expr): Option[Int] = e match {
-      case Lit(n @ GInt(_)) => Some(extractInt(n))
-      case _ => None
+    def intHelper(e: Expr): Int = e match {
+      case Lit(n @ GInt(_)) => extractInt(n)
+      case _ => throw ShouldNeverHappen()
     }
-    def doubleExtractor(e: Expr): Option[Double] = e match {
-      case Lit(x @ (GDouble(_) | GInt(_))) => Some(extractDouble(x))
-      case _ => None
+    def doubleHelper(e: Expr): Double = e match {
+      case Lit(x @ (GDouble(_) | GInt(_))) => extractDouble(x)
+      case _ => throw ShouldNeverHappen()
     }
-    def booleanExtractor(e: Expr): Option[Boolean] = e match {
-      case Lit(GBool(k)) => Some(k)
-      case _ => None
+    def booleanExtractor(e: Expr): Boolean = e match {
+      case Lit(GBool(k)) => k
+      case _ => throw ShouldNeverHappen()
     }
     def intervalHelper(i: Expr) = i match {
       case ExprInterval(lo, hi) =>
-        Interval(doubleExtractor(lo).get, doubleExtractor(hi).get)
+        Interval(doubleHelper(lo), doubleHelper(hi))
       case ExprIntervalM(mid, pm) =>
-        Interval(doubleExtractor(mid).get - doubleExtractor(pm).get, doubleExtractor(mid).get + doubleExtractor(pm).get)
+        Interval(doubleHelper(mid) - doubleHelper(pm), doubleHelper(mid) + doubleHelper(pm))
     }
     e match {
       case i @ (ExprInterval(_, _) | ExprIntervalM(_, _)) =>
@@ -585,25 +583,25 @@ object Common {
       case ExprSplitInterval(i, s) => {
         s match {
           case ExprSplitterPoints(ps, kps) =>
-            val points = ps map { case v => doubleExtractor(v).get }
-            val keeps = kps map { case b => booleanExtractor(b).get }
+            val points = ps map { case v => doubleHelper(v) }
+            val keeps = kps map { case b => booleanExtractor(b) }
             VLit(GInterval(SplitInterval(points, keeps)))
           case ExprSplitterWeights(_, ws) =>
-            val weights = ws map { case v => doubleExtractor(v).get }
+            val weights = ws map { case v => doubleHelper(v) }
             VLit(GInterval(SplitInterval(intervalHelper(i), weights)))
           case ExprSplitterN(_, n) =>
-            VLit(GInterval(SplitInterval(intervalHelper(i), intExtractor(n).get)))
+            VLit(GInterval(SplitInterval(intervalHelper(i), intHelper(n))))
         }
       }
       case ExprSplitterNormal(m, s, c, n) =>
         VLit(GInterval(
-          NormalDistribution(doubleExtractor(m).get, doubleExtractor(s).get, doubleExtractor(c).get, intExtractor(n).get)))
+          NormalDistribution(doubleHelper(m), doubleHelper(s), doubleHelper(c), intHelper(n))))
       case ExprSplitterUniform(lo, hi, c, n) =>
         VLit(GInterval(
-          UniformDistribution(doubleExtractor(lo).get, doubleExtractor(hi).get, doubleExtractor(c).get, intExtractor(n).get)))
+          UniformDistribution(doubleHelper(lo), doubleHelper(hi), doubleHelper(c), intHelper(n))))
       case ExprSplitterBeta(lo, hi, a, b, c, n) =>
         VLit(GInterval(
-          BetaDistribution(doubleExtractor(lo).get, doubleExtractor(hi).get, doubleExtractor(a).get, doubleExtractor(b).get, doubleExtractor(c).get, intExtractor(n).get)))
+          BetaDistribution(doubleHelper(lo), doubleHelper(hi), doubleHelper(a), doubleHelper(b), doubleHelper(c), intHelper(n))))
     }
   }
   
@@ -632,6 +630,7 @@ object Common {
 
     val res = prt match {
       case IsMain =>
+        //Set the object as a parent of its simulator object
         val o = Object(CId.nil, pub, magic.phaseParms, None, childrenCounter, sd, Vector(magic))
         magic.parent = Some(o)
         o
@@ -984,5 +983,12 @@ object Common {
       }
     o.children.foreach{child => checkContinuousDynamicsAlwaysDefined(child, magic)}
   }
-  
+
+  /**
+    * Tests if the passed object corresponds to a dead store
+    * @param main Object main of the Store to be tested
+    * @return true if and only if the Store is dead
+    */
+  def isDead(main: Object): Boolean =
+    extractBoolean(getField(getSimulator(main), Name("deadStore", 0)))
 }

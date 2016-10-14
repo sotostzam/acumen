@@ -359,6 +359,8 @@ class PlotData(parms: PlotParms = null, tb:PlotModel = null, val disableThreshol
                 case VLit(GStr(str)) => lines.add(time(t)(frame), Set(str))
                 case VLit(e: GDiscreteEnclosure[_]) => lines.add(time(t)(frame), e.range.map(_.toString))
                 case VLit(GInt(i)) => lines.add(time(t)(frame), Set(i.toString))
+                case VLit(GBool(b)) => lines.add(time(t)(frame), Set(b.toString))
+                case _ => throw ShouldNeverHappen()
               }
             }
 
@@ -416,87 +418,83 @@ class PlotData(parms: PlotParms = null, tb:PlotModel = null, val disableThreshol
     //and the vertical axis is always [0, 1] for the cdf and pdf.
     //The [0, 1] and [9, 10] ranges represent actually all the values respectively under and above the the min and
     //the max of the values in the cdf and the pdf.
-    if(probaPlottables.nonEmpty) {
-      val cdfEnclosure = new EnclosurePath(Palette(Color.red), outline = Some(Color.blue))
-      var pdfBoxes = List.empty[EnclosurePath]
-      //These to lines reopen the plots to show that they are not bounded and they fix the vertical range at [0, 1]
-      val (leftLine1, rightLine1) = (new MyPath2D(Palette(Color.white)), new MyPath2D(Palette(Color.white)))
-      val (leftLine2, rightLine2) = (new MyPath2D(Palette(Color.white)), new MyPath2D(Palette(Color.white)))
+    probaPlottables match {
+      case Some(probaPlot) =>
+        val probPlot = probaPlot
+        val cdfEnclosure = new EnclosurePath(Palette(Color.red), outline = Some(Color.blue))
+        var pdfBoxes = List.empty[EnclosurePath]
+        //These to lines reopen the plots to show that they are not bounded and they fix the vertical range at [0, 1]
+        val (leftLine1, rightLine1) = (new MyPath2D(Palette(Color.white)), new MyPath2D(Palette(Color.white)))
+        val (leftLine2, rightLine2) = (new MyPath2D(Palette(Color.white)), new MyPath2D(Palette(Color.white)))
 
-      val probaOut = probaPlottables.get.getProbaOut
-      val range = probaPlottables.get.getValuesRange
-      val a = 0.8 * maxTime / (range.hiDouble - range.loDouble)
-      val b = - range.loDouble * a + 0.1 * maxTime
-      valToTimeTr = (a, b)
-      def affineTransform(x: Double) = a * x + b
+        val probaOut = probaPlot.probaOut
+        val range = probaPlot.getValuesRange
+        val a = 0.8 * maxTime / (range.hiDouble - range.loDouble)
+        val b = - range.loDouble * a + 0.1 * maxTime
+        valToTimeTr = (a, b)
+        def affineTransform(x: Double) = a * x + b
 
-      //The CDF is only one enclosurePath
-      for((v, p) <- probaPlottables.get.getCdf){
-        val enc = Enclosure(p.loDouble, p.hiDouble, p.loDouble, p.hiDouble)
-        cdfEnclosure.add(affineTransform(v.loDouble), affineTransform(v.hiDouble), enc)
-      }
-      //Add the extremities (little extras to avoid numerical glitches)
-      cdfEnclosure.add(0, 0.100000001 * maxTime,
-        Enclosure(0, probaOut.hiDouble, 0, probaOut.hiDouble))
-      cdfEnclosure.add(0.899999999 * maxTime, maxTime,
-        Enclosure(1 - probaOut.hiDouble, 1, 1 - probaOut.hiDouble, 1))
+        //The CDF is only one enclosurePath
+        for((v, p) <- probaPlot.cdf){
+          val enc = Enclosure(p.loDouble, p.hiDouble, p.loDouble, p.hiDouble)
+          cdfEnclosure.add(affineTransform(v.loDouble), affineTransform(v.hiDouble), enc)
+        }
+        //Add the extremities (little extras to avoid numerical glitches)
+        cdfEnclosure.add(0, 0.100000001 * maxTime,
+          Enclosure(0, probaOut.hiDouble, 0, probaOut.hiDouble))
+        cdfEnclosure.add(0.899999999 * maxTime, maxTime,
+          Enclosure(1 - probaOut.hiDouble, 1, 1 - probaOut.hiDouble, 1))
 
-      //The PDF is a list of enclosurePaths which will correspond to each box "p1 < P(a < x < b) < p2".
-      //Lets scale things that the meand uncertainty is one tenth of the global height
-      val meanUncertainty = probaPlottables.get.getPdf.values.map(_.width.loDouble).sum / probaPlottables.get.getPdf.size
-      for((v, p) <- probaPlottables.get.getPdf){
-//        val pHalfWidth = p.width.loDouble / 2 / meanUncertainty / 10
-//        val middleShifted = (p.loDouble + p.hiDouble) / 2 / (v.hiDouble - v.loDouble)
-//        val enc = Enclosure(middleShifted - pHalfWidth, middleShifted + pHalfWidth, middleShifted - pHalfWidth, middleShifted + pHalfWidth)
+        //The PDF is a list of enclosurePaths which will correspond to each box "p1 < P(a < x < b) < p2".
+        for((v, p) <- probaPlot.pdf){
         val scale = 1 / v.width.loDouble
-        val enc = Enclosure(p.loDouble*scale, p.hiDouble*scale, p.loDouble*scale, p.hiDouble*scale)
-        val box = new EnclosurePath(Palette(Color.red), outline = Some(Color.blue))
-        box.add(affineTransform(v.loDouble), affineTransform(v.hiDouble), enc)
-        pdfBoxes = box :: pdfBoxes
-      }
-      // Add the extremities
-      // FIXME: Which width for infinite values ?
-      val firstBox = new EnclosurePath(Palette(Color.red), outline = Some(Color.blue))
-        firstBox.add(0, 0.1 * maxTime,
-        Enclosure(0, probaOut.hiDouble, 0, probaOut.hiDouble))
-      val lastBox = new EnclosurePath(Palette(Color.red), outline = Some(Color.blue))
-        lastBox.add(0.9 * maxTime, maxTime,
-        Enclosure(0, probaOut.hiDouble, 0, probaOut.hiDouble))
-      pdfBoxes = firstBox :: lastBox :: pdfBoxes
+          val enc = Enclosure(p.loDouble*scale, p.hiDouble*scale, p.loDouble*scale, p.hiDouble*scale)
+          val box = new EnclosurePath(Palette(Color.red), outline = Some(Color.blue))
+          box.add(affineTransform(v.loDouble), affineTransform(v.hiDouble), enc)
+          pdfBoxes = box :: pdfBoxes
+        }
+        //Add the extremities (always null mean densiy for now)
+        //FIXME: Which width for inifnite values ?
+        val firstBox = new EnclosurePath(Palette(Color.red), outline = Some(Color.blue))
+          firstBox.add(0, 0.1 * maxTime, Enclosure(0, 0, 0, 0))
+        val lastBox = new EnclosurePath(Palette(Color.red), outline = Some(Color.blue))
+          lastBox.add(0.9 * maxTime, maxTime, Enclosure(0, 0, 0, 0))
+        pdfBoxes = firstBox :: lastBox :: pdfBoxes
 
-      // Build the plotGroups (left and right line at the end to be drawn on top of the rest)
-      leftLine1.startAt(0, 0); leftLine1.goTo(0, 1)
-      rightLine1.startAt(maxTime, 0); rightLine1.goTo(maxTime, 1)
-      val pgCdf = new ArrayBuffer[PlotEntity]
-      pgCdf += cdfEnclosure ; pgCdf += leftLine1 ; pgCdf += rightLine1
+        //Build the plotGroups (left and right line at the end to be drawn on top of the rest)
+        leftLine1.startAt(0, 0); leftLine1.goTo(0, 1)
+        rightLine1.startAt(maxTime, 0); rightLine1.goTo(maxTime, 1)
+        val pgCdf = new ArrayBuffer[PlotEntity]
+        pgCdf += cdfEnclosure ; pgCdf += leftLine1 ; pgCdf += rightLine1
 
-      leftLine2.startAt(0, pdfBoxes.minBy(_.y1).y1); leftLine2.goTo(0, pdfBoxes.maxBy(_.y2).y2)
-      rightLine2.startAt(maxTime, leftLine2.y1); rightLine2.goTo(maxTime, leftLine2.y2)
-      val pgPdf = new ArrayBuffer[PlotEntity]
-      pdfBoxes foreach (pgPdf += _) ; pgPdf += leftLine2 ; pgPdf += rightLine2
+        leftLine2.startAt(0, pdfBoxes.minBy(_.y1).y1); leftLine2.goTo(0, pdfBoxes.maxBy(_.y2).y2)
+        rightLine2.startAt(maxTime, leftLine2.y1); rightLine2.goTo(maxTime, leftLine2.y2)
+        val pgPdf = new ArrayBuffer[PlotEntity]
+        pdfBoxes foreach (pgPdf += _) ; pgPdf += leftLine2 ; pgPdf += rightLine2
 
-      // Scalings
-      val globalYBounds1 = pgCdf.foldLeft((pgCdf.head.y1, pgCdf.head.y2))((y, p) => (Math.min(y._1, p.y1), Math.max(y._2, p.y2)))
-      val scale1 =  - 1 / Math.max(1e-4, globalYBounds1._2 - globalYBounds1._1)
-      val tr1 = AffineTransform.getScaleInstance(1.0, scale1)
-      pgCdf foreach {_.transform(tr1)}
-      val globalYBounds2 = pgPdf.foldLeft((pgPdf.head.y1, pgPdf.head.y2))((y, p) => (Math.min(y._1, p.y1), Math.max(y._2, p.y2)))
-      val scale2 =  - 1 / Math.max(1e-4, globalYBounds2._2 - globalYBounds2._1)
-      val tr2 = AffineTransform.getScaleInstance(1.0, scale2)
-      pgPdf foreach {_.transform(tr2)}
-      val shift1 = polys.size*1.2 - pgCdf.foldLeft(pgCdf.head.y1)((y, p) => Math.min(y, p.y1))
-      val tr3 = AffineTransform.getTranslateInstance(0.0, shift1)
-      pgCdf foreach {_.transform(tr3)}
-      val shift2 = (polys.size + 1)*1.2 - pgPdf.foldLeft(pgPdf.head.y1)((y, p) => Math.min(y, p.y1))
-      val tr4 = AffineTransform.getTranslateInstance(0.0, shift2)
-      pgPdf foreach {_.transform(tr4)}
+        //scallings
+        val globalYBounds1 = pgCdf.foldLeft((pgCdf.head.y1, pgCdf.head.y2))((y, p) => (Math.min(y._1, p.y1), Math.max(y._2, p.y2)))
+        val scale1 =  - 1 / Math.max(1e-4, globalYBounds1._2 - globalYBounds1._1)
+        val tr1 = AffineTransform.getScaleInstance(1.0, scale1)
+        pgCdf foreach {_.transform(tr1)}
+        val globalYBounds2 = pgPdf.foldLeft((pgPdf.head.y1, pgPdf.head.y2))((y, p) => (Math.min(y._1, p.y1), Math.max(y._2, p.y2)))
+        val scale2 =  - 1 / Math.max(1e-4, globalYBounds2._2 - globalYBounds2._1)
+        val tr2 = AffineTransform.getScaleInstance(1.0, scale2)
+        pgPdf foreach {_.transform(tr2)}
+        val shift1 = polys.size*1.2 - pgCdf.foldLeft(pgCdf.head.y1)((y, p) => Math.min(y, p.y1))
+        val tr3 = AffineTransform.getTranslateInstance(0.0, shift1)
+        pgCdf foreach {_.transform(tr3)}
+        val shift2 = (polys.size + 1)*1.2 - pgPdf.foldLeft(pgPdf.head.y1)((y, p) => Math.min(y, p.y1))
+        val tr4 = AffineTransform.getTranslateInstance(0.0, shift2)
+        pgPdf foreach {_.transform(tr4)}
 
-      // Add the shifted plot groups, boxes and null axes to keep the same size for polys, axes and boxes
-      polys += pgCdf ; polys += pgPdf
-      boxes += new Rectangle2D.Double(0, axes.size*1.2, maxTime, 1.0)
-      boxes += new Rectangle2D.Double(0, (axes.size + 1)*1.2, maxTime, 1.0)
-      axes += null; axes += null
-      yTransformations += ((scale1, shift1), (scale2, shift2))
+        //Add the shifted plot groups, boxes and null axes to keep the same size for polys, axes and boxes
+        polys += pgCdf ; polys += pgPdf
+        boxes += new Rectangle2D.Double(0, axes.size*1.2, maxTime, 1.0)
+        boxes += new Rectangle2D.Double(0, (axes.size + 1)*1.2, maxTime, 1.0)
+        axes += null; axes += null
+        yTransformations += ((scale1, shift1), (scale2, shift2))
+      case _ =>
     }
 
     boundingBox = (maxTime, 1.2*polys.size - 0.2)

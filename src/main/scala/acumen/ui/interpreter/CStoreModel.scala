@@ -102,23 +102,22 @@ class GenericResult(val coll: ResultCollector[GValue]) extends Result[GValue](co
 /**
   * Stores a CDF bounding and a PDF bounding for a variable at a given time
   * @param name name of the pointed variable
-  * @param t time corresponding to the PDF/CDF
+  * @param time time corresponding to the PDF/CDF
   * @param pdf Bounding of the probability for a value to be in the key interval
   * @param cdf Bounding of the cdf
   */
-class ProbaData(name: String, t: Double, probaOut: Interval, pdf: Map[Interval, Interval], cdf: Map[Interval, Interval]) {
-  def getName = name
-  def getTime = t
-  def getProbaOut = probaOut
-  def getPdf = pdf
-  def getCdf = cdf
+class ProbaData(val name: String,
+                val time: Double,
+                val probaOut: Interval,
+                val pdf: Map[Interval, Interval],
+                val cdf: Map[Interval, Interval]) {
   def getValuesRange = Interval(pdf.keys.minBy(_.lo).lo, pdf.keys.maxBy(_.hi).hi)
 }
 
 /** The data model for plotter
- *  Each field is a map to be able to fit several stores while
- *  keeping them independant.
- *  Each store is identified by its tag stored in the tags field */
+  * Each field is a map to be able to fit several stores while keeping them independant.
+  * Each store is identified by its tag stored in the tags field
+  */
 case class DataModel(columnNames: mutable.Map[Tag, im.IndexedSeq[String]],
                      rowCount: mutable.Map[Tag, Int],
                      times: mutable.Map[Tag, im.IndexedSeq[Double]],
@@ -130,11 +129,11 @@ case class DataModel(columnNames: mutable.Map[Tag, im.IndexedSeq[String]],
   //FIXME: Shouldn't it be in the argument and modified by the DataAdder ?
   var probaData: Option[ProbaData] = None
 
-  override def getRowCount(t: Tag): Int = rowCount(t)
+  override def getRowCount(tag: Tag): Int = rowCount(tag)
 
-  override def getValueAt(t: Tag, row: Int, column: Int): String = {
+  override def getValueAt(tag: Tag, row: Int, column: Int): String = {
     try {
-      val col = stores(t)(column)
+      val col = stores(tag)(column)
       val i = row - col.startFrame
       if (i >= col.size) ""
       else col.getAsString(i)
@@ -143,9 +142,9 @@ case class DataModel(columnNames: mutable.Map[Tag, im.IndexedSeq[String]],
     } //Is not enough to prevent from accessing values out of theoretical max index (pre-allocation)
   }
 
-  override def getDoubleAt(t: Tag, row: Int, column: Int): Option[Double] = {
+  override def getDoubleAt(tag: Tag, row: Int, column: Int): Option[Double] = {
     try {
-      val col = stores(t)(column)
+      val col = stores(tag)(column)
       val i = row - col.startFrame
       if (i >= col.size) None
       else Some(col.getAsDouble(i))
@@ -166,9 +165,9 @@ case class DataModel(columnNames: mutable.Map[Tag, im.IndexedSeq[String]],
     }
   }
 
-  override def getBoundingAt(t: Tag, row: Int, column: Int) = {
+  override def getBoundingAt(tag: Tag, row: Int, column: Int) = {
     try {
-      val col = stores(t)(column)
+      val col = stores(tag)(column)
       val i = row - col.startFrame
       if (i >= col.size) None
       else Some(col.getAsPair(i))
@@ -177,11 +176,11 @@ case class DataModel(columnNames: mutable.Map[Tag, im.IndexedSeq[String]],
     }
   }
 
-  override def getPlotTitle(t: Tag, col: Int): String = columnNames(t)(col)
+  override def getPlotTitle(tag: Tag, col: Int): String = columnNames(tag)(col)
 
-  override def isEmpty(t: Tag): Boolean = rowCount(t) == 0
+  override def isEmpty(tag: Tag): Boolean = rowCount(tag) == 0
 
-  override def getColumnCount() = tags.foldLeft(0) { case (count, t) => count + columnNames(t).length }
+  override def getColumnCount() = tags.foldLeft(0) { case (count, tag) => count + columnNames(tag).length }
 
   override def getRowCount() = totalRowCount
 
@@ -209,8 +208,7 @@ case class DataModel(columnNames: mutable.Map[Tag, im.IndexedSeq[String]],
     }
   }
 
-  /** The n-th column is obtained virtually from concatenating the 
-   *  different stores in the list of tag order */
+  //The n-th column is obtained virtually from concatenating the different stores in the list of tag order
   private def tagAndColFromCol(column: Int): (Tag, Int) = {
     //Make the table big enough to reach index column
     while (colToTagCol.size <= column) colToTagCol += None
@@ -230,15 +228,16 @@ case class DataModel(columnNames: mutable.Map[Tag, im.IndexedSeq[String]],
     }
   }
 
-  /** The global number of rows is given by the biggest value obtained
-   *  by summing the startFrame to the size of each column */
-  private def totalRowCount = tags.foldLeft(0)((trc, t) => {
-    val rc = (stores(t) map (c => c.size + c.startFrame)).max
+  //The global number of rows is given by the biggest value obtained
+  //by summing the startFrame to the size of each column
+  private def totalRowCount = tags.foldLeft(0)((trc, tag) => {
+    val rc = (stores(tag) map (c => c.size + c.startFrame)).max
     Math.max(trc, rc)
   })
 
-  /** The total number of column in all Stores */
-  def getColumnCount(t: Tag) = columnNames(t).length
+  def getColumnCount(tag: Tag) = columnNames(tag).length
+
+  //The total number of column in all Stores
 
   def setIfNotContains(t: Tag) =
     // The DataModel state must be consistent, i.e. the tags in the set tags are present in every maps
@@ -262,7 +261,8 @@ case class DataModel(columnNames: mutable.Map[Tag, im.IndexedSeq[String]],
 
   def getColumnName(t: Tag, col: Int) = columnNames(t)(col)
 
-  // Must be implemented for the trait but it is not relevant because of the tags
+  //Must be implemented for the trait but it is not relevant because of the tags
+
   override def isEmpty() = tags.isEmpty
   override def getTimes(t: Tag) = times(t)
   override def getTags() = tags.toSet
@@ -293,7 +293,7 @@ case class DataModel(columnNames: mutable.Map[Tag, im.IndexedSeq[String]],
             case collGV: ResultCollector[GValue] =>
               if (collGV.nonEmpty) // there is only one row in rs since we are taking each row in a loop
                 collGV.head match {
-                  case VLit(_: GStr | _: GDiscreteEnclosure[_]) =>
+                  case VLit(_: GBool | _: GStr | _: GDiscreteEnclosure[_]) =>
                     res += new PlotDiscrete(result.isSimulator, result.key, result.startFrame, idx, rs)
                   case VVector(n) =>
                   case _ => ()
@@ -459,22 +459,22 @@ class CStoreModel(ops: CStoreOpts) extends InterpreterModel {
     }
   }
 
-  private def addDataHelper(t: Tag, sts:TraceData) = {
+  private def addDataHelper(tag: Tag, sts:TraceData) = {
     def compIds(ido1:(CId,_), ido2:(CId,_)) = ido1._1 < ido2._1
     def compFields(p1:(Name,GValue),p2:(Name,GValue)) =
       Ordering[(String,Int)] lt ((p1._1.x, p1._1.primes),(p2._1.x, p2._1.primes))
     for (st <- sts) {
       for ((id,o) <- st.asInstanceOf[GStore].toList sortWith compIds) {
-        if(!ids.contains(t)) ids += ((t, emptyIds))
-        if (ids(t) contains id) // add the values of this object, if its CId is contained in the ids HashSet
-          for ((name,value) <- o) addVal(t, id, name, value)
+        if(!ids.contains(tag)) ids += ((tag, emptyIds))
+        if (ids(tag) contains id) // add the values of this object, if its CId is contained in the ids HashSet
+          for ((name,value) <- o) addVal(tag, id, name, value)
         else {  // add the object into the stores, indexes and ids
           val className = classOf(o)
           val isSimulator = className == cmagic
-          if (!timeKey.contains(t) && isSimulator)
-            timeKey += t -> ResultKey(t, id, Name("time", 0), None)
-          if(!classes.contains(t)) classes += ((t, emptyClasses))
-          classes(t) += ((id, className))
+          if (!timeKey.contains(tag) && isSimulator)
+            timeKey += tag -> ResultKey(tag, id, Name("time", 0), None)
+          if(!classes.contains(tag)) classes += ((tag, emptyClasses))
+          classes(tag) += ((id, className))
           for ((name,value) <- o.toList sortWith compFields) {
             def addObject(addedValue: GValue, vectorIdx: Option[(Int,Option[Int])]): Unit = {
               addedValue match {
@@ -489,12 +489,12 @@ class CStoreModel(ops: CStoreOpts) extends InterpreterModel {
                     }
                   }
                 case _ =>
-                  var ar = newResultObj(t, addedValue, id, name, isSimulator, vectorIdx)
-                  if(!stores.contains(t)) stores += ((t, emptyStores))
-                  stores(t) += ar
-                  if(!indexes.contains(t)) indexes += ((t, emptyIndexes))
-                  indexes(t) += ((ar.key, stores(t).size-1))
-                  ids(t) += id
+                  var ar = newResultObj(tag, addedValue, id, name, isSimulator, vectorIdx)
+                  if(!stores.contains(tag)) stores += ((tag, emptyStores))
+                  stores(tag) += ar
+                  if(!indexes.contains(tag)) indexes += ((tag, emptyIndexes))
+                  indexes(tag) += ((ar.key, stores(tag).size-1))
+                  ids(tag) += id
               }
             }
             if ( !specialField(name.x) && name.x.split("__")(0) != "pattern" )
@@ -502,8 +502,8 @@ class CStoreModel(ops: CStoreOpts) extends InterpreterModel {
           }
         }
       }
-      if (!frame.contains(t)) frame += t -> (if(frame.nonEmpty) frame.values.max else 0)
-      frame(t) += 1
+      if (!frame.contains(tag)) frame += tag -> (if(frame.nonEmpty) frame.values.max else 0)
+      frame(tag) += 1
     }
   }
 

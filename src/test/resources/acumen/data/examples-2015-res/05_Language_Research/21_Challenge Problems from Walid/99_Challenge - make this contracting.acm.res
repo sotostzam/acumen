@@ -2,8 +2,8 @@
   className = Main,
   simulator = #0.0,
   type = Main,
-  x = 0.000000,
-  x' = 1.000000,
+  x = -0.100000,
+  x' = 1.100000,
   y = 1,
   y' = -1
 }
@@ -13,8 +13,8 @@
   className = Main,
   simulator = #0.0,
   type = Main,
-  x = 0.264241,
-  x' = -0.264241,
+  x = 0.227453,
+  x' = -0.227453,
   y = 0,
   y' = -1
 }

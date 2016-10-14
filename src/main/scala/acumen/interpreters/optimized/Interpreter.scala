@@ -45,6 +45,7 @@ class Interpreter(val parDiscr: Boolean = true,
   type Store = Common.Store
   def repr (s:Store) : CStore = Common.repr(s)
   def fromCStore (cs:CStore, root:CId) : Store = Common.fromCStore(cs, root)
+  override def isDead(cs: Interpreter.this.Store): Boolean = Common.isDead(cs)
   val initStepType = Discrete
   val timeStep = 0.01
   val outputRows = "WhenChanged"
@@ -52,7 +53,7 @@ class Interpreter(val parDiscr: Boolean = true,
   override def visibleParameters = visibleParametersMap(initStore) + ("method" -> VLit(GStr(RungeKutta))) + ("orderOfIntegration" -> VLit(GInt(4)))
   
   def lift = identLift
-  def init(prog: Prog): (Prog, SuperStore, Map[Tag, Metadata]) = {
+  def init(prog: Prog): (Prog, SuperStore, SuperMetadata) = {
     checkContinuousAssignmentToSimulator(prog)
     val magic = fromCStore(initStore, CId(0))
     val cprog = CleanParameters.run(prog, CStoreInterpreterType)
@@ -195,7 +196,7 @@ class Interpreter(val parDiscr: Boolean = true,
     // Note: Conversion to a CStore just to add the data is certainly
     // not the most efficient way to go about things, but for now it
     // will do. --kevina
-    adder.addData(st.id, st.fieldsCur, tag)
+    adder.addData(st.id, st.fieldsCur, tag, false)
     st.children.foreach { child => addData(child, adder, tag) }
   }
 }

@@ -365,7 +365,6 @@ object BindingTimeAnalysis {
     case AExprSplitterNormal(mu, ss, c, n, an) => Nil
     case AExprSplitterUniform(lo, hi, c, n, an) => Nil
     case AExprSplitterBeta(lo, hi, a, b, c, n, an) => Nil
-    case AExprInterval(ae1, ae2, l) => Nil
     case ACall(af, aes, l) =>
       NLT(af.an, l) ::
         aes.map(x => NLT(x.an, l)) :::

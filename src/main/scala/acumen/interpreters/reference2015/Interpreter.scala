@@ -296,56 +296,7 @@ object Interpreter extends acumen.CStoreInterpreter {
     }
     eval(env,e)
   }.setPos(e.pos)
-  
-  //Only handles intervals defined with constant bounds
-  def evalExprIntervals(e: Expr): CValue = {
-    def intExtractor(e: Expr): Option[Int] = e match {
-      case Lit(n @ GInt(_)) => Some(extractInt(n))
-      case _ => None
-    }
-    def doubleExtractor(e: Expr): Option[Double] = e match {
-      case Lit(x @ (GDouble(_) | GInt(_))) => Some(extractDouble(x))
-      case _ => None
-    }
-    def booleanExtractor(e: Expr): Option[Boolean] = e match {
-      case Lit(GBool(k)) => Some(k)
-      case _ => None
-    }
-    def intervalHelper(i: Expr) = i match {
-      case ExprInterval(lo, hi) =>
-        Interval(doubleExtractor(lo).get, doubleExtractor(hi).get)
-      case ExprIntervalM(mid, pm) =>
-        Interval(doubleExtractor(mid).get - doubleExtractor(pm).get, doubleExtractor(mid).get + doubleExtractor(pm).get)
-    }
 
-    e match {
-      case i @ (ExprInterval(_, _) | ExprIntervalM(_, _)) =>
-        //Every interval must be split to be processed by the interpreter.
-        //Hence a classic Interval is forced to a splitInterval with only one subinterval
-        VLit(GInterval(SplitInterval(intervalHelper(i))))
-      case ExprSplitInterval(i, s) =>
-        s match {
-          case ExprSplitterPoints(ps, kps) =>
-            val points = ps map { case v => doubleExtractor(v).get }
-            val keeps = kps map { case b => booleanExtractor(b).get }
-            VLit(GInterval(SplitInterval(points, keeps)))
-          case ExprSplitterWeights(_, ws) =>
-            val weights = ws map { case v => doubleExtractor(v).get }
-            VLit(GInterval(SplitInterval(intervalHelper(i), weights)))
-          case ExprSplitterN(i, n) =>
-            VLit(GInterval(SplitInterval(intervalHelper(i), intExtractor(n).get)))
-        }
-      case ExprSplitterNormal(m, s, c, n) =>
-        VLit(GInterval(
-          NormalDistribution(doubleExtractor(m).get, doubleExtractor(s).get, doubleExtractor(c).get, intExtractor(n).get)))
-      case ExprSplitterUniform(lo, hi, c, n) =>
-        VLit(GInterval(
-          UniformDistribution(doubleExtractor(lo).get, doubleExtractor(hi).get, doubleExtractor(c).get, intExtractor(n).get)))
-      case ExprSplitterBeta(lo, hi, a, b, c, n) =>
-        VLit(GInterval(
-          BetaDistribution(doubleExtractor(lo).get, doubleExtractor(hi).get, doubleExtractor(a).get, doubleExtractor(b).get, doubleExtractor(c).get, intExtractor(n).get)))
-    }
-  }
 
   def evalActions(as:List[Action], env:Env, p:Prog)(implicit bindings: Bindings) : Eval[Unit] =
     mapM_((a:Action) => evalAction(a, env, p), as)
@@ -501,7 +452,7 @@ object Interpreter extends acumen.CStoreInterpreter {
 
   /* Main simulation loop */  
 
-  def init(prog:Prog) : (Prog, SuperStore, Map[Tag, Metadata]) = {
+  def init(prog:Prog) : (Prog, SuperStore, SuperMetadata) = {
     checkNestedHypotheses(prog)
     checkContinuousAssignmentToSimulator(prog)
     val cprog = CleanParameters.run(prog, CStoreInterpreterType)
@@ -669,20 +620,36 @@ object Interpreter extends acumen.CStoreInterpreter {
             setObject(id, setSeed(res(id), newSeed), res1)
         }
 
-        // If intervals have been introduced during the step, they must be split before hypothesis testing
-        val stSplit = splitIntervals(stSeed)
-        val stepRes = stSplit mapValues (st0 =>
+        //If intervals have been introduced during the step, they must be split before hypothesis testing
+        val stSplit = splitIntervalsStore(stSeed)
+        val stepRes = stSplit mapValues (st0 => {
           // Hypotheses check only when the result is not a FixedPoint
-          if (getResultType(st0) != FixedPoint) {
-            val md1 = testHypotheses(hyps, md, st0, getTime(st))(NoBindings)
+          lazy val md1 = testHypotheses(hyps, md, st0, getTime(st))(NoBindings) // No bindings needed, res is consistent
+          // Finish the simulation if there's nothing change anymore
+          // Reinitialize the lastFixedStore if the simulation reach the discrete point
+          if (das.nonEmpty || odes.nonEmpty || eqs.nonEmpty)
+            reachFixPoint = false
+          if (getResultType(st0) != FixedPoint)
             (countVariables(st0), md1)
-          } else
-            (countVariables(st0), md)
-        )
+          else {
+            val st2 = reachStaticStatus(st0)
+            (countVariables(st2), md)
+          }
+        })
         Data(stepRes mapValues (_._1), stepRes mapValues (_._2))
       }
     }
-  
+
+  /* set the time to the endTime if the simulation reach static status */
+  def reachStaticStatus(res: Store): Store = {
+    if (getTime(res) > 0 && reachFixPoint)
+      setTime(getEndTime(res), res)
+    else {
+      reachFixPoint = true
+      res
+    }
+  }
+
   /** Summarize result of evaluating the hypotheses of all objects. */
   def testHypotheses(hyps: List[CollectedHypothesis], old: Metadata, st: Store, timeBefore: Double)(implicit bindings: Bindings): Metadata =
     old combine (if (hyps isEmpty) NoMetadata else SomeMetadata(hyps.map {

@@ -39,8 +39,7 @@ class Interpreter extends CStoreInterpreter {
   type Store = Common.Store
   def repr (s:Store) : CStore = Common.repr(s)
   def fromCStore (cs:CStore, root:CId) : Store = Common.fromCStore(cs, root)
-  override def isDead(st: Store): Boolean =
-    extractBoolean(getField(getSimulator(st), deadStore))
+  override def isDead(cs: Interpreter.this.Store): Boolean = Common.isDead(cs)
   val initStepType = Initial
   val timeStep = 0.015625
   val outputRows = "All"
@@ -50,7 +49,7 @@ class Interpreter extends CStoreInterpreter {
   
   def lift = identLift
   
-  def init(prog: Prog): (Prog, SuperStore, Map[Tag, Metadata]) = {
+  def init(prog: Prog): (Prog, SuperStore, SuperMetadata) = {
     checkContinuousAssignmentToSimulator(prog)
     val magic = fromCStore(initStore, CId(0))
     val cprog = CleanParameters.run(prog, CStoreInterpreterType)
@@ -59,9 +58,7 @@ class Interpreter extends CStoreInterpreter {
     magic.seed = sd2
     val mprog = Prog(magicClass :: cprog.defs)
     setVarNum(magic, countStateVars(repr(mainObj)))
-    checkHypothesis(magic.phaseParms, mprog, magic, mainObj)
     val splitStore = splitIntervalsStore(mainObj)
-    //FIXME: fix splitIntervals and hypothesis checking
     val metadatas = splitStore mapValues (obj => {
       checkHypothesis(getSimulator(obj).phaseParms, mprog, getSimulator(obj), obj)
       getMetadata(obj)
@@ -98,6 +95,11 @@ class Interpreter extends CStoreInterpreter {
       * continuous assignments */
     var isFixedPoint : Boolean = true
 
+    def assignmentInspection(v: Val) = v match {
+      case VLit(GInterval(_)) => pp.splitMe = true
+      case _ =>
+    }
+
     /** Retrieves the collected discrete assignments */
     def doEquationD() = try {
       var idx = 0
@@ -112,10 +114,7 @@ class Interpreter extends CStoreInterpreter {
         }
         //If the previously set value is prohibited (Inf or Nan, set the Store dead)
         //If a splitInterval is assigned, trigger the splitMe flag
-        da.v match {
-          case VLit(GInterval(_)) => pp.splitMe = true
-          case _ =>
-        }
+        assignmentInspection(da.v)
         idx += 1
       }
     }
@@ -162,10 +161,7 @@ class Interpreter extends CStoreInterpreter {
         }
         //If the previously set value is prohibited (Inf or Nan, set the Store dead)
         //If a splitInterval is assigned, trigger the splitMe flag
-        v match {
-          case VLit(GInterval(_)) => pp.splitMe = true
-          case _ =>
-        }
+        assignmentInspection(v)
         idx += 1
       }
     } finally {
@@ -275,10 +271,7 @@ class Interpreter extends CStoreInterpreter {
           updateField(eqt.id, eqt.field, value)
           //If the previously set value is prohibited (Inf or Nan, set the Store dead)
           //If a splitInterval is assigned, trigger the splitMe flag
-          value match {
-            case VLit(GInterval(_)) => pp.splitMe = true
-            case _ =>
-          }
+          assignmentInspection(value)
           idx += 1
         }
 
@@ -306,6 +299,7 @@ class Interpreter extends CStoreInterpreter {
       (rt, sst)
     }
   }
+
 
   def step(p: Prog, st: Store, md: Metadata): StepRes = {
     setMetadata(st, md)
@@ -335,12 +329,13 @@ class Interpreter extends CStoreInterpreter {
         sst foreach { case (t, st) =>
           endTimes += t -> Double.NaN
           adder.shouldAddData = adder.newStep(res)
-          if (adder.shouldAddData == ShouldAddData.Yes && getPlotEnabled(magics(t)))
+          if (adder.shouldAddData == ShouldAddData.Yes)
             addData(st, adder, t :: baseTag, isDead(st))
         }
         // It is impossible to continue if a split occur during the last step. If no split occur, then sst.values == st.
         if (adder.continue && sst.size == 1)
           step0()
+        else if (adder.continue) throw ShouldNeverHappen()
       }
     }
     step0()
