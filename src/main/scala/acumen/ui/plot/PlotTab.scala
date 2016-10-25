@@ -43,6 +43,13 @@ case class Lines() extends PlotStyle
 case class Dots() extends PlotStyle
 case class Both() extends PlotStyle
 
+trait PlotLabelPosition
+case object Off extends PlotLabelPosition
+case object TopLeft extends PlotLabelPosition
+case object TopRight extends PlotLabelPosition
+case object BottomLeft extends PlotLabelPosition
+case object BottomRight extends PlotLabelPosition
+
 class PlotTab extends BorderPanel
 {
   /* for some reason forwarding events causes stack overflows, so we pass
@@ -201,5 +208,7 @@ class PlotTab extends BorderPanel
   def toggleNextChild(b:Boolean) = plotPanel.toggleNextChild(b)
   def toggleSeeds(b:Boolean) = plotPanel.toggleSeeds(b)
   def setPlotStyle(ps:PlotStyle) = plotPanel.setPlotStyle(ps)
+  def setPlotLabelPosition(plp:PlotLabelPosition) = plotPanel.setPlotLabelPosition(plp)
+  def togglePlotLabelObjectId() = plotPanel.togglePlotLabelObjectId()
 }
 

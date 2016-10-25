@@ -290,6 +290,7 @@ class PlotData(parms: PlotParms = null, tb:PlotModel = null, val disableThreshol
 
   var time = Map.empty[Tag, IndexedSeq[Double]]
   var yTransformations = new ArrayBuffer[(Double, Double)]
+  var titles = new ArrayBuffer[String]
   var tags = Set.empty[Tag] //May contain tags comming from _plot() in the future
   var deadTags = if (tb == null) Set.empty[Tag] else tb.getDeadTags
   val plottables = if (tb == null) Nil else tb.getPlottables(parms, tags)
@@ -302,7 +303,8 @@ class PlotData(parms: PlotParms = null, tb:PlotModel = null, val disableThreshol
   else {
     tags = tb.getTags //Because no tag have been sent to getPlottables, they are all present
     time = (tags map (t => t ->  tb.getTimes(t))).toMap
-
+    titles = new ArrayBuffer[String]
+    
     //Groups of plottables to be plot on the same graph
     val plotGroups = plottables groupBy(x => (x.key.objId, x.key.fieldName.x, x.key.fieldName.primes, x.key.vectorIdx))
     //Lexicogrphic ordering of graphs ordering
@@ -338,6 +340,7 @@ class PlotData(parms: PlotParms = null, tb:PlotModel = null, val disableThreshol
       var outlinePath = new EnclosurePath(Palette(Color.white))
       val pathoutline = new HollowEnclosurePath(Palette(Color.black))
       for(p <- pg) {
+        titles += tb.getPlotTitle(p.column)
         val t = p.key.tag
         columnIndicesGp += t -> p.column
         p match {
@@ -502,8 +505,12 @@ class PlotData(parms: PlotParms = null, tb:PlotModel = null, val disableThreshol
 }
 
 class PlotImage(pd: PlotData, 
-                val buf: BufferedImage, plotStyle: PlotStyle = null,
-                var viewPort : Rectangle2D = null) 
+                val buf: BufferedImage, 
+                plotStyle: PlotStyle = null,
+                plotLabelPosition: PlotLabelPosition,
+                plotLabelShowObjectId: Boolean,
+                var viewPort : Rectangle2D = null,
+                background: Color = Color.lightGray) 
 {
   if (viewPort == null) {
     val bb = new Rectangle2D.Double(0, 0, pd.boundingBox._1, pd.boundingBox._2)
@@ -524,17 +531,22 @@ class PlotImage(pd: PlotData,
       RenderingHints.VALUE_ANTIALIAS_ON)
 
     /* paint background */
-    bg.setBackground(Color.lightGray)
+    bg.setBackground(background)
     bg.clearRect(0, 0, buf.getWidth, buf.getHeight)
 
     /* clip the area to the size of the buffer */
     bg.setClip(new Rectangle2D.Double(0, 0, buf.getWidth, buf.getHeight))
 
     /* actual drawing */
-    for (((pg,a),b) <- pd.polys zip pd.axes zip pd.boxes) {
+    for ((((pg,a),b),t) <- pd.polys zip pd.axes zip pd.boxes zip pd.titles) {
       // fill bounding box
       bg.setPaint(pg.head.palette.boundingBox)
-      bg.fill(applyTrR(tr, b))
+      val trb = applyTrR(tr, b)
+      bg.fill(trb)
+      
+      // draw bounding box
+      bg.setPaint(Color.lightGray)
+      bg.draw(trb)
 
       // draw y=0 axis
       bg.setPaint(pg.head.palette.yAxis)
@@ -553,6 +565,17 @@ class PlotImage(pd: PlotData,
             p.draw(bg, tr)
             p.drawDots(bg, tr)
         }
+      // draw plot title
+      bg.setPaint(p.palette.title)
+      val title = if (plotLabelShowObjectId) t else t.substring((t lastIndexOf ".") + 1)
+      val poss = plotLabelPosition match {
+        case Off         => None // do nothing
+        case TopLeft     => Some(trb.getMinX + 5                                       , trb.getMinY + 15)
+        case TopRight    => Some(trb.getMaxX - 5 - bg.getFontMetrics.stringWidth(title), trb.getMinY + 15)
+        case BottomLeft  => Some(trb.getMinX + 5                                       , trb.getMaxY - 5 )
+        case BottomRight => Some(trb.getMaxX - 5 - bg.getFontMetrics.stringWidth(title), trb.getMaxY - 5 )
+      }
+      poss map { case (plpx, plpy) => bg.drawString(title, plpx.toInt, plpy.toInt) }
       }
     }
     buf.flush

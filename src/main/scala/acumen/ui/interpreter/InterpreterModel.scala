@@ -14,7 +14,7 @@ sealed abstract class Plottable(val simulator: Boolean,
   def values : IndexedSeq[Any]
 }
 
-case class Palette(val value: Color = Color.red, val yAxis: Color = Color.blue, val boundingBox: Color = Color.white)
+case class Palette(val value: Color = Color.red, val yAxis: Color = Color.blue, val boundingBox: Color = Color.white, val title: Color = Color.gray)
 
 class PlotDoubles(simulator: Boolean, key: ResultKey, startFrame: Int, column: Int,
                   val v: IndexedSeq[Double]) extends Plottable(simulator,key,startFrame,column)
