@@ -444,7 +444,7 @@ class CStoreModel(ops: CStoreOpts) extends InterpreterModel {
   private def newResultObj(tag: Tag, value: GValue, id: CId, name: Name, isSimulator: Boolean,
                            vectorIdx: Option[(Int,Option[Int])]): ResultCollector[_] = {
     value match {
-      case VLit(GDouble(_)|GInt(_)) =>
+      case VLit(GDouble(_)|GInt(_)|GRational(_)) =>
         val ar = new DoubleResultCollector(ResultKey(tag, id, name, vectorIdx), isSimulator, frame(tag))
         ar += extractDoubleNoThrow(value)
         ar

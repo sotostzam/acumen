@@ -13,6 +13,7 @@ import scala.util.parsing.input.Position
 import reflect.runtime.universe.TypeTag
 import enclosure2015.Common._
 import acumen.interpreters.enclosure._
+import acumen.InterpreterType
 //
 // Common stuff to CStore Interpreters
 //
@@ -617,8 +618,10 @@ object Common {
        |hypothesisReport = "$hypothesisReport", endTime = 10.0, resultType = @$initStep,
        |method = "$method", orderOfIntegration = 4, seed1 = 0, seed2 = 0}""").stripMargin
   def initStoreInterpreter(initStep: ResultType = Initial, initTimeStep: Double = 0.015625, initOutputRows: String = "All", 
-                       initHypothesisReport: String = "Comprehensive", initMethod: String = RungeKutta, isImperative: Boolean) =
-      Parser.run(Parser.store, initStoreTxt(initStep, initTimeStep, initOutputRows, initHypothesisReport, initMethod).format( if (isImperative) "none" else "#0" ))
+                       initHypothesisReport: String = "Comprehensive", initMethod: String = RungeKutta, isImperative: Boolean, interpreterType: InterpreterType) = {
+    val s = Parser.run(Parser.store, initStoreTxt(initStep, initTimeStep, initOutputRows, initHypothesisReport, initMethod).format(if (isImperative) "none" else "#0" ))
+    ApproximateRationals.run(s, interpreterType)
+  }
 
   // Register simulator parameters that should appear as completions in the code editor 
   // for any interpreter. Additional parameters are taken from Interpreter.parameters. 

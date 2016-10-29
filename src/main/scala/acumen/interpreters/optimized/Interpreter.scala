@@ -42,6 +42,7 @@ class Interpreter(val parDiscr: Boolean = true,
 
   import Common._ 
 
+  val interpreterType = TraditionalInterpreterType
   type Store = Common.Store
   def repr (s:Store) : CStore = Common.repr(s)
   def fromCStore (cs:CStore, root:CId) : Store = Common.fromCStore(cs, root)
@@ -49,14 +50,14 @@ class Interpreter(val parDiscr: Boolean = true,
   val initStepType = Discrete
   val timeStep = 0.01
   val outputRows = "WhenChanged"
-  val initStore = initStoreInterpreter(initStep = initStepType, initTimeStep = timeStep, initOutputRows = outputRows, isImperative = true)
+  val initStore = initStoreInterpreter(initStep = initStepType, initTimeStep = timeStep, initOutputRows = outputRows, isImperative = true, interpreterType = TraditionalInterpreterType)
   override def visibleParameters = visibleParametersMap(initStore) + ("method" -> VLit(GStr(RungeKutta))) + ("orderOfIntegration" -> VLit(GInt(4)))
   
   def lift = identLift
   def init(prog: Prog): (Prog, SuperStore, SuperMetadata) = {
     checkContinuousAssignmentToSimulator(prog)
     val magic = fromCStore(initStore, CId(0))
-    val cprog = CleanParameters.run(prog, CStoreInterpreterType)
+    val cprog = CleanParameters.run(prog, TraditionalInterpreterType)
     val sprog = Simplifier.run(cprog)
     val (sd1, sd2) = Random.split(Random.mkGen(0))
     val mainObj = mkObj(cmain, sprog, IsMain, sd1, List(VObjId(Some(magic))), magic, 1)

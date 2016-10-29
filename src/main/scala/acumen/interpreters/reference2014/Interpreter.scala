@@ -31,6 +31,7 @@ import Errors._
 
 object Interpreter extends acumen.CStoreInterpreter {
 
+  val interpreterType = TraditionalInterpreterType
   type Store = CStore
 
   def repr(st:Store) = st
@@ -38,7 +39,7 @@ object Interpreter extends acumen.CStoreInterpreter {
   val initStepType = Discrete
   val timeStep = 0.01
   val outputRows = "WhenChanged"
-  val initStore = initStoreInterpreter(initStep = initStepType, initTimeStep = timeStep, initOutputRows = outputRows, isImperative = false)
+  val initStore = initStoreInterpreter(initStep = initStepType, initTimeStep = timeStep, initOutputRows = outputRows, isImperative = false, interpreterType = TraditionalInterpreterType)
   override def visibleParameters = visibleParametersMap(initStore) + ("method" -> VLit(GStr(RungeKutta))) + ("orderOfIntegration" -> VLit(GInt(4)))
 
   /* initial values */
@@ -364,7 +365,7 @@ object Interpreter extends acumen.CStoreInterpreter {
   def init(prog:Prog) : (Prog, SuperStore, SuperMetadata) = {
     checkNestedHypotheses(prog)
     checkContinuousAssignmentToSimulator(prog)
-    val cprog = CleanParameters.run(prog, CStoreInterpreterType)
+    val cprog = CleanParameters.run(prog, TraditionalInterpreterType)
     val sprog = Simplifier.run(cprog)
     val mprog = Prog(magicClass :: sprog.defs)
     val (sd1,sd2) = Random.split(Random.mkGen(0))

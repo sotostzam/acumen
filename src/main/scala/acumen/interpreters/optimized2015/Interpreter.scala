@@ -36,6 +36,7 @@ class Interpreter extends CStoreInterpreter {
 
   import Common._ 
 
+  val interpreterType = TraditionalInterpreterType
   type Store = Common.Store
   def repr (s:Store) : CStore = Common.repr(s)
   def fromCStore (cs:CStore, root:CId) : Store = Common.fromCStore(cs, root)
@@ -43,7 +44,7 @@ class Interpreter extends CStoreInterpreter {
   val initStepType = Initial
   val timeStep = 0.015625
   val outputRows = "All"
-  val initStore = initStoreInterpreter(initStep = initStepType, initTimeStep = timeStep, initOutputRows = outputRows, isImperative = true)
+  val initStore = initStoreInterpreter(initStep = initStepType, initTimeStep = timeStep, initOutputRows = outputRows, isImperative = true, interpreterType = TraditionalInterpreterType)
   override def visibleParameters = visibleParametersMap(initStore) + ("method" -> VLit(GStr(RungeKutta))) + ("orderOfIntegration" -> VLit(GInt(4)))
   private var reachFixPoint = true
   
@@ -52,7 +53,7 @@ class Interpreter extends CStoreInterpreter {
   def init(prog: Prog): (Prog, SuperStore, SuperMetadata) = {
     checkContinuousAssignmentToSimulator(prog)
     val magic = fromCStore(initStore, CId(0))
-    val cprog = CleanParameters.run(prog, CStoreInterpreterType)
+    val cprog = CleanParameters.run(prog, TraditionalInterpreterType)
     val (sd1, sd2) = Random.split(Random.mkGen(0))
     val mainObj = mkObj(cmain, cprog, IsMain, sd1, List(VObjId(Some(magic))), magic, 1)
     magic.seed = sd2

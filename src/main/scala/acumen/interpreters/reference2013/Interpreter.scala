@@ -31,6 +31,7 @@ import Errors._
 
 object Interpreter extends acumen.CStoreInterpreter {
 
+  val interpreterType = TraditionalInterpreterType
   type Store = CStore
   type Env = Map[Name, CValue]
 
@@ -39,7 +40,7 @@ object Interpreter extends acumen.CStoreInterpreter {
   val initStepType = Discrete
   val timeStep = 0.01
   val outputRows = "WhenChanged"
-  override def visibleParameters = visibleParametersMap(initStoreInterpreter(initStep = initStepType, initTimeStep = timeStep, initOutputRows = outputRows, isImperative = false))
+  override def visibleParameters = visibleParametersMap(initStoreInterpreter(initStep = initStepType, initTimeStep = timeStep, initOutputRows = outputRows, isImperative = false, interpreterType = TraditionalInterpreterType))
 
   /* initial values */
   val emptyStore : Store = HashMap.empty
@@ -363,12 +364,12 @@ object Interpreter extends acumen.CStoreInterpreter {
   /* Main simulation loop */  
 
   def init(prog:Prog) : (Prog, SuperStore, SuperMetadata) = {
-    val cprog = CleanParameters.run(prog, CStoreInterpreterType)
+    val cprog = CleanParameters.run(prog, TraditionalInterpreterType)
     val sprog = Simplifier.run(cprog)
     val mprog = Prog(magicClass :: sprog.defs)
     val (sd1,sd2) = Random.split(Random.mkGen(0))
     val (id,_,_,_,_,st1) = 
-      mkObj(cmain, mprog, None, sd1, List(VObjId(Some(CId(0)))), 1)(initStoreInterpreter(initStep = initStepType, initTimeStep = timeStep, initOutputRows = outputRows, isImperative = false))
+      mkObj(cmain, mprog, None, sd1, List(VObjId(Some(CId(0)))), 1)(initStoreInterpreter(initStep = initStepType, initTimeStep = timeStep, initOutputRows = outputRows, isImperative = false, interpreterType = TraditionalInterpreterType))
     val st2 = changeParent(CId(0), id, st1)
     val st3 = changeSeed(CId(0), sd2, st2)
     (mprog, Map((Tag.root, st3)), Map((Tag.root, NoMetadata)))

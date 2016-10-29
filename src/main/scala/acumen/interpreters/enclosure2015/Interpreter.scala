@@ -59,6 +59,7 @@ import enclosure.ivp.{
  */
 case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
   
+  val interpreterType = Enclosure2015InterpreterType
   type Store = EnclosureAndBranches
   def repr(st:Store) = st.enclosure.cStore
   def fromCStore(st: CStore, root: CId): Store = {
@@ -617,7 +618,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
     }}
     val st2E = fromCStore(st2.cStore)
     val st2U = updateSimulator(mprog, st2E)
-    val st2S = splitIntervalsEnclosure(st2U)(Common.Parameters(st2U.enclosure.cStore, Some(prog)))
+    val st2S = splitIntervalsEnclosure(st2U)(Common.Parameters(st2U.enclosure.cStore, Some(mprog)))
     val mds = st2S mapValues (st => testHypotheses(st.enclosure, 0, 0, mprog, NoMetadata))
     (mprog, st2S, mds)
   }

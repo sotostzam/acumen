@@ -154,6 +154,7 @@ class Interpreter extends acumen.CStoreInterpreter {
 
   def id = null
   
+  val interpreterType = TraditionalInterpreterType
   type Store = I.Store
   def init(prog: Prog) = null
   def lift  = null

@@ -314,5 +314,12 @@ package object acumen {
     def tryCompare(l: D, r: D): Option[Int] = evVIsIntegral.tryCompare(l.head, r.head)
     def lteq(l: D, r: D): Boolean = evVIsIntegral.lteq(l.head, r.head)
   }
+
+  /** Interpreter types distinguished by passes such as [[acumen.CleanParameters]]. */
+  sealed abstract class InterpreterType
+  case object TraditionalInterpreterType extends InterpreterType
+  sealed abstract class RigorousInterpreterType extends InterpreterType
+  case object EnclosureLegacyInterpreterType extends RigorousInterpreterType
+  case object Enclosure2015InterpreterType extends RigorousInterpreterType
   
 }

@@ -4,10 +4,12 @@
  */
 
 package acumen
+
 import Specialization._
 import GenSym._
 import Pretty._
 import Errors._
+import spire.math.Rational
 
 /**
  * Hashed version of symbolic differentiation
@@ -171,7 +173,7 @@ object SD {
     def apply(e:Expr):HashExpr = e match{
       case Lit(GInt(value)) => literal(value)
       case Dot(_,_) => new HashExpr(e,Nil)
-      case Lit(GDouble(value)) => literal(value)
+      case Lit(GRational(value)) => literal(value)
       case Var(n) => variable(n)
       case Op(Name(f,_),es) => (f, es) match{
         case ("+",Lit(GInt(0)) :: e :: Nil ) => HashExpr(e)
@@ -194,8 +196,8 @@ object SD {
 
   }
    object Literal{
-     def apply(value:Double) =  new Literal(Lit(GDouble(value)), Nil)
      def apply(value:Int)=  new Literal(Lit(GInt(value)), Nil)
+     def apply(value:Rational)=  new Literal(Lit(GRational(value)), Nil)
    }
    
    class Variable(expr:Expr, eqs:List[Action]) extends HashExpr(expr,eqs){
@@ -217,15 +219,15 @@ object SD {
       n match {
       /* Operators */
       case "sin" => es match {
-        case Lit(GDouble(0)) :: Nil => literal(0)
+        case Lit(GRational(Rational.zero)) :: Nil => literal(0)
         case _ => mkOp("sin",hes)
       }
       case "cos" => es match {
-        case Lit(GDouble(0)) :: Nil => literal(1)
+        case Lit(GRational(Rational.zero)) :: Nil => literal(1)
         case _ =>  mkOp("cos",hes)
       }
       case "exp" => es match {
-        case Lit(GDouble(0)) :: Nil => literal(1)
+        case Lit(GRational(Rational.zero)) :: Nil => literal(1)
         case _ =>  mkOp("exp",hes)
       }
       // Natural logarithm
@@ -234,26 +236,26 @@ object SD {
       }
       /* Operators */
       case "+" => es match {
-        case List(Lit(GDouble(0)), r) => hes(1)
-        case List(l, Lit(GDouble(0))) => hes(0)
+        case List(Lit(GRational(Rational.zero)), r) => hes(1)
+        case List(l, Lit(GRational(Rational.zero))) => hes(0)
         case List(Lit(GInt(0)), r) => hes(1)
         case List(l, Lit(GInt(0))) => hes(0)
-        case List(Lit(GDouble(n1)), Lit(GDouble(n2))) => literal(n1 + n2)
+        case List(Lit(GRational(n1)), Lit(GRational(n2))) => literal(n1 + n2)
         case _ => mkOp("+",hes)
       }
       case "-" => es match {
-        case List(l, Lit(GDouble(0))) => hes(0)
+        case List(l, Lit(GRational(Rational.zero))) => hes(0)
         case List(l, Lit(GInt(0))) => hes(0)
         case List(Lit(GInt(n1)), Lit(GInt(n2))) => literal(n1 - n2)
-        case List(Lit(GDouble(n1)), Lit(GDouble(n2))) => literal(n1 - n2)
-        case _ =>mkOp("-",hes)
+        case List(Lit(GRational(n1)), Lit(GRational(n2))) => literal(n1 - n2)
+        case _ => mkOp("-",hes)
       }
       case "*" => es match {
         /* Simplify terms */
         case List(Lit(GInt(1)), res) => hes(1)
         case List(res, Lit(GInt(1))) => hes(0)
-        case List(Lit(GDouble(1)), res) => hes(1)
-        case List(res, Lit(GDouble(1))) => hes(0)
+        case List(Lit(GRational(Rational.one)), res) => hes(1)
+        case List(res, Lit(GRational(Rational.one))) => hes(0)
         case List(Lit(GInt(0)), res) => literal(0)
         case List(res, Lit(GInt(0))) => literal(0)
         case _ => mkOp("*",hes)
@@ -285,9 +287,9 @@ object SD {
   /* Smart constructors */ // TODO Make regular constructors private to force use of these. 
 
   /** Smart constructor for the Literal case class */
-  def literal(value: Double) = Literal(value)
-  /** Smart constructor for the Literal case class */
   def literal(value: Int) = Literal(value)
+  /** Smart constructor for the Literal case class */
+  def literal(value: Rational) = Literal(value)
 
   /** Smart constructor for the Variable case class */
   def variable(name: Name) = new Variable(Var(name),Nil)
@@ -367,12 +369,12 @@ object SD {
               case "tan" =>  op("^",List(op("/",List(literal(1),op("cos",List(arg)))),literal(2)))
               case "atan" => op("/", List(literal(1), op("+", List(literal(1), op("^", List(arg, literal(2)))))))
               case "acos" => op("/", List(literal(-1),
-                op("^", List(op("-", List(literal(1), op("^", List(arg, literal(2))))), literal(0.5)))))
+                op("^", List(op("-", List(literal(1), op("^", List(arg, literal(2))))), literal(Rational(1,2))))))
               case "asin" => op("/", List(literal(1),
-                op("^", List(op("-", List(literal(1), op("^", List(arg, literal(2))))), literal(0.5)))))
+                op("^", List(op("-", List(literal(1), op("^", List(arg, literal(2))))), literal(Rational(1,2))))))
               case "exp"  => op("exp", List(arg))
               case "log"  => op("/", List(literal(1), arg))
-              case "sqrt" => op("*", List(literal(0.5), op("^", List(arg, literal(-0.5)))))
+              case "sqrt" => op("*", List(literal(Rational(1,2)), op("^", List(arg, literal(-Rational(1,2))))))
 
             },
             difarg))
@@ -474,9 +476,9 @@ object SD {
                 case "tan" =>  op("^",List(op("/",List(literal(1),op("cos",List(arg)))),literal(2)))
                 case "atan" => op("/", List(literal(1), op("+", List(literal(1), op("^", List(arg, literal(2)))))))
                 case "acos" => op("/", List(literal(-1), 
-                                 op("^", List(op("-",List(literal(1),op("^",List(arg,literal(2))))), literal(0.5)))))
+                                 op("^", List(op("-",List(literal(1),op("^",List(arg,literal(2))))), literal(Rational(1,2))))))
                 case "asin" => op("/", List(literal(1), 
-                                 op("^", List(op("-",List(literal(1),op("^",List(arg,literal(2))))), literal(0.5)))))
+                                 op("^", List(op("-",List(literal(1),op("^",List(arg,literal(2))))), literal(Rational(1,2))))))
                 case "exp" => op("exp", List(arg))
                 case "log" => op("/", List(literal(1), arg))
                

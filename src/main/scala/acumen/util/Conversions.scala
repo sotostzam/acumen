@@ -25,6 +25,7 @@ object Conversions {
     v match {
       case GInt(i)    => i.toDouble
       case GDouble(x) => x
+      case GRational(r) => r.toDouble
       case e: GRealEnclosure if (e isThin) => e.range.loDouble
       case GDoubleTDif(c) => c.coeff.head
       case GIntTDif(c) => c.coeff.head

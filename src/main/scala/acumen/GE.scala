@@ -8,7 +8,9 @@ import Simplifier._
 import Error._
 import interpreters.Common.printMatrix
 import scala.collection.immutable.Vector
-/* Gaussian elimination */
+import spire.math.Rational
+
+/** Gaussian elimination */
 object GE {
   /* Coefficient matrix */
   case class CMatrix(val M: Matrix) {
@@ -328,9 +330,9 @@ object GE {
   /* A superfical way for checking zero entry
    * Todo: What about l*sin(t), where it might becomes zero at certain time?*/
   def isZero(e: Expr) = e match {
-    case Lit(GInt(0))      => true
-    case Lit(GDouble(0.0)) => true
-    case _                 => false
+    case Lit(GInt(0))                  => true
+    case Lit(GRational(Rational.zero)) => true
+    case _                             => false
   }
 
   def mkBinOp(o: String, xs: List[Expr]) = {

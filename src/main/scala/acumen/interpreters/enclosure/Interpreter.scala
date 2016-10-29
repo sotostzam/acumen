@@ -39,6 +39,8 @@ case class Interpreter(strategy: Strategy)
     with Checker
     with Extract {
 
+  val interpreterType = EnclosureLegacyInterpreterType
+  
   def newInterpreterModel = new EnclosureModel
 
   val defaultInterpreterCallbacks = new EnclosureInterpreterCallbacks {
@@ -65,7 +67,7 @@ case class Interpreter(strategy: Strategy)
                      adjustParms: Parameters => Parameters) = {
     val cb = cb0.asInstanceOf[EnclosureInterpreterCallbacks]
     if (des.defs.size > 1) sys.error("Multiple models are not currently supported by the enclosure interperter!")
-    val cdes = CleanParameters.run(des, EnclosureInterpreterType)
+    val cdes = CleanParameters.run(des, EnclosureLegacyInterpreterType)
     val main = classDef(ClassName("Main"), cdes)
 
     // checking that main class embeds a hybrid automaton

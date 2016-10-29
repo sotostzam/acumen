@@ -9,6 +9,7 @@ import scala.collection.immutable.{HashMap,PagedSeq}
 import scala.util.parsing.input.Position
 import java.io.File
 import java.io.BufferedReader
+import spire.math.Rational
 
 import org.apache.commons.math3.distribution.NormalDistribution
 
@@ -19,7 +20,7 @@ import interpreters.enclosure.{NormalDistribution, UniformDistribution, Splitter
 class MyLexical extends StdLexical {
 
   /* more tokens than is StdTokens (adding new constructors to Token)*/
-  case class FloatLit(chars: String) extends Token {
+  case class RationalLit(chars: String) extends Token {
     override def toString = chars
   }
 
@@ -27,7 +28,7 @@ class MyLexical extends StdLexical {
     override def toString = chars
   }
 
-  /* we don't want to parse characters, and we want to parse floats,
+  /* we don't want to parse characters, and we want to parse rationals,
    * so we override the definition of the token parser */
   override def token: Parser[Token] =
     (ident | numlit | stringlit | eof
@@ -50,7 +51,7 @@ class MyLexical extends StdLexical {
   private def intlit = rep1(digit) ^^ (_ mkString "")
   private def numlit: Parser[Token] =
     intlit ~ opt(fraction ~ option(exponent, "")) ^^ {
-      case intlit ~ Some(frac ~ exp) => FloatLit(List(intlit, frac, exp) mkString "")
+      case intlit ~ Some(frac ~ exp) => RationalLit(List(intlit, frac, exp) mkString "")
       case intlit ~ None => NumericLit(intlit)
     }
   private def sign = elem('+') | elem('-')
@@ -73,8 +74,8 @@ class MyStdTokenParsers extends StdTokenParsers {
   type Tokens = MyLexical;
   val lexical = new MyLexical
 
-  def floatLit: Parser[String] =
-    elem("floating number", _.isInstanceOf[lexical.FloatLit]) ^^ (_.chars)
+  def rationalLit: Parser[String] =
+    elem("rational number", _.isInstanceOf[lexical.RationalLit]) ^^ (_.chars)
 
   def cidLit: Parser[String] =
     elem("canonical id", _.isInstanceOf[lexical.CIdLit]) ^^ (_.chars)
@@ -179,7 +180,7 @@ object Parser extends MyStdTokenParsers {
 
   def smartMinus(e: Expr): Expr = {
     e match {
-      case e@Lit(GDouble(x)) => Lit(GDouble(-x)).setPos(e.pos)
+      case e@Lit(GRational(x)) => Lit(GRational(-x)).setPos(e.pos)
       case e@Lit(GInt(x)) => Lit(GInt(-x)).setPos(e.pos)
       case other => mkOp("*",Lit(GInt(-1)), other)
     }
@@ -206,17 +207,16 @@ object Parser extends MyStdTokenParsers {
 
   /* ground values parsers */
 
-  def gvalue = positioned(gint | gfloat | gstr | gbool | gpattern)
+  def gvalue = positioned(gint | grational | gstr | gbool | gpattern)
 
   def gint = opt("-") ~ numericLit ^^ {
     case m ~ x =>
       val res = x.toInt
       GInt(if (m.isDefined) -res else res)
   }
-  def gfloat = opt("-") ~ floatLit ^^ {
+  def grational = opt("-") ~ rationalLit ^^ {
     case m ~ x =>
-      val res = x.toDouble
-      GDouble(if (m.isDefined) -res else res)
+      GRational(spire.math.Rational(if (m.isDefined) "-" + x else x))
   }
   def gstr = stringLit ^^ GStr
   def gbool = "true" ^^^ GBool(true) | "false" ^^^ GBool(false)
@@ -544,32 +544,32 @@ object Parser extends MyStdTokenParsers {
   def splitIntervalUniform: Parser[Expr] =
     "uniformd" ~ "(" ~ nlit ~ "," ~ nlit ~ ")" ~ opt("central" ~ nlit) ~ "splitby" ~ gint ^^ {
       case "uniformd" ~ "(" ~ lo ~ "," ~ hi ~ ")" ~ p ~ "splitby" ~ n =>
-        if(p.isEmpty) ExprSplitterUniform(lo, hi, Lit(GDouble(1)), Lit(n))
+        if(p.isEmpty) ExprSplitterUniform(lo, hi, Lit(GRational(1)), Lit(n))
         else ExprSplitterUniform(lo, hi, p.get._2, Lit(n))
     }
   def splitIntervalBeta: Parser[Expr] =
     "betad" ~ "(" ~ nlit ~ "," ~ nlit ~ "," ~ nlit ~ "," ~ nlit ~ ")" ~ opt("central" ~ nlit) ~ "splitby" ~ gint ^^ {
       case "betad" ~ "(" ~ lo ~ "," ~ hi ~ "," ~ a ~ "," ~ b ~ ")" ~ p ~ "splitby" ~ n =>
-        if(p.isEmpty) ExprSplitterBeta(lo, hi, a, b, Lit(GDouble(1)), Lit(n))
+        if(p.isEmpty) ExprSplitterBeta(lo, hi, a, b, Lit(GRational(1)), Lit(n))
         else ExprSplitterBeta(lo, hi, a, b, p.get._2, Lit(n))
     }
 
-  def lit = positioned((gint | gfloat | gstr) ^^ Lit)
+  def lit = positioned((gint | grational | gstr) ^^ Lit)
 
   //allowed syntax for values in the command line
-  def cl_lit = (gint | gfloat | gbool | gstr) ^^ Lit
+  def cl_lit = (gint | grational | gbool | gstr) ^^ Lit
 
   def name: Parser[Name] =
     (ident) ~! rep("'") ^^ { case id ~ ps => Name(id, ps.size) }
 
   def className: Parser[ClassName] = ident ^^ (ClassName(_))
 
-  def nlit = (gfloat | gint) ^^ Lit
+  def nlit = (grational | gint) ^^ Lit
   
-  def get(gv: GroundValue): Double = gv match {
+  def get(gv: GroundValue): Rational = gv match {
     case GInt(i) => i
-    case GDouble(d) => d
-    case _ => sys.error("could not convert " + gv + "to GDouble")
+    case GRational(d) => d
+    case _ => sys.error("could not convert " + gv + "to GRational")
   }
   /* 3d configurations parser */
   val defaultCenter = ExprVector(List(Lit(GInt(0)),Lit(GInt(0)),Lit(GInt(0))))
@@ -769,8 +769,7 @@ object Parser extends MyStdTokenParsers {
         x._2 match {
           case Lit(GDouble(_)) => x._2
           case Lit(GInt(_)) => x._2
-          case Lit(_) => error("_3D object " + name + "'s 'transparency' parameter should either be a float number " +
-            "between 0 to 1 or negative value")
+          case Lit(_) => throw _3DTransparencyError(Some(name))
           case _ => x._2
         }
       case None => defaultTransparency
