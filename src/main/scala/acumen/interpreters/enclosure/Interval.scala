@@ -72,15 +72,8 @@ class Interval(private val i: SetInterval) {
   /** Interval of absolute values of elements in this interval. */
   def abs = Interval(ic.abs(this.i))
 
-  /**
-   * Interval of n:th power values of elements in this interval.
-   *
-   * @precondition n >= 0.
-   */
-  def pow(n: Int): Interval = {
-    require(n >= 0)
-    Interval(ic.pown(this.i, n))
-  }
+  /** Interval of n:th power values of elements in this interval. */
+  def pow(n: Int): Interval = Interval(ic.pown(this.i, n))
 
   def pow(that: Interval) = Interval(ic.pow(this.i, that.i))
   
