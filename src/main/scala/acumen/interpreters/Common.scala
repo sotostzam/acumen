@@ -558,6 +558,7 @@ object Common {
       case VVector(l) => i match {
         case VLit(GInt(idx)) :: Nil => lookup(idx, l)
         case VLit(GDouble(dx)) :: Nil => throw ExpectedInteger(i(0))
+        case VLit(GConstantRealEnclosure(idx)) :: Nil if idx.isValidInt => lookup(idx.toInt, l)
         case VLit(gd: GTDif[_]) :: Nil if gd.isValidInt => lookup(gd.toInt, l)
         case VVector(idxs) :: Nil => VVector(idxs.map(x => evalIndexOp(e,List(x))))
         case VVector(rows) :: VVector(columns) :: Nil => {

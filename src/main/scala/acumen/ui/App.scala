@@ -147,9 +147,15 @@ class App extends SimpleSwingApplication {
   private val increaseIndentAction            = mkAction(    "Increase Indentation",                VK_N, VK_RBRACKET,codeArea increaseIndent) // Key binding set in CodeArea
   private val decreaseIndentAction            = mkAction(    "Decrease Indentation",                VK_E, VK_LBRACKET,codeArea decreaseIndent) // Key binding set in CodeArea
   private val showLineNumbersAction           = mkAction(    "Line Numbers",                        VK_L, VK_L,       toggleLineNumbers)
-  private val plotStyleLinesAction            = new Action(  "Lines")       { mnemonic =            VK_L; def apply = plotView.setPlotStyle(plot.Lines()) }
-  private val plotStyleDotsAction             = new Action(  "Dots")        { mnemonic =            VK_D; def apply = plotView.setPlotStyle(plot.Dots()) }
-  private val plotStyleBothAction             = new Action(  "Both")        { mnemonic =            VK_B; def apply = plotView.setPlotStyle(plot.Both()) }
+  private val plotStyleLinesAction            = new Action(  "Lines")          { mnemonic =         VK_L; def apply = plotView.setPlotStyle(plot.Lines()) }
+  private val plotStyleDotsAction             = new Action(  "Dots")           { mnemonic =         VK_D; def apply = plotView.setPlotStyle(plot.Dots()) }
+  private val plotStyleBothAction             = new Action(  "Both")           { mnemonic =         VK_B; def apply = plotView.setPlotStyle(plot.Both()) }
+  private val plotLabelTopLeftAction          = new Action(  "Top-Left")       { mnemonic =         VK_L; def apply = plotView.setPlotLabelPosition(plot.TopLeft) }
+  private val plotLabelTopRightAction         = new Action(  "Top-Right")      { mnemonic =         VK_R; def apply = plotView.setPlotLabelPosition(plot.TopRight) }
+  private val plotLabelBottomLeftAction       = new Action(  "Bottom-Left")    { mnemonic =         VK_E; def apply = plotView.setPlotLabelPosition(plot.BottomLeft) }
+  private val plotLabelBottomRightAction      = new Action(  "Bottom-Right")   { mnemonic =         VK_I; def apply = plotView.setPlotLabelPosition(plot.BottomRight) }
+  private val plotLabelOffAction              = new Action(  "Off")            { mnemonic =         VK_O; def apply = plotView.setPlotLabelPosition(plot.Off) }
+  private val plotLabelToggleObjectIdAction   = new Action(  "Show Object Id") { mnemonic =         VK_S; def apply = plotView.togglePlotLabelObjectId() }
   private val reference2015Action             = mkActionMask("2015 Reference",                      VK_R, VK_R,       shortcutMask | SHIFT_MASK, setSemantics(S.Ref2015))
   private val reference2014Action             = mkActionMask("2014 Reference",                      VK_R, NONE,       shortcutMask | SHIFT_MASK, setSemantics(S.Ref2014))
   private val reference2013Action             = mkActionMask("2013 Reference",                      VK_R, NONE,       shortcutMask | SHIFT_MASK, setSemantics(S.Ref2013))
@@ -549,6 +555,17 @@ class App extends SimpleSwingApplication {
       contents += new CheckMenuItem("") { selected = false
         action = new Action("RNG Seeds") 
         		 { mnemonic = KeyEvent.VK_R; def apply = plotView.toggleSeeds(selected) }
+      }
+      contents += new Menu("Labels") {
+        mnemonic = Key.L
+        val rb1 = new RadioMenuItem("") { selected = false; action = plotLabelTopLeftAction }
+        val rb2 = new RadioMenuItem("") { selected = false; action = plotLabelTopRightAction }
+        val rb3 = new RadioMenuItem("") { selected = false; action = plotLabelBottomLeftAction }
+        val rb4 = new RadioMenuItem("") { selected = false; action = plotLabelBottomRightAction }
+        val rb5 = new RadioMenuItem("") { selected = true;  action = plotLabelOffAction }
+        val mi = new CheckMenuItem("")  { selected = true;  action = plotLabelToggleObjectIdAction }
+        contents ++= Seq(rb1,rb2,rb3,rb4,rb5,new Separator,mi)
+        new ButtonGroup(rb1,rb2,rb3,rb4,rb5)
       }
     }
     

@@ -393,7 +393,9 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
       case _        => throw UnknownOperator(f)
     }
     (f, vx) match {
-      case ("not", Uncertain | CertainTrue | CertainFalse) => Uncertain
+      case ("not", CertainTrue)  => CertainFalse
+      case ("not", CertainFalse) => CertainTrue
+      case ("not", Uncertain)    => Uncertain
       case (_, e: GRealEnclosure) => GConstantRealEnclosure(implem(f, e.range))
       case (_, GIntervalFDif(d)) => GIntervalFDif(implemUnaryReal(f, d,vx.pos))
       case (_, GCValueTDif(d @ TAD.TDif(vd,_))) => 

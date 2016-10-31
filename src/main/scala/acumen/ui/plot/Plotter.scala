@@ -27,6 +27,8 @@ class PlotInput(val model : () => PlotModel,
   @volatile var enabled = false
   @volatile var parms = PlotParms()
   @volatile var plotStyle : PlotStyle = Lines()
+  @volatile var plotLabelPosition : PlotLabelPosition = Off
+  @volatile var plotLabelObjectId : Boolean = true
   val DISABLE_THRESHOLD = 25
   @volatile var disableThreshold = DISABLE_THRESHOLD
 }
@@ -158,7 +160,7 @@ class Plotter(tableI: TableInput, plotI: PlotInput, jPlotI: JPlotInput)
 
   def repaint(vp: Rectangle2D = null) = {
     var buf = plotI.buffer()
-    val pi = new PlotImage(pd, buf, plotI.plotStyle, vp)
+    val pi = new PlotImage(pd, buf, plotI.plotStyle, plotI.plotLabelPosition, plotI.plotLabelObjectId, vp)
     App ! PlotReady(pm,pd,pi,vp == null)
   }
 }

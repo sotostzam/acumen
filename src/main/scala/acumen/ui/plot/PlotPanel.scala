@@ -7,7 +7,7 @@ import scala.collection.mutable.{ArrayBuffer, Stack}
 import scala.swing._
 import scala.swing.event._
 
-import java.awt.{BasicStroke, Color}
+import java.awt.{BasicStroke, Color, MouseInfo}
 import java.awt.RenderingHints
 import java.awt.Transparency
 import java.awt.geom.{Ellipse2D, Line2D}
@@ -69,7 +69,7 @@ class PlotPanel(pub:Publisher) extends Panel
 
   private def clear = {
     pd = new PlotData()
-    pi = new PlotImage(pd, mkBuffer)
+    pi = new PlotImage(pd, mkBuffer, null, plotI.plotLabelPosition, plotI.plotLabelObjectId)
     hoveredBox = None
     dotX = (0.0d, 0.0d)
     dotY = None
@@ -597,11 +597,19 @@ class PlotPanel(pub:Publisher) extends Panel
     plotI.plotStyle = ps
     plotter ! Repaint(viewPort)
   }
+  def setPlotLabelPosition(plp:PlotLabelPosition) = {
+    plotI.plotLabelPosition = plp
+    plotter ! Repaint(viewPort)
+  }
+  def togglePlotLabelObjectId() = {
+    plotI.plotLabelObjectId = !plotI.plotLabelObjectId
+    plotter ! Repaint(viewPort)
+  }
 
   def render(file:File, w:Int, h:Int) = if (enabled) {
     // FIXME: This should't be done on the EDT...
     val buf = new BufferedImage(w, h, BufferedImage.TYPE_INT_ARGB)
-    new PlotImage(pd, buf, plotI.plotStyle, viewPort)
+    new PlotImage(pd, buf, plotI.plotStyle, plotI.plotLabelPosition, plotI.plotLabelObjectId, viewPort)
     ImageIO.write(buf, "PNG", file)
   }
 }
