@@ -558,8 +558,10 @@ object Common {
     e match {
       case VVector(l) => i match {
         case VLit(GInt(idx)) :: Nil => lookup(idx, l)
-        case VLit(GDouble(dx)) :: Nil => throw ExpectedInteger(i(0))
-        case VLit(GConstantRealEnclosure(idx)) :: Nil if idx.isValidInt => lookup(idx.toInt, l)
+        case VLit(GDouble(idx)) :: Nil => 
+          if (idx.isWhole) lookup(idx.toInt, l) else throw ExpectedInteger(i(0))
+        case VLit(GConstantRealEnclosure(idx)) :: Nil => 
+          if (idx.isValidInt) lookup(idx.toInt, l) else throw ExpectedInteger(i(0))
         case VLit(gd: GTDif[_]) :: Nil if gd.isValidInt => lookup(gd.toInt, l)
         case VVector(idxs) :: Nil => VVector(idxs.map(x => evalIndexOp(e,List(x))))
         case VVector(rows) :: VVector(columns) :: Nil => {
@@ -572,6 +574,7 @@ object Common {
         }
         case VVector(rows) :: c ::Nil => evalIndexOp(e, VVector(rows) :: VVector(List(c)) :: Nil)
         case head :: tail => evalIndexOp(evalIndexOp(e,List(head)), tail)
+        case _ => throw IndexNoMatch(i)
       }    
       case _ => throw CantIndex() }
   }

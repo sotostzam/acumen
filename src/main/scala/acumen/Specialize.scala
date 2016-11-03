@@ -106,11 +106,11 @@ object Specialization {
               case ExprVector(ls) =>
                 val esd = ls.map(_ match {
                   case Var(n) => (SD.dif(e, n, env, conditionalAction)).pair
-                  case _      => error(v + " is not a variable for partial differentiation")
+                  case _      => throw InvalidSymbolicDifferentiation(v, "partial")
                 })
                 (ExprVector(esd.map(x => x._1)),
                   esd.foldLeft(List[Action]())((r, x) => r ::: x._2))
-              case _ => error(v + " is not a variable for partial differentiation")
+              case _ => throw InvalidSymbolicDifferentiation(v, "partial")
             }
             case _ => error("Can't perform symbolic differentiation on " + aexpr)
           }
