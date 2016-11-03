@@ -3,6 +3,7 @@
 set -e
 
 SBT=${SBT:-`which sbt`}
+SBT_COMMANDS=${SBT_COMMANDS:-"compile quick:test"}
 COMMIT=${GIT_COMMIT:-master}
 
 usage () {
@@ -54,7 +55,7 @@ touch READY_FOR_CENSOR
 # Fix version strings
 echo Fixing version string.
 perl -i.bak -pe "s/version := .+/version := \"$REL\"/" build.sbt
-perl -i.bak -pe "s/VERSION/$REL/g" README socket/README
+perl -i.bak -pe "s/VERSION/$REL/g" README.md socket/README
 
 # update version file
 echo Writing version file.
@@ -64,19 +65,19 @@ echo "$REV-$HASH" > src/main/resources/acumen/build_id
 # Test to make sure everything is still okay
 # Use the quick test so it doesn't take forever and also so that something
 # will be created even if some of the "full" propriety based tests fail.
-$SBT compile quick:test
+$SBT ${SBT_COMMANDS}
 
 # make release build
 cd ..
 test ! -e $REL_DIR || error "$REL_DIR exists"
 cp -a acumen-rel-working ${DIR_PREFIX}_Acumen
 cd $REL_DIR
-$SBT proguard
-cp target/scala-*/acumen-$REL.jar ..
+$SBT assembly
+cp target/scala-*/acumen.jar ..
 git clean -xfd -e src/main/resources/acumen/version -e src/main/resources/acumen/build_id
 rm -rf .git
 rm .git*
-mv ../acumen-$REL.jar .
+mv ../acumen.jar .
 test ! -e $REL_DIR.zip || error "$REL_DIR.zip exists"
 cd ..
 zip -9r $REL_DIR.zip $REL_DIR
