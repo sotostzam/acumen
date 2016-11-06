@@ -227,6 +227,7 @@ object Errors {
   case class UnsupportedTypeError(kind: String, id: String, value: CValue) extends PositionalAcumenError {
     override def mesg =
       s"Unsupported $kind: $id = ${pprint(value)}"
+    pos = value.pos
   }
   case class UnsupportedTypeChangeError(f: Name, id: CId, clazz: ClassName, vOld: GValue, vNew: GValue, reason: String) extends PositionalAcumenError {
     override def mesg =
