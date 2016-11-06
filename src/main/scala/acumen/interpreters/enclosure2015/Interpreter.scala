@@ -555,8 +555,8 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
          fully qualified at this language level */
       case c: Create =>
         throw internalPosError("The 2015 Enclosure semantics does not support create statements in the always section.", c.pos)
-      case Assign(_,_) => 
-        throw BadLhs()
+      case Assign(lhs,_) => 
+        throw BadLhs(lhs)
     }
 
   def evalContinuousAction(certain:Boolean, path: Expr, a:ContinuousAction, env:Env, p:Prog, st: Enclosure) : Set[Changeset] = 

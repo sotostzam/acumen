@@ -86,7 +86,7 @@ package acumen {
   /* Example: case 1 x = 3; y = 4 */
   case class Clause(lhs: GroundValue, assertion: Expr, rhs: List[Action])
 
-  sealed abstract class ContinuousAction
+  sealed abstract class ContinuousAction extends Positional
   /* TODO: use the phase distinction/refinement types trick
            to make sure we get rid of any Equation after the
            desugaring phase */

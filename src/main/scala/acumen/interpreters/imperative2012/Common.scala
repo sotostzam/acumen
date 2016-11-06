@@ -337,8 +337,8 @@ object Common {
         val VObjId(Some(id)) = evalExpr(e, p, env)
         val vt = evalExpr(t, p, env)
         setField(id, x, vt)
-      case Assign(_, _) =>
-        throw BadLhs()
+      case Assign(lhs, _) =>
+        throw BadLhs(lhs)
       case Create(lhs, e, es) =>
         val c = evalExpr(e, p, env) match {
           case VClassName(cn) => cn
@@ -353,7 +353,7 @@ object Common {
           case Some(Dot(e, x)) =>
             val VObjId(Some(id)) = evalExpr(e, p, env)
             logModified || setField(id, x, VObjId(Some(fa)))
-          case Some(_) => throw BadLhs()
+          case Some(lhs) => throw BadLhs(lhs)
         }
       case Elim(e) =>
         val VObjId(Some(id)) = evalExpr(e, p, env)
@@ -386,7 +386,7 @@ object Common {
             val ts = extractDoubles(vt)
             VVector((us, ts).zipped map ((a, b) => VLit(GDouble(a + b * dt))))
           case _ =>
-            throw BadLhs()
+            throw BadLhs(lhs)
         })
       case _ =>
         throw ShouldNeverHappen() // FIXME: fix that with refinement types

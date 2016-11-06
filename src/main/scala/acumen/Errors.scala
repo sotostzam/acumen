@@ -209,9 +209,10 @@ object Errors {
       "Only discrete assingments to simulator parameters are allowed."
     pos = rhs.pos
   }
-  case class BadLhs() extends PositionalAcumenError {
+  case class BadLhs(lhs: Positional) extends PositionalAcumenError {
     override def mesg = 
       "The left-hand side of an assignment must be of the form 'e.x'."
+    pos = lhs.pos
   }
   case class BadRhs(message: String) extends PositionalAcumenError {
     override def mesg = "Invalid assignment: " + message
