@@ -257,7 +257,7 @@ object Parser extends MyStdTokenParsers {
   def actions = repsep(action, ",") 
 
   def action: Parser[Action] =
-    switchCase | ifThenElse | forEach | discretelyOrContinuously | claim | hypothesis
+    positioned(switchCase | ifThenElse | forEach | discretelyOrContinuously | claim | hypothesis)
 
   def switchCase =
     "match" ~ expr ~ "with" ~"[" ~! clauses ~! "]" ^^
@@ -319,17 +319,17 @@ object Parser extends MyStdTokenParsers {
   def patternMatch : Parser[Continuously] = positioned(pattern) ~ "=" ~ expr ^^{case p ~ _ ~ e => Continuously(Assignment(p,e))}
 
   def discretelyOrContinuously =
-    (newObject(None) ^^ Discretely | elim ^^ Discretely 
+    positioned(newObject(None) ^^ Discretely | elim ^^ Discretely 
       | move ^^ Discretely | assignOrEquation | _3DAction | patternMatch | _plotAction)
 
   def assignOrEquation =
     // Make sure lhs won't be an expr like a == b, which has the same syntax as equation
-    expr >> { e =>
+    positioned(expr >> { e =>
       (	"=" ~> expr ^^ (e1 => Continuously(Equation(e, e1)))
         |"+" ~> "=" ~> assignrhs(e) ^^ Discretely     
         | "=[i]" ~> expr ^^ (e1 => Continuously(EquationI(e, e1)))
         | "=[t]" ~> expr ^^ (e1 => Continuously(EquationT(e, e1))))
-    }
+    })
     
   def _3DAction = 
     "_3D" ~ "="  ~ threeDRhs ^^ {
@@ -338,7 +338,7 @@ object Parser extends MyStdTokenParsers {
     case _ ~ _~_ ~ ls => Discretely(Assign(Var(Name("_3D",0)), ls))
   }
   def assignrhs(e: Expr) =
-    (expr ^^ (Assign(e, _)) | newObject(Some(e)))
+    positioned(expr ^^ (Assign(e, _)) | newObject(Some(e)))
 
   def newObject(lhs: Option[Expr]) =
     positioned(

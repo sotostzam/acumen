@@ -67,7 +67,7 @@ package acumen {
   /* Example: 1+2 */
   case class ExprRhs(e: Expr) extends InitRhs
 
-  sealed abstract class Action
+  sealed abstract class Action extends Positional
   /* Example: if 1<2 x = 1 else x = 2 end */
   case class IfThenElse(cond: Expr, t: List[Action], e: List[Action]) extends Action
   /* Example: switch y case 1 x = 2 case 2 x = 3 end */
