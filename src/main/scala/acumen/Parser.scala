@@ -181,8 +181,8 @@ object Parser extends MyStdTokenParsers {
   def smartMinus(e: Expr): Expr = {
     e match {
       case e@Lit(GRational(x)) => Lit(GRational(-x)).setPos(e.pos)
-      case e@Lit(GInt(x)) => Lit(GInt(-x)).setPos(e.pos)
-      case other => mkOp("*",Lit(GInt(-1)), other)
+      //case e@Lit(GInt(x)) => Lit(GInt(-x)).setPos(e.pos)
+      case other => mkOp("*",Lit(GRational(-1)), other)
     }
   }
 
@@ -207,13 +207,21 @@ object Parser extends MyStdTokenParsers {
 
   /* ground values parsers */
 
-  def gvalue = positioned(gint | grational | gstr | gbool | gpattern)
-
+  def gvalue = positioned(gdivide | gint | grational | gstr | gbool | gpattern)
+  
+  /* integer represented as rational */
   def gint = opt("-") ~ numericLit ^^ {
     case m ~ x =>
       val res = x.toInt
-      GInt(if (m.isDefined) -res else res)
+      GRational(if (m.isDefined) -res else res)
   }
+  
+  def gdivide = opt("-") ~ numericLit ~ "/" ~ numericLit ^^ {
+    case m ~ n ~ _~ d =>
+      val (rn, rd) = (n.toInt, d.toInt)
+      GRational(if (m.isDefined) Rational(-rn,rd) else Rational(rn,rd))
+  }
+  
   def grational = opt("-") ~ rationalLit ^^ {
     case m ~ x =>
       GRational(spire.math.Rational(if (m.isDefined) "-" + x else x))
@@ -393,7 +401,7 @@ object Parser extends MyStdTokenParsers {
       (":" ~! level5 >> {
         case _ ~ y =>
           (":" ~! level5 ^^ { case _ ~ z => mkOp("_:_:_", x, y, z) }
-            | success(mkOp("_:_:_", x, Lit(GInt(1)), y)))
+            | success(mkOp("_:_:_", x, Lit(GRational(1)), y)))
       }
         | success(x))
     }
@@ -460,12 +468,12 @@ object Parser extends MyStdTokenParsers {
             case Some(_ ~ f) => f
           })} 
      
-  final val one = Lit(GInt(1))
-  final val zero = Lit(GInt(0))
+  final val one = Lit(GRational(1))
+  final val zero = Lit(GRational(0))
   
   def vectorConstruct : Parser[ExprVector] = 
-    "ones" ~ parens(rep1sep(gint,",")) ^^ {case _ ~ls => vectorHelper("ones", ls.map(x => x.i))}  |
-    "zeros" ~ parens(rep1sep(gint,",")) ^^ {case _ ~ ls => vectorHelper("zeros", ls.map(x => x.i))} |
+    "ones" ~ parens(rep1sep(gint,",")) ^^ {case _ ~ls => vectorHelper("ones", ls.map(x => x.d.toInt))}  |
+    "zeros" ~ parens(rep1sep(gint,",")) ^^ {case _ ~ ls => vectorHelper("zeros", ls.map(x => x.d.toInt))} |
     "("~")" ^^{case _ ~ _ => ExprVector(List.empty)}
    
   def vectorHelper(name:String, dimensions:List[Int]):ExprVector = dimensions match{
@@ -566,27 +574,27 @@ object Parser extends MyStdTokenParsers {
 
   def nlit = (grational | gint) ^^ Lit
   
-  def get(gv: GroundValue): Rational = gv match {
-    case GInt(i) => i
+  def get(gv: StaticGroundValue): Rational = gv match {
     case GRational(d) => d
     case _ => sys.error("could not convert " + gv + "to GRational")
   }
+  val rationalone = Lit(GRational(1)); val rationalzero = Lit(GRational(0))
   /* 3d configurations parser */
-  val defaultCenter = ExprVector(List(Lit(GInt(0)),Lit(GInt(0)),Lit(GInt(0))))
-  val defaultScale = Lit(GDouble(0.2))
-  val defaultSize = ExprVector(List(Lit(GDouble(0.4)),Lit(GDouble(0.4)),
-                                    Lit(GDouble(0.4))))
-  val defaultSizeCylinder = ExprVector(List(Lit(GDouble(0.2)),Lit(GDouble(0.4))))                                  
-  val defaultLength = Lit(GDouble(0.4))
-  val defaultRadius = Lit(GDouble(0.2))
+  val defaultCenter = ExprVector(List(rationalzero,rationalzero,rationalzero))
+  val defaultScale  = Lit(GRational(0.2)) 
+  val defaultSize   = ExprVector(List(Lit(GRational(0.4)),Lit(GRational(0.4)),
+                                    Lit(GRational(0.4))))
+  val defaultSizeCylinder = ExprVector(List(Lit(GRational(0.2)),Lit(GRational(0.4))))                                  
+  val defaultLength = Lit(GRational(0.4))
+  val defaultRadius = Lit(GRational(0.2))
   val defaultContent = Lit(GStr(" "))
-  val defaultColor = ExprVector(List(Lit(GInt(1)),Lit(GInt(1)),Lit(GInt(1))))
-  val defaultRotation = ExprVector(List(Lit(GInt(0)),Lit(GInt(0)),Lit(GInt(0))))
-  val defaultPoints = ExprVector(List(ExprVector(List(Lit(GInt(0)),Lit(GInt(0)),Lit(GInt(0)))),
-                                      ExprVector(List(Lit(GInt(1)),Lit(GInt(0)),Lit(GInt(0)))),
-                                      ExprVector(List(Lit(GInt(0)),Lit(GInt(1)),Lit(GInt(0))))))
+  val defaultColor = ExprVector(List(rationalone,rationalone,rationalone))
+  val defaultRotation = ExprVector(List(rationalzero,rationalzero,rationalzero))
+  val defaultPoints = ExprVector(List(ExprVector(List(rationalzero,rationalzero,rationalzero)),
+                                      ExprVector(List(rationalone,rationalzero,rationalzero)),
+                                      ExprVector(List(rationalzero,rationalone,rationalzero))))
   val defaultCoordinates = Lit(GStr("Global"))
-  val defaultTransparency = Lit(GDouble(-1.0))
+  val defaultTransparency = Lit(GRational(-1))
 
   // _3D parameter names with valid dimensions (Nil for parameters whose values are not vectors) 
   val paramDimensions: Map[String, List[Int]] =
@@ -605,7 +613,7 @@ object Parser extends MyStdTokenParsers {
        )
   
        
-  def _3DVector:Parser[Expr] = parens(expr ~ "," ~ expr) ^^{case e1 ~_~e2 => ExprVector(e1::e2::Lit(GInt(0))::Nil)}
+  def _3DVector:Parser[Expr] = parens(expr ~ "," ~ expr) ^^{case e1 ~_~e2 => ExprVector(e1::e2::rationalzero::Nil)}
   def _3DOp:Parser[Expr] = _3DPara ~ "+" ~ _3DPara ^^ { case e1 ~_~ e2 => Op(Name("+",0),e1::e2::Nil)} |
                            _3DPara ~ "-" ~ _3DPara ^^ { case e1 ~_~ e2 => Op(Name("-",0),e1::e2::Nil)}
   def _3DPara:Parser[Expr] = _3DVector | expr
@@ -767,8 +775,7 @@ object Parser extends MyStdTokenParsers {
     val transparency = paras.find(_._1.x == "transparency") match {
       case Some(x) =>
         x._2 match {
-          case Lit(GDouble(_)) => x._2
-          case Lit(GInt(_)) => x._2
+          case Lit(GRational(_)) => x._2
           case Lit(_) => throw _3DTransparencyError(Some(name))
           case _ => x._2
         }

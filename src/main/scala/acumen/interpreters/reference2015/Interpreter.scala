@@ -64,7 +64,7 @@ object Interpreter extends acumen.CStoreInterpreter {
   def evaluateIndexes(as:List[CollectedAction],st:Store)(implicit bindings:Bindings):List[CollectedAction] = {
     as.map(a => a match{
       case CollectedAction(o,Index(d,idx),rhs,env) => 
-        val evaledIdx = idx.map(x => evalExpr(x,env,st)(bindings)).map(y => Lit(GInt(extractInt(y))))       
+        val evaledIdx = idx.map(x => evalExpr(x,env,st)(bindings)).map(y => Lit(GRational(extractInt(y))))       
         CollectedAction(o,Index(d,evaledIdx),rhs,env)
     })
   }
@@ -200,7 +200,12 @@ object Interpreter extends acumen.CStoreInterpreter {
   def evalExpr(e:Expr, env:Env, st:Store)(implicit bindings: Bindings) : CValue = {
     def eval(env:Env, e:Expr)(implicit bindings: Bindings) : CValue = try {
 	    e match {
-  	    case Lit(i)         => VLit(i)
+        case Lit(GRational(i)) =>
+          if (i.isWhole)
+            VLit(GInt(i.toInt))
+          else
+            VLit(GDouble(i.toDouble))
+        case Lit(i)                      => VLit(i)
         case ExprVector(l)  => VVector (l map (eval(env,_)))
         case Var(n)         => env.get(n).getOrElse(VClassName(ClassName(n.x)))
         case Input(s,i)     => Devices.getDeviceInput(extractInt(eval(env, s)), i)
@@ -305,7 +310,7 @@ object Interpreter extends acumen.CStoreInterpreter {
   def evalAction(a:Action, env:Env, p:Prog)(implicit bindings: Bindings) : Eval[Unit] = {
     def VListToPattern(ls:List[Value[_]]):GPattern = 
             GPattern(ls.map(x => x match{
-              case VLit(n) => n
+              case VLit(n) => groundvalueToStatic(n)
               case VVector(nls) => VListToPattern(nls)            
             }))
     a match {
@@ -490,7 +495,7 @@ object Interpreter extends acumen.CStoreInterpreter {
         (rId, rN, evalExpr(rhs, env, st)(cache))
       /* Congregate multiple index assignments to (id,dot) into one assignment and update */
       case multipleIndexUpdates => 
-        val indexes = multipleIndexUpdates.map(x => x.d.idx.map(y => y match{case Lit(GInt(i)) => i}))
+        val indexes = multipleIndexUpdates.map(x => x.d.idx.map(y => y match{case Lit(GRational(i)) => i.toInt}))
         val vts = multipleIndexUpdates.map(x => evalExpr(x.rhs, x.env, st)(cache))
         val lhs = getObjectField(id, dot.field, st)
         val v = lhs match {
@@ -562,13 +567,13 @@ object Interpreter extends acumen.CStoreInterpreter {
         val eqs = evaluateIndexes(eqs1, st1)(NoBindings)
         val odes = evaluateIndexes(odes1, st1)(NoBindings)
         implicit val bindings = eqs.map{ e => val rd = resolveDot(e.d.lhs, e.env, st1)
-          (rd.id, rd.field,e.d.idx.map{x => x match{case Lit(GInt(i)) => i}}) -> UnusedBinding(e.rhs, e.env)}.toMap       
+          (rd.id, rd.field,e.d.idx.map{x => x match{case Lit(GRational(i)) => i.toInt}}) -> UnusedBinding(e.rhs, e.env)}.toMap       
       
         def resolveDots(s: List[CollectedAction]): List[(ResolvedDot,List[Int])] =
           s.map(da => (resolveDot(da.d.lhs, da.env, st1),da.d.idx match{
             case Nil => Nil
             case ls => ls.map(x => x match{
-              case Lit(GInt(i)) => i
+              case Lit(GRational(i)) => i.toInt
             })
           }))
         val res = resultType match {

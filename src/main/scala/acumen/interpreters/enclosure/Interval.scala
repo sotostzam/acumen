@@ -4,6 +4,7 @@ import scala.annotation.unchecked
 import Interval._
 import net.java.jinterval.rational._
 import net.java.jinterval.interval.set._
+import spire.math.Rational
 
 /**
  * Intervals with outward-rounded operations.
@@ -327,6 +328,7 @@ object Interval {
     Interval(ic.numsToInterval(lo, hi))
   def apply(x: Int): Interval = Interval(x, x)
   def apply(x: Double): Interval = Interval(x, x)
+  def apply(x: Rational): Interval = Interval(x.toDouble, x.toDouble)
   def apply(x: Real): Interval = Interval(x, x)
   def min(left: Interval, right: Interval): Interval =
     Interval(ic.min(left.i, right.i))

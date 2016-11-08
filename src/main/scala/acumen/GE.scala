@@ -28,7 +28,7 @@ object GE {
     }
     def length = M.length
   }
-  val zero = Lit(GInt(0))
+  val zero = Lit(GRational(0))
   type Matrix = Vector[Vector[Expr]]
   def init(es: List[Equation], q: List[Var]) = {
     equationsToMatrix(es, q)
@@ -69,7 +69,11 @@ object GE {
     }
 
   }
-
+  def printMatrix(matrix:CMatrix) = {
+    println("[")
+    matrix.M.map(x => {print("[") ;x.map(y => print(pprint(y)+" , ")) ; print("]");println("")})
+    println("]")
+  }
   /* Main GE algorithm
    * @param es input DAEs; q input variables to be directed
    * @param hashMap input environment with known var -> expr pair
@@ -98,7 +102,7 @@ object GE {
           case "+" => es.foldLeft(List[Expr]())((r, x) => r ::: breakExpr(x, vars))
           case "-" => breakExpr(es(0), vars) :::
             es.drop(1).foldLeft(List[Expr]())((r, x) => r :::
-              breakExpr(mkOp("*", Lit(GInt(-1)), x), vars))
+              breakExpr(mkOp("*", Lit(GRational(-1)), x), vars))
           case "*" => es match {
             case e1 :: e2 :: Nil => (hasTrueVariable(e1), hasTrueVariable(e2)) match {
               case (true, false)  => breakExpr(e1, vars).map(x => mkOp("*", x, e2))
@@ -119,9 +123,9 @@ object GE {
 
     // Example: 2 * 3 * x => 6 * x
     def evalVariableTerm(exp: Expr): (Expr, Expr) = {
-      implicit val exceptVars = (List.empty)
+      //implicit val exceptVars = (List.empty)
       exp match {
-        case Var(n) => (Lit(GInt(1)), Var(n))
+        case Var(n) => (Lit(GRational(1)), Var(n))
         case Op(f, es) => f.x match {
           case "*" => es match {
             case el :: er :: Nil =>
@@ -140,31 +144,21 @@ object GE {
                   mkOp("*", lhs._2, rhs._2))
               }
           }
-          case _ => (Lit(GInt(1)), exp)
+          case _ => (Lit(GRational(1)), exp)
         }
-        case Index(_, _) => (Lit(GInt(1)), exp)
+        case Index(_, _) => (Lit(GRational(1)), exp)
         case _           => error(exp.toString + " is not a basic term")
       }
     }
     // Simplify a constant expression
     def evalConstant(exp: Expr): Expr = exp match {
-      case Lit(n) => Lit(n)
-      case Op(f, es) => exprsToValues(es.map(x => evalConstant(x))) match {
-        // Invoke common.evalop 
-        case Some(ls) => evalOp(f.x, ls) match {
-          case VLit(gv) => Lit(gv)
-        }
-        case None => exp
-      }
-      case Dot(_, _)          => exp
       case _                  => exp
-
     }
 
     /* Example 2 * (3*x) => (2*3, x)*/
     def evalTrueVarTerm(exp: Expr, trueVar: Var): (Expr, Var) = {
       exp match {
-        case Var(trueVar.name) => (Lit(GInt(1)), trueVar)
+        case Var(trueVar.name) => (Lit(GRational(1)), trueVar)
         case Op(Name("*", 0), e1 :: e2 :: Nil) => (e1, e2) match {
           case (Var(trueVar.name), _) => (e2, trueVar)
           case (_, Var(trueVar.name)) => (e1, trueVar)
@@ -193,7 +187,7 @@ object GE {
     }
     /* Divide an expr into a list of variable terms and a constant */
     def normalizeExpr(e: Expr, q: List[Var]): (Option[List[Expr]], Expr) = {
-      implicit val exceptList = (List.empty)
+      //implicit val exceptList = (List.empty)
       val terms = breakExpr(e, q)
       // Find all the constants terms
       val constants = terms.filter(x => findVars(x).length == 0)
@@ -209,7 +203,7 @@ object GE {
       val finalConst = evaledConstants.length > 0 match {
         case true => evalConstant(evaledConstants.drop(1).foldLeft(evaledConstants(0))((r, x) =>
           Op(Name("+", 0), r :: x :: Nil)))
-        case _ => Lit(GInt(0))
+        case _ => Lit(GRational(0))
       }
       val finalVarTerms = varTerms.length > 0 match {
         case true => Some(trueVars.map(x => mkOp("*", x._1, x._2)))
@@ -231,7 +225,7 @@ object GE {
           Equation(mkPlus(vs),
             mkOp("-", cr, cl))
         case ((Some(vs), cl), (Some(vs2), cr)) =>
-          Equation(combineConstVarTerms(vs ::: vs2.map(x => mkOp("*", Lit(GInt(-1)), x))),
+          Equation(combineConstVarTerms(vs ::: vs2.map(x => mkOp("*", Lit(GRational(-1)), x))),
             mkOp("-", cr, cl))
       }
     }
@@ -250,7 +244,7 @@ object GE {
       (0 until N).foldLeft((initialM,initialB)){case ((outerM,outerB),p) =>
         // Find pivot row and swap
         val pivot = (p+1 until N).foldLeft(p){case (max,pivoti) => 
-          if (length(outerM(pivoti)(p)) > length(outerM(max)(p)) || isZero(outerM(max)(p)))
+          if ((outerM(pivoti)(p).isInstanceOf[Lit] && !isZero(outerM(pivoti)(p)) ) || isZero(outerM(max)(p)))
             pivoti
           else
             max  
@@ -274,6 +268,7 @@ object GE {
               else
                r.updated(i, j, mkOp("-", r(i)(j), mkOp("*", alpha, r(p)(j))))
               }
+            
             (Mupdated,IB)
           }
          IMB
@@ -309,7 +304,7 @@ object GE {
       case (Nil, l) => l.map(x => mkTimes(v1 :: x :: Nil))
       case (l, Nil) => l.map(x => mkTimes(v2 :: x :: Nil))
     }
-    case v1: Var              => { if (v1.name == v.name) List(Lit(GInt(1))); else Nil }
+    case v1: Var              => { if (v1.name == v.name) List(Lit(GRational(1))); else Nil }
     case Op(Name("+", 0), es) => es.foldLeft(List[Expr]())((r, x) => r ::: getCoef(x, v))
     case _                    => Nil
   }
@@ -330,16 +325,13 @@ object GE {
   /* A superfical way for checking zero entry
    * Todo: What about l*sin(t), where it might becomes zero at certain time?*/
   def isZero(e: Expr) = e match {
-    case Lit(GInt(0))                  => true
+    //case Lit(GRational(0))                  => true
     case Lit(GRational(Rational.zero)) => true
     case _                             => false
   }
 
   def mkBinOp(o: String, xs: List[Expr]) = {
     xs.drop(1).foldLeft(xs(0))((r, x) => mkOp(o, r, x))
-  }
-  def mkOp(o: String, xs: Expr*): Expr = {
-    Op(Name(o, 0), xs.toList)
   }
 
   def normalize(mpp: Expr, mp: Vector[Expr]): Vector[Expr] = {
@@ -348,7 +340,7 @@ object GE {
 
   /* Example: (x,2,3,y)  => ((x + 2) + 3) + y*/
   def mkPlus(es: List[Expr]): Expr = es match {
-    case Nil             => Lit(GInt(0))
+    case Nil             => Lit(GRational(0))
     case e :: Nil        => e
     case e1 :: e2 :: Nil => mkOp("+", e1, e2)
     case _ => es.drop(1).foldLeft(es(0))((r, x) =>

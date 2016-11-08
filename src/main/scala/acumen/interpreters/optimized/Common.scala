@@ -560,7 +560,7 @@ object Common {
   def evalAction(a: Action, env: Env, p: Prog, magic: Object): Changeset = {
     def vListToPattern(ls: List[Value[_]]): GPattern = 
       GPattern(ls.map(x => x match {
-        case VLit(n) => n
+        case VLit(n) => groundvalueToStatic(n)
         case VVector(nls) => vListToPattern(nls)            
       }))
     a match {

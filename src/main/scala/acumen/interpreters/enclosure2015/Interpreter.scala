@@ -173,8 +173,9 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
         List((pn, rhs match {
           case ExprVector(rhsVector) => 
             VVector(rhsVector.map{ case Lit(l) => VLit(l) })
-          case Lit(v @ (GStr(_) | GBool(_) | GDouble(_) | GInt(_) | GInterval(_))) => 
+          case Lit(v @ (GStr(_) | GBool(_) | GInterval(_))) => 
             VLit(v)
+          case Lit(GRational(r)) => if (r.isWhole) VLit(GInt(r.toInt)) else VLit(GDouble(r.toDouble))
           case e: Expr =>
             evalExpr(e, Env(self -> VObjId(Some(st.enclosure.mainId))), st.enclosure) match {
               case v @ VLit(ge: GEnclosure[_]) if !ge.isThin =>
@@ -266,8 +267,13 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
   /** Evaluate e in the scope of env for definitions p with current store st */
   def evalExpr(e:Expr, env:Env, enc:EStore) : CValue = {
     def eval(env:Env, e:Expr) : CValue = try {
-	    e match {
-  	    case Lit(i)         => VLit(i)
+      e match {
+        case Lit(GRational(i)) =>
+          if (i.isWhole)
+            VLit(GInt(i.toInt))
+          else
+            VLit(GDouble(i.toDouble))
+        case Lit(i) => VLit(i)
         case ExprInterval(lo,hi) => 
           VLit(GConstantRealEnclosure(extractInterval(evalExpr(lo, env, enc)) /\ extractInterval(evalExpr(hi, env, enc))))
         case ExprVector(l)  => VVector (l map (eval(env,_)))

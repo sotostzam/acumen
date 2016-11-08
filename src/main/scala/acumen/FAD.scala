@@ -5,6 +5,7 @@ import interpreters.Common.{
 }
 import interpreters.enclosure.Interval
 import util.ASTUtil.mapValue
+import acumen.util.Conversions
 
 object FAD extends App {
   
@@ -33,7 +34,7 @@ object FAD extends App {
     }).setPos(e.pos)
   }.mapExpr(e)
 
-  private def liftGroundValue(gv: GroundValue, n: Option[QName], ns: List[QName]): GroundValue = {
+  private def liftGroundValue(gv: GroundValue, n: Option[QName], ns: List[QName]): StaticGroundValue = {
     def zeroOrOne[A](qn: QName, zero: A, one: A): A = if (n.isDefined && qn == n.get) one else zero
     gv match {
       case GDouble(d)   => 
@@ -44,7 +45,7 @@ object FAD extends App {
         GIntervalFDif(FDif(i,        ns.map(id => id -> zeroOrOne(id, Interval.zero, Interval.one)).toMap))
       case GConstantRealEnclosure(i) => 
         GIntervalFDif(FDif(i,        ns.map(id => id -> zeroOrOne(id, Interval.zero, Interval.one)).toMap))
-      case _            => gv
+      case _            => Conversions.groundvalueToStatic(gv)
     }
   }
   

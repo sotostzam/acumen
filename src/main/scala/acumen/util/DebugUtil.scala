@@ -20,7 +20,7 @@ object DebugUtil {
           f.copy(rhs = (f.rhs: @unchecked) match {
             case ExprRhs(_) =>
               val VLit(v) = st(mainId(st))(f.x)
-              ExprRhs(Lit(v))
+              ExprRhs(Lit(Conversions.groundvalueToStatic(v)))
           })
         }) else d
       })

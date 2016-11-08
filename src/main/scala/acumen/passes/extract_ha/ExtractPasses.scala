@@ -7,10 +7,10 @@ import scala.collection.mutable.{ArrayBuffer,ListBuffer,
                                  Map=>MutMap,Set=>MutSet,MultiMap=>MutMultiMap,
                                  HashSet,HashMap}
 import scala.text.Document.nest
-
 import Util._
 import CondImplicits._
 import Pretty._
+import acumen.util.Conversions
 
 object ExtractPasses {
   import ExtractHA._
@@ -163,7 +163,7 @@ object ExtractPasses {
         override def mapExpr(e: Expr) : Expr = {
           getName(e) match {
             case Some(n) => repl.get(n) match {
-              case Some(v) => Lit(v)
+              case Some(v) => Lit(Conversions.groundvalueToStatic(v))
               case None => e
             }
             case None => super.mapExpr(e)

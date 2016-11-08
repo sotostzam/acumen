@@ -6,6 +6,7 @@ import acumen.interpreters.enclosure.affine.AffineScalarEnclosure
 import acumen.interpreters.enclosure.affine.UnivariateAffineScalarEnclosure
 import acumen.interpreters.enclosure.affine.AffineEnclosure
 import scala.collection.SortedMap
+import spire.math.Rational
 
 /**
  * Type used to represent expressions used to define functions and
@@ -272,6 +273,7 @@ case class Constant(value: Interval) extends Expression {
 object Constant {
   def apply(value: Double): Constant = Constant(Interval(value))
   def apply(value: Int): Constant = Constant(Interval(value))
+  def apply(value: Rational): Constant = Constant(Interval(value))
 }
 
 case class Variable(name: String) extends Expression {

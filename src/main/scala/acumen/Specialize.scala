@@ -7,6 +7,7 @@ import SymbolicCommon._
 import interpreters.Common._
 import annotation.tailrec
 import Errors._
+import spire.math.Rational
 
 /**
  * Partial evaluator that specializes annotated program based on BTA result
@@ -52,7 +53,7 @@ object Specialization {
               (mkBinOp("+", sumes), Nil)
             else if (sumes.length == 1)
               (sumes(0), Nil)
-            else (Lit(GInt(0)), Nil)
+            else (Lit(GRational(Rational.zero)), Nil)
           case col => (Sum(specializeE(ae)._1, ai.expr.name, specializeE(acol)._1, specializeE(acond)._1), Nil)
         }
       case AExprLet(bs, expr, l) => {
@@ -73,11 +74,11 @@ object Specialization {
         val (e, es) = (specializeE(ae), specializeEs(aidx))
         val neweqs = e._2 ::: es._2
         (inlineE(e._1), es._1 map inlineE) match {
-          case (ExprVector(ls), Lit(GInt(i)) :: Nil) => (ls(i), neweqs)
-          case (ExprVector(ls), Lit(GInt(i)) :: Lit(GInt(j)) :: Nil) =>
-            ls(i) match {
+          case (ExprVector(ls), Lit(GRational(i)) :: Nil) if i.isWhole => (ls(i.toInt), neweqs)
+          case (ExprVector(ls), Lit(GRational(i)) :: Lit(GRational(j)) :: Nil) if i.isWhole && j.isWhole =>
+            ls(i.toInt) match {
               // Perform vector lookup
-              case ExprVector(ls1) => (ls1(j), neweqs)
+              case ExprVector(ls1) => (ls1(j.toInt), neweqs)
               case _               => (Index(e._1, es._1).setPos(aexpr.pos), neweqs)
             }
           case _ => (Index(e._1, es._1).setPos(aexpr.pos), neweqs)
@@ -117,17 +118,18 @@ object Specialization {
           case "length" =>
             es(0) match {
               case Var(n) => inline(Var(n), newenv) match {
-                case ExprVector(l) => (Lit(GInt(l.length)), newEquation)
-                case Lit(_)        => (Lit(GInt(1)), newEquation)
+                case ExprVector(l) => (Lit(GRational(l.length)), newEquation)
+                case Lit(_)        => (Lit(GRational(1)), newEquation)
                 case _             => (Op(f, es), newEquation)
               }
-              case ExprVector(l) => (Lit(GInt(l.length)), newEquation)
+              case ExprVector(l) => (Lit(GRational(l.length)), newEquation)
               case e             => (Op(f, e :: Nil), newEquation)
             }
           case "_:_:_" =>
             es.map(x => inline(x, newenv)) match {
-              case Lit(GInt(n1)) :: Lit(GInt(n2)) :: Lit(GInt(n3)) :: Nil =>
-                val newVector = ExprVector((n1 until (n3 + 1, n2)).toList map (x => Lit(GInt(x))))
+              case Lit(GRational(n1)) :: Lit(GRational(n2)) :: Lit(GRational(n3)) :: Nil 
+                 if n1.isWhole && n2.isWhole && n3.isWhole =>
+                val newVector = ExprVector((n1.toInt until (n3.toInt + 1, n2.toInt)).toList map (x => Lit(GRational(x))))
                 (newVector,
                   newEquation)
               case other => (Op(f, es), newEquation)
@@ -137,16 +139,24 @@ object Specialization {
             exprsToValues(es.map(x => inline(x, newenv).setPos(x.pos))) match {
               // Invoke the Common.evalop function to evaluate doubles/intervals accordingly
               case Some(ls) =>
-                try {
-                  evalOp(f.x, ls) match {
-                    case VLit(gv)   => (Lit(gv), newEquation)
-                    case VVector(l) => (ExprVector(l.asInstanceOf[List[VLit]] map (x => Lit(x.gv))), newEquation)
+                val symbolicEval =   (f.x,ls) match{
+                    case ("+", VLit(GRational(n)) :: VLit(GRational(m)) :: Nil) => 
+                      Lit(GRational(n+m))
+                    case ("-", VLit(GRational(n)) :: VLit(GRational(m)) :: Nil) => 
+                      Lit(GRational(n-m))
+                    case ("*", VLit(GRational(n)) :: VLit(GRational(m)) :: Nil) => 
+                      Lit(GRational(n*m))
+                    case ("/", VLit(GRational(n)) :: VLit(GRational(m)) :: Nil) => 
+                      Lit(GRational(n/m))
+                    case ("^", VLit(GRational(n)) :: VLit(GRational(m)) :: Nil) if m.denominator == 1 => 
+                      Lit(GRational(n.pow(m.toInt)))
+                    case _ => mkOp(f.x, es:_*).setPos(aexpr.pos)
                   }
-                } catch {
-                  case err: PositionalAcumenError => throw err.setPos(aexpr.pos)
-                  case _:Throwable => (Op(f.x, es).setPos(aexpr.pos), newEquation)
-                }
-              
+                  (symbolicEval, newEquation)
+//                  evalOp(f.x, ls) match {
+//                    case VLit(gv)   => (Lit(gv), newEquation)
+//                    case VVector(l) => (ExprVector(l.asInstanceOf[List[VLit]] map (x => Lit(x.gv))), newEquation)
+//                  }
               // Symbolic vector-vector operator evaluation
               case _ => (f.x, es.map(x => inline(x, newenv))) match {
                 case (op, ExprVector(ls) :: Nil) => (symUnaryVectorOp(op, ExprVector(ls)), newEquation)
@@ -158,7 +168,7 @@ object Specialization {
                   (symBinVectorScalarOp(op, ExprVector(ls), Lit(n)), newEquation)
                 case (op, ExprVector(ls1) :: ExprVector(ls2) :: Nil) =>
                   (symBinVectorOp(op, ExprVector(ls1), ExprVector(ls2)), newEquation)
-                case _ => (Op(f.x, es).setPos(aexpr.pos), newEquation)
+                case _ => (mkOp(f.x, es:_*).setPos(aexpr.pos), newEquation)
               }
             }
         }

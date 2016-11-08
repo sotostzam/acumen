@@ -93,7 +93,7 @@ trait Extract {
         priv: List[Init],
         body: List[Action]) => {
         val assignments = body.filter(_.isInstanceOf[Discretely]).map {
-          case Discretely(Assign(Dot(Dot(Var(Name(self, 0)), Name(simulator, 0)), Name(param, 0)), rhs @ Lit(GInt(_) | GDouble(_)))) => (param, rhs)
+          case Discretely(Assign(Dot(Dot(Var(Name(self, 0)), Name(simulator, 0)), Name(param, 0)), rhs @ Lit(GRational(_)))) => (param, rhs)
           case _ => sys.error("Top level assignments have to be a numeric constant assigned to a simulator parameter!")
         }
         val checkAssignments = assignments.groupBy { case (name, _) => name }.map {
@@ -320,8 +320,7 @@ trait Extract {
     case Lit(v) if v.eq(Constants.PI) // Test for reference equality
                                       // not structural equality
                               => Constant(Interval.pi)
-    case Lit(GInt(d))         => Constant(d)
-    case Lit(GDouble(d))      => Constant(d)
+    case Lit(GRational(d))         => Constant(d)
     case ExprInterval(lo, hi) => Constant(foldConstant(lo).value /\ foldConstant(hi).value)
     case ExprIntervalM(mid0, pm0) =>
       val mid = foldConstant(mid0).value
@@ -342,8 +341,7 @@ trait Extract {
   }
 
   def foldConstant(e: Expr): Constant = e match {
-    case Lit(GInt(i))                 => Constant(i)
-    case Lit(GDouble(d))              => Constant(d)
+    case Lit(GRational(d))            => Constant(d)
     case Lit(_)                       => sys.error("foldConstant called with non-numeric expression!")
     case Op(Name("-", 0), List(x))    => Constant(-foldConstant(x).value)
     case Op(Name("-", 0), List(l, r)) => Constant(foldConstant(l).value - foldConstant(r).value)
@@ -354,8 +352,7 @@ trait Extract {
   }
 
   def toDouble(l: Lit): Double = l match {
-    case Lit(GInt(i))    => i
-    case Lit(GDouble(d)) => d
+    case Lit(GRational(i))    => i.toDouble
     case _               => sys.error("Non numeric literal cannot be cast to Double.")
   }
 

@@ -3,6 +3,7 @@ package passes
 package extract_ha
 
 import scala.collection.mutable.ListBuffer
+import acumen.util.Conversions
 
 sealed abstract class Cond { 
   def toExpr: Expr
@@ -44,8 +45,11 @@ object Cond {
   case class MemberOf(name: Name, values: Set[GroundValue]) extends Cond {
     // true if name is a member of values
     def toExpr = values.
-      map{v => Op(Name("==", 0), List(Dot(Var(Name("self", 0)), name), Lit(v)))}.
-      reduceLeft{ (a, b) => Op(Name("||", 0), List(a, b)) }
+      map{v => v match{
+        case GInt(i) => Op(Name("==", 0), List(Dot(Var(Name("self", 0)), name), Lit(GRational(i))))
+        case GDouble(i) => Op(Name("==", 0), List(Dot(Var(Name("self", 0)), name), Lit(GRational(i))))
+        case o @ (GBool(_) | GStr(_) | GInterval(_)) => Op(Name("==", 0), List(Dot(Var(Name("self", 0)), name), Lit(o.asInstanceOf[StaticGroundValue])))
+      }}.reduceLeft{ (a, b) => Op(Name("||", 0), List(a, b)) }
     def deps = Set(name)
     def eval(have: Cond) = have.toSet.collectFirst{case MemberOf(n, v) if n == name => v} match {
       case Some(v) => if ((v diff values).isEmpty) True else False
@@ -97,7 +101,7 @@ object Cond {
   }
   def eq(x: Expr, y: GroundValue): Cond = (getName(x), y) match {
     case (Some(name), _) => MemberOf(name, Set(y))
-    case _ => Other(Op(Name("==", 0), List(x, Lit(y))), extractDeps(x))
+    case _ => Other(Op(Name("==", 0), List(x, Lit(Conversions.groundvalueToStatic(y)))), extractDeps(x))
   }
   def eq(n: Name, y: GroundValue): Cond = MemberOf(n, Set(y))
   def not(cond: Cond): Cond = cond match {

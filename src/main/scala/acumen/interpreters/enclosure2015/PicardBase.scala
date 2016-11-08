@@ -170,8 +170,7 @@ object picardBase extends SolverBase {
     import util.Names.op
     e match {
       case Lit(v) if v.eq(Constants.PI) => Constant(Interval.pi) // Test for reference equality not structural equality
-      case Lit(GInt(d))                 => Constant(d)
-      case Lit(GDouble(d))              => Constant(d)
+      case Lit(GRational(d))            => Constant(d)
       case Lit(e:GConstantRealEnclosure)=> Constant(e.range) // FIXME Over-approximation of end-time interval!
       case ExprInterval(lo, hi)         => Constant(extract.foldConstant(lo).value /\ extract.foldConstant(hi).value)
       case ExprIntervalM(mid0, pm0)     => val mid = extract.foldConstant(mid0).value

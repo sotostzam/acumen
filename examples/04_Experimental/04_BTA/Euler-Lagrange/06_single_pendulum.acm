@@ -6,10 +6,10 @@ model Main(simulator)=
  E = T + V,
  torque = f.p1*(pi/4-t) - f.p2*(t' - 0),
  g=9.8,
- T = (1/2) * t'^2,
+ T = (1/2) * t'^2 ,
  V = -g*cos(t),
  L = T - V,
- L'[t']' - L'[t]=torque
+ L'[t']' - L'[t]=0
 
 model fun() = 
 initially

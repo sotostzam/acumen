@@ -5,6 +5,7 @@ import org.scalacheck._
 import Gen._
 import Shrink._
 import Arbitrary.arbitrary
+import spire.math.Rational
 import acumen.interpreters.enclosure.Interval
 import acumen.interpreters.enclosure.Generators.{
   genSubInterval
@@ -12,6 +13,7 @@ import acumen.interpreters.enclosure.Generators.{
 import acumen.interpreters.enclosure.TestingContext.{
   rnd
 }
+import acumen.util.Conversions
 
 /* scalacheck generators */
 
@@ -175,7 +177,7 @@ object Generators  {
   implicit def arbClause : Arbitrary[Clause] = 
     Arbitrary {
       for {
-        lhs <- arbitrary[GroundValue]
+        lhs <- arbitrary[StaticGroundValue]
         inv <- arbitrary[Expr]
         rhs <- arbitrary[List[Action]]
       } yield Clause(lhs, inv, rhs)
@@ -200,14 +202,15 @@ object Generators  {
     }
 
   implicit def arbExpr : Arbitrary[Expr] =
-    Arbitrary ( arbitrary[GroundValue].map(Lit) | arbitrary[Var] | arbitrary[Op] 
+    Arbitrary ( arbitrary[StaticGroundValue].map(Lit) | arbitrary[Var] | arbitrary[Op] 
               | arbitrary[Dot] )
   
-  implicit def arbLit : Arbitrary[GroundValue] =
-    Arbitrary ((arbitrary[GInt] | arbitrary[GDouble] 
-               | arbitrary[GBool] | arbitrary[GStr]))
+  implicit def arbLit : Arbitrary[StaticGroundValue] =
+    Arbitrary ((arbitrary[GRational]  | arbitrary[GBool] | arbitrary[GStr]))
 							 
-  
+  implicit def arbRational : Arbitrary[GRational] = 
+    Arbitrary (arbitrary[Double].map(x => GRational(x)))
+    
   implicit def arbBool : Arbitrary[GBool] = 
     Arbitrary (arbitrary[Boolean].map(GBool))
   
@@ -221,7 +224,7 @@ object Generators  {
 	/* Value class has an type of CId, see AST file for details */
 	implicit def arbLitGroundValue : Arbitrary[VLit] =
 		Arbitrary {
-			arbitrary[GroundValue].map(VLit)
+			arbitrary[StaticGroundValue].map(x => VLit(Conversions.staticvalueToGround(x)))
 		/*
 			val genLitInt    :Gen[VLit[GroundValue]]   = for(e <- Arbitrary.arbitrary[GInt])    yield VLit(e)
 			val genLitDouble :Gen[VLit[GroundValue]]   = for(e <- Arbitrary.arbitrary[GDouble]) yield VLit(e)
@@ -230,6 +233,8 @@ object Generators  {
 			Gen.frequency((2, genLitInt), (2, genLitDouble), (2, genLitStr), (2, genLitBool))
 		*/
   }
+  
+  
 	implicit def arbValue : Arbitrary[Value[CId]] = 
 		Arbitrary(arbitrary[VLit] | arbitrary[VVector[CId]] )
 	// TODO: Arbitrary generated VVector will casue over flow, when vector's elements can also be vector	

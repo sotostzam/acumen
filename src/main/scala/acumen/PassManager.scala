@@ -61,7 +61,7 @@ object PassManager {
     var res = p
     //println("PASSES: " + passes.map{pass => pass.id}.mkString(" "))
     passes.foreach{pass => res = pass.trans(res)}
-    ApproximateRationals.run(res, interpreterType)
+    res
   }
   def validatePassesStr(args0: String*) : Unit = {
     val args = args0.flatMap(_.split(',')).toList

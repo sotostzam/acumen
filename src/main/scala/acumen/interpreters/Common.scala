@@ -14,6 +14,7 @@ import reflect.runtime.universe.TypeTag
 import enclosure2015.Common._
 import acumen.interpreters.enclosure._
 import acumen.InterpreterType
+import spire.math.Rational
 //
 // Common stuff to CStore Interpreters
 //
@@ -60,11 +61,10 @@ object Common {
     new util.ASTMap {
       override def mapExpr(e: Expr): Expr = e match {
         case Lit(GBool(b))          => Lit(if (b) CertainTrue else CertainFalse)
-        case Lit(GInt(i))           => Lit(GConstantRealEnclosure(i))
-        case Lit(GDouble(d))        => Lit(GConstantRealEnclosure(d))
+        case Lit(GRational(i))           => Lit(GConstantRealEnclosure(i))
         case Lit(GInterval(i))      => Lit(GConstantRealEnclosure(i))
-        case ExprInterval( Lit(lo@(GDouble(_)|GInt(_)))  // FIXME Add support for arbitrary expression end-points
-                         , Lit(hi@(GDouble(_)|GInt(_))))    
+        case ExprInterval( Lit(lo@GRational(_))  // FIXME Add support for arbitrary expression end-points
+                         , Lit(hi@GRational(_)))    
                                     => Lit(GConstantRealEnclosure(Interval(extractDouble(lo), extractDouble(hi))))
         case ExprInterval(lo,hi)    => sys.error("Only constant interval end-points are currently supported. Offending expression: " + pprint(e))
         case ExprIntervalM(lo,hi)   => sys.error("Centered interval syntax is currently not supported. Offending expression: " + pprint(e))
@@ -77,18 +77,18 @@ object Common {
       override def mapClause(c: Clause) : Clause = c match {
         case Clause(GBool(lhs), as, rhs) => Clause(GBoolEnclosure(lhs), mapExpr(as), mapActions(rhs))
         case Clause(GStr(lhs), as, rhs) => Clause(GStrEnclosure(lhs), mapExpr(as), mapActions(rhs))
-        case Clause(GInt(lhs), as, rhs) => Clause(GConstantRealEnclosure(lhs), mapExpr(as), mapActions(rhs)) // FIXME Use discrete integer enclosure instead of Real
+        case Clause(GRational(lhs), as, rhs) => Clause(GConstantRealEnclosure(lhs), mapExpr(as), mapActions(rhs)) // FIXME Use discrete integer enclosure instead of Real
         case _ => super.mapClause(c)
       }
     }.mapProg(p)
     
   def liftSplitIntervalToUncertain(e: Expr): Expr = {
     def intHelper(e: Expr): Int = e match {
-      case Lit(n @ GInt(_)) => extractInt(n)
+      case Lit(n @ (GRational(_))) => extractInt(n)
       case _ => throw ShouldNeverHappen()
     }
     def doubleExtractor(e: Expr): Double = e match {
-      case Lit(x @ (GDouble(_) | GInt(_))) => extractDouble(x)
+      case Lit(x @ (GRational(_))) => extractDouble(x)
       case _ => throw ShouldNeverHappen()
     }
     def booleanExtractor(e: Expr): Boolean = e match {
@@ -581,7 +581,12 @@ object Common {
   
   def valueToExpr(v:Value[_]):Expr = {
     v match{
-      case VLit(n) => Lit(n)
+      case VLit(n) => n match{
+        case GBool(b) => Lit(GBool(b))
+        case GStr(s)  => Lit(GStr(s))
+        case GInt(i) => Lit(GRational(Rational(i)))
+        case GDouble(i) => Lit(GRational(Rational(i)))
+      }
       case VVector(ls) => ExprVector(ls map valueToExpr)
     }
   }
@@ -622,8 +627,8 @@ object Common {
        |method = "$method", orderOfIntegration = 4, seed1 = 0, seed2 = 0}""").stripMargin
   def initStoreInterpreter(initStep: ResultType = Initial, initTimeStep: Double = 0.015625, initOutputRows: String = "All", 
                        initHypothesisReport: String = "Comprehensive", initMethod: String = RungeKutta, isImperative: Boolean, interpreterType: InterpreterType) = {
-    val s = Parser.run(Parser.store, initStoreTxt(initStep, initTimeStep, initOutputRows, initHypothesisReport, initMethod).format(if (isImperative) "none" else "#0" ))
-    ApproximateRationals.run(s, interpreterType)
+     Parser.run(Parser.store, initStoreTxt(initStep, initTimeStep, initOutputRows, initHypothesisReport, initMethod).format(if (isImperative) "none" else "#0" ))
+    //ApproximateRationals.run(s, interpreterType)
   }
 
   // Register simulator parameters that should appear as completions in the code editor 
@@ -893,11 +898,11 @@ object Common {
   //Only handles intervals defined with constant bounds
   def evalExprIntervals(e: Expr): CValue = {
     def intHelper(e: Expr): Int = e match {
-      case Lit(n @ GInt(_)) => extractInt(n)
+      case Lit(n @ (GRational(_))) => extractInt(n)
       case _ => throw ShouldNeverHappen()
     }
     def doubleHelper(e: Expr): Double = e match {
-      case Lit(x @ (GDouble(_) | GInt(_))) => extractDouble(x)
+      case Lit(x @ (GRational(_))) => extractDouble(x)
       case _ => throw ShouldNeverHappen()
     }
     def booleanExtractor(e: Expr): Boolean = e match {

@@ -14,7 +14,17 @@ object Conversions {
       case GBool(b) => b
       case _ => throw GroundConversionError(v, "boolean")
     }
-
+  
+  def groundvalueToStatic (gd: GroundValue): StaticGroundValue = gd match{
+    case GInt(i) => GRational(i)
+    case GDouble(d) => GRational(d)
+    case other => other.asInstanceOf[StaticGroundValue] 
+   }
+   def staticvalueToGround(gd: StaticGroundValue):GroundValue  = gd match{
+    case GRational(i) => if (i.isWhole) GInt(i.toInt) else GDouble(i.toDouble)
+    case other => other.asInstanceOf[GroundValue] 
+   }
+  
   def extractBoolean(v:Value[_]): Boolean =
     v match {
       case VLit(gv) => extractBoolean(gv)
@@ -61,8 +71,8 @@ object Conversions {
 
   def extractInt(v:GroundValue) : Int = {
     lazy val ed = extractDouble(v)    
-    (v, ed) match {
-      case (GInt(i), _) => i
+    (v, ed) match { 
+      case (GRational(i), _) if i.isWhole => i.toInt
       case (_, d) if doubleIsReal isValidInt d => doubleIsReal toInt d 
       case _ => throw GroundConversionError(v, "int")
     }

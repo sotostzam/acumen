@@ -85,7 +85,7 @@ package acumen {
   case class Hypothesis(statement: Option[String], predicate: Expr) extends Action
 
   /* Example: case 1 x = 3; y = 4 */
-  case class Clause(lhs: GroundValue, assertion: Expr, rhs: List[Action])
+  case class Clause(lhs: StaticGroundValue, assertion: Expr, rhs: List[Action])
 
   sealed abstract class ContinuousAction
   /* TODO: use the phase distinction/refinement types trick
@@ -127,7 +127,7 @@ package acumen {
     var _type : TypeLike = null
   }
   /* Example: 42 (or "a", or 4.2 ...) */
-  case class Lit(gv: GroundValue) extends Expr 
+  case class Lit(gv: StaticGroundValue) extends Expr 
   /* Example: x'' */
   case class Var(name: Name) extends Expr
   /* Example x(10) or sin(x) or obj.x(10) */
@@ -245,8 +245,10 @@ package acumen {
   case class Pattern(ps:List[Expr]) extends Expr
   /* ground values (common to expressions and values) */
   sealed abstract class GroundValue extends Positional
+  
+  trait StaticGroundValue extends GroundValue
   /* GroundValue that wraps a string that represents a decimal literal. */
-  case class GRational(d: Rational) extends GroundValue
+  case class GRational(d: Rational) extends StaticGroundValue
   /* GroundValue that wraps a numeric type that has an Integral or Real instance. */
   trait GNumber[V] extends GroundValue
   /* Example: 42 */
@@ -254,15 +256,15 @@ package acumen {
   /* Example: 4.2e1 */
   case class GDouble(d: Double) extends GNumber[Double]
   /* Example: [3.1 .. 3.2] */
-  case class GInterval(i: Interval) extends GNumber[Interval]
+  case class GInterval(i: Interval) extends GNumber[Interval] with StaticGroundValue
   /* Example: true */
-  case class GBool(b: Boolean) extends GroundValue
+  case class GBool(b: Boolean) extends GroundValue with StaticGroundValue
   /* Example: ("fall", (1,2,3))*/
-  case class GPattern(p : List[GroundValue]) extends GroundValue
+  case class GPattern(p : List[StaticGroundValue]) extends StaticGroundValue
   /* Example: "foo" */
-  case class GStr(s: String) extends GroundValue
+  case class GStr(s: String) extends GroundValue with StaticGroundValue
   /* Representation of a value and its time derivatives */
-  abstract class GTDif[V] extends GNumber[V] {
+  abstract class GTDif[V] extends GNumber[V] with StaticGroundValue {
     def dif: TDif[V] 
     def isValidInt: Boolean
     def toInt: Int
@@ -301,7 +303,7 @@ package acumen {
     }
   }
   /* Representation of a value and its partial derivatives w.r.t. the state variables */
-  abstract class GFDif[V] extends GroundValue {
+  abstract class GFDif[V] extends GroundValue with StaticGroundValue {
     def dif: FDif[V] 
     def isValidInt: Boolean
     def toInt: Int
@@ -323,7 +325,7 @@ package acumen {
     def toInt = dif.toInt
   }
   /* Representation of an uncertain, time varying value */
-  trait GEnclosure[V] extends GNumber[V] {
+  trait GEnclosure[V] extends GNumber[V] with StaticGroundValue {
     def apply(t: Interval): V
     def range: V
     def isThin: Boolean
@@ -354,6 +356,7 @@ package acumen {
   object GConstantRealEnclosure {
     def apply(d: Double): GConstantRealEnclosure = GConstantRealEnclosure(Interval(d))
     def apply(i: Int): GConstantRealEnclosure = GConstantRealEnclosure(Interval(i))
+    def apply(i: Rational): GConstantRealEnclosure = GConstantRealEnclosure(Interval(i))
   }
   abstract class GConstantDiscreteEnclosure[T](val range: Set[T]) extends GDiscreteEnclosure[T] {
     def apply(t: Interval) = range
@@ -465,7 +468,7 @@ package acumen {
 
   case class ADiscretely[A](act: AnDiscreteAction[A], val an: A) extends AAction[A]
 
-  case class AClause[A](lhs: GroundValue, assertion: AExpr[A], rhs: List[AAction[A]], a: A, scope: A)
+  case class AClause[A](lhs: StaticGroundValue, assertion: AExpr[A], rhs: List[AAction[A]], a: A, scope: A)
 
   sealed abstract class AnContinuousAction[A] {
     def an: A
@@ -496,7 +499,7 @@ package acumen {
   trait AExprWithPos[A]  extends AExpr[A] with Positional {
     def setP(p:Position) = {this.pos = p;this}
   }
-  case class ALit[A](gv: GroundValue, val an: A) extends AExpr[A] with AExprWithPos[A]{
+  case class ALit[A](gv: StaticGroundValue, val an: A) extends AExpr[A] with AExprWithPos[A]{
     def expr = Lit(gv).setPos(this.pos) 
   }
   case class AVar[A](name: Name, val an: A) extends AExpr[A] with AExprWithPos[A] {

@@ -3,6 +3,7 @@ package testutil
 
 import org.scalacheck._
 import Gen._
+import spire.math.Rational
 import Arbitrary.arbitrary
 import org.scalacheck.Properties
 import org.scalacheck.Prop._
@@ -97,7 +98,7 @@ object ODESystemGenerator extends acumen.interpreters.enclosure.Extract {
              , 1 -> genBinaryOp(varNames, time)
              )
 
-  def arbGDouble = genSmallDouble.map(d => Lit(GDouble(d))) 
+  def arbGDouble = genSmallDouble.map(d => Lit(GRational(d))) 
     
   /* Utilities */
 
@@ -123,7 +124,7 @@ object ODESystemGenerator extends acumen.interpreters.enclosure.Extract {
 
   def op(o: String, l: Expr, r: Expr) = Op(Name(o, 0), List(l, r))
   
-  implicit def doubleToLit(d: Double): Expr = Lit(GDouble(d))
+  implicit def doubleToLit(d: Double): Expr = Lit(GRational(Rational(d)))
 
   implicit def nameToVar(n: Name): Expr = Var(n)
   

@@ -59,7 +59,7 @@ case class Desugarer(odeTransformMode: ODETransformMode) {
   def desugar(p: Prog, c: ClassDef): ClassDef ={
     // Create the initRhs value for pattern variable
     def patternInitRhs(p:Pattern):Expr = {
-      val zero = Lit(GInt(0))
+      val zero = Lit(GRational(0))
       ExprVector(p.ps.map(x => x match{
         case Var(_) => zero
         case pattern:Pattern => patternInitRhs(pattern)
@@ -189,8 +189,8 @@ case class Desugarer(odeTransformMode: ODETransformMode) {
         case ls =>
           val newVar:Var = gensym(ls)
           val lsResult = ls.map(x => x match{
-            case Var(_) => patternMatch(Pattern(List(x)),Op(newVar.name,List(Lit(GInt(ls.indexOf(x))))),newVar.name::newNames)
-            case p:Pattern => patternMatch(p,Op(newVar.name,List(Lit(GInt(ls.indexOf(x))))),newVar.name::newNames)
+            case Var(_) => patternMatch(Pattern(List(x)),Op(newVar.name,List(Lit(GRational(ls.indexOf(x))))),newVar.name::newNames)
+            case p:Pattern => patternMatch(p,Op(newVar.name,List(Lit(GRational(ls.indexOf(x))))),newVar.name::newNames)
           })         
           (mkEquationT(Var(newVar.name),des(newVar.name ::fs:::newNames,e),List(newVar.name)):::lsResult.map(_._1).flatten, (newVar,pattern)::lsResult.map(_._2).flatten)       
       }

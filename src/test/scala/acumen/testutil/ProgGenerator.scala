@@ -10,6 +10,7 @@ import org.scalacheck.Properties
 import org.scalacheck.Shrink._
 import acumen.Pretty.pprint
 import acumen.util.Canonical
+import spire.math.Rational
 import acumen.interpreters.enclosure.Generators.{
   genSubInterval
 }
@@ -144,7 +145,7 @@ class ProgGenerator
         ensureGoodProg(Prog(p.defs.map {
           case cd @ ClassDef(cn1, fs, ps, body) if cn1.x == cn =>
             val nWithMostPrimes = (fs ++ ps.map(_.x)).filter(_.x == n.x).sortBy(_.primes).last
-            val nc = Continuously(EquationT(Var(nWithMostPrimes), Lit(GDouble(0))))
+            val nc = Continuously(EquationT(Var(nWithMostPrimes), Lit(GRational(0))))
             new ClassDef(cn1, fs, ps, nc :: body) { _types = cd._types }
           case cd => cd
         }))
@@ -297,11 +298,11 @@ class ProgGenerator
    * vs: The possible values to which the mode variable can be switched (one case
    *     clause per such value will be generated for a switch based on this triple).
    */
-  def genModes(banned: Set[Name]): Gen[Set[(Active,Name,List[GroundValue])]] =
+  def genModes(banned: Set[Name]): Gen[Set[(Active,Name,List[StaticGroundValue])]] =
     for {
       modeNames    <- genBoundedSetOfNonMembers(1, 4, banned, for { n <- arbitrary[Name] } yield Name(n.x, 0))
       modesPerName <- listOfN(modeNames.size, choose[Int](2, 5))
-      modes        =  (modeNames zip modesPerName.map(n => (0 to n).toList.map(GInt): List[GroundValue])).
+      modes        =  (modeNames zip modesPerName.map(n => (0 to n).toList.map(x => GRational(Rational(x))): List[StaticGroundValue])).
                       map { case (m, n) => (false, m, n) }
     } yield modes
     
@@ -321,7 +322,7 @@ class ProgGenerator
     ( isTopLevel: Boolean
     , contNames: Set[ConsumableDot]
     , discrNames: Set[ConsumableDot]
-    , modes: Set[(Active,Name,List[GroundValue])]
+    , modes: Set[(Active,Name,List[StaticGroundValue])]
     , childRefs: Set[ConsumableDot]
     , parentTypes: Map[Name, TypeLike]
     , env: List[ClassDef]
@@ -359,7 +360,7 @@ class ProgGenerator
   def genDiscreteActions
     ( isTopLevel: Boolean
     , discrVarNames: Set[ConsumableDot]
-    , modes: Set[(Active,Name,List[GroundValue])]
+    , modes: Set[(Active,Name,List[StaticGroundValue])]
     , parentTypes: Map[Name, TypeLike]
     , time: (Name, Interval)
     ): Gen[(Set[Action], Set[ConsumableDot])] = {
@@ -376,7 +377,7 @@ class ProgGenerator
   def genIfThenElse
     ( equationNames: Set[ConsumableDot]
     , varNames: Set[ConsumableDot]
-    , modes: Set[(Active,Name,List[GroundValue])]
+    , modes: Set[(Active,Name,List[StaticGroundValue])]
     , objectNames: Set[ConsumableDot]
     , parentTypes: Map[Name, TypeLike]
     , env: List[ClassDef]
@@ -392,7 +393,7 @@ class ProgGenerator
   def genSwitch
     ( contNames: Set[ConsumableDot]
     , discrNames: Set[ConsumableDot]
-    , modes: Set[(Active,Name,List[GroundValue])]
+    , modes: Set[(Active,Name,List[StaticGroundValue])]
     , objectNames: Set[ConsumableDot]
     , parentTypes: Map[Name, TypeLike]
     , env: List[ClassDef]
@@ -419,12 +420,12 @@ class ProgGenerator
   def genDiscreteAssignments
     ( isTopLevel: Boolean
     , varNames: Set[ConsumableDot]
-    , modes: Set[(Active,Name,List[GroundValue])]
+    , modes: Set[(Active,Name,List[StaticGroundValue])]
     , time: (Name,Interval)
     ): Gen[Set[Action]] =
     for {
       lhss           <- resize(varNames.size / 4, someOf(varNames))
-      rhss           <- listOfN(lhss.size, genSmallDouble).map(_.map(d => Lit(GDouble(d)))) //TODO More interesting, state-based resets
+      rhss           <- listOfN(lhss.size, genSmallDouble).map(_.map(d => Lit(GRational(d)))) //TODO More interesting, state-based resets
       activeModeVars =  modes.toList.filter { case (active, _, _) => active }
       modeResets     <-  for {
                           (_, m, vs)  <- oneOf(activeModeVars)
@@ -441,7 +442,7 @@ class ProgGenerator
    * NOTE: Assumes that the initial conditions for differential equations can be chosen arbitrarily!
    */
   def genPrivateSection( continuousNames: Set[ConsumableDot]
-                       , modes: Set[(Active, Name, List[GroundValue])]
+                       , modes: Set[(Active, Name, List[StaticGroundValue])]
                        , objectNames: Set[Name]
                        , env: List[ClassDef]
                        ): Gen[Set[Init]] = {
@@ -454,7 +455,7 @@ class ProgGenerator
       // Generate initial conditions for continuous variables
       contNames    =  continuousNames.filter(_.isFree)
       contRhss     <- listOfN(contNames.size, genSmallDouble)
-      contInits    =  (contNames zip contRhss).map { case (l, r) => Init(l.dot.field, ExprRhs(Lit(GDouble(r)))) }
+      contInits    =  (contNames zip contRhss).map { case (l, r) => Init(l.dot.field, ExprRhs(Lit(GRational(r)))) }
     } yield objectInits union modeInits union contInits
   }
   
@@ -462,7 +463,7 @@ class ProgGenerator
     for {
       cn <- oneOf(env)
       fieldValues <- listOfN(cn.fields.size, genSmallDouble)
-    } yield NewRhs(Var(Name(cn.name.x,0)), fieldValues.map(v => Lit(GDouble(v))))
+    } yield NewRhs(Var(Name(cn.name.x,0)), fieldValues.map(v => Lit(GRational(v))))
   
   /**
    * Generate set of distinct variable Names that is complete, in the sense that if the set 

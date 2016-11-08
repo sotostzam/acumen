@@ -264,6 +264,13 @@ class Pretty {
     PrettyAble { n => DocText(n.x) }
   
   /* pretty printing for ground values */
+  implicit def prettyStaticGroundValue : PrettyAble[StaticGroundValue] =
+    PrettyAble {
+      case GRational(r)      => r.toString
+      case GPattern(ls)      => parens(sepBy(comma, ls map pretty[GroundValue]))
+      case _                 => "??"
+    }
+  /* pretty printing for ground values */
   implicit def prettyGroundValue : PrettyAble[GroundValue] =
     PrettyAble {
       case GInt(i)           => i.toString

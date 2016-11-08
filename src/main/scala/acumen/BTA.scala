@@ -73,8 +73,8 @@ object BindingTimeAnalysis {
           case Continuously(a @ Equation(lhs, rhs)) => (lhs,rhs) match{
             case (Var(n), ExprVector(l)) => 
               (for (p <- 0 to n.primes) yield
-                  Init(Name(n.x, p), ExprRhs(ExprVector(l.map(x => Lit(GInt(0)))))))
-            case (Var(n), _) => (for (p <- 0 to n.primes) yield Init(Name(n.x, p),ExprRhs(Lit(GInt(0)))))
+                  Init(Name(n.x, p), ExprRhs(ExprVector(l.map(x => Lit(GRational(0)))))))
+            case (Var(n), _) => (for (p <- 0 to n.primes) yield Init(Name(n.x, p),ExprRhs(Lit(GRational(0)))))
           }
            
         })

@@ -2,12 +2,13 @@ package acumen
 
 import interpreters.enclosure.Interval
 import util.ASTUtil
+import util.Conversions._
 import acumen.interpreters.Common.RichStore
 import acumen._
-
 import reflect.runtime.universe.{
   typeOf, TypeTag
 }
+import spire.math.Rational
 
 /**
  * Automatic Differentiation.
@@ -275,9 +276,8 @@ object TAD extends App {
     }).setPos(e.pos)
   }.mapExpr(e)
   
-  private def liftGroundValue(gv: GroundValue): GroundValue = gv match {
-    case GDouble(d) => GDoubleTDif(TDif constant d)
-    case GInt(i) => GDoubleTDif(TDif constant i)
+  private def liftGroundValue(gv: StaticGroundValue): StaticGroundValue = gv match {
+    case GRational(r) => GDoubleTDif(TDif constant r.toDouble)
     case GInterval(i) => GIntervalTDif(TDif constant i)
     case g: GConstantRealEnclosure => 
       GCValueTDif(TDif.constant(VLit(g): CValue)(interpreters.enclosure2015.intervalBase.cValueIsReal))
@@ -288,7 +288,7 @@ object TAD extends App {
   
   /** Lift all the values inside a Value[Id] into TDifs */
   private def liftValue[Id](v: Value[Id]): Value[Id] = v match {
-    case VLit(gv) => VLit(liftGroundValue(gv))
+    case VLit(gv) => VLit(liftGroundValue(groundvalueToStatic(gv)))
     case VVector(lv: List[Value[Id]]) => VVector(lv map liftValue)
     case VList(lv: List[Value[Id]]) => VList(lv map liftValue)
     case _ => v
@@ -305,13 +305,15 @@ object TAD extends App {
     }).setPos(e.pos)
   }.mapExpr(e)
   
-  private def lowerGroundValue(gd: GroundValue): GroundValue = gd match {
-    case GIntTDif(TDif(v,_)) => GInt(v(0))
+  private def lowerGroundValue(gd: GroundValue): StaticGroundValue = gd match {
+    case GIntTDif(TDif(v,_)) => GRational(v(0))
     case GIntervalTDif(TDif(v,_)) => GConstantRealEnclosure(v(0))
     case GDoubleTDif(TDif(v,_)) => val v0 = v(0)
-      if (doubleIsReal isValidInt v0) GInt(doubleIsReal toInt v0) else GDouble(v0)
-    case _ => gd
+      if (doubleIsReal isValidInt v0) GRational(doubleIsReal toInt v0) else GRational(v0)
+    case _ => groundvalueToStatic(gd)
   }
+  
+  
   
   /** Lower all the values inside a Value[Id] from TDifs */
   private def lowerValue[Id: TypeTag](v: Value[Id]): Value[Id] = v match {

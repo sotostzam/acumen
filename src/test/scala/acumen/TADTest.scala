@@ -250,9 +250,9 @@ object ADTest extends Properties("TAD") {
   
   /* Other properties */
   
-  property("lift leaves no base number types") = forAll { (gv: GroundValue) =>
+  property("lift leaves no base number types") = forAll { (gv: StaticGroundValue) =>
     lift(Lit(gv)) match {
-      case Lit(_: GDouble | _: GInt | _: GInterval) => false
+      case Lit(_: GRational| _: GInterval) => false
       case _ => true
     }
   }

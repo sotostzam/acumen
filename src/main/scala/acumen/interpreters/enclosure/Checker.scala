@@ -37,7 +37,7 @@ trait Checker {
     as.filterNot(_.isInstanceOf[Switch]).map{
       case Discretely(Assign(
         Dot(Dot(Var(Name(self, 0)), Name(simulator, 0)), Name(_, 0)),
-        Lit(GInt(_) | GDouble(_)))) => true
+        Lit(GRational(_)))) => true
       case a => sys.error(
         "Program text is outside the subset of Acumen currently supported by the enclosure semantics.  All top-level non-switch statements must be assignments to a simulator parameter.\n" +
       	"Offending statement:\n" + pprint(a))

@@ -219,7 +219,7 @@ object Common {
       })
       val fields = Map.empty ++ o.fields
       (fields mapValues {v => convertValue(v.lastSetVal.asVal)}) +
-        ((parent, p), (nextChild, VLit(GInt(o.ccounter))), (seed1, VLit(GInt(o.seed._1))), (seed2, VLit(GInt(o.seed._2))))
+        ((parent, p), (nextChild, VLit(GRational(o.ccounter))), (seed1, VLit(GRational(o.seed._1))), (seed2, VLit(GRational(o.seed._2))))
     }
     def convertStore(st: Store): CStore = {
       val set: scala.collection.mutable.Set[Store] =
@@ -277,8 +277,8 @@ object Common {
         res.parent = parentOf(o) map (addresses(_))
         res.children = Vector.empty ++ (cs map (addresses(_)))
         res.seed = seedOf(o)
-        val VLit(GInt(cc)) = o(nextChild)
-        res.ccounter = cc
+        val VLit(GRational(cc)) = o(nextChild)
+        res.ccounter = cc.toInt
       }
     }
     for (id <- st.keys) convertId(id)
@@ -450,7 +450,7 @@ object Common {
   /* SIDE EFFECT */
   def setResultType(magic: Object, t: ResultType) = setField(magic, resultType, VResultType(t))
   /* SIDE EFFECT */
-  def setVarNum(magic: Object, count: Int) = setField(magic, stateVars, VLit(GInt(count)))
+  def setVarNum(magic: Object, count: Int) = setField(magic, stateVars, VLit(GRational(count)))
   /* SIDE EFFECT */
   def setDeadStore(magic: Object, b: Boolean) = {
     //Avoid repeated assignment
@@ -482,6 +482,11 @@ object Common {
   def evalExpr(e: Expr, p: Prog, env: Env): Val = {
     def eval(env: Env, e: Expr): Val = try {
       e match {
+        case Lit(GRational(i))  =>
+          if (i.isWhole)
+            VLit(GInt(i.toInt))
+          else
+            VLit(GDouble(i.toDouble))
         case Lit(i)        => VLit(i)
         case ExprVector(l) => VVector(l map (eval(env, _)))
         case i : ExprInterval => evalExprIntervals(i)
@@ -558,13 +563,14 @@ object Common {
   /** Only handles intervals defined with constant bounds */
   def evalExprIntervals(e: Expr): Val = {
     def intHelper(e: Expr): Int = e match {
-      case Lit(n @ GInt(_)) => extractInt(n)
+      case Lit(n @ GRational(_)) => extractInt(n)
       case _ => throw ShouldNeverHappen()
     }
     def doubleHelper(e: Expr): Double = e match {
-      case Lit(x @ (GDouble(_) | GInt(_))) => extractDouble(x)
+      case Lit(x @ GRational(_)) => extractDouble(x)
       case _ => throw ShouldNeverHappen()
     }
+   
     def booleanExtractor(e: Expr): Boolean = e match {
       case Lit(GBool(k)) => k
       case _ => throw ShouldNeverHappen()
@@ -850,7 +856,7 @@ object Common {
   def evalAction(a: Action, env: Env, p: Prog, magic: Object): Changeset = {
     def vListToPattern(ls: List[Value[_]]): GPattern = 
       GPattern(ls.map(x => x match {
-        case VLit(n) => n
+        case VLit(n) => groundvalueToStatic(n)
         case VVector(nls) => vListToPattern(nls)            
       }))
     val pp = magic.phaseParms

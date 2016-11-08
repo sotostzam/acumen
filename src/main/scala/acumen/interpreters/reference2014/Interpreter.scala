@@ -242,7 +242,7 @@ object Interpreter extends acumen.CStoreInterpreter {
   def evalAction(a:Action, env:Env, p:Prog) : Eval[Unit] = {
     def VListToPattern(ls:List[Value[_]]):GPattern = 
             GPattern(ls.map(x => x match{
-              case VLit(n) => n
+              case VLit(n) => groundvalueToStatic(n)
               case VVector(nls) => VListToPattern(nls)            
             }))
     a match {
