@@ -20,7 +20,7 @@ model Main(simulator) =
     "Fall" ->
       if t <= 0&& t' <= 0 then
         t+ = -t,
-        t'+ = -0.9*t',
+        t'+ = -0.4*t',
         mode+ = "Fall" 
       noelse,
       t'' = -9.8*sin(pi/2-t),

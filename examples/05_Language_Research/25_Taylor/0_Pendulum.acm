@@ -4,5 +4,4 @@ initially
 always
   x'' = -10*sin(x) - x',
   simulator.endTime+ = 20,
-  simulator.timeStep+ = 0.0625,
-  simulator.orderOfIntegration+ = 8
+  simulator.reorganization+ = "ErrorExceedsWidth"

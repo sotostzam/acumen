@@ -1,0 +1,10 @@
+//////////////////////////////////////////////////
+// This file is called harmonic_oscillator.acm  //
+// It is an example of a continuous second-     //
+// order system.                                //
+//////////////////////////////////////////////////
+model Main(simulator) =
+initially 
+  x = 1, x' = 0, x''= 0 
+always
+  x'' = -x

@@ -17,8 +17,4 @@ model Main(simulator)  =
       if x1 == 0 then mode+ = "Fill1" noelse, 
       x1' = -2, 
       x2' = 1 ],
-  simulator.startTime+ = 0,
-  simulator.endTime+ = 2.5,
-  simulator.minSolverStep+ = 2.5,
-  simulator.minLocalizationStep+ = 0.001,
-  simulator.minComputationImprovement+ = 0     
+  simulator.endTime+ = 2.5

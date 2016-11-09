@@ -1,0 +1,19 @@
+/* Bouncing ball Platzer Parametric
+ * Author: Adam Duracz
+ * Example 2.2 on Page 45 of book "Logical Analysis of H.S."
+ */
+model Main(simulator) =
+initially 
+  h = 5, h' = 0,
+  v = 0, v' = -10,
+  t = 0, t' = 1 
+always
+  if h == 0&& t > 0 then
+    v+ = -0.5*v, 
+    t+ = 0
+  noelse,
+  h' = v,
+  v' = -10,
+  t' = 1 ,
+  claim h >= 0,
+  simulator.endTime+ = 3.5

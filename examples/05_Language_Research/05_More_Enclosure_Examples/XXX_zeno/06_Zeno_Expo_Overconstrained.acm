@@ -1,0 +1,15 @@
+/* Zeno Exponential Overconstrained
+ * Authors: Walid Taha and Adam Duracz
+ */
+model Main(simulator) =
+initially
+  d = 1, d' = 0,
+  s = 1/2, s' = 1/2
+always
+  if d == s then
+    s+ = s/2
+  noelse,
+  d' = -1,
+  s' = d - s, 
+  claim s <= d,
+  simulator.endTime+ = 1.2

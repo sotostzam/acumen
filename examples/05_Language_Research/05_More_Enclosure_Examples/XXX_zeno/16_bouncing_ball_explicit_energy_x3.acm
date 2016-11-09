@@ -18,8 +18,4 @@ model Main(simulator) =
       x3'' = -10,
       r3'  = 0 
   ],
-  simulator.startTime+ = 0,
-  simulator.endTime+ = 3.5,
-  simulator.minSolverStep+ = 0.01,
-  simulator.minLocalizationStep+ = 0.01,
-  simulator.minComputationImprovement+ = 0.01 
+  simulator.endTime+ = 3.5
