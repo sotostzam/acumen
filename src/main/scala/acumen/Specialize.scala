@@ -30,10 +30,15 @@ object Specialization {
     def get(e: Expr) = if (env.contains(e)) env(e) else e
     // Main pattern match
     aexpr match {
-      case ALit(gv, l)        => ((Lit(gv)).setPos(aexpr.pos), Nil)
-      case AVar(name, l)      => (subs(Var(name)).setPos(aexpr.pos), Nil)
-      case ATypeOf(cn, l)     => (TypeOf(cn).setPos(aexpr.pos), Nil)
-      case ADot(aer, name, l) => (Dot(aer.expr.setPos(aer.pos), name).setPos(aexpr.pos), Nil)
+      case ALit(gv, l) => ((Lit(gv)).setPos(aexpr.pos), Nil)
+      case AVar(name, l) =>
+        val sn = get(subs(Var(name))) match {
+          case Lit(sg)   => Lit(sg)
+          case nonLit => nonLit
+        }
+        (sn.setPos(aexpr.pos), Nil)
+      case ATypeOf(cn, l)       => (TypeOf(cn).setPos(aexpr.pos), Nil)
+      case ADot(aer, name, l)   => (Dot(aer.expr.setPos(aer.pos), name).setPos(aexpr.pos), Nil)
       case AQuest(aer, name, l) => (Quest(aer.expr, name).setPos(aexpr.pos), Nil)
       case AExprVector(es, l) => specializeEs(es) match {
         case (aes, aas) => (ExprVector(aes).setPos(aexpr.pos), aas)
@@ -53,7 +58,7 @@ object Specialization {
               (mkBinOp("+", sumes), Nil)
             else if (sumes.length == 1)
               (sumes(0), Nil)
-            else (Lit(GRational(Rational.zero)), Nil)
+            else (Lit(GRational(0)), Nil)
           case col => (Sum(specializeE(ae)._1, ai.expr.name, specializeE(acol)._1, specializeE(acond)._1), Nil)
         }
       case AExprLet(bs, expr, l) => {
@@ -168,7 +173,7 @@ object Specialization {
                   (symBinVectorScalarOp(op, ExprVector(ls), Lit(n)), newEquation)
                 case (op, ExprVector(ls1) :: ExprVector(ls2) :: Nil) =>
                   (symBinVectorOp(op, ExprVector(ls1), ExprVector(ls2)), newEquation)
-                case _ => (mkOp(f.x, es:_*).setPos(aexpr.pos), newEquation)
+                case _ => (mkOp(f.x, es: _*).setPos(aexpr.pos), newEquation)
               }
             }
         }

@@ -187,7 +187,6 @@ object GE {
     }
     /* Divide an expr into a list of variable terms and a constant */
     def normalizeExpr(e: Expr, q: List[Var]): (Option[List[Expr]], Expr) = {
-      //implicit val exceptList = (List.empty)
       val terms = breakExpr(e, q)
       // Find all the constants terms
       val constants = terms.filter(x => findVars(x).length == 0)
@@ -244,7 +243,7 @@ object GE {
       (0 until N).foldLeft((initialM,initialB)){case ((outerM,outerB),p) =>
         // Find pivot row and swap
         val pivot = (p+1 until N).foldLeft(p){case (max,pivoti) => 
-          if ((outerM(pivoti)(p).isInstanceOf[Lit] && !isZero(outerM(pivoti)(p)) ) || isZero(outerM(max)(p)))
+          if ((outerM(pivoti)(p).isInstanceOf[Lit] && !isZero(outerM(pivoti)(p))) || isZero(outerM(max)(p)))
             pivoti
           else
             max  
@@ -268,7 +267,6 @@ object GE {
               else
                r.updated(i, j, mkOp("-", r(i)(j), mkOp("*", alpha, r(p)(j))))
               }
-            
             (Mupdated,IB)
           }
          IMB
@@ -325,7 +323,6 @@ object GE {
   /* A superfical way for checking zero entry
    * Todo: What about l*sin(t), where it might becomes zero at certain time?*/
   def isZero(e: Expr) = e match {
-    //case Lit(GRational(0))                  => true
     case Lit(GRational(Rational.zero)) => true
     case _                             => false
   }

@@ -61,11 +61,11 @@ object Common {
     new util.ASTMap {
       override def mapExpr(e: Expr): Expr = e match {
         case Lit(GBool(b))          => Lit(if (b) CertainTrue else CertainFalse)
-        case Lit(GRational(i))           => Lit(GConstantRealEnclosure(i))
+        case Lit(GRational(i))      => Lit(GConstantRealEnclosure(i))
         case Lit(GInterval(i))      => Lit(GConstantRealEnclosure(i))
         case ExprInterval( Lit(lo@GRational(_))  // FIXME Add support for arbitrary expression end-points
                          , Lit(hi@GRational(_)))    
-                                    => Lit(GConstantRealEnclosure(Interval(extractDouble(lo), extractDouble(hi))))
+                                    => Lit(GConstantRealEnclosure(Interval(lo.d,hi.d)))
         case ExprInterval(lo,hi)    => sys.error("Only constant interval end-points are currently supported. Offending expression: " + pprint(e))
         case ExprIntervalM(lo,hi)   => sys.error("Centered interval syntax is currently not supported. Offending expression: " + pprint(e))
         // Convert an ExprSplitInterval'smth to the uncertain version of a SplitInterval which can be used as an Interval by the interpreter.
@@ -628,7 +628,6 @@ object Common {
   def initStoreInterpreter(initStep: ResultType = Initial, initTimeStep: Double = 0.015625, initOutputRows: String = "All", 
                        initHypothesisReport: String = "Comprehensive", initMethod: String = RungeKutta, isImperative: Boolean, interpreterType: InterpreterType) = {
      Parser.run(Parser.store, initStoreTxt(initStep, initTimeStep, initOutputRows, initHypothesisReport, initMethod).format(if (isImperative) "none" else "#0" ))
-    //ApproximateRationals.run(s, interpreterType)
   }
 
   // Register simulator parameters that should appear as completions in the code editor 

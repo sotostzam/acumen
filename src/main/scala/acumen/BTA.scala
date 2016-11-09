@@ -82,6 +82,7 @@ object BindingTimeAnalysis {
     }
     // Clean the hash table in symbolic differentiation after each class
     SD.clear()
+    println(pprint(newAst))
     // Return specialized AST
     newAst
   }

@@ -198,9 +198,9 @@ object SD {
      // Memorize every expression
     def apply(n:String, hes:List[HashExpr]):HashExpr= {
       val es = hes.map(_.expr)
-      Simplifier.mkOp(n,es:_*) match{
+      Simplifier.mkOp(n, es: _*) match{
       case Lit(GRational(r)) => literal(r)
-      case op => val em = mem(op); new HashExpr(em._1,em._2)
+      case op => val em = mem(op); new HashExpr(em._1, em._2)
       }
    }
    }

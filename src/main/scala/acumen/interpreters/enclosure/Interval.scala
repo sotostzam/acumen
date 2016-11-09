@@ -319,7 +319,7 @@ object Interval {
   /** Use outward rounded floating-point number operations in interval library. */
   val ic = SetIntervalContexts.getInfSup(BinaryValueSet.BINARY64)
   val rc = ExtendedRationalContexts.exact()
-
+  def grtoReal(x: Rational): Real = net.java.jinterval.rational.Rational.valueOf(x.numerator.bigInteger, x.denominator.bigInteger)
   def apply(i: SetInterval): Interval =
     new Interval(i)
   def apply(lo: Real, hi: Real): Interval =
@@ -328,7 +328,8 @@ object Interval {
     Interval(ic.numsToInterval(lo, hi))
   def apply(x: Int): Interval = Interval(x, x)
   def apply(x: Double): Interval = Interval(x, x)
-  def apply(x: Rational): Interval = Interval(x.toDouble, x.toDouble)
+  def apply(x: Rational): Interval = Interval(grtoReal(x))
+  def apply(lo: Rational, hi: Rational): Interval = Interval(grtoReal(lo), grtoReal(hi))
   def apply(x: Real): Interval = Interval(x, x)
   def min(left: Interval, right: Interval): Interval =
     Interval(ic.min(left.i, right.i))

@@ -275,20 +275,21 @@ object TAD extends App {
       case _ => super.mapExpr(e)
     }).setPos(e.pos)
   }.mapExpr(e)
-  
-  private def liftGroundValue(gv: StaticGroundValue): StaticGroundValue = gv match {
-    case GRational(r) => GDoubleTDif(TDif constant r.toDouble)
+
+  private def liftGroundValue(gv: GroundValue): StaticGroundValue = gv match {
+    case GDouble(d)   => GDoubleTDif(TDif constant d)
+    case GInt(i)      => GDoubleTDif(TDif constant i)
     case GInterval(i) => GIntervalTDif(TDif constant i)
-    case g: GConstantRealEnclosure => 
+    case g: GConstantRealEnclosure =>
       GCValueTDif(TDif.constant(VLit(g): CValue)(interpreters.enclosure2015.intervalBase.cValueIsReal))
-    case g: GIntervalFDif => 
+    case g: GIntervalFDif =>
       GCValueTDif(TDif.constant(VLit(g): CValue)(interpreters.enclosure2015.fDifBase.cValueIsReal))
-    case _ => gv
+    case sg:StaticGroundValue =>println(sg); sg
   }
   
   /** Lift all the values inside a Value[Id] into TDifs */
   private def liftValue[Id](v: Value[Id]): Value[Id] = v match {
-    case VLit(gv) => VLit(liftGroundValue(groundvalueToStatic(gv)))
+    case VLit(gv) => VLit(liftGroundValue(gv))
     case VVector(lv: List[Value[Id]]) => VVector(lv map liftValue)
     case VList(lv: List[Value[Id]]) => VList(lv map liftValue)
     case _ => v
@@ -312,8 +313,6 @@ object TAD extends App {
       if (doubleIsReal isValidInt v0) GRational(doubleIsReal toInt v0) else GRational(v0)
     case _ => groundvalueToStatic(gd)
   }
-  
-  
   
   /** Lower all the values inside a Value[Id] from TDifs */
   private def lowerValue[Id: TypeTag](v: Value[Id]): Value[Id] = v match {

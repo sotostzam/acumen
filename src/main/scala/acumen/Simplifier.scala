@@ -15,8 +15,8 @@ object Simplifier extends util.ASTMap {
   
   // Smart construct 
   def mkOp(o: String, xs: Expr*): Expr = {
-    val zero = Lit(GRational(Rational.zero)); val two = Lit(GRational(2))
-    val one  = Lit(GRational(Rational.one))
+    val zero = Lit(GRational(0)); val two = Lit(GRational(2))
+    val one  = Lit(GRational(1))
     (o, xs.toList) match {
       case ("+", Lit(GRational(n)) :: Lit(GRational(m)) :: Nil) => Lit(GRational(n + m))
       case ("-", Lit(GRational(n)) :: Lit(GRational(m)) :: Nil) => Lit(GRational(n - m))

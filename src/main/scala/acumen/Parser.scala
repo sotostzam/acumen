@@ -181,7 +181,6 @@ object Parser extends MyStdTokenParsers {
   def smartMinus(e: Expr): Expr = {
     e match {
       case e@Lit(GRational(x)) => Lit(GRational(-x)).setPos(e.pos)
-      //case e@Lit(GInt(x)) => Lit(GInt(-x)).setPos(e.pos)
       case other => mkOp("*",Lit(GRational(-1)), other)
     }
   }
@@ -472,7 +471,7 @@ object Parser extends MyStdTokenParsers {
   final val zero = Lit(GRational(0))
   
   def vectorConstruct : Parser[ExprVector] = 
-    "ones" ~ parens(rep1sep(gint,",")) ^^ {case _ ~ls => vectorHelper("ones", ls.map(x => x.d.toInt))}  |
+    "ones" ~ parens(rep1sep(gint,",")) ^^ {case _ ~ ls => vectorHelper("ones", ls.map(x => x.d.toInt))}  |
     "zeros" ~ parens(rep1sep(gint,",")) ^^ {case _ ~ ls => vectorHelper("zeros", ls.map(x => x.d.toInt))} |
     "("~")" ^^{case _ ~ _ => ExprVector(List.empty)}
    

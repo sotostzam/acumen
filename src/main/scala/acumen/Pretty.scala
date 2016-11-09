@@ -267,6 +267,10 @@ class Pretty {
   implicit def prettyStaticGroundValue : PrettyAble[StaticGroundValue] =
     PrettyAble {
       case GRational(r)      => r.toString
+      case GBool(b)          => b.toString
+      case GStr(s)           => dquotes(s)
+      case GInterval(i)      => i.toString
+      case ge: GEnclosure[_] => ge.show
       case GPattern(ls)      => parens(sepBy(comma, ls map pretty[GroundValue]))
       case _                 => "??"
     }

@@ -15,14 +15,14 @@ object Conversions {
       case _ => throw GroundConversionError(v, "boolean")
     }
   
-  def groundvalueToStatic (gd: GroundValue): StaticGroundValue = gd match{
+  def groundvalueToStatic(gd: GroundValue): StaticGroundValue = gd match{
     case GInt(i) => GRational(i)
     case GDouble(d) => GRational(d)
-    case other => other.asInstanceOf[StaticGroundValue] 
+    //case other => other.asInstanceOf[StaticGroundValue] 
    }
-   def staticvalueToGround(gd: StaticGroundValue):GroundValue  = gd match{
+   def staticvalueToGround(gd: StaticGroundValue): GroundValue  = gd match{
     case GRational(i) => if (i.isWhole) GInt(i.toInt) else GDouble(i.toDouble)
-    case other => other.asInstanceOf[GroundValue] 
+    //case other => other.asInstanceOf[GroundValue] 
    }
   
   def extractBoolean(v:Value[_]): Boolean =

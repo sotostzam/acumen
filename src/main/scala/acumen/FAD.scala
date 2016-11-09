@@ -45,7 +45,7 @@ object FAD extends App {
         GIntervalFDif(FDif(i,        ns.map(id => id -> zeroOrOne(id, Interval.zero, Interval.one)).toMap))
       case GConstantRealEnclosure(i) => 
         GIntervalFDif(FDif(i,        ns.map(id => id -> zeroOrOne(id, Interval.zero, Interval.one)).toMap))
-      case _            => Conversions.groundvalueToStatic(gv)
+      case gv: StaticGroundValue     => gv
     }
   }
   
