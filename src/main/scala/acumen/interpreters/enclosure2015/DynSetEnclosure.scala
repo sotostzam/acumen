@@ -107,9 +107,6 @@ case class DynSetEnclosure
        && nameToIndex.size == indexToName.size,
        "Creation of DynSetEnclosure failed: dimensions mismatch.")
 
-  assert( nameToIndex.size > 0, 
-       "Creation of DynSetEnclosure failed: dimension is 0.")
-       
   lazy val indexToName = nameToIndex.map(_.swap)
  
   val dim = nameToIndex.size
