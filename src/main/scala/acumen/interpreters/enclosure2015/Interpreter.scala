@@ -756,7 +756,10 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
    *    [L,R] until that reaches parameters.maxTimeStep. Otherwise this is (R-L). 
    */
   def stepAdaptive(leftEndPoint: Double, rightEndPoint: Double, previousTimeStep: Double, prog: Prog, branches: List[InitialCondition])(implicit parameters: Parameters): (EnclosureAndBranches, Double, Double) = {
-    require(branches.nonEmpty, "stepAdaptive called with zero branches")
+    if (branches isEmpty)
+      throw new AcumenError{
+        override def getMessage = s"No states reachable past time ${spire.math.Rational(previousTimeStep)}."
+      }
     require(branches.size <= parameters.maxBranches, s"Number of branches (${branches.size}) exceeds maximum (${parameters.maxBranches}).")
     Logger.debug(s"stepAdaptive (over ${ Interval(leftEndPoint, rightEndPoint) }, ${branches.size} branches)")
     val step = rightEndPoint - leftEndPoint
