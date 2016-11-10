@@ -226,7 +226,7 @@ object Errors {
       "Move statements must have the form 'move o1.x o2'."
   }
   case class UnsupportedFeatureError(kind: String, interpreter: String, position: Position) extends PositionalAcumenError {
-    override def mesg = s"${kind} are not currently supported in the $interpreter semantics."
+    override def mesg = s"${kind} not currently supported in the $interpreter semantics."
     pos = position
   }
   case class UnsupportedTypeError(kind: String, id: String, value: CValue) extends PositionalAcumenError {

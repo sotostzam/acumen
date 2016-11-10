@@ -672,8 +672,9 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
   def checkForUnsupported(p: Prog): Prog =
     new util.ASTMap {
       override def mapExpr(e: Expr): Expr = e match {
-        case _: ExprVector => throw new UnsupportedFeatureError("Vectors", "2015 Enclosure", e.pos)
-        case _             => super.mapExpr(e)
+        case _: ExprVector          => throw new UnsupportedFeatureError("Vectors are", "2015 Enclosure", e.pos)
+        case Op(Name("rand", 0), _) => throw new UnsupportedFeatureError("The rand() function is", "2015 Enclosure", e.pos)
+        case _                      => super.mapExpr(e)
       }
     }.mapProg(p)
   
