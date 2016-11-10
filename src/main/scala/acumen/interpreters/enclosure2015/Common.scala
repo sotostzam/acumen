@@ -446,8 +446,6 @@ object Common {
                 case (VObjId(Some(id1)), Some(VObjId(Some(id2)))) =>
                   require(id1 == id2, s"Can not compare objects with different CId: $id1 is not equal to $id2.")
                   containsCObject(this(id1), that(id2), id1)
-                case (_, Some(VVector(_))) => 
-                  throw internalError(s"Vector-valued variables (${pprint(n)}) are not currently supported by the 2015 Enclosure semantics.")
                 case (_, Some(tv)) => 
                   throw internalError(s"Contains not applicable to ${pprint(n)}: ${pprint(v)}, ${pprint(tv)}")
                 

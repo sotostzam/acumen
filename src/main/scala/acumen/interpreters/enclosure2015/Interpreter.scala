@@ -603,6 +603,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
     def initializeEnclosure = picardBase.initializeEnclosure(_)
     val cprog = CleanParameters.run(prog, Enclosure2015InterpreterType)
     val cprog1 = makeCompatible(cprog)
+    checkForUnsupported(cprog1)
     val enclosureProg = liftToUncertain(cprog1)
     val mprog = Prog(magicClass :: enclosureProg.defs)
     val (sd1,sd2) = Random.split(Random.mkGen(0))
@@ -667,6 +668,14 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
     Prog(p.defs.map(d => d.copy( priv = d.priv.flatMap(priv)
                                , body = d.body.flatMap(action))))
   }
+  
+  def checkForUnsupported(p: Prog): Prog =
+    new util.ASTMap {
+      override def mapExpr(e: Expr): Expr = e match {
+        case _: ExprVector => throw new UnsupportedFeatureError("Vectors", "2015 Enclosure", e.pos)
+        case _             => super.mapExpr(e)
+      }
+    }.mapProg(p)
   
   lazy val initStore = Parser.run(Parser.store, initStoreTxt.format("#0"))
   lazy val initStoreTxt: String =
