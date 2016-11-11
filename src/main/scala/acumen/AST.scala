@@ -68,7 +68,7 @@ package acumen {
   /* Example: 1+2 */
   case class ExprRhs(e: Expr) extends InitRhs
 
-  sealed abstract class Action
+  sealed abstract class Action extends Positional
   /* Example: if 1<2 x = 1 else x = 2 end */
   case class IfThenElse(cond: Expr, t: List[Action], e: List[Action]) extends Action
   /* Example: switch y case 1 x = 2 case 2 x = 3 end */
@@ -87,7 +87,7 @@ package acumen {
   /* Example: case 1 x = 3; y = 4 */
   case class Clause(lhs: GroundValue, assertion: Expr, rhs: List[Action])
 
-  sealed abstract class ContinuousAction
+  sealed abstract class ContinuousAction extends Positional
   /* TODO: use the phase distinction/refinement types trick
            to make sure we get rid of any Equation after the
            desugaring phase */

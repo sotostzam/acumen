@@ -1,0 +1,15 @@
+/* Zeno Decay Overconstrained
+ * Authors: Walid Taha and Adam Duracz
+ * Zeno point of system is ln(2) =~ 0.693.
+ */
+model Main(simulator) =
+initially
+  d = 1, d' = -2,
+  s = 1/2
+always
+  if d == s then
+    s+ = s/2
+  noelse,
+  d' = -(d + 1),
+  claim s <= abs(d),
+  simulator.endTime+ = 0.8

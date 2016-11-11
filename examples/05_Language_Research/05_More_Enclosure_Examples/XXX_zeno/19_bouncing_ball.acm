@@ -1,0 +1,17 @@
+/* Bouncing_ball
+ * Authors: Michal Konecny and Jan Duracz
+ * Implements the BB model from the paper.
+ */
+model Main(simulator) =
+  initially 
+    mode = "Fly", x = 5, x' = 0, x'' = 0 
+  always
+  match mode with [
+    "Fly" claim x >= 0 -> 
+      if x == 0&& x' <= 0 then
+        x'+ = -0.5 * x',
+        mode+ = "Fly"
+      noelse,
+      x'' = -10
+  ],
+  simulator.endTime+ = 3.5

@@ -11,4 +11,5 @@ always
   t1'' = -((g*(2*m1+m2)*sin(t1)+m2*(g*sin(t1-2*t2)+2*(l2*t2'^2+l1*t1'^2*cos(t1-t2))*sin(t1-t2)))/(2*l1*(m1+m2-m2*cos(t1-t2)^2))),
   t2'' = (((m1+m2)*(l1*t1'^2+g*cos(t1))+l2*m2*t2'^2*cos(t1-t2))*sin(t1-t2))/(l2*(m1+m2-m2*cos(t1-t2)^2)),
   simulator.endTime+ = 10,
-  simulator.orderOfIntegration+ = 16
+  simulator.orderOfIntegration+ = 16,
+  simulator.reorganization+ = "ErrorExceedsWidth"

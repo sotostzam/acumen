@@ -692,7 +692,7 @@ object Common {
         } else noChange
 
       case Assign(lhs, _) =>
-        throw BadLhs().setPos(lhs.pos)
+        throw BadLhs(lhs)
       case Create(lhs, e, es) =>
 
         // "Now": Not used, kept for legacy
@@ -713,7 +713,7 @@ object Common {
             case Some(d@Dot(e, x)) => 
               val id = evalToObjId(e, p, env)
               logModified || setField(id, x, VObjId(Some(fa)), d.pos)
-            case Some(e) => throw BadLhs().setPos(e.pos)
+            case Some(e) => throw BadLhs(e)
           }
         
         // "Gather": Collecting discrete assignments
@@ -744,7 +744,7 @@ object Common {
 
               logModified // The || setField from "Now" would at most add another logModified so can be safely ignored 
 
-            case Some(e) => throw BadLhs().setPos(e.pos)
+            case Some(e) => throw BadLhs(e)
           }
         } else noChange
 
@@ -799,7 +799,7 @@ object Common {
               val ts = extractDoubles(vt)
               VVector((us, ts).zipped map ((a, b) => VLit(GDouble(a + b * dt))))
             case _ =>
-              throw BadLhs()
+              throw BadLhs(lhs)
           },d.pos)
 
         // "Gather": Collecting differential equations

@@ -209,9 +209,10 @@ object Errors {
       "Only discrete assingments to simulator parameters are allowed."
     pos = rhs.pos
   }
-  case class BadLhs() extends PositionalAcumenError {
+  case class BadLhs(lhs: Positional) extends PositionalAcumenError {
     override def mesg = 
       "The left-hand side of an assignment must be of the form 'e.x'."
+    pos = lhs.pos
   }
   case class BadRhs(message: String) extends PositionalAcumenError {
     override def mesg = "Invalid assignment: " + message
@@ -224,9 +225,13 @@ object Errors {
     override def mesg = 
       "Move statements must have the form 'move o1.x o2'."
   }
+  case class UnsupportedFeatureError(kind: String, interpreter: String, position: Position) extends PositionalAcumenError {
+    override def mesg = s"${kind} not currently supported in the $interpreter semantics."
+    pos = position
+  }
   case class UnsupportedTypeError(kind: String, id: String, value: CValue) extends PositionalAcumenError {
-    override def mesg =
-      s"Unsupported $kind: $id = ${pprint(value)}"
+    override def mesg = s"Unsupported $kind: $id = ${pprint(value)}."
+    pos = value.pos
   }
   case class UnsupportedTypeChangeError(f: Name, id: CId, clazz: ClassName, vOld: GValue, vNew: GValue, reason: String) extends PositionalAcumenError {
     override def mesg =

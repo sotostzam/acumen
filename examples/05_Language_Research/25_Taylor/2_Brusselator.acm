@@ -14,6 +14,6 @@ initially
 always
   x' = A + (x*x)*y - B*x - x,
   y' = B*x-(x*x)*y,
-  simulator.endTime+ = 40,
-  simulator.timeStep+ = 0.0625,
-  simulator.orderOfIntegration+ = 8
+  simulator.endTime+ = 50,
+  simulator.orderOfIntegration+ = 8,
+  simulator.reorganization+ = "ErrorExceedsWidth"

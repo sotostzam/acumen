@@ -372,8 +372,8 @@ object Interpreter extends acumen.CStoreInterpreter {
           assign(id, Index(Dot(e,n),idx), rhs, env)}
       /* Basically, following says that variable names must be 
          fully qualified at this language level */
-      case Assign(_,_) => 
-        throw BadLhs()
+      case Assign(lhs,_) => 
+        throw BadLhs(lhs)
       case Create(lhs, e, es) =>
         for { ve <- asks(evalExpr(e, env, _)) 
               val c = ve match {case VClassName(c) => c; case _ => throw NotAClassName(ve)}
@@ -386,7 +386,7 @@ object Interpreter extends acumen.CStoreInterpreter {
           case Some(Dot(e,x)) => 
             for (id <- asks(evalToObjId(e, env, _)))
               birth(Some(id,x), c, self, sd, ves) 
-          case Some(_) => throw BadLhs()
+          case Some(e) => throw BadLhs(e)
         }
       case Elim(e) =>
         for (id <- asks(evalToObjId(e, env, _)))
@@ -751,7 +751,7 @@ object Interpreter extends acumen.CStoreInterpreter {
               VVector((us, ts).zipped map ((a, b) => VLit(GDouble(a + b * h))))              
           }         
           case _ =>
-            throw BadLhs()
+            throw BadLhs(lhs)
         }
         val ResolvedDot(rId,_,rN) = resolveDot(d.lhs, e, st)
         updatedEnvs + ((rId, rN) -> v)

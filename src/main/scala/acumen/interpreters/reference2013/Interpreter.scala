@@ -285,8 +285,8 @@ object Interpreter extends acumen.CStoreInterpreter {
         } assign(id, x, vt)
       /* Basically, following says that variable names must be 
          fully qualified at this language level */
-      case Assign(_,_) => 
-        throw BadLhs()
+      case Assign(lhs,_) => 
+        throw BadLhs(lhs)
       case Create(lhs, e, es) =>
         for { ve <- asks(evalExpr(e, p, env, _)) 
               val c = ve match {case VClassName(c) => c; case _ => throw NotAClassName(ve)}
@@ -300,7 +300,7 @@ object Interpreter extends acumen.CStoreInterpreter {
             for { id <- asks(evalExpr(e, p, env, _)) map extractId
                   _ <- asks(checkAccessOk(id, env, _))
             } setObjectFieldM(id, x, VObjId(Some(fa))) 
-          case Some(_) => throw BadLhs()
+          case Some(e) => throw BadLhs(e)
         }
       case Elim(e) =>
         for { id <- asks(evalExpr(e, p, env, _)) map extractId
@@ -331,13 +331,13 @@ object Interpreter extends acumen.CStoreInterpreter {
               lhs <- asks(getObjectField(a, x, _))
         } setObjectFieldM(a, x, lhs match {
             case VLit(d) => 
-	      VLit(GDouble(extractDouble(d) + extractDouble(vt) * dt))
+	            VLit(GDouble(extractDouble(d) + extractDouble(vt) * dt))
             case VVector(u) => 
               val us = extractDoubles(u)
               val ts = extractDoubles(vt)
               VVector((us,ts).zipped map ((a,b) => VLit(GDouble(a + b * dt))))
             case _ =>
-              throw BadLhs()
+              throw BadLhs(lhs)
           })
       case _ =>
         throw ShouldNeverHappen() // FIXME: enforce that with refinement types

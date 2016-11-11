@@ -556,8 +556,8 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
          fully qualified at this language level */
       case c: Create =>
         throw internalPosError("The 2015 Enclosure semantics does not support create statements in the always section.", c.pos)
-      case Assign(_,_) => 
-        throw BadLhs()
+      case Assign(lhs,_) => 
+        throw BadLhs(lhs)
     }
 
   def evalContinuousAction(certain:Boolean, path: Expr, a:ContinuousAction, env:Env, p:Prog, st: Enclosure) : Set[Changeset] = 
@@ -604,6 +604,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
     def initializeEnclosure = picardBase.initializeEnclosure(_)
     val cprog = CleanParameters.run(prog, Enclosure2015InterpreterType)
     val cprog1 = makeCompatible(cprog)
+    checkForUnsupported(cprog1)
     val enclosureProg = liftToUncertain(cprog1)
     val mprog = Prog(magicClass :: enclosureProg.defs)
     val (sd1,sd2) = Random.split(Random.mkGen(0))
@@ -669,7 +670,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
                                , body = d.body.flatMap(action))))
   }
   
-  lazy val initStore = ApproximateRationals.run(Parser.run(Parser.store, initStoreTxt.format("#0")), TraditionalInterpreterType)
+  lazy val initStore = Parser.run(Parser.store, initStoreTxt.format("#0"))
   lazy val initStoreTxt: String =
     commonInitStoreTxt + s"""outputRows = "All", resultType = @Initial,
                ${ Common.Parameters.defaults.map{ case (pn, (vis, pv)) => pn + "=" + pprint(pv)}.mkString(",") } }"""
@@ -757,7 +758,10 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
    *    [L,R] until that reaches parameters.maxTimeStep. Otherwise this is (R-L). 
    */
   def stepAdaptive(leftEndPoint: Double, rightEndPoint: Double, previousTimeStep: Double, prog: Prog, branches: List[InitialCondition])(implicit parameters: Parameters): (EnclosureAndBranches, Double, Double) = {
-    require(branches.nonEmpty, "stepAdaptive called with zero branches")
+    if (branches isEmpty)
+      throw new AcumenError{
+        override def getMessage = s"No states reachable past time ${spire.math.Rational(previousTimeStep)}."
+      }
     require(branches.size <= parameters.maxBranches, s"Number of branches (${branches.size}) exceeds maximum (${parameters.maxBranches}).")
     Logger.debug(s"stepAdaptive (over ${ Interval(leftEndPoint, rightEndPoint) }, ${branches.size} branches)")
     val step = rightEndPoint - leftEndPoint

@@ -18,6 +18,6 @@ always
   x1' = (- x1 + x2 - g)/(C1*R1),
   x2' = -(-x1 + x2 - g)/(C2*R1) - x2/(C2*R2),
   g = 3.234*x2 - 2.195*x2*x2*x2 + 0.666*x2*x2*x2*x2*x2,
-  simulator.endTime+ = 50
-//  ,simulator.timeStep+ = 0.125
-  ,simulator.orderOfIntegration+ = 6
+  simulator.endTime+ = 50,
+  simulator.orderOfIntegration+ = 6,
+  simulator.reorganization+ = "ErrorExceedsWidth"

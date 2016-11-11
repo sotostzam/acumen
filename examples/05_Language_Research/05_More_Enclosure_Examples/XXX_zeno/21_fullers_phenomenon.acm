@@ -1,0 +1,23 @@
+/* This is the model of Fuller's example.
+ * Author: Adam Duracz
+ * It implements Example 3 from the paper
+ * "Zeno hybrid systems" by Zhang et al.
+ */
+model Main(simulator) =
+initially
+  mode = "q1",
+  x1 = -1, x1' = 1,  
+  x2 = 1, x2' = 1,
+  C  = 0.0
+always
+  match mode with [
+    "q1" claim x1 + C * x2 * x2 <= 0 -> 
+      if x1 + C * x2 * x2 > 0 then mode+ = "q2" noelse,
+      x1'  = x2,
+      x2'  = 1 
+    |"q2" claim x1 - C * x2 * x2 >= 0 -> 
+      if x1 - C * x2 * x2 < 0 then mode+ = "q1" noelse,
+      x1'  = x2,
+      x2'  = -1 
+  ],
+  simulator.endTime+ = 3.5
