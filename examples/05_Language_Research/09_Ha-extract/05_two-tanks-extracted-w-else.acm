@@ -8,25 +8,25 @@ initially
 always
   match  ((self).mode) with [
     "C1" ->
-      if ((((self).x2) <= (0))) then
+      if ((((self).x2) == (0))) then
         ((self).mode)+ = ("D1")
       noelse,
       ((self).x1') = (2),
       ((self).x2') = (-3) 
   | "C2" -> 
-      if ((((self).x1) <= (0))) then
+      if ((((self).x1) == (0))) then
         ((self).mode)+ = ("D2")
       noelse,
       ((self).x1') = (-2),
       ((self).x2') = (1) 
   | "D1" ->
-      if ((((self).x1) <= (0))) then
+      if ((((self).x1) == (0))) then
         ((self).mode)+ = ("D2")
       else
         ((self).mode)+ = ("C2")
      
   | "D2" ->
-      if ((((self).x2) <= (0))) then
+      if ((((self).x2) == (0))) then
         ((self).mode)+ = ("D1")
       else
         ((self).mode)+ = ("C1") ],
