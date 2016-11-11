@@ -49,7 +49,7 @@ object PassManager {
   //  in which they appear in availPasses (i.e. the order in which
   //  they are specified in args is irrelevant)
   def splitPassesString(str: String) : Seq[String] = if (str == "") Nil else str.split(',')
-  def applyPasses(p: Prog, required: Seq[String], defaults: Seq[String], extraPasses: Seq[String]) : Prog = {
+  def applyPasses(p: Prog, required: Seq[String], defaults: Seq[String], extraPasses: Seq[String], interpreterType: InterpreterType) : Prog = {
     val (nodefaults, rest) = required.partition(_ == "nodefaults")
     val passList : Seq[String] = ((if (nodefaults.isEmpty) defaults else Nil) 
                                   ++ extraPasses
@@ -61,7 +61,7 @@ object PassManager {
     var res = p
     //println("PASSES: " + passes.map{pass => pass.id}.mkString(" "))
     passes.foreach{pass => res = pass.trans(res)}
-    res
+    ApproximateRationals.run(res, interpreterType)
   }
   def validatePassesStr(args0: String*) : Unit = {
     val args = args0.flatMap(_.split(',')).toList

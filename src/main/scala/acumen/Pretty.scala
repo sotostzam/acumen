@@ -268,6 +268,7 @@ class Pretty {
     PrettyAble {
       case GInt(i)           => i.toString
       case GDouble(x)        => if (predictableDoubles) "%f".format(x) else x.toString
+      case GRational(r)      => r.toString
       case GBool(b)          => b.toString
       case GStr(s)           => dquotes(s)
       case GInterval(i)      => i.toString

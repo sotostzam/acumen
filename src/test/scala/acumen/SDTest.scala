@@ -45,11 +45,11 @@ object SDTest extends Properties("SD") {
       mkOp("asin", mkOp("sin", x)) :: // This helps me find out "asin" is not implemented in PD
       mkOp("acos", mkOp("cos", x)) ::
       mkOp("atan", mkOp("tan", x)) :: // This helps me find out "atan" is not implemented in PD
-      mkOp("sqrt", mkOp("^", x, Lit(GInt(2)))) ::
-      mkOp("/", mkOp("^", x, Lit(GInt(2))), x) ::
+      mkOp("sqrt", mkOp("^", x, Lit(GRational(2)))) ::
+      mkOp("/", mkOp("^", x, Lit(GRational(2))), x) ::
       mkOp("/", mkOp("*", x, mkOp("exp", x)), mkOp("exp", x)) ::
       mkOp("log", mkOp("exp", x)) ::
-      mkOp("-", mkOp("*", x, Lit(GInt(2))), x) ::
+      mkOp("-", mkOp("*", x, Lit(GRational(2))), x) ::
       Nil
   val ops: List[(String, String)] = ("*", "/") :: ("+", "-") :: ("*", "/") :: Nil
 

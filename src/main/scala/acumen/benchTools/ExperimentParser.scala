@@ -63,7 +63,7 @@ object ExperimentParser extends acumen.MyStdTokenParsers {
         case "single" | "Single"           => Single(a, b)
       }
     }
-  def coupleTimesAndTime: Parser[(Int, Double)] = numericLit ~ kwTimes ~ (numericLit|floatLit) ~ kwSeconds ^^ {
+  def coupleTimesAndTime: Parser[(Int, Double)] = numericLit ~ kwTimes ~ (numericLit|rationalLit) ~ kwSeconds ^^ {
     case nbIte ~ kw1 ~ time ~ kw2 => (nbIte.toInt, time.toDouble)
   }
     

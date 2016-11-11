@@ -157,10 +157,7 @@ class ThreeDData extends Publisher {
     def assignTransparency(transparency: Double) = {
       if (transparency <= 1)
         _3DTransparency = transparency
-      else throw new AcumenError {
-        override def getMessage = "_3D object's 'transparency' parameter should either be a " +
-          "float number between 0 and 1 or negative value"
-      }
+      else throw _3DTransparencyError()
     }
   }
 

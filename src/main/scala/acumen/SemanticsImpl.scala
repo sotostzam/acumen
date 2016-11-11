@@ -83,11 +83,11 @@ abstract class SemanticsImpl[+I <: Interpreter] extends SemanticsSel
   }
 
   def applyPasses(p: Prog, extraPasses: Seq[String]) : Prog =
-    PassManager.applyPasses(p, semantics.requiredPasses, semantics.defaultPasses, extraPasses)
+    PassManager.applyPasses(p, semantics.requiredPasses, semantics.defaultPasses, extraPasses, interpreter.interpreterType)
   // withArgs returns when given an invalid argument, calling function
   // is expected to throw an error
   def applyRequiredPasses(p: Prog) : Prog = 
-    PassManager.applyPasses(p, semantics.requiredPasses, Nil, Nil)
+    PassManager.applyPasses(p, semantics.requiredPasses, Nil, Nil, interpreter.interpreterType)
   override def withArgs(args: List[String]) = args match {case Nil => this; case _ => null}
   override def argsHelpString : String = ""
 }

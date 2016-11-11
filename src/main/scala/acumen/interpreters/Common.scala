@@ -1,6 +1,8 @@
 package acumen
 package interpreters
 
+import spire.math.Rational
+
 import TAD.{ TDif }
 import util.Names._
 import Pretty._
@@ -13,10 +15,9 @@ import scala.util.parsing.input.Position
 import reflect.runtime.universe.TypeTag
 import enclosure2015.Common._
 import acumen.interpreters.enclosure._
-//
-// Common stuff to CStore Interpreters
-//
+import acumen.InterpreterType
 
+/** Code shared by CStore Interpreters */
 object Common {
   
   trait Environment[V] extends Any {
@@ -61,12 +62,16 @@ object Common {
         case Lit(GBool(b))          => Lit(if (b) CertainTrue else CertainFalse)
         case Lit(GInt(i))           => Lit(GConstantRealEnclosure(i))
         case Lit(GDouble(d))        => Lit(GConstantRealEnclosure(d))
+        case Lit(GRational(i))      => Lit(GConstantRealEnclosure(i))
         case Lit(GInterval(i))      => Lit(GConstantRealEnclosure(i))
-        case ExprInterval( Lit(lo@(GDouble(_)|GInt(_)))  // FIXME Add support for arbitrary expression end-points
-                         , Lit(hi@(GDouble(_)|GInt(_))))    
-                                    => Lit(GConstantRealEnclosure(Interval(extractDouble(lo), extractDouble(hi))))
-        case ExprInterval(lo,hi)    => sys.error("Only constant interval end-points are currently supported. Offending expression: " + pprint(e))
-        case ExprIntervalM(lo,hi)   => sys.error("Centered interval syntax is currently not supported. Offending expression: " + pprint(e))
+        case ExprInterval(lo,hi)    => throw new PositionalAcumenError {
+          def mesg = "Only constant interval end-points are currently supported." // ExprInterval should have been eliminated by ApproximateRationals
+          pos = e.pos
+        }
+        case ExprIntervalM(lo,hi)   => throw new PositionalAcumenError {
+          def mesg = "Centered interval syntax is currently not supported."
+          pos = e.pos
+        }
         // Convert an ExprSplitInterval'smth to the uncertain version of a SplitInterval which can be used as an Interval by the interpreter.
         case esi : ExprSplitInterval => liftSplitIntervalToUncertain(esi)
         case esd : ExprSplitterDistribution => liftSplitIntervalToUncertain(esd)
@@ -557,8 +562,10 @@ object Common {
     e match {
       case VVector(l) => i match {
         case VLit(GInt(idx)) :: Nil => lookup(idx, l)
-        case VLit(GDouble(dx)) :: Nil => throw ExpectedInteger(i(0))
-        case VLit(GConstantRealEnclosure(idx)) :: Nil if idx.isValidInt => lookup(idx.toInt, l)
+        case VLit(GDouble(idx)) :: Nil => 
+          if (idx.isWhole) lookup(idx.toInt, l) else throw ExpectedInteger(i(0))
+        case VLit(GConstantRealEnclosure(idx)) :: Nil => 
+          if (idx.isValidInt) lookup(idx.toInt, l) else throw ExpectedInteger(i(0))
         case VLit(gd: GTDif[_]) :: Nil if gd.isValidInt => lookup(gd.toInt, l)
         case VVector(idxs) :: Nil => VVector(idxs.map(x => evalIndexOp(e,List(x))))
         case VVector(rows) :: VVector(columns) :: Nil => {
@@ -571,6 +578,7 @@ object Common {
         }
         case VVector(rows) :: c ::Nil => evalIndexOp(e, VVector(rows) :: VVector(List(c)) :: Nil)
         case head :: tail => evalIndexOp(evalIndexOp(e,List(head)), tail)
+        case _ => throw IndexNoMatch(i)
       }    
       case _ => throw CantIndex() }
   }
@@ -617,8 +625,10 @@ object Common {
        |hypothesisReport = "$hypothesisReport", endTime = 10.0, resultType = @$initStep,
        |method = "$method", orderOfIntegration = 4, seed1 = 0, seed2 = 0}""").stripMargin
   def initStoreInterpreter(initStep: ResultType = Initial, initTimeStep: Double = 0.015625, initOutputRows: String = "All", 
-                       initHypothesisReport: String = "Comprehensive", initMethod: String = RungeKutta, isImperative: Boolean) =
-      Parser.run(Parser.store, initStoreTxt(initStep, initTimeStep, initOutputRows, initHypothesisReport, initMethod).format( if (isImperative) "none" else "#0" ))
+                       initHypothesisReport: String = "Comprehensive", initMethod: String = RungeKutta, isImperative: Boolean, interpreterType: InterpreterType) = {
+    val s = Parser.run(Parser.store, initStoreTxt(initStep, initTimeStep, initOutputRows, initHypothesisReport, initMethod).format(if (isImperative) "none" else "#0" ))
+    ApproximateRationals.run(s, interpreterType)
+  }
 
   // Register simulator parameters that should appear as completions in the code editor 
   // for any interpreter. Additional parameters are taken from Interpreter.parameters. 

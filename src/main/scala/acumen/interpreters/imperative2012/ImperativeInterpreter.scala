@@ -3,7 +3,6 @@ package interpreters
 package imperative2012
 
 import scala.collection.immutable.HashMap
-
 import acumen.Errors._
 import acumen.Pretty._
 import acumen.util.Conversions._
@@ -29,22 +28,24 @@ import acumen.util.Canonical.{
   timeStep
 }
 import scala.annotation.tailrec
+import acumen.TraditionalInterpreterType
 
 class ImperativeInterpreter extends CStoreInterpreter {
   import Common._
 
+  val interpreterType = TraditionalInterpreterType
   type Store = Common.Store
   def repr (s:Store) : CStore = Common.repr(s)
   def fromCStore (cs:CStore, root:CId) : Store = Common.fromCStore(cs, root)
   val initStepType = Discrete
   val timeStep = 0.01
   val outputRows = "WhenChanged"
-  override def visibleParameters = visibleParametersMap(initStoreInterpreter(initStep = initStepType, initTimeStep = timeStep, initOutputRows = outputRows, isImperative = true))
+  override def visibleParameters = visibleParametersMap(initStoreInterpreter(initStep = initStepType, initTimeStep = timeStep, initOutputRows = outputRows, isImperative = true, interpreterType = TraditionalInterpreterType))
    /* Identity lift function */
   def identLift(p:Prog) = p 
   def lift = identLift
   def init(prog: Prog): (Prog, SuperStore, SuperMetadata) = {
-    val magic = fromCStore(initStoreInterpreter(initStep = initStepType, initTimeStep = timeStep, initOutputRows = outputRows, isImperative = true), CId(0))
+    val magic = fromCStore(initStoreInterpreter(initStep = initStepType, initTimeStep = timeStep, initOutputRows = outputRows, isImperative = true, interpreterType = TraditionalInterpreterType), CId(0))
     /* WARNING: the following line works because there is no children access check
        if one of the instructions of the provate section tries to access magic,
        and there was a check, this would crash (which we don't want) */
@@ -52,8 +53,8 @@ class ImperativeInterpreter extends CStoreInterpreter {
     val mainObj = mkObj(cmain, prog, None, sd1, List(VObjId(Some(magic))), magic, 1)
     magic.seed = sd2
     changeParent(magic, mainObj)
-    val cprog = CleanParameters.run(prog, CStoreInterpreterType)
-    val sprog = Simplifier.run(cprog)
+    val cprog = CleanParameters.run(prog, TraditionalInterpreterType)
+    val sprog = Simplifier.replaceIntervalsByMidpoints(cprog)
     val mprog = Prog(magicClass :: deviceClass :: sprog.defs)
     (mprog , Map((Tag.root, mainObj)), Map((Tag.root, NoMetadata)))
   }

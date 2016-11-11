@@ -323,11 +323,15 @@ object Interval {
     new Interval(i)
   def apply(lo: Real, hi: Real): Interval =
     Interval(ic.numsToInterval(lo, hi))
+  def apply(lo: spire.math.Rational, hi: spire.math.Rational): Interval =
+    Interval(Rational.valueOf(lo.numerator.bigInteger, lo.denominator.bigInteger),
+             Rational.valueOf(hi.numerator.bigInteger, hi.denominator.bigInteger))
   def apply(lo: Double, hi: Double): Interval =
     Interval(ic.numsToInterval(lo, hi))
   def apply(x: Int): Interval = Interval(x, x)
   def apply(x: Double): Interval = Interval(x, x)
   def apply(x: Real): Interval = Interval(x, x)
+  def apply(x: spire.math.Rational): Interval = Interval(x,x)
   def min(left: Interval, right: Interval): Interval =
     Interval(ic.min(left.i, right.i))
   def max(left: Interval, right: Interval): Interval =

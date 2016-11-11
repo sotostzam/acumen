@@ -332,7 +332,11 @@ object Errors {
     override def getMessage = 
       "Sphere's size should be a number"
   }
-  
+  case class _3DTransparencyError(threeDObjectName: Option[String] = None) extends AcumenError {
+    override def getMessage = 
+      "_3D object" + threeDObjectName.map(" " + _) + 
+        "'s 'transparency' parameter should either be a decimal number between 0 to 1 or negative value"
+  }
   case class _3DParaError(n:String) extends AcumenError {
     override def getMessage = 
       n + " is not a valid _3D parameter"
@@ -428,7 +432,11 @@ object Errors {
        vars.map(x => pprint(x.asInstanceOf[Expr])).mkString(",") + "\n" +
        equations.map(x => pprint(x.lhs) + " = " + pprint(x.rhs) + "\n").mkString("\n")
   }
-  
+  case class InvalidSymbolicDifferentiation(e: Expr, kind: String) extends PositionalAcumenError{
+    override def mesg = 
+       Pretty.pprint(e) + s" is not a variable for $kind differentiation."
+    pos = e.pos
+  }
   case class symbolicDifWithoutBTA (e:Expr) extends PositionalAcumenError{
     override def mesg = 
        "Support for symbolic differentiation needs to be enabled for this model to run. \n " + 

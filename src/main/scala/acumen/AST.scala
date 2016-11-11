@@ -8,6 +8,7 @@ import scala.util.parsing.input.{Position,Positional}
 import acumen.interpreters.enclosure.{Interval, SplitInterval, SplitterDistribution}
 import acumen.TAD._
 import acumen.FAD._
+import spire.math.Rational
 
 package acumen {
 
@@ -244,6 +245,8 @@ package acumen {
   case class Pattern(ps:List[Expr]) extends Expr
   /* ground values (common to expressions and values) */
   sealed abstract class GroundValue extends Positional
+  /* GroundValue that wraps a string that represents a decimal literal. */
+  case class GRational(r: Rational) extends GroundValue
   /* GroundValue that wraps a numeric type that has an Integral or Real instance. */
   trait GNumber[V] extends GroundValue
   /* Example: 42 */
@@ -351,6 +354,7 @@ package acumen {
   object GConstantRealEnclosure {
     def apply(d: Double): GConstantRealEnclosure = GConstantRealEnclosure(Interval(d))
     def apply(i: Int): GConstantRealEnclosure = GConstantRealEnclosure(Interval(i))
+    def apply(i: Rational): GConstantRealEnclosure = GConstantRealEnclosure(Interval(i))
   }
   abstract class GConstantDiscreteEnclosure[T](val range: Set[T]) extends GDiscreteEnclosure[T] {
     def apply(t: Interval) = range
