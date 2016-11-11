@@ -45,10 +45,12 @@ class ASTMap {
 
   def mapActions(as: List[Action]) : List[Action] = as.map{mapAction(_)}
   
+  def mapGroundValue(gv: GroundValue): GroundValue = gv
+  
   // Must make a copy of Expr even if there is nothing to do as 
   // Expr has state information associated with it
   def mapExpr(e: Expr) : Expr = (e match {
-    case Lit(v) => Lit(v)
+    case Lit(v) => Lit(mapGroundValue(v))
     case Var(v) => Var(v)
     case Op(name, es) => Op(name, es.map{mapExpr(_)})
     case Dot(a,b) => Dot(mapExpr(a),b)
@@ -74,7 +76,7 @@ class ASTMap {
   }).setPos(e.pos)
 
   def mapClause(c: Clause) : Clause = c match {
-    case Clause(lhs, as, rhs) => Clause(lhs, mapExpr(as), mapActions(rhs))
+    case Clause(lhs, as, rhs) => Clause(mapGroundValue(lhs), mapExpr(as), mapActions(rhs))
   }
 
   def mapContinuousAction(a: ContinuousAction) : ContinuousAction = a match {

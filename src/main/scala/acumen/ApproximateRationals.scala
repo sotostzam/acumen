@@ -11,13 +11,34 @@ import interpreters.enclosure.Interval
  *  InterpreterType. */
 object ApproximateRationals {
   
-  def run(p: Prog, interpreterType: InterpreterType) : Prog =
+  private def mkApproximationMap(p: Prog, interpreterType: InterpreterType) : util.ASTMap =
     new util.ASTMap {
       override def mapExpr(e: Expr): Expr = e match {
-        case Lit(GRational(d)) => Lit(approximate(d, interpreterType))
+        case Lit(GRational(d)) => 
+          Lit(approximate(d, interpreterType))
+        case ExprInterval(Lit(GRational(lo)), Lit(GRational(hi))) =>
+          interpreterType match {
+            case TraditionalInterpreterType => 
+              ExprInterval(Lit(approximate(lo, interpreterType)), Lit(approximate(hi, interpreterType)))
+            case _: RigorousInterpreterType =>
+              Lit(GConstantRealEnclosure(Interval(lo) /\ Interval(hi)))
+          }
         case _ => super.mapExpr(e)
       }
-    }.mapProg(p)
+      override def mapGroundValue(gv: GroundValue): GroundValue = gv match {
+        case GRational(r) => approximate(r, interpreterType)
+        case _ => gv
+      } 
+      override def mapClassDef(d: ClassDef) : ClassDef = d match {
+        // NOTE: Simulator fields are approximated as in the traditional interpreters
+        case ClassDef(name, fields, priv, body) if name == Canonical.cmagic =>
+          mkApproximationMap(p, TraditionalInterpreterType).mapClassDef(d)
+        case _ => super.mapClassDef(d)
+      }
+    } 
+  
+  def run(p: Prog, interpreterType: InterpreterType) : Prog =
+    mkApproximationMap(p,interpreterType).mapProg(p)
     
   def run(s: CStore, interpreterType: InterpreterType): CStore =
     s.map {
@@ -36,10 +57,8 @@ object ApproximateRationals {
     
   private def approximate(r: spire.math.Rational, interpreterType: InterpreterType): GroundValue =
     interpreterType match {
-      case TraditionalInterpreterType => 
-        GDouble(r.toDouble)
-      case _: RigorousInterpreterType => 
-        GInterval(Interval(Rational.valueOf(r.numerator.bigInteger, r.denominator.bigInteger)))
+      case TraditionalInterpreterType => if (r.isWhole) GInt(r.toInt) else GDouble(r.toDouble)
+      case _: RigorousInterpreterType => GInterval(Interval(r))
     }
     
 }

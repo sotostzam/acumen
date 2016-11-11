@@ -54,7 +54,7 @@ class ImperativeInterpreter extends CStoreInterpreter {
     magic.seed = sd2
     changeParent(magic, mainObj)
     val cprog = CleanParameters.run(prog, TraditionalInterpreterType)
-    val sprog = Simplifier.run(cprog)
+    val sprog = Simplifier.replaceIntervalsByMidpoints(cprog)
     val mprog = Prog(magicClass :: deviceClass :: sprog.defs)
     (mprog , Map((Tag.root, mainObj)), Map((Tag.root, NoMetadata)))
   }

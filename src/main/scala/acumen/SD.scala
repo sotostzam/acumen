@@ -169,111 +169,33 @@ object SD {
    class HashExpr(val expr:Expr, val eqs:List[Action]){
     def pair = (expr,eqs)
   }
-   object HashExpr{
-    def apply(e:Expr):HashExpr = e match{
-      case Lit(GInt(value)) => literal(value)
-      case Dot(_,_) => new HashExpr(e,Nil)
+  object HashExpr {
+    def apply(e: Expr): HashExpr = e match {
+      case Dot(_, _)             => new HashExpr(e, Nil)
       case Lit(GRational(value)) => literal(value)
-      case Var(n) => variable(n)
-      case Op(Name(f,_),es) => (f, es) match{
-        case ("+",Lit(GInt(0)) :: e :: Nil ) => HashExpr(e)
-        case ("+",e :: Lit(GInt(0)) :: Nil ) => HashExpr(e)
-        case ("*",Lit(GInt(0)) :: e :: Nil ) => literal(0)
-        case ("*",e :: Lit(GInt(0)) :: Nil ) => literal(0)
-        case ("*",Lit(GInt(1)) :: e :: Nil ) => HashExpr(e)
-        case ("*",e :: Lit(GInt(1)) :: Nil ) => HashExpr(e)
-        case _ => op(f,es.map(x=> HashExpr(x)))
-      }
-        
-        
-      case ExprVector(es) => HashVector(es.map(x=> HashExpr(x)))
-      
-  }
-   def apply(he:HashExpr, eqs:List[Action]):HashExpr = 
-     new HashExpr(he.expr, he.eqs:::eqs.distinct)
-   }
-   class Literal(expr:Expr, eqs:List[Action]) extends HashExpr(expr,eqs){
-
-  }
-   object Literal{
-     def apply(value:Int)=  new Literal(Lit(GInt(value)), Nil)
-     def apply(value:Rational)=  new Literal(Lit(GRational(value)), Nil)
-   }
-   
-   class Variable(expr:Expr, eqs:List[Action]) extends HashExpr(expr,eqs){
-
-  }
-   class Operator(expr:Expr,eqs:List[Action]) extends HashExpr(expr,eqs){
-     
-   }
-   object Operator{
-     // Memorize every expression
-    def apply(n:String, hes:List[HashExpr]):HashExpr= {
-      def mkOp(f:String,es:List[HashExpr]):HashExpr = {
-        val hop = Op(Name(f,0), es.map(x => x.expr)) 
-        val neweqs = es.foldLeft(List[Action]())((r,x) => x.eqs ::: r).distinct
-        val em = mem(hop);
-        new HashExpr(em._1,em._2:::neweqs)
-      }
-      val es = hes.map(_.expr)
-      n match {
-      /* Operators */
-      case "sin" => es match {
-        case Lit(GRational(Rational.zero)) :: Nil => literal(0)
-        case _ => mkOp("sin",hes)
-      }
-      case "cos" => es match {
-        case Lit(GRational(Rational.zero)) :: Nil => literal(1)
-        case _ =>  mkOp("cos",hes)
-      }
-      case "exp" => es match {
-        case Lit(GRational(Rational.zero)) :: Nil => literal(1)
-        case _ =>  mkOp("exp",hes)
-      }
-      // Natural logarithm
-      case "log" => es match {
-        case _ =>  mkOp("log",hes)
-      }
-      /* Operators */
-      case "+" => es match {
-        case List(Lit(GRational(Rational.zero)), r) => hes(1)
-        case List(l, Lit(GRational(Rational.zero))) => hes(0)
-        case List(Lit(GInt(0)), r) => hes(1)
-        case List(l, Lit(GInt(0))) => hes(0)
-        case List(Lit(GRational(n1)), Lit(GRational(n2))) => literal(n1 + n2)
-        case _ => mkOp("+",hes)
-      }
-      case "-" => es match {
-        case List(l, Lit(GRational(Rational.zero))) => hes(0)
-        case List(l, Lit(GInt(0))) => hes(0)
-        case List(Lit(GInt(n1)), Lit(GInt(n2))) => literal(n1 - n2)
-        case List(Lit(GRational(n1)), Lit(GRational(n2))) => literal(n1 - n2)
-        case _ => mkOp("-",hes)
-      }
-      case "*" => es match {
-        /* Simplify terms */
-        case List(Lit(GInt(1)), res) => hes(1)
-        case List(res, Lit(GInt(1))) => hes(0)
-        case List(Lit(GRational(Rational.one)), res) => hes(1)
-        case List(res, Lit(GRational(Rational.one))) => hes(0)
-        case List(Lit(GInt(0)), res) => literal(0)
-        case List(res, Lit(GInt(0))) => literal(0)
-        case _ => mkOp("*",hes)
-      }
-      case "/" => es match {
-        case _ => mkOp("/",hes)
-      }
-      case "^" => es match {
-        /* Simplify terms */
-        case List(res, Lit(GInt(1))) => hes(0)
-        case List(res, Lit(GInt(0))) => literal(1)
-        case _ => mkOp("^",hes)
-      }
-      case _ => mkOp(n,hes)
+      case Var(n)                => variable(n)
+      case Op(Name(f, _), es)    => Operator(f, es.map(x => apply(x)))
+      case ExprVector(es)        => HashVector(es.map(x => HashExpr(x)))
     }
-   }
-    
-   }
+    def apply(he: HashExpr, eqs: List[Action]): HashExpr =
+      new HashExpr(he.expr, he.eqs ::: eqs.distinct)
+  }
+  class Literal(expr: Expr, eqs: List[Action]) extends HashExpr(expr, eqs)
+  object Literal {
+    def apply(value: Rational) = new Literal(Lit(GRational(value)), Nil)
+  }
+  class Variable(expr: Expr, eqs: List[Action]) extends HashExpr(expr, eqs)
+  class Operator(expr: Expr, eqs: List[Action]) extends HashExpr(expr, eqs)
+  object Operator {
+    // Memoize every expression
+    def apply(n: String, hes: List[HashExpr]): HashExpr = {
+      val es = hes.map(_.expr)
+      Simplifier.mkOp(n, es: _*) match {
+        case Lit(GRational(r)) => literal(r)
+        case op                => val em = mem(op); new HashExpr(em._1, em._2)
+      }
+    }
+  }
   class HashVector(expr: Expr, eqs: List[Action]) extends HashExpr(expr, eqs)
   object HashVector {
     def apply(es: List[HashExpr]): HashExpr = {
@@ -287,7 +209,7 @@ object SD {
   /* Smart constructors */ // TODO Make regular constructors private to force use of these. 
 
   /** Smart constructor for the Literal case class */
-  def literal(value: Int) = Literal(value)
+  def literal(value: Int) = Literal(Rational(value))
   /** Smart constructor for the Literal case class */
   def literal(value: Rational) = Literal(value)
 
@@ -403,7 +325,7 @@ object SD {
                   op("^", List(r, literal(2)))))
             case "^" =>
               r match {
-                case Lit(GInt(m)) =>
+                case Lit(GRational(m)) if m.isWhole =>
                   op("*",
                     List(
                       literal(m),
@@ -510,7 +432,7 @@ object SD {
                 op("*", List(r, literal(2)))))
           case "^" =>
             r match {
-              case Lit(GInt(m)) =>
+              case Lit(GRational(m)) if m.isWhole =>
                 op("*",
                   List(
                     literal(m),
@@ -539,7 +461,7 @@ object SD {
           /* Example d(df/dx)/dt */
           case "dif" => r match {      
             case Var(name) => 
-               // Fix me !
+               // FIXME !
                val difarg = dif(l,name,Map[Expr,Expr](),conditionalAction)
                val dtarg = dt(difarg.expr)
               HashExpr(dtarg,difarg.eqs)

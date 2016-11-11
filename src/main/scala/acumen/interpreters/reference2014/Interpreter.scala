@@ -366,7 +366,7 @@ object Interpreter extends acumen.CStoreInterpreter {
     checkNestedHypotheses(prog)
     checkContinuousAssignmentToSimulator(prog)
     val cprog = CleanParameters.run(prog, TraditionalInterpreterType)
-    val sprog = Simplifier.run(cprog)
+    val sprog = Simplifier.replaceIntervalsByMidpoints(cprog)
     val mprog = Prog(magicClass :: sprog.defs)
     val (sd1,sd2) = Random.split(Random.mkGen(0))
     val (id,_,st1) = 

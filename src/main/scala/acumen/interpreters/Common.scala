@@ -1,6 +1,8 @@
 package acumen
 package interpreters
 
+import spire.math.Rational
+
 import TAD.{ TDif }
 import util.Names._
 import Pretty._
@@ -14,10 +16,8 @@ import reflect.runtime.universe.TypeTag
 import enclosure2015.Common._
 import acumen.interpreters.enclosure._
 import acumen.InterpreterType
-//
-// Common stuff to CStore Interpreters
-//
 
+/** Code shared by CStore Interpreters */
 object Common {
   
   trait Environment[V] extends Any {
@@ -62,12 +62,16 @@ object Common {
         case Lit(GBool(b))          => Lit(if (b) CertainTrue else CertainFalse)
         case Lit(GInt(i))           => Lit(GConstantRealEnclosure(i))
         case Lit(GDouble(d))        => Lit(GConstantRealEnclosure(d))
+        case Lit(GRational(i))      => Lit(GConstantRealEnclosure(i))
         case Lit(GInterval(i))      => Lit(GConstantRealEnclosure(i))
-        case ExprInterval( Lit(lo@(GDouble(_)|GInt(_)))  // FIXME Add support for arbitrary expression end-points
-                         , Lit(hi@(GDouble(_)|GInt(_))))    
-                                    => Lit(GConstantRealEnclosure(Interval(extractDouble(lo), extractDouble(hi))))
-        case ExprInterval(lo,hi)    => sys.error("Only constant interval end-points are currently supported. Offending expression: " + pprint(e))
-        case ExprIntervalM(lo,hi)   => sys.error("Centered interval syntax is currently not supported. Offending expression: " + pprint(e))
+        case ExprInterval(lo,hi)    => throw new PositionalAcumenError {
+          def mesg = "Only constant interval end-points are currently supported." // ExprInterval should have been eliminated by ApproximateRationals
+          pos = e.pos
+        }
+        case ExprIntervalM(lo,hi)   => throw new PositionalAcumenError {
+          def mesg = "Centered interval syntax is currently not supported."
+          pos = e.pos
+        }
         // Convert an ExprSplitInterval'smth to the uncertain version of a SplitInterval which can be used as an Interval by the interpreter.
         case esi : ExprSplitInterval => liftSplitIntervalToUncertain(esi)
         case esd : ExprSplitterDistribution => liftSplitIntervalToUncertain(esd)

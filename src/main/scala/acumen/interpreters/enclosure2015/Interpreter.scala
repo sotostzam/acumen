@@ -669,7 +669,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
                                , body = d.body.flatMap(action))))
   }
   
-  lazy val initStore = Parser.run(Parser.store, initStoreTxt.format("#0"))
+  lazy val initStore = ApproximateRationals.run(Parser.run(Parser.store, initStoreTxt.format("#0")), TraditionalInterpreterType)
   lazy val initStoreTxt: String =
     commonInitStoreTxt + s"""outputRows = "All", resultType = @Initial,
                ${ Common.Parameters.defaults.map{ case (pn, (vis, pv)) => pn + "=" + pprint(pv)}.mkString(",") } }"""

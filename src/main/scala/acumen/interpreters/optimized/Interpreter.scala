@@ -58,7 +58,7 @@ class Interpreter(val parDiscr: Boolean = true,
     checkContinuousAssignmentToSimulator(prog)
     val magic = fromCStore(initStore, CId(0))
     val cprog = CleanParameters.run(prog, TraditionalInterpreterType)
-    val sprog = Simplifier.run(cprog)
+    val sprog = Simplifier.replaceIntervalsByMidpoints(cprog)
     val (sd1, sd2) = Random.split(Random.mkGen(0))
     val mainObj = mkObj(cmain, sprog, IsMain, sd1, List(VObjId(Some(magic))), magic, 1)
     magic.seed = sd2

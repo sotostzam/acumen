@@ -365,7 +365,7 @@ object Interpreter extends acumen.CStoreInterpreter {
 
   def init(prog:Prog) : (Prog, SuperStore, SuperMetadata) = {
     val cprog = CleanParameters.run(prog, TraditionalInterpreterType)
-    val sprog = Simplifier.run(cprog)
+    val sprog = Simplifier.replaceIntervalsByMidpoints(cprog)
     val mprog = Prog(magicClass :: sprog.defs)
     val (sd1,sd2) = Random.split(Random.mkGen(0))
     val (id,_,_,_,_,st1) = 

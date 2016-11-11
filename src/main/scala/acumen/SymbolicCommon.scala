@@ -2,8 +2,11 @@ package acumen
 import GE._
 import Pretty._
 import Errors._
+import Simplifier._
+import Constants._
+import spire.math.Rational
 
-// Symbolic common evaluations
+/** Symbolic common evaluations */
 object SymbolicCommon {
 
   def isMatrix(m: ExprVector): Boolean = m.l(0) match {
@@ -122,17 +125,17 @@ object SymbolicCommon {
         symBinVectorScalarOp(op, y.asInstanceOf[ExprVector], x)))
     else
       ExprVector(u.l map (d => mkOp(".^", d, x)))
-    case _ => println(mkOp(op, u, x)); mkOp(op, u, x)
+    case _ => mkOp(op, u, x)
   }
   type MatrixE = Array[Array[Expr]]
   def inverse(matrix: MatrixE): MatrixE = {
     if (matrix.length == 2 && matrix(0).length == 2) {
       val a = matrix(0)(0); val b = matrix(0)(1); val c = matrix(1)(0); val d = matrix(1)(1);
-      val det = mkOp("/", Lit(GInt(1)), mkOp("-", mkOp("*", a, d), mkOp("*", b, c)))
-      Array(Array(mkOp("*", det, d), mkOp("*", det, mkOp("*", Lit(GInt(-1)), b))),
-        Array(mkOp("*", det, mkOp("*", Lit(GInt(-1)), c)), mkOp("*", det, a)))
+      val det = mkOp("/", RationalOneLit, mkOp("-", mkOp("*", a, d), mkOp("*", b, c)))
+      Array(Array(mkOp("*", det, d), mkOp("*", det, mkOp("*", RationalMinusOneLit, b))),
+        Array(mkOp("*", det, RationalMinusOneLit), mkOp("*", det, a)))
     } else
-      matrixScaleOp("*", transpose(cofactor(matrix)), mkOp("/", Lit(GInt(1)), determinant(matrix)))
+      matrixScaleOp("*", transpose(cofactor(matrix)), mkOp("/", RationalOneLit, determinant(matrix)))
   }
 
   def matrixScaleOp[A](op: String, au: MatrixE, gv: Expr): MatrixE = {
@@ -152,7 +155,7 @@ object SymbolicCommon {
     val mat: Array[Array[Expr]] = Array.ofDim(matrixRow(matrix), matrixCol(matrix))
     for (i <- 0 to matrixRow(matrix) - 1)
       for (j <- 0 to matrixCol(matrix) - 1)
-        mat(i)(j) = mkBinOp("*", Lit(GInt(changeSign(i))) :: Lit(GInt(changeSign(j))) :: determinant(createSubMatrix(matrix, i, j)) :: Nil)
+        mat(i)(j) = mkBinOp("*", Lit(GRational(Rational(changeSign(i)))) :: Lit(GRational(Rational(changeSign(j)))) :: determinant(createSubMatrix(matrix, i, j)) :: Nil)
     mat
   }
   def matrixRow(matrix: MatrixE): Int = matrix.length
@@ -176,7 +179,7 @@ object SymbolicCommon {
   def determinant(matrix: MatrixE): Expr = {
     if (matrix.length != matrix(0).length)
       error("Can't perform derminant operation because the size of matrix")
-    var sum = Lit(GDouble(0.0)).asInstanceOf[Expr]
+    var sum = RationalZeroLit.asInstanceOf[Expr]
     var s: Double = 1
     if (matrix.length == 1) { //bottom case of recursion. size 1 matrix determinant is itself.
       matrix(0)(0)
@@ -193,7 +196,7 @@ object SymbolicCommon {
           }
         }
         s = changeSign(i)
-        sum = mkOp("+", sum, mkOp("*", mkOp("*", Lit(GDouble(s)), matrix(0)(i)), (determinant(smaller)))) //recursive step: determinant of larger determined by smaller.
+        sum = mkOp("+", sum, mkOp("*", mkOp("*", Lit(GRational(Rational(s))), matrix(0)(i)), (determinant(smaller)))) //recursive step: determinant of larger determined by smaller.
       }
       sum //returns determinant value. once stack is finished, returns final determinant.
     }
