@@ -73,6 +73,8 @@ class ASTMap {
     case ExprLet(bindings, e2) => ExprLet(bindings.map{case (n,e) => (n,mapExpr(e))},
                                           mapExpr(e2))
     case Pattern(ps) => Pattern(ps.map{mapExpr(_)})
+    case Lambda(vs, f) => e
+
   }).setPos(e.pos)
 
   def mapClause(c: Clause) : Clause = c match {

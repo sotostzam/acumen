@@ -150,7 +150,7 @@ object Parser extends MyStdTokenParsers {
     List("foreach", "end", "if", "else","elseif", "create", "move", "in", "terminate", "model","then","initially","always",
          "sum", "true", "false", "init", "match","with", "case", "claim", "hypothesis", "let","noelse", "typeOf",
          "Initial", "Continuous", "Discrete", "FixedPoint", "none","cross","do","dot","for","_3D","zeros","ones", "_plot",
-         "splitby", "central", "normald", "uniformd", "betad", "function")
+         "splitby", "central", "normald", "uniformd", "betad", "function", "Surface")
 
   /* token conversion */
 
@@ -362,7 +362,7 @@ object Parser extends MyStdTokenParsers {
 
   def binding = name ~! "=" ~! expr ^^ { case x ~ _ ~ e => (x, e) }
 
-  def bindings = repsep(binding, ",") <~opt(",")
+  def bindings = repsep(binding, opt(",")) <~opt(",")
 
   def let:Parser[Expr] =
       positioned("let" ~! bindings ~! "in" ~! expr  ^^
@@ -435,7 +435,8 @@ object Parser extends MyStdTokenParsers {
 
   def call: Parser[Expr] =
     access >> { e => args(expr) ^^ { es => /*println(Call(e,es))*/; Call(e, es) } | success(e) }
-
+    
+  def lambda = args(name) ~ "->" ~ expr ^^ { case vs ~ _ ~ e => Lambda(vs map Var, e) }
 
   def access: Parser[Expr] = 
     atom >> { e =>
@@ -448,6 +449,7 @@ object Parser extends MyStdTokenParsers {
     {case ls => ExprVector(ls.map(x => ExprVector(List(x))))}
   def atom: Parser[Expr] =
     positioned( sum
+      | lambda
       | difExpr
       | dif   
       | parens(expr)
@@ -622,13 +624,40 @@ object Parser extends MyStdTokenParsers {
     else throw new PositionalAcumenError{
          def mesg = n.x + " is not a valid _3D parameter" 
          }.setPos(e.pos) }
-  def threeDObject:Parser[ExprVector] = optParens(name ~ rep(threeDPara)) ^^ {case n ~ ls =>threeDParasProcess(n,ls)}
-  def threeDRhs = parens(repsep(threeDObject, opt(","))) ^^ {case ls => ls match{
-    case List(single) => single
-    case _ => ExprVector(ls)
-  }}
   
-  def _3DVectorHelper(n:Name,v:Expr,x:String):Expr = v match{
+  def threeDObject:Parser[ExprVector] = thereDSurface |
+    optParens(name ~ rep(threeDPara))  ^^ {case n ~ ls => threeDParasProcess(n,ls)}
+
+  def threeDRhs = parens(repsep(threeDObject, opt(","))) ^^ {
+    case ls => ls match {
+      case List(single) => single
+      case _            => ExprVector(ls)
+    }
+  }
+  def thereDSurface: Parser[ExprVector] = "Surface" ~ args(name) ~ "->" ~ expr ~ "foreach" ~ bindings ^^ {
+    case _ ~ ns ~ _ ~ f ~ _ ~ bs => surfaceHelper(Var(ns(0)), Var(ns(1)), f, bs)
+  }
+
+  def surfaceHelper(x: Var, y: Var, f: Expr, bs: List[(Name, Expr)]): ExprVector = {
+    val lambda = Lambda(x :: y :: Nil, f)
+    bs map println
+    val range = bs.find(_._1 == x.name).get._2 :: bs.find(_._1 == y.name).get._2 :: Nil
+    val rangeNumber = range match {
+      case ExprInterval(low1, high1) :: ExprInterval(low2, high2) :: Nil =>
+        ExprVector(low1 :: high1 :: low2 :: high2 :: Nil)
+      case _ => error("Wrong range for " + Pretty.pprint[Expr](lambda))
+    }
+
+    val resolution = bs.filter(_._1.x == "resolution") match {
+      case Nil    => Lit(GDouble(0.1))
+      case s :: l => s._2
+    }
+    val otherParas = threeDParasProcess(Name("Surface", 0), bs.diff(range))
+    println(Pretty.pprint[Expr](otherParas))
+    ExprVector(otherParas.l.updated(2, resolution) :+ lambda :+ rangeNumber)
+  }
+
+  def _3DVectorHelper(n: Name, v: Expr, x: String): Expr = v match {
     case ExprVector(ls) => 
       if (ls.forall(x => x match{
         case _ @ Lit(GStr(_) | GBool(_)) => false
@@ -832,10 +861,10 @@ object Parser extends MyStdTokenParsers {
       case "Sphere" => ExprVector(List(Lit(GStr("Sphere")),center,checkSize(name),color,rotation,coordinates,transparency))
       case "Text" => ExprVector(List(Lit(GStr("Text")),center,size,color,rotation,content,coordinates,transparency))
       case "Obj" => ExprVector(List(Lit(GStr("OBJ")),center,size,color,rotation,content,coordinates,transparency))
-      case "Triangle" => ExprVector(List(Lit(GStr("Triangle")),center,points,color,rotation,coordinates,transparency,height))
+      case "Triangle" => ExprVector(List(Lit(GStr("Triangle")), center, points, color, rotation, coordinates, transparency, height))
+      case "Surface"  => ExprVector(List(Lit(GStr("Surface")), center, size, color, rotation, coordinates, transparency))
       case _ => error("Unsupported 3D object " + name)
     }
-
   }
   def _plotAction =
     "_plot" ~ "="  ~ plotRhs ^^ {

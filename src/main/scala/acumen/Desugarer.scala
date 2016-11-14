@@ -165,7 +165,8 @@ case class Desugarer(odeTransformMode: ODETransformMode) {
       case i @ ExprIntervalM(_, _) => i
       case i @ ExprSplitInterval(_, _) => i
       case s : ExprSplitter => s
-      case i : ExprSplitterDistribution => i
+      case i: ExprSplitterDistribution => i
+      case Lambda(vs, body)            => Lambda(vs, desugar(p, fs, (vs map (_.name)) ::: env, body))
     }).setPos(e.pos)
   }
 

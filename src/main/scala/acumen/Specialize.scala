@@ -90,6 +90,7 @@ object Specialization {
             }
           case _ => (Index(e._1, es._1).setPos(aexpr.pos), neweqs)
         }
+      case ALambda(vs, f, _) => (Lambda(vs, f.expr), Nil)
       case ACall(af, aes, l) =>
         val e = specializeE(af)
         val es = specializeEs(aes)
@@ -499,6 +500,21 @@ object Specialization {
     case Continuously(Equation(lhs, rhs)) => Continuously(Equation(inline(lhs, env), inline(rhs, env)))
     case _                                => a
   }
+  
+  def convertDots(e: Expr): Expr = e match {
+    case Dot(d, s)      => Var(s)
+    case ExprVector(ls) => ExprVector(ls map convertDots)
+    case Op(f, es)      => Op(f, es.map(convertDots(_)))
+    case _              => e
+  }
+  
+  def findDots(e: Expr): List[Dot] = e match {
+    case Dot(d, s)      => List(Dot(d, s))
+    case ExprVector(ls) => ls.map(findDots(_)).flatten.distinct
+    case Op(f, es)      => es.map(findDots(_)).flatten.distinct
+    case _              => Nil
+  }
+
   def inline(e: Expr, env: Map[Expr, Expr]): Expr = e match {
     case Lit(_) => e
     case Var(n) =>

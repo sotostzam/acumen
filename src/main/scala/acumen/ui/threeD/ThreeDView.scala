@@ -596,6 +596,73 @@ class ThreeDView extends JPanel {
     box
   }
 
+  def drawSurface(step: Double, lambda: acumen.VLambda, range: Array[Double]): Object3D = {
+    import acumen._
+    import acumen.interpreters.optimized2015.Common
+    val surface = new Object3D(99999)
+    var allZposition = Map[(Expr, Expr), Array[Double]]()
+    implicit def toLit(g: Double) = Lit(GDouble(g))
+    val LambdaNoXY: Option[VLambda] = lambda.body match {
+      case ExprVector(Var(_) :: Var(_) :: z :: Nil) =>
+        Some(VLambda(lambda.vs,
+          Specialization.convertDots(z),
+          lambda.closure))
+      case others => None
+    }
+
+    val noDotLambda = VLambda(lambda.vs, acumen.Specialization.convertDots(lambda.body), lambda.closure)
+    def evalZ(i: Expr, j: Expr, id: Double, jd: Double): Array[Double] = {
+      import acumen.util.Conversions._
+      val beta = BetaReduction(noDotLambda, i :: j :: Nil)
+
+      if (allZposition.contains((i, j))) {
+        allZposition((i, j))
+      } else {
+        LambdaNoXY match {
+          case None =>
+            val z = extractDoubles(acumen.interpreters.optimized2015.Common.evalExpr(beta, Prog(Nil), Common.Env.empty))
+            val zInAcumen = Array(-z(0), -z(2), -z(1))
+            allZposition = allZposition + ((i, j) -> zInAcumen)
+            zInAcumen
+          case Some(vl) =>
+            val z = extractDouble(acumen.interpreters.optimized2015.Common.evalExpr(BetaReduction(vl, i :: j :: Nil), Prog(Nil), Common.Env.empty))
+            val zInAcumen = Array(-id, -z, -jd)
+            allZposition = allZposition + ((i, j) -> zInAcumen)
+            zInAcumen
+        }
+      }
+    }
+
+    def drawTriangle(i: Double, j: Double): Unit = {
+      val p1InAcumen = evalZ(i, j, i, j)
+      val p2InAcumen = evalZ(i + step, j, i + step, j)
+      val p3InAcumen = evalZ(i, j + step, i, j + step)
+      val p6InAcumen = evalZ(i + step, j + step, i + step, j + step)
+
+      val lowerP1 = new SimpleVector(p1InAcumen(0), p1InAcumen(1), p1InAcumen(2))
+      val lowerP2 = new SimpleVector(p2InAcumen(0), p2InAcumen(1), p2InAcumen(2))
+      val lowerP3 = new SimpleVector(p3InAcumen(0), p3InAcumen(1), p3InAcumen(2))
+      val lowerP4 = new SimpleVector(p2InAcumen(0), p2InAcumen(1), p2InAcumen(2))
+      val lowerP5 = new SimpleVector(p3InAcumen(0), p3InAcumen(1), p3InAcumen(2))
+      val lowerP6 = new SimpleVector(p6InAcumen(0), p6InAcumen(1), p6InAcumen(2))
+      surface.addTriangle(lowerP1, 0, 0, lowerP2, 0, 1, lowerP3, 1, 0)
+      surface.addTriangle(lowerP1, 1, 0, lowerP3, 1, 0, lowerP2, 0, 1)
+      surface.addTriangle(lowerP4, 0, 0, lowerP5, 0, 1, lowerP6, 1, 0)
+      surface.addTriangle(lowerP4, 1, 0, lowerP6, 1, 0, lowerP5, 0, 1)
+    }
+    var (i, j) = (range(0), range(2))
+    while (i < range(1)) {
+      j = range(2)
+      while (j < range(3)) {
+        drawTriangle(i, j)
+        j += step
+      }
+      i += step
+    }
+
+    surface
+  } 
+
  def drawTriangle(p1: Array[Double], p2: Array[Double], p3: Array[Double], height: Double): Object3D = {
     val triangle = new Object3D(10)
     val p1InAcumen = Array(-p1(0), -p1(2), -p1(1))
@@ -963,7 +1030,13 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D, playSpeed: Double,
         && _3DDataBuffer(lastFrame).contains(objectKey))
         _3DDataBuffer(lastFrame)(objectKey)
       else null
-
+    val lambda: acumen.VLambda =
+      if (name == "Surface")
+        valueList(5).asInstanceOf[acumen.VLambda] else null
+    val range: Array[Double] =
+      if (name == "Surface")
+        valueList(8).asInstanceOf[Array[Double]]
+      else Array[Double]()
     val lastFrameName =
       if (getLastType(objectKey, lastValueList) == false) "New Object"
       else getLastType(objectKey, lastValueList)
@@ -1029,6 +1102,15 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D, playSpeed: Double,
             newAnaglyphObject = true
           }
         }
+      case "Surface" =>
+        if (!lambda.closure.isEmpty) {
+          app.objectsToDelete += app.objects(objectKey)
+          app.objects(objectKey) = (app.drawSurface(size(0), lambda, range), coordinates)
+          transObject = app.objects(objectKey)._1
+          objID = app.objects(objectKey)._1.getName // refresh the object ID
+          transObject.setShadingMode(Object3D.SHADING_FAKED_FLAT)
+        }
+
       case "Cylinder" =>
         // the type has been changed, delete the old object and create a new one
         if (lastFrameName != name && checkResizeable(size)
@@ -1193,7 +1275,9 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D, playSpeed: Double,
       val tempTransVector = new SimpleVector(-position(0), -position(2),
                                              -position(1))
       val transVector = tempTransVector.calcSub(transObject.getTransformedCenter)
-      transObject.translate(transVector)
+      if (name != "Surface") {
+        transObject.translate(transVector)
+      }
       if (anaglyphObject != null) {
         val colorAverage = (color(0) + color(1) + color(2)) / 3
         transObject.setTransparencyMode(Object3D.TRANSPARENCY_MODE_ADD)
@@ -1245,6 +1329,9 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D, playSpeed: Double,
         if (name == "OBJ")  valueList(5) else " ",
         if (valueList.size == 7) valueList(5) else valueList(6),
         if (name == "Triangle") valueList(5) else 0.4)
+        
+    val lambda: acumen.VLambda = if (name == "Surface") valueList(5).asInstanceOf[acumen.VLambda] else null
+    val range: Array[Double] = if (name == "Surface") valueList(8).asInstanceOf[Array[Double]] else Array[Double]()
 
     val newObject =
       if (checkResizeable(size) && checkResizeable(angle)) name match {
@@ -1276,6 +1363,8 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D, playSpeed: Double,
             buildText(text, sizeToSetR)
           else
             null
+        case "Surface" =>
+          app.drawSurface(size(0), lambda, range)
         case "OBJ" =>
           val sizeToSetR = checkSize(size(0) / 132)
           if (path != "")  // model err, do nothing
@@ -1288,7 +1377,7 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D, playSpeed: Double,
     if (newObject != null) {
       // set color to the object
       setColor(newObject, color)
-      if (name == "Box" || name == "Cylinder" || name == "Triangle")
+    if (name == "Box" || name == "Cylinder" || name == "Triangle"|| name == "Surface")
         newObject.setShadingMode(Object3D.SHADING_FAKED_FLAT)
       // set transparency to the object
       newObject.setTransparencyMode(Object3D.TRANSPARENCY_MODE_DEFAULT) //TRANSPARENCY_MODE_DEFAULT

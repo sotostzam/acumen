@@ -174,6 +174,10 @@ object BindingTimeAnalysis {
       val af = labelAst(f, label)
       val aresult = labelListExpr(es, af._2)
       (ACall(af._1, aresult._1, aresult._2).setP(e.pos), aresult._2 + 1)
+    case Lambda(vs, body) =>
+      val af = labelAst(body, label)
+      (ALambda(vs, af._1, af._2), af._2 + 1)
+
   }
   
   def labelAst(a: Action, label: Label, scope: Label, env: LabelEnv)(implicit fields: List[Name]): (AAction[Label], Label, LabelEnv) = a match {

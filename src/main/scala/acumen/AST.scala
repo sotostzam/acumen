@@ -149,6 +149,12 @@ package acumen {
     }
   }
   
+  /* Used ONLY for passing a function to 3D graphics engine for 
+   * fast drawing  */
+  case class Lambda (vs: List[Var], body:Expr) extends Expr
+  case class BetaReduction (l:VLambda, args:List[Expr]) extends Expr
+
+  
   /* Reference to field f in object obj. */
   sealed abstract class Ref extends Expr {
     def obj: Expr
@@ -445,6 +451,10 @@ package acumen {
 
   /* Example: @Continuous */
   case class VResultType(s: ResultType) extends Value
+  
+  /* Used only for 3D surface */
+  case class VLambda (vs: List[Var], body:Expr, closure: Map[Dot,VLit]) extends Value
+
 
   /* Annotated version of the AST used for partial evaluation (used internally) */
 
@@ -508,6 +518,9 @@ package acumen {
   case class AVar[A](name: Name, val an: A) extends AExpr[A] with AExprWithPos[A] {
     def expr = Var(name).setPos(this.pos) 
   }
+  case class ALambda[A] (vs: List[Var], body:AExpr[A], val an: A) extends AExpr[A] with AExprWithPos[A]{
+    def expr = Lambda(vs, body.expr).setPos(this.pos)
+  }  
 
   case class AName[A](name: Name, val an: A) {
   }
