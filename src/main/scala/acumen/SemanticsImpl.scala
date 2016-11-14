@@ -113,7 +113,7 @@ object SemanticsImpl {
   case class Enclosure2015(contraction: Boolean) extends CStore {
     override val isOldSemantics  = false
     val i = enclosure2015.Interpreter(contraction)
-    val semantics = Semantics(None, Seq("desugar-local-inline"), Seq("SD"))
+    val semantics = Semantics(None, Seq("BTA", "desugar-local-inline"), Main.extraPasses)
     def interpreter() = i
   }
   object Imperative2012 extends CStore {
