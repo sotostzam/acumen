@@ -15,7 +15,7 @@ object ApproximateRationals {
     new util.ASTMap {
       override def mapExpr(e: Expr): Expr = e match {
         case Lit(GRational(d)) => 
-          Lit(approximate(d, interpreterType))
+          Lit(approximate(d, interpreterType)).setPos(e.pos)
         case ExprInterval(Lit(GRational(lo)), Lit(GRational(hi))) =>
           interpreterType match {
             case TraditionalInterpreterType => 
@@ -47,6 +47,8 @@ object ApproximateRationals {
     s.map {
       case (cid, co) => 
         (cid, co.map {
+            case (Name("time",0), VLit(GRational(n))) if n == spire.math.Rational.zero =>
+              (Name("time",0), VLit(GDouble(0.0)) )
             case (n, v) => (n, approximateValue(v, interpreterType)) 
         })
     }

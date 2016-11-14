@@ -250,6 +250,7 @@ object GE {
       val varsInCoefs = q.map(x => x.name match{
         case Name(f,p) => (for(i <- 0 until p) yield Var(Name(f,i))).toList
       }).flatten
+      
       val interpreter = new IntervalEval(varsInCoefs)
       val lifter = ApproximateRationals.mkApproximationMap(Prog(Nil), Enclosure2015InterpreterType)
       val N = initialM.length
@@ -257,13 +258,14 @@ object GE {
         // Find pivot row and swap
         val pivot = (p+1 until N).foldLeft(p){case (max,pivoti) =>
           val range = interpreter.eval(lifter.mapExpr(outerM(pivoti)(p))) 
+          val rangeMax = interpreter.eval(lifter.mapExpr(outerM(max)(p))) 
+           // println(range + "for " + pprint(outerM(pivoti)(p)))
           if ((outerM(pivoti)(p).isInstanceOf[Lit] && !isRationalZeroLit(outerM(pivoti)(p))) || 
-              !range.contains(0))
+              !range.contains(0) || (rangeMax.contains(0) && range.hiDouble > rangeMax.hiDouble))
             pivoti
           else
             max  
             }
-          val pivotRange = interpreter.eval(lifter.mapExpr(outerM(pivot)(p)))
           val swapedM = outerM.swap(p, pivot)
           val swapedB = swap(outerB,p,pivot)
           // Check singularity here
@@ -457,7 +459,6 @@ object GE {
     val m = q.map(x => (x.name, reals)).toMap
     val env = interpreters.Common.Env(m)
     def eval(e: Expr) = {
-      println(pprint(e))
       i.evalExpr(e, env, GEStore) match {
         case VLit(GConstantRealEnclosure(i)) => i
       }

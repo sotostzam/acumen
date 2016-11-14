@@ -44,6 +44,7 @@ object Simplifier {
       case ("/", x :: y :: Nil) if x == y => one
       case ("/", Lit(GRational(Rational.zero)) :: x :: Nil) => zero
       case ("-", x :: Lit(GRational(Rational.zero)) :: Nil) => x
+      case ("-", a :: b:: Nil) if ~=(a,b) => zero
       case ("-", Lit(GRational(Rational.zero)) :: Op(Name("*", 0), Lit(GRational(m)) :: x :: Nil) :: Nil) =>
         mkOp("*", Lit(GRational(-m)), x)
       case ("-", Lit(GRational(Rational.zero)) :: Op(Name("*", 0), x :: Lit(GRational(m)) :: Nil) :: Nil) =>
@@ -54,6 +55,8 @@ object Simplifier {
         mkOp("/", Lit(GRational(n / m)), x)
       case ("*", Lit(GRational(n)) :: Op(Name("/", 0), Lit(GRational(m)) :: x :: Nil) :: Nil) =>
         mkOp("/", Lit(GRational(n * m)), x)
+      case ("*", Lit(GRational(n)) :: Op(Name("^", 0),  x :: Lit(GRational(m)) :: Nil) :: Nil) if n == Rational(-1) && m == two =>
+        mkOp("^", x, two)
       case ("*", Lit(GRational(n)) :: Op(Name("/", 0), x :: Lit(GRational(m)) :: Nil) :: Nil) =>
         mkOp("*", Lit(GRational(n / m)), x)
       case ("+", x :: Lit(GRational(Rational.zero)) :: Nil) => x
@@ -66,6 +69,10 @@ object Simplifier {
         mkOp("*", Lit(GRational(n)), mkOp("*", a, b))
       case ("-", Op(Name("*", 0), a :: b :: Nil) :: Op(Name("*", 0), c :: d :: Nil) :: Nil) if a == c =>
         mkOp("*", a, mkOp("-", b, d))
+      case ("-", Op(Name("*", 0), Lit(GRational(n)) :: b :: Nil) :: Op(Name("*", 0), Lit(GRational(m)) :: d :: Nil) :: Nil) if ~=(b, d) =>
+        mkOp("*",Lit(GRational(n-m)) ,b)
+      case ("-", Op(Name("*", 0), Lit(GRational(n)) :: b :: Nil) :: d :: Nil) if ~=(b, d) =>
+        mkOp("*",Lit(GRational(n-1)) ,b)
       case ("+", Op(Name("-", 0), a :: b :: Nil) :: Op(Name("+", 0), c :: d :: Nil) :: Nil) if b == d =>
         mkOp("+", a, c)
       case ("+", Op(Name("-", 0), a :: b :: Nil) :: Op(Name("-", 0), c :: d :: Nil) :: Nil) if b == c =>
@@ -104,8 +111,8 @@ object Simplifier {
         if (ab != Op(Name("*", 0), a :: b :: Nil))
           mkOp("*", ab, c)
         else {
-          val ac = mkOp("*", a, c)
-          if (ac != Op(Name("*", 0), a :: c :: Nil))
+          val ac = mkOp("*", c, a)
+          if (ac != Op(Name("*", 0), c :: a :: Nil))
             mkOp("*", ac, b)
           else
             Op(Name("*", 0), mkOp("*", b, c) :: a :: Nil)
@@ -126,6 +133,10 @@ object Simplifier {
       case ("+", a :: Op(Name("*", 0), Lit(GRational(n)) :: b :: Nil) :: Nil) if a == b =>
         mkOp("*", Lit(GRational(n + 1)), a)
       // Trigonometric identity rule
+      case ("*", Op(Name("sin", 0), t1 :: Nil) :: Op(Name("cos", 0), t2 :: Nil) :: Nil) if t1 == t2 =>
+        mkOp("*", half, mkOp("sin", mkOp("*", two, t1)))
+      case ("*", Op(Name("cos", 0), t2 :: Nil) :: Op(Name("sin", 0), t1 :: Nil) ::  Nil) if t1 == t2 =>
+        mkOp("*", half, mkOp("sin", mkOp("*", two, t1)))
       case ("+", Op(Name("^", 0), Op(Name("sin", 0), t1 :: Nil) :: m :: Nil) ::
         Op(Name("^", 0), Op(Name("cos", 0), t2 :: Nil) :: n :: Nil) :: Nil) if t1 == t2 && m == two && n == two => one
       case ("+", Op(Name("^", 0), Op(Name("cos", 0), t1 :: Nil) :: m :: Nil) ::

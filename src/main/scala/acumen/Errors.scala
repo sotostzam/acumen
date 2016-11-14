@@ -294,6 +294,17 @@ object Errors {
     override def getMessage = message
   }
 
+  case class causalizeExprFail(e: Expr, v: Var) extends AcumenError {
+    override def getMessage = "Fail when breaking expression " + pprint(e) + " for variable " + pprint(v.name)
+
+  }
+
+  case class causalizeFail(eq: Equation, v: Var, e: Expr) extends AcumenError {
+    override def getMessage = " Fail to causalize equation " + pprint(Continuously(eq).asInstanceOf[Action]) +
+      " with respect to variable " + pprint(v.name) + ".  When breaking expression" + e
+  }
+
+
   /* Command-line errors */
 
   case class DisabledSemantics(theString: String) extends PositionalAcumenError {

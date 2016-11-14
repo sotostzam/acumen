@@ -595,7 +595,7 @@ object Parser extends MyStdTokenParsers {
                                       ExprVector(List(RationalOneLit,RationalZeroLit,RationalZeroLit)),
                                       ExprVector(List(RationalZeroLit,RationalOneLit,RationalZeroLit))))
   val defaultCoordinates = Lit(GStr("Global"))
-  val defaultTransparency = Lit(GRational(-1))
+  val defaultTransparency = Lit(GDouble(-1))
 
   // _3D parameter names with valid dimensions (Nil for parameters whose values are not vectors) 
   val paramDimensions: Map[String, List[Int]] =
@@ -640,7 +640,6 @@ object Parser extends MyStdTokenParsers {
 
   def surfaceHelper(x: Var, y: Var, f: Expr, bs: List[(Name, Expr)]): ExprVector = {
     val lambda = Lambda(x :: y :: Nil, f)
-    bs map println
     val range = bs.find(_._1 == x.name).get._2 :: bs.find(_._1 == y.name).get._2 :: Nil
     val rangeNumber = range match {
       case ExprInterval(low1, high1) :: ExprInterval(low2, high2) :: Nil =>
@@ -653,7 +652,6 @@ object Parser extends MyStdTokenParsers {
       case s :: l => s._2
     }
     val otherParas = threeDParasProcess(Name("Surface", 0), bs.diff(range))
-    println(Pretty.pprint[Expr](otherParas))
     ExprVector(otherParas.l.updated(2, resolution) :+ lambda :+ rangeNumber)
   }
 

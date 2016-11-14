@@ -35,26 +35,31 @@ object BindingTimeAnalysis {
   def root = -1
 
   def run(t: Prog):Prog = {
+    val varsDefinedInOtherModels  = collectConnectedVars.collectProg(t)
     t match {
       case Prog(defs) =>
         Prog(defs.map(d => d match {
           case ClassDef(n, f, d, b) => n.x match{
             case "Device" => ClassDef(n, f, d, b)
-            case _ => bta(ClassDef(n, f, d, b))
-          }
+            case _ => bta(ClassDef(n, f, d, b),
+                          varsDefinedInOtherModels.getOrElse(n,Nil).toList,0)}
         }))
     }
   }
-  /** Partial evaluation of a class
-   *  
+  /**
+   * Partial evaluation of a class
+   *
    *  First generate the annotated AST
-   *  Then perform partial evaluation using method specializeListActions 
-   *  
+   *  Then perform partial evaluation using method specializeListActions
+   *
    * @param ast the input ast
-   * */
-  def bta(ast: ClassDef): ClassDef = {
+   */
+  def bta(ast: ClassDef, doVars: List[Var], iterator: Int): ClassDef = {
     // Annotate AST
-    val aprog = labelAst(ast, 0)
+    val lowerDerivativeVars = filterDirectedVariables(ast.priv)
+    val causlizedActions = causalize(ast.body, lowerDerivativeVars ::: doVars)
+    val cAst = ClassDef(ast.name, ast.fields, ast.priv, causlizedActions)
+    val aprog = labelAst(cAst, 0)
     val labelEnv = aprog._4
     val anActions = aprog._1.body
     val env = aprog._2
@@ -82,10 +87,10 @@ object BindingTimeAnalysis {
           }
            
         })
+        // Clean the hash table in symbolic differentiation after each class
+        SD.clear()
         ClassDef(n, f, p ::: newInits, actions)
     }
-    // Clean the hash table in symbolic differentiation after each class
-    SD.clear()
     // Return specialized AST
     newAst
   }
@@ -642,7 +647,118 @@ object BindingTimeAnalysis {
     case d :: Nil  => if (d == c) Nil else d :: Nil
     case d :: tail => if (d == c) remove(tail, c) else d :: remove(tail, c)
   }
+  // Check for the existence of common variable in both equations
+  def testConnectivity(e1: List[Action], a2: List[Action], dvars: List[Var]) = {
 
+    val e1Vars = e1.foldLeft(List[Var]())((r, x) => r ::: findVarsTCasualize(x)).toSet
+    val e2Vars = a2.foldLeft(List[Var]())((r, x) => r ::: findVarsTCasualize(x)).toSet
+    (e1Vars.intersect(e2Vars)).size > 0
+  }
+
+  def solveIf(ceqs: List[List[Action]], ifs: IfThenElse, dvars: List[Var]): (List[List[Action]], IfThenElse) = {
+    val ceqsInif = ceqs.filter(x => testConnectivity(x, ifs.t, dvars) && testConnectivity(x, ifs.e, dvars))
+    val remain = ceqs.diff(ceqsInif)
+    val equationsToAdd = ceqsInif.flatten
+    val newIf = IfThenElse(ifs.cond, ifs.t ::: equationsToAdd, ifs.e ::: equationsToAdd)
+    (remain, newIf)
+  }
+  def printE(e: Equation): String =
+    pprint(e.lhs) + " = " + pprint(e.rhs)
+  /* Causalize equations using Tarjan's method */
+  def causalize(actions: List[Action], directedVars: List[Var]): List[Action] = {
+    val (equationActions, otherActions) = actions.foldLeft((List[Action](), List[Action]()))((r, a) => a match {
+      case Continuously(Equation(lhs, rhs)) => lhs match {
+        // Leave _3D and assignments across models unchanged
+        case Var(Name("_3D", 0)) => (r._1, a :: r._2)
+        case Dot(_, _)           => (r._1, a :: r._2)
+        case Var(_) if rhs.isInstanceOf[Lit] => (r._1, a :: r._2)
+        case _                   => (a :: r._1, r._2)
+      }
+      case ForEach(_, _, _) => (a :: r._1, r._2)
+      case _                => (r._1, a :: r._2)
+    })
+    val stronglyConnectedEqs = connectedEquations(equationActions)
+    val ifEquations = otherActions.filter(x => x.isInstanceOf[IfThenElse]).asInstanceOf[List[IfThenElse]]
+
+    val (remainActions, newIfs) = ifEquations.foldLeft((stronglyConnectedEqs, List[IfThenElse]())) { (r, x) =>
+      val (eqs, nIf) = solveIf(r._1, x, directedVars)
+      (eqs, nIf :: r._2)
+    }
+
+    val unTouchedActions = otherActions diff ifEquations
+    val (remainEqs, remainOtherActons) = remainActions.flatten.foldLeft((List[Equation](), List[Action]()))((r, a) => a match {
+      case Continuously(Equation(lhs, rhs)) => lhs match {
+        case _ => (Equation(lhs, rhs) :: r._1, r._2)
+      }
+      case _ => (r._1, a :: r._2)
+    })
+    val (causalizedEquations, acausalizedEquations, casualizedVars) = tarjan(remainEqs, directedVars, Map[Expr, Expr]())
+    val newDirectedVars = casualizedVars ::: directedVars
+    val causalizedIfs = newIfs.map {
+      case a => a match {
+        case IfThenElse(cond, tb, eb) =>
+          IfThenElse(cond, causalize(tb, newDirectedVars),
+            causalize(eb, newDirectedVars))
+        case _ => a
+
+      }
+    }
+    (causalizedEquations ::: acausalizedEquations).map(Continuously(_)) ::: causalizedIfs ::: unTouchedActions ::: remainOtherActons
+  }
+
+  /* Walk through the each model to get variables that are defined in other models */
+  object collectConnectedVars {
+    def collectProg(p: Prog): Map[ClassName, Set[Var]] = {
+      p match {
+        case Prog(defs) => defs.foldLeft(Map[ClassName, Set[Var]]())((r, x) =>
+          mapClassDef(x, r))
+      }
+    }
+    def mapClassDef(d: ClassDef, map: Map[ClassName, Set[Var]]): Map[ClassName, Set[Var]] = d match {
+      case ClassDef(name, fields, priv, body) =>
+        val fieldToClassName =
+          priv.foldLeft(Map[Name, ClassName]())((r, x) => x match {
+            case Init(v, NewRhs(Var(n), _)) => r + ((v, ClassName(n.x)))
+            case _                          => r
+          })
+        body.foldLeft(map) {
+          case (r, x) =>
+            val pairs = mapAction(x)._1.map { case Dot(Var(n), v) => 
+             if (fieldToClassName contains n) 
+              Some((fieldToClassName(n), Var(v)))
+             else None}
+            val disvars = mapAction(x)._2
+            val newr =
+              if (r.contains(name))
+                r.updated(name, r(name) ++ disvars.toSet)
+              else
+                r + ((name, disvars.toSet))
+            pairs.foldLeft(newr) {
+              case (nm, Some((cn, v))) =>
+                if (nm.contains(cn))
+                  nm.updated(cn, nm(cn) + v)
+                else
+                  nm + ((cn, Set(v)))
+              case (nm, None) => nm
+            }
+        }
+    }
+
+    def mapListAction(as: List[Action]): (List[Dot], List[Var]) =
+      as.foldLeft((List[Dot](), List[Var]()))((r, x) =>
+        (mapAction(x)._1 ::: r._1,
+          mapAction(x)._2 ::: r._2))
+    def mapAction(a: Action): (List[Dot], List[Var]) = a match {
+      case Continuously(Equation(Dot(Var(n), e), rhs)) => (Dot(Var(n), e) :: Nil, Nil)
+      case Discretely(Assign(Var(n), _))               => (Nil, Var(n) :: Nil)
+      case IfThenElse(_, tb, eb)                       => mapListAction(tb ::: eb)
+      case Switch(_, cs) =>
+        cs.foldLeft((List[Dot](), List[Var]()))((r, x) =>
+          (mapListAction(x.rhs)._1 ::: r._1,
+            mapListAction(x.rhs)._2 ::: r._2))
+      case _ => (Nil, Nil)
+    }
+  }
   // Pick the equations from input actions, for which GE will transform them into explicit ODE form
   def gaussianElimination(actions: List[Action], directedVars: List[Var], hashMap: Map[Expr, Expr]): (List[Action], List[Action]) = {
     val initDAEs = (List[Action](), List[Var](), List[Assign]())
@@ -698,6 +814,12 @@ object BindingTimeAnalysis {
       !(vars.exists(y => (y.name.x == x.name.x && y.name.primes > x.name.primes))))
     val (odes, hashEqs) = GE.run(simplicitOdes, trueVars, hashMap)
     (remainActions ::: explicitOdes ::: odes.map(x => Continuously(x)) ::: disODEs,hashEqs)
-
   }
+  // If x' is defined in the initially section, x is regarded as directed
+  def filterDirectedVariables(inits:List[Init]):List[Var] = {
+    inits.foldLeft(Set[Var]()){(r,x) => x match{
+      case Init(Name(n,p),_) => (0 to p-1).toList.map(i => Var(Name(n,i))).toSet ++ r
+    }}.toList
+  }
+
 }

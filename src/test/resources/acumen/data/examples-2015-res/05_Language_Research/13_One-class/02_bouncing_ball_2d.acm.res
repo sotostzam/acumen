@@ -1,6 +1,6 @@
 #0 {
   className = Main,
-  m = 1.000000,
+  m = 1,
   mode = "Fly",
   simulator = #0.0,
   type = Main,
@@ -15,7 +15,7 @@
 ------------------------------0
 #0 {
   className = Main,
-  m = 1.000000,
+  m = 1,
   mode = "Fly",
   simulator = #0.0,
   type = Main,
@@ -30,7 +30,7 @@
 ------------------------------2
 #0 {
   className = Main,
-  m = 1.000000,
+  m = 1,
   mode = "Fly",
   simulator = #0.0,
   type = Main,
@@ -45,7 +45,7 @@
 ------------------------------171
 #0 {
   className = Main,
-  m = 1.000000,
+  m = 1,
   mode = "Fly",
   simulator = #0.0,
   type = Main,

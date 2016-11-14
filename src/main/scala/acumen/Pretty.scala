@@ -9,6 +9,7 @@ import com.sun.corba.se.impl.corba.CORBAObjectImpl
 import acumen.Errors.{FromJSONError, ShouldNeverHappen}
 import scala.util.parsing.input.{Positional,Position,NoPosition}
 import interpreters.enclosure2015.Common._
+import util.Canonical._
 
 class Pretty {
 
@@ -239,6 +240,7 @@ class Pretty {
                                      " in " :: pretty(c) :: " if " :: pretty(t)
         case TypeOf(cn)         => "type" :: parens(pretty(cn))
         case ExprInterval(lo,hi) => brackets(pretty(lo) :: " .. " :: pretty(hi))
+        case Lambda(vs,f)        => parens(sepBy(comma :: " ", vs map pretty[Expr])) :: "->" :: pretty(f)
         case ExprIntervalM(m,r)  => parens(pretty(m) :: "+/-" :: pretty(r))
         case Pattern(l) => l match{
           case n :: Nil => pretty(n)
@@ -306,7 +308,14 @@ class Pretty {
     } else {
       sorted
     }
-    val it = filtered.map { case (x,v) => pretty(x) :: " = " :: pretty(v) }
+    // No hash variables keep in .res file
+    val it = filtered.foldLeft(List[Document]()) {
+      case (r, (x, v)) =>
+        if (!isHashVariable(x))
+          (pretty(x) :: " = " :: pretty(v)) :: r
+        else
+          r
+    }.reverse
     breakWith(comma, it)
   }
   

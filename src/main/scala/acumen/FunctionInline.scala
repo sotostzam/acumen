@@ -21,7 +21,7 @@ class FunctionInline (functions:List[Function]) extends util.ASTMap {
         Op(name,args)
     }
     case Lit(v) => Lit(v)
-    case Var(v) => sub.getOrElse(Var(v), Var(v))
+    case Var(v) => sub.getOrElse(Var(v), e)
     case Dot(a,b) => Dot(mapExprWithSub(a)(sub),b)
     case Quest(a,b) => Quest(mapExprWithSub(a)(sub), b)
     case ResolvedDot(id, obj, field) => ResolvedDot(id,mapExprWithSub(obj)(sub),field)
@@ -31,10 +31,10 @@ class FunctionInline (functions:List[Function]) extends util.ASTMap {
     case Sum(s, i, col, cond) => Sum(mapExprWithSub(s)(sub), i, mapExprWithSub(col)(sub), mapExprWithSub(cond)(sub))
     case TypeOf(v) => TypeOf(v)
     case ExprInterval(lo, hi) => ExprInterval(mapExprWithSub(lo)(sub), mapExprWithSub(hi)(sub))
-    case ExprLet(bindings, e2) => ExprLet(bindings.map{case (n,e) => (n,mapExprWithSub(e)(sub))},
-                                          mapExprWithSub(e2)(sub))
-    case Pattern(ps) => Pattern(ps.map{mapExprWithSub(_)(sub)})
+    case ExprLet(bindings, e2) => ExprLet(bindings.map { case (n, e) => (n, mapExprWithSub(e)(sub)) },
+      mapExprWithSub(e2)(sub))
+    case Pattern(ps)   => Pattern(ps.map { mapExprWithSub(_)(sub) })
+    case Lambda(vs, f) => Lambda(vs, mapExprWithSub(f)(sub))
     case _ => e
-
   }).setPos(e.pos)
 }

@@ -403,7 +403,10 @@ object SD {
                                  op("^", List(op("-",List(literal(1),op("^",List(arg,literal(2))))), literal(Rational(1,2))))))
                 case "exp" => op("exp", List(arg))
                 case "log" => op("/", List(literal(1), arg))
-               
+                case "sqrt" => op("*",
+                  List(
+                    literal(0.5),
+                    op("^", List(arg, literal(-0.5)))))
               },
               difarg))
         else
@@ -429,10 +432,10 @@ object SD {
                       List(dtl, r)),
                     op("*",
                       List(l, dtr)))),
-                op("*", List(r, literal(2)))))
+                op("^", List(r, literal(2)))))
           case "^" =>
             r match {
-              case Lit(GRational(m)) if m.isWhole =>
+              case Lit(GRational(m)) =>
                 op("*",
                   List(
                     literal(m),

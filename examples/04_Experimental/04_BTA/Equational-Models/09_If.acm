@@ -7,7 +7,7 @@ model Main(simulator) =
     x = 1,
    if t > 4 then
        z = 2, 
-       y = z 
+       y' = z 
    else
        y' = z
      
