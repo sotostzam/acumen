@@ -67,6 +67,11 @@ package acumen {
   case class ParaRhs(ex: Expr, nm: Name, fields: List[Expr]) extends InitRhs
   /* Example: 1+2 */
   case class ExprRhs(e: Expr) extends InitRhs
+  
+  /* Function declaration using static inline
+   * Example: function f(x,y) = x + y */
+  case class Function(val name: String, 
+                      val paras:List[Name], val body:Expr) extends Positional
 
   sealed abstract class Action extends Positional
   /* Example: if 1<2 x = 1 else x = 2 end */

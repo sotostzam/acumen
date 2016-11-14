@@ -300,8 +300,8 @@ object Common {
     val result = 
       for ((row,col) <- au zip av)
         yield op match{
-        case "+" =>  row zip col map Function.tupled(_+_) 
-        case "-" =>  row zip col map Function.tupled(_-_) 
+        case "+" =>  row zip col map scala.Function.tupled(_+_) 
+        case "-" =>  row zip col map scala.Function.tupled(_-_) 
       }    
    val ls = result.map(x => x.toList).toList
     if(ls.length > 1)

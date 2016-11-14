@@ -60,8 +60,10 @@ abstract class SemanticsImpl[+I <: Interpreter] extends SemanticsSel
       else None
     }
 
-    val (incl, defs) = Parser.run(Parser.fullProg, s, file)
-    defs.foreach{case defn@ClassDef(cn,_,_,_) => 
+    val (incl,functions, defs) = Parser.run(Parser.fullProg, s, file)
+    val functionInlineMap = new FunctionInline(functions)
+    val inlinedDefs = defs map functionInlineMap.mapClassDef
+    inlinedDefs.foreach{case defn@ClassDef(cn,_,_,_) => 
       if (seen.contains(cn)) {
         val err = ClassIncludedTwice(cn, defn.pos :: includedFrom, seen(cn))
         if (includedFrom.nonEmpty) err.setPos(includedFrom.head)
@@ -79,7 +81,7 @@ abstract class SemanticsImpl[+I <: Interpreter] extends SemanticsSel
         else dir
       val in = new InputStreamReader(new FileInputStream(new File(inclDir,fn)))
       parseHelper(in, inclDir, Some(fn), incl.pos :: includedFrom, seen)
-    } ++ defs
+    } ++ inlinedDefs
   }
 
   def applyPasses(p: Prog, extraPasses: Seq[String]) : Prog =

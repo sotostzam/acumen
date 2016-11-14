@@ -150,7 +150,7 @@ object Parser extends MyStdTokenParsers {
     List("foreach", "end", "if", "else","elseif", "create", "move", "in", "terminate", "model","then","initially","always",
          "sum", "true", "false", "init", "match","with", "case", "claim", "hypothesis", "let","noelse", "typeOf",
          "Initial", "Continuous", "Discrete", "FixedPoint", "none","cross","do","dot","for","_3D","zeros","ones", "_plot",
-         "splitby", "central", "normald", "uniformd", "betad")
+         "splitby", "central", "normald", "uniformd", "betad", "function")
 
   /* token conversion */
 
@@ -232,11 +232,16 @@ object Parser extends MyStdTokenParsers {
 
   def getSemantics = opt(semantics) <~ rep(acceptIf( _ => true)(_ => ""))
   
-  def fullProg = opt(semantics) ~> rep(include) ~ rep(classDef) ^^ { case incl ~ defs => (incl, defs) }
+  def fullProg = opt(semantics) ~> rep(include) ~ rep(function) ~ rep(classDef) ^^
+    { case incl ~ funcs ~ defs => (incl, funcs, defs) }
 
   def semantics = positioned("#semantics" ~! stringLit ^^ { case _ ~ str => SemanticsSpec(str) })
 
   def include = positioned("#include" ~! stringLit ^^ { case _ ~ str => Include(str) })
+
+  def function = positioned("function" ~ ident ~ args(name) ~ "=" ~ expr ^^ {
+    case _ ~ f ~ args ~ _ ~ body => Function(f, args, body)
+  })
 
   def classInit = "model" ~ className ~ args(name) ~ "="  ~ inits 
   def classDef = positioned(
