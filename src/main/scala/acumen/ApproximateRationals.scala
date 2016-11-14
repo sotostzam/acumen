@@ -11,7 +11,7 @@ import interpreters.enclosure.Interval
  *  InterpreterType. */
 object ApproximateRationals {
   
-  private def mkApproximationMap(p: Prog, interpreterType: InterpreterType) : util.ASTMap =
+  def mkApproximationMap(p: Prog, interpreterType: InterpreterType) : util.ASTMap =
     new util.ASTMap {
       override def mapExpr(e: Expr): Expr = e match {
         case Lit(GRational(d)) => 
@@ -39,6 +39,9 @@ object ApproximateRationals {
   
   def run(p: Prog, interpreterType: InterpreterType) : Prog =
     mkApproximationMap(p,interpreterType).mapProg(p)
+  
+  def run(e: Expr, interpreterType: InterpreterType) : Expr =
+    mkApproximationMap(Prog(Nil),interpreterType).mapExpr(e)
     
   def run(s: CStore, interpreterType: InterpreterType): CStore =
     s.map {
@@ -58,7 +61,6 @@ object ApproximateRationals {
   private def approximate(r: spire.math.Rational, interpreterType: InterpreterType): GroundValue =
     interpreterType match {
       case TraditionalInterpreterType => if (r.isWhole) GInt(r.toInt) else GDouble(r.toDouble)
-      case _: RigorousInterpreterType => GInterval(Interval(r))
+      case _: RigorousInterpreterType => GConstantRealEnclosure(Interval(r))
     }
-    
 }

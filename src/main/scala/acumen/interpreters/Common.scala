@@ -648,7 +648,8 @@ object Common {
 
   /** special field for 3D view and _plot */
   def specialField(name: String) =
-    name == "_3D" || name == "_3DView" || name == "_plot"
+    name == "_3D" || name == "_3DView" || name == "_plot" || isHashVariable(name)
+
       
   def patternVariable(name:String) = 
     name.split("__")(0) == "Pattern"

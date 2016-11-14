@@ -409,7 +409,7 @@ class CStoreModel(ops: CStoreOpts) extends InterpreterModel {
         case (sts: EnclosureResultCollector, _) => throw ShouldNeverHappen()
         case (sts:GenericResultCollector, _) => sts += v
       }
-    if(name.x.split("__")(0) == "pattern"  || name.x.contains(hashVariable)) ()
+    if (name.x.split("__")(0) == "pattern" || isHashVariable(name)) ()
     else insertValue(value, None)
 
     def insertValue(addedValue: GValue, vectorIdx: Option[(Int,Option[Int])]): Unit = {

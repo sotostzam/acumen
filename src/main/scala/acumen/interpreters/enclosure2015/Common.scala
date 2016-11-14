@@ -325,10 +325,10 @@ object Common {
     def setObject(id:CId, o:CObject): Enclosure = initialize(cStore updated (id,o))
     def setObjectField(id:CId, f:Name, v:CValue) : Enclosure = {
       val obj = apply(id)
-      if (f != _3D && f != _3DView && f != devicef && f != _plot && id != simulatorId)
+      if (f != _3D && f != _3DView && f != devicef && f != _plot && id != simulatorId && !isHashVariable(f))
         obj.get(f) map { oldVal =>
           if (oldVal.yieldsPlots != v.yieldsPlots)
-            throw new UnsupportedTypeChangeError(f, id, classOf(obj), oldVal, v, 
+            throw new UnsupportedTypeChangeError(f, id, classOf(obj), oldVal, v,
               "These values require a different number of plots")
         }
       setObject(id, setField(obj,f,v))

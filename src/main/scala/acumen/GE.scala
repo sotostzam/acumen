@@ -4,13 +4,16 @@ import Array._
 import util.Names.name
 import Pretty._
 import acumen.interpreters.Common._
-import acumen.Constants._
 import Specialization._
 import Simplifier._
 import Error._
+import Constants._
 import interpreters.Common.printMatrix
 import scala.collection.immutable.Vector
 import spire.math.Rational
+import scala.collection.mutable.MutableList
+import acumen.interpreters.enclosure.Interval
+import acumen.interpreters.enclosure2015.Common.EStore
 
 /** Gaussian elimination */
 object GE {
@@ -28,9 +31,15 @@ object GE {
       val temp = M(i)
       CMatrix(M.updated(i, M(j)).updated(j, temp))
     }
+    
+    def hashMatrix( ): CMatrix = {
+      CMatrix(M.map(v => v map hashExpr))
+    }
+    
     def length = M.length
   }
   type Matrix = Vector[Vector[Expr]]
+  
   def init(es: List[Equation], q: List[Var]) = {
     equationsToMatrix(es, q)
   }
@@ -53,7 +62,7 @@ object GE {
     val N = es.length
     if (N != q.length)
       throw Errors.GEVarsNotEqualToEquations(es, q)
-    // Initialize zero coefficient matrix and rhs array
+    // Initialize RationalZeroLit coefficient matrix and rhs array
     val B: Vector[Expr] = fill[Expr](N)(RationalZeroLit).toVector
     val M: CMatrix = CMatrix(fill[Vector[Expr]](N)(B).toVector)
     // Update coefficient
@@ -80,7 +89,7 @@ object GE {
    * @param hashMap input environment with known var -> expr pair
    * @return Directed ODEs
    *  */
-  def run(es: List[Equation], q: List[Var], hashMap: Map[Expr, Expr]): List[Equation] = {
+  def run(es: List[Equation], q: List[Var], hashMap: Map[Expr, Expr]): (List[Equation],List[Action]) = {
     def findVars(e: Expr): List[Var] = Specialization.findVars(e, hashMap)(Nil)
     def hasTrueVariable(e: Expr) = (findVars(e).toSet intersect q.toSet).size > 0
     // Break an expression into a list of basic terms, which are either constant or constant * variable
@@ -187,7 +196,6 @@ object GE {
     }
     /* Divide an expr into a list of variable terms and a constant */
     def normalizeExpr(e: Expr, q: List[Var]): (Option[List[Expr]], Expr) = {
-      //implicit val exceptList = (List.empty)
       val terms = breakExpr(e, q)
       // Find all the constants terms
       val constants = terms.filter(x => findVars(x).length == 0)
@@ -239,60 +247,66 @@ object GE {
     }
     // Main algorithm
     def run (initialM : CMatrix, initialB: Vector[Expr]): (CMatrix,Vector[Expr]) = {
+      val varsInCoefs = q.map(x => x.name match{
+        case Name(f,p) => (for(i <- 0 until p) yield Var(Name(f,i))).toList
+      }).flatten
+      val interpreter = new IntervalEval(varsInCoefs)
+      val lifter = ApproximateRationals.mkApproximationMap(Prog(Nil), Enclosure2015InterpreterType)
       val N = initialM.length
-      // Outer loop
       (0 until N).foldLeft((initialM,initialB)){case ((outerM,outerB),p) =>
         // Find pivot row and swap
-        val pivot = (p+1 until N).foldLeft(p){case (max,pivoti) => 
-          if ((outerM(pivoti)(p).isInstanceOf[Lit] && !isZero(outerM(pivoti)(p)) ) || isZero(outerM(max)(p)))
+        val pivot = (p+1 until N).foldLeft(p){case (max,pivoti) =>
+          val range = interpreter.eval(lifter.mapExpr(outerM(pivoti)(p))) 
+          if ((outerM(pivoti)(p).isInstanceOf[Lit] && !isRationalZeroLit(outerM(pivoti)(p))) || 
+              !range.contains(0))
             pivoti
           else
             max  
             }
+          val pivotRange = interpreter.eval(lifter.mapExpr(outerM(pivot)(p)))
           val swapedM = outerM.swap(p, pivot)
           val swapedB = swap(outerB,p,pivot)
           // Check singularity here
-          if (isZero(swapedM(p)(p))) {
+          if (isRationalZeroLit(swapedM(p)(p))) {
             sys.error("Matrix is singular can't be solved")
           }
           // Normalization
-          val NB = swapedB.updated(p, mkOp("/", swapedB(p), swapedM(p)(p)))
-          val NM = swapedM.updated(p, normalize(swapedM(p)(p), swapedM(p)))
+          val NB = swapedB
+          val NM = swapedM
           // Normalize every elements 
-          val IMB = (p+1 until N).foldLeft((NM,NB)){case ((innerM,innerB),i) =>
-            val alpha = mkOp("/", innerM(i)(p), innerM(p)(p))
-            val IB = innerB.updated(i, mkOp("-", innerB(i), mkOp("*", alpha, innerB(p))))
-            val Mupdated = (p until N).foldLeft(innerM){case (r,j) =>
-              if (j == p)
-                r.updated(i, j, RationalZeroLit)
-              else
-               r.updated(i, j, mkOp("-", r(i)(j), mkOp("*", alpha, r(p)(j))))
-              }
-            
-            (Mupdated,IB)
+          val IMB = (p+1 until N).foldLeft((NM,NB)){case ((innerM,innerB),i) =>  
+            val IB = innerB.updated(i, mkOp("-", mkOp("*", innerM(p)(p), innerB(i)), mkOp("*", innerM(i)(p), innerB(p))))
+            val Mupdated = (p+1 until N).foldLeft(innerM){case (r,j) =>
+            r.updated(i, j, mkOp("-", mkOp("*", r(p)(p), r(i)(j)), mkOp("*", r(i)(p), r(p)(j))))
+            }
+            val mkRationalZeroLit = Mupdated.updated(i,p, RationalZeroLit)
+            (mkRationalZeroLit,IB)
           }
          IMB
       }      
     }
-    
-    val ses = es.map(e =>
+     val ses = es.map(e =>
       vectorEquations(e.lhs, e.rhs)).flatten.map(normalizeEquation(_, q))
     // coefficent matrix and rhs column
     val MBInit = equationsToMatrix(ses, q)
-    val MB = run(MBInit._1,MBInit._2)
-    val M = MB._1; val B = MB._2
+    val MB = run(MBInit._1, MBInit._2)
+    val M = MB._1; val B = MB._2 
     val N = M.length
     // Back substitution
     val xInit = new Array[Expr](N).toVector
     val x = ( N - 1 to 0 by -1).toList.foldLeft(xInit) { case(xr,i) =>
       val newRhs = (i + 1 until N).foldLeft(RationalZeroLit: Expr)((r, j) =>
         mkOp("+", mkOp("*", M(i)(j), xr(j)), r))
-      xr.updated(i, mkOp("-", B(i), newRhs))
+      xr.updated(i, mkOp("/",mkOp("-", B(i), newRhs), M(i)(i)))  
     }
     // Output equations
     val result = (0 until N).toList.foldLeft(List[Equation]())((r, i) =>
       Equation(q(i), x(i)) :: r)
-    result.reverse
+      
+    Logger.log("Running HashConsing")
+    val hashedTuple = (hashEquations(result.reverse), hashEquation.toList)
+    clear()
+    hashedTuple
   }
 
   def combineConstVarTerms(varTerms: List[Expr]): Expr = {
@@ -322,11 +336,11 @@ object GE {
     case _         => 1
   }
 
-  /* A superfical way for checking zero entry
-   * Todo: What about l*sin(t), where it might becomes zero at certain time?*/
-  def isZero(e: Expr) = e match {
-    case RationalZeroLit => true
-    case _               => false
+  /* A superfical way for checking RationalZeroLit entry
+   * Todo: What about l*sin(t), where it might becomes RationalZeroLit at certain time?*/
+  def isRationalZeroLit(e: Expr) = e match {
+    case Lit(GRational(Rational.zero)) => true
+    case _                             => false
   }
 
   def mkBinOp(o: String, xs: List[Expr]) = {
@@ -350,5 +364,104 @@ object GE {
     case _ => es.drop(1).foldLeft(es(0))((r, x) =>
       mkOp("*", r, x))
   }
+  
+  // Hash Consing 
+  
+  /**
+   * Type synonyms
+   */
+  type Context = scala.collection.mutable.HashMap[Expr, (Expr, Int)]
 
+  /**
+   * The expression context. Used to store bindings of expressions to
+   * variable names, keyed by the expressions themselves.
+   */
+  var ctx = new Context()
+  val hashEquation = new MutableList[Action]()
+  val counter = 0
+  val maxHashEquation = 2000
+
+  /**
+   * Memoization funciton, used for hash-consing of subexpressions.
+   * This function is called by the smart constructors and helps to
+   * avoid that duplicates of subexpressions are stored in memory.
+   * The resulting structure of references on the heap can be used
+   * to build a reduced expression using a series of let-statements
+   * corresponding to the hash-consed subexpressions.
+   */
+  def mem(e: Expr): Expr ={
+    ctx.get(e) match {
+      /* If the expression already exists in the context, return the 
+       * cached reference.
+       */
+      case Some(ec) => 
+        if (ec._2 < counter){
+          ctx.update(e,(e,ec._2 + 1)) 
+          e
+        }
+        else if (ec._2 == counter && hashEquation.size < maxHashEquation) {
+          val newVar = GenSym.gensym(e :: Nil)
+          val eq = Continuously(Equation(newVar, e))
+          ctx.update(e, (newVar,ec._2 + 1)) 
+          hashEquation += eq
+          newVar
+        }
+        else
+          ec._1
+          
+      /* Otherwise save a reference to the expression e in the context 
+       * ctx along with a unique variable name x_i, where i is the 
+       * index of the expression in the context.
+       */
+      case _ => {
+       if (hashEquation.size < maxHashEquation) 
+        ctx += (e -> (e,0)) 
+       e
+     }
+    }
+  }
+  
+  def hashExpr(e: Expr): Expr = e match{
+    case Op(n,es) => 
+      val hes = es map hashExpr
+      mem(Op(n,hes))
+    case _ => e
+  }
+  
+  def hashEquations(eqs: List[Equation]): List[Equation] = {
+   val result = eqs.map(e => Equation(e.lhs, hashExpr(e.rhs)))
+   result
+  }
+  
+  def clear() = { ctx.clear(); hashEquation.clear();GenSym.clear()}
+ 
+  
+ /* Abstract Interpretation, used for determining if an arbitrary expression
+  * can be used for division.  By calculating the range of that expression
+  * via interval arithmetics.
+  * */
+  
+  // Infinity value for any variable
+  val reals = VLit(GConstantRealEnclosure(Interval(Double.NegativeInfinity, Double.PositiveInfinity)))
+  //val reals = VLit(GConstantRealEnclosure(Interval(0, 100)))
+  
+  // Construct a store, where every variable is mapped to infinity
+  case object GEStore extends EStore{
+    def getObjectField(id:CId, f:Name) = reals
+    def cStore = Map[CId, CObject]()
+    def childrenOf(id: CId) = Nil
+  }
+  
+  case class IntervalEval(q: List[Var]){
+    val i = new interpreters.enclosure2015.Interpreter(false)
+    val m = q.map(x => (x.name, reals)).toMap
+    val env = interpreters.Common.Env(m)
+    def eval(e: Expr) = {
+      println(pprint(e))
+      i.evalExpr(e, env, GEStore) match {
+        case VLit(GConstantRealEnclosure(i)) => i
+      }
+    }
+  }
 }
+

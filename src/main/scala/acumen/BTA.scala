@@ -640,7 +640,7 @@ object BindingTimeAnalysis {
   }
 
   // Pick the equations from input actions, for which GE will transform them into explicit ODE form
-  def gaussianElimination(actions: List[Action], directedVars: List[Var], hashMap: Map[Expr, Expr]): List[Action] = {
+  def gaussianElimination(actions: List[Action], directedVars: List[Var], hashMap: Map[Expr, Expr]): (List[Action], List[Action]) = {
     val initDAEs = (List[Action](), List[Var](), List[Assign]())
     val (equations, disDirected, disDAEs) = actions.foldLeft(initDAEs)((r, a) => a match {
       case Continuously(e) => (a :: r._1, r._2, r._3)
@@ -666,9 +666,9 @@ object BindingTimeAnalysis {
         case 0 => List(x)
         case n => (for (i <- 0 to n) yield Var(Name(x.name.x, i))).toList
       }).flatten
-       gaussianElimination(discons, nonvariables ::: disDirectedFiltered, hashMap).map(x =>
-        x.asInstanceOf[Continuously].a match {
-          case Equation(lhs, rhs) => Discretely(Assign(lhs, rhs))
+        gaussianElimination(discons, nonvariables ::: disDirectedFiltered, hashMap)._1.map(x =>
+          x.asInstanceOf[Continuously].a match {
+            case Equation(lhs, rhs) => Discretely(Assign(lhs, rhs))
         })
     }
     val remainActions = actions.diff(equations ::: disDAEs.map(x => Discretely(x)))
@@ -692,7 +692,8 @@ object BindingTimeAnalysis {
     // Only the highest order variables are variables to be solved, get rid of the lower order ones
     val trueVars = vars.filter(x => !directedVars.contains(x) &&
       !(vars.exists(y => (y.name.x == x.name.x && y.name.primes > x.name.primes))))
-    val odes = GE.run(simplicitOdes, trueVars, hashMap).map(x => Continuously(x))
-    remainActions ::: explicitOdes ::: odes ::: disODEs
+    val (odes, hashEqs) = GE.run(simplicitOdes, trueVars, hashMap)
+    (remainActions ::: explicitOdes ::: odes.map(x => Continuously(x)) ::: disODEs,hashEqs)
+
   }
 }

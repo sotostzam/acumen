@@ -32,10 +32,15 @@ object Specialization {
     def get(e: Expr) = if (env.contains(e)) env(e) else e
     // Main pattern match
     aexpr match {
-      case ALit(gv, l)        => ((Lit(gv)).setPos(aexpr.pos), Nil)
-      case AVar(name, l)      => (subs(Var(name)).setPos(aexpr.pos), Nil)
-      case ATypeOf(cn, l)     => (TypeOf(cn).setPos(aexpr.pos), Nil)
-      case ADot(aer, name, l) => (Dot(aer.expr.setPos(aer.pos), name).setPos(aexpr.pos), Nil)
+      case ALit(gv, l) => ((Lit(gv)).setPos(aexpr.pos), Nil)
+      case AVar(name, l) =>
+        val sn = get(subs(Var(name))) match {
+          case Lit(sg) => Lit(sg)
+          case nonLit  => nonLit
+        }
+        (sn.setPos(aexpr.pos), Nil)
+      case ATypeOf(cn, l)       => (TypeOf(cn).setPos(aexpr.pos), Nil)
+      case ADot(aer, name, l)   => (Dot(aer.expr.setPos(aer.pos), name).setPos(aexpr.pos), Nil)
       case AQuest(aer, name, l) => (Quest(aer.expr, name).setPos(aexpr.pos), Nil)
       case AExprVector(es, l) => specializeEs(es) match {
         case (aes, aas) => (ExprVector(aes).setPos(aexpr.pos), aas)
@@ -155,10 +160,6 @@ object Specialization {
                     case _ => mkOp(f.x, es:_*).setPos(aexpr.pos)
                   }
                   (symbolicEval, newEquation)
-//                  evalOp(f.x, ls) match {
-//                    case VLit(gv)   => (Lit(gv), newEquation)
-//                    case VVector(l) => (ExprVector(l.asInstanceOf[List[VLit]] map (x => Lit(x.gv))), newEquation)
-//                  }
               // Symbolic vector-vector operator evaluation
               case _ => (f.x, es.map(x => inline(x, newenv))) match {
                 case (op, ExprVector(ls) :: Nil) => (symUnaryVectorOp(op, ExprVector(ls)), newEquation)
@@ -317,9 +318,8 @@ object Specialization {
     // Calling GE to directed all undirected equations
     val bindings = convertEqsEnv(neweqsGE ::: neweqsAfterOde ::: neweqsoutIf)
     val inlinedIndirectedEqs = (specializedIndirecedEquations ::: Iodes)
-    val result = BindingTimeAnalysis.gaussianElimination(inlinedIndirectedEqs, dvars ::: directedVars, bindings) ::: Ifs ::: odeeqs ::: neweqsGE.distinct
-    (result.reverse ::: (neweqsAfterOde ::: neweqsGE ::: neweqsoutIf).distinct, envAfterOde, (neweqsAfterOde ::: neweqsGE ::: neweqsinIf ::: neweqsoutIf).distinct)
-
+    val (geEqs, hashGE) = BindingTimeAnalysis.gaussianElimination(inlinedIndirectedEqs, dvars ::: directedVars, bindings) 
+    ((geEqs:::hashGE::: Ifs ::: odeeqs ::: neweqsGE.distinct).reverse ::: (neweqsAfterOde ::: neweqsGE ::: neweqsoutIf).distinct, envAfterOde, (neweqsAfterOde ::: neweqsGE ::: neweqsinIf ::: neweqsoutIf:::hashGE).distinct)
   }
 
   // Graph structure for topological sorting
