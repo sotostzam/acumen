@@ -1,0 +1,48 @@
+ model Main(simulator) = 
+  initially q = zeros(6),m = 1, g = 0,l=0, T=0,V=0,L=0,
+          t1 = 1.5*pi, t1' = 0, t1'' = 0,
+          t2 = pi, t2' = 0, t2'' = 0,
+          t3 = pi/2, t3' = 0, t3'' = 0,
+          t4 = pi/3, t4' = 0, t4'' = 0,
+          t5 = pi/4, t5' = 0, t5'' = 0,
+          t6 = 0, t6' = 0, t6'' = 0,
+          // Auxiliary variables
+          x1 = 0, y1 = 0,
+          x2 = 0, y2 = 0, 
+          x3 = 0, y3 = 0,
+          x4 = 0, y4 = 0,
+          x5 = 0, y5 = 0,
+          x6 = 0, y6 = 0,
+          x7 = 0, y7 = 0,
+          E = 0,  c = black,
+          _3D = ()
+  always
+    q = (t1,t2,t3,t5,t4,t6),
+    g = 9.8, l = 0.8, m = 1,
+    simulator.endTime += 10,
+    simulator.timeStep += 0.01,
+    x1 = l * sin(t1),      y1 = 1-l*cos(t1),
+    x2 = x1 + l*sin(t2),   y2 = y1 - l*cos(t2),
+    x3 = x2 + l*sin(t3),   y3 = y2 - l*cos(t3),
+    x4 = x3 + l*sin(t4),   y4 = y3 - l*cos(t4),
+    x5 = x4 + l*sin(t5),   y5 = y4 - l*cos(t5),
+    x6 = x5 + l*sin(t6),   y6 = y5 - l*cos(t6),
+    E = T + V,  
+    T = 1/2 *m* ((x1)' ^2 + (y1)' ^2 + (x2)' ^2 + (y2)' ^2 + (x3)' ^2 + (y3)' ^2 + (x4)' ^2 + (y4)' ^2+ (x5)' ^2 + (y5)' ^2+ (x6)'^2 + (y6)'^2),//+ (x7)' ^2 + (y7)' ^2),
+    V = m*g*(y1 + y2 + y3 + y4+y5+y6),
+    L = T - V,
+    foreach i in 0 : (length(q) -1) do  
+     L'[(q(i))']' - L'[q(i)] = 0,
+    _3D=(Sphere   radius = 0.04 center = (x1,0,y1) color = green
+          Sphere   radius = 0.04 center = (x2,0,y2) color = green
+          Sphere   radius = 0.04 center = (x3,0,y3) color = green
+          Sphere   radius = 0.04 center = (x4,0,y4) color = green
+          Sphere   radius = 0.04 center = (x5,0,y5) color = green
+          Sphere   radius = 0.04 center = (x6,0,y6) color = green
+          Cylinder radius = 0.01 length = l center = (x1/2,0,0.5+y1/2)    rotation = (-pi/2,-t1,0) color = c
+          Cylinder radius = 0.01 length = l center = (x1 + 0.5*l*sin(t2), 0,y1-0.5*l*cos(t2)) rotation = (-pi/2,-t2,0) color = c
+          Cylinder radius = 0.01 length = l center = (x2 + 0.5*l*sin(t3), 0,y2-0.5*l*cos(t3)) rotation = (-pi/2,-t3,0) color = c
+          Cylinder radius = 0.01 length = l center = (x3 + 0.5*l*sin(t4), 0,y3-0.5*l*cos(t4)) rotation = (-pi/2,-t4,0) color = c
+          Cylinder radius = 0.01 length = l center = (x4 + 0.5*l*sin(t5), 0,y4-0.5*l*cos(t5)) rotation = (-pi/2,-t5,0) color = c
+          Cylinder radius = 0.01 length = l center = (x5 + 0.5*l*sin(t6), 0,y5-0.5*l*cos(t6)) rotation = (-pi/2,-t6,0) color = c)
+  

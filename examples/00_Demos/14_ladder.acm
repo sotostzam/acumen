@@ -1,0 +1,75 @@
+// Ladder shape surface function
+function surface(x,y) = sin(2*x + sin(x/2))-(x) + y*sin(0.5*y)
+// Normal vector function
+function normal(z,x,y) = (-z'[x],-z'[y],1)/norm(((-z'[x],-z'[y],1)))
+
+model Main(simulator) =
+ initially
+  mode = "init",b = create Ball(0,0,8),
+  _3DView = (),_plot = (), c = (0,0,8), c' = zeros(3),
+  d = 0, d' = 0,
+  _3D = (Surface (x,y) ->(x,y,surface(x,y)) foreach x = [-3 .. 40] y = [-1 .. 1]
+       color = 0.9*blue + 0.5*white  resolution = 0.2    )
+ always
+ simulator.timeStep += 0.005,
+ simulator.endTime += 20,
+ c' = 8*((b.x,b.y,b.z) - c),
+ d' = 0.05*norm((b.x',b.y',b.z')) - d,
+ _3DView = (c + (5,-5,2.5)*(0.8+d), c)
+ 
+model Ball(x0,y0,z0)=
+initially
+ x = x0, x' =0,   x''=0,
+ y = y0, y' =0,   y''=0,
+ z = z0, z' =0,   z''=0,
+ h = 0,  r = 0.2, // Radius of the ball 
+ m = 1,  g = 9.81,c = 0, // Resititution coefficient
+ q = zeros(3),   // Postion 
+ T = 0, U = 0, L = 0,  
+ direction = 0, _3D = (),
+ vReset = zeros(3), 
+ tangentV = zeros(3), 
+ mode = "fly", color = red,
+ normalVector = zeros(3),distance = 10,
+ contactPoint = zeros(3),visualPoint = zeros(3)
+always
+ m = 1, g = 9.81, c = 0.1, 
+ r = 0.2,q = (x,y,z),
+ h = surface(x,y), // Ladder shpae surface
+ normalVector = normal(surface(x,y),x,y),  // Normal vector of surface
+ distance = (0,0,z - h) dot normalVector,
+ direction = (x',y',z') dot normalVector,
+ contactPoint = (x,y,z) - r*normalVector,
+ // Velocity reset map after bouncing
+ vReset = let nc = direction * normalVector in 
+             -c*nc + ( (x',y',z') - nc),
+ // Velocity along tangent lane of surface
+ tangentV= let nc = direction * normalVector in 
+             ( (x',y',z') - nc),
+ match mode with [
+ "slide" ->
+   color = yellow, 
+   T = 0.5*(x'^2 + y'^2 + (h)'^2),
+   U = 9.8*(h), L = T - U,
+   z'' = (h)'', // Holonomic constraint: z = h
+   foreach i in 0 : (length(q) -2) do  
+       L'[(q(i))']' - L'[q(i)] = 0,
+   if (h)'' < - 9.8 then 
+     mode += "fly"
+   noelse | 
+ "fly" ->
+   color = red,
+   T = 0.5*m*(x'^2 + y'^2 + z'^2),
+   U = m*g*z, L = T - U,
+   foreach i in 0 : (length(q) -1) do  
+       L'[(q(i))']' - L'[q(i)] = 0 ,
+   if distance < r  && direction < 0 then
+    if direction < -0.4 then
+       x' += vReset(0), y'+= vReset(1), z' += vReset(2)
+    else // Into sliding mode
+      (x' += tangentV(0), y'+= tangentV(1), z' += tangentV(2),
+      mode + = "slide")
+   noelse
+ ],
+ _3D = (Sphere center = q  size = r color = color
+        Sphere center = contactPoint  size = 0.01 color = green)
