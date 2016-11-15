@@ -485,6 +485,7 @@ object Specialization {
     case Sum(e, i, col, cond) => List(e, col, cond).map(findVars(_, bindings)(Var(i) :: Nil)).flatten.distinct
     case ExprLet(bs, e)       => findVars(e, bindings)(bs.map(x => Var(x._1)) ::: exceptVars)
     case Dot(_, _)            => Nil
+    case _ => Nil
   }
   def findDirectedVars(a: AAction[Label]): List[Var] = {
     a match {

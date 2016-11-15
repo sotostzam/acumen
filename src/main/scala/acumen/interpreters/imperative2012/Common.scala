@@ -64,8 +64,9 @@ object Common {
         case VObjId(Some(t)) => VObjId(Some(t.id))
         case VList(vs)       => VList(vs map (convertValue(_)))
         case VVector(vs)     => VVector(vs map (convertValue(_)))
-        case VLit(l)         => VLit(l)
-        case VClassName(cn)  => VClassName(cn)
+        case VLit(GRational(n)) => if (n.isWhole) VLit(GInt(n.toInt)) else VLit(GDouble(n.toDouble))
+        case VLit(l)            => VLit(l)
+        case VClassName(cn)     => VClassName(cn)
         case VResultType(st) => VResultType(st)
       }
     def convertObject(o: Object): CObject = {

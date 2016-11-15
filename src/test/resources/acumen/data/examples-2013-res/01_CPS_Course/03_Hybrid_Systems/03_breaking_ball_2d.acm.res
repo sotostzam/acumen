@@ -2,14 +2,14 @@
 #0.0 { className = Simulator, time = 0.000000 }
 #0.1 {
   className = Ball,
-  m = 2.000000,
+  m = 2,
   mode = "Fly",
   x = 0,
   x' = 0,
   x'' = 0,
   y = 1.500000,
   y' = 0,
-  y'' = 1.000000
+  y'' = 1
 }
 ------------------------------0
 #0 { className = Main, mode = "Persist", simulator = #0.0 }

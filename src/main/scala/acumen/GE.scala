@@ -304,8 +304,6 @@ object GE {
     // Output equations
     val result = (0 until N).toList.foldLeft(List[Equation]())((r, i) =>
       Equation(q(i), x(i)) :: r)
-      
-    Logger.log("Running HashConsing")
     val hashedTuple = (hashEquations(result.reverse), hashEquation.toList)
     clear()
     hashedTuple

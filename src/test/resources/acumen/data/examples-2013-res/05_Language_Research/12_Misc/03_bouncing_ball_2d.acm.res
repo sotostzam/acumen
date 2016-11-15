@@ -2,7 +2,7 @@
 #0.0 { className = Simulator, time = 0.000000 }
 #0.1 {
   className = Ball,
-  m = 1.000000,
+  m = 1,
   mode = "Fly",
   x = 5,
   x' = 10,
@@ -16,7 +16,7 @@
 #0.0 { className = Simulator, time = 0.003000 }
 #0.1 {
   className = Ball,
-  m = 1.000000,
+  m = 1,
   mode = "Fly",
   x = 5.030000,
   x' = -10.000000,
@@ -30,7 +30,7 @@
 #0.0 { className = Simulator, time = 0.507000 }
 #0.1 {
   className = Ball,
-  m = 1.000000,
+  m = 1,
   mode = "Fly",
   x = -0.010000,
   x' = 10.000000,
@@ -44,7 +44,7 @@
 #0.0 { className = Simulator, time = 1.011000 }
 #0.1 {
   className = Ball,
-  m = 1.000000,
+  m = 1,
   mode = "Fly",
   x = 5.030000,
   x' = -10.000000,
@@ -58,7 +58,7 @@
 #0.0 { className = Simulator, time = 10.002000 }
 #0.1 {
   className = Ball,
-  m = 1.000000,
+  m = 1,
   mode = "Fly",
   x = 4.220000,
   x' = 10.000000,

@@ -50,7 +50,7 @@ class InterpreterTest extends FunSuite with ShouldMatchers {
       always
         self.x'' = -9.8
       
-      model Main(mode, simulation) = initially
+      model Main(mode) = initially
       """
 
 
@@ -95,7 +95,7 @@ class InterpreterTest extends FunSuite with ShouldMatchers {
         self.y'' = -9.8,
         self.x'' = 0
       
-      model Main(mode, simulation) = initially
+      model Main(mode) = initially
       """
 
     val storeTxt = 
