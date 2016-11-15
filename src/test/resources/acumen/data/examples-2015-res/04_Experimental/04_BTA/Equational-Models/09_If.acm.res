@@ -18,8 +18,8 @@
   t' = 1,
   type = Main,
   x = 1,
-  y = 2,
-  y' = 1,
+  y = 4.015625,
+  y' = 2,
   z = 2
 }
 #0.0 { className = Simulator, time = 4.015625 }
