@@ -146,7 +146,16 @@ object Common {
    *  to an absolute qualified name in a given object (identified by CId). */
   def resolveDot(d: Dot, env: Env, st: CStore): ResolvedDot = d match {
     case Dot(Var(on), n)          => ResolvedDot(extractId(env(on)), d, n)
-    case Dot(Dot(Var(pn), on), n) => ResolvedDot(extractId(st(extractId(env(pn)))(on)), d, n)
+    case Dot(Dot(Var(pn), on), n) => 
+      val pid = env.get(pn) match {
+        case Some(id) => extractId(id) 
+        case None => throw ShouldNeverHappen()
+      }
+      val oid = st(pid).get(on) match {
+        case Some(obj) => extractId(obj)
+        case None => throw UnsupportedFeatureError("Child field access is", "enclosure", d.pos)
+      } 
+      ResolvedDot(oid, d, n)
   }
  
   /** Purely functional unary operator evaluation at the ground values level. */
