@@ -322,6 +322,7 @@ trait Extract {
                               => Constant(Interval.pi)
     case Lit(GInt(d))         => Constant(d)
     case Lit(GDouble(d))      => Constant(d)
+    case Lit(GConstantRealEnclosure(i)) => Constant(i)
     case ExprInterval(lo, hi) => Constant(foldConstant(lo).value /\ foldConstant(hi).value)
     case ExprIntervalM(mid0, pm0) =>
       val mid = foldConstant(mid0).value

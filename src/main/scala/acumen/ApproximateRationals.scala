@@ -36,6 +36,11 @@ object ApproximateRationals {
           ClassDef(name, fields, priv.map{tradMap.mapInit(_)}, tradMap.mapActions(body))
         case _ => super.mapClassDef(d)
       }
+      override def mapDiscreteAction(a: DiscreteAction) : DiscreteAction = a match {
+        case Assign(lhs @ Dot(Dot(Var(Name(self,0)), Canonical.magicf), _), rhs) => 
+          Assign(mapExpr(lhs), mkApproximationMap(p, TraditionalInterpreterType).mapExpr(rhs))
+        case _ => super.mapDiscreteAction(a)
+      }
     } 
   
   def run(p: Prog, interpreterType: InterpreterType) : Prog =
