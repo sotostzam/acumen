@@ -31,8 +31,9 @@ object ApproximateRationals {
       } 
       override def mapClassDef(d: ClassDef) : ClassDef = d match {
         // NOTE: Simulator fields are approximated as in the traditional interpreters
-//        case ClassDef(name, fields, priv, body) if name == Canonical.cmagic =>
-//          mkApproximationMap(p, TraditionalInterpreterType).mapClassDef(d)
+        case ClassDef(name, fields, priv, body) if name == Canonical.cmagic =>
+          val tradMap = mkApproximationMap(p, TraditionalInterpreterType)
+          ClassDef(name, fields, priv.map{tradMap.mapInit(_)}, tradMap.mapActions(body))
         case _ => super.mapClassDef(d)
       }
     } 
