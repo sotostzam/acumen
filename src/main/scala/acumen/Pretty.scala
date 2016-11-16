@@ -194,6 +194,7 @@ class Pretty {
       case Claim(e) => "claim " :: pretty(e)
       case Hypothesis(Some(s),e) => "hypothesis " :: dquotes(s) :: " " :: pretty(e)
       case Hypothesis(None,e) => "hypothesis " :: pretty(e)
+      case LinearEquations(a,b,c) => "linear Equations"
     }
   
   implicit def prettyContinuousAction : PrettyAble[ContinuousAction] =

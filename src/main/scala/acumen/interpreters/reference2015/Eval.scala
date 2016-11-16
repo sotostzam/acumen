@@ -13,7 +13,7 @@ case class Changeset
   , reps: List[(CId,CId)]           = Nil /* reparentings */
   , das:  List[CollectedAction]     = Nil /* discrete assignments */
   , eqs:  List[CollectedAction]     = Nil /* continuous assignments / equations */
-  , odes: List[CollectedAction]     = Nil /* ode assignments / differential equations */
+  , odes: List[FieldEquation]       = Nil /* ode assignments / differential equations */
   , hyps: List[CollectedHypothesis] = Nil /* hypotheses */
   ) {
   def ++(that: Changeset) =
@@ -24,7 +24,14 @@ object Changeset {
 }
 
 case class CollectedCreate(da: Option[(CId, Name)], c: ClassName, parent: CId, sd: (Int, Int), ves: List[CValue])
-case class CollectedAction(o: CId, d: Index, rhs: Expr, env: Env)
+
+
+abstract class FieldEquation
+
+case class CollectedAction(o: CId, d: Index, rhs: Expr, env: Env) extends FieldEquation
+
+case class LinearEquations(a: Array[Array[Expr]], q: Array[Dot], b: Array[Expr], env: Env) extends FieldEquation
+
 case class CollectedHypothesis(o: CId, s: Option[String], h: Expr, env: Env)
 
 /** A custom state+writer monad, inpired by the state monad of scalaz. */
@@ -98,6 +105,9 @@ object Eval {
 
   def logODE(o: CId, d: Index, r: Expr, e: Env) : Eval[Unit] =
     mkEval(s => ((), Changeset(odes = List(CollectedAction(o,d,r,e))), s))
+    
+  def logUnDirectedEquations(c: LinearEquations) : Eval[Unit] =
+    mkEval(s => ((), Changeset(odes = List(c)), s))
 
   def logHypothesis(o: CId, n: Option[String], h: Expr, e: Env) : Eval[Unit] =
     mkEval(s => ((), Changeset(hyps = List(CollectedHypothesis(o,n,h,e))), s))

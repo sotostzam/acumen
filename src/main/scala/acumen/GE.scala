@@ -292,8 +292,8 @@ object GE {
       vectorEquations(e.lhs, e.rhs)).flatten.map(normalizeEquation(_, q))
     // coefficent matrix and rhs column
     val MBInit = equationsToMatrix(ses, q)
-    if (solveTillRuntime){
-      (LinearEquations(MBInit._1.M, q.toVector, MBInit._2) :: Nil, Nil)
+    if (solveTillRuntime && q.size != 0){
+      (LinearEquations(MBInit._1.M.map(r => r.toArray).toArray, q.toArray, MBInit._2.toArray) :: Nil, Nil)
     } else {
       val MB = run(MBInit._1, MBInit._2)
       val M = MB._1; val B = MB._2

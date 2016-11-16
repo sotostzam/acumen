@@ -89,7 +89,7 @@ package acumen {
   /* Example: hypothesis "x is non-negative" x > 0 */
   case class Hypothesis(statement: Option[String], predicate: Expr) extends Action
   /* Runtime equation solving */
-  case class LinearEquations(A: Vector[Vector[Expr]], q: Vector[Expr], B: Vector[Expr]) extends Action
+  case class LinearEquations(A: Array[Array[Expr]], q: Array[Expr], B: Array[Expr]) extends Action
   /* Example: case 1 x = 3; y = 4 */
   case class Clause(lhs: GroundValue, assertion: Expr, rhs: List[Action])
 

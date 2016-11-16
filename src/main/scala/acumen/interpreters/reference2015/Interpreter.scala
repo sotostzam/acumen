@@ -30,6 +30,7 @@ import scala.math._
 import Stream._
 import Errors._
 import enclosure.{Field => _, _}
+import com.sun.corba.se.spi.ior.ObjectId
 
 object Interpreter extends acumen.CStoreInterpreter {
 
@@ -322,6 +323,9 @@ object Interpreter extends acumen.CStoreInterpreter {
           }
           mapM_((v:CValue) => evalActions(b, env+((i,v)), p), vs)
         }
+      case acumen.LinearEquations(a, q, b) =>
+        val dots = q.map { case d: Dot => d }
+        logUnDirectedEquations(LinearEquations(a, dots, b, env))
       case Switch(s,cls) => s match{     
         case ExprVector(_) =>           
           for (VVector(ls) <- asks(evalExpr(s, env, _))) {
@@ -487,6 +491,7 @@ object Interpreter extends acumen.CStoreInterpreter {
       /* Update (id,dot) with new value v */
       case CollectedAction(o, Index(d: Dot, Nil), rhs, env)::Nil =>
         val ResolvedDot(rId, _, rN) = resolveDot(d, env, st)
+        println(rN + "updates " + rhs)
         (rId, rN, evalExpr(rhs, env, st)(cache))
       /* Congregate multiple index assignments to (id,dot) into one assignment and update */
       case multipleIndexUpdates => 
@@ -560,7 +565,12 @@ object Interpreter extends acumen.CStoreInterpreter {
         // All indexes are evaluated to List[Lit(GInt)]        
         val das = evaluateIndexes(das1, st1)(NoBindings)
         val eqs = evaluateIndexes(eqs1, st1)(NoBindings)
-        val odes = evaluateIndexes(odes1, st1)(NoBindings)
+        val (leqs,odes2) = odes1.foldLeft((List[LinearEquations](), List[CollectedAction]()))
+        {case ((r1,r2),x) => x match {
+          case a: CollectedAction => (r1, a::r2)
+          case b: LinearEquations => (b :: r1, r2)
+        } }
+        val odes = evaluateIndexes(odes2, st1)(NoBindings) 
         implicit val bindings = eqs.map{ e => val rd = resolveDot(e.d.lhs, e.env, st1)
           (rd.id, rd.field,e.d.idx.map{x => x match{case Lit(GInt(i)) => i}}) -> UnusedBinding(e.rhs, e.env)}.toMap       
       
@@ -605,9 +615,9 @@ object Interpreter extends acumen.CStoreInterpreter {
             val eqsIds = resolveDots(eqs)
             val odesIds = resolveDots(odes)
             checkDuplicateAssingments(eqsIds ++ odesIds, DuplicateContinuousAssingment)
-            checkContinuousDynamicsAlwaysDefined(p, eqsIds, st1)
+            //checkContinuousDynamicsAlwaysDefined(p, eqsIds, st1)
             /* After reaching a discrete fixpoint, integrate */
-            val stODES = solveIVP(odes, st1)
+            val stODES = solveIVP(odes ::: leqs, st1)
             val stT = setTime(getTime(stODES) + getTimeStep(stODES), stODES)
             /* Ensure that the resulting store is consistent w.r.t. continuous assignments */
             val stEQS = applyCollectedAssignments(eqs, stT)
@@ -668,7 +678,7 @@ object Interpreter extends acumen.CStoreInterpreter {
    *  - Env:  Initial conditions of the IVP.
    * The time segment is derived from time step in store st. 
    */
-  def solveIVP(odes: List[CollectedAction], st: Store)(implicit bindings: Bindings): Store = {
+  def solveIVP(odes: List[FieldEquation], st: Store)(implicit bindings: Bindings): Store = {
     implicit val field = FieldImpl(odes)
     new Solver[CId,CStore,Double](getInSimulator(Name("method", 0),st), xs = st, h = getTimeStep(st)) {
       override def knownSolvers = super.knownSolvers :+ EulerCromer
@@ -680,17 +690,28 @@ object Interpreter extends acumen.CStoreInterpreter {
   }
   
   /** Representation of a set of ODEs. */
-  case class FieldImpl(odes: List[CollectedAction])(implicit bindings: Bindings) extends Field[Store,CId] {
+  case class FieldImpl(odes: List[FieldEquation])(implicit bindings: Bindings) extends Field[Store,CId] {
+     val (leqs,odes2) = odes.foldLeft((List[LinearEquations](), List[CollectedAction]()))
+        {case ((r1,r2),x) => x match {
+          case a: CollectedAction => (r1, a::r2)
+          case b: LinearEquations => (b :: r1, r2)
+        } }
     /** Evaluate the field (the RHS of each equation in ODEs) in s. */
-    override def apply(s: Store): Store = applyCollectedAssignments(odes, s)
+    override def apply(s: Store): Store ={
+       val directedOdes = 
+         leqs.map(uode =>  diretEquations(s, uode, bindings)).flatten
+       applyCollectedAssignments(odes2:::directedOdes, s)
+    }
+      
+     
     /** NOTE: Assumes that the de-sugarer has reduced all higher-order ODEs.  */
     override def variables(s: Store): List[(CId, Name)] =
-      odes.map { da =>
+      odes2.map { da =>
         val ResolvedDot(dId, _, dN) = resolveDot(da.d.lhs, da.env, s)
         (dId, dN) 
       }
     override def map(em: Expr => Expr) = 
-      FieldImpl(odes.map(ode => ode.copy(rhs = em(ode.rhs))))
+      FieldImpl(odes2.map(ode => ode.copy(rhs = em(ode.rhs))))
   }
 
   /**
@@ -757,6 +778,33 @@ object Interpreter extends acumen.CStoreInterpreter {
         updatedEnvs + ((rId, rN) -> v)
     }.map { case ((o, d), v) => (o, d, v) }.toList
     applyAssignments(solutions) ~> st
+  }
+  
+  def diretEquations (st: Store, eqs: LinearEquations, bindings: Bindings): List[CollectedAction] = {
+    import breeze.linalg._
+    def firstOrderSystemInline(id: CId , dot: Expr, rhs: Expr, env: Env): List[CollectedAction] = dot match {
+      case Dot(o, Name(f, n)) =>
+        if (n == 0) Nil
+         else CollectedAction(id, Index(Dot(o, Name(f,n-1)),Nil),rhs,env) +:
+              (for (k <- 0 until n - 1)
+                yield CollectedAction(id, Index(Dot(o, Name(f,k)),Nil),Index(Dot(o, Name(f, k + 1)), Nil),env)).toList
+    }
+    //a.map(x => println((x.map(Pretty.pprint(_))).mkString(",")))
+    val size = eqs.q.size; val env = eqs.env
+    val coefs = eqs.a.map(r => r.map(x => extractDouble(evalExpr(x, env, st)(bindings))).toArray).toArray.flatten
+    val rhss = eqs.b.map(x => extractDouble(evalExpr(x,env,st)(bindings))).toArray
+    val B = DenseVector(rhss); val dots = eqs.q.toList
+    val A = new DenseMatrix(size, size, coefs)
+    println(A)
+    val solution = (A \ B).toArray.map(x => Lit(GDouble(x))).toList
+    val newActions = (eqs.q zip solution).map{
+      case (Dot(id,v), rhs) =>
+        val o = evalToObjId(id, env, st)(bindings)
+        CollectedAction(o, Index(Dot(id,v),Nil), rhs, env) ::
+        firstOrderSystemInline(o, Dot(id,v), rhs, env)
+    }.toList.flatten
+    //newActions.map(x => println(Pretty.pprint[Action](x)))
+    newActions
   }
   
 }

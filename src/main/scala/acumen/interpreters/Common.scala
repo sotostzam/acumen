@@ -589,7 +589,7 @@ object Common {
         case head :: tail => evalIndexOp(evalIndexOp(e,List(head)), tail)
         case _ => throw IndexNoMatch(i)
       }    
-      case _ => throw CantIndex() }
+      case _ => println(e + "  " + i); throw CantIndex() }
   }
   
   def valueToExpr(v:Value[_]):Expr = {
