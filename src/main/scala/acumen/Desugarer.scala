@@ -40,6 +40,7 @@ object GenSym{
  *        each class.
  */
 case class Desugarer(odeTransformMode: ODETransformMode) {
+  println(odeTransformMode)
   import GenSym._
   val self = name("self")
   val parent = name("parent")
@@ -124,6 +125,10 @@ case class Desugarer(odeTransformMode: ODETransformMode) {
       case Discretely(da) => (desda(da) map Discretely, List())
       case Claim(e) => (List(Claim(dese(e))), List())
       case Hypothesis(s, e) => (List(Hypothesis(s, dese(e))), List())
+      case LinearEquations(m, v, b) =>
+        (List(LinearEquations(m.map(r => r map dese),
+          v map dese,
+          b map dese)), List())
     }
   }
 

@@ -41,6 +41,10 @@ class ASTMap {
       Claim(mapExpr(p))
     case Hypothesis(s, p) =>
       Hypothesis(s, mapExpr(p))
+    case LinearEquations(m, v, b) =>
+      LinearEquations(m.map(r => r map mapExpr),
+        v map mapExpr,
+        b map mapExpr)
   }
 
   def mapActions(as: List[Action]) : List[Action] = as.map{mapAction(_)}

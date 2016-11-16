@@ -17,6 +17,7 @@ import acumen.interpreters.enclosure2015.Common.EStore
 
 /** Gaussian elimination */
 object GE {
+  val solveTillRuntime = true
   /* Coefficient matrix */
   case class CMatrix(val M: Matrix) {
     def updated(i: Int, j: Int, e: Expr): CMatrix = {
@@ -89,7 +90,7 @@ object GE {
    * @param hashMap input environment with known var -> expr pair
    * @return Directed ODEs
    *  */
-  def run(es: List[Equation], q: List[Var], hashMap: Map[Expr, Expr]): (List[Equation],List[Action]) = {
+  def run(es: List[Equation], q: List[Var], hashMap: Map[Expr, Expr]): (List[Action],List[Action]) = {
     def findVars(e: Expr): List[Var] = Specialization.findVars(e, hashMap)(Nil)
     def hasTrueVariable(e: Expr) = (findVars(e).toSet intersect q.toSet).size > 0
     // Break an expression into a list of basic terms, which are either constant or constant * variable
@@ -291,23 +292,29 @@ object GE {
       vectorEquations(e.lhs, e.rhs)).flatten.map(normalizeEquation(_, q))
     // coefficent matrix and rhs column
     val MBInit = equationsToMatrix(ses, q)
-    val MB = run(MBInit._1, MBInit._2)
-    val M = MB._1; val B = MB._2 
-    val N = M.length
-    // Back substitution
-    val xInit = new Array[Expr](N).toVector
-    val x = ( N - 1 to 0 by -1).toList.foldLeft(xInit) { case(xr,i) =>
-      val newRhs = (i + 1 until N).foldLeft(RationalZeroLit: Expr)((r, j) =>
-        mkOp("+", mkOp("*", M(i)(j), xr(j)), r))
-      xr.updated(i, mkOp("/",mkOp("-", B(i), newRhs), M(i)(i)))  
+    if (solveTillRuntime){
+      (LinearEquations(MBInit._1.M, q.toVector, MBInit._2) :: Nil, Nil)
+    } else {
+      val MB = run(MBInit._1, MBInit._2)
+      val M = MB._1; val B = MB._2
+      val N = M.length
+      // Back substitution
+      val xInit = new Array[Expr](N).toVector
+      val x = (N - 1 to 0 by -1).toList.foldLeft(xInit) {
+        case (xr, i) =>
+          val newRhs = (i + 1 until N).foldLeft(RationalZeroLit: Expr)((r, j) =>
+            mkOp("+", mkOp("*", M(i)(j), xr(j)), r))
+          xr.updated(i, mkOp("/", mkOp("-", B(i), newRhs), M(i)(i)))
+      }
+      // Output equations
+      val result = (0 until N).toList.foldLeft(List[Equation]())((r, i) =>
+        Equation(q(i), x(i)) :: r)
+      val hashedTuple = (hashEquations(result.reverse) map Continuously, hashEquation.toList)
+      clear()
+      hashedTuple
     }
-    // Output equations
-    val result = (0 until N).toList.foldLeft(List[Equation]())((r, i) =>
-      Equation(q(i), x(i)) :: r)
-    val hashedTuple = (hashEquations(result.reverse), hashEquation.toList)
-    clear()
-    hashedTuple
   }
+     
 
   def combineConstVarTerms(varTerms: List[Expr]): Expr = {
     mkPlus(varTerms)

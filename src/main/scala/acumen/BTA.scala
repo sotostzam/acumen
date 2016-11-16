@@ -787,8 +787,9 @@ object BindingTimeAnalysis {
         case n => (for (i <- 0 to n) yield Var(Name(x.name.x, i))).toList
       }).flatten
         gaussianElimination(discons, nonvariables ::: disDirectedFiltered, hashMap)._1.map(x =>
-          x.asInstanceOf[Continuously].a match {
-            case Equation(lhs, rhs) => Discretely(Assign(lhs, rhs))
+          x match {
+            case Continuously(Equation(lhs, rhs)) => Discretely(Assign(lhs, rhs))
+            case _ => x
         })
     }
     val remainActions = actions.diff(equations ::: disDAEs.map(x => Discretely(x)))
@@ -813,7 +814,7 @@ object BindingTimeAnalysis {
     val trueVars = vars.filter(x => !directedVars.contains(x) &&
       !(vars.exists(y => (y.name.x == x.name.x && y.name.primes > x.name.primes))))
     val (odes, hashEqs) = GE.run(simplicitOdes, trueVars, hashMap)
-    (remainActions ::: explicitOdes ::: odes.map(x => Continuously(x)) ::: disODEs,hashEqs)
+    (remainActions ::: explicitOdes ::: odes ::: disODEs,hashEqs)
   }
   // If x' is defined in the initially section, x is regarded as directed
   def filterDirectedVariables(inits:List[Init]):List[Var] = {

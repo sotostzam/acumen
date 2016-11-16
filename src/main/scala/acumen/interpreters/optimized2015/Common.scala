@@ -38,6 +38,7 @@ import acumen.util.Canonical.{
 }
 import acumen.util.ASTUtil.dots
 
+
 object Common {
   type Store = Object
   type ObjId = Object
@@ -878,6 +879,34 @@ object Common {
           case _           => throw NotACollection(seq).setPos(l.pos)
         }
         combine(vs, ((v: Val) => evalActions(b, env + ((i, v)), p, magic)))
+      } else noChange
+      case LinearEquations(a, q, b) => if (pp.doConditionals) {
+        import breeze.linalg._
+        def firstOrderSystemInline(dot: Expr, rhs: Expr): List[ContinuousAction] = dot match {
+          case Dot(o, Name(f, n)) =>
+            if (n == 0) Nil
+            else EquationI(Dot(o, Name(f, n - 1)) setPos dot.pos, rhs) +:
+              (for (k <- 0 until n - 1)
+                yield EquationI(Dot(o, Name(f, k)) setPos dot.pos, Dot(o, Name(f, k + 1)))).toList
+          case Index(Dot(o, Name(f, n)), idx) =>
+            if (n == 0) Nil
+            else EquationI(Index(Dot(o, Name(f, n - 1)), idx) setPos dot.pos, rhs) +:
+              (for (k <- 0 until n - 1)
+                yield EquationI(Index(Dot(o, Name(f, k)), idx) setPos dot.pos, Index(Dot(o, Name(f, k + 1)), idx))).toList
+        }
+        val size = q.size
+        val coefs = a.map(r => r.map(x => extractDouble(evalExpr(x, p, env))).toArray).toArray.flatten
+        val rhss = b.map(x => extractDouble(evalExpr(x, p, env))).toArray
+        val B = DenseVector(rhss)
+        val A = new DenseMatrix(size,size,coefs) 
+        val d = det(A); 
+        val solution = (A \ B).toArray.map(x => Lit(GDouble(x)))
+        val newActions = (q zip solution).map{
+          case (v,rhs) => Continuously(acumen.EquationT(v,rhs)) :: (firstOrderSystemInline(v,rhs) map Continuously)
+              }.flatten.toList
+        newActions.map(x => println(Pretty.pprint[Action](x)))
+        evalActions(newActions, env, p, magic)
+       
       } else noChange
       case Switch(s, cls) => if (pp.doConditionals) { s match {     
         case ExprVector(_) =>           
