@@ -611,6 +611,7 @@ object Parser extends MyStdTokenParsers {
        , "size"         -> List(2,3)
        , "points"       -> List(3)
        , "transparency" -> Nil
+       , "resolution"   -> Nil
        )
   
        
@@ -634,8 +635,8 @@ object Parser extends MyStdTokenParsers {
       case _            => ExprVector(ls)
     }
   }
-  def thereDSurface: Parser[ExprVector] = "Surface" ~ args(name) ~ "->" ~ expr ~ "foreach" ~ bindings ^^ {
-    case _ ~ ns ~ _ ~ f ~ _ ~ bs => surfaceHelper(Var(ns(0)), Var(ns(1)), f, bs)
+  def thereDSurface: Parser[ExprVector] = "Surface" ~ args(name) ~ "->" ~ expr ~ "foreach" ~ binding ~ binding ~ rep(threeDPara) ^^ {
+    case _ ~ ns ~ _ ~ f ~ _ ~ x ~ y ~ bs => surfaceHelper(Var(ns(0)), Var(ns(1)), f, x :: y :: bs)
   }
 
   def surfaceHelper(x: Var, y: Var, f: Expr, bs: List[(Name, Expr)]): ExprVector = {
