@@ -42,7 +42,7 @@ trait ExtractTest {
   //FIXME Update to include multi-object models
   def existingModels(): Iterable[(String, Prog)] =
     (MODEL_PATH_TEST.flatMap{readFiles(_, FILE_SUFFIX_MODEL)})
-    .map(parseProg) ++ 
+    .map(parseProg(TraditionalInterpreterType)(_)) ++ 
     enclosureModels
 
   /** Models restricted to the (Hybrid Automaton) syntax understood by acumen.interpreters.enclosure.Extract. */
@@ -51,16 +51,16 @@ trait ExtractTest {
         def accept(f: File, n: String) = new File(f, n).isDirectory() && !MODEL_PATHS_SKIP.contains(n) })
     .flatMap(dir => readFiles(MODEL_PATH_ENCLOSURE + dir, FILE_SUFFIX_MODEL))
     .filter { case (namePrefix, _) => !MODELS_SKIP.contains(namePrefix) }
-    .map(parseProg)
+    .map(parseProg(EnclosureLegacyInterpreterType)(_))
 
   type ProgText = String
   type ModelName = String
     
-  def parseProg(p: (ModelName, ProgText)): (ModelName, Prog)  = 
+  def parseProg(interpreterType: InterpreterType)(p: (ModelName, ProgText)): (ModelName, Prog)  = 
     p match { case (namePrefix, prog) =>
       val ast = Parser.run(Parser.prog, prog)
       val des = Desugarer(odeTransformMode = Local).run(ast)
-      val apx = ApproximateRationals.run(des, EnclosureLegacyInterpreterType)
+      val apx = ApproximateRationals.run(des, interpreterType)
       (namePrefix, apx) 
     }
     
