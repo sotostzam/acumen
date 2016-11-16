@@ -57,7 +57,12 @@ trait ExtractTest {
   type ModelName = String
     
   def parseProg(p: (ModelName, ProgText)): (ModelName, Prog)  = 
-    p match { case (namePrefix, prog) => (namePrefix, Parser.run(Parser.prog, prog)) }
+    p match { case (namePrefix, prog) =>
+      val ast = Parser.run(Parser.prog, prog)
+      val des = Desugarer(odeTransformMode = Local).run(ast)
+      val apx = ApproximateRationals.run(des, EnclosureLegacyInterpreterType)
+      (namePrefix, apx) 
+    }
     
 }
 
