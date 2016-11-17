@@ -278,6 +278,10 @@ object Interpreter extends acumen.CStoreInterpreter {
           vs.foldLeft(VLit(GDouble(0)):CValue)(helper)
         case TypeOf(cn) =>
           VClassName(cn)
+        case Lambda(vs, f) =>
+          val freeVariables = acumen.Specialization.findDots(f)
+          val closure = freeVariables.map(x => (x, eval(env, x).asInstanceOf[VLit])).toMap
+          VLambda(vs, f, closure)
         case ExprLet(bs,e) =>
           val eWithBindingsApplied =
             bs.foldLeft(env){

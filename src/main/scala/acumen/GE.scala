@@ -454,10 +454,10 @@ object GE {
   
   case class IntervalEval(q: List[Var]){
     val i = new interpreters.enclosure2015.Interpreter(false)
-    val m = q.map(x => (x.name, reals)).toMap
-    val env = interpreters.Common.Env(m)
     def eval(e: Expr) = {
-      i.evalExpr(e, env, GEStore) match {
+      val vars = findVars(e, Map.empty)(Nil)
+      val m = vars.map(x => (x.name, reals)).toMap
+      i.evalExpr(e, interpreters.Common.Env(m), GEStore) match {
         case VLit(GConstantRealEnclosure(i)) => i
       }
     }

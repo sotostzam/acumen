@@ -92,7 +92,7 @@ object Simplifier {
           if (ac != Op(Name("+", 0), a :: c :: Nil))
             mkOp("+", ac, b)
           else
-            Op(Name("+", 0), mkOp("+", b, c) :: a :: Nil)
+            Op(Name("+", 0), Op(Name("+", 0), b :: c :: Nil) :: a :: Nil)
         }
        case ("-", a :: Op(Name("+", 0), b :: c :: Nil) ::  Nil) =>
         val ab = mkOp("-", a, b)
