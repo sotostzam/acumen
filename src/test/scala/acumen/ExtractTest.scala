@@ -28,7 +28,7 @@ trait ExtractTest {
   
   val progGenerator = 
     new ProgGenerator( maxConditionalsPerScope     = 2
-                     , maxSimulationTime           = 10.0
+                     , maxSimulationTime           = 3.0
                      , maxClassHierarchyDepth      = 0
                      , maxClassHierarchyLayerWidth = 1
                      , minContinuousVarsPerClass   = 2
