@@ -645,7 +645,7 @@ object Common {
       OdeEnv(odes.map{e => evalExpr(e.rhs, p, Env(e.env,Some(s)))}, s.simulator)
     override def variables(s: OdeEnv): List[(ObjId, Name)] =
       odes.toList.map { da => (da.id, da.field) }
-    override def map(m: Expr => Expr) = 
+    override def map(m: Expr => Expr, s: OdeEnv) = 
       FieldImpl(odes.map(ode => ode.copy(rhs = m(ode.rhs))), p)
   }
   

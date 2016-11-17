@@ -953,7 +953,7 @@ object Common {
     }
     override def variables(s: OdeEnv): List[(ObjId, Name)] =
       odes.toList.map { da => (da.id, da.field) }
-    override def map(m: Expr => Expr) = 
+    override def map(m: Expr => Expr, s: OdeEnv) = 
       FieldImpl(odes.map(ode => ode.copy(rhs = m(ode.rhs))), p)
   }
   

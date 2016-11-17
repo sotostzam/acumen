@@ -296,6 +296,7 @@ object Interpreter extends acumen.CStoreInterpreter {
       }
       case err: PositionalAcumenError => err.setPos(e.pos); throw err
     }
+    //println(e)
     eval(env,e)
   }.setPos(e.pos)
 
@@ -491,7 +492,6 @@ object Interpreter extends acumen.CStoreInterpreter {
       /* Update (id,dot) with new value v */
       case CollectedAction(o, Index(d: Dot, Nil), rhs, env)::Nil =>
         val ResolvedDot(rId, _, rN) = resolveDot(d, env, st)
-        println(rN + "updates " + rhs)
         (rId, rN, evalExpr(rhs, env, st)(cache))
       /* Congregate multiple index assignments to (id,dot) into one assignment and update */
       case multipleIndexUpdates => 
@@ -696,22 +696,23 @@ object Interpreter extends acumen.CStoreInterpreter {
           case a: CollectedAction => (r1, a::r2)
           case b: LinearEquations => (b :: r1, r2)
         } }
+    def directedOdes(s: Store) = odes2 ::: leqs.map(uode =>  diretEquations(s, uode, bindings)).flatten
     /** Evaluate the field (the RHS of each equation in ODEs) in s. */
     override def apply(s: Store): Store ={
-       val directedOdes = 
-         leqs.map(uode =>  diretEquations(s, uode, bindings)).flatten
-       applyCollectedAssignments(odes2:::directedOdes, s)
+       applyCollectedAssignments(directedOdes(s), s)
     }
       
      
     /** NOTE: Assumes that the de-sugarer has reduced all higher-order ODEs.  */
     override def variables(s: Store): List[(CId, Name)] =
-      odes2.map { da =>
+      directedOdes(s).map { da =>
         val ResolvedDot(dId, _, dN) = resolveDot(da.d.lhs, da.env, s)
         (dId, dN) 
       }
-    override def map(em: Expr => Expr) = 
-      FieldImpl(odes2.map(ode => ode.copy(rhs = em(ode.rhs))))
+    def map(em: Expr => Expr, s: Store) = 
+       FieldImpl(odes2.map(ode => ode.copy(rhs = em(ode.rhs))))
+//    override def map(em: Expr => Expr) = 
+//      FieldImpl(odes2.map(ode => ode.copy(rhs = em(ode.rhs))))
   }
 
   /**
@@ -787,7 +788,7 @@ object Interpreter extends acumen.CStoreInterpreter {
         if (n == 0) Nil
          else CollectedAction(id, Index(Dot(o, Name(f,n-1)),Nil),rhs,env) +:
               (for (k <- 0 until n - 1)
-                yield CollectedAction(id, Index(Dot(o, Name(f,k)),Nil),Index(Dot(o, Name(f, k + 1)), Nil),env)).toList
+                yield CollectedAction(id, Index(Dot(o, Name(f,k)),Nil),Dot(o, Name(f, k + 1)),env)).toList
     }
     //a.map(x => println((x.map(Pretty.pprint(_))).mkString(",")))
     val size = eqs.q.size; val env = eqs.env
@@ -795,7 +796,7 @@ object Interpreter extends acumen.CStoreInterpreter {
     val rhss = eqs.b.map(x => extractDouble(evalExpr(x,env,st)(bindings))).toArray
     val B = DenseVector(rhss); val dots = eqs.q.toList
     val A = new DenseMatrix(size, size, coefs)
-    println(A)
+    //println(A)
     val solution = (A \ B).toArray.map(x => Lit(GDouble(x))).toList
     val newActions = (eqs.q zip solution).map{
       case (Dot(id,v), rhs) =>
@@ -803,7 +804,8 @@ object Interpreter extends acumen.CStoreInterpreter {
         CollectedAction(o, Index(Dot(id,v),Nil), rhs, env) ::
         firstOrderSystemInline(o, Dot(id,v), rhs, env)
     }.toList.flatten
-    //newActions.map(x => println(Pretty.pprint[Action](x)))
+    //newActions.map(x => println(x.d + " updates with " + Pretty.pprint(x.rhs)))
+    //println("Finished")
     newActions
   }
   

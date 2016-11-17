@@ -100,7 +100,7 @@ object picardBase extends SolverBase {
       }
     /** NOTE: Assumes that the de-sugarer has reduced all higher-order ODEs.  */
     override def variables(s: Enclosure): List[(CId, Name)] = odes.map(ode => (ode.lhs.id, ode.lhs.field))
-    override def map(em: Expr => Expr) =
+    override def map(em: Expr => Expr, s: Enclosure) =
       FieldImpl(odes.map(ode => ode.copy(a = (ode.a: @unchecked) match {
         case Discretely(Assign(lhs: Expr, rhs: Expr)) =>
           Discretely(Assign(em(lhs), em(rhs)))

@@ -858,7 +858,7 @@ object Common {
    *  Returns a store containing values of type TDif[R] that contain the Taylor coefficients. */
   def computeTaylorCoefficients[Id <: GId : TypeTag, S <% RichStore[S,Id], R: Real](s: S, orderOfExpansion: Int)(implicit f: Field[S,Id]): S = {
     require (orderOfExpansion > 0, s"Order of Taylor expansion ($orderOfExpansion) must be greater than 0")
-    val ode = f map (TAD lift _)
+    val ode = f map (TAD lift _, s)
     val rIsReal = implicitly[Real[R]]
     // computing the Taylor coefficients ('to' reaches orderOfExpansion)
     (1 to orderOfExpansion).foldLeft(TAD lift s) {
@@ -888,7 +888,7 @@ object Common {
      * These are the LHSs of each ODE and the corresponding unprimed variables. */
     def variables(s: S): List[(Id, Name)]
     /** Map m over the RHS of ODE */
-    def map(m: Expr => Expr): Field[S,Id]    
+    def map(m: Expr => Expr, s: S): Field[S,Id]    
   }
 
   /** Embedded DSL for expressing integrators. */

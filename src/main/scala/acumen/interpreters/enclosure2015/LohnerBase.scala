@@ -276,7 +276,7 @@ case class LohnerBase
       DynSetEnclosure(s1, dynSetEnclosure, eqsInlined, evalExpr)
     }
     override def variables(s: DynSetEnclosure): List[(CId, Name)] = odes.map(ode => (ode.lhs.id, ode.lhs.field))
-    override def map(mE: Expr => Expr) = {
+    override def map(mE: Expr => Expr, s: DynSetEnclosure) = {
       def mCA(ca: CollectedAction): CollectedAction =
         ca.copy(a = (ca.a: @unchecked) match {
           case Discretely(Assign(lhs: Expr, rhs: Expr)) =>
