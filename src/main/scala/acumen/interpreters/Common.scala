@@ -89,10 +89,17 @@ object Common {
   def liftSplitIntervalToUncertain(e: Expr): Expr = {
     def intHelper(e: Expr): Int = e match {
       case Lit(n @ GInt(_)) => extractInt(n)
+      case Lit(n @ GConstantRealEnclosure(i)) if i.isValidInt => i.toInt
       case _ => throw ShouldNeverHappen()
     }
     def doubleExtractor(e: Expr): Double = e match {
       case Lit(x @ (GDouble(_) | GInt(_))) => extractDouble(x)
+      case Lit(GConstantRealEnclosure(i)) => 
+        val d = i.loDouble
+        if (i.isThin) d else {
+          Logger.log(s"Warning: Unsound approximation of ${pprint(e)} as $d")
+          d
+        }         
       case _ => throw ShouldNeverHappen()
     }
     def booleanExtractor(e: Expr): Boolean = e match {
@@ -102,8 +109,8 @@ object Common {
     e match {
       case ExprSplitInterval(i, s) =>
         val interval = i match {
-          case ExprInterval(lo, hi)
-          => Interval(doubleExtractor(lo), doubleExtractor(hi))
+          case Lit(GConstantRealEnclosure(ivl)) => ivl  
+          case ExprInterval(lo, hi) => Interval(doubleExtractor(lo), doubleExtractor(hi))
         }
         s match {
           case ExprSplitterPoints(ps, kps) =>

@@ -476,7 +476,7 @@ object Specialization {
         if (bindings.contains(Var(n)))
           findVars(bindings(Var(n)), bindings)
         else
-          List(Var(n))
+          List(Var(n).setPos(expr.pos))
       }
 
     case Op(f, es)            => es.map(findVars(_, bindings)).flatten.distinct

@@ -671,7 +671,6 @@ object BindingTimeAnalysis {
         // Leave _3D and assignments across models unchanged
         case Var(Name("_3D", 0)) => (r._1, a :: r._2)
         case Dot(_, _)           => (r._1, a :: r._2)
-        case Var(_) if rhs.isInstanceOf[Lit] => (r._1, a :: r._2)
         case _                   => (a :: r._1, r._2)
       }
       case ForEach(_, _, _) => (a :: r._1, r._2)
