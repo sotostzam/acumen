@@ -505,6 +505,7 @@ object SD {
           } else {
             None
           }
+        case _ => None
       }
       case _ => None
     }
