@@ -40,18 +40,18 @@ trait ExtractTest {
   
   /** Load models compatible with the transformation from the examples directory. */
   //FIXME Update to include multi-object models
-  def existingModels(): Iterable[(String, Prog)] =
+  def existingModels(interpreterType: InterpreterType): Iterable[(String, Prog)] =
     (MODEL_PATH_TEST.flatMap{readFiles(_, FILE_SUFFIX_MODEL)})
-    .map(parseProg(TraditionalInterpreterType)(_)) ++ 
-    enclosureModels
+    .map(parseProg(interpreterType)(_)) ++ 
+    enclosureModels(interpreterType)
 
   /** Models restricted to the (Hybrid Automaton) syntax understood by acumen.interpreters.enclosure.Extract. */
-  lazy val enclosureModels: Iterable[(String, Prog)]  = new File(MODEL_PATH_ENCLOSURE).list(
+  def enclosureModels(interpreterType: InterpreterType): Iterable[(String, Prog)]  = new File(MODEL_PATH_ENCLOSURE).list(
       new FilenameFilter() { 
         def accept(f: File, n: String) = new File(f, n).isDirectory() && !MODEL_PATHS_SKIP.contains(n) })
     .flatMap(dir => readFiles(MODEL_PATH_ENCLOSURE + dir, FILE_SUFFIX_MODEL))
     .filter { case (namePrefix, _) => !MODELS_SKIP.contains(namePrefix) }
-    .map(parseProg(EnclosureLegacyInterpreterType)(_))
+    .map(parseProg(interpreterType)(_))
 
   type ProgText = String
   type ModelName = String
@@ -82,7 +82,9 @@ object ExtractBaseTest extends Properties("ExtractHA") with ExtractTest {
    * continuous variables, which this property checks.
    */
   property("reference semantics preserving on continuous state (example models)") =
-    existingModels.map { case (name, prog) => preservesContinuousReferenceSemanticsOf(new ExtractHA(_).res, prog, Some(name)) }.foldRight(true)(_ && _) // Make sure that all models are run
+    existingModels(TraditionalInterpreterType)
+      .map{ case (name, prog) => preservesContinuousReferenceSemanticsOf(new ExtractHA(_).res, prog, Some(name)) }
+      .foldRight(true)(_ && _) // Make sure that all models are run
     
   property("reference semantics preserving on continous state (random models)") =
     forAll { (p: Prog) => preservesContinuousReferenceSemanticsOf(new ExtractHA(_).res, p, None) }
@@ -119,7 +121,9 @@ object ExtractEnclosureTest extends Properties("ExtractHA (Enclosure Semantics)"
   import progGenerator.arbProg
          
   property("enclosure semantics preserving on continuous state (enclosure example models)") =
-    enclosureModels.map{ case (name, prog) => preservesContinuousEnclosureSemanticsOf(new ExtractHA(_).res, prog, Some(name)) }.foldRight(true)(_&&_) // Make sure that all models are run
+    enclosureModels(EnclosureLegacyInterpreterType)
+      .map{ case (name, prog) => preservesContinuousEnclosureSemanticsOf(new ExtractHA(_).res, prog, Some(name)) }
+      .foldRight(true)(_&&_) // Make sure that all models are run
   
 }
 
