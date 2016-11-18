@@ -6,15 +6,15 @@ Major changes since the 2016_08_30 release:
 - New support for custom Functions 
 - Improvements to equation solving 
 - Improvements to all 2015 semantics:
-- New use of exact (rational) arithmetic in source-to-source 
+    - New use of exact (rational) arithmetic in source-to-source 
 transformations
-- Better error reporting
-- New batch-mode simulation by assigning an interval with a "splitby" 
+    - Better error reporting
+    - Better performance using hash consing
+    - New batch-mode simulation by assigning an interval with a "splitby" 
 modifier to a variable
-- New support for assigning probability distributions to variables
+    - New support for assigning probability distributions to variables
 - Improvements to the 2015 Enclosure semantics:
-- Improved accuracy of Boolean operations
-- Better profermance using hash consing 
+    - Improved accuracy of Boolean operations
 - New plot label support
 - New 3D object Surface
 
@@ -24,8 +24,8 @@ ACUMEN 2016_08_30 RELEASE NOTES
 Major changes since the 2016_03_22 release:
 
 - Improvements to the 2015 semantics
-- Added support for equations 
-- Added support for symbolic time and partial differentiation
+  - Added support for equations 
+  - Added support for symbolic time and partial differentiation
 - New command line input feature 
 - New print operation
 - New _plot support for conveniently plotting variables 
@@ -124,7 +124,9 @@ releases.
 - Improved event localization algorithm
 - New event handling algorithm
 - Various other minor enhancements and fixes
+
 Major changes since Acumen 2010:
+
 - _3D support based on Yingfu Zeng's Masters thesis
 - Enclosure semantics with support for Zeno systems
 - A more responsive user interface
