@@ -997,7 +997,10 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
             val (range, end) = continuousEncloser(q.odes, q.eqs, q.claims, T, prog, wi)
             val (newW, newU) = handleEvent(q, qw, range, if (t == StartTime) end else range)
             val rangePicard = picardEnclosureSolver convertEnclosure range
-            val rangeContracted = picardBase.contract(rangePicard, deduceConstraintsFromChangeset(q), prog, evalExpr).right.get
+            val rangeContracted = picardBase.contract(rangePicard, deduceConstraintsFromChangeset(q), prog, evalExpr) match {
+              case Right(r) => r
+              case Left(l) => sys.error("Error while contracting continuous enclosure: " + l)
+            }
             (newW ::: tmpW, rangeContracted :: tmpR, newU ::: tmpU)
           }
       }
