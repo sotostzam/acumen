@@ -124,22 +124,6 @@ trait Contract {
       left \/ right
   }
 
-  def inverseRelation(env: Box, ran: Interval, arg: Arg, e: Expression): Interval = e match {
-    case Plus(l, r) => arg match {
-      case Left  => ran - r(env)
-      case Right => ran - l(env)
-    }
-    case Multiply(l, r) =>
-      arg match {
-        case Left  => ran / r(env)
-        case Right => ran / l(env)
-      }
-    case Divide(l, r) => arg match { // ran = l / r
-      case Left  => ran * r(env) // l = ran * r
-      case Right => l(env) / ran // r = l / ran
-    }
-  }
-
 }
 
 object ContractApp extends App with Contract {
