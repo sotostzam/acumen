@@ -677,6 +677,10 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
         case Op(Name("rand", 0), _) => throw new UnsupportedFeatureError("The rand() function is", "2015 Enclosure", e.pos)
         case _                      => super.mapExpr(e)
       }
+      override def mapInit(i: Init) : Init = i match {
+        case Init(`_plot`, ExprRhs(e)) => Init(_plot, ExprRhs(super.mapExpr(e)))
+        case _                         => super.mapInit(i)
+      }
     }.mapProg(p)
   lazy val initStore = ApproximateRationals.run(Parser.run(Parser.store, initStoreTxt.format("#0")), TraditionalInterpreterType)
   lazy val initStoreTxt: String =
