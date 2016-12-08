@@ -1,0 +1,21 @@
+/* Bouncing ball explicit energy X1
+ * Author: Michal Konecny and Jan Duracz
+ * Implements the EBB model from the paper.
+ */
+model Main(simulator) =
+  initially 
+    mode = "Fly", 
+    x1 = 5, x1' = 0, x1'' = 0,  
+    r1 = [0.0..50.0], r1' = 0 
+  always
+  match mode with [
+    "Fly" claim x1 >= 0&& 0 <= r1&& r1 <= x1'*x1'/2 + 10*x1 ->    
+      if x1 == 0&& x1' <= 0 then
+        x1'+ = -0.5*x1',
+        r1+ = 0.25*r1,
+        mode+ = "Fly" 
+      noelse,
+      x1'' = -10,
+      r1'  = 0 
+  ],
+  simulator.endTime+ = 3.5

@@ -20,8 +20,8 @@ initially
    sfx = 0,sfz = 0,p2x =0, p2z =0,x = 0, x' = 1,  //position of stance foot
    _3D = (),timer = 0, timer' = 0, _3DView = (0,0)
 always
-   simulator.endTime+ = 10,  
-   m = 5, d = 1, M = 10, g = 9.81,
+   simulator.endTime+ = 20, 
+   m = 1, d = 1, M = 10, g = 9.81,
    l = 1, s = 0.035,
    xp'' = 0,yp''=0,
    q = (t1,t2),
@@ -44,7 +44,7 @@ always
            (m*0.5*l^2*cos(t2), m*(0.5*l)^2))),
   Qm = ((-0.25*m*l^2+(M*l^2 + m*l^2)*cos(t2), -0.25*m*l^2), (0.25*m*l^2,0)),
   H =  trans((Qp * Qm) * trans((t1p,t2p))),
-  if (h <= 0 &&  (h)' < 0 && timer > 0.1) then
+  if (h <= 0 &&  (h)' < 0 && (h)'' < 0) then
   //RESET MAP
   //reset for dynamics equation 
   t1+ =t1+t2,

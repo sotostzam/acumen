@@ -30,7 +30,9 @@ object Canonical {
   val cmain        = ClassName("Main")
   val cmagic       = ClassName("Simulator")
   val cdevice      = ClassName("Device")
-  val hashVariable = "@@"
+  def isHashVariable(n: Name) = n.x contains "@@"
+  def isHashVariable(n: String) = n contains "@@"
+
 
   /* object getters */
   def parentOf(o:CObject) : Option[CId] = { val VObjId(id) = o(parent); id }

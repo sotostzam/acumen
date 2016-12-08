@@ -209,9 +209,10 @@ object Errors {
       "Only discrete assingments to simulator parameters are allowed."
     pos = rhs.pos
   }
-  case class BadLhs() extends PositionalAcumenError {
+  case class BadLhs(lhs: Positional) extends PositionalAcumenError {
     override def mesg = 
       "The left-hand side of an assignment must be of the form 'e.x'."
+    pos = lhs.pos
   }
   case class BadRhs(message: String) extends PositionalAcumenError {
     override def mesg = "Invalid assignment: " + message
@@ -224,9 +225,13 @@ object Errors {
     override def mesg = 
       "Move statements must have the form 'move o1.x o2'."
   }
+  case class UnsupportedFeatureError(kind: String, interpreter: String, position: Position) extends PositionalAcumenError {
+    override def mesg = s"${kind} not currently supported in the $interpreter semantics."
+    pos = position
+  }
   case class UnsupportedTypeError(kind: String, id: String, value: CValue) extends PositionalAcumenError {
-    override def mesg =
-      s"Unsupported $kind: $id = ${pprint(value)}"
+    override def mesg = s"Unsupported $kind: $id = ${pprint(value)}."
+    pos = value.pos
   }
   case class UnsupportedTypeChangeError(f: Name, id: CId, clazz: ClassName, vOld: GValue, vNew: GValue, reason: String) extends PositionalAcumenError {
     override def mesg =
@@ -289,6 +294,17 @@ object Errors {
     override def getMessage = message
   }
 
+  case class causalizeExprFail(e: Expr, v: Var) extends AcumenError {
+    override def getMessage = "Fail when breaking expression " + pprint(e) + " for variable " + pprint(v.name)
+
+  }
+
+  case class causalizeFail(eq: Equation, v: Var, e: Expr) extends AcumenError {
+    override def getMessage = " Fail to causalize equation " + pprint(Continuously(eq).asInstanceOf[Action]) +
+      " with respect to variable " + pprint(v.name) + ".  When breaking expression" + e
+  }
+
+
   /* Command-line errors */
 
   case class DisabledSemantics(theString: String) extends PositionalAcumenError {
@@ -327,7 +343,11 @@ object Errors {
     override def getMessage = 
       "Sphere's size should be a number"
   }
-  
+  case class _3DTransparencyError(threeDObjectName: Option[String] = None) extends AcumenError {
+    override def getMessage = 
+      "_3D object" + threeDObjectName.map(" " + _) + 
+        "'s 'transparency' parameter should either be a decimal number between 0 to 1 or negative value"
+  }
   case class _3DParaError(n:String) extends AcumenError {
     override def getMessage = 
       n + " is not a valid _3D parameter"
@@ -423,7 +443,11 @@ object Errors {
        vars.map(x => pprint(x.asInstanceOf[Expr])).mkString(",") + "\n" +
        equations.map(x => pprint(x.lhs) + " = " + pprint(x.rhs) + "\n").mkString("\n")
   }
-  
+  case class InvalidSymbolicDifferentiation(e: Expr, kind: String) extends PositionalAcumenError{
+    override def mesg = 
+       Pretty.pprint(e) + s" is not a variable for $kind differentiation."
+    pos = e.pos
+  }
   case class symbolicDifWithoutBTA (e:Expr) extends PositionalAcumenError{
     override def mesg = 
        "Support for symbolic differentiation needs to be enabled for this model to run. \n " + 

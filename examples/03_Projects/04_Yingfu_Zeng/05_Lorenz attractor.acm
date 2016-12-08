@@ -4,11 +4,13 @@ initially
   x  =  0 , y  =  1 , z  =  1.05 , x'  =  0 , y'  =  0 , z'  =  0 ,
   _3D   =  (Sphere center=(1,1.05,0) size=0.05 color=(0.3,0.7,0.2) rotation=(0,0,0))
 always
-  simulator.timeStep + = 0.01 ,
   simulator.endTime + = 5.0 ,
   _3D = (Sphere center=(y/10,z/10,x/10) size=0.05 color=(0.3,0.7,0.2) rotation=(0,0,0)) ,
   x' = s*(y-x) ,
   y' = r*x-y-x*z ,
-  z' = x*y-b*z
+  z' = x*y-b*z,
+  simulator.orderOfIntegration+ = 10,
+  simulator.method+ = "Taylor",
+  simulator.reorganization+ = "ErrorExceedsWidth"
  
  

@@ -19,14 +19,14 @@ import org.scalatest.FunSuite
 class ParallelInterpreterTest extends FunSuite with ShouldMatchers {
   override def suiteName = "Imperative/Parallel 2012 Unit Tests"
   def semantics : SemanticsImpl.CStore = SemanticsImpl.Parallel2012()
-
+     
   test("StoreConversions1") {
     import ParallelInterpreter._
     val txt = """
       #0 { className = Main, parent = none, 
 					 nextChild = 0, seed1 = 0, seed2 = 1 }
     """
-    val cst = Parser.run(Parser.store, txt)
+    val cst = ApproximateRationals.run(Parser.run(Parser.store, txt), TraditionalInterpreterType)
     val st = fromCStore(cst,CId())
     cst should be (repr(st))
   }
@@ -41,8 +41,8 @@ class ParallelInterpreterTest extends FunSuite with ShouldMatchers {
       #0.2 { className = A, parent = #0, o = #0.1, 
 						 nextChild = 0, seed1 = 4, seed2 = 5 }
       """
-    val cst = Parser.run(Parser.store, txt)
-    val st = fromCStore(cst,CId())
+    val cst = ApproximateRationals.run(Parser.run(Parser.store, txt), TraditionalInterpreterType)
+    val st = fromCStore(cst, CId())
     cst should be (repr(st))
   }
 
@@ -92,8 +92,8 @@ class ParallelInterpreterTest extends FunSuite with ShouldMatchers {
 	seed2 = 7
 }
 """
-    val cst = Parser.run(Parser.store, txt)
-    val st = fromCStore(cst,CId(2))
+    val cst = ApproximateRationals.run(Parser.run(Parser.store, txt), TraditionalInterpreterType)
+    val st = fromCStore(cst, CId(2))
     cst should be (repr(st))
   }
 }

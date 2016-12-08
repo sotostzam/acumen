@@ -4,11 +4,6 @@ import Errors._
 import util.Names._
 import acumen.util.Canonical
 
-sealed abstract class InterpreterType
-case object CStoreInterpreterType extends InterpreterType
-case object EnclosureInterpreterType extends InterpreterType
-case object Enclosure2015InterpreterType extends InterpreterType
-
 trait Parameters extends scala.collection.Map[String, List[InterpreterType]]
 {
   def registerParm(parm: String, intr: InterpreterType)
@@ -23,12 +18,12 @@ object CleanParameters {
 
   // add parameters for CStore based interpreters
   acumen.interpreters.Common.simulatorFields.foreach { parm => 
-    parms.registerParm(parm, acumen.CStoreInterpreterType)
+    parms.registerParm(parm, acumen.TraditionalInterpreterType)
   }
   // add parameters for legacy Enclosure based interpreters
   acumen.interpreters.enclosure.Parameters.defaults.foreach {
     case (parm, _) =>
-      acumen.CleanParameters.parms.registerParm(parm, acumen.EnclosureInterpreterType)
+      acumen.CleanParameters.parms.registerParm(parm, acumen.EnclosureLegacyInterpreterType)
   }
   // add parameters for 2015 Enclosure based interpreters
   acumen.interpreters.enclosure2015.Common.Parameters.defaults.foreach {

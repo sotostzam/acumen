@@ -325,10 +325,10 @@ object Common {
     def setObject(id:CId, o:CObject): Enclosure = initialize(cStore updated (id,o))
     def setObjectField(id:CId, f:Name, v:CValue) : Enclosure = {
       val obj = apply(id)
-      if (f != _3D && f != _3DView && f != devicef && f != _plot && id != simulatorId)
+      if (f != _3D && f != _3DView && f != devicef && f != _plot && id != simulatorId && !isHashVariable(f))
         obj.get(f) map { oldVal =>
           if (oldVal.yieldsPlots != v.yieldsPlots)
-            throw new UnsupportedTypeChangeError(f, id, classOf(obj), oldVal, v, 
+            throw new UnsupportedTypeChangeError(f, id, classOf(obj), oldVal, v,
               "These values require a different number of plots")
         }
       setObject(id, setField(obj,f,v))
@@ -444,7 +444,7 @@ object Common {
                 case (VLit(_:GStr) | _:VResultType | _:VClassName, Some(tv @ (VLit(_:GStr) | _:VResultType | _:VClassName))) => 
                   v == tv
                 case (VObjId(Some(id1)), Some(VObjId(Some(id2)))) =>
-                  require(id1 == id2, s"Contains can not compare objects with different CId: $id1 is not equal to $id2.")
+                  require(id1 == id2, s"Can not compare objects with different CId: $id1 is not equal to $id2.")
                   containsCObject(this(id1), that(id2), id1)
                 case (_, Some(tv)) => 
                   throw internalError(s"Contains not applicable to ${pprint(n)}: ${pprint(v)}, ${pprint(tv)}")
@@ -563,7 +563,7 @@ object Common {
   def fieldIdToName(o: CId, n: Name): String = s"$n@$o"
   
   def internalError(s: String): AcumenError = new AcumenError {
-    def mesg = s 
+    override def getMessage = s 
   }
 
   def internalPosError(s: String, p: Position): PositionalAcumenError = new PositionalAcumenError {

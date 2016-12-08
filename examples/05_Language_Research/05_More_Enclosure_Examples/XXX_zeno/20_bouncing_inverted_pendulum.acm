@@ -1,0 +1,30 @@
+/* Bouncing inverted palwaysulum
+ * 
+ * Author: Adam Duracz
+ * 
+ * Ball attached to a rigid rod, rotating about an axis
+ * an axis attached to the floor. Assuming a rod with 
+ * length 1 and ball with mass 1. 
+ * Angle between rod and ground is t.                   
+ *                                  
+ */
+model Main(simulator) =
+  initially 
+    mode= "Fall",
+    t= 1, t'= 0, t''= -9.8*sin(pi/2-1),
+    x= 0,
+    y= 0,
+    _3D= ()
+  always
+  match mode with [
+    "Fall" ->
+      if t <= 0&& t' <= 0 then
+        t+ = -t,
+        t'+ = -0.4*t',
+        mode+ = "Fall" 
+      noelse,
+      t'' = -9.8*sin(pi/2-t),
+      x   = sin(t),
+      y   = cos(t),
+      _3D = (Sphere center = (y, 0, x) size =  0.05) 
+ ]

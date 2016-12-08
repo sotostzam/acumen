@@ -16,6 +16,7 @@ import scala.collection.mutable
 
 /** Interface common to all interpreters. */
 trait Interpreter {
+  def interpreterType : InterpreterType
   def newInterpreterModel : InterpreterModel
   def lift: Prog => Prog
   def run(p: Prog): InterpreterRes

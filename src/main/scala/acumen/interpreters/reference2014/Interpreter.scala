@@ -31,6 +31,7 @@ import Errors._
 
 object Interpreter extends acumen.CStoreInterpreter {
 
+  val interpreterType = TraditionalInterpreterType
   type Store = CStore
 
   def repr(st:Store) = st
@@ -38,7 +39,7 @@ object Interpreter extends acumen.CStoreInterpreter {
   val initStepType = Discrete
   val timeStep = 0.01
   val outputRows = "WhenChanged"
-  val initStore = initStoreInterpreter(initStep = initStepType, initTimeStep = timeStep, initOutputRows = outputRows, isImperative = false)
+  val initStore = initStoreInterpreter(initStep = initStepType, initTimeStep = timeStep, initOutputRows = outputRows, isImperative = false, interpreterType = TraditionalInterpreterType)
   override def visibleParameters = visibleParametersMap(initStore) + ("method" -> VLit(GStr(RungeKutta))) + ("orderOfIntegration" -> VLit(GInt(4)))
 
   /* initial values */
@@ -300,8 +301,8 @@ object Interpreter extends acumen.CStoreInterpreter {
             } assign(id, d, rhs, env)
       /* Basically, following says that variable names must be 
          fully qualified at this language level */
-      case Assign(_,_) => 
-        throw BadLhs()
+      case Assign(lhs,_) => 
+        throw BadLhs(lhs)
       case Create(lhs, e, es) =>
         for { ve <- asks(evalExpr(e, env, _)) 
               val c = ve match {case VClassName(c) => c; case _ => throw NotAClassName(ve)}
@@ -314,7 +315,7 @@ object Interpreter extends acumen.CStoreInterpreter {
           case Some(Dot(e,x)) => 
             for (id <- asks(evalToObjId(e, env, _)))
               setObjectFieldM(id, x, VObjId(Some(fa))) 
-          case Some(_) => throw BadLhs()
+          case Some(e) => throw BadLhs(e)
         }
       case Elim(e) =>
         for (id <- asks(evalToObjId(e, env, _)))
@@ -364,8 +365,8 @@ object Interpreter extends acumen.CStoreInterpreter {
   def init(prog:Prog) : (Prog, SuperStore, SuperMetadata) = {
     checkNestedHypotheses(prog)
     checkContinuousAssignmentToSimulator(prog)
-    val cprog = CleanParameters.run(prog, CStoreInterpreterType)
-    val sprog = Simplifier.run(cprog)
+    val cprog = CleanParameters.run(prog, TraditionalInterpreterType)
+    val sprog = Simplifier.replaceIntervalsByMidpoints(cprog)
     val mprog = Prog(magicClass :: sprog.defs)
     val (sd1,sd2) = Random.split(Random.mkGen(0))
     val (id,_,st1) = 
@@ -530,7 +531,7 @@ object Interpreter extends acumen.CStoreInterpreter {
             val ts = extractDoubles(vt)
             VVector((us, ts).zipped map ((a, b) => VLit(GDouble(a + b * h))))
           case _ =>
-            throw BadLhs()
+            throw BadLhs(lhs)
         }
         val ResolvedDot(rId,_,rN) = resolveDot(d, e, st)
         updatedEnvs + ((rId, rN) -> v)

@@ -23,4 +23,5 @@ always
   x' = a*x - b*x*y,
   y' = d*x*y - g*y,
   simulator.endTime+ = 30,
-  simulator.orderOfIntegration+ = 7
+  simulator.orderOfIntegration+ = 7,
+  simulator.reorganization+ = "ErrorExceedsWidth"

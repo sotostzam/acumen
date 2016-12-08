@@ -390,7 +390,7 @@ object Main {
           trace.print
           print(md.reportAsString)
         case what => try {
-          val transformed = applyPasses(ast, splitPassesString(what), Nil, extraPasses)
+          val transformed = applyPasses(ast, splitPassesString(what), Nil, extraPasses, i.interpreterType)
           Pretty.withType = true
           println(pprint(transformed))
         } catch {

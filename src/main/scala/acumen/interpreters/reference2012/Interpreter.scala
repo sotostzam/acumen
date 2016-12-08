@@ -31,6 +31,7 @@ import Errors._
 
 object Interpreter extends acumen.CStoreInterpreter {
 
+  val interpreterType = TraditionalInterpreterType
   type Store = CStore
   type Env = Map[Name, CValue]
 
@@ -39,7 +40,7 @@ object Interpreter extends acumen.CStoreInterpreter {
   val initStepType = Discrete
   val timeStep = 0.01
   val outputRows = "WhenChanged"
-  override def visibleParameters = visibleParametersMap(initStoreInterpreter(initStep = initStepType, initTimeStep = timeStep, initOutputRows = outputRows, isImperative = false))
+  override def visibleParameters = visibleParametersMap(initStoreInterpreter(initStep = initStepType, initTimeStep = timeStep, initOutputRows = outputRows, isImperative = false, interpreterType = TraditionalInterpreterType))
 
   /* initial values */
   val emptyStore : Store = HashMap.empty
@@ -277,8 +278,8 @@ object Interpreter extends acumen.CStoreInterpreter {
         } setObjectFieldM(id, x, vt)
       /* Basically, following says that variable names must be 
          fully qualified at this language level */
-      case Assign(_,_) => 
-        throw BadLhs()
+      case Assign(lhs,_) => 
+        throw BadLhs(lhs)
       case Create(lhs, e, es) =>
         for { ve <- asks(evalExpr(e, p, env, _)) 
               val c = ve match {case VClassName(c) => c; case _ => throw NotAClassName(ve)}
@@ -292,7 +293,7 @@ object Interpreter extends acumen.CStoreInterpreter {
             for { id <- asks(evalExpr(e, p, env, _)) map extractId
                   _ <- asks(checkAccessOk(id, env, _))
             } setObjectFieldM(id, x, VObjId(Some(fa))) 
-          case Some(_) => throw BadLhs()
+          case Some(e) => throw BadLhs(e)
         }
       case Elim(e) =>
         for { id <- asks(evalExpr(e, p, env, _)) map extractId
@@ -329,7 +330,7 @@ object Interpreter extends acumen.CStoreInterpreter {
               val ts = extractDoubles(vt)
               VVector((us,ts).zipped map ((a,b) => VLit(GDouble(a + b * dt))))
             case _ =>
-              throw BadLhs()
+              throw BadLhs(lhs)
           })
       case _ =>
         throw ShouldNeverHappen() // FIXME: enforce that with refinment types
@@ -356,12 +357,12 @@ object Interpreter extends acumen.CStoreInterpreter {
   /* Main simulation loop */  
 
   def init(prog:Prog) : (Prog, SuperStore, SuperMetadata) = {
-    val cprog = CleanParameters.run(prog, CStoreInterpreterType)
-    val sprog = Simplifier.run(cprog)
+    val cprog = CleanParameters.run(prog, TraditionalInterpreterType)
+    val sprog = Simplifier.replaceIntervalsByMidpoints(cprog)
     val mprog = Prog(magicClass :: sprog.defs)
     val (sd1,sd2) = Random.split(Random.mkGen(0))
     val (id,_,_,st1) = 
-      mkObj(cmain, mprog, None, sd1, List(VObjId(Some(CId(0)))), 1)(initStoreInterpreter(initStep = initStepType, initTimeStep = timeStep, initOutputRows = outputRows, isImperative = false))
+      mkObj(cmain, mprog, None, sd1, List(VObjId(Some(CId(0)))), 1)(initStoreInterpreter(initStep = initStepType, initTimeStep = timeStep, initOutputRows = outputRows, isImperative = false, interpreterType = TraditionalInterpreterType))
     val st2 = changeParent(CId(0), id, st1)
     val st3 = changeSeed(CId(0), sd2, st2)
     (mprog, Map((Tag.root, st3)), Map((Tag.root, NoMetadata)))

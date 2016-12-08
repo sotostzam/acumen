@@ -478,7 +478,7 @@ object Common {
         val vt = evalExpr(t, p, env)
         setField(id, x, vt, d.pos)
       case Assign(lhs, _) =>
-        throw BadLhs().setPos(lhs.pos)
+        throw BadLhs(lhs)
       case Create(lhs, e, es) =>
         val c = evalExpr(e, p, env) match {
           case VClassName(cn) => cn
@@ -493,7 +493,7 @@ object Common {
           case Some(d@Dot(e, x)) =>
             val id = evalToObjId(e, p, env)
             logModified || setField(id, x, VObjId(Some(fa)), d.pos)
-          case Some(e) => throw BadLhs().setPos(e.pos)
+          case Some(e) => throw BadLhs(e)
         }
       case Elim(e) =>
         val id = evalToObjId(e, p, env)
@@ -528,7 +528,7 @@ object Common {
             val ts = extractDoubles(vt)
             VVector((us, ts).zipped map ((a, b) => VLit(GDouble(a + b * dt))))
           case _ =>
-            throw BadLhs()
+            throw BadLhs(lhs)
         },d.pos)
       } else if (magic.phaseParms.gatherEquationI) {
         val id = evalToObjId(e, p, env)

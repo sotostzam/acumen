@@ -211,6 +211,7 @@ object Common {
         case VLit(l)         => VLit(l)
         case VClassName(cn)  => VClassName(cn)
         case VResultType(st) => VResultType(st)
+        case VLambda(f, v, e) => VLambda(f, v, e)
       }
     def convertObject(o: Object): CObject = {
       val p = VObjId(o.parent match {
@@ -264,6 +265,7 @@ object Common {
         case VObjId(None)    => VObjId(None)
         case VClassName(cn)  => VClassName(cn)
         case VResultType(s)  => VResultType(s)
+        case VLambda(f, v, e) => VLambda(f, v, e)
       }
     def convertId(id: CId): Unit = {
       if (!treated(id)) {
@@ -548,6 +550,14 @@ object Common {
                 r + (bName -> eval(env, bExpr))
             }
           eval(eWithBindingsApplied, e)
+        case Lambda(vs, f) =>
+          val freeVariables = acumen.Specialization.findDots(f)
+          val closure = freeVariables.map(x => (x, eval(env, x).asInstanceOf[VLit])).toMap
+          VLambda(vs, f, closure)
+        case BetaReduction(VLambda(bv, body, closure), args) =>
+          val newEnv = env ++ closure.map(x => (x._1.field, x._2)) ++ (bv map (_.name) zip
+            (args map (eval(env, _)))).toMap
+          eval(newEnv, body)
       }
     } catch {
       case err: PositionalAcumenError => err.setPos(e.pos); throw err
@@ -692,7 +702,7 @@ object Common {
         } else noChange
 
       case Assign(lhs, _) =>
-        throw BadLhs().setPos(lhs.pos)
+        throw BadLhs(lhs)
       case Create(lhs, e, es) =>
 
         // "Now": Not used, kept for legacy
@@ -713,7 +723,7 @@ object Common {
             case Some(d@Dot(e, x)) => 
               val id = evalToObjId(e, p, env)
               logModified || setField(id, x, VObjId(Some(fa)), d.pos)
-            case Some(e) => throw BadLhs().setPos(e.pos)
+            case Some(e) => throw BadLhs(e)
           }
         
         // "Gather": Collecting discrete assignments
@@ -744,7 +754,7 @@ object Common {
 
               logModified // The || setField from "Now" would at most add another logModified so can be safely ignored 
 
-            case Some(e) => throw BadLhs().setPos(e.pos)
+            case Some(e) => throw BadLhs(e)
           }
         } else noChange
 
@@ -799,7 +809,7 @@ object Common {
               val ts = extractDoubles(vt)
               VVector((us, ts).zipped map ((a, b) => VLit(GDouble(a + b * dt))))
             case _ =>
-              throw BadLhs()
+              throw BadLhs(lhs)
           },d.pos)
 
         // "Gather": Collecting differential equations

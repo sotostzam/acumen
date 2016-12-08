@@ -9,9 +9,10 @@ import scala.collection.immutable.{HashMap,PagedSeq}
 import scala.util.parsing.input.Position
 import java.io.File
 import java.io.BufferedReader
-
+import spire.math.Rational
 import org.apache.commons.math3.distribution.NormalDistribution
 
+import Constants._
 import Errors._
 import interpreters.enclosure.{NormalDistribution, UniformDistribution, SplitterDistribution}
 
@@ -19,7 +20,7 @@ import interpreters.enclosure.{NormalDistribution, UniformDistribution, Splitter
 class MyLexical extends StdLexical {
 
   /* more tokens than is StdTokens (adding new constructors to Token)*/
-  case class FloatLit(chars: String) extends Token {
+  case class RationalLit(chars: String) extends Token {
     override def toString = chars
   }
 
@@ -27,7 +28,7 @@ class MyLexical extends StdLexical {
     override def toString = chars
   }
 
-  /* we don't want to parse characters, and we want to parse floats,
+  /* we don't want to parse characters, and we want to parse rationals,
    * so we override the definition of the token parser */
   override def token: Parser[Token] =
     (ident | numlit | stringlit | eof
@@ -50,7 +51,7 @@ class MyLexical extends StdLexical {
   private def intlit = rep1(digit) ^^ (_ mkString "")
   private def numlit: Parser[Token] =
     intlit ~ opt(fraction ~ option(exponent, "")) ^^ {
-      case intlit ~ Some(frac ~ exp) => FloatLit(List(intlit, frac, exp) mkString "")
+      case intlit ~ Some(frac ~ exp) => RationalLit(List(intlit, frac, exp) mkString "")
       case intlit ~ None => NumericLit(intlit)
     }
   private def sign = elem('+') | elem('-')
@@ -73,8 +74,8 @@ class MyStdTokenParsers extends StdTokenParsers {
   type Tokens = MyLexical;
   val lexical = new MyLexical
 
-  def floatLit: Parser[String] =
-    elem("floating number", _.isInstanceOf[lexical.FloatLit]) ^^ (_.chars)
+  def rationalLit: Parser[String] =
+    elem("rational number", _.isInstanceOf[lexical.RationalLit]) ^^ (_.chars)
 
   def cidLit: Parser[String] =
     elem("canonical id", _.isInstanceOf[lexical.CIdLit]) ^^ (_.chars)
@@ -149,7 +150,7 @@ object Parser extends MyStdTokenParsers {
     List("foreach", "end", "if", "else","elseif", "create", "move", "in", "terminate", "model","then","initially","always",
          "sum", "true", "false", "init", "match","with", "case", "claim", "hypothesis", "let","noelse", "typeOf",
          "Initial", "Continuous", "Discrete", "FixedPoint", "none","cross","do","dot","for","_3D","zeros","ones", "_plot",
-         "splitby", "central", "normald", "uniformd", "betad")
+         "splitby", "central", "normald", "uniformd", "betad", "function", "Surface")
 
   /* token conversion */
 
@@ -179,9 +180,8 @@ object Parser extends MyStdTokenParsers {
 
   def smartMinus(e: Expr): Expr = {
     e match {
-      case e@Lit(GDouble(x)) => Lit(GDouble(-x)).setPos(e.pos)
-      case e@Lit(GInt(x)) => Lit(GInt(-x)).setPos(e.pos)
-      case other => mkOp("*",Lit(GInt(-1)), other)
+      case e@Lit(GRational(x)) => Lit(GRational(-x)).setPos(e.pos)
+      case other => mkOp("*",Lit(GRational(-1)), other)
     }
   }
 
@@ -206,17 +206,21 @@ object Parser extends MyStdTokenParsers {
 
   /* ground values parsers */
 
-  def gvalue = positioned(gint | gfloat | gstr | gbool | gpattern)
+  def gvalue = positioned(gdivide | gint | grational | gstr | gbool | gpattern)
 
+  def gdivide = opt("-") ~ numericLit ~ "/" ~ numericLit ^^ {
+    case m ~ n ~ _~ d =>
+      val (rn, rd) = (n.toInt, d.toInt)
+      GRational(if (m.isDefined) Rational(-rn,rd) else Rational(rn,rd))
+  }
   def gint = opt("-") ~ numericLit ^^ {
     case m ~ x =>
       val res = x.toInt
-      GInt(if (m.isDefined) -res else res)
+      GRational(if (m.isDefined) -res else res)
   }
-  def gfloat = opt("-") ~ floatLit ^^ {
+  def grational = opt("-") ~ rationalLit ^^ {
     case m ~ x =>
-      val res = x.toDouble
-      GDouble(if (m.isDefined) -res else res)
+      GRational(spire.math.Rational(if (m.isDefined) "-" + x else x))
   }
   def gstr = stringLit ^^ GStr
   def gbool = "true" ^^^ GBool(true) | "false" ^^^ GBool(false)
@@ -228,11 +232,16 @@ object Parser extends MyStdTokenParsers {
 
   def getSemantics = opt(semantics) <~ rep(acceptIf( _ => true)(_ => ""))
   
-  def fullProg = opt(semantics) ~> rep(include) ~ rep(classDef) ^^ { case incl ~ defs => (incl, defs) }
+  def fullProg = opt(semantics) ~> rep(include) ~ rep(function) ~ rep(classDef) ^^
+    { case incl ~ funcs ~ defs => (incl, funcs, defs) }
 
   def semantics = positioned("#semantics" ~! stringLit ^^ { case _ ~ str => SemanticsSpec(str) })
 
   def include = positioned("#include" ~! stringLit ^^ { case _ ~ str => Include(str) })
+
+  def function = positioned("function" ~ ident ~ args(name) ~ "=" ~ expr ^^ {
+    case _ ~ f ~ args ~ _ ~ body => Function(f, args, body)
+  })
 
   def classInit = "model" ~ className ~ args(name) ~ "="  ~ inits 
   def classDef = positioned(
@@ -257,7 +266,7 @@ object Parser extends MyStdTokenParsers {
   def actions = repsep(action, ",") 
 
   def action: Parser[Action] =
-    switchCase | ifThenElse | forEach | discretelyOrContinuously | claim | hypothesis
+    positioned(switchCase | ifThenElse | forEach | discretelyOrContinuously | claim | hypothesis)
 
   def switchCase =
     "match" ~ expr ~ "with" ~"[" ~! clauses ~! "]" ^^
@@ -319,17 +328,17 @@ object Parser extends MyStdTokenParsers {
   def patternMatch : Parser[Continuously] = positioned(pattern) ~ "=" ~ expr ^^{case p ~ _ ~ e => Continuously(Assignment(p,e))}
 
   def discretelyOrContinuously =
-    (newObject(None) ^^ Discretely | elim ^^ Discretely 
+    positioned(newObject(None) ^^ Discretely | elim ^^ Discretely 
       | move ^^ Discretely | assignOrEquation | _3DAction | patternMatch | _plotAction)
 
   def assignOrEquation =
     // Make sure lhs won't be an expr like a == b, which has the same syntax as equation
-    expr >> { e =>
+    positioned(expr >> { e =>
       (	"=" ~> expr ^^ (e1 => Continuously(Equation(e, e1)))
         |"+" ~> "=" ~> assignrhs(e) ^^ Discretely     
         | "=[i]" ~> expr ^^ (e1 => Continuously(EquationI(e, e1)))
         | "=[t]" ~> expr ^^ (e1 => Continuously(EquationT(e, e1))))
-    }
+    })
     
   def _3DAction = 
     "_3D" ~ "="  ~ threeDRhs ^^ {
@@ -338,7 +347,7 @@ object Parser extends MyStdTokenParsers {
     case _ ~ _~_ ~ ls => Discretely(Assign(Var(Name("_3D",0)), ls))
   }
   def assignrhs(e: Expr) =
-    (expr ^^ (Assign(e, _)) | newObject(Some(e)))
+    positioned(expr ^^ (Assign(e, _)) | newObject(Some(e)))
 
   def newObject(lhs: Option[Expr]) =
     positioned(
@@ -353,7 +362,7 @@ object Parser extends MyStdTokenParsers {
 
   def binding = name ~! "=" ~! expr ^^ { case x ~ _ ~ e => (x, e) }
 
-  def bindings = repsep(binding, ",") <~opt(",")
+  def bindings = repsep(binding, opt(",")) <~opt(",")
 
   def let:Parser[Expr] =
       positioned("let" ~! bindings ~! "in" ~! expr  ^^
@@ -393,7 +402,7 @@ object Parser extends MyStdTokenParsers {
       (":" ~! level5 >> {
         case _ ~ y =>
           (":" ~! level5 ^^ { case _ ~ z => mkOp("_:_:_", x, y, z) }
-            | success(mkOp("_:_:_", x, Lit(GInt(1)), y)))
+            | success(mkOp("_:_:_", x, RationalOneLit, y)))
       }
         | success(x))
     }
@@ -426,7 +435,8 @@ object Parser extends MyStdTokenParsers {
 
   def call: Parser[Expr] =
     access >> { e => args(expr) ^^ { es => /*println(Call(e,es))*/; Call(e, es) } | success(e) }
-
+    
+  def lambda = args(name) ~ "->" ~ expr ^^ { case vs ~ _ ~ e => Lambda(vs map Var, e) }
 
   def access: Parser[Expr] = 
     atom >> { e =>
@@ -439,6 +449,7 @@ object Parser extends MyStdTokenParsers {
     {case ls => ExprVector(ls.map(x => ExprVector(List(x))))}
   def atom: Parser[Expr] =
     positioned( sum
+      | lambda
       | difExpr
       | dif   
       | parens(expr)
@@ -460,26 +471,24 @@ object Parser extends MyStdTokenParsers {
             case Some(_ ~ f) => f
           })} 
      
-  final val one = Lit(GInt(1))
-  final val zero = Lit(GInt(0))
-  
-  def vectorConstruct : Parser[ExprVector] = 
-    "ones" ~ parens(rep1sep(gint,",")) ^^ {case _ ~ls => vectorHelper("ones", ls.map(x => x.i))}  |
-    "zeros" ~ parens(rep1sep(gint,",")) ^^ {case _ ~ ls => vectorHelper("zeros", ls.map(x => x.i))} |
-    "("~")" ^^{case _ ~ _ => ExprVector(List.empty)}
-   
-  def vectorHelper(name:String, dimensions:List[Int]):ExprVector = dimensions match{
-    case n :: Nil => ExprVector((for (i<- 0 to n-1) yield if(name == "zeros") zero else one).toList)
-    case n :: tail => ExprVector((for (i<- 0 to n-1) yield vectorHelper(name,tail)).toList)
+  def vectorConstruct : Parser[ExprVector] = {
+    def vectorHelper(name:String, dimensions:List[Int]):ExprVector = dimensions match{
+      case n :: Nil => ExprVector((for (i<- 0 to n-1) yield if(name == "zeros") RationalZeroLit else RationalOneLit).toList)
+      case n :: tail => ExprVector((for (i<- 0 to n-1) yield vectorHelper(name,tail)).toList)
+    }
+    "ones" ~ parens(rep1sep(gint,",")) ^^ { case _ ~ls => vectorHelper("ones", ls.map(_.r.toInt)) }  |
+    "zeros" ~ parens(rep1sep(gint,",")) ^^ { case _ ~ ls => vectorHelper("zeros", ls.map(_.r.toInt)) } |
+    "(" ~ ")" ^^ { case _ ~ _ => ExprVector(List.empty) }
   }
-   def dif = lagrange | difVar 
+   
+  def dif = lagrange | difVar 
 
   def lagrange: Parser[Expr] = difVar ~ rep("'") ^^ {case e ~ ps => recursiveDif(e,ps.size)}
 
   def difVar: Parser[Expr] = ident ~ rep("'") ~ brackets(repsep(expr,",")) ^^ {
-           case x ~ ps ~ List(y) =>  recursiveDif(Var(Name(x,0)),ps.size,y)
-                             case x ~ ps ~ ls => ExprVector(ls.map(z => recursiveDif(Var(Name(x,0)),ps.size,z)))
-        }
+     case x ~ ps ~ List(y) =>  recursiveDif(Var(Name(x,0)),ps.size,y)
+     case x ~ ps ~ ls => ExprVector(ls.map(z => recursiveDif(Var(Name(x,0)),ps.size,z)))
+  }
   def difExpr: Parser[Expr] =  
     parens(expr) >> { e1 =>
       (positioned(  rep1("'")~ opt(brackets(rep1sep(expr,","))) ^^ 
@@ -544,49 +553,49 @@ object Parser extends MyStdTokenParsers {
   def splitIntervalUniform: Parser[Expr] =
     "uniformd" ~ "(" ~ nlit ~ "," ~ nlit ~ ")" ~ opt("central" ~ nlit) ~ "splitby" ~ gint ^^ {
       case "uniformd" ~ "(" ~ lo ~ "," ~ hi ~ ")" ~ p ~ "splitby" ~ n =>
-        if(p.isEmpty) ExprSplitterUniform(lo, hi, Lit(GDouble(1)), Lit(n))
+        if(p.isEmpty) ExprSplitterUniform(lo, hi, RationalOneLit, Lit(n))
         else ExprSplitterUniform(lo, hi, p.get._2, Lit(n))
     }
   def splitIntervalBeta: Parser[Expr] =
     "betad" ~ "(" ~ nlit ~ "," ~ nlit ~ "," ~ nlit ~ "," ~ nlit ~ ")" ~ opt("central" ~ nlit) ~ "splitby" ~ gint ^^ {
       case "betad" ~ "(" ~ lo ~ "," ~ hi ~ "," ~ a ~ "," ~ b ~ ")" ~ p ~ "splitby" ~ n =>
-        if(p.isEmpty) ExprSplitterBeta(lo, hi, a, b, Lit(GDouble(1)), Lit(n))
+        if(p.isEmpty) ExprSplitterBeta(lo, hi, a, b, RationalOneLit, Lit(n))
         else ExprSplitterBeta(lo, hi, a, b, p.get._2, Lit(n))
     }
 
-  def lit = positioned((gint | gfloat | gstr) ^^ Lit)
+  def lit = positioned((gint | grational | gstr) ^^ Lit)
 
   //allowed syntax for values in the command line
-  def cl_lit = (gint | gfloat | gbool | gstr) ^^ Lit
+  def cl_lit = (gint | grational | gbool | gstr) ^^ Lit
 
   def name: Parser[Name] =
     (ident) ~! rep("'") ^^ { case id ~ ps => Name(id, ps.size) }
 
   def className: Parser[ClassName] = ident ^^ (ClassName(_))
 
-  def nlit = (gfloat | gint) ^^ Lit
+  def nlit = (grational | gint) ^^ Lit
   
-  def get(gv: GroundValue): Double = gv match {
+  def get(gv: GroundValue): Rational = gv match {
     case GInt(i) => i
-    case GDouble(d) => d
-    case _ => sys.error("could not convert " + gv + "to GDouble")
+    case GRational(d) => d
+    case _ => sys.error("could not convert " + gv + "to GRational")
   }
   /* 3d configurations parser */
-  val defaultCenter = ExprVector(List(Lit(GInt(0)),Lit(GInt(0)),Lit(GInt(0))))
-  val defaultScale = Lit(GDouble(0.2))
-  val defaultSize = ExprVector(List(Lit(GDouble(0.4)),Lit(GDouble(0.4)),
-                                    Lit(GDouble(0.4))))
-  val defaultSizeCylinder = ExprVector(List(Lit(GDouble(0.2)),Lit(GDouble(0.4))))                                  
-  val defaultLength = Lit(GDouble(0.4))
-  val defaultRadius = Lit(GDouble(0.2))
+  val defaultCenter = ExprVector(List(RationalZeroLit,RationalZeroLit,RationalZeroLit))
+  val defaultScale  = Lit(GRational(0.2)) 
+  val defaultSize   = ExprVector(List(Lit(GRational(0.4)),Lit(GRational(0.4)),
+                                    Lit(GRational(0.4))))
+  val defaultSizeCylinder = ExprVector(List(Lit(GRational(0.2)),Lit(GRational(0.4))))                                  
+  val defaultLength = Lit(GRational(0.4))
+  val defaultRadius = Lit(GRational(0.2))
   val defaultContent = Lit(GStr(" "))
-  val defaultColor = ExprVector(List(Lit(GInt(1)),Lit(GInt(1)),Lit(GInt(1))))
-  val defaultRotation = ExprVector(List(Lit(GInt(0)),Lit(GInt(0)),Lit(GInt(0))))
-  val defaultPoints = ExprVector(List(ExprVector(List(Lit(GInt(0)),Lit(GInt(0)),Lit(GInt(0)))),
-                                      ExprVector(List(Lit(GInt(1)),Lit(GInt(0)),Lit(GInt(0)))),
-                                      ExprVector(List(Lit(GInt(0)),Lit(GInt(1)),Lit(GInt(0))))))
+  val defaultColor = ExprVector(List(RationalOneLit,RationalOneLit,RationalOneLit))
+  val defaultRotation = ExprVector(List(RationalZeroLit,RationalZeroLit,RationalZeroLit))
+  val defaultPoints = ExprVector(List(ExprVector(List(RationalZeroLit,RationalZeroLit,RationalZeroLit)),
+                                      ExprVector(List(RationalOneLit,RationalZeroLit,RationalZeroLit)),
+                                      ExprVector(List(RationalZeroLit,RationalOneLit,RationalZeroLit))))
   val defaultCoordinates = Lit(GStr("Global"))
-  val defaultTransparency = Lit(GDouble(-1.0))
+  val defaultTransparency = Lit(GDouble(-1))
 
   // _3D parameter names with valid dimensions (Nil for parameters whose values are not vectors) 
   val paramDimensions: Map[String, List[Int]] =
@@ -602,10 +611,11 @@ object Parser extends MyStdTokenParsers {
        , "size"         -> List(2,3)
        , "points"       -> List(3)
        , "transparency" -> Nil
+       , "resolution"   -> Nil
        )
   
        
-  def _3DVector:Parser[Expr] = parens(expr ~ "," ~ expr) ^^{case e1 ~_~e2 => ExprVector(e1::e2::Lit(GInt(0))::Nil)}
+  def _3DVector:Parser[Expr] = parens(expr ~ "," ~ expr) ^^{case e1 ~_~e2 => ExprVector(e1::e2::RationalZeroLit::Nil)}
   def _3DOp:Parser[Expr] = _3DPara ~ "+" ~ _3DPara ^^ { case e1 ~_~ e2 => Op(Name("+",0),e1::e2::Nil)} |
                            _3DPara ~ "-" ~ _3DPara ^^ { case e1 ~_~ e2 => Op(Name("-",0),e1::e2::Nil)}
   def _3DPara:Parser[Expr] = _3DVector | expr
@@ -615,13 +625,38 @@ object Parser extends MyStdTokenParsers {
     else throw new PositionalAcumenError{
          def mesg = n.x + " is not a valid _3D parameter" 
          }.setPos(e.pos) }
-  def threeDObject:Parser[ExprVector] = optParens(name ~ rep(threeDPara)) ^^ {case n ~ ls =>threeDParasProcess(n,ls)}
-  def threeDRhs = parens(repsep(threeDObject, opt(","))) ^^ {case ls => ls match{
-    case List(single) => single
-    case _ => ExprVector(ls)
-  }}
   
-  def _3DVectorHelper(n:Name,v:Expr,x:String):Expr = v match{
+  def threeDObject:Parser[ExprVector] = thereDSurface |
+    optParens(name ~ rep(threeDPara))  ^^ {case n ~ ls => threeDParasProcess(n,ls)}
+
+  def threeDRhs = parens(repsep(threeDObject, opt(","))) ^^ {
+    case ls => ls match {
+      case List(single) => single
+      case _            => ExprVector(ls)
+    }
+  }
+  def thereDSurface: Parser[ExprVector] = "Surface" ~ args(name) ~ "->" ~ expr ~ "foreach" ~ binding ~ binding ~ rep(threeDPara) ^^ {
+    case _ ~ ns ~ _ ~ f ~ _ ~ x ~ y ~ bs => surfaceHelper(Var(ns(0)), Var(ns(1)), f, x :: y :: bs)
+  }
+
+  def surfaceHelper(x: Var, y: Var, f: Expr, bs: List[(Name, Expr)]): ExprVector = {
+    val lambda = Lambda(x :: y :: Nil, f)
+    val range = bs.find(_._1 == x.name).get._2 :: bs.find(_._1 == y.name).get._2 :: Nil
+    val rangeNumber = range match {
+      case ExprInterval(low1, high1) :: ExprInterval(low2, high2) :: Nil =>
+        ExprVector(low1 :: high1 :: low2 :: high2 :: Nil)
+      case _ => error("Wrong range for " + Pretty.pprint[Expr](lambda))
+    }
+
+    val resolution = bs.filter(_._1.x == "resolution") match {
+      case Nil    => Lit(GDouble(0.1))
+      case s :: l => s._2
+    }
+    val otherParas = threeDParasProcess(Name("Surface", 0), bs.diff(range))
+    ExprVector(otherParas.l.updated(2, resolution) :+ lambda :+ rangeNumber)
+  }
+
+  def _3DVectorHelper(n: Name, v: Expr, x: String): Expr = v match {
     case ExprVector(ls) => 
       if (ls.forall(x => x match{
         case _ @ Lit(GStr(_) | GBool(_)) => false
@@ -767,10 +802,8 @@ object Parser extends MyStdTokenParsers {
     val transparency = paras.find(_._1.x == "transparency") match {
       case Some(x) =>
         x._2 match {
-          case Lit(GDouble(_)) => x._2
-          case Lit(GInt(_)) => x._2
-          case Lit(_) => error("_3D object " + name + "'s 'transparency' parameter should either be a float number " +
-            "between 0 to 1 or negative value")
+          case Lit(GRational(_)) => x._2
+          case Lit(_) => throw _3DTransparencyError(Some(name))
           case _ => x._2
         }
       case None => defaultTransparency
@@ -827,10 +860,10 @@ object Parser extends MyStdTokenParsers {
       case "Sphere" => ExprVector(List(Lit(GStr("Sphere")),center,checkSize(name),color,rotation,coordinates,transparency))
       case "Text" => ExprVector(List(Lit(GStr("Text")),center,size,color,rotation,content,coordinates,transparency))
       case "Obj" => ExprVector(List(Lit(GStr("OBJ")),center,size,color,rotation,content,coordinates,transparency))
-      case "Triangle" => ExprVector(List(Lit(GStr("Triangle")),center,points,color,rotation,coordinates,transparency,height))
+      case "Triangle" => ExprVector(List(Lit(GStr("Triangle")), center, points, color, rotation, coordinates, transparency, height))
+      case "Surface"  => ExprVector(List(Lit(GStr("Surface")), center, size, color, rotation, coordinates, transparency))
       case _ => error("Unsupported 3D object " + name)
     }
-
   }
   def _plotAction =
     "_plot" ~ "="  ~ plotRhs ^^ {

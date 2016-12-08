@@ -1,12 +1,10 @@
 // Contracting continuous system example
 
-#semantics "enclosure2014-contraction"
 model Main(simulator) =
 initially 
   x = [-1 .. 1], x' = 1 
 always x' = -x
 
 // NOTE: Example of exponentially stable system.
-//       When Semantics > Enclosure > Contraction is enabled, 
-//       and the differential equation is exponentially stable,
+//       The differential equation is exponentially stable,
 //       enclosures will contract over time.

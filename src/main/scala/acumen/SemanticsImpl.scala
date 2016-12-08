@@ -60,8 +60,10 @@ abstract class SemanticsImpl[+I <: Interpreter] extends SemanticsSel
       else None
     }
 
-    val (incl, defs) = Parser.run(Parser.fullProg, s, file)
-    defs.foreach{case defn@ClassDef(cn,_,_,_) => 
+    val (incl,functions, defs) = Parser.run(Parser.fullProg, s, file)
+    val functionInlineMap = new FunctionInline(functions)
+    val inlinedDefs = defs map functionInlineMap.mapClassDef
+    inlinedDefs.foreach{case defn@ClassDef(cn,_,_,_) => 
       if (seen.contains(cn)) {
         val err = ClassIncludedTwice(cn, defn.pos :: includedFrom, seen(cn))
         if (includedFrom.nonEmpty) err.setPos(includedFrom.head)
@@ -79,15 +81,15 @@ abstract class SemanticsImpl[+I <: Interpreter] extends SemanticsSel
         else dir
       val in = new InputStreamReader(new FileInputStream(new File(inclDir,fn)))
       parseHelper(in, inclDir, Some(fn), incl.pos :: includedFrom, seen)
-    } ++ defs
+    } ++ inlinedDefs
   }
 
   def applyPasses(p: Prog, extraPasses: Seq[String]) : Prog =
-    PassManager.applyPasses(p, semantics.requiredPasses, semantics.defaultPasses, extraPasses)
+    PassManager.applyPasses(p, semantics.requiredPasses, semantics.defaultPasses, extraPasses, interpreter.interpreterType)
   // withArgs returns when given an invalid argument, calling function
   // is expected to throw an error
   def applyRequiredPasses(p: Prog) : Prog = 
-    PassManager.applyPasses(p, semantics.requiredPasses, Nil, Nil)
+    PassManager.applyPasses(p, semantics.requiredPasses, Nil, Nil, interpreter.interpreterType)
   override def withArgs(args: List[String]) = args match {case Nil => this; case _ => null}
   override def argsHelpString : String = ""
 }
@@ -111,7 +113,7 @@ object SemanticsImpl {
   case class Enclosure2015(contraction: Boolean) extends CStore {
     override val isOldSemantics  = false
     val i = enclosure2015.Interpreter(contraction)
-    val semantics = Semantics(None, Seq("desugar-local-inline"), Seq("SD"))
+    val semantics = Semantics(None, Seq("BTA", "desugar-local-inline"), Main.extraPasses)
     def interpreter() = i
   }
   object Imperative2012 extends CStore {

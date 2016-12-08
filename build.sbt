@@ -45,61 +45,27 @@ libraryDependencies ++= Seq(
    "org.jfree" % "jcommon" % "1.0.17"
 )
 
+//
+// Packaging
+//
+
 // Add resources in project root directory to class path
 unmanagedResources in Compile ++= Seq("AUTHORS","LICENSE","LICENSE-Rice","LICENSE-AIC").map(new File(_))
 
-// FIXME: Is this necessary
-retrieveManaged := true
-
-// SCCT
-// seq(ScctPlugin.instrumentSettings : _*)
-
-//
-// Exclude files that start with XXX from the jar file
-//
-
-mappings in (Compile,packageBin) ~= { (ms: Seq[(File, String)]) =>
-  ms filter { case (file, toPath) =>
-    !toPath.contains("/XXX")
-  }
-}
-
-//
-// enable proguard
-//
-
-seq(ProguardPlugin.proguardSettings :_*)
-
-proguardDefaultArgs := Seq("-dontwarn", "-dontobfuscate")
-
-// don't shrink as proguard gets it wrong in some cases
-proguardDefaultArgs += "-dontshrink"
-
-// temporary hack to get proguard working with enclosure code
-proguardOptions ++= Seq("-keep class org.jfree.resources.**",
-                        "-keep class org.jfree.chart.resources.**",
-                        "-keep class org.fife.**")
-
-// for faster jar creation (but larger file)
-proguardDefaultArgs += "-dontoptimize"
-
-// Do not include any signature files from other jars, they cause
-// nothing but problems.
-makeInJarFilter ~= {
-  (makeInJarFilter) => {
-    (file) => makeInJarFilter(file) + ",!**/*.RSA,!**/*.SF,!**/*.DSA"
+jarName in assembly := "acumen.jar"
+test in assembly := {} // skip tests during packaging
+assemblyMergeStrategy in assembly := { 
+  case PathList(ps @ _*) if Assembly.isReadme(ps.last) || Assembly.isLicenseFile(ps.last) =>
+    MergeStrategy.rename
+  case PathList("META-INF", xs @ _*) =>
+    (xs map {_.toLowerCase}) match {
+      case ("manifest.mf" :: Nil) | ("index.list" :: Nil) | ("dependencies" :: Nil) =>
+        MergeStrategy.discard
+      case ps @ (x :: xs) if ps.last.endsWith(".sf") || ps.last.endsWith(".dsa") =>
+        MergeStrategy.discard
+      case _ => MergeStrategy.deduplicate
     }
-  }
-
-
-// modify package(-bin) jar file name
-artifactPath in (Compile, packageBin) <<= (crossTarget, moduleName, version) {
-  (path, name, ver) => path / (name + "-" + ver + ".pre.jar")
-}
-
-// modify proguard jar file name
- minJarPath <<= (crossTarget, moduleName, version) {
-   (path, name, ver) => path / (name + "-" + ver + ".jar")
+  case _ => MergeStrategy.deduplicate
 }
 
 //
@@ -108,9 +74,9 @@ artifactPath in (Compile, packageBin) <<= (crossTarget, moduleName, version) {
 
 mainClass in Compile <<= theMainClass map { m => Some(m) }
 
-proguardOptions <<= (proguardOptions, theMainClass) {
-  (prev, main) => prev :+ (keepMain(main))
-}
+//
+// Configuration for Execution and Test
+//
 
 fork in run := true
 

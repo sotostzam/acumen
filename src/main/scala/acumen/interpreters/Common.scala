@@ -1,6 +1,8 @@
 package acumen
 package interpreters
 
+import spire.math.Rational
+
 import TAD.{ TDif }
 import util.Names._
 import Pretty._
@@ -13,10 +15,9 @@ import scala.util.parsing.input.Position
 import reflect.runtime.universe.TypeTag
 import enclosure2015.Common._
 import acumen.interpreters.enclosure._
-//
-// Common stuff to CStore Interpreters
-//
+import acumen.InterpreterType
 
+/** Code shared by CStore Interpreters */
 object Common {
   
   trait Environment[V] extends Any {
@@ -61,12 +62,16 @@ object Common {
         case Lit(GBool(b))          => Lit(if (b) CertainTrue else CertainFalse)
         case Lit(GInt(i))           => Lit(GConstantRealEnclosure(i))
         case Lit(GDouble(d))        => Lit(GConstantRealEnclosure(d))
+        case Lit(GRational(i))      => Lit(GConstantRealEnclosure(i))
         case Lit(GInterval(i))      => Lit(GConstantRealEnclosure(i))
-        case ExprInterval( Lit(lo@(GDouble(_)|GInt(_)))  // FIXME Add support for arbitrary expression end-points
-                         , Lit(hi@(GDouble(_)|GInt(_))))    
-                                    => Lit(GConstantRealEnclosure(Interval(extractDouble(lo), extractDouble(hi))))
-        case ExprInterval(lo,hi)    => sys.error("Only constant interval end-points are currently supported. Offending expression: " + pprint(e))
-        case ExprIntervalM(lo,hi)   => sys.error("Centered interval syntax is currently not supported. Offending expression: " + pprint(e))
+        case ExprInterval(lo,hi)    => throw new PositionalAcumenError {
+          def mesg = "Only constant interval end-points are currently supported." // ExprInterval should have been eliminated by ApproximateRationals
+          pos = e.pos
+        }
+        case ExprIntervalM(lo,hi)   => throw new PositionalAcumenError {
+          def mesg = "Centered interval syntax is currently not supported."
+          pos = e.pos
+        }
         // Convert an ExprSplitInterval'smth to the uncertain version of a SplitInterval which can be used as an Interval by the interpreter.
         case esi : ExprSplitInterval => liftSplitIntervalToUncertain(esi)
         case esd : ExprSplitterDistribution => liftSplitIntervalToUncertain(esd)
@@ -84,10 +89,17 @@ object Common {
   def liftSplitIntervalToUncertain(e: Expr): Expr = {
     def intHelper(e: Expr): Int = e match {
       case Lit(n @ GInt(_)) => extractInt(n)
+      case Lit(n @ GConstantRealEnclosure(i)) if i.isValidInt => i.toInt
       case _ => throw ShouldNeverHappen()
     }
     def doubleExtractor(e: Expr): Double = e match {
       case Lit(x @ (GDouble(_) | GInt(_))) => extractDouble(x)
+      case Lit(GConstantRealEnclosure(i)) => 
+        val d = i.loDouble
+        if (i.isThin) d else {
+          Logger.log(s"Warning: Unsound approximation of ${pprint(e)} as $d")
+          d
+        }         
       case _ => throw ShouldNeverHappen()
     }
     def booleanExtractor(e: Expr): Boolean = e match {
@@ -97,8 +109,8 @@ object Common {
     e match {
       case ExprSplitInterval(i, s) =>
         val interval = i match {
-          case ExprInterval(lo, hi)
-          => Interval(doubleExtractor(lo), doubleExtractor(hi))
+          case Lit(GConstantRealEnclosure(ivl)) => ivl  
+          case ExprInterval(lo, hi) => Interval(doubleExtractor(lo), doubleExtractor(hi))
         }
         s match {
           case ExprSplitterPoints(ps, kps) =>
@@ -141,7 +153,16 @@ object Common {
    *  to an absolute qualified name in a given object (identified by CId). */
   def resolveDot(d: Dot, env: Env, st: CStore): ResolvedDot = d match {
     case Dot(Var(on), n)          => ResolvedDot(extractId(env(on)), d, n)
-    case Dot(Dot(Var(pn), on), n) => ResolvedDot(extractId(st(extractId(env(pn)))(on)), d, n)
+    case Dot(Dot(Var(pn), on), n) => 
+      val pid = env.get(pn) match {
+        case Some(id) => extractId(id) 
+        case None => throw ShouldNeverHappen()
+      }
+      val oid = st(pid).get(on) match {
+        case Some(obj) => extractId(obj)
+        case None => throw UnsupportedFeatureError("Child field access is", "enclosure", d.pos)
+      } 
+      ResolvedDot(oid, d, n)
   }
  
   /** Purely functional unary operator evaluation at the ground values level. */
@@ -295,8 +316,8 @@ object Common {
     val result = 
       for ((row,col) <- au zip av)
         yield op match{
-        case "+" =>  row zip col map Function.tupled(_+_) 
-        case "-" =>  row zip col map Function.tupled(_-_) 
+        case "+" =>  row zip col map scala.Function.tupled(_+_) 
+        case "-" =>  row zip col map scala.Function.tupled(_-_) 
       }    
    val ls = result.map(x => x.toList).toList
     if(ls.length > 1)
@@ -557,8 +578,10 @@ object Common {
     e match {
       case VVector(l) => i match {
         case VLit(GInt(idx)) :: Nil => lookup(idx, l)
-        case VLit(GDouble(dx)) :: Nil => throw ExpectedInteger(i(0))
-        case VLit(GConstantRealEnclosure(idx)) :: Nil if idx.isValidInt => lookup(idx.toInt, l)
+        case VLit(GDouble(idx)) :: Nil => 
+          if (idx.isWhole) lookup(idx.toInt, l) else throw ExpectedInteger(i(0))
+        case VLit(GConstantRealEnclosure(idx)) :: Nil => 
+          if (idx.isValidInt) lookup(idx.toInt, l) else throw ExpectedInteger(i(0))
         case VLit(gd: GTDif[_]) :: Nil if gd.isValidInt => lookup(gd.toInt, l)
         case VVector(idxs) :: Nil => VVector(idxs.map(x => evalIndexOp(e,List(x))))
         case VVector(rows) :: VVector(columns) :: Nil => {
@@ -571,6 +594,7 @@ object Common {
         }
         case VVector(rows) :: c ::Nil => evalIndexOp(e, VVector(rows) :: VVector(List(c)) :: Nil)
         case head :: tail => evalIndexOp(evalIndexOp(e,List(head)), tail)
+        case _ => throw IndexNoMatch(i)
       }    
       case _ => throw CantIndex() }
   }
@@ -617,8 +641,10 @@ object Common {
        |hypothesisReport = "$hypothesisReport", endTime = 10.0, resultType = @$initStep,
        |method = "$method", orderOfIntegration = 4, seed1 = 0, seed2 = 0}""").stripMargin
   def initStoreInterpreter(initStep: ResultType = Initial, initTimeStep: Double = 0.015625, initOutputRows: String = "All", 
-                       initHypothesisReport: String = "Comprehensive", initMethod: String = RungeKutta, isImperative: Boolean) =
-      Parser.run(Parser.store, initStoreTxt(initStep, initTimeStep, initOutputRows, initHypothesisReport, initMethod).format( if (isImperative) "none" else "#0" ))
+                       initHypothesisReport: String = "Comprehensive", initMethod: String = RungeKutta, isImperative: Boolean, interpreterType: InterpreterType) = {
+    val s = Parser.run(Parser.store, initStoreTxt(initStep, initTimeStep, initOutputRows, initHypothesisReport, initMethod).format(if (isImperative) "none" else "#0" ))
+    ApproximateRationals.run(s, interpreterType)
+  }
 
   // Register simulator parameters that should appear as completions in the code editor 
   // for any interpreter. Additional parameters are taken from Interpreter.parameters. 
@@ -638,7 +664,8 @@ object Common {
 
   /** special field for 3D view and _plot */
   def specialField(name: String) =
-    name == "_3D" || name == "_3DView" || name == "_plot"
+    name == "_3D" || name == "_3DView" || name == "_plot" || isHashVariable(name)
+
       
   def patternVariable(name:String) = 
     name.split("__")(0) == "Pattern"

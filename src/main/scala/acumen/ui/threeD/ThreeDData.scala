@@ -35,6 +35,8 @@ class ThreeDData extends Publisher {
   var _3DPosition = Array[Double](0.0, 0.0, 0.0)
   var _3DSize = Array[Double]()
   var _3DColor = Array[Double](1.0, 1.0, 1.0)
+  var _3DLambda = VLambda(Var(Name("x", 0)) :: Nil, Var(Name("x", 0)), null)
+  var _3DRange = Array[Double](-1.0, 1.0, -1.0, 1.0)
   var _3DAngle = Array[Double](0.0, 0.0, 0.0)
   var _3DPath = ""
   var _3DText = ""
@@ -157,10 +159,7 @@ class ThreeDData extends Publisher {
     def assignTransparency(transparency: Double) = {
       if (transparency <= 1)
         _3DTransparency = transparency
-      else throw new AcumenError {
-        override def getMessage = "_3D object's 'transparency' parameter should either be a " +
-          "float number between 0 and 1 or negative value"
-      }
+      else throw _3DTransparencyError()
     }
   }
 
@@ -179,6 +178,17 @@ class ThreeDData extends Publisher {
       case VLit(GBool(i)) => _3DText = i.toString
       case VLit(_) => Pretty pprint value
       case _ => throw _3DNameError(value)
+    }
+  }
+
+  def extractLambda(value: Value[_]) {
+    value match {
+      case VLambda(vs, f, e) => _3DLambda = VLambda(vs, f, e)
+    }
+  }
+  def extractRange(value: Value[_]) {
+    value match {
+      case VVector(vs) => _3DRange = extractDoubles(vs).toArray
     }
   }
 
@@ -219,6 +229,7 @@ class ThreeDData extends Publisher {
         if (_3DSize.length == 2) _3DSize = _3DSize :+ 0.001
         else if (_3DSize.length != 3) throw _3DBoxSizeError()
       case "Triangle" => if (_3DSize.length != 9) throw _3DTriangleSizeError()
+      case "Surface" => 
       /* 3D text's size should be a number */
       case _ => if (_3DSize.length != 1) throw _3DTextSizeError()
     }
@@ -251,7 +262,7 @@ class ThreeDData extends Publisher {
       val vector = value(i)
       vector match {
         case VVector(l) =>
-          if (l.size != 7 && l.size != 8)
+          if (l.size != 7 && l.size != 8 && l.size != 9)
             throw _3DError(vector)
           else {
             extractType(l.head)
@@ -267,7 +278,12 @@ class ThreeDData extends Publisher {
               extractHeight(l(7))
               extractTransparency(l(6))
               extractCoordinates(l(5))
-            } else if (l.size == 8 && _3DType != "Triangle") {
+            } else if (l.size == 9 && _3DType == "Surface") {
+              extractLambda(l(7))
+              extractRange(l(8))
+              extractTransparency(l(6))
+              extractCoordinates(l(5))
+            } else if (l.size == 8 && _3DType != "Triangle" && _3DType != "Surface") {
               extractTransparency(l(7))
               extractCoordinates(l(6))
             } else {
@@ -284,11 +300,11 @@ class ThreeDData extends Publisher {
           List(_3DType, _3DPosition, _3DSize, _3DColor, _3DAngle, _3DPath, _3DCoordinates, _3DTransparency)
         else if (_3DType == "Triangle")
           List(_3DType, _3DPosition, _3DSize, _3DColor, _3DAngle, _3DHeight, _3DCoordinates, _3DTransparency)
+        else if (_3DType == "Surface")
+          List(_3DType, _3DPosition, _3DSize, _3DColor, _3DAngle, _3DLambda, _3DCoordinates, _3DTransparency, _3DRange)
         else
           List(_3DType, _3DPosition, _3DSize, _3DColor, _3DAngle, _3DCoordinates, _3DTransparency)
-
       addValuesTo3DClass(objectKey, valueList, _3DData, frameNumber)
-
       _3DTexture = ""
     }
   }

@@ -59,6 +59,7 @@ import enclosure.ivp.{
  */
 case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
   
+  val interpreterType = Enclosure2015InterpreterType
   type Store = EnclosureAndBranches
   def repr(st:Store) = st.enclosure.cStore
   def fromCStore(st: CStore, root: CId): Store = {
@@ -555,8 +556,8 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
          fully qualified at this language level */
       case c: Create =>
         throw internalPosError("The 2015 Enclosure semantics does not support create statements in the always section.", c.pos)
-      case Assign(_,_) => 
-        throw BadLhs()
+      case Assign(lhs,_) => 
+        throw BadLhs(lhs)
     }
 
   def evalContinuousAction(certain:Boolean, path: Expr, a:ContinuousAction, env:Env, p:Prog, st: Enclosure) : Set[Changeset] = 
@@ -603,6 +604,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
     def initializeEnclosure = picardBase.initializeEnclosure(_)
     val cprog = CleanParameters.run(prog, Enclosure2015InterpreterType)
     val cprog1 = makeCompatible(cprog)
+    checkForUnsupported(cprog1)
     val enclosureProg = liftToUncertain(cprog1)
     val mprog = Prog(magicClass :: enclosureProg.defs)
     val (sd1,sd2) = Random.split(Random.mkGen(0))
@@ -617,7 +619,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
     }}
     val st2E = fromCStore(st2.cStore)
     val st2U = updateSimulator(mprog, st2E)
-    val st2S = splitIntervalsEnclosure(st2U)(Common.Parameters(st2U.enclosure.cStore, Some(prog)))
+    val st2S = splitIntervalsEnclosure(st2U)(Common.Parameters(st2U.enclosure.cStore, Some(mprog)))
     val mds = st2S mapValues (st => testHypotheses(st.enclosure, 0, 0, mprog, NoMetadata))
     (mprog, st2S, mds)
   }
@@ -668,7 +670,19 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
                                , body = d.body.flatMap(action))))
   }
   
-  lazy val initStore = Parser.run(Parser.store, initStoreTxt.format("#0"))
+  def checkForUnsupported(p: Prog): Prog =
+    new util.ASTMap {
+      override def mapExpr(e: Expr): Expr = e match {
+        case _: ExprVector          => throw new UnsupportedFeatureError("Vectors are", "2015 Enclosure", e.pos)
+        case Op(Name("rand", 0), _) => throw new UnsupportedFeatureError("The rand() function is", "2015 Enclosure", e.pos)
+        case _                      => super.mapExpr(e)
+      }
+      override def mapInit(i: Init) : Init = i match {
+        case Init(`_plot`, ExprRhs(e)) => Init(_plot, ExprRhs(super.mapExpr(e)))
+        case _                         => super.mapInit(i)
+      }
+    }.mapProg(p)
+  lazy val initStore = ApproximateRationals.run(Parser.run(Parser.store, initStoreTxt.format("#0")), TraditionalInterpreterType)
   lazy val initStoreTxt: String =
     commonInitStoreTxt + s"""outputRows = "All", resultType = @Initial,
                ${ Common.Parameters.defaults.map{ case (pn, (vis, pv)) => pn + "=" + pprint(pv)}.mkString(",") } }"""
@@ -756,7 +770,10 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
    *    [L,R] until that reaches parameters.maxTimeStep. Otherwise this is (R-L). 
    */
   def stepAdaptive(leftEndPoint: Double, rightEndPoint: Double, previousTimeStep: Double, prog: Prog, branches: List[InitialCondition])(implicit parameters: Parameters): (EnclosureAndBranches, Double, Double) = {
-    require(branches.nonEmpty, "stepAdaptive called with zero branches")
+    if (branches isEmpty)
+      throw new AcumenError{
+        override def getMessage = s"No states reachable past time ${spire.math.Rational(previousTimeStep)}."
+      }
     require(branches.size <= parameters.maxBranches, s"Number of branches (${branches.size}) exceeds maximum (${parameters.maxBranches}).")
     Logger.debug(s"stepAdaptive (over ${ Interval(leftEndPoint, rightEndPoint) }, ${branches.size} branches)")
     val step = rightEndPoint - leftEndPoint
@@ -984,7 +1001,10 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
             val (range, end) = continuousEncloser(q.odes, q.eqs, q.claims, T, prog, wi)
             val (newW, newU) = handleEvent(q, qw, range, if (t == StartTime) end else range)
             val rangePicard = picardEnclosureSolver convertEnclosure range
-            val rangeContracted = picardBase.contract(rangePicard, deduceConstraintsFromChangeset(q), prog, evalExpr).right.get
+            val rangeContracted = picardBase.contract(rangePicard, deduceConstraintsFromChangeset(q), prog, evalExpr) match {
+              case Right(r) => r
+              case Left(l) => sys.error("Error while contracting continuous enclosure: " + l)
+            }
             (newW ::: tmpW, rangeContracted :: tmpR, newU ::: tmpU)
           }
       }

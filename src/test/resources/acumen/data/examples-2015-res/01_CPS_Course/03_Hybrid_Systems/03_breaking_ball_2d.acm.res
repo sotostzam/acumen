@@ -7,7 +7,7 @@
 #0.0 { className = Simulator, time = 0.000000 }
 #0.1 {
   className = Ball,
-  m = 2.000000,
+  m = 2,
   mode = "Fly",
   type = Ball,
   x = 0,

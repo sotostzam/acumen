@@ -1,0 +1,41 @@
+/* This is the Set at Zeno model.
+ * Author: Adam Duracz
+ * The model is based on Example 1 on page 7
+ * of paper "Dynamical Systems Revisited:
+ * Hybrid Systems with Zeno Executions" by
+ * Zhang, Johansson, Lygeros and Sastry.
+ */
+model Main(simulator) =
+ initially
+     mode = "q1",
+     x1 = 2,   x1' = 0,
+     x2 = 0,   x2' = 0,
+     c  = 0.5 
+ always
+ match mode with [
+    "q1" claim x1 >= 0 -> 
+     if -0.1 <= x1&& x1 <= 0 
+    &&               x2 <= 0 then
+       x1+ = 5,
+       x2+ = -c * x2,
+         mode+ = "q2"
+     noelse,
+     x1' = x2,
+     x2' = -10 
+    |"q2" claim x1 >= 3 -> 
+     if 4.9 <= x1&& x1 <= 5
+    &&              x2 <= 0 then
+       x1+ = 3,
+       x2+ = -c * x2,
+         mode+ = "q2" 
+     noelse,
+     if 2.9 <= x1&& x1 <= 3
+    &&              x2 <= 0 then
+       x1+ = 0,
+       x2+ = -c * x2,
+       mode+ = "q1" 
+     noelse,
+     x1' = x2,
+     x2' = -10        
+  ],
+  simulator.endTime+ = 13

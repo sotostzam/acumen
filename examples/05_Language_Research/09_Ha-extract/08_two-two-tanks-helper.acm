@@ -15,7 +15,7 @@ always
             x12 >= 0&& 
             x12 == x1 + x2 // Constraint added
             ->     
-      if x2 <= 0 then modeX+ = "Fill2" noelse, 
+      if x2 == 0 then modeX+ = "Fill2" noelse, 
       x1'  = 2, 
       x2'  = -3,
       x12' = -1 
@@ -25,7 +25,7 @@ always
             x12 == x1 + x2 // Constraint added
             -> 
       
-      if x1 <= 0 then modeX+ = "Fill1" noelse, 
+      if x1 == 0 then modeX+ = "Fill1" noelse, 
       x1'  = -2, 
       x2'  = 1,
       x12' = -1 ],
@@ -36,7 +36,7 @@ always
             y12 == y1 + y2 // Constraint added
             -> 
       
-      if y2 <= 0 then modeY+ = "Fill2" noelse, 
+      if y2 == 0 then modeY+ = "Fill2" noelse, 
       y1'  = 2, 
       y2'  = -3,
       y12' = -1 
@@ -46,7 +46,7 @@ always
             y12 == y1 + y2 // Constraint added
             -> 
      
-      if y1 <= 0 then modeY+ = "Fill1" noelse, 
+      if y1 == 0 then modeY+ = "Fill1" noelse, 
       y1'  = -2, 
       y2'  = 1,
       y12' = -1 ],

@@ -8,6 +8,7 @@ import scala.util.parsing.input.{Position,Positional}
 import acumen.interpreters.enclosure.{Interval, SplitInterval, SplitterDistribution}
 import acumen.TAD._
 import acumen.FAD._
+import spire.math.Rational
 
 package acumen {
 
@@ -66,8 +67,13 @@ package acumen {
   case class ParaRhs(ex: Expr, nm: Name, fields: List[Expr]) extends InitRhs
   /* Example: 1+2 */
   case class ExprRhs(e: Expr) extends InitRhs
+  
+  /* Function declaration using static inline
+   * Example: function f(x,y) = x + y */
+  case class Function(val name: String, 
+                      val paras:List[Name], val body:Expr) extends Positional
 
-  sealed abstract class Action
+  sealed abstract class Action extends Positional
   /* Example: if 1<2 x = 1 else x = 2 end */
   case class IfThenElse(cond: Expr, t: List[Action], e: List[Action]) extends Action
   /* Example: switch y case 1 x = 2 case 2 x = 3 end */
@@ -86,7 +92,7 @@ package acumen {
   /* Example: case 1 x = 3; y = 4 */
   case class Clause(lhs: GroundValue, assertion: Expr, rhs: List[Action])
 
-  sealed abstract class ContinuousAction
+  sealed abstract class ContinuousAction extends Positional
   /* TODO: use the phase distinction/refinement types trick
            to make sure we get rid of any Equation after the
            desugaring phase */
@@ -142,6 +148,12 @@ package acumen {
       case d:Dot => d
     }
   }
+  
+  /* Used ONLY for passing a function to 3D graphics engine for 
+   * fast drawing  */
+  case class Lambda (vs: List[Var], body:Expr) extends Expr
+  case class BetaReduction (l:VLambda, args:List[Expr]) extends Expr
+
   
   /* Reference to field f in object obj. */
   sealed abstract class Ref extends Expr {
@@ -244,6 +256,8 @@ package acumen {
   case class Pattern(ps:List[Expr]) extends Expr
   /* ground values (common to expressions and values) */
   sealed abstract class GroundValue extends Positional
+  /* GroundValue that wraps a string that represents a decimal literal. */
+  case class GRational(r: Rational) extends GroundValue
   /* GroundValue that wraps a numeric type that has an Integral or Real instance. */
   trait GNumber[V] extends GroundValue
   /* Example: 42 */
@@ -351,6 +365,7 @@ package acumen {
   object GConstantRealEnclosure {
     def apply(d: Double): GConstantRealEnclosure = GConstantRealEnclosure(Interval(d))
     def apply(i: Int): GConstantRealEnclosure = GConstantRealEnclosure(Interval(i))
+    def apply(i: Rational): GConstantRealEnclosure = GConstantRealEnclosure(Interval(i))
   }
   abstract class GConstantDiscreteEnclosure[T](val range: Set[T]) extends GDiscreteEnclosure[T] {
     def apply(t: Interval) = range
@@ -436,6 +451,10 @@ package acumen {
 
   /* Example: @Continuous */
   case class VResultType(s: ResultType) extends Value
+  
+  /* Used only for 3D surface */
+  case class VLambda (vs: List[Var], body:Expr, closure: Map[Dot,VLit]) extends Value
+
 
   /* Annotated version of the AST used for partial evaluation (used internally) */
 
@@ -499,6 +518,9 @@ package acumen {
   case class AVar[A](name: Name, val an: A) extends AExpr[A] with AExprWithPos[A] {
     def expr = Var(name).setPos(this.pos) 
   }
+  case class ALambda[A] (vs: List[Var], body:AExpr[A], val an: A) extends AExpr[A] with AExprWithPos[A]{
+    def expr = Lambda(vs, body.expr).setPos(this.pos)
+  }  
 
   case class AName[A](name: Name, val an: A) {
   }

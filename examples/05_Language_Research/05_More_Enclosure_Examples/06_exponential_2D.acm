@@ -1,0 +1,9 @@
+//////////////////////////////////////////////
+// This file is called exponential_2.acm    //
+// It is an example of a continuous system. //
+//////////////////////////////////////////////
+model Main(simulator) =
+initially 
+  x = 0, x' = 1, x'' = -1
+always
+  x'' = -x'

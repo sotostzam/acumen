@@ -52,7 +52,7 @@ class InterpreterTest extends FunSuite with ShouldMatchers {
       class Ball(x, x', x'') 
         self.x'' = -9.8
       end
-      class Main(mode, simulation) end
+      class Main(mode) end
       """
 
     val storeTxt = 
@@ -94,7 +94,7 @@ class InterpreterTest extends FunSuite with ShouldMatchers {
         self.y'' = -9.8,
         self.x'' = 0
       end
-      class Main(mode, simulation) end
+      class Main(mode) end
       """
 
     val storeTxt = 

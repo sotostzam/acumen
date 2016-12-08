@@ -15,4 +15,5 @@ always
   x' = -s*x + s*y,
   y' = r*x - y - x*z,
   z' = -b*z + x*y,
-  simulator.endTime+ = 20
+  simulator.endTime+ = 20,
+  simulator.reorganization+ = "ErrorExceedsWidth"

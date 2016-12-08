@@ -154,6 +154,7 @@ class Interpreter extends acumen.CStoreInterpreter {
 
   def id = null
   
+  val interpreterType = TraditionalInterpreterType
   type Store = I.Store
   def init(prog: Prog) = null
   def lift  = null
@@ -337,7 +338,7 @@ object Interpreter {
         //  case Some(Dot(e, x)) =>
         //    val VObjId(Some(id)) = evalExpr(e, p, env)
         //    logModified || setField(id, x, VObjId(Some(fa)))
-        //  case Some(_) => throw BadLhs()
+        //  case Some(_) => throw BadLhs(lhs)
         //}
       case Elim(Var(Name("self", 0))) =>
         cr.print("return KILL_ME;").newline
