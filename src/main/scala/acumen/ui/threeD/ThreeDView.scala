@@ -141,11 +141,11 @@ class ThreeDView extends JPanel {
 
   addComponentListener(new ComponentAdapter {
     override def componentResized(e: ComponentEvent) = {
-      resize3DView(e.getSource.asInstanceOf[Component])
+      resize3DView(e.getSource.asInstanceOf[ThreeDView])
     }
   })
 
-  def resize3DView(e: Component): Unit = {
+  def resize3DView(e: ThreeDView): Unit = {
     val fixed3DRatio = acumen.ui.App.ui.fixed3DRatio
     val c = if (e != null) e
             else this
@@ -414,6 +414,7 @@ class ThreeDView extends JPanel {
 
   override def paint(g: Graphics) = this.synchronized{
     world.synchronized {
+      super.paint(g)
       buffer.clear(Color.LIGHT_GRAY) // erase the previous frame
       // render the world onto the buffer:
       world.renderScene(buffer)
