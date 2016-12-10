@@ -149,7 +149,7 @@ object Parser extends MyStdTokenParsers {
   lexical.reserved ++=
     List("foreach", "end", "if", "else","elseif", "create", "move", "in", "terminate", "model","then","initially","always",
          "sum", "true", "false", "init", "match","with", "case", "claim", "hypothesis", "let","noelse", "typeOf",
-         "Initial", "Continuous", "Discrete", "FixedPoint", "none","cross","do","dot","for","_3D","zeros","ones", "_plot",
+         "Initial", "Continuous", "Discrete", "FixedPoint", "none","cross","do","dot","for","_3D","zeros","ones", "_Plot",
          "splitby", "central", "normald", "uniformd", "betad", "function", "Surface")
 
   /* token conversion */
@@ -256,7 +256,7 @@ object Parser extends MyStdTokenParsers {
  def init = name ~! "=" ~! initrhs ^^ { case x ~ _ ~ rhs => Init(x, rhs) }|
               "_3D" ~ "=" ~ threeDRhs ^^ {
                case _ ~ _ ~ ls => Init(Name("_3D",0), ExprRhs(ls))} |
-             "_plot" ~ "=" ~ plotRhs ^^ {
+             "_Plot" ~ "=" ~ plotRhs ^^ {
               case _ ~ _ ~ ls => Init(Name("_plot",0), ExprRhs(ls))}
   def initrhs =
     ("create" ~ className ~ args(expr) ^^ { case _ ~ cn ~ es => NewRhs(Var(Name(cn.x,0)), es) }
@@ -866,9 +866,9 @@ object Parser extends MyStdTokenParsers {
     }
   }
   def _plotAction =
-    "_plot" ~ "="  ~ plotRhs ^^ {
+    "_Plot" ~ "="  ~ plotRhs ^^ {
       case _ ~ _ ~ ls => Continuously(Equation(Var(Name("_plot",0)), ls))}|
-    "_plot" ~ "+"~"="  ~ plotRhs ^^ {
+    "_Plot" ~ "+"~"="  ~ plotRhs ^^ {
       case _ ~ _~_ ~ ls => Discretely(Assign(Var(Name("_plot",0)), ls))
     }
 
