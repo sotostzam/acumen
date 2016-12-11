@@ -1,0 +1,13 @@
+//damped oscillator with uncertainty on the damping coefficient
+//Run it with the enclosure interpreter to be able to click on the plots an observe the probability estimations
+//NOTE : The plots can take time to refresh because of the extrem number of curves cause by the splitting
+
+model Main(simulator) =
+initially
+   x = 50,
+   x' = 0,
+   x'' = 0,
+   d = normald(1, 0.05) central 0.9 splitby 30
+always
+   x'' = -5 * x - d * x',
+   simulator.endTime += 6

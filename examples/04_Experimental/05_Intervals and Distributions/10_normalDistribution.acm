@@ -1,0 +1,7 @@
+//A pendulum with a normal initial position distribution
+model Main(simulator) =
+initially
+   x = normald(0.75, 0.08) central 0.95 splitby 15,
+   x' = 0, x'' = 0
+always
+   x'' = -sin(x)

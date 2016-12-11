@@ -1,0 +1,8 @@
+//A pendulum with a beta initial position distribution
+//The main purpose of this distribution is to allow to refine the sampling close to the limits of the interval
+model Main(simulator) =
+initially
+   x = betad(0.5, 1, 0.6, 0.6) splitby 15,
+   x' = 0, x'' = 0
+always
+   x'' = -sin(x)

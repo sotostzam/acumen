@@ -1,0 +1,7 @@
+//A pendulum with a uniformly sampled initial position
+model Main(simulator) =
+initially
+   x = uniformd(0.5, 1) splitby 5,
+   x' = 0, x'' = 0
+always
+   x '' = -sin(x)

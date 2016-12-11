@@ -1,0 +1,62 @@
+//Demonstrates the syntaxes allowed to split intervals.
+//The cases where the variable is called e stand for ERROR, i.e. these syntaxes are prohibited
+
+//Split by giving the number of splits
+model splitby_n_syntax()=
+initially
+   x = [0 .. 1] splitby 2, x' = 1
+  ,y = [-10 .. 20] splitby 10, y' = 2
+  ,z = [0 .. 0], z' = 1
+  //,e = [1 .. 0] splitby 1, e' = 1
+  //,e = [0 .. 1] splitby 0, e' = 1
+  //,e = [0 .. 1] splitby -3, e' = 1
+  //,e = [0 .. 1] splitby 1.5, e' = 1
+always
+   x' = 1
+  ,y' = 1
+  ,z' = 1
+  //,e' = 1
+//-------------------------------------------------------------------------
+
+//Split by giving the relative length (weight) of the different splits
+//A negative value will make the corresponding split is ignored
+model splitby_weights_syntax()=
+initially
+   x = [0 .. 1] splitby (1, 2, 1), x' = 1
+  ,a = [0 .. 1] splitby (-1, 2, 1), a' = 1
+  ,y = [0 .. 1] splitby (1, 0, 1), y' = 1
+  ,z = [0 .. 1] splitby (0.1, -1, 0.2), z' = 1
+  //,e = [0 .. 1] splitby (0), e' = 1
+ always
+   x' = 1
+  ,a' = 1
+  ,y' = 1
+  ,z' = 1
+// ,e' = 1
+//-------------------------------------------------------------------------
+
+//Split by giving the list of the points where the splits occur
+model splitby_innerPoints_syntax()=
+initially
+   x = [0 .. 1 .. 2 .. 3], x' = 1
+  ,y = [0 .. 1 .. 1.5 .. 2 .. 3], y' = 1
+  ,z = [0], z' = 1
+  ,a = [-1 .. -0.5] ++ [0.5 .. 1], a' = 1
+  //,e = [0 ++ 1], e' = 1
+  //,e = [0 .. 1 .. 0.5 .. 2], e' = 0
+always
+   x' = 1
+  ,y' = 1
+  ,z' = 1
+  ,a' = 1
+  //,e' = 1
+//-------------------------------------------------------------------------
+
+model Main(simulator)=
+initially
+//DO NOT RUN THEM ALL AT ONCE ! COMBINATORY EXPLOSION
+//_ = create splitby_n_syntax()
+//_ = create splitby_weights_syntax()
+//_ = create splitby_innerPoints_syntax()
+
+always

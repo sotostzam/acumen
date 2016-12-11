@@ -1,0 +1,26 @@
+//A random differential equation with a basin of attraction ]-1, 1[
+//Several interesting initial conditions are proposed
+//Uncomment one of them and observe the output
+
+model Main(simulator)=
+initially
+  //Use one of these initial conditions---------
+  //Normal distribution. Represents a typical uncertainty on a physical model
+  //x = normald(0, 0.3) central 0.9 splitby 10,
+
+  //Uniform distribution. Monte Carlo like simulation: pre-selected samples set.
+  //Here, it has been set larger than the actual basin of attraction to show how
+  //it is possible to get an intuition of it thanks to the high number of samples
+  //x = uniformd(-5, 5) splitby 500,
+
+  //Beta distribution used to refine the intervals close to the limits of the basin of attraction
+  //It is useful when used combined to the enclosure interpreter which takes advantage of smaller intervals.
+  x = betad(-0.99, 0.99, 0.2, 0.2) splitby 15,
+
+  //Another Beta distribution to show that the thinest the splits, the better the precision
+  //With only 10 splits, the enclosure interpreter leaves the basin of attraction
+  //x = betad(-0.99, 0.99, 0.2, 0.2) splitby 10,
+  //--------------------------------------------
+  x'= 0
+always
+  x' = -x + x ^ 3
