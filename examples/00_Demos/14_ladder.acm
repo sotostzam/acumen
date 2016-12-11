@@ -6,7 +6,7 @@ function normal(z,x,y) = (-z'[x],-z'[y],1)/norm(((-z'[x],-z'[y],1)))
 model Main(simulator) =
  initially
   mode = "init",b = create Ball(0,0,8),
-  _3DView = (),_plot = (), c = (0,0,8), c' = zeros(3),
+  _3DView = (), c = (0,0,8), c' = zeros(3),
   d = 0, d' = 0,
   _3D = (Surface (x,y) ->(x,y,surface(x,y)) foreach x = [-3 .. 40] y = [-1 .. 1]
        color = 0.9*blue + 0.5*white  resolution = 0.2    )
