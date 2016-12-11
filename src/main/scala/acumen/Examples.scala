@@ -28,7 +28,8 @@ abstract class Examples {
           if (path.contains(File.separator + "XXX")) false // Ignore internal directories
           else if (withDir("01_Enclosures") || withDir("05_More_Enclosure_Examples")) false //FIXME Support enclosure sim. params in CStore interpreters 
         //  else if (withDir("02_Robust_Simulation")) false //FIXME Support enclosure sim. params in CStore interpreters 
-          else if (withDir("14_Parallel")) false // These take way to long
+		  else if (withDir("05_Intervals and Distributions")) false
+		  else if (withDir("14_Parallel")) false // These take way to long
           else true
         }
       }
