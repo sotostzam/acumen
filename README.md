@@ -1,4 +1,4 @@
-ACUMEN 2016_11_17 RELEASE NOTES
+ACUMEN 2016_12_11 RELEASE NOTES
 -------------------------------
 
 Major changes since the 2016_08_30 release:
