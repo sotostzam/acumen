@@ -338,7 +338,7 @@ class PlotData(parms: PlotParms = null, tb:PlotModel = null, val disableThreshol
 
       var containsEnclosures = false
       var outlinePath = new EnclosurePath(Palette(Color.white))
-      val pathoutline = new HollowEnclosurePath(Palette(Color.black))
+      val pathoutline = new HollowEnclosurePath(Palette(Color.red))
       for(p <- pg) {
         titles += tb.getPlotTitle(p.column)
         val t = p.key.tag
