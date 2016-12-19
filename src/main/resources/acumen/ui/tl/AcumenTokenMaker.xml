@@ -16,9 +16,9 @@
   <keywords>
     <keyword>Continuous</keyword>
     <keyword>Discrete</keyword>
-    <keyword>claim</keyword>
     <keyword>always</keyword>
     <keyword>case</keyword>
+    <keyword>claim</keyword>
     <keyword>class</keyword>
     <keyword>create</keyword>
     <keyword>do</keyword>
@@ -28,6 +28,7 @@
     <keyword>false</keyword>
     <keyword>for</keyword>
     <keyword>foreach</keyword>
+    <keyword>function</keyword>
     <keyword>hypothesis</keyword>
     <keyword>if</keyword>
     <keyword>in</keyword>
@@ -38,6 +39,7 @@
     <keyword>noelse</keyword>
     <keyword>none</keyword>
     <keyword>private</keyword>
+    <keyword>splitby</keyword>
     <keyword>sum</keyword>
     <keyword>switch</keyword>
     <keyword>terminate</keyword>
@@ -53,48 +55,49 @@
     <dataType>Cylinder</dataType>
     <dataType>Obj</dataType>
     <dataType>Sphere</dataType>
+    <dataType>Surface</dataType>
     <dataType>Text</dataType>
-	 <dataType>Triangle</dataType>
+    <dataType>Triangle</dataType>
   </dataTypes>
   <functions>
     <function>abs</function>
-    <function>asin</function>
-    <function>atan2</function>
-    <function>cross</function>
-    <function>dot</function>
-    <function>norm</function>
-    <function>not</function>
-    <function>xor</function>
-    <function>pi</function>
-    <function>sin</function>
-    <function>cos</function>
-    <function>tan</function>
     <function>acos</function>
     <function>asin</function>
+    <function>asin</function>
     <function>atan</function>
-    <function>toRadians</function>
-    <function>toDegrees</function>
-    <function>exp</function>
-    <function>log</function>
-    <function>log10</function>
-    <function>sqrt</function>
+    <function>atan2</function>
+    <function>black</function>
+    <function>blue</function>
     <function>cbrt</function>
     <function>ceil</function>
+    <function>cos</function>
+    <function>cosh</function>
+    <function>cross</function>
+    <function>cyan</function>
+    <function>dot</function>
+    <function>exp</function>
     <function>floor</function>
+    <function>green</function>
+    <function>log</function>
+    <function>log10</function>
+    <function>magenta</function>
+    <function>norm</function>
+    <function>not</function>
+    <function>pi</function>
+    <function>red</function>
     <function>rint</function>
     <function>round</function>
-    <function>sinh</function>
-    <function>cosh</function>
-    <function>tanh</function>
     <function>signum</function>
-    <function>red</function>
-    <function>green</function>
-    <function>blue</function>
+    <function>sin</function>
+    <function>sinh</function>
+    <function>sqrt</function>
+    <function>tan</function>
+    <function>tanh</function>
+    <function>toDegrees</function>
+    <function>toRadians</function>
     <function>white</function>
-    <function>black</function>
+    <function>xor</function>
     <function>yellow</function>
-    <function>cyan</function>
-    <function>magenta</function>
   </functions>
   <numbers>
     <hexLiteral>0x{HexDigit}+</hexLiteral>
