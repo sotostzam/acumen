@@ -178,7 +178,31 @@ package acumen {
   /* Example: [a:b] deprecated, now [a..b] and m+/-r*/
   case class ExprInterval(lo: Expr, hi: Expr) extends Expr
   case class ExprIntervalM(mid: Expr, pm: Expr) extends Expr
-
+  
+  //@Masoumeh>
+  /* Disjoint Union */
+  /* Example: {true, false} */
+  case class ExprDisjointUniBool(l: List[Expr]) extends Expr
+  /* Example: {1,4,7} */
+  case class ExprDisjointUniInt(l: List[Expr]) extends Expr
+  /* Example: {1,...,7} */
+  case class ExprDisjointUniIntRange(lo: Expr, hi: Expr) extends Expr
+  /* Example: {"a","b","c"} */
+  case class ExprDisjointUniStr(l: List[Expr]) extends Expr
+  /* Example: prob=(0.4,0.2,0.4) */
+  case class ExprDiscreteProbList(l: List[Expr]) extends Expr  
+  /* Example: prob=uni*/
+  case class ExprDiscreteProbUni() extends Expr  
+  /* Example: {1,4,7} prob= ... */
+  case class ExprDisjointUniIntProb(v: Expr, p: Expr) extends Expr
+  /* Example: {1,...,7} prob= ... */
+  case class ExprDisjointUniIntRangeProb(v: Expr, p: Expr) extends Expr
+  /* Example: {"a","b","c"} prob= ... */
+  case class ExprDisjointUniStrProb(v: Expr, p: Expr) extends Expr
+  /* Example: {false,true} prob= ... */
+  case class ExprDisjointUniBoolProb(v: Expr, p: Expr) extends Expr
+  /* Disjoint Union */
+  //<@Masoumeh
 
   sealed abstract class ExprSplitter extends Expr
 
@@ -381,7 +405,7 @@ package acumen {
   object GStrEnclosure {
     def apply(s: String): GStrEnclosure = GStrEnclosure(Set(s))
   }
-  case class GIntEnclosure(override val range: Set[Int]) 
+  case class GIntEnclosure(override val range: Set[Int])
     extends GConstantDiscreteEnclosure[Int](range) {
     def lift(s: Set[Int]) = GIntEnclosure(s)
   }
@@ -392,6 +416,26 @@ package acumen {
   object GBoolEnclosure {
     def apply(s: Boolean): GBoolEnclosure = GBoolEnclosure(Set(s))
   }
+
+  //@Masoumeh >
+  case class GBoolDisjointEnclosure(override val range: Set[Boolean])  
+    extends GConstantDiscreteEnclosure[Boolean](range){
+    def lift(s: Set[Boolean]) = GBoolDisjointEnclosure(s)
+  }
+  object GBoolDisjointEnclosure {
+    def apply(s: Boolean): GBoolDisjointEnclosure = GBoolDisjointEnclosure(Set(s))
+  }
+  /*
+  case class GBoolDisjointProbEnclosure(override val range: Set[Boolean], val probas: List[Interval])  
+    extends GConstantDiscreteEnclosure[Boolean](range){
+    def lift(s: Set[Boolean], probas: List[Interval]) = GBoolDisjointProbEnclosure(s, probas)
+  }
+  object GBoolDisjointProbEnclosure {
+    def apply(s: Boolean): GBoolDisjointProbEnclosure = GBoolDisjointProbEnclosure(Set(s), List(Interval(0.0,1.0)))
+  }
+  * */
+  //< @Masoumeh
+  
   
   // NOTE: Constants.PI (a GDouble(math.Pi)) is meant as a special
   //   value and is tested for reference equality in

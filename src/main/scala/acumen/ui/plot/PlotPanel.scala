@@ -316,7 +316,7 @@ class PlotPanel(pub:Publisher) extends Panel
           })
           val middleCoordinates = for ((t, bv) <- middleValues if bv.isDefined) yield
             t -> applyTr(new Point2D.Double(0, bv.get * scale + shift)).getY
-          // Ordinate of the closest point from the mouse
+          // Coordinate of the closest point from the mouse
           val (closestTag, (closestIndex, _)) =
             middleCoordinates.foldLeft(middleCoordinates.head._1 -> (columns(middleCoordinates.head._1) -> middleCoordinates.head._2)) {
               case (prev@(t0, (i0, y0)), (t1, y1)) =>
@@ -486,7 +486,13 @@ class PlotPanel(pub:Publisher) extends Panel
             // if it is a high bound, add it to the Low bound
             val points = (boundingValues flatMap { case (t, i) =>
               // true for low bound, false for hi bound
-              List((i.lo, t, true), (i.hi, t, false))
+                //@Masoumeh>  edited
+                if (i.lo == i.hi) {
+                  List((i.lo, t, false), (i.hi, t, true))
+                } else {
+                  List((i.lo, t, true), (i.hi, t, false))
+                }
+                //<@Masoumeh
             }).toList.sortWith(_._1 le _._1)
             val cdfBounds = points.foldLeft(List.empty[(Interval.Real, Interval)]) { case (l, (x, t, low)) =>
               val p0 = if (l.nonEmpty) l.head._2 else probaOutBounding
@@ -496,7 +502,7 @@ class PlotPanel(pub:Publisher) extends Panel
             // Build a list of enclosures from the cdfBounds at different times interval
             val cdfEnclosure =
             ((cdfBounds zip (cdfBounds unzip)._1.tail) map { case ((l, p), h) =>
-              Interval(l, h) -> p.intersect(Interval(0, 1)).get
+                Interval(l, h) -> p.intersect(Interval(0, 1)).get
             }).toMap
             model.setProba(Some(new ProbaData(name, qtAndRows.find(_._2.nonEmpty).get._2.get._1, probaOutBounding, probaDist, cdfEnclosure)))
             probaEnabled = true

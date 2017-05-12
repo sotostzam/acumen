@@ -10,9 +10,12 @@ import scala.swing.event._
 import util.Canonical._
 import util.Conversions._
 import java.io.File
+import scala.util.control.Breaks._
 
 import interpreter._
 import interpreter.{InterpreterCntrl => IC}
+
+import conformance.TestModel
 
 case object SendInit
 
@@ -27,6 +30,9 @@ case object Play extends AppActions
 case object Stop extends AppActions
 case object Pause extends AppActions
 case object Step extends AppActions
+
+//Testing
+case class CheckConformance(testCases: TestModel, var2Test: String, Tau: Double, Epsilon: Double) extends AppActions
 
 class Controller extends DaemonActor {
   import App._
@@ -129,6 +135,41 @@ class Controller extends DaemonActor {
             producer ! IC.Stop
             newState = Stopped
           }
+
+        case CheckConformance (tests, var2Test, tau, epsilon)  => 
+          println("Check Conformance " + var2Test + " \t " + tau + "\t" + epsilon)
+          //FIXME: should it be checked?
+          if (producer == null) {
+            if (tests != null && tests.getNumOfTests() > 0 && !var2Test.equals("")) {
+                var i = 0;
+                var varCol = -1
+                var timeCol = -1
+                while (i < model.getTraceModel.getColumnCount()) {
+                  if (model.getTraceModel.getColumnName(i).endsWith("."+var2Test)) {
+                      varCol = i
+                  }
+                  else if (model.getTraceModel.getColumnName(i).endsWith("Simulator).time")) {
+                      timeCol = i
+                  }
+                  i += 1
+                }
+            
+                while (i < model.getTraceModel.getRowCount()) {
+                    var obsVal = model.getTraceModel.getValueAt(i, varCol).toString().toDouble;
+                    var testValInterval = tests.getTestValueFor(model.getTraceModel.getValueAt(i, timeCol).toString().toDouble, tau).toString()
+                    var lohi : Array[String] = testValInterval.split("\\.\\.")
+                    var loVal = lohi(0).replaceAll("\\[", "").toDouble
+                    var hiVal = lohi(1).replaceAll("\\]", "").toDouble
+                    if (obsVal < (loVal - epsilon) || obsVal > (hiVal + epsilon)) {
+                        println("------ Non-Conformant Behaviour @ " + model.getTraceModel.getValueAt(i, timeCol) + " - Observed val: " + obsVal + "\t Accepted range" + testValInterval)
+                    }
+                    i += 1;
+                }
+              }
+
+          } else {
+          }
+                    
         //
         // messages from Producer
         //

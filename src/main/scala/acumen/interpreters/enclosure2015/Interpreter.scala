@@ -27,7 +27,7 @@ import util.Conversions.{
 }
 import enclosure.{
   Box, Constant, Contract, Expression, Field, Interval, Rounding, Transcendentals,
-  IntervalSplitter, SplitInterval,
+  IntervalSplitter, SplitInterval, BooleanIntervalSplitter,
   Abs, Sin, Cos, Tan, ACos, ASin, ATan, Exp, Log, Log10, Sqrt, 
   Cbrt, Ceil, Floor, Sinh, Cosh, Tanh, Signum, Plus, Negate, 
   Multiply, Pow, Divide, ATan2, Min, Max
@@ -271,6 +271,7 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
         case ExprInterval(lo,hi) => 
           VLit(GConstantRealEnclosure(extractInterval(evalExpr(lo, env, enc)) /\ extractInterval(evalExpr(hi, env, enc))))
         case ExprVector(l)  => VVector (l map (eval(env,_)))
+        
         case Var(n)         => env.get(n).getOrElse(VClassName(ClassName(n.x)))
         case Index(v,i)     => evalIndexOp(eval(env, v), i.map(x => eval(env, x)))
         case Dot(o,f) =>
@@ -631,9 +632,25 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
       //return the interval in the object field "fields"
       (cs flatMap { case (id, o) => o flatMap {
         case (n, VLit(GConstantRealEnclosure(SplitInterval(_, is)))) => Some((id, n), is)
+        //@Masoumeh>
+        case (n, VLit(GIntEnclosure(s))) => 
+            println("GIntEnclosure"); None 
+        case (n, VLit(GBoolDisjointEnclosure(s))) => {
+            //Dummy points!!!!
+            Some((id, n), BooleanIntervalSplitter(List(0.0,0.5,1.0), s.toList, List(0.5,0.5)))            
+        } 
+        /*
+        case (n, VLit(GBoolDisjointProbEnclosure(s, p))) => {
+            Some((id, n), BooleanIntervalSplitter(List(0.0,0.2,0.8), s.toList, p))            
+        } 
+        * 
+        */
+            
+        //<@Masoumeh
+        //GConstantDiscreteEnclosure(s)
         //Shouldn't happen, would lead to an interpreter error
         case _ => None
-      }
+        }
       }).toList
     }
 

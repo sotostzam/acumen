@@ -70,6 +70,17 @@ class ASTMap {
     case ExprSplitterNormal(m, s, c, n) => ExprSplitterNormal(mapExpr(m), mapExpr(s), mapExpr(c), mapExpr(n))
     case ExprSplitterUniform(lo, hi, c, n) => ExprSplitterUniform(mapExpr(lo), mapExpr(hi), mapExpr(c), mapExpr(n))
     case ExprSplitterBeta(lo, hi, a, b, c, n) => ExprSplitterBeta(mapExpr(lo), mapExpr(hi), mapExpr(a), mapExpr(b), mapExpr(c), mapExpr(n))
+    //@Masoumeh>
+    case ExprDisjointUniInt(l) => ExprDisjointUniInt(l map mapExpr)
+    case ExprDisjointUniIntRange(l,h) => ExprDisjointUniIntRange(mapExpr(l), mapExpr(h))
+    case ExprDisjointUniStr(l) => ExprDisjointUniStr(l map mapExpr)
+    case ExprDisjointUniBool(l) => ExprDisjointUniBool(l map mapExpr)
+    case ExprDisjointUniIntProb(v, p) => ExprDisjointUniIntProb(mapExpr(v), mapExpr(p))
+    case ExprDisjointUniIntRangeProb(v, p) => ExprDisjointUniIntRangeProb(mapExpr(v), mapExpr(p))
+    case ExprDiscreteProbUni() => ExprDiscreteProbUni()
+    case ExprDiscreteProbList(l) => ExprDiscreteProbList(l map mapExpr)
+    //<@Masoumeh
+
     case ExprLet(bindings, e2) => ExprLet(bindings.map{case (n,e) => (n,mapExpr(e))},
                                           mapExpr(e2))
     case Pattern(ps) => Pattern(ps.map{mapExpr(_)})

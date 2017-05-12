@@ -11,6 +11,7 @@ import acumen.Errors._
 import acumen.interpreters.Common._
 import acumen.interpreters.enclosure.{IntervalSplitter, SplitInterval}
 import acumen.util.Conversions
+import acumen.interpreters.enclosure.Interval
 
 import scala.collection.mutable
 
@@ -62,17 +63,25 @@ trait CStoreInterpreter extends Interpreter {
           case (n, VLit(GInterval(SplitInterval(_, is)))) => Some((id, n), is)
           //Shouldn't happen, would lead to an interpreter error
           case (n, VLit(GInterval(_))) => println("Basic intervals are prohibited in the optimized interpreter"); None
+          //@Masoumeh>
+          case (n, VLit(GIntEnclosure(s))) => 
+            println("GIntEnclosure"); None
+          case (n, VLit(GBoolEnclosure(s))) => 
+            println("GBoolEnclosure"); None 
+          //<@Masoumeh
           case _ => None
-        }
+          }
         }).toList
       }
 
       //Build the list of updates
       val intervalsToSplit = findIntervals(cs)
       //Apply each update to every Object resulting from the previous updates
-      intervalsToSplit.foldLeft(Map(Tag.root -> cs)) { case (res, ((id, n), is)) =>
-        for ((tag, st) <- res; (p, i) <- is.subPoints.map(_.doubleValue()).zipWithIndex) yield
-          ((id, n, i, is.subPoints.size - 1) :: tag) -> st.updated(id, st(id) updated(n, VLit(GDouble(p))))
+      intervalsToSplit.foldLeft(Map(Tag.root -> cs)) { 
+          case (res, ((id, n), is)) =>
+                for ((tag, st) <- res; (p, i) <- is.subPoints.map(_.doubleValue()).zipWithIndex) yield
+                  ((id, n, i, is.subPoints.size - 1) :: tag) -> st.updated(id, st(id) updated(n, VLit(GDouble(p))))
+          
       }
     }
     /* General splitting function which relies on the repr / fromCStore pseudo reciprocity

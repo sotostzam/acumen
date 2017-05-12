@@ -78,6 +78,28 @@ class IntervalSplitter(ps: List[Real], keep: List[Boolean], probas: List[Interva
   }
 }
 
+
+//@Masoumeh >
+class BooleanIntervalSplitter(ps: List[Real], keep: List[Boolean], probas: List[Interval]) extends IntervalSplitter(ps, keep, probas) {
+  override def subIntervals: List[(Interval, Some[Interval])] = {
+    val allZipped = keep map { 
+        case true => Interval(1,1)
+        case false => Interval(0,0)} zip probas
+    allZipped flatMap {case (i, p) => Some(i, Some(p))}
+  }
+}
+
+object BooleanIntervalSplitter {   
+   def apply(ps: ImplRealList, keep: List[Boolean], probas: List[Interval]): BooleanIntervalSplitter = 
+       new BooleanIntervalSplitter(ps.l, keep, probas)
+   
+  case class ImplRealList(l: List[Real])
+  implicit def DoubleToRealList(vals: List[Double]): ImplRealList = ImplRealList(vals map ExtendedRational.valueOf)
+  implicit def RealToRealList(vals: List[Real]): ImplRealList = ImplRealList(vals)   
+}
+//< @Masoumeh
+
+
 object IntervalSplitter {
   /** Splitter from the raw list of points (bounds and inner) and the list of "keep" booleans */
   def apply(ps: ImplRealList, keep: List[Boolean], probas: List[Interval]): IntervalSplitter =
@@ -128,7 +150,7 @@ trait SplitterDistribution {
     * Produce the list of the points resulting from the split in respect of the distribution which implement this trait
     * @param central truncation of the distribution around the middle point (in [0 .. 1], 0 and or 1 excluded depending on the distribution)
     * @param n number of splits to perform
-    * @return the list of points, the list of keep flags (cf ExprSplitterDistribution) and the list of probabilities atached to each subinterval)
+    * @return the list of points, the list of keep flags (cf ExprSplitterDistribution) and the list of probabilities attached to each subinterval)
     */
   def producePoints(central: Double, n: Int): (List[Real], List[Boolean], List[Interval]) = {
     require(central > 0 && central <= 1, s"central argument must be between 0 and 1: $central%")
@@ -145,7 +167,7 @@ trait SplitterDistribution {
     val points = (intermediateWeights.foldLeft(List(lo))((res, s) => res ::: List(icdf(s))) ::: List(hi)) map ExtendedRational.valueOf
     //All the subintervals are kept in case of a distribution splitting
     val keep = List.fill(points.size - 1)(true)
-    //All the subintrvals are equiprobable and the global probability is equal to the central parameter
+    //All the subintervals are equiprobable and the global probability is equal to the central parameter
     val probas = List.fill(keep.size)(Interval(
       ExtendedRationalOps.mul(
         ExtendedRational.valueOf(central),
@@ -169,8 +191,6 @@ object UniformDistribution {
   def apply(lo: Double, hi: Double, c: Double, n: Int): SplitInterval =
     UniformDistribution(lo, hi)(c, n)
 }
-
-
 
 case class NormalDistribution(mu: Double, sigmaSquared: Double) extends SplitterDistribution {
   require(sigmaSquared > 0, s"sigma^2 must be positive: $sigmaSquared")

@@ -75,6 +75,17 @@ object Common {
         // Convert an ExprSplitInterval'smth to the uncertain version of a SplitInterval which can be used as an Interval by the interpreter.
         case esi : ExprSplitInterval => liftSplitIntervalToUncertain(esi)
         case esd : ExprSplitterDistribution => liftSplitIntervalToUncertain(esd)
+        
+        //@Masoumeh>
+        case i: ExprDisjointUniInt => liftSplitIntervalToUncertain(i)
+        case i: ExprDisjointUniIntRange => liftSplitIntervalToUncertain(i)
+        case i: ExprDisjointUniIntProb => liftSplitIntervalToUncertain(i)
+        case i: ExprDisjointUniIntRangeProb => liftSplitIntervalToUncertain(i)
+        case i: ExprDisjointUniStr => liftSplitIntervalToUncertain(i)
+        case i: ExprDisjointUniBool => liftSplitIntervalToUncertain(i)
+        case i: ExprDisjointUniBoolProb => liftSplitIntervalToUncertain(i)
+        //<@Masoumeh 
+        
         case Lit(GStr(s))           => Lit(GStrEnclosure(s))
         case _                      => super.mapExpr(e)
       }
@@ -107,6 +118,90 @@ object Common {
       case _ => throw ShouldNeverHappen()
     }
     e match {
+      //@Masoumeh>
+      case ExprDisjointUniInt(list) => {
+          list match {case f::rest =>
+          val (points, keeps) = ((doubleExtractor(f), true) :: (doubleExtractor(f), false) :: (if(rest.isEmpty) List() else rest.take(rest.size) flatMap {
+          case r => List((doubleExtractor(r), true), (doubleExtractor(r), false))
+           })).unzip
+           Lit(GConstantRealEnclosure(SplitInterval(points, keeps.take(keeps.size - 1))))
+          }
+      }
+      case ExprDisjointUniIntRange(lo, hi) => {
+          val points = List.range(intHelper(lo), intHelper(hi)) flatMap {case v => List(v.toDouble, v.toDouble)}
+          val keeps = points.zipWithIndex map {case (p, i) => (if (i % 2 == 0) true else false)}          
+          Lit(GConstantRealEnclosure(SplitInterval(points, keeps.take(keeps.size - 1))))
+      }
+
+      case ExprDisjointUniIntProb(values, probs) => {
+          (values, probs) match {
+              case (ExprDisjointUniInt(vlist), ExprDiscreteProbList(plist)) => {vlist match {case f :: rest =>
+                  val (points, keeps) = ((doubleExtractor(f), true) :: (doubleExtractor(f), false) :: (if(rest.isEmpty) List() else rest.take(rest.size) flatMap {
+                      case r => List((doubleExtractor(r), true), (doubleExtractor(r), false))
+                       })).unzip
+                   val probsInterval = plist flatMap {case p => List(Interval(doubleExtractor(p),doubleExtractor(p)), Interval(0.toDouble,0.toDouble))}
+                   Lit(GConstantRealEnclosure(SplitInterval(points, keeps.take(keeps.size - 1), probsInterval.take(probsInterval.size - 1))))
+                }
+              }
+              case (ExprDisjointUniInt(vlist), ExprDiscreteProbUni()) => { vlist match {case f :: rest =>
+                  val (points, keeps) = ((doubleExtractor(f), true) :: (doubleExtractor(f), false) :: (if(rest.isEmpty) List() else rest.take(rest.size) flatMap {
+                      case r => List((doubleExtractor(r), true), (doubleExtractor(r), false))
+                       })).unzip
+                   val uniProb = (2/(points.size.toDouble))
+                   val probsInterval = keeps map {
+                      case true => Interval(uniProb.toDouble,uniProb.toDouble)
+                      case false => Interval(0.toDouble,0.toDouble)
+                      }
+                   Lit(GConstantRealEnclosure(SplitInterval(points, keeps.take(keeps.size - 1), probsInterval.take(probsInterval.size - 1))))
+                }
+              }
+          }
+      }
+      
+      case ExprDisjointUniIntRangeProb(values, probs) => {
+          (values, probs) match {
+              case (ExprDisjointUniIntRange(lo, hi), ExprDiscreteProbList(plist)) => {
+                   val points = List.range(intHelper(lo), intHelper(hi)) flatMap {case v => List(v.toDouble, v.toDouble)}
+                   val keeps = points.zipWithIndex map {case (p, i) => (if (i % 2 == 0) true else false)}
+                   val probsInterval = plist flatMap {case p => List(Interval(doubleExtractor(p),doubleExtractor(p)), Interval(0.toDouble,0.toDouble))}
+                   Lit(GConstantRealEnclosure(SplitInterval(points, keeps.take(keeps.size - 1), probsInterval.take(probsInterval.size - 1))))
+                }
+              case (ExprDisjointUniIntRange(lo, hi), ExprDiscreteProbUni()) => { 
+                   val points = List.range(intHelper(lo), intHelper(hi)) flatMap {case v => List(v.toDouble, v.toDouble)}
+                   val keeps = points.zipWithIndex map {case (p, i) => (if (i % 2 == 0) true else false)}
+                   val uniProb = (2/(points.size.toDouble))
+                   val probsInterval = keeps map {
+                      case true => Interval(uniProb.toDouble,uniProb.toDouble)
+                      case false => Interval(0.toDouble,0.toDouble)
+                      }
+                   Lit(GConstantRealEnclosure(SplitInterval(points, keeps.take(keeps.size - 1), probsInterval.take(probsInterval.size - 1))))
+             }
+          }
+      }
+      
+      case ExprDisjointUniBool(list) => {
+          val values = list map { case v => booleanExtractor(v) }
+          Lit(GBoolDisjointEnclosure(values.toSet))
+      }
+/*
+      case ExprDisjointUniBoolProb(values, probs) => {
+          (values, probs) match {
+              case (ExprDisjointUniBool(list), ExprDiscreteProbList(plist)) => {
+                   val points = list map { case v => booleanExtractor(v) }
+                   val probsInterval = plist flatMap {case p => List(Interval(doubleExtractor(p),doubleExtractor(p)), Interval(0.toDouble,0.toDouble))}
+                   Lit(GBoolDisjointProbEnclosure(points.toSet, probsInterval))
+                }
+              case (ExprDisjointUniBool(list), ExprDiscreteProbUni()) => { 
+                   val points = list map { case v => booleanExtractor(v) }
+                   val probsInterval = List(Interval(0.5,0.5), Interval(0.5,0.5))
+                   Lit(GBoolDisjointProbEnclosure(points.toSet, probsInterval))
+             }
+          }
+      }
+      * 
+      */
+      //<@Masoumeh
+        
       case ExprSplitInterval(i, s) =>
         val interval = i match {
           case Lit(GConstantRealEnclosure(ivl)) => ivl  
@@ -915,14 +1010,22 @@ object Common {
   def evalExprIntervals(e: Expr): CValue = {
     def intHelper(e: Expr): Int = e match {
       case Lit(n @ GInt(_)) => extractInt(n)
+      case Lit(n @ GConstantRealEnclosure(i)) if i.isValidInt => i.toInt
       case _ => throw ShouldNeverHappen()
     }
     def doubleHelper(e: Expr): Double = e match {
       case Lit(x @ (GDouble(_) | GInt(_))) => extractDouble(x)
+      case Lit(GConstantRealEnclosure(i)) => 
+        val d = i.loDouble
+        if (i.isThin) d else {
+          Logger.log(s"Warning: Unsound approximation of ${pprint(e)} as $d")
+          d
+        }         
       case _ => throw ShouldNeverHappen()
     }
     def booleanExtractor(e: Expr): Boolean = e match {
       case Lit(GBool(k)) => k
+      case Lit(GBoolEnclosure(s)) =>  s.head  
       case _ => throw ShouldNeverHappen()
     }
     def intervalHelper(i: Expr) = i match {
@@ -937,6 +1040,7 @@ object Common {
         //Every interval must be split to be processed by the interpreter.
         //Hence a classic Interval is forced to a splitInterval with only one subinterval
         VLit(GInterval(SplitInterval(intervalHelper(i))))
+             
       case ExprSplitInterval(i, s) => {
         s match {
           case ExprSplitterPoints(ps, kps) =>

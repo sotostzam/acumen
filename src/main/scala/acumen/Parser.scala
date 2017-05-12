@@ -150,7 +150,7 @@ object Parser extends MyStdTokenParsers {
     List("foreach", "end", "if", "else","elseif", "create", "move", "in", "terminate", "model","then","initially","always",
          "sum", "true", "false", "init", "match","with", "case", "claim", "hypothesis", "let","noelse", "typeOf",
          "Initial", "Continuous", "Discrete", "FixedPoint", "none","cross","do","dot","for","_3D","zeros","ones", "_Plot",
-         "splitby", "central", "normald", "uniformd", "betad", "function", "Surface")
+         "splitby", "central", "normald", "uniformd", "betad", "function", "Surface", "distribution", "uniform")
 
   /* token conversion */
 
@@ -454,6 +454,7 @@ object Parser extends MyStdTokenParsers {
       | dif   
       | parens(expr)
       | intervals
+      | disjointUnions
       |"typeOf" ~! parens(className) ^^ { case _ ~ cn => TypeOf(cn) }
       | name >> { n => args(expr) ^^ { es => Op(n, es) } | success(Var(n)) }
       | vectorConstruct
@@ -508,12 +509,81 @@ object Parser extends MyStdTokenParsers {
   def recursiveDif(e:Expr, n:Int, v:Expr):Expr = {
     if(n == 0)
       e
-     else
-       mkOp("dif",recursiveDif(e,n-1,v),v)
+    else
+      mkOp("dif",recursiveDif(e,n-1,v),v)
   }
     
   def bs: Parser[(Name, Expr)] = name ~ "<-" ~ expr ^^ {case n ~ _ ~ e => (n,e)}
  
+  //@Masoumeh>
+  def disjointUnions = numUnionWithProb | numUnionRangeWithProb /*| boolUnionWithProb | strUnionWithProb*/ | numUnionRange | numUnion /*| boolUnion | strUnion */
+
+  def discreteProb = discreteProbUni | discreteProbList
+  
+  def discreteProbUni : Parser[Expr] = 
+      "uniform" ^^ {
+          case _ => ExprDiscreteProbUni()
+      }
+
+  def discreteProbList : Parser[Expr] = 
+      parens(rep1sep(nlit, ",")) ^^ {
+          case probs => ExprDiscreteProbList(probs)
+      }
+      
+  def numUnion : Parser[Expr] =
+      "{" ~> nlit ~ rep((",") ~ nlit) <~ "}" ^^
+      {case fi ~ rest =>  
+          val values = (fi) :: (if(rest.isEmpty) List() else rest.take(rest.size) map {
+          case "," ~ p => (p)
+        })
+        ExprDisjointUniInt(values)
+      }
+      
+  def numUnionWithProb : Parser[Expr] =
+            numUnion ~ "distribution" ~ discreteProb ^^
+      {case values ~ "distribution" ~ probs =>  
+        ExprDisjointUniIntProb(values, probs)
+      }
+
+  def numUnionRange : Parser[Expr] =
+      "{" ~> gint ~ "," ~ ".." ~ "," ~ gint <~ "}" ^^
+      {case lo ~ "," ~ ".." ~ "," ~ hi =>  
+        ExprDisjointUniIntRange(Lit(lo), Lit(hi))
+      }
+      
+  def numUnionRangeWithProb : Parser[Expr] =
+            numUnionRange ~ "distribution" ~ discreteProb ^^
+      {case values ~ "distribution" ~ probs =>  
+        ExprDisjointUniIntRangeProb(values, probs)
+      }
+
+  def strUnion : Parser[Expr] =
+      "{" ~> gstr ~ rep((",") ~ gstr) <~ "}" ^^
+      {case fi ~ rest =>  
+          val values = (Lit(fi)) :: (if(rest.isEmpty) List() else rest.take(rest.size) map {
+          case "," ~ p => (Lit(p))
+        })
+        ExprDisjointUniStr(values)
+      }
+      
+  def strUnionWithProb : Parser[Expr] =
+      strUnion ~ "distribution" ~ discreteProb ^^
+      {case values ~ "distribution" ~ probs =>  
+        ExprDisjointUniStrProb(values, probs)
+      }
+      
+  def boolUnion : Parser[Expr] =
+      "{" ~> gbool ~ "," ~ gbool <~ "}" ^^ 
+      {case fi ~ "," ~ sc => ExprDisjointUniBool(List(Lit(fi),Lit(sc)))}
+
+  def boolUnionWithProb : Parser[Expr] =
+      boolUnion ~ "distribution" ~ discreteProb ^^
+      {case values ~ "prob" ~ probs =>  
+        ExprDisjointUniBoolProb(values, probs)
+      }
+
+  //<@Masoumeh
+      
   def intervals = splitIntervaln | splitIntervalWeights | splitIntervalUnion | interval | splitIntervalPoints | distribution
 
   def interval: Parser[Expr] =

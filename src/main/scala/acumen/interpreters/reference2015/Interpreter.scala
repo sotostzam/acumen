@@ -208,6 +208,14 @@ object Interpreter extends acumen.CStoreInterpreter {
         case i: ExprInterval => evalExprIntervals(i)
         case i: ExprSplitInterval => evalExprIntervals(i)
         case i: ExprSplitterDistribution => evalExprIntervals(i)
+        //@Masoumeh>
+        case i: ExprDisjointUniInt => evalExprIntervals(i)
+        case i: ExprDisjointUniIntRange => evalExprIntervals(i)
+        case i: ExprDisjointUniIntProb => evalExprIntervals(i)
+        case i: ExprDisjointUniIntRangeProb => evalExprIntervals(i)
+        case i: ExprDisjointUniStr => evalExprIntervals(i)
+        case i: ExprDisjointUniBool => evalExprIntervals(i)
+        //<@Masoumeh
         /* e.f */
         case Dot(o, f) =>
           val id = evalToObjId(o, env, st)

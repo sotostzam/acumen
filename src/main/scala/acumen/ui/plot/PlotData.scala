@@ -492,7 +492,8 @@ class PlotData(parms: PlotParms = null, tb:PlotModel = null, val disableThreshol
         pgPdf foreach {_.transform(tr4)}
 
         //Add the shifted plot groups, boxes and null axes to keep the same size for polys, axes and boxes
-        polys += pgCdf ; polys += pgPdf
+        polys += pgCdf ; 
+        //polys += pgPdf //By @Masoumeh no PDF plot
         boxes += new Rectangle2D.Double(0, axes.size*1.2, maxTime, 1.0)
         boxes += new Rectangle2D.Double(0, (axes.size + 1)*1.2, maxTime, 1.0)
         axes += null; axes += null
