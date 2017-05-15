@@ -44,7 +44,6 @@ import acumen.interpreters.enclosure.event.tree.TreeEventEncloser
 import acumen.{SemanticsImpl => S}
 import acumen.ui.threeD._
 import scala.io.Source
-import acumen.conformance.TestModel
 
 // class Acumen = Everything that used to be GraphicalMain. Graphical
 // Main can't be an object it will cause Swing components to be
@@ -128,13 +127,6 @@ class App extends SimpleSwingApplication {
   val controller = new Controller
   var lastNumberOfThreads = 2
   
-  //Conformance Testing variables
-  var testParamTau = 0.0001
-  var testParamEpsilon = 0.1
-  var testParamDeltaP = 1.0
-  var testParamRate = 0.001
-  var testParamVar2Test = ""
-
   @volatile var modelFinished : Boolean = false
 
   //**************************************
@@ -197,11 +189,6 @@ class App extends SimpleSwingApplication {
   private val bugReportAction                 = mkAction(    "Bugs",                                NONE, NONE,       bugReport())
   private val aboutAction                     = new Action(  "About")       { mnemonic =            VK_A; def apply = about() }
   private val licenseAction                   = new Action(  "License")     { mnemonic =            VK_L; def apply = license() }
-  //Testing 
-  private val testingParametersAction         = mkActionMask("Parameters",                          VK_P, NONE,       shortcutMask | SHIFT_MASK, promptForTestingParameters)
-  private val generateTestsAction             = mkAction(    "Generate Tests",                      VK_G, VK_G,       generateTests())
-  private val analyseModelAction              = mkAction(    "Analyse Model",                       VK_A, VK_A,       analyseModel())
-  private val conformanceTestAction           = mkAction(    "Check Conformance",                   VK_C, VK_C,   executeTests())
   
   /* Shows a dialog asking the user how many threads to use in the parallel interpreter. */
   private def promptForNumberOfThreads = {
@@ -325,9 +312,6 @@ class App extends SimpleSwingApplication {
     //model = traceModel
     autoResizeMode = Table.AutoResizeMode.Off
   }
-
-  /* test data model */
-  var testModel : TestModel = new TestModel()//InterpreterModel = new EnclosureModel()
 
   // FIXME: This probably should't be here -- kevina
   val jPlotI = new plot.JPlotInput {
@@ -738,18 +722,6 @@ class App extends SimpleSwingApplication {
       serverLinkItem.enabled = false
     }
     
-     //Testing
-    contents += new Menu("Test") {
-      mnemonic = Key.T
-      //contents += new MenuItem(analyseModelAction)
-      contents += new MenuItem(generateTestsAction) //genTestsMenuItem      
-      contents += new MenuItem(conformanceTestAction)
-      contents += new MenuItem(testingParametersAction)
-      
-      //disable the Generate Tests menu as the default semantics is not an Enclosure one
-      //genTestsMenuItem.enabled = false
-    }
-
     contents += new Menu("Help") {
       mnemonic = Key.H
       contents += new MenuItem(manualAction)
@@ -894,102 +866,6 @@ class App extends SimpleSwingApplication {
     BuildHost.BuildHost.sensors.add(0, tempsensor)
     BuildHost.BuildHost.Device_counter = 0
   }
-
-  /* ----- Conformance Testing ---- */
-  
-  private def promptForTestingParameters = {
-    def diag = Dialog.showInput(
-      body, "Give the testing parameters: Tau, Epsilon, Sampling Rate [Tau;Epsilon;Rate]",
-      "Conformance Testing", Dialog.Message.Question,
-      Swing.EmptyIcon, Seq(), testParamTau.toString + ";" + testParamEpsilon.toString + ";" + testParamRate.toString)
-    def go: Unit = try {
-      def paramsStr: String = diag.getOrElse(paramsStr)
-      val newParams = paramsStr.split(";")
-      val userTau = newParams(0).toFloat
-      val userEpsilon = newParams(1).toFloat
-      val userRate = newParams(2).toFloat
-      testParamTau = Math.abs(userTau)
-      Logger.log("Tau set to " + Math.abs(userTau))
-      testParamEpsilon = Math.abs(userEpsilon)
-      Logger.log("Epsilon set to " + Math.abs(userEpsilon))
-      testParamRate = Math.abs(userRate)
-      Logger.log("Sampling Rate set to " + Math.abs(userRate))
-     } catch {
-      case _ =>
-        Logger.error("Bad parameters!")
-        go
-    }
-    go
-  }
-  
-  private def promptForVarToTest = {
-    def diag = Dialog.showInput(
-      body, "Select the variable to test",
-      "Conformance Testing", Dialog.Message.Question,
-      Swing.EmptyIcon, Seq(), "") //Seq() is replaced by the list of vars from the model
-    def go: Unit = try {
-      def varToTest: String = diag.getOrElse(varToTest)
-      testParamVar2Test = varToTest
-      Logger.log("Variable to test set to '" + varToTest + "'")
-     } catch {
-      case _ =>
-        Logger.error("Bad parameters!")
-        go
-    }
-    go
-  }
-
-  def analyseModel() = {
-      Logger.log("Analyse Model for Test Generation ....")
-  }
-
-    def generateTests() = {
-      exportTable()
-  }
-
-   def executeTests () = {
-      promptForVarToTest
-      loadTests()
-      if (App.ui.controller.model != null && traceTable.model != null) {
-          controller ! CheckConformance(testModel, testParamVar2Test, testParamTau, testParamEpsilon)
-      }
-      else {
-          Logger.log("No data to test, run the simulation once ...")
-      }
-   }
-
-   def loadTests () = {
-      val fc = new FileChooser(codeArea.currentDir)
-      val returnVal = fc.showOpenDialog(App.ui.body)
-      if (returnVal == FileChooser.Result.Approve) {
-        if (fc.selectedFile.isFile) {
-           println("Loading tests ...")
-           var lineNr = 0
-           var timeCol = -1
-           var varCol = -1
-           for (line <- Source.fromFile(fc.selectedFile).getLines()) {
-               //TODO: load tests from file to testModel
-               var values : Array[String] = line.split("\t")
-               if (lineNr == 0) {
-                   var i = 0
-                   while (i < values.length) {
-                       if (values(i).endsWith("Simulator).time")) {
-                          timeCol = i 
-                       }
-                       else if (values(i).endsWith("." + testParamVar2Test.toString())) {
-                          varCol = i 
-                       }
-                       i += 1
-                   }
-                   lineNr += 1
-               }
-               else {
-                   //testModel.addTest(values(timeCol).toDouble, values(varCol))
-               }
-           }
-        }
-      }
-   }
 
   /* ----- events handling ---- */
   

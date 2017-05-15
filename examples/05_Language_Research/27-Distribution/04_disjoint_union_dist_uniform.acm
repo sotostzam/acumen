@@ -1,0 +1,8 @@
+model Main(simulator) =
+initially
+x={2,3} distribution (0.3,0.7),
+y={5,7} distribution uniform,
+a=[1 .. 1.01],
+z=0
+always 
+z=x+y*a

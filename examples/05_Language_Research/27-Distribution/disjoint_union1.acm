@@ -1,0 +1,7 @@
+model Main(simulator) =
+initially
+x={2,3},
+y={5,7},
+z=0
+always 
+z=x+y
