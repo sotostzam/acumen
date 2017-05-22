@@ -1,0 +1,8 @@
+model Main(simulator) =
+initially
+// x = [1 .. 2] splitby 4,
+x = 1,
+x' = 1
+always
+// x' = 0,
+x' = - x
