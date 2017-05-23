@@ -213,6 +213,10 @@ object BindingTimeAnalysis {
         val alhs = labelAst(lhs, label)
         val arhs = labelAst(rhs, alhs._2)
         (ADiscretely(AAssign(alhs._1, arhs._1, arhs._2), arhs._2), arhs._2 + 1, env)
+      case OneOfPossiblyManyAssigns(lhs, rhs) =>
+        val alhs = labelAst(lhs, label)
+        val arhs = labelAst(rhs, alhs._2)
+        (ADiscretely(AOneOfPossiblyManyAssigns(alhs._1, arhs._1, arhs._2), arhs._2), arhs._2 + 1, env)
       case Create(x, name, args) =>
         val aargs = labelListExpr(args, label)
         (ADiscretely(ACreate(x, name, aargs._1, aargs._2), aargs._2), aargs._2 + 1, env)
@@ -420,6 +424,16 @@ object BindingTimeAnalysis {
       }
       case ADiscretely(c, l1) => c match {
         case AAssign(lhs, rhs, l) => lhs match {
+          // Discrete assignment will be regarded as unknown and leave as it is 
+          case AVar(name, _) =>
+            Unknown(l) :: Unknown(l1) :: traversal(rhs, env(scope))
+          case ADot(_, _, _) => Unknown(l) :: Unknown(l1) :: traversal(rhs, env(scope))
+          case _ =>
+            NLT(lhs.an, l) :: NLT(rhs.an, l) ::
+              (traversal(lhs, env(scope)) :::
+                traversal(rhs, env(scope)))
+        }
+        case AOneOfPossiblyManyAssigns(lhs, rhs, l) => lhs match {
           // Discrete assignment will be regarded as unknown and leave as it is 
           case AVar(name, _) =>
             Unknown(l) :: Unknown(l1) :: traversal(rhs, env(scope))

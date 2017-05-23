@@ -486,16 +486,19 @@ object Common {
   case class CollectedAction(path: Expr, selfCId: CId, a: Action, env: Env) {
     def lhs: ResolvedDot = (a: @unchecked) match {
       case Discretely(Assign(d: ResolvedDot, _))      => d
+      case Discretely(OneOfPossiblyManyAssigns(d: ResolvedDot, _))      => d
       case Continuously(EquationT(d: ResolvedDot, _)) => d
       case Continuously(EquationI(d: ResolvedDot, _)) => d
     }
     def rhs: Expr = (a: @unchecked) match {
       case Discretely(x: Assign)      => x.rhs
+      case Discretely(x: OneOfPossiblyManyAssigns)      => x.rhs
       case Continuously(x: EquationT) => x.rhs
       case Continuously(x: EquationI) => x.rhs
     }
     def mapRhs(m: Expr => Expr) = copy(a = (a: @unchecked) match {
       case Discretely(x: Assign)      => Discretely(x.copy(rhs = m(x.rhs)))
+      case Discretely(x: OneOfPossiblyManyAssigns)      => Discretely(x.copy(rhs = m(x.rhs)))
       case Continuously(x: EquationT) => Continuously(x.copy(rhs = m(x.rhs)))
       case Continuously(x: EquationI) => Continuously(x.copy(rhs = m(x.rhs)))
     })

@@ -554,11 +554,19 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
         logAssign(path, rd.id, Discretely(Assign(rd,rRhs)), env)
       /* Basically, following says that variable names must be 
          fully qualified at this language level */
+      case OneOfPossiblyManyAssigns(e @ Dot(o, _), rhs) =>
+        /* Schedule the discrete assignment */
+        val (rd, rRhs) = resolve(e, rhs, env, st)
+        logAssign(path, rd.id, Discretely(OneOfPossiblyManyAssigns(rd,rRhs)), env)
+      /* Basically, following says that variable names must be 
+         fully qualified at this language level */
       case c: Create =>
         throw internalPosError("The 2015 Enclosure semantics does not support create statements in the always section.", c.pos)
       case Assign(lhs,_) => 
         throw BadLhs(lhs)
-    }
+      case OneOfPossiblyManyAssigns(lhs,_) => 
+        throw BadLhs(lhs)
+    }  /* temporary fix for  *= - 16th March 2017 */
 
   def evalContinuousAction(certain:Boolean, path: Expr, a:ContinuousAction, env:Env, p:Prog, st: Enclosure) : Set[Changeset] = 
     a match {
@@ -870,7 +878,14 @@ case class Interpreter(contraction: Boolean) extends CStoreInterpreter {
   /** Ensure that c does not contain duplicate assignments. */
   def checkValidChange(c: Set[Changeset]): Unit = c.foreach{ cs =>
     val contIds = (cs.eqs.toList ++ cs.odes.toList).map(_.lhs)
-    val assIds = cs.dis.toList.map(_.lhs)
+    
+    //val assIds = cs.dis.toList.map(_.lhs)
+    val assIds = cs.dis.toList.filter{x => x.a match{
+      case Discretely(Assign(_,_)) => true
+      case _ => false
+    }}.map(_.lhs)
+    
+    c map println
     checkDuplicateAssingments2014(contIds, DuplicateContinuousAssingment)
     checkDuplicateAssingments2014(assIds, DuplicateDiscreteAssingment)
   }

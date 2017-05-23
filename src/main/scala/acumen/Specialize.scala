@@ -193,6 +193,10 @@ object Specialization {
           case AVar(_, _) => (List(Discretely(Assign(lhs.expr.setPos(lhs.pos), rhs.expr))), env, Nil)
           case _          => (List(Discretely(Assign(specializeE(lhs)._1, specializeE(rhs)._1))), env, Nil)
         }
+        case AOneOfPossiblyManyAssigns(lhs, rhs, l1) => lhs match {
+          case AVar(_, _) => (List(Discretely(OneOfPossiblyManyAssigns(lhs.expr.setPos(lhs.pos), rhs.expr))), env, Nil)
+          case _          => (List(Discretely(OneOfPossiblyManyAssigns(specializeE(lhs)._1, specializeE(rhs)._1))), env, Nil)
+        }
         case ACreate(x, name, args, l) => (List(Discretely(Create(x, name, args.map(x => specializeE(x)._1)))), env, Nil)
         case AElim(ae, l)              => (List(Discretely(Elim(ae.expr))), env, Nil)
         case AMove(aobj, ap, l)        => (List(Discretely(Move(aobj.expr, ap.expr))), env, Nil)

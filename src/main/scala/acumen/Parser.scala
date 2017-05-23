@@ -336,6 +336,7 @@ object Parser extends MyStdTokenParsers {
     positioned(expr >> { e =>
       (	"=" ~> expr ^^ (e1 => Continuously(Equation(e, e1)))
         |"+" ~> "=" ~> assignrhs(e) ^^ Discretely     
+         |"*" ~> "=" ~> expr ^^ (e1 => Discretely(OneOfPossiblyManyAssigns(e,e1)))    
         | "=[i]" ~> expr ^^ (e1 => Continuously(EquationI(e, e1)))
         | "=[t]" ~> expr ^^ (e1 => Continuously(EquationT(e, e1))))
     })

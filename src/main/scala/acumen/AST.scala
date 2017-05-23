@@ -106,9 +106,18 @@ package acumen {
   case class Assignment(p:Pattern, rhs:Expr) extends ContinuousAction
 
   sealed abstract class DiscreteAction extends Positional
-  /* Example: x := 3 */
+  /* Example: x += 3 */
   case class Assign(lhs: Expr, rhs: Expr) extends DiscreteAction
-  /* Example: x := create Ball(1) */
+
+  /* Example: x *= 3  means that tere might be other active discrete updates
+   trying to change x. If more than one update of the form x* =  ..
+   are active, then the simulator must consider all these
+   assignments as happening at the same time
+   Such a feature is useful in modelling systems with simultaneous discrete changes
+   such as a Queueing system with arrivals and departures that can happen at the same time */
+  case class OneOfPossiblyManyAssigns(lhs: Expr, rhs: Expr) extends DiscreteAction
+
+  /* Example: x += create Ball(1) */
   case class Create(x: Option[Expr], // Some(x) means "x = create ..." 
     name: Expr,
     args: List[Expr]) extends DiscreteAction
@@ -496,6 +505,7 @@ package acumen {
     def an: A
   }
   case class AAssign[A](lhs: AExpr[A], rhs: AExpr[A], val an: A) extends AnDiscreteAction[A]
+  case class AOneOfPossiblyManyAssigns[A](lhs: AExpr[A], rhs: AExpr[A], val an: A) extends AnDiscreteAction[A]
   case class ACreate[A](x: Option[Expr], // Some(x) means "x = create ..." 
                         name: Expr,
                         args: List[AExpr[A]], val an: A) extends AnDiscreteAction[A]

@@ -90,6 +90,7 @@ class ASTMap {
 
   def mapDiscreteAction(a: DiscreteAction) : DiscreteAction = a match {
     case Assign(lhs, rhs) => Assign(mapExpr(lhs), mapExpr(rhs))
+    case OneOfPossiblyManyAssigns(lhs, rhs) => OneOfPossiblyManyAssigns(mapExpr(lhs), mapExpr(rhs))
     case Create(lhs, name, args) => Create(lhs.map{mapExpr(_)}, name, args.map{mapExpr(_)})
     case Elim(e) => Elim(mapExpr(e))
     case Move(obj, newParent) => Move(mapExpr(obj), mapExpr(newParent))

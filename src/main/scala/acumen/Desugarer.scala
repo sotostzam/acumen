@@ -214,6 +214,7 @@ case class Desugarer(odeTransformMode: ODETransformMode) {
     val des = desugar(p, fs, env, _: Expr)
     e match {
       case Assign(lhs, rhs) => List(Assign(des(lhs), des(rhs)))
+//      case OneOfPossiblyManyAssigns(lhs, rhs) => List(OneOfPossiblyManyAssigns(des(lhs), des(rhs)))
       case Create(lhs, c, args) =>
         List(Create(lhs map des, desugar(p, fs, env, c), args map des))
       case Elim(e) => List(Elim(des(e)))
