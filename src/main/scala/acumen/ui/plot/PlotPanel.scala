@@ -347,18 +347,34 @@ class PlotPanel(pub:Publisher) extends Panel
           // p in the original coordinate system
           val op = (unapplyTr(p).getX - pd.valToTimeTr._2) / pd.valToTimeTr._1
           val valRange = pp.getValuesRange
+          //@Masoumeh> Changes in the displayed info for CDF: P(<=lo);'lo' is the lower bound of the corresponding interval
+          var opInterval: Interval = null
           var prb: Interval = null
-          if(valRange.contains(op))
+          if(valRange.contains(op)) {
             prb = pp.cdf.find { case (i, p) => i.contains(op) }.get._2
-          else if (op <= valRange.loDouble)
+            opInterval = pp.cdf.find { case (i, p) => i.contains(op) }.get._1
+          }
+          else if (op <= valRange.loDouble) {
               prb = pp.probaOut
-          else prb = Interval(1) - pp.probaOut
+              opInterval = Interval(0.0, valRange.loDouble)
+          }
+          else {
+              prb = Interval(1) - pp.probaOut
+              opInterval = Interval(valRange.hiDouble, valRange.hiDouble)
+          }
           dotX = (p.getX, p.getX)// No horizontal range here
           val (scale, shift) = pd.yTransformations(hb)
           dotY = Some(applyTr(new Point2D.Double(0, prb.loDouble * scale + shift)).getY,
                       applyTr(new Point2D.Double(0, prb.hiDouble * scale + shift)).getY)
           hoveredBox = Some(hb)
-          pub.publish(PointedAtEvent(pp.time, "CDF of " + pp.name, s"P(<=$op) = " + prb.toString))
+          var opIntervalLo = opInterval.loDouble
+          if (opInterval.loDouble != opInterval.hiDouble) {
+              pub.publish(PointedAtEvent(pp.time, "CDF of " + pp.name, s"P(<=$opIntervalLo) = " + prb.toString))
+          } else {
+              var name = pp.name
+              pub.publish(PointedAtEvent(pp.time, "CDF of " + pp.name, s"P($opIntervalLo < $name < $opIntervalLo) = " + (prb.hiDouble - prb.loDouble)))              
+          }
+          //<@Masoumeh
         } else if (hb == pd.columnIndices.length + 1) {
           val pp = pd.probaPlottables.get
           // p in the original coordinate system
@@ -500,10 +516,22 @@ class PlotPanel(pub:Publisher) extends Panel
               else (x, Interval((p0 + t.p.get).lo, p0.hi)) :: l
             }.reverse
             // Build a list of enclosures from the cdfBounds at different times interval
+            //@Masoumeh>  (edited) 
+            //cdfEnclosure discards duplicate keys in the map from intervals to probabilities; the probabilities for the same intervals should be accumulated
+            /* commented out by Masoumeh
             val cdfEnclosure =
             ((cdfBounds zip (cdfBounds unzip)._1.tail) map { case ((l, p), h) =>
                 Interval(l, h) -> p.intersect(Interval(0, 1)).get
             }).toMap
+            * 
+            */
+            val cdfEnclosureRawData =
+            ((cdfBounds zip (cdfBounds unzip)._1.tail) map { case ((l, p), h) =>
+                Interval(l, h) -> p.intersect(Interval(0, 1)).get
+            }).groupBy(_._1).map(v => (v._1, v._2.map(_._2)))
+            val cdfEnclosure = cdfEnclosureRawData map { case (k,l) =>
+                k -> l.foldLeft(l.head)((a,b) => a /\ b)                        
+            }
             model.setProba(Some(new ProbaData(name, qtAndRows.find(_._2.nonEmpty).get._2.get._1, probaOutBounding, probaDist, cdfEnclosure)))
             probaEnabled = true
           }

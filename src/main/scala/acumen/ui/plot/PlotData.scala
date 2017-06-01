@@ -9,7 +9,7 @@ import scala.swing._
 import scala.collection.mutable
 import java.awt.{AlphaComposite, BasicStroke, Color, RenderingHints}
 import java.awt.geom.{AffineTransform, Area}
-import java.awt.geom.{Line2D, Path2D, Point2D, Rectangle2D}
+import java.awt.geom.{Line2D, Path2D, Point2D, Rectangle2D, Ellipse2D}
 import java.awt.image.BufferedImage
 
 import Errors._
@@ -231,7 +231,7 @@ class EnclosurePath(val palette: Palette, val outline: Option[Color] = None) ext
       polyPath.lineTo(toDraw.b.getX, toDraw.b.getY)
       polyPath.lineTo(toDraw.c.getX, toDraw.c.getY)
       polyPath.lineTo(toDraw.d.getX, toDraw.d.getY)
-      // Draw exact solutions as a line
+      // Draw exact (horizontal) solutions as a line 
       if (outline.nonEmpty && toDraw.a == toDraw.d && toDraw.b == toDraw.c){
         val prevColor = g.getColor
         g.setColor(outline.get)
@@ -239,6 +239,17 @@ class EnclosurePath(val palette: Palette, val outline: Option[Color] = None) ext
           toDraw.b.getX, toDraw.b.getY))
         g.setColor(prevColor)
       }
+      //@Masoumeh>
+      // Draw vertical lines between horizontal lines in the CDF plot in case of discrete distributions
+      if (outline.nonEmpty && toDraw.a == toDraw.b && toDraw.c == toDraw.d && toDraw.a != toDraw.c){
+        val prevColor = g.getColor
+        g.setColor(Color.GREEN)
+        g.draw(new Line2D.Double(toDraw.a.getX, toDraw.a.getY, toDraw.d.getX, toDraw.d.getY))
+        g.draw(new Line2D.Double(toDraw.a.getX, toDraw.a.getY, toDraw.a.getX - 2, toDraw.a.getY + 5))
+        g.draw(new Line2D.Double(toDraw.a.getX, toDraw.a.getY, toDraw.a.getX + 2, toDraw.a.getY + 5))
+        g.setColor(prevColor)
+      }
+      //<@Masoumeh
     }
     new Area(polyPath)
   }
@@ -439,7 +450,7 @@ class PlotData(parms: PlotParms = null, tb:PlotModel = null, val disableThreshol
 
         //The CDF is only one enclosurePath
         for((v, p) <- probaPlot.cdf){
-          val enc = Enclosure(p.loDouble, p.hiDouble, p.loDouble, p.hiDouble)
+          val enc = Enclosure(p.loDouble, p.hiDouble, p.loDouble, p.hiDouble)                  
           cdfEnclosure.add(affineTransform(v.loDouble), affineTransform(v.hiDouble), enc)
         }
         //Add the extremities (little extras to avoid numerical glitches)
@@ -493,7 +504,7 @@ class PlotData(parms: PlotParms = null, tb:PlotModel = null, val disableThreshol
 
         //Add the shifted plot groups, boxes and null axes to keep the same size for polys, axes and boxes
         polys += pgCdf ; 
-        //polys += pgPdf //By @Masoumeh no PDF plot
+        //polys += pgPdf //Commented by @Masoumeh: no PDF plot
         boxes += new Rectangle2D.Double(0, axes.size*1.2, maxTime, 1.0)
         boxes += new Rectangle2D.Double(0, (axes.size + 1)*1.2, maxTime, 1.0)
         axes += null; axes += null

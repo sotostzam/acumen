@@ -4,4 +4,4 @@ x={1,3,4} distribution uniform,
 y={1,3,4} distribution (0.2,0.4,0.4),
 z=0
 always 
-z =x+y
+z = x+y

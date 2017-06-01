@@ -1,7 +1,7 @@
 model Main(simulator) =
 initially
 x={1,3,4} distribution (0.2,0.4,0.4),
-y={1,3,4} distribution (0.2,0.4,0.4),
+y={4,7,9} distribution (0.2,0.4,0.4),
 z=0
 always 
 z =x+y
