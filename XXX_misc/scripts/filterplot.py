@@ -93,6 +93,7 @@ with open(args.inFile,'rb') as tsvin, open(args.outFile, 'wb') as csvout:
             csvout.write("\n")
         else:
             if isTimePlot:
+                maxTime = row[timeCol]
                 x1 = row[timeCol]
                 x2 = row[timeCol]
                 x1y1 = x1
