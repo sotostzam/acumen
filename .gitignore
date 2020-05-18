@@ -12,9 +12,10 @@ src/main/resources/acumen/version
 src/main/resources/acumen/build_id
 target/
 
+### IntelliJ IDEA ###
+.idea/
 
 # Eclipse #
-###########
 .classpath
 .cache
 .project
@@ -22,17 +23,14 @@ target/
 bin/
 
 # Ensime #
-###########
 .ensime
 .ensime_lucene/
 
 # Other #
-#########
 benchmark-res/
 model*
 a.out
 ???-*.out
-
 
 examples/tmp.acm
 examples/temp.acm
