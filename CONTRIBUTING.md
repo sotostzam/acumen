@@ -1,0 +1,27 @@
+# Contributing
+
+## COPYRIGHT ISSUES - Read carefully before working on code
+
+By agreeing to contribute to the development of this software, the
+authors agree that Walid Taha:
+
+1. Is the contact person for anyone interested in the software,
+2. Represents the copyright that contributors own to work that
+   appears in the software,
+3. Is responsible for licensing the software, and does not
+   need to consult with all contributors to make licensing
+   arrangements for the software
+
+If you have any questions, please contact Walid Taha at
+(maroneal@gmail.com).
+
+---
+
+## TECHNICAL TIPS
+
+|           Code            |                  Description                  |
+|---------------------------|:----------------------------------------------|
+| ```sbt run```             | builds and runs Acumen from source            |
+| ```sbt test```            | runs the standard test suite (do before push) |
+| ```sbt assembly```        | builds a jar file for Acumen                  |
+| ```sbt "run --newplot"``` | runs acumen with experimental plot function   |
