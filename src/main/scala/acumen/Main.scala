@@ -18,7 +18,6 @@ object Main {
   //
   // What should be in Main
   //
-  var disableNewPlot = true
   var enableAllSemantics = true
   var autoPlay = false
   var openFile: File = null
@@ -140,10 +139,6 @@ object Main {
         extraPasses = extraPasses :+ "BTA"; parseArgs(tail)
       case ("--disable-bta") :: tail =>
         extraPasses = extraPasses.filter(_ != "BTA"); parseArgs(tail)
-      case ("--enable-newplot" | "--newplot") :: tail =>
-        disableNewPlot = false; parseArgs(tail)
-      case ("--disable-newplot" | "--no-newplot") :: tail =>
-        disableNewPlot = true; parseArgs(tail)
       case ("--prune-semantics") :: tail =>
         enableAllSemantics = false; parseArgs(tail)
       case "--disable-realtime" :: tail =>

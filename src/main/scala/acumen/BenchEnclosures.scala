@@ -77,11 +77,6 @@ object BenchEnclosures {
             (if (adjustments.size > 0) "-" + adjustments.map { _._2.toString }.mkString(",")
             else "") + ".pdf"
           println("Making PDF of plot to " + plotFn(""))
-          val plotter = new ui.plot.EnclosurePlotter
-          plotter.plotForSaving(r.res)
-          //plotter.convertToPDF(640, 480, plotFn(""))
-          //plotter.mergeVisablePlots
-          //plotter.convertToPDF(640, 480, plotFn("-merged"))
           first += adjustments
         }
       }

@@ -15,7 +15,8 @@ libraryDependencies ++= Seq(
   "org.scala-lang" % "scala-actors" % "2.11.5",
   "org.scalatest" % "scalatest_2.11" % "2.2.4" % "test",
   "org.scalacheck" %% "scalacheck" % "1.10.1" % "test",
-  "org.scalanlp" % "breeze_2.11" % "0.12"
+  "org.scalanlp" % "breeze_2.11" % "0.12",
+  "com.lihaoyi" %% "upickle" % "0.7.1"
 )
 
 resolvers += "tuxfamily" at "http://download.tuxfamily.org/arakhne/maven/"
@@ -38,11 +39,6 @@ libraryDependencies ++= Seq (
 resolvers ++= Seq(
    "snapshots" at "http://oss.sonatype.org/content/repositories/snapshots",
    "releases"  at "http://oss.sonatype.org/content/repositories/releases"
-)
-
-libraryDependencies ++= Seq( 
-   "org.jfree" % "jfreechart" % "1.0.14",
-   "org.jfree" % "jcommon" % "1.0.17"
 )
 
 //

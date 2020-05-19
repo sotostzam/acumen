@@ -295,16 +295,6 @@ class App extends SimpleSwingApplication {
     autoResizeMode = Table.AutoResizeMode.Off
   }
 
-  // FIXME: This probably should't be here -- kevina
-  val jPlotI = new plot.JPlotInput {
-    def obj() = newPlotView
-    def newData() = if (controller.model != null) controller.model.getNewData else null // XXX: Why is null check required?
-    def addToPlot(d: Object) = {
-      newPlotView.plotter.addToPlot(d)
-      newPlotView.plotter.chartPanel.validate
-    }
-  }
-
   val plotView = new plot.PlotTab
   val pointedView = new plot.PointedView(plotView)
 
@@ -312,16 +302,6 @@ class App extends SimpleSwingApplication {
     add(new FlowPanel(FlowPanel.Alignment.Leading)(pointedView),
       BorderPanel.Position.North)
     add(plotView, BorderPanel.Position.Center)
-  }
-  var newPlotView: plot.JFreePlotTab = null
-  var newPlotTab: BorderPanel = null
-  if (!Main.disableNewPlot) {
-    newPlotView = new plot.JFreePlotTab
-    newPlotTab = new BorderPanel {
-      //TODO Implement and add something like pointedView for the new plotting code
-      add(newPlotView, BorderPanel.Position.Center)
-    }
-    jPlotI.enabled = true
   }
 
   val traceTab = new ScrollPane(traceTable)
@@ -332,13 +312,7 @@ class App extends SimpleSwingApplication {
     assert(pages.size == 0)
     pages += new TabbedPane.Page("Plot", plotTab)
     val PLOT_IDX = pages.last.index
-    val NEW_PLOT_IDX = if (newPlotTab != null) {
-      pages += new TabbedPane.Page("New Plot", newPlotTab)
-      selection.index = pages.last.index
-      pages.last.index
-    } else {
-      -1
-    }
+
     pages += new TabbedPane.Page("Table", traceTab)
     val TABLE_IDX = pages.last.index
 

@@ -360,8 +360,8 @@ class PlotPanel(pub:Publisher) extends Panel
     zoomAround(viewPort.getCenterX, viewPort.getCenterY, factor)
 
   val tableI = new TableInput({() => App.ui.controller.model.getTraceModel})
-    
-  val plotter = new Plotter(tableI,plotI,App.ui.jPlotI)
+
+  val plotter = new Plotter(tableI,plotI)
   plotter.start()
   
   def toggleSimulator(b:Boolean) = {

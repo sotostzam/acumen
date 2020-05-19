@@ -3,7 +3,6 @@ package acumen.interpreters.enclosure.affine
 import acumen.interpreters.enclosure.Interval._
 import acumen.interpreters.enclosure.Types._
 import acumen.interpreters.enclosure.Util._
-import org.jfree.ui.ApplicationFrame
 import java.awt.Color
 import acumen.interpreters.enclosure.Interval
 import acumen.interpreters.enclosure.Box

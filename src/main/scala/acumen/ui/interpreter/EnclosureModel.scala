@@ -187,8 +187,6 @@ class EnclosureModel extends InterpreterModel {
 
   override def getPlotModel = {syncData(); data.plotModel}
   override def getTraceModel = {syncData(); data.traceModel}
-
-  override def getPlotter = new acumen.ui.plot.EnclosurePlotter()
 }
 
 class EnclosureTraceData(val data: Iterable[UnivariateAffineEnclosure], endTime: Double)
